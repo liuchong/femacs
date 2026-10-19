@@ -2819,3 +2819,8 @@ pub unsafe extern "C" fn w32_reset_fringes ()
       bt += 1;
     }
 }
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+const _: () = core::assert! (core::mem::size_of::<face> () == 296);
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+const _: () = core::assert! (core::mem::offset_of! (face, font) == 232);

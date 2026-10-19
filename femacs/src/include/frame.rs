@@ -282,6 +282,24 @@ pub struct frame
   pub conversion: text_conversion_state,                   // 743
   pub z_order: c_int,
 }
+/* Android layout, measured with the NDK's clang (`-Xclang -fdump-record-layouts-complete`) on the
+   reference `frame.h` with this target's `config.h.android`.  Every `#[cfg]` above has to agree
+   with the configuration for these to hold, which is exactly what makes them a gate: a wrong arm
+   shifts every field after it and the first casualty is `output_data.android`, the pointer
+   `android_new_font` writes `FRAME_FONTSET` through (status 4.811).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+const _: () = core::assert! (core::mem::offset_of! (frame, param_alist) == 88);
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+const _: () = core::assert! (core::mem::offset_of! (frame, face_cache) == 240);
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+const _: () = core::assert! (core::mem::offset_of! (frame, image_cache) == 248);
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+const _: () = core::assert! (core::mem::offset_of! (frame, desired_matrix) == 296);
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+const _: () = core::assert! (core::mem::offset_of! (frame, current_matrix) == 304);
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+const _: () = core::assert! (core::mem::offset_of! (frame, output_data) == 520);
+
 
 // frame.h 327-541: the flag run C packs into four-byte units, in C's declaration order (the
 // `bits1`/`bits2` fields above are its two units).  C's compiler inserts a window system's own
@@ -1507,6 +1525,12 @@ pub fn fset_buried_buffer_list (f: *mut frame, val: Lisp_Object) { unsafe { (*f)
 pub fn fset_condemned_scroll_bars (f: *mut frame, val: Lisp_Object) { unsafe { (*f).condemned_scroll_bars = val; } }
 #[inline(always)]
 pub fn fset_face_hash_table (f: *mut frame, val: Lisp_Object) { unsafe { (*f).face_hash_table = val; } }
+/// C 774-779: `#if defined (HAVE_WINDOW_SYSTEM)` `INLINE void fset_parent_frame (struct frame *f,
+/// Lisp_Object val)` - the member exists on both targets, but C only defines the setter where the
+/// window system does, and this target's units call it there (status 4.751).
+#[cfg (feature = "have_window_system")]
+#[inline(always)]
+pub fn fset_parent_frame (f: *mut frame, val: Lisp_Object) { unsafe { (*f).parent_frame = val; } }
 #[inline(always)]
 pub fn fset_focus_frame (f: *mut frame, val: Lisp_Object) { unsafe { (*f).focus_frame = val; } }
 #[inline(always)]
@@ -1631,6 +1655,41 @@ pub const z_group_above_suspended: z_group = 3;
    path, whose pointee the including unit brings in (the `MOUSE_HL_INFO` shape above).
    C: #define FRAME_IMAGE_CACHE(F) ((F)->image_cache)  */
 macro_rules! FRAME_IMAGE_CACHE { ($f:expr) => { unsafe { (*$f).image_cache } }; }
+
+/* frame.h 1664-1685: `IMAGE_FROM_ID` and `IMAGE_OPT_FROM_ID`, inside C 1664's
+   `#ifdef HAVE_WINDOW_SYSTEM` - dead on the frozen target (its configuration leaves the macro
+   undefined) and live on Android, whose unit imported `IMAGE_OPT_FROM_ID` from `dispnew.rs`'s
+   declaration with no definition anywhere in the link (status 4.751).  `FRAME_IMAGE_CACHE` is
+   C's `(F)->image_cache`, a `struct image_cache *`; the mirror holds the member as `*mut c_void`
+   (frame.h 289-292, its own window-system arm), so the cast is the field's type, not a design
+   choice.  */
+#[cfg (feature = "have_window_system")]
+pub mod frame_image_accessors
+{
+  use super::*;
+
+  /// C 1666-1673: `INLINE struct image * IMAGE_FROM_ID (struct frame *f, int id)`
+  #[inline(always)]
+  pub fn IMAGE_FROM_ID (f: *mut frame, id: c_int) -> *mut image
+  {
+    let cache: *mut image_cache = unsafe { FRAME_IMAGE_CACHE! (f) as *mut image_cache };
+    eassert! (0 <= id && (id as ptrdiff_t) < unsafe { (*cache).used });
+    unsafe { *(*cache).images.add (id as usize) }
+  }
+
+  /// C 1677-1683: `INLINE struct image * IMAGE_OPT_FROM_ID (struct frame *f, int id)` - "Value is
+  /// a pointer to the image with id ID on frame F, or null if no image with that id exists."
+  #[inline(always)]
+  pub fn IMAGE_OPT_FROM_ID (f: *mut frame, id: c_int) -> *mut image
+  {
+    let cache: *mut image_cache = unsafe { FRAME_IMAGE_CACHE! (f) as *mut image_cache };
+    let used: ptrdiff_t = unsafe { (*cache).used };
+    eassume! (0 <= used);
+    if 0 <= id && (id as ptrdiff_t) < used { unsafe { *(*cache).images.add (id as usize) } }
+    else { core::ptr::null_mut () }
+  }
+}
+
 
 /* frame.h 929: `#define WINDOW_FRAME(w) ((w)->frame)`.  The name is a *function* here, not a
    macro: `window.rs` 406 already owns the macro spelling (its units call `WINDOW_FRAME! (w)`),
@@ -2005,8 +2064,7 @@ pub struct MonitorInfo
 unsafe extern "C" {
   /// C: extern void free_monitors (struct MonitorInfo *monitors, int n_monitors);
   pub fn free_monitors (monitors: *mut MonitorInfo, n_monitors: c_int);
-  /// C: extern Lisp_Object make_monitor_attribute_list (struct MonitorInfo *monitors, int n_monitors, int primary_monitor, Lisp_Object monitor_frames, const char *source);
-  pub fn make_monitor_attribute_list (monitors: *mut MonitorInfo, n_monitors: c_int,
-                                      primary_monitor: c_int, monitor_frames: Lisp_Object,
-                                      source: *const c_char) -> Lisp_Object;
+  /* C's `make_monitor_attribute_list` is declared here and defined in frame.c; the port's
+     definition (`frame.rs`) is the item, so a declaration beside it would be `E0428` - the same
+     ruling `fset_parent_frame` and `IMAGE_OPT_FROM_ID` needed (status 4.751/4.755).  */
 }

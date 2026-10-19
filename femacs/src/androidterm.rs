@@ -6386,6 +6386,8 @@ static mut edit_sem: sem_t = sem_t { __opaque: [0; 16] };              // C 5032
 #[repr(C, align(4))]
 pub struct sem_t { pub __opaque: [c_uchar; 16] }                 // bionic, sizeof 16 align 4
 #[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+const _: () = core::assert! (core::mem::size_of::<sem_t> () == 16);
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
 unsafe extern "C" {
   /* int sem_timedwait (sem_t *, const struct timespec *);  */
   pub fn sem_timedwait (sem: *mut sem_t, abs_timeout: *const timespec) -> c_int;
@@ -8970,6 +8972,14 @@ pub unsafe extern "C" fn syms_of_androidterm ()
    its C symbol (status 4.721).  */
 #[unsafe(no_mangle)]
 pub static mut Vandroid_wait_for_event_timeout: Lisp_Object = lisp_h_Qnil ();
+/* C's `globals` object defines every `DEFVAR` variable for every target; the port carries each
+   one in the unit whose `DEFVAR` is live, and for Android that unit is this file (C's own
+   definitions are `androidterm.c`/`androidfns.c`).  Without the carriers the Android unit
+   imported them from the X units, which are not in this target's link set, and the shared library
+   could not be loaded (status 4.750).  */
+#[unsafe(no_mangle)] pub static mut x_use_underline_position_properties: bool = false;   // x-use-underline-position-properties
+#[unsafe(no_mangle)] pub static mut x_underline_at_descent_line: bool = false;   // x-underline-at-descent-line
+
 
   Fprovide (Qandroid (), Qnil ());                                      // C 6994
 
@@ -9078,3 +9088,8 @@ pub unsafe extern "C" fn mark_androidterm ()
   if ! x_display_list.is_null ()                                        // C 7115
     { mark_object ((*x_display_list).color_map); }                      // C 7116
 }
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+const _: () = core::assert! (core::mem::size_of::<face> () == 296);
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+const _: () = core::assert! (core::mem::offset_of! (face, font) == 232);

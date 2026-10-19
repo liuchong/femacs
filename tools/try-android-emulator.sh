@@ -6,7 +6,7 @@
 #   * the package, manifest and dex are acceptable to Android   -> `adb install` succeeds,
 #     `am start -W` reports Status: ok, and the process is started;
 #   * the native side really runs                               -> the app's *own* log carries the
-#     port's `setEmacsParams` line ("Initializing femacs ..."), the `EmacsThread` line that calls
+#     port's `setEmacsParams` line ("Initializing Emacs, where filesDir = ..."), the `EmacsThread` line that calls
 #     `initEmacs`, and none of the ways that load can fail (a linker error, an
 #     `UnsatisfiedLinkError`, a tombstone).
 #
@@ -34,6 +34,8 @@ SDK=${ANDROID_SDK_ROOT:-${ANDROID_HOME:-$HOME/Library/Android/sdk}}
 # then waited for a device that was never going to appear (measured 4.704).
 AVD=${AVD_NAME:-femacs-arm64-api36}
 APK=${APK_PATH:-}
+DEVICE_LIBS=${DEVICE_LIBS:-/tmp/femacs-device-libs}
+SO="$REPO/build/port/aarch64-linux-android/libemacs.so"
 MEM=${EMULATOR_MEMORY_MIB:-2048}
 # The runner samples the *sum* of the owned tree's RSS (run.py 251-256), so the emulator's own
 # helper processes (a software renderer, crashpad) count towards the budget as well.  `swiftshader_
@@ -57,8 +59,11 @@ if [ "$PLAN" = 1 ]; then
   echo "  2. adb wait-for-device (bounded: the emulator's own process must stay alive); poll sys.boot_completed"
   echo "  3. adb install -r $APK   (must carry lib/arm64-v8a/libemacs.so)"
   echo "  4. adb logcat -c; adb shell am start -W -n org.femacs/.EmacsActivity"
-  echo "  5. app assertions: pid of org.femacs, the port's setEmacsParams line, the EmacsThread"
-  echo "     line that calls initEmacs, native stderr lines, and no linker/tombstone failure"
+  echo "  5. app assertions: the pid over a 20 s window (alive at the end), the app's own log's"
+  echo "     setEmacsParams line, the EmacsThread line that calls initEmacs, native stderr lines,"
+  echo "     no linker/tombstone failure, and the device still booted afterwards"
+  echo "  6. pull the device's own libraries (DT_NEEDED) into $DEVICE_LIBS and read the import"
+  echo "     table against them: what the delivery device provides, not what API 21's stubs do"
   exit 0
 fi
 if [ "${FEMACS_EMULATOR_BUDGET_OK:-0}" != 1 ]; then
@@ -111,27 +116,91 @@ while [ "$("$ADB" shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')" !=
 done
 echo "boot: completed (avd $AVD, guest ${MEM} MiB)"
 
-"$ADB" install -r "$APK" 2>&1 | tail -2
-echo "install: exit $?"
+# `install -r` is not enough: a *different* signing key leaves the old package in place, adb
+# prints the failure and exits non-zero, and the launch below then runs the package that was
+# already installed - a reading about a binary nobody built this session (measured 4.749: the run
+# reported `install: exit 0` because the status came from `tail`, and the logcat it analysed was
+# the previous session's library).  Uninstall first, check the exit status itself, and then assert
+# that the library on the device is the one this tree built.
+"$ADB" uninstall org.femacs >/dev/null 2>&1
+# The status has to come from `adb install` itself: piping it into `tail` made `$?` the pipe's,
+# so a failed install still read as success (status 4.778).
+INSTALL_OUT=$("$ADB" install "$APK" 2>&1)
+printf '%s\n' "$INSTALL_OUT" | tail -2
+case "$INSTALL_OUT" in
+  *Success*) : ;;
+  *) echo "install: failed; nothing was launched" >&2; exit 3 ;;
+esac
+if [ -f "$SO" ]; then
+  LOCAL_SO_MD5=$(md5 -q "$SO" 2>/dev/null || md5sum "$SO" 2>/dev/null | cut -d' ' -f1)
+  # Ask the package manager where it put the package instead of guessing the `/data/app` layout:
+  # the `~~hash==` form made the old glob read an empty md5 (status 4.778).
+  DEVICE_APK=$("$ADB" shell pm path org.femacs | tr -d '\r' | sed -n 's/^package://p' | head -1)
+  DEVICE_SO=$(printf '%s' "$DEVICE_APK" | sed 's#/base.apk$#/lib/arm64/libemacs.so#')
+  DEVICE_SO_MD5=$("$ADB" shell "md5sum '$DEVICE_SO' 2>/dev/null" \
+                    | tr -d '\r' | awk '{print $1}' | head -1)
+  if [ -n "$LOCAL_SO_MD5" ] && [ "$LOCAL_SO_MD5" != "$DEVICE_SO_MD5" ]; then
+    echo "install: the device's libemacs.so is not this build's ($DEVICE_SO_MD5 vs $LOCAL_SO_MD5)" >&2
+    exit 3
+  fi
+  echo "install: ok, libemacs.so on the device matches this build ($LOCAL_SO_MD5)"
+fi
 
 "$ADB" logcat -c 2>/dev/null
 echo "== launch =="
 "$ADB" shell am start -W -n org.femacs/.EmacsActivity 2>&1 | sed 's/^/  /' | head -6
-sleep 6
 
 echo "== app =="
-PID=$("$ADB" shell pidof org.femacs 2>/dev/null | tr -d '\r')
-if [ -n "$PID" ]; then
-  echo "   process:  org.femacs pid $PID (still alive after the launch)"
+# One `pidof` a few seconds after `am start` is not an assertion about the native side: the
+# activity starts `EmacsThread`, which calls `initEmacs` **in that thread**, so the process can be
+# alive at 6 s and gone at 20 s, with the single snapshot deciding the verdict.  Sample it over a
+# 20 s window and require it to be alive at the end, then read the app's *own* log instead of the
+# whole buffer.
+PID=""
+DIED_AFTER=""
+i=0
+while [ $i -lt 10 ]; do
+  P=$("$ADB" shell pidof org.femacs 2>/dev/null | tr -d '\r')
+  if [ -n "$P" ]; then
+    PID=$P
+  elif [ -n "$PID" ]; then
+    DIED_AFTER=$((i * 2))
+    break
+  fi
+  i=$((i + 1))
+  sleep 2
+done
+if [ -n "$DIED_AFTER" ]; then
+  echo "   process:  org.femacs (pid $PID) died after ~${DIED_AFTER}s of the launch" >&2
+  status=1
+  PID=""
+elif [ -n "$PID" ]; then
+  echo "   process:  org.femacs pid $PID, alive for the whole 20 s window"
 else
   echo "   process:  org.femacs is NOT running" >&2
   status=1
 fi
-"$ADB" logcat -d 2>/dev/null > "$LAUNCH_LOG"
+# The app's own log, not every process's: the previous form read the whole buffer, so a line from
+# another app could satisfy the greps below.
+if [ -n "$PID" ]; then
+  "$ADB" logcat -d --pid="$PID" 2>/dev/null > "$LAUNCH_LOG"
+else
+  "$ADB" logcat -d 2>/dev/null > "$LAUNCH_LOG"
+fi
+# A `FATAL EXCEPTION` in the activity takes the *device* back to a fresh boot in some images, and
+# then every reading below is about a different run than the one that was launched.
+if [ "$("$ADB" shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')" != "1" ]; then
+  echo "   device:   sys.boot_completed is no longer 1 - the device restarted during the launch" >&2
+  status=1
+else
+  echo "   device:   still booted (sys.boot_completed=1)"
+fi
 
 # The port's own native init.  `setEmacsParams` is the JNI entry point the shell calls first, so
-# this line exists only if `libemacs.so` was loaded *and* the Rust entry point ran.
-if grep -q "Initializing femacs" "$LAUNCH_LOG"; then
+# this line exists only if `libemacs.so` was loaded *and* the Rust entry point ran.  The text read
+# is the service's own line, quoted as data: "Initializing " + the package string + ", where
+# filesDir = ..." (Kotlin's EmacsService.onCreate).
+if grep -q "Initializing " "$LAUNCH_LOG"; then
   echo "   native:   setEmacsParams line present (libemacs.so loaded and the Rust entry point ran)"
 else
   echo "   native:   no setEmacsParams line - the native side did not run" >&2
@@ -161,4 +230,35 @@ else
   echo "   none"
 fi
 echo "   full log: $LAUNCH_LOG"
+
+echo "== what the device itself provides =="
+# The import reading this project has been quoting is against the NDK's *stub* libraries for API
+# 21, which is a proxy: bionic added `posix_spawn` at 28 and `backtrace` at 33, so a name can read
+# as missing while the device that runs the APK exports it.  Pull the device's own libraries and
+# read the same import table against them - that is the reading the emulator judgement needs.
+rm -rf "$DEVICE_LIBS"; mkdir -p "$DEVICE_LIBS"
+BIN_DIR=$(ls -d "$SDK"/ndk/*/toolchains/llvm/prebuilt/*/bin 2>/dev/null | tail -1)
+if [ -n "$BIN_DIR" ] && [ -f "$SO" ]; then
+  needed=$("$BIN_DIR/llvm-readelf" -d "$SO" 2>/dev/null | sed -n 's/.*Shared library: \[\(.*\)\]/\1/p' | sort -u)
+  echo "  DT_NEEDED: $(echo $needed | tr '\n' ' ')"
+  for name in $needed; do
+    for dir in /apex/com.android.runtime/lib64/bionic /system/lib64 /system/lib64/hw; do
+      if "$ADB" shell "[ -f $dir/$name ]" 2>/dev/null; then
+        if "$ADB" pull "$dir/$name" "$DEVICE_LIBS/$name" >/dev/null 2>&1; then
+          echo "  pulled $dir/$name"
+          break
+        fi
+      fi
+    done
+  done
+  if [ -n "$(ls -A "$DEVICE_LIBS" 2>/dev/null)" ]; then
+    echo "  reading against the device's own libraries:"
+    python3 "$REPO/tools/check-android-imports.py" --so "$SO" --providers-dir "$DEVICE_LIBS" 2>&1 \
+      | sed 's/^/   /' | tail -25
+  else
+    echo "  nothing could be pulled from the device; no device reading was taken" >&2
+  fi
+else
+  echo "  no NDK llvm-readelf or no $SO: no device reading was taken" >&2
+fi
 exit "$status"

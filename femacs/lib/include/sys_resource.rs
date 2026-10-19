@@ -38,7 +38,12 @@ const _: () = core::assert! (std::mem::offset_of! (rlimit, rlim_max) == 8);
 const _: () = core::assert! (std::mem::size_of::<rlim_t> () == 8);
 
 /* RLIMIT_AS is 5 on this target (the macro table records the same value).  */
+#[cfg (not (feature = "have_android"))]
 pub const RLIMIT_AS: c_int = 5;
+/* Measured on the delivery target (bionic), status 4.781: the frozen arm above is
+   the Darwin value and the two platforms number this one differently. */
+#[cfg (feature = "have_android")]
+pub const RLIMIT_AS: c_int = 9;
 /* RLIMIT_DATA is 2; vm-limit.c's `#ifndef RLIMIT_AS` fallback would have used it, but the
    target defines RLIMIT_AS, so that branch is dead.  */
 pub const RLIMIT_DATA: c_int = 2;
@@ -49,7 +54,12 @@ unsafe extern "C" {
 }
 
 // getrlimit's resource selector kqueue.c uses (RLIMIT_NOFILE = 8 on the frozen target).
+#[cfg (not (feature = "have_android"))]
 pub const RLIMIT_NOFILE: c_int = 8;
+/* Measured on the delivery target (bionic), status 4.781: the frozen arm above is
+   the Darwin value and the two platforms number this one differently. */
+#[cfg (feature = "have_android")]
+pub const RLIMIT_NOFILE: c_int = 7;
 
 /// `<sys/resource.h>`'s `RLIM_INFINITY` for `rlim_t`: the all-ones value (measured with clang:
 /// `printf ("%llu", (unsigned long long) RLIM_INFINITY)` -> 9223372036854775807).

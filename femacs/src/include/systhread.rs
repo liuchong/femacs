@@ -31,15 +31,25 @@ include!("../../lib/include/attribute.rs");   // C 22: `#include <attribute.h>` 
 #[derive (Copy, Clone)]
 #[repr (C, align (4))]
 pub struct pthread_mutex_t { pub __opaque: [c_uchar; 40] }       // bionic: sizeof 40, align 4
+#[cfg (all (feature = "threads_enabled", feature = "have_pthread", feature = "have_android"))]
+const _: () = core::assert! (core::mem::size_of::<pthread_mutex_t> () == 40);
 #[cfg (all (feature = "threads_enabled", feature = "have_pthread",
             not (feature = "have_android")))]
 #[derive (Copy, Clone)]
 #[repr (C, align (8))]
 pub struct pthread_mutex_t { pub __opaque: [c_uchar; 64] }       // clang: sizeof 64, align 8
+#[cfg (all (feature = "threads_enabled", feature = "have_pthread",
+            not (feature = "have_android")))]
+const _: () = core::assert! (core::mem::size_of::<pthread_mutex_t> () == 64);
 #[cfg (all (feature = "threads_enabled", feature = "have_pthread", feature = "have_android"))]
 #[derive (Copy, Clone)]
 #[repr (C, align (4))]
 pub struct pthread_cond_t { pub __opaque: [c_uchar; 48] }        // bionic: sizeof 48, align 4
+#[cfg (all (feature = "threads_enabled", feature = "have_pthread",
+            not (feature = "have_android")))]
+const _: () = core::assert! (core::mem::size_of::<pthread_cond_t> () == 48);
+#[cfg (all (feature = "threads_enabled", feature = "have_pthread", feature = "have_android"))]
+const _: () = core::assert! (core::mem::size_of::<pthread_cond_t> () == 48);
 #[cfg (all (feature = "threads_enabled", feature = "have_pthread",
             not (feature = "have_android")))]
 #[derive (Copy, Clone)]
@@ -49,20 +59,30 @@ pub struct pthread_cond_t { pub __opaque: [c_uchar; 48] }        // clang: sizeo
 #[derive (Copy, Clone)]
 #[repr (C, align (4))]
 pub struct pthread_attr_t { pub __opaque: [c_uchar; 56] }        // bionic: sizeof 56, align 4
+#[cfg (all (feature = "threads_enabled", feature = "have_pthread", feature = "have_android"))]
+const _: () = core::assert! (core::mem::size_of::<pthread_attr_t> () == 56);
 #[cfg (all (feature = "threads_enabled", feature = "have_pthread",
             not (feature = "have_android")))]
 #[derive (Copy, Clone)]
 #[repr (C, align (8))]
 pub struct pthread_attr_t { pub __opaque: [c_uchar; 64] }        // clang: sizeof 64
+#[cfg (all (feature = "threads_enabled", feature = "have_pthread",
+            not (feature = "have_android")))]
+const _: () = core::assert! (core::mem::size_of::<pthread_attr_t> () == 64);
 #[cfg (all (feature = "threads_enabled", feature = "have_pthread", feature = "have_android"))]
 #[derive (Copy, Clone)]
 #[repr (C, align (4))]
 pub struct pthread_mutexattr_t { pub __opaque: [c_uchar; 8] }    // bionic: sizeof 8, align 4
+#[cfg (all (feature = "threads_enabled", feature = "have_pthread", feature = "have_android"))]
+const _: () = core::assert! (core::mem::size_of::<pthread_mutexattr_t> () == 8);
 #[cfg (all (feature = "threads_enabled", feature = "have_pthread",
             not (feature = "have_android")))]
 #[derive (Copy, Clone)]
 #[repr (C, align (8))]
 pub struct pthread_mutexattr_t { pub __opaque: [c_uchar; 16] }   // clang: sizeof 16
+#[cfg (all (feature = "threads_enabled", feature = "have_pthread",
+            not (feature = "have_android")))]
+const _: () = core::assert! (core::mem::size_of::<pthread_mutexattr_t> () == 16);
 /* bionic spells `pthread_t` as `long` (8 bytes, align 8) where clang's is an opaque pointer;
    `android.rs` carried the NDK's spelling of the three types this mirror already declares with
    the frozen target's shapes, and the two copies collided (`3 x E0428` on `android.c`, measured),
@@ -70,9 +90,14 @@ pub struct pthread_mutexattr_t { pub __opaque: [c_uchar; 16] }   // clang: sizeo
    cond_t 48 and pthread_t 8 both match the NDK).  */
 #[cfg (all (feature = "threads_enabled", feature = "have_pthread", feature = "have_android"))]
 pub type pthread_t = c_long;                                     // bionic: sizeof 8
+#[cfg (all (feature = "threads_enabled", feature = "have_pthread", feature = "have_android"))]
+const _: () = core::assert! (core::mem::size_of::<pthread_t> () == 8);
 #[cfg (all (feature = "threads_enabled", feature = "have_pthread",
             not (feature = "have_android")))]
 pub type pthread_t = *mut c_void;                                // clang: sizeof 8 (an opaque pointer)
+#[cfg (all (feature = "threads_enabled", feature = "have_pthread",
+            not (feature = "have_android")))]
+const _: () = core::assert! (core::mem::size_of::<pthread_t> () == 8);
 #[cfg (all (feature = "threads_enabled", feature = "have_pthread"))]
 pub const PTHREAD_MUTEX_ERRORCHECK: c_int = 1;                   // clang: 1
 #[cfg (all (feature = "threads_enabled", feature = "have_pthread"))]

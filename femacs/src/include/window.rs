@@ -146,6 +146,13 @@ pub struct window
 
   /* The last point, mark and line-number bookkeeping.  */
   pub last_point: ptrdiff_t,
+  /* C 288-303: `#ifdef HAVE_TEXT_CONVERSION` - live on Android (`HAVE_TEXT_CONVERSION` 1,
+     docs/baseline/config/android-arm64.json 295) and dead on the frozen darwin target.  Its
+     absence was the `struct window` shortfall of 8 bytes (docs/ports/layout-gaps.md): every
+     field from `last_mark` on sat 8 bytes early, and a `struct window` is one Lisp
+     pseudovector whose size C takes from `sizeof` (status 4.812).  */
+  #[cfg (feature = "have_text_conversion")]
+  pub ephemeral_last_point: ptrdiff_t,
   pub last_mark: ptrdiff_t,
   pub base_line_number: ptrdiff_t,
   pub base_line_pos: ptrdiff_t,
@@ -916,3 +923,17 @@ pub enum window_body_unit
     WINDOW_BODY_IN_PIXELS,
     WINDOW_BODY_IN_REMAPPED_CHARS,
   }
+
+/* Android layout, measured with the NDK's clang on the reference headers with this target's
+   `config.h.android` (`-Xclang -fdump-record-layouts-complete`; method in
+   docs/baseline/android-layout-probe.md).  These records are the ones the redisplay allocates from
+   `sizeof`, so a wrong size is a heap overflow rather than a compile error - which is exactly the
+   failure class the first frame hits (status 4.812).  */
+
+/* `struct window` on Android, measured with the NDK's clang (docs/ports/layout-gaps.md).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+const _: () = core::assert! (core::mem::size_of::<window> () == 544);
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+const _: () = core::assert! (core::mem::offset_of! (window, last_mark) == 368);
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+const _: () = core::assert! (core::mem::offset_of! (window, window_end_bytepos) == 536);

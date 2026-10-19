@@ -896,12 +896,17 @@ DEFUN! ("window-pixel-height", Fwindow_pixel_height, Swindow_pixel_height, 0, 1,
 pub struct face
 {
   pub lface: [Lisp_Object; LFACE_VECTOR_SIZE as usize],
-  _pad0: [u8; 216 - 160],
+  /* `font` is at 216 in a non-window-system build and at **232** with the `gc`/`stipple` block
+     (168/176); Android has that block, so 216 read `underline_color` as the font pointer
+     (docs/ports/layout-gaps.md, status 4.816).  */
+  _pad0: [u8; 216 - 160 + (if cfg! (feature = "have_window_system") { 16 } else { 0 })],
   pub font: *mut font,
   _pad1: [u8; 280 - 224],
 }
-const _: () = core::assert! (std::mem::offset_of! (face, font) == 216);
-const _: () = core::assert! (std::mem::size_of::<face> () == 280);
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+const _: () = core::assert! (std::mem::offset_of! (face, font) == 232);
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+const _: () = core::assert! (std::mem::size_of::<face> () == 296);
 
 #[repr(C)]
 pub struct face_cache

@@ -500,20 +500,27 @@ pub fn LISP_WORD_TAG (tag: Lisp_Word_tag) -> Lisp_Word_tag {
     tag << 0
 }
 
+/* C 863-872 adds the tag to `(EMACS_UINT) (p)` / `(uintptr_t) (p)` - *unsigned* arithmetic, so it
+   wraps.  `overflow-checks=on` makes Rust's `+` a panic instead, which is how the first Android
+   font listing died inside `TAG_PTR_INITIALLY` (status 4.791).  */
 #[inline(always)]
 pub fn TAG_PTR (tag: Lisp_Type, p: *mut c_void) -> Lisp_Object {
-    ((p as EMACS_UINT) + LISP_WORD_TAG (tag as Lisp_Word_tag)) as Lisp_Object
+    (p as EMACS_UINT).wrapping_add (LISP_WORD_TAG (tag as Lisp_Word_tag)) as Lisp_Object
 }
 
 #[inline(always)]
 pub fn TAG_PTR_INITIALLY (tag: Lisp_Type, p: EMACS_INT) -> Lisp_Object {
-    ((p as EMACS_UINT) + LISP_WORD_TAG (tag as Lisp_Word_tag)) as Lisp_Object
+    (p as EMACS_UINT).wrapping_add (LISP_WORD_TAG (tag as Lisp_Word_tag)) as Lisp_Object
 }
 
-/// XUNTAG (a, tag, ctype): the C macro subtracts the tag and casts.
+/// XUNTAG (a, tag, ctype): C 750-752 does the subtraction in `uintptr_t`
+/// (`(uintptr_t) XLP (a) - (uintptr_t) {LISP_WORD_TAG (type) & UINTPTR_MAX}`), i.e. unsigned and
+/// wrapping.  The signed form this mirror first carried panicked under `overflow-checks=on` on
+/// the targets whose heap lives high in the address space (bionic's `0xb400...` pointers are
+/// negative as `isize`), which is how the first Android font listing died (status 4.791).
 macro_rules! XUNTAG {
     ($a:expr, $tag:expr, $ctype:ty) => {
-        (($a as isize) - ($tag as isize)) as *mut $ctype
+        (($a as usize).wrapping_sub ($tag as usize) as *mut $ctype)
     };
 }
 include!("comp.rs");        // C 2168: `#include "comp.h"`, after `eassert`/`XUNTAG`
@@ -1068,11 +1075,36 @@ pub type bits_word = usize;
 pub const BITS_PER_BITS_WORD: usize = SIZE_WIDTH as usize;   // lisp.h 137, the live branch
 pub const BITS_WORD_MAX: usize = usize::MAX;
 pub const BOOL_VECTOR_BITS_PER_CHAR: usize = 8;
-// Types the reference gets from <setjmp.h> and keyboard.h; the sizes come from
-// the frozen C layout baseline (docs/baseline/layout/c-layout-darwin-arm64.tsv:
-// sizeof jmp_buf 192, sizeof sigjmp_buf 196).
+/* Types the reference gets from <setjmp.h> and keyboard.h.  The host target's sizes are the
+   frozen C layout baseline's (`docs/baseline/layout/c-layout-darwin-arm64.tsv`: `jmp_buf` 192,
+   `sigjmp_buf` 196), and the Android target's are its own `<setjmp.h>`'s, measured with the NDK
+   for aarch64-linux-android21 (`char a[sizeof (jmp_buf)]; char b[sizeof (sigjmp_buf)];` in an
+   object `llvm-nm -S` then reads: 256 and 264).  The difference is not academic: `command_loop`
+   stores bionic's whole `sigjmp_buf` into `return_to_command_loop`, and a 196-byte mirror let
+   `sigsetjmp` write 68 bytes past it, into the statics that follow - `Vauto_save_timeout` is the
+   next one in the linked layout, and the first GC then aborted on a value whose type tag is
+   unused (status 4.789).  */
+#[cfg (not (feature = "have_android"))]
 pub type jmp_buf = [u8; 192];
+#[cfg (feature = "have_android")]
+pub type jmp_buf = [u8; 256];
+#[cfg (not (feature = "have_android"))]
 pub type sigjmp_buf = [u8; 196];
+#[cfg (feature = "have_android")]
+pub type sigjmp_buf = [u8; 264];
+
+/* The two records are read and written by the C library itself, so their sizes are the target's
+   contract, not a detail: a host-sized `sigjmp_buf` let `command_loop`'s `sigsetjmp` clobber the
+   statics that follow `return_to_command_loop` on the device (status 4.788).  These assertions
+   are what `tools/check-android-layout.py` reads back against the NDK.  */
+#[cfg (not (feature = "have_android"))]
+const _: () = core::assert! (core::mem::size_of::<jmp_buf> () == 192);
+#[cfg (not (feature = "have_android"))]
+const _: () = core::assert! (core::mem::size_of::<sigjmp_buf> () == 196);
+#[cfg (feature = "have_android")]
+const _: () = core::assert! (core::mem::size_of::<jmp_buf> () == 256);
+#[cfg (feature = "have_android")]
+const _: () = core::assert! (core::mem::size_of::<sigjmp_buf> () == 264);
 
 // lisp.h 3570's `typedef struct kboard KBOARD;` is not declared here: the tag's definition
 // lives in keyboard.h, and a mirror may only name a type it declares itself or reaches through
@@ -2994,9 +3026,16 @@ pub const bool_header_size: isize = std::mem::offset_of!(Lisp_Bool_Vector, data)
 pub const word_size: isize = std::mem::size_of::<Lisp_Object>() as isize;
 
 
+/// C 2015-2016: `((sizeof (type) - header_size + word_size - 1) / word_size)` - `size_t`
+/// arithmetic, so it wraps rather than traps when `size` is smaller than `header_size`; the
+/// signed form panicked under `overflow-checks=on` instead of producing C's value.
 #[inline(always)]
 pub const fn VECSIZE (size: usize) -> isize {
-    (size as isize - header_size + word_size - 1) / word_size
+    (size
+     .wrapping_sub (header_size as usize)
+     .wrapping_add (word_size as usize)
+     .wrapping_sub (1)
+     / word_size as usize) as isize
 }
 
 #[macro_export]

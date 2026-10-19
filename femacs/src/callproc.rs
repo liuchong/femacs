@@ -57,6 +57,7 @@
          unsafe_op_in_unsafe_fn, unused_parens, unreachable_code, unused_assignments)]
 
 include!("include/config.rs");                 // C 22: `#include <config.h>`
+include!("include/epaths.rs");                    // C: `<epaths.h>` (generated; see epaths.in's android arm)
 include!("include/conf_post.rs");               // C 22's AH_BOTTOM `#include <conf_post.h>`: `VFORK ()`
 include!("../lib/include/errno.rs");           // C 23: `#include <errno.h>`
 include!("../lib/include/stdlib.rs");          // C 24: `#include <stdlib.h>`
@@ -274,24 +275,19 @@ const _SC_ARG_MAX: c_int = 1;
 /// <config.h>/<paths.h>: `#define NULL_DEVICE "/dev/null"` (the frozen macro table).
 const NULL_DEVICE: &std::ffi::CStr = c"/dev/null";
 
-/// <epaths.h> (the frozen build's `build/emacs-ref/src/epaths.h`, measured; the file is
-/// generated, so the port keeps the values).  `PATH_GAME` is the null pointer there.
-const PATH_DATA: &std::ffi::CStr = c"/usr/local/share/emacs/32.0.50/etc";
-const PATH_DOC: &std::ffi::CStr = c"/usr/local/share/emacs/32.0.50/etc";
-const PATH_EXEC: &std::ffi::CStr =
-  c"/usr/local/libexec/emacs/32.0.50/aarch64-apple-darwin25.6.0";
-const PATH_INFO: &std::ffi::CStr = c"/usr/local/share/info";
-const PATH_DUMPLOADSEARCH: &std::ffi::CStr =
-  c"/Users/liu/projects/src/github.com/liuchong/femacs/build/emacs-ref/../../emacs/lisp";
-const PATH_GAME: *const c_char = std::ptr::null ();
+/* `<epaths.h>` is the `include/epaths.rs` mirror now (one landing point, P-26): its values are
+   per-target - the installed tree on Darwin, the `assets/` pseudo-paths on Android - so a frozen
+   copy here is exactly the defect status 4.784 measured on the device.  */
 
 /// C 45-47's `#define USABLE_POSIX_SPAWN 1` (the frozen target has `<spawn.h>`,
 /// `posix_spawn`, `posix_spawnattr_setflags`, `posix_spawn_file_actions_addchdir` and
 /// `HAVE_DECL_POSIX_SPAWN_SETSID == 1`, and it is not Haiku).
+#[cfg (not (feature = "not_usable_posix_spawn"))]
 const USABLE_POSIX_SPAWN: bool = true;
-/// C 49-50's `#else` arm; clang rejects it (feature never set).  `USABLE_POSIX_SPAWN` has
-/// two definitions in C, so the extractor compares presence, not the body.
-#[cfg (feature = "no_usable_posix_spawn")]
+/// C 49-50's `#else` arm, taken on Android: bionic's `<spawn.h>` has `posix_spawn` and neither
+/// `posix_spawnattr_setflags` nor a `..._addchdir` spelling, so C's condition is false there.
+/// `xtask` derives the feature from the same configuration keys, both polarities.
+#[cfg (feature = "not_usable_posix_spawn")]
 const USABLE_POSIX_SPAWN: bool = false;
 
 /// <config.h 120>: `#define DIRECTORY_SEP '/'`.
@@ -1515,6 +1511,9 @@ unsafe fn child_setup (in_: c_int, out: c_int, err: c_int, new_argv: *mut *mut c
 /* Set up ACTIONS and ATTRIBUTES for `posix_spawn'.  Return an error
    number.  */
 
+// C 1325's `#if USABLE_POSIX_SPAWN` encloses both helpers; on Android C compiles neither, so the
+// port must not define or call them there (status 4.749).
+#[cfg (not (feature = "not_usable_posix_spawn"))]
 unsafe fn emacs_posix_spawn_init_actions (actions: *mut posix_spawn_file_actions_t,
 					  std_in: c_int, std_out: c_int, std_err: c_int,
 					  cwd: *const c_char) -> c_int
@@ -1541,10 +1540,15 @@ unsafe fn emacs_posix_spawn_init_actions (actions: *mut posix_spawn_file_actions
 
       /* Haiku appears to have linkable posix_spawn_file_actions_chdir,
 	 but it always fails.  So use the _np function instead.  */
-      #[cfg (feature = "no_posix_spawn_addchdir")]
-      { error = posix_spawn_file_actions_addchdir_np (actions, cwd); }
-      #[cfg (not (feature = "no_posix_spawn_addchdir"))]
+      // C 1358: `#if defined HAVE_POSIX_SPAWN_FILE_ACTIONS_ADDCHDIR && !defined HAIKU`, whose
+      // `#else` (C 1360-1362) is the `_np` spelling.  `no_posix_spawn_addchdir` was a gate no
+      // configuration produces, so Android took the first arm and imported the name.
+      #[cfg (all (not (feature = "not_have_posix_spawn_file_actions_addchdir"),
+                  not (feature = "have_haiku")))]
       { error = posix_spawn_file_actions_addchdir (actions, cwd); }
+      #[cfg (not (all (not (feature = "not_have_posix_spawn_file_actions_addchdir"),
+                       not (feature = "have_haiku"))))]
+      { error = posix_spawn_file_actions_addchdir_np (actions, cwd); }
       if error != 0
 	{ break 'out; }
       break 'out;
@@ -1555,6 +1559,7 @@ unsafe fn emacs_posix_spawn_init_actions (actions: *mut posix_spawn_file_actions
   return error;
 }
 
+#[cfg (not (feature = "not_usable_posix_spawn"))]
 unsafe fn emacs_posix_spawn_init_attributes (attributes: *mut posix_spawnattr_t,
 					     oldset: *const sigset_t) -> c_int
 {
@@ -1648,13 +1653,25 @@ pub unsafe extern "C" fn emacs_spawn (mut newpid: *mut pid_t, mut std_in: c_int,
      doesn't yet support setting up pseudoterminals, so we fall back
      to `vfork' if we're supposed to use a pseudoterminal.  */
 
+  /* C 1417-1425 is `#if USABLE_POSIX_SPAWN` around the flag and `#else bool use_posix_spawn =
+     false;`: the condition is *derived* (`callproc.c` 37-50 - `<spawn.h>`, `posix_spawn`,
+     `posix_spawnattr_setflags`, one of the two `..._addchdir` spellings, `HAVE_DECL_POSIX_SPAWN_
+     SETSID == 1`, not Haiku), bionic answers no to it, and `xtask` derives the same feature from
+     the same configuration keys.  Ungated, the Android build compiled this path and imported
+     seven names the device does not provide (status 4.749).  */
+  #[cfg (not (feature = "not_usable_posix_spawn"))]
   let use_posix_spawn: bool = pty_name.is_null ();
+  #[cfg (feature = "not_usable_posix_spawn")]
+  let use_posix_spawn: bool = false;
 
   /* PORTING.md 1.5: Darwin's two spawn types are pointers, so C's
      uninitialized declarations start at null.  */
+  #[cfg (not (feature = "not_usable_posix_spawn"))]
   let mut actions: posix_spawn_file_actions_t = std::ptr::null_mut ();
+  #[cfg (not (feature = "not_usable_posix_spawn"))]
   let mut attributes: posix_spawnattr_t = std::ptr::null_mut ();
 
+  #[cfg (not (feature = "not_usable_posix_spawn"))]
   if use_posix_spawn
     {
       /* Initialize optional attributes before blocking. */
@@ -1676,6 +1693,7 @@ pub unsafe extern "C" fn emacs_spawn (mut newpid: *mut pid_t, mut std_in: c_int,
 
   'fork_done: loop
     {
+      #[cfg (not (feature = "not_usable_posix_spawn"))]
       if use_posix_spawn
 	{
 	  vfork_error = posix_spawn (&raw mut pid, *argv, &raw const actions,
@@ -2127,15 +2145,15 @@ pub unsafe extern "C" fn make_environment_block (current_dir: Lisp_Object) -> *m
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn init_callproc_1 ()
 {
-  Vdata_directory = decode_env_path (c"EMACSDATA".as_ptr (), PATH_DATA.as_ptr (), false);
+  Vdata_directory = decode_env_path (c"EMACSDATA".as_ptr (), PATH_DATA (), false);
   Vdata_directory = Ffile_name_as_directory (Fcar (Vdata_directory));
 
-  Vdoc_directory = decode_env_path (c"EMACSDOC".as_ptr (), PATH_DOC.as_ptr (), false);
+  Vdoc_directory = decode_env_path (c"EMACSDOC".as_ptr (), PATH_DOC (), false);
   Vdoc_directory = Ffile_name_as_directory (Fcar (Vdoc_directory));
 
   /* Check the EMACSPATH environment variable, defaulting to the
      PATH_EXEC path from epaths.h.  */
-  Vexec_path = decode_env_path (c"EMACSPATH".as_ptr (), PATH_EXEC.as_ptr (), false);
+  Vexec_path = decode_env_path (c"EMACSPATH".as_ptr (), PATH_EXEC (), false);
   Vexec_directory = Ffile_name_as_directory (Fcar (Vexec_path));
   /* FIXME?  For ns, path_exec should go at the front?  */
   Vexec_path = nconc2 (decode_env_path (c"PATH".as_ptr (), std::ptr::null (), false),
@@ -2190,7 +2208,7 @@ pub unsafe extern "C" fn init_callproc ()
   if ! data_dir
     {
       let lispdir: Lisp_Object
-	= Fcar (decode_env_path (std::ptr::null (), PATH_DUMPLOADSEARCH.as_ptr (), false));
+	= Fcar (decode_env_path (std::ptr::null (), PATH_DUMPLOADSEARCH (), false));
       /* C spells these four as `AUTO_STR (...)`, an expression whose compound literal lives to
 	 the end of this block; Rust's expression form cannot do that, so they are statement
 	 forms of the same block (PORTING.md P-113 ②).  C has a fresh object for each of the four
@@ -2235,9 +2253,9 @@ pub unsafe extern "C" fn init_callproc ()
   { Vshell_file_name = build_string (if ! sh.is_null () { sh } else { c"/bin/sh".as_ptr () }); }
 
   let mut gamedir: Lisp_Object = Qnil ();
-  if ! PATH_GAME.is_null ()
+  if ! PATH_GAME ().is_null ()
     {
-      let mut cpath_game: *const c_char = PATH_GAME;
+      let mut cpath_game: *const c_char = PATH_GAME ();
       /* C 2050-2053's `#ifdef WINDOWSNT` arm.  */
       #[cfg (feature = "windowsnt")]
       {
@@ -2356,7 +2374,7 @@ pub unsafe extern "C" fn syms_of_callproc ()
 
   DEFVAR_LISP! (c"configure-info-directory", Vconfigure_info_directory,
 	       "For internal use by the build procedure only.\nThis is the name of the directory in which the build procedure installed\nEmacs's info files; the default value for `Info-default-directory-list'\nincludes this.");
-  Vconfigure_info_directory = build_string (PATH_INFO.as_ptr ());
+  Vconfigure_info_directory = build_string (PATH_INFO ());
 
   DEFVAR_LISP! (c"shared-game-score-directory", Vshared_game_score_directory,
 	       " Directory of score files for games which come with GNU Emacs.\nIf this variable is nil, then Emacs is unable to use a shared directory.  ");

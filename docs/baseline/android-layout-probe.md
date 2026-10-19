@@ -53,3 +53,27 @@ C reports (`offsetof` bisect per field), which pins the differing member exactly
 
     pthread_cond_t 48   pthread_mutex_t 40   pthread_attr_t 56
     pthread_mutexattr_t 8   pthread_condattr_t 8   pthread_t 8
+
+## `struct frame`, measured 2026-10-19 (status 4.811)
+
+    CC=$(ls ~/Library/Android/sdk/ndk/*/toolchains/llvm/prebuilt/*/bin/aarch64-linux-android21-clang | tail -1)
+    mkdir -p /tmp/andinc && cp /tmp/femacs-android-config/src/config.h.android /tmp/andinc/config.h
+    printf '#include "lisp.h"\n#include "frame.h"\n' > /tmp/probe_frame.c
+    $CC -std=gnu23 -Xclang -fdump-record-layouts-complete -fsyntax-only \
+        -include /tmp/andinc/config.h -I/tmp/andinc -Iemacs/src -Ibuild/emacs-ref/src \
+        -Ibuild/emacs-ref/lib -I/tmp/femacs-android-config/lib -Iemacs/lib /tmp/probe_frame.c
+
+(The run stops at `stdcountof.h`, which only the Android gnulib build generates; the record dump is
+still written, and `struct frame` is complete in it.)
+
+    param_alist        88
+    face_cache        240
+    image_cache       248
+    desired_matrix    296
+    current_matrix    304
+    output_data       520
+
+These six are now `const _: () = core::assert! (core::mem::offset_of! (frame, …) == N);` in
+`femacs/src/include/frame.rs` under `have_android`/`not_android_stubify`, so a `#[cfg]` arm that
+disagrees with the configuration breaks the Android build instead of shifting every later field -
+`output_data.android` is what `android_new_font` writes `FRAME_FONTSET` through.

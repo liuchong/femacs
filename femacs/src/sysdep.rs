@@ -312,7 +312,9 @@ pub struct pcred {
   pub _pad1: [u8; 8],
 }
 
+#[cfg (not (feature = "have_android"))]
 const _: () = core::assert! (std::mem::size_of::<pcred> () == 104);
+#[cfg (not (feature = "have_android"))]
 const _: () = core::assert! (std::mem::offset_of! (pcred, p_svgid) == 92);
 
 /// `<sys/proc.h>`'s `struct _ucred`, measured: `sizeof` 76, `cr_uid`@4, `cr_groups`@12
@@ -327,8 +329,11 @@ pub struct ucred {
   pub cr_groups: [gid_t; 16],
 }
 
+#[cfg (not (feature = "have_android"))]
 const _: () = core::assert! (std::mem::size_of::<ucred> () == 76);
+#[cfg (not (feature = "have_android"))]
 const _: () = core::assert! (std::mem::offset_of! (ucred, cr_uid) == 4);
+#[cfg (not (feature = "have_android"))]
 const _: () = core::assert! (std::mem::offset_of! (ucred, cr_groups) == 12);
 
 /// `<sys/proc.h>`'s `struct eproc`, measured: `sizeof` 352, `e_pcred`@16, `e_ucred`@120,
@@ -348,12 +353,26 @@ pub struct eproc {
   pub _pad3: [u8; 68],
 }
 
+#[cfg (not (feature = "have_android"))]
+#[cfg (not (feature = "have_android"))]
 const _: () = core::assert! (std::mem::size_of::<eproc> () == 352);
+#[cfg (not (feature = "have_android"))]
+#[cfg (not (feature = "have_android"))]
 const _: () = core::assert! (std::mem::offset_of! (eproc, e_pcred) == 16);
+#[cfg (not (feature = "have_android"))]
+#[cfg (not (feature = "have_android"))]
 const _: () = core::assert! (std::mem::offset_of! (eproc, e_ucred) == 120);
+#[cfg (not (feature = "have_android"))]
+#[cfg (not (feature = "have_android"))]
 const _: () = core::assert! (std::mem::offset_of! (eproc, e_ppid) == 264);
+#[cfg (not (feature = "have_android"))]
+#[cfg (not (feature = "have_android"))]
 const _: () = core::assert! (std::mem::offset_of! (eproc, e_pgid) == 268);
+#[cfg (not (feature = "have_android"))]
+#[cfg (not (feature = "have_android"))]
 const _: () = core::assert! (std::mem::offset_of! (eproc, e_tdev) == 276);
+#[cfg (not (feature = "have_android"))]
+#[cfg (not (feature = "have_android"))]
 const _: () = core::assert! (std::mem::offset_of! (eproc, e_tpgid) == 280);
 
 /// `<sys/sysctl.h>`'s `struct kinfo_proc`, measured: `sizeof` 648, `kp_proc`@0,
@@ -365,11 +384,20 @@ pub struct kinfo_proc {
   pub kp_eproc: eproc,
 }
 
+#[cfg (not (feature = "have_android"))]
 const _: () = core::assert! (std::mem::size_of::<kinfo_proc> () == 648);
+#[cfg (not (feature = "have_android"))]
 const _: () = core::assert! (std::mem::offset_of! (kinfo_proc, kp_proc) == 0);
+#[cfg (not (feature = "have_android"))]
+#[cfg (not (feature = "have_android"))]
 const _: () = core::assert! (std::mem::offset_of! (kinfo_proc, kp_eproc) == 296);
+#[cfg (not (feature = "have_android"))]
+#[cfg (not (feature = "have_android"))]
 const _: () = core::assert! (std::mem::offset_of! (kinfo_proc, kp_eproc.e_ucred.cr_uid) == 420);
+#[cfg (not (feature = "have_android"))]
+#[cfg (not (feature = "have_android"))]
 const _: () = core::assert! (std::mem::offset_of! (kinfo_proc, kp_eproc.e_pcred.p_svgid) == 404);
+#[cfg (not (feature = "have_android"))]
 const _: () = core::assert! (std::mem::offset_of! (kinfo_proc, kp_proc.p_comm) == 243);
 
 /// `<sys/param.h>`: `#define MAXPATHLEN 1024`, `#define NODEV ((dev_t) -1)` (measured).
@@ -392,8 +420,9 @@ pub const RUSAGE_SELF: c_int = 0;
 pub const PROC_PIDPATHINFO_MAXSIZE: c_int = 4096;
 pub const PROC_PIDTASKINFO: c_int = 4;
 pub const RUSAGE_INFO_CURRENT: c_int = 6;
-/// `<sys/param.h>`'s `#define NODEV ((dev_t) -1)` (measured: `dev_t` is a 4-byte unsigned).
-pub const NODEV: dev_t = -1;
+/// `<sys/param.h>`'s `#define NODEV ((dev_t) -1)` (measured: `dev_t` is a 4-byte unsigned on the
+/// host and an 8-byte one on bionic, so the constant is spelled as C's all-ones conversion).
+pub const NODEV: dev_t = (-1i64) as dev_t;   /* C's `((dev_t) -1)` */
 
 /// `<signal.h>`: `#define SA_RESTART 0x0002` (measured).
 pub const SA_RESTART: c_int = 0x0002;
@@ -3493,13 +3522,20 @@ pub unsafe extern "C" fn emacs_backtrace (backtrace_limit: c_int) {
 #[cfg_attr (feature = "have_android", unsafe(no_mangle))]
 pub unsafe fn renameat_noreplace (srcfd: c_int, src: *const c_char, dstfd: c_int,
                                   dst: *const c_char) -> c_int {
-  /* C 2382-2396: `#if HAVE_RENAMEAT2 && defined RENAME_NOREPLACE` and the `SYS_renameat2`
-     arm are dead; `#elif defined RENAME_EXCL` is live (RENAME_EXCL is 0x00000004).  */
+  /* C 2382-2396 is a four-arm chain and the arms are per *target*, so each one carries its own
+     condition instead of the frozen target's arm standing for all of them: with
+     `#elif defined RENAME_EXCL` (C 2407-2408) unconditional, the Android build imported
+     `renameatx_np` - a name bionic's `<stdio.h>` does not declare (checked in the NDK's headers)
+     and its libc does not export (the device reading lists it among the 53) - while C itself
+     compiles C 2409's `#else`, `errno = ENOSYS; return -1;`.  `RENAME_EXCL` is a *header* macro:
+     it is in the frozen target's macro table (0x00000004) and in neither the Android
+     configuration nor bionic, which is why `tools/gen-android-config.sh` measures it with the
+     target's own compiler and the arm is gated on C's macro: `feature = "not_rename_excl"` is
+     exactly `#ifndef RENAME_EXCL`, and the frozen target sets no features at all.  */
+  #[cfg (not (feature = "not_rename_excl"))]
   {
     return renameatx_np (srcfd, src, dstfd, dst, RENAME_EXCL);
   }
-  // C 2382-2396's two earlier arms and its `#else` arm, all dead on this target and carried
-  // inside the function (P-51).
   #[cfg (feature = "have_renameat2")]
   {
     return renameat2 (srcfd, src, dstfd, dst, RENAME_NOREPLACE);
@@ -3509,7 +3545,10 @@ pub unsafe fn renameat_noreplace (srcfd: c_int, src: *const c_char, dstfd: c_int
     /* Linux kernel 3.15 (2014) or later, with glibc 2.27 (2018) or earlier.  */
     return syscall (SYS_renameat2, srcfd, src, dstfd, dst, RENAME_NOREPLACE);
   }
-  #[cfg (feature = "no_rename_excl")]
+  // C 2409-2416's `#else` - the arm Android and any other target without one of the three
+  // features above takes; `no_rename_excl` was a gate no configuration produces.
+  #[cfg (all (feature = "not_rename_excl", not (feature = "have_renameat2"),
+              not (feature = "sys_renameat2")))]
   {
     #[cfg (feature = "windowsnt")]
     {
@@ -3537,13 +3576,18 @@ unsafe extern "C" {
 }
 
 /// `<stdio.h>`: `int renameatx_np (int, const char *, int, const char *, unsigned int);`
-/// — Darwin's entry C 2388 calls.
+/// — Darwin's entry C 2388 calls, gated with the arm that calls it: bionic declares neither the
+/// entry nor `RENAME_EXCL` (measured with the target's own preprocessor), and the device does not
+/// export it.
+#[cfg (not (feature = "not_rename_excl"))]
 unsafe extern "C" {
   pub fn renameatx_np (fromfd: c_int, from: *const c_char, tofd: c_int, to: *const c_char,
                        flags: c_uint) -> c_int;
 }
 
-/// `<stdio.h>`: `#define RENAME_EXCL 0x00000004` (the frozen macro table).
+/// `<stdio.h>`: `#define RENAME_EXCL 0x00000004` (the frozen macro table); gated with the arm
+/// that reads it, so the Android unit carries neither name - C's own Android unit does not.
+#[cfg (not (feature = "not_rename_excl"))]
 pub const RENAME_EXCL: c_uint = 0x00000004;
 
 /* C 2399-2405: `#if !defined HAVE_NTGUI && !(defined HAVE_ANDROID && !defined
@@ -4253,9 +4297,17 @@ pub struct speed_struct {
   pub internal: speed_t,
 }
 
+#[cfg (not (feature = "have_android"))]
 const _: () = core::assert! (std::mem::size_of::<speed_struct> () == 16);
+/* Two `speed_t`: 8 + 8 on the host, 4 + 4 where bionic's `speed_t` is `unsigned int`
+   (status 4.795).  */
+#[cfg (feature = "have_android")]
+const _: () = core::assert! (std::mem::size_of::<speed_struct> () == 8);
 const _: () = core::assert! (std::mem::offset_of! (speed_struct, value) == 0);
+#[cfg (not (feature = "have_android"))]
 const _: () = core::assert! (std::mem::offset_of! (speed_struct, internal) == 8);
+#[cfg (feature = "have_android")]
+const _: () = core::assert! (std::mem::offset_of! (speed_struct, internal) == 4);
 
 static speeds: [speed_struct; 21] =
   [
@@ -5637,13 +5689,23 @@ pub unsafe extern "C" fn system_process_attributes (pid: Lisp_Object) -> Lisp_Ob
   return attrs;
 }
 
-// C 4267-4517: `#elif defined DARWIN_OS` — live.
+// C 4267-4517: `#elif defined DARWIN_OS`.
 /// C 4269-4270's two macros, in C's own expression form (`__MAC_OS_X_VERSION_MIN_REQUIRED`
 /// is 260000 on the frozen target, so both are true and both arms of C 4378/4447 are the
 /// live ones).
 pub const HAVE_RUSAGE_INFO_CURRENT: bool = __MAC_OS_X_VERSION_MIN_REQUIRED >= 101000;
 pub const HAVE_PROC_PIDINFO: bool = __MAC_OS_X_VERSION_MIN_REQUIRED >= 1050;
 
+/* The variant had no gate, so it was the *only* one the Android build compiled: C takes 4542's
+   fallback there, and this body's `proc_pidinfo`/`proc_pid_rusage`/`mach_timebase_info`/`devname`
+   are four of the names the delivery device does not export (status 4.749,
+   docs/baseline/android-gaps.tsv).  `DARWIN_OS` is a platform condition, not a configure macro -
+   the frozen configuration carries neither it nor `__FreeBSD__` - so it is spelled with
+   `target_os`, the same way `list_system_processes` above does it, and the negations carry C's
+   `#elif` exclusivity.  */
+#[cfg (all (not (feature = "gnu_linux"), not (feature = "cygwin"),
+            not (all (feature = "solaris2", feature = "have_procfs")),
+            not (feature = "freebsd"), not (feature = "openbsd"), any (target_os = "macos")))]
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn system_process_attributes (pid: Lisp_Object) -> Lisp_Object {
   let mut proc_id: c_int = 0;
@@ -5906,9 +5968,16 @@ pub const SIDL: c_int = 1;
 /* The WINDOWSNT implementation is in w32.c.
    The MSDOS implementation is in dosfns.c.
    The Haiku implementation is in haiku.c.  */
-// C 4517-4525: `#elif !defined (WINDOWSNT) && !defined (MSDOS) && !defined (HAIKU)` — dead
-// (clang's chain takes the DARWIN_OS arm); carried.
-#[cfg (feature = "no_tty_process_attributes")]
+// C 4539-4548: `#elif !defined (WINDOWSNT) && !defined (MSDOS) && !defined (HAIKU)` - dead on the
+// frozen target (clang's chain takes the DARWIN_OS arm) and **live on Android**: the port had it
+// behind `no_tty_process_attributes`, which no configuration emits, so the Android build compiled
+// the Darwin body instead of this one (status 4.749).  The condition is C's, with the chain's
+// earlier arms negated the way an `#elif` means them.
+#[cfg (all (not (feature = "gnu_linux"), not (feature = "cygwin"),
+            not (all (feature = "solaris2", feature = "have_procfs")),
+            not (feature = "freebsd"), not (feature = "openbsd"),
+            not (target_os = "macos"),
+            not (feature = "windowsnt"), not (feature = "msdos"), not (feature = "have_haiku")))]
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn system_process_attributes (pid: Lisp_Object) -> Lisp_Object {
   return Qnil ();

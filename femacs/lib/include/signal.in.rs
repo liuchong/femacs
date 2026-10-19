@@ -120,7 +120,12 @@ pub const NSIG: c_int = 32;
 
 /* C 148-153: "Maximum size of a signal name returned by sig2str(), including the terminating NUL
    byte" - live (the `#ifndef` does not fire: the SDK has no `SIG2STR_MAX`).  */
+#[cfg (not (feature = "have_android"))]
 pub const SIG2STR_MAX: c_int = 5 + 1 + 10 + 1 + 2;
+/* Measured on the delivery target (bionic), status 4.781: the frozen arm above is
+   the Darwin value and the two platforms number this one differently. */
+#[cfg (feature = "have_android")]
+pub const SIG2STR_MAX: c_int = 32;
 
 /* C 155-170: `sig2str`.  Measured `#if 1` / `# if !0` (generated 704-705): `@GNULIB_SIG2STR@` is 1
    and `@HAVE_SIG2STR@` is 0, so C 157-158's `_GL_FUNCDECL_SYS` **is** the live declaration.  */
@@ -257,10 +262,20 @@ macro_rules! sa_handler { () => { _sa_func._sa_handler }; }
 macro_rules! sa_sigaction { () => { _sa_func._sa_sigaction }; }
 
 #[cfg (feature = "gnulib_sigaction")]
+#[cfg (not (feature = "have_android"))]
 pub const SA_RESETHAND: c_int = 1;
+/* Measured on the delivery target (bionic), status 4.781: the frozen arm above is
+   the Darwin value and the two platforms number this one differently. */
+#[cfg (feature = "have_android")]
+pub const SA_RESETHAND: c_int = 2147483648;
 
 #[cfg (feature = "gnulib_sigaction")]
+#[cfg (not (feature = "have_android"))]
 pub const SA_RESTART: c_int = 4;
+/* Measured on the delivery target (bionic), status 4.781: the frozen arm above is
+   the Darwin value and the two platforms number this one differently. */
+#[cfg (feature = "have_android")]
+pub const SA_RESTART: c_int = 268435456;
 
 #[cfg (feature = "gnulib_sigaction")]
 pub const GNULIB_defined_struct_sigaction: core::ffi::c_int = 1;
@@ -272,4 +287,9 @@ macro_rules! sa_sigaction { () => { sa_handler }; }
 
 /* C 519-523: "Some systems don't have SA_NODEFER." - **live**: the SDK has no `SA_NODEFER`
    (measured), so C's fallback is the ported text.  Note the dead arm above also spells it (2).  */
+#[cfg (not (feature = "have_android"))]
 pub const SA_NODEFER: c_int = 0;
+/* Measured on the delivery target (bionic), status 4.781: the frozen arm above is
+   the Darwin value and the two platforms number this one differently. */
+#[cfg (feature = "have_android")]
+pub const SA_NODEFER: c_int = 1073741824;

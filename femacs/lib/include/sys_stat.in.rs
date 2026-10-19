@@ -59,6 +59,7 @@ macro_rules! _GL_ATTRIBUTE_NOTHROW {
    second half of this header already defined the type").  */
 pub const GNULIB_defined_struct_stat: c_int = 1;
 
+#[cfg (not (feature = "have_android"))]
 /// The frozen target's `struct stat` (144 bytes, 8-byte alignment; layouts measured above).
 #[repr(C)]
 #[derive(Clone, Copy)]
@@ -105,20 +106,84 @@ pub struct stat
   pub st_ctime: time_t,
 }
 
-const _: () = core::assert! (std::mem::size_of::<stat> () == 144);
-const _: () = core::assert! (std::mem::offset_of! (stat, st_dev) == 0);
-const _: () = core::assert! (std::mem::offset_of! (stat, st_mode) == 4);
-const _: () = core::assert! (std::mem::offset_of! (stat, st_nlink) == 6);
+/// C's `<sys/stat.h>` differs per target, and `struct stat` is written by the C library itself, so
+/// the record has to be the target's.  The host's is above (144 bytes); bionic's arm64 record is
+/// 128 bytes with a different order entirely, measured with the NDK for aarch64-linux-android21
+/// (`char a[sizeof (struct stat)]; char b[offsetof (struct stat, st_size)];` … read back with
+/// `llvm-nm -S`: size 128, `st_ino` 8, `st_mode` 16, `st_nlink` 20, `st_uid` 24, `st_gid` 28,
+/// `st_rdev` 32, `st_size` 48, `st_blksize` 56, `st_blocks` 64, `st_atim` 72, `st_mtim` 88,
+/// `st_ctim` 104).  A host-shaped record made every `stat`-based decision on the device read
+/// another field's bytes (status 4.794).  */
+#[cfg (feature = "have_android")]
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct stat
+{
+  pub st_dev: dev_t,          /* 0 */
+  pub st_ino: ino_t,          /* 8 */
+  pub st_mode: mode_t,        /* 16 */
+  pub st_nlink: nlink_t,      /* 20 */
+  pub st_uid: uid_t,          /* 24 */
+  pub st_gid: gid_t,          /* 28 */
+  pub st_rdev: dev_t,         /* 32 */
+  pub __pad1: u64,            /* 40 */
+  pub st_size: off_t,         /* 48 */
+  pub st_blksize: c_int,      /* 56 (bionic spells this field `int`, not `blksize_t`) */
+  pub __pad2: c_int,          /* 60 */
+  pub st_blocks: blkcnt_t,    /* 64 */
+  pub st_atim: timespec,      /* 72 */
+  pub st_mtim: timespec,      /* 88 */
+  pub st_ctim: timespec,      /* 104 */
+  pub __unused4: c_uint,      /* 120 */
+  pub __unused5: c_uint,      /* 124 */
+}
+
+#[cfg (feature = "have_android")]
+const _: () = core::assert! (std::mem::size_of::<stat> () == 128);
+#[cfg (feature = "have_android")]
 const _: () = core::assert! (std::mem::offset_of! (stat, st_ino) == 8);
+#[cfg (feature = "have_android")]
+const _: () = core::assert! (std::mem::offset_of! (stat, st_mode) == 16);
+#[cfg (feature = "have_android")]
+const _: () = core::assert! (std::mem::offset_of! (stat, st_nlink) == 20);
+#[cfg (feature = "have_android")]
+const _: () = core::assert! (std::mem::offset_of! (stat, st_size) == 48);
+#[cfg (feature = "have_android")]
+const _: () = core::assert! (std::mem::offset_of! (stat, st_blocks) == 64);
+#[cfg (feature = "have_android")]
+const _: () = core::assert! (std::mem::offset_of! (stat, st_mtim) == 88);
+#[cfg (feature = "have_android")]
+const _: () = core::assert! (std::mem::offset_of! (stat, st_ctim) == 104);
+
+#[cfg (not (feature = "have_android"))]
+const _: () = core::assert! (std::mem::size_of::<stat> () == 144);
+#[cfg (not (feature = "have_android"))]
+const _: () = core::assert! (std::mem::offset_of! (stat, st_dev) == 0);
+#[cfg (not (feature = "have_android"))]
+const _: () = core::assert! (std::mem::offset_of! (stat, st_mode) == 4);
+#[cfg (not (feature = "have_android"))]
+const _: () = core::assert! (std::mem::offset_of! (stat, st_nlink) == 6);
+#[cfg (not (feature = "have_android"))]
+const _: () = core::assert! (std::mem::offset_of! (stat, st_ino) == 8);
+#[cfg (not (feature = "have_android"))]
 const _: () = core::assert! (std::mem::offset_of! (stat, st_uid) == 16);
+#[cfg (not (feature = "have_android"))]
 const _: () = core::assert! (std::mem::offset_of! (stat, st_gid) == 20);
+#[cfg (not (feature = "have_android"))]
 const _: () = core::assert! (std::mem::offset_of! (stat, st_rdev) == 24);
+#[cfg (not (feature = "have_android"))]
 const _: () = core::assert! (std::mem::offset_of! (stat, st_atimespec) == 32);
+#[cfg (not (feature = "have_android"))]
 const _: () = core::assert! (std::mem::offset_of! (stat, st_mtimespec) == 48);
+#[cfg (not (feature = "have_android"))]
 const _: () = core::assert! (std::mem::offset_of! (stat, st_ctimespec) == 64);
+#[cfg (not (feature = "have_android"))]
 const _: () = core::assert! (std::mem::offset_of! (stat, st_birthtimespec) == 80);
+#[cfg (not (feature = "have_android"))]
 const _: () = core::assert! (std::mem::offset_of! (stat, st_size) == 96);
+#[cfg (not (feature = "have_android"))]
 const _: () = core::assert! (std::mem::offset_of! (stat, st_blocks) == 104);
+#[cfg (not (feature = "have_android"))]
 const _: () = core::assert! (std::mem::offset_of! (stat, st_blksize) == 112);
 
 /* The mode bits (the frozen target's <sys/stat.h>, measured above).  */

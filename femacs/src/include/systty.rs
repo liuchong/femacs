@@ -36,7 +36,12 @@ pub struct emacs_tty
   pub main: termios,
 }
 
+#[cfg (not (feature = "have_android"))]
 const _: () = core::assert! (std::mem::size_of::<emacs_tty> () == 72);
+/* `emacs_tty` is C's `struct termios` alone, so the record follows the target's: 36 bytes where
+   bionic's `struct termios` is that (status 4.795).  */
+#[cfg (feature = "have_android")]
+const _: () = core::assert! (std::mem::size_of::<emacs_tty> () == 36);
 
 pub mod systty_decls {
   use super::*;

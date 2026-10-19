@@ -56,6 +56,12 @@ include!("include/termhooks.rs");              // C 35: `#include "termhooks.h"`
 include!("include/cm.rs");                     // C 31: `#include "cm.h"`
 include!("include/window.rs");                 // C 36: `#include "window.h"`
 include!("include/frame.rs");                  // C 34: `#include "frame.h"`
+/* C's `IMAGE_OPT_FROM_ID` is an `INLINE` function in frame.h (1664-1685, the window-system
+   arm), so the header's mirror owns the body and this unit reads it from there: it used to
+   declare an external one, which left the Android library importing a symbol nothing
+   defined (status 4.751).  */
+#[cfg (feature = "have_window_system")]
+use crate::frame_image_accessors::IMAGE_OPT_FROM_ID;
 include!("include/keyboard.rs");               // C 33: `#include "keyboard.h"`
 include!("include/commands.rs");               // C 37: `#include "commands.h"`
 include!("include/disptab.rs");                // C 38: `#include "disptab.h"`
@@ -180,7 +186,7 @@ unsafe fn add_window_display_history (w: *mut window, msg: *const c_char)
   let tick: uintmax_t = history_tick;
   history_tick += 1;
   snprintf (buf, core::mem::size_of_val (&(*core::ptr::addr_of! (redisplay_history))[0].trace),
-	    concat! ("%", PRIuMAX! (), ": window %p %s\n%s").as_ptr () as *const c_char,
+	    concat! ("%", PRIuMAX! (), ": window %p %s\n%s", "\0" ).as_ptr () as *const c_char,
 	    tick,
 	    ptr,
 	    if BUFFERP ((*w).contents)
@@ -207,7 +213,7 @@ unsafe fn add_frame_display_history (f: *mut frame, paused_p: bool)
 
   let tick: uintmax_t = history_tick;
   history_tick += 1;
-  sprintf (buf, concat! ("%", PRIuMAX! (), ": update frame %p%s").as_ptr () as *const c_char,
+  sprintf (buf, concat! ("%", PRIuMAX! (), ": update frame %p%s", "\0" ).as_ptr () as *const c_char,
 	   tick,
 	   ptr, if paused_p { c" ***paused***".as_ptr () } else { c"".as_ptr () });
 }
@@ -3628,10 +3634,11 @@ const _: () = core::assert! (core::mem::offset_of! (redisplay_interface, fix_ove
 #[repr(C)]
 pub struct face
 {
-  _prefix: [u8; 176],
+  _prefix: [u8; 176 + (if cfg! (feature = "have_window_system") { 16 } else { 0 })],
   pub background: c_ulong,
 }
-const _: () = core::assert! (core::mem::offset_of! (face, background) == 176);
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+const _: () = core::assert! (core::mem::offset_of! (face, background) == 192);
 
 #[repr(C)]
 pub struct face_cache
@@ -6978,9 +6985,6 @@ unsafe extern "C" {
   /// C: dispextern.h 3615-3616: `void move_it_to (struct it *, ptrdiff_t, int, int, int, int);`
   fn move_it_to (it: *mut it, to_charpos: ptrdiff_t, to_x: c_int, to_y: c_int,
                  to_vpos: c_int, op: c_int);
-  /// C: dispextern.h 3556: `void *bidi_shelve_cache (void);` — see above.
-  /// C: frame.h 1677: `struct image *IMAGE_OPT_FROM_ID (struct frame *, int);`
-  fn IMAGE_OPT_FROM_ID (f: *mut frame, id: c_int) -> *mut c_void;
 }
 
 /* dispextern.h 3613: `extern bool mouse_prefer_closest_glyph;` — owned by this unit and
@@ -7014,7 +7018,7 @@ unsafe extern "C" {
   let mut string: Lisp_Object;
   let mut row: *mut glyph_row;
   #[cfg (feature = "have_window_system")]
-  let mut img: *mut c_void = core::ptr::null_mut ();   // C 7015: reassigned at 7125/7249/7352
+  let mut img: *mut image = core::ptr::null_mut ();   // C 7015: reassigned at 7125/7249/7352
   let mut x0: c_int; let x1: c_int; let mut to_x: c_int; let mut it_vpos: c_int;
   let mut itdata: *mut c_void = core::ptr::null_mut ();
 
@@ -7248,7 +7252,7 @@ unsafe extern "C" {
 	  {
 	  if glyph_bits! (type, *glyph) == IMAGE_GLYPH
 	    {
-	      let img: *mut c_void;
+	      let img: *mut image;
 	      img = IMAGE_OPT_FROM_ID (WINDOW_XFRAME! (w), (*glyph).u.img_id);
 	      if !img.is_null ()
 		{
@@ -7351,7 +7355,7 @@ unsafe extern "C" {
 	  {
 	  if glyph_bits! (type, *glyph) == IMAGE_GLYPH
 	    {
-	      let img: *mut c_void;
+	      let img: *mut image;
 	      img = IMAGE_OPT_FROM_ID (WINDOW_XFRAME! (w), (*glyph).u.img_id);
 	      if !img.is_null ()
 		{ *object = (*(img as *mut image)).spec; }

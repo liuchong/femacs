@@ -123,22 +123,33 @@ unsafe extern "C" {
   pub fn hbfont_combining_capability (font: *mut font) -> Lisp_Object;
 }
 
-/* `struct dirent`'s record: C 21's `<dirent.h>` reaches it through the frozen
-   `build/emacs-ref/lib/dirent.h`, and `lib/include/dirent.in.rs`/`dirent.rs` carry the calls and
-   the opaque `DIR` but not the record (their own note says so) - the `asset-directory-tool.rs`
-   44-60 shape.  Measured with the configuration's clang: `sizeof` 1048, `d_ino`@0, `d_seekoff`@8,
-   `d_reclen`@16, `d_namlen`@18, `d_type`@20, `d_name`@21.  */
+/* `struct dirent` for this target (C 21's `<dirent.h>`; the mirror carries the calls, not the
+   record).  `src/sfntfont-android.c` is Android-only, so the record is bionic's, measured with the
+   NDK: `sizeof` 280, `d_ino`@0, `d_off`@8, `d_reclen`@16, `d_type`@18, `d_name`@19 - the host's
+   1048-byte shape made every name read from the wrong offset (status 4.803).  */
 #[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
 #[repr(C)]
+#[derive (Clone, Copy)]
 pub struct dirent
 {
-  pub d_ino: u64, pub d_seekoff: u64, pub d_reclen: u16, pub d_namlen: u16, pub d_type: u8,
-  pub d_name: [c_char; 1024],
+  pub d_ino: u64,                                                      // C: `ino_t d_ino`
+  pub d_off: i64,                                                      // C: `off64_t d_off`
+  pub d_reclen: c_ushort,                                              // C: `unsigned short`
+  pub d_type: c_uchar,                                                 // C: `unsigned char`
+  pub d_name: [c_char; 256],                                           // C: `char d_name[256]`
 }
 #[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
-const _: () = core::assert! (std::mem::size_of::<dirent> () == 1048);
+const _: () = core::assert! (std::mem::size_of::<dirent> () == 280);
 #[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
-const _: () = core::assert! (std::mem::offset_of! (dirent, d_name) == 21);
+const _: () = core::assert! (std::mem::offset_of! (dirent, d_ino) == 0);
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+const _: () = core::assert! (std::mem::offset_of! (dirent, d_off) == 8);
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+const _: () = core::assert! (std::mem::offset_of! (dirent, d_reclen) == 16);
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+const _: () = core::assert! (std::mem::offset_of! (dirent, d_type) == 18);
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+const _: () = core::assert! (std::mem::offset_of! (dirent, d_name) == 19);
 
 /* `android.h` 340-342's `ANDROID_DELETE_LOCAL_REF` expands to a `<jni.h>` vtable read.  The mirror
    records it as an excluded macro whose premise ("`JNINativeInterface` has no mirror") predates
@@ -890,7 +901,9 @@ DEFUN! ("android-enumerate-fonts", Fandroid_enumerate_fonts,
 			   system_font_directories[i as usize]);
 
       if dir.is_null ()
-	{ continue; }
+	{
+	  continue;
+	}
 
       loop
 	{

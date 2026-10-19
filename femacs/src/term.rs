@@ -324,7 +324,10 @@ pub struct face
   pub _pad_lface: [u8; 160],            // 1789-1794: `Lisp_Object lface[LFACE_VECTOR_SIZE]`
   pub id: c_int,                        // 1795, offset 160
   pub _pad_id: [u8; 4],
-  pub foreground: c_ulong,              // 1816, offset 168
+  /* dispextern.h 1797-1811: `gc` and `stipple` exist in a window-system build and push every
+     later member by sixteen bytes; Android has them (status 4.816).  */
+  pub _pad_ws: [u8; if cfg! (feature = "have_window_system") { 16 } else { 0 }],
+  pub foreground: c_ulong,              // 1816, offset 168 (184 with the block)
   pub background: c_ulong,              // 1819, offset 176
   pub underline_color: c_ulong,         // 1823, offset 184
   pub _pad_mid: [u8; 48],               // 1824-1839: overline/strike/box colours … box widths
@@ -351,11 +354,11 @@ pub fn face_underline (f: *const face) -> face_underline_type
 {
   unsafe { (((*f).bits [0] & FACE_UNDERLINE_MASK) >> FACE_UNDERLINE_SHIFT) as face_underline_type }
 }
-const _: () = core::assert! (std::mem::size_of::<face> () == 280);
-const _: () = core::assert! (std::mem::offset_of! (face, foreground) == 168);
-const _: () = core::assert! (std::mem::offset_of! (face, background) == 176);
-const _: () = core::assert! (std::mem::offset_of! (face, underline_color) == 184);
-const _: () = core::assert! (std::mem::offset_of! (face, bits) == 240);
+const _: () = core::assert! (std::mem::size_of::<face> () == 280 + (if cfg! (feature = "have_window_system") { 16 } else { 0 }));
+const _: () = core::assert! (std::mem::offset_of! (face, foreground) == 168 + (if cfg! (feature = "have_window_system") { 16 } else { 0 }));
+const _: () = core::assert! (std::mem::offset_of! (face, background) == 176 + (if cfg! (feature = "have_window_system") { 16 } else { 0 }));
+const _: () = core::assert! (std::mem::offset_of! (face, underline_color) == 184 + (if cfg! (feature = "have_window_system") { 16 } else { 0 }));
+const _: () = core::assert! (std::mem::offset_of! (face, bits) == 240 + (if cfg! (feature = "have_window_system") { 16 } else { 0 }));
 
 /* dispextern.h 1998-2010's `FACE_FROM_ID`/`FACE_FROM_ID_OR_NULL` (frame.h 1643-1666) and
    frame.h 1379's `FRAME_FACE_CACHE`.  */

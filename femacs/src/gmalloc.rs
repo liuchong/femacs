@@ -92,19 +92,19 @@ include!("../lib/include/stdint.in.rs");        // C 42: `#include <stdint.h>` (
 #[cfg (all (feature = "no_system_malloc", not (feature = "doug_lea_malloc")))]
 include!("../lib/include/unistd.in.rs");        // C 43: `#include <unistd.h>` (getpagesize)
 
-/* C 45-47: `#ifdef USE_PTHREAD` / `# include <pthread.h>` / `#endif`.  The header has no file in
-   the reference tree and no mirror, so its surface stands here (P-88 (1), the `src/systhread.rs`
-   128-172 shape; this machine's <pthread.h> measured: `pthread_mutex_t` 64 bytes, align 8).  */
+/* C 45-47: `#ifdef USE_PTHREAD` / `# include <pthread.h>`.  The record and its initializer are
+   the system's and differ per target: bionic's `pthread_mutex_t` is 40 bytes (align 4) with an
+   all-zero initializer, darwin's is 64 with the `0x32AAABA7` sentinel.  Using the host shape on
+   Android made `_malloc_mutex` start out "destroyed" (status 4.805).  */
+/* Both sizes are asserted, which is what turns them into rows of
+   `docs/baseline/layout/android-arm64.tsv` that `tools/check-android-layout.py` compares with the
+   NDK - the missing assertion is what let the host shape survive here (status 4.805).  */
 #[cfg (all (feature = "no_system_malloc", not (feature = "doug_lea_malloc"),
-            feature = "use_pthread"))]
-#[derive (Clone, Copy)]
-#[repr (C, align (8))]
-pub struct pthread_mutex_t { pub __sig: c_long, pub __opaque: [c_char; 56] }
-/// C: pthread.h: `struct _opaque_pthread_mutex_t { long __sig; char __opaque[56]; };`
+            feature = "use_pthread", feature = "have_android"))]
+const _: () = core::assert! (core::mem::size_of::<pthread_mutex_t> () == 40);
 #[cfg (all (feature = "no_system_malloc", not (feature = "doug_lea_malloc"),
-            feature = "use_pthread"))]
-pub const PTHREAD_MUTEX_INITIALIZER: pthread_mutex_t
-  = pthread_mutex_t { __sig: 0x32AAABA7, __opaque: [0; 56] };
+            feature = "use_pthread", not (feature = "have_android")))]
+const _: () = core::assert! (core::mem::size_of::<pthread_mutex_t> () == 64);
 #[cfg (all (feature = "no_system_malloc", not (feature = "doug_lea_malloc"),
             feature = "use_pthread"))]
 unsafe extern "C" {

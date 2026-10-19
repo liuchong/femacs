@@ -272,7 +272,7 @@ static mut this_single_command_key_start: ptrdiff_t = 0;
 
 /* C 164-172: `#ifdef HAVE_STACK_OVERFLOW_HANDLING` is live (`1`), so both members are live.  */
 #[unsafe(no_mangle)]
-pub static mut return_to_command_loop: sigjmp_buf = [0; 196];
+pub static mut return_to_command_loop: sigjmp_buf = [0; std::mem::size_of::<sigjmp_buf> ()];
 static mut recover_top_level_message: Lisp_Object = lisp_h_Qnil ();
 
 /* C 174-175.  */

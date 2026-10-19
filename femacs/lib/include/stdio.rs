@@ -102,4 +102,9 @@ pub const EOF: c_int = -1;
 /// <stdio.h>'s `#define FILENAME_MAX 1024` - **measured with clang on this target**
 /// (`printf ("%d", FILENAME_MAX)` -> 1024), not recalled; `src/msdos.c`'s DJGPP arm is the
 /// reference's only reader (status 3.479).
+#[cfg (not (feature = "have_android"))]
 pub const FILENAME_MAX: c_int = 1024;
+/* Measured on the delivery target (bionic), status 4.781: the frozen arm above is
+   the Darwin value and the two platforms number this one differently. */
+#[cfg (feature = "have_android")]
+pub const FILENAME_MAX: c_int = 4096;

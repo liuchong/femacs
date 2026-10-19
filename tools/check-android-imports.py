@@ -23,6 +23,17 @@ The measurement is differential, the way `tools/check-undef.py` is:
     directory does not have is reported as unknown rather than silently trusted;
   * **unresolved** = imports - providers.  These are names no library in the process provides.
 
+**Which provider set to read is a choice, and the two answer different questions:**
+
+  * the NDK's *stub* libraries for an API level (`--api`) answer "does bionic at API N export
+    this?" - the right question for "can this load on the oldest device the manifest allows".
+    The stubs stop at 35 in NDK 29 and the delivery device is API 36, so a name bionic added
+    after 21 (`posix_spawn`, API 28; `backtrace`, API 33) reads as unresolved there although the
+    device provides it (measured 4.749: 71 names at 21, 53 at 35);
+  * the libraries pulled off the *delivery device* (`--providers-dir`) answer "does the thing we
+    are going to run this on export it?" - the right question for the emulator judgement, and the
+    only one that is not a proxy.  `tools/try-android-emulator.sh` pulls `/system/lib64` there.
+
 Whether that *blocks loading* depends on the binding the link asked for.  With `-z now` (this
 link used to pass it) every import is eager and one missing name fails the `dlopen`; with bionic's
 default lazy binding - which is what C's own `libemacs.so` link has (`src/Makefile.in` 749-755,
@@ -91,8 +102,15 @@ def dynamic_symbols(nm: pathlib.Path, library: pathlib.Path, *, defined: bool) -
     return names
 
 
-def measure(so: pathlib.Path, api: str) -> tuple[set[str], set[str], list[str], dict[str, set[str]]]:
-    """(unresolved, provided, unknown-needed, providers-of-each-name)."""
+def measure(so: pathlib.Path, api: str,
+            providers_dir: pathlib.Path | None = None
+            ) -> tuple[set[str], set[str], list[str], dict[str, set[str]]]:
+    """(unresolved, provided, unknown-needed, providers-of-each-name).
+
+    `providers_dir` replaces the API level's stub directory with real libraries - the ones pulled
+    off the delivery device - so the reading is not a proxy for a device of a different API level.
+    Every `*.so` in it is searched, and a `DT_NEEDED` no file there answers is reported unknown.
+    """
     bin_dir = ndk_bin()
     readelf = bin_dir / "llvm-readelf"
     nm = bin_dir / "llvm-nm"
@@ -102,19 +120,36 @@ def measure(so: pathlib.Path, api: str) -> tuple[set[str], set[str], list[str], 
     text = subprocess.run([str(readelf), "-d", str(so)], capture_output=True, text=True).stdout
     needed = NEEDED.findall(text)
     imports = dynamic_symbols(nm, so, defined=False)
-    stubs = stub_dir(bin_dir, TARGET, api)
     provided: set[str] = set()
     origins: dict[str, set[str]] = {}
     unknown: list[str] = []
-    for name in needed:
-        stub = stubs / name
-        if not stub.is_file():
-            unknown.append(name)
-            continue
-        names = dynamic_symbols(nm, stub, defined=True)
-        provided |= names
-        for symbol in names:
-            origins.setdefault(symbol, set()).add(name)
+    if providers_dir is not None:
+        files = sorted(providers_dir.glob("*.so"))
+        if not files:
+            sys.exit(f"no *.so in {providers_dir}: nothing was measured")
+        by_name: dict[str, pathlib.Path] = {}
+        for path in files:
+            by_name.setdefault(path.name, path)
+        for name in needed:
+            source = by_name.get(name)
+            if source is None:
+                unknown.append(name)
+                continue
+            names = dynamic_symbols(nm, source, defined=True)
+            provided |= names
+            for symbol in names:
+                origins.setdefault(symbol, set()).add(name)
+    else:
+        stubs = stub_dir(bin_dir, TARGET, api)
+        for name in needed:
+            stub = stubs / name
+            if not stub.is_file():
+                unknown.append(name)
+                continue
+            names = dynamic_symbols(nm, stub, defined=True)
+            provided |= names
+            for symbol in names:
+                origins.setdefault(symbol, set()).add(name)
     unresolved = imports - provided
     return unresolved, imports, unknown, {n: origins.get(n, set()) for n in unresolved}
 
@@ -174,6 +209,9 @@ def main() -> int:
     ap.add_argument("--so", default=SO)
     ap.add_argument("--api", default=os.environ.get("ANDROID_NDK_API", "21"),
                     help="the API level's stub libraries (default: 21, the link's --min-api)")
+    ap.add_argument("--providers-dir", type=pathlib.Path, default=None,
+                    help="read the providers from these real *.so files (a device's /system/lib64) "
+                         "instead of the API level's stub libraries")
     ap.add_argument("--pending", default=PENDING)
     ap.add_argument("--write-pending", action="store_true")
     ap.add_argument("--json", action="store_true")
@@ -183,17 +221,20 @@ def main() -> int:
     if not so.is_file():
         sys.exit(f"{args.so} does not exist: build it first (`xtask link-shared "
                  f"{TARGET}`)")
-    unresolved, imports, unknown, origins = measure(so, args.api)
+    unresolved, imports, unknown, origins = measure(so, args.api, args.providers_dir)
     eager = binds_eagerly(so)
     path = REPO / args.pending
     if args.write_pending:
+        source = (f"the libraries pulled off the delivery device ({args.providers_dir})"
+                  if args.providers_dir else f"the API {args.api} stub libraries")
         header = ("# Names the Android `libemacs.so` imports that no library in the process\n"
-                  "# provides.  Written by `python3 tools/check-android-imports.py\n"
-                  "# --write-pending` (docs/status.md 4.707, PORTING.md P-300).  One symbol per\n"
-                  "# line, `nm` spelling.  An entry disappears when the arm that defines it is\n"
-                  "# transcribed for this target; a NEW symbol here is a defect (a misspelling,\n"
-                  "# a missing #[no_mangle], or a header mirror hard-coding another platform's\n"
-                  "# symbol).  A non-empty file means the library cannot be dlopen'ed.\n")
+                  f"# provides, read against {source}.  Written by\n"
+                  "# `python3 tools/check-android-imports.py --write-pending` (docs/status.md\n"
+                  "# 4.707/4.749, PORTING.md P-300).  One symbol per line, `nm` spelling.  An\n"
+                  "# entry disappears when the arm that defines it is transcribed for this\n"
+                  "# target; a NEW symbol here is a defect (a misspelling, a missing\n"
+                  "# #[no_mangle], or a header mirror hard-coding another platform's symbol).\n"
+                  "# A non-empty file means the library cannot be dlopen'ed.\n")
         path.write_text(header + "\n".join(sorted(unresolved)) + "\n")
         print(f"wrote {path.relative_to(REPO)}: {len(unresolved)} unresolved import(s)")
         return 0
@@ -206,7 +247,8 @@ def main() -> int:
                           "imports": len(imports), "unknown_needed": unknown}, indent=2))
         return 1 if new else 0
     if unknown:
-        print(f"check-android-imports: DT_NEEDED without a stub library, so its symbols cannot "
+        what = "a provider file" if args.providers_dir else "a stub library"
+        print(f"check-android-imports: DT_NEEDED without {what}, so its symbols cannot "
               f"be checked: {' '.join(unknown)}")
     if stale:
         print(f"check-android-imports: {len(stale)} ratchet entr"
@@ -236,8 +278,10 @@ def main() -> int:
                 print(f"  - {n:38s} {w}")
     binding = ("eager (-z now): the library will not load" if eager
                else "lazy (bionic default): it loads, and a call to a missing name faults")
+    where = (f"the providers in {args.providers_dir}" if args.providers_dir
+             else f"the API {args.api} stub libraries")
     print(f"check-android-imports: {len(imports)} import(s); {len(unresolved)} unresolved "
-          f"(0 new); binding {binding}{tail if eager else ''}")
+          f"(0 new) against {where}; binding {binding}{tail if eager else ''}")
     return 0
 
 

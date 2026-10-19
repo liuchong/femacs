@@ -6,9 +6,24 @@
 // records them.
 pub const SIGABRT: c_int = 6;
 pub const SIGALRM: c_int = 14;
+#[cfg (not (feature = "have_android"))]
 pub const SIGBUS: c_int = 10;
+/* Measured on the delivery target (bionic), status 4.781: the frozen arm above is
+   the Darwin value and the two platforms number this one differently. */
+#[cfg (feature = "have_android")]
+pub const SIGBUS: c_int = 7;
+#[cfg (not (feature = "have_android"))]
 pub const SIGCHLD: c_int = 20;
+/* Measured on the delivery target (bionic), status 4.781: the frozen arm above is
+   the Darwin value and the two platforms number this one differently. */
+#[cfg (feature = "have_android")]
+pub const SIGCHLD: c_int = 17;
+#[cfg (not (feature = "have_android"))]
 pub const SIGCONT: c_int = 19;
+/* Measured on the delivery target (bionic), status 4.781: the frozen arm above is
+   the Darwin value and the two platforms number this one differently. */
+#[cfg (feature = "have_android")]
+pub const SIGCONT: c_int = 18;
 pub const SIGEMT: c_int = 7;
 pub const SIGFPE: c_int = 8;
 pub const SIGHUP: c_int = 1;
@@ -16,22 +31,57 @@ pub const SIGILL: c_int = 4;
 pub const SIGINFO: c_int = 29;
 pub const SIGINT: c_int = 2;
 pub const SIGIOT: c_int = 6;	// = SIGABRT on this target (measured)
+#[cfg (not (feature = "have_android"))]
 pub const SIGIO: c_int = 23;
+/* Measured on the delivery target (bionic), status 4.781: the frozen arm above is
+   the Darwin value and the two platforms number this one differently. */
+#[cfg (feature = "have_android")]
+pub const SIGIO: c_int = 29;
 pub const SIGKILL: c_int = 9;
 pub const SIGPIPE: c_int = 13;
 pub const SIGPROF: c_int = 27;
 pub const SIGQUIT: c_int = 3;
 pub const SIGSEGV: c_int = 11;
+#[cfg (not (feature = "have_android"))]
 pub const SIGSTOP: c_int = 17;
+/* Measured on the delivery target (bionic), status 4.781: the frozen arm above is
+   the Darwin value and the two platforms number this one differently. */
+#[cfg (feature = "have_android")]
+pub const SIGSTOP: c_int = 19;
+#[cfg (not (feature = "have_android"))]
 pub const SIGSYS: c_int = 12;
+/* Measured on the delivery target (bionic), status 4.781: the frozen arm above is
+   the Darwin value and the two platforms number this one differently. */
+#[cfg (feature = "have_android")]
+pub const SIGSYS: c_int = 31;
 pub const SIGTERM: c_int = 15;
 pub const SIGTRAP: c_int = 5;
+#[cfg (not (feature = "have_android"))]
 pub const SIGTSTP: c_int = 18;
+/* Measured on the delivery target (bionic), status 4.781: the frozen arm above is
+   the Darwin value and the two platforms number this one differently. */
+#[cfg (feature = "have_android")]
+pub const SIGTSTP: c_int = 20;
 pub const SIGTTIN: c_int = 21;
 pub const SIGTTOU: c_int = 22;
+#[cfg (not (feature = "have_android"))]
 pub const SIGURG: c_int = 16;
+/* Measured on the delivery target (bionic), status 4.781: the frozen arm above is
+   the Darwin value and the two platforms number this one differently. */
+#[cfg (feature = "have_android")]
+pub const SIGURG: c_int = 23;
+#[cfg (not (feature = "have_android"))]
 pub const SIGUSR1: c_int = 30;
+/* Measured on the delivery target (bionic), status 4.781: the frozen arm above is
+   the Darwin value and the two platforms number this one differently. */
+#[cfg (feature = "have_android")]
+pub const SIGUSR1: c_int = 10;
+#[cfg (not (feature = "have_android"))]
 pub const SIGUSR2: c_int = 31;
+/* Measured on the delivery target (bionic), status 4.781: the frozen arm above is
+   the Darwin value and the two platforms number this one differently. */
+#[cfg (feature = "have_android")]
+pub const SIGUSR2: c_int = 12;
 pub const SIGVTALRM: c_int = 26;
 pub const SIGWINCH: c_int = 28;
 pub const SIGXCPU: c_int = 24;

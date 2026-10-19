@@ -54,8 +54,14 @@ include!("include/float.in.rs");
 unsafe extern "C" {
   /* void *malloc (size_t size);  */
   pub fn malloc (size: usize) -> *mut c_void;
-  /* void *realloc (void *ptr, size_t size);  */
+  /* void *realloc (void *ptr, size_t size);  -  gnulib's generated header redirects this name
+     (`lib/include/stdlib.rs`'s note); this file includes it, so the plain entry is kept only
+     where the redirection is off.  */
+  #[cfg (not (feature = "replace_realloc_for_realloc_posix"))]
   pub fn realloc (ptr: *mut c_void, size: usize) -> *mut c_void;
+  #[cfg (feature = "replace_realloc_for_realloc_posix")]
+  #[link_name = "realloc"]
+  fn realloc_system (ptr: *mut c_void, size: usize) -> *mut c_void;
   /* void free (void *ptr);  */
   pub fn free (ptr: *mut c_void);
   /* _Noreturn void abort (void);  */
@@ -5234,4 +5240,13 @@ pub unsafe extern "C" fn mpz_export (mut r: *mut c_void, countp: *mut usize,
     { *countp = count; }
 
   return r;
+}
+
+/// C: `realloc` as gnulib's generated `<stdlib.h>` leaves it for this configuration:
+/// `#define realloc rpl_realloc`, `realloc (ptr, size ? size : 1)` (`lib/stdlib.in.h`
+/// 1461-1482; the note in `lib/include/stdlib.rs`, status 4.787).
+#[cfg (feature = "replace_realloc_for_realloc_posix")]
+unsafe extern "C" fn realloc (ptr: *mut c_void, size: usize) -> *mut c_void
+{
+  return realloc_system (ptr, if size == 0 { 1 } else { size });
 }

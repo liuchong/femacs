@@ -1,4 +1,4 @@
-# 当前状态（2026-10-18，status 4.748 时点）
+# 当前状态（2026-10-19，status 4.782 时点）
 
 给下一次会话的**入口快照**：判定口径、读数、复跑命令、未决事项。逐轮记录仍在 `docs/status.md`，
 口径与规则在 `PORTING.md`，验收细则在 `docs/acceptance.md`。
@@ -20,11 +20,11 @@
 | # | 项 | 判定 | 证据命令 | 最后一次读数（出处） |
 |---|---|---|---|---|
 | 1 | 590 条 1:1 转写 | ✅ | `python3 tools/extract-abi.py --all` | **590 done / 0 in progress / 0 failing**（4.732 复跑，179 s / 峰值 276 MB；含 `docs/ports/function-aliases.tsv` 的 `emacs.c: main` 一行） |
-| 2 | 布局/符号/subr/defvar/声明/清单 | ✅ | `cd femacs && CARGO_TARGET_DIR=/tmp/xt-cargo cargo run -q -p xtask -- gate-fast`、`-- gate-probes` | **`gate-fast` exit 0**（4.748 复跑，535 s / 峰值 501 MB；同一轮里它先抓出两处陈旧表——符号棘轮的 `lib/regex` 条目与自家口吻的 4 处，均已修）＋ **`gate-probes` exit 0**（4.733：`dead-arms` **340 单元 / 0 failed**、`lisp-abi-probe` 与 7 个 C 差分脚本全过） |
+| 2 | 布局/符号/subr/defvar/声明/清单 | ✅ | `cd femacs && CARGO_TARGET_DIR=/tmp/xt-cargo cargo run -q -p xtask -- gate-fast`、`-- gate-probes` | **`gate-fast` exit 0**（4.782 复跑：参照树 `build/emacs-ref` 按 `docs/goal.md` §6 重建 —— configure **342 行 `#define`**、`libgnu.a`、`src` 含 `emacs.pdmp` —— 之后门全绿；4.781 那次红是我清理误删参照树所致，已修复）。读数：**`gate-fast` exit 0**（4.782 复跑，515.72 s / 峰值 540 MB；前一次被 `xdisp` 的行数漂移判红，按实测把该行改成 `0.20 live` 并写清理由后转绿，见 status 4.766 ✓）＋ **`gate-probes` exit 0**（4.733：`dead-arms` **340 单元 / 0 failed**、`lisp-abi-probe` 与 7 个 C 差分脚本全过） |
 | 3 | L0–L5 | ✅ | `python3 tools/acceptance-l0.py --check build/port/src/emacs`、`--check` 的 `acceptance-l1.py`、`tools/check-ert.py --selector-preset default` | L0 **19/0**（4.744）＋ L1 **111 文件 / 0 失败 / 1 接受**（4.744，接受项是 `checkdoc.el` 的 `.elc` 陈旧）＋ 生成物/loadup/dump 三项（第 4 行）；**L5 未在本轮重跑**，以最近实测 **same 552 / both-fail 7 / crashed 5 / port-worse 0**（4.676）引用 |
 | 4 | `.elc`/dump/生成物/loadup | ✅ | `python3 tools/check-generated.py`、`tools/check-loadup.py`、`tools/check-dump-offsets.py` | **244 文件：195 identical / 49 name-only / 0 DIFFERENT / 0 missing**（4.744）；**两份 loadup 逐文件一致**（4.744）；**dump offset 0 failure**（4.744） |
 | 5 | 原样树逐字节 | ✅ | `python3 tools/check-verbatim.py` | **6 棵树 / 4,604 文件 / 0 failures**（4.734 复跑；`doc/` 的 3 个 MISSING 是 `.gitignore` 的生成物，见 status 4.734 附） |
-| 6 | 平台（macOS + Android） | ⚠️ 部分 | `bash tools/check-authorized-platforms.sh`、`python3 tools/check-android-imports.py` | **exit 0**（4.742，204 s / 峰值 1.17 GB）：macOS smoke **11/0**、`gate-android` **112 class + 签名**、`libemacs.so` **5.8 MB / 69 JNI 导出**、**`assets: 4360 file(s)`**（含 `assets/directory-tree`）、**签名 APK 48 MB 校验通过**。**应用层未断言**：棘轮 **71 条未决 / 0 new**（窗口臂 40、上游缺口 31），eager binding ⇒ 不可 `dlopen` |
+| 6 | 平台（macOS + Android） | ⚠️ 部分 | `bash tools/check-authorized-platforms.sh`、`python3 tools/check-android-imports.py` | **exit 0**（4.742，204 s / 峰值 1.17 GB）：macOS smoke **11/0**、`gate-android` **112 class + 签名**、`libemacs.so` **5.8 MB / 69 JNI 导出**、**`assets: 4360 file(s)`**（含 `assets/directory-tree`）、**签名 APK 48 MB 校验通过**。**应用层未断言**：棘轮 **9 条未决 / 0 new**（API 21 桩读数）；**按交付设备的库读是 0 条** —— 窗口系统臂全部写完，`libemacs.so` 的导入首次全部解析（4.777）（decision 4 的就是它们；非窗口与窗口旁的端口偏差已清零，见 `docs/baseline/android-gaps.tsv`），eager binding ⇒ 不可 `dlopen` |
 | 7 | 性能 | ⏸ 暂挂（记未达） | `tools/bench.sh` | 同臂 0.70–0.86×（P-193）；按用户决定不追平、不记为达标 |
 | 8 | 提交签名 + 台账 | ✅ | `python3 tools/check-ledger-ticks.py`、`git verify-commit <sha>` | **238 台账绑定 / 0 failure / 0 行无台账**（4.744）；近 5 个提交 `git verify-commit` 全部 **signed**（Good signature, 刘冲）且已推送 |
 

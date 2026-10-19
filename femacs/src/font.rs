@@ -220,6 +220,14 @@ pub struct face
 {
   pub lface: [Lisp_Object; LFACE_VECTOR_SIZE as usize],
   pub id: c_int,
+  /* dispextern.h 1797-1811: `gc` and `stipple` exist only in a window-system build, and they
+     push every later member by sixteen bytes.  Android has them, so the host-shape pins this
+     copy carried (`foreground` 168, `font` 216, size 280) read the wrong members (status
+     4.814).  */
+  #[cfg (feature = "have_window_system")]
+  pub gc: *mut c_void,        /// C: `struct android_gc *gc;` (1801) on this target
+  #[cfg (feature = "have_window_system")]
+  pub stipple: ptrdiff_t,     // 1810 (measured 176)
   pub foreground: c_ulong,
   pub background: c_ulong,
   pub underline_color: c_ulong,
@@ -240,14 +248,14 @@ pub struct face
   pub ascii_face: *mut face,
 }
 
-const _: () = core::assert! (std::mem::size_of::<face> () == 280);
+const _: () = core::assert! (std::mem::size_of::<face> () == 280 + (if cfg! (feature = "have_window_system") { 16 } else { 0 }));
 const _: () = core::assert! (std::mem::align_of::<face> () == 8);
 const _: () = core::assert! (std::mem::offset_of! (face, id) == 160);
-const _: () = core::assert! (std::mem::offset_of! (face, foreground) == 168);
-const _: () = core::assert! (std::mem::offset_of! (face, font) == 216);
-const _: () = core::assert! (std::mem::offset_of! (face, bits) == 240);
-const _: () = core::assert! (std::mem::offset_of! (face, hash) == 248);
-const _: () = core::assert! (std::mem::offset_of! (face, ascii_face) == 272);
+const _: () = core::assert! (std::mem::offset_of! (face, foreground) == 168 + (if cfg! (feature = "have_window_system") { 16 } else { 0 }));
+const _: () = core::assert! (std::mem::offset_of! (face, font) == 216 + (if cfg! (feature = "have_window_system") { 16 } else { 0 }));
+const _: () = core::assert! (std::mem::offset_of! (face, bits) == 240 + (if cfg! (feature = "have_window_system") { 16 } else { 0 }));
+const _: () = core::assert! (std::mem::offset_of! (face, hash) == 248 + (if cfg! (feature = "have_window_system") { 16 } else { 0 }));
+const _: () = core::assert! (std::mem::offset_of! (face, ascii_face) == 272 + (if cfg! (feature = "have_window_system") { 16 } else { 0 }));
 
 /* The `face_box_type`/`face_underline_type` members and the `bool_bf` bits of `struct
    face`, in C's declaration order (dispextern.h 1893-1935).  The port's readers/writers go

@@ -1,0 +1,45 @@
+# Bionic layout baseline for the records whose sizes the port asserts.
+# Regenerate: tools/check-android-layout.py --update
+# stem	link-name	header	expression	value	note
+sigjmp_buf	sigjmp_buf	setjmp.h	sizeof (sigjmp_buf)	264	status 4.788: the host's 196-byte mirror let `sigsetjmp` in `command_loop` write 68 bytes past `return_to_command_loop`, into `Vauto_save_timeout`
+jmp_buf	jmp_buf	setjmp.h	sizeof (jmp_buf)	256	same mirror; `sfnt_interpreter.trap` is this type
+dirent	struct dirent	dirent.h	sizeof (struct dirent)	280	status 4.792: the host's 1048-byte record made `readdir`'s `d_name` run past bionic's buffer (SIGBUS)
+dirent	struct dirent	dirent.h	offsetof (struct dirent, d_name)	19	`d_name` follows `d_type` (18) in bionic; the host has `d_seekoff`/`d_namlen` before it
+dirent	struct dirent	dirent.h	offsetof (struct dirent, d_type)	18	one byte, immediately before `d_name`
+dirent	struct dirent	dirent.h	offsetof (struct dirent, d_off)	8	64-bit, after `d_ino`
+pthread_mutex_t	pthread_mutex_t	pthread.h	sizeof (pthread_mutex_t)	40	bionic's opaque record; the port's `systhread.rs` asserts the same
+pthread_cond_t	pthread_cond_t	pthread.h	sizeof (pthread_cond_t)	48	same mirror
+sem_t	sem_t	semaphore.h	sizeof (sem_t)	16	the Android select thread's semaphores
+pthread_t	pthread_t	pthread.h	sizeof (pthread_t)	8	`unsigned long` on bionic arm64
+stat	struct stat	sys/stat.h	sizeof (struct stat)	128	status 4.794: the host's 144-byte record made every `stat`-based decision read another field's bytes
+stat	struct stat	sys/stat.h	offsetof (struct stat, st_ino)	8	bionic's order is dev/ino/mode/nlink/uid/gid/rdev
+stat	struct stat	sys/stat.h	offsetof (struct stat, st_mode)	16	`mode_t` is 4 bytes here, not the host's 2
+stat	struct stat	sys/stat.h	offsetof (struct stat, st_nlink)	20	`nlink_t` is 4 bytes here
+stat	struct stat	sys/stat.h	offsetof (struct stat, st_size)	48	after `st_rdev` and an 8-byte pad
+stat	struct stat	sys/stat.h	offsetof (struct stat, st_blocks)	64	after `st_blksize` (an `int`) and its pad
+stat	struct stat	sys/stat.h	offsetof (struct stat, st_mtim)	88	POSIX member name; the host spells `st_mtimespec`
+stat	struct stat	sys/stat.h	offsetof (struct stat, st_ctim)	104	last member before two unused ints
+dev_t	dev_t	sys/types.h	sizeof (dev_t)	8	unsigned long on bionic arm64
+mode_t	mode_t	sys/types.h	sizeof (mode_t)	4	unsigned int
+nlink_t	nlink_t	sys/types.h	sizeof (nlink_t)	4	unsigned int
+blksize_t	blksize_t	sys/types.h	sizeof (blksize_t)	8	long
+termios	struct termios	termios.h	sizeof (struct termios)	36	status 4.795: bionic's record has 4-byte `tcflag_t`, `c_line` and `c_cc[19]`, and no `c_ispeed`/`c_ospeed`
+termios	struct termios	termios.h	offsetof (struct termios, c_oflag)	4	one `tcflag_t` after `c_iflag`
+termios	struct termios	termios.h	offsetof (struct termios, c_cflag)	8	...
+termios	struct termios	termios.h	offsetof (struct termios, c_lflag)	12	...
+termios	struct termios	termios.h	offsetof (struct termios, c_line)	16	`cc_t` (one byte) before the array
+termios	struct termios	termios.h	offsetof (struct termios, c_cc)	17	19 bytes, to the record's end
+statfs	struct statfs	sys/vfs.h	sizeof (struct statfs)	120	status 4.795: bionic's record keeps only the numeric fields and `f_spare[4]`
+statfs	struct statfs	sys/vfs.h	offsetof (struct statfs, f_bsize)	8	after `f_type`
+statfs	struct statfs	sys/vfs.h	offsetof (struct statfs, f_blocks)	16	...
+statfs	struct statfs	sys/vfs.h	offsetof (struct statfs, f_bavail)	32	...
+statfs	struct statfs	sys/vfs.h	offsetof (struct statfs, f_fsid)	56	an 8-byte `__fsid_t`
+statfs	struct statfs	sys/vfs.h	offsetof (struct statfs, f_namelen)	64	...
+statfs	struct statfs	sys/vfs.h	offsetof (struct statfs, f_flags)	80	before `f_spare[4]`
+utmpx	struct utmpx	utmpx.h	sizeof (struct utmpx)	400	status 4.796: bionic's record starts with `ut_type` and its string fields are 32/4/32 bytes
+utmpx	struct utmpx	utmpx.h	offsetof (struct utmpx, ut_pid)	4	after `ut_type` and two bytes of pad
+utmpx	struct utmpx	utmpx.h	offsetof (struct utmpx, ut_line)	8	32 bytes
+utmpx	struct utmpx	utmpx.h	offsetof (struct utmpx, ut_id)	40	4 bytes
+utmpx	struct utmpx	utmpx.h	offsetof (struct utmpx, ut_user)	44	32 bytes
+utmpx	struct utmpx	utmpx.h	offsetof (struct utmpx, ut_host)	76	256 bytes
+utmpx	struct utmpx	utmpx.h	offsetof (struct utmpx, ut_tv)	344	after `ut_exit` and `ut_session`

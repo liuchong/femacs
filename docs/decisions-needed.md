@@ -132,21 +132,23 @@
 - 用户授权的两个平台里，**Android 是窗口系统**（`HAVE_ANDROID` 打开 ✓），而端口的 `xdisp.rs` 等处把 C 的
   `#ifdef HAVE_WINDOW_SYSTEM` 段落**逐处写成了“dead on this target (P-08)”注释**（例：`femacs/src/xdisp.rs`
   30417/30421/30426）。这在冻结的 **darwin** 配置下是对的，在 **Android** 上却把活代码记成了死代码。
-- 读数（可复跑，2026-10-18 status 4.747）：`python3 tools/check-android-imports.py` ⇒ `libemacs.so`
-  **359 个导入 / 71 个无人提供**（棘轮 `docs/baseline/android-imports-pending.txt`；`docs/status.md` 4.708 记的是
-  更早一步的 402/119，此后 119 → 71）。逐条落位（`tools/gen-android-arms.py` ⇒ `docs/baseline/android-arms.tsv`，
-  71 行）后：**窗口系统臂 40 条**（`xdisp.c` 27、`xfaces.c` 3、`frame.c` 3、`frame.h` 2、`androidfns.c` 2、
-  `androidterm.c` 2、`msdos.c` 1；施工队列 `docs/baseline/window-arms-plan.tsv` 40 行）+ **上游/平台缺口 31 条**
-  （附录 B，不需要决定）。数字由 `python3 tools/check-doc-numbers.py` 对着表核对，不再靠人眼。
+- 读数（可复跑；4.750 首次记下，4.768 更新）：`python3 tools/check-android-imports.py` ⇒ `libemacs.so`
+  **297 个导入 / 9 个无人提供**（设备读数 **0**）（棘轮 `docs/baseline/android-imports-pending.txt`，按 API 21 的桩库读；
+  **按交付设备自己的库读是 0（全部解析）**，
+  `--providers-dir`）。逐条落位（`tools/gen-android-arms.py` ⇒ `docs/baseline/android-arms.tsv`，7 行；
+  施工队列 `docs/baseline/window-arms-plan.tsv` **0 行**）：非窗口与窗口旁的端口偏差已全部按 C 的门
+  修掉（`docs/status.md` 4.749–4.751）。数字由 `python3 tools/check-doc-numbers.py` 对着表核对。
+- 这批名字里 **0 条**在 Android 上是活的（C 会编译对它的引用），另有 8 条是端口自己的门与 C 不一致
+  （见 `docs/window-arms-plan.md` 与 `docs/baseline/android-gaps.tsv`），按 C 的门修，与决策无关。
 - 结论：只要这些名字无人提供，`libemacs.so` 就**不能被 `dlopen`**，Android 侧只能停在“结构 + 可链接 + 签名 APK”。
 
 **选项**
 
 | 选项 | 做法 | 影响 |
 |---|---|---|
-| **A. 维持现状规则（P-08）** | 死臂只记录，不转写 | macOS 侧 DoD-1 成立 ✓、零额外工作量；但 Android 侧那 40 条臂**永远无人提供** ⇒ “Android 能跑”不可达 ✗，DoD-6 只能记“结构面达成、应用层未达”；新门会长期报 71 条未决（其中 31 条是上游/平台缺口，与窗口臂无关；A 口径下按 C 的编排处理）|
+| **A. 维持现状规则（P-08）** | 死臂只记录，不转写 | macOS 侧 DoD-1 成立 ✓、零额外工作量；Android 侧已无此类臂 ⇒ “Android 能跑”不可达 ✗，DoD-6 只能记“结构面达成、应用层未达”；新门只剩 9 条 API 21 桩读数（设备读数 0）|
 | **B. 无差别逐行写（含 darwin 死臂）** | 把 `HAVE_WINDOW_SYSTEM` 等臂在**所有**目标上都写出来 | 最“满”的口径；工作量最大（`xdisp.c` 一处此前量到 62 个函数；全树 `HAVE_WINDOW_SYSTEM` 区域 **14,946 行**，status 4.711）且 darwin 上这些代码永不执行、只增加维护面 |
-| **C. 按目标配置决定活/死（建议）** | 给镜像加 `have_window_system`/`have_android` 之类的 cfg 门，把臂写成**条件编译**；活臂必写、死臂仍只记录 | 规则从“人工裁剪平台”变成“配置决定” ✓；macOS 侧读数不变 ✓；Android 侧的工作队列是两份可复跑的清单 ✓：名字侧 `android-arms.tsv` **40 条窗口臂**（71 行 = 40 窗口臂 + 31 上游缺口）✓、文本侧 `platform-arms.tsv`（`HAVE_WINDOW_SYSTEM` 区域 **14,946 行** ✓，status 4.711 ✓）；其余 31 条是上游/平台缺口，与窗口系统无关，不需要决定 ✓ |
+| **C. 按目标配置决定活/死（建议）** | 给镜像加 `have_window_system`/`have_android` 之类的 cfg 门，把臂写成**条件编译**；活臂必写、死臂仍只记录 | 规则从“人工裁剪平台”变成“配置决定” ✓；macOS 侧读数不变 ✓；Android 侧的工作队列是两份可复跑的清单 ✓：名字侧 `android-arms.tsv` **0 条窗口臂**（7 行全是上游缺口）✓、文本侧 `platform-arms.tsv`（`HAVE_WINDOW_SYSTEM` 区域 **14,946 行** ✓，status 4.711 ✓）；其余 31 条是上游/平台缺口，与窗口系统无关，不需要决定 ✓ |
 
 > 我的建议：**C**。它不降低验收标准（活臂照样逐行写），也不为 darwin 增加永不执行的代码。
 
@@ -157,21 +159,21 @@
 
 ---
 
-## 附录：Android 剩余 71 条未决导入的完整清单（2026-10-18，status 4.729）
+## 附录：Android 剩余 9 条未决导入的完整清单（2026-10-19，status 4.777）
 
 生成方式：`docs/baseline/android-imports-pending.txt`（未决名字）× `docs/baseline/android-arms.tsv`（每个名字的 C 定义位置与预处理条件）× `docs/baseline/config/android-arm64.json`（Android 配置的宏）。分类规则写在每节开头。**C 组已清零**：剩下的每一条，要么取决于问题 4，要么是上游/平台缺口。
 
-### A. 窗口系统臂（受问题 4 约束）（40 条）
+### A. 窗口系统臂（受问题 4 约束）（0 条）
 
-C 的定义在 `HAVE_WINDOW_SYSTEM`/`X`/`NS`/`PGTK`/`HAIKU`/`NTGUI`/`WINDOWSNT`/`MSDOS` 之类守卫下，或定义文件是 `xfns.c`/`haikuterm.c` 这类窗口后端。Android 是窗口系统，所以这些在它上面是**活代码**；写不写、怎么写，取决于问题 4 选 A/B/C。
+这些名字的全部：
 
-`IMAGE_OPT_FROM_ID`, `Vx_mode_pointer_shape`, `Vx_nontext_pointer_shape`, `Vx_resource_class`, `Vx_resource_name`, `cancel_hourglass`, `display_and_set_cursor`, `draw_phys_cursor_glyph`, `expose_frame`, `face_for_font`, `find_hot_spot`, `font_for_underline_metrics`, `fset_parent_frame`, `get_glyph_string_clip_rect`, `get_glyph_string_clip_rects`, `get_phys_cursor_geometry`, `get_tab_bar_item_kbd`, `gui_clear_cursor`, `gui_clear_end_of_line`, `gui_draw_vertical_border`, `gui_fix_overlapping_area`, `gui_get_glyph_overhangs`, `gui_insert_glyphs`, `gui_intersect_rectangles`, `gui_produce_glyphs`, `gui_union_rectangles`, `gui_update_cursor`, `gui_write_glyphs`, `handle_tab_bar_click`, `handle_tool_bar_click`, `make_monitor_attribute_list`, `prepare_face_for_display`, `redraw_image_glyphs`, `remember_mouse_glyph`, `share_image_cache`, `start_hourglass`, `tty_draw_row_with_mouse_face`, `x_stretch_cursor_p`, `x_underline_at_descent_line`, `x_use_underline_position_properties`
+`gui_produce_glyphs`
 
-### B. 上游/平台缺口（不需要决定，但也不是端口缺陷）（31 条）
+### B. 上游/平台缺口（不需要决定，但也不是端口缺陷）（9 条）
 
-这些名字所在的 C 单元或守卫在 Android 配置下**编不过或链不上**：bionic 在 API 21 没有该符号（`posix_spawn*`、`getifaddrs`、`getloadavg`、`confstr`、`utmpx*` 等），或是 macOS 专有（`mach_*`、`proc_pid*`、`sysctl`、`renameatx_np`），或依赖头宏而配置未记录（`stdin`/`stdout`/`stderr`）。处理方式是按 C 编排（保持相同导入、留在棘轮），证据见`docs/status.md` 4.715/4.725。
+这些名字是 **API 21 的桩库**没有、而**交付设备自己提供**的（设备读数为 0 条非窗口未决）⇒ 与决策无关：
 
-`backtrace`, `backtrace_symbols_fd`, `confstr`, `devname`, `endutxent`, `freeifaddrs`, `getifaddrs`, `getloadavg`, `getutxent`, `mach_timebase_info`, `mkostemp`, `posix_spawn`, `posix_spawn_file_actions_addchdir`, `posix_spawn_file_actions_adddup2`, `posix_spawn_file_actions_destroy`, `posix_spawn_file_actions_init`, `posix_spawnattr_destroy`, `posix_spawnattr_init`, `posix_spawnattr_setflags`, `posix_spawnattr_setsigdefault`, `posix_spawnattr_setsigmask`, `proc_pid_rusage`, `proc_pidinfo`, `proc_pidpath`, `renameatx_np`, `setutxent`, `stderr`, `stdin`, `stdout`, `sysctl`, `utmpxname`
+`backtrace`, backtrace_symbols_fd`, freeifaddrs`, getifaddrs`, getloadavg`, mkostemp`, stderr`, stdin`, stdout`
 
 ### C. 其它（逐条待判）（0 条）
 

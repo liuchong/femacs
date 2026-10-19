@@ -35,7 +35,12 @@ pub const _GL_LIMITS_H: c_int = 1;
 pub const CHAR_BIT: c_int = 8;
 pub const SCHAR_MIN: c_int = -128;
 pub const SCHAR_MAX: c_int = 127;
+#[cfg (not (feature = "have_android"))]
 pub const CHAR_MIN: c_int = -128;         /* `char` is signed on this target */
+/* Measured on the delivery target (bionic), status 4.781: the frozen arm above is
+   the Darwin value and the two platforms number this one differently. */
+#[cfg (feature = "have_android")]
+pub const CHAR_MIN: c_int = 0;
 pub const CHAR_MAX: c_int = 127;
 pub const SHRT_MIN: c_int = -32768;
 pub const SHRT_MAX: c_int = 32767;

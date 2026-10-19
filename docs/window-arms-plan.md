@@ -1,7 +1,7 @@
-# 窗口系统臂的施工清单（decision C 的队列）— 2026-10-18，status 4.747
+# 窗口系统臂的施工清单（decision C 的队列）— 2026-10-18，status 4.751
 
 `docs/baseline/window-arms-plan.tsv`（由 `python3 tools/gen-window-arms-plan.py` 生成）把
-`docs/baseline/android-arms.tsv` 里**属于窗口系统一族**的 40 个名字变成可执行的行：每个名字一条
+`docs/baseline/android-arms.tsv` 里**属于窗口系统一族**的 32 个名字变成可执行的行：每个名字一条
 C 定义位置、它所在的 `#if` 区域（起止行）、将要承载这段臂的端口单元、以及预处理条件。
 
 这一页**不改代码、不做决定**：它只是把"选定 C 之后要干什么"提前准备好，免得决定本身还要再付一次
@@ -9,17 +9,29 @@ C 定义位置、它所在的 `#if` 区域（起止行）、将要承载这段�
 
 ## 分布
 
-| C 文件 | 行数（名字数） |
+| C 文件 | 名字数 |
 |---|---|
-| `src/xdisp.c` | 27 |
+| `src/xdisp.c` | 26 |
 | `src/xfaces.c` | 3 |
-| `src/frame.c` | 3（`Vx_resource_class`、`Vx_resource_name` 是 `DEFVAR_LISP`） |
-| `src/androidterm.c` | 2（`x_underline_*` 两条 `DEFVAR_BOOL`） |
-| `src/androidfns.c` | 2（`Vx_*_pointer_shape`） |
-| `src/msdos.c` | 1（`tty_draw_row_with_mouse_face`） |
-| `src/frame.h` | 1（`IMAGE_OPT_FROM_ID`，`HAVE_TEXT_CONVERSION` ＋ 窗口系统） |
+| `src/frame.h` | 2（`IMAGE_OPT_FROM_ID` 与 `fset_parent_frame`，`HAVE_TEXT_CONVERSION` ＋ 窗口系统） |
+| `src/frame.c` | 1 |
 
-共 **40** 条；`gen-window-arms-plan.py` 的读数里已经没有任何 "no DEFVAR found"。
+共 **32** 条；`gen-window-arms-plan.py` 的读数里已经没有任何 "no DEFVAR found"。
+
+## 这 32 条就是 Android 上缺的全部（4.751 量到）
+
+`python3 tools/gen-android-gaps.py` 把每条名字的 C 引用点找出来，并用冻结的 Android 宏表判它是否
+被 C 编译（`docs/baseline/android-gaps.tsv`）。设备读数（`check-android-imports.py
+--providers-dir`）现在是 **32 条，而且 32 条全部**是这些「C 会编译对它的引用」的臂：
+
+| 判据 | 条数 | 含义 |
+|---|---|---|
+| **Android 上活** | **32** | C 在该配置下会编译对它的引用（`xdisp.c`、`xfaces.c`、`frame.c`、`frame.h`）⇒ 选 C 就得照写 |
+
+4.749/4.750/4.751 三轮里，另有 **21 条**曾经出现在读数里、但不属于这个决定：它们全都是端口「编了
+C 不编的代码」的偏差（Darwin 变体没挂门、`RENAME_EXCL`/`_CS_PATH`/`USABLE_POSIX_SPAWN` 这类
+派生或系统头条件没照 C 表达、utmp 循环没挂 gnulib 的条件、以及 8 条把定义留在 Android 不编译的
+单元里）⇒ 已按 C 的门逐条修掉，见 `docs/status.md` 4.749–4.751。
 
 ## 选定 C 之后的步骤
 
@@ -30,11 +42,12 @@ C 定义位置、它所在的 `#if` 区域（起止行）、将要承载这段�
 3. 跑 `python3 tools/check-cond-eval.py --verified docs/baseline/config/cond-eval-verified.txt`，
    必须仍是 **0 disagreements**（当前 5,662 条件 ✓）。
 4. 重跑 `python3 tools/gen-android-arms.py` 与 `python3 tools/check-android-imports.py`，看棘轮从
-   71 往下走；每轮如实记账。
+   41 往下走、设备读数从 32 归零；每轮如实记账。
 5. 归零后跑 `docs/android-app-readiness.md` 的判据 2b（模拟器上的应用层断言）。
 
-## 与上游缺口（31 条）的分界
+## 与「上游缺口」的分界
 
-那 31 条**不在**本清单：它们要么是 bionic 在 API 21 没有的符号，要么是 macOS 专有接口，C 自己的
-构建里同样不存在（见 `docs/status.md` 4.715/4.725）。它们不会因为写窗口臂而消失，所以选 C 之后
-`dlopen` 的判据要按"40 条归零 + 31 条按 C 编排"来读，而不是"71 条归零"。
+棘轮里还剩 9 条非窗口名字（`backtrace`、`getifaddrs`、`posix_spawn` 一族、`stdin`/`stdout`/`stderr`
+等）：它们是 **API 21 的桩库**没有、而**交付设备自己提供**的名字（设备读数为 0 条非窗口未决）⇒
+不会因为写窗口臂而改变，也不需要决定；bionic 在 21 之后补进来的符号按 C 的编排留在棘轮里
+（`docs/status.md` 4.749 ③）。

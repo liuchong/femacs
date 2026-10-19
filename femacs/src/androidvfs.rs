@@ -2401,13 +2401,13 @@ pub struct android_afs_open_fd
 }
 /* Measured with the NDK's clang (the three above).  This struct embeds the *mirror's* `stat`,
    which models the frozen target: the NDK's own `struct stat` is 128 bytes on
-   `aarch64-linux-android24` (measured), while `lib/include/sys_stat.in.rs` 108 asserts 144 and the
-   port has only that one type - so the Rust layout here is 16 + 144 = 160, and the C-side number
-   this file's fields come from is recorded in this note (the C 1471-1611 `AAsset_getLength`
+   `aarch64-linux-android24` (measured) and the mirror now carries that arm, so the Rust layout
+   here is 16 + 128 = 144 on this target (160 with the host's 144-byte record, which is the arm
+   the host build takes) (the C 1471-1611 `AAsset_getLength`
    situation's shape: the field offsets the reference's `struct stat` gives are unchanged for the
    three members before it).  */
 #[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
-const _: () = core::assert! (core::mem::size_of::<android_afs_open_fd> () == 160);
+const _: () = core::assert! (core::mem::size_of::<android_afs_open_fd> () == 144);
 #[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
 const _: () = core::assert! (core::mem::offset_of! (android_afs_open_fd, next) == 0);
 #[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
@@ -2807,7 +2807,7 @@ unsafe extern "C" fn android_afs_open (vnode: *mut android_vnode, flags: c_int,
       (*info).statb.st_gid = 0;                                        // C 1966
 
       /* Concoct a nonexistent device and an inode number.  */         // C 1968
-      (*info).statb.st_dev = -1;                                       // C 1969
+      (*info).statb.st_dev = (-1i64) as dev_t;   /* C's `-1` converted to a `dev_t` (all ones when it is unsigned) */                                       // C 1969
       (*info).statb.st_ino = 0;                                        // C 1970
 
       /* Size of the file.  */                                         // C 1972
@@ -2826,7 +2826,7 @@ unsafe extern "C" fn android_afs_open (vnode: *mut android_vnode, flags: c_int,
       if timespec_valid_p (emacs_installation_time)                    // C 1978
 	{
 	  #[cfg (feature = "stat_timespec")]
-	  { (*info).statb.st_mtimespec = emacs_installation_time; }    // C 1981 (`STAT_TIMESPEC
+	  { STAT_TIMESPEC! (&raw mut (*info).statb, st_mtim) = emacs_installation_time; }    // C 1981 (`STAT_TIMESPEC
 								       //  (&info->statb, st_mtim)`)
 	  #[cfg (not (feature = "stat_timespec"))]
 	  {
@@ -2988,7 +2988,7 @@ unsafe extern "C" fn android_afs_stat (vnode: *mut android_vnode, statb: *mut st
       (*statb).st_mode |= S_IXUSR | S_IXGRP | S_IXOTH;                 // C 2124
 
       /* Concoct a nonexistent device and an inode number.  */         // C 2126
-      (*statb).st_dev = -1;                                            // C 2127
+      (*statb).st_dev = (-1i64) as dev_t;   /* C's `-1` converted to a `dev_t` (all ones when it is unsigned) */                                            // C 2127
       (*statb).st_ino = 0;                                             // C 2128
       break 'set_file_times;                                           // C 2129
     }
@@ -3009,7 +3009,7 @@ unsafe extern "C" fn android_afs_stat (vnode: *mut android_vnode, statb: *mut st
 
   /* Fill in the stat buffer.  */                                      // C 2146
   (*statb).st_mode = S_IFREG | S_IRUSR | S_IRGRP | S_IROTH;            // C 2147
-  (*statb).st_dev = -1;                                                // C 2148
+  (*statb).st_dev = (-1i64) as dev_t;   /* C's `-1` converted to a `dev_t` (all ones when it is unsigned) */                                                // C 2148
   (*statb).st_ino = 0;                                                 // C 2149
   (*statb).st_size = AAsset_getLength (asset_desc) as off_t;           // C 2150
 
@@ -3027,7 +3027,7 @@ unsafe extern "C" fn android_afs_stat (vnode: *mut android_vnode, statb: *mut st
   if timespec_valid_p (emacs_installation_time)                        // C 2160
     {
       #[cfg (feature = "stat_timespec")]
-      { (*statb).st_mtimespec = emacs_installation_time; }             // C 2163 (`STAT_TIMESPEC
+      { STAT_TIMESPEC! (statb, st_mtim) = emacs_installation_time; }             // C 2163 (`STAT_TIMESPEC
 								       //  (statb, st_mtim)`)
       #[cfg (not (feature = "stat_timespec"))]
       {
@@ -3671,7 +3671,7 @@ unsafe extern "C" fn android_content_stat (vnode: *mut android_vnode, statb: *mu
   (*statb).st_uid = getuid ();                                         // C 2707
   (*statb).st_gid = getgid ();                                         // C 2708
   (*statb).st_ino = 0;                                                 // C 2709
-  (*statb).st_dev = -2;                                                // C 2710
+  (*statb).st_dev = (-2 as i64) as dev_t;   /* C's negative constant in a `dev_t` */                                                // C 2710
   (*statb).st_mode = S_IFDIR | S_IRUSR | S_IXUSR;                      // C 2711
   return 0;                                                            // C 2712
 }
@@ -4611,7 +4611,7 @@ unsafe extern "C" fn android_authority_stat (vnode: *mut android_vnode, statb: *
       (*statb).st_uid = getuid ();                                     // C 3466
       (*statb).st_gid = getgid ();                                     // C 3467
       (*statb).st_ino = 0;                                             // C 3468
-      (*statb).st_dev = -3;                                            // C 3469
+      (*statb).st_dev = (-3 as i64) as dev_t;   /* C's negative constant in a `dev_t` */                                            // C 3469
       (*statb).st_mode = S_IFDIR | S_IRUSR;                            // C 3470
       return 0;                                                        // C 3471
     }
@@ -5183,7 +5183,7 @@ unsafe extern "C" fn android_saf_root_stat (vnode: *mut android_vnode, statb: *m
   (*statb).st_uid = getuid ();                                         // C 3929
   (*statb).st_gid = getgid ();                                         // C 3930
   (*statb).st_ino = 0;                                                 // C 3931
-  (*statb).st_dev = -4;                                                // C 3932
+  (*statb).st_dev = (-4 as i64) as dev_t;   /* C's negative constant in a `dev_t` */                                                // C 3932
   (*statb).st_mode = S_IFDIR | S_IRUSR | S_IXUSR;                      // C 3933
   return 0;                                                            // C 3934
 }
@@ -5686,15 +5686,15 @@ unsafe fn android_saf_stat (uri_name: *const c_char, id_name: *const c_char, sta
   memset (statb as *mut c_void, 0, std::mem::size_of::<stat> ());      // C 4342
   (*statb).st_size = MAX! (0, MIN! (TYPE_MAXIMUM! (off_t), size) as off_t) as off_t;   // C 4343
   (*statb).st_mode = mode as mode_t;                                   // C 4344
-  (*statb).st_dev = -4;                                                // C 4345
+  (*statb).st_dev = (-4 as i64) as dev_t;   /* C's negative constant in a `dev_t` */                                                // C 4345
   /* C 4346-4354's `#ifdef STAT_TIMESPEC` pair: the live arm is `STAT_TIMESPEC (statb, st_mtim)`,
      lib/stat-time.h 61's `##`-composed member name (the `android_afs_open` note), and the `#else`
      arm's `st_mtime`/`st_mtime_nsec` are the gnulib override's fields the mirror does not carry,
      so that arm is carried as a record (Deviation 22's Owed item).  */
   #[cfg (feature = "stat_timespec")]
   {
-    (*statb).st_mtimespec.tv_sec = mtim / 1000;                        // C 4347
-    (*statb).st_mtimespec.tv_nsec = (mtim % 1000) * 1000000;           // C 4348
+    STAT_TIMESPEC! (statb, st_mtim).tv_sec = mtim / 1000;                        // C 4347
+    STAT_TIMESPEC! (statb, st_mtim).tv_nsec = (mtim % 1000) * 1000000;           // C 4348
   }
   #[cfg (not (feature = "stat_timespec"))]
   {
@@ -9225,7 +9225,7 @@ pub unsafe extern "C" fn android_fstat (fd: c_int, statb: *mut stat) -> c_int
       if (*parcel_fd).fd == fd                                         // C 7315
 	/* Set STATB->st_dev to a negative device number, signifying
 	   that it's contained within a content provider.  */          // C 7316-7317
-	{ (*statb).st_dev = -4; }                                      // C 7318
+	{ (*statb).st_dev = (-4 as i64) as dev_t;   /* C's negative constant in a `dev_t` */ }                                      // C 7318
 
       if (*parcel_fd).fd == fd                                         // C 7320
 	  && timespec_valid_p ((*parcel_fd).mtime)                     // C 7321
@@ -9235,7 +9235,7 @@ pub unsafe extern "C" fn android_fstat (fd: c_int, statb: *mut stat) -> c_int
 	     and the `#else` arm's `st_mtime`/`st_mtime_nsec` are the gnulib override's fields the
 	     mirror does not carry, so that arm is carried as a record (Deviation 22's Owed item).  */
 	  #[cfg (feature = "stat_timespec")]
-	  { (*statb).st_mtimespec = (*parcel_fd).mtime; }              // C 7324
+	  { STAT_TIMESPEC! (statb, st_mtim) = (*parcel_fd).mtime; }              // C 7324
 	  #[cfg (not (feature = "stat_timespec"))]
 	  {
 	    /* C 7328-7329:
@@ -9826,7 +9826,7 @@ pub unsafe extern "C" fn android_asset_fstat (asset: android_fd_or_asset,
   (*statb).st_mode = S_IFREG | S_IRUSR | S_IRGRP | S_IROTH;            // C 7805
 
   /* Concoct a nonexistent device and an inode number.  */             // C 7807
-  (*statb).st_dev = -1;                                                // C 7808
+  (*statb).st_dev = (-1i64) as dev_t;   /* C's `-1` converted to a `dev_t` (all ones when it is unsigned) */                                                // C 7808
   (*statb).st_ino = 0;                                                 // C 7809
 
   /* Owned by root.  */                                                // C 7811
@@ -9844,7 +9844,7 @@ pub unsafe extern "C" fn android_asset_fstat (asset: android_fd_or_asset,
 	 carry, so that arm is carried as a record (Deviation 22's Owed item), including C 7820-7821's
 	 comment on the NDK r10b headers.  */
       #[cfg (feature = "stat_timespec")]
-      { (*statb).st_mtimespec = emacs_installation_time; }             // C 7821 (`STAT_TIMESPEC
+      { STAT_TIMESPEC! (statb, st_mtim) = emacs_installation_time; }             // C 7821 (`STAT_TIMESPEC
 								       //  (statb, st_mtim)`)
       #[cfg (not (feature = "stat_timespec"))]
       {

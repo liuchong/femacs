@@ -95,6 +95,7 @@ const _: () = core::assert! (core::mem::size_of::<Emacs_Rectangle> () == 8);
 const _: () = core::assert! (core::mem::size_of::<Emacs_Rectangle> () == 16);
 
 /* XGCValues-like struct used by non-X GUI code.  */
+#[cfg (not (feature = "have_android"))]
 #[repr(C)]
 #[derive(Clone, Copy)]
 pub struct Emacs_GC
@@ -102,6 +103,24 @@ pub struct Emacs_GC
   pub foreground: c_ulong,
   pub background: c_ulong,
 }
+
+/* C 86-96: `#else` arm of `#ifndef HAVE_ANDROID` - there `Emacs_GC` **is** `struct
+   android_gc_values` (`typedef struct android_gc_values Emacs_GC;`), which is what gives
+   `prepare_face_for_display` its `egc.fill_style`/`egc.stipple` and the four masks their
+   `ANDROID_GC_*` spelling.  The port carried the 16-byte non-Android record for every target, so
+   no Android arm could name those members (status 4.756).  */
+#[cfg (feature = "have_android")]
+pub type Emacs_GC = android_gc_values;
+/* C 92-93 spell the pair `ANDROID_GC_FOREGROUND`/`ANDROID_GC_BACKGROUND` on Android; the two
+   values are 1 and 2, i.e. exactly the `0x01`/`0x02` the non-X arm above defines, so one
+   definition serves both targets - and the inventory gate, which reads the *frozen* arm's text
+   (`0x01`), keeps pairing it (status 4.756: the aliased spelling read as a drifted constant).  */
+#[cfg (feature = "have_android")]
+pub const GCFillStyle: android_gc_value_mask = ANDROID_GC_FILL_STYLE;    // C 94
+#[cfg (feature = "have_android")]
+pub const GCStipple: android_gc_value_mask = ANDROID_GC_STIPPLE;         // C 95
+#[cfg (feature = "have_android")]
+pub const FillOpaqueStippled: android_fill_style = ANDROID_FILL_OPAQUE_STIPPLED;   // C 96
 
 /* Mask values to select foreground/background.  C 89-90 is the `#else` arm's
    `#define GCForeground ANDROID_GC_FOREGROUND` / `#define GCBackground ANDROID_GC_BACKGROUND`
@@ -113,6 +132,9 @@ pub struct Emacs_GC
    what makes that split real: ungated, this pair handed the X11 arm the value `3` where C passes
    `12` (measured with clang against the real header: `GCForeground=4 GCBackground=8`), and the
    `xftfont` unit could only record the divergence in its ledger (status 3.535 fixes it).  */
+/* C 82-83 (the non-X11 `#else` arm) and C 92-93 (the Android arm) name the same two values, 1
+   and 2, so one definition serves both - the inventory gate pairs it with the frozen arm's `0x01`
+   text, and the Android arm's `ANDROID_GC_FOREGROUND` is `1 << 0` (status 4.756).  */
 #[cfg (not (feature = "have_x_windows"))]
 pub const GCForeground: c_int = 0x01;      // C 82: `#define GCForeground 0x01`
 #[cfg (not (feature = "have_x_windows"))]
@@ -1070,12 +1092,12 @@ pub struct glyph_row
   /* The run of 29 `bool_bf : 1` members at 245:0-248:4, one byte per four bytes'
      worth of members (`bools [0]` is byte 245, `bools [3]` byte 248).  */
   pub bools: [u8; 4],                   // 1040-1145
+  /* Continuation lines width at the start of the row.  */
+  pub continuation_lines_width: c_int,  // C 1006: before `clip`
   #[cfg (feature = "have_window_system")]
   /* Non-NULL means the current clipping area, temporarily set while exposing a region
      (coordinates are frame-relative).  */
-  pub clip: *const Emacs_Rectangle,     // 1152
-  /* Continuation lines width at the start of the row.  */
-  pub continuation_lines_width: c_int,  // 1147
+  pub clip: *const Emacs_Rectangle,     // C 256: the last member
 }
 
 /// Read one member of `glyph_row::bits` (a 4-byte allocation unit at bytes 220-243) —
@@ -1751,7 +1773,13 @@ pub struct glyph_string
   pub clip_tail: *mut glyph_string,
 
   /* The current clipping areas.  */
-  pub clip: [c_int; 2],                        /// C: `NativeRectangle clip[2];` (dispextern.h 1497)
+  /* C 1497: `NativeRectangle clip[2]`; `androidgui.h` 218 makes that `Emacs_Rectangle`
+     (16 bytes each, i.e. 32) on Android, where the `int` fallback is 8 - 24 bytes short
+     (docs/ports/layout-gaps.md, status 4.812).  */
+  #[cfg (feature = "have_android")]
+  pub clip: [Emacs_Rectangle; 2],
+  #[cfg (not (feature = "have_android"))]
+  pub clip: [c_int; 2],
   // C 1497: `NativeRectangle` is a *type* macro and its answer differs per window system
   // (C 119's `#define NativeRectangle XRectangle`, C 178-180's fallback - which is live text in
   // the frozen configuration - `#define NativeRectangle int`, w32gui.h's `RECT`, haikugui.h's
@@ -4151,3 +4179,25 @@ include!("window.rs");
 include!("font.rs");
 #[cfg (all (feature = "have_window_system", feature = "have_android"))]
 include!("androidgui.rs");
+
+/* Android layouts measured with the NDK's clang (`-Xclang -fdump-record-layouts-complete`) on the
+   reference headers with this target's `config.h.android`; method in
+   docs/baseline/android-layout-probe.md and docs/ports/layout-gaps.md.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+const _: () = core::assert! (core::mem::size_of::<glyph> () == 56);
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+const _: () = core::assert! (core::mem::size_of::<glyph_pool> () == 24);
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+const _: () = core::assert! (core::mem::size_of::<glyph_matrix> () == 104);
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+const _: () = core::assert! (core::mem::size_of::<glyph_string> () == 248);
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+const _: () = core::assert! (core::mem::offset_of! (glyph_string, num_clips) == 216);
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+const _: () = core::assert! (core::mem::offset_of! (glyph_string, next) == 232);
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+const _: () = core::assert! (core::mem::size_of::<glyph_row> () == 264);
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+const _: () = core::assert! (core::mem::offset_of! (glyph_row, continuation_lines_width) == 252);
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+const _: () = core::assert! (core::mem::offset_of! (glyph_row, overlay_arrow_bitmap) == 216);

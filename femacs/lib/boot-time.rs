@@ -110,7 +110,11 @@ macro_rules! UT_USER { ($ut:expr) => { (*$ut).ut_user } }
 macro_rules! WIN32_LEAN_AND_MEAN { () => {}; }
 
 /* C 75-79's `#if !HAVE_UTMPX_H && HAVE_UTMP_H && defined UTMP_NAME_FUNCTION` arm is dead
-   (HAVE_UTMPX_H is 1), so its `void endutent (void);` declaration is not transcribed.  */
+   (HAVE_UTMPX_H is 1 on both delivered targets), so its `void endutent (void);` declaration is
+   not transcribed.  The *loop* below carries that same condition: ungated it compiled on
+   Android, whose configuration also has `HAVE_UTMPX_H` 1 - C compiles no part of it - and the
+   unit imported `setutxent`/`getutxent`/`endutxent`/`utmpxname`, four names bionic has no
+   implementation for at all (status 4.750, docs/baseline/android-gaps.tsv).  */
 
 /* C 61's `#include "boot-time-aux.h"` is the mirror `include/boot-time-aux.rs`: it carries
    the two <sys/sysctl.h> rows (`CTL_KERN` 1, `KERN_BOOTTIME` 21) and the one arm this
@@ -131,8 +135,10 @@ unsafe fn get_boot_time_uncached (p_boot_time: *mut timespec) -> c_int
 
   /* Try to find the boot time in the /var/run/utmp file.  */
 
-  /* C 92's `#if defined UTMP_NAME_FUNCTION ... #else` (C 178) closes at C 205.  */
-  #[cfg (not (feature = "no_utmp_name_function"))]
+  /* C 92's `#if defined UTMP_NAME_FUNCTION ... #else` (C 178) closes at C 205, inside C 75's
+     arm: `endutent`'s twin above carries the same condition, and it is the condition that
+     decides this loop, not `UTMP_NAME_FUNCTION` alone.  */
+  #[cfg (all (feature = "not_have_utmpx_h", not (feature = "not_have_utmp_h")))]
   {
     /* Ignore the return value for now.
        Solaris' utmpname returns 1 upon success -- which is contrary
@@ -281,10 +287,13 @@ unsafe fn get_boot_time_uncached (p_boot_time: *mut timespec) -> c_int
   }
 
   /* C 230-232's `#if HAVE_SYS_SYSCTL_H && HAVE_SYSCTL && defined CTL_KERN && defined
-     KERN_BOOTTIME && !defined __minix` is live (PORTING.md 7.2's constant condition); the
-     three names its continuation lines spell are recorded in
-     docs/ports/macro-body-notes.tsv, because the port's gate is a cfg the tokeniser cannot
-     see.  */
+     KERN_BOOTTIME && !defined __minix` is live on the frozen target and **dead on Android**
+     (both `HAVE_SYS_SYSCTL_H` and `HAVE_SYSCTL` are undefined there, and the device exports no
+     `sysctl`).  The call carries the same gate as the function it calls - ungated, the Android
+     unit imported `sysctl` (status 4.749).  The three names its continuation lines spell are
+     recorded in docs/ports/macro-body-notes.tsv, because the port's gate is a cfg the tokeniser
+     cannot see.  */
+  #[cfg (all (not (feature = "not_have_sys_sysctl_h"), not (feature = "not_have_sysctl")))]
   if found_boot_time.tv_sec == 0
     {
       get_bsd_boot_time_final_fallback (&mut found_boot_time);

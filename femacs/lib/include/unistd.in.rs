@@ -146,8 +146,18 @@ pub const _GL_USE_CRT_EXTERNS: bool = true;
    from the frozen target (`docs/baseline/config/darwin-arm64.macros.tsv` has
    `_SC_NPROCESSORS_CONF 57` and `_SC_NPROCESSORS_ONLN 58`), and `_SC_PAGESIZE` (29) is the
    argument the dead `_gl_getpagesize` arm below names.  */
+#[cfg (not (feature = "have_android"))]
 pub const _SC_NPROCESSORS_CONF: c_int = 57;
+/* Measured on the delivery target (bionic), status 4.781: the frozen arm above is
+   the Darwin value and the two platforms number this one differently. */
+#[cfg (feature = "have_android")]
+pub const _SC_NPROCESSORS_CONF: c_int = 96;
+#[cfg (not (feature = "have_android"))]
 pub const _SC_NPROCESSORS_ONLN: c_int = 58;
+/* Measured on the delivery target (bionic), status 4.781: the frozen arm above is
+   the Darwin value and the two platforms number this one differently. */
+#[cfg (feature = "have_android")]
+pub const _SC_NPROCESSORS_ONLN: c_int = 97;
 pub const _SC_PAGESIZE: core::ffi::c_int = 29;
 
 /* ---- the template's own half (PORTING.md P-26) -----------------------------------------

@@ -15318,7 +15318,7 @@ pub unsafe extern "C" fn check_windows_init_file ()                     // C 104
 			    "When Emacs cannot find this file, it usually means that it ",   // C 10505
 			    "was not installed properly, or its distribution file was ",     // C 10506
 			    "not unpacked properly.\nSee the README.W32 file in the ",       // C 10507
-			    "top-level Emacs directory for more information.").as_ptr () as *const c_char, // C 10508
+			    "top-level Emacs directory for more information.", "\0" ).as_ptr () as *const c_char, // C 10508
 		   init_file_name, load_path);                                        // C 10509 (C's two varargs)
 	  needed = (pMultiByteToWideChar.unwrap ()) (CP_UTF8 as UINT,          // C 10510
 					 multiByteToWideCharFlags as c_ulong,                              // C 10510 (C's `multiByteToWideCharFlags`)
@@ -15715,7 +15715,7 @@ pub unsafe extern "C" fn maybe_load_unicows_dll () -> HANDLE            // C 107
 			       concat! ("Emacs cannot load the UNICOWS.DLL library.\n",      // C 10763
 					"This library is essential for using Emacs\n",                     // C 10764
 					"on this system.  You need to install it.\n\n",                    // C 10765
-					"Emacs will exit when you click OK.") .as_ptr () as *const c_char, // C 10766
+					"Emacs will exit when you click OK.", "\0" ) .as_ptr () as *const c_char, // C 10766
 			       c"Emacs cannot load UNICOWS.DLL".as_ptr (),                   // C 10767
 			       MB_ICONERROR | MB_TASKMODAL                                   // C 10768
 			       | MB_SETFOREGROUND | MB_OK);                                  // C 10769

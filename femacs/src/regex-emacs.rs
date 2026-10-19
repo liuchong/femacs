@@ -397,7 +397,12 @@ macro_rules! EXTRACT_NUMBER {
 
 unsafe fn extract_number (source: *const re_char) -> c_int
 {
-  let leading_byte: c_char = *source.offset (1) as c_char;
+  /* C 369 writes `signed char leading_byte = source[1];`.  The type must be `i8`, not `c_char`:
+     plain `char` is the *target*'s signedness, so Rust's `c_char` is `u8` on bionic (aarch64 Linux)
+     and `i8` on the host, and an unsigned leading byte turns every negative jump offset into a
+     positive one - the matcher then walks past `pend` (measured: `p - buf` 65554 with `used` 27)
+     and aborts (status 4.790).  */
+  let leading_byte: i8 = *source.offset (1) as i8;
   (leading_byte as c_int) * 256 + *source.offset (0) as c_int
 }
 

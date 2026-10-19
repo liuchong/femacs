@@ -1,0 +1,9 @@
+# Names the Android `libemacs.so` imports that no library in the process
+# provides, read against the libraries pulled off the delivery device (/tmp/femacs-device-libs).  Written by
+# `python3 tools/check-android-imports.py --write-pending` (docs/status.md
+# 4.707/4.749, PORTING.md P-300).  One symbol per line, `nm` spelling.  An
+# entry disappears when the arm that defines it is transcribed for this
+# target; a NEW symbol here is a defect (a misspelling, a missing
+# #[no_mangle], or a header mirror hard-coding another platform's symbol).
+# A non-empty file means the library cannot be dlopen'ed.
+

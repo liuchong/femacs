@@ -130,8 +130,14 @@ unsafe fn num_processors_available (query: nproc_query) -> c_ulong   /* C 236-23
   /* Finally, as fallback, use the APIs that don't distinguish between
      NPROC_CURRENT and NPROC_ALL.  */
   /* C 326's `#if HAVE_SYSCTL && !(defined __GLIBC__ && defined __linux__) && defined HW_NCPU`
-     is live; C 332-334's `#ifdef HW_NCPUONLINE` row is dead (this target does not define it),
-     which is why the mib array below has the single `{ CTL_HW, HW_NCPU }` row of C 335.  */
+     is live on the frozen target and **dead on Android**, whose configuration has `HAVE_SYSCTL`
+     undefined - without the gate the Android unit imported `sysctl`, a name the device does not
+     export (status 4.749).  `HW_NCPU` is a `<sys/sysctl.h>` macro macOS defines and bionic does
+     not, and the gate names it the way the Android configuration records what it lacks.  C
+     332-334's `#ifdef HW_NCPUONLINE` row is dead on both, which is why the mib array below has
+     the single `{ CTL_HW, HW_NCPU }` row of C 335.  */
+  #[cfg (all (not (feature = "not_have_sysctl"), not (feature = "gnu_linux"),
+              not (feature = "have_glibc")))]
   {
     let mut nprocs: c_int = 0;                                /* C 329 */
     let mut len: usize = std::mem::size_of_val (&nprocs);     /* C 330 */

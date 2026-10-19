@@ -50,18 +50,38 @@ pub const STAT_TIME_H: c_int = 1;
 /* stat-time.h 61-62 (the arm in force): `STAT_TIMESPEC (st, st_xtim)` is
    `(st)->st_xtim##espec`.  The pasting is enumerated over the arguments the header's own
    functions pass.  */
+/* The `##` paste is target-dependent in a way the header hides: C's `STAT_TIMESPEC (st,
+   st_mtim)` produces `st_mtimespec` only where `struct stat` spells the member that way (the
+   host), and `st_mtim` where it does not (bionic's `<sys/stat.h>`, status 4.794).  Two macro
+   definitions under complementary cfgs keep every call site spelled as C spells it.  */
+#[cfg (not (feature = "have_android"))]
 macro_rules! STAT_TIMESPEC {
   ($st:expr, st_atim) => { (*$st).st_atimespec };
   ($st:expr, st_ctim) => { (*$st).st_ctimespec };
   ($st:expr, st_mtim) => { (*$st).st_mtimespec };
   ($st:expr, st_birthtim) => { (*$st).st_birthtimespec };
 }
+#[cfg (feature = "have_android")]
+macro_rules! STAT_TIMESPEC {
+  ($st:expr, st_atim) => { (*$st).st_atim };
+  ($st:expr, st_ctim) => { (*$st).st_ctim };
+  ($st:expr, st_mtim) => { (*$st).st_mtim };
+  /* bionic's `struct stat` has no birth time member at all; C's `st_birthtim` arm is the
+     host's, so on this target the name is not a field.  */
+}
 /* stat-time.h 62: `STAT_TIMESPEC_OFFSETOF (st_xtim)` is
    `offsetof (struct stat, st_xtim##espec)`; `offsetof` is Rust's `std::mem::offset_of!`.  */
+#[cfg (not (feature = "have_android"))]
 macro_rules! STAT_TIMESPEC_OFFSETOF {
   (st_atim) => { std::mem::offset_of! (stat, st_atimespec) };
   (st_mtim) => { std::mem::offset_of! (stat, st_mtimespec) };
   (st_ctim) => { std::mem::offset_of! (stat, st_ctimespec) };
+}
+#[cfg (feature = "have_android")]
+macro_rules! STAT_TIMESPEC_OFFSETOF {
+  (st_atim) => { std::mem::offset_of! (stat, st_atim) };
+  (st_mtim) => { std::mem::offset_of! (stat, st_mtim) };
+  (st_ctim) => { std::mem::offset_of! (stat, st_ctim) };
 }
 
 /* Return the nanosecond component of *ST's access time.  */
@@ -111,7 +131,12 @@ pub unsafe fn get_stat_birthtime_ns (st: *const stat) -> c_long
   { return STAT_TIMESPEC_NS! (st, st_birthtim); }
   #[cfg (feature = "stat_time_member_absent")]
   { return 0; }
-  return STAT_TIMESPEC! (st, st_birthtim).tv_nsec;
+  /* bionic's `struct stat` has no birth time member, which is exactly C's `#else return 0;`
+     arm (stat-time.h 115-121), status 4.794.  */
+  #[cfg (feature = "have_android")]
+  { return 0; }
+  #[cfg (not (feature = "have_android"))]
+  { return STAT_TIMESPEC! (st, st_birthtim).tv_nsec; }
 }
 
 /* stat-time.h 128-135: C's C99 compound literal and its C++ inline function say the same
@@ -180,7 +205,12 @@ pub unsafe fn get_stat_birthtime (st: *const stat) -> timespec
   }
   #[cfg (feature = "stat_time_no_birthtime")]
   { t = _gl_make_timespec (-1, -1); }
-  t = STAT_TIMESPEC! (st, st_birthtim);
+  /* C's `#else` arm for a `struct stat` without the member (bionic's, status 4.794) says the
+     birth time is unknown; the host's arm reads the member.  */
+  #[cfg (feature = "have_android")]
+  { t = _gl_make_timespec (-1, -1); }
+  #[cfg (not (feature = "have_android"))]
+  { t = STAT_TIMESPEC! (st, st_birthtim); }
 
   /* stat-time.h 213-215's arm (the same configuration selects it): FreeBSD and NetBSD
      sometimes signal the absence of knowledge by using zero.  */

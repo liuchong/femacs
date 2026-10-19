@@ -912,7 +912,7 @@ pub mod xterm_globals {
   pub static mut x_dnd_keyboard_state: c_uint = 0;
 
   /* C 1446-1467: the IO-error escape, the recursion depth and the tooltip position.  */
-  pub static mut x_dnd_disconnect_handler: sigjmp_buf = [0; 196];
+  pub static mut x_dnd_disconnect_handler: sigjmp_buf = [0; std::mem::size_of::<sigjmp_buf> ()];
   pub static mut x_dnd_inside_handle_one_xevent: bool = false;
   pub static mut x_dnd_recursion_depth: c_int = 0;
   pub static mut x_dnd_selection_alias_cell: Lisp_Object = lisp_h_Qnil ();
@@ -7965,7 +7965,7 @@ unsafe fn x_sync_note_frame_times (dpyinfo: *mut x_display_info,
     let last_frame_ms: uint_fast64_t = (*output).last_frame_time / 1000;
     fprintf (stderr,
 	     concat! ("Drawing the last frame took: %", PRIuFAST64! (), " ms (%",
-		      PRIuFAST64! (), ")\n").as_ptr () as *const c_char,
+		      PRIuFAST64! (), ")\n", "\0" ).as_ptr () as *const c_char,
 	     last_frame_ms, time);
   }
 }

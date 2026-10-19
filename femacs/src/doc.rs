@@ -60,30 +60,73 @@ pub static mut documentation_dynamic_reload: bool = false;
 #[unsafe(no_mangle)]
 pub static mut text_quoting_flag: bool = false;
 
-// C 42-49: `doc_fd`/`doc_fd_p`/`doc_open`/`doc_read_quit`/`doc_lseek` for the frozen target
-// (HAVE_ANDROID is undefined, so C's first arm is the live one).  The five are object-like or
-// function-like macros over the file descriptor, exactly as C writes them; the port keeps the
-// same names as `macro_rules!` (PORTING.md 2.1/P-37).
+// C 42-49: `doc_fd`/`doc_fd_p`/`doc_open`/`doc_read_quit`/`doc_lseek` for the arm
+// `!defined HAVE_ANDROID || defined ANDROID_STUBIFY || __ANDROID_API__ < 9`.  The five are
+// object-like or function-like macros over the file descriptor, exactly as C writes them; the
+// port keeps the same names as `macro_rules!` (PORTING.md 2.1/P-37).  C 51-70's `#else` arm
+// redefines the same five over `struct android_fd_or_asset`, so the condition that separates
+// them is C's own (`USE_ANDROID_ASSETS`, derived in `xtask` from
+// `HAVE_ANDROID && !ANDROID_STUBIFY && __ANDROID_API__ >= 9`) and the two arms cannot be live
+// together.
+#[cfg (not (feature = "use_android_assets"))]
 macro_rules! doc_fd { () => { c_int }; }
+#[cfg (not (feature = "use_android_assets"))]
 macro_rules! doc_fd_p { ($fd:expr) => { ($fd) >= 0 }; }
+#[cfg (not (feature = "use_android_assets"))]
 macro_rules! doc_open { ($($args:tt)*) => { emacs_open ($($args)*) }; }
+#[cfg (not (feature = "use_android_assets"))]
 macro_rules! doc_read_quit { ($($args:tt)*) => { emacs_read_quit ($($args)*) }; }
+#[cfg (not (feature = "use_android_assets"))]
 macro_rules! doc_lseek { ($($args:tt)*) => { lseek ($($args)*) }; }
 
-// C 51-70's `#else` arm (`HAVE_ANDROID && !defined ANDROID_STUBIFY && __ANDROID_API__ >= 9`)
-// redefines the same five names over `struct android_fd_or_asset` and defines
-// `USE_ANDROID_ASSETS`; it needs android.h, which no mirror carries, so it is kept as gated
-// text (P-51) and marked here.  The `#define`s it writes are:
-//   doc_fd  struct android_fd_or_asset / doc_fd_p(fd) ((fd).asset != (void *) -1) /
-//   doc_open android_open_asset / doc_read_quit android_asset_read_quit /
-//   doc_lseek android_asset_lseek / USE_ANDROID_ASSETS
+/* C 51-70's `#else` arm: the same five names over `android.h`'s
+   `struct android_fd_or_asset`, which no mirror carries, so it is declared here with clang's
+   frozen layout - the same shape `lread.rs` uses for the same type (C 88's include).  */
 #[cfg (feature = "use_android_assets")]
-mod android_assets {
-  pub type doc_fd = *mut c_void;
-  macro_rules! doc_fd_p { ($fd:expr) => { ($fd).asset != (usize::MAX as *mut c_void) }; }
-  macro_rules! doc_open { ($($args:tt)*) => { android_open_asset ($($args)*) }; }
-  macro_rules! doc_read_quit { ($($args:tt)*) => { android_asset_read_quit ($($args)*) }; }
-  macro_rules! doc_lseek { ($($args:tt)*) => { android_asset_lseek ($($args)*) }; }
+#[repr (C)]
+#[derive (Clone, Copy)]
+pub struct android_fd_or_asset { pub fd: c_int, pub asset: *mut c_void }
+#[cfg (feature = "use_android_assets")]
+const _: () = core::assert! (std::mem::size_of::<android_fd_or_asset> () == 16);
+#[cfg (feature = "use_android_assets")]
+const _: () = core::assert! (std::mem::align_of::<android_fd_or_asset> () == 8);
+#[cfg (feature = "use_android_assets")]
+const _: () = core::assert! (std::mem::offset_of! (android_fd_or_asset, fd) == 0);
+#[cfg (feature = "use_android_assets")]
+const _: () = core::assert! (std::mem::offset_of! (android_fd_or_asset, asset) == 8);
+
+/* C 61-65: the four `#define`s of the arm (`doc_fd struct android_fd_or_asset`,
+   `doc_fd_p(fd) ((fd).asset != (void *) -1)`, `doc_open android_open_asset`,
+   `doc_read_quit android_asset_read_quit`, `doc_lseek android_asset_lseek`).  C's
+   `doc_read_quit` passes a `ptrdiff_t` where `android_asset_read_quit` takes a `size_t`; C
+   converts implicitly, so the macro casts, the way `lread_read_quit` does.  */
+#[cfg (feature = "use_android_assets")]
+macro_rules! doc_fd { () => { android_fd_or_asset }; }
+#[cfg (feature = "use_android_assets")]
+macro_rules! doc_fd_p { ($fd:expr) => { ($fd).asset != (usize::MAX as *mut c_void) }; }
+#[cfg (feature = "use_android_assets")]
+macro_rules! doc_open { ($($args:tt)*) => { android_open_asset ($($args)*) }; }
+#[cfg (feature = "use_android_assets")]
+macro_rules! doc_read_quit { ($fd:expr, $buf:expr, $n:expr) => { android_asset_read_quit ($fd, $buf, ($n) as usize) }; }
+#[cfg (feature = "use_android_assets")]
+macro_rules! doc_lseek { ($($args:tt)*) => { android_asset_lseek ($($args)*) }; }
+
+/* C 66's `#define USE_ANDROID_ASSETS` closes the arm; the file's uses are gated on that name
+   rather than re-spelling the condition.  */
+#[cfg (feature = "use_android_assets")]
+macro_rules! USE_ANDROID_ASSETS { () => {} }
+
+#[cfg (feature = "use_android_assets")]
+unsafe extern "C" {
+  /// C: android.h: `void android_close_asset (struct android_fd_or_asset);`
+  fn android_close_asset (fd: android_fd_or_asset);
+  /// C: android.h: `struct android_fd_or_asset android_open_asset (const char *, int, int);`
+  fn android_open_asset (path: *const c_char, flags: c_int, mode: c_int) -> android_fd_or_asset;
+  /// C: android.h: `ssize_t android_asset_read_quit (struct android_fd_or_asset, void *,
+  /// size_t);`
+  fn android_asset_read_quit (fd: android_fd_or_asset, buf: *mut c_void, n: usize) -> isize;
+  /// C: android.h: `off_t android_asset_lseek (struct android_fd_or_asset, off_t, int);`
+  fn android_asset_lseek (fd: android_fd_or_asset, off: off_t, whence: c_int) -> off_t;
 }
 
 /* Buffer used for reading from documentation file.  */
@@ -92,13 +135,16 @@ static mut get_doc_string_buffer_size: ptrdiff_t = 0;
 
 static sibling_etc: [u8; 8] = *b"../etc/\0";
 
-// C 78-90's `#ifdef USE_ANDROID_ASSETS` arm: dead in the frozen configuration, kept as gated
-// text (P-51).
+/* C 78-90: `#ifdef USE_ANDROID_ASSETS` - like `close_file_unwind`, but PTR points at an
+   Android file descriptor instead of a system one.  `record_unwind_protect_ptr` takes a C
+   function pointer, so this is an `unsafe extern "C" fn` (the same reason the other unwind
+   helpers are).  */
 #[cfg (feature = "use_android_assets")]
-unsafe fn close_file_unwind_android_fd (ptr: *mut c_void)
+unsafe extern "C" fn close_file_unwind_android_fd (ptr: *mut c_void)
 {
-  let fd: *mut android_assets::android_fd_or_asset = ptr as *mut android_assets::android_fd_or_asset;
+  let mut fd: *mut android_fd_or_asset;
 
+  fd = ptr as *mut android_fd_or_asset;
   android_close_asset (*fd);
 }
 
@@ -191,8 +237,9 @@ pub unsafe extern "C" fn get_doc_string (filepos: Lisp_Object, unibyte: bool) ->
 	  return concat3 (cannot_open, file, quote_nl);
 	}
     }
-  // C 148-153's `#ifndef USE_ANDROID_ASSETS` arm is the live one; the `#else` arm is gated
-  // text (P-51), as above.
+  // C 148-153: `#ifndef USE_ANDROID_ASSETS` / `#else` - the descriptor is an `int` in the first
+  // arm and a `struct android_fd_or_asset` in the second, so each arm records its own unwind.
+  #[cfg (not (feature = "use_android_assets"))]
   record_unwind_protect_int (Some (close_file_unwind), fd);
   #[cfg (feature = "use_android_assets")]
   { record_unwind_protect_ptr (Some (close_file_unwind_android_fd), &raw mut fd as *mut c_void); }
@@ -578,14 +625,15 @@ DEFUN! ("Snarf-documentation", Fsnarf_documentation, Ssnarf_documentation,
 	{ Vbuild_files = Fcons (build_string (buildobj[i as usize].as_ptr ()), Vbuild_files); }
     }
 
-  let fd: doc_fd! () = doc_open! (name, O_RDONLY, 0);
+  let mut fd: doc_fd! () = doc_open! (name, O_RDONLY, 0);
   if !doc_fd_p! (fd)
     {
       let open_errno: c_int = *errno ();
       report_file_errno (b"Opening doc string file\0".as_ptr () as *const c_char,
 			 build_string (name), open_errno);
     }
-  // C 553-558's `#ifndef USE_ANDROID_ASSETS` arm is the live one; the `#else` is gated (P-51).
+  // C 553-558: the same two arms as C 148-153 (`#ifndef USE_ANDROID_ASSETS` / `#else`).
+  #[cfg (not (feature = "use_android_assets"))]
   record_unwind_protect_int (Some (close_file_unwind), fd);
   #[cfg (feature = "use_android_assets")]
   { record_unwind_protect_ptr (Some (close_file_unwind_android_fd), &raw mut fd as *mut c_void); }

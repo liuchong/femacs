@@ -47,6 +47,7 @@
          unused_must_use, clippy::all)]
 
 include!("include/config.rs");
+include!("include/epaths.rs");                    // C: `<epaths.h>` (generated; see epaths.in's android arm)
 
 // C 23: `#include "lisp.h"` - outside the file gate, as C has it (C 25 opens after it).
 include!("include/lisp.rs");
@@ -2444,14 +2445,9 @@ unsafe extern "C" { pub fn emacs_fclose (stream: *mut FILE) -> c_int; }
 
 #[cfg (feature = "have_native_comp")]
 const PATH_REL_LOADSEARCH: *const c_char = c"32.0.50/lisp".as_ptr ();
-#[cfg (feature = "have_native_comp")]
-const PATH_DUMPLOADSEARCH: *const c_char =
-  c"/Users/liu/projects/src/github.com/liuchong/femacs/build/emacs-ref/../../emacs/lisp".as_ptr ();
-/// C 4369's `PATH_DUMPLOADSEARCH "/"` - C's adjacent-literal concatenation, which a Rust
-/// `c"..."` literal cannot express across a `const`, so the joined text is a second literal.
-#[cfg (feature = "have_native_comp")]
-const PATH_DUMPLOADSEARCH_SLASH: *const c_char =
-  c"/Users/liu/projects/src/github.com/liuchong/femacs/build/emacs-ref/../../emacs/lisp/".as_ptr ();
+/* C 4369's `PATH_DUMPLOADSEARCH` and its `"/"`-joined form are the `include/epaths.rs` mirror's;
+   C's adjacent-literal concatenation is the mirror's `PATH_DUMPLOADSEARCH_SLASH ()` (per
+   target, `epaths.in` 85-99).  */
 
 /* In use by Fcomp_el_to_eln_filename.  */
 /// C 4291: `static Lisp_Object loadsearch_re_list;` - C's tentative definition (zeroed, i.e.
@@ -2535,7 +2531,7 @@ DEFUN! ("comp-el-to-eln-rel-filename", Fcomp_el_to_eln_rel_filename,
 	concat2 (build_string (c"\\`[[:ascii:]]+".as_ptr ()),
 		 Fregexp_quote (build_string (PATH_REL_LOADSEARCH)));
       let mut dump_load_search: Lisp_Object =
-	Fexpand_file_name (build_string (PATH_DUMPLOADSEARCH_SLASH),
+	Fexpand_file_name (build_string (PATH_DUMPLOADSEARCH_SLASH ()),
 			   Qnil ());
       #[cfg (feature = "windowsnt")]
       {

@@ -289,6 +289,17 @@ pub struct face
 {
   pub lface: [Lisp_Object; LFACE_VECTOR_SIZE as usize],
   pub id: c_int,
+  /* C 1797-1811: the two members `#ifdef HAVE_WINDOW_SYSTEM` adds between `id` and
+     `foreground` - `gc` at 168 and `stipple` at 176 in both window arms, which is why
+     `foreground` moves from 168 (frozen) to 184 there (`docs/baseline/face-layout.tsv`).  This
+     unit's copy lacked them, so no arm that draws could be written (status 4.756).  */
+  #[cfg (all (feature = "have_window_system", feature = "have_android"))]
+  pub gc: *mut c_void,        /// C 1801: `struct android_gc *gc;`
+  #[cfg (all (feature = "have_window_system",
+              not (feature = "have_x_windows"), not (feature = "have_android")))]
+  pub gc: *mut Emacs_GC,      // C 1803: `Emacs_GC *gc;`
+  #[cfg (feature = "have_window_system")]
+  pub stipple: ptrdiff_t,     // C 1810, measured 176
   pub foreground: c_ulong,
   pub background: c_ulong,
   pub underline_color: c_ulong,
@@ -311,21 +322,64 @@ pub struct face
   pub ascii_face: *mut face,
 }
 
+#[cfg (not (feature = "have_window_system"))]
 const _: () = core::assert! (std::mem::size_of::<face> () == 280);
+#[cfg (feature = "have_window_system")]
+const _: () = core::assert! (std::mem::size_of::<face> () == 296);
 const _: () = core::assert! (std::mem::align_of::<face> () == 8);
 const _: () = core::assert! (std::mem::offset_of! (face, id) == 160);
+#[cfg (feature = "have_window_system")]
+const _: () = core::assert! (std::mem::offset_of! (face, gc) == 168);
+#[cfg (feature = "have_window_system")]
+const _: () = core::assert! (std::mem::offset_of! (face, stipple) == 176);
+#[cfg (not (feature = "have_window_system"))]
 const _: () = core::assert! (std::mem::offset_of! (face, foreground) == 168);
+#[cfg (feature = "have_window_system")]
+const _: () = core::assert! (std::mem::offset_of! (face, foreground) == 184);
+#[cfg (not (feature = "have_window_system"))]
 const _: () = core::assert! (std::mem::offset_of! (face, background) == 176);
+#[cfg (feature = "have_window_system")]
+const _: () = core::assert! (std::mem::offset_of! (face, background) == 192);
+#[cfg (not (feature = "have_window_system"))]
 const _: () = core::assert! (std::mem::offset_of! (face, underline_color) == 184);
+#[cfg (feature = "have_window_system")]
+const _: () = core::assert! (std::mem::offset_of! (face, underline_color) == 200);
+#[cfg (not (feature = "have_window_system"))]
 const _: () = core::assert! (std::mem::offset_of! (face, overline_color) == 192);
+#[cfg (feature = "have_window_system")]
+const _: () = core::assert! (std::mem::offset_of! (face, overline_color) == 208);
+#[cfg (not (feature = "have_window_system"))]
 const _: () = core::assert! (std::mem::offset_of! (face, strike_through_color) == 200);
+#[cfg (feature = "have_window_system")]
+const _: () = core::assert! (std::mem::offset_of! (face, strike_through_color) == 216);
+#[cfg (not (feature = "have_window_system"))]
 const _: () = core::assert! (std::mem::offset_of! (face, box_color) == 208);
+#[cfg (feature = "have_window_system")]
+const _: () = core::assert! (std::mem::offset_of! (face, box_color) == 224);
+#[cfg (not (feature = "have_window_system"))]
 const _: () = core::assert! (std::mem::offset_of! (face, font) == 216);
+#[cfg (feature = "have_window_system")]
+const _: () = core::assert! (std::mem::offset_of! (face, font) == 232);
+#[cfg (not (feature = "have_window_system"))]
 const _: () = core::assert! (std::mem::offset_of! (face, fontset) == 224);
+#[cfg (feature = "have_window_system")]
+const _: () = core::assert! (std::mem::offset_of! (face, fontset) == 240);
+#[cfg (not (feature = "have_window_system"))]
 const _: () = core::assert! (std::mem::offset_of! (face, bits) == 240);
+#[cfg (feature = "have_window_system")]
+const _: () = core::assert! (std::mem::offset_of! (face, bits) == 256);
+#[cfg (not (feature = "have_window_system"))]
 const _: () = core::assert! (std::mem::offset_of! (face, hash) == 248);
+#[cfg (feature = "have_window_system")]
+const _: () = core::assert! (std::mem::offset_of! (face, hash) == 264);
+#[cfg (not (feature = "have_window_system"))]
 const _: () = core::assert! (std::mem::offset_of! (face, next) == 256);
+#[cfg (feature = "have_window_system")]
+const _: () = core::assert! (std::mem::offset_of! (face, next) == 272);
+#[cfg (not (feature = "have_window_system"))]
 const _: () = core::assert! (std::mem::offset_of! (face, ascii_face) == 272);
+#[cfg (feature = "have_window_system")]
+const _: () = core::assert! (std::mem::offset_of! (face, ascii_face) == 288);
 
 /* `struct font` (font.h 275-418) comes from `include/font.rs` now; this unit reads `props`,
    `pixel_size` and `average_width` of it (docs/ports/include-font.md).  */
@@ -591,6 +645,48 @@ static mut menu_face_changed_default: bool = false;
 /***********************************************************************
 			      Utilities
  ***********************************************************************/
+
+/* C 638-666: `share_image_cache` - "Find an existing image cache registered for a frame on F's
+   display and with a `scaling_col_width' of F's FRAME_COLUMN_WIDTH, or, in the absence of an
+   eligible image cache, allocate an image cache with the same width value."  It sits inside
+   C 637's `#ifdef HAVE_WINDOW_SYSTEM`: dead on the frozen target (the macro is undefined there),
+   live on Android - and this unit is where C defines the C symbol, which the Android build
+   imported with only a declaration in `frame.rs` (status 4.752).  */
+/// C: image.c 2223-2225: `struct image_cache * make_image_cache (void);` - C's xfaces.c has the
+/// prototype through its headers; this unit reads it from there.
+#[cfg (feature = "have_window_system")]
+unsafe extern "C" {
+  fn make_image_cache () -> *mut image_cache;
+}
+
+#[cfg (feature = "have_window_system")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn share_image_cache (f: *mut frame) -> *mut image_cache
+{
+  let width: c_int = if 10 > FRAME_COLUMN_WIDTH (f) { 10 } else { FRAME_COLUMN_WIDTH (f) };
+  let mut tail: Lisp_Object = Qnil ();                 // C 645: `Lisp_Object tail, frame;`
+  let mut frame: Lisp_Object = Qnil ();
+  let mut cache: *mut image_cache;                     // C 646
+
+  FOR_EACH_FRAME! (tail, frame, {
+      let x: *mut frame = XFRAME (frame);
+
+      /* `FRAME_IMAGE_CACHE (x)` is C's `(x)->image_cache`, a `struct image_cache *`; the mirror
+	 holds the member as `*mut c_void` (frame.h 289-292's own window-system arm).  */
+      let xcache: *mut image_cache = FRAME_IMAGE_CACHE! (x) as *mut image_cache;
+      /* C's `FRAME_TERMINAL` is `(F)->terminal` (termhooks.h 932); this unit does not include
+	 the termhooks mirror (C gets the header through dispextern.h), so the field is spelled
+	 out - the same reading the macro has.  */
+      if (*x).terminal == (*f).terminal
+	  && !xcache.is_null ()
+	  && (*xcache).scaling_col_width == width
+	{ return xcache; }
+  });
+
+  cache = make_image_cache ();
+  (*cache).scaling_col_width = width;
+  return cache;
+}
 
 /* C 670-689: initialize face cache and basic faces for frame F.  */
 
@@ -3413,7 +3509,83 @@ unsafe fn free_realized_face (f: *mut frame, face: *mut face)
     }
 }
 
-/* C 4750-4794: the `HAVE_WINDOW_SYSTEM` block (`prepare_face_for_display`) is dead.  */
+/* C 4759-4805: `prepare_face_for_display` - "Prepare face FACE for subsequent display on frame F.
+   This must be called before using X resources of FACE to allocate GCs if they haven't been
+   allocated yet or have been freed by clearing the face cache."  Inside C 4746's
+   `#ifdef HAVE_WINDOW_SYSTEM`: dead on the frozen target, live on Android, whose library
+   imported the name (status 4.756).  */
+
+/// C: dispextern.h 3862: `ptrdiff_t image_bitmap_pixmap (struct frame *, ptrdiff_t);` and
+/// font.h 545's `void font_prepare_for_face (struct frame *, struct face *);` - the two calls
+/// `prepare_face_for_display` makes; C has both prototypes through its headers.
+#[cfg (feature = "have_window_system")]
+unsafe extern "C" {
+  fn image_bitmap_pixmap (f: *mut frame, id: ptrdiff_t) -> ptrdiff_t;
+  fn font_prepare_for_face (f: *mut frame, face: *mut face);
+}
+
+/// C 243-249's `#define GCGraphicsExposures 0` for this backend (C 247 is the `HAVE_ANDROID` arm).
+#[cfg (feature = "have_window_system")]
+const GCGraphicsExposures: c_int = 0;
+
+/// C 618-624: the Android arm of `x_create_gc` (`static struct android_gc *x_create_gc (struct
+/// frame *f, unsigned long value_mask, Emacs_GC *xgcv)`), with the `androidgui.h` entry C calls.
+#[cfg (all (feature = "have_window_system", feature = "have_android"))]
+unsafe extern "C" {
+  /// C: androidgui.h 926-927: `extern struct android_gc *android_create_gc (enum
+  /// android_gc_value_mask, struct android_gc_values *);`
+  fn android_create_gc (valuemask: android_gc_value_mask, values: *mut android_gc_values)
+    -> *mut android_gc;
+}
+
+#[cfg (all (feature = "have_window_system", feature = "have_android"))]
+unsafe fn x_create_gc (f: *mut frame, value_mask: c_ulong, xgcv: *mut Emacs_GC) -> *mut android_gc
+{                                                                  // C 620-624
+  let _ = f;
+  return android_create_gc (value_mask as android_gc_value_mask, xgcv);
+}
+
+#[cfg (feature = "have_window_system")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn prepare_face_for_display (f: *mut frame, face: *mut face)
+{
+  let mut egc: Emacs_GC = std::mem::zeroed ();            // C 4761
+  let mut mask: c_ulong;                                  // C 4762
+
+  eassert! (FRAME_WINDOW_P (f));
+
+  if (*face).gc.is_null ()
+    {
+      mask = (GCForeground | GCBackground | GCGraphicsExposures) as c_ulong;
+
+      egc.foreground = (*face).foreground;
+      egc.background = (*face).background;
+      /* C 4775-4787's `#ifdef HAVE_X_WINDOWS` arm (`graphics_exposures`/`line_width`) is dead.  */
+
+      block_input ();
+      /* C 4789-4800: `#if defined HAVE_X_WINDOWS || defined HAVE_ANDROID` - live on Android; its
+	 inner `#ifndef ANDROID_STUBIFY` picks the bitmap, and C's `#else` arm aborts.  */
+      {
+	if (*face).stipple != 0
+	  {
+	    egc.fill_style = FillOpaqueStippled;
+	    #[cfg (feature = "not_android_stubify")]
+	    {
+	      egc.stipple = image_bitmap_pixmap (f, (*face).stipple) as android_pixmap;
+	    }
+	    #[cfg (feature = "android_stubify")]
+	    {
+	      emacs_abort ();
+	    }
+	    mask |= (GCFillStyle | GCStipple) as c_ulong;
+	  }
+      }
+      (*face).gc = x_create_gc (f, mask, &raw mut egc) as *mut c_void;
+      if !(*face).font.is_null ()
+	{ font_prepare_for_face (f, face); }
+      unblock_input ();
+    }
+}
 
 /* C 4799-4834: returns the `distance' between the colors X and Y.  */
 
@@ -3680,7 +3852,47 @@ unsafe fn lookup_face (f: *mut frame, attr: *mut Lisp_Object) -> c_int
   return (*face).id;
 }
 
-/* C 5145-5162: the `HAVE_WINDOW_SYSTEM` block (`face_for_font`) is dead.  */
+/// C 5145-5181: "Look up a realized face that has the same attributes as BASE_FACE except for the
+/// font in the face cache of frame F.  If FONT-OBJECT is not nil, it is an already opened font.
+/// If FONT-OBJECT is nil, the face has no font.  Value is the ID of the face found.  If no suitable
+/// face is found, realize a new one."  `fontset.c` 1015/1025 and `xdisp.c` 8710 call it through
+/// `fontset.h` 46's declaration; Android's library imports the name (status 4.772).  The block used
+/// to be recorded as dead (P-08); the port transcribes it now.
+#[cfg (feature = "have_window_system")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn face_for_font (f: *mut frame, font_object: Lisp_Object,
+					mut base_face: *mut face) -> c_int
+{
+  let cache: *mut face_cache = FRAME_FACE_CACHE (f);
+  let hash: uintptr_t;
+  let i: c_int;
+  let mut face: *mut face;
+
+  eassert! (!cache.is_null ());
+  base_face = (*base_face).ascii_face;
+  hash = lface_hash ((*base_face).lface.as_mut_ptr ());
+  i = (hash % FACE_CACHE_BUCKETS_SIZE as uintptr_t) as c_int;
+
+  /* C's `for (face = cache->buckets[i]; face; face = face->next)`: the bucket's first entry, then
+     the chain (the `while !face.is_null ()` below is that loop's test).  */
+  face = *(*cache).buckets.offset (i as isize);
+  while !face.is_null ()
+    {
+      if (*face).ascii_face == face
+	{ face = (*face).next; continue; }
+      if (*face).ascii_face == base_face
+	  && (*face).font == (if NILP (font_object) { std::ptr::null_mut () }
+			      else { XFONT_OBJECT (font_object) })
+	  && lface_equal_p ((*face).lface.as_mut_ptr (), (*base_face).lface.as_mut_ptr ())
+	{ return (*face).id; }
+      face = (*face).next;
+    }
+
+  /* If not found, realize a new face.  */
+  face = realize_non_ascii_face (f, font_object, base_face);
+  return (*face).id;
+}
+
 
 /* C 5189-5225: return the display face-id of the face whose name is SYMBOL.  */
 
@@ -4559,8 +4771,42 @@ unsafe fn realize_gui_face (cache: *mut face_cache, attrs: *mut Lisp_Object) -> 
   return face;
 }
 
-/* C 6273-6661: the rest of the `HAVE_WINDOW_SYSTEM` block (`realize_non_ascii_face`,
-   `realize_gui_face`'s body, `font_maybe_unset_attribute`) is dead.  */
+/// C 6277-6303: "Realize the fully-specified face that uses FONT-OBJECT and has the same
+/// attributes as BASE_FACE except for the font on frame F.  FONT-OBJECT may be nil, in which case,
+/// realized a face of no-font."  `static`, inside C 6273's `#ifdef HAVE_WINDOW_SYSTEM`: recorded as
+/// dead until `face_for_font` was written (status 4.772); transcribed now.
+#[cfg (feature = "have_window_system")]
+unsafe fn realize_non_ascii_face (f: *mut frame, font_object: Lisp_Object,
+				  base_face: *mut face) -> *mut face
+{
+  let cache: *mut face_cache = FRAME_FACE_CACHE (f);
+  let face: *mut face;
+
+  face = xmalloc (core::mem::size_of::<face> ()) as *mut face;
+  /* C's `*face = *base_face;` is a struct assignment; the port copies the bytes (the `realize_face`
+     shape, this unit's own).  */
+  core::ptr::copy_nonoverlapping (base_face, face, 1);
+  (*face).gc = std::ptr::null_mut ();
+  /* C's `face->overstrike = ...` writes the one-bit member; the mirror keeps it in `bits` with
+     `FACE_OVERSTRIKE_P` (the `face_bits!` family's shape, status 4.765).  */
+  face_bits! (overstrike, face,
+	      !NILP (font_object)
+	      && FONT_WEIGHT_NAME_NUMERIC! ((*face).lface[LFACE_WEIGHT_INDEX as usize]) > 100
+	      && FONT_WEIGHT_NUMERIC! (font_object) <= 100);
+
+  /* Don't try to free the colors copied bitwise from BASE_FACE.  */
+  face_bits! (colors_copied_bitwise_p, face, true);
+  (*face).font = if NILP (font_object) { std::ptr::null_mut () } else { XFONT_OBJECT (font_object) };
+  (*face).gc = std::ptr::null_mut ();
+
+  cache_face (cache, face, (*face).hash);
+
+  return face;
+}
+
+/* C 6305-6322: `font_maybe_unset_attribute` (and C 6324-6661's `realize_gui_face` body) stay
+   recorded as dead: no delivered configuration reaches them (P-08).  */
+
 
 /* C 6674-6747: map the specified color COLOR of face FACE on frame F to a tty
    color index.  */
@@ -5162,7 +5408,7 @@ DEFUN! ("x-load-color-file", Fx_load_color_file,
 
   block_input ();
   fp = emacs_fopen (SSDATA (abspath),
-		    concat! ("r", FOPEN_TEXT! ()).as_ptr () as *const c_char);
+		    concat! ("r", FOPEN_TEXT! (), "\0" ).as_ptr () as *const c_char);
   if ! fp.is_null ()
     {
       let mut buf: [c_char; 512] = [0; 512];
@@ -5485,3 +5731,29 @@ pub static mut Vface_font_lax_matched_attributes: Lisp_Object = lisp_h_Qnil ();
 pub static mut face_filters_always_match: bool = false;
 #[unsafe(no_mangle)]
 pub static mut face_near_same_color_threshold: EMACS_INT = 0;
+
+/* `struct face` on Android: NDK-measured 296 with these offsets (docs/ports/layout-gaps.md,
+   status 4.813).  The 15 assertions above use `FACE_WS_SHIFT`, which only travels with
+   `feature = "dispextern_face_records"`; these are the ones that hold on this target.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+const _: () = core::assert! (core::mem::offset_of! (face, id) == 160);
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+const _: () = core::assert! (core::mem::offset_of! (face, gc) == 168);
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+const _: () = core::assert! (core::mem::offset_of! (face, stipple) == 176);
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+const _: () = core::assert! (core::mem::offset_of! (face, font) == 232);
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+const _: () = core::assert! (core::mem::offset_of! (face, fontset) == 240);
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+const _: () = core::assert! (core::mem::offset_of! (face, box_vertical_line_width) == 244);
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+const _: () = core::assert! (core::mem::offset_of! (face, underline_pixels_above_descent_line) == 252);
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+const _: () = core::assert! (core::mem::offset_of! (face, hash) == 264);
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+const _: () = core::assert! (core::mem::offset_of! (face, next) == 272);
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+const _: () = core::assert! (core::mem::offset_of! (face, ascii_face) == 288);
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+const _: () = core::assert! (core::mem::size_of::<face> () == 296);

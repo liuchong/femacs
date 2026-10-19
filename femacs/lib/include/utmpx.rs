@@ -53,6 +53,8 @@ pub const _UTX_HOSTSIZE: usize = 256;
      char ut_host[_UTX_HOSTSIZE];
      __uint32_t ut_pad[16];
    };  */
+/// <utmpx.h>'s `struct utmpx` on the host: 640 bytes, `ut_user` first.
+#[cfg (not (feature = "have_android"))]
 #[repr(C)]
 #[derive(Clone, Copy)]
 pub struct utmpx
@@ -67,15 +69,62 @@ pub struct utmpx
   pub ut_pad: [c_uint; 16],
 }
 
+#[cfg (not (feature = "have_android"))]
 const _: () = core::assert! (std::mem::size_of::<utmpx> () == 640);
+#[cfg (not (feature = "have_android"))]
 const _: () = core::assert! (std::mem::offset_of! (utmpx, ut_user) == 0);
+#[cfg (not (feature = "have_android"))]
 const _: () = core::assert! (std::mem::offset_of! (utmpx, ut_id) == 256);
+#[cfg (not (feature = "have_android"))]
 const _: () = core::assert! (std::mem::offset_of! (utmpx, ut_line) == 260);
+#[cfg (not (feature = "have_android"))]
 const _: () = core::assert! (std::mem::offset_of! (utmpx, ut_pid) == 292);
+#[cfg (not (feature = "have_android"))]
 const _: () = core::assert! (std::mem::offset_of! (utmpx, ut_type) == 296);
+#[cfg (not (feature = "have_android"))]
 const _: () = core::assert! (std::mem::offset_of! (utmpx, ut_tv) == 304);
+#[cfg (not (feature = "have_android"))]
 const _: () = core::assert! (std::mem::offset_of! (utmpx, ut_host) == 320);
+#[cfg (not (feature = "have_android"))]
 const _: () = core::assert! (std::mem::offset_of! (utmpx, ut_pad) == 576);
+
+/// bionic's `struct utmpx`: 400 bytes, `ut_type` first and the string fields 32/4/32 bytes
+/// (NDK, aarch64-linux-android21: size 400, `ut_pid` 4, `ut_line` 8, `ut_id` 40, `ut_user` 44,
+/// `ut_host` 76, `ut_exit` 332, `ut_session` 336, `ut_tv` 344, `ut_addr_v6` 360 - status 4.796).
+#[cfg (feature = "have_android")]
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct utmpx
+{
+  pub ut_type: c_short,          /* 0 */
+  pub _pad0: [u8; 2],            /* 2 */
+  pub ut_pid: pid_t,             /* 4 */
+  pub ut_line: [c_char; 32],     /* 8 */
+  pub ut_id: [c_char; 4],        /* 40 */
+  pub ut_user: [c_char; 32],     /* 44 */
+  pub ut_host: [c_char; 256],    /* 76 */
+  pub ut_exit: [c_short; 2],     /* 332 */
+  pub ut_session: c_int,         /* 336 */
+  pub _pad1: [u8; 4],            /* 340 */
+  pub ut_tv: timeval,            /* 344 */
+  pub ut_addr_v6: [c_int; 4],    /* 360 */
+  pub ut_reserved: [c_int; 6],   /* 376 */
+}
+
+#[cfg (feature = "have_android")]
+const _: () = core::assert! (std::mem::size_of::<utmpx> () == 400);
+#[cfg (feature = "have_android")]
+const _: () = core::assert! (std::mem::offset_of! (utmpx, ut_pid) == 4);
+#[cfg (feature = "have_android")]
+const _: () = core::assert! (std::mem::offset_of! (utmpx, ut_line) == 8);
+#[cfg (feature = "have_android")]
+const _: () = core::assert! (std::mem::offset_of! (utmpx, ut_id) == 40);
+#[cfg (feature = "have_android")]
+const _: () = core::assert! (std::mem::offset_of! (utmpx, ut_user) == 44);
+#[cfg (feature = "have_android")]
+const _: () = core::assert! (std::mem::offset_of! (utmpx, ut_host) == 76);
+#[cfg (feature = "have_android")]
+const _: () = core::assert! (std::mem::offset_of! (utmpx, ut_tv) == 344);
 
 /// <utmpx.h> 89: `#define BOOT_TIME 2`, the `ut_type` value lib/boot-time.c compares
 /// against (`USER_PROCESS` is 7 and is not named by this unit).

@@ -213,6 +213,50 @@ fn config_features () -> Vec<String>
   // `ALIGNOF_PTHREAD_COND_T` and `ALIGNOF_MAX_ALIGN_T` and nothing derived the boolean.  With it
   // always false, Android took the union arm and `thread_state` lost `Clone`/`Copy` and its layout
   // (status 4.616).  Derived here so both targets agree with their own measurement.
+  // C's `USABLE_POSIX_SPAWN` (`callproc.c` 37-50) is a *derived* condition rather than a macro:
+  // `<spawn.h>`, `posix_spawn`, `posix_spawnattr_setflags`, one of the two `..._addchdir`
+  // spellings, `HAVE_DECL_POSIX_SPAWN_SETSID == 1`, and not Haiku.  The Android configuration
+  // answers no (bionic's `<spawn.h>` has the first two and none of the rest), and every unit that
+  // spelled the arm by hand compiled it anyway (status 4.749).  Both polarities are emitted, the
+  // way a macro's are, because the frozen target sets no features at all.
+  let usable_posix_spawn = truthy.contains ("HAVE_SPAWN_H")
+    && truthy.contains ("HAVE_POSIX_SPAWN")
+    && truthy.contains ("HAVE_POSIX_SPAWNATTR_SETFLAGS")
+    && (truthy.contains ("HAVE_POSIX_SPAWN_FILE_ACTIONS_ADDCHDIR")
+        || truthy.contains ("HAVE_POSIX_SPAWN_FILE_ACTIONS_ADDCHDIR_NP"))
+    && truthy.contains ("HAVE_DECL_POSIX_SPAWN_SETSID")
+    && !truthy.contains ("HAVE_HAIKU");
+  out.push (format! ("feature=\"{}\"", if usable_posix_spawn { "usable_posix_spawn" }
+                     else { "not_usable_posix_spawn" }));
+  // C defines `USE_ANDROID_ASSETS` inside the units that read it rather than in `config.h`
+  // (`lread.c` 100-157, `doc.c` 40-70): `HAVE_ANDROID && !ANDROID_STUBIFY && __ANDROID_API__ >= 9`.
+  // The frozen configuration carries no macro of that name, so nothing derived a cfg for it, both
+  // units compiled their plain-file arms, and the device asked for `/assets/lisp/loadup.el` as a
+  // real path: ENOENT, then the fatal exit measured at status 4.786.  Both polarities are emitted,
+  // the way a macro's are.
+  let use_android_assets = truthy.contains ("HAVE_ANDROID")
+    && !truthy.contains ("ANDROID_STUBIFY")
+    && truthy.contains ("ANDROID_API_GE_9");
+  out.push (format! ("feature=\"{}\"", if use_android_assets { "use_android_assets" }
+                     else { "not_use_android_assets" }));
+  // gnulib's generated `<stdlib.h>` rewrites the allocator names it cannot trust, and the frozen
+  // table carries the answer for this target: `HAVE_REALLOC_POSIX` is 1 while
+  // `HAVE_REALLOC_0_NONNULL` is undefined, so `@REPLACE_REALLOC_FOR_REALLOC_POSIX@` is nonzero and
+  // `lib/stdlib.in.h` 1461-1482 defines `_GL_INLINE_RPL_REALLOC`, then `#undef realloc` and
+  // `#define realloc rpl_realloc`, whose body is `realloc (ptr, size ? size : 1)`.  A configuration
+  // that does not state `HAVE_REALLOC_POSIX` at all (the minimal darwin table) keeps the plain
+  // binding.  The device measured why the difference matters: bionic's `realloc (p, 0)` on a live
+  // block returns NULL, so `shrink_regexp_cache`'s `xrealloc (cp->buf.buffer, cp->buf.used)`
+  // reached `memory_full (0)` in the first GC of `loadup.el` (status 4.787).
+  let replace_realloc_for_realloc_posix = truthy.contains ("HAVE_REALLOC_POSIX")
+    && !truthy.contains ("HAVE_REALLOC_0_NONNULL");
+  out.push (format! ("feature=\"{}\"", if replace_realloc_for_realloc_posix
+                     { "replace_realloc_for_realloc_posix" }
+                     else { "not_replace_realloc_for_realloc_posix" }));
+  // The same two facts decide gnulib's own spelling of the condition, which `lib/realloc.rs`
+  // reads: `# if !HAVE_REALLOC_0_NONNULL` is what turns a zero request into one byte.
+  out.push (format! ("feature=\"{}\"", if replace_realloc_for_realloc_posix
+                     { "no_realloc_0_nonnull" } else { "realloc_0_nonnull" }));
   for (small, big, feature) in
     [("ALIGNOF_PTHREAD_MUTEX_T", "ALIGNOF_MAX_ALIGN_T",
       "alignof_pthread_mutex_t_le_alignof_max_align_t"),
@@ -1316,6 +1360,23 @@ configuration (see PORTING.md 2.1's setup steps)");
         Ok(_) => return fail("the `#if` evaluator disagrees with clang on a verified header"),
         Err(e) => return fail(e),
     }
+    // The frozen configuration is the other half of that table: it decides every
+    // `--cfg feature="..."` and every `src/include/config.rs` constant.  Reading its header line by
+    // line recorded a `#define` inside an arm the compiler never takes as if it were live, and
+    // Android's `WORDS_BIGENDIAN` went with it: the port's `sfnt_swap16_1`/`sfnt_swap32_1` became
+    // empty bodies, every font table came back byte-swapped, and no font ever registered (status
+    // 4.806).  The preprocessor that reads the same header is the authority here, so the table is
+    // compared with it before anything reads the table.
+    println!("== frozen configuration ==");
+    match Command::new("python3")
+        .current_dir(REPO)
+        .args(["tools/check-config-json.py"])
+        .status()
+    {
+        Ok(s) if s.success() => println!("frozen configuration: every key agrees with its preprocessor"),
+        Ok(_) => return fail("a frozen configuration disagrees with the preprocessor that reads its header"),
+        Err(e) => return fail(e),
+    }
     println!("== inventory gate ==");
     let inv = Command::new("python3")
         .current_dir(REPO)
@@ -1352,6 +1413,21 @@ configuration (see PORTING.md 2.1's setup steps)");
     {
         Ok(s) if s.success() => println!("ledger ticks: every ticked function is carried"),
         Ok(_) => return fail("a ledger ticks a function no ported file carries"),
+        Err(e) => return fail(e),
+    }
+    // The numbers the hand-off documents quote are claims like any other, and the tables under
+    // `docs/baseline/` are what they are derived from: three stale readings (a queue with 14 rows
+    // for names the ratchet had already closed, a "31 upstream gaps" that the delivery device
+    // provides, a symbol ratchet entry that had gone clean) survived until a session read them
+    // against the tables by hand (status 4.748/4.749, PORTING.md P-320).
+    println!("== doc numbers ==");
+    match Command::new("python3")
+        .current_dir(REPO)
+        .args(["tools/check-doc-numbers.py"])
+        .status()
+    {
+        Ok(s) if s.success() => println!("doc numbers: the documents agree with the tables"),
+        Ok(_) => return fail("a document quotes a number the baseline tables contradict"),
         Err(e) => return fail(e),
     }
     // A P-86 file's ledger records C line ranges instead of ticked boxes (its checklist is empty),
@@ -1642,6 +1718,23 @@ configuration (see PORTING.md 2.1's setup steps)");
         Ok(_) => {
             return fail("a unit repeats a declaration a mirror in its include graph carries")
         }
+        Err(e) => return fail(e),
+    }
+    // The Android (bionic) record layouts the port asserts, against the NDK's own answers: three
+    // of them were found on the device the hard way (status 4.785-4.792), so the comparison is a
+    // gate step rather than a note.  A missing NDK skips it with a line rather than failing, so a
+    // host without the Android toolchain can still run the rest of the gate.
+    println!("== android layout gate ==");
+    match Command::new("python3")
+        .current_dir(REPO)
+        .args(["tools/check-android-layout.py"])
+        .status()
+    {
+        Ok(s) if s.success() => println!("android layouts: every asserted record matches the NDK"),
+        Ok(s) if s.code() == Some(2) => {
+            println!("android layouts: skipped (no NDK toolchain on this host)")
+        }
+        Ok(_) => return fail("an asserted Android record no longer matches the NDK's layout"),
         Err(e) => return fail(e),
     }
     println!("== probe programs ==");

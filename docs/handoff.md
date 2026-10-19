@@ -1,4 +1,4 @@
-# 交接页（2026-10-18，status 4.746）
+# 交接页（2026-10-19，status 4.777）
 
 给下一次会话的**一页纸**。逐轮细节在 `docs/status.md`（两万行），规则在 `PORTING.md`，
 验收表在 `docs/current-state.md` 与 `docs/android-app-readiness.md`。
@@ -22,13 +22,16 @@
 
 `python3 tools/android-readiness.py` 会打印三行（平台脚本收尾也会打）：
 
-1. **`libemacs.so` 可 `dlopen`**：`check-android-imports.py` ⇒ **71 条未决 / 0 new**，链接 eager
+1. **`libemacs.so` 可 `dlopen`**：`check-android-imports.py` ⇒ **9 条未决 / 0 new**（API 21 桩；**设备读数 0 —— 全部窗口系统臂写完**），链接 eager
    binding（`BIND_NOW`）⇒ 必须**归零**。
 2. **assets**：✅ 已达成（4,360 个成员、`assets/directory-tree` 78,642 B、`version`/`build_info`）。
 3. **40 条窗口系统臂**：待问题 4。
 
-71 条的构成可复跑：`python3 tools/gen-android-arms.py`（名字 → 类 → 定义位置 → 预处理条件），
-清单见 `docs/decisions-needed.md` 附录（**A 窗口臂 40 / B 上游缺口 31 / C 其它 0**）。
+构成可复跑：`python3 tools/gen-android-arms.py`（名字 → 类 → 定义位置 → 预处理条件）、
+`tools/gen-android-gaps.py`（每条名字的 C 引用点与「C 自己编不编」的判据），
+清单见 `docs/decisions-needed.md` 附录（**A 窗口臂 0 / B 上游缺口 9 / C 其它 0**）——那 9 条是 API 21 的桩
+读数缺、**交付设备自己提供的名字**（`backtrace`、`getifaddrs`、`posix_spawn` 一族等）；逐条的 C 侧判据见
+`docs/baseline/android-gaps.tsv`。
 
 ## 唯一待决问题（问题 4）
 

@@ -177,6 +177,11 @@ if [ -n "$APK_DIR" ]; then
   if [ "$ASSETS" = 1 ]; then
     python3 "$REPO/tools/gen-android-assets.py" --out "$OUT/pack" >/dev/null || exit $?
     (cd "$OUT/pack" && "$JAVA_HOME/bin/jar" uf "$UNSIGNED" assets) || exit $?
+    # `jar` deflates every entry, and Android's `AAsset_getBuffer` returns NULL for a compressed
+    # asset - C's `android_init_assets` then takes its *silent* `if (!directory_tree) emacs_abort ()`
+    # arm (C 1257), which reads on the device as a bare SIGSEGV with an `emacs_abort called`
+    # tombstone (status 4.783).  The index has to be stored, so it is re-added with `-0`.
+    (cd "$OUT/pack" && zip -X -0 -q "$UNSIGNED" assets/directory-tree) || exit $?
     echo "assets: $(cd "$OUT/pack" && find assets -type f | wc -l | tr -d ' ') file(s) packed"
   fi
   "$ZIPALIGN" -f 4 "$UNSIGNED" "$APK_DIR/emacs-aligned.apk" || exit $?

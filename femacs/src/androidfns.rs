@@ -120,8 +120,6 @@ unsafe extern "C" {
   pub fn decode_live_terminal (t: Lisp_Object) -> *mut terminal;
   /// C: frame.h 1430: `extern EMACS_UINT frame_set_id_from_params (struct frame *f, Lisp_Object params);`
   pub fn frame_set_id_from_params (f: *mut frame, params: Lisp_Object) -> EMACS_UINT;
-  /// C: frame.h 774: `fset_parent_frame (struct frame *f, Lisp_Object val)` (the C `INLINE` setter).
-  pub fn fset_parent_frame (f: *mut frame, val: Lisp_Object);
   /// C: frame.h 1865: `extern long gui_figure_window_size (struct frame *, Lisp_Object, bool, bool);`
   pub fn gui_figure_window_size (f: *mut frame, parms: Lisp_Object, x_frame: bool,
                                  toolbar_p: bool) -> c_long;
@@ -1923,7 +1921,10 @@ const _: () = core::assert! (core::mem::offset_of! (MonitorInfo, mm_height) == 3
 const _: () = core::assert! (core::mem::offset_of! (MonitorInfo, name) == 40);
 /// C: frame.h 1938: `extern Lisp_Object make_monitor_attribute_list (struct MonitorInfo *monitors,`
 /// (C 1939 continues `int n_monitors, int primary_monitor, Lisp_Object monitor_frames, const char *source);`)
-#[cfg (all (feature = "have_android", not (feature = "have_window_system")))]
+/* C's header declares it and `frame.c` defines it, so this unit declares it for whichever
+   configuration it is compiled in: the earlier `not (have_window_system)` complement stopped being
+   true when the Android configuration's `HAVE_WINDOW_SYSTEM` started selecting the arm (status 4.756).  */
+#[cfg (feature = "have_android")]
 unsafe extern "C" {
   pub fn make_monitor_attribute_list (monitors: *mut MonitorInfo, n_monitors: c_int,
                                       primary_monitor: c_int, monitor_frames: Lisp_Object,
@@ -4575,6 +4576,19 @@ unsafe extern "C" fn syms_of_androidfns_for_pdumper ()
 #[cfg (feature = "have_android")]
 #[unsafe(no_mangle)]
 pub static mut Vx_pointer_shape: Lisp_Object = lisp_h_Qnil ();   // C 3587
+/* C 3591-3596 and 3651-3656 register `x-nontext-pointer-shape` and `x-mode-pointer-shape` inside
+   `#if false` (dead text) but *assign* both variables on the live path, and `Vx_resource_name` is
+   assigned at C 770/793: in C all three live in the single `globals` object, whose Android
+   definition site is this file.  The port had them only in `xfns.rs`, so this unit imported them
+   and the shared library could not be loaded (status 4.750).  Gated like the seventeen carriers
+   around them (`have_android`): a probe build without the flag has no `Lisp_Object` in scope here,
+   which is what the first version of these two lines measured (status 4.751).  */
+#[cfg (feature = "have_android")]
+#[unsafe(no_mangle)] pub static mut Vx_nontext_pointer_shape: Lisp_Object = lisp_h_Qnil ();   // C 3592
+#[cfg (feature = "have_android")]
+#[unsafe(no_mangle)] pub static mut Vx_mode_pointer_shape: Lisp_Object = lisp_h_Qnil ();   // C 3652
+/* `Vx_resource_name`'s carrier is in `frame.rs` (`validate_x_resource_name`, the unit that reads
+   it under `have_window_system`), so this unit only uses the declaration.  */
 #[cfg (feature = "have_android")]
 #[unsafe(no_mangle)]
 pub static mut Vx_hourglass_pointer_shape: Lisp_Object = lisp_h_Qnil ();   // C 3597

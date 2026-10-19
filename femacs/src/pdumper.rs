@@ -1506,7 +1506,7 @@ fn dump_queue_dequeue (dump_queue: *mut dump_queue, basis: dump_off) -> Lisp_Obj
   unsafe { dump_trace
     (concat! ("dump_queue_dequeue basis=%", PRIdDUMP_OFF! (), " fancy=%", PRIdPTR! (),
               " zero=%", PRIdPTR! (), " normal=%", PRIdPTR! (), " strong=%", PRIdPTR! (),
-              " hash=%", PRIdHASH_IDX! (), "\n").as_ptr () as *const c_char,
+              " hash=%", PRIdHASH_IDX! (), "\n", "\0" ).as_ptr () as *const c_char,
      basis,
      dump_tailq_length (unsafe { &raw const (*dump_queue).fancy_weight_objects }) as c_long,
      dump_tailq_length (unsafe { &raw const (*dump_queue).zero_weight_objects }) as c_long,
@@ -4888,7 +4888,7 @@ DEFUN! ("dump-emacs-portable",
 			            " discardable=%", PRIdDUMP_OFF! (), " cold=%", PRIdDUMP_OFF! (),
 			            "\n",
 			            "Reloc counts: hot=%", PRIdDUMP_OFF! (),
-			            " discardable=%", PRIdDUMP_OFF! (), "\n").as_ptr () as *const c_char,
+			            " discardable=%", PRIdDUMP_OFF! (), "\n", "\0" ).as_ptr () as *const c_char,
 			   header_bytes, hot_bytes, discardable_bytes, cold_bytes,
 			   number_hot_relocations,
 			   number_discardable_relocations); }

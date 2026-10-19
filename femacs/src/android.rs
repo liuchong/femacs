@@ -221,6 +221,8 @@ pub type pthread_key_t = c_int;                                  // bionic, size
 #[repr(C, align(4))]
 pub struct sem_t { pub __opaque: [c_uchar; 16] }                 // bionic, sizeof 16 align 4
 #[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+const _: () = core::assert! (core::mem::size_of::<sem_t> () == 16);
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
 unsafe extern "C" {
   /* int pthread_mutex_init (pthread_mutex_t *, const pthread_mutexattr_t *);  */
   pub fn pthread_mutex_init (mutex: *mut pthread_mutex_t, attr: *const c_void) -> c_int;
@@ -1790,7 +1792,7 @@ pub unsafe extern "C" fn setEmacsParams (env: *mut JNIEnv, object: jobject,
   __android_log_print (ANDROID_LOG_INFO, __func__,
 		       concat! ("Initializing ", PACKAGE_STRING! (),
 				"...\nPlease report bugs to ", PACKAGE_BUGREPORT! (),
-				".  Thanks.\n").as_ptr () as *const c_char);
+				".  Thanks.\n", "\0" ).as_ptr () as *const c_char);
 
   if ! emacs_service_object.is_null ()
     {
@@ -1910,7 +1912,7 @@ pub unsafe extern "C" fn setEmacsParams (env: *mut JNIEnv, object: jobject,
 				"Files directory: %s\n",
 				"Native code directory: %s\n",
 				"Game score path: %s\n",
-				"Class path: %s\n").as_ptr () as *const c_char,
+				"Class path: %s\n", "\0" ).as_ptr () as *const c_char,
 		       android_site_load_path,
 		       android_files_dir,
 		       android_lib_dir, android_game_path,
@@ -7611,7 +7613,7 @@ pub unsafe extern "C" fn emacs_abort () -> !                            // C 591
   let __func__: *const c_char = c"emacs_abort".as_ptr ();                 // C 5922 (C's `__func__`)
   __android_log_print (ANDROID_LOG_FATAL, __func__,                     // C 5922
 		       concat! ("emacs_abort called, please review the following",    // C 5923
-				" stack trace").as_ptr () as *const c_char);                                         // C 5924
+				" stack trace", "\0" ).as_ptr () as *const c_char);                                         // C 5924
 
   /* Induce a NULL pointer dereference to make debuggerd generate a     // C 5926
      tombstone.  */                                                     // C 5927
@@ -7866,7 +7868,7 @@ pub unsafe extern "C" fn android_exception_check ()                     // C 616
   let __func__: *const c_char = c"android_exception_check".as_ptr ();    // C 6170 (C's `__func__`)
   __android_log_print (ANDROID_LOG_WARN, __func__,                      // C 6170
 		       concat! ("Possible out of memory error. ",                     // C 6171
-				" The Java exception follows:  ").as_ptr () as *const c_char);      // C 6172
+				" The Java exception follows:  ", "\0" ).as_ptr () as *const c_char);      // C 6172
   /* Describe exactly what went wrong.  */                              // C 6173
   ((*(*android_java_env)).ExceptionDescribe.unwrap ()) (android_java_env); // C 6174
   ((*(*android_java_env)).ExceptionClear.unwrap ()) (android_java_env); // C 6175
@@ -7886,7 +7888,7 @@ pub unsafe extern "C" fn android_exception_check_1 (object: jobject)    // C 618
   let __func__: *const c_char = c"android_exception_check_1".as_ptr ();    // C 6190 (C's `__func__`)
   __android_log_print (ANDROID_LOG_WARN, __func__,                      // C 6190
 		       concat! ("Possible out of memory error. ",                     // C 6191
-				" The Java exception follows:  ").as_ptr () as *const c_char);      // C 6192
+				" The Java exception follows:  ", "\0" ).as_ptr () as *const c_char);      // C 6192
   /* Describe exactly what went wrong.  */                              // C 6193
   ((*(*android_java_env)).ExceptionDescribe.unwrap ()) (android_java_env); // C 6194
   ((*(*android_java_env)).ExceptionClear.unwrap ()) (android_java_env); // C 6195
@@ -7910,7 +7912,7 @@ pub unsafe extern "C" fn android_exception_check_2 (object: jobject, object1: jo
   let __func__: *const c_char = c"android_exception_check_2".as_ptr ();    // C 6212 (C's `__func__`)
   __android_log_print (ANDROID_LOG_WARN, __func__,                      // C 6212
 		       concat! ("Possible out of memory error. ",                     // C 6213
-				" The Java exception follows:  ").as_ptr () as *const c_char);      // C 6214
+				" The Java exception follows:  ", "\0" ).as_ptr () as *const c_char);      // C 6214
   /* Describe exactly what went wrong.  */                              // C 6215
   ((*(*android_java_env)).ExceptionDescribe.unwrap ()) (android_java_env); // C 6216
   ((*(*android_java_env)).ExceptionClear.unwrap ()) (android_java_env); // C 6217
@@ -7937,7 +7939,7 @@ pub unsafe extern "C" fn android_exception_check_3 (object: jobject, object1: jo
   let __func__: *const c_char = c"android_exception_check_3".as_ptr ();    // C 6238 (C's `__func__`)
   __android_log_print (ANDROID_LOG_WARN, __func__,                      // C 6238
 		       concat! ("Possible out of memory error. ",                     // C 6239
-				" The Java exception follows:  ").as_ptr () as *const c_char);      // C 6240
+				" The Java exception follows:  ", "\0" ).as_ptr () as *const c_char);      // C 6240
   /* Describe exactly what went wrong.  */                              // C 6241
   ((*(*android_java_env)).ExceptionDescribe.unwrap ()) (android_java_env); // C 6242
   ((*(*android_java_env)).ExceptionClear.unwrap ()) (android_java_env); // C 6243
@@ -7967,7 +7969,7 @@ pub unsafe extern "C" fn android_exception_check_4 (object: jobject, object1: jo
   let __func__: *const c_char = c"android_exception_check_4".as_ptr ();    // C 6267 (C's `__func__`)
   __android_log_print (ANDROID_LOG_WARN, __func__,                      // C 6267
 		       concat! ("Possible out of memory error. ",                     // C 6268
-				" The Java exception follows:  ").as_ptr () as *const c_char);      // C 6269
+				" The Java exception follows:  ", "\0" ).as_ptr () as *const c_char);      // C 6269
   /* Describe exactly what went wrong.  */                              // C 6270
   ((*(*android_java_env)).ExceptionDescribe.unwrap ()) (android_java_env); // C 6271
   ((*(*android_java_env)).ExceptionClear.unwrap ()) (android_java_env); // C 6272
@@ -8000,7 +8002,7 @@ pub unsafe extern "C" fn android_exception_check_5 (object: jobject, object1: jo
   let __func__: *const c_char = c"android_exception_check_5".as_ptr ();    // C 6300 (C's `__func__`)
   __android_log_print (ANDROID_LOG_WARN, __func__,                      // C 6300
 		       concat! ("Possible out of memory error. ",                     // C 6301
-				" The Java exception follows:  ").as_ptr () as *const c_char);      // C 6302
+				" The Java exception follows:  ", "\0" ).as_ptr () as *const c_char);      // C 6302
   /* Describe exactly what went wrong.  */                              // C 6303
   ((*(*android_java_env)).ExceptionDescribe.unwrap ()) (android_java_env); // C 6304
   ((*(*android_java_env)).ExceptionClear.unwrap ()) (android_java_env); // C 6305
@@ -8036,7 +8038,7 @@ pub unsafe extern "C" fn android_exception_check_6 (object: jobject, object1: jo
   let __func__: *const c_char = c"android_exception_check_6".as_ptr ();    // C 6337 (C's `__func__`)
   __android_log_print (ANDROID_LOG_WARN, __func__,                      // C 6337
 		       concat! ("Possible out of memory error. ",                     // C 6338
-				" The Java exception follows:  ").as_ptr () as *const c_char);      // C 6339
+				" The Java exception follows:  ", "\0" ).as_ptr () as *const c_char);      // C 6339
   /* Describe exactly what went wrong.  */                              // C 6340
   ((*(*android_java_env)).ExceptionDescribe.unwrap ()) (android_java_env); // C 6341
   ((*(*android_java_env)).ExceptionClear.unwrap ()) (android_java_env); // C 6342
@@ -8762,7 +8764,7 @@ pub unsafe extern "C" fn android_run_in_emacs_thread (proc: Option<unsafe extern
 	  let __func__: *const c_char = c"android_run_in_emacs_thread".as_ptr ();
 	  __android_log_print (ANDROID_LOG_VERBOSE, __func__,                  // C 7176
 			       concat! ("Timed out waiting for response",                    // C 7177
-					" from main thread...").as_ptr () as *const c_char);               // C 7178
+					" from main thread...", "\0" ).as_ptr () as *const c_char);               // C 7178
 
 	  /* The query timed out.  At this point, set                          // C 7180
 	     `android_urgent_query' to true.  */                               // C 7181

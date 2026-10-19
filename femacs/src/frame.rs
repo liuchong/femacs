@@ -5528,7 +5528,7 @@ pub unsafe extern "C" fn gui_report_frame_params (f: *mut frame, alistptr: *mut 
      warnings.  */
   w = WINDOW_HANDLE_UINTPTR! (FRAME_NATIVE_WINDOW! (f)) as uintmax_t;
   store_in_alist (alistptr, Qwindow_id (),
-		  make_formatted_string (concat! ("%", PRIuMAX! ()).as_ptr ()
+		  make_formatted_string (concat! ("%", PRIuMAX! (), "\0").as_ptr ()
 					 as *const c_char, w));
   /* C 5464-5472: `#ifdef HAVE_X_WINDOWS`, with C 5465-5468's nested `#ifdef USE_X_TOOLKIT`
      (`if (FRAME_X_OUTPUT (f)->widget)` guards the assignment; the port keeps the guard).  */
@@ -5541,7 +5541,7 @@ pub unsafe extern "C" fn gui_report_frame_params (f: *mut frame, alistptr: *mut 
     #[cfg (not (feature = "use_x_toolkit"))]
     { w = WINDOW_HANDLE_UINTPTR! (FRAME_OUTER_WINDOW! (f)) as uintmax_t; }
     store_in_alist (alistptr, Qouter_window_id (),
-		    make_formatted_string (concat! ("%", PRIuMAX! ()).as_ptr ()
+		    make_formatted_string (concat! ("%", PRIuMAX! (), "\0").as_ptr ()
 					   as *const c_char, w));
   }
   store_in_alist (alistptr, Qicon_name (), (*f).icon_name);
@@ -6478,6 +6478,16 @@ pub unsafe extern "C" fn gui_redo_mouse_highlight (dpyinfo: *mut Display_Info)
 			    (*dpyinfo).last_mouse_motion_x,
 			    (*dpyinfo).last_mouse_motion_y); }
 }
+
+/* C's `globals` object defines `Vx_resource_class` for every target, and the port carries it in
+   the unit that reads it: C's own `DEFVAR_LISP`s for `x-resource-class` live in the X/GTK/W32/NS
+   frontends, none of which is in this target's link set, so the Android unit imported the name and
+   the shared library could not be loaded (status 4.751).  `Vx_resource_name` (read by the same
+   function) is carried here for the same reason.  */
+#[cfg (feature = "have_window_system")]
+#[unsafe(no_mangle)] pub static mut Vx_resource_class: Lisp_Object = lisp_h_Qnil ();
+#[cfg (feature = "have_window_system")]
+#[unsafe(no_mangle)] pub static mut Vx_resource_name: Lisp_Object = lisp_h_Qnil ();
 
 /* Subroutines of creating an X frame.  */
 
@@ -7421,7 +7431,75 @@ DEFUN! ("frame--set-was-invisible", Fframe__set_was_invisible,
 });
 
 /* C 7055-7112 and 7120-7187's `#ifdef HAVE_WINDOW_SYSTEM` blocks (the X pointer and
-   `Display_Info` machinery) are dead (P-08).  */
+   `Display_Info` machinery) are dead on the frozen target and live on Android; the part this
+   round writes is `make_monitor_attribute_list` (C 7144-7187) below - `free_monitors` (C 7124-7135)
+   is the next row of `docs/baseline/window-arms-plan.tsv`.  */
+
+/// C 7144-7187: `make_monitor_attribute_list` - it turns C's `struct MonitorInfo` array into the
+/// Lisp attribute list `frame-monitor-attributes` returns.  Inside C 7120's `#ifdef HAVE_WINDOW_SYSTEM`:
+/// dead on the frozen target, live on Android, whose unit imported the name with only the header's
+/// declaration (status 4.755).  The `#ifdef HAVE_PGTK` member (`scale_factor`) is C's own arm and
+/// this configuration does not take it.
+#[cfg (feature = "have_window_system")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn make_monitor_attribute_list (monitors: *mut MonitorInfo,
+                                                      n_monitors: c_int,
+                                                      primary_monitor: c_int,
+                                                      monitor_frames: Lisp_Object,
+                                                      source: *const c_char) -> Lisp_Object
+{
+  let mut attributes_list: Lisp_Object = Qnil ();        // C 7146
+  let mut primary_monitor_attributes: Lisp_Object = Qnil ();   // C 7147
+  let mut i: c_int;                                      // C 7148
+
+  i = 0;
+  while i < n_monitors
+    {
+      let mut geometry: Lisp_Object;
+      let mut workarea: Lisp_Object;
+      let mut attributes: Lisp_Object = Qnil ();         // C 7151
+      let mi: *mut MonitorInfo = &mut *monitors.offset (i as isize);   // C 7152
+
+      if (*mi).geom.width == 0 { i += 1; continue; }
+
+      /* C's `list4i`/`list2i` take `EMACS_INT` (lisp.h 2133-2150), so the `int` fields promote -
+	 the mirror's signature says so, and the casts are that promotion, not a change of value.  */
+      workarea = list4i ((*mi).work.x as EMACS_INT, (*mi).work.y as EMACS_INT,
+			  (*mi).work.width as EMACS_INT, (*mi).work.height as EMACS_INT);
+      geometry = list4i ((*mi).geom.x as EMACS_INT, (*mi).geom.y as EMACS_INT,
+			  (*mi).geom.width as EMACS_INT, (*mi).geom.height as EMACS_INT);
+
+      if !source.is_null ()
+	{
+	  attributes = Fcons (Fcons (Qsource (), build_string (source)), attributes);
+	}
+
+      attributes = Fcons (Fcons (Qframes (), AREF (monitor_frames, i as isize)),
+			  attributes);
+      /* C 7165-7167's `#ifdef HAVE_PGTK` arm (`scale_factor`) is dead here.  */
+      attributes = Fcons (Fcons (Qmm_size (),
+				 list2i ((*mi).mm_width as EMACS_INT, (*mi).mm_height as EMACS_INT)),
+			  attributes);
+      attributes = Fcons (Fcons (Qworkarea (), workarea), attributes);
+      attributes = Fcons (Fcons (Qgeometry (), geometry), attributes);
+      if !(*mi).name.is_null ()
+	{
+	  attributes = Fcons (Fcons (Qname (),
+				     make_string ((*mi).name, strlen ((*mi).name) as isize)),
+			      attributes);
+	}
+
+      if i == primary_monitor
+	{ primary_monitor_attributes = attributes; }
+      else
+	{ attributes_list = Fcons (attributes, attributes_list); }
+      i += 1;
+    }
+
+  if !NILP (primary_monitor_attributes)
+    { attributes_list = Fcons (primary_monitor_attributes, attributes_list); }
+  return attributes_list;
+}
 
 /***********************************************************************
 				Initialization

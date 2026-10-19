@@ -114,8 +114,22 @@ pub const O_APPEND: c_int = 0x8;
 pub const O_NONBLOCK: c_int = 0x4;
 /* C 336-341's `#ifndef O_CLOEXEC / # define O_CLOEXEC 0x40000000`; two arms as well, and the
    frozen value is the system's 0x1000000 (`...macros.tsv` 3082).  Its witness
-   `GNULIB_defined_O_CLOEXEC` is 0 in the frozen header (the `#else` arm).  */
+   `GNULIB_defined_O_CLOEXEC` is 0 in the frozen header (the `#else` arm).
+
+   The value is the *delivered target's* header, so the port carries one arm per target (the
+   `Emacs_GC`/`O_DIRECTORY` shape): 0x1000000 is Darwin's, while bionic defines it as
+   `02000000` octal = 0x80000 - measured with the target's own preprocessor,
+
+       $ clang --target=aarch64-linux-android24 -E -dM -include fcntl.h - </dev/null
+       #define O_CLOEXEC 02000000
+
+   Status 4.780: passing Darwin's 0x1000000 to `pipe2` on Android makes it fail with `EINVAL`,
+   and `setEmacsParams` then takes C's `if (pipe2 (...) < 0) emacs_abort ()` arm - which is the
+   tombstone that wheel read as a native crash.  */
+#[cfg (not (feature = "have_android"))]
 pub const O_CLOEXEC: c_int = 0x1000000;
+#[cfg (feature = "have_android")]
+pub const O_CLOEXEC: c_int = 0o2000000;
 pub const GNULIB_defined_O_CLOEXEC: c_int = 0;
 /* C 347-349's `#ifndef O_DIRECTORY / # define O_DIRECTORY 0x20000000` - dead: the system
    defines it as 0x100000 (`...macros.tsv` 3086).  */
@@ -222,7 +236,12 @@ pub const AT_EACCESS: c_int = 4;
 pub const AT_EACCESS: c_int = 0x10;
 /* C 488-491's `#ifndef AT_NO_AUTOMOUNT / # define AT_NO_AUTOMOUNT 0` - live (the Linux-only
    name); `lib/fstatat.c`'s `AT_EMPTY_PATH` has the same shape at its own use site.  */
+#[cfg (not (feature = "have_android"))]
 pub const AT_NO_AUTOMOUNT: c_int = 0;
+/* Measured on the delivery target (bionic), status 4.781: the frozen arm above is
+   the Darwin value and the two platforms number this one differently. */
+#[cfg (feature = "have_android")]
+pub const AT_NO_AUTOMOUNT: c_int = 2048;
 
 /* C 493-500's `#if defined __FreeBSD__ ... # define _GL_OPENAT_ESYMLINK EMLINK / #elif
    __NetBSD__ EFTYPE / #else ELOOP`: the frozen target takes the `#else`, and
@@ -333,7 +352,12 @@ pub const F_FREEZE_FS: c_int = 53;
 pub const F_FULLFSYNC: c_int = 51;
 pub const F_GETLEASE: c_int = 107;
 pub const F_GETNOSIGPIPE: c_int = 74;
+#[cfg (not (feature = "have_android"))]
 pub const F_GETOWN: c_int = 5;
+/* Measured on the delivery target (bionic), status 4.781: the frozen arm above is
+   the Darwin value and the two platforms number this one differently. */
+#[cfg (feature = "have_android")]
+pub const F_GETOWN: c_int = 9;
 pub const F_GETPROTECTIONCLASS: c_int = 63;
 pub const F_GETPROTECTIONLEVEL: c_int = 77;
 pub const F_THAW_FS: c_int = 54;
@@ -345,6 +369,11 @@ pub const F_RDAHEAD: c_int = 45;
 pub const F_SETBACKINGSTORE: c_int = 70;
 pub const F_SETLEASE: c_int = 106;
 pub const F_SETNOSIGPIPE: c_int = 73;
+#[cfg (not (feature = "have_android"))]
 pub const F_SETOWN: c_int = 6;
+/* Measured on the delivery target (bionic), status 4.781: the frozen arm above is
+   the Darwin value and the two platforms number this one differently. */
+#[cfg (feature = "have_android")]
+pub const F_SETOWN: c_int = 8;
 pub const F_SETPROTECTIONCLASS: c_int = 64;
 pub const F_SINGLE_WRITER: c_int = 76;

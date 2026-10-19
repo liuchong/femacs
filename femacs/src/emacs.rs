@@ -113,6 +113,7 @@ use pdumper_load_result::*;
 // so which of the two identical defines is in force has no observable effect.
 
 include!("include/config.rs");                 // C 22: `#include <config.h>`
+include!("include/epaths.rs");                    // C: `<epaths.h>` (generated; see epaths.in's android arm)
 include!("include/conf_post.rs");               // C 22: the AH_BOTTOM `#include <conf_post.h>` inside it
 
 // C 74-80: `#if defined HAVE_LINUX_SECCOMP_H && defined HAVE_LINUX_FILTER_H
@@ -320,7 +321,10 @@ unsafe extern "C" {
   fn exit (status: c_int) -> !;
   /// C: <stdlib.h>: `int atexit (void (*) (void));`
   fn atexit (func: Option<unsafe extern "C" fn ()>) -> c_int;
-  /// C: <stdlib.h>: `size_t confstr (int, char *, size_t);`
+  /// C: <stdlib.h>: `size_t confstr (int, char *, size_t);` - declared with the arm that calls
+  /// it: bionic has neither the function nor `_CS_PATH`, so C's `#ifdef _CS_PATH` body is not
+  /// compiled on Android and the port's was (status 4.749).
+  #[cfg (not (feature = "not__cs_path"))]
   fn confstr (name: c_int, buf: *mut c_char, len: usize) -> usize;
   /// C: <stdlib.h>: `char *realpath (const char *, char *);`
   fn realpath (name: *const c_char, resolved: *mut c_char) -> *mut c_char;
@@ -344,6 +348,132 @@ unsafe extern "C" {
   /* C's lisp.h 5131 `extern char const *emacs_wd;`: this file defines the object, so only
      the definition below is needed (the mirror has no declaration to shadow).  */
 }
+
+/* C's window-system and notification units' `syms_of_*` and platform `init_*`, declared for
+   the sequence below.  */
+unsafe extern "C" {
+  /// C: `void syms_of_module (void);`
+  fn syms_of_module ();
+  /// C: `void syms_of_sound (void);`
+  fn syms_of_sound ();
+  /// C: `void syms_of_ntproc (void);`
+  fn syms_of_ntproc ();
+  /// C: `void syms_of_cygw32 (void);`
+  fn syms_of_cygw32 ();
+  /// C: `void syms_of_fringe (void);`
+  fn syms_of_fringe ();
+  /// C: `void syms_of_image (void);`
+  fn syms_of_image ();
+  /// C: `void syms_of_w32image (void);`
+  fn syms_of_w32image ();
+  /// C: `void syms_of_xterm (void);`
+  fn syms_of_xterm ();
+  /// C: `void syms_of_xfns (void);`
+  fn syms_of_xfns ();
+  /// C: `void syms_of_xmenu (void);`
+  fn syms_of_xmenu ();
+  /// C: `void syms_of_fontset (void);`
+  fn syms_of_fontset ();
+  /// C: `void syms_of_xsettings (void);`
+  fn syms_of_xsettings ();
+  /// C: `void syms_of_xsmfns (void);`
+  fn syms_of_xsmfns ();
+  /// C: `void syms_of_xselect (void);`
+  fn syms_of_xselect ();
+  /// C: `void syms_of_lcms2 (void);`
+  fn syms_of_lcms2 ();
+  /// C: `void syms_of_decompress (void);`
+  fn syms_of_decompress ();
+  /// C: `void syms_of_w32term (void);`
+  fn syms_of_w32term ();
+  /// C: `void syms_of_w32fns (void);`
+  fn syms_of_w32fns ();
+  /// C: `void syms_of_w32menu (void);`
+  fn syms_of_w32menu ();
+  /// C: `void syms_of_w32cygwinx (void);`
+  fn syms_of_w32cygwinx ();
+  /// C: `void syms_of_w32select (void);`
+  fn syms_of_w32select ();
+  /// C: `void syms_of_dosfns (void);`
+  fn syms_of_dosfns ();
+  /// C: `void syms_of_msdos (void);`
+  fn syms_of_msdos ();
+  /// C: `void syms_of_win16select (void);`
+  fn syms_of_win16select ();
+  /// C: `void syms_of_nsterm (void);`
+  fn syms_of_nsterm ();
+  /// C: `void syms_of_nsfns (void);`
+  fn syms_of_nsfns ();
+  /// C: `void syms_of_nsmenu (void);`
+  fn syms_of_nsmenu ();
+  /// C: `void syms_of_nsselect (void);`
+  fn syms_of_nsselect ();
+  /// C: `void syms_of_pgtkterm (void);`
+  fn syms_of_pgtkterm ();
+  /// C: `void syms_of_pgtkfns (void);`
+  fn syms_of_pgtkfns ();
+  /// C: `void syms_of_pgtkselect (void);`
+  fn syms_of_pgtkselect ();
+  /// C: `void syms_of_pgtkmenu (void);`
+  fn syms_of_pgtkmenu ();
+  /// C: `void syms_of_pgtkim (void);`
+  fn syms_of_pgtkim ();
+  /// C: `void syms_of_haikuterm (void);`
+  fn syms_of_haikuterm ();
+  /// C: `void syms_of_haikufns (void);`
+  fn syms_of_haikufns ();
+  /// C: `void syms_of_haikumenu (void);`
+  fn syms_of_haikumenu ();
+  /// C: `void syms_of_haikufont (void);`
+  fn syms_of_haikufont ();
+  /// C: `void syms_of_haikuselect (void);`
+  fn syms_of_haikuselect ();
+  /// C: `void syms_of_haikuimage (void);`
+  fn syms_of_haikuimage ();
+  /// C: `void syms_of_androidterm (void);`
+  fn syms_of_androidterm ();
+  /// C: `void syms_of_androidfns (void);`
+  fn syms_of_androidfns ();
+  /// C: `void syms_of_androidmenu (void);`
+  fn syms_of_androidmenu ();
+  /// C: `void syms_of_androidfont (void);`
+  fn syms_of_androidfont ();
+  /// C: `void syms_of_androidselect (void);`
+  fn syms_of_androidselect ();
+  /// C: `void syms_of_androidvfs (void);`
+  fn syms_of_androidvfs ();
+  /// C: `void syms_of_sfntfont (void);`
+  fn syms_of_sfntfont ();
+  /// C: `void syms_of_sfntfont_android (void);`
+  fn syms_of_sfntfont_android ();
+  /// C: `void syms_of_inotify (void);`
+  fn syms_of_inotify ();
+  /// C: `void syms_of_kqueue (void);`
+  fn syms_of_kqueue ();
+  /// C: `void syms_of_gfilenotify (void);`
+  fn syms_of_gfilenotify ();
+  /// C: `void syms_of_dbusbind (void);`
+  fn syms_of_dbusbind ();
+  /// C: `void syms_of_ntterm (void);`
+  fn syms_of_ntterm ();
+  /// C: `void syms_of_w32notify (void);`
+  fn syms_of_w32notify ();
+  /// C: `void syms_of_w32dwrite (void);`
+  fn syms_of_w32dwrite ();
+  /// C: `void init_haiku_select (void);`
+  fn init_haiku_select ();
+  /// C: `void init_dbusbind (void);`
+  fn init_dbusbind ();
+  /// C: `void init_xterm (void);`
+  fn init_xterm ();
+  /// C: `void init_crit (void);`
+  fn init_crit ();
+  /// C: `void init_fringe (void);`
+  fn init_fringe ();
+  /// C: `void init_androidmenu (void);`
+  fn init_androidmenu ();
+}
+
 
 /* C's `<config.h>` values this file names; config.rs carries only the generated
    configuration keys, so the rest are constants here (the callproc.rs `<epaths.h>` shape).
@@ -371,7 +501,7 @@ const EMACS_CONFIG_OPTIONS: &CStr =
    unmentioned in the body (docs/status.md 3.64).  */
 /// C: `<epaths.h>` 58 (the frozen build's generated header): `#define PATH_EXEC
 /// "/usr/local/libexec/emacs/32.0.50/aarch64-apple-darwin25.6.0"`.
-const PATH_EXEC: &CStr = c"/usr/local/libexec/emacs/32.0.50/aarch64-apple-darwin25.6.0";
+/* The value is the `include/epaths.rs` mirror's (per target; `epaths.in` 85-99).  */
 
 /// C: `<config.h>` 120: `#define DIRECTORY_SEP '/'` (config.h splices the `s/` header's
 /// value in; the frozen table records `'/'`), with 2097's `IS_DIRECTORY_SEP` (the
@@ -382,7 +512,9 @@ macro_rules! IS_DIRECTORY_SEP { ($c:expr) => { ($c) as u8 == DIRECTORY_SEP }; }
 const SEPCHAR: c_char = b':' as c_char;
 /// C: `<limits.h>`'s `PIPE_BUF` on this target (measured: 512); no mirror carries it.
 const PIPE_BUF: c_int = 512;
-/// C: `<unistd.h>`'s `_CS_PATH` (measured: 1) -- `confstr`'s argument.
+/// C: `<unistd.h>`'s `_CS_PATH` (measured: 1 on the frozen target; bionic's `<unistd.h>`
+/// defines neither it nor `confstr`) -- `confstr`'s argument, so it is gated with the arm.
+#[cfg (not (feature = "not__cs_path"))]
 const _CS_PATH: c_int = 1;
 /// C: `<locale.h>`'s categories (measured: LC_ALL 0, LC_NUMERIC 4, LC_TIME 5,
 /// LC_MESSAGES 6); `<locale.h>` has no mirror, so they are constants here.
@@ -1072,9 +1204,12 @@ unsafe fn argmatch (argv: *mut *mut c_char, argc: c_int, sstr: *const c_char,
 }
 
 /* -----------------------------------------------------------------------------------------
-   C 740-785.  `default_PATH`.  `#ifdef _CS_PATH` is live (the frozen table defines it as
-   1) and its `#elif defined DOS_NT` arm (C 776-780) is dead.  The two function-local
-   statics keep C's meaning: `path` is memoised, `staticbuf[0]` is the "already
+   C 740-785.  `default_PATH`.  `#ifdef _CS_PATH` is live on the frozen target (its table defines
+   the macro as 1) and **dead on Android** (bionic's `<unistd.h>` defines neither `_CS_PATH` nor
+   `confstr`, and the device does not export the function), where C compiles neither this arm nor
+   776's `#elif defined DOS_NT` - so `path` stays null and the function returns it.  The arm used
+   to be unconditional, which put `confstr` in the Android import table (status 4.749).  The two
+   function-local statics keep C's meaning: `path` is memoised, `staticbuf[0]` is the "already
    initialised" flag.
    -------------------------------------------------------------------------------------- */
 unsafe fn default_PATH () -> *const c_char
@@ -1088,6 +1223,17 @@ unsafe fn default_PATH () -> *const c_char
 
   if staticbuf[0] == 0
     {
+      #[cfg (all (feature = "dos_nt", feature = "not__cs_path"))]
+      {
+	/* C 776-780: `#elif defined DOS_NT` - `strcpy (staticbuf, ".")`, whose effect is the byte
+	   and its terminator: "This is not exactly what Windows does when there's no PATH (see
+	   documentation of CreateProcessW), but it's a good-enough approximation."  */
+	staticbuf[0] = b'.' as c_char;
+	staticbuf[1] = 0;
+	path = std::ptr::addr_of! (staticbuf) as *const c_char;
+      }
+      #[cfg (not (feature = "not__cs_path"))]
+      {
       let mut buf: *mut c_char = std::ptr::addr_of_mut! (staticbuf) as *mut c_char;
       let mut bufsize: usize = 16;                 // C: `sizeof staticbuf`
 
@@ -1110,6 +1256,7 @@ unsafe fn default_PATH () -> *const c_char
 	}
 
       path = buf;
+      }
     }
 
   return path;
@@ -1273,7 +1420,7 @@ unsafe fn load_pdump (argc: c_int, argv: *mut *mut c_char,
   let mut argv0_base: *const c_char = c"emacs".as_ptr ();
 
   /* Look for an explicitly-specified dump file.  */
-  let mut path_exec: *const c_char = PATH_EXEC.as_ptr ();
+  let mut path_exec: *const c_char = PATH_EXEC ();
   /* C assigns the parameter (`dump_file = NULL;`); the port shadows it (PORTING.md 1.5's
      "params C assigns to" shape).  */
   let mut dump_file: *mut c_char = dump_file;
@@ -2102,29 +2249,142 @@ unsafe fn emacs_init_body (mut argc: c_int, argv: *mut *mut c_char,
       syms_of_syntax ();
       syms_of_terminal ();
       syms_of_term ();
+/* C 2349-2497: the `syms_of_*` sequence of `emacs.c`'s `main`, with C's own guards (the port's
+   first draft carried only the unconditional names, so the Android window-system units never
+   registered their Lisp and `loadup.el` skipped `term/android-win`, which surfaced as
+   "Unsupported window system `android'" at startup - status 4.790).  */
       syms_of_undo ();
-
-      /* We don't guard this with HAVE_TREE_SITTER because treesit.o
-	 is always compiled (to provide treesit-available-p).  */
+      #[cfg (feature = "have_modules")] {
+      syms_of_module ();
+      }
       syms_of_treesit ();
+      #[cfg (feature = "have_sound")] {
+      syms_of_sound ();
+      }
       syms_of_textprop ();
       syms_of_composite ();
+      #[cfg (feature = "windowsnt")] {
+      syms_of_ntproc ();
+      }
+      #[cfg (any (feature = "cygwin"))] {
+      syms_of_cygw32 ();
+      }
       syms_of_window ();
       syms_of_xdisp ();
       syms_of_sqlite ();
       syms_of_font ();
-
+      #[cfg (feature = "have_window_system")] {
+      syms_of_fringe ();
+      syms_of_image ();
+      #[cfg (feature = "have_ntgui")] {
+      syms_of_w32image ();
+      }
+      }
+      #[cfg (feature = "have_x_windows")] {
+      syms_of_xterm ();
+      syms_of_xfns ();
+      syms_of_xmenu ();
+      syms_of_fontset ();
+      syms_of_xsettings ();
+      #[cfg (feature = "have_x_sm")] {
+      syms_of_xsmfns ();
+      }
+      #[cfg (feature = "have_x11")] {
+      syms_of_xselect ();
+      }
+      }
       syms_of_xml ();
-
+      #[cfg (feature = "have_lcms2")] {
+      syms_of_lcms2 ();
+      }
+      #[cfg (feature = "have_zlib")] {
+      syms_of_decompress ();
+      }
       syms_of_menu ();
-
+      #[cfg (feature = "have_ntgui")] {
+      syms_of_w32term ();
+      syms_of_w32fns ();
+      syms_of_w32menu ();
+      syms_of_fontset ();
+      }
+      #[cfg (any (feature = "have_ntgui", feature = "cygwin"))] {
+      syms_of_w32cygwinx ();
+      }
+      #[cfg (any (feature = "windowsnt", feature = "have_ntgui"))] {
+      syms_of_w32select ();
+      }
+      #[cfg (feature = "msdos")] {
+      syms_of_xmenu ();
+      syms_of_dosfns ();
+      syms_of_msdos ();
+      syms_of_win16select ();
+      }
+      #[cfg (feature = "have_ns")] {
+      syms_of_nsterm ();
+      syms_of_nsfns ();
+      syms_of_nsmenu ();
+      syms_of_nsselect ();
+      syms_of_fontset ();
+      }
+      #[cfg (feature = "have_pgtk")] {
+      syms_of_pgtkterm ();
+      syms_of_pgtkfns ();
+      syms_of_pgtkselect ();
+      syms_of_pgtkmenu ();
+      syms_of_pgtkim ();
+      syms_of_fontset ();
+      syms_of_xsettings ();
+      }
+      #[cfg (feature = "have_haiku")] {
+      syms_of_haikuterm ();
+      syms_of_haikufns ();
+      syms_of_haikumenu ();
+      syms_of_haikufont ();
+      syms_of_haikuselect ();
+      #[cfg (feature = "have_native_image_api")] {
+      syms_of_haikuimage ();
+      }
+      syms_of_fontset ();
+      }
+      #[cfg (feature = "have_android")] {
+      syms_of_androidterm ();
+      syms_of_androidfns ();
+      syms_of_androidmenu ();
+      syms_of_fontset ();
+      #[cfg (not (feature = "android_stubify"))] {
+      syms_of_androidfont ();
+      syms_of_androidselect ();
+      syms_of_androidvfs ();
+      syms_of_sfntfont ();
+      syms_of_sfntfont_android ();
+      }
+      }
       syms_of_gnutls ();
-
+      #[cfg (feature = "have_inotify")] {
+      syms_of_inotify ();
+      }
+      #[cfg (feature = "have_kqueue")] {
+      syms_of_kqueue ();
+      }
+      #[cfg (feature = "have_gfilenotify")] {
+      syms_of_gfilenotify ();
+      }
+      #[cfg (feature = "have_dbus")] {
+      syms_of_dbusbind ();
+      }
+      #[cfg (feature = "windowsnt")] {
+      syms_of_ntterm ();
+      #[cfg (feature = "have_w32notify")] {
+      syms_of_w32notify ();
+      }
+      syms_of_w32dwrite ();
+      }
       syms_of_xwidget ();
       syms_of_threads ();
       syms_of_profiler ();
       syms_of_pdumper ();
       syms_of_json ();
+
 
       keys_of_keyboard ();
     }
@@ -2134,12 +2394,22 @@ unsafe fn emacs_init_body (mut argc: c_int, argv: *mut *mut c_char,
 	 initialized is non zero.  */
     }
 
+  /* C 2513-2515: `#ifdef HAVE_HAIKU init_haiku_select (); #endif`.  */
+  #[cfg (feature = "have_haiku")]
+  { init_haiku_select (); }
+
   init_charset ();
 
   /* This calls putenv and so must precede init_process_emacs.  */
   init_timefns ();
 
   init_editfns ();
+
+  /* C 2525-2531: `#ifdef HAVE_DBUS` / `#ifdef HAVE_X_WINDOWS`.  */
+  #[cfg (feature = "have_dbus")]
+  { init_dbusbind (); }
+  #[cfg (feature = "have_x_windows")]
+  { init_xterm (); }
 
   /* This can create a thread that may call getenv, so it must follow
      all calls to putenv and setenv.  Also, this sets up
@@ -2148,10 +2418,19 @@ unsafe fn emacs_init_body (mut argc: c_int, argv: *mut *mut c_char,
 
   init_keyboard ();	/* This too must precede init_sys_modes.  */
   init_display ();	/* Determine terminal type.  Calls init_sys_modes.  */
+  /* C 2540-2543: `#if HAVE_W32NOTIFY if (noninteractive) init_crit (); #endif`.  */
+  #[cfg (feature = "have_w32notify")]
+  { if noninteractive { init_crit (); } }
   init_xdisp ();
+  /* C 2545-2547: `#ifdef HAVE_WINDOW_SYSTEM init_fringe (); #endif`.  */
+  #[cfg (feature = "have_window_system")]
+  { init_fringe (); }
   init_macros ();
   init_window ();
   init_font ();
+  /* C 2556-2558: `#ifdef HAVE_ANDROID init_androidmenu (); #endif`.  */
+  #[cfg (feature = "have_android")]
+  { init_androidmenu (); }
 
   if !initialized
     {

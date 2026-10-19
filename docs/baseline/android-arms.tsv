@@ -6,74 +6,12 @@
 # Swift-facing shim defines it).
 #
 # name	class	definition site	conditions
-IMAGE_OPT_FROM_ID	arm	emacs/src/frame.h:1679	#ifdef HAVE_TEXT_CONVERSION && #ifdef HAVE_WINDOW_SYSTEM
-Vx_mode_pointer_shape	system		
-Vx_nontext_pointer_shape	system		
-Vx_resource_class	system		
-Vx_resource_name	system		
-backtrace	arm	emacs/lib/execinfo.in.h:39	#ifndef _GL_EXECINFO_H
-backtrace_symbols_fd	arm	emacs/lib/execinfo.in.h:55	#ifndef _GL_EXECINFO_H
-cancel_hourglass	arm	emacs/src/xdisp.c:39699	#ifdef HAVE_WINDOW_SYSTEM
-confstr	system		
-devname	system		
-display_and_set_cursor	arm	emacs/src/xdisp.c:35327	#ifdef HAVE_WINDOW_SYSTEM
-draw_phys_cursor_glyph	arm	emacs/src/xdisp.c:35140	#ifdef HAVE_WINDOW_SYSTEM
-endutxent	system		
-expose_frame	arm	emacs/src/xdisp.c:38256	#ifdef HAVE_WINDOW_SYSTEM
-face_for_font	arm	emacs/src/xfaces.c:5161	#ifdef HAVE_WINDOW_SYSTEM
-find_hot_spot	arm	emacs/src/xdisp.c:36586	#ifdef HAVE_WINDOW_SYSTEM
-font_for_underline_metrics	arm	emacs/src/xdisp.c:32295	#ifdef HAVE_WINDOW_SYSTEM
+backtrace	arm	emacs/lib/execinfo.in.h:39	
+backtrace_symbols_fd	arm	emacs/lib/execinfo.in.h:55	
 freeifaddrs	system		
-fset_parent_frame	arm	emacs/src/frame.h:774	#ifdef HAVE_TEXT_CONVERSION && #if defined (HAVE_WINDOW_SYSTEM)
-get_glyph_string_clip_rect	arm	emacs/src/xdisp.c:2697	#ifdef HAVE_WINDOW_SYSTEM
-get_glyph_string_clip_rects	arm	emacs/src/xdisp.c:2497	#ifdef HAVE_WINDOW_SYSTEM
-get_phys_cursor_geometry	arm	emacs/src/xdisp.c:2709	#ifdef HAVE_WINDOW_SYSTEM
-get_tab_bar_item_kbd	arm	emacs/src/xdisp.c:15323	#ifdef HAVE_WINDOW_SYSTEM
 getifaddrs	system		
 getloadavg	arm	emacs/src/haiku.c:217	
-getutxent	system		
-gui_clear_cursor	arm	emacs/src/xdisp.c:35507	#ifdef HAVE_WINDOW_SYSTEM
-gui_clear_end_of_line	arm	emacs/src/xdisp.c:34688	#ifdef HAVE_WINDOW_SYSTEM
-gui_draw_vertical_border	arm	emacs/src/xdisp.c:37954	#ifdef HAVE_WINDOW_SYSTEM
-gui_fix_overlapping_area	arm	emacs/src/xdisp.c:35093	#ifdef HAVE_WINDOW_SYSTEM
-gui_get_glyph_overhangs	arm	emacs/src/xdisp.c:31448	#ifdef HAVE_WINDOW_SYSTEM
-gui_insert_glyphs	arm	emacs/src/xdisp.c:34631	#ifdef HAVE_WINDOW_SYSTEM
-gui_intersect_rectangles	arm	emacs/src/xdisp.c:38344	#ifdef HAVE_WINDOW_SYSTEM
-gui_produce_glyphs	arm	emacs/src/xdisp.c:33807	#ifdef HAVE_WINDOW_SYSTEM
-gui_union_rectangles	arm	emacs/src/xdisp.c:38401	#ifdef HAVE_WINDOW_SYSTEM
-gui_update_cursor	arm	emacs/src/xdisp.c:35495	#ifdef HAVE_WINDOW_SYSTEM
-gui_write_glyphs	arm	emacs/src/xdisp.c:34587	#ifdef HAVE_WINDOW_SYSTEM
-handle_tab_bar_click	arm	emacs/src/xdisp.c:15356	#ifdef HAVE_WINDOW_SYSTEM
-handle_tool_bar_click	arm	emacs/src/xdisp.c:16537	#ifdef HAVE_WINDOW_SYSTEM && #ifndef HAVE_EXT_TOOL_BAR
-mach_timebase_info	system		
-make_monitor_attribute_list	arm	emacs/src/frame.c:7151	#else && #ifdef HAVE_WINDOW_SYSTEM
 mkostemp	arm	emacs/lib/mkostemp.c:43	
-posix_spawn	system		
-posix_spawn_file_actions_addchdir	system		
-posix_spawn_file_actions_adddup2	system		
-posix_spawn_file_actions_destroy	system		
-posix_spawn_file_actions_init	system		
-posix_spawnattr_destroy	system		
-posix_spawnattr_init	system		
-posix_spawnattr_setflags	system		
-posix_spawnattr_setsigdefault	system		
-posix_spawnattr_setsigmask	system		
-prepare_face_for_display	arm	emacs/src/xfaces.c:4771	#ifdef HAVE_WINDOW_SYSTEM
-proc_pid_rusage	system		
-proc_pidinfo	system		
-proc_pidpath	system		
-redraw_image_glyphs	arm	emacs/src/xdisp.c:32964	#ifdef HAVE_WINDOW_SYSTEM
-remember_mouse_glyph	arm	emacs/src/xdisp.c:2781	#ifdef HAVE_WINDOW_SYSTEM
-renameatx_np	system		
-setutxent	system		
-share_image_cache	arm	emacs/src/xfaces.c:645	#ifdef HAVE_WINDOW_SYSTEM
-start_hourglass	arm	emacs/src/xdisp.c:39674	#ifdef HAVE_WINDOW_SYSTEM
 stderr	system		
 stdin	system		
 stdout	system		
-sysctl	system		
-tty_draw_row_with_mouse_face	arm	emacs/src/msdos.c:996	#ifdef MSDOS && #ifndef HAVE_X_WINDOWS
-utmpxname	system		
-x_stretch_cursor_p	system		
-x_underline_at_descent_line	system		
-x_use_underline_position_properties	system		

@@ -67,17 +67,45 @@ pub type gid_t = c_uint;
 /* sys/types.h + gnulib: the type getgroups.c's groups come back in (gid_t on this target).  */
 pub type GETGROUPS_T = gid_t;
 /// The frozen target's `mode_t` (`__uint16_t`, measured above).
+/* C's `<sys/types.h>` differs per target and the difference is not cosmetic: `struct stat`,
+   `mkdir`, `chmod`, `umask` and `mknod` all take these types, so a host-shaped alias shifts a
+   record field or truncates an argument.  Measured with the NDK for aarch64-linux-android21
+   (`char a[sizeof (mode_t)];` … read back with `llvm-nm -S`): `dev_t` 8, `mode_t` 4, `nlink_t` 4,
+   `blksize_t` 8 (status 4.794).  */
+#[cfg (not (feature = "have_android"))]
 pub type mode_t = u16;
+#[cfg (feature = "have_android")]
+pub type mode_t = c_uint;
 /// The frozen target's `nlink_t` (`__uint16_t`, measured above).
+#[cfg (not (feature = "have_android"))]
 pub type nlink_t = u16;
+#[cfg (feature = "have_android")]
+pub type nlink_t = c_uint;
 /// The frozen target's `blksize_t` (`__int32_t`, measured above).
+#[cfg (not (feature = "have_android"))]
 pub type blksize_t = c_int;
+#[cfg (feature = "have_android")]
+pub type blksize_t = i64;
 /// The frozen target's `blkcnt_t` (`__int64_t`, measured above).
 pub type blkcnt_t = i64;
 /// The frozen target's `ino_t` (`__uint64_t`, measured above).
 pub type ino_t = u64;
 /// The frozen target's `dev_t` (`__int32_t`, measured above).
+#[cfg (not (feature = "have_android"))]
 pub type dev_t = c_int;
+#[cfg (feature = "have_android")]
+pub type dev_t = u64;
+
+/* The four aliases bionic spells differently, asserted so `tools/check-android-layout.py` can
+   compare them with the NDK's own answers (the host's are 2/2/4/4).  */
+#[cfg (feature = "have_android")]
+const _: () = core::assert! (core::mem::size_of::<dev_t> () == 8);
+#[cfg (feature = "have_android")]
+const _: () = core::assert! (core::mem::size_of::<mode_t> () == 4);
+#[cfg (feature = "have_android")]
+const _: () = core::assert! (core::mem::size_of::<nlink_t> () == 4);
+#[cfg (feature = "have_android")]
+const _: () = core::assert! (core::mem::size_of::<blksize_t> () == 8);
 /// The frozen target's `uid_t` (`__uint32_t`; `struct stat`'s `st_uid`).
 pub type uid_t = c_uint;
 

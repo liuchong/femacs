@@ -12277,3 +12277,8 @@ pub unsafe extern "C" fn syms_of_image ()
     DEFSYM! (QCformat, ":format");
   }
 }
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+const _: () = core::assert! (core::mem::size_of::<face> () == 296);
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+const _: () = core::assert! (core::mem::offset_of! (face, font) == 232);

@@ -315,8 +315,12 @@ pub fn LGLYPH_CHAR (g: Lisp_Object) -> EMACS_INT
    (docs/ports/composite.md's mirror-gap list).  */
 macro_rules! LGLYPH_CODE {                             // composite.h 303-306
   ($g:expr) => {
+    /* C's `FONT_INVALID_CODE` is `unsigned int` and `cons_to_unsigned` returns `uintmax_t`; the
+       two arms have to agree on a type here, and every use site wants the 32-bit one (status
+       4.766 measured `if and else have incompatible types` in the first unit that expanded it
+       with `have_window_system`).  */
     (if NILP (AREF ($g, LGLYPH_IX_CODE)) { FONT_INVALID_CODE }
-     else { unsafe { cons_to_unsigned (AREF ($g, LGLYPH_IX_CODE), u32::MAX as u64) } })
+     else { (unsafe { cons_to_unsigned (AREF ($g, LGLYPH_IX_CODE), u32::MAX as u64) }) as u32 })
   };
 }
 #[inline(always)]                                      // composite.h 307

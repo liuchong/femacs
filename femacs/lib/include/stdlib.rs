@@ -16,8 +16,15 @@ unsafe extern "C" {
   pub fn strtod (nptr: *const c_char, endptr: *mut *mut c_char) -> c_double;
   /* void *malloc (size_t size);  */
   pub fn malloc (size: usize) -> *mut c_void;
-  /* void *realloc (void *ptr, size_t size);  */
+  /* void *realloc (void *ptr, size_t size);  -  the entry gnulib's generated header leaves the
+     plain `realloc` name on when it does not redirect the allocator (below).  */
+  #[cfg (not (feature = "replace_realloc_for_realloc_posix"))]
   pub fn realloc (ptr: *mut c_void, size: usize) -> *mut c_void;
+  /* void *realloc (void *ptr, size_t size);  -  the system entry the redirected `realloc`
+     below calls; the generated header's `#undef realloc` is why the two names differ.  */
+  #[cfg (feature = "replace_realloc_for_realloc_posix")]
+  #[link_name = "realloc"]
+  pub fn realloc_system (ptr: *mut c_void, size: usize) -> *mut c_void;
   /* void *calloc (size_t nmemb, size_t size);  */
   pub fn calloc (nmemb: usize, size: usize) -> *mut c_void;
   /* void free (void *ptr);  */
@@ -39,4 +46,18 @@ unsafe extern "C" {
   pub fn getenv (name: *const c_char) -> *mut c_char;
   /* unsigned long int strtoul (const char *nptr, char **endptr, int base);  */
   pub fn strtoul (nptr: *const c_char, endptr: *mut *mut c_char, base: c_int) -> c_ulong;
+}
+
+/* C: gnulib's generated `<stdlib.h>` 1461-1482.  With `@REPLACE_REALLOC_FOR_REALLOC_POSIX@`
+   nonzero it defines `_GL_INLINE_RPL_REALLOC`, then `#undef realloc` / `#define realloc
+   rpl_realloc`, whose body is `realloc (ptr, size ? size : 1)`; `lib/realloc.c` 60-62's
+   non-inline twin sets `n1 = 1` for the same reason.  The frozen table has
+   `HAVE_REALLOC_POSIX` = 1 with `HAVE_REALLOC_0_NONNULL` undefined, and the device measured the
+   difference: `realloc (NULL, 0)` hands back a pointer while `realloc (p, 0)` on a live block
+   returns NULL, so `shrink_regexp_cache`'s `xrealloc (cp->buf.buffer, cp->buf.used)` reached
+   `memory_full (0)` in the first GC of `loadup.el` (status 4.787).  */
+#[cfg (feature = "replace_realloc_for_realloc_posix")]
+pub unsafe extern "C" fn realloc (ptr: *mut c_void, size: usize) -> *mut c_void
+{
+  return realloc_system (ptr, if size == 0 { 1 } else { size });
 }

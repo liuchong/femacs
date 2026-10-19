@@ -33,7 +33,12 @@ pub unsafe fn errno () -> *mut c_int
 pub const EINVAL: c_int = 22;
 
 /// <errno.h>: `#define ENOSYS 78`.
+#[cfg (not (feature = "have_android"))]
 pub const ENOSYS: c_int = 78;
+/* Measured on the delivery target (bionic), status 4.781: the frozen arm above is
+   the Darwin value and the two platforms number this one differently. */
+#[cfg (feature = "have_android")]
+pub const ENOSYS: c_int = 38;
 
 /// <errno.h>: `#define ENOMEM 12`.
 pub const ENOMEM: c_int = 12;
@@ -80,7 +85,12 @@ pub const ENOTSUP: c_int = 45;
 /// <errno.h>: `#define ELOOP 62`.
 pub const ELOOP: c_int = 62;
 /// <errno.h>: `#define ENAMETOOLONG 63`.
+#[cfg (not (feature = "have_android"))]
 pub const ENAMETOOLONG: c_int = 63;
+/* Measured on the delivery target (bionic), status 4.781: the frozen arm above is
+   the Darwin value and the two platforms number this one differently. */
+#[cfg (feature = "have_android")]
+pub const ENAMETOOLONG: c_int = 36;
 /// <errno.h>: `#define EOVERFLOW 84`.
 pub const EOVERFLOW: c_int = 84;
 
@@ -96,7 +106,12 @@ pub const EISDIR: c_int = 21;
    (the same measurement ENOMEM's comment above records).  C spells `EWOULDBLOCK` as
    `#define EWOULDBLOCK EAGAIN`, so the port keeps both names and the same value.  */
 /// <errno.h>: `#define EAGAIN 35`.
+#[cfg (not (feature = "have_android"))]
 pub const EAGAIN: c_int = 35;
+/* Measured on the delivery target (bionic), status 4.781: the frozen arm above is
+   the Darwin value and the two platforms number this one differently. */
+#[cfg (feature = "have_android")]
+pub const EAGAIN: c_int = 11;
 /// <errno.h>: `#define EWOULDBLOCK EAGAIN`.
 pub const EWOULDBLOCK: c_int = 35;
 /// <errno.h>: `#define EMFILE 24`.

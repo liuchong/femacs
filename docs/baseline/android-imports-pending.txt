@@ -1,78 +1,17 @@
 # Names the Android `libemacs.so` imports that no library in the process
-# provides.  Written by `python3 tools/check-android-imports.py
-# --write-pending` (docs/status.md 4.707, PORTING.md P-300).  One symbol per
-# line, `nm` spelling.  An entry disappears when the arm that defines it is
-# transcribed for this target; a NEW symbol here is a defect (a misspelling,
-# a missing #[no_mangle], or a header mirror hard-coding another platform's
-# symbol).  A non-empty file means the library cannot be dlopen'ed.
-IMAGE_OPT_FROM_ID
-Vx_mode_pointer_shape
-Vx_nontext_pointer_shape
-Vx_resource_class
-Vx_resource_name
+# provides, read against the API 21 stub libraries.  Written by
+# `python3 tools/check-android-imports.py --write-pending` (docs/status.md
+# 4.707/4.749, PORTING.md P-300).  One symbol per line, `nm` spelling.  An
+# entry disappears when the arm that defines it is transcribed for this
+# target; a NEW symbol here is a defect (a misspelling, a missing
+# #[no_mangle], or a header mirror hard-coding another platform's symbol).
+# A non-empty file means the library cannot be dlopen'ed.
 backtrace
 backtrace_symbols_fd
-cancel_hourglass
-confstr
-devname
-display_and_set_cursor
-draw_phys_cursor_glyph
-endutxent
-expose_frame
-face_for_font
-find_hot_spot
-font_for_underline_metrics
 freeifaddrs
-fset_parent_frame
-get_glyph_string_clip_rect
-get_glyph_string_clip_rects
-get_phys_cursor_geometry
-get_tab_bar_item_kbd
 getifaddrs
 getloadavg
-getutxent
-gui_clear_cursor
-gui_clear_end_of_line
-gui_draw_vertical_border
-gui_fix_overlapping_area
-gui_get_glyph_overhangs
-gui_insert_glyphs
-gui_intersect_rectangles
-gui_produce_glyphs
-gui_union_rectangles
-gui_update_cursor
-gui_write_glyphs
-handle_tab_bar_click
-handle_tool_bar_click
-mach_timebase_info
-make_monitor_attribute_list
 mkostemp
-posix_spawn
-posix_spawn_file_actions_addchdir
-posix_spawn_file_actions_adddup2
-posix_spawn_file_actions_destroy
-posix_spawn_file_actions_init
-posix_spawnattr_destroy
-posix_spawnattr_init
-posix_spawnattr_setflags
-posix_spawnattr_setsigdefault
-posix_spawnattr_setsigmask
-prepare_face_for_display
-proc_pid_rusage
-proc_pidinfo
-proc_pidpath
-redraw_image_glyphs
-remember_mouse_glyph
-renameatx_np
-setutxent
-share_image_cache
-start_hourglass
 stderr
 stdin
 stdout
-sysctl
-tty_draw_row_with_mouse_face
-utmpxname
-x_stretch_cursor_p
-x_underline_at_descent_line
-x_use_underline_position_properties

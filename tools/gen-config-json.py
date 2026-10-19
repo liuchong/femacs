@@ -19,6 +19,27 @@ provided the header is turned into this file with the same rules:
 
 `--keys-from` (default: the committed darwin file) fixes the key set, so two targets are
 comparable key for key.
+
+`--preprocessed FILE` makes the *preprocessor* the authority for every key the header mentions:
+
+    clang --target=aarch64-linux-android21 -E -dM -x c config.h.android > /tmp/dM.txt
+    python3 tools/gen-config-json.py config.h.android --keys-from-header \
+        --preprocessed /tmp/dM.txt --out .../android-arm64.json
+
+Reading the header line by line is wrong for a `#define` inside an `#if` arm that the compiler
+does not take: the line is there, the macro is not.  That mistake was live (status 4.805): the
+Android configuration recorded `WORDS_BIGENDIAN` as `1` from the `#  define WORDS_BIGENDIAN 1`
+line inside `#if defined AC_APPLE_UNIVERSAL_BUILD` - a comment-documented arm the Android
+compiler never takes - so the port compiled the *empty* `sfnt_swap16_1`/`sfnt_swap32_1`
+(`#ifndef WORDS_BIGENDIAN`), every font table came back byte-swapped, and no font ever
+registered.  `_DONT_USE_CTYPE_INLINE_`, `_FORTIFY_SOURCE`, `_GL_BRACKET_BEFORE_ATTRIBUTE`,
+`CC`, `_GL_STDALIGN_NEEDS_STDDEF`, `_GL_EXTERN_INLINE_STDHEADER_BUG`,
+`_GL_INLINE_HEADER_CONST_PRAGMA`, `_GL_INLINE`, `ND`/`WUR`/`BD`/`AD` and
+`_GL_HAVE___HAS_C_ATTRIBUTE` were wrong the same way.
+
+A name the header mentions but the dump does not define is recorded as `undefined` (the third
+state P-08 needs: the header knows the name and this configuration disables it), and every
+correction is listed on stdout.
 """
 
 from __future__ import annotations
@@ -55,6 +76,23 @@ def read_header(path: pathlib.Path) -> dict[str, str]:
     return out
 
 
+DUMP_DEFINE = re.compile(r"#define\s+([A-Za-z_][A-Za-z0-9_]*)(?:\s+(.*))?$")
+
+
+def read_dump(path: pathlib.Path) -> dict[str, str]:
+    """The macro set a `clang -E -dM` run actually produced, with each body verbatim."""
+    out: dict[str, str] = {}
+    for line in path.read_text("utf-8", "surrogateescape").split("\n"):
+        m = DUMP_DEFINE.match(line)
+        if m:
+            # The body is kept *verbatim, empty included*: `#define X /**/` and `#define X`
+            # both expand to nothing, and the three-state convention records neither as `1`
+            # (`FLEXIBLE_ARRAY_MEMBER`/`PTY_NAME_SPRINTF` are the port's two).  `""` means
+            # "defined, with an empty body" and the caller keeps the header's own spelling.
+            out[m.group(1)] = (m.group(2) or "").strip()
+    return out
+
+
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("header", type=pathlib.Path)
@@ -71,9 +109,28 @@ def main() -> int:
     # (`HAVE_ANDROID`) could not appear anywhere - and the port's `#ifdef` gate for it could never
     # be opened (P-229).  `--keys-from-header` unions in every name this header defines or undefs.
     ap.add_argument("--keys-from-header", action="store_true")
+    # The preprocessor's answer, for the `#define`s that sit in arms the compiler does not take.
+    ap.add_argument("--preprocessed", type=pathlib.Path, default=None)
+    # Which file's key order the output follows.  Default: the file being written, so a
+    # regeneration of an unchanged configuration is byte-identical.
+    ap.add_argument("--order-from", type=pathlib.Path, default=None)
     a = ap.parse_args()
 
     header = read_header(a.header)
+    corrected: list[tuple[str, str]] = []
+    if a.preprocessed is not None:
+        dump = read_dump(a.preprocessed)
+        for name, value in list(header.items()):
+            if name in dump:
+                header[name] = dump[name] or header.get(name, "1")
+            elif value != "undefined":
+                corrected.append((name, value))
+                header[name] = "undefined"
+    if corrected:
+        print(f"{len(corrected)} macro(s) the header spells but this configuration never "
+              f"defines (recorded as undefined):")
+        for name, value in corrected:
+            print(f"  {name}: {value!r} -> undefined")
     keys = json.loads(a.keys_from.read_text("utf-8"))["macros"]
     # Header macros beyond the shared key list are *cfg features*, never constants: `gen-config`
     # emits `pub const <name>` for every key, and the mirrors define plenty of these names
@@ -94,18 +151,55 @@ def main() -> int:
         name, _, value = spec.partition("=")
         if not name or not value:
             raise SystemExit(f"--macro wants NAME=VALUE, not {spec!r}")
+        if name in macros:
+            # A name the shared key set already carries is a configuration *constant*
+            # (`HAVE_SIGNBIT` is the one), so it stays in `macros`.
+            macros[name] = value
+            continue
+        # A target-only name is a *gate*, not a constant: the mirrors define `RENAME_EXCL`
+        # (`sysdep.rs` 3591, from `<stdio.h>`) and `_CS_PATH` (`emacs.rs` 518) themselves, so a
+        # `pub const` of the same name in `config.rs` is a duplicate definition (E0428, measured
+        # 4.805 in `src/sysdep.c`'s checking configuration).  `features` is read by
+        # `xtask config_features()` and ignored by `gen-config`, which is what a gate wants.
         keys = [*keys, name]
-        macros[name] = value
-    doc = {"target": a.target, "source": str(a.header), "macros": macros}
+        features[name] = value
+    # The key order of an existing `--out` file is kept, so regenerating an unchanged
+    # configuration writes the same bytes and a real change shows up as the changed line alone.
+    # Without this the section order follows the current text scan, and a one-line correction
+    # arrives as a whole-file rewrite (measured 4.805: 387 changed lines around 36 corrections).
+    order: list[str] = []
+    order_from = a.order_from if a.order_from is not None else a.out
+    if order_from is not None and order_from.is_file():
+        try:
+            previous = json.loads(order_from.read_text("utf-8"))
+        except (OSError, ValueError):
+            previous = {}
+        for section in ("macros", "features"):
+            for name in previous.get(section, {}):
+                if name not in order:
+                    order.append(name)
+
+    def reordered(section: dict[str, str]) -> dict[str, str]:
+        out = {name: section[name] for name in order if name in section}
+        for name, value in section.items():
+            out.setdefault(name, value)
+        return out
+
+    doc = {"target": a.target, "source": str(a.header), "macros": reordered(macros)}
     if features:
-        doc["features"] = features
+        doc["features"] = reordered(features)
     text = json.dumps(doc, indent=2) + "\n"
     if a.out is None:
         sys.stdout.write(text)
         return 0
     a.out.parent.mkdir(parents=True, exist_ok=True)
     a.out.write_text(text, encoding="utf-8")
-    differing = sum(1 for k in keys if macros[k] != json.loads(a.keys_from.read_text("utf-8"))["macros"][k])
+    # A target-only macro (`_CS_PATH`, `ANDROID_API_GE_9`) has no counterpart in the file this run
+    # is compared against; counting it as a difference hid the reading behind a `KeyError`
+    # (status 4.783).  Only the keys both documents carry are compared.
+    other = json.loads(a.keys_from.read_text("utf-8"))["macros"]
+    shared = [k for k in keys if k in other]
+    differing = sum(1 for k in shared if macros[k] != other[k])
     print(f"wrote {a.out} ({len(macros)} macro(s), {differing} differ from {a.keys_from.name})")
     return 0
 

@@ -321,11 +321,17 @@ unsafe extern "C" {
    Lisp_Object ones start null; `use_default_font_for_symbols` is C's tentative `0`.  */
 #[cfg (feature = "have_window_system")]
 pub static mut Vfont_encoding_charset_alist: Lisp_Object = std::ptr::null_mut ();
+/* C's `DEFVAR_LISP ("use-default-ascent", Vuse_default_ascent, ...)` (fontset.c 2196) defines a
+   global symbol, so the port exports it (status 4.777: `xdisp.rs`'s `gui_produce_glyphs` reads it
+   and the Android reading called the unexported definition a defect).  */
 #[cfg (feature = "have_window_system")]
+#[unsafe(no_mangle)]
 pub static mut Vuse_default_ascent: Lisp_Object = std::ptr::null_mut ();
 #[cfg (feature = "have_window_system")]
 pub static mut use_default_font_for_symbols: bool = false;                    // C 2209
+/* Same shape as `Vuse_default_ascent` above (C fontset.c 2216).  */
 #[cfg (feature = "have_window_system")]
+#[unsafe(no_mangle)]
 pub static mut Vignore_relative_composition: Lisp_Object = std::ptr::null_mut ();
 #[cfg (feature = "have_window_system")]
 pub static mut Valternate_fontname_alist: Lisp_Object = std::ptr::null_mut ();
@@ -2805,3 +2811,8 @@ at the vertical center of lines.  ");
     defsubr (&raw mut Sfontset_list_all);
   }
 }
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+const _: () = core::assert! (core::mem::size_of::<face> () == 296);
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+const _: () = core::assert! (core::mem::offset_of! (face, font) == 232);

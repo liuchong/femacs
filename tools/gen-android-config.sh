@@ -126,12 +126,45 @@ else
   HAVE_SIGNBIT=0
 fi
 echo "HAVE_SIGNBIT: $HAVE_SIGNBIT (measured with ${CC##*/})"
+# Two *system-header* macros the port's `#if`s need and `config.h` never records, measured the same
+# way: `RENAME_EXCL` (`<stdio.h>`, the flag macOS's `renameatx_np` takes - bionic has neither) and
+# `_CS_PATH` (`<unistd.h>`, `confstr`'s argument - bionic has neither the macro nor the function,
+# measured 4.749).  Without them the Android build cannot express C's
+# `#elif defined RENAME_EXCL` / `#ifdef _CS_PATH`, which is how `renameatx_np` and `confstr`
+# reached the shared library's import table.
+measure_header_macro () {
+  name=$1; header=$2
+  printf '#include <%s>\n#ifdef %s\nFOUND_%s\n#endif\n' "$header" "$name" "$name" > config-header-macro.c
+  if "$CC" -std=gnu23 -E config-header-macro.c 2>/dev/null | grep -q "FOUND_$name"; then
+    printf 1
+  else
+    printf undefined
+  fi
+}
+RENAME_EXCL=$(measure_header_macro RENAME_EXCL stdio.h)
+CS_PATH=$(measure_header_macro _CS_PATH unistd.h)
+# C's `#if __ANDROID_API__ >= 9` (androidvfs.c 46) picks the modern asset API and with it the
+# `"EMACS"` magic of `assets/directory-tree`; the `#else` arm compares `"EMACS____"` and aborts
+# with "Directory tree has bad magic" on any current device (status 4.783).  The port gates that
+# pair on `android_api_ge_9`, so the frozen configuration has to say whether it holds - measured
+# from the compiler that will build the library, not assumed.
+API_DEFINED=$(printf '__ANDROID_API__\n' | "$CC" -std=gnu23 -E -P -x c - 2>/dev/null | tr -dc '0-9' | head -c 4)
+if [ -n "${API_DEFINED:-}" ] && [ "$API_DEFINED" -ge 9 ] 2>/dev/null; then
+  ANDROID_API_GE_9=1
+else
+  ANDROID_API_GE_9=undefined
+fi
+echo "__ANDROID_API__: ${API_DEFINED:-absent} => ANDROID_API_GE_9=$ANDROID_API_GE_9"
+echo "_CS_PATH: $CS_PATH, RENAME_EXCL: $RENAME_EXCL (measured with ${CC##*/})"
 # The *inner* pass's header, not the outer one: `configure` runs a second configure with
 # `XCONFIGURE=android` (configure.ac 1296-1300) and renames its product to `src/config.h.android`
 # (1315-1316), which is what the Android build compiles against.  The outer pass's `src/config.h`
 # defines `ANDROID_STUBIFY` (2604-2606, host-only) - generating from it recorded a stubify build,
 # i.e. exactly the configuration in which the JNI entry points are compiled out (status 4.615).
 python3 "$REPO/tools/gen-config-json.py" --keys-from-header \
-  --macro "HAVE_SIGNBIT=$HAVE_SIGNBIT" src/config.h.android \
+  --macro "HAVE_SIGNBIT=$HAVE_SIGNBIT" \
+  --macro "_CS_PATH=$CS_PATH" \
+  --macro "RENAME_EXCL=$RENAME_EXCL" \
+  --macro "ANDROID_API_GE_9=$ANDROID_API_GE_9" src/config.h.android \
   --target "android-arm64 (NDK ${CC##*/})" \
   --out "$REPO/docs/baseline/config/android-arm64.json"

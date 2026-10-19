@@ -29,12 +29,19 @@ WINDOW = ("WINDOW_SYSTEM", "HAVE_X_WINDOWS", "HAVE_NS", "HAVE_PGTK", "HAVE_HAIKU
           "WINDOWSNT", "MSDOS")
 
 
+# Indented directives count: reading only the left-margin ones ended the region at the first
+# `#endif` of an *inner* block in files that indent their `# if`s (status 4.749, the same blind
+# spot `tools/gen-android-arms.py` had).
+DIRECTIVE = re.compile(r"^\s*#\s*(if|ifdef|ifndef|elif|else|endif)\b")
+
+
 def region_end(lines: list[str], start: int) -> int:
     depth = 0
     for i in range(start, len(lines)):
-        if lines[i].startswith("#if"):
+        kind = DIRECTIVE.match(lines[i])
+        if kind and kind.group(1) in ("if", "ifdef", "ifndef"):
             depth += 1
-        elif lines[i].startswith("#endif"):
+        elif kind and kind.group(1) == "endif":
             depth -= 1
             if depth == 0:
                 return i + 1

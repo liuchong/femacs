@@ -1488,7 +1488,7 @@ unsafe fn xd_append_arg (mut dtype: c_int, mut object: Lisp_Object, iter: *mut D
 		= xd_extract_signed (object, TYPE_MINIMUM! (dbus_int64_t) as intmax_t,
 				     TYPE_MAXIMUM! (dbus_int64_t) as intmax_t) as dbus_int64_t;
 	      let pval: intmax_t = val as intmax_t;
-	      XD_DEBUG_MESSAGE! (__func__, concat! ("%c %", PRIdMAX! ()).as_ptr () as *const c_char,
+	      XD_DEBUG_MESSAGE! (__func__, concat! ("%c %", PRIdMAX! (), "\0" ).as_ptr () as *const c_char,
 				 dtype, pval);
 	      if dbus_message_iter_append_basic (iter, dtype, &raw const val as *const c_void)
 		== FALSE
@@ -1502,7 +1502,7 @@ unsafe fn xd_append_arg (mut dtype: c_int, mut object: Lisp_Object, iter: *mut D
 		= xd_extract_unsigned (object, TYPE_MAXIMUM! (dbus_uint64_t) as uintmax_t)
 		  as dbus_uint64_t;
 	      let pval: uintmax_t = val as uintmax_t;
-	      XD_DEBUG_MESSAGE! (__func__, concat! ("%c %", PRIuMAX! ()).as_ptr () as *const c_char,
+	      XD_DEBUG_MESSAGE! (__func__, concat! ("%c %", PRIuMAX! (), "\0" ).as_ptr () as *const c_char,
 				 dtype, pval);
 	      if dbus_message_iter_append_basic (iter, dtype, &raw const val as *const c_void)
 		== FALSE
@@ -1731,7 +1731,7 @@ unsafe fn xd_retrieve_arg (dtype: c_int, iter: *mut DBusMessageIter) -> Lisp_Obj
 	  let mut val: dbus_int64_t = 0;
 	  dbus_message_iter_get_basic (iter, &raw mut val as *mut c_void);
 	  let pval: intmax_t = val as intmax_t;
-	  XD_DEBUG_MESSAGE! (__func__, concat! ("%c %", PRIdMAX! ()).as_ptr () as *const c_char,
+	  XD_DEBUG_MESSAGE! (__func__, concat! ("%c %", PRIdMAX! (), "\0" ).as_ptr () as *const c_char,
 			     dtype, pval);
 	  return list2 (xd_dbus_type_to_symbol (dtype), INT_TO_INTEGER (val as EMACS_INT));
 	}
@@ -1741,7 +1741,7 @@ unsafe fn xd_retrieve_arg (dtype: c_int, iter: *mut DBusMessageIter) -> Lisp_Obj
 	  let mut val: dbus_uint64_t = 0;
 	  dbus_message_iter_get_basic (iter, &raw mut val as *mut c_void);
 	  let pval: uintmax_t = val as uintmax_t;
-	  XD_DEBUG_MESSAGE! (__func__, concat! ("%c %", PRIuMAX! ()).as_ptr () as *const c_char,
+	  XD_DEBUG_MESSAGE! (__func__, concat! ("%c %", PRIuMAX! (), "\0" ).as_ptr () as *const c_char,
 			     dtype, pval);
 	  return list2 (xd_dbus_type_to_symbol (dtype), INT_TO_INTEGER (val as EMACS_INT));
 	}

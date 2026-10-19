@@ -69,12 +69,14 @@ include!("include/composite.rs");              // coding.h 284: <composite.h> (c
 include!("include/buffer.rs");                 // C 40
 include!("include/coding.rs");                 // C 41
 
-/* The value C's `<dirent.h>` gives `struct dirent` on the frozen target.  The port's dirent
-   mirror carries the opaque `DIR` and the directory calls but not the record itself, so it
-   is declared here (the terminal.rs/filelock.rs shape).  Measured with clang against the
-   frozen target's SDK (the probe is recorded in docs/ports/dired.md):
-   sizeof = 1048, align 8, `d_ino@0`, `d_seekoff@8`, `d_reclen@16`, `d_namlen@18`,
-   `d_type@20`, `d_name@21` (1024 bytes, `d_type` 1 byte).  */
+/* C's `<dirent.h>` differs per target, and the record is read straight out of the C library's own
+   buffer, so its layout has to be the target's.  The host's is the frozen macOS shape above; the
+   Android one is bionic's, measured with the NDK for aarch64-linux-android21
+   (`char a[sizeof (struct dirent)]; char b[offsetof (struct dirent, d_name)];` in an object read
+   back with `llvm-nm -S`: 280 bytes, `d_name` at 19, `d_type` at 18, `d_off` at 8).  Reading the
+   host's 1024-byte `d_name` out of bionic's 280-byte record ran past the library's buffer and
+   died with SIGBUS the first time the Android font scan called `readdir` (status 4.792).  */
+#[cfg (not (feature = "have_android"))]
 #[repr(C)]
 pub struct dirent
 {
@@ -85,9 +87,29 @@ pub struct dirent
   pub d_type: u8,
   pub d_name: [c_char; 1024],
 }
+#[cfg (not (feature = "have_android"))]
 const _: () = core::assert!(std::mem::size_of::<dirent> () == 1048);
+#[cfg (not (feature = "have_android"))]
 const _: () = core::assert!(std::mem::offset_of! (dirent, d_type) == 20);
+#[cfg (not (feature = "have_android"))]
 const _: () = core::assert!(std::mem::offset_of! (dirent, d_name) == 21);
+
+#[cfg (feature = "have_android")]
+#[repr(C)]
+pub struct dirent
+{
+  pub d_ino: u64,
+  pub d_off: i64,
+  pub d_reclen: u16,
+  pub d_type: u8,
+  pub d_name: [c_char; 256],
+}
+#[cfg (feature = "have_android")]
+const _: () = core::assert!(std::mem::size_of::<dirent> () == 280);
+#[cfg (feature = "have_android")]
+const _: () = core::assert!(std::mem::offset_of! (dirent, d_type) == 18);
+#[cfg (feature = "have_android")]
+const _: () = core::assert!(std::mem::offset_of! (dirent, d_name) == 19);
 
 /// C: `<dirent.h>`'s `#define DT_UNKNOWN 0`, `DT_DIR 4`, `DT_LNK 10` on the frozen target
 /// (docs/baseline/config/darwin-arm64.macros.tsv 781/776/778); the dirent mirror does not

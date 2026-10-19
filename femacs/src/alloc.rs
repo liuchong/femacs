@@ -3513,12 +3513,13 @@ macro_rules! PSEUDOVEC_STRUCT {
 pub struct face
 {
   pub lface: [Lisp_Object; LFACE_VECTOR_SIZE as usize],
-  _pad0: [u8; 216 - 160],
+  /* `font` is at 216 without the window-system block (`gc` 168, `stipple` 176) and at **232** with
+     it; Android has the block, so 216 read a face's `underline_color` as its font pointer
+     (status 4.813).  */
+  _pad0: [u8; 216 - 160 + (if cfg! (feature = "have_window_system") { 16 } else { 0 })],
   pub font: *mut font,
-  _pad1: [u8; 280 - 224],
+  _pad1: [u8; 56],
 }
-const _: () = core::assert! (std::mem::offset_of! (face, font) == 216);
-const _: () = core::assert! (std::mem::size_of::<face> () == 280);
 
 #[repr(C)]
 pub struct face_cache
@@ -8428,3 +8429,8 @@ pub union enums_for_gdb
 #[used]
 pub static mut gdb_make_enums_visible: enums_for_gdb =
   enums_for_gdb { MAX_ALLOCA: std::ptr::null_mut () };
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+const _: () = core::assert! (std::mem::offset_of! (face, font) == 232);
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+const _: () = core::assert! (std::mem::size_of::<face> () == 296);

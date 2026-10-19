@@ -1,0 +1,16 @@
+# Whose deviation is each unresolved Android import (tools/gen-android-gaps.py,
+# status 4.749).  Configuration: android-arm64.  `c-included` = C compiles a
+# reference, so C's own library imports it too (an upstream gap); `c-excluded` =
+# every C reference is under a condition this configuration answers false, so the
+# port compiled what C leaves out (a defect in the port unit that imports it);
+# `no-reference` = no file in the build set even calls it (an invented import).
+# name	scope	verdict	first C site	dead C sites	C sites
+backtrace	other	c-included	emacs/src/sysdep.c:2375	emacs/src/sysdep.c:1790	3
+backtrace_symbols_fd	other	c-included	emacs/src/sysdep.c:2385		1
+freeifaddrs	other	c-excluded	emacs/src/process.c:4437	emacs/src/process.c:4437; emacs/src/process.c:4623	2
+getifaddrs	other	c-excluded	emacs/src/process.c:4369	emacs/src/process.c:4369; emacs/src/process.c:4598	2
+getloadavg	other	c-included	emacs/src/fns.c:3722		1
+mkostemp	other	c-included	emacs/src/callproc.c:1014		2
+stderr	other	no-reference			0
+stdin	other	no-reference			0
+stdout	other	no-reference			0

@@ -18,6 +18,10 @@ import sys
 
 REPO = pathlib.Path(__file__).resolve().parent.parent
 PENDING = REPO / "docs/baseline/android-imports-pending.txt"
+# The ratchet is read against the API 21 stubs (the strictest basis the link has), and the verdict
+# against the delivery device's own libraries.  Both are real numbers a document may quote
+# (71 and 53 at status 4.749), so the gate accepts either and only reports a third value.
+DEVICE = REPO / "docs/baseline/android-imports-device.txt"
 ARMS = REPO / "docs/baseline/android-arms.tsv"
 PLAN = REPO / "docs/baseline/window-arms-plan.tsv"
 DOCS = ("docs/current-state.md", "docs/handoff.md", "docs/android-app-readiness.md",
@@ -26,14 +30,22 @@ WINDOW = ("WINDOW_SYSTEM", "HAVE_X_WINDOWS", "HAVE_NS", "HAVE_PGTK", "HAVE_HAIKU
           "WINDOWSNT", "MSDOS")
 
 
+def read_names(path: pathlib.Path) -> list[str]:
+    return [l.strip() for l in path.read_text(encoding="utf-8").splitlines()
+            if l.strip() and not l.startswith("#")]
+
+
 def rows(path: pathlib.Path) -> list[list[str]]:
     return [l.split("\t") for l in path.read_text(encoding="utf-8").splitlines()
             if l.strip() and not l.startswith("#")]
 
 
-def facts() -> tuple[dict[str, int], list[str]]:
-    names = [l.strip() for l in PENDING.read_text(encoding="utf-8").splitlines()
-             if l.strip() and not l.startswith("#")]
+def facts() -> tuple[dict[str, int], list[str], dict[str, set[int]]]:
+    names = read_names(PENDING)
+    # Accepted values per count: the ratchet's, plus the device reading for the total.
+    accepted: dict[str, set[int]] = {}
+    if DEVICE.is_file():
+        accepted["unresolved"] = {len(read_names(DEVICE))}
     arms = rows(ARMS)
     conds = {r[0]: r[3] for r in arms if len(r) >= 4}
     window = [n for n in names if any(w in conds.get(n, "") for w in WINDOW)
@@ -43,11 +55,11 @@ def facts() -> tuple[dict[str, int], list[str]]:
     # work it describes is done, yet it keeps counting in every document that quotes the row count.
     stale = [r[0] for r in arms if r[0] not in names]
     return ({"unresolved": len(names), "window": len(window),
-             "upstream": len(names) - len(window), "plan": len(plan)}, stale)
+             "upstream": len(names) - len(window), "plan": len(plan)}, stale, accepted)
 
 
 def main() -> int:
-    f, stale = facts()
+    f, stale, accepted = facts()
     print(f"tables: {f['unresolved']} unresolved = {f['window']} window + {f['upstream']} upstream; "
           f"plan rows {f['plan']}")
     failures = []
@@ -73,8 +85,10 @@ def main() -> int:
             for m in pattern.finditer(text):
                 quoted.add(key)
                 got = int(m.group(1))
-                if got != f[key]:
-                    failures.append(f"{rel}: says {got} for {key}, the table says {f[key]}")
+                if got != f[key] and got not in accepted.get(key, set()):
+                    also = (" or " + "/".join(str(v) for v in sorted(accepted[key]))
+                            if accepted.get(key) else "")
+                    failures.append(f"{rel}: says {got} for {key}, the table says {f[key]}{also}")
     # Deleting the sentence must not be a way to pass: every count has to be quoted somewhere.
     for key in ("unresolved", "window", "upstream"):
         if key not in quoted:

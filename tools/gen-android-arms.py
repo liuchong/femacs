@@ -77,17 +77,54 @@ def _read(path: str) -> list[str]:
     return _cache[path]
 
 
+# A preprocessor directive is not always at the left margin, and reading only the lines that are
+# left the conditions column empty for whole regions of C that indent their `#if`s
+# (`src/sysdep.c`'s `# if defined DARWIN_OS` chain).  A row whose condition string is empty reads
+# as "unguarded" to whoever picks the row up, which is the opposite of what C says (status 4.749).
+DIRECTIVE = re.compile(r"^\s*#\s*(if|ifdef|ifndef|elif|else|endif)\b")
+
+
+def directive(line: str) -> str | None:
+    """The preprocessor directive `line` carries, or None."""
+    m = DIRECTIVE.match(line)
+    return m.group(1) if m else None
+
+
+def own_guard(lines: list[str]) -> int | None:
+    """The index of the file's own include guard, or None.
+
+    It is a condition like any other, but it is true for the whole file by construction, so it
+    says nothing about whether an arm is live - and every row of a header would carry it.
+    """
+    for i, line in enumerate(lines[:80]):
+        kind = directive(line)
+        if kind in ("if", "ifdef"):
+            break
+        if kind == "ifndef":
+            words = line.split()
+            if len(words) > 1:
+                name = words[1]
+                if any(l.strip().lstrip("#").strip().startswith(f"define {name}")
+                       for l in lines[i + 1:i + 25]):
+                    return i
+    return None
+
+
 def conditions(lines: list[str], index: int) -> str:
     """The `#if*` conditions enclosing line `index`, outermost first."""
+    guard = own_guard(lines)
     stack: list[str] = []
-    for line in lines[: index + 1]:
-        if line.startswith("#if"):
-            stack.append(line.rstrip())
-        elif line.startswith("#endif"):
+    for i, line in enumerate(lines[: index + 1]):
+        kind = directive(line)
+        if i == guard:
+            continue
+        if kind in ("if", "ifdef", "ifndef"):
+            stack.append(line.strip())
+        elif kind == "endif":
             if stack:
                 stack.pop()
-        elif line.startswith(("#else", "#elif")) and stack:
-            stack[-1] = line.rstrip()
+        elif kind in ("else", "elif") and stack:
+            stack[-1] = line.strip()
     return " && ".join(stack)
 
 

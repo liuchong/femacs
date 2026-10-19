@@ -279,7 +279,9 @@ unsafe fn get_openbsd_boot_time (p_boot_time: *mut timespec) -> c_int
 /* C 236-239: "The following approach is only usable as a fallback, because it produces wrong
    values after the date has been bumped in the running system, which happens frequently if
    the system is running in a virtual machine and this VM has been put into "saved" or
-   "sleep" state and then resumed."  */
+   "sleep" state and then resumed."  It sits under C 230-232's `#if`, so it carries that gate:
+   with the body compiled on Android the unit imported `sysctl` (status 4.749).  */
+#[cfg (all (not (feature = "not_have_sys_sysctl_h"), not (feature = "not_have_sysctl")))]
 unsafe fn get_bsd_boot_time_final_fallback (p_boot_time: *mut timespec) -> c_int
 {
   static mut request: [c_int; 2] = [CTL_KERN, KERN_BOOTTIME];

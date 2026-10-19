@@ -381,28 +381,28 @@ macro_rules! TRACE3 { ($fmt:expr, $a0:expr, $a1:expr, $a2:expr) => { 0 }; }
 #[cfg (all (feature = "have_x_windows", feature = "trace_selection"))]
 macro_rules! TRACE0 {
   ($fmt:expr) => {
-    fprintf (stderr, concat! ("%", PRIdMAX! (), ": ", $fmt, "\n").as_ptr () as *const c_char,
+    fprintf (stderr, concat! ("%", PRIdMAX! (), ": ", $fmt, "\n", "\0" ).as_ptr () as *const c_char,
              getpid () as i64)
   };
 }
 #[cfg (all (feature = "have_x_windows", feature = "trace_selection"))]
 macro_rules! TRACE1 {
   ($fmt:expr, $a0:expr) => {
-    fprintf (stderr, concat! ("%", PRIdMAX! (), ": ", $fmt, "\n").as_ptr () as *const c_char,
+    fprintf (stderr, concat! ("%", PRIdMAX! (), ": ", $fmt, "\n", "\0" ).as_ptr () as *const c_char,
              getpid () as i64, $a0)
   };
 }
 #[cfg (all (feature = "have_x_windows", feature = "trace_selection"))]
 macro_rules! TRACE2 {
   ($fmt:expr, $a0:expr, $a1:expr) => {
-    fprintf (stderr, concat! ("%", PRIdMAX! (), ": ", $fmt, "\n").as_ptr () as *const c_char,
+    fprintf (stderr, concat! ("%", PRIdMAX! (), ": ", $fmt, "\n", "\0" ).as_ptr () as *const c_char,
              getpid () as i64, $a0, $a1)
   };
 }
 #[cfg (all (feature = "have_x_windows", feature = "trace_selection"))]
 macro_rules! TRACE3 {
   ($fmt:expr, $a0:expr, $a1:expr, $a2:expr) => {
-    fprintf (stderr, concat! ("%", PRIdMAX! (), ": ", $fmt, "\n").as_ptr () as *const c_char,
+    fprintf (stderr, concat! ("%", PRIdMAX! (), ": ", $fmt, "\n", "\0" ).as_ptr () as *const c_char,
              getpid () as i64, $a0, $a1, $a2)
   };
 }
