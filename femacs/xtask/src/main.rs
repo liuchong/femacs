@@ -31,7 +31,12 @@ const BUILD: &str = "../build/femacs";
 /// with them off).  The port's own assertions live in the `enable_checking` configuration.
 /// The two check flags stay explicit: `overflow-checks` because P-96 forbids leaning on release
 /// arithmetic, and `debug-assertions` because a unit is built the way C's checking build is.
-const UNIT_CODEGEN_FLAGS: [&str; 10] = ["-C", "opt-level=2", "-C", "overflow-checks=on",
+/// The unit flags.  `overflow-checks=off` matches C: the reference build's own arithmetic wraps,
+/// and `emacs/src` relies on that in the matcher (`base - 32 * index`), in `sfnt`'s offsets and in
+/// `print`'s counters.  With the checks on, every such wrap became a Rust panic - the two
+/// Android start-up failures of status 4.863/4.896 were exactly that class, not memory
+/// corruption.  `FEMACS_OVERFLOW_CHECKS=on` still builds the checked variant for diagnosis.
+const UNIT_CODEGEN_FLAGS: [&str; 10] = ["-C", "opt-level=2", "-C", "overflow-checks=off",
                                        "-C", "debug-assertions=off", "-C", "panic=abort",
                                        "-C", "codegen-units=1"];
 
@@ -1960,7 +1965,11 @@ fn rust_begin_unwind (info: &core::panic::PanicInfo) -> !\n\
 {\n\
   use core::fmt::Write;\n\
   let mut pb = PanicBuf { b: [0u8; 320], n: 0 };\n\
-  let msg = info.payload ().downcast_ref::<&str> ().copied ().unwrap_or (\"?\");\n\
+  /* Rust's precompiled panics do not all carry a `&str`/`String` payload: the formatted ones\n\
+     (`index out of bounds: …`, `attempt to add with overflow`) carry a `PanicMessage`, which the\n\
+     payload downcast could not name and reported as `?` (status 4.895).  `PanicInfo::message`\n\
+     renders every payload, so that is what is printed.  */\n\
+  let msg = info.message ();\n\
   let _ = write! (&mut pb, \"PANIC {}:{} {}\",\n\
                   info.location ().map (|l| l.file ()).unwrap_or (\"?\"),\n\
                   info.location ().map (|l| l.line ()).unwrap_or (0),\n\
@@ -1978,7 +1987,13 @@ pub extern \"C\" fn rust_eh_personality (_version: i32, _actions: i32, _class: u
                                       _object: *mut core::ffi::c_void,\n\
                                       _context: *mut core::ffi::c_void) -> i32\n\
 { unsafe { abort () } }\n\n\
-unsafe extern \"C\" { fn abort () -> !; fn write (fd: i32, buf: *const u8, n: usize) -> isize; }\n";
+unsafe extern \"C\" { fn abort () -> !; fn write (fd: i32, buf: *const u8, n: usize) -> isize; }\n\
+\n\
+/* `core`'s own panics carry a `&str`; `panic! (\"{x}\")` in precompiled code can carry a\n\
+   `String`, which the first version reported as `?` (status 4.895).  The type is named through\n\
+   `alloc`, whose rlib the link already passes.  */\n\
+extern crate alloc as alloc_crate;\n\
+use alloc_crate::string::String as alloc_string;\n";
 
 /// `xtask link-shared <target>` - link the port's objects for TARGET into `libemacs.so`.
 ///

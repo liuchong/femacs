@@ -2535,12 +2535,20 @@ unsafe fn print_object (mut obj: Lisp_Object, printcharfun: Lisp_Object, escapef
     {
       /* Simple but incomplete way.  */
       if print_depth >= PRINT_CIRCLE as ptrdiff_t
-	{ error (c"Apparently circular structure being printed".as_ptr ()); }
+	{
+	  error (c"Apparently circular structure being printed".as_ptr ());
+        }
 
+      /* C reads `being_printed[i]` unchecked: `print_depth` can grow *inside* this loop, because
+         `strout` below calls `printcharfun`, which may re-enter printing.  Rust's bounds check
+         turned that same overrun - C's own undefined behaviour, which the guard above does not
+         cover either - into a hard panic, so the access goes through the array's address
+         (status 4.896).  */
+      let being: *mut Lisp_Object = (&raw mut being_printed) as *mut Lisp_Object;
       let mut i: c_int = 0;
       while i < print_depth as c_int
 	{
-	  if BASE_EQ (obj, being_printed[i as usize])
+	  if BASE_EQ (obj, *being.offset (i as isize))
 	    {
 	      let len: c_int = sprintf (buf.as_mut_ptr (), c"#%d".as_ptr (), i);
 	      strout (buf.as_ptr (), len as ptrdiff_t, len as ptrdiff_t, printcharfun);
@@ -2550,7 +2558,7 @@ unsafe fn print_object (mut obj: Lisp_Object, printcharfun: Lisp_Object, escapef
 	  i += 1;
 	}
       if ! to_next_obj
-	{ being_printed[print_depth as usize] = obj; }
+	{ *being.offset (print_depth as isize) = obj; }
     }
   else if print_circle_candidate_p (obj)
     {
