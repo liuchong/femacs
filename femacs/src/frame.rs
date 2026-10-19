@@ -260,20 +260,60 @@ macro_rules! no_accept_focus {
     ($f:expr, $v:expr) => { set_frame_flag1! ($f, FRAME_NO_ACCEPT_FOCUS_SHIFT, $v) };
 }
 macro_rules! can_set_window_size {
-    ($f:expr) => { (*$f).bits1 >> FRAME_CAN_SET_WINDOW_SIZE_SHIFT & 1 != 0 };
-    ($f:expr, $v:expr) => { set_frame_flag1! ($f, FRAME_CAN_SET_WINDOW_SIZE_SHIFT, $v) };
+    ($f:expr) => {{
+        #[cfg (not (feature = "have_window_system"))]
+        { (*$f).bits1 >> FRAME_CAN_SET_WINDOW_SIZE_SHIFT & 1 != 0 }
+        #[cfg (feature = "have_window_system")]
+        { (*$f).bits2 >> FRAME_CAN_SET_WINDOW_SIZE_SHIFT & 1 != 0 }
+    }};
+    ($f:expr, $v:expr) => {{
+        #[cfg (not (feature = "have_window_system"))]
+        { set_frame_flag1! ($f, FRAME_CAN_SET_WINDOW_SIZE_SHIFT, $v) }
+        #[cfg (feature = "have_window_system")]
+        { set_frame_flag2! ($f, FRAME_CAN_SET_WINDOW_SIZE_SHIFT, $v) }
+    }};
 }
 macro_rules! after_make_frame {
-    ($f:expr) => { (*$f).bits1 >> FRAME_AFTER_MAKE_FRAME_SHIFT & 1 != 0 };
-    ($f:expr, $v:expr) => { set_frame_flag1! ($f, FRAME_AFTER_MAKE_FRAME_SHIFT, $v) };
+    ($f:expr) => {{
+        #[cfg (not (feature = "have_window_system"))]
+        { (*$f).bits1 >> FRAME_AFTER_MAKE_FRAME_SHIFT & 1 != 0 }
+        #[cfg (feature = "have_window_system")]
+        { (*$f).bits2 >> FRAME_AFTER_MAKE_FRAME_SHIFT & 1 != 0 }
+    }};
+    ($f:expr, $v:expr) => {{
+        #[cfg (not (feature = "have_window_system"))]
+        { set_frame_flag1! ($f, FRAME_AFTER_MAKE_FRAME_SHIFT, $v) }
+        #[cfg (feature = "have_window_system")]
+        { set_frame_flag2! ($f, FRAME_AFTER_MAKE_FRAME_SHIFT, $v) }
+    }};
 }
 macro_rules! tab_bar_redisplayed {
-    ($f:expr) => { (*$f).bits1 >> FRAME_TAB_BAR_REDISPLAYED_SHIFT & 1 != 0 };
-    ($f:expr, $v:expr) => { set_frame_flag1! ($f, FRAME_TAB_BAR_REDISPLAYED_SHIFT, $v) };
+    ($f:expr) => {{
+        #[cfg (not (feature = "have_window_system"))]
+        { (*$f).bits1 >> FRAME_TAB_BAR_REDISPLAYED_SHIFT & 1 != 0 }
+        #[cfg (feature = "have_window_system")]
+        { (*$f).bits2 >> FRAME_TAB_BAR_REDISPLAYED_SHIFT & 1 != 0 }
+    }};
+    ($f:expr, $v:expr) => {{
+        #[cfg (not (feature = "have_window_system"))]
+        { set_frame_flag1! ($f, FRAME_TAB_BAR_REDISPLAYED_SHIFT, $v) }
+        #[cfg (feature = "have_window_system")]
+        { set_frame_flag2! ($f, FRAME_TAB_BAR_REDISPLAYED_SHIFT, $v) }
+    }};
 }
 macro_rules! tab_bar_resized {
-    ($f:expr) => { (*$f).bits1 >> FRAME_TAB_BAR_RESIZED_SHIFT & 1 != 0 };
-    ($f:expr, $v:expr) => { set_frame_flag1! ($f, FRAME_TAB_BAR_RESIZED_SHIFT, $v) };
+    ($f:expr) => {{
+        #[cfg (not (feature = "have_window_system"))]
+        { (*$f).bits1 >> FRAME_TAB_BAR_RESIZED_SHIFT & 1 != 0 }
+        #[cfg (feature = "have_window_system")]
+        { (*$f).bits2 >> FRAME_TAB_BAR_RESIZED_SHIFT & 1 != 0 }
+    }};
+    ($f:expr, $v:expr) => {{
+        #[cfg (not (feature = "have_window_system"))]
+        { set_frame_flag1! ($f, FRAME_TAB_BAR_RESIZED_SHIFT, $v) }
+        #[cfg (feature = "have_window_system")]
+        { set_frame_flag2! ($f, FRAME_TAB_BAR_RESIZED_SHIFT, $v) }
+    }};
 }
 macro_rules! tool_bar_redisplayed {
     ($f:expr) => { (*$f).bits2 >> FRAME_TOOL_BAR_REDISPLAYED_SHIFT & 1 != 0 };
@@ -328,8 +368,18 @@ macro_rules! mouse_moved {
     ($f:expr, $v:expr) => { set_frame_flag1! ($f, FRAME_MOUSE_MOVED_SHIFT, $v) };
 }
 macro_rules! no_special_glyphs {
-    ($f:expr) => { (*$f).bits1 >> FRAME_NO_SPECIAL_GLYPHS_SHIFT & 1 != 0 };
-    ($f:expr, $v:expr) => { set_frame_flag1! ($f, FRAME_NO_SPECIAL_GLYPHS_SHIFT, $v) };
+    ($f:expr) => {{
+        #[cfg (not (feature = "have_window_system"))]
+        { (*$f).bits1 >> FRAME_NO_SPECIAL_GLYPHS_SHIFT & 1 != 0 }
+        #[cfg (feature = "have_window_system")]
+        { (*$f).bits2 >> FRAME_NO_SPECIAL_GLYPHS_SHIFT & 1 != 0 }
+    }};
+    ($f:expr, $v:expr) => {{
+        #[cfg (not (feature = "have_window_system"))]
+        { set_frame_flag1! ($f, FRAME_NO_SPECIAL_GLYPHS_SHIFT, $v) }
+        #[cfg (feature = "have_window_system")]
+        { set_frame_flag2! ($f, FRAME_NO_SPECIAL_GLYPHS_SHIFT, $v) }
+    }};
 }
 macro_rules! pointer_invisible {
     ($f:expr) => { (*$f).bits1 >> FRAME_POINTER_INVISIBLE_SHIFT & 1 != 0 };

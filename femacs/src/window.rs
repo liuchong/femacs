@@ -190,8 +190,18 @@ unsafe extern "C" {
    mirror carries `FRAME_WINDOWS_FROZEN`/`FRAME_WINDOW_P` and the read-only `FRAME_VISIBLE_P`-
    class accessors; the ones below are not in it (PORTING.md 1.3/P-80, the frame.rs shape).  */
 macro_rules! can_set_window_size {
-    ($f:expr) => { (*$f).bits1 >> FRAME_CAN_SET_WINDOW_SIZE_SHIFT & 1 != 0 };
-    ($f:expr, $v:expr) => { set_frame_flag1! ($f, FRAME_CAN_SET_WINDOW_SIZE_SHIFT, $v) };
+    ($f:expr) => {{
+        #[cfg (not (feature = "have_window_system"))]
+        { (*$f).bits1 >> FRAME_CAN_SET_WINDOW_SIZE_SHIFT & 1 != 0 }
+        #[cfg (feature = "have_window_system")]
+        { (*$f).bits2 >> FRAME_CAN_SET_WINDOW_SIZE_SHIFT & 1 != 0 }
+    }};
+    ($f:expr, $v:expr) => {{
+        #[cfg (not (feature = "have_window_system"))]
+        { set_frame_flag1! ($f, FRAME_CAN_SET_WINDOW_SIZE_SHIFT, $v) }
+        #[cfg (feature = "have_window_system")]
+        { set_frame_flag2! ($f, FRAME_CAN_SET_WINDOW_SIZE_SHIFT, $v) }
+    }};
 }
 macro_rules! after_make_frame {
     ($f:expr) => { (*$f).bits1 >> FRAME_AFTER_MAKE_FRAME_SHIFT & 1 != 0 };
