@@ -1448,7 +1448,15 @@ pub unsafe fn default_pixels_per_inch_y () -> c_double
 }
 
 #[inline(always)]
+#[cfg (not (feature = "have_window_system"))]
 pub fn window_system_available (f: *mut frame) -> bool { let _ = f; false }
+/* frame.h 1494-1502's window arm: `f ? FRAME_WINDOW_P (f) || FRAME_MSDOS_P (f) :
+   display_available ()`.  Android's build has no X11 display list, so `display_available ()`
+   is false there, which is what the null-frame arm returns.  */
+#[cfg (feature = "have_window_system")]
+pub fn window_system_available (f: *mut frame) -> bool {
+    if ! f.is_null () { unsafe { FRAME_WINDOW_P (f) || FRAME_MSDOS_P (f) } } else { false }
+}
 
 // frame.h 1437-1450: sets the `iconified` flag (bit 9 of unit 1).
 #[inline(always)]

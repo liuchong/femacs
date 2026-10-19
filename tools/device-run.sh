@@ -76,7 +76,7 @@ if [ "$DUMP_ONLY" != 1 ] && [ -n "${CHECK_NATIVE:-1}" ]; then
   NDK_BIN=$(ls -d "$SDK"/ndk/*/toolchains/llvm/prebuilt/*/bin 2>/dev/null | tail -1)
   if [ -n "$NDK_BIN" ] && [ -f "$SO" ]; then
     missing=""
-    for sym in android_init_gui Java_org_femacs_EmacsNative_initEmacs Fandroid_enumerate_fonts emacs_pipe; do
+    for sym in android_init_gui Java_org_femacs_EmacsNative_initEmacs Fandroid_enumerate_fonts emacs_pipe Fbitmap_spec_p; do
       "$NDK_BIN/llvm-nm" -D --defined-only "$SO" 2>/dev/null | grep -q " $sym\$" || missing="$missing $sym"
     done
     if [ -n "$missing" ]; then
@@ -128,7 +128,18 @@ echo "== install =="
 "$ADB" logcat -c 2>/dev/null
 echo "== start =="
 "$ADB" shell am start -W -n org.femacs/.EmacsActivity 2>&1 | tail -3
+# Capture the maps while the process is certainly alive (it dies within a second or two).
+early_pid=$("$ADB" shell pidof org.femacs 2>/dev/null | tr -d '\r')
+if [ -n "$early_pid" ]; then
+  "$ADB" shell "cat /proc/$early_pid/maps" > "$REPO/docs/baseline/probe-maps.txt" 2>/dev/null || true
+fi
 sleep "$SETTLE"
+# The maps of the running process: a FORTIFY message names a mutex address, and which library
+# that address belongs to is the first thing worth knowing (R40: keep it in the tree).
+pid=$("$ADB" shell pidof org.femacs 2>/dev/null | tr -d '\r')
+if [ -n "$pid" ]; then
+  "$ADB" shell "cat /proc/$pid/maps" > "$REPO/docs/baseline/probe-maps.txt" 2>/dev/null || true
+fi
 echo "== probe.log size =="
 "$ADB" shell "wc -l /data/data/org.femacs/files/probe.log 2>/dev/null"
 echo "== probe.log last $TAIL lines =="

@@ -769,7 +769,101 @@ DEFUN! ("clear-face-cache", Fclear_face_cache, Sclear_face_cache, 0, 1, 0,
 			      X Pixmaps
  ***********************************************************************/
 
-/* C 810-915: the `HAVE_WINDOW_SYSTEM` block (`Fbitmap_spec_p`, `load_pixmap`) is dead.  */
+/* C 810-855: `bitmap-spec-p'.  The port had dropped it with the rest of the window block,
+   but `load_pixmap` calls it and globals.rs already declares it as an import.  */
+#[cfg (feature = "have_window_system")]
+DEFUN! ("bitmap-spec-p", Fbitmap_spec_p, Sbitmap_spec_p, 1, 1, 0,
+       doc: "Value is non-nil if OBJECT is a valid bitmap specification.\nA bitmap specification is either a string, a file name, or a list\n\\(WIDTH HEIGHT DATA) where WIDTH is the pixel width of the bitmap,\nHEIGHT is its height, and DATA is a string containing the bits of\nthe pixmap.  Bits are stored row by row, each row occupies\n\\(WIDTH + 7)/8 bytes.",
+       (object: Lisp_Object),
+       {
+  let mut object: Lisp_Object = object;
+  let mut pixmap_p: bool = false;
+
+  if STRINGP (object)
+    { pixmap_p = true; }
+  else if CONSP (object)
+    {
+      let mut width: Lisp_Object;
+      let mut height: Lisp_Object;
+      let mut data: Lisp_Object;
+
+      height = Qnil (); width = Qnil (); data = Qnil ();
+
+      if CONSP (object)
+	{
+	  width = XCAR (object);
+	  object = XCDR (object);
+	  if CONSP (object)
+	    {
+	      height = XCAR (object);
+	      object = XCDR (object);
+	      if CONSP (object)
+		{ data = XCAR (object); }
+	    }
+	}
+
+      if STRINGP (data)
+	  && RANGED_FIXNUMP (1, width, INT_MAX as EMACS_INT)
+	  && RANGED_FIXNUMP (1, height, INT_MAX as EMACS_INT)
+	{
+	  let bytes_per_row: c_int
+	    = (XFIXNUM (width) + CHAR_BIT as EMACS_INT - 1) as c_int / CHAR_BIT as c_int;
+	  if XFIXNUM (height) <= SBYTES (data) / bytes_per_row as EMACS_INT
+	    { pixmap_p = true; }
+	}
+    }
+
+  return if pixmap_p { Qt () } else { Qnil () };
+});
+
+/* C 857-915: load a bitmap for frame F (a file name or a bitmap spec); 0 on failure.  */
+#[cfg (feature = "have_window_system")]
+unsafe fn load_pixmap (f: *mut frame, name: Lisp_Object) -> ptrdiff_t
+{
+  let bitmap_id: ptrdiff_t;
+
+  if NILP (name)
+    { return 0; }
+
+  CHECK_TYPE (! NILP (Fbitmap_spec_p (name)), Qbitmap_spec_p (), name);
+
+  block_input ();
+  if CONSP (name)
+    {
+      /* Decode a bitmap spec into a bitmap.  */
+      let w: c_int = XFIXNUM (Fcar (name)) as c_int;
+      let h: c_int = XFIXNUM (Fcar (Fcdr (name))) as c_int;
+      let bits: Lisp_Object = Fcar (Fcdr (Fcdr (name)));
+
+      bitmap_id = image_create_bitmap_from_data (f, SSDATA (bits) as *mut c_char, w, h);
+    }
+  else
+    {
+      /* It must be a string -- a file name.  */
+      bitmap_id = image_create_bitmap_from_file (f, name);
+    }
+  unblock_input ();
+
+  if bitmap_id < 0
+    {
+      add_to_log (c"Invalid or undefined bitmap `%s'".as_ptr (), name);
+      return 0;
+    }
+  return bitmap_id;
+}
+
+/* image.c's three bitmap entries; C declares them in dispextern.h 3729-3739, which this
+   unit's mirror does not carry yet, so they are declared at the use site (PORTING.md P-55).  */
+unsafe extern "C" {
+  /// C: font.h 852: `extern Lisp_Object font_load_for_lface (struct frame *, Lisp_Object *,
+  /// Lisp_Object);` - font.h's mirror does not carry it (the arm that calls it was dead).
+  pub fn font_load_for_lface (f: *mut frame, attrs: *mut Lisp_Object,
+			      spec: Lisp_Object) -> Lisp_Object;
+  pub fn image_create_bitmap_from_data (f: *mut frame, data: *mut c_char,
+					w: c_int, h: c_int) -> ptrdiff_t;
+  pub fn image_create_bitmap_from_file (f: *mut frame, name: Lisp_Object) -> ptrdiff_t;
+  pub fn image_destroy_bitmap (f: *mut frame, id: ptrdiff_t);
+}
 
 
 /***********************************************************************
@@ -1213,8 +1307,52 @@ unsafe fn load_color (f: *mut frame, face: *mut face, name: Lisp_Object,
   return load_color2 (f, face, name, target_index, &mut color);
 }
 
-/* C 1377-1506: the `HAVE_WINDOW_SYSTEM` block (`load_face_colors`, `HAVE_X_WINDOWS`'s
-   `unload_color`/`free_face_colors`) is dead.  */
+/* C 1391-1428: load the foreground/background of FACE from ATTRS, with the stipple
+   fallback for unsupported colors.  */
+#[cfg (feature = "have_window_system")]
+unsafe fn load_face_colors (f: *mut frame, face: *mut face, attrs: *mut Lisp_Object)
+{
+  let mut fg: Lisp_Object;
+  let mut bg: Lisp_Object;
+  let mut dfg: Lisp_Object;
+  let mut xfg: Emacs_Color = std::mem::zeroed ();
+  let mut xbg: Emacs_Color = std::mem::zeroed ();
+
+  bg = *attrs.offset (LFACE_BACKGROUND_INDEX as isize);
+  fg = *attrs.offset (LFACE_FOREGROUND_INDEX as isize);
+
+  /* Swap colors if face is inverse-video.  */
+  if EQ (*attrs.offset (LFACE_INVERSE_INDEX as isize), Qt ())
+    {
+      let tmp: Lisp_Object = fg;
+      fg = bg;
+      bg = tmp;
+    }
+
+  /* Check for support for foreground, not for background because
+     face_color_supported_p is smart enough to know that grays are
+     "supported" as background because we are supposed to use stipple
+     for them.  */
+  if ! face_color_supported_p (f, SSDATA (bg), false)
+      && ! NILP (Fbitmap_spec_p (Vface_default_stipple))
+    {
+      image_destroy_bitmap (f, (*face).stipple);
+      (*face).stipple = load_pixmap (f, Vface_default_stipple);
+    }
+
+  (*face).background = load_color2 (f, face, bg, LFACE_BACKGROUND_INDEX, &mut xbg);
+  (*face).foreground = load_color2 (f, face, fg, LFACE_FOREGROUND_INDEX, &mut xfg);
+
+  dfg = *attrs.offset (LFACE_DISTANT_FOREGROUND_INDEX as isize);
+  if ! NILP (dfg) && ! UNSPECIFIEDP! (dfg)
+      && color_distance (&mut xbg, &mut xfg) < face_near_same_color_threshold as c_int
+    {
+      if EQ (*attrs.offset (LFACE_INVERSE_INDEX as isize), Qt ())
+	{ (*face).background = load_color (f, face, dfg, LFACE_BACKGROUND_INDEX); }
+      else
+	{ (*face).foreground = load_color (f, face, dfg, LFACE_FOREGROUND_INDEX); }
+    }
+}
 
 
 /***********************************************************************
@@ -4900,11 +5038,322 @@ unsafe fn realize_face (cache: *mut face_cache, attrs: *mut Lisp_Object,
 
 unsafe fn realize_gui_face (cache: *mut face_cache, attrs: *mut Lisp_Object) -> *mut face
 {
-  let _ = (cache, attrs);
-  let face: *mut face = std::ptr::null_mut ();
-  /* C's `HAVE_WINDOW_SYSTEM` body is dead; the live text is the declaration, the
-     `return face;` at C 6663 is the other live line.  */
+  #[cfg (not (feature = "have_window_system"))]
+  {
+    /* C 6329-6332 and 6662-6663: the declaration and `return face;` are the frozen
+       configuration's live text.  */
+    let _ = (cache, attrs);
+    return std::ptr::null_mut ();
+  }
+  #[cfg (feature = "have_window_system")]
+  {
+  let mut face: *mut face = std::ptr::null_mut ();
+  let default_face: *mut face;
+  let f: *mut frame;
+  let mut stipple: Lisp_Object;
+  let mut underline: Lisp_Object;
+  let overline: Lisp_Object;
+  let strike_through: Lisp_Object;
+  let mut box_: Lisp_Object;
+
+  eassert! (FRAME_WINDOW_P ((*cache).f));
+
+  /* Allocate a new realized face.  */
+  face = make_realized_face (attrs);
+  (*face).ascii_face = face;
+
+  f = (*cache).f;
+
+  /* Determine the font to use.  Most of the time, the font will be
+     the same as the font of the default face, so try that first.  */
+  default_face = FACE_FROM_ID_OR_NULL (f, DEFAULT_FACE_ID);
+  if ! default_face.is_null ()
+      && lface_same_font_attributes_p ((*default_face).lface.as_ptr (), attrs)
+    {
+      (*face).font = (*default_face).font;
+      (*face).fontset
+	= make_fontset_for_ascii_face (f as *mut c_void, (*default_face).fontset, face as *mut c_void);
+    }
+  else
+    {
+      /* If the face attribute ATTRS specifies a fontset, use it as
+	 the base of a new realized fontset.  Otherwise, use the same
+	 base fontset as of the default face.  */
+      let mut fontset: c_int = face_fontset (attrs);
+
+      if fontset == -1
+	{
+	  if ! default_face.is_null ()
+	    { fontset = (*default_face).fontset; }
+	  if fontset == -1
+	    { emacs_abort (); }
+	}
+      if ! FONT_OBJECT_P (*attrs.offset (LFACE_FONT_INDEX as isize))
+	{
+	  let mut spec: Lisp_Object
+	    = copy_font_spec (*attrs.offset (LFACE_FONT_INDEX as isize));
+
+	  if EQ (Vface_font_lax_matched_attributes, Qt ())
+	    {
+	      ASET (spec, FONT_WEIGHT_INDEX as isize, Qnil ());
+	      ASET (spec, FONT_SLANT_INDEX as isize, Qnil ());
+	      ASET (spec, FONT_WIDTH_INDEX as isize, Qnil ());
+	    }
+	  else if ! NILP (Vface_font_lax_matched_attributes)
+	    {
+	      font_maybe_unset_attribute (spec, FONT_WEIGHT_INDEX, QCweight ());
+	      font_maybe_unset_attribute (spec, FONT_SLANT_INDEX, QCslant ());
+	      font_maybe_unset_attribute (spec, FONT_WIDTH_INDEX, QCwidth ());
+	      font_maybe_unset_attribute (spec, FONT_FAMILY_INDEX, QCfamily ());
+	      font_maybe_unset_attribute (spec, FONT_FOUNDRY_INDEX, QCfoundry ());
+	      font_maybe_unset_attribute (spec, FONT_REGISTRY_INDEX, QCregistry ());
+	      font_maybe_unset_attribute (spec, FONT_ADSTYLE_INDEX, QCadstyle ());
+	      font_maybe_unset_attribute (spec, FONT_SIZE_INDEX, QCsize ());
+	      font_maybe_unset_attribute (spec, FONT_DPI_INDEX, QCdpi ());
+	      font_maybe_unset_attribute (spec, FONT_SPACING_INDEX, QCspacing ());
+	      font_maybe_unset_attribute (spec, FONT_AVGWIDTH_INDEX, QCavgwidth ());
+	    }
+
+	  *attrs.offset (LFACE_FONT_INDEX as isize) = font_load_for_lface (f, attrs, spec);
+	}
+      if FONT_OBJECT_P (*attrs.offset (LFACE_FONT_INDEX as isize))
+	{
+	  (*face).font = XFONT_OBJECT (*attrs.offset (LFACE_FONT_INDEX as isize));
+	  (*face).fontset = make_fontset_for_ascii_face (f as *mut c_void, fontset, face as *mut c_void);
+	}
+      else
+	{
+	  (*face).font = std::ptr::null_mut ();
+	  (*face).fontset = -1;
+	}
+    }
+
+  if ! (*face).font.is_null ()
+      && FONT_WEIGHT_NAME_NUMERIC! (*attrs.offset (LFACE_WEIGHT_INDEX as isize)) > 100
+      && FONT_WEIGHT_NUMERIC! (*attrs.offset (LFACE_FONT_INDEX as isize)) <= 100
+    { face_bits! (overstrike, face, true); }
+
+  /* Load colors, and set remaining attributes.  */
+
+  load_face_colors (f, face, attrs);
+
+  /* Set up box.  */
+  box_ = *attrs.offset (LFACE_BOX_INDEX as isize);
+  if STRINGP (box_)
+    {
+      /* A simple box of line width 1 drawn in color given by the string.  */
+      (*face).box_color = load_color (f, face, *attrs.offset (LFACE_BOX_INDEX as isize),
+				      LFACE_BOX_INDEX);
+      face_bits! (box, face, FACE_SIMPLE_BOX);
+      (*face).box_vertical_line_width = 1;
+      (*face).box_horizontal_line_width = 1;
+    }
+  else if FIXNUMP (box_)
+    {
+      /* Simple box of specified line width in foreground color of the face.  */
+      eassert! (XFIXNUM (box_) != 0);
+      face_bits! (box, face, FACE_SIMPLE_BOX);
+      (*face).box_vertical_line_width = XFIXNUM (box_).abs () as c_int;
+      (*face).box_horizontal_line_width = XFIXNUM (box_) as c_int;
+      (*face).box_color = (*face).foreground;
+      face_bits! (box_color_defaulted_p, face, true);
+    }
+  else if CONSP (box_) && FIXNUMP (XCAR (box_)) && FIXNUMP (XCDR (box_))
+    {
+      /* `(VWIDTH . HWIDTH)'.  */
+      face_bits! (box, face, FACE_SIMPLE_BOX);
+      (*face).box_color = (*face).foreground;
+      face_bits! (box_color_defaulted_p, face, true);
+      (*face).box_vertical_line_width = XFIXNUM (XCAR (box_)) as c_int;
+      (*face).box_horizontal_line_width = XFIXNUM (XCDR (box_)) as c_int;
+    }
+  else if CONSP (box_)
+    {
+      let mut set_color: bool = false;
+
+      /* `(:width WIDTH :color COLOR :shadow SHADOW)'.  */
+      face_bits! (box, face, FACE_SIMPLE_BOX);
+      (*face).box_color = (*face).foreground;
+      face_bits! (box_color_defaulted_p, face, true);
+      (*face).box_vertical_line_width = 1;
+      (*face).box_horizontal_line_width = 1;
+
+      while CONSP (box_)
+	{
+	  let keyword: Lisp_Object;
+	  let value: Lisp_Object;
+
+	  keyword = XCAR (box_);
+	  box_ = XCDR (box_);
+
+	  if ! CONSP (box_)
+	    { break; }
+	  value = XCAR (box_);
+	  box_ = XCDR (box_);
+
+	  if EQ (keyword, QCline_width ())
+	    {
+	      if CONSP (value) && FIXNUMP (XCAR (value)) && FIXNUMP (XCDR (value))
+		{
+		  (*face).box_vertical_line_width = XFIXNUM (XCAR (value)) as c_int;
+		  (*face).box_horizontal_line_width = XFIXNUM (XCDR (value)) as c_int;
+		}
+	      else if FIXNUMP (value) && XFIXNUM (value) != 0
+		{
+		  (*face).box_vertical_line_width = XFIXNUM (value).abs () as c_int;
+		  (*face).box_horizontal_line_width = XFIXNUM (value) as c_int;
+		}
+	    }
+	  else if EQ (keyword, QCcolor ())
+	    {
+	      if STRINGP (value)
+		{
+		  (*face).box_color = load_color (f, face, value, LFACE_BOX_INDEX);
+		  face_bits! (use_box_color_for_shadows_p, face, true);
+		  set_color = true;
+		}
+	    }
+	  else if EQ (keyword, QCstyle ())
+	    {
+	      if EQ (value, Qreleased_button ())
+		{ face_bits! (box, face, FACE_RAISED_BOX); }
+	      else if EQ (value, Qpressed_button ())
+		{ face_bits! (box, face, FACE_SUNKEN_BOX); }
+	      else if EQ (value, Qflat_button ())
+		{
+		  face_bits! (box, face, FACE_SIMPLE_BOX);
+		  /* Don't override colors set in this box. */
+		  if ! set_color
+		    { (*face).box_color = (*face).background; }
+		}
+	    }
+	}
+    }
+
+  /* Text underline, overline, strike-through.  */
+
+  underline = *attrs.offset (LFACE_UNDERLINE_INDEX as isize);
+  if EQ (underline, Qt ())
+    {
+      /* Use default color (same as foreground color).  */
+      face_bits! (underline, face, FACE_UNDERLINE_SINGLE);
+      face_bits! (underline_defaulted_p, face, true);
+      (*face).underline_color = 0;
+      face_bits! (underline_at_descent_line_p, face, false);
+      (*face).underline_pixels_above_descent_line = 0;
+    }
+  else if STRINGP (underline)
+    {
+      /* Use specified color.  */
+      face_bits! (underline, face, FACE_UNDERLINE_SINGLE);
+      face_bits! (underline_defaulted_p, face, false);
+      (*face).underline_color = load_color (f, face, underline, LFACE_UNDERLINE_INDEX);
+      face_bits! (underline_at_descent_line_p, face, false);
+      (*face).underline_pixels_above_descent_line = 0;
+    }
+  else if NILP (underline)
+    {
+      face_bits! (underline, face, FACE_NO_UNDERLINE);
+      face_bits! (underline_defaulted_p, face, false);
+      (*face).underline_color = 0;
+      face_bits! (underline_at_descent_line_p, face, false);
+      (*face).underline_pixels_above_descent_line = 0;
+    }
+  else if CONSP (underline)
+    {
+      /* `(:color COLOR :style STYLE)'.  */
+      face_bits! (underline, face, FACE_UNDERLINE_SINGLE);
+      (*face).underline_color = 0;
+      face_bits! (underline_defaulted_p, face, true);
+      face_bits! (underline_at_descent_line_p, face, false);
+      (*face).underline_pixels_above_descent_line = 0;
+
+      while CONSP (underline)
+	{
+	  let keyword: Lisp_Object;
+	  let value: Lisp_Object;
+
+	  keyword = XCAR (underline);
+	  underline = XCDR (underline);
+
+	  if ! CONSP (underline)
+	    { break; }
+	  value = XCAR (underline);
+	  underline = XCDR (underline);
+
+	  if EQ (keyword, QCcolor ())
+	    {
+	      if EQ (value, Qforeground_color ())
+		{
+		  face_bits! (underline_defaulted_p, face, true);
+		  (*face).underline_color = 0;
+		}
+	      else if STRINGP (value)
+		{
+		  face_bits! (underline_defaulted_p, face, false);
+		  (*face).underline_color = load_color (f, face, value, LFACE_UNDERLINE_INDEX);
+		}
+	    }
+	  else if EQ (keyword, QCstyle ())
+	    {
+	      if EQ (value, Qline ())
+		{ face_bits! (underline, face, FACE_UNDERLINE_SINGLE); }
+	      else if EQ (value, Qdouble_line ())
+		{ face_bits! (underline, face, FACE_UNDERLINE_DOUBLE_LINE); }
+	      else if EQ (value, Qwave ())
+		{ face_bits! (underline, face, FACE_UNDERLINE_WAVE); }
+	      else if EQ (value, Qdots ())
+		{ face_bits! (underline, face, FACE_UNDERLINE_DOTS); }
+	      else if EQ (value, Qdashes ())
+		{ face_bits! (underline, face, FACE_UNDERLINE_DASHES); }
+	      else
+		{ face_bits! (underline, face, FACE_UNDERLINE_SINGLE); }
+	    }
+	  else if EQ (keyword, QCposition ())
+	    {
+	      face_bits! (underline_at_descent_line_p, face, ! NILP (value));
+
+	      if FIXNATP (value)
+		{ (*face).underline_pixels_above_descent_line = XFIXNAT (value) as c_int; }
+	    }
+	}
+    }
+
+  overline = *attrs.offset (LFACE_OVERLINE_INDEX as isize);
+  if STRINGP (overline)
+    {
+      (*face).overline_color = load_color (f, face, *attrs.offset (LFACE_OVERLINE_INDEX as isize),
+					   LFACE_OVERLINE_INDEX);
+      face_bits! (overline_p, face, true);
+    }
+  else if EQ (overline, Qt ())
+    {
+      (*face).overline_color = (*face).foreground;
+      face_bits! (overline_color_defaulted_p, face, true);
+      face_bits! (overline_p, face, true);
+    }
+
+  strike_through = *attrs.offset (LFACE_STRIKE_THROUGH_INDEX as isize);
+  if STRINGP (strike_through)
+    {
+      (*face).strike_through_color
+	= load_color (f, face, *attrs.offset (LFACE_STRIKE_THROUGH_INDEX as isize),
+		      LFACE_STRIKE_THROUGH_INDEX);
+      face_bits! (strike_through_p, face, true);
+    }
+  else if EQ (strike_through, Qt ())
+    {
+      (*face).strike_through_color = (*face).foreground;
+      face_bits! (strike_through_color_defaulted_p, face, true);
+      face_bits! (strike_through_p, face, true);
+    }
+
+  stipple = *attrs.offset (LFACE_STIPPLE_INDEX as isize);
+  if ! NILP (stipple)
+    { (*face).stipple = load_pixmap (f, stipple); }
+
   return face;
+  }
 }
 
 /// C 6277-6303: "Realize the fully-specified face that uses FONT-OBJECT and has the same

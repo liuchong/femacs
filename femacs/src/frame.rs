@@ -649,11 +649,22 @@ pub unsafe extern "C" fn decode_any_frame (frame: Lisp_Object) -> *mut frame
   return XFRAME (frame);
 }
 
-/* C's `check_window_system` is `void` in C, but in this configuration its only live tail
-   is `error (…)` (the `if (window_system_available (f)) return;` sits in the dead
-   `HAVE_WINDOW_SYSTEM` arm, C 136-139), so the port returns `!`.  That is what lets
-   `decode_window_system_frame` keep C's live text below: C's only `return f;` is in
-   `decode_window_system_frame`'s own dead arm (C 128-130, P-08).  */
+/* C 134-142: with a window system the check returns when one is available; without one the
+   only live tail is `error (…)`.  Android's configuration compiles the first arm (its
+   HAVE_WINDOW_SYSTEM is 1), and the port had only the frozen arm - so creating the first GUI
+   frame errored with "Window system frame should be used" (device run, status 4.856).  */
+#[cfg (feature = "have_window_system")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn check_window_system (f: *mut frame)
+{
+  if window_system_available (f)
+    { return; }
+  error (if !f.is_null ()
+         { c"Window system frame should be used".as_ptr () }
+         else { c"Window system is not in use or not initialized".as_ptr () });
+}
+
+#[cfg (not (feature = "have_window_system"))]
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn check_window_system (f: *mut frame) -> !
 {
@@ -666,7 +677,11 @@ pub unsafe extern "C" fn check_window_system (f: *mut frame) -> !
 pub unsafe extern "C" fn decode_window_system_frame (frame: Lisp_Object) -> *mut frame
 {
   let f = decode_live_frame (frame);
-  check_window_system (f)
+  check_window_system (f);
+  #[cfg (feature = "have_window_system")]
+  { return f; }
+  #[cfg (not (feature = "have_window_system"))]
+  { unreachable! () }
 }
 
 unsafe fn check_tty (f: *mut frame)
