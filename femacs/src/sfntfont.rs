@@ -3294,15 +3294,19 @@ pub struct sfnt_font_info                           // C 2565-2645
   pub directory: *mut sfnt_offset_subtable,         // C 2643
 }
 
+
 /* clang, frozen configuration (`HAVE_MMAP` 1, `HAVE_HARFBUZZ` 0): `sizeof 576`, `_Alignof 8`,
    `font` 0, `next` 184, `desc` 192, `cmap` 200, `hhea` 208, `maxp` 216, `head` 224, `hmtx` 232,
    `glyf` 240, `loca_short` 248, `loca_long` 256, `prep` 264, `fpgm` 272, `cvt` 280, `cmap_data`
    288, `cmap_subtable` 296, `uvs` 304, `outline_cache` 312, `outline_cache_size` 352,
    `raster_cache` 360, `raster_cache_size` 392, `interpreter` 400, `state` 408, `scale` 512,
    `blend` 520, `instance` 568, `glyf_table_mapped` 572.  Two other conditions move this record's
-   layout and are therefore outside the reading, as they are for `sfnt_font_tables` above: the
-   three `havfbuzz` members (C 2635-2644 add 24 bytes) and the eight `HAVE_WINDOW_SYSTEM` members
-   of the embedded `struct font` (`font.h` 325-403, 8 bytes each) - hence the two negated gates.
+   layout, as they do for `sfnt_font_tables` above: the three `HAVE_HARFBUZZ` members (C 2635-2644,
+   24 bytes) and the eight `HAVE_WINDOW_SYSTEM` members of the embedded `struct font`
+   (`font.h` 325-403, four bytes each, so 32 in all - `font.rs`'s `FONT_WS_SHIFT`).  The frozen
+   Android configuration has `HAVE_WINDOW_SYSTEM` 1 and `HAVE_HARFBUZZ` undefined
+   (`docs/baseline/config/android-arm64.json`), so *its* reading is the one asserted below the next
+   comment; the host-shaped reading here is the one this file carried first.
     */
 #[cfg (all (feature = "have_android", feature = "not_android_stubify",
 	    not (feature = "harfbuzz"), not (feature = "have_window_system")))]
@@ -3336,6 +3340,47 @@ const _: () = {
   core::assert! (std::mem::offset_of! (sfnt_font_info, blend) == 520);
   core::assert! (std::mem::offset_of! (sfnt_font_info, instance) == 568);
   core::assert! (std::mem::offset_of! (sfnt_font_info, glyf_table_mapped) == 572);
+};
+
+/* The configuration the Android leg actually builds (`HAVE_WINDOW_SYSTEM` 1, `HAVE_HARFBUZZ`
+   undefined): every offset after the embedded `struct font` moves by the 32 bytes `font.h`
+   325-403's eight members add, so the record is 608 and `glyf_table_mapped` sits at 604.  This
+   block exists because the arm above is the *host* shape and was the only reading this record
+   had; the number 608 was measured from the port itself with a deliberately failing array length
+   in `build-tu src/sfntfont.c` (status 4.832), and it agrees with 576 + 32.  Without it, a change
+   to any of the records this one embeds could move `VECSIZE` and corrupt the font object.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify",
+	    not (feature = "harfbuzz"), feature = "have_window_system"))]
+const _: () = {
+  core::assert! (std::mem::size_of::<sfnt_font_info> () == 608);
+  core::assert! (std::mem::align_of::<sfnt_font_info> () == 8);
+  core::assert! (std::mem::offset_of! (sfnt_font_info, font) == 0);
+  core::assert! (std::mem::offset_of! (sfnt_font_info, next) == 216);
+  core::assert! (std::mem::offset_of! (sfnt_font_info, desc) == 224);
+  core::assert! (std::mem::offset_of! (sfnt_font_info, cmap) == 232);
+  core::assert! (std::mem::offset_of! (sfnt_font_info, hhea) == 240);
+  core::assert! (std::mem::offset_of! (sfnt_font_info, maxp) == 248);
+  core::assert! (std::mem::offset_of! (sfnt_font_info, head) == 256);
+  core::assert! (std::mem::offset_of! (sfnt_font_info, hmtx) == 264);
+  core::assert! (std::mem::offset_of! (sfnt_font_info, glyf) == 272);
+  core::assert! (std::mem::offset_of! (sfnt_font_info, loca_short) == 280);
+  core::assert! (std::mem::offset_of! (sfnt_font_info, loca_long) == 288);
+  core::assert! (std::mem::offset_of! (sfnt_font_info, prep) == 296);
+  core::assert! (std::mem::offset_of! (sfnt_font_info, fpgm) == 304);
+  core::assert! (std::mem::offset_of! (sfnt_font_info, cvt) == 312);
+  core::assert! (std::mem::offset_of! (sfnt_font_info, cmap_data) == 320);
+  core::assert! (std::mem::offset_of! (sfnt_font_info, cmap_subtable) == 328);
+  core::assert! (std::mem::offset_of! (sfnt_font_info, uvs) == 336);
+  core::assert! (std::mem::offset_of! (sfnt_font_info, outline_cache) == 344);
+  core::assert! (std::mem::offset_of! (sfnt_font_info, outline_cache_size) == 384);
+  core::assert! (std::mem::offset_of! (sfnt_font_info, raster_cache) == 392);
+  core::assert! (std::mem::offset_of! (sfnt_font_info, raster_cache_size) == 424);
+  core::assert! (std::mem::offset_of! (sfnt_font_info, interpreter) == 432);
+  core::assert! (std::mem::offset_of! (sfnt_font_info, state) == 440);
+  core::assert! (std::mem::offset_of! (sfnt_font_info, scale) == 544);
+  core::assert! (std::mem::offset_of! (sfnt_font_info, blend) == 552);
+  core::assert! (std::mem::offset_of! (sfnt_font_info, instance) == 600);
+  core::assert! (std::mem::offset_of! (sfnt_font_info, glyf_table_mapped) == 604);
 };
 
 /* List of all open fonts.  */
