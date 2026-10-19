@@ -66,8 +66,7 @@ SITES = [
             '            *(*v).contents.as_mut_ptr ().offset (0) as isize);\n'
             '  vf_probe (c"head".as_ptr (), vindex, vector_free_lists[vindex as usize] as isize);\n'),
   ("  set_next_vector (v, vector_free_lists[vindex as usize]);\n",
-   "after", '  vf_probe (c"push".as_ptr (), vindex,\n'
-            '            *(*v).contents.as_mut_ptr ().offset (0) as isize);\n'),
+   "after", '  vf_probe (c"push".as_ptr (), vindex, (*v).header.size as isize);\n'),
   # who calls `setup_on_free_list`, and with what byte count.  The 4.838 run answered this: the
   # first oversized split is `(nbytes 144, restbytes 31976)` - six times VECTOR_BLOCK_BYTES - so a
   # bin head was taken whose `vector_nbytes` is ~32 KB.  Next round logs that head's size at the pop.
@@ -80,11 +79,10 @@ SITES = [
   # the exact-size path: the probe reads `vector`, so it has to sit after the assignment
   ("      vector = vector_free_lists[index as usize];\n"
    "      ASAN_UNPOISON_VECTOR_CONTENTS! (vector, nbytes - header_size);\n",
-   "between", '      vf_probe (c"take".as_ptr (), index,\n'
-              '                pseudovector_nbytes (&raw const (*vector).header));\n'),
+   "between", '      vf_probe (c"take".as_ptr (), index, (*vector).header.size as isize);\n'),
   ("	  vector_free_lists[index as usize] = next_vector (vector);\n\n"
    "	  /* Excess bytes are used for the smaller vector,\n",
-   "before", '	  vf_probe (c"take2".as_ptr (), index, vector_nbytes);\n'),
+   "before", '	  vf_probe (c"take2".as_ptr (), index, (*vector).header.size as isize);\n'),
   ("  while !block.is_null ()\n    {\n      let mut free_this_block: bool = false;\n",
    "after", '      /* nothing: the sweep marker above is enough */\n'),
 ]

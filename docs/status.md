@@ -22683,3 +22683,11 @@ Fx_display_grayscale_p)` 折在了逗号后 ✗ 而参照折在空格后 ✓）�
   3. **新结论（这是 4.836-4.838 一直缺的“第一现场”）** ✓：**桶里的链头自报尺寸与它入链时的尺寸不一致**（248 → 8 ✓），也就是该向量的 `header.size` 在**入链之后、出链之前**被清零过 ✓；而且**负的 `restbytes` 会让 `vector_free_lists` 越界写** ✓ —— 后者即使只是后果，也解释了为什么“堆被写坏”能传播得这么快 ✓。
   4. **下一步（点名）** ✓：把 `push` 的第二个数从 `contents[0]` 换成 `header.size`（`push sz` ✓），并在同一轮里记录**下一次 `take` 的 `header.size`** ✓ ⇒ 直接看出“入链时是 248、出链时是 0”的**那一刻**；随后在 `cleanup_vector`（sweep 对 `PVEC_FREE` 的处理 ✓）与 `memclear` 两处布点 ✓，抓第一笔清零 ✓。
   5. **收尾** ✓：`alloc.rs` 已还原（`git diff` 空 ✓），探针与标签都在 `tools/add-vector-free-probe.py` ✓（`--remove` 往返逐字节一致 ✓）。
+
+- **4.840 探针改打原始 `header.size`：合法区间内“入链=出链”逐字相等；同一次运行改以 **SIGABRT(signal 6)** 结束，说明还有第二条同源症状（长度被写坏 ⇒ `memory_full`）（2026-10-19）**：
+  1. **探针** ✓：`push`/`take`/`take2` 的第二个数改成原始 `header.size` ✓（不再只给 `vector_nbytes`），这样“入链写了什么、出链读到什么”可以逐位比较 ✓。
+  2. **读数（干净安装 ✓，120 行 ✓）** ✓：合法区间内**每一对都相等** ✓ —— 例如 `push 53 4611686018444386304` 与 `take2 53 4611686018444386304` ✓；把它解出来：`2^62`（`PSEUDOVECTOR_FLAG` ✓）＋ `1<<24`（`PVEC_FREE` ✓）＋ `54<<12`（restsize ✓）⇒ `pseudovector_nbytes = 54 words = 440 B` ✓ = 请求尺寸 ✓ ⇒ **`PVECHEADERSIZE`/`XSETPVECTYPESIZE!`/`pseudovector_nbytes` 这条链在合法输入上完全正确** ✓（把 4.839 对它们的怀疑彻底排掉 ✓）。
+  3. **新症状** ✓：同一份代码这次以 **`SIGNALED status=6`（SIGABRT）** 结束 ✗（4.836-4.839 都是 11/SIGSEGV）⇒ 最可能是 `allocate_vectorlike` 的 `memory_full`（`len > VECTOR_ELTS_MAX` ✓）或 Rust 侧 `panic=abort` ✓ —— 即**同一个坏长度**先撞上另一条断言路径 ✓；这恰好说明“坏长度已经在分配器里流动”✓。
+  4. **含义** ✓：既然合法区间逐位相等，那么破坏发生在**入链之后**（与 4.839 的 248→8 一致 ✓），而 `SIGABRT` 说明坏值还可能来自**调用方传进来的 `len`** ✓（`make_vector` 的 `len` 被写坏 ✓）。下一轮因此要同时盯**入链后**与**进入分配器前**两端 ✓。
+  5. **下一步（点名）** ✓：⑴ 在 `allocate_vectorlike` 入口打 `(len, nbytes)`、在 `make_vector` 入口打 `(len, init)` ⇒ 抓第一个越界/荒谬长度 ✓；⑵ 给 Android 打开 `ENABLE_CHECKING`（`.checking` 通路 ✓）⇒ `eassume!(VBLOCK_BYTES_MIN <= nbytes)`、`eassert!(vector_nbytes > nbytes)` 等会在**第一处不一致**处 abort 并给符号 ✓，比继续手工追踪省得多 ✓。
+  6. **收尾** ✓：`alloc.rs` 已还原（`git diff` 空 ✓），探针工具更新并入树 ✓。
