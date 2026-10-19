@@ -1328,6 +1328,34 @@ fn build_tu(rel: Option<&String>) -> i32 {
         println!("target: {t} (object: {})", cross_out.display());
     }
     let status = cmd.arg(&root).arg("-o").arg(&cross_out).status();
+    // The checking pass: the same unit with `--cfg enable_checking`, the same target and the same
+    // frozen configuration, so `eassert!`/`eassume!` bodies exist in an object that can be *linked*
+    // (`FEMACS_LINK_CHECKING=1` swaps these in).  `build_finished_tus` has done the equivalent for
+    // the host since 3.393; this brings the per-unit path to parity (status 4.843).
+    {
+        let mut check_cmd = rustc_cmd ();
+        check_cmd
+            .args(["--edition", "2024", "--crate-type", "lib", "--emit", "obj",
+                   "--crate-name", &cname, "--cfg", "enable_checking"])
+            .args(unit_codegen_flags ())
+            .args(&sanitizer_flags ());
+        for cfg in config_features () { check_cmd.arg ("--cfg").arg (cfg); }
+        let mut check_out = Path::new(BUILD).join (format! ("{stem}.checking.o"));
+        if let Some (t) = &target
+            {
+                check_cmd.arg ("--target").arg (t);
+                check_out = Path::new(BUILD).join (format! ("{stem}.checking.{t}.o"));
+            }
+        match check_cmd.arg (&root).arg ("-o").arg (&check_out).status ()
+            {
+                Ok (s) if s.success () => {}
+                Ok (s) => {
+                    eprintln! ("rustc failed for {crate_root} with --cfg enable_checking ({s})");
+                    return 1;
+                }
+                Err (e) => { eprintln! ("{e}"); return 1; }
+            }
+    }
     match status {
         Ok(s) if s.success() => {
             println!("built {crate_root} -> {}", cross_out.display());
@@ -1911,7 +1939,10 @@ fn link_shared (target: Option<&str>) -> i32
           let path = entry.path ();
           let name = path.file_name ().map (|n| n.to_string_lossy ().into_owned ())
             .unwrap_or_default ();
-          if name.ends_with (&format! (".{target}.o")) { objects.push (path); }
+          // `X.checking.<target>.o` is the checking pass's twin of `X.<target>.o`; linking both
+          // would define every symbol twice.  `FEMACS_LINK_CHECKING=1` swaps them in below.
+          if name.ends_with (&format! (".{target}.o")) && ! name.contains (".checking.")
+            { objects.push (path); }
         },
       Err (e) => return fail (format! ("reading {}: {e}", build.display ())),
     }
@@ -1920,6 +1951,23 @@ fn link_shared (target: Option<&str>) -> i32
     {
       return fail (format! ("no `*.{target}.o` in {}: build the units under FEMACS_TARGET first",
                             build.display ()));
+    }
+  // `build-tu` already compiles every unit a second time with `--cfg enable_checking` and writes
+  // `<stem>.checking.o`; those objects carry `eassert!`/`eassume!` bodies that the normal pass
+  // compiles out.  `FEMACS_LINK_CHECKING=1` swaps them in wherever the sibling exists, so a
+  // checking library can be linked without renaming anything (status 4.843).
+  if std::env::var ("FEMACS_LINK_CHECKING").map (|v| v == "1").unwrap_or (false)
+    {
+      let mut swapped = 0usize;
+      for object in objects.iter_mut ()
+        {
+          let stem = object.file_name ().unwrap_or_default ().to_string_lossy ()
+                       .trim_end_matches (&format! (".{target}.o")).to_string ();
+          let mut checked = object.with_file_name (format! ("{stem}.checking.{target}.o"));
+          if ! checked.is_file () { checked = object.with_file_name (format! ("{stem}.checking.o")); }
+          if checked.is_file () { *object = checked; swapped += 1; }
+        }
+      println! ("   checking objects: {swapped} of {} substituted", objects.len ());
     }
   let Some (linker) = android_linker (&target)
     else
@@ -3262,16 +3310,25 @@ fn build_finished_tus() -> Result<(), String> {
         // bodies (die, stringify!, the conditions) are never compiled at all, so a
         // checking build is the only way to see them (review C's F4).
         let checked = Path::new(BUILD).join(format!("{stem}.checking.o"));
-        let status = rustc_cmd ()
+        let mut check_cmd = rustc_cmd ();
+        check_cmd
             .args(["--edition", "2024", "--crate-type", "lib", "--emit", "obj",
                    "--crate-name", &cname,
                    "--cfg", "enable_checking"])
             .args(unit_codegen_flags ())
-            .args(&sanitizer_flags ())
-            .arg(&root)
-            .arg("-o")
-            .arg(&checked)
-            .status();
+            .args(&sanitizer_flags ());
+        // The same frozen configuration and the same target as the pass above: without them this
+        // object is a host Mach-O with darwin's feature set, which is useless both as a link input
+        // for a cross target and as a checker (status 4.843).
+        for cfg in config_features ()
+            {
+                check_cmd.arg ("--cfg").arg (cfg);
+            }
+        if let Some (t) = std::env::var ("FEMACS_TARGET").ok ().filter (|v| ! v.is_empty ())
+            {
+                check_cmd.arg ("--target").arg (t);
+            }
+        let status = check_cmd.arg(&root).arg("-o").arg(&checked).status();
         match status {
             Ok(s) if s.success() => { println!("built {unit} (--cfg enable_checking)"); built += 1; }
             Ok(s) => return Err(format!("rustc failed for {unit} with --cfg enable_checking ({s})")),

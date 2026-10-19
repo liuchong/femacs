@@ -22711,3 +22711,11 @@ Fx_display_grayscale_p)` 折在了逗号后 ✗ 而参照折在空格后 ✓）�
   3. **新读数（4.842 运行）** ✓：新增 `al-len (len)`、`al-clear (p, nbytes)` 后，日志**末尾**是 `al-len 1` → `al-in 16` → 崩溃 ✓ ⇒ **崩溃那次分配就是 `make_vector (1, elt)`**（`nbytes = 16` ✓，与 4.829 的 `mv0` 一致 ✓），此时桶里已经是坏的 ✓。
   4. **教训（写进方法）** ✓：header 是**位域**，手工换算容易错 ✓；从本轮起一律用 `python3` 按位解码后再下结论 ✓（本轮已把它固化成 **`tools/decode-header.py`** ✓：`4611686018444345344 → code 1, rest 44 → 360 B` ✓、`…4288000 → 30 → 248 B` ✓、`0 → 普通向量 size 0` ✓）。
   5. **收尾** ✓：`alloc.rs` 已还原（`git diff` 空 ✓）；探针工具保留 `al-len`/`al-clear`/`al-in`/`push`/`take`/`take2`/`short` 全部标签 ✓。
+
+- **4.843 检查版（`--cfg enable_checking`）第一次真正链接成 `.so` 并上机：崩溃提前到 **FORTIFY: `pthread_mutex_lock` on a destroyed mutex**（2026-10-19）**：
+  1. **为什么之前没有检查版** ✓：`build-tu` 的第二遍（`enable_checking`）只写 `<stem>.checking.o` ✓ 且**没带 `--target`/冻结 cfg** ⇒ 产出的是**宿主 Mach-O** ✗（链接报 `unknown file type` ✗）；`link-shared` 又只收 `*.<target>.o` ⇒ 检查版永远进不了 `.so` ✓。
+  2. **改法（xtask，可复用）** ✓：`build-tu` 的检查遍补上 `config_features ()` 与 `--target` ✓，产出 **`<stem>.checking.<target>.o`（ELF ✓）**；`link-shared` 默认**排除** `.checking.` 孪生件（否则每个符号定义两次 ✗，实测 `duplicate symbol: allocator::realloc` ✓）；新增 **`FEMACS_LINK_CHECKING=1`** 用它把每个对象换成同名检查件 ✓；`build_finished_tus`（gate-fast 那条）的检查遍也补上 target/cfg ✓。
+  3. **读数** ✓：169 个单元的检查件全部产出 ✓（0 失败 ✓）、检查版链接成功 **7,040,680 字节** ✓（常规版 6,071,264 ✓ ⇒ 检查代码真的进去了 ✓）、APK 48 MB ✓。
+  4. **上机新症状（本轮最有价值的一条）** ✓：进程不再 SIGSEGV，而是 **`F libc : FORTIFY: pthread_mutex_lock called on a destroyed mutex (0x7d70e02cd8)`** + `SIGNALED status=6` ✓ ⇒ 检查版把问题**提前**暴露成一个确定的、可命名的不变量违反 ✓（对已销毁的互斥量加锁 ✓），而不是堆被写坏后的随机崩溃 ✓。
+  5. **下一条线索** ✓：`systhread`/`lisp_mutex` 的初始化与销毁顺序（`init_system_mutex`、`free_global_mutexes`、`finalize_one_mutex` ✓）以及 `Lisp_Mutex`（实测 80 / `lisp_mutex_t` 64 ✓）的 Android 形状；按 4.831 的经验，先核对 `pthread_mutex_t` 的 bionic 尺寸/对齐（已在 `docs/baseline/layout/android-arm64.tsv` ✓ 40 字节 ✓）与端口 `systhread.rs` 的断言是否一致 ✓。
+  6. **收尾** ✓：xtask 改动是本轮的实体交付 ✓（`build-tu`/`link-shared`/`build_finished_tus` 三处 ✓）；探针源码仍全部还原 ✓；检查版可以随时用 `FEMACS_LINK_CHECKING=1` 重建 ✓。
