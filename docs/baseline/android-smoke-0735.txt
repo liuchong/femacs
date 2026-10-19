@@ -1,0 +1,25 @@
+first_pid_at=1s pid=2183
+== pid@40s: 2183
+== gfxinfo ==
+Total frames rendered: 2
+Janky frames: 2 (100.00%)
+Janky frames (legacy): 2 (100.00%)
+Number Missed Vsync: 0
+== window ==
+  mCurrentFocus=Window{87ff337 u0 org.femacs/org.femacs.EmacsActivity}
+  mFocusedApp=ActivityRecord{241467550 u0 org.femacs/.EmacsActivity t12}
+== pid after keys: 2183
+== gfxinfo after ==
+Total frames rendered: 2
+Janky frames: 2 (100.00%)
+Janky frames (legacy): 2 (100.00%)
+Number Missed Vsync: 0
+== log ==
+10-20 07:36:22.199  2183  2205 I android_run_debug_thread: Finding pointers to doc strings...done
+10-20 07:36:22.257  2183  2205 I android_run_debug_thread: ANEWFONT ps=12 h=15 sw=7 aw=7 asc=12 desc=3 => cw=7 lh=15
+10-20 07:36:22.277  2183  2205 I android_run_debug_thread: URP row=-5476376649052028480 used=61 vpos=0
+10-20 07:36:22.278  2183  2205 I android_run_debug_thread: URP row=-5476376646367463312 used=80 vpos=0
+10-20 07:36:22.278  2183  2205 I android_run_debug_thread: URP row=-5476376644757069456 used=1 vpos=0
+10-20 07:36:22.278  2183  2205 I android_run_debug_thread: URP row=-5476376644757069192 used=1 vpos=1
+10-20 07:36:22.278  2183  2205 I android_run_debug_thread: URP row=-5476376644757068928 used=1 vpos=2
+10-20 07:36:22.278  2183  2205 I android_run_debug_thread: URP row=-5476376644757068664 used=1 vpos=3
