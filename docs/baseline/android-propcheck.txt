@@ -1,0 +1,6 @@
+controlled-run: memory allowance 4096 -> 6144 MiB (hard maximum 16384)
+== debuggable? ==
+== prop now: ==
+guard
+== malloc debug output ==
+controlled-run: {"run_id": "18719772298d49f788964ba4fcff0ffd", "profile": "runtime", "executable": "bash", "argv_sha256": "85b1ea6d779e417b275fbcaef0ab8168a2c4f4077a24599c186e4f112b24426f", "limit_bytes": 6442450944, "peak_rss_bytes": 4335583232, "reason": "descendants_left", "root_pid": 63760, "exit_code": 125, "cleanup_complete": true, "initial_limit_bytes": 4294967296, "hard_limit_bytes": 17179869184, "growth_count": 1, "elapsed_seconds": 37.171}
