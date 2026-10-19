@@ -6161,7 +6161,16 @@ pub unsafe extern "C" fn init_obarray_once ()
          unit this configuration does not build, so the surviving index interns the name.  */
       #[cfg (feature = "have_android")]
       if i == 1729
-        { i += 1; continue; }
+        {
+          /* Skipping the intern is not enough: `mark_object`'s symbol arm ends with
+             `set_string_marked (XSTRING (ptr->u.s.name))` for every symbol it reaches, and a
+             zeroed entry has no string there, so the first GC aborts with
+             `assertion failed: STRINGP (a)` (device run, status 4.849).  Give the symbol the
+             name string without putting it in the obarray.  */
+          let s: *mut Lisp_Symbol = XBARE_SYMBOL (builtin_lisp_symbol (i));
+          (*s).u.s.name = build_string (defsym_name[i]);
+          i += 1; continue;
+        }
       define_symbol (builtin_lisp_symbol (i), defsym_name[i]);
       i += 1;
     }

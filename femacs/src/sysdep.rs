@@ -4077,8 +4077,11 @@ static_assert! (SYS_BUFSIZE_MAX <= UINT_MAX as isize);
 /// `syntax.rs`/`filelock.rs` unit-local shape; `<intprops.h>` has no mirror, P-26).
 macro_rules! TYPE_MAXIMUM { ($t:ty) => { <$t>::MAX }; }
 
-/// `"lisp.h"`'s `SYS_BUFSIZE_MAX` (the read/write buffer bound `emacs_intr_read` asserts).
-pub const SYS_BUFSIZE_MAX: ptrdiff_t = MAX_ALLOCA;
+/// `lib/sys-limits.h`'s `SYS_BUFSIZE_MAX`, which C reaches through `<sys-limits.h>` (lisp.h
+/// 31 includes it): `enum { SYS_BUFSIZE_MAX = INT_MAX >> 20 << 20 }` = 2,146,435,072.  The
+/// port had `MAX_ALLOCA` (16,384) here, so every read above 16 KB tripped `emacs_intr_read`'s
+/// `eassert` while `insert-file-contents` loaded a large Lisp file (device run, status 4.850).
+pub const SYS_BUFSIZE_MAX: ptrdiff_t = ((INT_MAX >> 20) << 20) as ptrdiff_t;
 
 /* Read from FD to a buffer BUF with size NBYTE.
    If interrupted, process any quits and pending signals immediately
