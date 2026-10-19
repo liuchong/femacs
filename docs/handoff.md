@@ -1,4 +1,4 @@
-# 交接页（2026-10-19，status 4.777）
+# 交接页（2026-10-19，status 4.829）
 
 给下一次会话的**一页纸**。逐轮细节在 `docs/status.md`（两万行），规则在 `PORTING.md`，
 验收表在 `docs/current-state.md` 与 `docs/android-app-readiness.md`。
@@ -32,6 +32,24 @@
 清单见 `docs/decisions-needed.md` 附录（**A 窗口臂 0 / B 上游缺口 9 / C 其它 0**）——那 9 条是 API 21 的桩
 读数缺、**交付设备自己提供的名字**（`backtrace`、`getifaddrs`、`posix_spawn` 一族等）；逐条的 C 侧判据见
 `docs/baseline/android-gaps.tsv`。
+
+## 设备上的崩溃：现在知道它在**分配路径**里（4.829）
+
+干净安装 + **带 `gettid()`** 的落盘探针（四个工具见 `tools/add-*-probe.py`）给出一致读数：
+最后几条是 `FA m 0 1` → `FA c1 160 591` → **`AL mv0 1 0`** ⇒ 进 `make_vector (1, elt)` 之后、
+`allocate_clear_vector` 返回之前；`AL gc0`/`AL gce` = **27/27** ⇒ GC 每次都跑完；
+两次运行的停点不同（`CB csi 0 0` 与 `AL mv0`），且**探针自身会挪动停点**（写入量 658,687 行）
+⇒ 与**堆被写坏**一致，不是某条语句。
+
+下一步（都要新设备轮）：① `libc.debug.malloc.options "guard backtrace"`（4.830：`setprop` 已设但未生效，需要重启 zygote/`stop`+`start`）；② `ENABLE_CHECKING` 的 Android 构建（本仓有 `*.checking.o` 通路）。
+
+两条会当场弄坏 `.so` 的教训：探针**必须插在 `#[unsafe(no_mangle)]` 之上**（否则符号消失、`dlopen` 报
+`cannot locate symbol ...`）；日志必须带线程号（两个线程往同一份 `probe.log` 写）。
+
+## 提交阻塞已解除（4.828）
+
+`git commit -S` 现在 exit 0（`pinentry-mac` + agent 缓存），4.7xx 起 25+ 次「弹窗取消」不再复现：
+101 个在飞文件已分三批签名入树并推送（`30906074`、`1ef04c27`、`46f13960`）。
 
 ## 唯一待决问题（问题 4）
 

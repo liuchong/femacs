@@ -22589,3 +22589,16 @@ Fx_display_grayscale_p)` 折在了逗号后 ✗ 而参照折在空格后 ✓）�
   2. **读数** ✓（干净安装 ✓）：`sf-entry → sf-1 → sf-end` 连续出现多次 ✓ ⇒ **`set-fontset-font` 的前几次调用都正常返回** ✓；最后一次是 `sf-entry → sf-1 → sf-csnull → sf-add` 后**停住** ✗ ⇒ 崩溃在 **`FONTSET_ADD!` 之后的循环体**里 ✓（`while CONSP (range_list)` ✓，即逐个 range 往 fontset 的 char-table 里写字体定义那条 ✓）。
   3. **含义** ✓：不是参数校验、不是 charset 查找、不是 `map_charset_chars` ✓，而是**往 fontset 里写条目**那一步 ✓ —— `FONTSET_ADD!` 是 `set_fontset_font`/`fontset_add` 宏 ✓，写的是 char-table ✓（`Lisp_Char_Table` 的 552 字节形状此前已核对 ✓）⇒ 下一步看该宏的展开与 `range_list` 的 `XCAR/XCDR` 使用 ✓。
   4. **收尾** ✓：探针已撤回 ✓（`fontset.rs` 从开工副本还原 ✓、`dprobe` 引用 0 ✓）；`fontset.c` 重编 0 错误 ✓；Android 全量 **91/91 + checking 91/91、0 失败** ✓（91 s ✓）。
+
+- **4.828 提交阻塞解除：`git commit -S` 重新可用，101 个在飞文件分三批签名入树并推送（2026-10-19）**：
+  1. **读数** ✓：`gpg --detach-sign` 空跑 **exit 0** ✓（`~/.gnupg/gpg-agent.conf` 的 `pinentry-program /opt/homebrew/bin/pinentry-mac` + agent 缓存 ✓），4.7xx 起 25+ 次「弹窗被取消」的阻塞**不再复现** ✓ ⇒ 不再需要用户为签名做任何事 ✓。
+  2. **三批** ✓（每批 `git verify-commit` = Good signature，均已 `git push origin master` ✓）：`30906074` **port layout**（92 文件：`face`/`window`/`glyph*`/`font`/`Lisp_Char_Table`/`android_output` 的按目标形状修正与断言、`docs/ports/layout-gaps.md`、`tools/check-android-layout.py`）、`1ef04c27` **android tooling**（three-`add-*-probe` 与 asset/config 生成器）、`46f13960` **status 4.827**。
+  3. **收尾** ✓：`git status --short` 只剩 4.829 的四个新探针工具 ✓；四个被探针改过的源文件（`fontset.rs`/`chartab.rs`/`alloc.rs`/`sysdep.rs`）已逐字节还原到 HEAD ✓（`git diff --stat` 空 ✓）。
+
+- **4.829 干净安装 + 带线程号的落盘探针：崩溃在**分配路径**（`make_vector` → `allocate_clear_vector`），不是某一条语句；GC 跑完 27 次都没事（2026-10-19）**：
+  1. **方法** ✓：四个探针工具入树 —— `tools/add-fontset-probe.py`（`FONTSET_ADD!` 的四个分支 + `fontset_add` 每条语句 + 调用点 `call/ret`）、`tools/add-chartab-probe.py`（`char_table_set_range`/`sub_char_table_set_range` 的循环索引 + `set-char-table-range` 的四个分支）、`tools/add-alloc-probe.py`（`make_vector` 与 `garbage_collect` 的首尾）、`tools/add-bt-names-probe.py`（用 `dladdr` 解析符号名后写 logcat 的致命信号回溯）。每个 probe 行都带 **`gettid()`** ✓，因为只有一个 `probe.log` 而**两个线程**（装载 Lisp 的主线程、`Fandroid_enumerate_fonts` 的字体线程）都会往里写 ✓——不带线程号的读法会把「另一个线程的最后一行」误当成崩溃点 ✗。
+  2. **属性的教训（会当场弄坏 `.so`）** ✗→✓：探针**必须插在 `#[unsafe(no_mangle)]` 之上**；插在属性与函数之间时该符号从共享库里消失，`dlopen` 直接报 `cannot locate symbol "char_table_set_range"`、Java 侧 `UnsatisfiedLinkError`（本次实测一次 ✓）。两个对比工具里已写成硬约束与断言 ✓。
+  3. **读数** ✓（干净安装，三次运行一致）：最后几条是 `FA m 0 1`（`add` 为 nil、`range` 是 cons）→ `FA c1 160 591` → **`AL mv0 1 0`** ⇒ 进 `make_vector (1, elt)` 之后、`allocate_clear_vector` 返回之前 ✗；`AL gc0` 与 `AL gce` 各 **27** 次 ✓ ⇒ GC 每次都跑到底，**不是** GC 中途崩 ✗；`CB fr0..fr3`、`CB csr` 说明这条调用链前面的分支都过了 ✓。
+  4. **含义** ✓：可疑面从 4.827 的「`FONTSET_ADD!` 循环体」收窄到 **分配路径**（`make_vector`/`make_sub_char_table` 都在分配时才失败）；两次运行的停点并不相同（4.827 落在 `CB csi 0 0`、本轮落在 `AL mv0`），且**探针自身把停点挪动了**（写入量 658,687 行）⇒ 与**堆被写坏**的特征一致，而不是某条语句本身 ✗。
+  5. **下一步** ✓：抓第一个越界写——① Android `libc.debug.malloc.options "guard backtrace"`（`setprop` 后重启 zygote，未生效，见 4.830）；② `ENABLE_CHECKING` 的 Android 构建（本仓已有 `*.checking.o` 通路），eassert 会在第一处不一致处停下并给符号名 ✓。
+  6. **收尾** ✓：四个源文件已还原到 HEAD ✓、`git diff --stat` 空 ✓；探针写入量说明下一轮要么先减探针、要么按线程分文件 ✓。

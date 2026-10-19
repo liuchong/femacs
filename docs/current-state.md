@@ -1,4 +1,4 @@
-# 当前状态（2026-10-19，status 4.782 时点）
+# 当前状态（2026-10-19，status 4.829 时点）
 
 给下一次会话的**入口快照**：判定口径、读数、复跑命令、未决事项。逐轮记录仍在 `docs/status.md`，
 口径与规则在 `PORTING.md`，验收细则在 `docs/acceptance.md`。
@@ -26,7 +26,7 @@
 | 5 | 原样树逐字节 | ✅ | `python3 tools/check-verbatim.py` | **6 棵树 / 4,604 文件 / 0 failures**（4.734 复跑；`doc/` 的 3 个 MISSING 是 `.gitignore` 的生成物，见 status 4.734 附） |
 | 6 | 平台（macOS + Android） | ⚠️ 部分 | `bash tools/check-authorized-platforms.sh`、`python3 tools/check-android-imports.py` | **exit 0**（4.742，204 s / 峰值 1.17 GB）：macOS smoke **11/0**、`gate-android` **112 class + 签名**、`libemacs.so` **5.8 MB / 69 JNI 导出**、**`assets: 4360 file(s)`**（含 `assets/directory-tree`）、**签名 APK 48 MB 校验通过**。**应用层未断言**：棘轮 **9 条未决 / 0 new**（API 21 桩读数）；**按交付设备的库读是 0 条** —— 窗口系统臂全部写完，`libemacs.so` 的导入首次全部解析（4.777）（decision 4 的就是它们；非窗口与窗口旁的端口偏差已清零，见 `docs/baseline/android-gaps.tsv`），eager binding ⇒ 不可 `dlopen` |
 | 7 | 性能 | ⏸ 暂挂（记未达） | `tools/bench.sh` | 同臂 0.70–0.86×（P-193）；按用户决定不追平、不记为达标 |
-| 8 | 提交签名 + 台账 | ✅ | `python3 tools/check-ledger-ticks.py`、`git verify-commit <sha>` | **238 台账绑定 / 0 failure / 0 行无台账**（4.744）；近 5 个提交 `git verify-commit` 全部 **signed**（Good signature, 刘冲）且已推送 |
+| 8 | 提交签名 + 台账 | ✅ | `python3 tools/check-ledger-ticks.py`、`git verify-commit <sha>` | **238 台账绑定 / 0 failure / 0 行无台账**（4.744）；**4.828 起签名恢复**：101 个在飞文件分三批（`30906074`/`1ef04c27`/`46f13960`）签名入树并推送，`git status --short` 只剩四个新探针工具；近 5 个提交 `git verify-commit` 全部 **signed**（Good signature, 刘冲）且已推送 |
 
 **计数口径（一句说清）**：8 条里 `✅` 的是 **1、2、3、4、5、8** 六条；第 6 条是 `⚠️ 部分`、
 第 7 条是 `⏸ 记未达`，两条都不计入达成 ⇒ **6/8 = 75%**。此前我写过 7/8（87.5%），那是把第 6 条
