@@ -5222,7 +5222,6 @@ unsafe fn update_text_area (w: *mut window, updated_row: *mut glyph_row, vpos: c
 						 vpos);
   let rif: *mut redisplay_interface = FRAME_RIF! (XFRAME (WINDOW_FRAME! (w))) as *mut redisplay_interface;
   let mut changed_p: bool = false;
-
   /* If rows are at different X or Y, or rows have different height,
      or the current row is marked invalid, write the entire line.  */
   if !glyph_row_bits! (enabled_p, current_row)
@@ -5251,7 +5250,7 @@ unsafe fn update_text_area (w: *mut window, updated_row: *mut glyph_row, vpos: c
       output_cursor_to (w, vpos, 0, (*desired_row).y, (*desired_row).x);
 
       if (*desired_row).used [TEXT_AREA as usize] != 0
-	{ ((*rif).write_glyphs.unwrap ()) (w, updated_row, (*desired_row).glyphs [TEXT_AREA as usize],
+	{ 	  ((*rif).write_glyphs.unwrap ()) (w, updated_row, (*desired_row).glyphs [TEXT_AREA as usize],
 					   TEXT_AREA, (*desired_row).used [TEXT_AREA as usize] as c_int); }
 
       /* Clear to end of window.  */

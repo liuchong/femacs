@@ -1,0 +1,25 @@
+first_pid_at=1s pid=2169
+== pid@40s: 2169
+== gfxinfo ==
+Total frames rendered: 5
+Janky frames: 4 (80.00%)
+Janky frames (legacy): 4 (80.00%)
+Number Missed Vsync: 0
+== window ==
+  mCurrentFocus=Window{3cd7885 u0 org.femacs/org.femacs.EmacsActivity}
+  mFocusedApp=ActivityRecord{103641800 u0 org.femacs/.EmacsActivity t18}
+== pid after keys: 2169
+== gfxinfo after ==
+Total frames rendered: 5
+Janky frames: 4 (80.00%)
+Janky frames (legacy): 4 (80.00%)
+Number Missed Vsync: 0
+== log ==
+10-20 07:42:49.281  2169  2192 I android_run_debug_thread: UTA-WHOLE vpos=136 n=1
+10-20 07:42:49.281  2169  2192 I android_run_debug_thread: UTA-WHOLE vpos=137 n=1
+10-20 07:42:49.281  2169  2192 I android_run_debug_thread: UTA-WHOLE vpos=138 n=1
+10-20 07:42:49.281  2169  2192 I android_run_debug_thread: UTA-WHOLE vpos=139 n=1
+10-20 07:42:49.281  2169  2192 I android_run_debug_thread: UTA-WHOLE vpos=140 n=1
+10-20 07:42:49.281  2169  2192 I android_run_debug_thread: UTA-WHOLE vpos=0 n=53
+10-20 07:42:49.301  2169  2192 I android_run_debug_thread: s_glBindAttribLocation: bind attrib 0 name position
+10-20 07:42:49.301  2169  2192 I android_run_debug_thread: s_glBindAttribLocation: bind attrib 1 name localCoord
