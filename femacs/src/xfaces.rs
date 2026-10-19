@@ -1510,6 +1510,62 @@ unsafe fn lface_fully_specified_p (attrs: *const Lisp_Object) -> bool
 }
 
 
+/* Return true if LFACE1 and LFACE2 specify the same font (without considering
+   charsets/registries).  Both must be fully specified (C 4667-4708).  */
+#[cfg (feature = "have_window_system")]
+unsafe fn lface_same_font_attributes_p (lface1: *const Lisp_Object,
+				       lface2: *const Lisp_Object) -> bool
+{
+  eassert! (lface_fully_specified_p (lface1) && lface_fully_specified_p (lface2));
+  dispextern_externs::xstrcasecmp (SSDATA (*lface1.offset (LFACE_FAMILY_INDEX as isize)),
+	       SSDATA (*lface2.offset (LFACE_FAMILY_INDEX as isize))) == 0
+    && dispextern_externs::xstrcasecmp (SSDATA (*lface1.offset (LFACE_FOUNDRY_INDEX as isize)),
+		    SSDATA (*lface2.offset (LFACE_FOUNDRY_INDEX as isize))) == 0
+    && EQ (*lface1.offset (LFACE_HEIGHT_INDEX as isize),
+	   *lface2.offset (LFACE_HEIGHT_INDEX as isize))
+    && EQ (*lface1.offset (LFACE_SWIDTH_INDEX as isize),
+	   *lface2.offset (LFACE_SWIDTH_INDEX as isize))
+    && EQ (*lface1.offset (LFACE_WEIGHT_INDEX as isize),
+	   *lface2.offset (LFACE_WEIGHT_INDEX as isize))
+    && EQ (*lface1.offset (LFACE_SLANT_INDEX as isize),
+	   *lface2.offset (LFACE_SLANT_INDEX as isize))
+    && EQ (*lface1.offset (LFACE_FONT_INDEX as isize),
+	   *lface2.offset (LFACE_FONT_INDEX as isize))
+    && (EQ (*lface1.offset (LFACE_FONTSET_INDEX as isize),
+	    *lface2.offset (LFACE_FONTSET_INDEX as isize))
+	|| (STRINGP (*lface1.offset (LFACE_FONTSET_INDEX as isize))
+	    && STRINGP (*lface2.offset (LFACE_FONTSET_INDEX as isize))
+	    && dispextern_externs::xstrcasecmp (SSDATA (*lface1.offset (LFACE_FONTSET_INDEX as isize)),
+			    SSDATA (*lface2.offset (LFACE_FONTSET_INDEX as isize))) == 0))
+}
+
+/* Return the fontset id named by ATTRS' fontset attribute, or -1 (C 5971-5986).  */
+#[cfg (feature = "have_window_system")]
+unsafe fn face_fontset (attrs: *const Lisp_Object) -> c_int
+{
+  let name: Lisp_Object = *attrs.offset (LFACE_FONTSET_INDEX as isize);
+  if ! STRINGP (name)
+    { return -1; }
+  return fs_query_fontset (name, 0);
+}
+
+/* C 6305-6318: clear the attributes named in `face-font-lax-matched-attributes'.  */
+#[cfg (feature = "have_window_system")]
+unsafe fn font_maybe_unset_attribute (font_object: Lisp_Object,
+				      index: font_property_index, symbol: Lisp_Object)
+{
+  let mut tail: Lisp_Object = Vface_font_lax_matched_attributes;
+  eassert! (CONSP (tail));
+  'tail: loop
+    {
+      if EQ (XCAR (tail), symbol)
+	{ ASET (font_object, index as isize, Qnil ()); }
+      tail = XCDR (tail);
+      if ! CONSP (tail)
+	{ break 'tail; }
+    }
+}
+
 /* C's `f->default_face_done_p` (frame.h 340, a `bool_bf`): the per-unit reader/writer shape
    `msdos.rs` uses; `include/frame.rs` carries the measured shift and the field's unit (1).  */
 #[cfg (feature = "have_window_system")]
