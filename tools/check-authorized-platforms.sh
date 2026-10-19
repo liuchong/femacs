@@ -27,6 +27,21 @@ status=0
 echo "== macOS: smoke =="
 if bash "$REPO/tools/smoke.sh" 2>&1 | tail -1; then :; else status=1; fi
 
+# The differential corpus (DoD-3's last line): every form runs in the port and in the reference
+# build and the bytes must match.  `tools/smoke.sh` is the hand-picked 11; this is the growing
+# corpus, so it runs here rather than only by hand (status 4.893).
+echo "== macOS: differential =="
+DIFF_LOG=$(mktemp "${TMPDIR:-/tmp}/femacs-diff-gate.XXXXXX")
+if bash "$REPO/tools/differential.sh" > "$DIFF_LOG" 2>&1; then
+  tail -1 "$DIFF_LOG"
+else
+  echo "   differential mismatches:"
+  grep -a '^MISMATCH' "$DIFF_LOG" | head -5 | sed 's/^/   /'
+  tail -1 "$DIFF_LOG"
+  status=1
+fi
+rm -f "$DIFF_LOG"
+
 echo "== Android: gate-android =="
 if (cd "$REPO/femacs" && CARGO_TARGET_DIR=${CARGO_TARGET_DIR:-/tmp/xt-cargo} \
       cargo run -q -p xtask -- gate-android 2>&1 | tail -1); then :; else status=1; fi

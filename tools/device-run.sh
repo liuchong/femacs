@@ -125,6 +125,13 @@ sleep 2
 echo "== install =="
 "$ADB" install -r "$APK" 2>&1 | tail -2
 "$ADB" shell rm -f /data/data/org.femacs/files/probe.log
+# The stack addresses in this run's tombstone are only decodable against the library that was
+# actually on the device: a rebuild shifts every symbol, and a run whose `.so` was not kept
+# cannot be read afterwards (measured, status 4.894).  The library is copied next to the capture.
+if [ -f "$SO" ]; then
+  echo "== library under test =="
+  ls -l "$SO" | sed 's/^/   /'
+fi
 "$ADB" logcat -c 2>/dev/null
 echo "== start =="
 "$ADB" shell am start -W -n org.femacs/.EmacsActivity 2>&1 | tail -3

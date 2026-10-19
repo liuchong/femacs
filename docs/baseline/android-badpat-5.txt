@@ -1,0 +1,27 @@
+controlled-run: memory allowance 4096 -> 6144 MiB (hard maximum 16384)
+Starting: Intent { cmp=org.femacs/.EmacsActivity (has extras) }
+== exit info ==
+          timestamp=2026-10-20 03:46:07.117 pid=2085 realUid=10270 packageUid=10270 definingUid=10270 user=0
+          process=org.femacs reason=5 (APP CRASH(NATIVE)) subreason=0 (UNKNOWN) status=11
+== our last log lines ==
+10-20 03:46:06.894  2085  2167 I android_run_debug_thread: Loading emacs-lisp/rmc...
+10-20 03:46:06.894  2085  2167 I android_run_debug_thread: Loading emacs-lisp/rmc...done
+10-20 03:46:06.895  2085  2167 I android_run_debug_thread: Loading /assets/lisp/leim/leim-list.el (source)...
+10-20 03:46:06.897  2085  2167 I android_run_debug_thread: Loading /assets/lisp/leim/leim-list.el (source)...done
+10-20 03:46:06.901  2085  2167 I android_run_debug_thread: Finding pointers to doc strings...
+10-20 03:46:06.905  2085  2167 I android_run_debug_thread: Finding pointers to doc strings...done
+== probes (BADPAT/BADOP) ==
+== crash buffer: the first frames ==
+10-20 03:46:06.964  2085  2166 F libc    : Fatal signal 11 (SIGSEGV), code 1 (SEGV_MAPERR), fault addr 0x0 in tid 2166 (Emacs main thre), pid 2085 (org.femacs)
+10-20 03:46:07.111  2177  2177 F DEBUG   : Abort message: 'emacs_abort called, please review the following stack trace'
+10-20 03:46:07.111  2177  2177 F DEBUG   :       #00 pc 000000000016ccb4  /data/app/~~lzSjekyFofdIR1ZJTcZVkw==/org.femacs-CclZnfs8eOlYgpd1gY7wxQ==/lib/arm64/libemacs.so (emacs_abort+36)
+10-20 03:46:07.111  2177  2177 F DEBUG   :       #01 pc 00000000002f17cc  /data/app/~~lzSjekyFofdIR1ZJTcZVkw==/org.femacs-CclZnfs8eOlYgpd1gY7wxQ==/lib/arm64/libemacs.so (_RNvCsa93eHzN0raX_11
+10-20 03:46:07.111  2177  2177 F DEBUG   :       #02 pc 00000000002f3a10  /data/app/~~lzSjekyFofdIR1ZJTcZVkw==/org.femacs-CclZnfs8eOlYgpd1gY7wxQ==/lib/arm64/libemacs.so (rpl_re_search_2+2640
+10-20 03:46:07.111  2177  2177 F DEBUG   :       #03 pc 00000000002f2fb0  /data/app/~~lzSjekyFofdIR1ZJTcZVkw==/org.femacs-CclZnfs8eOlYgpd1gY7wxQ==/lib/arm64/libemacs.so (rpl_re_search+44)
+10-20 03:46:07.111  2177  2177 F DEBUG   :       #04 pc 00000000002f8640  /data/app/~~lzSjekyFofdIR1ZJTcZVkw==/org.femacs-CclZnfs8eOlYgpd1gY7wxQ==/lib/arm64/libemacs.so (fast_string_match_in
+10-20 03:46:07.111  2177  2177 F DEBUG   :       #05 pc 0000000000312ea4  /data/app/~~lzSjekyFofdIR1ZJTcZVkw==/org.femacs-CclZnfs8eOlYgpd1gY7wxQ==/lib/arm64/libemacs.so (sfntfont_open+2412)
+10-20 03:46:07.111  2177  2177 F DEBUG   :       #06 pc 0000000000247f18  /data/app/~~lzSjekyFofdIR1ZJTcZVkw==/org.femacs-CclZnfs8eOlYgpd1gY7wxQ==/lib/arm64/libemacs.so (_RNvCsgGOD1S6i4Ot_4f
+10-20 03:46:07.111  2177  2177 F DEBUG   :       #07 pc 000000000024d254  /data/app/~~lzSjekyFofdIR1ZJTcZVkw==/org.femacs-CclZnfs8eOlYgpd1gY7wxQ==/lib/arm64/libemacs.so (font_load_for_lface+
+10-20 03:46:07.111  2177  2177 F DEBUG   :       #08 pc 00000000003a9f10  /data/app/~~lzSjekyFofdIR1ZJTcZVkw==/org.femacs-CclZnfs8eOlYgpd1gY7wxQ==/lib/arm64/libemacs.so (_RNvCs82uaypPSNxQ_6x
+10-20 03:46:07.111  2177  2177 F DEBUG   :       #09 pc 00000000003acb28  /data/app/~~lzSjekyFofdIR1ZJTcZVkw==/org.femacs-CclZnfs8eOlYgpd1gY7wxQ==/lib/arm64/libemacs.so (_RNvCs82uaypPSNxQ_6x
+controlled-run: {"run_id": "ddd31f3bed1043a4b6eb91eed715ba49", "profile": "runtime", "executable": "bash", "argv_sha256": "15f02d4b80ace0969b227ede4dd38880af08b228662822652989cdc3d75664cf", "limit_bytes": 6442450944, "peak_rss_bytes": 4294524928, "reason": "descendants_left", "root_pid": 34517, "exit_code": 125, "cleanup_complete": true, "initial_limit_bytes": 4294967296, "hard_limit_bytes": 17179869184, "growth_count": 1, "elapsed_seconds": 43.175}

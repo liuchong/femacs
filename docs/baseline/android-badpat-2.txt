@@ -1,0 +1,14 @@
+controlled-run: memory allowance 4096 -> 6144 MiB (hard maximum 16384)
+Starting: Intent { cmp=org.femacs/.EmacsActivity (has extras) }
+== exit info ==
+          timestamp=2026-10-20 03:43:44.742 pid=2090 realUid=10270 packageUid=10270 definingUid=10270 user=0
+          process=org.femacs reason=2 (SIGNALED) subreason=0 (UNKNOWN) status=6
+== our last log lines ==
+10-20 03:43:44.728  2090  2111 I android_run_debug_thread: /apex/com.android.art/lib64/libart.so(+0x0) [0x74c9b17488]
+10-20 03:43:44.728  2090  2111 I android_run_debug_thread: /apex/com.android.art/lib64/libart.so(_ZN3art11interpreter6DoCallILb0EEEbPNS_9ArtMethodEPNS_6ThreadER
+10-20 03:43:44.728  2090  2111 I android_run_debug_thread: /apex/com.android.art/lib64/libart.so(+0x0) [0x74c9dc84f4]
+10-20 03:43:44.728  2090  2111 I android_run_debug_thread: /apex/com.android.art/lib64/libart.so(+0x0) [0x74c9b17a88]
+10-20 03:43:44.728  2090  2111 I android_run_debug_thread: ...
+10-20 03:43:44.729  2090  2111 I android_run_debug_thread: FORTIFY: pthread_mutex_lock called on a destroyed mutex (0x779fe02cd8)
+== crash buffer: the first frames ==
+controlled-run: {"run_id": "c9888e8891554bbfb84aa3a417a9c289", "profile": "runtime", "executable": "bash", "argv_sha256": "15f02d4b80ace0969b227ede4dd38880af08b228662822652989cdc3d75664cf", "limit_bytes": 6442450944, "peak_rss_bytes": 4507418624, "reason": "descendants_left", "root_pid": 31714, "exit_code": 125, "cleanup_complete": true, "initial_limit_bytes": 4294967296, "hard_limit_bytes": 17179869184, "growth_count": 1, "elapsed_seconds": 43.305}
