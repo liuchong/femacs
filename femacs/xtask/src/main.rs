@@ -1968,7 +1968,26 @@ fn link_shared (target: Option<&str>) -> i32
             .unwrap_or_default ();
           // `X.checking.<target>.o` is the checking pass's twin of `X.<target>.o`; linking both
           // would define every symbol twice.  `FEMACS_LINK_CHECKING=1` swaps them in below.
+          //
+          // Two exclusions keep this the set C's own link uses (status 4.870).  The `lib-src/`
+          // programs are *separate binaries* in C (`src/Makefile.in` 461-462 builds them from
+          // `INSTALLABLES`), so linking `emacsclient.o`/`etags.o`/`hexl.o`/`make-docfile.o`/
+          // `make-fingerprint.o`/`ebrowse.o`/`movemail.o`/`pop.o` into the library defines `main`
+          // once per program and drags in their private imports (`pop.o` wants `getpass`, which
+          // bionic does not have; measured).  And Android's configuration sets `CM_OBJ=` and
+          // `TERMINFO=no` (configure.ac 2592/2599-2600, 6149-6153), so C never compiles `cm.o`,
+          // `termcap.o` or `terminfo.o` for `libemacs.so` - `cm.o` alone imports `tputs`, which
+          // Android has no termcap provider for (measured: `cannot locate symbol "tputs"`).
+          let stem = name.trim_end_matches (&format! (".{target}.o"));
+          let auxiliary = matches! (stem,
+                                    "ebrowse" | "emacsclient" | "etags" | "hexl"
+                                    | "make-docfile" | "make-fingerprint" | "movemail"
+                                    | "pop" | "asset-directory-tool" | "update-game-score"
+                                    | "android-emacs");
+          let not_in_android_link = target.contains ("android")
+            && matches! (stem, "cm" | "termcap" | "terminfo");
           if name.ends_with (&format! (".{target}.o")) && ! name.contains (".checking.")
+              && ! auxiliary && ! not_in_android_link
             { objects.push (path); }
         },
       Err (e) => return fail (format! ("reading {}: {e}", build.display ())),

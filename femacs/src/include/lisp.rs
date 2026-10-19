@@ -1396,6 +1396,7 @@ pub fn ASCII_CHAR_P (c: isize) -> bool { 0 <= c && c < 0x80 }
 pub fn CHAR_TABLE_P (a: Lisp_Object) -> bool { PSEUDOVECTORP (a, pvec_type::PVEC_CHAR_TABLE) }
 
 #[inline(always)]
+#[inline(always)]
 pub fn XCHAR_TABLE (a: Lisp_Object) -> *mut Lisp_Char_Table {
     eassert! (CHAR_TABLE_P (a));
     XUNTAG! (a, Lisp_Type::Lisp_Vectorlike, Lisp_Char_Table)
