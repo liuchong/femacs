@@ -37,6 +37,17 @@ The rest fall in four groups, none of them a hazard for this target:
 
 Re-run it after any change to a `#[cfg]` around a layout assertion: the class it is here to catch
 is exactly "the live record and the asserted record are different arms of one `#if`".
+
+`--check` is the gate form (`tools/check-authorized-platforms.sh` runs it): the 52 rows above are
+`docs/baseline/android-unasserted.tsv`, and it fails both on a record that is neither asserted for
+the target nor listed, and on a row that has become asserted (so the table cannot go stale).
+
+Two limits worth knowing.  The unit is the *record*: a record with one surviving live assertion
+counts as covered, so disabling a single assertion of a multi-assertion record does not show up
+(measured: disabling `MonitorInfo`'s `size_of` alone left it "covered"; disabling all six made the
+checker report `NEW MonitorInfo`, which is the self-test this tool was validated with).
+And the `#[cfg]` evaluator understands `all`/`any`/`not`/`feature = "…"`; any other predicate
+(`target_os = …`, `test`) is taken as unsatisfied, which biases towards reporting a record.
 """
 import argparse
 import json
@@ -45,6 +56,7 @@ import re
 import sys
 
 REPO = pathlib.Path(__file__).resolve().parent.parent
+BASELINE = REPO / "docs/baseline/android-unasserted.tsv"
 STRUCT = re.compile(r"size_of::<(\w+)>\s*\(\)|offset_of!\s*\(\s*(\w+)\s*,", re.S)
 
 
@@ -134,6 +146,37 @@ def attributes_before(text, start):
     return list(reversed(out))
 
 
+X11 = {"XExtData", "Visual", "Depth", "Screen", "XImage", "XColor", "XErrorEvent",
+       "XModifierKeymap", "XSizeHintsAspect", "XSizeHints", "XWMHints", "XVisualInfo", "XEvent"}
+BSD = {"pcred", "ucred", "eproc", "kinfo_proc"}
+NOT_BUILT = {"comp_t", "f_reloc_t", "reloc_array_t", "static_obj_t", "imm_reloc_t"}
+
+
+def classify(name, path):
+    """(category, why) for a record that the target's configuration does not assert."""
+    if ("/xlib.rs" in path or name in X11 or name.startswith("xcb_") or name.startswith("Xrm")
+            or name.startswith("Xpm")):
+        return "x11", "that unit is not part of the Android build"
+    if name in NOT_BUILT or "/treesit.rs" in path or "/sqlite.rs" in path or "/sound.rs" in path:
+        return "not-built", "that unit is not part of the Android build"
+    if name in BSD:
+        return "bsd", "C reaches these under #ifdef BSD_SYSTEM / HAVE_SYS_USER_H, false here"
+    return "own", "C defines this record itself, so its layout cannot differ between targets"
+
+
+def read_baseline():
+    rows = {}
+    if not BASELINE.is_file():
+        return rows
+    for line in BASELINE.read_text().splitlines():
+        if not line.strip() or line.startswith("#"):
+            continue
+        parts = line.split("\t")
+        if len(parts) >= 2:
+            rows[parts[0]] = (parts[1], parts[2] if len(parts) > 2 else "", parts[3] if len(parts) > 3 else "")
+    return rows
+
+
 def _item_body(text, start):
     """The text of the item that starts at `start`, up to its terminating `;` at depth 0."""
     i, depth = start, 0
@@ -180,6 +223,10 @@ def main():
                          "(docs/baseline/frozen-build-sources-*.txt)")
     ap.add_argument("--top", type=int, default=15)
     ap.add_argument("--list", action="store_true")
+    ap.add_argument("--check", action="store_true",
+                    help="fail on a record that is neither asserted for the target nor in the "
+                         "baseline, and on a baseline row that has become asserted")
+    ap.add_argument("--write-baseline", action="store_true")
     args = ap.parse_args()
     path = REPO / "docs/baseline/config" / (args.config + ".json")
     if not path.is_file():
@@ -221,6 +268,37 @@ def main():
     missing = {k: v for k, v in seen.items() if k not in live}
     print("check-android-assertions: %d record(s) carry assertions; %d of them have none that "
           "%s compiles" % (len(seen), len(missing), args.config))
+
+    if args.write_baseline:
+        lines = ["# Records whose layout assertions are all gated to an arm this configuration does "
+                 "not",
+                 "# compile.  Written by `python3 tools/check-android-assertions.py "
+                 "--write-baseline`;",
+                 "# `--check` fails on a record that is neither asserted for the target nor listed "
+                 "here.",
+                 "# record\tfile\tcategory\twhy it is not a hazard for " + args.config]
+        for name in sorted(missing):
+            path = sorted(missing[name])[0]
+            cat, why = classify(name, path)
+            lines.append("\t".join([name, path, cat, why]))
+        BASELINE.write_text("\n".join(lines) + "\n")
+        print("check-android-assertions: wrote %s (%d row(s))" % (BASELINE, len(missing)))
+        return 0
+
+    if args.check:
+        base = read_baseline()
+        new = sorted(k for k in missing if k not in base)
+        stale = sorted(k for k in base if k not in missing)
+        for name in new:
+            print("NEW %s (%s): no assertion this configuration compiles, and no baseline row"
+                  % (name, sorted(missing[name])[0]))
+        for name in stale:
+            print("STALE %s: the baseline lists it, but it now has an assertion that compiles - "
+                  "drop the row" % name)
+        print("check-android-assertions: %d new, %d stale, %d baselined"
+              % (len(new), len(stale), len(base) - len(stale)))
+        return 1 if (new or stale) else 0
+
     rows = sorted(missing.items(), key=lambda kv: sorted(kv[1])[0])
     for name, files in (rows if args.list else rows[:args.top]):
         print("  %-34s %s" % (name, ", ".join(sorted(files)[:2])))

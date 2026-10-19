@@ -86,6 +86,14 @@ if [ -f "$SO" ]; then
   if python3 "$REPO/tools/check-android-imports.py" --so "$SO" 2>&1 | sed 's/^/   /'; then :; else status=1; fi
 fi
 
+# Every record the Android build touches must have a layout assertion that *this* configuration
+# compiles: the four device-only bugs of 4.788-4.831 were all a record mirrored from the host, and
+# `sfnt_font_info`/`MonitorInfo` (4.832/4.833) showed the same class in records that had assertions
+# - just not for the arm Android builds.  The baseline holds the records that are safe to leave
+# unasserted (X11-only, other-platform, or C-defined), so a *new* one fails here.
+if python3 "$REPO/tools/check-android-assertions.py" --check \
+     --units frozen-build-sources-android.txt 2>&1 | sed 's/^/   /'; then :; else status=1; fi
+
 # The assets tree is not optional any more: the Android port reads its Lisp from the APK (there is no
 # dump), and `tools/gen-android-assets.py` reproduces C's `install_temp` recipe, including
 # `assets/directory-tree` from the port's own `asset-directory-tool` (docs/android-app-readiness.md).

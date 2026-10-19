@@ -1,0 +1,56 @@
+# Records whose layout assertions are all gated to an arm this configuration does not
+# compile.  Written by `python3 tools/check-android-assertions.py --write-baseline`;
+# `--check` fails on a record that is neither asserted for the target nor listed here.
+# record	file	category	why it is not a hazard for android-arm64
+__sigaction_u	femacs/lib/include/signal.rs	own	C defines this record itself, so its layout cannot differ between targets
+emacs_align_type	femacs/src/alloc.rs	own	C defines this record itself, so its layout cannot differ between targets
+comp_t	femacs/src/comp.rs	not-built	native compilation is off for this configuration
+f_reloc_t	femacs/src/comp.rs	not-built	native compilation is off for this configuration
+reloc_array_t	femacs/src/comp.rs	not-built	native compilation is off for this configuration
+static_obj_t	femacs/src/comp.rs	not-built	native compilation is off for this configuration
+imm_reloc_t	femacs/src/comp.rs	not-built	native compilation is off for this configuration
+XpmAttributes	femacs/src/image.rs	x11	that unit is not part of the Android build
+XpmColorSymbol	femacs/src/image.rs	x11	that unit is not part of the Android build
+emacs_pix_container	femacs/src/include/dispextern.rs	own	C defines this record itself, so its layout cannot differ between targets
+it_stack	femacs/src/include/dispextern.rs	own	C defines this record itself, so its layout cannot differ between targets
+XrmOptionKind	femacs/src/include/xlib.rs	x11	that unit is not part of the Android build
+XrmOptionDescRec	femacs/src/include/xlib.rs	x11	that unit is not part of the Android build
+XrmValue	femacs/src/include/xlib.rs	x11	that unit is not part of the Android build
+xcb_get_property_cookie_t	femacs/src/include/xlib.rs	x11	that unit is not part of the Android build
+xcb_get_property_reply_t	femacs/src/include/xlib.rs	x11	that unit is not part of the Android build
+xcb_get_window_attributes_cookie_t	femacs/src/include/xlib.rs	x11	that unit is not part of the Android build
+xcb_get_window_attributes_reply_t	femacs/src/include/xlib.rs	x11	that unit is not part of the Android build
+xcb_translate_coordinates_cookie_t	femacs/src/include/xlib.rs	x11	that unit is not part of the Android build
+xcb_translate_coordinates_reply_t	femacs/src/include/xlib.rs	x11	that unit is not part of the Android build
+xcb_get_geometry_cookie_t	femacs/src/include/xlib.rs	x11	that unit is not part of the Android build
+xcb_get_geometry_reply_t	femacs/src/include/xlib.rs	x11	that unit is not part of the Android build
+xcb_generic_error_t	femacs/src/include/xlib.rs	x11	that unit is not part of the Android build
+xcb_visualtype_t	femacs/src/include/xlib.rs	x11	that unit is not part of the Android build
+xcb_rectangle_t	femacs/src/include/xlib.rs	x11	that unit is not part of the Android build
+xcb_rectangle_iterator_t	femacs/src/include/xlib.rs	x11	that unit is not part of the Android build
+xcb_shape_get_rectangles_cookie_t	femacs/src/include/xlib.rs	x11	that unit is not part of the Android build
+xcb_shape_get_rectangles_reply_t	femacs/src/include/xlib.rs	x11	that unit is not part of the Android build
+XExtData	femacs/src/include/xlib.rs	x11	that unit is not part of the Android build
+Visual	femacs/src/include/xlib.rs	x11	that unit is not part of the Android build
+Depth	femacs/src/include/xlib.rs	x11	that unit is not part of the Android build
+Screen	femacs/src/include/xlib.rs	x11	that unit is not part of the Android build
+XImage	femacs/src/include/xlib.rs	x11	that unit is not part of the Android build
+XColor	femacs/src/include/xlib.rs	x11	that unit is not part of the Android build
+XErrorEvent	femacs/src/include/xlib.rs	x11	that unit is not part of the Android build
+XModifierKeymap	femacs/src/include/xlib.rs	x11	that unit is not part of the Android build
+XSizeHintsAspect	femacs/src/include/xlib.rs	x11	that unit is not part of the Android build
+XSizeHints	femacs/src/include/xlib.rs	x11	that unit is not part of the Android build
+XWMHints	femacs/src/include/xlib.rs	x11	that unit is not part of the Android build
+XVisualInfo	femacs/src/include/xlib.rs	x11	that unit is not part of the Android build
+XEvent	femacs/src/include/xlib.rs	x11	that unit is not part of the Android build
+wav_header	femacs/src/sound.rs	not-built	that unit is not part of the Android build
+au_header	femacs/src/sound.rs	not-built	that unit is not part of the Android build
+sound_device	femacs/src/sound.rs	not-built	that unit is not part of the Android build
+sound	femacs/src/sound.rs	not-built	that unit is not part of the Android build
+sqlite3_int64	femacs/src/sqlite.rs	not-built	that unit is not part of the Android build
+pcred	femacs/src/sysdep.rs	bsd	C reaches these under #ifdef BSD_SYSTEM / HAVE_SYS_USER_H, false here
+ucred	femacs/src/sysdep.rs	bsd	C reaches these under #ifdef BSD_SYSTEM / HAVE_SYS_USER_H, false here
+eproc	femacs/src/sysdep.rs	bsd	C reaches these under #ifdef BSD_SYSTEM / HAVE_SYS_USER_H, false here
+kinfo_proc	femacs/src/sysdep.rs	bsd	C reaches these under #ifdef BSD_SYSTEM / HAVE_SYS_USER_H, false here
+treesit_loaded_lang	femacs/src/treesit.rs	not-built	that unit is not part of the Android build
+treesit_lang_cache_entry	femacs/src/treesit.rs	not-built	that unit is not part of the Android build

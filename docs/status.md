@@ -22638,3 +22638,10 @@ Fx_display_grayscale_p)` 折在了逗号后 ✗ 而参照折在空格后 ✓）�
   3. **真缺口一条，已补** ✓：**`MonitorInfo`**（`include/frame.rs`）此前**一条断言都没有** ✗ —— 数字只存在 `androidfns.rs` 的局部副本里，而那副本的 gate 是 `not (have_window_system)`（= 宿主臂 ✗），Android 用的却是镜像里 `have_window_system` 的那份 ✓；而 `android_make_monitor_attribute_list` 在 Android 上**按值**填这条记录 ✓（`frame.h` 1934：`geom`/`work`/`mm_width`/`mm_height`/`name`）。已补 6 条断言（48 / 0 / 16 / 32 / 36 / 40 ✓，`have_pgtk` 另算 ✓），`build-tu src/androidfns.c` **built** ✓。
   4. **其余 51 条全部排除** ✓（分类写进工具 docstring ✓）：X11/xcb/Xrm 记录（这些单元根本不为 Android 构建 ✓）、BSD/Darwin 的 `pcred`/`ucred`/`eproc`/`kinfo_proc`（C 走 `#ifdef BSD_SYSTEM` 等，本配置为假 ✓）、Emacs 自有联合/记录（跨目标同形 ✓）、以及不在 Android 构建里的 `comp`/`treesit`/`sqlite`/`sound` ✓。
   5. **对崩溃的意义** ✓：本轮把 4.832 那条「结构体尺寸」线索**又清掉两处**（`sfnt_font_info` 608 ✓、`MonitorInfo` 48 ✓），并把「哪条记录还没被 Android 断言」从人工回忆变成**一条命令** ✓。剩下的可疑面仍集中在「谁把堆写坏」✓；设备腿要 `#00` 帧与 tombstone 头部 ✓（`tools/device-run.sh` 已打印 ✓），磁盘仍不够 ✗（见 4.832 ⑥ ✓）。
+
+- **4.834 「Android 配置下没人断言的记录」变成一道有基线的门（并做过反证自检）（2026-10-19）**：
+  1. **规范化** ✓：`tools/check-android-assertions.py` 新增 `--write-baseline` / `--check` ✓，基线 `docs/baseline/android-unasserted.tsv` **52 行** ✓（x11 32 ✓、not-built 12 ✓、C 自有同形 4 ✓、BSD 4 ✓，每行带分类与理由 ✓）。`--check` **双向**判：既报「既没被本配置断言、又不在基线里」的新记录 ✗，也报「基线里有、但现在已经断言上」的过期行 ✗（仓里「表必须是最新」的规矩 ✓）。
+  2. **反证自检（关键：证明它不是一片沉默）** ✓：把 `MonitorInfo` 的六条断言临时改成不满足的 cfg ⇒ `NEW MonitorInfo` ✓；还原 ⇒ `0 new, 0 stale, 52 baselined` ✓、`git diff` 空 ✓。同时量出这条工具的**粒度限制**并写进 docstring ✓：单条断言被关掉时记录仍算「已覆盖」（只关 `size_of` 那条时检查器不报 ✓），必须整条记录都失去断言才报 ✓。
+  3. **接进门** ✓：`tools/check-authorized-platforms.sh` 增加一步跑 `--check --units frozen-build-sources-android.txt` ✓（与 `check-android-imports`、APK/签名/资产同列 ✓），`sh -n` 通过 ✓、当前读数 `0 new, 0 stale, 52 baselined` ✓。
+  4. **边界** ✓：`#[cfg]` 求值器只认 `all`/`any`/`not`/`feature = "…"` ✓，其它谓词（`target_os`、`test`）当作不满足 ⇒ 偏差方向是**多报**（不会漏报 ✓），docstring 写明 ✓。
+  5. **对崩溃的意义** ✓：这条门把「结构体尺寸/偏移」这一整类缺陷（4.788 `sigjmp_buf`、4.792 `dirent`、4.830 `stack_t`/`siginfo_t`/`sigaction`、4.832 `sfnt_font_info`、4.833 `MonitorInfo` ✓）从「设备上撞出来才发现」变成「构建期就会红」✓；剩下的仍要设备读数（`#00` 帧 + tombstone 头部 ✓）。
