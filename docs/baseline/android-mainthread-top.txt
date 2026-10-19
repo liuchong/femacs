@@ -1,0 +1,26 @@
+Threads: 21 total,   1 running,  20 sleeping,   0 stopped,   0 zombie
+  Mem:  2531868K total,  2127360K used,   404508K free,    19264K buffers
+ Swap:  1898896K total,    16896K used,  1882000K free,  1089624K cached
+400%cpu  12%user   0%nice  88%sys 280%idle   0%iow   8%irq  12%sirq   0%host
+  TID USER         PR  NI VIRT  RES  SHR S[%CPU] %MEM     TIME+ THREAD          PROCESS
+ 2145 u0_a319      20   0  33G 173M  83M R 88.0   7.0   0:10.28 Emacs main thre org.femacs
+ 2155 u0_a319      20   0  33G 173M  83M S  0.0   7.0   0:00.00 binder:2124_2   org.femacs
+ 2150 u0_a319      20   0  32G 173M  83M S  0.0   7.0   0:00.00 binder:2124_4   org.femacs
+ 2147 u0_a319      20   0  33G 173M  83M S  0.0   7.0   0:00.00 SurfaceSyncGrou org.femacs
+ 2146 u0_a319      20   0  33G 173M  83M S  0.0   7.0   0:00.00 `android_debug' org.femacs
+ 2141 u0_a319      18  -2  32G 173M  83M S  0.0   7.0   0:00.00 hwuiTask1       org.femacs
+ 2140 u0_a319      18  -2  33G 173M  83M S  0.0   7.0   0:00.00 hwuiTask0       org.femacs
+ 2139 u0_a319      10 -10  33G 173M  83M S  0.0   7.0   0:00.00 TracingMuxer    org.femacs
+ 2137 u0_a319      10 -10  33G 173M  83M S  0.0   7.0   0:00.07 RenderThread    org.femacs
+ 2136 u0_a319      29   9  33G 173M  83M S  0.0   7.0   0:00.00 Profile Saver   org.femacs
+ 2134 u0_a319      20   0  33G 173M  83M S  0.0   7.0   0:00.00 binder:2124_3   org.femacs
+ 2125 u0_a319       0 -20  33G 173M  83M S  0.0   7.0   0:00.00 Signal Catcher  org.femacs
+ 2133 u0_a319      20   0  33G 173M  83M S  0.0   7.0   0:00.00 binder:2124_2   org.femacs
+ 2132 u0_a319      20   0  32G 173M  83M S  0.0   7.0   0:00.00 binder:2124_1   org.femacs
+ 2131 u0_a319      24   4  33G 173M  83M S  0.0   7.0   0:00.00 FinalizerWatchd org.femacs
+ 2130 u0_a319      24   4  33G 173M  83M S  0.0   7.0   0:00.00 FinalizerDaemon org.femacs
+ 2129 u0_a319      24   4  32G 173M  83M S  0.0   7.0   0:00.00 ReferenceQueueD org.femacs
+ 2128 u0_a319      24   4  33G 173M  83M S  0.0   7.0   0:00.00 HeapTaskDaemon  org.femacs
+ 2127 u0_a319      29   9  33G 173M  83M S  0.0   7.0   0:00.00 Jit thread pool org.femacs
+ 2126 u0_a319       0 -20  32G 173M  83M S  0.0   7.0   0:00.00 perfetto_hprof_ org.femacs
+ 2124 u0_a319      10 -10  33G 173M  83M S  0.0   7.0   0:00.04 org.femacs      org.femacs

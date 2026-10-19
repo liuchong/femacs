@@ -1,0 +1,25 @@
+first_pid_at=2s pid=2187
+== pid@40s: 2187
+== gfxinfo ==
+Total frames rendered: 2
+Janky frames: 2 (100.00%)
+Janky frames (legacy): 2 (100.00%)
+Number Missed Vsync: 0
+== window ==
+  mCurrentFocus=Window{a83c530 u0 org.femacs/org.femacs.EmacsActivity}
+  mFocusedApp=ActivityRecord{231309462 u0 org.femacs/.EmacsActivity t243}
+== pid after keys: 2187
+== gfxinfo after ==
+Total frames rendered: 2
+Janky frames: 2 (100.00%)
+Janky frames (legacy): 2 (100.00%)
+Number Missed Vsync: 0
+== log ==
+10-20 06:42:02.101  2187  2209 I android_run_debug_thread: AGM big dim w=22396084 h=6 rows_alloc=7
+10-20 06:42:02.101  2187  2209 I android_run_debug_thread: AGM big dim w=22396084 h=6 rows_alloc=7
+10-20 06:42:02.101  2187  2209 I android_run_debug_thread: AGM big dim w=22396364 h=6 rows_alloc=7
+10-20 06:42:02.101  2187  2209 I android_run_debug_thread: AGM big dim w=22396364 h=6 rows_alloc=7
+10-20 06:42:02.101  2187  2209 I android_run_debug_thread: AGM big dim w=22396644 h=6 rows_alloc=7
+10-20 06:42:02.102  2187  2209 I android_run_debug_thread: AGM big dim w=22396644 h=6 rows_alloc=7
+10-20 06:42:02.102  2187  2209 I android_run_debug_thread: AGM big dim w=22396924 h=6 rows_alloc=7
+10-20 06:42:02.102  2187  2209 I android_run_debug_thread: AGM big dim w=22396924 h=6 rows_alloc=7
