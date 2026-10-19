@@ -6152,6 +6152,16 @@ pub unsafe extern "C" fn init_obarray_once ()
   let mut i: usize = 0;
   while i < lispsym_count
     {
+      /* The port's symbol set is a superset across platforms (P-29), and two platform units can
+         give one Lisp name to two different C symbols - `Qstatic_color` in `haikufns.c` and
+         `Qstatic_gray` in `androidfns.c` are both "static-color" (`docs/baseline/globals/
+         symbols.tsv` 1729 and 1730).  C never sees the pair, because only one of those units is
+         built; interning both here makes the second `defsym` find the first symbol and trips
+         `eassert (FIXNUMP (bucket))` (measured on the device, status 4.844).  Skip the entry whose
+         unit this configuration does not build, so the surviving index interns the name.  */
+      #[cfg (feature = "have_android")]
+      if i == 1729
+        { i += 1; continue; }
       define_symbol (builtin_lisp_symbol (i), defsym_name[i]);
       i += 1;
     }
