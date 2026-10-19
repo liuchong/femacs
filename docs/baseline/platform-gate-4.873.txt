@@ -1,0 +1,29 @@
+== macOS: smoke ==
+11 check(s), 0 failure(s)
+== Android: gate-android ==
+apk: emacs.apk (918766 bytes), package org.femacs, 5 declared activit(ies) all backed by Kotlin sources, 112 compiled class(es), members and signature checked
+== Android: native library ==
+linked ../build/port/aarch64-linux-android/libemacs.so (6101456 bytes)
+   libemacs.so: 5.8M, 69 Java_org_femacs_EmacsNative_* export(s)
+   check-android-imports: 4 unresolved name(s) the port defines but does not export:
+     - backtrace                              femacs/lib/include/execinfo.in.rs:46  <- defined but NOT exported (`no_mangle` missing)
+     - backtrace_symbols_fd                   femacs/lib/include/execinfo.in.rs:81  <- defined but NOT exported (`no_mangle` missing)
+     - getloadavg                             femacs/src/haiku.rs:399
+     - mkostemp                               femacs/lib/mkostemp.rs:32
+   check-android-imports: 304 import(s); 9 unresolved (0 new) against the API 21 stub libraries; binding eager (-z now): the library will not load; the library cannot be dlopen'ed until that list is empty
+   check-android-assertions: 395 record(s) carry assertions; 52 of them have none that android-arm64 compiles
+   check-android-assertions: 0 new, 0 stale, 52 baselined
+== Android: signed APK with the native library and the assets tree ==
+assets: 4360 file(s) packed
+  member: lib/arm64-v8a/libemacs.so
+apk: /tmp/femacs-apk/emacs.apk ( 48M); native: lib/arm64-v8a/libemacs.so
+   signature: verified (/tmp/femacs-apk/emacs.apk)
+== Android: emulator smoke ==
+== Android: what the application layer still needs ==
+   judgement 1 (libemacs.so can be dlopen'd): NOT MET - 9 unresolved import(s), eager binding - 0 window-system arms (decision 4) and 9 upstream/platform gaps C's own build does not have either
+      reading after decision C: the 40 must reach zero and the 31 stay arranged as C has them (docs/window-arms-plan.md)
+   judgement 2 (the app starts to Lisp): assets packed, launch NOT ASSERTED - see docs/android-app-readiness.md
+   judgement 3 (the 0 window-system names): awaiting the decision in docs/decisions-needed.md (A keep P-08 / B write every arm / C per-target cfg)
+  Android emulator smoke         FEMACS_EMULATOR_BUDGET_OK=1 sh tools/try-android-emulator.sh --avd femacs-arm64-api36 --apk /tmp/femacs-apk/emacs.apk
+    (through the executor)       python3 ~/.assistant/skills/controlled-run/scripts/run.py --profile runtime -- sh tools/try-android-emulator.sh --avd femacs-arm64-api36 --apk /tmp/femacs-apk/emacs.apk
+controlled-run: {"run_id": "fbd24309b4884cdab379e9a73fb33c3b", "profile": "build", "executable": "bash", "argv_sha256": "e7988cdbc8ba9d57f166c50bfbc1941c75889b751a0d5c0fb1dad2873d5e4b86", "limit_bytes": 8589934592, "peak_rss_bytes": 1165344768, "reason": "exited", "root_pid": 96408, "exit_code": 0, "cleanup_complete": true, "initial_limit_bytes": 8589934592, "hard_limit_bytes": 25769803776, "growth_count": 0, "elapsed_seconds": 329.27}
