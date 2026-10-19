@@ -1,0 +1,155 @@
+controlled-run: memory allowance 4096 -> 6144 MiB (hard maximum 16384)
+== install ==
+ess
+Install command complete in 248 ms
+== start ==
+TotalTime: 204
+WaitTime: 205
+Complete
+== probe.log size ==
+4 /data/data/org.femacs/files/probe.log
+== probe.log last 15 lines ==
+x -5476376655394948416 5794 -5476376655394940621 0
+¨ -5476376655394808896 5624 -5476376655394801271 0
+ -5476376657274658800 40210 -5476376657274616589 0
+ -5476376657274658800 42132 -5476376657274616589 0
+== probe.log pulled to docs/baseline/probe-run.log (       4 lines) ==
+== writers of the last 4000 lines (thread id is the number after the tag) ==
+      2 -5476376657274658800
+      1 -5476376655394948416
+      1 -5476376655394808896
+== tags and threads over the whole log ==
+      1 ¨ -5476376655394808896
+      1 x -5476376655394948416
+      1  -5476376657274658800
+      1  -5476376657274658800
+== where each thread stopped (last line number per tag) ==
+0
+4
+== crash buffer (head: the signal, the fault address and frame #00) ==
+--------- beginning of crash
+10-20 03:11:20.597  2154  2171 F libc    : FORTIFY: pthread_mutex_lock called on a destroyed mutex (0x73a8402cd8)
+== crash buffer (tail: the frames near the entry point) ==
+--------- beginning of crash
+10-20 03:11:20.597  2154  2171 F libc    : FORTIFY: pthread_mutex_lock called on a destroyed mutex (0x73a8402cd8)
+== tombstones ==
+total 96
+-rw-rw-r-- 1 tombstoned system 0 2026-10-20 03:06 tombstone_11
+-rw-rw-r-- 1 tombstoned system 0 2026-10-20 03:06 tombstone_11.pb
+--- tombstone_11
+== app log tail (the process's own lines) ==
+10-20 03:11:20.546  2154  2173 I android_run_debug_thread: Loading tool-bar...
+10-20 03:11:20.547  2154  2173 I android_run_debug_thread: Loading tool-bar...done
+10-20 03:11:20.547  2154  2173 I android_run_debug_thread: Loading dynamic-setting...
+10-20 03:11:20.547  2154  2173 I android_run_debug_thread: Loading dynamic-setting...done
+10-20 03:11:20.547  2154  2173 I android_run_debug_thread: Loading ls-lisp...
+10-20 03:11:20.549  2154  2173 I android_run_debug_thread: Loading ls-lisp...done
+10-20 03:11:20.549  2154  2173 I android_run_debug_thread: Loading touch-screen...
+10-20 03:11:20.549  2154  2173 I android_run_debug_thread: Loading touch-screen...done
+10-20 03:11:20.549  2154  2173 I android_run_debug_thread: Loading term/common-win...
+10-20 03:11:20.549  2154  2173 I android_run_debug_thread: Loading term/common-win...done
+10-20 03:11:20.550  2154  2173 I android_run_debug_thread: Loading term/android-win...
+10-20 03:11:20.553  2154  2173 I android_run_debug_thread: Loading term/android-win...done
+10-20 03:11:20.553  2154  2173 I android_run_debug_thread: Loading mwheel...
+10-20 03:11:20.553  2154  2173 I android_run_debug_thread: Loading mwheel...done
+10-20 03:11:20.553  2154  2173 I android_run_debug_thread: Loading progmodes/elisp-mode...
+10-20 03:11:20.554  2154  2173 I android_run_debug_thread: Loading progmodes/elisp-mode...done
+10-20 03:11:20.554  2154  2173 I android_run_debug_thread: Loading emacs-lisp/float-sup...
+10-20 03:11:20.554  2154  2173 I android_run_debug_thread: Loading emacs-lisp/float-sup...done
+10-20 03:11:20.554  2154  2173 I android_run_debug_thread: Loading vc/vc-hooks...
+10-20 03:11:20.555  2154  2173 I android_run_debug_thread: Loading vc/vc-hooks...done
+10-20 03:11:20.555  2154  2173 I android_run_debug_thread: Loading vc/ediff-hook...
+10-20 03:11:20.555  2154  2173 I android_run_debug_thread: Loading vc/ediff-hook...done
+10-20 03:11:20.556  2154  2173 I android_run_debug_thread: Loading uniquify...
+10-20 03:11:20.556  2154  2173 I android_run_debug_thread: Loading uniquify...done
+10-20 03:11:20.557  2154  2173 I android_run_debug_thread: Loading electric...
+10-20 03:11:20.557  2154  2173 I android_run_debug_thread: Loading electric...done
+10-20 03:11:20.558  2154  2173 I android_run_debug_thread: Loading paren...
+10-20 03:11:20.558  2154  2173 I android_run_debug_thread: Loading paren...done
+10-20 03:11:20.558  2154  2173 I android_run_debug_thread: Loading emacs-lisp/shorthands...
+10-20 03:11:20.567  2154  2173 I android_run_debug_thread: Loading emacs-lisp/shorthands...done
+10-20 03:11:20.567  2154  2173 I android_run_debug_thread: Loading emacs-lisp/eldoc...
+10-20 03:11:20.593  2154  2173 I android_run_debug_thread: Loading emacs-lisp/eldoc...done
+10-20 03:11:20.593  2154  2173 I android_run_debug_thread: Loading emacs-lisp/cconv...
+10-20 03:11:20.598  2154  2173 I android_run_debug_thread: Loading emacs-lisp/cconv...done
+10-20 03:11:20.598  2154  2173 I android_run_debug_thread: Loading cus-start...
+10-20 03:11:20.598  2154  2173 I android_run_debug_thread: Loading cus-start...done
+10-20 03:11:20.598  2154  2173 I android_run_debug_thread: Loading tooltip...
+10-20 03:11:20.598  2154  2173 I android_run_debug_thread: Loading tooltip...done
+10-20 03:11:20.598  2154  2173 I android_run_debug_thread: Loading international/iso-transl...
+10-20 03:11:20.598  2154  2173 I android_run_debug_thread: Loading international/iso-transl...done
+10-20 03:11:20.598  2154  2173 I android_run_debug_thread: Loading emacs-lisp/rmc...
+10-20 03:11:20.598  2154  2173 I android_run_debug_thread: Loading emacs-lisp/rmc...done
+10-20 03:11:20.598  2154  2173 I android_run_debug_thread: Loading /assets/lisp/leim/leim-list.el (source)...
+10-20 03:11:20.598  2154  2173 I android_run_debug_thread: Local variables entry is missing the prefix
+10-20 03:11:20.598  2154  2173 I android_run_debug_thread: FORTIFY: pthread_mutex_lock called on a destroyed mutex (0x73a8402cd8)
+10-20 03:11:20.601  2154  2173 I android_run_debug_thread: Backtrace:
+10-20 03:11:20.601  2154  2173 I android_run_debug_thread: /apex/com.android.runtime/lib64/bionic/libc.so(backtrace+0x38) [0x7394b4ba94]
+10-20 03:11:20.601  2154  2173 I android_run_debug_thread: /data/app/~~vA6YYQ5tTqZpQm133EC57A==/org.femacs-52AVS7wPUA9sJFNC6Mn7KQ==/lib/arm64/libemacs.so(emacs_backtrace+0x4c) [0x7059f7bd5c]
+10-20 03:11:20.601  2154  2173 I android_run_debug_thread: /data/app/~~vA6YYQ5tTqZpQm133EC57A==/org.femacs-52AVS7wPUA9sJFNC6Mn7KQ==/lib/arm64/libemacs.so(terminate_due_to_signal+0x98) [0x7059e66ed8]
+10-20 03:11:20.601  2154  2173 I android_run_debug_thread: /data/app/~~vA6YYQ5tTqZpQm133EC57A==/org.femacs-52AVS7wPUA9sJFNC6Mn7KQ==/lib/arm64/libemacs.so(+0x0) [0x7059f7ba08]
+10-20 03:11:20.601  2154  2173 I android_run_debug_thread: [vdso](+0x0) [0x73b8089844]
+10-20 03:11:20.601  2154  2173 I android_run_debug_thread: /apex/com.android.runtime/lib64/bionic/libc.so(abort+0x98) [0x7394b467ac]
+10-20 03:11:20.601  2154  2173 I android_run_debug_thread: /apex/com.android.runtime/lib64/bionic/libc.so(+0x0) [0x7394b4a334]
+10-20 03:11:20.601  2154  2173 I android_run_debug_thread: /apex/com.android.runtime/lib64/bionic/libc.so(+0x0) [0x7394b584f4]
+10-20 03:11:20.601  2154  2173 I android_run_debug_thread: /apex/com.android.runtime/lib64/bionic/libc.so(pthread_mutex_lock+0xd8) [0x7394b58364]
+10-20 03:11:20.601  2154  2173 I android_run_debug_thread: /apex/com.android.runtime/lib64/bionic/libc.so(pthread_cond_wait+0x60) [0x7394b55ffc]
+10-20 03:11:20.601  2154  2173 I android_run_debug_thread: /system/lib64/libc++.so(_ZNSt3__118condition_variable4waitERNS_11unique_lockINS_5mutexEEE+0x1c) [0x73b08cdf28]
+10-20 03:11:20.601  2154  2173 I android_run_debug_thread: /system/lib64/libhwui.so(+0x0) [0x73a7d9b048]
+10-20 03:11:20.601  2154  2173 I android_run_debug_thread: /apex/com.android.runtime/lib64/bionic/libc.so(+0x0) [0x7394b56df8]
+10-20 03:11:20.601  2154  2173 I android_run_debug_thread: /apex/com.android.runtime/lib64/bionic/libc.so(+0x0) [0x7394b49dd8]
+10-20 03:11:20.041   653   964 I ActivityTaskManager: START u0 {flg=0x10000000 xflg=0x4 cmp=org.femacs/.EmacsActivity} with LAUNCH_SINGLE_INSTANCE from uid 0 (BAL_ALLOW_ALLOWLISTED_UID) result code=0
+10-20 03:11:20.041   896   977 V WindowManagerShell: Transition requested (#6): android.os.BinderProxy@92c8b1b TransitionRequestInfo { type = OPEN, triggerTask = TaskInfo{userId=0 taskId=110 effectiveUid=10263 displayId=0 isRunning=true baseIntent=Intent { flg=0x10000000 cmp=org.femacs/.EmacsActivity } baseActivity=ComponentInfo{org.femacs/org.femacs.EmacsActivity} topActivity=ComponentInfo{org.femacs/org.femacs.EmacsActivity} origActivity=null realActivity=ComponentInfo{org.femacs/org.femacs.EmacsActivity} numActivities=1 lastActiveTime=19595 supportsMultiWindow=true resizeMode=1 isResizeable=true minWidth=-1 minHeight=-1 defaultMinSize=220 token=WCT{android.window.IWindowContainerToken$Stub$Proxy@c3ba4b8} topActivityType=1 pictureInPictureParams=null shouldDockBigOverlays=false launchIntoPipHostTaskId=-1 lastParentTaskIdBeforePip=-1 displayCutoutSafeInsets=Rect(0, 128 - 0, 0) topActivityInfo=ActivityInfo{fe56291 org.femacs.EmacsActivity} launchCookies=[] positionInParent=Point(0, 0) parentTaskId=-1 isFocused=false isVisible=false isVisibleRequested=false isTopActivityNoDisplay=false isSleeping=false locusId=null displayAreaFeatureId=1 isTopActivityTransparent=false isActivityStackTransparent=false lastNonFullscreenBounds=Rect(269, 661 - 812, 1741) capturedLink=null capturedLinkTimestamp=0 requestedVisibleTypes=-9 topActivityRequestOpenInBrowserEducationTimestamp=0 appCompatTaskInfo=AppCompatTaskInfo { topActivityInSizeCompat=false eligibleForLetterboxEducation= false isLetterboxEducationEnabled= false isLetterboxDoubleTapEnabled= false eligibleForUserAspectRatioButton= false topActivityBoundsLetterboxed= false isFromLetterboxDoubleTap= false topActivityLetterboxVerticalPosition= -1 topActivityLetterboxHorizontalPosition= -1 topActivityLetterboxWidth=-1 topActivityLetterboxHeight=-1 topActivityAppBounds=Rect(0, 0 - 1080, 2400) isUserFullscreenOverrideEnabled=false isSystemFullscreenOverrideEnabled=false hasMinAspectRatioOverride=false topActivityLetterboxBounds=null cameraCompatTaskInfo=CameraCompatTaskInfo { freeformCameraCompatMode=inactive}} topActivityMainWindowFrame=null}, pipChange = null, remoteTransition = null, displayChange = null, flags = 0, debugId = 6 }
+10-20 03:11:20.047   653   830 I AppWidgetServiceImpl: Updating package stopped masked state for uid 10263 package org.femacs isStopped false
+10-20 03:11:20.052   653   683 I ActivityManager: Start proc 2154:org.femacs/u0a263 for next-top-activity {org.femacs/org.femacs.EmacsActivity}
+10-20 03:11:20.054  2154  2154 I org.femacs: Using CollectorTypeCMC GC.
+10-20 03:11:20.055  2154  2154 E org.femacs: Not starting debugger since process cannot load the jdwp agent.
+10-20 03:11:20.064   653   673 V WindowManager: Sent Transition (#6) createdAt=10-20 03:11:20.039 via request=TransitionRequestInfo { type = OPEN, triggerTask = TaskInfo{userId=0 taskId=110 effectiveUid=10263 displayId=0 isRunning=true baseIntent=Intent { flg=0x10000000 cmp=org.femacs/.EmacsActivity } baseActivity=ComponentInfo{org.femacs/org.femacs.EmacsActivity} topActivity=ComponentInfo{org.femacs/org.femacs.EmacsActivity} origActivity=null realActivity=ComponentInfo{org.femacs/org.femacs.EmacsActivity} numActivities=1 lastActiveTime=19595 supportsMultiWindow=true resizeMode=1 isResizeable=true minWidth=-1 minHeight=-1 defaultMinSize=220 token=WCT{RemoteToken{85eddb7 Task{ee30439 #110 type=standard A=10263:emacs.primary_frame}}} topActivityType=1 pictureInPictureParams=null shouldDockBigOverlays=false launchIntoPipHostTaskId=-1 lastParentTaskIdBeforePip=-1 displayCutoutSafeInsets=Rect(0, 128 - 0, 0) topActivityInfo=ActivityInfo{a7c5924 org.femacs.EmacsActivity} launchCookies=[] positionInParent=Point(0, 0) parentTaskId=-1 isFocused=false isVisible=false isVisibleRequested=false isTopActivityNoDisplay=false isSleeping=false locusId=null displayAreaFeatureId=1 isTopActivityTransparent=false isActivityStackTransparent=false lastNonFullscreenBounds=Rect(269, 661 - 812, 1741) capturedLink=null capturedLinkTimestamp=0 requestedVisibleTypes=-9 topActivityRequestOpenInBrowserEducationTimestamp=0 appCompatTaskInfo=AppCompatTaskInfo { topActivityInSizeCompat=false eligibleForLetterboxEducation= false isLetterboxEducationEnabled= false isLetterboxDoubleTapEnabled= false eligibleForUserAspectRatioButton= false topActivityBoundsLetterboxed= false isFromLetterboxDoubleTap= false topActivityLetterboxVerticalPosition= -1 topActivityLetterboxHorizontalPosition= -1 topActivityLetterboxWidth=-1 topActivityLetterboxHeight=-1 topActivityAppBounds=Rect(0, 0 - 1080, 2400) isUserFullscreenOverrideEnabled=false isSystemFullscreenOverrideEnabled=false hasMinAspectRatioOverride=false topActivityLetterboxBounds=null cameraCompatTaskInfo=CameraCompatTaskInfo { freeformCameraCompatMode=inactive}} topActivityMainWindowFrame=null}, pipChange = null, remoteTransition = null, displayChange = null, flags = 0, debugId = 6 }
+10-20 03:11:20.083  2154  2154 D nativeloader: Configuring clns-9 for other apk /data/app/~~vA6YYQ5tTqZpQm133EC57A==/org.femacs-52AVS7wPUA9sJFNC6Mn7KQ==/base.apk. target_sdk_version=37, uses_libraries=, library_path=/data/app/~~vA6YYQ5tTqZpQm133EC57A==/org.femacs-52AVS7wPUA9sJFNC6Mn7KQ==/lib/arm64:/data/app/~~vA6YYQ5tTqZpQm133EC57A==/org.femacs-52AVS7wPUA9sJFNC6Mn7KQ==/base.apk!/lib/arm64-v8a, permitted_path=/data:/mnt/expand:/data/user/0/org.femacs
+10-20 03:11:20.084  2154  2154 I org.femacs: AssetManager2(0xb4000070fee77678) locale list changing from [] to [en-US]
+10-20 03:11:20.088  2154  2154 V GraphicsEnvironment: org.femacs is not listed in per-application setting
+10-20 03:11:20.088  2154  2154 V GraphicsEnvironment: org.femacs is not listed in ANGLE allowlist or settings, returning default
+10-20 03:11:20.094  2154  2154 D nativeloader: Load /system/lib64/libjnigraphics.so using class loader ns clns-9 (caller=/data/app/~~vA6YYQ5tTqZpQm133EC57A==/org.femacs-52AVS7wPUA9sJFNC6Mn7KQ==/base.apk): ok
+10-20 03:11:20.095  2154  2154 D nativeloader: Load /data/app/~~vA6YYQ5tTqZpQm133EC57A==/org.femacs-52AVS7wPUA9sJFNC6Mn7KQ==/lib/arm64/libemacs.so using class loader ns clns-9 (caller=/data/app/~~vA6YYQ5tTqZpQm133EC57A==/org.femacs-52AVS7wPUA9sJFNC6Mn7KQ==/base.apk): ok
+10-20 03:11:20.104  2154  2154 I org.femacs: AssetManager2(0xb4000070fee7e0b8) locale list changing from [] to [en-US]
+10-20 03:11:20.112   653   668 I ActivityManager: Background started FGS: Allowed [callingPackage: org.femacs; callingUid: 10263; uidState: TOP ; uidBFSL: [BFSL]; intent: Intent { xflg=0x4 cmp=org.femacs/.EmacsService }; code:PROC_STATE_TOP; tempAllowListReason:<null>; allowWiu:12; targetSdkVersion:37; callerTargetSdkVersion:37; startForegroundCount:0; bindFromPackage:null: isBindService:false]
+10-20 03:11:20.196  2154  2154 D EmacsService: Initializing Emacs, where filesDir = /data/data/org.femacs/files, libDir = /data/app/~~vA6YYQ5tTqZpQm133EC57A==/org.femacs-52AVS7wPUA9sJFNC6Mn7KQ==/lib/arm64, and classPath = /data/app/~~vA6YYQ5tTqZpQm133EC57A==/org.femacs-52AVS7wPUA9sJFNC6Mn7KQ==/base.apk; args = (none); display density: 420.0 by 420.0 scaled to 420.0
+10-20 03:11:20.196  2154  2172 I setEmacsParams: Site-lisp directory: /data/data/org.femacs/files/site-lisp
+10-20 03:11:20.196  2154  2172 I setEmacsParams: Files directory: /data/data/org.femacs/files
+10-20 03:11:20.196  2154  2172 I setEmacsParams: Native code directory: /data/app/~~vA6YYQ5tTqZpQm133EC57A==/org.femacs-52AVS7wPUA9sJFNC6Mn7KQ==/lib/arm64
+10-20 03:11:20.196  2154  2172 I setEmacsParams: Game score path: /data/data/org.femacs/files/scores
+10-20 03:11:20.196  2154  2172 I setEmacsParams: Class path: /data/app/~~vA6YYQ5tTqZpQm133EC57A==/org.femacs-52AVS7wPUA9sJFNC6Mn7KQ==/base.apk
+10-20 03:11:20.206   653  1167 D CoreBackPreview: Window{2bcb8ec u0 org.femacs/org.femacs.EmacsActivity}: Setting back callback OnBackInvokedCallbackInfo{mCallback=android.window.IOnBackInvokedCallback$Stub$Proxy@4433984, mPriority=0, mIsAnimationCallback=true, mOverrideBehavior=0}
+10-20 03:11:20.213  2154  2173 I android_run_debug_thread: Using load-path (/data/data/org.femacs/files/site-lisp /assets/lisp/ /assets/lisp/emacs-lisp /assets/lisp/progmodes /assets/lisp/language /assets/lisp/international /assets/lisp/textmodes /assets/lisp/vc)
+10-20 03:11:20.243   653   673 I ActivityTaskManager: Displayed org.femacs/.EmacsActivity for user 0: +204ms
+10-20 03:11:20.271   653   767 I ImeTracker: org.femacs:2b8bb59d: onRequestHide at ORIGIN_SERVER reason HIDE_UNSPECIFIED_WINDOW fromUser false
+10-20 03:11:20.272  2154  2154 I ImeTracker: org.femacs:2b8bb59d: onCancelled at PHASE_CLIENT_ALREADY_HIDDEN
+10-20 03:11:20.597  2154  2171 F libc    : FORTIFY: pthread_mutex_lock called on a destroyed mutex (0x73a8402cd8)
+10-20 03:11:20.598  2154  2173 I android_run_debug_thread: FORTIFY: pthread_mutex_lock called on a destroyed mutex (0x73a8402cd8)
+10-20 03:11:20.601  2154  2173 I android_run_debug_thread: /data/app/~~vA6YYQ5tTqZpQm133EC57A==/org.femacs-52AVS7wPUA9sJFNC6Mn7KQ==/lib/arm64/libemacs.so(emacs_backtrace+0x4c) [0x7059f7bd5c]
+10-20 03:11:20.601  2154  2173 I android_run_debug_thread: /data/app/~~vA6YYQ5tTqZpQm133EC57A==/org.femacs-52AVS7wPUA9sJFNC6Mn7KQ==/lib/arm64/libemacs.so(terminate_due_to_signal+0x98) [0x7059e66ed8]
+10-20 03:11:20.601  2154  2173 I android_run_debug_thread: /data/app/~~vA6YYQ5tTqZpQm133EC57A==/org.femacs-52AVS7wPUA9sJFNC6Mn7KQ==/lib/arm64/libemacs.so(+0x0) [0x7059f7ba08]
+10-20 03:11:20.623   653   759 W InputDispatcher: channel '2bcb8ec org.femacs/org.femacs.EmacsActivity' ~ Consumer closed input channel or an error occurred.  events=0x9
+10-20 03:11:20.623   653   759 E InputDispatcher: channel '2bcb8ec org.femacs/org.femacs.EmacsActivity' ~ Channel is unrecoverably broken and will be disposed!
+10-20 03:11:20.623   653   759 I WindowManager: WINDOW DIED Window{2bcb8ec u0 org.femacs/org.femacs.EmacsActivity}
+10-20 03:11:20.624   653   955 I ActivityManager: Process org.femacs (pid 2154) has died: fg  TOP 
+10-20 03:11:20.624   653   720 I ImeTracker: org.femacs:20c7be20: onRequestHide at ORIGIN_SERVER reason HIDE_REMOVE_CLIENT fromUser false
+10-20 03:11:20.624   653   720 I ImeTracker: org.femacs:20c7be20: onCancelled at PHASE_SERVER_SHOULD_HIDE
+10-20 03:11:20.639   653   955 W ActivityTaskManager: Force removing ActivityRecord{203006976 u0 org.femacs/.EmacsActivity t110}: app died, no saved state
+10-20 03:11:20.640   896   977 V WindowManagerShell: Transition requested (#7): android.os.BinderProxy@b41e4ec TransitionRequestInfo { type = CLOSE, triggerTask = TaskInfo{userId=0 taskId=110 effectiveUid=10263 displayId=0 isRunning=true baseIntent=Intent { flg=0x10000000 cmp=org.femacs/.EmacsActivity } baseActivity=ComponentInfo{org.femacs/org.femacs.EmacsActivity} topActivity=ComponentInfo{org.femacs/org.femacs.EmacsActivity} origActivity=null realActivity=ComponentInfo{org.femacs/org.femacs.EmacsActivity} numActivities=1 lastActiveTime=19652 supportsMultiWindow=true resizeMode=1 isResizeable=true minWidth=-1 minHeight=-1 defaultMinSize=220 token=WCT{android.window.IWindowContainerToken$Stub$Proxy@95690b5} topActivityType=1 pictureInPictureParams=null shouldDockBigOverlays=false launchIntoPipHostTaskId=-1 lastParentTaskIdBeforePip=-1 displayCutoutSafeInsets=Rect(0, 128 - 0, 0) topActivityInfo=ActivityInfo{af0f34a org.femacs.EmacsActivity} launchCookies=[] positionInParent=Point(0, 0) parentTaskId=-1 isFocused=true isVisible=true isVisibleRequested=true isTopActivityNoDisplay=false isSleeping=false locusId=null displayAreaFeatureId=1 isTopActivityTransparent=false isActivityStackTransparent=false lastNonFullscreenBounds=Rect(269, 661 - 812, 1741) capturedLink=null capturedLinkTimestamp=0 requestedVisibleTypes=-9 topActivityRequestOpenInBrowserEducationTimestamp=0 appCompatTaskInfo=AppCompatTaskInfo { topActivityInSizeCompat=false eligibleForLetterboxEducation= false isLetterboxEducationEnabled= false isLetterboxDoubleTapEnabled= false eligibleForUserAspectRatioButton= false topActivityBoundsLetterboxed= false isFromLetterboxDoubleTap= false topActivityLetterboxVerticalPosition= -1 topActivityLetterboxHorizontalPosition= -1 topActivityLetterboxWidth=-1 topActivityLetterboxHeight=-1 topActivityAppBounds=Rect(0, 0 - 1080, 2400) isUserFullscreenOverrideEnabled=false isSystemFullscreenOverrideEnabled=false hasMinAspectRatioOverride=false topActivityLetterboxBounds=null cameraCompatTaskInfo=CameraCompatTaskInfo { freeformCameraCompatMode=inactive}} topActivityMainWindowFrame=null}, pipChange = null, remoteTransition = null, displayChange = null, flags = 0, debugId = 7 }
+10-20 03:11:20.658   653   673 V WindowManager: Sent Transition (#7) createdAt=10-20 03:11:20.639 via request=TransitionRequestInfo { type = CLOSE, triggerTask = TaskInfo{userId=0 taskId=110 effectiveUid=10263 displayId=0 isRunning=true baseIntent=Intent { flg=0x10000000 cmp=org.femacs/.EmacsActivity } baseActivity=ComponentInfo{org.femacs/org.femacs.EmacsActivity} topActivity=ComponentInfo{org.femacs/org.femacs.EmacsActivity} origActivity=null realActivity=ComponentInfo{org.femacs/org.femacs.EmacsActivity} numActivities=1 lastActiveTime=19652 supportsMultiWindow=true resizeMode=1 isResizeable=true minWidth=-1 minHeight=-1 defaultMinSize=220 token=WCT{RemoteToken{85eddb7 Task{ee30439 #110 type=standard A=10263:emacs.primary_frame}}} topActivityType=1 pictureInPictureParams=null shouldDockBigOverlays=false launchIntoPipHostTaskId=-1 lastParentTaskIdBeforePip=-1 displayCutoutSafeInsets=Rect(0, 128 - 0, 0) topActivityInfo=ActivityInfo{a7c5924 org.femacs.EmacsActivity} launchCookies=[] positionInParent=Point(0, 0) parentTaskId=-1 isFocused=true isVisible=true isVisibleRequested=true isTopActivityNoDisplay=false isSleeping=false locusId=null displayAreaFeatureId=1 isTopActivityTransparent=false isActivityStackTransparent=false lastNonFullscreenBounds=Rect(269, 661 - 812, 1741) capturedLink=null capturedLinkTimestamp=0 requestedVisibleTypes=-9 topActivityRequestOpenInBrowserEducationTimestamp=0 appCompatTaskInfo=AppCompatTaskInfo { topActivityInSizeCompat=false eligibleForLetterboxEducation= false isLetterboxEducationEnabled= false isLetterboxDoubleTapEnabled= false eligibleForUserAspectRatioButton= false topActivityBoundsLetterboxed= false isFromLetterboxDoubleTap= false topActivityLetterboxVerticalPosition= -1 topActivityLetterboxHorizontalPosition= -1 topActivityLetterboxWidth=-1 topActivityLetterboxHeight=-1 topActivityAppBounds=Rect(0, 0 - 1080, 2400) isUserFullscreenOverrideEnabled=false isSystemFullscreenOverrideEnabled=false hasMinAspectRatioOverride=false topActivityLetterboxBounds=null cameraCompatTaskInfo=CameraCompatTaskInfo { freeformCameraCompatMode=inactive}} topActivityMainWindowFrame=null}, pipChange = null, remoteTransition = null, displayChange = null, flags = 0, debugId = 7 }
+== the fatal-signal path (our own handler, debuggerd, malloc debug) ==
+== exit info ==
+  package: org.femacs
+    Historical Process Exit for uid=10263
+        ApplicationExitInfo #0:
+          timestamp=2026-10-20 03:11:20.636 pid=2154 realUid=10263 packageUid=10263 definingUid=10263 user=0
+          process=org.femacs reason=1 (EXIT_SELF) subreason=0 (UNKNOWN) status=255
+          importance=100 pss=0.00 rss=0.00 description=null state=empty trace=null
+  package: android
+    Historical Process Exit for uid=1037
+== note ==
+This script prints everything it reads and keeps nothing itself: capture its stdout when the
+run matters (docs/baseline/device-run-*.txt is that capture).  Only rebuildable intermediates
+live in /tmp: the APK under /tmp/femacs-apk, the cargo target dir, and the emulator's own log.
+controlled-run: {"run_id": "fc0c7c6926f44027acddf43a511a628c", "profile": "runtime", "executable": "bash", "argv_sha256": "8eae48a5938ad7b84b118bf8abd89527ad1f59ab1004b32547ab77a0c6e27c2b", "limit_bytes": 6442450944, "peak_rss_bytes": 4241670144, "reason": "exited", "root_pid": 58359, "exit_code": 0, "cleanup_complete": true, "initial_limit_bytes": 4294967296, "hard_limit_bytes": 17179869184, "growth_count": 1, "elapsed_seconds": 53.258}

@@ -1,0 +1,7 @@
+controlled-run: memory allowance 4096 -> 6144 MiB (hard maximum 16384)
+== kt.log ==
+cat: /data/data/org.femacs/files/kt.log: No such file or directory
+== death ==
+          timestamp=2026-10-20 03:13:31.801 pid=2169 realUid=10264 packageUid=10264 definingUid=10264 user=0
+          process=org.femacs reason=1 (EXIT_SELF) subreason=0 (UNKNOWN) status=255
+controlled-run: {"run_id": "dcc5cbd7772646e2b1657eb59b5b3437", "profile": "runtime", "executable": "bash", "argv_sha256": "1277e8da0586788326a6328e1b940b22ce59027e33a698a2b93b9b7a0ce15d1e", "limit_bytes": 6442450944, "peak_rss_bytes": 4326490112, "reason": "descendants_left", "root_pid": 59419, "exit_code": 125, "cleanup_complete": true, "initial_limit_bytes": 4294967296, "hard_limit_bytes": 17179869184, "growth_count": 1, "elapsed_seconds": 42.612}
