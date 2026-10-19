@@ -161,7 +161,9 @@ done
 echo "== app log tail (the process's own lines) =="
 # The handler prints the innermost frame first, so the useful end of its backtrace is the *head*
 # of the matching lines; `tail -20` kept only the outermost five frames (status 4.845).
-"$ADB" logcat -d 2>/dev/null | grep -a 'android_run_debug_thread' | head -40
+# The handler prints innermost first, and `loadup` now prints dozens of "Loading ..." lines
+# before it, so the interesting end is the *tail* (status 4.851).
+"$ADB" logcat -d 2>/dev/null | grep -a 'android_run_debug_thread' | tail -60
 # The app's own lines: the fatal handler's message, and anything a probe writes to fd 2.
 "$ADB" logcat -d 2>/dev/null | grep -a 'org\.femacs\|^PIPE \|^CL \|assertion failed' | tail -25
 echo "== the fatal-signal path (our own handler, debuggerd, malloc debug) =="

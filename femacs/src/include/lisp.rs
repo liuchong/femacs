@@ -2888,8 +2888,17 @@ pub fn safe_free (sa_count: specpdl_ref) {
     while unsafe { (specpdl_ptr! ()) } != specpdl_ref_to_ptr (sa_count) {
         unsafe {
             (specpdl_ptr! ()) = (specpdl_ptr! ()).sub (1);
-            eassert! ((*(specpdl_ptr! ())).kind == SPECPDL_UNWIND_PTR as u8);
-            xfree ((*(specpdl_ptr! ())).unwind_ptr.arg);
+            /* C 5666-5675 has two arms: the `SAFE_ALLOCA_LISP` path records
+               `SPECPDL_UNWIND_ARRAY`, and only the other path records `SPECPDL_UNWIND_PTR`.  The
+               port kept the first arm only, so `mapcar` (which allocates its argument vector with
+               `SAFE_ALLOCA_LISP`) aborted here (device run, status 4.851).  */
+            if (*(specpdl_ptr! ())).kind == SPECPDL_UNWIND_PTR as u8 {
+                eassert! ((*(specpdl_ptr! ())).unwind_ptr.func == Some (xfree));
+                xfree ((*(specpdl_ptr! ())).unwind_ptr.arg);
+            } else {
+                eassert! ((*(specpdl_ptr! ())).kind == SPECPDL_UNWIND_ARRAY as u8);
+                xfree ((*(specpdl_ptr! ())).unwind_array.array as *mut c_void);
+            }
         }
     }
 }
