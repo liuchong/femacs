@@ -1,0 +1,16 @@
+== pid@40s: 
+== gfxinfo ==
+== window ==
+  mCurrentFocus=Window{b763bef u0 com.android.launcher3/com.android.launcher3.uioverrides.QuickstepLauncher}
+  mFocusedApp=ActivityRecord{109018435 u0 com.android.launcher3/.uioverrides.QuickstepLauncher t259}
+== pid after keys: 
+== gfxinfo after ==
+== log ==
+10-20 07:03:10.563  2157  2179 I android_run_debug_thread: Loading emacs-lisp/rmc...
+10-20 07:03:10.564  2157  2179 I android_run_debug_thread: Loading emacs-lisp/rmc...done
+10-20 07:03:10.564  2157  2179 I android_run_debug_thread: Loading /assets/lisp/leim/leim-list.el (source)...
+10-20 07:03:10.565  2157  2179 I android_run_debug_thread: Loading /assets/lisp/leim/leim-list.el (source)...done
+10-20 07:03:10.570  2157  2179 I android_run_debug_thread: Finding pointers to doc strings...
+10-20 07:03:10.574  2157  2179 I android_run_debug_thread: Finding pointers to doc strings...done
+10-20 07:03:10.652  2157  2179 I android_run_debug_thread: FLIP glyphs=10
+10-20 07:03:10.707  2157  2178 F libc    : Fatal signal 11 (SIGSEGV), code 2 (SEGV_ACCERR), fault addr 0xb40000723c422140 in tid 2178 (Emacs main thre), pid 215
