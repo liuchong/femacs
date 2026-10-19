@@ -187,6 +187,23 @@ if [ -n "$APK_DIR" ]; then
     mkdir -p "$OUT/native/lib/arm64-v8a"
     cp "$NATIVE_SO" "$OUT/native/lib/arm64-v8a/libemacs.so"
     (cd "$OUT/native" && "$JAVA_HOME/bin/jar" uf "$UNSIGNED" lib/arm64-v8a/libemacs.so) || exit $?
+    # `wrap.sh` is Android's documented hook for a *debuggable* app: the runtime execs
+    # `lib/<abi>/wrap.sh <app_process command>` instead of the command itself, which is the only
+    # way to hand bionic's malloc debugger (`libc.debug.malloc.options`) a process on this image -
+    # setting the property alone produced no malloc-debug output at all (status 4.887).  Guard
+    # pages then fault at the *first* out-of-bounds write and print its backtrace, which is what
+    # the Android start-up hunt needs (status 4.888).
+    if [ "${FEMACS_ANDROID_DEBUGGABLE:-0}" = "1" ]; then
+      mkdir -p "$OUT/native/lib/arm64-v8a"
+      cat > "$OUT/native/lib/arm64-v8a/wrap.sh" <<'WRAP'
+#!/system/bin/sh
+export libc.debug.malloc.options="guard backtrace"
+exec "$@"
+WRAP
+      chmod 0755 "$OUT/native/lib/arm64-v8a/wrap.sh"
+      (cd "$OUT/native" && zip -X -0 -q "$UNSIGNED" lib/arm64-v8a/wrap.sh) || exit $?
+      echo "wrap.sh: ${FEMACS_ANDROID_DEBUGGABLE:+malloc debug (guard backtrace)}"
+    fi
   fi
   if [ "$ASSETS" = 1 ]; then
     python3 "$REPO/tools/gen-android-assets.py" --out "$OUT/pack" >/dev/null || exit $?
@@ -199,6 +216,37 @@ if [ -n "$APK_DIR" ]; then
     echo "assets: $(cd "$OUT/pack" && find assets -type f | wc -l | tr -d ' ') file(s) packed"
   fi
   "$ZIPALIGN" -f 4 "$UNSIGNED" "$APK_DIR/emacs-aligned.apk" || exit $?
+  # `wrap.sh` has to carry its executable mode *in the APK*, and both `zip` and `zipalign` drop
+  # it (measured: the entry came out `-rw----`, Android ignored the hook, and the run looked
+  # exactly like one without wrap.sh - status 4.888).  It is therefore written into the aligned
+  # APK, before signing, with the mode in its external attributes.
+  if [ "${FEMACS_ANDROID_DEBUGGABLE:-0}" = "1" ] && [ -f "$OUT/native/lib/arm64-v8a/wrap.sh" ]; then
+    python3 - "$APK_DIR/emacs-aligned.apk" "$OUT/native/lib/arm64-v8a/wrap.sh" <<'PYWRAP' || exit 1
+import sys, zipfile, os
+apk, src = sys.argv[1], sys.argv[2]
+data = open (src, "rb").read ()
+tmp = apk + ".wrap"
+zin = zipfile.ZipFile (apk)
+zout = zipfile.ZipFile (tmp, "w")
+for info in zin.infolist ():
+    if info.filename == "lib/arm64-v8a/wrap.sh":
+        continue
+    zout.writestr (info, zin.read (info.filename))
+info = zipfile.ZipInfo ("lib/arm64-v8a/wrap.sh")
+info.external_attr = 0o100755 << 16
+info.compress_type = zipfile.ZIP_STORED
+zout.writestr (info, data)
+zout.close (); zin.close ()
+os.replace (tmp, apk)
+PYWRAP
+    python3 - "$APK_DIR/emacs-aligned.apk" <<'PYCHK' || exit 1
+import sys, zipfile
+z = zipfile.ZipFile (sys.argv[1])
+modes = [oct (i.external_attr >> 16) for i in z.infolist () if i.filename.endswith ("wrap.sh")]
+print ("wrap.sh mode:", modes)
+raise SystemExit (0 if modes == ["0o100755"] else 1)
+PYCHK
+  fi
 
   # 3. a debug key, generated once, and the signature (the reference signs too).
   KS="$APK_DIR/debug.keystore"

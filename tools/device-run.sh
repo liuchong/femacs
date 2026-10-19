@@ -131,14 +131,14 @@ echo "== start =="
 # Capture the maps while the process is certainly alive (it dies within a second or two).
 early_pid=$("$ADB" shell pidof org.femacs 2>/dev/null | tr -d '\r')
 if [ -n "$early_pid" ]; then
-  "$ADB" shell "cat /proc/$early_pid/maps" > "$REPO/docs/baseline/probe-maps.txt" 2>/dev/null || true
+  "$ADB" shell "cat /proc/$early_pid/maps" > "$REPO/docs/baseline/probe-maps.txt" 2>/dev/null 
 fi
 sleep "$SETTLE"
 # The maps of the running process: a FORTIFY message names a mutex address, and which library
 # that address belongs to is the first thing worth knowing (R40: keep it in the tree).
 pid=$("$ADB" shell pidof org.femacs 2>/dev/null | tr -d '\r')
 if [ -n "$pid" ]; then
-  "$ADB" shell "cat /proc/$pid/maps" > "$REPO/docs/baseline/probe-maps.txt" 2>/dev/null || true
+  "$ADB" shell "cat /proc/$pid/maps" > "$REPO/docs/baseline/probe-maps.txt" 2>/dev/null 
 fi
 echo "== probe.log size =="
 "$ADB" shell "wc -l /data/data/org.femacs/files/probe.log 2>/dev/null"

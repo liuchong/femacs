@@ -1,0 +1,7 @@
+controlled-run: memory allowance 4096 -> 6144 MiB (hard maximum 16384)
+== kt.log ==
+cat: /data/local/tmp/wrap-ran: No such file or directory
+== death ==
+          timestamp=2026-10-20 03:21:43.124 pid=2189 realUid=10268 packageUid=10268 definingUid=10268 user=0
+          process=org.femacs reason=5 (APP CRASH(NATIVE)) subreason=0 (UNKNOWN) status=11
+controlled-run: {"run_id": "4f693d77de134d768e9f017e865d95e2", "profile": "runtime", "executable": "bash", "argv_sha256": "1277e8da0586788326a6328e1b940b22ce59027e33a698a2b93b9b7a0ce15d1e", "limit_bytes": 6442450944, "peak_rss_bytes": 4313858048, "reason": "descendants_left", "root_pid": 66898, "exit_code": 125, "cleanup_complete": true, "initial_limit_bytes": 4294967296, "hard_limit_bytes": 17179869184, "growth_count": 1, "elapsed_seconds": 45.394}
