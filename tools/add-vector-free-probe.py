@@ -59,9 +59,14 @@ unsafe fn vf_probe (tag: *const c_char, a: isize, b: isize)
 
 # (anchor, "after"/"before", probe text)
 SITES = [
-  # the caller of the split: what size it asked for, and what the returned vector says afterwards
+  # the caller of the split: what size it asked for, and what it is about to zero
   ("  if nbytes <= VBLOCK_BYTES_MAX\n    {\n", "after",
    '      vf_probe (c"al-in".as_ptr (), nbytes, 0);\n'),
+  ("  eassert! (0 < len && len <= VECTOR_ELTS_MAX);\n", "after",
+   '  vf_probe (c"al-len".as_ptr (), len, 0);\n'),
+  # inside the block, never between `if clearit` and its brace
+  ("\t{ memclear (p as *mut c_void, nbytes); }\n", "between",
+   '\tvf_probe (c"al-clear".as_ptr (), p as isize, nbytes); '),
   ("unsafe fn setup_on_free_list (v: *mut Lisp_Vector, nbytes: ptrdiff_t)\n{\n",
    "after", '  vf_probe (c"enter-push".as_ptr (), VINDEX (nbytes), v as isize);\n'),
   # `VINDEX` of a size below VBLOCK_BYTES_MIN is negative, and C's two `eassume`s that would catch it

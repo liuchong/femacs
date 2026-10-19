@@ -22704,3 +22704,10 @@ Fx_display_grayscale_p)` 折在了逗号后 ✗ 而参照折在空格后 ✓）�
   4. **已排除** ✓：`ROUNDUP!`/`POWER_OF_2`（Rust 里 `&` 优先级高于 `==`，与 C 语义一致 ✓）、`vroundup_ct`（8/16/2040 断言 ✓）、`VINDEX`、`PVECHEADERSIZE`、`pseudovector_nbytes`、`memclear`。
   5. **下一步（点名）** ✓：把两个出链点再补上 **`index` 与 `nbytes`**（四个数对齐 ✓），并在 `allocate_vector_from_block` 入口对 `nbytes == 0` 打一条 `zerolen` ✓ ⇒ 直接读出**谁传了 0**（调用栈上只有 `allocate_vectorlike` 一个调用点 ✓，所以接下来看 `vroundup!(nbytes)` 与 `len` 的来路 ✓）。
   6. **收尾** ✓：`alloc.rs` 已还原（`git diff` 空 ✓），探针工具在树里 ✓。
+
+- **4.842 更正 4.841 的解码错误；并确认崩溃那次分配是 `len=1 / nbytes=16`（2026-10-19）**：
+  1. **更正** ✗→✓：4.841 写「`restbytes = 248` 只有在 `nbytes = 0` 时成立」——那是我**手算 header 解码错了** ✗。用脚本按位解码后（`FLAG = 1<<62`、code 在 **bit 24**、restsize 在 bit 12、lispsize 在 bit 0），事件序列自洽 ✓：`take2` 取到的是 **360 B** 的头 ✓（`restsize 44` ✓），112 的请求切出 `restbytes = 360 − 112 = 248` ✓ ⇒ **没有零长请求** ✓，4.841 的机制推断作废 ✗（结论按本条为准 ✓）。
+  2. **仍然成立的观察** ✓：`push <A+112> 248 B`（头正确 ✓）之后，**下一次** `take2` 读**同一地址**得到 `header.size = 0` ✗ ⇒ 该向量在链上时被清零 ✓；随后 `split-push (112, −104)` ⇒ `VINDEX(−104)` 为负 ⇒ `vector_free_lists[负]` 越界写 ✓（4.839 ✓）。
+  3. **新读数（4.842 运行）** ✓：新增 `al-len (len)`、`al-clear (p, nbytes)` 后，日志**末尾**是 `al-len 1` → `al-in 16` → 崩溃 ✓ ⇒ **崩溃那次分配就是 `make_vector (1, elt)`**（`nbytes = 16` ✓，与 4.829 的 `mv0` 一致 ✓），此时桶里已经是坏的 ✓。
+  4. **教训（写进方法）** ✓：header 是**位域**，手工换算容易错 ✓；从本轮起一律用 `python3` 按位解码后再下结论 ✓（本轮已把它固化成 **`tools/decode-header.py`** ✓：`4611686018444345344 → code 1, rest 44 → 360 B` ✓、`…4288000 → 30 → 248 B` ✓、`0 → 普通向量 size 0` ✓）。
+  5. **收尾** ✓：`alloc.rs` 已还原（`git diff` 空 ✓）；探针工具保留 `al-len`/`al-clear`/`al-in`/`push`/`take`/`take2`/`short` 全部标签 ✓。
