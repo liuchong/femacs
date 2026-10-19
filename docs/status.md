@@ -22719,3 +22719,13 @@ Fx_display_grayscale_p)` 折在了逗号后 ✗ 而参照折在空格后 ✓）�
   4. **上机新症状（本轮最有价值的一条）** ✓：进程不再 SIGSEGV，而是 **`F libc : FORTIFY: pthread_mutex_lock called on a destroyed mutex (0x7d70e02cd8)`** + `SIGNALED status=6` ✓ ⇒ 检查版把问题**提前**暴露成一个确定的、可命名的不变量违反 ✓（对已销毁的互斥量加锁 ✓），而不是堆被写坏后的随机崩溃 ✓。
   5. **下一条线索** ✓：`systhread`/`lisp_mutex` 的初始化与销毁顺序（`init_system_mutex`、`free_global_mutexes`、`finalize_one_mutex` ✓）以及 `Lisp_Mutex`（实测 80 / `lisp_mutex_t` 64 ✓）的 Android 形状；按 4.831 的经验，先核对 `pthread_mutex_t` 的 bionic 尺寸/对齐（已在 `docs/baseline/layout/android-arm64.tsv` ✓ 40 字节 ✓）与端口 `systhread.rs` 的断言是否一致 ✓。
   6. **收尾** ✓：xtask 改动是本轮的实体交付 ✓（`build-tu`/`link-shared`/`build_finished_tus` 三处 ✓）；探针源码仍全部还原 ✓；检查版可以随时用 `FEMACS_LINK_CHECKING=1` 重建 ✓。
+
+- **4.845 探针日志改成项目内持久文件 + `mkdir`（R40）（2026-10-19）**：① 之前 `probe.log` 有时根本不存在：`openat` 写进尚未创建的 `files/` 时静默失败（本轮实测到一次 0 行）✓ ⇒ 探针先 `mkdir` 自己的数据目录 ✓。② `tools/device-run.sh` 运行结束后把 `probe.log` **pull 到 `docs/baseline/probe-run.log`**（R40：证据留在项目里，不放 `/tmp`）✓；`--dump-only` 继续读设备上的副本 ✓。
+
+- **4.846 真凶是 `emacs_close` 把 C 的两条预处理臂都编了（2026-10-19）** ✓：① 设备读数被 `strace` 钉死 ✓：`pipe2([105,108])` → `write(108,…)=16` → **`close(108)=0`**（这行不是 `emacs_close` 发的）→ `fcntl(108)=-1 EBADF` → `eassert` ✓。② 根因 ✓：C 2626-2631 是 `#if !(defined HAVE_ANDROID && !defined ANDROID_STUBIFY)`，端口把 `posix_close` 臂**无条件**写出来、又给 `android_close` 臂加了 `#[cfg(have_android)]` ⇒ Android 上一次 `emacs_close` 关两遍 ✓。③ 修复 ✓：第一臂带上 C 自己的条件 ✓；检查版设备轮里每次 close 都成功 ✓。提交 `340923c9` ✓。
+
+- **4.847 跳过 intern 的 1729 号内建符号没有名字，GC 因此断言（2026-10-19）**：① 新停点 ✓：`garbage_collect → process_mark_stack` 里 `XSTRING` 的 `eassert (STRINGP (a))` ✓。② 根因 ✓：`mark_object` 的符号臂末尾是 `set_string_marked (XSTRING (ptr->u.s.name))`，`f099f43e` 跳过 1729 的 intern 后该符号 `u.s.name` 是 0，不是字符串 ✓。③ 修复 ✓：被跳过的符号仍然拿到自己的名字字符串（不进 obarray）✓。
+
+- **4.848 `SYS_BUFSIZE_MAX` 被写成 `MAX_ALLOCA`（16,384），20 KB 的读就断言（2026-10-19）**：① 读数 ✓：`NB 20575` 之后 `assertion failed: nbyte <= SYS_BUFSIZE_MAX` ✓。② 根因 ✓：C 的值来自 `lib/sys-limits.h`（`INT_MAX >> 20 << 20` = 2,146,435,072），sysdep.rs 自己写的常量是 `MAX_ALLOCA` ✓。③ 修复 ✓：常量改成 `INT_MAX >> 20 << 20` ✓。提交 `9a073bd2` ✓。
+
+- **4.849 设备端 loadup 首次越过整套 charprop/语言表，停在 `SPECPDL_UNWIND_PTR` 断言（2026-10-19）**：① 里程碑 ✓：`debug-early → byte-run → backquote → subr → keymap → version → … → international/characters → language/{romanian,greek,hebrew} → international/cp51932` 全部加载成功 ✓（此前停在 byte-run）✓。② 新停点 ✓：`international/eucjp-ms` 期间 `(*(specpdl_ptr! ())).kind == SPECPDL_UNWIND_PTR` 断言失败（fns.rs）✓ —— 下一轮从 specpdl 的 record/unbind 配对查起 ✓。③ 收尾 ✓：全部临时探针已撤回（`alloc.rs`/`fileio.rs`/`sysdep.rs` 与 HEAD 一致 ✓），探针工具留在树内 ✓。
