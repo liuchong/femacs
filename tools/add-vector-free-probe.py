@@ -8,9 +8,11 @@ the crash the way the 4.829 probes did:
 
     sweep            `sweep_vectors` started (once per collection)
     push  vindex v   `setup_on_free_list` linked a vector
-    pop   vindex v   `allocate_vector_from_block` took the exact-size head
-    pop2  vindex v   ... or a larger-bin head
-    zero  vindex v   the entry that was just linked or taken has `contents[0] == 0` <- the defect
+    take   vindex nbytes   `allocate_vector_from_block` took the exact-size head, with the size the
+    take2  vindex nbytes   ... or the larger-bin head,      record's own header reports
+    pre/head/push          `setup_on_free_list`: contents[0] before the link, the bin's head, and
+                           contents[0] after it
+    split-push nbytes restbytes / sweep-push total_bytes   the two producers of free-list links
 
     tools/add-vector-free-probe.py            # insert
     tools/add-vector-free-probe.py --remove   # take it out again (byte-identical round trip)
@@ -78,12 +80,11 @@ SITES = [
   # the exact-size path: the probe reads `vector`, so it has to sit after the assignment
   ("      vector = vector_free_lists[index as usize];\n"
    "      ASAN_UNPOISON_VECTOR_CONTENTS! (vector, nbytes - header_size);\n",
-   "between", '      vf_probe (c"pop".as_ptr (), index,\n'
-              '                *(*vector).contents.as_mut_ptr ().offset (0) as isize);\n'),
+   "between", '      vf_probe (c"take".as_ptr (), index,\n'
+              '                pseudovector_nbytes (&raw const (*vector).header));\n'),
   ("	  vector_free_lists[index as usize] = next_vector (vector);\n\n"
    "	  /* Excess bytes are used for the smaller vector,\n",
-   "before", '	  vf_probe (c"pop2".as_ptr (), index,\n'
-             '		    *(*vector).contents.as_mut_ptr ().offset (0) as isize);\n'),
+   "before", '	  vf_probe (c"take2".as_ptr (), index, vector_nbytes);\n'),
   ("  while !block.is_null ()\n    {\n      let mut free_this_block: bool = false;\n",
    "after", '      /* nothing: the sweep marker above is enough */\n'),
 ]

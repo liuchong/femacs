@@ -22671,3 +22671,15 @@ Fx_display_grayscale_p)` 折在了逗号后 ✗ 而参照折在空格后 ✓）�
   3. **含义** ✓：链表写者（`setup_on_free_list`、出链回写）都已与 C 逐句对齐 ✓，`PVECHEADERSIZE`/`pseudovector_nbytes`/`VECTOR_IN_BLOCK`/`VECTOR_BLOCK_BYTES`/`ADVANCE` 也已对齐 ✓ ⇒ 剩下的唯一可能是**某处的空闲向量头被写坏**（`restsize` 被写成 4014 量级 ✓），或 `vector_nbytes` 作用在了一个「已经不是空闲向量」的对象上 ✓（即重复发放后又被当作链头 ✓）。
   4. **下一步（点名）** ✓：在**出链两个返回点**各打一条 `take (index, vector, vector_nbytes (vector))`，并在 `sweep-push`/`split-push` 处打同一三元组 ⇒ 直接读出**第一个 `vector_nbytes > 4088` 的链头**，它就是坏头本身 ✓；随后在写入该头的两条路径（活对象分配、`cleanup_vector`）上定位第一笔越界写 ✓。
   5. **收尾** ✓：`alloc.rs` 已还原（`git diff` 空 ✓），探针工具留在树里（`--remove` 往返逐字节一致 ✓）。
+
+- **4.839 `take` 带上 `vector_nbytes` 后，链条读到了**越界写**那一步：一个刚按 248 字节入链的向量，下一次出链只报告 **8** 字节 ⇒ 切分得 `restbytes = −104` ⇒ `VINDEX(−104)` 为负 ⇒ `vector_free_lists[负]` 越界写（2026-10-19）**：
+  1. **探针** ✓：`take`/`take2` 现在打印 `(index, vector_nbytes (vector))`（出链时该链头自报的尺寸 ✓），与 `split-push (nbytes, restbytes)`、`sweep-push (total_bytes)` 一起构成完整的三元组 ✓（全轮仍只有 120 行 ✓，崩溃点不变 ✓）。
+  2. **读数（干净安装 ✓，逐事件）** ✓：
+     - 事件 78 `split-push (112, 248)` ⇒ 376 字节的空闲向量按 112 切开，剩余 **248** 字节入桶 ✓（`VINDEX(248) = 29` ✓）；
+     - 事件 79–82：`enter-push 29` → `pre 29 0` → `head 29 0` → `push 29 2` ✓（这一步入链完全正常 ✓，头指针为 0、写入 `+2` ✓）；
+     - 事件 83 **`take2 (29, 8)`** ✗✗ —— 同一条链头**自报 8 字节**（即 `header.size` 的两个 12 位字段都为 0 ⇒ `nwords = 0` ⇒ `vroundup(8+0) = 8` ✓），而不是 248 ✓；
+     - 事件 84 `split-push (112, −104)` ✗ ⇒ `restbytes = 8 − 112 = −104` ✓ ⇒ `VINDEX(−104) = −15` ⇒ **`vector_free_lists[−15]`** ✗（`min!` 不拦负数 ✓）⇒ 越界写进紧邻的静态数据 ✓✓；
+     - 之后 90/96/102/109/115 的 `(616, −504)`、`(112, 32152)`、`(32, 32120)`、`(144, 31976)`、`(272, 31704)` 都是这条越界链的**下游** ✓（先负、后膨胀成 32 KB 级 ✓），与 4.837 的 `−2` 循环和 tombstone 的 `0x6` 同源 ✓。
+  3. **新结论（这是 4.836-4.838 一直缺的“第一现场”）** ✓：**桶里的链头自报尺寸与它入链时的尺寸不一致**（248 → 8 ✓），也就是该向量的 `header.size` 在**入链之后、出链之前**被清零过 ✓；而且**负的 `restbytes` 会让 `vector_free_lists` 越界写** ✓ —— 后者即使只是后果，也解释了为什么“堆被写坏”能传播得这么快 ✓。
+  4. **下一步（点名）** ✓：把 `push` 的第二个数从 `contents[0]` 换成 `header.size`（`push sz` ✓），并在同一轮里记录**下一次 `take` 的 `header.size`** ✓ ⇒ 直接看出“入链时是 248、出链时是 0”的**那一刻**；随后在 `cleanup_vector`（sweep 对 `PVEC_FREE` 的处理 ✓）与 `memclear` 两处布点 ✓，抓第一笔清零 ✓。
+  5. **收尾** ✓：`alloc.rs` 已还原（`git diff` 空 ✓），探针与标签都在 `tools/add-vector-free-probe.py` ✓（`--remove` 往返逐字节一致 ✓）。
