@@ -1,0 +1,14 @@
+controlled-run: memory allowance 4096 -> 6144 MiB (hard maximum 16384)
+== malloc debug lines ==
+10-20 03:06:34.340  2108  2189 F emacs_abort: emacs_abort called, please review the following stack trace
+10-20 03:06:34.341  2108  2189 F libc    : Fatal signal 11 (SIGSEGV), code 1 (SEGV_MAPERR), fault addr 0x0 in tid 2189 (Emacs main thre), pid 2108 (org.femacs)
+10-20 03:06:34.463  2196  2196 F DEBUG   : Abort message: 'emacs_abort called, please review the following stack trace'
+10-20 03:06:34.463  2196  2196 F DEBUG   :       #00 pc 000000000016ccb4  /data/app/~~YVIVkWHg8KAnH9XpeFz_CQ==/org.femacs--gDK3KOa4iUzoAxUAW3gww==/lib/arm64/libemacs.so (
+== our last lines ==
+10-20 03:06:34.279  2108  2190 I android_run_debug_thread: Loading emacs-lisp/rmc...
+10-20 03:06:34.279  2108  2190 I android_run_debug_thread: Loading emacs-lisp/rmc...done
+10-20 03:06:34.279  2108  2190 I android_run_debug_thread: Loading /assets/lisp/leim/leim-list.el (source)...
+10-20 03:06:34.280  2108  2190 I android_run_debug_thread: Loading /assets/lisp/leim/leim-list.el (source)...done
+10-20 03:06:34.283  2108  2190 I android_run_debug_thread: Finding pointers to doc strings...
+10-20 03:06:34.286  2108  2190 I android_run_debug_thread: Finding pointers to doc strings...done
+controlled-run: {"run_id": "c23fe145d9074d62a857d28b5ee92d63", "profile": "runtime", "executable": "bash", "argv_sha256": "29569e8ca472f23d789a05955f4980431cbde2864a33b797f1a382adef074e8d", "limit_bytes": 6442450944, "peak_rss_bytes": 4348706816, "reason": "descendants_left", "root_pid": 54927, "exit_code": 125, "cleanup_complete": true, "initial_limit_bytes": 4294967296, "hard_limit_bytes": 17179869184, "growth_count": 1, "elapsed_seconds": 45.661}

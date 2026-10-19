@@ -86,8 +86,22 @@ GEN="$OUT/gen"
 mkdir -p "$GEN"
 RES_ZIP="$OUT/res.zip"
 "$AAPT2" compile --dir "$REPO/femacs/platform/android/res" -o "$RES_ZIP" || exit $?
+# `android:debuggable` is C's `@ANDROID_DEBUGGABLE@` substitution (`java/AndroidManifest.xml.in`
+# 222): the reference build sets it from its configuration, the port has no configure step, so it
+# is off by default and `FEMACS_ANDROID_DEBUGGABLE=1` turns it on.  A debuggable APK is what makes
+# bionic's `libc.debug.malloc.options` (guard pages) apply to the app's own process - the only
+# on-device way to fault at the first out-of-bounds write instead of at its symptom (status 4.885).
+MANIFEST="$REPO/femacs/platform/android/AndroidManifest.xml"
+if [ "${FEMACS_ANDROID_DEBUGGABLE:-0}" = "1" ]; then
+  MANIFEST="$OUT/AndroidManifest.debug.xml"
+  sed 's/android:debuggable="false"/android:debuggable="true"/' \
+    "$REPO/femacs/platform/android/AndroidManifest.xml" > "$MANIFEST" || exit 1
+  grep -q 'android:debuggable="true"' "$MANIFEST" || {
+    echo "FEMACS_ANDROID_DEBUGGABLE=1: the manifest has no debuggable attribute to flip" >&2
+    exit 1; }
+fi
 "$AAPT2" link -o "$OUT/resources.ap_" -I "$ANDROID_JAR" \
-  --manifest "$REPO/femacs/platform/android/AndroidManifest.xml" --java "$GEN" "$RES_ZIP" || exit $?
+  --manifest "$MANIFEST" --java "$GEN" "$RES_ZIP" || exit $?
 mkdir -p "$OUT/rclasses"
 R_JAVA=$(find "$GEN" -name R.java | head -1)
 [ -n "$R_JAVA" ] || { echo "aapt2 did not write R.java" >&2; exit 3; }
