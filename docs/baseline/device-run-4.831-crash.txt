@@ -1,0 +1,68 @@
+# The Android crash, now that the system can report it (status 4.831)
+
+The device reported nothing at all until the port's signal records were given bionic's own
+layout: `logcat -b crash` was empty, `/data/tombstones` did not exist, and the process simply
+died with signal 11.  With `struct sigaction` (LP64 order), `stack_t` and `siginfo_t` measured
+from the NDK and the port's assertions updated (`check-android-layout` now covers them), the
+same run produces a tombstone and a full frame list.  Kept here rather than in `/tmp` (R40).
+
+```
+10-19 17:55:38.672  2933  2951 F libc    : Fatal signal 11 (SIGSEGV), code 1 (SEGV_MAPERR), fault addr 0x6 in tid 2951 (Emacs main thre), pid 2933 (org.femacs)
+          process=org.femacs reason=5 (APP CRASH(NATIVE)) subreason=0 (UNKNOWN) status=11
+
+frames (debuggerd, resolved against the port's own symbols):
+10-19 17:55:38.878  2958  2958 F DEBUG   :       #01 pc 000000000015d5b0  /data/app/~~7WeiaeOGPPgeCrVN-upP-Q==/org.femacs-Hc5gU25l0nBo-d8ZaBiezQ==/lib/arm64/libemacs.so (make_vector+64)
+10-19 17:55:38.878  2958  2958 F DEBUG   :       #02 pc 0000000000241e20  /data/app/~~7WeiaeOGPPgeCrVN-upP-Q==/org.femacs-Hc5gU25l0nBo-d8ZaBiezQ==/lib/arm64/libemacs.so (Fset_fontset_font+1172)
+10-19 17:55:38.878  2958  2958 F DEBUG   :       #03 pc 00000000002443e8  /data/app/~~7WeiaeOGPPgeCrVN-upP-Q==/org.femacs-Hc5gU25l0nBo-d8ZaBiezQ==/lib/arm64/libemacs.so (fontset_from_font+464)
+10-19 17:55:38.878  2958  2958 F DEBUG   :       #04 pc 0000000000177ef0  /data/app/~~7WeiaeOGPPgeCrVN-upP-Q==/org.femacs-Hc5gU25l0nBo-d8ZaBiezQ==/lib/arm64/libemacs.so (_RNvCser35ejAaf8p_11androidterm16android_new_font+40)
+10-19 17:55:38.878  2958  2958 F DEBUG   :       #05 pc 000000000024cda4  /data/app/~~7WeiaeOGPPgeCrVN-upP-Q==/org.femacs-Hc5gU25l0nBo-d8ZaBiezQ==/lib/arm64/libemacs.so (gui_set_font+376)
+10-19 17:55:38.878  2958  2958 F DEBUG   :       #06 pc 000000000024d6f4  /data/app/~~7WeiaeOGPPgeCrVN-upP-Q==/org.femacs-Hc5gU25l0nBo-d8ZaBiezQ==/lib/arm64/libemacs.so (gui_set_frame_parameters_1+1584)
+10-19 17:55:38.878  2958  2958 F DEBUG   :       #07 pc 000000000024b664  /data/app/~~7WeiaeOGPPgeCrVN-upP-Q==/org.femacs-Hc5gU25l0nBo-d8ZaBiezQ==/lib/arm64/libemacs.so (gui_default_parameter+96)
+10-19 17:55:38.878  2958  2958 F DEBUG   :       #08 pc 000000000016a660  /data/app/~~7WeiaeOGPPgeCrVN-upP-Q==/org.femacs-Hc5gU25l0nBo-d8ZaBiezQ==/lib/arm64/libemacs.so (Fx_create_frame+1440)
+10-19 17:55:38.878  2958  2958 F DEBUG   :       #09 pc 000000000019cf1c  /data/app/~~7WeiaeOGPPgeCrVN-upP-Q==/org.femacs-Hc5gU25l0nBo-d8ZaBiezQ==/lib/arm64/libemacs.so (exec_byte_code+1220)
+10-19 17:55:38.878  2958  2958 F DEBUG   :       #10 pc 00000000002109e0  /data/app/~~7WeiaeOGPPgeCrVN-upP-Q==/org.femacs-Hc5gU25l0nBo-d8ZaBiezQ==/lib/arm64/libemacs.so (Ffuncall+476)
+10-19 17:55:38.878  2958  2958 F DEBUG   :       #11 pc 000000000019cf1c  /data/app/~~7WeiaeOGPPgeCrVN-upP-Q==/org.femacs-Hc5gU25l0nBo-d8ZaBiezQ==/lib/arm64/libemacs.so (exec_byte_code+1220)
+10-19 17:55:38.878  2958  2958 F DEBUG   :       #12 pc 00000000002109e0  /data/app/~~7WeiaeOGPPgeCrVN-upP-Q==/org.femacs-Hc5gU25l0nBo-d8ZaBiezQ==/lib/arm64/libemacs.so (Ffuncall+476)
+10-19 17:55:38.878  2958  2958 F DEBUG   :       #13 pc 000000000019cf1c  /data/app/~~7WeiaeOGPPgeCrVN-upP-Q==/org.femacs-Hc5gU25l0nBo-d8ZaBiezQ==/lib/arm64/libemacs.so (exec_byte_code+1220)
+10-19 17:55:38.878  2958  2958 F DEBUG   :       #14 pc 0000000000212ae8  /data/app/~~7WeiaeOGPPgeCrVN-upP-Q==/org.femacs-Hc5gU25l0nBo-d8ZaBiezQ==/lib/arm64/libemacs.so (_RNvCs3LLZNOKOaYE_4eval12apply_lambda+264)
+10-19 17:55:38.878  2958  2958 F DEBUG   :       #15 pc 0000000000214c0c  /data/app/~~7WeiaeOGPPgeCrVN-upP-Q==/org.femacs-Hc5gU25l0nBo-d8ZaBiezQ==/lib/arm64/libemacs.so (eval_sub+1360)
+10-19 17:55:38.878  2958  2958 F DEBUG   :       #16 pc 0000000000210584  /data/app/~~7WeiaeOGPPgeCrVN-upP-Q==/org.femacs-Hc5gU25l0nBo-d8ZaBiezQ==/lib/arm64/libemacs.so (Feval+80)
+10-19 17:55:38.878  2958  2958 F DEBUG   :       #17 pc 0000000000214ef8  /data/app/~~7WeiaeOGPPgeCrVN-upP-Q==/org.femacs-Hc5gU25l0nBo-d8ZaBiezQ==/lib/arm64/libemacs.so (eval_sub+2108)
+10-19 17:55:38.878  2958  2958 F DEBUG   :       #18 pc 0000000000295ca4  /data/app/~~7WeiaeOGPPgeCrVN-upP-Q==/org.femacs-Hc5gU25l0nBo-d8ZaBiezQ==/lib/arm64/libemacs.so (_RNvCs6qH8o4dCLcE_5lread12readevalloop+1788)
+10-19 17:55:38.878  2958  2958 F DEBUG   :       #19 pc 0000000000294658  /data/app/~~7WeiaeOGPPgeCrVN-upP-Q==/org.femacs-Hc5gU25l0nBo-d8ZaBiezQ==/lib/arm64/libemacs.so (Fload+2576)
+10-19 17:55:38.878  2958  2958 F DEBUG   :       #20 pc 0000000000214fe0  /data/app/~~7WeiaeOGPPgeCrVN-upP-Q==/org.femacs-Hc5gU25l0nBo-d8ZaBiezQ==/lib/arm64/libemacs.so (eval_sub+2340)
+10-19 17:55:38.878  2958  2958 F DEBUG   :       #21 pc 0000000000210584  /data/app/~~7WeiaeOGPPgeCrVN-upP-Q==/org.femacs-Hc5gU25l0nBo-d8ZaBiezQ==/lib/arm64/libemacs.so (Feval+80)
+10-19 17:55:38.878  2958  2958 F DEBUG   :       #22 pc 0000000000215aa8  /data/app/~~7WeiaeOGPPgeCrVN-upP-Q==/org.femacs-Hc5gU25l0nBo-d8ZaBiezQ==/lib/arm64/libemacs.so (internal_condition_case+108)
+10-19 17:55:38.878  2958  2958 F DEBUG   :       #23 pc 0000000000277480  /data/app/~~7WeiaeOGPPgeCrVN-upP-Q==/org.femacs-Hc5gU25l0nBo-d8ZaBiezQ==/lib/arm64/libemacs.so (_RNvCsaOXJNhLi8Xi_8keyboard11top_level_1+44)
+10-19 17:55:38.878  2958  2958 F DEBUG   :       #24 pc 0000000000215940  /data/app/~~7WeiaeOGPPgeCrVN-upP-Q==/org.femacs-Hc5gU25l0nBo-d8ZaBiezQ==/lib/arm64/libemacs.so (internal_catch+84)
+10-19 17:55:38.878  2958  2958 F DEBUG   :       #25 pc 0000000000289788  /data/app/~~7WeiaeOGPPgeCrVN-upP-Q==/org.femacs-Hc5gU25l0nBo-d8ZaBiezQ==/lib/arm64/libemacs.so (recursive_edit_1+480)
+10-19 17:55:38.878  2958  2958 F DEBUG   :       #26 pc 0000000000275918  /data/app/~~7WeiaeOGPPgeCrVN-upP-Q==/org.femacs-Hc5gU25l0nBo-d8ZaBiezQ==/lib/arm64/libemacs.so (Frecursive_edit+404)
+10-19 17:55:38.878  2958  2958 F DEBUG   :       #27 pc 000000000020d7fc  /data/app/~~7WeiaeOGPPgeCrVN-upP-Q==/org.femacs-Hc5gU25l0nBo-d8ZaBiezQ==/lib/arm64/libemacs.so (_RNvCsknNO81jgF4N_5emacs15emacs_init_body+6736)
+10-19 17:55:38.878  2958  2958 F DEBUG   :       #28 pc 000000000020e038  /data/app/~~7WeiaeOGPPgeCrVN-upP-Q==/org.femacs-Hc5gU25l0nBo-d8ZaBiezQ==/lib/arm64/libemacs.so (android_emacs_init+8)
+10-19 17:55:38.878  2958  2958 F DEBUG   :       #29 pc 000000000015f5e0  /data/app/~~7WeiaeOGPPgeCrVN-upP-Q==/org.femacs-Hc5gU25l0nBo-d8ZaBiezQ==/lib/arm64/libemacs.so (Java_org_femacs_EmacsNative_initEmacs+696)
+10-19 17:55:38.878  2958  2958 F DEBUG   :       #30 pc 000000000033f500  /apex/com.android.art/lib64/libart.so (art_quick_generic_jni_trampoline+144) (BuildId: b229f9d1b6196afaae086f29f029f907)
+10-19 17:55:38.878  2958  2958 F DEBUG   :       #31 pc 0000000000689588  /apex/com.android.art/lib64/libart.so (nterp_helper+152) (BuildId: b229f9d1b6196afaae086f29f029f907)
+10-19 17:55:38.878  2958  2958 F DEBUG   :       #32 pc 0000000000104b08  <anonymous:7baff68000> (org.femacs.EmacsNative$Companion.initEmacs+0)
+10-19 17:55:38.878  2958  2958 F DEBUG   :       #33 pc 000000000068a444  /apex/com.android.art/lib64/libart.so (nterp_helper+3924) (BuildId: b229f9d1b6196afaae086f29f029f907)
+10-19 17:55:38.878  2958  2958 F DEBUG   :       #34 pc 000000000010dbe0  <anonymous:7baff68000> (org.femacs.EmacsThread.run+136)
+10-19 17:55:38.878  2958  2958 F DEBUG   :       #35 pc 0000000000328194  /apex/com.android.art/lib64/libart.so (art_quick_invoke_stub+612) (BuildId: b229f9d1b6196afaae086f29f029f907)
+10-19 17:55:38.878  2958  2958 F DEBUG   :       #36 pc 00000000002d9348  /apex/com.android.art/lib64/libart.so (art::ArtMethod::Invoke(art::Thread*, unsigned int*, unsigned int, art::JValue*, char const*)+216) (BuildId: b229f9d1b6196afaae086f29f029f907)
+10-19 17:55:38.878  2958  2958 F DEBUG   :       #37 pc 0000000000421028  /apex/com.android.art/lib64/libart.so (art::Thread::CreateCallback(void*)+932) (BuildId: b229f9d1b6196afaae086f29f029f907)
+10-19 17:55:38.878  2958  2958 F DEBUG   :       #38 pc 0000000000420c74  /apex/com.android.art/lib64/libart.so (art::Thread::CreateCallbackWithUffdGc(void*)+8) (BuildId: b229f9d1b6196afaae086f29f029f907)
+10-19 17:55:38.878  2958  2958 F DEBUG   :       #39 pc 0000000000080df8  /apex/com.android.runtime/lib64/bionic/libc.so (__pthread_start(void*)+232) (BuildId: 2445fc73ede03b9536eef49355aff375)
+10-19 17:55:38.878  2958  2958 F DEBUG   :       #40 pc 0000000000073dd8  /apex/com.android.runtime/lib64/bionic/libc.so (__start_thread+64) (BuildId: 2445fc73ede03b9536eef49355aff375)
+10-19 17:55:38.878  2958  2958 F DEBUG   :       #26 pc 0000000000275918  /data/app/~~7WeiaeOGPPgeCrVN-upP-Q==/org.femacs-Hc5gU25l0nBo-d8ZaBiezQ==/lib/arm64/libemacs.so (Frecursive_edit+404)
+10-19 17:55:38.878  2958  2958 F DEBUG   :       #27 pc 000000000020d7fc  /data/app/~~7WeiaeOGPPgeCrVN-upP-Q==/org.femacs-Hc5gU25l0nBo-d8ZaBiezQ==/lib/arm64/libemacs.so (_RNvCsknNO81jgF4N_5emacs15emacs_init_body+6736)
+10-19 17:55:38.878  2958  2958 F DEBUG   :       #28 pc 000000000020e038  /data/app/~~7WeiaeOGPPgeCrVN-upP-Q==/org.femacs-Hc5gU25l0nBo-d8ZaBiezQ==/lib/arm64/libemacs.so (android_emacs_init+8)
+10-19 17:55:38.878  2958  2958 F DEBUG   :       #29 pc 000000000015f5e0  /data/app/~~7WeiaeOGPPgeCrVN-upP-Q==/org.femacs-Hc5gU25l0nBo-d8ZaBiezQ==/lib/arm64/libemacs.so (Java_org_femacs_EmacsNative_initEmacs+696)
+10-19 17:55:38.878  2958  2958 F DEBUG   :       #32 pc 0000000000104b08  <anonymous:7baff68000> (org.femacs.EmacsNative$Companion.initEmacs+0)
+10-19 17:55:38.878  2958  2958 F DEBUG   :       #34 pc 000000000010dbe0  <anonymous:7baff68000> (org.femacs.EmacsThread.run+136)
+
+the last probe lines before the fault:
+AF 2951 enum 0 0
+AF 2951 enum 0 0
+AF 2951 enum 0 0
+AF 2951 enum 0 0
+AF 2951 dir 1 0
+AF 2951 dir 2 0
+```

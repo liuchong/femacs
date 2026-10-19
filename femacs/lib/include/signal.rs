@@ -182,18 +182,33 @@ pub union __sigaction_u
    and the alternative was a `transmute` at each of the twelve sites that read the slot
    (`src/sysdep.c` six, `src/process.c` six).  Offset, size and alignment are unchanged - the
    union is 8 bytes at 0 on both arms, which the two assertions below and the one at 148 hold.  */
+/* bionic's LP64 arm really does put the flags first: the NDK's `bits/signal_types.h` 103-110
+   defines `__SIGACTION_BODY` as `int sa_flags; union { ... }; sigset_t sa_mask;
+   void (*sa_restorer) (void);` under `#if defined (__LP64__)`, and 155-163 (the order this mirror
+   used to carry) is the *ILP32* branch.  Measured against the NDK for API 21, 28 and 36:
+   `sizeof` 32, `sa_flags`@0, the handler union@8, `sa_mask`@16, `sa_restorer`@24 (status 4.831).
+   The old order wrote the handler over `sa_flags` and `sigfillset`'s mask over the handler slot,
+   so every `sigaction` call installed a wild handler pointer on Android.  */
 #[cfg (feature = "have_android")]
 #[repr(C)]
 #[derive(Clone, Copy)]
 pub struct sigaction
 {
+  pub sa_flags: c_int,
   pub __sigaction_u: __sigaction_u,
   pub sa_mask: sigset_t,
-  pub sa_flags: c_int,
   pub sa_restorer: Option<unsafe extern "C" fn ()>,
 }
 #[cfg (feature = "have_android")]
 const _: () = core::assert! (std::mem::size_of::<sigaction> () == 32);
+#[cfg (feature = "have_android")]
+const _: () = core::assert! (std::mem::offset_of! (sigaction, sa_flags) == 0);
+#[cfg (feature = "have_android")]
+const _: () = core::assert! (std::mem::offset_of! (sigaction, __sigaction_u) == 8);
+#[cfg (feature = "have_android")]
+const _: () = core::assert! (std::mem::offset_of! (sigaction, sa_mask) == 16);
+#[cfg (feature = "have_android")]
+const _: () = core::assert! (std::mem::offset_of! (sigaction, sa_restorer) == 24);
 #[cfg (not (feature = "have_android"))]
 #[repr(C)]
 #[derive(Clone, Copy)]

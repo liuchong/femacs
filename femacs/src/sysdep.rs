@@ -184,8 +184,35 @@ const _: () = core::assert! (std::mem::offset_of! (rusage, ru_majflt) == 72);
 
 /* signal.h: `struct __siginfo { int si_signo; int si_errno; int si_code; pid_t si_pid;
    uid_t si_uid; int si_status; void *si_addr; union __sigval si_value; long si_band; };`  */
-/// `<signal.h>`'s `siginfo_t`, measured: `sizeof` 104, `si_addr`@24.  Only `si_addr` is
-/// reached (C 1885).
+/* The host's `<signal.h>` spells this `struct __siginfo { int si_signo; int si_errno;
+   int si_code; pid_t si_pid; uid_t si_uid; int si_status; void *si_addr; ... }` (measured
+   `sizeof` 104, `si_addr`@24).  bionic's is a different record: measured against the NDK for
+   API 21, 28 and 36, `sizeof (siginfo_t)` is 128 and `si_addr` is at 16 (`si_signo`@0,
+   `si_errno`@4, `si_code`@8, then the 8-aligned `_sifields` union, whose `_sigfault.si_addr`
+   is the first member - `handle_sigsegv`'s `stack_overflow` reads exactly that).  Carrying the
+   host record on Android meant reading `_sifields`' second word as the faulting address.  */
+#[cfg (feature = "have_android")]
+/// bionic's `siginfo_t`: the three tags, then the `_sifields` union (128 bytes in all).
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct siginfo_t {
+  pub si_signo: c_int,
+  pub si_errno: c_int,
+  pub si_code: c_int,
+  pub __pad0: c_int,
+  pub si_addr: *mut c_char,
+  pub __rest: [u64; 13],
+}
+
+#[cfg (feature = "have_android")]
+const _: () = core::assert! (std::mem::size_of::<siginfo_t> () == 128);
+#[cfg (feature = "have_android")]
+const _: () = core::assert! (std::mem::offset_of! (siginfo_t, si_code) == 8);
+#[cfg (feature = "have_android")]
+const _: () = core::assert! (std::mem::offset_of! (siginfo_t, si_addr) == 16);
+
+#[cfg (not (feature = "have_android"))]
+/// The host's record, measured: `sizeof` 104, `si_addr`@24.  Only `si_addr` is reached (C 1885).
 #[repr(C)]
 #[derive(Clone, Copy)]
 pub struct siginfo_t {
@@ -200,11 +227,36 @@ pub struct siginfo_t {
   pub si_band: c_long,
 }
 
+#[cfg (not (feature = "have_android"))]
 const _: () = core::assert! (std::mem::offset_of! (siginfo_t, si_addr) == 24);
 
 /* signal.h: `typedef struct __darwin_sigaltstack { void *ss_sp; __darwin_size_t ss_size;
    int ss_flags; } stack_t;`  */
-/// `<signal.h>`'s `stack_t`, measured: `sizeof` 24, `ss_sp`@0, `ss_size`@8, `ss_flags`@16.
+/* `stack_t` is the *other* order on bionic: measured against the NDK for API 21, 28 and 36,
+   `sizeof` 24 with `ss_sp`@0, `ss_flags`@8, `ss_size`@16 (the host's `__darwin_sigaltstack`
+   puts `ss_size` at 8 and `ss_flags` at 16).  With the host order Android's `sigaltstack` read
+   `ss_flags` out of the low half of the port's size - 0x10000 - and failed with EINVAL, which is
+   also why the port never got its SIGSEGV handler onto the alternate stack (status 4.831).  */
+#[cfg (feature = "have_android")]
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct stack_t {
+  pub ss_sp: *mut c_void,
+  pub ss_flags: c_int,
+  pub ss_size: usize,
+}
+
+#[cfg (feature = "have_android")]
+const _: () = core::assert! (std::mem::size_of::<stack_t> () == 24);
+#[cfg (feature = "have_android")]
+const _: () = core::assert! (std::mem::offset_of! (stack_t, ss_sp) == 0);
+#[cfg (feature = "have_android")]
+const _: () = core::assert! (std::mem::offset_of! (stack_t, ss_flags) == 8);
+#[cfg (feature = "have_android")]
+const _: () = core::assert! (std::mem::offset_of! (stack_t, ss_size) == 16);
+
+#[cfg (not (feature = "have_android"))]
+/// The host's `stack_t`, measured: `sizeof` 24, `ss_sp`@0, `ss_size`@8, `ss_flags`@16.
 #[repr(C)]
 #[derive(Clone, Copy)]
 pub struct stack_t {
@@ -213,9 +265,13 @@ pub struct stack_t {
   pub ss_flags: c_int,
 }
 
+#[cfg (not (feature = "have_android"))]
 const _: () = core::assert! (std::mem::size_of::<stack_t> () == 24);
+#[cfg (not (feature = "have_android"))]
 const _: () = core::assert! (std::mem::offset_of! (stack_t, ss_sp) == 0);
+#[cfg (not (feature = "have_android"))]
 const _: () = core::assert! (std::mem::offset_of! (stack_t, ss_size) == 8);
+#[cfg (not (feature = "have_android"))]
 const _: () = core::assert! (std::mem::offset_of! (stack_t, ss_flags) == 16);
 
 /// `<stddef.h>`'s `max_align_t`: the frozen target's widest scalar alignment is 8

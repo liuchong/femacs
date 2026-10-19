@@ -43,3 +43,13 @@ utmpx	struct utmpx	utmpx.h	offsetof (struct utmpx, ut_id)	40	4 bytes
 utmpx	struct utmpx	utmpx.h	offsetof (struct utmpx, ut_user)	44	32 bytes
 utmpx	struct utmpx	utmpx.h	offsetof (struct utmpx, ut_host)	76	256 bytes
 utmpx	struct utmpx	utmpx.h	offsetof (struct utmpx, ut_tv)	344	after `ut_exit` and `ut_session`
+sigaction	sigaction	signal.h	sizeof (struct sigaction)	32	status 4.831: bionic's LP64 __SIGACTION_BODY (bits/signal_types.h 103-110) puts `int sa_flags` first; 155-163 is the ILP32 order
+sigaction	sa_flags	signal.h	offsetof (struct sigaction, sa_flags)	0	the flags come first on LP64, so the port's old order wrote the handler over them
+sigaction	sa_mask	signal.h	offsetof (struct sigaction, sa_mask)	16	`sigfillset` used to write the mask over the handler slot
+sigaction	sa_restorer	signal.h	offsetof (struct sigaction, sa_restorer)	24	the only field the old order had right
+stack_t	stack_t	signal.h	sizeof (stack_t)	24	bionic and the host agree on the size and disagree on the order
+stack_t	ss_flags	signal.h	offsetof (stack_t, ss_flags)	8	Android's `sigaltstack` read `ss_flags` out of the port's `ss_size` and failed with EINVAL
+stack_t	ss_size	signal.h	offsetof (stack_t, ss_size)	16	the host's `__darwin_sigaltstack` has this at 8
+siginfo_t	siginfo_t	signal.h	sizeof (siginfo_t)	128	bionic's record; the host's `struct __siginfo` is 104
+siginfo_t	si_code	signal.h	offsetof (siginfo_t, si_code)	8	the three tags, then the 8-aligned `_sifields` union
+siginfo_t	si_addr	signal.h	offsetof (siginfo_t, si_addr)	16	`stack_overflow` reads this one (C 1885)
