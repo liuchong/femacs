@@ -33,6 +33,7 @@ ADB=$SDK/platform-tools/adb
 EMU=$SDK/emulator/emulator
 AVD=${AVD_NAME:-femacs-arm64-api36}
 APK=${APK_PATH:-/tmp/femacs-apk/emacs.apk}
+SO=${NATIVE_SO:-$REPO/build/port/aarch64-linux-android/libemacs.so}
 MEM=${EMULATOR_MEMORY_MIB:-2048}
 TAIL=${PROBE_TAIL:-120}
 GPU=${EMULATOR_GPU:-swiftshader_indirect}
@@ -66,6 +67,25 @@ if [ "$PLAN" = 1 ]; then
 fi
 
 [ "$DUMP_ONLY" = 1 ] || [ -f "$APK" ] || { echo "no APK at $APK" >&2; exit 2; }
+
+# Guard before spending a boot: an APK built from objects that were not compiled for this target
+# loads nothing and only says so inside the app's first line ("dlopen failed: cannot locate symbol
+# ..." - measured after `gate-fast` rebuilt the host objects, status 4.836).  The library inside the
+# APK must carry the JNI entry points and the Android globals the shell touches.
+if [ "$DUMP_ONLY" != 1 ] && [ -n "${CHECK_NATIVE:-1}" ]; then
+  NDK_BIN=$(ls -d "$SDK"/ndk/*/toolchains/llvm/prebuilt/*/bin 2>/dev/null | tail -1)
+  if [ -n "$NDK_BIN" ] && [ -f "$SO" ]; then
+    missing=""
+    for sym in android_init_gui Java_org_femacs_EmacsNative_initEmacs Fandroid_enumerate_fonts; do
+      "$NDK_BIN/llvm-nm" -D --defined-only "$SO" 2>/dev/null | grep -q " $sym\$" || missing="$missing $sym"
+    done
+    if [ -n "$missing" ]; then
+      echo "libemacs.so lacks$missing - rebuild the Android units (tools/check-all-units.sh) and" >&2
+      echo "re-run link-shared before packaging; this library would fail its first dlopen." >&2
+      exit 2
+    fi
+  fi
+fi
 "$ADB" emu kill >/dev/null 2>&1
 sleep 2
 "$EMU" -avd "$AVD" -no-window -no-audio -no-boot-anim -no-snapshot-save \

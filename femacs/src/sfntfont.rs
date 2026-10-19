@@ -3342,13 +3342,10 @@ const _: () = {
   core::assert! (std::mem::offset_of! (sfnt_font_info, glyf_table_mapped) == 572);
 };
 
-/* The configuration the Android leg actually builds (`HAVE_WINDOW_SYSTEM` 1, `HAVE_HARFBUZZ`
-   undefined): every offset after the embedded `struct font` moves by the 32 bytes `font.h`
-   325-403's eight members add, so the record is 608 and `glyf_table_mapped` sits at 604.  This
-   block exists because the arm above is the *host* shape and was the only reading this record
-   had; the number 608 was measured from the port itself with a deliberately failing array length
-   in `build-tu src/sfntfont.c` (status 4.832), and it agrees with 576 + 32.  Without it, a change
-   to any of the records this one embeds could move `VECSIZE` and corrupt the font object.  */
+/* The configuration Android builds (`HAVE_WINDOW_SYSTEM` 1, `HAVE_HARFBUZZ` undefined): every
+   offset past the embedded `struct font` moves by the 32 bytes `font.h` 325-403 adds, so the record
+   is 608 and `glyf_table_mapped` 604 - the number the port itself printed in `build-tu
+   src/sfntfont.c` with a deliberately failing array length (status 4.832).  */
 #[cfg (all (feature = "have_android", feature = "not_android_stubify",
 	    not (feature = "harfbuzz"), feature = "have_window_system"))]
 const _: () = {

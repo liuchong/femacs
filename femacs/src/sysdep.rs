@@ -184,13 +184,9 @@ const _: () = core::assert! (std::mem::offset_of! (rusage, ru_majflt) == 72);
 
 /* signal.h: `struct __siginfo { int si_signo; int si_errno; int si_code; pid_t si_pid;
    uid_t si_uid; int si_status; void *si_addr; union __sigval si_value; long si_band; };`  */
-/* The host's `<signal.h>` spells this `struct __siginfo { int si_signo; int si_errno;
-   int si_code; pid_t si_pid; uid_t si_uid; int si_status; void *si_addr; ... }` (measured
-   `sizeof` 104, `si_addr`@24).  bionic's is a different record: measured against the NDK for
-   API 21, 28 and 36, `sizeof (siginfo_t)` is 128 and `si_addr` is at 16 (`si_signo`@0,
-   `si_errno`@4, `si_code`@8, then the 8-aligned `_sifields` union, whose `_sigfault.si_addr`
-   is the first member - `handle_sigsegv`'s `stack_overflow` reads exactly that).  Carrying the
-   host record on Android meant reading `_sifields`' second word as the faulting address.  */
+/* bionic's `siginfo_t` is 128 bytes with `si_addr`@16 (`si_signo`/`si_errno`/`si_code`, then the
+   8-aligned `_sifields` union whose `_sigfault.si_addr` is first); the host record below is 104 with
+   `si_addr`@24.  Measured against the NDK for API 21/28/36 (status 4.831).  */
 #[cfg (feature = "have_android")]
 /// bionic's `siginfo_t`: the three tags, then the `_sifields` union (128 bytes in all).
 #[repr(C)]
@@ -232,11 +228,9 @@ const _: () = core::assert! (std::mem::offset_of! (siginfo_t, si_addr) == 24);
 
 /* signal.h: `typedef struct __darwin_sigaltstack { void *ss_sp; __darwin_size_t ss_size;
    int ss_flags; } stack_t;`  */
-/* `stack_t` is the *other* order on bionic: measured against the NDK for API 21, 28 and 36,
-   `sizeof` 24 with `ss_sp`@0, `ss_flags`@8, `ss_size`@16 (the host's `__darwin_sigaltstack`
-   puts `ss_size` at 8 and `ss_flags` at 16).  With the host order Android's `sigaltstack` read
-   `ss_flags` out of the low half of the port's size - 0x10000 - and failed with EINVAL, which is
-   also why the port never got its SIGSEGV handler onto the alternate stack (status 4.831).  */
+/* bionic's `stack_t` swaps the host's last two members: `ss_sp`@0, `ss_flags`@8, `ss_size`@16
+   (NDK, API 21/28/36).  With the host order `sigaltstack` read `ss_flags` as 0x10000 and failed
+   with EINVAL, so the SIGSEGV handler never got its alternate stack (status 4.831).  */
 #[cfg (feature = "have_android")]
 #[repr(C)]
 #[derive(Clone, Copy)]
