@@ -1,0 +1,11 @@
+controlled-run: memory allowance 4096 -> 6144 MiB (hard maximum 16384)
+== app dir listing (wrap.sh unpacked?) ==
+total 6064
+-r-xr-xr-x 3 system system 6188208 2026-10-20 03:25 libemacs.so
+== libc / malloc lines ==
+10-20 03:25:49.197   905  1080 W libc    : Access denied finding property "ro.incremental.enable"
+10-20 03:25:50.232  2191  2213 F libc    : FORTIFY: pthread_mutex_lock called on a destroyed mutex (0x76b1802cd8)
+10-20 03:25:50.934  1034  1034 W ContextImpl: Calling a method in the system process without a qualified user: android.app.ContextImpl.sendBroadcast:1269 androi
+== exit ==
+          process=org.femacs reason=2 (SIGNALED) subreason=0 (UNKNOWN) status=6
+controlled-run: {"run_id": "a13d7aa2dc814020a01ffafa95f81e8d", "profile": "runtime", "executable": "bash", "argv_sha256": "69630c9f904330996a9c9829be58d1f9bc16ba734ceaffbc6ec9cb038249e1c1", "limit_bytes": 6442450944, "peak_rss_bytes": 4269654016, "reason": "descendants_left", "root_pid": 69621, "exit_code": 125, "cleanup_complete": true, "initial_limit_bytes": 4294967296, "hard_limit_bytes": 17179869184, "growth_count": 1, "elapsed_seconds": 42.555}
