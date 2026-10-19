@@ -1,0 +1,25 @@
+first_pid_at=2s pid=2152
+== pid@40s: 2152
+== gfxinfo ==
+Total frames rendered: 2
+Janky frames: 2 (100.00%)
+Janky frames (legacy): 2 (100.00%)
+Number Missed Vsync: 0
+== window ==
+  mCurrentFocus=Window{bf1d6d0 u0 org.femacs/org.femacs.EmacsActivity}
+  mFocusedApp=ActivityRecord{16999962 u0 org.femacs/.EmacsActivity t239}
+== pid after keys: 2152
+== gfxinfo after ==
+Total frames rendered: 2
+Janky frames: 2 (100.00%)
+Janky frames (legacy): 2 (100.00%)
+Number Missed Vsync: 0
+== log ==
+10-20 06:36:32.760  2152  2173 I android_run_debug_thread: Loading /assets/lisp/leim/leim-list.el (source)...
+10-20 06:36:32.774  2152  2173 I android_run_debug_thread: Loading /assets/lisp/leim/leim-list.el (source)...done
+10-20 06:36:32.780  2152  2173 I android_run_debug_thread: Finding pointers to doc strings...
+10-20 06:36:32.784  2152  2173 I android_run_debug_thread: Finding pointers to doc strings...done
+10-20 06:36:32.846  2152  2173 I android_run_debug_thread: GFX pw=560 ph=25 cols=80 lines=25 menu=0 tool=0
+10-20 06:36:32.846  2152  2173 I android_run_debug_thread: GFX pw=560 ph=26 cols=80 lines=26 menu=1 tool=0
+10-20 06:36:32.846  2152  2173 I android_run_debug_thread: GFX pw=560 ph=26 cols=80 lines=26 menu=1 tool=0
+10-20 06:36:32.911  2152  2173 I android_run_debug_thread: RD enter
