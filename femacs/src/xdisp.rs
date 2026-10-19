@@ -35658,7 +35658,7 @@ unsafe fn append_stretch_glyph (it: *mut it, object: Lisp_Object,
 
   glyph = (*(*it).glyph_row).glyphs[area as usize]
     .offset ((*(*it).glyph_row).used[area as usize] as isize);
-  if glyph < (*(*it).glyph_row).glyphs[area as usize].offset (1)
+  if glyph < (*(*it).glyph_row).glyphs[area as usize + 1]
     {
       /* If the glyph row is reversed, we need to prepend the glyph
 	 rather than append it.  */
@@ -35893,7 +35893,7 @@ unsafe fn produce_image_glyph (it: *mut it)
 	    }
 	  glyph = (*(*it).glyph_row).glyphs[(*it).area as usize];
 	}
-      if glyph < (*(*it).glyph_row).glyphs[area as usize].offset (1)
+      if glyph < (*(*it).glyph_row).glyphs[area as usize + 1]
 	{
 	  (*glyph).charpos = CHARPOS! ((*it).position);
 	  (*glyph).object = (*it).object;
@@ -36820,7 +36820,7 @@ unsafe fn append_glyph (it: *mut it)
 
   glyph = (*(*it).glyph_row).glyphs[area as usize]
     .offset ((*(*it).glyph_row).used[area as usize] as isize);
-  if glyph < (*(*it).glyph_row).glyphs[area as usize].offset (1)
+  if glyph < (*(*it).glyph_row).glyphs[area as usize + 1]
     {
       /* If the glyph row is reversed, we need to prepend the glyph
 	 rather than append it.  */
@@ -36906,7 +36906,7 @@ unsafe fn append_composite_glyph (it: *mut it)
 
   glyph = (*(*it).glyph_row).glyphs[area as usize]
     .offset ((*(*it).glyph_row).used[area as usize] as isize);
-  if glyph < (*(*it).glyph_row).glyphs[area as usize].offset (1)
+  if glyph < (*(*it).glyph_row).glyphs[area as usize + 1]
     {
       /* If the glyph row is reversed, we need to prepend the glyph
 	 rather than append it.  */
@@ -37013,7 +37013,7 @@ unsafe fn append_glyphless_glyph (it: *mut it, face_id: c_int, for_no_font: bool
 
   glyph = (*(*it).glyph_row).glyphs[area as usize]
     .offset ((*(*it).glyph_row).used[area as usize] as isize);
-  if glyph < (*(*it).glyph_row).glyphs[area as usize].offset (1)
+  if glyph < (*(*it).glyph_row).glyphs[area as usize + 1]
     {
       /* If the glyph row is reversed, we need to prepend the glyph
 	 rather than append it.  */

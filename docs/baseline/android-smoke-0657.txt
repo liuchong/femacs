@@ -1,0 +1,25 @@
+first_pid_at=2s pid=2173
+== pid@40s: 2173
+== gfxinfo ==
+Total frames rendered: 4
+Janky frames: 4 (100.00%)
+Janky frames (legacy): 3 (75.00%)
+Number Missed Vsync: 1
+== window ==
+  mCurrentFocus=Window{b7cc83b u0 org.femacs/org.femacs.EmacsActivity}
+  mFocusedApp=ActivityRecord{237891918 u0 org.femacs/.EmacsActivity t255}
+== pid after keys: 2173
+== gfxinfo after ==
+Total frames rendered: 4
+Janky frames: 4 (100.00%)
+Janky frames (legacy): 3 (75.00%)
+Number Missed Vsync: 1
+== log ==
+10-20 06:58:04.410  2173  2194 I android_run_debug_thread: Loading emacs-lisp/rmc...
+10-20 06:58:04.410  2173  2194 I android_run_debug_thread: Loading emacs-lisp/rmc...done
+10-20 06:58:04.410  2173  2194 I android_run_debug_thread: Loading /assets/lisp/leim/leim-list.el (source)...
+10-20 06:58:04.411  2173  2194 I android_run_debug_thread: Loading /assets/lisp/leim/leim-list.el (source)...done
+10-20 06:58:04.416  2173  2194 I android_run_debug_thread: Finding pointers to doc strings...
+10-20 06:58:04.418  2173  2194 I android_run_debug_thread: Finding pointers to doc strings...done
+10-20 06:58:04.634  2173  2194 I android_run_debug_thread: s_glBindAttribLocation: bind attrib 0 name position
+10-20 06:58:04.634  2173  2194 I android_run_debug_thread: s_glBindAttribLocation: bind attrib 1 name localCoord
