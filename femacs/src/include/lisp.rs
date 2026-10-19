@@ -4138,7 +4138,7 @@ pub mod other_units {
         pub fn grow_specpdl_allocation ();
         pub fn unbind_to (count: specpdl_ref, value: Lisp_Object) -> Lisp_Object;
         pub fn maybe_garbage_collect ();
-        pub fn probably_quit () -> !;
+        pub fn probably_quit ();   // src/lisp.h 3881: `extern void probably_quit (void);` (it returns)
         pub fn xfree (p: *mut c_void);
         pub fn xmalloc (size: usize) -> *mut c_void;                     // src/lisp.h 5535
         pub fn indirect_function (object: Lisp_Object) -> Lisp_Object;   // src/lisp.h 4167 (data.c)

@@ -4099,8 +4099,19 @@ unsafe fn x_y_to_hpos_vpos (w: *mut window, mut x: c_int, y: c_int, hpos: *mut c
 }
 
 /* C 2452-2465: `x_y_to_column_row` sits under
-   `#if defined HAVE_WINDOW_SYSTEM && !defined HAVE_EXT_MENU_BAR`, dead on this target (P-08);
-   recorded in docs/ports/xdisp.md.  */
+   `#if defined HAVE_WINDOW_SYSTEM && !defined HAVE_EXT_MENU_BAR`, which **is** live on the
+   Android configuration (`HAVE_WINDOW_SYSTEM` without `HAVE_EXT_MENU_BAR`); `keyboard.rs`
+   calls it for the menu bar (C 6487).  It was recorded dead before status 4.908, which is why
+   the derived feature `window_system_no_ext_menu_bar` (xtask) had never been emitted.  */
+#[cfg (all (feature = "have_window_system", not (feature = "have_ext_menu_bar")))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn x_y_to_column_row (w: *mut window, x: c_int, y: c_int,
+					    column: *mut c_int, row: *mut c_int)
+{
+  let mut dummy: c_int = 0;
+  x_y_to_hpos_vpos (w, x, y, column, row, std::ptr::null_mut (), std::ptr::null_mut (),
+		    &raw mut dummy);
+}
 
 /* Convert frame-relative x/y to coordinates relative to window W.
    Takes pseudo-windows into account.  (C 2467-2486)  */
@@ -26814,17 +26825,42 @@ display_menu_bar (w: *mut window)
   if NILP (FRAME_MENU_BAR_ITEMS (f))
     { return; }
 
-  /* C 27797-27816's `#if defined (USE_X_TOOLKIT) || defined (USE_GTK)` and `#elif defined
-     (HAVE_X_WINDOWS) || defined (HAVE_ANDROID)` arms are dead; the live text is C's
-     trailing `else` body (the TTY case).  */
-  {
-    /* This is a TTY frame, i.e. character hpos/vpos are used as
-       pixel x/y.  */
-    init_iterator (&raw mut it, w, -1, -1,
-		   (*((*f).desired_matrix as *mut glyph_matrix)).rows, MENU_FACE_ID);
-    it.first_visible_x = 0;
-    it.last_visible_x = FRAME_COLS (f);
-  }
+  /* C 27797-27816: `#if defined (USE_X_TOOLKIT) || defined (USE_GTK)` is dead on this target,
+     but `#elif defined (HAVE_X_WINDOWS) || defined (HAVE_ANDROID)` is **live**: `have_android`
+     is defined, so a windowed frame keeps its menu bar in the desired matrix of the dummy
+     `menu_bar_window`.  Before status 4.908 this arm was recorded dead and only C's trailing
+     `else` body (the TTY case) was compiled; the TTY body reads `f->desired_matrix`, which is
+     null on an Android frame, and that is the `SEGV @ 0x8` in
+     `docs/baseline/android-tombstone-gui.txt` (`display_menu_bar+92`).  The `else` body is C's
+     own text, shared with the TTY-only configuration, as C's preprocessor shares it.  */
+  /* The `menu_bar_window` member itself is under C's `HAVE_WINDOW_SYSTEM &&
+     !HAVE_EXT_MENU_BAR` guard (frame.h 249), so the flag is defined only there; the arm is
+     taken only when the member exists and the frame is a windowed one.  */
+  #[cfg (all (feature = "have_window_system", not (feature = "have_ext_menu_bar")))]
+  let windowed_menu: bool
+    = cfg! (any (feature = "have_x_windows", feature = "have_android")) && FRAME_WINDOW_P (f);
+  #[cfg (not (all (feature = "have_window_system", not (feature = "have_ext_menu_bar"))))]
+  let windowed_menu: bool = false;
+
+  if windowed_menu
+    {
+      #[cfg (all (feature = "have_window_system", not (feature = "have_ext_menu_bar")))]
+      {
+	let menu_window: *mut window = XWINDOW ((*f).menu_bar_window);
+	let _face: *mut face = FACE_FROM_ID (f, MENU_FACE_ID);
+	init_iterator (&raw mut it, menu_window, -1, -1,
+		       (*((*menu_window).desired_matrix as *mut glyph_matrix)).rows, MENU_FACE_ID);
+      }
+    }
+  else
+    {
+      /* This is a TTY frame, i.e. character hpos/vpos are used as
+	 pixel x/y.  */
+      init_iterator (&raw mut it, w, -1, -1,
+		     (*((*f).desired_matrix as *mut glyph_matrix)).rows, MENU_FACE_ID);
+      it.first_visible_x = 0;
+      it.last_visible_x = FRAME_COLS (f);
+    }
 
   /* FIXME: This should be controlled by a user option.  See the
      comments in redisplay_tool_bar and display_mode_line about

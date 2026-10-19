@@ -2575,12 +2575,12 @@ unsafe fn adjust_frame_glyphs_for_window_redisplay (f: *mut frame)
     /* If the tool bar should be placed at the bottom of the frame,
        place it there instead, outside the internal border.  */
 
-    if EQ (FRAME_TOOL_BAR_POSITION! (f), Qbottom ())
+    if EQ (FRAME_TOOL_BAR_POSITION (f), Qbottom ())
       {
-	(*w).pixel_top = (FRAME_PIXEL_HEIGHT! (f)
-			  - FRAME_TOOL_BAR_HEIGHT! (f));
-	(*w).top_line = (FRAME_LINES! (f)
-			 - FRAME_TOOL_BAR_LINES! (f));
+	(*w).pixel_top = (FRAME_PIXEL_HEIGHT (f)
+			  - FRAME_TOOL_BAR_HEIGHT (f));
+	(*w).top_line = (FRAME_LINES (f)
+			 - FRAME_TOOL_BAR_LINES (f));
       }
     else
       {
@@ -2597,8 +2597,8 @@ unsafe fn adjust_frame_glyphs_for_window_redisplay (f: *mut frame)
     (*w).total_cols = FRAME_TOTAL_COLS (f);
     (*w).pixel_width = (FRAME_PIXEL_WIDTH (f)
 			- 2 * FRAME_INTERNAL_BORDER_WIDTH (f));
-    (*w).total_lines = FRAME_TOOL_BAR_LINES! (f);
-    (*w).pixel_height = FRAME_TOOL_BAR_HEIGHT! (f);
+    (*w).total_lines = FRAME_TOOL_BAR_LINES (f);
+    (*w).pixel_height = FRAME_TOOL_BAR_HEIGHT (f);
     allocate_matrices_for_window_redisplay (w);
   }
   }

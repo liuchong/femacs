@@ -1117,6 +1117,18 @@ pub fn FRAME_EXTERNAL_TOOL_BAR (f: *mut frame) -> bool { let _ = f; false }
 #[inline(always)]
 pub fn FRAME_EXTERNAL_TOOL_BAR (f: *mut frame) -> bool
 { frame_flag (f, FRAME_EXTERNAL_TOOL_BAR_FLAG_UNIT, FRAME_EXTERNAL_TOOL_BAR_FLAG_SHIFT) }
+/// C: frame.h's `fset_menu_bar_window` — the setter of the field C 249 guards with
+/// `HAVE_WINDOW_SYSTEM && !HAVE_EXT_MENU_BAR` (dispnew.c creates the dummy window with it).
+#[cfg (all (feature = "have_window_system", not (feature = "have_ext_menu_bar")))]
+#[inline(always)]
+pub fn fset_menu_bar_window (f: *mut frame, val: Lisp_Object)
+{ unsafe { (*f).menu_bar_window = val; } }
+/// C: frame.h's `fset_tool_bar_window` (C 263's field, same guard shape).
+#[cfg (all (feature = "have_window_system", not (feature = "have_ext_tool_bar")))]
+#[inline(always)]
+pub fn fset_tool_bar_window (f: *mut frame, val: Lisp_Object)
+{ unsafe { (*f).tool_bar_window = val; } }
+
 #[inline(always)]
 pub fn FRAME_TOOL_BAR_POSITION (f: *mut frame) -> Lisp_Object { unsafe { (*f).tool_bar_position } }
 #[inline(always)]

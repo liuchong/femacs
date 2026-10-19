@@ -233,6 +233,23 @@ fn config_features () -> Vec<String>
     && !truthy.contains ("HAVE_HAIKU");
   out.push (format! ("feature=\"{}\"", if usable_posix_spawn { "usable_posix_spawn" }
                      else { "not_usable_posix_spawn" }));
+  // frame.h's `menu_bar_window` (C 249) and `tool_bar_window`, and dispnew.c's dummy-window
+  // creation, are under `HAVE_WINDOW_SYSTEM && !HAVE_EXT_*_BAR`.  The frozen table carries the two
+  // macros but nothing derived the combination, so `window_system_no_ext_menu_bar` was never
+  // defined: the Android frame never got its menu-bar window while `FRAME_MENU_BAR_LINES` was 1,
+  // and `display_menu_bar` dereferenced a nil `menu_bar_window` (status 4.908, tombstone
+  // `docs/baseline/android-tombstone-gui.txt`).
+  let window_system_no_ext_menu_bar = truthy.contains ("HAVE_WINDOW_SYSTEM")
+    && !truthy.contains ("HAVE_EXT_MENU_BAR");
+  out.push (format! ("feature=\"{}\"", if window_system_no_ext_menu_bar
+                     { "window_system_no_ext_menu_bar" }
+                     else { "not_window_system_no_ext_menu_bar" }));
+  let window_system_no_ext_tool_bar = truthy.contains ("HAVE_WINDOW_SYSTEM")
+    && !truthy.contains ("HAVE_EXT_TOOL_BAR");
+  out.push (format! ("feature=\"{}\"", if window_system_no_ext_tool_bar
+                     { "window_system_no_ext_tool_bar" }
+                     else { "not_window_system_no_ext_tool_bar" }));
+
   // C defines `USE_ANDROID_ASSETS` inside the units that read it rather than in `config.h`
   // (`lread.c` 100-157, `doc.c` 40-70): `HAVE_ANDROID && !ANDROID_STUBIFY && __ANDROID_API__ >= 9`.
   // The frozen configuration carries no macro of that name, so nothing derived a cfg for it, both

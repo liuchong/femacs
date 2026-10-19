@@ -1,0 +1,25 @@
+first_pid_at=1s pid=2120
+== pid@40s: 2120
+== gfxinfo ==
+Total frames rendered: 2
+Janky frames: 2 (100.00%)
+Janky frames (legacy): 1 (50.00%)
+Number Missed Vsync: 0
+== window ==
+  mCurrentFocus=Window{30b58ad u0 org.femacs/org.femacs.EmacsActivity}
+  mFocusedApp=ActivityRecord{199876280 u0 org.femacs/.EmacsActivity t229}
+== pid after keys: 2120
+== gfxinfo after ==
+Total frames rendered: 2
+Janky frames: 2 (100.00%)
+Janky frames (legacy): 1 (50.00%)
+Number Missed Vsync: 0
+== log ==
+10-20 06:23:40.571  2120  2200 I android_run_debug_thread: Loading international/iso-transl...
+10-20 06:23:40.571  2120  2200 I android_run_debug_thread: Loading international/iso-transl...done
+10-20 06:23:40.571  2120  2200 I android_run_debug_thread: Loading emacs-lisp/rmc...
+10-20 06:23:40.575  2120  2200 I android_run_debug_thread: Loading emacs-lisp/rmc...done
+10-20 06:23:40.575  2120  2200 I android_run_debug_thread: Loading /assets/lisp/leim/leim-list.el (source)...
+10-20 06:23:40.575  2120  2200 I android_run_debug_thread: Loading /assets/lisp/leim/leim-list.el (source)...done
+10-20 06:23:40.578  2120  2200 I android_run_debug_thread: Finding pointers to doc strings...
+10-20 06:23:40.585  2120  2200 I android_run_debug_thread: Finding pointers to doc strings...done

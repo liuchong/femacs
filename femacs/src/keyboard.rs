@@ -422,6 +422,15 @@ macro_rules! frame_bits {
 /* C's `lisp.h` prototypes this file uses that the `lisp.rs` mirror does not carry (PORTING.md
    P-26: the mirror gap, reported in docs/ports/keyboard.md, is why the declaration stands at
    its use site; P-72③ wants C's prototype on the `/// C:` line).  */
+/* C's declaration is dispextern.h's `void x_y_to_column_row`; the definition is xdisp.c 2459
+   (live under `HAVE_WINDOW_SYSTEM && !HAVE_EXT_MENU_BAR`).  The menu-bar code below calls it
+   twice, at C 6487 and C 6989.  */
+#[cfg (all (feature = "have_window_system", not (feature = "have_ext_menu_bar")))]
+unsafe extern "C" {
+  fn x_y_to_column_row (w: *mut window, x: c_int, y: c_int,
+			column: *mut c_int, row: *mut c_int);
+}
+
 unsafe extern "C" {
   /// C: lisp.h 4245: `extern Lisp_Object larger_vector (Lisp_Object, ptrdiff_t, ptrdiff_t);`
   fn larger_vector (a: Lisp_Object, len: ptrdiff_t, init: ptrdiff_t) -> Lisp_Object;
@@ -7134,8 +7143,8 @@ unsafe fn make_lispy_event (event: *mut input_event) -> Lisp_Object
 		  let menu_w: *mut window = XWINDOW ((*f).menu_bar_window);
 		  x_y_to_column_row
 		    (XWINDOW ((*f).menu_bar_window),
-		     FRAME_TO_WINDOW_PIXEL_X (menu_w, XFIXNUM ((*event).x)),
-		     FRAME_TO_WINDOW_PIXEL_Y (menu_w, XFIXNUM ((*event).y)),
+		     FRAME_TO_WINDOW_PIXEL_X! (menu_w, XFIXNUM ((*event).x) as c_int),
+		     FRAME_TO_WINDOW_PIXEL_Y! (menu_w, XFIXNUM ((*event).y) as c_int),
 		     &raw mut column, &raw mut row);
 		}
 	      }
