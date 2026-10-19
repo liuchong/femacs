@@ -66,6 +66,13 @@ SITES = [
   ("  set_next_vector (v, vector_free_lists[vindex as usize]);\n",
    "after", '  vf_probe (c"push".as_ptr (), vindex,\n'
             '            *(*v).contents.as_mut_ptr ().offset (0) as isize);\n'),
+  # who calls `setup_on_free_list`, and with what byte count.  The 4.838 run answered this: the
+  # first oversized split is `(nbytes 144, restbytes 31976)` - six times VECTOR_BLOCK_BYTES - so a
+  # bin head was taken whose `vector_nbytes` is ~32 KB.  Next round logs that head's size at the pop.
+  ("	  setup_on_free_list (ADVANCE (vector, nbytes), restbytes);\n",
+   "before", '	  vf_probe (c"split-push".as_ptr (), nbytes, restbytes);\n'),
+  ("		  setup_on_free_list (vector, total_bytes);\n",
+   "before", '		  vf_probe (c"sweep-push".as_ptr (), total_bytes, 0);\n'),
   ("unsafe fn sweep_vectors ()\n{\n",
    "after", '  vf_probe (c"sweep".as_ptr (), 0, 0);\n'),
   # the exact-size path: the probe reads `vector`, so it has to sit after the assignment
