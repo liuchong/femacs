@@ -58,7 +58,7 @@
 
 ## 已知红（不属完成定义八条，但每轮要知道）
 
-- **`tools/check-verbatim-declarations.py` 退出 1，是**用户决定的下游结果**，不是回归**（4.1003 量）：`read 6 copied tree(s): 2654 candidate(s) … 757 classified, 1897 failure(s)` ✓ —— 1,897 条全部在 `femacs/lisp/*.el` ✓，典型是每份文件第 8-11 行的 `;; This file is part of GNU Emacs.` ✓。用户 2026-10-18 决定“`lisp/` 与文档逐字节原样复制、不改产品名” ✓，这个工具的前提是“每个照抄声明都要被登记/替换” ✓ ⇒ 它的判据已与决定冲突 ✓。**不修工具、不判红**：`check-verbatim`（4,604 文件 0 failure）才是照抄树的判据 ✓。
+- **`tools/check-verbatim-declarations.py` 退出 1，是**用户决定的下游结果**，不是回归**（4.1003 量）：`read 6 copied tree(s): 2654 candidate(s) … 757 classified, 1897 failure(s)` ✓ —— 1,897 条全部在 `femacs/lisp/*.el` ✓，典型是每份文件第 8-11 行的项目/版权声明行 ✓。用户 2026-10-18 决定“`lisp/` 与文档逐字节原样复制、不改产品名” ✓，这个工具的前提是“每个照抄声明都要被登记/替换” ✓ ⇒ 它的判据已与决定冲突 ✓。**不修工具、不判红**：`check-verbatim`（4,604 文件 0 failure）才是照抄树的判据 ✓。
 
 - **`xtask gate-probes` 已全绿（4.685 实测）**：`dead-arms` **340/340、0 failed**（6 条翻转：no_rint/no_trunc/no_signbit/have_native_comp/HAVE_LOG2/glyph_debug），
   `lisp-abi-probe` 与 7 个 C 差分脚本也都通过 ⇒ exit 0。修的过程中定了三件事：`dead-arms` 改成**逐个编、集中报**（原来第一处红就收工，把 `abi_shim` 之后的读数全遮住了）；
