@@ -239,3 +239,16 @@ is not used.
 Next: place the split marker by line number inside `init_iterator` (the `bidi_unshelve_cache
 (core::ptr::null_mut (), false)` in that block is at the time of writing line 4665), then read
 whether `bidi_init_it` is the throwing call.
+
+## Correction to 4.1021 (4.1022)
+
+The marker right after `bidi_unshelve_cache (core::ptr::null_mut (), false)` reads **0**, and so does
+one before the bidi block's comment.  Both zeros have the same simpler explanation: **the bidi block
+is not entered at all** on this call.  So 4.1021's "throw between memclear and the end of the bidi
+block" is right about the range but the bidi calls are not the suspect.
+
+What is established: `memclear` returns (marker 8) and nothing from the bidi comment onward is
+reached.  The throw is in the ~290 lines between them, which run unconditionally.
+
+Next: three markers in that stretch (after the iterator's face/string setup, before the
+`row != NULL` branch, and just before the bidi comment) to halve it again.
