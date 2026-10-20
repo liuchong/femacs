@@ -1809,8 +1809,8 @@ unsafe fn unset_cu_load_ongoing (comp_u: Lisp_Object)
    units' definitions; the ones no mirror names are declared where they are used.  */
 #[cfg (feature = "have_native_comp")]
 unsafe extern "C" {
-  pub fn save_restriction_save () -> Lisp_Object;
-  pub fn save_restriction_restore (arg: Lisp_Object);
+
+
   pub fn internal_delete_file (file: Lisp_Object) -> Lisp_Object;
 }
 
@@ -3078,7 +3078,7 @@ unsafe extern "C" {
   /// `have_native_comp` flipped on (the `dead-arms` configuration) that mirror declaration is not
   /// in scope, and the unit does not compile without its own copy (status 4.733).
   pub fn list (arg: Lisp_Object, ...) -> Lisp_Object;
-  pub fn prog_ignore (body: Lisp_Object);
+
   pub fn realpath (file_name: *const c_char, resolved_name: *mut c_char) -> *mut c_char;
   pub fn allocate_native_comp_unit () -> *mut Lisp_Native_Comp_Unit;
   pub fn internal_condition_case_1 (

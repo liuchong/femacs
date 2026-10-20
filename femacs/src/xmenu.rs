@@ -913,13 +913,13 @@ unsafe extern "C" {
   pub fn x_set_z_group (f: *mut frame, r#type: Lisp_Object, value: Lisp_Object);  // frame.h
     // keyboard.h
                                       // xdisp.h
-  pub fn safe_run_hooks (hook: Lisp_Object);                                     // keyboard.h
+                                     // keyboard.h
   pub fn record_unwind_protect_void (function: Option<unsafe extern "C" fn ()>);  // lisp.h 4825
-  pub fn record_unwind_save_match_data ();                                       // search.h
+                                       // search.h
   // frame.h
                   // frame.h
   pub fn get_frame_param (f: *mut frame, prop: Lisp_Object) -> Lisp_Object;      // frame.h
-  pub fn menu_bar_items (menu_bar_items: Lisp_Object) -> Lisp_Object;            // keyboard.h
+            // keyboard.h
   pub fn timer_check () -> timespec;                                             // keyboard.h
   pub fn quit () -> !;                                                           // lisp.h 4786
 }

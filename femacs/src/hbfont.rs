@@ -590,7 +590,7 @@ unsafe extern "C" {
 /// C: lisp.h 4697: `extern Lisp_Object get_unicode_property (Lisp_Object, int);`
 #[cfg (feature = "harfbuzz")]
 unsafe extern "C" {
-  pub fn get_unicode_property (table: Lisp_Object, ch: c_int) -> Lisp_Object;
+
 }
 /// C: dispextern.h 3553: `extern int  bidi_mirror_char (int);`
 #[cfg (feature = "harfbuzz")]

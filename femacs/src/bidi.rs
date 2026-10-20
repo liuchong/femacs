@@ -227,10 +227,7 @@ unsafe extern "C" {
   pub fn fast_looking_at (regexp: Lisp_Object, pos: ptrdiff_t, pos_byte: ptrdiff_t,
 			  limit: ptrdiff_t, limit_byte: ptrdiff_t, object: Lisp_Object)
 			  -> ptrdiff_t;
-  /// C: lisp.h 5040-5041: `extern ptrdiff_t find_newline_no_quit (ptrdiff_t, ptrdiff_t,
-  /// ptrdiff_t, ptrdiff_t *);`
-  pub fn find_newline_no_quit (from: ptrdiff_t, from_byte: ptrdiff_t, cnt: ptrdiff_t,
-			       bytepos: *mut ptrdiff_t) -> ptrdiff_t;
+
 }
 
 /* `region-cache.h`'s four prototypes are the mirror's now: `include/region-cache.rs`

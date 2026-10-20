@@ -413,8 +413,7 @@ unsafe extern "C" {
   /// C: dispextern.h 3688: `extern void note_mouse_highlight (struct frame *, int, int);`
   pub fn note_mouse_highlight (f: *mut frame, x: c_int, y: c_int);
 
-  /// C: lisp.h 5095: `extern bool detect_input_pending (void);`
-  pub fn detect_input_pending () -> bool;
+
   /// C: androidgui.h 926-927: `extern struct android_gc *android_create_gc (enum
   /// android_gc_value_mask, struct android_gc_values *);`
   pub fn android_create_gc (valuemask: android_gc_value_mask, values: *mut android_gc_values)
@@ -9072,7 +9071,7 @@ pub static mut Vandroid_wait_for_event_timeout: Lisp_Object = lisp_h_Qnil ();
    site (the `src/haikuterm.rs` 6519-6524 device).  */
 #[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
 unsafe extern "C" {
-  pub fn mark_object (obj: Lisp_Object);
+
 }
 
 /* C 7112-7117: `mark_androidterm`, the file's last definition.  Non-`static` and no address is

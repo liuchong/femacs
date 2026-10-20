@@ -3470,12 +3470,10 @@ unsafe extern "C" {
   pub fn gui_update_cursor (f: *mut frame, invisible: bool);
   /// C: lisp.h 4409: `void set_frame_cursor_types (struct frame *, Lisp_Object);`
   pub fn set_frame_cursor_types (f: *mut frame, cursor_type: Lisp_Object);
-  /// C: lisp.h 607: `extern int check_int_nonnegative (Lisp_Object);`
-  pub fn check_int_nonnegative (x: Lisp_Object) -> c_int;
+
   /// C: dispextern.h 3896: `extern void redraw_frame (struct frame *);`
   pub fn redraw_frame (f: *mut frame);
-  /// C: lisp.h 612: `extern uintmax_t check_uinteger_max (Lisp_Object, uintmax_t);`
-  pub fn check_uinteger_max (x: Lisp_Object, max: uintmax_t) -> uintmax_t;
+
 }
 
 /* C 2668-2693.  */

@@ -181,114 +181,66 @@ include!("include/thread.rs");                 // C 157: `#include "thread.h"`
    -------------------------------------------------------------------------------------- */
 unsafe extern "C" {
   /* --- src/lisp.h ---------------------------------------------------------------- */
-  /// C: lisp.h 4380: `extern void check_message_stack (void);`
-  fn check_message_stack ();
-  /// C: lisp.h 4381: `extern void clear_message_stack (void);`
-  fn clear_message_stack ();
-  /// C: lisp.h 5301: `extern void emacs_backtrace (int);`
-  fn emacs_backtrace (backtrace_limit: c_int);
-  /// C: lisp.h 5284: `extern char *emacs_get_current_dir_name (void);`
-  fn emacs_get_current_dir_name () -> *mut c_char;
+
+
+
+
   /// C: lisp.h 4979: `extern bool file_access_p (char const *, int);`
   fn file_access_p (name: *const c_char, amode: c_int) -> bool;
   /// C: lisp.h 4247: `extern void hexbuf_digest (char *, void const *, int);`
   fn hexbuf_digest (buf: *mut c_char, data: *const c_void, size: c_int);
   /// C: lisp.h 5371: `extern AVOID fatal (const char *msgid, ...) ATTRIBUTE_FORMAT_PRINTF (1, 2);`
   fn fatal (msgid: *const c_char, ...) -> !;
-  /// C: lisp.h 4657: `extern void init_alloc_once (void);`
-  fn init_alloc_once ();
-  /// C: lisp.h 4658: `extern void init_alloc (void);`
-  fn init_alloc ();
-  /// C: lisp.h 4946: `extern void init_buffer_once (void);`
-  fn init_buffer_once ();
-  /// C: lisp.h 4947: `extern void init_buffer (void);`
-  fn init_buffer ();
-  /// C: lisp.h 4221: `extern void init_coding_once (void);`
-  fn init_coding_once ();
-  /// C: lisp.h 4932: `extern void init_editfns (void);`
-  fn init_editfns ();
-  /// C: lisp.h 4844: `extern void init_eval_once (void);`
-  fn init_eval_once ();
+
+
+
+
+
+
+
   /// C: lisp.h 4858: `extern void init_eval (void);`
   fn init_eval ();
-  /// C: lisp.h 4990: `extern void init_fileio (void);`
-  fn init_fileio ();
-  /// C: lisp.h 5379: `extern void init_font (void);`
-  fn init_font ();
-  /// C: lisp.h 5122: `extern void init_frame_once (void);`
-  fn init_frame_once ();
-  /// C: lisp.h 4752: `extern void init_lread (void);`
-  fn init_lread ();
-  /// C: lisp.h 5059: `extern void init_minibuf_once (void);`
-  fn init_minibuf_once ();
+
+
+
+
+
   /// C: lisp.h 4751: `extern void init_obarray_once (void);`
   fn init_obarray_once ();
-  /// C: lisp.h 4711: `extern void init_print_once (void);`
-  fn init_print_once ();
-  /// C: lisp.h 5200: `extern void init_process_emacs (int);`
-  fn init_process_emacs (sockfd: c_int);
-  /// C: lisp.h 5300: `extern void init_random (void);`
-  fn init_random ();
-  /// C: lisp.h 5283: `extern void init_standard_fds (void);`
-  fn init_standard_fds ();
-  /// C: lisp.h 4411: `extern void init_xdisp (void);`
-  fn init_xdisp ();
-  /// C: lisp.h 5417: `extern void init_xfaces (void);`
-  fn init_xfaces ();
-  /// C: lisp.h 5107: `extern void keys_of_keyboard (void);`
-  fn keys_of_keyboard ();
-  /// C: lisp.h 5180: `extern void kill_buffer_processes (Lisp_Object);`
-  fn kill_buffer_processes (object: Lisp_Object);
+
+
+
+
+
+
+
+
   /// C: lisp.h 4396: `extern void message_dolog (const char *, ptrdiff_t, bool, bool);`
   fn message_dolog (m: *const c_char, nbytes: ptrdiff_t, nlflag: bool, multibyte: bool);
-  /// C: lisp.h 5293: `extern void reset_all_sys_modes (void);`
-  fn reset_all_sys_modes ();
-  /// C: lisp.h 5097: `extern void safe_run_hooks (Lisp_Object);`
-  fn safe_run_hooks (hook: Lisp_Object);
-  /// C: lisp.h 5217: `extern void set_initial_environment (void);`
-  fn set_initial_environment ();
-  /// C: lisp.h 5060: `extern void set_initial_minibuffer_mode (void);`
-  fn set_initial_minibuffer_mode ();
-  /// C: lisp.h 5345: `extern void unlock_all_files (void);`
-  fn unlock_all_files ();
-  /// C: lisp.h 4659: `extern void syms_of_alloc (void);`
-  fn syms_of_alloc ();
-  /// C: lisp.h 4222: `extern void syms_of_coding (void);`
-  fn syms_of_coding ();
-  /// C: lisp.h 4933: `extern void syms_of_editfns (void);`
-  fn syms_of_editfns ();
-  /// C: lisp.h 4859: `extern void syms_of_eval (void);`
-  fn syms_of_eval ();
-  /// C: lisp.h 4991: `extern void syms_of_fileio (void);`
-  fn syms_of_fileio ();
-  /// C: lisp.h 4284: `extern void syms_of_fns (void);`
-  fn syms_of_fns ();
-  /// C: lisp.h 5378: `extern void syms_of_font (void);`
-  fn syms_of_font ();
-  /// C: lisp.h 5123: `extern void syms_of_frame (void);`
-  fn syms_of_frame ();
-  /// C: lisp.h 5106: `extern void syms_of_keyboard (void);`
-  fn syms_of_keyboard ();
-  /// C: lisp.h 4753: `extern void syms_of_lread (void);`
-  fn syms_of_lread ();
-  /// C: lisp.h 5061: `extern void syms_of_minibuf (void);`
-  fn syms_of_minibuf ();
-  /// C: lisp.h 4712: `extern void syms_of_print (void);`
-  fn syms_of_print ();
-  /// C: lisp.h 5201: `extern void syms_of_process (void);`
-  fn syms_of_process ();
-  /// C: lisp.h 5047: `extern void syms_of_search (void);`
-  fn syms_of_search ();
-  /// C: lisp.h 5342: `extern void syms_of_sysdep (void);`
-  fn syms_of_sysdep ();
-  /// C: lisp.h 5370: `extern void syms_of_term (void);`
-  fn syms_of_term ();
-  /// C: lisp.h 4410: `extern void syms_of_xdisp (void);`
-  fn syms_of_xdisp ();
-  /// C: lisp.h 5416: `extern void syms_of_xfaces (void);`
-  fn syms_of_xfaces ();
-  /// C: lisp.h 5313: `extern int emacs_pipe (int[2]);`
-  fn emacs_pipe (pipefd: *mut c_int) -> c_int;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   /// C: lisp.h 5337: `extern void emacs_perror (char const *);`
   fn emacs_perror (message: *const c_char);
   /// C: lisp.h 5312: `extern int emacs_open_noquit (const char *, int, int);`
@@ -352,28 +304,23 @@ unsafe extern "C" {
 unsafe extern "C" {
   /// C: `void syms_of_module (void);`
   fn syms_of_module ();
-  /// C: `void syms_of_sound (void);`
-  fn syms_of_sound ();
+
   /// C: `void syms_of_ntproc (void);`
   fn syms_of_ntproc ();
   /// C: `void syms_of_cygw32 (void);`
   fn syms_of_cygw32 ();
-  /// C: `void syms_of_fringe (void);`
-  fn syms_of_fringe ();
-  /// C: `void syms_of_image (void);`
-  fn syms_of_image ();
+
+
   /// C: `void syms_of_w32image (void);`
   fn syms_of_w32image ();
   /// C: `void syms_of_xterm (void);`
   fn syms_of_xterm ();
   /// C: `void syms_of_xfns (void);`
   fn syms_of_xfns ();
-  /// C: `void syms_of_xmenu (void);`
-  fn syms_of_xmenu ();
+
   /// C: `void syms_of_fontset (void);`
   fn syms_of_fontset ();
-  /// C: `void syms_of_xsettings (void);`
-  fn syms_of_xsettings ();
+
   /// C: `void syms_of_xsmfns (void);`
   fn syms_of_xsmfns ();
   /// C: `void syms_of_xselect (void);`
@@ -466,8 +413,7 @@ unsafe extern "C" {
   fn init_xterm ();
   /// C: `void init_crit (void);`
   fn init_crit ();
-  /// C: `void init_fringe (void);`
-  fn init_fringe ();
+
   /// C: `void init_androidmenu (void);`
   fn init_androidmenu ();
 }
@@ -831,88 +777,47 @@ pub static mut Vdynamic_library_alist: Lisp_Object = lisp_h_Qnil ();
    defined by the unit its C file names (they carry `#[unsafe(no_mangle)]` there), and the
    `/// C:` line is the reference prototype.  */
 unsafe extern "C" {
-  /// C: lisp.h 4743-4745: `extern int openp (Lisp_Object, Lisp_Object, Lisp_Object, Lisp_Object *, Lisp_Object, bool, bool, void **);`
-  fn openp (path: Lisp_Object, str_: Lisp_Object, suffixes: Lisp_Object,
-            storeptr: *mut Lisp_Object, predicate: Lisp_Object, newer: bool,
-            no_native: bool, platform: *mut *mut c_void) -> c_int;
-  /// C: lisp.h 4211: `extern void syms_of_data (void);`
-  fn syms_of_data ();
-  /// C: lisp.h 5225: `extern void syms_of_bytecode (void);`
-  fn syms_of_bytecode ();
-  /// C: lisp.h 5066: `extern void syms_of_callint (void);`
-  fn syms_of_callint ();
-  /// C: lisp.h 5070: `extern void syms_of_casefiddle (void);`
-  fn syms_of_casefiddle ();
-  /// C: lisp.h 5075: `extern void syms_of_casetab (void);`
-  fn syms_of_casetab ();
-  /// C: lisp.h 5355: `extern void syms_of_category (void);`
-  fn syms_of_category ();
-  /// C: lisp.h 5358: `extern void syms_of_ccl (void);`
-  fn syms_of_ccl ();
-  /// C: lisp.h 4228: `extern void syms_of_character (void);`
-  fn syms_of_character ();
-  /// C: lisp.h 4231: `extern void init_charset (void);`
-  fn init_charset ();
-  /// C: lisp.h 4233: `extern void syms_of_charset (void);`
-  fn syms_of_charset ();
-  /// C: lisp.h 4215: `extern void syms_of_cmds (void);`
-  fn syms_of_cmds ();
-  /// C: lisp.h 5361: `extern void syms_of_dired (void);`
-  fn syms_of_dired ();
-  /// C: lisp.h 5222: `extern void syms_of_doc (void);`
-  fn syms_of_doc ();
-  /// C: lisp.h 4301: `extern void syms_of_floatfns (void);`
-  fn syms_of_floatfns ();
-  /// C: lisp.h 5347: `extern void syms_of_filelock (void);`
-  fn syms_of_filelock ();
-  /// C: lisp.h 5114: `extern void syms_of_indent (void);`
-  fn syms_of_indent ();
-  /// C: lisp.h 4366: `extern void syms_of_insdel (void);`
-  fn syms_of_insdel ();
-  /// C: lisp.h 4316: `extern void syms_of_json (void);`
-  fn syms_of_json ();
-  /// C: lisp.h 5247: `extern void syms_of_macros (void);`
-  fn syms_of_macros ();
-  /// C: lisp.h 5469: `extern void syms_of_profiler (void);`
-  fn syms_of_profiler ();
-  /// C: lisp.h 4417: `extern void syms_of_sqlite (void);`
-  fn syms_of_sqlite ();
-  /// C: lisp.h 4239: `extern void syms_of_syntax (void);`
-  fn syms_of_syntax ();
-  /// C: lisp.h 5258: `extern void syms_of_undo (void);`
-  fn syms_of_undo ();
-  /// C: lisp.h 5440: `extern void syms_of_xml (void);`
-  fn syms_of_xml ();
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   /// C: lisp.h 5043: `extern void syms_of_comp (void);`
   fn syms_of_comp ();
-  /// C: lisp.h 5086: `extern void syms_of_floatfns's sibling for the terminal: lisp.h 5238's
-  /// `extern void syms_of_term (void);` is above; this one is termchar.h 51's
-  /// `extern void syms_of_terminal (void);`
-  fn syms_of_terminal ();
-  /// C: lisp.h 4698: `extern void syms_of_chartab (void);`
-  fn syms_of_chartab ();
+
+
   /// C: lisp.h 5246: `extern void init_macros (void);`
   fn init_macros ();
-  /// C: lisp.h 5215: `extern void init_callproc_1 (void);`
-  fn init_callproc_1 ();
-  /// C: lisp.h 5216: `extern void init_callproc (void);`
-  fn init_callproc ();
-  /// C: lisp.h 5218: `extern void syms_of_callproc (void);`
-  fn syms_of_callproc ();
-  /// C: lisp.h 5105: `extern void init_keyboard (void);`
-  fn init_keyboard ();
-  /// C: lisp.h 4232: `extern void init_charset_once (void);`
-  fn init_charset_once ();
-  /// C: lisp.h 4238: `extern void init_syntax_once (void);`
-  fn init_syntax_once ();
-  /// C: lisp.h 5353: `extern void init_category_once (void);`
-  fn init_category_once ();
-  /// C: lisp.h 5074: `extern void init_casetab_once (void);`
-  fn init_casetab_once ();
-  /// C: lisp.h 4948: `extern void syms_of_buffer (void);`
-  fn syms_of_buffer ();
-  /// C: lisp.h 5264: `extern void syms_of_menu (void);`
-  fn syms_of_menu ();
+
+
+
+
+
+
+
+
+
+
   /// C: lisp.h 4233: `extern void syms_of_terminal's sibling: lisp.h 4869's
   /// `syms_of_minibuf` and 5102's `syms_of_font` are above.
   /// C: lisp.h 5044: `extern int waiting_for_input;` is thread.h 185's macro in this

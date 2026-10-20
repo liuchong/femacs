@@ -303,8 +303,7 @@ unsafe extern "C" {
   static mut previous_help_echo_string: Lisp_Object;
   static mut help_echo_pos: ptrdiff_t;
 
-  /// C: lisp.h 4244: `extern EMACS_INT next_almost_prime (EMACS_INT) ATTRIBUTE_CONST;`
-  fn next_almost_prime (n: EMACS_INT) -> EMACS_INT;
+
   /// C: dispextern.h 3955: `extern void calculate_costs (struct frame *);`
   fn calculate_costs (f: *mut frame);
 
@@ -321,8 +320,7 @@ unsafe extern "C" {
     -> *mut terminal;
   /// C: term.c: `extern void create_tty_output (struct frame *);`
   fn create_tty_output (f: *mut frame);
-  /// C: sysdep.c: `extern void init_foreground_group (void);`
-  fn init_foreground_group ();
+
   /// C: lisp.h 5322: `extern FILE *emacs_fopen (char const *, char const *);`
   fn emacs_fopen (file: *const c_char, mode: *const c_char) -> *mut FILE;
   /// C: termhooks.h 961: `extern struct terminal *decode_live_terminal (Lisp_Object);`
@@ -333,16 +331,10 @@ unsafe extern "C" {
   fn ring_bell (f: *mut frame);
   // `putchar` now comes from the `stdio.rs` mirror (2026-10-04), which is its single
   // declaration point; the use-site copy this block carried is gone.
-  /// C: lisp.h 5181-5182: `extern int wait_reading_process_output (intmax_t, int, int, bool,
-  /// Lisp_Object, struct Lisp_Process *, int);`
-  fn wait_reading_process_output (timeout: i64, nsecs: c_int, read_kbd: c_int,
-                                  do_display: bool, wait_for_cell: Lisp_Object,
-                                  wait_proc: *mut c_void, just_wait_proc: c_int) -> c_int;
 
-  /// C: lisp.h 5095-5096: `extern bool detect_input_pending (void);`
-  /// `extern bool detect_input_pending_run_timers (bool);`
-  fn detect_input_pending () -> bool;
-  fn detect_input_pending_run_timers (do_display: bool) -> bool;
+
+
+
 
 
   /// C: keyboard.c/term.c: `extern bool redisplaying_p;` and

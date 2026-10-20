@@ -262,16 +262,12 @@ unsafe extern "C" {
    ---------------------------------------------------------------------------------------------- */
 #[cfg (feature = "have_pgtk")]
 unsafe extern "C" {
-  /// C: src/lisp.h 4786: `extern Lisp_Object quit (void);` - C 839/1043.
-  pub fn quit () -> Lisp_Object;
+
   /// C: src/lisp.h 4825: `extern void record_unwind_protect_void (void (*) (void));` - C 1061.
   pub fn record_unwind_protect_void (function: Option<unsafe extern "C" fn ()>);
-  /// C: src/lisp.h 4998: `extern void record_unwind_save_match_data (void);` - C 272.
-  pub fn record_unwind_save_match_data ();
-  /// C: src/lisp.h 5087: `extern Lisp_Object menu_bar_items (Lisp_Object);` - C 287/479.
-  pub fn menu_bar_items (menu_bar_items: Lisp_Object) -> Lisp_Object;
-  /// C: src/lisp.h 5097: `extern void safe_run_hooks (Lisp_Object);` - C 282/286.
-  pub fn safe_run_hooks (hook: Lisp_Object);
+
+
+
 
   /// C: src/frame.h 1475: `INLINE struct frame * decode_window_system_frame (Lisp_Object);` - C 73.
   pub fn decode_window_system_frame (frame: Lisp_Object) -> *mut frame;

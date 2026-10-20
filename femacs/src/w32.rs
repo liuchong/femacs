@@ -13698,7 +13698,7 @@ unsafe extern "C" {
 /// C: extern bool detect_input_pending (void);  [keyboard.h 86]
 #[cfg (feature = "windowsnt")]
 unsafe extern "C" {
-  pub fn detect_input_pending () -> bool;
+
 }
 
 #[cfg (feature = "windowsnt")]
@@ -15269,9 +15269,7 @@ unsafe extern "C" {
 /// C:                   void **);
 #[cfg (feature = "windowsnt")]
 unsafe extern "C" {
-  pub fn openp (path: Lisp_Object, str_: Lisp_Object, suffixes: Lisp_Object,
-                storeptr: *mut Lisp_Object, predicate: Lisp_Object, newer: bool,
-                no_native: bool, platform: *mut *mut c_void) -> c_int;
+
 }
 /* A common indication that Emacs is not installed properly is when     // C 10466
    it cannot find the Windows installation file.  If this file does     // C 10467
@@ -15590,8 +15588,8 @@ unsafe extern "system" {
 }
 #[cfg (feature = "windowsnt")]
 unsafe extern "C" {
-  pub fn clear_message_stack ();
-  pub fn shut_down_emacs (no_rip: c_int, stuff: Lisp_Object);
+
+
 }
 #[cfg (feature = "windowsnt")]
 unsafe extern "system" fn shutdown_handler (r#type: DWORD) -> BOOL      // C 10695-10696 (C's `static BOOL WINAPI`)
@@ -16371,7 +16369,7 @@ unsafe extern "system" {
 }
 #[cfg (feature = "windowsnt")]
 unsafe extern "C" {
-  pub fn plist_member (plist: Lisp_Object, prop: Lisp_Object) -> Lisp_Object;
+
   pub fn plist_put (plist: Lisp_Object, prop: Lisp_Object, val: Lisp_Object)
                   -> Lisp_Object;
 }

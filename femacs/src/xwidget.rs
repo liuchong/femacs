@@ -4697,14 +4697,13 @@ unsafe fn webkit_script_dialog_cb (webview: *mut WebKitWebView,
 /// C: lisp.h 4245: `extern Lisp_Object larger_vector (Lisp_Object, ptrdiff_t, ptrdiff_t);`
 #[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 unsafe extern "C" {
-  pub fn larger_vector (vec: Lisp_Object, eltcnt: ptrdiff_t, eltbytes: ptrdiff_t)
-    -> Lisp_Object;
+
 }
 /// C: lisp.h 5553: `extern char *xlispstrdup (Lisp_Object) ATTRIBUTE_MALLOC;`
 /// (alloc.c 842 defines it).
 #[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 unsafe extern "C" {
-  pub fn xlispstrdup (string: Lisp_Object) -> *mut c_char;
+
 }
 /// C: xdisp.c 17073: `redisplay (void)` (dispextern.h declares it; the `keyboard.rs` 680
 /// `unsafe extern "C" { fn redisplay (); }` shape).

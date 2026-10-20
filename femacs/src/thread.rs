@@ -69,10 +69,8 @@ include!("include/keyboard.rs");               // C 29
 /* Names C declares in headers whose mirrors do not carry them yet (the terminal.rs shape);
    each keeps C's prototype in a `/// C:` line (PORTING.md P-55 for the pointer-only types).  */
 unsafe extern "C" {
-  /// C: lisp.h 4834: `void specpdl_unrewind (union specbinding *pdl, int distance, bool vars_only);`
-  pub fn specpdl_unrewind (pdl: *mut specbinding, distance: c_int, vars_only: bool);
-  /// C: lisp.h 4861: `extern void mark_specpdl (union specbinding *first, union specbinding *ptr);`
-  pub fn mark_specpdl (first: *mut specbinding, ptr: *mut specbinding);
+
+
   /// C: lisp.h 4441: `extern void mark_c_stack (char const *, char const *);`
   pub fn mark_c_stack (bottom: *const c_char, end: *const c_char);
   /// C: lisp.h 5231: `extern void mark_bytecode (struct bc_thread_state *bc);`
@@ -92,8 +90,7 @@ unsafe extern "C" {
   pub fn init_bc_thread (bc: *mut bc_thread_state);
   pub fn free_bc_thread (bc: *mut bc_thread_state);
 
-  /// C: lisp.h 4436: `extern void mark_object (Lisp_Object);`
-  pub fn mark_object (obj: Lisp_Object);
+
 }
 
 /* thread.c 35-39: `#if defined HAVE_GLIB && ! defined (HAVE_NS)` is dead (HAVE_GLIB is

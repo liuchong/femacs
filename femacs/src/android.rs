@@ -2566,8 +2566,7 @@ pub unsafe extern "C" fn initEmacs (env: *mut JNIEnv, object: jobject, argv: jar
    not carry the prototype.  C: lisp.h 4477: `extern void garbage_collect (void);` - C 2244's call.  */
 #[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
 unsafe extern "C" {
-  /// C: lisp.h 5145: `extern void shut_down_emacs (int, Lisp_Object);` (emacs.c).
-  pub fn shut_down_emacs (no_rip: c_int, stuff: Lisp_Object);
+
   /// C: lisp.h 4477: `extern void garbage_collect (void);` (alloc.c).
   pub fn garbage_collect ();
 }

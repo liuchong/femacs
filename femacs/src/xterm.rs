@@ -14594,10 +14594,7 @@ unsafe fn x_try_restore_frame ()
 #[cfg (feature = "have_x_windows")]
 unsafe extern "C" {
 
-  /// C: lisp.h 5119: `extern Lisp_Object do_switch_frame (Lisp_Object, int, int, Lisp_Object);` -
-  /// C 26735's call (`src/frame.rs` defines it; no mirror row is in this unit's graph).
-  pub fn do_switch_frame (frame: Lisp_Object, track: c_int, for_deletion: c_int,
-                          norecord: Lisp_Object) -> Lisp_Object;
+
 
   /// C: Xlib.h 1857-1858: `extern XIOErrorHandler XSetIOErrorHandler (XIOErrorHandler);` - C 26783
   /// and C 26826's calls; the parameter is this unit's own `Emacs_XIOErrorHandler` type (unit 699,
@@ -23666,7 +23663,7 @@ pub unsafe extern "C" fn x_dnd_begin_drag_and_drop (f: *mut frame, time: Time, x
   unsafe extern "C" {
     pub fn record_unwind_protect_void (function: Option<unsafe extern "C" fn ()>);
     
-    pub fn quit () -> Lisp_Object;
+
     
     pub fn x_timestamp_for_selection (dpyinfo: *mut x_display_info,
 				      selection: Lisp_Object) -> Lisp_Object;

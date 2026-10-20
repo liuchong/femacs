@@ -169,9 +169,9 @@ unsafe extern "C" {
                             y: c_int, is_submenu: bool);
   fn row_hash (row: *mut glyph_row) -> c_uint;
 
-  fn read_menu_command () -> Lisp_Object;
 
-  fn discard_mouse_events ();
+
+
 
 
   fn lookup_derived_face (w: *mut window, f: *mut frame, symbol: Lisp_Object,
@@ -183,10 +183,10 @@ unsafe extern "C" {
   fn init_baud_rate (fd: c_int);
   fn change_frame_size (f: *mut frame, new_width: c_int, new_height: c_int, pretend: bool,
                         delay: bool, safe: bool);
-  fn add_keyboard_wait_descriptor (fd: c_int);
-  fn delete_keyboard_wait_descriptor (fd: c_int);
+
+
   fn allocate_kboard (name: Lisp_Object) -> *mut KBOARD;
-  fn string_to_multibyte (string: Lisp_Object) -> Lisp_Object;
+
   fn do_line_insertion_deletion_costs (f: *mut frame, ins_line: *const c_char,
                                        ins_multi: *const c_char, del_line: *const c_char,
                                        del_multi: *const c_char, rev_scroll: *const c_char,

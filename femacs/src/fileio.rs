@@ -78,8 +78,7 @@ include!("include/android.rs");               // C 60: `#include "android.h"`
    C 118-120 (`HPUX`): dead `#include`s, recorded in `docs/ports/fileio.md`.  */
 
 unsafe extern "C" {
-  /// C: `lisp.h` 5310: `extern char *emacs_strerror (int);`
-  pub fn emacs_strerror (error_number: c_int) -> *mut c_char;
+
   /// C: `lisp.h` 5305: `extern int sys_fstat (int, struct stat *);`
   pub fn sys_fstat (fd: c_int, buf: *mut stat) -> c_int;
   /// C: `lisp.h` 5306: `extern int sys_faccessat (int, const char *, int, int);`
@@ -1284,10 +1283,8 @@ const fn c_str_32 (s: &[u8]) -> [c_char; 32] {
 }
 
 unsafe extern "C" {
-  /// C: lisp.h 4223: `extern bool string_ascii_p (Lisp_Object);`
-  pub fn string_ascii_p (string: Lisp_Object) -> bool;
-  /// C: lisp.h 4267: `extern Lisp_Object do_yes_or_no_p (Lisp_Object);`
-  pub fn do_yes_or_no_p (arg: Lisp_Object) -> Lisp_Object;
+
+
   /// C: lisp.h 5303: `extern int emacs_fstatat (int, char const *, void *, int);`
   pub fn emacs_fstatat (dirfd: c_int, file: *const c_char, buf: *mut c_void, flag: c_int)
     -> c_int;
@@ -2404,12 +2401,8 @@ pub unsafe extern "C" fn file_directory_p (file: Lisp_Object) -> bool
 macro_rules! TYPE_MAXIMUM { ($t:ty) => { <$t>::MAX }; }
 
 unsafe extern "C" {
-  /// C: lisp.h 4359: `extern void adjust_markers_for_delete (ptrdiff_t, ptrdiff_t,
-  /// ptrdiff_t, ptrdiff_t);`
-  pub fn adjust_markers_for_delete (from: ptrdiff_t, from_byte: ptrdiff_t,
-				    to: ptrdiff_t, to_byte: ptrdiff_t);
-  /// C: lisp.h 4940: `extern void adjust_overlays_for_delete (ptrdiff_t, ptrdiff_t);`
-  pub fn adjust_overlays_for_delete (from: ptrdiff_t, to: ptrdiff_t);
+
+
   /// C: `<unistd.h>`: `extern void sync (void);`
   pub fn sync ();
   /// C: lisp.h 5331: `extern int emacs_fchmodat (int, const char *, mode_t, int);`
@@ -3001,8 +2994,7 @@ unsafe extern "C" {
   /// C: lisp.h 4320: `extern AVOID buffer_overflow (void);` - insdel.rs defines it, so the
   /// declaration copies that definition's signature (no `-> !`).
   pub fn buffer_overflow ();
-  /// C: lisp.h 4786: `extern Lisp_Object quit (void);` - eval.rs defines it.
-  pub fn quit () -> Lisp_Object;
+
 
 
 
@@ -3020,16 +3012,14 @@ unsafe extern "C" {
   /// ptrdiff_t, bool);`
   pub fn insert_from_buffer (buf: *mut buffer, charpos: ptrdiff_t, nchars: ptrdiff_t,
 			     inherit: bool);
-  /// C: lisp.h 4347: `extern void del_range_byte (ptrdiff_t, ptrdiff_t);`
-  pub fn del_range_byte (from: ptrdiff_t, to: ptrdiff_t);
+
   /// C: lisp.h 4806: `extern Lisp_Object internal_condition_case_1 (Lisp_Object (*)
   /// (Lisp_Object), Lisp_Object, Lisp_Object, Lisp_Object (*) (Lisp_Object));`
   pub fn internal_condition_case_1 (bfun: Option<unsafe extern "C" fn (Lisp_Object) -> Lisp_Object>,
 				    arg: Lisp_Object, handlers: Lisp_Object,
 				    hfun: Option<unsafe extern "C" fn (Lisp_Object) -> Lisp_Object>)
     -> Lisp_Object;
-  /// C: lisp.h 4829: `extern void clear_unwind_protect (specpdl_ref);`
-  pub fn clear_unwind_protect (count: specpdl_ref);
+
 }
 
 DEFUN! ("insert-file-contents", Finsert_file_contents, Sinsert_file_contents,
@@ -4474,16 +4464,13 @@ DEFUN! ("write-region", Fwrite_region, Swrite_region, 3, 7,
 /* ---- further use-site declarations (PORTING.md 0.1-2/P-72 rule 3) ---------------------- */
 
 unsafe extern "C" {
-  /// C: lisp.h 4924: `extern Lisp_Object save_restriction_save (void);`
-  pub fn save_restriction_save () -> Lisp_Object;
-  /// C: lisp.h 4925: `extern void save_restriction_restore (Lisp_Object);`
-  pub fn save_restriction_restore (data: Lisp_Object);
+
+
   /// C: lisp.h 4799: `extern bool FUNCTIONP (Lisp_Object);`
   pub fn FUNCTIONP (a: Lisp_Object) -> bool;
   /// C: lisp.h 4397: `extern void message_with_string (const char *, Lisp_Object, bool);`
   pub fn message_with_string (m: *const c_char, string: Lisp_Object, log: bool);
-  /// C: editfns.c's own definition (lisp.h 4939's `labeled_restrictions_*` family).
-  pub fn labeled_restrictions_remove_in_current_buffer ();
+
   /// C: lisp.h 4432: `extern AVOID memory_full (size_t);` - eval.rs defines it as `-> !`,
   /// so this declaration copies that definition (no return type difference).
   pub fn memory_full (size: usize) -> !;
@@ -4976,18 +4963,12 @@ unsafe fn build_annotations (start: Lisp_Object, end: Lisp_Object) -> Lisp_Objec
 /* ---- further use-site declarations (PORTING.md 0.1-2/P-72 rule 3) ---------------------- */
 
 unsafe extern "C" {
-  /// C: lisp.h 4383: `extern bool push_message (void);`
-  pub fn push_message () -> bool;
-  /// C: lisp.h 4384: `extern void pop_message_unwind (void);`
-  pub fn pop_message_unwind ();
-  /// C: lisp.h 4386: `extern void restore_message (void);`
-  pub fn restore_message ();
-  /// C: lisp.h 4373: `extern Lisp_Object sit_for (Lisp_Object, bool, int);`
-  pub fn sit_for (value: Lisp_Object, reading: bool, display: c_int) -> Lisp_Object;
-  /// C: lisp.h 5097: `extern void safe_run_hooks (Lisp_Object);`
-  pub fn safe_run_hooks (hook: Lisp_Object);
-  /// C: lisp.h 5103: `extern void record_auto_save (void);`
-  pub fn record_auto_save ();
+
+
+
+
+
+
   /// C: lisp.h 4805: `extern Lisp_Object internal_condition_case (Lisp_Object (*) (void),
   /// Lisp_Object, Lisp_Object (*) (Lisp_Object));`
   pub fn internal_condition_case (bfun: Option<unsafe extern "C" fn () -> Lisp_Object>,
@@ -5958,8 +5939,7 @@ pub unsafe extern "C" fn syms_of_fileio ()
 }
 
 unsafe extern "C" {
-  /// C: lisp.h 4265: `extern Lisp_Object merge (Lisp_Object, Lisp_Object, Lisp_Object);`
-  pub fn merge (org_l1: Lisp_Object, l2: Lisp_Object, pred: Lisp_Object) -> Lisp_Object;
+
   /// C: lisp.h 4825: `extern void record_unwind_protect_void (void (*) (void));` - eval.rs
   /// defines it and `lisp.rs` carries no declaration.
   pub fn record_unwind_protect_void (function: Option<unsafe extern "C" fn ()>);

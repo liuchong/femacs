@@ -4999,7 +4999,7 @@ pub unsafe extern "C" fn syms_of_sfntfont ()
 // its use site (P-72 rule 3 / P-55, the `src/thread.rs` 95-97 and `src/image.rs` 4925-4927 shape).
 #[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
 unsafe extern "C" {
-  pub fn mark_object (obj: Lisp_Object);
+
 }
 
 /// C 4179-4196: `mark_sfntfont` - C's non-`static` entry point.

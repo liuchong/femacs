@@ -61,16 +61,9 @@ use itree_order::*;
 /* The names C gets from lisp.h whose mirror does not carry them yet (the insdel.rs/
    terminal.rs shape), each with C's own prototype in a `/// C:` line.  */
 unsafe extern "C" {
-  /// C: lisp.h 4271: `extern Lisp_Object nconc2 (Lisp_Object, Lisp_Object);`
-  fn nconc2 (a: Lisp_Object, b: Lisp_Object) -> Lisp_Object;
-  /// C: lisp.h 4354: `extern void prepare_to_modify_buffer_1 (ptrdiff_t, ptrdiff_t,
-  /// ptrdiff_t *);`
-  fn prepare_to_modify_buffer_1 (start: ptrdiff_t, end: ptrdiff_t,
-                                 preserve_ptr: *mut ptrdiff_t);
-  /// C: lisp.h 5255-5256: `extern void record_property_change (ptrdiff_t, ptrdiff_t,
-  /// Lisp_Object, Lisp_Object, Lisp_Object);`
-  fn record_property_change (beg: ptrdiff_t, len: ptrdiff_t, prop: Lisp_Object,
-                             value: Lisp_Object, buffer: Lisp_Object);
+
+
+
 }
 
 // The four `DEFVAR_*` variables this C file owns: C's storage is `globals.f_<vname>`

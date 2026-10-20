@@ -1335,7 +1335,7 @@ DEFUN! ("modify-syntax-entry", Fmodify_syntax_entry, Smodify_syntax_entry, 2, 3,
        {
   // C 1298 calls `clear_regexp_cache` (search.h, whose mirror does not exist yet), so it is
   // declared at its use site inside this function (the doc.rs/casefiddle.rs shape).
-  unsafe extern "C" { fn clear_regexp_cache (); }
+  unsafe extern "C" { }
 
   if CONSP (c)
     {

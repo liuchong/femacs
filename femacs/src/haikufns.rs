@@ -128,8 +128,7 @@ unsafe extern "C" {
   pub fn store_frame_param (f: *mut frame, prop: Lisp_Object, val: Lisp_Object);
   /// C: lisp.h 5120: `extern Lisp_Object get_frame_param (struct frame *, Lisp_Object);`
   pub fn get_frame_param (f: *mut frame, prop: Lisp_Object) -> Lisp_Object;
-  /// C: lisp.h 607: `extern int check_int_nonnegative (Lisp_Object);`
-  pub fn check_int_nonnegative (x: Lisp_Object) -> c_int;
+
 
   /* dispextern.h.  */
   /// C: dispextern.h 3573: `int try_window (Lisp_Object, struct text_pos, int);`
@@ -830,9 +829,7 @@ unsafe extern "C" {
   /// C: lisp.h 3148: `extern AVOID quit (void);` - the mirror does not carry it, so the unit
   /// names it here (C 2942's `quit ()`; the `src/alloc.rs` 6230-6231 shape).
   pub fn quit () -> !;
-  /// C: lisp.h 3880: `extern void process_pending_signals (void);` - the mirror does not carry it,
-  /// so the unit names it here (C 2938's `be_popup_file_dialog` argument).
-  pub fn process_pending_signals ();
+
   /// C: lisp.h 5371: `extern AVOID fatal (const char *msgid, ...) ATTRIBUTE_FORMAT_PRINTF (1, 2);`
   /// - the mirror `include/lisp.rs` carries only `fatal_error_in_progress`, so the unit names it
   /// here (the `src/alloc.rs` 6230-6231 shape).

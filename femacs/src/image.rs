@@ -232,14 +232,12 @@ unsafe extern "C" {
 // C: lisp.h 5553: `extern char *xlispstrdup (Lisp_Object);`
 #[cfg (feature = "have_window_system")]
 unsafe extern "C" {
-  pub fn xlispstrdup (string: Lisp_Object) -> *mut c_char;
+
 }
 // C: lisp.h 4743: `extern int openp (Lisp_Object, Lisp_Object, Lisp_Object, Lisp_Object *, Lisp_Object, bool, bool, void **);`
 #[cfg (feature = "have_window_system")]
 unsafe extern "C" {
-  pub fn openp (path: Lisp_Object, str_: Lisp_Object, suffixes: Lisp_Object,
-                storeptr: *mut Lisp_Object, predicate: Lisp_Object, newer: bool,
-                no_native: bool, platform: *mut *mut c_void) -> c_int;
+
 }
 
 /* ----------------------------------------------------------------------------------------------
@@ -3921,7 +3919,7 @@ unsafe fn postprocess_image (f: *mut frame, img: *mut image)
 // mirror gap; it belongs in that mirror).
 #[cfg (feature = "have_window_system")]
 unsafe extern "C" {
-  pub fn sxhash (obj: Lisp_Object) -> EMACS_UINT;
+
 }
 // C: lisp.h 4280: `extern Lisp_Object plist_get (Lisp_Object plist, Lisp_Object prop);` - the same
 // mirror gap.
@@ -5096,7 +5094,7 @@ unsafe extern "C" {
 // C: lisp.h 4436: `extern void mark_object (Lisp_Object);` - the definition is `alloc.c`'s.
 #[cfg (feature = "have_window_system")]
 unsafe extern "C" {
-  pub fn mark_object (obj: Lisp_Object);
+
 }
 /// C: dispextern.h 3311-3312: `#define DEFAULT_IMAGE_WIDTH 30` / `#define DEFAULT_IMAGE_HEIGHT 30`
 /// Mirror gap: `include/dispextern.rs` carries the two corner macros and the two ascent constants
@@ -6195,7 +6193,7 @@ unsafe fn image_unget_x_image (img: *mut image, mask_p: bool, ximg: Emacs_Pix_Co
 // C: lisp.h 5305: `extern int sys_fstat (int, struct stat *);`
 #[cfg (feature = "have_window_system")]
 unsafe extern "C" {
-  pub fn fclose_unwind (arg: *mut c_void);
+
   pub fn emacs_fdopen (fd: c_int, mode: *const c_char) -> *mut FILE;
   pub fn sys_fstat (fd: c_int, buf: *mut stat) -> c_int;
 }

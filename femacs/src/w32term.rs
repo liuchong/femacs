@@ -11567,8 +11567,8 @@ pub const RC_PALETTE: c_int = 0x0100;
    `w32_reset_fringes` (`src/w32fns.rs` 9849 and `src/fringe.rs` 2503 are their definitions).  */
 #[cfg (feature = "have_ntgui")]
 unsafe extern "C" {
-  pub fn xlispstrdup (string: Lisp_Object) -> *mut c_char;
-  pub fn add_keyboard_wait_descriptor (fd: c_int);
+
+
   
   
 }

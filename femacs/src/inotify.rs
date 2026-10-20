@@ -265,10 +265,8 @@ include!("include/android.rs");                 // C 46: `#include "android.h"`
    prototypes are quoted with their lisp.h lines.  */
 #[cfg (feature = "have_inotify")]
 unsafe extern "C" {
-  /// C: lisp.h 4274: `extern Lisp_Object assoc_no_quit (Lisp_Object, Lisp_Object);`
-  pub fn assoc_no_quit (key: Lisp_Object, list: Lisp_Object) -> Lisp_Object;
-  /// C: lisp.h 4282: `extern bool equal_no_quit (Lisp_Object, Lisp_Object);` (fns.c).
-  pub fn equal_no_quit (o1: Lisp_Object, o2: Lisp_Object) -> bool;
+
+
   /// C: lisp.h 30's `<string.h>` via `lib/include/string.in.rs` 240-246: the mirror keeps only
   /// the dead `rpl_strnlen` arm, so the system entry is declared here (the `src/process.rs` 3336
   /// shape); `lib/strnlen.rs` defines it.

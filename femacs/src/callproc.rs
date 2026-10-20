@@ -94,17 +94,10 @@ include!("include/android.rs");                // C 96: `#include "android.h"`
 /* The names C gets from lisp.h, process.h, syswait.h and the system headers above, declared
    at the use site (the terminal.rs/filelock.rs shape); none of them has a mirror.  */
 unsafe extern "C" {
-  /// C: Lisp_Object expand_and_dir_to_file (Lisp_Object)   (lisp.h 4972, fileio.c)
-  fn expand_and_dir_to_file (filename: Lisp_Object) -> Lisp_Object;
-  /// C: bool file_accessible_directory_p (Lisp_Object)   (lisp.h 4988, fileio.c)
-  fn file_accessible_directory_p (filename: Lisp_Object) -> bool;
 
-  /// C: int openp (Lisp_Object path, Lisp_Object str, Lisp_Object suffixes,
-  ///               Lisp_Object *storeptr, Lisp_Object predicate, bool newer,
-  ///               bool no_native, void **platform)   (lisp.h 4743, lread.c 1756)
-  fn openp (path: Lisp_Object, str_: Lisp_Object, suffixes: Lisp_Object,
-            storeptr: *mut Lisp_Object, predicate: Lisp_Object, newer: bool,
-            no_native: bool, platform: *mut *mut c_void) -> c_int;
+
+
+
 
 
 
@@ -114,44 +107,33 @@ unsafe extern "C" {
   /// C: void dir_warning (const char *, Lisp_Object)   (lisp.h 4750; the definition is
   /// src/lread.rs's, and the header carries no AVOID - it returns after warning)
   fn dir_warning (format: *const c_char, argument: Lisp_Object);
-  /// C: Lisp_Object write_region (Lisp_Object, Lisp_Object, Lisp_Object, Lisp_Object,
-  ///                              Lisp_Object, Lisp_Object, Lisp_Object, int)  (lisp.h 4973)
-  fn write_region (start: Lisp_Object, end: Lisp_Object, filename: Lisp_Object,
-                   append: Lisp_Object, visit: Lisp_Object, lockname: Lisp_Object,
-                   mustbenew: Lisp_Object, desc: c_int) -> Lisp_Object;
+
   /// C: bool wait_for_termination (pid_t, int *, bool)   (syswait.h 59)
   fn wait_for_termination (pid: pid_t, status: *mut c_int, hang: bool) -> bool;
   /// C: void record_deleted_pid (pid_t, Lisp_Object)   (process.h 289)
   fn record_deleted_pid (pid: pid_t, tempfile: Lisp_Object);
-  /// C: void child_signal_init (void)   (lisp.h 5179, process.c)
-  fn child_signal_init ();
-  /// C: void child_setup_tty (int)   (lisp.h 5294)
-  fn child_setup_tty (out: c_int);
+
+
 
 
   /// C: void emacs_perror (char const *)   (lisp.h 5337)
   fn emacs_perror (message: *const c_char);
-  /// C: int emacs_pipe (int[2])   (lisp.h 5313)
-  fn emacs_pipe (pipefd: *mut c_int) -> c_int;
+
   /// C: int emacs_exec_file (char const *, char *const *, char *const *)   (lisp.h 5282)
   fn emacs_exec_file (file: *const c_char, argv: *const *mut c_char,
                       envp: *const *mut c_char) -> c_int;
   /// C: int emacs_open_noquit (const char *, int, int)   (lisp.h 5312)
   #[cfg (feature = "no_dont_reopen_pty")]
   fn emacs_open_noquit (file: *const c_char, oflags: c_int, mode: c_int) -> c_int;
-  /// C: void synchronize_system_messages_locale (void)   (lisp.h 5142)
-  fn synchronize_system_messages_locale ();
-  /// C: void record_unwind_protect_nothing (void)   (lisp.h 4827)
-  fn record_unwind_protect_nothing ();
+
+
   /// C: void set_unwind_protect (specpdl_ref, void (*) (Lisp_Object), Lisp_Object)
   ///    (lisp.h 4830)
   fn set_unwind_protect (count: specpdl_ref,
                          func: Option<unsafe extern "C" fn (Lisp_Object)>,
                          arg: Lisp_Object);
-  /// C: void clear_unwind_protect (specpdl_ref)   (lisp.h 4829)
-  fn clear_unwind_protect (count: specpdl_ref);
-  /// C: void labeled_restrictions_remove_in_current_buffer (void)   (lisp.h 4931)
-  fn labeled_restrictions_remove_in_current_buffer ();
+
+
   /// C: void insert_1_both (const char *, ptrdiff_t, ptrdiff_t, bool, bool, bool)
   ///    (lisp.h 4331, insdel.c)
   fn insert_1_both (string: *const c_char, nchars: ptrdiff_t, nbytes: ptrdiff_t,
@@ -161,9 +143,7 @@ unsafe extern "C" {
   fn del_range_2 (from: ptrdiff_t, to: ptrdiff_t, from_byte: ptrdiff_t,
                   to_byte: ptrdiff_t, prepare: bool) -> Lisp_Object;
 
-  /// C: void record_unwind_protect_nothing's and close_file_unwind's shapes are in lisp.rs.
-  /// C: Lisp_Object nconc2 (Lisp_Object, Lisp_Object)   (lisp.h 4271, fns.c)
-  fn nconc2 (a: Lisp_Object, b: Lisp_Object) -> Lisp_Object;
+
   /// C: int emacs_unlink (const char *)   (the filelock.rs shape, lisp.h 5325)
   fn emacs_unlink (name: *const c_char) -> c_int;
   /// C: int kill (pid_t, int)   -- <signal.h>

@@ -606,9 +606,7 @@ DEFUN! ("zlib-decompress-region", Fzlib_decompress_region, Szlib_decompress_regi
    records the gap for the integrator.  */
 #[cfg (feature = "have_zlib")]
 unsafe extern "C" {
-  /// C: lisp.h 4334: `extern void insert_from_gap (ptrdiff_t, ptrdiff_t, bool, bool);`
-  pub fn insert_from_gap (nchars: ptrdiff_t, nbytes: ptrdiff_t, text_at_gap_tail: bool,
-                          before_markers: bool);
+
   /// C: lisp.h 5273: `extern void del_range_2 (ptrdiff_t, ptrdiff_t, ptrdiff_t, ptrdiff_t, bool);`
   pub fn del_range_2 (from: ptrdiff_t, from_byte: ptrdiff_t, to: ptrdiff_t, to_byte: ptrdiff_t,
                       prepare: bool);

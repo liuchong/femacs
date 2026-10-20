@@ -8319,8 +8319,7 @@ pub const ANDROID_LOG_VERBOSE: c_int = 2;
    at the use site (P-72 rule 4).  */
 #[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
 unsafe extern "C" {
-  /// C: lisp.h 3880: `extern void process_pending_signals (void);`
-  pub fn process_pending_signals ();
+
 
 }
 

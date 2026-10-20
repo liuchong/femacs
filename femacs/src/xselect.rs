@@ -2084,8 +2084,7 @@ pub unsafe extern "C" fn x_handle_property_notify (event: *const XPropertyEvent)
 /* The two `lisp.h` names C 1637/1716 and C 1719 use that no included mirror carries.  */
 #[cfg (feature = "have_x_windows")]
 unsafe extern "C" {
-  /// C: lisp.h 4393: `extern void message3_nolog (Lisp_Object);`
-  pub fn message3_nolog (m: Lisp_Object);
+
 }
 
 #[cfg (feature = "have_x_windows")]
@@ -3205,8 +3204,7 @@ unsafe extern "C" {
     -> Lisp_Object;
   /// C: lisp.h 4389: `extern void message (const char *, ...);`
   pub fn message (format: *const c_char, ...);
-  /// C: lisp.h 4436: `extern void mark_object (Lisp_Object);`
-  pub fn mark_object (obj: Lisp_Object);
+
 }
 
 #[cfg (feature = "have_x_windows")]

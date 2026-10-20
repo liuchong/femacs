@@ -2497,7 +2497,7 @@ unsafe fn merge_face_ref (w: *mut window, f: *mut frame, face_ref: Lisp_Object,
 
 /// C: lisp.h 5118: `extern void store_in_alist (Lisp_Object *, Lisp_Object, Lisp_Object);`
 unsafe extern "C" {
-  fn store_in_alist (alist: *mut Lisp_Object, prop: Lisp_Object, val: Lisp_Object);
+
 }
 
 DEFUN! ("internal-make-lisp-face", Finternal_make_lisp_face,
@@ -4768,7 +4768,7 @@ DEFUN! ("internal-set-alternative-font-registry-alist",
 
 /// C: lisp.h 4274: `Lisp_Object assoc_no_quit (Lisp_Object, Lisp_Object);` (fns.c).
 unsafe extern "C" {
-  fn assoc_no_quit (key: Lisp_Object, list: Lisp_Object) -> Lisp_Object;
+
 }
 
 /* C 5998-6054: realize basic faces on frame F.  */

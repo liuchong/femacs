@@ -728,7 +728,7 @@ unsafe extern "C" {
   /* void malloc_warning (const char *);  */
   pub fn malloc_warning (message: *const c_char);
   /* void force_auto_save_soon (void);  */
-  pub fn force_auto_save_soon ();
+
   /* bool sfntfont_detect_sigbus (void *);  */
   pub fn sfntfont_detect_sigbus (addr: *mut c_void) -> bool;
   /* void internal_terminal_init (void);  */
@@ -1059,11 +1059,11 @@ unsafe extern "C" {
   pub fn cfsetspeed (termios_p: *mut termios, vitesse: speed_t) -> c_int;
   /* Lisp_Object plist_get (Lisp_Object, Lisp_Object);  */
   /* Lisp_Object plist_member (Lisp_Object, Lisp_Object);  */
-  pub fn plist_member (plist: Lisp_Object, prop: Lisp_Object) -> Lisp_Object;
+
   /* Lisp_Object plist_put (Lisp_Object, Lisp_Object, Lisp_Object);  */
   pub fn plist_put (plist: Lisp_Object, prop: Lisp_Object, val: Lisp_Object) -> Lisp_Object;
   /* void process_pending_signals (void);  */
-  pub fn process_pending_signals ();
+
 }
 
 /// `<termios.h>`'s `Bnnn` speeds, measured on the frozen target (Darwin's `Bnnn` *is* the

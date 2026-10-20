@@ -83,26 +83,18 @@ unsafe extern "C" {
   /// C: lisp.h 4331-4333: `extern void insert_1_both (const char *, ptrdiff_t, ptrdiff_t, bool, bool, bool);`
   fn insert_1_both (string: *const c_char, nchars: ptrdiff_t, nbytes: ptrdiff_t,
 		    inherit: bool, prepare: bool, before_markers: bool);
-  /// C: lisp.h 4335-4336: `extern void insert_from_string (Lisp_Object, ptrdiff_t, ptrdiff_t, ptrdiff_t, ptrdiff_t, bool);`
-  fn insert_from_string (string: Lisp_Object, pos: ptrdiff_t, pos_byte: ptrdiff_t,
-			 length: ptrdiff_t, length_byte: ptrdiff_t, inherit: bool);
+
   /// C: lisp.h 4337-4338: `extern void insert_from_buffer (struct buffer *, ptrdiff_t, ptrdiff_t, bool);`
   fn insert_from_buffer (buf: *mut buffer, charpos: ptrdiff_t, nchars: ptrdiff_t,
 			 inherit: bool);
-  /// C: lisp.h 4348: `extern void del_range_both (ptrdiff_t, ptrdiff_t, ptrdiff_t, ptrdiff_t, bool);`
-  fn del_range_both (from: ptrdiff_t, from_byte: ptrdiff_t, to: ptrdiff_t,
-		     to_byte: ptrdiff_t, prepare: bool);
-  /// C: lisp.h 4206-4207: `extern Lisp_Object nconc2 (Lisp_Object, Lisp_Object);`
-  fn nconc2 (a: Lisp_Object, b: Lisp_Object) -> Lisp_Object;
+
+
   /// C: lisp.h 4281-4282: `extern Lisp_Object plist_put (Lisp_Object plist, Lisp_Object prop, Lisp_Object val);`
   fn plist_put (plist: Lisp_Object, prop: Lisp_Object, val: Lisp_Object) -> Lisp_Object;
   /// C: termhooks.h 961: `extern struct terminal *decode_live_terminal (Lisp_Object);`
   fn decode_live_terminal (terminal: Lisp_Object) -> *mut terminal;
-  /// C: lisp.h 4412: `extern Lisp_Object safe_eval (Lisp_Object);`
-  fn safe_eval (form: Lisp_Object) -> Lisp_Object;
-  /// C: lisp.h 4334: `extern void insert_from_gap (ptrdiff_t, ptrdiff_t, bool, bool);`
-  fn insert_from_gap (nchars: ptrdiff_t, nbytes: ptrdiff_t, text_at_gap_tail: bool,
-		      before_markers: bool);
+
+
 }
 
 /* `xrealloc`, `string_overflow`, `make_gap` (lisp.h), `SIZE_MAX` (stdint.in.rs) and the

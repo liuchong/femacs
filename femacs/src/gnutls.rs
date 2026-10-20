@@ -400,8 +400,7 @@ unsafe extern "C" {
   pub fn message (format: *const c_char, ...);
   /// C: lisp.h 4432: `extern AVOID memory_full (size_t);`
   pub fn memory_full (nbytes: size_t) -> !;
-  /// C: lisp.h 4271: `extern Lisp_Object nconc2 (Lisp_Object, Lisp_Object);`
-  pub fn nconc2 (a: Lisp_Object, b: Lisp_Object) -> Lisp_Object;
+
 }
 
 /* src/gnutls.h's own names this slice needs, declared at the use site because that header's

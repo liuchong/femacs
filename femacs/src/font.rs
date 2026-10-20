@@ -411,8 +411,7 @@ unsafe extern "C" {
 /// `make_specified_string` as a known `lisp.rs` gap), plus `<stdlib.h>`'s `atoi`, which
 /// `femacs/lib/include/stdlib.rs` does not declare either.
 unsafe extern "C" {
-  /// C: lisp.h 4206-4207: `extern Lisp_Object nconc2 (Lisp_Object, Lisp_Object);`
-  pub fn nconc2 (a: Lisp_Object, b: Lisp_Object) -> Lisp_Object;
+
   /// C: lisp.h 4077-4079: `extern Lisp_Object make_specified_string (const char *,
   /// ptrdiff_t, ptrdiff_t, bool);`
   pub fn make_specified_string (contents: *const c_char, nchars: ptrdiff_t,
@@ -429,10 +428,7 @@ unsafe extern "C" {
   /// ptrdiff_t, ptrdiff_t *, ptrdiff_t *);`
   pub fn parse_str_as_multibyte (str_: *const c_uchar, len: ptrdiff_t,
                                  nchars: *mut ptrdiff_t, nbytes: *mut ptrdiff_t);
-  /// C: lisp.h 4528-4529: `extern Lisp_Object intern_driver (Lisp_Object, Lisp_Object,
-  /// Lisp_Object);`
-  pub fn intern_driver (string: Lisp_Object, obarray: Lisp_Object,
-                        index: Lisp_Object) -> Lisp_Object;
+
   // C: `<stdio.h>`: `int snprintf (char *, size_t, const char *, ...);` — the mirror
   // `lib/include/stdio.rs` carries it as of status 3.263, so this unit no longer declares
   // it itself (and the declaration that stood here was what made the GLYPH_DEBUG arms
@@ -459,8 +455,7 @@ unsafe extern "C" {
 unsafe extern "C" {
   // composite.h 335's `composition_gstring_put_cache` is the include/composite.rs mirror's
   // now (status 3.363).
-  /// C: lisp.h 4599: `extern Lisp_Object larger_vector (Lisp_Object, ptrdiff_t, ptrdiff_t);`
-  pub fn larger_vector (vec: Lisp_Object, elt: ptrdiff_t, elt_bytes: ptrdiff_t) -> Lisp_Object;
+
 }
 
 /// `frame.h`/`fontset.h`/`<string.h>` names this unit calls that no mirror carries.
@@ -499,8 +494,7 @@ unsafe extern "C" {
 
 /// `lisp.h`'s `assoc_no_quit`, which the mirror does not carry.
 unsafe extern "C" {
-  /// C: lisp.h 4274: `extern Lisp_Object assoc_no_quit (Lisp_Object, Lisp_Object);`
-  pub fn assoc_no_quit (key: Lisp_Object, list: Lisp_Object) -> Lisp_Object;
+
 }
 
 /// Every `(*driver).F.unwrap () (…)` below answers a driver method C calls unconditionally

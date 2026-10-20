@@ -74,8 +74,7 @@ include!("include/menu.rs");                   // C 44
    prototype they were taken from).  */
 
 /// C: extern Lisp_Object larger_vector (Lisp_Object, ptrdiff_t, ptrdiff_t)  lisp.h 4245
-unsafe extern "C" { pub fn larger_vector (vector: Lisp_Object, length: ptrdiff_t,
-					  init: ptrdiff_t) -> Lisp_Object; }
+unsafe extern "C" { }
 /// C: extern void record_unwind_protect_void (void (*) (void))  lisp.h 4825
 unsafe extern "C" { pub fn record_unwind_protect_void
   (function: Option<unsafe extern "C" fn ()>); }

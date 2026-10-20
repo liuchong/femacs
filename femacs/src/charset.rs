@@ -88,8 +88,7 @@ unsafe extern "C" {
   fn set_unwind_protect_ptr (count: specpdl_ref,
 			     func: Option<unsafe extern "C" fn (*mut c_void)>,
 			     arg: *mut c_void);
-  /// C: lisp.h 4977: `extern void fclose_unwind (void *);`
-  fn fclose_unwind (arg: *mut c_void);
+
   /// C: lisp.h 5320: `extern FILE *emacs_fdopen (int, const char *)`
   fn emacs_fdopen (fd: c_int, mode: *const c_char) -> *mut FILE;
   /// C: lisp.h 4378: `extern void add_to_log (char const *, ...);`
@@ -99,25 +98,17 @@ unsafe extern "C" {
   fn map_char_table_for_charset (c_function: Option<unsafe extern "C" fn (Lisp_Object, Lisp_Object)>,
 				 function: Lisp_Object, table: Lisp_Object, arg: Lisp_Object,
 				 charset: *mut charset, from: c_uint, to: c_uint);
-  /// C: lisp.h 4271: `extern Lisp_Object nconc2 (Lisp_Object, Lisp_Object);`
-  fn nconc2 (a: Lisp_Object, b: Lisp_Object) -> Lisp_Object;
-  /// C: lisp.h 4988: `extern bool file_accessible_directory_p (Lisp_Object);`
-  fn file_accessible_directory_p (filename: Lisp_Object) -> bool;
 
-  /// C: lisp.h 4743-4745: `extern int openp (Lisp_Object, Lisp_Object, Lisp_Object,
-  /// Lisp_Object *, Lisp_Object, bool, bool, void **);`
-  fn openp (path: Lisp_Object, str_: Lisp_Object, suffixes: Lisp_Object,
-	    storeptr: *mut Lisp_Object, predicate: Lisp_Object, newer: bool,
-	    no_native: bool, platform: *mut *mut c_void) -> c_int;
+
+
+
   /// C: lisp.h 5316-5318: `# define emacs_fclose fclose` (so the reference calls `fclose`;
   /// the port keeps the C spelling the unit's text uses and links the system symbol, the
   /// pthread_sigmask.rs `#[link_name]` shape).
   #[link_name = "fclose"]
   fn emacs_fclose (stream: *mut FILE) -> c_int;
-  /// C: lisp.h 4827: `extern void record_unwind_protect_nothing (void)`
-  fn record_unwind_protect_nothing ();
-  /// C: lisp.h 4829: `extern void clear_unwind_protect (specpdl_ref)`
-  fn clear_unwind_protect (count: specpdl_ref);
+
+
   /// C: <stdlib.h>: `void exit (int);`
   fn exit (status: c_int) -> !;
   /// C: <string.h>: `char *strerror (int);`

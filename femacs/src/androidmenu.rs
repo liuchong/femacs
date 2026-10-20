@@ -84,8 +84,8 @@ unsafe extern "C" {
    header it comes from, and `docs/ports/androidmenu.md` records the gap for the integrator.  */
 #[cfg (feature = "have_android")]
 unsafe extern "C" {
-  pub fn quit () -> Lisp_Object;                                     // lisp.h 4786
-  pub fn process_pending_signals ();                                 // lisp.h 3880
+                                     // lisp.h 4786
+                                 // lisp.h 3880
   pub fn memory_full (size: size_t) -> !;                            // lisp.h 4432 (`AVOID`)
   pub fn record_unwind_protect_void (function: Option<unsafe extern "C" fn ()>);  // lisp.h 4825
   pub fn menu_separator_name_p (name: *const c_char) -> bool;        // keyboard.h 473

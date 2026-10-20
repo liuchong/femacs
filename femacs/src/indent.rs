@@ -77,25 +77,12 @@ include!("../lib/include/string.rs");          // lisp.h 30's <string.h>: memset
 /* The names C gets from headers whose mirrors do not carry them yet (the terminal.rs
    shape), each with C's own prototype in a `/// C:` line.  */
 unsafe extern "C" {
-  /// C: lisp.h 5035-5036: `extern ptrdiff_t find_newline (ptrdiff_t, ptrdiff_t, ptrdiff_t,
-  /// ptrdiff_t, ptrdiff_t, ptrdiff_t *, ptrdiff_t *, bool);`
-  fn find_newline (start: ptrdiff_t, start_byte: ptrdiff_t, end: ptrdiff_t,
-                   end_byte: ptrdiff_t, count: ptrdiff_t, shortage: *mut ptrdiff_t,
-                   shortage_byte: *mut ptrdiff_t, allow_quit: bool) -> ptrdiff_t;
-  /// C: lisp.h 5040-5041: `extern ptrdiff_t find_newline_no_quit (ptrdiff_t, ptrdiff_t,
-  /// ptrdiff_t, ptrdiff_t *);`
-  fn find_newline_no_quit (from: ptrdiff_t, from_byte: ptrdiff_t, cnt: ptrdiff_t,
-                           bytepos: *mut ptrdiff_t) -> ptrdiff_t;
-  /// C: lisp.h 5042-5043: `extern ptrdiff_t find_before_next_newline (ptrdiff_t,
-  /// ptrdiff_t, ptrdiff_t, ptrdiff_t *);`
-  fn find_before_next_newline (from: ptrdiff_t, from_byte: ptrdiff_t, cnt: ptrdiff_t,
-                               bytepos: *mut ptrdiff_t) -> ptrdiff_t;
-  /// C: lisp.h 4924: `extern Lisp_Object save_restriction_save (void);`
-  fn save_restriction_save () -> Lisp_Object;
-  /// C: lisp.h 4925: `extern void save_restriction_restore (Lisp_Object);`
-  fn save_restriction_restore (data: Lisp_Object);
-  /// C: lisp.h 4931: `extern void labeled_restrictions_remove_in_current_buffer (void);`
-  fn labeled_restrictions_remove_in_current_buffer ();
+
+
+
+
+
+
   /// C: lisp.h 4825: `extern void record_unwind_protect_void (void (*) (void));`
   fn record_unwind_protect_void (function: Option<unsafe extern "C" fn ()>);
   // window.h 1210/1216 (`decode_live_window`, `window_internal_height`) are the window.rs

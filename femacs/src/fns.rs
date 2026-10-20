@@ -85,16 +85,10 @@ include!("include/frame.rs");                   // window.h's `struct frame`
    mirrored header that is missing the line (P-72 rule 3 / PORTING.md 0.1-2): each carries C's
    own prototype in a `/// C:` line and is reported in docs/ports/fns.md's gaps list.  */
 unsafe extern "C" {
-  /// C: lisp.h 5297: `extern EMACS_INT get_random (void);` (sysdep.c defines it;
-  /// `lisp.rs` mirrors 5298's `get_random_ulong` but not this line).
-  fn get_random () -> EMACS_INT;
-  /// C: lisp.h 5299: `extern void seed_random (void *, ptrdiff_t);`
-  fn seed_random (seed: *mut c_void, seed_size: ptrdiff_t);
-  /// C: lisp.h 5300: `extern void init_random (void);`
-  fn init_random ();
-  /// C: lisp.h 5143: `void synchronize_system_time_locale (void);` — emacs.c defines it (the
-  /// mirror is missing the line).
-  fn synchronize_system_time_locale ();
+
+
+
+
   /// C: <stdlib.h>: `extern int getloadavg (double [], int);` (macOS libc provides it; the
   /// stdlib mirror is missing the line).
   fn getloadavg (loadavg: *mut f64, nelem: c_int) -> c_int;
@@ -102,27 +96,13 @@ unsafe extern "C" {
   /// bool, bool, bool);` — insdel.c defines it (the mirror is missing the line).
   fn insert_1_both (str: *const c_char, nchars: ptrdiff_t, nbytes: ptrdiff_t, inherit: bool,
                     prepare: bool, before_markers: bool);
-  /// C: lisp.h 4347: `extern void del_range_byte (ptrdiff_t, ptrdiff_t);`
-  fn del_range_byte (from_byte: ptrdiff_t, to_byte: ptrdiff_t);
-  /// C: lisp.h 4348: `extern void del_range_both (ptrdiff_t, ptrdiff_t, ptrdiff_t, ptrdiff_t,
-  /// bool);`
-  fn del_range_both (from: ptrdiff_t, to: ptrdiff_t, from_byte: ptrdiff_t, to_byte: ptrdiff_t,
-                     prepare: bool);
-  /// C: lisp.h 4840-4842: `extern Lisp_Object load_with_autoload_queue (Lisp_Object file,
-  /// Lisp_Object noerror, Lisp_Object nomessage, Lisp_Object nosuffix,
-  /// Lisp_Object must_suffix);` — lread.c defines it (the mirror is missing the line).
-  fn load_with_autoload_queue (file: Lisp_Object, noerror: Lisp_Object, nomessage: Lisp_Object,
-                               nosuffix: Lisp_Object, must_suffix: Lisp_Object) -> Lisp_Object;
 
-  /// C: lisp.h 4539: `extern Lisp_Object bool_vector_fill (Lisp_Object, Lisp_Object);` —
-  /// alloc.c defines it (the mirror is missing the line).
-  fn bool_vector_fill (a: Lisp_Object, item: Lisp_Object) -> Lisp_Object;
-  /// C: lisp.h 4223: `extern bool string_ascii_p (Lisp_Object);` (character.c defines it; the
-  /// mirror is missing the line).
-  fn string_ascii_p (string: Lisp_Object) -> bool;
-  /// C: lisp.h 4403: `extern ptrdiff_t count_lines (ptrdiff_t start_byte, ptrdiff_t
-  /// end_byte);` (indent.c defines it; the mirror is missing the line).
-  fn count_lines (start_byte: ptrdiff_t, end_byte: ptrdiff_t) -> ptrdiff_t;
+
+
+
+
+
+
   /// C: lisp.h 4938: `extern AVOID nsberror (Lisp_Object);` (buffer.c defines it; the mirror
   /// is missing the line).
   fn nsberror (spec: Lisp_Object) -> !;
@@ -132,23 +112,16 @@ unsafe extern "C" {
   /// `void hash_table_free_bytes (void *p, ptrdiff_t nbytes);` — alloc.c defines both (the
   /// mirror is missing the lines).
   fn hash_table_alloc_bytes (nbytes: ptrdiff_t) -> *mut c_void;
-  fn hash_table_free_bytes (p: *mut c_void, nbytes: ptrdiff_t);
-  /// C: lisp.h 4435-4436: `extern bool survives_gc_p (Lisp_Object);`
-  /// `extern void mark_object (Lisp_Object);` — alloc.c defines both (the mirror carries only
-  /// `mark_objects`).
-  fn survives_gc_p (obj: Lisp_Object) -> bool;
-  fn mark_object (obj: Lisp_Object);
-  /// C: lisp.h 4289-4290: `extern void tim_sort (Lisp_Object, Lisp_Object, Lisp_Object *,
-  /// const ptrdiff_t, bool);` — sort.c defines it (the mirror is missing the line).
-  fn tim_sort (predicate: Lisp_Object, keyfunc: Lisp_Object, s: *mut Lisp_Object,
-               size: ptrdiff_t, reverse: bool);
+
+
+
+
   /// C: lisp.h 4566: `extern Lisp_Object make_specified_string (const char *, ptrdiff_t,
   /// ptrdiff_t, bool);` — alloc.c defines it, and this unit only calls it (the mirror is
   /// missing the line; the task's own note names this as another unit's symbol).
   fn make_specified_string (data: *const c_char, nchars: ptrdiff_t, nbytes: ptrdiff_t,
                             multibyte: bool) -> Lisp_Object;
-  /// C: lisp.h 5553: `extern char *xlispstrdup (Lisp_Object)` (the mirror is missing it).
-  fn xlispstrdup (string: Lisp_Object) -> *mut c_char;
+
   /// C: lisp.h 4426-4427: `extern void parse_str_as_multibyte (const unsigned char *,
   /// ptrdiff_t, ptrdiff_t *, ptrdiff_t *);`
   fn parse_str_as_multibyte (str: *const u8, len: ptrdiff_t, chars: *mut ptrdiff_t,
@@ -157,10 +130,7 @@ unsafe extern "C" {
   /// ptrdiff_t, bool, bool);` (buffer.rs declares it too; the mirror is missing the line).
   fn copy_text (from: *const u8, to: *mut u8, nbytes: ptrdiff_t, from_multibyte: bool,
                 to_multibyte: bool) -> ptrdiff_t;
-  /// C: lisp.h 5341: `extern int str_collate (Lisp_Object, Lisp_Object, Lisp_Object,
-  /// Lisp_Object);` (sysdep.c defines it; only the carried `stdc_iso_10646` arm calls it).
-  fn str_collate (s1: Lisp_Object, s2: Lisp_Object, locale: Lisp_Object,
-                  ignore_case: Lisp_Object) -> c_int;
+
 }
 
 

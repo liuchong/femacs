@@ -156,8 +156,7 @@ static mut any_help_event_p: bool = false;
    gap for the integrator.  */
 #[cfg (feature = "have_haiku")]
 unsafe extern "C" {
-  /// C: lisp.h 4274: `extern Lisp_Object assoc_no_quit (Lisp_Object, Lisp_Object);` (fns.c).
-  fn assoc_no_quit (a: Lisp_Object, b: Lisp_Object) -> Lisp_Object;
+
 
   /// C: dispextern.h 3581: `int window_box_right (struct window *, enum glyph_row_area);`
   fn window_box_right (w: *mut window, area: glyph_row_area) -> c_int;
@@ -5999,7 +5998,7 @@ macro_rules! flush_frame {
 #[cfg (feature = "have_haiku")]
 unsafe extern "C" {
 
-  pub fn detect_input_pending () -> bool;
+
   /// C: `status_t wait_for_objects_etc (object_wait_info *infos, int numInfos, uint32 flags,
   /// bigtime_t timeout);   [<OS.h>; UNVERIFIED here]`
   pub fn wait_for_objects_etc (infos: *mut object_wait_info, num_infos: c_int, flags: c_uint,
@@ -6513,7 +6512,7 @@ pub unsafe extern "C" fn put_xrm_resource (name: Lisp_Object, val: Lisp_Object)
    declares it here - P-72 rule 4).  */
 #[cfg (feature = "have_haiku")]
 unsafe extern "C" {
-  pub fn mark_object (obj: Lisp_Object);
+
 }
 
 /* C 4772-4793's `#ifdef USE_BE_CAIRO` arm - **dead on this target** (the frozen table leaves

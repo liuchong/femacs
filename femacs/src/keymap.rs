@@ -92,10 +92,7 @@ unsafe extern "C" {
 
   /// C: lisp.h 4397: `extern void message_with_string (const char *, Lisp_Object, bool);`
   pub fn message_with_string (m: *const c_char, string: Lisp_Object, log: bool);
-  /// C: lisp.h 4245: `extern Lisp_Object larger_vector (Lisp_Object, ptrdiff_t, ptrdiff_t);`
-  /// (the lisp.rs mirror does not carry it yet - the ccl.rs shape).
-  pub fn larger_vector (vec: Lisp_Object, elt_size: ptrdiff_t, new_size: ptrdiff_t)
-    -> Lisp_Object;
+
   /// C: lisp.h 4566: `extern Lisp_Object make_specified_string (const char *, ptrdiff_t,
   /// ptrdiff_t, bool);` (the lisp.rs mirror does not carry it yet - the ccl.rs shape).
   pub fn make_specified_string (contents: *const c_char, nchars: ptrdiff_t,
@@ -103,9 +100,7 @@ unsafe extern "C" {
   /// C: <string.h>: `extern char *strstr (const char *, const char *);` (absent from the
   /// string.rs mirror, which carries memcpy/memset/strchr/strlen).
   pub fn strstr (haystack: *const c_char, needle: *const c_char) -> *mut c_char;
-  /// C: lisp.h 4271: `extern Lisp_Object nconc2 (Lisp_Object, Lisp_Object);` (fns.c; absent
-  /// from the lisp.rs mirror - the callproc.rs shape).
-  pub fn nconc2 (a: Lisp_Object, b: Lisp_Object) -> Lisp_Object;
+
   /// C: lisp.h 4717: `extern ptrdiff_t esprintf (char *, char const *, ...)
   /// ATTRIBUTE_FORMAT_PRINTF (2, 3);` (doprnt.c; not declared by any included mirror).
   pub fn esprintf (buf: *mut c_char, format: *const c_char, ...) -> ptrdiff_t;

@@ -180,10 +180,8 @@ unsafe extern "C" {
                              arg: *mut c_void,
                              handler: Option<unsafe extern "C" fn (nonlocal_exit, Lisp_Object)
                                               -> Lisp_Object>) -> Lisp_Object;
-  /// C: lisp.h 4786: `extern Lisp_Object quit (void);`
-  pub fn quit () -> Lisp_Object;
-  /// C: lisp.h 3880: `extern void process_pending_signals (void);`
-  pub fn process_pending_signals ();
+
+
 }
 
 /* C 929: `be_drag_message (…, block_input, unblock_input, …)` hands C's INLINE `block_input`

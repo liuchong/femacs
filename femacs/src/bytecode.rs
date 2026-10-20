@@ -73,39 +73,28 @@ include!("include/window.rs");                 // C 30
    each keeps C's prototype in a `/// C:` line (PORTING.md P-55 for the pointer-only
    types).  */
 unsafe extern "C" {
-  /// C: lisp.h 4866: `Lisp_Object funcall_general (Lisp_Object fun, ptrdiff_t numargs, Lisp_Object *args);`
-  pub fn funcall_general (fun: Lisp_Object, numargs: ptrdiff_t, args: *mut Lisp_Object)
-    -> Lisp_Object;
-  /// C: lisp.h 4865: `void do_debug_on_call (Lisp_Object code, specpdl_ref count);`
-  pub fn do_debug_on_call (code: Lisp_Object, count: specpdl_ref);
+
+
   /// C: lisp.h 4803: `Lisp_Object internal_catch (Lisp_Object, Lisp_Object (*) (Lisp_Object), Lisp_Object);`
   pub fn internal_catch (tag: Lisp_Object, func: Option<unsafe extern "C" fn (Lisp_Object) -> Lisp_Object>,
                          arg: Lisp_Object) -> Lisp_Object;
-  /// C: lisp.h 4804: `Lisp_Object internal_lisp_condition_case (Lisp_Object, Lisp_Object, Lisp_Object);`
-  pub fn internal_lisp_condition_case (var: Lisp_Object, bodyform: Lisp_Object,
-                                       handlers: Lisp_Object) -> Lisp_Object;
+
   /// C: lisp.h 4703: `void temp_output_buffer_setup (const char *);`
   pub fn temp_output_buffer_setup (bufname: *const c_char);
   // (window.h 1227's `temp_output_buffer_show` is the window.rs mirror's now; the use-site copy is gone, P-26.)
-  /// C: lisp.h 4924: `extern Lisp_Object save_restriction_save (void);`
-  pub fn save_restriction_save () -> Lisp_Object;
-  /// C: lisp.h 4925: `extern void save_restriction_restore (Lisp_Object);`
-  pub fn save_restriction_restore (data: Lisp_Object);
+
+
   // (window.h 1127's `restore_window_configuration` is the window.rs mirror's now; the use-site copy is gone, P-26.)
-  /// C: lisp.h 4860: `extern void prog_ignore (Lisp_Object);`
-  pub fn prog_ignore (body: Lisp_Object);
-  /// C: lisp.h 4843: `extern Lisp_Object call_debugger (Lisp_Object arg);`
-  pub fn call_debugger (arg: Lisp_Object) -> Lisp_Object;
+
+
   /// C: lisp.h 4812: `extern struct handler *push_handler (Lisp_Object, enum handlertype);`
   pub fn push_handler (tag: Lisp_Object, type_: handlertype) -> *mut handler;
   /// C: lisp.h 4443: `extern void mark_memory (void const *start, void const *end);`
   pub fn mark_memory (start: *const c_void, end: *const c_void);
-  /// C: lisp.h 4436: `extern void mark_object (Lisp_Object);`
-  pub fn mark_object (obj: Lisp_Object);
+
   /// C: lisp.h 4799: `extern bool FUNCTIONP (Lisp_Object);`
   pub fn FUNCTIONP (o: Lisp_Object) -> bool;
-  /// C: lisp.h 4801: `extern Lisp_Object eval_sub (Lisp_Object form);`
-  pub fn eval_sub (form: Lisp_Object) -> Lisp_Object;
+
   /// C: lisp.h 4206: `extern void set_internal (Lisp_Object, Lisp_Object, Lisp_Object, enum set_internal_bind);`
   pub fn set_internal (symbol: Lisp_Object, newval: Lisp_Object, r#let: Lisp_Object,
                        bindflag: Set_Internal_Bind);

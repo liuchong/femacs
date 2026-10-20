@@ -57,29 +57,20 @@ include!("include/termhooks.rs");              // C 34: `#include "termhooks.h"`
 /* The names C gets from headers whose mirrors do not carry them yet (the
    terminal.rs/filelock.rs shape), each with C's own prototype in a `/// C:` line.  */
 unsafe extern "C" {
-  /// C: lisp.h 4998: `extern void record_unwind_save_match_data (void);`
-  fn record_unwind_save_match_data ();
-  /// C: lisp.h 4978: `extern void restore_point_unwind (Lisp_Object);`
-  fn restore_point_unwind (location: Lisp_Object);
+
+
   /// C: lisp.h 5031-5032: `extern ptrdiff_t fast_looking_at (Lisp_Object, ptrdiff_t,
   /// ptrdiff_t, ptrdiff_t, ptrdiff_t, Lisp_Object);`
   fn fast_looking_at (regexp: Lisp_Object, pos: ptrdiff_t, pos_byte: ptrdiff_t,
 		      limit: ptrdiff_t, limit_byte: ptrdiff_t, string: Lisp_Object)
 		      -> ptrdiff_t;
-  /// C: lisp.h 5035-5036: `extern ptrdiff_t find_newline (ptrdiff_t, ptrdiff_t, ptrdiff_t,
-  /// ptrdiff_t, ptrdiff_t, ptrdiff_t *, ptrdiff_t *, bool);`
-  fn find_newline (start: ptrdiff_t, start_byte: ptrdiff_t, end: ptrdiff_t,
-		   end_byte: ptrdiff_t, count: ptrdiff_t, shortage: *mut ptrdiff_t,
-		   shortage_byte: *mut ptrdiff_t, allow_quit: bool) -> ptrdiff_t;
-  /// C: lisp.h 5375: `extern char * tty_type_name (Lisp_Object);`
-  fn tty_type_name (terminal: Lisp_Object) -> *mut c_char;
+
+
   /// C: termhooks.h 961: `extern struct terminal *decode_live_terminal (Lisp_Object);`
   /// (terminal.c defines it and the termhooks.h mirror does not carry the prototype yet.)
   fn decode_live_terminal (terminal: Lisp_Object) -> *mut terminal;
-  /// C: lisp.h 4436: `extern void mark_object (Lisp_Object);`
-  fn mark_object (obj: Lisp_Object);
-  /// C: lisp.h 4259: `void hash_remove_from_table (struct Lisp_Hash_Table *, Lisp_Object);`
-  fn hash_remove_from_table (h: *mut Lisp_Hash_Table, key: Lisp_Object);
+
+
   // (window.h 1233's `window_point` is the window.rs mirror's now; the use-site copy is gone, P-26.)
   /// C: dispextern.h 3592: `ptrdiff_t get_small_narrowing_begv (struct window *, ptrdiff_t);`
   fn get_small_narrowing_begv (w: *mut window, pos: ptrdiff_t) -> ptrdiff_t;

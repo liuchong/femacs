@@ -310,23 +310,12 @@ pub const PENDING_COMPOSE_CHANGE: textconv_batch_edit_flags = 2;
 unsafe extern "C" {
   /// C: lisp.h 4826: `extern void record_unwind_protect_excursion (void);` (eval.c).
   fn record_unwind_protect_excursion ();
-  /// C: lisp.h 4924-4925: `extern Lisp_Object save_restriction_save (void);` /
-  /// `extern void save_restriction_restore (Lisp_Object);` (editfns.c).
-  fn save_restriction_save () -> Lisp_Object;
-  fn save_restriction_restore (buffer: Lisp_Object);
-  /// C: lisp.h 4335-4336: `extern void insert_from_string (Lisp_Object, ptrdiff_t, ptrdiff_t,
-  /// ptrdiff_t, ptrdiff_t, bool);` (insdel.c).
-  fn insert_from_string (string: Lisp_Object, from: ptrdiff_t, from_byte: ptrdiff_t,
-			 chars: ptrdiff_t, bytes: ptrdiff_t, inherit: bool);
-  /// C: lisp.h 4346: `extern Lisp_Object del_range_1 (ptrdiff_t, ptrdiff_t, bool, bool);` (insdel.c).
-  fn del_range_1 (from: ptrdiff_t, to: ptrdiff_t, prepare: bool,
-		  retain_markers: bool) -> Lisp_Object;
-  /// C: lisp.h 4351: `extern int safe_del_range (ptrdiff_t, ptrdiff_t);` (insdel.c).
-  fn safe_del_range (from: ptrdiff_t, to: ptrdiff_t) -> c_int;
-  /// C: lisp.h 4920-4921: `extern void find_field (Lisp_Object, Lisp_Object, Lisp_Object,
-  /// ptrdiff_t *, Lisp_Object, ptrdiff_t *);` (editfns.c).
-  fn find_field (pos: Lisp_Object, merge_at_boundary: Lisp_Object, beg_limit: Lisp_Object,
-		 beg: *mut ptrdiff_t, end_limit: Lisp_Object, end: *mut ptrdiff_t);
+
+
+
+
+
+
   /// C: keyboard.h 252: `extern bool reading_key_sequence;` (keyboard.c).
   static mut reading_key_sequence: bool;
 }

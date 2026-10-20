@@ -860,11 +860,11 @@ static WIDE_EMPTY: [WCHAR; 1] = [0x0000];
 /// C: void popup_get_selection (XEvent *, struct w32_display_info *, LWLIB_ID);
 #[cfg (feature = "have_ntgui")]
 unsafe extern "C" {
-  pub fn menu_bar_items (old: Lisp_Object) -> Lisp_Object;
-  pub fn record_unwind_save_match_data ();
-  pub fn discard_mouse_events ();
-  pub fn safe_run_hooks (hook: Lisp_Object);
-  pub fn quit () -> Lisp_Object;
+
+
+
+
+
 
 
 

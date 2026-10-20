@@ -81,35 +81,20 @@ unsafe extern "C" {
   fn chars_in_text (string: *const u8, nbytes: ptrdiff_t) -> ptrdiff_t;
   /// C: lisp.h 4954: `extern void clear_charpos_cache (struct buffer *);`
   fn clear_charpos_cache (b: *mut buffer);
-  /// C: lisp.h 4957: `extern void detach_marker (Lisp_Object);`
-  fn detach_marker (marker: Lisp_Object);
+
   /// C: lisp.h 4811: `extern Lisp_Object internal_catch_all (Lisp_Object (*) (void *), void *,
   /// Lisp_Object (*) (enum nonlocal_exit, Lisp_Object));`
   fn internal_catch_all (func: Option<unsafe extern "C" fn (*mut c_void) -> Lisp_Object>,
                          arg: *mut c_void,
                          handler: Option<unsafe extern "C" fn (nonlocal_exit, Lisp_Object)
                                           -> Lisp_Object>) -> Lisp_Object;
-  /// C: lisp.h 4996-4997: `extern void update_search_regs (ptrdiff_t oldstart,
-  /// ptrdiff_t oldend, ptrdiff_t newend);`
-  fn update_search_regs (oldstart: ptrdiff_t, oldend: ptrdiff_t, newend: ptrdiff_t);
-  /// C: lisp.h 5040-5041: `extern ptrdiff_t find_newline_no_quit (ptrdiff_t, ptrdiff_t,
-  /// ptrdiff_t, ptrdiff_t *);`
-  fn find_newline_no_quit (from: ptrdiff_t, from_byte: ptrdiff_t, cnt: ptrdiff_t,
-                           bytepos: *mut ptrdiff_t) -> ptrdiff_t;
-  /// C: lisp.h 4927-4928: `extern Lisp_Object make_buffer_string_both (ptrdiff_t, ptrdiff_t,
-  /// ptrdiff_t, ptrdiff_t, bool);`
-  fn make_buffer_string_both (start: ptrdiff_t, start_byte: ptrdiff_t, end: ptrdiff_t,
-                              end_byte: ptrdiff_t, props: bool) -> Lisp_Object;
-  /// C: lisp.h 4939: `extern void adjust_overlays_for_insert (ptrdiff_t, ptrdiff_t, bool);`
-  fn adjust_overlays_for_insert (pos: ptrdiff_t, length: ptrdiff_t, before_markers: bool);
-  /// C: lisp.h 4940: `extern void adjust_overlays_for_delete (ptrdiff_t, ptrdiff_t);`
-  fn adjust_overlays_for_delete (pos: ptrdiff_t, length: ptrdiff_t);
-  /// C: lisp.h 4942-4943: `extern void report_overlay_modification (Lisp_Object,
-  /// Lisp_Object, bool, Lisp_Object, Lisp_Object, Lisp_Object);`
-  fn report_overlay_modification (start: Lisp_Object, end: Lisp_Object, after: bool,
-                                  arg1: Lisp_Object, arg2: Lisp_Object, arg3: Lisp_Object);
-  /// C: lisp.h 5261: `extern void report_interval_modification (Lisp_Object, Lisp_Object);`
-  fn report_interval_modification (start: Lisp_Object, end: Lisp_Object);
+
+
+
+
+
+
+
   /// C: window.h 1169: `extern void bset_redisplay (struct buffer *b);`
   fn bset_redisplay (b: *mut buffer);
 }

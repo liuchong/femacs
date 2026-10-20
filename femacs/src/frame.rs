@@ -558,8 +558,7 @@ unsafe extern "C" {
   pub fn set_window_buffer (window: Lisp_Object, buffer: Lisp_Object,
                             run_hooks: bool, keep_margins: bool);
   // window.h 1123's `make_window` is the window.rs mirror's now (`window_fn_decls`).
-  /// C: lisp.h 4945: `extern Lisp_Object other_buffer_safely (Lisp_Object);`
-  pub fn other_buffer_safely (buffer: Lisp_Object) -> Lisp_Object;
+
   /// C: lisp.h 5058: `extern Lisp_Object get_minibuffer (EMACS_INT);`
   pub fn get_minibuffer (depth: EMACS_INT) -> Lisp_Object;
   /// C: dispextern.h 3901: `extern void adjust_frame_glyphs (struct frame *);`
@@ -614,8 +613,7 @@ unsafe extern "C" {
   /// C: dispextern.h 3902: `void free_glyphs (struct frame *);`
   pub fn free_glyphs (f: *mut frame);
   // window.h 1129's `delete_all_child_windows` is the window.rs mirror's now (P-26).
-  /// C: lisp.h 4275: `extern Lisp_Object delq_no_quit (Lisp_Object, Lisp_Object);`
-  pub fn delq_no_quit (elt: Lisp_Object, list: Lisp_Object) -> Lisp_Object;
+
   /// C: font.h 897: `extern void free_font_driver_list (struct frame *f);`
   pub fn free_font_driver_list (f: *mut frame);
 
@@ -4928,8 +4926,7 @@ macro_rules! PRIuMAX { () => { "ju" } }
 unsafe extern "C" {
   /// C: lisp.h 4542: extern Lisp_Object make_formatted_string (const char *, ...);
   pub fn make_formatted_string (format: *const c_char, ...) -> Lisp_Object;
-  /// C: lisp.h 607: extern int check_int_nonnegative (Lisp_Object);
-  pub fn check_int_nonnegative (x: Lisp_Object) -> c_int;
+
   /// C: dispextern.h 3896: extern void redraw_frame (struct frame *);
   pub fn redraw_frame (f: *mut frame);
   /// C: dispextern.h 3802: void clear_face_cache (bool);

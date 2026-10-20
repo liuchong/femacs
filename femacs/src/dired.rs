@@ -146,8 +146,7 @@ unsafe extern "C" {
   /// C: lisp.h 4986: `Lisp_Object check_emacs_readlinkat (int, Lisp_Object, char const *)`
   pub fn check_emacs_readlinkat (fd: c_int, filename: Lisp_Object,
                                  name: *const c_char) -> Lisp_Object;
-  /// C: lisp.h 4984: `Lisp_Object file_attribute_errno (Lisp_Object, int)`
-  pub fn file_attribute_errno (file: Lisp_Object, err: c_int) -> Lisp_Object;
+
   /// C: lisp.h 4807: `Lisp_Object internal_condition_case_2 (Lisp_Object (*) (Lisp_Object, Lisp_Object), Lisp_Object, Lisp_Object, Lisp_Object, Lisp_Object (*) (Lisp_Object))`
   pub fn internal_condition_case_2 (bfun: Option<unsafe extern "C" fn (Lisp_Object, Lisp_Object) -> Lisp_Object>,
                                     arg1: Lisp_Object, arg2: Lisp_Object, handlers: Lisp_Object,

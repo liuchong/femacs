@@ -219,13 +219,10 @@ macro_rules! face_change {
 }
 
 unsafe extern "C" {
-  /// C: lisp.h 4271: `extern Lisp_Object nconc2 (Lisp_Object, Lisp_Object);` (fns.c defines it).
-  pub fn nconc2 (a: Lisp_Object, b: Lisp_Object) -> Lisp_Object;
 
-  /// C: lisp.h 5097: `extern void safe_run_hooks (Lisp_Object);` (keyboard.c defines it).
-  pub fn safe_run_hooks (hook: Lisp_Object);
-  /// C: lisp.h 5055: `extern bool is_minibuffer (EMACS_INT, Lisp_Object);` (minibuf.c).
-  pub fn is_minibuffer (depth: EMACS_INT, window: Lisp_Object) -> bool;
+
+
+
   /// C: lisp.h 5056: `extern EMACS_INT this_minibuffer_depth (Lisp_Object);`.
   pub fn this_minibuffer_depth (buffer: Lisp_Object) -> c_int;
   /// C: dispextern.h 3588: `void mark_window_display_accurate (Lisp_Object, bool);`
@@ -248,8 +245,7 @@ unsafe extern "C" {
   fn FUNCTIONP (o: Lisp_Object) -> bool;
   /// C: lisp.h 4825: `extern void record_unwind_protect_void (void (*) (void));` (eval.c).
   pub fn record_unwind_protect_void (function: Option<unsafe extern "C" fn ()>);
-  /// C: lisp.h 4945: `extern Lisp_Object other_buffer_safely (Lisp_Object);` (buffer.c).
-  pub fn other_buffer_safely (buffer: Lisp_Object) -> Lisp_Object;
+
   /// C: lisp.h 5340: `extern Lisp_Object run_hook_with_args_2 (Lisp_Object, Lisp_Object,
   /// Lisp_Object);` (eval.c).
   pub fn run_hook_with_args_2 (hook: Lisp_Object, arg1: Lisp_Object, arg2: Lisp_Object)
@@ -7479,10 +7475,7 @@ DEFUN! ("window-configuration-frame", Fwindow_configuration_frame, Swindow_confi
 
 unsafe extern "C" {
 
-  /// C: lisp.h 5119: `extern Lisp_Object do_switch_frame (Lisp_Object, int, int,
-  /// Lisp_Object);` (frame.c).
-  pub fn do_switch_frame (frame: Lisp_Object, track: c_int, for_deletion: c_int,
-                          norecord: Lisp_Object) -> Lisp_Object;
+
 }
 
 DEFUN! ("set-window-configuration", Fset_window_configuration,

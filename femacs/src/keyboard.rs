@@ -432,24 +432,18 @@ unsafe extern "C" {
 }
 
 unsafe extern "C" {
-  /// C: lisp.h 4245: `extern Lisp_Object larger_vector (Lisp_Object, ptrdiff_t, ptrdiff_t);`
-  fn larger_vector (a: Lisp_Object, len: ptrdiff_t, init: ptrdiff_t) -> Lisp_Object;
+
   /// C: lisp.h 4323: `extern ptrdiff_t copy_text (const unsigned char *, unsigned char *,
   ///					      ptrdiff_t, bool, bool);`
   fn copy_text (from: *const u8, to: *mut u8, n: ptrdiff_t, from_multibyte: bool,
                 to_multibyte: bool) -> ptrdiff_t;
-  /// C: lisp.h 4393: `extern void message3_nolog (Lisp_Object);`
-  fn message3_nolog (m: Lisp_Object);
-  /// C: lisp.h 4401: `extern void truncate_echo_area (ptrdiff_t);`
-  fn truncate_echo_area (n: ptrdiff_t);
+
+
   /// C: lisp.h 4786: `extern _Noreturn void quit (void);`
   fn quit () -> !;
-  /// C: eval.c (lisp.h 5387's `extern bool signal_quit_p (Lisp_Object);`)
-  fn signal_quit_p (x: Lisp_Object) -> bool;
-  /// C: lisp.h 4388: `extern void clear_message (bool, bool);`
-  fn clear_message (current_echo_area: bool, last_displayed_p: bool);
-  /// C: xdisp.c (lisp.h 4400's `extern void message_log_maybe_newline (void);`)
-  fn message_log_maybe_newline ();
+
+
+
   /// C: print.c (lisp.h 5396's `extern void print_error_message (Lisp_Object, Lisp_Object, const char *, Lisp_Object);`)
   fn print_error_message (data: Lisp_Object, errname: Lisp_Object, errmsg: *const c_char,
                           severity: Lisp_Object);
@@ -459,19 +453,15 @@ unsafe extern "C" {
   /// C: lisp.h 4805: `extern Lisp_Object internal_condition_case (Lisp_Object (*) (void), Lisp_Object, Lisp_Object (*) (Lisp_Object));`
   fn internal_condition_case (bfun: unsafe extern "C" fn () -> Lisp_Object, handlers: Lisp_Object,
                               hfun: unsafe extern "C" fn (Lisp_Object) -> Lisp_Object) -> Lisp_Object;
-  /// C: lisp.h 4814: `extern void pop_handler (void);`
-  fn pop_handler ();
-  /// C: lisp.h 4815: `extern void push_handler_bind (Lisp_Object, Lisp_Object, int);`
-  fn push_handler_bind (conditions: Lisp_Object, handler: Lisp_Object, var: c_int);
+
+
   /// C: eval.c (lisp.h 5160's `extern void init_eval (void);`)
   fn init_eval ();
   /// C: <setjmp.h>: `int sigsetjmp (sigjmp_buf, int);`
   fn sigsetjmp (env: *mut c_void, savemask: c_int) -> c_int;
 
-  /// C: lisp.h 4373: `extern Lisp_Object sit_for (Lisp_Object, bool, int);`
-  fn sit_for (timeout: Lisp_Object, reading: bool, display: c_int) -> Lisp_Object;
-  /// C: lisp.h 4653: `extern void display_malloc_warning (void);`
-  fn display_malloc_warning ();
+
+
   /// C: dispextern.h 3569: `void resize_echo_area_exactly (void);`
   fn resize_echo_area_exactly ();
   /// C: dispextern.h 3570: `bool resize_mini_window (struct window *, bool);`
@@ -519,12 +509,8 @@ unsafe extern "C" {
   /// C: <sys/ioctl.h>: `int ioctl (int, unsigned long, ...);` (the mirror does not carry it,
   ///   `callproc.rs` declares its own copy).
   fn ioctl (fd: c_int, request: c_ulong, ...) -> c_int;
-  /// C: lisp.h 5062: `extern void barf_if_interaction_inhibited (void);` (eval.c; the mirror
-  ///   does not carry it).
-  fn barf_if_interaction_inhibited ();
-  /// C: lisp.h 4802: `extern Lisp_Object apply1 (Lisp_Object, Lisp_Object);` (eval.c; the
-  ///   mirror does not carry it, `process.rs` declares its own copy).
-  fn apply1 (fn_: Lisp_Object, arg: Lisp_Object) -> Lisp_Object;
+
+
   /// C: lisp.h 4799: `extern bool FUNCTIONP (Lisp_Object);` (eval.c defines it at 3103; the
   ///   mirror does not carry it, `bytecode.rs` declares its own copy — P-132: this declaration
   ///   is what the call sites below use; a symbol-only local macro had shadowed it).
@@ -542,21 +528,18 @@ unsafe extern "C" {
   ///   the `is_tty_frame` declaration above is this unit's third member of that family).
   fn is_tty_child_frame (f: *mut frame) -> bool;
   fn is_tty_root_frame_with_visible_child (f: *mut frame) -> bool;
-  /// C: sysdep.c: `extern void sys_suspend (void);` (systty.h; no mirror carries it)
-  fn sys_suspend ();
 
 
 
 
 
-  /// C: lisp.h 4271: `extern Lisp_Object nconc2 (Lisp_Object, Lisp_Object);`
-  fn nconc2 (a: Lisp_Object, b: Lisp_Object) -> Lisp_Object;
+
+
   /// C: lisp.h 4397: `extern void message_with_string (const char *, Lisp_Object, bool);`
   fn message_with_string (m: *const c_char, string: Lisp_Object, log: bool);
   /// C: lisp.h 4825: `extern void record_unwind_protect_void (void (*) (void));`
   fn record_unwind_protect_void (function: Option<unsafe extern "C" fn ()>);
-  /// C: lisp.h 4929: `extern void labeled_narrow_to_region (Lisp_Object, Lisp_Object, Lisp_Object);`
-  fn labeled_narrow_to_region (start: Lisp_Object, end: Lisp_Object, label: Lisp_Object);
+
   /// C: lisp.h 4783: `extern Lisp_Object run_hook_with_args (ptrdiff_t nargs, Lisp_Object *args,
   ///   Lisp_Object (*funcall) (ptrdiff_t nargs, Lisp_Object *args));`
   fn run_hook_with_args (nargs: ptrdiff_t, args: *mut Lisp_Object,
@@ -569,8 +552,7 @@ unsafe extern "C" {
                                 nargs: ptrdiff_t, args: *mut Lisp_Object, handlers: Lisp_Object,
                                 hfun: unsafe extern "C" fn (Lisp_Object, ptrdiff_t, *mut Lisp_Object)
                                                               -> Lisp_Object) -> Lisp_Object;
-  /// C: lisp.h 4412: `extern Lisp_Object safe_eval (Lisp_Object);`
-  fn safe_eval (form: Lisp_Object) -> Lisp_Object;
+
   // intervals.h 279's `get_property_and_range` is the include/intervals.rs mirror's now
   // (status 3.371).
   // intervals.h 305's `get_char_property_and_overlay` is the include/intervals.rs mirror's
@@ -618,29 +600,18 @@ unsafe extern "C" {
   ///   arm reads it in the *live* text (the `#if` above it, C 6483-6494, is what is dead).
   fn pixel_to_glyph_coords (f: *mut frame, x: c_int, y: c_int, px: *mut c_int,
                             py: *mut c_int, bounds: *mut c_int, noclip: bool);
-  /// C: lisp.h 4562: `extern Lisp_Object make_event_array (ptrdiff_t, Lisp_Object *);`
-  ///   (alloc.c defines it; the `lisp.rs` mirror does not carry the declaration).
-  fn make_event_array (nargs: ptrdiff_t, args: *mut Lisp_Object) -> Lisp_Object;
+
   /// C: dispextern.h 3924: `void change_frame_size (struct frame *, int, int, bool, bool,
   ///   bool);` (dispnew.c defines it; the `include/frame.rs` mirror does not carry it, and
   ///   `frame.rs` declares its own copy for its own callers).
   fn change_frame_size (f: *mut frame, new_width: c_int, new_height: c_int, pretend: bool,
                         delay: bool, safe: bool);
 
-  /// C: lisp.h 5289: `extern void discard_tty_input (void);` (sysdep.c; the mirror does not
-  ///   carry it).
-  fn discard_tty_input ();
-  /// C: lisp.h 5292: `extern void init_all_sys_modes (void);` (sysdep.c) — its function
-  ///   pointer is what `suspend-emacs` hands to `record_unwind_protect_void`.
-  fn init_all_sys_modes ();
-  /// C: lisp.h 5293: `extern void reset_all_sys_modes (void);` (sysdep.c).
-  fn reset_all_sys_modes ();
-  /// C: lisp.h 5287: `extern void sys_subshell (void);` (sysdep.c) — the `sys_suspend`
-  ///   declaration above is the same family.
-  fn sys_subshell ();
-  /// C: lisp.h 5285: `extern int stuff_char (char c);` (sysdep.c defines it with C's
-  ///   `int` return, which `lisp.h` 5285 declares).
-  fn stuff_char (c: c_char) -> c_int;
+
+
+
+
+
   /// C: lisp.h 5320: `extern FILE *emacs_fdopen (int, const char *);` (`ATTRIBUTE_MALLOC
   ///   ATTRIBUTE_DEALLOC (emacs_fclose, 1)`; sysdep.c defines it, and the `lread.rs` mirror
   ///   declares its own copy for its own callers).
@@ -648,9 +619,7 @@ unsafe extern "C" {
   /// C: lisp.h 5324: `extern int emacs_unlink (const char *);` (sysdep.c; `emacs.rs`
   ///   declares its own copy).
   fn emacs_unlink (name: *const c_char) -> c_int;
-  /// C: lisp.h 4436: `extern void mark_object (Lisp_Object);` (alloc.c defines it; the
-  ///   `lisp.rs` mirror carries `mark_objects` only, `print.rs` declares its own copy).
-  fn mark_object (obj: Lisp_Object);
+
   /// C: lisp.h 5290-5291: `extern void init_sys_modes (struct tty_display_info *);`
   ///   and `extern void reset_sys_modes (struct tty_display_info *);` (sysdep.c defines both;
   ///   neither mirror declares them for this unit).
@@ -665,10 +634,7 @@ unsafe extern "C" {
   /// C: dispextern.h 3580: `int window_box_left_offset (struct window *, enum
   ///   glyph_row_area);` (xdisp.c defines it; the mirror does not declare it).
   fn window_box_left_offset (w: *mut window, area: glyph_row_area) -> c_int;
-  /// C: lisp.h 5119-5122: `extern Lisp_Object do_switch_frame (Lisp_Object, int, int,
-  ///   Lisp_Object);` (frame.c defines it; `minibuf.rs` declares its own copy).
-  fn do_switch_frame (frame: Lisp_Object, for_deletion: c_int, track: c_int,
-                      norecord: Lisp_Object) -> Lisp_Object;
+
 }
 
 /// C: dispextern.h 3610: `extern bool display_working_on_window_p;`

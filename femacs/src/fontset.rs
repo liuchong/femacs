@@ -280,10 +280,9 @@ unsafe extern "C" {
   pub fn qsort (base: *mut c_void, nmemb: usize, size: usize,
                 compar: Option<unsafe extern "C" fn (*const c_void, *const c_void) -> c_int>);
                                                           // stdlib.in.h 237
-  pub fn nconc2 (a: Lisp_Object, b: Lisp_Object) -> Lisp_Object;          // lisp.h 4271
-  pub fn assoc_no_quit (key: Lisp_Object, list: Lisp_Object) -> Lisp_Object;  // lisp.h 4274
-  pub fn larger_vector (vec: Lisp_Object, incr: ptrdiff_t,
-                        init: ptrdiff_t) -> Lisp_Object;                  // lisp.h 4245
+          // lisp.h 4271
+  // lisp.h 4274
+                  // lisp.h 4245
             // frame.h 1476
                              // frame.h 1504
   pub fn recompute_basic_faces (f: *mut frame);                           // dispextern.h 3823

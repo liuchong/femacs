@@ -1186,10 +1186,8 @@ unsafe extern "C" {
   fn ftello (stream: *mut FILE) -> off_t;
   /// C: lisp.h 4826: `extern void record_unwind_protect_excursion (void);` (eval.c).
   fn record_unwind_protect_excursion ();
-  /// C: lisp.h 4403: `extern ptrdiff_t count_lines (ptrdiff_t start_byte, ptrdiff_t end_byte);` (indent.c).
-  fn count_lines (from: ptrdiff_t, to: ptrdiff_t) -> ptrdiff_t;
-  /// C: lisp.h 4656: `extern void free_cons (struct Lisp_Cons *);` (alloc.c).
-  fn free_cons (cons: *mut Lisp_Cons);
+
+
   /// C: lisp.h 5392: `extern Lisp_Object internal_condition_case_1 (Lisp_Object (*) (Lisp_Object),
   /// Lisp_Object, Lisp_Object, Lisp_Object (*) (Lisp_Object));` (eval.c).
   fn internal_condition_case_1 (bfun: Option<unsafe extern "C" fn (Lisp_Object) -> Lisp_Object>,
@@ -1198,8 +1196,7 @@ unsafe extern "C" {
     -> Lisp_Object;
   /// C: lisp.h 4397: `extern void message_with_string (const char *, Lisp_Object, bool);` (keyboard.c).
   fn message_with_string (m: *const c_char, string: Lisp_Object, log: bool);
-  /// C: lisp.h 4829: `extern void clear_unwind_protect (specpdl_ref);` (eval.c).
-  fn clear_unwind_protect (count: specpdl_ref);
+
   /// C: sysdep.c: `extern FILE *emacs_fdopen (int, const char *);` (sysdep.c).
   fn emacs_fdopen (fd: c_int, mode: *const c_char) -> *mut FILE;
   /// C: sysdep.c: `extern FILE *emacs_fopen (const char *, const char *);` (WINDOWSNT arm).
@@ -1213,42 +1210,35 @@ unsafe extern "C" {
   // lisp.h 4823's `record_unwind_protect_int` is the include/lisp.rs mirror's now (status 3.371).
   // lisp.h 4820's `record_unwind_protect_ptr` is the include/lisp.rs mirror's now
   // (status 3.363).
-  /// C: lisp.h 4998: `extern void record_unwind_save_match_data (void);` (search.c).
-  fn record_unwind_save_match_data ();
+
   /// C: comp.c: `extern Lisp_Object Fmodule_load (...)`?  It is a DEFUN; globals.rs's subrs
   /// module declares it (P-29's superset).
   /// C: lisp.h 4826: `extern void record_unwind_protect_excursion (void);`
   /// C: keyboard.c's `noninteractive` (globals.rs).
   /// C: sysdep.c: `extern int sys_fstat (int, struct stat *);`
   fn sys_fstat (fd: c_int, st: *mut stat) -> c_int;
-  /// C: lisp.h 4923-4925: `extern Lisp_Object save_restriction_save (void);` /
-  /// `extern void save_restriction_restore (Lisp_Object);` (insdel.c).
-  fn save_restriction_save () -> Lisp_Object;
-  fn save_restriction_restore (data: Lisp_Object);
+
+
   /// C: fns.c: `extern struct hash_table_test hashtest_eq;` (lisp.rs carries the eql/equal pair).
   static mut hashtest_eq: hash_table_test;
   /// C: lisp.h 5xxx: `extern int sys_faccessat (int, const char *, int, int);` (sysdep.c).
   fn sys_faccessat (fd: c_int, name: *const c_char, mode: c_int, flag: c_int) -> c_int;
-  /// C: fileio.c: `extern bool file_directory_p (Lisp_Object);`
-  fn file_directory_p (path: Lisp_Object) -> bool;
+
   /// C: lisp.h 4xxx: `extern Lisp_Object make_specified_string (const char *, ptrdiff_t,
   /// ptrdiff_t, bool);` (alloc.c; the search.rs use-site declaration).
   fn make_specified_string (chars: *const c_char, nchars: ptrdiff_t, nbytes: ptrdiff_t,
 			    multibyte: bool) -> Lisp_Object;
-  /// C: lisp.h 4xxx: `extern void pin_string (Lisp_Object);` (alloc.c).
-  fn pin_string (string: Lisp_Object);
+
   /// C: lisp.h 4824: `extern void record_unwind_protect_intmax (void (*) (intmax_t), intmax_t);`
   fn record_unwind_protect_intmax (func: Option<unsafe extern "C" fn (i64)>, int_: i64);
-  /// C: alloc.c: `extern Lisp_Object make_neg_biguint (uintmax_t);`
-  fn make_neg_biguint (n: u64) -> Lisp_Object;
+
   /// C: bignum.c: `extern Lisp_Object make_bignum_str (const char *, int);`
   fn make_bignum_str (num: *const c_char, base: c_int) -> Lisp_Object;
   /// C: <stdlib.h>: `double atof (const char *);`
   fn atof (s: *const c_char) -> c_double;
   /// C: lisp.h 5221: `extern Lisp_Object get_doc_string (Lisp_Object, bool);` (doc.c).
   fn get_doc_string (filepos: Lisp_Object, unibyte: bool) -> Lisp_Object;
-  /// C: alloc.c: `extern void init_symbol (Lisp_Object, Lisp_Object);`
-  fn init_symbol (symbol: Lisp_Object, name: Lisp_Object);
+
   /// C: fns.c: `extern EMACS_UINT hash_char_array (const char *, ptrdiff_t);`
   fn hash_char_array (str_: *const c_char, len: ptrdiff_t) -> EMACS_UINT;
   /// C: fns.c: `extern void *hash_table_alloc_bytes (size_t);`
@@ -1260,22 +1250,17 @@ unsafe extern "C" {
   /// C: eval.c: `extern Lisp_Object decode_env_path (const char *, const char *, bool);`
   fn decode_env_path (evarname: *const c_char, defalt: *const c_char, empty: bool)
     -> Lisp_Object;
-  /// C: fileio.c: `extern bool file_accessible_directory_p (Lisp_Object);`
-  fn file_accessible_directory_p (file: Lisp_Object) -> bool;
-  /// C: fns.c: `extern Lisp_Object nconc2 (Lisp_Object, Lisp_Object);`
-  fn nconc2 (a: Lisp_Object, b: Lisp_Object) -> Lisp_Object;
+
+
   /// C: doprnt.c: `extern ptrdiff_t esprintf (char *, char const *, ...);`
   fn esprintf (buf: *mut c_char, format: *const c_char, ...) -> ptrdiff_t;
   /// C: sysdep.c: `extern char *emacs_strerror (int);`
   fn emacs_strerror (error_number: c_int) -> *const c_char;
   /// C: emacs.c: `extern void message_dolog (const char *, ptrdiff_t, bool, bool);`
   fn message_dolog (m: *const c_char, nbytes: ptrdiff_t, nlflag: bool, multibyte: bool);
-  /// C: alloc.c: `extern void mark_object (Lisp_Object);`
-  fn mark_object (obj: Lisp_Object);
-  /// C: lisp.h 5xxx: `extern Lisp_Object eval_sub (Lisp_Object);` (eval.c).
-  fn eval_sub (form: Lisp_Object) -> Lisp_Object;
-  /// C: lisp.h 5xxx: `extern void labeled_restrictions_remove_in_current_buffer (void);` (buffer.c).
-  fn labeled_restrictions_remove_in_current_buffer ();
+
+
+
 }
 
 /// C: config.h 120: `#define DIRECTORY_SEP '/'`.

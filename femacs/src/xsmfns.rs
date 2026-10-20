@@ -446,10 +446,8 @@ include!("../lib/include/stdckdint.in.rs");       // lisp.h's `<stdckdint.h>` (`
 #[cfg (feature = "have_x_sm")]
 unsafe extern "C" {
 
-  /// C: lisp.h 5284: `extern char *emacs_get_current_dir_name (void);` (C 207/404)
-  pub fn emacs_get_current_dir_name () -> *mut c_char;
-  /// C: lisp.h 5144: `extern char *emacs_strerror (int) ATTRIBUTE_RETURNS_NONNULL;` (C 408)
-  pub fn emacs_strerror (error_number: c_int) -> *mut c_char;
+
+
 }
 
 /* termhooks.h 373-412's `enum event_kind kind : 16` shares `include/termhooks.rs`'s

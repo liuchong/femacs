@@ -213,13 +213,13 @@ unsafe extern "C" {
 /// C: lisp.h: `extern void message3 (Lisp_Object);`
 #[cfg (feature = "msdos")]
 unsafe extern "C" {
-  pub fn message3 (m: Lisp_Object);
+
 }
 /// C 539's `sit_for` is `lisp.h` 4373's prototype of `dispnew.c`'s definition.
 /// C: lisp.h: `extern Lisp_Object sit_for (Lisp_Object, bool, int);`
 #[cfg (feature = "msdos")]
 unsafe extern "C" {
-  pub fn sit_for (value: Lisp_Object, reading: bool, display: c_int) -> Lisp_Object;
+
 }
 
 /* C 44-46: C's note that these prototypes and constants belong on a header file.  Carried as C's

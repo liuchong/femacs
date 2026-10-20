@@ -604,17 +604,12 @@ unsafe extern "C" {
   /// ptrdiff_t, bool);` (`src/alloc.rs` defines it)
   pub fn make_specified_string (contents: *const c_char, nchars: ptrdiff_t, nbytes: ptrdiff_t,
 				multibyte: bool) -> Lisp_Object;
-  /// C 3702/3707: `default_name = xlispstrdup (font_param);`
-  /// C: lisp.h 5553-5555: `extern char *xlispstrdup (Lisp_Object) ATTRIBUTE_MALLOC
-  /// ATTRIBUTE_RETURNS_NONNULL;` (`src/alloc.rs` defines it)
-  pub fn xlispstrdup (string: Lisp_Object) -> *mut c_char;
+
   /// C 3636: `record_unwind_protect_void (clean_up_dialog);`
   /// C: lisp.h 4825: `extern void record_unwind_protect_void (void (*) (void));` (alloc.c; the
   /// `Option<unsafe extern "C" fn ()>` shape `src/alloc.rs` 6266 uses)
   pub fn record_unwind_protect_void (function: Option<unsafe extern "C" fn ()>);
-  /// C 3658: `quit ();`
-  /// C: lisp.h 4786: `extern Lisp_Object quit (void);` (emacs.c)
-  pub fn quit () -> Lisp_Object;
+
 
   /* window.h.  */
   /// C 3207: `set_window_buffer (window, tip_buf, false, false);`
@@ -627,8 +622,7 @@ unsafe extern "C" {
 
 
   /* lisp.h.  */
-  /// C: lisp.h 607: `extern int check_int_nonnegative (Lisp_Object);` - C 604's call
-  pub fn check_int_nonnegative (value: Lisp_Object) -> c_int;
+
   /// C: lisp.h 4409: `void set_frame_cursor_types (struct frame *, Lisp_Object);` - C 683's call
   pub fn set_frame_cursor_types (f: *mut frame, arg: Lisp_Object);
   /// C: lisp.h 5117/5120: `extern void store_frame_param (struct frame *, Lisp_Object,

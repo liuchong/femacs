@@ -4763,3 +4763,524 @@ macro_rules! DOHASH {
         }
     };
 }
+
+/* C 594-5450: the prototypes this header declares for functions other units define.  They stand
+   in a module + glob import so a unit that writes the same prototype at its use site shadows the
+   import instead of colliding with it (P-297, the P-39 shape); a prototype carries the gate of the
+   records it names.  The `/// C:` line is the shape `gen-lisp-abi-probe.py` parses: the C
+   prototype without `extern` and without the trailing `;`.  */
+pub mod lisp_fn_decls {
+  use super::*;
+
+  unsafe extern "C" {
+    /// C: int check_int_nonnegative (Lisp_Object)
+    pub fn check_int_nonnegative (x: Lisp_Object) -> c_int;
+    /// C: uintmax_t check_uinteger_max (Lisp_Object, uintmax_t)
+    pub fn check_uinteger_max (x: Lisp_Object, max: uintmax_t) -> uintmax_t;
+    /// C: Lisp_Object default_value (Lisp_Object symbol)
+    pub fn default_value (symbol: Lisp_Object) -> Lisp_Object;
+    /// C: void process_pending_signals (void)
+    pub fn process_pending_signals ();
+    /// C: Lisp_Object make_neg_biguint (uintmax_t)
+    pub fn make_neg_biguint (n: u64) -> Lisp_Object;
+    /// C: void notify_variable_watchers (Lisp_Object, Lisp_Object, Lisp_Object, Lisp_Object)
+    pub fn notify_variable_watchers (symbol: Lisp_Object, newval: Lisp_Object, operation: Lisp_Object, r#where: Lisp_Object);
+    /// C: void syms_of_data (void)
+    pub fn syms_of_data ();
+    /// C: void syms_of_cmds (void)
+    pub fn syms_of_cmds ();
+    /// C: void init_coding_once (void)
+    pub fn init_coding_once ();
+    /// C: void syms_of_coding (void)
+    pub fn syms_of_coding ();
+    /// C: bool string_ascii_p (Lisp_Object)
+    pub fn string_ascii_p (string: Lisp_Object) -> bool;
+    /// C: void syms_of_character (void)
+    pub fn syms_of_character ();
+    /// C: void init_charset (void)
+    pub fn init_charset ();
+    /// C: void init_charset_once (void)
+    pub fn init_charset_once ();
+    /// C: void syms_of_charset (void)
+    pub fn syms_of_charset ();
+    /// C: void init_syntax_once (void)
+    pub fn init_syntax_once ();
+    /// C: void syms_of_syntax (void)
+    pub fn syms_of_syntax ();
+    /// C: EMACS_INT next_almost_prime (EMACS_INT)
+    pub fn next_almost_prime (n: EMACS_INT) -> EMACS_INT;
+    /// C: Lisp_Object larger_vector (Lisp_Object, ptrdiff_t, ptrdiff_t)
+    pub fn larger_vector (vec: Lisp_Object, elt_size: ptrdiff_t, new_size: ptrdiff_t) -> Lisp_Object;
+    /// C: bool sweep_weak_table (struct Lisp_Hash_Table *, bool)
+    pub fn sweep_weak_table (h: *mut Lisp_Hash_Table, remove_entries_p: bool) -> bool;
+    /// C: EMACS_UINT sxhash (Lisp_Object)
+    pub fn sxhash (obj: Lisp_Object) -> EMACS_UINT;
+    /// C: Lisp_Object hash_table_weakness_symbol (hash_table_weakness_t weak)
+    pub fn hash_table_weakness_symbol (weak: hash_table_weakness_t) -> Lisp_Object;
+    /// C: void hash_remove_from_table (struct Lisp_Hash_Table *, Lisp_Object)
+    pub fn hash_remove_from_table (h: *mut Lisp_Hash_Table, key: Lisp_Object);
+    /// C: Lisp_Object substring_both (Lisp_Object, ptrdiff_t, ptrdiff_t, ptrdiff_t, ptrdiff_t)
+    pub fn substring_both (string: Lisp_Object, from: ptrdiff_t, from_byte: ptrdiff_t, to: ptrdiff_t, to_byte: ptrdiff_t) -> Lisp_Object;
+    /// C: Lisp_Object merge (Lisp_Object, Lisp_Object, Lisp_Object)
+    pub fn merge (org_l1: Lisp_Object, l2: Lisp_Object, pred: Lisp_Object) -> Lisp_Object;
+    /// C: Lisp_Object do_yes_or_no_p (Lisp_Object)
+    pub fn do_yes_or_no_p (prompt: Lisp_Object) -> Lisp_Object;
+    /// C: bool equal_no_quit (Lisp_Object, Lisp_Object)
+    pub fn equal_no_quit (o1: Lisp_Object, o2: Lisp_Object) -> bool;
+    /// C: Lisp_Object nconc2 (Lisp_Object, Lisp_Object)
+    pub fn nconc2 (a: Lisp_Object, b: Lisp_Object) -> Lisp_Object;
+    /// C: Lisp_Object assoc_no_quit (Lisp_Object, Lisp_Object)
+    pub fn assoc_no_quit (key: Lisp_Object, alist: Lisp_Object) -> Lisp_Object;
+    /// C: Lisp_Object delq_no_quit (Lisp_Object, Lisp_Object)
+    pub fn delq_no_quit (elt: Lisp_Object, list: Lisp_Object) -> Lisp_Object;
+    /// C: Lisp_Object string_to_multibyte (Lisp_Object)
+    pub fn string_to_multibyte (string: Lisp_Object) -> Lisp_Object;
+    /// C: Lisp_Object plist_member (Lisp_Object plist, Lisp_Object prop)
+    pub fn plist_member (plist: Lisp_Object, prop: Lisp_Object) -> Lisp_Object;
+    /// C: void syms_of_fns (void)
+    pub fn syms_of_fns ();
+    /// C: void mark_fns (void)
+    pub fn mark_fns ();
+    /// C: Lisp_Object memq_no_quit (Lisp_Object elt, Lisp_Object list)
+    pub fn memq_no_quit (elt: Lisp_Object, list: Lisp_Object) -> Lisp_Object;
+    /// C: void tim_sort (Lisp_Object, Lisp_Object, Lisp_Object *, const ptrdiff_t, bool)
+    pub fn tim_sort (predicate: Lisp_Object, keyfunc: Lisp_Object, s: *mut Lisp_Object, size: ptrdiff_t, reverse: bool);
+    /// C: void syms_of_floatfns (void)
+    pub fn syms_of_floatfns ();
+    /// C: void syms_of_fringe (void)
+    pub fn syms_of_fringe ();
+    /// C: void init_fringe (void)
+    pub fn init_fringe ();
+    /// C: void syms_of_image (void)
+    pub fn syms_of_image ();
+    /// C: void syms_of_json (void)
+    pub fn syms_of_json ();
+    /// C: void insert_from_gap (ptrdiff_t, ptrdiff_t, bool, bool)
+    pub fn insert_from_gap (nchars: ptrdiff_t, nbytes: ptrdiff_t, text_at_gap_tail: bool, before_markers: bool);
+    /// C: void insert_from_string (Lisp_Object, ptrdiff_t, ptrdiff_t, ptrdiff_t, ptrdiff_t, bool)
+    pub fn insert_from_string (string: Lisp_Object, pos: ptrdiff_t, pos_byte: ptrdiff_t, length: ptrdiff_t, length_byte: ptrdiff_t, inherit: bool);
+    /// C: void insert_from_string_before_markers (Lisp_Object, ptrdiff_t, ptrdiff_t, ptrdiff_t, ptrdiff_t, bool)
+    pub fn insert_from_string_before_markers (string: Lisp_Object, pos: ptrdiff_t, pos_byte: ptrdiff_t, length: ptrdiff_t, length_byte: ptrdiff_t, inherit: bool);
+    /// C: Lisp_Object del_range_1 (ptrdiff_t, ptrdiff_t, bool, bool)
+    pub fn del_range_1 (from: ptrdiff_t, to: ptrdiff_t, prepare: bool, retain_markers: bool) -> Lisp_Object;
+    /// C: void del_range_byte (ptrdiff_t, ptrdiff_t)
+    pub fn del_range_byte (from: ptrdiff_t, to: ptrdiff_t);
+    /// C: void del_range_both (ptrdiff_t, ptrdiff_t, ptrdiff_t, ptrdiff_t, bool)
+    pub fn del_range_both (from: ptrdiff_t, from_byte: ptrdiff_t, to: ptrdiff_t, to_byte: ptrdiff_t, prepare: bool);
+    /// C: int safe_del_range (ptrdiff_t, ptrdiff_t)
+    pub fn safe_del_range (from: ptrdiff_t, to: ptrdiff_t) -> c_int;
+    /// C: void prepare_to_modify_buffer_1 (ptrdiff_t, ptrdiff_t, ptrdiff_t *)
+    pub fn prepare_to_modify_buffer_1 (start: ptrdiff_t, end: ptrdiff_t, preserve_ptr: *mut ptrdiff_t);
+    /// C: void adjust_markers_for_delete (ptrdiff_t, ptrdiff_t, ptrdiff_t, ptrdiff_t)
+    pub fn adjust_markers_for_delete (from: ptrdiff_t, from_byte: ptrdiff_t, to: ptrdiff_t, to_byte: ptrdiff_t);
+    /// C: void adjust_markers_bytepos (ptrdiff_t, ptrdiff_t, ptrdiff_t, ptrdiff_t, int)
+    pub fn adjust_markers_bytepos (start: ptrdiff_t, start_byte: ptrdiff_t, end: ptrdiff_t, end_byte: ptrdiff_t, before_markers: c_int);
+    /// C: void syms_of_insdel (void)
+    pub fn syms_of_insdel ();
+    /// C: Lisp_Object sit_for (Lisp_Object, bool, int)
+    pub fn sit_for (value: Lisp_Object, reading: bool, display: c_int) -> Lisp_Object;
+    /// C: void check_message_stack (void)
+    pub fn check_message_stack ();
+    /// C: void clear_message_stack (void)
+    pub fn clear_message_stack ();
+    /// C: void setup_echo_area_for_printing (bool)
+    pub fn setup_echo_area_for_printing (multibyte_p: bool);
+    /// C: bool push_message (void)
+    pub fn push_message () -> bool;
+    /// C: void pop_message_unwind (void)
+    pub fn pop_message_unwind ();
+    /// C: void restore_message (void)
+    pub fn restore_message ();
+    /// C: Lisp_Object current_message (void)
+    pub fn current_message () -> Lisp_Object;
+    /// C: void clear_message (bool, bool)
+    pub fn clear_message (current_echo_area: bool, last_displayed_p: bool);
+    /// C: void message3 (Lisp_Object)
+    pub fn message3 (m: Lisp_Object);
+    /// C: void message3_nolog (Lisp_Object)
+    pub fn message3_nolog (m: Lisp_Object);
+    /// C: void message_log_maybe_newline (void)
+    pub fn message_log_maybe_newline ();
+    /// C: void reset_message_log_need_newline (void)
+    pub fn reset_message_log_need_newline ();
+    /// C: void update_echo_area (void)
+    pub fn update_echo_area ();
+    /// C: void truncate_echo_area (ptrdiff_t)
+    pub fn truncate_echo_area (n: ptrdiff_t);
+    /// C: ptrdiff_t count_lines (ptrdiff_t start_byte, ptrdiff_t end_byte)
+    pub fn count_lines (start_byte: ptrdiff_t, end_byte: ptrdiff_t) -> ptrdiff_t;
+    /// C: void syms_of_xdisp (void)
+    pub fn syms_of_xdisp ();
+    /// C: void init_xdisp (void)
+    pub fn init_xdisp ();
+    /// C: Lisp_Object safe_eval (Lisp_Object)
+    pub fn safe_eval (form: Lisp_Object) -> Lisp_Object;
+    /// C: void syms_of_sqlite (void)
+    pub fn syms_of_sqlite ();
+    /// C: void syms_of_xsettings (void)
+    pub fn syms_of_xsettings ();
+    /// C: bool survives_gc_p (Lisp_Object)
+    pub fn survives_gc_p (obj: Lisp_Object) -> bool;
+    /// C: void mark_object (Lisp_Object)
+    pub fn mark_object (obj: Lisp_Object);
+    /// C: Lisp_Object bool_vector_fill (Lisp_Object, Lisp_Object)
+    pub fn bool_vector_fill (a: Lisp_Object, item: Lisp_Object) -> Lisp_Object;
+    /// C: Lisp_Object make_event_array (ptrdiff_t, Lisp_Object *)
+    pub fn make_event_array (nargs: ptrdiff_t, args: *mut Lisp_Object) -> Lisp_Object;
+    /// C: void pin_string (Lisp_Object string)
+    pub fn pin_string (string: Lisp_Object);
+    /// C: void display_malloc_warning (void)
+    pub fn display_malloc_warning ();
+    /// C: void free_cons (struct Lisp_Cons *)
+    pub fn free_cons (cons: *mut Lisp_Cons);
+    /// C: void init_alloc_once (void)
+    pub fn init_alloc_once ();
+    /// C: void init_alloc (void)
+    pub fn init_alloc ();
+    /// C: void syms_of_alloc (void)
+    pub fn syms_of_alloc ();
+    /// C: void hash_table_free_bytes (void *p, ptrdiff_t nbytes)
+    pub fn hash_table_free_bytes (p: *mut c_void, nbytes: ptrdiff_t);
+    /// C: Lisp_Object get_unicode_property (Lisp_Object, int)
+    pub fn get_unicode_property (table: Lisp_Object, ch: c_int) -> Lisp_Object;
+    /// C: void syms_of_chartab (void)
+    pub fn syms_of_chartab ();
+    /// C: void init_print_once (void)
+    pub fn init_print_once ();
+    /// C: void syms_of_print (void)
+    pub fn syms_of_print ();
+    /// C: Lisp_Object intern_driver (Lisp_Object, Lisp_Object, Lisp_Object)
+    pub fn intern_driver (string: Lisp_Object, obarray: Lisp_Object, index: Lisp_Object) -> Lisp_Object;
+    /// C: void init_symbol (Lisp_Object, Lisp_Object)
+    pub fn init_symbol (symbol: Lisp_Object, name: Lisp_Object);
+    /// C: int openp (Lisp_Object, Lisp_Object, Lisp_Object, Lisp_Object *, Lisp_Object, bool, bool, void **)
+    pub fn openp (path: Lisp_Object, str_: Lisp_Object, suffixes: Lisp_Object, storeptr: *mut Lisp_Object, predicate: Lisp_Object, newer: bool, no_native: bool, platform: *mut *mut c_void) -> c_int;
+    /// C: void init_lread (void)
+    pub fn init_lread ();
+    /// C: void syms_of_lread (void)
+    pub fn syms_of_lread ();
+    /// C: void mark_lread (void)
+    pub fn mark_lread ();
+    /// C: bool signal_quit_p (Lisp_Object)
+    pub fn signal_quit_p (x: Lisp_Object) -> bool;
+    /// C: Lisp_Object quit (void)
+    pub fn quit () -> Lisp_Object;
+    /// C: Lisp_Object eval_sub (Lisp_Object form)
+    pub fn eval_sub (form: Lisp_Object) -> Lisp_Object;
+    /// C: Lisp_Object apply1 (Lisp_Object, Lisp_Object)
+    pub fn apply1 (fn_: Lisp_Object, arg: Lisp_Object) -> Lisp_Object;
+    /// C: Lisp_Object internal_lisp_condition_case (Lisp_Object, Lisp_Object, Lisp_Object)
+    pub fn internal_lisp_condition_case (var: Lisp_Object, bodyform: Lisp_Object, handlers: Lisp_Object) -> Lisp_Object;
+    /// C: void pop_handler (void)
+    pub fn pop_handler ();
+    /// C: void push_handler_bind (Lisp_Object, Lisp_Object, int)
+    pub fn push_handler_bind (conditions: Lisp_Object, handler: Lisp_Object, var: c_int);
+    /// C: void record_unwind_protect_nothing (void)
+    pub fn record_unwind_protect_nothing ();
+    /// C: void clear_unwind_protect (specpdl_ref)
+    pub fn clear_unwind_protect (count: specpdl_ref);
+    /// C: void specpdl_unrewind (union specbinding *pdl, int distance, bool vars_only)
+    pub fn specpdl_unrewind (pdl: *mut specbinding, distance: c_int, vars_only: bool);
+    /// C: Lisp_Object load_with_autoload_queue (Lisp_Object file, Lisp_Object noerror, Lisp_Object nomessage, Lisp_Object nosuffix, Lisp_Object must_suffix)
+    pub fn load_with_autoload_queue (file: Lisp_Object, noerror: Lisp_Object, nomessage: Lisp_Object, nosuffix: Lisp_Object, must_suffix: Lisp_Object) -> Lisp_Object;
+    /// C: Lisp_Object call_debugger (Lisp_Object arg)
+    pub fn call_debugger (arg: Lisp_Object) -> Lisp_Object;
+    /// C: void init_eval_once (void)
+    pub fn init_eval_once ();
+    /// C: void syms_of_eval (void)
+    pub fn syms_of_eval ();
+    /// C: void prog_ignore (Lisp_Object)
+    pub fn prog_ignore (body: Lisp_Object);
+    /// C: void mark_specpdl (union specbinding *first, union specbinding *ptr)
+    pub fn mark_specpdl (first: *mut specbinding, ptr: *mut specbinding);
+    /// C: void do_debug_on_call (Lisp_Object code, specpdl_ref count)
+    pub fn do_debug_on_call (code: Lisp_Object, count: specpdl_ref);
+    /// C: Lisp_Object funcall_general (Lisp_Object fun, ptrdiff_t numargs, Lisp_Object *args)
+    pub fn funcall_general (fun: Lisp_Object, numargs: ptrdiff_t, args: *mut Lisp_Object) -> Lisp_Object;
+    /// C: void mark_threads (void)
+    pub fn mark_threads ();
+    /// C: void unmark_main_thread (void)
+    pub fn unmark_main_thread ();
+    /// C: void find_field (Lisp_Object, Lisp_Object, Lisp_Object, ptrdiff_t *, Lisp_Object, ptrdiff_t *)
+    pub fn find_field (pos: Lisp_Object, merge_at_boundary: Lisp_Object, beg_limit: Lisp_Object, beg: *mut ptrdiff_t, end_limit: Lisp_Object, end: *mut ptrdiff_t);
+    /// C: void save_excursion_save (union specbinding *)
+    pub fn save_excursion_save (p: *mut specbinding);
+    /// C: void save_excursion_restore (Lisp_Object, Lisp_Object)
+    pub fn save_excursion_restore (marker: Lisp_Object, buffer: Lisp_Object);
+    /// C: Lisp_Object save_restriction_save (void)
+    pub fn save_restriction_save () -> Lisp_Object;
+    /// C: void save_restriction_restore (Lisp_Object)
+    pub fn save_restriction_restore (data: Lisp_Object);
+    /// C: Lisp_Object make_buffer_string_both (ptrdiff_t, ptrdiff_t, ptrdiff_t, ptrdiff_t, bool)
+    pub fn make_buffer_string_both (start: ptrdiff_t, start_byte: ptrdiff_t, end: ptrdiff_t, end_byte: ptrdiff_t, props: bool) -> Lisp_Object;
+    /// C: void labeled_narrow_to_region (Lisp_Object, Lisp_Object, Lisp_Object)
+    pub fn labeled_narrow_to_region (start: Lisp_Object, end: Lisp_Object, label: Lisp_Object);
+    /// C: void reset_outermost_restrictions (void)
+    pub fn reset_outermost_restrictions ();
+    /// C: void labeled_restrictions_remove_in_current_buffer (void)
+    pub fn labeled_restrictions_remove_in_current_buffer ();
+    /// C: void init_editfns (void)
+    pub fn init_editfns ();
+    /// C: void syms_of_editfns (void)
+    pub fn syms_of_editfns ();
+    /// C: bool mouse_face_overlay_overlaps (Lisp_Object)
+    pub fn mouse_face_overlay_overlaps (overlay: Lisp_Object) -> bool;
+    /// C: bool disable_line_numbers_overlay_at_eob (void)
+    pub fn disable_line_numbers_overlay_at_eob () -> bool;
+    /// C: void adjust_overlays_for_insert (ptrdiff_t, ptrdiff_t, bool)
+    pub fn adjust_overlays_for_insert (pos: ptrdiff_t, length: ptrdiff_t, before_markers: bool);
+    /// C: void adjust_overlays_for_delete (ptrdiff_t, ptrdiff_t)
+    pub fn adjust_overlays_for_delete (from: ptrdiff_t, to: ptrdiff_t);
+    /// C: void report_overlay_modification (Lisp_Object, Lisp_Object, bool, Lisp_Object, Lisp_Object, Lisp_Object)
+    pub fn report_overlay_modification (start: Lisp_Object, end: Lisp_Object, after: bool, arg1: Lisp_Object, arg2: Lisp_Object, arg3: Lisp_Object);
+    /// C: bool overlay_touches_p (ptrdiff_t)
+    pub fn overlay_touches_p (pos: ptrdiff_t) -> bool;
+    /// C: Lisp_Object other_buffer_safely (Lisp_Object)
+    pub fn other_buffer_safely (buffer: Lisp_Object) -> Lisp_Object;
+    /// C: void init_buffer_once (void)
+    pub fn init_buffer_once ();
+    /// C: void init_buffer (void)
+    pub fn init_buffer ();
+    /// C: void syms_of_buffer (void)
+    pub fn syms_of_buffer ();
+    /// C: void detach_marker (Lisp_Object)
+    pub fn detach_marker (marker: Lisp_Object);
+    /// C: Lisp_Object expand_and_dir_to_file (Lisp_Object)
+    pub fn expand_and_dir_to_file (filename: Lisp_Object) -> Lisp_Object;
+    /// C: Lisp_Object write_region (Lisp_Object, Lisp_Object, Lisp_Object, Lisp_Object, Lisp_Object, Lisp_Object, Lisp_Object, int)
+    pub fn write_region (start: Lisp_Object, end: Lisp_Object, filename: Lisp_Object, append: Lisp_Object, visit: Lisp_Object, lockname: Lisp_Object, mustbenew: Lisp_Object, desc: c_int) -> Lisp_Object;
+    /// C: void fclose_unwind (void *)
+    pub fn fclose_unwind (arg: *mut c_void);
+    /// C: void restore_point_unwind (Lisp_Object)
+    pub fn restore_point_unwind (location: Lisp_Object);
+    /// C: Lisp_Object file_attribute_errno (Lisp_Object, int)
+    pub fn file_attribute_errno (file: Lisp_Object, err: c_int) -> Lisp_Object;
+    /// C: bool file_directory_p (Lisp_Object)
+    pub fn file_directory_p (path: Lisp_Object) -> bool;
+    /// C: bool file_accessible_directory_p (Lisp_Object)
+    pub fn file_accessible_directory_p (filename: Lisp_Object) -> bool;
+    /// C: void init_fileio (void)
+    pub fn init_fileio ();
+    /// C: void syms_of_fileio (void)
+    pub fn syms_of_fileio ();
+    /// C: void shrink_regexp_cache (void)
+    pub fn shrink_regexp_cache ();
+    /// C: void restore_search_regs (void)
+    pub fn restore_search_regs ();
+    /// C: void update_search_regs (ptrdiff_t oldstart, ptrdiff_t oldend, ptrdiff_t newend)
+    pub fn update_search_regs (oldstart: ptrdiff_t, oldend: ptrdiff_t, newend: ptrdiff_t);
+    /// C: void record_unwind_save_match_data (void)
+    pub fn record_unwind_save_match_data ();
+    /// C: ptrdiff_t find_newline1 (ptrdiff_t, ptrdiff_t, ptrdiff_t, ptrdiff_t, ptrdiff_t, ptrdiff_t *, ptrdiff_t *, bool)
+    pub fn find_newline1 (start: ptrdiff_t, start_byte: ptrdiff_t, end: ptrdiff_t, end_byte: ptrdiff_t, count: ptrdiff_t, shortage: *mut ptrdiff_t, shortage_byte: *mut ptrdiff_t, allow_quit: bool) -> ptrdiff_t;
+    /// C: ptrdiff_t find_newline (ptrdiff_t, ptrdiff_t, ptrdiff_t, ptrdiff_t, ptrdiff_t, ptrdiff_t *, ptrdiff_t *, bool)
+    pub fn find_newline (start: ptrdiff_t, start_byte: ptrdiff_t, end: ptrdiff_t, end_byte: ptrdiff_t, count: ptrdiff_t, shortage: *mut ptrdiff_t, shortage_byte: *mut ptrdiff_t, allow_quit: bool) -> ptrdiff_t;
+    /// C: ptrdiff_t find_newline_no_quit (ptrdiff_t, ptrdiff_t, ptrdiff_t, ptrdiff_t *)
+    pub fn find_newline_no_quit (from: ptrdiff_t, from_byte: ptrdiff_t, cnt: ptrdiff_t, bytepos: *mut ptrdiff_t) -> ptrdiff_t;
+    /// C: ptrdiff_t find_before_next_newline (ptrdiff_t, ptrdiff_t, ptrdiff_t, ptrdiff_t *)
+    pub fn find_before_next_newline (from: ptrdiff_t, to: ptrdiff_t, count: ptrdiff_t, shortage: *mut ptrdiff_t) -> ptrdiff_t;
+    /// C: void syms_of_search (void)
+    pub fn syms_of_search ();
+    /// C: void clear_regexp_cache (void)
+    pub fn clear_regexp_cache ();
+    /// C: bool is_minibuffer (EMACS_INT, Lisp_Object)
+    pub fn is_minibuffer (depth: EMACS_INT, window: Lisp_Object) -> bool;
+    /// C: void init_minibuf_once (void)
+    pub fn init_minibuf_once ();
+    /// C: void set_initial_minibuffer_mode (void)
+    pub fn set_initial_minibuffer_mode ();
+    /// C: void syms_of_minibuf (void)
+    pub fn syms_of_minibuf ();
+    /// C: void barf_if_interaction_inhibited (void)
+    pub fn barf_if_interaction_inhibited ();
+    /// C: void syms_of_callint (void)
+    pub fn syms_of_callint ();
+    /// C: void syms_of_casefiddle (void)
+    pub fn syms_of_casefiddle ();
+    /// C: void init_casetab_once (void)
+    pub fn init_casetab_once ();
+    /// C: void syms_of_casetab (void)
+    pub fn syms_of_casetab ();
+    /// C: void cancel_echoing (void)
+    pub fn cancel_echoing ();
+    /// C: Lisp_Object menu_bar_items (Lisp_Object)
+    pub fn menu_bar_items (menu_bar_items: Lisp_Object) -> Lisp_Object;
+    /// C: Lisp_Object tab_bar_items (Lisp_Object, int *)
+    pub fn tab_bar_items (tab_bar_items: Lisp_Object, ntab_bar_items: *mut c_int) -> Lisp_Object;
+    /// C: void discard_mouse_events (void)
+    pub fn discard_mouse_events ();
+    /// C: void handle_input_available_signal (int)
+    pub fn handle_input_available_signal (sig: c_int);
+    /// C: bool detect_input_pending (void)
+    pub fn detect_input_pending () -> bool;
+    /// C: bool detect_input_pending_run_timers (bool)
+    pub fn detect_input_pending_run_timers (do_display: bool) -> bool;
+    /// C: void safe_run_hooks (Lisp_Object)
+    pub fn safe_run_hooks (hook: Lisp_Object);
+    /// C: void safe_run_hooks_2 (Lisp_Object, Lisp_Object, Lisp_Object)
+    pub fn safe_run_hooks_2 (hook: Lisp_Object, arg1: Lisp_Object, arg2: Lisp_Object);
+    /// C: Lisp_Object read_menu_command (void)
+    pub fn read_menu_command () -> Lisp_Object;
+    /// C: Lisp_Object recursive_edit_1 (void)
+    pub fn recursive_edit_1 () -> Lisp_Object;
+    /// C: void record_auto_save (void)
+    pub fn record_auto_save ();
+    /// C: void force_auto_save_soon (void)
+    pub fn force_auto_save_soon ();
+    /// C: void init_keyboard (void)
+    pub fn init_keyboard ();
+    /// C: void syms_of_keyboard (void)
+    pub fn syms_of_keyboard ();
+    /// C: void keys_of_keyboard (void)
+    pub fn keys_of_keyboard ();
+    /// C: void invalidate_current_column (void)
+    pub fn invalidate_current_column ();
+    /// C: bool indented_beyond_p (ptrdiff_t, ptrdiff_t, EMACS_INT)
+    pub fn indented_beyond_p (pos: ptrdiff_t, pos_byte: ptrdiff_t, column: EMACS_INT) -> bool;
+    /// C: void syms_of_indent (void)
+    pub fn syms_of_indent ();
+    /// C: void store_in_alist (Lisp_Object *, Lisp_Object, Lisp_Object)
+    pub fn store_in_alist (alist: *mut Lisp_Object, prop: Lisp_Object, val: Lisp_Object);
+    /// C: Lisp_Object do_switch_frame (Lisp_Object, int, int, Lisp_Object)
+    pub fn do_switch_frame (frame: Lisp_Object, for_deletion: c_int, track: c_int, norecord: Lisp_Object) -> Lisp_Object;
+    /// C: void frames_discard_buffer (Lisp_Object)
+    pub fn frames_discard_buffer (buffer: Lisp_Object);
+    /// C: void init_frame_once (void)
+    pub fn init_frame_once ();
+    /// C: void syms_of_frame (void)
+    pub fn syms_of_frame ();
+    /// C: void synchronize_system_messages_locale (void)
+    pub fn synchronize_system_messages_locale ();
+    /// C: void synchronize_system_time_locale (void)
+    pub fn synchronize_system_time_locale ();
+    /// C: char *emacs_strerror (int)
+    pub fn emacs_strerror (error_num: c_int) -> *mut c_char;
+    /// C: void shut_down_emacs (int, Lisp_Object)
+    pub fn shut_down_emacs (no_rip: c_int, stuff: Lisp_Object);
+    /// C: void child_signal_init (void)
+    pub fn child_signal_init ();
+    /// C: void kill_buffer_processes (Lisp_Object)
+    pub fn kill_buffer_processes (buffer: Lisp_Object);
+    /// C: int wait_reading_process_output (intmax_t, int, int, bool, Lisp_Object, struct Lisp_Process *, int)
+    pub fn wait_reading_process_output (timeout: i64, nsecs: c_int, read_kbd: c_int, do_display: bool, wait_for_cell: Lisp_Object, wait_proc: *mut c_void, just_wait_proc: c_int) -> c_int;
+    /// C: void add_keyboard_wait_descriptor (int)
+    pub fn add_keyboard_wait_descriptor (fd: c_int);
+    /// C: void delete_keyboard_wait_descriptor (int)
+    pub fn delete_keyboard_wait_descriptor (fd: c_int);
+    /// C: void init_process_emacs (int)
+    pub fn init_process_emacs (sockfd: c_int);
+    /// C: void syms_of_process (void)
+    pub fn syms_of_process ();
+    /// C: void setup_process_coding_systems (Lisp_Object)
+    pub fn setup_process_coding_systems (process: Lisp_Object);
+    /// C: char **make_environment_block (Lisp_Object)
+    pub fn make_environment_block (current_dir: Lisp_Object) -> *mut *mut c_char;
+    /// C: void init_callproc_1 (void)
+    pub fn init_callproc_1 ();
+    /// C: void init_callproc (void)
+    pub fn init_callproc ();
+    /// C: void set_initial_environment (void)
+    pub fn set_initial_environment ();
+    /// C: void syms_of_callproc (void)
+    pub fn syms_of_callproc ();
+    /// C: void syms_of_doc (void)
+    pub fn syms_of_doc ();
+    /// C: void syms_of_bytecode (void)
+    pub fn syms_of_bytecode ();
+    /// C: Lisp_Object exec_byte_code (Lisp_Object, ptrdiff_t, ptrdiff_t, Lisp_Object *)
+    pub fn exec_byte_code (fun: Lisp_Object, args_template: ptrdiff_t, nargs: ptrdiff_t, args: *mut Lisp_Object) -> Lisp_Object;
+    /// C: Lisp_Object get_byte_code_arity (Lisp_Object)
+    pub fn get_byte_code_arity (args_template: Lisp_Object) -> Lisp_Object;
+    /// C: void syms_of_macros (void)
+    pub fn syms_of_macros ();
+    /// C: void record_change (ptrdiff_t, ptrdiff_t)
+    pub fn record_change (from: ptrdiff_t, to: ptrdiff_t);
+    /// C: void record_property_change (ptrdiff_t, ptrdiff_t, Lisp_Object, Lisp_Object, Lisp_Object)
+    pub fn record_property_change (beg: ptrdiff_t, len: ptrdiff_t, prop: Lisp_Object, value: Lisp_Object, buffer: Lisp_Object);
+    /// C: void syms_of_undo (void)
+    pub fn syms_of_undo ();
+    /// C: void report_interval_modification (Lisp_Object, Lisp_Object)
+    pub fn report_interval_modification (start: Lisp_Object, end: Lisp_Object);
+    /// C: void syms_of_menu (void)
+    pub fn syms_of_menu ();
+    /// C: void syms_of_xmenu (void)
+    pub fn syms_of_xmenu ();
+    /// C: void init_standard_fds (void)
+    pub fn init_standard_fds ();
+    /// C: char *emacs_get_current_dir_name (void)
+    pub fn emacs_get_current_dir_name () -> *mut c_char;
+    /// C: int stuff_char (char c)
+    pub fn stuff_char (c: c_char) -> c_int;
+    /// C: void init_foreground_group (void)
+    pub fn init_foreground_group ();
+    /// C: void sys_subshell (void)
+    pub fn sys_subshell ();
+    /// C: void sys_suspend (void)
+    pub fn sys_suspend ();
+    /// C: void discard_tty_input (void)
+    pub fn discard_tty_input ();
+    /// C: void init_all_sys_modes (void)
+    pub fn init_all_sys_modes ();
+    /// C: void reset_all_sys_modes (void)
+    pub fn reset_all_sys_modes ();
+    /// C: void child_setup_tty (int)
+    pub fn child_setup_tty (out: c_int);
+    /// C: void setup_pty (int)
+    pub fn setup_pty (fd: c_int);
+    /// C: int set_window_size (int, int, int)
+    pub fn set_window_size (fd: c_int, height: c_int, width: c_int) -> c_int;
+    /// C: EMACS_INT get_random (void)
+    pub fn get_random () -> EMACS_INT;
+    /// C: void seed_random (void *, ptrdiff_t)
+    pub fn seed_random (seed: *mut c_void, seed_size: ptrdiff_t);
+    /// C: void init_random (void)
+    pub fn init_random ();
+    /// C: void emacs_backtrace (int)
+    pub fn emacs_backtrace (backtrace_limit: c_int);
+    /// C: int emacs_pipe (int[2])
+    pub fn emacs_pipe (fd: *mut c_int) -> c_int;
+    /// C: int str_collate (Lisp_Object, Lisp_Object, Lisp_Object, Lisp_Object)
+    pub fn str_collate (s1: Lisp_Object, s2: Lisp_Object, locale: Lisp_Object, ignore_case: Lisp_Object) -> c_int;
+    /// C: void syms_of_sysdep (void)
+    pub fn syms_of_sysdep ();
+    /// C: void unlock_all_files (void)
+    pub fn unlock_all_files ();
+    /// C: void syms_of_filelock (void)
+    pub fn syms_of_filelock ();
+    /// C: void syms_of_sound (void)
+    pub fn syms_of_sound ();
+    /// C: void init_category_once (void)
+    pub fn init_category_once ();
+    /// C: void syms_of_category (void)
+    pub fn syms_of_category ();
+    /// C: void syms_of_ccl (void)
+    pub fn syms_of_ccl ();
+    /// C: void syms_of_dired (void)
+    pub fn syms_of_dired ();
+    /// C: void syms_of_term (void)
+    pub fn syms_of_term ();
+    /// C: void syms_of_terminal (void)
+    pub fn syms_of_terminal ();
+    /// C: char * tty_type_name (Lisp_Object)
+    pub fn tty_type_name (terminal: Lisp_Object) -> *mut c_char;
+    /// C: void syms_of_font (void)
+    pub fn syms_of_font ();
+    /// C: void init_font (void)
+    pub fn init_font ();
+    /// C: void syms_of_xfaces (void)
+    pub fn syms_of_xfaces ();
+    /// C: void init_xfaces (void)
+    pub fn init_xfaces ();
+    /// C: void syms_of_xml (void)
+    pub fn syms_of_xml ();
+    /// C: void malloc_probe (size_t)
+    pub fn malloc_probe (size: size_t);
+    /// C: void syms_of_profiler (void)
+    pub fn syms_of_profiler ();
+    /// C: void mark_profiler (void)
+    pub fn mark_profiler ();
+    /// C: char *xlispstrdup (Lisp_Object)
+    pub fn xlispstrdup (string: Lisp_Object) -> *mut c_char;
+  }
+}
+use lisp_fn_decls::*;

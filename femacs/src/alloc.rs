@@ -117,8 +117,7 @@ unsafe extern "C" {
   /// *is* C's `free` (its body also restores errno, which libc's `free` does not).  The
   /// mirror `lib/include/stdlib.rs` carries `free`; `rpl_free` is declared here.
   fn rpl_free (ptr: *mut c_void);
-  /// C: profiler.h `extern void malloc_probe (size_t size);`
-  fn malloc_probe (size: size_t);
+
   /// C: lisp.h 4426-4427: `extern void parse_str_as_multibyte (const unsigned char *,
   /// ptrdiff_t, ptrdiff_t *, ptrdiff_t *);`
   fn parse_str_as_multibyte (str: *const c_uchar, len: ptrdiff_t, nchars: *mut ptrdiff_t,
@@ -3541,8 +3540,7 @@ macro_rules! FRAME_FACE_CACHE {
 }
 
 unsafe extern "C" {
-  /// C: lisp.h 5313: `extern int emacs_pipe (int[2]);`
-  fn emacs_pipe (fd: *mut c_int) -> c_int;
+
   /// C: lisp.h 5334: `extern ptrdiff_t emacs_write (int, void const *, ptrdiff_t);`
   fn emacs_write (fd: c_int, buf: *const c_void, nbyte: ptrdiff_t) -> ptrdiff_t;
   /// C: lisp.h 5638: `extern void record_unwind_protect_intmax (void (*) (intmax_t),
@@ -6335,7 +6333,7 @@ pub unsafe extern "C" fn maybe_garbage_collect ()
 /* Use-site declarations (PORTING.md P-72 ③): the mirrors this unit includes do not carry the
    `mark_*`/message entry points `garbage_collect` calls.  */
 /* C: fns.c 4315: `extern bool sweep_weak_table (struct Lisp_Hash_Table *, bool);` */
-unsafe extern "C" { fn sweep_weak_table (h: *mut Lisp_Hash_Table, remove_entries_p: bool) -> bool; }
+unsafe extern "C" { }
 
 /* C: emacs.c 124: `extern AVOID fatal (const char *, ...);` */
 unsafe extern "C" { fn fatal (msg: *const c_char, ...) -> !; }
@@ -6374,27 +6372,17 @@ unsafe fn FACE_FROM_ID_OR_NULL (f: *mut frame, id: c_int) -> *mut face
 unsafe extern "C" {
   /// C: lisp.h 4825: `extern void record_unwind_protect_void (void (*) (void));`
   fn record_unwind_protect_void (function: Option<unsafe extern "C" fn ()>);
-  /// C: lisp.h 4383: `extern bool push_message (void);`
-  fn push_message () -> bool;
-  /// C: lisp.h 4384: `extern void pop_message_unwind (void);`
-  fn pop_message_unwind ();
-  /// C: lisp.h 4386: `extern void restore_message (void);`
-  fn restore_message ();
-  /// C: lisp.h 4994: `extern void shrink_regexp_cache (void);`
-  fn shrink_regexp_cache ();
-  /// C: lisp.h 4754: `extern void mark_lread (void);`
-  fn mark_lread ();
 
-  /// C: lisp.h 4915: `extern void mark_threads (void);`
-  fn mark_threads ();
-  /// C: lisp.h 4916: `extern void unmark_main_thread (void);`
-  fn unmark_main_thread ();
-  /// C: lisp.h 5470: `extern void mark_profiler (void);`
-  fn mark_profiler ();
-  /// C: lisp.h 4285: `extern void mark_fns (void);`
-  fn mark_fns ();
-  /// C: lisp.h 5097: `extern void safe_run_hooks (Lisp_Object);`
-  fn safe_run_hooks (hook: Lisp_Object);
+
+
+
+
+
+
+
+
+
+
 }
 
 /* Subroutine of Fgarbage_collect that does most of the work.  */

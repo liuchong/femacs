@@ -78,10 +78,8 @@ unsafe extern "C" {
   pub fn decode_window_system_frame (frame: Lisp_Object) -> *mut frame;
 
 
-  /// C: src/lisp.h 3880: `extern void process_pending_signals (void);` - C 282, C 369.
-  pub fn process_pending_signals ();
-  /// C: src/lisp.h 4786: `extern Lisp_Object quit (void);` - C 287, C 294, C 495.
-  pub fn quit () -> Lisp_Object;
+
+
   /// C: src/lisp.h 4811: `extern Lisp_Object internal_catch_all (Lisp_Object (*) (void *), void *,
   /// Lisp_Object (*) (enum nonlocal_exit, Lisp_Object));` - C 374-375.
   pub fn internal_catch_all (func: Option<unsafe extern "C" fn (*mut c_void) -> Lisp_Object>,
@@ -90,12 +88,9 @@ unsafe extern "C" {
                                               -> Lisp_Object>) -> Lisp_Object;
   /// C: src/lisp.h 4825: `extern void record_unwind_protect_void (void (*) (void));` - C 313.
   pub fn record_unwind_protect_void (function: Option<unsafe extern "C" fn ()>);
-  /// C: src/lisp.h 4998: `extern void record_unwind_save_match_data (void);` - C 620.
-  pub fn record_unwind_save_match_data ();
-  /// C: src/lisp.h 5087: `extern Lisp_Object menu_bar_items (Lisp_Object);` - C 635.
-  pub fn menu_bar_items (menu_bar_items: Lisp_Object) -> Lisp_Object;
-  /// C: src/lisp.h 5097: `extern void safe_run_hooks (Lisp_Object);` - C 630, C 634.
-  pub fn safe_run_hooks (hook: Lisp_Object);
+
+
+
 
   /// C: src/keyboard.h 473: `extern bool menu_separator_name_p (const char *);` - C 161.
   pub fn menu_separator_name_p (name: *const c_char) -> bool;

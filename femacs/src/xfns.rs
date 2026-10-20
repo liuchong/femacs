@@ -1992,8 +1992,7 @@ unsafe extern "C" {
   pub fn gui_update_cursor (f: *mut frame, on_p: bool);
   /// C: lisp.h 4409: `void set_frame_cursor_types (struct frame *, Lisp_Object);`
   pub fn set_frame_cursor_types (f: *mut frame, arg: Lisp_Object);
-  /// C: lisp.h 612: `extern uintmax_t check_uinteger_max (Lisp_Object, uintmax_t);`
-  pub fn check_uinteger_max (x: Lisp_Object, max: uintmax_t) -> uintmax_t;
+
   /// C: gtkutil.h 183: `extern void xg_set_background_color (struct frame *f, unsigned long bg);`
   pub fn xg_set_background_color (f: *mut frame, bg: c_ulong);
   /* C: Xlib.h 1806's `extern unsigned long XNextRequest (Display *);` moved to
@@ -2188,8 +2187,7 @@ unsafe extern "C" {
   pub fn clear_frame (f: *mut frame);
   /// C: dispextern.h 3907: `void clear_current_matrices (struct frame *f);`
   pub fn clear_current_matrices (f: *mut frame);
-  /// C: lisp.h 607: `extern int check_int_nonnegative (Lisp_Object);`
-  pub fn check_int_nonnegative (value: Lisp_Object) -> c_int;
+
   /// C: gtkutil.h 158/159: `extern void update_frame_tool_bar (struct frame *f);` / `extern void
   /// free_frame_tool_bar (struct frame *f);`
   pub fn update_frame_tool_bar (f: *mut frame);
@@ -6866,7 +6864,7 @@ unsafe extern "C" {
    gate - slice 9's narrower `use_x_toolkit` gate is superseded.  */
 #[cfg (feature = "have_x_windows")]
 unsafe extern "C" {
-  pub fn xlispstrdup (string: Lisp_Object) -> *mut c_char;
+
 }
 
 /* C: `frame.c` 6180 defines `validate_x_resource_name` and no header declares it - the
@@ -13321,7 +13319,7 @@ unsafe extern "C" {
   pub fn lrint (x: c_double) -> c_long;
                                          // dispextern.h 3879
                                // frame.h 1504
-  pub fn quit () -> Lisp_Object;                                            // lisp.h 4786
+                                            // lisp.h 4786
 }
 
 /* C: `Xm/Xm.h`, `Xm/FileSB.h`, `Xm/TextF.h` and `Xm/List.h` (C 102-106): the opaque handle, the

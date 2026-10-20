@@ -95,18 +95,12 @@ unsafe extern "C" {
   fn merge_c (org_l1: Lisp_Object, org_l2: Lisp_Object,
               pred: Option<unsafe extern "C" fn (Lisp_Object, Lisp_Object) -> bool>)
     -> Lisp_Object;
-  /// C: lisp.h 4271: `extern Lisp_Object nconc2 (Lisp_Object, Lisp_Object);`
-  fn nconc2 (a: Lisp_Object, b: Lisp_Object) -> Lisp_Object;
+
   /// C: lisp.h 4825: `extern void record_unwind_protect_void (void (*) (void));`
   fn record_unwind_protect_void (function: Option<unsafe extern "C" fn ()>);
-  /// C: lisp.h 5097: `extern void safe_run_hooks (Lisp_Object);`
-  fn safe_run_hooks (hook: Lisp_Object);
-  /// C: lisp.h 5102: `extern Lisp_Object recursive_edit_1 (void);`
-  fn recursive_edit_1 () -> Lisp_Object;
-  /// C: lisp.h 5119: `extern Lisp_Object do_switch_frame (Lisp_Object, int, int,
-  /// Lisp_Object);`
-  fn do_switch_frame (frame: Lisp_Object, for_deletion: c_int, track: c_int,
-                      no_catch: Lisp_Object) -> Lisp_Object;
+
+
+
   /// C: lisp.h 5120: `extern Lisp_Object get_frame_param (struct frame *, Lisp_Object);`
   fn get_frame_param (f: *mut frame, prop: Lisp_Object) -> Lisp_Object;
   // window.h 1127/1128 (`restore_window_configuration`, `restore_focus_frame`) are the
@@ -679,8 +673,7 @@ unsafe extern "C" {
   /// C: dispextern.h 4017: `void combine_updates_for_frame (struct frame *f, bool
   /// inhibit_id_p);`
   fn combine_updates_for_frame (f: *mut frame, inhibit_id_p: bool);
-  /// C: lisp.h 4388: `extern void clear_message (bool, bool);`
-  fn clear_message (inhibit_message: bool, inhibit_clear_message: bool);
+
 }
 
 /* Read from the minibuffer using keymap MAP and initial contents INITIAL,

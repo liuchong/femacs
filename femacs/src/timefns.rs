@@ -115,7 +115,7 @@ unsafe extern "C" {
   /* clock_t clock (void);  */
   fn clock () -> clock_t;
   /* void synchronize_system_time_locale (void);  (lisp.h 5143)  */
-  fn synchronize_system_time_locale ();
+
   /* void xputenv (char const *);  (lisp.h 5579)  */
   fn xputenv (envvar: *const c_char);
 }

@@ -304,9 +304,7 @@ unsafe extern "C" {
   /// C 773: `redisplay_preserve_echo_area (20);`
   /// C: dispextern.h 3589: `void redisplay_preserve_echo_area (int);`
   
-  /// C 987: `message3_nolog (val);`
-  /// C: lisp.h 4393: `extern void message3_nolog (Lisp_Object);`
-  pub fn message3_nolog (m: Lisp_Object);
+
   /// C 1823: `f = decode_window_system_frame (frame);`
   /// C: frame.h 1475: `extern struct frame *decode_window_system_frame (Lisp_Object);`
   pub fn decode_window_system_frame (frame: Lisp_Object) -> *mut frame;

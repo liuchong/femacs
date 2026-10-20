@@ -105,10 +105,8 @@ unsafe extern "C" {
   /// (struct frame *, struct face *);` - `struct face` is this unit's use-site record below, so
   /// the second parameter is the untyped pointer C's own call passes (P-72 (3)).
   pub fn prepare_face_for_display (f: *mut frame, face: *mut c_void);
-  /// C: lisp.h 4786: `extern Lisp_Object quit (void);`
-  pub fn quit () -> Lisp_Object;
-  /// C: lisp.h 3880: `extern void process_pending_signals (void);`
-  pub fn process_pending_signals ();
+
+
 }
 
 /* C 21-36: `font.h`'s own declarations this file calls that `include/font.rs` does not carry

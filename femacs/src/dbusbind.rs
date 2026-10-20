@@ -544,12 +544,8 @@ unsafe extern "C" {
   pub fn internal_catch (tag: Lisp_Object, func: Option<unsafe extern "C" fn (Lisp_Object)
 							   -> Lisp_Object>,
                          arg: Lisp_Object) -> Lisp_Object;
-  /// C: lisp.h 4274: `extern Lisp_Object assoc_no_quit (Lisp_Object, Lisp_Object);` (`fns.c`
-  /// defines it; C 1709 is the call site).
-  pub fn assoc_no_quit (key: Lisp_Object, alist: Lisp_Object) -> Lisp_Object;
-  /// C: lisp.h 4286: `Lisp_Object memq_no_quit (Lisp_Object elt, Lisp_Object list);` (`fns.c`
-  /// defines it; C 1923 is the call site).
-  pub fn memq_no_quit (elt: Lisp_Object, list: Lisp_Object) -> Lisp_Object;
+
+
   /// C: lisp.h 4799: `extern bool FUNCTIONP (Lisp_Object);` (`eval.c` defines it; C 1470-1472
   /// are the three call sites).
   pub fn FUNCTIONP (object: Lisp_Object) -> bool;

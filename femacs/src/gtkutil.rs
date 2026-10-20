@@ -4135,7 +4135,7 @@ pub unsafe extern "C" fn xg_mark_data ()
    ledger's Owed names both gaps.  */
 #[cfg (feature = "use_gtk")]
 unsafe extern "C" {
-  pub fn mark_object (obj: Lisp_Object);                                // lisp.h 4436
+                                // lisp.h 4436
   #[cfg (not (feature = "have_pgtk"))]
   pub static mut xg_pending_quit_event: input_event;                    // xterm.h 2012
 }

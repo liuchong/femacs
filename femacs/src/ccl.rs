@@ -250,11 +250,7 @@ unsafe extern "C" {
                        -> *mut charset;
   /// C: charset.h 557: `extern int decode_char (struct charset *, unsigned);`
   pub fn decode_char (charset: *mut charset, code: c_uint) -> c_int;
-  /// C: lisp.h 4245: `extern Lisp_Object larger_vector (Lisp_Object, ptrdiff_t, ptrdiff_t);`
-  /// (the lisp.rs mirror does not carry it yet; reported as a mirror gap in
-  /// docs/ports/ccl.md).
-  pub fn larger_vector (array: Lisp_Object, incr_min: ptrdiff_t, incr_max: ptrdiff_t)
-                        -> Lisp_Object;
+
   /// C: lisp.h 4566-4567: `extern Lisp_Object make_specified_string (const char *,
   /// ptrdiff_t, ptrdiff_t, bool);` (likewise a mirror gap).
   pub fn make_specified_string (contents: *const c_char, nchars: ptrdiff_t,

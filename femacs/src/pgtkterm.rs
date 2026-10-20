@@ -221,7 +221,7 @@ unsafe extern "C" {
 /// C: alloc.c's own entry point, declared in lisp.h; C 374-378's five call sites.
 #[cfg (feature = "have_pgtk")]
 unsafe extern "C" {
-  pub fn mark_object (arg: Lisp_Object);
+
 }
 /// C: lisp.h 5117: `extern void store_frame_param (struct frame *, Lisp_Object,
 /// Lisp_Object);` (C 966's call).
@@ -6542,7 +6542,7 @@ unsafe extern "C" fn pgtk_fullscreen_hook (f: *mut frame)
 unsafe extern "C" {
   pub fn image_destroy_all_bitmaps (dpyinfo: *mut pgtk_display_info);
   pub fn xg_display_close (gdpy: *mut GdkDisplay);
-  pub fn delete_keyboard_wait_descriptor (fd: c_int);
+
 }
 /* <gdk/gdkevents.h>: `void gdk_event_free (GdkEvent *event);` - the C 4588 call (the GTK
    segment's convention: the header alone, no line, since this machine has no GTK tree).  */
@@ -10253,7 +10253,7 @@ unsafe extern "C" {
 #[cfg (feature = "have_pgtk")]
 unsafe extern "C" {
 
-  pub fn add_keyboard_wait_descriptor (fd: c_int);
+
      // C's `struct redisplay_interface *` (P-87 3)
   
   
@@ -10261,7 +10261,7 @@ unsafe extern "C" {
   pub fn xg_display_open (display_name: *mut c_char, dpy: *mut *mut GdkDisplay);
   pub fn xg_create_default_cursor (gdpy: *mut GdkDisplay) -> *mut GdkCursor;
   pub fn xg_initialize ();
-  pub fn xlispstrdup (string: Lisp_Object) -> *mut c_char;
+
   pub fn dlopen (file: *const c_char, mode: c_int) -> *mut c_void;
   pub fn dlsym (handle: *mut c_void, name: *const c_char) -> *mut c_void;
 }

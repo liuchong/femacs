@@ -626,8 +626,7 @@ unsafe extern "C" {
   /// find the type, measured).
   #[cfg (feature = "have_window_system")]
   pub fn prepare_image_for_display (f: *mut frame, img: *mut image);
-  /// C: lisp.h 5055: `extern bool is_minibuffer (EMACS_INT, Lisp_Object);` (minibuf.c defines it).
-  pub fn is_minibuffer (depth: EMACS_INT, contents: Lisp_Object) -> bool;
+
   /// C: window.h 1186: `struct glyph *get_phys_cursor_glyph (struct window *w);` (window.c
   /// 8228 defines it).
   /// C: dispextern.h 3774: `int image_ascent (struct image *, struct face *, struct glyph_slice *);`
@@ -704,12 +703,7 @@ unsafe extern "C" {
   /// window_body_unit);` (window.c defines both).
   pub fn window_body_width (w: *mut window, unit: window_body_unit) -> c_int;
   pub fn window_body_height (w: *mut window, unit: window_body_unit) -> c_int;
-  /// C: lisp.h 5033-5034: `extern ptrdiff_t find_newline1 (ptrdiff_t, ptrdiff_t,
-  /// ptrdiff_t, ptrdiff_t, ptrdiff_t, ptrdiff_t *, ptrdiff_t *, bool);` (search.c defines
-  /// it; the mirror chain carries only `find_newline`).
-  pub fn find_newline1 (start: ptrdiff_t, start_byte: ptrdiff_t, end: ptrdiff_t,
-			end_byte: ptrdiff_t, count: ptrdiff_t, shortage: *mut ptrdiff_t,
-			shortage_byte: *mut ptrdiff_t, allow_quit: bool) -> ptrdiff_t;
+
   /// C: term.c 1636-1640: `void produce_glyphs (struct it *it);` (the `PRODUCE_GLYPHS`
   /// macro's fallback when `FRAME_RIF` is null; `init_tty` leaves `terminal->rif = 0`).
   pub fn produce_glyphs (it: *mut it);
@@ -728,28 +722,16 @@ unsafe extern "C" {
                                     hfun: unsafe extern "C" fn (Lisp_Object, ptrdiff_t,
                                                                 *mut Lisp_Object)
                                                                   -> Lisp_Object) -> Lisp_Object;
-  /// C: lisp.h 4814: `extern void pop_handler (void);`
-  pub fn pop_handler ();
-  /// C: lisp.h 4815: `extern void push_handler_bind (Lisp_Object, Lisp_Object, int);`
-  pub fn push_handler_bind (conditions: Lisp_Object, handler: Lisp_Object, var: c_int);
+
+
   /// C: <stdio.h>: `int vfprintf (FILE *, const char *, va_list);` (`stdio.rs` keeps only
   /// the non-variadic half, the pdumper.rs shape).
   pub fn vfprintf (stream: *mut FILE, format: *const c_char, args: VaList<'_>) -> c_int;
-  /// C: lisp.h 4929: `extern void labeled_narrow_to_region (Lisp_Object, Lisp_Object,
-  /// Lisp_Object);` (editfns.c defines it; the lisp.h mirror does not carry it).
-  pub fn labeled_narrow_to_region (begv: Lisp_Object, zv: Lisp_Object, label: Lisp_Object);
-  /// C: lisp.h 4924-4925: `extern Lisp_Object save_restriction_save (void);` and
-  /// `extern void save_restriction_restore (Lisp_Object);` (editfns.c defines both; the
-  /// lisp.h mirror does not carry them).
-  pub fn save_restriction_save () -> Lisp_Object;
-  pub fn save_restriction_restore (buf: Lisp_Object);
-  /// C: lisp.h 4931: `extern void labeled_restrictions_remove_in_current_buffer (void);`
-  /// (editfns.c; the mirror gap `labeled_narrow_to_region` above shares).
-  pub fn labeled_restrictions_remove_in_current_buffer ();
-  /// C: lisp.h 4937: `extern bool disable_line_numbers_overlay_at_eob (void);` (buffer.c
-  /// defines it; the mirror's "Defined in buffer.c" block stops at
-  /// `mouse_face_overlay_overlaps`).
-  pub fn disable_line_numbers_overlay_at_eob () -> bool;
+
+
+
+
+
   /// C: <string.h>: `char *strcat (char *, const char *);` (`lib/include/string.rs` keeps
   /// only the functions the earlier units reached).
   pub fn strcat (dest: *mut c_char, src: *const c_char) -> *mut c_char;
@@ -787,14 +769,8 @@ unsafe extern "C" {
   pub fn bidi_push_it (bidi_it: *mut bidi_it);
   /// C: dispextern.h 3555: `extern void bidi_pop_it (struct bidi_it *);` (bidi.c defines it).
   pub fn bidi_pop_it (bidi_it: *mut bidi_it);
-  /// C: lisp.h 5040-5041: `extern ptrdiff_t find_newline_no_quit (ptrdiff_t, ptrdiff_t,
-  /// ptrdiff_t, ptrdiff_t *);` (search.c defines it; the mirror chain does not carry it —
-  /// the `bidi.rs`/`indent.rs` spelling).
-  pub fn find_newline_no_quit (from: ptrdiff_t, from_byte: ptrdiff_t, cnt: ptrdiff_t,
-			       bytepos: *mut ptrdiff_t) -> ptrdiff_t;
-  /// C: lisp.h 5113: `extern bool indented_beyond_p (ptrdiff_t, ptrdiff_t, EMACS_INT);`
-  /// (indent.c defines it; `indent.rs` is not in this unit's include list).
-  pub fn indented_beyond_p (pos: ptrdiff_t, pos_byte: ptrdiff_t, column: EMACS_INT) -> bool;
+
+
   /// C: dispextern.h 3831: `int merge_faces (struct window *, Lisp_Object, int, int);`
   /// (xfaces.c defines it; the `dispnew.rs` spelling).
   pub fn merge_faces (w: *mut window, face_name: Lisp_Object, face_id: c_int,
@@ -811,15 +787,11 @@ unsafe extern "C" {
   /// bool, bool, bool);` (insdel.c defines it).
   pub fn insert_1_both (s: *const c_char, nchars: ptrdiff_t, nbytes: ptrdiff_t,
 			prepare: bool, inherit: bool, before_markers: bool);
-  /// C: lisp.h 4348: `extern void del_range_both (ptrdiff_t, ptrdiff_t, ptrdiff_t,
-  /// ptrdiff_t, bool);` (insdel.c defines it).
-  pub fn del_range_both (from: ptrdiff_t, from_byte: ptrdiff_t, to: ptrdiff_t,
-			 to_byte: ptrdiff_t, prepare: bool);
+
   /// C: lisp.h 4226: `extern ptrdiff_t chars_in_text (const unsigned char *, ptrdiff_t);`
   /// (character.c defines it; `include/character.rs`'s `chars_in_text` takes `*const u8`).
   pub fn chars_in_text (ptr: *const u8, nbytes: ptrdiff_t) -> ptrdiff_t;
-  /// C: lisp.h 5082: `extern void cancel_echoing (void);` (keyboard.c defines it).
-  pub fn cancel_echoing ();
+
   /// C: dispextern.h 3906: `void clear_glyph_matrix (struct glyph_matrix *);` (dispnew.c
   /// defines it).
   
@@ -838,9 +810,7 @@ unsafe extern "C" {
 
   /// C: dispextern.h 4012: `bool is_tty_frame (struct frame *f);` (dispnew.c defines it).
   pub fn is_tty_frame (f: *mut frame) -> bool;
-  /// window.h 1232's `window_outdated` is the window.rs mirror's now (P-72 rule 3: the mirror spells the pointee `*mut c_void`).
-  /// C: lisp.h 4843: `extern Lisp_Object call_debugger (Lisp_Object arg);` (eval.c defines it).
-  pub fn call_debugger (arg: Lisp_Object) -> Lisp_Object;
+
   /// C: dispextern.h 3907: `void clear_current_matrices (struct frame *f);` (dispnew.c).
   pub fn clear_current_matrices (f: *mut frame);
   /// C: dispextern.h 3896: `extern void redraw_frame (struct frame *);` (dispnew.c).
@@ -854,39 +824,27 @@ unsafe extern "C" {
   /// window.h 1131's `shrink_mini_window` is the window.rs mirror's now (P-72 rule 3: the mirror spells the pointee `*mut c_void`).
   /// C: dispextern.h 3897: `void update_frame (struct frame *, bool);` (dispnew.c).
   pub fn update_frame (f: *mut frame, force_p: bool);
-  /// C: lisp.h 4335-4336: `extern void insert_from_string (Lisp_Object, ptrdiff_t, ptrdiff_t,
-  /// ptrdiff_t, ptrdiff_t, bool);` (insdel.c defines it).
-  pub fn insert_from_string (string: Lisp_Object, from: ptrdiff_t, from_byte: ptrdiff_t,
-			     nchars: ptrdiff_t, nbytes: ptrdiff_t, inherit: bool);
+
   /// C: dispextern.h 3916: `void clear_glyph_row (struct glyph_row *);` (dispnew.c).
   pub fn clear_glyph_row (row: *mut glyph_row);
   // dispextern.h 3914's `blank_row` is the dispextern.rs mirror's now (status 3.357).
   /// C: dispextern.h 3908: `void clear_desired_matrices (struct frame *);` (dispnew.c).
   pub fn clear_desired_matrices (f: *mut frame);
-  /// C: search.c's `void record_unwind_save_match_data (void);` (lisp.h 4852).
-  pub fn record_unwind_save_match_data ();
 
-  /// C: lisp.h 4326: `extern void safe_run_hooks (Lisp_Object hook);` (keyboard.c defines it).
-  pub fn safe_run_hooks (hook: Lisp_Object);
-  /// C: lisp.h 5098: `extern void safe_run_hooks_2 (Lisp_Object, Lisp_Object, Lisp_Object);`
-  /// (keyboard.c defines it).
-  pub fn safe_run_hooks_2 (hook: Lisp_Object, arg1: Lisp_Object, arg2: Lisp_Object);
+
+
+
   /// C: window.h 1226: `extern int window_scroll_margin (struct window *, enum margin_unit);`
   /// (window.c defines it; the mirror chain does not carry it).
   pub fn window_scroll_margin (window: *mut window, unit: margin_unit) -> c_int;
-  /// window.h 1208's `window_list` is the window.rs mirror's now (P-72 rule 3: the mirror spells the pointee `*mut c_void`).
-  /// C: lisp.h 4850: `extern Lisp_Object menu_bar_items (Lisp_Object);` (keyboard.c defines it).
-  pub fn menu_bar_items (menu_bar_items: Lisp_Object) -> Lisp_Object;
-  /// C: lisp.h 4851: `extern Lisp_Object tab_bar_items (Lisp_Object, int *);` (keyboard.c).
-  pub fn tab_bar_items (tab_bar_items: Lisp_Object, ntab_bar_items: *mut c_int) -> Lisp_Object;
-  /// C: lisp.h 4944: `extern bool overlay_touches_p (ptrdiff_t);` (buffer.c defines it).
-  pub fn overlay_touches_p (pos: ptrdiff_t) -> bool;
+
+
+
 
 
   /// C: lisp.h 4825: `extern void record_unwind_protect_void (void (*) (void));` (alloc.c).
   pub fn record_unwind_protect_void (function: Option<unsafe extern "C" fn ()>);
-  /// C: lisp.h 4930: `extern void reset_outermost_restrictions (void);` (editfns.c).
-  pub fn reset_outermost_restrictions ();
+
   /// C: window.c's `void run_window_change_functions (void);` (window.h 484).
   pub fn run_window_change_functions ();
   /// C: dispextern.h 4015: `bool is_tty_root_frame_with_visible_child (struct frame *f);`
@@ -906,8 +864,7 @@ unsafe extern "C" {
                                     -> Lisp_Object;
   /// C: dispextern.h 4016: `void combine_updates (Lisp_Object root_frames);` (dispnew.c).
   
-  /// C: lisp.h 4286: `Lisp_Object memq_no_quit (Lisp_Object, Lisp_Object);` (fns.c).
-  pub fn memq_no_quit (elt: Lisp_Object, list: Lisp_Object) -> Lisp_Object;
+
   /// C: dispextern.h 3958: `extern void set_tty_color_mode (struct tty_display_info *,
   /// struct frame *);` (term.c).
   pub fn set_tty_color_mode (tty: *mut tty_display_info, f: *mut frame);
@@ -984,10 +941,7 @@ unsafe extern "C" {
   pub fn tty_draw_row_with_mouse_face (w: *mut window, row: *mut glyph_row,
 				       start_hpos: c_int, end_hpos: c_int,
 				       draw: draw_glyphs_face);
-  /// C: lisp.h 4936: `extern bool mouse_face_overlay_overlaps (Lisp_Object);` (buffer.c
-  /// defines it; `note_mouse_highlight` at C 37437 is this unit's first use — the mirror
-  /// gap its own note on `disable_line_numbers_overlay_at_eob` records).
-  pub fn mouse_face_overlay_overlaps (overlay: Lisp_Object) -> bool;
+
   /// C: dispextern.h 3886-3890: `extern Lisp_Object mode_line_string (struct window *,
   /// enum window_part, int *, int *, ptrdiff_t *, Lisp_Object *, int *, int *, int *,
   /// int *);` (dispnew.c defines it; `note_line_or_margin_highlight` at C 36657 is this

@@ -4865,9 +4865,7 @@ pub unsafe extern "C" fn sys_spawnve (mode: c_int, cmdname: *mut c_char,
 #[cfg (feature = "windowsnt")]
 unsafe extern "C" {
   pub fn faccessat (fd: c_int, file: *const c_char, mode: c_int, flag: c_int) -> c_int;
-  pub fn openp (path: Lisp_Object, str_: Lisp_Object, suffixes: Lisp_Object,
-                storeptr: *mut Lisp_Object, predicate: Lisp_Object, newer: bool,
-                no_native: bool, platform: *mut *mut c_void) -> c_int;
+
   pub fn _mbspbrk (s1: *const c_uchar, s2: *const c_uchar) -> *mut c_uchar;
 }
 #[cfg (feature = "windowsnt")]
@@ -5371,7 +5369,7 @@ pub unsafe extern "C" fn sys_select (nfds: c_int, rfds: *mut SELECT_TYPE! (),
 /// C: DWORD WINAPI GetTickCount (void);
 #[cfg (feature = "windowsnt")]
 unsafe extern "C" {
-  pub fn detect_input_pending () -> bool;
+
 }
 #[cfg (feature = "windowsnt")]
 unsafe extern "system" {

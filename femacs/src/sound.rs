@@ -144,7 +144,7 @@ unsafe extern "C" {
 /// C: lisp.h 5144: `extern char *emacs_strerror (int) ATTRIBUTE_RETURNS_NONNULL;`
 #[cfg (feature = "have_sound")]
 unsafe extern "C" {
-  pub fn emacs_strerror (error_num: c_int) -> *mut c_char;
+
 }
 /// C: lisp.h 4743-4745 (one prototype, C's own wrapping):
 /// C: `extern int openp (Lisp_Object, Lisp_Object, Lisp_Object,`
@@ -152,9 +152,7 @@ unsafe extern "C" {
 /// C: `		  void **);`
 #[cfg (feature = "have_sound")]
 unsafe extern "C" {
-  pub fn openp (path: Lisp_Object, str_: Lisp_Object, suffixes: Lisp_Object,
-                storeptr: *mut Lisp_Object, predicate: Lisp_Object, newer: bool,
-                no_native: bool, platform: *mut *mut c_void) -> c_int;
+
 }
 /// C: lisp.h 4280: `extern Lisp_Object plist_get (Lisp_Object, Lisp_Object);`
 #[cfg (feature = "have_sound")]

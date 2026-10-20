@@ -741,8 +741,7 @@ mod libc_socket
 unsafe extern "C" {
   /// C: int accept (int, struct sockaddr *restrict, socklen_t *restrict)   (<sys/socket.h>)
   fn accept (socket: c_int, address: *mut sockaddr, address_len: *mut socklen_t) -> c_int;
-  /// C: int emacs_pipe (int[2])   (lisp.h 5313)
-  fn emacs_pipe (pipefd: *mut c_int) -> c_int;
+
 }
 
 /* ------------------------------------------------------------------------------------------
@@ -1297,8 +1296,7 @@ unsafe extern "C" {
   fn sigaddset (set: *mut sigset_t, signo: c_int) -> c_int;
   /// C: int sys_faccessat (int, const char *, int, int)   (sysdep.h 30)
   fn sys_faccessat (dirfd: c_int, file: *const c_char, mode: c_int, flags: c_int) -> c_int;
-  /// C: void setup_pty (int)   (sysdep.c 3825)
-  fn setup_pty (fd: c_int);
+
   /* `pthread_sigmask` needs no declaration here: `lib/include/signal.rs` carries it and is in
      this unit's include graph (the mirror-dupes gate flags a repeat, and it did).  */
   /// C: syswait.h 60: `extern pid_t child_status_changed (pid_t, int *, int);` - the return
@@ -1307,8 +1305,7 @@ unsafe extern "C" {
   /// (the common case on this target) then read as "no status changed", the reap was skipped,
   /// and the process stayed `run` (PORTING.md P-124).
   fn child_status_changed (child: pid_t, status: *mut c_int, options: c_int) -> pid_t;
-  /// C: void synchronize_system_messages_locale (void)   (lisp.h 5142)
-  fn synchronize_system_messages_locale ();
+
   /// C: char *strsignal (int)   (syssignal.h 83's `#ifndef HAVE_STRSIGNAL` is dead:
   /// HAVE_STRSIGNAL is 1, so this is the libc entry, the callproc.rs shape)
   fn strsignal (sig: c_int) -> *mut c_char;
@@ -1890,8 +1887,7 @@ unsafe extern "C" {
   fn plist_put (plist: Lisp_Object, prop: Lisp_Object, val: Lisp_Object) -> Lisp_Object;
   /// C: uintmax_t check_uinteger_max (Lisp_Object, uintmax_t)   (lisp.h 612)
   fn check_uinteger_max (x: Lisp_Object, max: u64) -> u64;
-  /// C: int set_window_size (int, int, int)   (lisp.h 5296, process.h 297)
-  fn set_window_size (fd: c_int, height: c_int, width: c_int) -> c_int;
+
 }
 
 DEFUN! ("set-process-inherit-coding-system-flag", Fset_process_inherit_coding_system_flag,
@@ -2088,8 +2084,7 @@ unsafe fn get_required_string_keyword_param (kwargs: Lisp_Object,
 }
 
 unsafe extern "C" {
-  /// C: Lisp_Object plist_member (Lisp_Object, Lisp_Object)   (lisp.h 4279)
-  fn plist_member (plist: Lisp_Object, prop: Lisp_Object) -> Lisp_Object;
+
 }
 
 /// <config.h 120>: `#define DIRECTORY_SEP '/'`.
@@ -2695,19 +2690,13 @@ unsafe extern "C" {
                   argv: *mut *mut c_char, envp: *mut *mut c_char, cwd: *mut c_char,
                   ptyname: *mut c_char, pty_in: bool, pty_out: bool,
                   oldset: *mut sigset_t) -> c_int;
-  /// C: char **make_environment_block (Lisp_Object)   (callproc.c 1816)
-  fn make_environment_block (current_dir: Lisp_Object) -> *mut *mut c_char;
-  /// C: int openp (Lisp_Object, Lisp_Object, Lisp_Object, Lisp_Object *, Lisp_Object,
-  ///               bool, bool, void **)   (lisp.h 4743, lread.c)
-  fn openp (path: Lisp_Object, str_: Lisp_Object, suffixes: Lisp_Object,
-            storeptr: *mut Lisp_Object, predicate: Lisp_Object, newer: bool,
-            no_native: bool, platform: *mut *mut c_void) -> c_int;
+
+
   /// C: pid_t setsid (void)   (<unistd.h>)
   fn setsid () -> pid_t;
   /// C: int ioctl (int, unsigned long, ...)   (<sys/ioctl.h>)
   fn ioctl (fd: c_int, request: c_ulong, ...) -> c_int;
-  /// C: void child_setup_tty (int)   (lisp.h 5294, sysdep.c)
-  fn child_setup_tty (out: c_int);
+
 }
 
 unsafe extern "C" {
@@ -3994,8 +3983,7 @@ unsafe fn connect_network_socket (proc_: Lisp_Object, addrinfos: Lisp_Object,
 }
 
 unsafe extern "C" {
-  /// C: void record_unwind_protect_nothing (void)   (lisp.h 4827, eval.c)
-  fn record_unwind_protect_nothing ();
+
   /// C: void set_unwind_protect_ptr (specpdl_ref, void (*) (void *), void *)   (lisp.h 4832)
   fn set_unwind_protect_ptr (count: specpdl_ref,
 			     function: Option<unsafe extern "C" fn (arg: *mut c_void)>,
@@ -6359,21 +6347,17 @@ unsafe extern "C" {
   /// C: struct timespec timer_check (void)   (atimer.c, lisp.h 5397)
   fn timer_check () -> timespec;
 
-  /// C: bool detect_input_pending (void)   (keyboard.c, lisp.h 4894)
-  fn detect_input_pending () -> bool;
-  /// C: bool detect_input_pending_run_timers (bool)   (keyboard.c)
-  fn detect_input_pending_run_timers (do_display: bool) -> bool;
 
 
-  /// C: void handle_input_available_signal (int)   (keyboard.c)
-  fn handle_input_available_signal (sig: c_int);
+
+
+
   /// C: int getpeername (int, struct sockaddr *restrict, socklen_t *restrict)
   fn getpeername (socket: c_int, address: *mut sockaddr, address_len: *mut socklen_t) -> c_int;
 }
 
 unsafe extern "C" {
-  /// C: void process_pending_signals (void)   (keyboard.c, lisp.h 5177)
-  fn process_pending_signals ();
+
   /// C: bool interrupt_input   (keyboard.c, keyboard.h 71)
   static mut interrupt_input: bool;
   /// C: bool pending_signals   (keyboard.c, lisp.h 5176)
@@ -6588,12 +6572,10 @@ unsafe fn read_process_output (proc_: Lisp_Object, channel: c_int) -> c_int
 }
 
 unsafe extern "C" {
-  /// C: Lisp_Object apply1 (Lisp_Object, Lisp_Object)   (lisp.h 4439, eval.c)
-  fn apply1 (fn_: Lisp_Object, arg: Lisp_Object) -> Lisp_Object;
+
   /// C: void cmd_error_internal (Lisp_Object, const char *)   (keyboard.c)
   fn cmd_error_internal (data: Lisp_Object, context: *const c_char);
-  /// C: void update_echo_area (void)   (xdisp.c)
-  fn update_echo_area ();
+
   /// C: ssize_t recvfrom (int, void *restrict, size_t, int, struct sockaddr *restrict,
   ///                      socklen_t *restrict)   (<sys/socket.h>)
   fn recvfrom (socket: c_int, buffer: *mut c_void, length: usize, flags: c_int,
@@ -6894,10 +6876,8 @@ pub static mut fast_read_process_output: bool = false;
 unsafe extern "C" {
   /// C: bool running_asynch_code   (search.c, lisp.h 5146)
   static mut running_asynch_code: bool;
-  /// C: void restore_search_regs (void)   (search.c)
-  fn restore_search_regs ();
-  /// C: void record_unwind_save_match_data (void)   (search.c)
-  fn record_unwind_save_match_data ();
+
+
   /// C: Lisp_Object internal_condition_case_1 (Lisp_Object (*) (Lisp_Object), Lisp_Object,
   ///                                          Lisp_Object, Lisp_Object (*) (Lisp_Object))
   ///    (lisp.h 4595, eval.c)
@@ -6905,10 +6885,7 @@ unsafe extern "C" {
 				arg: Lisp_Object, handlers: Lisp_Object,
 				hfun: Option<unsafe extern "C" fn (Lisp_Object) -> Lisp_Object>)
     -> Lisp_Object;
-  /// C: void insert_from_string_before_markers (Lisp_Object, ptrdiff_t, ptrdiff_t,
-  ///        ptrdiff_t, ptrdiff_t, bool)   (lisp.h 5790, insdel.c)
-  fn insert_from_string_before_markers (string: Lisp_Object, pos: ptrdiff_t, pos_byte: ptrdiff_t,
-					nchars: ptrdiff_t, nbytes: ptrdiff_t, inherit: bool);
+
 }
 
 /* Create a new entry in write_queue.  INPUT_OBJ should be a buffer, string Qt, or Qnil.  BUF
@@ -7232,8 +7209,7 @@ DEFUN! ("process-send-string", Fprocess_send_string, Sprocess_send_string, 2, 2,
 });
 
 unsafe extern "C" {
-  /// C: Lisp_Object nconc2 (Lisp_Object, Lisp_Object)   (lisp.h 4427, fns.c)
-  fn nconc2 (a: Lisp_Object, b: Lisp_Object) -> Lisp_Object;
+
   /// C: ssize_t sendto (int, const void *, size_t, int, const struct sockaddr *, socklen_t)
   fn sendto (socket: c_int, buffer: *const c_void, length: usize, flags: c_int,
 	     address: *const sockaddr, address_len: socklen_t) -> ssize_t;

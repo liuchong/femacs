@@ -73,23 +73,16 @@ unsafe extern "C" {
   /// C: lisp.h 4206: `extern void set_internal (Lisp_Object, Lisp_Object, Lisp_Object, enum Set_Internal_Bind);`
   pub fn set_internal (symbol: Lisp_Object, newval: Lisp_Object, r#let: Lisp_Object,
                        bindflag: Set_Internal_Bind);
-  /// C: lisp.h 4436: `extern void mark_object (Lisp_Object);`
-  pub fn mark_object (obj: Lisp_Object);
-  /// C: lisp.h 621: `extern Lisp_Object default_value (Lisp_Object symbol);`
-  pub fn default_value (symbol: Lisp_Object) -> Lisp_Object;
-  /// C: lisp.h 4922: `extern void save_excursion_save (union specbinding *);`
-  pub fn save_excursion_save (p: *mut specbinding);
-  /// C: lisp.h 4923: `extern void save_excursion_restore (Lisp_Object, Lisp_Object);`
-  pub fn save_excursion_restore (marker: Lisp_Object, buffer: Lisp_Object);
-  /// C: lisp.h 5228: `extern Lisp_Object get_byte_code_arity (Lisp_Object);`
-  pub fn get_byte_code_arity (args_template: Lisp_Object) -> Lisp_Object;
+
+
+
+
+
   /// C: lisp.h 4432: `extern AVOID memory_full (size_t);`
   pub fn memory_full (size: usize) -> !;
   /// C: lisp.h 4378: `extern void add_to_log (char const *, ...);`
   pub fn add_to_log (format: *const c_char, ...);
-  /// C: lisp.h 5226: `extern Lisp_Object exec_byte_code (Lisp_Object, ptrdiff_t, ptrdiff_t, Lisp_Object *);`
-  pub fn exec_byte_code (fun: Lisp_Object, args_template: ptrdiff_t, nargs: ptrdiff_t,
-                         args: *mut Lisp_Object) -> Lisp_Object;
+
   /// C: stdlib.h: `void abort (void) __attribute__ ((__noreturn__));`
   pub fn abort () -> !;
   /// C: lisp.h 4392: `extern void message3 (Lisp_Object);`
@@ -97,17 +90,14 @@ unsafe extern "C" {
 
   /// C: emacs.c: `void fatal (const char *, ...) ATTRIBUTE_NORETURN;` (lisp.h's EXFUN group)
   pub fn fatal (format: *const c_char, ...) -> !;
-  /// C: lisp.h 3880: `void process_pending_signals (void);`
-  pub fn process_pending_signals ();
+
   /// C: lisp.h 4722: `ptrdiff_t evxprintf (char **, ptrdiff_t *, char *, ptrdiff_t, const char *, va_list);`
   pub fn evxprintf (buf: *mut *mut c_char, bufsize: *mut ptrdiff_t, nonheapbuf: *mut c_char,
                     bufsize_max: ptrdiff_t, format: *const c_char, ap: core::ffi::VaList<'_>)
     -> ptrdiff_t;
   /// C: lisp.h 5468: `void malloc_probe (size_t);`
   pub fn malloc_probe (size: usize);
-  /// C: lisp.h 4165: `void notify_variable_watchers (Lisp_Object symbol, Lisp_Object newval, Lisp_Object operation, Lisp_Object where);`
-  pub fn notify_variable_watchers (symbol: Lisp_Object, newval: Lisp_Object,
-                                   operation: Lisp_Object, r#where: Lisp_Object);
+
 }
 
 /* Non-nil means record all fset's and provide's, to be undone

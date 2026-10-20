@@ -121,9 +121,9 @@ fn IS_DEVICE_SEP (_c_: c_int) -> bool { _c_ == b':' as c_int }
 /// C: lisp.h 5293: `extern void reset_all_sys_modes (void);`
 #[cfg (feature = "msdos")]
 unsafe extern "C" {
-  pub fn detect_input_pending () -> bool;
+
   pub fn cmd_error_internal (data: Lisp_Object, context: *const c_char);
-  pub fn reset_all_sys_modes ();
+
 }
 
 /* C 36's `lisp.h` 30 is `#include <string.h>`, and this unit's `strcmp` (C 1794) is that

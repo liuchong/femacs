@@ -101,12 +101,9 @@ unsafe extern "C" {
   fn FUNCTIONP (object: Lisp_Object) -> bool;
   /// C: lisp.h 4396: `extern void message_dolog (const char *, ptrdiff_t, bool, bool);`
   fn message_dolog (m: *const c_char, len: ptrdiff_t, nlflag: c_int, multibyte: bool);
-  /// C: lisp.h 4392: `extern void message3 (Lisp_Object);`
-  fn message3 (m: Lisp_Object);
-  /// C: lisp.h 4382: `extern void setup_echo_area_for_printing (bool);`
-  fn setup_echo_area_for_printing (multibyte_p: bool);
-  /// C: lisp.h 4399: `extern void reset_message_log_need_newline (void);`
-  fn reset_message_log_need_newline ();
+
+
+
   /// C: lisp.h 4331-4332: `extern void insert_1_both (const char *, ptrdiff_t, ptrdiff_t,
   /// bool, bool, bool);`
   fn insert_1_both (string: *const c_char, nchars: ptrdiff_t, nbytes: ptrdiff_t,
@@ -117,8 +114,7 @@ unsafe extern "C" {
                 to_multibyte: bool) -> ptrdiff_t;
   /// C: lisp.h 4825: `extern void record_unwind_protect_void (void (*) (void));`
   fn record_unwind_protect_void (function: Option<unsafe extern "C" fn ()>);
-  /// C: lisp.h 4253: `Lisp_Object hash_table_weakness_symbol (hash_table_weakness_t weak);`
-  fn hash_table_weakness_symbol (weak: hash_table_weakness_t) -> Lisp_Object;
+
   /// C: font.h 780: `extern Lisp_Object font_style_symbolic (Lisp_Object,
   /// enum font_property_index, bool);`
   fn font_style_symbolic (font: Lisp_Object, prop: c_int, for_face: bool) -> Lisp_Object;

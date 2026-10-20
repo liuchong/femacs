@@ -92,15 +92,8 @@ unsafe extern "C" {
 /// search.c's two newline scanners C's bodies here call; lisp.h 5035-5043 declares both,
 /// and the mirror carries only `scan_newline_from_point`.
 unsafe extern "C" {
-  /// C: lisp.h 5037-5038: `extern ptrdiff_t find_newline (ptrdiff_t, ptrdiff_t, ptrdiff_t,
-  /// ptrdiff_t, ptrdiff_t, ptrdiff_t *, ptrdiff_t *, bool);`
-  pub fn find_newline (from: ptrdiff_t, from_byte: ptrdiff_t, to: ptrdiff_t,
-                       to_byte: ptrdiff_t, count: ptrdiff_t, shortage: *mut ptrdiff_t,
-                       shortage_byte: *mut ptrdiff_t, allow_quit: bool) -> ptrdiff_t;
-  /// C: lisp.h 5042-5043: `extern ptrdiff_t find_before_next_newline (ptrdiff_t,
-  /// ptrdiff_t, ptrdiff_t, ptrdiff_t *);`
-  pub fn find_before_next_newline (from: ptrdiff_t, to: ptrdiff_t, count: ptrdiff_t,
-                                   shortage: *mut ptrdiff_t) -> ptrdiff_t;
+
+
 }
 
 /* `intervals.h` 307's `text_property_stickiness` (defined in textprop.c, `femacs/src/textprop.rs`)
@@ -113,15 +106,8 @@ unsafe extern "C" {
 /// 4938 declare them and the mirror carries none of them, so each is declared here with
 /// C's own prototype above it (PORTING.md P-72 rule 3, the insdel.rs shape).
 unsafe extern "C" {
-  /// C: lisp.h 4335-4336: `extern void insert_from_string (Lisp_Object, ptrdiff_t,
-  /// ptrdiff_t, ptrdiff_t, ptrdiff_t, bool);`
-  pub fn insert_from_string (string: Lisp_Object, pos: ptrdiff_t, pos_byte: ptrdiff_t,
-                             length: ptrdiff_t, length_byte: ptrdiff_t, inherit: bool);
-  /// C: lisp.h 4342-4343: `extern void insert_from_string_before_markers (Lisp_Object,
-  /// ptrdiff_t, ptrdiff_t, ptrdiff_t, ptrdiff_t, bool);`
-  pub fn insert_from_string_before_markers (string: Lisp_Object, pos: ptrdiff_t,
-                                            pos_byte: ptrdiff_t, length: ptrdiff_t,
-                                            length_byte: ptrdiff_t, inherit: bool);
+
+
   /// C: lisp.h 4340: `extern void insert_before_markers (const char *, ptrdiff_t);`
   pub fn insert_before_markers (str_: *const c_char, nbytes: ptrdiff_t);
   /// C: lisp.h 4341: `extern void insert_before_markers_and_inherit (const char *,
@@ -150,34 +136,24 @@ unsafe extern "C" {
 /// insdel.c's two change recorders: lisp.h 4324 and 4330-4331 declare them and the mirror
 /// carries neither.
 unsafe extern "C" {
-  /// C: lisp.h 5254: `extern void record_change (ptrdiff_t, ptrdiff_t);`
-  pub fn record_change (from: ptrdiff_t, to: ptrdiff_t);
-  /// C: lisp.h 4330-4331: `extern Lisp_Object del_range_1 (ptrdiff_t, ptrdiff_t, bool, bool);`
-  pub fn del_range_1 (from: ptrdiff_t, to: ptrdiff_t, prepare: bool, retain_markers: bool)
-    -> Lisp_Object;
+
+
 }
 
 /// alloc.c, fns.c and indent.c define these; lisp.h 4271, 4656, 4957 and 5112 declare them
 /// and the mirror carries none of them.
 unsafe extern "C" {
-  /// C: lisp.h 4271: `extern Lisp_Object nconc2 (Lisp_Object, Lisp_Object);` (fns.c).
-  pub fn nconc2 (a: Lisp_Object, b: Lisp_Object) -> Lisp_Object;
-  /// C: lisp.h 4656: `extern void free_cons (struct Lisp_Cons *);` (alloc.c).
-  pub fn free_cons (cons: *mut Lisp_Cons);
-  /// C: lisp.h 4957: `extern void detach_marker (Lisp_Object);` (alloc.c).
-  pub fn detach_marker (marker: Lisp_Object);
-  /// C: lisp.h 5112: `extern void invalidate_current_column (void);` (indent.c).
-  pub fn invalidate_current_column ();
-  /// C: lisp.h 4978: `extern void restore_point_unwind (Lisp_Object);` (insdel.c).
-  pub fn restore_point_unwind (location: Lisp_Object);
+
+
+
+
+
 }
 
 /// xdisp.c defines these; lisp.h 4387 and 4392 declare them and the mirror carries neither.
 unsafe extern "C" {
-  /// C: lisp.h 4387: `extern Lisp_Object current_message (void);` (xdisp.c).
-  pub fn current_message () -> Lisp_Object;
-  /// C: lisp.h 4392: `extern void message3 (Lisp_Object);` (xdisp.c).
-  pub fn message3 (m: Lisp_Object);
+
+
 }
 
 /// `<math.h>`: C 4013's `fabs`.
@@ -222,10 +198,7 @@ unsafe extern "C" {
 /// insdel.c's `adjust_markers_bytepos`: lisp.h 4361-4362 declares it and the mirror does not
 /// carry it.
 unsafe extern "C" {
-  /// C: lisp.h 4361-4362: `extern void adjust_markers_bytepos (ptrdiff_t, ptrdiff_t,
-  /// ptrdiff_t, ptrdiff_t, int);`
-  pub fn adjust_markers_bytepos (start: ptrdiff_t, start_byte: ptrdiff_t, end: ptrdiff_t,
-                                 end_byte: ptrdiff_t, before_markers: c_int);
+
 }
 
 /// `<pwd.h>`: C 1239's `getpwnam`.

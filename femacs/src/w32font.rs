@@ -1942,8 +1942,8 @@ pub unsafe extern "C" fn w32font_open_internal (f: *mut frame, font_entity: Lisp
 /// C: frame.h: `struct frame *decode_window_system_frame (Lisp_Object);`
 #[cfg (feature = "have_ntgui")]
 unsafe extern "C" {
-  pub fn intern_driver (str_: Lisp_Object, obarray: Lisp_Object, tem: Lisp_Object) -> Lisp_Object;
-  pub fn memq_no_quit (elt: Lisp_Object, list: Lisp_Object) -> Lisp_Object;
+
+
   pub fn font_make_entity () -> Lisp_Object;
   pub fn font_make_object (size: c_int, entity: Lisp_Object, pixel_size: c_int) -> Lisp_Object;
   pub fn font_intern_prop (str_: *const c_char, len: ptrdiff_t, force: bool) -> Lisp_Object;
