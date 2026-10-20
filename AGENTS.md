@@ -98,5 +98,10 @@ cd femacs && CARGO_TARGET_DIR=/tmp/xt-cargo cargo run -q -p xtask -- <cmd>
 
 ## 7 速查
 
+- **收尾复验 = 一条命令**：`python3 ~/.assistant/skills/controlled-run/scripts/run.py --profile runtime -- bash tools/verify-dod.sh --full`
+  —— 按 `docs/current-state.md` 的八行逐项打印 `ok`/`FAIL`（4.981 实测全绿，1884 s / 峰值 1.12 GB），
+  缺 `libgnu.a` / `asset-directory-tool` 时自愈；第 7 行不运行且会打印"按用户决定暂挂、记未达"。
+- **两条长扫**：`tools/l5-sweep.sh [--gc-stress] [--start-at N] [--chunk N]` —— L5 与强制 GC 压测共用，
+  分块可续跑、每块独立 TSV；跑完把分块合成一张总表后删分块（P-190）。
 - **禁止启用 Codex Fast mode**：不得 `/fast on`、不得 `service_tier = "fast"`、不得 `[features].fast_mode = true`（无例外硬规则）。
 - 本项目是**个人项目**：本仓库任何文件（代码、注释、文档、提交信息、PR/changelog）里**不得**出现公司项目的名称、路径、链接或可推断的暗示。
