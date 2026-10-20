@@ -25,7 +25,8 @@ DEVICE = REPO / "docs/baseline/android-imports-device.txt"
 ARMS = REPO / "docs/baseline/android-arms.tsv"
 PLAN = REPO / "docs/baseline/window-arms-plan.tsv"
 DOCS = ("docs/current-state.md", "docs/handoff.md", "docs/android-app-readiness.md",
-        "docs/window-arms-plan.md", "docs/decisions-needed.md", "docs/acceptance.md")
+        "docs/window-arms-plan.md", "docs/decisions-needed.md", "docs/acceptance.md",
+        "docs/goal.md")
 WINDOW = ("WINDOW_SYSTEM", "HAVE_X_WINDOWS", "HAVE_NS", "HAVE_PGTK", "HAVE_HAIKU", "HAVE_NTGUI",
           "WINDOWSNT", "MSDOS")
 
