@@ -75,3 +75,19 @@ runs.  The next reading is that flag itself, plus whether `FOR_EACH_FRAME` itera
 
 The 31,000 calls per second are their own finding: something in the command loop keeps asking for
 a redisplay that returns without doing anything.
+
+## Probe round 2 (4.1013)
+
+Two more probes, each in its own build (so the readings below pair only with each other):
+
+- MLP11, immediately before `if consider_all_windows_p`: **0 hits**.
+- MLP12, at the entry of `redisplay_window`: **0 hits**.
+
+With round 1 (the glyphs guard at 94,109 hits, everything downstream zero), the flow leaves
+`redisplay_internal` somewhere between that guard and the `consider_all_windows_p` branch.
+
+Cross-build inference is what made the last two rounds hard to read: each build carried a
+different probe set.  The next round puts **one** trace in **one** build - markers at the fast-path
+entry, at each `break 'cancel` / `break 'update` / `break 'retry`, right after the labelled block,
+inside the `if consider_all_windows_p` branch, at `redisplay_window` entry and at
+`display_mode_line` - so a single run says which exit was taken.
