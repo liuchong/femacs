@@ -100,6 +100,18 @@ python3 tools/bench.sh [--gate docs/baseline/bench.tsv]                         
 tools/gen-android-config.sh --check-prereqs                                          # Android 配置前置
 ```
 
+## 欠账清单（每条都有当前读数；2026-10-20 逐条复核）
+
+| 欠账 | 现状 | 证据 / 复跑命令 |
+| --- | --- | --- |
+| `.elc` 全族 | **已闭环** | 生成类的两份（`lisp/leim/ja-dic/ja-dic.elc`、`admin/unidata/uvs.elc`）在 `check-generated.py` 的 244 对里**逐字节**比较 ✓；其余 `.elc` 是参照**自己的构建产物**，被它自己的 `.gitignore:180` 排除（`docs/acceptance.md` 的"字面 `diff -r`"表逐条给规则行）✓ |
+| 2 个 `emacsver` | **已闭环** | `doc/emacs/emacsver.texi`、`etc/refcards/emacsver.tex` 同在 244 对里，本轮 `0 DIFFERENT` ✓ |
+| cedet 生成物 | **已闭环** | cedet 的 `.elc` 属上面同一类（参照构建产物、`.gitignore` 排除）✓；端口侧无独立生成物 ✓ |
+| 选择性改名登记 | **已机器化** | 本轮 **49 个 name-only** ✓（早期记的 56 是当时读数 ✓），每一处差异都经 `check-generated.py` 的 `name_only()` 判定"只差被改写解释的行" ✓ ⇒ 不再需要人工逐条登记 ✓ |
+| L4 / L5 | **L5 有读数、需整轮重跑** | L5 最近一次是 4.563：`542 / 11 / 6 / 4 / 1`，端口侧逐文件 `(ran, unexpected)` 变化 0 ✓；本轮只做了定向切片（`src/keyboard-tests.el`：**两侧同超时** ⇒ both-fail ✓、端口 0/0 ✓）⇒ 全量扫留收尾集中跑 ✓ |
+| 性能（DoD-7） | **暂挂** | 按用户决定记"未达" ✓；`tools/bench.sh --gate docs/baseline/bench.tsv` 是现成的门 ✓ |
+| 平台冒烟 | **已闭环** | macOS：`gate-fast` exit 0 ✓、`check-authorized-platforms.sh` exit 0（smoke + differential **92 form / 0 mismatch**）✓；Android：结构四项全绿 + **设备三元组**（渲染/输入/存活）✓ |
+
 ## 规模
 
 Rust 629 文件 / 757,271 行；平台侧（Swift 8 / Kotlin 40 / C++ 5）60,241 行；照抄树 4,656 文件。
