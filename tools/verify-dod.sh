@@ -1,0 +1,76 @@
+#!/bin/bash
+# Re-prove the completion definition, one row at a time, with the command that backs it.
+#
+#   tools/verify-dod.sh            # the cheap rows (about 8 minutes)
+#   tools/verify-dod.sh --full     # also gate-fast, the platform gate and the L5 sweep start
+#
+# `docs/current-state.md` is the ledger; this script is the same eight rows as commands, so a
+# session can refresh them without re-reading the document and guessing which command each row
+# means.  It prints one `ok`/`FAIL` line per row and exits non-zero if any cheap row fails.
+#
+# Row 7 (performance) is not run: it is shelved by the user's standing decision and recorded as
+# unmet, so running it would produce a number that is not a pass.  The script says so rather than
+# quietly leaving a gap.
+set -u
+HERE=$(cd "$(dirname "$0")/.." && pwd)
+cd "$HERE" || exit 1
+FULL=0
+[ "${1:-}" = "--full" ] && FULL=1
+fail=0
+row () { printf '%-46s %s\n' "$1" "$2"; }
+
+say () { printf '\n== %s ==\n' "$1"; }
+
+say "row 1: 1:1 transcription"
+if python3 tools/extract-abi.py --all 2>&1 | tail -1 | grep -q '590 done, 0 in progress, 0 failing'; then
+  row "extract-abi --all" ok
+else
+  row "extract-abi --all" FAIL; fail=1
+fi
+
+say "row 2: layout / symbols / subr / declarations"
+if python3 tools/check-declarations.py >/dev/null 2>&1; then row "check-declarations" ok; else row "check-declarations" FAIL; fail=1; fi
+if [ "$FULL" = 1 ]; then
+  if (cd femacs && CARGO_TARGET_DIR=${CARGO_TARGET_DIR:-/tmp/xt-cargo} cargo run -q -p xtask -- gate-fast >/dev/null 2>&1); then
+    row "xtask gate-fast" ok; else row "xtask gate-fast" FAIL; fail=1; fi
+else
+  row "xtask gate-fast" "skipped (--full)"
+fi
+
+say "row 4: generated products, loadup, dump offsets"
+if python3 tools/check-generated.py 2>&1 | tail -1 | grep -q '0 DIFFERENT, 0 missing'; then row "check-generated" ok; else row "check-generated" FAIL; fail=1; fi
+if python3 tools/check-loadup.py 2>&1 | tail -1 | grep -q 'agree file for file'; then row "check-loadup" ok; else row "check-loadup" FAIL; fail=1; fi
+if python3 tools/check-dump-offsets.py 2>&1 | tail -2 | grep -q '0 failure'; then row "check-dump-offsets" ok; else row "check-dump-offsets" FAIL; fail=1; fi
+
+say "row 5: the verbatim trees"
+if python3 tools/check-verbatim.py 2>&1 | tail -1 | grep -q '0 failures'; then row "check-verbatim" ok; else row "check-verbatim" FAIL; fail=1; fi
+
+say "row 6: the authorised platforms"
+if [ "$FULL" = 1 ]; then
+  if bash tools/check-authorized-platforms.sh >/dev/null 2>&1; then row "check-authorized-platforms" ok; else row "check-authorized-platforms" FAIL; fail=1; fi
+else
+  row "check-authorized-platforms" "skipped (--full)"
+fi
+# The device reading is evidence rather than a command: the acceptance images are committed.
+if [ -f docs/baseline/android-accept/2-typed.png ]; then
+  row "android device acceptance (evidence)" "present (tools/android-accept.sh refreshes it)"
+else
+  row "android device acceptance (evidence)" "MISSING"; fail=1
+fi
+
+say "row 8: signed commits and the ledger"
+if python3 tools/check-ledger-ticks.py 2>&1 | tail -1 | grep -q '0 failure'; then row "check-ledger-ticks" ok; else row "check-ledger-ticks" FAIL; fail=1; fi
+unsigned=0
+for c in $(git log --format=%H -5); do git verify-commit "$c" >/dev/null 2>&1 || unsigned=$((unsigned + 1)); done
+if [ "$unsigned" = 0 ]; then row "last 5 commits signed" ok; else row "last 5 commits signed" "FAIL ($unsigned unsigned)"; fail=1; fi
+
+say "row 7: performance"
+row "DoD-7" "not run: shelved by the user's standing decision, recorded as unmet"
+
+say "documentation gates"
+if python3 tools/check-doc-numbers.py >/dev/null 2>&1; then row "check-doc-numbers" ok; else row "check-doc-numbers" FAIL; fail=1; fi
+if python3 tools/check-own-voice.py >/dev/null 2>&1; then row "check-own-voice" ok; else row "check-own-voice" FAIL; fail=1; fi
+
+printf '\n'
+if [ "$fail" = 0 ]; then echo "verify-dod: every row that was run is ok"; else echo "verify-dod: at least one row failed"; fi
+exit "$fail"
