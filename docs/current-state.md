@@ -133,6 +133,7 @@ tools/gen-android-config.sh --check-prereqs                                     
 | 压力（`gc-cons-threshold=1`） | **本轮全量重跑完毕** | **564 文件：550 same / 7 both-fail / 6 crashed（全两侧同超时）/ 1 port-worse / 0 其它** ✓；合计**端口 8956 ran / 112 unexpected**、**参照 8956 / 110** ✓ —— 差的正是 `lisp/vc/emerge-tests.el`，而它**两侧各 7 次各抖 1 次** ⇒ 不归因于端口 ✓（4.970 ✓）。表在 `docs/baseline/ert-gc-stress-sweep.tsv` ✓，41 分 16 秒 / 峰值 597 MB ✓。**历史读数（供对照，已被本轮取代）**： 全量 564 文件（default 选择器）：**same 552 / both-fail 7 / crashed 5（两侧对称）/ port-worse 0** ✓（2026-10-18，P-195 之后的二进制 ✓，`tools/check-ert.py --gc-stress` ✓）；本轮四处改动（`signal.rs`/`sysdep.rs`/`keyboard.rs`/`xtask`）之后**未重跑全量** ✓ ⇒ 与 L5 一样留收尾集中跑 ✓ |
 | 性能（DoD-7） | **暂挂** | 按用户决定记"未达" ✓；`tools/bench.sh --gate docs/baseline/bench.tsv` 是现成的门 ✓ |
 | Android 库可加载 | **交付平台已闭环** | 按**设备自己的库**量：`304 import(s); 0 unresolved`（`docs/baseline/android-device-libs/`，4.966）✓；API 21 桩口径仍是 9 条未决 ✓，那是**旧平台**读数，按平台决定不作判据 ✓ |
+| 4 个"定义了但没导出"的名字 | **已知、非阻塞** | `check-android-imports` 每次都报 `backtrace`、`backtrace_symbols_fd`、`getloadavg`、`mkostemp` "defined but NOT exported (`no_mangle` missing)" ✓ —— 端口自己按 Rust 函数调用它们 ✓，不需要 C 符号 ✓；两处在**镜像**（`execinfo.in.rs`）里 ✓，加 `no_mangle` 会改动镜像文本 ✓，而冻结配置下模块是关的 ✓、没有任何已证实的失败 ✓ ⇒ **不改** ✓，只记在这里 ✓ |
 | 平台冒烟 | **已闭环** | macOS：`gate-fast` exit 0 ✓、`check-authorized-platforms.sh` exit 0（smoke + differential **92 form / 0 mismatch**）✓；Android：结构四项全绿 + **设备三元组**（渲染/输入/存活）✓ |
 
 ## 规模
