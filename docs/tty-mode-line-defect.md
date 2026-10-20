@@ -112,3 +112,21 @@ bytes, mode line MISSING).
 Next round: either patch by hand at three exact statements (loop head, fast-path block entry, the
 `redisplay_window` call) instead of a pattern-matched insert, or switch to lldb - break on
 `redisplay_internal`, `finish`, and read which caller path returned.
+
+## Probe round 4 (4.1015)
+
+Four markers, each placed by hand at a unique anchor: T1 just before the `'retry` label, T2 after
+`sw = w;` in the loop body, T3 just before `if consider_all_windows_p`, T4 at
+`redisplay_window`'s entry.  One build, one run:
+
+    T2-loop-body, T2-loop-body        (everything else zero)
+
+So the loop body runs, and neither the branch nor `redisplay_window` is reached.  The exit is one
+of the `break 'retry` sites inside the fast-path block.  T1 not printing while T2 does is not
+explained by this run: a linear entry passes T1, and a `continue 'retry` jumps over it, so the
+missing print means the observed entries were all jumps, not the first fall-through - worth
+re-reading with an uncapped counter before drawing a conclusion from it.
+
+Next reading: C enters the fast-path block only when `CHARPOS (this_line_start_pos) > 0`, which is
+false at startup.  Check what the port's `this_line_start_pos` holds at the first redisplay; if it
+is positive, the port takes a shortcut C cannot take, and that is the bug to fix.
