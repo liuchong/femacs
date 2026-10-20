@@ -102,7 +102,7 @@ class EmacsView(window: EmacsWindow) :
   @JvmField var damageRegion: Region
 
   /* The associated surface view.  */
-  private var surfaceView: EmacsSurfaceView
+  private var surfaceView: EmacsSurfacePresenter
 
   /* Whether or not a configure event must be sent for the next layout
      event regardless of what changed.  */
@@ -164,7 +164,7 @@ class EmacsView(window: EmacsWindow) :
     setFocusableInTouchMode(true)
 
     /* Create the surface view.  */
-    this.surfaceView = EmacsSurfaceView(this)
+    this.surfaceView = EmacsSurfacePresenter(getContext())
     addView(this.surfaceView)
 
     /* Get rid of the default focus highlight.  */
@@ -496,7 +496,7 @@ class EmacsView(window: EmacsWindow) :
     synchronized(this) {
       /* Transfer the bitmap to the surface view, then invalidate
          it.  */
-      surfaceView.setBitmap(bitmap, damageRect)
+      surfaceView.present(bitmap)
       postSwapBuffers()
     }
   }
@@ -717,7 +717,7 @@ class EmacsView(window: EmacsWindow) :
     bitmap = null
     canvas = null
 
-    surfaceView.setBitmap(null, null)
+    surfaceView.present(null)
 
     /* Recycle the bitmap and call GC.  */
 
