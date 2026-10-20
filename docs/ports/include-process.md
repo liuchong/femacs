@@ -40,3 +40,15 @@
   femacs/src/include/process.rs` reports `OK`; the `fd_callback` typedef and the prototypes
   after line 277 are declarations, which the checker does not inventory (PORTING.md P-64
   records that limitation), and they land with `process.c`/`sysdep.c`.
+
+## Declarations (status 4.996)
+
+C's prototypes for functions other units define now stand in `process_fn_decls` (module + glob
+import, P-297/P-39): **13** rows, each with its C line and text, `pub` so the glob brings them out,
+and carrying the gate of the records it names.
+
+The use-site copies were withdrawn only where `tools/check-decl-withdraw.py` could prove both
+things P-323 asks for: the unit includes this mirror itself and the mirror's declaration carries no
+cfg, and the two signatures are identical after whitespace and `pub` are normalised. Copies that
+fail either test stay, and are ratcheted in `docs/baseline/mirror-dupes.tsv` with the reason
+(the four readings in the batch: 342 withdrawn, 57 duplicates, 0 failures).

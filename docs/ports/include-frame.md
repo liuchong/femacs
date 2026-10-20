@@ -882,3 +882,15 @@ moving them is part of measuring that arm, not of this round.
 **22** (`docs/ports/w32term.md`'s `### Slice 16 (C 5130-6458)` Evidence 2); no new error appears
 anywhere in the graph; `python3 tools/check-mirror-dupes.py` and `tools/check-declarations.py` ->
 0 failure(s) each.
+
+## Declarations (status 4.996)
+
+C's prototypes for functions other units define now stand in `frame_fn_decls` (module + glob
+import, P-297/P-39): **47** rows, each with its C line and text, `pub` so the glob brings them out,
+and carrying the gate of the records it names.
+
+The use-site copies were withdrawn only where `tools/check-decl-withdraw.py` could prove both
+things P-323 asks for: the unit includes this mirror itself and the mirror's declaration carries no
+cfg, and the two signatures are identical after whitespace and `pub` are normalised. Copies that
+fail either test stay, and are ratcheted in `docs/baseline/mirror-dupes.tsv` with the reason
+(the four readings in the batch: 342 withdrawn, 57 duplicates, 0 failures).

@@ -276,3 +276,15 @@ so `src/xfont.rs` and `src/ftfont.rs` each declared it at their use sites (statu
 in a `font_log_decls` module the mirror glob-imports because **`src/font.rs` 6288 defines it** -
 the `x_bitmap_stipple`/P-39 shape, and the reason a crate-root copy would be `E0428` in `font.rs`
 while a glob import is simply shadowed by that definition.
+
+## Declarations (status 4.996)
+
+C's prototypes for functions other units define now stand in `font_fn_decls` (module + glob
+import, P-297/P-39): **33** rows, each with its C line and text, `pub` so the glob brings them out,
+and carrying the gate of the records it names.
+
+The use-site copies were withdrawn only where `tools/check-decl-withdraw.py` could prove both
+things P-323 asks for: the unit includes this mirror itself and the mirror's declaration carries no
+cfg, and the two signatures are identical after whitespace and `pub` are normalised. Copies that
+fail either test stay, and are ratcheted in `docs/baseline/mirror-dupes.tsv` with the reason
+(the four readings in the batch: 342 withdrawn, 57 duplicates, 0 failures).

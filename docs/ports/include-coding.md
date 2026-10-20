@@ -141,3 +141,15 @@
   unit includes `composite.rs` at 64, before `coding.rs` at 65, so this line is deduped there).
 - The unit the include exists for: `--cfg 'feature="have_android"'` arm-flip of
   `build/femacs/units/androidmenu/_root.rs` -> exit 0, 0 `^error` lines (89,808-byte object).
+
+## Declarations (status 4.996)
+
+C's prototypes for functions other units define now stand in `coding_fn_decls` (module + glob
+import, P-297/P-39): **12** rows, each with its C line and text, `pub` so the glob brings them out,
+and carrying the gate of the records it names.
+
+The use-site copies were withdrawn only where `tools/check-decl-withdraw.py` could prove both
+things P-323 asks for: the unit includes this mirror itself and the mirror's declaration carries no
+cfg, and the two signatures are identical after whitespace and `pub` are normalised. Copies that
+fail either test stay, and are ratcheted in `docs/baseline/mirror-dupes.tsv` with the reason
+(the four readings in the batch: 342 withdrawn, 57 duplicates, 0 failures).
