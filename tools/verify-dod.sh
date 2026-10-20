@@ -21,6 +21,33 @@ row () { printf '%-46s %s\n' "$1" "$2"; }
 
 say () { printf '\n== %s ==\n' "$1"; }
 
+# `gate-fast` and the platform gate both need C's own archive, and the environment wipes build
+# products between rounds (AGENTS.md section 3).  Rebuilding it takes seconds and is not a
+# judgement about the port, so it happens here instead of turning into a mysterious FAIL.
+prepare () {
+  if [ ! -f build/emacs-ref/lib/libgnu.a ]; then
+    printf 'prepare: build/emacs-ref/lib/libgnu.a was missing, rebuilding it\n'
+    make -C build/emacs-ref/lib libgnu.a >/dev/null 2>&1 || {
+      printf 'prepare: could not build libgnu.a\n'; return 1; }
+  fi
+  return 0
+}
+
+# A failing row must show why; swallowing the output turned a missing archive into an
+# unexplained FAIL the first time this script ran with --full (status 4.980).
+run_row () {
+  local label=$1; shift
+  local log; log=$(mktemp "${TMPDIR:-/tmp}/verify-dod.XXXXXX")
+  if "$@" >"$log" 2>&1; then
+    rm -f "$log"; row "$label" ok; return 0
+  fi
+  row "$label" FAIL; fail=1
+  tail -4 "$log" | sed 's/^/    /'
+  rm -f "$log"; return 1
+}
+
+prepare || { echo "verify-dod: the environment could not be prepared"; exit 2; }
+
 say "row 1: 1:1 transcription"
 if python3 tools/extract-abi.py --all 2>&1 | tail -1 | grep -q '590 done, 0 in progress, 0 failing'; then
   row "extract-abi --all" ok
@@ -31,8 +58,7 @@ fi
 say "row 2: layout / symbols / subr / declarations"
 if python3 tools/check-declarations.py >/dev/null 2>&1; then row "check-declarations" ok; else row "check-declarations" FAIL; fail=1; fi
 if [ "$FULL" = 1 ]; then
-  if (cd femacs && CARGO_TARGET_DIR=${CARGO_TARGET_DIR:-/tmp/xt-cargo} cargo run -q -p xtask -- gate-fast >/dev/null 2>&1); then
-    row "xtask gate-fast" ok; else row "xtask gate-fast" FAIL; fail=1; fi
+  run_row "xtask gate-fast" bash -c "cd femacs && CARGO_TARGET_DIR=${CARGO_TARGET_DIR:-/tmp/xt-cargo} cargo run -q -p xtask -- gate-fast"
 else
   row "xtask gate-fast" "skipped (--full)"
 fi
@@ -47,7 +73,7 @@ if python3 tools/check-verbatim.py 2>&1 | tail -1 | grep -q '0 failures'; then r
 
 say "row 6: the authorised platforms"
 if [ "$FULL" = 1 ]; then
-  if bash tools/check-authorized-platforms.sh >/dev/null 2>&1; then row "check-authorized-platforms" ok; else row "check-authorized-platforms" FAIL; fail=1; fi
+  run_row "check-authorized-platforms" bash tools/check-authorized-platforms.sh
 else
   row "check-authorized-platforms" "skipped (--full)"
 fi
