@@ -166,6 +166,10 @@ class EmacsView(window: EmacsWindow) :
     /* Create the surface view.  */
     this.surfaceView = EmacsSurfacePresenter(getContext())
     addView(this.surfaceView)
+    /* Decision 4.937/4.939: the frame is painted by this view, so that the one
+       hop from the bitmap to the window does not depend on a child's own draw
+       pass (the emulator never ran the child's `onDraw`).  */
+    setWillNotDraw(false)
 
     /* Get rid of the default focus highlight.  */
     if (Build.VERSION.SDK_INT > Build.VERSION_CODES.O)
@@ -241,6 +245,14 @@ class EmacsView(window: EmacsWindow) :
   @Synchronized
   fun explicitlyDirtyBitmap() {
     bitmapDirty = true
+  }
+
+  override fun onDraw(canvas: Canvas) {
+    canvas.drawColor(0xffffffff.toInt())
+    val frame = surfaceView.lastFrame()
+    if (frame == null || frame.isRecycled)
+      return
+    canvas.drawBitmap(frame, 0f, 0f, null)
   }
 
   @Synchronized
@@ -496,7 +508,8 @@ class EmacsView(window: EmacsWindow) :
     synchronized(this) {
       /* Transfer the bitmap to the surface view, then invalidate
          it.  */
-      surfaceView.present(bitmap)
+      if (bitmap != null)
+        surfaceView.present(bitmap)
       postSwapBuffers()
     }
   }
