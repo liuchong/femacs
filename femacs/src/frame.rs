@@ -575,7 +575,7 @@ unsafe extern "C" {
   pub fn init_tty (name: *const c_char, r#type: *const c_char, use_initial_terminal: bool)
     -> *mut terminal;
   /// C: dispextern.h 3780: `void get_tty_size (int, int *, int *);`
-  pub fn get_tty_size (fileno: c_int, width: *mut c_int, height: *mut c_int);
+  
   /// C: dispextern.h 4019: `int max_child_z_order (struct frame *parent);`
   pub fn max_child_z_order (parent: *mut frame) -> c_int;
   /// C: dispextern.h 3821: `void init_frame_faces (struct frame *);`
@@ -4935,7 +4935,7 @@ unsafe extern "C" {
   /// C: dispextern.h 3896: extern void redraw_frame (struct frame *);
   pub fn redraw_frame (f: *mut frame);
   /// C: dispextern.h 3802: void clear_face_cache (bool);
-  pub fn clear_face_cache (thorough: bool);
+  
   /// C: dispextern.h 3907: void clear_current_matrices (struct frame *f);
   pub fn clear_current_matrices (f: *mut frame);
   /// C: dispextern.h 3823: void recompute_basic_faces (struct frame *);
@@ -4945,7 +4945,7 @@ unsafe extern "C" {
   /// C: dispextern.h 3819: extern struct image_cache *share_image_cache (struct frame *f);
   pub fn share_image_cache (f: *mut frame) -> *mut image_cache;
   /// C: dispextern.h 3833: void free_all_realized_faces (Lisp_Object);
-  pub fn free_all_realized_faces (frame: Lisp_Object);
+  
   /// C: font.h 883: extern Lisp_Object font_open_by_name (struct frame *f, Lisp_Object name);
   pub fn font_open_by_name (f: *mut frame, name: Lisp_Object) -> Lisp_Object;
   /// C: font.h 865: extern Lisp_Object font_spec_from_name (Lisp_Object font_name);

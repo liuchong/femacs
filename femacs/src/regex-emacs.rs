@@ -500,8 +500,6 @@ macro_rules! CHARSET_RANGE_TABLE_END {
 /* The debug printers name <stdio.h>'s writes and `stderr` (C 449's `sysstdio.h` chain).  The
    mirror carries `fputs`; `fprintf`/`putc`/`stderr` have no mirror, so they are declared at
    their use site (PORTING.md 0.1-2/P-72, the bytecode.rs/region-cache.rs shape).  */
-unsafe extern "C" {
-}
 
 /* Use standard I/O for debugging.  */
 // C 449: `# include "sysstdio.h"` - its `<stdio.h>` is included at the top.
@@ -4344,12 +4342,6 @@ pub unsafe extern "C" fn re_match_2 (bufp: *mut re_pattern_buffer,
   result
 }
 
-unsafe extern "C" {
-  /// C: dispnew.h 603: `extern void update_redisplay_ticks (int, struct window *);` - the
-  /// window is reached only as a pointer and window.rs's record is not in this unit's
-  /// include chain, so the ABI-equal `*mut c_void` names it (PORTING.md 0.1-2/P-72 rule 3).
-  fn update_redisplay_ticks (ticks: c_int, w: *mut c_void);
-}
 
 unsafe extern "C" fn unwind_re_match (ptr: *mut c_void)
 {

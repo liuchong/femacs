@@ -133,7 +133,7 @@ unsafe extern "C" {
 
   /* dispextern.h.  */
   /// C: dispextern.h 3573: `int try_window (Lisp_Object, struct text_pos, int);`
-  pub fn try_window (window: Lisp_Object, pos: text_pos, flags: c_int) -> c_int;
+  
   /// C: dispextern.h 3656: `extern void gui_update_cursor (struct frame *, bool);`
   pub fn gui_update_cursor (f: *mut frame, invis: bool);
   /// C: dispextern.h 3794-3795: `void update_face_from_frame_parameter (struct frame *,
@@ -151,7 +151,7 @@ unsafe extern "C" {
   /// C: dispextern.h 3902: `void free_glyphs (struct frame *);`
   pub fn free_glyphs (f: *mut frame);
   /// C: dispextern.h 3906: `void clear_glyph_matrix (struct glyph_matrix *);`
-  pub fn clear_glyph_matrix (matrix: *mut glyph_matrix);
+  
   /// C: dispextern.h 3907: `void clear_current_matrices (struct frame *f);`
   pub fn clear_current_matrices (f: *mut frame);
   /// C: dispextern.h 3918: `void update_single_window (struct window *);`
@@ -305,9 +305,9 @@ unsafe extern "C" {
   /// { f->parent_frame = val; }`
   pub fn fset_parent_frame (f: *mut frame, val: Lisp_Object);
   /// C: dispextern.h 3781: `void request_sigio (void);`
-  pub fn request_sigio ();
+  
   /// C: dispextern.h 3782: `void unrequest_sigio (void);`
-  pub fn unrequest_sigio ();
+  
   /// C: dispextern.h 3798-3800: `bool parse_color_spec (const char *,
   /// unsigned short *, unsigned short *, unsigned short *);`
   pub fn parse_color_spec (spec: *const c_char, r: *mut c_ushort, g: *mut c_ushort,

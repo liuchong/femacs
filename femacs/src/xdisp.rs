@@ -647,8 +647,8 @@ unsafe extern "C" {
   /// window.h 1209's `window_parameter` is the window.rs mirror's now (P-72 rule 3: the mirror spells the pointee `*mut c_void`).
   /// C: dispextern.h 3556-3557: `extern void *bidi_shelve_cache (void);`
   /// `extern void bidi_unshelve_cache (void *, bool);`
-  pub fn bidi_shelve_cache () -> *mut c_void;
-  pub fn bidi_unshelve_cache (databuf: *mut c_void, really_free_p: bool);
+  
+  
   /// C: dispextern.h 3550: `extern void bidi_init_it (ptrdiff_t, ptrdiff_t, bool,
   /// struct bidi_it *);` (bidi.c defines it).
   pub fn bidi_init_it (charpos: ptrdiff_t, bytepos: ptrdiff_t, frame_window_p: bool,
@@ -661,7 +661,7 @@ unsafe extern "C" {
   pub fn bidi_move_to_visually_next (bidi_it: *mut bidi_it);
   /// C: dispextern.h 3559: `extern ptrdiff_t bidi_level_start (int);` (bidi.c defines
   /// it; `compute_stop_pos` needs it for the backward-scan stop position).
-  pub fn bidi_level_start (level: c_int) -> ptrdiff_t;
+  
   /* `validate_subarray` (lisp.h 4261-4262, fns.c's) needs no declaration here: the included
      lisp.rs mirror already carries it at its `unsafe extern "C"` block (the mirror-dupes gate
      flags a second copy - the integrator's 3.421 finding).  */
@@ -695,7 +695,7 @@ unsafe extern "C" {
   /// C: dispextern.h 3823: `void recompute_basic_faces (struct frame *);`
   pub fn recompute_basic_faces (f: *mut frame);
   /// C: dispextern.h 3833: `void free_all_realized_faces (Lisp_Object);`
-  pub fn free_all_realized_faces (frame: Lisp_Object);
+  
   /// C: dispextern.h 2068: `extern bool face_change;` (xfaces.c defines it; the mirror
   /// chain does not carry the declaration).
   pub static mut face_change: bool;
@@ -781,7 +781,7 @@ unsafe extern "C" {
   pub fn FUNCTIONP (o: Lisp_Object) -> bool;
   /// C: dispextern.h 3553: `extern int bidi_mirror_char (int);` (bidi.c defines it; the
   /// mirror chain does not carry it).
-  pub fn bidi_mirror_char (c: c_int) -> c_int;
+  
   /// C: dispextern.h 3554: `extern void bidi_push_it (struct bidi_it *);` (bidi.c defines
   /// it; the mirror chain does not carry it).
   pub fn bidi_push_it (bidi_it: *mut bidi_it);
@@ -822,7 +822,7 @@ unsafe extern "C" {
   pub fn cancel_echoing ();
   /// C: dispextern.h 3906: `void clear_glyph_matrix (struct glyph_matrix *);` (dispnew.c
   /// defines it).
-  pub fn clear_glyph_matrix (matrix: *mut glyph_matrix);
+  
   /// C: sysstdio.h 32: `extern void errputc (int);` (`include/sysstdio.rs` mirrors the header,
   /// but this unit includes `lib/include/stdio.rs` for C 477, so the two are declared here).
   pub fn errputc (c: c_int);
@@ -898,11 +898,10 @@ unsafe extern "C" {
   pub fn is_tty_root_frame_with_visible_child (f: *mut frame) -> bool;
   /// C: dispextern.h 3912: `void increment_matrix_positions (struct glyph_matrix *, int, int,
   /// ptrdiff_t, ptrdiff_t);` (dispnew.c).
-  pub fn increment_matrix_positions (matrix: *mut glyph_matrix, start: c_int, end: c_int,
-                                     delta: ptrdiff_t, delta_bytes: ptrdiff_t);
+  
   /// C: dispextern.h 3911: `void rotate_matrix (struct glyph_matrix *, int, int, int);`
   /// (dispnew.c defines it).
-  pub fn rotate_matrix (matrix: *mut glyph_matrix, first: c_int, last: c_int, by: c_int);
+  
   /// C: lisp.h 4806: `extern Lisp_Object internal_condition_case_1 (Lisp_Object (*)
   /// (Lisp_Object), Lisp_Object, Lisp_Object, Lisp_Object (*) (Lisp_Object));` (eval.c).
   pub fn internal_condition_case_1 (bfun: Option<unsafe extern "C" fn (Lisp_Object) -> Lisp_Object>,
@@ -910,20 +909,20 @@ unsafe extern "C" {
                                     hfun: Option<unsafe extern "C" fn (Lisp_Object) -> Lisp_Object>)
                                     -> Lisp_Object;
   /// C: dispextern.h 4016: `void combine_updates (Lisp_Object root_frames);` (dispnew.c).
-  pub fn combine_updates (root_frames: Lisp_Object);
+  
   /// C: lisp.h 4286: `Lisp_Object memq_no_quit (Lisp_Object, Lisp_Object);` (fns.c).
   pub fn memq_no_quit (elt: Lisp_Object, list: Lisp_Object) -> Lisp_Object;
   /// C: dispextern.h 3958: `extern void set_tty_color_mode (struct tty_display_info *,
   /// struct frame *);` (term.c).
   pub fn set_tty_color_mode (tty: *mut tty_display_info, f: *mut frame);
   /// C: dispextern.h 3802: `void clear_face_cache (bool);` (xfaces.c defines it).
-  pub fn clear_face_cache (force_p: bool);
+  
   /// C: dispextern.h 3901: `extern void adjust_frame_glyphs (struct frame *);` (dispnew.c).
   pub fn adjust_frame_glyphs (f: *mut frame);
   /// C: dispextern.h 3781-3782: `void request_sigio (void);` / `unrequest_sigio (void);`
   /// (sysdep.c).
-  pub fn request_sigio ();
-  pub fn unrequest_sigio ();
+  
+  
   /// C: dispextern.h 3934: `extern void update_begin (struct frame *);` (terminal.c
   /// defines it; the mirror chain does not carry it).
   pub fn update_begin (f: *mut frame);
@@ -937,7 +936,7 @@ unsafe extern "C" {
   pub fn ins_del_lines (f: *mut frame, vpos: c_int, n: c_int);
   /// C: dispextern.h 3915: `void clear_glyph_matrix_rows (struct glyph_matrix *, int, int);`
   /// (dispnew.c defines it).
-  pub fn clear_glyph_matrix_rows (matrix: *mut glyph_matrix, start: c_int, end: c_int);
+  
   /// C: dispextern.h 3909-3910: `void shift_glyph_matrix (struct window *, struct
   /// glyph_matrix *, int, int, int);` (dispnew.c defines it).
   pub fn shift_glyph_matrix (w: *mut window, matrix: *mut glyph_matrix, start: c_int,

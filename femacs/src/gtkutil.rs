@@ -497,8 +497,8 @@ unsafe extern "C" {
   /// C 245/251: `unrequest_sigio ();` / `request_sigio ();` (twice in each arm of
   /// `xg_display_open`)
   /// C: dispextern.h 3781-3782: `void request_sigio (void);` / `void unrequest_sigio (void);`
-  pub fn request_sigio ();
-  pub fn unrequest_sigio ();
+  
+  
   /// C 1161: `change_frame_size (f, width, height, false, true, false);`
   /// C: dispextern.h 3924: `void change_frame_size (struct frame *, int, int, bool, bool, bool);`
   pub fn change_frame_size (f: *mut frame, width: c_int, height: c_int, pretend: bool,
@@ -511,7 +511,7 @@ unsafe extern "C" {
   /// C 521/529: `Lisp_Object specified_file = file_for_image (img->spec);` /
   /// `STRINGP (file = image_find_image_file (specified_file))`
   /// C: dispextern.h 3748: `extern Lisp_Object image_find_image_file (Lisp_Object);`
-  pub fn image_find_image_file (file: Lisp_Object) -> Lisp_Object;
+  
   /// C: frame.h 1511-1512: `extern void adjust_frame_size (struct frame *, int, int, int, bool,
   /// Lisp_Object);`
   pub fn adjust_frame_size (f: *mut frame, width: c_int, height: c_int, inhibit: c_int,
@@ -4812,7 +4812,7 @@ unsafe fn create_menus (data: *mut widget_value, f: *mut frame, select_cb: GCall
 #[cfg (feature = "use_gtk")]
 unsafe extern "C" {
   pub fn menu_separator_name_p (name: *const c_char) -> bool;           // keyboard.h 473
-  pub fn popup_activated () -> c_int;                                  // dispextern.h 3879
+                                    // dispextern.h 3879
   pub fn set_frame_menubar (f: *mut frame, deep_p: bool);               // frame.h 1881
 }
 
@@ -9111,7 +9111,7 @@ pub unsafe extern "C" fn update_frame_tool_bar (f: *mut frame)   // C 5851-6162
    `x_x_to_emacs_modifiers` shape.  */
 #[cfg (feature = "use_gtk")]
 unsafe extern "C" {
-  pub fn valid_image_p (object: Lisp_Object) -> bool;                   // dispextern.h 3755
+                     // dispextern.h 3755
   pub fn lookup_image (f: *mut frame, spec: Lisp_Object, face_id: c_int) -> ptrdiff_t;   // dispextern.h 3757
   pub fn prepare_image_for_display (f: *mut frame, img: *mut image);    // dispextern.h 3756
 }

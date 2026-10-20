@@ -220,19 +220,6 @@ macro_rules! SET_TEXT_POS {
   };
 }
 
-unsafe extern "C" {
-  /// C: dispextern.h 3721: `extern void update_redisplay_ticks (int, struct window *);`
-  pub fn update_redisplay_ticks (ticks: c_int, w: *mut c_void);
-  /// C: dispextern.h 3621-3623: `extern ptrdiff_t compute_display_string_pos
-  /// (struct text_pos *, struct bidi_string_data *, struct window *, bool, int *);`
-  pub fn compute_display_string_pos (pos: *mut text_pos, string: *mut bidi_string_data,
-				     w: *mut c_void, frame_window_p: bool,
-				     disp_prop: *mut c_int) -> ptrdiff_t;
-  /// C: dispextern.h 3624-3626: `extern ptrdiff_t compute_display_string_end (ptrdiff_t,
-  /// struct bidi_string_data *, struct window *);`
-  pub fn compute_display_string_end (charpos: ptrdiff_t, string: *mut bidi_string_data,
-				     w: *mut c_void) -> ptrdiff_t;
-}
 
 unsafe extern "C" {
   /// C: lisp.h 5031-5032: `extern ptrdiff_t fast_looking_at (Lisp_Object, ptrdiff_t,
@@ -252,8 +239,6 @@ unsafe extern "C" {
 
 /* <stdio.h>: `putc` and `fprintf` for `bidi_dump_cached_states`, and `stderr` under its
    Darwin link name (the cm.rs/bytecode.rs/region-cache.rs shape).  */
-unsafe extern "C" {
-}
 
 /* <intprops.h>'s `INT_PROMOTE (e)` is `(+ (e))` (intprops.h 55): C uses it to promote an
    enumeration to `int` so that `-Wswitch-enum` stays quiet.  The header has no mirror

@@ -467,8 +467,7 @@ unsafe extern "C" {
   fn init_eval ();
   /// C: <setjmp.h>: `int sigsetjmp (sigjmp_buf, int);`
   fn sigsetjmp (env: *mut c_void, savemask: c_int) -> c_int;
-  /// C: xdisp.c (dispextern.h 3481's `extern void redisplay_preserve_echo_area (int);`)
-  fn redisplay_preserve_echo_area (from_where: c_int);
+
   /// C: lisp.h 4373: `extern Lisp_Object sit_for (Lisp_Object, bool, int);`
   fn sit_for (timeout: Lisp_Object, reading: bool, display: c_int) -> Lisp_Object;
   /// C: lisp.h 4653: `extern void display_malloc_warning (void);`
@@ -477,8 +476,7 @@ unsafe extern "C" {
   fn resize_echo_area_exactly ();
   /// C: dispextern.h 3570: `bool resize_mini_window (struct window *, bool);`
   fn resize_mini_window (w: *mut window, use_height: bool) -> bool;
-  /// C: dispextern.h 3721: `extern void update_redisplay_ticks (int, struct window *);`
-  fn update_redisplay_ticks (ticks: c_int, w: *mut window);
+
   /// C: dispextern.h 3568: `bool display_prop_intangible_p (Lisp_Object, Lisp_Object, ptrdiff_t, ptrdiff_t);`
   fn display_prop_intangible_p (prop: Lisp_Object, overlay: Lisp_Object,
                                 start: ptrdiff_t, end: ptrdiff_t) -> bool;
@@ -560,10 +558,8 @@ unsafe extern "C" {
   fn hold_keyboard_input ();
   /// C: process.c (process.h 253: `extern void unhold_keyboard_input (void);`)
   fn unhold_keyboard_input ();
-  /// C: dispnew.c (keyboard.h 500-501: `extern void request_sigio (void);`)
-  fn request_sigio ();
-  /// C: dispnew.c (keyboard.h 501: `extern void unrequest_sigio (void);`)
-  fn unrequest_sigio ();
+
+
   /// C: lisp.h 4271: `extern Lisp_Object nconc2 (Lisp_Object, Lisp_Object);`
   fn nconc2 (a: Lisp_Object, b: Lisp_Object) -> Lisp_Object;
   /// C: lisp.h 4397: `extern void message_with_string (const char *, Lisp_Object, bool);`
@@ -642,9 +638,7 @@ unsafe extern "C" {
   ///   `frame.rs` declares its own copy for its own callers).
   fn change_frame_size (f: *mut frame, new_width: c_int, new_height: c_int, pretend: bool,
                         delay: bool, safe: bool);
-  /// C: dispextern.h 3780: `void get_tty_size (int, int *, int *);` (dispnew.c defines it;
-  ///   neither mirror carries it).
-  fn get_tty_size (fd: c_int, widthp: *mut c_int, heightp: *mut c_int);
+
   /// C: lisp.h 5289: `extern void discard_tty_input (void);` (sysdep.c; the mirror does not
   ///   carry it).
   fn discard_tty_input ();

@@ -233,7 +233,7 @@ unsafe extern "C" {
   pub fn this_minibuffer_depth (buffer: Lisp_Object) -> c_int;
   /// C: dispextern.h 3588: `void mark_window_display_accurate (Lisp_Object, bool);`
   /// (dispnew.c).
-  pub fn mark_window_display_accurate (window: Lisp_Object, accurate_p: bool);
+  
   /// C: dispextern.h 3903: `void free_window_matrices (struct window *);`.
   pub fn free_window_matrices (w: *mut window);
   // indent.h 39-40's `vmotion` is the include/indent.rs mirror's now; the mirror spells
@@ -1568,8 +1568,8 @@ macro_rules! CLIP_TEXT_POS_FROM_MARKER { ($pos:expr, $marker:expr) => { {
 unsafe extern "C" {
   /// C: dispextern.h 3556-3557: `extern void *bidi_shelve_cache (void);`
   /// `extern void bidi_unshelve_cache (void *, bool);`
-  pub fn bidi_shelve_cache () -> *mut c_void;
-  pub fn bidi_unshelve_cache (databuf: *mut c_void, really_free_p: bool);
+  
+  
   /// C: dispextern.h 3597: `void start_display (struct it *, struct window *, struct text_pos);`
   pub fn start_display (it: *mut it, w: *mut window, pos: text_pos);
   /// C: dispextern.h 3598: `void move_it_vertically (struct it *, int);`
@@ -5998,8 +5998,7 @@ unsafe extern "C" {
   pub fn default_line_pixel_height (w: *mut window) -> c_int;
   /// C: dispextern.h 3610: `extern bool display_working_on_window_p;` (xdisp.c).
   pub static mut display_working_on_window_p: bool;
-  /// C: dispextern.h 3612: `extern void unwind_display_working_on_window (void);` (xdisp.c).
-  pub fn unwind_display_working_on_window ();
+  
 }
 
 #[unsafe(no_mangle)]
@@ -7972,10 +7971,6 @@ macro_rules! VECSIZE {
   };
 }
 
-unsafe extern "C" {
-  /// C: dispextern.h 3906: `void clear_glyph_matrix (struct glyph_matrix *);` (dispnew.c).
-  pub fn clear_glyph_matrix (matrix: *mut glyph_matrix);
-}
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn restore_focus_frame (frame_and_focus_frame: Lisp_Object)

@@ -594,9 +594,6 @@ unsafe extern "C" {
 }
 /// C: dispextern.h 3553: `extern int  bidi_mirror_char (int);`
 #[cfg (feature = "harfbuzz")]
-unsafe extern "C" {
-  pub fn bidi_mirror_char (c: c_int) -> c_int;
-}
 /// C: font.h 885-886: `extern Lisp_Object font_intern_prop (const char *str, ptrdiff_t len,
 /// bool force_symbol);`
 #[cfg (feature = "harfbuzz")]

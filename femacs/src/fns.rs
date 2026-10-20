@@ -113,9 +113,7 @@ unsafe extern "C" {
   /// Lisp_Object must_suffix);` — lread.c defines it (the mirror is missing the line).
   fn load_with_autoload_queue (file: Lisp_Object, noerror: Lisp_Object, nomessage: Lisp_Object,
                                nosuffix: Lisp_Object, must_suffix: Lisp_Object) -> Lisp_Object;
-  /// C: dispextern.h 3589: `void redisplay_preserve_echo_area (int);` (xdisp.c defines it;
-  /// the mirror is missing the line).
-  fn redisplay_preserve_echo_area (from_where: c_int);
+
   /// C: lisp.h 4539: `extern Lisp_Object bool_vector_fill (Lisp_Object, Lisp_Object);` —
   /// alloc.c defines it (the mirror is missing the line).
   fn bool_vector_fill (a: Lisp_Object, item: Lisp_Object) -> Lisp_Object;

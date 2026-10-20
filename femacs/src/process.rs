@@ -1615,8 +1615,7 @@ DEFUN! ("process-status", Fprocess_status, Sprocess_status, 1, 1, 0,
    Use-site declarations, group 3 (C 914-1250).  */
 
 unsafe extern "C" {
-  /// C: void redisplay_preserve_echo_area (int)   (dispextern.h 3589)
-  fn redisplay_preserve_echo_area (from_where: c_int);
+
   /// C: void record_kill_process (struct Lisp_Process *, Lisp_Object)   (process.h 285)
   fn record_kill_process (p: *mut Lisp_Process, tempfile: Lisp_Object);
   /// C: void message (const char *, ...)   (lisp.h 4517, xdisp.c)

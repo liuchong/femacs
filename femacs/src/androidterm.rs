@@ -400,7 +400,7 @@ use textconv_decls::*;
 #[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
 unsafe extern "C" {
   /// C: dispextern.h 3879: `int popup_activated (void);` (androidmenu.c defines it).
-  pub fn popup_activated () -> c_int;
+  
   /// C: dispextern.h 4006: `extern bool gui_mouse_grabbed (Display_Info *);` -
   /// dispextern.h 165's `typedef struct android_display_info Display_Info;`.
   pub fn gui_mouse_grabbed (dpyinfo: *mut android_display_info) -> bool;
@@ -1354,7 +1354,7 @@ unsafe extern "C" {
   /// C: dispextern.h 3690: `extern void cancel_mouse_face (struct frame *);`
   pub fn cancel_mouse_face (f: *mut frame);
   /// C: dispextern.h 3691: `extern bool clear_mouse_face (Mouse_HLInfo *);`
-  pub fn clear_mouse_face (hlinfo: *mut Mouse_HLInfo) -> bool;
+  
   /// C: dispextern.h 3924: `void change_frame_size (struct frame *, int, int, bool, bool, bool);`
   pub fn change_frame_size (f: *mut frame, new_width: c_int, new_height: c_int,
 			    pretend: bool, delay: bool, safe: bool);
@@ -8456,7 +8456,7 @@ unsafe extern "C" {
   pub fn gui_get_glyph_overhangs (glyph: *mut glyph, f: *mut frame, left: *mut c_int,
 				  right: *mut c_int);
   /// C: dispextern.h 3639: `extern void gui_produce_glyphs (struct it *);` - C 6668's entry.
-  pub fn gui_produce_glyphs (it: *mut c_void);
+  
   /// C: dispextern.h 3641-3642: `extern void gui_write_glyphs (struct window *,
   /// struct glyph_row *, struct glyph *, enum glyph_row_area, int);` - C 6669's entry.
   pub fn gui_write_glyphs (w: *mut window, row: *mut glyph_row, string: *mut glyph,

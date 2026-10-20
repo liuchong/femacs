@@ -290,8 +290,7 @@ unsafe extern "C" {
   fn decode_live_frame (frame: Lisp_Object) -> *mut frame;
   /// C: frame.h 1480: `extern bool frame_redisplay_p (struct frame *);`
   fn frame_redisplay_p (f: *mut frame) -> bool;
-  /// C: dispextern.h 3588: `void mark_window_display_accurate (Lisp_Object, bool);`
-  fn mark_window_display_accurate (window: Lisp_Object, flag: bool);
+
   /// C: dispextern.h 3688: `extern void note_mouse_highlight (struct frame *, int, int);`
   fn note_mouse_highlight (f: *mut frame, x: c_int, y: c_int);
   // (window.h 1211's `decode_any_window` is the window.rs mirror's now; the use-site copy is gone, P-26.)
@@ -314,8 +313,7 @@ unsafe extern "C" {
   fn next_almost_prime (n: EMACS_INT) -> EMACS_INT;
   /// C: dispextern.h 3955: `extern void calculate_costs (struct frame *);`
   fn calculate_costs (f: *mut frame);
-  /// C: dispextern.h 3780: `void get_tty_size (int, int *, int *);`
-  fn get_tty_size (fileno: c_int, width: *mut c_int, height: *mut c_int);
+
   /// C: frame.h 1506: `extern void adjust_frame_size (struct frame *, int, int, int, bool,
   /// Lisp_Object);`
   fn adjust_frame_size (f: *mut frame, new_width: c_int, new_height: c_int,
@@ -342,10 +340,8 @@ unsafe extern "C" {
   fn emacs_fopen (file: *const c_char, mode: *const c_char) -> *mut FILE;
   /// C: termhooks.h 961: `extern struct terminal *decode_live_terminal (Lisp_Object);`
   fn decode_live_terminal (terminal: Lisp_Object) -> *mut terminal;
-  /// C: keyboard.h 500-501: `extern void request_sigio (void);` `extern void unrequest_sigio
-  /// (void);`
-  fn request_sigio ();
-  fn unrequest_sigio ();
+
+
   /// C: dispextern.h 3933: `extern void ring_bell (struct frame *);`
   fn ring_bell (f: *mut frame);
   // `putchar` now comes from the `stdio.rs` mirror (2026-10-04), which is its single
@@ -355,8 +351,7 @@ unsafe extern "C" {
   fn wait_reading_process_output (timeout: i64, nsecs: c_int, read_kbd: c_int,
                                   do_display: bool, wait_for_cell: Lisp_Object,
                                   wait_proc: *mut c_void, just_wait_proc: c_int) -> c_int;
-  /// C: dispextern.h 3589: `void redisplay_preserve_echo_area (int);`
-  fn redisplay_preserve_echo_area (from_where: c_int);
+
   /// C: lisp.h 5095-5096: `extern bool detect_input_pending (void);`
   /// `extern bool detect_input_pending_run_timers (bool);`
   fn detect_input_pending () -> bool;
@@ -6972,10 +6967,8 @@ macro_rules! CLIP_TEXT_POS_FROM_MARKER { ($pos:expr, $marker:expr) => { {
 } }; }
 
 unsafe extern "C" {
-  /// C: dispextern.h 3556-3557: `extern void *bidi_shelve_cache (void);`
-  /// `extern void bidi_unshelve_cache (void *, bool);`
-  fn bidi_shelve_cache () -> *mut c_void;
-  fn bidi_unshelve_cache (databuf: *mut c_void, really_free_p: bool);
+
+
   /// C: dispextern.h 3597: `void start_display (struct it *, struct window *, struct text_pos);`
   fn start_display (it: *mut it, w: *mut window, pos: text_pos);
   /// C: dispextern.h 3602-3604: `void move_it_in_display_line (struct it *, ptrdiff_t, int,

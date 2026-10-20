@@ -114,10 +114,8 @@ unsafe extern "C" {
   pub fn kbd_buffer_store_help_event (frame: Lisp_Object, help: Lisp_Object);
   /// C: src/keyboard.h 521: `extern struct timespec timer_check (void);` - C 352.
   pub fn timer_check () -> timespec;
-  /// C: src/dispextern.h 3781: `void request_sigio (void);` - C 284, C 428.
-  pub fn request_sigio ();
-  /// C: src/dispextern.h 3782: `void unrequest_sigio (void);` - C 279, C 422.
-  pub fn unrequest_sigio ();
+  
+  
 }
 
 /* C 251 and C 425: `BAlert_go (…, block_input, unblock_input, …)` and `BMenu_run (…,

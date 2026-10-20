@@ -98,9 +98,9 @@ unsafe extern "C" {
   /// (Lisp_Object);`
   pub fn decode_window_system_frame (frame: Lisp_Object) -> *mut frame;
   /// C: dispextern.h 3781: `void request_sigio (void);`
-  pub fn request_sigio ();
+  
   /// C: dispextern.h 3782: `void unrequest_sigio (void);`
-  pub fn unrequest_sigio ();
+  
   /// C: dispextern.h 3809-3810: `#ifdef HAVE_WINDOW_SYSTEM void prepare_face_for_display
   /// (struct frame *, struct face *);` - `struct face` is this unit's use-site record below, so
   /// the second parameter is the untyped pointer C's own call passes (P-72 (3)).

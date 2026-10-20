@@ -179,7 +179,7 @@ unsafe extern "C" {
                           face_id: c_int, inherit: bool) -> c_int;
   fn init_sys_modes (tty: *mut tty_display_info);
   fn reset_sys_modes (tty: *mut tty_display_info);
-  fn get_tty_size (fd: c_int, width: *mut c_int, height: *mut c_int);
+
   fn tabs_safe_p (fd: c_int) -> bool;
   fn init_baud_rate (fd: c_int);
   fn change_frame_size (f: *mut frame, new_width: c_int, new_height: c_int, pretend: bool,
@@ -219,8 +219,6 @@ unsafe extern "C" {
    (PORTING.md 0.1-3).  */
 
 /* <stdio.h>'s three streams, with the Darwin spellings cm.rs uses for stdout.  */
-unsafe extern "C" {
-}
 
 /* C 88-103: `enum no_color_bit`, the bits of `TN_no_color_video`.  */
 pub type no_color_bit = c_int;
@@ -389,8 +387,6 @@ unsafe extern "C" { fn dupstring (ptr: *mut *mut c_char, string: *const c_char);
 
 /* <stdio.h> 350-420: the six stdio entries this unit calls that the stdio mirror does not
    carry (`fwrite`/`fputs`/`sprintf` are there).  */
-unsafe extern "C" {
-}
 
 
 /* dispextern.h 1861-1895: `underline` and the `bool_bf` members of `struct face`

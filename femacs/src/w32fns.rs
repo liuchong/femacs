@@ -2640,7 +2640,7 @@ unsafe extern "C" fn w32_set_icon_name (f: *mut frame, arg: Lisp_Object, oldval:
 #[cfg (feature = "have_ntgui")]
 unsafe extern "C" {
   pub fn adjust_frame_glyphs (f: *mut frame);
-  pub fn clear_glyph_matrix (matrix: *mut glyph_matrix);
+  
   pub fn clear_current_matrices (f: *mut frame);
   pub fn clear_frame (f: *mut frame);
   pub fn get_frame_param (f: *mut frame, prop: Lisp_Object) -> Lisp_Object;
@@ -9850,7 +9850,7 @@ unsafe extern "C" {
   pub fn gui_figure_window_size (f: *mut frame, parms: Lisp_Object, x_frame: bool,
 				 toolbar_p: bool) -> c_long;
   pub fn register_font_driver (driver: *const font_driver, f: *mut frame);
-  pub fn gui_init_fringe (rif: *mut c_void);
+  
 }
 
 /// C 6253-6712: `x-create-frame` - the file's first `DEFUN` (`Fx_create_frame`,
@@ -15819,8 +15819,6 @@ unsafe fn delete_tray_notification (f: *mut frame, id: c_int)
 /// the `decode_live_frame` shape of slice 22.
 /// C: extern Lisp_Object plist_get (Lisp_Object plist, Lisp_Object prop);
 #[cfg (all (feature = "have_ntgui", feature = "windowsnt", not (feature = "have_dbus")))]
-unsafe extern "C" {
-}
 
 /// C 10635-10763: `w32-notification-notify` - C 10700-10708's locals (`0, MANY` per C 10637),
 /// C 10711's `maybe_load_unicows_dll`, C 10713-10714's argument-count/pointer guard,
@@ -17177,9 +17175,6 @@ pub unsafe extern "C" fn w32_register_for_sleep_notifications ()
 /* C: `dispextern.h` 3589: `void redisplay_preserve_echo_area (int);` - C 11503's call; the
    mirror carries no row (the `src/xfns.rs` 14148 device).  */
 #[cfg (feature = "have_ntgui")]
-unsafe extern "C" {
-  pub fn redisplay_preserve_echo_area (n: c_int);                              // dispextern.h 3589
-}
 
 /// C 11481-11520: `w32-export-frame` - C 11492's live-frame decode (the slice-22 declaration
 /// above), C 11494-11495's optional-argument default (the parameter is re-bound as `mut`,

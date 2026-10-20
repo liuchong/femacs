@@ -1373,7 +1373,7 @@ unsafe extern "C" {
   pub fn x_make_frame_visible (f: *mut frame);
   pub fn x_make_frame_invisible (f: *mut frame);
   /// C: dispextern.h 3748: `extern Lisp_Object image_find_image_file (Lisp_Object);`
-  pub fn image_find_image_file (file: Lisp_Object) -> Lisp_Object;
+  
   /// C: gtkutil.h 160: `extern void xg_change_toolbar_position (struct frame *f, Lisp_Object pos);`
   pub fn xg_change_toolbar_position (f: *mut frame, pos: Lisp_Object);
   /// C: gtkutil.h 200/203/204/205: `extern void xg_set_undecorated (struct frame *f, Lisp_Object
@@ -2182,7 +2182,7 @@ unsafe extern "C" {
   /// C: frame.h 1883: `extern void free_frame_menubar (struct frame *);`
   pub fn free_frame_menubar (f: *mut frame);
   /// C: dispextern.h 3906: `void clear_glyph_matrix (struct glyph_matrix *);`
-  pub fn clear_glyph_matrix (matrix: *mut glyph_matrix);
+  
   /* `fset_redisplay` (window.h 1168) is already declared by `include/window.rs`.  */
   /// C: xterm.h 1876: `extern void font_drop_xrender_surfaces (struct frame *f);`
   pub fn font_drop_xrender_surfaces (f: *mut frame);
@@ -12472,9 +12472,6 @@ unsafe extern "C" {
 }
 /* C: dispextern.h 3573: `int try_window (Lisp_Object, struct text_pos, int);` - C 9294's call.  */
 #[cfg (feature = "have_x_windows")]
-unsafe extern "C" {
-  pub fn try_window (window: Lisp_Object, pos: text_pos, flags: c_int) -> c_int;
-}
 /* C: dispextern.h 3918: `void update_single_window (struct window *);` - C 9359's call.  */
 #[cfg (feature = "have_x_windows")]
 unsafe extern "C" {
@@ -13328,7 +13325,7 @@ unsafe extern "C" {
 #[cfg (feature = "have_x_windows")]
 unsafe extern "C" {
   pub fn lrint (x: c_double) -> c_long;
-  pub fn popup_activated () -> c_int;                                       // dispextern.h 3879
+                                         // dispextern.h 3879
   pub fn check_window_system (f: *mut frame);                               // frame.h 1504
   pub fn quit () -> Lisp_Object;                                            // lisp.h 4786
 }
@@ -14148,9 +14145,6 @@ unsafe extern "C" {
 /* C: `dispextern.h` 3589: `void redisplay_preserve_echo_area (int);` - C 10036's call; the
    mirror carries no row.  */
 #[cfg (all (feature = "have_x_windows", feature = "use_cairo", feature = "use_gtk"))]
-unsafe extern "C" {
-  pub fn redisplay_preserve_echo_area (n: c_int);                              // dispextern.h 3589
-}
 
 /* C 9967-9977.  */
 #[cfg (all (feature = "have_x_windows", feature = "use_cairo", feature = "use_gtk"))]

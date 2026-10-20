@@ -7631,7 +7631,7 @@ unsafe extern "C" {
 			 object: Lisp_Object, pos: isize);
   pub fn w32_process_dnd_data (format: c_int, hGlobal: *mut c_void) -> Lisp_Object;
   pub fn expose_frame (f: *mut frame, x: c_int, y: c_int, w: c_int, h: c_int);
-  pub fn clear_mouse_face (hlinfo: *mut Mouse_HLInfo) -> bool;
+  
   pub fn change_frame_size (f: *mut frame, new_width: c_int, new_height: c_int,
 			    pretend: bool, delay: bool, safe: bool);
   pub fn get_frame_param (f: *mut frame, prop: Lisp_Object) -> Lisp_Object;
@@ -9785,8 +9785,6 @@ unsafe extern "system" {
   pub fn ShowWindow (hWnd: HWND, nCmdShow: c_int) -> BOOL;
 }
 #[cfg (feature = "have_ntgui")]
-unsafe extern "C" {
-}
 
 /* C 6909-6910's note above `w32_calc_absolute_position`, carried as C's own text.  */
 /* C: /* Calculate the absolute position in frame F
@@ -11221,7 +11219,7 @@ unsafe fn w32_make_rdb (mut xrm_option: *mut c_char) -> *mut c_char
 #[cfg (feature = "have_ntgui")]
 unsafe extern "C" {
   /// C: dispextern.h 3639: `extern void gui_produce_glyphs (struct it *);` - C 7925's entry.
-  pub fn gui_produce_glyphs (it: *mut dispextern_unit_names::it);
+  
   /// C: dispextern.h 3641-3642: `extern void gui_write_glyphs (struct window *,
   /// struct glyph_row *, struct glyph *, enum glyph_row_area, int);` - C 7926's entry.
   pub fn gui_write_glyphs (w: *mut window, row: *mut glyph_row, string: *mut glyph,
@@ -11572,8 +11570,8 @@ pub const RC_PALETTE: c_int = 0x0100;
 unsafe extern "C" {
   pub fn xlispstrdup (string: Lisp_Object) -> *mut c_char;
   pub fn add_keyboard_wait_descriptor (fd: c_int);
-  pub fn gui_init_fringe (rif: *mut c_void);
-  pub fn w32_reset_fringes ();
+  
+  
 }
 
 /// C 8044-8112: `struct w32_display_info *w32_term_init (Lisp_Object display_name, char

@@ -529,28 +529,28 @@ unsafe extern "C" {
   /// C 3252: `displayed = try_window (window, pos, TRY_WINDOW_IGNORE_FONTS_CHANGE);`
   /// C: dispextern.h 3573: `int try_window (Lisp_Object, struct text_pos, int);` (the mirror has
   /// not got it; `src/xdisp.rs` defines it)
-  pub fn try_window (window: Lisp_Object, pos: text_pos, flags: c_int) -> c_int;
+  
   /// C: dispextern.h 3901: `extern void adjust_frame_glyphs (struct frame *);`
   pub fn adjust_frame_glyphs (f: *mut frame);
   /// C: dispextern.h 3902: `void free_glyphs (struct frame *);`
   pub fn free_glyphs (f: *mut frame);
   /// C: dispextern.h 3906: `void clear_glyph_matrix (struct glyph_matrix *);`
-  pub fn clear_glyph_matrix (matrix: *mut c_void);
+  
   /// C: dispextern.h 3907: `void clear_current_matrices (struct frame *f);`
   pub fn clear_current_matrices (f: *mut frame);
   /// C: dispextern.h 3940: `extern void clear_frame (struct frame *);`
   pub fn clear_frame (f: *mut frame);
   /// C 3597: `redisplay_preserve_echo_area (32);`
   /// C: dispextern.h 3589: `void redisplay_preserve_echo_area (int);` (`src/xdisp.rs` defines it)
-  pub fn redisplay_preserve_echo_area (from_where: c_int);
+  
   /// C 3626: `if (popup_activated ())`
   /// C: dispextern.h 3879: `int popup_activated (void);` - the pgtk build's implementation is
   /// `src/pgtkmenu.rs` 1445's (C 1087-1091)
-  pub fn popup_activated () -> c_int;
+  
   /// C: dispextern.h 3656: `extern void gui_update_cursor (struct frame *, bool);`
   pub fn gui_update_cursor (f: *mut frame, invis: bool);
   /// C: dispextern.h 3748: `extern Lisp_Object image_find_image_file (Lisp_Object);`
-  pub fn image_find_image_file (file: Lisp_Object) -> Lisp_Object;
+  
   /// C: dispextern.h 3794-3795: `void update_face_from_frame_parameter (struct frame *,
   /// Lisp_Object, Lisp_Object);`
   pub fn update_face_from_frame_parameter (f: *mut frame, param: Lisp_Object, new_value: Lisp_Object);

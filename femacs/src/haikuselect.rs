@@ -173,7 +173,7 @@ unsafe extern "C" {
   /// (Lisp_Object);`
   pub fn decode_window_system_frame (frame: Lisp_Object) -> *mut frame;
   /// C: dispextern.h 3589: `void redisplay_preserve_echo_area (int);`
-  pub fn redisplay_preserve_echo_area (from_where: c_int);
+  
   /// C: lisp.h 4811: `extern Lisp_Object internal_catch_all (Lisp_Object (*) (void *), void *,
   /// Lisp_Object (*) (enum nonlocal_exit, Lisp_Object));`
   pub fn internal_catch_all (func: Option<unsafe extern "C" fn (*mut c_void) -> Lisp_Object>,

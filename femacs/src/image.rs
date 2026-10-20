@@ -3926,8 +3926,6 @@ unsafe extern "C" {
 // C: lisp.h 4280: `extern Lisp_Object plist_get (Lisp_Object plist, Lisp_Object prop);` - the same
 // mirror gap.
 #[cfg (feature = "have_window_system")]
-unsafe extern "C" {
-}
 // C: dispextern.h 3754: `void image_prune_animation_caches (bool);` - the definition is
 // `image.c`'s own (C 13504-13515) and the seventh slice landed it, so this declaration is gone
 // (PORTING.md 0.1-12 / P-91 ④).
@@ -6686,9 +6684,6 @@ unsafe extern "C" {
 // C: dispextern.h 3635: `extern void redraw_image_glyphs (Lisp_Object);` - the definition is
 // `xdisp.c`'s; `include/dispextern.rs` does not carry the declaration.
 #[cfg (feature = "have_window_system")]
-unsafe extern "C" {
-  pub fn redraw_image_glyphs (spec: Lisp_Object);
-}
 
 /* The three Xlib entry points this slice (and the fourth slice's `x_create_x_image_and_pixmap`)
    call and that `include/xlib.rs` does not carry: Xlib.h 1437-1447's `XCreateImage`, Xlib.h

@@ -4571,7 +4571,7 @@ const _: () = core::assert! (core::mem::offset_of! (redisplay_interface, default
 unsafe extern "C" {
   pub fn gui_get_glyph_overhangs (glyph: *mut glyph, f: *mut frame, left: *mut c_int,
 				  right: *mut c_int);
-  pub fn gui_produce_glyphs (it: *mut c_void);
+  
   pub fn gui_write_glyphs (w: *mut window, row: *mut glyph_row, string: *mut glyph,
 			   area: glyph_row_area, len: c_int);
   pub fn gui_insert_glyphs (w: *mut window, row: *mut glyph_row, start: *mut glyph,
@@ -4857,7 +4857,7 @@ unsafe extern "C" {
   /// C: dispextern.h 3690: `extern void cancel_mouse_face (struct frame *);`
   pub fn cancel_mouse_face (f: *mut frame);
   /// C: dispextern.h 3691: `extern bool clear_mouse_face (Mouse_HLInfo *);`
-  pub fn clear_mouse_face (hlinfo: *mut Mouse_HLInfo) -> bool;
+  
   /// C: dispextern.h 3668: `extern Lisp_Object handle_tab_bar_click (struct frame *, int, int,
   /// bool, int);`
   pub fn handle_tab_bar_click (f: *mut frame, x: c_int, y: c_int, down_p: bool,
@@ -6256,7 +6256,7 @@ macro_rules! hook {
 unsafe extern "C" {
   pub fn create_terminal (r#type: output_method, rif: *mut c_void) -> *mut terminal;
   pub fn allocate_kboard (type_: Lisp_Object) -> *mut kboard;
-  pub fn gui_init_fringe (rif: *mut c_void);
+  
   pub fn be_create_cursor_from_id (id: c_int) -> *mut c_void;
   pub fn fatal (msgid: *const c_char, ...) -> !;
 }

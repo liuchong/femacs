@@ -103,11 +103,8 @@ unsafe extern "C" {
   /// C: window.h 1223: `extern int window_body_width (struct window *w, enum
   /// window_body_unit);`
   fn window_body_width (w: *mut window, unit: window_body_unit) -> c_int;
-  // (window.h 1231's `wset_buffer` is the window.rs mirror's now; the use-site copy is gone, P-26.)
-  /// C: dispextern.h 3556: `extern void *bidi_shelve_cache (void);`
-  fn bidi_shelve_cache () -> *mut c_void;
-  /// C: dispextern.h 3557: `extern void bidi_unshelve_cache (void *, bool);`
-  fn bidi_unshelve_cache (data: *mut c_void, really_free: bool);
+
+
   /// C: dispextern.h 3583: `int move_it_to (struct it *, ptrdiff_t, int, int, int, int);`
   fn move_it_to (it: *mut it, to_charpos: ptrdiff_t, to_x: c_int, to_y: c_int,
                  to_vpos: c_int, op: c_int) -> c_int;
@@ -122,8 +119,7 @@ unsafe extern "C" {
                               op: move_operation_enum);
   /// C: dispextern.h 3610: `extern bool display_working_on_window_p;`
   static mut display_working_on_window_p: bool;
-  /// C: dispextern.h 3612: `extern void unwind_display_working_on_window (void);`
-  fn unwind_display_working_on_window ();
+
   /// C: dispextern.h 3619: `extern void reseat_at_previous_visible_line_start (struct
   /// it *);`
   fn reseat_at_previous_visible_line_start (it: *mut it);

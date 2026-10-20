@@ -492,9 +492,6 @@ unsafe extern "C" {
 /// not carried by `include/dispextern.rs` (its 4039 records the row).
 /// C: extern bool clear_mouse_face (Mouse_HLInfo *);
 #[cfg (feature = "windowsnt")]
-unsafe extern "C" {
-  fn clear_mouse_face (hlinfo: *mut Mouse_HLInfo) -> bool;
-}
 
 /// C 534's `note_mouse_highlight`: declared by `dispextern.h` 3688, defined by `src/xdisp.c`, and
 /// not carried by `include/dispextern.rs` either (the same 4039 row).

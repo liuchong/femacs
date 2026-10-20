@@ -17388,8 +17388,6 @@ unsafe extern "C" {
    definition is another crate's (`src/dispnew.rs` 7434), so it stands at this use site (P-72
    rule 4).  */
 #[cfg (feature = "have_x_windows")]
-unsafe extern "C" {
-}
 
 /* C: gtkutil.h 165: `extern void xg_frame_set_char_size (struct frame *f, int width, int
    height);` - C 28597's call, in the arm `USE_GTK` is (the declaration stands in that arm's
@@ -23675,9 +23673,9 @@ pub unsafe extern "C" fn x_dnd_begin_drag_and_drop (f: *mut frame, time: Time, x
      this file's 9269 `GCGraphicsExposures` site (Decision 116 4).  */
   unsafe extern "C" {
     pub fn record_unwind_protect_void (function: Option<unsafe extern "C" fn ()>);
-    pub fn redisplay_preserve_echo_area (a: c_int);
+    
     pub fn quit () -> Lisp_Object;
-    pub fn popup_activated () -> c_int;
+    
     pub fn x_timestamp_for_selection (dpyinfo: *mut x_display_info,
 				      selection: Lisp_Object) -> Lisp_Object;
     pub fn XSetTextProperty (display: *mut Display, w: Window, text_prop: *mut XTextProperty,
@@ -24509,10 +24507,6 @@ unsafe fn x_detect_focus_change (dpyinfo: *mut x_display_info, frame: *mut frame
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn x_mouse_leave (dpyinfo: *mut x_display_info)
 {
-  unsafe extern "C" {
-    /// C: dispextern.h 3691: `extern bool clear_mouse_face (Mouse_HLInfo *);`
-    pub fn clear_mouse_face (hlinfo: *mut Mouse_HLInfo) -> bool;
-  }
 
 #[cfg (all (feature = "have_xinput2", not (feature = "use_x_toolkit")))]
   let mut device: *mut xi_device_t;                                     // C 14042
@@ -31132,9 +31126,7 @@ unsafe extern "C" {
   /// C: dispextern.h 4007: `extern void gui_redo_mouse_highlight (Display_Info *);` -
   /// `Display_Info` is that header's name for `struct x_display_info`.
   pub fn gui_redo_mouse_highlight (dpyinfo: *mut x_display_info);
-  /// C: dispextern.h 3691: `extern bool clear_mouse_face (Mouse_HLInfo *);` - C 20229's call
-  /// (`src/dispnew.rs` defines it; no mirror of this unit's graph does).
-  pub fn clear_mouse_face (hlinfo: *mut Mouse_HLInfo) -> bool;
+  
 }
 
 #[cfg (all (feature = "have_x_windows", feature = "have_xinput2", feature = "have_gtk3"))]
@@ -31193,12 +31185,7 @@ unsafe extern "C" {
   pub static mut previous_help_echo_string: Lisp_Object;
   /// C: dispextern.h 3616: `extern ptrdiff_t help_echo_pos;`
   pub static mut help_echo_pos: ptrdiff_t;
-  /// C: dispextern.h 3879: `int popup_activated (void);` - C 21271's call.  `src/xfns.rs`
-  /// 13331, `src/pgtkfns.rs` 545, `src/pgtkmenu.rs` 1445 and `src/androidterm.rs` 162 declare
-  /// the same prototype with C's own return type; the copy this unit already carried stands
-  /// inside `x_dnd_begin_drag_and_drop`'s body, out of every other function's scope (one of the
-  /// four rows this round's reading retires).
-  pub fn popup_activated () -> c_int;
+  
 }
 
 /* C 21587's `xg_frame_resized` is gtkutil.h 162's `extern void xg_frame_resized (struct frame *f,

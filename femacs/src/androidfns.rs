@@ -144,7 +144,7 @@ unsafe extern "C" {
   /// C: dispextern.h 3906: `void clear_glyph_matrix (struct glyph_matrix *);`
   /// - the mirror `include/dispextern.rs` 832 carries the record, so the parameter keeps its
   /// type (the `dispnew.rs` 1109 spelling).
-  pub fn clear_glyph_matrix (matrix: *mut glyph_matrix);
+  
   /// C: dispextern.h 3907: `void clear_current_matrices (struct frame *f);`
   pub fn clear_current_matrices (f: *mut frame);
   /// C: dispextern.h 3940: `extern void clear_frame (struct frame *);`
@@ -3010,7 +3010,7 @@ unsafe extern "C" {
   pub fn set_window_buffer (window: Lisp_Object, buffer: Lisp_Object, run_hooks_p: bool,
                             keep_margins_p: bool);
   /// C: dispextern.h 3573: `int try_window (Lisp_Object, struct text_pos, int);`
-  pub fn try_window (window: Lisp_Object, pos: text_pos, flags: c_int) -> c_int;
+  
   /// C: dispextern.h 3918: `void update_single_window (struct window *);`
   pub fn update_single_window (w: *mut window);
 }

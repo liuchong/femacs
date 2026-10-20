@@ -1747,7 +1747,7 @@ unsafe fn x_convert_selection (selection_symbol: Lisp_Object, target_symbol: Lis
 #[cfg (feature = "have_x_windows")]
 unsafe extern "C" {
   /// C: dispextern.h 3589: `void redisplay_preserve_echo_area (int);`
-  pub fn redisplay_preserve_echo_area (from_where: c_int);
+  
   /// C: lisp.h 5181: `extern int wait_reading_process_output (intmax_t, int, int, bool,
   /// Lisp_Object, struct Lisp_Process *, int);`
   pub fn wait_reading_process_output (time_limit: intmax_t, nsecs: c_int, read_kbd: c_int,

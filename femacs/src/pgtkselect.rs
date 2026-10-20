@@ -303,7 +303,7 @@ unsafe extern "C" {
                                       wait_proc: *mut c_void, just_wait_proc: c_int) -> c_int;
   /// C 773: `redisplay_preserve_echo_area (20);`
   /// C: dispextern.h 3589: `void redisplay_preserve_echo_area (int);`
-  pub fn redisplay_preserve_echo_area (from_where: c_int);
+  
   /// C 987: `message3_nolog (val);`
   /// C: lisp.h 4393: `extern void message3_nolog (Lisp_Object);`
   pub fn message3_nolog (m: Lisp_Object);

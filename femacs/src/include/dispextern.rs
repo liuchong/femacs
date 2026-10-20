@@ -4152,6 +4152,125 @@ pub mod dispextern_late_decls {
     // deletes that copy (with its ratchet row); `docs/ports/w32fns.md` owed item 9 stays owed.
   }
 }
+/* C 3566-4032: the prototypes this header declares for functions other units define.  They
+   stand in a module + glob import so a unit that writes the same prototype at its use site
+   shadows the import instead of colliding with it (P-297, the P-39 shape above).  A prototype
+   carries the gate of the records it names: parts of this mirror land only for the targets that
+   freeze them, and a reader that has the feature off has no `it`/`image`/`face` to name.  */
+pub mod dispextern_fn_decls {
+  use super::*;
+
+  unsafe extern "C" {
+    #[cfg (feature = "dispextern_face_records")]
+    /// C: dispextern.h 3566: `extern void bidi_init_it (ptrdiff_t, ptrdiff_t, bool, struct bidi_it *);`
+    pub fn bidi_init_it (charpos: ptrdiff_t, bytepos: ptrdiff_t, frame_window_p: bool, bidi_it: *mut bidi_it);
+    #[cfg (feature = "dispextern_face_records")]
+    /// C: dispextern.h 3567: `extern void bidi_move_to_visually_next (struct bidi_it *);`
+    pub fn bidi_move_to_visually_next (bidi_it: *mut bidi_it);
+    #[cfg (feature = "dispextern_face_records")]
+    /// C: dispextern.h 3568: `extern void bidi_paragraph_init (bidi_dir_t, struct bidi_it *, bool);`
+    pub fn bidi_paragraph_init (dir: bidi_dir_t, bidi_it: *mut bidi_it, no_default_p: bool);
+    /// C: dispextern.h 3569: `extern int bidi_mirror_char (int);`
+    pub fn bidi_mirror_char (c: c_int) -> c_int;
+    #[cfg (feature = "dispextern_face_records")]
+    /// C: dispextern.h 3570: `extern void bidi_push_it (struct bidi_it *);`
+    pub fn bidi_push_it (bidi_it: *mut bidi_it);
+    #[cfg (feature = "dispextern_face_records")]
+    /// C: dispextern.h 3571: `extern void bidi_pop_it (struct bidi_it *);`
+    pub fn bidi_pop_it (bidi_it: *mut bidi_it);
+    /// C: dispextern.h 3572: `extern void *bidi_shelve_cache (void);`
+    pub fn bidi_shelve_cache () -> *mut c_void;
+    /// C: dispextern.h 3573: `extern void bidi_unshelve_cache (void *, bool);`
+    pub fn bidi_unshelve_cache (databuf: *mut c_void, really_free_p: bool);
+    #[cfg (feature = "dispextern_face_records")]
+    /// C: dispextern.h 3574: `extern ptrdiff_t bidi_find_first_overridden (struct bidi_it *);`
+    pub fn bidi_find_first_overridden (bidi_it: *mut bidi_it) -> ptrdiff_t;
+    /// C: dispextern.h 3575: `extern ptrdiff_t bidi_level_start (int);`
+    pub fn bidi_level_start (level: c_int) -> ptrdiff_t;
+    #[cfg (feature = "dispextern_face_records")]
+    /// C: dispextern.h 3582: `int line_bottom_y (struct it *);`
+    pub fn line_bottom_y (it: *mut it) -> c_int;
+    /// C: dispextern.h 3589: `int try_window (Lisp_Object, struct text_pos, int);`
+    pub fn try_window (window: Lisp_Object, pos: text_pos, flags: c_int) -> c_int;
+    /// C: dispextern.h 3604: `void mark_window_display_accurate (Lisp_Object, bool);`
+    pub fn mark_window_display_accurate (window: Lisp_Object, accurate_p: bool);
+    /// C: dispextern.h 3605: `void redisplay_preserve_echo_area (int);`
+    pub fn redisplay_preserve_echo_area (from_where: c_int);
+    #[cfg (feature = "dispextern_face_records")]
+    /// C: dispextern.h 3614: `void move_it_vertically (struct it *, int);`
+    pub fn move_it_vertically (it: *mut it, dy: c_int);
+    #[cfg (feature = "dispextern_face_records")]
+    /// C: dispextern.h 3615: `void move_it_vertically_backward (struct it *, int);`
+    pub fn move_it_vertically_backward (it: *mut it, dy: c_int);
+    #[cfg (feature = "dispextern_face_records")]
+    /// C: dispextern.h 3616: `void move_it_by_lines (struct it *, ptrdiff_t);`
+    pub fn move_it_by_lines (it: *mut it, dvpos: ptrdiff_t);
+    #[cfg (feature = "dispextern_face_records")]
+    /// C: dispextern.h 3617: `void move_it_past_eol (struct it *);`
+    pub fn move_it_past_eol (it: *mut it);
+    #[cfg (feature = "dispextern_face_records")]
+    /// C: dispextern.h 3621: `int partial_line_height (struct it *it_origin);`
+    pub fn partial_line_height (it: *mut it) -> c_int;
+    #[cfg (feature = "dispextern_face_records")]
+    /// C: dispextern.h 3622: `bool in_display_vector_p (struct it *);`
+    pub fn in_display_vector_p (it: *mut it) -> bool;
+    /// C: dispextern.h 3628: `extern void unwind_display_working_on_window (void);`
+    pub fn unwind_display_working_on_window ();
+    /// C: dispextern.h 3637: `extern ptrdiff_t compute_display_string_pos (struct text_pos *, struct bidi_string_data *, struct window *, bool, int *);`
+    pub fn compute_display_string_pos (pos: *mut text_pos, string: *mut bidi_string_data, w: *mut c_void, frame_window_p: bool, disp_prop: *mut c_int) -> ptrdiff_t;
+    /// C: dispextern.h 3640: `extern ptrdiff_t compute_display_string_end (ptrdiff_t, struct bidi_string_data *, struct window *);`
+    pub fn compute_display_string_end (charpos: ptrdiff_t, string: *mut bidi_string_data, w: *mut c_void) -> ptrdiff_t;
+    /// C: dispextern.h 3651: `extern void redraw_image_glyphs (Lisp_Object);`
+    pub fn redraw_image_glyphs (spec: Lisp_Object);
+    /// C: dispextern.h 3655: `extern void gui_produce_glyphs (struct it *);`
+    pub fn gui_produce_glyphs (it: *mut c_void);
+    /// C: dispextern.h 3707: `extern bool clear_mouse_face (Mouse_HLInfo *);`
+    pub fn clear_mouse_face (hlinfo: *mut Mouse_HLInfo) -> bool;
+    /// C: dispextern.h 3724: `void gui_init_fringe (struct redisplay_interface *);`
+    pub fn gui_init_fringe (rif: *mut c_void);
+    /// C: dispextern.h 3730: `void w32_reset_fringes (void);`
+    pub fn w32_reset_fringes ();
+    /// C: dispextern.h 3737: `extern void update_redisplay_ticks (int, struct window *);`
+    pub fn update_redisplay_ticks (ticks: c_int, w: *mut c_void);
+    /// C: dispextern.h 3741: `extern uint32_t *canvas_data (Lisp_Object);`
+    pub fn canvas_data (obj: Lisp_Object) -> *mut u32;
+    /// C: dispextern.h 3764: `extern Lisp_Object image_find_image_file (Lisp_Object);`
+    pub fn image_find_image_file (file: Lisp_Object) -> Lisp_Object;
+    /// C: dispextern.h 3771: `bool valid_image_p (Lisp_Object);`
+    pub fn valid_image_p (object: Lisp_Object) -> bool;
+    #[cfg (all (feature = "dispextern_face_records", feature = "have_window_system"))]
+    /// C: dispextern.h 3790: `int image_ascent (struct image *, struct face *, struct glyph_slice *);`
+    pub fn image_ascent (img: *mut image, face: *mut face, slice: *mut glyph_slice) -> c_int;
+    /// C: dispextern.h 3796: `void get_tty_size (int, int *, int *);`
+    pub fn get_tty_size (fileno: c_int, width: *mut c_int, height: *mut c_int);
+    /// C: dispextern.h 3797: `void request_sigio (void);`
+    pub fn request_sigio ();
+    /// C: dispextern.h 3798: `void unrequest_sigio (void);`
+    pub fn unrequest_sigio ();
+    /// C: dispextern.h 3801: `void init_sigio (int);`
+    pub fn init_sigio (fd: c_int);
+    /// C: dispextern.h 3818: `void clear_face_cache (bool);`
+    pub fn clear_face_cache (thorough: bool);
+    /// C: dispextern.h 3849: `void free_all_realized_faces (Lisp_Object);`
+    pub fn free_all_realized_faces (frame: Lisp_Object);
+    /// C: dispextern.h 3895: `int popup_activated (void);`
+    pub fn popup_activated () -> c_int;
+    /// C: dispextern.h 3922: `void clear_glyph_matrix (struct glyph_matrix *);`
+    pub fn clear_glyph_matrix (matrix: *mut glyph_matrix);
+    /// C: dispextern.h 3927: `void rotate_matrix (struct glyph_matrix *, int, int, int);`
+    pub fn rotate_matrix (matrix: *mut glyph_matrix, first: c_int, last: c_int, by: c_int);
+    /// C: dispextern.h 3928: `void increment_matrix_positions (struct glyph_matrix *, int, int, ptrdiff_t, ptrdiff_t);`
+    pub fn increment_matrix_positions (matrix: *mut glyph_matrix, start: c_int, end: c_int, delta: ptrdiff_t, delta_bytes: ptrdiff_t);
+    /// C: dispextern.h 3931: `void clear_glyph_matrix_rows (struct glyph_matrix *, int, int);`
+    pub fn clear_glyph_matrix_rows (matrix: *mut glyph_matrix, start: c_int, end: c_int);
+    #[cfg (feature = "dispextern_face_records")]
+    /// C: dispextern.h 3977: `extern void tty_append_glyph (struct it *);`
+    pub fn tty_append_glyph (it: *mut it);
+    /// C: dispextern.h 4032: `void combine_updates (Lisp_Object root_frames);`
+    pub fn combine_updates (root_frames: Lisp_Object);
+  }
+}
+use dispextern_fn_decls::*;
 use dispextern_late_decls::*;
 
 /* -------------------------------------------------------------------------------------------------

@@ -5380,7 +5380,7 @@ unsafe extern "C" fn pgtk_flush_display (f: *mut frame)
 unsafe extern "C" {
   pub fn gui_get_glyph_overhangs (glyph: *mut glyph, f: *mut frame, left: *mut c_int,
 				  right: *mut c_int);
-  pub fn gui_produce_glyphs (it: *mut dispextern_unit_names::it);
+  
   pub fn gui_write_glyphs (w: *mut window, row: *mut glyph_row, string: *mut glyph,
 			   area: glyph_row_area, len: c_int);
   pub fn gui_insert_glyphs (w: *mut window, row: *mut glyph_row, start: *mut glyph,
@@ -7781,9 +7781,6 @@ macro_rules! mouse_face_hidden {
    (`src/xdisp.rs` 30425 defines it).  The mirror carries no row, so the prototype stands here (the
    `src/w32inevt.rs` 496 shape: declared in-unit, in an `unsafe extern "C"` block).  */
 #[cfg (feature = "have_pgtk")]
-unsafe extern "C" {
-  pub fn clear_mouse_face (hlinfo: *mut Mouse_HLInfo) -> bool;
-}
 
 /* C: gdk/gdkkeysyms.h: the twelve `dead_*` keysyms and the six others C 5402-5489 names, besides
    the eight the forty-second slice declared.  That header is not on this machine, so each value is
@@ -10259,10 +10256,10 @@ unsafe extern "C" {
 unsafe extern "C" {
   pub fn allocate_kboard (type_: Lisp_Object) -> *mut kboard;
   pub fn add_keyboard_wait_descriptor (fd: c_int);
-  pub fn gui_init_fringe (rif: *mut c_void);   // C's `struct redisplay_interface *` (P-87 3)
-  pub fn request_sigio ();
-  pub fn unrequest_sigio ();
-  pub fn init_sigio (fd: c_int);
+     // C's `struct redisplay_interface *` (P-87 3)
+  
+  
+  
   pub fn xg_display_open (display_name: *mut c_char, dpy: *mut *mut GdkDisplay);
   pub fn xg_create_default_cursor (gdpy: *mut GdkDisplay) -> *mut GdkCursor;
   pub fn xg_initialize ();
@@ -10928,7 +10925,7 @@ unsafe extern "C" {
   pub fn expose_frame (f: *mut frame, x: c_int, y: c_int, w: c_int, h: c_int);
   /// C: dispextern.h 3589: `void redisplay_preserve_echo_area (int);` - defined in `src/xdisp.rs`;
   /// the `src/dispnew.rs` 339-340 and `src/callproc.rs` 163-164 rows are its twins.
-  pub fn redisplay_preserve_echo_area (from_where: c_int);
+  
   /// C: stdlib.h 613-615: `extern void abort (void) __THROW __attribute__ ((__noreturn__));` -
   /// C 7738's arm, the one the last live `CAIRO_HAS_*` guard reaches.
   pub fn abort () -> !;

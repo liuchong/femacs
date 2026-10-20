@@ -301,8 +301,7 @@ unsafe extern "C" {
   /* --- src/dispextern.h, src/window.h, src/keyboard.h, src/sysstdio.h ------------- */
   /// C: dispextern.h 3904: `void check_glyph_memory (void);`
   fn check_glyph_memory ();
-  /// C: dispextern.h 3782: `void unrequest_sigio (void);`
-  fn unrequest_sigio ();
+
   /// C: dispextern.h 3926: `void init_display (void);`
   fn init_display ();
   /// C: dispextern.h 3927: `void syms_of_display (void);`
