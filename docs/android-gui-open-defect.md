@@ -126,24 +126,61 @@ C 侧 `ANDROID_KEY_PRESS` **0 次**、截图前后 md5 相同 ⇒ **按键没有
 `android_write_event`/`android_init_events` 的 `sigaction` 段与参照同形（status 4.952 复核），
 所以静态对照要往 `android_select` 与 `android_read_socket` 走。
 
+## 3g. Java 侧已经全线打通（status 4.953），缺口在 C 侧或翻转
+
+临时探针（`PROBE4953`/`PROBE4955`，补丁存在 `docs/baseline/probe-4953-4956.patch`）在设备上给出：
+
+```
+D EmacsActivity: PROBE4953 DISPATCH 29
+D EmacsView:     PROBE4953 KEYDOWN 29
+D EmacsWindow:   PROBE4955 pre handle=13830 key=29 uc=97
+D EmacsWindow:   PROBE4955 serial=9
+D EmacsActivity: PROBE4953 DISPATCH 29          (key up)
+D EmacsView:     PROBE4953 TOUCH 0 / TOUCH 1    (tap)
+```
+
+⇒ `Activity.dispatchKeyEvent` → `EmacsView.onKeyDown` → `EmacsWindow.onKeyDown` →
+`EmacsNative.sendKeyPress (handle, time, state, 29, 97)` **全部执行**，JNI 返回 `event_serial = 9`
+（没有抛异常，因为异常会带走进程）；触点也进了 `EmacsView.onTouchEvent`。
+4.951 的“按键没到视图”和 4.952 的“焦点/分发未定”到此**全部关闭**。
+
+剩下的可能只有两条：事件入队后 **Lisp 线程没有把它变成缓冲区内容**，或**入队就失败了**。
+
+判这两条的读数：
+
+| 读数 | 值 | 含义 |
+|---|---|---|
+| `kill -29 <pid>`（SIGIO）之后再截图 | md5 与前一张**相同** | 手动唤醒也不产生任何变化 ⇒ 不是“只差一次唤醒” |
+| `SigCgt` | `0x6e5b81eeff`，bit 28 = 1 | SIGIO 确实被捕获（不会被默认动作杀掉） |
+| 打 8 个 `a` 再旋转后的横屏 vs 未打字的横屏 | 差异包围盒 **(234,17)-(2152,45)**，359 px | 只差**状态栏**（时钟 + 通知图标），正文与模式行**逐像素相同** |
+
+最后一行同时否掉了“其实插进去了、只是没呈现”这条：模式行没有出现 `**`，正文没变 ⇒
+**缓冲区没被修改**。⚠️ 这一条也是 4.952 那轮 `insert-rotate` 一度读成“打字改变了画面”的来源：
+那次 md5 不同来自状态栏，不要再用整幅 md5 判断文字是否变化。
+
 ## 4. 下一步
 
-1. **静态**（不需要设备/编译）：逐句对照 `femacs/src/android.rs` 的 `android_select`
-   与 `emacs/src/android.c` 的同名函数（`read_var` 的等待条件、`num_events` 的判定、
-   `select_sem` 的配对），再对照 `androidterm.rs` 的 `android_read_socket`。
-2. **一次带探针的构建**（设备可用且磁盘 ≥8 GiB 时）：在 `EmacsWindow.onKeyDown` 入口、
-   `android_write_event` 入口、`android_select` 返回处各放一条 `__android_log_print`，
-   一次运行即可分辨上面第 1/2 条。不要为零散假设反复重编（用户要求）。
-3. 设备环境要求：`-gpu guest`、数据卷**至少 8 GiB 空闲**；低于 ~3 GiB 模拟器直接拒启动
-   （4.925/4.933，本轮 4.952 再次撞到：数据卷从 5.3 GiB 降到 2.0 GiB，停止设备腿）。
+1. **一次带 C 侧探针的构建**（补丁 `docs/baseline/probe-4953-4956.patch` 已备好）：在
+   `android_write_event` 的早退分支、入队之后、以及 `handle_one_android_event` 里
+   `android_window_to_frame` 之后各打一条，就能一次分辨“入队失败 / 入队但没被 drain /
+   drain 了但 `any` 为空被丢弃”。补丁用 `git apply` 加回，量完照 4.944 的规矩撤回。
+2. 若探针显示没被 drain：对照 `thread_select` 在 Android 配置下是否真的走到
+   `android_select_wrapper`（`process.c` 的 `#ifdef HAVE_ANDROID` 臂），并复核
+   `pselect` 的 `select_nfds` 是否覆盖了事件队列存在性。
+3. 若探针显示 drain 了但 `any` 为空：查 `EmacsWindow.handle`（读数 13830）与
+   `android_window_to_frame` 的匹配表在**键盘事件**这条路上为何取不到帧。
+4. 设备环境要求不变：数据卷 ≥8 GiB 空闲；本轮被外部占用压到 1.7 GiB，C 构建无法进行。
 
 ## 5. 复现命令
 
 ```
-./tools/android-input-probe.sh focus    # 焦点/输入配置/视图树/IME
-./tools/android-input-probe.sh key      # HOME 自检 + 按键 + 输入法提交
-./tools/android-input-probe.sh tap      # 触点 / 按键 / F10 三连
-./tools/android-input-probe.sh rotate   # 旋转重排（redisplay 是否还活）
-./tools/android-input-probe.sh back     # 三连 BACK（Emacs 吞 BACK 的旁证）
-./tools/android-input-probe.sh applog   # 按键前后的应用进程日志
+./tools/android-input-probe.sh focus         # 焦点/输入配置/视图树/IME
+./tools/android-input-probe.sh key           # HOME 自检 + 按键 + 输入法提交
+./tools/android-input-probe.sh tap           # 触点 / 按键 / F10 三连
+./tools/android-input-probe.sh rotate        # 旋转重排（redisplay 是否还活）
+./tools/android-input-probe.sh insert-rotate # 打字后整屏重画（判“插进去了没呈现”）
+./tools/android-input-probe.sh back          # 三连 BACK（Emacs 吞 BACK 的旁证）
+./tools/android-input-probe.sh signal        # 手动 SIGIO（判“只差一次唤醒”）
+./tools/android-input-probe.sh probes        # 需带 PROBE 的 APK：键到哪一层
+./tools/android-input-probe.sh applog        # 按键前后的应用进程日志
 ```

@@ -14,6 +14,9 @@
 #            redisplay + flip still work, which isolates input from rendering
 #   tap      tap, then a key, then F10, comparing content-area screenshots
 #   applog   every logcat line from the app process around two key presses
+#   probes   with the temporary PROBE4953 build: did the key reach activity/view/neither
+#   signal   deliver SIGIO by hand after a key, to separate 'never woken' from 'never queued'
+#   insert-rotate  type into the buffer, then force a full redraw by rotating
 #
 # Why this exists: four separate readings disagreed (white screen, no frames,
 # no key dispatch, no redisplay). Each stage answers one question and writes a
@@ -50,6 +53,12 @@ boot ()
 launch ()
 {
   $ADB shell am start -n org.femacs/.EmacsActivity >/dev/null 2>&1
+  # Wait for the process to exist before trusting any later reading: a screenshot or a
+  # logcat grep taken before the activity is up reads as "nothing happened".
+  for _ in $(seq 1 30); do
+    [ -n "$($ADB shell pidof org.femacs 2>/dev/null | tr -d '\r')" ] && break
+    sleep 1
+  done
   sleep 9
 }
 
@@ -123,6 +132,59 @@ case $stage in
     shot t3-f10
     echo "== md5 t0 / tap / key / f10 =="
     md5 -q "$OUT/t0.png" "$OUT/t1-tap.png" "$OUT/t2-key.png" "$OUT/t3-f10.png"
+    ;;
+
+  signal)
+    # If a key is queued but the Lisp thread is never woken, delivering SIGIO by hand
+    # should make it drain the queue and draw the character.  SigCgt first says whether
+    # the process catches SIGIO at all (SIGIO's default action is to terminate).
+    boot; launch
+    PID=$($ADB shell pidof org.femacs | tr -d '\r')
+    echo "== caught/blocked signal masks (bit 29 = SIGIO) =="
+    $ADB shell cat /proc/$PID/status 2>/dev/null | grep -E "SigCgt|SigBlk|SigIgn" | head -4
+    shot sig-before
+    $ADB shell input keyevent KEYCODE_A >/dev/null 2>&1; sleep 2
+    shot sig-after-key
+    $ADB shell kill -29 $PID >/dev/null 2>&1; sleep 3
+    shot sig-after-sigio
+    echo "== md5 before / after key / after SIGIO =="
+    md5 -q "$OUT/sig-before.png" "$OUT/sig-after-key.png" "$OUT/sig-after-sigio.png"
+    echo "== pid after =="; $ADB shell pidof org.femacs | tr -d '\r'
+    ;;
+
+  insert-rotate)
+    # Does a key actually reach the buffer?  Type into the buffer, then force a full
+    # redraw by rotating.  Baseline and test both end in landscape at the same size, so
+    # two byte-identical landscapes mean the text never changed, and any difference means
+    # the key was inserted and only incremental presentation is at fault.
+    boot; launch
+    $ADB shell settings put system accelerometer_rotation 0 >/dev/null 2>&1
+    $ADB shell settings put system user_rotation 1 >/dev/null 2>&1; sleep 6
+    shot ir-landscape-baseline
+    $ADB shell settings put system user_rotation 0 >/dev/null 2>&1; sleep 5
+    for _ in 1 2 3 4 5 6 7 8; do
+      $ADB shell input keyevent KEYCODE_A >/dev/null 2>&1
+    done
+    sleep 2
+    $ADB shell settings put system user_rotation 1 >/dev/null 2>&1; sleep 6
+    shot ir-landscape-after-typing
+    echo "== md5 landscape baseline / after typing =="
+    md5 -q "$OUT/ir-landscape-baseline.png" "$OUT/ir-landscape-after-typing.png"
+    $ADB shell settings put system user_rotation 0 >/dev/null 2>&1
+    ;;
+
+  probes)
+    # Requires an APK built with the temporary PROBE4953 lines in EmacsActivity and
+    # EmacsView.  It answers the one question the screenshots cannot: did the key reach
+    # the view, the activity, or neither?
+    boot; launch
+    $ADB logcat -c
+    $ADB shell input keyevent KEYCODE_A >/dev/null 2>&1; sleep 2
+    $ADB shell input tap 540 700 >/dev/null 2>&1; sleep 2
+    echo "== probe lines =="
+    $ADB logcat -d 2>/dev/null | grep -E "PROBE49" | head -20
+    echo "== probe count =="
+    $ADB logcat -d 2>/dev/null | grep -c "PROBE49"
     ;;
 
   applog)
