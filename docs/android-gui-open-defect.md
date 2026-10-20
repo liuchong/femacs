@@ -33,6 +33,12 @@
 2. Emacs 在 resize 之后并没有继续往**当前**位图画（画进了被回收的旧 `Canvas`）；
    这种情况下 `PRESENT` 偶发到的“有内容”帧来自 resize 之前。
 
+## 3a. 判别结果（status 4.946）
+
+`onDraw` 整轮**只跑了一次**（`OD#n=1 same=true px=-1 recycled=false`），之后
+`postInvalidate` / `postInvalidateDelayed(100)`（最多 300 次重试）都**没有**换来第二次绘制。
+因此假设 **(1) 成立**：窗口在首帧之后不再重绘；`present()` 里的位图即使已有内容也上不了屏。
+
 ## 4. 下一步（按代价排序）
 
 1. **一条读数即可判定**：在 `EmacsView.onDraw` 里同时记录
