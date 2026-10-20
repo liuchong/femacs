@@ -316,3 +316,18 @@ throw happens in the former-face block - `uncache_face` or `free_realized_face` 
 face is built.  `free_realized_face` on this target is only `xfree (face)`, so the next reading is
 `uncache_face`: print the `former_face` pointer and its `hash`/`id` before the call, and place a
 marker between `uncache_face` and `free_realized_face`.
+
+## Not a signal, not siglongjmp (4.1027)
+
+Markers inside the former-face block, restricted to `former_face_id == 0`:
+
+    P-face=...  0     A after uncache  0     B after free  0
+
+No prints at all, so on the throwing calls the block is not entered either - the flow stops between
+`realize_face`'s entry and that block (`check_lface_attrs!` is a no-op here, `eassert` is compiled
+out).  And under lldb the process does not stop on `siglongjmp` either, nor on `xsignal0/1/2` in an
+earlier attempt, while it stays alive from the outside.
+
+That rules out the two obvious "unwind" mechanisms.  The next debugger run breaks on `longjmp`
+(the binary imports `_longjmp` and `_siglongjmp` both) and on `emacs_abort`, inside a real pty, and
+prints a backtrace when one is hit.
