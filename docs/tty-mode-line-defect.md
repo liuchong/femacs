@@ -130,3 +130,22 @@ re-reading with an uncapped counter before drawing a conclusion from it.
 Next reading: C enters the fast-path block only when `CHARPOS (this_line_start_pos) > 0`, which is
 false at startup.  Check what the port's `this_line_start_pos` holds at the first redisplay; if it
 is positive, the port takes a shortcut C cannot take, and that is the bug to fix.
+
+## Probe round 5 (4.1016)
+
+Uncapped-to-eight markers at the `'retry` label, in the loop body with the value of
+`CHARPOS (this_line_start_pos)`, and just before `if consider_all_windows_p`.  Counting the
+**raw** byte stream (the line-based reader had missed one line):
+
+    T1-loop-head: 8    T5-tlbufpos=0: 8    T3-before-branch: 0
+
+So the loop head is reached eight times, `this_line_start_pos` is **0** at each of them - which
+makes C's fast-path condition (`CHARPOS (tlbufpos) > 0`) false - and yet the flow never arrives at
+`if consider_all_windows_p`.  With the fast path skipped, the exit between the loop body and the
+branch is unexplained by the source as read: the only `break 'retry`/`continue 'retry` in that
+range sit inside the skipped `if`.
+
+Next reading, one build: a marker at the **top** of the fast-path block body (inside the `if`) and
+one immediately after the block's closing brace.  If the first is zero and the second is zero, the
+flow leaves the block without executing either - which points at a `break 'frame_pass` placed
+differently than C's `goto`, or at a longjmp out of the block.
