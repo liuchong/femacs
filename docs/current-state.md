@@ -65,9 +65,9 @@
   Haiku/窗口系统那两条翻转**移出**（理由：`dispextern.rs` 750 的 `Display_Info = haiku_display_info` 需要一个 Rust 表达不了的"不完整标签"，记录在反向包含 dispextern.rs 的 `haikuterm.rs` 里；
   NS 那条臂同一形状、当年就没进表；Android 的记录在 `termhooks.rs` 所以能编 —— 读数：那两条开着时 340 个 unit 失败 62 个）；并修掉两处真缺陷（`lread.rs` 的不可变循环变量、`w32fns.rs` 裸 `c_int`）。
 
-- **声明块的缺口是全局的（4.684 测量，方法见 `docs/status.md` 4.684 ⑤；4.993 重测）**：**598 条** C 声明不在自己的镜像里，其中 **966 条在树内别处声明**（名字口径的门因此看不见）、**21 条全树没有**（逐条看过：都是 C 自己的陈旧声明或死分支，如 `xml_cleanup_parser` 在 `HAVE_LIBXML2` 下、`term_mouse_moveto` 在 `HAVE_GPM` 下）。4.993 把 `dispextern.h` 的 **46 条**移进镜像并收回 100 处副本，4.996 把 `frame`/`font`/`keyboard`/`process`/`coding` 五个头的 **136 条**移进镜像并收回 342 处副本，4.998 把 `lisp.h` 的 **254 条**移进镜像并收回 453 处副本（1,033 → 598；收回前逐条过 `tools/check-decl-withdraw.py`，P-323）；
-  最多的是 `lisp.h` 423、`dispextern.h` 206、`xterm.h` 126、`font.h` 69、`frame.h` 56、`gtkutil.h` 49、`keyboard.h` 36。**这是测量值、不是判据**（正则口径粗、含死分支名）。
-  ⇒ 下一条工作线：按 P-297 把 C 的声明块照抄进对应镜像，并把 unit 里的 use-site 副本按 P-26 收回去。
+- **声明块的缺口（4.684 测量，4.998 之后重测；现在**活配置下可搬的已经搬完**）**：**598 条** C 声明不在自己的镜像里 ✓，分布是 `lisp.h` **175**（169 条在树内别处 ✓、6 条全树没有 ✓）、`dispextern.h` **159**（156 / 3 ✓）、`xterm.h` **128**（127 / 1 ✓）、`gtkutil.h` **49**、`font.h` **36**、`frame.h` **8**、`keyboard.h` **7**、`comp.h` **6**、其余头合计更少 ✓。
+- **三类剩余，没有一类是“还没动手”**：① **类型墙** ✓ —— `lisp.h`/`dispextern.h` 的 325 条要 `struct frame`/`struct window` 在这个 scope 有名字 ✓；C 靠不完整标签 ✓，Rust 里 `lisp.rs` 与 `frame.rs` 同名只能是 `E0428` ✓ ⇒ 要么改成单一不透明标签 + 访问器（重构 ✓），要么留在 use-site ✓（P-323）；② **死平台** ✓ —— `xterm.h` 的 128 条是按 `include/xterm.rs` 末尾记录的理由**有意不搬** ✓（`extract-abi` 不盘点原型、无门比较、X11 不交付 ✓），`gtkutil.h`/`w32*` 同属不交付平台 ✓；③ **C 自己的陈旧声明** ✓ —— 21 条全树没有的逐条看过 ✓（`fix_start_end_in_overlays`/`init_coding`/`maybe_garbage_collect_eagerly`/`restore_message_unwind` 在参照 C 里也只有声明没有定义 ✓、`xml_cleanup_parser` 在 `#undef HAVE_LIBXML2` 下 ✓、`term_mouse_moveto` 在 `HAVE_GPM` 下 ✓）⇒ 不搬才是忠实 ✓。
+- **已落地** ✓：4.993 `dispextern.h` 46 条（收回 100 处 ✓）、4.996 五个头 136 条（收回 342 处 ✓）、4.998 `lisp.h` 254 条（收回 453 处 ✓），合计 **436 条原型 / 895 处副本** ✓，每一步都过 `check-decl-withdraw.py`（P-323）✓、`gate-probes` 340/340 ✓ 与 `gate-fast` ✓。
 
 - **`tools/check-authorized-platforms.sh` 的静默失败已修**（4.682）：它在子 shell 里 `cd femacs` 之后用相对路径调 `tools/check-all-units.sh`，
   这一段一直失败而 `tail -1` 把它咽掉；改用 `"$REPO/tools/..."` 之后四段真的都跑了（exit 0）。同类脚本若 `cd` 之后仍用相对路径，都要按这条检查。
