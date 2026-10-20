@@ -41,8 +41,20 @@ def main() -> int:
           f"(decision 4) and {upstream} upstream/platform gaps C's own build does not have either")
     print("   reading after decision C: the 40 must reach zero and the 31 stay arranged as C has "
           "them (docs/window-arms-plan.md)")
-    print(f"judgement 2 (the app starts to Lisp): assets packed, launch NOT ASSERTED - "
-          f"see docs/android-app-readiness.md")
+    # Judgement 2 was "launch NOT ASSERTED" while only the structural legs existed.  The device
+    # acceptance now measures it (`tools/android-accept.sh`: the frame renders, typing inserts
+    # text, the process survives a tap and two rotations), and its artefacts are committed under
+    # docs/baseline/android-accept/.  This reads whether that evidence is present rather than
+    # claiming a device run that did not happen: the files are the proof, and the command that
+    # refreshes them is printed next to it (status 4.962).
+    accept = REPO / "docs" / "baseline" / "android-accept" / "2-typed.png"
+    if accept.is_file():
+        print(f"judgement 2 (the app starts to Lisp): assets packed, launch ASSERTED on device - "
+              f"rendering + typing + liveness in docs/baseline/android-accept/ "
+              f"(refresh: tools/android-accept.sh)")
+    else:
+        print(f"judgement 2 (the app starts to Lisp): assets packed, launch NOT ASSERTED - "
+              f"run tools/android-accept.sh; see docs/android-app-readiness.md")
     print(f"judgement 3 (the {len(window)} window-system names): awaiting the decision in "
           f"docs/decisions-needed.md (A keep P-08 / B write every arm / C per-target cfg)")
     return 0
