@@ -289,3 +289,17 @@ branch taken when the **default face already exists** (call 1 creates it, calls 
 
 Next: markers after the `if NILP (lface)` body and around the final `realize_face` call in
 `realize_default_face`; the re-realize path is the one that throws.
+
+## The re-realize call inside realize_default_face (4.1025)
+
+    X1 tty-face entry 8   X2 after make_realized_face 8   X3 after the weight mapping 8
+    Y1 before realize_face 8   Y2 after realize_face 1
+
+The X readings are eight because the ten `realize_named_face` calls on the first pass each go through
+`realize_tty_face`; they do not belong to the default face's re-realization.  Y is the one that
+belongs: the default face's `realize_face (c, attrs, DEFAULT_FACE_ID)` returns on the first pass and
+throws on calls 2..8.
+
+So the throwing call is **`realize_face` for `DEFAULT_FACE_ID` when face id 0 is already realized**.
+The next markers go inside `realize_face` around the former-face removal/free and around
+`realize_tty_face` for that specific call.
