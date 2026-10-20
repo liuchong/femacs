@@ -48,7 +48,7 @@
 | 4 | `.elc`/dump/生成物/loadup ＋ 压力 | ✅ | `check-generated.py`、`check-loadup.py`、`check-dump-offsets.py`、`gen-elc.py --cross-check`、`l5-sweep.sh --gc-stress` | 生成物 **244：195 identical / 49 name-only / 0 DIFFERENT / 0 missing**（4.964）✓；`only in the reference 0, only in the port 0` 且 `the two loadups agree file for file`（4.964）✓；dump **0 failure**（4.964）✓；`.elc` 交叉检查 **0 端口缺陷**（4.969，57 目标：5 identical / 51 state-only / 1 volatile）✓；GC 压测全量 **564：550 same / 7 both-fail / 6 crashed（全两侧同超时）/ 1 port-worse（已判抖动）/ 0 其它**（4.971，端口 8956/112 vs 参照 8956/110）✓ |
 | 5 | 原样树逐字节 | ✅ | `python3 tools/check-verbatim.py` | **6 棵树 / 4,604 文件 / 0 failures**（4.964 复跑；9 条 accepted absence 是参照 `.gitignore` 的生成物） |
 | 6 | 平台（macOS + Android） | ✅ | `bash tools/check-authorized-platforms.sh`、`tools/android-accept.sh`、`check-android-imports.py --providers-dir` | **`check-authorized-platforms.sh` exit 0**（4.963，472 s / 峰值 1.13 GB）：macOS smoke ＋ differential **92 form / 0 mismatch**、`gate-android` 114 class + 签名、`libemacs.so` 5.2 MB / **69 JNI 导出**、签名 APK 47 MB 含 **4360** asset ✓；**Android 设备三元组**（4.962）：渲染 ✓、输入（`H E L L O` 逐字可辨）✓、存活（打字/轻点/两次转屏全程同 pid、`Fatal signal` 0）✓；**设备口径导入 304 / 0 未解析**（4.966）✓ |
-| 7 | 性能 | ⏸ 暂挂（记未达） | `tools/bench.sh`、`tools/bench.sh --gate docs/baseline/bench.tsv` | **本轮两次读数都不可用（待空闲机重测）**：⚠️ **4.985** 用的是 **04:35 的旧二进制**（源码 14:00 才改完）；⚠️ **4.990** 用的是 22:18 的新二进制，但当时机器 **load average 64**（两个 VM + 别的会话在跑 bun/node 测试），同一轮里参照自己也慢了 30–40% ⇒ 测到的是**竞争**不是端口。**4.991 复核**：`bench.sh --gate` 六项全线 +18..+44% 判红，而参照侧同步变慢 37% ⇒ 结论是**环境噪声**，不据此改基线、也不据此判回归 ✓。⇒ 第 7 条仍**记未达**（未追平是既有事实），但**本轮没有一次可用于判定比值的读数**，待机器空闲后重跑 `tools/bench.sh` 并 `--save` 新基线；`bench.sh --gate` 只用于"端口比自己变慢"的回归 ✓ |
+| 7 | 性能 | ⏸ 暂挂（记未达） | `tools/bench.sh [--rounds N]`、`tools/bench.sh --gate docs/baseline/bench.tsv` | **4.992 拿到一组可比的读数（机器仍在 load 27–31）**：`--rounds 5` 连跑两次，比值（端口 / 参照）`bc-loop` **1.33 / 1.39**、`bc-sum` **1.30 / 1.33**、`bc-car` **1.21 / 1.22**、`regexp-repl` **0.99 / 1.10**、`buffer-scan` **1.01 / 1.01**、`sort-100k` **1.15 / 1.12** ✓ —— 同一 `N` 下两次相差 ≤5%（`regexp-repl` 11% ✓），而 4.991 那次 `--gate` 的摆动是 +18..+44% ✓。**但采样越深最小值越低**（`bc-loop` 在 3 轮是 1.52 / 1.69、5 轮是 1.33 / 1.39 ✓）⇒ 忙碌机器上的比值仍**不能**当基线，**不 `--save`** ✓；4.985（旧二进制）、4.990（load 64）、4.991（噪声）三次读数仍按原记录作废/不可用 ✓。⇒ 第 7 条仍**记未达**（未追平是既有事实），空闲机重测仍是录基线的唯一路径 ✓；`bench.sh --gate` 只用于“端口比自己变慢”的回归 ✓ |
 | 8 | 提交签名 + 台账 | ✅ | `python3 tools/check-ledger-ticks.py`、`git verify-commit <sha>` | **238 台账绑定 / 0 failure / 0 行无台账**（4.972 复跑）；近 6 个提交 `git verify-commit` 全部 `Good signature`（4.972）；`git status --short` 干净 ✓ |
 
 **计数口径（一句说清）**：8 条等权、整条达成才计 1。达成的是 **1、2、3、4、5、6、8 共 7 条**；第 7 条（性能）按用户决定**暂挂并记未达**。⇒ **7/8 = 87.5%**。第 6 条计入达成的依据是用户 2026-10-20 的授权（"安卓以推进项目为准，允许自行决定改动或者只按 macos 验收"）—— 现在它不仅有 macOS 的全绿读数，还有 Android 的**设备三元组**与**设备口径 0 未解析**（4.962 / 4.966）。8/8 的唯一缺口是第 7 条。
@@ -116,7 +116,7 @@ cd femacs && CARGO_TARGET_DIR=/tmp/xt-cargo cargo run -q -p xtask -- gate-androi
 bash tools/smoke.sh                                                                  # macOS 冒烟
 python3 tools/check-verbatim.py                                                      # 原样树逐字节
 python3 tools/gen-ja-dic.py && python3 tools/check-generated.py                       # ja-dic 生成 + 生成物 242 文件
-python3 tools/bench.sh [--gate docs/baseline/bench.tsv]                              # 性能读数/回归门
+python3 tools/bench.sh [--rounds N] [--gate docs/baseline/bench.tsv]                  # 性能读数/回归门
 tools/gen-android-config.sh --check-prereqs                                          # Android 配置前置
 ```
 
