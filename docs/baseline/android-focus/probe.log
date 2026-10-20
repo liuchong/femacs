@@ -1,0 +1,29 @@
+== pid ==
+2136
+== window focus (before) ==
+  mCurrentFocus=Window{8f0c502 u0 org.femacs/org.femacs.EmacsActivity}
+  mFocusedApp=ActivityRecord{70314053 u0 org.femacs/.EmacsActivity t7}
+== input focus (before) ==
+  FocusedApplications:
+  FocusedWindows:
+== view tree focus ==
+          mView=android.widget.FrameLayout{b8c6333 V.E...... .......D 0,0-1035,377}
+    View Hierarchy:
+      com.android.internal.policy.DecorView{a06beee I.E...... R.....ID 0,0-1080,2400 aid=1}[QuickstepLauncher]
+          android.widget.FrameLayout{c35ee25 V.E...... .......D 0,0-1080,2400 #1020002 android:id/content}
+                        android.widget.FrameLayout{b8c6333 V.E...... .......D 0,0-1035,377}
+                  android.widget.FrameLayout{f58df5a G.E...... ......I. 0,0-0,0 #7f0900b3 app:id/bottom_sheet_background}
+    View Hierarchy:
+      com.android.internal.policy.DecorView{999043c V.E...... R....... 0,0-1080,2400}[EmacsActivity]
+          android.widget.FrameLayout{9c364b V.E...... ........ 0,0-1080,2400 #1020002 android:id/content}
+            android.widget.FrameLayout{4102828 V.E...... ........ 0,0-1080,2400}
+              org.femacs.EmacsView{e0d7941 VFED..... .F...... 0,128-1080,2274 aid=0}
+== screenshot md5 ==
+709f1960254ae5ef78b2034e4d52317b
+709f1960254ae5ef78b2034e4d52317b
+== key log lines ==
+== window focus (after) ==
+  mCurrentFocus=Window{8f0c502 u0 org.femacs/org.femacs.EmacsActivity}
+  mFocusedApp=ActivityRecord{70314053 u0 org.femacs/.EmacsActivity t7}
+== pid (after) ==
+2136

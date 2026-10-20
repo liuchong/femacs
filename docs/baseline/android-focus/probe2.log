@@ -1,0 +1,46 @@
+== stage 1: harness validation (HOME must change the screen) ==
+13592b51e837e7ee81ff599a75746249
+8d8c1b764e9ec354467c645150974794
+== stage 2: app input ==
+  FocusedWindows:
+    displayId=0, name='f97df4d org.femacs/org.femacs.EmacsActivity'
+  FocusRequests:
+    displayId=0, name='f97df4d org.femacs/org.femacs.EmacsActivity' result='OK'
+  Pointer Capture Requested: false
+  Current Window with Pointer Capture: None
+  TouchStatesByDisplay: <no displays touched>
+  CursorStatesByDisplay: <no displays touched by cursor>
+  Display: 0
+    logicalSize=1080x2400
+        transform (ROT_0) (IDENTITY)
+    Windows:
+      0: name=6e0db93 ScreenDecorOverlayBottom, id=77, displayId=0, inputConfig=NOT_FOCUSABLE | NOT_TOUCHABLE | TRUSTED_OVERLAY | SLIPPERY, alpha=1, frame=[0,2337][1080,2400], globalScale=1, applicationInfo.name=, applicationInfo.token=<null>, touchableRegion=<empty>, ownerPid=938, ownerUid=10124, dispatchingTimeout=5000ms, token=0xb400007983743890, touchOcclusionMode=BLOCK_UNTRUSTED
+      transform (ROT_0) (TRANSLATE)
+          1.0000  0.0000  -0.0000
+          0.0000  1.0000  -2337.0000
+          0.0000  0.0000  1.0000
+      1: name=93b9fda ScreenDecorOverlay, id=75, displayId=0, inputConfig=NOT_FOCUSABLE | NOT_TOUCHABLE | TRUSTED_OVERLAY | SLIPPERY, alpha=1, frame=[0,0][1080,128], globalScale=1, applicationInfo.name=, applicationInfo.token=<null>, touchableRegion=[492,0][610,128], ownerPid=938, ownerUid=10124, dispatchingTimeout=5000ms, token=0xb40000798374de50, touchOcclusionMode=BLOCK_UNTRUSTED
+      transform (ROT_0) (IDENTITY)
+      2: name=24c9658 Taskbar, id=126, displayId=0, inputConfig=NOT_FOCUSABLE | TRUSTED_OVERLAY | WATCH_OUTSIDE_TOUCH | SLIPPERY, alpha=1, frame=[0,2274][1080,2400], globalScale=1, applicationInfo.name=, applicationInfo.token=<null>, touchableRegion=[0,2274][1080,2400], ownerPid=1399, ownerUid=10117, dispatchingTimeout=5000ms, token=0xb400007983742b50, touchOcclusionMode=BLOCK_UNTRUSTED
+  FocusedWindows:
+    displayId=0, name='f97df4d org.femacs/org.femacs.EmacsActivity'
+  FocusRequests:
+    displayId=0, name='f97df4d org.femacs/org.femacs.EmacsActivity' result='OK'
+  Pointer Capture Requested: false
+  Current Window with Pointer Capture: None
+  TouchStatesByDisplay: <no displays touched>
+-- md5 (before / numeric / text) --
+f5e6cfc88fced9e263b1e55a409bba1d
+abb92bcd0fc6319785a114fbbcdee838
+abb92bcd0fc6319785a114fbbcdee838
+== stage 3: window + view state ==
+  mCurrentFocus=Window{f97df4d u0 org.femacs/org.femacs.EmacsActivity}
+  mFocusedApp=ActivityRecord{49404048 u0 org.femacs/.EmacsActivity t9}
+              org.femacs.EmacsView{9a67e8c VFED..... .F...... 0,128-1080,2274 aid=1}
+                org.femacs.EmacsSurfacePresenter{2bab9d5 V.ED..... ......I. 0,0-1080,2146}
+  mFallbackInputConnection=RemoteInputConnectionImpl{connection=android.view.inputmethod.BaseInputConnection@f13fb7 mDeactivateRequested=false mServedView=null}
+  mServedView=org.femacs.EmacsView{9a67e8c VFED..... .F...... 0,128-1080,2274 aid=1}
+  mNextServedView=org.femacs.EmacsView{9a67e8c VFED..... .F...... 0,128-1080,2274 aid=1}
+0
+== pid ==
+2171

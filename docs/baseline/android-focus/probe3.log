@@ -1,0 +1,52 @@
+== pid before ==
+2164
+== what the C side logs at startup ==
+10-20 11:32:18.260  1374  1374 W launcher-loader: type=1400 audit(0.0:5): avc:  denied  { read } for  name="filesystems" dev="proc" ino=4026532041 scontext=u:r:priv_app:s0:c512,c768 tcontext=u:object_r:proc_filesystems:s0 tclass=file permissive=0 app=com.android.launcher3
+10-20 11:32:18.272   658  1578 W system_server: Long monitor contention with owner NetworkTimeUpdateService (856) at boolean android.util.NtpTrustedTime.forceRefresh(android.net.Network)(NtpTrustedTime.java:291) waiters=0 in boolean android.util.NtpTrustedTime.forceRefresh() for 4.762s
+10-20 11:32:18.272   658   856 W AlarmManager: Unrecognized alarm listener com.android.server.timedetector.NetworkTimeUpdateService$ScheduledRefreshAlarmListener@a9ea23e
+10-20 11:32:18.325   658  2154 E RoleControllerServiceImpl: Default/fallback role holder package doesn't qualify for the role, package: com.android.devicelockcontroller, role: android.app.role.SYSTEM_FINANCED_DEVICE_CONTROLLER
+10-20 11:32:18.377  1374  1448 D AlphabeticIndexCompat: computeSectionName: cs: Emacs sectionName: E
+10-20 11:32:18.378  1374  1374 D AlphabeticalAppsList: addAppsWithSections: adding sectionName: E with appInfoTitle: Emacs
+10-20 11:32:18.378  1374  1374 D AlphabeticalAppsList: addAppsWithSections: adding sectionName: E with appInfoTitle: Emacs
+10-20 11:32:18.381   658   738 V GrammaticalInflectionUtils: AttributionSource: AttributionSource { uid = 10340, packageName = null, attributionTag = null, token = android.os.Binder@43cd772, deviceId = 0, next = null } does not have READ_SYSTEM_GRAMMATICAL_GENDER permission.
+10-20 11:32:18.381   658   738 W OptProp : Cannot read opt property android.window.PROPERTY_COMPAT_ALLOW_RESIZEABLE_ACTIVITY_OVERRIDES
+10-20 11:32:18.381   658   738 W OptProp : Cannot read opt property android.window.PROPERTY_COMPAT_ALLOW_MIN_ASPECT_RATIO_OVERRIDE
+10-20 11:32:18.383   658   738 W OptProp : Cannot read opt property android.window.PROPERTY_COMPAT_ALLOW_ORIENTATION_OVERRIDE
+10-20 11:32:18.380   911   911 W ll.splashscreen: type=1400 audit(0.0:6): avc:  denied  { read } for  name="u:object_r:incremental_prop:s0" dev="tmpfs" ino=220 scontext=u:r:platform_app:s0:c512,c768 tcontext=u:object_r:incremental_prop:s0 tclass=file permissive=0 app=com.android.systemui
+10-20 11:32:18.380   911   911 W ll.splashscreen: type=1400 audit(0.0:7): avc:  denied  { read } for  name="filesystems" dev="proc" ino=4026532041 scontext=u:r:platform_app:s0:c512,c768 tcontext=u:object_r:proc_filesystems:s0 tclass=file permissive=0 app=com.android.systemui
+10-20 11:32:18.386   658   738 I ActivityTaskManager: START u0 {flg=0x10000000 xflg=0x4 cmp=org.femacs/.EmacsActivity} with LAUNCH_SINGLE_INSTANCE from uid 0 (BAL_ALLOW_ALLOWLISTED_UID) result code=0
+10-20 11:32:18.387   658   698 V GrammaticalInflectionUtils: AttributionSource: AttributionSource { uid = 10340, packageName = null, attributionTag = null, token = android.os.Binder@43cd772, deviceId = 0, next = null } does not have READ_SYSTEM_GRAMMATICAL_GENDER permission.
+10-20 11:32:18.389   911   957 V WindowManagerShell: Transition requested (#6): android.os.BinderProxy@5daaed7 TransitionRequestInfo { type = OPEN, triggerTask = TaskInfo{userId=0 taskId=11 effectiveUid=10340 displayId=0 isRunning=true baseIntent=Intent { flg=0x10000000 cmp=org.femacs/.EmacsActivity } baseActivity=ComponentInfo{org.femacs/org.femacs.EmacsActivity} topActivity=ComponentInfo{org.femacs/org.femacs.EmacsActivity} origActivity=null realActivity=ComponentInfo{org.femacs/org.femacs.EmacsActivity} numActivities=1 lastActiveTime=21938 supportsMultiWindow=true resizeMode=1 isResizeable=true minWidth=-1 minHeight=-1 defaultMinSize=220 token=WCT{android.window.IWindowContainerToken$Stub$Proxy@ac23c4} topActivityType=1 pictureInPictureParams=null shouldDockBigOverlays=false launchIntoPipHostTaskId=-1 lastParentTaskIdBeforePip=-1 displayCutoutSafeInsets=Rect(0, 128 - 0, 0) topActivityInfo=ActivityInfo{9c922ad org.femacs.EmacsActivity} launchCookies=[] positionInParent=Point(0, 0) parentTaskId=-1 isFocused=false isVisible=false isVisibleRequested=false isTopActivityNoDisplay=false isSleeping=false locusId=null displayAreaFeatureId=1 isTopActivityTransparent=false isActivityStackTransparent=false lastNonFullscreenBounds=Rect(269, 661 - 812, 1741) capturedLink=null capturedLinkTimestamp=0 requestedVisibleTypes=-9 topActivityRequestOpenInBrowserEducationTimestamp=0 appCompatTaskInfo=AppCompatTaskInfo { topActivityInSizeCompat=false eligibleForLetterboxEducation= false isLetterboxEducationEnabled= false isLetterboxDoubleTapEnabled= false eligibleForUserAspectRatioButton= false topActivityBoundsLetterboxed= false isFromLetterboxDoubleTap= false topActivityLetterboxVerticalPosition= -1 topActivityLetterboxHorizontalPosition= -1 topActivityLetterboxWidth=-1 topActivityLetterboxHeight=-1 topActivityAppBounds=Rect(0, 0 - 1080, 2400) isUserFullscreenOverrideEnabled=false isSystemFullscreenOverrideEnabled=false hasMinAspectRatioOverride=false topActivityLetterboxBounds=null cameraCompatTaskInfo=CameraCompatTaskInfo { freeformCameraCompatMode=inactive}} topActivityMainWindowFrame=null}, pipChange = null, remoteTransition = null, displayChange = null, flags = 0, debugId = 6 }
+10-20 11:32:18.392   911  1086 D SplashScreenView: Build android.window.SplashScreenView{1b16173 V.E...... ......ID 0,0-0,0}
+10-20 11:32:18.392   911  1086 D SplashScreenView: Icon: view: android.widget.ImageView{629b830 V.ED..... ......I. 0,0-0,0 #1020542 android:id/splashscreen_icon_view} drawable: com.android.wm.shell.startingsurface.SplashscreenIconDrawableFactory$ImmobileIconDrawable@b023ca9 size: 420
+10-20 11:32:18.392   911  1086 D SplashScreenView: Branding: view: android.view.View{225822e G.ED..... ......I. 0,0-0,0 #1020541 android:id/splashscreen_branding_view} drawable: null size w: 0 h: 0
+10-20 11:32:18.393   658   705 I ActivityManager: Start proc 2164:org.femacs/u0a340 for next-top-activity {org.femacs/org.femacs.EmacsActivity}
+10-20 11:32:18.420  2164  2164 I org.femacs: Using CollectorTypeCMC GC.
+10-20 11:32:18.422  2164  2164 E org.femacs: Not starting debugger since process cannot load the jdwp agent.
+10-20 11:32:18.423  2164  2164 D nativeloader: Load libframework-connectivity-tiramisu-jni.so using APEX ns com_android_tethering for caller /apex/com.android.tethering/javalib/framework-connectivity-t.jar: ok
+10-20 11:32:18.446  2164  2164 D nativeloader: Configuring clns-9 for other apk /data/app/~~QJtQ1o6KniCyQB1XHqQPEg==/org.femacs-HIunxRw7v63GisuvhlUuSg==/base.apk. target_sdk_version=37, uses_libraries=, library_path=/data/app/~~QJtQ1o6KniCyQB1XHqQPEg==/org.femacs-HIunxRw7v63GisuvhlUuSg==/lib/arm64:/data/app/~~QJtQ1o6KniCyQB1XHqQPEg==/org.femacs-HIunxRw7v63GisuvhlUuSg==/base.apk!/lib/arm64-v8a, permitted_path=/data:/mnt/expand:/data/user/0/org.femacs
+10-20 11:32:18.447  2164  2164 I org.femacs: AssetManager2(0xb40000701883b178) locale list changing from [] to [en-US]
+== send BACK ==
+== pid after BACK ==
+2164
+  mCurrentFocus=Window{3a667e9 u0 org.femacs/org.femacs.EmacsActivity}
+== send BACK twice more ==
+== pid after 3x BACK ==
+2164
+  mCurrentFocus=Window{3a667e9 u0 org.femacs/org.femacs.EmacsActivity}
+== log tail ==
+10-20 11:32:32.855   658   818 V WifiLastResortWatchdog:  00:13:10:85:fe:01: "AndroidWifi" HasEverConnected: true, Failures: {Assoc: 0, Auth: 0, Dhcp: 0}, Age: 1
+10-20 11:32:32.855   658   818 V WifiLastResortWatchdog: mSsidFailureCount:
+10-20 11:32:32.855   658   818 V WifiLastResortWatchdog: "AndroidWifi": 1, HasEverConnected: true, Failures: {Assoc: 0, Auth: 0, Dhcp: 0}
+10-20 11:32:32.855   658   818 V WifiConnectivityManager: AllSingleScanListener:  No candidates
+10-20 11:32:33.030   658   880 I SdkSandboxManager: Reconciling sdk data package directories for 0
+10-20 11:32:33.672  2229  2229 W dumpsys : Thread Pool max thread count is 0. Cannot cache binder as linkToDeath cannot be implemented. serviceName: window
+10-20 11:32:33.728  2234  2234 W screencap: Thread Pool max thread count is 0. Cannot cache binder as linkToDeath cannot be implemented. serviceName: SurfaceFlingerAIDL
+10-20 11:32:33.728  2234  2234 W BpBinder: Linking to death on android.gui.ISurfaceComposer but there are no threads (yet?) listening to incoming transactions. See ProcessState::startThreadPool and ProcessState::setThreadPoolMaxThreadCount. Generally you should setup the binder threadpool before other initialization steps.
+10-20 11:32:33.728  2234  2234 W ProcessState: Extra binder thread started, but 0 threads requested. Do not use *startThreadPool when zero threads are requested.
+10-20 11:32:33.731   505   610 E HwcComposer: getLuts failed Status(-8, EX_SERVICE_SPECIFIC): '8: '
+10-20 11:32:33.731   505   610 E HWComposer: getLuts: getLuts failed for display 4619827259835644672: UNSUPPORTED (8)
+10-20 11:32:33.738   222   222 I servicemanager: Caller(pid=2234,uid=0,sid=u:r:su:s0) Found android.hardware.graphics.allocator.IAllocator/default in device VINTF manifest.
+10-20 11:32:33.739   222   222 I servicemanager: Caller(pid=2234,uid=0,sid=u:r:su:s0) Found android.hardware.graphics.allocator.IAllocator/default in device VINTF manifest.
+10-20 11:32:33.740   222   222 I servicemanager: Caller(pid=2234,uid=0,sid=u:r:su:s0) Found mapper/ranchu in device VINTF manifest.
+10-20 11:32:33.832   232   232 I logd    : logdr: UID=0 GID=0 PID=2236 n tail=0 logMask=99 pid=0 start=0ns deadline=0ns

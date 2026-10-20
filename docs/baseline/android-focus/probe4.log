@@ -1,0 +1,17 @@
+== portrait ==
+  pixelWidth: 1080
+  pixelHeight: 2400
+== landscape ==
+  pixelWidth: 2400
+  pixelHeight: 1080
+  mCurrentFocus=Window{7001157 u0 org.femacs/org.femacs.EmacsActivity}
+== pid ==
+2167
+== java-side frame stats ==
+Total frames rendered: 253
+Janky frames: 207 (81.82%)
+Janky frames (legacy): 77 (30.43%)
+== md5 portrait / landscape / back ==
+4fbe7507a05922ed0315932697c2d4a3
+3c0d8c9e996cc1e37188b37a89c05c2e
+4fbe7507a05922ed0315932697c2d4a3

@@ -1,0 +1,8 @@
+== app pid: 2154 ==
+== app window input config ==
+    displayId=0, name='ActivityRecord{254600554 u0 org.femacs/.EmacsActivity t15}', dispatchingTimeout=5000ms
+    displayId=0, name='3957b8 org.femacs/org.femacs.EmacsActivity'
+    displayId=0, name='3957b8 org.femacs/org.femacs.EmacsActivity' result='OK'
+      4: name=3957b8 org.femacs/org.femacs.EmacsActivity, id=118, displayId=0, inputConfig=0x0, alpha=1, frame=[0,0][1080,2400], globalScale=1, applicationInfo.name=ActivityRecord{254600554 u0 org.femacs/.EmacsActivity t15}, applicationInfo.token=0xb400007c8b8fa7f0, touchableRegion=[0,0][1080,2400], ownerPid=2154, ownerUid=10340, dispatchingTimeout=5000ms, token=0xb400007afb8a0cd0, touchOcclusionMode=BLOCK_UNTRUSTED, canOccludePresentation
+== every log line from the app process during/after the keys ==
+== any exception lines ==

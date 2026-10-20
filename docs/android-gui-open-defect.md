@@ -1,8 +1,10 @@
 # Android GUI：渲染已通、输入未验收（独立跟踪项）
 
-> **status 4.950 更正**：GUI **不是白屏**。截图左上角可辨认出菜单栏与 `*scratch*` 的前两行文字；
-> 之前“白屏”的判断来自整屏非白比（白底黑字本来只有 1–3%）。当前真正的缺口是
-> **输入（`adb shell input text`）之后画面不变**：同一轮 before/after 两张截图 md5 完全相同。
+> **status 4.952 现状**：GUI **不是白屏**，渲染/翻转链路已被证明是通的（转屏会按新尺寸重新排版，
+> 转回来逐字节相同）；焦点也已被证明落在 `EmacsView` 上（`dumpsys input` 的 `FocusedWindows`
+> 就是本窗口、窗口 `inputConfig=0x0`、`mServedView` 是 `EmacsView`）。
+> 真正的缺口是 **UI 线程的按键/触点事件没有变成 Emacs 的事件**：`ANDROID_CONFIGURE_NOTIFY`
+> 会被处理，`ANDROID_KEY_PRESS` 与指针事件不会。见 §3f 的逐条读数与 §4 的两条候选根因。
 
 本文件是 **Android GUI 白屏**的唯一跟踪入口。DoD 第 6 条已按用户授权以 **macOS 验收**
 （`docs/current-state.md`），Android GUI **不计入达成**，缺陷继续跟踪。
@@ -89,23 +91,59 @@ C 侧 `ANDROID_KEY_PRESS` **0 次**、截图前后 md5 相同 ⇒ **按键没有
 已排除：`setFocusable`/`setFocusableInTouchMode` 与 C 一致；`FLAG_NOT_FOCUSABLE`
 只用于子帧的 `getWindowLayoutParams()`（C 同）。
 
-⇒ 缺口在**活动/窗口的输入分发**（焦点持有者），不在 Emacs 侧。
+## 3f. 输入缺口的复核（status 4.952）—— 4.951 的“按键没到视图”不成立
 
-## 4. 下一步（按代价排序）
+`tools/android-input-probe.sh focus` 的读数（`docs/baseline/android-focus/`）：
 
-1. **一条读数即可判定**：在 `EmacsView.onDraw` 里同时记录
-   `frame === bitmap`、`bitmap.getPixel(1,20)`、以及 `canvas.isHardwareAccelerated`；
-   若 `onDraw` 的次数在 `PRESENT` 之后不再增长 ⇒ 是 (1)；若在增长但像素仍白 ⇒ 是 (2)。
-2. 若 (2)：在 `handleDirtyBitmap()` 之后把新 `canvas` **回写**给 Emacs（C 侧无需改动，
-   `getCanvas` 每次重新取 `canvas` 字段），并确认没有旧 `Canvas` 被缓存。
-3. 若 (1)：把 `present()` 改成 `postInvalidateOnAnimation()` 并在 UI 线程上 `invalidate()`。
-4. 设备环境要求：`-gpu guest`（swiftshader 会引入额外噪声）、至少 8 GiB 空闲磁盘
-   （低于 ~3 GiB 时模拟器会拒启动，见 `docs/status.md` 4.925/4.933）。
+| 读数 | 值 |
+|---|---|
+| `dumpsys input` 的 `FocusedWindows` | `org.femacs/org.femacs.EmacsActivity` ✓ |
+| 应用窗口 `inputConfig` | `0x0`（可聚焦、可触摸、受信）✓ |
+| `dumpsys activity top` 视图树 | `org.femacs.EmacsView{… VFED…. .F……} ` = **焦点在 EmacsView 上** ✓ |
+| `dumpsys input_method` | `mServedView` / `mNextServedView` 都是 `EmacsView` ✓ |
+
+`key` 阶段：`KEYCODE_HOME` 能改变屏幕（注入链路本身有效 ✓），但
+`input keyevent 29`（数值 `KEYCODE_A`）与 `input text "x"` 之后，截图差异的包围盒是
+**(952,60)-(958,77)**，只有状态栏那 87 个像素（时钟）——正文一个像素都没变 ✗。
+
+`tap` 阶段：`input tap 540 700`、`KEYCODE_A`、`KEYCODE_F10` 三次之后，四张截图 md5
+**完全相同** ✗ ⇒ **触点与按键同样无效**，所以缺口不在“按键分发”这一条腿上。
+
+`rotate` 阶段：转成横屏后帧被**重新按 2400×1080 排版**（有墨迹的行 160 行、墨迹 x 范围
+164–2356），转回竖屏 md5 与原竖屏**逐字节相同** ⇒ **redisplay、flip、swapBuffers 都是通的**
+✓（否则横屏不可能出现重新排版后的内容）。
+
+⇒ 收敛后的结论：UI 线程到 Emacs 事件循环之间，**`ANDROID_CONFIGURE_NOTIFY` 会被处理，
+而 `ANDROID_KEY_PRESS` / 指针事件不会**。焦点、可见性、可聚焦性、IME 绑定都已逐条排除。
+嫌疑面因此收窄到两处之一：
+
+1. `android_write_event` 之后主线程没有被唤醒（`pthread_cond_broadcast … read_var` 与
+   `android_select` 的配对），恰好 `sendConfigureNotify` 走的是另一条即时应答路径；
+2. 事件确实入队并被消费，但 `androidterm.c` 的 `android_read_socket` 没有把它变成
+   `kbd_buffer` 里的输入事件（`android_event` → `kbd_buffer_store_event` 段）。
+
+两条都不需要设备就能判：C 侧逐句对照已确认 `sendKeyPress`/`sendKeyRelease`/
+`android_write_event`/`android_init_events` 的 `sigaction` 段与参照同形（status 4.952 复核），
+所以静态对照要往 `android_select` 与 `android_read_socket` 走。
+
+## 4. 下一步
+
+1. **静态**（不需要设备/编译）：逐句对照 `femacs/src/android.rs` 的 `android_select`
+   与 `emacs/src/android.c` 的同名函数（`read_var` 的等待条件、`num_events` 的判定、
+   `select_sem` 的配对），再对照 `androidterm.rs` 的 `android_read_socket`。
+2. **一次带探针的构建**（设备可用且磁盘 ≥8 GiB 时）：在 `EmacsWindow.onKeyDown` 入口、
+   `android_write_event` 入口、`android_select` 返回处各放一条 `__android_log_print`，
+   一次运行即可分辨上面第 1/2 条。不要为零散假设反复重编（用户要求）。
+3. 设备环境要求：`-gpu guest`、数据卷**至少 8 GiB 空闲**；低于 ~3 GiB 模拟器直接拒启动
+   （4.925/4.933，本轮 4.952 再次撞到：数据卷从 5.3 GiB 降到 2.0 GiB，停止设备腿）。
 
 ## 5. 复现命令
 
 ```
-python3 ~/.assistant/skills/controlled-run/scripts/run.py --profile runtime -- bash /tmp/crash-hunt.sh
-# 截图 → docs/baseline/android-shot-12s.png；非白比：
-ffmpeg -v quiet -i docs/baseline/android-shot-12s.png -f rawvideo -pix_fmt rgb24 - | python3 -c "…"
+./tools/android-input-probe.sh focus    # 焦点/输入配置/视图树/IME
+./tools/android-input-probe.sh key      # HOME 自检 + 按键 + 输入法提交
+./tools/android-input-probe.sh tap      # 触点 / 按键 / F10 三连
+./tools/android-input-probe.sh rotate   # 旋转重排（redisplay 是否还活）
+./tools/android-input-probe.sh back     # 三连 BACK（Emacs 吞 BACK 的旁证）
+./tools/android-input-probe.sh applog   # 按键前后的应用进程日志
 ```
