@@ -226,3 +226,16 @@ producing output and had to be killed after four minutes.  The next attempt shou
 `siglongjmp` inside a real pty with `-o 'settings set target.process.stop-on-exec false'` and a
 `-o 'process interrupt'` fallback, or bisect `init_iterator` with two markers (after the matrix
 setup, before the first `reseat`).
+
+## Inside init_iterator (4.1021)
+
+    I1 before remap 8   I2 after remap 8   I3 after memclear 8   I4 after bidi_init_it 0
+
+So the throw is between `memclear` and the end of the bidi setup block.  One follow-up marker meant to
+split `bidi_unshelve_cache` from `bidi_init_it` was inserted at the **first** occurrence of that call
+in the file rather than the one inside `init_iterator`, so its zero reading localises nothing and
+is not used.
+
+Next: place the split marker by line number inside `init_iterator` (the `bidi_unshelve_cache
+(core::ptr::null_mut (), false)` in that block is at the time of writing line 4665), then read
+whether `bidi_init_it` is the throwing call.
