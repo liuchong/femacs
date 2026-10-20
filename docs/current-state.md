@@ -63,7 +63,7 @@
   Haiku/窗口系统那两条翻转**移出**（理由：`dispextern.rs` 750 的 `Display_Info = haiku_display_info` 需要一个 Rust 表达不了的"不完整标签"，记录在反向包含 dispextern.rs 的 `haikuterm.rs` 里；
   NS 那条臂同一形状、当年就没进表；Android 的记录在 `termhooks.rs` 所以能编 —— 读数：那两条开着时 340 个 unit 失败 62 个）；并修掉两处真缺陷（`lread.rs` 的不可变循环变量、`w32fns.rs` 裸 `c_int`）。
 
-- **声明块的缺口是全局的（4.684 测量，方法见 `docs/status.md` 4.684 ⑤）**：**1,032 条** C 声明不在自己的镜像里，其中 **1,006 条在树内别处声明**（名字口径的门因此看不见）、**26 条全树没有**；
+- **声明块的缺口是全局的（4.684 测量，方法见 `docs/status.md` 4.684 ⑤；4.993 重测）**：**987 条** C 声明不在自己的镜像里，其中 **966 条在树内别处声明**（名字口径的门因此看不见）、**21 条全树没有**（逐条看过：都是 C 自己的陈旧声明或死分支，如 `xml_cleanup_parser` 在 `HAVE_LIBXML2` 下、`term_mouse_moveto` 在 `HAVE_GPM` 下）。4.993 已把 `dispextern.h` 的 **46 条**移进镜像并收回 33 个 unit 的 100 处副本（1,033 → 987）；
   最多的是 `lisp.h` 423、`dispextern.h` 206、`xterm.h` 126、`font.h` 69、`frame.h` 56、`gtkutil.h` 49、`keyboard.h` 36。**这是测量值、不是判据**（正则口径粗、含死分支名）。
   ⇒ 下一条工作线：按 P-297 把 C 的声明块照抄进对应镜像，并把 unit 里的 use-site 副本按 P-26 收回去。
 
