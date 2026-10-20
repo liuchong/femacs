@@ -54,3 +54,24 @@ So the loss is in producing or writing the mode-line row's glyphs, not in the fr
 in the format machinery.  Next reading needs a temporary probe in `display_mode_line`: after
 `display_mode_element` returns, print the row's `used` count, `enabled_p` and its `y`, then compare
 with the same reading from the reference built with the same probe.
+
+## Probe round 1 (4.1012)
+
+Temporary probes in `xdisp.rs` (all reverted, source back at `HEAD`, rebuild reproduces the defect):
+
+| probe | where | hits in 3 s |
+| --- | --- | --- |
+| MLP5 | after the `glyphs_initialized_p` guard | 94,109 (`glyphs=1 initial=0`) |
+| MLP10 | inside the `'retry_frame` loop | 0 |
+| MLP8 | at the `frame_redisplay_p (f)` test | 0 |
+| MLP9 | the cursor fast path in `redisplay_internal` | 0 |
+| MLP6/7 | `redisplay_windows` / `redisplay_window_0` | 0 |
+| MLP1 | inside `display_mode_line` | 0 |
+
+So `redisplay_internal` is entered about 31,000 times a second, passes the guards, and leaves
+before the `consider_all_windows_p` branch - neither the frame loop nor the selected-window path
+runs.  The next reading is that flag itself, plus whether `FOR_EACH_FRAME` iterates at all
+(`Vframe_list` is non-nil at that point).
+
+The 31,000 calls per second are their own finding: something in the command loop keeps asking for
+a redisplay that returns without doing anything.
