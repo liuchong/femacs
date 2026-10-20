@@ -1398,3 +1398,37 @@ note gives at 790-794.  The exclusion is recorded in `docs/ports/excluded-macros
 resolved type is spelled at the use sites (`stem: [c_int; 2]` at 1732, with the comment at
 1733-1740).  Ticked with those three citations as its evidence; `--check` for the header was
 already `OK` before the tick.
+
+## Declarations (46 prototypes at the mirror's scope, status 4.993)
+
+C's prototypes for functions other units define (3566-4032) stood in 33 units' use-site blocks and
+in this mirror not at all - invisible to the name gate, which only asks whether a name exists
+somewhere in the tree (P-297).  They now stand in `dispextern_fn_decls`, a module plus a glob
+import (`P-39`'s shape), and the 100 use-site copies are withdrawn.
+
+- [x] 46 prototypes in `dispextern_fn_decls`, each with its C line and C text
+- [x] the prototypes that name `it`/`face` carry `dispextern_face_records`, the one that names
+      `image` carries `have_window_system` - the gates of the records they name, so a unit that
+      has the feature off (bidi.c) reads no prototype it could not type
+- [x] 100 use-site copies withdrawn across 33 units; empty `extern` blocks and the doc comments
+      they stranded deleted with them
+- [ ] the 159 still missing (`struct frame`/`struct window` prototypes): they need those records at
+      this scope, which the mirror does not carry yet
+
+### Evidence
+
+- `cd femacs && CARGO_TARGET_DIR=/tmp/xt-cargo cargo run -q -p xtask -- gate-probes`
+  -> `340 translation unit(s) compiled with the non-frozen arms, 0 failed` (exit 0; 135 s / 372 MB).
+  Three readings were needed: 10 `E0425` for `it`/`image`/`face` before the gates were per-record,
+  then 5 units with a stranded `///` after the withdrawals, then 0.
+- `... -- gate-fast` -> exit 0 (981 s / 392 MB at load 41-68): its own-voice gate 0 failures, the
+  c-string gate 12,037 sites all terminated, copied trees 4,604 files 0 failures, the mirror-dupes
+  gate `16 duplicate declaration(s), 16 ratchet row(s), 0 failure(s)`, the Android layout gate 52
+  rows 0 mismatches, `layout probe ok` / `layout-check passed`.
+- `python3 tools/extract-abi.py --all` -> `590 done, 0 in progress, 0 failing`.
+- `python3 tools/check-mirror-dupes.py` -> `16 duplicate declaration(s), 16 ratchet row(s), 0
+  failure(s)` - the 100 new hits are gone, not ratcheted.
+- The declaration gap this file's C leaves, re-measured after the move (method: compare `emacs/src/
+  *.h` declaration names against `femacs/src/include/*.rs`, then look for the name in the tree):
+  **1,033 -> 987** not in their own mirror; 966 of them are declared elsewhere in the tree and 21
+  appear nowhere (all C-side stale declarations or dead branches).
