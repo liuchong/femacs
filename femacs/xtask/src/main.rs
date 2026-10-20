@@ -68,6 +68,16 @@ fn unit_codegen_flags () -> Vec<String>
         }
       println!("unit codegen: -C overflow-checks={v} (FEMACS_OVERFLOW_CHECKS)");
     }
+  // `FEMACS_DEBUGINFO=1` is a *diagnostic* like the two above: a release unit has no line
+  // tables, so a tombstone can only name the enclosing function (`llvm-addr2line` prints the
+  // cgu and line 0).  Turning them on for one unit turns a crash address into a source line,
+  // which is what the Android start-up and input hunts need; the frozen flags keep them off.
+  if std::env::var ("FEMACS_DEBUGINFO").map (|v| ! v.is_empty () && v != "0").unwrap_or (false)
+    {
+      out.push ("-C".to_string ());
+      out.push ("debuginfo=1".to_string ());
+      println!("unit codegen: -C debuginfo=1 (FEMACS_DEBUGINFO)");
+    }
   out
 }
 

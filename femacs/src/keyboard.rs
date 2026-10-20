@@ -4851,14 +4851,18 @@ unsafe fn kbd_buffer_get_event (kbp: *mut *mut KBOARD,
 		 find the last pinch event in succession on the same
 		 frame with the same modifiers, and send that instead.  */
 
+	      /* C 4397-4405 puts the three `||` terms **inside** the `&&`: `kind == PINCH_EVENT
+		 && (dx != 0 || dy != 0 || angle != 0)`.  The port had them outside, so a plain
+		 keystroke (whose `arg` is nil) evaluated `XCAR (XCDR (nil))` and faulted - the first
+		 Android key press crashed in kbd_buffer_get_event at fault addr 0x5 (status 4.960).  */
 	      if input_event_bits! (kind, &raw mut (*event).ie) == PINCH_EVENT
 		  /* Ignore if this is the start of a pinch sequence.
 		     These events should always be sent so that we
 		     never miss a sequence starting, and they don't
 		     have the potential to queue up.  */
-		  && { pinch_dx = XFLOAT_DATA (XCAR ((*event).ie.arg)); pinch_dx != 0.0 }
-		     || XFLOAT_DATA (XCAR (XCDR ((*event).ie.arg))) != 0.0
-		     || XFLOAT_DATA (Fnth (make_fixnum (3), (*event).ie.arg)) != 0.0
+		  && ({ pinch_dx = XFLOAT_DATA (XCAR ((*event).ie.arg)); pinch_dx != 0.0 }
+		      || XFLOAT_DATA (XCAR (XCDR ((*event).ie.arg))) != 0.0
+		      || XFLOAT_DATA (Fnth (make_fixnum (3), (*event).ie.arg)) != 0.0)
 		{
 		  let mut maybe_event: *mut buffered_input_event = next_kbd_event (event);
 
