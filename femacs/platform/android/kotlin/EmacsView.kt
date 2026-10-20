@@ -257,7 +257,12 @@ class EmacsView(window: EmacsWindow) :
 
   override fun onDraw(canvas: Canvas) {
     canvas.drawColor(0xffffffff.toInt())
-    val frame = surfaceView.lastFrame() ?: bitmap
+    /* Prefer the presented frame, but fall back to the live bitmap when that
+       frame was recycled by a reconfiguration (handleDirtyBitmap recycles the
+       previous bitmap, and a presented reference to it must not stop the
+       redraw).  */
+    val presented = surfaceView.lastFrame()
+    val frame = if (presented != null && !presented.isRecycled) presented else bitmap
     if (frame == null || frame.isRecycled) {
       if (redrawRetries < 300) {
         redrawRetries += 1
