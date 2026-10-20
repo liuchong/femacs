@@ -118,7 +118,7 @@ cd femacs && CARGO_TARGET_DIR=/tmp/xt-cargo cargo run -q -p xtask -- gate-androi
 bash tools/smoke.sh                                                                  # macOS 冒烟
 python3 tools/check-verbatim.py                                                      # 原样树逐字节
 python3 tools/gen-ja-dic.py && python3 tools/check-generated.py                       # ja-dic 生成 + 生成物 242 文件
-python3 tools/bench.sh [--rounds N] [--gate docs/baseline/bench.tsv]                  # 性能读数/回归门
+python3 tools/bench.sh [--rounds N] [--gate docs/baseline/bench.tsv] [--save F --force]   # 性能读数/回归门
 tools/gen-android-config.sh --check-prereqs                                          # Android 配置前置
 ```
 
