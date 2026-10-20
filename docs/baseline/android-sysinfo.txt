@@ -1,0 +1,74 @@
+== gfxinfo ==
+Applications Graphics Acceleration Info:
+Uptime: 33572 Realtime: 33572
+
+** Graphics info for pid 2188 [org.femacs] **
+
+Stats since: 23822908218ns
+Total frames rendered: 153
+Janky frames: 89 (58.17%)
+Janky frames (legacy): 10 (6.54%)
+50th percentile: 17ms
+90th percentile: 28ms
+95th percentile: 34ms
+99th percentile: 65ms
+Number Missed Vsync: 0
+Number High input latency: 64
+Number Slow UI thread: 2
+Number Slow bitmap uploads: 2
+Number Slow issue draw commands: 87
+Number Frame deadline missed: 89
+Number Frame deadline missed (legacy): 10
+HISTOGRAM: 5ms=0 6ms=0 7ms=0 8ms=0 9ms=0 10ms=0 11ms=0 12ms=0 13ms=0 14ms=0 15ms=0 16ms=27 17ms=79 18ms=7 19ms=4 20ms=7 21ms=6 22ms=1 23ms=0 24ms=1 25ms=1 26ms=2 27ms=0 28ms=3 29ms=1 30ms=0 31ms=0 32ms=6 34ms=3 36ms=0 38ms=0 40ms=2 42ms=0 44ms=0 46ms=0 48ms=0 53ms=1 57ms=0 61ms=0 65ms=1 69ms=0 73ms=0 77ms=0 81ms=0 85ms=0 89ms=0 93ms=0 97ms=0 101ms=0 105ms=0 109ms=0 113ms=0 117ms=0 121ms=0 125ms=0 129ms=0 133ms=0 150ms=1 200ms=0 250ms=0 300ms=0 350ms=0 400ms=0 450ms=0 500ms=0 550ms=0 600ms=0 650ms=0 700ms=0 750ms=0 800ms=0 850ms=0 900ms=0 950ms=0 1000ms=0 1050ms=0 1100ms=0 1150ms=0 1200ms=0 1250ms=0 1300ms=0 1350ms=0 1400ms=0 1450ms=0 1500ms=0 1550ms=0 1600ms=0 1650ms=0 1700ms=0 1750ms=0 1800ms=0 1850ms=0 1900ms=0 1950ms=0 2000ms=0 2050ms=0 2100ms=0 2150ms=0 2200ms=0 2250ms=0 2300ms=0 2350ms=0 2400ms=0 2450ms=0 2500ms=0 2550ms=0 2600ms=0 2650ms=0 2700ms=0 2750ms=0 2800ms=0 2850ms=0 2900ms=0 2950ms=0 3000ms=0 3050ms=0 3100ms=0 3150ms=0 3200ms=0 3250ms=0 3300ms=0 3350ms=0 3400ms=0 3450ms=0 3500ms=0 3550ms=0 3600ms=0 3650ms=0 3700ms=0 3750ms=0 3800ms=0 3850ms=0 3900ms=0 3950ms=0 4000ms=0 4050ms=0 4100ms=0 4150ms=0 4200ms=0 4250ms=0 4300ms=0 4350ms=0 4400ms=0 4450ms=0 4500ms=0 4550ms=0 4600ms=0 4650ms=0 4700ms=0 4750ms=0 4800ms=0 4850ms=0 4900ms=0 4950ms=0
+50th gpu percentile: 16ms
+90th gpu percentile: 24ms
+95th gpu percentile: 4950ms
+99th gpu percentile: 4950ms
+GPU HISTOGRAM: 1ms=0 2ms=0 3ms=0 4ms=0 5ms=0 6ms=0 7ms=1 8ms=1 9ms=4 10ms=2 11ms=0 12ms=1 13ms=5 14ms=17 15ms=44 16ms=17 17ms=25 18ms=6 19ms=0 20ms=6 21ms=5 22ms=1 23ms=1 24ms=3 25ms=1 4950ms=13
+
+Pipeline=Skia (OpenGL)
+Memory policy:
+  Max surface area: 2592000
+  Max resource usage: 124.42MB (x48)
+  Background retention: 50% (altUiHidden = true)
+  GPU Context timeout: 10
+Contexts: 1 (stopped = 0)
+CPU Caches:
+  Glyph Cache: 0.00 bytes (1 entry)
+  Glyph Count: 0 
+Total CPU memory usage:
+  0 bytes, 0.00 bytes (0.00 bytes is purgeable)
+GPU Caches:
+== window ==
+  Window #7 Window{1cfbc9d u0 org.femacs/org.femacs.EmacsActivity}:
+    mDisplayId=0 taskId=102 mSession=Session{512cb61 2188:u0a10340} mClient=android.os.BinderProxy@9062f74
+    mOwnerUid=10340 showForAllUsers=false package=org.femacs appop=NONE
+    mAttrs={(0,0)(fillxfill) sim={adjust=resize} layoutInDisplayCutoutMode=always ty=BASE_APPLICATION wanim=0x1030302
+      fl=LAYOUT_IN_SCREEN LAYOUT_INSET_DECOR SPLIT_TOUCH HARDWARE_ACCELERATED DRAWS_SYSTEM_BAR_BACKGROUNDS
+      pfl=NO_MOVE_ANIMATION EDGE_TO_EDGE_ENFORCED FORCE_DRAW_STATUS_BAR_BACKGROUND FIT_INSETS_CONTROLLED
+--
+    mBaseLayer=21000 mSubLayer=0    mToken=ActivityRecord{52236408 u0 org.femacs/.EmacsActivity t102}
+    mActivityRecord=ActivityRecord{52236408 u0 org.femacs/.EmacsActivity t102}
+    drawnStateEvaluated=true    mightAffectAllDrawn=true
+    mViewVisibility=0x0 mHaveFrame=true mObscured=false
+    mGivenContentInsets=[0,0][0,0] mGivenVisibleInsets=[0,0][0,0]
+--
+    WindowStateAnimator{f8df1ad org.femacs/org.femacs.EmacsActivity}:
+      mSurface=Surface(name=org.femacs/org.femacs.EmacsActivity)/@0x7e0cce2
+      Surface: shown=true      mDrawState=HAS_DRAWN       mLastHidden=false
+      mEnterAnimationPending=false      mSystemDecorRect=[0,0][0,0]
+    isOnScreen=true
+--
+  imeLayeringTarget in display# 0 Window{1cfbc9d u0 org.femacs/org.femacs.EmacsActivity}
+  imeInputTarget in display# 0 Window{1cfbc9d u0 org.femacs/org.femacs.EmacsActivity}
+  imeControlTarget in display# 0 Window{1cfbc9d u0 org.femacs/org.femacs.EmacsActivity}
+  Minimum task size of display#0 220
+  mBlurEnabled=true
+  mDisableSecureWindows=false
+== activity ==
+    topResumedActivity=ActivityRecord{52236408 u0 org.femacs/.EmacsActivity t102}
+    * Hist  #0: ActivityRecord{52236408 u0 org.femacs/.EmacsActivity t102}
+      packageName=org.femacs processName=org.femacs
+      app=ProcessRecord{9eb7654 2188:org.femacs/u0a340}
+      Intent { flg=0x10000000 xflg=0x4 cmp=org.femacs/.EmacsActivity }
+      mActivityComponent=org.femacs/.EmacsActivity

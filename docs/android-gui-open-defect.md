@@ -49,6 +49,25 @@
 
 ⇒ 不是“父容器没被 invalidate”，也不是“硬件层缓存了首帧”。`onDraw` 仍然只跑一次。
 
+## 3c. 系统侧读数（status 4.948）
+
+`dumpsys gfxinfo org.femacs`（`docs/baseline/android-sysinfo.txt`）：
+
+```
+Total frames rendered: 153      <- 窗口确实在出帧
+Janky frames: 89 (58.17%)
+Glyph Cache: 0.00 bytes (1 entry) / Glyph Count: 0   <- 平台字形缓存为空（我们画的是位图，符合预期）
+```
+
+`onDraw` 侧读数：`OD#1 same=true px=-1 px2=0` → `OD#2/#3 same=true px=-1 px2=-1`
+⇒ 首次绘制时位图 (1,300) 是 **完全透明 0x00000000**，随后变白；
+而 `frame === bitmap` 恒为真、位图非空且未回收。
+
+**推论**：窗口在出帧（153 帧），`onDraw` 也在跑，但**我们画的那块位图里没有 Emacs 的内容**
+（透明→白，从未出现黑）。下一条必须做的是**身份对比**：
+`handleDirtyBitmap()` 里 `System.identityHashCode(bitmap)` 与 `onDraw` 里同一个值，
+若不同 ⇒ 存在两块位图，Emacs 画的是另一块。
+
 ## 4. 下一步（按代价排序）
 
 1. **一条读数即可判定**：在 `EmacsView.onDraw` 里同时记录
