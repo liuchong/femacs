@@ -247,11 +247,25 @@ class EmacsView(window: EmacsWindow) :
     bitmapDirty = true
   }
 
+  /* Redraw attempts left before this view stops rescheduling itself.  Emacs
+     hands frames over through `present`, but on the emulator the redisplay that
+     follows an expose does not always end in a buffer swap, so a single
+     `postInvalidate` can fire before any frame exists (status 4.939 measured
+     exactly one draw with a null frame).  Retrying for a few seconds is a
+     presentation-layer decision and leaves the C side untouched.  */
+  private var redrawRetries: Int = 0
+
   override fun onDraw(canvas: Canvas) {
     canvas.drawColor(0xffffffff.toInt())
-    val frame = surfaceView.lastFrame()
-    if (frame == null || frame.isRecycled)
+    val frame = surfaceView.lastFrame() ?: bitmap
+    if (frame == null || frame.isRecycled) {
+      if (redrawRetries < 300) {
+        redrawRetries += 1
+        postInvalidateDelayed(100)
+      }
       return
+    }
+    redrawRetries = 0
     canvas.drawBitmap(frame, 0f, 0f, null)
   }
 
