@@ -165,3 +165,28 @@ and `prepare_menu_bars ()`.
 
 The follow-up patch (markers after each of those three calls) failed to apply - an anchor did not
 match - so it was not run.  Source is clean at `HEAD` and the defect still reproduces.
+
+## Root cause found (4.1018)
+
+Markers walked the gap between the loop body and the `'frame_pass` block:
+
+    N0 loop body 8   N1 after do_pending_window_change 8   N2 after clear_garbaged_frames 8
+    N3 after prepare_menu_bars 8   N4 frame-pass top 0
+
+so the ordinary calls all return, and the flow still stops between `prepare_menu_bars` and the
+block.  The call in that gap is `echo_area_display (false)` (the startup message keeps it on the
+path); a marker right after it is **0**:
+
+    N3 8   N5 after echo_area_display 0   N6 0   N4 0
+
+and inside `echo_area_display`, `clear_garbaged_frames ()` returns but `display_echo_area (w)`
+does not:
+
+    E1 after clear_garbaged_frames 8   E2 after display_echo_area 0
+
+**`display_echo_area` throws on every call.**  The throw unwinds out of `redisplay_internal`
+(which is why `unwind_redisplay` resets `redisplaying_p` and the command loop keeps re-entering it
+about 31,000 times a second), so the frame pass never runs and the mode line is never drawn.
+
+Next: read `display_echo_area`'s tty path against the reference - the throw is either an explicit
+signal in a branch the tty build should not take, or a call into an unported helper.
