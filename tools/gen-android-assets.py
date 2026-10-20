@@ -121,9 +121,16 @@ def build_metadata(out: pathlib.Path) -> None:
 
 def directory_tree(out: pathlib.Path) -> str:
     """C 261-263: `asset-directory-tool assets assets/directory-tree` - the port's own copy."""
+    # C's programs live under `lib-src/`, so the natural home is `build/port/lib-src/`; but
+    # `xtask link-program` writes the binary straight into `build/port/` (it names the output by
+    # the unit stem).  Both are read here rather than making the caller move files around: the
+    # gate failed with "directory-tree not written" while a perfectly good binary sat one
+    # directory up (status 4.963, measured).
     tool = REPO / "build" / "port" / "lib-src" / "asset-directory-tool"
     if not tool.is_file():
-        return ("asset-directory-tool is not built (xtask link/`build-tu lib-src/asset-directory-tool.c` "
+        tool = REPO / "build" / "port" / "asset-directory-tool"
+    if not tool.is_file():
+        return ("asset-directory-tool is not built (xtask link-program asset-directory-tool "
                 "first): directory-tree not written")
     run = subprocess.run([str(tool), str(out / "assets"), str(out / "assets" / "directory-tree")],
                          capture_output=True, text=True)
