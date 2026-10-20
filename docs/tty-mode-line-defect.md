@@ -91,3 +91,24 @@ different probe set.  The next round puts **one** trace in **one** build - marke
 entry, at each `break 'cancel` / `break 'update` / `break 'retry`, right after the labelled block,
 inside the `if consider_all_windows_p` branch, at `redisplay_window` entry and at
 `display_mode_line` - so a single run says which exit was taken.
+
+## Probe round 3 (4.1014)
+
+One build, one run: markers at entry, after the glyphs guard, and after each of the five statements
+that follow it (`redisplay_counter`, `record_unwind_protect_void (unwind_redisplay)`,
+`redisplaying_p = true`, `specbind`, `reset_outermost_restrictions`).  The run printed
+
+    B-past-guards, C1, C2, C3, C4, C5   (then the same six again)
+
+and nothing after `reset_outermost_restrictions ()`.  The marker meant for the `'retry` loop head
+landed in a **different** `'retry: loop` (line 9525, not 16829), so the run says only that
+execution reaches `reset_outermost_restrictions ()`; it does not yet say whether the loop is
+entered.
+
+Two later patch attempts produced invalid Rust (a trace inserted between an `if` and its `{`), and
+were reverted.  Source is back at `HEAD`, rebuilt, and the defect reproduces (`tui-smoke` 1,096
+bytes, mode line MISSING).
+
+Next round: either patch by hand at three exact statements (loop head, fast-path block entry, the
+`redisplay_window` call) instead of a pattern-matched insert, or switch to lldb - break on
+`redisplay_internal`, `finish`, and read which caller path returned.
