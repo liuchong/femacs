@@ -15,6 +15,7 @@
 #   tap      tap, then a key, then F10, comparing content-area screenshots
 #   applog   every logcat line from the app process around two key presses
 #   probes   with the temporary PROBE4953 build: did the key reach activity/view/neither
+#   threads  per-thread kernel wait channel (wchan): select on fds vs condvar
 #   signal   deliver SIGIO by hand after a key, to separate 'never woken' from 'never queued'
 #   insert-rotate  type into the buffer, then force a full redraw by rotating
 #
@@ -27,7 +28,12 @@
 set -u
 
 SDK=${ANDROID_SDK_ROOT:-$HOME/Library/Android/sdk}
-ADB=$SDK/platform-tools/adb
+# A fixed port and an explicit serial: other emulators on this machine belong to other work and
+# must not be touched, and a bare `adb` refuses to choose between them (measured: "more than one
+# device/emulator" once a second emulator existed).
+PORT=${FEMACS_EMU_PORT:-5560}
+SERIAL=emulator-$PORT
+ADB="$SDK/platform-tools/adb -s $SERIAL"
 EMU=$SDK/emulator/emulator
 AVD=${FEMACS_AVD:-femacs-arm64-api36}
 APK=${FEMACS_APK:-/tmp/femacs-apk/emacs.apk}
@@ -40,7 +46,7 @@ stage=${1:-focus}
 boot ()
 {
   $ADB emu kill >/dev/null 2>&1; sleep 2
-  $EMU -avd "$AVD" -no-window -no-audio -no-boot-anim -no-snapshot-save \
+  $EMU -avd "$AVD" -port "$PORT" -no-window -no-audio -no-boot-anim -no-snapshot-save \
        -memory 2048 -gpu guest >"$OUT/emulator-$stage.log" 2>&1 &
   for _ in $(seq 1 300); do
     [ "$($ADB shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')" = "1" ] && break
@@ -171,6 +177,29 @@ case $stage in
     echo "== md5 landscape baseline / after typing =="
     md5 -q "$OUT/ir-landscape-baseline.png" "$OUT/ir-landscape-after-typing.png"
     $ADB shell settings put system user_rotation 0 >/dev/null 2>&1
+    ;;
+
+  threads)
+    # Where is each thread actually blocked?  wchan names the kernel wait, which separates
+    # "blocked in select on file descriptors" from "blocked on a condvar" without any build.
+    boot; launch
+    PID=$($ADB shell pidof org.femacs | tr -d '\r')
+    echo "== threads of $PID: tid / comm / state / wchan =="
+    for t in $($ADB shell ls /proc/$PID/task 2>/dev/null | tr -d '\r'); do
+      echo -n "$t "
+      $ADB shell cat /proc/$PID/task/$t/comm 2>/dev/null | tr -d '\n'
+      echo -n " "
+      $ADB shell cat /proc/$PID/task/$t/stat 2>/dev/null | awk '{print $3}' | tr -d '\n'
+      echo -n " "
+      $ADB shell cat /proc/$PID/task/$t/wchan 2>/dev/null | tr -d '\n'
+      echo
+    done
+    $ADB shell input keyevent KEYCODE_A >/dev/null 2>&1; sleep 2
+    echo "== after one key: emacs thread again =="
+    for t in $($ADB shell ls /proc/$PID/task 2>/dev/null | tr -d '\r'); do
+      c=$($ADB shell cat /proc/$PID/task/$t/comm 2>/dev/null | tr -d '\r')
+      case "$c" in *Emacs*|*emacs*) echo -n "$t $c "; $ADB shell cat /proc/$PID/task/$t/wchan 2>/dev/null ;; esac
+    done
     ;;
 
   probes)

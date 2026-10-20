@@ -13,7 +13,7 @@ INFO         |   Checking: hasSufficientHwGpu
 INFO         |      Ok: Hardware GPU compatibility checks are not required
 INFO         |   Checking: hasSufficientSystem
 INFO         |      Ok: System requirements to run avd: `femacs-arm64-api36` are met
-INFO         | Storing crashdata in: /tmp/android-liu/emu-crash-36.6.11.db, detection is enabled for process: 3500
+INFO         | Storing crashdata in: /tmp/android-liu/emu-crash-36.6.11.db, detection is enabled for process: 53836
 INFO         | Initializing gfxstream backend
 INFO         | startOpenglesRendererImpl: gpu info
 INFO         | 
@@ -78,13 +78,13 @@ INFO         |   androidboot.veritymode=enforcing
 INFO         | Monitoring duration of emulator setup.
 WARNING      | The emulator now requires a signed jwt token for gRPC access! Use the -grpc flag if you really want an open unprotected grpc port
 INFO         | Using security allow list from: /Users/liu/Library/Android/sdk/emulator/lib/emulator_access.json
-INFO         | The active JSON Web Key Sets can be found here: /Users/liu/Library/Caches/TemporaryItems/avd/running/3500/jwks/07b54f2a-f75a-4508-859d-72643ad15557/active.jwk
-INFO         | Scanning /Users/liu/Library/Caches/TemporaryItems/avd/running/3500/jwks/07b54f2a-f75a-4508-859d-72643ad15557 for jwk keys.
+INFO         | The active JSON Web Key Sets can be found here: /Users/liu/Library/Caches/TemporaryItems/avd/running/53836/jwks/c61d7f4d-8a69-4b8b-a166-7e4462054aad/active.jwk
+INFO         | Scanning /Users/liu/Library/Caches/TemporaryItems/avd/running/53836/jwks/c61d7f4d-8a69-4b8b-a166-7e4462054aad for jwk keys.
 INFO         | Started GRPC server at 127.0.0.1:8554, security: Local, auth: +token
-INFO         | Advertising in: /Users/liu/Library/Caches/TemporaryItems/avd/running/pid_3500.ini
+INFO         | Advertising in: /Users/liu/Library/Caches/TemporaryItems/avd/running/pid_53836.ini
 INFO         | Activated packet streamer for uwb emulation
-INFO         | Activated packet streamer for bluetooth emulation
 INFO         | Successfully initialized netsim WiFi
+INFO         | Activated packet streamer for bluetooth emulation
 INFO         | Setting display: 0 configuration to: 1080x2400, dpi: 420x420 
 INFO         | setDisplayActiveConfig: id:0, 1080x2400
 INFO         | emulatorSetupEnvironment: Environment scene is not required
@@ -93,11 +93,10 @@ WARNING      | Device 'encrypt' does not have the requested snapshot 'default_bo
 
 WARNING      | Failed to load snapshot 'default_boot'
 USER_INFO    | The emulator is performing a cold boot without a saved state because there's no snapshot and you have configured it not to save on exit.
-INFO         | Boot completed in 28201 ms
+INFO         | Boot completed in 28259 ms
 INFO         | Increasing screen off timeout, logcat buffer size to 2M.
-WARNING      | adb command '/Users/liu/Library/Android/sdk/platform-tools/adb -s emulator-5554 shell logcat -G 2M ' failed: 'adb: device offline'
-WARNING      | adb command '/Users/liu/Library/Android/sdk/platform-tools/adb -s emulator-5554 shell logcat -G 2M ' failed: 'adb: device 'emulator-5554' not found'
-INFO         | Wait for emulator (pid 3500) 20 seconds to shutdown gracefully before kill;you can set environment variable ANDROID_EMULATOR_WAIT_TIME_BEFORE_KILL(in seconds) to change the default value (20 seconds)
+WARNING      | adb command '/Users/liu/Library/Android/sdk/platform-tools/adb -s emulator-5554 shell settings put system accelerometer_rotation 1 ' failed: 'adb: device 'emulator-5554' not found'
+INFO         | Wait for emulator (pid 53836) 20 seconds to shutdown gracefully before kill;you can set environment variable ANDROID_EMULATOR_WAIT_TIME_BEFORE_KILL(in seconds) to change the default value (20 seconds)
 
 USER_INFO    | Snapshots have been disabled by the user, save request is ignored.
 INFO         | Saving snapshot 'default_boot' using 0 ms

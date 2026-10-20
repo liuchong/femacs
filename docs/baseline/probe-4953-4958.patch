@@ -61,26 +61,10 @@ index eff3a7dd..14d7b758 100644
        characters = event.getCharacters()
  
 diff --git a/femacs/src/android.rs b/femacs/src/android.rs
-index 2e78c66c..0bafa1b5 100644
+index 2e78c66c..66096edf 100644
 --- a/femacs/src/android.rs
 +++ b/femacs/src/android.rs
-@@ -1193,6 +1193,15 @@ pub unsafe fn android_check_if_event
- 
- #[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
- #[unsafe(no_mangle)]
-+/* PROBE4956: temporary drain-side probe, removed after the reading.  */
-+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
-+pub unsafe fn probe4956_drain (kind: c_int, any_is_null: c_int)
-+{
-+  __android_log_print (ANDROID_LOG_INFO, c"femacsprobe".as_ptr (),
-+		       c"PROBE4956 drain type=%d any_null=%d".as_ptr (),
-+		       kind, any_is_null);
-+}
-+
- pub unsafe fn android_write_event (event: *mut android_event)   // C 868-909
- {
-   let mut container: *mut android_event_container;
-@@ -1205,7 +1214,15 @@ pub unsafe fn android_write_event (event: *mut android_event)   // C 868-909
+@@ -1205,7 +1205,15 @@ pub unsafe fn android_write_event (event: *mut android_event)   // C 868-909
  
    /* If the event queue hasn't been initialized yet, return false.  */
    if event_queue.events.next.is_null ()
@@ -97,7 +81,7 @@ index 2e78c66c..0bafa1b5 100644
  
    pthread_mutex_lock (&raw mut event_queue.mutex);
    (*container).next = event_queue.events.next;
-@@ -1214,6 +1231,8 @@ pub unsafe fn android_write_event (event: *mut android_event)   // C 868-909
+@@ -1214,6 +1222,8 @@ pub unsafe fn android_write_event (event: *mut android_event)   // C 868-909
    (*(*container).last).next = container;
    (*container).event = *event;
    event_queue.num_events += 1;
@@ -106,15 +90,77 @@ index 2e78c66c..0bafa1b5 100644
    pthread_cond_broadcast (&raw mut event_queue.read_var);
    pthread_mutex_unlock (&raw mut event_queue.mutex);
  
+@@ -1246,6 +1256,17 @@ pub unsafe fn android_select (nfds: c_int, readfds: *mut fd_set, writefds: *mut
+ {
+   let mut nfds_return: c_int;
+   let mut nevents: c_int;
++  /* PROBE4957: is this function entered at all after start-up?  */
++  {
++    static mut PROBE4957_CALLS: c_ulong = 0;
++    PROBE4957_CALLS += 1;
++    if PROBE4957_CALLS < 6 || PROBE4957_CALLS % 1000 == 0
++      {
++	__android_log_print (ANDROID_LOG_INFO, c"femacsprobe".as_ptr (),
++			     c"PROBE4957 select call=%lu".as_ptr (), PROBE4957_CALLS);
++      }
++  }
++
+   #[cfg (feature = "android_api_lt_21")]
+   static mut byte: c_char = 0;                             // C 924 (tentative, i.e. zero)
+   let mut data: *mut android_thread_event_queue;
+@@ -1261,6 +1282,9 @@ pub unsafe fn android_select (nfds: c_int, readfds: *mut fd_set, writefds: *mut
+ 
+   if event_queue.num_events != 0
+     {
++      __android_log_print (ANDROID_LOG_INFO, c"femacsprobe".as_ptr (),   /* PROBE4957 */
++			   c"PROBE4957 select sees queued=%d".as_ptr (),
++			   event_queue.num_events);
+       /* Zero READFDS, WRITEFDS and EXCEPTFDS, lest the caller
+ 	 mistakenly interpret this return value as indicating that an
+ 	 inotify file descriptor is readable, and try to poll an
 diff --git a/femacs/src/androidterm.rs b/femacs/src/androidterm.rs
-index e605d824..cf5bcefd 100644
+index e605d824..4096a98f 100644
 --- a/femacs/src/androidterm.rs
 +++ b/femacs/src/androidterm.rs
-@@ -1427,6 +1427,7 @@ unsafe fn handle_one_android_event (dpyinfo: *mut android_display_info,
+@@ -1427,6 +1427,16 @@ unsafe fn handle_one_android_event (dpyinfo: *mut android_display_info,
    hlinfo = &raw mut (*dpyinfo).mouse_highlight;                         // C 860
    *finish = ANDROID_EVENT_NORMAL;                                       // C 861
    any = android_window_to_frame (dpyinfo, (*event).xany.window);        // C 862
-+  crate::android::probe4956_drain ((*event).r#type, any.is_null () as c_int);   /* PROBE4956 */
++  /* PROBE4956: each unit is its own crate root, so the log call is declared here.  */
++  {
++    unsafe extern "C" {
++      fn __android_log_print (prio: c_int, tag: *const c_char,
++			      fmt: *const c_char, ...) -> c_int;
++    }
++    __android_log_print (4, c"femacsprobe".as_ptr (),
++			 c"PROBE4956 drain type=%d any_null=%d".as_ptr (),
++			 (*event).r#type, any.is_null () as c_int);
++  }
    nchars = 0;                                                           // C 863
  
    if ! any.is_null () && (*any).wait_event_type == (*event).r#type     // C 865
+diff --git a/femacs/src/process.rs b/femacs/src/process.rs
+index 45a3f55f..d269e87c 100644
+--- a/femacs/src/process.rs
++++ b/femacs/src/process.rs
+@@ -5948,6 +5948,20 @@ pub unsafe fn wait_reading_process_output (time_limit: i64, nsecs: c_int, read_k
+ 	     (C 5805-5815, `#if defined HAVE_ANDROID && !defined ANDROID_STUBIFY`).  */
+ 	  #[cfg (feature = "have_android")]
+ 	  {
++	    /* PROBE4958: log once, so a missing line means this arm never runs.  */
++	    {
++	      static mut PROBE4958_SEEN: bool = false;
++	      if !PROBE4958_SEEN
++		{
++		  PROBE4958_SEEN = true;
++		  unsafe extern "C" {
++		    fn __android_log_print (prio: c_int, tag: *const c_char,
++					    fmt: *const c_char, ...) -> c_int;
++		  }
++		  __android_log_print (4, c"femacsprobe".as_ptr (),
++				       c"PROBE4958 android arm taken".as_ptr ());
++		}
++	    }
+ 	    /* `#ifndef THREADS_ENABLED`'s arm.  */
+ 	    #[cfg (not (feature = "threads_enabled"))]
+ 	    { nfds = android_select (max_desc + 1, &raw mut Available,

@@ -158,18 +158,52 @@ D EmacsView:     PROBE4953 TOUCH 0 / TOUCH 1    (tap)
 **缓冲区没被修改**。⚠️ 这一条也是 4.952 那轮 `insert-rotate` 一度读成“打字改变了画面”的来源：
 那次 md5 不同来自状态栏，不要再用整幅 md5 判断文字是否变化。
 
+## 3h. C 侧读数：事件确实入队，但从来没有人排空（status 4.954）
+
+补丁 `docs/baseline/probe-4953-4958.patch` 里加的三条 C 侧探针，在设备上一次运行给出：
+
+```
+I femacsprobe: PROBE4956 write type=0        <- ANDROID_KEY_PRESS
+I femacsprobe: PROBE4956 queued=1
+I femacsprobe: PROBE4956 write type=1        <- KEY_RELEASE, queued=2
+I femacsprobe: PROBE4956 write type=11 / 12  <- TOUCH_DOWN / UP, queued=3 / 4
+```
+
+- **`PROBE4956 drain` 一条都没有** ⇒ `handle_one_android_event` 从未被调用，
+  `android_read_socket` 也没跑过；队列只涨不消（1→4）。
+- **`PROBE4957 select sees queued` 一条都没有** ⇒ `android_select` 从没在“队列里有事件”的状态下被进入。
+  如果它压根没被调用过，那就说明主循环等的不是它。
+- **`PROBE4958 android arm taken` 一条都没有** ⇒ `wait_reading_process_output` 里的
+  `#[cfg (feature = "have_android")]` 臂在运行时没有走到（该函数另有出口，或根本没进这个函数）。
+- 线程快照（`tools/android-input-probe.sh threads`，读数在 `docs/baseline/android-focus/emulator-threads.log`
+  的同一命令输出里）：`Emacs main thre … futex_wait_queue`（Lisp 主线程停在 futex 上，
+  **不是在 select 的 fd 等待上**）、`Emacs polling t … do_sigtimedwait`、`RenderThread … do_epoll_wait`。
+  按键之后 Lisp 主线程**位置不变**。
+
+⇒ 缺口因此收敛成一句话：**Android 事件队列对 Lisp 线程不可见**——事件写进去了，但主线程既没在
+`android_select` 上等，也没被叫醒去 `read_socket`。这与“GUI 只在启动时画过一帧、之后转屏只是把
+旧位图拉伸”这一组现象自洽。**下一处要读的是 `wait_reading_process_output` 到底从哪个出口返回**
+（`Fread_char` 路径、`android_wait_event`、还是 select 臂之外的等待），而不是继续在 `EmacsWindow` 上找。
+
+顺带发现一处真偏离（不是探针）：`femacs/src/thread.rs` 的 `thread_select` 把 C 656-658 的
+`#if defined HAVE_ANDROID && !defined ANDROID_STUBIFY → android_before_select ()`
+记成了“dead”。这一句在 `THREADS_ENABLED` 下是活的，属 1:1 待补项。
+
 ## 4. 下一步
 
-1. **一次带 C 侧探针的构建**（补丁 `docs/baseline/probe-4953-4956.patch` 已备好）：在
-   `android_write_event` 的早退分支、入队之后、以及 `handle_one_android_event` 里
-   `android_window_to_frame` 之后各打一条，就能一次分辨“入队失败 / 入队但没被 drain /
-   drain 了但 `any` 为空被丢弃”。补丁用 `git apply` 加回，量完照 4.944 的规矩撤回。
-2. 若探针显示没被 drain：对照 `thread_select` 在 Android 配置下是否真的走到
-   `android_select_wrapper`（`process.c` 的 `#ifdef HAVE_ANDROID` 臂），并复核
-   `pselect` 的 `select_nfds` 是否覆盖了事件队列存在性。
-3. 若探针显示 drain 了但 `any` 为空：查 `EmacsWindow.handle`（读数 13830）与
-   `android_window_to_frame` 的匹配表在**键盘事件**这条路上为何取不到帧。
-4. 设备环境要求不变：数据卷 ≥8 GiB 空闲；本轮被外部占用压到 1.7 GiB，C 构建无法进行。
+1. 先补 `thread.rs` 的 `android_before_select ()`（C 656-658），再读
+   `wait_reading_process_output` 的出口：在函数入口与每个 `goto` 目标各放一条一次性探针，
+   一次运行就能看到它是否被执行、从哪个分支返回。
+2. 若它根本没被执行：查 `read_char` → `kbd_buffer_get_event` 的 Android 分支，
+   确认 C 里等输入的那一层在端口里没被换成别的等待。
+3. 构建纪律（本轮踩到的坑，写下来免得再犯）：`xtask link-shared` **只链接现成的
+   `*.aarch64-linux-android.o`，不重新编译**。改了 Rust 必须先用
+   `/tmp/build-one.sh src/X.c` 编出该单元的 `.o`，再 `link-shared`；否则 .so 看起来“链接成功”
+   而内容还是旧的（实测：探针字符串不在 .so 里）。本轮末尾顶层对象集丢失，一次 `link-shared`
+   产出 **1.1 MB** 的残链 .so，**不能用**；`/tmp/femacs-apk/emacs.apk` 里仍是 5.43 MB 的好版本，
+   下次构建前必须先把全部单元重新编出再链。
+4. 设备环境：另一个项目的模拟器（`Xingren_GUI_20261020`，端口 5580）正在运行，**不得触碰**；
+   本脚本已改成固定 `-port 5560` 并显式 `adb -s emulator-5560`。
 
 ## 5. 复现命令
 
@@ -181,6 +215,7 @@ D EmacsView:     PROBE4953 TOUCH 0 / TOUCH 1    (tap)
 ./tools/android-input-probe.sh insert-rotate # 打字后整屏重画（判“插进去了没呈现”）
 ./tools/android-input-probe.sh back          # 三连 BACK（Emacs 吞 BACK 的旁证）
 ./tools/android-input-probe.sh signal        # 手动 SIGIO（判“只差一次唤醒”）
-./tools/android-input-probe.sh probes        # 需带 PROBE 的 APK：键到哪一层
+./tools/android-input-probe.sh threads       # 每个线程的 wchan：select 还是 futex
+./tools/android-input-probe.sh probes        # 需带 PROBE 的 APK：键到哪一层、队列有没有被排空
 ./tools/android-input-probe.sh applog        # 按键前后的应用进程日志
 ```
