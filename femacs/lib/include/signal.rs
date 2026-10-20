@@ -132,12 +132,26 @@ pub struct sigset_t
 #[cfg (not (feature = "have_android"))]
 const _: () = core::assert! (std::mem::size_of::<sigset_t> () == 4);
 
-/// <signal.h>: `#define SIG_BLOCK 1`.
+/// <signal.h>: `#define SIG_BLOCK 1` on Darwin, **0 on bionic**
+/// (`sysroot/usr/include/asm-generic/signal-defs.h` 48: `#define SIG_BLOCK 0`).
+/// The two targets disagree, and the wrong value is not a near miss: `pthread_sigmask (1, …)`
+/// on bionic is `SIG_UNBLOCK`, so the select thread ended up with an **empty** mask
+/// (`/proc/<tid>/status` `SigBlk: 0`), SIGUSR1 went to the handler instead of staying pending,
+/// `sigwait` never returned and `android_select` never came back (status 4.956).
+#[cfg (not (feature = "have_android"))]
 pub const SIG_BLOCK: c_int = 1;
-/// <signal.h>: `#define SIG_UNBLOCK 2`.
+#[cfg (feature = "have_android")]
+pub const SIG_BLOCK: c_int = 0;
+/// <signal.h>: `#define SIG_UNBLOCK 2` on Darwin, **1 on bionic** (same header, 51).
+#[cfg (not (feature = "have_android"))]
 pub const SIG_UNBLOCK: c_int = 2;
-/// <signal.h>: `#define SIG_SETMASK 3`.
+#[cfg (feature = "have_android")]
+pub const SIG_UNBLOCK: c_int = 1;
+/// <signal.h>: `#define SIG_SETMASK 3` on Darwin, **2 on bionic** (same header, 54).
+#[cfg (not (feature = "have_android"))]
 pub const SIG_SETMASK: c_int = 3;
+#[cfg (feature = "have_android")]
+pub const SIG_SETMASK: c_int = 2;
 
 /* `struct sigaction` and its handler union (signal.h 73-77's `union __sigaction_u`, whose
    second member is `void (*) (int, siginfo_t *, void *)`; `siginfo_t` is not a type this

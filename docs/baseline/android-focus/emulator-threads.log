@@ -13,7 +13,7 @@ INFO         |   Checking: hasSufficientHwGpu
 INFO         |      Ok: Hardware GPU compatibility checks are not required
 INFO         |   Checking: hasSufficientSystem
 INFO         |      Ok: System requirements to run avd: `femacs-arm64-api36` are met
-INFO         | Storing crashdata in: /tmp/android-liu/emu-crash-36.6.11.db, detection is enabled for process: 75049
+INFO         | Storing crashdata in: /tmp/android-liu/emu-crash-36.6.11.db, detection is enabled for process: 56102
 INFO         | Initializing gfxstream backend
 INFO         | startOpenglesRendererImpl: gpu info
 INFO         | 
@@ -75,10 +75,10 @@ INFO         |   androidboot.vbmeta.digest=1a759cc54d5b9866fccc723e8048c021930de
 INFO         |   androidboot.vbmeta.hash_alg=sha256
 INFO         |   androidboot.vbmeta.size=6848
 INFO         |   androidboot.veritymode=enforcing
-INFO         | Activated packet streamer for bluetooth emulation
-INFO         | Activated packet streamer for uwb emulation
 INFO         | Monitoring duration of emulator setup.
 INFO         | Successfully initialized netsim WiFi
+INFO         | Activated packet streamer for uwb emulation
+INFO         | Activated packet streamer for bluetooth emulation
 INFO         | Setting display: 0 configuration to: 1080x2400, dpi: 420x420 
 INFO         | setDisplayActiveConfig: id:0, 1080x2400
 INFO         | emulatorSetupEnvironment: Environment scene is not required
@@ -87,12 +87,13 @@ WARNING      | Device 'encrypt' does not have the requested snapshot 'default_bo
 
 WARNING      | Failed to load snapshot 'default_boot'
 USER_INFO    | The emulator is performing a cold boot without a saved state because there's no snapshot and you have configured it not to save on exit.
-INFO         | Boot completed in 19772 ms
+INFO         | Boot completed in 20799 ms
 INFO         | Increasing screen off timeout, logcat buffer size to 2M.
-WARNING      | adb command '/Users/liu/Library/Android/sdk/platform-tools/adb -s emulator-5560 shell settings put system screen_off_timeout 2147483647 ' failed: 'adb: device offline'
-WARNING      | adb command '/Users/liu/Library/Android/sdk/platform-tools/adb -s emulator-5560 shell settings put system screen_off_timeout 2147483647 ' failed: 'adb: device offline'
-WARNING      | adb command '/Users/liu/Library/Android/sdk/platform-tools/adb -s emulator-5560 shell settings put system screen_off_timeout 2147483647 ' failed: 'adb: device 'emulator-5560' not found'
-INFO         | Wait for emulator (pid 75049) 20 seconds to shutdown gracefully before kill;you can set environment variable ANDROID_EMULATOR_WAIT_TIME_BEFORE_KILL(in seconds) to change the default value (20 seconds)
+WARNING      | adb command '/Users/liu/Library/Android/sdk/platform-tools/adb -s emulator-5560 shell settings put system accelerometer_rotation 1 ' failed: 'adb: device 'emulator-5560' not found'
+INFO         | Wait for emulator (pid 56102) 20 seconds to shutdown gracefully before kill;you can set environment variable ANDROID_EMULATOR_WAIT_TIME_BEFORE_KILL(in seconds) to change the default value (20 seconds)
 
 USER_INFO    | Snapshots have been disabled by the user, save request is ignored.
-INFO         | Saving snapshot 'default_boot' using 0 ms
+INFO         | Saving snapshot 'default_boot' using 5 ms
+WARNING      | Emulator client has not yet been configured.. Call configure me first!
+INFO         | removeAll
+WARNING      | Netsim Wifi localhost:50883 is gone due to CANCELLED

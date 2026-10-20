@@ -15,6 +15,7 @@
 #   tap      tap, then a key, then F10, comparing content-area screenshots
 #   applog   every logcat line from the app process around two key presses
 #   probes   with the temporary PROBE4953 build: did the key reach activity/view/neither
+#   bt       debuggerd native backtraces: which function the Lisp thread is parked in
 #   threads  per-thread kernel wait channel (wchan): select on fds vs condvar
 #   signal   deliver SIGIO by hand after a key, to separate 'never woken' from 'never queued'
 #   insert-rotate  type into the buffer, then force a full redraw by rotating
@@ -195,11 +196,27 @@ case $stage in
       echo
     done
     $ADB shell input keyevent KEYCODE_A >/dev/null 2>&1; sleep 2
-    echo "== after one key: emacs thread again =="
+    echo "== after one key: signal masks of the port's own threads =="
+    echo "   (bit 9 of SigBlk = SIGUSR1 = SELECT_SIGNAL; it must be blocked outside pselect)"
     for t in $($ADB shell ls /proc/$PID/task 2>/dev/null | tr -d '\r'); do
       c=$($ADB shell cat /proc/$PID/task/$t/comm 2>/dev/null | tr -d '\r')
-      case "$c" in *Emacs*|*emacs*) echo -n "$t $c "; $ADB shell cat /proc/$PID/task/$t/wchan 2>/dev/null ;; esac
+      case "$c" in *Emacs*|*emacs*)
+        echo "tid $t $c"
+        echo -n "  wchan "; $ADB shell cat /proc/$PID/task/$t/wchan 2>/dev/null; echo
+        $ADB shell cat /proc/$PID/task/$t/status 2>/dev/null | grep -E "SigBlk|SigPnd|SigCgt|ShdPnd"
+      ;; esac
     done
+    ;;
+
+  bt)
+    # Native backtrace of every thread, through debuggerd.  This names the function the Lisp
+    # thread is parked in, which no screenshot or logcat line can.
+    boot; launch
+    PID=$($ADB shell pidof org.femacs | tr -d '\r')
+    echo "== pid $PID =="
+    $ADB shell debuggerd -b $PID 2>/dev/null > "$OUT/bt.log"
+    # Only the port's C threads: the Java side is long and already understood.
+    awk '/^"/ { keep = ($0 ~ /main thre|polling t/) } keep' "$OUT/bt.log" | head -80
     ;;
 
   probes)

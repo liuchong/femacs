@@ -1,0 +1,90 @@
+diff --git a/femacs/src/android.rs b/femacs/src/android.rs
+index 2e78c66c..7e508686 100644
+--- a/femacs/src/android.rs
++++ b/femacs/src/android.rs
+@@ -969,6 +969,10 @@ unsafe extern "C" fn android_run_select_thread (thread_data: *mut c_void) -> *mu
+ 	pthread_cond_broadcast (&raw mut event_queue.read_var);
+ 	pthread_mutex_unlock (&raw mut event_queue.mutex);
+ 
++	/* PROBE4959: which side of the handshake is each thread on?  */
++	__android_log_print (ANDROID_LOG_INFO, c"femacsprobe".as_ptr (),
++			     c"PROBE4959 pselect rc=%d cancel=%d".as_ptr (),
++			     rc, (*data).cancel_signal_received);
+ 	/* Test a separate flag `data->cancel_signal_received' rather than
+ 	   rc and errno.  */
+ 	if (*data).cancel_signal_received == 0
+@@ -976,7 +980,13 @@ unsafe extern "C" fn android_run_select_thread (thread_data: *mut c_void) -> *mu
+ 	     and the signal has already been delivered.  The Emacs thread
+ 	     will always send this signal after read_var is triggered or
+ 	     the UI thread has sent an event.  */
+-	  { sigwait (&raw const waitset, &raw mut sig); }
++	  {
++	    __android_log_print (ANDROID_LOG_INFO, c"femacsprobe".as_ptr (),
++				 c"PROBE4959 sigwait enter".as_ptr ());
++	    sigwait (&raw const waitset, &raw mut sig);
++	    __android_log_print (ANDROID_LOG_INFO, c"femacsprobe".as_ptr (),
++				 c"PROBE4959 sigwait back sig=%d".as_ptr (), sig);
++	  }
+ 
+ 	/* Signal the Emacs thread that pselect is done.  If read_var
+ 	   was signaled by android_write_event, event_queue.mutex could
+@@ -1207,6 +1217,9 @@ pub unsafe fn android_write_event (event: *mut android_event)   // C 868-909
+   if event_queue.events.next.is_null ()
+     { return; }
+ 
++  __android_log_print (ANDROID_LOG_INFO, c"femacsprobe".as_ptr (),      /* PROBE4956 */
++		       c"PROBE4956 write type=%d".as_ptr (), (*event).r#type);
++
+   pthread_mutex_lock (&raw mut event_queue.mutex);
+   (*container).next = event_queue.events.next;
+   (*container).last = &raw mut event_queue.events;
+@@ -1214,6 +1227,8 @@ pub unsafe fn android_write_event (event: *mut android_event)   // C 868-909
+   (*(*container).last).next = container;
+   (*container).event = *event;
+   event_queue.num_events += 1;
++  __android_log_print (ANDROID_LOG_INFO, c"femacsprobe".as_ptr (),      /* PROBE4956 */
++		       c"PROBE4956 queued=%d".as_ptr (), event_queue.num_events);
+   pthread_cond_broadcast (&raw mut event_queue.read_var);
+   pthread_mutex_unlock (&raw mut event_queue.mutex);
+ 
+@@ -1300,7 +1315,9 @@ pub unsafe fn android_select (nfds: c_int, readfds: *mut fd_set, writefds: *mut
+      it's still in pselect; or by writing to the select pipe).  */
+   #[cfg (not (feature = "android_api_lt_21"))]
+   {
+-    pthread_kill ((*data).select_thread, SELECT_SIGNAL);
++    let rc_kill: c_int = pthread_kill ((*data).select_thread, SELECT_SIGNAL);
++    __android_log_print (ANDROID_LOG_INFO, c"femacsprobe".as_ptr (),    /* PROBE4959 */
++			 c"PROBE4959 kill rc=%d errno=%d".as_ptr (), rc_kill, *errno ());
+   }
+   #[cfg (feature = "android_api_lt_21")]
+   {
+@@ -1353,6 +1370,9 @@ pub unsafe fn android_select (nfds: c_int, readfds: *mut fd_set, writefds: *mut
+ 	{ FD_ZERO (exceptfds); }
+     }
+ 
++  __android_log_print (ANDROID_LOG_INFO, c"femacsprobe".as_ptr (),      /* PROBE4956 */
++		       c"PROBE4956 select return=%d events=%d".as_ptr (),
++		       nfds_return, nevents);
+   /* This is to shut up process.c when pselect gets EINTR.  */
+   if nfds_return < 0
+     { *errno () = EINTR; }
+diff --git a/femacs/src/androidterm.rs b/femacs/src/androidterm.rs
+index e605d824..a545fcd1 100644
+--- a/femacs/src/androidterm.rs
++++ b/femacs/src/androidterm.rs
+@@ -2538,6 +2538,15 @@ unsafe extern "C" fn android_read_socket (terminal: *mut terminal,
+ 
+   dpyinfo = (*terminal).display_info.android as *mut android_display_info;   // C 1901
+ 
++  {                                                                     /* PROBE4956 */
++    unsafe extern "C" {
++      fn __android_log_print (prio: c_int, tag: *const c_char,
++			      fmt: *const c_char, ...) -> c_int;
++    }
++    __android_log_print (4, c"femacsprobe".as_ptr (),
++			 c"PROBE4956 read_socket enter pending=%d".as_ptr (),
++			 android_pending ());
++  }
+   block_input ();                                                       // C 1903
+   while android_pending () != 0                                         // C 1904
+     {

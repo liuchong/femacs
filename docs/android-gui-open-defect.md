@@ -189,33 +189,63 @@ I femacsprobe: PROBE4956 write type=11 / 12  <- TOUCH_DOWN / UP, queued=3 / 4
 `#if defined HAVE_ANDROID && !defined ANDROID_STUBIFY → android_before_select ()`
 记成了“dead”。这一句在 `THREADS_ENABLED` 下是活的，属 1:1 待补项。
 
+## 3i. 根因之一已确认并修复：`SIG_BLOCK` 用的是 Darwin 的 1，bionic 读成 `SIG_UNBLOCK`（status 4.956）
+
+`debuggerd -b` 的原生栈把两边都钉住了：
+
+```
+Emacs main thre:  android_select+424 -> sem_wait(select_sem)
+                  thread_select -> really_call_select -> android_select
+Emacs polling t:  android_run_select_thread+276 -> sigwait
+```
+
+也就是 `android_select` 确实在主循环里，卡在“等轮询线程完成这一轮”上，而轮询线程永远等不到
+`SELECT_SIGNAL`。接着读 `/proc/<tid>/status`：
+
+| 线程 | `SigBlk` | 含义 |
+|---|---|---|
+| `Emacs polling t`（修复前） | `0000000000000000` | **一个信号都没被屏蔽** ✗ |
+| `Emacs polling t`（修复后） | `fffffe007ffbf8bf` | 绝大多数已屏蔽 ✓（SIGUSR1 仍需单独确认） |
+
+根因：`femacs/lib/include/signal.rs` 把 `SIG_BLOCK/SIG_UNBLOCK/SIG_SETMASK` 硬写成
+**Darwin 的 1/2/3**，而 bionic 是 **0/1/2**（NDK `asm-generic/signal-defs.h` 48/51/54）。
+于是 `android_run_select_thread` 里的 `pthread_sigmask (SIG_BLOCK, &all, NULL)` 在 Android 上
+实际是 `SIG_UNBLOCK` —— 轮询线程把所有信号都**解开**了：SIGUSR1 被 handler 吃掉而不是挂起，
+`sigwait` 永不返回，`android_select` 也就永不返回，事件队列因此只涨不消。
+（`android.rs` 里另有一个 `bionic_signal::SIG_BLOCK = 0` 的局部补丁，只覆盖了 3610 一处；
+927 与 2567 两处仍走镜像里的 Darwin 值。）
+
+修复：镜像里的三个常量按 `feature = "have_android"` 分成 bionic / Darwin 两套值（带上述出处）。
+修复后 `SigBlk` 从全零变成屏蔽绝大多数信号，**轮询线程第一次真正进了不该被打断的等待态**。
+
+## 3j. 修复之后剩下的缺口（下一处）
+
+修复后按键仍然不落屏，但**停顿点前移了一层**：
+
+- 空闲时轮询线程在 `pselect`（`wchan=do_select`），按键后变成 `wchan=do_sigtimedwait`（`sigwait`）；
+- 日志顺序：`write type=0` → `queued=1` → `pthread_kill rc=0`，之后既没有 `sigwait back`，
+  也没有 `select return`。
+
+按 C 的设计，`pselect` 期间的掩码是“除 SIGUSR1 之外全部屏蔽”，SIGUSR1 因此在 pselect 里
+**可送达**，handler `android_handle_poll_signal` 会把 `cancel_signal_received` 置 1，
+线程据此**跳过** `sigwait` 直接 `sem_post(select_sem)`。现在的现象说明这一步没成立 ——
+最可能是 handler 里 `pthread_getspecific (poll_thread_internal)` 拿不到队列（或置的标志不是
+`android_select` 读的那一个结构），于是 `cancel_signal_received` 仍是 0，线程照样进 `sigwait`，
+而 Lisp 线程那一次 `pthread_kill` 已经用掉了 ⇒ 双方互等。
+
 ## 4. 下一步
 
-1. 先补 `thread.rs` 的 `android_before_select ()`（C 656-658），再读
-   `wait_reading_process_output` 的出口：在函数入口与每个 `goto` 目标各放一条一次性探针，
-   一次运行就能看到它是否被执行、从哪个分支返回。
-2. 若它根本没被执行：查 `read_char` → `kbd_buffer_get_event` 的 Android 分支，
-   确认 C 里等输入的那一层在端口里没被换成别的等待。
-3. 构建纪律（本轮踩到的坑，写下来免得再犯）：`xtask link-shared` **只链接现成的
-   `*.aarch64-linux-android.o`，不重新编译**。改了 Rust 必须先用
-   `/tmp/build-one.sh src/X.c` 编出该单元的 `.o`，再 `link-shared`；否则 .so 看起来“链接成功”
-   而内容还是旧的（实测：探针字符串不在 .so 里）。本轮末尾顶层对象集丢失，一次 `link-shared`
-   产出 **1.1 MB** 的残链 .so，**不能用**；`/tmp/femacs-apk/emacs.apk` 里仍是 5.43 MB 的好版本，
-   下次构建前必须先把全部单元重新编出再链。
-4. 设备环境：另一个项目的模拟器（`Xingren_GUI_20261020`，端口 5580）正在运行，**不得触碰**；
-   本脚本已改成固定 `-port 5560` 并显式 `adb -s emulator-5560`。
+1. 读 `android_handle_poll_signal` 与 `pthread_setspecific (poll_thread_internal, …)` 的配对，
+   确认 handler 拿到的 `queue` 就是 `android_select` 与之握手的那个 `data`。
+2. 需要时再放一轮一次性探针（`docs/baseline/probe-4953-4959.patch` 已备好，`git apply` 即可），
+   打点：handler 入口、`cancel_signal_received` 的写入值、`sigwait` 前后的 `cancel`。
+3. 构建纪律不变：改 Rust 必须先 `build-one` 再 `link-shared`；模拟器固定 `-port 5560`。
 
 ## 5. 复现命令
 
 ```
-./tools/android-input-probe.sh focus         # 焦点/输入配置/视图树/IME
-./tools/android-input-probe.sh key           # HOME 自检 + 按键 + 输入法提交
-./tools/android-input-probe.sh tap           # 触点 / 按键 / F10 三连
-./tools/android-input-probe.sh rotate        # 旋转重排（redisplay 是否还活）
-./tools/android-input-probe.sh insert-rotate # 打字后整屏重画（判“插进去了没呈现”）
-./tools/android-input-probe.sh back          # 三连 BACK（Emacs 吞 BACK 的旁证）
-./tools/android-input-probe.sh signal        # 手动 SIGIO（判“只差一次唤醒”）
-./tools/android-input-probe.sh threads       # 每个线程的 wchan：select 还是 futex
-./tools/android-input-probe.sh probes        # 需带 PROBE 的 APK：键到哪一层、队列有没有被排空
-./tools/android-input-probe.sh applog        # 按键前后的应用进程日志
+./tools/android-input-probe.sh threads       # 每线程 wchan + SigBlk/SigPnd：谁在等什么
+./tools/android-input-probe.sh bt            # debuggerd 原生栈（Emacs 线程）
+./tools/android-input-probe.sh probes        # 需带 PROBE 的 APK：写/入队/排空/握手
+./tools/android-input-probe.sh focus|key|tap|rotate|insert-rotate|back|signal|applog
 ```
