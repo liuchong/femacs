@@ -82,6 +82,15 @@ Glyph Cache: 0.00 bytes (1 entry) / Glyph Count: 0   <- 平台字形缓存为空
   **“菜单栏已渲染、正文区未渲染”**。白底黑字的正常截图本来就只有 1–3% 非白，
   用整屏非白比判断“有没有内容”过于粗糙。
 
+## 3e. 输入缺口（status 4.951）
+
+`adb shell input keyevent KEYCODE_A/B/C` 之后：`EmacsView.onKeyDown` **0 次**、
+C 侧 `ANDROID_KEY_PRESS` **0 次**、截图前后 md5 相同 ⇒ **按键没有到达视图**。
+已排除：`setFocusable`/`setFocusableInTouchMode` 与 C 一致；`FLAG_NOT_FOCUSABLE`
+只用于子帧的 `getWindowLayoutParams()`（C 同）。
+
+⇒ 缺口在**活动/窗口的输入分发**（焦点持有者），不在 Emacs 侧。
+
 ## 4. 下一步（按代价排序）
 
 1. **一条读数即可判定**：在 `EmacsView.onDraw` 里同时记录
