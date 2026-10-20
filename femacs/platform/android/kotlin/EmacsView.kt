@@ -250,7 +250,7 @@ class EmacsView(window: EmacsWindow) :
     bitmapDirty = true
   }
 
-  /* Redraw attempts left before this view stops rescheduling itself.  Emacs
+  /* Redraw attempts left before this view stops rescheduling itself.  The C side
      hands frames over through `present`, but on the emulator the redisplay that
      follows an expose does not always end in a buffer swap, so a single
      `postInvalidate` can fire before any frame exists (status 4.939 measured

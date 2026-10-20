@@ -1,13 +1,13 @@
 // femacs: modern presentation path for the Android frame (decision, status 4.937/4.939).
 //
-// The reference moves every frame through three hops: Emacs' bitmap ->
+// The reference moves every frame through three hops: the reference's bitmap ->
 // `EmacsSurfaceView`'s front buffer -> `View.onDraw` -> the window.  On the
 // emulator that chain proved timing-sensitive: the copy carries black pixels
 // (status 4.932) and `onDraw` paints them, yet the glass stayed white in most
 // runs.  The user's standing decision allows a modern component for the UI layer,
 // so this class keeps exactly one hop: it remembers the newest frame and paints
 // it in `onDraw`, which the UI thread runs after `postInvalidate`.  The C-side
-// semantics are untouched: `EmacsView.getCanvas` still hands Emacs the `Canvas`
+// semantics are untouched: `EmacsView.getCanvas` still hands the C side the `Canvas`
 // of `bitmap`, and `EmacsView.damageRect` still records the damage.
 package org.femacs
 
@@ -17,10 +17,10 @@ import android.graphics.Canvas
 import android.view.View
 
 class EmacsSurfacePresenter(context: Context) : View(context) {
-  /* The newest frame handed over by the Emacs thread.  */
+  /* The newest frame handed over by the render thread.  */
   private var lastBitmap: Bitmap? = null
 
-  /* Present BITMAP, or clear when it is null.  Called from the Emacs thread.  */
+  /* Present BITMAP, or clear when it is null.  Called from the render thread.  */
   fun present(bitmap: Bitmap?) {
     if (bitmap != null)
       lastBitmap = bitmap

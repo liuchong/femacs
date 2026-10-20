@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-# Run the port's Emacs on the Android emulator in *batch* mode and print what it printed.
+# Run the port on the Android emulator in *batch* mode and print what it printed.
 #
 # Why (status 4.881): the GUI activity dies during start-up, but the very same library, the very
-# same Lisp tree and the very same loadup complete when Emacs runs as `EmacsNoninteractive` - the
+# same Lisp tree and the very same loadup complete when the port runs as `EmacsNoninteractive` - the
 # first Android reading that reaches the end of `loadup.el` and evaluates Lisp (`BATCH-OK`,
 # docs/baseline/android-batch-1.txt).  That makes this the deterministic channel for everything
 # the GUI does not own: the Lisp startup, the regex engine, the file/asset layer.
@@ -12,7 +12,7 @@
 #
 # `--batch -l FILE` is passed after a dummy program name, because `android_emacs_init` takes the
 # first argument as `argv[0]` (measured: without it, `--batch` is consumed as the program name and
-# Emacs goes interactive and exits with "standard input is not a tty").
+# the port goes interactive and exits with "standard input is not a tty").
 set -u
 SDK=${ANDROID_SDK_ROOT:-${ANDROID_HOME:-$HOME/Library/Android/sdk}}
 ADB=$SDK/platform-tools/adb

@@ -567,7 +567,7 @@ class EmacsWindow(parent: EmacsWindow?, x: Int, y: Int, width: Int, height: Int,
     /* `EmacsView.getCanvas` (EmacsView.java 254-255) returns null while the bitmap is not yet
        allocated, and the reference's callers test for null (EmacsFillRectangle.java 68 and the
        other draw requests).  The port asserted non-null here, so the null became a
-       NullPointerException on the Emacs thread the first time a window was cleared before its
+       NullPointerException on the render thread the first time a window was cleared before its
        view had been laid out (measured on the device, status 4.901).  */
     return view.getCanvas(gc)
   }
