@@ -110,6 +110,7 @@ tools/gen-android-config.sh --check-prereqs                                     
 | 选择性改名登记 | **已机器化** | 本轮 **49 个 name-only** ✓（早期记的 56 是当时读数 ✓），每一处差异都经 `check-generated.py` 的 `name_only()` 判定"只差被改写解释的行" ✓ ⇒ 不再需要人工逐条登记 ✓ |
 | token 门看不见括号（P-321） | **已量、不接线** | `tools/check-bool-shape.py` 自测 **4/4** ✓、真 bug 形态可抓 ✓；但单单元 `keyboard.c` 报 **24** 处、抽查全是 `for(;;)` vs `while` 的改写噪声 ✓ ⇒ 降级为按单元手看的诊断 ✓（P-322）✓ |
 | L4 / L5 | **L5 全量重跑完毕** | **564 文件：551 same / 7 both-fail / 5 crashed / 1 port-better / 0 port-worse** ✓；合计 **端口 8971 ran / 111 unexpected**、**参照 8971 / 112** ✓（端口比参照少 1 条 unexpected，即那唯一一条 port-better ✓）。5 条 crashed 全是**两侧同超时**（`autorevert`、`tramp`、`eglot`、`emacs-module`、`keyboard`，单侧 120 s 上限）✓。表在 `docs/baseline/ert-l5-sweep.tsv` ✓，逐块可续跑脚本 `tools/l5-sweep.sh` ✓ |
+| 压力（`gc-cons-threshold=1`） | **有读数、早于本轮改动** | 全量 564 文件（default 选择器）：**same 552 / both-fail 7 / crashed 5（两侧对称）/ port-worse 0** ✓（2026-10-18，P-195 之后的二进制 ✓，`tools/check-ert.py --gc-stress` ✓）；本轮四处改动（`signal.rs`/`sysdep.rs`/`keyboard.rs`/`xtask`）之后**未重跑全量** ✓ ⇒ 与 L5 一样留收尾集中跑 ✓ |
 | 性能（DoD-7） | **暂挂** | 按用户决定记"未达" ✓；`tools/bench.sh --gate docs/baseline/bench.tsv` 是现成的门 ✓ |
 | Android 库可加载 | **交付平台已闭环** | 按**设备自己的库**量：`304 import(s); 0 unresolved`（`docs/baseline/android-device-libs/`，4.966）✓；API 21 桩口径仍是 9 条未决 ✓，那是**旧平台**读数，按平台决定不作判据 ✓ |
 | 平台冒烟 | **已闭环** | macOS：`gate-fast` exit 0 ✓、`check-authorized-platforms.sh` exit 0（smoke + differential **92 form / 0 mismatch**）✓；Android：结构四项全绿 + **设备三元组**（渲染/输入/存活）✓ |
