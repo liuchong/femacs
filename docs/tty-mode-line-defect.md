@@ -37,3 +37,20 @@ This defect is **not** one of the eight completion rows, and it does not change 
 macOS row is backed by the batch smoke and the differentials, both of which still pass.  It does
 mean the terminal deliverable is not visually complete, so it is recorded here rather than folded
 into a row that would then be quietly reinterpreted.
+
+## Narrowing (4.1011)
+
+Three readings take geometry and formatting out of the picture:
+
+- Inside the pty, both programs report `(frame-height)` 23, `(window-height)` 22 and
+  `(window-mode-line-height)` 1 - the mode-line row exists and has height 1.
+- A `message` from `--eval` is painted in the echo area by the port (`H=23 W=22 ML=1` reaches the
+  screen), so the row-writing loop does reach the last rows; the missing row is the one above the
+  echo area.
+- `(format-mode-line mode-line-format)` written to a file is byte-identical between the two
+  programs (`-=--:--- F1  *scratch*  All L1  (Lisp Interaction ...)`).
+
+So the loss is in producing or writing the mode-line row's glyphs, not in the frame height and not
+in the format machinery.  Next reading needs a temporary probe in `display_mode_line`: after
+`display_mode_element` returns, print the row's `used` count, `enabled_p` and its `y`, then compare
+with the same reading from the reference built with the same probe.
