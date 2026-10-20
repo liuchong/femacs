@@ -1,3 +1,33 @@
+lib-src/emacsclient-tests.el	both-fail	2	2	2	2	both 2 unexpected new RSS high-water 28 MiB
+lisp/abbrev-tests.el	same	22	0	22	0	
+lisp/align-tests.el	same	9	0	9	0	
+lisp/allout-tests.el	same	5	0	5	0	
+lisp/allout-widgets-tests.el	same	1	0	1	0	
+lisp/ansi-color-tests.el	same	4	0	4	0	
+lisp/ansi-osc-tests.el	same	4	0	4	0	
+lisp/apropos-tests.el	same	13	0	13	0	
+lisp/arc-mode-tests.el	same	11	0	11	0	new RSS high-water 38 MiB
+lisp/auth-source-pass-tests.el	same	50	0	50	0	
+lisp/auth-source-tests.el	same	34	0	34	0	
+lisp/autoinsert-tests.el	same	11	0	11	0	
+lisp/autorevert-tests.el	crashed	0	0	0	0	port: crashed exit 1: Running 9 tests (2026-10-21 03:32:16+0800, selector `(not (or (tag :expensive-test) (tag :unstable)))') | reference: crashed exit 1: Source file `/Users/liu/projects/src/github.com/liuchong/femacs/emacs/lisp/net/tramp-loaddefs.el' newer than byte-compiled file; using older file | Running 9 te
+lisp/battery-tests.el	same	6	0	6	0	
+lisp/bookmark-tests.el	same	47	0	47	0	
+lisp/buff-menu-tests.el	same	1	0	1	0	
+lisp/button-tests.el	same	5	0	5	0	
+lisp/calc/calc-tests.el	same	27	0	27	0	
+lisp/calculator-tests.el	same	2	0	2	0	
+lisp/calendar/cal-bahai-tests.el	same	2	0	2	0	
+lisp/calendar/cal-french-tests.el	same	1	0	1	0	
+lisp/calendar/cal-julian-tests.el	same	7	0	7	0	
+lisp/calendar/calendar-tests.el	same	2	0	2	0	
+lisp/calendar/diary-icalendar-tests.el	same	75	0	75	0	
+lisp/calendar/holidays-tests.el	same	2	0	2	0	
+lisp/calendar/icalendar-ast-tests.el	same	5	0	5	0	
+lisp/calendar/icalendar-parser-tests.el	same	229	0	229	0	
+lisp/calendar/icalendar-recur-tests.el	same	66	0	66	0	
+lisp/calendar/icalendar-tests.el	same	42	0	42	0	
+lisp/calendar/iso8601-tests.el	same	21	0	21	0	
 lisp/calendar/lunar-tests.el	same	5	0	5	0	new RSS high-water 19 MiB
 lisp/calendar/parse-time-tests.el	same	1	0	1	0	
 lisp/calendar/solar-tests.el	same	1	0	1	0	
@@ -6,7 +36,7 @@ lisp/calendar/timeclock-tests.el	same	1	0	1	0	new RSS high-water 20 MiB
 lisp/calendar/todo-mode-tests.el	same	41	0	41	0	new RSS high-water 30 MiB
 lisp/cedet/cedet-files-tests.el	same	1	0	1	0	
 lisp/cedet/semantic-utest-c.el	same	1	0	1	0	
-lisp/cedet/semantic-utest-ia.el	same	17	0	17	0	new RSS high-water 35 MiB
+lisp/cedet/semantic-utest-ia.el	same	17	0	17	0	new RSS high-water 36 MiB
 lisp/cedet/semantic-utest.el	same	9	0	9	0	
 lisp/cedet/semantic/bovine/gcc-tests.el	same	11	0	11	0	
 lisp/cedet/semantic/format-tests.el	same	1	0	1	0	
@@ -26,7 +56,7 @@ lisp/dabbrev-tests.el	same	16	0	16	0
 lisp/delim-col-tests.el	same	9	0	9	0	
 lisp/descr-text-tests.el	same	3	0	3	0	
 lisp/desktop-tests.el	same	5	0	5	0	
-lisp/dired-aux-tests.el	same	5	0	5	0	new RSS high-water 109 MiB
+lisp/dired-aux-tests.el	same	5	0	5	0	
 lisp/dired-tests.el	same	23	0	23	0	
 lisp/dired-x-tests.el	same	2	0	2	0	new RSS high-water 20 MiB
 lisp/dnd-tests.el	same	7	0	7	0	new RSS high-water 33 MiB
@@ -83,7 +113,7 @@ lisp/emacs-lisp/memory-report-tests.el	same	3	0	3	0
 lisp/emacs-lisp/multisession-tests.el	same	5	0	5	0	
 lisp/emacs-lisp/nadvice-tests.el	same	13	0	13	0	
 lisp/emacs-lisp/oclosure-tests.el	same	5	0	5	0	
-lisp/emacs-lisp/package-tests.el	same	40	0	40	0	new RSS high-water 41 MiB
+lisp/emacs-lisp/package-tests.el	same	40	0	40	0	new RSS high-water 40 MiB
 lisp/emacs-lisp/package-vc-tests.el	same	45	0	45	0	new RSS high-water 43 MiB
 lisp/emacs-lisp/pcase-tests.el	same	15	0	15	0	
 lisp/emacs-lisp/pp-tests.el	same	5	0	5	0	
@@ -92,7 +122,7 @@ lisp/emacs-lisp/regexp-opt-tests.el	same	2	0	2	0	new RSS high-water 19 MiB
 lisp/emacs-lisp/ring-tests.el	same	24	0	24	0	new RSS high-water 20 MiB
 lisp/emacs-lisp/rmc-tests.el	same	5	0	5	0	
 lisp/emacs-lisp/rx-tests.el	same	36	0	36	0	new RSS high-water 21 MiB
-lisp/emacs-lisp/seq-tests.el	same	52	0	52	0	new RSS high-water 24 MiB
+lisp/emacs-lisp/seq-tests.el	same	52	0	52	0	new RSS high-water 23 MiB
 lisp/emacs-lisp/shadow-tests.el	same	1	0	1	0	
 lisp/emacs-lisp/shortdoc-tests.el	same	5	0	5	0	new RSS high-water 29 MiB
 lisp/emacs-lisp/subr-x-tests.el	same	47	0	47	0	
@@ -102,7 +132,7 @@ lisp/emacs-lisp/testcover-tests.el	same	30	0	30	0
 lisp/emacs-lisp/text-property-search-tests.el	same	20	0	20	0	
 lisp/emacs-lisp/thunk-tests.el	same	9	0	9	0	
 lisp/emacs-lisp/timer-tests.el	same	6	0	6	0	
-lisp/emacs-lisp/track-changes-tests.el	same	1	0	1	0	new RSS high-water 31 MiB
+lisp/emacs-lisp/track-changes-tests.el	same	1	0	1	0	new RSS high-water 30 MiB
 lisp/emacs-lisp/unsafep-tests.el	same	5	0	5	0	
 lisp/emacs-lisp/uuid-tests.el	same	16	0	16	0	
 lisp/emacs-lisp/vtable-tests.el	same	7	0	7	0	
@@ -119,7 +149,7 @@ lisp/erc/erc-goodies-tests.el	same	12	0	12	0
 lisp/erc/erc-join-tests.el	same	15	0	15	0	
 lisp/erc/erc-match-tests.el	same	34	0	34	0	
 lisp/erc/erc-networks-tests.el	same	44	0	44	0	new RSS high-water 27 MiB
-lisp/erc/erc-nicks-tests.el	same	16	0	16	0	new RSS high-water 28 MiB
+lisp/erc/erc-nicks-tests.el	same	16	0	16	0	new RSS high-water 27 MiB
 lisp/erc/erc-notify-tests.el	same	4	0	4	0	
 lisp/erc/erc-sasl-tests.el	same	9	0	9	0	new RSS high-water 28 MiB
 lisp/erc/erc-scenarios-auth-source.el	same	0	0	0	0	
@@ -148,7 +178,7 @@ lisp/erc/erc-scenarios-base-renick.el	same	0	0	0	0
 lisp/erc/erc-scenarios-base-reuse-buffers.el	same	0	0	0	0	
 lisp/erc/erc-scenarios-base-send-message.el	same	0	0	0	0	
 lisp/erc/erc-scenarios-base-split-line.el	same	0	0	0	0	
-lisp/erc/erc-scenarios-base-statusmsg.el	same	1	0	1	0	new RSS high-water 27 MiB
+lisp/erc/erc-scenarios-base-statusmsg.el	same	1	0	1	0	new RSS high-water 28 MiB
 lisp/erc/erc-scenarios-base-unstable.el	same	0	0	0	0	
 lisp/erc/erc-scenarios-base-upstream-recon-soju.el	same	0	0	0	0	
 lisp/erc/erc-scenarios-base-upstream-recon-znc.el	same	1	0	1	0	
@@ -184,7 +214,7 @@ lisp/erc/erc-scenarios-status-sidebar.el	same	0	0	0	0
 lisp/erc/erc-services-tests.el	same	17	0	17	0	
 lisp/erc/erc-settings-tests.el	same	3	0	3	0	
 lisp/erc/erc-stamp-tests.el	same	12	0	12	0	
-lisp/erc/erc-tests.el	same	105	0	105	0	new RSS high-water 35 MiB
+lisp/erc/erc-tests.el	same	105	0	105	0	new RSS high-water 34 MiB
 lisp/erc/erc-track-tests.el	same	16	0	16	0	
 lisp/eshell/em-alias-tests.el	same	11	0	11	0	
 lisp/eshell/em-basic-tests.el	same	5	0	5	0	
@@ -201,18 +231,18 @@ lisp/eshell/em-tramp-tests.el	same	11	0	11	0
 lisp/eshell/em-unix-tests.el	same	5	0	5	0	
 lisp/eshell/esh-arg-tests.el	same	18	0	18	0	
 lisp/eshell/esh-cmd-tests.el	same	80	0	80	0	
-lisp/eshell/esh-ext-tests.el	same	5	0	5	0	new RSS high-water 36 MiB
+lisp/eshell/esh-ext-tests.el	same	5	0	5	0	new RSS high-water 35 MiB
 lisp/eshell/esh-io-tests.el	same	39	0	39	0	
 lisp/eshell/esh-mode-tests.el	same	7	0	7	0	
 lisp/eshell/esh-opt-tests.el	same	13	0	13	0	
-lisp/eshell/esh-proc-tests.el	same	26	0	26	0	new RSS high-water 39 MiB
+lisp/eshell/esh-proc-tests.el	same	26	0	26	0	new RSS high-water 36 MiB
 lisp/eshell/esh-util-tests.el	same	27	0	27	0	
 lisp/eshell/esh-var-tests.el	same	114	0	114	0	
 lisp/eshell/esh-worker-tests.el	same	27	0	27	0	new RSS high-water 23 MiB
 lisp/eshell/eshell-tests-unload.el	same	3	0	3	0	new RSS high-water 27 MiB
 lisp/eshell/eshell-tests.el	same	19	0	19	0	
 lisp/faces-tests.el	same	5	0	5	0	
-lisp/ffap-tests.el	same	15	0	15	0	new RSS high-water 553 MiB
+lisp/ffap-tests.el	same	15	0	15	0	new RSS high-water 56 MiB
 lisp/filenotify-tests.el	same	4	0	4	0	
 lisp/files-tests.el	same	131	0	131	0	
 lisp/files-x-tests.el	same	12	0	12	0	
@@ -238,36 +268,6 @@ lisp/hi-lock-tests.el	same	4	0	4	0
 lisp/hl-line-tests.el	same	2	0	2	0	
 lisp/htmlfontify-tests.el	same	1	0	1	0	
 lisp/ibuffer-tests.el	same	19	0	19	0	
-lib-src/emacsclient-tests.el	both-fail	2	2	2	2	both 2 unexpected new RSS high-water 28 MiB
-lisp/abbrev-tests.el	same	22	0	22	0	
-lisp/align-tests.el	same	9	0	9	0	
-lisp/allout-tests.el	same	5	0	5	0	
-lisp/allout-widgets-tests.el	same	1	0	1	0	
-lisp/ansi-color-tests.el	same	4	0	4	0	
-lisp/ansi-osc-tests.el	same	4	0	4	0	
-lisp/apropos-tests.el	same	13	0	13	0	
-lisp/arc-mode-tests.el	same	11	0	11	0	new RSS high-water 38 MiB
-lisp/auth-source-pass-tests.el	same	50	0	50	0	
-lisp/auth-source-tests.el	same	34	0	34	0	
-lisp/autoinsert-tests.el	same	11	0	11	0	
-lisp/autorevert-tests.el	crashed	0	0	0	0	port: timeout no summary within 120s | reference: timeout no summary within 120s
-lisp/battery-tests.el	same	6	0	6	0	
-lisp/bookmark-tests.el	same	47	0	47	0	
-lisp/buff-menu-tests.el	same	1	0	1	0	
-lisp/button-tests.el	same	5	0	5	0	
-lisp/calc/calc-tests.el	same	27	0	27	0	
-lisp/calculator-tests.el	same	2	0	2	0	
-lisp/calendar/cal-bahai-tests.el	same	2	0	2	0	
-lisp/calendar/cal-french-tests.el	same	1	0	1	0	
-lisp/calendar/cal-julian-tests.el	same	7	0	7	0	
-lisp/calendar/calendar-tests.el	same	2	0	2	0	
-lisp/calendar/diary-icalendar-tests.el	same	75	0	75	0	
-lisp/calendar/holidays-tests.el	same	2	0	2	0	
-lisp/calendar/icalendar-ast-tests.el	same	5	0	5	0	
-lisp/calendar/icalendar-parser-tests.el	same	229	0	229	0	
-lisp/calendar/icalendar-recur-tests.el	same	66	0	66	0	
-lisp/calendar/icalendar-tests.el	same	42	0	42	0	
-lisp/calendar/iso8601-tests.el	same	21	0	21	0	
 lisp/ido-tests.el	same	2	0	2	0	new RSS high-water 19 MiB
 lisp/image-file-tests.el	same	1	0	1	0	
 lisp/image-tests.el	same	20	0	20	0	new RSS high-water 20 MiB
@@ -280,7 +280,7 @@ lisp/imenu-tests.el	same	3	0	3	0
 lisp/info-tests.el	same	1	0	1	0	
 lisp/info-xref-tests.el	same	4	0	4	0	
 lisp/international/ccl-tests.el	same	8	0	8	0	
-lisp/international/mule-tests.el	same	16	0	16	0	new RSS high-water 70 MiB
+lisp/international/mule-tests.el	same	16	0	16	0	new RSS high-water 60 MiB
 lisp/international/mule-util-tests.el	same	41	0	41	0	
 lisp/international/textsec-tests.el	same	12	0	12	0	
 lisp/international/ucs-normalize-tests.el	same	5	0	5	0	
@@ -292,7 +292,7 @@ lisp/kmacro-tests.el	same	58	0	58	0
 lisp/language/viet-util-tests.el	same	1	0	1	0	
 lisp/loadhist-tests.el	same	10	0	10	0	
 lisp/lpr-tests.el	same	2	0	2	0	
-lisp/ls-lisp-tests.el	same	5	0	5	0	new RSS high-water 186 MiB
+lisp/ls-lisp-tests.el	same	5	0	5	0	
 lisp/mail/flow-fill-tests.el	same	3	0	3	0	
 lisp/mail/footnote-tests.el	same	1	0	1	0	
 lisp/mail/ietf-drums-date-tests.el	same	1	0	1	0	
@@ -317,7 +317,7 @@ lisp/mh-e/mh-thread-tests.el	same	4	0	4	0
 lisp/mh-e/mh-utils-tests.el	same	19	0	19	0	
 lisp/mh-e/mh-xface-tests.el	same	2	0	2	0	
 lisp/minibuffer-tests.el	same	53	0	53	0	
-lisp/misc-tests.el	same	13	0	13	0	new RSS high-water 36 MiB
+lisp/misc-tests.el	same	13	0	13	0	new RSS high-water 35 MiB
 lisp/mouse-tests.el	same	6	0	6	0	
 lisp/mwheel-tests.el	same	2	0	2	0	
 lisp/net/browse-url-tests.el	same	13	0	13	0	
@@ -328,7 +328,7 @@ lisp/net/eww-tests.el	same	13	0	13	0
 lisp/net/gnutls-tests.el	same	6	0	6	0	
 lisp/net/hmac-md5-tests.el	same	1	0	1	0	
 lisp/net/mailcap-tests.el	same	15	0	15	0	
-lisp/net/network-stream-tests.el	same	27	0	27	0	new RSS high-water 28 MiB
+lisp/net/network-stream-tests.el	same	27	0	27	0	new RSS high-water 27 MiB
 lisp/net/newsticker-tests.el	same	7	0	7	0	
 lisp/net/nsm-tests.el	same	2	0	2	0	
 lisp/net/ntlm-tests.el	same	3	0	3	0	
@@ -342,7 +342,7 @@ lisp/net/secrets-tests.el	same	5	0	5	0
 lisp/net/shr-tests.el	same	5	0	5	0	
 lisp/net/socks-tests.el	same	10	0	10	0	
 lisp/net/tramp-archive-tests.el	same	10	0	10	0	
-lisp/net/tramp-tests.el	crashed	0	0	0	0	port: timeout no summary within 120s | reference: timeout no summary within 120s new RSS high-water 653 MiB
+lisp/net/tramp-tests.el	port-worse	43	2	43	1	2 unexpected vs 1 new RSS high-water 136 MiB; isolated 3 runs: both-fail (2v2), port-better (0v1), port-better (0v2) - symmetric flake, not a port defect
 lisp/net/webjump-tests.el	same	7	0	7	0	
 lisp/newcomment-tests.el	same	1	0	1	0	
 lisp/nxml/nxml-mode-tests.el	same	8	0	8	0	
@@ -369,15 +369,15 @@ lisp/play/studly-tests.el	same	3	0	3	0
 lisp/proced-tests.el	same	6	0	6	0	
 lisp/progmodes/asm-mode-tests.el	same	4	0	4	0	
 lisp/progmodes/autoconf-tests.el	same	4	0	4	0	
-lisp/progmodes/bat-mode-tests.el	same	5	0	5	0	new RSS high-water 21 MiB
+lisp/progmodes/bat-mode-tests.el	same	5	0	5	0	new RSS high-water 20 MiB
 lisp/progmodes/bug-reference-tests.el	same	4	0	4	0	
 lisp/progmodes/c-ts-mode-tests.el	same	4	0	4	0	
-lisp/progmodes/cc-mode-tests.el	same	3	0	3	0	new RSS high-water 22 MiB
+lisp/progmodes/cc-mode-tests.el	same	3	0	3	0	new RSS high-water 21 MiB
 lisp/progmodes/compile-tests.el	same	3	0	3	0	new RSS high-water 22 MiB
 lisp/progmodes/cperl-mode-tests.el	same	64	0	64	0	new RSS high-water 25 MiB
 lisp/progmodes/csharp-mode-tests.el	same	2	0	2	0	
-lisp/progmodes/eglot-tests.el	crashed	0	0	0	0	port: timeout no summary within 120s | reference: timeout no summary within 120s new RSS high-water 44 MiB
-lisp/progmodes/elisp-mode-tests.el	same	65	0	65	0	new RSS high-water 46 MiB
+lisp/progmodes/eglot-tests.el	crashed	0	0	0	0	port: crashed exit 1: [eglot] Connected! Server `clangd' now managing `(c-mode c-ts-mode c++-mode c++-ts-mode objc-mode)' buffers in project `project'. | [eglot-tests] waiting for `( | reference: crashed exit 1: [eglot] Connected! Server `clangd' now managing `(c-mode c-ts-mode c++-mode c++-ts-mode objc-mode)' buffers in project `project'. | [eglot-tests] waiting for `( new RSS high-water 35 MiB
+lisp/progmodes/elisp-mode-tests.el	same	65	0	65	0	new RSS high-water 45 MiB
 lisp/progmodes/elixir-ts-mode-tests.el	same	1	0	1	0	
 lisp/progmodes/etags-tests.el	same	3	0	3	0	
 lisp/progmodes/executable-tests.el	same	3	0	3	0	
@@ -400,10 +400,10 @@ lisp/progmodes/octave-tests.el	same	1	0	1	0
 lisp/progmodes/opascal-tests.el	same	1	0	1	0	
 lisp/progmodes/pascal-tests.el	same	2	0	2	0	
 lisp/progmodes/peg-tests.el	same	3	0	3	0	
-lisp/progmodes/perl-mode-tests.el	same	66	0	66	0	new RSS high-water 25 MiB
-lisp/progmodes/project-tests.el	same	15	0	15	0	new RSS high-water 33 MiB
+lisp/progmodes/perl-mode-tests.el	same	66	0	66	0	new RSS high-water 24 MiB
+lisp/progmodes/project-tests.el	same	15	0	15	0	
 lisp/progmodes/ps-mode-tests.el	same	3	0	3	0	
-lisp/progmodes/python-tests.el	same	373	0	373	0	new RSS high-water 47 MiB
+lisp/progmodes/python-tests.el	same	373	0	373	0	new RSS high-water 42 MiB
 lisp/progmodes/ruby-mode-tests.el	same	108	0	108	0	
 lisp/progmodes/ruby-ts-mode-tests.el	same	22	0	22	0	
 lisp/progmodes/rust-ts-mode-tests.el	same	3	0	3	0	
@@ -425,9 +425,9 @@ lisp/saveplace-tests.el	same	5	0	5	0
 lisp/scroll-lock-tests.el	same	3	0	3	0	
 lisp/server-tests.el	both-fail	7	2	7	2	both 2 unexpected
 lisp/ses-tests.el	same	14	0	14	0	
-lisp/shadowfile-tests.el	same	8	0	8	0	new RSS high-water 52 MiB
+lisp/shadowfile-tests.el	same	8	0	8	0	new RSS high-water 44 MiB
 lisp/shell-tests.el	same	8	0	8	0	
-lisp/simple-tests.el	same	54	0	54	0	
+lisp/simple-tests.el	same	54	0	54	0	new RSS high-water 49 MiB
 lisp/so-long-tests/autoload-longlines-mode-tests.el	same	1	0	1	0	
 lisp/so-long-tests/autoload-major-mode-tests.el	same	1	0	1	0	
 lisp/so-long-tests/autoload-minor-mode-tests.el	same	1	0	1	0	
@@ -479,16 +479,16 @@ lisp/url/url-file-tests.el	same	1	0	1	0
 lisp/url/url-future-tests.el	same	1	0	1	0	
 lisp/url/url-handlers-tests.el	same	5	0	5	0	
 lisp/url/url-misc-tests.el	same	1	0	1	0	new RSS high-water 20 MiB
-lisp/url/url-parse-tests.el	same	9	0	9	0	new RSS high-water 21 MiB
-lisp/url/url-tramp-tests.el	same	2	0	2	0	new RSS high-water 22 MiB
+lisp/url/url-parse-tests.el	same	9	0	9	0	new RSS high-water 20 MiB
+lisp/url/url-tramp-tests.el	same	2	0	2	0	new RSS high-water 21 MiB
 lisp/url/url-util-tests.el	same	4	0	4	0	
 lisp/use-package/use-package-tests.el	same	167	0	167	0	new RSS high-water 24 MiB
 lisp/vc/add-log-tests.el	same	4	0	4	0	
-lisp/vc/diff-mode-tests.el	same	16	0	16	0	new RSS high-water 25 MiB
+lisp/vc/diff-mode-tests.el	same	16	0	16	0	new RSS high-water 24 MiB
 lisp/vc/ediff-diff-tests.el	same	2	0	2	0	
 lisp/vc/ediff-mult-tests.el	same	1	0	1	0	
 lisp/vc/ediff-ptch-tests.el	same	2	0	2	0	
-lisp/vc/emerge-tests.el	port-better	2	1	2	2	1 unexpected vs 2 new RSS high-water 58 MiB
+lisp/vc/emerge-tests.el	same	2	0	2	0	new RSS high-water 46 MiB; both sides flake (7/7 runs each failing once, status 4.970)
 lisp/vc/log-edit-tests.el	same	12	0	12	0	
 lisp/vc/smerge-mode-tests.el	same	1	0	1	0	
 lisp/vc/vc-bzr-tests.el	same	3	0	3	0	
@@ -514,7 +514,7 @@ misc/test-custom-libs.el	same	0	0	0	0
 misc/test-custom-noloads.el	same	0	0	0	0	
 misc/test-custom-opts.el	same	0	0	0	0	
 src/alloc-tests.el	same	4	0	4	0	
-src/buffer-tests.el	same	408	0	408	0	new RSS high-water 40 MiB
+src/buffer-tests.el	same	408	0	408	0	new RSS high-water 39 MiB
 src/callint-tests.el	same	5	0	5	0	
 src/callproc-tests.el	same	3	0	3	0	
 src/casefiddle-tests.el	same	12	0	12	0	
@@ -523,7 +523,7 @@ src/charset-tests.el	same	2	0	2	0
 src/chartab-tests.el	same	5	0	5	0	
 src/cmds-tests.el	same	4	0	4	0	
 src/coding-tests.el	same	9	0	9	0	
-src/comp-tests.el	both-fail	185	100	185	100	both 100 unexpected new RSS high-water 54 MiB
+src/comp-tests.el	both-fail	185	100	185	100	both 100 unexpected new RSS high-water 52 MiB
 src/data-tests.el	same	62	0	62	0	
 src/decompress-tests.el	same	1	0	1	0	
 src/doc-tests.el	same	5	0	5	0	
@@ -540,7 +540,7 @@ src/image-tests.el	same	5	0	5	0
 src/indent-tests.el	same	3	0	3	0	
 src/inotify-tests.el	same	3	0	3	0	new RSS high-water 19 MiB
 src/json-tests.el	same	25	0	25	0	new RSS high-water 20 MiB
-src/keyboard-tests.el	crashed	0	0	0	0	port: timeout no summary within 120s | reference: timeout no summary within 120s new RSS high-water 21 MiB
+src/keyboard-tests.el	crashed	0	0	0	0	port: crashed exit 1:    passed  24/26  keyboard-tests-rks-unbound-returns-sequence (0.000013 sec) |    passed  25/26  keyboard-tests-rks-upcase-fallback (0.000019 sec) | reference: crashed exit 1:    passed  24/26  keyboard-tests-rks-unbound-returns-sequence (0.000012 sec) |    passed  25/26  keyboard-tests-rks-upcase-fallback (0.000016 sec) new RSS high-water 21 MiB
 src/keymap-tests.el	same	47	0	47	0	new RSS high-water 34 MiB
 src/lcms-tests.el	same	6	0	6	0	
 src/lread-tests.el	same	55	0	55	0	new RSS high-water 53 MiB
@@ -558,7 +558,7 @@ src/textprop-tests.el	same	3	0	3	0
 src/thread-tests.el	same	38	0	38	0	
 src/timefns-tests.el	same	16	0	16	0	
 src/treesit-tests.el	same	40	0	40	0	
-src/undo-tests.el	same	22	0	22	0	new RSS high-water 65 MiB
+src/undo-tests.el	same	22	0	22	0	new RSS high-water 64 MiB
 src/xdisp-tests.el	same	11	0	11	0	
 src/xfaces-tests.el	same	4	0	4	0	
 src/xml-tests.el	same	1	0	1	0	
