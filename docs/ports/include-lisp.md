@@ -65,3 +65,30 @@ for it (one per mirror site, carried since slice 1); adding the name to this mir
 unchanged (**exit 0**, **336-byte** empty object), and the same probe's located-site count fell
 **135 -> 98** in the round that made the edit (that round also spelled the socket types
 `femacs/nt/inc/sys/include/socket.rs` assigns to its includers; `docs/ports/w32.md` records both).
+
+## Declarations (status 4.998)
+
+C's prototypes for functions other units define now stand in `lisp_fn_decls` (module + glob
+import, P-297/P-39): **254** rows, all `pub`, each with the C prototype on its `/// C:` line in the
+shape `gen-lisp-abi-probe.py` parses (`<ret> name (args)`, no `extern`, no trailing `;`).
+
+Insertion was gated by that probe, which is the authority here and stricter than the duplicate
+gate. Six readings removed names:
+
+- 283 candidates generated from lisp.h by statement scan (a name qualifies when lisp.rs does not
+  already carry it, the Rust type names resolve inside lisp.rs, and the return shape agrees).
+- 2 removed for a size mismatch (`internal_delete_file`, `this_minibuffer_depth`: the probe compares
+  the C return size with the Rust one).
+- 4 removed because C returns `AVOID` (`_Noreturn ... void`), which cannot be a function-pointer
+  type in the generated harness (`buffer_overflow`, `memory_full`, `nsberror`,
+  `terminate_due_to_signal`).
+- 21 removed because the harness's configuration does not declare them - lisp.h carries them in
+  conditional arms the frozen configuration does not take (`refill_memory_reserve`,
+  `aligned_alloc`, `r_alloc_inhibit_buffer_relocation`, ...). Those need a preprocessed extraction,
+  not a hand filter.
+- 2 removed for an ambiguous glob (`hash_table_alloc_bytes`, `record_unwind_protect_excursion`):
+  another module already declares them and a unit that uses the name sees both.
+
+The stable reading after the withdrawals: `check-mirror-dupes` **72 duplicate / 72 ratchet / 0
+failure** (453 of 525 withdrawn, 15 kept with recorded reasons), `gate-probes` **340/340**,
+`gate-fast` exit 0, `verify-dod` exit 0.
