@@ -208,3 +208,21 @@ its `{` and was reverted).
 Reaching this point also explains the shape of the defect: every redisplay passes through the echo
 area because the startup message is present, `try_window` throws there, the throw unwinds
 `redisplay_internal`, and the frame pass that would draw the mode line never runs.
+
+## init_iterator does not return (4.1020)
+
+    V1 after start_display        0
+    S1 after init_iterator        0
+
+`start_display` calls `init_iterator` and never gets past it, so the throw is inside
+`init_iterator` when it is called for the echo-area mini-window.
+
+`eassert!` is compiled only under `enable_checking`, which the frozen configuration does not turn
+on, so this is a real signal/longjmp from a call inside `init_iterator`, not an assertion.
+
+Two lldb attempts did not produce a reading: a plain batch run never gets a terminal (`-nw` exits
+with "Could not open file: /dev/tty" before redisplay), and the same run under `script` stopped
+producing output and had to be killed after four minutes.  The next attempt should either break on
+`siglongjmp` inside a real pty with `-o 'settings set target.process.stop-on-exec false'` and a
+`-o 'process interrupt'` fallback, or bisect `init_iterator` with two markers (after the matrix
+setup, before the first `reseat`).
