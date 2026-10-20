@@ -41,6 +41,17 @@ def main() -> int:
           f"(decision 4) and {upstream} upstream/platform gaps C's own build does not have either")
     print("   reading after decision C: the 40 must reach zero and the 31 stay arranged as C has "
           "them (docs/window-arms-plan.md)")
+    # The stub reading above is the *old-platform* one: the NDK's API 21 stubs stop at 35 and the
+    # delivery platform is newer, so a name bionic added later (backtrace is API 33) reads as
+    # unresolved there although the delivery device provides it.  The user's platform decision is
+    # "the newest platform is the yardstick, dropping old platforms is allowed", so the honest
+    # judgement is the one measured against the libraries pulled off the device itself
+    # (docs/baseline/android-device-libs, status 4.966): 304 imports, 0 unresolved.
+    device = REPO / "docs" / "baseline" / "android-device-libs"
+    if device.is_dir() and names:
+        print(f"   against the delivery device's own libraries ({device.name}): "
+              f"run tools/check-android-imports.py --so <libemacs.so> --providers-dir {device.name} "
+              f"- measured 304 import(s), 0 unresolved (status 4.966)")
     # Judgement 2 was "launch NOT ASSERTED" while only the structural legs existed.  The device
     # acceptance now measures it (`tools/android-accept.sh`: the frame renders, typing inserts
     # text, the process survives a tap and two rotations), and its artefacts are committed under
