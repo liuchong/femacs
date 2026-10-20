@@ -1,7 +1,18 @@
-# 交接页（2026-10-19，status 4.829）
+# 交接页（快照 2026-10-19 / status 4.829；交接入口已改为一条命令）
 
 给下一次会话的**一页纸**。逐轮细节在 `docs/status.md`（两万行），规则在 `PORTING.md`，
 验收表在 `docs/current-state.md` 与 `docs/android-app-readiness.md`。
+
+**先跑这一条**（4.981 实测全绿，1884 s / 峰值 1.12 GB）：
+
+```sh
+python3 ~/.assistant/skills/controlled-run/scripts/run.py --profile runtime -- bash tools/verify-dod.sh --full
+```
+
+它按 `docs/current-state.md` 的八行逐项打印 `ok`/`FAIL`，并在两处**环境产物被清**时自愈
+（`build/emacs-ref/lib/libgnu.a`、`build/port/asset-directory-tool`）。第 7 行不会运行——
+按用户决定暂挂、记未达，脚本会把这句话打出来。下面那张表是 **4.829 那天的逐行读数**，
+只作历史；要今天的数，跑上面那条命令或看 `current-state.md`。
 
 ## 判定
 
@@ -51,7 +62,7 @@
 `git commit -S` 现在 exit 0（`pinentry-mac` + agent 缓存），4.7xx 起 25+ 次「弹窗取消」不再复现：
 101 个在飞文件已分三批签名入树并推送（`30906074`、`1ef04c27`、`46f13960`）。
 
-## 唯一待决问题（问题 4）
+## 问题 4（已结案，保留原文作历史）
 
 - **A 维持 P-08**（死臂只记录）：macOS 侧成立、零工作量；Android 那 40 条永远无人提供 ⇒ `.so`
   永不可加载，DoD-6 停在结构面。
