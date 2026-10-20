@@ -112,6 +112,18 @@ if python3 "$REPO/tools/check-android-assertions.py" --check \
 # The assets tree is not optional any more: the Android port reads its Lisp from the APK (there is no
 # dump), and `tools/gen-android-assets.py` reproduces C's `install_temp` recipe, including
 # `assets/directory-tree` from the port's own `asset-directory-tool` (docs/android-app-readiness.md).
+# The asset tree needs the port's own `asset-directory-tool`, a *host* program.  Like the object
+# files, it is a build product the environment wipes between rounds, and without it the packaging
+# step silently produces no directory-tree and this gate fails on a missing line rather than on a
+# real defect (measured twice: status 4.963 and 4.980).  Build it here when it is absent.
+if [ ! -x "$REPO/build/port/asset-directory-tool" ] && [ ! -x "$REPO/build/port/lib-src/asset-directory-tool" ]; then
+  echo "   asset-directory-tool is missing: building it"
+  (cd "$REPO/femacs" && FEMACS_CONFIG=darwin-arm64 FEMACS_TARGET=aarch64-apple-darwin \
+     CARGO_TARGET_DIR=${CARGO_TARGET_DIR:-/tmp/xt-cargo} \
+     cargo run -q -p xtask -- link-program asset-directory-tool >/dev/null 2>&1) || {
+     echo "   could not build asset-directory-tool" >&2; status=1; }
+fi
+
 echo "== Android: signed APK with the native library and the assets tree =="
 if JAVA_HOME=${JAVA_HOME:-/opt/homebrew/opt/openjdk@25} \
    bash "$REPO/tools/check-android-kotlin.sh" --apk "$APK_DIR" --native "$SO" --assets 2>&1 \
