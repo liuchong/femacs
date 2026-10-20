@@ -149,3 +149,19 @@ Next reading, one build: a marker at the **top** of the fast-path block body (in
 one immediately after the block's closing brace.  If the first is zero and the second is zero, the
 flow leaves the block without executing either - which points at a `break 'frame_pass` placed
 differently than C's `goto`, or at a longjmp out of the block.
+
+## Probe round 6 (4.1017)
+
+Markers at the top of the `'frame_pass` block, at the top of the inner `'update` block, and just
+after the block's closing brace:
+
+    M1-frame-pass-top: 0    M2-update-top: 0    M3-after-block: 0
+
+With round 5's `T5-loop-body` printing, this says the flow leaves between `sw = w;` in the loop
+body and the `'frame_pass` block.  That range (16818-17007) contains **no** `return`, `break` or
+`continue` - checked by grep - so the remaining explanation is a **throw/longjmp** out of a call in
+that range.  The three calls there are `do_pending_window_change (true)`, `clear_garbaged_frames ()`
+and `prepare_menu_bars ()`.
+
+The follow-up patch (markers after each of those three calls) failed to apply - an anchor did not
+match - so it was not run.  Source is clean at `HEAD` and the defect still reproduces.
