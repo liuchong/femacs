@@ -5,7 +5,7 @@
 
 **今天能交付什么（一句话版）**
 
-- **macOS**：端口自己的 `temacs`/`emacs` 能编、能 dump、能跑——`loadup` 两侧逐文件一致 ✓、
+- **macOS（终端版）**：端口自己的 `temacs`/`emacs` 能编、能 dump、能跑——注意这是**终端构建**：冻结配置里 `HAVE_NS` 与 `HAVE_WINDOW_SYSTEM` 都是 `undefined` ✓（参照树在 `build/emacs-ref/src/config.h` 里同样如此 ✓），Cocoa 那套 Swift 代码按 P-51 是**承载文本、不进这个构建** ✓（3.262 的 `have_ns` 翻牌要等 AppKit 镜像 ✓）；GUI 交付面在 Android 那一行 ✓。`loadup` 两侧逐文件一致 ✓、
   L5 全量 564 文件 **0 条 port-worse** ✓、GC 压测全量 **0 条未归因差异** ✓、生成物 244 份
   **0 DIFFERENT** ✓、原样树 4604 文件 **0 failures** ✓。
 - **Android**：签名 APK 能装、能启动、**能打字**（`H E L L O` 逐字可辨）、能轻点、能转屏，
