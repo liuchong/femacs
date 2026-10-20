@@ -5408,15 +5408,17 @@ unsafe fn map_tty_color (f: *mut frame, face: *mut face, color: Lisp_Object,
 
   XSETFRAME! (frame, f);
 
-  def = assoc_no_quit (color, calln! (Qtty_color_alist (), frame));
   if STRINGP (color)
       && SCHARS (color) != 0
       && CONSP (Vtty_defined_color_alist)
-      && CONSP (def)
     {
-      /* Associations in tty-defined-color-alist are of the form
-	 (NAME INDEX R G B).  We need the INDEX part.  */
-      pixel = XFIXNUM (XCAR (XCDR (def))) as c_ulong;
+      def = assoc_no_quit (color, calln! (Qtty_color_alist (), frame));
+      if CONSP (def)
+	{
+	  /* Associations in tty-defined-color-alist are of the form
+	     (NAME INDEX R G B).  We need the INDEX part.  */
+	  pixel = XFIXNUM (XCAR (XCDR (def))) as c_ulong;
+	}
     }
 
   if pixel == default_pixel && STRINGP (color)
