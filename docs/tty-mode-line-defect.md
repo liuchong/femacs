@@ -331,3 +331,28 @@ earlier attempt, while it stays alive from the outside.
 That rules out the two obvious "unwind" mechanisms.  The next debugger run breaks on `longjmp`
 (the binary imports `_longjmp` and `_siglongjmp` both) and on `emacs_abort`, inside a real pty, and
 prints a backtrace when one is hit.
+
+## Correction: lldb cannot attach here (4.1028)
+
+The three debugger runs in 4.1026-4.1027 produced **no evidence**: lldb in this environment cannot
+attach to the inferior at all.
+
+    $ script -q /dev/null lldb -b -o run -o quit -- /bin/echo hi
+    error: process exited with status -1 (attach failed (Not allowed to attach to process. ...))
+
+So "no stop on `xsignal`, `siglongjmp`, `longjmp` or `emacs_abort`" only means the inferior never ran
+under the debugger.  Those mechanisms are **not** ruled out; the readings are simply absent.
+
+What still stands from the printf rounds, with no debugger involved:
+
+- `realize_face` is entered with `former_face_id == 0` on every pass, but the former-face block is
+  never entered for it (P/A/B all zero).
+- The default face's `realize_face` returns once and never again (Y2 = 1).
+- `realize_tty_face` is entered eight times overall, but those belong to the first pass's named
+  faces, not to the default re-realization.
+
+Between `realize_face`'s entry and the former-face block there is only `eassert` (compiled out) and
+`check_lface_attrs!` (a no-op macro), so the block *should* be entered when `used > 0`; it is not.
+The next step is a **static diff** of `realize_face` and `realize_default_face` against the
+reference, looking for what differs specifically on the second pass - no more printf rounds until
+that reading has a candidate.
