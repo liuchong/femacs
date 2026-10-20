@@ -464,9 +464,11 @@ unsafe fn sfntfont_android_composite_bitmap (buffer: *mut c_uchar, stride: size_
     { emacs_abort (); }
   else
     {
-      /* C's `buffer + src_y * stride` is arithmetic in `unsigned int` units (`buffer`'s element)
-	 and the port keeps that scale; C 522/551's two `row` computations cast to
-	 `unsigned char *` first and keep that one.  */
+      /* C's `(unsigned int *) (buffer + src_y * stride)` advances the **`unsigned char *`**
+	 pointer by `src_y * stride` bytes and only then casts; advancing a `*mut c_uint` by
+	 `src_y * stride` elements walks four times too far, into unmapped memory — that was the
+	 `SEGV_ACCERR` in `sfntfont_android_composite_bitmap+188`
+	 (docs/baseline/android-tombstone-latest.txt, status 4.922).  */
       for i in 0..(*rect).height
 	{
 	  if i + (*rect).y as c_uint >= (*bitmap_info).height as c_uint
@@ -479,7 +481,8 @@ unsafe fn sfntfont_android_composite_bitmap (buffer: *mut c_uchar, stride: size_
 	    /* Huh? */
 	    { return; }
 
-	  src_row = (buffer as *mut c_uint).wrapping_offset ((src_y as usize * stride) as isize);
+	  src_row = (buffer as *mut c_uchar)
+	    .wrapping_offset ((src_y as usize * stride) as isize) as *mut c_uint;
 	  dst_row = dest.wrapping_offset (((i + (*rect).y as c_uint) as usize
 					   * (*bitmap_info).stride as usize) as isize)
 	    as *mut c_uint;
