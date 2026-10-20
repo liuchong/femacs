@@ -1,4 +1,4 @@
-# Open defect: a terminal frame is drawn without its mode line (2026-10-21, status 4.1010)
+# Closed defect: a terminal frame was drawn without its mode line (fixed 2026-10-21, status 4.1030)
 
 Every other check in this repository runs `--batch`, which never builds a terminal frame.  A pty
 probe (`tools/tui-smoke.py`) does, and it shows a difference the batch checks cannot:
@@ -356,3 +356,34 @@ Between `realize_face`'s entry and the former-face block there is only `eassert`
 The next step is a **static diff** of `realize_face` and `realize_default_face` against the
 reference, looking for what differs specifically on the second pass - no more printf rounds until
 that reading has a candidate.
+
+
+## Root cause and fix (4.1030)
+
+The defect was in `redisplay_window`'s labelled-block placement, not in the face code.
+
+A single-build trace showed the main window's `try_window` returning 1, and then **no** hit at the
+`done:` body's first marker (`ML0`).  The port had opened `'done` before the recenter text and
+closed it **after** the done body, so `break 'done` left the block past `SET_TEXT_POS_FROM_MARKER`
+and `display_mode_lines` and landed directly at the finish-menu-bars code.  That is exactly the
+observed shape: the menu bar is painted, the mode line is not.  `'finish_menu_bars` had the same
+mis-closure and is fixed at the same time.
+
+The fix closes both blocks at their reference label sites:
+
+- `'done` now closes immediately before `SET_TEXT_POS_FROM_MARKER`, so `break 'done` lands on the
+  mode-line body.
+- `'finish_menu_bars` now closes immediately before the menu-bar body, so `break 'finish_menu_bars`
+  lands where the reference label does.
+
+Evidence after the fix (probes removed, tree rebuilt and dumped):
+
+    tools/tui-smoke.py build/port/src/emacs            24x80, 1,524 bytes, mode line present
+    tools/tui-smoke.py build/port/src/emacs --rows 10  10x80, 1,412 bytes, mode line present
+    tools/smoke.sh                                     11 check(s), 0 failure(s)
+    extract-abi.py --check xdisp.c xdisp.rs            OK
+    build-tu / gate-load / dump                        exit 0 (0 undefined)
+
+The 4.1024-4.1028 face/throw narrowing is **superseded**: the later trace entered the former-face
+block (`RF2`) and returned from `realize_tty_face` (`RT7`) on the same build that reproduced the
+missing row.  Those earlier zero readings came from probe placement, not from a nonlocal exit.
