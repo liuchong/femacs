@@ -252,3 +252,18 @@ reached.  The throw is in the ~290 lines between them, which run unconditionally
 
 Next: three markers in that stretch (after the iterator's face/string setup, before the
 `row != NULL` branch, and just before the bidi comment) to halve it again.
+
+## One more halving (4.1023)
+
+Markers before the control-character comment (4420), before the mode-line comment (4517) and before
+the border-glyph comment (4569):
+
+    Q1 0    Q2 0    Q3 0
+
+Together with `memclear` returning, the flow stops within the ~86 lines after `memclear`, before
+4420.  That stretch is mostly assignments plus `update_redisplay_ticks (0, w)`; the extra-line-spacing
+block there is behind `FRAME_WINDOW_P`, false on this tty build.
+
+Next: two markers in that ~86-line stretch (after the `(*it).f = ...` assignment and after
+`update_redisplay_ticks`), and read the source around each before trusting the placement - the last
+three rounds each lost a reading to a marker that landed inside a skipped branch.
