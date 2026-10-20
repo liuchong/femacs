@@ -39,6 +39,16 @@
 `postInvalidate` / `postInvalidateDelayed(100)`（最多 300 次重试）都**没有**换来第二次绘制。
 因此假设 **(1) 成立**：窗口在首帧之后不再重绘；`present()` 里的位图即使已有内容也上不了屏。
 
+## 3b. 三个“常见修法”都无效（status 4.947）
+
+| 尝试 | 结果 |
+|---|---|
+| `present()` 里同时 `postInvalidate()` **和** `parent.postInvalidate()` | 非白 **0.286%**（仍白） |
+| `onDraw` 的重试路径里也 `parent.postInvalidate()` | 同上 |
+| `EmacsView` 设 `setLayerType(LAYER_TYPE_SOFTWARE)`（绕开硬件层缓存） | 非白 **0.283%**（仍白） |
+
+⇒ 不是“父容器没被 invalidate”，也不是“硬件层缓存了首帧”。`onDraw` 仍然只跑一次。
+
 ## 4. 下一步（按代价排序）
 
 1. **一条读数即可判定**：在 `EmacsView.onDraw` 里同时记录

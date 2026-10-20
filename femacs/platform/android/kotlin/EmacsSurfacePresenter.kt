@@ -24,7 +24,11 @@ class EmacsSurfacePresenter(context: Context) : View(context) {
   fun present(bitmap: Bitmap?) {
     if (bitmap != null)
       lastBitmap = bitmap
+
+    /* Invalidate this view *and* its parent: the emulator stopped redrawing
+       after the first frame even when this view asked for it (status 4.946).  */
     postInvalidate()
+    (parent as? View)?.postInvalidate()
   }
 
   fun lastFrame(): Bitmap? = lastBitmap

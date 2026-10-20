@@ -170,6 +170,9 @@ class EmacsView(window: EmacsWindow) :
        hop from the bitmap to the window does not depend on a child's own draw
        pass (the emulator never ran the child's `onDraw`).  */
     setWillNotDraw(false)
+    /* A software layer keeps the emulator from serving a cached texture of the
+       first frame (status 4.946: onDraw ran once and never again).  */
+    setLayerType(android.view.View.LAYER_TYPE_SOFTWARE, null)
 
     /* Get rid of the default focus highlight.  */
     if (Build.VERSION.SDK_INT > Build.VERSION_CODES.O)
@@ -267,6 +270,7 @@ class EmacsView(window: EmacsWindow) :
       if (redrawRetries < 300) {
         redrawRetries += 1
         postInvalidateDelayed(100)
+        (parent as? android.view.View)?.postInvalidate()
       }
       return
     }
