@@ -48,6 +48,24 @@ run_row () {
 
 prepare || { echo "verify-dod: the environment could not be prepared"; exit 2; }
 
+# The programs the macOS rows measure must be newer than the sources they claim to prove.  A
+# stale binary is not a hypothetical: on 2026-10-20 the binary was seven hours older than the last
+# source change, so smoke, differential and bench all reported on code that had already been
+# replaced (status 4.990).  Checked here, once, instead of trusting whoever ran the build.
+if [ -f build/port/src/emacs ]; then
+  newer=$(find femacs/src femacs/lib -name '*.rs' -newer build/port/src/emacs 2>/dev/null | head -1)
+  if [ -n "$newer" ]; then
+    row "port binary newer than sources" "STALE ($newer is newer)"
+    echo "    rebuild: xtask gate-load, then xtask dump"
+    fail=1
+  else
+    row "port binary newer than sources" ok
+  fi
+else
+  row "port binary newer than sources" "MISSING (build it with gate-load + dump)"
+  fail=1
+fi
+
 say "row 1: 1:1 transcription"
 if python3 tools/extract-abi.py --all 2>&1 | tail -1 | grep -q '590 done, 0 in progress, 0 failing'; then
   row "extract-abi --all" ok
