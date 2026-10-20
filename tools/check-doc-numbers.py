@@ -25,7 +25,7 @@ DEVICE = REPO / "docs/baseline/android-imports-device.txt"
 ARMS = REPO / "docs/baseline/android-arms.tsv"
 PLAN = REPO / "docs/baseline/window-arms-plan.tsv"
 DOCS = ("docs/current-state.md", "docs/handoff.md", "docs/android-app-readiness.md",
-        "docs/window-arms-plan.md", "docs/decisions-needed.md")
+        "docs/window-arms-plan.md", "docs/decisions-needed.md", "docs/acceptance.md")
 WINDOW = ("WINDOW_SYSTEM", "HAVE_X_WINDOWS", "HAVE_NS", "HAVE_PGTK", "HAVE_HAIKU", "HAVE_NTGUI",
           "WINDOWSNT", "MSDOS")
 
@@ -93,6 +93,28 @@ def main() -> int:
     for key in ("unresolved", "window", "upstream"):
         if key not in quoted:
             failures.append(f"no document quotes the {key} count ({f[key]}) any more")
+    # The completion-definition fraction is quoted in more than one document, and 4.972 found the
+    # table and its own conclusion disagreeing (a row had been updated to done while the paragraph
+    # under it still counted it partial).  Whichever fraction a document states must match the one
+    # `docs/current-state.md`'s table implies, so a row can never be updated alone.
+    dod = re.compile(r"(\d+)/8\s*=\s*([0-9.]+)%")
+    stated: dict[str, set[str]] = {}
+    for rel in DOCS:
+        path = REPO / rel
+        if not path.exists():
+            continue
+        for m in dod.finditer(path.read_text(encoding="utf-8")):
+            stated.setdefault(rel, set()).add(m.group(1) + "/8")
+    current = REPO / "docs" / "current-state.md"
+    if current.exists():
+        head = dod.search(current.read_text(encoding="utf-8"))
+        if head:
+            want = head.group(1) + "/8"
+            for rel, got in stated.items():
+                for one in sorted(got):
+                    if one != want:
+                        failures.append(f"{rel}: says {one} for the completion definition, "
+                                        f"docs/current-state.md's headline says {want}")
     if failures:
         print("doc numbers disagree with the tables:")
         for line in failures:

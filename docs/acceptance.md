@@ -1,5 +1,5 @@
 # The acceptance baseline: the reference program the ladder compares against
-判定口径：**8 条完成定义等权**；当前 **6/8 = 75%**（1、2、3、4、5、8 达成；6 部分；7 按用户决定暂挂、记未达）。
+判定口径：**8 条完成定义等权、整条达成才计 1**；当前 **7/8 = 87.5%**（1、2、3、4、5、6、8 达成；7 按用户决定暂挂、记未达）。第 6 条计入达成的依据是用户 2026-10-20 的授权（"安卓以推进项目为准，允许自行决定改动或者只按 macos 验收"），现另有 Android 设备三元组与设备口径 0 未解析的读数（4.962 / 4.966）。
 入口快照：`docs/current-state.md`。
 
 `docs/port-plan.md` 7.1's ladder (L0 self-check expressions, L1-L3 `loadup`, L4-L5 the Lisp test
