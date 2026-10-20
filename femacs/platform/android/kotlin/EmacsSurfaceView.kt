@@ -13,6 +13,8 @@ import android.graphics.Paint
 
 import java.lang.ref.WeakReference
 
+private var OD: Int = 0
+
 /* This originally extended SurfaceView.  However, doing so proved to
    be too slow, and Android's surface view keeps up to three of its
    own back buffers, which use too much memory (up to 96 MB for a
@@ -143,6 +145,8 @@ class EmacsSurfaceView(view: EmacsView) : View(view.getContext()) {
          Fortunately, nobody has deprecated the version of
          `postInvalidate' that accepts a dirty rectangle.  */
 
+      android.util.Log.d("EmacsProbe", "setBmp inv attached=${isAttachedToWindow} shown=${isShown} " +
+        "w=$width h=$height parent=${parent != null} front=${frontBuffer != null} od=$OD")
       if (damageRect != null)
         postInvalidate(damageRect.left, damageRect.top,
                        damageRect.right, damageRect.bottom)
@@ -153,6 +157,7 @@ class EmacsSurfaceView(view: EmacsView) : View(view.getContext()) {
 
   @Synchronized
   override fun onDraw(canvas: Canvas) {
+    OD += 1
     /* Paint the view's bitmap; the bitmap might be recycled right
        now.  */
 
