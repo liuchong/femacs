@@ -189,10 +189,7 @@ unsafe extern "C" {
   pub static mut charset_work: Lisp_Object;
   /// C: charset.h 558: `extern unsigned encode_char (struct charset *, int);`
   pub fn encode_char (charset: *mut charset, c: c_int) -> c_uint;
-  /// C: coding.h 702: `extern Lisp_Object coding_inherit_eol_type (Lisp_Object, Lisp_Object);`
-  /// (coding.c defines it; the coding.rs mirror does not carry it yet).
-  pub fn coding_inherit_eol_type (coding_system: Lisp_Object, eol_type: Lisp_Object)
-                                  -> Lisp_Object;
+
 }
 
 // charset.h 282-296 and 313-340: the accessor macros `CHARSET_ATTR_ID`,

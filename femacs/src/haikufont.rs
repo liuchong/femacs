@@ -117,10 +117,8 @@ unsafe extern "C" {
    bodies name but no mirror declares (font.h 854/856; the `src/xfaces.rs` 526-529 precedent).  */
 #[cfg (feature = "have_haiku")]
 unsafe extern "C" {
-  /// C: font.h 842: `extern Lisp_Object font_make_entity (void);`
-  pub fn font_make_entity () -> Lisp_Object;
-  /// C: font.h 846: `extern Lisp_Object font_make_object (int, Lisp_Object, int);`
-  pub fn font_make_object (size: c_int, entity: Lisp_Object, pixelsize: c_int) -> Lisp_Object;
+
+
   /// C: font.h 854: `extern int font_style_to_value (enum font_property_index prop, Lisp_Object
   /// name, bool noerror);`
   pub fn font_style_to_value (prop: font_property_index, name: Lisp_Object, noerror: bool)

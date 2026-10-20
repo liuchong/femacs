@@ -1616,8 +1616,7 @@ DEFUN! ("process-status", Fprocess_status, Sprocess_status, 1, 1, 0,
 
 unsafe extern "C" {
 
-  /// C: void record_kill_process (struct Lisp_Process *, Lisp_Object)   (process.h 285)
-  fn record_kill_process (p: *mut Lisp_Process, tempfile: Lisp_Object);
+
   /// C: void message (const char *, ...)   (lisp.h 4517, xdisp.c)
   fn message (format: *const c_char, ...) -> Lisp_Object;
   /// C: void freeaddrinfo (struct addrinfo *)   (<netdb.h>)
@@ -2689,8 +2688,7 @@ unsafe fn create_pty (process: Lisp_Object)
    Use-site declarations, group 4 (C 1813-2440, make-process/create_process).  */
 
 unsafe extern "C" {
-  /// C: Lisp_Object get_current_directory (bool)   (callproc.c 158, process.h 280's sibling)
-  fn get_current_directory (encode: bool) -> Lisp_Object;
+
   /// C: int emacs_spawn (pid_t *, int, int, int, char **, char **, const char *,
   ///                     const char *, bool, bool, const sigset_t *)   (callproc.c 1441)
   fn emacs_spawn (pid: *mut pid_t, std_in: c_int, std_out: c_int, std_err: c_int,
@@ -2713,8 +2711,7 @@ unsafe extern "C" {
 }
 
 unsafe extern "C" {
-  /// C: Lisp_Object complement_process_encoding_system (Lisp_Object)   (coding.h 703)
-  fn complement_process_encoding_system (coding: Lisp_Object) -> Lisp_Object;
+
 }
 
 DEFUN! ("make-pipe-process", Fmake_pipe_process, Smake_pipe_process, 0, MANY, 0,
@@ -4413,8 +4410,7 @@ unsafe extern "C" {
   fn getservbyname (name: *const c_char, proto: *const c_char) -> *mut servent;
   /// C: void record_unwind_protect_void (void (*) (void))   (lisp.h 4825, eval.c)
   fn record_unwind_protect_void (function: Option<unsafe extern "C" fn ()>);
-  /// C: void bind_polling_period (int)   (keyboard.c)
-  fn bind_polling_period (n: c_int);
+
   /// C: int getaddrinfo_a (int, struct gaicb *[], int, struct sigevent *)
   ///    (<netdb.h>, glibc only — the `HAVE_GETADDRINFO_A` arm)
   fn getaddrinfo_a (mode: c_int, list: *mut *mut gaicb, nitems: c_int,
@@ -6359,20 +6355,16 @@ const TYPE_MAXIMUM_TIME_T: time_t = i64::MAX;
 
 
 unsafe extern "C" {
-  /// C: void clear_waiting_for_input (void)   (keyboard.c, lisp.h 5398)
-  fn clear_waiting_for_input ();
+
   /// C: struct timespec timer_check (void)   (atimer.c, lisp.h 5397)
   fn timer_check () -> timespec;
-  /// C: void swallow_events (bool)   (keyboard.c, lisp.h 4900)
-  fn swallow_events (do_display: bool);
+
   /// C: bool detect_input_pending (void)   (keyboard.c, lisp.h 4894)
   fn detect_input_pending () -> bool;
   /// C: bool detect_input_pending_run_timers (bool)   (keyboard.c)
   fn detect_input_pending_run_timers (do_display: bool) -> bool;
-  /// C: bool requeued_command_events_pending_p (void)   (keyboard.c)
-  fn requeued_command_events_pending_p () -> bool;
-  /// C: void clear_input_pending (void)   (keyboard.c)
-  fn clear_input_pending ();
+
+
   /// C: void handle_input_available_signal (int)   (keyboard.c)
   fn handle_input_available_signal (sig: c_int);
   /// C: int getpeername (int, struct sockaddr *restrict, socklen_t *restrict)
@@ -6722,8 +6714,7 @@ unsafe fn read_process_output_set_last_coding_system (p: *mut Lisp_Process,
 }
 
 unsafe extern "C" {
-  /// C: Lisp_Object coding_inherit_eol_type (Lisp_Object, Lisp_Object)   (coding.c)
-  fn coding_inherit_eol_type (coding: Lisp_Object, eol: Lisp_Object) -> Lisp_Object;
+
 }
 
 /* C 6482-6539: `read_and_insert_process_output`.  */
@@ -7251,8 +7242,7 @@ unsafe extern "C" {
   /// C: ssize_t emacs_gnutls_write (struct Lisp_Process *, const char *, ptrdiff_t)
   ///    (gnutls.c, the `HAVE_GNUTLS` arm)
   fn emacs_gnutls_write (p: *mut Lisp_Process, buf: *const c_char, nbyte: ptrdiff_t) -> ssize_t;
-  /// C: Lisp_Object raw_text_coding_system (Lisp_Object)   (coding.h 700)
-  fn raw_text_coding_system (coding: Lisp_Object) -> Lisp_Object;
+
 }
 
 /* Return the foreground process group for the tty/pty that the process P uses.  */
@@ -8593,12 +8583,9 @@ unsafe extern "C" {
   ///    (lisp.h 4115) — the lisp.rs mirror still lacks it (reported to the integrator)
   fn make_specified_string (contents: *const c_char, nchars: ptrdiff_t, nbytes: ptrdiff_t,
 			    multibyte: bool) -> Lisp_Object;
-  /// C: void setup_coding_system (Lisp_Object, struct coding_system *)   (coding.h 686)
-  fn setup_coding_system (coding_system: Lisp_Object, coding: *mut coding_system);
-  /// C: void stop_polling (void)   (keyboard.c, the no-subprocesses arm)
-  fn stop_polling ();
-  /// C: void start_polling (void)   (keyboard.c, the no-subprocesses arm)
-  fn start_polling ();
+
+
+
 }
 
 DEFUN! ("process-inherit-coding-system-flag", Fprocess_inherit_coding_system_flag,
@@ -8937,10 +8924,8 @@ pub const SIG_DFL: signal_handler_t = None;
 static mut nofile_limit: rlimit = rlimit { rlim_cur: 0, rlim_max: 0 };
 
 unsafe extern "C" {
-  /// C: Lisp_Object list_system_processes (void)   (sysdep.c, process.h 299)
-  fn list_system_processes () -> Lisp_Object;
-  /// C: Lisp_Object system_process_attributes (Lisp_Object)   (sysdep.c, process.h 300)
-  fn system_process_attributes (pid: Lisp_Object) -> Lisp_Object;
+
+
   /// C: int sig2str (int, char *)   (sig2str.h 29)
   fn sig2str (signum: c_int, str_: *mut c_char) -> c_int;
 }

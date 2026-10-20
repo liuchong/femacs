@@ -76,13 +76,8 @@ unsafe extern "C" {
   /// C: src/frame.h 1475-1476: `extern WINDOW_SYSTEM_RETURN struct frame *
   /// decode_window_system_frame (Lisp_Object);` - C 773.
   pub fn decode_window_system_frame (frame: Lisp_Object) -> *mut frame;
-  /// C: src/frame.h 1504: `extern WINDOW_SYSTEM_RETURN void check_window_system (struct frame *);`
-  /// - C 316.
-  pub fn check_window_system (f: *mut frame);
-  /// C: src/frame.h 1511-1512: `extern void adjust_frame_size (struct frame *, int, int, int,
-  /// bool, Lisp_Object);` - C 526.
-  pub fn adjust_frame_size (f: *mut frame, new_width: c_int, new_height: c_int, inhibit: c_int,
-                            pretend: bool, parameter: Lisp_Object);
+
+
   /// C: src/lisp.h 3880: `extern void process_pending_signals (void);` - C 282, C 369.
   pub fn process_pending_signals ();
   /// C: src/lisp.h 4786: `extern Lisp_Object quit (void);` - C 287, C 294, C 495.
@@ -101,17 +96,11 @@ unsafe extern "C" {
   pub fn menu_bar_items (menu_bar_items: Lisp_Object) -> Lisp_Object;
   /// C: src/lisp.h 5097: `extern void safe_run_hooks (Lisp_Object);` - C 630, C 634.
   pub fn safe_run_hooks (hook: Lisp_Object);
-  /// C: src/keyboard.h 385: `extern void unuse_menu_items (void);` - C 317.
-  pub fn unuse_menu_items ();
+
   /// C: src/keyboard.h 473: `extern bool menu_separator_name_p (const char *);` - C 161.
   pub fn menu_separator_name_p (name: *const c_char) -> bool;
-  /// C: src/keyboard.h 511-512: `extern void show_help_echo (Lisp_Object, Lisp_Object,
-  /// Lisp_Object, Lisp_Object);` - C 343, C 346.
-  pub fn show_help_echo (string: Lisp_Object, window: Lisp_Object, object: Lisp_Object,
-                         object_pos: Lisp_Object);
-  /// C: src/keyboard.h 515: `extern void kbd_buffer_store_help_event (Lisp_Object, Lisp_Object);`
-  /// - C 738, C 752.
-  pub fn kbd_buffer_store_help_event (frame: Lisp_Object, help: Lisp_Object);
+
+
   /// C: src/keyboard.h 521: `extern struct timespec timer_check (void);` - C 352.
   pub fn timer_check () -> timespec;
   

@@ -142,8 +142,7 @@ unsafe extern "C" {
 unsafe extern "C" {
   /// C: lisp.h 4799: `extern bool FUNCTIONP (Lisp_Object);` (eval.c).
   pub fn FUNCTIONP (object: Lisp_Object) -> bool;
-  /// C: coding.h 684: `extern Lisp_Object code_conversion_save (bool, bool);` (coding.c).
-  pub fn code_conversion_save (buffer: bool, multibyte: bool) -> Lisp_Object;
+
   /// C: lisp.h 5468: `extern void malloc_probe (size_t);` (profiler.c).
   pub fn malloc_probe (size: usize);
 }

@@ -193,3 +193,41 @@ use process_fd_decls::*;
 
 // C: process.h 296-308's remaining prototypes and the `fd_callback` typedef — (not mirrored
 // yet; they land with process.c/sysdep.c, batch D).
+
+/* C 279-316: the prototypes this header declares for functions
+   other units define.  They stand in a module + glob import so a unit that writes the same
+   prototype at its use site shadows the import instead of colliding with it (P-297, the P-39
+   shape); a prototype carries the gate of the records it names.  */
+pub mod process_fn_decls {
+  use super::*;
+
+  unsafe extern "C" {
+    /// C: process.h 279: `extern Lisp_Object get_current_directory (bool);`
+    pub fn get_current_directory (encode: bool) -> Lisp_Object;
+    /// C: process.h 280: `extern void record_kill_process (struct Lisp_Process *, Lisp_Object);`
+    pub fn record_kill_process (p: *mut Lisp_Process, tempfile: Lisp_Object);
+    /// C: process.h 284: `extern Lisp_Object list_system_processes (void);`
+    pub fn list_system_processes () -> Lisp_Object;
+    /// C: process.h 285: `extern Lisp_Object system_process_attributes (Lisp_Object);`
+    pub fn system_process_attributes (pid: Lisp_Object) -> Lisp_Object;
+    /// C: process.h 292: `extern void hold_keyboard_input (void);`
+    pub fn hold_keyboard_input ();
+    /// C: process.h 293: `extern void unhold_keyboard_input (void);`
+    pub fn unhold_keyboard_input ();
+    /// C: process.h 294: `extern bool kbd_on_hold_p (void);`
+    pub fn kbd_on_hold_p () -> bool;
+    /// C: process.h 303: `extern void catch_child_signal (void);`
+    pub fn catch_child_signal ();
+    /// C: process.h 304: `extern void restore_nofile_limit (void);`
+    pub fn restore_nofile_limit ();
+    /// C: process.h 311: `extern Lisp_Object remove_slash_colon (Lisp_Object);`
+    pub fn remove_slash_colon (string: Lisp_Object) -> Lisp_Object;
+    /// C: process.h 313: `extern void update_processes_for_thread_death (Lisp_Object);`
+    pub fn update_processes_for_thread_death (thread: Lisp_Object);
+    /// C: process.h 314: `extern void dissociate_controlling_tty (void);`
+    pub fn dissociate_controlling_tty ();
+    /// C: process.h 316: `extern int open_channel_for_module (Lisp_Object);`
+    pub fn open_channel_for_module (pipe_process: Lisp_Object) -> c_int;
+  }
+}
+use process_fn_decls::*;

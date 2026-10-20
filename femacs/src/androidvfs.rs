@@ -7287,8 +7287,7 @@ unsafe fn android_saf_tree_get_directory (dirfd: c_int) -> *mut android_saf_tree
    entry `lib/include/stdio.rs` does not bring in), so both stand at the use site (P-72 rule 4).  */
 #[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
 unsafe extern "C" {
-  /// C: coding.h 686: `extern void setup_coding_system (Lisp_Object, struct coding_system *);`
-  pub fn setup_coding_system (arg0: Lisp_Object, arg1: *mut coding_system);
+
   /// C: `<stdio.h>`: `int asprintf (char **, const char *, ...);`
   pub fn asprintf (arg0: *mut *mut c_char, arg1: *const c_char, ...) -> c_int;
 }
@@ -8322,9 +8321,7 @@ pub const ANDROID_LOG_VERBOSE: c_int = 2;
 unsafe extern "C" {
   /// C: lisp.h 3880: `extern void process_pending_signals (void);`
   pub fn process_pending_signals ();
-  /// C: coding.h 689: `extern Lisp_Object code_convert_string (Lisp_Object, Lisp_Object, Lisp_Object, bool, bool, bool);`
-  pub fn code_convert_string (arg0: Lisp_Object, arg1: Lisp_Object, arg2: Lisp_Object,
-			      arg3: bool, arg4: bool, arg5: bool) -> Lisp_Object;
+
 }
 
 /* Semaphore posted upon the completion of an SAF operation.  */         // C 6507

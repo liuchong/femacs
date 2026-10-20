@@ -14593,15 +14593,12 @@ unsafe fn x_try_restore_frame ()
    unit's include graph and are declared at the use site below (P-88 1).  */
 #[cfg (feature = "have_x_windows")]
 unsafe extern "C" {
-  /// C: dispnew.h 3327: `extern void clear_waiting_for_input (void);` - C 26985's call.
-  pub fn clear_waiting_for_input ();
+
   /// C: lisp.h 5119: `extern Lisp_Object do_switch_frame (Lisp_Object, int, int, Lisp_Object);` -
   /// C 26735's call (`src/frame.rs` defines it; no mirror row is in this unit's graph).
   pub fn do_switch_frame (frame: Lisp_Object, track: c_int, for_deletion: c_int,
                           norecord: Lisp_Object) -> Lisp_Object;
-  /// C: frame.h 1509: `extern Lisp_Object delete_frame (Lisp_Object, Lisp_Object);` - C 26879 and
-  /// C 26895's calls (`src/frame.rs` defines it; the `src/pgtkterm.rs` use-site row is its twin).
-  pub fn delete_frame (frame: Lisp_Object, force: Lisp_Object) -> Lisp_Object;
+
   /// C: Xlib.h 1857-1858: `extern XIOErrorHandler XSetIOErrorHandler (XIOErrorHandler);` - C 26783
   /// and C 26826's calls; the parameter is this unit's own `Emacs_XIOErrorHandler` type (unit 699,
   /// the earlier slices' binding of Xlib.h 1853's typedef, which `src/xterm.rs` 1789 already uses).
@@ -15151,10 +15148,7 @@ macro_rules! FRAME_CONFIG_SCROLL_BAR_COLS {
 unsafe extern "C" {
   /// C: dispextern.h 3631: `extern void get_font_ascent_descent (struct font *, int *, int *);`
   pub fn get_font_ascent_descent (font: *mut font, ascent: *mut c_int, descent: *mut c_int);
-  /// C: window.h 930: `extern void adjust_frame_size (struct frame *, int, int, int, bool,
-  /// Lisp_Object);` - C 27178's call.
-  pub fn adjust_frame_size (f: *mut frame, new_width: c_int, new_height: c_int, inhibit: c_int,
-			    pretend: bool, parameter: Lisp_Object);
+
   /// C: xfns.c 3814: `void xic_set_xfontset (struct frame *f, const char *base_fontname);` - the
   /// `HAVE_X_I18N` arm's call (a non-static definition in this tree's `src/xfns.rs`).
   pub fn xic_set_xfontset (f: *mut frame, base_fontname: *const c_char);
@@ -17378,9 +17372,7 @@ unsafe extern "C" {
    copy).  */
 #[cfg (feature = "have_x_windows")]
 unsafe extern "C" {
-  pub fn frame_size_history_extra (f: *mut frame, name: Lisp_Object, old_w: c_int,
-				   old_h: c_int, new_w: c_int, new_h: c_int, f_new_w: c_int,
-				   f_new_h: c_int);
+
 }
 
 
@@ -18420,7 +18412,7 @@ pub const MapNotify: c_int = 19;
    rule 4).  */
 #[cfg (feature = "have_x_windows")]
 unsafe extern "C" {
-  pub fn frame_size_history_plain (f: *mut frame, name: Lisp_Object);
+
 }
 
 /* Change from mapped state to withdrawn state.  */
@@ -31219,8 +31211,7 @@ unsafe extern "C" {
   /// int, int, bool, int);`
   pub fn handle_tool_bar_click (f: *mut frame, x: c_int, y: c_int, down_p: bool,
 				modifiers: c_int);
-  /// C: frame.h 1911: `extern bool frame_ancestor_p (struct frame *af, struct frame *df);`
-  pub fn frame_ancestor_p (af: *mut frame, df: *mut frame) -> bool;
+
   /// C: xterm.h 1013: `extern Lisp_Object tip_frame;` - C 21843-21846's four reads
   /// (`src/xfns.rs` 11579 carries the definition; the `tip_window` row above is the same
   /// header's line 1010).

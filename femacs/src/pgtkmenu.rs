@@ -272,13 +272,10 @@ unsafe extern "C" {
   pub fn menu_bar_items (menu_bar_items: Lisp_Object) -> Lisp_Object;
   /// C: src/lisp.h 5097: `extern void safe_run_hooks (Lisp_Object);` - C 282/286.
   pub fn safe_run_hooks (hook: Lisp_Object);
-  /// C: src/keyboard.h 385: `extern void unuse_menu_items (void);` - C 1061.
-  pub fn unuse_menu_items ();
+
   /// C: src/frame.h 1475: `INLINE struct frame * decode_window_system_frame (Lisp_Object);` - C 73.
   pub fn decode_window_system_frame (frame: Lisp_Object) -> *mut frame;
-  /// C: src/frame.h 1504: `extern WINDOW_SYSTEM_RETURN void check_window_system (struct frame *);`
-  /// - C 1056.
-  pub fn check_window_system (f: *mut frame);
+
 }
 
 /* ==============================================================================================

@@ -103,8 +103,7 @@ unsafe extern "C" {
   fn nconc2 (a: Lisp_Object, b: Lisp_Object) -> Lisp_Object;
   /// C: lisp.h 4988: `extern bool file_accessible_directory_p (Lisp_Object);`
   fn file_accessible_directory_p (filename: Lisp_Object) -> bool;
-  /// C: coding.h 688: `extern Lisp_Object coding_system_charset_list (Lisp_Object);`
-  fn coding_system_charset_list (coding_system: Lisp_Object) -> Lisp_Object;
+
   /// C: lisp.h 4743-4745: `extern int openp (Lisp_Object, Lisp_Object, Lisp_Object,
   /// Lisp_Object *, Lisp_Object, bool, bool, void **);`
   fn openp (path: Lisp_Object, str_: Lisp_Object, suffixes: Lisp_Object,

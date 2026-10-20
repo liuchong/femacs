@@ -201,8 +201,7 @@ pub mod coding_fwd
   use super::*;
 
   unsafe extern "C" {
-    /// C: coding.h 780: `extern Lisp_Object preferred_coding_system (void);`
-    pub fn preferred_coding_system () -> Lisp_Object;
+
     /// C: coding.h 695-697: `extern Lisp_Object decode_string_utf_8 (Lisp_Object, const char *, ptrdiff_t, Lisp_Object, bool, Lisp_Object, Lisp_Object);`
     pub fn decode_string_utf_8 (arg0: Lisp_Object, text: *const c_char, nbytes: ptrdiff_t,
 				arg3: Lisp_Object, arg4: bool, arg5: Lisp_Object,

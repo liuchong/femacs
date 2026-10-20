@@ -80,9 +80,9 @@ unsafe extern "C" { pub fn larger_vector (vector: Lisp_Object, length: ptrdiff_t
 unsafe extern "C" { pub fn record_unwind_protect_void
   (function: Option<unsafe extern "C" fn ()>); }
 /// C: extern bool parse_menu_item (Lisp_Object, int)  keyboard.h 474
-unsafe extern "C" { pub fn parse_menu_item (item: Lisp_Object, in_menubar: c_int) -> bool; }
+unsafe extern "C" { }
 /// C: extern void init_raw_keybuf_count (void)  keyboard.h 476
-unsafe extern "C" { pub fn init_raw_keybuf_count (); }
+unsafe extern "C" { }
 /// C: void pixel_to_glyph_coords (struct frame *, int, int, int *, int *,
 ///                                NativeRectangle *, bool)  dispextern.h 3584
 unsafe extern "C" { pub fn pixel_to_glyph_coords (f: *mut frame, x: c_int, y: c_int,
@@ -94,7 +94,7 @@ unsafe extern "C" { pub fn window_box_left (w: *mut window,
 /// C: bool is_tty_frame (struct frame *f)  dispextern.h 4012
 unsafe extern "C" { pub fn is_tty_frame (f: *mut frame) -> bool; }
 /// C: extern struct frame *decode_any_frame (Lisp_Object)  frame.h 1477
-unsafe extern "C" { pub fn decode_any_frame (frame: Lisp_Object) -> *mut frame; }
+unsafe extern "C" { }
 /// C: int estimate_mode_line_height (struct frame *, enum face_id)  dispextern.h 3582
 unsafe extern "C" { pub fn estimate_mode_line_height (f: *mut frame,
 						      face_id: face_id) -> c_int; }

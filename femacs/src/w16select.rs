@@ -199,7 +199,7 @@ include!("include/composite.rs");              // C 42: `#include "composite.h"`
 /// C: frame.h: `struct frame *decode_live_frame (Lisp_Object);`
 #[cfg (feature = "msdos")]
 unsafe extern "C" {
-  pub fn decode_live_frame (frame: Lisp_Object) -> *mut frame;
+
 }
 /// C 597's `setup_coding_system` is `coding.h` 686's prototype, and `include/coding.rs` carries
 /// `encode_coding_object`/`decode_coding_object` but not this one (the `src/w32select.rs` 660
@@ -207,7 +207,7 @@ unsafe extern "C" {
 /// C: coding.h: `extern void setup_coding_system (Lisp_Object, struct coding_system *);`
 #[cfg (feature = "msdos")]
 unsafe extern "C" {
-  pub fn setup_coding_system (coding_system: Lisp_Object, coding: *mut coding_system);
+
 }
 /// C 530/533/536's `message3` is `lisp.h` 4392's prototype of `xdisp.c`'s definition.
 /// C: lisp.h: `extern void message3 (Lisp_Object);`

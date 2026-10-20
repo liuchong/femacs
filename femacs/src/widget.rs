@@ -963,19 +963,9 @@ unsafe extern "C" {
   /// C 441: `cancel_mouse_face (f);`
   /// C: dispextern.h 3690: `extern void cancel_mouse_face (struct frame *);`
   pub fn cancel_mouse_face (f: *mut frame);
-  /// C 268-269/349-353/405-406/425-429/481-485: `frame_size_history_plain` / `_extra`.
-  /// C: frame.h 1514: `extern void frame_size_history_plain (struct frame *, Lisp_Object);`
-  pub fn frame_size_history_plain (f: *mut frame, parameter: Lisp_Object);
-  /// C: frame.h 1515-1516: `extern void frame_size_history_extra (struct frame *, Lisp_Object,
-  /// int, int, int, int, int, int);`
-  pub fn frame_size_history_extra (f: *mut frame, parameter: Lisp_Object,
-                                   old_width: c_int, old_height: c_int,
-                                   new_width: c_int, new_height: c_int,
-                                   f_new_width: c_int, f_new_height: c_int);
-  /// C 487-490: `!frame_inhibit_resize (f, 0, Qfont ())` / `(f, 1, Qfont ())`.
-  /// C: frame.h 1510: `extern bool frame_inhibit_resize (struct frame *, bool, Lisp_Object);`
-  pub fn frame_inhibit_resize (f: *mut frame, horizontal: bool,
-                               parameter: Lisp_Object) -> bool;
+
+
+
   /// C 489-490: `x_set_window_size (f, 0, …);`
   /// C: xterm.h 1770: `extern void x_set_window_size (struct frame *, bool, int, int);`
   pub fn x_set_window_size (f: *mut frame, change_gravity: bool,

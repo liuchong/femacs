@@ -1302,15 +1302,12 @@ unsafe extern "C" {
   /// `VECSIZE (struct font_info)`).  `include/font.rs` carries no function declarations yet.
   pub fn font_build_object (vectorsize: c_int, r#type: Lisp_Object, entity: Lisp_Object,
                             pixelsize: c_double) -> Lisp_Object;
-  /// C: font.h 842: `extern Lisp_Object font_make_entity (void);` (font.c defines it).
-  pub fn font_make_entity () -> Lisp_Object;
+
   /// C: font.h 885-886: `extern Lisp_Object font_intern_prop (const char *str, ptrdiff_t len,
   /// bool force_symbol);` (font.c defines it).
   pub fn font_intern_prop (str_: *const c_char, len: ptrdiff_t,
                            force_symbol: bool) -> Lisp_Object;
-  /// C: font.h 913-914: `extern Lisp_Object font_put_extra (Lisp_Object font, Lisp_Object prop,
-  /// Lisp_Object val);` (font.c defines it).
-  pub fn font_put_extra (font: Lisp_Object, prop: Lisp_Object, val: Lisp_Object) -> Lisp_Object;
+
   /// C: font.h 1001 `font_add_log` (font.c defines it) is the `include/font.rs` mirror's own
   /// declaration now - its `FONT_ADD_LOG!` body (C font.h 1004-1008) names it (status 3.521,
   /// the use-site copy retired by 3.524).

@@ -88,10 +88,7 @@ unsafe extern "C" {
   /// carry it yet; reported as a mirror gap in docs/ports/composite.md).
   fn qsort (base: *mut c_void, nmemb: usize, size: usize,
 	    compar: Option<unsafe extern "C" fn (*const c_void, *const c_void) -> c_int>);
-  /// C: font.h 911: `extern void font_fill_lglyph_metrics (Lisp_Object, struct font *,
-  /// unsigned int);` — `struct font` is declared below (font.h is not mirrored that far,
-  /// PORTING.md P-66).
-  fn font_fill_lglyph_metrics (glyph: Lisp_Object, font: *mut font, code: c_uint);
+
   /// C: dispextern.h 3631: `extern void get_font_ascent_descent (struct font *, int *,
   /// int *);`
   fn get_font_ascent_descent (font: *mut font, ascent: *mut c_int, descent: *mut c_int);

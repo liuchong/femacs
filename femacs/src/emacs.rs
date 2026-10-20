@@ -308,8 +308,7 @@ unsafe extern "C" {
   fn syms_of_display ();
   // window.h 1236/1237/1238 (`init_window_once`, `init_window`, `syms_of_window`) are the
   // window.rs mirror's now (`window_fn_decls`); the use-site copies are gone (P-26).
-  /// C: keyboard.h 494: `extern void stuff_buffered_input (Lisp_Object);`
-  fn stuff_buffered_input (stuff: Lisp_Object);
+
 
   /* --- headers with no mirror at all (P-72's incomplete-type rule does not apply: these
          are plain functions the units own) ------------------------------------------ */

@@ -398,10 +398,7 @@ pub unsafe extern "C" fn create_terminal (r#type: output_method, rif: *mut c_voi
     { terminal_coding = Qundecided (); }
 
   unsafe extern "C" {
-    /// C: void setup_coding_system (Lisp_Object coding_system,
-    ///                              struct coding_system *coding)  (coding.h 686)
-    pub fn setup_coding_system (coding_system: Lisp_Object,
-				coding: *mut coding_system);
+
   }
   setup_coding_system (keyboard_coding, (*terminal).keyboard_coding as *mut coding_system);
   setup_coding_system (terminal_coding, (*terminal).terminal_coding as *mut coding_system);
@@ -431,8 +428,7 @@ pub unsafe extern "C" fn delete_terminal (terminal: *mut terminal)
   (*terminal).name = std::ptr::null_mut ();
 
   unsafe extern "C" {
-    /// C: extern Lisp_Object delete_frame (Lisp_Object, Lisp_Object)  (frame.h 1509)
-    pub fn delete_frame (frame: Lisp_Object, force: Lisp_Object) -> Lisp_Object;
+
   }
   /* Check for live frames that are still on this terminal.  */
   // C's `FOR_EACH_FRAME (tail, frame)` loop macro (frame.h 1404) is the mirror's
@@ -471,8 +467,7 @@ pub unsafe extern "C" fn delete_terminal_internal (terminal: *mut terminal)
   (*terminal).terminal_coding = std::ptr::null_mut ();
 
   unsafe extern "C" {
-    /// C: extern void delete_kboard (KBOARD *)  (keyboard.h 478)
-    pub fn delete_kboard (kb: *mut KBOARD);
+
   }
   // C's `terminal->kboard && --terminal->kboard->reference_count == 0`: the block operand
   // keeps C's single `if` and performs the pre-decrement before the comparison.
@@ -532,8 +527,7 @@ DEFUN! ("frame-terminal", Fframe_terminal, Sframe_terminal, 0, 1, 0,
        (frame: Lisp_Object),
        {
   unsafe extern "C" {
-    /// C: extern struct frame *decode_live_frame (Lisp_Object)  (frame.h 1476)
-    pub fn decode_live_frame (frame: Lisp_Object) -> *mut frame;
+
   }
   let t: *mut terminal = FRAME_TERMINAL! (decode_live_frame (frame));
 

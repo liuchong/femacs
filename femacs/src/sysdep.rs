@@ -1025,7 +1025,7 @@ unsafe extern "C" {
   /* pid_t vfork (void);  -- conf_post.h 290's `VFORK ()` is `vfork ()` here.  */
   pub fn vfork () -> pid_t;
   /* char *get_current_directory (bool);  -- keyboard.c's entry (its mirror lands with it).  */
-  pub fn get_current_directory (mb_nonspacing_characters: bool) -> Lisp_Object;
+
   /* int system (const char *);  */
   pub fn system (command: *const c_char) -> c_int;
   /* int setenv (const char *, const char *, int);  */

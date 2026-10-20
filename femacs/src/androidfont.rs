@@ -104,10 +104,8 @@ unsafe extern "C" {
 unsafe extern "C" {
   /// C: lisp.h 4432: `extern AVOID memory_full (size_t);` (alloc.c defines it).
   pub fn memory_full (size: size_t) -> !;
-  /// C: font.h 843-845: `#ifdef HAVE_ANDROID extern Lisp_Object font_make_entity_android (int);`
-  pub fn font_make_entity_android (size: c_int) -> Lisp_Object;
-  /// C: font.h 846: `extern Lisp_Object font_make_object (int, Lisp_Object, int);`
-  pub fn font_make_object (size: c_int, entity: Lisp_Object, pixelsize: c_int) -> Lisp_Object;
+
+
   /// C: dispextern.h 3809-3810: `#ifdef HAVE_WINDOW_SYSTEM void prepare_face_for_display
   /// (struct frame *, struct face *);` - `struct face` is the mirror's untyped pointer (P-72 ③).
   pub fn prepare_face_for_display (f: *mut frame, face: *mut c_void);

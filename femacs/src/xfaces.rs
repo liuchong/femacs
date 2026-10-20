@@ -558,13 +558,12 @@ pub const FACE_TTY_DEFAULT_BG_COLOR: c_ulong = -3i64 as c_ulong;
 /* C 1932-1949 (dispextern.h): the three tty "default colour" sentinels are above; the
    declarations below are the headers' own prototypes the mirrors stop short of.  */
 unsafe extern "C" {
-  /// C: frame.h 1476: `struct frame *decode_live_frame (Lisp_Object);` (frame.c).
-  fn decode_live_frame (frame: Lisp_Object) -> *mut frame;
+
   /// C: lisp.h 2xxx: `bool FUNCTIONP (Lisp_Object)` is an INLINE in lisp.h that no mirror
   /// carries; the port declares the same predicate here.
   fn FUNCTIONP (a: Lisp_Object) -> bool;
   fn lrint (x: c_double) -> c_long;
-  fn decode_any_frame (frame: Lisp_Object) -> *mut frame;
+
   /// C: dispextern.h 3661-3662: `extern void add_to_log (const char *, ...);`
   fn add_to_log (format: *const c_char, ...);
 }
@@ -584,12 +583,9 @@ unsafe extern "C" {
 			  for_face: bool) -> Lisp_Object;
   fn font_style_to_value (prop: font_property_index, val: Lisp_Object,
 			  noerror: bool) -> c_int;
-  /// C: font.h 288-291: `void font_clear_prop (Lisp_Object attrs[], enum font_property_index prop);`
-  fn font_clear_prop (attrs: *mut Lisp_Object, prop: font_property_index);
-  /// C: font.h 839: `extern Lisp_Object copy_font_spec (Lisp_Object);`
-  fn copy_font_spec (font: Lisp_Object) -> Lisp_Object;
-  /// C: font.h 840: `extern Lisp_Object merge_font_spec (Lisp_Object, Lisp_Object);`
-  fn merge_font_spec (from: Lisp_Object, to: Lisp_Object) -> Lisp_Object;
+
+
+
   /// C: lisp.h 5322-5323: `extern FILE *emacs_fopen (char const *, char const *);`
   fn emacs_fopen (file: *const c_char, mode: *const c_char) -> *mut FILE;
   /// C: <stdio.h>: the two stdio entries `Fx_load_color_file` reads.
@@ -4361,8 +4357,7 @@ pub const TTY_CAP_OVERLINE: c_uint = 1 << 8;
 unsafe extern "C" {
   fn is_tty_frame (f: *mut frame) -> bool;
   fn tty_capable_p (tty: *mut tty_display_info, caps: c_uint) -> bool;
-  /// C: font.h 887: `void font_update_sort_order (int *order);`
-  fn font_update_sort_order (order: *mut c_int);
+
 }
 
 /* C 5433-5574: the `HAVE_WINDOW_SYSTEM` block (`gui_supports_face_attributes_p`) is dead.  */

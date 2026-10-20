@@ -94,8 +94,7 @@ unsafe extern "C" {
   pub fn abort () -> !;
   /// C: lisp.h 4392: `extern void message3 (Lisp_Object);`
   pub fn message3 (m: Lisp_Object) -> Lisp_Object;
-  /// C: keyboard.h 487: `extern void set_poll_suppress_count (int);`
-  pub fn set_poll_suppress_count (count: c_int);
+
   /// C: emacs.c: `void fatal (const char *, ...) ATTRIBUTE_NORETURN;` (lisp.h's EXFUN group)
   pub fn fatal (format: *const c_char, ...) -> !;
   /// C: lisp.h 3880: `void process_pending_signals (void);`

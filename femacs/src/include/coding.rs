@@ -687,3 +687,39 @@ pub fn WCSDATA (x: Lisp_Object) -> *mut c_int
 {
   SDATA (x) as *mut c_int
 }
+
+/* C 684-780: the prototypes this header declares for functions
+   other units define.  They stand in a module + glob import so a unit that writes the same
+   prototype at its use site shadows the import instead of colliding with it (P-297, the P-39
+   shape); a prototype carries the gate of the records it names.  */
+pub mod coding_fn_decls {
+  use super::*;
+
+  unsafe extern "C" {
+    /// C: coding.h 684: `extern Lisp_Object code_conversion_save (bool, bool);`
+    pub fn code_conversion_save (buffer: bool, multibyte: bool) -> Lisp_Object;
+    /// C: coding.h 686: `extern void setup_coding_system (Lisp_Object, struct coding_system *);`
+    pub fn setup_coding_system (system: Lisp_Object, coding: *mut coding_system);
+    /// C: coding.h 687: `extern Lisp_Object coding_charset_list (struct coding_system *);`
+    pub fn coding_charset_list (coding: *mut coding_system) -> Lisp_Object;
+    /// C: coding.h 688: `extern Lisp_Object coding_system_charset_list (Lisp_Object);`
+    pub fn coding_system_charset_list (coding_system: Lisp_Object) -> Lisp_Object;
+    /// C: coding.h 689: `extern Lisp_Object code_convert_string (Lisp_Object, Lisp_Object, Lisp_Object, bool, bool, bool);`
+    pub fn code_convert_string (arg0: Lisp_Object, arg1: Lisp_Object, arg2: Lisp_Object, arg3: bool, arg4: bool, arg5: bool) -> Lisp_Object;
+    /// C: coding.h 693: `extern Lisp_Object encode_string_utf_8 (Lisp_Object, Lisp_Object, bool, Lisp_Object, Lisp_Object);`
+    pub fn encode_string_utf_8 (string: Lisp_Object, coding_system: Lisp_Object, nocopy: bool, handle_8_bit: Lisp_Object, handle_over_uni: Lisp_Object) -> Lisp_Object;
+    /// C: coding.h 700: `extern Lisp_Object raw_text_coding_system (Lisp_Object);`
+    pub fn raw_text_coding_system (coding: Lisp_Object) -> Lisp_Object;
+    /// C: coding.h 701: `extern bool raw_text_coding_system_p (struct coding_system *);`
+    pub fn raw_text_coding_system_p (coding: *mut coding_system) -> bool;
+    /// C: coding.h 702: `extern Lisp_Object coding_inherit_eol_type (Lisp_Object, Lisp_Object);`
+    pub fn coding_inherit_eol_type (coding_system: Lisp_Object, eol_type: Lisp_Object) -> Lisp_Object;
+    /// C: coding.h 703: `extern Lisp_Object complement_process_encoding_system (Lisp_Object);`
+    pub fn complement_process_encoding_system (coding: Lisp_Object) -> Lisp_Object;
+    /// C: coding.h 734: `extern Lisp_Object from_unicode (Lisp_Object str);`
+    pub fn from_unicode (str: Lisp_Object) -> Lisp_Object;
+    /// C: coding.h 780: `extern Lisp_Object preferred_coding_system (void);`
+    pub fn preferred_coding_system () -> Lisp_Object;
+  }
+}
+use coding_fn_decls::*;

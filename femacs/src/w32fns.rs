@@ -2644,10 +2644,9 @@ unsafe extern "C" {
   pub fn clear_current_matrices (f: *mut frame);
   pub fn clear_frame (f: *mut frame);
   pub fn get_frame_param (f: *mut frame, prop: Lisp_Object) -> Lisp_Object;
-  pub fn adjust_frame_size (f: *mut frame, new_width: c_int, new_height: c_int,
-                            inhibit: c_int, inhibit_2: bool, parameter: Lisp_Object);
-  pub fn set_frame_menubar (f: *mut frame, deep_p: bool);
-  pub fn free_frame_menubar (f: *mut frame);
+
+
+
   pub fn store_frame_param (f: *mut frame, prop: Lisp_Object, val: Lisp_Object);
 }
 
@@ -6611,7 +6610,7 @@ static mut force_quit_count: c_int = 0;
 /// the underscore.
 #[cfg (feature = "have_ntgui")]
 unsafe extern "C" {
-  pub fn make_ctrl_char (c: c_int) -> c_int;
+
 }
 #[cfg (feature = "have_ntgui")]
 unsafe fn post_character_message (hwnd: HWND, mut msg: UINT, wParam: WPARAM, lParam: LPARAM,
@@ -9841,14 +9840,13 @@ macro_rules! KVAR {
 /// C: extern void gui_init_fringe (struct redisplay_interface *);
 #[cfg (feature = "have_ntgui")]
 unsafe extern "C" {
-  pub fn make_frame (mini_p: bool) -> *mut frame;
-  pub fn make_minibuffer_frame () -> *mut frame;
+
+
   pub fn make_frame_without_minibuffer (mini_window: Lisp_Object, kb: *mut kboard,
 					display: Lisp_Object) -> *mut frame;
   pub fn frame_set_id_from_params (f: *mut frame, params: Lisp_Object);
   pub fn fset_parent_frame (f: *mut frame, val: Lisp_Object);
-  pub fn gui_figure_window_size (f: *mut frame, parms: Lisp_Object, x_frame: bool,
-				 toolbar_p: bool) -> c_long;
+
   pub fn register_font_driver (driver: *const font_driver, f: *mut frame);
   
 }
@@ -13576,8 +13574,8 @@ DEFUN! ("w32-shell-execute", Fw32_shell_execute, Sw32_shell_execute, 2, 4, 0,
 /// C: (Lisp_Object);
 #[cfg (feature = "have_ntgui")]
 unsafe extern "C" {
-  pub fn parse_modifiers (symbol: Lisp_Object) -> Lisp_Object;
-  pub fn lucid_event_type_list_p (object: Lisp_Object) -> bool;
+
+
 }
 
 /// C 9101-9106: C's `#ifndef MOD_ALT` guard block - "Supply defs missing from mingw32", i.e. the
@@ -14028,7 +14026,7 @@ pub struct MENUBARINFO
 /// C: extern struct frame *decode_live_frame (Lisp_Object);
 #[cfg (feature = "have_ntgui")]
 unsafe extern "C" {
-  pub fn decode_live_frame (arg0: Lisp_Object) -> *mut frame;
+
 }
 #[cfg (feature = "have_ntgui")]
 unsafe extern "system" {
@@ -17257,46 +17255,28 @@ type frame_parm_handler =
 /// `src/haikufns.rs` 226-272 block, same wording.
 #[cfg (feature = "have_ntgui")]
 unsafe extern "C" {
-  /// C: frame.h 1844-1851: `extern void gui_set_fullscreen (struct frame *, Lisp_Object,
-  /// Lisp_Object);` and its seven siblings
-  pub fn gui_set_fullscreen (f: *mut frame, arg: Lisp_Object, oldval: Lisp_Object);
-  pub fn gui_set_line_spacing (f: *mut frame, arg: Lisp_Object, oldval: Lisp_Object);
-  pub fn gui_set_screen_gamma (f: *mut frame, arg: Lisp_Object, oldval: Lisp_Object);
-  pub fn gui_set_font (f: *mut frame, arg: Lisp_Object, oldval: Lisp_Object);
-  pub fn gui_set_font_backend (f: *mut frame, arg: Lisp_Object, oldval: Lisp_Object);
-  pub fn gui_set_left_fringe (f: *mut frame, arg: Lisp_Object, oldval: Lisp_Object);
-  pub fn gui_set_right_fringe (f: *mut frame, arg: Lisp_Object, oldval: Lisp_Object);
-  pub fn gui_set_border_width (f: *mut frame, arg: Lisp_Object, oldval: Lisp_Object);
-  /// C: frame.h 1852-1855: `extern void gui_set_right_divider_width (struct frame *,
-  /// Lisp_Object, Lisp_Object);` / `gui_set_bottom_divider_width (…)`
-  pub fn gui_set_right_divider_width (f: *mut frame, arg: Lisp_Object, oldval: Lisp_Object);
-  pub fn gui_set_bottom_divider_width (f: *mut frame, arg: Lisp_Object, oldval: Lisp_Object);
-  /// C: frame.h 1856: `extern void gui_set_visibility (struct frame *, Lisp_Object,
-  /// Lisp_Object);`
-  pub fn gui_set_visibility (f: *mut frame, arg: Lisp_Object, oldval: Lisp_Object);
-  /// C: frame.h 1857/1858: `extern void gui_set_autoraise (struct frame *, Lisp_Object,
-  /// Lisp_Object);` / `gui_set_autolower (…)`
-  pub fn gui_set_autoraise (f: *mut frame, arg: Lisp_Object, oldval: Lisp_Object);
-  pub fn gui_set_autolower (f: *mut frame, arg: Lisp_Object, oldval: Lisp_Object);
-  /// C: frame.h 1859-1863: `extern void gui_set_unsplittable (struct frame *, Lisp_Object,
-  /// Lisp_Object);` and its four siblings
-  pub fn gui_set_unsplittable (f: *mut frame, arg: Lisp_Object, oldval: Lisp_Object);
-  pub fn gui_set_vertical_scroll_bars (f: *mut frame, arg: Lisp_Object, oldval: Lisp_Object);
-  pub fn gui_set_horizontal_scroll_bars (f: *mut frame, arg: Lisp_Object, oldval: Lisp_Object);
-  pub fn gui_set_scroll_bar_width (f: *mut frame, arg: Lisp_Object, oldval: Lisp_Object);
-  pub fn gui_set_scroll_bar_height (f: *mut frame, arg: Lisp_Object, oldval: Lisp_Object);
-  /// C: frame.h 1867: `extern void gui_set_alpha (struct frame *, Lisp_Object, Lisp_Object);`
-  pub fn gui_set_alpha (f: *mut frame, arg: Lisp_Object, oldval: Lisp_Object);
-  /// C: frame.h 1868: `extern void gui_set_alpha_background (struct frame *, Lisp_Object,
-  /// Lisp_Object);`
-  pub fn gui_set_alpha_background (f: *mut frame, arg: Lisp_Object, oldval: Lisp_Object);
-  /// C: frame.h 1869-1870: `extern void gui_set_borders_respect_alpha_background (struct frame *,
-  /// Lisp_Object, Lisp_Object);`
-  pub fn gui_set_borders_respect_alpha_background (f: *mut frame, arg: Lisp_Object,
-						   oldval: Lisp_Object);
-  /// C: frame.h 1872: `extern void gui_set_no_special_glyphs (struct frame *, Lisp_Object,
-  /// Lisp_Object);`
-  pub fn gui_set_no_special_glyphs (f: *mut frame, arg: Lisp_Object, oldval: Lisp_Object);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 }
 
 /* C 11530-11583: the frame parameter handler table.  Its 51 entries are the `frame_parm_handler`

@@ -172,10 +172,8 @@ macro_rules! select_mini_window_flag {
 /* Definitions in other units whose headers' mirrors do not carry the prototype
    (PORTING.md 0.1-2/P-72 rule 3); each keeps C's own prototype in a `/// C:` line.  */
 unsafe extern "C" {
-  /// C: frame.h 1476: `struct frame *decode_live_frame (Lisp_Object);`
-  pub fn decode_live_frame (frame: Lisp_Object) -> *mut frame;
-  /// C: frame.h 1477: `struct frame *decode_any_frame (Lisp_Object);`
-  pub fn decode_any_frame (frame: Lisp_Object) -> *mut frame;
+
+
   // window.h 1180's `redisplay_other_windows` (xdisp.c defines it) is the mirror's now.
 }
 
@@ -223,8 +221,7 @@ macro_rules! face_change {
 unsafe extern "C" {
   /// C: lisp.h 4271: `extern Lisp_Object nconc2 (Lisp_Object, Lisp_Object);` (fns.c defines it).
   pub fn nconc2 (a: Lisp_Object, b: Lisp_Object) -> Lisp_Object;
-  /// C: frame.h 1508: `extern struct frame *root_frame (struct frame *f);` (frame.c defines it).
-  pub fn root_frame (f: *mut frame) -> *mut frame;
+
   /// C: lisp.h 5097: `extern void safe_run_hooks (Lisp_Object);` (keyboard.c defines it).
   pub fn safe_run_hooks (hook: Lisp_Object);
   /// C: lisp.h 5055: `extern bool is_minibuffer (EMACS_INT, Lisp_Object);` (minibuf.c).
@@ -7481,10 +7478,7 @@ DEFUN! ("window-configuration-frame", Fwindow_configuration_frame, Swindow_confi
    was redundancy (P-26).  */
 
 unsafe extern "C" {
-  /// C: frame.h 1511-1512: `extern void adjust_frame_size (struct frame *, int, int, int,
-  /// bool, Lisp_Object);` (frame.c; the mirror does not carry the prototype).
-  pub fn adjust_frame_size (f: *mut frame, new_width: c_int, new_height: c_int,
-                            inhibit: c_int, pretend: bool, parameter: Lisp_Object);
+
   /// C: lisp.h 5119: `extern Lisp_Object do_switch_frame (Lisp_Object, int, int,
   /// Lisp_Object);` (frame.c).
   pub fn do_switch_frame (frame: Lisp_Object, track: c_int, for_deletion: c_int,
@@ -8919,9 +8913,7 @@ pub static mut window_dead_windows_table: Lisp_Object = lisp_h_Qnil ();
 pub static mut window_auto_redraw_on_parameter_change: bool = false;
 
 unsafe extern "C" {
-  /// C: frame.h 1478: `extern struct frame *make_initial_frame (void);` (frame.c; the mirror
-  /// does not carry the prototype).
-  pub fn make_initial_frame () -> *mut frame;
+
 }
 
 #[unsafe(no_mangle)]

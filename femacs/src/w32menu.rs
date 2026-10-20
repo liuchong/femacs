@@ -865,12 +865,10 @@ unsafe extern "C" {
   pub fn discard_mouse_events ();
   pub fn safe_run_hooks (hook: Lisp_Object);
   pub fn quit () -> Lisp_Object;
-  pub fn show_help_echo (string: Lisp_Object, window: Lisp_Object, object: Lisp_Object,
-                         position: Lisp_Object);
-  pub fn kbd_buffer_store_help_event (frame: Lisp_Object, help: Lisp_Object);
-  pub fn check_window_system (f: *mut frame);
-  pub fn adjust_frame_size (f: *mut frame, new_width: c_int, new_height: c_int,
-                            inhibit: c_int, inhibit2: bool, extra: Lisp_Object);
+
+
+
+
   pub fn menu_separator_name_p (name: *const c_char) -> bool;
   pub fn make_widget_value (name: *const c_char, value: *mut c_char, enabled: bool,
                             help: Lisp_Object) -> *mut widget_value;

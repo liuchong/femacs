@@ -238,7 +238,7 @@ unsafe extern "C" {
 /// C: frame.h's `extern void check_window_system (struct frame *);` (C 450/607).
 #[cfg (feature = "have_pgtk")]
 unsafe extern "C" {
-  pub fn check_window_system (f: *mut frame);
+
 }
 /// C: xfaces.c's `free_frame_faces` (C 460), declared in frame.h.
 #[cfg (feature = "have_pgtk")]
@@ -254,8 +254,7 @@ unsafe extern "C" {
 /// C: window.c's `adjust_frame_size` (C 930), declared in window.h.
 #[cfg (feature = "have_pgtk")]
 unsafe extern "C" {
-  pub fn adjust_frame_size (f: *mut frame, new_width: c_int, new_height: c_int,
-                            inhibit: c_int, pretend: bool, parameter: Lisp_Object);
+
 }
 /// C: gtkutil.c's entry points (C 712/717/743/1017/1023/1067/1076).  `gtkutil.h`'s mirror is a
 /// placeholder, so each is declared here with the reference's own prototype (P-72 rule 4).
@@ -8076,8 +8075,7 @@ unsafe extern "C" fn key_press_event (widget: *mut GtkWidget, event: *mut GdkEve
    `clear_mouse_face` shape, P-90 1).  */
 #[cfg (feature = "have_pgtk")]
 unsafe extern "C" {
-  pub fn gen_help_event (string: Lisp_Object, frame: Lisp_Object, window: Lisp_Object,
-			 object: Lisp_Object, pos: ptrdiff_t);
+
 }
 /* C: dispextern.h 3614-3616: `extern Lisp_Object help_echo_string, help_echo_window; extern
    Lisp_Object help_echo_object, previous_help_echo_string;` - the C 5554 write.  The mirror
@@ -8853,7 +8851,7 @@ unsafe fn construct_mouse_click (result: *mut input_event, event: *mut GdkEventB
 unsafe extern "C" {
   pub fn handle_tab_bar_click (f: *mut c_void, x: c_int, y: c_int, down_p: bool,
 			       modifiers: c_int) -> Lisp_Object;
-  pub fn frame_ancestor_p (af: *mut frame, df: *mut frame) -> bool;
+
 }
 
 /// C 6096-6226: `static gboolean button_event (GtkWidget *widget, GdkEvent *event, gpointer
@@ -10254,7 +10252,7 @@ unsafe extern "C" {
    - all of them stand here (P-88 1), with `FRAME_GTK_WIDGET`-class conversions at the call sites.  */
 #[cfg (feature = "have_pgtk")]
 unsafe extern "C" {
-  pub fn allocate_kboard (type_: Lisp_Object) -> *mut kboard;
+
   pub fn add_keyboard_wait_descriptor (fd: c_int);
      // C's `struct redisplay_interface *` (P-87 3)
   

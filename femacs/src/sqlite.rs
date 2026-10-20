@@ -459,8 +459,7 @@ unsafe fn encode_string (string: Lisp_Object) -> Lisp_Object
 ///     `Lisp_Object, Lisp_Object);`
 #[cfg (feature = "have_sqlite3")]
 unsafe extern "C" {
-  pub fn encode_string_utf_8 (string: Lisp_Object, buffer: Lisp_Object, handle_over_uni: bool,
-                              carryover: Lisp_Object, discard_invalid: Lisp_Object) -> Lisp_Object;
+
 }
 
 /* C 248: blank.  */

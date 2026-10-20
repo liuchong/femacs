@@ -284,15 +284,15 @@ unsafe extern "C" {
   pub fn assoc_no_quit (key: Lisp_Object, list: Lisp_Object) -> Lisp_Object;  // lisp.h 4274
   pub fn larger_vector (vec: Lisp_Object, incr: ptrdiff_t,
                         init: ptrdiff_t) -> Lisp_Object;                  // lisp.h 4245
-  pub fn decode_live_frame (frame: Lisp_Object) -> *mut frame;            // frame.h 1476
-  pub fn check_window_system (f: *mut frame);                             // frame.h 1504
+            // frame.h 1476
+                             // frame.h 1504
   pub fn recompute_basic_faces (f: *mut frame);                           // dispextern.h 3823
   pub fn xstrcasecmp (a: *const c_char, b: *const c_char) -> c_int;       // dispextern.h 104
-  pub fn find_font_encoding (name: Lisp_Object) -> Lisp_Object;           // font.h 851
+           // font.h 851
   pub fn font_has_char (f: *mut frame, font: Lisp_Object, c: c_int) -> c_int;  // font.h 867
-  pub fn font_match_p (spec: Lisp_Object, font: Lisp_Object) -> bool;     // font.h 860
-  pub fn font_get_name (font: Lisp_Object) -> Lisp_Object;                // font.h 864
-  pub fn copy_font_spec (font: Lisp_Object) -> Lisp_Object;               // font.h 839
+     // font.h 860
+                // font.h 864
+               // font.h 839
   pub fn font_find_for_lface (f: *mut frame, lface: *mut Lisp_Object, spec: Lisp_Object,
                               c: c_int) -> Lisp_Object;                   // font.h 871
   pub fn font_open_for_lface (f: *mut frame, entity: Lisp_Object,
@@ -301,14 +301,10 @@ unsafe extern "C" {
   pub fn font_load_for_lface (f: *mut frame, lface: *mut Lisp_Object,
                               spec: Lisp_Object) -> Lisp_Object;          // font.h 876
   pub fn font_open_by_spec (f: *mut frame, spec: Lisp_Object) -> Lisp_Object;  // font.h 882
-  pub fn font_parse_family_registry (family: Lisp_Object, registry: Lisp_Object,
-                                     font_spec: Lisp_Object);             // font.h 889
-  pub fn font_parse_xlfd (name: *mut c_char, len: ptrdiff_t,
-                          font_spec: Lisp_Object) -> c_int;               // font.h 893
-  pub fn font_dynamic_unparse_xlfd (font_spec: Lisp_Object,
-                                    bytes: c_int) -> *mut c_char;         // font.h 894
-  pub fn gui_set_frame_parameters_1 (f: *mut frame, alist: Lisp_Object,
-                                     gc_protect: bool);                   // frame.h 1842
+             // font.h 889
+               // font.h 893
+         // font.h 894
+                   // frame.h 1842
   pub fn face_for_font (f: *mut frame, font_object: Lisp_Object,
                         face: *mut face) -> c_int;                       // fontset.h 46
 }

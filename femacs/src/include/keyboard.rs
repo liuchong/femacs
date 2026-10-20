@@ -329,3 +329,77 @@ unsafe extern "C" {
    import for the definition to shadow it (PORTING.md 0.1-10/P-21) - a crate-root declaration
    collides with them instead, which is what `build-tu src/keyboard.c` reported as
    `E0428: the name timers_run is defined multiple times` (status 3.155).  */
+
+/* C 387-524: the prototypes this header declares for functions
+   other units define.  They stand in a module + glob import so a unit that writes the same
+   prototype at its use site shadows the import instead of colliding with it (P-297, the P-39
+   shape); a prototype carries the gate of the records it names.  */
+pub mod keyboard_fn_decls {
+  use super::*;
+
+  unsafe extern "C" {
+    /// C: keyboard.h 387: `extern void unuse_menu_items (void);`
+    pub fn unuse_menu_items ();
+    /// C: keyboard.h 463: `extern Lisp_Object parse_modifiers (Lisp_Object);`
+    pub fn parse_modifiers (item: Lisp_Object) -> Lisp_Object;
+    /// C: keyboard.h 464: `extern Lisp_Object reorder_modifiers (Lisp_Object);`
+    pub fn reorder_modifiers (event: Lisp_Object) -> Lisp_Object;
+    /// C: keyboard.h 465: `extern int parse_solitary_modifier (Lisp_Object symbol);`
+    pub fn parse_solitary_modifier (symbol: Lisp_Object) -> c_int;
+    /// C: keyboard.h 476: `extern bool parse_menu_item (Lisp_Object, int);`
+    pub fn parse_menu_item (item: Lisp_Object, in_menubar: c_int) -> bool;
+    /// C: keyboard.h 478: `extern void init_raw_keybuf_count (void);`
+    pub fn init_raw_keybuf_count ();
+    /// C: keyboard.h 479: `extern KBOARD *allocate_kboard (Lisp_Object);`
+    pub fn allocate_kboard (type_: Lisp_Object) -> *mut kboard;
+    /// C: keyboard.h 480: `extern void delete_kboard (KBOARD *);`
+    pub fn delete_kboard (kb: *mut KBOARD);
+    /// C: keyboard.h 481: `extern void not_single_kboard_state (KBOARD *);`
+    pub fn not_single_kboard_state (kb: *mut KBOARD);
+    /// C: keyboard.h 482: `extern void push_kboard (struct kboard *);`
+    pub fn push_kboard (k: *mut kboard);
+    /// C: keyboard.h 484: `extern void pop_kboard (void);`
+    pub fn pop_kboard ();
+    /// C: keyboard.h 487: `extern void start_polling (void);`
+    pub fn start_polling ();
+    /// C: keyboard.h 488: `extern void stop_polling (void);`
+    pub fn stop_polling ();
+    /// C: keyboard.h 489: `extern void set_poll_suppress_count (int);`
+    pub fn set_poll_suppress_count (count: c_int);
+    /// C: keyboard.h 490: `extern int gobble_input (void);`
+    pub fn gobble_input () -> c_int;
+    /// C: keyboard.h 491: `extern bool input_polling_used (void);`
+    pub fn input_polling_used () -> bool;
+    /// C: keyboard.h 492: `extern void clear_input_pending (void);`
+    pub fn clear_input_pending ();
+    /// C: keyboard.h 493: `extern bool requeued_command_events_pending_p (void);`
+    pub fn requeued_command_events_pending_p () -> bool;
+    /// C: keyboard.h 494: `extern void bind_polling_period (int);`
+    pub fn bind_polling_period (n: c_int);
+    /// C: keyboard.h 495: `extern int make_ctrl_char (int) ATTRIBUTE_CONST;`
+    pub fn make_ctrl_char (c: c_int) -> c_int;
+    /// C: keyboard.h 496: `extern void stuff_buffered_input (Lisp_Object);`
+    pub fn stuff_buffered_input (stuff: Lisp_Object);
+    /// C: keyboard.h 497: `extern void clear_waiting_for_input (void);`
+    pub fn clear_waiting_for_input ();
+    /// C: keyboard.h 498: `extern void swallow_events (bool);`
+    pub fn swallow_events (do_display: bool);
+    /// C: keyboard.h 499: `extern bool lucid_event_type_list_p (Lisp_Object);`
+    pub fn lucid_event_type_list_p (object: Lisp_Object) -> bool;
+    /// C: keyboard.h 512: `extern void poll_for_input_1 (void);`
+    pub fn poll_for_input_1 ();
+    /// C: keyboard.h 513: `extern void show_help_echo (Lisp_Object, Lisp_Object, Lisp_Object, Lisp_Object);`
+    pub fn show_help_echo (string: Lisp_Object, window: Lisp_Object, object: Lisp_Object, object_pos: Lisp_Object);
+    /// C: keyboard.h 515: `extern void gen_help_event (Lisp_Object, Lisp_Object, Lisp_Object, Lisp_Object, ptrdiff_t);`
+    pub fn gen_help_event (help: Lisp_Object, frame: Lisp_Object, window: Lisp_Object, object: Lisp_Object, pos: ptrdiff_t);
+    /// C: keyboard.h 517: `extern void kbd_buffer_store_help_event (Lisp_Object, Lisp_Object);`
+    pub fn kbd_buffer_store_help_event (frame: Lisp_Object, help: Lisp_Object);
+    /// C: keyboard.h 518: `extern Lisp_Object menu_item_eval_property (Lisp_Object);`
+    pub fn menu_item_eval_property (sexpr: Lisp_Object) -> Lisp_Object;
+    /// C: keyboard.h 519: `extern bool kbd_buffer_events_waiting (void);`
+    pub fn kbd_buffer_events_waiting () -> bool;
+    /// C: keyboard.h 524: `extern void mark_kboards (void);`
+    pub fn mark_kboards ();
+  }
+}
+use keyboard_fn_decls::*;

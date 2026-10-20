@@ -2294,7 +2294,7 @@ unsafe extern "C" {
 // P-55/P-72 rule 3).
 #[cfg (feature = "have_window_system")]
 unsafe extern "C" {
-  pub fn decode_live_frame (frame: Lisp_Object) -> *mut frame;
+
 }
 // C: lisp.h 5135: `extern Lisp_Object decode_env_path (const char *, const char *, bool);` -
 // C 13796's `x-bitmap-file-path` initialiser is this file's first reader (the `callproc.rs` 110

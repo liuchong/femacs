@@ -885,49 +885,26 @@ unsafe extern "C" {
   /// C: font.h 896: `extern void register_font_driver (struct font_driver const *,
   /// struct frame *);` (C 819 and 830 register the two drivers).
   pub fn register_font_driver (d: *const font_driver, f: *mut frame);
-  /// C: font.h 961: `extern Lisp_Object xfont_get_cache (struct frame *);` - `src/xfont.c` 118
-  /// defines it and C 754 uses it for this driver's `get_cache`.
-  pub fn xfont_get_cache (f: *mut c_void) -> Lisp_Object;
+
   /// C: xterm.h 1003: `extern struct x_display_info *x_display_info_for_display (Display *);`
   /// (C 364 asks whether the display the font was opened on still exists).
   pub fn x_display_info_for_display (display: *mut Display) -> *mut x_display_info;
   /// C: xterm.h 1797: `extern void x_query_colors (struct frame *f, XColor *, int);` (C 107).
   pub fn x_query_colors (f: *mut frame, colors: *mut XColor, n: c_int);
-  /// C: font.h 935-936: `extern int ftfont_anchor_point (struct font *, unsigned int, int,
-  /// int *, int *);` (C 767).
-  pub fn ftfont_anchor_point (font: *mut font, code: c_uint, idx: c_int, x: *mut c_int,
-                              y: *mut c_int) -> c_int;
-  /// C: font.h 937-938: `extern int ftfont_get_bitmap (struct font *, unsigned int,
-  /// struct font_bitmap *, int);` (C 766).
-  pub fn ftfont_get_bitmap (font: *mut font, code: c_uint, bitmap: *mut font_bitmap,
-                            bits_per_pixel: c_int) -> c_int;
-  /// C: font.h 939: `extern int ftfont_has_char (Lisp_Object, int);` (C 446).
-  pub fn ftfont_has_char (font: Lisp_Object, c: c_int) -> c_int;
-  /// C: font.h 940: `extern int ftfont_variation_glyphs (struct font *, int, unsigned[256]);`
-  /// (C 776).
-  pub fn ftfont_variation_glyphs (font: *mut font, c: c_int, variations: *mut c_uint) -> c_int;
-  /// C: font.h 941: `extern Lisp_Object ftfont_combining_capability (struct font *);` (C 780).
-  pub fn ftfont_combining_capability (font: *mut font) -> Lisp_Object;
-  /// C: font.h 943: `extern Lisp_Object ftfont_list2 (struct frame *, Lisp_Object, Lisp_Object);`
-  /// (C 146 and 718).
-  pub fn ftfont_list2 (f: *mut c_void, spec: Lisp_Object, r#type: Lisp_Object) -> Lisp_Object;
-  /// C: font.h 944: `extern Lisp_Object ftfont_list_family (struct frame *);` (C 757).
-  pub fn ftfont_list_family (f: *mut c_void) -> Lisp_Object;
-  /// C: font.h 945: `extern Lisp_Object ftfont_match2 (struct frame *, Lisp_Object,
-  /// Lisp_Object);` (C 152 and 724).
-  pub fn ftfont_match2 (f: *mut c_void, spec: Lisp_Object, r#type: Lisp_Object) -> Lisp_Object;
-  /// C: font.h 947: `extern Lisp_Object ftfont_otf_capability (struct font *);` (C 769).
-  pub fn ftfont_otf_capability (font: *mut font) -> Lisp_Object;
-  /// C: font.h 948: `extern Lisp_Object ftfont_shape (Lisp_Object, Lisp_Object);` (C 620).
-  pub fn ftfont_shape (lgstring: Lisp_Object, direction: Lisp_Object) -> Lisp_Object;
-  /// C: font.h 951: `extern void ftfont_filter_properties (Lisp_Object, Lisp_Object);` (C 778).
-  pub fn ftfont_filter_properties (font: Lisp_Object, alist: Lisp_Object);
-  /// C: font.h 917: `extern Lisp_Object hbfont_otf_capability (struct font *);` (C 825).
-  pub fn hbfont_otf_capability (font: *mut font) -> Lisp_Object;
-  /// C: font.h 918: `extern Lisp_Object hbfont_shape (Lisp_Object, Lisp_Object);` (C 826).
-  pub fn hbfont_shape (lgstring: Lisp_Object, direction: Lisp_Object) -> Lisp_Object;
-  /// C: font.h 919: `extern Lisp_Object hbfont_combining_capability (struct font *);` (C 827).
-  pub fn hbfont_combining_capability (font: *mut font) -> Lisp_Object;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   /// C: font.h 955: `extern hb_font_t *fthbfont_begin_hb_font (struct font *, double *);`
   /// (C 735).
   pub fn fthbfont_begin_hb_font (font: *mut font, position_unit: *mut c_double) -> hb_font_t;

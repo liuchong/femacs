@@ -464,8 +464,7 @@ unsafe fn sfnt_setup_coding_system (id: sfnt_platform_id, platform_specific_id: 
    `fileio.rs` 2986 / `androidterm.rs` 174 shape).  */
 #[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
 unsafe extern "C" {
-  /// C: coding.h 686: `extern void setup_coding_system (Lisp_Object, struct coding_system *);`
-  pub fn setup_coding_system (system: Lisp_Object, coding: *mut coding_system);
+
 }
 
 /* Globals used to communicate inside the condition-case wrapper.  */
@@ -2359,8 +2358,7 @@ unsafe fn sfntfont_registry_for_desc (desc: *mut sfnt_font_desc) -> Lisp_Object
    `src/ftfont.rs` 1306 and `src/haikufont.rs` 127 shapes, P-91 4).  */
 #[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
 unsafe extern "C" {
-  /// C: font.h 842: `extern Lisp_Object font_make_entity (void);` (font.c defines it).
-  pub fn font_make_entity () -> Lisp_Object;
+
   /// C: font.h 854: `extern int font_style_to_value (enum font_property_index prop, Lisp_Object
   /// name, bool noerror);`
   pub fn font_style_to_value (prop: font_property_index, name: Lisp_Object, noerror: bool)
@@ -3981,8 +3979,7 @@ unsafe fn sfnt_dereference_font_tables (desc: *mut sfnt_font_desc)
    `sfntfont_open` is the user.  */
 #[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
 unsafe extern "C" {
-  /// C: font.h 846: `extern Lisp_Object font_make_object (int, Lisp_Object, int);`
-  pub fn font_make_object (size: c_int, entity: Lisp_Object, pixelsize: c_int) -> Lisp_Object;
+
 }
 
 /// C 3156-3472: `sfntfont_open` - C's non-`static` driver entry point.  It reads the

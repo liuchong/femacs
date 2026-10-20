@@ -85,16 +85,11 @@ include!("include/blockinput.rs");             // C 52: `#include "blockinput.h"
    prototype on the `pub fn` line (the minibuf.rs/ccl.rs shape), and moves to its owner's
    mirror when that lands (reported in docs/ports/keymap.md).  */
 unsafe extern "C" {
-  /// C: keyboard.h 462: `extern Lisp_Object reorder_modifiers (Lisp_Object);`
-  pub fn reorder_modifiers (event: Lisp_Object) -> Lisp_Object;
-  /// C: keyboard.h 461: `extern Lisp_Object parse_modifiers (Lisp_Object);`
-  pub fn parse_modifiers (item: Lisp_Object) -> Lisp_Object;
-  /// C: keyboard.h 463: `extern int parse_solitary_modifier (Lisp_Object symbol);`
-  pub fn parse_solitary_modifier (symbol: Lisp_Object) -> c_int;
-  /// C: keyboard.h 497: `extern bool lucid_event_type_list_p (Lisp_Object);`
-  pub fn lucid_event_type_list_p (object: Lisp_Object) -> bool;
-  /// C: keyboard.h 516: `extern Lisp_Object menu_item_eval_property (Lisp_Object);`
-  pub fn menu_item_eval_property (sexpr: Lisp_Object) -> Lisp_Object;
+
+
+
+
+
   /// C: lisp.h 4397: `extern void message_with_string (const char *, Lisp_Object, bool);`
   pub fn message_with_string (m: *const c_char, string: Lisp_Object, log: bool);
   /// C: lisp.h 4245: `extern Lisp_Object larger_vector (Lisp_Object, ptrdiff_t, ptrdiff_t);`

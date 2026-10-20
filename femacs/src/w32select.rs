@@ -664,7 +664,7 @@ unsafe extern "C" {
 // `include/coding.rs` carries `encode_coding_object` and `decode_coding_object` but not this one.
 #[cfg (feature = "have_ntgui")]
 unsafe extern "C" {
-  pub fn setup_coding_system (coding_system: Lisp_Object, coding: *mut coding_system);
+
 }
 // `filename_to_utf16` is declared in `w32.h` 209 and **nowhere in this file's include graph**
 // (C 87's `w32term.h` reaches `w32gui.h`/`frame.h`/`atimer.h`, none of which includes `w32.h`), so

@@ -512,12 +512,8 @@ unsafe extern "C" {
   /// `STRINGP (file = image_find_image_file (specified_file))`
   /// C: dispextern.h 3748: `extern Lisp_Object image_find_image_file (Lisp_Object);`
   
-  /// C: frame.h 1511-1512: `extern void adjust_frame_size (struct frame *, int, int, int, bool,
-  /// Lisp_Object);`
-  pub fn adjust_frame_size (f: *mut frame, width: c_int, height: c_int, inhibit: c_int,
-                            pretend: bool, parameter: Lisp_Object);
-  /// C: frame.h 1844: `extern void gui_set_fullscreen (struct frame *, Lisp_Object, Lisp_Object);`
-  pub fn gui_set_fullscreen (f: *mut frame, new_value: Lisp_Object, old_value: Lisp_Object);
+
+
   /// C 1280: `store_frame_param (f, Qfullscreen, fullscreen);`
   /// C: lisp.h 5117: `extern void store_frame_param (struct frame *, Lisp_Object, Lisp_Object);`
   pub fn store_frame_param (f: *mut frame, prop: Lisp_Object, val: Lisp_Object);
@@ -544,9 +540,7 @@ unsafe extern "C" {
 /// int, int, int, int, int);` - C 1154/1166/1265/1287's four calls.
 #[cfg (feature = "use_gtk")]
 unsafe extern "C" {
-  pub fn frame_size_history_extra (f: *mut frame, name: Lisp_Object,
-                                   old_w: c_int, old_h: c_int, new_w: c_int, new_h: c_int,
-                                   f_new_w: c_int, f_new_h: c_int);
+
 }
 
 /* C 187-190: the "Display handling functions" banner C 188-190 writes.  */
@@ -4813,7 +4807,7 @@ unsafe fn create_menus (data: *mut widget_value, f: *mut frame, select_cb: GCall
 unsafe extern "C" {
   pub fn menu_separator_name_p (name: *const c_char) -> bool;           // keyboard.h 473
                                     // dispextern.h 3879
-  pub fn set_frame_menubar (f: *mut frame, deep_p: bool);               // frame.h 1881
+               // frame.h 1881
 }
 
 /* C 3534-3547's comment above `xg_create_widget`, carried as C's own text.  */
@@ -8119,7 +8113,7 @@ unsafe extern "C" fn xg_tool_bar_item_expose_callback (w: *mut GtkWidget,
    copy here - Owed 18's class, the `x_scroll_bar_configure` shape.  */
 #[cfg (feature = "use_gtk")]
 unsafe extern "C" {
-  pub fn kbd_buffer_store_help_event (frame: Lisp_Object, help: Lisp_Object);   // keyboard.h 486
+   // keyboard.h 486
 }
 
 /* C 5465-5466's comment and the tool bar's packing and creation: `xg_pack_tool_bar`, C 5505's

@@ -98,20 +98,16 @@ unsafe extern "C" {
   fn expand_and_dir_to_file (filename: Lisp_Object) -> Lisp_Object;
   /// C: bool file_accessible_directory_p (Lisp_Object)   (lisp.h 4988, fileio.c)
   fn file_accessible_directory_p (filename: Lisp_Object) -> bool;
-  /// C: Lisp_Object remove_slash_colon (Lisp_Object)   (process.h 311)
-  fn remove_slash_colon (string: Lisp_Object) -> Lisp_Object;
+
   /// C: int openp (Lisp_Object path, Lisp_Object str, Lisp_Object suffixes,
   ///               Lisp_Object *storeptr, Lisp_Object predicate, bool newer,
   ///               bool no_native, void **platform)   (lisp.h 4743, lread.c 1756)
   fn openp (path: Lisp_Object, str_: Lisp_Object, suffixes: Lisp_Object,
             storeptr: *mut Lisp_Object, predicate: Lisp_Object, newer: bool,
             no_native: bool, platform: *mut *mut c_void) -> c_int;
-  /// C: void setup_coding_system (Lisp_Object, struct coding_system *)   (coding.h 686)
-  fn setup_coding_system (coding_system: Lisp_Object, coding: *mut coding_system);
-  /// C: Lisp_Object raw_text_coding_system (Lisp_Object)   (coding.h 700)
-  fn raw_text_coding_system (coding: Lisp_Object) -> Lisp_Object;
-  /// C: Lisp_Object complement_process_encoding_system (Lisp_Object)   (coding.h 703)
-  fn complement_process_encoding_system (coding: Lisp_Object) -> Lisp_Object;
+
+
+
   /// C: Lisp_Object decode_env_path (const char *, const char *, bool)   (lisp.h 5135)
   fn decode_env_path (envvar: *const c_char, deflt: *const c_char,
                       empty_is_default: bool) -> Lisp_Object;
@@ -131,10 +127,8 @@ unsafe extern "C" {
   fn child_signal_init ();
   /// C: void child_setup_tty (int)   (lisp.h 5294)
   fn child_setup_tty (out: c_int);
-  /// C: void dissociate_controlling_tty (void)   (process.h 314, sysdep.c)
-  fn dissociate_controlling_tty ();
-  /// C: void restore_nofile_limit (void)   (process.h 304)
-  fn restore_nofile_limit ();
+
+
   /// C: void emacs_perror (char const *)   (lisp.h 5337)
   fn emacs_perror (message: *const c_char);
   /// C: int emacs_pipe (int[2])   (lisp.h 5313)

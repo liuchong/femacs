@@ -412,8 +412,7 @@ unsafe extern "C" {
                                rectangle: *mut Emacs_Rectangle);
   /// C: dispextern.h 3688: `extern void note_mouse_highlight (struct frame *, int, int);`
   pub fn note_mouse_highlight (f: *mut frame, x: c_int, y: c_int);
-  /// C: coding.h 686: `extern void setup_coding_system (Lisp_Object, struct coding_system *);`
-  pub fn setup_coding_system (system: Lisp_Object, coding: *mut coding_system);
+
   /// C: lisp.h 5095: `extern bool detect_input_pending (void);`
   pub fn detect_input_pending () -> bool;
   /// C: androidgui.h 926-927: `extern struct android_gc *android_create_gc (enum
@@ -1358,10 +1357,7 @@ unsafe extern "C" {
   /// C: dispextern.h 3924: `void change_frame_size (struct frame *, int, int, bool, bool, bool);`
   pub fn change_frame_size (f: *mut frame, new_width: c_int, new_height: c_int,
 			    pretend: bool, delay: bool, safe: bool);
-  /// C: keyboard.h 513-514: `extern void gen_help_event (Lisp_Object, Lisp_Object, Lisp_Object,
-  /// Lisp_Object, ptrdiff_t);`
-  pub fn gen_help_event (help: Lisp_Object, frame: Lisp_Object, window: Lisp_Object,
-			 object: Lisp_Object, pos: ptrdiff_t);
+
   /// C: coding.h 737: `extern Lisp_Object from_unicode_buffer (const wchar_t *wstr);`
   pub fn from_unicode_buffer (wstr: *const wchar_t) -> Lisp_Object;
   /// C: `<math.h>`: `double fabs (double);`
@@ -8690,7 +8686,7 @@ macro_rules! KVAR {
    not carry the prototype (the `src/haikuterm.rs` 6244-6250 note).  */
 #[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
 unsafe extern "C" {
-  pub fn allocate_kboard (type_: Lisp_Object) -> *mut kboard;
+
   /// C: lisp.h 5371: `extern AVOID fatal (const char *msgid, ...)
   /// ATTRIBUTE_FORMAT_PRINTF (1, 2);` - C 6818's call; the `...` parameter *is* the list
   /// (PORTING.md P-04, the `src/haikuterm.rs` 6261 spelling).

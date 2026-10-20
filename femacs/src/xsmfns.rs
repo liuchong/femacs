@@ -445,7 +445,7 @@ include!("../lib/include/stdckdint.in.rs");       // lisp.h's `<stdckdint.h>` (`
 /// C: frame.h 1873: `extern void validate_x_resource_name (void);` (C 377)
 #[cfg (feature = "have_x_sm")]
 unsafe extern "C" {
-  pub fn validate_x_resource_name ();
+
   /// C: lisp.h 5284: `extern char *emacs_get_current_dir_name (void);` (C 207/404)
   pub fn emacs_get_current_dir_name () -> *mut c_char;
   /// C: lisp.h 5144: `extern char *emacs_strerror (int) ATTRIBUTE_RETURNS_NONNULL;` (C 408)

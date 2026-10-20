@@ -7624,7 +7624,7 @@ pub const MULTIMEDIA_KEY_EVENT: event_kind = 28;
 #[cfg (feature = "have_ntgui")]
 unsafe extern "C" {
   pub fn store_frame_param (f: *mut frame, prop: Lisp_Object, val: Lisp_Object);
-  pub fn frame_ancestor_p (a: *mut frame, b: *mut frame) -> bool;
+
   pub fn cancel_mouse_face (f: *mut frame);
   pub fn gui_redo_mouse_highlight (dpyinfo: *mut w32_display_info);
   pub fn gen_help_event (string: Lisp_Object, frame: Lisp_Object, window: Lisp_Object,
@@ -7635,7 +7635,7 @@ unsafe extern "C" {
   pub fn change_frame_size (f: *mut frame, new_width: c_int, new_height: c_int,
 			    pretend: bool, delay: bool, safe: bool);
   pub fn get_frame_param (f: *mut frame, prop: Lisp_Object) -> Lisp_Object;
-  pub fn gui_set_fullscreen (f: *mut frame, new_value: Lisp_Object, old_value: Lisp_Object);
+
   pub fn note_mouse_highlight (f: *mut frame, x: c_int, y: c_int);
 }
 
@@ -9530,8 +9530,7 @@ unsafe extern "system" {
 #[cfg (feature = "have_ntgui")]
 unsafe extern "C" {
   pub fn get_font_ascent_descent (font: *mut font, ascent: *mut c_int, descent: *mut c_int);
-  pub fn adjust_frame_size (f: *mut frame, new_text_width: c_int, new_text_height: c_int,
-			    inhibit: c_int, pretend: bool, parameter: Lisp_Object);
+
 }
 
 /// C: frame.h 1091: `#define FRAME_TAB_BAR_HEIGHT(f) (f)->tab_bar_height`
@@ -10589,11 +10588,11 @@ pub const SC_MINIMIZE: c_int = 0xF020;
 #[cfg (feature = "have_ntgui")]
 unsafe extern "C" {
   pub fn free_frame_faces (f: *mut frame);
-  pub fn free_frame_menubar (f: *mut frame);
+
   /* keyboard.c's two polling entries (C 7588/7594); `poll_suppress_count` comes from
      `include/keyboard.rs` 269, these two from no mirror in this graph.  */
-  pub fn input_polling_used () -> bool;
-  pub fn poll_for_input_1 ();
+
+
 }
 
 /// frame.h 1895-1905: the `INLINE` bitmap-icon setter, C pastes it into every unit that includes
@@ -11338,7 +11337,7 @@ macro_rules! hook {
    `include/termhooks.rs`'s row, so neither is declared again here.  */
 #[cfg (feature = "have_ntgui")]
 unsafe extern "C" {
-  pub fn allocate_kboard (type_: Lisp_Object) -> *mut kboard;
+
   pub fn w32_menu_show (f: *mut frame, x: c_int, y: c_int, menuflags: c_int,
 			title: Lisp_Object, error_name: *mut *const c_char) -> Lisp_Object;
   pub fn w32_activate_menubar (f: *mut frame);

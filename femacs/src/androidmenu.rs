@@ -90,7 +90,7 @@ unsafe extern "C" {
   pub fn record_unwind_protect_void (function: Option<unsafe extern "C" fn ()>);  // lisp.h 4825
   pub fn menu_separator_name_p (name: *const c_char) -> bool;        // keyboard.h 473
   pub fn check_window_system (f: *mut frame);                        // frame.h 1504
-  pub fn unuse_menu_items ();                                        // keyboard.h 385
+                                        // keyboard.h 385
 }
 
 /* ------------------------------------------------------------------------------------------

@@ -835,8 +835,7 @@ unsafe extern "C" {
   /// const char *, va_list);` (doprnt.c defines it; the mirror chain does not carry it).
   pub fn doprnt (buffer: *mut c_char, size: ptrdiff_t, format: *const c_char,
 		 format_end: *const c_char, ap: VaList<'_>) -> ptrdiff_t;
-  /// C: frame.h 1480: `extern bool frame_redisplay_p (struct frame *);` (frame.c defines it).
-  pub fn frame_redisplay_p (f: *mut frame) -> bool;
+
   /// C: dispextern.h 4012: `bool is_tty_frame (struct frame *f);` (dispnew.c defines it).
   pub fn is_tty_frame (f: *mut frame) -> bool;
   /// window.h 1232's `window_outdated` is the window.rs mirror's now (P-72 rule 3: the mirror spells the pointee `*mut c_void`).
@@ -866,8 +865,7 @@ unsafe extern "C" {
   pub fn clear_desired_matrices (f: *mut frame);
   /// C: search.c's `void record_unwind_save_match_data (void);` (lisp.h 4852).
   pub fn record_unwind_save_match_data ();
-  /// C: frame.h 1385: `struct frame *root_frame (struct frame *);` (frame.c defines it).
-  pub fn root_frame (f: *mut frame) -> *mut frame;
+
   /// C: lisp.h 4326: `extern void safe_run_hooks (Lisp_Object hook);` (keyboard.c defines it).
   pub fn safe_run_hooks (hook: Lisp_Object);
   /// C: lisp.h 5098: `extern void safe_run_hooks_2 (Lisp_Object, Lisp_Object, Lisp_Object);`
@@ -883,10 +881,8 @@ unsafe extern "C" {
   pub fn tab_bar_items (tab_bar_items: Lisp_Object, ntab_bar_items: *mut c_int) -> Lisp_Object;
   /// C: lisp.h 4944: `extern bool overlay_touches_p (ptrdiff_t);` (buffer.c defines it).
   pub fn overlay_touches_p (pos: ptrdiff_t) -> bool;
-  /// C: keyboard.h 485-486: `extern void start_polling (void);` / `stop_polling (void);`
-  /// (keyboard.c defines both).
-  pub fn start_polling ();
-  pub fn stop_polling ();
+
+
   /// C: lisp.h 4825: `extern void record_unwind_protect_void (void (*) (void));` (alloc.c).
   pub fn record_unwind_protect_void (function: Option<unsafe extern "C" fn ()>);
   /// C: lisp.h 4930: `extern void reset_outermost_restrictions (void);` (editfns.c).
@@ -949,12 +945,8 @@ unsafe extern "C" {
   /// defines it; `display_tty_menu_item` at C 28085 is this unit's first use, and the
   /// keyboard.h mirror chain does not carry the prototype).
   pub fn menu_separator_name_p (label: *const c_char) -> bool;
-  /// C: keyboard.h 480: `extern void push_kboard (struct kboard *);` (keyboard.c defines
-  /// it; `display_mode_line` at C 28244 is this unit's first use).
-  pub fn push_kboard (k: *mut kboard);
-  /// C: keyboard.h 481: `extern void pop_kboard (void);` (keyboard.c defines it;
-  /// `display_mode_line` at C 28354 is this unit's first use).
-  pub fn pop_kboard ();
+
+
   /// C: dispextern.h 3929: `extern void fill_up_frame_row_with_spaces (struct frame *,
   /// struct glyph_row *, int);` (dispnew.c defines it; `deep_copy_glyph_row` at C 27945 is
   /// this unit's first use — the dispextern.h mirror is a WIP prefix, P-66).

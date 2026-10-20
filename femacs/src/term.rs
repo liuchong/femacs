@@ -150,31 +150,30 @@ unsafe extern "C" {
                              handlers: Lisp_Object,
                              hfun: Option<unsafe extern "C" fn (Lisp_Object) -> Lisp_Object>)
                              -> Lisp_Object;
-  fn decode_live_frame (frame: Lisp_Object) -> *mut frame;
-  fn decode_tty_frame (frame: Lisp_Object) -> *mut frame;
+
+
   fn decode_live_terminal (terminal: Lisp_Object) -> *mut terminal;
   fn decode_tty_terminal (terminal: Lisp_Object) -> *mut terminal;
   fn get_named_terminal (name: *const c_char) -> *mut terminal;
   fn create_terminal (type_: output_method, rif: *mut c_void) -> *mut terminal;
   fn delete_terminal (terminal: *mut terminal);
   fn delete_terminal_internal (terminal: *mut terminal);
-  fn root_frame (f: *mut frame) -> *mut frame;
+
   fn child_xy (f: *mut frame, x: c_int, y: c_int, cx: *mut c_int, cy: *mut c_int);
   fn root_xy (f: *mut frame, x: c_int, y: c_int, root_x: *mut c_int, root_y: *mut c_int);
-  fn frame_ancestor_p (a: *mut frame, b: *mut frame) -> bool;
+
   fn frames_in_reverse_z_order (f: *mut frame, visible: bool) -> Lisp_Object;
   fn free_frame_faces (f: *mut frame);
   fn update_frame_with_menu (f: *mut frame, row: c_int, col: c_int);
   fn display_tty_menu_item (txt: *const c_char, width: c_int, face: c_int, x: c_int,
                             y: c_int, is_submenu: bool);
   fn row_hash (row: *mut glyph_row) -> c_uint;
-  fn mouse_position (calls_mouse_position_function: bool) -> Lisp_Object;
+
   fn read_menu_command () -> Lisp_Object;
-  fn show_help_echo (string: Lisp_Object, window: Lisp_Object, object: Lisp_Object,
-                     pos: Lisp_Object);
+
   fn discard_mouse_events ();
-  fn kbd_buffer_events_waiting () -> bool;
-  fn clear_input_pending ();
+
+
   fn lookup_derived_face (w: *mut window, f: *mut frame, symbol: Lisp_Object,
                           face_id: c_int, inherit: bool) -> c_int;
   fn init_sys_modes (tty: *mut tty_display_info);
@@ -835,7 +834,7 @@ unsafe extern "C" fn tty_clear_end_of_line (f: *mut frame, first_unused_hpos: c_
 }
 
 /* coding.h 687: `coding_charset_list` (the coding mirror does not reach it).  */
-unsafe extern "C" { fn coding_charset_list (coding: *mut coding_system) -> Lisp_Object; }
+unsafe extern "C" { }
 
 /* dispextern.h 596-602: `glyph::u::cmp`'s two bit members.  The port stores the 4-byte unit
    (glyph_u_cmp.bits) and names each member through this macro, so C's member name survives

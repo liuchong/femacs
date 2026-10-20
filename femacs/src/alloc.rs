@@ -6384,8 +6384,7 @@ unsafe extern "C" {
   fn shrink_regexp_cache ();
   /// C: lisp.h 4754: `extern void mark_lread (void);`
   fn mark_lread ();
-  /// C: keyboard.h 522: `extern void mark_kboards (void);`
-  fn mark_kboards ();
+
   /// C: lisp.h 4915: `extern void mark_threads (void);`
   fn mark_threads ();
   /// C: lisp.h 4916: `extern void unmark_main_thread (void);`

@@ -882,7 +882,7 @@ pub type xt_or_gtk_widget = *mut GtkWidget;
 #[cfg (feature = "have_x_windows")]
 unsafe extern "C" {
   pub fn decode_window_system_frame (frame: Lisp_Object) -> *mut frame;   // frame.h 1475
-  pub fn check_window_system (f: *mut frame);                            // frame.h 1504
+                            // frame.h 1504
 }
 /// C: src/xterm.h 1855-1856: `extern void x_defer_selection_requests (void);` and
 /// `extern void x_release_selection_requests_and_flush (void);` - the two the mirror's
@@ -906,21 +906,18 @@ unsafe extern "C" {
   pub fn update_submenu_strings (wv: *mut widget_value);                         // menu.h 40
   pub fn digest_single_submenu (start: c_int, end: c_int,
                                 top_level_items: bool) -> *mut widget_value;      // menu.h 44
-  pub fn unuse_menu_items ();                                                    // keyboard.h 385
+                                                    // keyboard.h 385
   pub fn find_and_call_menu_selection (f: *mut frame, items: c_int,
                                        vector: Lisp_Object,
                                        client_data: *mut c_void);                // keyboard.h
   pub fn x_set_z_group (f: *mut frame, r#type: Lisp_Object, value: Lisp_Object);  // frame.h
-  pub fn kbd_buffer_store_help_event (frame: Lisp_Object, help: Lisp_Object);    // keyboard.h
-  pub fn show_help_echo (help: Lisp_Object, window: Lisp_Object, object: Lisp_Object,
-                         pos: Lisp_Object);                                      // xdisp.h
+    // keyboard.h
+                                      // xdisp.h
   pub fn safe_run_hooks (hook: Lisp_Object);                                     // keyboard.h
   pub fn record_unwind_protect_void (function: Option<unsafe extern "C" fn ()>);  // lisp.h 4825
   pub fn record_unwind_save_match_data ();                                       // search.h
-  pub fn adjust_frame_size (f: *mut frame, new_width: c_int, new_height: c_int,
-                            inhibit: c_int, pretend: bool, parameter: Lisp_Object);  // frame.h
-  pub fn frame_inhibit_resize (f: *mut frame, horflag: bool,
-                               parameter: Lisp_Object) -> bool;                  // frame.h
+  // frame.h
+                  // frame.h
   pub fn get_frame_param (f: *mut frame, prop: Lisp_Object) -> Lisp_Object;      // frame.h
   pub fn menu_bar_items (menu_bar_items: Lisp_Object) -> Lisp_Object;            // keyboard.h
   pub fn timer_check () -> timespec;                                             // keyboard.h

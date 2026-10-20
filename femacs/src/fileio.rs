@@ -3003,14 +3003,10 @@ unsafe extern "C" {
   pub fn buffer_overflow ();
   /// C: lisp.h 4786: `extern Lisp_Object quit (void);` - eval.rs defines it.
   pub fn quit () -> Lisp_Object;
-  /// C: coding.h 684: `extern Lisp_Object code_conversion_save (bool, bool);`
-  pub fn code_conversion_save (buffer: bool, multibyte: bool) -> Lisp_Object;
-  /// C: coding.h 686: `extern void setup_coding_system (Lisp_Object, struct coding_system *);`
-  pub fn setup_coding_system (coding_system: Lisp_Object, coding: *mut coding_system);
-  /// C: coding.h 700: `extern Lisp_Object raw_text_coding_system (Lisp_Object);`
-  pub fn raw_text_coding_system (coding_system: Lisp_Object) -> Lisp_Object;
-  /// C: coding.h 702: `extern Lisp_Object coding_inherit_eol_type (Lisp_Object, Lisp_Object);`
-  pub fn coding_inherit_eol_type (coding_system: Lisp_Object, eol: Lisp_Object) -> Lisp_Object;
+
+
+
+
   /// C: lisp.h 4218: `extern Lisp_Object detect_coding_system (const unsigned char *,
   /// ptrdiff_t, ptrdiff_t, bool, bool, Lisp_Object);`
   pub fn detect_coding_system (src: *const c_uchar, src_bytes: ptrdiff_t,

@@ -520,13 +520,11 @@ unsafe extern "C" {
   pub fn check_x_display_info (object: Lisp_Object) -> *mut x_display_info;
   /// C: frame.h 1475: `extern struct frame *decode_window_system_frame (Lisp_Object);`
   pub fn decode_window_system_frame (frame: Lisp_Object) -> *mut frame;
-  /// C: frame.h 1475-1476: `extern struct frame *decode_live_frame (Lisp_Object);`
-  pub fn decode_live_frame (frame: Lisp_Object) -> *mut frame;
+
   /// C: termhooks.h 961: `extern struct terminal *decode_live_terminal (Lisp_Object);`
   /// (`include/termhooks.rs` 444 records that this prototype is declared at its use sites.)
   pub fn decode_live_terminal (terminal: Lisp_Object) -> *mut terminal;
-  /// C: frame.h 1504: `extern WINDOW_SYSTEM_RETURN void check_window_system (struct frame *);`
-  pub fn check_window_system (f: *mut frame);
+
   /* C 72's XFIXES arm calls `x_find_selection_owner` (xterm.h 1822) - declared under that gate
      only, because `xterm.h`'s own declaration is inside `#ifndef USE_GTK`.  */
   #[cfg (feature = "have_xfixes")]

@@ -364,8 +364,7 @@ unsafe extern "C" {
                         color: *mut XColor) -> c_int;
   /// C: xterm.h 1796: `extern bool x_alloc_nearest_color (struct frame *, Colormap, XColor *);`
   pub fn x_alloc_nearest_color (f: *mut frame, cmap: Colormap, color: *mut XColor) -> bool;
-  /// C: frame.h 1868: `extern void gui_set_alpha_background (struct frame *, Lisp_Object, Lisp_Object);`
-  pub fn gui_set_alpha_background (f: *mut frame, arg: Lisp_Object, oldval: Lisp_Object);
+
 }
 
 /* The two GTK-side names this slice's `x_defined_color` and `x_set_alpha_background` call.
@@ -1363,9 +1362,7 @@ unsafe extern "C" {
   pub fn fset_parent_frame (f: *mut frame, val: Lisp_Object);
   /// C: dispextern.h 3901: `extern void adjust_frame_glyphs (struct frame *);`
   pub fn adjust_frame_glyphs (f: *mut frame);
-  /// C: frame.h 1511: `extern void adjust_frame_size (struct frame *, int, int, int, bool, Lisp_Object);`
-  pub fn adjust_frame_size (f: *mut frame, new_width: c_int, new_height: c_int, inhibit: c_int,
-                            pretend: bool, parameter: Lisp_Object);
+
   /// C: xterm.h 1900: `extern void x_clear_under_internal_border (struct frame *f);`
   pub fn x_clear_under_internal_border (f: *mut frame);
   /// C: xterm.h 1773/1774: `extern void x_make_frame_visible (struct frame *);` / `extern void
@@ -2179,8 +2176,7 @@ unsafe extern "C" {
   pub fn x_text_icon (f: *mut frame, name: *const c_char) -> bool;
   /// C: xterm.h 1798: `extern void x_clear_area (struct frame *f, int, int, int, int);`
   pub fn x_clear_area (f: *mut frame, x: c_int, y: c_int, w: c_int, h: c_int);
-  /// C: frame.h 1883: `extern void free_frame_menubar (struct frame *);`
-  pub fn free_frame_menubar (f: *mut frame);
+
   /// C: dispextern.h 3906: `void clear_glyph_matrix (struct glyph_matrix *);`
   
   /* `fset_redisplay` (window.h 1168) is already declared by `include/window.rs`.  */
@@ -3135,7 +3131,7 @@ unsafe extern "C" fn x_set_scroll_bar_background (f: *mut frame, value: Lisp_Obj
 /// C: coding.h 686: `extern void setup_coding_system (Lisp_Object, struct coding_system *);`
 #[cfg (feature = "have_x_windows")]
 unsafe extern "C" {
-  pub fn setup_coding_system (coding_system: Lisp_Object, coding: *mut coding_system);
+
 }
 
 /* Encode Lisp string STRING as a text in a format appropriate for
@@ -3646,8 +3642,7 @@ unsafe extern "C" {
   pub fn gui_display_get_arg (dpyinfo: *mut x_display_info, alist: Lisp_Object,
                               param: Lisp_Object, name: *const c_char, x_name: *const c_char,
                               r#type: resource_types) -> Lisp_Object;
-  /// C: frame.h 1843: `extern void gui_set_frame_parameters (struct frame *, Lisp_Object);`
-  pub fn gui_set_frame_parameters (f: *mut frame, alist: Lisp_Object);
+
   /// C: frame.h 1875: `extern Lisp_Object gui_display_get_resource (Display_Info *,
   /// Lisp_Object, Lisp_Object, Lisp_Object, Lisp_Object);`
   pub fn gui_display_get_resource (dpyinfo: *mut x_display_info, attribute: Lisp_Object,
@@ -6414,7 +6409,7 @@ unsafe fn x_window (f: *mut frame)
    (`check-mirror-dupes.py` is the gate that says so).  */
 #[cfg (feature = "have_x_windows")]
 unsafe extern "C" {
-  pub fn x_wm_set_icon_position (f: *mut frame, icon_x: c_int, icon_y: c_int);
+
   pub fn gui_frame_get_and_record_arg (f: *mut frame, alist: Lisp_Object, param: Lisp_Object,
 				       attribute: *const c_char, class: *const c_char,
 				       r#type: resource_types) -> Lisp_Object;
@@ -6880,7 +6875,7 @@ unsafe extern "C" {
    (P-72 rule 4; the owed row for the declaring header is in `docs/ports/xfns.md`).  */
 #[cfg (feature = "have_x_windows")]
 unsafe extern "C" {
-  pub fn validate_x_resource_name ();
+
 }
 
 /* C: X11/Intrinsic.h: `typedef int Boolean;`, `typedef char *XtPointer;` and `typedef struct
@@ -7277,9 +7272,8 @@ unsafe extern "C" {
   pub fn init_frame_faces (f: *mut frame);
   pub fn initialize_frame_menubar (f: *mut frame);
   pub fn x_embed_frame (dpyinfo: *mut x_display_info, f: *mut frame) -> bool;
-  pub fn delete_frame (frame: Lisp_Object, force: Lisp_Object) -> Lisp_Object;
-  pub fn gui_figure_window_size (f: *mut frame, parms: Lisp_Object, default_pixelwise: bool,
-				 window_pixelwise: bool) -> c_long;
+
+
   pub fn x_iconify_frame (f: *mut frame);
   pub fn x_cr_destroy_frame_context (f: *mut frame);                          // xterm.h 1811
   pub fn x_cr_update_surface_desired_size (f: *mut frame, width: c_int, height: c_int);
@@ -7341,8 +7335,8 @@ pub const VisibilityFullyObscured: c_int = 2;
    `include/frame.rs` in `docs/ports/xfns.md` (the `src/androidfns.rs` 100-111 shape).  */
 #[cfg (feature = "have_x_windows")]
 unsafe extern "C" {
-  pub fn make_frame (mini_p: bool) -> *mut frame;
-  pub fn make_minibuffer_frame () -> *mut frame;
+
+
   pub fn make_frame_without_minibuffer (mini_window: Lisp_Object, kb: *mut KBOARD,
 					display: Lisp_Object) -> *mut frame;
   pub fn frame_set_id_from_params (f: *mut frame, params: Lisp_Object) -> EMACS_UINT;
@@ -9629,7 +9623,7 @@ DEFUN! ("x-display-monitor-attributes-list", Fx_display_monitor_attributes_list,
    C 6788's call, the only one here.  */
 #[cfg (feature = "have_x_windows")]
 unsafe extern "C" {
-  pub fn decode_live_frame (frame: Lisp_Object) -> *mut frame;
+
 }
 
 /* -----------------------------------------------------------------------------------------
@@ -13326,7 +13320,7 @@ unsafe extern "C" {
 unsafe extern "C" {
   pub fn lrint (x: c_double) -> c_long;
                                          // dispextern.h 3879
-  pub fn check_window_system (f: *mut frame);                               // frame.h 1504
+                               // frame.h 1504
   pub fn quit () -> Lisp_Object;                                            // lisp.h 4786
 }
 
@@ -14369,34 +14363,26 @@ type frame_parm_handler =
    this unit's include graph carries any of them (P-55/P-72 rule 3).  */
 #[cfg (feature = "have_x_windows")]
 unsafe extern "C" {
-  pub fn gui_set_fullscreen (f: *mut frame, val: Lisp_Object, oldval: Lisp_Object);  // frame.h 1844
-  pub fn gui_set_line_spacing (f: *mut frame, val: Lisp_Object, oldval: Lisp_Object);  // frame.h 1845
-  pub fn gui_set_screen_gamma (f: *mut frame, val: Lisp_Object, oldval: Lisp_Object);  // frame.h 1846
-  pub fn gui_set_font (f: *mut frame, val: Lisp_Object, oldval: Lisp_Object);        // frame.h 1847
-  pub fn gui_set_font_backend (f: *mut frame, val: Lisp_Object, oldval: Lisp_Object);  // frame.h 1848
-  pub fn gui_set_left_fringe (f: *mut frame, val: Lisp_Object, oldval: Lisp_Object);  // frame.h 1849
-  pub fn gui_set_right_fringe (f: *mut frame, val: Lisp_Object, oldval: Lisp_Object);  // frame.h 1850
-  pub fn gui_set_border_width (f: *mut frame, val: Lisp_Object, oldval: Lisp_Object);  // frame.h 1851
-  pub fn gui_set_right_divider_width (f: *mut frame, val: Lisp_Object,
-				      oldval: Lisp_Object);                      // frame.h 1852
-  pub fn gui_set_bottom_divider_width (f: *mut frame, val: Lisp_Object,
-				       oldval: Lisp_Object);                     // frame.h 1854
-  pub fn gui_set_visibility (f: *mut frame, val: Lisp_Object, oldval: Lisp_Object);   // frame.h 1856
-  pub fn gui_set_autoraise (f: *mut frame, val: Lisp_Object, oldval: Lisp_Object);    // frame.h 1857
-  pub fn gui_set_autolower (f: *mut frame, val: Lisp_Object, oldval: Lisp_Object);    // frame.h 1858
-  pub fn gui_set_unsplittable (f: *mut frame, val: Lisp_Object, oldval: Lisp_Object);  // frame.h 1859
-  pub fn gui_set_vertical_scroll_bars (f: *mut frame, val: Lisp_Object,
-				       oldval: Lisp_Object);                     // frame.h 1860
-  pub fn gui_set_horizontal_scroll_bars (f: *mut frame, val: Lisp_Object,
-					 oldval: Lisp_Object);                   // frame.h 1861
-  pub fn gui_set_scroll_bar_width (f: *mut frame, val: Lisp_Object,
-				   oldval: Lisp_Object);                         // frame.h 1862
-  pub fn gui_set_scroll_bar_height (f: *mut frame, val: Lisp_Object,
-				    oldval: Lisp_Object);                        // frame.h 1863
-  pub fn gui_set_borders_respect_alpha_background (f: *mut frame, val: Lisp_Object,
-						   oldval: Lisp_Object);         // frame.h 1869
-  pub fn gui_set_no_special_glyphs (f: *mut frame, val: Lisp_Object,
-				    oldval: Lisp_Object);                        // frame.h 1871
+  // frame.h 1844
+  // frame.h 1845
+  // frame.h 1846
+        // frame.h 1847
+  // frame.h 1848
+  // frame.h 1849
+  // frame.h 1850
+  // frame.h 1851
+                      // frame.h 1852
+                     // frame.h 1854
+   // frame.h 1856
+    // frame.h 1857
+    // frame.h 1858
+  // frame.h 1859
+                     // frame.h 1860
+                   // frame.h 1861
+                         // frame.h 1862
+                        // frame.h 1863
+         // frame.h 1869
+                        // frame.h 1871
   pub fn x_set_sticky (f: *mut frame, val: Lisp_Object, oldval: Lisp_Object);         // xterm.h 1893
   pub fn x_set_shaded (f: *mut frame, val: Lisp_Object, oldval: Lisp_Object);         // xterm.h 1894
   pub fn x_set_skip_taskbar (f: *mut frame, val: Lisp_Object, oldval: Lisp_Object);   // xterm.h 1895

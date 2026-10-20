@@ -465,9 +465,7 @@ unsafe extern "C" {
 
 /// `frame.h`/`fontset.h`/`<string.h>` names this unit calls that no mirror carries.
 unsafe extern "C" {
-  /// C: frame.h 1216: `extern struct frame *decode_live_frame (Lisp_Object);` (defined in
-  /// frame.c; the buffer.rs/terminal.rs shape).
-  pub fn decode_live_frame (frame: Lisp_Object) -> *mut frame;
+
   /// C: `<string.h>`: `char *strstr (const char *, const char *);`
   pub fn strstr (haystack: *const c_char, needle: *const c_char) -> *mut c_char;
 }

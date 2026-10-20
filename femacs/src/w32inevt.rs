@@ -506,8 +506,7 @@ unsafe extern "C" {
 /// C: extern void gen_help_event (Lisp_Object, Lisp_Object, Lisp_Object, Lisp_Object, ptrdiff_t);
 #[cfg (feature = "windowsnt")]
 unsafe extern "C" {
-  fn gen_help_event (help: Lisp_Object, frame: Lisp_Object, window: Lisp_Object,
-                     obj: Lisp_Object, pos: ptrdiff_t);
+
 }
 
 /// C 291's `lispy_function_keys`: declared by `keyboard.h` 525 as an incomplete array and *defined*

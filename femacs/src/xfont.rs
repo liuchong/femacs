@@ -317,12 +317,9 @@ unsafe extern "C" {
    line (P-55/P-72 rule 3), so a citation is never paired with the wrong name.  */
 #[cfg (feature = "have_x_windows")]
 unsafe extern "C" {
-  /// C: font.h 839: `extern Lisp_Object copy_font_spec (Lisp_Object);` (font.c defines it).
-  pub fn copy_font_spec (font: Lisp_Object) -> Lisp_Object;
-  /// C: font.h 842: `extern Lisp_Object font_make_entity (void);`
-  pub fn font_make_entity () -> Lisp_Object;
-  /// C: font.h 846: `extern Lisp_Object font_make_object (int, Lisp_Object, int);`
-  pub fn font_make_object (size: c_int, entity: Lisp_Object, pixel_size: c_int) -> Lisp_Object;
+
+
+
   /// C: font.h 852-853: `extern int font_registry_charsets (Lisp_Object, struct charset **,
   /// struct charset **);`
   pub fn font_registry_charsets (registry: Lisp_Object, encoding: *mut *mut charset,
@@ -331,11 +328,8 @@ unsafe extern "C" {
   /// bool force_symbol);`
   pub fn font_intern_prop (str_: *const c_char, len: ptrdiff_t, force_symbol: bool)
                            -> Lisp_Object;
-  /// C: font.h 893: `extern int font_parse_xlfd (char *name, ptrdiff_t len, Lisp_Object font);`
-  pub fn font_parse_xlfd (name: *mut c_char, len: ptrdiff_t, font: Lisp_Object) -> c_int;
-  /// C: font.h 895: `extern ptrdiff_t font_unparse_xlfd (Lisp_Object, int, char *, int);`
-  pub fn font_unparse_xlfd (font: Lisp_Object, pixel_size: c_int, fname: *mut c_char,
-                            len: c_int) -> ptrdiff_t;
+
+
   /// C: font.h 896: `extern void register_font_driver (struct font_driver const *,
   /// struct frame *);`
   pub fn register_font_driver (d: *const font_driver, f: *mut frame);

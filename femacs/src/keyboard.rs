@@ -511,14 +511,8 @@ unsafe extern "C" {
   ///   ATTRIBUTE_FORMAT_PRINTF (2, 3);` (doprnt.c; the lisp.rs mirror does not carry it,
   ///   `keymap.rs` declares its own copy).
   fn esprintf (buf: *mut c_char, format: *const c_char, ...) -> ptrdiff_t;
-  /// C: frame.h 1508: `extern struct frame *root_frame (struct frame *f);` (frame.c defines
-  /// it; `term.rs`/`dispnew.rs` declare it for their own callers, this unit for its own —
-  /// P-72③, and the frame.rs mirror does not carry it).
-  fn root_frame (f: *mut frame) -> *mut frame;
-  /// C: frame.h 1909: `extern enum internal_border_part frame_internal_border_part
-  ///   (struct frame *f, int x, int y);` (frame.c; `frame.rs` defines it and declares it for
-  /// its own callers only).
-  fn frame_internal_border_part (f: *mut frame, x: c_int, y: c_int) -> internal_border_part;
+
+
   /// C: lisp.h 5111: `extern void line_number_display_width (struct window *, int *, int *);`
   /// (xdisp.c; the `lisp.rs` mirror does not carry it).
   fn line_number_display_width (w: *mut window, col_width: *mut c_int, pixel_width: *mut c_int);
@@ -538,9 +532,7 @@ unsafe extern "C" {
   /// C: lisp.h 5137: `extern AVOID terminate_due_to_signal (int, int);` (emacs.c; the mirror
   /// does not carry it).
   fn terminate_due_to_signal (sig: c_int, backtrace_limit: c_int) -> !;
-  /// C: frame.h 1507: `extern void frame_make_pointer_visible (struct frame *);` (frame.c;
-  /// the mirror does not carry it, `frame.rs` declares its own copy for its own callers).
-  fn frame_make_pointer_visible (f: *mut frame);
+
   /// C: lisp.h 5120: `extern Lisp_Object get_frame_param (struct frame *, Lisp_Object);`
   /// (frame.c defines it; the mirror does not declare it for this unit, `font.rs` declares its
   /// own copy for a carried arm only).
@@ -552,12 +544,9 @@ unsafe extern "C" {
   fn is_tty_root_frame_with_visible_child (f: *mut frame) -> bool;
   /// C: sysdep.c: `extern void sys_suspend (void);` (systty.h; no mirror carries it)
   fn sys_suspend ();
-  /// C: process.c (process.h 254: `extern bool kbd_on_hold_p (void);`)
-  fn kbd_on_hold_p () -> bool;
-  /// C: process.c (process.h 252: `extern void hold_keyboard_input (void);`)
-  fn hold_keyboard_input ();
-  /// C: process.c (process.h 253: `extern void unhold_keyboard_input (void);`)
-  fn unhold_keyboard_input ();
+
+
+
 
 
   /// C: lisp.h 4271: `extern Lisp_Object nconc2 (Lisp_Object, Lisp_Object);`
@@ -590,8 +579,7 @@ unsafe extern "C" {
   fn is_tty_frame (f: *mut frame) -> bool;
   /// C: lisp.h 4394: `extern void message3_frame (Lisp_Object, struct frame *);`
   fn message3_frame (m: Lisp_Object, frame: *mut frame);
-  /// C: coding.c (coding.h 786's `extern bool raw_text_coding_system_p (struct coding_system *);`)
-  fn raw_text_coding_system_p (coding: *mut coding_system) -> bool;
+
   // window.h 1124-1125's `window_from_coordinates` (window.c defines it) is the window.rs
   // mirror's now; the mirror spells `struct frame *` as `*mut c_void` (P-72 rule 3), so the
   // caller below casts (P-26).

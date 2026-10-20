@@ -286,18 +286,13 @@ unsafe extern "C" {
   fn update_end (f: *mut frame);
   /// C: dispextern.h 3940: `extern void clear_frame (struct frame *);`
   fn clear_frame (f: *mut frame);
-  /// C: frame.h 1476: `extern struct frame *decode_live_frame (Lisp_Object);`
-  fn decode_live_frame (frame: Lisp_Object) -> *mut frame;
-  /// C: frame.h 1480: `extern bool frame_redisplay_p (struct frame *);`
-  fn frame_redisplay_p (f: *mut frame) -> bool;
+
+
 
   /// C: dispextern.h 3688: `extern void note_mouse_highlight (struct frame *, int, int);`
   fn note_mouse_highlight (f: *mut frame, x: c_int, y: c_int);
   // (window.h 1211's `decode_any_window` is the window.rs mirror's now; the use-site copy is gone, P-26.)
-  /// C: keyboard.h 513-514: `extern void gen_help_event (Lisp_Object, Lisp_Object, Lisp_Object,
-  /// Lisp_Object, ptrdiff_t);`
-  fn gen_help_event (string: Lisp_Object, frame: Lisp_Object, window: Lisp_Object,
-                     object: Lisp_Object, pos: ptrdiff_t);
+
   /// C: dispextern.h 3614-3616: `extern Lisp_Object help_echo_string, help_echo_window;`
   /// `extern Lisp_Object help_echo_object, previous_help_echo_string;`
   /// `extern ptrdiff_t help_echo_pos;` (keyboard.c defines all five; the mirror does not
@@ -307,22 +302,14 @@ unsafe extern "C" {
   static mut help_echo_object: Lisp_Object;
   static mut previous_help_echo_string: Lisp_Object;
   static mut help_echo_pos: ptrdiff_t;
-  /// C: frame.h 1508: `extern struct frame *root_frame (struct frame *f);`
-  fn root_frame (f: *mut frame) -> *mut frame;
+
   /// C: lisp.h 4244: `extern EMACS_INT next_almost_prime (EMACS_INT) ATTRIBUTE_CONST;`
   fn next_almost_prime (n: EMACS_INT) -> EMACS_INT;
   /// C: dispextern.h 3955: `extern void calculate_costs (struct frame *);`
   fn calculate_costs (f: *mut frame);
 
-  /// C: frame.h 1506: `extern void adjust_frame_size (struct frame *, int, int, int, bool,
-  /// Lisp_Object);`
-  fn adjust_frame_size (f: *mut frame, new_width: c_int, new_height: c_int,
-                        inhibit: c_int, pretend: bool, parameter: Lisp_Object);
-  /// C: frame.h 1789: `void frame_size_history_extra (struct frame *, Lisp_Object, int, int,
-  /// int, int, int, int);` (frame.rs defines the same helper for its own unit.)
-  fn frame_size_history_extra (f: *mut frame, parameter: Lisp_Object, width: c_int,
-                               height: c_int, new_width: c_int, new_height: c_int,
-                               new_native_width: c_int, new_native_height: c_int);
+
+
   /// C: lisp.h 5371: `extern AVOID fatal (const char *msgid, ...) ATTRIBUTE_FORMAT_PRINTF (1, 2);`
   fn fatal (msgid: *const c_char, ...);
   /// C: <stdlib.h> 3xx: `void exit (int);`
@@ -356,10 +343,8 @@ unsafe extern "C" {
   /// `extern bool detect_input_pending_run_timers (bool);`
   fn detect_input_pending () -> bool;
   fn detect_input_pending_run_timers (do_display: bool) -> bool;
-  /// C: keyboard.h 488/496: `extern int gobble_input (void);`
-  /// `extern void swallow_events (bool);`
-  fn gobble_input () -> c_int;
-  fn swallow_events (do_display: bool);
+
+
   /// C: keyboard.c/term.c: `extern bool redisplaying_p;` and
   /// `extern bool dont_resize_frames;` (both are plain globals the mirrors do not carry).
   static mut redisplaying_p: bool;
@@ -390,8 +375,7 @@ unsafe extern "C" {
   fn tty_hide_cursor (tty: *mut tty_display_info);
   fn tty_show_cursor (tty: *mut tty_display_info);
 
-  /// C: frame.h 1911: `extern bool frame_ancestor_p (struct frame *af, struct frame *df);`
-  fn frame_ancestor_p (a: *mut frame, b: *mut frame) -> bool;
+
   /// C: dispextern.h 3574-3575: `void window_box (struct window *, enum glyph_row_area,
   /// int *, int *, int *, int *);`
   fn window_box (w: *mut window, area: glyph_row_area, x: *mut c_int, y: *mut c_int,

@@ -126,12 +126,8 @@ unsafe extern "C" {
   /// C: lisp.h 4938: `extern AVOID nsberror (Lisp_Object);` (buffer.c defines it; the mirror
   /// is missing the line).
   fn nsberror (spec: Lisp_Object) -> !;
-  /// C: lisp.h 4685-4686: `extern Lisp_Object code_convert_string (Lisp_Object, Lisp_Object,
-  /// Lisp_Object, bool, bool, bool);` (coding.c defines it; the mirror is missing the line).
-  fn code_convert_string (str: Lisp_Object, coding_system: Lisp_Object, nocopy: Lisp_Object,
-                          encodep: bool, noerror: bool, norecord: bool) -> Lisp_Object;
-  /// C: coding.h 780: `extern Lisp_Object preferred_coding_system (void);`
-  fn preferred_coding_system () -> Lisp_Object;
+
+
   /// C: lisp.h 4663-4664: `void *hash_table_alloc_bytes (ptrdiff_t nbytes);`
   /// `void hash_table_free_bytes (void *p, ptrdiff_t nbytes);` — alloc.c defines both (the
   /// mirror is missing the lines).

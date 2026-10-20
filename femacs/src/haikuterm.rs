@@ -158,11 +158,7 @@ static mut any_help_event_p: bool = false;
 unsafe extern "C" {
   /// C: lisp.h 4274: `extern Lisp_Object assoc_no_quit (Lisp_Object, Lisp_Object);` (fns.c).
   fn assoc_no_quit (a: Lisp_Object, b: Lisp_Object) -> Lisp_Object;
-  /// C: frame.h 1511-1512: `extern void adjust_frame_size (struct frame *, int, int, int, bool,
-  /// Lisp_Object);` (frame.c).  `window.rs` 7466-7469 and `dispnew.rs` 300-303 carry the same
-  /// use-site copy of this prototype.
-  fn adjust_frame_size (f: *mut frame, new_width: c_int, new_height: c_int,
-                        inhibit: c_int, pretend: bool, parameter: Lisp_Object);
+
   /// C: dispextern.h 3581: `int window_box_right (struct window *, enum glyph_row_area);`
   fn window_box_right (w: *mut window, area: glyph_row_area) -> c_int;
   /// C: dispextern.h 3574-3575: `void window_box (struct window *, enum glyph_row_area, int *,
@@ -4866,10 +4862,7 @@ unsafe extern "C" {
   /// int);`
   pub fn handle_tool_bar_click (f: *mut frame, x: c_int, y: c_int, down_p: bool,
 				modifiers: c_int);
-  /// C: keyboard.h 513-514: `extern void gen_help_event (Lisp_Object, Lisp_Object, Lisp_Object,
-  /// Lisp_Object, ptrdiff_t);`
-  pub fn gen_help_event (string: Lisp_Object, frame: Lisp_Object, window: Lisp_Object,
-			 object: Lisp_Object, pos: ptrdiff_t);
+
   /// C: math.h: `float powf (float, float);`
   fn powf (x: f32, y: f32) -> f32;
   /// C: math.h: `float fabsf (float);`
@@ -6005,7 +5998,7 @@ macro_rules! flush_frame {
    uses are the ones this unit declared for C 3214 (slice 23), so they are **not** repeated.  */
 #[cfg (feature = "have_haiku")]
 unsafe extern "C" {
-  pub fn check_window_system (f: *mut frame);
+
   pub fn detect_input_pending () -> bool;
   /// C: `status_t wait_for_objects_etc (object_wait_info *infos, int numInfos, uint32 flags,
   /// bigtime_t timeout);   [<OS.h>; UNVERIFIED here]`
@@ -6255,7 +6248,7 @@ macro_rules! hook {
 #[cfg (feature = "have_haiku")]
 unsafe extern "C" {
   pub fn create_terminal (r#type: output_method, rif: *mut c_void) -> *mut terminal;
-  pub fn allocate_kboard (type_: Lisp_Object) -> *mut kboard;
+
   
   pub fn be_create_cursor_from_id (id: c_int) -> *mut c_void;
   pub fn fatal (msgid: *const c_char, ...) -> !;

@@ -14807,7 +14807,7 @@ unsafe extern "C" {
 /// C: extern Lisp_Object from_unicode (Lisp_Object str);  (`src/coding.h` 734)
 #[cfg (feature = "windowsnt")]
 unsafe extern "C" {
-  pub fn from_unicode (str: Lisp_Object) -> Lisp_Object;
+
 }
 #[cfg (feature = "windowsnt")]
 #[unsafe(no_mangle)]

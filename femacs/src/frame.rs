@@ -618,10 +618,8 @@ unsafe extern "C" {
   pub fn delq_no_quit (elt: Lisp_Object, list: Lisp_Object) -> Lisp_Object;
   /// C: font.h 897: `extern void free_font_driver_list (struct frame *f);`
   pub fn free_font_driver_list (f: *mut frame);
-  /// C: keyboard.h 496: `extern void swallow_events (bool);`
-  pub fn swallow_events (do_timers: bool);
-  /// C: keyboard.h 479: `extern void not_single_kboard_state (KBOARD *);`
-  pub fn not_single_kboard_state (kb: *mut KBOARD);
+
+
 }
 
 /* The currently selected frame.  */
@@ -4948,14 +4946,11 @@ unsafe extern "C" {
   
   /// C: font.h 883: extern Lisp_Object font_open_by_name (struct frame *f, Lisp_Object name);
   pub fn font_open_by_name (f: *mut frame, name: Lisp_Object) -> Lisp_Object;
-  /// C: font.h 865: extern Lisp_Object font_spec_from_name (Lisp_Object font_name);
-  pub fn font_spec_from_name (font_name: Lisp_Object) -> Lisp_Object;
-  /// C: font.h 860: extern bool font_match_p (Lisp_Object spec, Lisp_Object font);
-  pub fn font_match_p (spec: Lisp_Object, font: Lisp_Object) -> bool;
+
+
   /// C: font.h 907: extern Lisp_Object font_update_drivers (struct frame *f, Lisp_Object list);
   pub fn font_update_drivers (f: *mut frame, list: Lisp_Object) -> Lisp_Object;
-  /// C: frame.h 1886: extern void x_wm_set_icon_position (struct frame *, int, int);
-  pub fn x_wm_set_icon_position (f: *mut frame, icon_x: c_int, icon_y: c_int);
+
 }
 
 /* Enumeration type for switch in frame_float.  */

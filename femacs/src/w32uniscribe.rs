@@ -2761,6 +2761,6 @@ unsafe extern "C" fn syms_of_w32uniscribe_for_pdumper ()
 #[cfg (feature = "have_ntgui")]
 unsafe extern "C" {
   pub fn memq_no_quit (elt: Lisp_Object, list: Lisp_Object) -> Lisp_Object;
-  pub fn font_make_object (size: c_int, entity: Lisp_Object, pixel_size: c_int) -> Lisp_Object;
+
   pub fn register_font_driver (driver: *const font_driver, f: *mut frame);
 }

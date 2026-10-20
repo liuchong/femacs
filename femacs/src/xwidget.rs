@@ -1400,7 +1400,7 @@ unsafe extern "C" {
 /// C: keyboard.h 461: `extern Lisp_Object parse_modifiers (Lisp_Object);`
 #[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 unsafe extern "C" {
-  pub fn parse_modifiers (symbol: Lisp_Object) -> Lisp_Object;
+
 }
 /// C: keyboard.h 525: `extern const char *const lispy_function_keys[];` - C's incomplete array.
 /// `src/keyboard.rs` 5975 *defines* the 256-slot X11 table (C 5513's arm, the one this TU's
@@ -1430,7 +1430,7 @@ unsafe extern "C" {
 /// yet, which a real GTK build needs (Owed 3).
 #[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 unsafe extern "C" {
-  pub fn catch_child_signal ();
+
 }
 
 #[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
