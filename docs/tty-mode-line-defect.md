@@ -267,3 +267,25 @@ block there is behind `FRAME_WINDOW_P`, false on this tty build.
 Next: two markers in that ~86-line stretch (after the `(*it).f = ...` assignment and after
 `update_redisplay_ticks`), and read the source around each before trusting the placement - the last
 three rounds each lost a reading to a marker that landed inside a skipped branch.
+
+## The throw is inside realize_default_face (4.1024)
+
+    F1 after init_frame_faces 8    F2 after recompute_basic_faces 0
+
+so `recompute_basic_faces` throws.  Inside it, `realize_basic_faces`:
+
+    R1 after block_input 8    R2 after realize_default_face 1    R3 after mode-line face 1
+
+`block_input` returns every time; only the **first** call gets past `realize_default_face` (and
+realizes the mode-line face once).  Calls 2..8 never reach the if-body, and the process does not
+abort, so `realize_default_face` throws rather than returning false.
+
+Inside `realize_default_face`:
+
+    U1 entry 8    U2 after lface_from_face_name 8
+
+So the default-face lookup runs every time and the throw is in what follows it - most likely the
+branch taken when the **default face already exists** (call 1 creates it, calls 2..8 re-realize it).
+
+Next: markers after the `if NILP (lface)` body and around the final `realize_face` call in
+`realize_default_face`; the re-realize path is the one that throws.
