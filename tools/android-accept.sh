@@ -23,7 +23,10 @@ $ADB emu kill >/dev/null 2>&1; sleep 2
 $EMU -avd "$AVD" -port "$PORT" -no-window -no-audio -no-boot-anim -no-snapshot-save \
      -memory 1536 -gpu guest >"$OUT/emulator.log" 2>&1 &
 EMU_PID=$!
-on_exit () { $ADB logcat -d -b crash -b main > "$OUT/logcat.txt" 2>/dev/null; $ADB emu kill >/dev/null 2>&1; }
+on_exit () {	# bounded: an unresponsive emulator must not hold the caller
+  $ADB logcat -d -b crash -b main > "$OUT/logcat.txt" 2>/dev/null & sleep 3; kill %1 2>/dev/null
+  $ADB emu kill >/dev/null 2>&1 & sleep 3; kill %1 2>/dev/null
+}
 trap on_exit EXIT   # keep the log for the next reader, and never leave the emulator running
 for _ in $(seq 1 300); do
   [ "$($ADB shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')" = "1" ] && break
