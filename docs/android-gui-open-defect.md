@@ -1,4 +1,8 @@
-# Android GUI：白屏缺陷（独立跟踪项）
+# Android GUI：渲染已通、输入未验收（独立跟踪项）
+
+> **status 4.950 更正**：GUI **不是白屏**。截图左上角可辨认出菜单栏与 `*scratch*` 的前两行文字；
+> 之前“白屏”的判断来自整屏非白比（白底黑字本来只有 1–3%）。当前真正的缺口是
+> **输入（`adb shell input text`）之后画面不变**：同一轮 before/after 两张截图 md5 完全相同。
 
 本文件是 **Android GUI 白屏**的唯一跟踪入口。DoD 第 6 条已按用户授权以 **macOS 验收**
 （`docs/current-state.md`），Android GUI **不计入达成**，缺陷继续跟踪。

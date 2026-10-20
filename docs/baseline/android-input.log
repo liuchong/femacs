@@ -1,0 +1,657 @@
+--------- beginning of main
+10-20 11:16:46.195   891   891 D ControlsListingControllerImpl: ServiceConfig reloaded, count: 0
+10-20 11:16:46.198  1342  1361 W HWUI    : Image decoding logging dropped!
+10-20 11:16:46.199  1342  1361 D AlphabeticIndexCompat: computeSectionName: cs: Emacs sectionName: E
+10-20 11:16:46.199  1342  1342 D AllAppsStore: setApps: apps.length=13
+10-20 11:16:46.199  1342  1342 D AllAppsStore: notifyUpdate: notifying listeners
+10-20 11:16:46.199  1342  1342 D ActivityAllAppsContainerView: onAppsUpdated; number of apps: 13
+10-20 11:16:46.199  1342  1342 D ActivityAllAppsContainerView: rebindAdapters: force: false
+10-20 11:16:46.199  1342  1342 D ActivityAllAppsContainerView: rebindAdapters: Not needed.
+10-20 11:16:46.199  1342  1342 D StatsLog: LAUNCHER_ALLAPPS_COUNT
+10-20 11:16:46.200  1342  1342 D AlphabeticalAppsList: Clearing FastScrollerSections.
+10-20 11:16:46.200  1342  1342 D AlphabeticalAppsList: Adding apps with sections. HasPrivateApps: false
+10-20 11:16:46.200  1342  1342 D AlphabeticalAppsList: addAppsWithSections: adding sectionName: C with appInfoTitle: Calendar
+10-20 11:16:46.200  1342  1342 D AlphabeticalAppsList: addAppsWithSections: adding sectionName: E with appInfoTitle: Emacs
+10-20 11:16:46.200  1342  1342 D AlphabeticalAppsList: addAppsWithSections: adding sectionName: F with appInfoTitle: Files
+10-20 11:16:46.200  1342  1342 D AlphabeticalAppsList: addAppsWithSections: adding sectionName: G with appInfoTitle: Gallery
+10-20 11:16:46.200  1342  1342 D AlphabeticalAppsList: addAppsWithSections: adding sectionName: M with appInfoTitle: Messaging
+10-20 11:16:46.200  1342  1342 D AlphabeticalAppsList: addAppsWithSections: adding sectionName: P with appInfoTitle: Phone
+10-20 11:16:46.200  1342  1342 D AlphabeticalAppsList: addAppsWithSections: adding sectionName: S with appInfoTitle: Search
+10-20 11:16:46.200  1342  1342 D AlphabeticalAppsList: addAppsWithSections: adding sectionName: T with appInfoTitle: TMoble
+10-20 11:16:46.200  1342  1342 D AlphabeticalAppsList: addAppsWithSections: adding sectionName: W with appInfoTitle: WebView Browser Tester
+10-20 11:16:46.200  1342  1342 D AlphabeticalAppsList: Adding FastScrollSection duplicate to scroll to the bottom.
+10-20 11:16:46.200  1342  1342 D AlphabeticalAppsList: Clearing FastScrollerSections.
+10-20 11:16:46.200  1342  1342 D AlphabeticalAppsList: Adding apps with sections. HasPrivateApps: false
+10-20 11:16:46.200  1342  1342 D AlphabeticalAppsList: addAppsWithSections: adding sectionName: C with appInfoTitle: Calendar
+10-20 11:16:46.200  1342  1342 D AlphabeticalAppsList: addAppsWithSections: adding sectionName: E with appInfoTitle: Emacs
+10-20 11:16:46.200  1342  1342 D AlphabeticalAppsList: addAppsWithSections: adding sectionName: F with appInfoTitle: Files
+10-20 11:16:46.200  1342  1342 D AlphabeticalAppsList: addAppsWithSections: adding sectionName: G with appInfoTitle: Gallery
+10-20 11:16:46.200  1342  1342 D AlphabeticalAppsList: addAppsWithSections: adding sectionName: M with appInfoTitle: Messaging
+10-20 11:16:46.200  1342  1342 D AlphabeticalAppsList: addAppsWithSections: adding sectionName: P with appInfoTitle: Phone
+10-20 11:16:46.200  1342  1342 D AlphabeticalAppsList: addAppsWithSections: adding sectionName: S with appInfoTitle: Search
+10-20 11:16:46.200  1342  1342 D AlphabeticalAppsList: addAppsWithSections: adding sectionName: T with appInfoTitle: TMoble
+10-20 11:16:46.200  1342  1342 D AlphabeticalAppsList: addAppsWithSections: adding sectionName: W with appInfoTitle: WebView Browser Tester
+10-20 11:16:46.200  1342  1342 D AlphabeticalAppsList: Adding FastScrollSection duplicate to scroll to the bottom.
+--------- beginning of system
+10-20 11:16:46.275   652  1524 E AppOps  : attributionTag VCN not declared in manifest of android
+10-20 11:16:46.292   652   747 I RoleService: Granting default roles...
+10-20 11:16:46.299   652  2126 E RoleControllerServiceImpl: Default/fallback role holder package doesn't qualify for the role, package: com.android.devicelockcontroller, role: android.app.role.SYSTEM_FINANCED_DEVICE_CONTROLLER
+10-20 11:16:46.314   980  2019 D NetworkMonitor/101: PROBE_HTTP http://connectivitycheck.gstatic.com/generate_204 time=1001ms ret=204 request={Connection=[close], User-Agent=[Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/60.0.3112.32 Safari/537.36]} headers={null=[HTTP/1.1 204 No Content], Connection=[close], Content-Length=[0], Cross-Origin-Resource-Policy=[cross-origin], Date=[Tue, 20 Oct 2026 03:16:46 GMT], X-Android-Received-Millis=[1792466206314], X-Android-Response-Source=[NETWORK 204], X-Android-Selected-Protocol=[http/1.1], X-Android-Sent-Millis=[1792466205808]}
+10-20 11:16:46.326   652  1524 W ActivityTaskManager: callingPackage for (uid=0, pid=2129) has no WPC
+10-20 11:16:46.327   652  1524 I incfs-mounts: [incfs] Loaded incremental-fs mount info: 1 instances, 2 mount points
+10-20 11:16:46.328   652  1524 I system_server: AssetManager2(0xb40000741023e1d8) locale list changing from [] to [en-US]
+10-20 11:16:46.328   652  1524 V GrammaticalInflectionUtils: AttributionSource: AttributionSource { uid = 10340, packageName = null, attributionTag = null, token = android.os.Binder@c4cef93, deviceId = 0, next = null } does not have READ_SYSTEM_GRAMMATICAL_GENDER permission.
+10-20 11:16:46.328   652  1524 W OptProp : Cannot read opt property android.window.PROPERTY_COMPAT_ALLOW_RESIZEABLE_ACTIVITY_OVERRIDES
+10-20 11:16:46.328   652  1524 W OptProp : Cannot read opt property android.window.PROPERTY_COMPAT_ALLOW_MIN_ASPECT_RATIO_OVERRIDE
+10-20 11:16:46.330   652  1524 W OptProp : Cannot read opt property android.window.PROPERTY_COMPAT_ALLOW_ORIENTATION_OVERRIDE
+10-20 11:16:46.332   652  1524 I ActivityTaskManager: START u0 {flg=0x10000000 xflg=0x4 cmp=org.femacs/.EmacsActivity} with LAUNCH_SINGLE_INSTANCE from uid 0 (BAL_ALLOW_ALLOWLISTED_UID) result code=0
+10-20 11:16:46.333   891  1087 I incfs   : Initial API level of the device: 36
+10-20 11:16:46.334   891  1087 W libc    : Access denied finding property "ro.incremental.enable"
+10-20 11:16:46.334   891  1087 I incfs   : ro.incremental.enable: on
+10-20 11:16:46.334   891  1087 I incfs   : IncFs_Features: v2
+10-20 11:16:46.334   652   676 V GrammaticalInflectionUtils: AttributionSource: AttributionSource { uid = 10340, packageName = null, attributionTag = null, token = android.os.Binder@c4cef93, deviceId = 0, next = null } does not have READ_SYSTEM_GRAMMATICAL_GENDER permission.
+10-20 11:16:46.334   891  1087 I incfs-mounts: [incfs] Loaded incremental-fs mount info: 1 instances, 2 mount points
+10-20 11:16:46.334   891  1087 I ndroid.systemui: AssetManager2(0xb400007410248458) locale list changing from [] to [en-US]
+10-20 11:16:46.328   891   891 W ll.splashscreen: type=1400 audit(0.0:7): avc:  denied  { read } for  name="filesystems" dev="proc" ino=4026532041 scontext=u:r:platform_app:s0:c512,c768 tcontext=u:object_r:proc_filesystems:s0 tclass=file permissive=0 app=com.android.systemui
+10-20 11:16:46.343  1342  1342 W SplitSelectStateCtor: Missing session instanceIds
+10-20 11:16:46.343  1342  1342 D StatsLog: LAUNCHER_SPLIT_SELECTION_EXIT_INTERRUPTED
+10-20 11:16:46.344   891  1016 V WindowManagerShell: Transition requested (#6): android.os.BinderProxy@50694da TransitionRequestInfo { type = OPEN, triggerTask = TaskInfo{userId=0 taskId=106 effectiveUid=10340 displayId=0 isRunning=true baseIntent=Intent { flg=0x10000000 cmp=org.femacs/.EmacsActivity } baseActivity=ComponentInfo{org.femacs/org.femacs.EmacsActivity} topActivity=ComponentInfo{org.femacs/org.femacs.EmacsActivity} origActivity=null realActivity=ComponentInfo{org.femacs/org.femacs.EmacsActivity} numActivities=1 lastActiveTime=21881 supportsMultiWindow=true resizeMode=1 isResizeable=true minWidth=-1 minHeight=-1 defaultMinSize=220 token=WCT{android.window.IWindowContainerToken$Stub$Proxy@fc3fd0b} topActivityType=1 pictureInPictureParams=null shouldDockBigOverlays=false launchIntoPipHostTaskId=-1 lastParentTaskIdBeforePip=-1 displayCutoutSafeInsets=Rect(0, 128 - 0, 0) topActivityInfo=ActivityInfo{f0e47e8 org.femacs.EmacsActivity} launchCookies=[] positionInParent=Point(0, 0) parentTaskId=-1 isFocused=false isVisible=false isVisibleRequested=false isTopActivityNoDisplay=false isSleeping=false locusId=null displayAreaFeatureId=1 isTopActivityTransparent=false isActivityStackTransparent=false lastNonFullscreenBounds=Rect(269, 661 - 812, 1741) capturedLink=null capturedLinkTimestamp=0 requestedVisibleTypes=-9 topActivityRequestOpenInBrowserEducationTimestamp=0 appCompatTaskInfo=AppCompatTaskInfo { topActivityInSizeCompat=false eligibleForLetterboxEducation= false isLetterboxEducationEnabled= false isLetterboxDoubleTapEnabled= false eligibleForUserAspectRatioButton= false topActivityBoundsLetterboxed= false isFromLetterboxDoubleTap= false topActivityLetterboxVerticalPosition= -1 topActivityLetterboxHorizontalPosition= -1 topActivityLetterboxWidth=-1 topActivityLetterboxHeight=-1 topActivityAppBounds=Rect(0, 0 - 1080, 2400) isUserFullscreenOverrideEnabled=false isSystemFullscreenOverrideEnabled=false hasMinAspectRatioOverride=false topActivityLetterboxBounds=null cameraCompatTaskInfo=CameraCompatTaskInfo { freeformCameraCompatMode=inactive}} topActivityMainWindowFrame=null}, pipChange = null, remoteTransition = null, displayChange = null, flags = 0, debugId = 6 }
+10-20 11:16:46.344   891  1016 D ShellSplitScreen: logExit: no-op, mLoggerSessionId is null
+10-20 11:16:46.347   447   447 D Zygote  : Forked child process 2133
+10-20 11:16:46.349   652   683 I ActivityManager: Start proc 2133:org.femacs/u0a340 for next-top-activity {org.femacs/org.femacs.EmacsActivity}
+10-20 11:16:46.350   652   683 I ActivityManager: ProcessObserver broadcast disabled
+10-20 11:16:46.350   444   490 I netd    : tetherGetStats() -> {[]} <1.95ms>
+10-20 11:16:46.351   652   845 D BackgroundInstallControlService: Package event received: 0
+10-20 11:16:46.351   891  1016 D WindowManagerShell: setLauncherKeepClearAreaHeight: visible=false, height=294
+10-20 11:16:46.355   891  1088 D SplashScreenView: Build android.window.SplashScreenView{b73fa94 V.E...... ......ID 0,0-0,0}
+10-20 11:16:46.355   891  1088 D SplashScreenView: Icon: view: android.widget.ImageView{932f93d V.ED..... ......I. 0,0-0,0 #1020542 android:id/splashscreen_icon_view} drawable: com.android.wm.shell.startingsurface.SplashscreenIconDrawableFactory$ImmobileIconDrawable@4d2e532 size: 420
+10-20 11:16:46.355   891  1088 D SplashScreenView: Branding: view: android.view.View{64d0283 G.ED..... ......I. 0,0-0,0 #1020541 android:id/splashscreen_branding_view} drawable: null size w: 0 h: 0
+10-20 11:16:46.364   512   512 I BpBinder: onLastStrongRef automatically unlinking death recipients: 
+10-20 11:16:46.377  2133  2133 I org.femacs: Using CollectorTypeCMC GC.
+10-20 11:16:46.379  2133  2133 E org.femacs: Not starting debugger since process cannot load the jdwp agent.
+10-20 11:16:46.380  2133  2133 D nativeloader: Load libframework-connectivity-tiramisu-jni.so using APEX ns com_android_tethering for caller /apex/com.android.tethering/javalib/framework-connectivity-t.jar: ok
+10-20 11:16:46.384   652   845 D BackgroundInstallControlService: Package event received: 0
+10-20 11:16:46.402  2133  2133 D nativeloader: Configuring clns-9 for other apk /data/app/~~bKZmrrFSFIijFQOV9ANBwQ==/org.femacs-0raJfOLlUXWbSGVNWZifKA==/base.apk. target_sdk_version=37, uses_libraries=, library_path=/data/app/~~bKZmrrFSFIijFQOV9ANBwQ==/org.femacs-0raJfOLlUXWbSGVNWZifKA==/lib/arm64:/data/app/~~bKZmrrFSFIijFQOV9ANBwQ==/org.femacs-0raJfOLlUXWbSGVNWZifKA==/base.apk!/lib/arm64-v8a, permitted_path=/data:/mnt/expand:/data/user/0/org.femacs
+10-20 11:16:46.403  2133  2133 I org.femacs: AssetManager2(0xb400007410222f78) locale list changing from [] to [en-US]
+10-20 11:16:46.405  2133  2133 V GraphicsEnvironment: Currently set values for:
+10-20 11:16:46.405  2133  2133 V GraphicsEnvironment:   angle_gl_driver_selection_pkgs=[]
+10-20 11:16:46.405  2133  2133 V GraphicsEnvironment:   angle_gl_driver_selection_values=[]
+10-20 11:16:46.405  2133  2133 V GraphicsEnvironment: org.femacs is not listed in per-application setting
+10-20 11:16:46.405  2133  2133 V GraphicsEnvironment: ANGLE allowlist from config: 
+10-20 11:16:46.405  2133  2133 V GraphicsEnvironment: org.femacs is not listed in ANGLE allowlist or settings, returning default
+10-20 11:16:46.405  2133  2133 V GraphicsEnvironment: Neither updatable production driver nor prerelease driver is supported.
+10-20 11:16:46.411   980  1119 D IpClient/wlan0: addressUpdated: fec0::e088:98c2:7f68:788c/64 on ifindex 16 flags 0x00000001 scope 200
+10-20 11:16:46.411   980  1119 D IpClient/wlan0: addressUpdated: fec0::423e:caac:ae08:ebd3/64 on ifindex 16 flags 0x00000900 scope 200
+10-20 11:16:46.417   652   793 D WifiVendorHal: installPacketFilter filter length 1844
+10-20 11:16:46.417   652   793 D WifiClientModeImpl[10304:wlan0]:  ClientModeImpl$ConnectableState screen=on len=1844
+10-20 11:16:46.423  2133  2133 D nativeloader: Load /system/lib64/libjnigraphics.so using class loader ns clns-9 (caller=/data/app/~~bKZmrrFSFIijFQOV9ANBwQ==/org.femacs-0raJfOLlUXWbSGVNWZifKA==/base.apk): ok
+10-20 11:16:46.424   891  1381 D BufferPoolAccessor2.0: bufferpool2 0xb400007470240e78 : 0(0 size) total buffers - 0(0 size) used buffers - 2/7 (recycle/alloc) - 5/18 (fetch/transfer)
+10-20 11:16:46.424   891  1381 D BufferPoolAccessor2.0: bufferpool2 0xb400007470242c88 : 0(0 size) total buffers - 0(0 size) used buffers - 1/7 (recycle/alloc) - 6/36 (fetch/transfer)
+10-20 11:16:46.424   891  1381 D BufferPoolAccessor2.0: evictor expired: 2, evicted: 2
+10-20 11:16:46.425  2133  2133 D nativeloader: Load /data/app/~~bKZmrrFSFIijFQOV9ANBwQ==/org.femacs-0raJfOLlUXWbSGVNWZifKA==/lib/arm64/libemacs.so using class loader ns clns-9 (caller=/data/app/~~bKZmrrFSFIijFQOV9ANBwQ==/org.femacs-0raJfOLlUXWbSGVNWZifKA==/base.apk): ok
+10-20 11:16:46.445  2133  2145 I DisplayManager: Choreographer implicitly registered for the refresh rate.
+10-20 11:16:46.448   652   845 D BackgroundInstallControlService: Package event received: 0
+10-20 11:16:46.448   652   845 D BackgroundInstallControlService: Package event received: 0
+10-20 11:16:46.450  2133  2133 I org.femacs: AssetManager2(0xb40000741022af98) locale list changing from [] to [en-US]
+10-20 11:16:46.453  2133  2133 E ashmem  : Pinning is deprecated since Android Q. Please use trim or other methods.
+10-20 11:16:46.459  2133  2133 D DesktopModeFlags: Toggle override initialized to: OVERRIDE_UNSET
+10-20 11:16:46.461  2133  2145 I EGL_emulation: Opening libGLESv1_CM_emulation.so
+10-20 11:16:46.461  2133  2145 I EGL_emulation: Opening libGLESv2_emulation.so
+10-20 11:16:46.461   652  1304 I ActivityManager: Background started FGS: Allowed [callingPackage: org.femacs; callingUid: 10340; uidState: TOP ; uidBFSL: [BFSL]; intent: Intent { xflg=0x4 cmp=org.femacs/.EmacsService }; code:PROC_STATE_TOP; tempAllowListReason:<null>; allowWiu:12; targetSdkVersion:37; callerTargetSdkVersion:37; startForegroundCount:0; bindFromPackage:null: isBindService:false]
+10-20 11:16:46.463  2133  2145 W HWUI    : Failed to choose config with EGL_SWAP_BEHAVIOR_PRESERVED, retrying without...
+10-20 11:16:46.465  2133  2145 W HWUI    : Failed to initialize 101010-2 format, error = EGL_SUCCESS
+10-20 11:16:46.496  2133  2133 W HWUI    : Unknown dataspace 0
+--------- beginning of kernel
+10-20 11:16:46.500   221   221 I servicemanager: Caller(pid=2133,uid=10340,sid=u:r:untrusted_app:s0:c84,c257,c512,c768) Found android.hardware.graphics.allocator.IAllocator/default in device VINTF manifest.
+10-20 11:16:46.501   221   221 I servicemanager: Caller(pid=2133,uid=10340,sid=u:r:untrusted_app:s0:c84,c257,c512,c768) Found android.hardware.graphics.allocator.IAllocator/default in device VINTF manifest.
+10-20 11:16:46.502   221   221 I servicemanager: Caller(pid=2133,uid=10340,sid=u:r:untrusted_app:s0:c84,c257,c512,c768) Found mapper/ranchu in device VINTF manifest.
+10-20 11:16:46.508  1468  1468 W MediaProvider: WorkProfileOwnerApps cache is empty
+10-20 11:16:46.508  1468  1468 D PickerSyncLockManager: Trying to acquire lock com.android.providers.media.photopicker.sync.CloseableReentrantLock@dca8952[Unlocked]. Lock Name = CLOUD_PROVIDER_LOCK. Threads that may be waiting to acquire this lock = []
+10-20 11:16:46.508  1468  1468 D CloseableReentrantLock: Successfully acquired lock com.android.providers.media.photopicker.sync.CloseableReentrantLock@dca8952[Locked by thread main]. Lock Name = CLOUD_PROVIDER_LOCK. Threads that may be waiting to acquire this lock = []
+10-20 11:16:46.508  1468  1468 D CloseableReentrantLock: Successfully released lock com.android.providers.media.photopicker.sync.CloseableReentrantLock@dca8952[Unlocked]. Lock Name = CLOUD_PROVIDER_LOCK. Threads that may be waiting to acquire this lock = []
+10-20 11:16:46.515   891   907 V WindowManagerShell: onTransitionReady(transaction=2800318677290)
+10-20 11:16:46.515   891  1016 V WindowManagerShell: onTransitionReady (#6) android.os.BinderProxy@50694da: {id=6 t=OPEN f=0x0 trk=0 r=[0@Point(0, 0)] c=[
+10-20 11:16:46.515   891  1016 V WindowManagerShell:         {m=OPEN f=NONE leash=Surface(name=Task=106)/@0x9d530c4 sb=Rect(0, 0 - 1080, 2400) eb=Rect(0, 0 - 1080, 2400) epz=Point(1080, 2400) d=0 taskParent=-1},
+10-20 11:16:46.515   891  1016 V WindowManagerShell:         {m=TO_BACK f=SHOW_WALLPAPER leash=Surface(name=Task=1)/@0x39abad sb=Rect(0, 0 - 1080, 2400) eb=Rect(0, 0 - 1080, 2400) epz=Point(1080, 2400) d=0 taskParent=-1},
+10-20 11:16:46.515   891  1016 V WindowManagerShell:         {m=TO_BACK f=IS_WALLPAPER leash=Surface(name=WallpaperWindowToken{4bb1cff showWhenLocked=false})/@0xfaafee2 sb=Rect(0, 0 - 1080, 2400) eb=Rect(0, 0 - 1080, 2400) epz=Point(1080, 2400) d=0}
+10-20 11:16:46.515   891  1016 V WindowManagerShell:     ]}
+10-20 11:16:46.523   652   673 V WindowManager: Sent Transition (#6) createdAt=10-20 11:16:46.328 via request=TransitionRequestInfo { type = OPEN, triggerTask = TaskInfo{userId=0 taskId=106 effectiveUid=10340 displayId=0 isRunning=true baseIntent=Intent { flg=0x10000000 cmp=org.femacs/.EmacsActivity } baseActivity=ComponentInfo{org.femacs/org.femacs.EmacsActivity} topActivity=ComponentInfo{org.femacs/org.femacs.EmacsActivity} origActivity=null realActivity=ComponentInfo{org.femacs/org.femacs.EmacsActivity} numActivities=1 lastActiveTime=21881 supportsMultiWindow=true resizeMode=1 isResizeable=true minWidth=-1 minHeight=-1 defaultMinSize=220 token=WCT{RemoteToken{e2284c4 Task{52b30f #106 type=standard A=10340:emacs.primary_frame}}} topActivityType=1 pictureInPictureParams=null shouldDockBigOverlays=false launchIntoPipHostTaskId=-1 lastParentTaskIdBeforePip=-1 displayCutoutSafeInsets=Rect(0, 128 - 0, 0) topActivityInfo=ActivityInfo{cbe6fad org.femacs.EmacsActivity} launchCookies=[] positionInParent=Point(0, 0) parentTaskId=-1 isFocused=false isVisible=false isVisibleRequested=false isTopActivityNoDisplay=false isSleeping=false locusId=null displayAreaFeatureId=1 isTopActivityTransparent=false isActivityStackTransparent=false lastNonFullscreenBounds=Rect(269, 661 - 812, 1741) capturedLink=null capturedLinkTimestamp=0 requestedVisibleTypes=-9 topActivityRequestOpenInBrowserEducationTimestamp=0 appCompatTaskInfo=AppCompatTaskInfo { topActivityInSizeCompat=false eligibleForLetterboxEducation= false isLetterboxEducationEnabled= false isLetterboxDoubleTapEnabled= false eligibleForUserAspectRatioButton= false topActivityBoundsLetterboxed= false isFromLetterboxDoubleTap= false topActivityLetterboxVerticalPosition= -1 topActivityLetterboxHorizontalPosition= -1 topActivityLetterboxWidth=-1 topActivityLetterboxHeight=-1 topActivityAppBounds=Rect(0, 0 - 1080, 2400) isUserFullscreenOverrideEnabled=false isSystemFullscreenOverrideEnabled=false hasMinAspectRatioOverride=false topActivityLetterboxBounds=null cameraCompatTaskInfo=CameraCompatTaskInfo { freeformCameraCompatMode=inactive}} topActivityMainWindowFrame=null}, pipChange = null, remoteTransition = null, displayChange = null, flags = 0, debugId = 6 }
+10-20 11:16:46.523   652   673 V WindowManager:     startWCT=WindowContainerTransaction { changes= {} hops= [] errorCallbackToken=null taskFragmentOrganizer=null }
+10-20 11:16:46.523   652   673 V WindowManager:     info={id=6 t=OPEN f=0x0 trk=0 r=[0@Point(0, 0)] c=[
+10-20 11:16:46.523   652   673 V WindowManager:         {WCT{RemoteToken{e2284c4 Task{52b30f #106 type=standard A=10340:emacs.primary_frame}}} m=OPEN f=NONE leash=Surface(name=Task=106)/@0x1b78f18 sb=Rect(0, 0 - 1080, 2400) eb=Rect(0, 0 - 1080, 2400) epz=Point(1080, 2400) d=0 taskParent=-1},
+10-20 11:16:46.523   652   673 V WindowManager:         {WCT{RemoteToken{fea72e2 Task{844c939 #1 type=home}}} m=TO_BACK f=SHOW_WALLPAPER leash=Surface(name=Task=1)/@0x29622fb sb=Rect(0, 0 - 1080, 2400) eb=Rect(0, 0 - 1080, 2400) epz=Point(1080, 2400) d=0 taskParent=-1},
+10-20 11:16:46.523   652   673 V WindowManager:         {m=TO_BACK f=IS_WALLPAPER leash=Surface(name=WallpaperWindowToken{4bb1cff showWhenLocked=false})/@0x532dc8a sb=Rect(0, 0 - 1080, 2400) eb=Rect(0, 0 - 1080, 2400) epz=Point(1080, 2400) d=0}
+10-20 11:16:46.523   652   673 V WindowManager:     ]}
+10-20 11:16:46.524   891  1016 V WindowManagerShell: Playing animation for (#6) android.os.BinderProxy@50694da@0
+10-20 11:16:46.524   891  1016 V ShellRecents: RecentsTransitionHandler.startAnimation: no controller found
+10-20 11:16:46.524   891  1016 V WindowManagerShell: Transition doesn't have explicit remote, search filters for match for {id=6 t=OPEN f=0x0 trk=0 r=[0@Point(0, 0)] c=[{m=OPEN f=NONE leash=Surface(name=Task=106)/@0x9d530c4 sb=Rect(0, 0 - 1080, 2400) eb=Rect(0, 0 - 1080, 2400) epz=Point(1080, 2400) d=0 taskParent=-1},{m=TO_BACK f=SHOW_WALLPAPER leash=Surface(name=Task=1)/@0x39abad sb=Rect(0, 0 - 1080, 2400) eb=Rect(0, 0 - 1080, 2400) epz=Point(1080, 2400) d=0 taskParent=-1},{m=TO_BACK f=IS_WALLPAPER leash=Surface(name=WallpaperWindowToken{4bb1cff showWhenLocked=false})/@0xfaafee2 sb=Rect(0, 0 - 1080, 2400) eb=Rect(0, 0 - 1080, 2400) epz=Point(1080, 2400) d=0}]}
+10-20 11:16:46.524   891  1016 V WindowManagerShell:  Checking filter Pair{{types=[] flags=0x0] notFlags=0x100 checks=[{atype=home independent=true modes=[OPEN,TO_FRONT] flags=NONE mustBeTask=false order=TOP topActivity=ComponentInfo{com.android.launcher3/com.android.launcher3.uioverrides.QuickstepLauncher} launchCookie=null windowingMode=undefined},{atype=standard independent=true modes=[CLOSE,TO_BACK] flags=NONE mustBeTask=false order=ANY topActivity=null launchCookie=null windowingMode=undefined},{NOT atype=undefined independent=true modes=[] flags=NONE mustBeTask=true order=ANY topActivity=null launchCookie=null customAnim=true windowingMode=undefined}]} RemoteTransition { remoteTransition = android.window.IRemoteTransition$Stub$Proxy@d569530, appThread = android.app.IApplicationThread$Stub$Proxy@27255a9, debugName = QuickstepLaunchHome }}
+10-20 11:16:46.524   891  1016 V WindowManagerShell:  Delegate animation for (#6) to null
+10-20 11:16:46.524   891  1016 V WindowManagerShell: start default transition animation, info = {id=6 t=OPEN f=0x0 trk=0 r=[0@Point(0, 0)] c=[{m=OPEN f=NONE leash=Surface(name=Task=106)/@0x9d530c4 sb=Rect(0, 0 - 1080, 2400) eb=Rect(0, 0 - 1080, 2400) epz=Point(1080, 2400) d=0 taskParent=-1},{m=TO_BACK f=SHOW_WALLPAPER leash=Surface(name=Task=1)/@0x39abad sb=Rect(0, 0 - 1080, 2400) eb=Rect(0, 0 - 1080, 2400) epz=Point(1080, 2400) d=0 taskParent=-1},{m=TO_BACK f=IS_WALLPAPER leash=Surface(name=WallpaperWindowToken{4bb1cff showWhenLocked=false})/@0xfaafee2 sb=Rect(0, 0 - 1080, 2400) eb=Rect(0, 0 - 1080, 2400) epz=Point(1080, 2400) d=0}]}
+10-20 11:16:46.524   891  1016 V WindowManagerShell: loadAnimation: anim=android.view.animation.AnimationSet@33ae2cf animAttr=0x13 type=OPEN isEntrance=false
+10-20 11:16:46.524   891  1016 V WindowManagerShell: loadAnimation: anim=android.view.animation.AnimationSet@6acdceb animAttr=0x12 type=OPEN isEntrance=true
+10-20 11:16:46.525   891  1016 V WindowManagerShell:  animated by com.android.wm.shell.transition.DefaultTransitionHandler@2bf994b
+10-20 11:16:46.543   980  2018 D NetworkMonitor/101: PROBE_HTTPS https://www.google.com/generate_204 time=1234ms ret=204 request={Connection=[close], User-Agent=[Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/60.0.3112.32 Safari/537.36]} headers={null=[HTTP/1.1 204 No Content], Alt-Svc=[h3=":443"; ma=2592000,h3-29=":443"; ma=2592000], Connection=[close], Content-Length=[0], Cross-Origin-Resource-Policy=[cross-origin], Date=[Tue, 20 Oct 2026 03:16:46 GMT], X-Android-Received-Millis=[1792466206543], X-Android-Response-Source=[NETWORK 204], X-Android-Selected-Protocol=[http/1.1], X-Android-Sent-Millis=[1792466206316]}
+10-20 11:16:46.544   980  2017 D NetworkMonitor/101: isCaptivePortal: isSuccessful()=true isPortal()=false RedirectUrl=null isPartialConnectivity()=false Time=1877ms
+10-20 11:16:46.548   652   799 I ConnectivityService: Update score for net 101 : +EVER_EVALUATED
+10-20 11:16:46.548   652   799 D ConnectivityService: [101 WIFI] validation passed
+10-20 11:16:46.548   652   799 I ConnectivityService: Update capabilities for net 101 : +VALIDATED
+10-20 11:16:46.548   652   799 I ConnectivityService: Update score for net 101 : +EVER_VALIDATED+IS_VALIDATED
+10-20 11:16:46.548   652   799 D ConnectivityService: Switching to new default network for: uid/pid:1000/652 activeRequest: 1 callbackRequest: 1 [NetworkRequest [ REQUEST id=1, [ Capabilities: INTERNET&NOT_RESTRICTED&TRUSTED&NOT_VPN&NOT_VCN_MANAGED&NOT_BANDWIDTH_CONSTRAINED RequestorUid: 1000 RequestorPkg: android UnderlyingNetworks: Null] ]] callback flags: 1 order: 2147483647 isUidTracked: false declaredMethods: NONE using NetworkAgentInfo{network{101}  handle{437197393933}  ni{WIFI CONNECTED extra: } created=2026-10-20T03:16:44.569Z Score(Policies : TRANSPORT_PRIMARY&EVER_EVALUATED&IS_UNMETERED&EVER_VALIDATED&IS_VALIDATED ; KeepConnected : 0)  created 20144 firstValidated 22097 lastValidated 22097  lp{{InterfaceName: wlan0 LinkAddresses: [ fe80::7cae:1ab3:d4bf:d9d7/64,10.0.2.16/24,fec0::423e:caac:ae08:ebd3/64,fec0::e088:98c2:7f68:788c/64 ] DnsAddresses: [ /10.0.2.3 ] Domains: null MTU: 0 ServerAddress: /10.0.2.2 TcpBufferSizes: 524288,1048576,2097152,262144,524288,1048576 Routes: [ fe80::/64 -> :: wlan0 mtu 0,::/0 -> fe80::2 wlan0 mtu 0,fec0::/64 -> :: wlan0 mtu 0,10.0.2.0/24 -> 0.0.0.0 wlan0 mtu 0,0.0.0.0/0 -> 10.0.2.2 wlan0 mtu 0 ]}}  nc{[ Transports: WIFI Capabilities: NOT_METERED&INTERNET&NOT_RESTRICTED&TRUSTED&NOT_VPN&VALIDATED&NOT_ROAMING&FOREGROUND&NOT_CONGESTED&NOT_SUSPENDED&NOT_VCN_MANAGED&NOT_BANDWIDTH_CONSTRAINED LinkUpBandwidth>=12000Kbps LinkDnBandwidth>=30000Kbps Specifier: <WifiNetworkAgentSpecifier [WifiConfiguration=, SSID="AndroidWifi", BSSID=00:13:10:85:fe:01, band=1, mMatchLocalOnlySpecifiers=false]> TransportInfo: <SSID: "AndroidWifi", BSSID: 00:13:10:85:fe:01, MAC: 02:15:b2:00:00:00, IP: /10.0.2.16, Security type: 0, Supplicant state: COMPLETED, Wi-Fi standard: legacy, RSSI: -50, Link speed: 1Mbps, Tx Link speed: 1Mbps, Max Supported Tx Link speed: 11Mbps, Rx Link speed: -1Mbps, Max Supported Rx Link speed: 11Mbps, Frequency: 2447MHz, Net ID: 0, Metered hint: false, score: 60, isUsable: true, CarrierMerged: false, SubscriptionId: -1, IsPrimary: 1, Trusted: true, Restricted: false, Ephemeral: false, OEM paid: false, OEM private: false, OSU AP: false, FQDN: <none>, Provider friendly name: <none>, Requesting package name: <none>"AndroidWifi"openMLO Information: , Is TID-To-Link negotiation supported by the AP: false, AP MLD Address: <none>, AP MLO Link Id: <none>, AP MLO Affiliated links: <none>, Vendor Data: <none>> SignalStrength: -50 OwnerUid: 10122 AdminUids: [10122] SSID: "AndroidWifi" UnderlyingNetworks: Null]}  factorySerialNumber=6}
+10-20 11:16:46.549   444   490 I netd    : networkSetDefault(101) <0.08ms>
+10-20 11:16:46.549   444   490 I netd    : setTcpRWmemorySize(524288 1048576 2097152, 262144 524288 1048576) <0.34ms>
+10-20 11:16:46.550   980  2009 D nativeloader: Load libandroid_net_connectivity_com_android_net_module_util_jni.so using APEX ns com_android_tethering for caller /apex/com.android.tethering/javalib/framework-connectivity.jar: ok
+10-20 11:16:46.551  2133  2133 D EmacsService: Initializing Emacs, where filesDir = /data/data/org.femacs/files, libDir = /data/app/~~bKZmrrFSFIijFQOV9ANBwQ==/org.femacs-0raJfOLlUXWbSGVNWZifKA==/lib/arm64, and classPath = /data/app/~~bKZmrrFSFIijFQOV9ANBwQ==/org.femacs-0raJfOLlUXWbSGVNWZifKA==/base.apk; args = (none); display density: 420.0 by 420.0 scaled to 420.0
+10-20 11:16:46.552  2133  2152 I setEmacsParams: Initializing femacs 32.0.50...
+10-20 11:16:46.552  2133  2152 I setEmacsParams: Please report bugs to https://github.com/liuchong/femacs/issues.  Thanks.
+10-20 11:16:46.552  2133  2152 I setEmacsParams: Site-lisp directory: /data/data/org.femacs/files/site-lisp
+10-20 11:16:46.552  2133  2152 I setEmacsParams: Files directory: /data/data/org.femacs/files
+10-20 11:16:46.552  2133  2152 I setEmacsParams: Native code directory: /data/app/~~bKZmrrFSFIijFQOV9ANBwQ==/org.femacs-0raJfOLlUXWbSGVNWZifKA==/lib/arm64
+10-20 11:16:46.552  2133  2152 I setEmacsParams: Game score path: /data/data/org.femacs/files/scores
+10-20 11:16:46.552  2133  2152 I setEmacsParams: Class path: /data/app/~~bKZmrrFSFIijFQOV9ANBwQ==/org.femacs-0raJfOLlUXWbSGVNWZifKA==/base.apk
+10-20 11:16:46.554  2133  2152 D EmacsThread: run: [libandroid-emacs.so]
+10-20 11:16:46.555   652   943 W ForegroundServiceTypeLoggerModule: Foreground service start for UID: 10340 does not have any types
+10-20 11:16:46.555   652   845 D BackgroundInstallControlService: Package event received: 0
+10-20 11:16:46.556   652  1524 D CoreBackPreview: Window{c7f59a9 u0 org.femacs/org.femacs.EmacsActivity}: Setting back callback OnBackInvokedCallbackInfo{mCallback=android.window.IOnBackInvokedCallback$Stub$Proxy@68794e1, mPriority=0, mIsAnimationCallback=true, mOverrideBehavior=0}
+10-20 11:16:46.559  2133  2153 I android_run_debug_thread: Loading loadup.el (source)...
+10-20 11:16:46.559  2133  2153 I android_run_debug_thread: Dump mode: nil
+10-20 11:16:46.560   512   755 W ServiceManagerCppClient: Permission failure: android.permission.ACCESS_SURFACE_FLINGER from uid=10340 pid=0
+10-20 11:16:46.560   512   755 D PermissionCache: checking android.permission.ACCESS_SURFACE_FLINGER for uid=10340 => denied (214 us)
+10-20 11:16:46.560   512   755 W ServiceManagerCppClient: Permission failure: android.permission.ROTATE_SURFACE_FLINGER from uid=10340 pid=0
+10-20 11:16:46.560   512   755 D PermissionCache: checking android.permission.ROTATE_SURFACE_FLINGER for uid=10340 => denied (65 us)
+10-20 11:16:46.560   512   755 W ServiceManagerCppClient: Permission failure: android.permission.INTERNAL_SYSTEM_WINDOW from uid=10340 pid=0
+10-20 11:16:46.560   512   755 D PermissionCache: checking android.permission.INTERNAL_SYSTEM_WINDOW for uid=10340 => denied (31 us)
+10-20 11:16:46.560   512   578 W ServiceManagerCppClient: Permission failure: android.permission.ACCESS_SURFACE_FLINGER from uid=10340 pid=2133
+10-20 11:16:46.560   512   578 D PermissionCache: checking android.permission.ACCESS_SURFACE_FLINGER for uid=10340 => denied (440 us)
+10-20 11:16:46.560  2133  2153 I android_run_debug_thread: Using load-path (/data/data/org.femacs/files/site-lisp /assets/lisp/ /assets/lisp/emacs-lisp /assets/lisp/progmodes /assets/lisp/language /assets/lisp/international /assets/lisp/textmodes /assets/lisp/vc)
+10-20 11:16:46.560  2133  2153 I android_run_debug_thread: Loading emacs-lisp/debug-early...
+10-20 11:16:46.560  2133  2153 I android_run_debug_thread: Loading emacs-lisp/debug-early...done
+10-20 11:16:46.560  2133  2153 I android_run_debug_thread: Loading emacs-lisp/byte-run...
+10-20 11:16:46.562  2133  2153 I android_run_debug_thread: Loading emacs-lisp/byte-run...done
+10-20 11:16:46.563  2133  2153 I android_run_debug_thread: Loading emacs-lisp/backquote...
+10-20 11:16:46.563  2133  2153 I android_run_debug_thread: Loading emacs-lisp/backquote...done
+10-20 11:16:46.563  2133  2153 I android_run_debug_thread: Loading subr...
+10-20 11:16:46.578   444   490 I netd    : tetherGetStats() -> {[]} <0.60ms>
+10-20 11:16:46.578  2133  2153 I android_run_debug_thread: Loading subr...done
+10-20 11:16:46.578  2133  2153 I android_run_debug_thread: Loading keymap...
+10-20 11:16:46.578  2133  2153 I android_run_debug_thread: Loading keymap...done
+10-20 11:16:46.578  2133  2153 I android_run_debug_thread: Loading version...
+10-20 11:16:46.578  2133  2153 I android_run_debug_thread: Loading version...done
+10-20 11:16:46.578  2133  2153 I android_run_debug_thread: Loading widget...
+10-20 11:16:46.578  2133  2153 I android_run_debug_thread: Loading widget...done
+10-20 11:16:46.578  2133  2153 I android_run_debug_thread: Loading custom...
+10-20 11:16:46.578  2133  2153 I android_run_debug_thread: Loading custom...done
+10-20 11:16:46.578  2133  2153 I android_run_debug_thread: Loading emacs-lisp/map-ynp...
+10-20 11:16:46.578  2133  2153 I android_run_debug_thread: Loading emacs-lisp/map-ynp...done
+10-20 11:16:46.578  2133  2153 I android_run_debug_thread: Loading international/mule...
+10-20 11:16:46.578  2133  2153 I android_run_debug_thread: Loading international/mule...done
+10-20 11:16:46.578  2133  2153 I android_run_debug_thread: Loading international/mule-conf...
+10-20 11:16:46.580   652   831 D NetworkTimeUpdateService: New default network 101; checking time.
+10-20 11:16:46.582   980  1070 D UpstreamNetworkMonitor: New default Internet network: 101
+10-20 11:16:46.583   444   490 I netd    : bandwidthRemoveInterfaceQuota(eth0) <0.54ms>
+10-20 11:16:46.584   444  2013 I netd    : bandwidthSetInterfaceQuota(eth0, 9223372036854775807) <0.23ms>
+10-20 11:16:46.587   444  2013 I netd    : bandwidthRemoveInterfaceQuota(eth0) <0.29ms>
+10-20 11:16:46.587   444   490 I netd    : bandwidthSetInterfaceQuota(eth0, 9223372036854775807) <0.15ms>
+10-20 11:16:46.592   652   799 D ConnectivityService: Setting inactive [100 CELLULAR] for 30000ms
+10-20 11:16:46.592  1022  1162 D com.android.ons.ONSProfileActivator: Internet connection available
+10-20 11:16:46.593   652   799 D ConnectivityService: Sending DISCONNECTED broadcast for type 0 [100 CELLULAR] isDefaultNetwork=true
+10-20 11:16:46.593   652   799 W ContextImpl: Calling a method in the system process without a qualified user: android.app.ContextImpl.sendStickyBroadcast:1698 android.net.connectivity.com.android.server.ConnectivityService.sendStickyBroadcast:4081 android.net.connectivity.com.android.server.ConnectivityService.sendLegacyNetworkBroadcast:12467 android.net.connectivity.com.android.server.ConnectivityService$LegacyTypeTracker.remove:1333 android.net.connectivity.com.android.server.ConnectivityService.updateLegacyTypeTrackerAndVpnLockdownForRematch:11927 
+10-20 11:16:46.595   652   799 D ConnectivityService: Sending CONNECTED broadcast for type 1 [101 WIFI] isDefaultNetwork=true
+10-20 11:16:46.595   652   799 W ContextImpl: Calling a method in the system process without a qualified user: android.app.ContextImpl.sendStickyBroadcast:1698 android.net.connectivity.com.android.server.ConnectivityService.sendStickyBroadcast:4081 android.net.connectivity.com.android.server.ConnectivityService.sendGeneralBroadcast:4051 android.net.connectivity.com.android.server.ConnectivityService.sendConnectedBroadcast:4024 android.net.connectivity.com.android.server.ConnectivityService.sendLegacyNetworkBroadcast:12439 
+10-20 11:16:46.595   652   673 I GnssNetworkConnectivityHandler: updateNetworkState, state=CLOSED, connected=true, network=101, capabilityFlags=3, availableNetworkCount: 2
+10-20 11:16:46.596  2133  2153 I android_run_debug_thread: Loading international/mule-conf...done
+10-20 11:16:46.596  2133  2153 I android_run_debug_thread: Loading env...
+10-20 11:16:46.596  2133  2153 I android_run_debug_thread: Loading env...done
+10-20 11:16:46.597  2133  2153 I android_run_debug_thread: Loading format...
+10-20 11:16:46.599   652   799 D ConnectivityService: NetReassign [23 : 100 → 101, 21 : 100 → 101, 17 : 100 → 101, 1 : 100 → 101, 22 : 100 → 101, 25 : 100 → 101, 41 : 100 → 101, 30 : 100 → 101, 54 : 100 → 101, 37 : 100 → 101, 43 : 100 → 101, 58 : 100 → 101, 19 : 100 → 101, 49 : 100 → 101, 51 : 100 → 101, 7 : 100 → 101, 14 : 100 → 101, 32 : 100 → 101, 47 : 100 → 101, 27 : 100 → 101] [c 1] [a 47] [i 3]
+10-20 11:16:46.602   652   799 D ConnectivityService: Setting DNS servers for network 101 to [/10.0.2.3]
+10-20 11:16:46.602   652   799 D DnsManager: sendDnsConfigurationForNetwork(ResolverParamsParcel{netId: 101, sampleValiditySeconds: 1800, successThreshold: 25, minSamples: 8, maxSamples: 64, baseTimeoutMsec: 0, retryCount: 0, servers: [10.0.2.3], domains: [], tlsName: , tlsServers: [10.0.2.3], tlsFingerprints: [], caCertificate: , tlsConnectTimeoutMs: 0, resolverOptions: null, transportTypes: [1], meteredNetwork: false, dohParams: null, interfaceNames: [wlan0]})
+10-20 11:16:46.602  1022  1195 D SatelliteController: EVENT_WIFI_CONNECTIVITY_STATE_CHANGED: mIsWifiConnected=true
+10-20 11:16:46.602  1022  1195 E SatelliteController: registerForSatelliteCommunicationAccessStateChanged: SatelliteManager is null
+10-20 11:16:46.602  1022  1195 D SatelliteController: isCarrierRoamingNtnEligible: satellite access is not allowed
+10-20 11:16:46.602  1022  1195 D SatelliteController: evaluateCarrierRoamingNtnEligibilityChange: isCarrierRoamingNtnEligible=false
+10-20 11:16:46.602  1022  1195 D SatelliteController: getSelectedSatelliteSubId: subId=-1
+10-20 11:16:46.602  1022  1195 D SatelliteController: notifyNtnEligibility: phoneId=0 currentNtnEligibility=false
+10-20 11:16:46.607  1259  1259 W JobService: onNetworkChanged() not implemented in com.android.voicemail.impl.scheduling.TaskSchedulerJobService. Must override in a subclass.
+10-20 11:16:46.608   652  1129 I WifiService: getWifiEnabledState uid=10124 state=3
+10-20 11:16:46.611   444  2013 I resolv  : setDoh: No suitable DoH server found
+10-20 11:16:46.611   444  2013 I netd    : setResolverConfiguration(ResolverParamsParcel{netId: 101, sampleValiditySeconds: 1800, successThreshold: 25, minSamples: 8, maxSamples: 64, baseTimeoutMsec: 0, retryCount: 0, servers: [10.0.2.3], domains: [], tlsName: , tlsServers: [10.0.2.3], tlsFingerprints: [], caCertificate: , tlsConnectTimeoutMs: 0, resolverOptions: (null), transportTypes: [1], meteredNetwork: false, dohParams: (null), interfaceNames: [wlan0]}) <0.07ms>
+10-20 11:16:46.616   652   793 D WifiClientModeImpl[10304:wlan0]: WifiNetworkAgent -> Wifi networkStatus valid, score= 60
+10-20 11:16:46.616   652   793 D WifiScoreCard: BSSID update VALIDATION_SUCCESS ID: 1635534227 SSID: "AndroidWifi", BSSID: 00:13:10:85:fe:01, MAC: 02:15:b2:00:00:00, IP: /10.0.2.16, Security type: 0, Supplicant state: COMPLETED, Wi-Fi standard: legacy, RSSI: -50, Link speed: 1Mbps, Tx Link speed: 1Mbps, Max Supported Tx Link speed: 11Mbps, Rx Link speed: -1Mbps, Max Supported Rx Link speed: 11Mbps, Frequency: 2447MHz, Net ID: 0, Metered hint: false, score: 60, isUsable: true, CarrierMerged: false, SubscriptionId: -1, IsPrimary: 1, Trusted: true, Restricted: false, Ephemeral: false, OEM paid: false, OEM private: false, OSU AP: false, FQDN: <none>, Provider friendly name: <none>, Requesting package name: <none>"AndroidWifi"openMLO Information: , Is TID-To-Link negotiation supported by the AP: false, AP MLD Address: <none>, AP MLO Link Id: <none>, AP MLO Affiliated links: <none>, Vendor Data: <none>
+10-20 11:16:46.616   652   793 D WifiScoreCard: Histogram SIGNAL_POLL RSSI{[-50,-49)=322}
+10-20 11:16:46.616   652   793 D WifiScoreCard: Histogram IP_CONFIGURATION_SUCCESS RSSI{[-50,-49)=299}
+10-20 11:16:46.617   444   490 I netd    : bandwidthRemoveInterfaceQuota(eth0) <12.76ms>
+10-20 11:16:46.625   652   799 D InetDiagMessage: Destroyed 0 sockets, proto=IPPROTO_TCP, family=AF_INET, states=14
+10-20 11:16:46.625   652   799 D InetDiagMessage: Destroyed 0 sockets, proto=IPPROTO_TCP, family=AF_INET6, states=14
+10-20 11:16:46.625   652   799 D InetDiagMessage: Destroyed live tcp sockets for uids={10102} in 9ms
+10-20 11:16:46.625   652   799 D InetDiagMessage: Destroyed 0 sockets, proto=IPPROTO_TCP, family=AF_INET, states=14
+10-20 11:16:46.625   652   799 D InetDiagMessage: Destroyed 0 sockets, proto=IPPROTO_TCP, family=AF_INET6, states=14
+10-20 11:16:46.625   652   799 D InetDiagMessage: Destroyed live tcp sockets for uids={20102} in 0ms
+10-20 11:16:46.625   652   793 V WifiScoreCard: Write count: 1, bytes: 639
+10-20 11:16:46.637   444   490 I netd    : bandwidthSetInterfaceQuota(eth0, 9223372036854775807) <19.77ms>
+10-20 11:16:46.649   652   793 I WifiClientModeImpl: Default Gateway MAC address of 00:13:10:85:fe:01 from routes is : 52:55:0a:00:02:02
+10-20 11:16:46.649   652   793 D WifiClientModeImpl[10304:wlan0]:  ClientModeImpl$L3ConnectedState screen=on 1 0
+10-20 11:16:46.671   652   796 W LastMileLogger: Failed to stop event tracing: /sys/kernel/debug/tracing/instances/wifi/tracing_on: open failed: ENOENT (No such file or directory)
+10-20 11:16:46.671  2133  2153 I android_run_debug_thread: Loading format...done
+10-20 11:16:46.671  2133  2153 I android_run_debug_thread: Loading bindings...
+10-20 11:16:46.683   444   490 I netd    : bandwidthRemoveInterfaceQuota(eth0) <42.70ms>
+10-20 11:16:46.688  2133  2153 I android_run_debug_thread: Loading bindings...done
+10-20 11:16:46.689  2133  2153 I android_run_debug_thread: Loading window...
+10-20 11:16:46.693  2133  2153 I android_run_debug_thread: Loading window...done
+10-20 11:16:46.694  2133  2153 I android_run_debug_thread: Loading files...
+10-20 11:16:46.696   444   490 I netd    : bandwidthSetInterfaceQuota(eth0, 9223372036854775807) <1.16ms>
+10-20 11:16:46.702  2133  2153 I android_run_debug_thread: Loading files...done
+10-20 11:16:46.702  2133  2153 I android_run_debug_thread: Loading emacs-lisp/macroexp...
+10-20 11:16:46.703  2133  2153 I android_run_debug_thread: Loading emacs-lisp/macroexp...done
+10-20 11:16:46.703  2133  2153 I android_run_debug_thread: Loading cus-face...
+10-20 11:16:46.704  2133  2153 I android_run_debug_thread: Loading cus-face...done
+10-20 11:16:46.704  2133  2153 I android_run_debug_thread: Loading faces...
+10-20 11:16:46.706   652  1129 D WifiMemoryStoreImpl: Set cluster G3b2992be94b305ce for Wd8aea429617c4593: SUCCESS
+10-20 11:16:46.707  2133  2153 I android_run_debug_thread: Loading faces...done
+10-20 11:16:46.707  2133  2153 I android_run_debug_thread: Loading loaddefs...
+10-20 11:16:46.719  2133  2153 I android_run_debug_thread: Loading /assets/lisp/theme-loaddefs.el (source)...
+10-20 11:16:46.719  2133  2153 I android_run_debug_thread: Loading /assets/lisp/theme-loaddefs.el (source)...done
+10-20 11:16:46.728  2133  2153 I android_run_debug_thread: Loading loaddefs...done
+10-20 11:16:46.728  2133  2153 I android_run_debug_thread: Loading button...
+10-20 11:16:46.729  2133  2153 I android_run_debug_thread: Loading button...done
+10-20 11:16:46.729  2133  2153 I android_run_debug_thread: Loading emacs-lisp/cl-preloaded...
+10-20 11:16:46.730  2133  2153 I android_run_debug_thread: Loading emacs-lisp/cl-preloaded...done
+10-20 11:16:46.730  2133  2153 I android_run_debug_thread: s_glBindAttribLocation: bind attrib 0 name position
+10-20 11:16:46.730  2133  2153 I android_run_debug_thread: s_glBindAttribLocation: bind attrib 1 name color
+10-20 11:16:46.730  2133  2153 I android_run_debug_thread: Loading emacs-lisp/oclosure...
+10-20 11:16:46.732  2133  2153 I android_run_debug_thread: Loading emacs-lisp/oclosure...done
+10-20 11:16:46.732  2133  2153 I android_run_debug_thread: Loading obarray...
+10-20 11:16:46.732  2133  2153 I android_run_debug_thread: Loading obarray...done
+10-20 11:16:46.733  2133  2153 I android_run_debug_thread: Loading abbrev...
+10-20 11:16:46.745  2133  2153 I android_run_debug_thread: Loading abbrev...done
+10-20 11:16:46.746  2133  2153 I android_run_debug_thread: Loading help...
+10-20 11:16:46.755  2133  2153 I android_run_debug_thread: Loading help...done
+10-20 11:16:46.755  2133  2153 I android_run_debug_thread: Loading jka-cmpr-hook...
+10-20 11:16:46.756  2133  2153 I android_run_debug_thread: Loading jka-cmpr-hook...done
+10-20 11:16:46.756  2133  2153 I android_run_debug_thread: Loading epa-hook...
+10-20 11:16:46.756  2133  2153 I android_run_debug_thread: Loading epa-hook...done
+10-20 11:16:46.756  2133  2153 I android_run_debug_thread: Loading international/mule-cmds...
+10-20 11:16:46.769  2133  2153 I android_run_debug_thread: Loading international/mule-cmds...done
+10-20 11:16:46.769  2133  2153 I android_run_debug_thread: Loading case-table...
+10-20 11:16:46.769  2133  2153 I android_run_debug_thread: Loading case-table...done
+10-20 11:16:46.770  2133  2153 I android_run_debug_thread: Loading /assets/lisp/international/charprop.el (source)...
+10-20 11:16:46.770  2133  2153 I android_run_debug_thread: Loading /assets/lisp/international/charprop.el (source)...done
+10-20 11:16:46.770  2133  2153 I android_run_debug_thread: Loading international/characters...
+10-20 11:16:46.789   652   698 I incfs-dataloaderconnector: Reported status back to IncrementalService. DataLoaderId=878, status=0
+10-20 11:16:46.825   891  1016 V WindowManagerShell: Transition animation finished (aborted=false), notifying core (#6) android.os.BinderProxy@50694da@0
+10-20 11:16:46.827   652   673 V WindowManager: Finish Transition (#6): created at 10-20 11:16:46.328 collect-started=0.016ms request-sent=3.332ms started=17.023ms ready=100.738ms sent=185.299ms commit=17.422ms finished=497.525ms
+10-20 11:16:46.828   891  1016 V WindowManagerShell: Track 0 became idle
+10-20 11:16:46.829   891  1016 V WindowManagerShell: All active transition animations finished
+10-20 11:16:46.857   652  1129 W ServiceManagerCppClient: Permission failure: android.permission.ACCESS_SURFACE_FLINGER from uid=10340 pid=0
+10-20 11:16:46.857   652  1129 D PermissionCache: checking android.permission.ACCESS_SURFACE_FLINGER for uid=10340 => denied (76 us)
+10-20 11:16:46.857   652  1129 W ServiceManagerCppClient: Permission failure: android.permission.ROTATE_SURFACE_FLINGER from uid=10340 pid=0
+10-20 11:16:46.857   652  1129 D PermissionCache: checking android.permission.ROTATE_SURFACE_FLINGER for uid=10340 => denied (9 us)
+10-20 11:16:46.857   652  1129 W ServiceManagerCppClient: Permission failure: android.permission.INTERNAL_SYSTEM_WINDOW from uid=10340 pid=0
+10-20 11:16:46.857   652  1129 D PermissionCache: checking android.permission.INTERNAL_SYSTEM_WINDOW for uid=10340 => denied (5 us)
+10-20 11:16:46.864   652   673 I ActivityTaskManager: Displayed org.femacs/.EmacsActivity for user 0: +534ms
+10-20 11:16:46.873  1342  1342 D VRI[QuickstepLauncher]: visibilityChanged oldVisibility=true newVisibility=false
+10-20 11:16:46.883   652   764 I ImeTracker: org.femacs:12609a3d: onRequestHide at ORIGIN_SERVER reason HIDE_UNSPECIFIED_WINDOW fromUser false
+10-20 11:16:46.890  2133  2133 D InsetsController: hide(ime(), fromIme=false)
+10-20 11:16:46.891  2133  2133 I ImeTracker: org.femacs:12609a3d: onCancelled at PHASE_CLIENT_ALREADY_HIDDEN
+10-20 11:16:46.895   652  1524 I ImeTracker: system_server:b73216f: onRequestHide at ORIGIN_SERVER reason IME_REQUESTED_CHANGED_LISTENER fromUser false
+10-20 11:16:46.896   652   676 I ImeTracker: system_server:b73216f: onCancelled at PHASE_SERVER_SHOULD_HIDE
+10-20 11:16:46.904  1342  1342 D BaseDepthController: setSurface:
+10-20 11:16:46.904  1342  1342 D BaseDepthController: 	mWaitingOnSurfaceValidity: false
+10-20 11:16:46.904  1342  1342 D BaseDepthController: 	mBaseSurface: null
+10-20 11:16:46.905  1342  1342 D BaseDepthController: mSurface is null and mCurrentBlur is: 0
+10-20 11:16:46.905  1342  1346 W droid.launcher3: Cleared Reference was only reachable from finalizer (only reported once)
+10-20 11:16:46.907  1342  1342 D StateManager: goToState - fromState: Normal, toState: Normal, partial trace:
+10-20 11:16:46.907  1342  1342 D StateManager: 	at com.android.launcher3.statemanager.StateManager.moveToRestState(StateManager.java:463)
+10-20 11:16:46.907  1342  1342 D StateManager: 	at com.android.launcher3.statemanager.StateManager.moveToRestState(StateManager.java:454)
+10-20 11:16:46.907  1342  1342 D StateManager: 	at com.android.launcher3.statemanager.StatefulActivity.onStop(StatefulActivity.java:120)
+10-20 11:16:46.908  1342  1342 D StatsLog: LAUNCHER_ONSTOP
+10-20 11:16:46.909   652  1524 I AppWidgetServiceImpl: setAppWidgetHidden() 0
+10-20 11:16:46.913   652   845 D BackgroundInstallControlService: Package event received: 0
+10-20 11:16:46.939  2133  2153 I android_run_debug_thread: Loading international/characters...done
+10-20 11:16:46.939  2133  2153 I android_run_debug_thread: Loading composite...
+10-20 11:16:46.940  2133  2153 I android_run_debug_thread: Loading composite...done
+10-20 11:16:46.940  2133  2153 I android_run_debug_thread: Loading language/chinese...
+10-20 11:16:46.942  2133  2153 I android_run_debug_thread: Loading language/chinese...done
+10-20 11:16:46.942  2133  2153 I android_run_debug_thread: Loading language/cyrillic...
+10-20 11:16:46.942  2133  2153 I android_run_debug_thread: Loading language/cyrillic...done
+10-20 11:16:46.942  2133  2153 I android_run_debug_thread: Loading language/indian...
+10-20 11:16:46.950  2133  2153 I android_run_debug_thread: Loading language/indian...done
+10-20 11:16:46.950  2133  2153 I android_run_debug_thread: Loading language/sinhala...
+10-20 11:16:46.950  2133  2153 I android_run_debug_thread: Loading language/sinhala...done
+10-20 11:16:46.950  2133  2153 I android_run_debug_thread: Loading language/english...
+10-20 11:16:46.952  2133  2153 I android_run_debug_thread: Loading language/english...done
+10-20 11:16:46.952  2133  2153 I android_run_debug_thread: Loading language/ethiopic...
+10-20 11:16:46.952  2133  2153 I android_run_debug_thread: Loading language/ethiopic...done
+10-20 11:16:46.952  2133  2153 I android_run_debug_thread: Loading language/european...
+10-20 11:16:46.957  2133  2153 I android_run_debug_thread: Loading language/european...done
+10-20 11:16:46.957  2133  2153 I android_run_debug_thread: Loading language/czech...
+10-20 11:16:46.957  2133  2153 I android_run_debug_thread: Loading language/czech...done
+10-20 11:16:46.957  2133  2153 I android_run_debug_thread: Loading language/slovak...
+10-20 11:16:46.963  2133  2153 I android_run_debug_thread: Loading language/slovak...done
+10-20 11:16:46.967  2133  2153 I android_run_debug_thread: Loading language/romanian...
+10-20 11:16:46.967  2133  2153 I android_run_debug_thread: Loading language/romanian...done
+10-20 11:16:46.967  2133  2153 I android_run_debug_thread: Loading language/greek...
+10-20 11:16:46.967  2133  2153 I android_run_debug_thread: Loading language/greek...done
+10-20 11:16:46.967  2133  2153 I android_run_debug_thread: Loading language/hebrew...
+10-20 11:16:46.967  2133  2153 I android_run_debug_thread: Loading language/hebrew...done
+10-20 11:16:46.967  2133  2153 I android_run_debug_thread: Loading international/cp51932...
+10-20 11:16:46.969  2133  2153 I android_run_debug_thread: Loading international/cp51932...done
+10-20 11:16:46.970  2133  2153 I android_run_debug_thread: Loading international/eucjp-ms...
+10-20 11:16:46.989  2133  2153 I android_run_debug_thread: Loading international/eucjp-ms...done
+10-20 11:16:46.989  2133  2153 I android_run_debug_thread: Loading language/japanese...
+10-20 11:16:46.996  2133  2153 I android_run_debug_thread: Loading language/japanese...done
+10-20 11:16:46.996  2133  2153 I android_run_debug_thread: Loading language/korean...
+10-20 11:16:46.997  2133  2153 I android_run_debug_thread: Loading language/korean...done
+10-20 11:16:46.997  2133  2153 I android_run_debug_thread: Loading language/lao...
+10-20 11:16:46.997  2133  2153 I android_run_debug_thread: Loading language/lao...done
+10-20 11:16:46.997  2133  2153 I android_run_debug_thread: Loading language/tai-viet...
+10-20 11:16:46.997  2133  2153 I android_run_debug_thread: Loading language/tai-viet...done
+10-20 11:16:46.997  2133  2153 I android_run_debug_thread: Loading language/thai...
+10-20 11:16:46.998  2133  2153 I android_run_debug_thread: Loading language/thai...done
+10-20 11:16:46.999  2133  2153 I android_run_debug_thread: Loading language/tibetan...
+10-20 11:16:46.999  2133  2153 I android_run_debug_thread: Loading language/tibetan...done
+10-20 11:16:46.999  2133  2153 I android_run_debug_thread: Loading language/vietnamese...
+10-20 11:16:47.000  2133  2153 I android_run_debug_thread: Loading language/vietnamese...done
+10-20 11:16:47.000  2133  2153 I android_run_debug_thread: Loading language/misc-lang...
+10-20 11:16:47.001  2133  2153 I android_run_debug_thread: Loading language/misc-lang...done
+10-20 11:16:47.002  2133  2153 I android_run_debug_thread: Loading language/utf-8-lang...
+10-20 11:16:47.002  2133  2153 I android_run_debug_thread: Loading language/utf-8-lang...done
+10-20 11:16:47.002  2133  2153 I android_run_debug_thread: Loading language/georgian...
+10-20 11:16:47.002  2133  2153 I android_run_debug_thread: Loading language/georgian...done
+10-20 11:16:47.002  2133  2153 I android_run_debug_thread: Loading language/khmer...
+10-20 11:16:47.002  2133  2153 I android_run_debug_thread: Loading language/khmer...done
+10-20 11:16:47.002  2133  2153 I android_run_debug_thread: Loading language/burmese...
+10-20 11:16:47.003  2133  2153 I android_run_debug_thread: Loading language/burmese...done
+10-20 11:16:47.003  2133  2153 I android_run_debug_thread: Loading language/cham...
+10-20 11:16:47.003  2133  2153 I android_run_debug_thread: Loading language/cham...done
+10-20 11:16:47.003  2133  2153 I android_run_debug_thread: Loading language/philippine...
+10-20 11:16:47.004  2133  2153 I android_run_debug_thread: Loading language/philippine...done
+10-20 11:16:47.004  2133  2153 I android_run_debug_thread: Loading language/indonesian...
+10-20 11:16:47.017  2133  2153 I android_run_debug_thread: Loading language/indonesian...done
+10-20 11:16:47.018  2133  2153 I android_run_debug_thread: Loading indent...
+10-20 11:16:47.018  2133  2153 I android_run_debug_thread: Loading indent...done
+10-20 11:16:47.019  2133  2153 I android_run_debug_thread: Loading emacs-lisp/cl-generic...
+10-20 11:16:47.020  2133  2153 I android_run_debug_thread: Loading emacs-lisp/cl-generic...done
+10-20 11:16:47.021  2133  2153 I android_run_debug_thread: Loading simple...
+10-20 11:16:47.029  2133  2153 I android_run_debug_thread: Loading simple...done
+10-20 11:16:47.030  2133  2153 I android_run_debug_thread: Loading emacs-lisp/seq...
+10-20 11:16:47.032  2133  2153 I android_run_debug_thread: Loading emacs-lisp/seq...done
+10-20 11:16:47.032  2133  2153 I android_run_debug_thread: Loading emacs-lisp/nadvice...
+10-20 11:16:47.034  2133  2153 I android_run_debug_thread: Loading emacs-lisp/nadvice...done
+10-20 11:16:47.034  2133  2153 I android_run_debug_thread: Loading minibuffer...
+10-20 11:16:47.046  2133  2153 I android_run_debug_thread: Loading minibuffer...done
+10-20 11:16:47.048  2133  2153 I android_run_debug_thread: Loading frame...
+10-20 11:16:47.056  2133  2153 I android_run_debug_thread: Loading frame...done
+10-20 11:16:47.056  2133  2153 I android_run_debug_thread: Loading startup...
+10-20 11:16:47.059  2133  2153 I android_run_debug_thread: Loading startup...done
+10-20 11:16:47.059  2133  2153 I android_run_debug_thread: Loading term/tty-colors...
+10-20 11:16:47.064  2133  2153 I android_run_debug_thread: Loading term/tty-colors...done
+10-20 11:16:47.064  2133  2153 I android_run_debug_thread: Loading font-core...
+10-20 11:16:47.064  2133  2153 I android_run_debug_thread: Loading font-core...done
+10-20 11:16:47.064  2133  2153 I android_run_debug_thread: Loading emacs-lisp/syntax...
+10-20 11:16:47.064  2133  2153 I android_run_debug_thread: Loading emacs-lisp/syntax...done
+10-20 11:16:47.064  2133  2153 I android_run_debug_thread: Loading font-lock...
+10-20 11:16:47.067  2133  2153 I android_run_debug_thread: Loading font-lock...done
+10-20 11:16:47.070  2133  2153 I android_run_debug_thread: Loading jit-lock...
+10-20 11:16:47.070  2133  2153 I android_run_debug_thread: Loading jit-lock...done
+10-20 11:16:47.070  2133  2153 I android_run_debug_thread: Loading mouse...
+10-20 11:16:47.070  2133  2153 I android_run_debug_thread: Loading mouse...done
+10-20 11:16:47.070  2133  2153 I android_run_debug_thread: Loading scroll-bar...
+10-20 11:16:47.070  2133  2153 I android_run_debug_thread: Loading scroll-bar...done
+10-20 11:16:47.070  2133  2153 I android_run_debug_thread: Loading select...
+10-20 11:16:47.070  2133  2153 I android_run_debug_thread: Loading select...done
+10-20 11:16:47.070  2133  2153 I android_run_debug_thread: Loading emacs-lisp/timer...
+10-20 11:16:47.070  2133  2153 I android_run_debug_thread: Loading emacs-lisp/timer...done
+10-20 11:16:47.071  2133  2153 I android_run_debug_thread: Loading emacs-lisp/easymenu...
+10-20 11:16:47.071  2133  2153 I android_run_debug_thread: Loading emacs-lisp/easymenu...done
+10-20 11:16:47.071  2133  2153 I android_run_debug_thread: Loading isearch...
+10-20 11:16:47.074  2133  2153 I android_run_debug_thread: Loading isearch...done
+10-20 11:16:47.074  2133  2153 I android_run_debug_thread: Loading rfn-eshadow...
+10-20 11:16:47.074  2133  2153 I android_run_debug_thread: Loading rfn-eshadow...done
+10-20 11:16:47.074  2133  2153 I android_run_debug_thread: Loading menu-bar...
+10-20 11:16:47.109  2133  2153 I android_run_debug_thread: Loading menu-bar...done
+10-20 11:16:47.109  2133  2153 I android_run_debug_thread: Loading tab-bar...
+10-20 11:16:47.115  2133  2153 I android_run_debug_thread: Loading tab-bar...done
+10-20 11:16:47.115  2133  2153 I android_run_debug_thread: Loading emacs-lisp/lisp...
+10-20 11:16:47.115  2133  2153 I android_run_debug_thread: Loading emacs-lisp/lisp...done
+10-20 11:16:47.115  2133  2153 I android_run_debug_thread: Loading textmodes/page...
+10-20 11:16:47.115  2133  2153 I android_run_debug_thread: Loading textmodes/page...done
+10-20 11:16:47.115  2133  2153 I android_run_debug_thread: Loading register...
+10-20 11:16:47.115  2133  2153 I android_run_debug_thread: Loading register...done
+10-20 11:16:47.115  2133  2153 I android_run_debug_thread: Loading textmodes/paragraphs...
+10-20 11:16:47.115  2133  2153 I android_run_debug_thread: Loading textmodes/paragraphs...done
+10-20 11:16:47.115  2133  2153 I android_run_debug_thread: Loading progmodes/prog-mode...
+10-20 11:16:47.116  2133  2153 I android_run_debug_thread: Loading progmodes/prog-mode...done
+10-20 11:16:47.118  2133  2153 I android_run_debug_thread: Loading emacs-lisp/lisp-mode...
+10-20 11:16:47.118  2133  2153 I android_run_debug_thread: Loading emacs-lisp/lisp-mode...done
+10-20 11:16:47.118  2133  2153 I android_run_debug_thread: Loading textmodes/text-mode...
+10-20 11:16:47.118  2133  2153 I android_run_debug_thread: Loading textmodes/text-mode...done
+10-20 11:16:47.118  2133  2153 I android_run_debug_thread: Loading textmodes/fill...
+10-20 11:16:47.126  2133  2153 I android_run_debug_thread: Loading textmodes/fill...done
+10-20 11:16:47.126  2133  2153 I android_run_debug_thread: Loading newcomment...
+10-20 11:16:47.126  2133  2153 I android_run_debug_thread: Loading newcomment...done
+10-20 11:16:47.127  2133  2153 I android_run_debug_thread: Loading replace...
+10-20 11:16:47.129  2133  2153 I android_run_debug_thread: Loading replace...done
+10-20 11:16:47.129  2133  2153 I android_run_debug_thread: Loading emacs-lisp/tabulated-list...
+10-20 11:16:47.129  2133  2153 I android_run_debug_thread: Loading emacs-lisp/tabulated-list...done
+10-20 11:16:47.130  2133  2153 I android_run_debug_thread: Loading buff-menu...
+10-20 11:16:47.131  2133  2153 I android_run_debug_thread: Loading buff-menu...done
+10-20 11:16:47.132  2133  2153 I android_run_debug_thread: Loading fringe...
+10-20 11:16:47.132  2133  2153 I android_run_debug_thread: Loading fringe...done
+10-20 11:16:47.132  2133  2153 I android_run_debug_thread: Loading emacs-lisp/regexp-opt...
+10-20 11:16:47.133  2133  2153 I android_run_debug_thread: Loading emacs-lisp/regexp-opt...done
+10-20 11:16:47.133  2133  2153 I android_run_debug_thread: Loading image...
+10-20 11:16:47.139  2133  2153 I android_run_debug_thread: Loading image...done
+10-20 11:16:47.139  2133  2153 I android_run_debug_thread: Loading international/fontset...
+10-20 11:16:47.140  2133  2153 I android_run_debug_thread: Loading international/fontset...done
+10-20 11:16:47.140  2133  2153 I android_run_debug_thread: Loading dnd...
+10-20 11:16:47.140  2133  2153 I android_run_debug_thread: Loading dnd...done
+10-20 11:16:47.140  2133  2153 I android_run_debug_thread: Loading tool-bar...
+10-20 11:16:47.141  2133  2153 I android_run_debug_thread: Loading tool-bar...done
+10-20 11:16:47.141  2133  2153 I android_run_debug_thread: Loading dynamic-setting...
+10-20 11:16:47.142  2133  2153 I android_run_debug_thread: Loading dynamic-setting...done
+10-20 11:16:47.143  2133  2153 I android_run_debug_thread: Loading ls-lisp...
+10-20 11:16:47.143  2133  2153 I android_run_debug_thread: Loading ls-lisp...done
+10-20 11:16:47.144  2133  2153 I android_run_debug_thread: Loading touch-screen...
+10-20 11:16:47.144  2133  2153 I android_run_debug_thread: Loading touch-screen...done
+10-20 11:16:47.145  2133  2153 I android_run_debug_thread: Loading term/common-win...
+10-20 11:16:47.145  2133  2153 I android_run_debug_thread: Loading term/common-win...done
+10-20 11:16:47.145  2133  2153 I android_run_debug_thread: Loading term/android-win...
+10-20 11:16:47.145  2133  2153 I android_run_debug_thread: Loading term/android-win...done
+10-20 11:16:47.146  2133  2153 I android_run_debug_thread: Loading mwheel...
+10-20 11:16:47.147  2133  2153 I android_run_debug_thread: Loading mwheel...done
+10-20 11:16:47.147  2133  2153 I android_run_debug_thread: Loading progmodes/elisp-mode...
+10-20 11:16:47.150  2133  2153 I android_run_debug_thread: Loading progmodes/elisp-mode...done
+10-20 11:16:47.150  2133  2153 I android_run_debug_thread: Loading emacs-lisp/float-sup...
+10-20 11:16:47.150  2133  2153 I android_run_debug_thread: Loading emacs-lisp/float-sup...done
+10-20 11:16:47.150  2133  2153 I android_run_debug_thread: Loading vc/vc-hooks...
+10-20 11:16:47.151  2133  2153 I android_run_debug_thread: Loading vc/vc-hooks...done
+10-20 11:16:47.151  2133  2153 I android_run_debug_thread: Loading vc/ediff-hook...
+10-20 11:16:47.151  2133  2153 I android_run_debug_thread: Loading vc/ediff-hook...done
+10-20 11:16:47.154  2133  2153 I android_run_debug_thread: Loading uniquify...
+10-20 11:16:47.154  2133  2153 I android_run_debug_thread: Loading uniquify...done
+10-20 11:16:47.154  2133  2153 I android_run_debug_thread: Loading electric...
+10-20 11:16:47.154  2133  2153 I android_run_debug_thread: Loading electric...done
+10-20 11:16:47.154  2133  2153 I android_run_debug_thread: Loading paren...
+10-20 11:16:47.164  2133  2153 I android_run_debug_thread: Loading paren...done
+10-20 11:16:47.164  2133  2153 I android_run_debug_thread: Loading emacs-lisp/shorthands...
+10-20 11:16:47.164  2133  2153 I android_run_debug_thread: Loading emacs-lisp/shorthands...done
+10-20 11:16:47.166  2133  2153 I android_run_debug_thread: Loading emacs-lisp/eldoc...
+10-20 11:16:47.190  2133  2153 I android_run_debug_thread: Loading emacs-lisp/eldoc...done
+10-20 11:16:47.190  2133  2153 I android_run_debug_thread: Loading emacs-lisp/cconv...
+10-20 11:16:47.190  2133  2153 I android_run_debug_thread: Loading emacs-lisp/cconv...done
+10-20 11:16:47.190  2133  2153 I android_run_debug_thread: Loading cus-start...
+10-20 11:16:47.191  2133  2153 I android_run_debug_thread: Loading cus-start...done
+10-20 11:16:47.191  2133  2153 I android_run_debug_thread: Loading tooltip...
+10-20 11:16:47.192  2133  2153 I android_run_debug_thread: Loading tooltip...done
+10-20 11:16:47.192  2133  2153 I android_run_debug_thread: Loading international/iso-transl...
+10-20 11:16:47.193  2133  2153 I android_run_debug_thread: Loading international/iso-transl...done
+10-20 11:16:47.193  2133  2153 I android_run_debug_thread: Loading emacs-lisp/rmc...
+10-20 11:16:47.193  2133  2153 I android_run_debug_thread: Loading emacs-lisp/rmc...done
+10-20 11:16:47.193  2133  2153 I android_run_debug_thread: Loading /assets/lisp/leim/leim-list.el (source)...
+10-20 11:16:47.195  2133  2153 I android_run_debug_thread: Loading /assets/lisp/leim/leim-list.el (source)...done
+10-20 11:16:47.202  2133  2153 I android_run_debug_thread: Finding pointers to doc strings...
+10-20 11:16:47.204  2133  2153 I android_run_debug_thread: Finding pointers to doc strings...done
+10-20 11:16:47.214  2133  2152 V Fandroid_enumerate_fonts: Loading fonts from: /system/fonts
+10-20 11:16:47.218  2133  2152 V Fandroid_enumerate_fonts: Loading fonts from: /product/fonts
+10-20 11:16:47.218  2133  2152 V Fandroid_enumerate_fonts: Loading fonts from: 
+10-20 11:16:47.332  2133  2152 I org.femacs: Explicit concurrent mark compact GC freed 1509KB AllocSpace bytes, 1(336KB) LOS objects, 49% free, 1896KB/3792KB, paused 35us,1.094ms total 5.449ms
+10-20 11:16:47.355  2133  2153 I android_run_debug_thread: s_glBindAttribLocation: bind attrib 0 name position
+10-20 11:16:47.355  2133  2153 I android_run_debug_thread: s_glBindAttribLocation: bind attrib 1 name localCoord
+10-20 11:16:47.581   652   793 D WifiClientModeImpl[10304:wlan0]: updateLinkLayerStatsRssiSpeedFrequencyCapabilities rssi=-50 TxLinkspeed=1 freq=2447 RxLinkSpeed=2
+10-20 11:16:47.582   652   793 D WifiClientModeImpl[10304:wlan0]: reported txKbps 12000 rxKbps 30000
+10-20 11:16:47.582   652   793 D WifiDataStall: tx tput in kbps: 11000
+10-20 11:16:47.582   652   793 D WifiDataStall: rx tput in kbps: 11000
+10-20 11:16:47.582   652   793 V WifiConfigManager: Updating scan detail cache freq=2447 BSSID=00:13:10:85:fe:01 RSSI=-50 for "AndroidWifi"NONE
+10-20 11:16:47.582   652   793 D WifiThroughputPredictor:  utilization (LLS) 80 isBluetoothConnected: false final utilization: 80
+10-20 11:16:47.582   652   793 D WifiThroughputPredictor:  BW: 0 RSSI: -50 Nss: 1 Mode: 1 symDur: 4000 snrDb 30 bitPerTone: 4500 rate: 54 throughput: 11
+10-20 11:16:47.582   652   793 D WifiThroughputPredictor:  utilization (LLS) 80 isBluetoothConnected: false final utilization: 80
+10-20 11:16:47.582   652   793 D WifiThroughputPredictor:  BW: 0 RSSI: -50 Nss: 1 Mode: 1 symDur: 4000 snrDb 30 bitPerTone: 4500 rate: 54 throughput: 11
+10-20 11:16:47.583  1259  1259 W JobService: onNetworkChanged() not implemented in com.android.voicemail.impl.scheduling.TaskSchedulerJobService. Must override in a subclass.
+10-20 11:16:47.583   652  1524 I WifiService: getWifiEnabledState uid=10124 state=3
+10-20 11:16:47.583   652   793 D WifiThroughputPredictor:  utilization (LLS) 80 isBluetoothConnected: false final utilization: 80
+10-20 11:16:47.583   652   793 D WifiThroughputPredictor:  BW: 0 RSSI: -50 Nss: 1 Mode: 1 symDur: 4000 snrDb 30 bitPerTone: 4500 rate: 54 throughput: 11
+10-20 11:16:47.583   652   793 D WifiThroughputPredictor:  utilization (LLS) 80 isBluetoothConnected: false final utilization: 80
+10-20 11:16:47.583   652   793 D WifiThroughputPredictor:  BW: 0 RSSI: -50 Nss: 1 Mode: 1 symDur: 4000 snrDb 30 bitPerTone: 4500 rate: 54 throughput: 11
+10-20 11:16:47.584   652   793 D WifiScoreCard: BSSID update SIGNAL_POLL ID: 1635534227 SSID: "AndroidWifi", BSSID: 00:13:10:85:fe:01, MAC: 02:15:b2:00:00:00, IP: /10.0.2.16, Security type: 0, Supplicant state: COMPLETED, Wi-Fi standard: legacy, RSSI: -50, Link speed: 1Mbps, Tx Link speed: 1Mbps, Max Supported Tx Link speed: 11Mbps, Rx Link speed: 2Mbps, Max Supported Rx Link speed: 11Mbps, Frequency: 2447MHz, Net ID: 0, Metered hint: false, score: 60, isUsable: true, CarrierMerged: false, SubscriptionId: -1, IsPrimary: 1, Trusted: true, Restricted: false, Ephemeral: false, OEM paid: false, OEM private: false, OSU AP: false, FQDN: <none>, Provider friendly name: <none>, Requesting package name: <none>"AndroidWifi"openMLO Information: , Is TID-To-Link negotiation supported by the AP: false, AP MLD Address: <none>, AP MLO Link Id: <none>, AP MLO Affiliated links: <none>, Vendor Data: <none>
+10-20 11:16:47.584   652   793 D WifiScoreCard: txRate: 13 txSpeed: 1
+10-20 11:16:47.584   652   793 D WifiScoreCard: network update SIGNAL_POLL "AndroidWifi" ID: 347276750 RSSI -50 txSpeed 1
+10-20 11:16:47.584   652   793 D WifiClientModeImpl[10304:wlan0]:  ClientModeImpl$L2ConnectedState screen=on 1 0 "AndroidWifi" 00:13:10:85:fe:01 rssi=-50 f=2447 sc=60 link=1 tx=12.6, 0.0, 0.0 rx=9.0 bcn=0 [on:0 tx:0 rx:0 period:3006] from screen [on:0 period:1464845152] score=60
+10-20 11:16:47.628  1023  1023 W ContextImpl: Calling a method in the system process without a qualified user: android.app.ContextImpl.sendBroadcast:1269 android.content.ContextWrapper.sendBroadcast:506 android.content.ContextWrapper.sendBroadcast:506 com.android.settings.fuelgauge.batteryusage.BootBroadcastReceiver.$r8$lambda$NYbzklSftprvatAlISPsV0wCKqc:86 com.android.settings.fuelgauge.batteryusage.BootBroadcastReceiver$$ExternalSyntheticLambda0.run:0 
+10-20 11:16:47.630  1023  1023 D BootBroadcastReceiver: refresh periodic job from action=com.android.settings.battery.action.PERIODIC_JOB_RECHECK
+10-20 11:16:47.632  1023  1023 D PeriodicJobManager: schedule next alarm job at Oct 20, 2026, 12:00:00
+10-20 11:16:48.171   444   490 I netd    : tetherGetStats() -> {[]} <0.50ms>
+10-20 11:16:49.280   444   490 I netd    : tetherGetStats() -> {[]} <0.49ms>
+10-20 11:16:49.670   444  2014 I resolv  :  SSL_connect returned -1 with mark 0xf0065
+10-20 11:16:49.670   444  2014 W resolv  : SSL_connect ssl error =5, mark 0xf0065: Connection reset by peer
+10-20 11:16:49.670   444  2014 W resolv  : TLS Handshake failed
+10-20 11:16:49.670   444  2014 W resolv  : query failed
+10-20 11:16:49.670   444  2014 W resolv  : validateDnsTlsServer returned 0 for {10.0.2.3/}
+10-20 11:16:49.670   444  2014 W resolv  : Validation failed
+10-20 11:16:49.836   652  1502 E TaskPersister: File error accessing recents directory (directory doesn't exist?).
+10-20 11:16:50.585   652   793 D WifiClientModeImpl[10304:wlan0]: updateLinkLayerStatsRssiSpeedFrequencyCapabilities rssi=-50 TxLinkspeed=1 freq=2447 RxLinkSpeed=2
+10-20 11:16:50.585   652   793 D WifiDataStall: tx tput in kbps: 11000
+10-20 11:16:50.585   652   793 D WifiDataStall: rx tput in kbps: 11000
+10-20 11:16:50.585   652   793 V WifiConfigManager: Updating scan detail cache freq=2447 BSSID=00:13:10:85:fe:01 RSSI=-50 for "AndroidWifi"NONE
+10-20 11:16:50.585   652   793 D WifiThroughputPredictor:  utilization (LLS) 80 isBluetoothConnected: false final utilization: 80
+10-20 11:16:50.585   652   793 D WifiThroughputPredictor:  BW: 0 RSSI: -50 Nss: 1 Mode: 1 symDur: 4000 snrDb 30 bitPerTone: 4500 rate: 54 throughput: 11
+10-20 11:16:50.585   652   793 D WifiThroughputPredictor:  utilization (LLS) 80 isBluetoothConnected: false final utilization: 80
+10-20 11:16:50.585   652   793 D WifiThroughputPredictor:  BW: 0 RSSI: -50 Nss: 1 Mode: 1 symDur: 4000 snrDb 30 bitPerTone: 4500 rate: 54 throughput: 11
+10-20 11:16:50.585   652   793 D WifiThroughputPredictor:  utilization (LLS) 80 isBluetoothConnected: false final utilization: 80
+10-20 11:16:50.585   652   793 D WifiThroughputPredictor:  BW: 0 RSSI: -50 Nss: 1 Mode: 1 symDur: 4000 snrDb 30 bitPerTone: 4500 rate: 54 throughput: 11
+10-20 11:16:50.585   652   793 D WifiThroughputPredictor:  utilization (LLS) 80 isBluetoothConnected: false final utilization: 80
+10-20 11:16:50.585   652   793 D WifiThroughputPredictor:  BW: 0 RSSI: -50 Nss: 1 Mode: 1 symDur: 4000 snrDb 30 bitPerTone: 4500 rate: 54 throughput: 11
+10-20 11:16:50.586   652   793 D WifiScoreCard: BSSID update SIGNAL_POLL ID: 1635534227 SSID: "AndroidWifi", BSSID: 00:13:10:85:fe:01, MAC: 02:15:b2:00:00:00, IP: /10.0.2.16, Security type: 0, Supplicant state: COMPLETED, Wi-Fi standard: legacy, RSSI: -50, Link speed: 1Mbps, Tx Link speed: 1Mbps, Max Supported Tx Link speed: 11Mbps, Rx Link speed: 2Mbps, Max Supported Rx Link speed: 11Mbps, Frequency: 2447MHz, Net ID: 0, Metered hint: false, score: 60, isUsable: true, CarrierMerged: false, SubscriptionId: -1, IsPrimary: 1, Trusted: true, Restricted: false, Ephemeral: false, OEM paid: false, OEM private: false, OSU AP: false, FQDN: <none>, Provider friendly name: <none>, Requesting package name: <none>"AndroidWifi"openMLO Information: , Is TID-To-Link negotiation supported by the AP: false, AP MLD Address: <none>, AP MLO Link Id: <none>, AP MLO Affiliated links: <none>, Vendor Data: <none>
+10-20 11:16:50.586   652   793 D WifiScoreCard: txRate: 6 txSpeed: 1
+10-20 11:16:50.586   652   793 D WifiScoreCard: network update SIGNAL_POLL "AndroidWifi" ID: 347276750 RSSI -50 txSpeed 1
+10-20 11:16:50.586   652   793 D WifiClientModeImpl[10304:wlan0]:  ClientModeImpl$L2ConnectedState screen=on 1 0 "AndroidWifi" 00:13:10:85:fe:01 rssi=-50 f=2447 sc=60 link=1 tx=5.7, 0.0, 0.0 rx=4.3 bcn=0 [on:0 tx:0 rx:0 period:3002] from screen [on:0 period:1464848154] score=60
+10-20 11:16:50.927  1022  1195 D SatelliteController: iisInCarrierRoamingNbIotNtn: satellite is disabled
+10-20 11:16:51.598   652   745 D ActivityManager: freezing 1543 com.android.quicksearchbox
+10-20 11:16:51.599   652   799 D InetDiagMessage: Destroyed 0 sockets, proto=IPPROTO_TCP, family=AF_INET, states=14
+10-20 11:16:51.599   652   799 D InetDiagMessage: Destroyed 0 sockets, proto=IPPROTO_TCP, family=AF_INET6, states=14
+10-20 11:16:51.599   652   799 D InetDiagMessage: Destroyed live tcp sockets for uids={10102} in 1ms
+10-20 11:16:51.607   652   745 D ActivityManager: freezing 1528 com.android.music
+10-20 11:16:51.608   652   799 D InetDiagMessage: Destroyed 0 sockets, proto=IPPROTO_TCP, family=AF_INET, states=14
+10-20 11:16:51.608   652   799 D InetDiagMessage: Destroyed 0 sockets, proto=IPPROTO_TCP, family=AF_INET6, states=14
+10-20 11:16:51.608   652   799 D InetDiagMessage: Destroyed live tcp sockets for uids={10109} in 0ms
+10-20 11:16:51.782  1468  1609 D SyncWorkManager: EndlessWorker has been enqueued
+10-20 11:16:51.902   652   745 D ActivityManager: freezing 1487 com.android.printspooler
+10-20 11:16:51.902   652   799 D InetDiagMessage: Destroyed 0 sockets, proto=IPPROTO_TCP, family=AF_INET, states=14
+10-20 11:16:51.903   652   799 D InetDiagMessage: Destroyed 0 sockets, proto=IPPROTO_TCP, family=AF_INET6, states=14
+10-20 11:16:51.903   652   799 D InetDiagMessage: Destroyed live tcp sockets for uids={10088} in 1ms
+10-20 11:16:52.323   876   876 D wpa_supplicant: nl80211: Drv Event 64 (NL80211_CMD_NOTIFY_CQM) received for wlan0
+10-20 11:16:52.323   876   876 D wpa_supplicant: nl80211: Beacon loss event
+10-20 11:16:52.323   876   876 D wpa_supplicant: wlan0: Event BEACON_LOSS (53) received
+10-20 11:16:52.323   876   876 I wpa_supplicant: wlan0: CTRL-EVENT-BEACON-LOSS 
+10-20 11:16:52.730   248   257 I keystore2: system/security/keystore2/watchdog/src/lib.rs:377 - Watchdog thread idle -> terminating. Have a great day.
+10-20 11:16:53.591   652   793 D WifiClientModeImpl[10304:wlan0]: updateLinkLayerStatsRssiSpeedFrequencyCapabilities rssi=-50 TxLinkspeed=1 freq=2447 RxLinkSpeed=2
+10-20 11:16:53.591   652   793 D WifiDataStall: tx tput in kbps: 11000
+10-20 11:16:53.591   652   793 D WifiDataStall: rx tput in kbps: 11000
+10-20 11:16:53.591   652   793 V WifiConfigManager: Updating scan detail cache freq=2447 BSSID=00:13:10:85:fe:01 RSSI=-50 for "AndroidWifi"NONE
+10-20 11:16:53.591   652   793 D WifiThroughputPredictor:  utilization (LLS) 80 isBluetoothConnected: false final utilization: 80
+10-20 11:16:53.591   652   793 D WifiThroughputPredictor:  BW: 0 RSSI: -50 Nss: 1 Mode: 1 symDur: 4000 snrDb 30 bitPerTone: 4500 rate: 54 throughput: 11
+10-20 11:16:53.591   652   793 D WifiThroughputPredictor:  utilization (LLS) 80 isBluetoothConnected: false final utilization: 80
+10-20 11:16:53.591   652   793 D WifiThroughputPredictor:  BW: 0 RSSI: -50 Nss: 1 Mode: 1 symDur: 4000 snrDb 30 bitPerTone: 4500 rate: 54 throughput: 11
+10-20 11:16:53.591   652   793 D WifiThroughputPredictor:  utilization (LLS) 80 isBluetoothConnected: false final utilization: 80
+10-20 11:16:53.591   652   793 D WifiThroughputPredictor:  BW: 0 RSSI: -50 Nss: 1 Mode: 1 symDur: 4000 snrDb 30 bitPerTone: 4500 rate: 54 throughput: 11
+10-20 11:16:53.591   652   793 D WifiThroughputPredictor:  utilization (LLS) 80 isBluetoothConnected: false final utilization: 80
+10-20 11:16:53.591   652   793 D WifiThroughputPredictor:  BW: 0 RSSI: -50 Nss: 1 Mode: 1 symDur: 4000 snrDb 30 bitPerTone: 4500 rate: 54 throughput: 11
+10-20 11:16:53.591   652   793 D WifiScoreCard: BSSID update SIGNAL_POLL ID: 1635534227 SSID: "AndroidWifi", BSSID: 00:13:10:85:fe:01, MAC: 02:15:b2:00:00:00, IP: /10.0.2.16, Security type: 0, Supplicant state: COMPLETED, Wi-Fi standard: legacy, RSSI: -50, Link speed: 1Mbps, Tx Link speed: 1Mbps, Max Supported Tx Link speed: 11Mbps, Rx Link speed: 2Mbps, Max Supported Rx Link speed: 11Mbps, Frequency: 2447MHz, Net ID: 0, Metered hint: false, score: 60, isUsable: true, CarrierMerged: false, SubscriptionId: -1, IsPrimary: 1, Trusted: true, Restricted: false, Ephemeral: false, OEM paid: false, OEM private: false, OSU AP: false, FQDN: <none>, Provider friendly name: <none>, Requesting package name: <none>"AndroidWifi"openMLO Information: , Is TID-To-Link negotiation supported by the AP: false, AP MLD Address: <none>, AP MLO Link Id: <none>, AP MLO Affiliated links: <none>, Vendor Data: <none>
+10-20 11:16:53.591   652   793 D WifiScoreCard: txRate: 3 txSpeed: 1
+10-20 11:16:53.591   652   793 D WifiScoreCard: network update SIGNAL_POLL "AndroidWifi" ID: 347276750 RSSI -50 txSpeed -1
+10-20 11:16:53.591   652   793 D WifiClientModeImpl[10304:wlan0]:  ClientModeImpl$L2ConnectedState screen=on 1 0 "AndroidWifi" 00:13:10:85:fe:01 rssi=-50 f=2447 sc=60 link=1 tx=2.9, 0.0, 0.0 rx=2.2 bcn=0 [on:0 tx:0 rx:0 period:3005] from screen [on:0 period:1464851159] score=60
+10-20 11:16:54.142   891  1059 E FrameTracker: force finish cuj, time out: J<DEFAULT_TASK_TO_TASK_ANIMATION>
+10-20 11:16:54.486   652   745 D ActivityManager: freezing 1979 com.android.photopicker
+10-20 11:16:54.486   652   799 D InetDiagMessage: Destroyed 0 sockets, proto=IPPROTO_TCP, family=AF_INET, states=14
+10-20 11:16:54.487   652   799 D InetDiagMessage: Destroyed 0 sockets, proto=IPPROTO_TCP, family=AF_INET6, states=14
+10-20 11:16:54.487   652   799 D InetDiagMessage: Destroyed live tcp sockets for uids={10133} in 0ms
+10-20 11:16:54.509   652   745 D ActivityManager: freezing 1997 com.android.externalstorage
+10-20 11:16:54.509   652   799 D InetDiagMessage: Destroyed 0 sockets, proto=IPPROTO_TCP, family=AF_INET, states=14
+10-20 11:16:54.509   652   799 D InetDiagMessage: Destroyed 0 sockets, proto=IPPROTO_TCP, family=AF_INET6, states=14
+10-20 11:16:54.509   652   799 D InetDiagMessage: Destroyed live tcp sockets for uids={10062} in 1ms
+10-20 11:16:55.216   652  1304 W OverlayManager: service 'idmap' died
+10-20 11:16:55.219     1     1 I init    : Sending signal 9 to service 'idmap2d' (pid 552) process group...
+10-20 11:16:55.221     1     1 I libprocessgroup: Removed cgroup /sys/fs/cgroup/system/uid_1000/pid_552
+10-20 11:16:55.221     1     1 I init    : Control message: Processed ctl.stop for 'idmap2d' from pid: 652 (system_server)
+10-20 11:16:55.221     1     1 I init    : Service 'idmap2d' (pid 552) received signal 9
+10-20 11:16:55.221     1     1 I init    : Sending signal 9 to service 'idmap2d' (pid 552) process group...
+10-20 11:16:55.221     1     1 E libprocessgroup: Failed to write 1 to /sys/fs/cgroup/system/uid_1000/pid_552/cgroup.kill: No such file or directory
+10-20 11:16:55.221     1     1 E libprocessgroup: Failed to open /sys/fs/cgroup/system/uid_1000/pid_552/cgroup.procs: No such file or directory
+10-20 11:16:56.067   652   870 D OomAdjuster: Not killing cached processes
+10-20 11:16:56.079   444   490 I netd    : tetherGetStats() -> {[]} <0.45ms>
+10-20 11:16:56.413  2164  2164 W screencap: Thread Pool max thread count is 0. Cannot cache binder as linkToDeath cannot be implemented. serviceName: SurfaceFlingerAIDL
+10-20 11:16:56.414  2164  2164 W BpBinder: Linking to death on android.gui.ISurfaceComposer but there are no threads (yet?) listening to incoming transactions. See ProcessState::startThreadPool and ProcessState::setThreadPoolMaxThreadCount. Generally you should setup the binder threadpool before other initialization steps.
+10-20 11:16:56.415  2164  2164 W ProcessState: Extra binder thread started, but 0 threads requested. Do not use *startThreadPool when zero threads are requested.
+10-20 11:16:56.417   512  1300 E HwcComposer: getLuts failed Status(-8, EX_SERVICE_SPECIFIC): '8: '
+10-20 11:16:56.417   512  1300 E HWComposer: getLuts: getLuts failed for display 4619827259835644672: UNSUPPORTED (8)
+10-20 11:16:56.426   221   221 I servicemanager: Caller(pid=2164,uid=0,sid=u:r:su:s0) Found android.hardware.graphics.allocator.IAllocator/default in device VINTF manifest.
+10-20 11:16:56.427   221   221 I servicemanager: Caller(pid=2164,uid=0,sid=u:r:su:s0) Found android.hardware.graphics.allocator.IAllocator/default in device VINTF manifest.
+10-20 11:16:56.428   221   221 I servicemanager: Caller(pid=2164,uid=0,sid=u:r:su:s0) Found mapper/ranchu in device VINTF manifest.
+10-20 11:16:56.594   652   793 D WifiClientModeImpl[10304:wlan0]: updateLinkLayerStatsRssiSpeedFrequencyCapabilities rssi=-50 TxLinkspeed=1 freq=2447 RxLinkSpeed=2
+10-20 11:16:56.594   652   793 D WifiDataStall: tx tput in kbps: 11000
+10-20 11:16:56.594   652   793 D WifiDataStall: rx tput in kbps: 11000
+10-20 11:16:56.594   652   793 V WifiConfigManager: Updating scan detail cache freq=2447 BSSID=00:13:10:85:fe:01 RSSI=-50 for "AndroidWifi"NONE
+10-20 11:16:56.594   652   793 D WifiThroughputPredictor:  utilization (LLS) 80 isBluetoothConnected: false final utilization: 80
+10-20 11:16:56.594   652   793 D WifiThroughputPredictor:  BW: 0 RSSI: -50 Nss: 1 Mode: 1 symDur: 4000 snrDb 30 bitPerTone: 4500 rate: 54 throughput: 11
+10-20 11:16:56.594   652   793 D WifiThroughputPredictor:  utilization (LLS) 80 isBluetoothConnected: false final utilization: 80
+10-20 11:16:56.594   652   793 D WifiThroughputPredictor:  BW: 0 RSSI: -50 Nss: 1 Mode: 1 symDur: 4000 snrDb 30 bitPerTone: 4500 rate: 54 throughput: 11
+10-20 11:16:56.594   652   793 D WifiThroughputPredictor:  utilization (LLS) 80 isBluetoothConnected: false final utilization: 80
+10-20 11:16:56.594   652   793 D WifiThroughputPredictor:  BW: 0 RSSI: -50 Nss: 1 Mode: 1 symDur: 4000 snrDb 30 bitPerTone: 4500 rate: 54 throughput: 11
+10-20 11:16:56.594   652   793 D WifiThroughputPredictor:  utilization (LLS) 80 isBluetoothConnected: false final utilization: 80
+10-20 11:16:56.594   652   793 D WifiThroughputPredictor:  BW: 0 RSSI: -50 Nss: 1 Mode: 1 symDur: 4000 snrDb 30 bitPerTone: 4500 rate: 54 throughput: 11
+10-20 11:16:56.595   652   793 D WifiScoreCard: BSSID update SIGNAL_POLL ID: 1635534227 SSID: "AndroidWifi", BSSID: 00:13:10:85:fe:01, MAC: 02:15:b2:00:00:00, IP: /10.0.2.16, Security type: 0, Supplicant state: COMPLETED, Wi-Fi standard: legacy, RSSI: -50, Link speed: 1Mbps, Tx Link speed: 1Mbps, Max Supported Tx Link speed: 11Mbps, Rx Link speed: 2Mbps, Max Supported Rx Link speed: 11Mbps, Frequency: 2447MHz, Net ID: 0, Metered hint: false, score: 60, isUsable: true, CarrierMerged: false, SubscriptionId: -1, IsPrimary: 1, Trusted: true, Restricted: false, Ephemeral: false, OEM paid: false, OEM private: false, OSU AP: false, FQDN: <none>, Provider friendly name: <none>, Requesting package name: <none>"AndroidWifi"openMLO Information: , Is TID-To-Link negotiation supported by the AP: false, AP MLD Address: <none>, AP MLO Link Id: <none>, AP MLO Affiliated links: <none>, Vendor Data: <none>
+10-20 11:16:56.595   652   793 D WifiScoreCard: txRate: 2 txSpeed: 1
+10-20 11:16:56.595   652   793 D WifiScoreCard: network update SIGNAL_POLL "AndroidWifi" ID: 347276750 RSSI -50 txSpeed -1
+10-20 11:16:56.595   652   793 D WifiClientModeImpl[10304:wlan0]:  ClientModeImpl$L2ConnectedState screen=on 1 0 "AndroidWifi" 00:13:10:85:fe:01 rssi=-50 f=2447 sc=60 link=1 tx=1.0, 0.0, 0.0 rx=0.8 bcn=0 [on:0 tx:0 rx:0 period:3004] from screen [on:0 period:1464854163] score=60
+10-20 11:16:57.531   891  1087 E FrameTracker: force finish cuj, time out: J<SPLASHSCREEN_EXIT_ANIM>
+10-20 11:16:57.531   891  1087 W FrameTracker: Missed App frame:UNKNOWN: 3, 5071, 176399189, CUJ=J<SPLASHSCREEN_EXIT_ANIM>
+10-20 11:16:57.531   891  1087 W FrameTracker: Missed SF frame:UNKNOWN: 3, 5071, 176399189, CUJ=J<SPLASHSCREEN_EXIT_ANIM>
+10-20 11:16:57.531   891  1087 W FrameTracker: Missed App frame:JANK_APPLICATION, 5100, 200599231, CUJ=J<SPLASHSCREEN_EXIT_ANIM>
+10-20 11:16:57.531   891  1087 W FrameTracker: Missed App frame:UNKNOWN: 3, 5174, 244313860, CUJ=J<SPLASHSCREEN_EXIT_ANIM>
+10-20 11:16:57.531   891  1087 W FrameTracker: Missed SF frame:UNKNOWN: 3, 5174, 244313860, CUJ=J<SPLASHSCREEN_EXIT_ANIM>
+10-20 11:16:57.531   891  1087 W FrameTracker: Missed App frame:JANK_APPLICATION, 5249, 168065155, CUJ=J<SPLASHSCREEN_EXIT_ANIM>
+10-20 11:16:57.531   891  1054 V PerfettoTrigger: Not triggering com.android.telemetry.interaction-jank-monitor-39 - not enough time since last trigger
+10-20 11:16:59.596  2173  2173 W screencap: Thread Pool max thread count is 0. Cannot cache binder as linkToDeath cannot be implemented. serviceName: SurfaceFlingerAIDL
+10-20 11:16:59.597  2173  2173 W BpBinder: Linking to death on android.gui.ISurfaceComposer but there are no threads (yet?) listening to incoming transactions. See ProcessState::startThreadPool and ProcessState::setThreadPoolMaxThreadCount. Generally you should setup the binder threadpool before other initialization steps.
+10-20 11:16:59.597  2173  2173 W ProcessState: Extra binder thread started, but 0 threads requested. Do not use *startThreadPool when zero threads are requested.
+10-20 11:16:59.599   512  1300 E HwcComposer: getLuts failed Status(-8, EX_SERVICE_SPECIFIC): '8: '
+10-20 11:16:59.599   512  1300 E HWComposer: getLuts: getLuts failed for display 4619827259835644672: UNSUPPORTED (8)
+10-20 11:16:59.599   652   793 D WifiClientModeImpl[10304:wlan0]: updateLinkLayerStatsRssiSpeedFrequencyCapabilities rssi=-50 TxLinkspeed=1 freq=2447 RxLinkSpeed=2
+10-20 11:16:59.599   652   793 D WifiDataStall: tx tput in kbps: 11000
+10-20 11:16:59.599   652   793 D WifiDataStall: rx tput in kbps: 11000
+10-20 11:16:59.599   652   793 V WifiConfigManager: Updating scan detail cache freq=2447 BSSID=00:13:10:85:fe:01 RSSI=-50 for "AndroidWifi"NONE
+10-20 11:16:59.599   652   793 D WifiThroughputPredictor:  utilization (LLS) 80 isBluetoothConnected: false final utilization: 80
+10-20 11:16:59.599   652   793 D WifiThroughputPredictor:  BW: 0 RSSI: -50 Nss: 1 Mode: 1 symDur: 4000 snrDb 30 bitPerTone: 4500 rate: 54 throughput: 11
+10-20 11:16:59.599   652   793 D WifiThroughputPredictor:  utilization (LLS) 80 isBluetoothConnected: false final utilization: 80
+10-20 11:16:59.599   652   793 D WifiThroughputPredictor:  BW: 0 RSSI: -50 Nss: 1 Mode: 1 symDur: 4000 snrDb 30 bitPerTone: 4500 rate: 54 throughput: 11
+10-20 11:16:59.599   652   793 D WifiThroughputPredictor:  utilization (LLS) 80 isBluetoothConnected: false final utilization: 80
+10-20 11:16:59.599   652   793 D WifiThroughputPredictor:  BW: 0 RSSI: -50 Nss: 1 Mode: 1 symDur: 4000 snrDb 30 bitPerTone: 4500 rate: 54 throughput: 11
+10-20 11:16:59.599   652   793 D WifiThroughputPredictor:  utilization (LLS) 80 isBluetoothConnected: false final utilization: 80
+10-20 11:16:59.599   652   793 D WifiThroughputPredictor:  BW: 0 RSSI: -50 Nss: 1 Mode: 1 symDur: 4000 snrDb 30 bitPerTone: 4500 rate: 54 throughput: 11
+10-20 11:16:59.600   652   793 D WifiScoreCard: BSSID update SIGNAL_POLL ID: 1635534227 SSID: "AndroidWifi", BSSID: 00:13:10:85:fe:01, MAC: 02:15:b2:00:00:00, IP: /10.0.2.16, Security type: 0, Supplicant state: COMPLETED, Wi-Fi standard: legacy, RSSI: -50, Link speed: 1Mbps, Tx Link speed: 1Mbps, Max Supported Tx Link speed: 11Mbps, Rx Link speed: 2Mbps, Max Supported Rx Link speed: 11Mbps, Frequency: 2447MHz, Net ID: 0, Metered hint: false, score: 60, isUsable: true, CarrierMerged: false, SubscriptionId: -1, IsPrimary: 1, Trusted: true, Restricted: false, Ephemeral: false, OEM paid: false, OEM private: false, OSU AP: false, FQDN: <none>, Provider friendly name: <none>, Requesting package name: <none>"AndroidWifi"openMLO Information: , Is TID-To-Link negotiation supported by the AP: false, AP MLD Address: <none>, AP MLO Link Id: <none>, AP MLO Affiliated links: <none>, Vendor Data: <none>
+10-20 11:16:59.600   652   793 D WifiScoreCard: txRate: 1 txSpeed: 1
+10-20 11:16:59.600   652   793 D WifiScoreCard: network update SIGNAL_POLL "AndroidWifi" ID: 347276750 RSSI -50 txSpeed -1
+10-20 11:16:59.600   652   793 D WifiClientModeImpl[10304:wlan0]:  ClientModeImpl$L2ConnectedState screen=on 1 0 "AndroidWifi" 00:13:10:85:fe:01 rssi=-50 f=2447 sc=60 link=1 tx=0.3, 0.0, 0.0 rx=0.3 bcn=0 [on:0 tx:0 rx:0 period:3005] from screen [on:0 period:1464857168] score=60
+10-20 11:16:59.608   221   221 I servicemanager: Caller(pid=2173,uid=0,sid=u:r:su:s0) Found android.hardware.graphics.allocator.IAllocator/default in device VINTF manifest.
+10-20 11:16:59.609   221   221 I servicemanager: Caller(pid=2173,uid=0,sid=u:r:su:s0) Found android.hardware.graphics.allocator.IAllocator/default in device VINTF manifest.
+10-20 11:16:59.609   221   221 I servicemanager: Caller(pid=2173,uid=0,sid=u:r:su:s0) Found mapper/ranchu in device VINTF manifest.
