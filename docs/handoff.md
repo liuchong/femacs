@@ -1,92 +1,71 @@
-# 交接页（快照 2026-10-19 / status 4.829；交接入口已改为一条命令）
+# 交接页（快照 2026-10-21 / status 4.1005）
 
-给下一次会话的**一页纸**。逐轮细节在 `docs/status.md`（两万行），规则在 `PORTING.md`，
-验收表在 `docs/current-state.md` 与 `docs/android-app-readiness.md`。
+给下一次会话的**一页纸**。逐轮细节在 `docs/status.md`（两万三千行），规则在 `PORTING.md`，
+判定表在 `docs/current-state.md`。
 
-**先跑这一条**（4.981 实测全绿，1884 s / 峰值 1.12 GB）：
+**先跑这一条**（load≈6 时约 30 分钟）：
 
 ```sh
 python3 ~/.assistant/skills/controlled-run/scripts/run.py --profile runtime -- bash tools/verify-dod.sh --full
 ```
 
-它按 `docs/current-state.md` 的八行逐项打印 `ok`/`FAIL`，并在两处**环境产物被清**时自愈
-（`build/emacs-ref/lib/libgnu.a`、`build/port/asset-directory-tool`）。第 7 行不会运行——
-按用户决定暂挂、记未达，脚本会把这句话打出来。下面那张表是 **4.829 那天的逐行读数**，
-只作历史；要今天的数，跑上面那条命令或看 `current-state.md`。
+它跑第 **1 / 2 / 4 / 5 / 6 / 8** 行和两道文档门，第 7 行只打印“按用户决定暂挂、记未达”。
+**第 3 行（L0–L5）不在这个脚本里**：L5 与 GC 压测各用 `tools/l5-sweep.sh [--gc-stress]`
+（564 文件、30 一个块、分块可续跑），跑完**先合并**成 `docs/baseline/ert-l5-sweep.tsv` /
+`ert-gc-stress-sweep.tsv`，**再**删分块。
 
 ## 判定
 
-**7/8 = 87.5%**（口径：8 条等权重、**整条达成才计 1**、部分达成记 0；第 6 条按用户授权以 macOS 验收，现另有 Android 设备读数）。本页是**2026-10-19 / status 4.829 的快照**，逐行读数按当时；**当前读数以 `docs/current-state.md` 的判定表为准**。
+**7/8 = 87.5%**（8 条等权、整条达成才计 1、部分达成记 0；第 6 条按用户授权以 macOS 验收，
+另加 Android 设备读数）。逐行读数以 `docs/current-state.md` 为准，本页是 4.1005 的快照。
 
 | # | 项 | 状态 | 一条命令 | 最后读数 |
 |---|---|---|---|---|
-| 1 | 590 条 1:1 转写 | ✅ | `python3 tools/extract-abi.py --all` | 590 done / 0 failing（4.732） |
-| 2 | 布局/符号/subr/声明/清单 | ✅ | `xtask gate-fast`（八步）＋ `xtask gate-probes` | 两个都 exit 0；`dead-arms` 340 单元 0 failed（4.730/4.733） |
-| 3 | L0–L5 | ✅ | `acceptance-l0.py --check build/port/src/emacs`、`acceptance-l1.py --check build/port/src/emacs` | L0 19/0、L1 111/0+1 accepted（4.744）；L5 以 4.676 实测引用 |
-| 4 | 生成物/loadup/dump | ✅ | `check-generated.py`、`check-loadup.py`、`check-dump-offsets.py` | 244 文件 0 DIFFERENT；loadup 一致；dump 0（4.744） |
-| 5 | 原样树逐字节 | ✅ | `check-verbatim.py` | 4,604 文件 0 failures（4.734） |
-| 6 | 平台（macOS + Android） | ⚠️ 部分 | `bash tools/check-authorized-platforms.sh` | exit 0；macOS 11/0、112 class、69 JNI、assets 4,360、48 MB 签名 APK；**应用层未断言**（4.742） |
-| 7 | 性能 | ⏸ 暂挂 | `tools/bench.sh` | 同臂 0.70–0.86×（P-193），按用户决定不追平 |
-| 8 | 签名 + 台账 | ✅ | `check-ledger-ticks.py`、`git verify-commit` | 238 绑定 0 失败；近期提交全部签名并推送（4.744） |
+| 1 | 590 条 1:1 转写 | ✅ | `python3 tools/extract-abi.py --all` | 590 done / 0 failing（4.998） |
+| 2 | 布局/符号/subr/声明/清单 | ✅ | `xtask gate-fast`、`xtask gate-probes` | gate-fast exit 0（4.1000，约 570 s / 469 MB）；gate-probes 340/340（4.998，135 s / 372 MB） |
+| 3 | L0–L5 | ✅ | `acceptance-l0.py`、`acceptance-l1.py`、`tools/l5-sweep.sh` | L0 19/0、L1 111/0+1（4.744）；L5 552 same / 7 both-fail / 4 crashed（全两侧）/ 1 port-worse（tramp，孤立 3 次判两侧抖动）/ 0 port-better（4.1000） |
+| 4 | 生成物/loadup/dump ＋ 压力 | ✅ | `check-generated.py`、`check-loadup.py`、`check-dump-offsets.py`、`l5-sweep.sh --gc-stress` | 244 对 0 DIFFERENT、loadup 一致、dump 0；GC 压测 552 / 7 / 4（全两侧）/ 1 port-better / 0 port-worse（4.1001） |
+| 5 | 原样树逐字节 | ✅ | `check-verbatim.py` | 4,604 文件 0 failures（4.1000 内跑） |
+| 6 | 平台（macOS + Android） | ✅ | `bash tools/check-authorized-platforms.sh` | exit 0（4.1000）：macOS smoke 11/0、differential 92/0；Android APK 922,862 B / 114 class、`libemacs.so` 5.4 MB / 69 JNI、设备三元组（4.962）、设备口径导入 304/0（4.966） |
+| 7 | 性能 | ⏸ 暂挂（记未达） | `tools/bench.sh --rounds 5` | load≈6 两次：`bc-loop` 1.43 / 1.53×、`bc-sum` 1.29 / 1.39×、`bc-car` 1.26 / 1.35×、`regexp-repl` 1.08 / 1.09×、`buffer-scan` 0.99 / 0.99×、`sort` 1.14 / 1.15×（4.999）；不录基线 |
+| 8 | 签名 + 台账 | ✅ | `check-ledger-ticks.py`、`git verify-commit` | 238 台账绑定 / 0 failure / 0 行无台账（4.1005 复跑）；提交全部签名并推送 |
 
-## 第 6 条还差什么
+## 交付面
 
-`python3 tools/android-readiness.py` 会打印三行（平台脚本收尾也会打）：
+- **macOS 是终端版**：冻结配置里 `HAVE_NS` / `HAVE_WINDOW_SYSTEM` 都是 `undefined`（参照构建同样），
+  `build/port/src/emacs` 不链 AppKit、无 `ns_term_init`；Cocoa 的 Swift 代码按 P-51 是承载文本，
+  `have_ns` 翻牌要等 AppKit 镜像（3.262）。
+- **Android 是 GUI 面**：签名 APK 能装、能渲染、能打字、能转屏，同 `pid` 且 `Fatal signal` 0。
 
-1. **`libemacs.so` 可 `dlopen`**：`check-android-imports.py` ⇒ **9 条未决 / 0 new**（API 21 桩；**设备读数 0 —— 全部窗口系统臂写完**），链接 eager
-   binding（`BIND_NOW`）⇒ 必须**归零**。
-2. **assets**：✅ 已达成（4,360 个成员、`assets/directory-tree` 78,642 B、`version`/`build_info`）。
-3. **40 条窗口系统臂**：待问题 4。
+## 还剩什么
 
-构成可复跑：`python3 tools/gen-android-arms.py`（名字 → 类 → 定义位置 → 预处理条件）、
-`tools/gen-android-gaps.py`（每条名字的 C 引用点与「C 自己编不编」的判据），
-清单见 `docs/decisions-needed.md` 附录（**A 窗口臂 0 / B 上游缺口 9 / C 其它 0**）——那 9 条是 API 21 的桩
-读数缺、**交付设备自己提供的名字**（`backtrace`、`getifaddrs`、`posix_spawn` 一族等）；逐条的 C 侧判据见
-`docs/baseline/android-gaps.tsv`。
+1. **第 7 条**：字节码派发比参照的 threaded 臂慢 1.3–1.5×；`Rust` 稳定版无法复刻计算跳转，
+   关 `overflow-checks` 与上 nightly 都被项目约束排除 ⇒ 按用户决定**暂挂、记未达**。
+2. **声明缺口 598 条**已收口成三类：**类型墙 325**（要 `struct frame`/`struct window` 在镜像 scope 有名字，
+   见 P-323）、**死平台 177**（`xterm.h` 按其镜像末尾的记录有意不搬，`gtkutil`/`w32*` 同属不交付平台）、
+   **C 自身陈旧声明 21**（参照里也只有声明没有定义，或挂在 `#undef` 的宏下）。活配置下已无可直接搬的。
+3. 若要把 macOS 从终端版推进到 Cocoa app：先做 AppKit 镜像，再翻 `have_ns`，属独立大工程。
 
-## 设备上的崩溃：现在知道它在**分配路径**里（4.829）
+## 未决计数
 
-干净安装 + **带 `gettid()`** 的落盘探针（四个工具见 `tools/add-*-probe.py`）给出一致读数：
-最后几条是 `FA m 0 1` → `FA c1 160 591` → **`AL mv0 1 0`** ⇒ 进 `make_vector (1, elt)` 之后、
-`allocate_clear_vector` 返回之前；`AL gc0`/`AL gce` = **27/27** ⇒ GC 每次都跑完；
-两次运行的停点不同（`CB csi 0 0` 与 `AL mv0`），且**探针自身会挪动停点**（写入量 658,687 行）
-⇒ 与**堆被写坏**一致，不是某条语句。
+窗口臂 0 / 上游缺口 9 / 其它 0（`docs/decisions-needed.md` 附录的 A/B/C 三类；那 9 条是
+API 21 桩读数里缺、交付设备自己提供的名字，见 `docs/baseline/android-gaps.tsv`）。
 
-下一步（都要新设备轮）：① `libc.debug.malloc.options "guard backtrace"`（4.830：`setprop` 已设但未生效，需要重启 zygote/`stop`+`start`）；② `ENABLE_CHECKING` 的 Android 构建（本仓有 `*.checking.o` 通路）。
+## 已知红（不是回归）
 
-两条会当场弄坏 `.so` 的教训：探针**必须插在 `#[unsafe(no_mangle)]` 之上**（否则符号消失、`dlopen` 报
-`cannot locate symbol ...`）；日志必须带线程号（两个线程往同一份 `probe.log` 写）。
-
-## 提交阻塞已解除（4.828）
-
-`git commit -S` 现在 exit 0（`pinentry-mac` + agent 缓存），4.7xx 起 25+ 次「弹窗取消」不再复现：
-101 个在飞文件已分三批签名入树并推送（`30906074`、`1ef04c27`、`46f13960`）。
-
-## 问题 4（已结案，保留原文作历史）
-
-- **A 维持 P-08**（死臂只记录）：macOS 侧成立、零工作量；Android 那 40 条永远无人提供 ⇒ `.so`
-  永不可加载，DoD-6 停在结构面。
-- **B 无差别逐行写**（含 darwin 死臂）：口径最满；全树 `HAVE_WINDOW_SYSTEM` 区域约 14,946 行，
-  darwin 上永不执行。
-- **C（建议）按目标配置决定活/死**：活臂照写不降标准、macOS 读数不变；工作队列即
-  `docs/baseline/platform-arms.tsv` 里 Android 相关的区域（`HAVE_ANDROID` 9,597 行、
-  `HAVE_WINDOW_SYSTEM` 14,946 行、`HAVE_MODULES` 191 行，见 4.711）。
-
-选定 **C** 后的落地顺序：`platform-arms.tsv` 取 `#ifdef HAVE_WINDOW_SYSTEM` 的区域 → 按
-`android-arms.tsv` 的 40 个名字对齐 → 每处加 `#[cfg (feature = "have_window_system")]` 并把臂写出
-→ `check-cond-eval --verified` 保持 0 disagreements → 棘轮逐条下降 → 归零后跑判据 2b。
+`tools/check-verbatim-declarations.py` 退出 1：1,897 条全部在照抄的 `femacs/lisp/*.el`，
+就是用户要求逐字节保留的声明行 ⇒ 判据与决定冲突，**不修、不判红**；照抄树以 `check-verbatim` 为准。
 
 ## 五条施工纪律（血泪换的，别再踩）
 
 1. **生成物**：`femacs/src/include/config.rs` 是生成物；`git add -A` 前先看 `git status`（P-319）。
 2. **门报红先分三类**：代码错 / 表过期 / 口径错（P-320）；表过期就改表，口径错**不放宽判据**。
-3. **cfg 词表**：只写 `xtask` 能发出的键；`have_*` 看配置有没有正向键，`not_have_*` 看
-   `"undefined"`（P-310/P-312）。
+3. **cfg 词表**：只写 `xtask` 能发出的键；`have_*` 看配置有没有正向键，`not_have_*` 看 `"undefined"`（P-310/P-312）。
 4. **一个 C 单元 include 多个 `.c`** 时，符号比对要取并集（`ALIASES` 是 stem 列表，4.736）。
 5. **`link-program` 的工具**（`lib-src/*`）是 host 工具，不要按 `have_android` 门住（4.741）。
 
 ## 最近提交
 
-`05c6a3dd`（入口快照对齐）· `dba15328`（L0/L1/生成物复跑）· `dbcd0726`（验收表 + readiness 输出）
-· `a9962bb5`（平台门带 assets）· `829b54dd`（`directory-tree` 通）· `4c277543`（cond-eval 全量）
-· `688d3d93`（`check-symbols` 别名）
+`fa41571e`（macOS 交付口径）· `6269e9b2`（声明缺口收口）· `79ed87b5`（红门定性）
+· `0eb45123`（清理 469 MB）· `b94f9ffe`（GC 压测）· `4ba8fd35`（L5 重跑）
+· `4c41e228`（`lisp.h` 254 条原型）
