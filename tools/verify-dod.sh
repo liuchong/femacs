@@ -92,8 +92,11 @@ if python3 tools/check-verbatim.py 2>&1 | tail -1 | grep -q '0 failures'; then r
 say "row 6: the authorised platforms"
 if [ "$FULL" = 1 ]; then
   run_row "check-authorized-platforms" bash tools/check-authorized-platforms.sh
+  run_row "tui-smoke 24x80" python3 tools/tui-smoke.py build/port/src/emacs
+  run_row "tui-smoke 10x80" python3 tools/tui-smoke.py build/port/src/emacs --rows 10
 else
   row "check-authorized-platforms" "skipped (--full)"
+  row "tui-smoke (terminal frame)" "skipped (--full)"
 fi
 # The device reading is evidence rather than a command: the acceptance images are committed.
 if [ -f docs/baseline/android-accept/2-typed.png ]; then
