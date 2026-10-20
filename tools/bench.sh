@@ -10,6 +10,8 @@
 #   tools/bench.sh                     # port against the reference
 #   tools/bench.sh --prog build/port/src/emacs --ref build/emacs-ref/src/emacs
 #   tools/bench.sh --save docs/baseline/bench.tsv    # record this machine's numbers
+#   tools/bench.sh --save F --force                  # record even when the machine is busy
+#   tools/bench.sh --max-load-per-core 0.05         # tighten the quiet-machine guard
 #   tools/bench.sh --gate docs/baseline/bench.tsv    # fail on a regression against them
 #
 # Exit status is 0 when reporting (DoD-7's target is a judgement call) and, in `--gate` mode,
@@ -17,10 +19,12 @@
 # reference is rebuilt from time to time for other reasons (P-193 compiled it to the switch
 # arm once), so a gate on the *ratio* would fire on changes that have nothing to do with the
 # port: the gate therefore compares the **port's own milliseconds** to the recorded ones, and
-# prints the reference's beside them for context.
+# prints the reference's beside them for context.  A `--save` is refused when the one-minute
+# load average is above `--max-load-per-core` (default 0.10) times the core count: a baseline
+# recorded on a busy machine is a slow baseline, and three rounds of readings were lost that way.
 set -u
 REPO=$(cd "$(dirname "$0")/.." && pwd)
-SAVE=""; GATE=""; TOL=0.15; ROUNDS=1
+SAVE=""; GATE=""; TOL=0.15; ROUNDS=1; FORCE=0; MAX_LOAD_PER_CORE=0.10
 PROG="$REPO/build/port/src/emacs"
 REF="$REPO/build/emacs-ref/src/emacs"
 while [ $# -gt 0 ]; do
@@ -31,11 +35,23 @@ while [ $# -gt 0 ]; do
     --gate) GATE=$2; shift 2 ;;
     --tolerance) TOL=$2; shift 2 ;;
     --rounds) ROUNDS=$2; shift 2 ;;
+    --force) FORCE=1; shift ;;
+    --max-load-per-core) MAX_LOAD_PER_CORE=$2; shift 2 ;;
     *) echo "unknown argument: $1" >&2; exit 2 ;;
   esac
 done
 [ -x "$PROG" ] || { echo "missing program: $PROG" >&2; exit 2; }
 [ -x "$REF" ]  || { echo "missing reference: $REF" >&2; exit 2; }
+load1=$(sysctl -n vm.loadavg 2>/dev/null | awk '{print $2}'); [ -z "$load1" ] && load1=$(awk '{print $1}' /proc/loadavg 2>/dev/null)
+ncpu=$(sysctl -n hw.ncpu 2>/dev/null || nproc 2>/dev/null || echo 1)
+if [ -n "$SAVE" ] && [ "$FORCE" -eq 0 ]; then
+  over=$(awk -v l="${load1:-0}" -v c="$ncpu" -v m="$MAX_LOAD_PER_CORE" 'BEGIN { print (l > c * m) ? 1 : 0 }')
+  if [ "$over" = 1 ]; then
+    echo "bench: refusing to save a baseline at load ${load1} on ${ncpu} core(s) (limit $MAX_LOAD_PER_CORE per core)." >&2
+    echo "       A baseline recorded on a busy machine is a slow baseline; rerun when quiet, or pass --force." >&2
+    exit 2
+  fi
+fi
 case "$ROUNDS" in ''|*[!0-9]*) echo "bad --rounds: $ROUNDS" >&2; exit 2 ;;
 esac
 [ "$ROUNDS" -ge 1 ] || { echo "bad --rounds: $ROUNDS" >&2; exit 2; }
