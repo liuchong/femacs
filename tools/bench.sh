@@ -1,7 +1,9 @@
 #!/bin/sh
 # The performance table of docs/acceptance.md, re-measurable on demand.
 #
-# Every row is min-of-five on both programs, same machine, same -O2 build; the bytecode rows
+# Every row is min-of-five inside each program, same machine, same -O2 build; `--rounds N`
+# alternates the two programs N times and keeps the per-case minimum, so a machine that is
+# busy with something else cannot decide the ratio (status 4.992).  The bytecode rows
 # run *compiled* functions (source-level loops measure eval_sub instead, which is a different
 # layer and was mistaken for the VM once - PORTING.md P-180/P-181).
 #
@@ -18,7 +20,7 @@
 # prints the reference's beside them for context.
 set -u
 REPO=$(cd "$(dirname "$0")/.." && pwd)
-SAVE=""; GATE=""; TOL=0.15
+SAVE=""; GATE=""; TOL=0.15; ROUNDS=1
 PROG="$REPO/build/port/src/emacs"
 REF="$REPO/build/emacs-ref/src/emacs"
 while [ $# -gt 0 ]; do
@@ -28,11 +30,15 @@ while [ $# -gt 0 ]; do
     --save) SAVE=$2; shift 2 ;;
     --gate) GATE=$2; shift 2 ;;
     --tolerance) TOL=$2; shift 2 ;;
+    --rounds) ROUNDS=$2; shift 2 ;;
     *) echo "unknown argument: $1" >&2; exit 2 ;;
   esac
 done
 [ -x "$PROG" ] || { echo "missing program: $PROG" >&2; exit 2; }
 [ -x "$REF" ]  || { echo "missing reference: $REF" >&2; exit 2; }
+case "$ROUNDS" in ''|*[!0-9]*) echo "bad --rounds: $ROUNDS" >&2; exit 2 ;;
+esac
+[ "$ROUNDS" -ge 1 ] || { echo "bad --rounds: $ROUNDS" >&2; exit 2; }
 
 cat > /tmp/bench-forms.el <<'ELISP'
 (setq gc-cons-threshold most-positive-fixnum)
@@ -64,11 +70,28 @@ run() {	# prog
        --no-init-file --no-site-file --no-site-lisp --batch -l /tmp/bench-forms.el" 2>&1 \
     | grep '^BENCH '
 }
-echo "== port"
-run "$PROG" > /tmp/bench-port.txt
+# One round runs each program once.  `--rounds N` alternates the two programs N times and keeps
+# the per-case minimum across rounds: the two sides are then sampled across the same window
+# instead of one after the other, so a load average that moves during the run cancels out.
+fold() {	# file
+  awk '{
+    if (!($2 in m)) { n++; order[n] = $2; m[$2] = $3 }
+    else if ($3 + 0 < m[$2] + 0) m[$2] = $3
+  } END { for (i = 1; i <= n; i++) printf "BENCH %-12s %8.4f ms\n", order[i], m[order[i]] }' "$1"
+}
+: > /tmp/bench-port-all.txt
+: > /tmp/bench-ref-all.txt
+r=1
+while [ "$r" -le "$ROUNDS" ]; do
+  run "$PROG" >> /tmp/bench-port-all.txt
+  run "$REF" >> /tmp/bench-ref-all.txt
+  r=$((r + 1))
+done
+echo "== port (min over $ROUNDS round(s); each round is already min-of-five inside the program)"
+fold /tmp/bench-port-all.txt > /tmp/bench-port.txt
 cat /tmp/bench-port.txt
-echo "== reference"
-run "$REF" > /tmp/bench-ref.txt
+echo "== reference (min over $ROUNDS round(s))"
+fold /tmp/bench-ref-all.txt > /tmp/bench-ref.txt
 cat /tmp/bench-ref.txt
 echo "== ratio (port / reference)"
 paste /tmp/bench-port.txt /tmp/bench-ref.txt | awk '{
