@@ -1,0 +1,25 @@
+first_pid_at=1s pid=2171
+== pid@40s: 2171
+== gfxinfo ==
+Total frames rendered: 4
+Janky frames: 4 (100.00%)
+Janky frames (legacy): 2 (50.00%)
+Number Missed Vsync: 1
+== window ==
+  mCurrentFocus=Window{96fd967 u0 org.femacs/org.femacs.EmacsActivity}
+  mFocusedApp=ActivityRecord{27228079 u0 org.femacs/.EmacsActivity t26}
+== pid after keys: 2171
+== gfxinfo after ==
+Total frames rendered: 4
+Janky frames: 4 (100.00%)
+Janky frames (legacy): 2 (50.00%)
+Number Missed Vsync: 1
+== log ==
+10-20 07:53:24.343  2171  2193 I android_run_debug_thread: DGS built=7 empty=0 area=1 start=0 end=1
+10-20 07:53:24.360  2171  2193 I android_run_debug_thread: DGS built=50 empty=0 area=1 start=0 end=1
+10-20 07:53:24.362  2171  2193 I android_run_debug_thread: DGS built=100 empty=0 area=1 start=0 end=1
+10-20 07:53:24.362  2171  2193 I android_run_debug_thread: DGS built=150 empty=0 area=1 start=0 end=1
+10-20 07:53:24.415  2171  2193 I android_run_debug_thread: s_glBindAttribLocation: bind attrib 0 name position
+10-20 07:53:24.415  2171  2193 I android_run_debug_thread: s_glBindAttribLocation: bind attrib 1 name localCoord
+10-20 07:53:24.863  2171  2193 I android_run_debug_thread: s_glBindAttribLocation: bind attrib 0 name position
+10-20 07:53:24.863  2171  2193 I android_run_debug_thread: s_glBindAttribLocation: bind attrib 1 name color

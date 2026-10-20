@@ -1,0 +1,17 @@
+first_pid_at=1s pid=2160
+== pid@40s: 
+== gfxinfo ==
+== window ==
+  mCurrentFocus=Window{4ab68ff u0 com.android.launcher3/com.android.launcher3.uioverrides.QuickstepLauncher}
+  mFocusedApp=ActivityRecord{29829507 u0 com.android.launcher3/.uioverrides.QuickstepLauncher t23}
+== pid after keys: 
+== gfxinfo after ==
+== log ==
+10-20 07:51:38.872  2160  2181 I android_run_debug_thread: Finding pointers to doc strings...
+10-20 07:51:38.884  2160  2181 I android_run_debug_thread: Finding pointers to doc strings...done
+10-20 07:51:38.967  2160  2181 I android_run_debug_thread: ANEWFONT ps=12 h=15 sw=7 aw=7 asc=12 desc=3 => cw=7 lh=15
+10-20 07:51:39.003  2160  2181 I android_run_debug_thread: DGS built=1 empty=0 area=1 start=0 end=61
+10-20 07:51:39.006  2160  2180 F libc    : Fatal signal 11 (SIGSEGV), code 2 (SEGV_ACCERR), fault addr 0xb4000077dc2fcfb0 in tid 2180 (Emacs main thre), pid 216
+10-20 07:51:39.006  2160  2181 I android_run_debug_thread: DGS built=2 empty=0 area=1 start=0 end=155
+10-20 07:51:39.019  2160  2181 I android_run_debug_thread: s_glBindAttribLocation: bind attrib 0 name position
+10-20 07:51:39.019  2160  2181 I android_run_debug_thread: s_glBindAttribLocation: bind attrib 1 name localCoord
