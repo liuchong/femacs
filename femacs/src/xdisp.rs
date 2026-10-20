@@ -20951,6 +20951,7 @@ redisplay_window (window: Lisp_Object, just_this_one_p: bool)
 
   break 'recenter_body;
   }
+  }
   /* done:  (C 21445 — the fall-through out of C's `recenter` text above lands here, with
      the `break 'done` sites.)  */
 
@@ -21072,7 +21073,6 @@ redisplay_window (window: Lisp_Object, just_this_one_p: bool)
      necessary to try again using larger glyph matrices.
      We have to redeem the scroll bar even in this case,
      because the loop in redisplay_internal expects that.  */
-  }
   /* need_larger_matrices:  (C 21611-21612 — C's label's own statement is the empty `;`,
      and every `break 'need_larger_matrices` above, and the fall-through out of C's
      `finish_menu_bars` text, land here.)  */
