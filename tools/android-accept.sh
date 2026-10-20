@@ -12,7 +12,7 @@ SERIAL=emulator-$PORT
 ADB="$SDK/platform-tools/adb -s $SERIAL"
 EMU=$SDK/emulator/emulator
 AVD=${FEMACS_AVD:-femacs-arm64-api36}
-APK=${FEMACS_APK:-/tmp/femacs-apk/emacs-clean.apk}
+APK=${FEMACS_APK:-/tmp/femacs-apk/emacs.apk}
 HERE=$(cd "$(dirname "$0")/.." && pwd)
 OUT=$HERE/docs/baseline/android-accept
 mkdir -p "$OUT"
@@ -23,12 +23,18 @@ $ADB emu kill >/dev/null 2>&1; sleep 2
 $EMU -avd "$AVD" -port "$PORT" -no-window -no-audio -no-boot-anim -no-snapshot-save \
      -memory 1536 -gpu guest >"$OUT/emulator.log" 2>&1 &
 EMU_PID=$!
+on_exit () { $ADB logcat -d -b crash -b main > "$OUT/logcat.txt" 2>/dev/null; $ADB emu kill >/dev/null 2>&1; }
+trap on_exit EXIT   # keep the log for the next reader, and never leave the emulator running
 for _ in $(seq 1 300); do
   [ "$($ADB shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')" = "1" ] && break
   sleep 1
 done
+[ -f "$APK" ] || { echo "android-accept: missing APK: $APK" >&2; exit 2; }
+$ADB uninstall org.femacs >/dev/null 2>&1   # the previous run may be signed with another key
 $ADB root >/dev/null 2>&1; sleep 3
-$ADB install -r "$APK" >/dev/null 2>&1
+if ! $ADB install -r "$APK" >"$OUT/install.log" 2>&1; then
+  echo "android-accept: install failed (see $OUT/install.log)" >&2; tail -3 "$OUT/install.log" >&2; exit 2
+fi
 $ADB logcat -c
 $ADB shell am start -n org.femacs/.EmacsActivity >/dev/null 2>&1
 for _ in $(seq 1 40); do
