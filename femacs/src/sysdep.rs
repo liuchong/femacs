@@ -3245,7 +3245,11 @@ pub unsafe extern "C" fn init_signals () {
 
   /* SIGUSR1 and SIGUSR2 are used internally by the android_select
      function.  */
-  // C 2080-2087: `#if !defined HAVE_ANDROID` is live, and both inner arms too.
+  /* C 2080-2087: `#if !defined HAVE_ANDROID`.  On Android the arm is **dead**: making SIGUSR1 a
+     user signal installs the Lisp-level handler over `android_handle_poll_signal`, after which
+     the poll signal is swallowed instead of setting `cancel_signal_received`, and the select
+     thread waits forever in `sigwait` (measured: status 4.958).  */
+  #[cfg (not (feature = "have_android"))]
   {
     add_user_signal (SIGUSR1, c"sigusr1".as_ptr ());
     add_user_signal (SIGUSR2, c"sigusr2".as_ptr ());

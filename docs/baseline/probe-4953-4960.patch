@@ -1,5 +1,5 @@
 diff --git a/femacs/src/android.rs b/femacs/src/android.rs
-index 2e78c66c..7e508686 100644
+index 2e78c66c..a9a3a1d1 100644
 --- a/femacs/src/android.rs
 +++ b/femacs/src/android.rs
 @@ -969,6 +969,10 @@ unsafe extern "C" fn android_run_select_thread (thread_data: *mut c_void) -> *mu
@@ -28,7 +28,17 @@ index 2e78c66c..7e508686 100644
  
  	/* Signal the Emacs thread that pselect is done.  If read_var
  	   was signaled by android_write_event, event_queue.mutex could
-@@ -1207,6 +1217,9 @@ pub unsafe fn android_write_event (event: *mut android_event)   // C 868-909
+@@ -1009,6 +1019,9 @@ unsafe extern "C" fn android_handle_poll_signal (sig: c_int, siginfo: *mut c_voi
+     queue = &raw mut event_queue.thread;
+   }
+   (*queue).cancel_signal_received = 1;
++  __android_log_print (ANDROID_LOG_INFO, c"femacsprobe".as_ptr (),      /* PROBE4960 */
++		       c"PROBE4960 handler sig=%d queue_null=%d".as_ptr (),
++		       sig, queue.is_null () as c_int);
+ }
+ 
+ /* Semaphore used to indicate completion of a query.
+@@ -1207,6 +1220,9 @@ pub unsafe fn android_write_event (event: *mut android_event)   // C 868-909
    if event_queue.events.next.is_null ()
      { return; }
  
@@ -38,7 +48,7 @@ index 2e78c66c..7e508686 100644
    pthread_mutex_lock (&raw mut event_queue.mutex);
    (*container).next = event_queue.events.next;
    (*container).last = &raw mut event_queue.events;
-@@ -1214,6 +1227,8 @@ pub unsafe fn android_write_event (event: *mut android_event)   // C 868-909
+@@ -1214,6 +1230,8 @@ pub unsafe fn android_write_event (event: *mut android_event)   // C 868-909
    (*(*container).last).next = container;
    (*container).event = *event;
    event_queue.num_events += 1;
@@ -47,7 +57,7 @@ index 2e78c66c..7e508686 100644
    pthread_cond_broadcast (&raw mut event_queue.read_var);
    pthread_mutex_unlock (&raw mut event_queue.mutex);
  
-@@ -1300,7 +1315,9 @@ pub unsafe fn android_select (nfds: c_int, readfds: *mut fd_set, writefds: *mut
+@@ -1300,7 +1318,9 @@ pub unsafe fn android_select (nfds: c_int, readfds: *mut fd_set, writefds: *mut
       it's still in pselect; or by writing to the select pipe).  */
    #[cfg (not (feature = "android_api_lt_21"))]
    {
@@ -58,7 +68,7 @@ index 2e78c66c..7e508686 100644
    }
    #[cfg (feature = "android_api_lt_21")]
    {
-@@ -1353,6 +1370,9 @@ pub unsafe fn android_select (nfds: c_int, readfds: *mut fd_set, writefds: *mut
+@@ -1353,6 +1373,9 @@ pub unsafe fn android_select (nfds: c_int, readfds: *mut fd_set, writefds: *mut
  	{ FD_ZERO (exceptfds); }
      }
  

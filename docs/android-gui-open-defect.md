@@ -233,19 +233,63 @@ Emacs polling t:  android_run_select_thread+276 -> sigwait
 `android_select` 读的那一个结构），于是 `cancel_signal_received` 仍是 0，线程照样进 `sigwait`，
 而 Lisp 线程那一次 `pthread_kill` 已经用掉了 ⇒ 双方互等。
 
+## 3k. 第二根因：`add_user_signal (SIGUSR1)` 在 Android 上本该是死码，端口把它编译活了（status 4.958）
+
+修掉 `SIG_BLOCK` 之后，探针把停顿点压到了最后一步：
+
+```
+PROBE4956 write type=0                    键事件入队
+PROBE4959 kill rc=0                       Lisp 线程发出 SELECT_SIGNAL
+PROBE4959 pselect rc=-1 cancel=0          pselect 被 EINTR 打断，但 cancel 仍是 0
+PROBE4959 sigwait enter                   于是线程仍然进 sigwait
+（之后队列继续涨，没有 read_socket）
+```
+
+`pselect rc=-1` 说明信号**送到了**，但 `cancel_signal_received` 没被置 1 —— 也就是
+`android_handle_poll_signal` **没有跑**（加在 handler 头部的探针 `PROBE4960` 一条都没有）。
+
+根因在 `sysdep.c` 2080-2087：
+
+```c
+#if !defined HAVE_ANDROID
+#ifdef SIGUSR1
+  add_user_signal (SIGUSR1, "sigusr1");
+#endif
+```
+
+Android 上这段是**死码**，因为 SIGUSR1 是 `android_select` 的内部信号；端口把它原样编译活了
+（注释还写着“`#if !defined HAVE_ANDROID` is live”，对 android 配置恰好是反的）。
+`add_user_signal` 会把 SIGUSR1 变成 Lisp 的用户信号 → Emacs 装自己的 handler **覆盖掉**
+`android_handle_poll_signal` → 轮询用的信号被吞 → `sigwait` 永远等不到。
+
+修复：这一段按 C 的 `#if !defined HAVE_ANDROID` 加 `#[cfg (not (feature = "have_android"))]`。
+
+## 3l. 修复后的读数：输入通了（status 4.958）
+
+同一次运行（`docs/baseline/android-focus/probe-fix2.log`）：
+
+```
+PROBE4956 write type=0                    key press
+PROBE4960 handler sig=10 queue_null=0     poll handler 终于跑了
+PROBE4956 read_socket enter pending=1     队列被排空
+PROBE4956 read_socket enter pending=0
+```
+
+按键前后截图 md5 **不同** ✓（`fix2-before.png` / `fix2-after.png`，差异覆盖整帧 —— 这是第一次
+真正的整帧重画）。⇒ **Android GUI 的输入链路打通**：键 → 事件 → `read_socket` → 缓冲区 →
+redisplay。
+
 ## 4. 下一步
 
-1. 读 `android_handle_poll_signal` 与 `pthread_setspecific (poll_thread_internal, …)` 的配对，
-   确认 handler 拿到的 `queue` 就是 `android_select` 与之握手的那个 `data`。
-2. 需要时再放一轮一次性探针（`docs/baseline/probe-4953-4959.patch` 已备好，`git apply` 即可），
-   打点：handler 入口、`cancel_signal_received` 的写入值、`sigwait` 前后的 `cancel`。
-3. 构建纪律不变：改 Rust 必须先 `build-one` 再 `link-shared`；模拟器固定 `-port 5560`。
+1. 做完整验收三元组：连续输入一串字符并确认累积、轻点移动 point、旋转后内容仍在，然后把
+   Android 腿的三项读数写进 `docs/current-state.md`（DoD-6 已按授权以 macOS 计，这一条是额外证据）。
+2. 全量重编 + 四道门复跑（`gate-fast` / `gate-probes` / `extract-abi --all` / `check-authorized-platforms.sh`），
+   确认 `sysdep.rs` 的 cfg 改动没有影响宿主目标。
+3. 构建纪律不变：先 `build-one` 再 `link-shared`；模拟器固定 `-port 5560`。
 
 ## 5. 复现命令
 
 ```
-./tools/android-input-probe.sh threads       # 每线程 wchan + SigBlk/SigPnd：谁在等什么
-./tools/android-input-probe.sh bt            # debuggerd 原生栈（Emacs 线程）
-./tools/android-input-probe.sh probes        # 需带 PROBE 的 APK：写/入队/排空/握手
-./tools/android-input-probe.sh focus|key|tap|rotate|insert-rotate|back|signal|applog
+./tools/android-input-probe.sh threads|bt|probes|key|tap|rotate|insert-rotate|signal|focus|applog
+# 探针补丁：docs/baseline/probe-4953-4960.patch（git apply 后先 build-one 再 link-shared）
 ```
