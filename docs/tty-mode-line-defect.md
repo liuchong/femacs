@@ -190,3 +190,21 @@ about 31,000 times a second), so the frame pass never runs and the mode line is 
 
 Next: read `display_echo_area`'s tty path against the reference - the throw is either an explicit
 signal in a branch the tty build should not take, or a call into an unported helper.
+
+## Inside the throw (4.1019)
+
+Markers inside `display_echo_area_1`, the callback `with_echo_area_buffer` runs:
+
+    W1 entry 8    W2 after resize_mini_window 8    W3 after try_window 0
+
+So the callback is reached and `resize_mini_window` returns; **`try_window (window, start, 0)` is what
+does not return**.
+
+That is the shared window-redisplay routine, and here it is called from the echo-area path with a
+mini-window and a short message.  The next markers go inside `try_window` after `start_display` and
+inside the `display_line` loop body (the first attempt put one between `if display_line (...)` and
+its `{` and was reverted).
+
+Reaching this point also explains the shape of the defect: every redisplay passes through the echo
+area because the startup message is present, `try_window` throws there, the throw unwinds
+`redisplay_internal`, and the frame pass that would draw the mode line never runs.
