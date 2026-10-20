@@ -303,3 +303,16 @@ throws on calls 2..8.
 So the throwing call is **`realize_face` for `DEFAULT_FACE_ID` when face id 0 is already realized**.
 The next markers go inside `realize_face` around the former-face removal/free and around
 `realize_tty_face` for that specific call.
+
+## The former-face removal (4.1026)
+
+Filtering the trace to `former_face_id == 0` gives the default face's calls only:
+
+    Z1 id=0, Z3 id=0            (first pass: realize_face returns)
+    Z1 id=0, Z1 id=0, ...       (every later pass: no Z2, no Z3)
+
+Z2 sits right after `free_realized_face ((*cache).f, former_face);`, so on every re-realization the
+throw happens in the former-face block - `uncache_face` or `free_realized_face` - before the new
+face is built.  `free_realized_face` on this target is only `xfree (face)`, so the next reading is
+`uncache_face`: print the `former_face` pointer and its `hash`/`id` before the call, and place a
+marker between `uncache_face` and `free_realized_face`.
