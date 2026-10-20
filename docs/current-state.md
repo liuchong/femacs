@@ -110,6 +110,7 @@ tools/gen-android-config.sh --check-prereqs                                     
 | 选择性改名登记 | **已机器化** | 本轮 **49 个 name-only** ✓（早期记的 56 是当时读数 ✓），每一处差异都经 `check-generated.py` 的 `name_only()` 判定"只差被改写解释的行" ✓ ⇒ 不再需要人工逐条登记 ✓ |
 | L4 / L5 | **L5 有读数、需整轮重跑** | L5 最近一次是 4.563：`542 / 11 / 6 / 4 / 1`，端口侧逐文件 `(ran, unexpected)` 变化 0 ✓；本轮只做了定向切片（`src/keyboard-tests.el`：**两侧同超时** ⇒ both-fail ✓、端口 0/0 ✓）⇒ 全量扫留收尾集中跑 ✓ |
 | 性能（DoD-7） | **暂挂** | 按用户决定记"未达" ✓；`tools/bench.sh --gate docs/baseline/bench.tsv` 是现成的门 ✓ |
+| Android 库可加载 | **交付平台已闭环** | 按**设备自己的库**量：`304 import(s); 0 unresolved`（`docs/baseline/android-device-libs/`，4.966）✓；API 21 桩口径仍是 9 条未决 ✓，那是**旧平台**读数，按平台决定不作判据 ✓ |
 | 平台冒烟 | **已闭环** | macOS：`gate-fast` exit 0 ✓、`check-authorized-platforms.sh` exit 0（smoke + differential **92 form / 0 mismatch**）✓；Android：结构四项全绿 + **设备三元组**（渲染/输入/存活）✓ |
 
 ## 规模
