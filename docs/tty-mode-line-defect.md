@@ -387,3 +387,9 @@ Evidence after the fix (probes removed, tree rebuilt and dumped):
 The 4.1024-4.1028 face/throw narrowing is **superseded**: the later trace entered the former-face
 block (`RF2`) and returned from `realize_tty_face` (`RT7`) on the same build that reproduced the
 missing row.  Those earlier zero readings came from probe placement, not from a nonlocal exit.
+
+## Regression gate (4.1031)
+
+`tools/verify-dod.sh --full` row 6 now runs `tools/tui-smoke.py` at both 24x80 and 10x80, so a
+future regression that only affects a terminal frame fails the completion re-run instead of
+staying invisible to the batch rows.  Both sizes pass on the fixed binary.
