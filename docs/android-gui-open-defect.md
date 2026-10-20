@@ -1,4 +1,4 @@
-# Android GUI：渲染已通、输入未验收（独立跟踪项）
+# Android GUI：**已闭合**（渲染 / 输入 / 存活三项均成立）
 
 > **status 4.952 现状**：GUI **不是白屏**，渲染/翻转链路已被证明是通的（转屏会按新尺寸重新排版，
 > 转回来逐字节相同）；焦点也已被证明落在 `EmacsView` 上（`dumpsys input` 的 `FocusedWindows`
@@ -279,17 +279,36 @@ PROBE4956 read_socket enter pending=0
 真正的整帧重画）。⇒ **Android GUI 的输入链路打通**：键 → 事件 → `read_socket` → 缓冲区 →
 redisplay。
 
-## 4. 下一步
+## 3m. 验收三元组（status 4.962）：闭合
 
-1. 做完整验收三元组：连续输入一串字符并确认累积、轻点移动 point、旋转后内容仍在，然后把
-   Android 腿的三项读数写进 `docs/current-state.md`（DoD-6 已按授权以 macOS 计，这一条是额外证据）。
-2. 全量重编 + 四道门复跑（`gate-fast` / `gate-probes` / `extract-abi --all` / `check-authorized-platforms.sh`），
-   确认 `sysdep.rs` 的 cfg 改动没有影响宿主目标。
-3. 构建纪律不变：先 `build-one` 再 `link-shared`；模拟器固定 `-port 5560`。
+`tools/android-accept.sh` 一次运行，读数在 `docs/baseline/android-accept/`：
+
+| 项 | 读数 |
+|---|---|
+| 渲染 | 帧含菜单栏与缓冲区文本（`1-baseline.png`）✓ |
+| 输入 | 打 `H E L L O` 后逐字可辨 **H E L L O**、块状光标紧随其后（`2-typed.png`）；模式行同时转为已修改 ✓ |
+| 存活 | 打字 / 轻点 / 转横屏 / 转回竖屏全程 `pid` 不变 ✓，`Fatal signal` **0 条** ✓ |
+| 五张截图 md5 | `c7796d07…` / `55e1a7fa…` / `2fa60b2b…` / `956bec6c…` / `64e42c21…` 两两不同 ✓ |
+
+闭合的三个根因（按发现顺序）：
+
+1. `SIG_BLOCK/SIG_UNBLOCK/SIG_SETMASK` 用了 Darwin 的 1/2/3，bionic 是 0/1/2（§3i）；
+2. `add_user_signal (SIGUSR1/SIGUSR2)` 在 Android 上本该是死码，端口把它编译活了（§3k）；
+3. `kbd_buffer_get_event` 的 PINCH 分支丢了 C 的 `&& (… || …)` 分组（§3l 之后的 4.960）。
+
+第 3 条的教训写进了 `PORTING.md` P-321：token 门只比较标识符与数字，**标点与括号不进序列**，
+所以括号重排不可能被它报红 —— 这是已知盲区，留给全面验收阶段处理。
+
+## 4. 仍然存在的（不影响上面的结论）
+
+- 模拟器每次都要冷启动（`-no-snapshot-save`），单轮验收约 2–3 分钟；
+- 宿主可用内存低于约 1 GiB 时模拟器会 `Abort trap: 6`（本轮踩过两次），脚本改为固定
+  `-port 5560` 并在同一进程内完成全部步骤（后台启动的模拟器会随调用 shell 一起退出）。
 
 ## 5. 复现命令
 
 ```
+./tools/android-accept.sh                    # 渲染 / 输入 / 存活 三元组
 ./tools/android-input-probe.sh threads|bt|probes|key|tap|rotate|insert-rotate|signal|focus|applog
 # 探针补丁：docs/baseline/probe-4953-4960.patch（git apply 后先 build-one 再 link-shared）
 ```
