@@ -92,6 +92,10 @@ run_row "gen-charsets" python3 tools/gen-charsets.py
 say "row 5: the verbatim trees"
 if python3 tools/check-verbatim.py 2>&1 | tail -1 | grep -q '0 failures'; then row "check-verbatim" ok; else row "check-verbatim" FAIL; fail=1; fi
 
+say "behavioral parity"
+run_row "fault-injection (19 cases)" python3 tools/check-fault-injection.py
+run_row "diff-fuzz (60 programs)" python3 tools/check-diff-fuzz.py --programs 60 --seed 20261021
+
 say "row 6: the authorised platforms"
 if [ "$FULL" = 1 ]; then
   run_row "check-authorized-platforms" bash tools/check-authorized-platforms.sh
