@@ -141,6 +141,15 @@ fn unit_codegen_flags () -> Vec<String>
   // tables, so a tombstone can only name the enclosing function (`llvm-addr2line` prints the
   // cgu and line 0).  Turning them on for one unit turns a crash address into a source line,
   // which is what the Android start-up and input hunts need; the frozen flags keep them off.
+  // Code-generation-only diagnostic: `FEMACS_TARGET_CPU=native` asks LLVM for the
+  // host CPU's feature set.  It changes no logic and is never part of the default build;
+  // a performance candidate must be built and measured as its own phase.
+  if let Some (v) = std::env::var ("FEMACS_TARGET_CPU").ok ().filter (|v| ! v.is_empty ())
+    {
+      out.push ("-C".to_string ());
+      out.push (format! ("target-cpu={v}"));
+      println!("unit codegen: -C target-cpu={v} (FEMACS_TARGET_CPU)");
+    }
   if std::env::var ("FEMACS_DEBUGINFO").map (|v| ! v.is_empty () && v != "0").unwrap_or (false)
     {
       out.push ("-C".to_string ());

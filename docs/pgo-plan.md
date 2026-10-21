@@ -211,7 +211,7 @@ pdumper 自身按指纹拒绝错配。两者都不改变 pdumper 语义，也不
 - 训练只用 `build/pgo/generate/profiles/train/` 的 1 个 `.profraw`（738,496 B）；gate/dump
   的 profile 从未 merge。匹配工具链的 `llvm-profdata`（nightly-2026-10-01 llvm-tools）
   合并出 861,776 B 的 `merged.profdata`；use 阶段以它构建并 dump。
-- 原始样本/汇总保存在 `docs/baseline/pgo-20261021/{raw,summary,rounds}.tsv`（7 轮，
+- 原始样本/汇总保存在 `docs/baseline/pgo-20261021/{raw-pgo,summary-pgo,rounds}.tsv`（7 轮，
   每轮内 min-of-5；median/MAD/IQR 见 summary）。
 - 相对 O2 的 median 比值：`bc-loop 0.790`、`bc-sum 0.903`、`bc-car 0.802`、
   `regexp-repl 0.852`、`buffer-scan 0.868`、`sort-100k 0.847`、`startup 0.969`、
@@ -219,3 +219,11 @@ pdumper 自身按指纹拒绝错配。两者都不改变 pdumper 语义，也不
 - 相对参照仍为：bytecode 1.27–1.47×、load 2.04×、其余 0.79–1.05×；因此 DoD-7 仍未追平，
   PGO 作为可靠候选记录，但**不自动启用默认构建**，默认 O2 保持。10% 不是门槛，本轮也不据此
   宣称 DoD-7 达标。
+
+## `target-cpu=native` A/B（2026-10-21，已否证）
+
+在 PGO 之上仅增加 `-C target-cpu=native`（纯代码生成，不改逻辑）重建 `use` 阶段并测 7 轮：
+`bc-loop 2.595 ms`（PGO 2.600）、`bc-sum 5.674`（5.610）、`bc-car 2.590`（2.601），其余项
+差异同样在离散度内；相对参照仍 `bc-loop 1.46×`、`bc-sum 1.29×`、`bc-car 1.46×`。
+⇒ **无可复现净收益，丢弃该候选**，默认 O2 与 PGO 候选均不变。证据：
+`docs/baseline/pgo-20261021/{summary-native,raw-native,rounds-native}.tsv`。
