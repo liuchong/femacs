@@ -53,9 +53,15 @@ prepare || { echo "verify-dod: the environment could not be prepared"; exit 2; }
 # source change, so smoke, differential and bench all reported on code that had already been
 # replaced (status 4.990).  Checked here, once, instead of trusting whoever ran the build.
 if [ -f build/port/src/emacs ]; then
-  newer=$(find femacs/src femacs/lib -name '*.rs' -newer build/port/src/emacs 2>/dev/null | head -1)
+  # `config.rs` is a generated mirror that the platform gate restores byte-identically; its mtime
+  # then moves without a source change.  A modified config.rs is still a real rebuild trigger.
+  newer=$(find femacs/src femacs/lib -name '*.rs' ! -path '*/include/config.rs' -newer build/port/src/emacs 2>/dev/null | head -1)
   if [ -n "$newer" ]; then
     row "port binary newer than sources" "STALE ($newer is newer)"
+    echo "    rebuild: xtask gate-load, then xtask dump"
+    fail=1
+  elif ! git diff --quiet -- femacs/src/include/config.rs; then
+    row "port binary newer than sources" "STALE (femacs/src/include/config.rs is modified)"
     echo "    rebuild: xtask gate-load, then xtask dump"
     fail=1
   else
