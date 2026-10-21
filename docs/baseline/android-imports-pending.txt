@@ -10,8 +10,6 @@ backtrace
 backtrace_symbols_fd
 freeifaddrs
 getifaddrs
-getloadavg
-mkostemp
 stderr
 stdin
 stdout

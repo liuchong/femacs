@@ -11,7 +11,9 @@
 // pointer forms are dead.  Every other platform arm is dead and is *named* at its site
 // below (P-51): C 377-381 `NO_GET_LOAD_AVG`, C 384-427 `HAVE_LIBKSTAT`,
 // C 430-446 `hpux && HAVE_PSTAT_GETDYNAMIC`, C 448-461 `HAVE_LIBPERFSTAT`,
-// C 464-478 `__linux__`/`__ANDROID__`'s `sysinfo`, C 481-531 `__CYGWIN__`,
+// C 464-478 `__linux__`/`__ANDROID__`'s `sysinfo` is dead on darwin but **live on Android**
+// (minSdk 21 satisfies `13 <= __ANDROID_API__`) and is transcribed under `have_android`
+// below; the BSD/nlist arm stays the darwin arm.  C 481-531 `__CYGWIN__`,
 // C 534-571 `__NetBSD__`, C 574-607 `NeXT`, C 610-675 `UMAX`, C 678-692 `DGUX`,
 // C 695-717 `apollo`, C 720-728 `OSF_MIPS`, C 731-739 `__MSDOS__ || WINDOWS32`,
 // C 742-782 `__VMS`, plus C 816-820 `FIXUP_KERNEL_SYMBOL_ADDR` (sgi/mips) and
@@ -48,12 +50,15 @@
    answers are in the arm list above; the macros this file *defines* are at the bottom.  */
 
 
-/* The frozen configuration does not compile this file, so every item below carries the file's
-   own gate, `#[cfg (feature = "no_getloadavg")]` (`femacs/xtask/Cargo.toml`; P-86 clause 8): the
-   reference's `build/emacs-ref/src/config.h` has `HAVE_GETLOADAVG 1` and
+/* The frozen darwin configuration does not compile this file, so every item below carries the
+   file's own gate, `#[cfg (feature = "not_have_getloadavg")]`: the reference's darwin
+   `build/emacs-ref/src/config.h` has `HAVE_GETLOADAVG 1` and
    `build/emacs-ref/lib/Makefile`/`libgnu.a` name no member for `lib/getloadavg.c` - the system
-   provides the function, so gnulib's module is not part of the build.  The gate is what keeps the
-   port's object the empty shape C's link sees.  It is not cosmetic: this file is gnulib's *own*
+   provides the function, so gnulib's module is not part of the build.  Android's configuration
+   has `HAVE_GETLOADAVG` undefined, so there the gate is true and the unit is live; the key is the
+   one `config_features()` actually emits (`not_have_getloadavg`, P-312), not the historical
+   `no_getloadavg` name.  On darwin the gate keeps the port's object the empty shape C's link sees.
+   It is not cosmetic: this file is gnulib's *own*
    `getloadavg` (the module is used only where the system lacks one), so an ungated object defines
    the unprefixed name, which the program's own objects reference - it shadows libSystem's and
    pulls in `nlist` (measured 2026-10-16: the whole-program link's only undefined symbol was
@@ -72,6 +77,10 @@ include!("include/unistd.in.rs");
 include!("include/errno.rs");
 include!("include/string.rs");     // <string.h> (`strcpy`)
 include!("include/a_out.rs");      // <a.out.h> (`struct nlist`, `nlist`)
+#[cfg (feature = "have_android")]
+include!("include/sys_sysinfo.rs"); // <sys/sysinfo.h> (`struct sysinfo`, `sysinfo`)
+#[cfg (feature = "have_android")]
+const SI_LOAD_SHIFT: c_int = 16;   // <linux/sysinfo.h> 10: `#define SI_LOAD_SHIFT 16`
 
 /* C 88-98's includes: <config.h>, <stdlib.h>, <errno.h>, <stdio.h>, <sys/types.h>,
    <sys/param.h> (HAVE_SYS_PARAM_H) and "intprops.h" are the mirrors above except that
@@ -86,19 +95,19 @@ include!("include/a_out.rs");      // <a.out.h> (`struct nlist`, `nlist`)
 
 /// <sys/param.h>: `# define FSHIFT 11` (measured on the frozen target; the frozen macro
 /// table records `FSHIFT	11`).
-#[cfg (feature = "no_getloadavg")]
+#[cfg (feature = "not_have_getloadavg")]
 const FSHIFT: c_int = 11;
 
 /// <sys/param.h>: `# define FSCALE (1 << FSHIFT)`.  C's `FSCALE` is an `int` constant that
 /// `LDAV_CVT` divides a `double` by.
-#[cfg (feature = "no_getloadavg")]
+#[cfg (feature = "not_have_getloadavg")]
 const FSCALE: c_int = 1 << FSHIFT;
 
 /* C 226's `# define LOAD_AVE_TYPE double`, reached through C 225's
    `#if !defined (LOAD_AVE_TYPE) && (defined (BSD) || …)`: the type name is a macro in C, so
    the port keeps it as one (the `struct_stat64` shape lib/tempname.rs uses) and every use
    site spells `LOAD_AVE_TYPE! ()`.  */
-#[cfg (feature = "no_getloadavg")]
+#[cfg (feature = "not_have_getloadavg")]
 macro_rules! LOAD_AVE_TYPE {
   () => { c_double };
 }
@@ -106,14 +115,14 @@ macro_rules! LOAD_AVE_TYPE {
 /* C 249's `# define KERNEL_FILE "/vmunix"` and C 253's `# define LDAV_SYMBOL "_avenrun"`
    (C 246/252's `#ifndef` guards are taken because neither macro is predefined here).  The
    port keeps the two names as the C strings the `nlist`/`strcpy` calls pass.  */
-#[cfg (feature = "no_getloadavg")]
+#[cfg (feature = "not_have_getloadavg")]
 const KERNEL_FILE: &core::ffi::CStr = c"/vmunix";
-#[cfg (feature = "no_getloadavg")]
+#[cfg (feature = "not_have_getloadavg")]
 const LDAV_SYMBOL: &core::ffi::CStr = c"_avenrun";
 
 /* C 192's `# define LDAV_CVT(n) (((double) (n)) / FSCALE)`, from C 191's
    `#if !defined (LDAV_CVT) && defined (FSCALE)`.  */
-#[cfg (feature = "no_getloadavg")]
+#[cfg (feature = "not_have_getloadavg")]
 macro_rules! LDAV_CVT {
   ($n:expr) => { (($n) as c_double) / (FSCALE as c_double) };
 }
@@ -123,9 +132,9 @@ macro_rules! LDAV_CVT {
    443, 457, 476, 487, 490, 573, 608, 675, 693, 718, 741, 783, 785, 881 and 889 test or set
    `LDAV_DONE`; the frozen configuration's answers are the arm list in the header note).  The
    port keeps both names (the inventory requires them) as nullary macros.  */
-#[cfg (feature = "no_getloadavg")]
+#[cfg (feature = "not_have_getloadavg")]
 macro_rules! LDAV_DONE { () => {} }
-#[cfg (feature = "no_getloadavg")]
+#[cfg (feature = "not_have_getloadavg")]
 macro_rules! LDAV_PRIVILEGED { () => {} }
 
 /* C 336-360: "Avoid static vars inside a function since in HPUX they dump as pure."  The
@@ -134,13 +143,13 @@ macro_rules! LDAV_PRIVILEGED { () => {} }
    (`default_set`), UMAX (`cpus`, `samples`), DGUX (`load_info`) and SUNOS_5 (`kd`) statics
    are in dead arms.  C's internal-linkage `static` → Rust statics that are neither `pub` nor
    `#[unsafe(no_mangle)]` (PORTING.md 0.2).  */
-#[cfg (feature = "no_getloadavg")]
+#[cfg (feature = "not_have_getloadavg")]
 static mut channel: c_int = 0;
-#[cfg (feature = "no_getloadavg")]
+#[cfg (feature = "not_have_getloadavg")]
 static mut getloadavg_initialized: bool = false;
-#[cfg (feature = "no_getloadavg")]
+#[cfg (feature = "not_have_getloadavg")]
 static mut offset: c_long = 0;
-#[cfg (feature = "no_getloadavg")]
+#[cfg (feature = "not_have_getloadavg")]
 static mut name_list: [nlist; 2] = [nlist { n_name: [0; NCPLN], n_type: 0, n_other: 0,
                                              n_desc: 0, n_value: 0 }; 2];
 
@@ -148,7 +157,7 @@ static mut name_list: [nlist; 2] = [nlist { n_name: [0; NCPLN], n_type: 0, n_oth
    into the first NELEM elements of LOADAVG.
    Return the number written (never more than 3, but may be less than NELEM),
    or -1 (setting errno) if an error occurred.  */
-#[cfg (feature = "no_getloadavg")]
+#[cfg (feature = "not_have_getloadavg")]
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn getloadavg (loadavg: *mut c_double, nelem: c_int) -> c_int
 {                                    /* C 375 */
@@ -173,8 +182,25 @@ pub unsafe extern "C" fn getloadavg (loadavg: *mut c_double, nelem: c_int) -> c_
      `// femacs:` note at the top of this file).  C 570's `errno = ENOSYS; elem = -1;` tail
      (C 892-895) is dead too, because C 881's arm defines `LDAV_DONE`.  */
 
-  /* C 785's arm is the live one: the UNIX path that reads the average out of /dev/kmem
-     (C 785-879).  C 790's `# define LDAV_PRIVILEGED` is the marker macro at the top.  */
+  /* C 464-478: `__linux__`/`__ANDROID__`'s `sysinfo` arm.  The Android configuration has
+     `__ANDROID_API__` >= 13, so C takes this arm and defines `LDAV_DONE`, which skips the
+     BSD/nlist block below.  */
+  #[cfg (feature = "have_android")]
+  {
+    let mut info: sysinfo = std::mem::zeroed ();
+    if sysinfo (&raw mut info) < 0
+      { return -1; }
+    loadavg.add (0).write (info.loads[0] as c_double / (1u32 << SI_LOAD_SHIFT) as c_double);
+    loadavg.add (1).write (info.loads[1] as c_double / (1u32 << SI_LOAD_SHIFT) as c_double);
+    loadavg.add (2).write (info.loads[2] as c_double / (1u32 << SI_LOAD_SHIFT) as c_double);
+    elem = 3;
+  }
+
+  #[cfg (not (feature = "have_android"))]
+  {
+  /* C 785's arm is the live one on darwin: the UNIX path that reads the average out of
+     /dev/kmem (C 785-879).  C 790's `# define LDAV_PRIVILEGED` is the marker macro at the
+     top.  */
   if offset == 0                              /* C 793 */
     {
       /* C 795's `#if ! defined NLIST_STRUCT || ! defined N_NAME_POINTER` is the live arm:
@@ -254,6 +280,7 @@ pub unsafe extern "C" fn getloadavg (loadavg: *mut c_double, nelem: c_int) -> c_
       *loadavg.add (elem as usize) = LDAV_CVT! (load_ave[2]);
       elem += 1;
     }
+  }
 
   return elem;                                /* C 896 */
 }                                             /* C 897 */

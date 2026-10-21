@@ -39,6 +39,7 @@ lib/fstatat.c
 lib/fsusage.c
 lib/futimens.c
 lib/get-permissions.c
+lib/getloadavg.c
 lib/getopt.c
 lib/getopt1.c
 lib/getrandom.c
@@ -60,6 +61,7 @@ lib/memmem.c
 lib/mempcpy.c
 lib/memrchr.c
 lib/memset_explicit.c
+lib/mkostemp.c
 lib/mini-gmp-gnulib.c
 lib/mktime.c
 lib/nanosleep.c
