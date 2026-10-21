@@ -2564,6 +2564,15 @@ pub extern \"C\" fn rust_eh_personality () {}\n";
 /// Measured 2026-10-16: this is what `etc/DOC` needs - the reference's DOC rule (src/Makefile.in
 /// 663-668) runs `make-docfile -d srcdir <objects> > etc/DOC`, and the port's loadup dies in
 /// `Snarf-documentation "DOC"` without it.
+/// Apple's `ar`, by absolute path: the executor's PATH can put a GNU `ar` first, and the
+/// Darwin linker rejects the resulting archive (its members are not BSD `#1/` long names and
+/// the modern linker refuses them as "not 8-byte aligned").
+fn ar_cmd () -> Command
+{
+  if Path::new ("/usr/bin/ar").is_file () { Command::new ("/usr/bin/ar") }
+  else { Command::new ("ar") }
+}
+
 fn link_program(rel: Option<&String>) -> i32 {
     let Some(rel) = rel else {
         return fail("link-program needs a reference C file, e.g. lib-src/make-docfile.c");
@@ -2604,7 +2613,7 @@ fn link_program(rel: Option<&String>) -> i32 {
     let archive = load.join("libgnu-program.a");
     let archive = archive.display().to_string();
     let _ = fs::remove_file(&archive);
-    let mut ar = Command::new("ar");
+    let mut ar = ar_cmd();
     ar.args(["crs", archive.as_str()]);
     for l in &libs {
         ar.arg(l);
@@ -2875,7 +2884,7 @@ fn write_pair_manifest(src: &Path) -> Result<(), String> {
             return Err(format!("cannot hash missing {}", f.display()));
         }
     }
-    let mut cmd = Command::new("shasum");
+    let mut cmd = Command::new(if Path::new("/usr/bin/shasum").is_file() { "/usr/bin/shasum" } else { "shasum" });
     cmd.args(["-a", "256"]);
     for f in &files {
         cmd.arg(f);
@@ -3043,7 +3052,7 @@ fn gate_load(arg: Option<&str>) -> i32 {
     // demand are the ratchet's business below, not a reason to drop their text from the link.
     let archive = load.join("libgnu-port.a");
     let _ = fs::remove_file(&archive);
-    let mut ar = Command::new("ar");
+    let mut ar = ar_cmd();
     ar.arg("crs").arg(&archive);
     for l in &libs {
         ar.arg(l);

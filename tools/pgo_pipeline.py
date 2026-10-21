@@ -16,7 +16,9 @@ controlled-run executor in the centralized pass; this script only sequences them
 """
 import argparse
 import glob
+import glob
 import os
+import pwd
 import shutil
 import subprocess
 import sys
@@ -53,22 +55,37 @@ def xtask(command, root=None, pgo=None):
 
 def llvm_profdata():
     candidates = []
+    # The executor may replace HOME, so expanduser("~") can point at a nonexistent tree.
+    # Resolve the login home as well; the profile format follows the toolchain that
+    # compiled the objects, not whatever system llvm-profdata happens to be first.
+    home = os.path.expanduser("~")
+    if not os.path.isfile(os.path.join(home, ".cargo", "bin", "rustc")):
+        try:
+            home = pwd.getpwuid(os.getuid()).pw_dir
+        except KeyError:
+            pass
+    rustc = os.path.join(home, ".cargo", "bin", "rustc")
+    if not os.path.isfile(rustc):
+        rustc = shutil.which("rustc") or "rustc"
     try:
-        sysroot = subprocess.check_output(["rustc", "--print", "sysroot"], text=True).strip()
+        sysroot = subprocess.check_output([rustc, "--print", "sysroot"], text=True, cwd=FEMACS).strip()
         host = ""
-        for line in subprocess.check_output(["rustc", "-vV"], text=True).splitlines():
+        for line in subprocess.check_output([rustc, "-vV"], text=True, cwd=FEMACS).splitlines():
             if line.startswith("host:"):
                 host = line.split(":", 1)[1].strip()
         if host:
             candidates.append(os.path.join(sysroot, "lib", "rustlib", host, "bin", "llvm-profdata"))
     except (OSError, subprocess.SubprocessError):
         pass
+    candidates += sorted(glob.glob(os.path.join(
+        home, ".rustup", "toolchains", "*", "lib", "rustlib", "*", "bin", "llvm-profdata")))
     candidates += [
         "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/llvm-profdata",
         "/opt/homebrew/opt/llvm/bin/llvm-profdata",
     ]
     for path in candidates:
         if os.path.isfile(path) and os.access(path, os.X_OK):
+            print(f"llvm-profdata: {path}", flush=True)
             return path
     found = shutil.which("llvm-profdata")
     if found:

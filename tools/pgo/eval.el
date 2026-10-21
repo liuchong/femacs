@@ -17,7 +17,7 @@
          ,@body
          (let ((dt (- (float-time) t0)))
            (setq best (if best (min best dt) dt)))))
-     (message "%s %-12s %8.4f ms" ,kind ,label (* 1000 best))))
+     (message "%s %-12s %8.4f ms" ,kind (quote ,label) (* 1000 best))))
 
 (defun pgo-eval-text ()
   (mapconcat (lambda (i) (format "row %d: delta epsilon zeta\n" i))

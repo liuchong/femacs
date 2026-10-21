@@ -203,3 +203,19 @@ pdumper 自身按指纹拒绝错配。两者都不改变 pdumper 语义，也不
   PGO 阶段自身的 `gate-load` 已含链接检查与 coding-eol 对照，`dump` 成功是硬条件。
 - 判定：只有全部正确性项通过、且相对 O2 的净改善超过测量离散度、无关键任务回退时，
   PGO 才作为候选记录；否则保留 O2、DoD-7 如实记未达。10% 不是门槛。
+
+## 集中验证结果（2026-10-21，7 轮）
+
+- O2 / generate / use 三阶段均完成：`gate-load` 0 undefined、coding-eol 15/15、dump 成功；
+  每个阶段的 `pair.sha256`、指纹占位消失、`codesign --verify` 与 batch smoke 全部通过。
+- 训练只用 `build/pgo/generate/profiles/train/` 的 1 个 `.profraw`（738,496 B）；gate/dump
+  的 profile 从未 merge。匹配工具链的 `llvm-profdata`（nightly-2026-10-01 llvm-tools）
+  合并出 861,776 B 的 `merged.profdata`；use 阶段以它构建并 dump。
+- 原始样本/汇总保存在 `docs/baseline/pgo-20261021/{raw,summary,rounds}.tsv`（7 轮，
+  每轮内 min-of-5；median/MAD/IQR 见 summary）。
+- 相对 O2 的 median 比值：`bc-loop 0.790`、`bc-sum 0.903`、`bc-car 0.802`、
+  `regexp-repl 0.852`、`buffer-scan 0.868`、`sort-100k 0.847`、`startup 0.969`、
+  `load 0.888`、`edit 0.757`、`regex 0.835`、`gc 0.843`；11 项全部不慢于 O2。
+- 相对参照仍为：bytecode 1.27–1.47×、load 2.04×、其余 0.79–1.05×；因此 DoD-7 仍未追平，
+  PGO 作为可靠候选记录，但**不自动启用默认构建**，默认 O2 保持。10% 不是门槛，本轮也不据此
+  宣称 DoD-7 达标。
