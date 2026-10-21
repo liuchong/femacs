@@ -1,0 +1,93 @@
+<repo>/femacs/platform/macos/nsxwidget.swift:360:42: warning: cast from 'UnsafeMutableRawPointer?' to unrelated type 'NSView' always fails
+358 |   /// C 224-232.
+359 |   override func mouseDown(with event: NSEvent) {
+360 |     (xw!.pointee.xv!.pointee.emacswindow as? NSView)?.mouseDown(with: event)
+    |                                          `- warning: cast from 'UnsafeMutableRawPointer?' to unrelated type 'NSView' always fails
+361 |     super.mouseDown(with: event)
+362 |   }
+
+<repo>/femacs/platform/macos/nsxwidget.swift:366:42: warning: cast from 'UnsafeMutableRawPointer?' to unrelated type 'NSView' always fails
+364 |   /// C 234-238.
+365 |   override func mouseUp(with event: NSEvent) {
+366 |     (xw!.pointee.xv!.pointee.emacswindow as? NSView)?.mouseUp(with: event)
+    |                                          `- warning: cast from 'UnsafeMutableRawPointer?' to unrelated type 'NSView' always fails
+367 |     super.mouseUp(with: event)
+368 |   }
+
+<repo>/femacs/platform/macos/nsxwidget.swift:380:70: warning: cast from 'UnsafeMutableRawPointer?' to unrelated type 'NSView' always fails
+378 |     let value = buffer_local_value(variable, Fcurrent_buffer())
+379 |     if !EQ(value, Qunbound()) && !EQ(value, Qnil()) {
+380 |       window?.makeFirstResponder(xw!.pointee.xv!.pointee.emacswindow as? NSView)
+    |                                                                      `- warning: cast from 'UnsafeMutableRawPointer?' to unrelated type 'NSView' always fails
+381 |       (xw!.pointee.xv!.pointee.emacswindow as? NSView)?.keyDown(with: event)
+382 |       return
+
+<repo>/femacs/platform/macos/nsxwidget.swift:381:44: warning: cast from 'UnsafeMutableRawPointer?' to unrelated type 'NSView' always fails
+379 |     if !EQ(value, Qunbound()) && !EQ(value, Qnil()) {
+380 |       window?.makeFirstResponder(xw!.pointee.xv!.pointee.emacswindow as? NSView)
+381 |       (xw!.pointee.xv!.pointee.emacswindow as? NSView)?.keyDown(with: event)
+    |                                            `- warning: cast from 'UnsafeMutableRawPointer?' to unrelated type 'NSView' always fails
+382 |       return
+383 |     }
+
+<repo>/femacs/platform/macos/nsxwidget.swift:386:39: warning: expression implicitly coerced from 'URL?' to 'Any'
+384 |
+385 |     /* Emacs handles keyboard events when javascript is blocked.  */
+386 |     if let blocked = urlScriptBlocked[url] as? NSNumber, blocked.boolValue {
+    |                                       |- warning: expression implicitly coerced from 'URL?' to 'Any'
+    |                                       |- note: provide a default value to avoid this warning
+    |                                       |- note: force-unwrap the value to avoid this warning
+    |                                       `- note: explicitly cast to 'Any' with 'as Any' to silence this warning
+387 |       (xw!.pointee.xv!.pointee.emacswindow as? NSView)?.keyDown(with: event)
+388 |       return
+
+<repo>/femacs/platform/macos/nsxwidget.swift:387:44: warning: cast from 'UnsafeMutableRawPointer?' to unrelated type 'NSView' always fails
+385 |     /* Emacs handles keyboard events when javascript is blocked.  */
+386 |     if let blocked = urlScriptBlocked[url] as? NSNumber, blocked.boolValue {
+387 |       (xw!.pointee.xv!.pointee.emacswindow as? NSView)?.keyDown(with: event)
+    |                                            `- warning: cast from 'UnsafeMutableRawPointer?' to unrelated type 'NSView' always fails
+388 |       return
+389 |     }
+
+<repo>/femacs/platform/macos/nsxwidget.swift:394:51: warning: cast from 'UnsafeMutableRawPointer?' to unrelated type 'NSView' always fails
+392 |       if error != nil {
+393 |         NSLog("xwHasFocus: %@", String(describing: error))
+394 |         (self.xw!.pointee.xv!.pointee.emacswindow as? NSView)?.keyDown(with: event)
+    |                                                   `- warning: cast from 'UnsafeMutableRawPointer?' to unrelated type 'NSView' always fails
+395 |       } else if let result = result as? NSNumber {
+396 |         /* __NSCFBoolean */
+
+<repo>/femacs/platform/macos/nsxwidget.swift:398:53: warning: cast from 'UnsafeMutableRawPointer?' to unrelated type 'NSView' always fails
+396 |         /* __NSCFBoolean */
+397 |         if !result.boolValue {
+398 |           (self.xw!.pointee.xv!.pointee.emacswindow as? NSView)?.keyDown(with: event)
+    |                                                     `- warning: cast from 'UnsafeMutableRawPointer?' to unrelated type 'NSView' always fails
+399 |         } else {
+400 |           super.keyDown(with: event)
+
+<repo>/femacs/platform/macos/nsxwidget.swift:443:70: warning: cast from 'UnsafeMutableRawPointer?' to unrelated type 'NSView' always fails
+441 |       /* Just give up focus, no relay "C-g" to emacs, another "C-g"
+442 |          follows will be handled by emacs.  */
+443 |       window?.makeFirstResponder(xw!.pointee.xv!.pointee.emacswindow as? NSView)
+    |                                                                      `- warning: cast from 'UnsafeMutableRawPointer?' to unrelated type 'NSView' always fails
+444 |     }
+445 |   }
+
+<repo>/femacs/platform/macos/nsxwidget.swift:557:45: warning: expression implicitly coerced from 'URL?' to 'Any'
+555 |                                             _ fun: Lisp_Object) {
+556 |   guard let webView = xwWebView(xw), let xw = xw else { return }
+557 |   if let blocked = webView.urlScriptBlocked[webView.url] as? NSNumber, blocked.boolValue {
+    |                                             |       |- note: provide a default value to avoid this warning
+    |                                             |       |- note: force-unwrap the value to avoid this warning
+    |                                             |       `- note: explicitly cast to 'Any' with 'as Any' to silence this warning
+    |                                             `- warning: expression implicitly coerced from 'URL?' to 'Any'
+558 |     message("Javascript is blocked by 'CSP: sandbox'.")
+559 |     return
+
+<repo>/femacs/platform/macos/nsxwidget.swift:749:62: warning: conditional cast from 'XvWindow' to 'XvWindow' always succeeds
+747 | func nsxwidget_move_widget_in_view(_ xv: UnsafeMutablePointer<xwidget_view>?, _ x: Int32, _ y: Int32) {
+748 |   guard let xv = xv, let window = xv.pointee.xvWindow.flatMap({
+749 |     Unmanaged<XvWindow>.fromOpaque($0).takeUnretainedValue() as? XvWindow
+    |                                                              `- warning: conditional cast from 'XvWindow' to 'XvWindow' always succeeds
+750 |   }), let xww = window.xw else { return }
+751 |   (xww.pointee.xwWindow.flatMap {

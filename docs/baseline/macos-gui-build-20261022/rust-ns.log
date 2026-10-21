@@ -1,0 +1,605 @@
+config: 10 cfg feature(s) from ../../../build/macos-gui-20261022/ns-flags
+error[E0425]: cannot find value `geometry` in this scope
+    --> <repo>/build/macos-gui-20261022/rust/femacs/units/frame/_root.rs:7088:6
+     |
+7088 |   if geometry & XValue != 0
+     |      ^^^^^^^^ not found in this scope
+     |
+note: similarly named function `Qgeometry` defined here
+    --> <repo>/build/macos-gui-20261022/rust/femacs/units/frame/_repo_femacs_src_include_globals_rs.rs:2785:1
+     |
+2785 | pub fn Qgeometry () -> Lisp_Object { builtin_lisp_symbol (925) }
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+help: a function with a similar name exists
+     |
+7088 |   if Qgeometry & XValue != 0
+     |      +
+
+error[E0425]: cannot find value `geometry` in this scope
+    --> <repo>/build/macos-gui-20261022/rust/femacs/units/frame/_root.rs:7092:21
+     |
+7092 |       if x >= 0 && (geometry & XNegative) != 0
+     |                     ^^^^^^^^ not found in this scope
+     |
+note: similarly named function `Qgeometry` defined here
+    --> <repo>/build/macos-gui-20261022/rust/femacs/units/frame/_repo_femacs_src_include_globals_rs.rs:2785:1
+     |
+2785 | pub fn Qgeometry () -> Lisp_Object { builtin_lisp_symbol (925) }
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+help: a function with a similar name exists
+     |
+7092 |       if x >= 0 && (Qgeometry & XNegative) != 0
+     |                     +
+
+error[E0425]: cannot find value `geometry` in this scope
+    --> <repo>/build/macos-gui-20261022/rust/femacs/units/frame/_root.rs:7094:25
+     |
+7094 |       else if x < 0 && (geometry & XNegative) == 0
+     |                         ^^^^^^^^ not found in this scope
+     |
+note: similarly named function `Qgeometry` defined here
+    --> <repo>/build/macos-gui-20261022/rust/femacs/units/frame/_repo_femacs_src_include_globals_rs.rs:2785:1
+     |
+2785 | pub fn Qgeometry () -> Lisp_Object { builtin_lisp_symbol (925) }
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+help: a function with a similar name exists
+     |
+7094 |       else if x < 0 && (Qgeometry & XNegative) == 0
+     |                         +
+
+error[E0425]: cannot find value `geometry` in this scope
+    --> <repo>/build/macos-gui-20261022/rust/femacs/units/frame/_root.rs:7101:6
+     |
+7101 |   if geometry & YValue != 0
+     |      ^^^^^^^^ not found in this scope
+     |
+note: similarly named function `Qgeometry` defined here
+    --> <repo>/build/macos-gui-20261022/rust/femacs/units/frame/_repo_femacs_src_include_globals_rs.rs:2785:1
+     |
+2785 | pub fn Qgeometry () -> Lisp_Object { builtin_lisp_symbol (925) }
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+help: a function with a similar name exists
+     |
+7101 |   if Qgeometry & YValue != 0
+     |      +
+
+error[E0425]: cannot find value `geometry` in this scope
+    --> <repo>/build/macos-gui-20261022/rust/femacs/units/frame/_root.rs:7105:21
+     |
+7105 |       if y >= 0 && (geometry & YNegative) != 0
+     |                     ^^^^^^^^ not found in this scope
+     |
+note: similarly named function `Qgeometry` defined here
+    --> <repo>/build/macos-gui-20261022/rust/femacs/units/frame/_repo_femacs_src_include_globals_rs.rs:2785:1
+     |
+2785 | pub fn Qgeometry () -> Lisp_Object { builtin_lisp_symbol (925) }
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+help: a function with a similar name exists
+     |
+7105 |       if y >= 0 && (Qgeometry & YNegative) != 0
+     |                     +
+
+error[E0425]: cannot find value `geometry` in this scope
+    --> <repo>/build/macos-gui-20261022/rust/femacs/units/frame/_root.rs:7107:25
+     |
+7107 |       else if y < 0 && (geometry & YNegative) == 0
+     |                         ^^^^^^^^ not found in this scope
+     |
+note: similarly named function `Qgeometry` defined here
+    --> <repo>/build/macos-gui-20261022/rust/femacs/units/frame/_repo_femacs_src_include_globals_rs.rs:2785:1
+     |
+2785 | pub fn Qgeometry () -> Lisp_Object { builtin_lisp_symbol (925) }
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+help: a function with a similar name exists
+     |
+7107 |       else if y < 0 && (Qgeometry & YNegative) == 0
+     |                         +
+
+error[E0425]: cannot find value `geometry` in this scope
+    --> <repo>/build/macos-gui-20261022/rust/femacs/units/frame/_root.rs:7114:6
+     |
+7114 |   if geometry & WidthValue != 0
+     |      ^^^^^^^^ not found in this scope
+     |
+note: similarly named function `Qgeometry` defined here
+    --> <repo>/build/macos-gui-20261022/rust/femacs/units/frame/_repo_femacs_src_include_globals_rs.rs:2785:1
+     |
+2785 | pub fn Qgeometry () -> Lisp_Object { builtin_lisp_symbol (925) }
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+help: a function with a similar name exists
+     |
+7114 |   if Qgeometry & WidthValue != 0
+     |      +
+
+error[E0425]: cannot find value `geometry` in this scope
+    --> <repo>/build/macos-gui-20261022/rust/femacs/units/frame/_root.rs:7116:6
+     |
+7116 |   if geometry & HeightValue != 0
+     |      ^^^^^^^^ not found in this scope
+     |
+note: similarly named function `Qgeometry` defined here
+    --> <repo>/build/macos-gui-20261022/rust/femacs/units/frame/_repo_femacs_src_include_globals_rs.rs:2785:1
+     |
+2785 | pub fn Qgeometry () -> Lisp_Object { builtin_lisp_symbol (925) }
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+help: a function with a similar name exists
+     |
+7116 |   if Qgeometry & HeightValue != 0
+     |      +
+
+warning: unused doc comment
+   --> <repo>/build/macos-gui-20261022/rust/femacs/units/frame/_repo_femacs_src_include_dispextern_rs.rs:726:1
+    |
+726 | /// C: dispextern.h 143: `#include "nsgui.h"`
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ rustdoc does not generate documentation for macro invocations
+    |
+    = help: to document an item produced by a macro, the macro must produce the documentation as part of its expansion
+    = note: `#[warn(unused_doc_comments)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused doc comment
+   --> <repo>/build/macos-gui-20261022/rust/femacs/units/frame/_repo_femacs_lib_include_stdbit_in_rs.rs:646:1
+    |
+646 | / /// C 915-916: `/* 1 if supported, -1 if not, 0 if unknown.  */` / `extern signed char
+647 | | /// _gl_stdbit_popcount_support;` - the one file-scope object, which `src/`'s units and the
+648 | | /// popcount helpers read.
+649 | | /// C: extern signed char _gl_stdbit_popcount_support;
+...   |
+652 | | /// name `c_schar`, so a bare `c_schar` here would be `E0425` in the single-crate layout probe
+653 | | /// (measured), while `core::ffi::c_schar` is the same type and needs no scope.
+    | |_______________________________________________________________________________^
+654 | / unsafe extern "C" {
+655 | |   pub static mut _gl_stdbit_popcount_support: core::ffi::c_schar;
+656 | | }
+    | |_- rustdoc does not generate documentation for extern blocks
+    |
+    = help: use `//` for a plain comment
+
+warning: unused doc comment
+    --> <repo>/build/macos-gui-20261022/rust/femacs/units/frame/_repo_femacs_src_include_lisp_rs.rs:4225:5
+     |
+4225 | /     /// C: `extern struct kboard *echo_kboard;` (lisp.h 5081).  `struct kboard`'s definition is
+4226 | |     /// keyboard.h's and this mirror cannot name it (a unit that includes lisp.h need not include
+4227 | |     /// keyboard.h, exactly as in C, where the tag is incomplete here); the pointer is therefore
+4228 | |     /// the untyped one the port uses for incomplete targets, and `keyboard.rs` says where the
+4229 | |     /// definition is (PORTING.md P-72).
+     | |________________________________________^
+4230 |       unsafe extern "C" { pub static mut echo_kboard: *mut c_void; }
+     |       -------------------------------------------------------------- rustdoc does not generate documentation for extern blocks
+     |
+     = help: use `//` for a plain comment
+
+warning: unused doc comment
+   --> <repo>/build/macos-gui-20261022/rust/femacs/units/frame/_repo_femacs_src_include_nsterm_rs.rs:104:1
+    |
+104 | / /// C: extern volatile int nstrace_num;
+105 | | /// C: extern volatile int nstrace_depth;
+106 | | /// C: extern volatile int nstrace_enabled_global;
+    | |__________________________________________________^
+107 |   #[cfg (feature = "have_ns")]
+108 | / unsafe extern "C" {
+109 | |   pub static mut nstrace_num: c_int;
+110 | |   pub static mut nstrace_depth: c_int;
+111 | |   pub static mut nstrace_enabled_global: c_int;
+...   |
+117 | |   pub fn nstrace_fullscreen_type_name (state: c_int) -> *const c_char;
+118 | | }
+    | |_- rustdoc does not generate documentation for extern blocks
+    |
+    = help: use `//` for a plain comment
+
+warning: unused doc comment
+   --> <repo>/build/macos-gui-20261022/rust/femacs/units/frame/_repo_femacs_src_include_nsterm_rs.rs:222:1
+    |
+222 | / /// C: nsterm.h 774: `extern NSArray *ns_send_types, *ns_return_types;`
+223 | | /// C: nsterm.h 775: `extern NSString *ns_app_name;`
+224 | | /// C: nsterm.h 776: `extern EmacsMenu *svcsMenu;`
+    | |__________________________________________________^
+225 |   #[cfg (feature = "have_ns")]
+226 | / unsafe extern "C" {
+227 | |   pub static mut ns_send_types: *mut c_void;
+228 | |   pub static mut ns_return_types: *mut c_void;
+229 | |   pub static mut ns_app_name: *mut c_void;
+230 | |   pub static mut svcsMenu: *mut c_void;
+231 | | }
+    | |_- rustdoc does not generate documentation for extern blocks
+    |
+    = help: use `//` for a plain comment
+
+warning: unused doc comment
+   --> <repo>/build/macos-gui-20261022/rust/femacs/units/frame/_repo_femacs_src_include_nsterm_rs.rs:405:1
+    |
+405 | / /// C: extern struct ns_display_info *x_display_list;
+406 | | /// C: extern long context_menu_value;
+    | |______________________________________^
+407 |   #[cfg (feature = "have_ns")]
+408 | / unsafe extern "C" {
+409 | |   pub static mut x_display_list: *mut ns_display_info;
+410 | |   pub static mut context_menu_value: c_long;
+411 | | }
+    | |_- rustdoc does not generate documentation for extern blocks
+    |
+    = help: use `//` for a plain comment
+
+warning: unused doc comment
+   --> <repo>/build/macos-gui-20261022/rust/femacs/units/frame/_repo_femacs_src_include_nsterm_rs.rs:675:1
+    |
+675 | / /// C 1108: `extern struct ns_display_info *ns_term_init (Lisp_Object display_name);`
+676 | | /// C 1109: `extern void ns_term_shutdown (int sig);`
+    | |_____________________________________________________^
+677 |   #[cfg (feature = "have_ns")]
+678 | / unsafe extern "C" {
+679 | |   pub fn ns_term_init (display_name: Lisp_Object) -> *mut ns_display_info;
+680 | |   pub fn ns_term_shutdown (sig: c_int);
+...   |
+779 | |   pub fn ns_free_frame_resources (f: *mut frame);
+780 | | }
+    | |_- rustdoc does not generate documentation for extern blocks
+    |
+    = help: use `//` for a plain comment
+
+warning: unused doc comment
+   --> <repo>/build/macos-gui-20261022/rust/femacs/units/frame/_repo_femacs_src_include_nsterm_rs.rs:793:1
+    |
+793 | / /// C 1190: `extern void ns_run_ascript (void);`
+794 | | /// C 1193: `extern void ns_run_file_dialog (void);`
+    | |____________________________________________________^
+795 |   #[cfg (feature = "have_ns")]
+796 | / unsafe extern "C" {
+797 | |   pub fn ns_run_ascript ();
+798 | |   pub fn ns_run_file_dialog ();
+799 | |   /// C 1195: `extern const char *ns_relocate (const char *epath);`
+...   |
+915 | |   pub fn mark_nsterm ();
+916 | | }
+    | |_- rustdoc does not generate documentation for extern blocks
+    |
+    = help: use `//` for a plain comment
+
+warning: unused doc comment
+   --> <repo>/build/macos-gui-20261022/rust/femacs/units/frame/_repo_femacs_src_include_nsterm_rs.rs:961:1
+    |
+961 | / /// C: extern float ns_antialias_threshold;
+962 | | /// C: extern frame_parm_handler ns_frame_parm_handlers[];
+    | |__________________________________________________________^
+963 |   #[cfg (feature = "have_ns")]
+964 | / unsafe extern "C" {
+965 | |   pub static mut ns_antialias_threshold: core::ffi::c_float;
+966 | |   pub static mut ns_frame_parm_handlers: [*mut c_void; 0];
+967 | | }
+    | |_- rustdoc does not generate documentation for extern blocks
+    |
+    = help: use `//` for a plain comment
+
+warning: unused attribute
+    --> <repo>/build/macos-gui-20261022/rust/femacs/units/frame/_repo_femacs_src_include_lisp_rs.rs:1402:1
+     |
+1402 | #[inline(always)]
+     | ^^^^^^^^^^^^^^^^^ help: remove this attribute
+     |
+note: attribute also specified here
+    --> <repo>/build/macos-gui-20261022/rust/femacs/units/frame/_repo_femacs_src_include_lisp_rs.rs:1401:1
+     |
+1401 | #[inline(always)]
+     | ^^^^^^^^^^^^^^^^^
+     = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+     = note: `#[warn(unused_attributes)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused attribute
+    --> <repo>/build/macos-gui-20261022/rust/femacs/units/frame/_repo_femacs_src_include_frame_rs.rs:1501:1
+     |
+1501 | #[inline(always)]
+     | ^^^^^^^^^^^^^^^^^ help: remove this attribute
+     |
+note: attribute also specified here
+    --> <repo>/build/macos-gui-20261022/rust/femacs/units/frame/_repo_femacs_src_include_frame_rs.rs:1496:1
+     |
+1496 | #[inline(always)]
+     | ^^^^^^^^^^^^^^^^^
+     = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+
+error: aborting due to 8 previous errors; 11 warnings emitted
+
+For more information about this error, try `rustc --explain E0425`.
+config: 10 cfg feature(s) from ../../../build/macos-gui-20261022/ns-flags
+error[E0425]: cannot find value `geometry` in this scope
+    --> <repo>/build/macos-gui-20261022/rust/femacs/units/frame/_root.rs:7088:6
+     |
+7088 |   if geometry & XValue != 0
+     |      ^^^^^^^^ not found in this scope
+     |
+note: similarly named function `Qgeometry` defined here
+    --> <repo>/build/macos-gui-20261022/rust/femacs/units/frame/_repo_femacs_src_include_globals_rs.rs:2785:1
+     |
+2785 | pub fn Qgeometry () -> Lisp_Object { builtin_lisp_symbol (925) }
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+help: a function with a similar name exists
+     |
+7088 |   if Qgeometry & XValue != 0
+     |      +
+
+error[E0425]: cannot find value `geometry` in this scope
+    --> <repo>/build/macos-gui-20261022/rust/femacs/units/frame/_root.rs:7092:21
+     |
+7092 |       if x >= 0 && (geometry & XNegative) != 0
+     |                     ^^^^^^^^ not found in this scope
+     |
+note: similarly named function `Qgeometry` defined here
+    --> <repo>/build/macos-gui-20261022/rust/femacs/units/frame/_repo_femacs_src_include_globals_rs.rs:2785:1
+     |
+2785 | pub fn Qgeometry () -> Lisp_Object { builtin_lisp_symbol (925) }
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+help: a function with a similar name exists
+     |
+7092 |       if x >= 0 && (Qgeometry & XNegative) != 0
+     |                     +
+
+error[E0425]: cannot find value `geometry` in this scope
+    --> <repo>/build/macos-gui-20261022/rust/femacs/units/frame/_root.rs:7094:25
+     |
+7094 |       else if x < 0 && (geometry & XNegative) == 0
+     |                         ^^^^^^^^ not found in this scope
+     |
+note: similarly named function `Qgeometry` defined here
+    --> <repo>/build/macos-gui-20261022/rust/femacs/units/frame/_repo_femacs_src_include_globals_rs.rs:2785:1
+     |
+2785 | pub fn Qgeometry () -> Lisp_Object { builtin_lisp_symbol (925) }
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+help: a function with a similar name exists
+     |
+7094 |       else if x < 0 && (Qgeometry & XNegative) == 0
+     |                         +
+
+error[E0425]: cannot find value `geometry` in this scope
+    --> <repo>/build/macos-gui-20261022/rust/femacs/units/frame/_root.rs:7101:6
+     |
+7101 |   if geometry & YValue != 0
+     |      ^^^^^^^^ not found in this scope
+     |
+note: similarly named function `Qgeometry` defined here
+    --> <repo>/build/macos-gui-20261022/rust/femacs/units/frame/_repo_femacs_src_include_globals_rs.rs:2785:1
+     |
+2785 | pub fn Qgeometry () -> Lisp_Object { builtin_lisp_symbol (925) }
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+help: a function with a similar name exists
+     |
+7101 |   if Qgeometry & YValue != 0
+     |      +
+
+error[E0425]: cannot find value `geometry` in this scope
+    --> <repo>/build/macos-gui-20261022/rust/femacs/units/frame/_root.rs:7105:21
+     |
+7105 |       if y >= 0 && (geometry & YNegative) != 0
+     |                     ^^^^^^^^ not found in this scope
+     |
+note: similarly named function `Qgeometry` defined here
+    --> <repo>/build/macos-gui-20261022/rust/femacs/units/frame/_repo_femacs_src_include_globals_rs.rs:2785:1
+     |
+2785 | pub fn Qgeometry () -> Lisp_Object { builtin_lisp_symbol (925) }
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+help: a function with a similar name exists
+     |
+7105 |       if y >= 0 && (Qgeometry & YNegative) != 0
+     |                     +
+
+error[E0425]: cannot find value `geometry` in this scope
+    --> <repo>/build/macos-gui-20261022/rust/femacs/units/frame/_root.rs:7107:25
+     |
+7107 |       else if y < 0 && (geometry & YNegative) == 0
+     |                         ^^^^^^^^ not found in this scope
+     |
+note: similarly named function `Qgeometry` defined here
+    --> <repo>/build/macos-gui-20261022/rust/femacs/units/frame/_repo_femacs_src_include_globals_rs.rs:2785:1
+     |
+2785 | pub fn Qgeometry () -> Lisp_Object { builtin_lisp_symbol (925) }
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+help: a function with a similar name exists
+     |
+7107 |       else if y < 0 && (Qgeometry & YNegative) == 0
+     |                         +
+
+error[E0425]: cannot find value `geometry` in this scope
+    --> <repo>/build/macos-gui-20261022/rust/femacs/units/frame/_root.rs:7114:6
+     |
+7114 |   if geometry & WidthValue != 0
+     |      ^^^^^^^^ not found in this scope
+     |
+note: similarly named function `Qgeometry` defined here
+    --> <repo>/build/macos-gui-20261022/rust/femacs/units/frame/_repo_femacs_src_include_globals_rs.rs:2785:1
+     |
+2785 | pub fn Qgeometry () -> Lisp_Object { builtin_lisp_symbol (925) }
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+help: a function with a similar name exists
+     |
+7114 |   if Qgeometry & WidthValue != 0
+     |      +
+
+error[E0425]: cannot find value `geometry` in this scope
+    --> <repo>/build/macos-gui-20261022/rust/femacs/units/frame/_root.rs:7116:6
+     |
+7116 |   if geometry & HeightValue != 0
+     |      ^^^^^^^^ not found in this scope
+     |
+note: similarly named function `Qgeometry` defined here
+    --> <repo>/build/macos-gui-20261022/rust/femacs/units/frame/_repo_femacs_src_include_globals_rs.rs:2785:1
+     |
+2785 | pub fn Qgeometry () -> Lisp_Object { builtin_lisp_symbol (925) }
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+help: a function with a similar name exists
+     |
+7116 |   if Qgeometry & HeightValue != 0
+     |      +
+
+warning: unused doc comment
+   --> <repo>/build/macos-gui-20261022/rust/femacs/units/frame/_repo_femacs_src_include_dispextern_rs.rs:726:1
+    |
+726 | /// C: dispextern.h 143: `#include "nsgui.h"`
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ rustdoc does not generate documentation for macro invocations
+    |
+    = help: to document an item produced by a macro, the macro must produce the documentation as part of its expansion
+    = note: `#[warn(unused_doc_comments)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused doc comment
+   --> <repo>/build/macos-gui-20261022/rust/femacs/units/frame/_repo_femacs_lib_include_stdbit_in_rs.rs:646:1
+    |
+646 | / /// C 915-916: `/* 1 if supported, -1 if not, 0 if unknown.  */` / `extern signed char
+647 | | /// _gl_stdbit_popcount_support;` - the one file-scope object, which `src/`'s units and the
+648 | | /// popcount helpers read.
+649 | | /// C: extern signed char _gl_stdbit_popcount_support;
+...   |
+652 | | /// name `c_schar`, so a bare `c_schar` here would be `E0425` in the single-crate layout probe
+653 | | /// (measured), while `core::ffi::c_schar` is the same type and needs no scope.
+    | |_______________________________________________________________________________^
+654 | / unsafe extern "C" {
+655 | |   pub static mut _gl_stdbit_popcount_support: core::ffi::c_schar;
+656 | | }
+    | |_- rustdoc does not generate documentation for extern blocks
+    |
+    = help: use `//` for a plain comment
+
+warning: unused doc comment
+    --> <repo>/build/macos-gui-20261022/rust/femacs/units/frame/_repo_femacs_src_include_lisp_rs.rs:4225:5
+     |
+4225 | /     /// C: `extern struct kboard *echo_kboard;` (lisp.h 5081).  `struct kboard`'s definition is
+4226 | |     /// keyboard.h's and this mirror cannot name it (a unit that includes lisp.h need not include
+4227 | |     /// keyboard.h, exactly as in C, where the tag is incomplete here); the pointer is therefore
+4228 | |     /// the untyped one the port uses for incomplete targets, and `keyboard.rs` says where the
+4229 | |     /// definition is (PORTING.md P-72).
+     | |________________________________________^
+4230 |       unsafe extern "C" { pub static mut echo_kboard: *mut c_void; }
+     |       -------------------------------------------------------------- rustdoc does not generate documentation for extern blocks
+     |
+     = help: use `//` for a plain comment
+
+warning: unused doc comment
+   --> <repo>/build/macos-gui-20261022/rust/femacs/units/frame/_repo_femacs_src_include_nsterm_rs.rs:104:1
+    |
+104 | / /// C: extern volatile int nstrace_num;
+105 | | /// C: extern volatile int nstrace_depth;
+106 | | /// C: extern volatile int nstrace_enabled_global;
+    | |__________________________________________________^
+107 |   #[cfg (feature = "have_ns")]
+108 | / unsafe extern "C" {
+109 | |   pub static mut nstrace_num: c_int;
+110 | |   pub static mut nstrace_depth: c_int;
+111 | |   pub static mut nstrace_enabled_global: c_int;
+...   |
+117 | |   pub fn nstrace_fullscreen_type_name (state: c_int) -> *const c_char;
+118 | | }
+    | |_- rustdoc does not generate documentation for extern blocks
+    |
+    = help: use `//` for a plain comment
+
+warning: unused doc comment
+   --> <repo>/build/macos-gui-20261022/rust/femacs/units/frame/_repo_femacs_src_include_nsterm_rs.rs:222:1
+    |
+222 | / /// C: nsterm.h 774: `extern NSArray *ns_send_types, *ns_return_types;`
+223 | | /// C: nsterm.h 775: `extern NSString *ns_app_name;`
+224 | | /// C: nsterm.h 776: `extern EmacsMenu *svcsMenu;`
+    | |__________________________________________________^
+225 |   #[cfg (feature = "have_ns")]
+226 | / unsafe extern "C" {
+227 | |   pub static mut ns_send_types: *mut c_void;
+228 | |   pub static mut ns_return_types: *mut c_void;
+229 | |   pub static mut ns_app_name: *mut c_void;
+230 | |   pub static mut svcsMenu: *mut c_void;
+231 | | }
+    | |_- rustdoc does not generate documentation for extern blocks
+    |
+    = help: use `//` for a plain comment
+
+warning: unused doc comment
+   --> <repo>/build/macos-gui-20261022/rust/femacs/units/frame/_repo_femacs_src_include_nsterm_rs.rs:405:1
+    |
+405 | / /// C: extern struct ns_display_info *x_display_list;
+406 | | /// C: extern long context_menu_value;
+    | |______________________________________^
+407 |   #[cfg (feature = "have_ns")]
+408 | / unsafe extern "C" {
+409 | |   pub static mut x_display_list: *mut ns_display_info;
+410 | |   pub static mut context_menu_value: c_long;
+411 | | }
+    | |_- rustdoc does not generate documentation for extern blocks
+    |
+    = help: use `//` for a plain comment
+
+warning: unused doc comment
+   --> <repo>/build/macos-gui-20261022/rust/femacs/units/frame/_repo_femacs_src_include_nsterm_rs.rs:675:1
+    |
+675 | / /// C 1108: `extern struct ns_display_info *ns_term_init (Lisp_Object display_name);`
+676 | | /// C 1109: `extern void ns_term_shutdown (int sig);`
+    | |_____________________________________________________^
+677 |   #[cfg (feature = "have_ns")]
+678 | / unsafe extern "C" {
+679 | |   pub fn ns_term_init (display_name: Lisp_Object) -> *mut ns_display_info;
+680 | |   pub fn ns_term_shutdown (sig: c_int);
+...   |
+779 | |   pub fn ns_free_frame_resources (f: *mut frame);
+780 | | }
+    | |_- rustdoc does not generate documentation for extern blocks
+    |
+    = help: use `//` for a plain comment
+
+warning: unused doc comment
+   --> <repo>/build/macos-gui-20261022/rust/femacs/units/frame/_repo_femacs_src_include_nsterm_rs.rs:793:1
+    |
+793 | / /// C 1190: `extern void ns_run_ascript (void);`
+794 | | /// C 1193: `extern void ns_run_file_dialog (void);`
+    | |____________________________________________________^
+795 |   #[cfg (feature = "have_ns")]
+796 | / unsafe extern "C" {
+797 | |   pub fn ns_run_ascript ();
+798 | |   pub fn ns_run_file_dialog ();
+799 | |   /// C 1195: `extern const char *ns_relocate (const char *epath);`
+...   |
+915 | |   pub fn mark_nsterm ();
+916 | | }
+    | |_- rustdoc does not generate documentation for extern blocks
+    |
+    = help: use `//` for a plain comment
+
+warning: unused doc comment
+   --> <repo>/build/macos-gui-20261022/rust/femacs/units/frame/_repo_femacs_src_include_nsterm_rs.rs:961:1
+    |
+961 | / /// C: extern float ns_antialias_threshold;
+962 | | /// C: extern frame_parm_handler ns_frame_parm_handlers[];
+    | |__________________________________________________________^
+963 |   #[cfg (feature = "have_ns")]
+964 | / unsafe extern "C" {
+965 | |   pub static mut ns_antialias_threshold: core::ffi::c_float;
+966 | |   pub static mut ns_frame_parm_handlers: [*mut c_void; 0];
+967 | | }
+    | |_- rustdoc does not generate documentation for extern blocks
+    |
+    = help: use `//` for a plain comment
+
+warning: unused attribute
+    --> <repo>/build/macos-gui-20261022/rust/femacs/units/frame/_repo_femacs_src_include_lisp_rs.rs:1402:1
+     |
+1402 | #[inline(always)]
+     | ^^^^^^^^^^^^^^^^^ help: remove this attribute
+     |
+note: attribute also specified here
+    --> <repo>/build/macos-gui-20261022/rust/femacs/units/frame/_repo_femacs_src_include_lisp_rs.rs:1401:1
+     |
+1401 | #[inline(always)]
+     | ^^^^^^^^^^^^^^^^^
+     = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+     = note: `#[warn(unused_attributes)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused attribute
+    --> <repo>/build/macos-gui-20261022/rust/femacs/units/frame/_repo_femacs_src_include_frame_rs.rs:1501:1
+     |
+1501 | #[inline(always)]
+     | ^^^^^^^^^^^^^^^^^ help: remove this attribute
+     |
+note: attribute also specified here
+    --> <repo>/build/macos-gui-20261022/rust/femacs/units/frame/_repo_femacs_src_include_frame_rs.rs:1496:1
+     |
+1496 | #[inline(always)]
+     | ^^^^^^^^^^^^^^^^^
+     = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+
+error: aborting due to 8 previous errors; 11 warnings emitted
+
+For more information about this error, try `rustc --explain E0425`.
+rustc failed for src/frame.rs with --cfg enable_checking (exit status: 1)

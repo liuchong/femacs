@@ -1,0 +1,17 @@
+<repo>/femacs/platform/macos/nsmenu.swift:1432:24: warning: 'configuration' was deprecated in macOS 15.0: Use -itemIdentifiers and -displayMode instead. [#DeprecatedDeclaration]
+1430 |   if toolbar.changed() {
+1431 |     /* Inform app that toolbar has changed.  */
+1432 |     let dict = toolbar.configuration
+     |                        `- warning: 'configuration' was deprecated in macOS 15.0: Use -itemIdentifiers and -displayMode instead. [#DeprecatedDeclaration]
+1433 |     var newDict = dict
+1434 |     for key in dict.keys {
+
+<repo>/femacs/platform/macos/nsmenu.swift:1441:13: warning: 'setConfiguration' was deprecated in macOS 15.0: Use -setItemIdentifiers: and -setDisplayMode: instead. [#DeprecatedDeclaration]
+1439 |       }
+1440 |     }
+1441 |     toolbar.setConfiguration(newDict)
+     |             `- warning: 'setConfiguration' was deprecated in macOS 15.0: Use -setItemIdentifiers: and -setDisplayMode: instead. [#DeprecatedDeclaration]
+1442 |   }
+1443 |
+
+[#DeprecatedDeclaration]: <https://docs.swift.org/compiler/documentation/diagnostics/deprecated-declaration>

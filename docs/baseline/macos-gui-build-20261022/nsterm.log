@@ -1,0 +1,219 @@
+<repo>/femacs/platform/macos/nsterm.swift:9206:14: warning: parameter of 'insertText(_:replacementRange:)' has different optionality than expected by protocol 'NSTextInputClient'
+ 9204 |   /// C 7435-7442: `- (void) insertText: (id) string replacementRange: (NSRange) replacementRange` -
+ 9205 |   /// the `NSTextInputClient` spelling, which unmarks and hands the string to the older method.
+ 9206 |   @objc func insertText(_ string: Any?, replacementRange: NSRange) {
+      |              `- warning: parameter of 'insertText(_:replacementRange:)' has different optionality than expected by protocol 'NSTextInputClient'
+ 9207 |     var s = string
+ 9208 |     if let attributed = string as? NSAttributedString {      // C 7438
+
+<SDK>/System/Library/Frameworks/AppKit.framework/Headers/NSTextInputClient.h:37:1: note: requirement 'insertText(_:replacementRange:)' declared here
+ 35 | /* The receiver inserts string replacing the content specified by replacementRange. string can be either an NSString or NSAttributedString instance.
+ 36 | */
+ 37 | - (void)insertText:(id)string replacementRange:(NSRange)replacementRange;
+    | `- note: requirement 'insertText(_:replacementRange:)' declared here
+ 38 |
+ 39 | /* The receiver invokes the action specified by selector.
+
+<repo>/femacs/platform/macos/nsterm.swift:9217:14: warning: parameter of 'setMarkedText(_:selectedRange:replacementRange:)' has different optionality than expected by protocol 'NSTextInputClient'
+ 9215 |   /// C 7444-7449: `- (void) setMarkedText: (id) string selectedRange: (NSRange) selectedRange
+ 9216 |   /// replacementRange: (NSRange) replacementRange` - C's body is the two-argument call.
+ 9217 |   @objc func setMarkedText(_ string: Any?, selectedRange: NSRange, replacementRange: NSRange) {
+      |              `- warning: parameter of 'setMarkedText(_:selectedRange:replacementRange:)' has different optionality than expected by protocol 'NSTextInputClient'
+ 9218 |     setMarkedText(string, selectedRange: selectedRange)      // C 7448
+ 9219 |   }
+
+<SDK>/System/Library/Frameworks/AppKit.framework/Headers/NSTextInputClient.h:45:1: note: requirement 'setMarkedText(_:selectedRange:replacementRange:)' declared here
+ 43 | /* The receiver inserts string replacing the content specified by replacementRange. string can be either an NSString or NSAttributedString instance. selectedRange specifies the selection inside the string being inserted; hence, the location is relative to the beginning of string. When string is an NSString, the receiver is expected to render the marked text with distinguishing appearance (i.e. NSTextView renders with -markedTextAttributes).
+ 44 | */
+ 45 | - (void)setMarkedText:(id)string selectedRange:(NSRange)selectedRange replacementRange:(NSRange)replacementRange;
+    | `- note: requirement 'setMarkedText(_:selectedRange:replacementRange:)' declared here
+ 46 |
+ 47 | /* The receiver unmarks the marked text. If no marked text, the invocation of this method has no effect.
+
+<repo>/femacs/platform/macos/nsterm.swift:9678:14: warning: instance method 'windowShouldClose' nearly matches optional requirement 'windowShouldClose' of protocol 'NSWindowDelegate'
+ 9676 |   /// C 8195-8209: `- (BOOL)windowShouldClose: (id)sender` - C's `NSEvent *e = [[self window]
+ 9677 |   /// currentEvent];` is the window's own accessor, and `NSTRACE` is empty at `NSTRACE_ENABLED` 0.
+ 9678 |   @objc func windowShouldClose(_ sender: Any?) -> Bool {
+      |              |- warning: instance method 'windowShouldClose' nearly matches optional requirement 'windowShouldClose' of protocol 'NSWindowDelegate'
+      |              |- note: candidate has non-matching type '(Any?) -> Bool'
+      |              |- note: move 'windowShouldClose' to an extension to silence this warning
+      |              `- note: make 'windowShouldClose' private to silence this warning
+ 9679 |     let e = self.window?.currentEvent                        // C 8197
+ 9680 |
+
+<SDK>/System/Library/Frameworks/AppKit.framework/Headers/NSWindow.h:830:1: note: requirement 'windowShouldClose' declared here
+ 828 | @protocol NSWindowDelegate <NSObject>
+ 829 | @optional
+ 830 | - (BOOL)windowShouldClose:(NSWindow *)sender NS_SWIFT_UI_ACTOR;
+     | `- note: requirement 'windowShouldClose' declared here
+ 831 | - (nullable id)windowWillReturnFieldEditor:(NSWindow *)sender toObject:(nullable id)client NS_SWIFT_UI_ACTOR;
+ 832 | - (NSSize)windowWillResize:(NSWindow *)sender toSize:(NSSize)frameSize NS_SWIFT_UI_ACTOR;
+
+<repo>/femacs/platform/macos/nsterm.swift:9986:14: warning: instance method 'windowDidMove' nearly matches optional requirement 'windowDidMove' of protocol 'NSWindowDelegate'
+ 9984 |   /// `Any?`, which is the same selector) and its body is the direct call below.  This is also
+ 9985 |   /// the method round 70's deferred entry waited for.
+ 9986 |   @objc func windowDidMove(_ sender: Any?) {
+      |              |- warning: instance method 'windowDidMove' nearly matches optional requirement 'windowDidMove' of protocol 'NSWindowDelegate'
+      |              |- note: candidate has non-matching type '(Any?) -> ()'
+      |              |- note: move 'windowDidMove' to an extension to silence this warning
+      |              `- note: make 'windowDidMove' private to silence this warning
+ 9987 |     // C 8647: `NSTRACE ("[EmacsView windowDidMove:]");` - empty at `NSTRACE_ENABLED` 0.
+ 9988 |
+
+<SDK>/System/Library/Frameworks/AppKit.framework/Headers/NSWindow.h:909:1: note: requirement 'windowDidMove' declared here
+ 907 | - (void)windowDidExpose:(NSNotification *)notification NS_SWIFT_UI_ACTOR;
+ 908 | - (void)windowWillMove:(NSNotification *)notification NS_SWIFT_UI_ACTOR;
+ 909 | - (void)windowDidMove:(NSNotification *)notification NS_SWIFT_UI_ACTOR;
+     | `- note: requirement 'windowDidMove' declared here
+ 910 | - (void)windowDidBecomeKey:(NSNotification *)notification NS_SWIFT_UI_ACTOR;
+ 911 | - (void)windowDidResignKey:(NSNotification *)notification NS_SWIFT_UI_ACTOR;
+
+<repo>/femacs/platform/macos/nsterm.swift:10101:14: warning: instance method 'windowDidDeminiaturize' nearly matches optional requirement 'windowDidDeminiaturize' of protocol 'NSWindowDelegate'
+10099 |   /// are the bitfield setters, `windows_or_buffers_changed` a core global and
+10100 |   /// `EV_TRAILER ((id)nil)` the same `emacsframe` this unit's other callers pass.
+10101 |   @objc func windowDidDeminiaturize(_ sender: Any?) {
+      |              |- warning: instance method 'windowDidDeminiaturize' nearly matches optional requirement 'windowDidDeminiaturize' of protocol 'NSWindowDelegate'
+      |              |- note: candidate has non-matching type '(Any?) -> ()'
+      |              |- note: move 'windowDidDeminiaturize' to an extension to silence this warning
+      |              `- note: make 'windowDidDeminiaturize' private to silence this warning
+10102 |     // C 8790: `NSTRACE ("[EmacsView windowDidDeminiaturize:]");` - empty.
+10103 |     if frame_output_data_ns(emacsframe) == nil {                  // C 8791
+
+<SDK>/System/Library/Frameworks/AppKit.framework/Headers/NSWindow.h:917:1: note: requirement 'windowDidDeminiaturize' declared here
+ 915 | - (void)windowWillMiniaturize:(NSNotification *)notification NS_SWIFT_UI_ACTOR;
+ 916 | - (void)windowDidMiniaturize:(NSNotification *)notification NS_SWIFT_UI_ACTOR;
+ 917 | - (void)windowDidDeminiaturize:(NSNotification *)notification NS_SWIFT_UI_ACTOR;
+     | `- note: requirement 'windowDidDeminiaturize' declared here
+ 918 | - (void)windowDidUpdate:(NSNotification *)notification NS_SWIFT_UI_ACTOR;
+ 919 | - (void)windowDidChangeScreen:(NSNotification *)notification NS_SWIFT_UI_ACTOR;
+
+<repo>/femacs/platform/macos/nsterm.swift:10119:14: warning: instance method 'windowDidExpose' nearly matches optional requirement 'windowDidExpose' of protocol 'NSWindowDelegate'
+10117 |   /// C 8806-8817: `- (void)windowDidExpose: sender` - C's parameter is untyped; the guard, the
+10118 |   /// two `SET_FRAME_*` setters and the `send_appdefined` pair are the same entries as above.
+10119 |   @objc func windowDidExpose(_ sender: Any?) {
+      |              |- warning: instance method 'windowDidExpose' nearly matches optional requirement 'windowDidExpose' of protocol 'NSWindowDelegate'
+      |              |- note: candidate has non-matching type '(Any?) -> ()'
+      |              |- note: move 'windowDidExpose' to an extension to silence this warning
+      |              `- note: make 'windowDidExpose' private to silence this warning
+10120 |     // C 8808: `NSTRACE ("[EmacsView windowDidExpose:]");` - empty.
+10121 |     if frame_output_data_ns(emacsframe) == nil {                  // C 8809
+
+<SDK>/System/Library/Frameworks/AppKit.framework/Headers/NSWindow.h:907:1: note: requirement 'windowDidExpose' declared here
+ 905 | */
+ 906 | - (void)windowDidResize:(NSNotification *)notification NS_SWIFT_UI_ACTOR;
+ 907 | - (void)windowDidExpose:(NSNotification *)notification NS_SWIFT_UI_ACTOR;
+     | `- note: requirement 'windowDidExpose' declared here
+ 908 | - (void)windowWillMove:(NSNotification *)notification NS_SWIFT_UI_ACTOR;
+ 909 | - (void)windowDidMove:(NSNotification *)notification NS_SWIFT_UI_ACTOR;
+
+<repo>/femacs/platform/macos/nsterm.swift:10135:14: warning: instance method 'windowDidMiniaturize' nearly matches optional requirement 'windowDidMiniaturize' of protocol 'NSWindowDelegate'
+10133 |   /// C 8820-8834: `- (void)windowDidMiniaturize: sender` - C's parameter is untyped; its event
+10134 |   /// kind is `ICONIFY_EVENT`, the twin of the deminiaturize above.
+10135 |   @objc func windowDidMiniaturize(_ sender: Any?) {
+      |              |- warning: instance method 'windowDidMiniaturize' nearly matches optional requirement 'windowDidMiniaturize' of protocol 'NSWindowDelegate'
+      |              |- note: candidate has non-matching type '(Any?) -> ()'
+      |              |- note: move 'windowDidMiniaturize' to an extension to silence this warning
+      |              `- note: make 'windowDidMiniaturize' private to silence this warning
+10136 |     // C 8822: `NSTRACE ("[EmacsView windowDidMiniaturize:]");` - empty.
+10137 |     if frame_output_data_ns(emacsframe) == nil {                  // C 8823
+
+<SDK>/System/Library/Frameworks/AppKit.framework/Headers/NSWindow.h:916:1: note: requirement 'windowDidMiniaturize' declared here
+ 914 | - (void)windowWillClose:(NSNotification *)notification NS_SWIFT_UI_ACTOR;
+ 915 | - (void)windowWillMiniaturize:(NSNotification *)notification NS_SWIFT_UI_ACTOR;
+ 916 | - (void)windowDidMiniaturize:(NSNotification *)notification NS_SWIFT_UI_ACTOR;
+     | `- note: requirement 'windowDidMiniaturize' declared here
+ 917 | - (void)windowDidDeminiaturize:(NSNotification *)notification NS_SWIFT_UI_ACTOR;
+ 918 | - (void)windowDidUpdate:(NSNotification *)notification NS_SWIFT_UI_ACTOR;
+
+<repo>/femacs/platform/macos/nsterm.swift:10367:14: warning: instance method 'windowWillMiniaturize' nearly matches optional requirement 'windowWillMiniaturize' of protocol 'NSWindowDelegate'
+10365 |   /// C 8532-8535: `- (void)windowWillMiniaturize: sender` - C's body is the empty macro's comment
+10366 |   /// and nothing else.
+10367 |   @objc func windowWillMiniaturize(_ sender: Any?) {
+      |              |- warning: instance method 'windowWillMiniaturize' nearly matches optional requirement 'windowWillMiniaturize' of protocol 'NSWindowDelegate'
+      |              |- note: candidate has non-matching type '(Any?) -> ()'
+      |              |- note: move 'windowWillMiniaturize' to an extension to silence this warning
+      |              `- note: make 'windowWillMiniaturize' private to silence this warning
+10368 |     // C 8534: `NSTRACE ("[EmacsView windowWillMiniaturize:]");` - empty at `NSTRACE_ENABLED` 0.
+10369 |   }
+
+<SDK>/System/Library/Frameworks/AppKit.framework/Headers/NSWindow.h:915:1: note: requirement 'windowWillMiniaturize' declared here
+ 913 | - (void)windowDidResignMain:(NSNotification *)notification NS_SWIFT_UI_ACTOR;
+ 914 | - (void)windowWillClose:(NSNotification *)notification NS_SWIFT_UI_ACTOR;
+ 915 | - (void)windowWillMiniaturize:(NSNotification *)notification NS_SWIFT_UI_ACTOR;
+     | `- note: requirement 'windowWillMiniaturize' declared here
+ 916 | - (void)windowDidMiniaturize:(NSNotification *)notification NS_SWIFT_UI_ACTOR;
+ 917 | - (void)windowDidDeminiaturize:(NSNotification *)notification NS_SWIFT_UI_ACTOR;
+
+<repo>/femacs/platform/macos/nsterm.swift:1269:9: warning: 'lockFocus()' was deprecated in macOS 10.14: To draw, subclass NSView and implement -drawRect:; AppKit's automatic deferred display mechanism will call -drawRect: as necessary to display the view. [#DeprecatedDeclaration]
+ 1267 |   // `-drawRect:`), and the port keeps the call: `swiftc -c` reports the deprecation, which is
+ 1268 |   // recorded in the ledger's Evidence rather than silenced.
+ 1269 |   view?.lockFocus()
+      |         `- warning: 'lockFocus()' was deprecated in macOS 10.14: To draw, subclass NSView and implement -drawRect:; AppKit's automatic deferred display mechanism will call -drawRect: as necessary to display the view. [#DeprecatedDeclaration]
+ 1270 | }
+ 1271 |
+
+<repo>/femacs/platform/macos/nsterm.swift:1420:9: warning: 'unlockFocus()' was deprecated in macOS 10.14: To draw, subclass NSView and implement -drawRect:; AppKit's automatic deferred display mechanism will call -drawRect: as necessary to display the view. [#DeprecatedDeclaration]
+ 1418 |   block_input()
+ 1419 |
+ 1420 |   view?.unlockFocus()
+      |         `- warning: 'unlockFocus()' was deprecated in macOS 10.14: To draw, subclass NSView and implement -drawRect:; AppKit's automatic deferred display mechanism will call -drawRect: as necessary to display the view. [#DeprecatedDeclaration]
+ 1421 |
+ 1422 |   ns_UAZoomChangeFocus(view, false)
+
+<repo>/femacs/platform/macos/nsterm.swift:1437:11: warning: 'lockFocus()' was deprecated in macOS 10.14: To draw, subclass NSView and implement -drawRect:; AppKit's automatic deferred display mechanism will call -drawRect: as necessary to display the view. [#DeprecatedDeclaration]
+ 1435 |   if f != ns_updating_frame {
+ 1436 |     let view = FRAME_NS_VIEW(f)
+ 1437 |     view?.lockFocus()
+      |           `- warning: 'lockFocus()' was deprecated in macOS 10.14: To draw, subclass NSView and implement -drawRect:; AppKit's automatic deferred display mechanism will call -drawRect: as necessary to display the view. [#DeprecatedDeclaration]
+ 1438 |   }
+ 1439 |
+
+<repo>/femacs/platform/macos/nsterm.swift:1464:11: warning: 'unlockFocus()' was deprecated in macOS 10.14: To draw, subclass NSView and implement -drawRect:; AppKit's automatic deferred display mechanism will call -drawRect: as necessary to display the view. [#DeprecatedDeclaration]
+ 1462 |   if f != ns_updating_frame {
+ 1463 |     let view = FRAME_NS_VIEW(f)
+ 1464 |     view?.unlockFocus()
+      |           `- warning: 'unlockFocus()' was deprecated in macOS 10.14: To draw, subclass NSView and implement -drawRect:; AppKit's automatic deferred display mechanism will call -drawRect: as necessary to display the view. [#DeprecatedDeclaration]
+ 1465 |   }
+ 1466 | }
+
+<repo>/femacs/platform/macos/nsterm.swift:2597:16: warning: 'scanFloat' was deprecated in macOS 10.15 [#DeprecatedDeclaration]
+ 2595 |     let scanner = Scanner(string: nsname as String)
+ 2596 |     var r: Float = 0, g: Float = 0, b: Float = 0
+ 2597 |     if scanner.scanFloat(&r) && r >= 0 && r <= 1
+      |                `- warning: 'scanFloat' was deprecated in macOS 10.15 [#DeprecatedDeclaration]
+ 2598 |         && scanner.scanFloat(&g) && g >= 0 && g <= 1
+ 2599 |         && scanner.scanFloat(&b) && b >= 0 && b <= 1 {
+
+<repo>/femacs/platform/macos/nsterm.swift:2598:20: warning: 'scanFloat' was deprecated in macOS 10.15 [#DeprecatedDeclaration]
+ 2596 |     var r: Float = 0, g: Float = 0, b: Float = 0
+ 2597 |     if scanner.scanFloat(&r) && r >= 0 && r <= 1
+ 2598 |         && scanner.scanFloat(&g) && g >= 0 && g <= 1
+      |                    `- warning: 'scanFloat' was deprecated in macOS 10.15 [#DeprecatedDeclaration]
+ 2599 |         && scanner.scanFloat(&b) && b >= 0 && b <= 1 {
+ 2600 |       col.pointee = NSColor.colorForEmacsRed(EmacsCGFloat(r), green: EmacsCGFloat(g),
+
+<repo>/femacs/platform/macos/nsterm.swift:2599:20: warning: 'scanFloat' was deprecated in macOS 10.15 [#DeprecatedDeclaration]
+ 2597 |     if scanner.scanFloat(&r) && r >= 0 && r <= 1
+ 2598 |         && scanner.scanFloat(&g) && g >= 0 && g <= 1
+ 2599 |         && scanner.scanFloat(&b) && b >= 0 && b <= 1 {
+      |                    `- warning: 'scanFloat' was deprecated in macOS 10.15 [#DeprecatedDeclaration]
+ 2600 |       col.pointee = NSColor.colorForEmacsRed(EmacsCGFloat(r), green: EmacsCGFloat(g),
+ 2601 |                                              blue: EmacsCGFloat(b), alpha: 1.0)
+
+<repo>/femacs/platform/macos/nsterm.swift:7300:50: warning: 'context' was deprecated in macOS 10.12: This method always returns nil. If you need access to the current drawing context, use [NSGraphicsContext currentContext] inside of a draw operation. [#DeprecatedDeclaration]
+ 7298 |                                   timestamp: 0,
+ 7299 |                                   windowNumber: dest?.windowNumber ?? 0,
+ 7300 |                                   context: NSApp.context,
+      |                                                  `- warning: 'context' was deprecated in macOS 10.12: This method always returns nil. If you need access to the current drawing context, use [NSGraphicsContext currentContext] inside of a draw operation. [#DeprecatedDeclaration]
+ 7301 |                                   subtype: 0,
+ 7302 |                                   data1: Int(value),
+
+<repo>/femacs/platform/macos/nsterm.swift:8064:18: warning: 'accessibilityAttributeValue' was deprecated in macOS 10.10: Use the NSAccessibility protocol methods instead (see NSAccessibilityProtocols.h) [#DeprecatedDeclaration]
+ 8062 |     }
+ 8063 |
+ 8064 |     return super.accessibilityAttributeValue(attribute)  // C 10210
+      |                  `- warning: 'accessibilityAttributeValue' was deprecated in macOS 10.10: Use the NSAccessibility protocol methods instead (see NSAccessibilityProtocols.h) [#DeprecatedDeclaration]
+ 8065 |   }
+ 8066 | }
+
+[#DeprecatedDeclaration]: <https://docs.swift.org/compiler/documentation/diagnostics/deprecated-declaration>

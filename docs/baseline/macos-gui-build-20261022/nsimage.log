@@ -1,0 +1,15 @@
+<repo>/femacs/platform/macos/nsimage.swift:401:7: warning: non-final class 'EmacsImage' cannot conform to the 'Sendable' protocol; this is an error in the Swift 6 language mode
+399 | /// 672-681.  The two `@public` ivars stay module-visible because src/nsterm.m reads them
+400 | /// (4342, 4349, 4359).
+401 | class EmacsImage: NSImage {
+    |       `- warning: non-final class 'EmacsImage' cannot conform to the 'Sendable' protocol; this is an error in the Swift 6 language mode
+402 |
+403 |   /// C: `NSBitmapImageRep *bmRep;` used for accessing pixel data.
+
+<repo>/femacs/platform/macos/nsimage.swift:404:19: warning: stored property 'bmRep' of 'Sendable'-conforming class 'EmacsImage' is mutable; this is an error in the Swift 6 language mode
+402 |
+403 |   /// C: `NSBitmapImageRep *bmRep;` used for accessing pixel data.
+404 |   fileprivate var bmRep: NSBitmapImageRep? = nil
+    |                   `- warning: stored property 'bmRep' of 'Sendable'-conforming class 'EmacsImage' is mutable; this is an error in the Swift 6 language mode
+405 |   /// C: `unsigned char *pixmapData[5];` shortcut to access pixel data.  Swift has no
+406 |   /// fixed-size array, so the five slots are an array; only this file reads them.
