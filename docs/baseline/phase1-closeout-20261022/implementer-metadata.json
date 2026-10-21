@@ -1,0 +1,56 @@
+{
+  "session_id": "01a0f2cb-af89-70b0-b13a-9c2e91cfdc90",
+  "scope": "Metadata only from the target implementer session; no raw conversations or credentials. Counter is not a bill.",
+  "models": {
+    "deepseek-flash": {
+      "context_records": 686,
+      "first_at": "2026-09-30T14:50:38.333Z",
+      "last_at": "2026-10-15T02:02:33.046Z"
+    },
+    "deepseek/deepseek-v4.1-flash": {
+      "context_records": 803,
+      "first_at": "2026-10-06T17:17:26.629Z",
+      "last_at": "2026-10-20T07:00:31.653Z"
+    },
+    "deepseek-v4.1-flash": {
+      "context_records": 382,
+      "first_at": "2026-10-06T18:12:22.085Z",
+      "last_at": "2026-10-21T17:46:08.191Z"
+    }
+  },
+  "session_metadata": [
+    {
+      "timestamp": "2026-09-30T14:50:37.500Z",
+      "id": "01a0f2cb-af89-70b0-b13a-9c2e91cfdc90",
+      "model_provider": "deepseek-intl",
+      "originator": "codex-tui",
+      "cli_version": "0.156.1"
+    }
+  ],
+  "first_metadata_at": "2026-09-30T14:50:37.500Z",
+  "last_metadata_at": "2026-10-21T17:47:17.234Z",
+  "token_snapshot_count": 61603,
+  "token_latest_snapshot": {
+    "timestamp": "2026-10-21T17:47:17.234Z",
+    "total_token_usage": {
+      "input_tokens": 29717149438,
+      "cached_input_tokens": 29543998324,
+      "cache_write_input_tokens": 0,
+      "output_tokens": 56145075,
+      "reasoning_output_tokens": 30002064,
+      "total_tokens": 29773294513
+    }
+  },
+  "token_peak_snapshot": {
+    "timestamp": "2026-10-21T17:47:17.234Z",
+    "total_token_usage": {
+      "input_tokens": 29717149438,
+      "cached_input_tokens": 29543998324,
+      "cache_write_input_tokens": 0,
+      "output_tokens": 56145075,
+      "reasoning_output_tokens": 30002064,
+      "total_tokens": 29773294513
+    }
+  },
+  "token_counter_decrease_count": 0
+}

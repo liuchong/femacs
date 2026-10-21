@@ -1,0 +1,26 @@
+{
+  "thread_id": "01a0f2cb-af89-70b0-b13a-9c2e91cfdc90",
+  "former_goal_id": "c9201722-3803-4aef-a3c0-97afbefae0d6",
+  "user_intended_terminal_state": "done with goal record retained",
+  "actual_action": "implementer executed native /goal clear via its own exec and original WezTerm pane",
+  "operator": "original implementer CLI, at coordinator request",
+  "coordinator_error": "Misinterpreted done as clear; user corrected after clear. No done transition is claimed and no goal is recreated.",
+  "native_ui_observed": "Goal cleared",
+  "target_row_after_clear": null,
+  "observed_at_utc": "2026-10-21T17:53:55.352452+00:00",
+  "preclear_snapshot": {
+    "goal_id": "c9201722-3803-4aef-a3c0-97afbefae0d6",
+    "status": "blocked",
+    "tokens_used": 383412661,
+    "time_used_seconds": 1192918,
+    "created_at_ms": 1790873368845,
+    "updated_at_ms": 1792604680771
+  },
+  "api_error_after_clear": {
+    "status": 503,
+    "message": "Endpoint is unavailable",
+    "retry": "requested by user; same original CLI; final confirmation only, no replay of goal mutations",
+    "same_session_retry_attempts": 2,
+    "latest_result": "Both explicit same-session retries returned HTTP 503 Endpoint is unavailable; no goal action replayed."
+  }
+}

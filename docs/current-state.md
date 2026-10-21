@@ -1,149 +1,34 @@
-# 当前状态（判定表按 2026-10-21 / status 4.1048 复核）
+# 当前状态：一期已结案（2026-10-22）
 
-> 2026-10-22 独立复核：680 单元全量重编、链接/dump 成功，macOS 终端实际输入/保存/退出成功；92 条差分输入一致。快速 asm 修正有功能错误，未采用，性能仍未达；按用户决定功能性收尾并暂停。详情见 [本次复核](macos-recheck-20261022.md)，下文历史验收数字不是本次全量重新认证。
+**按用户决定结束本期；macOS 终端版可用，性能未达、GUI 未交付。**
+最终入口：[一期收尾报告](phase1-closeout.md)，内含双方工作、设计/问题/经验、模型/会话/goal/运行标识、
+token/时间/资源口径、成本未知项与清理记录。
 
-给下一次会话的**入口快照**：判定口径、读数、复跑命令、未决事项。逐轮记录仍在 `docs/status.md`，
-口径与规则在 `PORTING.md`，验收细则在 `docs/acceptance.md`。
-
-**今天能交付什么（一句话版）**
-
-- **macOS（终端版）**：端口自己的 `temacs`/`emacs` 能编、能 dump、能跑——注意这是**终端构建**：冻结配置里 `HAVE_NS` 与 `HAVE_WINDOW_SYSTEM` 都是 `undefined` ✓（参照树在 `build/emacs-ref/src/config.h` 里同样如此 ✓），Cocoa 那套 Swift 代码按 P-51 是**承载文本、不进这个构建** ✓（3.262 的 `have_ns` 翻牌要等 AppKit 镜像 ✓）；GUI 交付面在 Android 那一行 ✓。`loadup` 两侧逐文件一致 ✓、
-  L5 全量 564 文件 **0 条 port-worse** ✓、GC 压测全量 **0 条未归因差异** ✓、生成物 244 份
-  **0 DIFFERENT** ✓、原样树 4604 文件 **0 failures** ✓。
-- **Android**：签名 APK 能装、能启动、**能打字**（`H E L L O` 逐字可辨）、能轻点、能转屏，
-  全程同一 `pid` 且 `Fatal signal` 0 条 ✓；按设备自己的库量 `libemacs.so` **300 导入 / 0 未解析** ✓。
-- **未达的唯一一条**：性能（第 7 条）——三条字节码项慢 1.25–1.45×，其余持平或更快；threaded/asm 路线已按 P-324 裁定不可行，按用户指示**功能性收尾、记未达、不追平、不降标准**。
-- **怎么复验**：`tools/verify-dod.sh --full`（一条命令逐行打印 `ok`/`FAIL`，4.1048 实测全绿（1,207.6 s / 峰值 1.10 GB））。
-
-## 证据边界（2026-10-21 复核）
-
-- `check-ert.py` 的 TSV 是文件级计数（ran/expected/unexpected），`same` 不等于逐用例身份/结果一致；564 份中 63 份 `same` 两侧 ran=0。
-- `verify-dod --full` 不重跑 L5；Android 行只检查旧图片存在；退出 0 不等于新候选的新鲜完整验收。
-- 参照是 32.0.50 开发版；未做最新稳定版专门对拍，不能写“最新稳定版兼容已验证”。
-- `bytecode.rs` 默认臂对非法 opcode 与 live threaded 的 `Invalid byte opcode` 有差异；合法程序兼容与恶意字节码防护须分开表述。
-- PGO summary 的 `load` 为 2.0439×ref；剩余性能不能全部归因 bytecode 派发，尚无热点采样/因果隔离。
-
-## 用户已定的方向（不再询问）
-
-1. **逻辑一致优先**：Rust 与 C 逐函数一致；**不为性能改变逻辑**；性能未追平**不得写成达标**。
-2. **性能暂挂**（DoD-7 仍记未达）。
-3. **平台范围 = macOS 真机 + Android 模拟器**；Windows/Linux/Haiku 搁置。
-4. **产品名不改**：`lisp/test/etc/doc/leim/admin` **逐字节原样复制**；兼容接口（函数/变量/路径/Info 节点）不变。
-5. **Java 只用最新 LTS**：官方最新 LTS = **JDK 25**（2025-09；26/27 非 LTS），`openjdk@25` 已装且 Android 链在它下面实测全绿 ⇒ 不需要任何旧 JDK（`docs/baseline/android-jdk.txt`）。
-6. 内存受控、超限即止；用完的产物及时清理（P-190）。
-
-## 完成定义（8 条等权）— 当前 **7/8 = 87.5%**（第 6 条按用户授权以 macOS 验收）
-
-每行一句可复跑的命令、最后一次读数，以及它在本文件与 `docs/status.md` 里的出处。读这张表
-不需要先读 `status.md`：命令跑出来的数与表里的数相同，就是这一条的当前证据。
-
-**维护这条判定表的三条规则**（4.972–4.975 三次"表比代码老"的教训，固化成清单）：
-
-1. **改行必须同时改结论**：某一条从 ⚠️/⏸ 变成 ✅（或反过来）时，同一提交里必须更新表下的
-   "计数口径"那句，否则表与结论会各说一套 —— 4.972 就是这么发生的。
-2. **分数与计数有门**：`python3 tools/check-doc-numbers.py` 现在覆盖 **7 份文档**
-   （`current-state` / `handoff` / `android-app-readiness` / `window-arms-plan` / `decisions-needed` /
-   `acceptance` / `goal`），任何一处 `N/8 = X%` 或未决/窗口/上游计数与台账不符就报红；
-   新增口径文字时**把文件加进这个集合**，别让它成为下一个漂移点。
-3. **范围与决定只写一处**：用户决定（平台范围、产品名、性能暂挂与否）写在 `docs/goal.md` §10 的
-   「本期执行口径」与 `docs/decisions-needed.md` 的结案段，本文件只引用它们；决定被更新时，
-   旧句**标注"已被取代"而不是删除**（4.974/4.975 的做法），历史与现状才都读得出来。
-
-| # | 项 | 判定 | 证据命令 | 最后一次读数（出处） |
-|---|---|---|---|---|
-| 1 | 590 条 1:1 转写 | ✅ | `python3 tools/extract-abi.py --all` | **590 done / 0 in progress / 0 failing**（4.964 复跑，本轮四处改动之后：`signal.rs` / `sysdep.rs` / `keyboard.rs` / `xtask`） |
-| 2 | 布局/符号/subr/defvar/声明/清单 | ✅ | `cd femacs && CARGO_TARGET_DIR=${TMPDIR}/xt-cargo cargo run -q -p xtask -- gate-fast`、`-- gate-probes` | **`verify-dod --full` 4.1032：`check-declarations` 24 declaration sites / 0 failure、`gate-fast` exit 0**；**`gate-fast` exit 0**（4.1000 复跑，`verify-dod --full` 内，约 570 s / 峰值 469 MB）：`symbols (src): every built unit matches its reference`、`linkage: every non-static C object is exported`、`layout probe ok` / `layout-check passed`；首跑红过一次，原因是环境清掉了 `build/emacs-ref/lib/libgnu.a`（`make -C build/emacs-ref/lib libgnu.a` 6 s 补回）；**`gate-probes` exit 0**（4.998 复跑，135 s / 峰值 372 MB）—— `340 translation unit(s) compiled with the non-frozen arms, 0 failed`，即非冻结配置下的死臂也都能编过 |
-| 3 | L0–L5 | ✅ | `python3 tools/acceptance-l0.py --check build/port/src/emacs`、`acceptance-l1.py`、`tools/check-ert.py` | **L5 全量 564 文件（4.1061 复跑）**：**552 same / 7 both-fail / 4 crashed（全部两侧同崩）/ 1 port-better / 0 port-worse** ✓，端口 9,014 ran / 110 unexpected，参照 9,014 / 111 ✓；4 条 crashed 的注记里都有 `reference: crashed` ✓；L0 **19/0**、L1 **111/0+1** 于 4.1061 复跑 ✓；证据 `docs/baseline/ert-final-20261021.tsv`；压力面见第 4 行的 GC 压测 ✓ |
-| 4 | `.elc`/dump/生成物/loadup ＋ 压力 | ✅ | `check-generated.py`、`check-loadup.py`、`check-dump-offsets.py`、`gen-elc.py --cross-check`、`l5-sweep.sh --gc-stress` | 生成物 **244：195 identical / 49 name-only / 0 DIFFERENT / 0 missing**（4.964）✓；**`src/lisp.mk` 3,127 B identical / `ldefs-boot.el` 1,653,519 B identical / `admin/unidata` 23 文件 0 different / `admin/charsets` 139 identical**（4.1041）✓；`only in the reference 0, only in the port 0` 且 `the two loadups agree file for file`（4.964）✓；dump **0 failure**（4.964）✓；`.elc` 交叉检查 **0 端口缺陷**（4.969，57 目标：5 identical / 51 state-only / 1 volatile）✓；GC 压测全量 **564：552 same / 7 both-fail / 4 crashed（全部两侧同崩）/ 1 port-better / 0 port-worse**（4.1063 复跑；端口 9,014 ran / 110 unexpected，参照 111）✓；**4.1046 故障注入 19 用例 0 differ、差分 fuzz 60/60 same** ✓ |
-| 5 | 原样树逐字节 | ✅ | `python3 tools/check-verbatim.py` | **6 棵树 / 4,604 文件 / 0 failures**（4.964 复跑；9 条 accepted absence 是参照 `.gitignore` 的生成物） |
-| 6 | 平台（macOS + Android） | ✅ | `bash tools/check-authorized-platforms.sh`、`tools/android-accept.sh`、`check-android-imports.py --providers-dir` | **`check-authorized-platforms.sh` exit 0**（4.1038，333 s / 峰值 1.16 GB）：macOS smoke ＋ differential **92 form / 0 mismatch**、`gate-android` 114 class + 签名、`libemacs.so` 5.2 MB / **69 JNI 导出**、签名 APK 47 MB 含 **4360** asset ✓；**Android 设备三元组**（4.962）：渲染 ✓、输入（`H E L L O` 逐字可辨）✓、存活（打字/轻点/两次转屏全程同 pid、`Fatal signal` 0）✓；**设备口径导入 300 / 0 未解析**（4.1039）✓；**`tui-smoke` 24x80 1,524 B / present、10x80 1,412 B / present**（4.1032 full）✓；**API 21 stub 300 imports / 5 unresolved / 0 new**（4.1036）✓ |
-| 7 | 性能 | ⏸ 功能性收尾（记未达；asm 热叶实测更慢并回退，P-325） | `tools/bench.sh [--rounds N]`、`tools/bench.sh --gate docs/baseline/bench.tsv` | **4.999 在 load ≈6 的窗口里取得本阶段最干净的一组读数**：`--rounds 5` 连跑两次，比值（端口/参照）`bc-loop` **1.43 / 1.53**、`bc-sum` **1.29 / 1.39**、`bc-car` **1.26 / 1.35**、`regexp-repl` **1.08 / 1.09**、`buffer-scan` **0.99 / 0.99**、`sort-100k` **1.14 / 1.15** ✓；端口 `bc-loop` 绝对时间 **4.51 / 4.78 ms** 已低于 10-17 基线的 **5.48 ms** ✓ ⇒ `bench.sh --gate` 不会红 ✓，但**比值仍 >1** ✓ ⇒ 第 7 条仍记未达 ✓（load 6 仍非空闲机 ⇒ 不 `--save` ✓）。**4.992 拿到一组可比的读数（机器仍在 load 27–31）**：`--rounds 5` 连跑两次，比值（端口 / 参照）`bc-loop` **1.33 / 1.39**、`bc-sum` **1.30 / 1.33**、`bc-car` **1.21 / 1.22**、`regexp-repl` **0.99 / 1.10**、`buffer-scan` **1.01 / 1.01**、`sort-100k` **1.15 / 1.12** ✓ —— 同一 `N` 下两次相差 ≤5%（`regexp-repl` 11% ✓），而 4.991 那次 `--gate` 的摆动是 +18..+44% ✓。**但采样越深最小值越低**（`bc-loop` 在 3 轮是 1.52 / 1.69、5 轮是 1.33 / 1.39 ✓）⇒ 忙碌机器上的比值仍**不能**当基线，**不 `--save`** ✓；4.985（旧二进制）、4.990（load 64）、4.991（噪声）三次读数仍按原记录作废/不可用 ✓。⇒ 第 7 条仍**记未达**（未追平是既有事实），空闲机重测仍是录基线的唯一路径 ✓；`bench.sh --gate` 只用于“端口比自己变慢”的回归 ✓ |
-| 8 | 提交签名 + 台账 | ✅ | `python3 tools/check-ledger-ticks.py`、`git verify-commit <sha>` | **238 台账绑定 / 0 failure / 0 行无台账**（4.972 复跑）；近 5 个提交 `git verify-commit` 全部 `Good signature`（4.1032 full）；`git status --short` 干净 ✓ |
-
-**计数口径（一句说清）**：8 条等权、整条达成才计 1。达成的是 **1、2、3、4、5、6、8 共 7 条**；第 7 条（性能）按用户决定**暂挂并记未达**。⇒ **7/8 = 87.5%**。第 6 条计入达成的依据是用户 2026-10-20 的授权（"安卓以推进项目为准，允许自行决定改动或者只按 macos 验收"）—— 现在它不仅有 macOS 的全绿读数，还有 Android 的**设备三元组**与**设备口径 0 未解析**（4.962 / 4.966）。8/8 的唯一缺口是第 7 条。
-
-**第 2 条的历史要记清**：4.681 的账面上把它写成 `✅`，但同一轮的记录里 `gate-fast` 是**红**的（`spikes/haiku_inc_probe.rs`）⇒
-按"当前树上的可复跑证据"严格读，**那一刻只算 5 条**；4.682 把红门修回绿（本树 exit 0）后算 **6 条**。计数规则不变：部分达成记 0；**当前读数见上表（7 条）**。
-
-## 已知红（不属完成定义八条，但每轮要知道）
-
-- **`tools/check-verbatim-declarations.py` 退出 1，是**用户决定的下游结果**，不是回归**（4.1003 量）：`read 6 copied tree(s): 2654 candidate(s) … 757 classified, 1897 failure(s)` ✓ —— 1,897 条全部在 `femacs/lisp/*.el` ✓，典型是每份文件第 8-11 行的项目/版权声明行 ✓。用户 2026-10-18 决定“`lisp/` 与文档逐字节原样复制、不改产品名” ✓，这个工具的前提是“每个照抄声明都要被登记/替换” ✓ ⇒ 它的判据已与决定冲突 ✓。**不修工具、不判红**：`check-verbatim`（4,604 文件 0 failure）才是照抄树的判据 ✓。
-
-- **`xtask gate-probes` 已全绿（4.685 实测）**：`dead-arms` **340/340、0 failed**（6 条翻转：no_rint/no_trunc/no_signbit/have_native_comp/HAVE_LOG2/glyph_debug），
-  `lisp-abi-probe` 与 7 个 C 差分脚本也都通过 ⇒ exit 0。修的过程中定了三件事：`dead-arms` 改成**逐个编、集中报**（原来第一处红就收工，把 `abi_shim` 之后的读数全遮住了）；
-  Haiku/窗口系统那两条翻转**移出**（理由：`dispextern.rs` 750 的 `Display_Info = haiku_display_info` 需要一个 Rust 表达不了的"不完整标签"，记录在反向包含 dispextern.rs 的 `haikuterm.rs` 里；
-  NS 那条臂同一形状、当年就没进表；Android 的记录在 `termhooks.rs` 所以能编 —— 读数：那两条开着时 340 个 unit 失败 62 个）；并修掉两处真缺陷（`lread.rs` 的不可变循环变量、`w32fns.rs` 裸 `c_int`）。
-
-- **声明块的缺口（4.684 测量，4.998 之后重测；现在**活配置下可搬的已经搬完**）**：**598 条** C 声明不在自己的镜像里 ✓，分布是 `lisp.h` **175**（169 条在树内别处 ✓、6 条全树没有 ✓）、`dispextern.h` **159**（156 / 3 ✓）、`xterm.h` **128**（127 / 1 ✓）、`gtkutil.h` **49**、`font.h` **36**、`frame.h` **8**、`keyboard.h` **7**、`comp.h` **6**、其余头合计更少 ✓。
-- **三类剩余，没有一类是“还没动手”**：① **类型墙** ✓ —— `lisp.h`/`dispextern.h` 的 325 条要 `struct frame`/`struct window` 在这个 scope 有名字 ✓；C 靠不完整标签 ✓，Rust 里 `lisp.rs` 与 `frame.rs` 同名只能是 `E0428` ✓ ⇒ 要么改成单一不透明标签 + 访问器（重构 ✓），要么留在 use-site ✓（P-323）；② **死平台** ✓ —— `xterm.h` 的 128 条是按 `include/xterm.rs` 末尾记录的理由**有意不搬** ✓（`extract-abi` 不盘点原型、无门比较、X11 不交付 ✓），`gtkutil.h`/`w32*` 同属不交付平台 ✓；③ **C 自己的陈旧声明** ✓ —— 21 条全树没有的逐条看过 ✓（4.1006 分类：**12 条在参照里只有声明、任何 `.c`/`.m`/`.cc` 都没有定义** ✓ —— `fix_start_end_in_overlays`、`init_coding`、`maybe_garbage_collect_eagerly`、`restore_message_unwind`、`choose_face_font`、`frame_mode_line_height`、`init_iterator_to_row_start`、`font_get_frame`、`w32_gnutls_rnd`、`destroy_frame_xic`、`input_poll_signal`、`push_frame_kboard` ✓；**9 条挂在冻结配置不取的臂上或是编译器内建** ✓ —— `syms_of_macfont`/`syms_of_nsfont`/`ns_make_frame_key_window`（NS ✓）、三条 `be_*`（Haiku ✓）、`term_mouse_moveto`（`HAVE_GPM` ✓）、`xml_cleanup_parser`（`HAVE_LIBXML2` undef ✓）、`bswap_64`（内建 ✓））。旧记录里的细节 ✓（`fix_start_end_in_overlays`/`init_coding`/`maybe_garbage_collect_eagerly`/`restore_message_unwind` 在参照 C 里也只有声明没有定义 ✓、`xml_cleanup_parser` 在 `#undef HAVE_LIBXML2` 下 ✓、`term_mouse_moveto` 在 `HAVE_GPM` 下 ✓）⇒ 不搬才是忠实 ✓。
-- **已落地** ✓：4.993 `dispextern.h` 46 条（收回 100 处 ✓）、4.996 五个头 136 条（收回 342 处 ✓）、4.998 `lisp.h` 254 条（收回 453 处 ✓），合计 **436 条原型 / 895 处副本** ✓，每一步都过 `check-decl-withdraw.py`（P-323）✓、`gate-probes` 340/340 ✓ 与 `gate-fast` ✓。
-
-- **`tools/check-authorized-platforms.sh` 的静默失败已修**（4.682）：它在子 shell 里 `cd femacs` 之后用相对路径调 `tools/check-all-units.sh`，
-  这一段一直失败而 `tail -1` 把它咽掉；改用 `"$REPO/tools/..."` 之后四段真的都跑了（exit 0）。同类脚本若 `cd` 之后仍用相对路径，都要按这条检查。
-
-## 平台面的现状（前置全解决；一条口径问题等用户决定）
-
-- **texinfo/makeinfo：已装（7.3）** ⇒ Android `configure` 跑到底 ✓（P-223）；**arm64-v8a 镜像 + AVD
-  `femacs-arm64-api36` 已就绪** ✓；受控执行器按 R38 自动扩容（实测 4 → 6 GiB ✓、硬上限 16 GiB ✓）⇒
-  原 **E1/E2/E3 已作废**（`docs/decisions-needed.md` 保留作历史）。
-- **Android 可加载面**：设备口径 **304 imports / 0 unresolved**（4.966）✓；API 21 stub 口径
-  **300 imports / 5 unresolved / 0 new**（4.1036）✓ —— 5 条是旧平台产物（`backtrace` 到 API 33
-  才有、`stdin/stdout/stderr` 等），按“以最新平台为准、允许不兼容旧平台”
-  的决定不作判据；`getloadavg`/`mkostemp` 已按 C 的 gnulib 单元接入 ✓。窗口臂问题已按问题 4
-  结案（活臂按目标配置写回）✓。
-
-已解决、**无需旧 JDK** 的 Java 障碍（P-213/P-217）：① `configure` 的两处 `-source 1.7` 探测改用预置缓存变量
-`emacs_cv_working_javac=yes` / `emacs_cv_android_x_or_later=yes`；② 在 **JDK 25** 下跑整条 Android 链时唯一的真实错误是
-`d8` 拒绝 `javac` 默认 target 的类文件（`Unsupported class file major version 69`）⇒ 给生成的 `R` 类钉 `--release 17`
-（Android 构建的常规做法）即绿：181,486 B 签名 APK、112 class；与 JBR 21 的 `classes.dex`/`resources.arsc` 哈希相同 ✓。
-默认 JDK 解析：`openjdk@25` → Studio 的 JBR（`JAVA_HOME` 可覆盖）。
-
-## 一条命令复跑
+## 当前可试用的产物
 
 ```sh
-# 已授权平台（macOS + Android 结构 + 原生库 + 带 .so 的签名 APK）一条命令，失败即停：
-python3 ~/.assistant/skills/controlled-run/scripts/run.py --profile runtime \
-    -- bash tools/check-authorized-platforms.sh
-
-# 模拟器冒烟（应用层断言：进程、native 入口、失败形态；R38 自动扩容）：
-ANDROID_SDK_ROOT=$HOME/Library/Android/sdk FEMACS_EMULATOR_BUDGET_OK=1 \
-  python3 ~/.assistant/skills/controlled-run/scripts/run.py --profile runtime -- \
-  bash tools/try-android-emulator.sh --avd femacs-arm64-api36 --apk ${TMPDIR}/femacs-apk/emacs.apk
-
-# Android 可加载面（导入 vs NDK stub 库，棘轮）：
-python3 tools/check-android-imports.py
-
-cd femacs && CARGO_TARGET_DIR=${TMPDIR}/xt-cargo cargo run -q -p xtask -- gate-fast      # 静态/链接/布局/声明/清单
-cd femacs && CARGO_TARGET_DIR=${TMPDIR}/xt-cargo cargo run -q -p xtask -- gate-android   # Android 结构验收（~1 GB 峰值）
-bash tools/smoke.sh                                                                  # macOS 冒烟
-python3 tools/check-verbatim.py                                                      # 原样树逐字节
-python3 tools/gen-ja-dic.py && python3 tools/check-generated.py                       # ja-dic 生成 + 生成物 242 文件
-python3 tools/bench.sh [--rounds N] [--gate docs/baseline/bench.tsv] [--save F --force]   # 性能读数/回归门
-tools/gen-android-config.sh --check-prereqs                                          # Android 配置前置
+build/port/src/emacs -nw -Q
 ```
 
-## 欠账清单（每条都有当前读数；2026-10-20 逐条复核）
+这是 O2 + switch VM 终端版；PGO 是保留候选，不是默认版本。没有可运行的 Cocoa `.app`。
+独立复核记录：680 单元全量重编、链接编码 15/15、dump 成功，真实终端输入/保存/退出 0，92 条差分输入一致。
+这不是所有功能或配置已经完整等价的证明。
 
-| 欠账 | 现状 | 证据 / 复跑命令 |
-| --- | --- | --- |
-| `.elc` 全族 | **已闭环** | 生成类的两份（`lisp/leim/ja-dic/ja-dic.elc`、`admin/unidata/uvs.elc`）在 `check-generated.py` 的 244 对里**逐字节**比较 ✓；其余 `.elc` 是参照**自己的构建产物**，被它自己的 `.gitignore:180` 排除（`docs/acceptance.md` 的"字面 `diff -r`"表逐条给规则行）✓ |
-| 2 个 `emacsver` | **已闭环** | `doc/emacs/emacsver.texi`、`etc/refcards/emacsver.tex` 同在 244 对里，本轮 `0 DIFFERENT` ✓ |
-| cedet 生成物 | **已闭环** | cedet 的 `.elc` 属上面同一类（参照构建产物、`.gitignore` 排除）✓；端口侧无独立生成物 ✓ |
-| 选择性改名登记 | **已机器化** | 本轮 **49 个 name-only** ✓（早期记的 56 是当时读数 ✓），每一处差异都经 `check-generated.py` 的 `name_only()` 判定"只差被改写解释的行" ✓ ⇒ 不再需要人工逐条登记 ✓ |
-| token 门看不见括号（P-321） | **已量、不接线** | `tools/check-bool-shape.py` 自测 **4/4** ✓、真 bug 形态可抓 ✓；但单单元 `keyboard.c` 报 **24** 处、抽查全是 `for(;;)` vs `while` 的改写噪声 ✓ ⇒ 降级为按单元手看的诊断 ✓（P-322）✓ |
-| L4 / L5 | **L5 全量重跑完毕** | **564 文件：551 same / 7 both-fail / 5 crashed / 1 port-better / 0 port-worse** ✓；合计 **端口 8971 ran / 111 unexpected**、**参照 8971 / 112** ✓（端口比参照少 1 条 unexpected，即那唯一一条 port-better ✓）。5 条 crashed 全是**两侧同超时**（`autorevert`、`tramp`、`eglot`、`emacs-module`、`keyboard`，单侧 120 s 上限）✓。表在 `docs/baseline/ert-l5-sweep.tsv` ✓，逐块可续跑脚本 `tools/l5-sweep.sh` ✓ |
-| 压力（`gc-cons-threshold=1`） | **本轮全量重跑完毕** | **564 文件：550 same / 7 both-fail / 6 crashed（全两侧同超时）/ 1 port-worse / 0 其它** ✓；合计**端口 8956 ran / 112 unexpected**、**参照 8956 / 110** ✓ —— 差的正是 `lisp/vc/emerge-tests.el`，而它**两侧各 7 次各抖 1 次** ⇒ 不归因于端口 ✓（4.970 ✓）。表在 `docs/baseline/ert-gc-stress-sweep.tsv` ✓，41 分 16 秒 / 峰值 597 MB ✓。**历史读数（供对照，已被本轮取代）**： 全量 564 文件（default 选择器）：**same 552 / both-fail 7 / crashed 5（两侧对称）/ port-worse 0** ✓（2026-10-18，P-195 之后的二进制 ✓，`tools/check-ert.py --gc-stress` ✓）；本轮四处改动（`signal.rs`/`sysdep.rs`/`keyboard.rs`/`xtask`）之后**未重跑全量** ✓ ⇒ 与 L5 一样留收尾集中跑 ✓ |
-| 性能（DoD-7） | **暂挂** | 按用户决定记"未达" ✓；`tools/bench.sh --gate docs/baseline/bench.tsv` 是现成的门 ✓ |
-| Android 库可加载 | **交付平台已闭环** | 按**设备自己的库**量：`304 import(s); 0 unresolved`（`docs/baseline/android-device-libs/`，4.966）✓；API 21 桩口径仍是 5 条未决 ✓，那是**旧平台**读数，按平台决定不作判据 ✓ |
-| 4 个"定义了但没导出"的名字 | **已知、非阻塞** | `check-android-imports` 每次都报 `backtrace`、`backtrace_symbols_fd`、`getloadavg`、`mkostemp` "defined but NOT exported (`no_mangle` missing)" ✓ —— 端口自己按 Rust 函数调用它们 ✓，不需要 C 符号 ✓；两处在**镜像**（`execinfo.in.rs`）里 ✓，加 `no_mangle` 会改动镜像文本 ✓，而冻结配置下模块是关的 ✓、没有任何已证实的失败 ✓ ⇒ **不改** ✓，只记在这里 ✓ |
-| 平台冒烟 | **已闭环** | macOS：`gate-fast` exit 0 ✓、`check-authorized-platforms.sh` exit 0（smoke + differential **92 form / 0 mismatch**）✓；Android：结构四项全绿 + **设备三元组**（渲染/输入/存活）✓ |
+## 口径和遗留
 
-## 规模
+- 590/590 是转写清单覆盖，旧 7/8 是实施者当时限定平台的汇总，不代表完整 GUI 产品已完成。
+- 性能本轮默认 bytecode 为参照 1.35–1.59 倍；快速修正候选有功能错误，未采用，不继续深究。
+- GUI 只完成八个 Swift 单元编译及 Rust/接口诊断；完整 Cocoa 配置、联编、打包和窗口验收未完成。
+- ERT summary/零用例、最新稳定版专项兼容、新候选平台验收及恶意字节码防护仍有证据缺口。
+- 原 goal `c9201722-3803-4aef-a3c0-97afbefae0d6` 已由实施者执行 clear。用户原意是 done；
+  clear 是协调方传达错误，不能称其已有原生 done 记录。保留旧 ID/统计，不重建、不自动恢复。
 
-Rust 629 文件 / 757,271 行；平台侧（Swift 8 / Kotlin 40 / C++ 5）60,241 行；照抄树 4,656 文件。
+## 历史和证据
 
-## 交接（2026-10-21，功能性收尾）
+- [实施者结案总结](phase1-implementer-closeout.md)
+- [VM 调查](vm-investigation.md)
+- [macOS 独立复核](macos-recheck-20261022.md)
+- [macOS GUI 调查](macos-gui-build-20261022.md)
+- [旧交接快照](handoff-2026-10-21.md)；`docs/status.md` 保留历史，旧“唯一缺口”不能覆盖上述新发现。
 
-工作按用户决定停在这里：DoD **7/8 = 87.5%**，唯一未达为性能。真实 VM 的 asm 热叶已实测
-更慢并回退，默认保持 O2 + switch VM；PGO 仅为候选。完整交接、已验收/未验收边界、遗留问题
-见 `docs/handoff-2026-10-21.md`。不再自动恢复性能开发。
+后续施工、平台扩展或优化另行规划。本次收尾不启动新 goal。

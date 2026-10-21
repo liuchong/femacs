@@ -1,0 +1,19 @@
+{
+  "run_id": "a4d6b575ffc740efb09d0a7b32004bc6",
+  "profile": "runtime",
+  "elapsed_seconds": 0.077,
+  "exit_code": 0,
+  "cleanup_complete": true,
+  "peak_rss_bytes": 0,
+  "peak_footprint_bytes": 0,
+  "peak_accounted_bytes": 0,
+  "memory_metric": "max_rss_phys_footprint",
+  "stdout": "phase1 closeout\n",
+  "memory_note": "Workload finished in 0.077s, shorter than sample interval; zero sampled peak is not zero actual memory use.",
+  "retained_hashes": {
+    "build/port/src/temacs": "62c12174450767c91d92193cd3d41ea225e5d64003ae2f4dd7aed0379df3967b",
+    "build/port/src/emacs": "62c12174450767c91d92193cd3d41ea225e5d64003ae2f4dd7aed0379df3967b",
+    "build/port/src/emacs.pdmp": "591f6864ac217d021732d3f36e96188b98b52a702898835cb59221b60ae1afa9",
+    "build/port/src/bootstrap-emacs.pdmp": "591f6864ac217d021732d3f36e96188b98b52a702898835cb59221b60ae1afa9"
+  }
+}

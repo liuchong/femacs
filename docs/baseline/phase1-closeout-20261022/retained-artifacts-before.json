@@ -1,0 +1,18 @@
+{
+  "build/port/src/temacs": {
+    "bytes": 2504560,
+    "sha256": "62c12174450767c91d92193cd3d41ea225e5d64003ae2f4dd7aed0379df3967b"
+  },
+  "build/port/src/emacs": {
+    "bytes": 2504560,
+    "sha256": "62c12174450767c91d92193cd3d41ea225e5d64003ae2f4dd7aed0379df3967b"
+  },
+  "build/port/src/emacs.pdmp": {
+    "bytes": 13025648,
+    "sha256": "591f6864ac217d021732d3f36e96188b98b52a702898835cb59221b60ae1afa9"
+  },
+  "build/port/src/bootstrap-emacs.pdmp": {
+    "bytes": 13025648,
+    "sha256": "591f6864ac217d021732d3f36e96188b98b52a702898835cb59221b60ae1afa9"
+  }
+}

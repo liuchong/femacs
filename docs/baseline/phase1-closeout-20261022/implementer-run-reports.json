@@ -1,0 +1,62 @@
+[
+  {
+    "run_id": "93d704a469ef45909111a50c1c8f16c0",
+    "profile": "build",
+    "executable": "sh",
+    "elapsed_seconds": 0.642,
+    "peak_rss_bytes": 111312896,
+    "peak_footprint_bytes": 35767640,
+    "peak_accounted_bytes": 111312896,
+    "exit_code": 101,
+    "cleanup_complete": true,
+    "reason": "exited"
+  },
+  {
+    "run_id": "5234c82d6ce94171834e268e709934ce",
+    "profile": "build",
+    "executable": "sh",
+    "elapsed_seconds": 0.366,
+    "peak_rss_bytes": 2195456,
+    "peak_footprint_bytes": 1425696,
+    "peak_accounted_bytes": 2195456,
+    "exit_code": 0,
+    "cleanup_complete": true,
+    "reason": "exited"
+  },
+  {
+    "run_id": "ca038f657f484d20ac4a21190909c66a",
+    "profile": "build",
+    "executable": "sh",
+    "elapsed_seconds": 3.54,
+    "peak_rss_bytes": 175996928,
+    "peak_footprint_bytes": 90637776,
+    "peak_accounted_bytes": 175996928,
+    "exit_code": 0,
+    "cleanup_complete": true,
+    "reason": "exited"
+  },
+  {
+    "run_id": "8d511ce30f534efbbda62501d4c6732d",
+    "profile": "runtime",
+    "executable": "sh",
+    "elapsed_seconds": 11.084,
+    "peak_rss_bytes": 117997568,
+    "peak_footprint_bytes": 90195240,
+    "peak_accounted_bytes": 117997568,
+    "exit_code": 0,
+    "cleanup_complete": true,
+    "reason": "exited"
+  },
+  {
+    "run_id": "e8bf1d5b5390470dbd55da09a678de77",
+    "profile": "runtime",
+    "executable": "sh",
+    "elapsed_seconds": 466.424,
+    "peak_rss_bytes": 7660421120,
+    "peak_footprint_bytes": 9859981496,
+    "peak_accounted_bytes": 9861520968,
+    "exit_code": 0,
+    "cleanup_complete": true,
+    "reason": "exited"
+  }
+]
