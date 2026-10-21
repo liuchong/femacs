@@ -19,6 +19,7 @@ import argparse
 import importlib.util
 import os
 import re
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -36,6 +37,13 @@ spec.loader.exec_module(ci)
 # ever removed them and the disk filled up twice (the second time mid-run, `OSError: [Errno 28]`).
 # One probe is removed as soon as clang has answered; `FEMACS_COND_EVAL_KEEP=1` keeps them for a
 # failing run's post-mortem.
+# The frozen baseline was verified with the system Xcode clang.  A PATH that puts
+# Homebrew LLVM first changes the preprocessor's answers (measured: gate-fast under the
+# controlled executor picked a different clang and failed on a verified header), so the
+# gate names the compiler it was verified against instead of inheriting PATH.
+CLANG = "/usr/bin/clang" if Path("/usr/bin/clang").is_file() else (
+    shutil.which("clang") or "clang")
+
 PROBE_DIR = Path("/tmp/femacs-cond-eval")
 KEEP_PROBES = bool(os.environ.get("FEMACS_COND_EVAL_KEEP"))
 
@@ -68,7 +76,7 @@ def clang_verdict(header: str, prefix: str, expr: str, kind: str,
            else f"#if ! defined ({expr})" if kind == "ifndef"
            else f"#if {expr}") + "\n"
         + f"#define {marker} 1\n#endif\n", encoding="utf-8")
-    out = subprocess.run(["clang", "-dM", "-E", "-std=gnu23", *include_dirs, str(probe)],
+    out = subprocess.run([CLANG, "-dM", "-E", "-std=gnu23", *include_dirs, str(probe)],
                          capture_output=True, text=True).stdout
     taken = f"#define {marker} " in out
     if not KEEP_PROBES:
