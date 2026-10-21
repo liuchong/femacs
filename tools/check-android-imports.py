@@ -276,8 +276,11 @@ def main() -> int:
                   f"does not export:")
             for n, w in list(written.items())[:20]:
                 print(f"  - {n:38s} {w}")
-    binding = ("eager (-z now): the library will not load" if eager
-               else "lazy (bionic default): it loads, and a call to a missing name faults")
+    if eager:
+        binding = "eager (-z now)" + (": the library will not load" if unresolved else "")
+    else:
+        binding = ("lazy (bionic default): it loads"
+                   + (", and a call to a missing name faults" if unresolved else ""))
     where = (f"the providers in {args.providers_dir}" if args.providers_dir
              else f"the API {args.api} stub libraries")
     print(f"check-android-imports: {len(imports)} import(s); {len(unresolved)} unresolved "
