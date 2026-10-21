@@ -10,7 +10,8 @@ The reference's `src/Makefile.in` 555-560 builds it with:
 
 This tool runs the same text transformations on the port's verbatim `lisp/loadup.el`,
 writes `build/port/src/lisp.mk`, and compares it byte-for-byte with the reference build's
-`build/emacs-ref/src/lisp.mk` when that file is present.
+`build/emacs-ref/src/lisp.mk` when that file is present.  It also compares the checked-in
+`lisp/ldefs-boot.el` pair, the other generated Lisp artifact named by the plan.
 
     python3 tools/gen-lisp-mk.py            # generate and compare
     python3 tools/gen-lisp-mk.py --list     # print the extracted names only
@@ -26,6 +27,8 @@ REPO = pathlib.Path(__file__).resolve().parent.parent
 PORT_LOADUP = REPO / "femacs/lisp/loadup.el"
 OUT = REPO / "build/port/src/lisp.mk"
 REF = REPO / "build/emacs-ref/src/lisp.mk"
+PORT_LDEFS = REPO / "femacs/lisp/ldefs-boot.el"
+REF_LDEFS = REPO / "emacs/lisp/ldefs-boot.el"
 LOAD = re.compile(r'^[ \t]*\(load "([^"]*)"')
 
 
@@ -64,16 +67,29 @@ def main() -> int:
     with OUT.open("w", encoding="utf-8", newline="\n") as fh:
         fh.write(text)
     print(f"wrote {OUT.relative_to(REPO)} ({len(text)} bytes, {len(found)} load(s))")
+    failed = 0
     if REF.is_file():
         ref = REF.read_bytes()
         got = OUT.read_bytes()
         if ref == got:
             print(f"identical    {REF.relative_to(REPO)} ({len(ref)} bytes)")
-            return 0
-        print(f"DIFFERENT    {REF.relative_to(REPO)} ({len(ref)} bytes) vs {OUT.relative_to(REPO)} ({len(got)} bytes)")
-        return 1
-    print(f"reference    {REF.relative_to(REPO)} is absent; generated only")
-    return 0
+        else:
+            print(f"DIFFERENT    {REF.relative_to(REPO)} ({len(ref)} bytes) vs {OUT.relative_to(REPO)} ({len(got)} bytes)")
+            failed = 1
+    else:
+        print(f"reference    {REF.relative_to(REPO)} is absent; generated only")
+    if PORT_LDEFS.is_file() and REF_LDEFS.is_file():
+        got = PORT_LDEFS.read_bytes()
+        ref = REF_LDEFS.read_bytes()
+        if ref == got:
+            print(f"identical    {PORT_LDEFS.relative_to(REPO)} ({len(ref)} bytes)")
+        else:
+            print(f"DIFFERENT    {REF_LDEFS.relative_to(REPO)} ({len(ref)} bytes) vs {PORT_LDEFS.relative_to(REPO)} ({len(got)} bytes)")
+            failed = 1
+    elif PORT_LDEFS.is_file() or REF_LDEFS.is_file():
+        print(f"missing      one side of the {PORT_LDEFS.relative_to(REPO)} pair")
+        failed = 1
+    return failed
 
 
 if __name__ == "__main__":
