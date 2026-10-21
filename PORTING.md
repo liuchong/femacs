@@ -1606,3 +1606,4 @@ DEFUN!("cons", Fcons, Scons, 2, 2, 0,
     解析前的文本宏替换，所以共享源码要先落成 prelude 里的 `macro_rules!`（`DEFUN!` 的
     同型机制）或按绑定参数化，再由每个 shim 实例化一次；这三个文件因此排在共享源码
     （`ftoastr`/`strftime`/`strtol`）之后落地，台账要逐实例记名。
+| P-324 | **整体 threaded/asm 派发重写在“逻辑/语义/错误/GC 不变”下不可行，性能路线收尾**：① 参照 `bytecode.c` 41-44 行确实走 `BYTE_CODE_THREADED`，573-607 行 `NEXT goto *targets[op = FETCH]`，167 个 `CASE` 与 8 个共享尾共享同一栈帧；端口 `bytecode.rs` 648-651 行是 switch 臂 ✓。② Rust 不能取得标签地址；`asm_goto` 的 label 只能编译期跳转，不能组成按 opcode 索引的表 ⇒ 真正的 computed goto 只能把 167 个体全部写成 asm，属于解释器重写而非派发替换 ✓。③ S1 真实 256 项 asm 表 **3.738 ms vs switch 3.086 ms = 1.21×**（目标 ≤0.85×），`become`+函数指针 **5.46×**、最小 asm 链 **1.25×** ✓；S1 是上限，加入真实体/助手调用只会更慢 ✓。④ 裁定：不进入 S2/S3，保留 O2 默认与 PGO 候选，DoD-7 如实记未达，按功能性口径收尾，不再列性能菜单 ✓。详见 `docs/threaded-feasibility.md` ✓。 | **规则，立即生效** | ① “只改派发”必须能只改派发；需要重写 opcode 体的方案另立项目，不借性能名义混入 ✓。② 平台 asm 必须 macOS/Android 分别验证，不能用一端的读数代替另一端 ✓。③ 性能未达时按用户指示收尾，不重复无新证据的 spike ✓。 |

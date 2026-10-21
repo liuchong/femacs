@@ -70,3 +70,10 @@ switch 版本保留为 fallback。
 
 结论：按本计划的放弃条件，**不进入 S2/S3，不启动 256 臂生产改写**。当前 switch 版本
 保留；性能差距继续如实记为 DoD-7 未达。
+
+## 最终裁定（2026-10-21，P-324）
+
+整体 threaded/asm 重写在 Rust 中无法只替换派发：没有可存储的标签地址；真正的 computed
+goto 需要把 167 个 opcode 体与 8 个共享尾搬进 asm，超出“只改派发”。S1 的真实 256 项
+asm 表已比 switch 慢 1.21×（阈值 ≤0.85×），S2 的 Rust 助手边界只会更慢。故不进入 S2/S3，
+性能路线按用户指示收尾；详见 `docs/threaded-feasibility.md`。
