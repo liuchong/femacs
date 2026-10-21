@@ -1,0 +1,11 @@
+{
+  "dump_exit_code": 0,
+  "smoke_exit_code": 0,
+  "smoke_stdout": "42\n",
+  "sha256": {
+    "temacs": "62c12174450767c91d92193cd3d41ea225e5d64003ae2f4dd7aed0379df3967b",
+    "emacs": "62c12174450767c91d92193cd3d41ea225e5d64003ae2f4dd7aed0379df3967b",
+    "emacs.pdmp": "591f6864ac217d021732d3f36e96188b98b52a702898835cb59221b60ae1afa9",
+    "bootstrap-emacs.pdmp": "591f6864ac217d021732d3f36e96188b98b52a702898835cb59221b60ae1afa9"
+  }
+}

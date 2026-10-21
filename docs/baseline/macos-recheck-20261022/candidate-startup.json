@@ -1,0 +1,20 @@
+[
+  {
+    "mode": "off",
+    "rc": 0,
+    "stdout": "OK",
+    "stderr": ""
+  },
+  {
+    "mode": "old",
+    "rc": 0,
+    "stdout": "OK",
+    "stderr": ""
+  },
+  {
+    "mode": "fixed",
+    "rc": 255,
+    "stdout": "\nError: error (\"\\\"C-h\\\" is not a valid key definition; see \u2018key-valid-p\u2019\")\n  ( )\n  (\"%S is not a valid key definition; see `key-valid-p'\" \"C-h\")\n  (\"C-h\")\n  (\"C-h\" \"DEL\")\n  ()\n  ()\n  ()\n  ()\n",
+    "stderr": "\ncl-prin1: (wrong-type-argument buffer-or-string-p signal)\n\ncl-prin1: (wrong-type-argument buffer-or-string-p error)\n\ncl-prin1: (wrong-type-argument buffer-or-string-p (\"\\\"C-h\\\" is not a valid key definition; see \u2018key-valid-p\u2019\"))\n\ncl-prin1: (wrong-type-argument buffer-or-string-p error)\n\ncl-prin1: (wrong-type-argument buffer-or-string-p keymap--check)\n\ncl-prin1: (wrong-type-argument buffer-or-string-p key-translate)\n\ncl-prin1: (wrong-type-argument buffer-or-string-p normal-erase-is-backspace-mode)\n\ncl-prin1: (wrong-type-argument buffer-or-string-p 0)\n\ncl-prin1: (wrong-type-argument buffer-or-string-p normal-erase-is-backspace-setup-frame)\n\ncl-prin1: (wrong-type-argument buffer-or-string-p command-line)\n\ncl-prin1: (wrong-type-argument buffer-or-string-p normal-top-level)\n\ndebug-early-backtrace...done\n\"C-h\" is not a valid key definition; see \u2018key-valid-p\u2019\n"
+  }
+]

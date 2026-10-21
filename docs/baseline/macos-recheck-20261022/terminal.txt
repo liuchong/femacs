@@ -1,0 +1,58 @@
+
+File Edit Options Buffers Tools Lisp-Interaction Help
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+-UUU:--- F1  *scratch*      All L1     (Lisp Interaction ElDoc) ----------------
+For information about GNU Emacs and the GNU system, type C-h C-a.
+(New file)
+(New file)File Edit Options Buffers Tools Text Help
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+-UUU:--- F1  macos-edit-proof.txt   All L1     (Text) --------------------------
+261022/macos-edit-proof.txt...
+femacs macOS fresh-build input and save test-UUU:**- F1  macos-edit-proof.txt   All L2     (Text) --------------------------
+Saving file <repo>/build/recheck-20\
+/macos-edit-proof.txt
+Wrote <repo>/build/recheck-20261022
+
+--

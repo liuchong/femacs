@@ -1,0 +1,684 @@
+Full build: 680 finished translation units; exit_code=0
+Raw sanitized log SHA256: 31c1907806c1f3ba914f779d1dfee3a763e8e1e0fc4174970ac13c1da81e10ef
+Warnings are retained in the local full build log.
+built oldXMenu/Activate.rs
+built oldXMenu/Activate.rs (--cfg enable_checking)
+built oldXMenu/AddPane.rs
+built oldXMenu/AddPane.rs (--cfg enable_checking)
+built oldXMenu/AddSel.rs
+built oldXMenu/AddSel.rs (--cfg enable_checking)
+built oldXMenu/ChgPane.rs
+built oldXMenu/ChgPane.rs (--cfg enable_checking)
+built oldXMenu/ChgSel.rs
+built oldXMenu/ChgSel.rs (--cfg enable_checking)
+built oldXMenu/Create.rs
+built oldXMenu/Create.rs (--cfg enable_checking)
+built oldXMenu/DelPane.rs
+built oldXMenu/DelPane.rs (--cfg enable_checking)
+built oldXMenu/DelSel.rs
+built oldXMenu/DelSel.rs (--cfg enable_checking)
+built oldXMenu/Destroy.rs
+built oldXMenu/Destroy.rs (--cfg enable_checking)
+built oldXMenu/Error.rs
+built oldXMenu/Error.rs (--cfg enable_checking)
+built oldXMenu/EvHand.rs
+built oldXMenu/EvHand.rs (--cfg enable_checking)
+built oldXMenu/FindPane.rs
+built oldXMenu/FindPane.rs (--cfg enable_checking)
+built oldXMenu/FindSel.rs
+built oldXMenu/FindSel.rs (--cfg enable_checking)
+built oldXMenu/InsPane.rs
+built oldXMenu/InsPane.rs (--cfg enable_checking)
+built oldXMenu/InsSel.rs
+built oldXMenu/InsSel.rs (--cfg enable_checking)
+built oldXMenu/Internal.rs
+built oldXMenu/Internal.rs (--cfg enable_checking)
+built oldXMenu/Locate.rs
+built oldXMenu/Locate.rs (--cfg enable_checking)
+built oldXMenu/Post.rs
+built oldXMenu/Post.rs (--cfg enable_checking)
+built oldXMenu/Recomp.rs
+built oldXMenu/Recomp.rs (--cfg enable_checking)
+built oldXMenu/SetAEQ.rs
+built oldXMenu/SetAEQ.rs (--cfg enable_checking)
+built oldXMenu/SetFrz.rs
+built oldXMenu/SetFrz.rs (--cfg enable_checking)
+built oldXMenu/SetPane.rs
+built oldXMenu/SetPane.rs (--cfg enable_checking)
+built oldXMenu/SetSel.rs
+built oldXMenu/SetSel.rs (--cfg enable_checking)
+built oldXMenu/XCrAssoc.rs
+built oldXMenu/XCrAssoc.rs (--cfg enable_checking)
+built oldXMenu/XDelAssoc.rs
+built oldXMenu/XDelAssoc.rs (--cfg enable_checking)
+built oldXMenu/XDestAssoc.rs
+built oldXMenu/XDestAssoc.rs (--cfg enable_checking)
+built oldXMenu/XLookAssoc.rs
+built oldXMenu/XLookAssoc.rs (--cfg enable_checking)
+built oldXMenu/XMakeAssoc.rs
+built oldXMenu/XMakeAssoc.rs (--cfg enable_checking)
+built src/abi_shim.rs
+built src/abi_shim.rs (--cfg enable_checking)
+built lib/acl-errno-valid.rs
+built lib/acl-errno-valid.rs (--cfg enable_checking)
+built lib/acl-internal.rs
+built lib/acl-internal.rs (--cfg enable_checking)
+built lib/acl_entries.rs
+built lib/acl_entries.rs (--cfg enable_checking)
+built nt/addpm.rs
+built nt/addpm.rs (--cfg enable_checking)
+built src/alloc.rs
+built src/alloc.rs (--cfg enable_checking)
+built lib/allocator.rs
+built lib/allocator.rs (--cfg enable_checking)
+built src/android-emacs.rs
+built src/android-emacs.rs (--cfg enable_checking)
+built src/android.rs
+built src/android.rs (--cfg enable_checking)
+built src/androidfns.rs
+built src/androidfns.rs (--cfg enable_checking)
+built src/androidfont.rs
+built src/androidfont.rs (--cfg enable_checking)
+built src/androidmenu.rs
+built src/androidmenu.rs (--cfg enable_checking)
+built src/androidselect.rs
+built src/androidselect.rs (--cfg enable_checking)
+built src/androidterm.rs
+built src/androidterm.rs (--cfg enable_checking)
+built src/androidvfs.rs
+built src/androidvfs.rs (--cfg enable_checking)
+built lib-src/asset-directory-tool.rs
+built lib-src/asset-directory-tool.rs (--cfg enable_checking)
+built lib/at-func.rs
+built lib/at-func.rs (--cfg enable_checking)
+built src/atimer.rs
+built src/atimer.rs (--cfg enable_checking)
+built src/bidi.rs
+built src/bidi.rs (--cfg enable_checking)
+built src/bignum.rs
+built src/bignum.rs (--cfg enable_checking)
+built lib/binary-io.rs
+built lib/binary-io.rs (--cfg enable_checking)
+built lib/boot-time.rs
+built lib/boot-time.rs (--cfg enable_checking)
+built src/buffer.rs
+built src/buffer.rs (--cfg enable_checking)
+built src/bytecode.rs
+built src/bytecode.rs (--cfg enable_checking)
+built lib/byteswap.rs
+built lib/byteswap.rs (--cfg enable_checking)
+built lib/c-ctype.rs
+built lib/c-ctype.rs (--cfg enable_checking)
+built lib/c-strcasecmp.rs
+built lib/c-strcasecmp.rs (--cfg enable_checking)
+built lib/c-strncasecmp.rs
+built lib/c-strncasecmp.rs (--cfg enable_checking)
+built src/callint.rs
+built src/callint.rs (--cfg enable_checking)
+built src/callproc.rs
+built src/callproc.rs (--cfg enable_checking)
+built lib/canonicalize-lgpl.rs
+built lib/canonicalize-lgpl.rs (--cfg enable_checking)
+built lib/careadlinkat.rs
+built lib/careadlinkat.rs (--cfg enable_checking)
+built src/casefiddle.rs
+built src/casefiddle.rs (--cfg enable_checking)
+built src/casetab.rs
+built src/casetab.rs (--cfg enable_checking)
+built src/category.rs
+built src/category.rs (--cfg enable_checking)
+built src/ccl.rs
+built src/ccl.rs (--cfg enable_checking)
+built src/character.rs
+built src/character.rs (--cfg enable_checking)
+built src/charset.rs
+built src/charset.rs (--cfg enable_checking)
+built src/chartab.rs
+built src/chartab.rs (--cfg enable_checking)
+built lib/cloexec.rs
+built lib/cloexec.rs (--cfg enable_checking)
+built lib/close-stream.rs
+built lib/close-stream.rs (--cfg enable_checking)
+built src/cm.rs
+built src/cm.rs (--cfg enable_checking)
+built nt/cmdproxy.rs
+built nt/cmdproxy.rs (--cfg enable_checking)
+built src/cmds.rs
+built src/cmds.rs (--cfg enable_checking)
+built src/coding.rs
+built src/coding.rs (--cfg enable_checking)
+built src/comp.rs
+built src/comp.rs (--cfg enable_checking)
+built src/composite.rs
+built src/composite.rs (--cfg enable_checking)
+built lib/copy-file-range.rs
+built lib/copy-file-range.rs (--cfg enable_checking)
+built src/cygw32.rs
+built src/cygw32.rs (--cfg enable_checking)
+built src/data.rs
+built src/data.rs (--cfg enable_checking)
+built src/dbusbind.rs
+built src/dbusbind.rs (--cfg enable_checking)
+built nt/ddeclient.rs
+built nt/ddeclient.rs (--cfg enable_checking)
+built src/decompress.rs
+built src/decompress.rs (--cfg enable_checking)
+built src/dired.rs
+built src/dired.rs (--cfg enable_checking)
+built lib/dirfd.rs
+built lib/dirfd.rs (--cfg enable_checking)
+built src/dispnew.rs
+built src/dispnew.rs (--cfg enable_checking)
+built src/doc.rs
+built src/doc.rs (--cfg enable_checking)
+built src/doprnt.rs
+built src/doprnt.rs (--cfg enable_checking)
+built src/dosfns.rs
+built src/dosfns.rs (--cfg enable_checking)
+built lib/dtoastr.rs
+built lib/dtoastr.rs (--cfg enable_checking)
+built lib/dtotimespec.rs
+built lib/dtotimespec.rs (--cfg enable_checking)
+built lib/dup2.rs
+built lib/dup2.rs (--cfg enable_checking)
+built lib/malloc/dynarray-skeleton.rs
+built lib/malloc/dynarray-skeleton.rs (--cfg enable_checking)
+built lib/malloc/dynarray_at_failure.rs
+built lib/malloc/dynarray_at_failure.rs (--cfg enable_checking)
+built lib/malloc/dynarray_emplace_enlarge.rs
+built lib/malloc/dynarray_emplace_enlarge.rs (--cfg enable_checking)
+built lib/malloc/dynarray_finalize.rs
+built lib/malloc/dynarray_finalize.rs (--cfg enable_checking)
+built lib/malloc/dynarray_resize.rs
+built lib/malloc/dynarray_resize.rs (--cfg enable_checking)
+built lib/malloc/dynarray_resize_clear.rs
+built lib/malloc/dynarray_resize_clear.rs (--cfg enable_checking)
+built src/dynlib.rs
+built src/dynlib.rs (--cfg enable_checking)
+built lib-src/ebrowse.rs
+built lib-src/ebrowse.rs (--cfg enable_checking)
+built src/editfns.rs
+built src/editfns.rs (--cfg enable_checking)
+built src/emacs-module.rs
+built src/emacs-module.rs (--cfg enable_checking)
+built src/emacs.rs
+built src/emacs.rs (--cfg enable_checking)
+built lib-src/emacsclient.rs
+built lib-src/emacsclient.rs (--cfg enable_checking)
+built src/emacsgtkfixed.rs
+built src/emacsgtkfixed.rs (--cfg enable_checking)
+built lib/endian.rs
+built lib/endian.rs (--cfg enable_checking)
+built lib-src/etags.rs
+built lib-src/etags.rs (--cfg enable_checking)
+built lib/euidaccess.rs
+built lib/euidaccess.rs (--cfg enable_checking)
+built src/eval.rs
+built src/eval.rs (--cfg enable_checking)
+built exec/exec.rs
+built exec/exec.rs (--cfg enable_checking)
+built exec/exec1.rs
+built exec/exec1.rs (--cfg enable_checking)
+built lib/execinfo.rs
+built lib/execinfo.rs (--cfg enable_checking)
+built lib/faccessat.rs
+built lib/faccessat.rs (--cfg enable_checking)
+built lib/fchmodat.rs
+built lib/fchmodat.rs (--cfg enable_checking)
+built lib/fcntl.rs
+built lib/fcntl.rs (--cfg enable_checking)
+built lib/fdopendir.rs
+built lib/fdopendir.rs (--cfg enable_checking)
+built lib/file-has-acl.rs
+built lib/file-has-acl.rs (--cfg enable_checking)
+built src/fileio.rs
+built src/fileio.rs (--cfg enable_checking)
+built src/filelock.rs
+built src/filelock.rs (--cfg enable_checking)
+built lib/filemode.rs
+built lib/filemode.rs (--cfg enable_checking)
+built lib/filevercmp.rs
+built lib/filevercmp.rs (--cfg enable_checking)
+built lib/fingerprint.rs
+built lib/fingerprint.rs (--cfg enable_checking)
+built src/floatfns.rs
+built src/floatfns.rs (--cfg enable_checking)
+built src/fns.rs
+built src/fns.rs (--cfg enable_checking)
+built src/font.rs
+built src/font.rs (--cfg enable_checking)
+built src/fontset.rs
+built src/fontset.rs (--cfg enable_checking)
+built lib/fpending.rs
+built lib/fpending.rs (--cfg enable_checking)
+built src/frame.rs
+built src/frame.rs (--cfg enable_checking)
+built lib/free.rs
+built lib/free.rs (--cfg enable_checking)
+built src/fringe.rs
+built src/fringe.rs (--cfg enable_checking)
+built lib/fseterr.rs
+built lib/fseterr.rs (--cfg enable_checking)
+built lib/fstatat.rs
+built lib/fstatat.rs (--cfg enable_checking)
+built lib/fsusage.rs
+built lib/fsusage.rs (--cfg enable_checking)
+built lib/fsync.rs
+built lib/fsync.rs (--cfg enable_checking)
+built src/ftcrfont.rs
+built src/ftcrfont.rs (--cfg enable_checking)
+built src/ftfont.rs
+built src/ftfont.rs (--cfg enable_checking)
+built lib/ftoastr.rs
+built lib/ftoastr.rs (--cfg enable_checking)
+built lib/futimens.rs
+built lib/futimens.rs (--cfg enable_checking)
+built lib/get-permissions.rs
+built lib/get-permissions.rs (--cfg enable_checking)
+built lib/getdelim.rs
+built lib/getdelim.rs (--cfg enable_checking)
+built lib/getdtablesize.rs
+built lib/getdtablesize.rs (--cfg enable_checking)
+built lib/getgroups.rs
+built lib/getgroups.rs (--cfg enable_checking)
+built lib/getline.rs
+built lib/getline.rs (--cfg enable_checking)
+built lib/getloadavg.rs
+built lib/getloadavg.rs (--cfg enable_checking)
+built lib/getopt.rs
+built lib/getopt.rs (--cfg enable_checking)
+built lib/getopt1.rs
+built lib/getopt1.rs (--cfg enable_checking)
+built lib/getrandom.rs
+built lib/getrandom.rs (--cfg enable_checking)
+built lib/gettime.rs
+built lib/gettime.rs (--cfg enable_checking)
+built lib/gettimeofday.rs
+built lib/gettimeofday.rs (--cfg enable_checking)
+built src/gfilenotify.rs
+built src/gfilenotify.rs (--cfg enable_checking)
+built src/gmalloc.rs
+built src/gmalloc.rs (--cfg enable_checking)
+built src/gnutls.rs
+built src/gnutls.rs (--cfg enable_checking)
+built lib/group-member.rs
+built lib/group-member.rs (--cfg enable_checking)
+built src/gtkutil.rs
+built src/gtkutil.rs (--cfg enable_checking)
+built src/haiku.rs
+built src/haiku.rs (--cfg enable_checking)
+built src/haiku_io.rs
+built src/haiku_io.rs (--cfg enable_checking)
+built src/haikufns.rs
+built src/haikufns.rs (--cfg enable_checking)
+built src/haikufont.rs
+built src/haikufont.rs (--cfg enable_checking)
+built src/haikuimage.rs
+built src/haikuimage.rs (--cfg enable_checking)
+built src/haikumenu.rs
+built src/haikumenu.rs (--cfg enable_checking)
+built src/haikuselect.rs
+built src/haikuselect.rs (--cfg enable_checking)
+built src/haikuterm.rs
+built src/haikuterm.rs (--cfg enable_checking)
+built src/hbfont.rs
+built src/hbfont.rs (--cfg enable_checking)
+built lib-src/hexl.rs
+built lib-src/hexl.rs (--cfg enable_checking)
+built src/image.rs
+built src/image.rs (--cfg enable_checking)
+built src/indent.rs
+built src/indent.rs (--cfg enable_checking)
+built src/inotify.rs
+built src/inotify.rs (--cfg enable_checking)
+built src/insdel.rs
+built src/insdel.rs (--cfg enable_checking)
+built oldXMenu/insque.rs
+built oldXMenu/insque.rs (--cfg enable_checking)
+built src/intervals.rs
+built src/intervals.rs (--cfg enable_checking)
+built lib/issymlink.rs
+built lib/issymlink.rs (--cfg enable_checking)
+built lib/issymlinkat.rs
+built lib/issymlinkat.rs (--cfg enable_checking)
+built src/itree.rs
+built src/itree.rs (--cfg enable_checking)
+built src/json.rs
+built src/json.rs (--cfg enable_checking)
+built src/keyboard.rs
+built src/keyboard.rs (--cfg enable_checking)
+built src/keymap.rs
+built src/keymap.rs (--cfg enable_checking)
+built src/kqueue.rs
+built src/kqueue.rs (--cfg enable_checking)
+built lib/lchmod.rs
+built lib/lchmod.rs (--cfg enable_checking)
+built src/lcms.rs
+built src/lcms.rs (--cfg enable_checking)
+built src/lread.rs
+built src/lread.rs (--cfg enable_checking)
+built lib/lstat.rs
+built lib/lstat.rs (--cfg enable_checking)
+built lwlib/lwlib-Xaw.rs
+built lwlib/lwlib-Xaw.rs (--cfg enable_checking)
+built lwlib/lwlib-Xlw.rs
+built lwlib/lwlib-Xlw.rs (--cfg enable_checking)
+built lwlib/lwlib-Xm.rs
+built lwlib/lwlib-Xm.rs (--cfg enable_checking)
+built lwlib/lwlib-utils.rs
+built lwlib/lwlib-utils.rs (--cfg enable_checking)
+built lwlib/lwlib.rs
+built lwlib/lwlib.rs (--cfg enable_checking)
+built src/macros.rs
+built src/macros.rs (--cfg enable_checking)
+built lib-src/make-docfile.rs
+built lib-src/make-docfile.rs (--cfg enable_checking)
+built lib-src/make-fingerprint.rs
+built lib-src/make-fingerprint.rs (--cfg enable_checking)
+built lib/malloc.rs
+built lib/malloc.rs (--cfg enable_checking)
+built src/marker.rs
+built src/marker.rs (--cfg enable_checking)
+built lib/md5-stream.rs
+built lib/md5-stream.rs (--cfg enable_checking)
+built lib/md5.rs
+built lib/md5.rs (--cfg enable_checking)
+built lib/memeq.rs
+built lib/memeq.rs (--cfg enable_checking)
+built lib/memmem.rs
+built lib/memmem.rs (--cfg enable_checking)
+built lib/mempcpy.rs
+built lib/mempcpy.rs (--cfg enable_checking)
+built lib/memrchr.rs
+built lib/memrchr.rs (--cfg enable_checking)
+built lib/memset_explicit.rs
+built lib/memset_explicit.rs (--cfg enable_checking)
+built src/menu.rs
+built src/menu.rs (--cfg enable_checking)
+built lib/mini-gmp-gnulib.rs
+built lib/mini-gmp-gnulib.rs (--cfg enable_checking)
+built lib/mini-gmp.rs
+built lib/mini-gmp.rs (--cfg enable_checking)
+built src/minibuf.rs
+built src/minibuf.rs (--cfg enable_checking)
+built exec/mipsfpu.rs
+built exec/mipsfpu.rs (--cfg enable_checking)
+built lib/mkostemp.rs
+built lib/mkostemp.rs (--cfg enable_checking)
+built lib/mktime.rs
+built lib/mktime.rs (--cfg enable_checking)
+built lib-src/movemail.rs
+built lib-src/movemail.rs (--cfg enable_checking)
+built src/msdos.rs
+built src/msdos.rs (--cfg enable_checking)
+built lib/nanosleep.rs
+built lib/nanosleep.rs (--cfg enable_checking)
+built lib/nproc.rs
+built lib/nproc.rs (--cfg enable_checking)
+built lib/nstrftime.rs
+built lib/nstrftime.rs (--cfg enable_checking)
+built lib-src/ntlib.rs
+built lib-src/ntlib.rs (--cfg enable_checking)
+built lib/open.rs
+built lib/open.rs (--cfg enable_checking)
+built lib/openat-die.rs
+built lib/openat-die.rs (--cfg enable_checking)
+built lib/openat-proc.rs
+built lib/openat-proc.rs (--cfg enable_checking)
+built src/pdumper.rs
+built src/pdumper.rs (--cfg enable_checking)
+built src/pgtkfns.rs
+built src/pgtkfns.rs (--cfg enable_checking)
+built src/pgtkim.rs
+built src/pgtkim.rs (--cfg enable_checking)
+built src/pgtkmenu.rs
+built src/pgtkmenu.rs (--cfg enable_checking)
+built src/pgtkselect.rs
+built src/pgtkselect.rs (--cfg enable_checking)
+built src/pgtkterm.rs
+built src/pgtkterm.rs (--cfg enable_checking)
+built lib/pipe2.rs
+built lib/pipe2.rs (--cfg enable_checking)
+built lib-src/pop.rs
+built lib-src/pop.rs (--cfg enable_checking)
+built src/print.rs
+built src/print.rs (--cfg enable_checking)
+built src/process.rs
+built src/process.rs (--cfg enable_checking)
+built src/profiler.rs
+built src/profiler.rs (--cfg enable_checking)
+built lib/pselect.rs
+built lib/pselect.rs (--cfg enable_checking)
+built lib/pthread_sigmask.rs
+built lib/pthread_sigmask.rs (--cfg enable_checking)
+built lib/qcopy-acl.rs
+built lib/qcopy-acl.rs (--cfg enable_checking)
+built src/ralloc.rs
+built src/ralloc.rs (--cfg enable_checking)
+built lib/rawmemchr.rs
+built lib/rawmemchr.rs (--cfg enable_checking)
+built lib/readlink.rs
+built lib/readlink.rs (--cfg enable_checking)
+built lib/readlinkat.rs
+built lib/readlinkat.rs (--cfg enable_checking)
+built lib/realloc.rs
+built lib/realloc.rs (--cfg enable_checking)
+built lib/regcomp.rs
+built lib/regcomp.rs (--cfg enable_checking)
+built src/regex-emacs.rs
+built src/regex-emacs.rs (--cfg enable_checking)
+built lib/regex.rs
+built lib/regex.rs (--cfg enable_checking)
+built lib/regex_internal.rs
+built lib/regex_internal.rs (--cfg enable_checking)
+built lib/regexec.rs
+built lib/regexec.rs (--cfg enable_checking)
+built src/region-cache.rs
+built src/region-cache.rs (--cfg enable_checking)
+built nt/runemacs.rs
+built nt/runemacs.rs (--cfg enable_checking)
+built lib/save-cwd.rs
+built lib/save-cwd.rs (--cfg enable_checking)
+built lib/malloc/scratch_buffer_grow.rs
+built lib/malloc/scratch_buffer_grow.rs (--cfg enable_checking)
+built lib/malloc/scratch_buffer_grow_preserve.rs
+built lib/malloc/scratch_buffer_grow_preserve.rs (--cfg enable_checking)
+built lib/malloc/scratch_buffer_set_array_size.rs
+built lib/malloc/scratch_buffer_set_array_size.rs (--cfg enable_checking)
+built src/scroll.rs
+built src/scroll.rs (--cfg enable_checking)
+built src/search.rs
+built src/search.rs (--cfg enable_checking)
+built lib-src/seccomp-filter.rs
+built lib-src/seccomp-filter.rs (--cfg enable_checking)
+built lib/set-permissions.rs
+built lib/set-permissions.rs (--cfg enable_checking)
+built src/sfnt.rs
+built src/sfnt.rs (--cfg enable_checking)
+built src/sfntfont-android.rs
+built src/sfntfont-android.rs (--cfg enable_checking)
+built src/sfntfont.rs
+built src/sfntfont.rs (--cfg enable_checking)
+built lib/sha1.rs
+built lib/sha1.rs (--cfg enable_checking)
+built lib/sha256.rs
+built lib/sha256.rs (--cfg enable_checking)
+built lib/sha3.rs
+built lib/sha3.rs (--cfg enable_checking)
+built lib/sha512.rs
+built lib/sha512.rs (--cfg enable_checking)
+built lib/sig2str.rs
+built lib/sig2str.rs (--cfg enable_checking)
+built lib/sigdescr_np.rs
+built lib/sigdescr_np.rs (--cfg enable_checking)
+built src/sort.rs
+built src/sort.rs (--cfg enable_checking)
+built src/sound.rs
+built src/sound.rs (--cfg enable_checking)
+built src/sqlite.rs
+built src/sqlite.rs (--cfg enable_checking)
+built lib/stat-time.rs
+built lib/stat-time.rs (--cfg enable_checking)
+built lib/stdbit.rs
+built lib/stdbit.rs (--cfg enable_checking)
+built lib/stdc_bit_width.rs
+built lib/stdc_bit_width.rs (--cfg enable_checking)
+built lib/stdc_count_ones.rs
+built lib/stdc_count_ones.rs (--cfg enable_checking)
+built lib/stdc_leading_zeros.rs
+built lib/stdc_leading_zeros.rs (--cfg enable_checking)
+built lib/stdc_memreverse8u.rs
+built lib/stdc_memreverse8u.rs (--cfg enable_checking)
+built lib/stdc_trailing_zeros.rs
+built lib/stdc_trailing_zeros.rs (--cfg enable_checking)
+built lib/stdio-consolesafe.rs
+built lib/stdio-consolesafe.rs (--cfg enable_checking)
+built lib/stdlib.rs
+built lib/stdlib.rs (--cfg enable_checking)
+built lib/stpcpy.rs
+built lib/stpcpy.rs (--cfg enable_checking)
+built lib/streq.rs
+built lib/streq.rs (--cfg enable_checking)
+built lib/strftime.rs
+built lib/strftime.rs (--cfg enable_checking)
+built lib/strnlen.rs
+built lib/strnlen.rs (--cfg enable_checking)
+built lib/strnul.rs
+built lib/strnul.rs (--cfg enable_checking)
+built lib/strtoimax.rs
+built lib/strtoimax.rs (--cfg enable_checking)
+built lib/strtol.rs
+built lib/strtol.rs (--cfg enable_checking)
+built lib/strtoll.rs
+built lib/strtoll.rs (--cfg enable_checking)
+built lib/symlink.rs
+built lib/symlink.rs (--cfg enable_checking)
+built src/syntax.rs
+built src/syntax.rs (--cfg enable_checking)
+built src/sysdep.rs
+built src/sysdep.rs (--cfg enable_checking)
+built src/systhread.rs
+built src/systhread.rs (--cfg enable_checking)
+built lib/tempname.rs
+built lib/tempname.rs (--cfg enable_checking)
+built src/term.rs
+built src/term.rs (--cfg enable_checking)
+built src/termcap.rs
+built src/termcap.rs (--cfg enable_checking)
+built src/terminal.rs
+built src/terminal.rs (--cfg enable_checking)
+built src/terminfo.rs
+built src/terminfo.rs (--cfg enable_checking)
+built exec/test.rs
+built exec/test.rs (--cfg enable_checking)
+built src/textconv.rs
+built src/textconv.rs (--cfg enable_checking)
+built src/textprop.rs
+built src/textprop.rs (--cfg enable_checking)
+built src/thread.rs
+built src/thread.rs (--cfg enable_checking)
+built lib/time_r.rs
+built lib/time_r.rs (--cfg enable_checking)
+built lib/time_rz.rs
+built lib/time_rz.rs (--cfg enable_checking)
+built src/timefns.rs
+built src/timefns.rs (--cfg enable_checking)
+built lib/timegm.rs
+built lib/timegm.rs (--cfg enable_checking)
+built lib/timespec-add.rs
+built lib/timespec-add.rs (--cfg enable_checking)
+built lib/timespec-sub.rs
+built lib/timespec-sub.rs (--cfg enable_checking)
+built lib/timespec.rs
+built lib/timespec.rs (--cfg enable_checking)
+built src/tparam.rs
+built src/tparam.rs (--cfg enable_checking)
+built exec/trace.rs
+built exec/trace.rs (--cfg enable_checking)
+built src/treesit.rs
+built src/treesit.rs (--cfg enable_checking)
+built lib/u64.rs
+built lib/u64.rs (--cfg enable_checking)
+built src/undo.rs
+built src/undo.rs (--cfg enable_checking)
+built lib/unistd.rs
+built lib/unistd.rs (--cfg enable_checking)
+built lib-src/update-game-score.rs
+built lib-src/update-game-score.rs (--cfg enable_checking)
+built lib/utimens.rs
+built lib/utimens.rs (--cfg enable_checking)
+built lib/utimensat.rs
+built lib/utimensat.rs (--cfg enable_checking)
+built src/vm-limit.rs
+built src/vm-limit.rs (--cfg enable_checking)
+built src/w16select.rs
+built src/w16select.rs (--cfg enable_checking)
+built src/w32.rs
+built src/w32.rs (--cfg enable_checking)
+built src/w32console.rs
+built src/w32console.rs (--cfg enable_checking)
+built src/w32cygwinx.rs
+built src/w32cygwinx.rs (--cfg enable_checking)
+built src/w32dwrite.rs
+built src/w32dwrite.rs (--cfg enable_checking)
+built src/w32fns.rs
+built src/w32fns.rs (--cfg enable_checking)
+built src/w32font.rs
+built src/w32font.rs (--cfg enable_checking)
+built src/w32heap.rs
+built src/w32heap.rs (--cfg enable_checking)
+built src/w32image.rs
+built src/w32image.rs (--cfg enable_checking)
+built src/w32inevt.rs
+built src/w32inevt.rs (--cfg enable_checking)
+built src/w32menu.rs
+built src/w32menu.rs (--cfg enable_checking)
+built src/w32notify.rs
+built src/w32notify.rs (--cfg enable_checking)
+built src/w32proc.rs
+built src/w32proc.rs (--cfg enable_checking)
+built src/w32reg.rs
+built src/w32reg.rs (--cfg enable_checking)
+built src/w32select.rs
+built src/w32select.rs (--cfg enable_checking)
+built src/w32term.rs
+built src/w32term.rs (--cfg enable_checking)
+built src/w32uniscribe.rs
+built src/w32uniscribe.rs (--cfg enable_checking)
+built src/w32xfns.rs
+built src/w32xfns.rs (--cfg enable_checking)
+built src/widget.rs
+built src/widget.rs (--cfg enable_checking)
+built src/window.rs
+built src/window.rs (--cfg enable_checking)
+built src/xdisp.rs
+built src/xdisp.rs (--cfg enable_checking)
+built src/xfaces.rs
+built src/xfaces.rs (--cfg enable_checking)
+built src/xfns.rs
+built src/xfns.rs (--cfg enable_checking)
+built src/xfont.rs
+built src/xfont.rs (--cfg enable_checking)
+built src/xftfont.rs
+built src/xftfont.rs (--cfg enable_checking)
+built src/xgselect.rs
+built src/xgselect.rs (--cfg enable_checking)
+built lwlib/xlwmenu.rs
+built lwlib/xlwmenu.rs (--cfg enable_checking)
+built src/xmenu.rs
+built src/xmenu.rs (--cfg enable_checking)
+built src/xml.rs
+built src/xml.rs (--cfg enable_checking)
+built src/xrdb.rs
+built src/xrdb.rs (--cfg enable_checking)
+built src/xselect.rs
+built src/xselect.rs (--cfg enable_checking)
+built src/xsettings.rs
+built src/xsettings.rs (--cfg enable_checking)
+built src/xsmfns.rs
+built src/xsmfns.rs (--cfg enable_checking)
+built src/xterm.rs
+built src/xterm.rs (--cfg enable_checking)
+built src/xwidget.rs
+built src/xwidget.rs (--cfg enable_checking)
+680 finished translation unit(s) compiled

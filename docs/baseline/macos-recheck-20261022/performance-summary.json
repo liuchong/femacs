@@ -1,0 +1,50 @@
+{
+  "default": {
+    "bc-loop": 2.8241,
+    "bc-sum": 6.031,
+    "bc-car": 2.8229,
+    "regexp-repl": 3.0799,
+    "buffer-scan": 1.09,
+    "sort-100k": 2.0339,
+    "load": 4.5581,
+    "edit": 8.9419,
+    "regex": 3.027,
+    "gc": 53.4401
+  },
+  "reference": {
+    "bc-loop": 1.781,
+    "bc-sum": 4.4532,
+    "bc-car": 1.889,
+    "regexp-repl": 2.8641,
+    "buffer-scan": 1.0459,
+    "sort-100k": 1.7779,
+    "load": 1.9341,
+    "edit": 8.6491,
+    "regex": 2.667,
+    "gc": 48.085
+  },
+  "candidate-off": {
+    "bc-loop": 3.768,
+    "bc-sum": 6.789,
+    "bc-car": 3.756,
+    "regexp-repl": 3.1102,
+    "buffer-scan": 1.0591,
+    "sort-100k": 2.111,
+    "load": 4.5059,
+    "edit": 9.105,
+    "regex": 3.0811,
+    "gc": 54.2591
+  },
+  "candidate-old-tag": {
+    "bc-loop": 16.6452,
+    "bc-sum": 18.4741,
+    "bc-car": 16.4931,
+    "regexp-repl": 3.3851,
+    "buffer-scan": 1.0769,
+    "sort-100k": 3.8691,
+    "load": 4.529,
+    "edit": 8.9731,
+    "regex": 3.3131,
+    "gc": 54.0142
+  }
+}

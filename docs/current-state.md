@@ -1,5 +1,7 @@
 # 当前状态（判定表按 2026-10-21 / status 4.1048 复核）
 
+> 2026-10-22 独立复核：680 单元全量重编、链接/dump 成功，macOS 终端实际输入/保存/退出成功；92 条差分输入一致。快速 asm 修正有功能错误，未采用，性能仍未达；按用户决定功能性收尾并暂停。详情见 [本次复核](macos-recheck-20261022.md)，下文历史验收数字不是本次全量重新认证。
+
 给下一次会话的**入口快照**：判定口径、读数、复跑命令、未决事项。逐轮记录仍在 `docs/status.md`，
 口径与规则在 `PORTING.md`，验收细则在 `docs/acceptance.md`。
 
@@ -50,7 +52,7 @@
 | # | 项 | 判定 | 证据命令 | 最后一次读数（出处） |
 |---|---|---|---|---|
 | 1 | 590 条 1:1 转写 | ✅ | `python3 tools/extract-abi.py --all` | **590 done / 0 in progress / 0 failing**（4.964 复跑，本轮四处改动之后：`signal.rs` / `sysdep.rs` / `keyboard.rs` / `xtask`） |
-| 2 | 布局/符号/subr/defvar/声明/清单 | ✅ | `cd femacs && CARGO_TARGET_DIR=/tmp/xt-cargo cargo run -q -p xtask -- gate-fast`、`-- gate-probes` | **`verify-dod --full` 4.1032：`check-declarations` 24 declaration sites / 0 failure、`gate-fast` exit 0**；**`gate-fast` exit 0**（4.1000 复跑，`verify-dod --full` 内，约 570 s / 峰值 469 MB）：`symbols (src): every built unit matches its reference`、`linkage: every non-static C object is exported`、`layout probe ok` / `layout-check passed`；首跑红过一次，原因是环境清掉了 `build/emacs-ref/lib/libgnu.a`（`make -C build/emacs-ref/lib libgnu.a` 6 s 补回）；**`gate-probes` exit 0**（4.998 复跑，135 s / 峰值 372 MB）—— `340 translation unit(s) compiled with the non-frozen arms, 0 failed`，即非冻结配置下的死臂也都能编过 |
+| 2 | 布局/符号/subr/defvar/声明/清单 | ✅ | `cd femacs && CARGO_TARGET_DIR=${TMPDIR}/xt-cargo cargo run -q -p xtask -- gate-fast`、`-- gate-probes` | **`verify-dod --full` 4.1032：`check-declarations` 24 declaration sites / 0 failure、`gate-fast` exit 0**；**`gate-fast` exit 0**（4.1000 复跑，`verify-dod --full` 内，约 570 s / 峰值 469 MB）：`symbols (src): every built unit matches its reference`、`linkage: every non-static C object is exported`、`layout probe ok` / `layout-check passed`；首跑红过一次，原因是环境清掉了 `build/emacs-ref/lib/libgnu.a`（`make -C build/emacs-ref/lib libgnu.a` 6 s 补回）；**`gate-probes` exit 0**（4.998 复跑，135 s / 峰值 372 MB）—— `340 translation unit(s) compiled with the non-frozen arms, 0 failed`，即非冻结配置下的死臂也都能编过 |
 | 3 | L0–L5 | ✅ | `python3 tools/acceptance-l0.py --check build/port/src/emacs`、`acceptance-l1.py`、`tools/check-ert.py` | **L5 全量 564 文件（4.1061 复跑）**：**552 same / 7 both-fail / 4 crashed（全部两侧同崩）/ 1 port-better / 0 port-worse** ✓，端口 9,014 ran / 110 unexpected，参照 9,014 / 111 ✓；4 条 crashed 的注记里都有 `reference: crashed` ✓；L0 **19/0**、L1 **111/0+1** 于 4.1061 复跑 ✓；证据 `docs/baseline/ert-final-20261021.tsv`；压力面见第 4 行的 GC 压测 ✓ |
 | 4 | `.elc`/dump/生成物/loadup ＋ 压力 | ✅ | `check-generated.py`、`check-loadup.py`、`check-dump-offsets.py`、`gen-elc.py --cross-check`、`l5-sweep.sh --gc-stress` | 生成物 **244：195 identical / 49 name-only / 0 DIFFERENT / 0 missing**（4.964）✓；**`src/lisp.mk` 3,127 B identical / `ldefs-boot.el` 1,653,519 B identical / `admin/unidata` 23 文件 0 different / `admin/charsets` 139 identical**（4.1041）✓；`only in the reference 0, only in the port 0` 且 `the two loadups agree file for file`（4.964）✓；dump **0 failure**（4.964）✓；`.elc` 交叉检查 **0 端口缺陷**（4.969，57 目标：5 identical / 51 state-only / 1 volatile）✓；GC 压测全量 **564：552 same / 7 both-fail / 4 crashed（全部两侧同崩）/ 1 port-better / 0 port-worse**（4.1063 复跑；端口 9,014 ran / 110 unexpected，参照 111）✓；**4.1046 故障注入 19 用例 0 differ、差分 fuzz 60/60 same** ✓ |
 | 5 | 原样树逐字节 | ✅ | `python3 tools/check-verbatim.py` | **6 棵树 / 4,604 文件 / 0 failures**（4.964 复跑；9 条 accepted absence 是参照 `.gitignore` 的生成物） |
@@ -106,13 +108,13 @@ python3 ~/.assistant/skills/controlled-run/scripts/run.py --profile runtime \
 # 模拟器冒烟（应用层断言：进程、native 入口、失败形态；R38 自动扩容）：
 ANDROID_SDK_ROOT=$HOME/Library/Android/sdk FEMACS_EMULATOR_BUDGET_OK=1 \
   python3 ~/.assistant/skills/controlled-run/scripts/run.py --profile runtime -- \
-  bash tools/try-android-emulator.sh --avd femacs-arm64-api36 --apk /tmp/femacs-apk/emacs.apk
+  bash tools/try-android-emulator.sh --avd femacs-arm64-api36 --apk ${TMPDIR}/femacs-apk/emacs.apk
 
 # Android 可加载面（导入 vs NDK stub 库，棘轮）：
 python3 tools/check-android-imports.py
 
-cd femacs && CARGO_TARGET_DIR=/tmp/xt-cargo cargo run -q -p xtask -- gate-fast      # 静态/链接/布局/声明/清单
-cd femacs && CARGO_TARGET_DIR=/tmp/xt-cargo cargo run -q -p xtask -- gate-android   # Android 结构验收（~1 GB 峰值）
+cd femacs && CARGO_TARGET_DIR=${TMPDIR}/xt-cargo cargo run -q -p xtask -- gate-fast      # 静态/链接/布局/声明/清单
+cd femacs && CARGO_TARGET_DIR=${TMPDIR}/xt-cargo cargo run -q -p xtask -- gate-android   # Android 结构验收（~1 GB 峰值）
 bash tools/smoke.sh                                                                  # macOS 冒烟
 python3 tools/check-verbatim.py                                                      # 原样树逐字节
 python3 tools/gen-ja-dic.py && python3 tools/check-generated.py                       # ja-dic 生成 + 生成物 242 文件

@@ -1,0 +1,230 @@
+[
+  {
+    "round": 1,
+    "side": "default",
+    "rc": 0,
+    "wall_seconds": 0.48933608300000003,
+    "output": "BENCH bc-loop        2.8241 ms\nBENCH bc-sum         5.8689 ms\nBENCH bc-car         2.8212 ms\nBENCH regexp-repl    3.0799 ms\nBENCH buffer-scan    1.0839 ms\nBENCH sort-100k      2.0940 ms\nTASK load           4.5581 ms\nTASK edit           8.8720 ms\nTASK regex          2.9092 ms\nTASK gc            53.4401 ms\nPGO-EVAL-DONE\n",
+    "markers": {
+      "bc-loop": 2.8241,
+      "bc-sum": 5.8689,
+      "bc-car": 2.8212,
+      "regexp-repl": 3.0799,
+      "buffer-scan": 1.0839,
+      "sort-100k": 2.094,
+      "load": 4.5581,
+      "edit": 8.872,
+      "regex": 2.9092,
+      "gc": 53.4401
+    }
+  },
+  {
+    "round": 1,
+    "side": "reference",
+    "rc": 0,
+    "wall_seconds": 0.423194583,
+    "output": "BENCH bc-loop        1.7772 ms\nBENCH bc-sum         4.3809 ms\nBENCH bc-car         1.8890 ms\nBENCH regexp-repl    2.8641 ms\nBENCH buffer-scan    1.0459 ms\nBENCH sort-100k      1.7869 ms\nSource file `<repo>/emacs/lisp/emacs-lisp/cl-loaddefs.el' newer than byte-compiled file; using older file\nTASK load           1.8790 ms\nTASK edit           8.6830 ms\nTASK regex          2.6670 ms\nTASK gc            47.3089 ms\nPGO-EVAL-DONE\n",
+    "markers": {
+      "bc-loop": 1.7772,
+      "bc-sum": 4.3809,
+      "bc-car": 1.889,
+      "regexp-repl": 2.8641,
+      "buffer-scan": 1.0459,
+      "sort-100k": 1.7869,
+      "load": 1.879,
+      "edit": 8.683,
+      "regex": 2.667,
+      "gc": 47.3089
+    }
+  },
+  {
+    "round": 1,
+    "side": "candidate-off",
+    "rc": 0,
+    "wall_seconds": 0.5052250420000001,
+    "output": "BENCH bc-loop        3.6380 ms\nBENCH bc-sum         6.6659 ms\nBENCH bc-car         3.5210 ms\nBENCH regexp-repl    3.0951 ms\nBENCH buffer-scan    1.0769 ms\nBENCH sort-100k      2.1110 ms\nTASK load           4.4820 ms\nTASK edit           9.1209 ms\nTASK regex          3.0568 ms\nTASK gc            53.9720 ms\nPGO-EVAL-DONE\n",
+    "markers": {
+      "bc-loop": 3.638,
+      "bc-sum": 6.6659,
+      "bc-car": 3.521,
+      "regexp-repl": 3.0951,
+      "buffer-scan": 1.0769,
+      "sort-100k": 2.111,
+      "load": 4.482,
+      "edit": 9.1209,
+      "regex": 3.0568,
+      "gc": 53.972
+    }
+  },
+  {
+    "round": 1,
+    "side": "candidate-old-tag",
+    "rc": 0,
+    "wall_seconds": 0.7083109169999999,
+    "output": "BENCH bc-loop       16.4371 ms\nBENCH bc-sum        18.4181 ms\nBENCH bc-car        16.4931 ms\nBENCH regexp-repl    3.3851 ms\nBENCH buffer-scan    1.0490 ms\nBENCH sort-100k      3.8741 ms\nTASK load           4.5290 ms\nTASK edit           9.0699 ms\nTASK regex          3.3131 ms\nTASK gc            53.9749 ms\nPGO-EVAL-DONE\n",
+    "markers": {
+      "bc-loop": 16.4371,
+      "bc-sum": 18.4181,
+      "bc-car": 16.4931,
+      "regexp-repl": 3.3851,
+      "buffer-scan": 1.049,
+      "sort-100k": 3.8741,
+      "load": 4.529,
+      "edit": 9.0699,
+      "regex": 3.3131,
+      "gc": 53.9749
+    }
+  },
+  {
+    "round": 2,
+    "side": "candidate-old-tag",
+    "rc": 0,
+    "wall_seconds": 0.7028665829999996,
+    "output": "BENCH bc-loop       16.6452 ms\nBENCH bc-sum        18.6911 ms\nBENCH bc-car        16.4270 ms\nBENCH regexp-repl    3.4020 ms\nBENCH buffer-scan    1.0769 ms\nBENCH sort-100k      3.8691 ms\nTASK load           4.4439 ms\nTASK edit           8.8849 ms\nTASK regex          3.3021 ms\nTASK gc            54.0142 ms\nPGO-EVAL-DONE\n",
+    "markers": {
+      "bc-loop": 16.6452,
+      "bc-sum": 18.6911,
+      "bc-car": 16.427,
+      "regexp-repl": 3.402,
+      "buffer-scan": 1.0769,
+      "sort-100k": 3.8691,
+      "load": 4.4439,
+      "edit": 8.8849,
+      "regex": 3.3021,
+      "gc": 54.0142
+    }
+  },
+  {
+    "round": 2,
+    "side": "candidate-off",
+    "rc": 0,
+    "wall_seconds": 0.5121047910000001,
+    "output": "BENCH bc-loop        3.7680 ms\nBENCH bc-sum         6.8059 ms\nBENCH bc-car         3.7580 ms\nBENCH regexp-repl    3.1102 ms\nBENCH buffer-scan    1.0591 ms\nBENCH sort-100k      2.1000 ms\nTASK load           4.5059 ms\nTASK edit           8.9681 ms\nTASK regex          3.1800 ms\nTASK gc            54.9479 ms\nPGO-EVAL-DONE\n",
+    "markers": {
+      "bc-loop": 3.768,
+      "bc-sum": 6.8059,
+      "bc-car": 3.758,
+      "regexp-repl": 3.1102,
+      "buffer-scan": 1.0591,
+      "sort-100k": 2.1,
+      "load": 4.5059,
+      "edit": 8.9681,
+      "regex": 3.18,
+      "gc": 54.9479
+    }
+  },
+  {
+    "round": 2,
+    "side": "reference",
+    "rc": 0,
+    "wall_seconds": 0.42352783400000016,
+    "output": "BENCH bc-loop        1.7872 ms\nBENCH bc-sum         4.4632 ms\nBENCH bc-car         1.7939 ms\nBENCH regexp-repl    2.8920 ms\nBENCH buffer-scan    1.0591 ms\nBENCH sort-100k      1.7760 ms\nSource file `<repo>/emacs/lisp/emacs-lisp/cl-loaddefs.el' newer than byte-compiled file; using older file\nTASK load           1.9341 ms\nTASK edit           8.6491 ms\nTASK regex          2.6710 ms\nTASK gc            48.0850 ms\nPGO-EVAL-DONE\n",
+    "markers": {
+      "bc-loop": 1.7872,
+      "bc-sum": 4.4632,
+      "bc-car": 1.7939,
+      "regexp-repl": 2.892,
+      "buffer-scan": 1.0591,
+      "sort-100k": 1.776,
+      "load": 1.9341,
+      "edit": 8.6491,
+      "regex": 2.671,
+      "gc": 48.085
+    }
+  },
+  {
+    "round": 2,
+    "side": "default",
+    "rc": 0,
+    "wall_seconds": 0.5029784169999996,
+    "output": "BENCH bc-loop        2.7351 ms\nBENCH bc-sum         6.1252 ms\nBENCH bc-car         3.2151 ms\nBENCH regexp-repl    3.1359 ms\nBENCH buffer-scan    1.0979 ms\nBENCH sort-100k      2.0061 ms\nTASK load           4.6391 ms\nTASK edit           8.9419 ms\nTASK regex          3.0270 ms\nTASK gc            55.3360 ms\nPGO-EVAL-DONE\n",
+    "markers": {
+      "bc-loop": 2.7351,
+      "bc-sum": 6.1252,
+      "bc-car": 3.2151,
+      "regexp-repl": 3.1359,
+      "buffer-scan": 1.0979,
+      "sort-100k": 2.0061,
+      "load": 4.6391,
+      "edit": 8.9419,
+      "regex": 3.027,
+      "gc": 55.336
+    }
+  },
+  {
+    "round": 3,
+    "side": "default",
+    "rc": 0,
+    "wall_seconds": 0.48837341599999995,
+    "output": "BENCH bc-loop        2.8520 ms\nBENCH bc-sum         6.0310 ms\nBENCH bc-car         2.8229 ms\nBENCH regexp-repl    2.9910 ms\nBENCH buffer-scan    1.0900 ms\nBENCH sort-100k      2.0339 ms\nTASK load           4.5249 ms\nTASK edit           8.9679 ms\nTASK regex          3.0720 ms\nTASK gc            53.3590 ms\nPGO-EVAL-DONE\n",
+    "markers": {
+      "bc-loop": 2.852,
+      "bc-sum": 6.031,
+      "bc-car": 2.8229,
+      "regexp-repl": 2.991,
+      "buffer-scan": 1.09,
+      "sort-100k": 2.0339,
+      "load": 4.5249,
+      "edit": 8.9679,
+      "regex": 3.072,
+      "gc": 53.359
+    }
+  },
+  {
+    "round": 3,
+    "side": "reference",
+    "rc": 0,
+    "wall_seconds": 0.4219046250000007,
+    "output": "BENCH bc-loop        1.7810 ms\nBENCH bc-sum         4.4532 ms\nBENCH bc-car         1.8890 ms\nBENCH regexp-repl    2.8222 ms\nBENCH buffer-scan    1.0400 ms\nBENCH sort-100k      1.7779 ms\nSource file `<repo>/emacs/lisp/emacs-lisp/cl-loaddefs.el' newer than byte-compiled file; using older file\nTASK load           1.9581 ms\nTASK edit           8.6460 ms\nTASK regex          2.6500 ms\nTASK gc            48.3730 ms\nPGO-EVAL-DONE\n",
+    "markers": {
+      "bc-loop": 1.781,
+      "bc-sum": 4.4532,
+      "bc-car": 1.889,
+      "regexp-repl": 2.8222,
+      "buffer-scan": 1.04,
+      "sort-100k": 1.7779,
+      "load": 1.9581,
+      "edit": 8.646,
+      "regex": 2.65,
+      "gc": 48.373
+    }
+  },
+  {
+    "round": 3,
+    "side": "candidate-off",
+    "rc": 0,
+    "wall_seconds": 0.5082376670000004,
+    "output": "BENCH bc-loop        3.7680 ms\nBENCH bc-sum         6.7890 ms\nBENCH bc-car         3.7560 ms\nBENCH regexp-repl    3.1991 ms\nBENCH buffer-scan    1.0591 ms\nBENCH sort-100k      2.1219 ms\nTASK load           4.5171 ms\nTASK edit           9.1050 ms\nTASK regex          3.0811 ms\nTASK gc            54.2591 ms\nPGO-EVAL-DONE\n",
+    "markers": {
+      "bc-loop": 3.768,
+      "bc-sum": 6.789,
+      "bc-car": 3.756,
+      "regexp-repl": 3.1991,
+      "buffer-scan": 1.0591,
+      "sort-100k": 2.1219,
+      "load": 4.5171,
+      "edit": 9.105,
+      "regex": 3.0811,
+      "gc": 54.2591
+    }
+  },
+  {
+    "round": 3,
+    "side": "candidate-old-tag",
+    "rc": 0,
+    "wall_seconds": 0.715438625,
+    "output": "BENCH bc-loop       16.8252 ms\nBENCH bc-sum        18.4741 ms\nBENCH bc-car        16.8939 ms\nBENCH regexp-repl    3.3641 ms\nBENCH buffer-scan    1.0870 ms\nBENCH sort-100k      3.8199 ms\nTASK load           4.6098 ms\nTASK edit           8.9731 ms\nTASK regex          3.3491 ms\nTASK gc            54.4751 ms\nPGO-EVAL-DONE\n",
+    "markers": {
+      "bc-loop": 16.8252,
+      "bc-sum": 18.4741,
+      "bc-car": 16.8939,
+      "regexp-repl": 3.3641,
+      "buffer-scan": 1.087,
+      "sort-100k": 3.8199,
+      "load": 4.6098,
+      "edit": 8.9731,
+      "regex": 3.3491,
+      "gc": 54.4751
+    }
+  }
+]

@@ -1,0 +1,495 @@
+warning: unused doc comment
+   --> <repo>/build/recheck-20261022/candidate/femacs/units/bytecode/_repo_femacs_lib_include_stdbit_in_rs.rs:644:1
+    |
+644 | / /// C 915-916: `/* 1 if supported, -1 if not, 0 if unknown.  */` / `extern signed char
+645 | | /// _gl_stdbit_popcount_support;` - the one file-scope object, which `src/`'s units and the
+646 | | /// popcount helpers read.
+647 | | /// C: extern signed char _gl_stdbit_popcount_support;
+...   |
+650 | | /// name `c_schar`, so a bare `c_schar` here would be `E0425` in the single-crate layout probe
+651 | | /// (measured), while `core::ffi::c_schar` is the same type and needs no scope.
+    | |_______________________________________________________________________________^
+652 | / unsafe extern "C" {
+653 | |   pub static mut _gl_stdbit_popcount_support: core::ffi::c_schar;
+654 | | }
+    | |_- rustdoc does not generate documentation for extern blocks
+    |
+    = help: use `//` for a plain comment
+    = note: `#[warn(unused_doc_comments)]` (part of `#[warn(unused)]`) on by default
+
+warning: unnecessary parentheses around block return value
+    --> <repo>/build/recheck-20261022/candidate/femacs/units/bytecode/_repo_femacs_src_include_lisp_rs.rs:2892:20
+     |
+2892 |     while unsafe { (specpdl_ptr! ()) } != specpdl_ref_to_ptr (sa_count) {
+     |                    ^               ^
+     |
+     = note: `#[warn(unused_parens)]` (part of `#[warn(unused)]`) on by default
+help: remove these parentheses
+     |
+2892 -     while unsafe { (specpdl_ptr! ()) } != specpdl_ref_to_ptr (sa_count) {
+2892 +     while unsafe { specpdl_ptr! () } != specpdl_ref_to_ptr (sa_count) {
+     |
+
+warning: unused doc comment
+    --> <repo>/build/recheck-20261022/candidate/femacs/units/bytecode/_repo_femacs_src_include_lisp_rs.rs:4225:5
+     |
+4225 | /     /// C: `extern struct kboard *echo_kboard;` (lisp.h 5081).  `struct kboard`'s definition is
+4226 | |     /// keyboard.h's and this mirror cannot name it (a unit that includes lisp.h need not include
+4227 | |     /// keyboard.h, exactly as in C, where the tag is incomplete here); the pointer is therefore
+4228 | |     /// the untyped one the port uses for incomplete targets, and `keyboard.rs` says where the
+4229 | |     /// definition is (PORTING.md P-72).
+     | |________________________________________^
+4230 |       unsafe extern "C" { pub static mut echo_kboard: *mut c_void; }
+     |       -------------------------------------------------------------- rustdoc does not generate documentation for extern blocks
+     |
+     = help: use `//` for a plain comment
+
+warning: unnecessary parentheses around function argument
+   --> <repo>/build/recheck-20261022/candidate/femacs/units/bytecode/_repo_femacs_src_include_buffer_rs.rs:264:28
+    |
+264 |   unsafe { temp_set_point ((current_buffer! ()), position); }
+    |                            ^                  ^
+    |
+help: remove these parentheses
+    |
+264 -   unsafe { temp_set_point ((current_buffer! ()), position); }
+264 +   unsafe { temp_set_point (current_buffer! (), position); }
+    |
+
+warning: unnecessary parentheses around function argument
+   --> <repo>/build/recheck-20261022/candidate/femacs/units/bytecode/_repo_femacs_src_include_buffer_rs.rs:274:33
+    |
+274 |   unsafe { temp_set_point_both ((current_buffer! ()), position, byte); }
+    |                                 ^                  ^
+    |
+help: remove these parentheses
+    |
+274 -   unsafe { temp_set_point_both ((current_buffer! ()), position, byte); }
+274 +   unsafe { temp_set_point_both (current_buffer! (), position, byte); }
+    |
+
+warning: unnecessary parentheses around block return value
+    --> <repo>/build/recheck-20261022/candidate/femacs/units/bytecode/_repo_femacs_src_include_buffer_rs.rs:1410:33
+     |
+1410 |   return if NILP (b) { unsafe { (current_buffer! ()) } }
+     |                                 ^                  ^
+     |
+help: remove these parentheses
+     |
+1410 -   return if NILP (b) { unsafe { (current_buffer! ()) } }
+1410 +   return if NILP (b) { unsafe { current_buffer! () } }
+     |
+
+warning: unnecessary parentheses around block return value
+    --> <repo>/build/recheck-20261022/candidate/femacs/units/bytecode/_repo_femacs_src_include_buffer_rs.rs:1426:15
+     |
+1426 |   if unsafe { (current_buffer! ()) } != b
+     |               ^                  ^
+     |
+help: remove these parentheses
+     |
+1426 -   if unsafe { (current_buffer! ()) } != b
+1426 +   if unsafe { current_buffer! () } != b
+     |
+
+warning: unnecessary parentheses around block return value
+    --> <repo>/build/recheck-20261022/candidate/femacs/units/bytecode/_repo_femacs_src_include_buffer_rs.rs:1923:59
+     |
+1923 |     else if c == '\t' as c_int { SANE_TAB_WIDTH (unsafe { (current_buffer! ()) }) }
+     |                                                           ^                  ^
+     |
+help: remove these parentheses
+     |
+1923 -     else if c == '\t' as c_int { SANE_TAB_WIDTH (unsafe { (current_buffer! ()) }) }
+1923 +     else if c == '\t' as c_int { SANE_TAB_WIDTH (unsafe { current_buffer! () }) }
+     |
+
+warning: unnecessary parentheses around block return value
+    --> <repo>/build/recheck-20261022/candidate/femacs/units/bytecode/_repo_femacs_src_include_buffer_rs.rs:1993:38
+     |
+1993 |   return buf_next_char_len (unsafe { (current_buffer! ()) }, pos_byte);
+     |                                      ^                  ^
+     |
+help: remove these parentheses
+     |
+1993 -   return buf_next_char_len (unsafe { (current_buffer! ()) }, pos_byte);
+1993 +   return buf_next_char_len (unsafe { current_buffer! () }, pos_byte);
+     |
+
+warning: unnecessary parentheses around block return value
+    --> <repo>/build/recheck-20261022/candidate/femacs/units/bytecode/_repo_femacs_src_include_buffer_rs.rs:2013:38
+     |
+2013 |   return buf_prev_char_len (unsafe { (current_buffer! ()) }, pos_byte);
+     |                                      ^                  ^
+     |
+help: remove these parentheses
+     |
+2013 -   return buf_prev_char_len (unsafe { (current_buffer! ()) }, pos_byte);
+2013 +   return buf_prev_char_len (unsafe { current_buffer! () }, pos_byte);
+     |
+
+warning: unused attribute
+    --> <repo>/build/recheck-20261022/candidate/femacs/units/bytecode/_repo_femacs_src_include_lisp_rs.rs:1402:1
+     |
+1402 | #[inline(always)]
+     | ^^^^^^^^^^^^^^^^^ help: remove this attribute
+     |
+note: attribute also specified here
+    --> <repo>/build/recheck-20261022/candidate/femacs/units/bytecode/_repo_femacs_src_include_lisp_rs.rs:1401:1
+     |
+1401 | #[inline(always)]
+     | ^^^^^^^^^^^^^^^^^
+     = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+     = note: `#[warn(unused_attributes)]` (part of `#[warn(unused)]`) on by default
+
+warning: variable does not need to be mutable
+   --> <repo>/build/recheck-20261022/candidate/femacs/units/bytecode/_root.rs:478:7
+    |
+478 |   let mut bc: *mut bc_thread_state = &raw mut (*current_thread).bc;
+    |       ----^^
+    |       |
+    |       help: remove this `mut`
+    |
+    = note: `#[warn(unused_mut)]` (part of `#[warn(unused)]`) on by default
+
+warning: value assigned to `op` is never read
+   --> <repo>/build/recheck-20261022/candidate/femacs/units/bytecode/_root.rs:540:27
+    |
+540 |   let mut op: ptrdiff_t = 0;
+    |                           ^ this value is reassigned later and never used
+...
+844 |       op = FETCH! ();
+    |       -------------- `op` is overwritten here before the previous value is read
+    |
+    = note: `#[warn(unused_assignments)]` (part of `#[warn(unused)]`) on by default
+
+warning: value assigned to `size` is never read
+    --> <repo>/build/recheck-20261022/candidate/femacs/units/bytecode/_root.rs:1192:32
+     |
+1192 |         let mut size: ptrdiff_t = 0;
+     |                                   ^ this value is reassigned later and never used
+1193 |         if (VECTORP (arrayval) && { size = ASIZE (arrayval); true })
+     |                                     ----------------------- `size` is overwritten here before the previous value is read
+
+warning: value assigned to `size` is never read
+    --> <repo>/build/recheck-20261022/candidate/femacs/units/bytecode/_root.rs:1219:32
+     |
+1219 |         let mut size: ptrdiff_t = 0;
+     |                                   ^ this value is reassigned later and never used
+1220 |         if (VECTORP (arrayval) && { size = ASIZE (arrayval); true })
+     |                                     ----------------------- `size` is overwritten here before the previous value is read
+
+warning: value assigned to `res` is never read
+    --> <repo>/build/recheck-20261022/candidate/femacs/units/bytecode/_root.rs:1368:31
+     |
+1368 |         let mut res: EMACS_INT = 0;
+     |                                  ^ this value is reassigned later and never used
+1369 |         if FIXNUMP (v1) && FIXNUMP (v2)
+1370 |         && { res = XFIXNUM (v1).wrapping_sub (XFIXNUM (v2));
+     |              ---------------------------------------------- `res` is overwritten here before the previous value is read
+
+warning: value assigned to `res` is never read
+    --> <repo>/build/recheck-20261022/candidate/femacs/units/bytecode/_root.rs:1389:31
+     |
+1389 |         let mut res: EMACS_INT = 0;
+     |                                  ^ this value is reassigned later and never used
+1390 |         if FIXNUMP (v1) && FIXNUMP (v2)
+1391 |         && { res = XFIXNUM (v1).wrapping_add (XFIXNUM (v2));
+     |              ---------------------------------------------- `res` is overwritten here before the previous value is read
+
+warning: value assigned to `res` is never read
+    --> <repo>/build/recheck-20261022/candidate/femacs/units/bytecode/_root.rs:1443:31
+     |
+1443 |         let mut res: EMACS_INT = 0;
+     |                                  ^ this value is reassigned later and never used
+1444 |         if FIXNUMP (v1) && FIXNUMP (v2) && XFIXNUM (v2) != 0
+1445 |         && { res = XFIXNUM (v1) / XFIXNUM (v2);
+     |              --------------------------------- `res` is overwritten here before the previous value is read
+
+warning: 18 warnings emitted
+
+warning: unused doc comment
+   --> <repo>/build/recheck-20261022/candidate/femacs/units/bytecode/_repo_femacs_lib_include_stdbit_in_rs.rs:644:1
+    |
+644 | / /// C 915-916: `/* 1 if supported, -1 if not, 0 if unknown.  */` / `extern signed char
+645 | | /// _gl_stdbit_popcount_support;` - the one file-scope object, which `src/`'s units and the
+646 | | /// popcount helpers read.
+647 | | /// C: extern signed char _gl_stdbit_popcount_support;
+...   |
+650 | | /// name `c_schar`, so a bare `c_schar` here would be `E0425` in the single-crate layout probe
+651 | | /// (measured), while `core::ffi::c_schar` is the same type and needs no scope.
+    | |_______________________________________________________________________________^
+652 | / unsafe extern "C" {
+653 | |   pub static mut _gl_stdbit_popcount_support: core::ffi::c_schar;
+654 | | }
+    | |_- rustdoc does not generate documentation for extern blocks
+    |
+    = help: use `//` for a plain comment
+    = note: `#[warn(unused_doc_comments)]` (part of `#[warn(unused)]`) on by default
+
+warning: unnecessary parentheses around block return value
+    --> <repo>/build/recheck-20261022/candidate/femacs/units/bytecode/_repo_femacs_src_include_lisp_rs.rs:2892:20
+     |
+2892 |     while unsafe { (specpdl_ptr! ()) } != specpdl_ref_to_ptr (sa_count) {
+     |                    ^               ^
+     |
+     = note: `#[warn(unused_parens)]` (part of `#[warn(unused)]`) on by default
+help: remove these parentheses
+     |
+2892 -     while unsafe { (specpdl_ptr! ()) } != specpdl_ref_to_ptr (sa_count) {
+2892 +     while unsafe { specpdl_ptr! () } != specpdl_ref_to_ptr (sa_count) {
+     |
+
+warning: unused doc comment
+    --> <repo>/build/recheck-20261022/candidate/femacs/units/bytecode/_repo_femacs_src_include_lisp_rs.rs:4225:5
+     |
+4225 | /     /// C: `extern struct kboard *echo_kboard;` (lisp.h 5081).  `struct kboard`'s definition is
+4226 | |     /// keyboard.h's and this mirror cannot name it (a unit that includes lisp.h need not include
+4227 | |     /// keyboard.h, exactly as in C, where the tag is incomplete here); the pointer is therefore
+4228 | |     /// the untyped one the port uses for incomplete targets, and `keyboard.rs` says where the
+4229 | |     /// definition is (PORTING.md P-72).
+     | |________________________________________^
+4230 |       unsafe extern "C" { pub static mut echo_kboard: *mut c_void; }
+     |       -------------------------------------------------------------- rustdoc does not generate documentation for extern blocks
+     |
+     = help: use `//` for a plain comment
+
+warning: unnecessary parentheses around function argument
+   --> <repo>/build/recheck-20261022/candidate/femacs/units/bytecode/_repo_femacs_src_include_buffer_rs.rs:264:28
+    |
+264 |   unsafe { temp_set_point ((current_buffer! ()), position); }
+    |                            ^                  ^
+    |
+help: remove these parentheses
+    |
+264 -   unsafe { temp_set_point ((current_buffer! ()), position); }
+264 +   unsafe { temp_set_point (current_buffer! (), position); }
+    |
+
+warning: unnecessary parentheses around function argument
+   --> <repo>/build/recheck-20261022/candidate/femacs/units/bytecode/_repo_femacs_src_include_buffer_rs.rs:274:33
+    |
+274 |   unsafe { temp_set_point_both ((current_buffer! ()), position, byte); }
+    |                                 ^                  ^
+    |
+help: remove these parentheses
+    |
+274 -   unsafe { temp_set_point_both ((current_buffer! ()), position, byte); }
+274 +   unsafe { temp_set_point_both (current_buffer! (), position, byte); }
+    |
+
+warning: unnecessary parentheses around block return value
+    --> <repo>/build/recheck-20261022/candidate/femacs/units/bytecode/_repo_femacs_src_include_buffer_rs.rs:1410:33
+     |
+1410 |   return if NILP (b) { unsafe { (current_buffer! ()) } }
+     |                                 ^                  ^
+     |
+help: remove these parentheses
+     |
+1410 -   return if NILP (b) { unsafe { (current_buffer! ()) } }
+1410 +   return if NILP (b) { unsafe { current_buffer! () } }
+     |
+
+warning: unnecessary parentheses around block return value
+    --> <repo>/build/recheck-20261022/candidate/femacs/units/bytecode/_repo_femacs_src_include_buffer_rs.rs:1426:15
+     |
+1426 |   if unsafe { (current_buffer! ()) } != b
+     |               ^                  ^
+     |
+help: remove these parentheses
+     |
+1426 -   if unsafe { (current_buffer! ()) } != b
+1426 +   if unsafe { current_buffer! () } != b
+     |
+
+warning: unnecessary parentheses around block return value
+    --> <repo>/build/recheck-20261022/candidate/femacs/units/bytecode/_repo_femacs_src_include_buffer_rs.rs:1923:59
+     |
+1923 |     else if c == '\t' as c_int { SANE_TAB_WIDTH (unsafe { (current_buffer! ()) }) }
+     |                                                           ^                  ^
+     |
+help: remove these parentheses
+     |
+1923 -     else if c == '\t' as c_int { SANE_TAB_WIDTH (unsafe { (current_buffer! ()) }) }
+1923 +     else if c == '\t' as c_int { SANE_TAB_WIDTH (unsafe { current_buffer! () }) }
+     |
+
+warning: unnecessary parentheses around block return value
+    --> <repo>/build/recheck-20261022/candidate/femacs/units/bytecode/_repo_femacs_src_include_buffer_rs.rs:1993:38
+     |
+1993 |   return buf_next_char_len (unsafe { (current_buffer! ()) }, pos_byte);
+     |                                      ^                  ^
+     |
+help: remove these parentheses
+     |
+1993 -   return buf_next_char_len (unsafe { (current_buffer! ()) }, pos_byte);
+1993 +   return buf_next_char_len (unsafe { current_buffer! () }, pos_byte);
+     |
+
+warning: unnecessary parentheses around block return value
+    --> <repo>/build/recheck-20261022/candidate/femacs/units/bytecode/_repo_femacs_src_include_buffer_rs.rs:2013:38
+     |
+2013 |   return buf_prev_char_len (unsafe { (current_buffer! ()) }, pos_byte);
+     |                                      ^                  ^
+     |
+help: remove these parentheses
+     |
+2013 -   return buf_prev_char_len (unsafe { (current_buffer! ()) }, pos_byte);
+2013 +   return buf_prev_char_len (unsafe { current_buffer! () }, pos_byte);
+     |
+
+warning: unused attribute
+    --> <repo>/build/recheck-20261022/candidate/femacs/units/bytecode/_repo_femacs_src_include_lisp_rs.rs:1402:1
+     |
+1402 | #[inline(always)]
+     | ^^^^^^^^^^^^^^^^^ help: remove this attribute
+     |
+note: attribute also specified here
+    --> <repo>/build/recheck-20261022/candidate/femacs/units/bytecode/_repo_femacs_src_include_lisp_rs.rs:1401:1
+     |
+1401 | #[inline(always)]
+     | ^^^^^^^^^^^^^^^^^
+     = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+     = note: `#[warn(unused_attributes)]` (part of `#[warn(unused)]`) on by default
+
+warning: variable does not need to be mutable
+   --> <repo>/build/recheck-20261022/candidate/femacs/units/bytecode/_root.rs:478:7
+    |
+478 |   let mut bc: *mut bc_thread_state = &raw mut (*current_thread).bc;
+    |       ----^^
+    |       |
+    |       help: remove this `mut`
+    |
+    = note: `#[warn(unused_mut)]` (part of `#[warn(unused)]`) on by default
+
+warning: value assigned to `op` is never read
+   --> <repo>/build/recheck-20261022/candidate/femacs/units/bytecode/_root.rs:540:27
+    |
+540 |   let mut op: ptrdiff_t = 0;
+    |                           ^ this value is reassigned later and never used
+...
+844 |       op = FETCH! ();
+    |       -------------- `op` is overwritten here before the previous value is read
+    |
+    = note: `#[warn(unused_assignments)]` (part of `#[warn(unused)]`) on by default
+
+warning: value assigned to `size` is never read
+    --> <repo>/build/recheck-20261022/candidate/femacs/units/bytecode/_root.rs:1192:32
+     |
+1192 |         let mut size: ptrdiff_t = 0;
+     |                                   ^ this value is reassigned later and never used
+1193 |         if (VECTORP (arrayval) && { size = ASIZE (arrayval); true })
+     |                                     ----------------------- `size` is overwritten here before the previous value is read
+
+warning: value assigned to `size` is never read
+    --> <repo>/build/recheck-20261022/candidate/femacs/units/bytecode/_root.rs:1219:32
+     |
+1219 |         let mut size: ptrdiff_t = 0;
+     |                                   ^ this value is reassigned later and never used
+1220 |         if (VECTORP (arrayval) && { size = ASIZE (arrayval); true })
+     |                                     ----------------------- `size` is overwritten here before the previous value is read
+
+warning: value assigned to `res` is never read
+    --> <repo>/build/recheck-20261022/candidate/femacs/units/bytecode/_root.rs:1368:31
+     |
+1368 |         let mut res: EMACS_INT = 0;
+     |                                  ^ this value is reassigned later and never used
+1369 |         if FIXNUMP (v1) && FIXNUMP (v2)
+1370 |         && { res = XFIXNUM (v1).wrapping_sub (XFIXNUM (v2));
+     |              ---------------------------------------------- `res` is overwritten here before the previous value is read
+
+warning: value assigned to `res` is never read
+    --> <repo>/build/recheck-20261022/candidate/femacs/units/bytecode/_root.rs:1389:31
+     |
+1389 |         let mut res: EMACS_INT = 0;
+     |                                  ^ this value is reassigned later and never used
+1390 |         if FIXNUMP (v1) && FIXNUMP (v2)
+1391 |         && { res = XFIXNUM (v1).wrapping_add (XFIXNUM (v2));
+     |              ---------------------------------------------- `res` is overwritten here before the previous value is read
+
+warning: value assigned to `res` is never read
+    --> <repo>/build/recheck-20261022/candidate/femacs/units/bytecode/_root.rs:1443:31
+     |
+1443 |         let mut res: EMACS_INT = 0;
+     |                                  ^ this value is reassigned later and never used
+1444 |         if FIXNUMP (v1) && FIXNUMP (v2) && XFIXNUM (v2) != 0
+1445 |         && { res = XFIXNUM (v1) / XFIXNUM (v2);
+     |              --------------------------------- `res` is overwritten here before the previous value is read
+
+warning: function pointer comparisons do not produce meaningful results since their addresses are not guaranteed to be unique
+    --> <repo>/build/recheck-20261022/candidate/femacs/units/bytecode/_repo_femacs_src_include_lisp_rs.rs:2900:27
+     |
+2900 |                 eassert! ((*(specpdl_ptr! ())).unwind_ptr.func == Some (xfree));
+     |                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = note: the address of the same function can vary between different codegen units
+     = note: furthermore, different functions could have the same address after being merged together
+     = note: for more information visit <https://doc.rust-lang.org/nightly/core/ptr/fn.fn_addr_eq.html>
+     = note: `#[warn(unpredictable_function_pointer_comparisons)]` on by default
+
+warning: 19 warnings emitted
+
+built src/bytecode.rs -> <repo>/build/recheck-20261022/candidate/femacs/bytecode.o
+reference archive member(s) with no port object (not linked): __
+   archiving 87 lib object(s) into libgnu-port.a
+== gate-load: linking the frozen temacs object list against the port ==
+   75 port object(s) + 87 lib object(s), linked by rustc (panic=abort, no_std driver)
+298 ratchet row(s) are stale (the symbol now resolves): _BC _PC _UP __RNvNtCshIDsKH5exNL_4core6option13unwrap_failed __RNvNtCshIDsKH5exNL_4core9panicking14panic_nounwind __RNvNtCshIDsKH5exNL_4core9panicking18panic_bounds_check __RNvNtCshIDsKH5exNL_4core9panicking18panic_nounwind_fmt __RNvNtCshIDsKH5exNL_4core9panicking30panic_null_pointer_dereference __RNvNtCshIDsKH5exNL_4core9panicking31panic_invalid_enum_construction __RNvNtCshIDsKH5exNL_4core9panicking32panic_null_reference_constructed __RNvNtCshIDsKH5exNL_4core9panicking36panic_misaligned_pointer_dereference __RNvNtCshIDsKH5exNL_4core9panicking5panic __RNvNtNtCshIDsKH5exNL_4core9panicking11panic_const23panic_const_div_by_zero __RNvNtNtCshIDsKH5exNL_4core9panicking11panic_const23panic_const_rem_by_zero __RNvNtNtCshIDsKH5exNL_4core9panicking11panic_const24panic_const_add_overflow __RNvNtNtCshIDsKH5exNL_4core9panicking11panic_const24panic_const_div_overflow __RNvNtNtCshIDsKH5exNL_4core9panicking11panic_const24panic_const_mul_overflow __RNvNtNtCshIDsKH5exNL_4core9panicking11panic_const24panic_const_neg_overflow __RNvNtNtCshIDsKH5exNL_4core9panicking11panic_const24panic_const_rem_overflow __RNvNtNtCshIDsKH5exNL_4core9panicking11panic_const24panic_const_shl_overflow __RNvNtNtCshIDsKH5exNL_4core9panicking11panic_const24panic_const_shr_overflow __RNvNtNtCshIDsKH5exNL_4core9panicking11panic_const24panic_const_sub_overflow ___darwin_check_fd_set_overflow ___error ___stderrp ___stdinp ___stdoutp __exit __longjmp __setjmp _abort _accept _access _acos _alarm _aligned_alloc _asin _atan _atan2 _atexit _atof _atoi _backtrace _backtrace_symbols_fd _bind _bzero _calloc _ceil _cfgetospeed _cfmakeraw _cfsetspeed _chdir _chmod _clearerr _clock _clock_gettime _close _closedir _confstr _connect _cos _devname _dup _dup2 _endgrent _endpwent _endutxent _environ _execlp _execve _execvp _exit _exp _faccessat _fchdir _fchmod _fchmodat _fchown _fclose _fcntl _fdopen _fdopendir _feof _ferror _fflush _fgets _fileno _flockfile _floor _fmod _fork _fprintf _fputc _fread _free _freeaddrinfo _freeifaddrs _frexp _fseek _fstat _fstatat _fsync _ftello _funlockfile _futimens _futimes _fwrite _gai_strerror _getaddrinfo _getc _getchar _getcwd _getegid _getenv _geteuid _getgid _getgrent _getgrgid _gethostname _getifaddrs _getloadavg _getpagesize _getpgrp _getpid _getpwent _getpwnam _getpwuid _getrlimit _getrusage _getservbyname _getsockname _getsockopt _getuid _getutxent _gmtime_r _grantpt _htons _ilogb _ioctl _isatty _isspace _kill _ldexp _link _listen _localtime_r _log _log10 _log2 _lrint _lseek _lstat _mach_timebase_info _malloc _mbrtowc _memchr _memcmp _memcpy _memmove _memset _memset_pattern16 _memset_s _mkdir _mkostemp _mmap _mprotect _munmap _nanosleep _nl_langinfo _ntohs _open _pathconf _pipe _posix_madvise _posix_openpt _posix_spawn _posix_spawn_file_actions_addchdir _posix_spawn_file_actions_adddup2 _posix_spawn_file_actions_destroy _posix_spawn_file_actions_init _posix_spawnattr_destroy _posix_spawnattr_init _posix_spawnattr_setflags _posix_spawnattr_setsigdefault _posix_spawnattr_setsigmask _pow _powf _printf _proc_pid_rusage _proc_pidinfo _proc_pidpath _pselect _pthread_equal _pthread_kill _pthread_self _pthread_sigmask _ptsname _putc _putchar _putenv _qsort _raise _random _read _readdir _readlink _readlinkat _realloc _realpath _recvfrom _rename _renameatx_np _rint _rmdir _scalbn _sendto _setitimer _setlocale _setpgid _setrlimit _setsid _setsockopt _setutxent _setvbuf _shutdown _sigaction _sigaddset _sigaltstack _sigemptyset _siglongjmp _signal _sigsetjmp _sigsuspend _sin _snprintf _socket _sprintf _sqrt _srandom _sscanf _stat _statfs _stpcpy _strcasecmp _strchr _strcmp _strcpy _strcspn _strdup _strerror _strftime _strlen _strmode _strncmp _strnlen _strrchr _strsignal _strspn _strstr _strtod _strtoimax _strtol _strtoul _symlink _sync _sysconf _sysctl _tan _tcdrain _tcflow _tcflush _tcgetattr _tcgetpgrp _tcsetattr _tcsetpgrp _tgetent _tgetflag _tgetnum _tgetstr _tgoto _tigetflag _tigetstr _tolower _toupper _tparm _tputs _tzset _umask _uname _unlink _unlockpt _utimensat _utimes _utmpxname _vfork _vfprintf _waitpid _write
+undefined symbols: 0 (referenced from 0 object(s))
+full list: <repo>/build/recheck-20261022/candidate/load/undefined.txt
+undefined: 0 total, 0 ratcheted, 0 new
+link: temacs linked from the port's objects alone
+== link-program: lib-src/make-fingerprint.c + 87 lib object(s) ==
+linked <repo>/build/recheck-20261022/candidate/port/lib-src/make-fingerprint
+<repo>/build/recheck-20261022/candidate/port/src/temacs: replacing existing signature
+fingerprint: <repo>/build/recheck-20261022/candidate/port/src/temacs -> 97B01516F3389196434821AC395F07B850518618939270569160B053B479029B
+== coding eol gate ==
+<repo>/build/recheck-20261022/candidate/port/src/temacs: no readings (exit 255): ['Args out of range: [32 127], 2']
+DIFFERENT ascii-crlf-file:
+    the reference (97 10 98 10 99 10)
+    the port      None
+DIFFERENT ascii-lf-file:
+    the reference (97 10 98 10 99 10)
+    the port      None
+DIFFERENT ascii-cr-only-file:
+    the reference (97 10 98 10 99 10)
+    the port      None
+DIFFERENT ascii-crlf-forced-utf-8-dos:
+    the reference (97 10 98 10 99 10)
+    the port      None
+DIFFERENT ascii-crlf-forced-utf-8-unix:
+    the reference (97 13 10 98 13 10 99 13 10)
+    the port      None
+DIFFERENT gb2312-crlf-file:
+    the reference (176 162 176 161 186 199 10 176 174 176 167 176 164 10)
+    the port      None
+DIFFERENT gb2312-lf-file:
+    the reference (176 162 176 161 186 199 10 176 174 176 167 176 164 10)
+    the port      None
+DIFFERENT latin1-crlf-forced-dos:
+    the reference (176 162 176 161 10 176 174 10)
+    the port      None
+DIFFERENT string-utf-8-dos:
+    the reference (97 10 98 10)
+    the port      None
+DIFFERENT string-utf-8:
+    the reference (97 10 98 10)
+    the port      None
+DIFFERENT string-undecided:
+    the reference (97 10 98 10)
+    the port      None
+DIFFERENT string-latin-1-dos:
+    the reference (97 10 98 10)
+    the port      None
+DIFFERENT region-utf-8-dos:
+    the reference (97 10 98 10)
+    the port      None
+DIFFERENT encode-utf-8-dos:
+    the reference (97 13 10 98 13 10)
+    the port      None
+DIFFERENT encode-utf-8-mac:
+    the reference (97 13 98 13)
+    the port      None
+15 case(s), 15 failure(s)
+error: a decoded text differs from the reference's for the same bytes
+controlled-run: {"run_id": "944aa0cf74d64f9898ccf79fcff4c5b5", "profile": "build", "executable": "sh", "argv_sha256": "252a8cc192e8992318d9d5d8080f80ab2a506a322df0d70b4f4e20f53c025ea9", "limit_bytes": 8589934592, "peak_rss_bytes": 219217920, "peak_footprint_bytes": 140985664, "peak_accounted_bytes": 219217920, "reason": "exited", "root_pid": 15763, "exit_code": 1, "cleanup_complete": true, "initial_limit_bytes": 8589934592, "hard_limit_bytes": 25769803776, "growth_count": 0, "session_key": "aedd9306a22fdb658619c9f8135c3dc1bbc0e01946fb87ff3a945316372b484c", "session_hard_limit_bytes": 25769803776, "memory_metric": "max_rss_phys_footprint", "peak_session_bytes": 415744000, "elapsed_seconds": 3.99}

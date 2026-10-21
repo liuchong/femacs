@@ -1,0 +1,141 @@
+{
+  "targets": [
+    {
+      "path": "build/pgo/use3",
+      "files": 9727,
+      "logical_bytes": 373542997,
+      "allocated_bytes": 395063296,
+      "removed": true
+    },
+    {
+      "path": "build/recheck-20261022/candidate",
+      "files": 61,
+      "logical_bytes": 49070187,
+      "allocated_bytes": 49209344,
+      "removed": true
+    },
+    {
+      "path": "build/recheck-20261022/cargo",
+      "files": 314,
+      "logical_bytes": 35888166,
+      "allocated_bytes": 36487168,
+      "removed": true
+    },
+    {
+      "path": "build/probes",
+      "files": 335,
+      "logical_bytes": 11467371,
+      "allocated_bytes": 12140544,
+      "removed": true
+    },
+    {
+      "path": "build/fam-probe",
+      "files": 1,
+      "logical_bytes": 472408,
+      "allocated_bytes": 475136,
+      "removed": true
+    },
+    {
+      "path": "build/shadow-probe",
+      "files": 1,
+      "logical_bytes": 472576,
+      "allocated_bytes": 475136,
+      "removed": true
+    },
+    {
+      "path": "build/macro-probe.rmeta",
+      "files": 1,
+      "logical_bytes": 467456,
+      "allocated_bytes": 471040,
+      "removed": true
+    },
+    {
+      "path": "build/port/src/emacs-32.0.50.1",
+      "files": 1,
+      "logical_bytes": 2504560,
+      "allocated_bytes": 2506752,
+      "removed": true
+    },
+    {
+      "path": "build/port/src/emacs-32.0.50.1.pdmp",
+      "files": 1,
+      "logical_bytes": 13027440,
+      "allocated_bytes": 13029376,
+      "removed": true
+    },
+    {
+      "path": "build/port/src/emacs-32.0.50.2",
+      "files": 1,
+      "logical_bytes": 2504672,
+      "allocated_bytes": 2506752,
+      "removed": true
+    },
+    {
+      "path": "build/port/src/emacs-32.0.50.2.pdmp",
+      "files": 1,
+      "logical_bytes": 13027440,
+      "allocated_bytes": 13029376,
+      "removed": true
+    },
+    {
+      "path": "build/port/src/emacs-32.0.50.3",
+      "files": 1,
+      "logical_bytes": 2504672,
+      "allocated_bytes": 2506752,
+      "removed": true
+    },
+    {
+      "path": "build/port/src/emacs-32.0.50.3.pdmp",
+      "files": 1,
+      "logical_bytes": 13027440,
+      "allocated_bytes": 13029376,
+      "removed": true
+    },
+    {
+      "path": "build/port/src/emacs-32.0.50.4",
+      "files": 1,
+      "logical_bytes": 2504560,
+      "allocated_bytes": 2506752,
+      "removed": true
+    },
+    {
+      "path": "build/port/src/emacs-32.0.50.4.pdmp",
+      "files": 1,
+      "logical_bytes": 13027440,
+      "allocated_bytes": 13029376,
+      "removed": true
+    },
+    {
+      "path": "build/port/src/emacs-32.0.50.5",
+      "files": 1,
+      "logical_bytes": 2504560,
+      "allocated_bytes": 2506752,
+      "removed": true
+    },
+    {
+      "path": "build/port/src/emacs-32.0.50.5.pdmp",
+      "files": 1,
+      "logical_bytes": 13027440,
+      "allocated_bytes": 13029376,
+      "removed": true
+    },
+    {
+      "path": "build/port/src/emacs-32.0.50.6",
+      "files": 1,
+      "logical_bytes": 2504560,
+      "allocated_bytes": 2506752,
+      "removed": true
+    },
+    {
+      "path": "build/port/src/emacs-32.0.50.6.pdmp",
+      "files": 1,
+      "logical_bytes": 13025648,
+      "allocated_bytes": 13029376,
+      "removed": true
+    }
+  ],
+  "all_removed": true,
+  "logical_bytes_removed": 564571593,
+  "allocated_bytes_before_unlink": 587538432,
+  "note": "Logical/allocated totals count directory entries; hard-linked numbered dumps and shared extents mean these are not a filesystem free-space delta. Local logs, saved test file and terminal recording retained; no default binary, reference, source or profiles deleted."
+}

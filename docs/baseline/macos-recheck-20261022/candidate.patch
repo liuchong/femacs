@@ -1,0 +1,145 @@
+--- spikes/bytecode-hot/bytecode_hot.rs
++++ isolated-candidate/bytecode_hot.rs
+@@ -22,0 +23 @@
++  pub fix_tag: u64,
+@@ -77,0 +79 @@
++  ldr x16, [x19, #88]
+@@ -97,0 +100 @@
++  ldr x30, [sp, #88]
+@@ -103 +105,0 @@
+-  ldr x30, [sp, #-8]
+@@ -205 +207,2 @@
+-  tst x9, #3
++  and x17, x9, #3
++  cmp x17, x16
+@@ -220 +223,2 @@
+-  tst x9, #3
++  and x17, x9, #3
++  cmp x17, x16
+@@ -236,3 +240,5 @@
+-  tst x14, #3
+-  b.ne Lslow
+-  tst x15, #3
++  and x17, x14, #3
++  cmp x17, x16
++  b.ne Lslow
++  and x17, x15, #3
++  cmp x17, x16
+@@ -255,3 +261,5 @@
+-  tst x14, #3
+-  b.ne Lslow
+-  tst x15, #3
++  and x17, x14, #3
++  cmp x17, x16
++  b.ne Lslow
++  and x17, x15, #3
++  cmp x17, x16
+@@ -274,3 +282,5 @@
+-  tst x14, #3
+-  b.ne Lslow
+-  tst x15, #3
++  and x17, x14, #3
++  cmp x17, x16
++  b.ne Lslow
++  and x17, x15, #3
++  cmp x17, x16
+@@ -298,3 +308,5 @@
+-  tst x9, #3
+-  b.ne Lslow
+-  tst x10, #3
++  and x17, x9, #3
++  cmp x17, x16
++  b.ne Lslow
++  and x17, x10, #3
++  cmp x17, x16
+@@ -310,3 +322,5 @@
+-  tst x9, #3
+-  b.ne Lslow
+-  tst x10, #3
++  and x17, x9, #3
++  cmp x17, x16
++  b.ne Lslow
++  and x17, x10, #3
++  cmp x17, x16
+@@ -322,3 +336,5 @@
+-  tst x9, #3
+-  b.ne Lslow
+-  tst x10, #3
++  and x17, x9, #3
++  cmp x17, x16
++  b.ne Lslow
++  and x17, x10, #3
++  cmp x17, x16
+@@ -334,3 +350,5 @@
+-  tst x9, #3
+-  b.ne Lslow
+-  tst x10, #3
++  and x17, x9, #3
++  cmp x17, x16
++  b.ne Lslow
++  and x17, x10, #3
++  cmp x17, x16
+@@ -346,3 +364,5 @@
+-  tst x9, #3
+-  b.ne Lslow
+-  tst x10, #3
++  and x17, x9, #3
++  cmp x17, x16
++  b.ne Lslow
++  and x17, x10, #3
++  cmp x17, x16
+@@ -447,10 +467 @@
+-  b.hs 1f
+-  add w30, w30, #1
+-  cbnz w30, 2f
+-  mov w30, #1
+-  mov x20, x12
+-  b Lgc
+-2:
+-  mov x20, x12
+-  b Lloop
+-1:
++  b.lo Lslow
+@@ -468,12 +479 @@
+-  b.hs 2f
+-  add w30, w30, #1
+-  cbnz w30, 3f
+-  mov w30, #1
+-  mov x20, x12
+-  sub x21, x21, #8
+-  b Lgc
+-3:
+-  mov x20, x12
+-  sub x21, x21, #8
+-  b Lloop
+-2:
++  b.lo Lslow
+@@ -493,12 +493 @@
+-  b.hs 2f
+-  add w30, w30, #1
+-  cbnz w30, 3f
+-  mov w30, #1
+-  mov x20, x12
+-  sub x21, x21, #8
+-  b Lgc
+-3:
+-  mov x20, x12
+-  sub x21, x21, #8
+-  b Lloop
+-2:
++  b.lo Lslow
+@@ -809,0 +799,14 @@
++
++fn bc_hot_tag () -> u64 {
++  use core::sync::atomic::{AtomicU8, Ordering};
++  unsafe extern "C" { fn getenv(name: *const c_char) -> *mut c_char; }
++  static TAG: AtomicU8 = AtomicU8::new(255);
++  let tag = TAG.load(Ordering::Relaxed);
++  if tag != 255 { return tag as u64; }
++  let tag = unsafe {
++    let p = getenv(c"FEMACS_BC_TAG".as_ptr());
++    if !p.is_null() && *p == b'0' as c_char {0} else {2}
++  };
++  TAG.store(tag, Ordering::Relaxed);
++  tag as u64
++}
