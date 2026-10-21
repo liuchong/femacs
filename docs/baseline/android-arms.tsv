@@ -8,8 +8,6 @@
 # name	class	definition site	conditions
 backtrace	arm	emacs/lib/execinfo.in.h:39	
 backtrace_symbols_fd	arm	emacs/lib/execinfo.in.h:55	
-freeifaddrs	system		
-getifaddrs	system		
 stderr	system		
 stdin	system		
 stdout	system		

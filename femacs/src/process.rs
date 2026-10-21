@@ -4559,7 +4559,9 @@ unsafe fn network_interface_info (ifname: Lisp_Object) -> Lisp_Object
   let mut s: c_int;
   let mut any: bool = false;
   /* `#if (! (defined SIOCGIFHWADDR && defined HAVE_STRUCT_IFREQ_IFR_HWADDR) && defined
-     HAVE_GETIFADDRS && defined LLADDR)` is live.  */
+     HAVE_GETIFADDRS && defined LLADDR)` is live on darwin and dead on Android
+     (`HAVE_GETIFADDRS` undefined, the `not_have_getifaddrs` key).  */
+  #[cfg (not (feature = "not_have_getifaddrs"))]
   let mut ifap: *mut ifaddrs = std::ptr::null_mut ();
 
   CHECK_STRING (ifname);
@@ -4637,6 +4639,8 @@ unsafe fn network_interface_info (ifname: Lisp_Object) -> Lisp_Object
 	elt = Fcons (make_fixnum (rq.ifr_ifru.ifr_hwaddr.sa_family as EMACS_INT), hwaddr);
       }
   }
+  #[cfg (not (feature = "not_have_getifaddrs"))]
+  {
   if (getifaddrs (&raw mut ifap) != -1)
     {
       let hwaddr: Lisp_Object = make_nil_vector (6);
@@ -4671,6 +4675,7 @@ unsafe fn network_interface_info (ifname: Lisp_Object) -> Lisp_Object
       /* `#ifdef HAVE_FREEIFADDRS` is live.  */
       freeifaddrs (ifap);
     }
+  }
 
   res = Fcons (elt, res);
 

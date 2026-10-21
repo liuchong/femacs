@@ -262,6 +262,7 @@ have_xinput2_3	5	2	-	-
 no_generic_bogus	5	2	-	-
 no_have_gethostname	5	1	-	-
 no_ieee_floating_point	5	1	-	-
+not_have_getifaddrs	5	1	-	-
 stat_time_stat_timespec_ns	5	1	-	-
 stdc_iso_10646	5	2	-	-
 sys_renameat2	5	1	-	-
@@ -389,7 +390,6 @@ no_signbit	3	2	xtask dead-arms	-
 no_typeof	3	1	-	-
 no_windows_stat_timespec	3	1	-	-
 no_working_ckdint	3	1	-	-
-not_have_getifaddrs	3	1	-	-
 not_have_langinfo_codeset	3	1	-	-
 not_have_sysctl	3	3	-	-
 openssl_md5	3	2	-	-

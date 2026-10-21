@@ -8,8 +8,6 @@
 # A non-empty file means the library cannot be dlopen'ed.
 backtrace
 backtrace_symbols_fd
-freeifaddrs
-getifaddrs
 stderr
 stdin
 stdout
