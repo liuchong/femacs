@@ -1,0 +1,43 @@
+port binary newer than sources                 ok
+
+== row 1: 1:1 transcription ==
+extract-abi --all                              ok
+
+== row 2: layout / symbols / subr / declarations ==
+check-declarations                             ok
+xtask gate-fast                                ok
+
+== row 4: generated products, loadup, dump offsets ==
+check-generated                                ok
+check-loadup                                   ok
+check-dump-offsets                             ok
+gen-lisp-mk                                    ok
+gen-unidata                                    ok
+gen-charsets                                   ok
+
+== row 5: the verbatim trees ==
+check-verbatim                                 ok
+
+== behavioral parity ==
+fault-injection (19 cases)                     ok
+diff-fuzz (60 programs)                        ok
+
+== row 6: the authorised platforms ==
+check-authorized-platforms                     ok
+tui-smoke 24x80                                ok
+tui-smoke 10x80                                ok
+android device acceptance (evidence)           present (tools/android-accept.sh refreshes it)
+
+== row 8: signed commits and the ledger ==
+check-ledger-ticks                             ok
+last 5 commits signed                          ok
+
+== row 7: performance ==
+DoD-7                                          not run: shelved by the user's standing decision, recorded as unmet
+
+== documentation gates ==
+check-doc-numbers                              ok
+check-own-voice                                ok
+
+verify-dod: every row that was run is ok
+controlled-run: {"run_id": "bf42c21394c44f3892a0e67ea2d14587", "profile": "runtime", "executable": "bash", "argv_sha256": "aaa2f66fc88b34917508e762a02f2ea31550461b4cc4ca064af87cd3d3560e3c", "limit_bytes": 4294967296, "peak_rss_bytes": 1127268352, "peak_footprint_bytes": 1101581096, "peak_accounted_bytes": 1127268352, "reason": "exited", "root_pid": 54209, "exit_code": 0, "cleanup_complete": true, "initial_limit_bytes": 4294967296, "hard_limit_bytes": 17179869184, "growth_count": 0, "session_key": "db6dbc2293b949ead6fafda1b8a16c29ee0b794d97c5268812a89cfabb64258b", "session_hard_limit_bytes": 25769803776, "memory_metric": "max_rss_phys_footprint", "peak_session_bytes": 5108105216, "elapsed_seconds": 1219.491}
