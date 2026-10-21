@@ -26,7 +26,7 @@ python3 ~/.assistant/skills/controlled-run/scripts/run.py --profile runtime -- b
 | 3 | L0–L5 | ✅ | `acceptance-l0.py`、`acceptance-l1.py`、`tools/l5-sweep.sh` | L0 19/0、L1 111/0+1（4.744）；L5 552 same / 7 both-fail / 4 crashed（全两侧）/ 1 port-worse（tramp，孤立 3 次判两侧抖动）/ 0 port-better（4.1000） |
 | 4 | 生成物/loadup/dump ＋ 压力 | ✅ | `check-generated.py`、`check-loadup.py`、`check-dump-offsets.py`、`l5-sweep.sh --gc-stress` | 244 对 0 DIFFERENT、loadup 一致、dump 0；GC 压测 552 / 7 / 4（全两侧）/ 1 port-better / 0 port-worse（4.1001） |
 | 5 | 原样树逐字节 | ✅ | `check-verbatim.py` | 4,604 文件 0 failures（4.1000 内跑） |
-| 6 | 平台（macOS + Android） | ✅ | `bash tools/check-authorized-platforms.sh` | exit 0（4.1000）：macOS smoke 11/0、differential 92/0；Android APK 922,862 B / 114 class、`libemacs.so` 5.4 MB / 69 JNI、设备三元组（4.962）、设备口径导入 304/0（4.966） |
+| 6 | 平台（macOS + Android） | ✅ | `bash tools/check-authorized-platforms.sh` | exit 0（4.1000）：macOS smoke 11/0、differential 92/0；Android APK 922,862 B / 114 class、`libemacs.so` 5.4 MB / 69 JNI、设备三元组（4.962）、设备口径导入 300/0（4.1039） |
 | 7 | 性能 | ⏸ 暂挂（记未达） | `tools/bench.sh --rounds 5` | load≈6 两次：`bc-loop` 1.43 / 1.53×、`bc-sum` 1.29 / 1.39×、`bc-car` 1.26 / 1.35×、`regexp-repl` 1.08 / 1.09×、`buffer-scan` 0.99 / 0.99×、`sort` 1.14 / 1.15×（4.999）；不录基线 |
 | 8 | 签名 + 台账 | ✅ | `check-ledger-ticks.py`、`git verify-commit` | 238 台账绑定 / 0 failure / 0 行无台账（4.1005 复跑）；提交全部签名并推送 |
 
