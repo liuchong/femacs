@@ -1844,6 +1844,15 @@ pub unsafe extern "C" fn exec_byte_code (mut fun: Lisp_Object, mut args_template
           }
 	CASE_DEFAULT! () =>
 	  {
+	  /* C's live threaded table maps every opcode below Bconstant to
+	     `insn_default`, whose CASE_ABORT body reports the invalid opcode.  The
+	     switch-shaped port must spell that mapping here; without it a malformed
+	     byte string would index vectorp with a negative offset (SAFE is false).  */
+	  if op < Bconstant
+	    {
+	      error (c"Invalid byte opcode: op=%d, ptr=%td".as_ptr (),
+		     *pc.offset (-1) as c_int, pc.offset (-1).offset_from (bytestr_data));
+	    }
 	  if BYTE_CODE_SAFE! ()
 	      && ! (Bconstant <= op && op < Bconstant + const_length)
 	    { emacs_abort (); }
