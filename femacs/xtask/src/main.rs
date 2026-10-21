@@ -7,11 +7,80 @@
 //! `cargo run -p xtask -- <command>`, with the femacs directory as cwd.
 use std::collections::{BTreeMap, BTreeSet};
 use std::fs;
+use std::io::{Read, Seek, SeekFrom};
 use std::path::{Path, PathBuf};
 use std::process::{exit, Command};
 
 const REPO: &str = "..";
-const BUILD: &str = "../build/femacs";
+
+/// The default build tree.  `FEMACS_BUILD_ROOT` moves every derived directory
+/// (`femacs/`, `load/`, `port/`, `profiles/`) together, which is what keeps the PGO
+/// phases from sharing an object or a dump with the default O2 build.
+fn build_root () -> PathBuf
+{
+  std::env::var_os ("FEMACS_BUILD_ROOT").map (PathBuf::from)
+    .unwrap_or_else (|| PathBuf::from ("../build"))
+}
+
+fn units_dir () -> PathBuf { build_root ().join ("femacs") }
+fn load_dir () -> PathBuf { build_root ().join ("load") }
+fn port_dir () -> PathBuf { build_root ().join ("port") }
+
+/// The unit objects the `lib-src/` tools link against.  Deliberately independent of
+/// `FEMACS_BUILD_ROOT`: `make-fingerprint` must always be an ordinary O2 tool, even
+/// when the program it rewrites was built with `-Cprofile-generate`.  Otherwise the
+/// tool's own build/dump runs would add profiles to the training set.
+fn tool_units_dir () -> PathBuf
+{
+  std::env::var_os ("FEMACS_TOOL_UNITS").map (PathBuf::from)
+    .unwrap_or_else (|| PathBuf::from ("../build/femacs"))
+}
+
+/// `FEMACS_PGO=off` (default) | `generate:<dir>` | `use:<file>`.
+enum PgoMode { Off, Generate (PathBuf), Use (PathBuf) }
+
+fn pgo_mode () -> PgoMode
+{
+  match std::env::var ("FEMACS_PGO")
+    {
+      Ok (v) if v.starts_with ("generate:") =>
+        PgoMode::Generate (PathBuf::from (&v["generate:".len ()..])),
+      Ok (v) if v.starts_with ("use:") =>
+        PgoMode::Use (PathBuf::from (&v["use:".len ()..])),
+      Ok (v) if v.is_empty () || v == "off" => PgoMode::Off,
+      Ok (v) =>
+        {
+          eprintln! ("error: FEMACS_PGO must be off, generate:<dir> or use:<file>, not {v}");
+          exit (2);
+        }
+      Err (_) => PgoMode::Off,
+    }
+}
+
+fn pgo_codegen_flags () -> Vec<String>
+{
+  match pgo_mode ()
+    {
+      PgoMode::Off => Vec::new (),
+      PgoMode::Generate (dir) =>
+        vec!["-C".to_string (), format! ("profile-generate={}", dir.display ())],
+      PgoMode::Use (file) =>
+        vec!["-C".to_string (), format! ("profile-use={}", file.display ())],
+    }
+}
+
+/// Send a child's runtime profiles to a role-specific directory.  Only `profiles/train`
+/// is ever merged; gate and dump runs still execute an instrumented binary and must not
+/// contaminate the training set.
+fn set_profile_env (cmd: &mut Command, role: &str)
+{
+  if let PgoMode::Generate (_) = pgo_mode ()
+    {
+      let dir = build_root ().join ("profiles").join (role);
+      let _ = fs::create_dir_all (&dir);
+      cmd.env ("LLVM_PROFILE_FILE", dir.join ("%p-%m.profraw"));
+    }
+}
 
 /// The `-C` flags every unit object is built with (PORTING.md 0.1-1).
 ///
@@ -104,6 +173,12 @@ fn main() {
         },
         "layout-check" => layout_check(),
         "build-tu" => build_tu(args.get(1)),
+        // Compile every finished unit without running a gate or a program: this is the
+        // object half of a PGO phase, where executing temacs would add unwanted profiles.
+        "build-units" => match build_finished_tus() {
+            Ok(()) => 0,
+            Err(e) => fail(e),
+        },
         "probe" => probe_build(&args[1..]),
         "gate-fast" => gate_fast(),
         "gate-probes" => gate_probes(),
@@ -130,8 +205,8 @@ fn main() {
         _ => {
             println!(
                 "usage: xtask <gen-config|layout-asserts|layout-check|build-tu <c-file>|\
-                 gate-fast|gate-probes|dead-arms|gate-load [--report]|link-program <c-file>|\
-                 dump|gate-full>"
+                 build-units|gate-fast|gate-probes|dead-arms|gate-load [--report]|\
+                 link-program <c-file>|dump|gate-full>"
             );
             0
         }
@@ -1097,17 +1172,17 @@ fn layout_asserts() -> Result<PathBuf, String> {
         asserted_keys.push(key.to_string());
         n += 1;
     }
-    fs::create_dir_all(BUILD).ok();
-    let path = Path::new(BUILD).join("layout_asserts.rs");
+    fs::create_dir_all(units_dir()).ok();
+    let path = units_dir().join("layout_asserts.rs");
     fs::write(&path, out).map_err(|e| e.to_string())?;
     // The pending list is written before the ratchet check, so a failure still says which
     // keys regressed.
     if !pending.is_empty() {
-        let list = Path::new(BUILD).join("layout_pending.txt");
+        let list = units_dir().join("layout_pending.txt");
         fs::write(&list, pending.join("\n") + "\n").ok();
     }
     asserted_keys.sort();
-    let asserted_list = Path::new(BUILD).join("layout_asserted.txt");
+    let asserted_list = units_dir().join("layout_asserted.txt");
     fs::write(&asserted_list, asserted_keys.join("\n") + "\n").ok();
     check_counts(n, pending.len())?;
     check_keys(&asserted_keys)?;
@@ -1124,8 +1199,8 @@ fn layout_check() -> i32 {
         Ok(p) => p,
         Err(e) => return fail(e),
     };
-    fs::create_dir_all(BUILD).ok();
-    let probe = Path::new(BUILD).join("layout_probe.rs");
+    fs::create_dir_all(units_dir()).ok();
+    let probe = units_dir().join("layout_probe.rs");
     let mut src = String::new();
     src.push_str("#![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code,
          unused_imports, unused_macros, unused_variables, unused_unsafe, static_mut_refs)]\n");
@@ -1243,12 +1318,12 @@ fn layout_check() -> i32 {
     if let Err(e) = fs::write(&probe, src) {
         return fail(e);
     }
-    let dir = Path::new(BUILD).join("layout_probe_src");
+    let dir = units_dir().join("layout_probe_src");
     let root = match materialize(&probe, &dir) {
         Ok(p) => p,
         Err(e) => return fail(e),
     };
-    let bin = Path::new(BUILD).join("layout_probe");
+    let bin = units_dir().join("layout_probe");
     let status = rustc_cmd ()
         .args(["--edition", "2024", "--crate-name", "layout_probe", "-C", "panic=abort", "-o"])
         .arg(&bin)
@@ -1344,24 +1419,30 @@ fn port_path(rel: &str, stem: &str) -> Option<String> {
 }
 
 fn build_tu(rel: Option<&String>) -> i32 {
+    build_tu_at(rel, &units_dir(), true)
+}
+
+/// Compile one unit into an explicit object root.  `pgo` is false for the `lib-src/`
+/// tools, whose binaries (make-fingerprint in particular) must stay plain O2.
+fn build_tu_at(rel: Option<&String>, units: &Path, pgo: bool) -> i32 {
     let Some(rel) = rel else { return fail("build-tu needs a reference C file, e.g. src/doprnt.c") };
     let stem = Path::new(rel).file_stem().unwrap_or_default().to_string_lossy().to_string();
     let cname = crate_name (&stem);
     let (crate_root, out) = if rel.ends_with(".h") {
         let unit = port_path(rel, &stem).unwrap_or_else(|| format!("src/include/{stem}.rs"));
-        (unit, Path::new(BUILD).join(format!("include_{stem}.o")))
+        (unit, units.join(format!("include_{stem}.o")))
     } else {
         // A unit keeps the reference's own path; `port_path` is what lets
         // `build-tu lib/getline.c`, `build-tu lib-src/etags.c` and
         // `build-tu lib/malloc/scratch_buffer_grow.c` all find their file.
         let unit = port_path(rel, &stem).unwrap_or_else(|| format!("src/{stem}.rs"));
-        (unit, Path::new(BUILD).join(format!("{stem}.o")))
+        (unit, units.join(format!("{stem}.o")))
     };
     if !Path::new(&crate_root).is_file() {
         return fail(format!("{crate_root} does not exist yet (ports of {rel} not written)"));
     }
-    fs::create_dir_all(BUILD).ok();
-    let dir = Path::new(BUILD).join("units").join(&stem);
+    fs::create_dir_all(units).ok();
+    let dir = units.join("units").join(&stem);
     // A clean unit directory every time.  `materialize` rewrites the copies it *expands*, but a
     // copy written under an earlier configuration and now reached only through the dedupe path
     // keeps its old text - which is how `config.rs`'s 813-constant Android generation survived
@@ -1380,10 +1461,15 @@ fn build_tu(rel: Option<&String>) -> i32 {
     // (`docs/baseline/config/*.json`, P-204), which is why this is an override and not the
     // default path.
     let target = std::env::var("FEMACS_TARGET").ok().filter(|v| !v.is_empty());
+    let mut flags = unit_codegen_flags ();
+    if pgo
+      {
+        flags.extend (pgo_codegen_flags ());
+      }
     let mut cmd = rustc_cmd ();
     cmd.args(["--edition", "2024", "--crate-type", "lib", "--emit", "obj",
               "--crate-name", &cname])
-       .args(unit_codegen_flags ())
+       .args(&flags)
        .args(&sanitizer_flags ());
     // The port writes C's `#ifdef`s as `#[cfg(feature = "...")]` (2,316 sites gate on
     // `have_android` alone), so the frozen configuration has to reach rustc as cfgs.  Until this
@@ -1398,7 +1484,7 @@ fn build_tu(rel: Option<&String>) -> i32 {
         if t.contains("linux") {
             cmd.arg("-C").arg(format!("linker={REPO}/tools/zig-linux-linker.sh"));
         }
-        cross_out = Path::new(BUILD).join(format!("{stem}.{t}.o"));
+        cross_out = units.join(format!("{stem}.{t}.o"));
         println!("target: {t} (object: {})", cross_out.display());
     }
     let status = cmd.arg(&root).arg("-o").arg(&cross_out).status();
@@ -1411,14 +1497,14 @@ fn build_tu(rel: Option<&String>) -> i32 {
         check_cmd
             .args(["--edition", "2024", "--crate-type", "lib", "--emit", "obj",
                    "--crate-name", &cname, "--cfg", "enable_checking"])
-            .args(unit_codegen_flags ())
+            .args(&flags)
             .args(&sanitizer_flags ());
         for cfg in config_features () { check_cmd.arg ("--cfg").arg (cfg); }
-        let mut check_out = Path::new(BUILD).join (format! ("{stem}.checking.o"));
+        let mut check_out = units.join (format! ("{stem}.checking.o"));
         if let Some (t) = &target
             {
                 check_cmd.arg ("--target").arg (t);
-                check_out = Path::new(BUILD).join (format! ("{stem}.checking.{t}.o"));
+                check_out = units.join (format! ("{stem}.checking.{t}.o"));
             }
         match check_cmd.arg (&root).arg ("-o").arg (&check_out).status ()
             {
@@ -2041,9 +2127,9 @@ fn link_shared (target: Option<&str>) -> i32
       return fail ("link-shared needs a target, e.g. aarch64-linux-android");
     };
   let target = target.to_string ();
-  let build = Path::new (BUILD);
+  let build = units_dir ();
   let mut objects: Vec<PathBuf> = Vec::new ();
-  match fs::read_dir (build)
+  match fs::read_dir (&build)
     {
       Ok (entries) => for entry in entries.flatten ()
         {
@@ -2105,7 +2191,7 @@ fn link_shared (target: Option<&str>) -> i32
         return fail ("no Android cross compiler: set FEMACS_ANDROID_CC, or install the NDK\
                       under $ANDROID_HOME / $HOME/Library/Android/sdk");
       };
-  let dir = Path::new ("../build/port").join (&target);
+  let dir = port_dir ().join (&target);
   if let Err (e) = fs::create_dir_all (&dir)
     {
       return fail (format! ("creating {}: {e}", dir.display ()));
@@ -2116,7 +2202,7 @@ fn link_shared (target: Option<&str>) -> i32
       rsp.push (fs::canonicalize (object).map (|p| p.display ().to_string ())
                   .unwrap_or_else (|_| object.display ().to_string ()));
     }
-  if let Err (e) = fs::write ("../build/load/link-shared-args.rsp", rsp.join ("\n") + "\n")
+  if let Err (e) = fs::write (load_dir ().join ("link-shared-args.rsp"), rsp.join ("\n") + "\n")
     {
       return fail (format! ("writing the response file: {e}"));
     }
@@ -2175,15 +2261,15 @@ fn link_shared (target: Option<&str>) -> i32
           // port's heap accounting and `malloc` hooks stay the reference's (status 4.866).
           let mut source = String::from (SHARED_DRIVER);
           source.push_str (&alloc_shim_source (&ndk_bin (&linker).unwrap (), &inputs));
-          if let Err (e) = fs::write ("../build/load/shared-driver.rs", &source)
+          if let Err (e) = fs::write (load_dir ().join ("shared-driver.rs"), &source)
             {
               return fail (format! ("writing the shared driver: {e}"));
             }
-          let object = PathBuf::from (format! ("../build/load/shared-driver.{target}.o"));
+          let object = load_dir ().join (format! ("shared-driver.{target}.o"));
           let mut cmd = rustc_cmd ();
           cmd.arg ("--target").arg (&target).arg ("-O").arg ("--crate-type").arg ("lib")
              .arg ("--emit=obj").arg ("-o").arg (&object)
-             .arg (Path::new ("../build/load/shared-driver.rs"));
+             .arg (load_dir ().join ("shared-driver.rs"));
           match cmd.output ()
             {
               Ok (o) if o.status.success () => driver.push (object),
@@ -2414,7 +2500,10 @@ fn port_tree(root: &Path) -> std::io::Result<()> {
         if !Path::new(REPO).join("femacs").join(name).exists() {
             continue;                       // a tree the port does not own is not linked
         }
-        let target = Path::new("../..").join("femacs").join(name);
+        // Absolute target: the port tree is no longer always `build/port` (PGO phases live
+        // under `build/pgo/<phase>/port`), so a fixed `../..` would point at the phase root.
+        let target = fs::canonicalize(Path::new(REPO).join("femacs").join(name))
+            .unwrap_or_else(|_| Path::new(REPO).join("femacs").join(name));
         let link = root.join(name);
         // `symlink` is Unix-only, which is all this driver needs (`std::os::unix::fs`).
         let _ = fs::remove_file(&link);
@@ -2482,9 +2571,12 @@ fn link_program(rel: Option<&String>) -> i32 {
     let path = Path::new(rel);
     let stem = path.file_stem().unwrap_or_default().to_string_lossy().to_string();
     let dir = path.parent().map(|d| d.to_path_buf()).unwrap_or_default();
-    let unit_obj = Path::new(BUILD).join(format!("{stem}.o"));
+    // Tools are always built from the plain-O2 object root, never from the phase root:
+    // an instrumented make-fingerprint would add its own run to the training profiles.
+    let tools = tool_units_dir();
+    let unit_obj = tools.join(format!("{stem}.o"));
     if !unit_obj.is_file() {
-        let code = build_tu(Some(rel));
+        let code = build_tu_at(Some(rel), &tools, false);
         if code != 0 {
             return code;
         }
@@ -2498,7 +2590,7 @@ fn link_program(rel: Option<&String>) -> i32 {
             vec![mstem.clone()]
         };
         for cand in cands {
-            let p = Path::new(REPO).join("build/femacs").join(format!("{cand}.o"));
+            let p = tools.join(format!("{cand}.o"));
             if p.is_file() {
                 libs.push(fs::canonicalize(&p).unwrap_or(p).display().to_string());
             }
@@ -2507,10 +2599,13 @@ fn link_program(rel: Option<&String>) -> i32 {
     if libs.is_empty() {
         return fail("no port objects for the frozen libgnu.a members: run gate-fast first");
     }
-    let archive = "../build/load/libgnu-program.a";
-    let _ = fs::remove_file(archive);
+    let load = load_dir();
+    let _ = fs::create_dir_all(&load);
+    let archive = load.join("libgnu-program.a");
+    let archive = archive.display().to_string();
+    let _ = fs::remove_file(&archive);
     let mut ar = Command::new("ar");
-    ar.args(["crs", archive]);
+    ar.args(["crs", archive.as_str()]);
     for l in &libs {
         ar.arg(l);
     }
@@ -2519,28 +2614,27 @@ fn link_program(rel: Option<&String>) -> i32 {
         Ok(o) => return fail(format!("ar: {}", String::from_utf8_lossy(&o.stderr).trim())),
         Err(e) => return fail(format!("ar: {e}")),
     }
-    let _ = fs::create_dir_all("../build/load");
-    if let Err(e) = fs::write("../build/load/driver.rs", LINK_DRIVER) {
+    if let Err(e) = fs::write(load.join("driver.rs"), LINK_DRIVER) {
         return fail(format!("writing the link driver: {e}"));
     }
-    let out_path = Path::new("../build/port").join(&dir).join(&stem);
+    let out_path = port_dir().join(&dir).join(&stem);
     if let Some(parent) = out_path.parent() {
         let _ = fs::create_dir_all(parent);
     }
-    let archive_abs = fs::canonicalize(archive).map(|p| p.display().to_string())
-        .unwrap_or_else(|_| archive.to_string());
+    let archive_abs = fs::canonicalize(&archive).map(|p| p.display().to_string())
+        .unwrap_or_else(|_| archive.clone());
     let unit_abs = unit_obj.canonicalize().map(|p| p.display().to_string())
         .unwrap_or_else(|_| unit_obj.display().to_string());
     let rsp = format!("{unit_abs}\n{archive_abs}\n-lSystem\n");
-    if let Err(e) = fs::write("../build/load/link-program-args.rsp", rsp) {
+    if let Err(e) = fs::write(load.join("link-program-args.rsp"), rsp) {
         return fail(format!("writing the response file: {e}"));
     }
     println!("== link-program: {rel} + {} lib object(s) ==", libs.len());
     let out = match rustc_cmd ()
         .args(["--edition", "2024", "--crate-type", "bin", "-C", "panic=abort", "-C", "linker=clang"])
         .args(&sanitizer_flags ())
-        .arg("../build/load/driver.rs")
-        .arg("-C").arg("link-arg=@../build/load/link-program-args.rsp")
+        .arg(load.join("driver.rs"))
+        .arg("-C").arg(format!("link-arg=@{}", load.join("link-program-args.rsp").display()))
         .arg("-o").arg(&out_path)
         .output()
     {
@@ -2558,6 +2652,163 @@ fn link_program(rel: Option<&String>) -> i32 {
     fail(format!("the link of {rel} failed"))
 }
 
+/// The 32-byte placeholder in `femacs/lib/fingerprint.rs`.  `make-fingerprint` replaces
+/// exactly this array once per linked binary; the pdumper compares the value stored in the
+/// dump with the loading binary's array, so leaving the placeholder in place would make every
+/// dump look compatible with every binary.
+const FINGERPRINT_PLACEHOLDER: [u8; 32] =
+  [
+   0xDE, 0x86, 0xBB, 0x99, 0xFF, 0xF5, 0x46, 0x9A,
+   0x9E, 0x3F, 0x9F, 0x5D, 0x9A, 0xDF, 0xF0, 0x91,
+   0xBD, 0xCD, 0xC1, 0xE8, 0x0C, 0x16, 0x1E, 0xAF,
+   0xB8, 0x6C, 0xE2, 0x2B, 0xB1, 0x24, 0xCE, 0xB0,
+  ];
+
+fn count_in_file (path: &Path, needle: &[u8]) -> std::io::Result<usize>
+{
+  let mut f = fs::File::open (path)?;
+  let mut buf = vec![0u8; 1 << 16];
+  let mut carry: Vec<u8> = Vec::new ();
+  let mut count = 0usize;
+  loop
+    {
+      let n = f.read (&mut buf)?;
+      if n == 0 { break; }
+      let mut data = Vec::with_capacity (carry.len () + n);
+      data.extend_from_slice (&carry);
+      data.extend_from_slice (&buf[..n]);
+      let mut pos = 0usize;
+      while pos + needle.len () <= data.len ()
+        {
+          if &data[pos..pos + needle.len ()] == needle
+            {
+              count += 1;
+              pos += needle.len ();
+            }
+          else { pos += 1; }
+        }
+      let keep = (needle.len () - 1).min (data.len ());
+      carry = data[data.len () - keep..].to_vec ();
+    }
+  Ok (count)
+}
+
+fn find_in_file (path: &Path, needle: &[u8]) -> std::io::Result<Option<u64>>
+{
+  let mut f = fs::File::open (path)?;
+  let mut buf = vec![0u8; 1 << 16];
+  let mut carry: Vec<u8> = Vec::new ();
+  let mut consumed = 0u64;
+  loop
+    {
+      let n = f.read (&mut buf)?;
+      if n == 0 { break; }
+      let start = consumed - carry.len () as u64;
+      let mut data = Vec::with_capacity (carry.len () + n);
+      data.extend_from_slice (&carry);
+      data.extend_from_slice (&buf[..n]);
+      if let Some (pos) = data.windows (needle.len ()).position (|w| w == needle)
+        {
+          return Ok (Some (start + pos as u64));
+        }
+      consumed += n as u64;
+      let keep = (needle.len () - 1).min (data.len ());
+      carry = data[data.len () - keep..].to_vec ();
+    }
+  Ok (None)
+}
+
+fn hex_digest (text: &str) -> Option<[u8; 32]>
+{
+  if text.len () != 64 { return None; }
+  let mut out = [0u8; 32];
+  for i in 0..32
+    {
+      out[i] = u8::from_str_radix (&text[i * 2..i * 2 + 2], 16).ok ()?;
+    }
+  Some (out)
+}
+
+/// Link-time post step: rewrite the fingerprint, then re-sign the Mach-O.
+///
+/// Reference order (`emacs/src/Makefile.in` 713-720): link to `temacs.tmp`,
+/// `MAKE_PDUMPER_FINGERPRINT $@.tmp`, `codesign -s - -f $@.tmp`.  The rewrite changes
+/// bytes inside the signed Mach-O, so re-signing is mandatory before the binary may run.
+/// The tool itself comes from the plain-O2 object root (`link_program`), never from the
+/// instrumented phase, so building or running it cannot pollute the training profiles.
+fn finalize_binary (path: &Path) -> Result<(), String>
+{
+  let before = count_in_file (path, &FINGERPRINT_PLACEHOLDER)
+    .map_err (|e| format! ("{}: reading fingerprint placeholder: {e}", path.display ()))?;
+  if before != 1
+    {
+      return Err (format! ("{}: expected exactly one fingerprint placeholder, found {before}",
+                           path.display ()));
+    }
+  let tool_rel = "lib-src/make-fingerprint.c".to_string ();
+  if link_program (Some (&tool_rel)) != 0
+    {
+      return Err ("linking make-fingerprint failed".to_string ());
+    }
+  let tool = port_dir ().join ("lib-src").join ("make-fingerprint");
+  if ! tool.is_file ()
+    {
+      return Err (format! ("make-fingerprint was not linked at {}", tool.display ()));
+    }
+  let raw = Command::new (&tool).arg ("-r").arg (path).output ()
+    .map_err (|e| format! ("running make-fingerprint -r: {e}"))?;
+  if ! raw.status.success ()
+    {
+      return Err (format! ("make-fingerprint -r failed: {}",
+                           String::from_utf8_lossy (&raw.stderr).trim ()));
+    }
+  let digest_hex = String::from_utf8_lossy (&raw.stdout).trim ().to_string ();
+  let digest = hex_digest (&digest_hex)
+    .ok_or_else (|| format! ("make-fingerprint -r printed a malformed digest: {digest_hex}"))?;
+  let offset = find_in_file (path, &FINGERPRINT_PLACEHOLDER)
+    .map_err (|e| format! ("{}: locating the placeholder: {e}", path.display ()))?
+    .ok_or_else (|| format! ("{}: placeholder disappeared before the rewrite", path.display ()))?;
+  let status = Command::new (&tool).arg (path).status ()
+    .map_err (|e| format! ("running make-fingerprint: {e}"))?;
+  if ! status.success ()
+    {
+      return Err (format! ("make-fingerprint failed for {}", path.display ()));
+    }
+  let after = count_in_file (path, &FINGERPRINT_PLACEHOLDER)
+    .map_err (|e| format! ("{}: re-reading the placeholder: {e}", path.display ()))?;
+  if after != 0
+    {
+      return Err (format! ("{}: fingerprint placeholder survived the rewrite", path.display ()));
+    }
+  let mut f = fs::File::open (path)
+    .map_err (|e| format! ("{}: {e}", path.display ()))?;
+  f.seek (SeekFrom::Start (offset)).map_err (|e| format! ("{}: seek: {e}", path.display ()))?;
+  let mut got = [0u8; 32];
+  f.read_exact (&mut got).map_err (|e| format! ("{}: read digest: {e}", path.display ()))?;
+  if got != digest
+    {
+      return Err (format! ("{}: stored fingerprint does not match make-fingerprint -r",
+                           path.display ()));
+    }
+  if cfg! (target_os = "macos")
+    {
+      let signed = Command::new ("codesign").args (["-s", "-", "-f"]).arg (path).status ()
+        .map_err (|e| format! ("running codesign: {e}"))?;
+      if ! signed.success ()
+        {
+          return Err (format! ("codesign -s - -f failed for {}", path.display ()));
+        }
+      let verified = Command::new ("codesign").arg ("--verify").arg (path).status ()
+        .map_err (|e| format! ("running codesign --verify: {e}"))?;
+      if ! verified.success ()
+        {
+          return Err (format! ("codesign --verify failed for {}", path.display ()));
+        }
+    }
+  println! ("fingerprint: {} -> {digest_hex}", path.display ());
+  Ok (())
+}
+
 /// The reference's dump chain, in `src/Makefile` order.
 ///
 /// `emacs$(EXEEXT)` (Makefile 630-636) is a copy of the linked program - `rm -f $@ && cp -f
@@ -2573,7 +2824,7 @@ fn link_program(rel: Option<&String>) -> i32 {
 /// Makefile rule creates (measured 2026-10-16: the dump itself completed and the naming step
 /// failed with `file-missing`).
 fn dump_emacs() -> i32 {
-    let src = Path::new("../build/port/src");
+    let src = port_dir().join("src");
     let temacs = src.join("temacs");
     if !temacs.is_file() {
         return fail("build/port/src/temacs is missing; `xtask gate-load` links it");
@@ -2583,12 +2834,16 @@ fn dump_emacs() -> i32 {
     if let Err(e) = fs::copy(&temacs, &emacs) {
         return fail(format!("cp -f temacs emacs: {e}"));
     }
-    let status = Command::new("./temacs")
-        .args(["-batch", "-l", "loadup", "--temacs=pdump",
+    let mut dump = Command::new("./temacs");
+    dump.args(["-batch", "-l", "loadup", "--temacs=pdump",
                "--bin-dest", "not-set", "--eln-dest", "not-set"])
-        .current_dir(src)
-        .env("LC_ALL", "C")
-        .status();
+        .current_dir(&src)
+        .env("LC_ALL", "C");
+    // The dump run executes the instrumented temacs in the generate phase.  Its profile
+    // belongs to the build machinery, not to the training corpus: keep it in its own
+    // directory so only profiles/train can ever be merged.
+    set_profile_env(&mut dump, "dump");
+    let status = dump.status();
     match status {
         Ok(s) if s.success() => {}
         Ok(s) => return fail(format!("the dump program exited with {s}")),
@@ -2603,7 +2858,49 @@ fn dump_emacs() -> i32 {
         Ok(m) => println!("dumped {} ({} bytes)", pdmp.display(), m.len()),
         Err(e) => return fail(format!("emacs.pdmp: {e}")),
     }
+    if let Err(e) = write_pair_manifest(&src) {
+        return fail(e);
+    }
     0
+}
+
+/// Record the binary/dump quartet so the measurement tool can refuse a stale pair.
+/// The fingerprint is the primary check; this manifest also catches an accidental
+/// copy of one phase's dump into another phase's directory.
+fn write_pair_manifest(src: &Path) -> Result<(), String> {
+    let names = ["temacs", "emacs", "emacs.pdmp", "bootstrap-emacs.pdmp"];
+    let files: Vec<PathBuf> = names.iter().map(|n| src.join(n)).collect();
+    for f in &files {
+        if !f.is_file() {
+            return Err(format!("cannot hash missing {}", f.display()));
+        }
+    }
+    let mut cmd = Command::new("shasum");
+    cmd.args(["-a", "256"]);
+    for f in &files {
+        cmd.arg(f);
+    }
+    let out = cmd.output().map_err(|e| format!("shasum: {e}"))?;
+    if !out.status.success() {
+        return Err(format!("shasum failed: {}", String::from_utf8_lossy(&out.stderr).trim()));
+    }
+    let text = String::from_utf8_lossy(&out.stdout);
+    let mut rows: Vec<(String, String)> = Vec::new();
+    for line in text.lines() {
+        let mut parts = line.splitn(2, "  ");
+        let (Some(digest), Some(path)) = (parts.next(), parts.next()) else {
+            return Err(format!("malformed shasum row: {line}"));
+        };
+        let name = Path::new(path).file_name().unwrap_or_default().to_string_lossy().to_string();
+        rows.push((name, digest.to_string()));
+    }
+    rows.sort_by(|a, b| a.0.cmp(&b.0));
+    let mut manifest = String::new();
+    for (name, digest) in rows {
+        manifest.push_str(&format!("{digest}  {name}\n"));
+    }
+    fs::write(src.join("pair.sha256"), manifest)
+        .map_err(|e| format!("writing pair.sha256: {e}"))
 }
 
 fn gate_load(arg: Option<&str>) -> i32 {
@@ -2638,7 +2935,8 @@ fn gate_load(arg: Option<&str>) -> i32 {
         .map(|l| l.trim_end().strip_suffix('\\').unwrap_or(l.trim_end()).trim_end())
         .collect::<Vec<&str>>().join(" ");
 
-    let _ = fs::create_dir_all("../build/load");
+    let load = load_dir();
+    let _ = fs::create_dir_all(&load);
     let mut objs: Vec<String> = Vec::new();
     let mut libs: Vec<String> = Vec::new();
     let mut search: Vec<String> = Vec::new();
@@ -2648,7 +2946,7 @@ fn gate_load(arg: Option<&str>) -> i32 {
         let is_obj = tok.len() > 2 && tok.ends_with(".o")
             && tok[..tok.len() - 2].chars().all(|c| c.is_ascii_alphanumeric() || c == '_' || c == '-');
         if is_obj {
-            let p = Path::new(REPO).join("build/femacs").join(tok);
+            let p = units_dir().join(tok);
             if p.is_file() {
                 objs.push(fs::canonicalize(&p).unwrap_or(p).display().to_string());
             } else {
@@ -2685,7 +2983,7 @@ fn gate_load(arg: Option<&str>) -> i32 {
                 };
                 let mut hit = false;
                 for cand in cands {
-                    let p = Path::new(REPO).join("build/femacs").join(format!("{cand}.o"));
+                    let p = units_dir().join(format!("{cand}.o"));
                     if p.is_file() {
                         libs.push(fs::canonicalize(&p).unwrap_or(p).display().to_string());
                         hit = true;
@@ -2712,7 +3010,7 @@ fn gate_load(arg: Option<&str>) -> i32 {
         }
     }
     // The driver lives at module scope (`LINK_DRIVER`), because `link-program` uses it too.
-    if let Err(e) = fs::write("../build/load/driver.rs", LINK_DRIVER) {
+    if let Err(e) = fs::write(load.join("driver.rs"), LINK_DRIVER) {
         return fail(format!("writing the link driver: {e}"));
     }
     // The program has to *find its own tree*, and where it is put decides that: C's
@@ -2727,8 +3025,8 @@ fn gate_load(arg: Option<&str>) -> i32 {
     // warning and reported the build tree - the *only* stderr difference between the two runs.
     // So the port gets the same shape: `<port>/src/temacs` with the trees the port owns reachable
     // beside it, which is also what makes the program load its *own* verbatim `lisp/`.
-    let port_root = fs::canonicalize("..").map(|p| p.join("build/port"))
-        .unwrap_or_else(|_| PathBuf::from("build/port"));
+    let _ = fs::create_dir_all(port_dir());
+    let port_root = fs::canonicalize(port_dir()).unwrap_or_else(|_| port_dir());
     if let Err(e) = port_tree(&port_root) {
         return fail(format!("building the port's tree layout: {e}"));
     }
@@ -2743,10 +3041,10 @@ fn gate_load(arg: Option<&str>) -> i32 {
     // macOS does not have - measured with `make -C build/emacs-ref/lib getloadavg.o`), so the
     // archive is not the same set as the reference's own; the symbols only those files can
     // demand are the ratchet's business below, not a reason to drop their text from the link.
-    let archive = "../build/load/libgnu-port.a";
-    let _ = fs::remove_file(archive);
+    let archive = load.join("libgnu-port.a");
+    let _ = fs::remove_file(&archive);
     let mut ar = Command::new("ar");
-    ar.args(["crs", archive]);
+    ar.arg("crs").arg(&archive);
     for l in &libs {
         ar.arg(l);
     }
@@ -2755,8 +3053,8 @@ fn gate_load(arg: Option<&str>) -> i32 {
         Ok(o) => return fail(format!("ar: {}", String::from_utf8_lossy(&o.stderr).trim())),
         Err(e) => return fail(format!("ar: {e}")),
     }
-    let archive_abs = fs::canonicalize(archive).map(|p| p.display().to_string())
-        .unwrap_or_else(|_| archive.to_string());
+    let archive_abs = fs::canonicalize(&archive).map(|p| p.display().to_string())
+        .unwrap_or_else(|_| archive.display().to_string());
     let out_path = port_root.join("src").join("temacs");
     let mut rsp: Vec<String> = vec![format!("-o\n{}", out_path.display())];
     rsp.extend(objs.iter().cloned());
@@ -2764,7 +3062,7 @@ fn gate_load(arg: Option<&str>) -> i32 {
     rsp.extend(search.iter().cloned());
     rsp.extend(extra_libs.iter().cloned());
     rsp.push("-lSystem".to_string());
-    if let Err(e) = fs::write("../build/load/link-args.rsp", rsp.join("\n") + "\n") {
+    if let Err(e) = fs::write(load.join("link-args.rsp"), rsp.join("\n") + "\n") {
         return fail(format!("writing the link response file: {e}"));
     }
     println!("== gate-load: linking the frozen temacs object list against the port ==");
@@ -2773,12 +3071,13 @@ fn gate_load(arg: Option<&str>) -> i32 {
     let out = match rustc_cmd ()
         .args(["--edition", "2024", "--crate-type", "bin", "-C", "panic=abort", "-C", "linker=clang"])
         .args(&sanitizer_flags ())
+        .args(&pgo_codegen_flags ())
         // P-101 (3): the 64 MB link-time stack (`-Wl,-stack_size,0x4000000`) existed only because
         // `-C opt-level=0` frames were ~14x the reference's.  With the units at `-O2` the loader's
         // recursion fits the 8 MB default again, and status 4.486 removed the flag (measured with
         // `dump` on the far side of the loader).
-        .arg("../build/load/driver.rs")
-        .arg("-C").arg("link-arg=@../build/load/link-args.rsp")
+        .arg(load.join("driver.rs"))
+        .arg("-C").arg(format!("link-arg=@{}", load.join("link-args.rsp").display()))
         .arg("-o").arg(&out_path)
         .output()
     {
@@ -2850,15 +3149,18 @@ fn gate_load(arg: Option<&str>) -> i32 {
             format!("{name}\t{}", seen.iter().map(|s| s.as_str()).collect::<Vec<&str>>().join(","))
         })
         .collect::<Vec<String>>().join("\n");
-    if let Err(e) = fs::write("../build/load/undefined.txt", list + "\n") {
-        eprintln!("warning: could not write build/load/undefined.txt: {e}");
+    if let Err(e) = fs::write(load.join("undefined.txt"), list + "\n") {
+        eprintln!("warning: could not write {}/undefined.txt: {e}", load.display());
     } else {
-        println!("full list: build/load/undefined.txt");
+        println!("full list: {}", load.join("undefined.txt").display());
     }
     println!("undefined: {} total, {} ratcheted, {} new", undefined.len(), known.len(), fresh.len());
     if undefined.is_empty() {
         if out.status.success() {
             println!("link: temacs linked from the port's objects alone");
+            if let Err(e) = finalize_binary(&out_path) {
+                return fail(e);
+            }
             // With the program in hand, the decoding questions that a *static* gate cannot see
             // are answerable: a coding system's eol type is what removes a DOS-style file's
             // CRs, and the loop that does it keeps two counters (`pos++` beside
@@ -2870,10 +3172,14 @@ fn gate_load(arg: Option<&str>) -> i32 {
             // overwrites the line, which is how a first probe of this defect mis-read two
             // identical answers.
             println!("== coding eol gate ==");
-            return match Command::new("python3")
-                .current_dir(REPO)
-                .args(["tools/check-coding-eol.py"])
-                .status()
+            let mut coder = Command::new("python3");
+            coder.current_dir(REPO)
+                .args(["tools/check-coding-eol.py", "--port"])
+                .arg(&out_path)
+                .arg("--reference")
+                .arg("build/emacs-ref/src/emacs");
+            set_profile_env(&mut coder, "gate");
+            return match coder.status()
             {
                 Ok(s) if s.success() => {
                     println!("coding eol: every case converts as the reference does");
@@ -3497,14 +3803,16 @@ fn buildable_units(units: Vec<String>) -> Vec<String> {
 }
 
 fn build_finished_tus() -> Result<(), String> {
+    let mut flags = unit_codegen_flags();
+    flags.extend(pgo_codegen_flags());
     let units = buildable_units(finished_units()?);
     let mut built = 0usize;
-    fs::create_dir_all(BUILD).ok();
+    fs::create_dir_all(units_dir()).ok();
     for unit in &units {
         let stem = Path::new(unit).file_stem().unwrap_or_default().to_string_lossy().to_string();
         let cname = crate_name (&stem);
-        let out = Path::new(BUILD).join(format!("{stem}.o"));
-        let dir = Path::new(BUILD).join("units").join(&stem);
+        let out = units_dir().join(format!("{stem}.o"));
+        let dir = units_dir().join("units").join(&stem);
         let root = match materialize(Path::new(unit), &dir) {
             Ok(p) => p,
             Err(e) => return Err(e),
@@ -3512,7 +3820,7 @@ fn build_finished_tus() -> Result<(), String> {
         let status = rustc_cmd ()
             .args(["--edition", "2024", "--crate-type", "lib", "--emit", "obj",
                    "--crate-name", &cname])
-            .args(unit_codegen_flags ())
+            .args(&flags)
             .args(&sanitizer_flags ())
             .arg(&root)
             .arg("-o")
@@ -3527,13 +3835,13 @@ fn build_finished_tus() -> Result<(), String> {
         // `eassert!`/`eassume!` are `#[cfg (enable_checking)]`: without this pass their
         // bodies (die, stringify!, the conditions) are never compiled at all, so a
         // checking build is the only way to see them (review C's F4).
-        let checked = Path::new(BUILD).join(format!("{stem}.checking.o"));
+        let checked = units_dir().join(format!("{stem}.checking.o"));
         let mut check_cmd = rustc_cmd ();
         check_cmd
             .args(["--edition", "2024", "--crate-type", "lib", "--emit", "obj",
                    "--crate-name", &cname,
                    "--cfg", "enable_checking"])
-            .args(unit_codegen_flags ())
+            .args(&flags)
             .args(&sanitizer_flags ());
         // The same frozen configuration and the same target as the pass above: without them this
         // object is a host Mach-O with darwin's feature set, which is useless both as a link input
