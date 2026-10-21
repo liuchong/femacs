@@ -1,0 +1,135 @@
+{
+  "scope": "four VM inputs per binary and four summary-classifier fixtures",
+  "port_commit": "017cd8bcc4f93ec7149486b8878ed9df43db3c98",
+  "vm": [
+    {
+      "side": "port",
+      "case": "compiled-add",
+      "exit_code": 0,
+      "actual": "42",
+      "expected": "42",
+      "passed": true,
+      "elapsed_ns": 18894209
+    },
+    {
+      "side": "port",
+      "case": "compiled-error",
+      "exit_code": 0,
+      "actual": "error",
+      "expected": "error",
+      "passed": true,
+      "elapsed_ns": 17366584
+    },
+    {
+      "side": "port",
+      "case": "invalid-zero",
+      "exit_code": 0,
+      "actual": "invalid-opcode",
+      "expected": "invalid-opcode",
+      "passed": true,
+      "elapsed_ns": 10255041
+    },
+    {
+      "side": "port",
+      "case": "invalid-unused",
+      "exit_code": 0,
+      "actual": "invalid-opcode",
+      "expected": "invalid-opcode",
+      "passed": true,
+      "elapsed_ns": 10465916
+    },
+    {
+      "side": "reference",
+      "case": "compiled-add",
+      "exit_code": 0,
+      "actual": "42",
+      "expected": "42",
+      "passed": true,
+      "elapsed_ns": 16433334
+    },
+    {
+      "side": "reference",
+      "case": "compiled-error",
+      "exit_code": 0,
+      "actual": "error",
+      "expected": "error",
+      "passed": true,
+      "elapsed_ns": 14706042
+    },
+    {
+      "side": "reference",
+      "case": "invalid-zero",
+      "exit_code": 0,
+      "actual": "invalid-opcode",
+      "expected": "invalid-opcode",
+      "passed": true,
+      "elapsed_ns": 9644875
+    },
+    {
+      "side": "reference",
+      "case": "invalid-unused",
+      "exit_code": 0,
+      "actual": "invalid-opcode",
+      "expected": "invalid-opcode",
+      "passed": true,
+      "elapsed_ns": 8908334
+    }
+  ],
+  "summary_counterexamples": [
+    {
+      "case": "equal-passes",
+      "actual": "same",
+      "port_ran": 10,
+      "ref_ran": 10,
+      "port_unexpected": 0,
+      "ref_unexpected": 0,
+      "detail": [],
+      "elapsed_ns": 1750
+    },
+    {
+      "case": "different-failure-identities",
+      "actual": "both-fail",
+      "port_ran": 2,
+      "ref_ran": 2,
+      "port_unexpected": 1,
+      "ref_unexpected": 1,
+      "detail": [
+        "port fails A and passes B",
+        "reference passes A and fails B"
+      ],
+      "elapsed_ns": 1083
+    },
+    {
+      "case": "different-run-counts",
+      "actual": "same",
+      "port_ran": 10,
+      "ref_ran": 9,
+      "port_unexpected": 0,
+      "ref_unexpected": 0,
+      "detail": [],
+      "elapsed_ns": 625
+    },
+    {
+      "case": "no-tests",
+      "actual": "same",
+      "port_ran": 0,
+      "ref_ran": 0,
+      "port_unexpected": 0,
+      "ref_unexpected": 0,
+      "detail": [],
+      "elapsed_ns": 459
+    }
+  ],
+  "unused_opcode": 51,
+  "binary_identity": {
+    "port": {
+      "sha256": "ef4d4d9aa445335f33256fa6153c69b0a27f11e4920d41ba2c93ac78c928cc96",
+      "dump_sha256": "89bd76f676a35c515581aff89927ee1f8abce9ffb2f15628da6624f7482155dc"
+    },
+    "reference": {
+      "sha256": "aab8f53d0d7c0bd4a4093dbdcd7366c51f955faf80f716d64de3413ec6b8038b",
+      "dump_sha256": "921a85d4dbdbd44519d314bb908d848c051ad299c9d40e8ba4c71e2af6a86f5e"
+    }
+  },
+  "all_vm_inputs_passed": true
+}
