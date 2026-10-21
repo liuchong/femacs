@@ -48,7 +48,7 @@ python3 ~/.assistant/skills/controlled-run/scripts/run.py --profile runtime -- b
 
 ## 未决计数
 
-窗口臂 0 / 上游缺口 7 / 其它 0（`docs/decisions-needed.md` 附录的 A/B/C 三类；那 7 条是
+窗口臂 0 / 上游缺口 5 / 其它 0（`docs/decisions-needed.md` 附录的 A/B/C 三类；那 5 条是
 API 21 桩读数里缺、交付设备自己提供的名字，见 `docs/baseline/android-gaps.tsv`）。
 
 ## 已知红（不是回归）
