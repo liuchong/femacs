@@ -86,6 +86,8 @@ if python3 tools/check-generated.py 2>&1 | tail -1 | grep -q '0 DIFFERENT, 0 mis
 if python3 tools/check-loadup.py 2>&1 | tail -1 | grep -q 'agree file for file'; then row "check-loadup" ok; else row "check-loadup" FAIL; fail=1; fi
 if python3 tools/check-dump-offsets.py 2>&1 | tail -2 | grep -q '0 failure'; then row "check-dump-offsets" ok; else row "check-dump-offsets" FAIL; fail=1; fi
 run_row "gen-lisp-mk" python3 tools/gen-lisp-mk.py
+run_row "gen-unidata" python3 tools/gen-unidata.py
+run_row "gen-charsets" python3 tools/gen-charsets.py
 
 say "row 5: the verbatim trees"
 if python3 tools/check-verbatim.py 2>&1 | tail -1 | grep -q '0 failures'; then row "check-verbatim" ok; else row "check-verbatim" FAIL; fail=1; fi
