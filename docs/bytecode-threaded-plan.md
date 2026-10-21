@@ -71,9 +71,17 @@ switch 版本保留为 fallback。
 结论：按本计划的放弃条件，**不进入 S2/S3，不启动 256 臂生产改写**。当前 switch 版本
 保留；性能差距继续如实记为 DoD-7 未达。
 
-## 最终裁定（2026-10-21，P-324）
+## 最终裁定（2026-10-21，P-324，讨论后修正）
 
-整体 threaded/asm 重写在 Rust 中无法只替换派发：没有可存储的标签地址；真正的 computed
-goto 需要把 167 个 opcode 体与 8 个共享尾搬进 asm，超出“只改派发”。S1 的真实 256 项
-asm 表已比 switch 慢 1.21×（阈值 ≤0.85×），S2 的 Rust 助手边界只会更慢。故不进入 S2/S3，
-性能路线按用户指示收尾；详见 `docs/threaded-feasibility.md`。
+旧 S1 只否证了“纯 asm 跳转表 + 两臂 toy”，不能外推为完整 VM 上限。最终方案改为
+**asm 热叶 + 原 Rust 慢路**：asm 只连续执行不调用 Rust/不分配/不 GC/不 signal 的热
+opcode；遇到复杂 opcode、慢路径、后向分支或任何副作用前，把 pc 回退到 opcode 起点并返回
+原 `exec_byte_code`，由原 Rust `FETCH`/`POP` 只消费一次。`Breturn`、shared tail、
+`sys_setjmp`、`maybe_gc→maybe_quit` 顺序都留在原帧。按整批实现后集中验收；失败则删除
+asm、回退 switch 并按功能性口径收尾。详见 `docs/threaded-feasibility.md`。
+
+## 实测结果（2026-10-21，P-325）：热叶方案失败并回退
+
+真实 VM 六项 asm off/on 全部变慢（`bc-loop 10.88→23.45`、`bc-car 22.38→53.57`，
+约 1.4–2.4×）。慢路的状态交接/重入成本超过热段收益。已断开 include 与调用、恢复 switch，
+asm 源码移到 `spikes/bytecode-hot/` 仅作证据；DoD-7 记未达，不再开新的性能路线。

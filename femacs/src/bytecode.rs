@@ -319,6 +319,7 @@ DEFINE! (Bconstant, 0o0300);
 macro_rules! DEFINE { ($name:ident, $value:expr) => { pub const $name: ptrdiff_t = $value; } }
 BYTE_CODES! ();
 
+
 /* tools/cinventory.py reads the bare `BYTE_CODES` line inside C's enum body as if it were
    an enum member (the `#define DEFINE(name, value) name = value,` line defeats its member
    scanner), so the extractor's constant rule asks the port for `BYTE_CODES` with that
