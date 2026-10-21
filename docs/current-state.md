@@ -47,7 +47,7 @@
 | 3 | L0–L5 | ✅ | `python3 tools/acceptance-l0.py --check build/port/src/emacs`、`acceptance-l1.py`、`tools/check-ert.py` | **L5 全量 564 文件**（4.1000，声明搬移之后）：**552 same / 7 both-fail / 4 crashed / 1 port-worse（tramp，孤立 3 次判两侧抖动）/ 0 port-better** ✓；4 条 crashed 的注记里都有 `reference: crashed` ⇒ 全两侧同崩 ✓；`emerge-tests` 由 port-better 回落到 same（同一抖动）✓；L0/L1 沿用 4.744 的 19/0 与 111/0+1 ✓；压力面见第 4 行的 GC 压测 ✓ |
 | 4 | `.elc`/dump/生成物/loadup ＋ 压力 | ✅ | `check-generated.py`、`check-loadup.py`、`check-dump-offsets.py`、`gen-elc.py --cross-check`、`l5-sweep.sh --gc-stress` | 生成物 **244：195 identical / 49 name-only / 0 DIFFERENT / 0 missing**（4.964）✓；`only in the reference 0, only in the port 0` 且 `the two loadups agree file for file`（4.964）✓；dump **0 failure**（4.964）✓；`.elc` 交叉检查 **0 端口缺陷**（4.969，57 目标：5 identical / 51 state-only / 1 volatile）✓；GC 压测全量 **564：552 same / 7 both-fail / 4 crashed（全部两侧同崩）/ 1 port-better（tramp，与 L5 同一抖动）/ 0 port-worse**（4.1001，声明搬移之后）✓ |
 | 5 | 原样树逐字节 | ✅ | `python3 tools/check-verbatim.py` | **6 棵树 / 4,604 文件 / 0 failures**（4.964 复跑；9 条 accepted absence 是参照 `.gitignore` 的生成物） |
-| 6 | 平台（macOS + Android） | ✅ | `bash tools/check-authorized-platforms.sh`、`tools/android-accept.sh`、`check-android-imports.py --providers-dir` | **`check-authorized-platforms.sh` exit 0**（4.1000，598 s / 峰值 1.13 GB）：macOS smoke ＋ differential **92 form / 0 mismatch**、`gate-android` 114 class + 签名、`libemacs.so` 5.2 MB / **69 JNI 导出**、签名 APK 47 MB 含 **4360** asset ✓；**Android 设备三元组**（4.962）：渲染 ✓、输入（`H E L L O` 逐字可辨）✓、存活（打字/轻点/两次转屏全程同 pid、`Fatal signal` 0）✓；**设备口径导入 304 / 0 未解析**（4.966）✓；**`tui-smoke` 24x80 1,524 B / present、10x80 1,412 B / present**（4.1032 full）✓ |
+| 6 | 平台（macOS + Android） | ✅ | `bash tools/check-authorized-platforms.sh`、`tools/android-accept.sh`、`check-android-imports.py --providers-dir` | **`check-authorized-platforms.sh` exit 0**（4.1000，598 s / 峰值 1.13 GB）：macOS smoke ＋ differential **92 form / 0 mismatch**、`gate-android` 114 class + 签名、`libemacs.so` 5.2 MB / **69 JNI 导出**、签名 APK 47 MB 含 **4360** asset ✓；**Android 设备三元组**（4.962）：渲染 ✓、输入（`H E L L O` 逐字可辨）✓、存活（打字/轻点/两次转屏全程同 pid、`Fatal signal` 0）✓；**设备口径导入 304 / 0 未解析**（4.966）✓；**`tui-smoke` 24x80 1,524 B / present、10x80 1,412 B / present**（4.1032 full）✓；**API 21 stub 302 imports / 7 unresolved / 0 new**（4.1033）✓ |
 | 7 | 性能 | ⏸ 暂挂（记未达） | `tools/bench.sh [--rounds N]`、`tools/bench.sh --gate docs/baseline/bench.tsv` | **4.999 在 load ≈6 的窗口里取得本阶段最干净的一组读数**：`--rounds 5` 连跑两次，比值（端口/参照）`bc-loop` **1.43 / 1.53**、`bc-sum` **1.29 / 1.39**、`bc-car` **1.26 / 1.35**、`regexp-repl` **1.08 / 1.09**、`buffer-scan` **0.99 / 0.99**、`sort-100k` **1.14 / 1.15** ✓；端口 `bc-loop` 绝对时间 **4.51 / 4.78 ms** 已低于 10-17 基线的 **5.48 ms** ✓ ⇒ `bench.sh --gate` 不会红 ✓，但**比值仍 >1** ✓ ⇒ 第 7 条仍记未达 ✓（load 6 仍非空闲机 ⇒ 不 `--save` ✓）。**4.992 拿到一组可比的读数（机器仍在 load 27–31）**：`--rounds 5` 连跑两次，比值（端口 / 参照）`bc-loop` **1.33 / 1.39**、`bc-sum` **1.30 / 1.33**、`bc-car` **1.21 / 1.22**、`regexp-repl` **0.99 / 1.10**、`buffer-scan` **1.01 / 1.01**、`sort-100k` **1.15 / 1.12** ✓ —— 同一 `N` 下两次相差 ≤5%（`regexp-repl` 11% ✓），而 4.991 那次 `--gate` 的摆动是 +18..+44% ✓。**但采样越深最小值越低**（`bc-loop` 在 3 轮是 1.52 / 1.69、5 轮是 1.33 / 1.39 ✓）⇒ 忙碌机器上的比值仍**不能**当基线，**不 `--save`** ✓；4.985（旧二进制）、4.990（load 64）、4.991（噪声）三次读数仍按原记录作废/不可用 ✓。⇒ 第 7 条仍**记未达**（未追平是既有事实），空闲机重测仍是录基线的唯一路径 ✓；`bench.sh --gate` 只用于“端口比自己变慢”的回归 ✓ |
 | 8 | 提交签名 + 台账 | ✅ | `python3 tools/check-ledger-ticks.py`、`git verify-commit <sha>` | **238 台账绑定 / 0 failure / 0 行无台账**（4.972 复跑）；近 5 个提交 `git verify-commit` 全部 `Good signature`（4.1032 full）；`git status --short` 干净 ✓ |
 
@@ -77,20 +77,11 @@
 - **texinfo/makeinfo：已装（7.3）** ⇒ Android `configure` 跑到底 ✓（P-223）；**arm64-v8a 镜像 + AVD
   `femacs-arm64-api36` 已就绪** ✓；受控执行器按 R38 自动扩容（实测 4 → 6 GiB ✓、硬上限 16 GiB ✓）⇒
   原 **E1/E2/E3 已作废**（`docs/decisions-needed.md` 保留作历史）。
-- **Android 侧现在的真实缺口是可加载性，不是结构** ✓：4.705 修的三个缺陷（dex 缺 Kotlin 运行库 ✓、
-  `EmacsConfig` 列表语义 ✓、`-nodefaultlibs` 掉 libc ✓）之后，4.708 又把未决导入从 **214 → 119** ✓：
-  `lib/` 单元进了 Android 链接集（`docs/baseline/lib-link-sources-android.txt` ✓，−59 的 `mpz_*`）、
-  panic 入口按 rlib 里读到的名字编出并断言 ✓、`strmode` 的条件写反 ✓、`boot-time.c` 的目标谓词/`clock_gettime`/
-  `<sys/sysinfo.h>` 镜像补齐 ✓（Android 现在 `src` 91/91 ＋ `lib` 87/87 全绿 ✓）。读数与构成见
-  `docs/status.md` 4.708 ✓；门仍是 `python3 tools/check-android-imports.py` ✓。
-- **新问题（等用户决定，`docs/decisions-needed.md` 问题 4）**：那 119 条里有一块（31 条）是端口的
-  `xdisp.rs` 等处**按 P-08 记成"dead on this target"的 `HAVE_WINDOW_SYSTEM` 臂** ✓ —— 对冻结的
-  **darwin** 配置它们确实是死臂 ✓，对用户授权的 **Android** 却是活臂 ✓（`HAVE_ANDROID` 打开 ✓）。
-  口径 A（死臂只记录）下 macOS 侧成立、Android 侧永远不可加载；口径 C（按目标配置决定活/死）下
-  这些臂要写成条件编译。**注意**：这 31 条不再是全部 —— 剩下 88 条是两类与死臂无关的活儿
-  （66 条 `not_found`：端口侧还没有定义或还没接入的单元/全局；20 条 `other` 与 2 条平台名：
-  目标接口镜像，如 `__error`、`CLOCK_REALTIME`、`utmpxname`），它们**不需要任何政策决定**，
-  我会继续推进。
+- **Android 可加载面**：设备口径 **304 imports / 0 unresolved**（4.966）✓；API 21 stub 口径
+  **302 imports / 7 unresolved / 0 new**（4.1033）✓ —— 7 条是旧平台产物（`backtrace` 到 API 33
+  才有、`getifaddrs` 到 API 24、`stdin/stdout/stderr` 等），按“以最新平台为准、允许不兼容旧平台”
+  的决定不作判据；`getloadavg`/`mkostemp` 已按 C 的 gnulib 单元接入 ✓。窗口臂问题已按问题 4
+  结案（活臂按目标配置写回）✓。
 
 已解决、**无需旧 JDK** 的 Java 障碍（P-213/P-217）：① `configure` 的两处 `-source 1.7` 探测改用预置缓存变量
 `emacs_cv_working_javac=yes` / `emacs_cv_android_x_or_later=yes`；② 在 **JDK 25** 下跑整条 Android 链时唯一的真实错误是
@@ -134,7 +125,7 @@ tools/gen-android-config.sh --check-prereqs                                     
 | L4 / L5 | **L5 全量重跑完毕** | **564 文件：551 same / 7 both-fail / 5 crashed / 1 port-better / 0 port-worse** ✓；合计 **端口 8971 ran / 111 unexpected**、**参照 8971 / 112** ✓（端口比参照少 1 条 unexpected，即那唯一一条 port-better ✓）。5 条 crashed 全是**两侧同超时**（`autorevert`、`tramp`、`eglot`、`emacs-module`、`keyboard`，单侧 120 s 上限）✓。表在 `docs/baseline/ert-l5-sweep.tsv` ✓，逐块可续跑脚本 `tools/l5-sweep.sh` ✓ |
 | 压力（`gc-cons-threshold=1`） | **本轮全量重跑完毕** | **564 文件：550 same / 7 both-fail / 6 crashed（全两侧同超时）/ 1 port-worse / 0 其它** ✓；合计**端口 8956 ran / 112 unexpected**、**参照 8956 / 110** ✓ —— 差的正是 `lisp/vc/emerge-tests.el`，而它**两侧各 7 次各抖 1 次** ⇒ 不归因于端口 ✓（4.970 ✓）。表在 `docs/baseline/ert-gc-stress-sweep.tsv` ✓，41 分 16 秒 / 峰值 597 MB ✓。**历史读数（供对照，已被本轮取代）**： 全量 564 文件（default 选择器）：**same 552 / both-fail 7 / crashed 5（两侧对称）/ port-worse 0** ✓（2026-10-18，P-195 之后的二进制 ✓，`tools/check-ert.py --gc-stress` ✓）；本轮四处改动（`signal.rs`/`sysdep.rs`/`keyboard.rs`/`xtask`）之后**未重跑全量** ✓ ⇒ 与 L5 一样留收尾集中跑 ✓ |
 | 性能（DoD-7） | **暂挂** | 按用户决定记"未达" ✓；`tools/bench.sh --gate docs/baseline/bench.tsv` 是现成的门 ✓ |
-| Android 库可加载 | **交付平台已闭环** | 按**设备自己的库**量：`304 import(s); 0 unresolved`（`docs/baseline/android-device-libs/`，4.966）✓；API 21 桩口径仍是 9 条未决 ✓，那是**旧平台**读数，按平台决定不作判据 ✓ |
+| Android 库可加载 | **交付平台已闭环** | 按**设备自己的库**量：`304 import(s); 0 unresolved`（`docs/baseline/android-device-libs/`，4.966）✓；API 21 桩口径仍是 7 条未决 ✓，那是**旧平台**读数，按平台决定不作判据 ✓ |
 | 4 个"定义了但没导出"的名字 | **已知、非阻塞** | `check-android-imports` 每次都报 `backtrace`、`backtrace_symbols_fd`、`getloadavg`、`mkostemp` "defined but NOT exported (`no_mangle` missing)" ✓ —— 端口自己按 Rust 函数调用它们 ✓，不需要 C 符号 ✓；两处在**镜像**（`execinfo.in.rs`）里 ✓，加 `no_mangle` 会改动镜像文本 ✓，而冻结配置下模块是关的 ✓、没有任何已证实的失败 ✓ ⇒ **不改** ✓，只记在这里 ✓ |
 | 平台冒烟 | **已闭环** | macOS：`gate-fast` exit 0 ✓、`check-authorized-platforms.sh` exit 0（smoke + differential **92 form / 0 mismatch**）✓；Android：结构四项全绿 + **设备三元组**（渲染/输入/存活）✓ |
 

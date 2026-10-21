@@ -10,8 +10,6 @@ backtrace	arm	emacs/lib/execinfo.in.h:39
 backtrace_symbols_fd	arm	emacs/lib/execinfo.in.h:55	
 freeifaddrs	system		
 getifaddrs	system		
-getloadavg	arm	emacs/src/haiku.c:217	
-mkostemp	arm	emacs/lib/mkostemp.c:43	
 stderr	system		
 stdin	system		
 stdout	system		
