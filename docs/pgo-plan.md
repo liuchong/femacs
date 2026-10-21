@@ -227,3 +227,10 @@ pdumper 自身按指纹拒绝错配。两者都不改变 pdumper 语义，也不
 差异同样在离散度内；相对参照仍 `bc-loop 1.46×`、`bc-sum 1.29×`、`bc-car 1.46×`。
 ⇒ **无可复现净收益，丢弃该候选**，默认 O2 与 PGO 候选均不变。证据：
 `docs/baseline/pgo-20261021/{summary-native,raw-native,rounds-native}.tsv`。
+
+## PGO + `opt-level=3` A/B（2026-10-21，已否证）
+
+同 profile、同源码，仅把单元 `-C opt-level` 提到 3：`bc-loop 2.942 ms`（PGO O2 2.600）、
+`bc-sum 5.914`（5.610）、`bc-car 2.812`（2.601），三条均变慢；其余项差异在噪声内。
+⇒ **O3+PGO 无净收益，丢弃**；默认 O2 与 PGO 候选不变。证据：
+`docs/baseline/pgo-20261021/{summary-use3,raw-use3,rounds-use3}.tsv`。
