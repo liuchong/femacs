@@ -29,7 +29,7 @@ Meta通常对应图形版的Option，由已有 `ns-alternate-modifier` 决定，
 
 验收同时检查命令、buffer point、保存结果和屏幕光标；仅C-p/C-n可用不足以判定通过。
 
-已验证原生26项快捷键、文件保存重开、中文/组合字符/彩色emoji、GC后编辑、系统剪贴板、菜单打开/保存/退出及原生文件面板返回。系统拼音候选和完整标记输入流程尚未完整实测；个人配置、大型插件、打印、辅助程序及其他平台也不在本次通过声明内。没有进行性能优化或作性能达标承诺。
+已验证原生26项快捷键、文件保存重开、中文/组合字符/彩色emoji、GC后编辑、系统剪贴板、菜单打开/保存/退出及原生文件面板返回。本机豆包拼音的切换、标记组字、候选提交/取消及命令输入区组字已实测；其他输入法尚未完整实测；个人配置、大型插件、打印、辅助程序及其他平台也不在本次通过声明内。没有进行性能优化或作性能达标承诺。
 
 
 复跑本轮输入验收（从仓库根，每条产品/编译命令由当前 controlled-run 保护）：
@@ -42,4 +42,14 @@ python3 ~/.assistant/skills/controlled-run/scripts/run.py --profile runtime -- p
 
 GUI 按键驱动需要辅助功能授权；没有授权会明确失败。完整文件工作流在同一驱动加 `--file-workflow`，使用独立 `--out` 目录。该流程会临时使用系统纯文本剪贴板并在结束时恢复纯文本内容，无法保存全部富文本格式；运行前先保存需要的剪贴板数据。
 
-输入法补修已修正候选位置查询中的符号接口错误；需关闭旧实例并重新启动同一路径的app。当前真实拼音候选验收仍待解锁后的实测，不应沿用旧实例或将按键回归通过当作输入法全部通过。
+输入法补修已修正候选位置查询中的符号接口错误；需关闭旧实例并重新启动同一路径的app。解锁后的真实豆包拼音已完成组字、提交“你好”、取消、命令输入区组字/取消、保存和正常退出；不能扩展为所有输入法兼容。
+
+
+真实拼音回归入口（需解锁，已安装ABC与拼音源，辅助功能授权有效；结束会恢复原输入源）：
+
+```sh
+python3 ~/.assistant/skills/controlled-run/scripts/run.py --profile build -- rustc --edition=2024 tools/fixtures/macos-input-source.rs -o build/macos-acceptance/input-source
+python3 ~/.assistant/skills/controlled-run/scripts/run.py --profile runtime -- python3 tools/test-macos-ime.py --binary dist/macos/Femacs.app/Contents/MacOS/Femacs --sender build/macos-acceptance/macos-events --sources build/macos-acceptance/input-source --out build/macos-acceptance/recheck-ime
+```
+
+事件发送器沿用上方编译步骤。真实组字测试发送物理字母键，不以Unicode直接注入替代；输入法词典可以影响候选内容，完整结果记录在所选输出目录。
