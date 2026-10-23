@@ -1778,7 +1778,9 @@ pub struct glyph_string
      (docs/ports/layout-gaps.md, status 4.812).  */
   #[cfg (feature = "have_android")]
   pub clip: [Emacs_Rectangle; 2],
-  #[cfg (not (feature = "have_android"))]
+  #[cfg(feature = "have_ns")]
+  pub clip: [NSRect; 2],
+  #[cfg (not (any(feature = "have_android", feature = "have_ns")))]
   pub clip: [c_int; 2],
   // C 1497: `NativeRectangle` is a *type* macro and its answer differs per window system
   // (C 119's `#define NativeRectangle XRectangle`, C 178-180's fallback - which is live text in
@@ -4100,9 +4102,9 @@ pub mod dispextern_late_decls {
   }
 
   /* C 3753: the two image-family entry points, defined in `src/image.c`.  */
-  #[cfg (feature = "have_android")]
+  #[cfg (feature = "have_window_system")]
   unsafe extern "C" { pub fn mark_image_cache (cache: *mut c_void); }
-  #[cfg (feature = "have_android")]
+  #[cfg (feature = "have_window_system")]
   unsafe extern "C" { pub fn image_prune_animation_caches (inhibit: bool); }
 
   unsafe extern "C" {
@@ -4298,6 +4300,8 @@ include!("window.rs");
 include!("font.rs");
 #[cfg (all (feature = "have_window_system", feature = "have_android"))]
 include!("androidgui.rs");
+#[cfg (feature = "have_ns")]
+include!("nsterm.rs");
 
 /* Android layouts measured with the NDK's clang (`-Xclang -fdump-record-layouts-complete`) on the
    reference headers with this target's `config.h.android`; method in

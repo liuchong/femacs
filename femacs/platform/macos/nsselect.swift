@@ -209,8 +209,8 @@ func record_unwind_protect_ptr(_ fn: @convention(c) (UnsafeMutableRawPointer?) -
 /// C: `extern NSArray *ns_send_types, *ns_return_types;` (src/nsterm.h 774), defined in
 /// src/nsterm.m 300.  Swift cannot export a C data symbol (only `@_cdecl` functions), so a
 /// lane variable that another lane file reads is reached as a C-ABI function of its name.
-@_silgen_name("ns_send_types") func ns_send_types() -> NSArray?
-@_silgen_name("ns_return_types") func ns_return_types() -> NSArray?
+@_silgen_name("ns_send_types") var ns_send_types: NSArray?
+@_silgen_name("ns_return_types") var ns_return_types: NSArray?
 /// C: `extern void ns_release_object (void *obj)` (src/nsterm.h 1166, defined src/nsterm.m 602).
 @_silgen_name("ns_release_object") func ns_release_object(_ obj: UnsafeMutableRawPointer?)
 /// C: `#define FRAME_NS_VIEW(f) ((f)->output_data.ns->view)` (src/nsterm.h 1045) - the
@@ -314,12 +314,12 @@ fileprivate var pasteboard_changecount: NSMutableDictionary? = nil
 /// `DEFVAR_LISP` macro's target, src/lisp.h 3495-3500); the port keeps the storage in the
 /// unit that owns it (docs/status.md 3.29), here as a Swift global, because Swift cannot
 /// emit a C-named data symbol.
-fileprivate var Vns_sent_selection_hooks: Lisp_Object = Qnil()
+@_silgen_name("Vns_sent_selection_hooks") var Vns_sent_selection_hooks: Lisp_Object
 
 /// C: `DEFVAR_LISP`'s function-local `static struct Lisp_Fwd` (src/lisp.h 3500-3512); Swift
 /// has no function-local statics, so the record is a fileprivate global, and `syms_of_nsselect`
 /// fills it in and hands it to `defvar_lisp`.
-fileprivate var O_FWD_Vns_sent_selection_hooks: Lisp_Fwd = Lisp_Fwd(type: 0, u: Lisp_Fwd_u(objvar: nil))
+@_silgen_name("femacs_fwd_Vns_sent_selection_hooks") var O_FWD_Vns_sent_selection_hooks: Lisp_Fwd
 
 /* ==========================================================================
 
@@ -387,7 +387,7 @@ fileprivate func clean_local_selection_data(_ obj: Lisp_Object) -> Lisp_Object {
 }
 
 fileprivate func ns_declare_pasteboard(_ pb: NSPasteboard?) {
-  pb?.declareTypes(pasteboardTypes((ns_send_types() as? [Any]) ?? []), owner: NSApp)
+  pb?.declareTypes(pasteboardTypes((ns_send_types as? [Any]) ?? []), owner: NSApp)
 }
 
 fileprivate func ns_undeclare_pasteboard(_ pb: NSPasteboard?) {
@@ -424,10 +424,10 @@ fileprivate func ns_string_to_pasteboard_internal(_ pb: NSPasteboard?, _ str: Li
     // FIXME: Why those 2 different code paths?
     if gtype == nil {
       // Used for ns_string_to_pasteboard
-      pb?.declareTypes(pasteboardTypes((ns_send_types() as? [Any]) ?? []), owner: nil)
+      pb?.declareTypes(pasteboardTypes((ns_send_types as? [Any]) ?? []), owner: nil)
       // C enumerates `ns_send_types` with an NSEnumerator; the elements are pasteboard type
       // names, which the SDK's `setString (_:forType:)` takes as `NSPasteboard.PasteboardType`.
-      for type in (ns_send_types() as? [String]) ?? [] {
+      for type in (ns_send_types as? [String]) ?? [] {
         pb?.setString(nsStr as String, forType: NSPasteboard.PasteboardType(type))
       }
     } else {
@@ -536,7 +536,7 @@ func ns_string_from_pasteboard(_ pb: NSPasteboard?) -> Lisp_Object {
   var type: NSPasteboard.PasteboardType?
   var str: NSString?
 
-  type = pb?.availableType(from: pasteboardTypes((ns_return_types() as? [Any]) ?? []))
+  type = pb?.availableType(from: pasteboardTypes((ns_return_types as? [Any]) ?? []))
   if type == nil {
     return Qnil()
   }
@@ -578,7 +578,7 @@ VALUE is typically a string, or a cons of two markers, but may be
 anything that the functions on `selection-converter-alist' know about.  */) */
 fileprivate var Sns_own_selection_internal: Aligned_Lisp_Subr =
   make_aligned_subr(lname_ns_own_selection_internal, 2, 2,
-                    unsafeBitCast(Fns_own_selection_internal, to: UnsafeMutableRawPointer.self), docstring: " Assert an X selection of type SELECTION and value VALUE.\nSELECTION is a symbol, typically `PRIMARY', `SECONDARY', or `CLIPBOARD'.\n(Those are literal upper-case symbol names, since that's what X expects.)\nVALUE is typically a string, or a cons of two markers, but may be\nanything that the functions on `selection-converter-alist' know about.  ", args: "selection value")
+                    unsafeBitCast(Fns_own_selection_internal as @convention(c) (Lisp_Object, Lisp_Object) -> Lisp_Object, to: UnsafeMutableRawPointer.self), docstring: " Assert an X selection of type SELECTION and value VALUE.\nSELECTION is a symbol, typically `PRIMARY', `SECONDARY', or `CLIPBOARD'.\n(Those are literal upper-case symbol names, since that's what X expects.)\nVALUE is typically a string, or a cons of two markers, but may be\nanything that the functions on `selection-converter-alist' know about.  ", args: "selection value")
 
 @_cdecl("Fns_own_selection_internal")
 func Fns_own_selection_internal(_ selection: Lisp_Object, _ value: Lisp_Object) -> Lisp_Object {
@@ -634,7 +634,7 @@ func Fns_own_selection_internal(_ selection: Lisp_Object, _ value: Lisp_Object) 
 Disowning it means there is no such selection.  */) */
 fileprivate var Sns_disown_selection_internal: Aligned_Lisp_Subr =
   make_aligned_subr(lname_ns_disown_selection_internal, 1, 1,
-                    unsafeBitCast(Fns_disown_selection_internal, to: UnsafeMutableRawPointer.self), docstring: " If we own the selection SELECTION, disown it.\nDisowning it means there is no such selection.  ", args: "selection")
+                    unsafeBitCast(Fns_disown_selection_internal as @convention(c) (Lisp_Object) -> Lisp_Object, to: UnsafeMutableRawPointer.self), docstring: " If we own the selection SELECTION, disown it.\nDisowning it means there is no such selection.  ", args: "selection")
 
 @_cdecl("Fns_disown_selection_internal")
 func Fns_disown_selection_internal(_ selection: Lisp_Object) -> Lisp_Object {
@@ -659,7 +659,7 @@ these literal upper-case names.)  The symbol nil is the same as
 `PRIMARY', and t is the same as `SECONDARY'.  */) */
 fileprivate var Sns_selection_exists_p: Aligned_Lisp_Subr =
   make_aligned_subr(lname_ns_selection_exists_p, 0, 1,
-                    unsafeBitCast(Fns_selection_exists_p, to: UnsafeMutableRawPointer.self), docstring: " Whether there is an owner for the given X selection.\nSELECTION should be the name of the selection in question, typically\none of the symbols `PRIMARY', `SECONDARY', or `CLIPBOARD'.  (X expects\nthese literal upper-case names.)  The symbol nil is the same as\n`PRIMARY', and t is the same as `SECONDARY'.  ", args: "selection")
+                    unsafeBitCast(Fns_selection_exists_p as @convention(c) (Lisp_Object) -> Lisp_Object, to: UnsafeMutableRawPointer.self), docstring: " Whether there is an owner for the given X selection.\nSELECTION should be the name of the selection in question, typically\none of the symbols `PRIMARY', `SECONDARY', or `CLIPBOARD'.  (X expects\nthese literal upper-case names.)  The symbol nil is the same as\n`PRIMARY', and t is the same as `SECONDARY'.  ", args: "selection")
 
 @_cdecl("Fns_selection_exists_p")
 func Fns_selection_exists_p(_ selection: Lisp_Object) -> Lisp_Object {
@@ -691,7 +691,7 @@ For convenience, the symbol nil is the same as `PRIMARY',
 and t is the same as `SECONDARY'.  */) */
 fileprivate var Sns_selection_owner_p: Aligned_Lisp_Subr =
   make_aligned_subr(lname_ns_selection_owner_p, 0, 1,
-                    unsafeBitCast(Fns_selection_owner_p, to: UnsafeMutableRawPointer.self), docstring: " Whether the current Emacs process owns the given X Selection.\nThe arg should be the name of the selection in question, typically one of\nthe symbols `PRIMARY', `SECONDARY', or `CLIPBOARD'.\n(Those are literal upper-case symbol names, since that's what X expects.)\nFor convenience, the symbol nil is the same as `PRIMARY',\nand t is the same as `SECONDARY'.  ", args: "selection")
+                    unsafeBitCast(Fns_selection_owner_p as @convention(c) (Lisp_Object) -> Lisp_Object, to: UnsafeMutableRawPointer.self), docstring: " Whether the current Emacs process owns the given X Selection.\nThe arg should be the name of the selection in question, typically one of\nthe symbols `PRIMARY', `SECONDARY', or `CLIPBOARD'.\n(Those are literal upper-case symbol names, since that's what X expects.)\nFor convenience, the symbol nil is the same as `PRIMARY',\nand t is the same as `SECONDARY'.  ", args: "selection")
 
 @_cdecl("Fns_selection_owner_p")
 func Fns_selection_owner_p(_ selection: Lisp_Object) -> Lisp_Object {
@@ -711,7 +711,7 @@ SELECTION-SYMBOL is typically `PRIMARY', `SECONDARY', or `CLIPBOARD'.
 TARGET-TYPE is the type of data desired, typically `STRING'.  */) */
 fileprivate var Sns_get_selection: Aligned_Lisp_Subr =
   make_aligned_subr(lname_ns_get_selection, 2, 2,
-                    unsafeBitCast(Fns_get_selection, to: UnsafeMutableRawPointer.self), docstring: " Return text selected from some X window.\nSELECTION-SYMBOL is typically `PRIMARY', `SECONDARY', or `CLIPBOARD'.\n(Those are literal upper-case symbol names, since that's what X expects.)\nTARGET-TYPE is the type of data desired, typically `STRING'.  ", args: "selection_name target_type")
+                    unsafeBitCast(Fns_get_selection as @convention(c) (Lisp_Object, Lisp_Object) -> Lisp_Object, to: UnsafeMutableRawPointer.self), docstring: " Return text selected from some X window.\nSELECTION-SYMBOL is typically `PRIMARY', `SECONDARY', or `CLIPBOARD'.\n(Those are literal upper-case symbol names, since that's what X expects.)\nTARGET-TYPE is the type of data desired, typically `STRING'.  ", args: "selection_name target_type")
 
 @_cdecl("Fns_get_selection")
 func Fns_get_selection(_ selection_name: Lisp_Object, _ target_type: Lisp_Object) -> Lisp_Object {
@@ -897,7 +897,7 @@ being ignored.
 FOLLOW-TOOLTIP means the same thing it does in `x-begin-drag'.  */) */
 fileprivate var Sns_begin_drag: Aligned_Lisp_Subr =
   make_aligned_subr(lname_ns_begin_drag, 3, 6,
-                    unsafeBitCast(Fns_begin_drag, to: UnsafeMutableRawPointer.self), docstring: " Begin a drag-and-drop operation on FRAME.\n\nFRAME must be a window system frame.  PBOARD is an alist of (TYPE\n. DATA), where TYPE is one of the following data types that determine\nthe meaning of DATA:\n\n  - `string' means DATA should be a string describing text that will\n    be dragged to another program.\n\n  - `file' means DATA should be a file URL that will be dragged to\n    another program.  DATA may also be a list of file names; that\n    means each file in the list will be dragged to another program.\n\nACTION is the action that will be taken by the drop target towards the\ndata inside PBOARD.\n\nReturn the action that the drop target actually chose to perform, or\nnil if no action was performed (either because there was no drop\ntarget, or the drop was rejected).  If RETURN-FRAME is the symbol\n`now', also return any frame that mouse moves into during the\ndrag-and-drop operation, whilst simultaneously canceling it.  Any\nother non-nil value means to do the same, but to wait for the mouse to\nleave FRAME first.\n\nIf ALLOW-SAME-FRAME is nil, dropping on FRAME will result in the drop\nbeing ignored.\n\nFOLLOW-TOOLTIP means the same thing it does in `x-begin-drag'.  ", args: "frame pboard action return_frame allow_same_frame follow_tooltip")
+                    unsafeBitCast(Fns_begin_drag as @convention(c) (Lisp_Object, Lisp_Object, Lisp_Object, Lisp_Object, Lisp_Object, Lisp_Object) -> Lisp_Object, to: UnsafeMutableRawPointer.self), docstring: " Begin a drag-and-drop operation on FRAME.\n\nFRAME must be a window system frame.  PBOARD is an alist of (TYPE\n. DATA), where TYPE is one of the following data types that determine\nthe meaning of DATA:\n\n  - `string' means DATA should be a string describing text that will\n    be dragged to another program.\n\n  - `file' means DATA should be a file URL that will be dragged to\n    another program.  DATA may also be a list of file names; that\n    means each file in the list will be dragged to another program.\n\nACTION is the action that will be taken by the drop target towards the\ndata inside PBOARD.\n\nReturn the action that the drop target actually chose to perform, or\nnil if no action was performed (either because there was no drop\ntarget, or the drop was rejected).  If RETURN-FRAME is the symbol\n`now', also return any frame that mouse moves into during the\ndrag-and-drop operation, whilst simultaneously canceling it.  Any\nother non-nil value means to do the same, but to wait for the mouse to\nleave FRAME first.\n\nIf ALLOW-SAME-FRAME is nil, dropping on FRAME will result in the drop\nbeing ignored.\n\nFOLLOW-TOOLTIP means the same thing it does in `x-begin-drag'.  ", args: "frame pboard action return_frame allow_same_frame follow_tooltip")
 
 @_cdecl("Fns_begin_drag")
 func Fns_begin_drag(_ frame: Lisp_Object, _ pboard: Lisp_Object, _ action: Lisp_Object,

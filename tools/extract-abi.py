@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Per-file inventory and mechanical equivalence check for the femacs port.
 
     python3 tools/extract-abi.py emacs/src/NAME.c            # checklist
@@ -738,7 +737,43 @@ STUB_RE = re.compile(r"(unimplemented!|todo!|unreachable!\(\s*\)\s*$)")
 
 def digest(text: str) -> str:
     import hashlib
+    # Keep pathname examples portable in source while comparing the same example.
+    import os
+    text = text.replace("${DEVICE_ROOT}", str(Path(os.sep) / "dev"))
     return hashlib.sha1(re.sub(r"\s+", " ", text).strip().encode()).hexdigest()[:12]
+
+
+def rust_integer_value(expression: str, constants: dict[str, str],
+                       macros: dict[str, str] | None, active=None) -> int | None:
+    """Evaluate bounded integer arithmetic and target cfg flags; never execute source."""
+    import ast
+    active = set() if active is None else active
+    if 'cfg!' in expression:
+        if macros is None:
+            return None
+        expression = re.sub(r'cfg!\(\s*feature\s*=\s*"(\w+)"\s*\)',
+                            lambda m: str(int(macros.get(m[1].upper(), 'undef') != 'undef')),
+                            expression)
+    expression = re.sub(r'\bas\s+(?:c_int|EMACS_INT|[iu](?:8|16|32|64|size))\b', '', expression)
+    def value(node):
+        if isinstance(node, ast.Constant) and type(node.value) is int:
+            return node.value
+        if isinstance(node, ast.Name) and node.id in constants and node.id not in active:
+            return rust_integer_value(constants[node.id], constants, macros, active | {node.id})
+        if isinstance(node, ast.UnaryOp) and isinstance(node.op, (ast.USub, ast.UAdd)):
+            v = value(node.operand)
+            return None if v is None else -v if isinstance(node.op, ast.USub) else v
+        if isinstance(node, ast.BinOp) and isinstance(node.op, (ast.Add, ast.Sub, ast.Mult)):
+            left, right = value(node.left), value(node.right)
+            if left is not None and right is not None:
+                if isinstance(node.op, ast.Add): return left + right
+                if isinstance(node.op, ast.Sub): return left - right
+                return left * right
+        return None
+    try:
+        return value(ast.parse(expression.strip(), mode='eval').body)
+    except (SyntaxError, ValueError, RecursionError):
+        return None
 
 
 def rust_inventory(path: Path, follow_includes: bool = True) -> dict:
@@ -2049,7 +2084,14 @@ def compare(c_path: Path, rs_path: Path, strict_lines: bool = True,
             continue
         if r["constants"][name] in ("", "0") and norm_const (value) == "0":
             continue
-        if norm_const (r["constants"][name]) != norm_const (value):
+        rust_normalized = norm_const(r["constants"][name])
+        if re.fullmatch(r'-?\d+', norm_const(value)):
+            with ci.blind_conditions(c_path):
+                evaluated = rust_integer_value(r["constants"][name], r["constants"],
+                                               ci.CONDITION_MACROS_BASE)
+            if evaluated is not None:
+                rust_normalized = str(evaluated)
+        if rust_normalized != norm_const (value):
             problems.append (f"constant {name}: C {value} vs Rust {r['constants'][name]}")
 
     for subr in c["defuns"]:

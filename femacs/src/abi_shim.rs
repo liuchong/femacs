@@ -36,6 +36,27 @@ include!("include/termhooks.rs");              // frame.h 24: `#include "termhoo
 include!("include/frame.rs");                  // C 38: `#include "frame.h"`
 include!("include/keyboard.rs");               // C 37: `#include "keyboard.h"`
 include!("include/buffer.rs");                 // C 35: `#include "buffer.h"`
+
+/// Snapshot the selected buffer for Cocoa accessibility without reading its gap
+/// or depending on the interpreter's temporarily selected current_buffer.
+#[cfg(feature = "have_ns")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn ns_accessibility_buffer_string(buf: *mut buffer) -> Lisp_Object {
+  let begin = BUF_BEGV_BYTE(buf);
+  let end = BUF_ZV_BYTE(buf);
+  let bytes = end - begin;
+  let text = if !NILP((*buf).enable_multibyte_characters_) {
+    make_uninit_multibyte_string(BUF_ZV(buf) - BUF_BEGV(buf), bytes)
+  } else { make_uninit_string(bytes) };
+  let gap = BUF_GPT_BYTE!(buf);
+  let first = if begin < gap && gap < end { gap - begin } else { bytes };
+  core::ptr::copy_nonoverlapping(BUF_BYTE_ADDRESS(buf, begin), SDATA(text), first as usize);
+  if first < bytes {
+    core::ptr::copy_nonoverlapping(BUF_BYTE_ADDRESS(buf, begin + first),
+                                 SDATA(text).offset(first), (bytes - first) as usize);
+  }
+  text
+}
 include!("include/blockinput.rs");             // C 39: `#include "blockinput.h"`
 include!("include/termchar.rs");               // C 40: `#include "termchar.h"`
 include!("include/dispextern.rs");             // C 42: `#include "dispextern.h"`
@@ -268,27 +289,28 @@ pub unsafe extern "C" fn frame_set_tab_bar_resized (f: *mut c_void, v: bool)
 
 /// C: Lisp_Object tab_bar_window;   (frame.h 254, **inside `#ifdef HAVE_WINDOW_SYSTEM`**)
 ///
-/// `HAVE_WINDOW_SYSTEM` is undef in this configuration, so C never compiles that member and this
-/// mirror has no such field (frame.h 254 sits in the arm the frozen configuration does not
-/// compile; the port's own use of the member is behind) `#[cfg (feature = "have_window_system")]`).  The frozen answer is
-/// `Qnil`, the shape `Fnative_comp_available_p` uses for a value this configuration does not have
-/// (status 3.242's ruling 1) - **not** a field invented to host it.
+/// The member exists only on window-system targets.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn frame_tab_bar_window (f: *mut c_void) -> Lisp_Object
 {
-  let _ = f;
-  Qnil ()
+  #[cfg(feature = "have_window_system")]
+  { (*f.cast::<frame>()).tab_bar_window }
+  #[cfg(not(feature = "have_window_system"))]
+  { let _ = f; Qnil() }
 }
 
 /// C: #ifdef HAVE_WINDOW_SYSTEM / #define FRAME_EXTERNAL_MENU_BAR(f) (f)->external_menu_bar /
 /// C: #else / #define FRAME_EXTERNAL_MENU_BAR(f) false / #endif   (frame.h 1080-1082)
 ///
-/// The frozen configuration takes the `#else` arm, so there is no member to write: the export is
-/// a no-op that keeps the C-ABI entry the Swift unit imports (status 3.242's ruling 2).
+/// Native targets write the measured bitfield; terminal targets have no such member.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn frame_set_external_menu_bar (f: *mut c_void, v: c_int)
 {
-  let _ = (f, v);
+  #[cfg(feature = "have_ext_menu_bar")]
+  { frame_set_flag(f.cast(), FRAME_EXTERNAL_MENU_BAR_FLAG_UNIT,
+                   FRAME_EXTERNAL_MENU_BAR_FLAG_SHIFT, v as u32); }
+  #[cfg(not(feature = "have_ext_menu_bar"))]
+  { let _ = (f, v); }
 }
 
 /// C: #ifdef HAVE_WINDOW_SYSTEM / #define FRAME_EXTERNAL_TOOL_BAR(f) (f)->external_tool_bar /
@@ -296,7 +318,11 @@ pub unsafe extern "C" fn frame_set_external_menu_bar (f: *mut c_void, v: c_int)
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn frame_set_external_tool_bar (f: *mut c_void, v: c_int)
 {
-  let _ = (f, v);
+  #[cfg(feature = "have_ext_tool_bar")]
+  { frame_set_flag(f.cast(), FRAME_EXTERNAL_TOOL_BAR_FLAG_UNIT,
+                   FRAME_EXTERNAL_TOOL_BAR_FLAG_SHIFT, v as u32); }
+  #[cfg(not(feature = "have_ext_tool_bar"))]
+  { let _ = (f, v); }
 }
 
 /* ---------------------------------------------------------------------------------------------
@@ -611,10 +637,10 @@ pub unsafe extern "C" fn ns_output_window_desc (f: *mut c_void) -> c_ulong
 /// Swift `nsfns.swift` 303 (`-> UInt`).
 #[cfg (feature = "have_ns")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn ns_output_parent_desc (f: *mut c_void) -> c_ulong
+pub unsafe extern "C" fn ns_output_parent_desc (f: *mut c_void) -> Window
 {
   unsafe {
-    (*(FRAME_OUTPUT_DATA! (f.cast::<frame> ()) as *mut ns_output)).parent_desc as c_ulong
+    (*(FRAME_OUTPUT_DATA! (f.cast::<frame> ()) as *mut ns_output)).parent_desc
   }
 }
 
@@ -692,7 +718,7 @@ pub unsafe extern "C" fn ns_output_zooming (f: *mut c_void) -> bool
 pub unsafe extern "C" fn ns_output_set_view (f: *mut c_void, v: *mut c_void)
 {
   unsafe {
-    (*(FRAME_OUTPUT_DATA! (f.cast::<frame> ()) as *mut ns_output)).view = v;
+    replace_native_object(&raw mut (*(FRAME_OUTPUT_DATA! (f.cast::<frame> ()) as *mut ns_output)).view, v);
   }
 }
 
@@ -704,7 +730,7 @@ pub unsafe extern "C" fn ns_output_set_view (f: *mut c_void, v: *mut c_void)
 pub unsafe extern "C" fn ns_output_set_miniimage (f: *mut c_void, v: *mut c_void)
 {
   unsafe {
-    (*(FRAME_OUTPUT_DATA! (f.cast::<frame> ()) as *mut ns_output)).miniimage = v;
+    replace_native_object(&raw mut (*(FRAME_OUTPUT_DATA! (f.cast::<frame> ()) as *mut ns_output)).miniimage, v);
   }
 }
 
@@ -717,7 +743,7 @@ pub unsafe extern "C" fn ns_output_set_miniimage (f: *mut c_void, v: *mut c_void
 pub unsafe extern "C" fn ns_output_set_cursor_color (f: *mut c_void, v: *mut c_void)
 {
   unsafe {
-    (*(FRAME_OUTPUT_DATA! (f.cast::<frame> ()) as *mut ns_output)).cursor_color = v;
+    replace_native_object(&raw mut (*(FRAME_OUTPUT_DATA! (f.cast::<frame> ()) as *mut ns_output)).cursor_color, v);
   }
 }
 
@@ -730,7 +756,7 @@ pub unsafe extern "C" fn ns_output_set_cursor_color (f: *mut c_void, v: *mut c_v
 pub unsafe extern "C" fn ns_output_set_foreground_color (f: *mut c_void, v: *mut c_void)
 {
   unsafe {
-    (*(FRAME_OUTPUT_DATA! (f.cast::<frame> ()) as *mut ns_output)).foreground_color = v;
+    replace_native_object(&raw mut (*(FRAME_OUTPUT_DATA! (f.cast::<frame> ()) as *mut ns_output)).foreground_color, v);
   }
 }
 
@@ -743,7 +769,7 @@ pub unsafe extern "C" fn ns_output_set_foreground_color (f: *mut c_void, v: *mut
 pub unsafe extern "C" fn ns_output_set_background_color (f: *mut c_void, v: *mut c_void)
 {
   unsafe {
-    (*(FRAME_OUTPUT_DATA! (f.cast::<frame> ()) as *mut ns_output)).background_color = v;
+    replace_native_object(&raw mut (*(FRAME_OUTPUT_DATA! (f.cast::<frame> ()) as *mut ns_output)).background_color, v);
   }
 }
 
@@ -792,7 +818,7 @@ pub unsafe extern "C" fn ns_output_set_window_desc (f: *mut c_void, v: c_ulong)
 /// Swift `nsfns.swift` 304 (`_ v: UInt`).
 #[cfg (feature = "have_ns")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn ns_output_set_parent_desc (f: *mut c_void, v: c_ulong)
+pub unsafe extern "C" fn ns_output_set_parent_desc (f: *mut c_void, v: Window)
 {
   unsafe {
     (*(FRAME_OUTPUT_DATA! (f.cast::<frame> ()) as *mut ns_output)).parent_desc = v as c_int;
@@ -822,7 +848,7 @@ pub unsafe extern "C" fn ns_output_set_explicit_parent (f: *mut c_void, v: bool)
 pub unsafe extern "C" fn ns_output_set_current_pointer (f: *mut c_void, v: *mut c_void)
 {
   unsafe {
-    (*(FRAME_OUTPUT_DATA! (f.cast::<frame> ()) as *mut ns_output)).current_pointer = v;
+    replace_native_object(&raw mut (*(FRAME_OUTPUT_DATA! (f.cast::<frame> ()) as *mut ns_output)).current_pointer, v);
   }
 }
 
@@ -835,7 +861,7 @@ pub unsafe extern "C" fn ns_output_set_current_pointer (f: *mut c_void, v: *mut 
 pub unsafe extern "C" fn ns_output_set_text_cursor (f: *mut c_void, v: *mut c_void)
 {
   unsafe {
-    (*(FRAME_OUTPUT_DATA! (f.cast::<frame> ()) as *mut ns_output)).text_cursor = v;
+    replace_native_object(&raw mut (*(FRAME_OUTPUT_DATA! (f.cast::<frame> ()) as *mut ns_output)).text_cursor, v);
   }
 }
 
@@ -1399,8 +1425,8 @@ pub mod c_abi_of_mirror_named_items
   /// 460-489 (counted there: `NO_FRINGE_BITMAP`'s `{ NULL, 0, 0, 0, 0, 0 }` plus twenty-four
   /// bitmaps).  C's `standard_bitmaps` is that unported unit's own table, so the count is the
   /// one thing this entry cannot reach by name; the number is C's text and the row records it.
-  #[unsafe(no_mangle)]
-  pub static mut max_used_fringe_bitmap: c_int = 25;
+  // The live bitmap count is exported by fringe.rs.
+
 
   /* -------------------------------------------------------------------------------------------
      Batch 13, group 1: the two frame macros and the ten enumerators this slice compares against.
@@ -2397,117 +2423,203 @@ pub unsafe extern "C" fn glyph_pixel_width (g: *mut c_void) -> c_short
 #[cfg (feature = "have_window_system")]
 unsafe extern "C" { fn window_text_bottom_y (w: *mut window) -> c_int; }
 
-/// C: `void get_phys_cursor_geometry (struct window *w, struct glyph_row *row, struct glyph
-/// *glyph, int *xp, int *yp, int *heightp)` (src/xdisp.c 2707-2771, inside the
-/// `#ifdef HAVE_WINDOW_SYSTEM` opened at xdisp.c 2488) - C's call is
-/// `get_phys_cursor_geometry (w, glyph_row, phys_cursor_glyph, &fx, &fy, &h);`
-/// (`nsterm.swift` 4120).  **The body is carried whole**: every identifier resolves - the mirrors'
-/// `XFRAME`/`WINDOW_FRAME!`/`glyph`/`glyph_row`/`frame`/`window` macros and members,
-/// `glyph_bits!`/`glyph_row_bits!`, `min`/`max` (`include/lisp.rs` 3114/3117, over `isize`, hence
-/// the casts), `FRAME_COLUMN_WIDTH`/`FRAME_LINE_HEIGHT`, `WINDOW_TAB_LINE_HEIGHT!`/
-/// `WINDOW_HEADER_LINE_HEIGHT!`/`WINDOW_TEXT_TO_FRAME_PIXEL_X!`/`WINDOW_TO_FRAME_PIXEL_Y!`, the
-/// extern `window_text_bottom_y` above, and the mirror's **gated** `phys_cursor_width`
-/// (`include/window.rs` 123) - which the body both reads and writes, which is why the export
-/// carries `have_window_system` rather than being ungated.  The one identifier that is *declared*
-/// here but **defined by no unit yet** is `x_stretch_cursor_p` (the mirror's extern,
-/// `include/globals.rs` 7200; xdisp.c's `DEFVAR_BOOL`, so its storage is the xdisp unit's): in a
-/// `have_window_system` build this object would carry that one undefined reference, and today no
-/// configuration compiles that arm at all (`## Evidence`).
-/// Swift `nsterm.swift` 4060-4063.
-#[cfg (feature = "have_window_system")]
-#[unsafe(no_mangle)]
-pub unsafe extern "C" fn get_phys_cursor_geometry (w: *mut c_void, row: *mut c_void,
-                                                  glyph: *mut c_void, xp: *mut c_int,
-                                                  yp: *mut c_int, heightp: *mut c_int)
-{
-  unsafe {
-    let f = XFRAME (WINDOW_FRAME! (w.cast::<window> ()));
-    let w = w.cast::<window> ();
-    let row = row.cast::<glyph_row> ();
-    let glyph = glyph.cast::<glyph> ();
+// Cursor geometry is exported by the actual xdisp translation unit.
 
-    /* C: wd = glyph->pixel_width; x = w->phys_cursor.x; if (x < 0) { wd += x; x = 0; }  */
-    let mut wd: c_int = (*glyph).pixel_width as c_int;
-    let mut x: c_int = (*w).phys_cursor.x;
-    if x < 0
-      { wd += x; x = 0; }
 
-    /* C: if (glyph->type == STRETCH_GLYPH && !x_stretch_cursor_p) wd = min
-       (FRAME_COLUMN_WIDTH (f), wd);  */
-    if glyph_bits! (type, *glyph) == STRETCH_GLYPH && ! x_stretch_cursor_p
-      { wd = min (FRAME_COLUMN_WIDTH (f) as isize, wd as isize) as c_int; }
+// draw_phys_cursor_glyph is owned by the complete xdisp implementation.
 
-    /* C: w->phys_cursor_width = wd;  */
-    (*w).phys_cursor_width = wd;
+// Cocoa-only header reification. The build driver supplies a target-local generated
+// module whose wrappers call the existing mirrored implementation, never a stub.
+#[cfg(feature = "have_ns")]
+include!(env!("FEMACS_GUI_EXPORTS"));
+#[cfg(feature = "have_ns")]
+use dispextern_unit_names::{bidi_it, it};
 
-    /* C: y = w->phys_cursor.y; ascent = row->ascent; if (!row->ends_at_zv_p && row->ascent <
-       glyph->ascent) { y -= glyph->ascent - row->ascent; ascent = glyph->ascent; }  */
-    let mut y: c_int = (*w).phys_cursor.y;
-    let mut ascent: c_int = (*row).ascent;
-    if ! glyph_row_bits! (ends_at_zv_p, row) && (*row).ascent < (*glyph).ascent as c_int
-      {
-        y -= (*glyph).ascent as c_int - (*row).ascent;
-        ascent = (*glyph).ascent as c_int;
-      }
-
-    /* C: h0 = min (FRAME_LINE_HEIGHT (f), row->visible_height);
-          h = max (h0, ascent + glyph->descent); h = min (h, row->height);
-          h0 = min (h0, ascent + glyph->descent);  */
-    let mut h0: c_int = min (FRAME_LINE_HEIGHT (f) as isize, (*row).visible_height as isize) as c_int;
-    let mut h: c_int = max (h0 as isize, (ascent + (*glyph).descent as c_int) as isize) as c_int;
-    h = min (h as isize, (*row).height as isize) as c_int;
-    h0 = min (h0 as isize, (ascent + (*glyph).descent as c_int) as isize) as c_int;
-
-    /* C: y0 = WINDOW_TAB_LINE_HEIGHT (w) + WINDOW_HEADER_LINE_HEIGHT (w); if (y < y0) { h =
-       max (h - (y0 - y) + 1, h0); y = y0 - 1; } else { y0 = window_text_bottom_y (w) - h0;
-       if (y > y0) { h += y - y0; y = y0; } }  */
-    let mut y0: c_int = WINDOW_TAB_LINE_HEIGHT! (w) + WINDOW_HEADER_LINE_HEIGHT! (w);
-    if y < y0
-      {
-        h = max ((h - (y0 - y) + 1) as isize, h0 as isize) as c_int;
-        y = y0 - 1;
-      }
-    else
-      {
-        y0 = window_text_bottom_y (w) - h0;
-        if y > y0
-          { h += y - y0; y = y0; }
-      }
-
-    /* C: *xp = WINDOW_TEXT_TO_FRAME_PIXEL_X (w, x); *yp = WINDOW_TO_FRAME_PIXEL_Y (w, y);
-       *heightp = h;  */
-    *xp = WINDOW_TEXT_TO_FRAME_PIXEL_X! (w, x);
-    *yp = WINDOW_TO_FRAME_PIXEL_Y! (w, y);
-    *heightp = h;
-  }
+#[cfg(feature = "have_ns")]
+include!("include/menu.rs");
+#[cfg(feature = "have_ns")]
+unsafe extern "C" {
+  fn estimate_mode_line_height(f: *mut frame, face: c_int) -> c_int;
+  fn window_box_left(w: *mut window, area: c_int) -> c_int;
+  fn font_style_to_value(prop: c_int, val: Lisp_Object, noerror: bool) -> c_int;
 }
 
-/// C: `void draw_phys_cursor_glyph (struct window *w, struct glyph_row *row, enum
-/// draw_glyphs_face hl)` (src/xdisp.c 35099-35145, inside the `#ifdef HAVE_WINDOW_SYSTEM`
-/// opened at xdisp.c 35086) - the gate is that `#ifdef`, and the body is **carried only up to
-/// its first call**: C's guard (the `hpos` bounds test over `w->phys_cursor.hpos` and
-/// `row->used[TEXT_AREA]`) and its clamp are here, and the statement after them is
-/// `x1 = draw_glyphs (w, w->phys_cursor.x, row, TEXT_AREA, hpos, hpos + 1, hl, 0);` -
-/// `draw_glyphs` is src/xdisp.c's own function (35158) and has no mirror, no unit and no
-/// declaration in this tree, so there is nothing to call; everything after it
-/// (`w->phys_cursor_on_p = on_p;`, the `x1`-dependent `w->phys_cursor_width` writes, the
-/// `MATRIX_ROW_*`/`gui_fix_overlapping_area` tail) stands on that call.  The entry's purpose
-/// today is the symbol the Swift seam imports; the rest lands with the xdisp unit (`## Decisions`).
-/// Swift `nsterm.swift` 4065-4066.
-#[cfg (feature = "have_window_system")]
+// Measured against the same out-of-tree Cocoa config and fixed reference headers.
+#[cfg(feature = "have_ns")]
+const _: () = assert!(core::mem::size_of::<frame>() == 608);
+#[cfg(feature = "have_ns")]
+const _: () = assert!(core::mem::size_of::<font>() == 216);
+#[cfg(feature = "have_ns")]
+const _: () = assert!(core::mem::size_of::<face>() == 296);
+#[cfg(feature = "have_ns")]
+const _: () = assert!(core::mem::size_of::<font_driver>() == 232);
+#[cfg(feature = "have_ns")]
+const _: () = assert!(core::mem::size_of::<input_event>() == 64);
+#[cfg(feature = "have_ns")]
+const _: () = assert!(core::mem::size_of::<ns_display_info>() == 280);
+#[cfg(feature = "have_ns")]
+const _: () = assert!(core::mem::size_of::<ns_output>() == 280);
+#[cfg(feature = "have_ns")]
+const _: () = assert!(core::mem::size_of::<Emacs_GC>() == 16);
+#[cfg(feature = "have_ns")]
+const _: () = assert!(core::mem::size_of::<NSRect>() == 32);
+#[cfg(feature = "have_ns")]
+const _: () = assert!(core::mem::offset_of!(font, driver) == 208);
+#[cfg(feature = "have_ns")]
+const _: () = assert!(core::mem::offset_of!(face, gc) == 168);
+#[cfg(feature = "have_ns")]
+const _: () = assert!(core::mem::offset_of!(face, foreground) == 184);
+#[cfg(feature = "have_ns")]
+const _: () = assert!(core::mem::offset_of!(ns_display_info, root_window) == 92);
+#[cfg(feature = "have_ns")]
+const _: () = assert!(core::mem::offset_of!(ns_display_info, mouse_highlight) == 120);
+#[cfg(feature = "have_ns")]
+const _: () = assert!(core::mem::offset_of!(input_event, code) == 4);
+#[cfg(feature = "have_ns")]
+const _: () = assert!(core::mem::offset_of!(input_event, x) == 16);
+#[cfg(feature = "have_ns")]
+const _: () = assert!(core::mem::offset_of!(input_event, device) == 56);
+
+#[cfg(feature = "have_ns")]
+include!(env!("FEMACS_GUI_RUNTIME"));
+
+// Cocoa views use the measured shared records, never copied layouts.
+#[cfg(feature = "have_ns")]
+const _: () = core::assert!(core::mem::size_of::<glyph_string>() == 272);
+#[cfg(feature = "have_ns")]
+const _: () = core::assert!(core::mem::offset_of!(glyph_string, clip) == 176);
+#[cfg(feature = "have_ns")]
+const _: () = core::assert!(core::mem::offset_of!(glyph_string, num_clips) == 240);
+#[cfg(feature = "have_ns")]
+const _: () = core::assert!(core::mem::offset_of!(glyph_string, next) == 256);
+#[cfg(feature = "have_ns")]
+mod cocoa_record_views {
+use super::*;
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn draw_phys_cursor_glyph (w: *mut c_void, row: *mut c_void, draw: c_int)
-{
-  let _ = draw;
-  unsafe {
-    let w = w.cast::<window> ();
-    let row = row.cast::<glyph_row> ();
-    /* C: if ((row->reversed_p ? (w->phys_cursor.hpos >= 0)
-                               : (w->phys_cursor.hpos < row->used[TEXT_AREA]))) { … }  */
-    let in_bounds = if glyph_row_bits! (reversed_p, row) { (*w).phys_cursor.hpos >= 0 }
-                    else { (*w).phys_cursor.hpos < (*row).used [TEXT_AREA as usize] as c_int };
-    if ! in_bounds { return; }
-    /* *** C's body continues with `draw_glyphs` - see the comment above this function. *** */
-  }
+pub unsafe extern "C" fn ns_display_info_set_ns_focus_frame_from_display(p: *mut ns_display_info, f: *mut frame) { (*p).ns_focus_frame = f; }
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn ns_display_info_set_highlight_frame_from_display(p: *mut ns_display_info, f: *mut frame) { (*p).highlight_frame = f; }
+
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn frame_text_cols(f: *mut c_void) -> c_int { (*f.cast::<frame>()).text_cols }
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn frame_text_lines(f: *mut c_void) -> c_int { (*f.cast::<frame>()).text_lines }
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn frame_set_left_pos(f: *mut c_void, v: c_int) -> () { (*f.cast::<frame>()).left_pos = v; }
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn frame_set_top_pos(f: *mut c_void, v: c_int) -> () { (*f.cast::<frame>()).top_pos = v; }
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn frame_garbaged_p(f: *mut c_void) -> bool { frame_flag(f.cast::<frame>(), FRAME_GARBAGED_UNIT, FRAME_GARBAGED_SHIFT) }
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn frame_mouse_moved(f: *mut c_void) -> bool { frame_flag(f.cast::<frame>(), FRAME_MOUSE_MOVED_UNIT, FRAME_MOUSE_MOVED_SHIFT) }
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn frame_no_accept_focus(f: *mut c_void) -> bool { frame_flag(f.cast::<frame>(), FRAME_NO_ACCEPT_FOCUS_UNIT, FRAME_NO_ACCEPT_FOCUS_SHIFT) }
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn frame_set_mouse_moved(f: *mut c_void, v: bool) -> () { frame_set_flag(f.cast::<frame>(), FRAME_MOUSE_MOVED_UNIT, FRAME_MOUSE_MOVED_SHIFT, v as u32); }
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn frame_want_fullscreen(f: *mut c_void) -> c_int { frame_field(f.cast::<frame>(), FRAME_WANT_FULLSCREEN_UNIT, FRAME_WANT_FULLSCREEN_SHIFT, FRAME_WANT_FULLSCREEN_MASK) as c_int }
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn frame_set_want_fullscreen(f: *mut c_void, v: c_int) -> () { frame_set_field(f.cast::<frame>(), FRAME_WANT_FULLSCREEN_UNIT, FRAME_WANT_FULLSCREEN_SHIFT, FRAME_WANT_FULLSCREEN_MASK, v as u32); }
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn frame_output_data_ns(f: *mut c_void) -> *mut c_void { (*f.cast::<frame>()).output_data.ns }
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn buffer_enable_multibyte_characters(p: *mut c_void) -> Lisp_Object { (*p.cast::<buffer>()).enable_multibyte_characters_ }
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn buffer_mark(p: *mut c_void) -> Lisp_Object { (*p.cast::<buffer>()).mark_ }
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn buffer_mark_active(p: *mut c_void) -> Lisp_Object { (*p.cast::<buffer>()).mark_active_ }
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn current_buffer() -> *mut c_void { current_buffer!().cast() }
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn waiting_for_input() -> bool { waiting_for_input!() }
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn terminal_type(p: *mut c_void) -> c_int { (*p.cast::<terminal>()).r#type }
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn window_frame(p: *mut c_void) -> Lisp_Object { (*p.cast::<window>()).frame }
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn image_pixmap(p: *mut c_void) -> *mut c_void { (*p.cast::<image>()).pixmap }
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn image_load_failed_p(p: *mut c_void) -> bool { (*p.cast::<image>()).load_failed_p }
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn input_event_set_part(p: *mut input_event, v: c_int) -> () { (*p).bits = ((*p).bits & INPUT_EVENT_KIND_MASK) | (((v as u32) & INPUT_EVENT_KIND_MASK) << INPUT_EVENT_PART_SHIFT); }
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn mouse_highlight_mouse_face_window(p: *mut c_void) -> Lisp_Object { (*p.cast::<Mouse_HLInfo>()).mouse_face_window }
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn mouse_highlight_mouse_face_mouse_frame(p: *mut c_void) -> *mut c_void { (*p.cast::<Mouse_HLInfo>()).mouse_face_mouse_frame }
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn mouse_highlight_mouse_face_hidden(p: *mut c_void) -> bool { (*p.cast::<Mouse_HLInfo>()).bits & MOUSE_FACE_HIDDEN != 0 }
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn mouse_highlight_set_mouse_face_mouse_frame(p: *mut c_void, v: *mut c_void) -> () { (*p.cast::<Mouse_HLInfo>()).mouse_face_mouse_frame = v; }
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn mouse_highlight_set_mouse_face_hidden(p: *mut c_void, v: c_int) -> () { if v != 0 { (*p.cast::<Mouse_HLInfo>()).bits |= MOUSE_FACE_HIDDEN; } else { (*p.cast::<Mouse_HLInfo>()).bits &= !MOUSE_FACE_HIDDEN; } }
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn mouse_highlight_set_mouse_face_defer(p: *mut c_void, v: c_int) -> () { if v != 0 { (*p.cast::<Mouse_HLInfo>()).bits |= MOUSE_FACE_DEFER; } else { (*p.cast::<Mouse_HLInfo>()).bits &= !MOUSE_FACE_DEFER; } }
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn ns_display_info_next(p: *mut c_void) -> *mut c_void { (*p.cast::<ns_display_info>()).next as *mut c_void }
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn ns_display_info_grabbed(p: *mut c_void) -> c_int { (*p.cast::<ns_display_info>()).grabbed }
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn ns_display_info_highlight_frame(f: *mut c_void) -> *mut c_void { (*FRAME_DISPLAY_INFO!(f.cast::<frame>())).highlight_frame.cast() }
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn ns_display_info_ns_focus_frame(f: *mut c_void) -> *mut c_void { (*FRAME_DISPLAY_INFO!(f.cast::<frame>())).ns_focus_frame.cast() }
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn ns_display_info_ns_focus_frame_from_display(p: *mut c_void) -> *mut c_void { (*p.cast::<ns_display_info>()).ns_focus_frame.cast() }
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn ns_display_info_set_highlight_frame(f: *mut c_void, v: *mut c_void) -> () { (*FRAME_DISPLAY_INFO!(f.cast::<frame>())).highlight_frame = v.cast::<frame>(); }
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn ns_display_info_set_ns_focus_frame(f: *mut c_void, v: *mut c_void) -> () { (*FRAME_DISPLAY_INFO!(f.cast::<frame>())).ns_focus_frame = v.cast::<frame>(); }
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn ns_display_info_set_last_mouse_motion_frame(f: *mut c_void, v: *mut c_void) -> () { (*FRAME_DISPLAY_INFO!(f.cast::<frame>())).last_mouse_motion_frame = v.cast::<frame>(); }
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn ns_display_info_set_grabbed(p: *mut c_void, v: c_int) -> () { (*p.cast::<ns_display_info>()).grabbed = v; }
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn ns_display_info_set_last_mouse_motion_x(p: *mut c_void, v: c_int) -> () { (*p.cast::<ns_display_info>()).last_mouse_motion_x = v; }
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn ns_display_info_set_last_mouse_motion_y(p: *mut c_void, v: c_int) -> () { (*p.cast::<ns_display_info>()).last_mouse_motion_y = v; }
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn ns_display_info_set_last_mouse_frame(p: *mut c_void, v: *mut c_void) -> () { (*p.cast::<ns_display_info>()).last_mouse_frame = v.cast::<frame>(); }
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn ns_display_info_set_last_mouse_movement_time(p: *mut c_void, v: c_ulong) -> () { (*p.cast::<ns_display_info>()).last_mouse_movement_time = v; }
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn ns_display_info_last_mouse_glyph(f: *mut c_void) -> *mut NSRect { core::ptr::addr_of_mut!((*FRAME_DISPLAY_INFO!(f.cast::<frame>())).last_mouse_glyph) }
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn ns_output_double_buffered(f: *mut c_void) -> bool { (*(*f.cast::<frame>()).output_data.ns.cast::<ns_output>()).double_buffered }
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn ns_output_current_pointer(f: *mut c_void) -> *mut c_void { (*(*f.cast::<frame>()).output_data.ns.cast::<ns_output>()).current_pointer }
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn femacs_get_ns_antialias_text() -> Lisp_Object { cocoa_runtime_exports::ns_antialias_text }
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn femacs_get_ns_use_thin_smoothing() -> Lisp_Object { cocoa_runtime_exports::ns_use_thin_smoothing }
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn __darwin_fd_isset(fd: c_int, set: *const fd_set) -> c_int { FD_ISSET(fd, set) as c_int }
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn __darwin_fd_set(fd: c_int, set: *mut fd_set) -> () { FD_SET(fd, set); }
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn __darwin_fd_zero(set: *mut fd_set) -> () { FD_ZERO(set); }
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn XSETINT(p: *mut Lisp_Object, n: EMACS_INT) -> () { XSETINT!(*p, n); }
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn XSETWINDOW(p: *mut Lisp_Object, w: *mut window) -> () { XSETWINDOW!(*p, w); }
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn LGLYPH_SET_CODE(glyph: Lisp_Object, code: EMACS_INT) -> () { LGLYPH_SET_CODE!(glyph, code); }
 }
 
+// Core fields hold one native reference; Swift getter wrappers borrow it.
+#[cfg(feature = "have_ns")]
+unsafe extern "C" {
+    fn objc_retain(value: *mut c_void) -> *mut c_void;
+    fn objc_release(value: *mut c_void);
+}
+#[cfg(feature = "have_ns")]
+unsafe fn replace_native_object(slot: *mut *mut c_void, value: *mut c_void) {
+    let retained = objc_retain(value);
+    let old = *slot;
+    *slot = retained;
+    objc_release(old);
+}
+
+#[cfg(feature = "have_ns")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn ns_frame_parm_handlers_address() -> *mut c_void {
+    core::ptr::addr_of_mut!(cocoa_runtime_exports::ns_frame_parm_handlers).cast()
+}

@@ -68,6 +68,8 @@ include!("include/termhooks.rs");              // C 32
 include!("include/blockinput.rs");             // C 33
 include!("include/buffer.rs");                 // C 34
 include!("include/menu.rs");                   // C 44
+#[cfg(feature = "have_ns")]
+include!("../lwlib/include/lwlib-widget.rs");
 
 /* The names above their C prototypes are window.h/frame.h/dispextern.h/lisp.h/keyboard.h's,
    written here because the mirrors do not carry them (P-55's `/// C:` line names the
@@ -105,6 +107,8 @@ fn have_boxes () -> bool
   // C 50-53's `#if defined (USE_X_TOOLKIT) || defined (USE_GTK) || defined (HAVE_NTGUI)
   // || defined (HAVE_NS) || defined (HAVE_HAIKU) || defined (HAVE_ANDROID)` arm is dead on
   // this target; C's live text is the `return 0` below (docs/ports/menu.md).
+  #[cfg(feature = "have_ns")]
+  if unsafe { FRAME_WINDOW_P(XFRAME(Vmenu_updating_frame)) } { return true; }
   return false;
 }
 
@@ -458,10 +462,12 @@ unsafe extern "C" fn single_menu_item (key: Lisp_Object, item: Lisp_Object,
 		  AREF (item_properties, ITEM_PROPERTY_SELECTED as isize),
 		  AREF (item_properties, ITEM_PROPERTY_HELP as isize));
 
-  // C 422-432's `#if defined (USE_X_TOOLKIT) || defined (USE_GTK) || defined (HAVE_NS)
-  // || defined (HAVE_NTGUI) || defined (HAVE_HAIKU) || defined (HAVE_PGTK)
-  // || defined (HAVE_ANDROID)` arm (the toolkit submenu and its `push_submenu_start ()` /
-  // `push_submenu_end ()` pair) is dead on this target (docs/ports/menu.md).
+  #[cfg(feature = "have_ns")]
+  if FRAME_WINDOW_P(XFRAME(Vmenu_updating_frame)) && !(NILP(map) || NILP(enabled)) {
+    push_submenu_start();
+    single_keymap_panes(map, Qnil(), key, (*skp).maxdepth - 1);
+    push_submenu_end();
+  }
 }
 
 /* Look through KEYMAPS, a vector of keymaps that is NMAPS long,
@@ -607,13 +613,262 @@ pub unsafe extern "C" fn parse_single_submenu (item_key: Lisp_Object,
   return top_level_items;
 }
 
-// C 566-873 and C 875-964 are the `widget_value` tree this target never compiles: it is inside
-// `#if defined (USE_X_TOOLKIT) || defined (USE_GTK) || defined (HAVE_NS) || defined
-// (HAVE_NTGUI)` (plus `HAVE_HAIKU` for the second), and `make_widget_value`,
-// `free_menubar_widget_value_tree`, `digest_single_submenu`, `update_submenu_strings` and
-// `find_and_call_menu_selection` need lwlib-widget.h's `widget_value`, which has no mirror.
-// C 967-1031's `find_and_return_menu_selection` is `#ifdef HAVE_NS`.  All six are named in
-// docs/ports/menu.md instead of transcribed.
+// C menu.c 170-193: the toolkit submenu delimiters (Cocoa arm).
+#[cfg(feature = "have_ns")]
+unsafe fn push_submenu_start() {
+  ensure_menu_items(1);
+  ASET(menu_items, menu_items_used as isize, Qnil());
+  menu_items_used += 1;
+  menu_items_submenu_depth += 1;
+}
+#[cfg(feature = "have_ns")]
+unsafe fn push_submenu_end() {
+  ensure_menu_items(1);
+  ASET(menu_items, menu_items_used as isize, Qlambda());
+  menu_items_used += 1;
+  menu_items_submenu_depth -= 1;
+}
+
+// C menu.c 566-873: the native widget-value tree, including its GC ordering.
+#[cfg(feature = "have_ns")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn make_widget_value(name: *const c_char, value: *mut c_char,
+                                           enabled: bool, help: Lisp_Object) -> *mut widget_value {
+  block_input();
+  let wv = xzalloc(core::mem::size_of::<widget_value>()).cast::<widget_value>();
+  unblock_input();
+  (*wv).name = name as *mut c_char;
+  (*wv).value = value;
+  (*wv).enabled = enabled;
+  (*wv).help = help;
+  wv
+}
+
+#[cfg(feature = "have_ns")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn free_menubar_widget_value_tree(wv: *mut widget_value) {
+  if wv.is_null() { return; }
+  (*wv).key = 0xDEADBEEFusize as *mut c_char;
+  (*wv).value = (*wv).key;
+  (*wv).name = (*wv).value;
+  if !(*wv).contents.is_null() && (*wv).contents as usize != 1 {
+    free_menubar_widget_value_tree((*wv).contents);
+    (*wv).contents = 0xDEADBEEFusize as *mut widget_value;
+  }
+  if !(*wv).next.is_null() {
+    free_menubar_widget_value_tree((*wv).next);
+    (*wv).next = 0xDEADBEEFusize as *mut widget_value;
+  }
+  block_input();
+  xfree(wv.cast());
+  unblock_input();
+}
+
+#[cfg(feature = "have_ns")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn digest_single_submenu(start: c_int, end: c_int, top_level_items: bool) -> *mut widget_value {
+  let mut submenu_depth: c_int = 0;
+  let mut submenu_stack: *mut *mut widget_value = core::ptr::null_mut();
+  let mut panes_seen = false;
+  let f = XFRAME(Vmenu_updating_frame);
+  USE_SAFE_ALLOCA!(sa_avail, sa_count, sa_mark);
+  SAFE_NALLOCA!(sa_avail, submenu_stack, 1, menu_items_used);
+  let mut wv = make_widget_value(c"menu".as_ptr(), core::ptr::null_mut(), true, Qnil());
+  (*wv).button_type = BUTTON_TYPE_NONE;
+  let mut first_wv = wv;
+  let mut save_wv: *mut widget_value = core::ptr::null_mut();
+  let mut prev_wv: *mut widget_value = core::ptr::null_mut();
+  let mut i = start;
+  while i < end {
+    if NILP(AREF(menu_items, i as isize)) {
+      *submenu_stack.offset(submenu_depth as isize) = save_wv;
+      submenu_depth += 1;
+      save_wv = prev_wv;
+      prev_wv = core::ptr::null_mut();
+      i += 1;
+    } else if EQ(AREF(menu_items, i as isize), Qlambda()) {
+      prev_wv = save_wv;
+      submenu_depth -= 1;
+      save_wv = *submenu_stack.offset(submenu_depth as isize);
+      i += 1;
+    } else if EQ(AREF(menu_items, i as isize), Qt()) && submenu_depth != 0 {
+      i += MENU_ITEMS_PANE_LENGTH;
+    } else if EQ(AREF(menu_items, i as isize), Qquote()) {
+      i += 1;
+    } else if EQ(AREF(menu_items, i as isize), Qt()) {
+      panes_seen = true;
+      let mut pane_name = AREF(menu_items, (i + MENU_ITEMS_PANE_NAME) as isize);
+      if !FRAME_TERMCAP_P(f) && STRINGP(pane_name) && STRING_MULTIBYTE(pane_name) {
+        pane_name = ENCODE_MENU_STRING(pane_name);
+        ASET(menu_items, (i + MENU_ITEMS_PANE_NAME) as isize, pane_name);
+      }
+      let mut pane_string = if NILP(pane_name) { c"".as_ptr() } else { SSDATA(pane_name) };
+      if menu_items_n_panes == 1 { pane_string = c"".as_ptr(); }
+      if strcmp(pane_string, c"".as_ptr()) != 0 {
+        wv = make_widget_value(core::ptr::null(), 1usize as *mut c_char, true, Qnil());
+        if !save_wv.is_null() { (*save_wv).next = wv; }
+        else { (*first_wv).contents = wv; }
+        (*wv).lname = pane_name;
+        (*wv).button_type = BUTTON_TYPE_NONE;
+        save_wv = wv;
+      } else { save_wv = first_wv; }
+      prev_wv = core::ptr::null_mut();
+      i += MENU_ITEMS_PANE_LENGTH;
+    } else {
+      if !panes_seen { emacs_abort(); }
+      let mut item_name = AREF(menu_items, (i + MENU_ITEMS_ITEM_NAME) as isize);
+      let enable = AREF(menu_items, (i + MENU_ITEMS_ITEM_ENABLE) as isize);
+      let mut descrip = AREF(menu_items, (i + MENU_ITEMS_ITEM_EQUIV_KEY) as isize);
+      let def = AREF(menu_items, (i + MENU_ITEMS_ITEM_DEFINITION) as isize);
+      let typ = AREF(menu_items, (i + MENU_ITEMS_ITEM_TYPE) as isize);
+      let selected = AREF(menu_items, (i + MENU_ITEMS_ITEM_SELECTED) as isize);
+      let help = AREF(menu_items, (i + MENU_ITEMS_ITEM_HELP) as isize);
+      if !FRAME_TERMCAP_P(f) {
+        if STRING_MULTIBYTE(item_name) {
+          item_name = ENCODE_MENU_STRING(item_name);
+          ASET(menu_items, (i + MENU_ITEMS_ITEM_NAME) as isize, item_name);
+        }
+        if STRINGP(descrip) && STRING_MULTIBYTE(descrip) {
+          descrip = ENCODE_MENU_STRING(descrip);
+          ASET(menu_items, (i + MENU_ITEMS_ITEM_EQUIV_KEY) as isize, descrip);
+        }
+      }
+      wv = make_widget_value(core::ptr::null(), core::ptr::null_mut(), !NILP(enable), if STRINGP(help) { help } else { Qnil() });
+      if !prev_wv.is_null() { (*prev_wv).next = wv; }
+      else { (*save_wv).contents = wv; }
+      (*wv).lname = item_name;
+      if !NILP(descrip) { (*wv).lkey = descrip; }
+      (*wv).call_data = if !NILP(def) { i as isize as *mut c_void } else { core::ptr::null_mut() };
+      (*wv).button_type = if NILP(typ) { BUTTON_TYPE_NONE }
+          else if EQ(typ, QCradio()) { BUTTON_TYPE_RADIO }
+          else if EQ(typ, QCtoggle()) { BUTTON_TYPE_TOGGLE }
+          else { emacs_abort(); };
+      (*wv).selected = !NILP(selected);
+      prev_wv = wv;
+      i += MENU_ITEMS_ITEM_LENGTH;
+    }
+  }
+  if top_level_items && !(*first_wv).contents.is_null() && (*(*first_wv).contents).next.is_null() {
+    wv = first_wv;
+    first_wv = (*first_wv).contents;
+    xfree(wv.cast());
+  }
+  SAFE_FREE!(sa_count, sa_mark);
+  first_wv
+}
+
+#[cfg(feature = "have_ns")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn update_submenu_strings(first_wv: *mut widget_value) {
+  let mut wv = first_wv;
+  while !wv.is_null() {
+    if STRINGP((*wv).lname) {
+      (*wv).name = SSDATA((*wv).lname) as *mut c_char;
+      if (*wv).value as usize == 1 {
+        if *(*wv).name == b'@' as c_char { (*wv).name = (*wv).name.add(1); }
+        (*wv).value = core::ptr::null_mut();
+      }
+    }
+    if STRINGP((*wv).lkey) { (*wv).key = SSDATA((*wv).lkey) as *mut c_char; }
+    if !(*wv).contents.is_null() { update_submenu_strings((*wv).contents); }
+    wv = (*wv).next;
+  }
+}
+
+// C menu.c 875-964: enqueue every selected prefix in original order.
+#[cfg(feature = "have_ns")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn find_and_call_menu_selection(f: *mut frame, menu_bar_items_used: c_int,
+                                                       vector: Lisp_Object, client_data: *mut c_void) {
+  let mut entry = Qnil();
+  let mut subprefix_stack: *mut Lisp_Object = core::ptr::null_mut();
+  let mut submenu_depth: c_int = 0;
+  USE_SAFE_ALLOCA!(sa_avail, sa_count, sa_mark);
+  SAFE_NALLOCA!(sa_avail, subprefix_stack, 1, menu_bar_items_used);
+  let mut prefix = Qnil();
+  let mut i = 0;
+  while i < menu_bar_items_used {
+    if NILP(AREF(vector, i as isize)) {
+      *subprefix_stack.offset(submenu_depth as isize) = prefix;
+      submenu_depth += 1; prefix = entry; i += 1;
+    } else if EQ(AREF(vector, i as isize), Qlambda()) {
+      submenu_depth -= 1; prefix = *subprefix_stack.offset(submenu_depth as isize); i += 1;
+    } else if EQ(AREF(vector, i as isize), Qt()) {
+      prefix = AREF(vector, (i + MENU_ITEMS_PANE_PREFIX) as isize); i += MENU_ITEMS_PANE_LENGTH;
+    } else {
+      entry = AREF(vector, (i + MENU_ITEMS_ITEM_VALUE) as isize);
+      if client_data as isize == i as isize {
+        let mut buf: input_event = core::mem::zeroed();
+        let mut frame = Qnil();
+        EVENT_INIT(&raw mut buf);
+        XSETFRAME!(frame, f);
+        buf.bits = (buf.bits & !INPUT_EVENT_KIND_MASK) | MENU_BAR_EVENT as u32;
+        buf.frame_or_window = frame; buf.arg = frame;
+        kbd_buffer_store_event((&raw mut buf).cast());
+        let mut j = 0;
+        while j < submenu_depth {
+          if !NILP(*subprefix_stack.offset(j as isize)) {
+            buf.bits = (buf.bits & !INPUT_EVENT_KIND_MASK) | MENU_BAR_EVENT as u32;
+            buf.frame_or_window = frame; buf.arg = *subprefix_stack.offset(j as isize);
+            kbd_buffer_store_event((&raw mut buf).cast());
+          }
+          j += 1;
+        }
+        if !NILP(prefix) {
+          buf.bits = (buf.bits & !INPUT_EVENT_KIND_MASK) | MENU_BAR_EVENT as u32;
+          buf.frame_or_window = frame; buf.arg = prefix;
+          kbd_buffer_store_event((&raw mut buf).cast());
+        }
+        buf.bits = (buf.bits & !INPUT_EVENT_KIND_MASK) | MENU_BAR_EVENT as u32;
+        buf.frame_or_window = frame; buf.arg = entry;
+        kbd_buffer_store_event((&raw mut buf).cast());
+        break;
+      }
+      i += MENU_ITEMS_ITEM_LENGTH;
+    }
+  }
+  SAFE_FREE!(sa_count, sa_mark);
+}
+
+// C menu.c 967-1031: return the selection and its keymap prefixes.
+#[cfg(feature = "have_ns")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn find_and_return_menu_selection(_f: *mut frame, keymaps: bool, client_data: *mut c_void) -> Lisp_Object {
+  let mut prefix = Qnil(); let mut entry = Qnil(); let mut i = 0;
+  let mut subprefix_stack: *mut Lisp_Object = core::ptr::null_mut();
+  let mut submenu_depth: c_int = 0;
+  USE_SAFE_ALLOCA!(sa_avail, sa_count, sa_mark);
+  SAFE_ALLOCA_LISP!(sa_avail, subprefix_stack, menu_items_used);
+  while i < menu_items_used {
+    if NILP(AREF(menu_items, i as isize)) {
+      *subprefix_stack.offset(submenu_depth as isize) = prefix;
+      submenu_depth += 1; prefix = entry; i += 1;
+    } else if EQ(AREF(menu_items, i as isize), Qlambda()) {
+      submenu_depth -= 1; prefix = *subprefix_stack.offset(submenu_depth as isize); i += 1;
+    } else if EQ(AREF(menu_items, i as isize), Qt()) {
+      prefix = AREF(menu_items, (i + MENU_ITEMS_PANE_PREFIX) as isize); i += MENU_ITEMS_PANE_LENGTH;
+    } else if EQ(AREF(menu_items, i as isize), Qquote()) { i += 1; }
+    else {
+      entry = AREF(menu_items, (i + MENU_ITEMS_ITEM_VALUE) as isize);
+      if aref_addr(menu_items, i as isize).cast::<c_void>() == client_data {
+        if keymaps {
+          entry = list1(entry);
+          if !NILP(prefix) { entry = Fcons(prefix, entry); }
+          let mut j = submenu_depth - 1;
+          while j >= 0 {
+            if !NILP(*subprefix_stack.offset(j as isize)) { entry = Fcons(*subprefix_stack.offset(j as isize), entry); }
+            j -= 1;
+          }
+        }
+        SAFE_FREE!(sa_count, sa_mark);
+        return entry;
+      }
+      i += MENU_ITEMS_ITEM_LENGTH;
+    }
+  }
+  SAFE_FREE!(sa_count, sa_mark);
+  Qnil()
+}
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn menu_item_width (str: *const u8) -> ptrdiff_t

@@ -167,7 +167,12 @@ pub fn kbd_buffer_store_event_hold (event: *mut input_event, hold_quit: *mut inp
 // keyboard.h 389-398: the live arm is `string_make_unibyte` (no GTK, no NS, no X i18n, no NTGUI).
 #[inline(always)]
 pub fn ENCODE_MENU_STRING (str: Lisp_Object) -> Lisp_Object
-{ unsafe { string_make_unibyte (str) } }
+{
+  #[cfg(feature = "have_ns")]
+  { return unsafe { ENCODE_UTF_8(str) }; }
+  #[cfg(not(feature = "have_ns"))]
+  { unsafe { string_make_unibyte (str) } }
+}
 
 // keyboard.h 367-378 and 361-366: the slots of a menu-item vector and of a menu-bar pane.
 // C's members carry no initialiser except the aliases at the top, so the values are the

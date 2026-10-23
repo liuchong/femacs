@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """The eol-conversion gate: decode the same bytes with both programs and compare the characters.
 
 `decode_eol` (`src/coding.rs`, C coding.c 6759) is where the CRs of a DOS-style file are removed,
@@ -27,6 +26,7 @@ string path (`decode-coding-string`), across the codings whose eol types are dec
 from __future__ import annotations
 
 import argparse
+import os
 import pathlib
 import subprocess
 import sys
@@ -53,6 +53,8 @@ CASES: list[tuple[str, bytes | None, str]] = [
      "(with-temp-buffer (insert-file-contents \"{file}\") (buffer-string))"),
     ("gb2312-lf-file", "阿啊呵\n爱哀挨\n".encode("gb2312"),
      "(with-temp-buffer (insert-file-contents \"{file}\") (buffer-string))"),
+    ("gb2312-forced-dos", "阿啊呵\r\n爱哀挨\r\n".encode("gb2312"),
+     "(with-temp-buffer (let ((coding-system-for-read 'chinese-iso-8bit-dos)) (insert-file-contents \"{file}\") (buffer-string)))"),
     ("latin1-crlf-forced-dos", b"\xb0\xa2\xb0\xa1\r\n\xb0\xae\r\n",
      "(with-temp-buffer (let ((coding-system-for-read 'iso-latin-1-dos)) (insert-file-contents \"{file}\") (buffer-string)))"),
     ("string-utf-8-dos", None, "(decode-coding-string (string-make-unibyte \"a\\r\\nb\\r\\n\") 'utf-8-dos)"),
@@ -77,11 +79,12 @@ def probe_script(files: dict[str, pathlib.Path]) -> str:
     return "\n".join(out) + "\n"
 
 
-def run(program: pathlib.Path, script: pathlib.Path, load_path: pathlib.Path) -> dict[str, str]:
+def run(program: pathlib.Path, script: pathlib.Path, load_path: pathlib.Path, locale: str) -> dict[str, str]:
     result = subprocess.run([str(program), "-Q", "--batch", "--eval", "(setq load-prefer-newer t)",
                              "-l", str(script)],
                             capture_output=True, text=True, timeout=600,
-                            env={"EMACSLOADPATH": str(load_path), "PATH": "/usr/bin:/bin"})
+                            env={"EMACSLOADPATH": str(load_path), "PATH": os.environ.get("PATH", os.defpath),
+                                 "LANG": locale, "LC_ALL": locale})
     marks: dict[str, str] = {}
     for line in result.stdout.splitlines():
         if line.startswith("MARK "):
@@ -98,6 +101,7 @@ def main() -> int:
     parser.add_argument("--port", type=pathlib.Path, default=PORT_PROGRAM)
     parser.add_argument("--reference", type=pathlib.Path, default=REFERENCE_PROGRAM)
     parser.add_argument("--show-all", action="store_true", help="print every case, not only failures")
+    parser.add_argument("--locale", default="en_US.UTF-8", help="same locale for both programs, including Cocoa startup")
     args = parser.parse_args()
 
     for path, what in ((args.port, "the port's program (xtask gate-fast, then gate-load)"),
@@ -105,7 +109,9 @@ def main() -> int:
         if not path.is_file():
             raise SystemExit(f"{path} is missing: build {what}")
 
-    with tempfile.TemporaryDirectory() as tmp:
+    evidence_root = REPO / "build/coding-eol"
+    evidence_root.mkdir(parents=True, exist_ok=True)
+    with tempfile.TemporaryDirectory(dir=evidence_root) as tmp:
         tmpdir = pathlib.Path(tmp)
         files: dict[str, pathlib.Path] = {}
         for label, data, _ in CASES:
@@ -117,8 +123,8 @@ def main() -> int:
         script = tmpdir / "probe.el"
         script.write_text(probe_script(files), encoding="utf-8")
 
-        reference = run(args.reference, script, REPO / "emacs/lisp")
-        port = run(args.port, script, REPO / "femacs/lisp")
+        reference = run(args.reference, script, REPO / "emacs/lisp", args.locale)
+        port = run(args.port, script, REPO / "femacs/lisp", args.locale)
 
     failures = 0
     for label, _, _ in CASES:

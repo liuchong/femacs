@@ -354,7 +354,7 @@ pub fn LGLYPH_SET_CHAR (g: Lisp_Object, val: EMACS_INT)
 macro_rules! LGLYPH_SET_CODE {                         // composite.h 316-319
   ($g:expr, $val:expr) => {
     ASET ($g, LGLYPH_IX_CODE,
-	  if $val == FONT_INVALID_CODE { Qnil () } else { INT_TO_INTEGER ($val as EMACS_INT) })
+	  if ($val as u64) == FONT_INVALID_CODE as u64 { Qnil () } else { INT_TO_INTEGER ($val as EMACS_INT) })
   };
 }
 

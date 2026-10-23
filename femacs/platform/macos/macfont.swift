@@ -753,12 +753,27 @@ func LGLYPH_SET_ADJUSTMENT(_ g: Lisp_Object, _ val: Lisp_Object)
 @_silgen_name("NS_FACE_BACKGROUND") func NS_FACE_BACKGROUND(_ face: UnsafeMutableRawPointer?) -> UInt
 /// C: `#define FRAME_CURSOR_COLOR(f) ((f)->output_data.ns->cursor_color)` and
 /// `FRAME_BACKGROUND_COLOR` (src/nsterm.h 1037-1038).
-@_silgen_name("FRAME_CURSOR_COLOR") func FRAME_CURSOR_COLOR(_ f: UnsafeMutableRawPointer?) -> NSColor?
-@_silgen_name("FRAME_BACKGROUND_COLOR") func FRAME_BACKGROUND_COLOR(_ f: UnsafeMutableRawPointer?) -> NSColor?
+@_silgen_name("FRAME_CURSOR_COLOR")
+func FRAME_CURSOR_COLOR_borrowed_raw(_ f: UnsafeMutableRawPointer?) -> UnsafeMutableRawPointer?
+func FRAME_CURSOR_COLOR(_ f: UnsafeMutableRawPointer?) -> NSColor? {
+  guard let pointer = FRAME_CURSOR_COLOR_borrowed_raw(f) else { return nil }
+  return Unmanaged<NSColor>.fromOpaque(pointer).takeUnretainedValue()
+}
+@_silgen_name("FRAME_BACKGROUND_COLOR")
+func FRAME_BACKGROUND_COLOR_borrowed_raw(_ f: UnsafeMutableRawPointer?) -> UnsafeMutableRawPointer?
+func FRAME_BACKGROUND_COLOR(_ f: UnsafeMutableRawPointer?) -> NSColor? {
+  guard let pointer = FRAME_BACKGROUND_COLOR_borrowed_raw(f) else { return nil }
+  return Unmanaged<NSColor>.fromOpaque(pointer).takeUnretainedValue()
+}
 /// C: `#define FRAME_NS_VIEW(f) ((f)->output_data.ns->view)` (src/nsterm.h 1045) - the frame's
 /// `EmacsView *` (an `NSView`), read through the owning file's mirror of `struct frame`
 /// (nsselect.swift declares the same entry).
-@_silgen_name("FRAME_NS_VIEW") func FRAME_NS_VIEW(_ f: UnsafeMutableRawPointer?) -> NSView?
+@_silgen_name("FRAME_NS_VIEW")
+func FRAME_NS_VIEW_borrowed_raw(_ f: UnsafeMutableRawPointer?) -> UnsafeMutableRawPointer?
+func FRAME_NS_VIEW(_ f: UnsafeMutableRawPointer?) -> NSView? {
+  guard let pointer = FRAME_NS_VIEW_borrowed_raw(f) else { return nil }
+  return Unmanaged<NSView>.fromOpaque(pointer).takeUnretainedValue()
+}
 /// C: `-[NSColor unsignedLong]` (declared src/nsterm.h 363, defined src/nsterm.m 157 in the
 /// `NSColor (EmacsColor)` category) - an instance method, receiver first (the shape
 /// `colorWithUnsignedLong` has).
@@ -771,8 +786,8 @@ func CGContextSetFontSmoothingStyle(_ context: CGContext?, _ style: Int32)
 /// (11685-11691), so the unit that owns them is the port of that file; a lane variable another
 /// lane file reads is reached as a C-ABI **function** of its name (docs/ports/nsselect.md's
 /// `## ABI` (3) item 1), which is what these two entries are.
-@_silgen_name("ns_antialias_text") func ns_antialias_text() -> Lisp_Object
-@_silgen_name("ns_use_thin_smoothing") func ns_use_thin_smoothing() -> Lisp_Object
+@_silgen_name("femacs_get_ns_antialias_text") func ns_antialias_text() -> Lisp_Object
+@_silgen_name("femacs_get_ns_use_thin_smoothing") func ns_use_thin_smoothing() -> Lisp_Object
 /// C: `ptrdiff_t fast_c_string_match_ignore_case (Lisp_Object, const char *, ptrdiff_t)`
 /// (src/search.c; declared src/lisp.h 4325).
 @_silgen_name("fast_c_string_match_ignore_case")
@@ -1579,7 +1594,7 @@ fileprivate func macfont_store_descriptor_attributes(_ desc: CTFontDescriptor?,
   let num = CTFontDescriptorCopyAttribute(desc!, kCTFontSizeAttribute)
   if num != nil
       && CFNumberGetValue(Unmanaged<CFNumber>.fromOpaque(
-                            UnsafeRawPointer(Unmanaged.passUnretained(num as AnyObject)
+                            UnsafeRawPointer(Unmanaged.passUnretained(num!)
                               .toOpaque())).takeUnretainedValue(),
                           CFNumberType.cgFloatType, &floatval) {
     ASET(spec_or_entity, FONT_SIZE_INDEX(), make_fixnum(lround(floatval)))
@@ -1618,7 +1633,7 @@ fileprivate func macfont_descriptor_entity(_ desc: CTFontDescriptor?, _ extra: L
   ASET(entity, FONT_EXTRA_INDEX(), Fcopy_sequence(extra))
   let name = CTFontDescriptorCopyAttribute(desc!, kCTFontNameAttribute)
   _ = font_put_extra(entity, QCfont_entity(),
-                     Fcons(make_mint_ptr(Unmanaged.passRetained(name as AnyObject).toOpaque()),
+                     Fcons(make_mint_ptr(Unmanaged.passRetained(name!).toOpaque()),
                            make_fixnum(Int(sym_traits.rawValue))))
   if synth_sym_traits.contains(CTFontSymbolicTraits.traitItalic) {
     FONT_SET_STYLE(entity, FONT_SLANT_INDEX(),
@@ -2660,14 +2675,16 @@ fileprivate func mac_font_descriptor_supports_languages(_ descriptor: CTFontDesc
       let language = Unmanaged<CFString>.fromOpaque(
         CFArrayGetValueAtIndex(languages, i)!).takeUnretainedValue()
 
+      let zh = "zh" as CFString
+      let simplifiedChinese = CFEqual(language, "zh-Hans" as CFString)
+        && withExtendedLifetime(zh) {
+          CFArrayContainsValue(descLanguages, range,
+            UnsafeRawPointer(Unmanaged.passUnretained(zh).toOpaque()))
+        }
+      // PingFang SC uses zh rather than zh-Hans in its coverage list.
       if !CFArrayContainsValue(descLanguages, range,
                                UnsafeRawPointer(Unmanaged.passUnretained(language).toOpaque()))
-          /* PingFang SC contains "zh" and "zh-Hant" as covered
-             languages, but does not contain "zh-Hans".  */
-          && !(CFEqual(language, "zh-Hans" as CFString)
-               && CFArrayContainsValue(descLanguages, range,
-                                       UnsafeRawPointer(Unmanaged.passUnretained("zh" as CFString)
-                                         .toOpaque()))) {
+          && !simplifiedChinese {
         result = false
         break
       }
@@ -3688,6 +3705,7 @@ fileprivate func macfont_list(_ f: UnsafeMutableRawPointer?, _ spec: Lisp_Object
       filtered_descs = withUnsafePointer(to: kCFTypeArrayCallBacks) { callbacks in
         CFArrayCreateMutable(nil, descs_count, callbacks)
       }
+      // Entries are integer trait bit patterns, not CF objects.
       traits_array = CFArrayCreateMutable(nil, descs_count, nil)
       var j = 0
       while j < descs_count {
@@ -3865,7 +3883,6 @@ fileprivate func macfont_match(_ frame: UnsafeMutableRawPointer?, _ spec: Lisp_O
 /// land in the closure round (the record's initialiser names `macfont_shape`), so until then
 /// this is an undefined `_macfont_driver` in `nm -u`, exactly as C's forward reference is
 /// unresolved until the record's definition below it.
-@_silgen_name("macfont_driver") func macfont_driver_address() -> UnsafeMutableRawPointer?
 
 /// C: `macfont_list_family` (src/macfont.m 2627-2647).  C's `CFRelease (families)` is ARC's
 /// here (the cache read is a strong reference in Swift).
@@ -3953,7 +3970,7 @@ fileprivate func macfont_open(_ f: UnsafeMutableRawPointer?, _ entity: Lisp_Obje
                                   entity, Double(size))
   let font: UnsafeMutablePointer<font> = XFONT_OBJECT(font_object)!
   font.pointee.pixel_size = size
-  font.pointee.driver = UnsafeRawPointer(macfont_driver_address())
+  font.pointee.driver = UnsafeRawPointer(macfont_driver_getter())
   font.pointee.encoding_charset = -1
   font.pointee.repertory_charset = -1
   /* Clear font->space_width so macfont_monospace_width_multiplier may not be confused by an
@@ -3963,8 +3980,12 @@ fileprivate func macfont_open(_ f: UnsafeMutableRawPointer?, _ entity: Lisp_Obje
   block_input()
 
   let macfont_info = UnsafeMutableRawPointer(font).assumingMemoryBound(to: macfont_info.self)
-  macfont_info.pointee.macfont = macfont
-  macfont_info.pointee.cgfont = CTFontCopyGraphicsFont(macfont!, nil)
+  // Pseudovector allocation initializes the Lisp slots only; initialize the
+  // two ARC-managed tail fields before any assignment can release old bits.
+  UnsafeMutableRawPointer(font).advanced(by: MemoryLayout<macfont_info>.offset(of: \.macfont)!)
+    .assumingMemoryBound(to: Optional<CTFont>.self).initialize(to: macfont)
+  UnsafeMutableRawPointer(font).advanced(by: MemoryLayout<macfont_info>.offset(of: \.cgfont)!)
+    .assumingMemoryBound(to: Optional<CGFont>.self).initialize(to: CTFontCopyGraphicsFont(macfont!, nil))
 
   val = assq_no_quit(QCdestination(), AREF(entity, FONT_EXTRA_INDEX()))
   if CONSP(val) && BASE_EQ(XCDR(val), make_fixnum(1)) {
@@ -4655,7 +4676,9 @@ fileprivate func mac_font_create_available_families() -> CFArray? {
   if orig_families != nil {
     let count = CFArrayGetCount(orig_families)
 
-    families = CFArrayCreateMutable(nil, count, nil)
+    families = withUnsafePointer(to: kCFTypeArrayCallBacks) {
+      CFArrayCreateMutable(nil, count, $0)
+    }
     if families != nil {
       var i: CFIndex = 0
 
@@ -4663,11 +4686,14 @@ fileprivate func mac_font_create_available_families() -> CFArray? {
         let familyPtr = CFArrayGetValueAtIndex(orig_families, i)
         let family = Unmanaged<CFString>.fromOpaque(familyPtr!).takeUnretainedValue()
 
-        if !CFStringHasPrefix(family, "." as CFString)
-            && CTFontManagerCompareFontFamilyNames(
+        let lastResort = "LastResort" as CFString
+        let isLastResort = withExtendedLifetime(lastResort) {
+          CTFontManagerCompareFontFamilyNames(
                  UnsafeRawPointer(Unmanaged.passUnretained(family).toOpaque()),
-                 UnsafeRawPointer(Unmanaged.passUnretained("LastResort" as CFString).toOpaque()),
-                 nil) != CFComparisonResult.compareEqualTo {
+                 UnsafeRawPointer(Unmanaged.passUnretained(lastResort).toOpaque()),
+                 nil) == CFComparisonResult.compareEqualTo
+        }
+        if !CFStringHasPrefix(family, "." as CFString) && !isLastResort {
           CFArrayAppendValue(families, UnsafeRawPointer(Unmanaged.passUnretained(family).toOpaque()))
         }
         i += 1
@@ -11266,7 +11292,7 @@ fileprivate let macfont_driver: UnsafeMutablePointer<font_driver> = {
 /// record landed (the Rust side writes its own `&macfont_driver` the same way).
 @_cdecl("mac_register_font_driver")
 func mac_register_font_driver(_ f: UnsafeMutableRawPointer?) {
-  let driver = macfont_driver_address()!.assumingMemoryBound(to: font_driver.self)
+  let driver = macfont_driver_getter()!.assumingMemoryBound(to: font_driver.self)
 
   register_font_driver(UnsafePointer(driver), f)
 }
@@ -11299,7 +11325,7 @@ fileprivate func syms_of_macfont_for_pdumper() {
   }
 
   macfont_driver.pointee.type = Qmac_ct()
-  let driver = macfont_driver_address()!.assumingMemoryBound(to: font_driver.self)
+  let driver = macfont_driver_getter()!.assumingMemoryBound(to: font_driver.self)
   register_font_driver(UnsafePointer(driver), nil)
 }
 

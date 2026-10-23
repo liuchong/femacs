@@ -3894,7 +3894,7 @@ pub mod other_units {
     use super::*;
 
     /* C lisp.h 4307: `extern void mark_fringe_data (void);`  */
-    #[cfg (all (feature = "have_window_system", feature = "have_android"))]
+    #[cfg (feature = "have_window_system")]
     unsafe extern "C" { pub fn mark_fringe_data (); }
     /* C lisp.h 4906: `extern void module_finalize_function (const struct Lisp_Module_Function *);`  */
     #[cfg (all (feature = "have_window_system", feature = "have_android"))]

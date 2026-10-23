@@ -6089,9 +6089,13 @@ unsafe fn compact_font_caches ()
     }
 }
 
-/* C 5589-5591 is the live `#else` arm: `#define compact_font_caches() (void)(0)`.  */
+/* The window target must compact and mark its weak font-cache entries before
+   sweeping conses.  Only the terminal-only target uses C's no-op arm.  */
 macro_rules! compact_font_caches {
-  () => { };
+  () => {
+    #[cfg(feature = "have_window_system")]
+    compact_font_caches ();
+  };
 }
 
 /* Remove (MARKER . DATA) entries with unmarked MARKER

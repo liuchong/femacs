@@ -283,7 +283,12 @@ func IMAGE_FROM_ID(_ f: UnsafeMutableRawPointer?, _ id: Int) -> UnsafeMutableRaw
 @_silgen_name("image_load_failed_p") func image_load_failed_p(_ img: UnsafeMutableRawPointer?) -> Bool
 @_silgen_name("image_pixmap") func image_pixmap(_ img: UnsafeMutableRawPointer?) -> UnsafeMutableRawPointer?
 /// C: `#define FRAME_NS_VIEW(f) ((f)->output_data.ns->view)` (src/nsterm.h 1045).
-@_silgen_name("FRAME_NS_VIEW") func FRAME_NS_VIEW(_ f: UnsafeMutableRawPointer?) -> NSView?
+@_silgen_name("FRAME_NS_VIEW")
+func FRAME_NS_VIEW_borrowed_raw(_ f: UnsafeMutableRawPointer?) -> UnsafeMutableRawPointer?
+func FRAME_NS_VIEW(_ f: UnsafeMutableRawPointer?) -> NSView? {
+  guard let pointer = FRAME_NS_VIEW_borrowed_raw(f) else { return nil }
+  return Unmanaged<NSView>.fromOpaque(pointer).takeUnretainedValue()
+}
 /// C: `#define SELECTED_FRAME()` (src/frame.h 1526-1528).
 @_silgen_name("SELECTED_FRAME") func SELECTED_FRAME() -> UnsafeMutableRawPointer?
 /// C: `#define FRAME_LIVE_P(f)` (src/frame.h 1043), `FRAME_NS_P(f)` (src/frame.h 946-948),
@@ -564,6 +569,7 @@ fileprivate func ns_update_menubar(_ f: UnsafeMutableRawPointer?, _ deep_p: Bool
   withUnsafeMutablePointer(to: &Vmenu_updating_frame) { XSETFRAME($0, f) }
   last_menubar_frame = f
   block_input()
+  defer { unblock_input() }
 
   /* Menu may have been created automatically; if so, discard it.  */
   if (menu?.isKind(of: EmacsMenu.self) ?? false) == false {
@@ -583,7 +589,6 @@ fileprivate func ns_update_menubar(_ f: UnsafeMutableRawPointer?, _ deep_p: Bool
     let previous_menu_items_used = frame_menu_bar_items_used(f)
     let previous_items = UnsafeMutablePointer<Lisp_Object>.allocate(
       capacity: Int(previous_menu_items_used))
-    let subitems = Int32(ASIZE(items) / 4)
 
     items = XWINDOW(FRAME_SELECTED_WINDOW(f)).map { window_contents($0) } ?? Qnil()
     specbind(Qinhibit_quit(), Qt())
@@ -628,6 +633,7 @@ fileprivate func ns_update_menubar(_ f: UnsafeMutableRawPointer?, _ deep_p: Bool
 
     menu_items = frame_menu_bar_vector(f)
     menu_items_allocated = VECTORP(menu_items) ? Int32(ASIZE(menu_items)) : 0
+    let subitems = Int32(ASIZE(items) / 4)
     submenu_start = UnsafeMutablePointer<Int32>.allocate(capacity: Int(subitems) + 1)
     submenu_end = UnsafeMutablePointer<Int32>.allocate(capacity: Int(subitems))
     submenu_n_panes = UnsafeMutablePointer<Int32>.allocate(capacity: Int(subitems))
@@ -803,7 +809,6 @@ fileprivate func ns_update_menubar(_ f: UnsafeMutableRawPointer?, _ deep_p: Bool
   while i < (menu?.numberOfItems ?? 0) {
     /* Remove any extra items.  */
     menu?.removeItem(at: i)
-    i += 1
   }
 
   free_menubar_widget_value_tree(first_wv)
@@ -811,7 +816,6 @@ fileprivate func ns_update_menubar(_ f: UnsafeMutableRawPointer?, _ deep_p: Bool
   /* set main menu */
   if needsSet { NSApp.mainMenu = menu }
 
-  unblock_input()
 }
 
 /// C 444-447: the main emacs core entry point for menubar menus (src/frame.h 1881 declares the
@@ -2143,7 +2147,7 @@ func Fns_reset_menu() -> Lisp_Object {
 fileprivate let lname_ns_reset_menu: StaticString = "ns-reset-menu"
 fileprivate var Sns_reset_menu: Aligned_Lisp_Subr =
   make_aligned_subr(lname_ns_reset_menu, 0, 0,
-                    unsafeBitCast(Fns_reset_menu, to: UnsafeMutableRawPointer.self), docstring: " Cause the NS menu to be re-calculated.  ", args: "void")
+                    unsafeBitCast(Fns_reset_menu as @convention(c) () -> Lisp_Object, to: UnsafeMutableRawPointer.self), docstring: " Cause the NS menu to be re-calculated.  ", args: "void")
 
 /// C 2017-2022: `DEFUN ("menu-or-popup-active-p", Fmenu_or_popup_active_p,
 /// Smenu_or_popup_active_p, 0, 0, 0, doc: /* SKIP: real doc in xmenu.c.  */)`.
@@ -2154,7 +2158,7 @@ func Fmenu_or_popup_active_p() -> Lisp_Object {
 fileprivate let lname_menu_or_popup_active_p: StaticString = "menu-or-popup-active-p"
 fileprivate var Smenu_or_popup_active_p: Aligned_Lisp_Subr =
   make_aligned_subr(lname_menu_or_popup_active_p, 0, 0,
-                    unsafeBitCast(Fmenu_or_popup_active_p, to: UnsafeMutableRawPointer.self), docstring: " SKIP: real doc in xmenu.c.  ", args: "void")
+                    unsafeBitCast(Fmenu_or_popup_active_p as @convention(c) () -> Lisp_Object, to: UnsafeMutableRawPointer.self), docstring: " SKIP: real doc in xmenu.c.  ", args: "void")
 
 /// C 1776/1788: `*error_name = "Submenu in dialog items"` / `"Too many dialog items"` - the
 /// pointer C stores is a static literal, so the port keeps one stable C string for each (the
@@ -2173,3 +2177,29 @@ func syms_of_nsmenu() {
 
   // C 2036: `DEFSYM (Qdebug_on_next_call, "debug-on-next-call");`
 }
+
+@_silgen_name("EmacsToolbar_initForView")
+func ns_toolbar_initForView(_ view: NSView?, _ identifier: NSString) -> AnyObject? {
+  EmacsToolbar(forView: view, withIdentifier: identifier as String)
+}
+@_cdecl("EmacsTooltip_hide")
+func ns_tooltip_hide(_ tip: AnyObject?) { (tip as? EmacsTooltip)?.hide() }
+@_cdecl("EmacsTooltip_isActive")
+func ns_tooltip_isActive(_ tip: AnyObject?) -> Bool { (tip as? EmacsTooltip)?.isActive() ?? false }
+
+@_silgen_name("EmacsMenu_initWithTitle")
+func export_EmacsMenu_initWithTitle(_ title: String) -> AnyObject? { EmacsMenu(title: title) }
+@_silgen_name("EmacsTooltip_new")
+func export_EmacsTooltip_new() -> AnyObject? { EmacsTooltip() }
+@_cdecl("is_emacs_tooltip")
+func export_is_emacs_tooltip(_ obj: AnyObject?) -> Bool { obj is EmacsTooltip }
+@_silgen_name("EmacsTooltip_frame")
+func export_EmacsTooltip_frame(_ tip: AnyObject?) -> NSRect { (tip as? EmacsTooltip)?.frame() ?? .zero }
+@_cdecl("EmacsTooltip_setBackgroundColor")
+func export_EmacsTooltip_setBackgroundColor(_ tip: AnyObject?, _ col: NSColor?) { (tip as? EmacsTooltip)?.setBackgroundColor(col) }
+@_cdecl("EmacsTooltip_setForegroundColor")
+func export_EmacsTooltip_setForegroundColor(_ tip: AnyObject?, _ col: NSColor?) { (tip as? EmacsTooltip)?.setForegroundColor(col) }
+@_cdecl("EmacsTooltip_setText")
+func export_EmacsTooltip_setText(_ tip: AnyObject?, _ text: UnsafePointer<CChar>?) { (tip as? EmacsTooltip)?.setText(UnsafeMutablePointer(mutating: text)) }
+@_cdecl("EmacsTooltip_showAtX_Y_for")
+func export_EmacsTooltip_showAtX_Y_for(_ tip: AnyObject?, _ x: Int32, _ y: Int32, _ seconds: Int32) { (tip as? EmacsTooltip)?.showAtX(x, Y: y, for: seconds) }

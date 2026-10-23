@@ -128,7 +128,7 @@ include!("include/pdumper.rs");                // C 85: `#include "pdumper.h"`
 
 /* C 92-95: `char const DEV_TTY[]` is defined twice (the `WINDOWSNT` `"CONOUT$"` arm and the
    live `#else`); `emacs.rs` declares the object as `[c_char; 9]`, which is the nine bytes of
-   `"/dev/tty"` counting the terminating NUL.  */
+   `"${DEVICE_ROOT}/tty"` counting the terminating NUL.  */
 #[unsafe(no_mangle)]
 pub static DEV_TTY: [c_char; 9] =
   [b'/' as c_char, b'd' as c_char, b'e' as c_char, b'v' as c_char, b'/' as c_char,
@@ -755,9 +755,9 @@ unsafe fn echo_add_key (mut c: Lisp_Object)
       let name: Lisp_Object = SYMBOL_NAME (c);
       let nbytes: ptrdiff_t = SBYTES (name);
 
-      if size - buffer.offset_from (ptr) < nbytes
+      if size - ptr.offset_from (buffer) < nbytes
 	{
-	  let offset: ptrdiff_t = buffer.offset_from (ptr);
+	  let offset: ptrdiff_t = ptr.offset_from (buffer);
 	  size = max! (2 * size, size + nbytes);
 	  buffer = SAFE_ALLOCA! (sa_avail, size) as *mut c_char;
 	  ptr = buffer.offset (offset);
@@ -767,7 +767,7 @@ unsafe fn echo_add_key (mut c: Lisp_Object)
 				STRING_MULTIBYTE (name), true) as usize);
     }
 
-  let mut new_string: Lisp_Object = make_string (buffer, buffer.offset_from (ptr));
+  let mut new_string: Lisp_Object = make_string (buffer, ptr.offset_from (buffer));
   if (NILP (echo_string) || SCHARS (echo_string) == 0)
     && help_char_p (c)
     {
@@ -3926,6 +3926,19 @@ unsafe extern "C" fn restore_getcjmp (temp: *mut c_void)
   memcpy ((&raw mut getcjmp! ()) as *mut c_void, temp, std::mem::size_of_val (&getcjmp! ()));
 }
 
+/* termhooks.h 373-412: `enum event_kind kind : 16` and `enum scroll_bar_part part : 16` share
+   the mirror's `input_event::bits` unit (PORTING.md 1.3/P-80's member-named shape); the
+   dispnew.rs `WINDOW_FRAME` precedent for a per-unit macro.  */
+macro_rules! input_event_bits {
+  (kind, $e:expr) => { ((*$e).bits & INPUT_EVENT_KIND_MASK) as event_kind };
+  (kind, $e:expr, $v:expr) => {
+    (*$e).bits = ((*$e).bits & !INPUT_EVENT_KIND_MASK) | ((($v) as u32) & INPUT_EVENT_KIND_MASK); };
+  (part, $e:expr) => { ((*$e).bits >> INPUT_EVENT_PART_SHIFT) as c_int };
+  (part, $e:expr, $v:expr) => {
+    (*$e).bits = ((*$e).bits & INPUT_EVENT_KIND_MASK)
+                 | (((($v) as u32) & INPUT_EVENT_KIND_MASK) << INPUT_EVENT_PART_SHIFT); };
+}
+
 /* Low level keyboard/mouse input.
    kbd_buffer_store_event places events in kbd_buffer, and
    kbd_buffer_get_event retrieves them.  */
@@ -4022,19 +4035,6 @@ unsafe fn readable_events (flags: c_int) -> bool
 	}
     }
   return false;
-}
-
-/* termhooks.h 373-412: `enum event_kind kind : 16` and `enum scroll_bar_part part : 16` share
-   the mirror's `input_event::bits` unit (PORTING.md 1.3/P-80's member-named shape); the
-   dispnew.rs `WINDOW_FRAME` precedent for a per-unit macro.  */
-macro_rules! input_event_bits {
-  (kind, $e:expr) => { ((*$e).bits & INPUT_EVENT_KIND_MASK) as event_kind };
-  (kind, $e:expr, $v:expr) => {
-    (*$e).bits = ((*$e).bits & !INPUT_EVENT_KIND_MASK) | ((($v) as u32) & INPUT_EVENT_KIND_MASK); };
-  (part, $e:expr) => { ((*$e).bits >> INPUT_EVENT_PART_SHIFT) as c_int };
-  (part, $e:expr, $v:expr) => {
-    (*$e).bits = ((*$e).bits & INPUT_EVENT_KIND_MASK)
-                 | (((($v) as u32) & INPUT_EVENT_KIND_MASK) << INPUT_EVENT_PART_SHIFT); };
 }
 
 /* window.h: `WINDOW_FRAME` is the window's `frame` field and the mirror carries it
@@ -4393,6 +4393,7 @@ unsafe extern "C" fn kbd_buffer_get_event_2 (val: Lisp_Object) -> Lisp_Object
    We always read and discard one event.  */
 
 /* C 4032-4593: `kbd_buffer_get_event`.  */
+
 unsafe fn kbd_buffer_get_event (kbp: *mut *mut KBOARD,
                                 used_mouse_menu: *mut bool,
                                 event_frame: *mut *mut frame,
@@ -4684,7 +4685,7 @@ unsafe fn kbd_buffer_get_event (kbp: *mut *mut KBOARD,
 	  input_pending = readable_events (0);
           f = XFRAME ((*event).ie.frame_or_window);
 	  if FRAME_LIVE_P (f) && (*FRAME_TERMINAL! (f)).activate_menubar_hook.is_some ()
-	    { ((*FRAME_TERMINAL! (f)).activate_menubar_hook.unwrap ()) (f); }
+	    { ((*FRAME_TERMINAL! (f)).activate_menubar_hook.unwrap ()) (f as *mut c_void); }
 	}
 
         /* C 4311-4346: the grouped arms.  `#if defined (HAVE_NS)`'s `NS_TEXT_EVENT` is carried
@@ -6263,12 +6264,14 @@ unsafe fn make_lispy_position (f: *mut frame, x: Lisp_Object, y: Lisp_Object, t:
 
   /* Report mouse events on the tab bar and (on GUI frames) on the
      tool bar.  */
-  if !f.is_null ()
-      && ((WINDOWP ((*f).tab_bar_window)
-	   && EQ (window_or_frame, (*f).tab_bar_window))
-	  || (!cfg! (feature = "have_ext_tool_bar")
-	      && (WINDOWP ((*f).tool_bar_window)
-		  && EQ (window_or_frame, (*f).tool_bar_window))))
+  if !f.is_null () && {
+      let mut bar_p = WINDOWP ((*f).tab_bar_window)
+          && EQ (window_or_frame, (*f).tab_bar_window);
+      #[cfg(not(feature = "have_ext_tool_bar"))]
+      { bar_p = bar_p || (WINDOWP ((*f).tool_bar_window)
+          && EQ (window_or_frame, (*f).tool_bar_window)); }
+      bar_p
+  }
     {
       /* While 'track-mouse' is neither nil nor t, do not report this
 	 event as something that happened on the tool or tab bar since
@@ -7813,7 +7816,7 @@ unsafe fn make_lispy_event (event: *mut input_event) -> Lisp_Object
       let mut position: Lisp_Object;
       let mut head: Lisp_Object;
 
-      position = make_scroll_bar_position (event, Qvertical_scroll_bar);
+      position = make_scroll_bar_position (event, Qvertical_scroll_bar ());
 
       /* Always treat scroll bar events as clicks.  */
       (*event).modifiers |= click_modifier as c_uint;
@@ -7842,7 +7845,7 @@ unsafe fn make_lispy_event (event: *mut input_event) -> Lisp_Object
       let mut position: Lisp_Object;
       let mut head: Lisp_Object;
 
-      position = make_scroll_bar_position (event, Qhorizontal_scroll_bar);
+      position = make_scroll_bar_position (event, Qhorizontal_scroll_bar());
 
       /* Always treat scroll bar events as clicks.  */
       (*event).modifiers |= click_modifier as c_uint;

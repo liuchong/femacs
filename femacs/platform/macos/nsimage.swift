@@ -751,3 +751,24 @@ class EmacsImage: NSImage {
     return bytes
   }
 }
+
+@_silgen_name("EmacsImage_allocInitFromFile")
+func ns_image_allocInitFromFile(_ file: Lisp_Object) -> AnyObject? { EmacsImage.allocInitFromFile(file) }
+@_cdecl("is_emacs_image")
+func ns_image_is_emacs_image(_ image: AnyObject?) -> Bool { image is EmacsImage }
+
+@_silgen_name("EmacsImage_size")
+func export_EmacsImage_size(_ img: AnyObject?) -> NSSize { (img as? EmacsImage)?.size ?? .zero }
+@_cdecl("EmacsImage_smoothing")
+func export_EmacsImage_smoothing(_ img: AnyObject?) -> Bool { (img as? EmacsImage)?.smoothing ?? false }
+@_silgen_name("EmacsImage_transform")
+func export_EmacsImage_transform(_ img: AnyObject?) -> NSAffineTransform? { (img as? EmacsImage)?.transform }
+@_silgen_name("EmacsImage_stippleMask")
+func export_EmacsImage_stippleMask(_ img: AnyObject?) -> CGImage? { (img as? EmacsImage)?.stippleMask() }
+@_silgen_name("EmacsImage_drawInRect")
+func export_EmacsImage_drawInRect(_ img: AnyObject?, _ dstRect: NSRect, _ srcRect: NSRect,
+                                _ operation: NSCompositingOperation, _ fraction: CGFloat,
+                                _ respectFlipped: Bool, _ hints: NSDictionary?) {
+  (img as? EmacsImage)?.draw(in: dstRect, from: srcRect, operation: operation, fraction: fraction,
+                            respectFlipped: respectFlipped, hints: hints as? [NSImageRep.HintKey: Any])
+}

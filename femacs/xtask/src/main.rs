@@ -11,7 +11,19 @@ use std::io::{Read, Seek, SeekFrom};
 use std::path::{Path, PathBuf};
 use std::process::{exit, Command};
 
+mod macos;
+
 const REPO: &str = "..";
+
+fn reference_build() -> PathBuf {
+    std::env::var_os("FEMACS_REFERENCE_BUILD").map(PathBuf::from)
+        .unwrap_or_else(|| PathBuf::from("../build/emacs-ref"))
+}
+
+fn frozen_config_path(stem: &str) -> PathBuf {
+    std::env::var_os("FEMACS_CONFIG_FILE").map(PathBuf::from)
+        .unwrap_or_else(|| Path::new("../docs/baseline/config").join(format!("{stem}.json")))
+}
 
 /// The default build tree.  `FEMACS_BUILD_ROOT` moves every derived directory
 /// (`femacs/`, `load/`, `port/`, `profiles/`) together, which is what keeps the PGO
@@ -22,7 +34,10 @@ fn build_root () -> PathBuf
     .unwrap_or_else (|| PathBuf::from ("../build"))
 }
 
-fn units_dir () -> PathBuf { build_root ().join ("femacs") }
+fn units_dir () -> PathBuf {
+  std::env::var_os("FEMACS_UNITS_DIR").map(PathBuf::from)
+    .unwrap_or_else(|| build_root().join("femacs"))
+}
 fn load_dir () -> PathBuf { build_root ().join ("load") }
 fn port_dir () -> PathBuf { build_root ().join ("port") }
 
@@ -33,7 +48,12 @@ fn port_dir () -> PathBuf { build_root ().join ("port") }
 fn tool_units_dir () -> PathBuf
 {
   std::env::var_os ("FEMACS_TOOL_UNITS").map (PathBuf::from)
-    .unwrap_or_else (|| PathBuf::from ("../build/femacs"))
+    .unwrap_or_else (|| {
+      // Cocoa is a separate, plain-O2 configuration; host-tool objects must use
+      // its headers and library membership rather than the terminal tree.
+      if std::env::var_os("FEMACS_MACOS_GUI").is_some() { units_dir() }
+      else { PathBuf::from ("../build/femacs") }
+    })
 }
 
 /// `FEMACS_PGO=off` (default) | `generate:<dir>` | `use:<file>`.
@@ -171,6 +191,9 @@ fn main() {
     let args: Vec<String> = std::env::args().skip(1).collect();
     let cmd = args.first().map(String::as_str).unwrap_or("help");
     let code = match cmd {
+        "build-macos" => macos::build_macos(),
+        "link-macos" => macos::link_macos(),
+        "package-macos" => macos::package_macos(),
         "gen-config" => gen_config(),
         "gen-globals" => gen_globals(),
         "layout-asserts" => match layout_asserts() {
@@ -252,7 +275,7 @@ fn config_features () -> Vec<String>
   let Ok (stem) = std::env::var ("FEMACS_CONFIG")
     else { return Vec::new () };
   if stem.is_empty () { return Vec::new (); }
-  let path = Path::new ("../docs/baseline/config").join (format! ("{stem}.json"));
+  let path = frozen_config_path(&stem);
   let Ok (text) = fs::read_to_string (&path)
     else
       {
@@ -347,7 +370,7 @@ fn config_features () -> Vec<String>
   // C defines `USE_ANDROID_ASSETS` inside the units that read it rather than in `config.h`
   // (`lread.c` 100-157, `doc.c` 40-70): `HAVE_ANDROID && !ANDROID_STUBIFY && __ANDROID_API__ >= 9`.
   // The frozen configuration carries no macro of that name, so nothing derived a cfg for it, both
-  // units compiled their plain-file arms, and the device asked for `/assets/lisp/loadup.el` as a
+  // units compiled their plain-file arms, and the device asked for `${ANDROID_ASSET_ROOT}/lisp/loadup.el` as a
   // real path: ENOENT, then the fatal exit measured at status 4.786.  Both polarities are emitted,
   // the way a macro's are.
   let use_android_assets = truthy.contains ("HAVE_ANDROID")
@@ -384,6 +407,11 @@ fn config_features () -> Vec<String>
           if a <= b { out.push (format! ("feature=\"{feature}\"")); }
         }
     }
+  // nsgui.h defines NoValue even though its numeric value is zero.
+  if truthy.contains("HAVE_NS") {
+    out.push("feature=\"no_value\"".to_string());
+    out.push("feature=\"window_system\"".to_string());
+  }
   out.sort ();
   out.dedup ();
   if !out.is_empty ()
@@ -514,8 +542,11 @@ fn gen_config() -> i32 {
     // filter above fixed.  So the choice is explicit: `FEMACS_CONFIG=<stem>` names one, and
     // more than one candidate without it is an error rather than a coin flip (P-203).
     let chosen = std::env::var("FEMACS_CONFIG").ok().filter(|v| !v.is_empty());
+    if let Some(file) = std::env::var_os("FEMACS_CONFIG_FILE") {
+        entries = vec![PathBuf::from(file)];
+    }
     if let Some(stem) = &chosen {
-        entries.retain(|p| p.file_stem().is_some_and(|s| s == stem.as_str()));
+        if std::env::var_os("FEMACS_CONFIG_FILE").is_none() { entries.retain(|p| p.file_stem().is_some_and(|s| s == stem.as_str())); }
         if entries.is_empty() {
             return fail(format!("FEMACS_CONFIG={stem} names no *.json in {}", dir.display()));
         }
@@ -576,9 +607,10 @@ fn gen_config() -> i32 {
         rs.push_str (&format! ("pub const {k}: &core::ffi::CStr = c{}; // C string literal\n",
                               c_literal (&body)));
     }
-    let out = Path::new("src/include/config.rs");
+    let out = std::env::var_os("FEMACS_CONFIG_RS").map(PathBuf::from)
+        .unwrap_or_else(|| PathBuf::from("src/include/config.rs"));
     fs::create_dir_all(out.parent().unwrap()).ok();
-    if let Err(e) = fs::write(out, rs) {
+    if let Err(e) = fs::write(&out, rs) {
         return fail(e);
     }
     println!("wrote {} from {}", out.display(), target.display());
@@ -1496,6 +1528,9 @@ fn build_tu_at(rel: Option<&String>, units: &Path, pgo: bool) -> i32 {
         cross_out = units.join(format!("{stem}.{t}.o"));
         println!("target: {t} (object: {})", cross_out.display());
     }
+    if stem == "abi_shim" && std::env::var_os("FEMACS_MACOS_GUI").is_some() {
+        cmd.arg("--cfg").arg("feature=\"dispextern_face_records\"");
+    }
     let status = cmd.arg(&root).arg("-o").arg(&cross_out).status();
     // The checking pass: the same unit with `--cfg enable_checking`, the same target and the same
     // frozen configuration, so `eassert!`/`eassume!` bodies exist in an object that can be *linked*
@@ -1515,6 +1550,9 @@ fn build_tu_at(rel: Option<&String>, units: &Path, pgo: bool) -> i32 {
                 check_cmd.arg ("--target").arg (t);
                 check_out = units.join (format! ("{stem}.checking.{t}.o"));
             }
+        if stem == "abi_shim" && std::env::var_os("FEMACS_MACOS_GUI").is_some() {
+            check_cmd.arg("--cfg").arg("feature=\"dispextern_face_records\"");
+        }
         match check_cmd.arg (&root).arg ("-o").arg (&check_out).status ()
             {
                 Ok (s) if s.success () => {}
@@ -2481,6 +2519,13 @@ fn android_linker (target: &str) -> Option<String>
 }
 
 fn reference_members() -> Vec<String> {
+    if std::env::var_os("FEMACS_MACOS_GUI").is_some()
+        || !Path::new(REPO).join("build/emacs-ref/lib/libgnu.a").is_file() {
+        return match macos::make_objects(&reference_build().join("lib"), "libgnu_a_OBJECTS") {
+            Ok(names) => names.into_iter().collect(),
+            Err(error) => { eprintln!("archive member query: {error}"); Vec::new() }
+        };
+    }
     let archive = Path::new(REPO).join("build/emacs-ref/lib/libgnu.a");
     if !archive.is_file() {
         return Vec::new();
@@ -2573,13 +2618,16 @@ pub extern \"C\" fn rust_eh_personality () {}\n";
 /// Measured 2026-10-16: this is what `etc/DOC` needs - the reference's DOC rule (src/Makefile.in
 /// 663-668) runs `make-docfile -d srcdir <objects> > etc/DOC`, and the port's loadup dies in
 /// `Snarf-documentation "DOC"` without it.
-/// Apple's `ar`, by absolute path: the executor's PATH can put a GNU `ar` first, and the
+/// Select Apple's `ar` through the active developer tools: PATH can put GNU `ar` first, and the
 /// Darwin linker rejects the resulting archive (its members are not BSD `#1/` long names and
 /// the modern linker refuses them as "not 8-byte aligned").
 fn ar_cmd () -> Command
 {
-  if Path::new ("/usr/bin/ar").is_file () { Command::new ("/usr/bin/ar") }
-  else { Command::new ("ar") }
+  if cfg!(target_os = "macos") {
+    let mut cmd = Command::new ("xcrun");
+    cmd.arg ("ar");
+    cmd
+  } else { Command::new ("ar") }
 }
 
 fn link_program(rel: Option<&String>) -> i32 {
@@ -2893,7 +2941,7 @@ fn write_pair_manifest(src: &Path) -> Result<(), String> {
             return Err(format!("cannot hash missing {}", f.display()));
         }
     }
-    let mut cmd = Command::new(if Path::new("/usr/bin/shasum").is_file() { "/usr/bin/shasum" } else { "shasum" });
+    let mut cmd = Command::new("shasum");
     cmd.args(["-a", "256"]);
     for f in &files {
         cmd.arg(f);
@@ -2931,7 +2979,7 @@ fn gate_load(arg: Option<&str>) -> i32 {
     // answer: it also remakes `config.status`, and the reconfigure aborts on this machine
     // (no makeinfo) before make ever reaches the link.
     let out = match Command::new("make").args(
-        ["-C", "../build/emacs-ref/src", "-n", "-W", "emacs.o", "temacs"]).output() {
+        ["-C", reference_build().join("src").to_str().unwrap(), "-n", "-W", "emacs.o", "temacs"]).output() {
         Ok(o) => o,
         Err(e) => return fail(format!("make -n temacs: {e}")),
     };
@@ -3027,6 +3075,10 @@ fn gate_load(arg: Option<&str>) -> i32 {
             return fail(format!("{} reference object(s) have no port object", missing.len()));
         }
     }
+    if std::env::var_os("FEMACS_MACOS_GUI").is_some() {
+        objs.push(units_dir().join("abi_shim.o").canonicalize().map_err(|e| e.to_string()).unwrap_or_else(|_| units_dir().join("abi_shim.o")).display().to_string());
+        extra_libs.extend(macos::link_flags());
+    }
     // The driver lives at module scope (`LINK_DRIVER`), because `link-program` uses it too.
     if let Err(e) = fs::write(load.join("driver.rs"), LINK_DRIVER) {
         return fail(format!("writing the link driver: {e}"));
@@ -3037,7 +3089,7 @@ fn gate_load(arg: Option<&str>) -> i32 {
     // what `init_callproc` then turns into `exec-directory` and the default load path.  A binary
     // dropped in a bare directory therefore behaves like an *installed* program whose prefix does
     // not exist: measured 2026-10-16, `build/load/temacs-port` printed
-    // `Warning: arch-dependent data dir '/usr/local/libexec/emacs/32.0.50/...': No such file or
+    // `Warning: arch-dependent data dir '${INSTALL_PREFIX}/libexec/emacs/32.0.50/...': No such file or
     // directory` and reported `exec-directory` as that installed path, while the reference
     // (`build/emacs-ref/src/temacs`, whose siblings `lib-src/` and `etc/` exist) printed no
     // warning and reported the build tree - the *only* stderr difference between the two runs.
@@ -3527,7 +3579,14 @@ impl Expand {
     /// include-guard no-ops.  ROOT's text is returned (it becomes `_root.rs`); every other
     /// file is written to its copy first.
     fn render(&mut self, path: &Path, path_gated: bool) -> Result<String, String> {
-        let text = fs::read_to_string(path).map_err(|e| format!("{}: {e}", path.display()))?;
+        let input = if path.ends_with("src/include/config.rs") {
+            std::env::var_os("FEMACS_CONFIG_RS").map(PathBuf::from).unwrap_or_else(|| path.to_path_buf())
+        } else if path.ends_with("src/include/globals.rs") {
+            std::env::var_os("FEMACS_GLOBALS_RS").map(PathBuf::from).unwrap_or_else(|| path.to_path_buf())
+        } else if path.ends_with("src/include/epaths.rs") {
+            std::env::var_os("FEMACS_EPATHS_RS").map(PathBuf::from).unwrap_or_else(|| path.to_path_buf())
+        } else { path.to_path_buf() };
+        let text = fs::read_to_string(&input).map_err(|e| format!("{}: {e}", input.display()))?;
         let dir = path.parent().unwrap_or(Path::new(".")).to_path_buf();
         let mut out = String::with_capacity(text.len() + 64);
         // Whether the `include!` on each line is under an attribute (`gate_states`), so this
@@ -3823,8 +3882,13 @@ fn buildable_units(units: Vec<String>) -> Vec<String> {
 fn build_finished_tus() -> Result<(), String> {
     let mut flags = unit_codegen_flags();
     flags.extend(pgo_codegen_flags());
-    let units = buildable_units(finished_units()?);
+    let mut units = buildable_units(finished_units()?);
+    if std::env::var_os("FEMACS_MACOS_GUI").is_some() {
+        let active = macos::active_objects()?;
+        units.retain(|u| u.starts_with("lib/") || active.contains(&format!("{}.o", Path::new(u).file_stem().unwrap().to_string_lossy())));
+    }
     let mut built = 0usize;
+    let mut failed: Vec<String> = Vec::new();
     fs::create_dir_all(units_dir()).ok();
     for unit in &units {
         let stem = Path::new(unit).file_stem().unwrap_or_default().to_string_lossy().to_string();
@@ -3835,7 +3899,10 @@ fn build_finished_tus() -> Result<(), String> {
             Ok(p) => p,
             Err(e) => return Err(e),
         };
-        let status = rustc_cmd ()
+        let mut normal_cmd = rustc_cmd();
+        for cfg in config_features() { normal_cmd.arg("--cfg").arg(cfg); }
+        if let Some(t) = std::env::var_os("FEMACS_TARGET") { normal_cmd.arg("--target").arg(t); }
+        let status = normal_cmd
             .args(["--edition", "2024", "--crate-type", "lib", "--emit", "obj",
                    "--crate-name", &cname])
             .args(&flags)
@@ -3846,7 +3913,7 @@ fn build_finished_tus() -> Result<(), String> {
             .status();
         match status {
             Ok(s) if s.success() => { println!("built {unit}"); built += 1; }
-            Ok(s) => return Err(format!("rustc failed for {unit} ({s})")),
+            Ok(s) => { failed.push(format!("{unit}: {s}")); continue; },
             Err(e) => return Err(e.to_string()),
         }
         // The reference is built with --enable-checking by default, and the port's
@@ -3872,13 +3939,16 @@ fn build_finished_tus() -> Result<(), String> {
             {
                 check_cmd.arg ("--target").arg (t);
             }
+        if stem == "abi_shim" && std::env::var_os("FEMACS_MACOS_GUI").is_some() {
+            check_cmd.arg("--cfg").arg("feature=\"dispextern_face_records\"");
+        }
         let status = check_cmd.arg(&root).arg("-o").arg(&checked).status();
         match status {
             Ok(s) if s.success() => { println!("built {unit} (--cfg enable_checking)"); built += 1; }
-            Ok(s) => return Err(format!("rustc failed for {unit} with --cfg enable_checking ({s})")),
+            Ok(s) => { failed.push(format!("{unit} checking: {s}")); },
             Err(e) => return Err(e.to_string()),
         }
     }
     println!("{built} finished translation unit(s) compiled");
-    Ok(())
+    if failed.is_empty() { Ok(()) } else { Err(format!("{} unit(s) failed: {}", failed.len(), failed.join(", "))) }
 }

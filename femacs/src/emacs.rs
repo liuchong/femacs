@@ -346,12 +346,16 @@ unsafe extern "C" {
   /// C: `void syms_of_win16select (void);`
   fn syms_of_win16select ();
   /// C: `void syms_of_nsterm (void);`
+  #[cfg(not(feature = "have_ns"))]
   fn syms_of_nsterm ();
   /// C: `void syms_of_nsfns (void);`
+  #[cfg(not(feature = "have_ns"))]
   fn syms_of_nsfns ();
   /// C: `void syms_of_nsmenu (void);`
+  #[cfg(not(feature = "have_ns"))]
   fn syms_of_nsmenu ();
   /// C: `void syms_of_nsselect (void);`
+  #[cfg(not(feature = "have_ns"))]
   fn syms_of_nsselect ();
   /// C: `void syms_of_pgtkterm (void);`
   fn syms_of_pgtkterm ();
@@ -444,7 +448,7 @@ const COPYRIGHT: &CStr = c"Copyright (C) 2026 Free Software Foundation, Inc.";
    had the C quotes), which forced the use site to spell `c"darwin"` and left the name
    unmentioned in the body (docs/status.md 3.64).  */
 /// C: `<epaths.h>` 58 (the frozen build's generated header): `#define PATH_EXEC
-/// "/usr/local/libexec/emacs/32.0.50/aarch64-apple-darwin25.6.0"`.
+/// "${INSTALL_PREFIX}/libexec/emacs/32.0.50/${HOST}"`.
 /* The value is the `include/epaths.rs` mirror's (per target; `epaths.in` 85-99).  */
 
 /// C: `<config.h>` 120: `#define DIRECTORY_SEP '/'` (config.h splices the `s/` header's
@@ -615,7 +619,7 @@ Initialization options:
                               -q --no-site-file --no-site-lisp --no-splash
                               --no-x-resources
 --script FILE               run FILE as an Emacs Lisp script
--x                          to be used in #!/usr/bin/emacs -x
+-x                          for use in interpreter-script headers
                               and has approximately the same meaning
 			      as -Q --script
 --terminal, -t DEVICE       use DEVICE for terminal I/O
@@ -1120,7 +1124,7 @@ unsafe fn default_PATH () -> *const c_char
   static mut path: *const c_char = std::ptr::null ();
 
   /* A static buffer big enough so that confstr is called just once
-     in GNU/Linux, where the default PATH is "/bin:/usr/bin".
+     in GNU/Linux, where the default PATH is "${SYSTEM_BIN}:${SYSTEM_USR}/bin".
      If staticbuf[0], path is already initialized.  */
   static mut staticbuf: [c_char; 16] = [0; 16];
 
@@ -1395,6 +1399,9 @@ unsafe fn load_pdump (argc: c_int, argv: *mut *mut c_char,
 	     dump_file, dump_error_to_string (result)); }
   } /* hardcoded: */
 
+  #[cfg(feature = "have_ns")]
+  { path_exec = ns_relocate(path_exec); }
+
   /* Look for "emacs-FINGERPRINT.pdmp" in PATH_EXEC.  We hardcode
      "emacs" in "emacs-FINGERPRINT.pdmp" so that the Emacs binary
      still works if the user copies and renames it.  */
@@ -1574,6 +1581,9 @@ unsafe fn emacs_init_body (mut argc: c_int, argv: *mut *mut c_char,
 	{ attempt_load_pdump = true; }
     }
 
+  #[cfg(feature = "have_ns")]
+  { ns_init_pool(); }
+
   if attempt_load_pdump
     {
       initial_emacs_executable = load_pdump (argc, argv, dump_file);
@@ -1704,6 +1714,8 @@ unsafe fn emacs_init_body (mut argc: c_int, argv: *mut *mut c_char,
   let lc_all: *mut c_char = getenv (c"LC_ALL".as_ptr ());
   if ! ( ! lc_all.is_null () && strcmp (lc_all, c"C".as_ptr ()) == 0)
     {
+      #[cfg(feature = "have_ns")]
+      { ns_init_locale(); }
       setlocale (LC_ALL, c"".as_ptr ());
       fixup_locale ();
     }
@@ -1971,6 +1983,25 @@ unsafe fn emacs_init_body (mut argc: c_int, argv: *mut *mut c_char,
   build_details = ! argmatch (argv, argc, c"-no-build-details".as_ptr (),
 			      c"--no-build-details".as_ptr (), 7, std::ptr::null_mut (),
 			      &raw mut skip_args);
+
+  #[cfg(all(feature = "have_ns", feature = "ns_impl_cocoa"))]
+  if !noninteractive {
+    unsafe extern "C" { fn get_homedir() -> *const c_char; }
+    let mut go_home = ch_to_dir.is_null() && !inhibit_window_system && isatty(STDIN_FILENO) == 0;
+    if skip_args < argc {
+      if strncmp(*argv.offset(skip_args as isize), c"-psn".as_ptr(), 4) == 0 {
+        skip_args += 1;
+        go_home |= ch_to_dir.is_null();
+      } else if skip_args + 1 < argc && strncmp(*argv.offset((skip_args + 1) as isize), c"-psn".as_ptr(), 4) == 0 {
+        skip_args += 2;
+        go_home |= ch_to_dir.is_null();
+      }
+    }
+    if go_home {
+      let home = get_homedir();
+      if *home != 0 && chdir(home) == 0 { emacs_wd = emacs_get_current_dir_name(); }
+    }
+  }
 
   /* Stupid kludge to catch command-line display spec.  We can't
      handle this argument entirely in window system dependent code
@@ -3011,7 +3042,10 @@ DEFUN! ("daemon-initialized", Fdaemon_initialized, Sdaemon_initialized, 0, 0, 0,
       let mut nfd: c_int = 0;
 
       /* Get rid of stdin, stdout and stderr.  */
-      nfd = emacs_open_noquit (c"/dev/null".as_ptr (), O_RDWR, 0);
+      // Initialization has loaded the platform's null-device setting.
+      let null_device = Fsymbol_value(intern(c"null-device".as_ptr()));
+      CHECK_STRING(null_device);
+      nfd = emacs_open_noquit (SSDATA(null_device), O_RDWR, 0);
       err |= nfd < 0;
       err |= dup2 (nfd, STDIN_FILENO) < 0;
       err |= dup2 (nfd, STDOUT_FILENO) < 0;

@@ -1,0 +1,65 @@
+"""Generate target-local Cocoa symbol metadata and real C-global storage.
+
+The reference's DEFSYM/DEFVAR forms are metadata inputs only. No reference object
+is linked. The terminal target's frozen globals and name table remain unchanged.
+"""
+from __future__ import annotations
+import argparse,csv,json,re
+from pathlib import Path
+ROOT=Path(__file__).resolve().parent.parent
+PLATFORM=('macfont','nsfns','nsimage','nsmenu','nsselect','nsterm')
+
+def literal(value):return 'c'+json.dumps(value,ensure_ascii=False)
+
+def main():
+ ap=argparse.ArgumentParser();ap.add_argument('--out',type=Path,required=True);a=ap.parse_args();out=a.out.resolve()
+ if out.is_relative_to((ROOT/'emacs').resolve()):raise SystemExit('reference source is read-only')
+ out.mkdir(parents=True,exist_ok=True)
+ rows=list(csv.DictReader((ROOT/'docs/baseline/globals/symbols.tsv').open(),delimiter='\t'))
+ symbols=[(r['q_name'],r['lisp_name']) for r in rows];known=dict(symbols);extra={};overrides={};variables={};forwards={}
+ for name in PLATFORM:
+  source=(ROOT/f'emacs/src/{name}.m').read_text()
+  for m in re.finditer(r'DEFSYM\s*\(\s*(\w+)\s*,\s*"([^"\n]*)"',source):
+   if m[1] in known and known[m[1]]!=m[2]:overrides[m[1]]=m[2]
+   if m[1] not in known:extra[m[1]]=m[2]
+  for m in re.finditer(r'DEFVAR_(LISP|BOOL|INT)\s*\(\s*"([^"\n]*)"\s*,\s*(\w+)',source):
+   kind={'LISP':('Lisp_Object','Lisp_Fwd_Obj','objvar','core::ptr::null_mut()'),'BOOL':('bool','Lisp_Fwd_Bool','boolvar','false'),'INT':('EMACS_INT','Lisp_Fwd_Int','intvar','0')}[m[1]]
+   variables[m[3]]=kind
+  swift=(ROOT/f'femacs/platform/macos/{name}.swift').read_text()
+  for m in re.finditer(r'(?:fileprivate var|@_silgen_name\("femacs_fwd_[^"]+"\) var)\s+O_FWD_(\w+)\s*:\s*Lisp_Fwd',swift):forwards[m[1]]=name
+ symbols=[(q,overrides.get(q,name)) for q,name in symbols]+sorted(extra.items())
+ original=(ROOT/'femacs/src/include/globals.rs').read_text();tail=original[original.index('// --- variables declared by DEFVAR_*'):]
+ header=['// Generated target-local Cocoa metadata; nil/t and existing baseline indices are preserved.']
+ for i,(q,_) in enumerate(symbols):header += [f'pub const i{q}: usize = {i};',f'#[inline(always)] pub fn {q}() -> Lisp_Object {{ builtin_lisp_symbol({i}) }}']
+ header += [f'pub const lispsym_count: usize = {len(symbols)};', 'unsafe extern "C" { pub static mut lispsym: [Lisp_Symbol; lispsym_count]; }',tail]
+ (out/'globals.rs').write_text('\n'.join(header)+'\n')
+ (out/'symbol-names.rs').write_text('[\n'+''.join(f'    {literal(name)}.as_ptr(),\n' for _,name in symbols)+']\n')
+ code=['// Generated actual Cocoa DEFVAR storage and statically initialized forwarding records.', 'mod cocoa_runtime_exports {', 'use super::*;']
+ for name,(ty,kind,member,zero) in sorted(variables.items()):code += ['#[unsafe(no_mangle)]',f'pub static mut {name}: {ty} = {zero};']
+ for name in sorted(forwards):
+  if name not in variables:raise ValueError('forward has no Cocoa DEFVAR metadata: '+name)
+  ty,kind,member,_=variables[name];pointer=f'core::ptr::addr_of_mut!({name})'+(' as *mut i64' if ty=='EMACS_INT' else '')
+  code += ['#[unsafe(no_mangle)]',f'pub static mut femacs_fwd_{name}: Lisp_Fwd = Lisp_Fwd {{ r#type: {kind}, u: Lisp_Fwd_u {{ {member}: {pointer} }} }};']
+ for q in sorted(extra):code += [f'#[unsafe(export_name="{q}")]', f'pub unsafe extern "C" fn export_{q}() -> Lisp_Object {{ {q}() }}']
+ code += ['#[unsafe(no_mangle)]', 'pub static mut svcsMenu: *mut c_void = core::ptr::null_mut();']
+ for name in ['ns_app_name','ns_send_types','ns_return_types','x_display_list']:
+  code += ['#[unsafe(no_mangle)]',f'pub static mut {name}: *mut c_void = core::ptr::null_mut();']
+ code += ['#[unsafe(no_mangle)]','pub static mut context_menu_value: isize = 0;']
+
+ handlers=(ROOT/'femacs/platform/macos/nsfns.swift').read_text().split('let ns_frame_parm_handlers: [frame_parm_handler?] = [',1)[1].split('\n]',1)[0]
+ entries=[]
+ for line in handlers.splitlines():
+  line=line.strip()
+  if line.startswith('nil,'):entries.append(None)
+  elif line.startswith('{'):entries.append(re.search(r'in (\w+)\(',line)[1])
+ code += ['type CocoaFrameParm = Option<unsafe extern "C" fn(*mut c_void, Lisp_Object, Lisp_Object)>;', 'unsafe extern "C" {']
+ for name in sorted(set(entries)-{None}):code += [f'#[link_name="{name}"] fn handler_{name}(f: *mut c_void, value: Lisp_Object, old: Lisp_Object);']
+ code += ['}', '#[unsafe(no_mangle)]', f'pub static mut ns_frame_parm_handlers: [CocoaFrameParm; {len(entries)}] = [']
+ code += ['None,' if name is None else f'Some(handler_{name}),' for name in entries]
+ code += ['];']
+ code.append('}')
+ (out/'runtime.rs').write_text('\n'.join(code)+'\n')
+ (out/'runtime.json').write_text(json.dumps({'extra_symbols':extra,'target_name_overrides':overrides,'cocoa_variables':{k:v[0] for k,v in variables.items()},'forwards':forwards,'symbol_count':len(symbols)},indent=2)+'\n')
+ print(f'Cocoa metadata: {len(symbols)} symbols ({len(extra)} additional), {len(variables)} actual globals, {len(forwards)} static forwarders')
+ return 0
+if __name__=='__main__':raise SystemExit(main())

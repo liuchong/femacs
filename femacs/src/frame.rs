@@ -2238,7 +2238,7 @@ unsafe fn tty_child_frame_rect (f: *mut frame, params: Lisp_Object,
 
 DEFUN! ("make-terminal-frame", Fmake_terminal_frame, Smake_terminal_frame,
        1, 1, 0,
-       doc: "Create an additional terminal frame, possibly on another terminal.\nThis function takes one argument, an alist specifying frame parameters.\n\nYou can create multiple frames on a single text terminal, but only one\nof them (the selected terminal frame) is actually displayed.\n\nIn practice, generally you don't need to specify any parameters,\nexcept when you want to create a new frame on another terminal.\nIn that case, the `tty' parameter specifies the device file to open,\nand the `tty-type' parameter specifies the terminal type.  Example:\n\n   (make-terminal-frame \\='((tty . \"/dev/pts/5\") (tty-type . \"xterm\")))\n\nNote that changing the size of one terminal frame automatically\naffects all frames on the same terminal device.  ",
+       doc: "Create an additional terminal frame, possibly on another terminal.\nThis function takes one argument, an alist specifying frame parameters.\n\nYou can create multiple frames on a single text terminal, but only one\nof them (the selected terminal frame) is actually displayed.\n\nIn practice, generally you don't need to specify any parameters,\nexcept when you want to create a new frame on another terminal.\nIn that case, the `tty' parameter specifies the device file to open,\nand the `tty-type' parameter specifies the terminal type.  Example:\n\n   (make-terminal-frame \\='((tty . \"${DEVICE_ROOT}/pts/5\") (tty-type . \"xterm\")))\n\nNote that changing the size of one terminal frame automatically\naffects all frames on the same terminal device.  ",
        (parms: Lisp_Object),
        {
   /* C 1755-1758: the `#ifdef HAVE_ANDROID` arm (the platform has no text terminals); everything
@@ -4390,7 +4390,11 @@ DEFUN! ("modify-frame-parameters", Fmodify_frame_parameters,
   let mut val: Lisp_Object = Qnil ();
 
   /* I think this should be done with a hook.  */
-  /* C 4261-4270's `#ifdef HAVE_WINDOW_SYSTEM`/`MSDOS` arms are dead (P-08).  */
+  #[cfg(feature = "have_window_system")]
+  if FRAME_WINDOW_P(f) {
+    gui_set_frame_parameters(f, alist);
+    return Qnil();
+  }
 
     {
       let length: EMACS_INT = list_length (alist);
@@ -4473,7 +4477,11 @@ DEFUN! ("frame-char-height", Fframe_char_height, Sframe_char_height,
        doc: "Height in pixels of a line in the font in frame FRAME.\nIf FRAME is omitted or nil, the selected frame is used.\nFor a terminal frame, the value is always 1.  ",
        (frame: Lisp_Object),
        {
-  /* C 4352-4358's `#ifdef HAVE_WINDOW_SYSTEM` arm is dead (P-08).  */
+  #[cfg(feature = "have_window_system")]
+  {
+    let f = decode_any_frame(frame);
+    if FRAME_WINDOW_P(f) { return make_fixnum(FRAME_LINE_HEIGHT(f) as EMACS_INT); }
+  }
     return make_fixnum (1);
 });
 
@@ -4482,7 +4490,11 @@ DEFUN! ("frame-char-width", Fframe_char_width, Sframe_char_width,
        doc: "Width in pixels of characters in the font in frame FRAME.\nIf FRAME is omitted or nil, the selected frame is used.\nOn a graphical screen, the width is the standard width of the default font.\nFor a terminal screen, the value is always 1.  ",
        (frame: Lisp_Object),
        {
-  /* C 4371-4377's `#ifdef HAVE_WINDOW_SYSTEM` arm is dead (P-08).  */
+  #[cfg(feature = "have_window_system")]
+  {
+    let f = decode_any_frame(frame);
+    if FRAME_WINDOW_P(f) { return make_fixnum(FRAME_COLUMN_WIDTH(f) as EMACS_INT); }
+  }
     return make_fixnum (1);
 });
 
@@ -4493,7 +4505,8 @@ DEFUN! ("frame-native-width", Fframe_native_width,
        {
   let f: *mut frame = decode_any_frame (frame);
 
-  /* C 4393-4397's `#ifdef HAVE_WINDOW_SYSTEM` arm is dead (P-08).  */
+  #[cfg(feature = "have_window_system")]
+  if FRAME_WINDOW_P(f) { return make_fixnum(FRAME_PIXEL_WIDTH!(f) as EMACS_INT); }
     return make_fixnum (FRAME_TOTAL_COLS! (f) as EMACS_INT);
 });
 
@@ -4504,7 +4517,8 @@ DEFUN! ("frame-native-height", Fframe_native_height,
        {
   let f: *mut frame = decode_any_frame (frame);
 
-  /* C 4422-4426's `#ifdef HAVE_WINDOW_SYSTEM` arm is dead (P-08).  */
+  #[cfg(feature = "have_window_system")]
+  if FRAME_WINDOW_P(f) { return make_fixnum(FRAME_PIXEL_HEIGHT!(f) as EMACS_INT); }
     return make_fixnum (FRAME_TOTAL_LINES! (f) as EMACS_INT);
 });
 
@@ -6222,21 +6236,23 @@ const RES_TYPE_BOOLEAN_NUMBER: resource_types = 5;  // C 3990
 /// C: frame.h 1840: `#define EMACS_CLASS "Emacs"`
 #[cfg (feature = "have_window_system")]
 const EMACS_CLASS: &str = "Emacs";
+#[cfg(feature = "have_window_system")]
+const EMACS_CLASS_C: &core::ffi::CStr = c"Emacs";
 
 
 /* C 6538's `#if !defined (HAVE_X_WINDOWS) && defined (NoValue)`: the `NoValue` family, defined
    by the same six `*gui.h` headers (all `0x0000`/`0x0001`/`0x0002`/`0x0004`/`0x0008`; nsgui.h
    116-120, pgtkgui.h 79-83, w32gui.h 73-77, androidgui.h 236-240, haikugui.h 77-81).  */
 /// C: nsgui.h 116: `#define NoValue 0x0000` / `XValue 0x0001` / `YValue 0x0002` / `WidthValue 0x0004` / `HeightValue 0x0008`
-#[cfg (all (not (feature = "have_x_windows"), feature = "no_value"))]
+#[cfg (all (not (feature = "have_x_windows"), feature = "no_value", not (feature = "have_ns")))]
 const NoValue: c_int = 0x0000;
-#[cfg (all (not (feature = "have_x_windows"), feature = "no_value"))]
+#[cfg (all (not (feature = "have_x_windows"), feature = "no_value", not (feature = "have_ns")))]
 const XValue: c_int = 0x0001;
-#[cfg (all (not (feature = "have_x_windows"), feature = "no_value"))]
+#[cfg (all (not (feature = "have_x_windows"), feature = "no_value", not (feature = "have_ns")))]
 const YValue: c_int = 0x0002;
-#[cfg (all (not (feature = "have_x_windows"), feature = "no_value"))]
+#[cfg (all (not (feature = "have_x_windows"), feature = "no_value", not (feature = "have_ns")))]
 const WidthValue: c_int = 0x0004;
-#[cfg (all (not (feature = "have_x_windows"), feature = "no_value"))]
+#[cfg (all (not (feature = "have_x_windows"), feature = "no_value", not (feature = "have_ns")))]
 const HeightValue: c_int = 0x0008;
 
 /* The mirror-gap functions this half calls; each `/// C:` is the header's own prototype
@@ -6556,6 +6572,8 @@ pub unsafe extern "C" fn gui_redo_mouse_highlight (dpyinfo: *mut Display_Info)
 #[unsafe(no_mangle)] pub static mut Vx_resource_class: Lisp_Object = lisp_h_Qnil ();
 #[cfg (feature = "have_window_system")]
 #[unsafe(no_mangle)] pub static mut Vx_resource_name: Lisp_Object = lisp_h_Qnil ();
+#[cfg(feature = "have_window_system")]
+#[unsafe(no_mangle)] pub static mut Vframe_alpha_lower_limit: Lisp_Object = lisp_h_Qnil ();
 
 /* Subroutines of creating an X frame.  */
 
@@ -6575,7 +6593,7 @@ pub unsafe extern "C" fn validate_x_resource_name ()
   let mut i: ptrdiff_t;
 
   if !STRINGP (Vx_resource_class)
-    { Vx_resource_class = build_string (EMACS_CLASS.as_ptr () as *const c_char); }
+    { Vx_resource_class = build_string (EMACS_CLASS_C.as_ptr ()); }
 
   if STRINGP (Vx_resource_name)
     {
@@ -6759,7 +6777,7 @@ pub unsafe extern "C" fn x_get_resource_string (attribute: *const c_char,
   let name_key: *mut c_char = SAFE_ALLOCA! (sa_avail, name_keysize + class_keysize) as *mut c_char;
   let class_key: *mut c_char = name_key.offset (name_keysize as isize);
   esprintf (name_key, c"%s.%s".as_ptr (), SSDATA (Vinvocation_name), attribute);
-  sprintf (class_key, c"%s.%s".as_ptr (), EMACS_CLASS.as_ptr () as *const c_char, class);
+  sprintf (class_key, c"%s.%s".as_ptr (), EMACS_CLASS_C.as_ptr (), class);
 
   result = x_get_string_resource (&raw mut (*FRAME_DISPLAY_INFO! (sf)).rdb as *mut c_void,
 				  name_key, class_key);
@@ -6969,7 +6987,7 @@ pub unsafe extern "C" fn gui_default_parameter (f: *mut frame, alist: Lisp_Objec
     the corresponding argument is updated;  for each value
     not found, the corresponding argument is left unchanged.  */
 #[cfg (feature = "have_window_system")]
-#[cfg (any (all (not (feature = "have_x_windows"), feature = "no_value"), feature = "have_android"))]
+#[cfg (any (all (not (feature = "have_x_windows"), feature = "no_value"), feature = "have_android", feature = "have_ns"))]
 unsafe fn XParseGeometry (mut string: *mut c_char, x: *mut c_int, y: *mut c_int,
 			  width: *mut c_uint, height: *mut c_uint) -> c_int
 {
@@ -7076,7 +7094,7 @@ DEFUN! ("x-parse-geometry", Fx_parse_geometry, Sx_parse_geometry, 1, 1, 0,
     if !strchr (SSDATA (string), b' ' as c_int).is_null ()
       { return calln! (Qns_parse_geometry (), string); }
   }
-  #[cfg (any (all (not (feature = "have_x_windows"), feature = "no_value"), feature = "have_android"))]
+  #[cfg (any (all (not (feature = "have_x_windows"), feature = "no_value"), feature = "have_android", feature = "have_ns"))]
   let geometry: c_int = XParseGeometry (SSDATA (string) as *mut c_char, &raw mut x, &raw mut y,
 					&raw mut width, &raw mut height);
   let mut result: Lisp_Object = Qnil ();
@@ -7561,6 +7579,14 @@ DEFUN! ("reconsider-frame-fonts", Freconsider_frame_fonts, Sreconsider_frame_fon
    round writes is `make_monitor_attribute_list` (C 7144-7187) below - `free_monitors` (C 7124-7135)
    is the next row of `docs/baseline/window-arms-plan.tsv`.  */
 
+/// C 7124-7135: release each monitor name and then its array.
+#[cfg(feature = "have_ns")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn free_monitors(monitors: *mut MonitorInfo, n_monitors: c_int) {
+  for i in 0..n_monitors { xfree((*monitors.offset(i as isize)).name.cast()); }
+  xfree(monitors.cast());
+}
+
 /// C 7144-7187: `make_monitor_attribute_list` - it turns C's `struct MonitorInfo` array into the
 /// Lisp attribute list `frame-monitor-attributes` returns.  Inside C 7120's `#ifdef HAVE_WINDOW_SYSTEM`:
 /// dead on the frozen target, live on Android, whose unit imported the name with only the header's
@@ -7882,7 +7908,18 @@ pub unsafe extern "C" fn syms_of_frame ()
     }
   }
 
-  /* C 7396-7426's `#ifdef HAVE_WINDOW_SYSTEM` block is dead (P-08).  */
+  #[cfg(feature = "have_window_system")]
+  {
+    DEFVAR_LISP! (c"x-resource-name", Vx_resource_name,
+      "The name Emacs uses to look up X resources.\n`x-get-resource' uses this as the first component of the instance name\nwhen requesting resource values.\nEmacs initially sets `x-resource-name' to the name under which Emacs\nwas invoked, or to the value specified with the `-name' or `-rn'\nswitches, if present.\n\nIt may be useful to bind this variable locally around a call\nto `x-get-resource'.  See also the variable `x-resource-class'.  ");
+    Vx_resource_name = Qnil ();
+    DEFVAR_LISP! (c"x-resource-class", Vx_resource_class,
+      "The class Emacs uses to look up X resources.\n`x-get-resource' uses this as the first component of the instance class\nwhen requesting resource values.\n\nEmacs initially sets `x-resource-class' to \"Emacs\".\n\nSetting this variable permanently is not a reasonable thing to do,\nbut binding this variable locally around a call to `x-get-resource'\nis a reasonable practice.  See also the variable `x-resource-name'.  ");
+    Vx_resource_class = build_string (EMACS_CLASS_C.as_ptr ());
+    DEFVAR_LISP! (c"frame-alpha-lower-limit", Vframe_alpha_lower_limit,
+      "The lower limit of the frame opacity (alpha transparency).\nThe value should range from 0 (invisible) to 100 (completely opaque).\nYou can also use a floating number between 0.0 and 1.0.  ");
+    Vframe_alpha_lower_limit = make_fixnum (20);
+  }
 
   DEFVAR_LISP! (c"default-frame-alist", Vdefault_frame_alist,
     "Alist of default values of frame parameters for frame creation.\nThese may be set in your init file, like this:\n  (setq default-frame-alist \\='((width . 80) (height . 55) (menu-bar-lines . 1)))\n\nThese override values given in window system configuration data,\nincluding X Windows' defaults database.\n\nNote that many display-related modes (like `scroll-bar-mode' or\n`menu-bar-mode') alter `default-frame-alist', so if you set this\nvariable directly, you may be overriding other settings\nunintentionally.  Instead it's often better to use\n`modify-all-frames-parameters' or push new elements to the front of\nthis alist.\n\nFor values specific to the first Emacs frame, see `initial-frame-alist'.\n\nFor window-system specific values, see `window-system-default-frame-alist'.\n\nFor values specific to the separate minibuffer frame, see\n`minibuffer-frame-alist'.\n\nSetting this variable does not affect existing frames, only new ones.  ");

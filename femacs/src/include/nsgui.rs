@@ -66,6 +66,8 @@ pub type CGFloat = f64;
 // C 75-78: `typedef struct _NSPoint { CGFloat x, y; } NSPoint;` and its two siblings.  The
 // tags are C's own (`_NSPoint`, `_NSSize`, `_NSRect`) and the typedef names alias them, as in
 // the `_XCharStruct` pair above; `NSRect` embeds the other two by value, which is C's layout.
+#[repr(C)]
+#[derive(Clone, Copy)]
 pub struct _NSPoint
 {
   pub x: CGFloat,
@@ -73,6 +75,8 @@ pub struct _NSPoint
 }
 pub type NSPoint = _NSPoint;
 
+#[repr(C)]
+#[derive(Clone, Copy)]
 pub struct _NSSize
 {
   pub width: CGFloat,
@@ -80,6 +84,8 @@ pub struct _NSSize
 }
 pub type NSSize = _NSSize;
 
+#[repr(C)]
+#[derive(Clone, Copy)]
 pub struct _NSRect
 {
   pub origin: NSPoint,
@@ -99,28 +105,28 @@ macro_rules! NativeRectangle {
 macro_rules! CONVERT_TO_EMACS_RECT {
   ($xr:expr, $nr:expr) =>
     { {
-        ($xr).x = ($nr).origin.x;
-        ($xr).y = ($nr).origin.y;
-        ($xr).width = ($nr).size.width;
-        ($xr).height = ($nr).size.height;
+        ($xr).x = ($nr).origin.x as _;
+        ($xr).y = ($nr).origin.y as _;
+        ($xr).width = ($nr).size.width as _;
+        ($xr).height = ($nr).size.height as _;
       } };
 }
 macro_rules! CONVERT_FROM_EMACS_RECT {
   ($xr:expr, $nr:expr) =>
     { {
-        ($nr).origin.x = ($xr).x;
-        ($nr).origin.y = ($xr).y;
-        ($nr).size.width = ($xr).width;
-        ($nr).size.height = ($xr).height;
+        ($nr).origin.x = ($xr).x as _;
+        ($nr).origin.y = ($xr).y as _;
+        ($nr).size.width = ($xr).width as _;
+        ($nr).size.height = ($xr).height as _;
       } };
 }
 macro_rules! STORE_NATIVE_RECT {
   ($nr:expr, $px:expr, $py:expr, $pwidth:expr, $pheight:expr) =>
     { {
-        ($nr).origin.x = ($px);
-        ($nr).origin.y = ($py);
-        ($nr).size.width = ($pwidth);
-        ($nr).size.height = ($pheight);
+        ($nr).origin.x = ($px) as CGFloat;
+        ($nr).origin.y = ($py) as CGFloat;
+        ($nr).size.width = ($pwidth) as CGFloat;
+        ($nr).size.height = ($pheight) as CGFloat;
       } };
 }
 

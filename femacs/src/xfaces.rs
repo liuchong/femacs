@@ -67,7 +67,7 @@ include!("include/window.rs");            // C 266: window.h
 include!("include/termchar.rs");          // C 267: termchar.h
 include!("include/font.rs");              // C 269: font.h
 include!("include/fontset.rs");            // C 270: fontset.h (`fontset_name`)
-#[cfg (feature = "have_window_system")]
+#[cfg (feature = "have_android")]
 include!("include/androidterm.rs");         // frame.h's Android `FRAME_FONT`/`FRAME_FONTSET`
 include!("include/keymap.rs");            // keyboard.h/window.h: keymap.h
 include!("include/disptab.rs");           // frame.h: disptab.h
@@ -535,19 +535,33 @@ pub fn FACE_FROM_ID_OR_NULL (f: *mut frame, id: c_int) -> *mut face
     { std::ptr::null_mut () }
 }
 
-/// C: dispextern.h 2015-2022: `FACE_SUITABLE_FOR_ASCII_CHAR_P`.  `HAVE_WINDOW_SYSTEM` is
-/// undef, so C's body is `return true;`.
+/// C: dispextern.h 2015-2022: `FACE_SUITABLE_FOR_ASCII_CHAR_P`.
 #[inline(always)]
-pub fn FACE_SUITABLE_FOR_ASCII_CHAR_P (face: *mut face) -> bool { let _ = face; true }
+pub fn FACE_SUITABLE_FOR_ASCII_CHAR_P (face: *mut face) -> bool {
+  #[cfg(feature = "have_window_system")]
+  { return unsafe { face == (*face).ascii_face }; }
+  #[cfg(not(feature = "have_window_system"))]
+  { let _ = face; true }
+}
 
-/// C: dispextern.h 2030-2038: `FACE_FOR_CHAR`.  `HAVE_WINDOW_SYSTEM` is undef, so C's body
-/// is `return face->id;`.
+/// C: dispextern.h 2030-2038: `FACE_FOR_CHAR`.
 #[inline(always)]
 pub fn FACE_FOR_CHAR (f: *mut frame, face: *mut face, character: c_int, pos: ptrdiff_t,
                       object: Lisp_Object) -> face_id
 {
+  #[cfg(feature = "have_window_system")]
+  {
+    unsafe extern "C" {
+      fn face_for_char(f: *mut frame, face: *mut face, ch: c_int,
+                       pos: ptrdiff_t, object: Lisp_Object) -> c_int;
+    }
+    return unsafe { face_for_char(f, face, character, pos, object) };
+  }
+  #[cfg(not(feature = "have_window_system"))]
+  {
   let _ = (f, character, pos, object);
   unsafe { (*face).id }
+  }
 }
 
 /* C 1932-1949 (dispextern.h): the three tty "default colour" sentinels.  */
@@ -696,7 +710,12 @@ pub unsafe extern "C" fn init_frame_faces (f: *mut frame)
   if FRAME_FACE_CACHE (f) == std::ptr::null_mut ()
     { FRAME_FACE_CACHE! (f, make_face_cache (f)); }
 
-  /* Make or share an image cache.  (C's `HAVE_WINDOW_SYSTEM` arm is dead.)  */
+  #[cfg(feature = "have_window_system")]
+  if FRAME_WINDOW_P(f) {
+    let cache = share_image_cache(f);
+    (*f).image_cache = cache as *mut c_void;
+    (*cache).refcount += 1;
+  }
 
   /* Realize faces early (Bug#17889).  */
   if ! realize_basic_faces (f)
@@ -715,7 +734,15 @@ pub unsafe extern "C" fn free_frame_faces (f: *mut frame)
       FRAME_FACE_CACHE! (f, std::ptr::null_mut ());
     }
 
-  /* C's `HAVE_WINDOW_SYSTEM` arm is dead.  */
+  #[cfg(feature = "have_window_system")]
+  if FRAME_WINDOW_P(f) {
+    let cache = FRAME_IMAGE_CACHE!(f) as *mut image_cache;
+    if !cache.is_null() {
+      (*cache).refcount -= 1;
+      if (*cache).refcount == 0 { free_image_cache(f); }
+      (*f).image_cache = core::ptr::null_mut();
+    }
+  }
 }
 
 /* C 730-748: clear face caches, and recompute basic faces for frame F.  */
@@ -3801,6 +3828,16 @@ unsafe fn x_create_gc (f: *mut frame, value_mask: c_ulong, xgcv: *mut Emacs_GC) 
   return android_create_gc (value_mask as android_gc_value_mask, xgcv);
 }
 
+// C 575-592: NS emulation owns a copy of the graphics-context values.
+#[cfg(feature = "have_ns")]
+unsafe fn x_create_gc (_f: *mut frame, _mask: c_ulong, egc: *mut Emacs_GC) -> *mut Emacs_GC {
+  let gc = xmalloc(core::mem::size_of::<Emacs_GC>()).cast::<Emacs_GC>();
+  core::ptr::copy_nonoverlapping(egc, gc, 1);
+  gc
+}
+#[cfg(feature = "have_ns")]
+unsafe fn x_free_gc (_f: *mut frame, gc: *mut Emacs_GC) { xfree(gc.cast()); }
+
 #[cfg (feature = "have_window_system")]
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn prepare_face_for_display (f: *mut frame, face: *mut face)
@@ -3821,6 +3858,7 @@ pub unsafe extern "C" fn prepare_face_for_display (f: *mut frame, face: *mut fac
       block_input ();
       /* C 4789-4800: `#if defined HAVE_X_WINDOWS || defined HAVE_ANDROID` - live on Android; its
 	 inner `#ifndef ANDROID_STUBIFY` picks the bitmap, and C's `#else` arm aborts.  */
+      #[cfg(any(feature = "have_android", feature = "have_x_windows"))]
       {
 	if (*face).stipple != 0
 	  {
@@ -3836,7 +3874,7 @@ pub unsafe extern "C" fn prepare_face_for_display (f: *mut frame, face: *mut fac
 	    mask |= (GCFillStyle | GCStipple) as c_ulong;
 	  }
       }
-      (*face).gc = x_create_gc (f, mask, &raw mut egc) as *mut c_void;
+      (*face).gc = x_create_gc (f, mask, &raw mut egc) as _;
       if !(*face).font.is_null ()
 	{ font_prepare_for_face (f, face); }
       unblock_input ();
@@ -6339,3 +6377,6 @@ const _: () = core::assert! (core::mem::offset_of! (face, next) == 272);
 const _: () = core::assert! (core::mem::offset_of! (face, ascii_face) == 288);
 #[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
 const _: () = core::assert! (core::mem::size_of::<face> () == 296);
+
+#[cfg(feature = "have_window_system")]
+unsafe extern "C" { fn free_image_cache(f: *mut frame); }

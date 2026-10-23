@@ -1,5 +1,7 @@
 /emacs
 /build
+/.femacs-cache
+/dist/macos
 /femacs/target
 /spikes/miri/target
 

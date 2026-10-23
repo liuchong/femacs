@@ -2019,7 +2019,7 @@ pub unsafe extern "C" fn openp (path: Lisp_Object, str_: Lisp_Object, suffixes: 
 	 else
 	 handler = Ffind_file_name_handler (filename, Qfile_exists_p);
 	 It's not clear why that was the case and it breaks things like
-	 (load "/bar.el") where the file is actually "/bar.el.gz".  */
+	 (load "${ROOT}/bar.el") where the file is actually "${ROOT}/bar.el.gz".  */
       /* make_string has its own ideas on when to return a unibyte
 	 string and when a multibyte string, but we know better.
 	 We must have a unibyte string when dumping, since
@@ -5591,6 +5591,7 @@ DEFUN! ("internal--obarray-buckets",
    own, which is `docs/baseline/globals/symbols.tsv`'s (`iQnil == 0`, `iQt == 1`, then the
    rest in that file's order), because the reference's ordering is an internal detail of its
    build (the baseline's own note); `init_obarray_once` names every builtin symbol with it.  */
+#[cfg(not(feature = "have_ns"))]
 static mut defsym_name: [*const c_char; 2118] =
 [
   c"nil".as_ptr (), c"t".as_ptr (), c"AEAD-ciphers".as_ptr (), c"ATOM".as_ptr (),
@@ -6124,6 +6125,9 @@ static mut defsym_name: [*const c_char; 2118] =
   c"yes-or-no-p-history".as_ptr (), c"yi".as_ptr (), c"z-group".as_ptr (), c"zero-width".as_ptr (),
   c"zh".as_ptr (), c"zlib".as_ptr (),
 ];
+#[cfg(feature = "have_ns")]
+static mut defsym_name: [*const c_char; lispsym_count] = include!(env!("FEMACS_SYMBOL_NAMES_RS"));
+
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn init_obarray_once ()

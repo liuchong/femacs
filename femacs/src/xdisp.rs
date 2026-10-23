@@ -1112,12 +1112,19 @@ unsafe fn FACE_FROM_ID (f: *mut frame, id: c_int) -> *mut face
 }
 
 /// C: dispextern.h 2030-2038: `INLINE int FACE_FOR_CHAR (struct frame *f, struct face *face,
-/// int character, ptrdiff_t pos, Lisp_Object object);`.  `HAVE_WINDOW_SYSTEM` is undef on
-/// this target, so C's body is `return face->id;` (the `xfaces.rs` copy of the macro).
+/// int character, ptrdiff_t pos, Lisp_Object object);`.
 #[inline(always)]
 unsafe fn FACE_FOR_CHAR (f: *mut frame, face: *mut face, character: c_int, pos: ptrdiff_t,
 			 object: Lisp_Object) -> face_id
 {
+  #[cfg(feature = "have_window_system")]
+  {
+    unsafe extern "C" {
+      fn face_for_char(f: *mut frame, face: *mut face, ch: c_int,
+                       pos: ptrdiff_t, object: Lisp_Object) -> c_int;
+    }
+    return face_for_char(f, face, character, pos, object);
+  }
   let _ = (f, character, pos, object);
   (*face).id
 }
@@ -9893,10 +9900,37 @@ unsafe fn get_next_display_element (it: *mut it) -> bool
 	    }
 	}
 
-      /* C 8687-8736's `#ifdef HAVE_WINDOW_SYSTEM` arm (the multibyte face adjustment with
-	 `composition_gstring_from_id`/`face_for_font`/`composition_table`, and its
-	 `FACE_FROM_ID_OR_NULL` glyphless fallback) is dead on this target (P-08); recorded in
-	 docs/ports/xdisp.md.  */
+      #[cfg(feature = "have_window_system")]
+      if success_p && it_bits!(multibyte_p, it) && FRAME_WINDOW_P((*it).f)
+        && ((*it).what == IT_CHARACTER || (*it).what == IT_COMPOSITION) {
+        let face = FACE_FROM_ID_OR_NULL((*it).f, (*it).face_id);
+        if face.is_null() {
+          (*it).what = IT_GLYPHLESS;
+          (*it).glyphless_method = GLYPHLESS_DISPLAY_EMPTY_BOX;
+        } else if (*it).what == IT_COMPOSITION && (*it).cmp_it.ch >= 0 {
+          unsafe extern "C" {
+            fn face_for_font(f: *mut frame, font: Lisp_Object, face: *mut face) -> c_int;
+          }
+          let gs = composition_gstring_from_id((*it).cmp_it.id as ptrdiff_t);
+          (*it).face_id = face_for_font((*it).f, LGSTRING_FONT(gs), face);
+        } else {
+          let pos = if !(*it).s.is_null() { -1 }
+                    else if STRINGP((*it).string) { IT_STRING_CHARPOS!(*it) }
+                    else { IT_CHARPOS!(*it) };
+          let mut c = (*it).char_to_display;
+          if (*it).what != IT_CHARACTER {
+            let cmp = *composition_table.offset((*it).cmp_it.id as isize);
+            c = ' ' as c_int;
+            let mut i = 0;
+            while i < (*cmp).glyph_len {
+              c = COMPOSITION_GLYPH(cmp, i as ptrdiff_t) as c_int;
+              if c != '\t' as c_int { break; }
+              i += 1;
+            }
+          }
+          (*it).face_id = FACE_FOR_CHAR((*it).f, face, c, pos, (*it).string);
+        }
+      }
       break;
     }
 
@@ -15619,10 +15653,9 @@ unsafe fn update_menu_bar (f: *mut frame, save_match_data: bool, mut hooks_run: 
   if inhibit_menubar_update
     { return hooks_run; }
 
-  /* C 14431-14435's `#ifdef HAVE_EXT_MENU_BAR` arm is dead (the manifest has no such macro),
-     so C's ternary compiles as the `#else`: both arms test `FRAME_MENU_BAR_LINES`.  */
   if if FRAME_WINDOW_P (f)
-     { FRAME_MENU_BAR_LINES (f) > 0 }
+     { if cfg!(feature = "have_ext_menu_bar") { FRAME_EXTERNAL_MENU_BAR(f) }
+       else { FRAME_MENU_BAR_LINES(f) > 0 } }
      else { FRAME_MENU_BAR_LINES (f) > 0 }
     {
       /* If the user has switched buffers or windows, we need to
@@ -15668,9 +15701,15 @@ unsafe fn update_menu_bar (f: *mut frame, save_match_data: bool, mut hooks_run: 
 	  fset_menu_bar_items (f, menu_bar_items (FRAME_MENU_BAR_ITEMS (f)));
 
 	  /* Redisplay the menu bar in case we changed it.  */
-	  /* C 14481-14499's `#ifdef HAVE_EXT_MENU_BAR` block is dead; the live arm is its
-	     `#else`: the menu bar is an ordinary screen line on this target.  */
-	  window_bits! (w, update_mode_line, true);
+          #[cfg(feature = "have_ext_menu_bar")]
+          if FRAME_WINDOW_P(f) {
+            unsafe extern "C" { fn set_frame_menubar(f: *mut frame, deep: bool); }
+            if !cfg!(feature = "have_ns") || f == SELECTED_FRAME() {
+              set_frame_menubar(f, false);
+            }
+          } else { window_bits!(w, update_mode_line, true); }
+          #[cfg(not(feature = "have_ext_menu_bar"))]
+          { window_bits!(w, update_mode_line, true); }
 
 	  unbind_to (count, Qnil ());
 	  set_buffer_internal_1 (prev);
@@ -17461,6 +17500,10 @@ macro_rules! AINC {
 	}
       }
 
+      else
+        { break 'frame_pass; }
+    } // 'update: C's goto update must reach the output below, not skip it.
+
       /* Compare desired and current matrices, perform output.  */
 
     /* update:  (C 18072 — the label has no Rust site; `break 'update` from the
@@ -17536,7 +17579,6 @@ macro_rules! AINC {
               continue 'retry;
             }
 	}
-    }
   }
 
   if !consider_all_windows_p
@@ -21038,9 +21080,8 @@ redisplay_window (window: Lisp_Object, just_this_one_p: bool)
     {
       if FRAME_WINDOW_P (f)
 	{
-/* C 21527-21533's `#ifdef HAVE_EXT_MENU_BAR` arm (`if (FRAME_EXTERNAL_MENU_BAR (f))
-   display_menu_bar (w);`) is dead on this target (P-08); the live `#else` arm follows.  */
-	  if FRAME_MENU_BAR_LINES (f) > 0
+	  if if cfg!(feature = "have_ext_menu_bar") { FRAME_EXTERNAL_MENU_BAR(f) }
+             else { FRAME_MENU_BAR_LINES(f) > 0 }
 	    { display_menu_bar (w); }
 	}
       else
@@ -26762,9 +26803,8 @@ display_menu_bar (w: *mut window)
   let mut i: c_int;
 
   /* Don't do all this for graphical frames.  */
-  /* C 27769-27791's `#ifdef HAVE_NTGUI`, `#if defined (HAVE_PGTK)`,
-     `#if defined (USE_X_TOOLKIT) || defined (USE_GTK)`, `#ifdef HAVE_NS` and
-     `#ifdef HAVE_HAIKU` arms are dead on this target (the ledger's dead-arm list).  */
+  #[cfg(feature = "have_ns")]
+  if FRAME_NS_P(f) { return; }
 
   /* Don't do all this if the frame's menu bar is not yet set.  */
   if NILP (FRAME_MENU_BAR_ITEMS (f))
@@ -32757,7 +32797,7 @@ pub unsafe extern "C" fn get_phys_cursor_geometry (w: *mut window, row: *mut gly
 #[cfg (feature = "have_window_system")]
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn get_glyph_string_clip_rects (s: *mut glyph_string,
-                                                      rects: *mut Emacs_Rectangle,
+                                                      rects: *mut NativeRectangle!(),
                                                       mut n: c_int) -> c_int
 {
   let mut r: Emacs_Rectangle = std::mem::zeroed ();
@@ -32919,7 +32959,10 @@ pub unsafe extern "C" fn get_glyph_string_clip_rects (s: *mut glyph_string,
     {
       /* C's `CONVERT_FROM_EMACS_RECT` arm is for ports whose `NativeRectangle` is not this record;
 	 on Android `*rects = r` is C 2679's `#else` arm.  */
-      *rects = r;
+      #[cfg(feature = "have_ns")]
+      { CONVERT_FROM_EMACS_RECT!(r, *rects); }
+      #[cfg(not(feature = "have_ns"))]
+      { *rects = r; }
       return 1;
     }
   else
@@ -32928,6 +32971,11 @@ pub unsafe extern "C" fn get_glyph_string_clip_rects (s: *mut glyph_string,
 	 multiple clipping rectangles, we exclude the row of the glyph
 	 string from the clipping rectangle.  This is to avoid drawing
 	 the same text on the environment with anti-aliasing.  */
+      #[cfg(feature = "have_ns")]
+      let mut converted: [Emacs_Rectangle; 2] = std::mem::zeroed();
+      #[cfg(feature = "have_ns")]
+      let rs: *mut Emacs_Rectangle = converted.as_mut_ptr();
+      #[cfg(not(feature = "have_ns"))]
       let rs: *mut Emacs_Rectangle = rects;   // C 2691's `#else` arm: `Emacs_Rectangle *rs = rects`
       let mut i: c_int = 0;
       let row_y: c_int = WINDOW_TO_FRAME_PIXEL_Y! ((*s).w, (*((*s).row)).y);
@@ -32962,6 +33010,8 @@ pub unsafe extern "C" fn get_glyph_string_clip_rects (s: *mut glyph_string,
 	}
 
       n = i;
+      #[cfg(feature = "have_ns")]
+      for index in 0..n { CONVERT_FROM_EMACS_RECT!(*rs.offset(index as isize), *rects.offset(index as isize)); }
       return n;
     }
 }
@@ -32970,7 +33020,7 @@ pub unsafe extern "C" fn get_glyph_string_clip_rects (s: *mut glyph_string,
 #[cfg (feature = "have_window_system")]
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn get_glyph_string_clip_rect (s: *mut glyph_string,
-                                                     nr: *mut Emacs_Rectangle)
+                                                     nr: *mut NativeRectangle!())
 {
   get_glyph_string_clip_rects (s, nr, 1);
 }
@@ -32987,7 +33037,7 @@ pub unsafe extern "C" fn get_glyph_string_clip_rect (s: *mut glyph_string,
 #[cfg (feature = "have_window_system")]
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn remember_mouse_glyph (f: *mut frame, gx: c_int, gy: c_int,
-                                               rect: *mut Emacs_Rectangle)
+                                               rect: *mut NativeRectangle!())
 {
   const STAGE_PART: u8 = 0;          // the `switch (part)`
   const STAGE_TEXT_GLYPH: u8 = 1;    // `text_glyph:`
@@ -34838,7 +34888,7 @@ pub unsafe extern "C" fn handle_tab_bar_click (f: *mut frame, mut x: c_int, mut 
 /// displayed in GLYPH on frame F.  Return in *PROP_IDX the index where tool-bar item properties
 /// start in F->tool_bar_items.  Value is false if GLYPH doesn't display a tool-bar item."
 /// `static`, inside the tool-bar block of the window-system half (C 15616-16624).
-#[cfg (feature = "have_window_system")]
+#[cfg (all(feature = "have_window_system", not(feature = "have_ext_tool_bar")))]
 unsafe fn tool_bar_item_info (f: *mut frame, glyph: *mut glyph, prop_idx: *mut c_int) -> bool
 {
   let prop: Lisp_Object;
@@ -34865,7 +34915,7 @@ unsafe fn tool_bar_item_info (f: *mut frame, glyph: *mut glyph, prop_idx: *mut c
 /// C 16410-16437: `get_tool_bar_item` - "Get information about the tool-bar item at position X/Y on
 /// frame F.  ...  Value is -1 if X/Y is not on a tool-bar item, 0 if X/Y is on the same item that
 /// was highlighted before, 1 otherwise."  `static`.
-#[cfg (feature = "have_window_system")]
+#[cfg (all(feature = "have_window_system", not(feature = "have_ext_tool_bar")))]
 unsafe fn get_tool_bar_item (f: *mut frame, x: c_int, y: c_int, glyph: *mut *mut glyph,
 			     hpos: *mut c_int, vpos: *mut c_int, prop_idx: *mut c_int) -> c_int
 {
@@ -34901,7 +34951,7 @@ unsafe fn get_tool_bar_item (f: *mut frame, x: c_int, y: c_int, glyph: *mut *mut
 /// C 16449-16510: "EXPORT: Handle mouse button event on the tool-bar of frame F, at frame-relative
 /// coordinates X/Y.  DOWN_P is true for a button press, false for button release.  MODIFIERS is
 /// event modifiers for button release.  DEVICE is the device the click came from, or Qt."
-#[cfg (feature = "have_window_system")]
+#[cfg (all(feature = "have_window_system", not(feature = "have_ext_tool_bar")))]
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn handle_tool_bar_click_with_device (f: *mut frame, mut x: c_int,
 							    mut y: c_int, down_p: bool,
@@ -34982,7 +35032,7 @@ pub unsafe extern "C" fn handle_tool_bar_click_with_device (f: *mut frame, mut x
 
 /// C 16512-16519: "EXPORT: Handle mouse button event on the tool-bar of frame F ..." (the
 /// device-less wrapper `term.c`/the terminal front ends call).
-#[cfg (feature = "have_window_system")]
+#[cfg (all(feature = "have_window_system", not(feature = "have_ext_tool_bar")))]
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn handle_tool_bar_click (f: *mut frame, x: c_int, y: c_int, down_p: bool,
 						modifiers: c_int)
@@ -35465,6 +35515,7 @@ pub unsafe extern "C" fn expose_frame (f: *mut frame, x: c_int, y: c_int, w: c_i
 
   /* C 38252-38257's `#ifndef HAVE_EXT_TOOL_BAR` arm; `HAVE_EXT_TOOL_BAR` is undef in both
      delivered configurations, so C compiles the body.  */
+  #[cfg(not(feature = "have_ext_tool_bar"))]
   if WINDOWP ((*f).tool_bar_window)
     {
       mouse_face_overwritten_p
@@ -35473,6 +35524,7 @@ pub unsafe extern "C" fn expose_frame (f: *mut frame, x: c_int, y: c_int, w: c_i
 
   /* C 38259-38265's `#if defined HAVE_WINDOW_SYSTEM && !defined HAVE_EXT_MENU_BAR` arm: this unit
      is inside the window-system block, and `HAVE_EXT_MENU_BAR` is undef, so C compiles the body.  */
+  #[cfg(not(feature = "have_ext_menu_bar"))]
   if WINDOWP ((*f).menu_bar_window)
     {
       mouse_face_overwritten_p
@@ -38644,8 +38696,13 @@ pub unsafe extern "C" fn syms_of_xdisp ()
      `Strace_redisplay`, `Strace_to_stderr`) is dead on this target (P-08).  */
 
 
-  /* C 38458-38461: the `HAVE_WINDOW_SYSTEM` arm's four `defsubr`s (`Sremember_mouse_glyph`,
-     `Stab_bar_height`, `Stool_bar_height`, `Slookup_image_map`) is dead on this target (P-08).  */
+  #[cfg(feature = "have_ns")]
+  {
+    defsubr (&raw mut Sremember_mouse_glyph);
+    defsubr (&raw mut Stab_bar_height);
+    defsubr (&raw mut Stool_bar_height);
+    defsubr (&raw mut Slookup_image_map);
+  }
 
   
   defsubr (&raw mut Sline_pixel_height);
@@ -39804,3 +39861,151 @@ pub unsafe extern "C" fn init_xdisp ()
 
   help_echo_showing_p = false;
 }
+
+
+// Cocoa live forms of the reference's window-system Lisp entry points.
+#[cfg(feature = "have_ns")]
+DEFUN!("remember-mouse-glyph", Fremember_mouse_glyph, Sremember_mouse_glyph, 3, 3, 0,
+ doc: "Return the extents (X Y WIDTH HEIGHT) of the glyph in FRAME at X, Y.",
+ (frame: Lisp_Object, x: Lisp_Object, y: Lisp_Object), {
+   let f = decode_window_system_frame(frame);
+   CHECK_FIXNUM(x); CHECK_FIXNUM(y);
+   let mut rect: NativeRectangle!() = core::mem::zeroed();
+   remember_mouse_glyph(f, XFIXNUM(x) as c_int, XFIXNUM(y) as c_int, &raw mut rect);
+   let mut xrect: Emacs_Rectangle = core::mem::zeroed();
+   CONVERT_TO_EMACS_RECT!(xrect, rect);
+   list4i(xrect.x as EMACS_INT, xrect.y as EMACS_INT, xrect.width as EMACS_INT, xrect.height as EMACS_INT)
+});
+#[cfg(feature = "have_ns")]
+DEFUN!("lookup-image-map", Flookup_image_map, Slookup_image_map, 3, 3, 0,
+ doc: "Return the first element of image map MAP whose rectangle, circle or polygon contains X and Y.",
+ (map: Lisp_Object, x: Lisp_Object, y: Lisp_Object), {
+   if NILP(map) { return Qnil(); }
+   CHECK_FIXNUM(x); CHECK_FIXNUM(y);
+   find_hot_spot(map, clip_to_bounds(INT_MIN as EMACS_INT, XFIXNUM(x), INT_MAX as EMACS_INT) as c_int,
+                     clip_to_bounds(INT_MIN as EMACS_INT, XFIXNUM(y), INT_MAX as EMACS_INT) as c_int)
+});
+#[cfg(all(feature = "have_ns", feature = "have_ext_tool_bar"))]
+DEFUN!("tool-bar-height", Ftool_bar_height, Stool_bar_height, 0, 2, 0,
+ doc: "Return the number of lines occupied by the tool bar of FRAME. With PIXELWISE, return pixels.",
+ (frame: Lisp_Object, pixelwise: Lisp_Object), {
+   // The reference's HAVE_EXT_TOOL_BAR form does not count a core-drawn toolbar.
+   make_fixnum(0)
+});
+#[cfg(feature = "have_ns")]
+unsafe fn build_desired_tab_bar_string(f: *mut frame) {
+   (*f).desired_tab_bar_string = build_string(c"".as_ptr());
+   for i in 0..(*f).n_tab_bar_items {
+     let caption = Fcopy_sequence(AREF((*f).tab_bar_items,
+        (i * TAB_BAR_ITEM_NSLOTS + TAB_BAR_ITEM_CAPTION) as isize));
+     AUTO_LIST2!(props, Qmenu_item(), make_fixnum((i * TAB_BAR_ITEM_NSLOTS) as EMACS_INT));
+     Fadd_text_properties(make_fixnum(0), make_fixnum(SCHARS(caption)), props, caption);
+     (*f).desired_tab_bar_string = concat2((*f).desired_tab_bar_string, caption);
+   }
+}
+#[cfg(feature = "have_ns")]
+unsafe fn display_tab_bar_line(it: *mut it, mut height: c_int) {
+   let row = (*it).glyph_row;
+   let max_x = (*it).last_visible_x;
+   clear_glyph_row(row);
+   glyph_row_bits!(enabled_p, row, true);
+   (*row).y = (*it).current_y;
+   it_bits!(start_of_box_run_p, it, true);
+   'out: {
+     while (*it).current_x < max_x {
+       if !get_next_display_element(it) {
+         if height < 0 && (*it).hpos == 0 { return; }
+         break;
+       }
+       let n_glyphs_before = (*row).used[TEXT_AREA as usize];
+       let it_before = core::ptr::read(it);
+       PRODUCE_GLYPHS!(it);
+       let nglyphs = (*row).used[TEXT_AREA as usize] - n_glyphs_before;
+       let mut i = 0;
+       let mut x = it_before.current_x;
+       while i < nglyphs {
+         let glyph = (*row).glyphs[TEXT_AREA as usize].offset((n_glyphs_before + i) as isize);
+         if x + (*glyph).pixel_width as c_int > max_x {
+           (*row).used[TEXT_AREA as usize] = n_glyphs_before;
+           core::ptr::copy_nonoverlapping(&it_before, it, 1);
+           if n_glyphs_before == 0 && ((*it).vpos > 0 || IT_STRING_CHARPOS!(*it) < (*it).end_charpos - 1) { break; }
+           break 'out;
+         }
+         (*it).hpos += 1;
+         x += (*glyph).pixel_width as c_int;
+         i += 1;
+       }
+       let enough = ITERATOR_AT_END_OF_LINE_P!(it);
+       set_iterator_to_next(it, true);
+       if enough { break; }
+     }
+   }
+   glyph_row_bits!(displays_text_p, row, (*row).used[TEXT_AREA as usize] != 0);
+   if !MATRIX_ROW_DISPLAYS_TEXT_P!(row) && !EQ(Vauto_resize_tab_bars, Qgrow_only()) { (*it).face_id = DEFAULT_FACE_ID; }
+   extend_face_to_end_of_line(it);
+   let last = (*row).glyphs[TEXT_AREA as usize].offset((*row).used[TEXT_AREA as usize] as isize - 1);
+   glyph_bits!(right_box_line_p, *last, true);
+   if last == (*row).glyphs[TEXT_AREA as usize] { glyph_bits!(left_box_line_p, *last, true); }
+   height -= (*it).max_ascent + (*it).max_descent;
+   if height > 0 {
+     height %= FRAME_LINE_HEIGHT((*it).f);
+     (*it).max_ascent += height / 2;
+     (*it).max_descent += (height + 1) / 2;
+   }
+   compute_line_metrics(it);
+   if !MATRIX_ROW_DISPLAYS_TEXT_P!(row) {
+     (*row).height = (*it).last_visible_y - (*row).y;
+     (*row).phys_height = (*row).height;
+     (*row).visible_height = (*row).height;
+     (*row).ascent = 0; (*row).phys_ascent = 0; (*row).extra_line_spacing = 0;
+   }
+   glyph_row_bits!(full_width_p, row, true);
+   glyph_row_bits!(continued_p, row, false);
+   glyph_row_bits!(truncated_on_left_p, row, false);
+   glyph_row_bits!(truncated_on_right_p, row, false);
+   (*it).current_x = 0; (*it).hpos = 0; (*it).wrap_prefix_width = 0;
+   (*it).current_y += (*row).height;
+   (*it).vpos += 1;
+   (*it).glyph_row = (*it).glyph_row.add(1);
+}
+#[cfg(feature = "have_ns")]
+unsafe fn tab_bar_height(f: *mut frame, n_rows: *mut c_int, pixelwise: bool) -> c_int {
+   let w = XWINDOW((*f).tab_bar_window);
+   let mut it: it = core::mem::zeroed();
+   let temp_row = MATRIX_MODE_LINE_ROW!((*w).desired_matrix as *mut glyph_matrix);
+   init_iterator(&raw mut it, w, -1, -1, temp_row, TAB_BAR_FACE_ID);
+   glyph_row_bits!(reversed_p, temp_row, false);
+   it.first_visible_x = 0; it.last_visible_x = WINDOW_PIXEL_WIDTH(w);
+   reseat_to_string(&raw mut it, core::ptr::null(), (*f).desired_tab_bar_string,
+                   0, 0, 0, STRING_MULTIBYTE((*f).desired_tab_bar_string) as c_int);
+   it.paragraph_embedding = L2R;
+   clear_glyph_row(temp_row);
+   if tab_bar_truncate {
+     it.glyph_row = temp_row; display_tab_bar_line(&raw mut it, -1);
+   } else {
+     while !ITERATOR_AT_END_P!(&raw mut it) {
+       it.glyph_row = temp_row; display_tab_bar_line(&raw mut it, -1);
+     }
+   }
+   clear_glyph_row(temp_row);
+   if !n_rows.is_null() { *n_rows = if it.vpos > 0 { it.vpos } else { -1 }; }
+   if pixelwise { it.current_y } else { (it.current_y + FRAME_LINE_HEIGHT(f) - 1) / FRAME_LINE_HEIGHT(f) }
+}
+#[cfg(feature = "have_ns")]
+DEFUN!("tab-bar-height", Ftab_bar_height, Stab_bar_height, 0, 2, 0,
+ doc: "Return the number of lines occupied by the tab bar of FRAME. With PIXELWISE, return pixels.",
+ (frame: Lisp_Object, pixelwise: Lisp_Object), {
+   let mut height = 0;
+   let f = decode_any_frame(frame);
+   if WINDOWP((*f).tab_bar_window) && WINDOW_PIXEL_HEIGHT(XWINDOW((*f).tab_bar_window)) > 0 {
+     update_tab_bar(f, true);
+     if (*f).n_tab_bar_items != 0 {
+       build_desired_tab_bar_string(f);
+       height = tab_bar_height(f, core::ptr::null_mut(), !NILP(pixelwise));
+     }
+   }
+   make_fixnum(height as EMACS_INT)
+});
+
+#[cfg(feature = "have_ns")]
+unsafe extern "C" { fn decode_window_system_frame(frame: Lisp_Object) -> *mut frame; }

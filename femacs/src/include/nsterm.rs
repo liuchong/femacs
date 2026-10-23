@@ -765,8 +765,6 @@ unsafe extern "C" {
   pub fn free_frame_tool_bar (f: *mut frame);
   /// C 1181-1183: `extern Lisp_Object find_and_return_menu_selection (struct frame *f, bool
   /// keymaps, void *client_data);`
-  pub fn find_and_return_menu_selection (f: *mut frame, keymaps: bool,
-                                         client_data: *mut c_void) -> Lisp_Object;
   /// C 1184-1185: `extern Lisp_Object ns_popup_dialog (struct frame *, Lisp_Object header,
   /// Lisp_Object contents);`
   pub fn ns_popup_dialog (f: *mut frame, header: Lisp_Object, contents: Lisp_Object)
@@ -1252,3 +1250,13 @@ pub const NSLevelIndicatorStyleContinuousCapacity: NSUInteger =
 // no include guard of its own: C 29's `#ifdef HAVE_NS` is the outermost guard, and `#ifndef`
 // around the whole file does not exist (measured: `rg -n 'ifndef .*NSTERM' emacs/src/nsterm.h`
 // finds only the NSTRACE/`NATIVE_OBJC_INSTANCETYPE`/`NSAppKitVersionNumber*` ones inside it).
+
+#[cfg(feature = "have_ns")]
+pub mod ns_menu_decls {
+  use super::*;
+  unsafe extern "C" {
+    pub fn find_and_return_menu_selection(f: *mut frame, keymaps: bool, client_data: *mut c_void) -> Lisp_Object;
+  }
+}
+#[cfg(feature = "have_ns")]
+use ns_menu_decls::*;

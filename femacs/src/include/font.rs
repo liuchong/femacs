@@ -245,7 +245,7 @@ macro_rules! FONT_WIDTH_NAME_NUMERIC {
 /* C 236: `FONT_SET_STYLE (font, prop, val)`.  */
 macro_rules! FONT_SET_STYLE {
   ($font:expr, $prop:expr, $val:expr) =>
-    { ASET ($font, $prop as isize, make_fixnum (font_style_to_value ($prop, $val, true) as EMACS_INT)) };
+    { ASET ($font, $prop as isize, make_fixnum (font_style_to_value ($prop as c_int, $val, true) as EMACS_INT)) };
 }
 
 /* C 244-246: the metrics accessors (`#define FONT_HEIGHT(f) ((f)->height)` and friends).

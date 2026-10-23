@@ -2720,7 +2720,7 @@ unsafe fn font_parse_fcname (name: *mut c_char, len: ptrdiff_t, font: Lisp_Objec
    Return a negative value on error.  */
 
 #[cfg(feature = "xft_or_freetype_or_ns")]
-unsafe fn font_unparse_fcname (font: Lisp_Object, pixel_size: c_int, name: *mut c_char,
+unsafe fn font_unparse_fcname (font: Lisp_Object, mut pixel_size: c_int, name: *mut c_char,
 			       nbytes: c_int) -> c_int
 {
   let mut family: Lisp_Object;
@@ -4753,7 +4753,7 @@ pub unsafe extern "C" fn font_update_drivers (f: *mut frame,
   while !list.is_null ()
     {
       let driver: *const font_driver = (*list).driver;
-      if (NILP (Fmemq ((*driver).r#type, new_drivers))) != (*list).on
+      if (! NILP (Fmemq ((*driver).r#type, new_drivers))) != (*list).on
 	{
 	  if (*list).on
 	    {
@@ -6458,6 +6458,7 @@ pub static mut Vfont_width_table: Lisp_Object = lisp_h_Qnil ();
    (`globals.rs` only declares it - status 4.721).  */
 #[unsafe(no_mangle)]
 pub static mut Vfont_log: Lisp_Object = lisp_h_Qnil ();
+#[unsafe(no_mangle)]
 pub static mut inhibit_compacting_font_caches: bool = false;
 pub static mut xft_ignore_color_fonts: bool = false;
 pub static mut query_all_font_backends: bool = false;
@@ -6565,8 +6566,8 @@ pub unsafe extern "C" fn syms_of_font ()
   /* C 5946-5948: `#if 0` (`defsubr (&Sdraw_string)`).  Recorded in docs/ports/font.md.  */
   defsubr (&raw mut Sframe_font_cache);
 
-  /* C 5951-5953: `#ifdef HAVE_WINDOW_SYSTEM`'s `defsubr (&Sfont_info)`; recorded for the
-     same reason.  */
+  #[cfg(feature = "have_window_system")]
+  defsubr (&raw mut Sfont_info);
 
   DEFVAR_LISP! (c"font-encoding-alist", Vfont_encoding_alist,
 	       "\nAlist of fontname patterns vs the corresponding encoding and repertory info.\nEach element looks like (REGEXP . (ENCODING . REPERTORY)),\nwhere ENCODING is a charset or a char-table,\nand REPERTORY is a charset, a char-table, or nil.\n\nIf ENCODING and REPERTORY are the same, the element can have the form\n(REGEXP . ENCODING).\n\nENCODING is for converting a character to a glyph code of the font.\nIf ENCODING is a charset, encoding a character by the charset gives\nthe corresponding glyph code.  If ENCODING is a char-table, looking up\nthe table by a character gives the corresponding glyph code.\n\nREPERTORY specifies a repertory of characters supported by the font.\nIf REPERTORY is a charset, all characters belonging to the charset are\nsupported.  If REPERTORY is a char-table, all characters who have a\nnon-nil value in the table are supported.  If REPERTORY is nil, Emacs\ngets the repertory information by an opened font and ENCODING.  ");
@@ -6667,3 +6668,6 @@ pub unsafe extern "C" fn init_font ()
 {
   Vfont_log = if !egetenv (c"EMACS_FONT_LOG".as_ptr ()).is_null () { Qnil () } else { Qt () };
 }
+
+#[cfg(feature = "have_ns")]
+unsafe extern "C" { fn get_frame_param(f: *mut frame, prop: Lisp_Object) -> Lisp_Object; }

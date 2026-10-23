@@ -18,14 +18,8 @@
 // are unexported `static mut`s.  `composition_table` and `n_compositions` are C globals:
 // `#[unsafe(no_mangle)] pub static mut`.
 //
-// **The dead region is recorded in `docs/ports/composite.md`, not transcribed** (P-08):
-// `src/composite.c` is in `docs/baseline/config/cond-eval-verified.txt` and
-// `python3 tools/check-cond-eval.py src/composite.c` reports
-// `1 conditions, 0 unknown, 0 disagreements [VERIFIED]`, so the frozen configuration's
-// branch selection is the clang-verified one.  The only `#if` is C 959-970
-// (`#ifdef HAVE_WINDOW_SYSTEM` around `autocmp_chars`'s `font_range` call), and
-// `HAVE_WINDOW_SYSTEM` is undefined in the frozen `config.h` (macros.tsv 1647), so that
-// block is not compiled and `font_range`, `FRAME_WINDOW_P` and `XFRAME` are not reached.
+// The terminal target omits the reference's HAVE_WINDOW_SYSTEM branch;
+// graphical targets must select the actual shaping font before creating a gstring.
 //
 // C's uninitialised locals are zero-initialised (PORTING.md 1.5), each named in
 // `docs/ports/composite.md`; C 41-44's and the other forward declarations are dropped
@@ -1049,9 +1043,22 @@ unsafe fn autocmp_chars (rule: Lisp_Object, charpos: ptrdiff_t, bytepos: ptrdiff
   limit = charpos + len;
   to = limit;
   font_object = (*win).frame;
-  /* C 959-970's `#ifdef HAVE_WINDOW_SYSTEM` block (`struct frame *f = XFRAME
-     (font_object); if (FRAME_WINDOW_P (f)) { font_object = font_range (…); … }`) is dead in
-     the frozen configuration and recorded in docs/ports/composite.md.  */
+  #[cfg(feature = "have_window_system")]
+  {
+    unsafe extern "C" {
+      fn font_range(from: ptrdiff_t, from_byte: ptrdiff_t, limit: *mut ptrdiff_t,
+                    win: *mut window, face: *mut c_void, string: Lisp_Object,
+                    ch: c_int) -> Lisp_Object;
+    }
+    let f = XFRAME(font_object);
+    if FRAME_WINDOW_P(f) {
+      font_object = font_range(charpos, bytepos, &raw mut to, win, face, string, ch);
+      if !FONT_OBJECT_P(font_object)
+        || (!NILP(re) && to < limit
+            && fast_looking_at(re, charpos, bytepos, to, -1, string) <= 0)
+      { return unbind_to(count, Qnil()); }
+    }
+  }
   lgstring = Fcomposition_get_gstring (pos, make_fixnum (to), font_object,
 				       string);
   if NILP (LGSTRING_ID (lgstring))

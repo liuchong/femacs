@@ -1405,7 +1405,9 @@ pub fn FRAME_COLUMN_WIDTH (f: *mut frame) -> c_int { unsafe { (*f).column_width 
 // frame.h 1560-1645: the fringe/dimension helpers (they all go through `frame_dimension`,
 // which is zero on a target without a window system).
 #[inline(always)]
-pub fn frame_dimension (_x: c_int) -> c_int { 0 }
+pub fn frame_dimension (x: c_int) -> c_int {
+  if cfg!(feature = "have_window_system") { x } else { 0 }
+}
 
 #[inline(always)]
 pub fn FRAME_FRINGE_COLS (f: *mut frame) -> c_int { frame_dimension (unsafe { (*f).fringe_cols }) }
@@ -1893,8 +1895,23 @@ macro_rules! AUTO_FRAME_ARG {
    The `visible` spelling is the token-aliases family's (`FRAME_VISIBLE_P` above).
    C: INLINE void SET_FRAME_VISIBLE (struct frame *f, bool v) { if (v) { if (v == 1 && f->visible != 1) redisplay_other_windows (); if (FRAME_GARBAGED_P (f)) frame_garbaged = true; } else if (is_tty_child_frame (f) && f == XFRAME (selected_frame)) do_switch_frame (mru_rooted_frame (f), 0, 0, Qnil); f->visible = v; }  */
 macro_rules! SET_FRAME_VISIBLE {
-    ($f:expr, $v:expr) => { (*$f).bits1 = ((*$f).bits1 & ! (1u32 << FRAME_VISIBLE_SHIFT))
-                                            | (($v as u32) << FRAME_VISIBLE_SHIFT) };
+    ($f:expr, $v:expr) => {{
+        let f = $f;
+        let v: bool = $v;
+        unsafe extern "C" {
+            fn redisplay_other_windows();
+            fn is_tty_child_frame(f: *mut c_void) -> bool;
+            fn mru_rooted_frame(f: *mut c_void) -> Lisp_Object;
+            fn do_switch_frame(frame: Lisp_Object, track: c_int, deletion: c_int, norecord: Lisp_Object) -> Lisp_Object;
+        }
+        if v {
+            if !frame_flag(f, FRAME_VISIBLE_UNIT, FRAME_VISIBLE_SHIFT) { redisplay_other_windows(); }
+            if frame_flag(f, FRAME_GARBAGED_UNIT, FRAME_GARBAGED_SHIFT) { frame_garbaged = true; }
+        } else if is_tty_child_frame(f as *mut c_void) && f == XFRAME(selected_frame) {
+            do_switch_frame(mru_rooted_frame(f as *mut c_void), 0, 0, Qnil());
+        }
+        frame_set_flag(f, FRAME_VISIBLE_UNIT, FRAME_VISIBLE_SHIFT, v as u32);
+    }};
 }
 
 /* ---- frame.h 1697-1830: the geometry family, C's arithmetic member for member ---------------- */
@@ -2112,6 +2129,8 @@ const _: () = core::assert! (core::mem::offset_of! (MonitorInfo, name) == 40);
    carries the declarations the same way `include/haiku_support.rs` does.
    C: extern void free_monitors (struct MonitorInfo *monitors, int n_monitors);  */
 #[cfg (feature = "have_window_system")]
+pub mod frame_monitor_decls {
+use super::*;
 unsafe extern "C" {
   /// C: extern void free_monitors (struct MonitorInfo *monitors, int n_monitors);
   pub fn free_monitors (monitors: *mut MonitorInfo, n_monitors: c_int);
@@ -2119,6 +2138,9 @@ unsafe extern "C" {
      definition (`frame.rs`) is the item, so a declaration beside it would be `E0428` - the same
      ruling `fset_parent_frame` and `IMAGE_OPT_FROM_ID` needed (status 4.751/4.755).  */
 }
+}
+#[cfg(feature = "have_window_system")]
+pub use frame_monitor_decls::*;
 
 /* C 1476-1914: the prototypes this header declares for functions
    other units define.  They stand in a module + glob import so a unit that writes the same

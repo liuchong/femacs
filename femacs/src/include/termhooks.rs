@@ -18,9 +18,8 @@ pub const EMACS_TERMHOOKS_H: bool = true;
 include!("dispextern.rs");
 #[cfg (all (feature = "have_window_system", feature = "have_android"))]
 include!("androidgui.rs");
-// `font` is a field type of `android_bitmap_record`; `font.rs` also defines `Emacs_Cursor`,
-// which darwin's mirrors define themselves, so this include is Android-only (P-255).
-#[cfg (all (feature = "have_window_system", feature = "have_android"))]
+// Graphical records and nsterm.rs require the same font type on every window target.
+#[cfg (feature = "have_window_system")]
 include!("font.rs");   // `android_gc`/`android_cursor` — androidterm.h 86's record needs them
 
 /* A single bitmap record, as `android_bitmap_record` in the C.  */
@@ -202,61 +201,42 @@ pub const FOCUS_OUT_EVENT: event_kind = 23;
 pub const MOVE_FRAME_EVENT: event_kind = 24;
 pub const SELECT_WINDOW_EVENT: event_kind = 25;
 pub const SAVE_SESSION_EVENT: event_kind = 26;
-/* C 253-296: three of this enumeration's members are conditional - `THREAD_EVENT` (C 253,
-   `#ifdef THREADS_ENABLED`), `FILE_NOTIFY_EVENT` (C 291, `#ifdef USE_FILE_NOTIFY`) and
-   `NOTIFICATION_EVENT` (C 285, `#ifdef HAVE_ANDROID`) - and C's enumerators are numbered in
-   order, so every member after the first of them shifts.  The frozen target has none of the
-   three; the Android configuration has all three (`THREADS_ENABLED 1`, `USE_FILE_NOTIFY 1`,
-   `HAVE_ANDROID 1`, docs/baseline/config/android-arm64.json), which is why the two arms below
-   differ by two from `CONFIG_CHANGED_EVENT` on and by one again at the tail.  A third
-   combination would need its own arm, exactly as C would compile it.  */
-#[cfg (not (all (feature = "threads_enabled", feature = "use_file_notify", feature = "have_android")))]
-pub const CONFIG_CHANGED_EVENT: event_kind = 27;
-#[cfg (all (feature = "threads_enabled", feature = "use_file_notify", feature = "have_android"))]
-pub const THREAD_EVENT: event_kind = 27;                                // C 253
-#[cfg (all (feature = "threads_enabled", feature = "use_file_notify", feature = "have_android"))]
-pub const CONFIG_CHANGED_EVENT: event_kind = 28;
-#[cfg (all (feature = "threads_enabled", feature = "use_file_notify", feature = "have_android"))]
-pub const FILE_NOTIFY_EVENT: event_kind = 29;                           // C 291
-#[cfg (not (all (feature = "threads_enabled", feature = "use_file_notify", feature = "have_android")))]
-pub const SLEEP_EVENT: event_kind = 28;
-#[cfg (all (feature = "threads_enabled", feature = "use_file_notify", feature = "have_android"))]
-pub const SLEEP_EVENT: event_kind = 30;
-#[cfg (not (all (feature = "threads_enabled", feature = "use_file_notify", feature = "have_android")))]
-pub const PREEDIT_TEXT_EVENT: event_kind = 29;
-#[cfg (all (feature = "threads_enabled", feature = "use_file_notify", feature = "have_android"))]
-pub const PREEDIT_TEXT_EVENT: event_kind = 31;
-#[cfg (not (all (feature = "threads_enabled", feature = "use_file_notify", feature = "have_android")))]
-pub const TOUCH_END_EVENT: event_kind = 30;
-#[cfg (all (feature = "threads_enabled", feature = "use_file_notify", feature = "have_android"))]
-pub const TOUCH_END_EVENT: event_kind = 32;
-#[cfg (not (all (feature = "threads_enabled", feature = "use_file_notify", feature = "have_android")))]
-pub const TOUCHSCREEN_UPDATE_EVENT: event_kind = 31;
-#[cfg (all (feature = "threads_enabled", feature = "use_file_notify", feature = "have_android"))]
-pub const TOUCHSCREEN_UPDATE_EVENT: event_kind = 33;
-#[cfg (not (all (feature = "threads_enabled", feature = "use_file_notify", feature = "have_android")))]
-pub const TOUCHSCREEN_BEGIN_EVENT: event_kind = 32;
-#[cfg (all (feature = "threads_enabled", feature = "use_file_notify", feature = "have_android"))]
-pub const TOUCHSCREEN_BEGIN_EVENT: event_kind = 34;
-#[cfg (not (all (feature = "threads_enabled", feature = "use_file_notify", feature = "have_android")))]
-pub const TOUCHSCREEN_END_EVENT: event_kind = 33;
-#[cfg (all (feature = "threads_enabled", feature = "use_file_notify", feature = "have_android"))]
-pub const TOUCHSCREEN_END_EVENT: event_kind = 35;
-#[cfg (not (all (feature = "threads_enabled", feature = "use_file_notify", feature = "have_android")))]
-pub const PINCH_EVENT: event_kind = 34;
-#[cfg (all (feature = "threads_enabled", feature = "use_file_notify", feature = "have_android"))]
-pub const PINCH_EVENT: event_kind = 36;
-#[cfg (not (all (feature = "threads_enabled", feature = "use_file_notify", feature = "have_android")))]
-pub const MONITORS_CHANGED_EVENT: event_kind = 35;
-#[cfg (all (feature = "threads_enabled", feature = "use_file_notify", feature = "have_android"))]
-pub const MONITORS_CHANGED_EVENT: event_kind = 37;
-#[cfg (not (all (feature = "threads_enabled", feature = "use_file_notify", feature = "have_android")))]
-pub const TOOLKIT_THEME_CHANGED_EVENT: event_kind = 36;
-#[cfg (all (feature = "threads_enabled", feature = "use_file_notify", feature = "have_android"))]
-pub const TOOLKIT_THEME_CHANGED_EVENT: event_kind = 38;
-/// C 285: `#ifdef HAVE_ANDROID` / `, NOTIFICATION_EVENT`.
-#[cfg (all (feature = "threads_enabled", feature = "use_file_notify", feature = "have_android"))]
-pub const NOTIFICATION_EVENT: event_kind = 39;
+// C 253-355: optional members retain declaration-order numbering on each target.
+#[cfg(feature = "have_dbus")]
+pub const DBUS_EVENT: event_kind = 27;
+#[cfg(feature = "threads_enabled")]
+pub const THREAD_EVENT: event_kind = 27 + cfg!(feature = "have_dbus") as c_int;
+pub const CONFIG_CHANGED_EVENT: event_kind = 27 + cfg!(feature = "threads_enabled") as c_int + cfg!(feature = "have_dbus") as c_int;
+#[cfg(feature = "have_ntgui")]
+pub const MULTIMEDIA_KEY_EVENT: event_kind = CONFIG_CHANGED_EVENT + 1;
+#[cfg(feature = "have_ns")]
+pub const NS_TEXT_EVENT: event_kind = CONFIG_CHANGED_EVENT + 1 + cfg!(feature = "have_ntgui") as c_int;
+#[cfg(feature = "have_ns")]
+pub const NS_NONKEY_EVENT: event_kind = NS_TEXT_EVENT + 1;
+#[cfg(feature = "have_xwidgets")]
+pub const XWIDGET_EVENT: event_kind = CONFIG_CHANGED_EVENT + 1
+  + cfg!(feature = "have_ntgui") as c_int + 2 * cfg!(feature = "have_ns") as c_int;
+#[cfg(feature = "have_xwidgets")]
+pub const XWIDGET_DISPLAY_EVENT: event_kind = XWIDGET_EVENT + 1;
+#[cfg(feature = "use_file_notify")]
+pub const FILE_NOTIFY_EVENT: event_kind = CONFIG_CHANGED_EVENT + 1
+  + cfg!(feature = "have_ntgui") as c_int + 2 * cfg!(feature = "have_ns") as c_int
+  + 2 * cfg!(feature = "have_xwidgets") as c_int;
+pub const SLEEP_EVENT: event_kind = CONFIG_CHANGED_EVENT + 1
+  + cfg!(feature = "have_ntgui") as c_int + 2 * cfg!(feature = "have_ns") as c_int
+  + 2 * cfg!(feature = "have_xwidgets") as c_int + cfg!(feature = "use_file_notify") as c_int;
+pub const PREEDIT_TEXT_EVENT: event_kind = SLEEP_EVENT + 1;
+pub const TOUCH_END_EVENT: event_kind = SLEEP_EVENT + 2;
+pub const TOUCHSCREEN_UPDATE_EVENT: event_kind = SLEEP_EVENT + 3;
+pub const TOUCHSCREEN_BEGIN_EVENT: event_kind = SLEEP_EVENT + 4;
+pub const TOUCHSCREEN_END_EVENT: event_kind = SLEEP_EVENT + 5;
+pub const PINCH_EVENT: event_kind = SLEEP_EVENT + 6;
+pub const MONITORS_CHANGED_EVENT: event_kind = SLEEP_EVENT + 7;
+pub const TOOLKIT_THEME_CHANGED_EVENT: event_kind = SLEEP_EVENT + 8;
+#[cfg(feature = "have_haiku")]
+pub const NOTIFICATION_CLICKED_EVENT: event_kind = TOOLKIT_THEME_CHANGED_EVENT + 1;
+#[cfg(feature = "have_android")]
+pub const NOTIFICATION_EVENT: event_kind = TOOLKIT_THEME_CHANGED_EVENT + 1 + cfg!(feature = "have_haiku") as c_int;
 
 // termhooks.h 34-51: `enum scroll_bar_part`.
 pub type scroll_bar_part = c_int;
@@ -642,3 +622,9 @@ macro_rules! cursorY { ($t:expr) => { curY! ($t) }; }
 // `terminal_glyph_code`, `encode_terminal_code`, `tty_hide_cursor`, `tty_show_cursor`) and
 // the `#ifdef HAVE_WINDOW_SYSTEM`/`#ifdef HAVE_GPM`/`#ifdef WINDOWSNT` arms are not mirrored
 // yet; each is declared at its use site (term.rs).
+
+// C termhooks.h 947-949: Cocoa terminal font-list cache.
+#[cfg(feature = "have_ns")]
+macro_rules! TERMINAL_FONT_CACHE {
+    ($t:expr) => { if (*$t).r#type == output_ns { (*((*$t).display_info.ns as *mut ns_display_info)).name_list_element } else { Qnil() } };
+}

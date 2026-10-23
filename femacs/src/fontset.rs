@@ -338,6 +338,7 @@ pub static mut Vfontset_alias_alist: Lisp_Object = std::ptr::null_mut ();
 #[unsafe(no_mangle)]
 pub static mut Vvertical_centering_font_regexp: Lisp_Object = std::ptr::null_mut ();
 #[cfg (feature = "have_window_system")]
+#[unsafe(no_mangle)]
 pub static mut Votf_script_alist: Lisp_Object = std::ptr::null_mut ();
 
 /* C 1736's `<intprops.h>` is reached through lisp.h 30 and the mirror is blind to it, so the
