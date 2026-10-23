@@ -31,17 +31,17 @@
 # ----------------------------------------------------------------------
 ## Decisions
 
-`emacs/lib/strtol.c` @ `fd7afced403`; port `femacs/lib/strtol.rs` (255 lines); the gates are
+`emacs/lib/strtol.c` @ `fd7afced403`; port `lib/strtol.rs` (255 lines); the gates are
 `build-tu lib/strtol.c` -> `built` (`build/femacs/strtol.o`, no C-visible exports - the
 template defines no function of its own, matching the ledger's 0 functions) and
-`python3 tools/extract-abi.py --check emacs/lib/strtol.c femacs/lib/strtol.rs` -> `OK`.  The
+`python3 tools/extract-abi.py --check emacs/lib/strtol.c lib/strtol.rs` -> `OK`.  The
 frozen build compiles neither `strtol.o` nor `strtoll.o` (`build/emacs-ref/lib` carries
 neither), so `tools/check-symbols.py` does not compare this unit; its instantiation is
-`femacs/lib/strtoll.rs`.
+`lib/strtoll.rs`.
 
 - **The 10.13② shape is a prelude `macro_rules!`.**  PORTING.md 10.13② names `lib/strtoll.c`
   as an inclusion shim of this source, so the shared body lands as
-  `macro_rules! strtol_body` and each shim instantiates it once; `femacs/lib/strtoll.rs` is
+  `macro_rules! strtol_body` and each shim instantiates it once; `lib/strtoll.rs` is
   the only instantiation (the `ftoastr.c`/`strftime.c` shape).  The frozen configuration never
   compiles this file on its own, so this file's own `--check` compares C's *standalone*
   reading - the one C's text has with `QUAD`/`UNSIGNED`/`USE_WIDE_CHAR`/
@@ -52,7 +52,7 @@ neither), so `tools/check-symbols.py` does not compare this unit; its instantiat
   makes it `strtoll`) and C 130-135's `LONG`/`STRTOL_LONG_MIN`/`STRTOL_LONG_MAX`/
   `STRTOL_ULONG_MAX` bindings.  The body therefore takes `$name`/`$export` plus
   `$long` (C's `INT`/`LONG`, `long long` under `QUAD`), `$ulong` (C's `unsigned LONG int`) and
-  the three limits as parameters; `femacs/lib/strtoll.rs` passes the `QUAD` arm as
+  the three limits as parameters; `lib/strtoll.rs` passes the `QUAD` arm as
   `c_longlong`/`c_ulonglong`/`c_longlong::MIN`/`c_longlong::MAX`/`c_ulonglong::MAX`.
 
 - **The standalone reading and where its names live.**  `mod standalone` records the five
@@ -90,7 +90,7 @@ neither), so `tools/check-symbols.py` does not compare this unit; its instantiat
   `-i` is `i.wrapping_neg ()` before C's conversion to the signed return type.
 
 - **No `#![allow (…)]` here.**  An inner attribute inside an included file is E0753 (the
-  `strftime.rs` decision), so `femacs/lib/strtoll.rs` - the unit that compiles the body -
+  `strftime.rs` decision), so `lib/strtoll.rs` - the unit that compiles the body -
   carries the list; this file's own `build-tu` compiles with warnings, not errors.
 
 - **Line drift** is against C's live text: C 410 with about 165 dead lines, 245 live, vs the

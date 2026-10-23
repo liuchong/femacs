@@ -230,7 +230,7 @@ def write_pending(rows: dict[str, str]) -> None:
 #   * the Rust runtime seam: a `--emit obj` unit crate carries no `#[panic_handler]`, so the
 #     program's link owes `__rust_begin_unwind` and `_rust_eh_personality`.  One small crate,
 #     materialized here, provides them (plus `libcore`/`compiler_builtins` from the pinned
-#     toolchain, which `rust-toolchain.toml` selects - the subprocess runs from `femacs/` for
+#     toolchain, which `rust-toolchain.toml` selects - the subprocess runs from `` for
 #     exactly that reason);
 #   * C's own library line.  `LIBXMENU`, `LIBX_BASE`, `PGTK_LIBS`, `LIBS_GNUSTEP`, `LIBS_SYSTEM`
 #     and `EMACSRES` are empty in the frozen configuration, so C's recipe (`make -n temacs` in
@@ -291,7 +291,7 @@ def runtime_object() -> Path | None:
                         "--crate-name", "femacs_runtime", "-C", "panic=abort",
                         "-C", "codegen-units=1", "-C", "opt-level=0",
                         str(RUNTIME_SRC), "-o", str(RUNTIME_OBJ)],
-                       cwd=REPO / "femacs", capture_output=True, text=True)
+                       cwd=REPO, capture_output=True, text=True)
     if r.returncode != 0:
         print(r.stderr.strip()[:2000], file=sys.stderr)
         return None
@@ -300,7 +300,7 @@ def runtime_object() -> Path | None:
 
 def rust_runtime_libs() -> list[str]:
     """The pinned toolchain's `libcore` and `compiler_builtins` rlibs."""
-    d = subprocess.run(["rustc", "--print", "target-libdir"], cwd=REPO / "femacs",
+    d = subprocess.run(["rustc", "--print", "target-libdir"], cwd=REPO,
                        capture_output=True, text=True).stdout.strip()
     if not d:
         return []

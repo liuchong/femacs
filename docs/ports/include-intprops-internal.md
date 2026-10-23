@@ -163,9 +163,9 @@ $ python3 tools/extract-abi.py --check emacs/lib/intprops-internal.h /tmp/g188i/
 FAIL emacs/lib/intprops-internal.h -> /tmp/g188i/empty.rs
 # no `missing constant` and no `missing type` line
 
-$ python3 tools/extract-abi.py --check emacs/lib/intprops-internal.h femacs/lib/include/intprops-internal.rs
+$ python3 tools/extract-abi.py --check emacs/lib/intprops-internal.h lib/include/intprops-internal.rs
   (14 C macros have several definitions (configuration branches), body not compared: _GL_HAS_BUILTIN_ADD_OVERFLOW, _GL_HAS_BUILTIN_MUL_OVERFLOW, _GL_HAS_BUILTIN_OVERFLOW_P, _GL_HAVE___TYPEOF__, _GL_INT_ADD_WRAPV, _GL_INT_MULTIPLY_WRAPV ...)
-OK emacs/lib/intprops-internal.h -> femacs/lib/include/intprops-internal.rs
+OK emacs/lib/intprops-internal.h -> lib/include/intprops-internal.rs
 # no `- ` problem line (`| grep -c '^- '` -> 0)
 
 # the criterion: the control diff

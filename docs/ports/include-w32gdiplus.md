@@ -51,8 +51,8 @@
 
 ## Evidence
 
-- `python3 tools/extract-abi.py --check emacs/src/w32gdiplus.h femacs/src/include/w32gdiplus.rs`
-  -> `OK emacs/src/w32gdiplus.h -> femacs/src/include/w32gdiplus.rs` (no `- ` problem lines).
+- `python3 tools/extract-abi.py --check emacs/src/w32gdiplus.h src/include/w32gdiplus.rs`
+  -> `OK emacs/src/w32gdiplus.h -> src/include/w32gdiplus.rs` (no `- ` problem lines).
 - `python3 tools/extract-abi.py emacs/src/w32gdiplus.h` -> this ledger: 0 subrs, 0 functions defined,
   0 macros, 0 types, 0 file-scope objects (everything is inside the dead `#ifdef WINDOWSNT`).
 - `C 144-145` are outside that guard and are carried live: `w32_gdip_get_encoder_clsid (const char *,

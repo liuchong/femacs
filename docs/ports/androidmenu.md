@@ -5,7 +5,7 @@
 > `docs/baseline/frozen-build-sources.txt` lists no `androidmenu.o` for this target, so
 > `extract-abi.py`'s checklist for the file is empty and its checkbox sections cannot be coverage
 > evidence.  What follows is P-86 ②'s substitute: the **C line-range table**, the `## Evidence`
-> readings, and the `## Deviations`.  Port: `femacs/src/androidmenu.rs` (1,011 lines), both arms of
+> readings, and the `## Deviations`.  Port: `src/androidmenu.rs` (1,011 lines), both arms of
 > every `#if` carried.
 
 ## Gate mapping
@@ -99,7 +99,7 @@ port in the first pass (a chained assignment C writes as `a = b = x` - Rust's as
 unit's *frozen* feature set the harness's stub environment compiles clean too (0 errors).
 
 **③ Inventory.**
-`python3 tools/extract-abi.py --check emacs/src/androidmenu.c femacs/src/androidmenu.rs` →
+`python3 tools/extract-abi.py --check emacs/src/androidmenu.c src/androidmenu.rs` →
 2 `- ` lines: `- function android_menu_show does not mention goto` and
 `- line count drifted 17.6%: C 860 vs Rust 1011`, then `FAIL`.
 C's `goto` keyword has no Rust counterpart (PORTING.md 2.2: a forward jump is a labeled block or a

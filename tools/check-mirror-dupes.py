@@ -31,8 +31,8 @@ from pathlib import Path
 
 REPO = Path(__file__).resolve().parent.parent
 RATCHET = REPO / "docs/baseline/mirror-dupes.tsv"
-UNIT_DIRS = ("femacs/src", "femacs/lib")
-MIRROR_DIRS = ("femacs/src/include", "femacs/lib/include")
+UNIT_DIRS = ("src", "lib")
+MIRROR_DIRS = ("src/include", "lib/include")
 
 INCLUDE = re.compile(r'include!\(\s*"([^"]+)"\s*\)')
 MODULE = re.compile(r"^\s*(?:pub\s+)?mod\s+([A-Za-z_]\w*)\s*\{")
@@ -235,8 +235,8 @@ def include_graph(unit: Path, seen: set[Path] | None = None) -> set[Path]:
 
 
 def findings(root: Path) -> list[tuple[str, str, str]]:
-    # Both sides walk recursively: `femacs/lib/malloc/` has units of its own and
-    # `femacs/lib/malloc/include/` mirrors of its own, and a single-level glob saw neither
+    # Both sides walk recursively: `lib/malloc/` has units of its own and
+    # `lib/malloc/include/` mirrors of its own, and a single-level glob saw neither
     # (status 3.121).  A unit is any `.rs` that is not under an `include` directory.
     # A mirror is any `.rs` under an `include` directory of a ported tree - `lib/include/`
     # for the gnulib headers, `lib/malloc/include/` for the ones that live one level down
@@ -330,12 +330,12 @@ def selftest() -> int:
     for name, unit_src, mirror_src, want in SELFTEST:
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
-            # The layout mirrors the repository's: the unit sits in `femacs/src/` and its
-            # `include!("include/m.rs")` resolves to `femacs/src/include/m.rs`.
-            for d in ("femacs/src/include", "femacs/lib", "femacs/lib/include"):
+            # The layout mirrors the repository's: the unit sits in `src/` and its
+            # `include!("include/m.rs")` resolves to `src/include/m.rs`.
+            for d in ("src/include", "lib", "lib/include"):
                 (root / d).mkdir(parents=True, exist_ok=True)
-            (root / "femacs/src/include/m.rs").write_text(mirror_src + "\n")
-            (root / "femacs/src/u.rs").write_text(unit_src + "\n")
+            (root / "src/include/m.rs").write_text(mirror_src + "\n")
+            (root / "src/u.rs").write_text(unit_src + "\n")
             got = len(findings(root))
         ok = got == want
         print(f"{'ok  ' if ok else 'FAIL'} {name}: {got} (want {want})")

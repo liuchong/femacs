@@ -8,7 +8,7 @@
 > checklist for the file is empty (P-86 ②).  What follows is that clause's substitute: the
 > **C line-range table**, the `## Evidence` readings and the `## Deviations`.
 >
-> Port: `femacs/src/haikuselect.rs` (**1660 lines**), which carries the file **whole, C 1-1450** -
+> Port: `src/haikuselect.rs` (**1660 lines**), which carries the file **whole, C 1-1450** -
 > no slice.  The 15 functions (7 `static`), the 9 `DEFUN`s, the 4 file-scope objects, the 4
 > `DEFVAR_*` variables and the 15 `DEFSYM`s of the reference stand at C's own line, in C's own
 > order.
@@ -107,7 +107,7 @@ exit 1
 
 - **errors: 1**, and it is a **mirror copy**, not the unit:
   `build/probes/haikuselect/_Users_…_femacs_src_include_systime_rs.rs:28` =
-  `femacs/src/include/systime.rs` 28's
+  `src/include/systime.rs` 28's
   `const _: () = core::assert! (!cfg! (feature = "have_haiku") || HAIKU);` (`E0080`, `HAIKU` is
   undefined) - the item `docs/ports/haikuterm.md` Owed 6 names.
 - **errors in the unit itself (`_root.rs`): 0.**
@@ -123,7 +123,7 @@ exit 1
   (`include/dispextern.rs` 105 and `include/haikugui.rs` 60) collide in the crate root.
 
 **③ The mutation control (P-86 ⑦: the reading above is not vacuous).**  Injecting one type error
-into the unit's own text - `femacs/src/haikuselect.rs` 627, `let mut sizet_data: size_t = 0;`
+into the unit's own text - `src/haikuselect.rs` 627, `let mut sizet_data: size_t = 0;`
 replaced by `= c"injected_control";` - changes the reading from **1 error to 2**, and the new one
 names the injected line:
 
@@ -136,15 +136,15 @@ error[E0308]: mismatched types
 
 `_root.rs`'s line numbering is the unit's own (every `include!` is replaced by one line), so the
 error is the unit's line 627 and not a mirror's.  Restored, and
-`shasum -a 256 femacs/src/haikuselect.rs` → `ad38d105a7b4a747572870d09304f709a735e378584442a5be83cb9798871bac`
+`shasum -a 256 src/haikuselect.rs` → `ad38d105a7b4a747572870d09304f709a735e378584442a5be83cb9798871bac`
 before and after the injection.
 
 **④ `extract-abi.py --check`.**
 
 ```
-$ python3 tools/extract-abi.py --check emacs/src/haikuselect.c femacs/src/haikuselect.rs
+$ python3 tools/extract-abi.py --check emacs/src/haikuselect.c src/haikuselect.rs
 - line count drifted 14.5%: C 1450 vs Rust 1660
-FAIL emacs/src/haikuselect.c -> femacs/src/haikuselect.rs
+FAIL emacs/src/haikuselect.c -> src/haikuselect.rs
 ```
 
 **One row, and it is the line-count row**: 14.5% is the measured drift (C 1450 → Rust 1660), and
@@ -159,8 +159,8 @@ differences of `## Deviations` 5/6/8 and now sit in `docs/ports/macro-body-notes
 
 | gate | whole-tree last line | this lane's files |
 | --- | --- | --- |
-| `check-declarations.py` | `18 declaration sites (1 forbidden, 17 allowed literals), 1 failures` (the one finding is `femacs/oldXMenu/insque.rs`, another lane's file) | no finding |
-| `check-mirror-dupes.py` | `21 duplicate declaration(s), 17 ratchet row(s), 4 failure(s)` | no finding (all four name `femacs/src/gmalloc.rs`; pre-existing) |
+| `check-declarations.py` | `18 declaration sites (1 forbidden, 17 allowed literals), 1 failures` (the one finding is `oldXMenu/insque.rs`, another lane's file) | no finding |
+| `check-mirror-dupes.py` | `21 duplicate declaration(s), 17 ratchet row(s), 4 failure(s)` | no finding (all four name `src/gmalloc.rs`; pre-existing) |
 | `check-dead-file-coverage.py` | `116 ledger(s) bound (a C range table), 0 failure(s)` | this ledger is bound twice - to `src/haikuselect.c` (`37 range row(s) cover src/haikuselect.c (1450 lines)`) and, by the naming rule `## Owed` 8 records, to `src/haikuselect.h` - and reports no failure for either |
 | `check-ledger-ticks.py` | `233 ledger(s) bound …, 0 failure(s), …, 357 row(s) with no function tick, 0 row(s) without a ledger` | no finding (this ledger has no `- [x]` ticks) |
 | `check-citations.py` | `676 file(s) scanned, 0 drift, 0 range, 1522 external, 36 allowed, 0 stale` | no finding |
@@ -169,12 +169,12 @@ differences of `## Deviations` 5/6/8 and now sit in `docs/ports/macro-body-notes
 `73%`-`74%` capacity; the scratch `/tmp/hks-lane` is deleted at the end).
 
 The five whole-tree readings were taken with **other lanes' files landing in the working tree
-while this lane ran** (`femacs/src/gmalloc.rs`, `femacs/src/pgtkselect.rs`,
-`femacs/src/w32uniscribe.rs`, `femacs/oldXMenu/*.rs`, `docs/ports/pgtkselect.md`,
+while this lane ran** (`src/gmalloc.rs`, `src/pgtkselect.rs`,
+`src/w32uniscribe.rs`, `oldXMenu/*.rs`, `docs/ports/pgtkselect.md`,
 `docs/ports/macro-body-notes.tsv`'s later rows): `check-mirror-dupes.py`'s four failures all name
-`femacs/src/gmalloc.rs`, `check-declarations.py`'s one failure names
-`femacs/oldXMenu/insque.rs`, and the bound/external counts move with those lanes' ledgers and
-citations.  **No gate reports a finding against `femacs/src/haikuselect.rs`,
+`src/gmalloc.rs`, `check-declarations.py`'s one failure names
+`oldXMenu/insque.rs`, and the bound/external counts move with those lanes' ledgers and
+citations.  **No gate reports a finding against `src/haikuselect.rs`,
 `docs/ports/haikuselect.md` or this lane's five `docs/ports/macro-body-notes.tsv` rows**
 (`grep -c haikuselect` on the two failing gates' output: 0).
 
@@ -274,7 +274,7 @@ not run, git untouched.
    `src/haikuselect.c 1450 11 145 known-unported target (plan batch F)` - 1,660 Rust lines for
    1,450 C lines is 114%, not 1%.  `python3 tools/check-port-lines.py --write-pending` is the
    integrator's step (the `haikufns.md` Owed 5 precedent), and the `docs/port-map.md` row's target
-   count (`femacs/src/haikuselect.rs | 11`) is regenerated with it.
+   count (`src/haikuselect.rs | 11`) is regenerated with it.
 5. **`include/systime.rs` 28's `HAIKU` assertion** stays the arm probe's one error, so no Haiku
    configuration can compile a whole crate until the constant lands.  Owner:
    `docs/ports/include-systime.md` (the same item `docs/ports/haikuterm.md` Owed 6 names).
@@ -283,7 +283,7 @@ not run, git untouched.
 7. This ledger's `## C line ranges` table is machine-read by `check-dead-file-coverage.py`; a
    future slice that moves an item must keep the table ascending and complete.
 8. **`check-dead-file-coverage.py`'s ledger lookup binds this ledger to the header row too.**
-   Its `ledger_for` turns `femacs/src/include/haikuselect.rs` into the candidates
+   Its `ledger_for` turns `src/include/haikuselect.rs` into the candidates
    `docs/ports/src-haikuselect.md` and `docs/ports/haikuselect.md` - not the header's own
    `docs/ports/include-haikuselect.md`, which is the name the rule's docstring and
    `check-ledger-ticks.py` use for `src/include/` targets.  The table above is therefore written

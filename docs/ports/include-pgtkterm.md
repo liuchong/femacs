@@ -60,7 +60,7 @@
   `bool_bf` members (`toolbar_in_hbox`, `toolbar_is_packed`, `relief_background_valid_p`) are
   *recorded* rather than stored, the `include/xterm.rs` 752-754 shape (P-80's member dispatch).
 - **Both arms of the three cairo-surface probes (C 33-41) are carried** as C's text and comments;
-  the four `CAIRO_HAS_*` features are unregistered in `femacs/xtask/Cargo.toml` and no mirror
+  the four `CAIRO_HAS_*` features are unregistered in `xtask/Cargo.toml` and no mirror
   exists for `<cairo-pdf.h>`/`<cairo-ps.h>`/`<cairo-svg.h>` (Owed 2).
 
 ## Evidence
@@ -97,13 +97,13 @@
    rows, and the three cairo `<cairo-*.h>` headers have no mirror (nothing in the port's graph
    takes a name from them).
    ✅ **Stale, closed by the integrator in 3.474**: all four are registered on this revision -
-   `femacs/xtask/Cargo.toml` 41 (`cairo_has_pdf_surface`), 42 (`cairo_has_png_functions`),
+   `xtask/Cargo.toml` 41 (`cairo_has_pdf_surface`), 42 (`cairo_has_png_functions`),
    43 (`cairo_has_ps_surface`) and 44 (`cairo_has_svg_surface`), each with its C site in the comment;
    `tools/feature-coverage.py` lists them with their sites.  Nothing to register.
 3. **The GDK/GTK layouts and the records' `bool_bf` dispatch** (P-80) are owed to a GTK3 toolchain
    (Owed 2 of `docs/ports/include-gtk.md`).
 
-4. **C 31's `<gtk/gtk.h>` edge is owed** (its comment in `femacs/src/include/pgtkterm.rs` carries
+4. **C 31's `<gtk/gtk.h>` edge is owed** (its comment in `src/include/pgtkterm.rs` carries
    the same text).  The three landed consumers that reach this mirror are `src/pgtkterm.rs` (C 48's
    chain - it has its own edge), `src/image.rs` (C 64's `TERM_HEADER` pgtk arm - it has its own now)
    and `src/xwidget.rs` (gtkutil.h 29's arm, gated `have_pgtk`).  Landing the edge breaks the last

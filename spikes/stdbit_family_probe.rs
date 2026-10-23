@@ -1,4 +1,4 @@
-// Semantic probe for `femacs/lib/include/stdbit.in.rs` (the C23 <stdbit.h> closure).
+// Semantic probe for `lib/include/stdbit.in.rs` (the C23 <stdbit.h> closure).
 //
 // The token gate (`tools/extract-abi.py --check`) is a *token* gate: it cannot see a wrong value
 // whose token is still present somewhere in the body (measured - see the row below).  This probe
@@ -21,7 +21,7 @@
 use std::ffi::{c_char, c_double, c_float, c_int, c_long, c_longlong, c_schar, c_short,
                 c_uchar, c_uint, c_ulong, c_ulonglong, c_ushort};
 
-include!("../femacs/lib/include/stdbit.in.rs");
+include!("../lib/include/stdbit.in.rs");
 
 fn main () {
     let mut n_checks: u64 = 0;

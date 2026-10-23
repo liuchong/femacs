@@ -31,9 +31,9 @@ GOLDEN = REPO / "docs/baseline/l1-reference.txt"
 SCRATCH = REPO / "build/lisp-l1"
 SUBTREE = "lisp/emacs-lisp"
 # The tree to copy.  The reference's own (`emacs/lisp/emacs-lisp`, whose `subdirs.el`, `loaddefs`
-# and `.elc`s C's build generated) is the golden side; the port's (`femacs/lisp/emacs-lisp`) is the
+# and `.elc`s C's build generated) is the golden side; the port's (`lisp/emacs-lisp`) is the
 # side that needs its *own* build pass first, which is why the comparison is differential.
-TREE = REPO / "femacs/lisp"
+TREE = REPO / "lisp"
 
 
 def prepare() -> list[Path]:
@@ -282,7 +282,7 @@ def main() -> int:
     ap.add_argument("--golden", metavar="BINARY")
     ap.add_argument("--check", metavar="BINARY")
     ap.add_argument("--tree", metavar="DIR", default=None,
-                    help="the lisp tree to copy (default femacs/lisp; the reference's own "
+                    help="the lisp tree to copy (default lisp; the reference's own "
                          "emacs/lisp is the golden side)")
     args = ap.parse_args()
     global TREE

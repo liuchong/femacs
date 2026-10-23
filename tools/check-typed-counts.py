@@ -44,9 +44,9 @@ BYTE_TYPED = re.compile(r"\*\s*(?:mut|const)\s+(?:u8|c_char|i8|c_void)\b|\b(?:u8
 SIZE_OF = re.compile(r"\bsize_of(?:_val)?\b")
 
 # Roots that hold ported units (the mirrors included: a macro there expands into a unit).
-ROOTS = ("femacs/src", "femacs/src/include", "femacs/lib", "femacs/lib/include",
-         "femacs/lib-src", "femacs/lwlib", "femacs/oldXMenu", "femacs/exec", "femacs/nt",
-         "femacs/msdos", "femacs/platform")
+ROOTS = ("src", "src/include", "lib", "lib/include",
+         "lib-src", "lwlib", "oldXMenu", "exec", "nt",
+         "msdos", "platform")
 
 
 def split_args(text: str, start: int) -> tuple[list[str], int] | None:

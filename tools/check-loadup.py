@@ -55,7 +55,7 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--reference", type=pathlib.Path, default=BUILD / "emacs-ref/src/temacs")
     parser.add_argument("--port", type=pathlib.Path, default=BUILD / "port/src/temacs")
-    parser.add_argument("--lisp", type=pathlib.Path, default=REPO / "femacs/lisp",
+    parser.add_argument("--lisp", type=pathlib.Path, default=REPO / "lisp",
                         help="the port's Lisp tree (its load-path root)")
     parser.add_argument("--reference-lisp", type=pathlib.Path, default=REPO / "emacs/lisp",
                         help="the reference's Lisp tree (its load-path root)")

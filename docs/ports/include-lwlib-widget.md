@@ -42,4 +42,4 @@ translation unit of the build, and no probe compiles it; the text gate is the wh
    thirteen that does not.
 
 Evidence: `python3 tools/extract-abi.py --check emacs/lwlib/lwlib-widget.h
-femacs/lwlib/include/lwlib-widget.rs` -> `OK` (1 ledger item(s), the include guard).
+lwlib/include/lwlib-widget.rs` -> `OK` (1 ledger item(s), the include guard).

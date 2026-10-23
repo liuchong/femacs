@@ -15,7 +15,7 @@
 # ----------------------------------------------------------------------
 ## Decisions
 
-`femacs/lib/get-permissions.rs` is the live text of `emacs/lib/get-permissions.c`
+`lib/get-permissions.rs` is the live text of `emacs/lib/get-permissions.c`
 (`tools/check-cond-eval.py`: 10 conditions, 0 unknown, 0 disagreements).  `USE_ACL` is 0, so
 C 39-287's whole `#if USE_ACL && …` chain — the Linux/FreeBSD/macOS `HAVE_ACL_GET_FILE` arms
 (with the macOS `ACL_TYPE_EXTENDED` half and FreeBSD's `ACL_TYPE_NFS4`), the Solaris/Cygwin

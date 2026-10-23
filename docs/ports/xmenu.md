@@ -6,7 +6,7 @@
 > same line `AC_DEFINE`s `HAVE_X_WINDOWS`, 7193-7194); `docs/baseline/frozen-build-sources.txt`
 > (106 sources, this target's `make -n`) lists no `xmenu.o`, so `extract-abi.py`'s checklist for the
 > file is empty.  P-86 ②'s substitute is below: the **C line-range table**, the `## Evidence`
-> readings and the `## Deviations`.  Port: `femacs/src/xmenu.rs` (**4011 lines**, md5
+> readings and the `## Deviations`.  Port: `src/xmenu.rs` (**4011 lines**, md5
 > `0223d2a56b595aae660b48de519bb06b`), carrying **C 1-2932 with both arms of every `#if`**.
 > The reference `emacs/src/xmenu.c` is md5 `47200d90bc2d0e561db090f8d6d07ace` (unchanged; `emacs/`
 > is read-only).
@@ -161,7 +161,7 @@ Evidence ②a, where the mirror errors aborted before type-checking).
 new text adds no symbol to the frozen configuration, and `nm build/femacs/xmenu.o` has no `_x_menu_show`,
 `_syms_of_xmenu` or any other C name of the file (no `_`-prefixed symbol at all).
 
-**⑤ `extract-abi.py --check emacs/src/xmenu.c femacs/src/xmenu.rs`.**  After the round: **3 `- `
+**⑤ `extract-abi.py --check emacs/src/xmenu.c src/xmenu.rs`.**  After the round: **3 `- `
 lines**, all of the arm-pairing class (below), then `FAIL`.  The first pass had 6 (the three
 docstring/`DEFUN` items are fixed: the docstrings now decode to `doc_comment_value`'s value - a
 backslash escape keeps just the escaped character and the comment's leading/trailing whitespace is

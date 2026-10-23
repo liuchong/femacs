@@ -44,7 +44,7 @@
   declaration points at, exactly as PORTING.md 0.2's "same names" rule wants.
 - **Nothing on this target compiles the header**, so the mirror has no unit `include!`ing it: the
   frozen configuration's `MSDOS_OBJ` is empty (docs/baseline/frozen-build-sources.txt), and
-  `femacs/src/dosfns.rs` is the empty shape that records the exclusion.  The definitions are
+  `src/dosfns.rs` is the empty shape that records the exclusion.  The definitions are
   deferred to the MS-DOS target with the declarations.
 - **Use-site copies that do *not* need retiring**: `src/vm-limit.rs` 110-113 declares
   `dos_memory_info` inside its `#[cfg (feature = "msdos")]` arm (dead text on this target) and
@@ -54,8 +54,8 @@
 
 ## Evidence
 
-- `python3 tools/extract-abi.py --check emacs/src/dosfns.h femacs/src/include/dosfns.rs`
-  -> `OK emacs/src/dosfns.h -> femacs/src/include/dosfns.rs` (no `- ` problem lines).
+- `python3 tools/extract-abi.py --check emacs/src/dosfns.h src/include/dosfns.rs`
+  -> `OK emacs/src/dosfns.h -> src/include/dosfns.rs` (no `- ` problem lines).
 - `python3 tools/check-cond-eval.py src/dosfns.h` -> `1 conditions, 0 unknown to the evaluator,
   0 disagreements` (the `#ifndef HAVE_X_WINDOWS` of C 31).
 - `python3 tools/extract-abi.py emacs/src/dosfns.h` -> this ledger: 0 subrs, 0 functions defined,

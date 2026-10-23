@@ -50,11 +50,11 @@ def android_data() -> list[tuple[str, str]]:
     out = []
     manifest = pathlib.PurePath("java/AndroidManifest.xml.in")
     if (REPO / "emacs" / manifest).is_file():
-        out.append((str(manifest), "femacs/platform/android/AndroidManifest.xml"))
+        out.append((str(manifest), "platform/android/AndroidManifest.xml"))
     for ref in sorted((REPO / "emacs/java/res").rglob("*")):
         if ref.is_file():
             rel = ref.relative_to(REPO / "emacs")
-            out.append((str(rel), str(pathlib.PurePath("femacs/platform/android") / rel.parts[-2:][0] / rel.parts[-2:][1]) if False else str(pathlib.PurePath("femacs/platform/android") / pathlib.PurePath(*rel.relative_to("java").parts))))
+            out.append((str(rel), str(pathlib.PurePath("platform/android") / rel.parts[-2:][0] / rel.parts[-2:][1]) if False else str(pathlib.PurePath("platform/android") / pathlib.PurePath(*rel.relative_to("java").parts))))
     return out
 
 

@@ -24,7 +24,7 @@
   `lib/malloc/scratch_buffer.h` is what gnulib copies into
   `build/emacs-ref/lib/malloc/scratch_buffer.gl.h`; the header the three units get their
   `struct scratch_buffer` and inline bodies from is the *wrapper*, `lib/scratch_buffer.h`
-  (mirrored as `femacs/lib/include/scratch_buffer.rs`), which renames the three
+  (mirrored as `lib/include/scratch_buffer.rs`), which renames the three
   `__libc_scratch_buffer_*` entries to `_gl_scratch_buffer_*` at C 104-107 and then includes
   the gl.h.  The mirror therefore keeps the header's own, unrenamed names, and no unit
   includes it (there is nothing in C that does).
@@ -54,8 +54,8 @@
 ## Evidence
 
 ```
-$ python3 tools/extract-abi.py --check emacs/lib/malloc/scratch_buffer.h femacs/lib/malloc/include/scratch_buffer.rs
-OK emacs/lib/malloc/scratch_buffer.h -> femacs/lib/malloc/include/scratch_buffer.rs
+$ python3 tools/extract-abi.py --check emacs/lib/malloc/scratch_buffer.h lib/malloc/include/scratch_buffer.rs
+OK emacs/lib/malloc/scratch_buffer.h -> lib/malloc/include/scratch_buffer.rs
 
 # the C compiler's layout, on the header's struct verbatim
 $ cc -o /tmp/sb_probe /tmp/sb_probe.c && /tmp/sb_probe

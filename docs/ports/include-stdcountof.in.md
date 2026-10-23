@@ -57,8 +57,8 @@
 
 ## Evidence
 
-    $ python3 tools/extract-abi.py --check emacs/lib/stdcountof.in.h femacs/lib/include/stdcountof.in.rs
-    OK emacs/lib/stdcountof.in.h -> femacs/lib/include/stdcountof.in.rs
+    $ python3 tools/extract-abi.py --check emacs/lib/stdcountof.in.h lib/include/stdcountof.in.rs
+    OK emacs/lib/stdcountof.in.h -> lib/include/stdcountof.in.rs
 
     $ python3 tools/check-cond-eval.py lib/stdcountof.in.h
     lib/stdcountof.in.h: 10 conditions, 4 unknown, 4 disagreements [NOT VERIFIED]

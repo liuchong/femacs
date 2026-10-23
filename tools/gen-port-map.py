@@ -6,9 +6,9 @@ Generated data, never hand edited: re-run the script when the tree changes.
 Policy
 ------
 1:1 Rust    every C source (`*.c`, `*.h`) in the reference tree is ported to
-            Rust one to one: `src/NAME.c` -> `femacs/src/NAME.rs`,
-            `src/NAME.h` -> `femacs/src/include/NAME.rs`, other C directories
-            keep their directory name under `femacs/`.
+            Rust one to one: `src/NAME.c` -> `src/NAME.rs`,
+            `src/NAME.h` -> `src/include/NAME.rs`, other C directories
+            keep their directory name under ``.
 Swift       macOS backends written in Objective-C (`src/*.m`) become Swift.
 Kotlin      the Android app layer (`java/**/*.java`) becomes Kotlin.
 C++         code that must talk to a C++ API (Haiku) stays modern C++.
@@ -50,10 +50,10 @@ MODE_ORDER = ["1:1 Rust", "Swift", "Kotlin", "C++", "Kept", "Verbatim",
               "Replaced"]
 
 TARGET_RULE = {
-    "1:1 Rust": "`femacs/<same path>.rs` (`src/*.h` -> `femacs/src/include/*.rs`)",
-    "Swift": "`femacs/platform/macos/NAME.swift`",
-    "Kotlin": "`femacs/platform/android/kotlin/NAME.kt`",
-    "C++": "`femacs/platform/haiku/NAME.cc`",
+    "1:1 Rust": "`<same path>.rs` (`src/*.h` -> `src/include/*.rs`)",
+    "Swift": "`platform/macos/NAME.swift`",
+    "Kotlin": "`platform/android/kotlin/NAME.kt`",
+    "C++": "`platform/haiku/NAME.cc`",
     "Kept": "path preserved",
     "Verbatim": "path preserved",
     "Replaced": "-",
@@ -81,28 +81,28 @@ def target_for(rel: Path) -> tuple[str, str]:
     """Return (mode, target) for one reference-relative file."""
     stem, suffix = rel.stem, rel.suffix
     if suffix in (".md", ".txt") or stem.startswith("ChangeLog") or stem in DOC_NAMES:
-        return "Verbatim", f"femacs/{rel}"
+        return "Verbatim", f"{rel}"
     top = rel.parts[0]
     if suffix in (".c", ".h") and top in C_SOURCE_DIRS:
         # headers never collide with their .c twin: they declare the interface
         if suffix == ".h":
-            return "1:1 Rust", f"femacs/{rel.parent}/include/{stem}.rs" \
-                if top != "src" else f"femacs/src/include/{stem}.rs"
-        return "1:1 Rust", f"femacs/{rel.with_suffix('.rs')}"
+            return "1:1 Rust", f"{rel.parent}/include/{stem}.rs" \
+                if top != "src" else f"src/include/{stem}.rs"
+        return "1:1 Rust", f"{rel.with_suffix('.rs')}"
     if suffix == ".m":
-        return "Swift", f"femacs/platform/macos/{stem}.swift"
+        return "Swift", f"platform/macos/{stem}.swift"
     if suffix == ".cc":
         # `lib-src/be_resources.cc` used to be sent to the macOS Swift tree on the reading that
         # it is "the macOS bundle's" C++ file; its own first line says "Haiku window system
         # support", it includes <SupportDefs.h>/<AppFileInfo.h>, and lib-src/Makefile.in builds
         # it only for Haiku (`be-resources`).  It belongs with the other Haiku C++ files
         # (status 3.147).
-        return ("C++", f"femacs/platform/haiku/{stem}.cc") if stem in CPP_STEMS \
-            else ("C++", f"femacs/platform/{top}/{stem}.cc")
+        return ("C++", f"platform/haiku/{stem}.cc") if stem in CPP_STEMS \
+            else ("C++", f"platform/{top}/{stem}.cc")
     if suffix == ".java":
-        return "Kotlin", f"femacs/platform/android/kotlin/{stem}.kt"
+        return "Kotlin", f"platform/android/kotlin/{stem}.kt"
     if suffix in (".s", ".S"):
-        return "Kept", f"femacs/{rel}"
+        return "Kept", f"{rel}"
     return "Replaced", "-"
 
 
@@ -138,7 +138,7 @@ def collect(ref: Path):
                 ext[{".el": "el", ".c": "c", ".h": "h"}.get(p.suffix, "other")] += 1
             rows.append({"source": f"{top}/**", "files": len(files),
                          "lines": sum(lines_of(p) for p in files),
-                         "mode": "Verbatim", "target": f"femacs/{top}/**",
+                         "mode": "Verbatim", "target": f"{top}/**",
                          "note": f".el {ext['el']}, .c {ext['c']}, .h {ext['h']}, other {ext['other']}"})
             continue
         if entry.is_dir() and top in REPLACED_DIRS:
@@ -227,7 +227,7 @@ def collect_tracked(ref: Path, tracked: list[Path]) -> list[dict]:
             ext[{".el": "el", ".c": "c", ".h": "h"}.get(f.suffix, "other")] += 1
         rows.append({"source": tree, "files": len(files),
                      "lines": sum(lines_of(f) for f in files), "mode": mode,
-                     "target": f"femacs/{tree}" if mode == "Verbatim" else "-",
+                     "target": f"{tree}" if mode == "Verbatim" else "-",
                      "note": note + (f"  (.el {ext['el']}, .c {ext['c']}, .h {ext['h']}, other {ext['other']})"
                                      if mode == "Verbatim" else "")})
     return rows

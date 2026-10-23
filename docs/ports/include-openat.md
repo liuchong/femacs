@@ -74,8 +74,8 @@ $ python3 tools/extract-abi.py emacs/lib/openat.h
 ## Types and their fields - 0
 ## File-scope objects - 0
 
-$ python3 tools/extract-abi.py --check emacs/lib/openat.h femacs/lib/include/openat.rs
-OK emacs/lib/openat.h -> femacs/lib/include/openat.rs
+$ python3 tools/extract-abi.py --check emacs/lib/openat.h lib/include/openat.rs
+OK emacs/lib/openat.h -> lib/include/openat.rs
 # no `- ` problem line (`| grep -c '^- '` -> 0)
 
 $ python3 tools/check-cond-eval.py lib/openat.h
@@ -86,25 +86,25 @@ $ grep -n HAVE_OPENAT docs/baseline/config/darwin-arm64.macros.tsv   # no output
 $ grep -in openat docs/baseline/config/darwin-arm64.macros.tsv
 4243:_GL_OPENAT_ESYMLINK	ELOOP
 
-$ grep -n 'mode_t = ' femacs/lib/include/sys_types.in.rs
+$ grep -n 'mode_t = ' lib/include/sys_types.in.rs
 70:pub type mode_t = u16;
 
 # the units that already carry these prototypes by hand (the coordination point)
-$ grep -rn 'openat_save_fail\|openat_restore_fail' femacs/lib/*.rs
-femacs/lib/at-func.rs:96:        { openat_save_fail (*errno ()); }
-femacs/lib/at-func.rs:119:        { openat_restore_fail (*errno ()); }
-femacs/lib/openat-die.rs:15:/* C 6: `void openat_save_fail (int errnum) { abort (); }`.  `openat.h` is the system
-femacs/lib/openat-die.rs:17:   exports `T _openat_save_fail`, tools/check-symbols.py).  `errnum` is unused in C too,
-femacs/lib/openat-die.rs:19:#[unsafe(export_name = "openat_save_fail")]
-femacs/lib/openat-die.rs:20:pub unsafe extern "C" fn openat_save_fail (errnum: c_int)
-femacs/lib/openat-die.rs:25:/* C 7: `void openat_restore_fail (int errnum) { abort (); }`.  */
-femacs/lib/openat-die.rs:26:#[unsafe(export_name = "openat_restore_fail")]
-femacs/lib/openat-die.rs:27:pub unsafe extern "C" fn openat_restore_fail (errnum: c_int)
-femacs/lib/utimensat.rs:68:  /* openat.h 55-56: _Noreturn void openat_save_fail (int) / openat_restore_fail (int);  */
-femacs/lib/utimensat.rs:69:  pub fn openat_save_fail (err: c_int) -> !;
-femacs/lib/utimensat.rs:70:  pub fn openat_restore_fail (err: c_int) -> !;
-femacs/lib/utimensat.rs:148:    { openat_save_fail (*errno ()); }
-femacs/lib/utimensat.rs:172:    { openat_restore_fail (*errno ()); }
+$ grep -rn 'openat_save_fail\|openat_restore_fail' lib/*.rs
+lib/at-func.rs:96:        { openat_save_fail (*errno ()); }
+lib/at-func.rs:119:        { openat_restore_fail (*errno ()); }
+lib/openat-die.rs:15:/* C 6: `void openat_save_fail (int errnum) { abort (); }`.  `openat.h` is the system
+lib/openat-die.rs:17:   exports `T _openat_save_fail`, tools/check-symbols.py).  `errnum` is unused in C too,
+lib/openat-die.rs:19:#[unsafe(export_name = "openat_save_fail")]
+lib/openat-die.rs:20:pub unsafe extern "C" fn openat_save_fail (errnum: c_int)
+lib/openat-die.rs:25:/* C 7: `void openat_restore_fail (int errnum) { abort (); }`.  */
+lib/openat-die.rs:26:#[unsafe(export_name = "openat_restore_fail")]
+lib/openat-die.rs:27:pub unsafe extern "C" fn openat_restore_fail (errnum: c_int)
+lib/utimensat.rs:68:  /* openat.h 55-56: _Noreturn void openat_save_fail (int) / openat_restore_fail (int);  */
+lib/utimensat.rs:69:  pub fn openat_save_fail (err: c_int) -> !;
+lib/utimensat.rs:70:  pub fn openat_restore_fail (err: c_int) -> !;
+lib/utimensat.rs:148:    { openat_save_fail (*errno ()); }
+lib/utimensat.rs:172:    { openat_restore_fail (*errno ()); }
 
 $ ls build/emacs-ref/lib/ | grep openat
 openat-die.o

@@ -39,7 +39,7 @@ from pathlib import Path
 REPO = Path(__file__).resolve().parent.parent
 PORT_PROG = REPO / "build/port/src/emacs"
 REF_PROG = REPO / "build/emacs-ref/src/emacs"
-PORT_TEST = REPO / "femacs/test"
+PORT_TEST = REPO / "test"
 REF_TEST = REPO / "emacs/test"
 SUMMARY = re.compile(r"Ran (\d+) tests?, (\d+) results? as expected, (\d+) unexpected")
 
@@ -61,10 +61,10 @@ def ensure_port_tree_is_a_project_root() -> None:
     `elisp-mode-tests` cases depend on that: they compute `(file-relative-name FILE
     (project-root ...))` and expect it to start at `test/`.  The port's tree lives inside
     this repository, so without the same marker its project root is the repository and the
-    relative name starts at `femacs/`.  Writing the gitfile makes the two trees equivalent
+    relative name starts at ``.  Writing the gitfile makes the two trees equivalent
     (PORTING.md P-135); it is ignored by the outer repository, so the worktree stays clean.
     """
-    gitfile = PORT_TEST.parent / ".git"                 # femacs/.git
+    gitfile = PORT_TEST.parent / ".git"                 # .git
     if not gitfile.exists():
         gitfile.write_text("gitdir: ../.git\n")
 

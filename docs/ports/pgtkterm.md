@@ -11,7 +11,7 @@
 > `--check` reading in Evidence ③ was never vacuous.  What this ledger adds is the mandate's P-86 ②
 > shape - the **C line-range table**, accounting for every line of the reference because the arm
 > cannot be compiled on this machine - beside the `## Evidence` arm readings and the
-> `## Deviations`.  Port: `femacs/src/pgtkterm.rs` (**11,156 lines**), carrying **C 1-1078**,
+> `## Deviations`.  Port: `src/pgtkterm.rs` (**11,156 lines**), carrying **C 1-1078**,
 > **C 1079-1279**, **C 1281-1383**, **C 1385-1483**, **C 1485-1572**, **C 1575-1662**,
 > **C 1664-1804**, **C 1806-1951**, **C 1953-2089**, **C 2091-2190**, **C 2192-2292**,
 > **C 2294-2359**, **C 2361-2455**, **C 2457-2522**, **C 2524-2825**, **C 2827-2914**,
@@ -21,7 +21,7 @@
 > number had been wrong for a while - the second slice's section records the measurement, and
 > `docs/port-map.md` is the generated authority).  **The file is complete with slice 65**: every C line of C 1-7780 is covered by a
 > transcribed range row (the cairo family closed the remainder), and `extract-abi.py --check
-> emacs/src/pgtkterm.c femacs/src/pgtkterm.rs` reads `OK`.**
+> emacs/src/pgtkterm.c src/pgtkterm.rs` reads `OK`.**
 >
 > **This ledger replaces, not extends, what it said before.**  Until this batch it read "the frozen
 > configuration does not compile this file ⇒ the port is the empty unit plus the note that names the
@@ -69,7 +69,7 @@
 | C 468-469 `#define CLEAR_IF_EQ(FIELD) …` / C 532 `#undef` | C's own text as a function-scoped `macro_rules!`, C's invocation text kept (`highlight_frame`, `im.focused_frame`) | the whole gate |
 | C 728's bare `return;`, C 784-785's commented-out `SET_FRAME_VISIBLE`/`SET_FRAME_ICONIFIED` | carried as C's text | the whole gate |
 
-The features this slice **names but the tree has not registered** (`femacs/xtask/Cargo.toml`):
+The features this slice **names but the tree has not registered** (`xtask/Cargo.toml`):
 **`gdk_windowing_wayland`** (C 68 - a GDK header macro, not in
 `docs/baseline/config/darwin-arm64.macros.tsv`, so `tools/check-cond-eval.py` decides the `#ifdef`
 on an absent name as false).  `have_pgtk` (151), `have_window_system` (163), `have_xwidgets` (183),
@@ -239,7 +239,7 @@ arms have ever been compiled (the frozen configuration defines neither `have_win
 (`## Owed`).
 
 **③ `extract-abi.py --check`.**  `python3 tools/extract-abi.py --check emacs/src/pgtkterm.c
-femacs/src/pgtkterm.rs` -> `FAIL`, **195 `- ` lines**: 165 `missing function`, 12 `missing macro`,
+src/pgtkterm.rs` -> `FAIL`, **195 `- ` lines**: 165 `missing function`, 12 `missing macro`,
 9 `missing constant`, 6 `missing file-scope object` (all of them the unported remainder of the
 7780-line file - P-86 ⑩: the check stops being vacuous as soon as the port has a `fn`, and the
 comparison is against the file's *whole* inventory, `python3 tools/extract-abi.py
@@ -284,8 +284,8 @@ their assertions are owed.
    `// femacs: port of src/pgtkterm.c @ fd7afced403.`
 2. **The toolkit layer is declared in the unit** (P-88 ①): `<cairo.h>` (C 28), `<gtk/gtk.h>`
    (reached through `"gtkutil.h"`, C 48) and `<gdk/gdkwayland.h>` (C 69) have no file in the
-   reference tree and no mirror, so their declarations stand in `femacs/src/pgtkterm.rs` rather than
-   in a new file under `femacs/src/include/`.  cairo and GLib are read from this machine's headers
+   reference tree and no mirror, so their declarations stand in `src/pgtkterm.rs` rather than
+   in a new file under `src/include/`.  cairo and GLib are read from this machine's headers
    (Evidence ⑤); **GTK and GDK are not on this machine**, so those declarations cite the header
    alone, each record is the never-dereferenced `[u8; 0]` shape (`src/xfns.rs` 1004-1009), and
    `GtkAllocation`'s four-`c_int` layout is **spelled, not measured** (owed).
@@ -361,7 +361,7 @@ their assertions are owed.
 
 ## Owed
 
-1. `femacs/xtask/Cargo.toml`: one feature is named by this unit and registered nowhere -
+1. `xtask/Cargo.toml`: one feature is named by this unit and registered nowhere -
    **`gdk_windowing_wayland`** (C 68).  It is a GDK header macro (not in
    `docs/baseline/config/darwin-arm64.macros.tsv`), so the naming rule is P-51's "the macro
    lower-cased" and the evaluator's `#ifdef`-on-an-absent-name verdict is `false`.
@@ -525,7 +525,7 @@ their assertions are owed.
     first, so the sibling unit's spelling is the faithful one and the C-exact reading was measured
     against C's text before it was copied.
 27. **Five declarations this slice needs, and the one mirror it changes.**  `M_PI_2` (math.h 752,
-    `1.57079632679489661923132169163975144`) lands in the `femacs/lib/include/math.rs` mirror - C
+    `1.57079632679489661923132169163975144`) lands in the `lib/include/math.rs` mirror - C
     1798's `cairo_arc` angles are C's `i * M_PI_2` after the int -> `double` promotion, so the port
     writes `i as c_double * M_PI_2` and `(i + 1) as c_double * M_PI_2` (the `src/xterm.rs` 7320
     spelling of the same widening, which had no declaration to reach: that lane's `use_cairo` arm is
@@ -543,7 +543,7 @@ their assertions are owed.
 
 28. **`pgtk_output`'s three `bool_bf` members are stored now (the mirror's first consumer).**  C 394's
     `toolbar_in_hbox`, C 395's `toolbar_is_packed` and C 440's `relief_background_valid_p` were
-    *recorded, not stored* in `femacs/src/include/pgtkterm.rs` (P-80's member dispatch) until this
+    *recorded, not stored* in `src/include/pgtkterm.rs` (P-80's member dispatch) until this
     slice's `pgtk_setup_relief_colors` needed C 1843-1847: C reads the flag in a condition and writes
     it in the body, and a record's field cannot be declared at a use site, so the record gained the
     P-80 ① storage unit (`pub bits: c_uint`) plus the member-name-dispatched accessor
@@ -1357,7 +1357,7 @@ their assertions are owed.
     three uninitialised locals are **zero-initialised** (Deviation 12's rule): the C 6267/6291
     accessors hand them out through `&raw mut`, and the first reading named the three `E0381`s that
     skip produces.  **The mirror leg did real work this slice**: `check-mirror-dupes` first read
-    `FAIL … list3 is already declared by femacs/src/include/lisp.rs` (the unit's row was removed -
+    `FAIL … list3 is already declared by src/include/lisp.rs` (the unit's row was removed -
     the include graph carries it beside the `make_float` the four `list3` calls use), and the named
     `src/xwidget.rs` reading against this mirror first read **192 errors / 0 warnings with six
     `E0428`s** (`GdkScrollDirection` and the five `GDK_SCROLL_*`), because that unit declares all six
@@ -1679,10 +1679,10 @@ their assertions are owed.
 
 ## Owed (2026-10-05, PORTING.md P-90)
 
-- **The SDK surface moves out of the unit.**  `femacs/src/pgtkterm.rs` carries the cairo, GLib,
+- **The SDK surface moves out of the unit.**  `src/pgtkterm.rs` carries the cairo, GLib,
   GDK and GTK declarations as in-unit segments because it was the surface's first (and, at that
   moment, only) consumer.  With `gtkutil.c` as the second consumer, P-90 requires one dedicated
-  mirror - `femacs/src/include/gtk.rs` with its own ledger `docs/ports/include-gtk.md`, the
+  mirror - `src/include/gtk.rs` with its own ledger `docs/ports/include-gtk.md`, the
   `include-xlib.rs` shape - and the in-unit segments moved into it (P-88 ⑤'s move-back).  The
   mirror is not created yet: this file's own slice was landed without it, and the move-back is
   owed to the round that creates it.  Until then the arm's readings carry the declarations twice
@@ -1828,12 +1828,12 @@ their assertions are owed.
     `expose_frame` and `redisplay_preserve_echo_area` (the last two belong to
     `include/dispextern.rs`).  They join the P-90 ⑤ move-back this file's ledger already names:
     `include/gtk.rs` is the surface's single home, and the `cairo-{pdf,ps,svg}.h` headers (which have
-    no mirror and no `CAIRO_HAS_*` feature registration in `femacs/xtask/Cargo.toml`) need one
+    no mirror and no `CAIRO_HAS_*` feature registration in `xtask/Cargo.toml`) need one
     before their rows can leave the unit.
 
 ## P-90 mirror round (2026-10-05): the surface moved out of this unit
 
-- **`femacs/src/include/gtk.rs` is the third-party surface's single home** (P-90 ①/②/③).  The
+- **`src/include/gtk.rs` is the third-party surface's single home** (P-90 ①/②/③).  The
   in-unit segment this file carried (C 28's `<cairo.h>` plus C 48's chain: cairo, GLib/GObject,
   GDK, GTK) was moved there verbatim; the missing declarations of the other two consumers went with
   it, and this unit now reaches it through `#[cfg (feature = "have_pgtk")]
@@ -1887,7 +1887,7 @@ and four declarations stand in the unit (`prepare_face_for_display` dispextern.h
 `get_glyph_string_clip_rects` dispextern.h 3661-3662, `cairo_rectangle` cairo.h 954-956,
 `cairo_clip` cairo.h 1033) plus the two-arm `FRAME_Z_GROUP` write macro (frame.h 1262-1267; the
 mirror has the reader only - the `src/haikufns.rs` 403-412 shape).
-`extract-abi.py --check emacs/src/pgtkterm.c femacs/src/pgtkterm.rs` goes **193 rows -> 186**: the
+`extract-abi.py --check emacs/src/pgtkterm.c src/pgtkterm.rs` goes **193 rows -> 186**: the
 seven items retire (`pgtk_set_z_group` and the six helpers/initializer), and the file's own
 `line count drifted 80.8%` row is re-measured at **77.6%** (C 7,780 vs the port's 1,744) - the
 class this unit carries until the port reaches C's size, and the reason this ledger's range table
@@ -1932,7 +1932,7 @@ new class and no new warning.**  The first reading of this text was 44/45/22 wit
 (`XRectangle`'s pgtk record, Deviation 18) and one `alloca` token row (Deviation 19); both are
 recorded rather than absorbed.
 
-**What `--check` reads.**  `extract-abi.py --check emacs/src/pgtkterm.c femacs/src/pgtkterm.rs`
+**What `--check` reads.**  `extract-abi.py --check emacs/src/pgtkterm.c src/pgtkterm.rs`
 goes **186 rows -> 181**: the five items retire (`pgtk_set_glyph_string_clipping_exactly`,
 `pgtk_compute_glyph_string_overhangs`, `pgtk_clear_glyph_string_rect`, `fill_background_by_face`,
 `fill_background`), the `alloca` body-token row retires against Deviation 19's row, and the file's
@@ -1973,7 +1973,7 @@ xterm.rs's value form and read two `E0614`s), C's two `short` -> `int` promotion
 `for_overlaps != 0` (Deviation 22 - the first reading read one mismatch), and two cairo rows in the
 mirror (Deviation 23).
 
-**What `--check` reads.**  `extract-abi.py --check emacs/src/pgtkterm.c femacs/src/pgtkterm.rs`
+**What `--check` reads.**  `extract-abi.py --check emacs/src/pgtkterm.c src/pgtkterm.rs`
 goes **181 rows -> 178**: `pgtk_draw_glyph_string_background`, `pgtk_draw_rectangle` and
 `pgtk_draw_glyph_string_foreground` retire, and the file's own `line count drifted` row is
 re-measured 75.7% -> **73.4%** (C 7,780 vs the port's 2,071) - the class this unit carries until the
@@ -2010,7 +2010,7 @@ adds no error and no warning.  One repair got it there and it is recorded: the m
 reading of this text read one mismatch.  The unit's own `glyph_u_cmp_bits!` copy uses the pointer
 call form for the same reason Deviation 21 gives for `face_bits!`.
 
-**What `--check` reads.**  `extract-abi.py --check emacs/src/pgtkterm.c femacs/src/pgtkterm.rs`
+**What `--check` reads.**  `extract-abi.py --check emacs/src/pgtkterm.c src/pgtkterm.rs`
 goes **178 rows -> 177**: `pgtk_draw_composite_glyph_string_foreground` retires, and the file's own
 `line count drifted` row is re-measured 73.4% -> **71.7%** (C 7,780 vs the port's 2,199).
 
@@ -2044,7 +2044,7 @@ adds no error and no warning.  One repair got it there (the `CHAR_TABLE_REF` ind
 25); the unit's own `glyphless_bits!`/`GLYPHLESS_DISPLAY_*` copies and the two `PACIFY_GCC_BUG_81401`
 arms are recorded in the same deviation.
 
-**What `--check` reads.**  `extract-abi.py --check emacs/src/pgtkterm.c femacs/src/pgtkterm.rs`
+**What `--check` reads.**  `extract-abi.py --check emacs/src/pgtkterm.c src/pgtkterm.rs`
 goes **177 rows -> 176**: `pgtk_draw_glyphless_glyph_string_foreground` retires, and the file's own
 `line count drifted` row is re-measured 71.7% -> **70.0%** (C 7,780 vs the port's 2,334).
 
@@ -2082,7 +2082,7 @@ injecting `let _: c_int = true;` as the first statement of `pgtk_compute_lighter
 from 40 errors to **41**, anchored at that line (the injected statement was then removed and the file
 re-measured at 2,561 lines).
 
-**What `--check` reads.**  `extract-abi.py --check emacs/src/pgtkterm.c femacs/src/pgtkterm.rs`
+**What `--check` reads.**  `extract-abi.py --check emacs/src/pgtkterm.c src/pgtkterm.rs`
 goes **176 rows -> 166**: `pgtk_compute_lighter_color`, `pgtk_fill_trapezoid_for_relief` and
 `pgtk_erase_corners_for_relief` retire, `HIGHLIGHT_COLOR_DARK_BOOST_LIMIT` retires as a **macro and
 as a constant**, and the five `CORNER_*` constants retire - ten rows; the file's own
@@ -2124,7 +2124,7 @@ storage unit, Deviation 28; the `face_bits!` arm and the image pair, 29; the mis
 `Emacs_Pix_Context`, 30; and two `if (cond) call (...)` bodies Rust needs braces around); the
 readings above are the repaired text's.
 
-**What `--check` reads.**  `extract-abi.py --check emacs/src/pgtkterm.c femacs/src/pgtkterm.rs`
+**What `--check` reads.**  `extract-abi.py --check emacs/src/pgtkterm.c src/pgtkterm.rs`
 goes **166 rows -> 162**: the four items retire, and the file's own `line count drifted` row is
 re-measured 67.1% -> **64.1%** (C 7,780 vs the port's 2,790).
 
@@ -2163,7 +2163,7 @@ moves arm A to 44 errors, anchored at that line (the injected statement was then
 file re-measured at 2,995 lines).  The first reading named two `unused doc comment` warnings on the
 two new `extern` blocks; the readings above are the repaired text's (Deviation 31).
 
-**What `--check` reads.**  `extract-abi.py --check emacs/src/pgtkterm.c femacs/src/pgtkterm.rs`
+**What `--check` reads.**  `extract-abi.py --check emacs/src/pgtkterm.c src/pgtkterm.rs`
 goes **162 rows -> 159**: the three items retire, and the file's own `line count drifted` row is
 re-measured 64.1% -> **61.5%** (C 7,780 vs the port's 2,995).
 
@@ -2199,7 +2199,7 @@ first reading named as two `mismatched types` sites.  **Arm reach is measured** 
 anchored at that line (the injected statement was then removed and the file re-measured at 3,136
 lines).
 
-**What `--check` reads.**  `extract-abi.py --check emacs/src/pgtkterm.c femacs/src/pgtkterm.rs`
+**What `--check` reads.**  `extract-abi.py --check emacs/src/pgtkterm.c src/pgtkterm.rs`
 goes **159 rows -> 157**: the two items retire, and the file's own `line count drifted` row is
 re-measured 61.5% -> **59.7%** (C 7,780 vs the port's 3,136).
 
@@ -2235,7 +2235,7 @@ slice, this text adds no error and no warning - the first reading of it already 
 `pgtk_draw_image_foreground` moves arm A to 47 errors with two diagnostics anchored at those lines
 (the injected statements were then removed and the file re-measured at 3,293 lines).
 
-**What `--check` reads.**  `extract-abi.py --check emacs/src/pgtkterm.c femacs/src/pgtkterm.rs`
+**What `--check` reads.**  `extract-abi.py --check emacs/src/pgtkterm.c src/pgtkterm.rs`
 goes **157 rows -> 154**: the three items retire, and the file's own `line count drifted` row is
 re-measured 59.7% -> **57.7%** (C 7,780 vs the port's 3,293).
 
@@ -2271,7 +2271,7 @@ Deviation 34 were right the first time).  **Arm reach is measured** (P-86 ⑦): 
 errors, anchored at that line (the injected statement was then removed and the file re-measured at
 3,369 lines).
 
-**What `--check` reads.**  `extract-abi.py --check emacs/src/pgtkterm.c femacs/src/pgtkterm.rs`
+**What `--check` reads.**  `extract-abi.py --check emacs/src/pgtkterm.c src/pgtkterm.rs`
 goes **154 rows -> 153**: `pgtk_draw_image_glyph_string` retires, and the file's own
 `line count drifted` row is re-measured 57.7% -> **56.7%** (C 7,780 vs the port's 3,369).
 
@@ -2306,7 +2306,7 @@ injecting `let _: c_int = true;` as the first statement of `pgtk_draw_stretch_gl
 A to 45 errors, anchored at that line (the injected statement was then removed and the file
 re-measured at 3,494 lines).
 
-**What `--check` reads.**  `extract-abi.py --check emacs/src/pgtkterm.c femacs/src/pgtkterm.rs`
+**What `--check` reads.**  `extract-abi.py --check emacs/src/pgtkterm.c src/pgtkterm.rs`
 goes **153 rows -> 152**: `pgtk_draw_stretch_glyph_string` retires, and the file's own
 `line count drifted` row is re-measured 56.7% -> **55.1%** (C 7,780 vs the port's 3,494).
 
@@ -2341,7 +2341,7 @@ injecting `let _: c_int = true;` as the first statement of both new functions mo
 errors with two diagnostics anchored at those lines (the injected statements were then removed and
 the file re-measured at 3,587 lines).
 
-**What `--check` reads.**  `extract-abi.py --check emacs/src/pgtkterm.c femacs/src/pgtkterm.rs`
+**What `--check` reads.**  `extract-abi.py --check emacs/src/pgtkterm.c src/pgtkterm.rs`
 goes **152 rows -> 150**: the two items retire and the one token finding this slice's `match`
 produced is the sanctioned `macro-body-notes.tsv` row (Deviation 36), and the file's own
 `line count drifted` row is re-measured 55.1% -> **53.9%** (C 7,780 vs the port's 3,587).
@@ -2383,7 +2383,7 @@ then removed and the file re-measured at 3,971 lines).  **The first readings nam
 all in this slice's own lines and all fixed (Deviation 37): two extra dereferences in the `prev`/
 `next` comparisons and a stipple write that named the field instead of its storage unit.
 
-**What `--check` reads.**  `extract-abi.py --check emacs/src/pgtkterm.c femacs/src/pgtkterm.rs`
+**What `--check` reads.**  `extract-abi.py --check emacs/src/pgtkterm.c src/pgtkterm.rs`
 goes **150 rows -> 149**: `pgtk_draw_glyph_string` retires and the one token finding its `match`
 produced is the sanctioned `macro-body-notes.tsv` row (Deviation 37); the file's own
 `line count drifted` row is re-measured 53.9% -> **49.0%** (C 7,780 vs the port's 3,971).
@@ -2420,7 +2420,7 @@ anchored at that line (the injected statement was then removed and the file re-m
 lines).  The first reading named one warning - a `///` doc comment on the two new `extern` blocks -
 which is `/* */` now (Deviation 38).
 
-**What `--check` reads.**  `extract-abi.py --check emacs/src/pgtkterm.c femacs/src/pgtkterm.rs`
+**What `--check` reads.**  `extract-abi.py --check emacs/src/pgtkterm.c src/pgtkterm.rs`
 goes **149 rows -> 145**: the four items retire, and the one token finding the hook produced
 (C 2849's `= 1`) is the sanctioned `macro-body-notes.tsv` row (Deviation 38); the file's own
 `line count drifted` row is re-measured 49.0% -> **47.1%** (C 7,780 vs the port's 4,117).
@@ -2460,7 +2460,7 @@ lines).  **The first reading named four defects**, all in this slice's own lines
 (Deviation 39): the unit had never carried frame.h's inline `FACE_FROM_ID`/`FRAME_FACE_CACHE` pair,
 `cursor_glyph->face_id` is a bit-field, and `MATRIX_ROW` needs the typed matrix cast.
 
-**What `--check` reads.**  `extract-abi.py --check emacs/src/pgtkterm.c femacs/src/pgtkterm.rs`
+**What `--check` reads.**  `extract-abi.py --check emacs/src/pgtkterm.c src/pgtkterm.rs`
 goes **145 rows -> 144**: `pgtk_draw_bar_cursor` retires, and the file's own
 `line count drifted` row is re-measured 47.1% -> **45.4%** (C 7,780 vs the port's 4,248).
 
@@ -2503,7 +2503,7 @@ re-measured at 4,395 lines).  **The first reading named two defects**, both fixe
 missing `cairo_rectangle_t` record and the `short`-to-`int` promotion on
 `glyph_row->used[TEXT_AREA]`.
 
-**What `--check` reads.**  `extract-abi.py --check emacs/src/pgtkterm.c femacs/src/pgtkterm.rs`
+**What `--check` reads.**  `extract-abi.py --check emacs/src/pgtkterm.c src/pgtkterm.rs`
 goes **144 rows -> 142**: the two items retire and the one token finding the `match` produced is the
 sanctioned `macro-body-notes.tsv` row (Deviation 40); the file's own `line count drifted` row is
 re-measured 45.4% -> **43.5%** (C 7,780 vs the port's 4,395).
@@ -2543,7 +2543,7 @@ twelve defects**, all fixed (Deviation 41): eight `E0381`s for C's address-fille
 initialisation, PORTING.md 1.5) and four names in the xwidgets arm (`XXWIDGET` is a mirror function
 rather than a macro, and `XG_XWIDGET_VIEW` needs `.as_ptr ()`).
 
-**What `--check` reads.**  `extract-abi.py --check emacs/src/pgtkterm.c femacs/src/pgtkterm.rs`
+**What `--check` reads.**  `extract-abi.py --check emacs/src/pgtkterm.c src/pgtkterm.rs`
 goes **142 rows -> 141**: `pgtk_scroll_run` retires, and the file's own `line count drifted` row is
 re-measured 43.5% -> **41.0%** (C 7,780 vs the port's 4,593).
 
@@ -2579,7 +2579,7 @@ statement was then removed and the file re-measured at 4,758 lines).  **The firs
 defect** - `gtk_window_set_icon`, whose mirror row is a doc comment only - and the repaired reading
 is the zero delta above (Deviation 42).
 
-**What `--check` reads.**  `extract-abi.py --check emacs/src/pgtkterm.c femacs/src/pgtkterm.rs`
+**What `--check` reads.**  `extract-abi.py --check emacs/src/pgtkterm.c src/pgtkterm.rs`
 goes **141 rows -> 137**: the four items retire and the one token finding the cast produced is the
 sanctioned `macro-body-notes.tsv` row (Deviation 42); the file's own `line count drifted` row is
 re-measured 41.0% -> **38.8%** (C 7,780 vs the port's 4,758).
@@ -2617,7 +2617,7 @@ re-measured at 4,895 lines).  **The first readings named three defects**, all fi
 `borders_respect_alpha_background` reads, which are the frame record's bit-field and so need the
 unit's own accessor.
 
-**What `--check` reads.**  `extract-abi.py --check emacs/src/pgtkterm.c femacs/src/pgtkterm.rs`
+**What `--check` reads.**  `extract-abi.py --check emacs/src/pgtkterm.c src/pgtkterm.rs`
 goes **137 rows -> 134**: the three items retire and the one token finding the `mouse_face_defer`
 write produced is the sanctioned `macro-body-notes.tsv` row (Deviation 43); the file's own
 `line count drifted` row is re-measured 38.8% -> **37.1%** (C 7,780 vs the port's 4,895).
@@ -2661,7 +2661,7 @@ pass C's `int` where the mirror's `make_fixnum` wants `EMACS_INT` (two `E0308`s)
 the cast C performs implicitly (`win_x as EMACS_INT`, the `src/androidterm.rs` 814-815 spelling of
 the same site), which is Deviation 44.
 
-**What `--check` reads.**  `extract-abi.py --check emacs/src/pgtkterm.c femacs/src/pgtkterm.rs`
+**What `--check` reads.**  `extract-abi.py --check emacs/src/pgtkterm.c src/pgtkterm.rs`
 goes **134 rows -> 133**: `pgtk_mouse_position` retires, no `does not mention` row appears, and the
 file's own `line count drifted` row is re-measured 37.1% -> **35.1%** (C 7,780 vs the port's 5,049).
 
@@ -2709,7 +2709,7 @@ arm.  **Arm reach is measured** (P-86 ⑦): injecting `let _: c_int = true;` as 
 `pgtk_define_fringe_bitmap` moves arm A to 53 errors anchored at that line (the injected statement
 was then removed and the file re-measured at **5,193** lines).
 
-**What `--check` reads.**  `extract-abi.py --check emacs/src/pgtkterm.c femacs/src/pgtkterm.rs` goes
+**What `--check` reads.**  `extract-abi.py --check emacs/src/pgtkterm.c src/pgtkterm.rs` goes
 **133 rows -> 128**: five retire (`pgtk_define_fringe_bitmap`, `pgtk_destroy_fringe_bitmap`,
 `pgtk_clip_to_row` and the two file-scope objects) and one arrives -
 `function pgtk_destroy_fringe_bitmap does not mention 0` - which the sanctioned
@@ -2757,7 +2757,7 @@ the port now names all four through the module path.  **Arm reach is measured** 
 anchored at that line (the injected statement was then removed and the file re-measured at **5,348**
 lines).
 
-**What `--check` reads.**  `extract-abi.py --check emacs/src/pgtkterm.c femacs/src/pgtkterm.rs` goes
+**What `--check` reads.**  `extract-abi.py --check emacs/src/pgtkterm.c src/pgtkterm.rs` goes
 **128 rows -> 121**: seven retire (the five functions above and the two file-scope objects) and one
 arrives - `function pgtk_draw_fringe_bitmap does not mention cursor_p, overlay_p` - which the
 sanctioned `docs/ports/macro-body-notes.tsv` row closes (C's two members are the mirror's accessor
@@ -2799,7 +2799,7 @@ entries could be written `Some (name)` directly.  **Arm reach is measured** (P-8
 `let _: c_int = true;` as the first statement of `pgtk_clear_frame` moves arm A to 53 errors anchored
 at that line (the injected statement was then removed and the file re-measured at **5,458** lines).
 
-**What `--check` reads.**  `extract-abi.py --check emacs/src/pgtkterm.c femacs/src/pgtkterm.rs` goes
+**What `--check` reads.**  `extract-abi.py --check emacs/src/pgtkterm.c src/pgtkterm.rs` goes
 **121 rows -> 119**: two retire (`pgtk_redisplay_interface` and `pgtk_clear_frame`), no
 `does not mention` row appears, and the file's own `line count drifted` row is re-measured 31.3% ->
 **29.8%** (C 7,780 vs the port's 5,458).
@@ -2808,7 +2808,7 @@ at that line (the injected statement was then removed and the file re-measured a
 **676/0/0/2081/36/0**; `check-dead-file-coverage.py` **145/0** (**57 range rows** over
 `src/pgtkterm.c`); `check-port-lines.py` **0/0/0/0**; `check-ledger-ticks.py` **238/0**;
 `check-cond-eval.py src/pgtkterm.c` **31/0/0**; `check-mirror-dupes.py` **16/16/0** (no mirror
-changed this round - PORTING.md §1.4 and this ledger are the only non-`femacs/` files - so P-87's
+changed this round - PORTING.md §1.4 and this ledger are the only non-`` files - so P-87's
 two legs do not apply).  **Not claimed**: none of this has been run - the frozen configuration
 compiles none of this file, the interface object's 28 pointers are never *called* here (the struct
 is one more static the redisplay code would read), and the three arm readings are **compile**
@@ -2838,7 +2838,7 @@ against the HEAD copy; **the first reading's warning** (`unused doc comment`, th
 `let _: c_int = true;` as the first statement of `pgtk_flash` moves arm A to 51 errors anchored at
 that line (removed, the file re-measured at **5,628** lines).
 
-**What `--check` reads.**  `extract-abi.py --check emacs/src/pgtkterm.c femacs/src/pgtkterm.rs` goes
+**What `--check` reads.**  `extract-abi.py --check emacs/src/pgtkterm.c src/pgtkterm.rs` goes
 **119 rows -> 116**: the three items retire, no `does not mention` row appears, and the file's own
 `line count drifted` row is re-measured 29.8% -> **27.7%** (C 7,780 vs the port's 5,628).
 
@@ -2872,7 +2872,7 @@ no warning - the eighth zero-delta reading in this unit, and the first one with 
 statement of `pgtk_read_socket` moves arm A to 51 errors anchored at that line (removed, the file
 re-measured at **5,684** lines).
 
-**What `--check` reads.**  `extract-abi.py --check emacs/src/pgtkterm.c femacs/src/pgtkterm.rs` goes
+**What `--check` reads.**  `extract-abi.py --check emacs/src/pgtkterm.c src/pgtkterm.rs` goes
 **116 rows -> 115** (the item retires, no `does not mention` row appears) and the file's own
 `line count drifted` row is re-measured 27.7% -> **26.9%** (C 7,780 vs the port's 5,684).
 
@@ -2911,7 +2911,7 @@ from every mirror (now a unit row, Owed 11) plus C's two `false` returns from a 
 `let _: c_int = true;` as the first statement of `pgtk_send_scroll_bar_event` moves arm A to 51
 errors anchored at that line (removed, the file re-measured at **5,869** lines).
 
-**What `--check` reads.**  `extract-abi.py --check emacs/src/pgtkterm.c femacs/src/pgtkterm.rs` goes
+**What `--check` reads.**  `extract-abi.py --check emacs/src/pgtkterm.c src/pgtkterm.rs` goes
 **115 rows -> 112**: the two items retire, one token row arrives
 (`xg_scroll_callback does not mention break, case, default, gtk_adjustment, switch`, closed by the
 sanctioned `docs/ports/macro-body-notes.tsv` row - C's `switch` is the port's `match` and C's
@@ -2950,7 +2950,7 @@ anchored at that line (removed, the file re-measured at **5,976** lines).  One h
 the appended text carried a zero-width space in a comment, which the measured `\u200b` scan found and
 the same edit removed.
 
-**What `--check` reads.**  `extract-abi.py --check emacs/src/pgtkterm.c femacs/src/pgtkterm.rs` goes
+**What `--check` reads.**  `extract-abi.py --check emacs/src/pgtkterm.c src/pgtkterm.rs` goes
 **112 rows -> 103**, and the retirement list was read name by name (the previous revision's rows were
 dumped to a temporary file and diffed): the five functions, `SCROLL_BAR_NAME` and
 `SCROLL_BAR_HORIZONTAL_NAME` - **each of the two `#define`s is listed in both the macro and the
@@ -2987,7 +2987,7 @@ zero-delta reading in this unit, the third in a row.  **Arm reach is measured** 
 `let _: c_int = true;` as the first statement of `pgtk_scroll_bar_create` moves arm A to 51 errors
 anchored at that line (removed, the file re-measured at **6,076** lines).
 
-**What `--check` reads.**  `extract-abi.py --check emacs/src/pgtkterm.c femacs/src/pgtkterm.rs` goes
+**What `--check` reads.**  `extract-abi.py --check emacs/src/pgtkterm.c src/pgtkterm.rs` goes
 **103 rows -> 101**: the two items retire, no `does not mention` row appears, and the file's own
 `line count drifted` row is re-measured 23.2% -> **21.9%** (C 7,780 vs the port's 6,076).
 
@@ -3023,7 +3023,7 @@ measured** (P-86 ⑦): injecting `let _: c_int = true;` as the first statement o
 `pgtk_set_vertical_scroll_bar` moves arm A to 52 errors anchored at that line (removed, the file
 re-measured at **6,260** lines).
 
-**What `--check` reads.**  `extract-abi.py --check emacs/src/pgtkterm.c femacs/src/pgtkterm.rs` goes
+**What `--check` reads.**  `extract-abi.py --check emacs/src/pgtkterm.c src/pgtkterm.rs` goes
 **101 rows -> 99**: the two items retire, no `does not mention` row appears, and the file's own
 `line count drifted` row is re-measured 21.9% -> **19.5%** (C 7,780 vs the port's 6,260).
 
@@ -3058,7 +3058,7 @@ C assigns `bar` and `f` in *either* arm of the redeem function, so both bindings
 statement of the labelled block moves arm A to 52 errors anchored at that line (removed, the file
 re-measured at **6,433** lines).
 
-**What `--check` reads.**  `extract-abi.py --check emacs/src/pgtkterm.c femacs/src/pgtkterm.rs` goes
+**What `--check` reads.**  `extract-abi.py --check emacs/src/pgtkterm.c src/pgtkterm.rs` goes
 **99 rows -> 96**: the three items retire and one token row arrives
 (`pgtk_redeem_scroll_bar does not mention goto`, closed by the sanctioned
 `docs/ports/macro-body-notes.tsv` row - C's forward `goto horizontal` is the port's labelled block).
@@ -3094,7 +3094,7 @@ zero-delta reading in this unit.  **Arm reach is measured** (P-86 ⑦): injectin
 `let _: c_int = true;` as the first statement of `set_fullscreen_state` moves arm A to 52 errors
 anchored at that line (removed, the file re-measured at **6,522** lines).
 
-**What `--check` reads.**  `extract-abi.py --check emacs/src/pgtkterm.c femacs/src/pgtkterm.rs` goes
+**What `--check` reads.**  `extract-abi.py --check emacs/src/pgtkterm.c src/pgtkterm.rs` goes
 **96 rows -> 94**: the two items retire and one token row arrives (`set_fullscreen_state does not
 mention break, case, gtk_window, switch`, closed by the sanctioned
 `docs/ports/macro-body-notes.tsv` row).  The file's own `line count drifted` row is re-measured
@@ -3130,7 +3130,7 @@ reach is measured** (P-86 ⑦): injecting `let _: c_int = true;` as the first st
 `pgtk_delete_terminal` moves arm A to 53 errors anchored at that line (removed, the file re-measured
 at **6,611** lines).
 
-**What `--check` reads.**  `extract-abi.py --check emacs/src/pgtkterm.c femacs/src/pgtkterm.rs` goes
+**What `--check` reads.**  `extract-abi.py --check emacs/src/pgtkterm.c src/pgtkterm.rs` goes
 **94 rows -> 93** (the item retires, no `does not mention` row appears) and the file's own
 `line count drifted` row is re-measured 16.2% -> **15.0%** (C 7,780 vs the port's 6,611).
 
@@ -3167,7 +3167,7 @@ was an `E0428`; a grep for the *macro* name had missed the record - the record c
 the first statement of `pgtk_query_frame_background_color` moves arm A to 53 errors anchored at that
 line (removed, the file re-measured at **6,760** lines).
 
-**What `--check` reads.**  `extract-abi.py --check emacs/src/pgtkterm.c femacs/src/pgtkterm.rs` goes
+**What `--check` reads.**  `extract-abi.py --check emacs/src/pgtkterm.c src/pgtkterm.rs` goes
 **93 rows -> 88**: the five items retire and one token row arrives (`pgtk_focus_frame does not mention
 gtk_window`, closed by the sanctioned `docs/ports/macro-body-notes.tsv` row).  The file's own
 `line count drifted` row is re-measured 15.0% -> **13.1%** (C 7,780 vs the port's 6,760).
@@ -3209,7 +3209,7 @@ unit's `Qnil ()` call form.  **Arm reach is measured** (P-86 7): injecting `let 
 the first statement of `frame_highlight` moves arm A to **73** errors anchored at the injected line
 (removed, the file re-measured at **6,876** lines).
 
-**What `--check` reads.**  `extract-abi.py --check emacs/src/pgtkterm.c femacs/src/pgtkterm.rs` goes
+**What `--check` reads.**  `extract-abi.py --check emacs/src/pgtkterm.c src/pgtkterm.rs` goes
 **88 rows -> 85**: the three functions retire and C 4787's `= 0` token row is closed by a sanctioned
 `docs/ports/macro-body-notes.tsv` row (`pgtk_frame_rehighlight does not mention 0`, the
 `pgtk_focus_frame does not mention gtk_window` shape).  The file's own `line count drifted` row is
@@ -3219,7 +3219,7 @@ re-measured 13.1% -> **11.6%** (C 7,780 vs the port's 6,876).
 table's remainder row split into `4702-4793` (**transcribed**) and `4795-7780` (whose next live
 definition is `pgtk_frame_rehighlight_hook`, C 4803-4804), the title to thirty-six slices and the
 header to 6,876 lines.  **The gates** read `check-declarations.py` 18/0/18/0, `check-citations.py`
-676/0/0/2085/36/0, `check-dead-file-coverage.py` 145/0 (**68 range rows** over `src/pgtkterm.c`),  (**Correction, the thirty-seventh slice**: this row's citation reading was first taken with the HEAD probe copy (`femacs/src/pgtkterm_baseprobe.rs`) still in the tree, which the gate counts as one more scanned file and 37 more external citations; the clean-tree reading is `check-citations.py` 676/0/0/2085/36/0, measured by re-running it at that commit with the copy removed.)
+676/0/0/2085/36/0, `check-dead-file-coverage.py` 145/0 (**68 range rows** over `src/pgtkterm.c`),  (**Correction, the thirty-seventh slice**: this row's citation reading was first taken with the HEAD probe copy (`src/pgtkterm_baseprobe.rs`) still in the tree, which the gate counts as one more scanned file and 37 more external citations; the clean-tree reading is `check-citations.py` 676/0/0/2085/36/0, measured by re-running it at that commit with the copy removed.)
 `check-port-lines.py` 0/0/0/0, `check-ledger-ticks.py` 238/0 and `check-cond-eval.py
 src/pgtkterm.c` 31/0/0 (no mirror changed this round, so `check-mirror-dupes.py` 16/16/0 stands and
 P-87's two legs do not apply).  **Not claimed**: nothing has been run - the frozen configuration
@@ -3250,7 +3250,7 @@ instance of the GTK-segment classes the last one measured.  **Arm reach is measu
 injecting `let _: c_int = true;` as the first statement of `pgtk_new_focus_frame` moves arm A to
 **72** errors anchored at the injected line (removed, the file re-measured at **7,009** lines).
 
-**What `--check` reads.**  `extract-abi.py --check emacs/src/pgtkterm.c femacs/src/pgtkterm.rs` goes
+**What `--check` reads.**  `extract-abi.py --check emacs/src/pgtkterm.c src/pgtkterm.rs` goes
 **85 rows -> 81**: the four functions retire and C 4818's `output_data`/`pgtk` token row arrives,
 closed by a sanctioned `docs/ports/macro-body-notes.tsv` row (the same function reaches the member
 through the mirror's `FRAME_X_OUTPUT!`, the `haiku_free_frame_resources` shape).  The file's own
@@ -3290,7 +3290,7 @@ zero-delta reading in this unit.  **Arm reach is measured** (P-86 7): injecting 
 as the first statement of `pgtk_create_terminal` moves arm A to **72** errors anchored at the injected
 line (removed, the file re-measured at **7,165** lines).
 
-**What `--check` reads.**  `extract-abi.py --check emacs/src/pgtkterm.c femacs/src/pgtkterm.rs` goes
+**What `--check` reads.**  `extract-abi.py --check emacs/src/pgtkterm.c src/pgtkterm.rs` goes
 **81 rows -> 80**: `pgtk_create_terminal` retires and **no token row arrives** - every token of C's
 body (`terminal`, `dpyinfo`, `create_terminal`, `output_pgtk`, the thirty-nine field names and the
 function names) is in the port's text, the `hook!` cast being a wrapper around the name rather than a
@@ -3331,7 +3331,7 @@ readings above are what the arms print.  **Arm reach is measured** (P-86 7): inj
 `let _: c_int = true;` as the first statement of `pgtk_any_window_to_frame` moves arm A to **71**
 errors anchored at the injected line (removed, the file re-measured at **7,265** lines).
 
-**What `--check` reads.**  `extract-abi.py --check emacs/src/pgtkterm.c femacs/src/pgtkterm.rs` goes
+**What `--check` reads.**  `extract-abi.py --check emacs/src/pgtkterm.c src/pgtkterm.rs` goes
 **80 rows -> 77**: the three functions retire and **no token row arrives** (the record's member names,
 the callback name and the `FOR_EACH_FRAME` body tokens are all in the port's text).  The file's own
 `line count drifted` row is re-measured 7.9% -> **6.6%** (C 7,780 vs the port's 7,265).
@@ -3384,7 +3384,7 @@ failure(s)` and `checking 83 unit(s), 0 unit failure(s)` - and, since the frozen
 includer of `include/gtk.rs`, the extra reading is `src/xwidget.rs` probed before and after
 (`use_gtk` + `have_gtk3`): 200 errors / 51 warnings on **both** sides, both sets diffing empty.
 
-**What `--check` reads.**  `extract-abi.py --check emacs/src/pgtkterm.c femacs/src/pgtkterm.rs` goes
+**What `--check` reads.**  `extract-abi.py --check emacs/src/pgtkterm.c src/pgtkterm.rs` goes
 **77 rows -> 73**: the three functions retire and C 4998's `gint` token row is closed by a sanctioned
 `docs/ports/macro-body-notes.tsv` row (the port spells GTK's `gint` as `c_int`, as every GTK row in
 `include/gtk.rs` does).  The file's own `line count drifted` row is **gone** (4.6% against the 5%
@@ -3421,7 +3421,7 @@ unit.  **Arm reach is measured** (P-86 7): injecting `let _: c_int = true;` as t
 `pgtk_handle_draw` moves arm A to **52** errors anchored at the injected line (removed, the file
 re-measured at **7,598** lines).
 
-**What `--check` reads.**  `extract-abi.py --check emacs/src/pgtkterm.c femacs/src/pgtkterm.rs` goes
+**What `--check` reads.**  `extract-abi.py --check emacs/src/pgtkterm.c src/pgtkterm.rs` goes
 **73 rows -> 69**: the four functions retire and **no token row arrives** - C 5174's `int mod` is the
 port's `mod_`, which the token comparison folds (trailing `_`), and every other token of the four
 bodies is in the port's text.  The file's `line count drifted` row stays gone (2.3%).
@@ -3468,7 +3468,7 @@ fixed here: C's chained assignment `uptr = ustr = g_utf8_to_ucs4 (…)` (now two
 `let _: c_int = true;` as the first statement of `pgtk_emacs_to_gtk_modifiers` moves arm A to **52**
 errors anchored at the injected line (removed, the file re-measured at **7,752** lines).
 
-**What `--check` reads.**  `extract-abi.py --check emacs/src/pgtkterm.c femacs/src/pgtkterm.rs` goes
+**What `--check` reads.**  `extract-abi.py --check emacs/src/pgtkterm.c src/pgtkterm.rs` goes
 **69 rows -> 61**: the three functions retire **and the five `Is…Key` macros retire their five
 `missing macro` rows**, leaving `GetBValue`/`GetGValue`/`GetRValue`/`NUM_ARGV` (all defined in the
 remainder, C 7106/7440-7441) and the `NUM_ARGV` constant row.  The file's `line count drifted` row
@@ -3517,7 +3517,7 @@ failure(s)`; and, since the frozen list carries no includer of `include/gtk.rs`,
 `src/xwidget.rs` probed before and after (`use_gtk` + `have_gtk3`): 200 errors / 51 warnings on
 **both** sides, both sets diffing empty.
 
-**What `--check` reads.**  `extract-abi.py --check emacs/src/pgtkterm.c femacs/src/pgtkterm.rs` goes
+**What `--check` reads.**  `extract-abi.py --check emacs/src/pgtkterm.c src/pgtkterm.rs` goes
 **61 rows -> 60**: `key_press_event` retires and one token row arrives (`key_press_event does not
 mention goto, guint`), which the sanctioned `docs/ports/macro-body-notes.tsv` row closes - C's five
 `goto`s are the `'done:`/`break 'done` shape and `guint` is the mirror's `c_uint` spelling.  The
@@ -3567,7 +3567,7 @@ failure(s)`; and, since the frozen list carries no includer of `include/gtk.rs`,
 `src/xwidget.rs` probed before and after (`use_gtk` + `have_gtk3`): 200 errors / 51 warnings on
 **both** sides, both sets diffing empty.
 
-**What `--check` reads.**  `extract-abi.py --check emacs/src/pgtkterm.c femacs/src/pgtkterm.rs` goes
+**What `--check` reads.**  `extract-abi.py --check emacs/src/pgtkterm.c src/pgtkterm.rs` goes
 **60 rows -> 57**: the three functions retire and one token row arrives
 (`pgtk_display_info_for_display does not mention display`), which the sanctioned
 `docs/ports/macro-body-notes.tsv` row closes - the field is the anonymous union's `gdpy` spelling.
@@ -3616,7 +3616,7 @@ assertion (**UNVERIFIED**).  `check-mirror-dupes` 16/16/0; `tools/check-all-unit
 list carries no includer of `include/gtk.rs`, the extra reading is `src/xwidget.rs` probed before and
 after (`use_gtk` + `have_gtk3`): 200 errors / 51 warnings on **both** sides, both sets diffing empty.
 
-**What `--check` reads.**  `extract-abi.py --check emacs/src/pgtkterm.c femacs/src/pgtkterm.rs` goes
+**What `--check` reads.**  `extract-abi.py --check emacs/src/pgtkterm.c src/pgtkterm.rs` goes
 **57 rows -> 54**: the three functions retire, one token row arrives (`map_event does not mention
 true`, closed by a sanctioned `docs/ports/macro-body-notes.tsv` row) and the file's own
 `line count drifted` row **returns** at 7.0% *over* C's count - which
@@ -3667,7 +3667,7 @@ failure(s)`; and the extra named reading - `src/xwidget.rs` probed before and af
 `have_gtk3` - reads 200 errors / 51 warnings on **both** sides with both sets diffing empty once the
 three names moved.
 
-**What `--check` reads.**  `extract-abi.py --check emacs/src/pgtkterm.c femacs/src/pgtkterm.rs` goes
+**What `--check` reads.**  `extract-abi.py --check emacs/src/pgtkterm.c src/pgtkterm.rs` goes
 **54 rows -> 49**: the five functions retire and three token rows arrive (the `output_data, pgtk`
 class for `pgtk_focus_changed`, `enter_notify_event` and `leave_notify_event`), each closed by a
 sanctioned `docs/ports/macro-body-notes.tsv` row.  The file's `line count drifted` row stays answered
@@ -3708,7 +3708,7 @@ was already declared by an earlier slice - so **no mirror round and no new Owed 
 `note_mouse_movement` moves arm A to **52** errors anchored at the injected line
 (`_root.rs:8581`); removed, the file re-measured at **8,619** lines.
 
-**What `--check` reads.**  `extract-abi.py --check emacs/src/pgtkterm.c femacs/src/pgtkterm.rs` goes
+**What `--check` reads.**  `extract-abi.py --check emacs/src/pgtkterm.c src/pgtkterm.rs` goes
 **49 rows -> 48**: `note_mouse_movement` retires and **no token row arrives** - every token of the C
 body (the two `(GdkEvent *)` casts' types and the two `NULL` stores included) is in the port's text.
 The file's `line count drifted` row stays answered by the `pgtkterm 0.15 total` row the forty-fifth
@@ -3767,7 +3767,7 @@ diffing empty.  That is lower and one warning higher than the 200/51 this ledger
 probe three slices ago, and the difference is not this slice's: both sides of *this* reading are
 identical, so other lanes' mirror work moved it.
 
-**What `--check` reads.**  `extract-abi.py --check emacs/src/pgtkterm.c femacs/src/pgtkterm.rs` goes
+**What `--check` reads.**  `extract-abi.py --check emacs/src/pgtkterm.c src/pgtkterm.rs` goes
 **48 rows -> 47** with **no new token row**: `motion_notify_event` retires and every token of the C
 body is in the port's text (`selected_frame` and `Vmouse_autoselect_window` are the mirrors' own
 spellings).  The file's `line count drifted` row stays answered by the `pgtkterm 0.15 total` row
@@ -3819,7 +3819,7 @@ reads `checked 83 unit(s), 0 failure(s)` and `checking 83 unit(s), 0 unit failur
 reading `src/xwidget.rs` (`use_gtk` + `have_gtk3`) against HEAD's mirror and against this one reads
 **197 errors / 52 warnings on both sides** with both sets diffing empty.
 
-**What `--check` reads.**  `extract-abi.py --check emacs/src/pgtkterm.c femacs/src/pgtkterm.rs` goes
+**What `--check` reads.**  `extract-abi.py --check emacs/src/pgtkterm.c src/pgtkterm.rs` goes
 **47 rows -> 46** with **no new token row**.  The file's `line count drifted` row stays answered by
 the `pgtkterm 0.15 total` row (8,808 against C's 7,780 is 13.2%).
 
@@ -3856,7 +3856,7 @@ baseline is HEAD's unit (no mirror row this slice).  **Arm reach is measured** (
 `let _: c_int = true;` as the first statement of `button_event` moves arm A to **52** errors anchored
 at the injected line (`_root.rs:8856`); removed, the file re-measured at **8,982** lines.
 
-**What `--check` reads.**  `extract-abi.py --check emacs/src/pgtkterm.c femacs/src/pgtkterm.rs` goes
+**What `--check` reads.**  `extract-abi.py --check emacs/src/pgtkterm.c src/pgtkterm.rs` goes
 **46 rows -> 45**: `button_event` retires with **no new token row**, and the file's `line count
 drifted` row that came back at 15.4% is answered by moving the tolerance row (see Deviation 72).
 The file is 13.5% over C's 7,780 before that row's own allowance.
@@ -3907,7 +3907,7 @@ reads **16/16/0** after the unit's duplicate `list3` row was removed; `tools/che
 `src/xwidget.rs` reading (`use_gtk` + `have_gtk3`) against HEAD's mirror and against this one reads
 **197 errors / 52 warnings on both sides** with both sets diffing empty.
 
-**What `--check` reads.**  `extract-abi.py --check emacs/src/pgtkterm.c femacs/src/pgtkterm.rs` goes
+**What `--check` reads.**  `extract-abi.py --check emacs/src/pgtkterm.c src/pgtkterm.rs` goes
 **46 rows -> 44**: `scroll_event` retires, one sanctioned `macro-body-notes.tsv` row closes the
 `break,case,switch` tokens, and the `line count drifted` row that came back at 18.0% is answered by
 moving the `pgtkterm` tolerance row to **0.20** (its reason re-measured: 9,181 against C's 7,780).
@@ -3956,7 +3956,7 @@ reads **16/16/0** (the round first broke this leg in its own text - see Deviatio
 declares no name the include graph already carries); `tools/check-all-units.sh` reads
 `checked 83 unit(s), 0 failure(s)` and `checking 83 unit(s), 0 unit failure(s)`.
 
-**What `--check` reads.**  `extract-abi.py --check emacs/src/pgtkterm.c femacs/src/pgtkterm.rs` goes
+**What `--check` reads.**  `extract-abi.py --check emacs/src/pgtkterm.c src/pgtkterm.rs` goes
 **44 rows -> 40**: the four functions retire, one sanctioned `macro-body-notes.tsv` row closes
 `drag_action_to_symbol`'s `case,default,switch` tokens, and the file's `line count drifted` row stays
 answered (`pgtkterm 0.20`; 9,299 against C's 7,780 is 19.5%).
@@ -4005,7 +4005,7 @@ reads **197 errors / 52 warnings on both sides** with both sets diffing empty; `
 reads **16/16/0**; `tools/check-all-units.sh` reads `checked 83 unit(s), 0 failure(s)` and
 `checking 83 unit(s), 0 unit failure(s)`.
 
-**What `--check` reads.**  `extract-abi.py --check emacs/src/pgtkterm.c femacs/src/pgtkterm.rs` goes
+**What `--check` reads.**  `extract-abi.py --check emacs/src/pgtkterm.c src/pgtkterm.rs` goes
 **40 rows -> 37**: the three functions retire with no token row, and the `line count drifted` row that
 came back at 21.6% is answered by moving the `pgtkterm` tolerance row to **0.25** (Deviation 75).
 
@@ -4040,7 +4040,7 @@ unit.  **Arm reach is measured** (P-86 7): injecting `let _: c_int = true;` as t
 `pgtk_find_touch_point` moves arm A to **52** errors anchored at the injected line (`_root.rs:9605`);
 removed, the file re-measured at 9,607 lines.
 
-**What `--check` reads.**  `extract-abi.py --check emacs/src/pgtkterm.c femacs/src/pgtkterm.rs` goes
+**What `--check` reads.**  `extract-abi.py --check emacs/src/pgtkterm.c src/pgtkterm.rs` goes
 **37 rows -> 33**: the four functions retire with no token row **and** the standing
 `cannot find function pgtk_unlink_touch_points` row retires with them.  The file's
 `line count drifted` row stays answered (`pgtkterm 0.25`; 9,607 against C's 7,780 is 23.5%).
@@ -4086,7 +4086,7 @@ the `GdkEventTouch` record (`axes` carried because GDK's declaration puts it bet
 **16/16/0**; `tools/check-all-units.sh` reads `checked 83 unit(s), 0 failure(s)` and
 `checking 83 unit(s), 0 unit failure(s)`.
 
-**What `--check` reads.**  `extract-abi.py --check emacs/src/pgtkterm.c femacs/src/pgtkterm.rs` goes
+**What `--check` reads.**  `extract-abi.py --check emacs/src/pgtkterm.c src/pgtkterm.rs` goes
 **33 rows -> 32**: `touch_event_cb` retires, one sanctioned `macro-body-notes.tsv` row closes its
 `case,default,switch` tokens, and the `line count drifted` row that came back at 25.1% is answered by
 moving the `pgtkterm` tolerance row to **0.30** (Deviation 77).
@@ -4125,7 +4125,7 @@ covers the three signature corrections as well as the new function.  The baselin
 `pgtk_monitors_changed_cb` moves arm A to **51** errors anchored at the injected line
 (`_root.rs:9757`); removed, the file re-measured at 9,762 lines.
 
-**What `--check` reads.**  `extract-abi.py --check emacs/src/pgtkterm.c femacs/src/pgtkterm.rs` goes
+**What `--check` reads.**  `extract-abi.py --check emacs/src/pgtkterm.c src/pgtkterm.rs` goes
 **32 rows -> 31**: `pgtk_monitors_changed_cb` retires with no token row.  The file's
 `line count drifted` row stays answered (`pgtkterm 0.30`; 9,762 against C's 7,780 is 25.5%).
 
@@ -4174,7 +4174,7 @@ sides** with both sets diffing empty; `check-mirror-dupes` reads **16/16/0**;
 `tools/check-all-units.sh` reads `checked 83 unit(s), 0 failure(s)` and
 `checking 83 unit(s), 0 unit failure(s)`.
 
-**What `--check` reads.**  `extract-abi.py --check emacs/src/pgtkterm.c femacs/src/pgtkterm.rs` goes
+**What `--check` reads.**  `extract-abi.py --check emacs/src/pgtkterm.c src/pgtkterm.rs` goes
 **31 rows -> 30**: `pgtk_set_event_handler` retires, four token rows arrive (`g_callback` for
 `pgtk_seat_added_cb`, `pgtk_enumerate_devices`, `pgtk_wait_for_event` and `pgtk_set_event_handler`,
 plus `tooltip` for the last) and four sanctioned `macro-body-notes.tsv` rows close them.  The file's
@@ -4212,7 +4212,7 @@ after the three defects below.  The baseline is HEAD's unit.  **Arm reach is mea
 injecting `let _: c_int = true;` as the first statement of `same_x_server` moves arm A to **50**
 errors anchored at the injected line (`_root.rs:9900`); removed, the file re-measured at 9,955 lines.
 
-**What `--check` reads.**  `extract-abi.py --check emacs/src/pgtkterm.c femacs/src/pgtkterm.rs` goes
+**What `--check` reads.**  `extract-abi.py --check emacs/src/pgtkterm.c src/pgtkterm.rs` goes
 **30 rows -> 27**: the three functions retire with no token row.  The file's `line count drifted` row
 stays answered (`pgtkterm 0.30`; 9,955 against C's 7,780 is 28.0%).
 
@@ -4282,7 +4282,7 @@ and against these reads **197 errors / 52 warnings on both sides** with both set
 `checked 83 unit(s), 0 failure(s)` and `checking 83 unit(s), 0 unit failure(s)` (this mirror has 31
 includers, so that leg is the one that matters most this slice).
 
-**What `--check` reads.**  `extract-abi.py --check emacs/src/pgtkterm.c femacs/src/pgtkterm.rs` goes
+**What `--check` reads.**  `extract-abi.py --check emacs/src/pgtkterm.c src/pgtkterm.rs` goes
 **27 rows -> 26**: `pgtk_selection_event` retires with no token row.  The file's `line count drifted`
 row stays answered (`pgtkterm 0.30`; 10,022 against C's 7,780 is 28.8%).
 
@@ -4324,7 +4324,7 @@ HEAD's mirror and against this one reads **197 errors / 52 warnings on both side
 diffing empty; `check-mirror-dupes` reads **16/16/0**; `tools/check-all-units.sh` reads
 `checked 83 unit(s), 0 failure(s)` and `checking 83 unit(s), 0 unit failure(s)`.
 
-**What `--check` reads.**  `extract-abi.py --check emacs/src/pgtkterm.c femacs/src/pgtkterm.rs` goes
+**What `--check` reads.**  `extract-abi.py --check emacs/src/pgtkterm.c src/pgtkterm.rs` goes
 **26 rows -> 25**: `pgtk_display_x_warning` retires with no token row.  The file's
 `line count drifted` row stays answered (`pgtkterm 0.30`; 10,103 against C's 7,780 is 29.9% - the row
 is one decimal short of the tolerance it would otherwise need).
@@ -4362,7 +4362,7 @@ measured** (P-86 7): injecting `let _: c_int = true;` as the first statement of
 `pgtk_xlfd_to_fontname` moves arm A to **45** errors anchored at the injected line
 (`_root.rs:10201`); removed, the file re-measured at 10,210 lines.
 
-**What `--check` reads.**  `extract-abi.py --check emacs/src/pgtkterm.c femacs/src/pgtkterm.rs` goes
+**What `--check` reads.**  `extract-abi.py --check emacs/src/pgtkterm.c src/pgtkterm.rs` goes
 **25 rows -> 23**: the two functions retire with no token row, and the `line count drifted` row that
 came back at 31.2% is answered by moving the `pgtkterm` tolerance row to **0.35** (Deviation 84).
 **No mirror row this slice** (`check-mirror-dupes` reads 16/16/0).
@@ -4416,7 +4416,7 @@ adds.  The baseline is HEAD's unit.  **Arm reach is measured** (P-86 7): injecti
 `let _: c_int = true;` as the first statement of `pgtk_term_init` moves arm A to **45** errors anchored
 at the injected line (`_root.rs:10312`); removed, the file re-measured at 10,579 lines.
 
-**What `--check` reads.**  `extract-abi.py --check emacs/src/pgtkterm.c femacs/src/pgtkterm.rs` goes
+**What `--check` reads.**  `extract-abi.py --check emacs/src/pgtkterm.c src/pgtkterm.rs` goes
 **23 rows -> 21**: `pgtk_term_init` retires, one sanctioned `macro-body-notes.tsv` row closes its
 `g_callback` token (its `my_log_handler` argument is `Some (my_log_handler)`, a `GLogFunc`), and the
 `line count drifted` row that came back at 36.0% is answered by moving the `pgtkterm` tolerance row to
@@ -4475,13 +4475,13 @@ includer of `include/gtk.rs`, so the named reading is the mirror's other include
 probed with `use_gtk` + `have_gtk3` reads **197 errors / 52 warnings on both sides with both sets
 diff empty**.
 
-**What `--check` reads.**  `extract-abi.py --check emacs/src/pgtkterm.c femacs/src/pgtkterm.rs` goes
+**What `--check` reads.**  `extract-abi.py --check emacs/src/pgtkterm.c src/pgtkterm.rs` goes
 **22 rows -> 13** (the `- ` lines; the tool's own `FAIL` line is separate): the five functions retire,
 C 7440-7442's three `#define`s retire (`missing macro GetRValue`/`GetGValue`/`GetBValue` were rows
 before this slice), and the `line count drifted` row is answered by the `pgtkterm` tolerance row that
 now reads **0.40** (10,724 against C's 7,780 is 37.8%).  **One discrepancy is recorded rather than
 smoothed**: the sixty-second slice's report said the file then read 21 rows, and HEAD measures **22**
-today with the same pair and the same mirror (`git show HEAD:femacs/src/pgtkterm.rs` written to a
+today with the same pair and the same mirror (`git show HEAD:src/pgtkterm.rs` written to a
 temporary unit and deleted afterwards) - the row-by-row comparison above is the measurement this
 slice's delta rests on.  The rows that remain are the eleven cairo-family definitions and
 `syms_of_pgtkterm` (12) plus the `ckd_add` family row (1).
@@ -4523,7 +4523,7 @@ changed.  **Arm reach is measured** (P-86 7): injecting `let _: c_int = true;` a
 of `syms_of_pgtkterm` moves arm A to **45** errors anchored at the injected line (`_root.rs:10747`);
 removed, the file re-measured at 10,818 lines.
 
-**What `--check` reads.**  `extract-abi.py --check emacs/src/pgtkterm.c femacs/src/pgtkterm.rs` goes
+**What `--check` reads.**  `extract-abi.py --check emacs/src/pgtkterm.c src/pgtkterm.rs` goes
 **13 rows -> 12**: `syms_of_pgtkterm` retires as a missing function and the one row its text brought -
 `function syms_of_pgtkterm does not mention doc` - is closed by a `docs/ports/macro-body-notes.tsv` row
 (C spells the docstring with a `doc:` label the mirror's `$doc` parameter has no counterpart for; the
@@ -4575,7 +4575,7 @@ reassignment of `frames` made the parameter `mut`.  **Arm reach is measured** (P
 11,156 lines.
 
 **What `--check` reads - and the one tool change.**  `extract-abi.py --check emacs/src/pgtkterm.c
-femacs/src/pgtkterm.rs` goes **3 rows -> OK (0 rows)**: the eleven functions retire, the line-count
+src/pgtkterm.rs` goes **3 rows -> OK (0 rows)**: the eleven functions retire, the line-count
 row is answered by the `pgtkterm` tolerance row, which moves **0.40 -> 0.45** by measurement (11,156
 against C's 7,780 is **43.4%**; the row has moved with every measurement since the forty-fifth
 slice), and the last row - `family ckd_add: the C call passes 2, which the port's call does not` -
@@ -4604,7 +4604,7 @@ a text reading, with `--check` OK.
 ## The `gtk_dialog_get_content_area` copy leaves for the mirror (2026-10-15, status 4.333)
 
 This unit declared `gtk_dialog_get_content_area` (its C 7048 call) at a use site, with a comment
-explaining that `femacs/src/include/gtk.rs` could not own the row while `src/xwidget.rs` declared
+explaining that `src/include/gtk.rs` could not own the row while `src/xwidget.rs` declared
 its own copy - `tools/check-mirror-dupes.py` counts a unit-versus-mirror collision.
 `src/gtkutil.rs`'s third slice needed the same name, which made the pair a triple, and P-90 (1)
 ("one surface, one mirror") decided the direction: the row now stands in the mirror and this

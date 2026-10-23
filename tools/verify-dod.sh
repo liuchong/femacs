@@ -55,13 +55,13 @@ prepare || { echo "verify-dod: the environment could not be prepared"; exit 2; }
 if [ -f build/port/src/emacs ]; then
   # `config.rs` is a generated mirror that the platform gate restores byte-identically; its mtime
   # then moves without a source change.  A modified config.rs is still a real rebuild trigger.
-  newer=$(find femacs/src femacs/lib -name '*.rs' ! -path '*/include/config.rs' -newer build/port/src/emacs 2>/dev/null | head -1)
+  newer=$(find src lib -name '*.rs' ! -path '*/include/config.rs' -newer build/port/src/emacs 2>/dev/null | head -1)
   if [ -n "$newer" ]; then
     row "port binary newer than sources" "STALE ($newer is newer)"
     echo "    rebuild: xtask gate-load, then xtask dump"
     fail=1
-  elif ! git diff --quiet -- femacs/src/include/config.rs; then
-    row "port binary newer than sources" "STALE (femacs/src/include/config.rs is modified)"
+  elif ! git diff --quiet -- src/include/config.rs; then
+    row "port binary newer than sources" "STALE (src/include/config.rs is modified)"
     echo "    rebuild: xtask gate-load, then xtask dump"
     fail=1
   else
@@ -82,7 +82,7 @@ fi
 say "row 2: layout / symbols / subr / declarations"
 if python3 tools/check-declarations.py >/dev/null 2>&1; then row "check-declarations" ok; else row "check-declarations" FAIL; fail=1; fi
 if [ "$FULL" = 1 ]; then
-  run_row "xtask gate-fast" bash -c "cd femacs && CARGO_TARGET_DIR=${CARGO_TARGET_DIR:-/tmp/xt-cargo} cargo run -q -p xtask -- gate-fast"
+  run_row "xtask gate-fast" bash -c "cd "$HERE" && CARGO_TARGET_DIR=${CARGO_TARGET_DIR:-/tmp/xt-cargo} cargo run -q -p xtask -- gate-fast"
 else
   row "xtask gate-fast" "skipped (--full)"
 fi

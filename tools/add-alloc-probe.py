@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Insert (or remove) the temporary allocation/GC probe in femacs/src/alloc.rs.
+"""Insert (or remove) the temporary allocation/GC probe in src/alloc.rs.
 
 The device run stops between `make_vector (1, elt)` entering and returning, which is also where
 a collection can start, so the two candidates are separated by four tags:
@@ -14,7 +14,7 @@ a collection can start, so the two candidates are separated by four tags:
 import pathlib
 import sys
 
-SRC = pathlib.Path (__file__).resolve ().parent.parent / "femacs/src/alloc.rs"
+SRC = pathlib.Path (__file__).resolve ().parent.parent / "src/alloc.rs"
 
 HELPER = '''/* TEMPORARY allocation probe (tools/add-alloc-probe.py).  */
 #[cfg (feature = "have_android")]

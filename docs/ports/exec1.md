@@ -4,7 +4,7 @@
 > lists no `exec/` object: the loader belongs to the unexec dump path and this build is
 > `HAVE_PDUMPER=1`.  PORTING.md P-86 governs this class - the body is **transcribed as it stands**
 > (the previous revision was the three-line P-08 note) - and P-86 ②'s C line-range table is below.
-> Port: `femacs/exec/exec1.rs` (119 lines), first line
+> Port: `exec/exec1.rs` (119 lines), first line
 > `// femacs: port of exec/exec1.c @ fd7afced403.`
 
 # ----------------------------------------------------------------------
@@ -31,7 +31,7 @@ several consumers stays a use-site declaration in each unit): `<sys/wait.h>`'s
 
 * `cd femacs && CARGO_TARGET_DIR=/tmp/femacs-exec4/cargo cargo run -q -p xtask -- build-tu exec/exec1.c`
   → `built exec/exec1.rs -> ../build/femacs/exec1.o`, **exit 0**, object **3,616 bytes**.
-* `python3 tools/extract-abi.py --check emacs/exec/exec1.c femacs/exec/exec1.rs` → **no named rows**;
+* `python3 tools/extract-abi.py --check emacs/exec/exec1.c exec/exec1.rs` → **no named rows**;
   the only line is the 26.6% drift, declared in `line-drift-tolerance.tsv`.
 * `python3 tools/check-cond-eval.py exec/exec1.c` → `0 conditions, 0 unknown, 0 disagreements
   [VERIFIED]`.

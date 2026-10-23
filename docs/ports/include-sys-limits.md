@@ -14,6 +14,6 @@
 
 ## Decisions
 
-`emacs/lib/sys-limits.h` @ `fd7afced403`; port `femacs/lib/include/sys-limits.rs`.  The whole
+`emacs/lib/sys-limits.h` @ `fd7afced403`; port `lib/include/sys-limits.rs`.  The whole
 header is `enum { SYS_BUFSIZE_MAX = INT_MAX >> 20 << 20 };`, which the port writes as the same
 arithmetic over `limits.in.rs`'s `INT_MAX` (the value is 2146435072).

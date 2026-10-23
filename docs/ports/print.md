@@ -270,7 +270,7 @@ what `tools/acceptance-l0.py`'s `signal-message` case compared: L0 read
 `19 expression(s), 1 failure(s)` before this change and `19 expression(s), 0 failure(s)` after it,
 against the bare program's golden (`docs/baseline/l0-reference-temacs.txt`).
 
-`extract-abi.py --check emacs/src/print.c femacs/src/print.rs` prints `OK` both before and after
+`extract-abi.py --check emacs/src/print.c src/print.rs` prints `OK` both before and after
 (P-44's occurrence check is a lower bound, so *extra* text is invisible to it), and so does every
 other gate: this byte was found by the differential, which is the reason the ladder exists.
-`femacs/src/print.rs` 3,263 -> 3,261 lines.
+`src/print.rs` 3,263 -> 3,261 lines.

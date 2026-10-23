@@ -21,8 +21,8 @@
   `docs/baseline/frozen-build-sources.txt` lists no `.m`, so no translation unit of this target
   includes `nsxwidget.h`; the header itself has
   no platform guard, so the mirror carries its live text anyway (the `src/w32select.h` reading,
-  status 3.158).  There is no `femacs/src/nsxwidget.rs` empty unit: the unit that implements this
-  header is `src/nsxwidget.m`, whose port target is `femacs/platform/macos/nsxwidget.swift` (the
+  status 3.158).  There is no `src/nsxwidget.rs` empty unit: the unit that implements this
+  header is `src/nsxwidget.m`, whose port target is `platform/macos/nsxwidget.swift` (the
   Swift lane's, still `todo` in `docs/port-inventory.md`).
 - **The three dead arms are recorded, not transcribed** (PORTING.md P-08;
   `tools/check-cond-eval.py src/nsxwidget.h` -> `4 conditions, 0 unknown to the evaluator, 0
@@ -54,8 +54,8 @@
 
 ## Evidence
 
-- `python3 tools/extract-abi.py --check emacs/src/nsxwidget.h femacs/src/include/nsxwidget.rs`
-  -> `OK emacs/src/nsxwidget.h -> femacs/src/include/nsxwidget.rs` (no `- ` problem lines).
+- `python3 tools/extract-abi.py --check emacs/src/nsxwidget.h src/include/nsxwidget.rs`
+  -> `OK emacs/src/nsxwidget.h -> src/include/nsxwidget.rs` (no `- ` problem lines).
 - `python3 tools/check-cond-eval.py src/nsxwidget.h` -> `4 conditions, 0 unknown to the evaluator,
   0 disagreements`.
 - `python3 tools/extract-abi.py emacs/src/nsxwidget.h` -> this ledger: 0 subrs, 0 functions defined,
@@ -79,4 +79,4 @@
   `struct glyph_string *`.
 - `rg -n "nsxwidget_is_web_view|nsxwidget_webkit_uri|nsxwidget_init_view|nsxwidget_set_needsdisplay"
   femacs` -> only this mirror: the port has no definer yet (the Swift lane has not written
-  `femacs/platform/macos/nsxwidget.swift`), so there is no use-site copy to retire.
+  `platform/macos/nsxwidget.swift`), so there is no use-site copy to retire.

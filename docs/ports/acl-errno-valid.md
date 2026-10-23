@@ -24,7 +24,7 @@
   reference object confirms the name (`nm -g build/emacs-ref/lib/acl-errno-valid.o` prints
   `T _acl_errno_valid`), and its declaration lives in the acl.h mirror's `pub mod acl_decls`,
   which this unit's definition shadows (PORTING.md 0.1-10).
-- **Mirror edit**: `femacs/lib/include/errno.rs` gained `EBUSY` (= 16, measured; the switch's
+- **Mirror edit**: `lib/include/errno.rs` gained `EBUSY` (= 16, measured; the switch's
   first label had no entry there yet).
 - No line-count tolerance is needed (C 52 vs the port's 53, 1.9%).
 - Call-relationship differences (D7): none.

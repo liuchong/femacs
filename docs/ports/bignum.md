@@ -47,10 +47,10 @@
 
 ## Decisions
 
-`emacs/src/bignum.c` @ `fd7afced403`; port `femacs/src/bignum.rs` (633 lines).
+`emacs/src/bignum.c` @ `fd7afced403`; port `src/bignum.rs` (633 lines).
 
 What is verified, and by what.  `python3 tools/extract-abi.py --check emacs/src/bignum.c
-femacs/src/bignum.rs` -> `OK`; `xtask build-tu src/bignum.c` compiles the unit in both
+src/bignum.rs` -> `OK`; `xtask build-tu src/bignum.c` compiles the unit in both
 configurations (plain and `--cfg enable_checking`); `xtask gate-fast`; `gate-probes`
 (including `spikes/gmp-abi-probe.sh`, which type-checks the gmp declarations this unit
 calls).  There is no C-vs-Rust *behaviour* differential for this unit yet (P-30): the

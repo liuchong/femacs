@@ -87,7 +87,7 @@
 
 ## Decisions
 
-`emacs/lib/sys_stat.in.h` @ `fd7afced403`; port `femacs/lib/include/sys_stat.in.rs`
+`emacs/lib/sys_stat.in.h` @ `fd7afced403`; port `lib/include/sys_stat.in.rs`
 (290 lines).  Every checklist item is ticked and `extract-abi.py --check` reports `OK` for the
 pair with no row needed in `docs/ports/excluded-macros.txt`.
 
@@ -149,11 +149,11 @@ mirror added (`check-mirror-dupes.py` reports the same single ratchet row before
 ## Evidence
 
 ```
-$ python3 tools/extract-abi.py --check emacs/lib/sys_stat.in.h femacs/lib/include/sys_stat.in.rs
+$ python3 tools/extract-abi.py --check emacs/lib/sys_stat.in.h lib/include/sys_stat.in.rs
   (1 C macros have a recorded Rust counterpart: _)
   (26 C macros have several definitions (configuration branches), body not compared:
    GNULIB_defined_rpl_mkdir, S_IRUSR, S_ISBLK, S_ISCHR, S_ISDIR, S_ISFIFO ...)
-OK emacs/lib/sys_stat.in.h -> femacs/lib/include/sys_stat.in.rs
+OK emacs/lib/sys_stat.in.h -> lib/include/sys_stat.in.rs
 
 $ cd /tmp/femacs-target-mir3 && rustc --edition 2024 --crate-type=lib --emit=obj -C panic=abort \
     sys_stat_probe.rs -o sys_stat_probe.o
@@ -180,12 +180,12 @@ check-globals: 283 units, 0 DEFVAR_* variables without a definition in their own
 
 `fchmod`, `fchmodat` and `faccessat` are three names this header *declares* and `src/w32.c`
 *defines* for the Windows arm (C 4757, 4763 and 4177).  A declaration at this scope is an
-`E0428` against those definitions, which the `windowsnt` probe of `femacs/src/w32.rs` measured
+`E0428` against those definitions, which the `windowsnt` probe of `src/w32.rs` measured
 as three located sites; the three now carry `#[cfg (not (feature = "windowsnt"))]` (the
-`femacs/lib/include/unistd.in.rs` 67 `getwd` device).  Evidence: the same probe reads **119**
+`lib/include/unistd.in.rs` 67 `getwd` device).  Evidence: the same probe reads **119**
 error lines after the gate (**122** before), the frozen probe is unchanged (**exit 0**,
 **336-byte** empty object), and this mirror's own
-`python3 tools/extract-abi.py --check emacs/lib/sys_stat.in.h femacs/lib/include/sys_stat.in.rs`
+`python3 tools/extract-abi.py --check emacs/lib/sys_stat.in.h lib/include/sys_stat.in.rs`
 still reads **OK**.
 
 
@@ -196,13 +196,13 @@ The same class as the 2026-10-12 section above, five names further on.  `src/w32
 and 5946 - the file/stat emulations the lane carried as its thirteenth slice), and this header
 **declares** all five at this scope (lines 177, 178, 179, 181 and 204), so each declaration is an
 `E0428` against its definition.  The five now carry `#[cfg (not (feature = "windowsnt"))]` (the
-`femacs/lib/include/unistd.in.rs` 67 `getwd` device, as for `fchmod`/`fchmodat`/`faccessat`).
+`lib/include/unistd.in.rs` 67 `getwd` device, as for `fchmod`/`fchmodat`/`faccessat`).
 
-Evidence: `femacs/src/w32.rs`'s `windowsnt` probe (with the five un-gated) read **128 error lines /
+Evidence: `src/w32.rs`'s `windowsnt` probe (with the five un-gated) read **128 error lines /
 155 located sites**; after the gate it reads **123 / 150** - exactly what the same probe reads on
 the slice-12 text, i.e. the five sites and nothing else.  The frozen probe is unchanged (**exit 0**,
 **336-byte** empty object), and this mirror's own
-`python3 tools/extract-abi.py --check emacs/lib/sys_stat.in.h femacs/lib/include/sys_stat.in.rs`
+`python3 tools/extract-abi.py --check emacs/lib/sys_stat.in.h lib/include/sys_stat.in.rs`
 still reads **OK** (`chmod`, `mkdir`/`mkdirat`, `mknod`/`mknodat`, `futimens` and `umask` stay
 ungated: no `w32.c` definition answers for them; `w32.c`'s `sys_umask` and `sys_mkdir` are
 different names).

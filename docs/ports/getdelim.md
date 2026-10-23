@@ -20,7 +20,7 @@
 
 ## Decisions
 
-`emacs/lib/getdelim.c` @ `fd7afced403`; port `femacs/lib/getdelim.rs` (175 lines).  All
+`emacs/lib/getdelim.c` @ `fd7afced403`; port `lib/getdelim.rs` (175 lines).  All
 checklist items ticked; `build-tu` → `built getdelim.rs -> build/femacs/getdelim.o`,
 `--check` → `OK`.
 

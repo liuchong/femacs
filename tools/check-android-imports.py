@@ -185,7 +185,7 @@ def port_definition(name: str) -> str:
     """
     fn = re.compile(rf"^(?:pub\s+)?(?:unsafe\s+)?(?:extern\s+\"C\"\s+)?fn {re.escape(name)}\s*[\(<]")
     st = re.compile(rf"^(?:pub\s+)?static mut {re.escape(name)}\s*:")
-    for root in ("femacs/src", "femacs/lib", "femacs/lib/include"):
+    for root in ("src", "lib", "lib/include"):
         for path in sorted((REPO / root).glob("*.rs")):
             lines = path.read_text(errors="replace").splitlines()
             for i, line in enumerate(lines):

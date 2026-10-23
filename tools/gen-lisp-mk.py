@@ -24,10 +24,10 @@ import re
 import sys
 
 REPO = pathlib.Path(__file__).resolve().parent.parent
-PORT_LOADUP = REPO / "femacs/lisp/loadup.el"
+PORT_LOADUP = REPO / "lisp/loadup.el"
 OUT = REPO / "build/port/src/lisp.mk"
 REF = REPO / "build/emacs-ref/src/lisp.mk"
-PORT_LDEFS = REPO / "femacs/lisp/ldefs-boot.el"
+PORT_LDEFS = REPO / "lisp/ldefs-boot.el"
 REF_LDEFS = REPO / "emacs/lisp/ldefs-boot.el"
 LOAD = re.compile(r'^[ \t]*\(load "([^"]*)"')
 

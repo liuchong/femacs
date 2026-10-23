@@ -243,10 +243,10 @@ evaluator, is the declaration checker's authority.
     `%d` one stays `c_int`, as C's default argument promotions produce.
 11. **`make_specified_string`'s fourth argument** is C's `NILP (unibyte_p)` (`bool`), and
     `outp - outbuf` is `outp.offset_from (outbuf)`.
-12. **The `ccl.h` mirror landed with this unit** (`femacs/src/include/ccl.rs`, the composite.rs
+12. **The `ccl.h` mirror landed with this unit** (`src/include/ccl.rs`, the composite.rs
     precedent): `struct ccl_program`, `struct ccl_spec`, the five `CCL_STAT_*` constants,
     `CODING_SPEC_CCL_PROGRAM`, `CHECK_CCL_PROGRAM` and the two prototypes in `ccl_decls` + glob
-    import.  Landing it **deletes the `struct ccl_spec` stand-in `femacs/src/include/coding.rs`
+    import.  Landing it **deletes the `struct ccl_spec` stand-in `src/include/coding.rs`
     carried** for `coding.h` 447 and degrades that field to the ABI-equal `*mut c_void` with a
     `/// C:` note: PORTING.md P-70 puts the deletion in this same commit (two same-named
     definitions are one `E0428` in a unit that includes both mirrors) and P-72 ③ is the rule for
@@ -254,7 +254,7 @@ evaluator, is the declaration checker's authority.
     the mirror side; `coding.md`'s stand-in row is now stale and is the only place that mentions
     it (this unit does not edit another unit's ledger).
 13. **`charset.h` has no mirror yet** (`docs/port-map.md` still lists
-    `femacs/src/include/charset.rs` as unstarted), so the names this unit's live text takes from
+    `src/include/charset.rs` as unstarted), so the names this unit's live text takes from
     it are declared at the use site with C's own bodies (PORTING.md 0.1-2/P-72, the chartab.rs
     shape): `enum charset_method` and its four members, `enum charset_attr_index`'s `charset_id`
     and `charset_decoder`, `struct charset` (with the six `bool_bf` members packed into `bits`),

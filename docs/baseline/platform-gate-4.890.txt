@@ -6,10 +6,10 @@ apk: emacs.apk (918766 bytes), package org.femacs, 5 declared activit(ies) all b
 linked ../build/port/aarch64-linux-android/libemacs.so (6101888 bytes)
    libemacs.so: 5.8M, 69 Java_org_femacs_EmacsNative_* export(s)
    check-android-imports: 4 unresolved name(s) the port defines but does not export:
-     - backtrace                              femacs/lib/include/execinfo.in.rs:46  <- defined but NOT exported (`no_mangle` missing)
-     - backtrace_symbols_fd                   femacs/lib/include/execinfo.in.rs:81  <- defined but NOT exported (`no_mangle` missing)
-     - getloadavg                             femacs/src/haiku.rs:399
-     - mkostemp                               femacs/lib/mkostemp.rs:32
+     - backtrace                              lib/include/execinfo.in.rs:46  <- defined but NOT exported (`no_mangle` missing)
+     - backtrace_symbols_fd                   lib/include/execinfo.in.rs:81  <- defined but NOT exported (`no_mangle` missing)
+     - getloadavg                             src/haiku.rs:399
+     - mkostemp                               lib/mkostemp.rs:32
    check-android-imports: 304 import(s); 9 unresolved (0 new) against the API 21 stub libraries; binding eager (-z now): the library will not load; the library cannot be dlopen'ed until that list is empty
    check-android-assertions: 395 record(s) carry assertions; 52 of them have none that android-arm64 compiles
    check-android-assertions: 0 new, 0 stale, 52 baselined

@@ -262,7 +262,7 @@
 
 ## Decisions
 
-`emacs/src/pdumper.c` @ `fd7afced403`; port `femacs/src/pdumper.rs` (**6,997 lines** vs C's
+`emacs/src/pdumper.c` @ `fd7afced403`; port `src/pdumper.rs` (**6,997 lines** vs C's
 5,920 — +18.2% on the default `total` basis, so the file has a row in
 `docs/ports/line-drift-tolerance.tsv`: `pdumper  0.20  …  total`).  The extra ~1,077 lines are
 the carried dead arms (below), the clang-measured layout block (146 `const _` assertions) and
@@ -271,7 +271,7 @@ the use-site declarations the missing mirrors need.  All 249 ledger rows are che
 guard and it is `OK`.  The gates, verbatim:
 
     build-tu src/pdumper.c         -> built src/pdumper.rs -> ../build/femacs/pdumper.o
-    extract-abi.py --check         -> OK emacs/src/pdumper.c -> femacs/src/pdumper.rs
+    extract-abi.py --check         -> OK emacs/src/pdumper.c -> src/pdumper.rs
     check-globals.py               -> check-globals: 260 units, 0 DEFVAR_* variables without a definition in their own unit
     check-linkage.py               -> check-linkage: 10 unit object(s) compared against the non-static objects of the C sources the frozen build links, 0 with 0 missing symbol(s)
     check-undef.py                 -> 2 new, both from build/femacs/lread.o (another worker's unit: `_Vload_file_rep_suffixes`, `_Vload_suffixes`); pdumper.o itself has 0 orphans (measured with the same tool's universe: `nm -u build/femacs/pdumper.o` minus universe minus the ratchet is empty)
@@ -476,7 +476,7 @@ re-implemented here.
   `Byte counts: header=100 hot=8916092 discardable=171944 cold=3915800`.
 - **Owed (named): the load path stops in the `RELOC_DUMP_TO_EMACS_LV` arm (C 5328).**  Starting the
   binary while that `.pdmp` sits next to it panics with `attempt to add with overflow` at
-  `value += emacs_basis ();` (C 5328; `femacs/src/pdumper.rs` 6005).  The dump *is* produced and
+  `value += emacs_basis ();` (C 5328; `src/pdumper.rs` 6005).  The dump *is* produced and
   *is* opened, so this is the next site - not a regression of the dump run.  C's `uintptr_t`
   addition there wraps where Rust's checked arithmetic panics (PORTING.md P-96's family), which is
   the first thing to check.

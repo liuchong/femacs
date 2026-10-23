@@ -28,7 +28,7 @@ import re
 import sys
 
 REPO = pathlib.Path(__file__).resolve().parent.parent
-PORT = REPO / "femacs"
+PORT = REPO
 MANGLE = "_Users_liu_projects_src_github_com_liuchong_femacs_"
 
 # A name's *home* is the file that would have to be in scope for it to resolve.  The order of the
@@ -52,7 +52,7 @@ ERROR = re.compile(r"^  \| error(?:\[([A-Z0-9]+)\])?: (.*)$")
 def scan() -> tuple[dict[str, list[str]], dict[str, str]]:
     homes: dict[str, list[str]] = collections.defaultdict(list)
     seen: dict[str, str] = {}
-    for path in sorted(PORT.rglob("*.rs")):
+    for path in sorted((p for tree in ('src','lib','lib-src','lwlib','oldXMenu','nt','msdos','exec','platform','xtask') for p in (PORT/tree).rglob("*.rs"))):
         if "target" in path.parts:
             continue
         text = path.read_text(encoding="utf-8", errors="surrogateescape")
@@ -73,7 +73,7 @@ def unit_of(blob: str) -> str:
     tail = blob.split(MANGLE, 1)[1]
     if tail.startswith("build"):
         return ""
-    return "femacs/" + tail.replace("_rs.rs", ".rs").replace("_", "/")
+    return "" + tail.replace("_rs.rs", ".rs").replace("_", "/")
 
 
 def read_log(path: pathlib.Path) -> dict[str, list[tuple[str, str, str]]]:
@@ -95,7 +95,7 @@ def read_log(path: pathlib.Path) -> dict[str, list[tuple[str, str, str]]]:
         for probe in lines[i + 1:i + 8]:
             hit = re.search(r"([A-Za-z0-9_/.\-]+\.rs):(\d+):", probe)
             if hit:
-                span = unit_of(hit.group(1)) or hit.group(1).rsplit("femacs/", 1)[-1]
+                span = unit_of(hit.group(1)) or hit.group(1).rsplit("", 1)[-1]
                 break
         for name in names:
             out[unit].append((code, name.split("::")[-1], span))
@@ -135,7 +135,7 @@ def main() -> int:
             want[pick].append(f"{name}{' (from ' + span.split('/')[-1] + ')' if span else ''}")
         print(f"== {unit}")
         for home, names in sorted(want.items()):
-            short = home.split("femacs/")[-1]
+            short = home.split("")[-1]
             print(f'include!("{short}");   // ' + ", ".join(sorted(names)[:6]))
         for name, span in sorted(unknown.items()):
             print(f"NO HOME: {name}   (used at {span})")

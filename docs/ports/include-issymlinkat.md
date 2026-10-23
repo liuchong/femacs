@@ -16,6 +16,6 @@
 
 ## Decisions
 
-`emacs/lib/issymlinkat.h` @ `fd7afced403`; port `femacs/lib/include/issymlinkat.rs`, same shape
-as the issymlink mirror (the wrapper `femacs/lib/issymlinkat.rs` owns the qualifier, so that
+`emacs/lib/issymlinkat.h` @ `fd7afced403`; port `lib/include/issymlinkat.rs`, same shape
+as the issymlink mirror (the wrapper `lib/issymlinkat.rs` owns the qualifier, so that
 box is unchecked here).

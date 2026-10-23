@@ -41,7 +41,7 @@
   name them), so `xtask layout-asserts` generates no assertion for them and the measurement is
   recorded here instead.
 - **PORTING.md P-70/P-72**: landing this mirror **deleted** the zero-sized `pub struct ccl_spec`
-  stand-in `femacs/src/include/coding.rs` carried for `coding.h` 447 and made that field the
+  stand-in `src/include/coding.rs` carried for `coding.h` 447 and made that field the
   ABI-equal `*mut c_void` with a `/// C:` note (P-72 ③).  That is a small edit to another unit's
   mirror, required by PORTING.md's own text ("等 `ccl.rs` 落地时同一个提交里删掉替身") and by the
   stand-in's own comment ("deletes it when ccl.rs lands"); `docs/ports/ccl.md` records it, and

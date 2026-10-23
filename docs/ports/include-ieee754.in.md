@@ -24,7 +24,7 @@
 
 ## File-scope objects — 0
 
-- **Status: the unit is PORTED** — `femacs/lib/include/ieee754.in.rs` (224 lines, 2026-10-04).
+- **Status: the unit is PORTED** — `lib/include/ieee754.in.rs` (224 lines, 2026-10-04).
 
 # ----------------------------------------------------------------------
 ## Decisions
@@ -103,12 +103,12 @@ object's bytes, which is what fixes each bit position recorded in the mirror's c
 double.)
 
 ```
-$ python3 tools/extract-abi.py --check emacs/lib/ieee754.in.h femacs/lib/include/ieee754.in.rs
-OK emacs/lib/ieee754.in.h -> femacs/lib/include/ieee754.in.rs            (0 problem rows)
-$ python3 tools/extract-abi.py --check emacs/src/print.c femacs/src/print.rs
-OK emacs/src/print.c -> femacs/src/print.rs
-$ python3 tools/extract-abi.py --check emacs/src/lread.c femacs/src/lread.rs
-OK emacs/src/lread.c -> femacs/src/lread.rs
+$ python3 tools/extract-abi.py --check emacs/lib/ieee754.in.h lib/include/ieee754.in.rs
+OK emacs/lib/ieee754.in.h -> lib/include/ieee754.in.rs            (0 problem rows)
+$ python3 tools/extract-abi.py --check emacs/src/print.c src/print.rs
+OK emacs/src/print.c -> src/print.rs
+$ python3 tools/extract-abi.py --check emacs/src/lread.c src/lread.rs
+OK emacs/src/lread.c -> src/lread.rs
 $ cd femacs && cargo run -q -p xtask -- build-tu src/print.c
 built src/print.rs -> ../build/femacs/print.o
 $ cd femacs && cargo run -q -p xtask -- build-tu src/lread.c

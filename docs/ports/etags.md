@@ -215,7 +215,7 @@ reappear.  They are owed note rows (see the end of this file), not port work.
 
 ## Decisions
 
-- **Shape.** One unit, `femacs/lib-src/etags.rs`, in the `lib-src/emacsclient.rs` /
+- **Shape.** One unit, `lib-src/etags.rs`, in the `lib-src/emacsclient.rs` /
   `lib-src/make-docfile.rs` shape: `#![allow (…)]`, the `use std::ffi` list, the `include!`
   list in C's own order, then C's file-scope objects and functions in C's order, with `main`
   as `#[unsafe(no_mangle)] pub unsafe extern "C" fn main (argc: c_int, argv: *mut *mut c_char)
@@ -385,7 +385,7 @@ reappear.  They are owed note rows (see the end of this file), not port work.
 - `python3 tools/check-verbatim.py` -> `6 trees, 4607 files, 0 failures`
 - `python3 tools/check-globals.py` -> `283 units, 0 DEFVAR_* variables without a definition
   in their own unit`
-- `python3 tools/extract-abi.py --check emacs/lib-src/etags.c femacs/lib-src/etags.rs` ->
+- `python3 tools/extract-abi.py --check emacs/lib-src/etags.c lib-src/etags.rs` ->
   `FAIL`: 0 `missing function`, 0 `missing macro`, 5 `missing file-scope object` (the
   `Forth_help` artifacts of the Owed-rows block), 39 `does not mention` rows (the 4
   string-literal/keyword rows already owed plus the 35 this window's translation implies),
@@ -393,7 +393,7 @@ reappear.  They are owed note rows (see the end of this file), not port work.
   Rust 9066`.
 
 # Owed note rows (the integrator's `docs/ports/*.tsv`).  `python3 tools/extract-abi.py --check
-# emacs/lib-src/etags.c femacs/lib-src/etags.rs` now reports **39** `does not mention` rows
+# emacs/lib-src/etags.c lib-src/etags.rs` now reports **39** `does not mention` rows
 # (4 of them were already owed before this window), 5 `missing file-scope object` rows that
 # are not objects, and one `family found` row.  Each `does not mention` line is a row for
 # `docs/ports/macro-body-notes.tsv`, verbatim:
@@ -465,7 +465,7 @@ reappear.  They are owed note rows (see the end of this file), not port work.
 - **The shared rows landed** (the four message-literal functions as `*` rows, the thirty-five token
   rows, the `found` family note and the line-drift row 0.11 against the measured +9.5%), so the
   check runs against the shared files: `python3 tools/extract-abi.py --check emacs/lib-src/etags.c
-  femacs/lib-src/etags.rs` prints `OK`, and the 5 boxes above are checked against it.
+  lib-src/etags.rs` prints `OK`, and the 5 boxes above are checked against it.
 - **The five "file-scope objects" were not objects, and were fixed at the root**: they are words of
   the `Forth_help` literal, which C writes with a backslash-continued line; `cinventory.globals_`
   read each line through the per-line `strip_strings`, which cannot see a literal that *starts* on

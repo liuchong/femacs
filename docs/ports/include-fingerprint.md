@@ -14,8 +14,8 @@
 
 ## Decisions
 
-`emacs/lib/fingerprint.h` @ `fd7afced403`; port `femacs/lib/include/fingerprint.rs`; the gate is
-`python3 tools/extract-abi.py --check emacs/lib/fingerprint.h femacs/lib/include/fingerprint.rs`
+`emacs/lib/fingerprint.h` @ `fd7afced403`; port `lib/include/fingerprint.rs`; the gate is
+`python3 tools/extract-abi.py --check emacs/lib/fingerprint.h lib/include/fingerprint.rs`
 -> `OK`.
 
 - **There is no `fingerprint.c` to port.**  The reference *generates* it from the list of all
@@ -26,6 +26,6 @@
   has no counterpart in a Rust declaration (every access already goes through `unsafe`).
 - The include guard has no Rust counterpart (`pub const EMACS_FINGERPRINT_H: bool = true`,
   PORTING.md 0.1).
-- `pdumper.h` 23 includes this header, so `femacs/src/include/pdumper.rs` pulls this mirror in;
+- `pdumper.h` 23 includes this header, so `src/include/pdumper.rs` pulls this mirror in;
   `dump_fingerprint`'s `unsigned char const fingerp[sizeof fingerprint]` parameter is C's array
   parameter decayed to `*const c_uchar`.

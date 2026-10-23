@@ -40,7 +40,7 @@
 
 ## Decisions
 
-`emacs/lib/time.in.h` @ `fd7afced403`; port `femacs/lib/include/time.in.rs`.
+`emacs/lib/time.in.h` @ `fd7afced403`; port `lib/include/time.in.rs`.
 
 **The template.**  The reference is a gnulib template (`@PRAGMA_SYSTEM_HEADER@`,
 `@GUARD_PREFIX@`, `@INCLUDE_NEXT@`, `@NEXT_TIME_H@`, `@TIME_H_DEFINES_STRUCT_TIMESPEC@`,
@@ -103,16 +103,16 @@ use-site copies, both deleted with the consumer left reading the mirror:
 `check-mirror-dupes.py` reported exactly those two before the edit and 0 failures after.
 No unit spells `ctime`, `time`, `timespec_get`, `timespec_getres`, `TIME_UTC`,
 `GNULIB_defined_*`, `_POSIX_THREAD_SAFE_FUNCTIONS` or `_GL_TIME_H` at top level, and
-`femacs/nt/inc/include/ms-w32.rs`'s own `tzname`/`ctime` macro_rules live outside
-`femacs/src`/`femacs/lib`, which is the gate's scope.
+`nt/inc/include/ms-w32.rs`'s own `tzname`/`ctime` macro_rules live outside
+`src`/`lib`, which is the gate's scope.
 
 ## Evidence
 
 ```
-$ python3 tools/extract-abi.py --check emacs/lib/time.in.h femacs/lib/include/time.in.rs
+$ python3 tools/extract-abi.py --check emacs/lib/time.in.h lib/include/time.in.rs
   (1 C macros have a recorded Rust counterpart: _)
   (1 C macros have several definitions (configuration branches), body not compared: tzset)
-OK emacs/lib/time.in.h -> femacs/lib/include/time.in.rs
+OK emacs/lib/time.in.h -> lib/include/time.in.rs
 
 $ cd /tmp/femacs-probe2 && rustc --edition 2024 --crate-type=lib --emit=obj -C panic=abort \
     time_probe.rs -o time_probe.o
@@ -128,11 +128,11 @@ built lib/mktime.rs  -> ../build/femacs/mktime.o     # exit 0
 built lib/time_rz.rs -> ../build/femacs/time_rz.o    # exit 0 (defines tzalloc/tzfree)
 built lib/boot-time.rs -> ../build/femacs/boot-time.o # exit 0
 
-$ python3 tools/extract-abi.py --check emacs/<unit.c> femacs/<unit.rs>
-OK emacs/src/timefns.c -> femacs/src/timefns.rs
-OK emacs/lib/mktime.c -> femacs/lib/mktime.rs
-OK emacs/lib/time_rz.c -> femacs/lib/time_rz.rs
-OK emacs/lib/boot-time.c -> femacs/lib/boot-time.rs
+$ python3 tools/extract-abi.py --check emacs/<unit.c> <unit.rs>
+OK emacs/src/timefns.c -> src/timefns.rs
+OK emacs/lib/mktime.c -> lib/mktime.rs
+OK emacs/lib/time_rz.c -> lib/time_rz.rs
+OK emacs/lib/boot-time.c -> lib/boot-time.rs
 
 $ python3 tools/check-mirror-dupes.py
 1 duplicate declaration(s), 1 ratchet row(s), 0 failure(s)

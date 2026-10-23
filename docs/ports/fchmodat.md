@@ -18,7 +18,7 @@
 
 ## Decisions
 
-`emacs/lib/fchmodat.c` @ `fd7afced403`; port `femacs/lib/fchmodat.rs` (110 lines).  All
+`emacs/lib/fchmodat.c` @ `fd7afced403`; port `lib/fchmodat.rs` (110 lines).  All
 checklist items ticked; `build-tu lib/fchmodat.c` → `built lib/fchmodat.rs ->
 ../build/femacs/fchmodat.o`, `--check` → `OK`.
 

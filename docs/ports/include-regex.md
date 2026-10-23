@@ -95,7 +95,7 @@
 
 ## Decisions
 
-`emacs/lib/regex.h` @ `fd7afced403`; port `femacs/lib/include/regex.rs`.
+`emacs/lib/regex.h` @ `fd7afced403`; port `lib/include/regex.rs`.
 
 The mirror now checks **OK**: the one difference that kept it WIP was regex.h 76's
 `# define RE_BACKSLASH_ESCAPE_IN_LISTS 1ul`, whose decimal literal carries C's `ul` suffix.

@@ -36,7 +36,7 @@ Two more machine-checked records keep the "the port means the same thing" claim 
 A file is done when:
 
 1. every box is ticked,
-2. `python3 tools/extract-abi.py --check emacs/src/NAME.c femacs/src/NAME.rs` prints `OK`,
+2. `python3 tools/extract-abi.py --check emacs/src/NAME.c src/NAME.rs` prints `OK`,
 3. two adversarial reviewers have attacked the diff and the applier has resolved
    every point they raised,
 4. `docs/port-map.md` has been regenerated and the file's row is `ported`,

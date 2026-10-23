@@ -20,8 +20,8 @@ use std::ffi::{c_int, c_void};
 #[derive(Clone, Copy)]
 pub struct Lisp_Object { pub word: usize }
 
-include!("../femacs/src/include/w32inevt.rs");
-include!("../femacs/src/include/w32select.rs");
+include!("../src/include/w32inevt.rs");
+include!("../src/include/w32select.rs");
 
 // The probe is a compile proof, not a program: every item of both mirrors is checked whether or
 // not anything uses it (`w32select.rs`'s three entry points are declared and never defined here,

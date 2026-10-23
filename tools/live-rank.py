@@ -70,7 +70,7 @@ def main() -> int:
         if args.dir and not rel.startswith(args.dir.rstrip("/") + "/"):
             continue
         c_path = HERE / "emacs" / rel
-        rs_path = HERE / "femacs" / Path(rel).with_suffix(".rs")
+        rs_path = HERE / Path(rel).with_suffix(".rs")
         if not c_path.is_file():
             continue
         ported = rs_path.is_file()

@@ -73,4 +73,4 @@ includes this header and no probe compiles it; the text gate is the whole accept
 6. C 1-19's opening declaration block is not part of the mirror (PORTING.md 0.1-19).
 
 Evidence: `python3 tools/extract-abi.py --check emacs/oldXMenu/XMenu.h
-femacs/oldXMenu/include/XMenu.rs` -> `OK` (28 ledger item(s)).
+oldXMenu/include/XMenu.rs` -> `OK` (28 ledger item(s)).

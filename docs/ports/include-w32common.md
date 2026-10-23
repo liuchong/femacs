@@ -82,7 +82,7 @@
 
 ## Evidence
 
-- `python3 tools/extract-abi.py --check emacs/src/w32common.h femacs/src/include/w32common.rs`
+- `python3 tools/extract-abi.py --check emacs/src/w32common.h src/include/w32common.rs`
   -> **FAIL**, with exactly these five lines and no others:
   ```
   - missing macro DEF_DLL_FN
@@ -125,8 +125,8 @@
 ## Evidence
 
 ```
-$ python3 tools/extract-abi.py --check emacs/src/w32common.h femacs/src/include/w32common.rs
-OK emacs/src/w32common.h -> femacs/src/include/w32common.rs            (0 problem rows)
+$ python3 tools/extract-abi.py --check emacs/src/w32common.h src/include/w32common.rs
+OK emacs/src/w32common.h -> src/include/w32common.rs            (0 problem rows)
 $ cd femacs && cargo run -q -p xtask -- layout-check
 layout-check passed (see build/femacs/layout_asserts.rs)
 ```
@@ -153,7 +153,7 @@ PORTING.md 0.1-10 / P-21); the two `<windows.h>`-typed caches keep their
 `#[cfg (feature = "windowsnt")]` per item, and `GetProcAddress`/`get_proc_addr` stay where they
 were (the loader's own body is the one definition in this mirror).
 
-**Evidence.**  `extract-abi --check emacs/src/w32common.h femacs/src/include/w32common.rs` -> `OK`
+**Evidence.**  `extract-abi --check emacs/src/w32common.h src/include/w32common.rs` -> `OK`
 (the three deferred macros and two deferred objects are its recorded deferrals, unchanged);
 `xtask layout-check` passed; `xtask probe src/w32fns.rs` above falls from 12 to 0 `E0428`;
 `check-all-units.sh` 83/0 both legs.

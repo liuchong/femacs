@@ -24,7 +24,7 @@
 
 ## Decisions
 
-`emacs/src/bignum.h` @ `fd7afced403`; port `femacs/src/include/bignum.rs`.
+`emacs/src/bignum.h` @ `fd7afced403`; port `src/include/bignum.rs`.
 
 - **`<gmp.h>` is deferred (new item P-49).**  C includes `<gmp.h>`, which the frozen build
   resolves to gnulib's `lib/gmp.h` -> `lib/mini-gmp.h`.  `lib/` is batch F in
@@ -32,7 +32,7 @@
   `lib/mini-gmp.h` does not exist yet: `bignum.rs` carries the subset bignum.h, bignum.c
   and floatfns.c use (7 inline functions and 16 `mpz_*`/helper declarations), quoted C
   line by C line in the reference header's own order.  Batch F
-  moves those declarations into `femacs/lib/include/mini-gmp.rs` unchanged, and
+  moves those declarations into `lib/include/mini-gmp.rs` unchanged, and
   `lib/include/mini-gmp.h`'s row in docs/port-map.md stays unported until then.
 - **`mpz_t` keeps C's array-of-one typedef** (`typedef __mpz_struct mpz_t[1]`): the mirror
   is `pub type mpz_t = [__mpz_struct; 1]`, so `sizeof (mpz_t)` = 16, `Lisp_Bignum`'s

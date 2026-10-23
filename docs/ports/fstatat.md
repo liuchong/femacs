@@ -25,7 +25,7 @@
 
 ## File-scope objects — 0
 
-# emacs/lib/fstatat.c (150 lines) — port `femacs/lib/fstatat.rs`
+# emacs/lib/fstatat.c (150 lines) — port `lib/fstatat.rs`
 
 ## Decisions
 

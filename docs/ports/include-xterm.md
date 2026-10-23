@@ -142,7 +142,7 @@ tool measures for them, and its reading is the port's remaining work list for th
   no compiler on this target can measure it (`include/macfont.rs` 26-27) - so the name is kept and
   the C text is in the `// C:` line.  **No layout assertion is written** for any record.
 - **The inner arms carry the feature their C macro lowercases to** (status 3.171's rule).  Already
-  in `femacs/xtask/Cargo.toml`'s table: `use_x_toolkit`, `use_gtk`, `have_xinput2`,
+  in `xtask/Cargo.toml`'s table: `use_x_toolkit`, `use_gtk`, `have_xinput2`,
   `have_xinput2_4`, `have_x_i18n`, `use_cairo`.  **Ten names are new to this tree** and are
   requested in this round's report: `have_gtk3`, `have_x11r6_xim`, `have_xdbe`, `have_xfixes`,
   `have_xinput2_1`, `have_xinput2_2`, `have_xinput2_3`, `have_xrender`, `have_xsync`,
@@ -200,8 +200,8 @@ mirror-level declaration is the `True`/`False` second home (3.270).  Registered,
 
 ## Evidence
 
-- `python3 tools/extract-abi.py --check emacs/src/xterm.h femacs/src/include/xterm.rs`
-  -> `OK emacs/src/xterm.h -> femacs/src/include/xterm.rs` (no `- ` problem lines).
+- `python3 tools/extract-abi.py --check emacs/src/xterm.h src/include/xterm.rs`
+  -> `OK emacs/src/xterm.h -> src/include/xterm.rs` (no `- ` problem lines).
 - `python3 tools/extract-abi.py emacs/src/xterm.h` -> this ledger: 0 subrs, **3 functions
   defined** (`SELECTION_EVENT_DISPLAY` 1715, `x_make_truecolor_pixel` 1867, `x_mutable_colormap`
   1887), **68 macros**, **7 types** (286 fields: `color_name_cache_entry` 4, `scroll_bar` 13,
@@ -212,7 +212,7 @@ mirror-level declaration is the `True`/`False` second home (3.270).  Registered,
 - The ten new feature names and how often each appears in a real `#[cfg]` attribute:
   `have_gtk3` 4, `have_x11r6_xim` 1, `have_xdbe` 2, `have_xfixes` 3, `have_xinput2_1` 9,
   `have_xinput2_2` 12, `have_xinput2_3` 1, `have_xrender` 5, `have_xsync` 19,
-  `have_xsynctriggerfence` 1 (`rg -c '#\[cfg \(feature = "<name>"\)\]' femacs/src/include/xterm.rs`).
+  `have_xsynctriggerfence` 1 (`rg -c '#\[cfg \(feature = "<name>"\)\]' src/include/xterm.rs`).
 - **Two measured Rust parse rules found by `layout-check` on this mirror** (the arm is inert for
   compilation, but `rustc` still *parses* it, so even cfg'd text has to be valid Rust):
   1. C's `int use;` member (`struct xi_device_t`, C 344) must be a raw identifier in Rust -
@@ -223,13 +223,13 @@ mirror-level declaration is the `True`/`False` second home (3.270).  Registered,
      `expected 'mut' or 'const' keyword in raw pointer type` + `'<<' is interpreted as a start of
      generic arguments for 'c_ulong', not a shift`.
 - **A unit includes this mirror** (`rg -n 'include/xterm' femacs` ->
-  `femacs/src/xterm.rs:655`, the port of C 636's `#include "xterm.h"`, carried since 3.249
+  `src/xterm.rs:655`, the port of C 636's `#include "xterm.h"`, carried since 3.249
   (`2241507`)): the arm is reached by `build-tu src/xterm.c` as well, so the flip arms in
   docs/ports/xterm.md §19's Evidence see it.  The "no hits" sentence this line replaces was stale,
   not wrong when it was first written.  `xtask layout-check`'s single crate still compiles it with
   the arm inert.
 - The 2026-10-05 readings: `python3 tools/extract-abi.py --check emacs/src/xterm.h
-  femacs/src/include/xterm.rs` -> `OK` (the five new members change nothing the pairing compares);
+  src/include/xterm.rs` -> `OK` (the five new members change nothing the pairing compares);
   `build-tu src/xterm.h` still stops in the mirror-as-unit class (the `eassert` row above); the
   plain X11 flip arm still reads `aborting due to 490 previous errors` and this mirror contributes
   201 of them - 180 `cannot find type`, 14 `cannot find value` (X11 names with no mirror) and the 7
@@ -266,8 +266,8 @@ copy).
 
 **Evidence.**
 
-- `python3 tools/extract-abi.py --check emacs/src/xterm.h femacs/src/include/xterm.rs` -> `OK
-  emacs/src/xterm.h -> femacs/src/include/xterm.rs`.
+- `python3 tools/extract-abi.py --check emacs/src/xterm.h src/include/xterm.rs` -> `OK
+  emacs/src/xterm.h -> src/include/xterm.rs`.
 - `python3 tools/check-mirror-dupes.py` -> `18 duplicate declaration(s), 18 ratchet row(s),
   0 failure(s)`.
 - The flip the item exists for: `src/image.rs` with `--cfg 'feature="have_window_system"'
@@ -281,10 +281,10 @@ copy).
 ## `cairo` is a unit-side declaration, not a mirror (the P-88 judgement, 2026-10-05)
 
 `docs/ports/image.md`'s `/// C:` list carries sixteen cairo entry points, six constants and two
-records that clang measured there.  `ls femacs/src/include | grep -i cairo` is empty and no file in
+records that clang measured there.  `ls src/include | grep -i cairo` is empty and no file in
 the tree has a `/// C: #include <cairo…` section, because **`<cairo.h>` is an external library
 header the reference tree does not contain** - exactly P-88 1's case.  The judgement is therefore:
-**the declarations belong to the unit that includes the header, and no `femacs/src/include/` file
+**the declarations belong to the unit that includes the header, and no `src/include/` file
 is created for them.**  Two facts make it a live question rather than a formality:
 
 * the machine *does* have cairo (`/opt/homebrew/include/cairo`, 1.18.4), so a clang probe can
@@ -296,7 +296,7 @@ is created for them.**  Two facts make it a live question rather than a formalit
   C 186-188) is a *use* of the name, not a declaration of it - it resolves because the unit that
   sets `use_cairo` brings the tag (the "a macro body is resolved only where it is expanded" shape,
   applied to a record field).  A mirror must not declare it: P-88 1's rule keeps the reference
-  tree's own headers in `femacs/src/include/`, and nothing there corresponds to `cairo.h`.
+  tree's own headers in `src/include/`, and nothing there corresponds to `cairo.h`.
 
 # ----------------------------------------------------------------------
 ## The eleven event masks get a home, and `xlib.rs` grows the X11 surface (2026-10-05)

@@ -132,7 +132,7 @@ def main() -> int:
             c_path = ROOT / "emacs" / dir_name / f"{stem}.c"
             if not c_path.is_file():
                 continue
-            if empty_unbuilt(c_path, dir_name, ROOT / "femacs" / dir_name / f"{stem}.rs"):
+            if empty_unbuilt(c_path, dir_name, ROOT / dir_name / f"{stem}.rs"):
                 continue
             # A `src/*.c` the frozen build does not compile is not part of the link, so its
             # objects answer to nobody (docs/status.md 3.31): `tparam.c` - not in the source

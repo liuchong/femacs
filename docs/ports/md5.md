@@ -46,7 +46,7 @@
   renames are recorded in docs/ports/excluded-macros.txt (kind=dead-text) - in this
   configuration the port's definitions keep C's source names, which *are* the symbols
   (`#[unsafe(no_mangle)]`, no `export_name` needed, PORTING.md 10.13).
-- **`md5.h` is its own mirror** (`femacs/lib/include/md5.rs`): `struct md5_ctx` (7 fields),
+- **`md5.h` is its own mirror** (`lib/include/md5.rs`): `struct md5_ctx` (7 fields),
   `MD5_DIGEST_SIZE`/`MD5_BLOCK_SIZE`, the `__md5_*` renames and the declarations, in a
   glob-imported `decls` module so this unit's `fn md5_*` shadows them (PORTING.md 0.1-10).
 - **`fillbuf`**: C's one-line `{ 0x80, 0 /* , 0, 0, … */ }` initializer is a Rust const

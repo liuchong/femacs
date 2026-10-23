@@ -1,4 +1,4 @@
-# emacs/lib/byteswap.c  →  femacs/lib/byteswap.rs (20 lines)
+# emacs/lib/byteswap.c  →  lib/byteswap.rs (20 lines)
 
 # ----------------------------------------------------------------------
 ## Subrs (DEFUN) — 0

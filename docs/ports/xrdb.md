@@ -1,8 +1,8 @@
 # emacs/src/xrdb.c (513 lines)
 
-`emacs/src/xrdb.c` @ `fd7afced403`; port `femacs/src/xrdb.rs` (533 lines).  The gates are
+`emacs/src/xrdb.c` @ `fd7afced403`; port `src/xrdb.rs` (533 lines).  The gates are
 `build-tu src/xrdb.c` -> `built`, `layout-check` -> `passed`, and
-`python3 tools/extract-abi.py --check emacs/src/xrdb.c femacs/src/xrdb.rs` -> `FAIL` on **two**
+`python3 tools/extract-abi.py --check emacs/src/xrdb.c src/xrdb.rs` -> `FAIL` on **two**
 rows, both `docs/ports/macro-body-notes.tsv` rows this round requests (Decision 8): the file is
 the first complete one on this lane that the frozen build does not compile, so the port is
 1:1 text under `have_x_windows` and the checklist below is the real, unfiltered one.
@@ -38,7 +38,7 @@ the first complete one on this lane that the frozen build does not compile, so t
 
 `src/xrdb.c` is not in `docs/baseline/frozen-build-sources.txt` (this target's platform object
 variables are empty and its headers need Xlib), so nothing in it is compiled here and every item
-in `femacs/src/xrdb.rs` carries `#[cfg (feature = "have_x_windows")]` - the `xterm.rs` shape
+in `src/xrdb.rs` carries `#[cfg (feature = "have_x_windows")]` - the `xterm.rs` shape
 (P-51), not an inner `#![cfg]` (no unit in the tree uses one).  `tools/check-cond-eval.py
 src/xrdb.c` -> `6 conditions, 0 unknown, 0 disagreements [VERIFIED]`, so its `#if`s are all
 decidable and Decisions 2-4 name the arm each one takes.
@@ -68,7 +68,7 @@ The macro is `undef` in `docs/baseline/config/darwin-arm64.macros.tsv` (it is a 
 of a build that has Xlib), so this is the arm the frozen reading leaves out and it carries
 `#[cfg (feature = "have_xscreenresourcestring")]`.  The arm's own two names
 (`XScreenResourceString`, `DefaultScreenOfDisplay`) come from `include/xlib.rs`; `XFree` does not
-exist anywhere in the tree yet (measured: `rg -n 'fn XFree' femacs/` finds only *uses* in
+exist anywhere in the tree yet (measured: `rg -n 'fn XFree' ` finds only *uses* in
 `src/xterm.rs`'s XCB arms, which no gate compiles), so the arm is the first thing a target that
 turns that feature on must supply.
 
@@ -107,7 +107,7 @@ comparison in `--check` compares C 372 against.  A second `const` here would be 
 ### 7. `True` (C 484) went to `include/xterm.rs`
 
 C writes `XrmQGetResource (...) == True`; `True`/`False` are Xlib.h 79-80's macros, and no file
-in the tree declared them (measured: `rg -n 'pub const True|pub const False' femacs/` found
+in the tree declared them (measured: `rg -n 'pub const True|pub const False' ` found
 nothing).  The 3.270 ruling's home is the mirror, and after Decision 16 of `docs/ports/xterm.md`
 the X11 macros' *module* lives in `include/xlib.rs`'s `x11_constants` - which is frozen for this
 round (the integrator's), so the pair is declared at `include/xterm.rs`'s top level and **moving
@@ -211,10 +211,10 @@ The unit's own gate readings (this round's five):
 $ cd femacs && CARGO_TARGET_DIR=/tmp/femacs-target-g188-j cargo run -q -p xtask -- build-tu src/xrdb.c
 built src/xrdb.rs -> ../build/femacs/xrdb.o
 
-$ python3 tools/extract-abi.py --check emacs/src/xrdb.c femacs/src/xrdb.rs
+$ python3 tools/extract-abi.py --check emacs/src/xrdb.c src/xrdb.rs
 - function x_get_customization_string does not mention alloca
 - function magic_db does not mention break, case, default, switch
-FAIL emacs/src/xrdb.c -> femacs/src/xrdb.rs
+FAIL emacs/src/xrdb.c -> src/xrdb.rs
 
 $ cd femacs && … layout-check
 layout probe ok

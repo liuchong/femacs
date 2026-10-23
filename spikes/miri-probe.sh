@@ -6,9 +6,9 @@
 # silently turned the probe's absence into "skipped, exit 0" (review D's F6).
 set -uo pipefail
 cd "$(dirname "$0")/.."
-PIN=$(sed -n 's/^channel[[:space:]]*=[[:space:]]*"\(.*\)"/\1/p' femacs/rust-toolchain.toml)
+PIN=$(sed -n 's/^channel[[:space:]]*=[[:space:]]*"\(.*\)"/\1/p' rust-toolchain.toml)
 if [ -z "$PIN" ]; then
-  echo "miri-probe: FAILED (femacs/rust-toolchain.toml has no channel = \"…\" line)"
+  echo "miri-probe: FAILED (rust-toolchain.toml has no channel = \"…\" line)"
   exit 1
 fi
 if ! rustup run "$PIN" cargo miri --version > /dev/null 2>&1; then

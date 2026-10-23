@@ -33,7 +33,7 @@
 - The `(const unsigned char *)` casts are `as *const u8`; `haystack_len -= haystack -
   (const unsigned char *) haystack_start` is the port's pointer-difference expression; and C's
   `!haystack || …` is `haystack.is_null () || …` (same short-circuit).
-- **Mirror written with this file**: `femacs/lib/include/str-two-way.rs` (the header's three
+- **Mirror written with this file**: `lib/include/str-two-way.rs` (the header's three
   `static` functions as `#[inline(always)] pub unsafe fn`, i.e. one copy per unit and no
   exported symbol — the timespec.rs/c-ctype.rs shape for header-inline definitions, and the
   same linkage C's `static` gives).  `--check lib/str-two-way.h` → **OK**.
@@ -43,7 +43,7 @@
 - **The *call* side is `rpl_memmem`, and status 3.104 fixed it** (2026-10-04).  C's TU gets
   `memmem` → `rpl_memmem` from the **generated** `<string.h>` (`build/emacs-ref/lib/string.h`
   991: `#   define memmem rpl_memmem`; 993 declares the replacement), so `nm
-  build/emacs-ref/src/fns.o` prints `U _rpl_memmem`.  The port's `femacs/src/fns.rs` had declared
+  build/emacs-ref/src/fns.o` prints `U _rpl_memmem`.  The port's `src/fns.rs` had declared
   `memmem` at its use site without a `#[link_name]`, so `build/femacs/fns.o` printed `U _memmem`
   - textually faithful, right exports, and the wrong callee.  The declaration now lives in
   `lib/include/string.rs` as `memmem` **with `#[link_name = "rpl_memmem"]`** (the `emacs_fclose`
@@ -65,6 +65,6 @@ PORTING.md P-96 makes that the rule for every place C wraps *by design* and keep
 everywhere the algorithm's bounds make the subtraction safe.
 
 Readings: `build-tu lib/memmem.c` -> `built`; `extract-abi --check emacs/lib/memmem.c
-femacs/lib/memmem.rs` -> `OK`; and the dump run now gets through all eight `memmem` calls - the panic
+lib/memmem.rs` -> `OK`; and the dump run now gets through all eight `memmem` calls - the panic
 moves on to `src/data.c`'s `do_symval_forwarding` (a misaligned pointer dereference, 0x1033a3c8c),
 recorded in docs/status.md 3.637 as the next station rather than fixed here.

@@ -38,8 +38,8 @@
 
 ## Evidence
 
-- `python3 tools/extract-abi.py --check emacs/lib/assert.in.h femacs/lib/include/assert.in.rs`
-  -> `OK emacs/lib/assert.in.h -> femacs/lib/include/assert.in.rs` (no `- ` problem lines).
+- `python3 tools/extract-abi.py --check emacs/lib/assert.in.h lib/include/assert.in.rs`
+  -> `OK emacs/lib/assert.in.h -> lib/include/assert.in.rs` (no `- ` problem lines).
 - `python3 tools/check-cond-eval.py lib/assert.in.h`
   -> `1 conditions, 0 unknown to the evaluator, 1 disagreements`.
 - `python3 tools/extract-abi.py emacs/lib/assert.in.h` -> this ledger: 0 items in all five sections.

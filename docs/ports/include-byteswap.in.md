@@ -18,7 +18,7 @@
 
 ## Decisions
 
-- **PORTING.md 0.1**: the mirror is `femacs/lib/include/byteswap.in.rs`; the frozen
+- **PORTING.md 0.1**: the mirror is `lib/include/byteswap.in.rs`; the frozen
   target's generated header is build/emacs-ref/lib/byteswap.h and substitutes only
   the guard.  The three wrappers are `#[inline(always)]` (P-12) and emit no symbol:
   lib/byteswap.rs re-exports them (P-81).  `_GL_BYTESWAP_INLINE` is in

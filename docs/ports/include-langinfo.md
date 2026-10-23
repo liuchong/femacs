@@ -63,5 +63,5 @@ derivation - and no `src/` unit includes one), so `xtask layout-check`,
 which compiles the `src/include` and `lib/include` mirrors, does not reach it; in a MinGW build
 `nt/inc` is on the include path instead.
 Evidence: `python3 tools/extract-abi.py --check --macro-notes <this ledger plus the row above>
-emacs/nt/inc/langinfo.h femacs/nt/inc/include/langinfo.rs` -> `OK`; without that row the check
+emacs/nt/inc/langinfo.h nt/inc/include/langinfo.rs` -> `OK`; without that row the check
 reports the 22 self-references as "macro X does not mention x", which is what the row records.

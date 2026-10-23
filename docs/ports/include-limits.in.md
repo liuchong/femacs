@@ -41,7 +41,7 @@
 
 ## Decisions
 
-`emacs/lib/limits.in.h` @ `fd7afced403`; port `femacs/lib/include/limits.in.rs`.
+`emacs/lib/limits.in.h` @ `fd7afced403`; port `lib/include/limits.in.rs`.
 
 **The template.**  The reference is a gnulib template: `@GUARD_PREFIX@`,
 `@PRAGMA_SYSTEM_HEADER@`, `@PRAGMA_COLUMNS@`, `@INCLUDE_NEXT@` and `@NEXT_LIMITS_H@` are
@@ -80,7 +80,7 @@ pstr->mb_cur_max)` must check what the reference checks.  The mirror therefore s
 file):
 
 ```
-MB_LEN_MAX	dead-text	limits.in.h 103-106's `#ifndef MB_LEN_MAX / # define MB_LEN_MAX 16` is dead on the frozen target: the system `<limits.h>` the template includes next (its C 40) already defines `MB_LEN_MAX` as 6, measured with the frozen compiler, and the port keeps that value because the ported units size multibyte buffers with it (`lib/regex_internal.rs` 182-185, `lib/regcomp.rs` 259) and `DEBUG_ASSERT (MB_LEN_MAX >= pstr->mb_cur_max)` must check what the reference checks; the mirror is `femacs/lib/include/limits.in.rs` and docs/ports/include-limits.in.md records the measurement
+MB_LEN_MAX	dead-text	limits.in.h 103-106's `#ifndef MB_LEN_MAX / # define MB_LEN_MAX 16` is dead on the frozen target: the system `<limits.h>` the template includes next (its C 40) already defines `MB_LEN_MAX` as 6, measured with the frozen compiler, and the port keeps that value because the ported units size multibyte buffers with it (`lib/regex_internal.rs` 182-185, `lib/regcomp.rs` 259) and `DEBUG_ASSERT (MB_LEN_MAX >= pstr->mb_cur_max)` must check what the reference checks; the mirror is `lib/include/limits.in.rs` and docs/ports/include-limits.in.md records the measurement
 ```
 
 With that row in place the pair is `OK` (observed before the row was reverted for the
@@ -109,12 +109,12 @@ use-site copies, all deleted here with the consumer left reading the mirror -
 
 **Not edited** (another lane's files, reported instead of patched):
 
-- `femacs/lib-src/etags.rs` 72 declares `pub const CHAR_MAX: c_int = 127`, and this mirror
+- `lib-src/etags.rs` 72 declares `pub const CHAR_MAX: c_int = 127`, and this mirror
   now carries `CHAR_MAX`; its unit includes `limits.in.rs` (C 109), so that copy is an
   `E0428` waiting for its build.  The ledger (`docs/ports/etags.md`) still has 141 unchecked
   boxes, so no gate compiles the unit yet.  Delete the copy, or keep `CHAR_MAX` in the mirror
   and read it from here.
-- `femacs/src/sysdep.rs` 3911's `SSIZE_MAX` is behind `#[cfg (feature = "no_ssize_max")]`,
+- `src/sysdep.rs` 3911's `SSIZE_MAX` is behind `#[cfg (feature = "no_ssize_max")]`,
   which the frozen configuration does not set (its own comment says C's `#ifndef SSIZE_MAX` is
   dead on this target), so it stays as the carried dead arm and cannot collide.
 
@@ -126,15 +126,15 @@ writes the frozen substitution `_GL_LIMITS_H`, and `_` has a tree-wide
 ## Evidence
 
 ```
-$ python3 tools/extract-abi.py --check emacs/lib/limits.in.h femacs/lib/include/limits.in.rs
+$ python3 tools/extract-abi.py --check emacs/lib/limits.in.h lib/include/limits.in.rs
   (2 C macros have a recorded Rust counterpart: MB_LEN_MAX, _)      # while the row above was in place
   (6 C macros have several definitions (configuration branches), body not compared:
    BOOL_MAX, LLONG_MAX, LLONG_MIN, LONG_BIT, SSIZE_MAX, ULLONG_MAX)
-OK emacs/lib/limits.in.h -> femacs/lib/include/limits.in.rs
+OK emacs/lib/limits.in.h -> lib/include/limits.in.rs
 # after reverting that row for the integrator to own it, the same command reports exactly:
 #   - macro MB_LEN_MAX does not mention 16 (C body: 16)
 #   - missing constant MB_LEN_MAX
-#   FAIL emacs/lib/limits.in.h -> femacs/lib/include/limits.in.rs
+#   FAIL emacs/lib/limits.in.h -> lib/include/limits.in.rs
 
 $ cd /tmp/femacs-probe && rustc --edition 2024 --crate-type=lib --emit=obj \
     -C panic=abort limits_probe.rs -o /tmp/femacs-probe/limits_probe.o
@@ -155,16 +155,16 @@ lib/rawmemchr.c  lib/regex_internal.c  lib/regcomp.c  lib/getdelim.c  lib/caread
 src/fileio.c  src/indent.c  lib-src/make-fingerprint.c
 
 # the edited pairs keep their inventory verdicts:
-$ python3 tools/extract-abi.py --check emacs/<c> femacs/<rs>
-OK emacs/lib/regex_internal.c -> femacs/lib/regex_internal.rs
-OK emacs/lib/regex_internal.h -> femacs/lib/include/regex_internal.rs
-OK emacs/lib/regcomp.c -> femacs/lib/regcomp.rs
-OK emacs/lib/rawmemchr.c -> femacs/lib/rawmemchr.rs
-OK emacs/lib/getdelim.c -> femacs/lib/getdelim.rs
-OK emacs/lib/careadlinkat.c -> femacs/lib/careadlinkat.rs
-OK emacs/lib-src/make-fingerprint.c -> femacs/lib-src/make-fingerprint.rs
-OK emacs/src/indent.c -> femacs/src/indent.rs
-OK emacs/src/fileio.c -> femacs/src/fileio.rs
+$ python3 tools/extract-abi.py --check emacs/<c> <rs>
+OK emacs/lib/regex_internal.c -> lib/regex_internal.rs
+OK emacs/lib/regex_internal.h -> lib/include/regex_internal.rs
+OK emacs/lib/regcomp.c -> lib/regcomp.rs
+OK emacs/lib/rawmemchr.c -> lib/rawmemchr.rs
+OK emacs/lib/getdelim.c -> lib/getdelim.rs
+OK emacs/lib/careadlinkat.c -> lib/careadlinkat.rs
+OK emacs/lib-src/make-fingerprint.c -> lib-src/make-fingerprint.rs
+OK emacs/src/indent.c -> src/indent.rs
+OK emacs/src/fileio.c -> src/fileio.rs
 
 $ python3 tools/check-mirror-dupes.py
 1 duplicate declaration(s), 1 ratchet row(s), 0 failure(s)
@@ -176,7 +176,7 @@ $ python3 tools/check-globals.py
 check-globals: 283 units, 0 DEFVAR_* variables without a definition in their own unit
 ```
 
-`femacs/lib/ftoastr.rs` 26's comment still says "`MB_LEN_MAX` is in `include/limits.in.rs`"
+`lib/ftoastr.rs` 26's comment still says "`MB_LEN_MAX` is in `include/limits.in.rs`"
 (true) and `docs/ports/make-fingerprint.md`'s prose about the local `SSIZE_MAX` is now stale -
 both are the integrator's to refresh if the ledger text matters.
 
@@ -185,8 +185,8 @@ copy): `extract-abi.py` takes `--excluded`, so the row was appended to a copy in
 
 ```
 $ python3 tools/extract-abi.py --check --excluded /tmp/mem-excl.txt \
-    emacs/lib/limits.in.h femacs/lib/include/limits.in.rs
-OK emacs/lib/limits.in.h -> femacs/lib/include/limits.in.rs
+    emacs/lib/limits.in.h lib/include/limits.in.rs
+OK emacs/lib/limits.in.h -> lib/include/limits.in.rs
 ```
 
 so the mirror plus that one row is the complete pair.  Nothing in the shared file was written.

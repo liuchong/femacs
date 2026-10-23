@@ -21,7 +21,7 @@
   (`tools/check-cond-eval.py src/w32heap.h` -> `1 conditions, 0 unknown, 0 disagreements
   [VERIFIED]`, the guard).  The frozen configuration's platform object variables are empty
   (docs/baseline/frozen-build-sources.txt; docs/status.md 3.31), so `src/w32heap.c` has no
-  translation unit here: `femacs/src/w32heap.rs` is the empty shape that names the exclusion (its
+  translation unit here: `src/w32heap.rs` is the empty shape that names the exclusion (its
   ledger records the 24 deferred declarations of that file), and no unit `include!`s this mirror.
 - **The platform's typedefs are spelled as their port primitives, with C's text in a `/// C:`
   line.**  `HANDLE` (C 53-54), `IMAGE_SECTION_HEADER`/`IMAGE_NT_HEADERS` (C 63, 67) and `DWORD_PTR`
@@ -48,8 +48,8 @@
 
 ## Evidence
 
-- `python3 tools/extract-abi.py --check emacs/src/w32heap.h femacs/src/include/w32heap.rs`
-  -> `OK emacs/src/w32heap.h -> femacs/src/include/w32heap.rs` (no `- ` problem lines).
+- `python3 tools/extract-abi.py --check emacs/src/w32heap.h src/include/w32heap.rs`
+  -> `OK emacs/src/w32heap.h -> src/include/w32heap.rs` (no `- ` problem lines).
 - `python3 tools/check-cond-eval.py src/w32heap.h` -> `1 conditions, 0 unknown to the evaluator,
   0 disagreements` (the guard).
 - `python3 tools/extract-abi.py emacs/src/w32heap.h` -> this ledger: 0 subrs, 0 functions defined,

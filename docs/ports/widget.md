@@ -6,7 +6,7 @@
 > `src/Makefile.in` 298/499's `$(WIDGET_OBJ)` - and `docs/baseline/frozen-build-sources.txt` lists
 > no `widget.o`, so `extract-abi.py`'s checklist has no live item and this ledger is P-86 clause
 > 2's substitute: the **C line-range table** below, the `## Evidence` readings and the
-> `## Deviations`.  Port: `femacs/src/widget.rs` (**1,464 lines**).
+> `## Deviations`.  Port: `src/widget.rs` (**1,464 lines**).
 
 ## Decisions
 
@@ -40,7 +40,7 @@
   320-324, 474-491, 507-514) are defined here.  P-39's fix is the mirror's `_decls` module
   (`include/emacsgtkfixed.rs` 49-56, status 3.496 ②⑺); the unit records it (`## Owed` 2) and the
   arm reading shows the four `E0428` in the mirror copy rather than working around them.
-- **No feature name is new**: `use_x_toolkit` (`femacs/xtask/Cargo.toml` 703) and `have_x_windows`
+- **No feature name is new**: `use_x_toolkit` (`xtask/Cargo.toml` 703) and `have_x_windows`
   (260) are registered; `docs/baseline/feature-coverage.tsv` needs a regeneration (`## Owed` 9).
 
 ## C line ranges
@@ -148,7 +148,7 @@ file either).  The materialized `build/femacs/units/widget/_root.rs` carries **0
 were the offset/`flush_frame` fix, the `character.rs` edge (17 → 5 errors) and the check itself,
 and the fourth re-ran the reading after the `wm_hints` token fix of Evidence ④ - the four readings
 and this one are the same command, and the last two print the same five errors.  The unit's
-revision is `femacs/src/widget.rs` md5 `32d1b85f2f860c067648ca5a3c73719e` (1,464 lines).
+revision is `src/widget.rs` md5 `32d1b85f2f860c067648ca5a3c73719e` (1,464 lines).
 
     cd femacs && CARGO_TARGET_DIR=/tmp/widget-lane cargo run -q -p xtask -- probe src/widget.rs \
       /tmp/widget-lane-probe.rlib --crate-type lib -C panic=abort \
@@ -185,7 +185,7 @@ the unit substitutes `c_ulong`, the same width `include/widgetprv.rs` 139-142 al
 
 **④ The inventory gate.**
 
-    python3 tools/extract-abi.py --check emacs/src/widget.c femacs/src/widget.rs
+    python3 tools/extract-abi.py --check emacs/src/widget.c src/widget.rs
 
 → `FAIL` with **one** problem line, `line count drifted 184.8%: C 514 vs Rust 1,464` - the
 tolerance row `docs/ports/line-drift-tolerance.tsv` needs and this lane may not write
@@ -200,7 +200,7 @@ does not mention wm_hints` was a real defect of this port, fixed by keeping C's
 `check-mirror-dupes` **17 duplicate / 17 ratchet / 0 failure** (no row names this unit);
 `check-declarations` **7 sites (0 forbidden, 7 allowed literals) / 0 failures**;
 `check-citations` **676 files, 0 drift, 0 range, 0 stale** (this unit's one `lisp.h 30` drift was
-fixed in the same round); `check-citation-text` reports nothing for `femacs/src/widget.rs`;
+fixed in the same round); `check-citation-text` reports nothing for `src/widget.rs`;
 `check-dead-file-coverage` binds this table with **0 failures**.
 
 ## Deviations
@@ -274,7 +274,7 @@ fixed in the same round); `check-citation-text` reports nothing for `femacs/src/
 
 ## Owed
 
-1. **The Xt/Xaw SDK mirror** (P-90 clause 1): `femacs/src/include/<sdk>.rs` with the first line
+1. **The Xt/Xaw SDK mirror** (P-90 clause 1): `src/include/<sdk>.rs` with the first line
    `// femacs: mirror of the <SDK>'s <header> …`, carrying `Widget`/`WidgetClass`/`WidgetRec`/
    `WidgetClassRec`/`Boolean`/`Cardinal`/`Dimension`/`Position`/`String`/`Pixel`/`XtPointer`/
    `XtArgVal`/`XtValueMask`/`XtGeometryMask`/`XtEnum`/`XtVersionType`/`ArgList`/`XtResource`/

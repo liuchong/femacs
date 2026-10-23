@@ -18,7 +18,7 @@
 
 ## Decisions (WIP, PORTING.md P-26)
 
-`emacs/lib/acl.h` @ `fd7afced403`; port `femacs/lib/include/acl.rs`.  The mirror carries the two
+`emacs/lib/acl.h` @ `fd7afced403`; port `lib/include/acl.rs`.  The mirror carries the two
 flag constants, `struct aclinfo` with its measured layout and the declarations; the unchecked
 boxes are the `aclinfo_has_xattr`/`aclinfo_free`/`aclinfo_scontext_free` macros, which C spells
 as `false`/`((void) 0)` on this target and the port keeps as a constant and two empty
@@ -28,8 +28,8 @@ undefined).
 ## Evidence
 
 ```
-$ python3 tools/extract-abi.py --check emacs/lib/acl.h femacs/lib/include/acl.rs
-OK emacs/lib/acl.h -> femacs/lib/include/acl.rs            (0 problem rows)
+$ python3 tools/extract-abi.py --check emacs/lib/acl.h lib/include/acl.rs
+OK emacs/lib/acl.h -> lib/include/acl.rs            (0 problem rows)
 ```
 
 The five boxes above are names the mirror carries: the split guard (`_GL_ACL_H`), the two

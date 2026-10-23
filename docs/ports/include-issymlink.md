@@ -16,7 +16,7 @@
 
 ## Decisions
 
-`emacs/lib/issymlink.h` @ `fd7afced403`; port `femacs/lib/include/issymlink.rs`.  The one
+`emacs/lib/issymlink.h` @ `fd7afced403`; port `lib/include/issymlink.rs`.  The one
 function is `_GL_ISSYMLINK_INLINE`-qualified, so it is an ordinary Rust item here and the
-wrapper `femacs/lib/issymlink.rs` keeps the qualifier relationship - which is why the
+wrapper `lib/issymlink.rs` keeps the qualifier relationship - which is why the
 `_GL_ISSYMLINK_INLINE` box stays unchecked here (the timespec/stat-time shape).

@@ -72,9 +72,9 @@ import tempfile
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parent.parent
-# `docs/port-map.md`'s VERBATIM_DIRS (`<reference dir>` -> `femacs/<same name>`).
+# `docs/port-map.md`'s VERBATIM_DIRS (`<reference dir>` -> `<same name>`).
 TREES = ("lisp", "test", "etc", "doc", "leim", "admin")
-TARGET = "femacs"
+TARGET = "."
 SUBSTITUTIONS = REPO / "docs/baseline/verbatim-substitutions.tsv"
 KEEPS = REPO / "docs/baseline/verbatim-declaration-keeps.tsv"
 
@@ -205,7 +205,7 @@ def census(repo: Path, subs: dict[str, list[tuple[int, str]]],
     wrapped = 0
     used_keeps: set[str] = set()
     for tree in trees:
-        prefix = f"{TARGET}/{tree}"
+        prefix = str(Path(TARGET) / tree)
         for rel in tracked_files(repo, prefix):
             p = repo / rel
             sub_rows = {ln: txt for ln, txt in subs.get(rel, [])}
@@ -267,7 +267,7 @@ def census(repo: Path, subs: dict[str, list[tuple[int, str]]],
                     sanctioned += 1
                     continue
                 failures.append(f"{where} unclassified declaration: {text!r}")
-    scanned = tuple(f"{TARGET}/{tree}/" for tree in trees)
+    scanned = tuple(str(Path(TARGET) / tree) + "/" for tree in trees)
     for rel, rows in keeps.items():
         if not rel.startswith(scanned):
             continue

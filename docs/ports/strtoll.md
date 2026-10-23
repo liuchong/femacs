@@ -15,9 +15,9 @@
 # ----------------------------------------------------------------------
 ## Decisions
 
-`emacs/lib/strtoll.c` @ `fd7afced403`; port `femacs/lib/strtoll.rs` (33 lines); the gates are
+`emacs/lib/strtoll.c` @ `fd7afced403`; port `lib/strtoll.rs` (33 lines); the gates are
 `build-tu lib/strtoll.c` -> `built` and `python3 tools/extract-abi.py --check
-emacs/lib/strtoll.c femacs/lib/strtoll.rs` -> `OK`.  The frozen build compiles this file (no
+emacs/lib/strtoll.c lib/strtoll.rs` -> `OK`.  The frozen build compiles this file (no
 `build/emacs-ref/lib/strtoll.o` exists), so `tools/check-symbols.py` does not compare it;
 `nm -g build/femacs/strtoll.o` shows `T _strtoll` plus the imports `_isspace`, `_isalpha`,
 `_toupper` and `___error` - the body of the `QUAD == 1` instantiation.
@@ -26,7 +26,7 @@ emacs/lib/strtoll.c femacs/lib/strtoll.rs` -> `OK`.  The frozen build compiles t
   `#include <strtol.c>`, so its whole text is the `QUAD == 1` instantiation of gnulib's
   `strtol.c` template.  The port's own text is C 19's `QUAD` plus the instantiation.
 
-- **The instantiation is landed** on the shared body `femacs/lib/strtol.rs`, which is
+- **The instantiation is landed** on the shared body `lib/strtol.rs`, which is
   `macro_rules! strtol_body`.  This shim `include!`s the prelude and instantiates it once:
   `strtol_body! (strtoll, "strtoll", c_longlong, c_ulonglong, c_longlong::MIN,
   c_longlong::MAX, c_ulonglong::MAX)` - C's `QUAD` arm (the `long long` types, the
@@ -41,5 +41,5 @@ emacs/lib/strtoll.c femacs/lib/strtoll.rs` -> `OK`.  The frozen build compiles t
 
 - **No line-drift row is needed**: C 33 vs the port's 33 (0.0%).
 
-- **The `#![allow (…)]` block lives here**, not in `femacs/lib/strtol.rs`: an attribute inside
+- **The `#![allow (…)]` block lives here**, not in `lib/strtol.rs`: an attribute inside
   an included file is E0753 (the `strftime.rs`/`ftoastr.rs` decision).

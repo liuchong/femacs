@@ -35,7 +35,7 @@ thread.h 21 includes it).  `ptrdiff_t` and `c_int` come from the including unit.
 
 **The engine half lands with its definition unit (2026-10-03, the `docs/ports/thread.md`
 precedent).**  `struct re_pattern_buffer` (C 67-121) and the eight declarations are in the
-mirror now, and `src/regex-emacs.c`'s first consumer is `femacs/src/regex-emacs.rs`.  C's two
+mirror now, and `src/regex-emacs.c`'s first consumer is `src/regex-emacs.rs`.  C's two
 `bool_bf` runs and its `unsigned regs_allocated : 2` are one storage unit, so the mirror packs
 them into `bits: u8` with one mask per C member (`RE_PATTERN_*`, PORTING.md 1.3/P-80) and one
 `#[inline(always)]` accessor pair per member; that is the spelling `src/search.c`'s port already
@@ -67,7 +67,7 @@ The five engine entry points this header declares (`re_compile_pattern`, `re_sea
 `re_search_2`, `re_match_2`, `re_set_registers`) carry `#[link_name = "rpl_..."]`: the frozen
 `src/config.h` 3642-3663 renames those identifiers (gnulib's replacement scheme), so C's object
 exports `_rpl_re_search` and friends, and a plain declaration here would make every caller link
-against a name the reference has not got.  The matching definitions in `femacs/src/regex-emacs.rs`
+against a name the reference has not got.  The matching definitions in `src/regex-emacs.rs`
 carry `#[unsafe(export_name = "rpl_...")]` - the shape status 3.57 established for `emacs_fclose`.
 Verified by comparing `nm -g` of the port's object with `build/emacs-ref/src/regex-emacs.o`: the
 same five names, the same types.  Callers are unchanged; they use the Rust name.

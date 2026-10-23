@@ -6,7 +6,7 @@
 > `docs/baseline/frozen-build-sources.txt` lists no `androidterm.o` for this target, so
 > `extract-abi.py`'s checklist for the file is empty and its checkbox sections cannot be coverage
 > evidence.  What follows is P-86 ②'s substitute: the **C line-range table**, the `## Evidence`
-> readings, and the `## Deviations`.  Port: `femacs/src/androidterm.rs` (**8,805 lines**, md5
+> readings, and the `## Deviations`.  Port: `src/androidterm.rs` (**8,805 lines**, md5
 > `1863f11e9354ab5886e7700bde1cc713`), carrying **C 1-7117 - the whole file**; both arms of every
 > `#if` carried.  **The file is complete** (slice 29, 2026-10-12): no `missing function`,
 > `missing file-scope object`, `missing macro` or `missing constant` row stands, the arm probe
@@ -322,14 +322,14 @@ ratchet row(s), 0 new, 3 stale`, and this file's row is one of the three: `stale
 no longer under the threshold` (1,055 Rust lines against a 711-line threshold, so the file **left**
 P-86's under-ten-percent class with this batch; the integrator's `--write-pending` drops the row). —
 `python3 tools/check-citations.py` → `675 file(s) scanned, 1 drift, 0 range, 491 external, 33
-allowed, 0 stale`, and the one drift is not this lane's (`femacs/src/image.rs:504`, an in-flight
+allowed, 0 stale`, and the one drift is not this lane's (`src/image.rs:504`, an in-flight
 file); this slice's citations read clean after the first run's `lisp.h 33`/`INT_MAX` pair was
 corrected. — `python3 tools/check-declarations.py` → `13 declaration sites (0 forbidden, 13 allowed
 literals), 0 failures`. — `python3 tools/check-carried.py` → `11 carried file(s), 11 baseline
 row(s), 0 failure(s)`.
 
 **④ Inventory.**
-`python3 tools/extract-abi.py --check emacs/src/androidterm.c femacs/src/androidterm.rs` → **FAIL,
+`python3 tools/extract-abi.py --check emacs/src/androidterm.c src/androidterm.rs` → **FAIL,
 116 `- ` rows**, all of them owed and none of them this slice's text: **111 `missing …` rows** name
 the remaining 6,288 lines' own items (the file's checklist is empty, so P-86 ⑩ makes the check
 compare the whole reference text against an 829-line port; 110 of the 111 are defined only in
@@ -412,7 +412,7 @@ slice's basis).  All 116 are in the owed list below.
   reference tree, so the unit carries them as comments at C's lines (P-88 ①); no name of this slice
   comes from either (the file's `sem_t edit_sem` and `__android_log_print` uses are C 5032+ and
   C 1837, both in the remainder).  The ledger names them rather than adding a file under
-  `femacs/src/include/`.
+  `src/include/`.
 - **`x_display_list` (C 41) is a non-`static` definition**, so it carries `#[unsafe(no_mangle)]`
   (PORTING.md 0.2) and shadows the glob-imported declaration in `include/androidterm.rs` 514-517's
   `androidterm_objs` module (PORTING.md 0.1-10/P-21).
@@ -783,7 +783,7 @@ events, the configuration-changed pair, and the shared `OTHER:` tail.
    ~60 a clean first draft would show.  Each run is a single-file `rustc` invocation of 0.6-2.6 s
    under `CARGO_TARGET_DIR=/tmp/aterm-lane`; `build/probes/androidterm` is removed at the end of the
    round.
-4. **Inventory** (`python3 tools/extract-abi.py --check emacs/src/androidterm.c femacs/src/androidterm.rs`):
+4. **Inventory** (`python3 tools/extract-abi.py --check emacs/src/androidterm.c src/androidterm.rs`):
    the 116 rows of slice 1's reading are now **41** - the thirty-six `missing function` rows for
    C 1894-7117's own items, one `missing macro`/`missing constant` pair
    (`HIGHLIGHT_COLOR_DARK_BOOST_LIMIT`), the five `missing file-scope object` rows
@@ -1875,6 +1875,6 @@ class this file carried twenty-two times: C composes every JNI definition's name
 344's function-like `NATIVE_NAME(name)`, and the port emits the project's renamed prefix through
 `#[unsafe(export_name = ...)]`.  The reading now requires the composing macro's definition *and* the
 invocation with the symbol's own suffix, so nothing else is exempted.  `python3 tools/extract-abi.py
---check emacs/src/androidterm.c femacs/src/androidterm.rs` -> **OK** (0 rows); the file's own
+--check emacs/src/androidterm.c src/androidterm.rs` -> **OK** (0 rows); the file's own
 `line-drift-tolerance.tsv` row (0.27, measured when slice 29 closed it) covers the line count.
 `docs/status.md` 4.332 records the reading.

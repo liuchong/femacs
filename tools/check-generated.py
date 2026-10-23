@@ -31,7 +31,7 @@ import sys
 
 REPO = pathlib.Path(__file__).resolve().parent.parent
 REF = REPO / "emacs"
-PORT = REPO / "femacs"
+PORT = REPO
 
 # The port's program name is the name its own generated files carry; the reference's product name
 # is read out of the reference's generated files (`;; This file is part of X.`), so neither is

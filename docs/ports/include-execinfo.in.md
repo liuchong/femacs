@@ -27,7 +27,7 @@
 - **The three functions are the fallback, not the port's live spellings.**  C 38-60 defines
   `backtrace` (returns 0), `backtrace_symbols` (returns a null pointer) and `backtrace_symbols_fd`
   (does nothing) as `_GL_EXECINFO_INLINE` definitions; on this target the *system's* `<execinfo.h>` is
-  what the C units call, and `femacs/src/sysdep.rs` 563-565 declares the two entries `src/sysdep.c`
+  what the C units call, and `src/sysdep.rs` 563-565 declares the two entries `src/sysdep.c`
   2311-2331 uses at that use site.  Nothing `include!`s this mirror, so the two spellings coexist
   without a name clash; a future unit that wants the fallback would need to stop declaring the
   system's.
@@ -50,7 +50,7 @@
 
 ## Evidence
 
-- `python3 tools/extract-abi.py --check emacs/lib/execinfo.in.h femacs/lib/include/execinfo.in.rs`
+- `python3 tools/extract-abi.py --check emacs/lib/execinfo.in.h lib/include/execinfo.in.rs`
   -> **FAIL** with exactly one line and no others:
   ```
   - missing macro _GL_EXECINFO_INLINE

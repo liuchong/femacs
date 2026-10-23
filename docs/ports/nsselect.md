@@ -6,7 +6,7 @@
 > never reaches.  Batch F ports the Objective-C front end to Swift anyway
 > (`docs/port-map.md`'s Swift table), so this ledger is the checklist of the **Cocoa/AppKit
 > build** the file's `NS_IMPL_COCOA` arms describe, and the unit is
-> `femacs/platform/macos/nsselect.swift`.  Line numbers are the raw reference lines.
+> `platform/macos/nsselect.swift`.  Line numbers are the raw reference lines.
 
 # ----------------------------------------------------------------------
 ## Subrs (DEFUN) — 6
@@ -302,7 +302,7 @@ call sites (empty in C).
 2. `Vns_sent_selection_hooks` has no C symbol in the port (Swift cannot emit one); the unit
    that owns it keeps the storage as a Swift global.  The same situation applies to every
    `DEFVAR_*`'d variable in the `.m` files (e.g. `ns_use_srgb_colorspace`, which
-   `femacs/platform/macos/nsimage.swift` currently declares as an imported C symbol - that one
+   `platform/macos/nsimage.swift` currently declares as an imported C symbol - that one
    needs the same one-line change to a function entry, since its owner is the port of
    src/nsterm.m, not the core).
 3. **PORTING.md P-31's five `S…` records** (`Sdraw_string`, `Sfont_drive_otf`,
@@ -325,7 +325,7 @@ call sites (empty in C).
 - `swiftc --version` -> `swift-driver version: 1.168.6 Apple Swift version 6.4
   (swiftlang-6.4.0.34.1 clang-2100.3.34.1)`, `Target: arm64-apple-macosx26.0`.
 - `cd /Users/liu/projects/src/github.com/liuchong/femacs && swiftc -parse-as-library -c -o
-  /tmp/nsselect.o femacs/platform/macos/nsselect.swift` -> **exit 0**, default language mode,
+  /tmp/nsselect.o platform/macos/nsselect.swift` -> **exit 0**, default language mode,
   **no warnings**.
 - `nm -g /tmp/nsselect.o | grep ' T _'` -> the eleven exported C names:
   `_Fns_begin_drag`, `_Fns_disown_selection_internal`, `_Fns_get_selection`,
@@ -351,7 +351,7 @@ call sites (empty in C).
   `specpdl_ref.bytes 0`; `Lisp_Fwd.u 8` (`type` is a bit-field, one byte at 0);
   `Lisp_Fwd_Obj 2 PVEC_SUBR 18 PSEUDOVECTOR_AREA_BITS 24`.
   With `-DHAVE_NATIVE_COMP=1`: `sizeof Lisp_Subr 88`, `native_comp_u 56`, `native_c_name 64`.
-- Layout, Swift side (`swiftc -o /tmp/run femacs/platform/macos/nsselect.swift
+- Layout, Swift side (`swiftc -o /tmp/run platform/macos/nsselect.swift
   /tmp/nsselect-layout-check/main.swift -Xlinker -undefined -Xlinker dynamic_lookup`, then the
   program, which prints `MemoryLayout` of the unit's own types) -> every number equals the C
   probe's: `vectorlike_header 8/8`, `Lisp_Subr 56` with the same eight offsets,

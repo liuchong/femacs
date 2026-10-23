@@ -18,7 +18,7 @@
 > (not in the frozen source list, empty checkbox sections, 336-byte object) is unchanged and still
 > true here - it is the *conclusion* that is withdrawn, exactly as `docs/ports/pgtkterm.md`,
 > `docs/ports/gtkutil.md`, `docs/ports/xsmfns.md` and `docs/ports/xgselect.md` record for their own
-> files.  Port: `femacs/src/xsettings.rs` (**2192 lines**, from the 4 of the placeholder), carrying
+> files.  Port: `src/xsettings.rs` (**2192 lines**, from the 4 of the placeholder), carrying
 > **C 1-1421** with **both arms of every `#if`**.
 
 ## Gate mapping
@@ -49,7 +49,7 @@ on it - the coupling `docs/ports/xsmfns.md`'s `## Owed` 8 records for its own fl
 
 One row per C block, contiguous (each row absorbs the blank lines that follow the one before),
 covering C 1-1421 (`docs/port-map.md` pairs `src/xsettings.c` with this unit; there is no
-`src/xsettings.h` row for it - the header maps to `femacs/src/include/xsettings.rs` separately, and
+`src/xsettings.h` row for it - the header maps to `src/include/xsettings.rs` separately, and
 this table's rows are read against the `.c`'s 1421 lines).
 
 | C | block | arm |
@@ -108,7 +108,7 @@ expected reading for a file every item of which sits behind the file gate (P-86 
 reordering, and the two final ones - all four the same 336 bytes, because everything that changed
 between them is inside the gate.
 
-**The revision every reading below is of**: `femacs/src/xsettings.rs`, **2192 lines**,
+**The revision every reading below is of**: `src/xsettings.rs`, **2192 lines**,
 129,497 bytes, sha1 `fd4598d817d8fbc412ea04a9fb9490932ad1c0c7` (restored byte-identical after the
 mutation test; `wc -l`/`shasum` re-run after the restore).
 
@@ -143,7 +143,7 @@ machine (which is why the two names are *features*: a cairo without them is C 86
 declarations are header-only and stay **UNVERIFIED** (`## Deviations` 5).
 
 **③ The arm flips (P-86 ③⑴/⑥) and the mutation test (P-86 ⑦).**  The toolchain is the repo's pin:
-`femacs/rust-toolchain.toml` is `nightly-2026-10-01` (P-04), and `xtask probe`'s inner `rustc`
+`rust-toolchain.toml` is `nightly-2026-10-01` (P-04), and `xtask probe`'s inner `rustc`
 inherits it through cargo - a *hand* run must set `RUSTUP_TOOLCHAIN=nightly-2026-10-01`, or the
 machine's stable 1.98.1 adds a spurious `error[E0658] … unstable library feature c_variadic` at
 `include/lisp.rs` 3761 (measured both ways; the `docs/ports/kqueue.md` 142 / `gnutls.md` 246
@@ -202,7 +202,7 @@ this unit's own text**: the four residual error rows are three mirror properties
 
 **④ The acceptance-gate readings (this round).**
 
-* `python3 tools/extract-abi.py --check emacs/src/xsettings.c femacs/src/xsettings.rs` -> **one
+* `python3 tools/extract-abi.py --check emacs/src/xsettings.c src/xsettings.rs` -> **one
   problem, and it is the expected one**: `- line count drifted 54.3%: C 1421 vs Rust 2192`.  The
   other five rule classes pass: the 16 live functions, the 3 subrs (name, limits and docstring
   digest), the 2 live macros, the 9 constants (the `SEEN_*` values and
@@ -231,7 +231,7 @@ this unit's own text**: the four residual error rows are three mirror properties
 * `python3 tools/check-dead-file-coverage.py` -> `99 ledger(s) bound (a C range table), 0
   failure(s)`, with `info docs/ports/xsettings.md: 40 range row(s) cover src/xsettings.c (1421
   lines; 0 blank line(s) between blocks need no row)` (the same 40 rows cover `src/xsettings.h`'s 51
-  lines, which this ledger is also bound to through `femacs/src/include/xsettings.rs`).
+  lines, which this ledger is also bound to through `src/include/xsettings.rs`).
 
 ## Deviations
 
@@ -315,7 +315,7 @@ this unit's own text**: the four residual error rows are three mirror properties
     0.2); the four file-scope objects, the helpers and the two callbacks stay plain `unsafe fn`s /
     `static mut`s.
 15. C 34's `#include "xsettings.h"` has no Rust spelling in this unit (`E0428` against
-    `femacs/src/include/xsettings.rs`'s three declarations) - recorded, with the owner, in
+    `src/include/xsettings.rs`'s three declarations) - recorded, with the owner, in
     `## Owed` 2.
 16. C's `# ifdef FC_HINT_STYLE`-guarded `SEEN_HINTSTYLE` arm and the `#ifndef FC_LCD_*` fallbacks
     (C 531-542) are the three constants declared once in the fontconfig segment: the header has all
@@ -332,19 +332,19 @@ this unit's own text**: the four residual error rows are three mirror properties
 
 ## Owed by the integrator (status per item; nothing here is claimed as done until marked)
 
-1. **`femacs/xtask/Cargo.toml`'s `[features]` table: five names this lane introduces and cannot
+1. **`xtask/Cargo.toml`'s `[features]` table: five names this lane introduces and cannot
    register.**  `have_gconf` (HAVE_GCONF), `cairo_has_ft_font` (CAIRO_HAS_FT_FONT), `cairo_has_fc_font`
    (CAIRO_HAS_FC_FONT), `fc_hint_style` (FC_HINT_STYLE) and `glib_version_2_32`
    (GLIB_VERSION_2_32).  Until they are in the table the arm flips that set them are hand runs, not
    `gate-probes` runs.  The four `cairo_has_*`/`fc_*` names are the same class `docs/ports/pgtkfns.md`'s
    Owed 4 and `src/ftfont.rs`'s Owed 5 name.  **NOT DONE.**
-2. **`femacs/src/include/xsettings.rs`'s three declarations are `E0428` against this unit's
+2. **`src/include/xsettings.rs`'s three declarations are `E0428` against this unit's
    definitions** (`xsettings_initialize`, `xft_settings_event`, `xsettings_get_system_font`), so
    C 34's `#include "xsettings.h"` is *recorded* here rather than spelled.  The fix is the P-39
    shape the `src/xgselect.rs` lane already applied to its own mirror: a `pub mod xsettings_decls
    { … }` with `use xsettings_decls::*;` around the three `unsafe extern "C"` lines.  The mirror is
    outside this lane's write scope.  **NOT DONE.**
-3. **`femacs/src/include/xlib.rs`: the X11 surface this unit declares in place belongs there** -
+3. **`src/include/xlib.rs`: the X11 surface this unit declares in place belongs there** -
    six entry points (`XGrabServer` 2565, `XUngrabServer` 2571, `XGetSelectionOwner` 1647,
    `XSelectInput` 3001, `XGetWindowProperty` 3020, `XFree` 1936, each with its measured line), the
    five constants (`PropertyNewValue`, `DestroyNotify`, `PropertyNotify`, `LSBFirst`, `MSBFirst` -
@@ -362,7 +362,7 @@ this unit's own text**: the four residual error rows are three mirror properties
    `include/xterm.rs`; `xg_update_dark_mode_for_all_displays` (gtkutil.h 190) is a *comment* in
    `include/gtkutil.rs` rather than a declaration.  Each is declared here with its reference line and
    a gate, and moves when its mirror lands.  **NOT DONE.**
-6. **`femacs/src/include/dispextern.rs` 698 and 711**: the X-arm `Display_Info` alias points at that
+6. **`src/include/dispextern.rs` 698 and 711**: the X-arm `Display_Info` alias points at that
    mirror's module-local *opaque* stand-in for C 115's tag, and the pgtk arm is a recorded comment
    with no alias at all, so a unit that dereferences the record cannot use the name
    (`## Deviations` 4).  A `have_pgtk` arm like the other five (and an X-arm alias to the complete
@@ -387,7 +387,7 @@ this unit's own text**: the four residual error rows are three mirror properties
    `have_window_system` is off in the frozen configuration) and `include/lisp.rs` 3761's
    `c_variadic` under a non-pinned toolchain.  Each is named with its owner lane.  **NOT DONE (the
    mirrors' own rounds).**
-10. **`femacs/xtask/src/main.rs`'s `include_edges` only reads the *current* line's start**, so a
+10. **`xtask/src/main.rs`'s `include_edges` only reads the *current* line's start**, so a
     `#[cfg]` written across two lines above an `include!` makes the edge read as **ungated** (this
     lane measured it: the wrapped C 30 gate made `include/xterm.rs`'s whole chain ungated-reachable,
     which changed `xtask`'s dedupe decisions and silently widened the graph).  Either the reader

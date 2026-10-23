@@ -61,7 +61,7 @@ ledger's live set is the frozen configuration's:
 
 Evidence: `cargo run -q -p xtask -- build-tu lib-src/movemail.c` ->
 `built lib-src/movemail.rs -> ../build/femacs/movemail.o`; `python3 tools/extract-abi.py --check
-emacs/lib-src/movemail.c femacs/lib-src/movemail.rs` -> `OK` (8/8 boxes, two notes rows in
+emacs/lib-src/movemail.c lib-src/movemail.rs` -> `OK` (8/8 boxes, two notes rows in
 place); `rustc --cfg enable_checking` on the materialized unit -> exit 0; `check-declarations` 0;
 `check-verbatim` 6 trees / 0 failures.  The token gate earned its keep here: it caught the port
 dropping C's `strerror (errno)` in `main`'s two `fatal` calls (a wrong-but-compiling pointer

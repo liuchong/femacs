@@ -8,7 +8,7 @@
 > `extract-abi.py`'s checklist for the file is empty (P-86 ②).  What follows is that clause's
 > substitute: the **C line-range table**, the `## Evidence` readings and the `## Deviations`.
 >
-> Port: `femacs/src/haikufns.rs` (**4,331 lines**), which carries the file **whole, C 1-3324** -
+> Port: `src/haikufns.rs` (**4,331 lines**), which carries the file **whole, C 1-3324** -
 > no slice.  The 56 functions, 34 `DEFUN`s, five macros, two structs, the four cursor/handler
 > tables and the seven file-scope `tip_*` objects of the reference all stand at C's own line, in
 > C's own order, with every `#if`'s arms carried (P-51/P-86 ①).
@@ -216,7 +216,7 @@ a copy and `shasum -a 256` verified identical before and after
 (`3a412031264fc593e5ca7dc54f9e1d2b9cc6e3c75f9baf0183edc9a79a073bc1`).
 
 **④ Inventory.**  `python3 tools/extract-abi.py --check emacs/src/haikufns.c
-femacs/src/haikufns.rs` → **one row and `FAIL`**: `line count drifted 30.3%: C 3324 vs Rust 4331`.
+src/haikufns.rs` → **one row and `FAIL`**: `line count drifted 30.3%: C 3324 vs Rust 4331`.
 Nothing else fails: no missing function, macro, type, field or object, and no missing body token -
 the five token rows the check first reported (`1`, `output_data`, `0`, `doc`, `goto`) are now the
 five `docs/ports/macro-body-notes.tsv` rows this lane appended (Deviations 19), and the row above

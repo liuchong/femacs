@@ -22,7 +22,7 @@
 > (not in the frozen source list, empty checkbox sections, 336-byte object) is unchanged and still
 > true here - it is the *conclusion* that is withdrawn, exactly as `docs/ports/gtkutil.md`,
 > `docs/ports/pgtkterm.md` and `docs/ports/androidmenu.md` record for their own files.  Port:
-> `femacs/src/xwidget.rs` (**2,321 lines**, from the 11 of the placeholder), carrying **C 1-1180**
+> `src/xwidget.rs` (**2,321 lines**, from the 11 of the placeholder), carrying **C 1-1180**
 > with **both arms of every `#if`**.
 >
 > **This slice is C 1-1180**, from the file's first line through `run_file_chooser_cb`'s closing
@@ -65,7 +65,7 @@
 > branch is taken (the same answer `tools/check-cond-eval.py` records: 0 disagreements).  The port
 > spells the arms with derived-condition features after the `android_api_le_11` /
 > `gtk_check_version_ge_3_10` naming: **`webkit_check_version_ge_2_16`**, **`_ge_2_26`**,
-> **`_ge_2_34`** - **none registered in `femacs/xtask/Cargo.toml`** (`## Owed` 1).
+> **`_ge_2_34`** - **none registered in `xtask/Cargo.toml`** (`## Owed` 1).
 >
 > **The toolkit surface is declared in this unit (P-88 ①, which P-90 ① keeps for this round), and
 > this batch is `text-only` (P-86 ③⑵).**  Measured on this machine:
@@ -83,11 +83,11 @@
 > `/opt/homebrew/include/X11`), so the GLib declarations quote the header *and the line* they were
 > read from, `GList`/`GSList`'s layouts are real clang readings (Evidence ⑤) and `ShiftMask`/
 > `ControlMask` carry `X11/X.h`'s own expressions.  P-88 ⑤/P-90 ③: the move into a dedicated SDK
-> mirror (`femacs/src/include/gtk.rs`, PORTING.md P-90) is owed (`## Owed` 2), and this unit's copy
+> mirror (`src/include/gtk.rs`, PORTING.md P-90) is owed (`## Owed` 2), and this unit's copy
 > plus the segment copies in `src/gtkutil.rs` and `src/pgtkterm.rs` are the ones to drop there.
 
 > **Slice 2 (C 1181-2716) — the `HAVE_X_WINDOWS` arm, the WebKit callbacks and the script
-> dialog.**  This round took `femacs/src/xwidget.rs` from **2,014 to 4,492 lines**: C 1181's blank
+> dialog.**  This round took `src/xwidget.rs` from **2,014 to 4,492 lines**: C 1181's blank
 > and C 1182's `#ifdef HAVE_X_WINDOWS` through C 2716's `#endif /* USE_GTK */` — the X11
 > drag/button/motion and crossing machinery (C 1184-2105), `synthesize_focus_in_event` (C 2110),
 > `xwidget_view_from_window` (C 2137), the show/hide pair (C 2150/2169),
@@ -219,7 +219,7 @@ block, and the union covers C 1-4304 without a gap.
 > (not in the frozen source list, empty checkbox sections, 336-byte object) is unchanged and still
 > true here - it is the *conclusion* that is withdrawn, exactly as `docs/ports/gtkutil.md`,
 > `docs/ports/pgtkterm.md` and `docs/ports/androidmenu.md` record for their own files.  Port:
-> `femacs/src/xwidget.rs` (**2,321 lines**, from the 11 of the placeholder), carrying **C 1-1180**
+> `src/xwidget.rs` (**2,321 lines**, from the 11 of the placeholder), carrying **C 1-1180**
 > with **both arms of every `#if`**.
 >
 > **This slice is C 1-1180**, from the file's first line through `run_file_chooser_cb`'s closing
@@ -262,7 +262,7 @@ block, and the union covers C 1-4304 without a gap.
 > branch is taken (the same answer `tools/check-cond-eval.py` records: 0 disagreements).  The port
 > spells the arms with derived-condition features after the `android_api_le_11` /
 > `gtk_check_version_ge_3_10` naming: **`webkit_check_version_ge_2_16`**, **`_ge_2_26`**,
-> **`_ge_2_34`** - **none registered in `femacs/xtask/Cargo.toml`** (`## Owed` 1).
+> **`_ge_2_34`** - **none registered in `xtask/Cargo.toml`** (`## Owed` 1).
 >
 > **The toolkit surface is declared in this unit (P-88 ①, which P-90 ① keeps for this round), and
 > this batch is `text-only` (P-86 ③⑵).**  Measured on this machine:
@@ -280,7 +280,7 @@ block, and the union covers C 1-4304 without a gap.
 > `/opt/homebrew/include/X11`), so the GLib declarations quote the header *and the line* they were
 > read from, `GList`/`GSList`'s layouts are real clang readings (Evidence ⑤) and `ShiftMask`/
 > `ControlMask` carry `X11/X.h`'s own expressions.  P-88 ⑤/P-90 ③: the move into a dedicated SDK
-> mirror (`femacs/src/include/gtk.rs`, PORTING.md P-90) is owed (`## Owed` 2), and this unit's copy
+> mirror (`src/include/gtk.rs`, PORTING.md P-90) is owed (`## Owed` 2), and this unit's copy
 > plus the segment copies in `src/gtkutil.rs` and `src/pgtkterm.rs` are the ones to drop there.
 
 ## Gate mapping
@@ -432,7 +432,7 @@ XI2 blocks (C 519-522/537-548/624-631/684-689) need XInput2's headers, which thi
 got for the GTK lane; they are carried as text only (`## Owed` 6).
 
 **③ Inventory.**
-`python3 tools/extract-abi.py --check emacs/src/xwidget.c femacs/src/xwidget.rs` ->
+`python3 tools/extract-abi.py --check emacs/src/xwidget.c src/xwidget.rs` ->
 **85 `- ` lines, then `FAIL`**, in five groups: 18 `- missing function …`, 30 `- missing subr …`,
 34 `- missing defsubr …` and 2 `- missing macro …` (`CHECK_WEBKIT_WIDGET`, `WEBKIT_FN_INIT`) - all
 of them **the unported remainder** (C 1182-4304: the `webkit_*` callbacks, `lookup_xwidget`,
@@ -584,7 +584,7 @@ failure(s)` - none of them this unit's (the in-unit surface does not repeat the 
 **⑩ Slice 3 (C 2717-2790 and C 3042-3116): the readings of the round that landed it (2026-10-06,
 status 3.671).**
 
-a) `python3 tools/extract-abi.py --check emacs/src/xwidget.c femacs/src/xwidget.rs`: `84 -> 81
+a) `python3 tools/extract-abi.py --check emacs/src/xwidget.c src/xwidget.rs`: `84 -> 81
 missing` rows was ⑨'s reading for slice 2; this slice retires **six** more - `xwidget_init_view`,
 the two macros `CHECK_WEBKIT_WIDGET` / `WEBKIT_FN_INIT`, and the three subrs `Fxwidget_webkit_uri`
 / `Fxwidget_webkit_title` / `Fxwidget_webkit_estimated_load_progress` (with their `defsubr` +
@@ -600,7 +600,7 @@ new text.
 c) **The three arm flips, and the baseline they are read against** (P-86 ⑦'s by-file counting).
 The arm sets are Evidence ⑧'s, with the file gate's `have_gtk3` added (the 3.596 correction:
 `all (feature = "use_gtk", feature = "have_gtk3")`).  The same three runs were made on **HEAD's**
-`femacs/src/xwidget.rs` (and HEAD's `include/gtk.rs`) so the delta is the slice's, not the arm's:
+`src/xwidget.rs` (and HEAD's `include/gtk.rs`) so the delta is the slice's, not the arm's:
 
 | arm (on top of `use_gtk` + `have_gtk3` + `have_xwidgets`) | own-text rows, HEAD | own-text rows, this slice | added | include-graph rows |
 | --- | --- | --- | --- | --- |
@@ -625,7 +625,7 @@ gdouble` (the WebKit declaration spelled GLib's typedef; the unit's own surface 
 the declaration takes `*mut c_void`, P-72 rule 3).  Run 3 is the table above.
 
 e) **One mirror edit, and P-87's two legs.**  `gtk_drawing_area_new` (C 2760's call) was added to
-`femacs/src/include/gtk.rs` (the P-90 ② home of the GTK surface) rather than declared at the use
+`src/include/gtk.rs` (the P-90 ② home of the GTK surface) rather than declared at the use
 site; `tools/check-all-units.sh` -> `checked 83 unit(s), 0 failure(s)` and
 `cargo run -q -p xtask -- layout-check` -> `layout-check passed (see build/femacs/layout_asserts.rs)`
 (both were run because the edit is a mirror edit; P-87 ①).
@@ -633,7 +633,7 @@ site; `tools/check-all-units.sh` -> `checked 83 unit(s), 0 failure(s)` and
 
 **⑪ Slice 4 (C 3117-3307): the readings of the round that landed it (2026-10-06, status 3.672).**
 
-a) `python3 tools/extract-abi.py --check emacs/src/xwidget.c femacs/src/xwidget.rs`: **76 -> 71**
+a) `python3 tools/extract-abi.py --check emacs/src/xwidget.c src/xwidget.rs`: **76 -> 71**
 rows.  The five retired are `Fxwidget_webkit_goto_uri`, `Fxwidget_webkit_goto_history`,
 `Fxwidget_webkit_zoom`, `Fxwidget_webkit_execute_script` and `save_script_callback` (plus
 `Fxwidget_resize`'s `subr` row, which slice 3's "second round" had not reached).  **The four
@@ -671,7 +671,7 @@ the unit's own `GAsyncResult`, the `include/gtk.rs` 93-96 `GCallback`/`GClosureN
 site: xdisp.c 17073, the `keyboard.rs` 680 shape).  Run 3: `webkit_javascript_finished_cb` is
 `unsafe fn` in the port and C 3244 passes it as a `GAsyncReadyCallback`, whose type is
 `unsafe extern "C" fn` - so the definition becomes `extern "C"` (the
-`init_alloc_once_for_pdumper` correction, `femacs/src/alloc.rs` 7994).  Run 4 is the table above.
+`init_alloc_once_for_pdumper` correction, `src/alloc.rs` 7994).  Run 4 is the table above.
 
 e) **No mirror was edited this round**, so P-87 ①'s `check-all-units.sh` / `layout-check` legs do
 not apply: the WebKit record (`WebKitBackForwardList`, `WebKitBackForwardListItem`), the WebKit
@@ -683,7 +683,7 @@ unit, which is where the file's third-party surface already is (its WebKit block
 
 **⑫ Slice 5 (C 3308-3547): the readings of the round that landed it (2026-10-06, status 3.673).**
 
-a) `python3 tools/extract-abi.py --check emacs/src/xwidget.c femacs/src/xwidget.rs`: **71 -> 56**
+a) `python3 tools/extract-abi.py --check emacs/src/xwidget.c src/xwidget.rs`: **71 -> 56**
 rows.  The fifteen retired are the fifteen subrs this slice writes
 (`Fxwidget_size_request`, `Fxwidgetp`, `Fxwidget_view_p`, `Fxwidget_info`, `Fxwidget_view_info`,
 `Fxwidget_view_model`, `Fxwidget_view_window`, `Fdelete_xwidget_view`, `Fxwidget_view_lookup`,
@@ -716,7 +716,7 @@ arm, as Deviations 4 does for the Cocoa arms.  Run 3 is the table above.
 
 e) **One mirror edit, and P-87's two legs.**  `gtk_widget_size_request` (C 3319's call; GTK3's
 deprecated alias of `gtk_widget_get_preferred_size`, which `xterm.h` 1434-1445's GTK2 arm redefines)
-was added to `femacs/src/include/gtk.rs` beside that twin - the P-90 ② home of the GTK surface.
+was added to `src/include/gtk.rs` beside that twin - the P-90 ② home of the GTK surface.
 Readings: `tools/check-all-units.sh` -> `checked 83 unit(s), 0 failure(s)` and
 `cargo run -q -p xtask -- layout-check` -> `layout-check passed (see build/femacs/layout_asserts.rs)`
 (both run because the edit is a mirror edit; P-87 ①).  `check-dead-file-coverage.py` re-read after the table
@@ -725,7 +725,7 @@ change: `145 ledger(s), 0 failure(s)`.
 
 **⑬ Slice 6 (C 3548-3770): the readings of the round that landed it (2026-10-06, status 3.674).**
 
-a) `python3 tools/extract-abi.py --check emacs/src/xwidget.c femacs/src/xwidget.rs`: **56 -> 51**
+a) `python3 tools/extract-abi.py --check emacs/src/xwidget.c src/xwidget.rs`: **56 -> 51**
 rows.  The subr rows this slice retires are `Fxwidget_webkit_search`, `Fxwidget_webkit_next_result`,
 `Fxwidget_webkit_previous_result`, `Fxwidget_webkit_finish_search`, `Fkill_xwidget` and
 `Fxwidget_webkit_load_html`; their `defsubr (&raw const S… )` rows stay for `syms_of_xwidget` (⑩ a).
@@ -766,7 +766,7 @@ surface already lives.  `check-dead-file-coverage.py` re-read after the table ch
 
 **⑭ Slice 7 (C 3771-4027): the readings of the round that landed it (2026-10-06, status 3.675).**
 
-a) `python3 tools/extract-abi.py --check emacs/src/xwidget.c femacs/src/xwidget.rs`: **51 -> 14**
+a) `python3 tools/extract-abi.py --check emacs/src/xwidget.c src/xwidget.rs`: **51 -> 14**
 rows.  The thirty-seven retired are the three subrs' rows
 (`Fxwidget_webkit_back_forward_list`, `Fxwidget_webkit_set_cookie_storage_file`,
 `Fxwidget_webkit_stop_loading`), the row for `missing function syms_of_xwidget`, and **every
@@ -803,7 +803,7 @@ the `nsxwidget_webkit_stop_loading` declaration all live in this unit's own bloc
 
 **⑮ Slice 8 (C 4028-4304): the readings of the round that landed it (2026-10-06, status 3.676).**
 
-a) `python3 tools/extract-abi.py --check emacs/src/xwidget.c femacs/src/xwidget.rs`: **14 -> 2**
+a) `python3 tools/extract-abi.py --check emacs/src/xwidget.c src/xwidget.rs`: **14 -> 2**
 rows.  The twelve retired are the store/kill helper rows (`valid_xwidget_spec_p`,
 `xwidget_spec_value`, `xwidget_view_delete_all_in_window`, `xwidget_view_lookup`,
 `lookup_xwidget`, `xwidget_start_redisplay`, `xwidget_touch`, `xwidget_touched`,
@@ -833,7 +833,7 @@ this unit.  `check-dead-file-coverage.py` re-read after the table change:
 **⑯ Slice 9 (C 2791-3051): the readings of the round that landed the file's last function
 (2026-10-06, status 3.677).**
 
-a) `python3 tools/extract-abi.py --check emacs/src/xwidget.c femacs/src/xwidget.rs`: **2 -> OK**.
+a) `python3 tools/extract-abi.py --check emacs/src/xwidget.c src/xwidget.rs`: **2 -> OK**.
 The last two rows were the drift row and `missing function x_draw_xwidget_glyph_string`; the
 function's row retires with the text, and the drift row was answered by
 `docs/ports/line-drift-tolerance.tsv`'s new `xwidget 0.61 total` row (the class that table's header
@@ -964,7 +964,7 @@ clang measurement in the deviation list), so P-87 ①'s legs do not apply.
 ### Slice 2 (C 1181-2716)
 
 - **The toolkit surface this slice reads is declared in the unit** (P-88 ①; the P-90 ③/④ move into
-  `femacs/src/include/gtk.rs` is still owed, `## Owed` 2), each name with the `/// C:` citation its
+  `src/include/gtk.rs` is still owed, `## Owed` 2), each name with the `/// C:` citation its
   header and the C line that reads it.  **GDK, GTK, WebKit and XInput2 are not on this machine**, so
   every record carries only the members C reads, every enumerator is a *distinct placeholder* (the
   real values are `## Owed` 2/8), and no layout assertion is written for them; **X11 is**, so the
@@ -1149,7 +1149,7 @@ clang measurement in the deviation list), so P-87 ①'s legs do not apply.
 3. **C 4019's `#if WEBKIT_CHECK_VERSION (2, 34, 0)`** is `feature = "webkit_check_version_ge_2_34"`,
    the spelling this file's head comment derives from the reference (`WEBKIT_CHECK_VERSION` is
    defined nowhere in the reference tree) - its fourth site; the three derived features are still
-   unregistered in `femacs/xtask/Cargo.toml` (`## Owed` 1).
+   unregistered in `xtask/Cargo.toml` (`## Owed` 1).
 4. **The two GList walks** (C 3829-3837 and C 3847-3855) are C's comma-expression `for` written as
    an init plus a `while` plus the two update statements in C's order (`tem = tem->next; ++i;`) -
    the same shape `fringe.c` slice 2's loops carry.
@@ -1226,11 +1226,11 @@ clang measurement in the deviation list), so P-87 ①'s legs do not apply.
 
 ## Owed by the integrator (nothing here is claimed as done)
 
-1. `femacs/xtask/Cargo.toml`'s `[features]` table: the three derived-condition names this slice
+1. `xtask/Cargo.toml`'s `[features]` table: the three derived-condition names this slice
    needs - **`webkit_check_version_ge_2_16`**, **`webkit_check_version_ge_2_26`**,
    **`webkit_check_version_ge_2_34`** - and a `docs/baseline/feature-coverage.tsv` row each.  Until
    they exist, the three `WEBKIT_CHECK_VERSION` arms cannot be selected by any `--cfg`.
-2. **The SDK mirror `femacs/src/include/gtk.rs`** (PORTING.md P-90: GTK/GDK/GLib/cairo/WebKit are
+2. **The SDK mirror `src/include/gtk.rs`** (PORTING.md P-90: GTK/GDK/GLib/cairo/WebKit are
    surfaces with more than one consumer).  This unit's segment is the one to move; the segment
    copies in `src/gtkutil.rs` (its 220 names) and `src/pgtkterm.rs` must move in the same commit
    (P-90 ②/③).  The names this unit contributes: **GLib/GObject** - `gchar`, `gint`, `gboolean`,
@@ -1288,7 +1288,7 @@ clang measurement in the deviation list), so P-87 ①'s legs do not apply.
 7. **The unit is text-complete and reads `OK`.**  Slices 3-9 (status 3.671-3.677) landed
    C 2717-2790, C 3042-3116, C 3117-3307, C 3308-3547, C 3548-3770, C 3771-4027, C 4028-4304 and
    C 2791-3051 - every row of the C line-range table is now `transcribed`, and
-   `extract-abi --check emacs/src/xwidget.c femacs/src/xwidget.rs` reads **OK** (the drift row was
+   `extract-abi --check emacs/src/xwidget.c src/xwidget.rs` reads **OK** (the drift row was
    answered by `docs/ports/line-drift-tolerance.tsv`'s `xwidget 0.61 total`).  What is left is
    *mirror* work, not text: Owed 9 (the P-80 storage unit for C 99's `kill_without_query`, three
    sites), Owed 10 (the XInput2 records and the two `x_display_info` fields; `XIEventMask`'s home),
@@ -1305,8 +1305,8 @@ clang measurement in the deviation list), so P-87 ①'s legs do not apply.
    `x_root`/`y_root`/`mode`/`detail`/`focus`/`state`; `GdkEventButton` needs `x_root`/`y_root`/
    `button`/`state`/`device`.  With them, the real enumerator values of
    `GdkScrollDirection`/`GdkTouchpadGesturePhase`/`GdkNotifyType`/`GdkEventType`'s two new members.
-   `femacs/src/include/gtk.rs` is outside this lane's write scope (`## Not claimed`).
-9. **`femacs/xtask/Cargo.toml`'s `[features]` table** gains **`gtk_check_version_ge_3_18`** (the
+   `src/include/gtk.rs` is outside this lane's write scope (`## Not claimed`).
+9. **`xtask/Cargo.toml`'s `[features]` table** gains **`gtk_check_version_ge_3_18`** (the
    `gtk_check_version_ge_3_10` naming; C 1493's `GTK_CHECK_VERSION (3, 18, 0)`) on top of item 1's
    three `webkit_check_version_*` names - without it the C 1491-1550 body cannot be selected.
 10. **The mirror gaps the arm flip trips** (all outside this lane's write scope): `XIEventMask` is
@@ -1365,7 +1365,7 @@ integrator wrote them there and did the move in the same round:
   **upgraded from the zero-sized placeholder to the record with `state`/`keyval`** (it is also
   `pgtkterm.h` 666's pointer parameter type - one surface, one mirror, P-90 ②), and
   `GtkWidgetClass` gains `style_updated`.
-* `femacs/src/xwidget.rs` (2,321 -> **2,014** lines): C 30's chain gains
+* `src/xwidget.rs` (2,321 -> **2,014** lines): C 30's chain gains
   `include!("include/gtk.rs")` and the **56** declarations that duplicated the mirror are deleted
   (the set was fixed by the compiler: the edge's 56 `E0428`s and a name-by-name scan agreed
   exactly).
@@ -1425,6 +1425,6 @@ The same move `docs/ports/pgtkterm.md` records: this unit's C 2693 row for
 `gtk_dialog_get_content_area` stood at a use site because the mirror could not take it while two
 units declared copies (`tools/check-mirror-dupes.py`'s unit-versus-mirror rule).
 `src/gtkutil.rs`'s third slice needed the name too, so P-90 (1) moved the row into
-`femacs/src/include/gtk.rs` and deleted both unit copies in one commit; the name resolves through
+`src/include/gtk.rs` and deleted both unit copies in one commit; the name resolves through
 this unit's `include/gtk.rs` edge.  `tools/check-mirror-dupes.py`: 16 ratchet rows, 0 failures;
 `tools/check-all-units.sh`: `checked 83 unit(s), 0 failure(s)`.

@@ -17,7 +17,7 @@
 
 ## Decisions
 
-`emacs/lib/sys_random.in.h` @ `fd7afced403`; port `femacs/lib/include/sys_random.in.rs`.  The
+`emacs/lib/sys_random.in.h` @ `fd7afced403`; port `lib/include/sys_random.in.rs`.  The
 reference is a gnulib template (`@PRAGMA_SYSTEM_HEADER@`, `@GUARD_PREFIX@`, `@HAVE_SYS_RANDOM_H@`,
 `@INCLUDE_NEXT@`), so it cannot join the verified list; the mirror carries the `GRND_NONBLOCK`(1)
 /`GRND_RANDOM`(2) fallback (live here: there is no system <sys/random.h>) and the `getrandom`

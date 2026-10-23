@@ -104,8 +104,8 @@
 
 ## Evidence
 
-- `python3 tools/extract-abi.py --check emacs/src/nsgui.h femacs/src/include/nsgui.rs`
-  -> `OK emacs/src/nsgui.h -> femacs/src/include/nsgui.rs` (no `- ` problem lines).  The compared
+- `python3 tools/extract-abi.py --check emacs/src/nsgui.h src/include/nsgui.rs`
+  -> `OK emacs/src/nsgui.h -> src/include/nsgui.rs` (no `- ` problem lines).  The compared
   items are the header's 34 macros, the 19 constants they also define (the eleven `*Gravity` and
   eight value-mask families; the ten `*Position` macros have expression bodies and stay macros) and
   `_XCharStruct`'s five fields.
@@ -120,13 +120,13 @@
   ../spikes/ns_inc_probe.rs /tmp/probes-ns/ns.rmeta` -> exit 0.  The probe is not in `xtask`'s
   `PROBES` list (this lane may not edit `xtask`); registering it is the integrator's call, together
   with the `layout-excluded-mirrors.txt` row above.
-- `rg -n "Emacs_Cursor|NativeRectangle|XCharStruct" femacs/src/include/*.rs` -> six files:
+- `rg -n "Emacs_Cursor|NativeRectangle|XCharStruct" src/include/*.rs` -> six files:
   `androidgui.rs` (9 hits), `androidterm.rs` (19), `dispextern.rs` (2), `haikugui.rs` (7),
   `haikuterm.rs` (35) and this mirror (11).  Of those, only `dispextern.rs` is compiled by
   `layout-check` (the other four are already in `layout-excluded-mirrors.txt`), which is why the
   measured failure is exactly one `Emacs_Cursor`.
 - No unit includes this mirror: `rg -n 'include/nsgui' femacs` -> no hits, so there is no
   consumer copy to retire (unlike 3.143/3.153) and no compiler other than the probe.  The name
-  `NativeRectangle` does appear in `femacs/src/menu.rs` 87, `frame.rs` 467-468 and `keyboard.rs`
+  `NativeRectangle` does appear in `src/menu.rs` 87, `frame.rs` 467-468 and `keyboard.rs`
   633-634, but only inside comments quoting `dispextern.h` 178-179's `#ifndef NativeRectangle
   #define NativeRectangle int` fallback - no declaration, no use.

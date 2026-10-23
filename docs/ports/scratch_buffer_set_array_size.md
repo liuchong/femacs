@@ -43,8 +43,8 @@
 $ cd femacs && CARGO_TARGET_DIR=/tmp/femacs-target-sb cargo run -q -p xtask -- build-tu lib/malloc/scratch_buffer_set_array_size.c
 built lib/malloc/scratch_buffer_set_array_size.rs -> ../build/femacs/scratch_buffer_set_array_size.o
 
-$ python3 tools/extract-abi.py --check emacs/lib/malloc/scratch_buffer_set_array_size.c femacs/lib/malloc/scratch_buffer_set_array_size.rs
-OK emacs/lib/malloc/scratch_buffer_set_array_size.c -> femacs/lib/malloc/scratch_buffer_set_array_size.rs
+$ python3 tools/extract-abi.py --check emacs/lib/malloc/scratch_buffer_set_array_size.c lib/malloc/scratch_buffer_set_array_size.rs
+OK emacs/lib/malloc/scratch_buffer_set_array_size.c -> lib/malloc/scratch_buffer_set_array_size.rs
 
 $ nm -g build/femacs/scratch_buffer_set_array_size.o      $ nm -g build/emacs-ref/lib/malloc/scratch_buffer_set_array_size.o
                  U ___error                                            U ___error

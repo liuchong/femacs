@@ -23,7 +23,7 @@
 
 ## Decisions
 
-`emacs/lib/utimens.c` @ `fd7afced403`; port `femacs/lib/utimens.rs` (478 lines).  All
+`emacs/lib/utimens.c` @ `fd7afced403`; port `lib/utimens.rs` (478 lines).  All
 checklist items ticked; `build-tu lib/utimens.c` → `built lib/utimens.rs ->
 ../build/femacs/utimens.o`, `--check` → `OK`.
 

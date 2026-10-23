@@ -88,4 +88,4 @@
   bytes); `cinventory.doc_comment_value` is the implementation both sides use.
 - Evidence: `xtask build-tu src/casefiddle.c` -> `built src/casefiddle.rs ->
   ../build/femacs/casefiddle.o`; `tools/extract-abi.py --check emacs/src/casefiddle.c
-  femacs/src/casefiddle.rs` -> OK.
+  src/casefiddle.rs` -> OK.

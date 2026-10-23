@@ -30,24 +30,24 @@
   inside the dead arm, so the mirror names no GTK type at all and needs no foreign declaration.
   That also makes it one of the few mirrors that compiles as a crate root on its own.
 - **`src/gtkutil.c` is not in the frozen build** (docs/port-map.md 450-451, docs/status.md 3.31's
-  note-only placeholder in `femacs/src/gtkutil.rs`), so no translation unit reaches this mirror
+  note-only placeholder in `src/gtkutil.rs`), so no translation unit reaches this mirror
   today; the compile smoke is that placeholder.
 
 ## Evidence
 
 - `python3 tools/check-cond-eval.py src/gtkutil.h` ->
   `src/gtkutil.h: 10 conditions, 0 unknown, 0 disagreements [VERIFIED]`.
-- `python3 tools/extract-abi.py --check emacs/src/gtkutil.h femacs/src/include/gtkutil.rs`
-  -> `OK emacs/src/gtkutil.h -> femacs/src/include/gtkutil.rs` (no `- ` problem lines).
+- `python3 tools/extract-abi.py --check emacs/src/gtkutil.h src/include/gtkutil.rs`
+  -> `OK emacs/src/gtkutil.h -> src/include/gtkutil.rs` (no `- ` problem lines).
 - `CARGO_TARGET_DIR=/tmp/femacs-target-mir-gtkutil cargo run -q -p xtask -- build-tu src/gtkutil.c`
   -> `built src/gtkutil.rs -> ../build/femacs/gtkutil.o`.
 
 ## Owed (2026-10-05, PORTING.md P-90)
 
-- **The SDK surface moves out of the unit.**  `femacs/src/pgtkterm.rs` carries the cairo, GLib,
+- **The SDK surface moves out of the unit.**  `src/pgtkterm.rs` carries the cairo, GLib,
   GDK and GTK declarations as in-unit segments because it was the surface's first (and, at that
   moment, only) consumer.  With `gtkutil.c` as the second consumer, P-90 requires one dedicated
-  mirror - `femacs/src/include/gtk.rs` with its own ledger `docs/ports/include-gtk.md`, the
+  mirror - `src/include/gtk.rs` with its own ledger `docs/ports/include-gtk.md`, the
   `include-xlib.rs` shape - and the in-unit segments moved into it (P-88 ⑤'s move-back).  The
   mirror is not created yet: this file's own slice was landed without it, and the move-back is
   owed to the round that creates it.  Until then the arm's readings carry the declarations twice

@@ -18,7 +18,7 @@
 
 ## Decisions
 
-- **`gid_t` joined the `<sys/types.h>` mirror** (femacs/lib/include/sys_types.in.rs): the group id
+- **`gid_t` joined the `<sys/types.h>` mirror** (lib/include/sys_types.in.rs): the group id
   type this file and getgroups.c take, four bytes on the frozen target (measured with its clang).
 - **`getgroups`, `malloc` and `free` are declared in the unit**: C gets them from `<unistd.h>`
   (C 22) and `<stdlib.h>` (C 27), whose mirrors do not carry these three.

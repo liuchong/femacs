@@ -39,8 +39,8 @@
 
 ## Evidence
 
-- `python3 tools/extract-abi.py --check emacs/src/emacs-icon.h femacs/src/include/emacs-icon.rs`
-  -> `OK emacs/src/emacs-icon.h -> femacs/src/include/emacs-icon.rs` (no `- ` problem lines).
+- `python3 tools/extract-abi.py --check emacs/src/emacs-icon.h src/include/emacs-icon.rs`
+  -> `OK emacs/src/emacs-icon.h -> src/include/emacs-icon.rs` (no `- ` problem lines).
 - `python3 tools/check-cond-eval.py src/emacs-icon.h`
   -> `1 conditions, 0 unknown to the evaluator, 0 disagreements`; `src/emacs-icon.h` is in
   `docs/baseline/config/cond-eval-verified.txt`, so the frozen table decides it.

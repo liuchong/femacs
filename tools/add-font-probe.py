@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Insert (or remove) the temporary font-enumeration probe in femacs/src/sfntfont.rs.
+"""Insert (or remove) the temporary font-enumeration probe in src/sfntfont.rs.
 
 Why it exists: on the Android device every font candidate fails to register ("No suitable font
 was found"), and the return value of `sfnt_enum_font` is ignored by its caller, so the four numbers
@@ -22,7 +22,7 @@ mistakes were made once, in status 4.799).
 import pathlib
 import sys
 
-SRC = pathlib.Path(__file__).resolve().parent.parent / "femacs/src/sfntfont.rs"
+SRC = pathlib.Path(__file__).resolve().parent.parent / "src/sfntfont.rs"
 
 HELPER = '''/* TEMPORARY font probe (tools/add-font-probe.py): see that file for the four readings.  */
 #[cfg (all (feature = "have_android", feature = "not_android_stubify"))]

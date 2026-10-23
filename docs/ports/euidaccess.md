@@ -16,7 +16,7 @@
 
 ## Decisions
 
-`emacs/lib/euidaccess.c` @ `fd7afced403`; port `femacs/lib/euidaccess.rs` (263 lines).  All
+`emacs/lib/euidaccess.c` @ `fd7afced403`; port `lib/euidaccess.rs` (263 lines).  All
 checklist items ticked; `build-tu lib/euidaccess.c` -> `built lib/euidaccess.rs ->
 ../build/femacs/euidaccess.o` (0 errors), `--check` -> `OK`.
 

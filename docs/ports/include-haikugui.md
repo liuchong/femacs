@@ -95,15 +95,15 @@
   `#ifndef HAVE_WINDOW_SYSTEM` arm also declare; C separates them with platform `#if`s.  The
   mirrors meet in one crate when `xtask layout-check` compiles every `src/include` mirror, so the
   pairs listed at the end of `## Evidence` are `E0428` until the integrator decides how a platform
-  mirror is scoped (the `spikes/f_inc_probe.rs` precedent for `femacs/nt/inc`, or a `cfg` on
+  mirror is scoped (the `spikes/f_inc_probe.rs` precedent for `nt/inc`, or a `cfg` on
   `dispextern.rs`'s alias as `include-androidterm.md` records).  No workaround was invented here:
   a `pub mod` wrapper would hide the `macro_rules!` names from the including unit (macro_rules
   scoping is textual), which is worse than the collision.
 
 ## Evidence
 
-- `python3 tools/extract-abi.py --check emacs/src/haikugui.h femacs/src/include/haikugui.rs`
-  -> `OK emacs/src/haikugui.h -> femacs/src/include/haikugui.rs` (no `- ` problem lines).
+- `python3 tools/extract-abi.py --check emacs/src/haikugui.h src/include/haikugui.rs`
+  -> `OK emacs/src/haikugui.h -> src/include/haikugui.rs` (no `- ` problem lines).
 - `python3 tools/check-cond-eval.py src/haikugui.h` -> decidable (no condition of its own).
 - Compile proof: the mirror is included in a `spikes/f_inc_probe.rs`-shaped crate together with
   its dependencies (`c_int`, `c_long`, `c_void`, `c_uchar`) and `rustc --edition 2024
@@ -118,7 +118,7 @@
 - **The `layout-check` collision, measured** (`cd femacs && CARGO_TARGET_DIR=/tmp/femacs-target-mir-probe cargo run -q -p xtask -- layout-check` -> `error: layout probe failed to compile (exit status: 1)`, 35 x `E0428 the name ... is defined multiple times`).  The pairs are: this file's 60 `Emacs_Cursor` vs `dispextern.rs` 62 (C's `HAVE_HAIKU` vs `#ifndef HAVE_WINDOW_SYSTEM` guards keep them apart); and `androidgui.rs` 38 `XCharStruct`, 45 `Emacs_Pixmap`, 47 `Emacs_Window`, 51 `Drawable`, 53 `Emacs_Cursor` plus the 29 X-compat constants at 262-292 (`ForgetGravity` … `PWinGravity`, `NoValue` … `YNegative`) against this file's same-named items - this mirror is the *first* definition for every one of them.  `NativeRectangle`/`STORE_NATIVE_RECT` do **not** appear: two `macro_rules!` of one name in one scope shadow each other textually instead of erroring.  The resolution is the platform probe recorded below (ruled 2026-10-04: no `cfg`, no `pub mod` wrapper, and `layout-check`'s single-crate model is left alone); the 35 names are the reason the platform mirrors cannot share that probe.
 
 - **This mirror's compile evidence is the Haiku platform probe, not `xtask layout-check`**
-  (`spikes/haiku_inc_probe.rs`, the `femacs/nt/inc`/`f_inc_probe.rs` shape, docs/status.md 3.102).
+  (`spikes/haiku_inc_probe.rs`, the `nt/inc`/`f_inc_probe.rs` shape, docs/status.md 3.102).
   `layout-check` compiles *every* `src/include` mirror into one crate, which by construction cannot
   hold the platform-exclusive mirrors: `haikugui.h` and `androidgui.h` declare the same X-compat
   block (`NativeRectangle`, `STORE_NATIVE_RECT`, the gravity/value/position constants) and the same

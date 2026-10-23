@@ -206,7 +206,7 @@
   makes the whole body `'set_dest: loop` and jumps with `break 'set_dest`, which keeps C's
   label and its four destinations, so only the keyword `goto` needs a `macro-body-notes`
   row.
-- **`<stdbit.h>` now has a mirror (`femacs/lib/include/stdbit.rs`).**  `lisp.h` 26 includes
+- **`<stdbit.h>` now has a mirror (`lib/include/stdbit.rs`).**  `lisp.h` 26 includes
   the C23 header, so `lisp.rs` includes the mirror in the same position; it carries the
   five width variants of `stdc_count_ones`, `stdc_leading_zeros` and
   `stdc_trailing_zeros` plus C's `sizeof`-dispatcher as three `macro_rules!` macros.  The
@@ -242,7 +242,7 @@
 - **The `defalias` block needed three mirrors, and two of them are no-ops.**  `defalias`
   itself calls `maybe_defer_native_compilation`, whose live definition is comp.h's
   `#else /* HAVE_NATIVE_COMP */` empty `static inline` (comp.h 90-95) - the file
-  `femacs/src/include/comp.rs` is that branch, and its empty body is the reference's, not a
+  `src/include/comp.rs` is that branch, and its empty body is the reference's, not a
   port stub.  `add_to_function_history` iterates `Vcurrent_load_list` with
   `FOR_EACH_TAIL_SAFE` (`FOR_EACH_TAIL_INTERNAL (tail, (void) ((tail) = Qnil), false)`),
   which the port mirrors once in `lisp.rs` as `FOR_EACH_TAIL_SAFE!` with C's Brent
@@ -288,7 +288,7 @@
   `DEFUN`s, of which four are dead in this configuration (`user-ptrp` plus the three
   `HAVE_NATIVE_COMP` ones): all 116 live subrs and all 60 functions are
   ported.  **The file is complete**: `cargo build-tu src/data.c` builds and
-  `extract-abi.py --check emacs/src/data.c femacs/src/data.rs` reports `OK` - no missing
+  `extract-abi.py --check emacs/src/data.c src/data.rs` reports `OK` - no missing
   function, subr, macro, constant, field or `defsubr`, and no line-count drift (C 4400 vs
   Rust 4393, 0.2%).  The four remaining subrs of the 120 are the ones the frozen
   configuration never compiles (`user-ptrp` under `#ifdef HAVE_MODULES`, the three
@@ -625,7 +625,7 @@
 
 - **`union Lisp_Val_Fwd` (data.c 2142-2146) is this file's first union.**  C defines it in
   data.c rather than in a header, so P-72 keeps it in `data.rs` and no header mirror can
-  name it - and `xtask layout-check` compiles only `femacs/src/include/*.rs`, so a
+  name it - and `xtask layout-check` compiles only `src/include/*.rs`, so a
   `c-layout` key for it is structurally impossible.  The port asserts the same two facts
   where the type lives (`const _: () = assert! (size_of == 8 && align_of == 8)`, the
   `bignum.rs`/`doprnt.rs` precedent) and `--check` compares both member names and types.

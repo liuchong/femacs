@@ -24,7 +24,7 @@
 
 ## Decisions
 
-`emacs/lib/getloadavg.c` @ `fd7afced403`; port `femacs/lib/getloadavg.rs` (255 lines).  All
+`emacs/lib/getloadavg.c` @ `fd7afced403`; port `lib/getloadavg.rs` (255 lines).  All
 checklist items ticked; `build-tu lib/getloadavg.c` -> `built lib/getloadavg.rs ->
 ../build/femacs/getloadavg.o` (0 errors), `--check` -> `OK`.
 
@@ -65,7 +65,7 @@ checklist items ticked; `build-tu lib/getloadavg.c` -> `built lib/getloadavg.rs 
   are not C identifiers a Rust port could spell; carrying them as `#[cfg (feature = …)]` text
   would have to invent every one of those declarations.  The drift is declared:
   `line-drift-tolerance.tsv` records `getloadavg 0.72` (C 897 vs 255, 71.6%).
-- **The unit's own `<a.out.h>` is a new mirror** (`femacs/lib/include/a_out.rs`): the frozen
+- **The unit's own `<a.out.h>` is a new mirror** (`lib/include/a_out.rs`): the frozen
   target has no such header, so the shape of `struct nlist` is the one the *C text's own
   configuration* selects (`NLIST_STRUCT`/`N_NAME_POINTER` undefined → `strcpy` into
   `n_name` → the 4.3BSD/SunOS array form, `NCPLN` 8), documented in the mirror with the
@@ -105,7 +105,7 @@ build does not compile the file at all: `build/emacs-ref/src/config.h` 830 has
 `/* #undef HAVE_GETDELIM */`-style absence for it, `build/emacs-ref/lib/Makefile` names no
 `getloadavg.o` and `libgnu.a` has no member for it (the system provides the function, so gnulib's
 module is not part of the build).  Every item now carries `#[cfg (feature = "no_getloadavg")]`
-(`femacs/xtask/Cargo.toml`, the `no_<macro>` convention this tree uses for `!HAVE_<fn>`), and the
+(`xtask/Cargo.toml`, the `no_<macro>` convention this tree uses for `!HAVE_<fn>`), and the
 file's note records the reason.
 
 This is not cosmetic, and it is the reason the whole-program link was blocked: this file is

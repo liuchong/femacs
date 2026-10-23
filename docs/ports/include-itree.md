@@ -20,8 +20,8 @@
 
 ## Decisions
 
-`emacs/src/itree.h` @ `fd7afced403`; port `femacs/src/include/itree.rs`; the gate is
-`python3 tools/extract-abi.py --check emacs/src/itree.h femacs/src/include/itree.rs` -> `OK`.
+`emacs/src/itree.h` @ `fd7afced403`; port `src/include/itree.rs`; the gate is
+`python3 tools/extract-abi.py --check emacs/src/itree.h src/include/itree.rs` -> `OK`.
 
 - `#if` branches: none in this header.
 - Layout: `itree_node`, `itree_tree` and `itree_iterator` are asserted field by field

@@ -107,7 +107,7 @@ link, print the undefined list, and compare it against a ratchet
 theirs - **a new name fails, a name that disappeared is stale and is deleted**.  Its first job is
 to resolve the two caveats above, and its second is to intersect its list with
 `docs/baseline/swift-import-pending.txt` (533 names the Swift units import): the intersection is
-the set of C-ABI entries a runnable macOS build needs *first*, and `femacs/src/abi_shim.rs` is
+the set of C-ABI entries a runnable macOS build needs *first*, and `src/abi_shim.rs` is
 where they land.
 
 ## Reading three (2026-10-04): the first real link, and the four names only it could see
@@ -193,7 +193,7 @@ flattened `pub static mut hscroll_margin: EMACS_INT;` (`src/include/globals.rs` 
 both faithful in a different sense, and the choice is the same one `docs/status.md` 3.244's
 caveat named: reproduce C's carrier (`struct emacs_globals globals;` plus the generated field
 list, which is C's own text and which the field-layout gate can check), or keep the flattened
-names and give each one storage at a single point (`femacs/src/abi_shim.rs` is where the port
+names and give each one storage at a single point (`src/abi_shim.rs` is where the port
 already puts C-ABI entries nobody else defines, 3.248).  Either way it is one decision made once,
 not 467 small ones - and it is the last input-set-shaped gap this rung found.
 
@@ -215,7 +215,7 @@ the two sentences it corrects are the ones about a *structural* gap and about *o
   one.**  C 5766's `DEFVAR_LISP` is dead text (`HAVE_NATIVE_COMP` is undef), but C's *storage* is
   the generated struct's field and exists in every configuration - and `src/lread.c` 1019, a
   line with no enclosing `#if` at all (measured against the preprocessor's own nesting), reads
-  it.  Fixed in `femacs/src/comp.rs`: the storage stands there even though the registration does
+  it.  Fixed in `src/comp.rs`: the storage stands there even though the registration does
   not, which is the "the owner defines it" rule of 3.29 applied to a member whose `DEFVAR` never
   compiles.  The executable link's undefined list goes 84 → 83 and the name is gone.
 
@@ -246,7 +246,7 @@ two things no unit owns, both taken from the authority rather than written down 
   a `#[panic_handler]`, and the program's link owes `__rust_begin_unwind` and
   `_rust_eh_personality`.  The mode materializes a four-line `#![no_std]` crate at
   `build/femacs/rust-runtime-root.rs`, compiles it with the pinned toolchain (the subprocess runs
-  from `femacs/`, so `rust-toolchain.toml` decides which `rustc`), and links the result with
+  from ``, so `rust-toolchain.toml` decides which `rustc`), and links the result with
   `libcore`/`compiler_builtins` from that toolchain's `target-libdir`.  This is the driver question
   reading three left open, and it is now answered and measured: the two names are gone.
 * **C's own library line.**  `make -n temacs` in `build/emacs-ref/src` prints C's recipe, and the
@@ -314,7 +314,7 @@ clean run would report HEAD's names as new.
 
 **What the link set does *not* contain (measured, same round).**  `docs/baseline/frozen-build-sources.txt`
 lists 106 entries and **not one `.m`/`.mm`**: the frozen configuration builds a terminal-only
-program, so the Swift ports of `src/*.m` (`femacs/platform/macos/`) are another target's text and
+program, so the Swift ports of `src/*.m` (`platform/macos/`) are another target's text and
 enter a program only when such a target is built - which is what `docs/ports/nsmenu.md`'s decision
 records ("the port carries the target's text rather than a compilable unit").  The executable link
 set is therefore the 163 C-ABI objects and nothing else, and `check-link.py`'s "0 frozen source(s)
@@ -327,7 +327,7 @@ Everything above reads `build/femacs/*.o`, and until today **nothing built the p
 source list - the gnulib layer is not in it (it ships as `libgnu.a`).  `gate-load` assembles
 `build/load/libgnu-port.a` out of whatever `lib/*.o` happen to exist, so with nothing built the
 archive held **one** member, and `check-link.py` read **101 `port-owed` symbols that the port
-defines** - 59 of them mini-gmp's alone, whose port is `femacs/lib/mini-gmp.rs` (5,237 lines).
+defines** - 59 of them mini-gmp's alone, whose port is `lib/mini-gmp.rs` (5,237 lines).
 
 Measured, in this order:
 

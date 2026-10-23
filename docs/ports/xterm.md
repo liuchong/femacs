@@ -5,16 +5,16 @@
 > `HAIKU_OBJ = `, `MSDOS_OBJ =`, `CYGWIN_OBJ=` in `build/emacs-ref/src/Makefile`), so `make -n`
 > never names the file.  Until round 188 the port was the recorded empty unit; round 188 (lane
 > `xterm`) opened it and landed **slice 1 = C 625-990** and **slice 2 = C 1131-1762**
-> (`femacs/src/xterm.rs`), so the checklist below is now a real list again and the unchecked
+> (`src/xterm.rs`), so the checklist below is now a real list again and the unchecked
 > boxes are the lane's remaining demand.  C 987-1130 (the `x_atom_refs` table) is deliberately
 > not landed yet - Decisions 9 says why.
 >
-> The unit keeps the file's own header mirror's shape (`femacs/src/include/xterm.rs`, b03d883):
+> The unit keeps the file's own header mirror's shape (`src/include/xterm.rs`, b03d883):
 > the whole body carries `#[cfg (feature = "have_x_windows")]` - P-51's arm for the non-frozen
 > side - and every inner condition becomes the lowercased feature name C's macro spells.  What
 > that means for verification is in Decisions 1 and 2, and the measured readings are in Evidence.
 >
-> `tools/extract-abi.py --check emacs/src/xterm.c femacs/src/xterm.rs` was **460** `- ` lines
+> `tools/extract-abi.py --check emacs/src/xterm.c src/xterm.rs` was **460** `- ` lines
 > before slice 1, **443** after it, **324** after slice 2 (C 1131-1762, the drag-and-drop state
 > and the Motif message layouts) and **293** after slice 7 (C 3616-4466, the target-window
 > discovery; slices 3-6 are Decisions 11-15, slice 7 is Decision 18); the list below is that
@@ -629,7 +629,7 @@ Slice 142 (C 19342-19471, Decision 154) lands `ClientMessage`'s last blocks - th
 `wm_configure_denied`/`wm_window_moved` pair, the `X_TOOLKIT_EDITRES` arm, `DONE`/`PAGE`, the two
 scroll-bar messages, `XEMBED`, the frame-drawn pair, `xft_settings_event`, the DND tail and C's own
 `break` - and with it **`handle_one_xevent` and `src/xterm.c` are carried**: the ledger's box for the
-function is ticked, `extract-abi.py --check emacs/src/xterm.c femacs/src/xterm.rs` reads **`OK` (0
+function is ticked, `extract-abi.py --check emacs/src/xterm.c src/xterm.rs` reads **`OK` (0
 rows)** after one notes row for the six C-only words and a two-line repair (`rc = … as c_int` and
 C 27702's `False` in `x_get_wm_check_window`), and `extract-abi.py --all` reads
 **`checked 590 ported files: 579 done, 0 in progress, 11 failing`** - the eleven are the platform
@@ -1313,7 +1313,7 @@ be said out loud, because they are easy to get wrong later:
   counterpart in this tree, so with `have_x_windows` on the mirrors themselves do not compile
   (140 of the 144 errors the probe in Evidence measures are in `include/xterm.rs` and friends,
   and every one of them is an X11-header name).  That is exactly the state
-  `femacs/src/include/xterm.rs` is in, and why `xtask build-tu src/xterm.c` proves parsing, not
+  `src/include/xterm.rs` is in, and why `xtask build-tu src/xterm.c` proves parsing, not
   typing.
 
 ### 2. Which configuration counts as "live": measured, and what I recommend
@@ -1339,7 +1339,7 @@ per-file but per-*target*); route B needs nothing new (one line out of
 **Recommendation: neither, for now - keep the frozen reading and carry the arms anyway (P-51),
 which is what the header mirror of this same file already does.**  Reasons, in order of weight:
 
-1. **Symmetric with the mirror.**  `femacs/src/include/xterm.rs` is already the shape "whole
+1. **Symmetric with the mirror.**  `src/include/xterm.rs` is already the shape "whole
    body under `have_x_windows`, checklist from the frozen reading, arms outside it recorded in
    the ledgers".  Two readings for one subsystem would be worse than either.
 2. **The checklist is a floor, not the scope.**  The scope is P-42's 1:1 text, and the lane
@@ -1469,7 +1469,7 @@ Three decisions this slice had to make, because C cannot be transcribed literall
 ### 9. Deferred by slice 2, and what it needs
 
 **`x_atom_refs` (C 987-1130, 122 entries) is not landed** (taken by slice 108, Decision 121): its `ATOM_REFS_INIT` rows name
-**115** different `Xatom_*` members of `struct x_display_info`, and `femacs/src/include/xterm.rs`
+**115** different `Xatom_*` members of `struct x_display_info`, and `src/include/xterm.rs`
 carries **61** of them.  The 58 that are missing are xterm.h's own **unconditional** text at
 **xterm.h 772-817** (measured: none of them is inside an `#if` other than the include guard), so
 that mirror is simply a WIP slice of its header.  Writing the table now would put 58 names in
@@ -1535,7 +1535,7 @@ plus block expressions after `||`, the `ccl.rs` 2913 shape), `xm_get_drag_atom_1
 `xm_get_drag_atom`, `xm_setup_drag_info`, `xm_send_drop_message` and
 `xm_send_top_level_enter_message` - all ticked.  Three points:
 
-* **The ruling on X11's macros is implemented in the mirror.**  `femacs/src/include/xterm.rs`
+* **The ruling on X11's macros is implemented in the mirror.**  `src/include/xterm.rs`
   now has a `pub mod x11_constants` (gated on `have_x_windows`) with the fourteen macros this lane
   names - `None`, `Success`, `CopyFromParent`, `NoEventMask`, `StructureNotifyMask`,
   `ClientMessage`, `InputOnly`, `CWOverrideRedirect`, `DestroyAll`, `RetainPermanent`,
@@ -1570,7 +1570,7 @@ plus block expressions after `||`, the `ccl.rs` 2913 shape), `xm_get_drag_atom_1
 whole tree (`282 mirrored struct(s): ... 0 gap(s)`; the other 16 were dispextern's and landed
 with that lane's work).
 
-What went into `femacs/src/include/xterm.rs` (+131 lines):
+What went into `src/include/xterm.rs` (+131 lines):
 
 * **85 `x_display_info` members** in C's order: 80 the x11 arm reads (C 734-990 - `wm_type`,
   `x_dnd_atoms`/`_size`/`_length`, `motif_drag_atom`/`_name`/`_time`/`_owner`/`motif_drag_window`,
@@ -1662,10 +1662,10 @@ P-72 rule 3).  Four `macro-body-notes.tsv` rows cover them; the request is in th
 
 > **Landing note (3.349).**  This tick, this decision and its evidence landed in `c8a3d8a`
 > (3.336, the `xlib.rs` round) as a *whole file*, while the code half - 666 lines of
-> `femacs/src/xterm.rs` carrying `x_dnd_compute_toplevels` - stayed in the lane's working
+> `src/xterm.rs` carrying `x_dnd_compute_toplevels` - stayed in the lane's working
 > tree.  HEAD then contradicted itself for two rounds: the ledger quoted readings (the `300`
 > below, `build-tu` built, `layout-check passed`) that the committed tree could not produce
-> (`git show HEAD:femacs/src/xterm.rs | grep -c x_dnd_compute_toplevels` was **0** while this
+> (`git show HEAD:src/xterm.rs | grep -c x_dnd_compute_toplevels` was **0** while this
 > file ticked it).  The 3.349 commit lands the code half, so the readings below are now HEAD's
 > own.  Nothing else in this decision changes.
 
@@ -1694,7 +1694,7 @@ function, both of its configuration arms carried under their features (P-51):
   `ShapeBounding` (shapeconst.h 46, `0`), `ShapeInput` (48, `2`) and `ShapeNotifyMask` (50,
   `1L << 0`) - are **not** in the mirror's `x11_constants` module, so the unit keeps them bare
   (the mirror's own convention for X11 names).  They were added to the module and then taken
-  back out, because this round's writing set is `femacs/src/xterm.rs` + this ledger + the
+  back out, because this round's writing set is `src/xterm.rs` + this ledger + the
   mirror's five `HAVE_XSYNC` members only; the measured values are in this round's report for
   the next mirror round.
 
@@ -1725,7 +1725,7 @@ the two are worth reconciling in one place - what both agree on, and what `mirro
 coverage.py` measures, is that only the five `HAVE_XSYNC` names were missing.
 
 
-### 16. A mirror for Xlib itself: `femacs/src/include/xlib.rs` (the decision, written before the file)
+### 16. A mirror for Xlib itself: `src/include/xlib.rs` (the decision, written before the file)
 
 `dispextern.h` **44** is `typedef XRectangle Emacs_Rectangle;`, and `frame.h`'s
 `struct MonitorInfo` is two `Emacs_Rectangle`s plus four `int`s, a `char *` and a `bool` - so the
@@ -1744,12 +1744,12 @@ The port's `include/dispextern.rs` carries only the non-X struct, so the port wo
 X11 - a divergence recorded in `include/frame.rs` 1200-1208.  The fix is a home for **Xlib's own
 declarations**, and this is the decision about it (the file lands below, in the same round):
 
-* **Place**: `femacs/src/include/xlib.rs`.  The `src/include` tree is where the X11 arms' mirrors
+* **Place**: `src/include/xlib.rs`.  The `src/include` tree is where the X11 arms' mirrors
   live (`xterm.rs` is next door) and the units that need it are `src/*.c`'s.
 * **First line**: `// femacs: mirror of the X11 SDK's <X11/Xlib.h> (system header of another
   target's toolchain, PORTING.md P-26/P-49).` - the shape `tools/check-target-names.py` accepts
   as a declared non-port (`^// femacs: mirror of the .+?'s <`), taken verbatim from
-  `femacs/src/include/jni.rs` (the Android NDK's `<jni.h>`), which is this repo's precedent for a
+  `src/include/jni.rs` (the Android NDK's `<jni.h>`), which is this repo's precedent for a
   system header of *another* target's toolchain.
 * **What it carries in this round**: `XRectangle` (Xlib.h 426-429: `short x, y; unsigned short
   width, height;` - 8 bytes, align 2, asserted) and the `pub mod x11_constants` block **moved out
@@ -1768,7 +1768,7 @@ declarations**, and this is the decision about it (the file lands below, in the 
 
 ### 17. The Xlib mirror's first consumer: the Xrm surface `src/xrdb.c` needs
 
-`src/xrdb.c` (513 lines, target `femacs/src/xrdb.rs` 11, **not** a member of
+`src/xrdb.c` (513 lines, target `src/xrdb.rs` 11, **not** a member of
 `docs/baseline/frozen-build-sources.txt` - so like `xterm.c` itself, its "live" side is the X11
 one) is the next X11 unit on this lane's path, and it names **17 X11 names this tree did not have
 at all** (measured by the integrator against the whole tree minus the six verbatim ones, 3.320).
@@ -1834,12 +1834,12 @@ where the Rust body is not C's body.
 Measured:
 
 ```
-$ sed -n '369p' femacs/src/include/xterm.rs
+$ sed -n '369p' src/include/xterm.rs
   pub rdb: XrmDatabase,   // C: XrmDatabase rdb;
-$ rg -n 'pub type XrmDatabase' femacs/
-femacs/src/include/pgtkgui.rs:122:pub type XrmDatabase = *mut c_void;
+$ rg -n 'pub type XrmDatabase'
+src/include/pgtkgui.rs:122:pub type XrmDatabase = *mut c_void;
 $ rg -n 'pgtkgui.rs' femacs --glob '*.rs'
-femacs/src/include/dispextern.rs:2393:// pgtkgui.rs 214, nsgui.rs 91, androidgui.rs 245): a second `macro_rules! NativeRectangle` in
+src/include/dispextern.rs:2393:// pgtkgui.rs 214, nsgui.rs 91, androidgui.rs 245): a second `macro_rules! NativeRectangle` in
 $ rg -n 'include!\("pgtkgui.rs"\)' femacs | wc -l
        0
 ```
@@ -2036,7 +2036,7 @@ The xcb pair's pointee types are the new xcb mirror's (§④), which is also whe
 `<xcb/xproto.h>`/`<xcb/xcb.h>` includes are recorded (`src/xterm.c` 643-646, and again through
 `xterm.h` 117-119's `<X11/Xlib-xcb.h>`).  Both additions are inert in the frozen configuration, and
 the mirror's pairing is unmoved: `extract-abi --check emacs/src/xterm.h
-femacs/src/include/xterm.rs` still reads `OK`.
+src/include/xterm.rs` still reads `OK`.
 
 **The rest of C 823-910 is still uncarried, and the list is now written down** rather than implied:
 `xrandr_supported_p`/`_event_base`/`_error_base`/`_major_version`/`_minor_version` (824-828),
@@ -2227,7 +2227,7 @@ moves, moves in the *unit*'s own error list and nowhere else.
 trailing `abort ()` is the arm the last *live* guard reaches, so the port keeps one `if`/`else`
 chain whose compile-time halves are `cfg`-defined conditions and whose bodies carry their own
 `#[cfg]` (a cairo build without a surface still names no function it lacks).  `cairo_has_pdf_surface`
-and its three siblings already exist in `femacs/xtask/Cargo.toml` (rows 47-50); the two
+and its three siblings already exist in `xtask/Cargo.toml` (rows 47-50); the two
 `have_xrender_0_*` names do not and are requested in this round's report.
 
 **The flip arm's new errors are all recorded classes.**  The nine functions of the *live* part
@@ -2283,7 +2283,7 @@ wait, `x_sync_update_begin`/`_finish`, the fence trio and `x_sync_handle_frame_d
 in the frozen reading: they have no checklist box (P-51's reading), and no arm of this tree
 compiles one.  The condition is C's three-term `#if` (`HAVE_XSYNC`, `!USE_GTK`,
 `HAVE_CLOCK_GETTIME`), so the item gate is the three lowercased names joined with `all (...)`;
-`have_clock_gettime` is **not** a row of `femacs/xtask/Cargo.toml` yet (the Owed list asks for it),
+`have_clock_gettime` is **not** a row of `xtask/Cargo.toml` yet (the Owed list asks for it),
 and the two `#ifdef FRAME_DEBUG` blocks (C 7101-7106, 7271-7273) carry `frame_debug`, which is
 also unregistered - the `glyph_debug` shape `docs/ports/dispnew.md` 220-224 records for a knob
 `configure` knows nothing about.  C 7271's `fprintf` is the one place this file needs
@@ -2301,7 +2301,7 @@ inside `use_x_toolkit` for C 8900, and `debug_x_colors` for C 9506/9562.
 `struct face`, `glyph_string` and `draw_fringe_bitmap_params` behind `dispextern_face_records`
 (or `have_window_system`), switches no configuration sets, and status 3.220's ruling is that the
 units keep their **live typed copies**; this slice is the first in xterm to need them, so
-`femacs/src/xterm.rs` now carries (a) `struct face` at the X11 arm's measured layout
+`src/xterm.rs` now carries (a) `struct face` at the X11 arm's measured layout
 (`docs/baseline/face-layout.tsv`: `sizeof` 296, `gc`@168, `stipple`@176, the bit run at 256) with
 the `face_bits!`/`glyph_u_cmp_bits!`/`glyphless_bits!` accessors and their masks, (b)
 `draw_fringe_bitmap_params` with the mirror's measured offsets (64/52/56) and the two
@@ -2550,7 +2550,7 @@ expressions (Decision 25).
   (the arm-D reading's `E0609 no field xic`, and arm E - the same arm plus `have_xdbe` - reading
   clean is what proved it).  All fifteen now fold their guard into the comment text
   (`// C guard (feature = "have_xdbe"): bool_bf … : 1;`), so no attribute can leak; the four other
-  files with the same shape (`femacs/lib/file-has-acl.rs` 1, `include/dispextern.rs` 1,
+  files with the same shape (`lib/file-has-acl.rs` 1, `include/dispextern.rs` 1,
   `src/pgtkselect.rs` 1, `src/w32xfns.rs` 1) are owed to their own lanes, and the whole-tree count
   is 19 rows in 5 files.
 * **The XIM surface stands at the use site.**  `include/xterm.rs`'s `struct x_output` rows
@@ -2573,7 +2573,7 @@ expressions (Decision 25).
   (the arm-D reading's `E0609 no field xic`, and arm E - the same arm plus `have_xdbe` - reading
   clean is what proved it).  All fifteen now fold their guard into the comment text
   (`// C guard (feature = "have_xdbe"): bool_bf … : 1;`), so no attribute can leak; the four other
-  files with the same shape (`femacs/lib/file-has-acl.rs` 1, `include/dispextern.rs` 1,
+  files with the same shape (`lib/file-has-acl.rs` 1, `include/dispextern.rs` 1,
   `src/pgtkselect.rs` 1, `src/w32xfns.rs` 1) are owed to their own lanes, and the whole-tree count
   is 19 rows in 5 files.
 * **The XIM surface belongs to the mirror that names it.**  `include/xterm.rs`'s `struct x_output`
@@ -4033,7 +4033,7 @@ raw pointer before any read, so rustc's `unused_assignments`/`unused_mut` classe
 
 * **Three Xt typedefs join the file's own Xt block, and one of them corrects a false claim.**  The block
   at this file 10040 said "`XtPointer`/`Boolean` *are* mirrored (`include/widget.rs` 182-185)"; measured,
-  **no** `femacs/src/include` file declares either (`rg 'pub type (XtPointer|Boolean)'` finds none) - the
+  **no** `src/include` file declares either (`rg 'pub type (XtPointer|Boolean)'` finds none) - the
   sentence was wrong, and nothing had exercised it.  The slice adds `Boolean` (`c_int`) and `XtPointer`
   (`*mut c_char`) with the citations `src/widget.rs` 168-170 and 185 already use for the same
   `<X11/Intrinsic.h>` typedefs, plus `XtActionHookId` (`typedef XtPointer XtActionHookId;`), and rewrites
@@ -4068,7 +4068,7 @@ raw pointer before any read, so rustc's `unused_assignments`/`unused_mut` classe
   `static_assert (INTPTR_WIDTH <= 64);` is the file's first C23 `static_assert`; PORTING.md 756-757
   describes a *per-unit* `macro_rules! static_assert`, so the first writing declared one here - and
   `tools/check-mirror-dupes.py` read **17 duplicate declaration(s), 16 ratchet row(s), 1 failure(s)**
-  with `FAIL femacs/src/xterm.rs: static_assert is already declared by femacs/lib/include/verify.rs
+  with `FAIL src/xterm.rs: static_assert is already declared by lib/include/verify.rs
   (in the include graph)`.  That is the right answer: `lib/include/verify.rs` 148 already carries the
   macro (both the one- and two-argument spellings), it reaches this unit through `lisp.h`, and the
   copy was deleted - arm U's reading is **identical** with and without it (795 / 69), which is how the
@@ -4331,7 +4331,7 @@ raw pointer before any read, so rustc's `unused_assignments`/`unused_mut` classe
   numbers with the widened mirror as without it: UT 811/68, UM 812/68, A/U 749/69 and 795/69,
   UG 792/71), and P-87 1's legs say so across the tree (`check-all-units.sh`: `checked 83 unit(s),
   0 failure(s)` and `checking 83 unit(s), 0 unit failure(s)`; `check-mirror-dupes` 16/16/0;
-  `extract-abi --check emacs/src/lisp.h femacs/src/include/lisp.rs` reads `OK`).  The edit moved
+  `extract-abi --check emacs/src/lisp.h src/include/lisp.rs` reads `OK`).  The edit moved
   eight lines inside `include/lisp.rs`, which shifted three `docs/baseline/citations-allowlist.tsv`
   rows (3909/4038/4166 -> 3917/4046/4174, reason column untouched) - `check-citations` is what
   showed it, and it reads 0 drift again.
@@ -5509,7 +5509,7 @@ raw pointer before any read, so rustc's `unused_assignments`/`unused_mut` classe
   did not land; this round lands it.  The rest of the arm's 1,058 rows are the file's owed classes
   (the X11 entry points, the `xlib_surface::XEvent` stand-in's members, the `c_void` model), not
   this slice's text.  The three other `SAFE_FREE! ()` sites the port carries are in
-  `femacs/src/sysdep.rs`, another unit's text behind its own arms, and this arm does not reach
+  `src/sysdep.rs`, another unit's text behind its own arms, and this arm does not reach
   them.
 * **What `--check` reads.**  Unchanged at two rows (`handle_one_xevent`'s long token row and
   `x_get_wm_check_window does not mention false`); the long row's list goes **484 -> 388**.  The
@@ -6629,7 +6629,7 @@ expected direction once the file starts carrying records the X11 headers would s
   records that `<X11/extensions/Xfixes.h>` is missing on this machine and that the arm is what
   reads the text).
 * **The file's remaining C range is now one arm, and `--check`'s long row is its vocabulary.**
-  `python3 tools/extract-abi.py --check emacs/src/xterm.c femacs/src/xterm.rs` still reads two
+  `python3 tools/extract-abi.py --check emacs/src/xterm.c src/xterm.rs` still reads two
   rows, and the long one (`function handle_one_xevent does not mention <69 tokens>`) is **not** a
   debt spread over the function: it is the switch's first `case`, `ClientMessage`
   (C 18951-19472), which no slice has landed (Decision 122 records it as "a slice of its own").
@@ -6638,7 +6638,7 @@ expected direction once the file starts carrying records the X11 headers would s
   `x_kill_gs_process` 0), while the row's remaining names are C's `case`/`default`/`goto`/
   `fallthrough` labels and the folded integer values the arm's XDND code carries.  The ledger's box
   for `handle_one_xevent` therefore **stays unticked**, and `extract-abi.py --all` reads this file as
-  the tree's one `WIP  src/xterm.c -> femacs/src/xterm.rs (2 differences, ... has unchecked boxes)`
+  the tree's one `WIP  src/xterm.c -> src/xterm.rs (2 differences, ... has unchecked boxes)`
   among `checked 590 ported files: 578 done, 1 in progress, 11 failing`.
 * **What `--check` reads beyond that row.**  The second row is unchanged
   (`x_get_wm_check_window does not mention false`), and the long row's token list is **69 -> 69** -
@@ -6752,7 +6752,7 @@ expected direction once the file starts carrying records the X11 headers would s
   with the reason spelled out.  The row's own header says every *other* token of the body is still
   compared, so a dropped call elsewhere still fails.
 * **What `--check` reads: `OK`, zero rows.**  `extract-abi.py --check emacs/src/xterm.c
-  femacs/src/xterm.rs` is the file's token/ABI gate and it now passes - the first time for this unit,
+  src/xterm.rs` is the file's token/ABI gate and it now passes - the first time for this unit,
   whose long row had carried 165 tokens when slice 110 opened it and 69 when slice 135 found the
   missing `ClientMessage` arm.  The unit is **39,281 lines** (+131), md5
   `b4d085f8f0e1dac1e5e0448d64501913`.
@@ -6778,18 +6778,18 @@ src/xterm.c: 852 conditions, 0 unknown, 0 disagreements [VERIFIED]
 ```
 
 ```
-$ python3 tools/extract-abi.py --check emacs/src/xterm.c femacs/src/xterm.rs    # before slice 1,
+$ python3 tools/extract-abi.py --check emacs/src/xterm.c src/xterm.rs    # before slice 1,
                                                                                # with the file
                                                                                # written as a unit
                                                                                # (one probe `fn`)
 460
-FAIL emacs/src/xterm.c -> femacs/src/xterm.rs
+FAIL emacs/src/xterm.c -> src/xterm.rs
 ```
 
 ```
-$ python3 tools/extract-abi.py --check emacs/src/xterm.c femacs/src/xterm.rs    # after slice 1
+$ python3 tools/extract-abi.py --check emacs/src/xterm.c src/xterm.rs    # after slice 1
 443
-FAIL emacs/src/xterm.c -> femacs/src/xterm.rs
+FAIL emacs/src/xterm.c -> src/xterm.rs
 ```
 
 ```
@@ -6845,9 +6845,9 @@ takes `&raw mut (*event).ie` rather than the union (E0609).
 Slice 2 (C 1131-1762), same readings:
 
 ```
-$ python3 tools/extract-abi.py --check emacs/src/xterm.c femacs/src/xterm.rs
+$ python3 tools/extract-abi.py --check emacs/src/xterm.c src/xterm.rs
 324
-FAIL emacs/src/xterm.c -> femacs/src/xterm.rs
+FAIL emacs/src/xterm.c -> src/xterm.rs
 $ cd femacs && CARGO_TARGET_DIR=/tmp/femacs-target-g188-j cargo run -q -p xtask -- build-tu src/xterm.c
 built src/xterm.rs -> ../build/femacs/xterm.o
 $ ... layout-check
@@ -6877,9 +6877,9 @@ the extractor reads a macro's body from the **first** `macro_rules!` of that nam
 Slice 3 (C 1763-2173):
 
 ```
-$ python3 tools/extract-abi.py --check emacs/src/xterm.c femacs/src/xterm.rs
+$ python3 tools/extract-abi.py --check emacs/src/xterm.c src/xterm.rs
 317
-FAIL emacs/src/xterm.c -> femacs/src/xterm.rs
+FAIL emacs/src/xterm.c -> src/xterm.rs
   311-316: six "does not mention" rows, one per function, for uint8_t/uint16_t/uint32_t/alloca
            (the six notes rows Decision 11 requests)
 $ cd femacs && CARGO_TARGET_DIR=/tmp/femacs-target-g188-j cargo run -q -p xtask -- build-tu src/xterm.c
@@ -6914,12 +6914,12 @@ through the glob import - E0425 in 20 places), C 1808's *chained assignment* was
 Slice 4 (C 2175-2612) and the mirror addition:
 
 ```
-$ python3 tools/extract-abi.py --check emacs/src/xterm.c femacs/src/xterm.rs
+$ python3 tools/extract-abi.py --check emacs/src/xterm.c src/xterm.rs
 314
-FAIL emacs/src/xterm.c -> femacs/src/xterm.rs
+FAIL emacs/src/xterm.c -> src/xterm.rs
   305-313: nine "does not mention" rows (uint8_t/uint16_t/uint32_t, alloca, goto, uninit)
-$ python3 tools/extract-abi.py --check emacs/src/xterm.h femacs/src/include/xterm.rs
-OK emacs/src/xterm.h -> femacs/src/include/xterm.rs
+$ python3 tools/extract-abi.py --check emacs/src/xterm.h src/include/xterm.rs
+OK emacs/src/xterm.h -> src/include/xterm.rs
 $ cd femacs && CARGO_TARGET_DIR=/tmp/femacs-target-g188-j cargo run -q -p xtask -- build-tu src/xterm.c
 built src/xterm.rs -> ../build/femacs/xterm.o
 $ ... layout-check
@@ -6948,15 +6948,15 @@ comparison, which is why the port keeps C's name), C's `False`/`True` had to bec
 missing `PropModeReplace`.
 
 `tools/check-link.py` reports `1 failure(s), 1 stale`: the failure is `_cursor_row_p` and the
-stale row is `_set_cursor_from_row`, both xdisp's (`femacs/src/xdisp.rs` is modified in this
+stale row is `_set_cursor_from_row`, both xdisp's (`src/xdisp.rs` is modified in this
 working tree) - nothing xterm's, and `docs/baseline/link-pending.txt` was not touched here.
 
 Slice 5 (C 2614-3012):
 
 ```
-$ python3 tools/extract-abi.py --check emacs/src/xterm.c femacs/src/xterm.rs
+$ python3 tools/extract-abi.py --check emacs/src/xterm.c src/xterm.rs
 313
-FAIL emacs/src/xterm.c -> femacs/src/xterm.rs
+FAIL emacs/src/xterm.c -> src/xterm.rs
   296-312: seventeen "does not mention" rows; the nine "missing function" lines for this slice
             are gone (grep for them: 0)
 $ cd femacs && CARGO_TARGET_DIR=/tmp/femacs-target-g188-j cargo run -q -p xtask -- build-tu src/xterm.c
@@ -6976,9 +6976,9 @@ class.  The probe is what caught this round's real defects: fifteen enum/width e
 Slice 6 (C 3013-3614) and the `x11_ext` members:
 
 ```
-$ python3 tools/extract-abi.py --check emacs/src/xterm.c femacs/src/xterm.rs
+$ python3 tools/extract-abi.py --check emacs/src/xterm.c src/xterm.rs
 300
-FAIL emacs/src/xterm.c -> femacs/src/xterm.rs
+FAIL emacs/src/xterm.c -> src/xterm.rs
   earliest missing: "missing function XTcondemn_scroll_bars"; the five "does not mention" rows
   now read (295-299): xm_find_targets_table_idx/xm_write_targets_table/
   xm_write_drag_initiator_info -> alloca; xm_setup_dnd_targets -> goto, uninit;
@@ -6988,8 +6988,8 @@ built src/xterm.rs -> ../build/femacs/xterm.o
 $ ... layout-check
 layout probe ok
 layout-check passed (see build/femacs/layout_asserts.rs)
-$ python3 tools/extract-abi.py --check emacs/src/xterm.h femacs/src/include/xterm.rs
-OK emacs/src/xterm.h -> femacs/src/include/xterm.rs
+$ python3 tools/extract-abi.py --check emacs/src/xterm.h src/include/xterm.rs
+OK emacs/src/xterm.h -> src/include/xterm.rs
 $ python3 spikes/mirror-struct-coverage.py
 284 mirrored struct(s): 1136 arm(s) attempted, 320 unreadable (...), 0 gap(s)
 ```
@@ -7003,11 +7003,11 @@ C's `False`/`True`, the `XM_DRAG_*` widths) had already settled the shapes this 
 ### The Xlib mirror and the `MonitorInfo` acceptance (Decision 16), as landed and measured
 
 ```
-$ python3 tools/extract-abi.py --check emacs/src/xterm.h femacs/src/include/xterm.rs
-OK emacs/src/xterm.h -> femacs/src/include/xterm.rs      (the constants moved out; C 23's
+$ python3 tools/extract-abi.py --check emacs/src/xterm.h src/include/xterm.rs
+OK emacs/src/xterm.h -> src/include/xterm.rs      (the constants moved out; C 23's
                                                           include of <X11/Xlib.h> is in)
-$ python3 tools/extract-abi.py --check emacs/src/dispextern.h femacs/src/include/dispextern.rs
-OK emacs/src/dispextern.h -> femacs/src/include/dispextern.rs
+$ python3 tools/extract-abi.py --check emacs/src/dispextern.h src/include/dispextern.rs
+OK emacs/src/dispextern.h -> src/include/dispextern.rs
 $ python3 spikes/mirror-struct-coverage.py
 284 mirrored struct(s): 1136 arm(s) attempted, 320 unreadable (...), 0 gap(s)
    (the tool's struct scan matches lower-case names only, so `struct XRectangle` is not one of
@@ -7022,7 +7022,7 @@ built src/xterm.rs -> ../build/femacs/xterm.o
 $ ... layout-check
 layout probe ok
 layout-check passed (see build/femacs/layout_asserts.rs)
-$ python3 tools/extract-abi.py --check emacs/src/xterm.c femacs/src/xterm.rs
+$ python3 tools/extract-abi.py --check emacs/src/xterm.c src/xterm.rs
 300        (unchanged: the earliest missing is still `missing function XTcondemn_scroll_bars`,
             and the five "does not mention" rows are the ones decision 15 records)
 ```
@@ -7070,18 +7070,18 @@ $ nm -u link.o     # the probe that calls DefaultScreenOfDisplay (d)
 The gates after the change (all re-run in this round; the file's own readings):
 
 ```
-$ python3 tools/extract-abi.py --check emacs/src/xterm.h femacs/src/include/xterm.rs
-OK emacs/src/xterm.h -> femacs/src/include/xterm.rs
-$ python3 tools/extract-abi.py --check emacs/src/dispextern.h femacs/src/include/dispextern.rs
-OK emacs/src/dispextern.h -> femacs/src/include/dispextern.rs
-$ python3 tools/extract-abi.py --check emacs/src/xterm.c femacs/src/xterm.rs
+$ python3 tools/extract-abi.py --check emacs/src/xterm.h src/include/xterm.rs
+OK emacs/src/xterm.h -> src/include/xterm.rs
+$ python3 tools/extract-abi.py --check emacs/src/dispextern.h src/include/dispextern.rs
+OK emacs/src/dispextern.h -> src/include/dispextern.rs
+$ python3 tools/extract-abi.py --check emacs/src/xterm.c src/xterm.rs
 300                      # unchanged by this mirror: it is not a unit (first row
                         # `missing function XTcondemn_scroll_bars`)
-FAIL emacs/src/xterm.c -> femacs/src/xterm.rs
+FAIL emacs/src/xterm.c -> src/xterm.rs
 $ python3 tools/check-mirror-dupes.py
 67 duplicate declaration(s), 111 ratchet row(s), 44 failure(s)
 # red tree-wide, and none of it is this lane: all 44 failures are STALE ratchet rows of
-# `femacs/src/xdisp.rs` (12 against `include/dispextern.rs`, 32 against `include/window.rs`) -
+# `src/xdisp.rs` (12 against `include/dispextern.rs`, 32 against `include/window.rs`) -
 # the xdisp lane's "shadowing macro removed" slice (status 3.325) plus this gate's new macro
 # namespace (status 3.326), both landed while this round was in flight.  This lane's file is in
 # no row of the ratchet and in no failure:
@@ -7129,13 +7129,13 @@ gaps, not new ones.
 ```
 
 One shared-table row has to move because of Decision 16's insertion (this lane's earlier round):
-`docs/baseline/citations-allowlist.tsv` line 37 names `femacs/src/include/dispextern.rs:567`, and
+`docs/baseline/citations-allowlist.tsv` line 37 names `src/include/dispextern.rs:567`, and
 the finding it explains is now at **587** - the same 20 lines Decision 16 added above it.  Measured:
 
 ```
 $ python3 tools/check-citations.py
-stale	femacs/src/include/dispextern.rs:567	dispextern.h 648-661 is right; `struct glyph *` is a parameter type	the row no longer matches a finding
-drift	femacs/src/include/dispextern.rs:587	dispextern.h 648-661	`struct glyph *` is at dispextern.h:754
+stale	src/include/dispextern.rs:567	dispextern.h 648-661 is right; `struct glyph *` is a parameter type	the row no longer matches a finding
+drift	src/include/dispextern.rs:587	dispextern.h 648-661	`struct glyph *` is at dispextern.h:754
 check-citations: 666 file(s) scanned, 40 drift, 1 range, 343 external, 37 allowed, 1 stale
 ```
 
@@ -7165,7 +7165,7 @@ The `- ` reading, before and after, with the rows that moved (`extract-abi.py --
 `grep '^- '` on each output and `diff`):
 
 ```
-$ python3 tools/extract-abi.py --check emacs/src/xterm.c femacs/src/xterm.rs   # before this slice
+$ python3 tools/extract-abi.py --check emacs/src/xterm.c src/xterm.rs   # before this slice
 300
 $ ...                                                                          # after it
 293
@@ -7304,9 +7304,9 @@ error: aborting due to 564 previous errors
 ```
 
 ```
-$ python3 tools/extract-abi.py --check emacs/src/xterm.h femacs/src/include/xterm.rs
-OK emacs/src/xterm.h -> femacs/src/include/xterm.rs
-$ python3 tools/extract-abi.py --check emacs/src/xterm.c femacs/src/xterm.rs | grep -c '^- '
+$ python3 tools/extract-abi.py --check emacs/src/xterm.h src/include/xterm.rs
+OK emacs/src/xterm.h -> src/include/xterm.rs
+$ python3 tools/extract-abi.py --check emacs/src/xterm.c src/xterm.rs | grep -c '^- '
 286
 $ python3 tools/check-citations.py
 check-citations: 675 file(s) scanned, 0 drift, 0 range, 395 external, 33 allowed, 0 stale
@@ -7346,7 +7346,7 @@ $ rustup run nightly-2026-10-01 rustc --edition 2024 --crate-type lib --emit obj
       -o /tmp/xcb-mirror-probe.o /tmp/xcb-mirror-probe.rs
 exit 0        # cookies passed by value, reply fields read, the iterator walked - no error
 # ... and the layout assertions are live, not decorative:
-$ sed 's/== 32)/== 999)/' femacs/src/include/xlib.rs > /tmp/xlib-flip.rs   # on the copy only
+$ sed 's/== 32)/== 999)/' src/include/xlib.rs > /tmp/xlib-flip.rs   # on the copy only
 error[E0080]: evaluation panicked: assertion failed: core::mem::size_of::<xcb_get_property_reply_t>() == 999
 ```
 
@@ -7395,14 +7395,14 @@ src/xterm.c: 852 conditions, 0 unknown, 0 disagreements [VERIFIED]
 ```
 
 ```
-$ python3 tools/extract-abi.py --check emacs/src/xterm.c femacs/src/xterm.rs   # before
+$ python3 tools/extract-abi.py --check emacs/src/xterm.c src/xterm.rs   # before
 286
-FAIL emacs/src/xterm.c -> femacs/src/xterm.rs
+FAIL emacs/src/xterm.c -> src/xterm.rs
 $ grep -c '^- \[ \]' docs/ports/xterm.md      # before: 297 (30 of them this slice's)
 297
-$ python3 tools/extract-abi.py --check emacs/src/xterm.c femacs/src/xterm.rs   # after
+$ python3 tools/extract-abi.py --check emacs/src/xterm.c src/xterm.rs   # after
 255
-FAIL emacs/src/xterm.c -> femacs/src/xterm.rs
+FAIL emacs/src/xterm.c -> src/xterm.rs
 $ grep -c '^- \[ \]' docs/ports/xterm.md      # after: 267
 267
 # the rows that moved: every "missing function"/"missing constant OPAQUE" line of C 4469-6989 is
@@ -7411,16 +7411,16 @@ $ grep -c '^- \[ \]' docs/ports/xterm.md      # after: 267
 ```
 
 ```
-$ python3 tools/extract-abi.py --all emacs/src/xterm.c femacs/src/xterm.rs     # after (the ledger's
+$ python3 tools/extract-abi.py --all emacs/src/xterm.c src/xterm.rs     # after (the ledger's
                                                                                # WIP reading)
-WIP  src/xterm.c -> femacs/src/xterm.rs (255 differences, docs/ports/xterm.md has unchecked boxes)
+WIP  src/xterm.c -> src/xterm.rs (255 differences, docs/ports/xterm.md has unchecked boxes)
 ...
 checked 590 ported files: 565 done, 3 in progress, 22 failing
 # this file stays one of the three "in progress" rows (the ledger is still 267 ticks short).  The
 # tree-wide counts are *not* this slice's: the before reading of the same command said
 # `532 done, 3 in progress, 55 failing`, and the 33 files between the two readings are other
-# lanes' in-flight edits (`femacs/src/image.rs`, `femacs/src/sfnt.rs`, `femacs/src/w32term.rs`,
-# `femacs/xtask/src/main.rs`), which were mid-write when the before reading ran.
+# lanes' in-flight edits (`src/image.rs`, `src/sfnt.rs`, `src/w32term.rs`,
+# `xtask/src/main.rs`), which were mid-write when the before reading ran.
 ```
 
 ```
@@ -7482,9 +7482,9 @@ $ python3 tools/check-mirror-dupes.py
 
 The three files' own contributions to the tree-wide readings are the append to
 `docs/ports/macro-body-notes.tsv` (one row, 1269) and nothing else: `emacs/**` was read only,
-``femacs/src/xterm.rs`` and this ledger are the writing set, and the tree's other modified files
-(`femacs/src/image.rs`, `femacs/src/sfnt.rs`, `femacs/src/w32term.rs`, their ledgers and
-`femacs/xtask/`) belong to lanes that were in flight while this round ran.
+``src/xterm.rs`` and this ledger are the writing set, and the tree's other modified files
+(`src/image.rs`, `src/sfnt.rs`, `src/w32term.rs`, their ledgers and
+`xtask/`) belong to lanes that were in flight while this round ran.
 
 ### Slice 9's readings (C 6990-9785), as landed and measured (2026-10-05)
 
@@ -7492,12 +7492,12 @@ The `--check` reading of the round, with the before copy in `/tmp` as the checkp
 asks:
 
 ```
-$ python3 tools/extract-abi.py --check emacs/src/xterm.c femacs/src/xterm.rs   # before
+$ python3 tools/extract-abi.py --check emacs/src/xterm.c src/xterm.rs   # before
 255
-FAIL emacs/src/xterm.c -> femacs/src/xterm.rs
-$ python3 tools/extract-abi.py --check emacs/src/xterm.c femacs/src/xterm.rs   # after
+FAIL emacs/src/xterm.c -> src/xterm.rs
+$ python3 tools/extract-abi.py --check emacs/src/xterm.c src/xterm.rs   # after
 212
-FAIL emacs/src/xterm.c -> femacs/src/xterm.rs
+FAIL emacs/src/xterm.c -> src/xterm.rs
 # the rows that moved: the 41 missing-function rows of C 6990-9785, the `missing macro`/`missing
 # constant` pair of HIGHLIGHT_COLOR_DARK_BOOST_LIMIT (43 removals), and three *new* rows the
 # slice's own text produced - `fn x_alloc_nearest_color_1 does not mention goto`,
@@ -7674,12 +7674,12 @@ the two readings above.  The last probe reading therefore predates those three e
 The other two gates, before and after:
 
 ```
-$ python3 tools/extract-abi.py --check emacs/src/xterm.c femacs/src/xterm.rs   # before
+$ python3 tools/extract-abi.py --check emacs/src/xterm.c src/xterm.rs   # before
 212
-FAIL emacs/src/xterm.c -> femacs/src/xterm.rs
-$ python3 tools/extract-abi.py --check emacs/src/xterm.c femacs/src/xterm.rs   # after
+FAIL emacs/src/xterm.c -> src/xterm.rs
+$ python3 tools/extract-abi.py --check emacs/src/xterm.c src/xterm.rs   # after
 185
-FAIL emacs/src/xterm.c -> femacs/src/xterm.rs
+FAIL emacs/src/xterm.c -> src/xterm.rs
 # the rows that moved: 27 missing-function rows of C 9786-11915, minus the three *new* rows this
 # slice's own text produced - `function x_composite_image does not mention dstx, dsty, srcx,
 # srcy` (answered in the text: C's parameter names are kept), `function x_fill_underline does not
@@ -7712,7 +7712,7 @@ $ python3 tools/check-declarations.py
 17 declaration sites (0 forbidden, 17 allowed literals), 0 failures
 $ python3 tools/check-mirror-dupes.py
 16 duplicate declaration(s), 17 ratchet row(s), 1 failure(s)
-# the failure is a STALE row of `femacs/src/sysdep.rs` (`pipe2 from
+# the failure is a STALE row of `src/sysdep.rs` (`pipe2 from
 # lib/include/unistd.in.rs is gone`), and the count read 18/17/3 an hour earlier - both readings
 # are other lanes' files (image.rs's `cairo_destroy` row came and went); no row names this unit,
 # before or after, and this slice adds no declaration to a mirror.
@@ -7722,7 +7722,7 @@ checked 1156 / mismatched 97 / ranges 789 / unresolved 731
 # text or in this ledger.
 ```
 
-Line count and hash: `femacs/src/xterm.rs` **10,952 -> 13,538 lines**, md5
+Line count and hash: `src/xterm.rs` **10,952 -> 13,538 lines**, md5
 `c6f1b725b1ffc98a2d5618cf61d4cef1` -> `d694654e84e3355e5bf83b8d24f60bc5`; this ledger's own
 `## C line ranges` table grew the 27 rows above and the remainder row moved to `11916-33125`.
 
@@ -7769,7 +7769,7 @@ same bound), so they wait on the `include/frame.rs` round; and `x_fixes_pointer_
 (C 12040-12045) reads `dpyinfo->xfixes_supported_p`/`xfixes_major`, which `include/xterm.rs` does
 not carry yet.  Their checklist boxes stay unchecked on purpose.
 
-**What `--check` reads.**  `extract-abi.py --check emacs/src/xterm.c femacs/src/xterm.rs` goes
+**What `--check` reads.**  `extract-abi.py --check emacs/src/xterm.c src/xterm.rs` goes
 **185 rows -> 184**: `make_invisible_cursor` retires as a missing function; the line-count row stays
 (13,607 Rust lines against C's 33,125, 58.9%).  The six text gates are unchanged
 (`check-declarations` 18/0/18/0, `check-citations` 676/0/0/2129/36/0, `check-dead-file-coverage`
@@ -7818,7 +7818,7 @@ file note): `XErrorEvent` (Xlib.h 920-928) with the layout **measured** on this 
 is that mirror's other consumer `src/xfns.rs` (probed with `have_x_windows` before and after the
 mirror change, the unit unchanged): **6 error-lines / 9 warnings on both sides, sets diff empty**.
 
-**What `--check` reads.**  `extract-abi.py --check emacs/src/xterm.c femacs/src/xterm.rs` goes
+**What `--check` reads.**  `extract-abi.py --check emacs/src/xterm.c src/xterm.rs` goes
 **184 rows -> 176**: the seven functions and `x_error_message_count` retire as missing items; the
 line-count row stays (13,770 against C's 33,125, 58.4%).  The six text gates are unchanged.
 
@@ -7977,7 +7977,7 @@ and no display was opened; the remaining `E0425` rows are unresolved names, not 
 
 **6. `handle_one_xevent`'s first `case`, `ClientMessage` (C 18951-19472): closed.**  Slices 140-142
 (Decisions 152-154) landed it - C 18951-19147, C 19149-19341 and C 19342-19471 - so the arm, the
-function and the file are carried, `extract-abi.py --check emacs/src/xterm.c femacs/src/xterm.rs`
+function and the file are carried, `extract-abi.py --check emacs/src/xterm.c src/xterm.rs`
 reads `OK` (0 rows) and the ledger's box is ticked.  The item stays here as the record of what
 was owed while it was owed.
 
@@ -8020,7 +8020,7 @@ same three:** the Xt arm's two creators need fifteen `XmN*` names, `XmCreateScro
 so those two bodies are carried text this lane cannot compile at all).  Each is **UNVERIFIED** in
 the source; the headers named above would turn them into readings.
 
-**1. Two `femacs/xtask/Cargo.toml` rows.**  `have_xrender_0_2` (`RENDER_MAJOR > 0 ||
+**1. Two `xtask/Cargo.toml` rows.**  `have_xrender_0_2` (`RENDER_MAJOR > 0 ||
 RENDER_MINOR >= 2`, C 6512/6596/6728) and `have_xrender_0_10` (`RENDER_MAJOR > 0 ||
 (RENDER_MINOR >= 10)`, C 6594) are derived names (Decision 20's table); Xrender.h is not in this
 tree, so the names have to be declared before an XRender arm can be selected.  The other names
@@ -8097,7 +8097,7 @@ corrects it, the same `C 11916` the range table names.)
 
 **7. Slice 9's requests (C 6990-9785, this round).**
 
-* Three `femacs/xtask/Cargo.toml` rows: `have_clock_gettime` (C 6994's third term),
+* Three `xtask/Cargo.toml` rows: `have_clock_gettime` (C 6994's third term),
   `frame_debug` (C 7101/7271's `#ifdef FRAME_DEBUG`) and `debug_x_colors` (C 9506/9562's
   `#ifdef DEBUG_X_COLORS`).  The other names this slice's arms carry already exist (Decision 21's
   sub-gate paragraph names them).
@@ -8120,7 +8120,7 @@ corrects it, the same `C 11916` the range table names.)
   mirror's offsets) and `glyph_string` (C's order, **no** asserts: the mirror's own note records
   that record's layout as unmeasured here).  Status 3.220's ruling makes the copies legitimate;
   whoever retires the units' copies (the `xfaces.rs`/`window.rs`/`alloc.rs`/`term.rs`/`dispnew.rs`
-  list) has to take `femacs/src/xterm.rs`'s three with them, and only then can `glyph_string_bits!`
+  list) has to take `src/xterm.rs`'s three with them, and only then can `glyph_string_bits!`
   and `get_/set_cursor_p`/`get_/set_overlay_p` come from the mirror instead of the unit.
 * The X11 macros this slice's live text names and `include/xlib.rs`'s `x11_constants` does not
   carry: `FillOpaqueStippled`, `FillSolid`, `GCGraphicsExposures`, `GCLineWidth`, `GCStipple`,
@@ -8143,9 +8143,9 @@ the table to `/tmp` first and appending, so no other lane's row was rewritten.  
 artifacts this round left (`build/femacs/units/xterm`, `build/probes/xterm`, `build/femacs/xterm.o`)
 were deleted after each compile.
 
-**9. One `femacs/xtask/Cargo.toml` row: `have_xkb`.**  This slice's `XTring_bell` carries C 11677's
+**9. One `xtask/Cargo.toml` row: `have_xkb`.**  This slice's `XTring_bell` carries C 11677's
 `#ifdef HAVE_XKB` (and slice 8's `x_restore_events_after_dnd` already carried C 4791's), and the
-feature table has no `have_xkb` row (measured: `grep -n xkb femacs/xtask/Cargo.toml` finds none),
+feature table has no `have_xkb` row (measured: `grep -n xkb xtask/Cargo.toml` finds none),
 so the arm cannot be selected today.  Every other name this slice's arms carry exists:
 `use_cairo`, `use_gtk`, `use_x_toolkit`, `use_xcb`, `use_cairo_xcb`, `have_xdbe`, `have_xrender`,
 `have_xrender_0_2`, `have_xwidgets`.
@@ -8209,7 +8209,7 @@ the probe's numbers are unresolved names, not behaviour; and nothing here is dev
 end-to-end evidence for any of the functions this slice lands.
 
 **Slice 105 reads two mirror gaps for the first time** (2026-10-07, Decision 118): the GTK arms'
-`GDK_WINDOW_XWINDOW` (`femacs/src/include/xterm.rs` 1043, the `not (feature = "have_gtk3")` arm of
+`GDK_WINDOW_XWINDOW` (`src/include/xterm.rs` 1043, the `not (feature = "have_gtk3")` arm of
 `GDK_WINDOW_XID`) has no declaration anywhere - GDK's header is not on this machine and no mirror
 carries it - and that macro's `have_gtk3` arm is missing from the mirror altogether, which arm AG3
 reads as `cannot find macro GDK_WINDOW_XID` (anchored at `include/xterm.rs` 1056-1063's
@@ -8221,7 +8221,7 @@ dead text, so the two arms that name it record a bare name by design (P-08).
 `check-ledger-ticks` binds a ledger's ticked rows to functions (238 ledgers, 0 failures), and this
 round found the gap it leaves: 12 of this ledger's 15 unchecked boxes were *false* -
 `x_calc_absolute_position` (27497), the ten scroll-bar functions (16715-17459) and `XEMBED_VERSION`
-(29148) are all defined in `femacs/src/xterm.rs` while their boxes stayed unchecked (their slices'
+(29148) are all defined in `src/xterm.rs` while their boxes stayed unchecked (their slices'
 readings say the `--check` rows retired, and `git log -S"- [x] x_scroll_bar_create"` is empty: never
 ticked).  The boxes are ticked now, and the criterion to add to the gate is the one this round used:
 for every unchecked box, look for `macro_rules! NAME`, `fn NAME` or `pub (const|static) NAME` in
@@ -8545,7 +8545,7 @@ no taskbar flag was set and no window manager was told anything.  The remaining
 **What it lands.**  `x_set_z_group` (C 27925-27968, with `FRAME_Z_GROUP`'s writer and its four
 gated field writes) and `x_get_current_wm_state` (C 27977-28085, both `USE_XCB` arms and the live
 `GCC_LINT` seed).  Rust 15,919 -> 16,164 lines; the header's earlier rows read 15,913 for the same
-revision, so this slice measured both sides itself (`git show HEAD:femacs/src/xterm.rs` through
+revision, so this slice measured both sides itself (`git show HEAD:src/xterm.rs` through
 `--check` reports 15,919).
 
 **What the probes read.**  Baseline = HEAD's unit with the same arm, materialised and compiled the
@@ -9385,7 +9385,7 @@ display walk happened and no modifier meanings were fetched.
 ### Slice 53's readings (C 32505-32635), as landed and measured (2026-10-06)
 
 **What it lands.**  `x_preserve_selections` (C 32505-32635).  Rust 20,403 -> 20,592 lines; the
-mirror `femacs/src/include/xterm.rs` gains `selection_input_event_bits!`'s setter arm.
+mirror `src/include/xterm.rs` gains `selection_input_event_bits!`'s setter arm.
 
 **What the probes read.**  Baseline = HEAD's unit (slice 52's commit) with the same arm: A 722 / 69,
 B 742 / 70, C 773 / 71.
@@ -10261,7 +10261,7 @@ UT to 830 / 68.
 
 **P-87 ①'s two legs** (the mirror changed).  `tools/check-all-units.sh` -> `checked 83 unit(s),
 0 failure(s)` and `checking 83 unit(s), 0 unit failure(s)`; `check-mirror-dupes` -> 16/16/0;
-`extract-abi --check emacs/src/lisp.h femacs/src/include/lisp.rs` went from one row
+`extract-abi --check emacs/src/lisp.h src/include/lisp.rs` went from one row
 (`macro eabs does not mention 0`) to none, closed by the new `docs/ports/macro-body-notes.tsv` row.
 
 **What `--check` reads.**  **46 -> 46**: the Xaw callbacks are outside the frozen inventory, so only the
@@ -11804,8 +11804,8 @@ frozen table leaves those macros undefined), so their rows are text readings too
 | AXKB `A +have_xkb` | 845 / 74 | **943 / 74** | **+98 / 0** |
 | AXR `A +have_xrandr` | 826 / 74 | **912 / 74** | **+86 / 0** |
 
-Both sides were measured in this revision: the baseline side by restoring `femacs/src/xterm.rs`
-to `9411622e:femacs/src/xterm.rs` and putting it back (md5 `e43c6647db8369b990521fc6b4519df9` on
+Both sides were measured in this revision: the baseline side by restoring `src/xterm.rs`
+to `9411622e:src/xterm.rs` and putting it back (md5 `e43c6647db8369b990521fc6b4519df9` on
 both sides of that swap), the slice's own file md5 `bec354a7a35280db33ccd7ad9bd76a98`.  **No
 warning moved in any arm** (kind sets compared): the first reading brought exactly one,
 `unreachable statement` after C 30851's `error` - C's own text, whose three following statements
@@ -11818,7 +11818,7 @@ two toolkit arms, with that reason written at the gate.
 recorded 509 / 0.  The ledger owes the next round a decision on that arm's cfg set; the sixteen
 above are the ones this file states in full.
 
-**Two legs of `build-tu`** (`cargo run -q -p xtask -- build-tu src/xterm.c`, from `femacs/`):
+**Two legs of `build-tu`** (`cargo run -q -p xtask -- build-tu src/xterm.c`, from ``):
 **identical on both sides** - `aborting due to 2 previous errors; 28 warnings emitted`, the two
 errors being the ungated `x_atom_refs` static's `def_x_atom_refs!`/`x_atom_ref` (a property of the
 no-feature compile, not of this slice).
@@ -11846,7 +11846,7 @@ compile (`XtOpenDisplay`, `XtSetLanguageProc`, `XtCallConverter`, `XSetLocaleMod
 `IS_DAEMON`, `Qx`); and `x_load_resources`, which `xrdb.rs` defines and this unit declares at its
 use site (P-72 rule 4).  **Two readings this slice exposes and does not close**: `gray_bits`,
 `gray_width` and `gray_height` are the `src/bitmaps/gray.xbm` data file's constants - the gap
-`femacs/src/xfns.rs` 97-98 and `docs/ports/xfns.md` already record, which this unit now shares; and
+`src/xfns.rs` 97-98 and `docs/ports/xfns.md` already record, which this unit now shares; and
 `EMACS_CLASS` is frame.h 1840's resource class, kept as C's bytes (0.1-19's eighth half) with the
 reason at its declaration.
 
@@ -11873,7 +11873,7 @@ no value moved; the file grows by two comment lines (31,682 -> 31,684) and its m
 
 ## Stale-box audit (2026-10-08, status 3.953)
 
-Thirteen `- [ ]` rows in this ledger named records that `femacs/src/xterm.rs` already defines as
+Thirteen `- [ ]` rows in this ledger named records that `src/xterm.rs` already defines as
 `pub struct` items: `x_atom_ref`, `x_selection_request_event`, the sixteen-member
 `x_client_list_window` and the ten `xm_*` drag/DND protocol records.  They are ticked now, and the
 evidence is a field-by-field comparison of the two texts (a throwaway script: the C definition's
@@ -11889,10 +11889,10 @@ sides with comments stripped and C's multi-declarator lines - `int x, y;` - spli
   `#ifdef HAVE_XSHAPE` region holds `border_width` and the two rect pairs, and the port carries
   them under `#[cfg (feature = "have_xshape")]` (this unit's 1011-1025), so the Rust record has the
   two extra field names an unconditional reading of C's text would not see.  `have_xshape` is not
-  in `femacs/xtask/Cargo.toml`'s feature table - the ledger's `## Owed by the integrator` class.
+  in `xtask/Cargo.toml`'s feature table - the ledger's `## Owed by the integrator` class.
 
 **`x_initialized` (the fourteenth stale box).**  The same round checked the two rows it left:
-`x_initialized` is ported - `femacs/src/xterm.rs` 19738's `pub static mut x_initialized: bool =
+`x_initialized` is ported - `src/xterm.rs` 19738's `pub static mut x_initialized: bool =
 false;` (C 30491's tentative `static bool`, its initial value C's zero by NIL_IS_ZERO's rule) with
 its two readers at 20007-20011 (C 30704-30709) - so its box is ticked too; the earlier paragraph
 that named it alongside `handle_one_xevent` was wrong about this row and is corrected here.
@@ -11931,7 +11931,7 @@ rather than this one's.
 | AXR `A +have_xrandr` | 931 / 74 | **938 / 75** | **+7 / +1** |
 
 **Both sides were measured in this revision** (the lane's rule): the baseline side by restoring
-`femacs/src/xterm.rs` to `f3a3c531:femacs/src/xterm.rs` and re-materialising its `_root.rs`, the
+`src/xterm.rs` to `f3a3c531:src/xterm.rs` and re-materialising its `_root.rs`, the
 slice's own file md5 `c2f4ef3d2a64307f0e9818bb6a173932` (measured after every edit below).
 **The `of which`, arm A, by message identity** (the two dumps diffed): **new** - `no field
 r#type` on the `XEvent` stand-in x3 (C 18932/18935/18946), `no field xany` x1 (C 18937),
@@ -13437,7 +13437,7 @@ have_clock_gettime`, the frame-drawn triple).
 part of this slice no arm reads (the feature `x_toolkit_editres` is used by `src/xfns.rs` but no arm
 of this lane turns it on); the readings name it rather than claiming it.
 
-**The file's gate now reads `OK`**: `extract-abi.py --check emacs/src/xterm.c femacs/src/xterm.rs`
+**The file's gate now reads `OK`**: `extract-abi.py --check emacs/src/xterm.c src/xterm.rs`
 returns zero rows after this slice's notes row and the two-line repair, and `extract-abi.py --all`
 reads `579 done, 0 in progress, 11 failing` for the whole tree.
 
@@ -13473,11 +13473,11 @@ because it is a dated reading of the round it belongs to.
 `python3 tools/check-mirror-dupes.py` -> `16 duplicate declaration(s), 16 ratchet row(s),
 0 failure(s)`; `tools/check-all-units.sh` -> `checked 83 unit(s), 0 failure(s)` with
 `checking 83 unit(s), 0 unit failure(s)`; `extract-abi.py --check emacs/src/xterm.h
-femacs/src/include/xterm.rs` is unaffected by this change (the macro inventory is the same name).
+src/include/xterm.rs` is unaffected by this change (the macro inventory is the same name).
 
 ## Gate repair (2026-10-15, status 4.370)
 
-`x_atom_refs`'s two statics (`femacs/src/xterm.rs` 1627-1631) carried only their `have_xkb`
+`x_atom_refs`'s two statics (`src/xterm.rs` 1627-1631) carried only their `have_xkb`
 split, while C 976-983's `struct x_atom_ref` and the `ATOM_REFS_INIT` table at C 987 sit under
 no `#if` of their own: the file is X-only, so the whole body is this unit's `have_x_windows`
 gate (Decisions 1-2, P-86 clause 8), and every other item of the unit carries it.  The frozen
@@ -13493,7 +13493,7 @@ test read as "still being ported", so the unit had never been compiled by that l
 fix is `docs/status.md` 4.370's first commit).  After the two
 `#[cfg (feature = "have_x_windows")]` lines: `build-tu src/xterm.c` exit 0 ->
 `../build/femacs/xterm.o`, and the same text is what `extract-abi.py --check emacs/src/xterm.c
-femacs/src/xterm.rs` reads as `OK`.  The change narrows the frozen arm only: every arm that
+src/xterm.rs` reads as `OK`.  The change narrows the frozen arm only: every arm that
 defines `have_x_windows` sees the same two statics as before, and the two `have_xkb` arms are
 untouched.  **Not claimed**: the unit's own arm readings (the `UT/UM/UG/A/U` counts above) were
 not re-measured for this change; it moves no name, only the `cfg` that selects the pair.

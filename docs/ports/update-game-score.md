@@ -70,7 +70,7 @@ GTK and DJGPP units can only be parsed):
   rlib** (warnings are mirror-side `clashing_extern_declarations`-class);
 - `probe … --cfg 'feature="use_gamedir"' --cfg 'feature="have_shared_game_dir"'` -> **exit 0**, a
   470,400-byte rlib (the second arm of `get_prefix` compiles too);
-- `extract-abi.py --check emacs/lib-src/update-game-score.c femacs/lib-src/update-game-score.rs` ->
+- `extract-abi.py --check emacs/lib-src/update-game-score.c lib-src/update-game-score.rs` ->
   **no `missing` row at all**; the five token rows (`MAX_SCORES`, `get_user_id`, `normalize_integer`,
   `read_scores`, `lock_file`) are in `docs/ports/macro-body-notes.tsv` (status 3.473) and the 54.7%
   drift in `docs/ports/line-drift-tolerance.tsv`, so the check's remaining output is the frozen

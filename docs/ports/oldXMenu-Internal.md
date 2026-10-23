@@ -2,7 +2,7 @@
 
 ## Decisions
 
-`emacs/oldXMenu/Internal.c` @ `fd7afced403`; port `femacs/oldXMenu/Internal.rs` (**1163 lines**);
+`emacs/oldXMenu/Internal.c` @ `fd7afced403`; port `oldXMenu/Internal.rs` (**1163 lines**);
 the gate is `feature = "have_x_windows"` (P-86 clause 8), which is the build's condition rather
 than one the C text spells: `configure.ac` 7287-7295 sets `HAVE_OLDXMENU=yes` and
 `LIBXMENU='$(oldXMenudir)/libXMenu11.a'` in the arm `HAVE_X11 = yes` + `HAVE_GTK != yes` +
@@ -143,7 +143,7 @@ The rows are contiguous and ascending; C's blank lines between the blocks need n
      `_XDefaultScreen`, `_XDisplayWidth`, `_XDisplayHeight` (and `_XDefaultScreenOfDisplay`).
 5. **the four gates this lane owed**:
    - `python3 tools/extract-abi.py --check emacs/oldXMenu/Internal.c
-     femacs/oldXMenu/Internal.rs` -> **one finding**: `line count drifted 13.7%: C 1023 vs Rust
+     oldXMenu/Internal.rs` -> **one finding**: `line count drifted 13.7%: C 1023 vs Rust
      1163` (`## Owed` 1).  Its inventory for this file is empty (P-86 clause 2: the file is not
      built on this target), and the port's own reading is the DEFUN-free comparison: no missing
      function/macro/constant/object/field, no stub and no token missing after the two
@@ -245,7 +245,7 @@ The rows are contiguous and ascending; C's blank lines between the blocks need n
   `tools/check-port-lines.py --write-pending` are the generators and both are the integrator's
   step (P-86 clause 4 - neither file is in this lane's write scope).  The map's *reference* count
   (1,023) is what `check-dead-file-coverage.py` reads and is unaffected.
-- **`femacs/xtask/Cargo.toml`**: nothing - every feature this unit names (`have_x_windows`) is
+- **`xtask/Cargo.toml`**: nothing - every feature this unit names (`have_x_windows`) is
   already registered in the generated `cfg` namespace.  Recorded so the absence is a reading
   rather than an omission.
 - **`docs/ports/Internal.md`** is the generated P-86 checklist for this reference file and stays

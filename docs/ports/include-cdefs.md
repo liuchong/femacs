@@ -147,7 +147,7 @@
   stripped, `##` written as two spaced `#` tokens) and the mirror's own header repeats them:
 
       $ python3 tools/gen-cdefs-mirror.py --reference emacs/lib/cdefs.h \
-          --dM /tmp/cdefs-dM.txt --out femacs/lib/include/cdefs.rs
+          --dM /tmp/cdefs-dM.txt --out lib/include/cdefs.rs
 
 - **The live arm is measured, not the file order.**  `c["macros"]` keeps the *last* definition and
   this header's arms are compiler families, so the decision is clang's: the frozen reachability
@@ -177,14 +177,14 @@
   `__fortify_clang_bos_static_lt_impl`'s `ull` (C's `-1ULL`; Rust has no such literal).
 
 - **This header has no consumer in the port yet** - `rg -l cdefs emacs/` finds only
-  `lib/libc-config.h`, whose Rust side (`femacs/lib/libc-config.rs`) declares the names it needs
+  `lib/libc-config.h`, whose Rust side (`lib/libc-config.rs`) declares the names it needs
   itself - so the compile evidence is that the mirror stands as its own crate root:
   `build-tu lib/cdefs.h` -> `built lib/include/cdefs.rs`.
 
 ## Evidence
 
-    $ python3 tools/extract-abi.py --check emacs/lib/cdefs.h femacs/lib/include/cdefs.rs
-    OK emacs/lib/cdefs.h -> femacs/lib/include/cdefs.rs
+    $ python3 tools/extract-abi.py --check emacs/lib/cdefs.h lib/include/cdefs.rs
+    OK emacs/lib/cdefs.h -> lib/include/cdefs.rs
 
     $ python3 tools/check-cond-eval.py lib/cdefs.h
     lib/cdefs.h: 85 conditions, 9 unknown, 30 disagreements [NOT VERIFIED]

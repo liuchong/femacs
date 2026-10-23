@@ -19,7 +19,7 @@
 - **Nothing in this header is compiled on this target.**  `HAVE_PGTK` is undefined (the frozen
   table records it `undef`), so C 30-33's type macros (both records' guards) and C 52-54's
   `emacs_fixed_get_type` are dead text; `src/emacsgtkfixed.c` is not in the frozen build's source
-  list, so `femacs/src/emacsgtkfixed.rs` is the empty-shape note that names the exclusion; and
+  list, so `src/emacsgtkfixed.rs` is the empty-shape note that names the exclusion; and
   C 24's `<gtk/gtk.h>` has no mirror here - the platform target's own headers own those names
   (PORTING.md 0.1-9).  The mirror carries the header's live text anyway, because the header's
   *text* is what a mirror mirrors (the `src/w32select.h` precedent, status 3.158).
@@ -42,9 +42,9 @@
 
 ## Evidence
 
-- `python3 tools/extract-abi.py --check emacs/src/emacsgtkfixed.h femacs/src/include/emacsgtkfixed.rs`
+- `python3 tools/extract-abi.py --check emacs/src/emacsgtkfixed.h src/include/emacsgtkfixed.rs`
   -> `missing type deferred: src/emacsgtkfixed.h _EmacsFixed/_EmacsFixedClass (the ledger has
-  unchecked boxes)` on stderr and `OK emacs/src/emacsgtkfixed.h -> femacs/src/include/emacsgtkfixed.rs`
+  unchecked boxes)` on stderr and `OK emacs/src/emacsgtkfixed.h -> src/include/emacsgtkfixed.rs`
   (no `- ` problem lines) - i.e. the two deferrals are visible, not silent.
 - `python3 tools/check-cond-eval.py src/emacsgtkfixed.h` -> `3 conditions, 0 unknown to the
   evaluator, 0 disagreements`.
@@ -60,13 +60,13 @@
 
 The 2 box(es) this sweep tentatively ticked are **real pending work, not stale bookkeeping**,
 and the tick was reverted.  Measured: while the ledger has unchecked boxes,
-`python3 tools/extract-abi.py --check emacs/src/emacsgtkfixed.h femacs/src/include/emacsgtkfixed.rs` prints `0` `- ` lines **because the tool
+`python3 tools/extract-abi.py --check emacs/src/emacsgtkfixed.h src/include/emacsgtkfixed.rs` prints `0` `- ` lines **because the tool
 defers this file's missing items to stderr** (`missing type deferred: src/emacsgtkfixed.h <name> (the ledger has
 unchecked boxes)`); with the boxes ticked the deferral lifts and the same command prints
 
     - missing type _EmacsFixed/_EmacsFixedClass
 
-i.e. the type is genuinely absent from femacs/src/include/emacsgtkfixed.rs.  So: src/emacsgtkfixed.h's `_EmacsFixed`/`_EmacsFixedClass` are the GTK records; dead-platform text on this target (`HAVE_GTK`-class arms), P-51/3.9 shape.
+i.e. the type is genuinely absent from src/include/emacsgtkfixed.rs.  So: src/emacsgtkfixed.h's `_EmacsFixed`/`_EmacsFixedClass` are the GTK records; dead-platform text on this target (`HAVE_GTK`-class arms), P-51/3.9 shape.
 
 ## Decisions / Evidence (the eight true gaps, 2026-10-04)
 
@@ -74,8 +74,8 @@ i.e. the type is genuinely absent from femacs/src/include/emacsgtkfixed.rs.  So:
 pass (they had been left unchecked, and the earlier sweep had un-ticked some of them by
 position rather than by name - corrected here).
 
-    $ python3 tools/extract-abi.py --check emacs/src/emacsgtkfixed.h femacs/src/include/emacsgtkfixed.rs
-    OK emacs/src/emacsgtkfixed.h -> femacs/src/include/emacsgtkfixed.rs                     # `- ` lines: 0, no `missing type deferred`
+    $ python3 tools/extract-abi.py --check emacs/src/emacsgtkfixed.h src/include/emacsgtkfixed.rs
+    OK emacs/src/emacsgtkfixed.h -> src/include/emacsgtkfixed.rs                     # `- ` lines: 0, no `missing type deferred`
     $ cargo run -q -p xtask -- layout-check
     layout-check passed (see build/femacs/layout_asserts.rs)
 

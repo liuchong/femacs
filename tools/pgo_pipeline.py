@@ -26,7 +26,7 @@ import sys
 import pgo_bench
 
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-FEMACS = os.path.join(REPO, "femacs")
+FEMACS = REPO
 PGO = os.path.join(REPO, "build", "pgo")
 O2_ROOT = os.path.join(REPO, "build")
 GENERATE_ROOT = os.path.join(PGO, "generate")

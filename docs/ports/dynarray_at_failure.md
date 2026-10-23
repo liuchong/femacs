@@ -16,7 +16,7 @@
 ## Decisions
 
 `emacs/lib/malloc/dynarray_at_failure.c` @ `fd7afced403`; port
-`femacs/lib/malloc/dynarray_at_failure.rs`.  The frozen build leaves `_LIBC` undefined, so
+`lib/malloc/dynarray_at_failure.rs`.  The frozen build leaves `_LIBC` undefined, so
 C 36-38's `#else` arm (`abort ()`) is the live text and C 30-35's `__snprintf`/`__libc_fatal`
 diagnostic is dead.  The file is **not** in `docs/baseline/config/cond-eval-verified.txt`, so
 the body check reads both arms:
@@ -33,7 +33,7 @@ the body check reads both arms:
   object exports `__gl_dynarray_at_failure` (Mach-O's spelling), measured with `nm -g` on both
   the port's and the reference's object;
 - C 24's `#include <dynarray.h>` is the gnulib wrapper, whose `#else` arm reaches the shared
-  header - `femacs/lib/include/dynarray.rs`, included here.
+  header - `lib/include/dynarray.rs`, included here.
 
 **Deviation.** C 1's opening-block title line is not carried (PORTING.md 0.1-19).  Line count:
 C 40 vs the port's 50 (25.0%) - the licence block that is not carried plus the fixed costs

@@ -93,7 +93,7 @@
 # ----------------------------------------------------------------------
 ## Decisions
 
-`emacs/src/keymap.c` @ `fd7afced403`; port `femacs/src/keymap.rs` (3,456 lines vs C's 3,487
+`emacs/src/keymap.c` @ `fd7afced403`; port `src/keymap.rs` (3,456 lines vs C's 3,487
 total — **-0.9% on the default `total` basis**, inside the 5% the rule allows every file, so
 **no row was added to `docs/ports/line-drift-tolerance.tsv`**; the lines the port saves are
 mostly the twenty-nine `DEFUN!` docstrings, which collapse C's multi-line `doc: /* … */`
@@ -102,13 +102,13 @@ comments into one literal each, and they roughly pay for the port's fixed costs 
 guard and it is `OK`.  All 79 ledger rows are checked.  The gates, verbatim:
 
     build-tu src/keymap.c         -> built src/keymap.rs -> ../build/femacs/keymap.o
-    extract-abi.py --check        -> OK emacs/src/keymap.c -> femacs/src/keymap.rs
+    extract-abi.py --check        -> OK emacs/src/keymap.c -> src/keymap.rs
     check-symbols.py              -> check-symbols: 78 units compared, 1 mismatched, 0 still pending
     check-globals.py              -> check-globals: 255 units, 0 DEFVAR_* variables without a definition in their own unit
     check-undef.py                -> check-undef: 504 unit object(s), 88 reference object(s)/archive(s): 566 pending, 0 new
     ledger                        -> 79/79 rows checked, 0 unchecked
     (extra) rustc --cfg enable_checking on the materialized unit -> exit 0, 0 errors
-      run from `femacs/`: `rustc --edition 2024 --crate-type=lib --emit=obj -C panic=abort
+      run from ``: `rustc --edition 2024 --crate-type=lib --emit=obj -C panic=abort
       -C codegen-units=1 -C opt-level=0 --cfg enable_checking -o /tmp/keymap-ec.o
       ../build/femacs/units/keymap/_root.rs`; the only diagnostics are the two pre-existing
       mirror warnings (include/lisp.rs 3836's unused doc comment and include/frame.rs 589's
@@ -117,7 +117,7 @@ guard and it is `OK`.  All 79 ledger rows are checked.  The gates, verbatim:
 The `1 mismatched` unit in `check-symbols` is `lib/regex` (`_rpl_re_*` missing), which is
 another worker's in-flight unit — `src/keymap` is compared and matches.  The same is true of
 the dirty `tools/extract-abi.py`, `docs/ports/include-regex-emacs.md` and
-`femacs/src/include/regex-emacs.rs` in the working tree: not this unit's.
+`src/include/regex-emacs.rs` in the working tree: not this unit's.
 
 ### Dead arms: none (P-08 has nothing to record, status 3.49 does not apply)
 
@@ -177,7 +177,7 @@ the `ckd_mul` family in `docs/ports/token-aliases.tsv`), and `SIZE_MAX`/`PTRDIFF
 
 ### One mirror edit, and why it was unavoidable
 
-`femacs/src/include/keymap.rs` was complete (its ledger has 0 unchecked rows) and needed
+`src/include/keymap.rs` was complete (its ledger has 0 unchecked rows) and needed
 exactly one change: its `unsafe extern "C"` block declared the **nine functions and one object
 that this very unit defines** (`current_global_map`, `push_key_description`, `access_keymap`,
 `get_keymap`, `current_minor_maps`, `initial_define_lispy_key`, `syms_of_keymap`,

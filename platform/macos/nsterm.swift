@@ -1,0 +1,15372 @@
+// femacs: port of src/nsterm.m @ fd7afced403.
+//
+// **Giant unit** (`docs/ports/nsterm.md`'s `## Progress`): the reference is 11,811 lines and is
+// transcribed in C order, one slice per round.  **Round 1 landed C 60-390** - the file's first
+// statics (C 82-88), the dead `NSTRACE_ENABLED` block (C 96-149), the `NSColor (EmacsColor)`
+// category (C 152-206), the `convert_ns_to_X_keysym` table (C 214-293), the file-scope objects
+// (C 295-347), the seven modifier masks (C 349-356) and the first two functions
+// (`mod_of_kind` C 358, `ev_modifiers_helper` C 369).  **Round 2 lands C 391-519**: five of the
+// seven `EV_*` accessors (C 397-444), the forward declarations (C 473-475, recorded - Swift has
+// none), `ns_init_events`/`ns_finish_events` (C 484-495, the unit's C interface) and
+// `hold_event`/`append2` (C 498-519).  **Round 3 lands C 522-638**: `ns_relocate` (C 525-557,
+// its `NS_SELF_CONTAINED` arm live per `configure.ac` 689-690/2885-2886), `ns_init_pool`
+// (C 560-568), `ns_init_locale` (C 569-600), and the four retain/release/pool hooks "callable
+// from C" (C 602-638).  `EV_TRAILER`/`EV_TRAILER2` (C 448-470) are **held** to C 5013, where
+// their two callees exist (see the note in round 2's block).  **Round 4 lands C 641-991**: the
+// menu-bar predicate (C 641-648), `struct EmacsMargins` (C 650-656), the screen margins and the
+// hidden-dock variant (C 659-753), the menu-bar height (C 754-772), `NS_PARENT_WINDOW_*` and the
+// parent-window rect (C 773-807), `ns_row_rect` (C 808-827), `ns_frame_scale_factor` (C 828-891)
+// and `constrain_frame_rect` (C 892-991).  The next live definition is C 1001's
+// `ns_constrain_all_frames`, which needs a ruling: it calls this unit's own `EmacsView`
+// `-isFullscreen` (C 8957), a method of a class that lands much later in the same file: the
+// entry/definition split the ruling settled (see `## ABI` (4) in the ledger).  **Round 5 lands
+// C 1001-1211**: `ns_constrain_all_frames` (C 1001-1030), `ns_update_auto_hide_menu_bar`
+// (C 1033-1073), `ns_update_begin` (C 1075-1087) and the whole macOS Accessibility Zoom block
+// (C 1090-1211: its statics, `ns_ua_zoom_enabled_p`, `ns_cg_rect_flip_y` and
+// `ns_UAZoomChangeFocus`).  **Round 6 lands C 1212-1492**: `ns_update_end` (C 1212-1234),
+// `ns_focus` (C 1236-1273) and `ns_unfocus` (C 1282-1310), the visible bell's narrative
+// (C 1313-1330), the file's **first class** `EmacsBell` (C 1333-1430, its `@interface` and all
+// four methods), `bell_view` (C 1433) and `ns_ring_bell` (C 1436-1469); `hide_bell` (C 1471-1491)
+// is dead in this build (guard at 1471) and is recorded, not transcribed.  **Round 7 lands
+// C 1493-1743**: the focus hooks (`ns_get_focus_frame` C 1493-1508, `ns_focus_frame` C 1510-1525),
+// the raise/lower pair and their dispatcher (C 1527-1578), `ns_frame_rehighlight` (C 1582-1620),
+// and the visibility hooks `ns_make_frame_visible` (C 1624-1676, exported),
+// `ns_make_frame_invisible` (C 1678-1691, exported), `ns_make_frame_visible_invisible`
+// (C 1693-1702) and `ns_iconify_frame` (C 1705-1742, exported).  The next live definition is
+// C 1744's `ns_free_frame_resources`.  **Round 8 lands C 1744-1876**: the resource teardown
+// (`ns_free_frame_resources` C 1744-1780, exported), `ns_destroy_window` (C 1782-1810),
+// `compute_offset` (C 1812-1852) and **`ns_set_offset` (C 1854-1875) - the definition the
+// deferred entry `ns_set_offset` waited for** - so `nm -u` no longer lists
+// `_ns_set_offset`.  **Round 9 lands C 1877-1956**: `ns_set_window_size` (C 1877-1915) and
+// `ns_set_window_size_and_position` (C 1920-1956).  **Round 10 lands C 1959-2398**: the seven
+// frame-parameter handlers (C 1961-2116), the `NS_IMPL_COCOA` trio `ns_set_appearance_1`/
+// `ns_set_appearance`/`ns_set_transparent_titlebar` (C 2120-2165), `ns_fullscreen_hook`
+// (C 2169-2181), the color block (`ns_get_color` C 2191-2297, `ns_lisp_to_color` C 2300-2312,
+// `ns_query_color` C 2315-2329, `ns_defined_color` C 2332-2354,
+// `ns_query_frame_background_color` C 2357-2363) and **`ns_set_frame_alpha` (C 2366-2398) - the
+// definition the deferred entry `ns_set_frame_alpha` waited for** - so `nm -u` no longer
+// lists `_ns_set_frame_alpha` either.  **Round 11 lands C 2401-2621**, the whole Mouse handling
+// section: `frame_set_mouse_pixel_position` (C 2408-2430), `ns_note_mouse_movement`
+// (C 2432-2472), `ns_mouse_position` (C 2475-2595) and `ns_frame_up_to_date` (C 2598-2621).
+// **Round 12 lands C 2624-2761**: `ns_define_frame_cursor` (C 2624-2637), the Keyboard handling
+// banner (C 2641-2645), `ns_convert_key` (C 2648-2663), `get_keysym_name` (C 2666-2677),
+// `right_mod` (C 2680-2684), `nil_or_none` (C 2686-2690) and `ns_get_shifted_character`
+// (C 2692-2761).  **Round 13 lands C 2789-2960**: `ns_clear_frame` (C 2788-2820, exported),
+// `ns_clear_frame_area` (C 2823-2846), `ns_scroll_run` (C 2849-2916) and
+// `ns_clear_under_internal_border` (C 2919-2960).  **Round 14 lands C 2963-3079**:
+// `ns_after_update_window_line` (C 2963-3019), `ns_shift_glyphs_for_insert` (C 3022-3036), the
+// "Character encoding and metrics" banner (C 3040-3044) and `ns_compute_glyph_string_overhangs`
+// (C 3047-3079).  **Round 15 lands C 3083-3291**: the Fringe and cursor drawing banner
+// (C 3083-3087), its `fringe_bmp` table (C 3089) and the section's three definitions
+// `ns_define_fringe_bitmap` (C 3091-3195), `ns_destroy_fringe_bitmap` (C 3198-3202) and
+// `ns_draw_fringe_bitmap` (C 3205-3291) - **no new C export** (all three are C `static`s).
+// **Round 16 lands C 3294-3508**: `ns_draw_window_cursor` (C 3295-3426),
+// `ns_draw_vertical_window_border` (C 3430-3449) and `ns_draw_window_divider` (C 3453-3508) -
+// again no new export - so the covered range is **C 60-3508**.  **Round 17 lands C 3511-3807**
+// (the hourglass pair, the Glyph drawing operations banner and the text-decoration block) and
+// **round 18 lands C 3809-4177** (the box/relief sub-block and the `dumpglyphs` background
+// helper) and **round 19 lands C 4179-4393** (the image sub-block: `ns_draw_image_relief` and
+// `ns_dumpglyphs_image`), so the covered range is **C 60-4393**; the next live definition is
+// C 4396's `ns_draw_stretch_glyph_string`.
+//
+// Swift has no `#include`, so the unit carries the declarations of its C environment.  The three
+// kinds are the lane's (`docs/ports/nsimage.md`'s `## ABI`, `docs/ports/nsselect.md`'s): imports
+// of the ported core and of the lane's header constructs with `@_silgen_name`, this unit's own C
+// interface exported with `@_cdecl`, and the C constructs that have no symbol at all spelled out
+// here.  `src/nsterm.h` already has a Rust mirror (`src/include/nsterm.rs`, status 3.199);
+// this unit does not repeat it, it declares only what its own slice reads, each line carrying the
+// reference's own `/// C:` text.
+//
+// The reference's platform arms: `NS_IMPL_COCOA` is the arm this lane compiles (the frozen
+// configuration has no `HAVE_NS`/`NS_IMPL_COCOA`, so the whole `.m` is dead there -
+// `docs/ports/nsterm.md`'s banner), and `NSTRACE_ENABLED` is **0** in `src/nsterm.h` 142-144, so
+// C 92-143's trace block is dead by construction and recorded in the ledger, not transcribed.
+
+import Foundation
+import AppKit
+import ApplicationServices
+// C 70-80: the `NS_IMPL_COCOA` arm's own includes - `#include <Carbon/Carbon.h>` (C 72-73) is
+// what `ns_get_shifted_character` needs (TIS/UCKeyTranslate), and C 74-79's comment about
+// ApplicationServices' UniversalAccess pair is the text round 5's UAZoom block already records.
+import Carbon
+// C 11131-11396's `EmacsLayer` is the one place this unit needs IOSurface (C 11128-11396); the
+// reference gets it through Carbon/ApplicationServices' umbrella, Swift needs the module named.
+import IOSurface
+
+// ==========================================================================
+// Lane ABI: C types.
+// ==========================================================================
+
+/// C: `typedef struct Lisp_X *Lisp_Word; typedef Lisp_Word Lisp_Object;` (src/lisp.h 311-323).
+/// The pointee is incomplete in C too, and a Swift pointer to a Swift type cannot cross
+/// `@_cdecl`, so the lane keeps the pointer alone (docs/ports/nsimage.md).
+typealias Lisp_Object = UnsafeMutableRawPointer?
+
+/// C: `typedef CGFloat EmacsCGFloat;` (src/nsterm.h 36, the `NS_IMPL_COCOA` arm).
+typealias EmacsCGFloat = CGFloat
+
+/// C: `union vectorlike_header { ptrdiff_t size; }` (src/lisp.h 923-953) - one member, needed by
+/// the records the later slices carry.
+struct vectorlike_header {
+  var size: Int
+}
+
+/// C: `typedef struct { unsigned long pixel; unsigned short red, green, blue; }
+/// Emacs_Color;` (src/dispextern.h 49-54, the `!HAVE_X_WINDOWS` arm that this target selects) -
+/// "XColor-like struct used by non-X code".  It crosses into `ns_defined_color` and
+/// `ns_query_frame_background_color`, whose pointee it is; the layout is measured (Evidence).
+struct Emacs_Color {
+  /// C: `unsigned long pixel;`
+  var pixel: UInt
+  /// C: `unsigned short red, green, blue;` - the declaration order, which is the layout.
+  var red: UInt16
+  var green: UInt16
+  var blue: UInt16
+}
+
+/// C: `struct font_metrics` (src/font.h 414-417) - `short lbearing, rbearing, width, ascent,
+/// descent;`.  `ns_compute_glyph_string_overhangs` **holds** one: the core's driver slot fills it
+/// through a pointer and C then reads the fields, so the unit declares the same five members (the
+/// view `macfont.swift` 49-60 and `src/font.rs` 196 already carry).  Measured with
+/// `spikes/gated-layout-probe.py 'struct font_metrics' font.h` (status 3.271's probe, read-only
+/// here): **all three arms read `sizeof=10, align=2`** with `lbearing 0, rbearing 2, width 4,
+/// ascent 6, descent 8` - the frozen arm parses for this record (Evidence).
+struct font_metrics {
+  var lbearing: Int16
+  var rbearing: Int16
+  var width: Int16
+  var ascent: Int16
+  var descent: Int16
+}
+
+/// C: `struct input_event` (src/termhooks.h 371-412) - the record `emacs_event` points at, and
+/// the one the `EV_*` accessors and `hold_event` fill.  It belongs to termhooks.h and has a
+/// Rust mirror (`src/include/termhooks.rs`); a Swift unit cannot see a Rust record, so
+/// this unit carries its own view of the same members, under the mirror's names.  The layout is
+/// measured, not assumed - clang on the frozen configuration says `sizeof 64`, `align 8`, and
+/// `code` 4, `modifiers` 8, `x` 16, `y` 24, `timestamp` 32, `frame_or_window` 40, `arg` 48,
+/// `device` 56, with the two bitfields sharing the unit at 0 (Evidence).
+struct input_event {
+  /// C: `ENUM_BF (event_kind) kind : EVENT_KIND_WIDTH;` and `ENUM_BF (scroll_bar_part)
+  /// part : 16;` (src/termhooks.h 374 and 377; the width is 360's `EVENT_KIND_WIDTH = 16`) -
+  /// `kind` is the low half, `part` the high half.
+  var bits: UInt32
+  /// C: `unsigned code;` (src/termhooks.h 383)
+  var code: UInt32
+  /// C: `unsigned modifiers;` (src/termhooks.h 386)
+  var modifiers: UInt32
+  /// C: `Lisp_Object x, y;` (src/termhooks.h 390)
+  var x: Lisp_Object
+  var y: Lisp_Object
+  /// C: `timestamp` (src/termhooks.h 395), whose type `Time` is systime.h's `unsigned long`.
+  var timestamp: UInt
+  /// C: `Lisp_Object frame_or_window;` (src/termhooks.h 399)
+  var frame_or_window: Lisp_Object
+  /// C: `Lisp_Object arg;` (src/termhooks.h 404)
+  var arg: Lisp_Object
+  /// C: `Lisp_Object device;` (src/termhooks.h 411)
+  var device: Lisp_Object
+}
+
+// ==========================================================================
+// Lane ABI: C symbols this file calls (`@_silgen_name`).
+// ==========================================================================
+
+// Header-only constructs (macros and INLINE functions of src/lisp.h): the core exports a C-ABI
+// entry under the construct's own name (docs/ports/nsselect.md (2)b).
+/// C: `INLINE bool SYMBOLP (Lisp_Object)` (src/lisp.h 1581).
+@_silgen_name("SYMBOLP") func SYMBOLP(_ x: Lisp_Object) -> Bool
+/// C: `INLINE bool EQ (Lisp_Object, Lisp_Object)` (src/lisp.h 390-460 family).
+@_silgen_name("EQ") func EQ(_ x: Lisp_Object, _ y: Lisp_Object) -> Bool
+
+// Symbols the ported core defines out of line.
+/// C: `Lisp_Object plist_get (Lisp_Object, Lisp_Object)` (src/lisp.h 4280; defined src/fns.c).
+@_silgen_name("plist_get") func plist_get(_ plist: Lisp_Object, _ prop: Lisp_Object) -> Lisp_Object
+/// C: `int parse_solitary_modifier (Lisp_Object symbol)` (src/keyboard.h 463; defined
+/// src/keyboard.c 7920).  The port's `src/keymap.rs` mirror declares this one as returning
+/// `Lisp_Object` (src/keyboard.h 465's neighbour in the generated globals), which disagrees with
+/// both C's own declaration and definition; this unit takes C's `int` (flagged in the ledger).
+@_silgen_name("parse_solitary_modifier") func parse_solitary_modifier(_ symbol: Lisp_Object) -> Int32
+/// C: `ns_use_srgb_colorspace` - src/nsterm.m 11716's `DEFVAR_BOOL ("ns-use-srgb-colorspace",
+/// …)`, which the generated globals.h spells as a macro over the `globals` record's field.
+/// The lane reaches a C variable another unit must supply as a C-ABI entry of its own name,
+/// and `@_silgen_name` on a `var` is an *import*; the landed `nsimage.swift` imports this same
+/// symbol that way (line 145), so this unit matches it (see the ledger's Decisions/ABI).
+@_silgen_name("ns_use_srgb_colorspace") var ns_use_srgb_colorspace: Bool
+
+// The generated globals (globals.h `#define Qfoo builtin_lisp_symbol (iQfoo)`): the core exports
+// one C-ABI function per name (docs/ports/nsselect.md (2)b).
+/// C: `Qnil` (globals.h; `iQnil` 0).
+@_silgen_name("Qnil") func Qnil() -> Lisp_Object
+/// C: `Qleft` (globals.h) - the value `ev_modifiers_helper` compares against.
+@_silgen_name("Qleft") func Qleft() -> Lisp_Object
+
+// ==========================================================================
+// C 82-88: the file-scope objects the file opens with.
+// ==========================================================================
+
+/// C 82: `static EmacsMenu *dockMenu;` - `EmacsMenu` is src/nsterm.h 540's class, implemented
+/// by this lane's src/nsmenu.m (`platform/macos/nsmenu.swift`, compiled as its own unit
+/// and not joint with this one), so C's pointer keeps P-55's untyped stand-in and the class's
+/// methods are reached as C-ABI entries with the receiver first (the reading
+/// `docs/ports/nsselect.md` gives `EmacsWindow`).
+fileprivate var dockMenu: UnsafeMutableRawPointer? = nil
+/// C 84: `static EmacsMenu *mainMenu;` (inside `#ifdef NS_IMPL_COCOA`)
+fileprivate var mainMenu: UnsafeMutableRawPointer? = nil
+/// C 88: "The last known monitor attributes list."  `static Lisp_Object last_known_monitors;` -
+/// zero-initialised in C, which is what `nil` is here; `ns_term_init` fills it in.
+fileprivate var last_known_monitors: Lisp_Object = nil
+
+// C 96-149: `#if NSTRACE_ENABLED`'s trace block (`nstrace_num`, `nstrace_depth`,
+// `nstrace_enabled_global`, `nstrace_leave`, `nstrace_restore_global_trace_state`,
+// `nstrace_fullscreen_type_name`).  `NSTRACE_ENABLED` is **0** (src/nsterm.h 142-143), so none of
+// it is compiled in the reference either; the three functions stay on the ledger's checklist as
+// recorded dead text (docs/ports/nsterm.md).
+
+// ==========================================================================
+// C 152-206: `@implementation NSColor (EmacsColor)` - an Objective-C category.
+// The port keeps the category as a Swift `extension` on the same class with the same four
+// methods (docs/ports/nsselect.md's `NSString (EmacsString)` reading).
+// ==========================================================================
+
+extension NSColor {
+  /// C 154-173: `+ (NSColor *)colorForEmacsRed:(CGFloat)red green:(CGFloat)green
+  /// blue:(CGFloat)blue alpha:(CGFloat)alpha`.  The `NS_IMPL_COCOA &&
+  /// MAC_OS_X_VERSION_MAX_ALLOWED >= 1070` arm is the one the Cocoa target compiles: the
+  /// `NSAppKitVersionNumber >= NSAppKitVersionNumber10_7` runtime test and the sRGB branch.
+  /// C's two globals are renamed in Swift - AppKit.apinotes 8624-8626 maps the first to
+  /// `NSAppKitVersion.current` and the vintage constants to `NSAppKitVersion.macOS10_x`; the
+  /// `.rawValue` comparison is the spelling the landed `nsimage.swift` uses for the pair.
+  class func colorForEmacsRed(_ red: EmacsCGFloat, green: EmacsCGFloat, blue: EmacsCGFloat,
+                              alpha: EmacsCGFloat) -> NSColor {
+    if ns_use_srgb_colorspace
+      && NSAppKitVersion.current.rawValue >= NSAppKitVersion.macOS10_7.rawValue {
+      return NSColor(srgbRed: red, green: green, blue: blue, alpha: alpha)
+    }
+    return NSColor(calibratedRed: red, green: green, blue: blue, alpha: alpha)
+  }
+
+  /// C 175-186: `- (NSColor *)colorUsingDefaultColorSpace`.
+  func colorUsingDefaultColorSpace() -> NSColor {
+    if ns_use_srgb_colorspace
+      && NSAppKitVersion.current.rawValue >= NSAppKitVersion.macOS10_7.rawValue {
+      return usingColorSpace(NSColorSpace.sRGB) ?? self
+    }
+    return usingColorSpace(NSColorSpace.genericRGB) ?? self
+  }
+
+  /// C 188-197: `+ (NSColor *)colorWithUnsignedLong:(unsigned long)c` - the ARGB byte order.
+  class func colorWithUnsignedLong(_ c: UInt) -> NSColor {
+    let a = EmacsCGFloat((c >> 24) & 0xff) / 255.0
+    let r = EmacsCGFloat((c >> 16) & 0xff) / 255.0
+    let g = EmacsCGFloat((c >> 8) & 0xff) / 255.0
+    let b = EmacsCGFloat(c & 0xff) / 255.0
+
+    return NSColor.colorForEmacsRed(r, green: g, blue: b, alpha: a)
+  }
+
+  /// C 199-213: `- (unsigned long)unsignedLong` - the four components back into ARGB.
+  func unsignedLong() -> UInt {
+    var r: EmacsCGFloat = 0, g: EmacsCGFloat = 0, b: EmacsCGFloat = 0, a: EmacsCGFloat = 0
+    getRed(&r, green: &g, blue: &b, alpha: &a)
+
+    return (UInt(a * 255) << 24) | (UInt(r * 255) << 16) | (UInt(g * 255) << 8) | UInt(b * 255)
+  }
+
+}
+
+// ==========================================================================
+// C 208-293: "Local declarations" - the NeXT key-code to X-keysym table.
+// ==========================================================================
+
+/// C 214-217: "Convert a symbol indexed with an NSxxx value to a value as defined in
+/// keyboard.c (lispy_function_key).  I hope this is a correct way of doing things..."
+/// C: `static unsigned convert_ns_to_X_keysym[] =`
+///
+/// C's flat pair layout is kept: its one reader, `ns_convert_key` (C 2648), walks the table
+/// with `keysym += 2` and reads `convert_ns_to_X_keysym[keysym]` / `[keysym + 1]`, so a flat
+/// array transcribes the reference literally.  The enumerators are AppKit's own (NSEvent.h's
+/// function-key enum imports as `Int`, NSText.h's character enum likewise), and C's
+/// `NSEventModifierFlagNumericPad` is `NSEvent.ModifierFlags.numericPad`.
+fileprivate let convert_ns_to_X_keysym: [UInt32] = [
+  UInt32(NSHomeFunctionKey), 0x50,
+  UInt32(NSLeftArrowFunctionKey), 0x51,
+  UInt32(NSUpArrowFunctionKey), 0x52,
+  UInt32(NSRightArrowFunctionKey), 0x53,
+  UInt32(NSDownArrowFunctionKey), 0x54,
+  UInt32(NSPageUpFunctionKey), 0x55,
+  UInt32(NSPageDownFunctionKey), 0x56,
+  UInt32(NSEndFunctionKey), 0x57,
+  UInt32(NSBeginFunctionKey), 0x58,
+  UInt32(NSSelectFunctionKey), 0x60,
+  UInt32(NSPrintFunctionKey), 0x61,
+  UInt32(NSClearLineFunctionKey), 0x0B,
+  UInt32(NSExecuteFunctionKey), 0x62,
+  UInt32(NSInsertFunctionKey), 0x63,
+  UInt32(NSUndoFunctionKey), 0x65,
+  UInt32(NSRedoFunctionKey), 0x66,
+  UInt32(NSMenuFunctionKey), 0x67,
+  UInt32(NSFindFunctionKey), 0x68,
+  UInt32(NSHelpFunctionKey), 0x6A,
+  UInt32(NSBreakFunctionKey), 0x6B,
+
+  UInt32(NSF1FunctionKey), 0xBE,
+  UInt32(NSF2FunctionKey), 0xBF,
+  UInt32(NSF3FunctionKey), 0xC0,
+  UInt32(NSF4FunctionKey), 0xC1,
+  UInt32(NSF5FunctionKey), 0xC2,
+  UInt32(NSF6FunctionKey), 0xC3,
+  UInt32(NSF7FunctionKey), 0xC4,
+  UInt32(NSF8FunctionKey), 0xC5,
+  UInt32(NSF9FunctionKey), 0xC6,
+  UInt32(NSF10FunctionKey), 0xC7,
+  UInt32(NSF11FunctionKey), 0xC8,
+  UInt32(NSF12FunctionKey), 0xC9,
+  UInt32(NSF13FunctionKey), 0xCA,
+  UInt32(NSF14FunctionKey), 0xCB,
+  UInt32(NSF15FunctionKey), 0xCC,
+  UInt32(NSF16FunctionKey), 0xCD,
+  UInt32(NSF17FunctionKey), 0xCE,
+  UInt32(NSF18FunctionKey), 0xCF,
+  UInt32(NSF19FunctionKey), 0xD0,
+  UInt32(NSF20FunctionKey), 0xD1,
+  UInt32(NSF21FunctionKey), 0xD2,
+  UInt32(NSF22FunctionKey), 0xD3,
+  UInt32(NSF23FunctionKey), 0xD4,
+  UInt32(NSF24FunctionKey), 0xD5,
+
+  UInt32(NSBackspaceCharacter), 0x08,        // C 265: /* 8: Not on some KBs.  */
+  UInt32(NSDeleteCharacter), 0xFF,           // C 266: /* 127: Big 'delete' key upper right.  */
+  UInt32(NSDeleteFunctionKey), 0x9F,         // C 267: /* 63272: Del forw key off main array.  */
+
+  UInt32(NSTabCharacter), 0x09,
+  0x19, 0x09,                                // C 270: /* left tab->regular since pass shift */
+  UInt32(NSCarriageReturnCharacter), 0x0D,
+  UInt32(NSNewlineCharacter), 0x0D,
+  UInt32(NSEnterCharacter), 0x8D,
+
+  0x41 | UInt32(NSEvent.ModifierFlags.numericPad.rawValue), 0xAE,  // C 275: /* KP_Decimal */
+  0x43 | UInt32(NSEvent.ModifierFlags.numericPad.rawValue), 0xAA,  // C 276: /* KP_Multiply */
+  0x45 | UInt32(NSEvent.ModifierFlags.numericPad.rawValue), 0xAB,  // C 277: /* KP_Add */
+  0x4B | UInt32(NSEvent.ModifierFlags.numericPad.rawValue), 0xAF,  // C 278: /* KP_Divide */
+  0x4E | UInt32(NSEvent.ModifierFlags.numericPad.rawValue), 0xAD,  // C 279: /* KP_Subtract */
+  0x51 | UInt32(NSEvent.ModifierFlags.numericPad.rawValue), 0xBD,  // C 280: /* KP_Equal */
+  0x52 | UInt32(NSEvent.ModifierFlags.numericPad.rawValue), 0xB0,  // C 281: /* KP_0 */
+  0x53 | UInt32(NSEvent.ModifierFlags.numericPad.rawValue), 0xB1,  // C 282: /* KP_1 */
+  0x54 | UInt32(NSEvent.ModifierFlags.numericPad.rawValue), 0xB2,  // C 283: /* KP_2 */
+  0x55 | UInt32(NSEvent.ModifierFlags.numericPad.rawValue), 0xB3,  // C 284: /* KP_3 */
+  0x56 | UInt32(NSEvent.ModifierFlags.numericPad.rawValue), 0xB4,  // C 285: /* KP_4 */
+  0x57 | UInt32(NSEvent.ModifierFlags.numericPad.rawValue), 0xB5,  // C 286: /* KP_5 */
+  0x58 | UInt32(NSEvent.ModifierFlags.numericPad.rawValue), 0xB6,  // C 287: /* KP_6 */
+  0x59 | UInt32(NSEvent.ModifierFlags.numericPad.rawValue), 0xB7,  // C 288: /* KP_7 */
+  0x5B | UInt32(NSEvent.ModifierFlags.numericPad.rawValue), 0xB8,  // C 289: /* KP_8 */
+  0x5C | UInt32(NSEvent.ModifierFlags.numericPad.rawValue), 0xB9,  // C 290: /* KP_9 */
+
+  0x1B, 0x1B                                 // C 292: /* escape */
+]
+
+// ==========================================================================
+// C 295-347: the file-scope objects the file's state lives in.
+// ==========================================================================
+
+/// C 298-299: "On macOS picks up the default NSGlobalDomain AppleAntiAliasingThreshold, the
+/// maximum font size to NOT antialias.  On GNUstep there is currently no way to control this
+/// behavior."  `float ns_antialias_threshold;`
+var ns_antialias_threshold: Float = 0
+
+/// C 300-301: `NSArray *ns_send_types = 0, *ns_return_types = 0; static NSArray *ns_drag_types = 0;`
+/// The first two are C *data* symbols other files read (`src/nsterm.h` 774); Swift cannot export a
+/// data symbol, so the lane reaches them as C-ABI **functions** of the same name
+/// (docs/ports/nsselect.md (2)c, where `nsselect.swift` imports them), and this unit owns the
+/// definitions.
+@_silgen_name("ns_send_types") var ns_send_types_storage: NSArray?
+@_silgen_name("ns_return_types") var ns_return_types_storage: NSArray?
+fileprivate var ns_drag_types: NSArray? = nil
+
+/// C 300: `NSArray *ns_send_types` - the C-ABI entry (see above).
+
+/// C 300: `NSArray *ns_return_types` - the C-ABI entry (see above).
+
+
+/// C 303: `NSString *ns_app_name = @"Emacs"; /* default changed later */` - exported (src/nsterm.h
+/// 775), so it takes the same C-ABI-function shape.
+@_silgen_name("ns_app_name") var ns_app_name_storage: NSString?
+
+
+/// C 305-306: "Display variables": `struct ns_display_info *x_display_list;` and
+/// `long context_menu_value = 0;`.  Both are exported (`src/nsterm.h` 931-933); the record's
+/// pointee belongs to this lane's header mirror, so the port keeps C's pointer depth with the
+/// untyped stand-in (P-55) and the ledger names the owner.
+@_silgen_name("x_display_list") var x_display_list: UnsafeMutableRawPointer?
+
+@_silgen_name("context_menu_value") var context_menu_value_storage: Int
+
+
+/// C 308-313: "display update": `static struct frame *ns_updating_frame; static int ns_window_num
+/// = 0; static BOOL gsaved = NO; static BOOL ns_menu_bar_is_hidden = NO;` (the last one inside
+/// `#ifdef NS_IMPL_COCOA`).
+fileprivate var ns_updating_frame: UnsafeMutableRawPointer? = nil
+fileprivate var ns_window_num: Int32 = 0
+fileprivate var gsaved: Bool = false
+fileprivate var ns_menu_bar_is_hidden: Bool = false
+
+/// C 315-342: "event loop".  `send_appdefined`, the `NO_APPDEFINED_DATA` sentinel, the two
+/// timers, the `select` state, the self-pipe, the mutex, the autorelease pool, the event pointers
+/// and the pending-file arrays - C's declarations with C's comments.
+/// C: `static BOOL send_appdefined = YES;`
+fileprivate var send_appdefined: Bool = true
+/// C: `#define NO_APPDEFINED_DATA (-8)` / `static int last_appdefined_event_data =
+/// NO_APPDEFINED_DATA;`
+fileprivate let NO_APPDEFINED_DATA: Int32 = -8
+fileprivate var last_appdefined_event_data: Int32 = NO_APPDEFINED_DATA
+/// C: `static NSTimer *timed_entry = 0; static NSTimer *scroll_repeat_entry = nil;`
+fileprivate var timed_entry: Timer? = nil
+fileprivate var scroll_repeat_entry: Timer? = nil
+/// C: `static fd_set select_readfds, select_writefds;`
+fileprivate var select_readfds = fd_set()
+fileprivate var select_writefds = fd_set()
+/// C: `enum { SELECT_HAVE_READ = 1, SELECT_HAVE_WRITE = 2, SELECT_HAVE_TMO = 4 };` - the
+/// enumerators are imported with `use …::*` in the Rust lane and stay bare names here.
+/// C: `static int select_nfds = 0, select_valid = 0;`
+fileprivate var select_nfds: Int32 = 0
+fileprivate var select_valid: Int32 = 0
+/// C: `static struct timespec select_timeout = { 0, 0 };`
+fileprivate var select_timeout = timespec(tv_sec: 0, tv_nsec: 0)
+/// C: `static int selfds[2] = { -1, -1 };`
+fileprivate var selfds: (Int32, Int32) = (-1, -1)
+/// C: `static pthread_mutex_t select_mutex;`
+fileprivate var select_mutex = pthread_mutex_t()
+/// C: `static NSAutoreleasePool *outerpool;` - ARC has no `NSAutoreleasePool` (measured: it is
+/// "not available in automatic reference counting mode"), so the unit keeps the *handle*; the
+/// slices that create and re-create it (C 560-568, 5154-5155, 5982-5983) reach the runtime's
+/// `objc_autoreleasePoolPush`/`objc_autoreleasePoolPop` (the pair `@autoreleasepool` compiles
+/// to; the symbols are in libobjc but not in the SDK's Swift-visible headers - measured).
+fileprivate var outerpool: UnsafeMutableRawPointer? = nil
+/// C: `static struct input_event *emacs_event = NULL; static struct input_event *q_event_ptr =
+/// NULL;` - the record is this unit's view of termhooks.h's (see `input_event` above), so the
+/// pointers are typed by it rather than by P-55's untyped stand-in.
+fileprivate var emacs_event: UnsafeMutablePointer<input_event>? = nil
+fileprivate var q_event_ptr: UnsafeMutablePointer<input_event>? = nil
+/// C: `static int n_emacs_events_pending = 0;`
+fileprivate var n_emacs_events_pending: Int32 = 0
+/// C: `static NSMutableArray *ns_pending_files, *ns_pending_service_names,
+/// *ns_pending_service_args;`
+fileprivate var ns_pending_files: NSMutableArray? = nil
+fileprivate var ns_pending_service_names: NSMutableArray? = nil
+fileprivate var ns_pending_service_args: NSMutableArray? = nil
+/// C: `static BOOL ns_do_open_file = NO; static BOOL ns_last_use_native_fullscreen;`
+fileprivate var ns_do_open_file: Bool = false
+fileprivate var ns_last_use_native_fullscreen: Bool = false
+
+/// C 335-336: "Non-zero means that a HELP_EVENT has been generated since Emacs start."
+/// C: `static BOOL any_help_event_p = NO;`
+fileprivate var any_help_event_p: Bool = false
+
+/// C 338-342: `static struct { struct input_event *q; int nr, cap; } hold_event_q = { NULL, 0, 0 };`
+/// C's `q` is an array of `struct input_event` (`xrealloc`ed, indexed by `nr`), so it is a typed
+/// pointer here.
+fileprivate var hold_event_q_q: UnsafeMutablePointer<input_event>? = nil
+fileprivate var hold_event_q_nr: Int32 = 0
+fileprivate var hold_event_q_cap: Int32 = 0
+
+/// C 349-355: the NeXTstep modifier masks, "Convert modifiers in a NeXTstep event to emacs style
+/// modifiers".  C's `#define`s name AppKit's own flags, so they stay `let`s of the same shape.
+/// C: `#define NS_FUNCTION_KEY_MASK 0x800000`
+let NS_FUNCTION_KEY_MASK: UInt = 0x800000
+/// C: `#define NSLeftControlKeyMask (0x000001 | NSEventModifierFlagControl)`
+let NSLeftControlKeyMask: UInt = 0x000001 | NSEvent.ModifierFlags.control.rawValue
+let NSRightControlKeyMask: UInt = 0x002000 | NSEvent.ModifierFlags.control.rawValue
+let NSLeftCommandKeyMask: UInt = 0x000008 | NSEvent.ModifierFlags.command.rawValue
+let NSRightCommandKeyMask: UInt = 0x000010 | NSEvent.ModifierFlags.command.rawValue
+let NSLeftAlternateKeyMask: UInt = 0x000020 | NSEvent.ModifierFlags.option.rawValue
+let NSRightAlternateKeyMask: UInt = 0x000040 | NSEvent.ModifierFlags.option.rawValue
+
+// ==========================================================================
+// C 358-389: the first two functions (the masks above are C 349-356).
+// ==========================================================================
+
+/// C 358-367: "MODIFIER if a symbol; otherwise its property KIND, if a symbol."
+/// C: `static Lisp_Object mod_of_kind (Lisp_Object modifier, Lisp_Object kind)`
+fileprivate func mod_of_kind(_ modifier: Lisp_Object, _ kind: Lisp_Object) -> Lisp_Object {
+  if SYMBOLP(modifier) {
+    return modifier
+  } else {
+    let val = plist_get(modifier, kind)
+    return SYMBOLP(val) ? val : Qnil()
+  }
+}
+
+/// C 369-389: the left/right modifier helper.  C's `unsigned int` returns are the modifier bits
+/// `parse_solitary_modifier` produces (an `int` there, src/keyboard.c 7920).
+/// C: `static unsigned int ev_modifiers_helper (unsigned int flags, unsigned int left_mask,
+/// unsigned int right_mask, unsigned int either_mask, Lisp_Object left_modifier,
+/// Lisp_Object right_modifier)`
+fileprivate func ev_modifiers_helper(_ flags: UInt32, _ left_mask: UInt32, _ right_mask: UInt32,
+                         _ either_mask: UInt32, _ left_modifier: Lisp_Object,
+                         _ right_modifier: Lisp_Object) -> UInt32 {
+  var modifiers: UInt32 = 0
+
+  if (flags & either_mask) != 0 {
+    let left_key = (flags & left_mask) == left_mask
+    let right_key = (flags & right_mask) == right_mask && !EQ(right_modifier, Qleft())
+
+    if right_key {
+      modifiers |= UInt32(bitPattern: parse_solitary_modifier(right_modifier))
+    }
+
+    /* GNUstep (and possibly macOS in certain circumstances) doesn't
+       differentiate between the left and right keys, so if we can't
+       identify which key it is, we use the left key setting.  */
+    if left_key || !right_key {
+      modifiers |= UInt32(bitPattern: parse_solitary_modifier(left_modifier))
+    }
+  }
+
+  return modifiers
+}
+
+
+// ==========================================================================
+// C 391-519: the `EV_*` accessors, the forward declarations, and the event-loop utilities.
+// ==========================================================================
+
+// The seven `DEFVAR_LISP` variables `syms_of_nsterm` defines (C 11608-11670).  This block reads
+// them about 11,000 lines earlier, and a fileprivate global of this unit's own would not exist
+// yet at C 397, so the lane imports them as the C data symbols the core exports - the shape
+// `docs/ports/macfont.swift` uses for `Votf_script_alist`, and the integrator's ruling for this
+// slice (docs/ports/nsterm.md's Decisions).
+@_silgen_name("ns_alternate_modifier") var ns_alternate_modifier: Lisp_Object
+@_silgen_name("ns_right_alternate_modifier") var ns_right_alternate_modifier: Lisp_Object
+@_silgen_name("ns_command_modifier") var ns_command_modifier: Lisp_Object
+@_silgen_name("ns_right_command_modifier") var ns_right_command_modifier: Lisp_Object
+@_silgen_name("ns_control_modifier") var ns_control_modifier: Lisp_Object
+@_silgen_name("ns_right_control_modifier") var ns_right_control_modifier: Lisp_Object
+@_silgen_name("ns_function_modifier") var ns_function_modifier: Lisp_Object
+
+// `src/termhooks.h` 434-459's modifier bits are enumerators; the lane reaches an enumerator
+// through a C-ABI entry carrying its own name (docs/ports/nsselect.md's `PVEC_SUBR` reading).
+@_silgen_name("up_modifier") func up_modifier() -> Int32
+@_silgen_name("down_modifier") func down_modifier() -> Int32
+@_silgen_name("hyper_modifier") func hyper_modifier() -> Int32
+@_silgen_name("shift_modifier") func shift_modifier() -> Int32
+
+/// C: `DEFSYM (QCmouse, ":mouse")` (src/nsterm.m 11795) is **this file's own** `DEFSYM`, and it
+/// is absent from `docs/baseline/globals/symbols.tsv` (whose table is generated from the frozen
+/// build set, which never compiles this file); the core has to export it like the rest - the
+/// reading `docs/ports/macfont.swift` gives `Qmac_ct`/`QCdestination`.
+@_silgen_name("QCmouse") func QCmouse() -> Lisp_Object
+
+/// C: `void *xrealloc (void *, size_t)` (src/lisp.h 5541) - the "x" allocator: it never returns
+/// NULL (src/alloc.c 4130's `memory_full`), which is why the call below takes the result apart.
+@_silgen_name("xrealloc") func xrealloc(_ p: UnsafeMutableRawPointer?,
+                                        _ size: Int) -> UnsafeMutableRawPointer?
+/// C: `Lisp_Object nconc2 (Lisp_Object, Lisp_Object)` (src/lisp.h 4271; defined src/fns.c).
+@_silgen_name("nconc2") func nconc2(_ a: Lisp_Object, _ b: Lisp_Object) -> Lisp_Object
+/// C: `list1` (src/lisp.h 4486; defined src/alloc.c) - the fixed-arity spelling of the
+/// variadic `list` macro (src/lisp.h 4493), see `append2` below.
+@_silgen_name("list1") func list1(_ a: Lisp_Object) -> Lisp_Object
+/// C: `#define EVENT_INIT(event) ((event) = (struct input_event) {.device = Qt})` (src/termhooks.h
+/// 414).  The core's entry takes `struct input_event *`, which this unit's view of that record
+/// spells as a pointer to it (the same layout - see the type's comment).
+@_silgen_name("EVENT_INIT") func EVENT_INIT(_ event: UnsafeMutablePointer<input_event>)
+
+/// C 397-424: `#define EV_MODIFIERS2(flags, kind)` - "Convert modifiers in a NeXTstep event to
+/// emacs style modifiers".  C's value is `unsigned int`, and its three helper calls take
+/// `unsigned int` parameters, so the `NSUInteger` flags, masks and AppKit flags are converted
+/// exactly where C's implicit conversions convert them (`truncatingIfNeeded:` is C's narrowing).
+func EV_MODIFIERS2(_ flags: UInt, _ kind: Lisp_Object) -> UInt32 {
+  var modifiers: UInt32 = 0
+
+  modifiers |= (flags & NSEvent.ModifierFlags.help.rawValue) != 0
+    ? UInt32(bitPattern: hyper_modifier()) : 0
+  modifiers |= (flags & NSEvent.ModifierFlags.shift.rawValue) != 0
+    ? UInt32(bitPattern: shift_modifier()) : 0
+  modifiers |= (flags & NS_FUNCTION_KEY_MASK) != 0
+    ? UInt32(bitPattern: parse_solitary_modifier(mod_of_kind(ns_function_modifier, kind))) : 0
+
+  modifiers |= ev_modifiers_helper(UInt32(truncatingIfNeeded: flags),
+                                   UInt32(truncatingIfNeeded: NSLeftControlKeyMask),
+                                   UInt32(truncatingIfNeeded: NSRightControlKeyMask),
+                                   UInt32(NSEvent.ModifierFlags.control.rawValue),
+                                   mod_of_kind(ns_control_modifier, kind),
+                                   mod_of_kind(ns_right_control_modifier, kind))
+  modifiers |= ev_modifiers_helper(UInt32(truncatingIfNeeded: flags),
+                                   UInt32(truncatingIfNeeded: NSLeftCommandKeyMask),
+                                   UInt32(truncatingIfNeeded: NSRightCommandKeyMask),
+                                   UInt32(NSEvent.ModifierFlags.command.rawValue),
+                                   mod_of_kind(ns_command_modifier, kind),
+                                   mod_of_kind(ns_right_command_modifier, kind))
+  modifiers |= ev_modifiers_helper(UInt32(truncatingIfNeeded: flags),
+                                   UInt32(truncatingIfNeeded: NSLeftAlternateKeyMask),
+                                   UInt32(truncatingIfNeeded: NSRightAlternateKeyMask),
+                                   UInt32(NSEvent.ModifierFlags.option.rawValue),
+                                   mod_of_kind(ns_alternate_modifier, kind),
+                                   mod_of_kind(ns_right_alternate_modifier, kind))
+
+  return modifiers
+}
+
+/// C 425: `#define EV_MODIFIERS(e) EV_MODIFIERS2 ([e modifierFlags], QCmouse)`.
+func EV_MODIFIERS(_ e: NSEvent) -> UInt32 {
+  EV_MODIFIERS2(e.modifierFlags.rawValue, QCmouse())
+}
+
+/// C 427-437: `#define EV_UDMODIFIERS(e)` - the up/down bit of a mouse event, C's `int`.  The
+/// ten comparisons are transcribed one for one (C ORs the same bit in more than once when more
+/// than one holds, which is why this is not folded into a set membership test).
+func EV_UDMODIFIERS(_ e: NSEvent) -> Int32 {
+  ((e.type == .leftMouseDown) ? down_modifier() : 0)
+    | ((e.type == .rightMouseDown) ? down_modifier() : 0)
+    | ((e.type == .otherMouseDown) ? down_modifier() : 0)
+    | ((e.type == .leftMouseDragged) ? down_modifier() : 0)
+    | ((e.type == .rightMouseDragged) ? down_modifier() : 0)
+    | ((e.type == .otherMouseDragged) ? down_modifier() : 0)
+    | ((e.type == .leftMouseUp) ? up_modifier() : 0)
+    | ((e.type == .rightMouseUp) ? up_modifier() : 0)
+    | ((e.type == .otherMouseUp) ? up_modifier() : 0)
+}
+
+/// C 438-442: `#define EV_BUTTON(e)` - the wheel/button index C computes from `[e buttonNumber]`,
+/// C's `NSInteger`.
+func EV_BUTTON(_ e: NSEvent) -> Int {
+  ((e.type == .leftMouseDown) || (e.type == .leftMouseUp)) ? 0
+    : ((e.type == .rightMouseDown) || (e.type == .rightMouseUp)) ? 2
+    : e.buttonNumber - 1
+}
+
+/// C 444: `#define EV_TIMESTAMP(e) ([e timestamp] * 1000)` - "Convert the time field to a
+/// timestamp in milliseconds."  C's product of `NSTimeInterval` (double); the sites that store
+/// it convert it the way C's assignment converts a double to `Time`.
+func EV_TIMESTAMP(_ e: NSEvent) -> Double {
+  e.timestamp * 1000
+}
+
+// C 448-470: `EV_TRAILER` and `EV_TRAILER2`, the two macros every event handler ends with, are
+// **held**: Swift has no forward declaration, and their bodies call `hold_event` (this file's
+// C 498) and `ns_send_appdefined` (this file's C 5013), whose Swift definitions do not exist
+// yet.  The reference's own macro text sits before those definitions too, and is only *expanded*
+// after them (the first expansion is C 6412) - so they land at C 5013, the point where both
+// callees exist, and their checklist boxes stay open until then (docs/ports/nsterm.md).
+
+// C 473-475: "TODO: Get rid of need for these forward declarations." - `static void
+// ns_condemn_scroll_bars (struct frame *f);` and `static void ns_judge_scroll_bars (struct
+// frame *f);`.  Swift has no forward declaration and needs none: each function lands once, at
+// its own definition (C 5575 and C 5622).
+
+/// C 484-489: `void ns_init_events (struct input_event *ev)`.  Declared src/nsterm.h 1257 and
+/// called from src/nsfns.m 2492, so it is part of the unit's C interface (the `@_cdecl` half of
+/// the lane's ABI).  C: `EVENT_INIT (*ev); emacs_event = ev;`
+///
+/// The exported parameter is untyped: `@_cdecl` refuses a pointer to a Swift record ("the type
+/// of the parameter cannot be represented in Objective-C", measured), and at the ABI it is C's
+/// `struct input_event *` either way - the caller passes its own view of the record.
+@_cdecl("ns_init_events") func ns_init_events(_ ev: UnsafeMutableRawPointer) {
+  let event = ev.assumingMemoryBound(to: input_event.self)
+  EVENT_INIT(event)
+  emacs_event = event
+}
+
+/// C 492-495: `void ns_finish_events (void)` (declared src/nsterm.h 1258, called src/nsfns.m
+/// 2495).  C: `emacs_event = NULL;`
+@_cdecl("ns_finish_events") func ns_finish_events() {
+  emacs_event = nil
+}
+
+/// C 498-514: `static void hold_event (struct input_event *event)` (the record's line above is
+/// termhooks.h 371) - the hold queue
+/// `ns_read_socket` drains; `EV_TRAILER2` (C 467) and the scroller's
+/// `sendScrollEventAtLoc:fromEvent:` (C 10886) are its callers.
+fileprivate func hold_event(_ event: UnsafeMutablePointer<input_event>?) {
+  if hold_event_q_nr == hold_event_q_cap {
+    if hold_event_q_cap == 0 { hold_event_q_cap = 10 } else { hold_event_q_cap *= 2 }
+    // C's `xrealloc` never returns NULL, so the pointer comes back to this lane's typed view
+    // without an optional in between (src/alloc.c's `memory_full` on failure).
+    hold_event_q_q = xrealloc(hold_event_q_q,
+                              Int(hold_event_q_cap) * MemoryLayout<input_event>.stride)!
+      .assumingMemoryBound(to: input_event.self)
+  }
+
+  // C's `hold_event_q.q[hold_event_q.nr++] = *event;` - the value copy of one record; a NULL
+  // argument traps here as the reference's unguarded `*event` faults there.
+  hold_event_q_q![Int(hold_event_q_nr)] = event!.pointee
+  hold_event_q_nr += 1
+  /* Make sure ns_read_socket is called, i.e. we have input.  */
+  raise(SIGIO)
+  send_appdefined = true
+}
+
+/// C 515-519: `static Lisp_Object append2 (Lisp_Object list, Lisp_Object item)` - "Utility to
+/// append to a list".  C's `list` (src/lisp.h 4493) is the variadic macro
+/// `listn (countof (…), …)`; with one argument it is `list1`'s call (src/lisp.h 4486), the
+/// lane's reading for a fixed-arity spelling of a variadic macro (docs/ports/nsselect.md's
+/// `calln`).
+fileprivate func append2(_ list: Lisp_Object, _ item: Lisp_Object) -> Lisp_Object {
+  nconc2(list, list1(item))
+}
+
+// ==========================================================================
+// C 522-638: path relocation, the autorelease pool, the locale, and the
+// retain/release hooks "callable from C".
+// ==========================================================================
+
+/// C: `void *objc_autoreleasePoolPush (void)` and `void objc_autoreleasePoolPop (void *)` - the
+/// pair `@autoreleasepool` compiles to, and the runtime's own pool primitives.  The SDK's
+/// Swift-visible headers do not carry them (measured) and `NSAutoreleasePool` is unavailable
+/// under ARC (round 1's `outerpool` decision), so the pool functions below reach the runtime by
+/// name; round 1 measured the two symbols in libobjc with a C probe.
+@_silgen_name("objc_autoreleasePoolPush")
+func objc_autoreleasePoolPush() -> UnsafeMutableRawPointer?
+@_silgen_name("objc_autoreleasePoolPop")
+func objc_autoreleasePoolPop_raw(_ pool: UnsafeMutableRawPointer?)
+
+// Objective-C release of a nil pool is a no-op; the raw runtime pop is not.
+func objc_autoreleasePoolPop(_ pool: UnsafeMutableRawPointer?) {
+  if let pool = pool { objc_autoreleasePoolPop_raw(pool) }
+}
+
+/// C: `int fprintf (FILE *, const char *, ...)` (stdio.h) - Swift's own `fprintf` is marked
+/// unavailable, and the lane reaches the C entry by name (docs/ports/nsfont.swift 1173-1177).
+@_silgen_name("fprintf")
+func fprintf(_ stream: UnsafeMutablePointer<FILE>?, _ format: UnsafePointer<CChar>,
+             _ args: CVarArg...)
+
+/// C 525-557: `const char *ns_relocate (const char *epath)` - "If we're running in a
+/// self-contained app bundle some hard-coded paths are relative to the root of the bundle, so
+/// work out the full path."  Declared src/nsterm.h 1195 and called from src/emacs.c 1059 and
+/// 3298, so it is a `@_cdecl` export.
+///
+/// The `#ifdef NS_SELF_CONTAINED` arm is the live one: `configure.ac` 689-690 defaults the
+/// option to `yes` and 2885-2886 `AC_DEFINE`s the macro, so the bundled build - the one this
+/// ledger describes - has the block; the `--disable-ns-self-contained` build compiles the same
+/// function without it (P-51: the dead arm is this paragraph, recorded, not transcribed).
+@_cdecl("ns_relocate") func ns_relocate(_ epath: UnsafePointer<CChar>?)
+  -> UnsafePointer<CChar>? {
+  let root = Bundle.main.bundlePath
+  let original: NSString? = epath.flatMap { NSString(utf8String: $0) }
+  // C's `[NSArray arrayWithObjects: root, original, nil]` stops at the first nil, so a path
+  // that is not UTF-8 leaves `root` alone in the array.
+  let components = original == nil ? [root] : [root, original! as String]
+  let fixedPath = NSString.path(withComponents: components) as NSString
+  let fileManager = FileManager.default
+
+  if !(original?.isAbsolutePath ?? false)
+       && fileManager.fileExists(atPath: fixedPath as String, isDirectory: nil) {
+    // C returns `[fixedPath UTF8String]`, and `fixedPath` is *autoreleased* there: the pointer
+    // stays valid until the pool drains.  The unit autoreleases its `NSString` the same way -
+    // `passRetained` + `autorelease` is exactly that pair - so the pointer the caller gets has
+    // C's lifetime instead of one that ends when this scope does.
+    _ = Unmanaged.passRetained(fixedPath).autorelease()
+    return fixedPath.utf8String
+  }
+
+  /* If we reach here either the path is absolute and therefore we
+     don't need to complete it, or we're unable to relocate the
+     file/directory.  If it's the latter it may be because the user is
+     trying to use a bundled app as though it's a Unix style install
+     and we have no way to guess what was intended, so return the
+     original string unaltered.  */
+
+  return epath
+}
+
+/// C 560-568: `void ns_init_pool (void)` - "Initialize the 'outerpool' autorelease pool.  This
+/// should be called from main before any Objective C code is run."  Declared src/nsterm.h 1171,
+/// called from src/emacs.c 1426.  C: `outerpool = [[NSAutoreleasePool alloc] init];` - under ARC
+/// that type is unavailable, so the pool is the runtime's push (round 1's `outerpool` decision).
+@_cdecl("ns_init_pool") func ns_init_pool() {
+  outerpool = objc_autoreleasePoolPush()
+  if ns_app_name_storage == nil { ns_app_name_storage = "Emacs" }
+}
+
+/// C 597: `const char *const default_lang = "en_US.UTF-8";` - a C literal has static storage, so
+/// its bytes outlive the call; this file-scope `NSString` is the same storage class (a
+/// `withCString` scope or a local Swift `String` would die before `setenv` below runs).
+fileprivate let ns_init_locale_default_lang = NSString(string: "en_US.UTF-8")
+
+/// C 569-600: `void ns_init_locale (void)` - "macOS doesn't set any environment variables for
+/// the locale when run from the GUI.  Get the locale from the OS and set LANG."  Declared
+/// src/nsterm.h 1172, called from src/emacs.c 1647.  `NSTRACE ("ns_init_locale")` is the empty
+/// macro when `NSTRACE_ENABLED` is 0 (src/nsterm.h 297 and 302), so it carries no statement here
+/// either - the same dead arm round 1 recorded for C 96-149.
+@_cdecl("ns_init_locale") func ns_init_locale() {
+  /* Either use LANG, if set, or try to construct LANG from
+     NSLocale.  */
+  var lang = UnsafePointer<CChar>(getenv("LANG"))
+  if lang == nil || lang!.pointee == 0 {
+    let localeID = NSString(format: "%@.UTF-8" as NSString,
+                            Locale.current.identifier as NSString)
+    // C's `[NSString stringWithFormat:…]` is autoreleased there, so the `const char *` it yields
+    // is valid for the rest of the function; the unit autoreleases it the same way.
+    _ = Unmanaged.passRetained(localeID).autorelease()
+    lang = localeID.utf8String
+  }
+
+  /* Check if LANG can be used for initializing the locale.  If not,
+     use a default setting.  Note that Emacs's main will undo the
+     setlocale below, initializing the locale from the
+     environment.  */
+  if setlocale(LC_ALL, lang) == nil {
+    fprintf(stderr, "LANG=%s cannot be used, using %s instead.\n",
+            lang!, ns_init_locale_default_lang.utf8String!)
+    lang = ns_init_locale_default_lang.utf8String
+  }
+
+  setenv("LANG", lang, 1)
+}
+
+/// C 602-608: `void ns_release_object (void *obj)` - "Release an object (callable from C)".
+/// Declared src/nsterm.h 1166, and `nsselect.swift` (line 215) imports it as the
+/// `record_unwind_protect_ptr` callback (src/nsselect.m 601), so this export's parameter type is
+/// that file's: an optional untyped pointer.
+@_cdecl("ns_release_object") func ns_release_object(_ obj: UnsafeMutableRawPointer?) {
+  // C: `[(id)obj release];`.  ARC refuses `release`, so the unit consumes the +1 the reference
+  // consumes through the runtime's own entry (`Unmanaged.release`); a NULL argument is C's
+  // nil-receiver message, which does nothing.
+  if obj == nil { return }
+  Unmanaged<AnyObject>.fromOpaque(obj!).release()
+}
+
+/// C 610-616: `void ns_retain_object (void *obj)` - "Retain an object (callable from C)".
+/// Declared src/nsterm.h 1167, called from src/image.c 4418.  C: `[(id)obj retain];` - the +1
+/// belongs to the caller, so the result is discarded rather than balanced.
+@_cdecl("ns_retain_object") func ns_retain_object(_ obj: UnsafeMutableRawPointer?) {
+  if obj == nil { return }
+  _ = Unmanaged<AnyObject>.fromOpaque(obj!).retain()
+}
+
+/// C 622-628: `void *ns_alloc_autorelease_pool (void)` - "Allocate a pool for temporary objects
+/// (callable from C)".  Declared src/nsterm.h 1168, called from src/thread.c 786 (paired with
+/// `ns_release_autorelease_pool` at 842).
+@_cdecl("ns_alloc_autorelease_pool")
+func ns_alloc_autorelease_pool() -> UnsafeMutableRawPointer? {
+  objc_autoreleasePoolPush()
+}
+
+/// C 632-638: `void ns_release_autorelease_pool (void *pool)` - "Free a pool and temporary
+/// objects it refers to (callable from C)".  C: `ns_release_object (pool);` - the same
+/// `[(id)pool release]` that a pool's pop is, which is the runtime entry this unit pushes with;
+/// C's nil receiver is a no-op, so a NULL pool returns here.
+@_cdecl("ns_release_autorelease_pool")
+func ns_release_autorelease_pool(_ pool: UnsafeMutableRawPointer?) {
+  if pool == nil { return }
+  objc_autoreleasePoolPop(pool)
+}
+
+// ==========================================================================
+// C 641-991: the screen geometry, the menu bar, and the window constrainer.
+// ==========================================================================
+
+/// C: `bool ns_auto_hide_menu_bar` - src/nsterm.m 11697's `DEFVAR_LISP ("ns-auto-hide-menu-bar",
+/// …)` (a `Lisp_Object`, set to `Qnil` at 11700).  Imported as the C data symbol the core
+/// exports, the shape round 2 set for the seven `ns_*_modifier` variables and round 1 for
+/// `ns_use_srgb_colorspace`; it is owed until `syms_of_nsterm`'s slice lands.
+@_silgen_name("ns_auto_hide_menu_bar") var ns_auto_hide_menu_bar: Lisp_Object
+
+/// C: `#define NILP(x) lisp_h_NILP (x)` (src/lisp.h 450) - the predicate the generated globals
+/// use; the lane reaches it as a C-ABI entry of its own name (docs/ports/nsfns.swift 176).
+@_silgen_name("NILP") func NILP(_ x: Lisp_Object) -> Bool
+
+/// C: `struct frame *FRAME_PARENT_FRAME (struct frame *f)` (src/frame.h 1234, an INLINE).
+@_silgen_name("FRAME_PARENT_FRAME")
+func FRAME_PARENT_FRAME(_ f: UnsafeMutableRawPointer?) -> UnsafeMutableRawPointer?
+/// C: `#define FRAME_NS_VIEW(f) ((f)->output_data.ns->view)` (src/nsterm.h 1045).
+@_silgen_name("FRAME_NS_VIEW")
+func FRAME_NS_VIEW_borrowed_raw(_ f: UnsafeMutableRawPointer?) -> UnsafeMutableRawPointer?
+func FRAME_NS_VIEW(_ f: UnsafeMutableRawPointer?) -> NSView? {
+  guard let pointer = FRAME_NS_VIEW_borrowed_raw(f) else { return nil }
+  return Unmanaged<NSView>.fromOpaque(pointer).takeUnretainedValue()
+}
+
+/// C: `#define WINDOW_TO_FRAME_PIXEL_Y(W, Y) ((Y) + WINDOW_TOP_EDGE_Y (W))` (src/window.h 1078) -
+/// "Convert window W relative pixel Y to frame pixel coordinates."
+@_silgen_name("WINDOW_TO_FRAME_PIXEL_Y")
+func WINDOW_TO_FRAME_PIXEL_Y(_ w: UnsafeMutableRawPointer?, _ y: Int32) -> Int32
+/// C: `void window_box (struct window *, enum glyph_row_area, int *, int *, int *, int *)`
+/// (src/dispextern.h 3574).
+@_silgen_name("window_box")
+func window_box(_ w: UnsafeMutableRawPointer?, _ area: Int32,
+                _ x: UnsafeMutablePointer<Int32>?, _ y: UnsafeMutablePointer<Int32>?,
+                _ width: UnsafeMutablePointer<Int32>?, _ height: UnsafeMutablePointer<Int32>?)
+
+/// C: the record members this block reads directly and that no C macro or INLINE names
+/// (`row->y`, `row->visible_height`): `struct glyph_row` belongs to the core, so each access is a
+/// C-ABI entry named after the member - the rule `docs/ports/nsmenu.swift` 311-328 states for
+/// `struct frame`'s members and `struct ns_output`'s.
+@_silgen_name("glyph_row_y") func glyph_row_y(_ row: UnsafeMutableRawPointer?) -> Int32
+@_silgen_name("glyph_row_visible_height")
+func glyph_row_visible_height(_ row: UnsafeMutableRawPointer?) -> Int32
+
+/// C 641-648: `static BOOL ns_menu_bar_should_be_hidden (void)` - "True, if the menu bar should
+/// be hidden."
+fileprivate func ns_menu_bar_should_be_hidden() -> Bool {
+  // C's `[NSApp respondsToSelector:@selector(setPresentationOptions:)]`; Swift exposes that
+  // setter as the `presentationOptions` property, so the selector is the property's setter.
+  !NILP(ns_auto_hide_menu_bar)
+    && NSApp.responds(to: #selector(setter: NSApplication.presentationOptions))
+}
+
+/// C 650-656: `struct EmacsMargins { CGFloat top; CGFloat bottom; CGFloat left; CGFloat right; }`
+/// - what the screen-margin functions pass around.  Measured rather than assumed: `sizeof 32`,
+/// `align 8`, the four members at 0/8/16/24 (Evidence), and the Swift view agrees.
+struct EmacsMargins {
+  var top: CGFloat
+  var bottom: CGFloat
+  var left: CGFloat
+  var right: CGFloat
+}
+
+/// C 659-709: `static struct EmacsMargins ns_screen_margins (NSScreen *screen)` - "The parts of
+/// SCREEN used by the operating system."  C's parameter is an object pointer, and every caller
+/// passes a real screen; the port keeps the pointer's optionality, because C's nil receiver
+/// yields zeroed `NSRect`s rather than crashing (`?? NSRect.zero` below).
+/// `NSTRACE`/`NSTRACE_MSG` are the empty macros at `NSTRACE_ENABLED` 0 (src/nsterm.h 297-307),
+/// so neither carries a statement.
+fileprivate func ns_screen_margins(_ screen: NSScreen?) -> EmacsMargins {
+  var margins = EmacsMargins(top: 0, bottom: 0, left: 0, right: 0)
+
+  let screenFrame = screen?.frame ?? NSRect.zero
+  let screenVisibleFrame = screen?.visibleFrame ?? NSRect.zero
+
+  /* Sometimes, visibleFrame isn't up-to-date with respect to a hidden
+     menu bar, check this explicitly.  */
+  if ns_menu_bar_should_be_hidden() {
+    margins.top = 0
+  } else {
+    let frameTop = screenFrame.origin.y + screenFrame.size.height
+    let visibleFrameTop = (screenVisibleFrame.origin.y
+                           + screenVisibleFrame.size.height)
+
+    margins.top = frameTop - visibleFrameTop
+  }
+
+  do {
+    let frameRight = screenFrame.origin.x + screenFrame.size.width
+    let visibleFrameRight = (screenVisibleFrame.origin.x
+                             + screenVisibleFrame.size.width)
+    margins.right = frameRight - visibleFrameRight
+  }
+
+  margins.bottom = screenVisibleFrame.origin.y - screenFrame.origin.y
+  margins.left = screenVisibleFrame.origin.x - screenFrame.origin.x
+
+  return margins
+}
+
+/* A screen margin between 1 and DOCK_IGNORE_LIMIT (inclusive) is
+   assumed to contain a hidden dock.  macOS currently use 4 pixels for
+   this, however, to be future compatible, a larger value is used.  */
+/// C 708: `#define DOCK_IGNORE_LIMIT 6` - the `int` the comparisons below promote.
+fileprivate let DOCK_IGNORE_LIMIT: CGFloat = 6
+
+/// C 710-753: `static struct EmacsMargins ns_screen_margins_ignoring_hidden_dock (NSScreen
+/// *screen)` - "The parts of SCREEN used by the operating system, excluding the parts reserved
+/// for a hidden dock."
+fileprivate func ns_screen_margins_ignoring_hidden_dock(_ screen: NSScreen?) -> EmacsMargins {
+  var margins = ns_screen_margins(screen)
+
+  /* macOS (currently) reserved 4 pixels along the edge where a hidden
+     dock is located.  Unfortunately, it's not possible to find the
+     location and information about if the dock is hidden.  Instead,
+     it is assumed that if the margin of an edge is less than
+     DOCK_IGNORE_LIMIT, it contains a hidden dock.  */
+  if margins.left <= DOCK_IGNORE_LIMIT {
+    margins.left = 0
+  }
+  if margins.right <= DOCK_IGNORE_LIMIT {
+    margins.right = 0
+  }
+  if margins.top <= DOCK_IGNORE_LIMIT {
+    margins.top = 0
+  }
+  /* Note: This doesn't occur in current versions of macOS, but
+     included for completeness and future compatibility.  */
+  if margins.bottom <= DOCK_IGNORE_LIMIT {
+    margins.bottom = 0
+  }
+
+  return margins
+}
+
+/// C 754-772: `static CGFloat ns_menu_bar_height (NSScreen *screen)` - "The height of the menu
+/// bar, if visible."  (The note that follows it in C - not to use this when fullscreen is
+/// enabled - is C's own text and is kept with the function.)
+fileprivate func ns_menu_bar_height(_ screen: NSScreen?) -> CGFloat {
+  let margins = ns_screen_margins(screen)
+  return margins.top
+}
+
+/// C 773-807: `static NSRect ns_parent_window_rect (struct frame *f)` - "Get the frame rect, in
+/// system coordinates, of the parent window or, if there is no parent window, the main screen."
+///
+/// C's three arms are all `NS_IMPL_COCOA` variants of getting the rect into screen coordinates;
+/// the live one is the last (`MAC_OS_X_VERSION_MIN_REQUIRED` is 260000 here, so the
+/// `convertBaseToScreen:` fallbacks are dead text): `[[parentView window]
+/// convertRectToScreen:parentRect]`.  A nil window yields a zeroed `NSRect` in C, which is what
+/// `?? NSRect.zero` reads.
+fileprivate func ns_parent_window_rect(_ f: UnsafeMutableRawPointer?) -> NSRect {
+  var parentRect: NSRect
+
+  if FRAME_PARENT_FRAME(f) != nil {
+    let parentView = FRAME_NS_VIEW(FRAME_PARENT_FRAME(f))
+    parentRect = parentView!.convert(parentView!.frame, to: nil)
+    parentRect = parentView?.window?.convertToScreen(parentRect) ?? NSRect.zero
+  } else {
+    parentRect = NSScreen.screens[0].frame
+  }
+
+  return parentRect
+}
+
+/* Calculate system coordinates of the left and top of the parent
+   window or, if there is no parent window, the main screen.  */
+/// C 803-804: `#define NS_PARENT_WINDOW_LEFT_POS(f) NSMinX (ns_parent_window_rect (f))` and
+/// `#define NS_PARENT_WINDOW_TOP_POS(f) NSMaxY (ns_parent_window_rect (f))`.
+func NS_PARENT_WINDOW_LEFT_POS(_ f: UnsafeMutableRawPointer?) -> CGFloat {
+  NSMinX(ns_parent_window_rect(f))
+}
+func NS_PARENT_WINDOW_TOP_POS(_ f: UnsafeMutableRawPointer?) -> CGFloat {
+  NSMaxY(ns_parent_window_rect(f))
+}
+
+/// C 808-827: `static NSRect ns_row_rect (struct window *w, struct glyph_row *row, enum
+/// glyph_row_area area)` - "Get the row as an NSRect."
+fileprivate func ns_row_rect(_ w: UnsafeMutableRawPointer?, _ row: UnsafeMutableRawPointer?,
+                             _ area: Int32) -> NSRect {
+  var window_x: Int32 = 0, window_y: Int32 = 0, window_width: Int32 = 0
+
+  window_box(w, area, &window_x, &window_y, &window_width, nil)
+
+  var rect = NSRect.zero
+  rect.origin.x = CGFloat(window_x)
+  rect.origin.y = CGFloat(WINDOW_TO_FRAME_PIXEL_Y(w, max(0, glyph_row_y(row))))
+  rect.origin.y = max(rect.origin.y, CGFloat(window_y))
+  rect.size.width = CGFloat(window_width)
+  rect.size.height = CGFloat(glyph_row_visible_height(row))
+
+  return rect
+}
+
+/// C 828-832 (with the `#if` chain that follows): `double ns_frame_scale_factor (struct frame
+/// *f)`.  Declared src/nsterm.h 1260 and called from src/nsfns.m, so it is a `@_cdecl` export.
+/// The live arm is the last: `MAC_OS_X_VERSION_MIN_REQUIRED` is 260000, so
+/// `[[FRAME_NS_VIEW (f) window] backingScaleFactor]`; the GNUstep `userSpaceScaleFactor` arm and
+/// the `respondsToSelector:@selector(backingScaleFactor:)` arm are the dead text recorded here.
+/// A nil view or window yields 0.0 through C's nil receiver, which `?? 0` reads.
+@_cdecl("ns_frame_scale_factor")
+func ns_frame_scale_factor(_ f: UnsafeMutableRawPointer?) -> Double {
+  Double(FRAME_NS_VIEW(f)?.window?.backingScaleFactor ?? 0)
+}
+
+/* ==========================================================================
+
+    Focus (clipping) and screen update
+
+   ========================================================================== */
+
+//
+// Window constraining
+// -------------------
+//
+// To ensure that the windows are not placed under the menu bar, they
+// are typically moved by the call-back constrainFrameRect. However,
+// by overriding it, it's possible to inhibit this, leaving the window
+// in it's original position.
+//
+// It's possible to hide the menu bar. However, technically, it's only
+// possible to hide it when the application is active. To ensure that
+// this work properly, the menu bar and window constraining are
+// deferred until the application becomes active.
+//
+// Even though it's not possible to manually move a window above the
+// top of the screen, it is allowed if it's done programmatically,
+// when the menu is hidden. This allows the editable area to cover the
+// full screen height.
+//
+// Test cases
+// ----------
+//
+// Use the following extra files:
+//
+//    init.el:
+//       ;; Hide menu and place frame slightly above the top of the screen.
+//       (setq ns-auto-hide-menu-bar t)
+//       (set-frame-position (selected-frame) 0 -20)
+//
+// Test 1:
+//
+//    emacs -Q -l init.el
+//
+//    Result: No menu bar, and the title bar should be above the screen.
+//
+// Test 2:
+//
+//    emacs -Q
+//
+//    Result: Menu bar visible, frame placed immediately below the menu.
+//
+
+/// C 892-991: `static NSRect constrain_frame_rect(NSRect frameRect, bool isFullscreen)` - the
+/// window constrainer the comment above documents.  C's `#if 0` block at 962-985 (the disabled
+/// "don't stretch below the screens" restriction) is skipped by the extractor's own rule and is
+/// recorded here, not transcribed.
+fileprivate func constrain_frame_rect(_ frameRect: NSRect, _ isFullscreen: Bool) -> NSRect {
+  var frameRect = frameRect
+
+  // --------------------
+  // Collect information about the screen the frame is covering.
+  //
+
+  let screens = NSScreen.screens
+  let nr_screens = screens.count
+
+  // The height of the menu bar, if present in any screen the frame is
+  // displayed in.
+  var menu_bar_height: Int32 = 0
+
+  // A rectangle covering all the screen the frame is displayed in.
+  var multiscreenRect = NSMakeRect(0, 0, 0, 0)
+  for i in 0..<nr_screens {
+    let s = screens[i]
+    let scrRect = s.frame
+
+    if NSIntersectionRect(frameRect, scrRect).size.height != 0 {
+      multiscreenRect = NSUnionRect(multiscreenRect, scrRect)
+
+      if !isFullscreen {
+        let screen_menu_bar_height = ns_menu_bar_height(s)
+        menu_bar_height = Int32(max(CGFloat(menu_bar_height), screen_menu_bar_height))
+      }
+    }
+  }
+
+  if multiscreenRect.size.width == 0
+       || multiscreenRect.size.height == 0 {
+    // Failed to find any monitor, give up.
+    return frameRect
+  }
+
+  // --------------------
+  // Find a suitable placement.
+  //
+
+  if ns_menu_bar_should_be_hidden() {
+    // When the menu bar is hidden, the user may place part of the
+    // frame above the top of the screen, for example to hide the
+    // title bar.
+    //
+    // Hence, keep the original position.
+  } else {
+    // Ensure that the frame is below the menu bar, or below the top
+    // of the screen.
+    //
+    // This assume that the menu bar is placed at the top in the
+    // rectangle that covers the monitors.  (It doesn't have to be,
+    // but if it's not it's hard to do anything useful.)
+    let topOfWorkArea = (multiscreenRect.origin.y
+                         + multiscreenRect.size.height
+                         - CGFloat(menu_bar_height))
+
+    let topOfFrame = frameRect.origin.y + frameRect.size.height
+    if topOfFrame > topOfWorkArea {
+      frameRect.origin.y -= topOfFrame - topOfWorkArea
+    }
+  }
+
+  // C's `#if 0` block (C 962-985): "Include the following section to restrict frame to the
+  // screens." - the disabled "ensure frame doesn't stretch below the screens" restriction.
+
+  return frameRect
+}
+
+// ==========================================================================
+// C 1001-1211: window constraining, the menu bar's deferred visibility, and
+// the macOS Accessibility Zoom support.
+// ==========================================================================
+
+/// C: `void block_input (void)` / `void unblock_input (void)` (src/blockinput.h).
+@_silgen_name("block_input") func block_input()
+@_silgen_name("unblock_input") func unblock_input()
+/// C: `struct frame *XFRAME (Lisp_Object)` (src/frame.h) - the lane's reading
+/// (docs/ports/nsfns.swift 193).
+@_silgen_name("XFRAME") func XFRAME(_ a: Lisp_Object) -> UnsafeMutableRawPointer?
+/// C: `INLINE bool FRAME_NS_P (struct frame *f)` (src/nsterm.h).
+@_silgen_name("FRAME_NS_P") func FRAME_NS_P(_ f: UnsafeMutableRawPointer?) -> Bool
+/// C: `#define CONSP(x)` / `XCAR (c)` / `XCDR (c)` (src/lisp.h) - the list walkers
+/// `FOR_EACH_FRAME` is spelled with (docs/ports/nsfns.swift 179/191/192).
+@_silgen_name("CONSP") func CONSP(_ x: Lisp_Object) -> Bool
+@_silgen_name("XCAR") func XCAR(_ c: Lisp_Object) -> Lisp_Object
+@_silgen_name("XCDR") func XCDR(_ c: Lisp_Object) -> Lisp_Object
+/// C: `Vframe_list` - the `DEFVAR_LISP ("frame-list", …)` variable (src/frame.c), read here as a
+/// data symbol like the other core variables this unit imports.
+@_silgen_name("Vframe_list") var Vframe_list: Lisp_Object
+
+/// **A deferred entry** (`docs/ports/nsterm.md`'s `## ABI` (4)).  `ns_constrain_all_frames`
+/// (C 1001) messages this unit's own `EmacsView` `-isFullscreen`, whose class lands at C 8957 -
+/// so the call goes through a C-ABI entry of the selector's name, receiver first, under a Swift
+/// name that is *not* the definition's; the `@_cdecl("isFullscreen")` definition lands beside
+/// the class.  When it does, `nm -u` stops listing `_isFullscreen` - that is this entry's
+/// acceptance test (the lane's `macfont_driver` precedent, docs/status.md 3.220/3.231).
+
+/// C 1001-1030: `static void ns_constrain_all_frames (void)` - "Ensure that the menu bar doesn't
+/// cover any frames."
+fileprivate func ns_constrain_all_frames() {
+  block_input()
+
+  /* C 1011: `FOR_EACH_FRAME (tail, frame)` (src/frame.h 1404-1408) - the macro's own spelling:
+     walk `Vframe_list` while it is a cons (docs/ports/nsfns.swift 967).  */
+  var tail: Lisp_Object = Vframe_list
+  while CONSP(tail) {
+    let frame = XCAR(tail)
+    let f = XFRAME(frame)
+    if FRAME_NS_P(f) {
+      let view = FRAME_NS_VIEW(f)
+
+      if !isFullscreen_definition(view) {
+        view?.window?.setFrame(constrain_frame_rect(view!.window!.frame, false),
+                               display: false)
+      }
+    }
+    tail = XCDR(tail)
+  }
+
+  unblock_input()
+}
+
+/// C 1033-1073: `static void ns_update_auto_hide_menu_bar (void)` - "Show or hide the menu bar,
+/// based on user setting."  The whole body is inside `#ifdef NS_IMPL_COCOA`, the arm this ledger
+/// describes.
+fileprivate func ns_update_auto_hide_menu_bar() {
+  block_input()
+
+  if NSApp != nil && NSApp.isActive {
+    // Note, "setPresentationOptions" triggers an error unless the application is active.
+    let menu_bar_should_be_hidden = ns_menu_bar_should_be_hidden()
+
+    if menu_bar_should_be_hidden != ns_menu_bar_is_hidden {
+      // C: `NSApplicationPresentationOptions options = NSApplicationPresentationDefault;` - the
+      // empty option set, whose `default` Swift spelling is unavailable (use `[]`).
+      var options: NSApplication.PresentationOptions = []
+
+      if menu_bar_should_be_hidden {
+        options = [options, .autoHideMenuBar, .autoHideDock]
+      }
+
+      NSApp.presentationOptions = options
+
+      ns_menu_bar_is_hidden = menu_bar_should_be_hidden
+
+      if !ns_menu_bar_is_hidden {
+        ns_constrain_all_frames()
+      }
+    }
+  }
+
+  unblock_input()
+}
+
+/// C 1075-1087: `static void ns_update_begin (struct frame *f)` - "Prepare for a grouped
+/// sequence of drawing calls".  `NSTRACE_WHEN (NSTRACE_GROUP_UPDATES, …)` is empty at
+/// `NSTRACE_ENABLED` 0, and C's `[view lockFocus]` on a nil view does nothing.
+fileprivate func ns_update_begin(_ f: UnsafeMutableRawPointer?) {
+  let view = FRAME_NS_VIEW(f)
+
+  ns_update_auto_hide_menu_bar()
+
+  ns_updating_frame = f
+  // C's `[view lockFocus]` is itself deprecated since macOS 10.14 (AppKit prefers a subclassed
+  // `-drawRect:`), and the port keeps the call: `swiftc -c` reports the deprecation, which is
+  // recorded in the ledger's Evidence rather than silenced.
+  view?.lockFocus()
+}
+
+/* --------------------------------------------------------------------------
+   macOS Accessibility Zoom Support
+   -------------------------------------------------------------------------- */
+// C 1090: `#ifdef NS_IMPL_COCOA` - the whole block below is the Cocoa arm.
+
+/// C 1093: `static BOOL ns_is_UAZoomEnabled = NO;`
+fileprivate var ns_is_UAZoomEnabled: Bool = false
+/// C 1094: `static unsigned long ns_UAZoomEnabled_last_called_time_ns = 0;`
+fileprivate var ns_UAZoomEnabled_last_called_time_ns: UInt64 = 0
+/// C 1095-1096: `static const unsigned long NS_UAZOOMENABLED_CACHE_INTERVAL_NS =
+/// (unsigned long)(500 * NSEC_PER_MSEC); /* 500ms.  */`
+fileprivate let NS_UAZOOMENABLED_CACHE_INTERVAL_NS: UInt64 = 500 * NSEC_PER_MSEC
+/// C 1097: `static NSTimeInterval NS_UAZOOMENABLED_DEFER_INTERVAL_SECS = 0.2; /* 200ms.  */`
+fileprivate var NS_UAZOOMENABLED_DEFER_INTERVAL_SECS: TimeInterval = 0.2
+/// C 1098: `static NSTimer *ns_deferred_UAZoomChangeFocus_timer = nil;`
+fileprivate var ns_deferred_UAZoomChangeFocus_timer: Timer? = nil
+
+/// C 1102-1140: `static BOOL ns_ua_zoom_enabled_p (void)` - "Return the cached result of
+/// UAZoomEnabled.  Refresh the cache every NS_UAZOOMENABLED_CACHE_INTERVAL_NS nanoseconds."
+/// (C's comment on why the result is cached, and on `clock_gettime_nsec_np` rather than
+/// `CFAbsoluteTimeGetCurrent`, is C's own text and is kept with the function.)
+fileprivate func ns_ua_zoom_enabled_p() -> Bool {
+  /* User-space equivalent to mach_absolute_time.  */
+  let now_ns = clock_gettime_nsec_np(CLOCK_UPTIME_RAW)
+  if now_ns - ns_UAZoomEnabled_last_called_time_ns
+       > NS_UAZOOMENABLED_CACHE_INTERVAL_NS {
+    ns_is_UAZoomEnabled = UAZoomEnabled()
+    ns_UAZoomEnabled_last_called_time_ns = now_ns
+  }
+  return ns_is_UAZoomEnabled
+}
+
+/// C 1142-1162: `static inline CGRect ns_cg_rect_flip_y (CGRect r)` - "Convert a CGRect from
+/// Cocoa screen coordinates (origin at bottom-left of the primary display) to CoreGraphics
+/// coordinates (origin at top-left of the primary display)."  The C parameter is by value and
+/// mutated, hence the Swift copy.
+fileprivate func ns_cg_rect_flip_y(_ rect: CGRect) -> CGRect {
+  var r = rect
+  let mainID = CGMainDisplayID()
+  if mainID == kCGNullDirectDisplay {
+    return r
+  }
+  let primaryH = CGDisplayBounds(mainID).size.height
+  if primaryH <= 0 {
+    return r
+  }
+  r.origin.y = primaryH - r.origin.y - r.size.height
+  return r
+}
+
+/* Cache cursor rects to call UAZoomChangeFocus only when the cursor
+   position has changed, not merely when the cursor is blinking.
+   See ns_draw_window_cursor and ns_update_end.  */
+/// C 1152-1153: `static NSRect ns_UAZoom_cursor_rect_new; static NSRect
+/// ns_UAZoom_cursor_rect_old;`
+fileprivate var ns_UAZoom_cursor_rect_new: NSRect = .zero
+fileprivate var ns_UAZoom_cursor_rect_old: NSRect = .zero
+
+/* Track Zoom state per display cycle.  Update the macOS Zoom cursor
+   position when Zoom transitions to enabled.  */
+/// C 1157: `static BOOL ns_update_was_UAZoomEnabled = NO;`
+fileprivate var ns_update_was_UAZoomEnabled: Bool = false
+
+/// C 1164-1211: `static void ns_UAZoomChangeFocus (EmacsView *view, BOOL force)` - "Advise macOS
+/// Accessibility Zoom UAZoomChangeFocus of a potentially new cursor position."
+///
+/// The receiver is this unit's `EmacsView`, but only `NSView`/`NSWindow` messages are sent to
+/// it, so the parameter is the lane's `NSView?`.  A nil view or window yields a zeroed `NSRect`
+/// through C's nil receiver, which the `?? NSRect.zero` reads below make explicit.
+fileprivate func ns_UAZoomChangeFocus(_ view: NSView?, _ force: Bool) {
+  if ns_ua_zoom_enabled_p() {
+    let force = force || !ns_update_was_UAZoomEnabled
+    ns_update_was_UAZoomEnabled = true
+    if NSIsEmptyRect(ns_UAZoom_cursor_rect_new) {
+      return
+    }
+    if force || !NSEqualRects(ns_UAZoom_cursor_rect_new, ns_UAZoom_cursor_rect_old) {
+      ns_UAZoom_cursor_rect_old = ns_UAZoom_cursor_rect_new
+      let windowRect = view?.convert(ns_UAZoom_cursor_rect_new, to: nil) ?? .zero
+      let screenRect = view?.window?.convertToScreen(windowRect) ?? .zero
+      var cgRect = ns_cg_rect_flip_y(NSRectToCGRect(screenRect))
+      /* Some versions of macOS can ignore tiny rects, so we
+         slightly expand a tiny one.  Since we care mostly about its
+         origin, this should be innocuous.  */
+      cgRect.size.width = max(cgRect.size.width, 6)
+      cgRect.size.height = max(cgRect.size.height, 10)
+      if force {
+        /* UAZoomChangeFocus needs old and new cursor positions to
+           be different, and also it sometimes needs a kick.  In
+           both cases, we fake a cursor move followed by the real
+           cursor move.  */
+        var cgRectJiggle = cgRect.offsetBy(dx: 1.0, dy: 1.0)
+        if UAZoomChangeFocus(&cgRectJiggle, nil,
+                             UAZoomChangeFocusType(kUAZoomFocusTypeInsertionPoint)) != 0 {
+          NSLog("UAZoomChangeFocus jiggle failed")
+        }
+      }
+      if UAZoomChangeFocus(&cgRect, nil,
+                           UAZoomChangeFocusType(kUAZoomFocusTypeInsertionPoint)) != 0 {
+        NSLog("UAZoomChangeFocus failed")
+      }
+      NSAccessibility.post(element: view as Any,
+                           notification: .focusedUIElementChanged)
+    }
+  } else {
+    ns_update_was_UAZoomEnabled = false
+  }
+}
+
+// ==========================================================================
+// C 1212-1492: the focus pair, the visual bell, and the file's first class.
+// ==========================================================================
+
+/// C: `void NSRectClip (NSRect rect)` and `void NSRectClipList (const NSRect *rects, NSInteger
+/// count)` (AppKit's NSGraphics.h 210-211) - `APPKIT_EXTERN` C functions that Swift marks
+/// unavailable, so the lane reaches them by name.
+@_silgen_name("NSRectClip") func NSRectClip(_ rect: NSRect)
+@_silgen_name("NSRectClipList")
+func NSRectClipList(_ rects: UnsafePointer<NSRect>?, _ count: Int)
+
+/// C: the `struct mouse_highlight` bitfield member `ns_update_end` writes
+/// (`MOUSE_HL_INFO (f)->mouse_face_defer = 0`; the member is src/dispextern.h 3020's `bool_bf
+/// mouse_face_defer : 1`).  A bitfield cannot be written through a Swift view of the record, so
+/// the access is a C-ABI entry named after the member - the `<record>_set_<member>` naming
+/// `docs/ports/nsmenu.swift` 311-328 uses (`ns_output_set_in_animation`), taking C's own
+/// argument (the frame, like `frame_left_pos`).
+@_silgen_name("mouse_highlight_set_mouse_face_defer")
+func mouse_highlight_set_mouse_face_defer(_ f: UnsafeMutableRawPointer?, _ v: Int32)
+
+/// C: `bool visible_bell` - the `DEFVAR_BOOL ("visible-bell", …)` variable (src/dispnew.c), read
+/// by `ns_ring_bell`; imported as the C data symbol the core exports.
+@_silgen_name("visible_bell") var visible_bell: Bool
+/// C: `#define SELECTED_FRAME() …` (src/frame.h) - the selected frame, an entry of its own name.
+@_silgen_name("SELECTED_FRAME") func SELECTED_FRAME() -> UnsafeMutableRawPointer?
+
+/// C 1212-1234: `static void ns_update_end (struct frame *f)` - "Finished a grouped sequence of
+/// drawing calls".  The `[[view window] flushWindow]` arm is guarded by
+/// `#if defined (NS_IMPL_GNUSTEP) || MAC_OS_X_VERSION_MIN_REQUIRED < 101400` - dead at 260000 -
+/// and `ns_UAZoomChangeFocus` is the `NS_IMPL_COCOA` arm, which is live.  `NSTRACE_WHEN` is
+/// empty at `NSTRACE_ENABLED` 0.
+fileprivate func ns_update_end(_ f: UnsafeMutableRawPointer?) {
+  let view = FRAME_NS_VIEW(f)
+
+  /*   if (f == MOUSE_HL_INFO (f)->mouse_face_mouse_frame) */
+  mouse_highlight_set_mouse_face_defer(f, 0)
+
+  block_input()
+
+  view?.unlockFocus()
+
+  ns_UAZoomChangeFocus(view, false)
+
+  unblock_input()
+  ns_updating_frame = nil
+}
+
+/// C 1236-1273: `static void ns_focus (struct frame *f, NSRect *r, int n)` - "Internal: Focus on
+/// given frame."  (C's own explanation of why the accumulate-rectangle behaviour is GNUstep's
+/// is kept above the function.)  `r` is C's `NSRect *`, called with a real rect or NULL, so it
+/// is optional here; the `#ifdef NS_IMPL_COCOA` clipping arm is the live one and the
+/// `GSRectClipList` else-arm is the GNUstep dead text.
+fileprivate func ns_focus(_ f: UnsafeMutableRawPointer?, _ r: UnsafePointer<NSRect>?,
+                          _ n: Int32) {
+  if f != ns_updating_frame {
+    let view = FRAME_NS_VIEW(f)
+    view?.lockFocus()
+  }
+
+  /* clipping */
+  if r != nil {
+    let ctx = NSGraphicsContext.current
+    ctx?.saveGraphicsState()
+
+    if n == 2 {
+      NSRectClipList(r, 2)
+    } else {
+      NSRectClip(r!.pointee)
+    }
+    gsaved = true
+  }
+}
+
+/// C 1282-1310: `static void ns_unfocus (struct frame *f)` - "Internal: Remove focus on given
+/// frame".  The `flushWindow` arm is the same dead GNUstep/pre-10.14 guard as `ns_update_end`'s.
+fileprivate func ns_unfocus(_ f: UnsafeMutableRawPointer?) {
+  if gsaved {
+    NSGraphicsContext.current?.restoreGraphicsState()
+    gsaved = false
+  }
+
+  if f != ns_updating_frame {
+    let view = FRAME_NS_VIEW(f)
+    view?.unlockFocus()
+  }
+}
+
+/* ==========================================================================
+
+    Visible bell and beep.
+
+   ========================================================================== */
+
+// This bell implementation shows the visual bell image asynchronously
+// from the rest of Emacs. This is done by adding a NSView to the
+// superview of the Emacs window and removing it using a timer.
+//
+// Unfortunately, some Emacs operations, like scrolling, is done using
+// low-level primitives that copy the content of the window, including
+// the bell image. To some extent, this is handled by removing the
+// image prior to scrolling and marking that the window is in need for
+// redisplay.
+//
+// To test this code, make sure that there is no artifacts of the bell
+// image in the following situations. Use a non-empty buffer (like the
+// tutorial) to ensure that a scroll is performed:
+//
+// * Single-window: C-g C-v
+//
+// * Side-by-windows: C-x 3 C-g C-v
+//
+// * Windows above each other: C-x 2 C-g C-v
+
+/// C 1333-1343: `@interface EmacsBell : NSImageView` - the ivars `unsigned int nestCount;`
+/// (1336), `NSView * mView;` (1337) and `bool isAttached;` (1338), and the three methods
+/// (`show:` 1340, `hide` 1341, `remove` 1342).  **The file's first class**, and the first of the
+/// eight the ledger's Objective-C section tracks.  Each method is `@objc`, which is what makes
+/// its selector reachable (`#selector(hide)` below) and mirrors the reference's Objective-C
+/// methods (the reading `docs/ports/nsmenu.swift` 849 uses); the ivars become stored properties
+/// with C's values.
+class EmacsBell: NSImageView {
+  /// C 1336: `unsigned int nestCount;` - "Number of currently active bells."
+  fileprivate var nestCount: UInt32 = 0
+  /// C 1337: `NSView * mView;`
+  fileprivate var mView: NSView? = nil
+  /// C 1338: `bool isAttached;`
+  fileprivate var isAttached: Bool = false
+
+  /// C 1347-1371: `- (id)init`.  C's `init` on an `NSView` is AppKit's designated
+  /// `-initWithFrame:`, hence the override's parameter; `required init(coder:)` below is Swift's
+  /// requirement on a view subclass, and C has no unarchiving path for this class.
+  ///
+  /// The `NS_IMPL_GNUSTEP && !HAVE_DECL_NSIMAGENAMECAUTION` arm is the GNUstep-only fallback
+  /// (dead here); the live arm names AppKit's caution image and scales it by five.  C's
+  /// `self.image` can be nil there and the messages to it would do nothing, which is what the
+  /// optional chaining reads.
+  override init(frame frameRect: NSRect) {
+    super.init(frame: frameRect)
+
+    image = NSImage(named: NSImage.cautionName)
+    image?.size = NSSize(width: (image?.size.width ?? 0) * 5,
+                         height: (image?.size.height ?? 0) * 5)
+  }
+
+  /// NSImageView's own `-initWithCoder:`, inherited as-is (the class is only ever built in code
+  /// by `ns_ring_bell`); the port's designated override above makes Swift want it spelled out,
+  /// the way `docs/ports/nsmenu.swift` 843 does.
+  required init?(coder: NSCoder) {
+    super.init(coder: coder)
+  }
+
+  /// C 1373-1398: `- (void)show:(NSView *)view`.
+  @objc func show(_ view: NSView) {
+    // Show the image, unless it's already shown.
+    if nestCount == 0 {
+      let rect = view.bounds
+      var pos = NSPoint.zero
+      pos.x = rect.origin.x + (rect.size.width - (image?.size.width ?? 0)) / 2
+      pos.y = rect.origin.y + (rect.size.height - (image?.size.height ?? 0)) / 2
+
+      setFrameOrigin(pos)
+      setFrameSize(image?.size ?? .zero)
+
+      isAttached = true
+      mView = view
+      view.window?.contentView?.addSubview(self, positioned: .above, relativeTo: nil)
+    }
+
+    nestCount += 1
+
+    perform(#selector(hide), with: self, afterDelay: 0.5)
+  }
+
+  /// C 1402-1415: `- (void)hide`.  (C's note that this method's trace output never shows is
+  /// C's own text and stays with it.)
+  @objc func hide() {
+    if nestCount > 0 {
+      nestCount -= 1
+    }
+
+    // Remove the image once the last bell became inactive.
+    if nestCount == 0 {
+      remove()
+    }
+  }
+
+  /// C 1418-1429: `-(void)remove`.
+  @objc func remove() {
+    if isAttached {
+      removeFromSuperview()
+      mView?.needsDisplay = true
+      isAttached = false
+    }
+  }
+}
+
+/// C 1433: `static EmacsBell * bell_view = nil;`
+fileprivate var bell_view: EmacsBell? = nil
+
+/// C 1436-1469: `static void ns_ring_bell (struct frame *f)` - the "Beep" routine.
+fileprivate func ns_ring_bell(_ f: UnsafeMutableRawPointer?) {
+  if visible_bell {
+    let frame = SELECTED_FRAME()
+
+    if bell_view == nil {
+      // C's `bell_view = [[EmacsBell alloc] init]; [bell_view retain];` - the global owns the
+      // object, which is what ARC's strong reference does; the explicit `retain` is C's manual
+      // memory management for the same ownership.  `init` on an `NSView` is `initWithFrame:`,
+      // and C's `[[NSView alloc] init]` yields a zero frame.
+      bell_view = EmacsBell(frame: .zero)
+    }
+
+    block_input()
+
+    let view = FRAME_NS_VIEW(frame)
+    if view != nil {
+      bell_view!.show(view!)
+    }
+
+    unblock_input()
+  } else {
+    // C: `NSBeep ();` - Swift's AppKit spells it `NSSound.beep ()` (measured: `NSBeep` is not in
+    // scope in Swift).
+    NSSound.beep()
+  }
+}
+
+// C 1471-1491: `hide_bell` is **dead** in this build - its guard is
+// `#if !defined (NS_IMPL_COCOA) || MAC_OS_X_VERSION_MIN_REQUIRED < 101400`, and this lane's
+// target both defines `NS_IMPL_COCOA` and has a minimum of 260000.  Its one call site (C 9388,
+// inside the same guard) is dead with it, and the ledger's box for the function is ticked with
+// that reason rather than transcribed.
+
+// ==========================================================================
+// C 1493-1743: the focus/raise/lower hooks and the frame-visibility hooks.
+// ==========================================================================
+
+/// C: `struct ns_display_info *FRAME_DISPLAY_INFO (struct frame *f)` (src/nsterm.h 1032's macro) -
+/// the display-info accessor, reached as an entry like the other frame macros; the members it
+/// leads to are entries of their own (`<record>_<member>`, the naming
+/// `docs/ports/nsmenu.swift` 311-328 sets and `nsfns.swift`'s
+/// `ns_display_info_set_horizontal_scroll_bar_cursor` already uses).
+@_silgen_name("FRAME_DISPLAY_INFO")
+func FRAME_DISPLAY_INFO(_ f: UnsafeMutableRawPointer?) -> UnsafeMutableRawPointer?
+/// C: the `struct ns_display_info` members this block reads or writes.
+@_silgen_name("ns_display_info_ns_focus_frame")
+func ns_display_info_ns_focus_frame(_ f: UnsafeMutableRawPointer?) -> UnsafeMutableRawPointer?
+@_silgen_name("ns_display_info_highlight_frame")
+func ns_display_info_highlight_frame(_ f: UnsafeMutableRawPointer?) -> UnsafeMutableRawPointer?
+@_silgen_name("ns_display_info_set_highlight_frame")
+func ns_display_info_set_highlight_frame(_ f: UnsafeMutableRawPointer?,
+                                         _ v: UnsafeMutableRawPointer?)
+/// C: `INLINE bool FRAMEP (Lisp_Object)` (src/lisp.h) and the frame-writing macro
+/// `XSETFRAME (Lisp_Object, struct frame *)` (src/frame.h) - the shapes
+/// `docs/ports/nsfns.swift` 182 and `docs/ports/nsselect.swift` 181 use.
+@_silgen_name("FRAMEP") func FRAMEP(_ x: Lisp_Object) -> Bool
+@_silgen_name("XSETFRAME")
+func XSETFRAME(_ a: UnsafeMutablePointer<Lisp_Object>, _ b: UnsafeMutableRawPointer?)
+/// C: `Lisp_Object FRAME_FOCUS_FRAME (struct frame *f)` (src/frame.h) and its setter
+/// `INLINE void fset_focus_frame (struct frame *f, Lisp_Object val)` - the family
+/// `docs/ports/nsmenu.swift` 307 already reaches (`fset_menu_bar_items`).
+@_silgen_name("FRAME_FOCUS_FRAME")
+func FRAME_FOCUS_FRAME(_ f: UnsafeMutableRawPointer?) -> Lisp_Object
+@_silgen_name("fset_focus_frame")
+func fset_focus_frame(_ f: UnsafeMutableRawPointer?, _ v: Lisp_Object)
+/// C: `INLINE bool FRAME_LIVE_P (struct frame *)` / `FRAME_VISIBLE_P` (src/frame.h, nsterm.h) and
+/// the two `SET_FRAME_*` setters.
+@_silgen_name("FRAME_LIVE_P") func FRAME_LIVE_P(_ f: UnsafeMutableRawPointer?) -> Bool
+@_silgen_name("FRAME_VISIBLE_P") func FRAME_VISIBLE_P(_ f: UnsafeMutableRawPointer?) -> Bool
+@_silgen_name("SET_FRAME_VISIBLE")
+func SET_FRAME_VISIBLE(_ f: UnsafeMutableRawPointer?, _ v: Bool)
+@_silgen_name("SET_FRAME_ICONIFIED")
+func SET_FRAME_ICONIFIED(_ f: UnsafeMutableRawPointer?, _ v: Int32)
+/// C: `bool FRAME_NO_FOCUS_ON_MAP (struct frame *)` (src/frame.h) and the enumerator
+/// `FULLSCREEN_NONE` (src/nsterm.h; the entry `docs/ports/nsfns.swift` 513 uses).
+@_silgen_name("FRAME_NO_FOCUS_ON_MAP")
+func FRAME_NO_FOCUS_ON_MAP(_ f: UnsafeMutableRawPointer?) -> Bool
+@_silgen_name("FULLSCREEN_NONE") func FULLSCREEN_NONE() -> Int32
+/// C: the `struct frame` members this block reads directly and that no C macro names
+/// (`f->no_accept_focus`, `f->want_fullscreen`, `f->left_pos`, `f->top_pos`) - one entry per
+/// member, the rule `docs/ports/nsmenu.swift` 311-328 states; `frame_left_pos`/`frame_top_pos`
+/// are the names that file already uses.
+@_silgen_name("frame_no_accept_focus")
+func frame_no_accept_focus(_ f: UnsafeMutableRawPointer?) -> Bool
+@_silgen_name("frame_want_fullscreen")
+func frame_want_fullscreen(_ f: UnsafeMutableRawPointer?) -> Int32
+@_silgen_name("frame_left_pos") func frame_left_pos(_ f: UnsafeMutableRawPointer?) -> Int32
+@_silgen_name("frame_top_pos") func frame_top_pos(_ f: UnsafeMutableRawPointer?) -> Int32
+/// C: `void check_window_system (struct frame *)` (src/frame.h 1504) and
+/// `void gui_update_cursor (struct frame *f, bool on_p)` (src/dispextern.h 3691).
+@_silgen_name("check_window_system") func check_window_system(_ f: UnsafeMutableRawPointer?)
+@_silgen_name("gui_update_cursor")
+func gui_update_cursor(_ f: UnsafeMutableRawPointer?, _ on_p: Bool)
+
+// **Deferred entries** (`## ABI` (4)): call sites that precede the definition, which is written
+// at its own C line under the selector's/function's own Swift name with `@_cdecl`.  The first
+// four wait for `EmacsView`/`EmacsWindow` (C 7039/9756); the last two are this unit's own
+// *functions*, whose C forward declarations (`ns_set_frame_alpha` at C 1622) are the reference's
+// own acknowledgement of the same forward use.
+
+/// C 1493-1508: `static Lisp_Object ns_get_focus_frame (struct frame *f)` - "External (hook)".
+fileprivate func ns_get_focus_frame(_ f: UnsafeMutableRawPointer?) -> Lisp_Object {
+  var lisp_focus: Lisp_Object = Qnil()
+
+  let focus = ns_display_info_ns_focus_frame(f)
+
+  if focus == nil {
+    return Qnil()
+  }
+
+  XSETFRAME(&lisp_focus, focus)
+  return lisp_focus
+}
+
+/// C 1510-1525: `static void ns_focus_frame (struct frame *f, bool noactivate)` - "External
+/// (hook)".
+fileprivate func ns_focus_frame(_ f: UnsafeMutableRawPointer?, _ noactivate: Bool) {
+  if ns_display_info_ns_focus_frame(f) != f {
+    let view = FRAME_NS_VIEW(f)
+    block_input()
+    NSApp.activate(ignoringOtherApps: true)
+    view?.window?.makeKeyAndOrderFront(view)
+    unblock_input()
+  }
+}
+
+/// C 1527-1546: `static void ns_raise_frame (struct frame *f, BOOL make_key)` - "Bring window to
+/// foreground and if make_key is YES, give it focus."
+fileprivate func ns_raise_frame(_ f: UnsafeMutableRawPointer?, _ make_key: Bool) {
+  check_window_system(f)
+  let view = FRAME_NS_VIEW(f)
+  block_input()
+  if FRAME_VISIBLE_P(f) {
+    if make_key && !frame_no_accept_focus(f) {
+      view?.window?.makeKeyAndOrderFront(NSApp)
+    } else {
+      view?.window?.orderFront(NSApp)
+    }
+  }
+  unblock_input()
+}
+
+/// C 1549-1563: `static void ns_lower_frame (struct frame *f)` - "Send window to back".
+fileprivate func ns_lower_frame(_ f: UnsafeMutableRawPointer?) {
+  check_window_system(f)
+  let view = FRAME_NS_VIEW(f)
+  block_input()
+  view?.window?.orderBack(NSApp)
+  unblock_input()
+}
+
+/// C 1566-1578: `static void ns_frame_raise_lower (struct frame *f, bool raise)` - "External
+/// (hook)".  `NSTRACE` is empty.
+fileprivate func ns_frame_raise_lower(_ f: UnsafeMutableRawPointer?, _ raise: Bool) {
+  if raise {
+    ns_raise_frame(f, true)
+  } else {
+    ns_lower_frame(f)
+  }
+}
+
+/// C 1582-1620: `static void ns_frame_rehighlight (struct frame *frame)` - "External (hook):
+/// called on things like window switching within frame".  `ns_set_frame_alpha` is this unit's own
+/// function defined at C 8550, hence the deferred entry (C forward-declares it at C 1622).
+fileprivate func ns_frame_rehighlight(_ frame: UnsafeMutableRawPointer?) {
+  let old_highlight = ns_display_info_highlight_frame(frame)
+
+  if ns_display_info_ns_focus_frame(frame) != nil {
+    let focus = ns_display_info_ns_focus_frame(frame)
+    ns_display_info_set_highlight_frame(frame,
+      FRAMEP(FRAME_FOCUS_FRAME(focus)) ? XFRAME(FRAME_FOCUS_FRAME(focus)) : focus)
+    if !FRAME_LIVE_P(ns_display_info_highlight_frame(frame)) {
+      fset_focus_frame(focus, Qnil())
+      ns_display_info_set_highlight_frame(frame, focus)
+    }
+  } else {
+    ns_display_info_set_highlight_frame(frame, nil)
+  }
+
+  if ns_display_info_highlight_frame(frame) != nil
+       && ns_display_info_highlight_frame(frame) != old_highlight {
+    if old_highlight != nil {
+      gui_update_cursor(old_highlight, true)
+      ns_set_frame_alpha(old_highlight)
+    }
+    if ns_display_info_highlight_frame(frame) != nil {
+      gui_update_cursor(ns_display_info_highlight_frame(frame), true)
+      ns_set_frame_alpha(ns_display_info_highlight_frame(frame))
+    }
+  }
+}
+
+/// C 1624-1676: `void ns_make_frame_visible (struct frame *f)` - "External: Show the window
+/// (X11 semantics)".  Declared src/nsterm.h 1226.
+///
+/// The calls into this unit's own later classes (`fsIsNative`, `isFullscreen`, `handleFS`,
+/// `setParentChildRelationships`) are deferred entries, and so is `ns_set_offset` (defined at
+/// C 1854).
+@_cdecl("ns_make_frame_visible")
+func ns_make_frame_visible(_ f: UnsafeMutableRawPointer?) {
+  /* XXX: at some points in past this was not needed, as the only place that
+     called this (frame.c:Fraise_frame ()) also called raise_lower;
+     if this ends up the case again, comment this out again.  */
+  if !FRAME_VISIBLE_P(f) {
+    let view = FRAME_NS_VIEW(f)
+    let window = view?.window
+
+    SET_FRAME_VISIBLE(f, true)
+    ns_raise_frame(f, !FRAME_NO_FOCUS_ON_MAP(f))
+
+    /* Making a new frame from a fullscreen frame will make the new frame
+       fullscreen also.  So skip handleFS as this will print an error.  */
+    if fsIsNative_definition(view) && isFullscreen_definition(view) {
+      return
+    }
+
+    if frame_want_fullscreen(f) != FULLSCREEN_NONE() {
+      block_input()
+      handleFS_definition(view)
+      unblock_input()
+    }
+
+    /* A child window cannot remain attached while hidden.  ... (C's own note on
+       `-orderOut:` and the parent->child relationship is kept with the call.)  */
+    if window?.parent == nil && FRAME_PARENT_FRAME(f) != nil {
+      block_input()
+      setParentChildRelationships_definition(window)
+      unblock_input()
+
+      /* If the parent frame moved while the child frame was
+         invisible, the child frame's position won't have been
+         updated.  Make sure it's in the right place now.  */
+      ns_set_offset(f, frame_left_pos(f), frame_top_pos(f), 0)
+    }
+  }
+}
+
+/// C 1678-1691: `void ns_make_frame_invisible (struct frame *f)` - "Hide the window (X11
+/// semantics)".  Declared src/nsterm.h 1227.
+@_cdecl("ns_make_frame_invisible")
+func ns_make_frame_invisible(_ f: UnsafeMutableRawPointer?) {
+  check_window_system(f)
+  let view = FRAME_NS_VIEW(f)
+  view?.window?.orderOut(NSApp)
+  SET_FRAME_VISIBLE(f, false)
+  SET_FRAME_ICONIFIED(f, 0)
+}
+
+/// C 1693-1702: `static void ns_make_frame_visible_invisible (struct frame *f, bool visible)` -
+/// "External (hook)".
+fileprivate func ns_make_frame_visible_invisible(_ f: UnsafeMutableRawPointer?, _ visible: Bool) {
+  if visible {
+    ns_make_frame_visible(f)
+  } else {
+    ns_make_frame_invisible(f)
+  }
+}
+
+/// C 1705-1742: `void ns_iconify_frame (struct frame *f)` - "External (hook): Iconify window".
+/// Declared src/nsterm.h 1228.
+@_cdecl("ns_iconify_frame")
+func ns_iconify_frame(_ f: UnsafeMutableRawPointer?) {
+  check_window_system(f)
+  let view = FRAME_NS_VIEW(f)
+
+  if ns_display_info_highlight_frame(f) == f {
+    ns_display_info_set_highlight_frame(f, nil)
+  }
+
+  if (view?.window?.windowNumber ?? 0) <= 0 {
+    /* The window is still deferred.  Make it very small, bring it
+       on screen and order it out.  */
+    let s = NSRect(x: 100, y: 100, width: 0, height: 0)
+    let t = view?.window?.frame ?? .zero
+    view?.window?.setFrame(s, display: false)
+    view?.window?.orderBack(NSApp)
+    view?.window?.orderOut(NSApp)
+    view?.window?.setFrame(t, display: false)
+  }
+
+  /* Processing input while Emacs is being minimized can cause a
+     crash, so block it for the duration.  */
+  block_input()
+  view?.window?.miniaturize(NSApp)
+  unblock_input()
+}
+
+// ==========================================================================
+// C 1744-1876: the frame-resource teardown and the window-placement pair.
+// ==========================================================================
+
+/// C: `Mouse_HLInfo *MOUSE_HL_INFO (struct frame *f)` (src/frame.h 1028's macro) and the
+/// `struct mouse_highlight` member this block reads.  A member entry takes the handle C's own
+/// expression starts from - here the `hlinfo` local, in round 6's write the frame - and its name
+/// always spells the record and the member.
+@_silgen_name("MOUSE_HL_INFO")
+func MOUSE_HL_INFO(_ f: UnsafeMutableRawPointer?) -> UnsafeMutableRawPointer?
+@_silgen_name("mouse_highlight_mouse_face_mouse_frame")
+func mouse_highlight_mouse_face_mouse_frame(_ hlinfo: UnsafeMutableRawPointer?)
+  -> UnsafeMutableRawPointer?
+/// C: `void reset_mouse_highlight (Mouse_HLInfo *)` (src/dispextern.h).
+@_silgen_name("reset_mouse_highlight")
+func reset_mouse_highlight(_ hlinfo: UnsafeMutableRawPointer?)
+/// C: the `struct ns_display_info` member write `dpyinfo->ns_focus_frame = 0` - the setter of
+/// round 7's reader.
+@_silgen_name("ns_display_info_set_ns_focus_frame")
+func ns_display_info_set_ns_focus_frame(_ f: UnsafeMutableRawPointer?,
+                                        _ v: UnsafeMutableRawPointer?)
+/// C: `struct ns_output`'s member `f->output_data.ns->miniimage` - the `ns_output_<member>`
+/// family `docs/ports/nsmenu.swift` 311-328 names (`ns_output_in_animation`), and the
+/// `f->output_data.ns` member itself, whose write `nsfns.swift` 717 names
+/// `frame_set_display_info` for the same kind of access.
+@_silgen_name("ns_output_miniimage")
+func ns_output_miniimage_borrowed_raw(_ f: UnsafeMutableRawPointer?) -> UnsafeMutableRawPointer?
+func ns_output_miniimage(_ f: UnsafeMutableRawPointer?) -> NSImage? {
+  guard let pointer = ns_output_miniimage_borrowed_raw(f) else { return nil }
+  return Unmanaged<NSImage>.fromOpaque(pointer).takeUnretainedValue()
+}
+@_silgen_name("frame_set_output_data_ns")
+func frame_set_output_data_ns(_ f: UnsafeMutableRawPointer?, _ v: UnsafeMutableRawPointer?)
+/// C: the same member read (`xfree (f->output_data.ns);`, C 1776).
+@_silgen_name("frame_output_data_ns")
+func frame_output_data_ns(_ f: UnsafeMutableRawPointer?) -> UnsafeMutableRawPointer?
+/// C: `void free_frame_menubar (struct frame *)` (src/frame.h 1883),
+/// `void free_frame_faces (struct frame *)` (src/dispextern.h) and `void xfree (void *)`
+/// (src/lisp.h).
+@_silgen_name("free_frame_menubar") func free_frame_menubar(_ f: UnsafeMutableRawPointer?)
+@_silgen_name("free_frame_faces") func free_frame_faces(_ f: UnsafeMutableRawPointer?)
+@_silgen_name("xfree") func xfree(_ p: UnsafeMutableRawPointer?)
+/// C: `AVOID emacs_abort (void)` (src/lisp.h) - it does not return.
+@_silgen_name("emacs_abort") func emacs_abort() -> Never
+/// C: the `struct frame` member `f->size_hint_flags` (read, and read-modify-written by
+/// `ns_set_offset`) with the two enumerators it is tested against.
+@_silgen_name("frame_size_hint_flags")
+func frame_size_hint_flags(_ f: UnsafeMutableRawPointer?) -> Int32
+@_silgen_name("frame_set_size_hint_flags")
+func frame_set_size_hint_flags(_ f: UnsafeMutableRawPointer?, _ v: Int32)
+@_silgen_name("XNegative") func XNegative() -> Int32
+@_silgen_name("YNegative") func YNegative() -> Int32
+
+/// **A deferred entry**: `[(EmacsView *)view setWindowClosing: YES]` (C 1757) waits for
+/// `EmacsView -setWindowClosing:` (C 7047), so the call site takes the entry and the
+/// `@_cdecl("setWindowClosing")` definition lands beside the class.
+@_silgen_name("setWindowClosing")
+func setWindowClosing_entry(_ view: NSView?, _ closing: Bool)
+
+/// C 1744-1780: `void ns_free_frame_resources (struct frame *f)` - "Free resources of frame F."
+/// Declared src/nsterm.h 1187, so it keeps C's name under `@_cdecl`.  C's `[x release]` calls
+/// are the manual memory management ARC replaces; where the reference *drops* a reference it
+/// owned (`[f->output_data.ns->miniimage release]`, `[view release]`), the port performs the
+/// same decrement through the runtime (`Unmanaged.passUnretained (x).release ()`), the reading
+/// round 3's `ns_release_object` uses.
+@_cdecl("ns_free_frame_resources")
+func ns_free_frame_resources(_ f: UnsafeMutableRawPointer?) {
+  check_window_system(f)
+  let view = FRAME_NS_VIEW(f)
+
+  setWindowClosing_entry(view, true) /* may not have been informed */
+
+  block_input()
+
+  free_frame_menubar(f)
+  free_frame_faces(f)
+
+  if f == ns_display_info_ns_focus_frame(f) {
+    ns_display_info_set_ns_focus_frame(f, nil)
+  }
+  if f == ns_display_info_highlight_frame(f) {
+    ns_display_info_set_highlight_frame(f, nil)
+  }
+  let hlinfo = MOUSE_HL_INFO(f)
+  if f == mouse_highlight_mouse_face_mouse_frame(hlinfo) {
+    reset_mouse_highlight(hlinfo)
+  }
+
+  ns_output_set_miniimage(f, nil)
+
+  view?.window?.close()
+  view?.removeFromSuperview()
+  (view as? EmacsView)?.owningWindow = nil
+  ns_output_set_view(f, nil)
+  ns_output_set_cursor_color(f, nil)
+  ns_output_set_foreground_color(f, nil)
+  ns_output_set_background_color(f, nil)
+  ns_output_set_text_cursor(f, nil)
+  ns_output_set_current_pointer(f, nil)
+  ns_output_set_relief_background_color(f, nil)
+  ns_output_set_light_relief_color(f, nil)
+  ns_output_set_dark_relief_color(f, nil)
+
+  xfree(frame_output_data_ns(f))
+  frame_set_output_data_ns(f, nil)
+
+  unblock_input()
+}
+
+/// C 1782-1810: `static void ns_destroy_window (struct frame *f)` - "External: Delete the
+/// window".  `emacs_abort` does not return, and C's second `FRAME_PARENT_FRAME (f)` test is the
+/// reference's own "pacify a incorrect GCC warning" branch.
+fileprivate func ns_destroy_window(_ f: UnsafeMutableRawPointer?) {
+  check_window_system(f)
+
+  /* If this frame has a parent window, detach it as not doing so can
+     cause a crash in GNUStep.  */
+  if FRAME_PARENT_FRAME(f) != nil {
+    let child = FRAME_NS_VIEW(f)?.window
+    var parent: NSWindow?
+
+    /* Pacify a incorrect GCC warning about FRAME_PARENT_FRAME (f)
+       being NULL.  */
+    if FRAME_PARENT_FRAME(f) != nil {
+      parent = FRAME_NS_VIEW(FRAME_PARENT_FRAME(f))?.window
+    } else {
+      emacs_abort()
+    }
+
+    parent?.removeChildWindow(child!)
+  }
+
+  FRAME_NS_VIEW(f)?.window?.close()
+  ns_free_frame_resources(f)
+  ns_window_num -= 1
+}
+
+/// C 1812-1852: `static NSPoint compute_offset (struct frame *f, NSView *view, int xoff, int
+/// yoff)`.  The `NS_IMPL_GNUSTEP` menu-overlap clamp is the GNUstep arm (dead here).
+fileprivate func compute_offset(_ f: UnsafeMutableRawPointer?, _ view: NSView?,
+                                _ xoff: Int32, _ yoff: Int32) -> NSPoint {
+  /* If there is no parent frame then just convert to screen
+     coordinates, UNLESS we have negative values, in which case I
+     think it's best to position from the bottom and right of the
+     current screen rather than the main screen or whole display.  */
+
+  let parentRect = ns_parent_window_rect(f)
+  let windowFrame = view?.window?.frame ?? .zero
+  var topLeft = NSPoint.zero
+
+  if frame_size_hint_flags(f) & XNegative() != 0 {
+    topLeft.x = NSMaxX(parentRect) - NSWidth(windowFrame) + CGFloat(xoff)
+  } else if FRAME_PARENT_FRAME(f) != nil {
+    topLeft.x = NSMinX(parentRect) + CGFloat(xoff)
+  } else {
+    topLeft.x = CGFloat(xoff)
+  }
+
+  if frame_size_hint_flags(f) & YNegative() != 0 {
+    topLeft.y = NSMinY(parentRect) + NSHeight(windowFrame) - CGFloat(yoff)
+  } else if FRAME_PARENT_FRAME(f) != nil {
+    topLeft.y = NSMaxY(parentRect) - CGFloat(yoff)
+  } else {
+    topLeft.y = NSMaxY(NSScreen.screens[0].frame) - CGFloat(yoff)
+  }
+
+  return topLeft
+}
+
+/// C 1854-1875: `void ns_set_offset (struct frame *f, int xoff, int yoff, int change_grav)` -
+/// "External: Position the window".  Declared src/nsterm.h 1126 - **this is the definition the
+/// deferred entry `ns_set_offset` (first called at C 1691) waits for**, and its signature
+/// is the one `nsfns.swift` 600 imports.
+@_cdecl("ns_set_offset")
+func ns_set_offset(_ f: UnsafeMutableRawPointer?, _ xoff: Int32, _ yoff: Int32,
+                   _ change_grav: Int32) {
+  let view = FRAME_NS_VIEW(f)
+
+  if view == nil {
+    return
+  }
+
+  block_input()
+
+  let topLeft = compute_offset(f, view, xoff, yoff)
+  view?.window?.setFrameTopLeftPoint(topLeft)
+  frame_set_size_hint_flags(f, frame_size_hint_flags(f) & ~(XNegative() | YNegative()))
+
+  unblock_input()
+}
+
+// ==========================================================================
+// C 1877-1956: the window-sizing pair.
+// ==========================================================================
+
+/// C: `struct ns_output`'s member `f->output_data.ns->zooming` (read, and reset to 0) - the
+/// `ns_output_<member>` family `docs/ports/nsmenu.swift` 311-328 names.
+@_silgen_name("ns_output_zooming") func ns_output_zooming(_ f: UnsafeMutableRawPointer?) -> Bool
+@_silgen_name("ns_output_set_zooming")
+func ns_output_set_zooming(_ f: UnsafeMutableRawPointer?, _ v: Bool)
+/// C: `void change_frame_size (struct frame *, int, int, bool, bool, bool)` (src/dispnew.h) -
+/// C's `NO` is `false`.
+@_silgen_name("change_frame_size")
+func change_frame_size(_ f: UnsafeMutableRawPointer?, _ new_width: Int32, _ new_height: Int32,
+                       _ pretend: Bool, _ delay: Bool, _ safe: Bool)
+/// C: `#define FRAME_NS_TITLEBAR_HEIGHT(f) …` (src/nsterm.h 1062-1068, "Compute pixel height of
+/// the frame's titlebar") and `#define FRAME_TOOLBAR_HEIGHT(f) …` (src/nsterm.h 1071-1079).
+/// **Neither has a symbol anywhere in the port** (measured: `nm -g` over
+/// `build/emacs-ref/{src,lib}/*.o` finds none), so per the integrator's rule of status 3.251 -
+/// a name with no real C symbol cannot be a C-ABI entry - this unit spells each macro's *body*
+/// instead of importing its name.  The bodies need only AppKit and the existing `FRAME_NS_VIEW`
+/// entry.
+fileprivate func frame_ns_titlebar_height(_ f: UnsafeMutableRawPointer?) -> Int32 {
+  let view = FRAME_NS_VIEW(f)
+  if view == nil || NSHeight(view!.frame) == 0 {
+    return 0
+  }
+  let window = view!.window
+  return Int32(NSHeight(window!.frame)
+               - NSHeight(NSWindow.contentRect(forFrameRect: window!.frame,
+                                               styleMask: window!.styleMask)))
+}
+
+fileprivate func frame_toolbar_height(_ f: UnsafeMutableRawPointer?) -> Int32 {
+  let window = FRAME_NS_VIEW(f)?.window
+  let toolbar = window?.toolbar
+  if toolbar == nil || !toolbar!.isVisible {
+    return 0
+  }
+  return Int32(NSHeight(NSWindow.contentRect(forFrameRect: window!.frame,
+                                            styleMask: window!.styleMask))
+               - NSHeight(window!.contentView!.frame))
+}
+
+/// C 1877-1915: `static void ns_set_window_size (struct frame *f, bool change_gravity, int
+/// width, int height)` - "Adjust window pixel size based on native sizes WIDTH and HEIGHT."
+/// The `NSTRACE_*` calls are the empty macros at `NSTRACE_ENABLED` 0, so their arguments
+/// (`FRAME_COLUMN_WIDTH`/`FRAME_LINE_HEIGHT`, `[window frame]`) are not evaluated here either -
+/// the same dead-arm reading rounds 1 and 6 recorded.
+fileprivate func ns_set_window_size(_ f: UnsafeMutableRawPointer?, _ change_gravity: Bool,
+                                    _ width: Int32, _ height: Int32) {
+  let view = FRAME_NS_VIEW(f)
+  let window = view?.window
+
+  if view == nil {
+    return
+  }
+
+  block_input()
+
+  var frameRect = window?.frameRect(forContentRect:
+                                      NSMakeRect(0, 0, CGFloat(width), CGFloat(height))) ?? .zero
+
+  /* Set the origin so the top left of the frame doesn't move.  */
+  frameRect.origin = window?.frame.origin ?? .zero
+  frameRect.origin.y += NSHeight(view!.frame) - CGFloat(height)
+
+  if ns_output_zooming(f) {
+    ns_output_set_zooming(f, false)
+  }
+
+  /* Usually it seems safe to delay changing the frame size, but when a
+     series of actions are taken with no redisplay between them then we
+     can end up using old values so don't delay here.  */
+  change_frame_size(f, width, height, false, false, false)
+
+  window?.setFrame(frameRect, display: false)
+
+  unblock_input()
+}
+
+/// C 1920-1956: `static void ns_set_window_size_and_position (struct frame *f, int width, int
+/// height)` - "Adjust window pixelwise size and position in one operation."
+fileprivate func ns_set_window_size_and_position(_ f: UnsafeMutableRawPointer?, _ width: Int32,
+                                                 _ height: Int32) {
+  let view = FRAME_NS_VIEW(f)
+  let window = view?.window
+
+  if view == nil {
+    return
+  }
+
+  block_input()
+
+  /* Both window frame origin, and the rect that setFrame accepts are
+     anchored to the bottom-left corner of the window.  */
+  let topLeft = compute_offset(f, view, frame_left_pos(f), frame_top_pos(f))
+  let bottomLeft = NSMakePoint(topLeft.x,
+                               /* text-area pixels + decorations. */
+                               topLeft.y - (CGFloat(height)
+                                            + CGFloat(frame_ns_titlebar_height(f))
+                                            + CGFloat(frame_toolbar_height(f))))
+  let frameRect = window?.frameRect(forContentRect: NSMakeRect(bottomLeft.x, bottomLeft.y,
+                                                               CGFloat(width),
+                                                               CGFloat(height))) ?? .zero
+
+  if ns_output_zooming(f) {
+    ns_output_set_zooming(f, false)
+  }
+
+  /* Usually it seems safe to delay changing the frame size, but when a
+     series of actions are taken with no redisplay between them then we
+     can end up using old values so don't delay here.  */
+  change_frame_size(f, width, height, false, false, false)
+  window?.setFrame(frameRect, display: false)
+  frame_set_size_hint_flags(f, frame_size_hint_flags(f) & ~(XNegative() | YNegative()))
+
+  unblock_input()
+}
+
+// ==========================================================================
+// C 1959-2398: the frame-parameter handlers, the color-management block, and
+// the alpha hook's definition (the mouse-handling banner at C 2401-2405 is the next slice).
+//
+// This slice's C constructs that the unit reads or writes and that have no symbol of their own
+// in the reference are entries (the integrator's ruling of status 3.255; the audit quoted in
+// `## Evidence` is the measurement behind the class): the `frame_set_*` member writes, the
+// two enumerator families (`z_group`, `ns_appearance_type`), the `Q*` globals the handlers
+// compare against, and the header-only `Lisp_Object` accessors.  Two call sites take the
+// round-5 ruling's deferred shape - an `EmacsWindow` constructor (C 1983) and one of its
+// methods (C 2144), whose class lands at C 9756 (`## ABI` (4)).
+// ==========================================================================
+
+/// C: `INLINE void fset_parent_frame (struct frame *f, Lisp_Object val)` (src/frame.h 774) -
+/// the setter family `docs/ports/nsmenu.swift` 307 reaches; `nsfns.swift` 641-642 imports the
+/// same name and the same signature.
+@_silgen_name("fset_parent_frame")
+func fset_parent_frame(_ f: UnsafeMutableRawPointer?, _ parent: Lisp_Object)
+/// C: src/frame.h 1239's `FRAME_UNDECORATED` (`#define FRAME_UNDECORATED(f) ((f)->undecorated)`) -
+/// the member is src/frame.h 449's `undecorated` (`bool_bf undecorated : 1;`), written at C 1981.
+/// Only the write half is this slice's, and the name is the one `nsfns.swift` 573-574 already
+/// imports.
+@_silgen_name("frame_set_undecorated")
+func frame_set_undecorated(_ f: UnsafeMutableRawPointer?, _ v: Bool)
+/// C: `#define FRAME_NO_FOCUS_ON_MAP(f) ((f)->no_focus_on_map)` (src/frame.h 1248) - written at
+/// C 2056 (`FRAME_NO_FOCUS_ON_MAP (f) = !NILP (new_value);`).  The macro's read half is the
+/// entry `ns_raise_frame` already carries (`FRAME_NO_FOCUS_ON_MAP`), so the write takes the
+/// member-write name (`<record>_set_<member>`, `docs/ports/nsmenu.swift` 311-328).
+@_silgen_name("frame_set_no_focus_on_map")
+func frame_set_no_focus_on_map(_ f: UnsafeMutableRawPointer?, _ v: Bool)
+/// C: `#define FRAME_NO_ACCEPT_FOCUS(f) ((f)->no_accept_focus)` (src/frame.h 1249) - written at
+/// C 2074; this slice does not read it.
+@_silgen_name("frame_set_no_accept_focus")
+func frame_set_no_accept_focus(_ f: UnsafeMutableRawPointer?, _ v: Bool)
+/// C: `#define FRAME_Z_GROUP(f) ((f)->z_group)` (src/frame.h 1250) - the `ENUM_BF (z_group)
+/// z_group : 2` member (src/frame.h 482), written at C 2096/2101/2107/2112, and the four
+/// enumerators of `enum z_group` (src/frame.h 61-67) it is written with.
+@_silgen_name("frame_set_z_group")
+func frame_set_z_group(_ f: UnsafeMutableRawPointer?, _ v: Int32)
+@_silgen_name("z_group_none") func z_group_none() -> Int32
+@_silgen_name("z_group_above") func z_group_above() -> Int32
+@_silgen_name("z_group_below") func z_group_below() -> Int32
+@_silgen_name("z_group_above_suspended") func z_group_above_suspended() -> Int32
+/// C: `#define FRAME_NS_APPEARANCE(f) ((f)->ns_appearance)` (src/frame.h 1258, the
+/// `NS_IMPL_COCOA` arm) - the `enum ns_appearance_type` member (src/frame.h 70-75 and 737),
+/// written at C 2123/2125/2127 - and the three enumerators of that enum.
+@_silgen_name("frame_set_ns_appearance")
+func frame_set_ns_appearance(_ f: UnsafeMutableRawPointer?, _ v: Int32)
+@_silgen_name("ns_appearance_system_default") func ns_appearance_system_default() -> Int32
+@_silgen_name("ns_appearance_aqua") func ns_appearance_aqua() -> Int32
+@_silgen_name("ns_appearance_vibrant_dark") func ns_appearance_vibrant_dark() -> Int32
+/// C: `#define FRAME_NS_TRANSPARENT_TITLEBAR(f) ((f)->ns_transparent_titlebar)` (src/frame.h
+/// 1259) - written at C 2162; the write name is the one `nsfns.swift` 577-578 already imports.
+@_silgen_name("frame_set_ns_transparent_titlebar")
+func frame_set_ns_transparent_titlebar(_ f: UnsafeMutableRawPointer?, _ v: Bool)
+/// C: the globals this slice compares against - `Qparent_frame` (src/frame.c 7232),
+/// `Qbelow`/`Qabove_suspended` (src/frame.c 7367-7368), `Qabove` (src/window.c 9251) and
+/// `Qdark`/`Qlight` (src/nsfns.m 4207-4208, and src/frame.c 7904-7905).  Each is a C data
+/// symbol in the reference objects (`_Qdark` and friends are `S` in `build/emacs-ref/src/`),
+/// so the core exports one of its own name, the shape `docs/ports/nsfns.swift` 1135-1138 uses.
+@_silgen_name("Qparent_frame") func Qparent_frame() -> Lisp_Object
+@_silgen_name("Qabove") func Qabove() -> Lisp_Object
+@_silgen_name("Qabove_suspended") func Qabove_suspended() -> Lisp_Object
+@_silgen_name("Qbelow") func Qbelow() -> Lisp_Object
+@_silgen_name("Qdark") func Qdark() -> Lisp_Object
+@_silgen_name("Qlight") func Qlight() -> Lisp_Object
+/// C: `void store_frame_param (struct frame *, Lisp_Object, Lisp_Object)` (src/lisp.h 5117,
+/// defined src/frame.c 3872) - the core's `src/frame.rs` 3842 defines it.
+@_silgen_name("store_frame_param")
+func store_frame_param(_ f: UnsafeMutableRawPointer?, _ prop: Lisp_Object, _ val: Lisp_Object)
+/// C: src/lisp.h 4835's `error` (`AVOID error (const char *, ...)`) - the lane's variadic shape
+/// (`nsfns.swift` 103); `_error` is `T` in `build/emacs-ref/src/eval.o`.
+@_silgen_name("error") func error(_ format: UnsafePointer<CChar>, _ args: CVarArg...) -> Never
+/// C: `bool parse_color_spec (const char *, unsigned short *, unsigned short *,
+/// unsigned short *)` (src/dispextern.h 3798, defined src/xfaces.c 987) - the core's
+/// `src/xfaces.rs` 760 exports the same name and the same `*mut c_ushort` arguments.
+@_silgen_name("parse_color_spec")
+func parse_color_spec(_ spec: UnsafePointer<CChar>?, _ r: UnsafeMutablePointer<UInt16>,
+                      _ g: UnsafeMutablePointer<UInt16>, _ b: UnsafeMutablePointer<UInt16>) -> Bool
+/// C: `INLINE bool STRINGP (Lisp_Object)` (src/lisp.h 1582), `INLINE char *SSDATA (Lisp_Object)`
+/// (src/lisp.h 1658) and `INLINE Lisp_Object SYMBOL_NAME (Lisp_Object)` (src/lisp.h 2350) - the
+/// header-only accessors `ns_lisp_to_color` reads (`docs/ports/nsfns.swift` 184/200-201).
+@_silgen_name("STRINGP") func STRINGP(_ x: Lisp_Object) -> Bool
+@_silgen_name("SSDATA") func SSDATA(_ string: Lisp_Object) -> UnsafeMutablePointer<CChar>
+@_silgen_name("SYMBOL_NAME") func SYMBOL_NAME(_ sym: Lisp_Object) -> Lisp_Object
+/// C: `#define FRAME_BACKGROUND_COLOR(f) ((f)->output_data.ns->background_color)` (src/nsterm.h
+/// 1038) - the entry `macfont.swift` 756 already imports under this name and this type.
+@_silgen_name("FRAME_BACKGROUND_COLOR")
+func FRAME_BACKGROUND_COLOR_borrowed_raw(_ f: UnsafeMutableRawPointer?) -> UnsafeMutableRawPointer?
+func FRAME_BACKGROUND_COLOR(_ f: UnsafeMutableRawPointer?) -> NSColor? {
+  guard let pointer = FRAME_BACKGROUND_COLOR_borrowed_raw(f) else { return nil }
+  return Unmanaged<NSColor>.fromOpaque(pointer).takeUnretainedValue()
+}
+/// C: `DEFVAR_LISP ("frame-alpha-lower-limit", Vframe_alpha_lower_limit, …)` (src/frame.c
+/// 7421-7425) - a generated global (`build/emacs-ref/src/globals.h` 280-281 spells it
+/// `globals.f_…`), so the core exports a data symbol of its own name, the shape `Vframe_list`
+/// takes above.
+@_silgen_name("Vframe_alpha_lower_limit") var Vframe_alpha_lower_limit: Lisp_Object
+/// C: `#define FLOATP(x) lisp_h_FLOATP (x)` / `#define FIXNUMP(x) lisp_h_FIXNUMP (x)`
+/// (src/lisp.h 448-449) and `INLINE double XFLOAT_DATA (Lisp_Object)` (src/lisp.h 3186) /
+/// `INLINE EMACS_INT XFIXNUM (Lisp_Object)` (src/lisp.h 1268) - header-only, so the core
+/// exports each under its own name.
+@_silgen_name("FLOATP") func FLOATP(_ x: Lisp_Object) -> Bool
+@_silgen_name("XFLOAT_DATA") func XFLOAT_DATA(_ x: Lisp_Object) -> Double
+@_silgen_name("FIXNUMP") func FIXNUMP(_ x: Lisp_Object) -> Bool
+@_silgen_name("XFIXNUM") func XFIXNUM(_ x: Lisp_Object) -> Int
+/// C: the `double alpha[2]` member of `struct frame` (src/frame.h 707-711: "`alpha[0]`: alpha
+/// transparency of the active frame, `alpha[1]`: alpha transparency of inactive frames") - read
+/// at C 2378/2380 with C's own subscript, which is the entry's second argument.
+@_silgen_name("frame_alpha")
+func frame_alpha(_ f: UnsafeMutableRawPointer?, _ index: Int32) -> Double
+
+// **Deferred entries** (`## ABI` (4)): call sites that precede the definition's C line.
+/// C 2144: `[window setAppearance];` - `EmacsWindow -setAppearance` (C 10398).
+
+// ==========================================================================
+// C 1960-1956: the seven frame-parameter handlers src/nsterm.h 1229-1245 declares.
+// ==========================================================================
+
+/// C 1960-1996: `void ns_set_undecorated (struct frame *f, Lisp_Object new_value, Lisp_Object
+/// old_value)` - `/* Set frame F's `undecorated' parameter.  If non-nil, F's window-system
+/// window is drawn without decorations, title, minimize/maximize boxes and external borders.
+/// This usually means that the window cannot be dragged, resized, iconified, maximized or
+/// deleted with the mouse.  If nil, draw the frame with all the elements listed above unless
+/// these have been suspended via window manager settings.  */`.  Declared src/nsterm.h 1229, so
+/// it keeps C's name under `@_cdecl`; `nsfns.swift` 457 imports it.
+@_cdecl("ns_set_undecorated")
+func ns_set_undecorated(_ f: UnsafeMutableRawPointer?, _ new_value: Lisp_Object,
+                        _ old_value: Lisp_Object) {
+  // C 1971: `NSTRACE ("ns_set_undecorated");` - `NSTRACE` is the empty macro at
+  // `NSTRACE_ENABLED` 0 (src/nsterm.h 142-143/297-302), so it carries no statement here.
+
+  if !EQ(new_value, old_value) {
+    let view = FRAME_NS_VIEW(f)
+    let oldWindow = view?.window
+    var newWindow: NSWindow?
+
+    block_input()
+
+    frame_set_undecorated(f, !NILP(new_value))
+
+    // C 1983: `newWindow = [[EmacsWindow alloc] initWithEmacsFrame:f];` - `EmacsWindow` is
+    // this file's own class and lands at C 9756 (`-initWithEmacsFrame:` C 9759), so the
+    // constructor is the deferred entry above.
+    newWindow = EmacsWindow_initWithEmacsFrame_impl(f) as? NSWindow
+
+    if oldWindow?.isKeyWindow ?? false {
+      newWindow?.makeKeyAndOrderFront(NSApp)
+    }
+
+    newWindow?.setIsVisible(oldWindow?.isVisible ?? false)
+    if oldWindow?.isMiniaturized ?? false {
+      newWindow?.miniaturize(NSApp)
+    }
+
+    oldWindow?.close()
+
+    unblock_input()
+  }
+}
+
+/// C 1998-2040: `void ns_set_parent_frame (struct frame *f, Lisp_Object new_value, Lisp_Object
+/// old_value)` - "Set frame F's `parent-frame' parameter. … On macOS moving a parent frame
+/// moves all its child frames too, keeping their position relative to the parent unaltered.
+/// …".  Declared src/nsterm.h 1230 (`nsfns.swift` 458).
+@_cdecl("ns_set_parent_frame")
+func ns_set_parent_frame(_ f: UnsafeMutableRawPointer?, _ new_value: Lisp_Object,
+                         _ old_value: Lisp_Object) {
+  var p: UnsafeMutableRawPointer? = nil
+
+  // C 2024: `NSTRACE ("ns_set_parent_frame");` - empty, as above.
+
+  // C 2026-2029: `if (!NILP (new_value) && (!FRAMEP (new_value) || !FRAME_LIVE_P (p =
+  // XFRAME (new_value)) || !FRAME_NS_P (p)))`.  C's `p = XFRAME (new_value)` sits inside the
+  // condition, where Swift has no assignment expression, so the port spells the same
+  // short-circuit as three steps: `XFRAME` still runs only when `FRAMEP` failed to reject, and
+  // `FRAME_NS_P` only when `FRAME_LIVE_P` did.
+  if !NILP(new_value) {
+    var bad = !FRAMEP(new_value)
+
+    if !bad {
+      p = XFRAME(new_value)
+      bad = !FRAME_LIVE_P(p)
+      if !bad {
+        bad = !FRAME_NS_P(p)
+      }
+    }
+
+    if bad {
+      store_frame_param(f, Qparent_frame(), old_value)
+      error("Invalid specification of `parent-frame'")
+    }
+  }
+
+  fset_parent_frame(f, new_value)
+
+  block_input()
+  // C 2038: `[(EmacsWindow *)[FRAME_NS_VIEW (f) window] setParentChildRelationships];` - the
+  // `EmacsWindow` method whose entry round 7 already carries.
+  setParentChildRelationships_definition(FRAME_NS_VIEW(f)?.window)
+  unblock_input()
+}
+
+/// C 2042-2058: `void ns_set_no_focus_on_map (struct frame *f, Lisp_Object new_value,
+/// Lisp_Object old_value)` - "Set frame F's `no-focus-on-map' parameter which, if non-nil,
+/// means that F's window-system window does not want to receive input focus when it is
+/// mapped. …".  Declared src/nsterm.h 1231 (`nsfns.swift` 459).
+@_cdecl("ns_set_no_focus_on_map")
+func ns_set_no_focus_on_map(_ f: UnsafeMutableRawPointer?, _ new_value: Lisp_Object,
+                            _ old_value: Lisp_Object) {
+  // C 2052: `NSTRACE ("ns_set_no_focus_on_map");` - empty, as above.
+
+  if !EQ(new_value, old_value) {
+    frame_set_no_focus_on_map(f, !NILP(new_value))
+  }
+}
+
+/// C 2060-2075: `void ns_set_no_accept_focus (struct frame *f, Lisp_Object new_value,
+/// Lisp_Object old_value)` - "Set frame F's `no-accept-focus' parameter which, if non-nil,
+/// hints that F's window-system window does not want to receive input focus via mouse clicks or
+/// by moving the mouse into it. …".  Declared src/nsterm.h 1232 (`nsfns.swift` 460).
+@_cdecl("ns_set_no_accept_focus")
+func ns_set_no_accept_focus(_ f: UnsafeMutableRawPointer?, _ new_value: Lisp_Object,
+                            _ old_value: Lisp_Object) {
+  // C 2071: `NSTRACE ("ns_set_no_accept_focus");` - empty, as above.
+
+  if !EQ(new_value, old_value) {
+    // C 2074 is a single unbraced statement; Swift requires the braces.
+    frame_set_no_accept_focus(f, !NILP(new_value))
+  }
+}
+
+/// C 2077-2116: `void ns_set_z_group (struct frame *f, Lisp_Object new_value, Lisp_Object
+/// old_value)` - "Set frame F's `z-group' parameter.  If `above', F's window-system window is
+/// displayed above all windows that do not have the `above' property set. …".  Declared
+/// src/nsterm.h 1233 (`nsfns.swift` 461).
+@_cdecl("ns_set_z_group")
+func ns_set_z_group(_ f: UnsafeMutableRawPointer?, _ new_value: Lisp_Object,
+                    _ old_value: Lisp_Object) {
+  let view = FRAME_NS_VIEW(f)
+  let window = view?.window
+
+  // C 2091: `NSTRACE ("ns_set_z_group");` - empty, as above.
+
+  // C 2095/2100/2106/2111: `window.level = NSNormalWindowLevel [+|-] 1;` - Swift renames the
+  // AppKit constant to `NSWindow.Level.normal`, and C's `+ 1`/`- 1` become the same level's
+  // `rawValue` arithmetic.
+  if NILP(new_value) {
+    window?.level = NSWindow.Level.normal
+    frame_set_z_group(f, z_group_none())
+  } else if EQ(new_value, Qabove()) {
+    window?.level = NSWindow.Level(rawValue: NSWindow.Level.normal.rawValue + 1)
+    frame_set_z_group(f, z_group_above())
+  } else if EQ(new_value, Qabove_suspended()) {
+    /* Not sure what level this should be.  */
+    window?.level = NSWindow.Level(rawValue: NSWindow.Level.normal.rawValue + 1)
+    frame_set_z_group(f, z_group_above_suspended())
+  } else if EQ(new_value, Qbelow()) {
+    window?.level = NSWindow.Level(rawValue: NSWindow.Level.normal.rawValue - 1)
+    frame_set_z_group(f, z_group_below())
+  } else {
+    error("Invalid z-group specification")
+  }
+}
+
+/// C 2118-2128: `void ns_set_appearance_1 (struct frame *f, Lisp_Object new_value)` - the
+/// helper of the `NS_IMPL_COCOA` arm (the `#ifdef` at C 2118 is the live one).  Declared
+/// src/nsterm.h 1240; `nsfns.swift` 604 imports it.
+@_cdecl("ns_set_appearance_1")
+func ns_set_appearance_1(_ f: UnsafeMutableRawPointer?, _ new_value: Lisp_Object) {
+  if EQ(new_value, Qdark()) {
+    frame_set_ns_appearance(f, ns_appearance_vibrant_dark())
+  } else if EQ(new_value, Qlight()) {
+    frame_set_ns_appearance(f, ns_appearance_aqua())
+  } else {
+    frame_set_ns_appearance(f, ns_appearance_system_default())
+  }
+}
+
+/// C 2130-2146: `void ns_set_appearance (struct frame *f, Lisp_Object new_value, Lisp_Object
+/// old_value)`.  The body is C's `MAC_OS_X_VERSION_MAX_ALLOWED >= 101000` arm, which is live
+/// for this lane's target (the frozen configuration reads 260000).  Declared src/nsterm.h 1241
+/// (`nsfns.swift` 462).
+@_cdecl("ns_set_appearance")
+func ns_set_appearance(_ f: UnsafeMutableRawPointer?, _ new_value: Lisp_Object,
+                       _ old_value: Lisp_Object) {
+  let view = FRAME_NS_VIEW(f)
+  let window = view?.window
+
+  // C 2137: `NSTRACE ("ns_set_appearance");` - empty, as above.
+
+  // C 2139: `if (NSAppKitVersionNumber < NSAppKitVersionNumber10_10) return;` - the two AppKit
+  // globals are renamed in Swift (AppKit.apinotes 8624-8626, the reading the `colorForEmacsRed`
+  // category method above records); the fallback `#define NSAppKitVersionNumber10_10 1343` is
+  // C 10406-10408, inside a later slice's `-[EmacsWindow setAppearance]`.
+  if NSAppKitVersion.current.rawValue < NSAppKitVersion.macOS10_10.rawValue {
+    return
+  }
+
+  ns_set_appearance_1(f, new_value)
+
+  // C 2144: `[window setAppearance];` - the deferred entry above.
+  setAppearance(window)
+}
+
+/// C 2148-2165: `void ns_set_transparent_titlebar (struct frame *f, Lisp_Object new_value,
+/// Lisp_Object old_value)`.  C's `MAC_OS_X_VERSION_MAX_ALLOWED >= 101000` arm is the live one.
+/// Declared src/nsterm.h 1242-1245 (`nsfns.swift` 463).
+@_cdecl("ns_set_transparent_titlebar")
+func ns_set_transparent_titlebar(_ f: UnsafeMutableRawPointer?, _ new_value: Lisp_Object,
+                                 _ old_value: Lisp_Object) {
+  let view = FRAME_NS_VIEW(f)
+  let window = view?.window
+
+  // C 2156: `NSTRACE ("ns_set_transparent_titlebar");` - empty, as above.
+
+  // C 2158: `[window respondsToSelector: @selector(titlebarAppearsTransparent)]` - Swift
+  // reaches the getter's selector through `#selector`, the reading
+  // `ns_update_auto_hide_menu_bar` above uses for `setPresentationOptions:`.
+  if (window?.responds(to: #selector(getter: NSWindow.titlebarAppearsTransparent)) ?? false)
+       && !EQ(new_value, old_value) {
+    window?.titlebarAppearsTransparent = !NILP(new_value)
+    frame_set_ns_transparent_titlebar(f, !NILP(new_value))
+  }
+}
+
+/// C 2168-2181: `static void ns_fullscreen_hook (struct frame *f)`.  It is a C `static` (the
+/// reference registers it as `terminal->fullscreen_hook` at C 5936), so it lands as a
+/// `fileprivate func` of its own name.
+fileprivate func ns_fullscreen_hook(_ f: UnsafeMutableRawPointer?) {
+  let view = FRAME_NS_VIEW(f)
+
+  // C 2173: `NSTRACE ("ns_fullscreen_hook");` - empty, as above.
+
+  if !FRAME_VISIBLE_P(f) {
+    return
+  }
+
+  block_input()
+  // C 2179: `[view handleFS];` - the `EmacsView` method whose entry round 7 already carries.
+  handleFS_definition(view)
+  unblock_input()
+}
+
+/* ==========================================================================
+
+    Color management
+
+   ========================================================================== */
+
+/// C 2190-2297: `static int ns_get_color (const char *name, NSColor **col)` - "Parse a color
+/// name", plus C's own note that it "attempt[s] to mimic the X11 platform here, down to
+/// installing an X11 rgb.txt-compatible color list in Emacs.clr".
+///
+/// C reassigns its `const char *name` parameter twice (C 2224/2238) from `[nsname UTF8String]`;
+/// Swift's `String` holds those same bytes, so the port keeps `nsname` alone and reads the two
+/// uses of the pointer (C 2243's `parse_color_spec` and C 2252's `name[0]`) from it.
+fileprivate func ns_get_color(_ name: UnsafePointer<CChar>?,
+                              _ col: UnsafeMutablePointer<NSColor?>) -> Int32 {
+  var new: NSColor? = nil
+  var nsname: NSString = String(cString: name!) as NSString
+
+  // C 2202: `NSTRACE ("ns_get_color(%s, **)", name);` - empty, so its arguments are not
+  // evaluated here either.
+
+  block_input()
+
+  if nsname.isEqual(to: "ns_selection_bg_color") {
+    /* C 2208-2214: the `NS_IMPL_COCOA` arm reads the system's own highlight colour; C's
+       `#else` arm (the other implementation's spelling) is dead in this build.  */
+    let defname = UserDefaults.standard.string(forKey: "AppleHighlightColor")
+    if defname != nil {
+      nsname = defname! as NSString
+    } else {
+      // C 2215: `(new = [NSColor selectedTextBackgroundColor]) != nil` - C's assignment
+      // inside the condition becomes a statement of its own (Swift has no assignment
+      // expression).
+      new = NSColor.selectedTextBackgroundColor
+      if new != nil {
+        col.pointee = new!.colorUsingDefaultColorSpace()
+        unblock_input()
+        return 0
+      } else {
+        /* C 2222: `nsname = NS_SELECTION_BG_COLOR_DEFAULT;` - the macro's body is the string
+           literal at src/nsterm.h 1278, spelled in place (status 3.255's class B: no symbol
+           is invented for a macro whose expansion is a literal).  */
+        nsname = "LightGoldenrod2"
+      }
+    }
+
+    // C 2224: `name = [nsname UTF8String];` - see the note above.
+  } else if nsname.isEqual(to: "ns_selection_fg_color") {
+    /* NOTE: macOS applications normally don't set foreground
+       selection, but text may be unreadable if we don't.  */
+    // C 2230: `if ((new = [NSColor selectedTextColor]) != nil)` - as at C 2215.
+    new = NSColor.selectedTextColor
+    if new != nil {
+      col.pointee = new!.colorUsingDefaultColorSpace()
+      unblock_input()
+      return 0
+    }
+
+    /* C 2237: `nsname = NS_SELECTION_FG_COLOR_DEFAULT;` - src/nsterm.h 1279's `@"Black"`.  */
+    nsname = "Black"
+    // C 2238: `name = [nsname UTF8String];` - see the note above.
+  }
+
+  /* First, check for some sort of numeric specification.  */
+  var r16: UInt16 = 0, g16: UInt16 = 0, b16: UInt16 = 0
+  // C 2243: `parse_color_spec (name, &r16, &g16, &b16)` - `name` is `[nsname UTF8String]`, so
+  // the port hands the entry the same bytes through `withCString`.
+  if (nsname as String).withCString({ parse_color_spec($0, &r16, &g16, &b16) }) {
+    col.pointee = NSColor.colorForEmacsRed(EmacsCGFloat(r16) / 65535.0,
+                                           green: EmacsCGFloat(g16) / 65535.0,
+                                           blue: EmacsCGFloat(b16) / 65535.0,
+                                           alpha: 1.0)
+    unblock_input()
+    return 0
+  } else if (nsname as String).utf8.first == UInt8(ascii: "0")
+              || (nsname as String).utf8.first == UInt8(ascii: "1")
+              || (nsname as String).utf8.first == UInt8(ascii: ".") {
+    /* RGB decimal */
+    let scanner = Scanner(string: nsname as String)
+    var r: Float = 0, g: Float = 0, b: Float = 0
+    if scanner.scanFloat(&r) && r >= 0 && r <= 1
+        && scanner.scanFloat(&g) && g >= 0 && g <= 1
+        && scanner.scanFloat(&b) && b >= 0 && b <= 1 {
+      col.pointee = NSColor.colorForEmacsRed(EmacsCGFloat(r), green: EmacsCGFloat(g),
+                                             blue: EmacsCGFloat(b), alpha: 1.0)
+      unblock_input()
+      return 0
+    }
+  }
+
+  /* Otherwise, color is expected to be from a list */
+  do {
+    /* C 2268-2271 declares `NSEnumerator *lenum, *cenum; NSString *name; NSColorList *clist;`
+       - C's inner `NSString *name` shadows the parameter, and this loop's `name` is the same
+       shadow.  C 2281/2284's `&& new == nil` is the loop's early exit, and the
+       `objectEnumerator` reads of C 2280/2283 are the arrays Swift vends (the reading
+       `nsfns.swift` 3220 records).  */
+    for clist in NSColorList.availableColorLists {
+      if new != nil { break }
+      for name in clist.allKeys {
+        if new != nil { break }
+        // C 2286-2288: `[name compare: nsname options: NSCaseInsensitiveSearch] ==
+        // NSOrderedSame`.
+        if name.compare(nsname as String, options: .caseInsensitive) == .orderedSame {
+          new = clist.color(withKey: name)
+        }
+      }
+    }
+
+    /* C 2273-2278: the `NS_IMPL_GNUSTEP` arm's /* XXX: who is wrong, the requestor or the
+       implementation?  */ rewrite of `nsname` - dead in this build, recorded not
+       transcribed.  (Swift's block comments nest, so C's inner comment survives verbatim.)  */
+  }
+
+  if new != nil {
+    col.pointee = new!.colorUsingDefaultColorSpace()
+  }
+  unblock_input()
+  return new != nil ? 0 : 1
+}
+
+/// C 2299-2312: `int ns_lisp_to_color (Lisp_Object color, NSColor **col)` - "Convert a Lisp
+/// string object to a NS color."  Declared src/nsterm.h 1148 (the `__OBJC__` arm), so it keeps
+/// C's name under `@_cdecl`; `nsfns.swift` 118-119 imports this signature, and its three call
+/// sites pass `&col` for an `NSColor?`.
+@_cdecl("ns_lisp_to_color")
+func ns_lisp_to_color(_ color: Lisp_Object, _ col: UnsafeMutablePointer<NSColor?>) -> Int32 {
+  // C 2306: `NSTRACE ("ns_lisp_to_color");` - empty, as above.
+
+  if STRINGP(color) {
+    return ns_get_color(SSDATA(color), col)
+  } else if SYMBOLP(color) {
+    return ns_get_color(SSDATA(SYMBOL_NAME(color)), col)
+  }
+  return 1
+}
+
+/// C 2314-2329: `static void ns_query_color (void *col, Emacs_Color *color_def)` - "Get ARGB
+/// values out of NSColor col and put them into color_def and set color_def pixel to the ARGB
+/// color."  C's `void *` parameter is the `NSColor *` its two call sites pass (C 2351/2362),
+/// so the port types it; the ARGB extraction is the `NSColor (EmacsColor)` category's
+/// `-unsignedLong` above.
+fileprivate func ns_query_color(_ col: NSColor?, _ color_def: UnsafeMutablePointer<Emacs_Color>) {
+  var r: EmacsCGFloat = 0, g: EmacsCGFloat = 0, b: EmacsCGFloat = 0, a: EmacsCGFloat = 0
+
+  col?.getRed(&r, green: &g, blue: &b, alpha: &a)
+  color_def.pointee.red = UInt16(r * 65535)
+  color_def.pointee.green = UInt16(g * 65535)
+  color_def.pointee.blue = UInt16(b * 65535)
+
+  color_def.pointee.pixel = col!.unsignedLong()
+}
+
+/// C 2331-2354: `bool ns_defined_color (struct frame *f, const char *name, Emacs_Color
+/// *color_def, bool alloc, bool _makeIndex)` - "Return true if named color found, and set
+/// color_def rgb accordingly.  Return false if not found."  Declared src/nsterm.h 1142, so it
+/// keeps C's name under `@_cdecl`.  `@_cdecl` refuses a pointer to a Swift record (measured),
+/// so the `Emacs_Color *` crosses as `UnsafeMutableRawPointer` and is re-bound inside - the
+/// reading round 2's `ns_init_events` records - while the ABI is C's pointer either way.
+@_cdecl("ns_defined_color")
+func ns_defined_color(_ f: UnsafeMutableRawPointer?, _ name: UnsafePointer<CChar>?,
+                      _ color_def: UnsafeMutableRawPointer?, _ alloc: Bool,
+                      _ _makeIndex: Bool) -> Bool {
+  var col: NSColor? = nil
+  // C 2343: `NSTRACE_WHEN (NSTRACE_GROUP_COLOR, "ns_defined_color");` - empty at
+  // `NSTRACE_ENABLED` 0, so neither its group nor its format string is evaluated.
+
+  block_input()
+  if ns_get_color(name, &col) != 0 { /* Color not found  */
+    unblock_input()
+    return false
+  }
+  ns_query_color(col, color_def!.assumingMemoryBound(to: Emacs_Color.self))
+  unblock_input()
+  return true
+}
+
+/// C 2356-2363: `static void ns_query_frame_background_color (struct frame *f, Emacs_Color
+/// *bgcolor)` - "External (hook): Store F's background color into *BGCOLOR".  The reference
+/// registers it as `terminal->query_frame_background_color` (C 5929).
+fileprivate func ns_query_frame_background_color(_ f: UnsafeMutableRawPointer?,
+                                                 _ bgcolor: UnsafeMutablePointer<Emacs_Color>) {
+  ns_query_color(FRAME_BACKGROUND_COLOR(f), bgcolor)
+}
+
+/// C 2365-2398: `static void ns_set_frame_alpha (struct frame *f)` - "change the entire-frame
+/// transparency".  C forward-declares it at C 1579 (`static void ns_set_frame_alpha (struct
+/// frame *f);`) and calls it first at C 1612/1617, which is what put those call sites on the
+/// deferred-entry footing (`ns_set_frame_alpha`, `## ABI` (4)); **this is the definition
+/// that entry waited for**, and the reference also registers it as
+/// `terminal->set_frame_alpha_hook` (C 5941).
+@_cdecl("ns_set_frame_alpha")
+func ns_set_frame_alpha(_ f: UnsafeMutableRawPointer?) {
+  var alpha: Double = 1.0
+  var alpha_min: Double = 1.0
+
+  // C 2375: `NSTRACE ("ns_set_frame_alpha");` - empty, as above.
+
+  // C 2371: `struct ns_display_info *dpyinfo = FRAME_DISPLAY_INFO (f);` - the display-info
+  // member entry round 7 lands takes the *frame* C's `FRAME_DISPLAY_INFO` starts from, the
+  // shape `ns_frame_rehighlight` above already uses, so the local itself has no separate
+  // reading here.
+  // C 2377-2380: `dpyinfo->highlight_frame == f` is that entry; `f->alpha[0]`/`[1]` is the
+  // `frame_alpha` entry above.
+  if ns_display_info_highlight_frame(f) == f {
+    alpha = frame_alpha(f, 0)
+  } else {
+    alpha = frame_alpha(f, 1)
+  }
+
+  // C 2382-2385: `FLOATP`/`XFLOAT_DATA` and `FIXNUMP`/`XFIXNUM` on the generated global
+  // `Vframe_alpha_lower_limit`.
+  if FLOATP(Vframe_alpha_lower_limit) {
+    alpha_min = XFLOAT_DATA(Vframe_alpha_lower_limit)
+  } else if FIXNUMP(Vframe_alpha_lower_limit) {
+    alpha_min = Double(XFIXNUM(Vframe_alpha_lower_limit)) / 100.0
+  }
+
+  if alpha < 0.0 {
+    return
+  } else if 1.0 < alpha {
+    alpha = 1.0
+  } else if 0.0 <= alpha && alpha < alpha_min && alpha_min <= 1.0 {
+    alpha = alpha_min
+  }
+
+  do {
+    let view = FRAME_NS_VIEW(f)
+    view?.window?.alphaValue = EmacsCGFloat(alpha)
+  }
+}
+
+/* ==========================================================================
+
+    Mouse handling
+
+   ========================================================================== */
+
+// C 2408-2621: the section's four functions.  Its entries are the shapes rounds 5-10 settled:
+// per-member entries for `struct frame`/`struct ns_display_info`/`Mouse_HLInfo`, same-name
+// entries for the globals, enumerators and header-only accessors, and receiver-first entries for
+// the messages this unit's own classes (`EmacsView`) and `src/nsmenu.m`'s (`EmacsTooltip`)
+// answer.
+
+/// C: src/frame.h 1256's `FRAME_TOOLTIP_P` (`#define FRAME_TOOLTIP_P(f) ((f)->tooltip)`), inside the
+/// `HAVE_WINDOW_SYSTEM` arm opened at src/frame.h 1241.
+/// The member is src/frame.h 457's `tooltip` (`bool_bf tooltip : 1;`), read at C 2544/2560.
+@_silgen_name("FRAME_TOOLTIP_P") func FRAME_TOOLTIP_P(_ f: UnsafeMutableRawPointer?) -> Bool
+/// C: the `struct frame` member `f->mouse_moved` (src/frame.h 434's `bool_bf mouse_moved : 1`),
+/// written at C 2464 (`= 1`) and C 2513 (`= 0`) - a member-write entry
+/// (`<record>_set_<member>`, `docs/ports/nsmenu.swift` 311-328).
+@_silgen_name("frame_set_mouse_moved")
+func frame_set_mouse_moved(_ f: UnsafeMutableRawPointer?, _ v: Bool)
+/// C: the `struct ns_display_info` members this section reads or writes.  Each takes the *frame*
+/// C's `FRAME_DISPLAY_INFO` starts from - the shape rounds 7/8's `ns_display_info_*` entries use -
+/// and the rect member is a *pointer* entry because C takes its address
+/// (`r = &dpyinfo->last_mouse_glyph`), which leaves every `r->field` access in Swift.
+@_silgen_name("ns_display_info_set_last_mouse_motion_frame")
+func ns_display_info_set_last_mouse_motion_frame(_ f: UnsafeMutableRawPointer?,
+                                                 _ v: UnsafeMutableRawPointer?)
+@_silgen_name("ns_display_info_last_mouse_glyph")
+func ns_display_info_last_mouse_glyph(_ f: UnsafeMutableRawPointer?)
+  -> UnsafeMutablePointer<NSRect>?
+@_silgen_name("ns_display_info_set_last_mouse_scroll_bar")
+func ns_display_info_set_last_mouse_scroll_bar(_ f: UnsafeMutableRawPointer?,
+                                               _ v: UnsafeMutableRawPointer?)
+@_silgen_name("ns_display_info_last_mouse_frame")
+func ns_display_info_last_mouse_frame(_ f: UnsafeMutableRawPointer?) -> UnsafeMutableRawPointer?
+@_silgen_name("ns_display_info_last_mouse_movement_time")
+func ns_display_info_last_mouse_movement_time(_ f: UnsafeMutableRawPointer?) -> UInt
+/// C: the `Mouse_HLInfo` members `mouse_face_mouse_x`/`mouse_face_mouse_y` (src/dispextern.h
+/// 3013's `int mouse_face_mouse_x, mouse_face_mouse_y;`), read at C 2615-2616 through the
+/// `MOUSE_HL_INFO` **handle** - the reading `mouse_highlight_mouse_face_mouse_frame` above uses.
+@_silgen_name("mouse_highlight_mouse_face_mouse_x")
+func mouse_highlight_mouse_face_mouse_x(_ hlinfo: UnsafeMutableRawPointer?) -> Int32
+@_silgen_name("mouse_highlight_mouse_face_mouse_y")
+func mouse_highlight_mouse_face_mouse_y(_ hlinfo: UnsafeMutableRawPointer?) -> Int32
+/// C: `track_mouse` - src/keyboard.c's `DEFVAR_LISP ("track-mouse", …)`, which the reference's
+/// generated `globals.h` (852-853) spells `globals.f_track_mouse`: the object has **no
+/// `_track_mouse` symbol** (measured), so the core exports a data symbol of its own name, the
+/// reading `Vframe_list`/`Vframe_alpha_lower_limit` take.
+@_silgen_name("track_mouse") var track_mouse: Lisp_Object
+/// C: `Qdrag_source`/`Qdropping` (`DEFSYM`s; `_Qdrag_source`/`_Qdropping` are `S` in
+/// `build/emacs-ref/src/emacs.o`) and the `enum scroll_bar_part` enumerator
+/// `scroll_bar_above_handle` (src/termhooks.h 37), which has no symbol.
+@_silgen_name("Qdrag_source") func Qdrag_source() -> Lisp_Object
+@_silgen_name("Qdropping") func Qdropping() -> Lisp_Object
+@_silgen_name("scroll_bar_above_handle") func scroll_bar_above_handle() -> Int32
+/// C: `#define XSETINT(a, b) ((a) = make_fixnum (b))` (src/lisp.h 1341) - an *lvalue* macro, so the
+/// entry takes the assignable `Lisp_Object` first, the shape `XSETFRAME` has
+/// (`docs/ports/nsfns.swift` 709-711).
+@_silgen_name("XSETINT")
+func XSETINT(_ a: UnsafeMutablePointer<Lisp_Object>, _ b: Int)
+/// C: `void note_mouse_highlight (struct frame *, int, int)` (src/dispextern.h 3688) - a real
+/// symbol of the ported core (`_note_mouse_highlight` is `T` in `build/emacs-ref/src/xdisp.o`).
+@_silgen_name("note_mouse_highlight")
+func note_mouse_highlight(_ f: UnsafeMutableRawPointer?, _ x: Int32, _ y: Int32)
+/// C: `void remember_mouse_glyph (struct frame *, int, int, NativeRectangle *)`
+/// (src/dispextern.h 3586; `NativeRectangle` is `NSRect` for this target, src/nsgui.h 80).  The
+/// definition is src/xdisp.c 2779's `remember_mouse_glyph`, inside the `HAVE_WINDOW_SYSTEM` block
+/// opened at src/xdisp.c 2488, which the frozen configuration leaves undefined - so the object
+/// has no
+/// `_remember_mouse_glyph` (measured), and this is the owed-entry class status 3.255 ③ gives
+/// `frame_set_double_buffered`: the shim exports it under the same gate.
+@_silgen_name("remember_mouse_glyph")
+func remember_mouse_glyph(_ f: UnsafeMutableRawPointer?, _ gx: Int32, _ gy: Int32,
+                          _ rect: UnsafeMutablePointer<NSRect>?)
+/// C: `int fputs (const char *, FILE *)` (stdio.h) - the lane's `@_silgen_name` shape
+/// (`docs/ports/nsfont.swift` 1178; Swift marks the stdio family unavailable).  `stderr` itself
+/// is the C library overlay's own declaration, which this unit already reads at C 569-600.
+@_silgen_name("fputs") func fputs(_ s: UnsafePointer<CChar>, _ stream: UnsafeMutablePointer<FILE>?)
+
+/// C: `[[w delegate] isKindOfClass: [EmacsView class]]` (C 2537) and
+/// `((EmacsView *) [w delegate])->emacsframe` (C 2538) - `EmacsView` is this unit's own class
+/// (C 7039) and lands later, so both are receiver-first entries; the names and signatures are the
+/// ones `nsfns.swift` 689-691 already imports, and **this unit defines them when the class
+/// lands** (the ledger's (3), the reverse direction).
+/// C: `[[w delegate] isKindOfClass: [EmacsTooltip class]]` (C 2534) - `EmacsTooltip` is
+/// `src/nsmenu.m`'s class (`nsmenu.swift`'s `EmacsTooltip`), so this entry's definition belongs
+/// on that side, the way `is_emacs_view_definition`'s belongs here.
+@_silgen_name("is_emacs_tooltip") func is_emacs_tooltip(_ obj: AnyObject?) -> Bool
+/// `EmacsImage`'s class test C 9731 sends (`isKindOfClass: [EmacsImage class]`) - the same
+/// receiver-first shape as `is_emacs_tooltip` above: the class is `nsimage.swift`'s (`src/nsterm.h`
+/// 542), so that unit defines this entry.
+@_silgen_name("is_emacs_image") func is_emacs_image(_ obj: AnyObject?) -> Bool
+
+/// C 2408-2430: `void frame_set_mouse_pixel_position (struct frame *f, int pix_x, int pix_y)` -
+/// "Programmatically reposition mouse pointer in pixel coordinates".  Declared src/frame.h 1882
+/// (the redisplay interface's `set_mouse_pixel_position_hook`), so it keeps C's name under
+/// `@_cdecl`.  C's `#ifdef NS_IMPL_COCOA` arm is the live one; the GNUstep arm (C 2422-2429,
+/// `GSServerForWindow`/`setMouseLocation:onScreen:`) is recorded, not transcribed.
+@_cdecl("frame_set_mouse_pixel_position")
+func frame_set_mouse_pixel_position(_ f: UnsafeMutableRawPointer?, _ pix_x: Int32, _ pix_y: Int32) {
+  // C 2414: `NSTRACE ("frame_set_mouse_pixel_position");` - empty at `NSTRACE_ENABLED` 0
+  // (src/nsterm.h 142-143), so it carries no statement here.
+
+  // C 2417-2421: `CGPointMake (f->left_pos + pix_x, f->top_pos + pix_y +
+  // FRAME_NS_TITLEBAR_HEIGHT (f) + FRAME_TOOLBAR_HEIGHT (f))` then
+  // `CGWarpMouseCursorPosition (mouse_pos)`.  The two macros are this unit's *expanded*
+  // `frame_ns_titlebar_height`/`frame_toolbar_height` (round 9), and `CGWarpMouseCursorPosition`
+  // is CoreGraphics' own call, the reading `CGMainDisplayID`/`CGDisplayBounds` above take.
+  let mouse_pos = CGPoint(x: CGFloat(frame_left_pos(f) + pix_x),
+                          y: CGFloat(frame_top_pos(f) + pix_y
+                                     + frame_ns_titlebar_height(f) + frame_toolbar_height(f)))
+  CGWarpMouseCursorPosition(mouse_pos)
+}
+
+/// C 2432-2472: `static int ns_note_mouse_movement (struct frame *frame, CGFloat x, CGFloat y,
+/// BOOL dragging)` - "Called by EmacsView on mouseMovement events.  Passes on to emacs
+/// mainstream code if we moved off of a rect of interest known as last_mouse_glyph."  It is a C
+/// `static` (an `EmacsView` helper), so it lands as a `fileprivate func`; C's `BOOL` is Swift's
+/// `Bool`.
+fileprivate func ns_note_mouse_movement(_ frame: UnsafeMutableRawPointer?, _ x: CGFloat,
+                                        _ y: CGFloat, _ dragging: Bool) -> Int32 {
+  // C 2441: `struct ns_display_info *dpyinfo = FRAME_DISPLAY_INFO (frame);` - the member entries
+  // below take the frame that macro starts from, so the pointer has no separate reading (round
+  // 10's `ns_set_frame_alpha` records the same shape).
+  var force_update = false
+
+  // C 2445: `// NSTRACE ("note_mouse_movement");` - commented out in C itself, so it stays a
+  // comment here too.
+
+  // C 2447-2448: `dpyinfo->last_mouse_motion_frame = frame;` and
+  // `r = &dpyinfo->last_mouse_glyph;`.
+  ns_display_info_set_last_mouse_motion_frame(frame, frame)
+  let r = ns_display_info_last_mouse_glyph(frame)
+
+  /* If the last rect is too large (ex, xwidget webkit), update at
+     every move, or resizing by dragging modeline or vertical split is
+     very hard to make its way.  */
+  if dragging && (r!.pointee.size.width > 32 || r!.pointee.size.height > 32) {
+    force_update = true
+  }
+
+  /* Note, this doesn't get called for enter/leave, since we don't have a
+     position.  Those are taken care of in the corresponding NSView methods.  */
+
+  /* Has movement gone beyond last rect we were tracking?  */
+  if force_update || x < r!.pointee.origin.x || x >= r!.pointee.origin.x + r!.pointee.size.width
+       || y < r!.pointee.origin.y || y >= r!.pointee.origin.y + r!.pointee.size.height {
+    ns_update_begin(frame)
+    frame_set_mouse_moved(frame, true)
+    // C 2465-2466: C hands `note_mouse_highlight`/`remember_mouse_glyph` the `int` parameters
+    // their own prototypes declare, converting `x`/`y` implicitly; the port spells the same
+    // truncation.
+    note_mouse_highlight(frame, Int32(x), Int32(y))
+    remember_mouse_glyph(frame, Int32(x), Int32(y), r)
+    ns_update_end(frame)
+    return 1
+  }
+
+  return 0
+}
+
+/// C 2475-2595: `static void ns_mouse_position (struct frame **fp, int insist, Lisp_Object
+/// *bar_window, enum scroll_bar_part *part, Lisp_Object *x, Lisp_Object *y, Time *time)` -
+/// "External (hook): inform emacs about mouse position and hit parts. …".  It is C's
+/// `mouse_position_hook`; the body never reads `insist` (C's own signature keeps it).  The
+/// `NS_IMPL_COCOA` arm is the live one - the GNUstep compatibility note inside it (C 2519-2521)
+/// is C's own text - and `view`'s C declaration at the top of the function lives in the one
+/// block that uses it here.
+fileprivate func ns_mouse_position(_ fp: UnsafeMutablePointer<UnsafeMutableRawPointer?>?,
+                                  _ insist: Int32,
+                                  _ bar_window: UnsafeMutablePointer<Lisp_Object>?,
+                                  _ part: UnsafeMutablePointer<Int32>?,
+                                  _ x: UnsafeMutablePointer<Lisp_Object>?,
+                                  _ y: UnsafeMutablePointer<Lisp_Object>?,
+                                  _ time: UnsafeMutablePointer<UInt>?) {
+  var view_position = NSPoint.zero
+  var frame: Lisp_Object = nil
+  var tail: Lisp_Object = nil
+  var f: UnsafeMutableRawPointer? = nil
+  var return_no_frame_flag = false
+  // C 2492-2496: the `NS_IMPL_COCOA` arm's locals (`NSPoint screen_position; NSInteger
+  // window_number; NSWindow *w;`).
+  var screen_position = NSPoint.zero
+  var window_number = 0
+  var w: NSWindow? = nil
+
+  // C 2498: `NSTRACE ("ns_mouse_position");` - empty, as above.
+
+  if fp!.pointee == nil {
+    fputs("Warning: ns_mouse_position () called with null *fp.\n", stderr)
+    return
+  }
+
+  // C 2506: `dpyinfo = FRAME_DISPLAY_INFO (*fp);` - the member entries below take the frame.
+
+  block_input()
+
+  /* Clear the mouse-moved flag for every frame on this display.  */
+  // C 2511-2513: `FOR_EACH_FRAME (tail, frame) if (FRAME_NS_P (XFRAME (frame))) XFRAME
+  // (frame)->mouse_moved = 0;` - the macro is spelled out, the reading
+  // `docs/ports/nsfns.swift` 967 gives and round 5's `ns_constrain_all_frames` already uses.
+  tail = Vframe_list
+  while CONSP(tail) {
+    frame = XCAR(tail)
+    if FRAME_NS_P(XFRAME(frame)) {
+      frame_set_mouse_moved(XFRAME(frame), false)
+    }
+    tail = XCDR(tail)
+  }
+
+  // C 2515: `dpyinfo->last_mouse_scroll_bar = nil;` - `EmacsScroller` is this file's own class
+  // (a later slice), so the member-write entry carries it untyped (P-55).
+  ns_display_info_set_last_mouse_scroll_bar(fp!.pointee, nil)
+
+  // C 2517-2548: the `NS_IMPL_COCOA` arm - "Find the uppermost Emacs frame under the mouse
+  // pointer."  C's `do { … } while (window_number > 0 && !f);` is Swift's `repeat { … } while`.
+  screen_position = NSEvent.mouseLocation
+  window_number = 0
+
+  repeat {
+    window_number = NSWindow.windowNumber(at: screen_position,
+                                          belowWindowWithWindowNumber: window_number)
+    w = NSApp.window(withWindowNumber: window_number)
+
+    if (EQ(track_mouse, Qdrag_source()) || EQ(track_mouse, Qdropping()))
+         && w != nil && is_emacs_tooltip(w!.delegate) {
+      continue
+    }
+
+    if w != nil && is_emacs_view_definition(w!.delegate) {
+      f = emacs_view_frame_definition(w!.delegate)
+    } else if EQ(track_mouse, Qdrag_source()) {
+      break
+    }
+
+    if f != nil && (EQ(track_mouse, Qdrag_source()) || EQ(track_mouse, Qdropping()))
+         && FRAME_TOOLTIP_P(f) {
+      continue
+    }
+  } while window_number > 0 && f == nil
+
+  if f == nil {
+    // C 2552-2554: `f = (dpyinfo->ns_focus_frame ? dpyinfo->ns_focus_frame : SELECTED_FRAME ());
+    // return_no_frame_flag = EQ (track_mouse, Qdrag_source);`
+    let focus = ns_display_info_ns_focus_frame(fp!.pointee)
+    f = (focus != nil ? focus : SELECTED_FRAME())
+    return_no_frame_flag = EQ(track_mouse, Qdrag_source())
+  }
+
+  if !FRAME_NS_P(f) {
+    f = nil
+  }
+
+  if f != nil && FRAME_TOOLTIP_P(f) {
+    f = ns_display_info_last_mouse_frame(fp!.pointee)
+  }
+
+  /* While dropping, use the last mouse frame only if there is no
+     currently focused frame.  */
+  // C 2565-2572 reads `dpyinfo->last_mouse_frame` three times, and the entry is read the same
+  // number of times here.
+  if f == nil && (EQ(track_mouse, Qdropping()) || EQ(track_mouse, Qdrag_source()))
+       && ns_display_info_last_mouse_frame(fp!.pointee) != nil
+       && FRAME_LIVE_P(ns_display_info_last_mouse_frame(fp!.pointee)) {
+    f = ns_display_info_last_mouse_frame(fp!.pointee)
+    return_no_frame_flag = EQ(track_mouse, Qdrag_source())
+  }
+
+  if f != nil && FRAME_NS_P(f) {
+    // C 2486: `id view;` - C declares it at the top and assigns it here, the one block that
+    // uses it.
+    let view = FRAME_NS_VIEW(f)
+
+    // C 2578-2579: `view_position = [[view window] mouseLocationOutsideOfEventStream];
+    // view_position = [view convertPoint: view_position fromView: nil];`
+    view_position = view?.window?.mouseLocationOutsideOfEventStream ?? .zero
+    view_position = view?.convert(view_position, from: nil) ?? .zero
+    // C 2580-2581: the two `CGFloat` arguments land in `remember_mouse_glyph`'s `int`
+    // parameters, C's implicit conversion again; the rect is the member's own address.
+    remember_mouse_glyph(f, Int32(view_position.x), Int32(view_position.y),
+                         ns_display_info_last_mouse_glyph(fp!.pointee))
+    // C 2582: `NSTRACE_POINT ("view_position", view_position);` - empty, as above.
+
+    if bar_window != nil { bar_window!.pointee = Qnil() }
+    if part != nil { part!.pointee = scroll_bar_above_handle() }
+
+    // C 2587-2588: `XSETINT (*x, lrint (view_position.x)); XSETINT (*y, lrint (view_position.y));`
+    // - C's `lrint` is the double overload (`CGFloat` is `double` on this target), so the port
+    // spells it with `Double`.
+    if x != nil { XSETINT(x!, lrint(Double(view_position.x))) }
+    if y != nil { XSETINT(y!, lrint(Double(view_position.y))) }
+    if time != nil { time!.pointee = ns_display_info_last_mouse_movement_time(fp!.pointee) }
+    // C 2591: `*fp = return_no_frame_flag ? NULL : f;`
+    fp!.pointee = return_no_frame_flag ? nil : f
+  }
+
+  unblock_input()
+}
+
+/// C 2598-2621: `static void ns_frame_up_to_date (struct frame *f)` - "External (hook): Fix up
+/// mouse highlighting right after a full update.  Can't use FRAME_MOUSE_UPDATE due to
+/// ns_frame_begin and ns_frame_end calls."  It is C's `frame_up_to_date_hook`.
+fileprivate func ns_frame_up_to_date(_ f: UnsafeMutableRawPointer?) {
+  // C 2605: `NSTRACE_WHEN (NSTRACE_GROUP_UPDATES, "ns_frame_up_to_date");` - empty at
+  // `NSTRACE_ENABLED` 0, so neither its group nor its format string is evaluated.
+
+  if FRAME_NS_P(f) {
+    let hlinfo = MOUSE_HL_INFO(f)
+    if f == mouse_highlight_mouse_face_mouse_frame(hlinfo) {
+      block_input()
+      ns_update_begin(f)
+      // C 2614-2616: the three `hlinfo->…` reads feed `note_mouse_highlight (struct frame *,
+      // int, int)`.
+      note_mouse_highlight(mouse_highlight_mouse_face_mouse_frame(hlinfo),
+                           mouse_highlight_mouse_face_mouse_x(hlinfo),
+                           mouse_highlight_mouse_face_mouse_y(hlinfo))
+      ns_update_end(f)
+      unblock_input()
+    }
+  }
+}
+
+// ==========================================================================
+// C 2624-2761: the RIF cursor hook, and the Keyboard handling prologue.
+// ==========================================================================
+
+/// C: `#define FRAME_POINTER_TYPE(f) ((f)->output_data.ns->current_pointer)` (src/nsterm.h 1047) -
+/// the `struct ns_output` member `current_pointer` (src/nsterm.h 977; `Emacs_Cursor` is
+/// `NSCursor *`, src/nsgui.h 62).  The **write** entry already exists for this very C line - the
+/// shim's `ns_output_set_current_pointer` cites nsterm.m 2634 (`docs/ports/abi_shim.md` 96) - so
+/// the port takes the family's member names (`ns_output_text_cursor`/`ns_output_set_text_cursor`
+/// are the pair's own shape) rather than a macro-name entry for the read half; both live behind
+/// the shim's `have_ns` gate, the ratchet's reason for the whole `ns_output_*` family
+/// (status 3.262/3.264).  `nsfns.swift` 312-313 imports the write with this signature.
+@_silgen_name("ns_output_current_pointer")
+func ns_output_current_pointer_borrowed_raw(_ f: UnsafeMutableRawPointer?) -> UnsafeMutableRawPointer?
+func ns_output_current_pointer(_ f: UnsafeMutableRawPointer?) -> NSObject? {
+  guard let pointer = ns_output_current_pointer_borrowed_raw(f) else { return nil }
+  return Unmanaged<NSObject>.fromOpaque(pointer).takeUnretainedValue()
+}
+@_silgen_name("ns_output_set_current_pointer")
+func ns_output_set_current_pointer(_ f: UnsafeMutableRawPointer?, _ v: NSObject?)
+/// C: `QCordinary` - src/nsterm.m 11793's own `DEFSYM (QCordinary, ":ordinary")`.  It is **this
+/// file's** symbol, so it is absent from `docs/baseline/globals/symbols.tsv` (a table built from
+/// a configuration that never compiles this file) and the core has to export the name - the
+/// `QCmouse` reading round 2 recorded.
+@_silgen_name("QCordinary") func QCordinary() -> Lisp_Object
+/// C: `Qnone` - `DEFSYM (Qnone, "none")` (src/frame.c 7241); `_Qnone` and `_Qleft` are `S` in
+/// `build/emacs-ref/src/emacs.o`, and the core's globals table already carries it (another unit's
+/// import put it in the ratchet).
+@_silgen_name("Qnone") func Qnone() -> Lisp_Object
+
+/// C 2624-2637: `static void ns_define_frame_cursor (struct frame *f, Emacs_Cursor cursor)` -
+/// "External (RIF): set frame mouse pointer type."  It is C's `define_frame_cursor_hook`, so it
+/// lands as a `fileprivate func`.  C compares and assigns the pointer, so the port keeps identity
+/// comparison (`!==`) rather than an `isEqual:` call.
+fileprivate func ns_define_frame_cursor(_ f: UnsafeMutableRawPointer?, _ cursor: NSObject?) {
+  // C 2630: `NSTRACE ("ns_define_frame_cursor");` - empty at `NSTRACE_ENABLED` 0 (src/nsterm.h
+  // 142-143), so it carries no statement here.
+
+  // C 2631/2634: `FRAME_POINTER_TYPE (f)` read and written.
+  if ns_output_current_pointer(f) !== cursor {
+    let view = FRAME_NS_VIEW(f)
+    ns_output_set_current_pointer(f, cursor)
+    // C 2635: `[[view window] invalidateCursorRectsForView: view];`
+    view?.window?.invalidateCursorRects(for: view!)
+  }
+}
+
+/* ==========================================================================
+
+    Keyboard handling
+
+   ========================================================================== */
+
+/// C 2647-2663: `static unsigned ns_convert_key (unsigned code)` - "Internal call used by
+/// NSView-keyDown."  `countof (convert_ns_to_X_keysym)` is the table's element count; the table
+/// itself is round 1's `fileprivate let convert_ns_to_X_keysym: [UInt32]` (flat `(key, keysym)`
+/// pairs), which is why the two reads carry `Int(keysym)` subscripts.
+fileprivate func ns_convert_key(_ code: UInt32) -> UInt32 {
+  let last_keysym = UInt32(convert_ns_to_X_keysym.count)
+  /* An array would be faster, but less easy to read.  */
+  var keysym: UInt32 = 0
+  while keysym < last_keysym {
+    if code == convert_ns_to_X_keysym[Int(keysym)] {
+      return 0xFF00 | convert_ns_to_X_keysym[Int(keysym) + 1]
+    }
+    keysym += 2
+  }
+  return 0
+  /* if decide to use keyCode and Carbon table, use this line:
+       return code > 0xff ? 0 : 0xFF00 | ns_keycode_to_xkeysym_table[code]; */
+}
+
+/// C 2673: `static char value[16];` - C's **function-scope** static.  Swift has no function-scope
+/// storage, so it is a file-scope buffer of the same size, allocated once: the reference's address
+/// is stable for the process's life and it is never freed there either.  C's static storage is
+/// zero-initialised, hence the `initialize`.
+fileprivate let get_keysym_name_value: UnsafeMutablePointer<CChar> = {
+  let p = UnsafeMutablePointer<CChar>.allocate(capacity: 16)
+  p.initialize(repeating: 0, count: 16)
+  return p
+}()
+
+/// C 2666-2677: `char *get_keysym_name (int keysym)` - "Called by keyboard.c.  Not sure if the
+/// return val is important, except that it be unique."  Declared src/lisp.h 5436, so it keeps C's
+/// name under `@_cdecl`: this unit is where the definition lives, and `keyboard.rs` 8553's
+/// `#[cfg (feature = "have_window_system")]` arm is the Rust side's dead-text carrier of the same
+/// call (its own comment records that it is not declared there).
+@_cdecl("get_keysym_name")
+func get_keysym_name(_ keysym: Int32) -> UnsafeMutablePointer<CChar>? {
+  // C 2674: `NSTRACE ("get_keysym_name");` - empty, as above.
+
+  // C 2675: `snprintf (value, 16, "%d", keysym);` - `snprintf` is variadic and unavailable in
+  // Swift (the reading `docs/ports/nsfns.swift` 3698 gives), so the port builds the same string
+  // and copies it into the same 16-byte buffer, keeping C's bound.
+  let bytes = Array(String(format: "%d", keysym).utf8CString)
+  let n = min(bytes.count, 16)
+  for i in 0..<n {
+    get_keysym_name_value[i] = bytes[i]
+  }
+  return get_keysym_name_value
+}
+
+/// C 2679-2684: `static Lisp_Object right_mod (Lisp_Object left, Lisp_Object right)` - the
+/// `NS_IMPL_COCOA` arm's helper (the `#ifdef` at C 2679 is the live one).
+fileprivate func right_mod(_ left: Lisp_Object, _ right: Lisp_Object) -> Lisp_Object {
+  return EQ(right, Qleft()) ? left : right
+}
+
+/// C 2686-2690: `static bool nil_or_none (Lisp_Object val)` - the same arm.
+fileprivate func nil_or_none(_ val: Lisp_Object) -> Bool {
+  return NILP(val) || EQ(val, Qnone())
+}
+
+/// C 2703: `static UInt32 dead_key_state;` - `ns_get_shifted_character`'s function-scope static,
+/// a file-scope `var` here for the reason `get_keysym_name_value` above records.
+fileprivate var dead_key_state: UInt32 = 0
+
+/// C 2692-2761: `static UniChar ns_get_shifted_character (NSEvent *event)` - "Look up the
+/// character corresponding to the key pressed on the current keyboard layout and the currently
+/// configured shift-like modifiers. …".  The `NS_IMPL_COCOA` arm is the live one, and its Carbon
+/// dependency is C 72-73's `#include <Carbon/Carbon.h>` (`import Carbon` at the top of this file).
+///
+/// `UniChar` is `UInt16` (`UniCharCount` is `Int` in Swift - the SDK has no `UniCharCount` type),
+/// and `[event modifierFlags]`'s `NSUInteger` truncates to C's `UInt32 flags` exactly as the
+/// round-1 `EV_*` accessors do.
+fileprivate func ns_get_shifted_character(_ event: NSEvent) -> UInt16 {
+  /* UCKeyTranslate may return up to 255 characters.  If the buffer
+     isn't large enough then it produces an error.  What kind of
+     keyboard inputs 255 characters in a single keypress?  */
+  var buf = [UniChar](repeating: 0, count: 255)
+  let max_string_length = 255
+  var actual_string_length = 0
+  var result: OSStatus = 0
+
+  // C 2713-2715: `CFDataRef layout_ref = (CFDataRef) TISGetInputSourceProperty
+  // (TISCopyCurrentKeyboardLayoutInputSource (), kTISPropertyUnicodeKeyLayoutData);` then
+  // `UCKeyboardLayout *layout = (UCKeyboardLayout *) CFDataGetBytePtr (layout_ref);`.
+  // `TISCopyCurrentKeyboardLayoutInputSource` follows the Create rule, so Swift takes the +1
+  // (`takeRetainedValue`, and ARC releases it at the end) where C simply leaks it.
+  let layout_ref = TISGetInputSourceProperty(
+    TISCopyCurrentKeyboardLayoutInputSource()!.takeRetainedValue(),
+    kTISPropertyUnicodeKeyLayoutData)
+  // ...and the property hands back a **+0** `CFTypeRef` (`CFDataRef layout_ref = (CFDataRef)
+  // TISGetInputSourceProperty (…)`), so the port borrows it instead of taking a reference it does
+  // not own - `Unmanaged.fromOpaque(…).takeUnretainedValue()`, the reading `macfont.swift` 1541
+  // uses for the same CFTypeRef-to-Swift-CF conversion.
+  let layout_data = Unmanaged<CFData>.fromOpaque(layout_ref!).takeUnretainedValue()
+  let layout = UnsafeRawPointer(CFDataGetBytePtr(layout_data)!)
+    .assumingMemoryBound(to: UCKeyboardLayout.self)
+
+  // C 2717-2718: `UInt32 flags = [event modifierFlags];` and
+  // `UInt32 modifiers = (flags & NSEventModifierFlagShift) ? shiftKey : 0;` - the four Carbon key
+  // masks are `UInt32(…)` conversions of the anonymous-enum constants, as C's implicit
+  // enum-to-`UInt32` arithmetic does (the file's `EV_MODIFIERS2` reads the `UInt32` masks the same
+  // way).
+  let flags = UInt32(truncatingIfNeeded: event.modifierFlags.rawValue)
+  var modifiers: UInt32 = (flags & UInt32(truncatingIfNeeded: NSEvent.ModifierFlags.shift.rawValue)) != 0
+    ? UInt32(shiftKey)
+    : 0
+
+  // C 2720: `NSTRACE ("ns_get_shifted_character");` - empty, as above.
+
+  if (flags & UInt32(truncatingIfNeeded: NSRightAlternateKeyMask))
+       == UInt32(truncatingIfNeeded: NSRightAlternateKeyMask)
+       && nil_or_none(mod_of_kind(right_mod(ns_alternate_modifier, ns_right_alternate_modifier),
+                                  QCordinary())) {
+    modifiers |= UInt32(rightOptionKey)
+  }
+
+  if (flags & UInt32(truncatingIfNeeded: NSLeftAlternateKeyMask))
+       == UInt32(truncatingIfNeeded: NSLeftAlternateKeyMask)
+       && nil_or_none(mod_of_kind(ns_alternate_modifier, QCordinary())) {
+    modifiers |= UInt32(optionKey)
+  }
+
+  if (flags & UInt32(truncatingIfNeeded: NSRightCommandKeyMask))
+       == UInt32(truncatingIfNeeded: NSRightCommandKeyMask)
+       && nil_or_none(mod_of_kind(right_mod(ns_command_modifier, ns_right_command_modifier),
+                                  QCordinary())) {
+    /* Carbon doesn't differentiate between left and right command
+       keys.  */
+    modifiers |= UInt32(cmdKey)
+  }
+
+  if (flags & UInt32(truncatingIfNeeded: NSLeftCommandKeyMask))
+       == UInt32(truncatingIfNeeded: NSLeftCommandKeyMask)
+       && nil_or_none(mod_of_kind(ns_command_modifier, QCordinary())) {
+    modifiers |= UInt32(cmdKey)
+  }
+
+  result = UCKeyTranslate(layout, event.keyCode, UInt16(kUCKeyActionDown),
+                          (modifiers >> 8) & 0xFF, UInt32(LMGetKbdType()),
+                          OptionBits(kUCKeyTranslateNoDeadKeysBit), &dead_key_state,
+                          max_string_length, &actual_string_length, &buf)
+
+  if result != 0 {
+    // C 2751-2752: `NSLog (@"Failed to translate character '%@' with modifiers %x",
+    // [event characters], modifiers);` - `%@` bridges the Swift `String`.
+    NSLog("Failed to translate character '%@' with modifiers %x", event.characters ?? "", modifiers)
+    return 0
+  }
+
+  /* FIXME: What do we do if more than one code unit is returned?  */
+  if actual_string_length > 0 {
+    return buf[0]
+  }
+
+  return 0
+}
+
+/* ==========================================================================
+
+    Block drawing operations
+
+   ========================================================================== */
+
+// C 2771-2786's `ns_redraw_scroll_bars` is inside `#ifdef NS_IMPL_GNUSTEP` - dead for this lane,
+// recorded in the ledger, not transcribed.  The section's live definitions start at C 2789.
+
+/// C: `#define FRAME_ROOT_WINDOW(f) f->root_window` (src/frame.h 1201) - read at C 2805.
+@_silgen_name("FRAME_ROOT_WINDOW")
+func FRAME_ROOT_WINDOW(_ f: UnsafeMutableRawPointer?) -> Lisp_Object
+/// C: `struct window *XWINDOW (Lisp_Object)` (src/window.h) - the lane's reading is
+/// `docs/ports/nsfns.swift` 195.
+@_silgen_name("XWINDOW") func XWINDOW(_ a: Lisp_Object) -> UnsafeMutableRawPointer?
+/// C: `void mark_window_cursors_off (struct window *)` (src/dispextern.h) - the core's own
+/// `src/window.rs` 5788 defines it.
+@_silgen_name("mark_window_cursors_off")
+func mark_window_cursors_off(_ w: UnsafeMutableRawPointer?)
+/// C: `#define FRAME_DEFAULT_FACE(f) FACE_FROM_ID_OR_NULL (f, DEFAULT_FACE_ID)` (src/nsterm.h 1043) -
+/// the macro's own name is the entry, the reading `FRAME_TOOLTIP_P`/`FRAME_BACKGROUND_COLOR` take.
+@_silgen_name("FRAME_DEFAULT_FACE")
+func FRAME_DEFAULT_FACE(_ f: UnsafeMutableRawPointer?) -> UnsafeMutableRawPointer?
+/// C: the `struct face` accessors this section reads - `#define NS_FACE_BACKGROUND(f) ((f)->background)`
+/// (src/nsterm.h 1041), the `FACE_FROM_ID`/`FACE_FROM_ID_OR_NULL` pair (src/dispextern.h) and the
+/// three face-id enumerators (`DEFAULT_FACE_ID`, `CHILD_FRAME_BORDER_FACE_ID`,
+/// `INTERNAL_BORDER_FACE_ID`).  `struct face` exists only under `HAVE_WINDOW_SYSTEM`, so these are
+/// its gated-arm entries; the status-3.271 layout probe is the route for a *view* of that record,
+/// which this unit does not need - every access here is a member entry.
+@_silgen_name("NS_FACE_BACKGROUND")
+func NS_FACE_BACKGROUND(_ face: UnsafeMutableRawPointer?) -> UInt
+@_silgen_name("FACE_FROM_ID")
+func FACE_FROM_ID(_ f: UnsafeMutableRawPointer?, _ id: Int32) -> UnsafeMutableRawPointer?
+@_silgen_name("FACE_FROM_ID_OR_NULL")
+func FACE_FROM_ID_OR_NULL(_ f: UnsafeMutableRawPointer?, _ id: Int32) -> UnsafeMutableRawPointer?
+@_silgen_name("DEFAULT_FACE_ID") func DEFAULT_FACE_ID() -> Int32
+@_silgen_name("CHILD_FRAME_BORDER_FACE_ID") func CHILD_FRAME_BORDER_FACE_ID() -> Int32
+@_silgen_name("INTERNAL_BORDER_FACE_ID") func INTERNAL_BORDER_FACE_ID() -> Int32
+/// C: `Vface_remapping_alist` - src/xfaces.c's `DEFVAR_LISP ("face-remapping-alist", …)`, a
+/// generated global (the objects hold no symbol of its own), so the core exports a data symbol of
+/// its own name - the `Vframe_list` reading.
+@_silgen_name("Vface_remapping_alist") var Vface_remapping_alist: Lisp_Object
+/// C: `int lookup_basic_face (struct window *, struct frame *, int)` (src/xfaces.c) - the core's
+/// `src/xfaces.rs` 3753; its return is the **face id** the calls above hand to
+/// `FACE_FROM_ID_OR_NULL`.
+@_silgen_name("lookup_basic_face")
+func lookup_basic_face(_ w: UnsafeMutableRawPointer?, _ f: UnsafeMutableRawPointer?,
+                       _ face_id: Int32) -> Int32
+/// C: src/dispextern.h 883's `ANY_AREA` (`enum glyph_row_area`'s `ANY_AREA = -1`) - the area
+/// argument `window_box` takes (src/dispextern.h 3574).
+@_silgen_name("ANY_AREA") func ANY_AREA() -> Int32
+/// C: `struct run`'s members (src/dispextern.h: `int desired_y, current_y; … int height, nrows;`),
+/// read at C 2865-2874 through the `<record>_<member>` family.
+@_silgen_name("run_current_y") func run_current_y(_ run: UnsafeMutableRawPointer?) -> Int32
+@_silgen_name("run_desired_y") func run_desired_y(_ run: UnsafeMutableRawPointer?) -> Int32
+@_silgen_name("run_height") func run_height(_ run: UnsafeMutableRawPointer?) -> Int32
+/// C: `struct window`'s member `w->frame` (a `Lisp_Object`), read at C 2855 - the
+/// `window_<member>` family.
+@_silgen_name("window_frame") func window_frame(_ w: UnsafeMutableRawPointer?) -> Lisp_Object
+/// C: `#define FRAME_INTERNAL_BORDER_WIDTH(f)` / `FRAME_PIXEL_WIDTH(f)` / `FRAME_PIXEL_HEIGHT(f)`
+/// (src/frame.h) and the two margin heights at C 2929-2930 - `FRAME_TOP_MARGIN_HEIGHT (F)`
+/// (src/frame.h 1139's sum of `FRAME_MENU_BAR_HEIGHT`/`FRAME_TAB_BAR_HEIGHT`/
+/// `FRAME_TOOL_BAR_TOP_HEIGHT`) and `FRAME_BOTTOM_MARGIN_HEIGHT (f)` (1151's
+/// `FRAME_TOOL_BAR_BOTTOM_HEIGHT`).  Their bodies read `struct frame` members and other `FRAME_*`
+/// macros, so each keeps its own name as an entry (class A) instead of expanding into `(f)->…`:
+/// the expansion would owe four member entries where one name is owed.  (The AppKit-only body of
+/// `FRAME_NS_TITLEBAR_HEIGHT` is the case that *is* expanded.)
+@_silgen_name("FRAME_INTERNAL_BORDER_WIDTH")
+func FRAME_INTERNAL_BORDER_WIDTH(_ f: UnsafeMutableRawPointer?) -> Int32
+@_silgen_name("FRAME_PIXEL_WIDTH") func FRAME_PIXEL_WIDTH(_ f: UnsafeMutableRawPointer?) -> Int32
+@_silgen_name("FRAME_PIXEL_HEIGHT") func FRAME_PIXEL_HEIGHT(_ f: UnsafeMutableRawPointer?) -> Int32
+@_silgen_name("FRAME_TOP_MARGIN_HEIGHT")
+func FRAME_TOP_MARGIN_HEIGHT(_ f: UnsafeMutableRawPointer?) -> Int32
+@_silgen_name("FRAME_BOTTOM_MARGIN_HEIGHT")
+func FRAME_BOTTOM_MARGIN_HEIGHT(_ f: UnsafeMutableRawPointer?) -> Int32
+/// C: `void gui_clear_cursor (struct window *)` (src/dispextern.h; defined src/xdisp.c 35466
+/// **inside `HAVE_WINDOW_SYSTEM`** - the `#ifdef` at src/xdisp.c 35045 - so the frozen objects have
+/// no
+/// `_gui_clear_cursor`, measured): the owed-entry class of status 3.255 ③, like
+/// `remember_mouse_glyph`.
+@_silgen_name("gui_clear_cursor") func gui_clear_cursor(_ w: UnsafeMutableRawPointer?)
+/// C: `void NSRectFill (NSRect)` (AppKit's NSGraphics.h) - Swift marks the `NSRect*` family
+/// unavailable, so it is reached by name, the reading the `NSRectClip`/`NSRectClipList` pair above
+/// already records.
+@_silgen_name("NSRectFill") func NSRectFill(_ rect: NSRect)
+/// C 2909: `[view copyRect:srcRect to:dest];` - `EmacsView -copyRect:to:`, **this file's own
+/// class** (C 9340), so the call site takes the round-5 ruling's deferred shape with the first
+/// selector segment as the entry name (the `beginDrag` reading, `docs/ports/nsselect.swift` 220-223).
+
+/// C 2788-2820: `void ns_clear_frame (struct frame *f)` - "External (hook): Erase the entire
+/// frame".  Declared src/nsterm.h 1124 (the `clear_frame_hook`), so it keeps C's name under
+/// `@_cdecl`.  C's `NS_IMPL_GNUSTEP` arm at C 2816-2818 (`ns_redraw_scroll_bars (f)`) is dead here:
+/// that function is GNUstep-only (C 2771-2786).
+@_cdecl("ns_clear_frame")
+func ns_clear_frame(_ f: UnsafeMutableRawPointer?) {
+  let view = FRAME_NS_VIEW(f)
+  var r = NSRect.zero
+
+  // C 2798: `NSTRACE_WHEN (NSTRACE_GROUP_UPDATES, "ns_clear_frame");` - empty at
+  // `NSTRACE_ENABLED` 0, so neither its group nor its format string is evaluated.
+
+  /* comes on initial frame because we have
+     after-make-frame-functions = select-frame */
+  if FRAME_DEFAULT_FACE(f) == nil {
+    return
+  }
+
+  // C 2805: `mark_window_cursors_off (XWINDOW (FRAME_ROOT_WINDOW (f)));`
+  mark_window_cursors_off(XWINDOW(FRAME_ROOT_WINDOW(f)))
+
+  // C 2807: `r = [view bounds];`
+  r = view?.bounds ?? .zero
+
+  block_input()
+  ns_focus(f, &r, 1)
+  // C 2811-2812: `[[NSColor colorWithUnsignedLong:NS_FACE_BACKGROUND (FACE_FROM_ID (f,
+  // DEFAULT_FACE_ID))] set];` - the category's `+colorWithUnsignedLong:` above.
+  NSColor.colorWithUnsignedLong(NS_FACE_BACKGROUND(FACE_FROM_ID(f, DEFAULT_FACE_ID()))).set()
+  NSRectFill(r)
+  ns_unfocus(f)
+
+  unblock_input()
+}
+
+/// C 2823-2846: `static void ns_clear_frame_area (struct frame *f, int x, int y, int width,
+/// int height)` - "External (RIF):  Clear section of frame".  C's `static`, so it lands as a
+/// `fileprivate func`.
+fileprivate func ns_clear_frame_area(_ f: UnsafeMutableRawPointer?, _ x: Int32, _ y: Int32,
+                                     _ width: Int32, _ height: Int32) {
+  var r = NSMakeRect(CGFloat(x), CGFloat(y), CGFloat(width), CGFloat(height))
+  let view = FRAME_NS_VIEW(f)
+  let face = FRAME_DEFAULT_FACE(f)
+
+  if view == nil || face == nil {
+    return
+  }
+
+  // C 2836: `NSTRACE_WHEN (NSTRACE_GROUP_UPDATES, "ns_clear_frame_area");` - empty, as above.
+
+  // C 2838: `r = NSIntersectionRect (r, [view frame]);`
+  r = NSIntersectionRect(r, view!.frame)
+  ns_focus(f, &r, 1)
+  NSColor.colorWithUnsignedLong(NS_FACE_BACKGROUND(face)).set()
+
+  NSRectFill(r)
+
+  ns_unfocus(f)
+  return
+}
+
+/// C 2849-2916: `static void ns_scroll_run (struct window *w, struct run *run)` - "External
+/// (RIF):  Insert or delete n lines at line vpos."  The `run->…` reads are `struct run` member
+/// entries, and `[view copyRect:to:]` is this unit's own `EmacsView` method (C 9340), i.e. the
+/// deferred entry above.  The `#if defined (NS_IMPL_COCOA) && MAC_OS_X_VERSION_MAX_ALLOWED <
+/// 101400` arm at C 2910-2912 is dead for this lane (the SDK's value is 260000) and is recorded,
+/// not transcribed.
+fileprivate func ns_scroll_run(_ w: UnsafeMutableRawPointer?, _ run: UnsafeMutableRawPointer?) {
+  let f = XFRAME(window_frame(w))
+  var x: Int32 = 0, y: Int32 = 0, width: Int32 = 0, height: Int32 = 0
+  var from_y: Int32 = 0, to_y: Int32 = 0, bottom_y: Int32 = 0
+
+  // C 2858: `NSTRACE ("ns_scroll_run");` - empty, as above.
+
+  /* Get frame-relative bounding box of the text display area of W,
+     without mode lines.  Include in this box the left and right
+     fringe of W.  */
+  window_box(w, ANY_AREA(), &x, &y, &width, &height)
+
+  from_y = WINDOW_TO_FRAME_PIXEL_Y(w, run_current_y(run))
+  to_y = WINDOW_TO_FRAME_PIXEL_Y(w, run_desired_y(run))
+  bottom_y = y + height
+
+  if to_y < from_y {
+    /* Scrolling up.  Make sure we don't copy part of the mode
+       line at the bottom.  */
+    if from_y + run_height(run) > bottom_y {
+      height = bottom_y - from_y
+    } else {
+      height = run_height(run)
+    }
+
+    /* If the destination is off the top of the current window, don't
+       draw over the window above.  */
+    if to_y < y {
+      let d = y - to_y
+      height -= d
+      to_y += d
+      from_y += d
+    }
+  } else {
+    /* Scrolling down.  Make sure we don't copy over the mode line.
+       at the bottom.  */
+    if to_y + run_height(run) > bottom_y {
+      height = bottom_y - to_y
+    } else {
+      height = run_height(run)
+    }
+  }
+
+  if height == 0 {
+    return
+  }
+
+  block_input()
+
+  gui_clear_cursor(w)
+
+  do {
+    let srcRect = NSMakeRect(CGFloat(x), CGFloat(from_y), CGFloat(width), CGFloat(height))
+    let dest = NSMakePoint(CGFloat(x), CGFloat(to_y))
+    let view = FRAME_NS_VIEW(f)
+
+    copyRect_definition(view, srcRect, dest)
+  }
+
+  unblock_input()
+}
+
+/// C 2919-2960: `static void ns_clear_under_internal_border (struct frame *f)` - the RIF's
+/// internal-border clearing, `fileprivate` because C's is a `static`.  C's `int face_id = (…)` is
+/// the three-way conditional over `FRAME_PARENT_FRAME`/`Vface_remapping_alist`, and the id it
+/// settles on goes to `FACE_FROM_ID_OR_NULL` (with `FRAME_DEFAULT_FACE` as the fallback).
+fileprivate func ns_clear_under_internal_border(_ f: UnsafeMutableRawPointer?) {
+  // C 2922: `NSTRACE ("ns_clear_under_internal_border");` - empty, as above.
+
+  if FRAME_LIVE_P(f) && FRAME_INTERNAL_BORDER_WIDTH(f) > 0 {
+    let border = FRAME_INTERNAL_BORDER_WIDTH(f)
+    let width = FRAME_PIXEL_WIDTH(f)
+    let height = FRAME_PIXEL_HEIGHT(f)
+    let margin = FRAME_TOP_MARGIN_HEIGHT(f)
+    let bottom_margin = FRAME_BOTTOM_MARGIN_HEIGHT(f)
+    let face_id =
+      (FRAME_PARENT_FRAME(f) != nil
+       ? (!NILP(Vface_remapping_alist)
+          ? lookup_basic_face(nil, f, CHILD_FRAME_BORDER_FACE_ID())
+          : CHILD_FRAME_BORDER_FACE_ID())
+       : (!NILP(Vface_remapping_alist)
+          ? lookup_basic_face(nil, f, INTERNAL_BORDER_FACE_ID())
+          : INTERNAL_BORDER_FACE_ID()))
+    var face = FACE_FROM_ID_OR_NULL(f, face_id)
+
+    if face == nil {
+      face = FRAME_DEFAULT_FACE(f)
+    }
+
+    /* Sometimes with new frames we reach this point and have no
+       face.  I'm not sure why we have a live frame but no face, so
+       just give up.  */
+    if face == nil {
+      return
+    }
+
+    ns_focus(f, nil, 1)
+    NSColor.colorWithUnsignedLong(NS_FACE_BACKGROUND(face)).set()
+    NSRectFill(NSMakeRect(0, CGFloat(margin), CGFloat(width), CGFloat(border)))
+    NSRectFill(NSMakeRect(0, 0, CGFloat(border), CGFloat(height)))
+    NSRectFill(NSMakeRect(0, CGFloat(margin), CGFloat(width), CGFloat(border)))
+    NSRectFill(NSMakeRect(CGFloat(width - border), 0, CGFloat(border), CGFloat(height)))
+    NSRectFill(NSMakeRect(0, CGFloat(height - bottom_margin - border),
+                          CGFloat(width), CGFloat(border)))
+    ns_unfocus(f)
+  }
+}
+
+// ==========================================================================
+// C 2963-3079: the RIF's fringe-update preparation, the glyph shift, and the
+// overhang computation (with the "Character encoding and metrics" banner).
+// ==========================================================================
+
+/// C: `struct window`'s member `w->pseudo_window_p` (src/window.h) - read at C 2977, the
+/// `window_<member>` family round 13 opened.
+@_silgen_name("window_pseudo_window_p")
+func window_pseudo_window_p(_ w: UnsafeMutableRawPointer?) -> Bool
+/// C: `struct glyph_row`'s members this slice reads and the one it writes -
+/// `desired_row->mode_line_p` (C 2977), `desired_row->full_width_p` (C 2983) and
+/// `desired_row->redraw_fringe_bitmaps_p = 1` (C 2978, a **bitfield write**, the
+/// `mouse_highlight_set_mouse_face_defer` shape).  `glyph_row_y`/`glyph_row_visible_height`
+/// above are the family's first two rows.
+@_silgen_name("glyph_row_mode_line_p")
+func glyph_row_mode_line_p(_ row: UnsafeMutableRawPointer?) -> Bool
+@_silgen_name("glyph_row_full_width_p")
+func glyph_row_full_width_p(_ row: UnsafeMutableRawPointer?) -> Bool
+@_silgen_name("glyph_row_set_redraw_fringe_bitmaps_p")
+func glyph_row_set_redraw_fringe_bitmaps_p(_ row: UnsafeMutableRawPointer?, _ v: Bool)
+/// C: `int windows_or_buffers_changed` (src/xdisp.c) - a plain global, and the reference objects
+/// hold it (`C`, common, in `build/emacs-ref/src/xdisp.o`), so the core exports a data symbol of
+/// its own name - the `Vframe_list` reading.
+@_silgen_name("windows_or_buffers_changed") var windows_or_buffers_changed: Int32
+/// C: `struct glyph_string`'s members (src/dispextern.h): the two overhangs this slice **writes**
+/// (C 3070-3077 - their *reads* are elsewhere in the file and get their own entries when that
+/// slice arrives, so only the `_set_` pair is declared here; a declared-but-uncalled entry is
+/// dropped from the object and never reaches `nm -u`, measured this round),
+/// `char2b`/`nchars`/`font` (C 3062), `cmp`/`cmp_id`/`cmp_from`/`cmp_to` (C 3053/3066/3068) and
+/// `first_glyph` (C 3054).  This is the family's first slice - the record belongs to the core
+/// (`src/dispextern.rs`), so each access is a member entry under `<record>_<member>`.
+@_silgen_name("glyph_string_set_left_overhang")
+func glyph_string_set_left_overhang(_ s: UnsafeMutableRawPointer?, _ v: Int32)
+@_silgen_name("glyph_string_set_right_overhang")
+func glyph_string_set_right_overhang(_ s: UnsafeMutableRawPointer?, _ v: Int32)
+@_silgen_name("glyph_string_char2b")
+func glyph_string_char2b(_ s: UnsafeMutableRawPointer?) -> UnsafePointer<UInt32>?
+@_silgen_name("glyph_string_nchars") func glyph_string_nchars(_ s: UnsafeMutableRawPointer?) -> Int32
+@_silgen_name("glyph_string_font")
+func glyph_string_font(_ s: UnsafeMutableRawPointer?) -> UnsafeMutableRawPointer?
+@_silgen_name("glyph_string_cmp")
+func glyph_string_cmp(_ s: UnsafeMutableRawPointer?) -> UnsafeMutableRawPointer?
+@_silgen_name("glyph_string_cmp_id")
+func glyph_string_cmp_id(_ s: UnsafeMutableRawPointer?) -> Int
+@_silgen_name("glyph_string_cmp_from")
+func glyph_string_cmp_from(_ s: UnsafeMutableRawPointer?) -> Int32
+@_silgen_name("glyph_string_cmp_to") func glyph_string_cmp_to(_ s: UnsafeMutableRawPointer?) -> Int32
+@_silgen_name("glyph_string_first_glyph")
+func glyph_string_first_glyph(_ s: UnsafeMutableRawPointer?) -> UnsafeMutableRawPointer?
+/// C: `struct glyph`'s `unsigned type : 3;` (src/dispextern.h 514) - the bitfield read at
+/// C 3054/3055/3059 - and the two `enum glyph_type` enumerators it is compared with
+/// (src/dispextern.h 431-438).
+@_silgen_name("glyph_type") func glyph_type(_ g: UnsafeMutableRawPointer?) -> Int32
+@_silgen_name("CHAR_GLYPH") func CHAR_GLYPH() -> Int32
+@_silgen_name("COMPOSITE_GLYPH") func COMPOSITE_GLYPH() -> Int32
+/// C: `struct composition`'s members (src/composite.h 148; `short pixel_width, ascent, descent;
+/// short lbearing, rbearing;`), read at C 3076-3077.
+@_silgen_name("composition_pixel_width")
+func composition_pixel_width(_ cmp: UnsafeMutableRawPointer?) -> Int32
+@_silgen_name("composition_lbearing")
+func composition_lbearing(_ cmp: UnsafeMutableRawPointer?) -> Int32
+@_silgen_name("composition_rbearing")
+func composition_rbearing(_ cmp: UnsafeMutableRawPointer?) -> Int32
+/// C: `struct font`'s member `driver` (`struct font_driver *`, src/font.h) and the driver slot
+/// `void (*text_extents) (struct font *, const unsigned *, int, struct font_metrics *)`
+/// (src/font.h 672-673, ~offset 104 in that table - the slot `macfont.swift` 11160-11162
+/// declares).  C reaches the call as `font->driver->text_extents (…)`; the port reads the two
+/// hops as entries and calls what the second returns, so no `struct font`/`struct font_driver`
+/// view is needed here.
+typealias font_text_extents_fn = @convention(c) (UnsafeMutableRawPointer?, UnsafePointer<UInt32>?,
+                                                Int32, UnsafeMutableRawPointer?) -> Void
+@_silgen_name("font_driver") func font_driver(_ font: UnsafeMutableRawPointer?) -> UnsafeMutableRawPointer?
+@_silgen_name("font_driver_text_extents")
+func font_driver_text_extents(_ driver: UnsafeMutableRawPointer?) -> font_text_extents_fn?
+/// C: the two core functions of C 3062/3068 - `src/composite.rs` 758 and 829 define them,
+/// so they are provided, not owed.  `composition_gstring_width`'s `metrics` is a
+/// `struct font_metrics *`, i.e. the pointer the local view above is handed through.
+@_silgen_name("composition_gstring_from_id")
+func composition_gstring_from_id(_ id: Int) -> Lisp_Object
+@_silgen_name("composition_gstring_width")
+func composition_gstring_width(_ gstring: Lisp_Object, _ from: Int, _ to: Int,
+                               _ metrics: UnsafeMutableRawPointer?) -> Int32
+
+/// C 2963-3019: `static void ns_after_update_window_line (struct window *w, struct glyph_row
+/// *desired_row)` - "External (RIF): preparatory to fringe update after text was updated".
+/// Two of C's spellings are re-shaped: `eassert (w)` is the no-op it is when `ENABLE_CHECKING`
+/// is off (recorded, as the `NSTRACE` family), and the condition's comma expressions
+/// (`(f = XFRAME (w->frame), width = …, width != 0)`) become the nested `if`s below - the same
+/// short-circuit, with the three pure reads where C evaluates them.
+fileprivate func ns_after_update_window_line(_ w: UnsafeMutableRawPointer?,
+                                             _ desired_row: UnsafeMutableRawPointer?) {
+  var f: UnsafeMutableRawPointer? = nil
+  var width: Int32 = 0
+  var height: Int32 = 0
+
+  // C 2972: `NSTRACE_WHEN (NSTRACE_GROUP_UPDATES, "ns_after_update_window_line");` - empty at
+  // `NSTRACE_ENABLED` 0, so neither its group nor its format string is evaluated.
+
+  /* begin copy from other terms */
+  // C 2975: `eassert (w);` - the empty macro unless `ENABLE_CHECKING`, which this configuration
+  // leaves undefined (the reading the dead `NSTRACE_ENABLED` block above already carries).
+
+  if !glyph_row_mode_line_p(desired_row) && !window_pseudo_window_p(w) {
+    glyph_row_set_redraw_fringe_bitmaps_p(desired_row, true)
+  }
+
+  /* When a window has disappeared, make sure that no rest of
+     full-width rows stays visible in the internal border.  */
+  if windows_or_buffers_changed != 0
+       && glyph_row_full_width_p(desired_row) {
+    f = XFRAME(window_frame(w))
+    width = FRAME_INTERNAL_BORDER_WIDTH(f)
+
+    if width != 0 {
+      height = glyph_row_visible_height(desired_row)
+
+      if height > 0 {
+        // C 2990: `int y = WINDOW_TO_FRAME_PIXEL_Y (w, max (0, desired_row->y));` - C's `max`
+        // is the two-argument macro (`lisp.h`/`sysdep`'s), expressible in Swift as
+        // `Swift.max` (class B of the 3.255 ruling: the body is arithmetic, no core fact).
+        let y = WINDOW_TO_FRAME_PIXEL_Y(w, max(0, glyph_row_y(desired_row)))
+        let face_id =
+          !NILP(Vface_remapping_alist)
+          ? lookup_basic_face(nil, f, INTERNAL_BORDER_FACE_ID())
+          : INTERNAL_BORDER_FACE_ID()
+        let face = FACE_FROM_ID_OR_NULL(f, face_id)
+
+        block_input()
+        if face != nil {
+          var r = NSMakeRect(0, CGFloat(y), CGFloat(FRAME_PIXEL_WIDTH(f)), CGFloat(height))
+          ns_focus(f, &r, 1)
+
+          NSColor.colorWithUnsignedLong(NS_FACE_BACKGROUND(face)).set()
+          NSRectFill(NSMakeRect(0, CGFloat(y), CGFloat(width), CGFloat(height)))
+          NSRectFill(NSMakeRect(CGFloat(FRAME_PIXEL_WIDTH(f) - width),
+                                CGFloat(y), CGFloat(width), CGFloat(height)))
+
+          ns_unfocus(f)
+        } else {
+          ns_clear_frame_area(f, 0, y, width, height)
+          ns_clear_frame_area(f,
+                              FRAME_PIXEL_WIDTH(f) - width,
+                              y, width, height)
+        }
+        unblock_input()
+      }
+    }
+  }
+}
+
+/// C 3022-3036: `static void ns_shift_glyphs_for_insert (struct frame *f, int x, int y, int
+/// width, int height, int shift_by)` - "External (RIF): copy an area horizontally, don't worry
+/// about clearing src".  The copy is the `EmacsView -copyRect:to:` entry round 13 added.
+fileprivate func ns_shift_glyphs_for_insert(_ f: UnsafeMutableRawPointer?, _ x: Int32, _ y: Int32,
+                                            _ width: Int32, _ height: Int32, _ shift_by: Int32) {
+  let srcRect = NSMakeRect(CGFloat(x), CGFloat(y), CGFloat(width), CGFloat(height))
+  let dest = NSMakePoint(CGFloat(x + shift_by), CGFloat(y))
+
+  // C 3033: `NSTRACE ("ns_shift_glyphs_for_insert");` - empty, as above.
+
+  copyRect_definition(FRAME_NS_VIEW(f), srcRect, dest)
+}
+
+/* ==========================================================================
+
+    Character encoding and metrics
+
+   ========================================================================== */
+
+/// C 3047-3079: `static void ns_compute_glyph_string_overhangs (struct glyph_string *s)` -
+/// "External (RIF); compute left/right overhang of whole string and set in s".  C's
+/// `struct font_metrics metrics;` is a local the driver slot fills through a pointer, which is
+/// why the unit declares the view above; `font->driver->text_extents (…)` is the two-hop read the
+/// entries `font_driver`/`font_driver_text_extents` spell (C calls the slot unconditionally, and
+/// the port's `if let` is the nil check C's driver contract makes unnecessary).
+fileprivate func ns_compute_glyph_string_overhangs(_ s: UnsafeMutableRawPointer?) {
+  if glyph_string_cmp(s) == nil
+       && (glyph_type(glyph_string_first_glyph(s)) == CHAR_GLYPH()
+           || glyph_type(glyph_string_first_glyph(s)) == COMPOSITE_GLYPH()) {
+    var metrics = font_metrics(lbearing: 0, rbearing: 0, width: 0, ascent: 0, descent: 0)
+
+    if glyph_type(glyph_string_first_glyph(s)) == CHAR_GLYPH() {
+      let font = glyph_string_font(s)
+      if let text_extents = font_driver_text_extents(font_driver(font)) {
+        text_extents(font, glyph_string_char2b(s), glyph_string_nchars(s), &metrics)
+      }
+    } else {
+      let gstring = composition_gstring_from_id(glyph_string_cmp_id(s))
+
+      _ = composition_gstring_width(gstring, Int(glyph_string_cmp_from(s)),
+                                    Int(glyph_string_cmp_to(s)), &metrics)
+    }
+    // C 3070-3072: `metrics.rbearing > metrics.width ? metrics.rbearing - metrics.width : 0`
+    // (the `short` fields promote to `int` in C's arithmetic, hence the `Int32` conversions) and
+    // `metrics.lbearing < 0 ? - metrics.lbearing : 0`.
+    glyph_string_set_right_overhang(s, metrics.rbearing > metrics.width
+                                       ? Int32(metrics.rbearing) - Int32(metrics.width) : 0)
+    glyph_string_set_left_overhang(s, metrics.lbearing < 0 ? -Int32(metrics.lbearing) : 0)
+  } else if glyph_string_cmp(s) != nil {
+    glyph_string_set_right_overhang(s, composition_rbearing(glyph_string_cmp(s))
+                                       - composition_pixel_width(glyph_string_cmp(s)))
+    glyph_string_set_left_overhang(s, -composition_lbearing(glyph_string_cmp(s)))
+  }
+}
+
+/* ==========================================================================
+
+    Fringe and cursor drawing
+
+   ========================================================================== */
+
+/// C 3089: `static NSMutableDictionary *fringe_bmp;` - this file's own file-scope table, a
+/// `fileprivate var` of the same name (C zero-initialises it to NULL, which is `nil` here).
+fileprivate var fringe_bmp: NSMutableDictionary? = nil
+
+/// C: `#define WINDOW_FRAME(w) ((w)->frame)` (src/frame.h 929) - the macro's own name, read at
+/// C 3228.  The bare member read (`w->frame`, round 13's `window_frame`) and this macro spelling
+/// keep one entry each: PORTING.md 0.2's names-verbatim rule, the way `NS_FACE_BACKGROUND` and
+/// `face_background` are two entries below.
+@_silgen_name("WINDOW_FRAME") func WINDOW_FRAME(_ w: UnsafeMutableRawPointer?) -> Lisp_Object
+/// C: `struct face`'s members `foreground`/`background` (src/dispextern.h), read **bare** at
+/// C 3254/3279/3281 - C does not go through `NS_FACE_BACKGROUND` there, so each spelling gets its
+/// own `<record>_<member>` entry (round 13's `NS_FACE_BACKGROUND` is the macro's).
+@_silgen_name("face_foreground") func face_foreground(_ face: UnsafeMutableRawPointer?) -> UInt
+@_silgen_name("face_background") func face_background(_ face: UnsafeMutableRawPointer?) -> UInt
+/// C: `struct draw_fringe_bitmap_params` (src/dispextern.h) - the record `ns_draw_fringe_bitmap`
+/// reads member by member (`face` C 3229, `which` C 3235, `cursor_p`/`overlay_p` C 3235,
+/// `wd`/`h`/`dh` C 3235-3238, `x`/`y` C 3238, `bx`/`by`/`nx`/`ny` C 3240-3241), plus the two
+/// `bool_bf` bitfields.  The record belongs to the core, so each is a member entry.
+@_silgen_name("draw_fringe_bitmap_params_face")
+func draw_fringe_bitmap_params_face(_ p: UnsafeMutableRawPointer?) -> UnsafeMutableRawPointer?
+@_silgen_name("draw_fringe_bitmap_params_which")
+func draw_fringe_bitmap_params_which(_ p: UnsafeMutableRawPointer?) -> Int32
+@_silgen_name("draw_fringe_bitmap_params_wd")
+func draw_fringe_bitmap_params_wd(_ p: UnsafeMutableRawPointer?) -> Int32
+@_silgen_name("draw_fringe_bitmap_params_h")
+func draw_fringe_bitmap_params_h(_ p: UnsafeMutableRawPointer?) -> Int32
+@_silgen_name("draw_fringe_bitmap_params_dh")
+func draw_fringe_bitmap_params_dh(_ p: UnsafeMutableRawPointer?) -> Int32
+@_silgen_name("draw_fringe_bitmap_params_x")
+func draw_fringe_bitmap_params_x(_ p: UnsafeMutableRawPointer?) -> Int32
+@_silgen_name("draw_fringe_bitmap_params_y")
+func draw_fringe_bitmap_params_y(_ p: UnsafeMutableRawPointer?) -> Int32
+@_silgen_name("draw_fringe_bitmap_params_bx")
+func draw_fringe_bitmap_params_bx(_ p: UnsafeMutableRawPointer?) -> Int32
+@_silgen_name("draw_fringe_bitmap_params_by")
+func draw_fringe_bitmap_params_by(_ p: UnsafeMutableRawPointer?) -> Int32
+@_silgen_name("draw_fringe_bitmap_params_nx")
+func draw_fringe_bitmap_params_nx(_ p: UnsafeMutableRawPointer?) -> Int32
+@_silgen_name("draw_fringe_bitmap_params_ny")
+func draw_fringe_bitmap_params_ny(_ p: UnsafeMutableRawPointer?) -> Int32
+@_silgen_name("draw_fringe_bitmap_params_cursor_p")
+func draw_fringe_bitmap_params_cursor_p(_ p: UnsafeMutableRawPointer?) -> Bool
+@_silgen_name("draw_fringe_bitmap_params_overlay_p")
+func draw_fringe_bitmap_params_overlay_p(_ p: UnsafeMutableRawPointer?) -> Bool
+/// C: `f->output_data.ns->cursor_color` (C 3283) - the `struct ns_output` member read, under the
+/// family name the shim already exports (`docs/ports/abi_shim.md` 74; `nsfns.swift` 282 imports
+/// it with this signature).
+@_silgen_name("ns_output_cursor_color")
+func ns_output_cursor_color_borrowed_raw(_ f: UnsafeMutableRawPointer?) -> UnsafeMutableRawPointer?
+func ns_output_cursor_color(_ f: UnsafeMutableRawPointer?) -> NSColor? {
+  guard let pointer = ns_output_cursor_color_borrowed_raw(f) else { return nil }
+  return Unmanaged<NSColor>.fromOpaque(pointer).takeUnretainedValue()
+}
+/// C: `void gui_define_fringe_bitmap (struct frame *, int)` (defined src/fringe.c 1853) and the
+/// global `int max_used_fringe_bitmap = MAX_STANDARD_FRINGE_BITMAPS;` (src/fringe.c 497).
+/// **Neither has a reference-side symbol** (measured): the frozen configuration compiles no
+/// `fringe.c` at all - `src/fringe.rs` is the empty unit status 3.31 records, its note
+/// quoting the build's empty platform object variables - so both are owed entries, and the
+/// function's row carries the gate the file itself has.
+@_silgen_name("gui_define_fringe_bitmap")
+func gui_define_fringe_bitmap(_ f: UnsafeMutableRawPointer?, _ n: Int32)
+@_silgen_name("max_used_fringe_bitmap") var max_used_fringe_bitmap: Int32
+
+/// C 3091-3195: `static void ns_define_fringe_bitmap (int which, unsigned short *bits, int h,
+/// int w)` - the tracer that turns the bitmap's bit rows into an `NSBezierPath` and caches it in
+/// `fringe_bmp`.  C's `alloca` is `withUnsafeTemporaryAllocation` (the reading `macfont.swift`
+/// 1684/2978 gives), so the `points`/`cur` pointer walk keeps its shape over the temporary
+/// buffer; the C `char` state variables hold the ASCII letters `'n'`/`'e'`/`'s'`/`'w'` and are
+/// `CChar` here.
+fileprivate func ns_define_fringe_bitmap(_ which: Int32, _ bits: UnsafePointer<UInt16>?, _ h: Int32,
+                                         _ w: Int32) {
+  let p = NSBezierPath()
+
+  if fringe_bmp == nil {
+    fringe_bmp = NSMutableDictionary(capacity: 25)
+  }
+
+  withUnsafeTemporaryAllocation(of: UInt8.self, capacity: Int((h + 1) * (w + 1) * 4)) { points in
+    var cur = points.baseAddress!
+
+    /* Find all the outgoing edges in a clockwise path.  That is, we only
+       want to list the edges leaving a point, not the ones entering a
+       point, so we don't double count them.  */
+    for y in 0..<(h + 1) {
+      for x in 0..<(w + 1) {
+        var nw: Int32 = 0, ne: Int32 = 0, se: Int32 = 0, sw: Int32 = 0
+        if x != 0 && y != 0 {
+          nw = Int32(bits![Int(y - 1)]) & (1 << (w - x))
+        }
+
+        if x != 0 && y < h {
+          sw = Int32(bits![Int(y)]) & (1 << (w - x))
+        }
+
+        if x < w && y < h {
+          se = Int32(bits![Int(y)]) & (1 << (w - x - 1))
+        }
+
+        if x < w && y != 0 {
+          ne = Int32(bits![Int(y - 1)]) & (1 << (w - x - 1))
+        }
+
+        cur[0] = (nw == 0 && ne != 0) ? 1 : 0 /* North.  */
+        cur[1] = (ne == 0 && se != 0) ? 1 : 0 /* East.  */
+        cur[2] = (se == 0 && sw != 0) ? 1 : 0 /* South.  */
+        cur[3] = (sw == 0 && nw != 0) ? 1 : 0 /* West.  */
+        cur += 4
+      }
+    }
+
+    /* Find all the points with edges and trace them out.  */
+    var v: Int32 = 0
+    var last: CChar = 0
+    while v < (h + 1) * (w + 1) * 4 {
+      var this: CChar = 0
+      let x = (v / 4) % (w + 1)
+      let y = (v / 4) / (w + 1)
+
+      if points[Int(v + 3)] != 0 {
+        /* West.  */
+        points[Int(v + 3)] = 0
+        v = v - 4
+        this = CChar(UInt8(ascii: "w"))
+      } else if points[Int(v + 1)] != 0 {
+        /* East.  */
+        points[Int(v + 1)] = 0
+        v = v + 4
+        this = CChar(UInt8(ascii: "e"))
+      } else if points[Int(v + 2)] != 0 {
+        /* South.  */
+        points[Int(v + 2)] = 0
+        v = ((y + 1) * (w + 1) + x) * 4
+        this = CChar(UInt8(ascii: "s"))
+      } else if points[Int(v)] != 0 {
+        /* North.  */
+        points[Int(v)] = 0
+        v = ((y - 1) * (w + 1) + x) * 4
+        this = CChar(UInt8(ascii: "n"))
+      } else {
+        /* No edge.  */
+        v = v + 4
+
+        if last != 0 {
+          /* If we reach here we were tracing a shape but have run
+             out of edges, so we must be back to the start (or
+             something's gone wrong).  */
+          p.close()
+          last = 0
+        }
+      }
+
+      if this != 0 {
+        /* If we've found an edge we now need to either move to that
+           point (if it's the start of a shape) or draw a line from
+           the last corner to this point, but only if it's a
+           corner.  */
+        if last == 0 {
+          p.move(to: NSMakePoint(CGFloat(x), CGFloat(y)))
+        } else if last != this {
+          p.line(to: NSMakePoint(CGFloat(x), CGFloat(y)))
+        }
+        last = this
+      }
+    }
+  }
+
+  fringe_bmp!.setObject(p, forKey: NSNumber(value: which))
+}
+
+/// C 3198-3202: `static void ns_destroy_fringe_bitmap (int which)`.
+fileprivate func ns_destroy_fringe_bitmap(_ which: Int32) {
+  fringe_bmp?.removeObject(forKey: NSNumber(value: which))
+}
+
+/// C 3205-3291: `static void ns_draw_fringe_bitmap (struct window *w, struct glyph_row *row,
+/// struct draw_fringe_bitmap_params *p)` - "External (RIF); fringe-related".  The record's
+/// members are the entries above; C's `bmp = [bmp copy]` … `[bmp release]` pair is ARC's own
+/// copy here (no release call - the reading rounds 3/6 record for `[x release]`), and the
+/// `NSTRACE_*` family is empty (`NSTRACE_ENABLED` 0), so C's arguments to it are not evaluated.
+fileprivate func ns_draw_fringe_bitmap(_ w: UnsafeMutableRawPointer?, _ row: UnsafeMutableRawPointer?,
+                                       _ p: UnsafeMutableRawPointer?) {
+  let f = XFRAME(WINDOW_FRAME(w))
+  let face = draw_fringe_bitmap_params_face(p)
+  var bmpRect = NSZeroRect
+  let rowRect = ns_row_rect(w, row, ANY_AREA())
+
+  // C 3233-3235: `NSTRACE_WHEN (NSTRACE_GROUP_FRINGE, "ns_draw_fringe_bitmap");` and
+  // `NSTRACE_MSG ("which:%d cursor:%d …", p->which, p->cursor_p, …);` - empty, as above.
+
+  /* Work out the rectangle we will need to clear.  */
+  bmpRect = NSMakeRect(CGFloat(draw_fringe_bitmap_params_x(p)),
+                       CGFloat(draw_fringe_bitmap_params_y(p)),
+                       CGFloat(draw_fringe_bitmap_params_wd(p)),
+                       CGFloat(draw_fringe_bitmap_params_h(p)))
+
+  if draw_fringe_bitmap_params_bx(p) >= 0 {
+    bmpRect = NSUnionRect(bmpRect,
+                          NSMakeRect(CGFloat(draw_fringe_bitmap_params_bx(p)),
+                                     CGFloat(draw_fringe_bitmap_params_by(p)),
+                                     CGFloat(draw_fringe_bitmap_params_nx(p)),
+                                     CGFloat(draw_fringe_bitmap_params_ny(p))))
+  }
+
+  /* Handle partially visible rows.  */
+  bmpRect = NSIntersectionRect(bmpRect, rowRect)
+
+  /* Clip to the bitmap's area.  */
+  ns_focus(f, &bmpRect, 1)
+
+  /* Clear screen unless overlay.  */
+  if !draw_fringe_bitmap_params_overlay_p(p) && !NSIsEmptyRect(bmpRect) {
+    // C 3252: `NSTRACE_RECT ("clearRect", bmpRect);` - empty, as above.
+
+    NSColor.colorWithUnsignedLong(face_background(face)).set()
+    NSRectFill(bmpRect)
+  }
+
+  var bmp = fringe_bmp?.object(forKey: NSNumber(value: draw_fringe_bitmap_params_which(p)))
+    as? NSBezierPath
+
+  if bmp == nil
+       && draw_fringe_bitmap_params_which(p) < max_used_fringe_bitmap {
+    gui_define_fringe_bitmap(f, draw_fringe_bitmap_params_which(p))
+    bmp = fringe_bmp?.object(forKey: NSNumber(value: draw_fringe_bitmap_params_which(p)))
+      as? NSBezierPath
+  }
+
+  if bmp != nil {
+    let transform = NSAffineTransform()
+    var bm_color: NSColor? = nil
+
+    /* Because the image is defined at (0, 0) we need to take a copy
+       and then transform that copy to the new origin.  */
+    bmp = bmp!.copy() as? NSBezierPath
+    transform.translateX(by: CGFloat(draw_fringe_bitmap_params_x(p)),
+                         yBy: CGFloat(draw_fringe_bitmap_params_y(p)
+                                      - draw_fringe_bitmap_params_dh(p)))
+    bmp!.transform(using: transform as AffineTransform)
+
+    if !draw_fringe_bitmap_params_cursor_p(p) {
+      bm_color = NSColor.colorWithUnsignedLong(face_foreground(face))
+    } else if draw_fringe_bitmap_params_overlay_p(p) {
+      bm_color = NSColor.colorWithUnsignedLong(face_background(face))
+    } else {
+      bm_color = ns_output_cursor_color(f)
+    }
+
+    bm_color?.set()
+    bmp!.fill()
+  }
+  ns_unfocus(f)
+}
+
+/// C: `#define WINDOW_XFRAME(W) XFRAME (WINDOW_FRAME (W))` (src/window.h 620) - the macro of
+/// C 3305/3435/3458, the `WINDOW_FRAME` sibling above.
+@_silgen_name("WINDOW_XFRAME")
+func WINDOW_XFRAME(_ w: UnsafeMutableRawPointer?) -> UnsafeMutableRawPointer?
+/// C: `struct window`'s cursor members, which live in src/window.h's **`HAVE_WINDOW_SYSTEM`**
+/// block (window.h 340-350): `phys_cursor_type` (written at C 3319), `phys_cursor_on_p` (3319),
+/// `phys_cursor_width` (read at C 3351/3358/3373 and written at 3324/3352) and the nested
+/// `phys_cursor.hpos` (3333).  They are **gated** members - the frozen `struct window` has no
+/// such fields - so the core exports them under the same gate (status 3.262's shape), and the
+/// nested read follows the `window_phys_cursor_x`/`_y` names `nsfns.swift` already imports.
+@_silgen_name("window_set_phys_cursor_type")
+func window_set_phys_cursor_type(_ w: UnsafeMutableRawPointer?, _ v: Int32)
+@_silgen_name("window_set_phys_cursor_on_p")
+func window_set_phys_cursor_on_p(_ w: UnsafeMutableRawPointer?, _ v: Bool)
+@_silgen_name("window_phys_cursor_width")
+func window_phys_cursor_width(_ w: UnsafeMutableRawPointer?) -> Int32
+@_silgen_name("window_set_phys_cursor_width")
+func window_set_phys_cursor_width(_ w: UnsafeMutableRawPointer?, _ v: Int32)
+@_silgen_name("window_phys_cursor_hpos")
+func window_phys_cursor_hpos(_ w: UnsafeMutableRawPointer?) -> Int32
+/// C: `struct glyph_row`'s members `exact_window_width_line_p` (src/dispextern.h 1115, read at
+/// C 3332), `used[1 + LAST_AREA]` (938, read at 3333 through C's own `TEXT_AREA` subscript, which
+/// is the entry's second argument the way `frame_alpha`'s index is), `cursor_in_fringe_p` (1118,
+/// written at 3335) and `height` (read at 3364-3365).
+@_silgen_name("glyph_row_exact_window_width_line_p")
+func glyph_row_exact_window_width_line_p(_ row: UnsafeMutableRawPointer?) -> Bool
+@_silgen_name("glyph_row_used")
+func glyph_row_used(_ row: UnsafeMutableRawPointer?, _ area: Int32) -> Int16
+@_silgen_name("glyph_row_set_cursor_in_fringe_p")
+func glyph_row_set_cursor_in_fringe_p(_ row: UnsafeMutableRawPointer?, _ v: Bool)
+@_silgen_name("glyph_row_height") func glyph_row_height(_ row: UnsafeMutableRawPointer?) -> Int32
+/// C: `struct glyph`'s members `resolved_level` (`unsigned … : 7`, read at C 3357) and
+/// `pixel_width` (`short`, read at 3358) - the `glyph_type` family's next two.
+@_silgen_name("glyph_resolved_level") func glyph_resolved_level(_ g: UnsafeMutableRawPointer?) -> Int32
+@_silgen_name("glyph_pixel_width") func glyph_pixel_width(_ g: UnsafeMutableRawPointer?) -> Int16
+/// C: `#define FRAME_CURSOR_WIDTH(f) ((f)->cursor_width)` and
+/// `#define FRAME_FOREGROUND_PIXEL(f) ((f)->foreground_pixel)` (src/frame.h 1372/1375), and the
+/// existing `FRAME_CURSOR_COLOR` entry (`nsterm.h` 1037's macro, `macfont.swift` 1157 imports it).
+@_silgen_name("FRAME_CURSOR_WIDTH") func FRAME_CURSOR_WIDTH(_ f: UnsafeMutableRawPointer?) -> Int32
+@_silgen_name("FRAME_FOREGROUND_PIXEL")
+func FRAME_FOREGROUND_PIXEL(_ f: UnsafeMutableRawPointer?) -> UInt
+@_silgen_name("FRAME_CURSOR_COLOR")
+func FRAME_CURSOR_COLOR_borrowed_raw(_ f: UnsafeMutableRawPointer?) -> UnsafeMutableRawPointer?
+func FRAME_CURSOR_COLOR(_ f: UnsafeMutableRawPointer?) -> NSColor? {
+  guard let pointer = FRAME_CURSOR_COLOR_borrowed_raw(f) else { return nil }
+  return Unmanaged<NSColor>.fromOpaque(pointer).takeUnretainedValue()
+}
+/// C: the enumerators this slice compares against - src/dispextern.h 885's `TEXT_AREA`
+/// (`enum glyph_row_area`), src/dispextern.h 1352's `DRAW_CURSOR` (`enum draw_glyphs_face`), the six
+/// `enum text_cursor_kinds` (src/dispextern.h 216's `DEFAULT_CURSOR` -2, NO_CURSOR -1,
+/// FILLED_BOX_CURSOR, HOLLOW_BOX_CURSOR, BAR_CURSOR, HBAR_CURSOR) and the four face ids C
+/// 3441/3459-3463 read.
+@_silgen_name("TEXT_AREA") func TEXT_AREA() -> Int32
+@_silgen_name("DRAW_CURSOR") func DRAW_CURSOR() -> Int32
+@_silgen_name("DEFAULT_CURSOR") func DEFAULT_CURSOR() -> Int32
+@_silgen_name("NO_CURSOR") func NO_CURSOR() -> Int32
+@_silgen_name("FILLED_BOX_CURSOR") func FILLED_BOX_CURSOR() -> Int32
+@_silgen_name("HOLLOW_BOX_CURSOR") func HOLLOW_BOX_CURSOR() -> Int32
+@_silgen_name("BAR_CURSOR") func BAR_CURSOR() -> Int32
+@_silgen_name("HBAR_CURSOR") func HBAR_CURSOR() -> Int32
+@_silgen_name("VERTICAL_BORDER_FACE_ID") func VERTICAL_BORDER_FACE_ID() -> Int32
+@_silgen_name("WINDOW_DIVIDER_FACE_ID") func WINDOW_DIVIDER_FACE_ID() -> Int32
+@_silgen_name("WINDOW_DIVIDER_FIRST_PIXEL_FACE_ID")
+func WINDOW_DIVIDER_FIRST_PIXEL_FACE_ID() -> Int32
+@_silgen_name("WINDOW_DIVIDER_LAST_PIXEL_FACE_ID")
+func WINDOW_DIVIDER_LAST_PIXEL_FACE_ID() -> Int32
+/// C: `struct glyph *get_phys_cursor_glyph (struct window *)` (src/window.h 1186; defined
+/// src/window.c 8228, no gate) - **provided** by the core's `src/window.rs` 8078.
+@_silgen_name("get_phys_cursor_glyph")
+func get_phys_cursor_glyph(_ w: UnsafeMutableRawPointer?) -> UnsafeMutableRawPointer?
+/// C: the three cursor/fringe helpers no built configuration has a symbol for, all measured:
+/// src/xdisp.c 2707's `get_phys_cursor_geometry` and src/xdisp.c 35099's `draw_phys_cursor_glyph`
+/// are the two in `HAVE_WINDOW_SYSTEM` arms (`#ifdef`s at src/xdisp.c 2488 and 35045), and
+/// src/fringe.c 838's `draw_fringe_bitmap` belongs to the file `src/fringe.rs` records as
+/// not compiled at all.
+/// Each is an owed entry whose row carries that gate (status 3.255 ③ / 3.262's shape).
+@_silgen_name("get_phys_cursor_geometry")
+func get_phys_cursor_geometry(_ w: UnsafeMutableRawPointer?, _ row: UnsafeMutableRawPointer?,
+                              _ glyph: UnsafeMutableRawPointer?, _ x: UnsafeMutablePointer<Int32>?,
+                              _ y: UnsafeMutablePointer<Int32>?,
+                              _ height: UnsafeMutablePointer<Int32>?)
+@_silgen_name("draw_phys_cursor_glyph")
+func draw_phys_cursor_glyph(_ w: UnsafeMutableRawPointer?, _ row: UnsafeMutableRawPointer?,
+                            _ draw: Int32)
+@_silgen_name("draw_fringe_bitmap")
+func draw_fringe_bitmap(_ w: UnsafeMutableRawPointer?, _ row: UnsafeMutableRawPointer?,
+                        _ left_p: Int32)
+
+/// C 3294-3426: `static void ns_draw_window_cursor (struct window *w, struct glyph_row *glyph_row,
+/// int x, int y, enum text_cursor_kinds cursor_type, int cursor_width, bool on_p, bool active_p)` -
+/// "External call (RIF): draw cursor."  Three of C's spellings are re-shaped and recorded: the
+/// assignment inside the condition `(phys_cursor_glyph = get_phys_cursor_glyph (w)) == NULL`
+/// becomes the assignment plus the test; the parameter `cursor_width`, which C assigns twice, is
+/// shadowed by a local of the same name (Swift parameters are constants); and C's switch has no
+/// `default:` because it covers the enum, so the port's `default: break` is the arm Swift needs
+/// for an `Int32` switch.  `NSGraphicsContext`'s save/restore pair is C's own and the
+/// `NS_IMPL_GNUSTEP` arm (`GSRectClipList`) is dead for this lane.
+fileprivate func ns_draw_window_cursor(_ w: UnsafeMutableRawPointer?,
+                                       _ glyph_row: UnsafeMutableRawPointer?,
+                                       _ x: Int32, _ y: Int32, _ cursor_type: Int32,
+                                       _ cursor_width: Int32, _ on_p: Bool, _ active_p: Bool) {
+  var r = NSRect.zero
+  var fx: Int32 = 0, fy: Int32 = 0, h: Int32 = 0
+  let f = WINDOW_XFRAME(w)
+
+  /* If cursor is out of bounds, don't draw garbage.  This can happen
+     in mini-buffer windows when switching between echo area glyphs
+     and mini-buffer.  */
+
+  // C 3313-3314: `NSTRACE ("ns_draw_window_cursor (on = %d, cursor_type = %d)", on_p,
+  // cursor_type);` - empty, as above.
+
+  if !on_p {
+    return
+  }
+
+  window_set_phys_cursor_type(w, cursor_type)
+  window_set_phys_cursor_on_p(w, on_p)
+
+  if cursor_type == NO_CURSOR() {
+    window_set_phys_cursor_width(w, 0)
+    return
+  }
+
+  let phys_cursor_glyph = get_phys_cursor_glyph(w)
+  if phys_cursor_glyph == nil {
+    // C 3330: `NSTRACE_MSG ("No phys cursor glyph was found!");` - empty, as above.
+
+    if glyph_row_exact_window_width_line_p(glyph_row)
+         && window_phys_cursor_hpos(w) >= Int32(glyph_row_used(glyph_row, TEXT_AREA())) {
+      glyph_row_set_cursor_in_fringe_p(glyph_row, true)
+      draw_fringe_bitmap(w, glyph_row, 0)
+    }
+    return
+  }
+
+  get_phys_cursor_geometry(w, glyph_row, phys_cursor_glyph, &fx, &fy, &h)
+
+  /* The above get_phys_cursor_geometry call set w->phys_cursor_width
+     to the glyph width; replace with CURSOR_WIDTH for (V)BAR cursors.  */
+  // C 3345-3359: the parameter is C's to reassign; Swift shadows it, so the three later uses
+  // below (`max`, the comparison and the branch) read this local.
+  var cursor_width = cursor_width
+  if cursor_type == BAR_CURSOR() {
+    if cursor_width < 1 {
+      cursor_width = max(FRAME_CURSOR_WIDTH(f), 1)
+    }
+
+    /* The bar cursor should never be wider than the glyph.  */
+    if cursor_width < window_phys_cursor_width(w) {
+      window_set_phys_cursor_width(w, cursor_width)
+    }
+
+    /* If the character under cursor is R2L, draw the bar cursor
+       on the right of its glyph, rather than on the left.  */
+    let cursor_glyph = get_phys_cursor_glyph(w)
+    if (glyph_resolved_level(cursor_glyph) & 1) != 0 {
+      fx += Int32(glyph_pixel_width(cursor_glyph)) - window_phys_cursor_width(w)
+    }
+  }
+  /* If we have an HBAR, "cursor_width" MAY specify height.  */
+  else if cursor_type == HBAR_CURSOR() {
+    var cursor_height = (cursor_width < 1) ? Int32(lrint(0.25 * Double(h))) : cursor_width
+    if cursor_height > glyph_row_height(glyph_row) {
+      cursor_height = glyph_row_height(glyph_row)
+    }
+    if h > cursor_height /* Cursor smaller than line height, move down */ {
+      fy += h - cursor_height
+    }
+    h = cursor_height
+  }
+
+  r.origin.x = CGFloat(fx)
+  r.origin.y = CGFloat(fy)
+  r.size.height = CGFloat(h)
+  r.size.width = CGFloat(window_phys_cursor_width(w))
+
+  /* Prevent the cursor from being drawn outside the text area.  */
+  r = NSIntersectionRect(r, ns_row_rect(w, glyph_row, TEXT_AREA()))
+
+  // C 3378-3386: the `NS_IMPL_COCOA` arm caches the rect for the macOS Accessibility Zoom
+  // integration, the global round 5 landed as `ns_UAZoom_cursor_rect_new`.
+  if active_p {
+    ns_UAZoom_cursor_rect_new = r
+  }
+
+  ns_focus(f, nil, 0)
+
+  let ctx = NSGraphicsContext.current
+  ctx?.saveGraphicsState()
+  // C 3392-3396: the `NS_IMPL_GNUSTEP` arm (`GSRectClipList (ctx, &r, 1)`) is dead; the live arm
+  // is `NSRectClip (r)` - this unit's existing entry.
+  NSRectClip(r)
+
+  FRAME_CURSOR_COLOR(f)?.set()
+
+  switch cursor_type {
+  case DEFAULT_CURSOR(), NO_CURSOR():
+    break
+  case FILLED_BOX_CURSOR():
+    /* The call to draw_phys_cursor_glyph can end up undoing the
+       ns_focus, so unfocus here and regain focus later.  */
+    ctx?.restoreGraphicsState()
+    ns_unfocus(f)
+    draw_phys_cursor_glyph(w, glyph_row, DRAW_CURSOR())
+    ns_focus(f, &r, 1)
+  case HOLLOW_BOX_CURSOR():
+    /* This works like it does in PostScript, not X Windows.  */
+    NSBezierPath.stroke(NSInsetRect(r, 0.5, 0.5))
+    ctx?.restoreGraphicsState()
+  case HBAR_CURSOR(), BAR_CURSOR():
+    NSRectFill(r)
+    ctx?.restoreGraphicsState()
+  default:
+    // C's switch covers every `enum text_cursor_kinds`; Swift needs the arm for an `Int32` value.
+    break
+  }
+
+  ns_unfocus(f)
+}
+
+/// C 3429-3449: `static void ns_draw_vertical_window_border (struct window *w, int x, int y0,
+/// int y1)` - "External (RIF): Draw a vertical line."
+fileprivate func ns_draw_vertical_window_border(_ w: UnsafeMutableRawPointer?, _ x: Int32,
+                                                _ y0: Int32, _ y1: Int32) {
+  let f = XFRAME(WINDOW_FRAME(w))
+  var r = NSMakeRect(CGFloat(x), CGFloat(y0), 1, CGFloat(y1 - y0))
+
+  // C 3439: `NSTRACE ("ns_draw_vertical_window_border");` - empty, as above.
+
+  let face = FACE_FROM_ID_OR_NULL(f, VERTICAL_BORDER_FACE_ID())
+
+  ns_focus(f, &r, 1)
+  if face != nil {
+    NSColor.colorWithUnsignedLong(face_foreground(face)).set()
+  }
+
+  NSRectFill(r)
+  ns_unfocus(f)
+}
+
+/// C 3452-3508: `static void ns_draw_window_divider (struct window *w, int x0, int x1, int y0,
+/// int y1)` - "External (RIF): Draw a window divider."
+fileprivate func ns_draw_window_divider(_ w: UnsafeMutableRawPointer?, _ x0: Int32, _ x1: Int32,
+                                        _ y0: Int32, _ y1: Int32) {
+  let f = XFRAME(WINDOW_FRAME(w))
+  let face = FACE_FROM_ID_OR_NULL(f, WINDOW_DIVIDER_FACE_ID())
+  let face_first = FACE_FROM_ID_OR_NULL(f, WINDOW_DIVIDER_FIRST_PIXEL_FACE_ID())
+  let face_last = FACE_FROM_ID_OR_NULL(f, WINDOW_DIVIDER_LAST_PIXEL_FACE_ID())
+  let color = face != nil ? face_foreground(face) : FRAME_FOREGROUND_PIXEL(f)
+  let color_first = (face_first != nil
+                     ? face_foreground(face_first)
+                     : FRAME_FOREGROUND_PIXEL(f))
+  let color_last = (face_last != nil
+                    ? face_foreground(face_last)
+                    : FRAME_FOREGROUND_PIXEL(f))
+  var divider = NSMakeRect(CGFloat(x0), CGFloat(y0), CGFloat(x1 - x0), CGFloat(y1 - y0))
+
+  // C 3473: `NSTRACE ("ns_draw_window_divider");` - empty, as above.
+
+  ns_focus(f, &divider, 1)
+
+  if (y1 - y0 > x1 - x0) && (x1 - x0 >= 3) {
+    /* A vertical divider, at least three pixels wide: Draw first and
+       last pixels differently.  */
+    NSColor.colorWithUnsignedLong(color_first).set()
+    NSRectFill(NSMakeRect(CGFloat(x0), CGFloat(y0), 1, CGFloat(y1 - y0)))
+    NSColor.colorWithUnsignedLong(color).set()
+    NSRectFill(NSMakeRect(CGFloat(x0 + 1), CGFloat(y0), CGFloat(x1 - x0 - 2),
+                          CGFloat(y1 - y0)))
+    NSColor.colorWithUnsignedLong(color_last).set()
+    NSRectFill(NSMakeRect(CGFloat(x1 - 1), CGFloat(y0), 1, CGFloat(y1 - y0)))
+  } else if (x1 - x0 > y1 - y0) && (y1 - y0 >= 3) {
+    /* A horizontal divider, at least three pixels high: Draw first and
+       last pixels differently.  */
+    NSColor.colorWithUnsignedLong(color_first).set()
+    NSRectFill(NSMakeRect(CGFloat(x0), CGFloat(y0), CGFloat(x1 - x0), 1))
+    NSColor.colorWithUnsignedLong(color).set()
+    NSRectFill(NSMakeRect(CGFloat(x0), CGFloat(y0 + 1), CGFloat(x1 - x0),
+                          CGFloat(y1 - y0 - 2)))
+    NSColor.colorWithUnsignedLong(color_last).set()
+    NSRectFill(NSMakeRect(CGFloat(x0), CGFloat(y1 - 1), CGFloat(x1 - x0), 1))
+  } else {
+    /* In any other case do not draw the first and last pixels
+       differently.  */
+    NSColor.colorWithUnsignedLong(color).set()
+    NSRectFill(divider)
+  }
+
+  ns_unfocus(f)
+}
+
+/// C 3511-3515: `static void ns_show_hourglass (struct frame *f)` - the RIF
+/// `show_hourglass_hook`.  C's whole body is the TODO comment below, so the port keeps the
+/// comment and nothing else; the hook's `f` is unused in C too (the RIF table takes the
+/// signature, not the argument).
+fileprivate func ns_show_hourglass(_ f: UnsafeMutableRawPointer?) {
+  /* TODO: add NSProgressIndicator to all frames.  */
+}
+
+/// C 3517-3521: `static void ns_hide_hourglass (struct frame *f)` - the RIF
+/// `hide_hourglass_hook`, the mirror of the box above; C's body is its TODO comment alone.
+fileprivate func ns_hide_hourglass(_ f: UnsafeMutableRawPointer?) {
+  /* TODO: remove NSProgressIndicator from all frames.  */
+}
+
+/* ==========================================================================
+
+    Glyph drawing operations
+
+   ========================================================================== */
+
+/// C: `int get_glyph_string_clip_rects (struct glyph_string *, NativeRectangle *, int)`
+/// (src/dispextern.h 3661) - defined at src/xdisp.c 2495, **inside that file's
+/// `#ifdef HAVE_WINDOW_SYSTEM` block (opened at 2488)**, so the frozen configuration has no
+/// symbol for it (measured this round): the row carries that gate - status 3.262's shape, the
+/// `get_phys_cursor_geometry` reading of round 16.
+@_silgen_name("get_glyph_string_clip_rects")
+func get_glyph_string_clip_rects(_ s: UnsafeMutableRawPointer?,
+                                 _ rects: UnsafeMutablePointer<NSRect>?, _ n: Int32) -> Int32
+
+/// C 3529-3539: `static int ns_get_glyph_string_clip_rect (struct glyph_string *s,
+/// NativeRectangle *nr)` - "Wrapper utility to account for internal border width on full-width
+/// lines, and allow top full-width rows to hit the frame top.  nr should be pointer to two
+/// successive NSRects.  Number of rects actually used is returned."  `NativeRectangle` is
+/// `NSRect` in this build (src/nsgui.h 80, not the `HAVE_X_WINDOWS` arm's `XRectangle`), so
+/// `nr` is a pointer to two successive `NSRect`s - the shape C's comment names - and both
+/// arguments pass straight through to the core's two-rect call.
+fileprivate func ns_get_glyph_string_clip_rect(_ s: UnsafeMutableRawPointer?,
+                                               _ nr: UnsafeMutablePointer<NSRect>?) -> Int32 {
+  let n = get_glyph_string_clip_rects(s, nr, 2)
+  return n
+}
+
+/// C: `struct glyph_string`'s members (src/dispextern.h 1336-1508) this slice reads - `ybase`
+/// (C 3567/3604/3625), `x` (C 3603/3605/3625), `width` (C 3634), `y`/`height` (C 3699), `f`
+/// (C 3665), `face` (C 3672), `prev` (C 3684), `w` (C 3703), `hl` (C 3664) and `for_overlaps`
+/// (C 3661) - plus the two it **writes** (C 3749-3750, `_set_`).  The record belongs to the core
+/// (`src/dispextern.rs`), so each access is a member entry under `<record>_<member>`,
+/// the family round 14 opened; `for_overlaps` is an `unsigned : 3` bitfield, so its entry keeps
+/// C's raw value rather than a `Bool`.
+@_silgen_name("glyph_string_ybase")
+func glyph_string_ybase(_ s: UnsafeMutableRawPointer?) -> Int32
+@_silgen_name("glyph_string_x") func glyph_string_x(_ s: UnsafeMutableRawPointer?) -> Int32
+@_silgen_name("glyph_string_y") func glyph_string_y(_ s: UnsafeMutableRawPointer?) -> Int32
+@_silgen_name("glyph_string_width")
+func glyph_string_width(_ s: UnsafeMutableRawPointer?) -> Int32
+@_silgen_name("glyph_string_height")
+func glyph_string_height(_ s: UnsafeMutableRawPointer?) -> Int32
+@_silgen_name("glyph_string_f")
+func glyph_string_f(_ s: UnsafeMutableRawPointer?) -> UnsafeMutableRawPointer?
+@_silgen_name("glyph_string_face")
+func glyph_string_face(_ s: UnsafeMutableRawPointer?) -> UnsafeMutableRawPointer?
+@_silgen_name("glyph_string_prev")
+func glyph_string_prev(_ s: UnsafeMutableRawPointer?) -> UnsafeMutableRawPointer?
+@_silgen_name("glyph_string_w")
+func glyph_string_w(_ s: UnsafeMutableRawPointer?) -> UnsafeMutableRawPointer?
+@_silgen_name("glyph_string_hl") func glyph_string_hl(_ s: UnsafeMutableRawPointer?) -> Int32
+@_silgen_name("glyph_string_for_overlaps")
+func glyph_string_for_overlaps(_ s: UnsafeMutableRawPointer?) -> Int32
+@_silgen_name("glyph_string_underline_thickness")
+func glyph_string_underline_thickness(_ s: UnsafeMutableRawPointer?) -> Int32
+@_silgen_name("glyph_string_set_underline_thickness")
+func glyph_string_set_underline_thickness(_ s: UnsafeMutableRawPointer?, _ v: Int32)
+@_silgen_name("glyph_string_underline_position")
+func glyph_string_underline_position(_ s: UnsafeMutableRawPointer?) -> Int32
+@_silgen_name("glyph_string_set_underline_position")
+func glyph_string_set_underline_position(_ s: UnsafeMutableRawPointer?, _ v: Int32)
+
+/// C 3553-3591: `static void ns_draw_underwave (struct glyph_string *s, EmacsCGFloat width,
+/// EmacsCGFloat x)` - "Draw a wavy line under glyph string s.  The wave fills wave_height pixels
+/// from y."  C's `int` locals stay `Int32`, `NSPoint a, b` is two `NSPoint`s and the loop's
+/// `odd = !odd` is C's `int` toggle spelled as a conditional; `[NSBezierPath
+/// strokeLineFromPoint:toPoint:]` is Swift's `NSBezierPath.strokeLine(from:to:)` (AppKit's own
+/// rename), and `[[NSGraphicsContext currentContext] saveGraphicsState]` is
+/// `NSGraphicsContext.current?.saveGraphicsState()` (the optional receiver C relies on).
+fileprivate func ns_draw_underwave(_ s: UnsafeMutableRawPointer?, _ width: CGFloat,
+                                   _ x: CGFloat) {
+  let wave_height: Int32 = 3, wave_length: Int32 = 2
+  var y: Int32 = 0, dx: Int32 = 0, dy: Int32 = 0, odd: Int32 = 0, xmax: Int32 = 0
+  var a = NSPoint(), b = NSPoint()
+  var waveClip = NSRect.zero
+
+  dx = wave_length
+  dy = wave_height - 1
+  y = glyph_string_ybase(s) - wave_height + 3
+  xmax = Int32(x + width)
+
+  /* Find and set clipping rectangle */
+  waveClip = NSMakeRect(x, CGFloat(y), width, CGFloat(wave_height))
+  NSGraphicsContext.current?.saveGraphicsState()
+  NSRectClip(waveClip)
+
+  /* Draw the waves */
+  a.x = x - CGFloat(Int32(x) % dx) + 0.5
+  b.x = a.x + CGFloat(dx)
+  odd = Int32(a.x / CGFloat(dx)) % 2
+  a.y = CGFloat(y) + 0.5
+  b.y = a.y
+
+  if odd != 0 {
+    a.y += CGFloat(dy)
+  } else {
+    b.y += CGFloat(dy)
+  }
+
+  while a.x <= CGFloat(xmax) {
+    NSBezierPath.strokeLine(from: a, to: b)
+    a.x = b.x
+    a.y = b.y
+    b.x += CGFloat(dx)
+    b.y = CGFloat(y) + 0.5 + CGFloat(odd * dy)
+    odd = odd == 0 ? 1 : 0
+  }
+
+  /* Restore previous clipping rectangle(s) */
+  NSGraphicsContext.current?.restoreGraphicsState()
+}
+
+/// C 3598-3613: `static void ns_draw_dash (struct glyph_string *s, int width, int segment, int
+/// offset, int thickness)` - "Draw a dashed underline of thickness THICKNESS and width WIDTH
+/// onto the focused frame at a vertical offset of OFFSET from the position of the glyph string
+/// S, with each segment SEGMENT pixels in length."  C's `alloc`/`init`/`release`
+/// `NSBezierPath` is Swift's `NSBezierPath()` (ARC owns the local, so the `[path release]` is
+/// dropped), the `CGFloat pattern[2]` is a local array, and `y_center` keeps C's
+/// `s->ybase + offset + thickness / 2.0` grouping (the last term is the division C writes).
+fileprivate func ns_draw_dash(_ s: UnsafeMutableRawPointer?, _ width: Int32, _ segment: Int32,
+                              _ offset: Int32, _ thickness: Int32) {
+  let y_center = CGFloat(glyph_string_ybase(s) + offset) + CGFloat(thickness) / 2.0
+  let path = NSBezierPath()
+  let pattern: [CGFloat] = [CGFloat(segment), CGFloat(segment)]
+
+  path.setLineDash(pattern, count: 2, phase: CGFloat(glyph_string_x(s)))
+  path.lineWidth = CGFloat(thickness)
+  path.move(to: NSMakePoint(CGFloat(glyph_string_x(s)), y_center))
+  path.line(to: NSMakePoint(CGFloat(glyph_string_x(s) + width), y_center))
+  path.stroke()
+}
+
+/// C: `struct glyph`'s `short ascent, descent;` (src/dispextern.h 506, the two reads at
+/// C 3771-3772) and the `struct face`/`struct font` members the underline/overline/
+/// strike-through block reads: `underline`/`underline_defaulted_p`/`underline_color`/
+/// `underline_at_descent_line_p`/`underline_pixels_above_descent_line` (src/dispextern.h
+/// 1848-1887), the `overline_*` and `strike_through_*` trios (1823-1883) and `struct font`'s
+/// `descent`/`underline_thickness`/`underline_position` (src/font.h 319-332).  Same
+/// member-entry shape as the `glyph_string` family above.
+@_silgen_name("glyph_ascent") func glyph_ascent(_ g: UnsafeMutableRawPointer?) -> Int16
+@_silgen_name("glyph_descent") func glyph_descent(_ g: UnsafeMutableRawPointer?) -> Int16
+@_silgen_name("face_underline") func face_underline(_ f: UnsafeMutableRawPointer?) -> Int32
+@_silgen_name("face_underline_defaulted_p")
+func face_underline_defaulted_p(_ f: UnsafeMutableRawPointer?) -> Bool
+@_silgen_name("face_underline_color")
+func face_underline_color(_ f: UnsafeMutableRawPointer?) -> UInt
+@_silgen_name("face_underline_at_descent_line_p")
+func face_underline_at_descent_line_p(_ f: UnsafeMutableRawPointer?) -> Bool
+@_silgen_name("face_underline_pixels_above_descent_line")
+func face_underline_pixels_above_descent_line(_ f: UnsafeMutableRawPointer?) -> Int32
+@_silgen_name("face_overline_p") func face_overline_p(_ f: UnsafeMutableRawPointer?) -> Bool
+@_silgen_name("face_overline_color_defaulted_p")
+func face_overline_color_defaulted_p(_ f: UnsafeMutableRawPointer?) -> Bool
+@_silgen_name("face_overline_color")
+func face_overline_color(_ f: UnsafeMutableRawPointer?) -> UInt
+@_silgen_name("face_strike_through_p")
+func face_strike_through_p(_ f: UnsafeMutableRawPointer?) -> Bool
+@_silgen_name("face_strike_through_color_defaulted_p")
+func face_strike_through_color_defaulted_p(_ f: UnsafeMutableRawPointer?) -> Bool
+@_silgen_name("face_strike_through_color")
+func face_strike_through_color(_ f: UnsafeMutableRawPointer?) -> UInt
+@_silgen_name("font_underline_thickness")
+func font_underline_thickness(_ font: UnsafeMutableRawPointer?) -> Int32
+@_silgen_name("font_underline_position")
+func font_underline_position(_ font: UnsafeMutableRawPointer?) -> Int32
+@_silgen_name("font_descent") func font_descent(_ font: UnsafeMutableRawPointer?) -> Int32
+/// C: `enum face_underline_type` (src/dispextern.h 1767-1780) - the six enumerators the fill
+/// switch and the block's comparisons name.  Class A of the 3.255 ruling, like round 16's
+/// `text_cursor_kinds` batch: an enumerator's number is the core's fact.
+@_silgen_name("FACE_NO_UNDERLINE") func FACE_NO_UNDERLINE() -> Int32
+@_silgen_name("FACE_UNDERLINE_SINGLE") func FACE_UNDERLINE_SINGLE() -> Int32
+@_silgen_name("FACE_UNDERLINE_DOUBLE_LINE") func FACE_UNDERLINE_DOUBLE_LINE() -> Int32
+@_silgen_name("FACE_UNDERLINE_WAVE") func FACE_UNDERLINE_WAVE() -> Int32
+@_silgen_name("FACE_UNDERLINE_DOTS") func FACE_UNDERLINE_DOTS() -> Int32
+@_silgen_name("FACE_UNDERLINE_DASHES") func FACE_UNDERLINE_DASHES() -> Int32
+
+/// C 3620-3652: `static void ns_fill_underline (struct glyph_string *s, enum face_underline_type
+/// style, int position, int thickness)` - "Draw an underline of STYLE onto the focused frame at
+/// an offset of POSITION from the baseline of the glyph string S, S->WIDTH in length, and
+/// THICKNESS in height."  C's `switch` lists `FACE_NO_UNDERLINE` and `FACE_UNDERLINE_WAVE` with
+/// the `default`'s `emacs_abort ()`; Swift has no way to name `default` beside two cases, so
+/// the port keeps the two named cases falling through into the `default` - the same statement,
+/// and the two enumerators stay entries.
+fileprivate func ns_fill_underline(_ s: UnsafeMutableRawPointer?, _ style: Int32,
+                                   _ position: Int32, _ thickness: Int32) {
+  var segment: Int32 = 0
+  var rect = NSRect.zero
+
+  segment = thickness * 3
+
+  switch style {
+  /* FACE_UNDERLINE_DOUBLE_LINE is treated identically to SINGLE, as
+     the second line will be filled by another invocation of this
+     function.  */
+  case FACE_UNDERLINE_SINGLE(), FACE_UNDERLINE_DOUBLE_LINE():
+    rect = NSMakeRect(CGFloat(glyph_string_x(s)), CGFloat(glyph_string_ybase(s) + position),
+                      CGFloat(glyph_string_width(s)), CGFloat(thickness))
+    NSRectFill(rect)
+
+  case FACE_UNDERLINE_DOTS():
+    segment = thickness
+    fallthrough
+
+  case FACE_UNDERLINE_DASHES():
+    ns_draw_dash(s, glyph_string_width(s), segment, position, thickness)
+
+  case FACE_NO_UNDERLINE(), FACE_UNDERLINE_WAVE():
+    fallthrough
+
+  default:
+    emacs_abort()
+  }
+}
+
+/// C: `struct font *font_for_underline_metrics (struct glyph_string *s)` (src/dispextern.h
+/// 3638) - defined at src/xdisp.c 32256, **inside that file's `#ifdef HAVE_WINDOW_SYSTEM`
+/// block (opened at 30717)**, so the frozen build has no symbol for it (measured): the row
+/// carries that gate, the `get_glyph_string_clip_rects` shape above.
+@_silgen_name("font_for_underline_metrics")
+func font_for_underline_metrics(_ s: UnsafeMutableRawPointer?) -> UnsafeMutableRawPointer?
+
+/// C: `#define WINDOW_BUFFER_LOCAL_VALUE(V, W) (BUFFERP ((W)->contents) ?
+/// buffer_local_value(V, (W)->contents) : Qnil)` (src/window.h 633-636).  Its body needs the
+/// `BUFFERP` predicate and the `buffer_local_value` function - both core facts - so it keeps
+/// its own name as a class-A entry (the 3.255 A exception, the `WINDOW_FRAME` shape) and the
+/// shim exports it; the entry takes the window pointer C's `W` is.
+@_silgen_name("WINDOW_BUFFER_LOCAL_VALUE")
+func WINDOW_BUFFER_LOCAL_VALUE(_ v: Lisp_Object, _ w: UnsafeMutableRawPointer?) -> Lisp_Object
+
+/// C: `INLINE unsigned long XFIXNAT (Lisp_Object)` (src/lisp.h's fixnum accessor family) -
+/// header-only, so class A; `FIXNUMP` was already declared above.
+@_silgen_name("XFIXNAT") func XFIXNAT(_ x: Lisp_Object) -> UInt
+
+/// C: the four `Lisp_Object` symbols the C 3702-3718 block reads.  `Qunbound` and
+/// `Qunderline_minimum_offset` are **provided** - they are `S` data symbols in
+/// `build/emacs-ref/src/emacs.o` (measured this round) - while
+/// `Qx_underline_at_descent_line` and `Qx_use_underline_position_properties` are this file's
+/// own `DEFSYM`s (C 11748/11770) with no reference-side symbol, i.e. **open** in the shim's
+/// sense, the `QCmouse` reading.
+@_silgen_name("Qunbound") func Qunbound() -> Lisp_Object
+@_silgen_name("Qunderline_minimum_offset") func Qunderline_minimum_offset() -> Lisp_Object
+@_silgen_name("Qx_underline_at_descent_line") func Qx_underline_at_descent_line() -> Lisp_Object
+@_silgen_name("Qx_use_underline_position_properties")
+func Qx_use_underline_position_properties() -> Lisp_Object
+
+/// C 3655-3807: `static void ns_draw_text_decoration (struct glyph_string *s, struct face *face,
+/// NSColor *defaultCol, CGFloat width, CGFloat x)` - "Draw underline, overline, and
+/// strike-through on glyph string s."  Four spellings are re-shaped and here recorded:
+/// the assignment-free `val`-family is C's own, but C's `unsigned long` locals (`thickness`,
+/// `position`, `descent`, `minimum_offset`, `h`, `dy`) stay `UInt` and every narrowing back to
+/// the `int` parameters is `truncatingIfNeeded:` (C's implicit conversion, the lane's rule);
+/// `lround (font->descent / 2)` keeps C's **integer** division before the `lround`; the
+/// strike-through's `lrint ((glyph_height - h) / 2)` likewise keeps the unsigned integer
+/// division `h` forces; and `[defaultCol set]` reads through the optional receiver C relies on
+/// (`defaultCol?.set()`).
+fileprivate func ns_draw_text_decoration(_ s: UnsafeMutableRawPointer?,
+                                         _ face: UnsafeMutableRawPointer?,
+                                         _ defaultCol: NSColor?, _ width: CGFloat, _ x: CGFloat) {
+  if glyph_string_for_overlaps(s) != 0 {
+    return
+  }
+
+  if glyph_string_hl(s) == DRAW_CURSOR() {
+    FRAME_BACKGROUND_COLOR(glyph_string_f(s))?.set()
+  } else {
+    defaultCol?.set()
+  }
+
+  /* Do underline.  */
+  if face_underline(face) != 0 {
+    if face_underline(glyph_string_face(s)) == FACE_UNDERLINE_WAVE() {
+      if !face_underline_defaulted_p(face) {
+        NSColor.colorWithUnsignedLong(face_underline_color(face)).set()
+      }
+
+      ns_draw_underwave(s, width, x)
+    } else if face_underline(face) >= FACE_UNDERLINE_SINGLE() {
+      var thickness: UInt = 0
+      var position: UInt = 0
+
+      /* If the prev was underlined, match its appearance.  */
+      if glyph_string_prev(s) != nil
+           && (face_underline(glyph_string_face(glyph_string_prev(s))) != FACE_UNDERLINE_WAVE()
+               && face_underline(glyph_string_face(glyph_string_prev(s)))
+                    >= FACE_UNDERLINE_SINGLE())
+           && glyph_string_underline_thickness(glyph_string_prev(s)) > 0
+           && (face_underline_at_descent_line_p(glyph_string_face(glyph_string_prev(s)))
+               == face_underline_at_descent_line_p(glyph_string_face(s)))
+           && (face_underline_pixels_above_descent_line(glyph_string_face(glyph_string_prev(s)))
+               == face_underline_pixels_above_descent_line(glyph_string_face(s))) {
+        thickness = UInt(truncatingIfNeeded:
+                           glyph_string_underline_thickness(glyph_string_prev(s)))
+        position = UInt(truncatingIfNeeded:
+                          glyph_string_underline_position(glyph_string_prev(s)))
+      } else {
+        let font = font_for_underline_metrics(s)
+        let descent = UInt(truncatingIfNeeded:
+                             glyph_string_y(s) + glyph_string_height(s) - glyph_string_ybase(s))
+        var minimum_offset: UInt = 0
+        var underline_at_descent_line = false
+        var use_underline_position_properties = false
+        var val = WINDOW_BUFFER_LOCAL_VALUE(Qunderline_minimum_offset(), glyph_string_w(s))
+
+        if FIXNUMP(val) {
+          minimum_offset = XFIXNAT(val)
+        } else {
+          minimum_offset = 1
+        }
+
+        val = WINDOW_BUFFER_LOCAL_VALUE(Qx_underline_at_descent_line(), glyph_string_w(s))
+        underline_at_descent_line = (!(NILP(val) || EQ(val, Qunbound()))
+                                     || face_underline_at_descent_line_p(
+                                          glyph_string_face(s)))
+
+        val = WINDOW_BUFFER_LOCAL_VALUE(Qx_use_underline_position_properties(),
+                                        glyph_string_w(s))
+        use_underline_position_properties = !(NILP(val) || EQ(val, Qunbound()))
+
+        /* Use underline thickness of font, defaulting to 1.  */
+        thickness = (font != nil && font_underline_thickness(font) > 0)
+          ? UInt(truncatingIfNeeded: font_underline_thickness(font)) : 1
+
+        /* Determine the offset of underlining from the baseline.  */
+        if underline_at_descent_line {
+          position = (descent - thickness
+                      - UInt(truncatingIfNeeded:
+                               face_underline_pixels_above_descent_line(glyph_string_face(s))))
+        } else if use_underline_position_properties
+                    && font != nil && font_underline_position(font) >= 0 {
+          position = UInt(truncatingIfNeeded: font_underline_position(font))
+        } else if font != nil {
+          position = UInt(truncatingIfNeeded: lround(Double(font_descent(font) / 2)))
+        } else {
+          position = minimum_offset
+        }
+
+        if face_underline_pixels_above_descent_line(glyph_string_face(s)) == 0 {
+          position = max(position, minimum_offset)
+        }
+
+        /* Ensure underlining is not cropped.  */
+        if descent <= position {
+          position = descent - 1
+          thickness = 1
+        } else if descent < position + thickness {
+          thickness = 1
+        }
+      }
+
+      glyph_string_set_underline_thickness(s, Int32(truncatingIfNeeded: thickness))
+      glyph_string_set_underline_position(s, Int32(truncatingIfNeeded: position))
+
+      if !face_underline_defaulted_p(face) {
+        NSColor.colorWithUnsignedLong(face_underline_color(face)).set()
+      }
+
+      ns_fill_underline(s, face_underline(glyph_string_face(s)),
+                        Int32(truncatingIfNeeded: position),
+                        Int32(truncatingIfNeeded: thickness))
+
+      /* Place a second underline above the first if this was
+         requested in the face specification.  */
+
+      if face_underline(glyph_string_face(s)) == FACE_UNDERLINE_DOUBLE_LINE() {
+        /* Compute the position of the second underline.  */
+        position = position - thickness - 1
+        ns_fill_underline(s, face_underline(glyph_string_face(s)),
+                          Int32(truncatingIfNeeded: position),
+                          Int32(truncatingIfNeeded: thickness))
+      }
+    }
+  }
+  /* Do overline.  We follow other terms in using a thickness of 1
+     and ignoring overline_margin.  */
+  if face_overline_p(face) {
+    var r = NSRect.zero
+    r = NSMakeRect(x, CGFloat(glyph_string_y(s)), width, 1)
+
+    if !face_overline_color_defaulted_p(face) {
+      NSColor.colorWithUnsignedLong(face_overline_color(face)).set()
+    }
+
+    NSRectFill(r)
+  }
+
+  /* Do strike-through.  We follow other terms for thickness and
+     vertical position.  */
+  if face_strike_through_p(face) {
+    var r = NSRect.zero
+    /* Y-coordinate and height of the glyph string's first glyph.
+       We cannot use s->y and s->height because those could be
+       larger if there are taller display elements (e.g., characters
+       displayed with a larger font) in the same glyph row.  */
+    let glyph_y = glyph_string_ybase(s) - Int32(glyph_ascent(glyph_string_first_glyph(s)))
+    let glyph_height = (Int32(glyph_ascent(glyph_string_first_glyph(s)))
+                        + Int32(glyph_descent(glyph_string_first_glyph(s))))
+    /* Strike-through width and offset from the glyph string's
+       top edge.  */
+    let h: UInt = 1
+    var dy: UInt = 0
+
+    dy = UInt(truncatingIfNeeded:
+                lrint(Double((UInt(truncatingIfNeeded: glyph_height) - h) / 2)))
+    r = NSMakeRect(x, CGFloat(glyph_y) + CGFloat(dy), width, 1)
+
+    if !face_strike_through_color_defaulted_p(face) {
+      NSColor.colorWithUnsignedLong(face_strike_through_color(face)).set()
+    }
+
+    NSRectFill(r)
+  }
+}
+
+// ==========================================================================
+// C 3809-4177: the box/relief sub-block and the `dumpglyphs` background helper.
+// ==========================================================================
+
+/// C 3809-3839: `static void ns_draw_box (NSRect r, CGFloat hthickness, CGFloat vthickness,
+/// NSColor *col, char left_p, char right_p)` - "Draw an unfilled rect inside r, optionally leaving
+/// left and/or right open.  Note we can't just use an NSDrawRect command, because of the
+/// possibility of some sides not being drawn, and because the rect will be filled."  C's two
+/// `char` flags are `Bool` here and the reason is in the reference itself: the identical flag set
+/// is spelled `bool raised_p, top_p, bot_p, left_p, right_p` in the sibling `ns_draw_image_relief`
+/// (C 4183), and both `char`s are only ever tested with C truthiness or copied.  `NSRect s = r` is
+/// C's by-value copy, which `var s = r` is; `[col set]` reads through the optional receiver C
+/// relies on (`col?.set ()`), as `ns_draw_text_decoration`'s `defaultCol` does.
+fileprivate func ns_draw_box(_ r: NSRect, _ hthickness: CGFloat, _ vthickness: CGFloat,
+                             _ col: NSColor?, _ left_p: Bool, _ right_p: Bool) {
+  var s = r
+  col?.set()
+
+  /* top, bottom */
+  s.size.height = hthickness
+  NSRectFill(s)
+  s.origin.y += r.size.height - hthickness
+  NSRectFill(s)
+
+  s.size.height = r.size.height
+  s.origin.y = r.origin.y
+
+  /* left, right (optional) */
+  s.size.width = vthickness
+  if left_p {
+    NSRectFill(s)
+  }
+  if right_p {
+    s.origin.x += r.size.width - vthickness
+    NSRectFill(s)
+  }
+}
+
+/// C: `struct face`'s box members - `enum face_box_type box` (a `: 2` bitfield, src/dispextern.h
+/// 1858, so its entry keeps C's raw value, the `for_overlaps` reading), `unsigned long box_color`
+/// (1826), `int box_vertical_line_width` / `int box_horizontal_line_width` (1844-1845),
+/// `bool_bf use_box_color_for_shadows_p : 1` (1865) and `ptrdiff_t stipple` (1810, the array index
+/// `ns_maybe_dumpglyphs_background` subtracts one from) - plus the two `enum face_box_type`
+/// enumerators C 4078-4087 tests (`FACE_SIMPLE_BOX`, `FACE_RAISED_BOX`, src/dispextern.h 1757/1761).
+/// The record belongs to the core (`src/dispextern.rs`), so each read is a member entry
+/// under `face_<member>`, the family round 17's eleven already use.
+@_silgen_name("face_box") func face_box(_ face: UnsafeMutableRawPointer?) -> Int32
+@_silgen_name("face_box_color") func face_box_color(_ face: UnsafeMutableRawPointer?) -> UInt
+@_silgen_name("face_box_vertical_line_width")
+func face_box_vertical_line_width(_ face: UnsafeMutableRawPointer?) -> Int32
+@_silgen_name("face_box_horizontal_line_width")
+func face_box_horizontal_line_width(_ face: UnsafeMutableRawPointer?) -> Int32
+@_silgen_name("face_use_box_color_for_shadows_p")
+func face_use_box_color_for_shadows_p(_ face: UnsafeMutableRawPointer?) -> Bool
+@_silgen_name("face_stipple") func face_stipple(_ face: UnsafeMutableRawPointer?) -> Int
+@_silgen_name("FACE_SIMPLE_BOX") func FACE_SIMPLE_BOX() -> Int32
+@_silgen_name("FACE_RAISED_BOX") func FACE_RAISED_BOX() -> Int32
+
+/// C: `struct ns_output`'s three relief colors - src/nsterm.h 943-945's `relief_background_color`,
+/// `light_relief_color` and `dark_relief_color`; the frozen arm's pointer spellings are 953-955 -
+/// read and written by `ns_setup_relief_colors` (C 3861-3867) and read by
+/// `ns_draw_relief` (C 3912, 3934, 3996).  The family takes the *frame* C's `FRAME_OUTPUT_DATA`
+/// starts from (`ns_output_cursor_color`'s shape), and the writes' C text is `x = [y retain];` -
+/// the reading `ns_output_set_cursor_color`'s own row records (`FRAME_CURSOR_COLOR (f) =
+/// [col retain];`, nsfns.m 358). Core setters retain the replacement and release
+/// the previous owned pointer; getters return borrowed objects to Swift ARC.
+@_silgen_name("ns_output_relief_background_color")
+func ns_output_relief_background_color_borrowed_raw(_ f: UnsafeMutableRawPointer?) -> UnsafeMutableRawPointer?
+func ns_output_relief_background_color(_ f: UnsafeMutableRawPointer?) -> NSColor? {
+  guard let pointer = ns_output_relief_background_color_borrowed_raw(f) else { return nil }
+  return Unmanaged<NSColor>.fromOpaque(pointer).takeUnretainedValue()
+}
+@_silgen_name("ns_output_set_relief_background_color")
+func ns_output_set_relief_background_color(_ f: UnsafeMutableRawPointer?, _ v: NSColor?)
+@_silgen_name("ns_output_light_relief_color")
+func ns_output_light_relief_color_borrowed_raw(_ f: UnsafeMutableRawPointer?) -> UnsafeMutableRawPointer?
+func ns_output_light_relief_color(_ f: UnsafeMutableRawPointer?) -> NSColor? {
+  guard let pointer = ns_output_light_relief_color_borrowed_raw(f) else { return nil }
+  return Unmanaged<NSColor>.fromOpaque(pointer).takeUnretainedValue()
+}
+@_silgen_name("ns_output_set_light_relief_color")
+func ns_output_set_light_relief_color(_ f: UnsafeMutableRawPointer?, _ v: NSColor?)
+@_silgen_name("ns_output_dark_relief_color")
+func ns_output_dark_relief_color_borrowed_raw(_ f: UnsafeMutableRawPointer?) -> UnsafeMutableRawPointer?
+func ns_output_dark_relief_color(_ f: UnsafeMutableRawPointer?) -> NSColor? {
+  guard let pointer = ns_output_dark_relief_color_borrowed_raw(f) else { return nil }
+  return Unmanaged<NSColor>.fromOpaque(pointer).takeUnretainedValue()
+}
+@_silgen_name("ns_output_set_dark_relief_color")
+func ns_output_set_dark_relief_color(_ f: UnsafeMutableRawPointer?, _ v: NSColor?)
+
+/// C 3841-3869: `static void ns_setup_relief_colors (struct glyph_string *s)` - "Set up colors for
+/// the relief lines around glyph string S."  Four spellings are re-shaped and here recorded: C's
+/// `[NSColor grayColor]` is Swift's `NSColor.gray` and `highlightWithLevel:`/`shadowWithLevel:` are
+/// `highlight (withLevel :)`/`shadow (withLevel :)` (AppKit's own renames - the two selectors have
+/// no `AppKit.apinotes` entry, so the importer's default rule applies); the `color == nil` test and
+/// the `color != di->relief_background_color` comparison are Swift's (`color == nil`, `!==` on the
+/// two optionals - C compares the pointers); and the three `[old release]; field = [new retain];`
+/// pairs keep both halves (see the `ns_output_*_relief_color` block above), with
+/// `[color highlightWithLevel: 0.4]`'s nil-receiver reading as `color.flatMap { … }` - C's message
+/// to a nil receiver yields nil.  `FRAME_OUTPUT_DATA (s->f)`'s local `di` is not carried: the
+/// member entries take the frame, the reading round 11's mouse section uses.
+fileprivate func ns_setup_relief_colors(_ s: UnsafeMutableRawPointer?) {
+  var color: NSColor?
+
+  if face_use_box_color_for_shadows_p(glyph_string_face(s)) {
+    color = NSColor.colorWithUnsignedLong(face_box_color(glyph_string_face(s)))
+  } else {
+    color = NSColor.colorWithUnsignedLong(face_background(glyph_string_face(s)))
+  }
+
+  if glyph_string_hl(s) == DRAW_CURSOR() {
+    color = FRAME_CURSOR_COLOR(glyph_string_f(s))
+  }
+
+  if color == nil {
+    color = NSColor.gray
+  }
+
+  if color !== ns_output_relief_background_color(glyph_string_f(s)) {
+    ns_output_set_relief_background_color(glyph_string_f(s), color)
+
+    ns_output_set_light_relief_color(glyph_string_f(s),
+                                     color.flatMap { $0.highlight(withLevel: 0.4) })
+
+    ns_output_set_dark_relief_color(glyph_string_f(s),
+                                    color.flatMap { $0.shadow(withLevel: 0.4) })
+  }
+}
+
+/// C 3871-4023: `static void ns_draw_relief (NSRect outer, int hthickness, int vthickness, char
+/// raised_p, char top_p, char bottom_p, char left_p, char right_p, struct glyph_string *s)` -
+/// "Draw a relief rect inside r, optionally leaving some sides open.  Note we can't just use an
+/// NSDrawBezel command, because of the possibility of some sides not being drawn, and because the
+/// rect will be filled."  The five `char` flags are `Bool` (the `ns_draw_box` reading above), and
+/// C's `1, 1` literals at the one call site become `true, true`.  The two `NSBezierPath *p = nil`
+/// blocks are `NSBezierPath ()` under ARC (the reading round 15 records for `fringe_bmp`'s path),
+/// `[p closePath]` is `close ()`, `[p fill]`/`[p stroke]` are `fill ()`/`stroke ()`,
+/// `[p removeAllPoints]` is `removeAllPoints ()` and `[NSBezierPath fillRect: …]` is the class
+/// method `NSBezierPath.fill (_:)` - the rename the already-landed `NSBezierPath.stroke (_:)`
+/// (C 3470) proves for the pair.  `inner`/`p` are C's uninitialized locals
+/// (`var inner = NSRect.zero`, `var p: NSBezierPath? = nil`), and the three reads of
+/// `di->light_relief_color`/`di->dark_relief_color` go through the member entries with the frame
+/// C's `di` was `FRAME_OUTPUT_DATA` of.  **One transcription note**: the reference's own
+/// `vthickness > 1 && left_p` block appears **twice** (C 3980-3986 and C 3988-3994 - the second
+/// is what a `right_p` test would mean); the port keeps both, verbatim, as the reference's text.
+fileprivate func ns_draw_relief(_ outer: NSRect, _ hthickness: Int32, _ vthickness: Int32,
+                                _ raised_p: Bool, _ top_p: Bool, _ bottom_p: Bool,
+                                _ left_p: Bool, _ right_p: Bool,
+                                _ s: UnsafeMutableRawPointer?) {
+  var inner = NSRect.zero
+  var p: NSBezierPath? = nil
+
+  // C 3884: `NSTRACE ("ns_draw_relief");` - empty at `NSTRACE_ENABLED` 0, like the rest.
+
+  /* set up colors */
+  ns_setup_relief_colors(s)
+
+  /* Calculate the inner rectangle.  */
+  inner = outer
+
+  if left_p {
+    inner.origin.x += CGFloat(vthickness)
+    inner.size.width -= CGFloat(vthickness)
+  }
+
+  if right_p {
+    inner.size.width -= CGFloat(vthickness)
+  }
+
+  if top_p {
+    inner.origin.y += CGFloat(hthickness)
+    inner.size.height -= CGFloat(hthickness)
+  }
+
+  if bottom_p {
+    inner.size.height -= CGFloat(hthickness)
+  }
+
+  // C 3910: `struct ns_output *di = FRAME_OUTPUT_DATA (s->f);` - the entries below take the frame
+  // C's macro starts from.
+
+  (raised_p ? ns_output_light_relief_color(glyph_string_f(s))
+            : ns_output_dark_relief_color(glyph_string_f(s)))?.set()
+
+  if top_p || left_p {
+    p = NSBezierPath()
+
+    p!.move(to: NSMakePoint(NSMinX(outer), NSMinY(outer)))
+    if top_p {
+      p!.line(to: NSMakePoint(NSMaxX(outer), NSMinY(outer)))
+      p!.line(to: NSMakePoint(NSMaxX(inner), NSMinY(inner)))
+    }
+    p!.line(to: NSMakePoint(NSMinX(inner), NSMinY(inner)))
+    if left_p {
+      p!.line(to: NSMakePoint(NSMinX(inner), NSMaxY(inner)))
+      p!.line(to: NSMakePoint(NSMinX(outer), NSMaxY(outer)))
+    }
+    p!.close()
+    p!.fill()
+  }
+
+  (raised_p ? ns_output_dark_relief_color(glyph_string_f(s))
+            : ns_output_light_relief_color(glyph_string_f(s)))?.set()
+
+  if bottom_p || right_p {
+    p = NSBezierPath()
+
+    p!.move(to: NSMakePoint(NSMaxX(outer), NSMaxY(outer)))
+    if right_p {
+      p!.line(to: NSMakePoint(NSMaxX(outer), NSMinY(outer)))
+      p!.line(to: NSMakePoint(NSMaxX(inner), NSMinY(inner)))
+    }
+    p!.line(to: NSMakePoint(NSMaxX(inner), NSMaxY(inner)))
+    if bottom_p {
+      p!.line(to: NSMakePoint(NSMinX(inner), NSMaxY(inner)))
+      p!.line(to: NSMakePoint(NSMinX(outer), NSMaxY(outer)))
+    }
+    p!.close()
+    p!.fill()
+  }
+
+  /* If one of h/vthickness are more than 1, draw the outermost line
+     on the respective sides in the black relief color.  */
+
+  if p != nil {
+    p!.removeAllPoints()
+  } else {
+    p = NSBezierPath()
+  }
+
+  if hthickness > 1 && top_p {
+    p!.move(to: NSMakePoint(NSMinX(outer), NSMinY(outer) + 0.5))
+    p!.line(to: NSMakePoint(NSMaxX(outer), NSMinY(outer) + 0.5))
+  }
+
+  if hthickness > 1 && bottom_p {
+    p!.move(to: NSMakePoint(NSMinX(outer), NSMaxY(outer) - 0.5))
+    p!.line(to: NSMakePoint(NSMaxX(outer), NSMaxY(outer) - 0.5))
+  }
+
+  if vthickness > 1 && left_p {
+    p!.move(to: NSMakePoint(NSMinX(outer) + 0.5, NSMinY(outer) + 0.5))
+    p!.line(to: NSMakePoint(NSMinX(outer) + 0.5, NSMaxY(outer) - 0.5))
+  }
+
+  if vthickness > 1 && left_p {
+    p!.move(to: NSMakePoint(NSMinX(outer) + 0.5, NSMinY(outer) + 0.5))
+    p!.line(to: NSMakePoint(NSMinX(outer) + 0.5, NSMaxY(outer) - 0.5))
+  }
+
+  ns_output_dark_relief_color(glyph_string_f(s))?.set()
+  p!.stroke()
+
+  if vthickness > 1 && hthickness > 1 {
+    FRAME_BACKGROUND_COLOR(glyph_string_f(s))?.set()
+
+    if left_p && top_p {
+      NSBezierPath.fill(NSMakeRect(NSMinX(outer), NSMinY(outer), 1, 1))
+    }
+
+    if right_p && top_p {
+      NSBezierPath.fill(NSMakeRect(NSMaxX(outer) - 1, NSMinY(outer), 1, 1))
+    }
+
+    if right_p && bottom_p {
+      NSBezierPath.fill(NSMakeRect(NSMaxX(outer) - 1, NSMaxY(outer) - 1, 1, 1))
+    }
+
+    if left_p && bottom_p {
+      NSBezierPath.fill(NSMakeRect(NSMinX(outer), NSMaxY(outer) - 1, 1, 1))
+    }
+  }
+}
+
+/// C: `struct glyph_string`'s members this slice adds to the family round 17 started -
+/// `struct glyph_row *row` (src/dispextern.h 1399, read at C 4045/4053/4064), `enum glyph_row_area
+/// area` (1402, read at 4047/4053), `struct image *img` (1483, the `s->img` test at 4048),
+/// `struct glyph_string *next` (1506, the `s->next` read at 4072), `int background_width`
+/// (1374, 4065/4115/4171), `bool_bf extends_to_end_of_line_p : 1` (1431, 4064/4153),
+/// `bool_bf background_filled_p : 1` (1434, the read at 4103 and the **writes** at 4118/4174),
+/// `bool_bf font_not_found_p : 1` (1439, 4152) and `bool_bf stippled_p : 1` (1443, 4107).  The
+/// record belongs to the core (`src/dispextern.rs`), so each is a member entry under
+/// `<record>_<member>` with `_set_` for the write; `prev` (round 17's) completes the pair.
+@_silgen_name("glyph_string_row")
+func glyph_string_row(_ s: UnsafeMutableRawPointer?) -> UnsafeMutableRawPointer?
+@_silgen_name("glyph_string_area") func glyph_string_area(_ s: UnsafeMutableRawPointer?) -> Int32
+@_silgen_name("glyph_string_img")
+func glyph_string_img(_ s: UnsafeMutableRawPointer?) -> UnsafeMutableRawPointer?
+@_silgen_name("glyph_string_next")
+func glyph_string_next(_ s: UnsafeMutableRawPointer?) -> UnsafeMutableRawPointer?
+@_silgen_name("glyph_string_background_width")
+func glyph_string_background_width(_ s: UnsafeMutableRawPointer?) -> Int32
+@_silgen_name("glyph_string_extends_to_end_of_line_p")
+func glyph_string_extends_to_end_of_line_p(_ s: UnsafeMutableRawPointer?) -> Bool
+@_silgen_name("glyph_string_background_filled_p")
+func glyph_string_background_filled_p(_ s: UnsafeMutableRawPointer?) -> Bool
+@_silgen_name("glyph_string_set_background_filled_p")
+func glyph_string_set_background_filled_p(_ s: UnsafeMutableRawPointer?, _ v: Bool)
+@_silgen_name("glyph_string_font_not_found_p")
+func glyph_string_font_not_found_p(_ s: UnsafeMutableRawPointer?) -> Bool
+@_silgen_name("glyph_string_stippled_p")
+func glyph_string_stippled_p(_ s: UnsafeMutableRawPointer?) -> Bool
+
+/// C: `struct glyph`'s members the composite walk reads - `u.cmp.automatic` (the `bool_bf
+/// automatic : 1` of the union `u`'s `cmp` sub-struct, src/dispextern.h 599, read at C 4051/4056),
+/// `u.cmp.id` (`unsigned id : 31`, 601, read at 4056) and the other union's `slice.cmp.to`
+/// (`struct { int from, to; } cmp;`, 581, read at 4057) - plus the two box-line flags
+/// `left_box_line_p`/`right_box_line_p` (`bool_bf … : 1`, 524-525, read at 4067/4070).  Names keep
+/// C's member path (the `glyph_type` family's spelling); `u.cmp.id` is a 31-bit field, so its entry
+/// is `Int32` and the comparison against the `ptrdiff_t` `s->cmp_id` widens it (`Int (…)`), which
+/// is C's own conversion (the field's `unsigned` promotes to the long).
+@_silgen_name("glyph_u_cmp_automatic")
+func glyph_u_cmp_automatic(_ g: UnsafeMutableRawPointer?) -> Bool
+@_silgen_name("glyph_u_cmp_id") func glyph_u_cmp_id(_ g: UnsafeMutableRawPointer?) -> Int32
+@_silgen_name("glyph_slice_cmp_to") func glyph_slice_cmp_to(_ g: UnsafeMutableRawPointer?) -> Int32
+@_silgen_name("glyph_left_box_line_p")
+func glyph_left_box_line_p(_ g: UnsafeMutableRawPointer?) -> Bool
+@_silgen_name("glyph_right_box_line_p")
+func glyph_right_box_line_p(_ g: UnsafeMutableRawPointer?) -> Bool
+
+/// C: `struct glyph_row`'s `struct glyph *glyphs[1 + LAST_AREA]` (src/dispextern.h 934, read at
+/// C 4053 with C's own `s->area` subscript, which is the entry's second argument the way
+/// `glyph_row_used`'s `TEXT_AREA` is) - the base of the composite walk.
+@_silgen_name("glyph_row_glyphs")
+func glyph_row_glyphs(_ row: UnsafeMutableRawPointer?, _ area: Int32) -> UnsafeMutableRawPointer?
+
+/// C: `struct glyph *` arithmetic - the reference's `s->first_glyph + s->nchars - 1` (C 4062), the
+/// walk's `… .glyphs[s->area] + s->row->used[s->area]` (C 4053), `g++` (C 4055/4058) and the
+/// `g < end` comparison (C 4056).  `struct glyph` is the core's record and this unit has no Swift
+/// view of it, so the **stride** is the core's fact and the advance is an entry of its own - the
+/// family's first *operation* row, next to round 14's member rows; `glyph_advance (g, n)` is C's
+/// `g + n` and returns the same pointer type C's expression has.
+@_silgen_name("glyph_advance")
+func glyph_advance(_ g: UnsafeMutableRawPointer?, _ n: Int32) -> UnsafeMutableRawPointer?
+
+/// C: `#define WINDOW_RIGHT_EDGE_X(W) (FRAME_INTERNAL_BORDER_WIDTH (WINDOW_XFRAME (W)) +
+/// WINDOW_RIGHT_PIXEL_EDGE (W))` (src/window.h 764-766), read at C 4046, and
+/// `int window_box_right (struct window *, enum glyph_row_area)` (src/dispextern.h 3581) - defined
+/// at src/xdisp.c 1450's `window_box_right`, **before** that file's HAVE_WINDOW_SYSTEM block
+/// (opened at 500), so it is a real symbol of the frozen build (measured `T` in
+/// `build/emacs-ref/src/xdisp.o`); C 4047 reads it.  The macro keeps its own name as a class-A
+/// entry (`WINDOW_FRAME`'s shape); the function is the core's provider, since xdisp.c is a ported
+/// unit.
+@_silgen_name("WINDOW_RIGHT_EDGE_X")
+func WINDOW_RIGHT_EDGE_X(_ w: UnsafeMutableRawPointer?) -> Int32
+@_silgen_name("window_box_right")
+func window_box_right(_ w: UnsafeMutableRawPointer?, _ area: Int32) -> Int32
+/// C: src/dispextern.h 1353's `DRAW_MOUSE_FACE` - the third enumerator of `enum draw_glyphs_face`
+/// (src/dispextern.h 1348-1353), which `DRAW_CURSOR` 1352 precedes - the face-override the two
+/// box-line tests compare against.
+@_silgen_name("DRAW_MOUSE_FACE") func DRAW_MOUSE_FACE() -> Int32
+
+/// C 4026-4089: `static void ns_dumpglyphs_box_or_relief (struct glyph_string *s)` - "Function
+/// modeled after x_draw_glyph_string_box ().  Sets up parameters for drawing."  Three readings:
+/// C's `char` locals are `Bool` and its `int`s stay `Int32` (`last_glyph` is the untyped
+/// `struct glyph *`), the `s->cmp || s->img` test and the two `DRAW_MOUSE_FACE` dereferences read
+/// through the member
+/// entries above, and **the composite walk keeps C's pointer shape** through `glyph_advance` with
+/// the nil guards Swift needs for `g < end` (C's comparison against a NULL `end` is false for the
+/// non-NULL `g` the loop holds, which is what the guards reproduce) - a `g` that walks off a NULL
+/// base is not a case C survives either.  `abs (hthickness)` keeps C's `int` `abs` and the box
+/// call's two `CGFloat` parameters (C's implicit conversion), while the relief call's are the
+/// `int`s C declares.
+fileprivate func ns_dumpglyphs_box_or_relief(_ s: UnsafeMutableRawPointer?) {
+  var right_x: Int32 = 0, last_x: Int32 = 0
+  var left_p = false, right_p = false
+  var last_glyph: UnsafeMutableRawPointer?
+  var r = NSRect.zero
+  var hthickness: Int32 = 0, vthickness: Int32 = 0
+  let face = glyph_string_face(s)
+
+  vthickness = face_box_vertical_line_width(face)
+  hthickness = face_box_horizontal_line_width(face)
+
+  // C 4043: `NSTRACE ("ns_dumpglyphs_box_or_relief");` - empty at `NSTRACE_ENABLED` 0.
+
+  last_x = (glyph_row_full_width_p(glyph_string_row(s))
+            && !window_pseudo_window_p(glyph_string_w(s))
+            ? WINDOW_RIGHT_EDGE_X(glyph_string_w(s))
+            : window_box_right(glyph_string_w(s), glyph_string_area(s)))
+  if glyph_string_cmp(s) != nil || glyph_string_img(s) != nil {
+    last_glyph = glyph_string_first_glyph(s)
+  } else if glyph_type(glyph_string_first_glyph(s)) == COMPOSITE_GLYPH()
+              && glyph_u_cmp_automatic(glyph_string_first_glyph(s)) {
+    let end = glyph_advance(glyph_row_glyphs(glyph_string_row(s), glyph_string_area(s)),
+                            Int32(glyph_row_used(glyph_string_row(s), glyph_string_area(s))))
+    var g = glyph_string_first_glyph(s)
+    /* C 4055-4059: `for (last_glyph = g++; cond; last_glyph = g++) ;` - the empty body's
+       increment is this loop's tail.  */
+    last_glyph = g
+    g = glyph_advance(g, 1)
+    while g != nil && end != nil && g! < end!
+            && glyph_u_cmp_automatic(g)
+            && Int(glyph_u_cmp_id(g)) == glyph_string_cmp_id(s)
+            && glyph_slice_cmp_to(g) < glyph_string_cmp_to(s) {
+      last_glyph = g
+      g = glyph_advance(g, 1)
+    }
+  } else {
+    last_glyph = glyph_advance(glyph_string_first_glyph(s), glyph_string_nchars(s) - 1)
+  }
+
+  right_x = (glyph_row_full_width_p(glyph_string_row(s))
+             && glyph_string_extends_to_end_of_line_p(s)
+             ? last_x - 1
+             : min(last_x, glyph_string_x(s) + glyph_string_background_width(s)) - 1)
+
+  left_p = (glyph_left_box_line_p(glyph_string_first_glyph(s))
+            || (glyph_string_hl(s) == DRAW_MOUSE_FACE()
+                && (glyph_string_prev(s) == nil
+                    || glyph_string_hl(glyph_string_prev(s)) != glyph_string_hl(s))))
+  right_p = (glyph_right_box_line_p(last_glyph)
+             || (glyph_string_hl(s) == DRAW_MOUSE_FACE()
+                 && (glyph_string_next(s) == nil
+                     || glyph_string_hl(glyph_string_next(s)) != glyph_string_hl(s))))
+
+  r = NSMakeRect(CGFloat(glyph_string_x(s)), CGFloat(glyph_string_y(s)),
+                 CGFloat(right_x - glyph_string_x(s) + 1), CGFloat(glyph_string_height(s)))
+
+  /* TODO: Sometimes box_color is 0 and this seems wrong; should investigate.  */
+  if face_box(face) == FACE_SIMPLE_BOX() && face_box_color(face) != 0 {
+    ns_draw_box(r, CGFloat(abs(hthickness)), CGFloat(abs(vthickness)),
+                NSColor.colorWithUnsignedLong(face_box_color(face)), left_p, right_p)
+  } else {
+    ns_draw_relief(r, abs(hthickness), abs(vthickness),
+                   face_box(face) == FACE_RAISED_BOX(), true, true, left_p, right_p, s)
+  }
+}
+
+/// C: `#define NS_FACE_FOREGROUND(f) ((f)->foreground)` (src/nsterm.h 1040) - the write half of the
+/// `NS_FACE_BACKGROUND` pair round 13 imports (src/nsterm.h 1041); C 4166 reads it.
+@_silgen_name("NS_FACE_FOREGROUND")
+func NS_FACE_FOREGROUND(_ face: UnsafeMutableRawPointer?) -> UInt
+/// C: `#define FONT_HEIGHT(f) ((f)->height)` (src/font.h 244) and `#define FONT_TOO_HIGH(ft)
+/// ((ft)->pixel_size > 0 && (ft)->ascent + (ft)->descent > 3*(ft)->pixel_size)`
+/// (src/dispextern.h 1712-1713) - the two font predicates of C 4157-4163.  Both bodies need
+/// `struct font` members the core owns, so each keeps its own name as a class-A entry (the 3.255 A
+/// criterion), the `FONT_HEIGHT` reading of the reference's own `FONT_TOO_HIGH` comment.
+@_silgen_name("FONT_HEIGHT") func FONT_HEIGHT(_ font: UnsafeMutableRawPointer?) -> Int32
+@_silgen_name("FONT_TOO_HIGH") func FONT_TOO_HIGH(_ font: UnsafeMutableRawPointer?) -> Bool
+
+/// C: the five CoreGraphics calls of the stipple arm (C 4130-4137) - `void CGContextClipToRect
+/// (CGContextRef, CGRect)`, `void CGContextScaleCTM (CGContextRef, CGFloat, CGFloat)`,
+/// `void CGContextDrawTiledImage (CGContextRef, CGRect, CGImageRef)`, `size_t CGImageGetWidth
+/// (CGImageRef)` and `size_t CGImageGetHeight (CGImageRef)`.  Each keeps its C name as an
+/// `@_silgen_name` entry (the round-5 `CGMainDisplayID`/`CGDisplayBounds` shape) because the API
+/// notes rename all five in Swift (`CoreGraphics.apinotes` 194-195, 236-237, 361-364 and 508-511
+/// map them to `CGContext.scaleBy (x:y:)`, `CGContext.clip (to:)`,
+/// `CGContext.__draw (_:in:byTiling:)` and the `CGImage.width`/`CGImage.height` getters), and each
+/// entry's provider is the SDK's own symbol - the `CGImageMaskCreate` reading `nsimage.swift` 159
+/// records.
+@_silgen_name("CGContextClipToRect")
+func CGContextClipToRect(_ c: CGContext?, _ rect: CGRect)
+@_silgen_name("CGContextScaleCTM")
+func CGContextScaleCTM(_ c: CGContext?, _ sx: CGFloat, _ sy: CGFloat)
+@_silgen_name("CGContextDrawTiledImage")
+func CGContextDrawTiledImage(_ c: CGContext?, _ rect: CGRect, _ image: CGImage?)
+@_silgen_name("CGImageGetWidth") func CGImageGetWidth(_ image: CGImage?) -> Int
+@_silgen_name("CGImageGetHeight") func CGImageGetHeight(_ image: CGImage?) -> Int
+
+/// C: `struct ns_display_info`'s `struct ns_bitmap_record *bitmaps` (src/nsterm.h 873; the record
+/// itself is 810-819) with C's own subscript `face->stipple - 1` as the second argument (the
+/// `glyph_row_used` shape), reaching that record's `EmacsImage *img` (src/nsterm.h 813 in the
+/// `__OBJC__` arm; the frozen arm's `void *img` is 816) - C 4119-4120.
+/// `EmacsImage` is another lane's class (`nsimage.swift`'s, the `@interface` at src/nsterm.h
+/// 670-703), so its `- (CGImageRef)stippleMask` (declared src/nsterm.h 696, defined src/nsimage.m
+/// 542) crosses as a C-ABI entry under `<Class>_<selector>` - the `EmacsImage_allocInitFromFile`
+/// shape `nsfns.swift` 402 declares.  **No provider exists yet**: the ledger's (3) registers it as
+/// owed, the P-55 reading.
+@_silgen_name("ns_display_info_bitmaps_img")
+func ns_display_info_bitmaps_img_borrowed_raw(_ dpyinfo: UnsafeMutableRawPointer?,
+                                 _ i: Int) -> UnsafeMutableRawPointer?
+func ns_display_info_bitmaps_img(_ dpyinfo: UnsafeMutableRawPointer?,
+                                 _ i: Int) -> AnyObject? {
+  guard let pointer = ns_display_info_bitmaps_img_borrowed_raw(dpyinfo, i) else { return nil }
+  return Unmanaged<AnyObject>.fromOpaque(pointer).takeUnretainedValue()
+}
+@_silgen_name("EmacsImage_stippleMask")
+func EmacsImage_stippleMask(_ img: AnyObject?) -> CGImage?
+
+/// C 4091-4177: `static void ns_maybe_dumpglyphs_background (struct glyph_string *s, char force_p)` -
+/// "Modeled after x_draw_glyph_string_background, which draws BG in certain cases.  Others are left
+/// to the text rendering routine."  `char force_p` is `Bool` (the `ns_draw_box` reading), and the
+/// `NS_IMPL_COCOA` stipple arm is **the live one**: the `#else` arm's
+/// `[[dpyinfo->bitmaps[…].img stippleMask] set]; goto fill;` and the `fill:` label the `!NS_IMPL_COCOA`
+/// guard carries at C 4167-4169 are the GNUstep text and are recorded, not transcribed (the `goto`
+/// has no Swift form and no live reader).  Four more readings: `FRAME_DISPLAY_INFO (s->f)`'s local
+/// `dpyinfo` is not carried (the entry takes the frame, as in `ns_setup_relief_colors`); the colour
+/// ternary and the `else if`'s comparison keep C's statement shape with an explicit `NSColor?`
+/// binding, whose `?.set ()` is C's message to a possibly-nil receiver; `[nil unsignedLong]`'s
+/// zero is `?? 0` (the category method above is this unit's own); and `CGRectMake (0, 0, …)`
+/// - a `static inline` of CGGeometry.h with no symbol - is Swift's `CGRect (x:y:width:height:)`,
+/// a class-B expansion, with C's two `size_t` arguments converted to `CGFloat`.
+fileprivate func ns_maybe_dumpglyphs_background(_ s: UnsafeMutableRawPointer?,
+                                               _ force_p: Bool) {
+  let face = glyph_string_face(s)
+  var r = NSRect.zero
+
+  // C 4101: `NSTRACE ("ns_maybe_dumpglyphs_background");` - empty at `NSTRACE_ENABLED` 0.
+
+  if !glyph_string_background_filled_p(s) {
+    let box_line_width = max(face_box_horizontal_line_width(face), 0)
+
+    if glyph_string_stippled_p(s) {
+      /* On cocoa emacs the stipple is stored as a mask CGImage.
+         First we want to clear the background with the bg color.  */
+      NSColor.colorWithUnsignedLong(face_background(face)).set()
+      r = NSMakeRect(CGFloat(glyph_string_x(s)), CGFloat(glyph_string_y(s) + box_line_width),
+                     CGFloat(glyph_string_background_width(s)),
+                     CGFloat(glyph_string_height(s) - 2 * box_line_width))
+      NSRectFill(r)
+      glyph_string_set_background_filled_p(s, true)
+      let mask = EmacsImage_stippleMask(
+        ns_display_info_bitmaps_img(FRAME_DISPLAY_INFO(glyph_string_f(s)),
+                                    face_stipple(face) - 1))
+
+      /* This part could possibly be improved, the author is
+         unfamiliar with NS/CoreGraphics and isn't sure if it's
+         possible to do this with NSImage */
+      let ctx = NSGraphicsContext.current
+      ctx?.saveGraphicsState()
+      /* Checkpoint the graphics state and then focus in on the area
+         we're going to fill */
+      let context = ctx?.cgContext
+      CGContextClipToRect(context, r)
+      CGContextScaleCTM(context, 1, -1)
+
+      /* Stamp the foreground color using the stipple mask */
+      NSColor.colorWithUnsignedLong(face_foreground(face)).set()
+      let imageSize = CGRect(x: 0, y: 0, width: CGFloat(CGImageGetWidth(mask)),
+                             height: CGFloat(CGImageGetHeight(mask)))
+      CGContextDrawTiledImage(context, imageSize, mask)
+
+      NSGraphicsContext.current?.restoreGraphicsState()
+
+    } else if FONT_HEIGHT(glyph_string_font(s)) < glyph_string_height(s) - 2 * box_line_width
+                /* When xdisp.c ignores FONT_HEIGHT, we cannot trust font
+                   dimensions, since the actual glyphs might be much
+                   smaller.  So in that case we always clear the
+                   rectangle with background color.  */
+                || FONT_TOO_HIGH(glyph_string_font(s))
+                || glyph_string_font_not_found_p(s)
+                || glyph_string_extends_to_end_of_line_p(s)
+                || force_p {
+      if glyph_string_hl(s) != DRAW_CURSOR() {
+        let bg: NSColor? = NS_FACE_BACKGROUND(face) != 0
+          ? NSColor.colorWithUnsignedLong(NS_FACE_BACKGROUND(face))
+          : FRAME_BACKGROUND_COLOR(glyph_string_f(s))
+        bg?.set()
+      } else if face != nil
+                  && (NS_FACE_BACKGROUND(face)
+                      == (FRAME_CURSOR_COLOR(glyph_string_f(s))?.unsignedLong() ?? 0)) {
+        NSColor.colorWithUnsignedLong(NS_FACE_FOREGROUND(face)).set()
+      } else {
+        FRAME_CURSOR_COLOR(glyph_string_f(s))?.set()
+      }
+
+      r = NSMakeRect(CGFloat(glyph_string_x(s)), CGFloat(glyph_string_y(s) + box_line_width),
+                     CGFloat(glyph_string_background_width(s)),
+                     CGFloat(glyph_string_height(s) - 2 * box_line_width))
+      NSRectFill(r)
+      glyph_string_set_background_filled_p(s, true)
+    }
+  }
+}
+
+// ==========================================================================
+// C 4179-4393: the image sub-block - the relief drawn around an image, and the
+// image glyph itself with its background, transform and cursor box.
+// ==========================================================================
+
+/// C: the `struct image` members this slice reads.
+///
+/// `Emacs_Pixmap pixmap, mask;` is src/dispextern.h 3222
+/// (`typedef id Emacs_Pixmap;`, the NS arm of src/nsgui.h 55-59, so both come
+/// back untyped - `AnyObject?`, the `ns_display_info_bitmaps_img` reading of
+/// round 18).  `int width, height;` is src/dispextern.h 3304, `int relief;` is
+/// src/dispextern.h 3339 and `int hmargin, vmargin;` is src/dispextern.h 3342.
+///
+/// The record is the core's (`src/include/dispextern.rs` 2147) and the
+/// whole of it sits inside that header's `HAVE_WINDOW_SYSTEM` block, so every
+/// read is a member entry under `image_<member>`, the `face_<member>` family's
+/// shape.
+@_silgen_name("image_pixmap")
+func image_pixmap_borrowed_raw(_ img: UnsafeMutableRawPointer?) -> UnsafeMutableRawPointer?
+func image_pixmap(_ img: UnsafeMutableRawPointer?) -> AnyObject? {
+  guard let pointer = image_pixmap_borrowed_raw(img) else { return nil }
+  return Unmanaged<AnyObject>.fromOpaque(pointer).takeUnretainedValue()
+}
+@_silgen_name("image_mask")
+func image_mask_borrowed_raw(_ img: UnsafeMutableRawPointer?) -> UnsafeMutableRawPointer?
+func image_mask(_ img: UnsafeMutableRawPointer?) -> AnyObject? {
+  guard let pointer = image_mask_borrowed_raw(img) else { return nil }
+  return Unmanaged<AnyObject>.fromOpaque(pointer).takeUnretainedValue()
+}
+@_silgen_name("image_width") func image_width(_ img: UnsafeMutableRawPointer?) -> Int32
+@_silgen_name("image_height") func image_height(_ img: UnsafeMutableRawPointer?) -> Int32
+@_silgen_name("image_relief") func image_relief(_ img: UnsafeMutableRawPointer?) -> Int32
+@_silgen_name("image_hmargin") func image_hmargin(_ img: UnsafeMutableRawPointer?) -> Int32
+@_silgen_name("image_vmargin") func image_vmargin(_ img: UnsafeMutableRawPointer?) -> Int32
+
+/// C: `struct glyph_slice`'s four `unsigned : 16` bit members, read as
+/// `s->slice.x` and its siblings at C 4192, 4197, 4199-4200, 4221-4222,
+/// 4253-4260 and 4283, 4287, 4292-4293.
+///
+/// The record is src/dispextern.h 455-460
+/// (`unsigned x` is its first member, 457), and its one use here is the
+/// `struct glyph_slice slice;` member at src/dispextern.h 1489.
+/// It belongs to the core and has no Swift view in this lane, so the four reads
+/// are member entries under `glyph_string_slice_<member>`; C's expressions
+/// promote each 16-bit field to `int`, so the entries keep the promoted `Int32`
+/// value - round 18's `glyph_u_cmp_id` reading.
+@_silgen_name("glyph_string_slice_x")
+func glyph_string_slice_x(_ s: UnsafeMutableRawPointer?) -> Int32
+@_silgen_name("glyph_string_slice_y")
+func glyph_string_slice_y(_ s: UnsafeMutableRawPointer?) -> Int32
+@_silgen_name("glyph_string_slice_width")
+func glyph_string_slice_width(_ s: UnsafeMutableRawPointer?) -> Int32
+@_silgen_name("glyph_string_slice_height")
+func glyph_string_slice_height(_ s: UnsafeMutableRawPointer?) -> Int32
+
+/// C: `&s->slice` (C 4186 and 4274) - the *address* of the slice member, which
+/// is what `image_ascent`'s third parameter wants.
+///
+/// It is the family's second *operation* row, next to round 18's
+/// `glyph_advance`, and for the same reason: the record's layout is the core's
+/// fact, so a pointer into it cannot be spelled at the use site.
+@_silgen_name("glyph_string_slice_ptr")
+func glyph_string_slice_ptr(_ s: UnsafeMutableRawPointer?) -> UnsafeMutableRawPointer?
+
+/// C: `int image_ascent (struct image *, struct face *, struct glyph_slice *)`
+/// - declared at src/dispextern.h 3774
+/// (inside the header's `HAVE_WINDOW_SYSTEM` block, opened at src/dispextern.h 3727)
+/// and defined at src/image.c 1911-1912.
+///
+/// src/image.c is one of the files the frozen configuration does not compile
+/// (`docs/baseline/frozen-build-sources.txt`; its port is an empty unit,
+/// `docs/ports/image.md`), so no object holds the symbol and the shim lane owes
+/// the export - the gate files the name (Evidence).  C 4186 and C 4274 are its
+/// two call sites here.
+@_silgen_name("image_ascent")
+func image_ascent(_ img: UnsafeMutableRawPointer?, _ face: UnsafeMutableRawPointer?,
+                  _ slice: UnsafeMutableRawPointer?) -> Int32
+
+/// C: `struct face`'s `int id;` at src/dispextern.h 1795
+/// - the face's index in its cache, read at C 4205, 4225 and 4238.  It sits
+/// *above* the record's own `HAVE_WINDOW_SYSTEM` block, so the member is
+/// ungated; the entry is the member family's shape, like round 18's
+/// `face_box_*`.
+@_silgen_name("face_id") func face_id(_ face: UnsafeMutableRawPointer?) -> Int32
+
+/// C: the three enumerators the box and bar tests name.
+///
+/// `FACE_NO_BOX` is `enum face_box_type`'s first member (the
+/// `s->face->box != FACE_NO_BOX` test at C 4190 and 4282), declared at
+/// src/dispextern.h 1753
+/// - Class A of the 3.255 ruling, like round 18's
+/// `FACE_SIMPLE_BOX`/`FACE_RAISED_BOX`, because an enumerator's number is the
+/// core's fact.  `TOOL_BAR_FACE_ID` and `TAB_BAR_FACE_ID` are the two
+/// `enum face_id` members the bar branches compare against at C 4205, 4225 and
+/// 4238, declared at src/dispextern.h 1964 and src/dispextern.h 1979
+@_silgen_name("FACE_NO_BOX") func FACE_NO_BOX() -> Int32
+@_silgen_name("TOOL_BAR_FACE_ID") func TOOL_BAR_FACE_ID() -> Int32
+@_silgen_name("TAB_BAR_FACE_ID") func TAB_BAR_FACE_ID() -> Int32
+
+/// C: `enum draw_glyphs_face`'s last two enumerators, `DRAW_IMAGE_RAISED` at
+/// src/dispextern.h 1354 and `DRAW_IMAGE_SUNKEN` at src/dispextern.h 1355
+/// (the enum is src/dispextern.h 1348-1356) - the `s->hl` tests at C 4202-4203,
+/// 4213 and 4378-4380; `DRAW_CURSOR` (src/dispextern.h 1352) is round 16's row.
+@_silgen_name("DRAW_IMAGE_RAISED") func DRAW_IMAGE_RAISED() -> Int32
+@_silgen_name("DRAW_IMAGE_SUNKEN") func DRAW_IMAGE_SUNKEN() -> Int32
+
+/// C: the four generated globals the bar geometry reads.
+///
+/// The two thicknesses are `intmax_t` members of the generated `globals` struct
+/// - `intmax_t f_tab_bar_button_relief;` and `intmax_t f_tool_bar_button_relief;`
+/// - so C's `min (…, 1000000)` and `< 0` tests are `Int` here, and the
+/// assignment back to C's `int thick` is the lane's `truncatingIfNeeded:`
+/// narrowing.  The first is declared at globals.h 942-943
+/// and its `DEFVAR_INT` is at src/xdisp.c 38973; the second is declared at
+/// globals.h 944-945 and its own is at src/xdisp.c 38979.
+/// The two margins are `Lisp_Object`s; `Vtab_bar_button_margin` is the
+/// `DEFVAR_LISP` at src/xdisp.c 38965
+/// and `Vtool_bar_button_margin` is the one at src/xdisp.c 38985.
+///
+/// No reference object holds a symbol for any of the four (they are `globals`
+/// fields; `docs/baseline/globals/variables.tsv` 753, 756, 395 and 413 are the
+/// names' source), so the core exports them - the `windows_or_buffers_changed`
+/// row of round 14.
+@_silgen_name("tab_bar_button_relief") var tab_bar_button_relief: Int
+@_silgen_name("tool_bar_button_relief") var tool_bar_button_relief: Int
+@_silgen_name("Vtab_bar_button_margin") var Vtab_bar_button_margin: Lisp_Object
+@_silgen_name("Vtool_bar_button_margin") var Vtool_bar_button_margin: Lisp_Object
+
+/// C: `#define DEFAULT_TAB_BAR_BUTTON_RELIEF 1` at src/dispextern.h 3436 and
+/// `#define DEFAULT_TOOL_BAR_BUTTON_RELIEF 1` at src/dispextern.h 3515
+/// - the two literals the thickness ternaries fall back to.
+///
+/// **Spelled, not imported** (class B of the 3.255 ruling): the expansion is a
+/// literal, so the `DOCK_IGNORE_LIMIT` reading of round 4 applies and no shim is
+/// owed - the exception the `FRAME_NS_TITLEBAR_HEIGHT` pair records.  Both are
+/// `Int` because the ternary's other arm is the `intmax_t` global above, and C's
+/// narrowing to `int thick` happens at the assignment.
+fileprivate let DEFAULT_TAB_BAR_BUTTON_RELIEF: Int = 1
+fileprivate let DEFAULT_TOOL_BAR_BUTTON_RELIEF: Int = 1
+
+/// C: `EmacsImage`'s two `@public` ivars and the two NSImage messages
+/// C 4272-4355 sends.
+///
+/// `NSAffineTransform *transform;` and `BOOL smoothing;` are src/nsterm.h 680-681,
+/// inside the `@interface EmacsImage : NSImage` at src/nsterm.h 670.
+/// The class is another lane's (`nsimage.swift`'s `class EmacsImage: NSImage`)
+/// and this unit has no Swift view of it, so each access crosses as a
+/// receiver-first C-ABI entry - the `EmacsImage_stippleMask` shape of round 18
+/// and the `EmacsTooltip_*` family (`nsfns.swift` 945-953).  `NSAffineTransform`
+/// is the ivar's own type (round 15's `NSAffineTransform()`); the
+/// `drawInRect:fromRect:operation:fraction:respectFlipped:hints:` method is
+/// NSImage's own, declared at NSImage.h 133, so the entry keeps C's six arguments
+/// and their types - `NSCompositingOperation` is what the `beginDrag` row
+/// (`nsselect.swift` 224) does with `NSDragOperation`.
+@_silgen_name("EmacsImage_transform")
+func EmacsImage_transform(_ img: AnyObject?) -> NSAffineTransform?
+@_silgen_name("EmacsImage_smoothing") func EmacsImage_smoothing(_ img: AnyObject?) -> Bool
+@_silgen_name("EmacsImage_size") func EmacsImage_size(_ img: AnyObject?) -> NSSize
+@_silgen_name("EmacsImage_drawInRect")
+func EmacsImage_drawInRect(_ img: AnyObject?, _ dstRect: NSRect, _ srcRect: NSRect,
+                           _ operation: NSCompositingOperation, _ fraction: CGFloat,
+                           _ respectFlipped: Bool, _ hints: NSDictionary?)
+
+/// C 4179-4264: `static void ns_draw_image_relief (struct glyph_string *s)` - the
+/// image's relief, drawn from the slice, the image's margins and the bar
+/// geometry.
+///
+/// Readings this body makes:
+///
+/// * C's `int x1, y1, thick;` and its five `bool` flags are uninitialized
+///   locals, so they take a zero default here (`var x1: Int32 = 0`,
+///   `var raised_p = false`) - the `ns_draw_relief` reading of round 18; C 4251's
+///   chained `top_p = bot_p = left_p = right_p = false;` is kept as its four
+///   assignments.
+/// * C's comma statements - `x -= thick + extra_x, left_p = true;` (C 4253-4254)
+///   and its three siblings at C 4255-4260 - are the two statements they are.
+/// * `eabs (s->img->relief)` (C 4217) is the macro at src/lisp.h 5597,
+///   whose expansion is `((x) < 0 ? -(x) : (x))`; it is spelled (class B): the
+///   read is the entry and the macro's three evaluations of the same expression
+///   have no side effect.  Sharp edge, recorded: the negated `Int32` traps on
+///   `Int32.min` where C's is undefined - the class round 17's unsigned-arithmetic
+///   note already carries, not exercised here.
+/// * The two `min (…, 1000000)` fallbacks and the `extra_x`/`extra_y` arithmetic
+///   narrow C's `intmax_t`/`EMACS_INT` back to `int`, so each is
+///   `Int32(truncatingIfNeeded: …)` - the lane's narrowing rule.
+/// * C's `extra_x = extra_y = XFIXNUM (…) - thick;` (C 4235 and 4248) is spelled
+///   as its two assignments, as C 4251's chain is.
+/// * C's `int x = s->x;` and `int y = s->ybase - image_ascent (…);` are the
+///   entries above; `x`/`y` are `var` because C 4193-4200 and 4254-4256 mutate
+///   them.
+fileprivate func ns_draw_image_relief(_ s: UnsafeMutableRawPointer?) {
+  var x1: Int32 = 0, y1: Int32 = 0, thick: Int32 = 0
+  var raised_p = false, top_p = false, bot_p = false, left_p = false, right_p = false
+  var extra_x: Int32 = 0, extra_y: Int32 = 0
+  var x = glyph_string_x(s)
+  var y = glyph_string_ybase(s) - image_ascent(glyph_string_img(s), glyph_string_face(s),
+                                               glyph_string_slice_ptr(s))
+
+  /* If first glyph of S has a left box line, start drawing it to the
+     right of that line.  */
+  if face_box(glyph_string_face(s)) != FACE_NO_BOX()
+       && glyph_left_box_line_p(glyph_string_first_glyph(s))
+       && glyph_string_slice_x(s) == 0 {
+    x += max(face_box_vertical_line_width(glyph_string_face(s)), 0)
+  }
+
+  /* If there is a margin around the image, adjust x- and y-position
+     by that margin.  */
+  if glyph_string_slice_x(s) == 0 {
+    x += image_hmargin(glyph_string_img(s))
+  }
+  if glyph_string_slice_y(s) == 0 {
+    y += image_vmargin(glyph_string_img(s))
+  }
+
+  if glyph_string_hl(s) == DRAW_IMAGE_SUNKEN()
+       || glyph_string_hl(s) == DRAW_IMAGE_RAISED() {
+    if face_id(glyph_string_face(s)) == TAB_BAR_FACE_ID() {
+      thick = Int32(truncatingIfNeeded: tab_bar_button_relief < 0
+                    ? DEFAULT_TAB_BAR_BUTTON_RELIEF
+                    : min(tab_bar_button_relief, 1000000))
+    } else {
+      thick = Int32(truncatingIfNeeded: tool_bar_button_relief < 0
+                    ? DEFAULT_TOOL_BAR_BUTTON_RELIEF
+                    : min(tool_bar_button_relief, 1000000))
+    }
+    raised_p = glyph_string_hl(s) == DRAW_IMAGE_RAISED()
+  } else {
+    thick = image_relief(glyph_string_img(s)) < 0
+      ? -image_relief(glyph_string_img(s)) : image_relief(glyph_string_img(s))
+    raised_p = image_relief(glyph_string_img(s)) > 0
+  }
+
+  x1 = x + glyph_string_slice_width(s) - 1
+  y1 = y + glyph_string_slice_height(s) - 1
+
+  extra_x = 0
+  extra_y = 0
+  if face_id(glyph_string_face(s)) == TAB_BAR_FACE_ID() {
+    if CONSP(Vtab_bar_button_margin)
+         && FIXNUMP(XCAR(Vtab_bar_button_margin))
+         && FIXNUMP(XCDR(Vtab_bar_button_margin)) {
+      extra_x = Int32(truncatingIfNeeded: XFIXNUM(XCAR(Vtab_bar_button_margin)) - Int(thick))
+      extra_y = Int32(truncatingIfNeeded: XFIXNUM(XCDR(Vtab_bar_button_margin)) - Int(thick))
+    } else if FIXNUMP(Vtab_bar_button_margin) {
+      extra_x = Int32(truncatingIfNeeded: XFIXNUM(Vtab_bar_button_margin) - Int(thick))
+      extra_y = Int32(truncatingIfNeeded: XFIXNUM(Vtab_bar_button_margin) - Int(thick))
+    }
+  }
+
+  if face_id(glyph_string_face(s)) == TOOL_BAR_FACE_ID() {
+    if CONSP(Vtool_bar_button_margin)
+         && FIXNUMP(XCAR(Vtool_bar_button_margin))
+         && FIXNUMP(XCDR(Vtool_bar_button_margin)) {
+      extra_x = Int32(truncatingIfNeeded: XFIXNUM(XCAR(Vtool_bar_button_margin)))
+      extra_y = Int32(truncatingIfNeeded: XFIXNUM(XCDR(Vtool_bar_button_margin)))
+    } else if FIXNUMP(Vtool_bar_button_margin) {
+      extra_x = Int32(truncatingIfNeeded: XFIXNUM(Vtool_bar_button_margin))
+      extra_y = Int32(truncatingIfNeeded: XFIXNUM(Vtool_bar_button_margin))
+    }
+  }
+
+  top_p = false
+  bot_p = false
+  left_p = false
+  right_p = false
+
+  if glyph_string_slice_x(s) == 0 {
+    x -= thick + extra_x
+    left_p = true
+  }
+  if glyph_string_slice_y(s) == 0 {
+    y -= thick + extra_y
+    top_p = true
+  }
+  if glyph_string_slice_x(s) + glyph_string_slice_width(s) == image_width(glyph_string_img(s)) {
+    x1 += thick + extra_x
+    right_p = true
+  }
+  if glyph_string_slice_y(s) + glyph_string_slice_height(s) == image_height(glyph_string_img(s)) {
+    y1 += thick + extra_y
+    bot_p = true
+  }
+
+  ns_draw_relief(NSMakeRect(CGFloat(x), CGFloat(y), CGFloat(x1 - x + 1), CGFloat(y1 - y + 1)),
+                 thick, thick, raised_p, top_p, bot_p, left_p, right_p, s)
+}
+
+/// C 4266-4393: `static void ns_dumpglyphs_image (struct glyph_string *s, NSRect r)` -
+/// "Renders an image and associated borders."
+///
+/// Readings this body makes:
+///
+/// * `NSRect r` is **unused in the body** (C 4267's declaration carries it, C 4847
+///   is the caller); it is kept, and Swift warns about neither unused parameters
+///   nor an unread `let`.
+/// * `EmacsImage *img = s->img->pixmap;` (C 4272) is the entry pair, and `img`
+///   stays untyped (`AnyObject?`): the class is `nsimage.swift`'s.  C's
+///   `if (img != nil)` is the same test.
+/// * C's uninitialized locals take a zero default (`var bg_x: Int32 = 0`,
+///   `var br = NSRect.zero`, `var tdCol: NSColor? = nil`) - the round-18 reading.
+/// * C's truthiness tests on `int` members become `!= 0` (the `bg_height >
+///   s->slice.height` head of C 4301-4302 and its five `||` arms), and the two
+///   pointer members are `nil` tests (`s->img->mask`, `s->img->pixmap == 0`) -
+///   Swift has no truthiness.
+/// * `NSColor colorWithUnsignedLong:` is this unit's own category (round 1);
+///   `[col set]` is `?.set()` through the optional receiver C relies on.
+/// * `[NSGraphicsContext currentContext]` is `NSGraphicsContext.current?` (the
+///   round-17 reading), `saveGraphicsState`/`restoreGraphicsState` are its
+///   methods, and `setImageInterpolation:NSImageInterpolationNone` is the Swift
+///   property assignment `imageInterpolation = .none`
+///   (`NSImageInterpolationDefault` is `.default`).
+/// * `[NSAffineTransform transform]` is Swift's `NSAffineTransform()` (round 15),
+///   `translateXBy:yBy:` is `translateX(by:yBy:)` and `concat` is `concat()`.
+///   `img->transform`'s non-nil test binds once (`if let`) instead of C's two
+///   reads, and the value crosses the Foundation `SwiftBridge` into
+///   `append(_:)`'s `AffineTransform` parameter with the `as AffineTransform`
+///   cast round 15 uses for `transform(using:)` - the compiler proved the
+///   rename (`'appendTransform' has been renamed to 'append(_:)'`).
+/// * `[img size].width` is the `EmacsImage_size` entry read twice, exactly the
+///   two messages C 4324 sends;
+///   `[img drawInRect:fromRect:operation:fraction:respectFlipped:hints:]` is the
+///   `EmacsImage_drawInRect` entry with C's own six arguments.
+/// * `abs (s->img->relief)` (C 4388) and `max (…, 0)` (C 4273) keep C's calls -
+///   Swift's `abs`/`max` on `Int32`; `ns_draw_box`'s two `char` flags are the
+///   `Bool` round 18 established, and its `int thickness` arguments convert as
+///   `CGFloat`.
+fileprivate func ns_dumpglyphs_image(_ s: UnsafeMutableRawPointer?, _ r: NSRect) {
+  let img = image_pixmap(glyph_string_img(s))
+  let box_line_vwidth = max(face_box_horizontal_line_width(glyph_string_face(s)), 0)
+  var x = glyph_string_x(s)
+  var y = glyph_string_ybase(s) - image_ascent(glyph_string_img(s), glyph_string_face(s),
+                                               glyph_string_slice_ptr(s))
+  var bg_x: Int32 = 0, bg_y: Int32 = 0, bg_height: Int32 = 0
+  var br = NSRect.zero
+  let face = glyph_string_face(s)
+  var tdCol: NSColor? = nil
+
+  // C 4280: `NSTRACE ("ns_dumpglyphs_image");` - empty at `NSTRACE_ENABLED` 0, like the rest.
+
+  if face_box(face) != FACE_NO_BOX()
+       && glyph_left_box_line_p(glyph_string_first_glyph(s))
+       && glyph_string_slice_x(s) == 0 {
+    x += max(face_box_vertical_line_width(face), 0)
+  }
+
+  bg_x = x
+  bg_y = glyph_string_slice_y(s) == 0 ? glyph_string_y(s) : glyph_string_y(s) + box_line_vwidth
+  bg_height = glyph_string_height(s)
+  /* other terms have this, but was causing problems w/tabbar mode */
+  /* - 2 * box_line_vwidth; */
+
+  if glyph_string_slice_x(s) == 0 { x += image_hmargin(glyph_string_img(s)) }
+  if glyph_string_slice_y(s) == 0 { y += image_vmargin(glyph_string_img(s)) }
+
+  /* Draw BG: if we need larger area than image itself cleared, do that,
+     otherwise, since we composite the image under NS (instead of mucking
+     with its background color), we must clear just the image area.  */
+
+  NSColor.colorWithUnsignedLong(NS_FACE_BACKGROUND(face)).set()
+
+  if bg_height > glyph_string_slice_height(s)
+       || image_hmargin(glyph_string_img(s)) != 0
+       || image_vmargin(glyph_string_img(s)) != 0
+       || image_mask(glyph_string_img(s)) != nil
+       || image_pixmap(glyph_string_img(s)) == nil
+       || glyph_string_width(s) != glyph_string_background_width(s) {
+    br = NSMakeRect(CGFloat(bg_x), CGFloat(bg_y), CGFloat(glyph_string_background_width(s)),
+                    CGFloat(bg_height))
+    glyph_string_set_background_filled_p(s, true)
+  } else {
+    br = NSMakeRect(CGFloat(x), CGFloat(y), CGFloat(glyph_string_slice_width(s)),
+                    CGFloat(glyph_string_slice_height(s)))
+  }
+
+  NSRectFill(br)
+
+  /* Draw the image... do we need to draw placeholder if img == nil?  */
+  if img != nil {
+    /* The idea here is that the clipped area is set in the normal
+       view coordinate system, then we transform the coordinate
+       system so that when we draw the image it is rotated, resized
+       or whatever as required.  This is kind of backwards, but
+       there's no way to apply the transform to the image without
+       creating a whole new bitmap.  */
+    let dr = NSMakeRect(CGFloat(x), CGFloat(y), CGFloat(glyph_string_slice_width(s)),
+                        CGFloat(glyph_string_slice_height(s)))
+    let ir = NSMakeRect(0, 0, EmacsImage_size(img).width, EmacsImage_size(img).height)
+
+    let setOrigin = NSAffineTransform()
+
+    NSGraphicsContext.current?.saveGraphicsState()
+
+    /* Because of the transforms it's difficult to work out what
+       portion of the original, untransformed, image will be drawn,
+       so the clipping area will ensure we draw only the correct
+       bit.  */
+    NSRectClip(dr)
+
+    setOrigin.translateX(by: CGFloat(x - glyph_string_slice_x(s)),
+                         yBy: CGFloat(y - glyph_string_slice_y(s)))
+    setOrigin.concat()
+
+    let doTransform = NSAffineTransform()
+
+    /* ImageMagick images don't have transforms.  */
+    if let transform = EmacsImage_transform(img) {
+      doTransform.append(transform as AffineTransform)
+    }
+
+    doTransform.concat()
+
+    /* Smoothing is the default, so if we don't want smoothing we
+       have to turn it off.  */
+    if !EmacsImage_smoothing(img) {
+      NSGraphicsContext.current?.imageInterpolation = .none
+    }
+
+    EmacsImage_drawInRect(img, ir, ir, NSCompositingOperation.sourceOver, 1.0, true, nil)
+
+    /* Apparently image interpolation is not reset with
+       restoreGraphicsState, so we have to manually reset it.  */
+    if !EmacsImage_smoothing(img) {
+      NSGraphicsContext.current?.imageInterpolation = .default
+    }
+
+    NSGraphicsContext.current?.restoreGraphicsState()
+  }
+
+  if glyph_string_hl(s) == DRAW_CURSOR() {
+    FRAME_CURSOR_COLOR(glyph_string_f(s))?.set()
+    tdCol = NSColor.colorWithUnsignedLong(NS_FACE_BACKGROUND(face))
+  } else {
+    tdCol = NSColor.colorWithUnsignedLong(NS_FACE_FOREGROUND(face))
+  }
+
+  /* Draw underline, overline, strike-through.  */
+  ns_draw_text_decoration(s, face, tdCol, br.size.width, br.origin.x)
+
+  /* If we must draw a relief around the image, do it.  */
+  if image_relief(glyph_string_img(s)) != 0
+       || glyph_string_hl(s) == DRAW_IMAGE_RAISED()
+       || glyph_string_hl(s) == DRAW_IMAGE_SUNKEN() {
+    ns_draw_image_relief(s)
+  }
+
+  /* If there is no mask, the background won't be seen, so draw a
+     rectangle on the image for the cursor.  Do this for all images,
+     getting transparency right is not reliable.  */
+  if glyph_string_hl(s) == DRAW_CURSOR() {
+    var thickness = abs(image_relief(glyph_string_img(s)))
+    if thickness == 0 { thickness = 1 }
+    ns_draw_box(br, CGFloat(thickness), CGFloat(thickness),
+                FRAME_CURSOR_COLOR(glyph_string_f(s)), true, true)
+  }
+}
+
+// ==========================================================================
+// C 4396-5001: the stretch glyph, the three foregrounds, the GC setter and the
+// glyph-string dispatcher - the Glyph drawing operations section closes.
+// ==========================================================================
+
+/// C: `bool x_stretch_cursor_p;` - the `x-stretch-cursor` variable, read at C 4402.
+///
+/// It is a generated `globals` field (`bool f_x_stretch_cursor_p;`, globals.h 1230-1231,
+/// from the `DEFVAR_BOOL` at src/xdisp.c 38638), so no object holds a symbol of this
+/// name and the core owes the export - the `tab_bar_button_relief` shape of round 19.
+@_silgen_name("x_stretch_cursor_p") var x_stretch_cursor_p: Bool
+
+/// C: `struct glyph_row`'s `bool_bf reversed_p : 1` (src/dispextern.h 1141, read at
+/// C 4409, 4431 and 4447 - the stretch block's R2L tests), `bool_bf stipple_p : 1`
+/// (1144, the read at C 4483 and the **write** at C 4484, so the `_set_` pair) and
+/// `bool_bf mouse_face_p : 1` (1108, read at C 4452-4453) - three more members of the row
+/// family round 13 started.
+@_silgen_name("glyph_row_reversed_p")
+func glyph_row_reversed_p(_ row: UnsafeMutableRawPointer?) -> Bool
+@_silgen_name("glyph_row_stipple_p")
+func glyph_row_stipple_p(_ row: UnsafeMutableRawPointer?) -> Bool
+@_silgen_name("glyph_row_set_stipple_p")
+func glyph_row_set_stipple_p(_ row: UnsafeMutableRawPointer?, _ v: Bool)
+@_silgen_name("glyph_row_mouse_face_p")
+func glyph_row_mouse_face_p(_ row: UnsafeMutableRawPointer?) -> Bool
+
+/// C: `int window_box_left_offset (struct window *, enum glyph_row_area)` (declared
+/// src/dispextern.h 3580) and `int window_box_left (…)` (declared 3579) - defined at
+/// src/xdisp.c 1385 and 1430, **before** that file's glyph-clipping block, so both are
+/// real symbols of the frozen build (measured `T` in `build/emacs-ref/src/xdisp.o`) and
+/// the core's `xdisp.rs` provides them (`window_box_right`'s reading of round 18); C 4411
+/// and C 4473 read them.
+@_silgen_name("window_box_left_offset")
+func window_box_left_offset(_ w: UnsafeMutableRawPointer?, _ area: Int32) -> Int32
+@_silgen_name("window_box_left")
+func window_box_left(_ w: UnsafeMutableRawPointer?, _ area: Int32) -> Int32
+
+/// C: `#define FRAME_COLUMN_WIDTH(F) ((F)->column_width)` (src/frame.h 1565) - the
+/// `min (…)` partner of C 4430.  Class A of the 3.255 ruling (`FRAME_CURSOR_WIDTH`'s
+/// shape), and its member is `int column_width;` (src/frame.h 641), so the entry is `Int32`.
+@_silgen_name("FRAME_COLUMN_WIDTH")
+func FRAME_COLUMN_WIDTH(_ f: UnsafeMutableRawPointer?) -> Int32
+
+/// C: `bool cursor_in_mouse_face_p (struct window *w)` (declared src/dispextern.h 3692,
+/// defined src/xdisp.c 35727) - C 4453's second test.  The frozen objects hold the symbol
+/// (`T` in `build/emacs-ref/src/xdisp.o`); the core does not export it yet (measured), so
+/// the row is the class the gate calls `reference` and the core owes its provider.
+@_silgen_name("cursor_in_mouse_face_p")
+func cursor_in_mouse_face_p(_ w: UnsafeMutableRawPointer?) -> Bool
+
+/// C: `struct mouse_highlight`'s `int mouse_face_face_id;` (src/dispextern.h 3007) - the
+/// member `MOUSE_HL_INFO (s->f)->mouse_face_face_id` reads at C 4456
+/// (`mouse_highlight_mouse_face_mouse_frame`'s family, round 7).
+@_silgen_name("mouse_highlight_mouse_face_face_id")
+func mouse_highlight_mouse_face_face_id(_ hlinfo: UnsafeMutableRawPointer?) -> Int32
+/// C: src/dispextern.h 1971's `MOUSE_FACE_ID` - the `enum face_id` member C 4459 falls
+/// back to (`DEFAULT_FACE_ID`'s family, round 18).
+@_silgen_name("MOUSE_FACE_ID") func MOUSE_FACE_ID() -> Int32
+/// C: `void prepare_face_for_display (struct frame *, struct face *)` (declared
+/// src/dispextern.h 3810, defined src/xfaces.c 4764) - C 4461's call, in the cursor
+/// fallback.  Neither the frozen objects nor the core holds the symbol (measured), so the
+/// row is a shim work order rather than a "provided" reading.
+@_silgen_name("prepare_face_for_display")
+func prepare_face_for_display(_ f: UnsafeMutableRawPointer?, _ face: UnsafeMutableRawPointer?)
+
+/// C 4396-4545: `static void ns_draw_stretch_glyph_string (struct glyph_string *s)` -
+/// the stretch glyph's cursor background, its stipple or plain background, and its text
+/// decoration.
+///
+/// Readings this body makes:
+///
+/// * C's `int width, background_width = s->background_width;` and `int x = s->x;` are the
+///   three locals below; `width` is uninitialized in C, so it takes the zero default
+///   (`ns_draw_image_relief`'s reading of round 19).
+/// * C 4434 re-tests `s->hl == DRAW_CURSOR` inside an arm that already established it
+///   (C 4402) - the reference's own duplication, transcribed as it stands.
+/// * `[[NSColor colorWithUnsignedLong: …] set]` is this unit's own `NSColor` category
+///   method, and `[FRAME_CURSOR_COLOR (s->f) set]` is `FRAME_CURSOR_COLOR(…)?.set()`
+///   (round 19's optional receiver).
+/// * `CGRectMake` is the spelled initializer (class B, round 19) and the `NS_IMPL_COCOA`
+///   stipple arm is the live one; the `#else`'s single `[[…stippleMask] set];` is the
+///   GNUstep text, recorded.
+fileprivate func ns_draw_stretch_glyph_string(_ s: UnsafeMutableRawPointer?) {
+  var face: UnsafeMutableRawPointer? = nil
+  var fg_color: NSColor? = nil
+
+  if glyph_string_hl(s) == DRAW_CURSOR() && !x_stretch_cursor_p {
+    /* If `x-stretch-cursor' is nil, don't draw a block cursor as
+       wide as the stretch glyph.  */
+    var width: Int32 = 0
+    var background_width = glyph_string_background_width(s)
+    var x = glyph_string_x(s)
+
+    if !glyph_row_reversed_p(glyph_string_row(s)) {
+      let left_x = window_box_left_offset(glyph_string_w(s), TEXT_AREA())
+
+      if x < left_x {
+        background_width -= left_x - x
+        x = left_x
+      }
+    } else {
+      /* In R2L rows, draw the cursor on the right edge of the
+         stretch glyph.  */
+      let right_x = window_box_right(glyph_string_w(s), TEXT_AREA())
+
+      if x + background_width > right_x {
+        background_width -= x - right_x
+      }
+      x += background_width
+    }
+
+    width = min(FRAME_COLUMN_WIDTH(glyph_string_f(s)), background_width)
+    if glyph_row_reversed_p(glyph_string_row(s)) {
+      x -= width
+    }
+
+    if glyph_string_hl(s) == DRAW_CURSOR() {
+      FRAME_CURSOR_COLOR(glyph_string_f(s))?.set()
+    } else {
+      NSColor.colorWithUnsignedLong(face_foreground(glyph_string_face(s))).set()
+    }
+
+    NSRectFill(NSMakeRect(CGFloat(x), CGFloat(glyph_string_y(s)), CGFloat(width),
+                          CGFloat(glyph_string_height(s))))
+
+    /* Clear rest using the GC of the original non-cursor face.  */
+    if width < background_width {
+      let y = glyph_string_y(s)
+      let w = background_width - width
+      let h = glyph_string_height(s)
+
+      if !glyph_row_reversed_p(glyph_string_row(s)) {
+        x += width
+      } else {
+        x = glyph_string_x(s)
+      }
+
+      if glyph_row_mouse_face_p(glyph_string_row(s))
+           && cursor_in_mouse_face_p(glyph_string_w(s)) {
+        face = FACE_FROM_ID_OR_NULL(glyph_string_f(s),
+                                    mouse_highlight_mouse_face_face_id(
+                                      MOUSE_HL_INFO(glyph_string_f(s))))
+
+        if face == nil {
+          face = FACE_FROM_ID(glyph_string_f(s), MOUSE_FACE_ID())
+        }
+        prepare_face_for_display(glyph_string_f(s), face)
+
+        NSColor.colorWithUnsignedLong(face_background(face)).set()
+      } else {
+        NSColor.colorWithUnsignedLong(face_background(glyph_string_face(s))).set()
+      }
+      NSRectFill(NSMakeRect(CGFloat(x), CGFloat(y), CGFloat(w), CGFloat(h)))
+    }
+  } else if !glyph_string_background_filled_p(s) {
+    var background_width = glyph_string_background_width(s)
+    var x = glyph_string_x(s)
+    let text_left_x = window_box_left(glyph_string_w(s), TEXT_AREA())
+
+    /* Don't draw into left fringe or scrollbar area except for
+       header line and mode line.  */
+    if glyph_string_area(s) == TEXT_AREA()
+         && x < text_left_x && !glyph_row_mode_line_p(glyph_string_row(s)) {
+      background_width -= text_left_x - x
+      x = text_left_x
+    }
+
+    if !glyph_row_stipple_p(glyph_string_row(s)) {
+      glyph_row_set_stipple_p(glyph_string_row(s), glyph_string_stippled_p(s))
+    }
+
+    if background_width > 0 {
+      let dpyinfo = FRAME_DISPLAY_INFO(glyph_string_f(s))
+      if glyph_string_hl(s) == DRAW_CURSOR() {
+        FRAME_CURSOR_COLOR(glyph_string_f(s))?.set()
+      } else if glyph_string_stippled_p(s) {
+        /* On cocoa emacs the stipple is stored as a mask CGImage.
+           First we want to clear the background with the bg color.  */
+        NSColor.colorWithUnsignedLong(face_background(glyph_string_face(s))).set()
+        NSRectFill(NSMakeRect(CGFloat(x), CGFloat(glyph_string_y(s)),
+                              CGFloat(background_width), CGFloat(glyph_string_height(s))))
+
+        /* This part could possibly be improved, the author is unfamiliar with
+           NS/CoreGraphics and isn't sure if it's possible to do this with NSImage.  */
+        let mask = EmacsImage_stippleMask(
+          ns_display_info_bitmaps_img(dpyinfo, face_stipple(glyph_string_face(s)) - 1))
+        let bounds = CGRect(x: CGFloat(glyph_string_x(s)), y: CGFloat(glyph_string_y(s)),
+                            width: CGFloat(glyph_string_background_width(s)),
+                            height: CGFloat(glyph_string_height(s)))
+
+        /* Checkpoint the graphics state and then focus in on the
+           area we're going to fill.  */
+        let ctx = NSGraphicsContext.current
+        ctx?.saveGraphicsState()
+        let context = ctx?.cgContext
+        CGContextClipToRect(context, bounds)
+        CGContextScaleCTM(context, 1, -1)
+
+        /* Stamp the foreground color using the stipple mask.  */
+        NSColor.colorWithUnsignedLong(face_foreground(glyph_string_face(s))).set()
+        let imageSize = CGRect(x: 0, y: 0, width: CGFloat(CGImageGetWidth(mask)),
+                               height: CGFloat(CGImageGetHeight(mask)))
+        CGContextDrawTiledImage(context, imageSize, mask)
+
+        NSGraphicsContext.current?.restoreGraphicsState()
+        // C 4523: the `#else` arm's `[[dpyinfo->bitmaps[…].img stippleMask] set];` is the
+        // GNUstep text behind `#ifdef NS_IMPL_COCOA` - recorded, not transcribed.
+      } else {
+        NSColor.colorWithUnsignedLong(face_background(glyph_string_face(s))).set()
+      }
+
+      NSRectFill(NSMakeRect(CGFloat(x), CGFloat(glyph_string_y(s)),
+                            CGFloat(background_width), CGFloat(glyph_string_height(s))))
+    }
+  }
+
+  /* Draw overlining, etc. on the stretch glyph (or the part of the
+     stretch glyph after the cursor).  If the glyph has a box, then
+     decorations will be drawn after drawing the box in
+     ns_draw_glyph_string, in order to prevent them from being
+     overwritten by the box.  */
+  if face_box(glyph_string_face(s)) == FACE_NO_BOX() {
+    fg_color = NSColor.colorWithUnsignedLong(NS_FACE_FOREGROUND(glyph_string_face(s)))
+    ns_draw_text_decoration(s, glyph_string_face(s), fg_color,
+                            CGFloat(glyph_string_background_width(s)), CGFloat(glyph_string_x(s)))
+  }
+}
+
+/// C: `struct font_driver`'s `draw` slot
+/// `int (*draw) (struct glyph_string *s, int from, int to, int x, int y,
+/// bool with_background)` (src/font.h 683-684) - the second slot this lane reaches through
+/// round 14's two-hop `font_driver` read (`font_driver_text_extents`'s shape) - and the
+/// driver's `encode_char` slot `unsigned (*encode_char) (struct font *font, int c)`
+/// (src/font.h 667's `encode_char`), the third.  `draw` returns C's `int`, which C drops at
+/// every one of this slice's eight call sites.
+typealias font_draw_fn = @convention(c) (UnsafeMutableRawPointer?, Int32, Int32, Int32, Int32,
+                                         Bool) -> Int32
+typealias font_encode_char_fn = @convention(c) (UnsafeMutableRawPointer?, Int32) -> UInt32
+@_silgen_name("font_driver_draw")
+func font_driver_draw(_ driver: UnsafeMutableRawPointer?) -> font_draw_fn?
+@_silgen_name("font_driver_encode_char")
+func font_driver_encode_char(_ driver: UnsafeMutableRawPointer?) -> font_encode_char_fn?
+
+/// C 4547-4564: `static void ns_draw_glyph_string_foreground (struct glyph_string *s)` -
+/// the plain text foreground: one driver call and no background.
+///
+/// `font->driver->draw (…)` is the two-hop read above; C calls the slot unconditionally,
+/// so the port's `if let` is the nil check C's driver contract makes unnecessary, and `_ =`
+/// is C's dropped `int` return (`_ = composition_gstring_width`'s shape, round 14).
+/// `!s->for_overlaps` on the bitfield entry is `== 0` (round 18's reading).
+fileprivate func ns_draw_glyph_string_foreground(_ s: UnsafeMutableRawPointer?) {
+  var x: Int32 = 0
+  let font = glyph_string_font(s)
+
+  /* If first glyph of S has a left box line, start drawing the text
+     of S to the right of that box line.  */
+  if glyph_string_face(s) != nil && face_box(glyph_string_face(s)) != FACE_NO_BOX()
+       && glyph_left_box_line_p(glyph_string_first_glyph(s)) {
+    x = glyph_string_x(s) + max(face_box_vertical_line_width(glyph_string_face(s)), 0)
+  } else {
+    x = glyph_string_x(s)
+  }
+
+  if let draw = font_driver_draw(font_driver(font)) {
+    _ = draw(s, glyph_string_cmp_from(s), glyph_string_nchars(s), x,
+             glyph_string_ybase(s),
+             glyph_string_for_overlaps(s) == 0 && !glyph_string_background_filled_p(s))
+  }
+}
+
+/// C: `struct composition`'s `short *offsets;` (src/composite.h 177) with C's own
+/// subscript - `s->cmp->offsets[j * 2]` (C 4605) and `… [j * 2 + 1]` (C 4606) - so the row
+/// is a member entry whose second argument is that subscript (`glyph_row_used`'s shape),
+/// and the `short` promotes to `int` in C's arithmetic, hence `Int32`.
+@_silgen_name("composition_offsets")
+func composition_offsets(_ cmp: UnsafeMutableRawPointer?, _ i: Int32) -> Int32
+/// C: `#define COMPOSITION_GLYPH(cmp, n)` (src/composite.h 91-93, `XFIXNUM (AREF (…))`) -
+/// the abbreviation table read at C 4603.
+@_silgen_name("COMPOSITION_GLYPH")
+func COMPOSITION_GLYPH(_ cmp: UnsafeMutableRawPointer?, _ n: Int32) -> Int
+/// C: `struct face`'s `bool_bf overstrike : 1` (src/dispextern.h 1903) - the
+/// `s->face->overstrike` read at C 4609, 4632, 4640 and 4651.
+@_silgen_name("face_overstrike") func face_overstrike(_ face: UnsafeMutableRawPointer?) -> Bool
+
+/// C: the `lglyph` family the compound branch of C 4613-4654 reads - `LGSTRING_GLYPH` and
+/// `LGLYPH_ADJUSTMENT` (src/composite.h 273 and 312) plus the three adjustment members
+/// `LGLYPH_WIDTH`/`LGLYPH_XOFF`/`LGLYPH_YOFF`/`LGLYPH_WADJUST` (307, 328, 330 and 332).
+/// Each expands to `XFIXNUM`-of-`AREF` arithmetic over `Lisp_Object`s, so the three offsets
+/// are C's `ptrdiff_t` (Swift `Int`) and the port narrows them at the `int` locals with
+/// `Int32(truncatingIfNeeded:)` (round 17's narrowing rule).
+@_silgen_name("LGSTRING_GLYPH")
+func LGSTRING_GLYPH(_ lgs: Lisp_Object, _ idx: Int) -> Lisp_Object
+@_silgen_name("LGLYPH_ADJUSTMENT")
+func LGLYPH_ADJUSTMENT(_ g: Lisp_Object) -> Lisp_Object
+@_silgen_name("LGLYPH_WIDTH") func LGLYPH_WIDTH(_ g: Lisp_Object) -> Int
+@_silgen_name("LGLYPH_XOFF") func LGLYPH_XOFF(_ g: Lisp_Object) -> Int
+@_silgen_name("LGLYPH_YOFF") func LGLYPH_YOFF(_ g: Lisp_Object) -> Int
+@_silgen_name("LGLYPH_WADJUST") func LGLYPH_WADJUST(_ g: Lisp_Object) -> Int
+
+/// C 4567-4655: `static void ns_draw_composite_glyph_string_foreground
+/// (struct glyph_string *s)` - the two composition shapes: the rule-based walk over
+/// `s->cmp->offsets` and the automatic one over the `lglyph` vector.
+///
+/// Two more readings: C's `'\t'` comparison is the character constant, spelled `9` here,
+/// and the `font_not_found_p` arm's `NSRect r` is a local of the same name as nothing else
+/// in this function (the dispatcher's array is elsewhere).
+fileprivate func ns_draw_composite_glyph_string_foreground(_ s: UnsafeMutableRawPointer?) {
+  var i: Int32 = 0, j: Int32 = 0, x: Int32 = 0
+  let font = glyph_string_font(s)
+
+  /* If first glyph of S has a left box line, start drawing the text
+     of S to the right of that box line.  */
+  if glyph_string_face(s) != nil && face_box(glyph_string_face(s)) != FACE_NO_BOX()
+       && glyph_left_box_line_p(glyph_string_first_glyph(s)) {
+    x = glyph_string_x(s) + max(face_box_vertical_line_width(glyph_string_face(s)), 0)
+  } else {
+    x = glyph_string_x(s)
+  }
+
+  /* S is a glyph string for a composition.  S->cmp_from is the index
+     of the first character drawn for glyphs of this composition.
+     S->cmp_from == 0 means we are drawing the very first character of
+     this composition.  */
+
+  /* Draw a rectangle for the composition if the font for the very
+     first character of the composition could not be loaded.  */
+  if glyph_string_font_not_found_p(s) {
+    if glyph_string_cmp_from(s) == 0 {
+      let r = NSMakeRect(CGFloat(glyph_string_x(s)), CGFloat(glyph_string_y(s)),
+                         CGFloat(glyph_string_width(s) - 1),
+                         CGFloat(glyph_string_height(s) - 1))
+      ns_draw_box(r, 1, 1, FRAME_CURSOR_COLOR(glyph_string_f(s)), true, true)
+    }
+  } else if !glyph_u_cmp_automatic(glyph_string_first_glyph(s)) {
+    let y = glyph_string_ybase(s)
+
+    i = 0
+    j = glyph_string_cmp_from(s)
+    while i < glyph_string_nchars(s) {
+      /* TAB in a composition means display glyphs with padding
+         space on the left or right.  */
+      if COMPOSITION_GLYPH(glyph_string_cmp(s), j) != 9 {
+        let xx = x + composition_offsets(glyph_string_cmp(s), j * 2)
+        let yy = y - composition_offsets(glyph_string_cmp(s), j * 2 + 1)
+
+        if let draw = font_driver_draw(font_driver(font)) {
+          _ = draw(s, j, j + 1, xx, yy, false)
+          if face_overstrike(glyph_string_face(s)) {
+            _ = draw(s, j, j + 1, xx + 1, yy, false)
+          }
+        }
+      }
+      i += 1
+      j += 1
+    }
+  } else {
+    let gstring = composition_gstring_from_id(glyph_string_cmp_id(s))
+    var glyph: Lisp_Object = nil
+    let y = glyph_string_ybase(s)
+    var width: Int32 = 0
+
+    i = glyph_string_cmp_from(s)
+    j = i
+    while i < glyph_string_cmp_to(s) {
+      glyph = LGSTRING_GLYPH(gstring, Int(i))
+      if NILP(LGLYPH_ADJUSTMENT(glyph)) {
+        width += Int32(truncatingIfNeeded: LGLYPH_WIDTH(glyph))
+      } else {
+        var xoff: Int32 = 0, yoff: Int32 = 0, wadjust: Int32 = 0
+
+        if j < i {
+          if let draw = font_driver_draw(font_driver(font)) {
+            _ = draw(s, j, i, x, y, false)
+            if face_overstrike(glyph_string_face(s)) {
+              _ = draw(s, j, i, x + 1, y, false)
+            }
+          }
+          x += width
+        }
+        xoff = Int32(truncatingIfNeeded: LGLYPH_XOFF(glyph))
+        yoff = Int32(truncatingIfNeeded: LGLYPH_YOFF(glyph))
+        wadjust = Int32(truncatingIfNeeded: LGLYPH_WADJUST(glyph))
+        if let draw = font_driver_draw(font_driver(font)) {
+          _ = draw(s, i, i + 1, x + xoff, y + yoff, false)
+          if face_overstrike(glyph_string_face(s)) {
+            _ = draw(s, i, i + 1, x + xoff + 1, y + yoff, false)
+          }
+        }
+        x += wadjust
+        j = i + 1
+        width = 0
+      }
+      i += 1
+    }
+    if j < i {
+      if let draw = font_driver_draw(font_driver(font)) {
+        _ = draw(s, j, i, x, y, false)
+        if face_overstrike(glyph_string_face(s)) {
+          _ = draw(s, j, i, x + 1, y, false)
+        }
+      }
+    }
+  }
+}
+
+/// C: `struct glyph`'s `u.glyphless` sub-struct (src/dispextern.h 624-635): the
+/// `unsigned method : 2` (628, read at C 4686, 4704 and 4728), the
+/// `bool_bf for_no_font : 1` (630, C 4694) and the two widths `unsigned len : 4` (632,
+/// C 4684) and `unsigned ch : 25` (634, C 4696 and 4706).  Each field promotes to `int` in
+/// C's expressions, so the three numeric entries are `Int32` (round 18's `glyph_u_cmp_id`).
+@_silgen_name("glyph_u_glyphless_method")
+func glyph_u_glyphless_method(_ g: UnsafeMutableRawPointer?) -> Int32
+@_silgen_name("glyph_u_glyphless_for_no_font")
+func glyph_u_glyphless_for_no_font(_ g: UnsafeMutableRawPointer?) -> Bool
+@_silgen_name("glyph_u_glyphless_len")
+func glyph_u_glyphless_len(_ g: UnsafeMutableRawPointer?) -> Int32
+@_silgen_name("glyph_u_glyphless_ch")
+func glyph_u_glyphless_ch(_ g: UnsafeMutableRawPointer?) -> Int32
+/// C: the three `enum glyphless_display_method` members C 4670 and 4684-4704 test
+/// (src/dispextern.h 2351, 2355 and 2357).
+@_silgen_name("GLYPHLESS_DISPLAY_THIN_SPACE")
+func GLYPHLESS_DISPLAY_THIN_SPACE() -> Int32
+@_silgen_name("GLYPHLESS_DISPLAY_ACRONYM")
+func GLYPHLESS_DISPLAY_ACRONYM() -> Int32
+@_silgen_name("GLYPHLESS_DISPLAY_HEX_CODE")
+func GLYPHLESS_DISPLAY_HEX_CODE() -> Int32
+/// C: `Lisp_Object Vglyphless_char_display;` - the `glyphless-char-display` variable the
+/// acronym branch reads at C 4689, 4690, 4695 and 4697.
+///
+/// A generated `globals` field too (like `x_stretch_cursor_p` above): `Lisp_Object
+/// f_Vglyphless_char_display;`, globals.h 296-297, the `DEFVAR_LISP` at src/xdisp.c 39354,
+/// so no object holds a symbol of this name and the core owes the export.
+@_silgen_name("Vglyphless_char_display") var Vglyphless_char_display: Lisp_Object
+
+/// C: the char-table reads of C 4685-4690 - `CHAR_TABLE_P` and `XCHAR_TABLE`
+/// (src/lisp.h 2085 and 2091, both `INLINE`s, class A), `CHAR_TABLE_EXTRA_SLOTS`
+/// (2263, also an `INLINE`), `CHAR_TABLE_REF` (2150) and the `->extras[…]` member read
+/// (src/lisp.h 2081's `extras`, the record's flexible array).  `nsfont.swift` 531-532
+/// declares `XCHAR_TABLE` with a `struct Lisp_Char_Table` view of its own; this unit has no
+/// such view (the record is the core's), so the member read is an entry whose second
+/// argument is C's own subscript 0 - the `ns_display_info_bitmaps_img` shape of round 18.
+@_silgen_name("CHAR_TABLE_P") func CHAR_TABLE_P(_ a: Lisp_Object) -> Bool
+@_silgen_name("XCHAR_TABLE")
+func XCHAR_TABLE(_ a: Lisp_Object) -> UnsafeMutableRawPointer?
+@_silgen_name("CHAR_TABLE_EXTRA_SLOTS")
+func CHAR_TABLE_EXTRA_SLOTS(_ ct: UnsafeMutableRawPointer?) -> Int32
+@_silgen_name("CHAR_TABLE_REF")
+func CHAR_TABLE_REF(_ ct: Lisp_Object, _ idx: Int32) -> Lisp_Object
+@_silgen_name("char_table_extras")
+func char_table_extras(_ ct: UnsafeMutableRawPointer?, _ i: Int32) -> Lisp_Object
+/// C: `struct glyph`'s `slice.glyphless` sub-struct - `short upper_xoff, upper_yoff;` and
+/// `short lower_xoff, lower_yoff;` (src/dispextern.h 583-586), read at C 4720-4725; each
+/// `short` promotes to `int` in C's `x + …`, so the entries are `Int16` and the use site
+/// widens (the `glyph_ascent` reading of round 16).
+@_silgen_name("glyph_slice_glyphless_upper_xoff")
+func glyph_slice_glyphless_upper_xoff(_ g: UnsafeMutableRawPointer?) -> Int16
+@_silgen_name("glyph_slice_glyphless_upper_yoff")
+func glyph_slice_glyphless_upper_yoff(_ g: UnsafeMutableRawPointer?) -> Int16
+@_silgen_name("glyph_slice_glyphless_lower_xoff")
+func glyph_slice_glyphless_lower_xoff(_ g: UnsafeMutableRawPointer?) -> Int16
+@_silgen_name("glyph_slice_glyphless_lower_yoff")
+func glyph_slice_glyphless_lower_yoff(_ g: UnsafeMutableRawPointer?) -> Int16
+
+/// C: `struct glyph_string`'s `unsigned *char2b;` (src/dispextern.h 1407) - the member
+/// C 4695 writes the local buffer's address into and C 4745 clears.  Round 14 declared the
+/// *read* (`glyph_string_char2b`); this slice adds the two writes.
+@_silgen_name("glyph_string_set_char2b")
+func glyph_string_set_char2b(_ s: UnsafeMutableRawPointer?, _ v: UnsafeMutablePointer<UInt32>?)
+
+/// C 4658-4741: `static void ns_draw_glyphless_glyph_string_foreground
+/// (struct glyph_string *s)` - "Draw the foreground of glyph string S for glyphless
+/// characters."
+///
+/// Four readings, beyond the entries above:
+///
+/// * `NSGlyph char2b[8];` (C 4662) is `unsigned int` in this SDK (AppKit's NSFont.h 147),
+///   so the buffer is `[UInt32]` of eight and C's two assignments, C 4673's
+///   `s->char2b = char2b;` and C 4740's `s->char2b = NULL;`, are the `_set_` entry's.  C's array *is* the storage the driver reads through that pointer, so the
+///   pointer has to live across the whole walk - Swift's array storage is only valid inside
+///   `withUnsafeMutableBufferPointer`, which is why the pair and the loop sit in that
+///   closure (the `withUnsafeBufferPointer` reading `macfont.swift` 2207 uses).
+/// * `char buf[8 + PACIFY_GCC_BUG_81401];` (C 4682) is eight bytes here: the `#ifdef
+///   GCC_LINT` arm's 1 (`enum { PACIFY_GCC_BUG_81401 = 1 };`, C 4678) is for a compiler this
+///   build does not use, and the live arm's 0 (C 4680) is the one transcribed - a dead arm,
+///   recorded.
+/// * `snprintf (buf, 8, "%0*X", ch < 0x10000 ? 4 : 6, ch);` (C 4708) is variadic and has no Swift
+///   spelling (round 12's `get_keysym_name` reading), so the port writes the same
+///   conversion into the same buffer: an uppercase zero-padded hexadecimal number of width
+///   4 or 6, and `ch` is at most `MAX_CHAR` (0x3FFFFF, six digits), so C's eight-byte bound
+///   is kept.  `str` therefore points into `buf` only inside `buf`'s closure.
+/// * `eassume (ch <= MAX_CHAR);` (C 4707) is the src/lisp.h 182/193 macro - `assume (cond)`,
+///   a compiler hint with no statement when `ENABLE_CHECKING` is off, which this
+///   configuration leaves undefined (round 13's `eassert (w)` reading); it is recorded, and
+///   `MAX_CHAR` (src/character.h 49) is not imported with it.
+fileprivate func ns_draw_glyphless_glyph_string_foreground(_ s: UnsafeMutableRawPointer?) {
+  var glyph = glyph_string_first_glyph(s)
+  var char2b = [UInt32](repeating: 0, count: 8)
+  var x: Int32 = 0
+  var i: Int32 = 0
+  var j: Int32 = 0
+
+  /* If first glyph of S has a left box line, start drawing the text
+     of S to the right of that box line.  */
+  if glyph_string_face(s) != nil && face_box(glyph_string_face(s)) != FACE_NO_BOX()
+       && glyph_left_box_line_p(glyph_string_first_glyph(s)) {
+    x = glyph_string_x(s) + max(face_box_vertical_line_width(glyph_string_face(s)), 0)
+  } else {
+    x = glyph_string_x(s)
+  }
+
+  char2b.withUnsafeMutableBufferPointer { char2b_buf in
+    glyph_string_set_char2b(s, char2b_buf.baseAddress)
+
+    i = 0
+    while i < glyph_string_nchars(s) {
+      var buf = [CChar](repeating: 0, count: 8)
+      let len = glyph_u_glyphless_len(glyph)
+
+      buf.withUnsafeMutableBufferPointer { bufPtr in
+        var str: UnsafeMutablePointer<CChar>? = nil
+
+        if glyph_u_glyphless_method(glyph) == GLYPHLESS_DISPLAY_ACRONYM() {
+          if len > 0
+               && CHAR_TABLE_P(Vglyphless_char_display)
+               && (CHAR_TABLE_EXTRA_SLOTS(XCHAR_TABLE(Vglyphless_char_display)) >= 1) {
+            var acronym = !glyph_u_glyphless_for_no_font(glyph)
+              ? CHAR_TABLE_REF(Vglyphless_char_display, glyph_u_glyphless_ch(glyph))
+              : char_table_extras(XCHAR_TABLE(Vglyphless_char_display), 0)
+            if CONSP(acronym) {
+              acronym = XCAR(acronym)
+            }
+            if STRINGP(acronym) {
+              str = SSDATA(acronym)
+            }
+          }
+        } else if glyph_u_glyphless_method(glyph) == GLYPHLESS_DISPLAY_HEX_CODE() {
+          let ch = UInt32(truncatingIfNeeded: glyph_u_glyphless_ch(glyph))
+          let digits = Array(String(ch, radix: 16, uppercase: true).utf8)
+          let width = ch < 0x10000 ? 4 : 6
+          /* C's `%0*X` pads to WIDTH but never truncates a longer number, and the 25-bit
+             field can hold seven digits; the buffer's eight bytes still bound the write.  */
+          let pad = max(width - digits.count, 0)
+
+          for (idx, d) in digits.enumerated() {
+            bufPtr[pad + idx] = CChar(bitPattern: d)
+          }
+          str = bufPtr.baseAddress
+        }
+
+        if str != nil {
+          let upper_len = (len + 1) / 2
+
+          /* It is assured that all LEN characters in STR is ASCII.  */
+          j = 0
+          while j < len {
+            let font = glyph_string_font(s)
+            if let encode_char = font_driver_encode_char(font_driver(font)) {
+              let code = encode_char(font, Int32(str![Int(j)]))
+              char2b_buf[Int(j)] = code & 0xFFFF
+            }
+            j += 1
+          }
+
+          let font = glyph_string_font(s)
+          if let draw = font_driver_draw(font_driver(font)) {
+            _ = draw(s, 0, upper_len,
+                     x + Int32(glyph_slice_glyphless_upper_xoff(glyph)),
+                     glyph_string_ybase(s) + Int32(glyph_slice_glyphless_upper_yoff(glyph)),
+                     false)
+            _ = draw(s, upper_len, len,
+                     x + Int32(glyph_slice_glyphless_lower_xoff(glyph)),
+                     glyph_string_ybase(s) + Int32(glyph_slice_glyphless_lower_yoff(glyph)),
+                     false)
+          }
+        }
+      }
+
+      if glyph_u_glyphless_method(glyph) != GLYPHLESS_DISPLAY_THIN_SPACE() {
+        let ascent = Int32(glyph_ascent(glyph))
+        let descent = Int32(glyph_descent(glyph))
+        ns_draw_box(NSMakeRect(CGFloat(x), CGFloat(glyph_string_ybase(s) - ascent),
+                               CGFloat(Int32(glyph_pixel_width(glyph)) - 1),
+                               CGFloat(ascent + descent - 1)),
+                    1, 1,
+                    NSColor.colorWithUnsignedLong(NS_FACE_FOREGROUND(glyph_string_face(s))),
+                    true, true)
+      }
+      x += Int32(glyph_pixel_width(glyph))
+
+      i += 1
+      glyph = glyph_advance(glyph, 1)
+    }
+
+    /* GCC 12 complains even though nothing ever uses s->char2b after
+       this function returns.  */
+    glyph_string_set_char2b(s, nil)
+  }
+}
+
+/// C: the two `enum draw_glyphs_face` members C 4756 and 4761 test that round 16's
+/// `DRAW_CURSOR` and round 18's `DRAW_MOUSE_FACE` do not already carry
+/// (src/dispextern.h 1350-1351).
+@_silgen_name("DRAW_NORMAL_TEXT") func DRAW_NORMAL_TEXT() -> Int32
+@_silgen_name("DRAW_INVERSE_VIDEO") func DRAW_INVERSE_VIDEO() -> Int32
+/// C: `struct glyph_string`'s `bool_bf stippled_p : 1` (src/dispextern.h 1443) - round 18
+/// declared the read; the five-arm write of C 4758-4779 is this `_set_` row.
+@_silgen_name("glyph_string_set_stippled_p")
+func glyph_string_set_stippled_p(_ s: UnsafeMutableRawPointer?, _ v: Bool)
+
+/// C 4747-4780: `static void ns_set_glyph_string_gc (struct glyph_string *s)` -
+/// "Transfer glyph string parameters from S's face to S itself.  Set S->stipple_p as
+/// appropriate, taking the draw type into account."
+///
+/// The five comment-only lines (C 4754 `s->gc = s->face->gc;`, C 4759
+/// `x_set_mode_line_face_gc (s);`, C 4764 `x_set_cursor_gc (s);`, C 4769
+/// `x_set_mouse_face_gc (s);` and C 4775 `s->gc = s->face->gc;`) are the X port's leftovers
+/// and carry no statement in this arm - recorded.  C's final `emacs_abort ()` (C 4779) is
+/// the core's own symbol (round 3's row).
+fileprivate func ns_set_glyph_string_gc(_ s: UnsafeMutableRawPointer?) {
+  prepare_face_for_display(glyph_string_f(s), glyph_string_face(s))
+
+  if glyph_string_hl(s) == DRAW_NORMAL_TEXT() {
+    /* s->gc = s->face->gc; */
+    glyph_string_set_stippled_p(s, face_stipple(glyph_string_face(s)) != 0)
+  } else if glyph_string_hl(s) == DRAW_INVERSE_VIDEO() {
+    /* x_set_mode_line_face_gc (s); */
+    glyph_string_set_stippled_p(s, face_stipple(glyph_string_face(s)) != 0)
+  } else if glyph_string_hl(s) == DRAW_CURSOR() {
+    /* x_set_cursor_gc (s); */
+    glyph_string_set_stippled_p(s, false)
+  } else if glyph_string_hl(s) == DRAW_MOUSE_FACE() {
+    /* x_set_mouse_face_gc (s); */
+    glyph_string_set_stippled_p(s, face_stipple(glyph_string_face(s)) != 0)
+  } else if glyph_string_hl(s) == DRAW_IMAGE_RAISED()
+              || glyph_string_hl(s) == DRAW_IMAGE_SUNKEN() {
+    /* s->gc = s->face->gc; */
+    glyph_string_set_stippled_p(s, face_stipple(glyph_string_face(s)) != 0)
+  } else {
+    emacs_abort()
+  }
+}
+
+/// C: `struct face`'s `struct font *font;` (src/dispextern.h 1828's `font` member) - the
+/// `s->face->font` read at C 4786 - and the `FRAME_NS_VIEW` macro's shape,
+/// `#define FRAME_FONT(f) ((f)->output_data.ns->font)` (src/nsterm.h 1049) - the fallback
+/// C 4787 reads - plus `#define FRAME_FOREGROUND_COLOR(f)
+/// ((f)->output_data.ns->foreground_color)` (src/nsterm.h 1037) - the non-zero-foreground
+/// arm's value at C 4849.
+@_silgen_name("face_font")
+func face_font(_ face: UnsafeMutableRawPointer?) -> UnsafeMutableRawPointer?
+@_silgen_name("FRAME_FONT")
+func FRAME_FONT(_ f: UnsafeMutableRawPointer?) -> UnsafeMutableRawPointer?
+@_silgen_name("FRAME_FOREGROUND_COLOR")
+func FRAME_FOREGROUND_COLOR_borrowed_raw(_ f: UnsafeMutableRawPointer?) -> UnsafeMutableRawPointer?
+func FRAME_FOREGROUND_COLOR(_ f: UnsafeMutableRawPointer?) -> NSColor? {
+  guard let pointer = FRAME_FOREGROUND_COLOR_borrowed_raw(f) else { return nil }
+  return Unmanaged<NSColor>.fromOpaque(pointer).takeUnretainedValue()
+}
+
+/// C: `struct glyph_string`'s `int left_overhang` (src/dispextern.h 1384) and
+/// `int right_overhang` (1389) - the two **reads** round 14's note left open (that slice
+/// wrote them at C 3070-3077 and declared only the `_set_` pair); C 4837 and C 4967 read
+/// the left one here, and C 4797, 4803, 4838 and 4926 the right one.
+@_silgen_name("glyph_string_left_overhang")
+func glyph_string_left_overhang(_ s: UnsafeMutableRawPointer?) -> Int32
+@_silgen_name("glyph_string_right_overhang")
+func glyph_string_right_overhang(_ s: UnsafeMutableRawPointer?) -> Int32
+/// C: `enum glyph_type`'s remaining four members - `GLYPHLESS_GLYPH` (src/dispextern.h
+/// 440), `IMAGE_GLYPH` (443), `STRETCH_GLYPH` (446) and `XWIDGET_GLYPH` (449) - the
+/// dispatcher's `switch` at C 4843 tests all four beside round 14's `CHAR_GLYPH` and
+/// `COMPOSITE_GLYPH`.
+@_silgen_name("IMAGE_GLYPH") func IMAGE_GLYPH() -> Int32
+@_silgen_name("STRETCH_GLYPH") func STRETCH_GLYPH() -> Int32
+@_silgen_name("XWIDGET_GLYPH") func XWIDGET_GLYPH() -> Int32
+@_silgen_name("GLYPHLESS_GLYPH") func GLYPHLESS_GLYPH() -> Int32
+/// C: `struct glyph_string`'s `struct glyph_string *clip_head, *clip_tail;`
+/// (src/dispextern.h 1494), `int num_clips;` (1500) and `enum draw_glyphs_face hl;` (1411).
+/// Round 14 declared the `hl` *read* (`glyph_string_hl`); the five writes below - C 4932's
+/// `prev->hl = s->hl`, C 4955's `prev->hl = save`, C 4973's `next->hl = s->hl`, C 4995's
+/// `next->hl = save` and C 4996's `next->clip_head = s->next` - and the two `num_clips`
+/// writes (C 4815 and C 5000) are the `_set_` rows.
+@_silgen_name("glyph_string_clip_head")
+func glyph_string_clip_head(_ s: UnsafeMutableRawPointer?) -> UnsafeMutableRawPointer?
+@_silgen_name("glyph_string_set_clip_head")
+func glyph_string_set_clip_head(_ s: UnsafeMutableRawPointer?,
+                                _ v: UnsafeMutableRawPointer?)
+@_silgen_name("glyph_string_clip_tail")
+func glyph_string_clip_tail(_ s: UnsafeMutableRawPointer?) -> UnsafeMutableRawPointer?
+@_silgen_name("glyph_string_set_num_clips")
+func glyph_string_set_num_clips(_ s: UnsafeMutableRawPointer?, _ v: Int32)
+@_silgen_name("glyph_string_set_hl")
+func glyph_string_set_hl(_ s: UnsafeMutableRawPointer?, _ v: Int32)
+
+/// C: `void get_glyph_string_clip_rect (struct glyph_string *, NativeRectangle *nr)`
+/// (declared src/dispextern.h 3663, right after round 16's `get_glyph_string_clip_rects`)
+/// - "Wrapper utility …"; defined at src/xdisp.c 2695, inside that file's glyph-clipping
+/// block.  The frozen configuration has no symbol for it (measured), so it carries the same
+/// gate as its plural sibling: this unit's `ns_get_glyph_string_clip_rect` (round 17) is the
+/// two-rect wrapper and this is the one-rect core call C 4935 and C 4976 make.
+@_silgen_name("get_glyph_string_clip_rect")
+func get_glyph_string_clip_rect(_ s: UnsafeMutableRawPointer?,
+                                _ nr: UnsafeMutablePointer<NSRect>?)
+/// C: `void x_draw_xwidget_glyph_string (struct glyph_string *)` - declared src/xwidget.h
+/// 188 (the `HAVE_XWIDGETS` arm) and defined src/xwidget.c 2793; the header's `#else` arm
+/// (236) is the `INLINE { eassume (0); }` stub.  C 4850-4851's `case XWIDGET_GLYPH` calls it,
+/// and neither object exists in the frozen build (`src/xwidget.c` is not among
+/// `docs/baseline/frozen-build-sources.txt`'s files, measured), so this is a shim work
+/// order - the `image_ascent` row of round 19.
+@_silgen_name("x_draw_xwidget_glyph_string")
+func x_draw_xwidget_glyph_string(_ s: UnsafeMutableRawPointer?)
+
+/// C 4782-5001: `static void ns_draw_glyph_string (struct glyph_string *s)` - the RIF's
+/// "Main draw-text call" and the Glyph drawing operations section's last definition.
+///
+/// Readings this body makes:
+///
+/// * `NSRect r[2]` is a two-element `[NSRect]` - `get_glyph_string_clip_rects` "should be
+///   pointer to two successive NSRects", so the two slots are the reference's - and both
+///   entries that take it want the element pointer, which is `&r` (the `&unichars` reading
+///   `macfont.swift` 2261-2262 uses).
+/// * C's `char box_drawn_p = 0;` (C 4791) is `Bool`, and C 4830's `box_drawn_p = 1` is
+///   `true`.
+/// * `struct font *font = s->face->font;` (C 4792) with `if (! font) font = FRAME_FONT
+///   (s->f);` (C 4793) is the member entry plus the macro entry with C's nil fallback.
+/// * the right-overhang loop's comma-headed `for (width = 0, next = s->next; …;
+///   width += next->width, next = next->next)` (C 4802-4804) is the `while` below, C's two
+///   clauses as the statements they are; C's body mixes `next` and `s->next` (C 4805-4816)
+///   and the port keeps both readings - on the first turn they are the same pointer, and
+///   the reference's own text uses `s->next` in the rest of the body.
+/// * `!s->clip_head` and `!s->clip_tail` are `== nil` on the pointer getters, and
+///   `NSIntersectionRect` is Foundation's own (round 13's spelling of it).
+/// * the two overhang loops' `NSRect r = NSMakeRect (…)` (C 4933 and C 4974) shadows the
+///   outer array's name exactly as C's does, and their `NSRect rc;` with
+///   `get_glyph_string_clip_rect (s, &rc);` (C 4934-4935 and C 4975-4976) is the zero
+///   default plus the call.  The first loop guards its second clip with `if (n)` (C 4938),
+///   the second does not (C 4979) - the reference's own asymmetry, transcribed.
+/// * the four `NS_IMPL_GNUSTEP` arms (`DPSgsave` with two `DPSrectclip`s at C 4941-4945 and
+///   C 4981-4985, `DPSgrestore` at C 4952 and C 4992) are dead - recorded; the live
+///   `saveGraphicsState`/`restoreGraphicsState` pair stays.
+/// * the `CHAR_GLYPH`/`COMPOSITE_GLYPH` arm's two extra C block scopes (the case's own at
+///   C 4860 and the `NSColor *col` one at C 4875) are the plain declarations below: C's
+///   names do not collide there, so no scope is needed, and C's `break`s are Swift's arm
+///   ends (round 16's `switch` reading).
+/// * `case XWIDGET_GLYPH:` (C 4850-4851) calls the entry above.
+fileprivate func ns_draw_glyph_string(_ s: UnsafeMutableRawPointer?) {
+  /* TODO (optimize): focus for box and contents draw */
+  var r = [NSRect](repeating: NSRect.zero, count: 2)
+  var n: Int32 = 0
+  var box_drawn_p = false
+  var font = face_font(glyph_string_face(s))
+  if font == nil { font = FRAME_FONT(glyph_string_f(s)) }
+
+  // C 4795: `NSTRACE ("ns_draw_glyph_string (hl = %u)", s->hl);` - empty at `NSTRACE_ENABLED`
+  // 0, so neither its group nor its format argument is evaluated.
+
+  if glyph_string_next(s) != nil && glyph_string_right_overhang(s) != 0
+       && glyph_string_for_overlaps(s) == 0 {
+    var width: Int32 = 0
+    var next = glyph_string_next(s)
+
+    while next != nil && width < glyph_string_right_overhang(s) {
+      if glyph_type(glyph_string_first_glyph(next)) != IMAGE_GLYPH() {
+        ns_set_glyph_string_gc(next)
+        n = ns_get_glyph_string_clip_rect(glyph_string_next(s), &r)
+        ns_focus(glyph_string_f(s), r, n)
+        if glyph_type(glyph_string_first_glyph(next)) != STRETCH_GLYPH() {
+          ns_maybe_dumpglyphs_background(glyph_string_next(s), true)
+        } else {
+          ns_draw_stretch_glyph_string(glyph_string_next(s))
+        }
+        ns_unfocus(glyph_string_f(s))
+        glyph_string_set_num_clips(next, 0)
+      }
+      width += glyph_string_width(next)
+      next = glyph_string_next(next)
+    }
+  }
+
+  ns_set_glyph_string_gc(s)
+
+  if glyph_string_for_overlaps(s) == 0 && face_box(glyph_string_face(s)) != FACE_NO_BOX()
+       && (glyph_type(glyph_string_first_glyph(s)) == CHAR_GLYPH()
+           || glyph_type(glyph_string_first_glyph(s)) == COMPOSITE_GLYPH()) {
+    n = ns_get_glyph_string_clip_rect(s, &r)
+    ns_focus(glyph_string_f(s), r, n)
+    ns_maybe_dumpglyphs_background(s, true)
+    ns_dumpglyphs_box_or_relief(s)
+    ns_unfocus(glyph_string_f(s))
+    box_drawn_p = true
+  }
+
+  n = ns_get_glyph_string_clip_rect(s, &r)
+
+  if glyph_string_clip_head(s) == nil /* draw_glyphs didn't specify a clip mask. */
+       && glyph_string_clip_tail(s) == nil
+       && ((glyph_string_prev(s) != nil
+            && glyph_string_hl(glyph_string_prev(s)) != glyph_string_hl(s)
+            && glyph_string_left_overhang(s) != 0)
+           || (glyph_string_next(s) != nil
+               && glyph_string_hl(glyph_string_next(s)) != glyph_string_hl(s)
+               && glyph_string_right_overhang(s) != 0)) {
+    r[0] = NSIntersectionRect(r[0],
+                              NSMakeRect(CGFloat(glyph_string_x(s)), CGFloat(glyph_string_y(s)),
+                                         CGFloat(glyph_string_width(s)),
+                                         CGFloat(glyph_string_height(s))))
+  }
+
+  ns_focus(glyph_string_f(s), r, n)
+
+  switch glyph_type(glyph_string_first_glyph(s)) {
+  case IMAGE_GLYPH():
+    ns_dumpglyphs_image(s, r[0])
+  #if HAVE_XWIDGETS
+  case XWIDGET_GLYPH():
+    x_draw_xwidget_glyph_string(s)
+  #endif
+  case STRETCH_GLYPH():
+    ns_draw_stretch_glyph_string(s)
+  case CHAR_GLYPH(), COMPOSITE_GLYPH():
+    let isComposite = glyph_type(glyph_string_first_glyph(s)) == COMPOSITE_GLYPH()
+    if glyph_string_for_overlaps(s) != 0
+         || (isComposite
+             && (glyph_string_cmp_from(s) > 0
+                 && !glyph_u_cmp_automatic(glyph_string_first_glyph(s)))) {
+      glyph_string_set_background_filled_p(s, true)
+    } else {
+      ns_maybe_dumpglyphs_background(s,
+                                     glyph_type(glyph_string_first_glyph(s)) == COMPOSITE_GLYPH())
+    }
+
+    if isComposite {
+      ns_draw_composite_glyph_string_foreground(s)
+    } else {
+      ns_draw_glyph_string_foreground(s)
+    }
+
+    let col: NSColor? = (NS_FACE_FOREGROUND(glyph_string_face(s)) != 0
+      ? NSColor.colorWithUnsignedLong(NS_FACE_FOREGROUND(glyph_string_face(s)))
+      : FRAME_FOREGROUND_COLOR(glyph_string_f(s)))
+
+    /* Draw underline, overline, strike-through.  */
+    ns_draw_text_decoration(s, glyph_string_face(s), col, CGFloat(glyph_string_width(s)),
+                            CGFloat(glyph_string_x(s)))
+  case GLYPHLESS_GLYPH():
+    if glyph_string_for_overlaps(s) != 0
+         || (glyph_string_cmp_from(s) > 0
+             && !glyph_u_cmp_automatic(glyph_string_first_glyph(s))) {
+      glyph_string_set_background_filled_p(s, true)
+    } else {
+      ns_maybe_dumpglyphs_background(s,
+                                     glyph_type(glyph_string_first_glyph(s)) == COMPOSITE_GLYPH())
+    }
+    ns_draw_glyphless_glyph_string_foreground(s)
+  default:
+    // C's switch covers every `enum glyph_type`; Swift needs the arm for an `Int32` value.
+    emacs_abort()
+  }
+
+  /* Draw box if not done already.  */
+  if glyph_string_for_overlaps(s) == 0 && !box_drawn_p
+       && face_box(glyph_string_face(s)) != FACE_NO_BOX() {
+    ns_dumpglyphs_box_or_relief(s)
+  }
+
+  if face_box(glyph_string_face(s)) != FACE_NO_BOX()
+       && glyph_type(glyph_string_first_glyph(s)) == STRETCH_GLYPH() {
+    let fg_color = NSColor.colorWithUnsignedLong(NS_FACE_FOREGROUND(glyph_string_face(s)))
+
+    ns_draw_text_decoration(s, glyph_string_face(s), fg_color,
+                            CGFloat(glyph_string_background_width(s)),
+                            CGFloat(glyph_string_x(s)))
+  }
+
+  ns_unfocus(glyph_string_f(s))
+
+  /* Draw surrounding overhangs.  */
+  if glyph_string_prev(s) != nil {
+    ns_focus(glyph_string_f(s), nil, 0)
+    var prev = glyph_string_prev(s)
+
+    while prev != nil {
+      if glyph_string_hl(prev) != glyph_string_hl(s)
+           && glyph_string_x(prev) + glyph_string_width(prev)
+                + glyph_string_right_overhang(prev) > glyph_string_x(s) {
+        /* As prev was drawn while clipped to its own area, we
+           must draw the right_overhang part using s->hl now.  */
+        let save = glyph_string_hl(prev)
+
+        glyph_string_set_hl(prev, glyph_string_hl(s))
+        let r = NSMakeRect(CGFloat(glyph_string_x(s)), CGFloat(glyph_string_y(s)),
+                           CGFloat(glyph_string_width(s)), CGFloat(glyph_string_height(s)))
+        var rc = NSRect.zero
+        get_glyph_string_clip_rect(s, &rc)
+        NSGraphicsContext.current?.saveGraphicsState()
+        NSRectClip(r)
+        if n != 0 {
+          NSRectClip(rc)
+        }
+        if glyph_type(glyph_string_first_glyph(prev)) == CHAR_GLYPH() {
+          ns_draw_glyph_string_foreground(prev)
+        } else {
+          ns_draw_composite_glyph_string_foreground(prev)
+        }
+        NSGraphicsContext.current?.restoreGraphicsState()
+        glyph_string_set_hl(prev, save)
+      }
+      prev = glyph_string_prev(prev)
+    }
+    ns_unfocus(glyph_string_f(s))
+  }
+
+  if glyph_string_next(s) != nil {
+    ns_focus(glyph_string_f(s), nil, 0)
+    var next = glyph_string_next(s)
+
+    while next != nil {
+      if glyph_string_hl(next) != glyph_string_hl(s)
+           && glyph_string_x(next) - glyph_string_left_overhang(next)
+                < glyph_string_x(s) + glyph_string_width(s) {
+        /* As next will be drawn while clipped to its own area,
+           we must draw the left_overhang part using s->hl now.  */
+        let save = glyph_string_hl(next)
+
+        glyph_string_set_hl(next, glyph_string_hl(s))
+        let r = NSMakeRect(CGFloat(glyph_string_x(s)), CGFloat(glyph_string_y(s)),
+                           CGFloat(glyph_string_width(s)), CGFloat(glyph_string_height(s)))
+        var rc = NSRect.zero
+        get_glyph_string_clip_rect(s, &rc)
+        NSGraphicsContext.current?.saveGraphicsState()
+        NSRectClip(r)
+        NSRectClip(rc)
+        if glyph_type(glyph_string_first_glyph(next)) == CHAR_GLYPH() {
+          ns_draw_glyph_string_foreground(next)
+        } else {
+          ns_draw_composite_glyph_string_foreground(next)
+        }
+        NSGraphicsContext.current?.restoreGraphicsState()
+        glyph_string_set_hl(next, save)
+        glyph_string_set_clip_head(next, glyph_string_next(s))
+      }
+      next = glyph_string_next(next)
+    }
+    ns_unfocus(glyph_string_f(s))
+  }
+  glyph_string_set_num_clips(s, 0)
+}
+
+// ---------------------------------------------------------------------------
+// Round 21: `EmacsApp` (C 6225-6400) - the class C 5013's `ns_send_appdefined` and the two
+// held `EV_TRAILER` macros wait for
+// ---------------------------------------------------------------------------
+
+/// `src/nsterm.h` 1189/1192: `#define NSAPP_DATA2_RUNASSCRIPT 10` and
+/// `#define NSAPP_DATA2_RUNFILEDIALOG 11` - the two `data2` values `EmacsApp`'s `sendEvent:`
+/// switches on (C 6344 and C 6349).  `NSEvent`'s `data2` is `Int` in Swift, so these are `let`s
+/// of that type (the `NS_FUNCTION_KEY_MASK` shape the round-1 block records).
+let NSAPP_DATA2_RUNASSCRIPT = 10
+let NSAPP_DATA2_RUNFILEDIALOG = 11
+
+/// C: `char *strstr (const char *, const char *)` (string.h) - the `fputs` shape above; Swift
+/// marks the C string family unavailable.  C 6311-6312 is the one call site.
+@_silgen_name("strstr")
+func strstr(_ haystack: UnsafePointer<CChar>,
+            _ needle: UnsafePointer<CChar>) -> UnsafeMutablePointer<CChar>?
+
+/// The `struct ns_display_info` walk C 6389 does
+/// (`for (di = x_display_list; ! has_focus && di; di = di->next)`).  The record's definition is
+/// Rust's `src/include/nsterm.rs` 326, so the Swift side keeps C's pointer depth with the
+/// untyped stand-in (P-55) and reaches the fields through shims - `ns_display_info_ns_focus_frame`
+/// above is the read half this one pairs with.
+@_silgen_name("ns_display_info_next")
+func ns_display_info_next(_ f: UnsafeMutableRawPointer?) -> UnsafeMutableRawPointer?
+
+/// C: `extern void ns_run_ascript (void);` (`src/nsterm.h` 1190) and
+/// `extern void ns_run_file_dialog (void);` (1193) - the two cross-unit entries C 6345/6350
+/// call.  Both are defined in `platform/macos/nsfns.swift` (3362 and 2716, `@_cdecl`)
+/// over `src/nsfns.m` 2447 and 1726, so this unit declares the import it reads
+/// (`emacs_view_frame_definition`'s cross-unit shape above) and links the C symbol the other unit exports.
+@_silgen_name("ns_run_ascript") func ns_run_ascript()
+@_silgen_name("ns_run_file_dialog") func ns_run_file_dialog()
+
+/// C 6225-6912: `@implementation EmacsApp` - the eight-class section's third entry, the object
+/// `NSApp` is, and the class the held `EV_TRAILER`/`EV_TRAILER2` macros and C 5013's
+/// `ns_send_appdefined` both need (`app->nextappdefined` at C 5026, `-sendFromMainThread:` at
+/// C 6778).
+///
+/// **Round 21 lands C 6225-6400**: the record with its `NS_IMPL_COCOA` ivars (`src/nsterm.h`
+/// 378-389) and the five methods that close over names this unit already has - `init`
+/// (C 6227-6254), `run` (C 6256-6293), `stop:` (C 6295-6303), `logNotification:` (C 6306-6314)
+/// and `sendEvent:` (C 6317-6399).  Its remaining twenty-five methods (C 6402-6912) stay open in
+/// the ledger; C 5005-6224's event-loop functions land after this class because they call it (the
+/// entry/definition split the ledger's `## ABI` (4) records).
+class EmacsApp: NSApplication {
+  /// `src/nsterm.h` 381-382, the `NS_IMPL_COCOA` arm: `BOOL shouldKeepRunning; BOOL isFirst;`.
+  var shouldKeepRunning: Bool = false
+  var isFirst: Bool = false
+  /// `src/nsterm.h` 388: `@public int nextappdefined;` - `@public` because C 5026 and C 6780 reach
+  /// it through an `EmacsApp *` cast, so the port keeps it a plain property.
+  var nextappdefined: Int32 = 0
+
+  /// C 6227-6254: `- (id)init`.  The `NS_IMPL_GNUSTEP` half - the
+  /// `applicationDidFinishLaunchingCalled` ivar (C 6241) and the notification-center observer
+  /// (C 6245-6251) - is the arm this target does not take, so C 6238's `self->isFirst = YES;` is
+  /// what remains; C's `if ((self = [super init]))` is Swift's `super.init ()`.
+  override init() {
+    super.init()
+    isFirst = true
+  }
+
+  /// Swift's requirement on an `NSApplication` subclass; C has no unarchiving path for this class
+  /// and never builds one (the `required` override `EmacsBell` records above).
+  required init?(coder: NSCoder) {
+    super.init(coder: coder)
+  }
+
+  /// C 6256-6293: `- (void)run`.  C 6261-6263's `#ifndef NSAppKitVersionNumber10_9` fallback
+  /// names the vintage constant, which Swift spells `NSAppKitVersion.macOS10_9`
+  /// (`NSAppKitVersionNumber10_10`'s reading above; C 6265's `(int) NSAppKitVersionNumber` is the
+  /// `rawValue` comparison), and `NSAutoreleasePool` is the `objc_autoreleasePoolPush`/`Pop` pair
+  /// this unit declares at C 560.
+  override func run() {
+    if NSAppKitVersion.current.rawValue != NSAppKitVersion.macOS10_9.rawValue {
+      super.run()
+      return
+    }
+
+    var pool = objc_autoreleasePoolPush()
+
+    if isFirst { finishLaunching() }                  // C 6273
+    isFirst = false                                   // C 6274
+
+    shouldKeepRunning = true                          // C 6276
+    repeat {
+      objc_autoreleasePoolPop(pool)                   // C 6279
+      pool = objc_autoreleasePoolPush()               // C 6280
+
+      let event = nextEvent(matching: .any,           // C 6282-6286
+                            until: Date.distantFuture,
+                            inMode: .default,
+                            dequeue: true)
+
+      /* C hands the pointer on unchanged: `nextEventMatchingMask:` returns nil only when
+         `untilDate` expires, and C 6284 passes `distantFuture`, so the unwrap cannot fire.  */
+      sendEvent(event!)                               // C 6288
+      updateWindows()                                 // C 6289
+    } while shouldKeepRunning                         // C 6290
+
+    objc_autoreleasePoolPop(pool)                     // C 6292
+  }
+
+  /// C 6295-6303: `- (void)stop: (id)sender` (the `NS_IMPL_COCOA` arm; C 6304 closes it).
+  override func stop(_ sender: Any?) {
+    shouldKeepRunning = false                         // C 6299
+    super.stop(sender)                                // C 6302
+  }
+
+  /// C 6306-6314: `- (void)logNotification: (NSNotification *)notification`.  C's
+  /// `const char *name = [[notification name] UTF8String];` is a UTF-8 view over the
+  /// notification's name, which Swift spells with `withCString` so the three `strstr` calls read
+  /// the same bytes.  `@objc` is what makes the selector reachable (the GNUstep observer that
+  /// names it at C 6248 is the arm this target does not take).
+  @objc func logNotification(_ notification: Notification) {
+    let name = notification.name.rawValue
+    name.withCString { p in
+      if strstr(p, "Update") == nil && strstr(p, "NSMenu") == nil
+           && strstr(p, "WindowNumber") == nil {
+        NSLog("notification: '%@'", name)
+      }
+    }
+  }
+
+  /// C 6317-6399: `- (void)sendEvent: (NSEvent *)theEvent`.  C's `[theEvent type]` is Swift's
+  /// `NSEvent.EventType` and C's `NSEventTypeXxx` constants are that enum's cases; the
+  /// `NS_IMPL_GNUSTEP` keyboard-forwarding arm (C 6329-6337) is dead here.
+  override func sendEvent(_ theEvent: NSEvent) {
+    let type = theEvent.type                          // C 6323
+    let window = theEvent.window                      // C 6324
+
+    if type == .applicationDefined {                  // C 6339
+      switch theEvent.data2 {                         // C 6341
+      case NSAPP_DATA2_RUNASSCRIPT:                   // C 6344 (the `NS_IMPL_COCOA` case)
+        ns_run_ascript()
+        stop(self)                                    // C 6346
+        return
+      case NSAPP_DATA2_RUNFILEDIALOG:                 // C 6349
+        ns_run_file_dialog()
+        stop(self)                                    // C 6351
+        return
+      default:
+        break
+      }
+    }
+
+    if type == .cursorUpdate && window == nil {       // C 6356
+      fputs("Dropping external cursor update event.\n", stderr)   // C 6358
+      return
+    }
+
+    if type == .applicationDefined {                  // C 6362
+      /* C 6364-6367: "Events posted by ns_send_appdefined interrupt the run loop here.  But, if
+         a modal window is up, an appdefined can still come through ... Just defer it until
+         later."  */
+      if NSApp.modalWindow == nil {                   // C 6368
+        last_appdefined_event_data = Int32(theEvent.data1)        // C 6370
+        stop(self)                                    // C 6371
+      } else {
+        send_appdefined = true                        // C 6375
+      }
+    }
+
+    /* C 6380-6394, the `NS_IMPL_COCOA` arm: skip a mouse move that belongs to an auxiliary menu
+       (the top-right one) when none of our frames has focus.  C's `for` loop is the `while`
+       below, which keeps C's two conjuncts and its short-circuit.  */
+    if type == .mouseMoved && NSApp.modalWindow == nil {          // C 6385
+      var has_focus = false                           // C 6388
+      var di = x_display_list                         // C 6389
+      while !has_focus && di != nil {
+        has_focus = ns_display_info_ns_focus_frame_from_display(di) != nil
+        di = ns_display_info_next(di)
+      }
+      if !has_focus { return }                        // C 6391
+    }
+
+    super.sendEvent(theEvent)                         // C 6398
+  }
+
+  /// C 6769-6776: `- (void)timeout_handler: (NSTimer *)timedEntry` - "The timeout specified to
+  /// ns_select has passed."  It lands here with round 22 because its one statement calls the
+  /// function this round adds (the class's other methods stay open).
+  @objc func timeout_handler(_ timedEntry: Timer) {
+    ns_send_appdefined(-2)                            // C 6775
+  }
+
+  /// C 6778-6781: `- (void)sendFromMainThread:(id)unused` - the main-thread half of
+  /// `ns_send_appdefined`'s non-main-thread arm (C 5027 posts this very selector), which is why
+  /// the two land together.
+  @objc func sendFromMainThread(_ unused: Any?) {
+    ns_send_appdefined(nextappdefined)                // C 6780
+  }
+
+  /// C 6556-6561: `- (void)antialiasThresholdDidChange: (NSNotification *)notification`.  Its
+  /// one statement calls the Mac font lane's entry, which that unit already exports
+  /// (`macfont.swift` 1376 over `src/macfont.m` 747).
+  @objc func antialiasThresholdDidChange(_ notification: Notification) {
+    macfont_update_antialias_threshold()              // C 6559
+  }
+
+  /// C 6565-6575: `- (void)systemWillSleep: (NSNotification *)notification`.  C 6569's
+  /// uninitialized `struct input_event ie` is the state C 6570's `EVENT_INIT` writes (its compound
+  /// literal sets `device` and zeroes the rest), so the all-zero initializer below is that same
+  /// state, not an invented one.
+  @objc func systemWillSleep(_ notification: Notification) {
+    var ie = input_event(bits: 0, code: 0, modifiers: 0, x: nil, y: nil, timestamp: 0,
+                         frame_or_window: nil, arg: nil, device: nil)      // C 6569
+    EVENT_INIT(&ie)                                   // C 6570
+    input_event_set_kind(&ie, SLEEP_EVENT)            // C 6571
+    ie.arg = list1(Qpre_sleep())                      // C 6572
+    kbd_buffer_store_event(&ie)                       // C 6573
+  }
+
+  /// C 6577-6587: `- (void)systemDidWake: (NSNotification *)notification` - `Qpre_sleep`'s twin
+  /// with `Qpost_wake` (C 6584).
+  @objc func systemDidWake(_ notification: Notification) {
+    var ie = input_event(bits: 0, code: 0, modifiers: 0, x: nil, y: nil, timestamp: 0,
+                         frame_or_window: nil, arg: nil, device: nil)      // C 6581
+    EVENT_INIT(&ie)                                   // C 6582
+    input_event_set_kind(&ie, SLEEP_EVENT)            // C 6583
+    ie.arg = list1(Qpost_wake())                      // C 6584
+    kbd_buffer_store_event(&ie)                       // C 6585
+  }
+
+  /// C 6610-6613: `- (BOOL)applicationSupportsSecureRestorableState: (NSApplication *)app` -
+  /// C's `return YES;` and nothing else.
+  @objc func applicationSupportsSecureRestorableState(_ app: NSApplication) -> Bool {
+    true                                              // C 6612
+  }
+
+  /// C 6655-6669: `- (NSApplicationTerminateReply)applicationShouldTerminate: (id)sender`.
+  @objc func applicationShouldTerminate(_ sender: Any?) -> NSApplication.TerminateReply {
+    if NILP(ns_confirm_quit) { return .terminateNow } // C 6661-6662
+    let ret = runAlertPanel(ns_app_name_storage! as String, // C 6664
+                            "Exit requested.  Would you like to Save Buffers and Exit, or Cancel the request?",
+                            "Save Buffers and Exit", "Cancel")  // C 6665-6666
+    return ret ? .terminateNow : .terminateCancel     // C 6668
+  }
+
+  /// C 6682-6687: `- (BOOL)application: sender openFile: (NSString *)file` - "Notification from
+  /// the Workspace to open a file."
+  @objc func application(_ sender: NSApplication, openFile file: String) -> Bool {
+    if ns_do_open_file || not_in_argv(file) != 0 {    // C 6684
+      ns_pending_files?.add(file)                     // C 6685
+    }
+    return true                                       // C 6686
+  }
+
+  /// C 6691-6696: `- (BOOL)application: sender openTempFile: (NSString *)file` - "Open a file as a
+  /// temporary file."
+  @objc func application(_ sender: NSApplication, openTempFile file: String) -> Bool {
+    if ns_do_open_file || not_in_argv(file) != 0 {    // C 6693
+      ns_pending_files?.add(file)                     // C 6694
+    }
+    return true                                       // C 6695
+  }
+
+  /// C 6700-6705: `- (BOOL)application: sender openFileWithoutUI: (NSString *)file`.
+  @objc func application(_ sender: NSApplication, openFileWithoutUI file: String) -> Bool {
+    if ns_do_open_file || not_in_argv(file) != 0 {    // C 6702
+      ns_pending_files?.add(file)                     // C 6703
+    }
+    return true                                       // C 6704
+  }
+
+  /// C 6708-6721: `- (void)application: sender openFiles: (NSArray *)fileList`.  C's
+  /// `NSEnumerator` walk is the loop below, and its comment about Cocoa's command-line parsing
+  /// (C 6712-6714) is why `not_in_argv` gates every element.
+  @objc func application(_ sender: NSApplication, openFiles fileList: [String]) {
+    for file in fileList {                            // C 6710-6717
+      if ns_do_open_file || not_in_argv(file) != 0 {
+        ns_pending_files?.add(file)
+      }
+    }
+    reply(toOpenOrPrint: .success)                    // C 6719
+  }
+
+  /// C 6725-6728: `- (NSMenu *)applicationDockMenu: (NSApplication *) sender` - C's body is
+  /// `return dockMenu;`, and this unit keeps that record as the untyped stand-in above (the
+  /// `EmacsMenu` class has not landed), so the pointer is handed back as the menu it points at.
+  @objc func applicationDockMenu(_ sender: NSApplication) -> NSMenu? {
+    dockMenu.map { Unmanaged<NSMenu>.fromOpaque($0).takeUnretainedValue() }
+  }
+
+  /// C 6732-6736: `- (void)applicationWillBecomeActive: (NSNotification *)notification` - C's body
+  /// is the commented-out `ns_app_active` line and nothing else.
+  @objc func applicationWillBecomeActive(_ notification: Notification) {
+  }
+
+  /// C 6738-6751: `- (void)applicationDidBecomeActive: (NSNotification *)notification`.  C's
+  /// `NS_IMPL_GNUSTEP` arm (C 6742-6745) is dead here, and its `// ns_app_active=YES;` is the
+  /// comment C 6746 carries.
+  @objc func applicationDidBecomeActive(_ notification: Notification) {
+    ns_update_auto_hide_menu_bar()                    // C 6748
+    /* C 6749: "No constraining takes place when the application is not active."  */
+    ns_constrain_all_frames()                         // C 6750
+  }
+
+  /// C 6752-6758: `- (void)applicationDidResignActive: (NSNotification *)notification`.
+  @objc func applicationDidResignActive(_ notification: Notification) {
+    ns_send_appdefined(-1)                            // C 6757
+  }
+
+  /// C 6881-6887: `- (void)requestService: (NSPasteboard *)pboard userData: (NSString *)userData
+  /// error: (NSString **)error` - "Called from system: queue for next pass through event loop."
+  /// The queue `ns_read_socket_1` drains is filled here, and C 6886's
+  /// `[NSString stringWithLispString: …]` is the selection lane's exported factory.
+  @objc func requestService(_ pboard: NSPasteboard, userData: String,
+                            error: AutoreleasingUnsafeMutablePointer<NSString?>) {
+    ns_pending_service_names?.add(userData)                                 // C 6885
+    ns_pending_service_args?.add(stringWithLispString(ns_string_from_pasteboard(pboard))!)  // C 6886
+  }
+
+  /// C 6490-6554: `- (void)applicationDidFinishLaunching: (NSNotification *)notification` -
+  /// "When application is loaded, terminate event loop in ns_term_init."  The GNUstep arm
+  /// (C 6497-6499) is dead here; the three dummy CoreFoundation/Foundation calls (C 6531-6533)
+  /// raise the process's open-file limit before C 6535-6539 lowers it to `FD_SETSIZE`, "since
+  /// pselect cannot handle file descriptors that are greater than or equal to FD_SETSIZE".
+  @objc func applicationDidFinishLaunching(_ notification: Notification) {
+    NSApp.servicesProvider = NSApp                    // C 6500
+    antialiasThresholdDidChange(notification)         // C 6502
+
+    /* C 6504-6508: observe the antialias-threshold notification.  C's constant is
+       `NSAntialiasThresholdChangedNotification`; the compiler names Swift's spelling
+       (`'NSAntialiasThresholdChangedNotification' has been renamed to
+       'NSFont.antialiasThresholdChangedNotification'`, measured - class B, no symbol invented).  */
+    NotificationCenter.default.addObserver(
+      self,
+      selector: #selector(EmacsApp.antialiasThresholdDidChange(_:)),
+      name: NSFont.antialiasThresholdChangedNotification,
+      object: nil)
+
+    /* C 6511-6523: "Sleep event notification."  */
+    NSWorkspace.shared.notificationCenter.addObserver(
+      self, selector: #selector(EmacsApp.systemWillSleep(_:)),
+      name: NSWorkspace.willSleepNotification, object: nil)
+    NSWorkspace.shared.notificationCenter.addObserver(
+      self, selector: #selector(EmacsApp.systemDidWake(_:)),
+      name: NSWorkspace.didWakeNotification, object: nil)
+
+    /* C 6526-6530: the dummy calls, then the limit itself.  */
+    _ = CFSocketGetTypeID()                           // C 6531
+    _ = CFFileDescriptorGetTypeID()                   // C 6532
+    _ = FileHandle()                                  // C 6533 (Swift's name for NSFileHandle)
+    var rlim = rlimit()                               // C 6534
+    if getrlimit(RLIMIT_NOFILE, &rlim) == 0 && rlim.rlim_cur > UInt(FD_SETSIZE) {  // C 6535-6536
+      rlim.rlim_cur = rlim_t(FD_SETSIZE)              // C 6538
+      _ = setrlimit(RLIMIT_NOFILE, &rlim)             // C 6539
+    }
+    if NSApp.activationPolicy() == .prohibited {      // C 6541
+      /* C 6542-6544: "Set the app's activation policy to regular when we run outside of a
+         bundle.  This is already done for us by Info.plist when we run inside a bundle."  */
+      NSApp.setActivationPolicy(.regular)             // C 6545
+      NSApp.applicationIconImage =                    // C 6546-6549
+        EmacsImage_allocInitFromFile(build_string("icons/hicolor/128x128/apps/emacs.png")) as? NSImage
+    }
+
+    ns_send_appdefined(-2)                            // C 6553
+  }
+
+  /// C 6402-6413: `- (void)showPreferencesWindow: (id)sender`.
+  @objc func showPreferencesWindow(_ sender: Any?) {
+    let emacsframe = SELECTED_FRAME()                 // C 6404
+    let theEvent = NSApp.currentEvent                 // C 6405
+
+    if emacs_event == nil {                           // C 6407
+      return                                          // C 6408
+    }
+    input_event_set_kind(emacs_event!, NS_NONKEY_EVENT)          // C 6409
+    emacs_event!.pointee.code = UInt32(KEY_NS_SHOW_PREFS)        // C 6410
+    emacs_event!.pointee.modifiers = 0                           // C 6411
+    EV_TRAILER(theEvent, emacsframe)                             // C 6412
+  }
+
+  /// C 6416-6429: `- (void)newFrame: (id)sender` - `showPreferencesWindow:`'s twin with
+  /// `KEY_NS_NEW_FRAME`.
+  @objc func newFrame(_ sender: Any?) {
+    let emacsframe = SELECTED_FRAME()                 // C 6420
+    let theEvent = NSApp.currentEvent                 // C 6421
+
+    if emacs_event == nil {                           // C 6423
+      return                                          // C 6424
+    }
+    input_event_set_kind(emacs_event!, NS_NONKEY_EVENT)          // C 6425
+    emacs_event!.pointee.code = UInt32(KEY_NS_NEW_FRAME)         // C 6426
+    emacs_event!.pointee.modifiers = 0                           // C 6427
+    EV_TRAILER(theEvent, emacsframe)                             // C 6428
+  }
+
+  /// C 6783-6870: `- (void)fd_handler:(id)unused` - "Check data waiting on file descriptors and
+  /// terminate if so."  `waiting` alternates between a blocking probe of the self-pipe and a
+  /// `pselect` over the descriptors `ns_select_1` recorded (C 5291-5295's mutex protocol is the
+  /// same one), and the loop never returns - it is the thread `ns_term_init` starts.
+  @objc func fd_handler(_ unused: Any?) {
+    var result: Int32
+    var waiting: Int32 = 1                            // C 6789
+    var nfds: Int32
+    var c: CChar = 0                                  // C 6790
+    var readfds = fd_set()                            // C 6792
+    var writefds = fd_set()
+    var timeout = timespec()
+    var pool: UnsafeMutableRawPointer? = nil          // C 6794
+
+    while true {                                      // C 6798
+      objc_autoreleasePoolPop(pool)                   // C 6800
+      pool = objc_autoreleasePoolPush()               // C 6801
+
+      if waiting != 0 {                               // C 6803
+        var fds = fd_set()                            // C 6805
+        __darwin_fd_zero(&fds)                        // C 6806
+        __darwin_fd_set(selfds.0, &fds)               // C 6807
+        result = pselect(selfds.0 + 1, &fds, nil, nil, nil, nil)   // C 6808
+        if result > 0 && read(selfds.0, &c, 1) == 1 && c == CChar(UInt8(ascii: "g")) {
+          waiting = 0                                 // C 6810
+        }
+      } else {
+        pthread_mutex_lock(&select_mutex)             // C 6814
+        nfds = select_nfds                            // C 6815
+
+        if select_valid & Int32(SELECT_HAVE_READ) != 0 {   // C 6817
+          readfds = select_readfds                    // C 6818
+        } else {
+          __darwin_fd_zero(&readfds)                  // C 6820
+        }
+
+        if select_valid & Int32(SELECT_HAVE_WRITE) != 0 {  // C 6822
+          writefds = select_writefds                  // C 6824
+        }
+        if select_valid & Int32(SELECT_HAVE_TMO) != 0 {    // C 6829
+          timeout = select_timeout                    // C 6831
+        }
+
+        pthread_mutex_unlock(&select_mutex)           // C 6837
+
+        let self_fd = selfds.0                        // C 6839's and C 6840's `selfds[0]`
+        __darwin_fd_set(self_fd, &readfds)            // C 6839
+        if self_fd >= nfds { nfds = self_fd + 1 }     // C 6840
+
+        /* C 6825/6832 put the *addresses* of those two locals into `wfds`/`tmo`, which Swift
+           cannot assign (`&` is valid only at a call site).  The two flags therefore select one of
+           C's four call shapes here, at the call itself; the mutex, the values and the order are
+           C's.  */
+        let haveW = select_valid & Int32(SELECT_HAVE_WRITE) != 0
+        let haveT = select_valid & Int32(SELECT_HAVE_TMO) != 0
+        if haveW {
+          if haveT { result = pselect(nfds, &readfds, &writefds, nil, &timeout, nil) }
+          else     { result = pselect(nfds, &readfds, &writefds, nil, nil, nil) }
+        } else {
+          if haveT { result = pselect(nfds, &readfds, nil, nil, &timeout, nil) }
+          else     { result = pselect(nfds, &readfds, nil, nil, nil, nil) }
+        }
+
+        if result == 0 {                              // C 6844
+          ns_send_appdefined(-2)                      // C 6845
+        } else if result > 0 {                        // C 6846
+          if __darwin_fd_isset(self_fd, &readfds) != 0 {   // C 6848
+            if read(self_fd, &c, 1) == 1 && c == CChar(UInt8(ascii: "s")) {
+              waiting = 1                             // C 6851
+            }
+          } else {
+            pthread_mutex_lock(&select_mutex)         // C 6855
+            if select_valid & Int32(SELECT_HAVE_READ) != 0 { select_readfds = readfds }    // C 6857
+            if select_valid & Int32(SELECT_HAVE_WRITE) != 0 { select_writefds = writefds }  // C 6859
+            if select_valid & Int32(SELECT_HAVE_TMO) != 0 { select_timeout = timeout }      // C 6861
+            pthread_mutex_unlock(&select_mutex)       // C 6862
+
+            ns_send_appdefined(result)                // C 6864
+          }
+        }
+        waiting = 1                                   // C 6867
+      }
+    }
+  }
+
+  /// C 6615-6631: `- (void) terminate: (id)sender`.  It waited for `NS_NONKEY_EVENT`'s value (the
+  /// entry above records how this unit takes it); C 6617's uninitialized record is the state
+  /// C 6623's `EVENT_INIT` writes, as in `systemWillSleep:`.
+  @objc override func terminate(_ sender: Any?) {
+    let f = SELECTED_FRAME()                          // C 6622
+    var ie = input_event(bits: 0, code: 0, modifiers: 0, x: nil, y: nil, timestamp: 0,
+                         frame_or_window: nil, arg: nil, device: nil)    // C 6617
+    EVENT_INIT(&ie)                                   // C 6623
+    input_event_set_kind(&ie, NS_NONKEY_EVENT)        // C 6625
+    ie.code = UInt32(KEY_NS_POWER_OFF)                // C 6626
+    ie.arg = Qt() /* mark as non-key event */         // C 6627
+    XSETFRAME(&ie.frame_or_window, f)                 // C 6628
+    kbd_buffer_store_event(&ie)                       // C 6630
+  }
+
+  /// C 6433-6451: `- (BOOL) openFile: (NSString *)fileName` - the event constructor the pending
+  /// open-file queue drains into (`ns_read_socket_1` above is its caller).
+  @objc func openFile(_ fileName: String) -> Bool {
+    let emacsframe = SELECTED_FRAME()                 // C 6437
+    let theEvent = NSApp.currentEvent                 // C 6438
+
+    if emacs_event == nil {                           // C 6440
+      return false                                    // C 6441
+    }
+
+    input_event_set_kind(emacs_event!, NS_NONKEY_EVENT)                 // C 6443
+    emacs_event!.pointee.code = UInt32(KEY_NS_OPEN_FILE_LINE)           // C 6444
+    ns_input_file = append2(ns_input_file, lispString(fileName as NSString))  // C 6445
+    ns_input_line = Qnil() /* can be start or cons start,end */         // C 6446
+    emacs_event!.pointee.modifiers = 0                                  // C 6447
+    EV_TRAILER(theEvent, emacsframe)                                    // C 6448
+
+    return true                                       // C 6450
+  }
+
+  /// C 6891-6909: `- (BOOL)fulfillService: (NSString *)name withArg: (NSString *)arg` - the
+  /// service-request twin of `openFile:`, and the second method `ns_read_socket_1` drains into.
+  @objc func fulfillService(_ name: String, withArg arg: String) -> Bool {
+    let emacsframe = SELECTED_FRAME()                 // C 6893
+    let theEvent = NSApp.currentEvent                 // C 6894
+
+    if emacs_event == nil {                           // C 6898
+      return false                                    // C 6899
+    }
+
+    input_event_set_kind(emacs_event!, NS_NONKEY_EVENT)                 // C 6901
+    emacs_event!.pointee.code = UInt32(KEY_NS_SPI_SERVICE_CALL)         // C 6902
+    ns_input_spi_name = lispString(name as NSString)                    // C 6903
+    ns_input_spi_arg = lispString(arg as NSString)                      // C 6904
+    emacs_event!.pointee.modifiers = EV_MODIFIERS(theEvent!)            // C 6905
+    EV_TRAILER(theEvent, emacsframe)                                    // C 6906
+
+    return true                                       // C 6908
+  }
+}
+
+// ==========================================================================
+// Round 22: C 448-470's event-trailer pair and C 5012-5084's `ns_send_appdefined`
+// ==========================================================================
+
+/// C: `Qt` (src/globals.h) - the `Qnil` import above is the same shape; the two held
+/// `EV_TRAILER` macros are this unit's first readers.
+@_silgen_name("Qt") func Qt() -> Lisp_Object
+
+/// C: `Lisp_Object Vinhibit_quit` (src/globals.h; the port defines it at `src/eval.rs`
+/// 4275) - imported as the C data symbol the core exports (the `ns_auto_hide_menu_bar` shape
+/// above), and the only core global this round writes.
+@_silgen_name("Vinhibit_quit") var Vinhibit_quit: Lisp_Object
+
+/// C: `void kbd_buffer_store_event_hold (struct input_event *, struct input_event *)`
+/// (src/keyboard.h) - the port defines it at `src/include/keyboard.rs` 149; the import
+/// shape is `fputs`'s above.
+@_silgen_name("kbd_buffer_store_event_hold")
+func kbd_buffer_store_event_hold(_ event: UnsafeMutablePointer<input_event>?,
+                                 _ hold_quit: UnsafeMutablePointer<input_event>?)
+
+/// C: `NO_EVENT` (`src/termhooks.h` 74, the first enumerator of `enum event_kind`).  C reads it
+/// through the record's `kind` bitfield; this unit's view of `input_event` keeps the two
+/// bitfields packed in one `UInt32` (the struct's own reading above says so), so the field is
+/// masked out by the reader below.
+@_silgen_name("NO_EVENT") fileprivate func NO_EVENT_value() -> UInt32
+fileprivate let NO_EVENT: UInt32 = NO_EVENT_value()
+
+/// C: `ENUM_BF (event_kind) kind : EVENT_KIND_WIDTH;` - the low 16 bits of `input_event.bits`
+/// (`EVENT_KIND_WIDTH` is `src/termhooks.h` 360's 16, the struct's reading above).
+fileprivate func input_event_kind(_ e: UnsafeMutablePointer<input_event>) -> UInt32 {
+  e.pointee.bits & 0xffff
+}
+
+/// C 448-453: `#define EV_TRAILER(e)`.  Its body reads two names from the caller's scope:
+/// `emacs_event` (this unit's static) and `emacsframe`, which every handler declares as a local
+/// (C 6404 is the first expansion's).  The port passes both - the `EV_MODIFIERS2` shape above.
+fileprivate func EV_TRAILER(_ e: NSEvent?, _ emacsframe: UnsafeMutableRawPointer?) {
+  if input_event_kind(emacs_event!) != NO_EVENT {                 // C 449
+    XSETFRAME(&emacs_event!.pointee.frame_or_window, emacsframe)  // C 451
+    EV_TRAILER2(e)                                                // C 452
+  }
+}
+
+/// C 455-470: `#define EV_TRAILER2(e)`.  C's save/restore of `Vinhibit_quit` around the store
+/// is kept as written; `EVENT_INIT` (C 468) and `ns_send_appdefined` (C 469) are this unit's
+/// own - the function below is the one the two held macro boxes waited for.
+fileprivate func EV_TRAILER2(_ e: NSEvent?) {
+  if e != nil { emacs_event!.pointee.timestamp = UInt(EV_TIMESTAMP(e!)) }  // C 457
+  if let q = q_event_ptr {                                      // C 458
+    let tem = Vinhibit_quit                                     // C 460
+    Vinhibit_quit = Qt()                                        // C 461
+    n_emacs_events_pending += 1                                 // C 462
+    kbd_buffer_store_event_hold(emacs_event, q)                 // C 463
+    Vinhibit_quit = tem                                         // C 464
+  } else {
+    hold_event(emacs_event)                                     // C 467
+  }
+  EVENT_INIT(emacs_event!)                                      // C 468
+  ns_send_appdefined(-1)                                        // C 469
+}
+
+/// C 5012-5084: `static void ns_send_appdefined (int value)` - "post an appdefined event which
+/// EmacsApp-sendEvent will recognize and take as a command to halt the event loop".  The
+/// non-main-thread arm (C 5023-5031) is why `EmacsApp` had to land first: it reaches
+/// `nextappdefined` and `-sendFromMainThread:` through an `EmacsApp *` cast, which is the
+/// entry/definition split the ledger's `## ABI` (4) records.
+fileprivate func ns_send_appdefined(_ value: Int32) {
+  // C 5021-5023: GNUstep needs `postEvent` on the main thread, Cocoa needs
+  // `nextEventMatchingMask` there too.
+  if !Thread.current.isMainThread {
+    let app = NSApp as! EmacsApp                                 // C 5025
+    app.nextappdefined = value                                   // C 5026
+    app.performSelector(onMainThread: #selector(EmacsApp.sendFromMainThread(_:)),
+                        with: nil, waitUntilDone: false)         // C 5027-5029
+    return
+  }
+
+  /* C 5033-5035: "Only post this event if we haven't already posted one."  */
+  if send_appdefined {                                           // C 5036
+    send_appdefined = false                                      // C 5042
+
+    if timed_entry != nil {                                      // C 5045
+      timed_entry!.invalidate()                                  // C 5047
+      timed_entry = nil                                          // C 5049 (ARC: C's `release` is the
+    }                                                            //         reference being dropped)
+
+    /* C 5052-5057: address the event to a window that actually exists.  */
+    var dest = NSApp.mainWindow                                  // C 5058
+    if dest == nil { dest = NSApp.keyWindow }                    // C 5059-5060
+    if dest == nil {                                             // C 5061
+      for cand in NSApp.windows where cand.windowNumber > 0 {    // C 5062-5063
+        dest = cand
+        break                                                    // C 5066
+      }
+    }
+
+    let nxev = NSEvent.otherEvent(with: .applicationDefined,     // C 5069-5077
+                                  location: NSMakePoint(0, 0),
+                                  modifierFlags: [],
+                                  timestamp: 0,
+                                  windowNumber: dest?.windowNumber ?? 0,
+                                  context: NSApp.context,
+                                  subtype: 0,
+                                  data1: Int(value),
+                                  data2: 0)
+
+    /* C 5079-5081: post it so `[NXApp run]` returns after the queued events.  */
+    NSApp.postEvent(nxev!, atStart: false)                       // C 5082
+  }
+}
+
+// ==========================================================================
+// Round 23: `EmacsApp`'s four notification methods (C 6556-6613)
+// ==========================================================================
+
+/// C: `Lisp_Object Qpre_sleep, Qpost_wake;` (src/globals.h; the port's builtin symbols are
+/// `src/include/globals.rs` 4561 and 4549).  The `Qnil`/`Qt` shape above.
+@_silgen_name("Qpre_sleep") func Qpre_sleep() -> Lisp_Object
+@_silgen_name("Qpost_wake") func Qpost_wake() -> Lisp_Object
+
+/// C: `void kbd_buffer_store_event (struct input_event *)` (src/keyboard.h) - the port defines it
+/// at `src/include/keyboard.rs` 310; `kbd_buffer_store_event_hold`'s shape above.
+@_silgen_name("kbd_buffer_store_event")
+func kbd_buffer_store_event(_ event: UnsafeMutablePointer<input_event>?)
+
+/// C: `void macfont_update_antialias_threshold (void)` (src/macfont.h 85, defined src/macfont.m
+/// 747) - the Mac font lane exports it (`macfont.swift` 1376), so this unit imports the symbol
+/// (`ns_run_ascript`'s cross-unit shape above).
+@_silgen_name("macfont_update_antialias_threshold") func macfont_update_antialias_threshold()
+
+/// C: `SLEEP_EVENT`, an `enum event_kind` member (the enum at `src/termhooks.h` 74, its `HAVE_NS`
+/// arm); the port's mirror fixes the value at `src/include/termhooks.rs` 55.  Like
+/// `NO_EVENT` above, C writes it into the record's `kind` bitfield.
+@_silgen_name("SLEEP_EVENT") fileprivate func SLEEP_EVENT_value() -> UInt32
+fileprivate let SLEEP_EVENT: UInt32 = SLEEP_EVENT_value()
+
+/// C: `ENUM_BF (event_kind) kind : EVENT_KIND_WIDTH;` as a **writer** - the low 16 bits of
+/// `input_event.bits`, with the `part` half preserved, which is what C's bitfield assignment does
+/// (C 6571's `ie.kind = SLEEP_EVENT`).  The reader is `input_event_kind` above.
+fileprivate func input_event_set_kind(_ e: UnsafeMutablePointer<input_event>, _ kind: UInt32) {
+  e.pointee.bits = (e.pointee.bits & 0xffff0000) | (kind & 0xffff)
+}
+
+// ==========================================================================
+// Round 24: `EmacsWindow`'s class record and five of its methods (C 9756)
+// ==========================================================================
+
+/// C `src/nsterm.h` 419-430: `@interface EmacsWindow : NSWindow` - the drag-and-drop window whose
+/// type `EmacsView` needs for its `nonfs_window` ivar (nsterm.h 482), which is why this record
+/// lands before that class's.  C declares **no** protocol here (nsterm.h 419 has no `<...>`
+/// list), so the class can land as a record plus the methods below.
+///
+/// **Round 24 lands** the four Cocoa ivars (nsterm.h 421-424) and five methods:
+/// `borderWidth` (declared nsterm.h 442, defined C 9928-9931), `setFrameTopLeftPoint:`
+/// (C 10444-10450), `canBecomeKeyWindow` (C 10452-10455),
+/// `canBecomeMainWindow` (C 10457-10461) and `setLastDragEvent:` (C 10463-10468).
+///
+/// **Round 62 lands the four drag-and-drop ivars** (nsterm.h 426-429 - `dnd_mode` is the
+/// `ns_return_frame_mode` enum this unit now spells, the `nsselect.swift` 102-107 shape) **with the
+/// two methods of that family Swift can declare**: `mustNotDropOn:` (C 10522-10526) and
+/// `beginDrag:…` (C 10528-10608, whose cross-unit C-ABI entry is the `nsselect.swift` 220-224
+/// import this round provides).  Three of the family are **refused by Swift** and are recorded, not
+/// transcribed: `draggingSourceOperationMaskForLocal:` (C 10470-10473),
+/// `draggedImage:endedAt:operation:` (C 10475-10480) and `draggedImage:movedTo:` (C 10482-10520) -
+/// each measured, each named in the ledger's `## Decisions` and `## ABI` (3).  `dealloc`
+/// (C 9912-9926, whose `release` calls ARC forbids overriding; the reference being dropped is the
+/// same statement this lane reads elsewhere) stays the one named deferral.
+class EmacsWindow: NSWindow {
+  /// C nsterm.h 421: `NSPoint grabOffset;`
+  var grabOffset: NSPoint = .zero
+  /// C nsterm.h 422: `NSEvent *last_drag_event;`
+  var last_drag_event: NSEvent? = nil
+  /// C nsterm.h 423-424: `NSDragOperation drag_op; NSDragOperation selected_op;`
+  var drag_op: NSDragOperation = []
+  var selected_op: NSDragOperation = []
+  /// C nsterm.h 426: `struct frame *dnd_return_frame;`
+  var dnd_return_frame: UnsafeMutableRawPointer? = nil
+  /// C nsterm.h 427: `enum ns_return_frame_mode dnd_mode;` - the enum this round spells below.
+  var dnd_mode: ns_return_frame_mode = .RETURN_FRAME_NEVER
+  /// C nsterm.h 428: `BOOL dnd_allow_same_frame;`
+  var dnd_allow_same_frame: Bool = false
+  /// C nsterm.h 429: `BOOL dnd_move_tooltip_with_frame;`
+  var dnd_move_tooltip_with_frame: Bool = false
+
+  /// `NSWindow`'s designated initializer, spelled out because a Swift subclass must reach one and
+  /// Swift marks `NSWindow`'s `init (coder:)` unavailable (id: `error: 'init(coder:)' is
+  /// unavailable`, measured).  C's own creators are `initWithEmacsFrame:` (C 9759/9765), which
+  /// land with `origin:`/`styleMask:` below, and they chain to this one.
+  override init(contentRect: NSRect, styleMask style: NSWindow.StyleMask,
+                backing backingStoreType: NSWindow.BackingStoreType, defer flag: Bool) {
+    super.init(contentRect: contentRect, styleMask: style, backing: backingStoreType, defer: flag)
+  }
+
+  /// C 10444-10450: `- (void)setFrameTopLeftPoint:(NSPoint)point` - C's body is the `super` call
+  /// and nothing else.
+  override func setFrameTopLeftPoint(_ point: NSPoint) {
+    super.setFrameTopLeftPoint(point)                 // C 10449
+  }
+
+  /// C 9928-9931: `- (NSInteger) borderWidth` - C's `NSWidth ([self frame]) - NSWidth ([[self
+  /// contentView] frame])`, where `NSWidth` is the rect's own width.
+  func borderWidth() -> Int {
+    Int(frame.width - (contentView?.frame.width ?? 0))// C 9930
+  }
+
+  /// C 10452-10455: `- (BOOL)canBecomeKeyWindow`.  Swift's AppKit apinotes rename the pair below
+  /// (`canBecomeKeyWindow` -> `canBecomeKey`, `canBecomeMainWindow` -> `canBecomeMain`), the class
+  /// B reading this unit uses for `NSAppKitVersionNumber10_10`; neither renames the reference's
+  /// own text, so the C line numbers stay the anchor.  C reaches the view's frame through the
+  /// delegate cast (`((EmacsView *)[self delegate])->emacsframe`), which this unit already spells
+  /// as the `emacs_view_frame_definition` shim (C 2831), and the predicate is `FRAME_NO_ACCEPT_FOCUS`, whose
+  /// entry this unit declares at C 1660.
+  override var canBecomeKey: Bool {
+    let f = emacs_view_frame_definition(delegate)
+    return !frame_no_accept_focus(f)                  // C 10454
+  }
+
+  /// C 10457-10461: `- (BOOL)canBecomeMainWindow` - "Required for fullscreen and undecorated
+  /// windows"; C's whole body is `return YES;`.  The renamed Swift spelling is `canBecomeMain`
+  /// (the note above).
+  override var canBecomeMain: Bool {
+    true                                              // C 10460
+  }
+
+  /// C 10463-10468: `- (void) setLastDragEvent: (NSEvent *) event`.  C's `[event copy]` is
+  /// Swift's `copy()`, whose `NSCopying` result is cast back to the record type.
+  func setLastDragEvent(_ event: NSEvent) {
+    last_drag_event = event.copy() as? NSEvent         // C 10467
+  }
+
+  /// C 9759-9762: `- (instancetype) initWithEmacsFrame: (struct frame *) f` - C's body is the
+  /// forward to the designated initializer below and nothing else, which is why it is a Swift
+  /// `convenience init`.
+  convenience init(frame f: UnsafeMutableRawPointer?) {
+    self.init(frame: f, fullscreen: false, screen: nil)   // C 9761
+  }
+
+  /// C 9765-9875: `- (instancetype) initWithEmacsFrame: (struct frame *) f fullscreen: (BOOL)
+  /// fullscreen screen: (NSScreen *) screen`.  Readings this body needs: C 9780's
+  /// `NSWindowStyleMaskResizable` sits inside the `NS_IMPL_COCOA` arm (this target's); C 9783's
+  /// `f->tooltip` is the `FRAME_TOOLTIP_P` entry C 2544/2560 already use; C 9812-9817's
+  /// `#if !defined (NS_IMPL_COCOA) || MAC_OS_X_VERSION_MIN_REQUIRED <= 1090` is **dead** on this
+  /// target (Cocoa and 260000), so the `useOptimizedDrawing:` block is recorded, not transcribed;
+  /// C 9808's `[self setDelegate: view]` is sent as C sends it (round 57's reading: `NSWindow`'s
+  /// `delegate` is typed `(any NSWindowDelegate)?` and the reference's `EmacsView` declares no
+  /// protocol list yet, that conformance being the deferred batch the class's box names); C 9825's
+  /// `[self setMiniwindowTitle: …]` has no Swift member (measured: the C compiler sees the
+  /// declaration, Swift does not surface it), so that message is sent dynamically too (round 56's
+  /// `setAppleMenu:` reading); C 9831/9869's `respondsToSelector:` guards are `#selector`-based,
+  /// the reading C 2158's sibling above already uses; and C 9856-9857's `[NSColor
+  /// colorWithUnsignedLong: …]` is the category method this unit's own `extension NSColor` ports
+  /// (C 188-197), so it is called as that class method.
+  ///
+  /// It is a `convenience` initializer because C's super call is the `screen:` variant, which
+  /// Swift imports as a *convenience* initializer of `NSWindow` (NSWindow.h 293 marks only the
+  /// four-argument one `NS_DESIGNATED_INITIALIZER`; measured: a designated initializer cannot call
+  /// it - "must call a designated initializer of the superclass 'NSWindow'"), and a subclass
+  /// inherits that convenience initializer because this class overrides the designated one.  One
+  /// statement therefore moves: C 9791's `last_drag_event = nil` runs *before* C 9796's super call,
+  /// while a Swift convenience initializer must reach `self.init` first - nothing reads the ivar in
+  /// between, so the two orders agree.
+  convenience init(frame f: UnsafeMutableRawPointer?, fullscreen: Bool, screen: NSScreen?) {
+    var styleMask: NSWindow.StyleMask = []             // C 9769
+
+    // C 9772: `NSTRACE ("[EmacsWindow initWithEmacsFrame:fullscreen:screen:]");` - empty.
+
+    if fullscreen {                                    // C 9774
+      styleMask = .borderless                          // C 9775
+    } else if FRAME_UNDECORATED(f) {                   // C 9776
+      styleMask = .borderless                          // C 9778
+      styleMask.insert(.resizable)                     // C 9780 (the `NS_IMPL_COCOA` arm)
+    } else if FRAME_TOOLTIP_P(f) {                     // C 9783 (C's `f->tooltip`)
+      styleMask = []                                   // C 9784
+    } else {
+      styleMask = [.titled, .resizable, .miniaturizable, .closable]   // C 9786-9789
+    }
+
+    let width = FRAME_TEXT_COLS_TO_PIXEL_WIDTH(f, frame_text_cols(f))       // C 9793
+    let height = FRAME_TEXT_LINES_TO_PIXEL_HEIGHT(f, frame_text_lines(f))   // C 9794
+
+    self.init(contentRect: NSMakeRect(0, 0, CGFloat(width), CGFloat(height)),   // C 9796-9800
+              styleMask: styleMask, backing: .buffered, defer: true, screen: screen)
+    // C 9801's `if (self)` is the initializer's own success in Swift (the `EmacsMenu` reading).
+
+    isReleasedWhenClosed = false // ARC owns the window through its frame view.
+    last_drag_event = nil                              // C 9791 (moved below `self.init`, above)
+
+    // C 9803-9804: `NSString *name; NSColor *col;` - each is declared where C assigns it; C 9805's
+    // `NSScreen *screen = [self screen]` shadows the parameter and is kept under its own name.
+    let screen_ = self.screen                          // C 9805
+    let view = FRAME_NS_VIEW(f)                        // C 9806
+
+    perform(#selector(setter: NSWindow.delegate), with: view)   // C 9808 (the reading above)
+    contentView!.addSubview(view!)                     // C 9809
+    _ = makeFirstResponder(view)                       // C 9810
+
+    acceptsMouseMovedEvents = true                     // C 9819
+
+    let name = NILP(frame_name(f))
+      ? "Emacs" : (stringWithLispString(frame_name(f)) as String?)!         // C 9821
+    title = name                                       // C 9822
+
+    if !NILP(frame_icon_name(f)) {                     // C 9824
+      perform(Selector(("setMiniwindowTitle:")),        // C 9825-9826 (the reading above)
+              with: stringWithLispString(frame_icon_name(f)))
+    }
+
+    setAppearance()                                    // C 9828 (this class's own method)
+
+    if responds(to: #selector(getter: NSWindow.titlebarAppearsTransparent)) {   // C 9831
+      titlebarAppearsTransparent = FRAME_NS_TRANSPARENT_TITLEBAR(f)             // C 9832
+    }
+
+    setParentChildRelationships_definition(self)            // C 9835 (the deferred entry above)
+
+    if FRAME_Z_GROUP(f) != z_group_none() {            // C 9837
+      level = NSWindow.Level(rawValue: NSWindow.Level.normal.rawValue
+                                       + (FRAME_Z_GROUP_BELOW(f) ? -1 : 1))     // C 9838
+    }
+
+    if screen_ != nil {                                // C 9840
+      let pt = NSMakePoint(IN_BOUND(-SCREENMAX,
+                                    CGFloat(frame_left_pos(f)) + NS_PARENT_WINDOW_LEFT_POS(f),
+                                    SCREENMAX),
+                           IN_BOUND(-SCREENMAX,
+                                    NS_PARENT_WINDOW_TOP_POS(f) - CGFloat(frame_top_pos(f)),
+                                    SCREENMAX))        // C 9842-9847
+
+      setFrameTopLeftPoint(pt)                         // C 9849
+
+      // C 9851: `NSTRACE_RECT ("new frame", [self frame]);` - empty at `NSTRACE_ENABLED` 0.
+    }
+
+    frame_set_border_width(f, Int32(borderWidth()))    // C 9854
+
+    let col = NSColor.colorWithUnsignedLong(NS_FACE_BACKGROUND(FACE_FROM_ID(f,
+                                                                  DEFAULT_FACE_ID())))   // C 9856-9857
+    backgroundColor = col                              // C 9858
+    if col.alphaComponent != 1.0 {                     // C 9859
+      isOpaque = false                                 // C 9860
+    }
+
+    /* toolbar support */
+    createToolbar_definition(self, f)                       // C 9863 (a deferred entry, below)
+
+    /* macOS Sierra automatically enables tabbed windows.  We can't
+       allow this to be enabled until it's available on a Free system.
+       Currently it only happens by accident and is buggy anyway.  */
+    if responds(to: #selector(setter: NSWindow.tabbingMode)) {   // C 9869
+      tabbingMode = .disallowed                        // C 9870
+    }
+  }
+
+  /// C 9878-9910: `- (void)createToolbar: (struct frame *)f`.  The guard C 9888 opens
+  /// (`defined (NS_IMPL_COCOA) && MAC_OS_X_VERSION_MIN_REQUIRED >= 101400`) is this target's, so
+  /// the `EmacsLayer` test is transcribed; `[self toolbar]` is `NSWindow`'s own property; and
+  /// `[[EmacsToolbar alloc] initForView:withIdentifier:]` is another unit's class method
+  /// (`nsmenu.swift` ports it), reached through the C-ABI entry declared below - the
+  /// `EmacsMenu_initWithTitle` shape.  C 9907's `@selector (toggleToolbar:)` is `EmacsView`'s own
+  /// method (C 9275), still owed by that class's batch, so the action is the selector itself (the
+  /// runtime sends it), not a call - the `menuDown:` reading.
+  func createToolbar(_ f: UnsafeMutableRawPointer?) {
+    if FRAME_UNDECORATED(f)                                   // C 9880
+         || styleMask == .borderless                          // C 9881
+         || !FRAME_EXTERNAL_TOOL_BAR(f)                       // C 9882
+         || toolbar != nil {                                  // C 9883
+      return                                                  // C 9884
+    }
+
+    let view = FRAME_NS_VIEW(f)                               // C 9886
+
+    /* If the view's layer isn't an EmacsLayer then we can't create the
+       toolbar yet.  */
+    if !(view?.layer is EmacsLayer) {                         // C 9891
+      return                                                  // C 9892
+    }
+
+    // C 9897's `[NSString stringWithFormat:@"%p", f]`: `%p` with a Swift pointer is spelled through
+    // its bit pattern, and measured - `String (format: "%p", UInt (bitPattern: p))` prints exactly
+    // what C's `printf ("%p", p)` prints (`0x1234abcd` in the probe), including the all-zero form
+    // for a nil pointer, which is what the optional initializer gives.
+    let newToolbar = EmacsToolbar_initForView(view,
+                                              String(format: "%p", UInt(bitPattern: f)) as NSString)   // C 9895-9897
+
+    self.toolbar = newToolbar as? NSToolbar                    // C 9899
+    update_frame_tool_bar_1(f, newToolbar)                     // C 9900
+
+    let toggleButton = standardWindowButton(.toolbarButton)    // C 9905
+    toggleButton?.target = view                                // C 9906
+    toggleButton?.action = #selector(EmacsView.toggleToolbar(_:))        // C 9907
+  }
+
+  /// C 9912-9926: `- (void)dealloc` - Swift's `deinit` (a class cannot name `dealloc`, the
+  /// `EmacsScroller` reading).  C's three statements are the references ARC owns: C 9917's
+  /// `[[self toolbar] release]` with C 9918's `[self setToolbar: nil]` are the strong reference's
+  /// teardown and the property assignment in one, and C 9922-9923's `[last_drag_event release]` is
+  /// the same for that ivar; C 9925's `[super dealloc]` is implicit.
+  deinit {
+    toolbar = nil                                             // C 9917-9918
+    last_drag_event = nil                                     // C 9922-9923
+  }
+
+  /// C 10299-10304: `- (void)performZoom:(id)sender` - C's body is the `super` call and nothing
+  /// else (C 10301's `NSTRACE` is the empty macro).
+  override func performZoom(_ sender: Any?) {
+    super.performZoom(sender)                          // C 10303
+  }
+
+  /// C 10306-10396: `- (void)zoom:(id)sender`.  C carries three implementations and compiles one:
+  /// the `#if 0` arm (C 10315-10320), the `#elif 0` arm (C 10321-10374) and the `#else` arm
+  /// (C 10375-10395) - C 10312-10313's own comment says the last is the one meant to be included
+  /// ("In the final commit, the idea is that the last should be included."), so that arm is what is
+  /// transcribed and the other two are recorded as the dead arms they are.  C 10391-10392's
+  /// `[[self delegate] windowWillUseStandardFrame:self defaultFrame:sr]` is the optional
+  /// `NSWindowDelegate` requirement (NSWindow.h 833) force-called: C's message assumes the delegate
+  /// answers it (an `EmacsView` does, C 8670), so no fallback is invented for a case C does not
+  /// handle.
+  override func zoom(_ sender: Any?) {
+    // C 10308: `NSTRACE ("[EmacsWindow zoom:]");` - empty at `NSTRACE_ENABLED` 0.
+
+    ns_update_auto_hide_menu_bar()                     // C 10310
+
+    // Below are three zoom implementations.  In the final commit, the
+    // idea is that the last should be included.                      // C 10312-10313
+
+    // Non-native zoom which is done instantaneously.  The resulting
+    // frame covers the entire screen, except the menu-bar and dock, if
+    // present.                                                        // C 10376-10378
+    let screen = self.screen                           // C 10379
+    if screen != nil {                                 // C 10380
+      var sr = screen!.frame                           // C 10382
+      let margins = ns_screen_margins_ignoring_hidden_dock(screen)   // C 10383-10384
+
+      sr.size.height -= (margins.top + margins.bottom)  // C 10386
+      sr.size.width  -= (margins.left + margins.right)  // C 10387
+      sr.origin.x += margins.left                       // C 10388
+      sr.origin.y += margins.bottom                     // C 10389
+
+      sr = delegate!.windowWillUseStandardFrame!(self, defaultFrame: sr)   // C 10391-10392
+      setFrame(sr, display: false)                      // C 10393
+    }
+  }
+
+  /// C 10398-10422: `- (void)setAppearance`.  The guard C 10400 opens
+  /// (`defined (NS_IMPL_COCOA) && MAC_OS_X_VERSION_MAX_ALLOWED >= 101000`) is this target's, so the
+  /// body is transcribed; C 10406-10408's `NSAppKitVersionNumber10_10` fallback define is the same
+  /// one C 2139's sibling reads (this unit's `NSAppKitVersion` entry pair); and C 10420's
+  /// `[self setAppearance:appearance]` is `NSWindow`'s own property setter - not this method, whose
+  /// selector takes no argument (which is why the entry below is needed for C 2144's call).
+  func setAppearance() {
+    let f = emacs_view_frame_definition(delegate)                 // C 10401
+    var appearance: NSAppearance? = nil                // C 10402
+
+    // C 10404: `NSTRACE ("[EmacsWindow setAppearance]");` - empty at `NSTRACE_ENABLED` 0.
+
+    if NSAppKitVersion.current.rawValue < NSAppKitVersion.macOS10_10.rawValue {   // C 10410
+      return                                           // C 10411
+    }
+
+    if FRAME_NS_APPEARANCE(f) == ns_appearance_vibrant_dark() {   // C 10413
+      appearance = NSAppearance(named: .vibrantDark)   // C 10414-10415
+    } else if FRAME_NS_APPEARANCE(f) == ns_appearance_aqua() {    // C 10416
+      appearance = NSAppearance(named: .aqua)          // C 10417-10418
+    }
+
+    self.appearance = appearance                       // C 10420
+  }
+
+  /// C 10424-10431: `- (void)setFrame:(NSRect)windowFrame display:(BOOL)displayViews` - C's body is
+  /// the `super` call and nothing else (the two `NSTRACE` lines are the empty macro).
+  override func setFrame(_ windowFrame: NSRect, display displayViews: Bool) {
+    super.setFrame(windowFrame, display: displayViews) // C 10430
+  }
+
+  /// C 10433-10442: `- (void)setFrame:(NSRect)windowFrame display:(BOOL)displayViews
+  /// animate:(BOOL)performAnimation` - the same shape as the pair above.
+  override func setFrame(_ windowFrame: NSRect, display displayViews: Bool,
+                         animate performAnimation: Bool) {
+    super.setFrame(windowFrame, display: displayViews, animate: performAnimation)   // C 10441
+  }
+
+  /// **Round 62 lands this family**: `mustNotDropOn:` (C 10522-10526) and `beginDrag:…`
+  /// (C 10528-10608) below, plus a `@objc(mustNotDropOn:)` name because C reaches it by selector
+  /// (`respondsToSelector:` at C 9460/9474/9554).  Three of the five are **refused by Swift**, each
+  /// measured and recorded rather than approximated (their `## ABI` (3) rows name the gap):
+  ///  * `- (NSDragOperation) draggingSourceOperationMaskForLocal: (BOOL) is_local` (C 10470-10473):
+  ///    the override is unavailable (`error: cannot override 'draggingSourceOperationMask' which
+  ///    has been marked unavailable: Use -draggingSession:sourceOperationMaskForDraggingContext:
+  ///    instead`) and the plain `@objc` spelling conflicts with the superclass member of the same
+  ///    selector (both measured);
+  ///  * `- (void) draggedImage: (NSImage *) endedAt: (NSPoint) operation: (NSDragOperation)`
+  ///    (C 10475-10480) and `- (void) draggedImage: (NSImage *) movedTo: (NSPoint)` (C 10482-10520):
+  ///    the override is unavailable too (`... Use -draggingSession:endedAtPoint:operation:
+  ///    instead`, and the same for `movedToPoint:`).  Their bodies would be `selected_op =
+  ///    operation` and the `dnd_return_frame`/`NSException` block; nothing here transcribes them,
+  ///    and the record says so.
+
+  /// C 10522-10526: `- (BOOL) mustNotDropOn: (NSView *) receiver` - C's conditional with its own
+  /// nil-receiver case: the message to nil answers nil, nil != self, so the answer is `NO`.
+  @objc(mustNotDropOn:)
+  func mustNotDropOn(_ receiver: NSView?) -> Bool {
+    receiver?.window == self ? !dnd_allow_same_frame : false     // C 10524-10525
+  }
+
+  /// C 10528-10608: `- (NSDragOperation) beginDrag: (NSDragOperation) op forPasteboard:
+  /// (NSPasteboard *) pasteboard withMode: (enum ns_return_frame_mode) mode returnFrameTo:
+  /// (struct frame **) frame_return prohibitSame: (BOOL) prohibit_same_frame followTooltip:
+  /// (BOOL) follow_tooltip`.  C 10536-10539's GNUstep-only two locals are dead here; C's
+  /// `NSDragOperationNone` is the empty option set this unit's own `drag_op` already uses; C
+  /// 10551-10552's `NSRectFillUsingOperation` is the SDK's rename of that call
+  /// (`NSRect.fill (using:)`, measured); C 10567/10604's `[image release]` are the references ARC
+  /// owns; C 10574-10591's `@try`/`@catch (NSException *)` cannot be spelled in Swift, so the
+  /// protected call is plain and the guard is a recorded deviation (the `ns_uni_to_glyphs_1`
+  /// reading); and C's two `frame_return` writes are the pointee writes C makes.
+  // (No `@objc` name: measured, Swift refuses to expose this one - `instance method cannot be
+  // marked '@objc' because the type of the parameter 3 cannot be represented in Objective-C`,
+  // the parameter being C's own `enum ns_return_frame_mode`.  Nothing needs the selector: the
+  // reference's one other caller is `src/nsselect.m` 771, and this lane routes that through the
+  // C-ABI entry below - `nsselect.swift` 220-224's import, whose provider this round adds.)
+  func beginDrag(_ op: NSDragOperation, forPasteboard pasteboard: NSPasteboard?,
+                 withMode mode: ns_return_frame_mode,
+                 returnFrameTo frame_return: UnsafeMutablePointer<UnsafeMutableRawPointer?>?,
+                 prohibitSame prohibit_same_frame: Bool,
+                 followTooltip follow_tooltip: Bool) -> NSDragOperation {
+    drag_op = op                                        // C 10540
+    selected_op = []                                    // C 10541 (C's `NSDragOperationNone`)
+    let image = NSImage(size: NSMakeSize(1.0, 1.0))     // C 10542
+    dnd_mode = mode                                     // C 10543
+    dnd_return_frame = nil                              // C 10544
+    dnd_allow_same_frame = !prohibit_same_frame         // C 10545
+    dnd_move_tooltip_with_frame = follow_tooltip        // C 10546
+
+    /* Now draw transparency onto the image.  */
+    image.lockFocus()                                   // C 10549
+    NSColor.colorWithUnsignedLong(0).set()              // C 10550 (this unit's own category port)
+    NSMakeRect(0, 0, 1, 1).fill(using: .copy)           // C 10551-10552
+    image.unlockFocus()                                 // C 10553
+
+    block_input()                                       // C 10555
+    if mode == .RETURN_FRAME_NOW {                      // C 10557
+      let window_number = NSWindow.windowNumber(at: NSEvent.mouseLocation,
+                                                belowWindowWithWindowNumber: 0)  // C 10559-10560
+      let w = NSApp.window(withWindowNumber: window_number)                      // C 10561
+
+      if w != nil && (w!.delegate as? EmacsView) != nil
+           && !FRAME_TOOLTIP_P(emacs_view_frame_definition(w!.delegate)) {                  // C 10563-10564
+        frame_return!.pointee = emacs_view_frame_definition(w!.delegate)                    // C 10566
+        // C 10567: `[image release];` - the reference ARC owns.
+        unblock_input()                                                          // C 10568
+
+        return []                                                                // C 10570
+      }
+    }
+
+    // C 10574-10591: `@try { … } @catch (NSException *e) { /* Ignore. … */ }` - Swift cannot catch
+    // an Objective-C exception, so the protected call is plain and the guard is a recorded
+    // deviation (the reading above).
+    if last_drag_event != nil {                         // C 10577
+      drag(image, at: NSMakePoint(0, 0), offset: NSMakeSize(0, 0),       // C 10578-10584
+           event: last_drag_event!, pasteboard: pasteboard!, source: self, slideBack: false)
+    }
+    unblock_input()                                     // C 10593
+
+    /* The drop happened, so delete the tooltip.  */
+    if follow_tooltip {                                 // C 10596
+      _ = Fx_hide_tip()                                 // C 10597
+    }
+
+    /* Assume all buttons have been released since the drag-and-drop
+       operation is now over.  */
+    if dnd_return_frame == nil {                        // C 10601
+      ns_display_info_set_grabbed(x_display_list, 0)    // C 10602
+    }
+
+    // C 10604: `[image release];` - the reading above.
+
+    frame_return!.pointee = dnd_return_frame            // C 10606
+    return selected_op                                  // C 10607
+  }
+
+  /// C 10043-10055: `- (void)orderFront:(id)sender` - C's parent-window arm removes and re-adds
+  /// the receiver above it, and the `else` is the `super` call.
+  @objc override func orderFront(_ sender: Any?) {
+    let parent = parent                                   // C 10047 (the renamed spelling)
+    if parent != nil {                                    // C 10048
+      parent!.removeChildWindow(self)                     // C 10050
+      parent!.addChildWindow(self, ordered: .above)       // C 10051
+    } else {
+      super.orderFront(sender)                            // C 10054
+    }
+  }
+
+  /// C 10057-10068: `- (void)makeKeyAndOrderFront:(id)sender` - the parent arm orders the receiver
+  /// front and makes it key; the `else` is the `super` call.
+  @objc override func makeKeyAndOrderFront(_ sender: Any?) {
+    if parent != nil {                                    // C 10061 (the renamed spelling)
+      orderFront(sender)                                  // C 10063
+      makeKey()                                           // C 10064 (Swift's name for makeKeyWindow)
+    } else {
+      super.makeKeyAndOrderFront(sender)                  // C 10067
+    }
+  }
+
+  /// C 9934-10037: `- (void)setParentChildRelationships` - "After certain operations, for example
+  /// making a frame visible or resetting the NSWindow through modifying the undecorated status, the
+  /// parent/child relationship may be broken.  We can also use this method to set them, as long as
+  /// the frame struct already has the correct relationship set."  The guards this target decides:
+  /// C 9955-9957's `#if MAC_OS_X_VERSION_MIN_REQUIRED < 101000` and C 9987-9989/10012-10014's
+  /// `< 1070` are **dead** (the target is 260000), so the `respondsToSelector:` wrapper is the same
+  /// recorded arm as elsewhere and the body it guards is transcribed directly, the way the C
+  /// compiler takes it; C 9964-9966's `>= 1070` arm is live.  `ourView` is `[self delegate]` read as
+  /// this unit's own `EmacsView` class (whose `updateCollectionBehavior`/`fsIsNative`/`isFullscreen`
+  /// are landed methods); and `toggleFullScreen:` is that class's own too, so C 9998/C 10017's two
+  /// sends are the direct calls round 82 switched them to (the deferred entry they used is gone).
+  func setParentChildRelationships() {
+    let ourView = delegate as? EmacsView                  // C 9944
+    let ourFrame = emacs_view_frame_definition(ourView)              // C 9945 (C's `ourView->emacsframe`)
+    let parentFrame = FRAME_PARENT_FRAME(ourFrame)        // C 9946
+    let oldParentWindow = parent as? EmacsWindow          // C 9947 (C's `[self parentWindow]`)
+
+    /* We have to set the accessibility subroles and/or the collection
+       behaviors early otherwise child windows may not go fullscreen as
+       expected later.  */
+
+    /* Set the accessibility subroles.  */
+    if parentFrame != nil {                               // C 9959
+      setAccessibilitySubrole(.floatingWindow)            // C 9960
+    } else {
+      setAccessibilitySubrole(.standardWindow)            // C 9962
+    }
+
+    ourView?.updateCollectionBehavior()                   // C 9965 (the live arm)
+
+    /* Child frames are often used in ways that may mean they should
+       "disappear" into the contents of the parent frame.  macOs's
+       drop-shadows break this effect, so remove them on undecorated
+       child frames.  */
+    if parentFrame != nil && FRAME_UNDECORATED(ourFrame) {   // C 9972
+      hasShadow = false                                  // C 9973
+    } else {
+      hasShadow = true                                   // C 9975
+    }
+
+    /* Check if we have an incorrectly set parent.  */
+    if (parentFrame == nil && oldParentWindow != nil)     // C 9980
+         || (parentFrame != nil && oldParentWindow != nil
+             && emacs_view_frame_definition(oldParentWindow?.delegate) != parentFrame) {   // C 9981-9982
+      parent?.removeChildWindow(self)                     // C 9984
+
+      /* If we are the descendent of a fullscreen window and we
+         have no new parent, go fullscreen.  */
+      var p: NSWindow? = oldParentWindow                  // C 9993
+      while p != nil {                                    // C 9994
+        if p!.styleMask.contains(.fullScreen) {           // C 9996
+          ourView?.toggleFullScreen(self)                 // C 9998
+          break                                           // C 9999
+        }
+        p = p!.parent                                      // C 10001
+      }
+    }
+
+    if parentFrame != nil {                               // C 10007
+      let parentWindow = FRAME_NS_VIEW(parentFrame)?.window   // C 10009
+
+      /* Child frames must not be fullscreen.  */
+      if ourView!.fsIsNative() && ourView!.isFullscreen() {   // C 10016
+        ourView?.toggleFullScreen(self)                       // C 10017
+      }
+
+      /* -addChildWindow: also orders the child window onto the screen, so
+         attaching a child frame Emacs considers invisible is what
+         resurrects a dismissed completion popup (corfu, company-box, ...)
+         when relationships are rebuilt.  Only attach a visible child; a
+         hidden one is re-attached by ns_make_frame_visible when it is
+         shown again.  */
+      if FRAME_VISIBLE_P(ourFrame) {                      // C 10026
+        parentWindow?.addChildWindow(self, ordered: .above)   // C 10027-10028
+      }
+    }
+
+    /* Check our child windows are configured correctly.  */
+    var tail: Lisp_Object = Vframe_list                   // C 10032 (C's `FOR_EACH_FRAME`)
+    while CONSP(tail) {
+      let frame = XCAR(tail)
+      if FRAME_PARENT_FRAME(XFRAME(frame)) == ourFrame {  // C 10034
+        (FRAME_NS_VIEW(XFRAME(frame))?.window as? EmacsWindow)?
+          .setParentChildRelationships()                  // C 10035
+      }
+      tail = XCDR(tail)
+    }
+  }
+
+  /// C 10098-10122: `- (void)orderBack:(id)sender`.  C sorts the parent's children with the
+  /// comparator above, re-adds the receiver above them all, then walks the sorted list re-adding
+  /// every other window in turn; the `else` is the `super` call.
+  @objc override func orderBack(_ sender: Any?) {
+    let parent = parent                                   // C 10102 (the renamed spelling)
+    if parent != nil {                                    // C 10103
+      let children = (parent!.childWindows ?? [])        // C 10105-10107
+        .sorted { nswindow_orderedIndex_sort($0 as AnyObject, $1 as AnyObject, nil) < 0 }
+      parent!.removeChildWindow(self)                     // C 10108
+      parent!.addChildWindow(self, ordered: .above)       // C 10109
+
+      for win in children {                               // C 10111
+        if win != self {                                  // C 10113
+          parent!.removeChildWindow(win)                  // C 10115
+          parent!.addChildWindow(win, ordered: .above)    // C 10116
+        }
+      }
+    } else {
+      super.orderBack(sender)                             // C 10121
+    }
+  }
+
+  /// C 10124-10155: `- (BOOL)restackWindow:(NSWindow *)win above:(BOOL)above`.  C's comparator call
+  /// is this unit's own `nswindow_orderedIndex_sort` (C 10084-10096, the function `orderBack:`
+  /// above also uses), and C 10133's `orderWindow:relativeTo:` is the SDK's own rename
+  /// `order (_:relativeTo:)` (measured).
+  func restackWindow(_ win: NSWindow, above: Bool) -> Bool {
+    /* If parent windows don't match we can't restack these frames
+       without changing the parents.  */
+    if parent != win.parent {                             // C 10130
+      return false                                        // C 10131
+    } else if parent == nil {                             // C 10132
+      order(above ? .above : .below, relativeTo: win.windowNumber)   // C 10133-10134
+    } else {
+      let p = parent!                                     // C 10138
+      let children = NSMutableArray(array: (p.childWindows ?? [])
+        .sorted { nswindow_orderedIndex_sort($0 as AnyObject, $1 as AnyObject, nil) < 0 })   // C 10139-10142
+      children.remove(self)                               // C 10143
+      let index = children.index(of: win)                 // C 10144
+      children.insert(self, at: above ? index + 1 : index)   // C 10145
+
+      for w in children {                                 // C 10147
+        p.removeChildWindow(w as! NSWindow)               // C 10149
+        p.addChildWindow(w as! NSWindow, ordered: .above)  // C 10150
+      }
+    }
+
+    return true                                           // C 10154
+  }
+
+  /* Constrain size and placement of a frame.
+
+     By returning the original "frameRect", the frame is not
+     constrained. This can lead to unwanted situations where, for
+     example, the menu bar covers the frame.
+
+     The default implementation (accessed using "super") constrains the
+     frame to the visible area of SCREEN, minus the menu bar (if
+     present) and the Dock.  Note that default implementation also calls
+     windowWillResize, with the frame it thinks should have.  (This can
+     make the frame exit maximized mode.)
+
+     Note that this should work in situations where multiple monitors
+     are present.  Common configurations are side-by-side monitors and a
+     monitor on top of another (e.g. when a laptop is placed under a
+     large screen).  */
+
+  /// C 10230-10296: `- (NSRect)constrainFrameRect:(NSRect)frameRect toScreen:(NSScreen *)screen`.
+  /// The SDK's own rename is `constrainFrameRect (_:to:)` (measured: the `toScreen:` spelling is
+  /// refused with "has been renamed to"), used for the override and for C 10253/10287's two `super`
+  /// calls.  The guards this target decides: C 10243's `>= 1090` is live and C 10247-10249's `< 1090`
+  /// `respondsToSelector:` wrapper is dead (the target is 260000), so `NSScreen`'s
+  /// `screensHaveSeparateSpaces` class property is read directly - the SDK's own spelling of the
+  /// message C 10250 sends.  C 10295's `[(EmacsView *)[self delegate] isFullscreen]` goes through
+  /// the deferred entry round 65 provided.
+  override func constrainFrameRect(_ frameRect: NSRect, to screen: NSScreen?) -> NSRect {
+    let f = emacs_view_frame_definition(delegate)                 // C 10239 (C's `…->emacsframe`)
+    if FRAME_PARENT_FRAME(f) != nil {                  // C 10240
+      return frameRect                                 // C 10241
+    }
+
+    // If separate spaces is on, it is like each screen is independent.  There is
+    // no spanning of frames across screens.
+    if NSScreen.screensHaveSeparateSpaces {            // C 10250
+      // C 10252: `NSTRACE_MSG ("Screens have separate spaces");` - empty.
+      return super.constrainFrameRect(frameRect, to: screen)   // C 10253-10255
+    }
+
+    // Check that the proposed frameRect is visible in at least one
+    // screen.  If it is not, ask the system to reposition it (only
+    // for non-child windows).
+
+    if FRAME_PARENT_FRAME(emacs_view_frame_definition(delegate)) == nil {   // C 10264
+      let screens = NSScreen.screens                   // C 10266
+      let nr_screens = screens.count                   // C 10267
+
+      var frame_on_screen = false                      // C 10270
+
+      for i in 0..<nr_screens {                        // C 10272
+        let s = screens[i]                             // C 10274
+        let scrRect = s.frame                          // C 10275
+
+        if NSIntersectsRect(frameRect, scrRect) {      // C 10277
+          frame_on_screen = true                       // C 10279
+          break                                        // C 10280
+        }
+      }
+
+      if !frame_on_screen {                            // C 10284
+        // C 10286: `NSTRACE_MSG ("Frame outside screens; constraining");` - empty.
+        return super.constrainFrameRect(frameRect, to: screen)   // C 10287-10289
+      }
+    }
+
+    return constrain_frame_rect(frameRect, isFullscreen_definition(delegate as? NSView))   // C 10294-10295
+  }
+
+  /// C 10157-10212: `- (id)accessibilityAttributeValue:(NSString *)attribute` - the
+  /// `NS_IMPL_COCOA` arm C 10157 opens and C 10212 closes.  The SDK's own Swift shape of the
+  /// method is `accessibilityAttributeValue (_ attribute: NSAccessibility.Attribute) -> Any?`
+  /// (measured: the `String`-parameter spelling is not an override at all, and the attribute/role
+  /// comparisons are the typed constants `NSAccessibility.Attribute.role`/`.selectedText`/`.value`
+  /// and `NSAccessibility.Role.window`), and overriding it **is** a deprecation warning in macOS
+  /// 10.10 ("Use the NSAccessibility protocol methods instead") - the round's one new warning,
+  /// named in the ledger and the status log.  The body's other readings: `f->selected_window` is
+  /// this unit's `frame_selected_window`, `XWINDOW (…)->contents` is the `window_contents` reader,
+  /// `XBUFFER`/`BVAR` are the lane's `XBUFFER` entry and per-field `buffer_…` readers, and
+  /// `ns_get_local_selection` is `nsselect.swift`'s own (C 204 there).
+  override func accessibilityAttributeValue(_ attribute: NSAccessibility.Attribute) -> Any? {
+    var str: Lisp_Object = Qnil()                      // C 10160
+    let f = SELECTED_FRAME()                           // C 10161
+    let curbuf = XBUFFER(window_contents(XWINDOW(frame_selected_window(f))))   // C 10162
+
+    // C 10164: `NSTRACE ("[EmacsWindow accessibilityAttributeValue:]");` - empty.
+
+    if attribute == .role {                            // C 10166
+      return NSAccessibility.Role.window.rawValue      // C 10167
+    }
+
+    if attribute == .selectedText && curbuf != nil
+         && !NILP(buffer_mark_active(curbuf)) {        // C 10169-10170
+      str = ns_get_local_selection(QPRIMARY(), QUTF8_STRING())   // C 10172
+    } else if curbuf != nil && attribute == .value {    // C 10174
+      if !NILP(buffer_mark_active(curbuf)) {            // C 10176
+        str = ns_get_local_selection(QPRIMARY(), QUTF8_STRING())   // C 10177
+      }
+
+      if NILP(str) {                                    // C 10179
+        str = ns_accessibility_buffer_string(curbuf)
+      }
+    }
+
+    if !NILP(str) {                                     // C 10196
+      if CONSP(str) && SYMBOLP(XCAR(str)) {             // C 10198
+        str = XCDR(str)                                 // C 10200
+        if CONSP(str) && NILP(XCDR(str)) {              // C 10201
+          str = XCAR(str)                               // C 10202
+        }
+      }
+      if STRINGP(str) {                                 // C 10204
+        return stringWithLispString(str)                // C 10206
+      }
+    }
+
+    return super.accessibilityAttributeValue(attribute)  // C 10210
+  }
+}
+
+// ==========================================================================
+// Round 25: `EmacsView`'s class record with `fsIsNative`, `isFullscreen`,
+// `updateCollectionBehavior`, and the `check_native_fs` they unblock
+// ==========================================================================
+
+/// C: `bool ns_use_native_fullscreen` - src/nsterm.m 11702's `DEFVAR_BOOL
+/// ("ns-use-native-fullscreen", …)`, this file's own variable, imported as the C data symbol the
+/// core exports (the `ns_auto_hide_menu_bar` shape above: it is owed until this unit's own
+/// `syms_of_nsterm` slice lands).  `ns_last_use_native_fullscreen` (C 335) is the static beside it.
+@_silgen_name("ns_use_native_fullscreen") var ns_use_native_fullscreen: Bool
+
+/// C `src/nsterm.h` 466-488: `@interface EmacsView : NSView <NSTextInput, NSTextInputClient,
+/// NSWindowDelegate>`.  **Round 25 lands the record** - the fifteen ivars of nsterm.h 470-488,
+/// `@public emacsframe` (485) included - and three of its methods.  The protocol list is the one
+/// named deferral: Swift enforces every required method of those protocols at the point the
+/// conformance is declared, so the `<…>` list lands in the round that carries that method batch,
+/// not with the record (the ledger's box for this class says so).  The reference's own text is
+/// unchanged by this split: no method below reads a protocol requirement it does not implement.
+/// **Round 81 lands the list**: every `NSTextInputClient` requirement is now one of the methods
+/// below, so the conformance can be declared.  The Cocoa arm's `NSTextInput` half has no Swift
+/// protocol to name - AppKit's is the *informal* protocol on `NSObject` (NSAccessibility.h's
+/// category shape) - so its methods stay the plain `@objc` ones C 7481-7776 writes, and
+/// `NSWindowDelegate`'s requirements are all optional.
+class EmacsView: NSView, NSTextInputClient, NSWindowDelegate {
+  /// C nsterm.h 472-474, the `NS_IMPL_COCOA` arm: `char *old_title; BOOL maximizing_resize;`
+  var old_title: UnsafeMutablePointer<CChar>? = nil
+  var maximizing_resize: Bool = false
+  /// C nsterm.h 475-479.
+  var font_panel_active: Bool = false
+  var font_panel_result: NSFont? = nil
+  var windowClosing: Bool = false
+  var workingText: String? = nil
+  var processingCompose: Bool = false
+  /// C nsterm.h 480-483.
+  var fs_state: Int32 = 0
+  var fs_before_fs: Int32 = 0
+  var next_maximized: Int32 = 0
+  var maximized_width: Int32 = 0
+  var maximized_height: Int32 = 0
+  var nonfs_window: EmacsWindow? = nil
+  var owningWindow: NSWindow? = nil
+  var fs_is_native: Bool = false
+  /// C nsterm.h 485-487, the `@public` half: C 2538 reaches `emacsframe` through a cast, so the
+  /// property is the same stored slot.
+  var emacsframe: UnsafeMutableRawPointer? = nil
+  var scrollbarsNeedingUpdate: Int32 = 0
+  var ns_userRect: NSRect = .zero
+
+  /// `NSView`'s designated initializer, spelled out for the reason `EmacsWindow`'s is (Swift
+  /// marks `init (coder:)` unavailable on these AppKit classes; measured last round).
+  override init(frame frameRect: NSRect) {
+    super.init(frame: frameRect)
+  }
+
+  required init?(coder: NSCoder) {
+    super.init(coder: coder)
+  }
+
+  // ==========================================================================
+  // C 7041-7235: the class prologue and the font panel - the window-close setter,
+  // `dealloc`, the three font-panel callbacks, `acceptsFirst*` and `resetCursorRects`.
+  // `keyDown:` (C 7243) is the next round's.
+  // ==========================================================================
+
+  /// C 7041-7044: `- (void)windowDidEndLiveResize: (NSNotification *)notification` - C's body is
+  /// the forward to `updateFramePosition`.
+  @objc func windowDidEndLiveResize(_ notification: Notification) {
+    self.updateFramePosition()                                  // C 7043
+  }
+
+  /// C 7046-7052: `- (void) setWindowClosing: (BOOL)closing` - "Needed to inform when window
+  /// closed from lisp."  C's one statement assigns the ivar this class keeps as `windowClosing`;
+  /// Swift's stored property is not Objective-C visible, so the selector C names is free to be
+  /// this method's own.
+  @objc func setWindowClosing(_ closing: Bool) {
+    // C 7049: `NSTRACE ("[EmacsView setWindowClosing:%d]", closing);` - empty.
+    windowClosing = closing                                     // C 7051
+  }
+
+  /// C 7055-7076: `- (void)dealloc`.  C's three `release` calls are the references ARC drops
+  /// (C 7066's `nonfs_window`, C 7071's layer, C 7074's menu) and `[super dealloc]` (C 7075) has
+  /// no Swift statement - the `EmacsWindow` `dealloc` reading of round 66.  C 7068-7072's
+  /// `NS_IMPL_COCOA && MIN_REQUIRED >= 101400` arm is this target's.
+  deinit {
+    // C 7057: `NSTRACE ("[EmacsView dealloc]");` - empty.
+
+    /* C 7059-7063: "Clear the view resize notification."  */
+    NotificationCenter.default.removeObserver(
+      self, name: NSView.frameDidChangeNotification, object: nil)     // C 7060-7063
+
+    if fs_state == FULLSCREEN_BOTH() {                          // C 7065
+      nonfs_window = nil                                        // C 7066 (C's `release`)
+    }
+
+    /* C 7068-7072: the `NS_IMPL_COCOA && MIN_REQUIRED >= 101400` arm -
+       `EmacsLayer *layer = (EmacsLayer *)[self layer]; [layer release];` - and C 7074's
+       `[[self menu] release]` are ARC's own references.  */
+  }
+
+  /// C 7079-7106: `- (void) changeFont: (id) sender` - "Called on font panel selection."  The
+  /// `NS_IMPL_GNUSTEP` arm (C 7085-7086) is **dead** on this target, so C 7088's
+  /// `macfont_get_nsctfont` is the live one (`macfont.swift` 11105 exports the entry) and the
+  /// borrowed `CTFontRef` becomes an `NSFont` unretained (the `macfont.swift` 951 reading); the
+  /// `#ifndef NS_IMPL_COCOA` arm (C 7102-7105) is **dead** too; and C 7095/7100's
+  /// `release`/`retain` pair is ARC's.
+  @objc func changeFont(_ sender: Any?) {
+    let font = FRAME_FONT(emacsframe)                           // C 7082 (C's `output_data.ns->font`)
+    let nsfont: NSFont? = macfont_get_nsctfont(font).map {
+      Unmanaged<NSFont>.fromOpaque($0).takeUnretainedValue()    // C 7088
+    }
+
+    if !font_panel_active {                                     // C 7091
+      return                                                    // C 7092
+    }
+
+    font_panel_result = nil                                     // C 7095 (C's `release`)
+
+    /* C 7097: `font_panel_result = (NSFont *) [sender convertFont: nsfont];`.  Swift's
+       `NSFontManager.convert (_:)` takes a non-optional font, so C's nil argument cannot be
+       passed through it: the port keeps C's own answer for that case (`nil`), which is what the
+       message to a manager with no font to convert gives.  */
+    if let manager = sender as? NSFontManager, let f = nsfont {
+      font_panel_result = manager.convert(f)                    // C 7097
+    } else {
+      font_panel_result = nil
+    }
+
+    /* C 7099-7100: `if (font_panel_result) [font_panel_result retain];` - ARC's hold.  */
+    /* C 7102-7105: the `#ifndef NS_IMPL_COCOA` arm - dead on this target.  */
+  }
+
+  /* C 7108-7138: the `NS_IMPL_COCOA` arm's two callbacks (this target's).  */
+
+  /// C 7109-7126: `- (void) noteUserSelectedFont`.
+  @objc func noteUserSelectedFont() {
+    font_panel_active = false                                   // C 7111
+
+    /* C 7113-7114: "If no font was previously selected, use the currently selected font."  */
+    if font_panel_result == nil && FRAME_FONT(emacsframe) != nil {    // C 7116
+      font_panel_result = macfont_get_nsctfont(FRAME_FONT(emacsframe)).map {
+        Unmanaged<NSFont>.fromOpaque($0).takeUnretainedValue()  // C 7118-7119
+      }
+      /* C 7121-7122: `if (font_panel_result) [font_panel_result retain];` - ARC's hold.  */
+    }
+
+    NSApp.stop(self)                                            // C 7125
+  }
+
+  /// C 7128-7137: `- (void) noteUserCancelledSelection`.
+  @objc func noteUserCancelledSelection() {
+    font_panel_active = false                                   // C 7130
+
+    font_panel_result = nil                                     // C 7134 (C's `release` at 7132-7133)
+    NSApp.stop(self)                                            // C 7136
+  }
+
+  /// C 7140-7202: `- (Lisp_Object) showFontPanel`.  The `NS_IMPL_GNUSTEP` arms (C 7151-7152 and
+  /// C 7176-7177) are **dead** on this target; `ns_create_font_panel_buttons` and
+  /// `ns_font_desc_to_font_spec` are this unit's round-58 helpers; `make_timespec` is the
+  /// `lib/timespec.h` 55-59 inline (its entry, **open**); C 7163/7184's `release`/`autorelease`
+  /// are ARC's; and C 7173-7179's loop condition carries an assignment, which the port writes as
+  /// the assignment plus the test (C's own order: the assignment is evaluated before every test).
+  @objc func showFontPanel() -> Lisp_Object {
+    let fm = NSFontManager.shared                               // C 7142
+    let font = FRAME_FONT(emacsframe)                           // C 7143
+    let nsfont: NSFont? = macfont_get_nsctfont(font).map {
+      Unmanaged<NSFont>.fromOpaque($0).takeUnretainedValue()    // C 7154
+    }
+    var result: NSFont?                                         // C 7144
+    var timeout = timespec()                                    // C 7145
+
+    let buttons = ns_create_font_panel_buttons(
+      self, #selector(EmacsView.noteUserSelectedFont),          // C 7158-7161
+      #selector(EmacsView.noteUserCancelledSelection))
+    fm.fontPanel(true)?.accessoryView = buttons                 // C 7162
+    /* C 7163: `[buttons release];` - the panel's own view holds it (ARC).  */
+
+    fm.setSelectedFont(nsfont!, isMultiple: false)              // C 7166
+    fm.orderFrontFontPanel(NSApp)                               // C 7167
+
+    font_panel_active = true                                    // C 7169
+    timeout = make_timespec(0, 100_000_000)                     // C 7170
+
+    block_input()                                               // C 7172
+    var canceled = false                                        // C 7148
+    while true {                                                // C 7173
+      canceled = fm.fontPanel(true)?.isVisible ?? false         // C 7175 (C's assignment in the test)
+      if !(font_panel_active && canceled) {                     // C 7173
+        break
+      }
+      _ = ns_select_1(0, nil, nil, nil, &timeout, nil, true)    // C 7180
+    }
+    unblock_input()                                             // C 7181
+
+    /* C 7183-7184: `if (font_panel_result) [font_panel_result autorelease];` - ARC's.  */
+
+    if !canceled {                                              // C 7187
+      font_panel_result = nil                                   // C 7188
+    }
+
+    result = font_panel_result                                   // C 7191
+    font_panel_result = nil                                     // C 7192
+
+    fm.fontPanel(true)?.setIsVisible(false)                      // C 7194
+    font_panel_active = false                                   // C 7195
+
+    if result != nil {                                          // C 7197
+      return ns_font_desc_to_font_spec(result!.fontDescriptor, result!)    // C 7198-7199
+    }
+
+    return Qnil()                                               // C 7201
+  }
+
+  /// C 7204-7208: `- (BOOL)acceptsFirstResponder` - C's whole body is `return YES;`, and the
+  /// property is the form Swift overrides for that selector.
+  override var acceptsFirstResponder: Bool {
+    true                                                        // C 7207
+  }
+
+  /// C 7210-7216: `- (BOOL)acceptsFirstMouse: (NSEvent *)theEvent` - "Tell NS we want to accept
+  /// clicks that activate the window"; C 7213-7214's `NSTRACE_MSG` is empty and C's answer is the
+  /// `ns_click_through` variable.
+  @objc override func acceptsFirstMouse(for theEvent: NSEvent?) -> Bool {
+    ns_click_through                                            // C 7215
+  }
+
+  /// C 7217-7235: `- (void)resetCursorRects`.  `FRAME_POINTER_TYPE`'s read is the
+  /// `ns_output_current_pointer` member entry (C 3083's family, the round-8 reading), C's
+  /// `NSIsEmptyRect` is the rect's own `isEmpty` and C's `[NSCursor arrowCursor]` the class
+  /// property; C 7229-7234's `NS_IMPL_GNUSTEP || MIN_REQUIRED < 101300` arm is **dead** on this
+  /// target (recorded, not transcribed).
+  @objc override func resetCursorRects() {
+    let visible = self.visibleRect                               // C 7219
+    var currentCursor: NSCursor? = ns_output_current_pointer(emacsframe) as? NSCursor   // C 7220
+    // C 7221: `NSTRACE ("[EmacsView resetCursorRects]");` - empty.
+
+    if currentCursor == nil {                                    // C 7223
+      currentCursor = NSCursor.arrow                             // C 7224
+    }
+
+    if !visible.isEmpty {                                        // C 7226 (C's `NSIsEmptyRect`)
+      self.addCursorRect(visible, cursor: currentCursor!)        // C 7227
+    }
+    /* C 7229-7234: the dead `setOnMouseEntered:` arm.  */
+  }
+
+  /// C 7243-7427: `- (void) keyDown: (NSEvent *)theEvent` - the file's largest method.  Readings
+  /// this body needs: C 7248's `static NSMutableArray *nsEvArray` is the file-scope array this
+  /// round adds; C 7254's `NSEventTypeKeyDown` is Swift's `.keyDown`; C 7261/7263's
+  /// `[EmacsWindow class]` and delegate tests use this unit's own class (the `isKindOfClass:`
+  /// reading `EmacsWindow`'s record carries) and C 7263's `!= self` is Swift's `!==`; C 7278's
+  /// `[NSCursor setHiddenUntilMouseMoves:]` is the class method and `Vmake_pointer_invisible` the
+  /// `DEFVAR_LISP` the core exports; C 7280-7286's member reads are `mouse_face_hidden` (round 69)
+  /// plus `mouse_face_window` (this round) and `frame_tab_bar_window` (round 70); C 7298/7300's
+  /// `NSEventModifierFlagNumericPad` is the option set's `.numericPad` (the `styleMask` reading);
+  /// C 7312-7318's `#ifdef NS_IMPL_GNUSTEP` arm inside the delete hack is **dead**; C 7352-7360's
+  /// log line is `NS_KEYLOG`-guarded and `NS_KEYLOG` is 0 (the macro's box is ticked with this
+  /// round); C 7376-7381's `#ifdef NS_IMPL_COCOA` arm is this target's; C 7403-7404's log line is
+  /// the same dead guard; and C 7411-7420's `keyEventWithType:…` factory is
+  /// `NSEvent.keyEvent (with:…)`, whose Swift import is failable.
+  @objc override func keyDown(with theEvent: NSEvent) {
+    var theEvent = theEvent                                     // C 7411 reassigns it
+    let hlinfo = MOUSE_HL_INFO(emacsframe)                      // C 7245
+    var code: Int32 = 0                                         // C 7246
+    var fnKeysym: UInt32 = 0                                    // C 7247
+    var flags = UInt(theEvent.modifierFlags.rawValue)          // C 7249
+
+    // C 7251: `NSTRACE ("[EmacsView keyDown:]");` - empty at `NSTRACE_ENABLED` 0.
+
+    /* C 7253: "Rhapsody and macOS give up and down events for the arrow keys."  */
+    if theEvent.type != .keyDown {                              // C 7254
+      return                                                    // C 7255
+    }
+
+    if emacs_event == nil {                                     // C 7257
+      return                                                    // C 7258
+    }
+
+    if !(self.window?.isKeyWindow ?? false)                     // C 7260
+         && (theEvent.window is EmacsWindow)                    // C 7261
+         /* C 7262: "We must avoid an infinite loop here."  */
+         && (theEvent.window?.delegate as? EmacsView) !== self {          // C 7263
+      /* C 7265-7270: "XXX: There is an occasional condition in which, when Emacs display updates a
+         different frame from the current one, and temporarily selects it, then processes some
+         interrupt-driven input (dispnew.c:3878), OS will send the event to the correct NSWindow,
+         but for some reason that window has its first responder set to the NSView most recently
+         updated (I guess), which is not the correct one."  */
+      (theEvent.window?.delegate as? EmacsView)?.keyDown(with: theEvent)  // C 7271
+      return                                                    // C 7272
+    }
+
+    if nsEvArray == nil {                                       // C 7275
+      nsEvArray = NSMutableArray(capacity: 1)                   // C 7276
+    }
+
+    NSCursor.setHiddenUntilMouseMoves(!NILP(Vmake_pointer_invisible))     // C 7278
+
+    if !mouse_highlight_mouse_face_hidden(hlinfo)               // C 7280
+         && FIXNUMP(Vmouse_highlight)                           // C 7281
+         && !EQ(frame_tab_bar_window(emacsframe),
+                 mouse_highlight_mouse_face_window(hlinfo)) {   // C 7282
+      _ = clear_mouse_face(hlinfo)                              // C 7284
+      mouse_highlight_set_mouse_face_hidden(hlinfo, 1)          // C 7285
+    }
+
+    if !processingCompose {                                     // C 7288
+      /* C 7290-7291: "FIXME: What should happen for key sequences with more than one
+         character?"  */
+      code = (theEvent.charactersIgnoringModifiers?.utf16.first).map { Int32($0) } ?? 0  // C 7292-7293
+
+      /* C 7295-7297: "Is it a "function key"?"  Note: Sometimes a plain key will have the
+         NSEventModifierFlagNumericPad flag set (this is probably a bug in the OS).  */
+      if code < 0x00ff && theEvent.modifierFlags.contains(.numericPad) {  // C 7298
+        fnKeysym = ns_convert_key(UInt32(theEvent.keyCode)
+                                  | UInt32(NSEvent.ModifierFlags.numericPad.rawValue))  // C 7300
+      }
+      if fnKeysym == 0 {                                        // C 7302
+        fnKeysym = ns_convert_key(UInt32(code))                 // C 7304
+      }
+
+      if fnKeysym != 0 {                                        // C 7307
+        /* C 7309-7310: "COUNTERHACK: map 'Delete' on upper-right main KB to 'Backspace',
+           because Emacs treats Delete and KP-Delete same (in simple.el)."  */
+        if fnKeysym == 0xFFFF && theEvent.keyCode == 0x33 {     // C 7311
+          code = 0xFF08  /* backspace */                        // C 7320
+        } else {
+          code = Int32(fnKeysym)                                // C 7322
+        }
+
+        /* C 7324-7329: "Function keys (such as the F-keys, arrow keys, etc.) set modifiers as
+           though the fn key has been pressed when it hasn't.  Also some combinations of fn and a
+           function key return a different key than was pressed (e.g. fn-<left> gives <home>).  We
+           need to unset the fn key flag in these cases."  */
+        flags &= ~NS_FUNCTION_KEY_MASK                          // C 7330
+      }
+
+      /* C 7333-7343: "The ⌘ and ⌥ modifiers can be either shift-like (for alternate character
+         input) or control-like (as command prefix). …"  */
+      /* C 7345-7348: "EV_MODIFIERS2 uses parse_solitary_modifier on all known modifier keys,
+         which returns 0 for shift-like modifiers.  Therefore its return value is the set of
+         control-like modifiers."  */
+      let kind: Lisp_Object = fnKeysym != 0 ? QCfunction() : QCordinary()   // C 7349
+      emacs_event!.pointee.modifiers = EV_MODIFIERS2(flags, kind)           // C 7350
+
+      /* C 7352-7360: the `#ifndef NS_IMPL_GNUSTEP` `NS_KEYLOG` fprintf - `NS_KEYLOG` is 0.  */
+
+      /* C 7362-7363: "If it was a function key or had control-like modifiers, pass it directly
+         to Emacs."  */
+      if fnKeysym != 0
+           || (emacs_event!.pointee.modifiers != 0
+               && emacs_event!.pointee.modifiers
+                    != UInt32(truncatingIfNeeded: shift_modifier())
+               && (theEvent.charactersIgnoringModifiers?.count ?? 0) > 0) {   // C 7364-7366
+        input_event_set_kind(emacs_event!, NON_ASCII_KEYSTROKE_EVENT)          // C 7368
+        /* C 7369: "FIXME: What are the next four lines supposed to do?"  */
+        if code < 0x20 {                                        // C 7370
+          code |= (1 << 28) | (3 << 16)                         // C 7371
+        } else if code == 0x7f {                                // C 7372
+          code |= (1 << 28) | (3 << 16)                         // C 7373
+        } else if fnKeysym == 0 {                               // C 7374
+          /* C 7377-7379: "We potentially have both shift- and control-like modifiers in use, so
+             find the correct character ignoring any control-like ones."  */
+          code = Int32(ns_get_shifted_character(theEvent))      // C 7380
+
+          /* C 7383-7386: "FIXME: This seems wrong, characters in the range [0x80, 0xFF] are not
+             ASCII characters.  Can't we just use MULTIBYTE_CHAR_KEYSTROKE_EVENT here for all
+             kinds of characters?"  */
+          input_event_set_kind(emacs_event!, code > 0xFF
+                               ? MULTIBYTE_CHAR_KEYSTROKE_EVENT
+                               : ASCII_KEYSTROKE_EVENT)         // C 7387-7388
+        }
+
+        emacs_event!.pointee.code = UInt32(truncatingIfNeeded: code)   // C 7391
+        EV_TRAILER(theEvent, emacsframe)                        // C 7392
+        processingCompose = false                               // C 7393
+        return                                                  // C 7394
+      }
+    }
+
+    /* C 7398-7401: "If we get here, a non-function key without control-like modifiers was hit.
+       Use interpretKeyEvents, which in turn will call insertText; see
+       https://developer.apple.com/library/mac/documentation/Cocoa/Conceptual/EventOverview/HandlingKeyEvents/HandlingKeyEvents.html."  */
+
+    /* C 7403-7404: the `NS_KEYLOG && !processingCompose` fputs - `NS_KEYLOG` is 0.  */
+
+    /* C 7406-7409: "FIXME: interpretKeyEvents doesn't seem to send insertText if ⌘ is used as
+       shift-like modifier, at least on El Capitan.  Mask it out.  This shouldn't be needed
+       though; we should figure out what the correct way of handling ⌘ is."  */
+    if theEvent.modifierFlags.contains(.command) {              // C 7410
+      /* C 7411-7420: `[NSEvent keyEventWithType:…]` - Swift imports the factory as failable.  */
+      theEvent = NSEvent.keyEvent(with: theEvent.type,
+                                  location: theEvent.locationInWindow,
+                                  modifierFlags: theEvent.modifierFlags
+                                    .subtracting(.command),      // C 7413 (`& ~…Command`)
+                                  timestamp: theEvent.timestamp,
+                                  windowNumber: theEvent.windowNumber,
+                                  context: nil,
+                                  characters: theEvent.characters ?? "",
+                                  charactersIgnoringModifiers:
+                                    theEvent.charactersIgnoringModifiers ?? "",
+                                  isARepeat: theEvent.isARepeat,
+                                  keyCode: theEvent.keyCode)!
+    }
+
+    processingCompose = true                                    // C 7422
+    /* C 7423: "FIXME: Use [NSArray arrayWithObject:theEvent]?"  */
+    nsEvArray!.add(theEvent)                                    // C 7424
+    /* C 7425: `[self interpretKeyEvents: nsEvArray];` - C's array holds exactly this event
+       (added on C 7424, removed on C 7426), which is why the port passes it alone.  */
+    self.interpretKeyEvents([theEvent])                         // C 7425
+    nsEvArray!.remove(theEvent)                                 // C 7426
+  }
+
+  /// C 9017-9124: `- (void)toggleFullScreen: (id)sender`.  Readings: C 9034-9039's
+  /// `NS_IMPL_COCOA && MAX_ALLOWED >= 1070` arm is this target's and its inner
+  /// `MIN_REQUIRED < 1070` guard around `respondsToSelector: (toggleFullScreen:)` is **dead**, so
+  /// C 9038 is the live statement; C 9044's `[[w screen] isEqual: …]` is the optional `isEqual`;
+  /// C 9053-9061's `NS_IMPL_COCOA && MAX_ALLOWED >= 1090` arm is this target's (its inner
+  /// `MIN_REQUIRED < 1090` `respondsToSelector: (screensHaveSeparateSpaces)` guard is **dead**, and
+  /// the SDK's class property is read directly - the C 7957 reading); C 9066-9073 and C 9100-9104
+  /// are the `NS_IMPL_COCOA` arms (`NSApplicationPresentationDefault` is Swift's empty option set,
+  /// the `ns_update_auto_hide_menu_bar` reading); C 9076-9078's `[[EmacsWindow alloc]
+  /// initWithEmacsFrame:fullscreen:screen:]` is this unit's own convenience initializer (round 64);
+  /// C 9080/9112's `f->border_width` writes are the `frame_set_border_width` entry; C 9114-9115's
+  /// "To do" comment is kept; and the four `[self windowWill…]`/`[self windowDid…]` messages are
+  /// round 71's own methods.
+  @objc func toggleFullScreen(_ sender: Any?) {
+    var w: EmacsWindow?                                         // C 9019
+    var fw: EmacsWindow?                                        // C 9019
+    var onFirstScreen: Bool = false                             // C 9020
+    var f: UnsafeMutableRawPointer?                             // C 9021
+    var r = NSRect.zero                                         // C 9022
+    var col: NSColor?                                           // C 9023
+
+    // C 9025: `NSTRACE ("[EmacsView toggleFullScreen:]");` - empty.
+
+    /* C 9027-9028: "Reset fs_is_native to value of ns-use-native-full-screen if not fullscreen
+       already"  */
+    if fs_state != FULLSCREEN_BOTH() {                          // C 9029
+      fs_is_native = ns_use_native_fullscreen                   // C 9030
+    }
+
+    if fs_is_native {                                           // C 9032
+      self.window?.toggleFullScreen(sender)                     // C 9038 (the live arm)
+      return                                                    // C 9040
+    }
+
+    w = self.window as? EmacsWindow                             // C 9043
+    onFirstScreen = w?.screen?.isEqual(NSScreen.screens[0]) ?? false   // C 9044
+    f = emacsframe                                              // C 9045
+    col = NSColor.colorWithUnsignedLong(
+      NS_FACE_BACKGROUND(FACE_FROM_ID(f, DEFAULT_FACE_ID())))   // C 9046-9047
+
+    if fs_state != FULLSCREEN_BOTH() {                          // C 9049
+      let screen = w?.screen                                    // C 9051
+
+      /* C 9053-9054: "Hide ghost menu bar on secondary monitor?"  */
+      if !onFirstScreen {                                       // C 9055
+        onFirstScreen = NSScreen.screensHaveSeparateSpaces      // C 9060
+      }
+      /* C 9062: "Hide dock and menubar if we are on the primary screen."  */
+      if onFirstScreen {                                        // C 9063
+        let options: NSApplication.PresentationOptions =
+          [.autoHideDock, .autoHideMenuBar]                     // C 9066-9068
+        NSApp.presentationOptions = options                     // C 9070
+      }
+
+      fw = EmacsWindow(frame: emacsframe, fullscreen: true, screen: screen)   // C 9076-9078
+
+      frame_set_border_width(f, 0)                              // C 9080
+
+      nonfs_window = w                                          // C 9082
+
+      self.windowWillEnterFullScreen()                          // C 9084
+      fw?.makeKeyAndOrderFront(NSApp)                           // C 9085
+      w?.orderOut(self)                                         // C 9086
+      r = fw?.frameRect(forContentRect: screen!.frame) ?? .zero // C 9087
+      fw?.setFrame(r, display: true, animate: ns_use_fullscreen_animation)   // C 9088
+      self.windowDidEnterFullScreen()                           // C 9089
+      fw?.display()                                             // C 9090
+    } else {
+      fw = w                                                    // C 9094
+      w = nonfs_window                                          // C 9095
+      nonfs_window = nil                                        // C 9096
+
+      if onFirstScreen {                                        // C 9098
+        NSApp.presentationOptions = []                          // C 9101 (C's `…Default`, see above)
+      }
+
+      w?.contentView = fw?.contentView                           // C 9107
+      w?.backgroundColor = col                                   // C 9108
+      if col?.alphaComponent != EmacsCGFloat(1.0) {              // C 9109
+        w?.isOpaque = false                                      // C 9110
+      }
+
+      frame_set_border_width(f, Int32(w!.borderWidth()))         // C 9112 (EmacsWindow's own method)
+
+      /* C 9114-9115: "To do: consider using [NSNotificationCenter postNotificationName:] to send
+         notifications."  */
+
+      self.windowWillExitFullScreen()                            // C 9117
+      fw?.setFrame(w!.contentView!.frame, display: true,
+                   animate: ns_use_fullscreen_animation)         // C 9118-9119
+      fw?.close()                                                // C 9120
+      w?.makeKeyAndOrderFront(NSApp)                             // C 9121
+      self.windowDidExitFullScreen()                             // C 9122
+    }
+  }
+
+  /// C 9126-9175: `- (void)handleFS`.  C's `switch` over `emacsframe->want_fullscreen` compares a
+  /// raw int against the `FULLSCREEN_*` constants, which are entries here, so the port writes
+  /// C's `case` labels as an `if`/`else if` chain in C's own order and keeps each label's
+  /// `NSTRACE_MSG` (empty) as a recorded comment.  `[[self window] performZoom:self]` is
+  /// `NSWindow`'s own method.
+  @objc func handleFS() {
+    // C 9128: `NSTRACE ("[EmacsView handleFS]");` - empty.
+
+    if fs_state != frame_want_fullscreen(emacsframe) {          // C 9130
+      if fs_state == FULLSCREEN_BOTH() {                        // C 9132
+        // C 9134: `NSTRACE_MSG ("fs_state == FULLSCREEN_BOTH");` - empty.
+        self.toggleFullScreen(self)                             // C 9135
+      }
+
+      let want = frame_want_fullscreen(emacsframe)              // C 9138
+      if want == FULLSCREEN_BOTH() {                            // C 9140
+        // C 9141: `NSTRACE_MSG ("FULLSCREEN_BOTH");` - empty.
+        self.toggleFullScreen(self)                             // C 9142
+      } else if want == FULLSCREEN_WIDTH() {                    // C 9144
+        // C 9145: `NSTRACE_MSG ("FULLSCREEN_WIDTH");` - empty.
+        next_maximized = FULLSCREEN_WIDTH()                     // C 9146
+        if fs_state != FULLSCREEN_BOTH() {                      // C 9147
+          self.window?.performZoom(self)                        // C 9148
+        }
+      } else if want == FULLSCREEN_HEIGHT() {                   // C 9150
+        // C 9151: `NSTRACE_MSG ("FULLSCREEN_HEIGHT");` - empty.
+        next_maximized = FULLSCREEN_HEIGHT()                    // C 9152
+        if fs_state != FULLSCREEN_BOTH() {                      // C 9153
+          self.window?.performZoom(self)                        // C 9154
+        }
+      } else if want == FULLSCREEN_MAXIMIZED() {                // C 9156
+        // C 9157: `NSTRACE_MSG ("FULLSCREEN_MAXIMIZED");` - empty.
+        next_maximized = FULLSCREEN_MAXIMIZED()                 // C 9158
+        if fs_state != FULLSCREEN_BOTH() {                      // C 9159
+          self.window?.performZoom(self)                        // C 9160
+        }
+      } else if want == FULLSCREEN_NONE() {                     // C 9162
+        // C 9163: `NSTRACE_MSG ("FULLSCREEN_NONE");` - empty.
+        if fs_state != FULLSCREEN_BOTH() {                      // C 9164
+          next_maximized = FULLSCREEN_NONE()                    // C 9166
+          self.window?.performZoom(self)                        // C 9167
+        }
+      }
+
+      frame_set_want_fullscreen(emacsframe, FULLSCREEN_NONE())   // C 9172
+    }
+  }
+
+  /// C 9177-9200: `- (void) setFSValue: (int)value`.  C's `switch` over `value` becomes the same
+  /// `if`/`else if` chain `handleFS` uses (the case labels are entries, not constants the Swift
+  /// `case` pattern could carry), and the four `Q…` symbols are the generated globals family.  This
+  /// is the method round 70's deferred entry waited for.
+  func setFSValue(_ value: Int32) {
+    // C 9179-9180: the `NSTRACE` call - empty.
+
+    var lval: Lisp_Object = Qnil()                              // C 9182
+    if value == FULLSCREEN_BOTH() {                             // C 9185
+      lval = Qfullboth()                                        // C 9186
+    } else if value == FULLSCREEN_WIDTH() {                     // C 9188
+      lval = Qfullwidth()                                       // C 9189
+    } else if value == FULLSCREEN_HEIGHT() {                    // C 9191
+      lval = Qfullheight()                                      // C 9192
+    } else if value == FULLSCREEN_MAXIMIZED() {                 // C 9194
+      lval = Qmaximized()                                       // C 9195
+    }
+    store_frame_param(emacsframe, Qfullscreen(), lval)          // C 9198
+    fs_state = value                                            // C 9199
+  }
+
+  /// C 9202-9208: `- (void)mouseEntered: (NSEvent *)theEvent` - C's `if (emacsframe)` guard and
+  /// the display-info member write round 69's setter pairs with.
+  @objc override func mouseEntered(with theEvent: NSEvent) {
+    // C 9204: `NSTRACE ("[EmacsView mouseEntered:]");` - empty.
+    if emacsframe != nil {                                      // C 9205
+      ns_display_info_set_last_mouse_movement_time(
+        FRAME_DISPLAY_INFO(emacsframe), UInt(EV_TIMESTAMP(theEvent)))   // C 9206-9207
+    }
+  }
+
+  /// C 9211-9228: `- (void)mouseExited: (NSEvent *)theEvent`.  C 9213's conditional
+  /// `MOUSE_HL_INFO` is the entry called only when the frame exists, C 9226's write is the
+  /// `mouse_highlight_set_mouse_face_mouse_frame` member entry, and C 9225's call is the
+  /// `clear_mouse_face` entry round 69 added.
+  @objc override func mouseExited(with theEvent: NSEvent) {
+    let hlinfo = emacsframe != nil ? MOUSE_HL_INFO(emacsframe) : nil   // C 9213
+
+    // C 9215: `NSTRACE ("[EmacsView mouseExited:]");` - empty.
+
+    if hlinfo == nil {                                          // C 9217
+      return                                                    // C 9218
+    }
+
+    ns_display_info_set_last_mouse_movement_time(
+      FRAME_DISPLAY_INFO(emacsframe), UInt(EV_TIMESTAMP(theEvent)))   // C 9220-9221
+
+    if emacsframe == mouse_highlight_mouse_face_mouse_frame(hlinfo) {   // C 9223
+      _ = clear_mouse_face(hlinfo)                              // C 9225
+      mouse_highlight_set_mouse_face_mouse_frame(hlinfo, nil)   // C 9226
+    }
+  }
+
+  /// C 9231-9246: `- (instancetype)menuDown: sender` - "Called when a menu item is selected"; C's
+  /// `context_menu_value` is this unit's own exported data symbol (its storage), `[sender tag]` is
+  /// the menu item's own property and C 9239-9241's call is the
+  /// `find_and_call_menu_selection` entry with C's own `menu_bar_items_used`/`menu_bar_vector`
+  /// member reads.
+  @objc func menuDown(_ sender: Any?) -> AnyObject? {
+    // C 9233: `NSTRACE ("[EmacsView menuDown:]");` - empty.
+    if context_menu_value_storage == -1 {                        // C 9234
+      context_menu_value_storage = (sender as? NSMenuItem)?.tag ?? 0   // C 9235
+    } else {
+      let tag = (sender as? NSMenuItem)?.tag ?? 0                // C 9238
+      find_and_call_menu_selection(emacsframe,
+                                   frame_menu_bar_items_used(emacsframe),
+                                   frame_menu_bar_vector(emacsframe),
+                                   UnsafeMutableRawPointer(bitPattern: tag))   // C 9239-9241
+    }
+
+    ns_send_appdefined(-1)                                      // C 9244
+    return self                                                 // C 9245
+  }
+
+  /// C 9249-9268: `- (instancetype)toolbarClicked: (id)item` - "This gets called on toolbar button
+  /// click."  C 9253's `TOOL_BAR_ITEM_NSLOTS` and `TOOL_BAR_ITEM_KEY` are mirror-valued constants
+  /// (`src/include/dispextern.rs` 3942/3966: 0 and 12), C 9263's `AREF` is the lisp.h
+  /// element read and `frame_tool_bar_items` the frame member.
+  @objc func toolbarClicked(_ item: Any?) -> AnyObject? {
+    let theEvent = self.window?.currentEvent                    // C 9252 (assigned at C 9260)
+    let idx = ((item as? NSToolbarItem)?.tag ?? 0) * Int(TOOL_BAR_ITEM_NSLOTS)   // C 9253
+
+    // C 9255: `NSTRACE ("[EmacsView toolbarClicked:]");` - empty.
+
+    if emacs_event == nil {                                     // C 9257
+      return self                                               // C 9258
+    }
+
+    input_event_set_kind(emacs_event!, TOOL_BAR_EVENT)          // C 9261
+    /* C 9262: `/* XSETINT (emacs_event->code, 0); */` - C's own comment.  */
+    emacs_event!.pointee.arg = AREF(frame_tool_bar_items(emacsframe)!,
+                                    idx + Int(TOOL_BAR_ITEM_KEY))   // C 9263-9264
+    emacs_event!.pointee.modifiers = EV_MODIFIERS(theEvent!)    // C 9265
+    EV_TRAILER(theEvent, emacsframe)                            // C 9266
+    return self                                                 // C 9267
+  }
+
+  /// C 9270-9273: `- (BOOL) validateToolbarItem: (NSToolbarItem *) toolbarItem` - C's whole body
+  /// is the item's own `isEnabled`.
+  @objc func validateToolbarItem(_ toolbarItem: NSToolbarItem) -> Bool {
+    toolbarItem.isEnabled                                       // C 9272
+  }
+
+  /// C 9275-9286: `- (instancetype)toggleToolbar: (id)sender`; C 9282's kind is the
+  /// `NS_NONKEY_EVENT` constant (the unit's UNVERIFIED-constant reading) and C 9283's code is
+  /// `KEY_NS_TOGGLE_TOOLBAR` (src/nsterm.h 805's own expression).
+  @objc func toggleToolbar(_ sender: Any?) -> AnyObject? {
+    // C 9277: `NSTRACE ("[EmacsView toggleToolbar:]");` - empty.
+
+    if emacs_event == nil {                                     // C 9279
+      return self                                               // C 9280
+    }
+
+    input_event_set_kind(emacs_event!, NS_NONKEY_EVENT)         // C 9282
+    emacs_event!.pointee.code = KEY_NS_TOGGLE_TOOLBAR           // C 9283
+    EV_TRAILER(nil, emacsframe)                                 // C 9284
+    return self                                                 // C 9285
+  }
+
+  /* C 9289-9337: the `NS_IMPL_COCOA && MIN_REQUIRED >= 101400` arm this target has.  */
+
+  /// C 9290-9298: `- (CALayer *)makeBackingLayer`.  C's `[[EmacsLayer alloc]
+  /// initWithDoubleBuffered: …]` is this unit's own convenience initializer (C 11152, round 61),
+  /// `FRAME_DOUBLE_BUFFERED` the `ns_output_double_buffered` member read and `[l setDelegate:]`
+  /// the layer's own property.
+  @objc override func makeBackingLayer() -> CALayer {
+    let l = EmacsLayer(doubleBuffered: ns_output_double_buffered(emacsframe))   // C 9292-9293
+
+    /* C 9295: `[l setDelegate:(id)self];` - `CALayer`'s `delegate` is typed
+       `(any CALayerDelegate)?` in Swift and this class declares no protocol list (the class
+       box's named deferral), so the message is sent as C sends it (the `setDelegate:` reading
+       of C 9808).  */
+    _ = l.perform(#selector(setter: CALayer.delegate), with: self)   // C 9295
+
+    return l                                                    // C 9297
+  }
+
+  /// C 9301-9311: `- (void)lockFocus` - one of the two deprecated `NSView` methods this class
+  /// overrides (which is why the unit's warning baseline names `lockFocus()`), and C 9305's
+  /// `getContext` is `EmacsLayer`'s own method.
+  @objc override func lockFocus() {
+    // C 9303: `NSTRACE ("[EmacsView lockFocus]");` - empty.
+
+    let context = (self.layer as? EmacsLayer)?.getContext()      // C 9305
+
+    NSGraphicsContext.current = NSGraphicsContext(cgContext: context!,
+                                                  flipped: true)  // C 9307-9310
+  }
+
+  /// C 9314-9320: `- (void)unlockFocus`.
+  @objc override func unlockFocus() {
+    // C 9316: `NSTRACE ("[EmacsView unlockFocus]");` - empty.
+
+    NSGraphicsContext.current = nil                              // C 9318
+    self.needsDisplay = true                                     // C 9319
+  }
+
+  /// C 9323-9336: `- (void)windowDidChangeBackingProperties: (NSNotification *)notification` -
+  /// "Update the drawing buffer when the backing properties change."  C's `[notification object]`
+  /// is the notification's own object (an `NSWindow` in AppKit's contract), its `backingScaleFactor`
+  /// and `colorSpace` the window's properties, and C 9334/9335's two calls are `ns_clear_frame`
+  /// (this unit's own) and the `expose_frame` entry.
+  @objc func windowDidChangeBackingProperties(_ notification: Notification) {
+    // C 9326: `NSTRACE ("EmacsView windowDidChangeBackingProperties:]");` - empty.
+
+    let frame = self.frame                                       // C 9328
+    let layer = self.layer as? EmacsLayer                        // C 9329
+
+    layer?.contentsScale = (notification.object as? NSWindow)?.backingScaleFactor ?? 0   // C 9331
+    layer?.setColorSpace(
+      (notification.object as? NSWindow)?.colorSpace?.cgColorSpace)     // C 9332
+
+    ns_clear_frame(emacsframe)                                   // C 9334
+    expose_frame(emacsframe, 0, 0,
+                 Int32(frame.width), Int32(frame.height))        // C 9335
+  }
+
+  /// C 9340-9396: `- (void)copyRect:(NSRect)srcRect to:(NSPoint)dest`.  C mutates both parameters,
+  /// so the port shadows them; C 9359's `NS_IMPL_COCOA && MIN_REQUIRED >= 101400` arm is this
+  /// target's, whose `CGContextFlush`/`CGBitmapContextGet*` are the SDK's own renames
+  /// (`CGContext.flush ()` and the context's `data`/`bytesPerRow`/`bitsPerPixel` properties - the
+  /// C 11224 reading); `NSIntersectsRect` is the rect's `intersects`; and C 9387-9395's `#else` arm
+  /// (`hide_bell` + `ns_focus`/`scrollRect`/`ns_unfocus`) is **dead** on this target - `hide_bell`
+  /// being one of the six names the coverage gate still counts as unported (round 49's record).
+  /// This is the method round 8's deferred entry waited for.
+  @objc func copyRect(_ srcRect: NSRect, to dest: NSPoint) {
+    var srcRect = srcRect                                       // C 9352-9353 mutate it
+    var dest = dest                                             // C 9351 mutates it
+
+    // C 9342-9344: the three `NSTRACE*` calls - empty at `NSTRACE_ENABLED` 0.
+
+    /* C 9346-9347: "If the destination is off the top of the pixel buffer, fix the source and
+       destination to copy only to y = 0."  */
+    if dest.y < 0 {                                             // C 9348
+      let d = dest.y                                            // C 9350
+      dest.y = 0                                                // C 9351
+      srcRect.origin.y -= d                                     // C 9352
+      srcRect.size.height += d                                  // C 9353
+    }
+
+    let dstRect = NSRect(x: dest.x, y: dest.y,                  // C 9356-9357
+                         width: srcRect.width, height: srcRect.height)
+
+    let context = (self.layer as? EmacsLayer)!.getContext()!    // C 9360
+    context.flush()                                             // C 9361 (`CGContextFlush`)
+
+    let scale = self.window!.backingScaleFactor                  // C 9363
+    let bpp = context.bitsPerPixel / 8                           // C 9364
+    let pixels = context.data!                                   // C 9365
+    let rowSize = context.bytesPerRow                            // C 9366
+    let srcRowSize = Int(srcRect.width * scale) * bpp            // C 9367
+    let srcPixels = pixels
+      + Int((srcRect.minY * scale) * CGFloat(rowSize)
+            + srcRect.minX * scale * CGFloat(bpp))               // C 9368-9370
+    let dstPixels = pixels
+      + Int((dest.y * scale) * CGFloat(rowSize)
+            + dest.x * scale * CGFloat(bpp))                     // C 9371-9373
+
+    if srcRect.intersects(dstRect)
+         && srcRect.minY < dstRect.minY {                        // C 9375-9376
+      var y = Int(srcRect.height * scale) - 1                    // C 9377
+      while y >= 0 {
+        memmove(dstPixels + y * rowSize, srcPixels + y * rowSize, srcRowSize)   // C 9378-9380
+        y -= 1
+      }
+    } else {
+      var y = 0                                                  // C 9382
+      while y < Int(srcRect.height * scale) {
+        memmove(dstPixels + y * rowSize, srcPixels + y * rowSize, srcRowSize)   // C 9383-9385
+        y += 1
+      }
+    }
+    /* C 9387-9395: the dead `#else` arm (see the note above).  */
+  }
+
+  /// C 9399-9428: `- (void)layoutSublayersOfLayer: (CALayer *)layer` - the
+  /// `NS_IMPL_COCOA && MIN_REQUIRED >= 101400` arm (this target's), with C 9400-9409's comment
+  /// kept.  It is not an `override` in Swift: `CALayerDelegate`'s method is only reached through
+  /// the dynamic `setDelegate:` C 9295 sends, and this class declares no protocol list yet.
+  /// `redisplaying_p`, `FRAME_GARBAGED_P`, `waiting_for_input` and `redisplay` are this round's
+  /// entries.
+  @objc func layoutSublayers(of layer: CALayer) {
+    if !redisplaying_p() && frame_garbaged_p(emacsframe) {      // C 9412
+      /* C 9414-9418: "If there is IO going on when redisplay is run here Emacs crashes.  I think
+         it's because this code will always be run within the run loop and for whatever reason
+         processing input is dangerous.  This technique was stolen wholesale from nsmenu.m and
+         seems to work."  */
+      let owfi = waiting_for_input_get()                        // C 9419
+      waiting_for_input_set(false)                              // C 9420
+      block_input()                                             // C 9421
+
+      redisplay()                                               // C 9423
+
+      unblock_input()                                           // C 9425
+      waiting_for_input_set(owfi)                               // C 9426
+    }
+  }
+
+  /// C 9431-9446: `- (void)drawRect: (NSRect)rect`.  C 9436's
+  /// `!emacsframe || !emacsframe->output_data.ns` guard reads as the two tests (the
+  /// `frame_output_data_ns` member entry), the four `NSMin*`/`NSWidth`/`NSHeight` are the rect's
+  /// accessors with C's implicit `int` conversions written out, and C 9442's call is this unit's
+  /// own `ns_clear_frame_area`.
+  @objc override func draw(_ rect: NSRect) {
+    // C 9433-9434: the `NSTRACE` call - empty.
+
+    if emacsframe == nil || frame_output_data_ns(emacsframe) == nil {   // C 9436
+      return                                                    // C 9437
+    }
+
+    let x = Int32(rect.minX)                                    // C 9439
+    let y = Int32(rect.minY)
+    let width = Int32(rect.width)                               // C 9440
+    let height = Int32(rect.height)
+
+    ns_clear_frame_area(emacsframe, x, y, width, height)        // C 9442
+    block_input()                                               // C 9443
+    expose_frame(emacsframe, x, y, width, height)               // C 9444
+    unblock_input()                                             // C 9445
+  }
+
+  /// C 9452-9465: `-(NSDragOperation) draggingEntered: (id <NSDraggingInfo>) sender`.  C's
+  /// `[source respondsToSelector: @selector (mustNotDropOn:)]` is kept as the selector test and
+  /// the send reaches this class's own `@objc(mustNotDropOn:)` (round 62); `NSDragOperationNone`
+  /// and `NSDragOperationGeneric` are the option set's `.init ()`/`.generic` (the
+  /// `NSApplicationPresentationDefault` reading).
+  @objc override func draggingEntered(_ sender: NSDraggingInfo) -> NSDragOperation {
+    let source: AnyObject? = sender.draggingSource as AnyObject?   // C 9458
+
+    // C 9456: `NSTRACE ("[EmacsView draggingEntered:]");` - empty.
+
+    if source != nil
+         && source!.responds(to: #selector(EmacsWindow.mustNotDropOn(_:)))   // C 9460
+         && ((source as? EmacsWindow)?.mustNotDropOn(self) ?? false) {      // C 9461
+      return []                                               // C 9462 (C's `NSDragOperationNone`)
+    }
+
+    return .generic                                           // C 9464
+  }
+
+  /// C 9468-9479: `-(BOOL) prepareForDragOperation: (id <NSDraggingInfo>) sender` - the same
+  /// selector test and send as above, with C's `NO`/`YES` answers.
+  @objc override func prepareForDragOperation(_ sender: NSDraggingInfo) -> Bool {
+    let source: AnyObject? = sender.draggingSource as AnyObject?   // C 9472
+
+    if source != nil
+         && source!.responds(to: #selector(EmacsWindow.mustNotDropOn(_:)))   // C 9474
+         && ((source as? EmacsWindow)?.mustNotDropOn(self) ?? false) {      // C 9475
+      return false                                            // C 9476
+    }
+
+    return true                                               // C 9478
+  }
+
+  /// C 9481-9484: `- (BOOL) wantsPeriodicDraggingUpdates` - C's whole body is `return YES;`.
+  @objc override func wantsPeriodicDraggingUpdates() -> Bool {
+    true                                                      // C 9483
+  }
+
+  /// C 9486-9536: `-(NSDragOperation) draggingUpdated: (id <NSDraggingInfo>) sender`.  C's
+  /// `NSAutoreleasePool` alloc/init is the runtime's `objc_autoreleasePoolPush` (the
+  /// `ns_init_pool` reading of C 560), C 9500's `record_unwind_protect_ptr` is a new entry with
+  /// C's own callback, the `NS_IMPL_GNUSTEP` arms (C 9488-9492 and C 9502-9522) are **dead** on
+  /// this target, so C 9524-9531 is the live body: `XSETFRAME` plus C 9528-9529's `safe_calln`,
+  /// which C's macro expands through `safe_funcall` (the round-34 reading of the same macro), and
+  /// C 9531's `redisplay` is the round-77 entry.
+  @objc override func draggingUpdated(_ sender: NSDraggingInfo) -> NSDragOperation {
+    var frame: Lisp_Object = Qnil()                           // C 9491
+    var position: NSPoint = .zero                             // C 9493
+    var x: Int32 = 0, y: Int32 = 0                            // C 9494
+
+    let ap = objc_autoreleasePoolPush()                        // C 9498
+    let count = SPECPDL_INDEX()                                // C 9499
+    record_unwind_protect_ptr(ns_release_autorelease_pool, ap) // C 9500
+
+    /* C 9507: "Get rid of mouse face."  */
+    self.mouseExited(with: self.window!.currentEvent!)         // C 9508
+
+    position = self.convert(sender.draggingLocation, from: nil)   // C 9510-9511
+    x = Int32(lrint(Double(position.x)))                       // C 9512
+    y = Int32(lrint(Double(position.y)))                       // C 9513
+
+    /* C 9524-9525: "Input events won't be processed until the drop happens on macOS, so call
+       this function instead."  */
+    XSETFRAME(&frame, emacsframe)                              // C 9526
+
+    var args: [Lisp_Object] = [frame, make_fixnum(Int(x)), make_fixnum(Int(y))]   // C 9528-9529
+    _ = args.withUnsafeMutableBufferPointer {
+      safe_funcall(Int($0.count), $0.baseAddress)              // C 9528-9529 (C's `safe_calln`)
+    }
+
+    redisplay()                                                // C 9531
+
+    _ = unbind_to(count, Qnil())                               // C 9534
+    return .generic                                            // C 9535
+  }
+
+  /// C 9538-9654: `-(BOOL) performDragOperation: (id <NSDraggingInfo>) sender`.  Readings: the
+  /// same `respondsToSelector:` + `mustNotDropOn:` pair as the two methods above (the method is
+  /// `EmacsWindow`'s); `NSDragOperationLink`/`Copy`/`Generic` are the option set's `.link`/`.copy`/
+  /// `.generic`; C 9563's `[pb availableTypeFromArray: ns_drag_types]` is the typed-array reading
+  /// of C 8628; C 9578's `#if NS_USE_NSPasteboardTypeFileURL` arm is the live one (src/nsterm.h
+  /// 47/49 make it 1 for Cocoa), so C 9590-9617's `NSFilenamesPboardType` arm is **dead**;
+  /// `[type isEqualToString: …]` is the pasteboard types' own `==`; C 9583-9588's
+  /// `readObjectsForClasses:` and its `NSEnumerator` walk are `readObjects (forClasses:options:)`
+  /// and the array's own iteration (the enumerator ends where the array does); `lispString` is the
+  /// entry round 34 added; and C 9643-9651's event is the `input_event` mirror with the
+  /// `DRAG_N_DROP_EVENT` constant this round adds.
+  @objc override func performDragOperation(_ sender: NSDraggingInfo) -> Bool {
+    let source: AnyObject? = sender.draggingSource as AnyObject?   // C 9552
+    var x: Int32 = 0, y: Int32 = 0                           // C 9541
+    var type: NSPasteboard.PasteboardType?                   // C 9542
+    var position: NSPoint = .zero                            // C 9543
+    let op = sender.draggingSourceOperationMask              // C 9544
+    var operations: Lisp_Object = Qnil()                     // C 9545
+    var strings: Lisp_Object = Qnil()                        // C 9546
+    var type_sym: Lisp_Object = Qnil()                       // C 9547
+
+    // C 9550: `NSTRACE ("[EmacsView performDragOperation:]");` - empty.
+
+    if source != nil
+         && source!.responds(to: #selector(EmacsWindow.mustNotDropOn(_:)))   // C 9554
+         && ((source as? EmacsWindow)?.mustNotDropOn(self) ?? false) {      // C 9555
+      return false                                           // C 9556
+    }
+
+    position = self.convert(sender.draggingLocation, from: nil)   // C 9558
+    x = Int32(lrint(Double(position.x)))                     // C 9559
+    y = Int32(lrint(Double(position.y)))                     // C 9560
+
+    let pb = sender.draggingPasteboard                       // C 9562
+    type = pb.availableType(from: ns_drag_types as? [NSPasteboard.PasteboardType] ?? [])   // C 9563
+
+    /* C 9565-9568: "We used to convert these drag operations to keyboard modifiers, but because
+       they can be set by the sending program as well as the keyboard modifiers it was difficult
+       to work out a sensible key mapping for drag and drop."  */
+    if op.contains(.link) {                                  // C 9569
+      operations = Fcons(Qns_drag_operation_link(), operations)     // C 9570
+    }
+    if op.contains(.copy) {                                  // C 9571
+      operations = Fcons(Qns_drag_operation_copy(), operations)     // C 9572
+    }
+    if op.contains(.generic) || NILP(operations) {           // C 9573
+      operations = Fcons(Qns_drag_operation_generic(), operations)  // C 9574
+    }
+
+    if type == nil {                                         // C 9576
+      return false                                           // C 9577
+    } else if type! == .fileURL {                            // C 9578-9579 (the live arm)
+      type_sym = Qfile()                                     // C 9581
+
+      let urls = pb.readObjects(forClasses: [NSURL.self], options: nil) ?? []   // C 9583-9584
+      for case let url as NSURL in urls {                    // C 9585-9587
+        strings = Fcons(lispString(url.path! as NSString), strings)   // C 9588
+      }
+    /* C 9590-9617: the `NSFilenamesPboardType` arm - dead on this target.  */
+    } else if type! == .URL {                                // C 9618
+      let url = NSURL(from: pb)                              // C 9620
+      if url == nil { return false }                         // C 9621
+
+      type_sym = Qurl()                                      // C 9623
+
+      strings = list1(lispString(url!.absoluteString! as NSString))   // C 9625
+    } else if type! == .string || type! == .tabularText {    // C 9627-9628
+      let data = pb.string(forType: type!)                   // C 9632
+
+      if data == nil {                                       // C 9634
+        return false                                         // C 9635
+      }
+
+      type_sym = Qnil()                                      // C 9637
+      strings = list1(lispString(data! as NSString))          // C 9638
+    } else {
+      return false                                           // C 9641
+    }
+
+    var ie = input_event(bits: 0, code: 0, modifiers: 0, x: nil, y: nil, timestamp: 0,
+                         frame_or_window: nil, arg: nil, device: nil)   // C 9548
+    EVENT_INIT(&ie)                                          // C 9643
+    input_event_set_kind(&ie, DRAG_N_DROP_EVENT)             // C 9644
+    ie.arg = Fcons(type_sym, Fcons(operations, strings))      // C 9645-9646
+    XSETINT(&ie.x, Int(x))                                   // C 9647
+    XSETINT(&ie.y, Int(y))                                   // C 9648
+    XSETFRAME(&ie.frame_or_window, emacsframe)               // C 9649
+
+    kbd_buffer_store_event(&ie)                              // C 9651
+    ns_send_appdefined(-1)                                   // C 9652
+    return true                                              // C 9653
+  }
+
+  /// C 8952-8955: `- (BOOL)fsIsNative` - C's whole body is the ivar read.
+  func fsIsNative() -> Bool {
+    fs_is_native                                      // C 8954
+  }
+
+  /// C 8957-8978: `- (BOOL)isFullscreen`.  The `MAC_OS_X_VERSION_MAX_ALLOWED >= 1070` arm is the
+  /// live one (C 8967-8971's `#else` is dead on this target), and C's
+  /// `([[self window] styleMask] & NSWindowStyleMaskFullScreen) != 0` is the style-mask contains.
+  func isFullscreen() -> Bool {
+    var res: Bool
+    if !fs_is_native {                                // C 8961
+      res = (nonfs_window != nil)                     // C 8963
+    } else {
+      res = (window?.styleMask.contains(.fullScreen) ?? false)   // C 8968
+    }
+    return res                                        // C 8977
+  }
+
+  /// C 8981-9014: `- (void)updateCollectionBehavior` (the `NS_IMPL_COCOA && MAX_ALLOWED >= 1070`
+  /// arm; C 9015 closes it).  C's three mask operations are the `NSWindowCollectionBehavior`
+  /// option-set's insert/remove pair, which is what the three `b &=`/`b |=` lines say.
+  func updateCollectionBehavior() {
+    if !isFullscreen() {                              // C 8985
+      let win = window                                // C 8987
+      var b = win?.collectionBehavior ?? []           // C 8988
+      if ns_use_native_fullscreen {                   // C 8989
+        if FRAME_PARENT_FRAME(emacsframe) != nil || FRAME_TOOLTIP_P(emacsframe) {
+          b.remove(.fullScreenPrimary)                // C 8994
+          b.insert(.fullScreenAuxiliary)              // C 8995
+        } else {
+          b.insert(.fullScreenPrimary)                // C 8999
+          b.remove(.fullScreenAuxiliary)              // C 9000
+        }
+      } else {
+        b.remove(.fullScreenPrimary)                  // C 9005
+      }
+      win?.collectionBehavior = b                     // C 9008
+      fs_is_native = ns_use_native_fullscreen         // C 9012
+    }
+  }
+
+  /// C 7535-7568: `- (void)setMarkedText: (id)aString selectedRange: (NSRange)selRange` -
+  /// "&lt;NSTextInput&gt;: inserts display of composing characters."  C's `[aString
+  /// respondsToSelector: @selector (string)]` is the optional cast, C 7561-7562's
+  /// `[workingText release]` + `[str copy]` is the ARC assignment, and C 7578-7579's `NS_KEYLOG`
+  /// block is dead (`NS_KEYLOG` is 0 at C 7241).
+  @objc func setMarkedText(_ aString: Any?, selectedRange selRange: NSRange) {
+    let str: NSString = (aString as? NSAttributedString)?.string as NSString? ?? aString as? NSString ?? ""   // C 7540-7541
+    if str.length == 0 {                              // C 7551
+      deleteWorkingText()                             // C 7553
+      return                                          // C 7554
+    }
+    if emacs_event == nil {                           // C 7557
+      return                                          // C 7558
+    }
+
+    processingCompose = true                          // C 7560
+    workingText = str as String                       // C 7562 (C's `[str copy]`)
+    ns_working_text = lispString(workingText! as NSString)   // C 7563
+
+    input_event_set_kind(emacs_event!, NS_TEXT_EVENT) // C 7565
+    emacs_event!.pointee.code = UInt32(KEY_NS_PUT_WORKING_TEXT)   // C 7566
+    EV_TRAILER(nil, emacsframe)                       // C 7567
+  }
+
+  /// C 7571-7590: `- (void)deleteWorkingText` - "Delete display of composing characters [not in
+  /// &lt;NSTextInput&gt;]."  C 7580's `[workingText release]` is the reference being dropped.
+  @objc func deleteWorkingText() {
+    if workingText == nil {                           // C 7576
+      return                                          // C 7577
+    }
+    workingText = nil                                 // C 7581
+    processingCompose = false                         // C 7582
+
+    if emacs_event == nil {                           // C 7584
+      return                                          // C 7585
+    }
+
+    input_event_set_kind(emacs_event!, NS_TEXT_EVENT) // C 7587
+    emacs_event!.pointee.code = UInt32(KEY_NS_UNPUT_WORKING_TEXT)  // C 7588
+    EV_TRAILER(nil, emacsframe)                       // C 7589
+  }
+
+  /// C 7613-7621: `- (void)unmarkText`.
+  @objc func unmarkText() {
+    deleteWorkingText()                               // C 7619
+    processingCompose = false                         // C 7620
+  }
+
+  /// C 7481-7534: `- (void)insertText: (id)aString` - "&lt;NSTextInput&gt;: called when done
+  /// composing".  C 7515-7523's surrogate pair is the two predicates and the helper above;
+  /// C 7496's and C 7525-7526's `NS_KEYLOG`/`TODO` lines are C's own comments.
+  @objc override func insertText(_ aString: Any?) {
+    let s: NSString = (aString as? NSAttributedString)?.string as NSString? ?? aString as? NSString ?? ""   // C 7488-7491
+    let len = s.length                                // C 7493
+    processingCompose = false                         // C 7497
+
+    if emacs_event == nil {                           // C 7499
+      return                                          // C 7500
+    }
+
+    /* C 7502-7504: "First, clear any working text."  */
+    if workingText != nil {                           // C 7503
+      deleteWorkingText()                             // C 7504
+    }
+
+    /* C 7511-7512: "Now insert the string as keystrokes."  */
+    var i = 0
+    while i < len {
+      var code = UInt32(s.character(at: i))           // C 7514
+      if UTF_16_HIGH_SURROGATE_P(code) && i < len - 1 {   // C 7515
+        let low = UInt32(s.character(at: i + 1))      // C 7517
+        if UTF_16_LOW_SURROGATE_P(low) {              // C 7518
+          code = surrogates_to_codepoint(low, code)   // C 7520
+          i += 1                                      // C 7521
+        }
+      }
+      /* C 7524-7526: "TODO: still need this?" - the 0xB2DC code unit becomes a tilde.  */
+      if code == 0x2DC { code = 0x7E }
+      if code != 32 {                                 // C 7527
+        emacs_event!.pointee.modifiers = 0            // C 7528
+      }
+      input_event_set_kind(emacs_event!,
+                           code > 0xFF ? MULTIBYTE_CHAR_KEYSTROKE_EVENT : ASCII_KEYSTROKE_EVENT)  // C 7529-7530
+      emacs_event!.pointee.code = code                // C 7531
+      EV_TRAILER(nil, emacsframe)                     // C 7532
+      i += 1
+    }
+  }
+
+  /// C 7435-7442: `- (void) insertText: (id) string replacementRange: (NSRange) replacementRange` -
+  /// the `NSTextInputClient` spelling, which unmarks and hands the string to the older method.
+  @objc func insertText(_ string: Any?, replacementRange: NSRange) {
+    var s = string
+    if let attributed = string as? NSAttributedString {      // C 7438
+      s = attributed.string                                 // C 7439
+    }
+    unmarkText()                                            // C 7440
+    insertText(s)                                           // C 7441
+  }
+
+  /// C 7444-7449: `- (void) setMarkedText: (id) string selectedRange: (NSRange) selectedRange
+  /// replacementRange: (NSRange) replacementRange` - C's body is the two-argument call.
+  @objc func setMarkedText(_ string: Any?, selectedRange: NSRange, replacementRange: NSRange) {
+    setMarkedText(string, selectedRange: selectedRange)      // C 7448
+  }
+
+  /// C 7451-7456: `- (nullable NSAttributedString *) attributedSubstringForProposedRange:
+  /// (NSRange) range actualRange: (nullable NSRangePointer) actualRange` - C's whole body is
+  /// `return nil;`.
+  @objc func attributedSubstring(forProposedRange range: NSRange,
+                                 actualRange: NSRangePointer?) -> NSAttributedString? {
+    nil                                              // C 7455
+  }
+
+  /// C 7593-7598: `- (BOOL)hasMarkedText` - C's whole body is the `workingText` test.
+  @objc func hasMarkedText() -> Bool {
+    workingText != nil                                // C 7597
+  }
+
+  /// C 7601-7610: `- (NSRange)markedRange`.  C's `NSMakeRange (NSNotFound, 0)` is the "no marked
+  /// text" answer, and C 7607-7608's `NS_KEYLOG` block is dead (`NS_KEYLOG` is 0 at C 7241).
+  @objc func markedRange() -> NSRange {
+    let rng = (workingText != nil)
+      ? NSRange(location: 0, length: (workingText! as NSString).length)
+      : NSRange(location: NSNotFound, length: 0)      // C 7605-7606
+    return rng                                        // C 7609
+  }
+
+  /// C 7725-7731: `- (NSArray *)validAttributesForMarkedText` - C's lazy `static NSArray *arr`
+  /// starts empty and is never filled (its one `arrayWithObject:` is commented out at C 7729), so
+  /// the body is the empty array; C 7730's `return arr` is this return.
+  @objc func validAttributesForMarkedText() -> [NSAttributedString.Key] {
+    []                                                // C 7730
+  }
+
+  /// C 7757-7767: `- (NSUInteger)characterIndexForPoint: (NSPoint)thePoint` - the
+  /// `NS_IMPL_COCOA` arm of C 7757-7762, whose whole body is `return 0;`.  The Swift name and the
+  /// `Int` return are the compiler's: `NSTextInputClient`'s requirement is
+  /// `characterIndex (for:) -> Int` (NSTextInputClient.h 77), the derived selector is C's, and the
+  /// `NSUInteger` C returns is 0 either way - measured when round 81 declared the conformance.
+  @objc func characterIndex(for thePoint: NSPoint) -> Int {
+    0                                                 // C 7766
+  }
+
+  /// C 7699-7702: `- (NSInteger)conversationIdentifier` - C returns the receiver's own address as
+  /// an integer, which Swift spells through `Unmanaged`.
+  @objc func conversationIdentifier() -> Int {
+    Int(bitPattern: Unmanaged.passUnretained(self).toOpaque())   // C 7701
+  }
+
+  /// C 7705-7723: `- (void)doCommandBySelector: (SEL)aSelector`.  C 7709-7710's `NS_KEYLOG` block
+  /// is dead (`NS_KEYLOG` is 0 at C 7241); the `deleteBackward:` arm is the live one, and C's
+  /// `EV_TRAILER ((id)nil)` reaches the same `emacsframe` this unit's other callers pass.  The
+  /// Swift name is the compiler's: `NSTextInputClient`'s requirement is `doCommand (by:)`
+  /// (NSTextInputClient.h 41's `doCommandBySelector:`, "obsoleted in Swift 3"), and the derived
+  /// selector is C's, and the declaration overrides **`NSResponder`'s own** (NSResponder.h 145) -
+  /// both measured when round 81 declared the conformance.
+  @objc override func doCommand(by aSelector: Selector) {
+    processingCompose = false                         // C 7712
+    if aSelector == #selector(NSResponder.deleteBackward(_:)) {   // C 7713
+      /* C 7715-7716: "Happens when user backspaces over an ongoing composition: throw a
+         'delete' into the event queue."  */
+      if emacs_event == nil {                         // C 7717
+        return                                        // C 7718
+      }
+      input_event_set_kind(emacs_event!, NON_ASCII_KEYSTROKE_EVENT)   // C 7719
+      emacs_event!.pointee.code = 0xFF08              // C 7720
+      EV_TRAILER(nil, emacsframe)                     // C 7721
+    }
+  }
+
+  // ==========================================================================
+  // C 7783-8193: the mouse event family.  `mouseDown:` is the one handler; its six button
+  // siblings forward to it and `mouseDragged:`'s three forward to `mouseMoved:`.
+  // ==========================================================================
+
+  /// C 7783-8019: `- (void)mouseDown: (NSEvent *)theEvent`.  The live body is C 7812-7951
+  /// (the precise-scrolling-deltas arm) plus C 7981-8019 (the tab-bar/mouse-click arm):
+  /// ⑴ C 7807-7810's `#if defined (NS_IMPL_COCOA) && MAC_OS_X_VERSION_MAX_ALLOWED >= 1070`
+  /// is this build's arm, and the inner `#if MAC_OS_X_VERSION_MIN_REQUIRED < 1070` guard
+  /// around `respondsToSelector: (hasPreciseScrollingDeltas)` (C 7808-7810) is **dead**, so
+  /// the live statement is the body C 7812-7951; ⑵ C 7952-7955's `else` twin of that guard
+  /// is **dead**; ⑶ C 7957-7979's `NS_IMPL_GNUSTEP || MAC_OS_X_VERSION_MIN_REQUIRED < 1070`
+  /// coarse-wheel arm is **dead as a whole** (the `ns_update_window_end` reading).  `NSTRACE`
+  /// is empty at `NSTRACE_ENABLED` 0.
+  @objc override func mouseDown(with theEvent: NSEvent) {
+    let dpyinfo = FRAME_DISPLAY_INFO(emacsframe)                     // C 7785
+    let p = self.convert(theEvent.locationInWindow, from: nil)       // C 7786
+    var window: EmacsWindow?                                        // C 7787
+
+    // C 7789: `NSTRACE ("[EmacsView mouseDown:]");` - empty at `NSTRACE_ENABLED` 0.
+
+    if emacs_event == nil {                                         // C 7791
+      return                                                       // C 7792
+    }
+
+    if FRAME_TOOLTIP_P(emacsframe) {                                // C 7794
+      return                                                       // C 7795
+    }
+
+    ns_display_info_set_last_mouse_frame(dpyinfo, emacsframe)       // C 7797
+    /* C 7798-7799: "Appears to be needed to prevent spurious movement events generated on
+       button clicks."  */
+    frame_set_mouse_moved(emacsframe, false)                        // C 7800
+
+    window = (self.window as? EmacsWindow)                          // C 7802
+    window?.setLastDragEvent(theEvent)                              // C 7803
+
+    if theEvent.type == .scrollWheel {                              // C 7805
+      /* C 7812-7822: "If the input device is a touchpad or similar, use precise scrolling
+         deltas.  These are measured in pixels, so we have to add them up until they exceed
+         one line height, then we can send a scroll wheel event.  If the device only has
+         coarse scrolling deltas, like a real mousewheel, the deltas represent a ratio of
+         whole lines, so round up the number of lines.  …"  */
+      var horizontal: Bool = false     // C 7823 (C leaves it uninitialised - Deviation)
+      var lines: Int32 = 0                                          // C 7824
+      var x: Int32 = 0, y: Int32 = 0                                // C 7825
+      var scrollUp: Int32 = 0                                       // C 7826 (`NO`)
+
+      /* C 7828's `static bool end_flag` is the file-scope `end_flag` this round adds.  */
+      if !ns_use_mwheel_momentum && !end_flag
+           && theEvent.momentumPhase != [] {                        // C 7830-7831
+        input_event_set_kind(emacs_event!, TOUCH_END_EVENT)         // C 7833
+        emacs_event!.pointee.arg = Qnil()                           // C 7834
+        end_flag = theEvent.momentumPhase != []                     // C 7835
+        XSETINT(&emacs_event!.pointee.x, lrint(Double(p.x)))        // C 7836
+        XSETINT(&emacs_event!.pointee.y, lrint(Double(p.y)))        // C 7837
+        EV_TRAILER(theEvent, emacsframe)                            // C 7838
+        return                                                      // C 7839
+      }
+
+      end_flag = theEvent.momentumPhase != []                       // C 7842
+
+      /* C 7844-7845: "FIXME: At the top or bottom of the buffer we should ignore
+         momentum-phase events."  */
+      if !ns_use_mwheel_momentum && theEvent.momentumPhase != [] {  // C 7846-7847
+        return                                                      // C 7848
+      }
+
+      if theEvent.hasPreciseScrollingDeltas {                       // C 7850
+        /* C 7852's `static int totalDeltaX, totalDeltaY;` is the file-scope pair this round
+           adds.  */
+        var lineHeight: Int32 = 0                                   // C 7853
+        if FIXNUMP(ns_mwheel_line_height) {                         // C 7855
+          lineHeight = Int32(truncatingIfNeeded: XFIXNUM(ns_mwheel_line_height))  // C 7856
+        } else {
+          /* C 7859: "FIXME: Use actual line height instead of the default."  */
+          lineHeight = default_line_pixel_height(
+            XWINDOW(frame_selected_window(emacsframe)))             // C 7860-7861
+        }
+
+        if theEvent.phase == .began {                               // C 7864
+          totalDeltaX = 0                                           // C 7866
+          totalDeltaY = 0                                           // C 7867
+        }
+
+        totalDeltaX += Int32(theEvent.scrollingDeltaX)              // C 7870
+        totalDeltaY += Int32(theEvent.scrollingDeltaY)              // C 7871
+
+        /* C 7873-7875: "Calculate the number of lines, if any, to scroll, and reset the
+           total delta for the direction we're NOT scrolling so that small movements don't
+           add up."  */
+        if abs(totalDeltaX) > abs(totalDeltaY)
+             && (!mwheel_coalesce_scroll_events
+                 || abs(totalDeltaX) > lineHeight) {                // C 7876-7878
+          horizontal = true                                         // C 7880
+          scrollUp = totalDeltaX > 0 ? 1 : 0                        // C 7881
+
+          lines = abs(totalDeltaX / lineHeight)                     // C 7883
+          x = totalDeltaX                                           // C 7884
+          if !mwheel_coalesce_scroll_events {                       // C 7885
+            totalDeltaX = 0                                         // C 7886
+          } else {
+            totalDeltaX = totalDeltaX % lineHeight                  // C 7888
+          }
+          totalDeltaY = 0                                           // C 7889
+        } else if abs(totalDeltaY) >= abs(totalDeltaX)
+                    && (!mwheel_coalesce_scroll_events
+                        || abs(totalDeltaY) > lineHeight) {         // C 7891-7893
+          horizontal = false                                        // C 7895
+          scrollUp = totalDeltaY > 0 ? 1 : 0                        // C 7896
+
+          lines = abs(totalDeltaY / lineHeight)                     // C 7898
+          y = totalDeltaY                                           // C 7899
+          if !mwheel_coalesce_scroll_events {                       // C 7900
+            totalDeltaY = 0                                         // C 7901
+          } else {
+            totalDeltaY = totalDeltaY % lineHeight                  // C 7903
+          }
+          totalDeltaX = 0                                           // C 7904
+        }
+
+        if lines > 1 && !ns_use_mwheel_acceleration {               // C 7907
+          lines = 1                                                 // C 7908
+        }
+      } else {
+        var delta: CGFloat = 0                                      // C 7912
+
+        if theEvent.scrollingDeltaY == 0 {                          // C 7914
+          horizontal = true                                         // C 7916
+          delta = theEvent.scrollingDeltaX                          // C 7917
+        } else {
+          horizontal = false                                        // C 7921
+          delta = theEvent.scrollingDeltaY                          // C 7922
+        }
+
+        /* C 7926: C's `ceil (fabs (delta))`.  Swift marks `fabs` deprecated ("renamed to
+           'abs'") and the two are the same function; the port takes the SDK's own spelling
+           (class B, the `NSRectFill` -> `NSRect.fill` reading).  */
+        lines = ns_use_mwheel_acceleration
+          ? Int32(ceil(abs(delta))) : 1                             // C 7925-7926
+
+        scrollUp = delta > 0 ? 1 : 0                                // C 7928
+        x = Int32(theEvent.scrollingDeltaX
+                  * CGFloat(FRAME_COLUMN_WIDTH(emacsframe)))        // C 7929-7930
+        y = Int32(theEvent.scrollingDeltaY
+                  * CGFloat(FRAME_LINE_HEIGHT(emacsframe)))         // C 7931-7932
+      }
+
+      if lines == 0 && mwheel_coalesce_scroll_events {              // C 7935
+        return                                                      // C 7936
+      }
+
+      if NUMBERP(Vns_scroll_event_delta_factor) {                   // C 7938
+        x = Int32(Double(x) * XFLOATINT(Vns_scroll_event_delta_factor))  // C 7940
+        y = Int32(Double(y) * XFLOATINT(Vns_scroll_event_delta_factor))  // C 7941
+      }
+
+      input_event_set_kind(emacs_event!,
+                           horizontal ? HORIZ_WHEEL_EVENT : WHEEL_EVENT)  // C 7944
+      emacs_event!.pointee.arg = list3(make_fixnum(Int(lines)),     // C 7945-7947
+                                       make_float(Double(x)),
+                                       make_float(Double(y)))
+
+      emacs_event!.pointee.code = 0                                 // C 7949
+      emacs_event!.pointee.modifiers = EV_MODIFIERS(theEvent)
+        | UInt32(truncatingIfNeeded:
+                   scrollUp != 0 ? up_modifier() : down_modifier()) // C 7950-7951
+      /* C 7952-7955: the dead `else` twin of the MIN_REQUIRED guard; C 7957-7979: the dead
+         GNUstep/coarse-wheel arm - both recorded, not transcribed.  */
+    } else {
+      var tab_bar_arg: Lisp_Object = Qnil()                         // C 7983
+      var tab_bar_p = false                                         // C 7984
+
+      if WINDOWP(frame_tab_bar_window(emacsframe))                  // C 7986
+           && WINDOW_TOTAL_LINES(XWINDOW(frame_tab_bar_window(emacsframe))) != 0 {  // C 7987
+        let x = lrint(Double(p.x))                                  // C 7990
+        let y = lrint(Double(p.y))                                  // C 7991
+
+        let window = window_from_coordinates(emacsframe,
+                                             Int32(truncatingIfNeeded: x),
+                                             Int32(truncatingIfNeeded: y), nil,
+                                             true, true, true)      // C 7993
+        tab_bar_p = EQ(window, frame_tab_bar_window(emacsframe))    // C 7994
+
+        if tab_bar_p {                                              // C 7996
+          tab_bar_arg = handle_tab_bar_click(
+            emacsframe, Int32(truncatingIfNeeded: x),
+            Int32(truncatingIfNeeded: y),
+            (EV_UDMODIFIERS(theEvent) & down_modifier()) != 0,
+            Int32(truncatingIfNeeded: EV_MODIFIERS(theEvent)
+                    | UInt32(truncatingIfNeeded: EV_UDMODIFIERS(theEvent))))  // C 7997-7999
+        }
+      }
+
+      if !(tab_bar_p && NILP(tab_bar_arg)) {                        // C 8002
+        input_event_set_kind(emacs_event!, MOUSE_CLICK_EVENT)       // C 8003
+      }
+      emacs_event!.pointee.arg = tab_bar_arg                        // C 8004
+      emacs_event!.pointee.code = UInt32(EV_BUTTON(theEvent))       // C 8005
+      emacs_event!.pointee.modifiers = EV_MODIFIERS(theEvent)
+        | UInt32(truncatingIfNeeded: EV_UDMODIFIERS(theEvent))      // C 8006-8007
+
+      if (emacs_event!.pointee.modifiers
+            & UInt32(truncatingIfNeeded: down_modifier())) != 0 {   // C 8009
+        ns_display_info_set_grabbed(
+          dpyinfo,
+          ns_display_info_grabbed(dpyinfo)
+            | (1 << Int32(EV_BUTTON(theEvent))))                    // C 8010
+      } else {
+        ns_display_info_set_grabbed(
+          dpyinfo,
+          ns_display_info_grabbed(dpyinfo)
+            & ~(1 << Int32(EV_BUTTON(theEvent))))                   // C 8012
+      }
+    }
+
+    XSETINT(&emacs_event!.pointee.x, lrint(Double(p.x)))            // C 8015
+    XSETINT(&emacs_event!.pointee.y, lrint(Double(p.y)))            // C 8016
+    EV_TRAILER(theEvent, emacsframe)                                // C 8017
+    return                                                          // C 8018
+  }
+
+  /// C 8022-8025: `- (void)rightMouseDown: (NSEvent *)theEvent` - C's whole body is the forward
+  /// (`NSTRACE` is empty at `NSTRACE_ENABLED` 0, as in its five siblings below).
+  @objc override func rightMouseDown(with theEvent: NSEvent) {
+    mouseDown(with: theEvent)                                       // C 8024
+  }
+
+  /// C 8029-8032: `- (void)otherMouseDown: (NSEvent *)theEvent`.
+  @objc override func otherMouseDown(with theEvent: NSEvent) {
+    mouseDown(with: theEvent)                                       // C 8031
+  }
+
+  /// C 8036-8039: `- (void)mouseUp: (NSEvent *)theEvent`.
+  @objc override func mouseUp(with theEvent: NSEvent) {
+    mouseDown(with: theEvent)                                       // C 8038
+  }
+
+  /// C 8043-8046: `- (void)rightMouseUp: (NSEvent *)theEvent`.
+  @objc override func rightMouseUp(with theEvent: NSEvent) {
+    mouseDown(with: theEvent)                                       // C 8045
+  }
+
+  /// C 8050-8053: `- (void)otherMouseUp: (NSEvent *)theEvent`.
+  @objc override func otherMouseUp(with theEvent: NSEvent) {
+    mouseDown(with: theEvent)                                       // C 8052
+  }
+
+  /// C 8057-8062: `- (void) scrollWheel: (NSEvent *)theEvent` - C's `NSTRACE` spelling carries
+  /// the space, and its body is the forward too.
+  @objc override func scrollWheel(with theEvent: NSEvent) {
+    mouseDown(with: theEvent)                                       // C 8061
+  }
+
+  /// C 8065-8135: `- (void)mouseMoved: (NSEvent *)e` - "Tell emacs the mouse has moved."  C's
+  /// `NSTRACE_WHEN`/`NSTRACE_MSG` are empty at `NSTRACE_ENABLED` 0, and C 8097's
+  /// `static Lisp_Object last_mouse_window` is the file-scope `last_mouse_window` above.
+  @objc override func mouseMoved(with e: NSEvent) {
+    let hlinfo = MOUSE_HL_INFO(emacsframe)                          // C 8067
+    let dpyinfo = FRAME_DISPLAY_INFO(emacsframe)                    // C 8068
+    var frame: Lisp_Object = Qnil()                                 // C 8069
+    var pt: NSPoint = .zero                                         // C 8070
+    var dragging: Bool = false                                      // C 8071
+
+    if FRAME_TOOLTIP_P(emacsframe) {                                // C 8073
+      return                                                        // C 8074
+    }
+
+    // C 8076: `NSTRACE_WHEN (NSTRACE_GROUP_EVENTS, "[EmacsView mouseMoved:]");` - empty.
+
+    ns_display_info_set_last_mouse_movement_time(dpyinfo,
+                                                 UInt(EV_TIMESTAMP(e)))   // C 8078
+    pt = self.convert(e.locationInWindow, from: nil)                // C 8079
+    ns_display_info_set_last_mouse_motion_x(dpyinfo, Int32(pt.x))   // C 8080
+    ns_display_info_set_last_mouse_motion_y(dpyinfo, Int32(pt.y))   // C 8081
+
+    /* C 8083: "Update any mouse face."  */
+    if mouse_highlight_mouse_face_hidden(hlinfo) {                  // C 8084
+      mouse_highlight_set_mouse_face_hidden(hlinfo, 0)              // C 8086
+      _ = clear_mouse_face(hlinfo)                                  // C 8087
+    }
+
+    /* C 8090: "Tooltip handling."  */
+    previous_help_echo_string_entry = help_echo_string_entry        // C 8091
+    help_echo_string_entry = Qnil()                                 // C 8092
+
+    if !NILP(Vmouse_autoselect_window) {                            // C 8094
+      // C 8096: `NSTRACE_MSG ("mouse_autoselect_window");` - empty.
+
+      let window = window_from_coordinates(emacsframe,
+                                           Int32(pt.x), Int32(pt.y),
+                                           nil, false, false, false)  // C 8098-8099
+
+      if WINDOWP(window)                                            // C 8101
+           && !EQ(window, last_mouse_window)                        // C 8102
+           && !EQ(window, selected_window)                          // C 8103
+           && !MINI_WINDOW_P(XWINDOW(selected_window))              // C 8104
+           && (!NILP(focus_follows_mouse)                           // C 8105
+               || EQ(window_frame(XWINDOW(window)),                 // C 8106
+                     window_frame(XWINDOW(selected_window)))) {     // C 8107
+        // C 8109: `NSTRACE_MSG ("in_window");` - empty.
+
+        input_event_set_kind(emacs_event!, SELECT_WINDOW_EVENT)     // C 8110
+        emacs_event!.pointee.frame_or_window = window               // C 8111
+        EV_TRAILER2(e)                                              // C 8112
+      }
+      /* C 8114: "Remember the last window where we saw the mouse."  */
+      last_mouse_window = window                                    // C 8115
+    }
+
+    dragging = (e.type == .leftMouseDragged)                        // C 8118
+    if ns_note_mouse_movement(emacsframe, pt.x, pt.y, dragging) == 0 {  // C 8119
+      help_echo_string_entry = previous_help_echo_string_entry      // C 8120
+    }
+
+    XSETFRAME(&frame, emacsframe)                                   // C 8122
+    if !NILP(help_echo_string_entry)
+         || !NILP(previous_help_echo_string_entry) {                // C 8123
+      /* C 8125-8127: "NOTE: help_echo_{window,pos,object} are set in xdisp.c
+         (note_mouse_highlight), which is called through the ns_note_mouse_movement () call
+         above."  */
+      any_help_event_p = true                                       // C 8128
+      gen_help_event(help_echo_string_entry, frame, help_echo_window_entry,
+                     help_echo_object_entry, help_echo_pos_entry)   // C 8129-8130
+    }
+
+    if frame_mouse_moved(emacsframe) && send_appdefined {           // C 8133
+      ns_send_appdefined(-1)                                        // C 8134
+    }
+  }
+
+  /// C 8138-8141: `- (void)mouseDragged: (NSEvent *)e` - the forward to `mouseMoved:`.
+  @objc override func mouseDragged(with e: NSEvent) {
+    mouseMoved(with: e)                                             // C 8140
+  }
+
+  /// C 8145-8148: `- (void)rightMouseDragged: (NSEvent *)e`.
+  @objc override func rightMouseDragged(with e: NSEvent) {
+    mouseMoved(with: e)                                             // C 8147
+  }
+
+  /// C 8152-8155: `- (void)otherMouseDragged: (NSEvent *)e`.
+  @objc override func otherMouseDragged(with e: NSEvent) {
+    mouseMoved(with: e)                                             // C 8154
+  }
+
+  /// C 8159-8192: `- (void) magnifyWithEvent: (NSEvent *) event` - the whole body is the
+  /// `#if defined NS_IMPL_COCOA && defined MAC_OS_X_VERSION_10_7` arm, which this build has.
+  /// C 8162's `static CGFloat last_scale` is the file-scope `last_scale` above; C 8188's
+  /// `last_scale += [event magnification]` sits *inside* `make_float`'s argument, and the
+  /// port hoists it to its own statement before the list (that argument is the only reader
+  /// of the variable, so the call's result is the same - the file's other "spelled out"
+  /// cases).
+  @objc override func magnify(with event: NSEvent) {
+    let pt = self.convert(event.locationInWindow, from: nil)         // C 8161
+
+    // C 8164: `NSTRACE ("[EmacsView magnifyWithEvent]");` - empty.
+
+    if emacs_event != nil {                                         // C 8165
+      input_event_set_kind(emacs_event!, PINCH_EVENT)               // C 8167
+      emacs_event!.pointee.modifiers = EV_MODIFIERS(event)          // C 8168
+      XSETINT(&emacs_event!.pointee.x, lrint(Double(pt.x)))         // C 8169
+      XSETINT(&emacs_event!.pointee.y, lrint(Double(pt.y)))         // C 8170
+      XSETFRAME(&emacs_event!.pointee.frame_or_window, emacsframe)  // C 8171
+
+      if event.phase == .began {                                    // C 8173
+        last_scale = 1.0 + event.magnification                      // C 8175
+        emacs_event!.pointee.arg = list4(make_float(0.0),           // C 8176-8179
+                                         make_float(0.0),
+                                         make_float(last_scale),
+                                         make_float(0.0))
+      } else {
+        /* C 8182-8185: "Report a tiny change so that Lisp code doesn't think this is the
+           beginning of an event sequence.  This is the best we can do because NS doesn't
+           report pinch events in as much detail as XInput 2 or GTK+ do."  */
+        last_scale += event.magnification                           // C 8188 (hoisted)
+        emacs_event!.pointee.arg = list4(make_float(0.01),          // C 8186-8189
+                                         make_float(0.0),
+                                         make_float(last_scale),
+                                         make_float(0.0))
+      }
+      EV_TRAILER(event, emacsframe)                                 // C 8190
+    }
+  }
+
+  // ==========================================================================
+  // C 8195-8401: the window-shape family - the close veto, the frame-position
+  // update, the resize normalization and its two companions.
+  // ==========================================================================
+
+  /// C 8195-8209: `- (BOOL)windowShouldClose: (id)sender` - C's `NSEvent *e = [[self window]
+  /// currentEvent];` is the window's own accessor, and `NSTRACE` is empty at `NSTRACE_ENABLED` 0.
+  @objc func windowShouldClose(_ sender: Any?) -> Bool {
+    let e = self.window?.currentEvent                        // C 8197
+
+    windowClosing = true                                     // C 8200
+    if emacs_event == nil {                                  // C 8201
+      return false                                           // C 8202
+    }
+    input_event_set_kind(emacs_event!, DELETE_WINDOW_EVENT)  // C 8203
+    emacs_event!.pointee.modifiers = 0                       // C 8204
+    emacs_event!.pointee.code = 0                            // C 8205
+    EV_TRAILER(e, emacsframe)                                // C 8206
+    /* C 8207: "Don't close this window, let this be done from lisp code."  */
+    return false                                             // C 8208
+  }
+
+  /// C 8212-8240: `- (void)updateFramePosition`.  C's `[NSScreen screens]` /
+  /// `[screens objectAtIndex: 0]` are the class accessor and the array's own subscript (the
+  /// reading `ns_update_begin` uses), `NSMinX`/`NSMaxY` are the rect's accessors, and the two
+  /// `left_pos`/`top_pos` writes are member entries of the `frame_set_<member>` shape.
+  func updateFramePosition() {
+    let win = self.window                                    // C 8214
+    let r = win!.frame                                       // C 8215
+    let screens = NSScreen.screens                           // C 8216
+    /* C 8217: `NSScreen *screen = [screens objectAtIndex: 0];` - the subscript stays for C's own
+       evaluation (it raises on an empty array, the trap Swift's subscript has), and it is named
+       `_` because C's only reader is the always-true test recorded below.  */
+    _ = screens[0]                                           // C 8217
+
+    if frame_output_data_ns(emacsframe) == nil {             // C 8219
+      return                                                 // C 8220
+    }
+
+    /* C 8222: `if (screen != nil)`.  `NSScreen.screens`'s element type is non-optional in Swift,
+       so the test C writes cannot be false here (C's own `objectAtIndex: 0` raises on an empty
+       array, which is the trap Swift's subscript has); the body stands unguarded and this is the
+       reading, not a dropped guard.  */
+    do {
+      frame_set_left_pos(
+        emacsframe,
+        Int32(NSMinX(r) - NS_PARENT_WINDOW_LEFT_POS(emacsframe)))   // C 8224-8225
+      frame_set_top_pos(
+        emacsframe,
+        Int32(NS_PARENT_WINDOW_TOP_POS(emacsframe) - NSMaxY(r)))    // C 8226-8227
+
+      if emacs_event != nil {                                // C 8229
+        var ie = input_event(bits: 0, code: 0, modifiers: 0, x: nil, y: nil, timestamp: 0,
+                             frame_or_window: nil, arg: nil, device: nil)   // C 8231
+        EVENT_INIT(&ie)                                      // C 8232
+        input_event_set_kind(&ie, MOVE_FRAME_EVENT)          // C 8233
+        XSETFRAME(&ie.frame_or_window, emacsframe)           // C 8234
+        XSETINT(&ie.x, Int(frame_left_pos(emacsframe)))      // C 8235
+        XSETINT(&ie.y, Int(frame_top_pos(emacsframe)))       // C 8236
+        kbd_buffer_store_event(&ie)                          // C 8237
+      }
+    }
+  }
+
+  /// C 8243-8353: `- (NSSize)windowWillResize: (NSWindow *)sender toSize: (NSSize)frameSize` -
+  /// "Normalize frame to gridded text size."  C writes its by-value `frameSize` parameter, so
+  /// the port shadows it with a `var`.  The `NS_IMPL_COCOA` arm C 8285-8320 is this target's,
+  /// and the title it builds is C's own `"…  —  …"` separator.  C 8301's
+  /// `[[self window] title] != NULL` is a pointer test Swift's non-optional `title` cannot
+  /// express: the message to a nil window reads nil, and a non-nil window always has a title
+  /// string, so the test is written as the window test and named here.
+  @objc func windowWillResize(_ sender: NSWindow, to frameSize: NSSize) -> NSSize {
+    var frameSize = frameSize
+    var extra: Int32 = 0                                     // C 8246
+    var cols: Int32 = 0, rows: Int32 = 0                     // C 8247
+
+    // C 8249-8252: the four `NSTRACE*` calls - empty at `NSTRACE_ENABLED` 0.
+
+    if !FRAME_LIVE_P(emacsframe) {                           // C 8254
+      return frameSize                                       // C 8255
+    }
+
+    if fs_state == FULLSCREEN_MAXIMIZED()
+         && (maximized_width != Int32(frameSize.width)
+             || maximized_height != Int32(frameSize.height)) {   // C 8257-8259
+      self.setFSValue(FULLSCREEN_NONE())                     // C 8260
+    } else if fs_state == FULLSCREEN_WIDTH()
+                && maximized_width != Int32(frameSize.width) {  // C 8261-8262
+      self.setFSValue(FULLSCREEN_NONE())                     // C 8263
+    } else if fs_state == FULLSCREEN_HEIGHT()
+                && maximized_height != Int32(frameSize.height) {  // C 8264-8265
+      self.setFSValue(FULLSCREEN_NONE())                     // C 8266
+    }
+
+    if fs_state == FULLSCREEN_NONE() {                        // C 8268
+      maximized_width = -1                                    // C 8269
+      maximized_height = -1
+    }
+
+    if !self.isFullscreen() {                                 // C 8271
+      extra = frame_ns_titlebar_height(emacsframe)
+        + frame_toolbar_height(emacsframe)                   // C 8273-8274
+    }
+
+    cols = FRAME_PIXEL_WIDTH_TO_TEXT_COLS(emacsframe,
+                                          Int32(frameSize.width))   // C 8277
+    if cols < MINWIDTH {                                      // C 8278
+      cols = MINWIDTH                                         // C 8279
+    }
+
+    rows = FRAME_PIXEL_HEIGHT_TO_TEXT_LINES(
+      emacsframe, Int32(frameSize.height - CGFloat(extra)))    // C 8281-8282
+    if rows < MINHEIGHT {                                     // C 8283
+      rows = MINHEIGHT                                        // C 8284
+    }
+
+    /* C 8286-8319: the `NS_IMPL_COCOA` arm - "This sets window title to have size in it; the
+       wm does this under GS."  */
+    do {
+      let r = self.window!.frame                              // C 8288
+      if r.size.height == frameSize.height
+           && r.size.width == frameSize.width {                // C 8289
+        if old_title != nil {                                  // C 8291
+          xfree(old_title)                                     // C 8293
+          old_title = nil                                      // C 8294
+        }
+      }
+      /* C 8297-8298: "Redraw the window title with new dimensions only when actively being
+         resized by a user."  */
+      else if self.window!.inLiveResize && fs_state == FULLSCREEN_NONE()
+                && !maximizing_resize
+                && self.window != nil {                        // C 8299-8301
+        var size_title: UnsafeMutablePointer<CChar>?           // C 8303
+        let window = self.window!                              // C 8304
+        if old_title == nil {                                  // C 8305
+          let t = strdup(self.window!.title)                    // C 8307
+          let pos = strstr(t, "  —  ")                          // C 8308
+          if pos != nil {                                      // C 8309
+            pos!.pointee = 0                                    // C 8310
+          }
+          old_title = t                                        // C 8311
+        }
+        /* C 8313: `size_title = xmalloc (strlen (old_title) + 40);`  */
+        size_title = xmalloc(strlen(old_title!) + 40)!.assumingMemoryBound(to: CChar.self)
+        esprintf(size_title, "%s  —  (%d × %d)", old_title!, cols, rows)   // C 8314
+        window.title = (NSString(utf8String: size_title!) as String?) ?? ""  // C 8315
+        window.display()                                       // C 8316
+        xfree(size_title)                                      // C 8317
+      }
+    }
+
+    // C 8322: `NSTRACE_MSG ("cols: %d  rows: %d", cols, rows);` - empty.
+
+    /* C 8324-8329: "Restrict the new size to the text grid.  Don't restrict the width if the
+       user only adjusted the height, and vice versa. …"  */
+    if !frame_resize_pixelwise {                               // C 8330
+      let r = self.window!.frame                               // C 8332
+
+      if r.size.width != frameSize.width {                     // C 8334
+        frameSize.width =
+          CGFloat(FRAME_TEXT_COLS_TO_PIXEL_WIDTH(emacsframe, cols))    // C 8336-8337
+      }
+
+      if r.size.height != frameSize.height {                   // C 8340
+        frameSize.height =
+          CGFloat(FRAME_TEXT_LINES_TO_PIXEL_HEIGHT(emacsframe, rows) + extra)  // C 8342-8343
+      }
+    }
+
+    // C 8347: `NSTRACE_RETURN_SIZE (frameSize);` - empty.
+
+    /* C 8349: "Trigger `move-frame-functions' (Bug#74074)."  */
+    windowDidMove_definition(self, Unmanaged.passUnretained(sender).toOpaque())  // C 8350
+
+    return frameSize                                           // C 8352
+  }
+
+  /// C 8356-8370: `- (void)viewDidEndLiveResize`, the whole `NS_IMPL_COCOA` arm.
+  @objc override func viewDidEndLiveResize() {
+    // C 8359: `NSTRACE ("[EmacsView viewDidEndLiveResize]");` - empty.
+
+    super.viewDidEndLiveResize()                               // C 8361
+    if old_title != nil {                                      // C 8362
+      /* C 8364: `[[self window] setTitle: [NSString stringWithUTF8String: old_title]];`  */
+      self.window!.title = (NSString(utf8String: old_title!) as String?) ?? ""
+      xfree(old_title)                                         // C 8365
+      old_title = nil                                          // C 8366
+    }
+    maximizing_resize = false                                  // C 8368
+  }
+
+  /// C 8373-8401: `- (void)resizeWithOldSuperviewSize: (NSSize)oldSize`.  C's
+  /// `[[self superview] bounds]` reads as the optional chain with C's own zero rect when there
+  /// is no superview, `NSWidth`/`NSHeight` are the rect's accessors, `[self setFrame:]` is the
+  /// overridden property (C 8538's method) and the `NSTRACE` pair is empty.
+  @objc override func resize(withOldSuperviewSize oldSize: NSSize) {
+    var frame: NSRect                                          // C 8375
+    var width: Int32 = 0, height: Int32 = 0                    // C 8376
+
+    // C 8378: `NSTRACE ("[EmacsView resizeWithOldSuperviewSize:]");` - empty.
+
+    super.resize(withOldSuperviewSize: oldSize)                 // C 8380
+
+    if !FRAME_LIVE_P(emacsframe) {                              // C 8382
+      return                                                    // C 8383
+    }
+
+    frame = self.superview?.bounds ?? .zero                     // C 8385
+    width = Int32(frame.width)                                  // C 8386
+    height = Int32(frame.height)                                // C 8387
+
+    // C 8389: `NSTRACE_SIZE ("New size", NSMakeSize (width, height));` - empty.
+
+    /* C 8391-8394: "Reset the frame size to match the bounds of the superview (the NSWindow's
+       contentView).  We need to do this as sometimes the view's frame isn't resized correctly,
+       or can end up with the wrong origin."  */
+    self.frame = frame                                          // C 8395
+    change_frame_size(emacsframe, width, height, false, true, false)   // C 8396
+
+    SET_FRAME_GARBAGED(emacsframe)                              // C 8398
+    cancel_mouse_face(emacsframe)                               // C 8399
+    ns_send_appdefined(-1)                                      // C 8400
+  }
+
+  // ==========================================================================
+  // C 8645-8950: the window delegate and fullscreen family.  Four of C's methods here take an
+  // untyped `sender`, three come in a notification/direct pair, and the two `@_cdecl` providers
+  // round 70 and round 68 left waiting land with their methods at the end of this block.
+  // ==========================================================================
+
+  /// C 8559-8642: `- (instancetype) initFrameFromEmacs: (struct frame *)f` - the class's
+  /// initializer, and the method `nsfns.swift` 703 has carried a deferred entry for since round
+  /// 29 (`EmacsView_initFrameFromEmacs`, call site nsfns.swift 2490), whose provider lands below.
+  ///
+  /// Readings this body needs: ⑴ C 8571-8576's `#if MAC_OS_X_VERSION_MAX_ALLOWED >= 1070` arm is
+  /// this target's and its inner `#if MAC_OS_X_VERSION_MIN_REQUIRED < 1070` guard around the
+  /// `NSAppKitVersionNumber` test (C 8572-8574) is **dead**, so the live statement is C 8575;
+  /// ⑵ C 8590-8594 and C 8596-8603 are the `NS_IMPL_COCOA` arms (this target's) and C 8599-8602's
+  /// `>= 140000` arm is the live one; ⑶ C 8605-8625's
+  /// `(NS_IMPL_COCOA) && MAC_OS_X_VERSION_MIN_REQUIRED >= 101400` arm is this target's, whose
+  /// layer calls are the `NSView` properties; ⑷ C 8630-8636's
+  /// `!defined (NS_IMPL_COCOA) || MAC_OS_X_VERSION_MIN_REQUIRED <= 1090` guard is **dead as a
+  /// whole** (the `allocateGState` block, recorded not transcribed); ⑸ C 8582's
+  /// `[self initWithFrame: …]` is the Swift initializer delegation, so C 8564-8581's ivar writes
+  /// run *after* it instead of before (nothing reads them in between - the `EmacsWindow`
+  /// `initWithEmacsFrame:` reading), and the delegation is why this is a `convenience` init.
+  convenience init(frameFromEmacs f: UnsafeMutableRawPointer?) {
+    // C 8561-8562: the two `NSTRACE*` calls - empty at `NSTRACE_ENABLED` 0.
+
+    self.init(frame: NSRect(x: 0, y: 0,                       // C 8582-8584
+                            width: CGFloat(FRAME_TEXT_COLS_TO_PIXEL_WIDTH(f, frame_text_cols(f))),
+                            height: CGFloat(FRAME_TEXT_LINES_TO_PIXEL_HEIGHT(f, frame_text_lines(f)))))
+
+    windowClosing = false                                     // C 8564
+    processingCompose = false                                 // C 8565
+    scrollbarsNeedingUpdate = 0                               // C 8566
+    fs_state = FULLSCREEN_NONE()                              // C 8567
+    fs_before_fs = -1                                         // C 8568 (C's chained assignment)
+    next_maximized = -1                                       // C 8568
+
+    fs_is_native = false                                      // C 8570
+    fs_is_native = ns_use_native_fullscreen                   // C 8575 (the live arm)
+
+    maximized_width = -1                                      // C 8578 (C's chained assignment)
+    maximized_height = -1                                     // C 8578
+    nonfs_window = nil                                        // C 8579
+
+    ns_userRect = NSRect(x: 0, y: 0, width: 0, height: 0)     // C 8581
+    self.autoresizingMask = [.width, .height]                 // C 8585
+
+    /* C 8587: `FRAME_NS_VIEW (f) = self;` - the member write `nsfns.swift` 276's family names.  */
+    ns_output_set_view(f, self)                               // C 8587
+    emacsframe = f                                            // C 8588
+
+    ns_UAZoom_cursor_rect_new = NSRect.zero                   // C 8592 (C's `NSZeroRect`)
+    ns_UAZoom_cursor_rect_old = NSRect.zero                   // C 8593
+
+    old_title = nil                                           // C 8597
+    maximizing_resize = false                                 // C 8598
+    self.clipsToBounds = true                                 // C 8601 (the `>= 140000` arm)
+
+    /* C 8605-8609: "These settings mean AppKit will retain the contents of the frame on resize.
+       Unfortunately it also means the frame will not be automatically marked for display, but we
+       can do that ourselves in resizeWithOldSuperviewSize."  */
+    self.wantsLayer = true                                    // C 8610
+    self.layerContentsRedrawPolicy = .onSetNeedsDisplay       // C 8611-8612
+    self.layerContentsPlacement = .topLeft                    // C 8613
+
+    owningWindow = EmacsWindow_initWithEmacsFrame_impl(f) as? NSWindow // C 8615
+
+    /* C 8617-8618: "Now the NSWindow has been created, we can finish up configuring the layer."  */
+    (self.layer as? EmacsLayer)?.setColorSpace(self.window?.colorSpace?.cgColorSpace)  // C 8619-8620
+    (self.layer as? EmacsLayer)?.contentsScale = self.window!.backingScaleFactor       // C 8621-8622
+
+    if ns_drag_types != nil {                                 // C 8627
+      /* C 8628: C passes the `NSArray *ns_drag_types`; Swift's `registerForDraggedTypes` takes
+         the typed array, so the cast is the message's own parameter type.  */
+      self.registerForDraggedTypes(ns_drag_types as? [NSPasteboard.PasteboardType] ?? [])
+    }
+
+    /* C 8630-8636: the dead `allocateGState` block (see reading ⑷).  */
+
+    /* C 8637-8638: `[NSApp registerServicesMenuSendTypes: ns_send_types returnTypes: [NSArray
+       array]];` - the same typed-array reading as C 8628, with C's empty array literal.  */
+    NSApp.registerServicesMenuSendTypes(
+      ns_send_types_storage as? [NSPasteboard.PasteboardType] ?? [], returnTypes: [])
+
+    ns_window_num += 1                                        // C 8640
+    return                                                    // C 8641 (C's `return self;`)
+  }
+
+
+  /// C 8645-8650: `- (void)windowDidMove: sender` - C's parameter is untyped (the port keeps
+  /// `Any?`, which is the same selector) and its body is the direct call below.  This is also
+  /// the method round 70's deferred entry waited for.
+  @objc func windowDidMove(_ sender: Any?) {
+    // C 8647: `NSTRACE ("[EmacsView windowDidMove:]");` - empty at `NSTRACE_ENABLED` 0.
+
+    self.updateFramePosition()                                  // C 8649
+  }
+
+  /// C 8653-8655: "Called AFTER method below, but before our windowWillResize call there leads
+  /// to windowDidResize -> ns_set_window_size.  Update emacs' notion of frame location so
+  /// set_window_size moves the frame."  C 8662's `output_data.ns->zooming = 1` is the member
+  /// write (`ns_output_set_zooming`; C's member is `int zooming`, the entry takes the `Bool`
+  /// the reader above it already returns).
+  @objc func windowShouldZoom(_ sender: NSWindow, toFrame newFrame: NSRect) -> Bool {
+    // C 8658-8660: the `NSTRACE` call - empty.
+
+    ns_output_set_zooming(emacsframe, true)                     // C 8662
+    return true                                                 // C 8663
+  }
+
+  /// C 8667-8669: "Override to do something slightly nonstandard, but nice.  First click on zoom
+  /// button will zoom vertically.  Second will zoom completely.  Third returns to original."
+  /// C 8673-8674's TODO comment is kept beside the initial `result`; C 8884-8897's 10.7 bug fix
+  /// is **dead** on this target (`MIN_REQUIRED <= 1070`), recorded not transcribed here.
+  @objc func windowWillUseStandardFrame(_ sender: NSWindow,
+                                        defaultFrame: NSRect) -> NSRect {
+    // TODO: Rename to "currentFrame" and assign "result" properly in
+    // all paths.
+    var result = sender.frame                                    // C 8675
+
+    // C 8677-8684: the five `NSTRACE*` calls - empty.
+
+    if fs_before_fs != -1 {  /* Entering fullscreen */           // C 8686
+      // C 8688: `NSTRACE_MSG ("Entering fullscreen");` - empty.
+      result = defaultFrame                                      // C 8689
+    } else {
+      // Save the window size and position (frame) before the resize.
+      if fs_state != FULLSCREEN_MAXIMIZED()
+           && fs_state != FULLSCREEN_WIDTH() {                    // C 8694-8695
+        ns_userRect.size.width = result.size.width                // C 8697
+        ns_userRect.origin.x   = result.origin.x                  // C 8698
+      }
+
+      if fs_state != FULLSCREEN_MAXIMIZED()
+           && fs_state != FULLSCREEN_HEIGHT() {                   // C 8701-8702
+        ns_userRect.size.height = result.size.height              // C 8704
+        ns_userRect.origin.y    = result.origin.y                 // C 8705
+      }
+
+      // C 8708: `NSTRACE_RECT ("ns_userRect (2)", ns_userRect);` - empty.
+
+      if next_maximized == FULLSCREEN_HEIGHT()
+           || (next_maximized == -1
+               && abs(Int32(defaultFrame.size.height - result.size.height))
+                    > FRAME_LINE_HEIGHT(emacsframe)) {            // C 8710-8713
+        /* C 8715: "first click" */
+        // C 8716: `NSTRACE_MSG ("FULLSCREEN_HEIGHT");` - empty.
+        maximized_height = Int32(defaultFrame.size.height)        // C 8717 (C's chained assignment)
+        result.size.height = defaultFrame.size.height             // C 8717
+        maximized_width = -1                                      // C 8718
+        result.origin.y = defaultFrame.origin.y                   // C 8719
+        if ns_userRect.size.height != 0 {                         // C 8720
+          result.origin.x = ns_userRect.origin.x                  // C 8722
+          result.size.width = ns_userRect.size.width              // C 8723
+        }
+        self.setFSValue(FULLSCREEN_HEIGHT())                     // C 8725
+        maximizing_resize = true                                  // C 8727 (the `NS_IMPL_COCOA` arm)
+      } else if next_maximized == FULLSCREEN_WIDTH() {            // C 8730
+        // C 8732: `NSTRACE_MSG ("FULLSCREEN_WIDTH");` - empty.
+        maximized_width = Int32(defaultFrame.size.width)          // C 8733 (C's chained assignment)
+        result.size.width = defaultFrame.size.width               // C 8733
+        maximized_height = -1                                     // C 8734
+        result.origin.x = defaultFrame.origin.x                   // C 8735
+        if ns_userRect.size.width != 0 {                          // C 8736
+          result.origin.y = ns_userRect.origin.y                  // C 8738
+          result.size.height = ns_userRect.size.height            // C 8739
+        }
+        self.setFSValue(FULLSCREEN_WIDTH())                      // C 8741
+      } else if next_maximized == FULLSCREEN_MAXIMIZED()
+                  || (next_maximized == -1
+                      && abs(Int32(defaultFrame.size.width - result.size.width))
+                           > FRAME_COLUMN_WIDTH(emacsframe)) {    // C 8743-8746
+        // C 8748: `NSTRACE_MSG ("FULLSCREEN_MAXIMIZED");` - empty.
+
+        result = defaultFrame  /* second click */                 // C 8750
+        maximized_width = Int32(result.size.width)                // C 8751
+        maximized_height = Int32(result.size.height)              // C 8752
+        self.setFSValue(FULLSCREEN_MAXIMIZED())                  // C 8753
+        maximizing_resize = true                                  // C 8755 (the `NS_IMPL_COCOA` arm)
+      } else {
+        /* restore */
+        // C 8761: `NSTRACE_MSG ("Restore");` - empty.
+        result = ns_userRect.size.height != 0 ? ns_userRect : result   // C 8762
+        // C 8763: `NSTRACE_RECT ("restore (2)", result);` - empty.
+        ns_userRect = NSRect(x: 0, y: 0, width: 0, height: 0)     // C 8764
+        maximizing_resize = fs_state != FULLSCREEN_NONE()          // C 8766 (the `NS_IMPL_COCOA` arm)
+        self.setFSValue(FULLSCREEN_NONE())                       // C 8768
+        maximized_width = -1                                      // C 8769
+        maximized_height = -1                                     // C 8769 (C's chained assignment)
+      }
+    }
+
+    if fs_before_fs == -1 { next_maximized = -1 }                 // C 8773
+
+    // C 8775-8778: the four `NSTRACE*` calls - empty.
+
+    _ = self.windowWillResize(sender, to: result.size)            // C 8780
+
+    // C 8782: `NSTRACE_RETURN_RECT (result);` - empty.
+
+    return result                                                 // C 8784
+  }
+
+  /// C 8788-8803: `- (void)windowDidDeminiaturize: sender` - C's parameter is untyped.  C
+  /// 8791's `output_data.ns` guard is the member read, `SET_FRAME_ICONIFIED`/`SET_FRAME_VISIBLE`
+  /// are the bitfield setters, `windows_or_buffers_changed` a core global and
+  /// `EV_TRAILER ((id)nil)` the same `emacsframe` this unit's other callers pass.
+  @objc func windowDidDeminiaturize(_ sender: Any?) {
+    // C 8790: `NSTRACE ("[EmacsView windowDidDeminiaturize:]");` - empty.
+    if frame_output_data_ns(emacsframe) == nil {                  // C 8791
+      return                                                      // C 8792
+    }
+
+    SET_FRAME_ICONIFIED(emacsframe, 0)                            // C 8794
+    SET_FRAME_VISIBLE(emacsframe, true)                           // C 8795
+    windows_or_buffers_changed = 63                               // C 8796
+
+    if emacs_event != nil {                                       // C 8798
+      input_event_set_kind(emacs_event!, DEICONIFY_EVENT)         // C 8800
+      EV_TRAILER(nil, emacsframe)                                 // C 8801
+    }
+  }
+
+  /// C 8806-8817: `- (void)windowDidExpose: sender` - C's parameter is untyped; the guard, the
+  /// two `SET_FRAME_*` setters and the `send_appdefined` pair are the same entries as above.
+  @objc func windowDidExpose(_ sender: Any?) {
+    // C 8808: `NSTRACE ("[EmacsView windowDidExpose:]");` - empty.
+    if frame_output_data_ns(emacsframe) == nil {                  // C 8809
+      return                                                      // C 8810
+    }
+
+    SET_FRAME_VISIBLE(emacsframe, true)                           // C 8812
+    SET_FRAME_GARBAGED(emacsframe)                                // C 8813
+
+    if send_appdefined {                                          // C 8815
+      ns_send_appdefined(-1)                                      // C 8816
+    }
+  }
+
+  /// C 8820-8834: `- (void)windowDidMiniaturize: sender` - C's parameter is untyped; its event
+  /// kind is `ICONIFY_EVENT`, the twin of the deminiaturize above.
+  @objc func windowDidMiniaturize(_ sender: Any?) {
+    // C 8822: `NSTRACE ("[EmacsView windowDidMiniaturize:]");` - empty.
+    if frame_output_data_ns(emacsframe) == nil {                  // C 8823
+      return                                                      // C 8824
+    }
+
+    SET_FRAME_ICONIFIED(emacsframe, 1)                            // C 8826
+    SET_FRAME_VISIBLE(emacsframe, false)                          // C 8827
+
+    if emacs_event != nil {                                       // C 8829
+      input_event_set_kind(emacs_event!, ICONIFY_EVENT)           // C 8831
+      EV_TRAILER(nil, emacsframe)                                 // C 8832
+    }
+  }
+
+  /// C 8836-8843: `- (NSApplicationPresentationOptions)window: willUseFullScreenPresentationOptions:`
+  /// - the `NS_IMPL_COCOA` arm this target has; C's `proposedOptions|…AutoHideToolbar` is the
+  /// option set's union.
+  @objc func window(_ window: NSWindow,
+                    willUseFullScreenPresentationOptions proposedOptions:
+                      NSApplication.PresentationOptions)
+    -> NSApplication.PresentationOptions {
+    proposedOptions.union(.autoHideToolbar)                       // C 8841
+  }
+
+  /// C 8845-8849: `- (void)windowWillEnterFullScreen: (NSNotification *)notification` - the
+  /// notification arm of the direct-call twin below.
+  @objc func windowWillEnterFullScreen(_ notification: Notification) {
+    // C 8847: `NSTRACE ("[EmacsView windowWillEnterFullScreen:]");` - empty.
+    self.windowWillEnterFullScreen()                              // C 8848
+  }
+
+  /// C 8850-8854: `- (void)windowWillEnterFullScreen` - "provided for direct calls".
+  func windowWillEnterFullScreen() {
+    // C 8852: `NSTRACE ("[EmacsView windowWillEnterFullScreen]");` - empty.
+    fs_before_fs = fs_state                                       // C 8853
+  }
+
+  /// C 8856-8860: `- (void)windowDidEnterFullScreen: (NSNotification *)notification`.
+  @objc func windowDidEnterFullScreen(_ notification: Notification) {
+    // C 8858: `NSTRACE ("[EmacsView windowDidEnterFullScreen:]");` - empty.
+    self.windowDidEnterFullScreen()                               // C 8859
+  }
+
+  /// C 8862-8869: `- (void)adjustEmacsFrameRect` - C's `f->left_pos`/`f->top_pos` writes are the
+  /// member entries C 8224-8227 already uses, and C's `[frame_window frame]` on a nil window is
+  /// the rect's zero value.  This is the method round 68's deferred entry waited for.
+  func adjustEmacsFrameRect() {
+    let f = emacsframe                                            // C 8864
+    let frame_window = FRAME_NS_VIEW(f)?.window                   // C 8865
+    let r = frame_window?.frame ?? .zero                          // C 8866
+    frame_set_left_pos(f,
+                       Int32(NSMinX(r) - NS_PARENT_WINDOW_LEFT_POS(f)))    // C 8867
+    frame_set_top_pos(f,
+                      Int32(NS_PARENT_WINDOW_TOP_POS(f) - NSMaxY(r)))      // C 8868
+  }
+
+  /// C 8871-8904: `- (void)windowDidEnterFullScreen` - "provided for direct calls".  C
+  /// 8882-8898's 10.7 bug fix is **dead** on this target (`MIN_REQUIRED <= 1070`), so C's
+  /// `else` arm is empty here and recorded.
+  func windowDidEnterFullScreen() {
+    // C 8873: `NSTRACE ("[EmacsView windowDidEnterFullScreen]");` - empty.
+    self.setFSValue(FULLSCREEN_BOTH())                           // C 8874
+    if !self.fsIsNative() {                                       // C 8875
+      self.windowDidBecomeKey()                                   // C 8877
+      nonfs_window?.orderOut(self)                                // C 8878
+    } else {
+      /* C 8884-8897: the 10.7 menu fix, dead on this target.  */
+    }
+
+    /* C 8901-8902: "Do what windowDidMove does which isn't called when entering/exiting
+       fullscreen mode."  */
+    self.adjustEmacsFrameRect()                                   // C 8903
+  }
+
+  /// C 8906-8910: `- (void)windowWillExitFullScreen: (NSNotification *)notification`.
+  @objc func windowWillExitFullScreen(_ notification: Notification) {
+    // C 8908: `NSTRACE ("[EmacsView windowWillExitFullScreen:]");` - empty.
+    self.windowWillExitFullScreen()                               // C 8909
+  }
+
+  /// C 8912-8922: `- (void)windowWillExitFullScreen` - "provided for direct calls".
+  func windowWillExitFullScreen() {
+    // C 8914: `NSTRACE ("[EmacsView windowWillExitFullScreen]");` - empty.
+    if !FRAME_LIVE_P(emacsframe) {                                // C 8915
+      // C 8917: `NSTRACE_MSG ("Ignored (frame dead)");` - empty.
+      return                                                      // C 8918
+    }
+    if next_maximized != -1 {                                     // C 8920
+      fs_before_fs = next_maximized                               // C 8921
+    }
+  }
+
+  /// C 8924-8928: `- (void)windowDidExitFullScreen: (NSNotification *)notification`.
+  @objc func windowDidExitFullScreen(_ notification: Notification) {
+    // C 8926: `NSTRACE ("[EmacsView windowDidExitFullScreen:]");` - empty.
+    self.windowDidExitFullScreen()                                // C 8927
+  }
+
+  /// C 8930-8950: `- (void)windowDidExitFullScreen` - "provided for direct calls".
+  func windowDidExitFullScreen() {
+    // C 8932: `NSTRACE ("[EmacsView windowDidExitFullScreen]");` - empty.
+    if !FRAME_LIVE_P(emacsframe) {                                // C 8933
+      // C 8935: `NSTRACE_MSG ("Ignored (frame dead)");` - empty.
+      return                                                      // C 8936
+    }
+    self.setFSValue(fs_before_fs)                                // C 8938
+    fs_before_fs = -1                                             // C 8939
+    self.updateCollectionBehavior()                               // C 8941 (the `NS_IMPL_COCOA` arm)
+
+    if next_maximized != -1 {                                     // C 8944
+      self.window!.performZoom(self)                              // C 8945
+    }
+
+    /* C 8947-8948: "Do what windowDidMove does which isn't called when entering/exiting
+       fullscreen mode."  */
+    self.adjustEmacsFrameRect()                                   // C 8949
+  }
+
+  /// C 8404-8408: `- (void)windowDidBecomeKey: (NSNotification *)notification` - C's comment above
+  /// it is "cf. x_detect_focus_change(), x_focus_changed(), x_new_focus_frame()" and its body is
+  /// the direct-call variant below.
+  @objc func windowDidBecomeKey(_ notification: Notification) {
+    windowDidBecomeKey()                              // C 8407
+  }
+
+  /// C 8411-8457: `- (void)windowDidBecomeKey` - "for direct calls".  C 8427-8451's `NS_IMPL_COCOA`
+  /// arm is this target's: the timer is AppKit's own factory
+  /// (`Timer.scheduledTimer (timeInterval:target:selector:userInfo:repeats:)`), C's selector is now
+  /// typed (`#selector (EmacsView.deferred_UAZoomChangeFocus_handler(_:))`, the method below), and
+  /// C 8449's `retain` is ARC's strong reference (the `scheduledTimer` reading round 45 recorded).
+  /// `FRAME_DISPLAY_INFO`'s family gives the display-info members as frame-taking entries
+  /// (`ns_display_info_ns_focus_frame`/`_set_ns_focus_frame`), `adjustEmacsFrameRect` is this
+  /// class's own method (C 8862) whose batch has not landed, so that call goes through the deferred
+  /// entry declared below, and C 8455/8456 are the kbd-buffer pair this unit already imports.
+  @objc func windowDidBecomeKey() {
+    let old_focus = ns_display_info_ns_focus_frame(emacsframe)   // C 8414
+    var event = input_event(bits: 0, code: 0, modifiers: 0, x: nil, y: nil, timestamp: 0,
+                            frame_or_window: nil, arg: nil, device: nil)   // C 8415
+
+    EVENT_INIT(&event)                                // C 8417
+
+    // C 8419: `NSTRACE ("[EmacsView windowDidBecomeKey]");` - empty at `NSTRACE_ENABLED` 0.
+
+    if emacsframe != old_focus {                      // C 8421
+      ns_display_info_set_ns_focus_frame(emacsframe, emacsframe)   // C 8422
+    }
+
+    ns_frame_rehighlight(emacsframe)                  // C 8424
+    adjustEmacsFrameRect_definition(self)                  // C 8425
+
+    /* Make sure we have focus and the timer isn't already scheduled.  */
+    if window?.firstResponder == (self as NSResponder)
+         && ns_deferred_UAZoomChangeFocus_timer == nil {   // C 8430-8431
+      /* Calls to ns_UAZoomChangeFocus are synchronous.  We defer the
+         call to give macOS time to finish window compositing or the
+         calls can be silently ignored by the Zoom daemon and with no
+         errors reported.  This also helps ensure ns_draw_window_cursor
+         has populated ns_UAZoom_cursor_rect_new.  The 200 ms delay was
+         chosen as a balance between macOS headroom and user
+         perception.  */
+      ns_deferred_UAZoomChangeFocus_timer = Timer.scheduledTimer(   // C 8440-8449
+        timeInterval: NS_UAZOOMENABLED_DEFER_INTERVAL_SECS, target: self,
+        selector: #selector(EmacsView.deferred_UAZoomChangeFocus_handler(_:)),
+        userInfo: nil, repeats: false)
+    }
+
+    input_event_set_kind(&event, FOCUS_IN_EVENT)      // C 8453 (C's `event.kind = …`, a bitfield write)
+    XSETFRAME(&event.frame_or_window, emacsframe)     // C 8454
+    kbd_buffer_store_event(&event)                    // C 8455
+    ns_send_appdefined(-1)                            // C 8456 ("Kick main loop")
+  }
+
+  /// C 8472-8479: `- (void)windowWillClose: (NSNotification *)notification` - C's `NS_IMPL_COCOA`
+  /// arm is this target's, and the call is round 59's own function.
+  @objc func windowWillClose(_ notification: Notification) {
+    /* Cancel the zoom focus change timer if its window is closed before
+       it runs.  */
+    cancel_ns_deferred_UAZoomChangeFocus_timer()      // C 8477
+  }
+
+  /// C 8481-8492: `- (void)deferred_UAZoomChangeFocus_handler: (NSTimer *)timer` (the
+  /// `NS_IMPL_COCOA` arm C 8481 opens and C 8492 closes): C 8485's `FRAME_LIVE_P` guard is the entry
+  /// below, and `ns_UAZoomChangeFocus`/`cancel_ns_deferred_UAZoomChangeFocus_timer` are this unit's
+  /// own (C 1164 and C 8459; round 59 landed the second).
+  @objc func deferred_UAZoomChangeFocus_handler(_ timer: Timer) {
+    /* The frame may be deleted before the timer fires.  */
+    if FRAME_LIVE_P(emacsframe) {                     // C 8485
+      let view = FRAME_NS_VIEW(emacsframe)            // C 8487
+      ns_UAZoomChangeFocus(view, true)                // C 8488
+    }
+    cancel_ns_deferred_UAZoomChangeFocus_timer()      // C 8490
+  }
+
+  /// C 8494-8529: `- (void)windowDidResignKey: (NSNotification *)notification` - C's comment above
+  /// it is the same "cf. x_detect_focus_change(), …" line.  C 8524's `emacs_event` is this unit's
+  /// own file-scope pointer (C 329) and C 8527's `EV_TRAILER ((id)nil)` is round 22's macro, which
+  /// reaches the same `emacsframe` its other callers pass.
+  @objc func windowDidResignKey(_ notification: Notification) {
+    let is_focus_frame = ns_display_info_ns_focus_frame(emacsframe) == emacsframe   // C 8498
+    // C 8499: `NSTRACE ("[EmacsView windowDidResignKey:]");` - empty.
+
+    if is_focus_frame {                               // C 8501
+      ns_display_info_set_ns_focus_frame(emacsframe, nil)   // C 8502
+    }
+
+    frame_set_mouse_moved(emacsframe, false)          // C 8504
+    ns_frame_rehighlight(emacsframe)                  // C 8505
+
+    /* FIXME: for some reason needed on second and subsequent clicks away
+              from sole-frame Emacs to get hollow box to show.  */
+    if !windowClosing && (window?.isVisible ?? false) == true {   // C 8509
+      gui_update_cursor(emacsframe, true)             // C 8511
+      ns_set_frame_alpha(emacsframe)                  // C 8512
+    }
+
+    if any_help_event_p {                             // C 8515
+      var frame: Lisp_Object = nil                    // C 8517
+      XSETFRAME(&frame, emacsframe)                   // C 8518
+      help_echo_string_entry = Qnil()                 // C 8519
+      gen_help_event(Qnil(), frame, Qnil(), Qnil(), 0)       // C 8520
+      any_help_event_p = false                        // C 8521
+    }
+
+    if emacs_event != nil && is_focus_frame {         // C 8524
+      input_event_set_kind(emacs_event!, FOCUS_OUT_EVENT)   // C 8526 (C's `emacs_event->kind = …`)
+      EV_TRAILER(nil, emacsframe)                     // C 8527
+    }
+  }
+
+  /// C 8532-8535: `- (void)windowWillMiniaturize: sender` - C's body is the empty macro's comment
+  /// and nothing else.
+  @objc func windowWillMiniaturize(_ sender: Any?) {
+    // C 8534: `NSTRACE ("[EmacsView windowWillMiniaturize:]");` - empty at `NSTRACE_ENABLED` 0.
+  }
+
+  /// C 8538-8544: `- (void)setFrame:(NSRect)frameRect` - C's body is the `super` call and nothing
+  /// else.  AppKit imports that selector as the `frame` property, so the port overrides its setter
+  /// (the `EmacsScroller` reading of the same rename; measured: `value of type 'NSView' has no
+  /// member 'setFrame'`), and C's `(NSRect)frameRect` is the value it hands the superclass.
+  override var frame: NSRect {
+    get { super.frame }
+    set(frameRect) { super.frame = frameRect }        // C 8543
+  }
+
+  /// C 8547-8550: `- (BOOL)isFlipped` - C's whole body is `return YES;`.
+  override var isFlipped: Bool {
+    true                                              // C 8549
+  }
+
+  /// C 8553-8556: `- (BOOL)isOpaque` - C's whole body is `return NO;`.
+  override var isOpaque: Bool {
+    false                                             // C 8555
+  }
+
+  // ==========================================================================
+  // C 9657-9744: the class's last five methods - the pasteboard pair the informal
+  // `NSServicesRequests` protocol asks for, `setMiniwindowImage:` and the
+  // `fullscreenState` read.  C 9746 closes the class's own text.
+  // ==========================================================================
+
+  /// C 9657-9670: `- (id) validRequestorForSendType: (NSString *)typeSent returnType:
+  /// (NSString *)typeReturned`.  The selector is `NSResponder`'s own, declared in NSResponder.h 29,
+  /// so the port overrides the imported spelling; C 9661's `[ns_send_types indexOfObject:
+  /// typeSent]` is an `NSArray` message to the pointer global and the reading keeps the **nil
+  /// receiver's 0** - `ns_send_types_storage` is nil until C 6149 runs, and 0 passes C's
+  /// `!= NSNotFound` test, which is what the C does; C 9660's `NSTRACE` is empty at
+  /// `NSTRACE_ENABLED` 0.
+  override func validRequestor(forSendType typeSent: NSPasteboard.PasteboardType?,
+                               returnType typeReturned: NSPasteboard.PasteboardType?) -> Any? {
+    // C 9660: `NSTRACE ("[EmacsView validRequestorForSendType:returnType:]");` - empty.
+
+    if typeSent != nil
+         /* C 9661: `[ns_send_types indexOfObject: typeSent] != NSNotFound`.  An `NSArray` message
+            to the global, so a nil `ns_send_types` reads as the nil receiver's 0 and passes the
+            test - what the C does.  */
+         && ((ns_send_types_storage as? [NSPasteboard.PasteboardType])
+               .map { $0.firstIndex(of: typeSent!) ?? NSNotFound } ?? 0) != NSNotFound
+         && typeReturned == nil {                                 // C 9662
+      if !NILP(ns_get_local_selection(QPRIMARY(), QUTF8_STRING())) {   // C 9664
+        return self                                              // C 9665
+      }
+    }
+
+    return super.validRequestor(forSendType: typeSent, returnType: typeReturned)   // C 9668-9669
+  }
+
+  /// C 9673-9686: `- (BOOL) readSelectionFromPasteboard: (NSPasteboard *)pb`.  The selector belongs
+  /// to the **informal** `NSServicesRequests` protocol: AppKit declares it on `NSApplication`, not
+  /// on `NSView`, so it is a plain `@objc` method with the selector pinned rather than an override.
+  /// C 9682-9684's comment is the body's whole reason and C 9685 returns `NO`.
+  @objc(readSelectionFromPasteboard:)
+  func readSelectionFromPasteboard(_ pb: NSPasteboard) -> Bool {
+    /* C 9682-9684: "We could call ns_string_from_pasteboard(pboard) here but then it should be
+       written into the buffer in place of the existing selection.  Ordinary service calls go
+       through functions defined in ns-win.el."  */
+    return false                                              // C 9685
+  }
+
+  /// C 9688-9714: `- (BOOL) writeSelectionToPasteboard: (NSPasteboard *)pb types: (NSArray *)types`
+  /// (the same informal protocol as the method above).  Readings: C 9696's `[types containsObject:
+  /// NSPasteboardTypeString]` is `NSArray`'s own `contains`; `CONSP`/`SYMBOLP`/`XCAR`/`XCDR`/
+  /// `NILP`/`STRINGP` are the entries this unit already declares (C 1183-1186); C 9710's
+  /// `[NSArray arrayWithObject: NSPasteboardTypeString]` is `NSArray (object:)`; `declareTypes:`
+  /// `owner:` takes the typed array and its change-count result is C's discarded one, and
+  /// `ns_string_to_pasteboard` (C 9712) is `nsselect.swift`'s own C-ABI export.
+  @objc(writeSelectionToPasteboard:types:)
+  func writeSelectionToPasteboard(_ pb: NSPasteboard, types: NSArray) -> Bool {
+    var val: Lisp_Object                                      // C 9691
+
+    // C 9693: `NSTRACE ("[EmacsView writeSelectionToPasteboard:types:]");` - empty.
+
+    /* C 9695: "We only support NSPasteboardTypeString."  */
+    if types.contains(NSPasteboard.PasteboardType.string) == false {   // C 9696
+      return false                                            // C 9697
+    }
+
+    val = ns_get_local_selection(QPRIMARY(), QUTF8_STRING())  // C 9700
+    if CONSP(val) && SYMBOLP(XCAR(val)) {                     // C 9701
+      val = XCDR(val)                                         // C 9703
+      if CONSP(val) && NILP(XCDR(val)) {                      // C 9704
+        val = XCAR(val)                                       // C 9705
+      }
+    }
+    if !STRINGP(val) {                                        // C 9707
+      return false                                            // C 9708
+    }
+
+    let typesDeclared = NSArray(object: NSPasteboard.PasteboardType.string)   // C 9690/9710
+    _ = pb.declareTypes(typesDeclared as! [NSPasteboard.PasteboardType], owner: nil)   // C 9711
+    ns_string_to_pasteboard(pb, val)                          // C 9712
+    return true                                               // C 9713
+  }
+
+  /// C 9716-9738: `- (instancetype)setMiniwindowImage: (BOOL) setMini` - C 9717-9720's comment is
+  /// the caller's contract.  Readings: the `instancetype` return is this class's own dynamic self;
+  /// C 9729's `image != emacsframe->output_data.ns->miniimage` is the frame-member read
+  /// (`ns_output_miniimage`, C 1900's entry); C 9731's `[image isKindOfClass: [EmacsImage class]]`
+  /// is the class-kind entry `is_emacs_image` (the class is `nsimage.swift`'s, so this unit
+  /// imports it the `is_emacs_tooltip` way); C 9732's `[image release]` is the ARC decrement the
+  /// `ns_release_object` reading uses (C 602); C 9733-9734's ternary is the property write.
+  @objc(setMiniwindowImage:)
+  func setMiniwindowImage(_ setMini: Bool) -> AnyObject? {
+    let image = self.window?.miniwindowImage                 // C 9723
+
+    // C 9724: `NSTRACE ("[EmacsView setMiniwindowImage:%d]", setMini);` - empty.
+
+    /* C 9726-9728: "NOTE: under Cocoa miniwindowImage always returns nil, documentation about
+       "AppleDockIconEnabled" notwithstanding, however the set message below has its effect
+       nonetheless."  */
+    if image != ns_output_miniimage(emacsframe) {            // C 9729
+      self.window?.miniwindowImage =
+        setMini ? ns_output_miniimage(emacsframe) : nil      // C 9733-9734
+    }
+
+    return self                                              // C 9737
+  }
+
+  /// C 9741-9744: `- (int) fullscreenState` - C's whole body is the ivar read the rest of the
+  /// class already writes (C 7065, C 8567, C 8853, C 9130-9199); C 9746's `@end` closes the class.
+  @objc func fullscreenState() -> Int32 {
+    fs_state                                                 // C 9743
+  }
+
+  // ==========================================================================
+  // C 7458-7468 (the `NSTextInputClient` arm) and C 7651-7776 (the `NSTextInput`
+  // family's remaining three): the class's last five method boxes, and the
+  // protocol list they were waiting for.
+  // ==========================================================================
+
+  /// C 7458-7462: `- (NSRect) firstRectForCharacterRange: (NSRange) range actualRange:
+  /// (nullable NSRangePointer) actualRange` - `<NSTextInputClient>`'s required method, whose whole
+  /// body is the call to the one-argument method below (C 7461); C 7459's `actualRange` is as
+  /// unused as C leaves it.
+  @objc func firstRect(forCharacterRange range: NSRange,
+                       actualRange: NSRangePointer?) -> NSRect {
+    firstRectForCharacterRange(range)                 // C 7461
+  }
+
+  /// C 7464-7468: `- (NSRect)accessibilityFrame` (the `NS_IMPL_COCOA` arm; C 7470 closes that
+  /// block).  Readings: C 7466's `EmacsView *view = FRAME_NS_VIEW (emacsframe)` is this unit's
+  /// entry, C 7467's `[[view window] convertRectToScreen: …]` is `NSWindow.convertToScreen (_:)`
+  /// over the file-scope `ns_UAZoom_cursor_rect_new` (C 1152), and a nil view or window reads as
+  /// the zeroed rect C's nil-messaging produces (`ns_parent_window_rect`'s reading); the
+  /// `override` is measured - the SDK's `NSAccessibilityElement` requirement (NSAccessibilityProtocols.h
+  /// 21) is the declaration this selector overrides.
+  @objc override func accessibilityFrame() -> NSRect {
+    let view = FRAME_NS_VIEW(emacsframe)              // C 7466
+    return view?.window?.convertToScreen(ns_UAZoom_cursor_rect_new) ?? .zero   // C 7467
+  }
+
+  /// C 7651-7696: `- (NSRect)firstRectForCharacterRange: (NSRange)theRange` - "Used to position
+  /// char selection windows, etc."  Readings: C 7657's `NSTRACE` and C 7659-7660's `NS_KEYLOG`
+  /// block are empty/dead (`NS_KEYLOG` is 0 at C 7241); C 7662's `WINDOWP (echo_area_window) &&
+  /// ns_in_echo_area ()` is the `echo_area_window` data symbol (C 10998) plus this unit's own
+  /// `ns_in_echo_area`; C 7667-7671's four macros are the entries `FRAME_COLUMN_WIDTH`,
+  /// `FRAME_LINE_HEIGHT`, `WINDOW_TEXT_TO_FRAME_PIXEL_X` (new) and `WINDOW_TO_FRAME_PIXEL_Y`, over
+  /// the `window_phys_cursor_x`/`_y` member reads (`nsfns.swift` 770's spelling); C 7673's
+  /// `[self convertPoint: pt toView: nil]` is `convert (_:to:)`; and the `MAC_OS_X_VERSION_*`
+  /// guards C 7675-7693 carry resolve to this target's live arm, so C 7687-7693's
+  /// `convertBaseToScreen:` block is **dead as a whole** (recorded, not transcribed).  C 7653-7655
+  /// declares its three locals without initializers and writes every field before reading it, so
+  /// the port starts them at zero (Swift has no indeterminate value - the C 7823 reading).
+  @objc(firstRectForCharacterRange:)
+  func firstRectForCharacterRange(_ theRange: NSRange) -> NSRect {
+    var rect: NSRect = .zero                          // C 7653
+    var pt: NSPoint = .zero                           // C 7654
+    let win: UnsafeMutableRawPointer?                 // C 7655
+
+    // C 7657: `NSTRACE ("[EmacsView firstRectForCharacterRange:]");` - empty.
+    // C 7659-7660: `if (NS_KEYLOG) NSLog (@"firstRectForCharRange request");` - `NS_KEYLOG` is 0.
+
+    if WINDOWP(echo_area_window) && ns_in_echo_area() {   // C 7662
+      win = XWINDOW(echo_area_window)                     // C 7663
+    } else {
+      win = XWINDOW(frame_selected_window(emacsframe))    // C 7665
+    }
+
+    rect.size.width = CGFloat(theRange.length)
+                      * CGFloat(FRAME_COLUMN_WIDTH(emacsframe))                          // C 7667
+    rect.size.height = CGFloat(FRAME_LINE_HEIGHT(emacsframe))                            // C 7668
+    pt.x = CGFloat(WINDOW_TEXT_TO_FRAME_PIXEL_X(win, Int32(window_phys_cursor_x(win))))  // C 7669
+    pt.y = CGFloat(WINDOW_TO_FRAME_PIXEL_Y(win, Int32(window_phys_cursor_y(win))
+                                             + FRAME_LINE_HEIGHT(emacsframe)))           // C 7670-7671
+
+    pt = self.convert(pt, to: nil)                    // C 7673
+
+    rect.origin = pt                                  // C 7680
+    rect = self.window?.convertToScreen(rect) ?? .zero   // C 7681
+
+    return rect                                       // C 7695
+  }
+
+  /// C 7733-7755: `- (NSRange)selectedRange` (`<NSTextInputClient>`'s required method).  Readings:
+  /// C 7735-7736's `NS_KEYLOG` block is dead; C 7738-7740's chain is the `frame_selected_window`
+  /// entry (C 10994), `XWINDOW` (C 3295), `window_contents` (C 14487) and `XBUFFER` (C 14484) with
+  /// the new `BUF_PT`; C 7742's `BVAR (buf, mark_active)` is the existing `buffer_mark_active`
+  /// reader (C 14492) and C 7748's `BVAR (buf, mark)` the new `buffer_mark`, whose
+  /// `marker_position` (C 7748) is the core's own export (`src/marker.rs` 849); C's `min`
+  /// and `max` are Swift's, and the two `NSUInteger` locals are `NSMakeRange`'s `Int`s.
+  @objc func selectedRange() -> NSRange {
+    // C 7735-7736: `if (NS_KEYLOG) NSLog (@"selectedRange request");` - `NS_KEYLOG` is 0.
+
+    let w = XWINDOW(frame_selected_window(emacsframe))    // C 7738
+    let buf = XBUFFER(window_contents(w))                 // C 7739
+    let point = BUF_PT(buf)                               // C 7740
+
+    if NILP(buffer_mark_active(buf)) {                    // C 7742
+      let selection_location = point - BUF_BEGV(buf)      // C 7744
+      return NSMakeRange(selection_location, 0)           // C 7745
+    }
+
+    let mark = marker_position(buffer_mark(buf))          // C 7748
+    let region_start = min(point, mark)                   // C 7749
+    let region_end = max(point, mark)                     // C 7750
+    let selection_location = region_start - BUF_BEGV(buf) // C 7751
+    let selection_length = region_end - region_start      // C 7752
+
+    return NSMakeRange(selection_location, selection_length)   // C 7754
+  }
+
+  /// C 7769-7776: `- (NSAttributedString *)attributedSubstringFromRange: (NSRange)theRange`.
+  /// Readings: C 7771-7772's method-local `static NSAttributedString *str` is hoisted to the
+  /// file-scope `ns_attributed_substring_str` (the `nsEvArray` reading of C 7248, with the name
+  /// qualified because `str` is a local name elsewhere in this file); C 7773-7774's `NS_KEYLOG`
+  /// block is dead; and C 7778 closes `<NSTextInput>`'s implementation.
+  @objc(attributedSubstringFromRange:)
+  func attributedSubstringFromRange(_ theRange: NSRange) -> NSAttributedString {
+    if ns_attributed_substring_str == nil {               // C 7772
+      ns_attributed_substring_str = NSAttributedString()  // C 7771
+    }
+    // C 7773-7774: `if (NS_KEYLOG) NSLog (@"attributedSubstringFromRange request");` - 0.
+    return ns_attributed_substring_str!                   // C 7775
+  }
+}
+
+/// C 5086-5107: `static void check_native_fs (void)` - the function C 5127 and C 5218 call from
+/// their live `NS_IMPL_COCOA` arm, and the reason the event-loop pair was held: its body calls
+/// `[view updateCollectionBehavior]` (C 5103), which is the method above.  `FOR_EACH_FRAME` keeps
+/// the spelling `ns_constrain_all_frames` uses (C 1011's reading above).
+fileprivate func check_native_fs() {
+  if ns_last_use_native_fullscreen == ns_use_native_fullscreen {
+    return                                            // C 5093
+  }
+  ns_last_use_native_fullscreen = ns_use_native_fullscreen   // C 5095
+
+  var tail: Lisp_Object = Vframe_list                 // C 5097
+  while CONSP(tail) {
+    let frame = XCAR(tail)
+    let f = XFRAME(frame)
+    if FRAME_NS_P(f) {                                // C 5100
+      let view = FRAME_NS_VIEW(f)                     // C 5102
+      (view as? EmacsView)?.updateCollectionBehavior()   // C 5103
+    }
+    tail = XCDR(tail)
+  }
+}
+
+// ==========================================================================
+// Round 26: C 5203-5385 - `ns_select_1`, `ns_select` and `ns_run_loop_break`
+// ==========================================================================
+
+/// C 323: `enum { SELECT_HAVE_READ = 1, SELECT_HAVE_WRITE = 2, SELECT_HAVE_TMO = 4 };` - the three
+/// bits `ns_select_1` accumulates into `select_valid` (C 5277/5282/5288); C 322's statics are this
+/// unit's own entries above.
+let SELECT_HAVE_READ = 1
+let SELECT_HAVE_WRITE = 2
+let SELECT_HAVE_TMO = 4
+
+/// C: `typedef int select_func (int, fd_set *, fd_set *, fd_set *, const struct timespec *,
+/// const sigset_t *);` (src/thread.h 337-338) - the function-pointer type `thread_select` takes,
+/// spelled as the `@convention(c)` type the port's own `select_func` alias names
+/// (`src/include/thread.rs` 300, P-27's `atimer_callback` shape).
+typealias select_func = @convention(c) (Int32, UnsafeMutablePointer<fd_set>?,
+                                       UnsafeMutablePointer<fd_set>?,
+                                       UnsafeMutablePointer<fd_set>?,
+                                       UnsafePointer<timespec>?,
+                                       UnsafePointer<sigset_t>?) -> Int32
+
+/// C: `int thread_select (select_func *func, int max_fds, fd_set *rfds, fd_set *wfds,
+/// fd_set *efds, struct timespec *timeout, sigset_t *sigmask);` (src/thread.h 338) - the port
+/// defines it at `src/thread.rs` 666 as an `extern "C"` entry, so this unit imports the
+/// symbol and passes `pselect` (C's own argument at C 5242/5247).
+@_silgen_name("thread_select")
+func thread_select(_ func: select_func?, _ max_fds: Int32,
+                   _ rfds: UnsafeMutablePointer<fd_set>?, _ wfds: UnsafeMutablePointer<fd_set>?,
+                   _ efds: UnsafeMutablePointer<fd_set>?,
+                   _ timeout: UnsafeMutablePointer<timespec>?,
+                   _ sigmask: UnsafeMutablePointer<sigset_t>?) -> Int32
+
+/// C: `ptrdiff_t emacs_write_sig (int, const void *, ptrdiff_t)` (src/sysdep.h) - the port
+/// defines it at `src/sysdep.rs` 4022; the `fputs` import shape.
+@_silgen_name("emacs_write_sig")
+func emacs_write_sig(_ fd: Int32, _ buf: UnsafeRawPointer?, _ nbyte: Int) -> Int
+
+/// C: `FD_ISSET (fd, set)` (sys/select.h) - the macro's Darwin expansion, `__darwin_fd_isset`
+/// (the `fputs` story again: Swift marks the fd_set family unavailable).
+@_silgen_name("__darwin_fd_isset")
+func __darwin_fd_isset(_ fd: Int32, _ set: UnsafePointer<fd_set>?) -> Int32
+
+/// C: `timespectod (t)` (src/systime.h) - "Convert a struct timespec to a double"; the two
+/// members and their units, as C's own `(t).tv_sec + (t).tv_nsec / 1e9` states them.
+fileprivate func timespectod(_ t: timespec) -> Double {
+  Double(t.tv_sec) + Double(t.tv_nsec) / 1e9
+}
+
+/// C 5203-5363: `static int ns_select_1 (int nfds, fd_set *readfds, fd_set *writefds,
+/// fd_set *exceptfds, struct timespec *timeout, sigset_t *sigmask, BOOL run_loop_only)` - C's
+/// replacement for `select`, "checking for events".  It is the second caller of `check_native_fs`
+/// (C 5218) that round 25 unblocked.
+fileprivate func ns_select_1(_ nfds: Int32, _ readfds: UnsafeMutablePointer<fd_set>?,
+                             _ writefds: UnsafeMutablePointer<fd_set>?,
+                             _ exceptfds: UnsafeMutablePointer<fd_set>?,
+                             _ timeout: UnsafeMutablePointer<timespec>?,
+                             _ sigmask: UnsafeMutablePointer<sigset_t>?,
+                             _ run_loop_only: Bool) -> Int32 {
+  var result: Int32
+  var t: Int32
+  var k: Int32
+  var nr: Int32 = 0
+  var event = input_event(bits: 0, code: 0, modifiers: 0, x: nil, y: nil, timestamp: 0,
+                          frame_or_window: nil, arg: nil, device: nil)
+  var c: CChar
+
+  check_native_fs()                                   // C 5218
+
+  /* C 5221-5224: store the held events so the reference can recognize C-g (C's own comment
+     says "so that Emacs can recognize C-g"; the citation is what the reading above counts).  */
+  if hold_event_q_nr > 0 {                            // C 5225
+    var i: Int32 = 0
+    while i < hold_event_q_nr {
+      kbd_buffer_store_event_hold(&(hold_event_q_q![Int(i)]), nil)   // C 5228
+      i += 1
+    }
+    hold_event_q_nr = 0                               // C 5229
+  }
+
+  /* C 5232's `eassert` is the no-op of an unset `ENABLE_CHECKING` (this unit's reading).  */
+  k = 0
+  while k < nfds {                                    // C 5233
+    if readfds != nil && __darwin_fd_isset(k, readfds) != 0 { nr += 1 }   // C 5235
+    if writefds != nil && __darwin_fd_isset(k, writefds) != 0 { nr += 1 } // C 5236
+    k += 1
+  }
+
+  if NSApp == nil                                     // C 5239
+       || !Thread.current.isMainThread                // C 5240
+       || (timeout != nil && timeout!.pointee.tv_sec == 0 && timeout!.pointee.tv_nsec == 0) {
+    return thread_select(pselect, nfds, readfds, writefds, exceptfds, timeout, sigmask)   // C 5242
+  } else {
+    var t2 = timespec(tv_sec: 0, tv_nsec: 1)          // C 5246
+    _ = thread_select(pselect, 0, nil, nil, nil, &t2, sigmask)   // C 5247
+  }
+
+  /* C 5250-5265: the `outerpool` drain is commented out in the reference itself, and the comment
+     is carried at C 5250-5265 rather than restated here.  */
+
+  send_appdefined = true                              // C 5268
+  if nr > 0 {                                         // C 5269
+    pthread_mutex_lock(&select_mutex)                 // C 5271
+    select_nfds = nfds                                // C 5272
+    select_valid = 0                                  // C 5273
+    if readfds != nil {                               // C 5274
+      select_readfds = readfds!.pointee               // C 5276
+      select_valid += Int32(SELECT_HAVE_READ)         // C 5277
+    }
+    if writefds != nil {                              // C 5279
+      select_writefds = writefds!.pointee             // C 5281
+      select_valid += Int32(SELECT_HAVE_WRITE)        // C 5282
+    }
+    if timeout != nil {                               // C 5285
+      select_timeout = timeout!.pointee               // C 5287
+      select_valid += Int32(SELECT_HAVE_TMO)          // C 5288
+    }
+    pthread_mutex_unlock(&select_mutex)               // C 5291
+
+    /* C 5293-5295: inform fd_handler that select should be called.  */
+    c = CChar(UInt8(ascii: "g"))
+    _ = emacs_write_sig(selfds.1, &c, 1)
+  } else if nr == 0 && timeout != nil {               // C 5297
+    /* C 5299-5300: no file descriptor, just a timeout.  */
+    let time = timespectod(timeout!.pointee)
+    /* C 5301-5307's `[[NSTimer scheduledTimerWithTimeInterval:…] retain]`: Swift's factory is
+       `timeInterval:` and the run loop already holds the timer, which is what C's `retain` buys
+       (the ARC reading this lane uses for `release`).  */
+    timed_entry = Timer.scheduledTimer(timeInterval: time,
+                                       target: NSApp!,
+                                       selector: #selector(EmacsApp.timeout_handler(_:)),
+                                       userInfo: nil,
+                                       repeats: false)
+  } else {
+    /* C 5309-5312: no timeout and no file descriptors - "can this happen?"  */
+    ns_send_appdefined(-1)                            // C 5312
+  }
+
+  block_input()                                       // C 5315
+  ns_init_events(&event)                              // C 5316
+  NSApp.run()                                         // C 5318
+  ns_finish_events()                                  // C 5320
+  if nr > 0 && readfds != nil {                       // C 5321
+    c = CChar(UInt8(ascii: "s"))
+    _ = emacs_write_sig(selfds.1, &c, 1)              // C 5324
+  }
+  unblock_input()                                     // C 5326
+
+  t = last_appdefined_event_data                      // C 5328
+  if t != NO_APPDEFINED_DATA {                        // C 5330
+    last_appdefined_event_data = NO_APPDEFINED_DATA   // C 5332
+    if t == -2 {                                      // C 5334
+      result = 0                                      // C 5337 (a timeout)
+    } else if t == -1 {                               // C 5339
+      errno = EINTR                                   // C 5343
+      result = -1                                     // C 5344
+    } else {
+      /* C 5348: received back from `select ()` in fd_handler - copy the results.  */
+      pthread_mutex_lock(&select_mutex)               // C 5349
+      if readfds != nil { readfds!.pointee = select_readfds }    // C 5350
+      if writefds != nil { writefds!.pointee = select_writefds } // C 5351
+      pthread_mutex_unlock(&select_mutex)             // C 5352
+      result = t                                        // C 5353
+    }
+  } else {
+    errno = EINTR                                     // C 5358
+    result = -1                                       // C 5359
+  }
+
+  return result                                       // C 5362
+}
+
+/// C 5365-5372: `int ns_select (int nfds, fd_set *readfds, fd_set *writefds, fd_set *exceptfds,
+/// struct timespec *timeout, sigset_t *sigmask)` - C's body is the `ns_select_1` call with
+/// `NO`.
+@_cdecl("ns_select")
+func ns_select(_ nfds: Int32, _ readfds: UnsafeMutablePointer<fd_set>?,
+               _ writefds: UnsafeMutablePointer<fd_set>?,
+               _ exceptfds: UnsafeMutablePointer<fd_set>?,
+               _ timeout: UnsafeMutablePointer<timespec>?,
+               _ sigmask: UnsafeMutablePointer<sigset_t>?) -> Int32 {
+  ns_select_1(nfds, readfds, writefds, exceptfds, timeout, sigmask, false)   // C 5370-5371
+}
+
+/// C 5374-5385: `void ns_run_loop_break (void)` (the `HAVE_PTHREAD` arm) - "Break out of the NS
+/// run loop in ns_select or ns_read_socket."
+func ns_run_loop_break() {
+  /* C 5381-5383: "If we don't have a GUI, don't send the event."  */
+  if NSApp != nil {                                   // C 5382
+    ns_send_appdefined(-1)                            // C 5383
+  }
+}
+
+// ==========================================================================
+// Round 27: `EmacsApp`'s termination and file-open handlers (C 6633-6758)
+// ==========================================================================
+
+/// C: `Lisp_Object ns_confirm_quit` - this file's own `DEFVAR_BOOL` (`ns-confirm-quit`), imported
+/// as the data symbol the core exports (the `ns_auto_hide_menu_bar` shape above).
+@_silgen_name("ns_confirm_quit") var ns_confirm_quit: Lisp_Object
+
+/// C: `extern int initial_argc;` and `extern char **initial_argv;` (src/emacs.c) - the command line
+/// `not_in_argv` compares against; two more imports of the core's data symbols.
+@_silgen_name("initial_argc") var initial_argc: Int32
+@_silgen_name("initial_argv")
+var initial_argv: UnsafeMutablePointer<UnsafeMutablePointer<CChar>?>?
+
+/// C: `int strcmp (const char *, const char *)` (string.h) - the `fputs` shape again.
+@_silgen_name("strcmp") func strcmp(_ a: UnsafePointer<CChar>, _ b: UnsafePointer<CChar>) -> Int32
+
+/// C 6633-6652: `static bool runAlertPanel (NSString *title, NSString *msgFormat, NSString
+/// *defaultButton, NSString *alternateButton)`.  The `NS_IMPL_COCOA` arm builds an `NSAlert`
+/// (`NS_IMPL_GNUSTEP`'s `NSRunAlertPanel` at C 6640-6641 is dead here); C's `[alert release]`
+/// (C 6649) is the reference being dropped under ARC, the reading this lane already uses.
+fileprivate func runAlertPanel(_ title: String, _ msgFormat: String,
+                               _ defaultButton: String, _ alternateButton: String) -> Bool {
+  let alert = NSAlert()                              // C 6643
+  alert.alertStyle = .critical                       // C 6644
+  alert.messageText = msgFormat                      // C 6645
+  alert.addButton(withTitle: defaultButton)          // C 6646
+  alert.addButton(withTitle: alternateButton)        // C 6647
+  let ret = alert.runModal()                         // C 6648
+  return ret == .alertFirstButtonReturn              // C 6650
+}
+
+/// C 6671-6679: `static int not_in_argv (NSString *arg)`.  C's `[arg UTF8String]` is the
+/// `withCString` view the two notification methods use, and the walk keeps C's `k` and its two
+/// returns.
+fileprivate func not_in_argv(_ arg: String) -> Int32 {
+  var k: Int32 = 1                                   // C 6674
+  return arg.withCString { p in                      // C 6675
+    while k < initial_argc {                         // C 6676
+      if strcmp(p, initial_argv![Int(k)]!) == 0 { return 0 }   // C 6677
+      k += 1
+    }
+    return 1                                         // C 6678
+  }
+}
+
+// ==========================================================================
+// Round 28: the `NS_NONKEY_EVENT` value, `ns_read_socket_1` and `ns_read_socket`
+// ==========================================================================
+
+/// The event number comes from the core configured for this same Cocoa target.
+@_silgen_name("NS_NONKEY_EVENT") fileprivate func NS_NONKEY_EVENT_value() -> UInt32
+fileprivate let NS_NONKEY_EVENT: UInt32 = NS_NONKEY_EVENT_value()
+
+/// C `src/nsterm.h` 796/800/803: `#define KEY_NS_POWER_OFF ((1<<28)|(0<<16)|1)`,
+/// `KEY_NS_OPEN_FILE_LINE` (`|8`) and `KEY_NS_SPI_SERVICE_CALL` (`|11`) - the three `code` values
+/// the functions below write.
+let KEY_NS_POWER_OFF = (1 << 28) | (0 << 16) | 1
+let KEY_NS_OPEN_FILE_LINE = (1 << 28) | (0 << 16) | 8
+let KEY_NS_SPI_SERVICE_CALL = (1 << 28) | (0 << 16) | 11
+
+/// C `void *inputs`: `static Lisp_Object ns_input_file, ns_input_line, ns_input_spi_name,
+/// ns_input_spi_arg;` (src/nsterm.m 3395-3400 area) - this file's own file-scope objects, imported
+/// as the data symbols the core exports (the `ns_auto_hide_menu_bar` reading).
+@_silgen_name("ns_input_file") var ns_input_file: Lisp_Object
+@_silgen_name("ns_input_line") var ns_input_line: Lisp_Object
+@_silgen_name("ns_input_spi_name") var ns_input_spi_name: Lisp_Object
+@_silgen_name("ns_input_spi_arg") var ns_input_spi_arg: Lisp_Object
+
+/// C: `Lisp_Object lispString (NSString *)` - a helper of the Cocoa lane, exported by
+/// `nsfns.swift` 4968-4969 (`@_cdecl`) and imported here in the shape `nsselect.swift` 230 and
+/// `nsmenu.swift` 429 already use.
+@_silgen_name("lispString") func lispString(_ string: NSString) -> Lisp_Object
+
+/// C 5110-5193: `static int ns_read_socket_1 (struct terminal *terminal, struct input_event
+/// *hold_quit, BOOL no_release)` - "Post an event to ourself and keep reading events until we read
+/// it back again."  Its three callees are the ones rounds 22-25 landed (`check_native_fs`,
+/// `ns_send_appdefined`, `EmacsApp -openFile:`/`-fulfillService:withArg:`), which is why it waited.
+fileprivate func ns_read_socket_1(_ terminal: UnsafeMutableRawPointer?,
+                                  _ hold_quit: UnsafeMutablePointer<input_event>?,
+                                  _ no_release: Bool) -> Int32 {
+  var ev = input_event(bits: 0, code: 0, modifiers: 0, x: nil, y: nil, timestamp: 0,
+                       frame_or_window: nil, arg: nil, device: nil)          // C 5121
+  var nevents: Int32
+
+  check_native_fs()                                  // C 5127
+
+  if NSApp.modalWindow != nil {                      // C 5130
+    return -1                                        // C 5131
+  }
+
+  if hold_event_q_nr > 0 {                           // C 5133
+    var i: Int32 = 0                                 // C 5135
+    while i < hold_event_q_nr {                      // C 5136
+      kbd_buffer_store_event_hold(&(hold_event_q_q![Int(i)]), hold_quit)   // C 5137
+      i += 1
+    }
+    hold_event_q_nr = 0                              // C 5138
+    return i                                         // C 5139
+  }
+
+  if Thread.current.isMainThread {                   // C 5142
+    block_input()                                    // C 5144
+    n_emacs_events_pending = 0                       // C 5145
+    ns_init_events(&ev)                              // C 5146
+    q_event_ptr = hold_quit                          // C 5147
+
+    if !no_release {                                 // C 5149
+      /* C 5151-5153: the pool is allocated/reallocated around the loop; C's
+         `[outerpool release]` + `[[NSAutoreleasePool alloc] init]` pair is the pop/push below
+         (this unit's pool reading).  */
+      objc_autoreleasePoolPop(outerpool)              // C 5154
+      outerpool = objc_autoreleasePoolPush()          // C 5155
+    }
+
+    /* C 5158: "If have pending open-file requests, attend to the next one of those."  */
+    if ns_pending_files != nil && ns_pending_files!.count != 0
+         && (NSApp as! EmacsApp).openFile(ns_pending_files![0] as! String) { // C 5159-5160
+      ns_pending_files!.removeObject(at: 0)          // C 5162
+    } else if ns_pending_service_names != nil && ns_pending_service_names!.count != 0
+         && (NSApp as! EmacsApp).fulfillService(ns_pending_service_names![0] as! String,
+                                                withArg: ns_pending_service_args![0] as! String) {  // C 5165-5168
+      ns_pending_service_names!.removeObject(at: 0)  // C 5170
+      ns_pending_service_args!.removeObject(at: 0)   // C 5171
+    } else {
+      /* C 5175-5176: "Run and wait for events.  We must always send one NX_APPDEFINED event to
+         ourself, otherwise [NXApp run] will never exit."  */
+      send_appdefined = true                         // C 5177
+      ns_send_appdefined(-1)                         // C 5178
+      NSApp.run()                                    // C 5180
+    }
+
+    nevents = n_emacs_events_pending                 // C 5183
+    n_emacs_events_pending = 0                       // C 5184
+    ns_finish_events()                               // C 5185
+    q_event_ptr = nil                                // C 5186
+    unblock_input()                                  // C 5187
+  } else {
+    return -1                                        // C 5190
+  }
+
+  return nevents                                     // C 5192
+}
+
+/// C 5195-5199: `static int ns_read_socket (struct terminal *terminal, struct input_event
+/// *hold_quit)` - C's body is the `ns_read_socket_1` call with `NO`.
+fileprivate func ns_read_socket(_ terminal: UnsafeMutableRawPointer?,
+                                _ hold_quit: UnsafeMutablePointer<input_event>?) -> Int32 {
+  ns_read_socket_1(terminal, hold_quit, false)       // C 5198
+}
+
+// ==========================================================================
+// Round 29: `showPreferencesWindow:`, `newFrame:` and `fd_handler:`
+// ==========================================================================
+
+/// C `src/nsterm.h` 804 and 806: `#define KEY_NS_NEW_FRAME ((1<<28)|(0<<16)|12)` and
+/// `#define KEY_NS_SHOW_PREFS ((1<<28)|(0<<16)|14)`.
+let KEY_NS_NEW_FRAME = (1 << 28) | (0 << 16) | 12
+let KEY_NS_SHOW_PREFS = (1 << 28) | (0 << 16) | 14
+
+/// C: `void FD_ZERO (fd_set *)` and `void FD_SET (int, fd_set *)` (sys/select.h) - the other two
+/// Darwin expansions of that family (`__darwin_fd_isset` above is the third), imported in the same
+/// shape because Swift marks the `fd_set` macros unavailable.
+@_silgen_name("__darwin_fd_zero") func __darwin_fd_zero(_ set: UnsafeMutablePointer<fd_set>?)
+@_silgen_name("__darwin_fd_set")
+func __darwin_fd_set(_ fd: Int32, _ set: UnsafeMutablePointer<fd_set>?)
+
+// ==========================================================================
+// Round 30: `applicationDidFinishLaunching:` and `requestService:`
+// ==========================================================================
+
+/// C: `CFTypeID CFSocketGetTypeID (void)` and `CFTypeID CFFileDescriptorGetTypeID (void)`
+/// (CoreFoundation) - the two dummy calls C 6531/6532 makes so that the framework raises the
+/// process's open-file limit before C 6535-6539 lowers it again.
+@_silgen_name("CFSocketGetTypeID") func CFSocketGetTypeID() -> UInt
+@_silgen_name("CFFileDescriptorGetTypeID") func CFFileDescriptorGetTypeID() -> UInt
+
+/// C: `Lisp_Object build_string (const char *)` (src/lisp.h) - the port defines it in
+/// `src/alloc.rs`; the `fputs` import shape.
+@_silgen_name("build_string") func build_string(_ s: UnsafePointer<CChar>) -> Lisp_Object
+
+/// C `+[EmacsImage allocInitFromFile:]` - the class is `nsimage.swift`'s, so the call crosses as a
+/// C-ABI entry under `<Class>_<selector>` (the `EmacsImage_stippleMask` shape round 18 set).
+@_silgen_name("EmacsImage_allocInitFromFile")
+func EmacsImage_allocInitFromFile(_ file: Lisp_Object) -> AnyObject?
+
+/// C: `NSPasteboard`-side helpers of the selection lane, both defined in `nsselect.swift`
+/// (`stringWithLispString` at 228, `ns_string_from_pasteboard` at 533); `requestService:` below is
+/// their reader in this unit.
+@_silgen_name("stringWithLispString") func stringWithLispString(_ string: Lisp_Object) -> NSString?
+@_silgen_name("ns_string_from_pasteboard")
+func ns_string_from_pasteboard(_ pb: NSPasteboard?) -> Lisp_Object
+
+// ==========================================================================
+// Round 31: `EmacsWindow`'s ordering methods (C 10043-10122)
+// ==========================================================================
+
+/// C 10084-10096: `static NSInteger nswindow_orderedIndex_sort (id w1, id w2, void *c)` - the
+/// comparator `orderBack:` sorts its parent's children with.  C sends `orderedIndex` as a
+/// **message**, and on Cocoa that selector is not declared on `NSWindow` at all (C's own
+/// definition of it sits in the `NS_IMPL_GNUSTEP` arm at C 10074-10077), so the port sends the
+/// same dynamic message rather than inventing a property.
+fileprivate func nswindow_orderedIndex_sort(_ w1: AnyObject, _ w2: AnyObject,
+                                           _ c: UnsafeMutableRawPointer?) -> Int {
+  let i1 = Int(bitPattern: (w1 as AnyObject).perform(Selector(("orderedIndex")))?
+                 .takeUnretainedValue() as? UInt ?? 0)                       // C 10087
+  let i2 = Int(bitPattern: (w2 as AnyObject).perform(Selector(("orderedIndex")))?
+                 .takeUnretainedValue() as? UInt ?? 0)                       // C 10088
+
+  if i1 > i2 { return -1 } /* NSOrderedAscending */                         // C 10090-10091
+  if i1 < i2 { return 1 }  /* NSOrderedDescending */                        // C 10092-10093
+  return 0                 /* NSOrderedSame */                              // C 10095
+}
+
+
+
+/// C: `NON_ASCII_KEYSTROKE_EVENT` and `ASCII_KEYSTROKE_EVENT` - two `enum event_kind` members the
+/// input methods write into `kind`; the port's mirror fixes both values
+/// (`src/include/termhooks.rs` 30 and 28).  They go through the bitfield setter, like
+/// `SLEEP_EVENT` above.
+@_silgen_name("NON_ASCII_KEYSTROKE_EVENT") fileprivate func NON_ASCII_KEYSTROKE_EVENT_value() -> UInt32
+fileprivate let NON_ASCII_KEYSTROKE_EVENT: UInt32 = NON_ASCII_KEYSTROKE_EVENT_value()
+@_silgen_name("ASCII_KEYSTROKE_EVENT") fileprivate func ASCII_KEYSTROKE_EVENT_value() -> UInt32
+fileprivate let ASCII_KEYSTROKE_EVENT: UInt32 = ASCII_KEYSTROKE_EVENT_value()
+/// C: `MULTIBYTE_CHAR_KEYSTROKE_EVENT` - the third member `insertText:` writes into `kind`
+/// (`src/include/termhooks.rs` 29).
+@_silgen_name("MULTIBYTE_CHAR_KEYSTROKE_EVENT") fileprivate func MULTIBYTE_CHAR_KEYSTROKE_EVENT_value() -> UInt32
+fileprivate let MULTIBYTE_CHAR_KEYSTROKE_EVENT: UInt32 = MULTIBYTE_CHAR_KEYSTROKE_EVENT_value()
+
+// ==========================================================================
+// Round 33: `EmacsView`'s composing pair and its three light Cocoa-arm methods
+// ==========================================================================
+
+/// C: `NS_TEXT_EVENT` - the `enum event_kind` member beside the `NS_NONKEY_EVENT` round 28
+/// counted (C's `src/termhooks.h` 273-279 gates both on `HAVE_NS`).  It is the same count, one
+/// step earlier, and carries the same **UNVERIFIED** mark for the same reason.
+@_silgen_name("NS_TEXT_EVENT") fileprivate func NS_TEXT_EVENT_value() -> UInt32
+fileprivate let NS_TEXT_EVENT: UInt32 = NS_TEXT_EVENT_value()
+
+/// C `src/nsterm.h` 801/802: `KEY_NS_PUT_WORKING_TEXT ((1<<28)|(0<<16)|9)` and
+/// `KEY_NS_UNPUT_WORKING_TEXT (…|10)` - the two `code` values the composing methods write.
+let KEY_NS_PUT_WORKING_TEXT = (1 << 28) | (0 << 16) | 9
+let KEY_NS_UNPUT_WORKING_TEXT = (1 << 28) | (0 << 16) | 10
+
+/// C: `Lisp_Object ns_working_text` - this file's own `DEFVAR_LISP` (`ns-working-text`, C 11604),
+/// imported as the data symbol the core exports (the `ns_confirm_quit` shape).
+@_silgen_name("ns_working_text") var ns_working_text: Lisp_Object
+
+/// C `src/coding.h` 674/680: `#define UTF_16_HIGH_SURROGATE_P(val) (((val) & 0xFC00) == 0xD800)`
+/// and the low-surrogate twin.  The port's mirror spells them as plain functions
+/// (`src/include/coding.rs` 304/308) rather than C-ABI entries, so this unit writes them
+/// out as the macro bodies state them.
+fileprivate func UTF_16_HIGH_SURROGATE_P(_ val: UInt32) -> Bool {
+  (val & 0xFC00) == 0xD800                             // C coding.h 675
+}
+fileprivate func UTF_16_LOW_SURROGATE_P(_ val: UInt32) -> Bool {
+  (val & 0xFC00) == 0xDC00                             // C coding.h 681
+}
+
+/// C `src/coding.h` 760-768: `INLINE int surrogates_to_codepoint (int low, int high)` - "Return
+/// the Unicode code point for the given UTF-16 surrogates."  C's four `eassert`s are the no-ops of
+/// an unset `ENABLE_CHECKING`, and the expression is C 767's.
+fileprivate func surrogates_to_codepoint(_ low: UInt32, _ high: UInt32) -> UInt32 {
+  0x10000 + (low - 0xDC00) + ((high - 0xD800) * 0x400) // C coding.h 767
+}
+
+// ==========================================================================
+// Round 34: `ns_in_echo_area` and `firstRectForCharacterRange:`
+// ==========================================================================
+
+/// C: `typedef struct { ptrdiff_t bytes; } specpdl_ref;` (src/lisp.h 3646) - this unit's own view
+/// of it, the way `nsselect.swift` 87 and `nsfns.swift` 97 each carry theirs (a Swift unit
+/// compiles alone, so each spells what it reads).
+struct specpdl_ref {
+  var bytes: Int
+}
+
+/// C: `Lisp_Object FRAME_SELECTED_WINDOW (struct frame *f)` (src/frame.h 1204, `f->selected_window`)
+/// - the entry `nsfns.swift` 505 already declares.
+@_silgen_name("frame_selected_window")
+func frame_selected_window(_ f: UnsafeMutableRawPointer?) -> Lisp_Object
+
+/// C: `extern Lisp_Object echo_area_window;` (src/window.h; the port's mirror declares it at
+/// `src/include/window.rs` 280 as an `extern "C"` static).
+@_silgen_name("echo_area_window") var echo_area_window: Lisp_Object
+
+/// C: `Lisp_Object Qns_in_echo_area` - this file's own `DEFSYM ("ns-in-echo-area")` at C 11799,
+/// imported through the symbol accessor, like the other Q symbols in this target.
+@_silgen_name("Qns_in_echo_area") func Qns_in_echo_area() -> Lisp_Object
+
+/// C: `Lisp_Object internal_catch_all (Lisp_Object (*) (void *), void *,
+/// Lisp_Object (*) (enum nonlocal_exit, Lisp_Object))` (src/lisp.h) - the port defines it in
+/// `src/eval.rs`; the two callbacks are `@convention(c)` pointers and the exit enum is the
+/// integer it is.
+typealias catch_all_func = @convention(c) (UnsafeMutableRawPointer?) -> Lisp_Object
+typealias catch_all_handler = @convention(c) (Int32, Lisp_Object) -> Lisp_Object
+@_silgen_name("internal_catch_all")
+func internal_catch_all(_ func: catch_all_func?, _ arg: UnsafeMutableRawPointer?,
+                        _ handler: catch_all_handler?) -> Lisp_Object
+
+/// C: `Lisp_Object safe_funcall (ptrdiff_t, Lisp_Object *)` (src/lisp.h 4845) - what C's
+/// `safe_calln (Qns_in_echo_area)` macro (lisp.h 4846-4847) expands to for one argument.
+@_silgen_name("safe_funcall")
+func safe_funcall(_ nargs: Int, _ args: UnsafeMutablePointer<Lisp_Object>?) -> Lisp_Object
+
+/// C: the `WINDOWP`, `SPECPDL_INDEX`, `specbind` and `unbind_to` entries the two functions below
+/// read; each is the shape this unit's neighbours already use (`nsfns.swift` 191/716/721,
+/// `nsselect.swift` 147/174).
+@_silgen_name("WINDOWP") func WINDOWP(_ x: Lisp_Object) -> Bool
+@_silgen_name("SPECPDL_INDEX") func SPECPDL_INDEX() -> specpdl_ref
+@_silgen_name("specbind") func specbind(_ symbol: Lisp_Object, _ value: Lisp_Object)
+@_silgen_name("unbind_to") func unbind_to(_ count: specpdl_ref, _ value: Lisp_Object) -> Lisp_Object
+@_silgen_name("Qinhibit_quit") func Qinhibit_quit() -> Lisp_Object
+
+/// C 7623-7630: `static Lisp_Object ns_in_echo_area_1 (void *ptr)`.
+fileprivate func ns_in_echo_area_1(_ ptr: UnsafeMutableRawPointer?) -> Lisp_Object {
+  let count = SPECPDL_INDEX()                         // C 7626
+  specbind(Qinhibit_quit(), Qt())                     // C 7627
+  var args: [Lisp_Object] = [Qns_in_echo_area()]        // C 7628 (C's `safe_calln`, one argument)
+  let in_echo_area = args.withUnsafeMutableBufferPointer {
+    safe_funcall(Int($0.count), $0.baseAddress)
+  }
+  return unbind_to(count, in_echo_area)               // C 7629
+}
+
+/// C 7632-7636: `static Lisp_Object ns_in_echo_area_2 (enum nonlocal_exit exit, Lisp_Object
+/// error)` - C's whole body is `return Qnil;`.
+fileprivate func ns_in_echo_area_2(_ exit: Int32, _ error: Lisp_Object) -> Lisp_Object {
+  Qnil()                                              // C 7635
+}
+
+/// C 7638-7648: `static bool ns_in_echo_area (void)` - the `internal_catch_all` wrapper, whose
+/// three arguments are C 7644-7645's two helpers and its `NULL`.
+fileprivate func ns_in_echo_area() -> Bool {
+  let in_echo_area = internal_catch_all(
+    { ptr in ns_in_echo_area_1(ptr) },
+    nil,
+    { exit, error in ns_in_echo_area_2(exit, error) })   // C 7643-7645
+  return !NILP(in_echo_area)                           // C 7647
+}
+
+// ==========================================================================
+// Round 35: `ns_free_pixmap`, the two display metrics, and `ns_string_to_lispmod`
+// ==========================================================================
+
+/// C: the five modifier symbols `ns_string_to_lispmod` compares against, all `DEFSYM`s of this
+/// file's own `syms_of_nsterm` and imported in the `Qnone` shape the unit already uses.
+@_silgen_name("Qmeta") func Qmeta() -> Lisp_Object
+@_silgen_name("Qsuper") func Qsuper() -> Lisp_Object
+@_silgen_name("Qcontrol") func Qcontrol() -> Lisp_Object
+@_silgen_name("Qalt") func Qalt() -> Lisp_Object
+@_silgen_name("Qhyper") func Qhyper() -> Lisp_Object
+
+/// C: `int strncmp (const char *, const char *, size_t)` (string.h) - the `fputs` shape.
+@_silgen_name("strncmp")
+func strncmp(_ a: UnsafePointer<CChar>?, _ b: UnsafePointer<CChar>?, _ n: Int) -> Int32
+
+/// C 5648-5652: `static void ns_free_pixmap (struct frame *_f, Emacs_Pixmap pixmap)` - C's whole
+/// body is the `ns_release_object` call, which is this unit's own `@_cdecl` entry (C 602-638).
+/// The pixmap parameter is therefore spelled the way that export spells its own (C 805-811): an
+/// optional untyped pointer (src/nsgui.h 55-59's `typedef id` arm, read untyped as the round 18
+/// `ns_display_info_bitmaps_img` note reads it), and because the export is what carries C's
+/// nil-receiver no-op (C 808-810), a NULL pixmap needs no arm here.
+fileprivate func ns_free_pixmap(_ _f: UnsafeMutableRawPointer?, _ pixmap: UnsafeMutableRawPointer?) {
+  ns_release_object(pixmap)                          // C 5651
+}
+
+/// C 5660-5673: `int ns_display_pixel_height (struct ns_display_info *dpyinfo)` - the union of
+/// every screen's frame, which C builds with an enumerator; `NSScreen.screens` is the array and
+/// `NSHeight` is the rect's own height.
+@_cdecl("ns_display_pixel_height")
+func ns_display_pixel_height(_ dpyinfo: UnsafeMutableRawPointer?) -> Int32 {
+  let screens = NSScreen.screens                     // C 5663
+  var frame = NSRect.zero                            // C 5668
+  for screen in screens {                            // C 5669
+    frame = NSUnionRect(frame, screen.frame)         // C 5670
+  }
+  return Int32(frame.height)                         // C 5672
+}
+
+/// C 5675-5688: `int ns_display_pixel_width (struct ns_display_info *dpyinfo)` - the same union,
+/// read as a width.
+@_cdecl("ns_display_pixel_width")
+func ns_display_pixel_width(_ dpyinfo: UnsafeMutableRawPointer?) -> Int32 {
+  let screens = NSScreen.screens                     // C 5678
+  var frame = NSRect.zero                            // C 5683
+  for screen in screens {                            // C 5684
+    frame = NSUnionRect(frame, screen.frame)         // C 5685
+  }
+  return Int32(frame.width)                          // C 5687
+}
+
+/// C 5691-5710: `static Lisp_Object ns_string_to_lispmod (const char *s)` - "Convert modifier name
+/// to lisp symbol."  C's six `strncmp (SSDATA (SYMBOL_NAME (Q…)), s, 10)` tests keep their order
+/// and their length 10; `SYMBOL_NAME`/`SSDATA` are entries this unit already declares (C 2255 and
+/// 2254) and `Qnone` is its own (C 3092).
+fileprivate func ns_string_to_lispmod(_ s: UnsafePointer<CChar>) -> Lisp_Object {
+  if strncmp(SSDATA(SYMBOL_NAME(Qmeta())), s, 10) == 0 { return Qmeta() }        // C 5696-5697
+  if strncmp(SSDATA(SYMBOL_NAME(Qsuper())), s, 10) == 0 { return Qsuper() }      // C 5698-5699
+  if strncmp(SSDATA(SYMBOL_NAME(Qcontrol())), s, 10) == 0 { return Qcontrol() }  // C 5700-5701
+  if strncmp(SSDATA(SYMBOL_NAME(Qalt())), s, 10) == 0 { return Qalt() }          // C 5702-5703
+  if strncmp(SSDATA(SYMBOL_NAME(Qhyper())), s, 10) == 0 { return Qhyper() }      // C 5704-5705
+  if strncmp(SSDATA(SYMBOL_NAME(Qnone())), s, 10) == 0 { return Qnone() }        // C 5706-5707
+  return Qnil()                                      // C 5709
+}
+
+
+// ==========================================================================
+// Round 36: `ns_default`, `ns_default_font_parameter`, and the GNUstep-only
+// `ns_update_window_end` (C 5713-5783)
+// ==========================================================================
+
+/// C: `extern const char *ns_get_defaults_value (const char *key)` (src/nsterm.h 1170) - the
+/// definition is src/nsfns.m 1886's, which this lane's `nsfns.swift` (2858-2865) already exports
+/// under the same name, and this unit reaches it the way that export spells it (a mutable pointer,
+/// the shape `@_cdecl` accepts in Swift 6.4).
+@_silgen_name("ns_get_defaults_value")
+func ns_get_defaults_value(_ key: UnsafePointer<CChar>) -> UnsafeMutablePointer<CChar>?
+
+/// C: `int c_strcasecmp (const char *, const char *)` - gnulib's entry, ported in this tree as
+/// `lib/c-strcasecmp.rs` 22 (`pub unsafe extern "C" fn c_strcasecmp`); the `fputs` shape.
+@_silgen_name("c_strcasecmp")
+func c_strcasecmp(_ a: UnsafePointer<CChar>, _ b: UnsafePointer<CChar>) -> Int32
+
+/// C: `double strtod (const char *nptr, char **endptr)` (stdlib.h).  Unlike `fprintf`, this entry
+/// is *available* in Swift (Darwin imports it, and it is the same C symbol), so the unit calls it
+/// by name with no declaration of its own - the `setlocale`/`getenv`/`setenv` treatment at
+/// C 785-805 above.  A local `@_silgen_name("strtod")` next to that import made the call
+/// ambiguous (measured: `error: ambiguous use of 'strtod'`).
+
+/// C: `Lisp_Object make_float (double)` (src/alloc.c) - the mirror's own entry
+/// (`src/alloc.rs` 2789), reached by name like this unit's other core imports.
+@_silgen_name("make_float") func make_float(_ f: Double) -> Lisp_Object
+
+/// C 5713-5738: `static void ns_default (const char *parameter, Lisp_Object *result, Lisp_Object
+/// yesval, Lisp_Object noval, BOOL is_float, BOOL is_modstring)` - "Check a parameter value in
+/// user's preferences."  C's two `BOOL`s are this unit's `Bool` (the `ns_is_UAZoomEnabled` 1274
+/// reading), and the nil test followed by `value!` is the `Fns_get_resource` shape
+/// (`nsfns.swift` 2883-2887).
+fileprivate func ns_default(_ parameter: UnsafePointer<CChar>,
+                            _ result: UnsafeMutablePointer<Lisp_Object>,
+                            _ yesval: Lisp_Object, _ noval: Lisp_Object,
+                            _ is_float: Bool, _ is_modstring: Bool) {
+  let value = ns_get_defaults_value (parameter)      // C 5721
+
+  if value != nil {                                  // C 5723
+    var f: Double = 0                                // C 5725
+    var pos: UnsafeMutablePointer<CChar>? = nil      // C 5726
+
+    /// C 5731's comma expression `(f = strtod (value, &pos), pos != value)`: Swift has no comma
+    /// operator, so its two halves are one local function whose body is C's own two steps in C's
+    /// order - the `ns_after_update_window_line` note's reshaping, narrowed to the one expression
+    /// that cannot become a nested `if` without breaking the chain's fall-through.  The call sits
+    /// in the condition below, so C's short-circuit is kept: `is_float` false never runs the
+    /// assignment.
+    func strtod_and_test () -> Bool {
+      f = strtod (value!, &pos)                      // C 5731 (first half)
+      return pos != value                            // C 5731 (second half)
+    }
+
+    if c_strcasecmp (value!, "YES") == 0 {           // C 5727
+      result.pointee = yesval                        // C 5728
+    } else if c_strcasecmp (value!, "NO") == 0 {     // C 5729
+      result.pointee = noval                         // C 5730
+    } else if is_float && strtod_and_test () {       // C 5731
+      result.pointee = make_float (f)                // C 5732
+    } else if is_modstring && value != nil {         // C 5733
+      result.pointee = ns_string_to_lispmod (value!) // C 5734
+    } else {
+      fprintf (stderr, "Bad value for default \"%s\": \"%s\"\n",
+               parameter, value!)                    // C 5735-5736
+    }
+  }
+}
+
+/// C 5769-5773: `static void ns_default_font_parameter (struct frame *f, Lisp_Object parms)` -
+/// C's body is empty, and the comment above it (C 5766-5768) is why: the hook "currently does
+/// nothing, since it's only really needed when changing the font-backend, but macOS currently
+/// only has one possible backend."  Both parameters are unread in C, so neither is read here
+/// (the `applicationWillBecomeActive` reading: a body C leaves empty is transcribed as empty).
+fileprivate func ns_default_font_parameter(_ f: UnsafeMutableRawPointer?, _ parms: Lisp_Object) {
+  // C 5771-5773: nothing - see the note above the definition.
+}
+
+/// C 5775-5783: `static void ns_update_window_end (struct window *w, bool cursor_on_p, bool
+/// mouse_face_overwritten_p)` - **dead in this build**: C opens `#ifdef NS_IMPL_GNUSTEP` at C 5774
+/// and closes it at C 5783 (src/nsterm.h's `NS_IMPL_COCOA` is the arm this target takes), so the
+/// whole definition is the arm that does not exist here.  Recorded, not transcribed - no Swift
+/// item carries the name, and the ledger's box says the same (the `-updateMonitors:` reading of
+/// round 31).  The definition's two statements would be `NSTRACE`, empty at `NSTRACE_ENABLED` 0,
+/// and `ns_redraw_scroll_bars (WINDOW_XFRAME (w))`.
+
+// ==========================================================================
+// Round 37: `ns_initialize_display_info` (C 5741-5764)
+// ==========================================================================
+
+/// C: the `struct ns_display_info` members this definition writes, as member entries of the
+/// `<record>_<member>` family round 7 settled (`docs/ports/nsmenu.swift` 311-328): five `int`
+/// members, two `double`s and `Window`.  src/nsgui.h 67 is `typedef int Window;` on this arm
+/// (measured in the frozen layout: `docs/baseline/ns_display_info-layout.tsv` 27 puts
+/// `root_window` at offset 92 with `int color_p` at 88), so the root-window entry takes an `Int32`
+/// like its neighbours.
+@_silgen_name("ns_display_info_set_resx")
+func ns_display_info_set_resx(_ f: UnsafeMutableRawPointer?, _ v: Double)
+@_silgen_name("ns_display_info_set_resy")
+func ns_display_info_set_resy(_ f: UnsafeMutableRawPointer?, _ v: Double)
+@_silgen_name("ns_display_info_set_color_p")
+func ns_display_info_set_color_p(_ f: UnsafeMutableRawPointer?, _ v: Int32)
+@_silgen_name("ns_display_info_set_n_planes")
+func ns_display_info_set_n_planes(_ f: UnsafeMutableRawPointer?, _ v: Int32)
+@_silgen_name("ns_display_info_set_root_window")
+func ns_display_info_set_root_window(_ f: UnsafeMutableRawPointer?, _ v: Int32)
+@_silgen_name("ns_display_info_set_n_fonts")
+func ns_display_info_set_n_fonts(_ f: UnsafeMutableRawPointer?, _ v: Int32)
+@_silgen_name("ns_display_info_set_smallest_font_height")
+func ns_display_info_set_smallest_font_height(_ f: UnsafeMutableRawPointer?, _ v: Int32)
+@_silgen_name("ns_display_info_set_smallest_char_width")
+func ns_display_info_set_smallest_char_width(_ f: UnsafeMutableRawPointer?, _ v: Int32)
+
+/// C: `&dpyinfo->mouse_highlight` (C 5763) - the `mouse_highlight` member's *address*, which is
+/// what `reset_mouse_highlight` takes.  It is the same member entry as the readers above; C's `&`
+/// is this record's because the entry returns the member's own address rather than a copy of the
+/// `Mouse_HLInfo` struct.
+@_silgen_name("ns_display_info_mouse_highlight")
+func ns_display_info_mouse_highlight(_ f: UnsafeMutableRawPointer?) -> UnsafeMutableRawPointer?
+
+/// C 5741-5764: `static void ns_initialize_display_info (struct ns_display_info *dpyinfo)` -
+/// "Initialize global info and storage for display."  C 5758's chained assignment is written in
+/// C's own order (`a = b = NULL` assigns `b` first), and C 5752-5755's two `isEqualToString:`
+/// messages are the `==` the unit's other AppKit string comparisons use, kept as two calls to
+/// `NSColorSpaceFromDepth` because C makes two.
+fileprivate func ns_initialize_display_info(_ dpyinfo: UnsafeMutableRawPointer?) {
+  let screen = NSScreen.main                             // C 5747
+  // C 5748: `[screen depth]` - a message to a nil screen answers 0, the reading round 2's
+  // `?? NSRect.zero` gives the same receiver.  Swift spells the result `NSWindow.Depth` (the
+  // `NSWindowDepth` typedef) and its raw-value initializer is *failable*, so C's own zero is
+  // written as `rawValue: 0` plus the unwrap that follows from the initializer's type; that 0 is
+  // a representable depth was measured on this machine (`NSWindow.Depth (rawValue: 0) != nil`).
+  let depth = screen?.depth ?? NSWindow.Depth (rawValue: 0)!
+
+  ns_display_info_set_resx (dpyinfo, 72.27)              // C 5750
+  ns_display_info_set_resy (dpyinfo, 72.27)              // C 5751
+
+  /* C 5752-5755: `NSDeviceWhiteColorSpace` and `NSCalibratedWhiteColorSpace` are
+     `NSColorSpaceName.deviceWhite`/`.calibratedWhite` in Swift, `NSColorSpaceFromDepth (depth)`
+     is `depth.colorSpaceName` (the compiler's own rename readings - class B), and the member is
+     an `int` while the expression is a `bool`, so C's integral conversion (false -> 0, true -> 1)
+     is spelled out.  Two reads of `colorSpaceName` stay two, as C's two calls are two.  */
+  let color_p = !(NSColorSpaceName.deviceWhite == depth.colorSpaceName)
+    && !(NSColorSpaceName.calibratedWhite == depth.colorSpaceName)
+  ns_display_info_set_color_p (dpyinfo, color_p ? 1 : 0)
+
+  // C 5756: `NSBitsPerPixelFromDepth (depth)` is `depth.bitsPerPixel`.
+  ns_display_info_set_n_planes (dpyinfo, Int32 (depth.bitsPerPixel))
+  ns_display_info_set_root_window (dpyinfo, 42)          // C 5757 (C's placeholder)
+  ns_display_info_set_ns_focus_frame_from_display (dpyinfo, nil)      // C 5758 (the inner assignment)
+  ns_display_info_set_highlight_frame_from_display (dpyinfo, nil)     // C 5758 (the outer one, C's order)
+  ns_display_info_set_n_fonts (dpyinfo, 0)               // C 5759
+  ns_display_info_set_smallest_font_height (dpyinfo, 1)  // C 5760
+  ns_display_info_set_smallest_char_width (dpyinfo, 1)   // C 5761
+
+  reset_mouse_highlight (ns_display_info_mouse_highlight (dpyinfo))  // C 5763
+}
+
+// ==========================================================================
+// Round 38: `ns_flush_display` and the empty `ns_delete_display` (C 5785-5875)
+// ==========================================================================
+
+/// C: `struct terminal *FRAME_TERMINAL (struct frame *f)` (src/frame.h) - a macro entry under the
+/// construct's own name, the `FRAME_DISPLAY_INFO` shape above (the `frame_set_terminal` writer
+/// `nsfns.swift` 639 carries is the same member's other direction).
+@_silgen_name("FRAME_TERMINAL")
+func FRAME_TERMINAL(_ f: UnsafeMutableRawPointer?) -> UnsafeMutableRawPointer?
+
+/// C 5785-5792: `static void ns_flush_display (struct frame *f)` - C's body is `EVENT_INIT` and one
+/// `ns_read_socket_1` call whose value C discards.  The record's own initializer is round 3's
+/// (`input_event` at C 5121, the same nine members), and the third argument is C's `YES`.
+fileprivate func ns_flush_display(_ f: UnsafeMutableRawPointer?) {
+  var ie = input_event(bits: 0, code: 0, modifiers: 0, x: nil, y: nil, timestamp: 0,
+                       frame_or_window: nil, arg: nil, device: nil)      // C 5788
+  EVENT_INIT(&ie)                                                        // C 5790
+  _ = ns_read_socket_1(FRAME_TERMINAL(f), &ie, true)                     // C 5791
+}
+
+/// C 5871-5875: `static void ns_delete_display (struct ns_display_info *dpyinfo)` - C's whole body
+/// is the comment `/* TODO...  */`, so the body is empty here too and the parameter is unread
+/// (the `ns_default_font_parameter` reading of round 36: a body C leaves empty is transcribed as
+/// empty rather than stubbed).
+fileprivate func ns_delete_display(_ dpyinfo: UnsafeMutableRawPointer?) {
+  // C 5874: nothing - C's body is the TODO comment above the definition.
+}
+
+// ==========================================================================
+// Round 39: the redisplay interface table (C 5801-5835)
+// ==========================================================================
+
+/// C: `typedef void (*frame_parm_handler) (struct frame *, Lisp_Object, Lisp_Object);`
+/// (src/dispextern.h 3063) - this unit's own view of the typedef, which `nsfns.swift` 415 spells
+/// for its own unit (a Swift typealias is not visible across the lane's single-file compiles).
+typealias frame_parm_handler =
+  @convention(c) (UnsafeMutableRawPointer?, Lisp_Object, Lisp_Object) -> Void
+
+/// C: `struct redisplay_interface` (src/dispextern.h) - **this unit's view, in the arm it ports**
+/// (the `NS_IMPL_COCOA` one).  The Rust mirror `src/include/dispextern.rs` 3794 is the
+/// *frozen* configuration's shape, which is 13 members wide because that configuration leaves
+/// `HAVE_WINDOW_SYSTEM` false; the Cocoa arm C 5801-5835 initialises **28** members, and the
+/// measured layout for it is `docs/baseline/redisplay_interface-layout.tsv`'s `ns_cocoa` rows:
+/// `sizeof 224`, `align 8`, members at 0, 8, 16, … 216, i.e. one pointer each, in the order below.
+/// Every member is a function pointer, so each is an *optional* `@convention(c)` type - C's
+/// `NULL` is the `nil` the table's two `NULL`s use - and `frame_parm_handlers` is the
+/// `frame_parm_handler *` C declares (offset 0).
+struct redisplay_interface {
+  var frame_parm_handlers: UnsafeMutablePointer<frame_parm_handler>?
+  var produce_glyphs: (@convention(c) (UnsafeMutableRawPointer?) -> Void)?
+  var write_glyphs: (@convention(c) (UnsafeMutableRawPointer?, UnsafeMutableRawPointer?,
+                                     UnsafeMutableRawPointer?, Int32, Int32) -> Void)?
+  var insert_glyphs: (@convention(c) (UnsafeMutableRawPointer?, UnsafeMutableRawPointer?,
+                                      UnsafeMutableRawPointer?, Int32, Int32) -> Void)?
+  var clear_end_of_line: (@convention(c) (UnsafeMutableRawPointer?, UnsafeMutableRawPointer?,
+                                          Int32, Int32) -> Void)?
+  var scroll_run_hook: (@convention(c) (UnsafeMutableRawPointer?, UnsafeMutableRawPointer?) -> Void)?
+  var after_update_window_line_hook: (@convention(c) (UnsafeMutableRawPointer?,
+                                                      UnsafeMutableRawPointer?) -> Void)?
+  var update_window_begin_hook: (@convention(c) (UnsafeMutableRawPointer?) -> Void)?
+  var update_window_end_hook: (@convention(c) (UnsafeMutableRawPointer?, Bool, Bool) -> Void)?
+  var flush_display: (@convention(c) (UnsafeMutableRawPointer?) -> Void)?
+  var clear_window_mouse_face: (@convention(c) (UnsafeMutableRawPointer?) -> Void)?
+  var get_glyph_overhangs: (@convention(c) (UnsafeMutableRawPointer?, UnsafeMutableRawPointer?,
+                                            UnsafeMutablePointer<Int32>?,
+                                            UnsafeMutablePointer<Int32>?) -> Void)?
+  var fix_overlapping_area: (@convention(c) (UnsafeMutableRawPointer?, UnsafeMutableRawPointer?,
+                                             Int32, Int32) -> Void)?
+  var draw_fringe_bitmap: (@convention(c) (UnsafeMutableRawPointer?, UnsafeMutableRawPointer?,
+                                           UnsafeMutableRawPointer?) -> Void)?
+  var define_fringe_bitmap: (@convention(c) (Int32, UnsafePointer<UInt16>?, Int32,
+                                             Int32) -> Void)?
+  var destroy_fringe_bitmap: (@convention(c) (Int32) -> Void)?
+  var compute_glyph_string_overhangs: (@convention(c) (UnsafeMutableRawPointer?) -> Void)?
+  var draw_glyph_string: (@convention(c) (UnsafeMutableRawPointer?) -> Void)?
+  var define_frame_cursor: (@convention(c) (UnsafeMutableRawPointer?, AnyObject?) -> Void)?
+  var clear_frame_area: (@convention(c) (UnsafeMutableRawPointer?, Int32, Int32, Int32,
+                                         Int32) -> Void)?
+  var clear_under_internal_border: (@convention(c) (UnsafeMutableRawPointer?) -> Void)?
+  var draw_window_cursor: (@convention(c) (UnsafeMutableRawPointer?, UnsafeMutableRawPointer?,
+                                           Int32, Int32, Int32, Int32, Bool, Bool) -> Void)?
+  var draw_vertical_window_border: (@convention(c) (UnsafeMutableRawPointer?, Int32, Int32,
+                                                    Int32) -> Void)?
+  var draw_window_divider: (@convention(c) (UnsafeMutableRawPointer?, Int32, Int32, Int32,
+                                            Int32) -> Void)?
+  var shift_glyphs_for_insert: (@convention(c) (UnsafeMutableRawPointer?, Int32, Int32, Int32,
+                                                Int32, Int32) -> Void)?
+  var show_hourglass: (@convention(c) (UnsafeMutableRawPointer?) -> Void)?
+  var hide_hourglass: (@convention(c) (UnsafeMutableRawPointer?) -> Void)?
+  var default_font_parameter: (@convention(c) (UnsafeMutableRawPointer?, Lisp_Object) -> Void)?
+}
+
+/// C: the six `gui_*` entries C 5804-5819 hands the table, which are `src/xdisp.c`'s
+/// (the xdisp lane's) - imported by name with C's own signatures, as the unit imports the other
+/// core entries (`src/xdisp.c` 33768, 34548, 34592, 34649, 35052, 31409, 37706).
+@_silgen_name("gui_produce_glyphs")
+func gui_produce_glyphs(_ it: UnsafeMutableRawPointer?)
+@_silgen_name("gui_write_glyphs")
+func gui_write_glyphs(_ w: UnsafeMutableRawPointer?, _ updated_row: UnsafeMutableRawPointer?,
+                      _ string: UnsafeMutableRawPointer?, _ area: Int32, _ len: Int32)
+@_silgen_name("gui_insert_glyphs")
+func gui_insert_glyphs(_ w: UnsafeMutableRawPointer?, _ updated_row: UnsafeMutableRawPointer?,
+                       _ start: UnsafeMutableRawPointer?, _ area: Int32, _ len: Int32)
+@_silgen_name("gui_clear_end_of_line")
+func gui_clear_end_of_line(_ w: UnsafeMutableRawPointer?, _ updated_row: UnsafeMutableRawPointer?,
+                           _ area: Int32, _ x: Int32)
+@_silgen_name("gui_clear_window_mouse_face")
+func gui_clear_window_mouse_face(_ w: UnsafeMutableRawPointer?)
+@_silgen_name("gui_get_glyph_overhangs")
+func gui_get_glyph_overhangs(_ glyph: UnsafeMutableRawPointer?, _ f: UnsafeMutableRawPointer?,
+                             _ left: UnsafeMutablePointer<Int32>?,
+                             _ right: UnsafeMutablePointer<Int32>?)
+@_silgen_name("gui_fix_overlapping_area")
+func gui_fix_overlapping_area(_ w: UnsafeMutableRawPointer?, _ row: UnsafeMutableRawPointer?,
+                              _ area: Int32, _ x: Int32)
+
+/// C: `extern frame_parm_handler ns_frame_parm_handlers[]` (src/nsterm.h 1262) - defined in
+/// src/nsfns.m 1058, which this lane's `nsfns.swift` 2070 carries as a Swift array and whose
+/// ledger records that **the C symbol itself still needs a port-side definition**
+/// (`docs/ports/nsfns.md`'s `## ABI` (3); Swift cannot emit a C-named data symbol).  C's table
+/// entry is the array's address - what the array name decays to - so this unit takes the imported
+/// symbol's own address.  A unit cannot see another unit's Swift array; this entry is the C
+/// symbol's side, and it is the reason the member below is written the way it is
+/// (see the round's note on that one reshaping).
+@_silgen_name("ns_frame_parm_handlers_address")
+func ns_frame_parm_handlers_address() -> UnsafeMutableRawPointer
+
+/// C 5801-5835: `static struct redisplay_interface ns_redisplay_interface = { … }` - C's own
+/// order, one line per entry, with C's comments kept where they say something C's code does not
+/// (`generic OK`, the two `NULL`s and their arm).  Swift cannot emit a C-named *data* symbol
+/// either, so the port carries the table as a file-scope value and the ledger's `## ABI` records
+/// that the C symbol needs a port-side definition - the same standing state `nsfns.swift` 2070's
+/// array has.
+///
+/// Two entries are the arm's `NULL`s (C 5810's `update_window_begin` and C 5812's
+/// `update_window_end`, the latter because C 5811 tests `#ifndef NS_IMPL_GNUSTEP` and this target
+/// takes the `NULL` side), so they are `nil`.
+fileprivate var ns_redisplay_interface = redisplay_interface(
+  frame_parm_handlers:
+    ns_frame_parm_handlers_address().assumingMemoryBound(to: frame_parm_handler.self),     // C 5803
+  produce_glyphs: { it in gui_produce_glyphs(it) },                        // C 5804
+  write_glyphs: { w, row, string, area, len in                             // C 5805
+    gui_write_glyphs(w, row, string, area, len) },
+  insert_glyphs: { w, row, start, area, len in                             // C 5806
+    gui_insert_glyphs(w, row, start, area, len) },
+  clear_end_of_line: { w, row, area, x in                                  // C 5807
+    gui_clear_end_of_line(w, row, area, x) },
+  scroll_run_hook: { w, run in ns_scroll_run(w, run) },                    // C 5808
+  after_update_window_line_hook: { w, row in                               // C 5809
+    ns_after_update_window_line(w, row) },
+  update_window_begin_hook: nil,                                           // C 5810 (C's NULL)
+  update_window_end_hook: nil,                                             // C 5812 (C's NULL)
+  flush_display: { f in ns_flush_display(f) },                             // C 5816
+  clear_window_mouse_face: { w in gui_clear_window_mouse_face(w) },        // C 5817
+  get_glyph_overhangs: { glyph, f, left, right in                          // C 5818
+    gui_get_glyph_overhangs(glyph, f, left, right) },
+  fix_overlapping_area: { w, row, area, x in                               // C 5819
+    gui_fix_overlapping_area(w, row, area, x) },
+  draw_fringe_bitmap: { w, row, p in ns_draw_fringe_bitmap(w, row, p) },    // C 5820
+  define_fringe_bitmap: { which, bits, h, wd in                            // C 5821
+    ns_define_fringe_bitmap(which, bits, h, wd) },
+  destroy_fringe_bitmap: { which in ns_destroy_fringe_bitmap(which) },      // C 5822
+  compute_glyph_string_overhangs: { s in                                    // C 5823
+    ns_compute_glyph_string_overhangs(s) },
+  draw_glyph_string: { s in ns_draw_glyph_string(s) },                      // C 5824
+  define_frame_cursor: { f, cursor in                                       // C 5825
+    ns_define_frame_cursor(f, cursor as? NSObject) },
+  clear_frame_area: { f, x, y, width, height in                             // C 5826
+    ns_clear_frame_area(f, x, y, width, height) },
+  clear_under_internal_border: { f in ns_clear_under_internal_border(f) },  // C 5827
+  draw_window_cursor: { w, row, x, y, kind, width, on_p, active_p in        // C 5828
+    ns_draw_window_cursor(w, row, x, y, kind, width, on_p, active_p) },
+  draw_vertical_window_border: { w, x, y0, y1 in                            // C 5829
+    ns_draw_vertical_window_border(w, x, y0, y1) },
+  draw_window_divider: { w, x0, x1, y0, y1 in                               // C 5830
+    ns_draw_window_divider(w, x0, x1, y0, y1) },
+  shift_glyphs_for_insert: { f, x, y, width, height, shift_by in            // C 5831
+    ns_shift_glyphs_for_insert(f, x, y, width, height, shift_by) },
+  show_hourglass: { f in ns_show_hourglass(f) },                            // C 5832
+  hide_hourglass: { f in ns_hide_hourglass(f) },                            // C 5833
+  default_font_parameter: { f, parms in                                     // C 5834
+    ns_default_font_parameter(f, parms) })
+
+// ==========================================================================
+// Round 40: `ns_displays_reconfigured` (C 5837-5868)
+// ==========================================================================
+
+/// C: `union buffered_input_event` (src/keyboard.h 228-235) - the kbd buffer's element.  Its
+/// members all begin at offset 0, and this target's arm has only two of them: the `kind` bitfield
+/// and `struct input_event ie` (the third, `sie`, is `HAVE_X11`/`HAVE_PGTK`'s).  C's
+/// `ev->ie.kind` therefore reads the same low 16 bits the record above already reads, so this
+/// unit's view carries `ie` and reads the field through `input_event_kind` - the reader the
+/// record's own view documents (`input_event`'s note says the two bitfields share one `UInt32`).
+struct buffered_input_event {
+  /// C: `struct input_event ie;` (src/keyboard.h 231)
+  var ie: input_event
+}
+
+/// C: `enum { … KBD_BUFFER_SIZE = 4096 };` (src/keyboard.h 380-383).  An enumerator the frozen
+/// macro table cannot decide, so the value is this tree's own mirror's
+/// (`src/include/keyboard.rs` 43, `pub const KBD_BUFFER_SIZE: c_int = 4096`) - the reading
+/// round 33 used for `MULTIBYTE_CHAR_KEYSTROKE_EVENT`.
+fileprivate let KBD_BUFFER_SIZE: Int32 = 4096
+
+/// C: `MONITORS_CHANGED_EVENT` (src/termhooks.h 342) - the same reading as the constant above,
+/// and for the same reason: the value comes from the mirror
+/// (`src/include/termhooks.rs` 62,
+/// `pub const MONITORS_CHANGED_EVENT: event_kind = 35`), because C's enum has guarded members
+/// before it (`HAVE_DBUS`, `THREADS_ENABLED`, …), which is why the frozen macro table cannot
+/// decide it either.
+@_silgen_name("MONITORS_CHANGED_EVENT") fileprivate func MONITORS_CHANGED_EVENT_value() -> UInt32
+fileprivate let MONITORS_CHANGED_EVENT: UInt32 = MONITORS_CHANGED_EVENT_value()
+
+/// C: the kbd buffer and its two pointers - `extern union buffered_input_event
+/// kbd_buffer[KBD_BUFFER_SIZE];`, `*kbd_fetch_ptr`, `*kbd_store_ptr` (src/keyboard.h 455-457).
+/// The core owns all three as `#[unsafe(no_mangle)] static mut` (`src/keyboard.rs`
+/// 178-186), so they are data entries; `kbd_buffer` is declared with the *element* type, because
+/// C's own use of the array name here is its address (`kbd_buffer + KBD_BUFFER_SIZE - 1`), and
+/// the address is taken the way round 39 takes the handlers array's (`withUnsafeMutablePointer
+/// (to:)`; Swift cannot emit or address another unit's Swift array).
+@_silgen_name("kbd_buffer") var kbd_buffer_entry: buffered_input_event
+@_silgen_name("kbd_fetch_ptr")
+var kbd_fetch_ptr_entry: UnsafeMutablePointer<buffered_input_event>?
+@_silgen_name("kbd_store_ptr")
+var kbd_store_ptr_entry: UnsafeMutablePointer<buffered_input_event>?
+
+/// C: `void kbd_buffer_store_event (struct input_event *)` - already this unit's own entry (the
+/// block at C 1373's line, declared for that round's `ns_send_appdefined` path); C 5867's call
+/// reuses it rather than redeclaring it.
+
+/// C: `Lisp_Object Fequal (Lisp_Object, Lisp_Object)` (src/fns.c) - declared by the core's globals
+/// mirror (`src/include/globals.rs` 7577); the `Fns_get_resource` import shape.
+@_silgen_name("Fequal") func Fequal(_ o1: Lisp_Object, _ o2: Lisp_Object) -> Lisp_Object
+
+/// C: `Lisp_Object Fns_display_monitor_attributes_list (Lisp_Object)` (a `DEFUN` of src/nsfns.m,
+/// C 3135) - the `nsfns` lane's export (`nsfns.swift` 3669), reached the `Fns_get_resource` way.
+@_silgen_name("Fns_display_monitor_attributes_list")
+func Fns_display_monitor_attributes_list(_ terminal: Lisp_Object) -> Lisp_Object
+
+/// C: `XSETTERMINAL (a, b)` = `XSETPSEUDOVECTOR (a, b, PVEC_TERMINAL)` (src/lisp.h 1384) - a macro
+/// entry under the construct's own name, the `XSETFRAME` shape above.
+@_silgen_name("XSETTERMINAL")
+func XSETTERMINAL(_ a: UnsafeMutablePointer<Lisp_Object>, _ b: UnsafeMutableRawPointer?)
+
+/// C: the `struct ns_display_info` member `x_display_list->terminal` (this file's static at
+/// C 305 is the record's head) - a reader entry of the `ns_display_info_<member>` family round 7
+/// settled and round 37 added setters to.
+@_silgen_name("ns_display_info_terminal")
+func ns_display_info_terminal(_ f: UnsafeMutableRawPointer?) -> UnsafeMutableRawPointer?
+
+/// C 5837-5868: `static void ns_displays_reconfigured (CGDirectDisplayID display,
+/// CGDisplayChangeSummaryFlags flags, void *user_info)` - the `NS_IMPL_COCOA` arm (C 5837 opens
+/// the guard, C 5869 closes it).  C's three parameters are unread in its body, as are the two
+/// `CGDirectDisplayID`/flags types' uses elsewhere; the buffer walk keeps C's own arithmetic and
+/// its two early returns.
+fileprivate func ns_displays_reconfigured(_ display: CGDirectDisplayID,
+                                          _ flags: CGDisplayChangeSummaryFlags,
+                                          _ user_info: UnsafeMutableRawPointer?) {
+  var ie = input_event(bits: 0, code: 0, modifiers: 0, x: nil, y: nil, timestamp: 0,
+                       frame_or_window: nil, arg: nil, device: nil)   // C 5843
+  var ev: UnsafeMutablePointer<buffered_input_event>? = nil           // C 5844
+  var new_monitors: Lisp_Object = nil                                 // C 5845
+
+  EVENT_INIT(&ie)                                                     // C 5847
+
+  new_monitors = Fns_display_monitor_attributes_list(Qnil())          // C 5849
+
+  if !NILP(Fequal(new_monitors, last_known_monitors)) {               // C 5851
+    return
+  }
+
+  last_known_monitors = new_monitors                                  // C 5854
+
+  // C 5856-5858: the buffer's address is C's array decay, and the two branches are C's own
+  // (a wrap to the last slot when the store pointer is at the array's start).
+  let kbd_buffer_ptr = withUnsafeMutablePointer(to: &kbd_buffer_entry) { $0 }
+  ev = (kbd_store_ptr_entry == kbd_buffer_ptr
+        ? kbd_buffer_ptr + Int(KBD_BUFFER_SIZE) - 1
+        : kbd_store_ptr_entry! - 1)
+
+  if kbd_store_ptr_entry != kbd_fetch_ptr_entry                      // C 5860
+       && input_event_kind(&ev!.pointee.ie) == MONITORS_CHANGED_EVENT {  // C 5860-5861
+    return
+  }
+
+  input_event_set_kind(&ie, MONITORS_CHANGED_EVENT)                  // C 5864
+  XSETTERMINAL(&ie.arg, ns_display_info_terminal(x_display_list))    // C 5865
+
+  kbd_buffer_store_event(&ie)                                        // C 5867
+}
+
+// ==========================================================================
+// Round 41: `ns_delete_terminal` (C 5877-5902)
+// ==========================================================================
+
+/// C: `union display_info { … struct ns_display_info *ns; … }` (src/termhooks.h 533) - the
+/// `terminal->display_info.ns` read, which the core already spells as its own shim
+/// (`src/abi_shim.rs` 412, `pub unsafe extern "C" fn terminal_display_info_ns`).
+@_silgen_name("terminal_display_info_ns")
+func terminal_display_info_ns(_ t: UnsafeMutableRawPointer?) -> UnsafeMutableRawPointer?
+
+/// C: the `struct terminal` member C 5888's guard tests, `terminal->name` (src/termhooks.h) - a
+/// member entry of the `<record>_<member>` family; the core owes this export the way it owes the
+/// `ns_display_info_*` readers rounds 37 and 40 added (the shim's own table,
+/// `docs/ports/abi_shim.md`, is where such an export is recorded).
+@_silgen_name("terminal_name")
+func terminal_name(_ t: UnsafeMutableRawPointer?) -> UnsafeMutablePointer<CChar>?
+
+/// C: `void image_destroy_all_bitmaps (struct ns_display_info *)` (src/image.c) - the core's own
+/// entry (`src/image.rs` 1841, `pub unsafe extern "C" fn`); the `fputs` shape.
+@_silgen_name("image_destroy_all_bitmaps")
+func image_destroy_all_bitmaps(_ dpyinfo: UnsafeMutableRawPointer?)
+
+/// C 5877-5902: `static void ns_delete_terminal (struct terminal *terminal)` - "This function is
+/// called when the last frame on a display is deleted."  C 5884's `NSTRACE` is the empty macro at
+/// `NSTRACE_ENABLED` 0, `block_input`/`unblock_input` are the pair the unit already imports
+/// (C 1172-1174), and the `NS_IMPL_COCOA` arm C 5893-5897 is the one this target takes.
+fileprivate func ns_delete_terminal(_ terminal: UnsafeMutableRawPointer?) {
+  let dpyinfo = terminal_display_info_ns(terminal)          // C 5882
+
+  // C 5884: `NSTRACE ("ns_delete_terminal");` - empty at `NSTRACE_ENABLED` 0.
+
+  /* Protect against recursive calls.  delete_frame in
+     delete_terminal calls us back when it deletes our last frame.  */
+  if terminal_name(terminal) == nil {                      // C 5888
+    return
+  }
+
+  block_input()                                            // C 5891
+
+  /* Rather than try to clean up the NS environment we can just
+     disable the app and leave it waiting for any new frames.  */
+  NSApp.setActivationPolicy(.prohibited)                   // C 5896
+
+  image_destroy_all_bitmaps(dpyinfo)                       // C 5899
+  ns_delete_display(dpyinfo)                               // C 5900
+  unblock_input()                                          // C 5901
+}
+
+// ==========================================================================
+// Round 42: the `EmacsScroller` record, `+scrollerWidth` and `initFrame:window:`
+// (C 10620-10701)
+// ==========================================================================
+
+/// C: `@interface EmacsScroller : NSScroller` (src/nsterm.h 714-754) - the scroll-bar view the
+/// hooks of C 5396/5490 build and the methods of C 10620-11117 are the class's.  This round lands
+/// the record and its first two methods; the rest follow in their own rounds (the
+/// `EmacsView`/`EmacsWindow` pattern).  **Two of C's ivar names are `NSView`'s own**: `window`
+/// (the `NSWindow` a view is in) and `frame` (its rect), which a Swift subclass cannot redeclare -
+/// a declared deviation, spelled in the `emacs*` form this file already uses for C pointers of
+/// that kind (`EmacsView`'s `emacsframe`, src/nsterm.h 485-487).
+class EmacsScroller: NSScroller {
+  /// C nsterm.h 716: `struct window *window;` - see the record's note (the name belongs to
+  /// `NSView`).
+  var emacs_window: UnsafeMutableRawPointer? = nil
+  /// C nsterm.h 717: `struct frame *frame;` - the same note.
+  var emacs_frame: UnsafeMutableRawPointer? = nil
+  /// C nsterm.h 718: `NSResponder *prevResponder;`
+  var prevResponder: NSResponder? = nil
+  /// C nsterm.h 720-721: `/* Offset to the bottom of knob of last mouse down.  */ CGFloat
+  /// last_mouse_offset;`
+  var last_mouse_offset: CGFloat = 0
+  /// C nsterm.h 722: `float min_portion;`
+  var min_portion: Float = 0
+  /// C nsterm.h 723: `int pixel_length;`
+  var pixel_length: Int32 = 0
+  /// C nsterm.h 724: `enum scroll_bar_part last_hit_part;` - C's enum flows as a number in this
+  /// unit's other views of it (the `scroll_bar_above_handle` family are imported enumerators), so
+  /// the slot is an `Int32` (the `draw_window_cursor` `cursor_type` reading).
+  var last_hit_part: Int32 = 0
+  /// C nsterm.h 726: `BOOL condemned;`
+  var condemned: Bool = false
+  /// C nsterm.h 728: `BOOL horizontal;`
+  var horizontal: Bool = false
+  /// C nsterm.h 730-733: `/* Optimize against excessive positioning calls generated by Emacs.  */
+  /// int em_position; int em_portion; int em_whole;`
+  var em_position: Int32 = 0
+  var em_portion: Int32 = 0
+  var em_whole: Int32 = 0
+
+  /// `NSScroller`'s designated initializer, spelled out for the reason `EmacsView`'s and
+  /// `EmacsWindow`'s are (Swift marks `init (coder:)` unavailable on these AppKit classes).
+  override init(frame frameRect: NSRect) {
+    super.init(frame: frameRect)
+  }
+
+  required init?(coder: NSCoder) {
+    super.init(coder: coder)
+  }
+
+  /* C 10626-10648: `+ (CGFloat) scrollerWidth`.  Two of C's three arms are dead on this target
+     (`MAC_OS_X_VERSION_MIN_REQUIRED < 1070` is false here - the frozen configuration's 260000):
+     C 10633-10636's `respondsToSelector:` test and its `else` (C 10639-10641), and the whole
+     `#if` at C 10643-10646 with C 10645's deprecated `[NSScroller scrollerWidth]`.  The live body
+     is C 10637-10638's one message - `NSScroller.scrollerWidth (for: .regular, scrollerStyle:
+     .legacy)` - and **the method itself cannot be declared in Swift**: the SDK marks
+     `NSScroller`'s `+scrollerWidth` unavailable, so both the plain override (`error: cannot
+     override 'scrollerWidth' which has been marked unavailable`) and the `@objc(scrollerWidth)`
+     renamed spelling (`error: method … with Objective-C selector 'scrollerWidth' conflicts with
+     method 'scrollerWidth()' from superclass 'NSScroller' with the same Objective-C selector`)
+     are refused - measured, and the same class of refusal `nsfns.swift` 4867-4874 records for
+     `EmacsFileDelegate`'s three delegate methods.
+
+     The method is therefore **omitted**, and the gap is named (the ledger's `## ABI` (3)); nothing
+     in the reference calls it, so no caller's behaviour changes: `[EmacsScroller scrollerWidth]`
+     occurs nowhere, and C 10645's `[NSScroller scrollerWidth]` is the superclass's, in a dead
+     arm.  */
+
+
+  /// C 10650-10701: `- (instancetype)initFrame: (NSRect)r window: (Lisp_Object)nwin`.  C 10652's
+  /// `NSTRACE` is the empty macro, C 10666-10667's `NS_IMPL_GNUSTEP` arm is dead here (this target
+  /// takes C 10669's `NSViewMinXMargin | NSViewHeightSizable`), C 10679's `20 / pixel_length` is
+  /// C's own *integer* division before the `float` store (kept as integer division), and C's
+  /// descending `for` at C 10691 is the `while` below (the `sendEvent` block's reading of the same
+  /// shape).
+  @objc(initFrame:window:) init(frame r: NSRect, window nwin: Lisp_Object) {
+    // C 10652: `NSTRACE ("[EmacsScroller initFrame: window:]");` - empty at `NSTRACE_ENABLED` 0.
+
+    if r.size.width > r.size.height {                  // C 10654
+      horizontal = true
+    } else {
+      horizontal = false
+    }
+
+    super.init(frame: r /*NSMakeRect (0, 0, 0, 0)*/)    // C 10659
+
+    isContinuous = true                                // C 10660
+    isEnabled = true                                   // C 10661
+
+    /* Ensure auto resizing of scrollbars occurs within the emacs frame's view
+       locked against the top and bottom edges, and right edge on macOS, where
+       scrollers are on right.  */
+    autoresizingMask = [.minXMargin, .height]          // C 10669
+
+    emacs_window = XWINDOW(nwin)                       // C 10672
+    condemned = false                                  // C 10673
+    if horizontal {                                    // C 10674
+      pixel_length = Int32(NSWidth(r))                 // C 10675
+    } else {
+      pixel_length = Int32(NSHeight(r))                // C 10677
+    }
+    if pixel_length == 0 { pixel_length = 1 }          // C 10678
+    min_portion = Float(20 / Int(pixel_length))        // C 10679 (C's integer division)
+
+    emacs_frame = XFRAME(window_frame(emacs_window))   // C 10681
+    if FRAME_LIVE_P(emacs_frame) {                     // C 10682
+      var i: Int32 = 0                                 // C 10684
+      let view = FRAME_NS_VIEW(emacs_frame) as? EmacsView   // C 10685
+      let sview = view?.window?.contentView            // C 10686
+      let subs = sview?.subviews                       // C 10687
+
+      /* Disable optimization stopping redraw of other scrollbars.  */
+      view?.scrollbarsNeedingUpdate = 0                // C 10690
+      i = Int32(subs?.count ?? 0) - 1                  // C 10691
+      while i >= 0 {                                   // C 10691 (C's descending `for`)
+        if subs?[Int(i)] is EmacsScroller {            // C 10692
+          view?.scrollbarsNeedingUpdate += 1           // C 10693
+        }
+        i -= 1
+      }
+      sview?.addSubview(self)                          // C 10694
+    }
+
+    // C 10697: `/* [self setFrame: r]; */` - C's commented-out line, carried as the comment.
+  }
+
+  /// C 10703-10717: `- (void)setFrame: (NSRect)newRect`.  **C's method is Swift's `frame` property
+  /// setter**: AppKit's `-setFrame:` is imported as `var frame: NSRect` (measured: a plain
+  /// `override func setFrame(_:)` is refused - `error: method does not override any method from its
+  /// superclass`, and `super.setFrame` read as `error: value of type 'NSScroller' has no member
+  /// 'setFrame'`), so C's body is the setter below and the getter is the superclass's own (C
+  /// overrides only the setter).  The setter's parameter keeps C's name.  C's `NSTRACE` is the
+  /// empty macro, C 10707 and C 10715 are C's own commented-out `block_input ()`/`unblock_input ()`
+  /// pair (carried as the comments), and C 10713's `20 / pixel_length` keeps C's integer division
+  /// before the `float` store - the same expression `initFrame:window:`'s C 10679 has.
+  override var frame: NSRect {
+    get { super.frame }
+    set(newRect) {
+      // C 10705: `NSTRACE ("[EmacsScroller setFrame:]");` - empty at `NSTRACE_ENABLED` 0.
+      // C 10707: `/* block_input (); */`
+
+      if horizontal {                                  // C 10708
+        pixel_length = Int32(NSWidth(newRect))         // C 10709
+      } else {
+        pixel_length = Int32(NSHeight(newRect))        // C 10711
+      }
+      if pixel_length == 0 { pixel_length = 1 }        // C 10712
+      min_portion = Float(20 / Int(pixel_length))      // C 10713 (C's integer division)
+
+      super.frame = newRect                            // C 10714
+      // C 10715: `/* unblock_input (); */`
+    }
+  }
+
+  /// C 10719-10732: `- (void)dealloc` - Swift's `deinit`, because a class cannot name `dealloc`;
+  /// C 10730's `[super dealloc]` is implicit in the runtime's own teardown (the
+  /// `ns_free_frame_resources` reading of the reference's manual release under ARC).
+  deinit {
+    // C 10721: `NSTRACE ("[EmacsScroller dealloc]");` - empty.
+
+    if emacs_window != nil {                           // C 10722
+      if horizontal {                                  // C 10724
+        wset_horizontal_scroll_bar(emacs_window, Qnil())   // C 10725
+      } else {
+        wset_vertical_scroll_bar(emacs_window, Qnil())     // C 10727
+      }
+    }
+    emacs_window = nil                                 // C 10729
+    // C 10730: `[super dealloc];` - implicit in `deinit`.
+  }
+
+  /// C 10734-10740: `- (instancetype)condemn` - C's `instancetype` is this class's own type.
+  func condemn() -> EmacsScroller {
+    // C 10736: `NSTRACE ("[EmacsScroller condemn]");` - empty.
+    condemned = true                                   // C 10737
+    return self                                        // C 10738
+  }
+
+  /// C 10742-10748: `- (instancetype)reprieve`.
+  func reprieve() -> EmacsScroller {
+    // C 10744: `NSTRACE ("[EmacsScroller reprieve]");` - empty.
+    condemned = false                                  // C 10745
+    return self                                        // C 10746
+  }
+
+  /// C 10750-10775: `-(bool)judge`.  C's `block_input ()`/`unblock_input ()` pair wraps the
+  /// teardown, C 10759's cast is the `as? EmacsView` the unit already uses, C 10771's
+  /// `[self release]` is the reference the method drops (the `Unmanaged` reading), and C's `bool`
+  /// return is Swift's `Bool`.
+  func judge() -> Bool {
+    // C 10752: `NSTRACE ("[EmacsScroller judge]");` - empty.
+    let ret = condemned                                // C 10753
+    if condemned {                                     // C 10754
+      block_input()                                    // C 10757
+      /* Ensure other scrollbar updates after deletion.  */
+      let view = FRAME_NS_VIEW(emacs_frame) as? EmacsView   // C 10759
+      if view != nil {                                 // C 10760
+        view?.scrollbarsNeedingUpdate += 1             // C 10761
+      }
+      if emacs_window != nil {                         // C 10762
+        if horizontal {                                // C 10764
+          wset_horizontal_scroll_bar(emacs_window, Qnil())   // C 10765
+        } else {
+          wset_vertical_scroll_bar(emacs_window, Qnil())     // C 10767
+        }
+      }
+      emacs_window = nil                               // C 10769
+      removeFromSuperview()                            // C 10770
+      unblock_input()                                  // C 10772
+    }
+    return ret                                         // C 10774
+  }
+
+  /// C 10777-10786: `- (void) mark` - C's own spacing in the selector, kept.
+  func mark() {
+    if emacs_window != nil {                           // C 10779
+      var win: Lisp_Object = nil                       // C 10781
+      XSETWINDOW(&win, emacs_window)                   // C 10782
+      mark_object(win)                                 // C 10783
+    }
+  }
+
+  /// C 10788-10804: `- (void)resetCursorRects`.  The
+  /// `NS_IMPL_GNUSTEP || MAC_OS_X_VERSION_MIN_REQUIRED < 101300` block at C 10796-10802 (its
+  /// `setOnMouseEntered:` message included) is dead on this target - the frozen configuration's
+  /// 260000 - so it is recorded, not transcribed.
+  override func resetCursorRects() {
+    let visible = self.visibleRect                     // C 10790
+    // C 10791: `NSTRACE ("[EmacsScroller resetCursorRects]");` - empty.
+
+    if !NSIsEmptyRect(visible) {                       // C 10793
+      self.addCursorRect(visible, cursor: NSCursor.arrow)   // C 10794
+    }
+
+    /* C 10796-10802: the pre-10.13 / GNUstep arm, dead here (recorded, not transcribed).  */
+  }
+
+  /// C 10806-10812: `- (int) checkSamePosition: (int) position portion: (int) portion
+  /// whole: (int) whole`.  C's whole body is the four-way conjunct and it returns an `int`, so the
+  /// port spells C's own integral conversion of it (`? 1 : 0`).
+  func checkSamePosition(_ position: Int32, portion: Int32, whole: Int32) -> Int32 {
+    return (em_position == position && em_portion == portion && em_whole == whole
+            && portion != whole) /* Needed for resizing empty buffer.  */
+           ? 1 : 0
+  }
+
+  /// C 10814-10847: `- (instancetype)setPosition: (int)position portion: (int)portion whole:
+  /// (int)whole`.  The `NS_IMPL_COCOA` arms are the live ones (C 10825-10826 and C 10839-10840;
+  /// C 10828 and C 10842 are dead here), and the two AppKit setters are Swift's `knobProportion`
+  /// and `doubleValue` properties.  C 10835's `max ((float)whole*min_portion/pixel_length, portion)`
+  /// is `Swift.max` over C's own promoted `float` arithmetic with C's truncation back into the
+  /// `int` it assigns, and C 10836-10837 keep C's two divisions (a `float` one and a `CGFloat` one).
+  func setPosition(_ position: Int32, portion portionIn: Int32, whole: Int32) -> EmacsScroller {
+    // C 10816: `NSTRACE ("[EmacsScroller setPosition:portion:whole:]");` - empty.
+
+    em_position = position                             // C 10818
+    em_portion = portionIn                             // C 10819
+    em_whole = whole                                   // C 10820
+
+    if portionIn >= whole {                            // C 10822
+      knobProportion = 1.0                             // C 10825 (the `NS_IMPL_COCOA` arm)
+      doubleValue = 1.0                                // C 10826
+    } else {
+      var pos: Float = 0                               // C 10833
+      var por: CGFloat = 0                             // C 10834
+      /* C's `portion` is reassigned here, so the port shadows the parameter with C's own name.  */
+      let portion = Int32(Swift.max(Float(whole) * min_portion / Float(pixel_length),
+                                    Float(portionIn))) // C 10835
+      pos = Float(position) / Float(whole - portion)   // C 10836
+      por = CGFloat(portion) / CGFloat(whole)          // C 10837
+      knobProportion = por                             // C 10839 (the `NS_IMPL_COCOA` arm)
+      doubleValue = Double(pos)                        // C 10840
+    }
+
+    return self                                        // C 10846
+  }
+
+  /// C 10849-10890: `- (void) sendScrollEventAtLoc: (float)loc fromEvent: (NSEvent *)e` - "Set up
+  /// emacs_event."  C 10854's `NSTRACE` is empty; the member writes are this unit's own view of the
+  /// record; `part` is the high bitfield, which the core spells with `input_event_set_part` (the
+  /// `input_event_set_kind` counterpart); `XSETINT` takes C's `int`, so C's `float` expressions are
+  /// converted where C's `make_number` converts them; and **C's `EV_MODIFIERS (e)`/`EV_TIMESTAMP
+  /// (e)` read a possibly-nil event** (nil's `modifierFlags`/`timestamp` are zero), which the port
+  /// writes out because both macros take a live `NSEvent`.
+  func sendScrollEventAtLoc(_ loc: Float, fromEvent e: NSEvent?) {
+    var win: Lisp_Object = nil                         // C 10852
+
+    // C 10854: `NSTRACE ("[EmacsScroller sendScrollEventAtLoc:fromEvent:]");` - empty.
+
+    if emacs_event == nil {                            // C 10856
+      return
+    }
+
+    input_event_set_part(emacs_event!, last_hit_part)  // C 10859
+    emacs_event!.pointee.code = 0                      // C 10860
+    /* C's `EV_MODIFIERS (e) | down_modifier` mixes an `unsigned int` with the `int` enumerator,
+       which C's own promotion converts; the port spells that conversion (the `EV_MODIFIERS2`
+       reading's `truncatingIfNeeded:` shape).  */
+    emacs_event!.pointee.modifiers =
+      (e == nil ? EV_MODIFIERS2(0, QCmouse()) : EV_MODIFIERS(e!))
+        | UInt32(truncatingIfNeeded: down_modifier())   // C 10861
+    XSETWINDOW(&win, emacs_window)                     // C 10862
+    emacs_event!.pointee.frame_or_window = win         // C 10863
+    emacs_event!.pointee.timestamp =
+      UInt(e == nil ? 0 : EV_TIMESTAMP(e!))            // C 10864 (C stores the double into `Time`)
+    emacs_event!.pointee.arg = Qnil()                  // C 10865
+
+    if horizontal {                                    // C 10867
+      input_event_set_kind(emacs_event!, HORIZONTAL_SCROLL_BAR_CLICK_EVENT)   // C 10869
+      XSETINT(&emacs_event!.pointee.x,
+              Int(Float(em_whole) * loc / Float(pixel_length)))               // C 10870
+      XSETINT(&emacs_event!.pointee.y, Int(em_whole))                         // C 10871
+    } else {
+      input_event_set_kind(emacs_event!, SCROLL_BAR_CLICK_EVENT)              // C 10875
+      XSETINT(&emacs_event!.pointee.x, Int(loc))                              // C 10876
+      XSETINT(&emacs_event!.pointee.y, Int(pixel_length - 20))                // C 10877
+    }
+
+    if q_event_ptr != nil {                            // C 10880
+      n_emacs_events_pending += 1                      // C 10882
+      kbd_buffer_store_event_hold(emacs_event, q_event_ptr)   // C 10883
+    } else {
+      hold_event(emacs_event)                          // C 10886
+    }
+    EVENT_INIT(emacs_event!)                           // C 10887
+    ns_send_appdefined(-1)                             // C 10888
+  }
+
+  /// C 10892-10924: `- (instancetype)repeatScroll: (NSTimer *)scrollEntry` - "Called manually
+  /// through timer to implement repeated button action with hold-down."  C 10896-10897's `[self
+  /// window]` is AppKit's own message, not the class's `window` ivar (which is why that ivar is
+  /// `emacs_window` here) and its nil receiver answers the zero-valued point, C 10906's `release` is
+  /// the reference the method drops, C 10912-10919's `retain` is ARC's strong reference to the timer
+  /// `scheduledTimer` already returns, and C 10916's `@selector (repeatScroll:)` is the `#selector`
+  /// this method's own `@objc` name provides.
+  @objc func repeatScroll(_ scrollEntry: Timer) -> EmacsScroller {
+    let e = self.window?.currentEvent                  // C 10896
+    let p = self.window?.mouseLocationOutsideOfEventStream ?? .zero   // C 10897
+    let inKnob = self.testPart(p) == .knob             // C 10898
+
+    // C 10900: `NSTRACE ("[EmacsScroller repeatScroll:]");` - empty.
+
+    /* Clear timer if need be.  */
+    if inKnob || scroll_repeat_entry?.timeInterval == SCROLL_BAR_FIRST_DELAY {   // C 10903
+      scroll_repeat_entry?.invalidate()                // C 10905
+      scroll_repeat_entry = nil                        // C 10906-10907 (C's `release`, then `nil`)
+
+      if inKnob {                                      // C 10909
+        return self                                    // C 10910
+      }
+
+      scroll_repeat_entry =
+        Timer.scheduledTimer(timeInterval: SCROLL_BAR_CONTINUOUS_DELAY,     // C 10912-10919
+                             target: self,
+                             selector: #selector(EmacsScroller.repeatScroll(_:)),
+                             userInfo: nil,
+                             repeats: true)
+    }
+
+    self.sendScrollEventAtLoc(0, fromEvent: e)         // C 10922
+    return self                                        // C 10923
+  }
+
+  /// C 10927-11047: `- (void)mouseDown: (NSEvent *)e` - "Asynchronous mouse tracking for scroller.
+  /// This allows us to dispatch mouseDragged events without going into a modal loop."  C 10945-10950's
+  /// two `case`s (`NSScrollerDecrementLine`/`IncrementLine`) are dead on this target
+  /// (`NS_IMPL_GNUSTEP || MAC_OS_X_VERSION_MIN_REQUIRED < 1070`), C 10934's `UNINIT` is
+  /// conf_post.h 369's `= {0,}` on this configuration (`GCC_LINT` is 1 in the frozen macros), so
+  /// the three locals start at zero as C's own arm does, C 10956's `%ld` prints `part`'s own
+  /// `NSInteger` (`part.rawValue`), and C's `NSWidth`/`NSHeight`/`NSMinX`/`NSMinY` are the rect's
+  /// own accessors.  Swift's own renames (`mouseDown` -> `mouseDown (with:)`, `mouseUp` ->
+  /// `mouseUp (with:)`) are the compiler's readings (class B); the Objective-C selectors are C's.
+  @objc override func mouseDown(with e: NSEvent) {
+    var sr = NSRect.zero                               // C 10931
+    var kr = NSRect.zero
+    /* hitPart is only updated AFTER event is passed on.  */
+    let part = self.testPart(e.locationInWindow)       // C 10933
+    var loc: CGFloat = 0                               // C 10934 (C's `UNINIT` = `= {0,}`)
+    var kloc: CGFloat = 0
+    var pos: CGFloat = 0
+    var edge: Int32 = 0                                // C 10935
+
+    // C 10937: `NSTRACE ("[EmacsScroller mouseDown:]");` - empty at `NSTRACE_ENABLED` 0.
+
+    switch part {                                      // C 10939
+    case .decrementPage:                               // C 10941
+      last_hit_part =
+        horizontal ? scroll_bar_before_handle() : scroll_bar_above_handle()      // C 10942
+    case .incrementPage:                               // C 10943
+      last_hit_part =
+        horizontal ? scroll_bar_after_handle() : scroll_bar_below_handle()       // C 10944
+    /* C 10945-10950: `NSScrollerDecrementLine`/`NSScrollerIncrementLine` and their two
+       `last_hit_part` arms, dead on this target (recorded, not transcribed).  */
+    case .knob:                                       // C 10951
+      last_hit_part =
+        horizontal ? scroll_bar_horizontal_handle() : scroll_bar_handle()        // C 10952
+    case .knobSlot:  /* GNUstep-only */               // C 10953
+      last_hit_part = scroll_bar_move_ratio()         // C 10954
+    default:  /* NSScrollerNoPart? */                 // C 10955
+      fprintf(stderr, "EmacsScroller-mouseDown: unexpected part %ld\n",
+              part.rawValue)                          // C 10956-10957
+      return                                          // C 10958
+    }
+
+    if part == .knob || part == .knobSlot {            // C 10961
+      /* handle, or on GNUstep possibly slot */
+      var fake_event: NSEvent? = nil                   // C 10964
+      var length: Int32 = 0                            // C 10965
+
+      /* compute float loc in slot and mouse offset on knob */
+      sr = self.convert(self.rect(for: .knobSlot), to: nil)          // C 10968-10969
+      if horizontal {                                  // C 10970
+        length = Int32(NSWidth(sr))                    // C 10972
+        loc = (e.locationInWindow.x - NSMinX(sr))      // C 10973
+      } else {
+        length = Int32(NSHeight(sr))                   // C 10977
+        loc = CGFloat(length) - (e.locationInWindow.y - NSMinY(sr))  // C 10978
+      }
+
+      if loc <= 0.0 {                                  // C 10981
+        loc = 0.0
+        edge = -1                                      // C 10984
+      } else if loc >= CGFloat(length) {               // C 10986
+        loc = CGFloat(length)                          // C 10988
+        edge = 1                                       // C 10989
+      }
+
+      if edge != 0 {                                   // C 10992
+        kloc = 0.5 * CGFloat(edge)                     // C 10993
+      } else {
+        kr = self.convert(self.rect(for: .knob), to: nil)            // C 10996-10997
+        if horizontal {                                // C 10998
+          kloc = (e.locationInWindow.x - NSMinX(kr))   // C 10999
+        } else {
+          kloc = NSHeight(kr) - (e.locationInWindow.y - NSMinY(kr))  // C 11001
+        }
+      }
+      last_mouse_offset = kloc                         // C 11003
+
+      /* if knob, tell emacs a location offset by knob pos
+         (to indicate top of handle) */
+      if part == .knob {                               // C 11007
+        pos = (loc - last_mouse_offset)                // C 11008
+      } else {
+        /* else this is a slot click on GNUstep: go straight there */
+        pos = loc                                      // C 11011
+      }
+
+      /* If there are buttons in the scroller area, we need to
+         recalculate pos as emacs expects the scroller slot to take up
+         the entire available length.  */
+      if length != pixel_length {                      // C 11016
+        pos = pos * CGFloat(pixel_length) / CGFloat(length)   // C 11017
+      }
+
+      /* send a fake mouse-up to super to preempt modal -trackKnob: mode */
+      fake_event = NSEvent.mouseEvent(with: .leftMouseUp,       // C 11020-11028
+                                      location: e.locationInWindow,
+                                      modifierFlags: e.modifierFlags,
+                                      timestamp: e.timestamp,
+                                      windowNumber: e.windowNumber,
+                                      context: nil,
+                                      eventNumber: e.eventNumber,
+                                      clickCount: e.clickCount,
+                                      pressure: e.pressure)
+      /* C 11029's `[super mouseUp: fake_event]` - a message to a nil event is C's own no-op.  */
+      if let fake_event = fake_event {
+        super.mouseUp(with: fake_event)
+      }
+    } else {
+      pos = 0; /* ignored */                           // C 11033
+
+      /* Set a timer to repeat, as we can't let superclass do this modally.  */
+      scroll_repeat_entry =
+        Timer.scheduledTimer(timeInterval: SCROLL_BAR_FIRST_DELAY,    // C 11036-11042
+                             target: self,
+                             selector: #selector(EmacsScroller.repeatScroll(_:)),
+                             userInfo: nil,
+                             repeats: true)
+    }
+
+    if part != .knob {                                 // C 11045
+      self.sendScrollEventAtLoc(Float(pos), fromEvent: e)   // C 11046
+    }
+  }
+
+  /// C 11050-11090: `- (void)mouseDragged: (NSEvent *)e` - "Called as we manually track scroller
+  /// drags, rather than superclass."  C's two locals are `double` (not `CGFloat`), C 11077-11079's
+  /// bound is `length + last_mouse_offset` with C's own promotions, and C 11087's
+  /// `pos * pixel_length / length` keeps C's per-operator promotion; C 11090 hands the `double` to
+  /// the `float` parameter of the method above, so the port converts where C's call does.
+  @objc override func mouseDragged(with e: NSEvent) {
+    var sr = NSRect.zero                               // C 11053
+    var loc: Double = 0                                // C 11054
+    var pos: Double = 0
+    var length: Int32 = 0                              // C 11055
+
+    // C 11057: `NSTRACE ("[EmacsScroller mouseDragged:]");` - empty.
+
+    sr = self.convert(self.rect(for: .knobSlot), to: nil)          // C 11059-11060
+    if horizontal {                                    // C 11062
+      length = Int32(NSWidth(sr))                      // C 11064
+      loc = Double(e.locationInWindow.x - NSMinX(sr))  // C 11065
+    } else {
+      length = Int32(NSHeight(sr))                     // C 11069
+      loc = Double(length) - Double(e.locationInWindow.y - NSMinY(sr))   // C 11070
+    }
+
+    if loc <= 0.0 {                                    // C 11073
+      loc = 0.0                                        // C 11075
+    } else if loc >= Double(length) + Double(last_mouse_offset) {        // C 11077
+      loc = Double(length) + Double(last_mouse_offset) // C 11079
+    }
+
+    pos = (loc - Double(last_mouse_offset))            // C 11082
+
+    /* If there are buttons in the scroller area, we need to
+       recalculate pos as emacs expects the scroller slot to take up
+       the entire available length.  */
+    if length != pixel_length {                        // C 11087
+      pos = pos * Double(pixel_length) / Double(length)   // C 11088
+    }
+
+    self.sendScrollEventAtLoc(Float(pos), fromEvent: e)      // C 11090
+  }
+
+  /// C 11094-11105: `- (void)mouseUp: (NSEvent *)e`.  C 11101's `release` is the reference the
+  /// method drops (the `repeatScroll:` reading), and C 11104's enumerator is the entry this unit
+  /// already imports.
+  @objc override func mouseUp(with e: NSEvent) {
+    // C 11096: `NSTRACE ("[EmacsScroller mouseUp:]");` - empty.
+
+    if scroll_repeat_entry != nil {                    // C 11098
+      scroll_repeat_entry?.invalidate()                // C 11100
+      scroll_repeat_entry = nil                        // C 11101-11102 (C's `release`, then `nil`)
+    }
+    last_hit_part = scroll_bar_above_handle()          // C 11104
+  }
+
+  /// C 11108-11115: `- (void) scrollWheel: (NSEvent *)theEvent` - "Treat scrollwheel events in
+  /// the bar as though they were in the main window."  C's `EmacsView *view = (EmacsView *)
+  /// FRAME_NS_VIEW (frame);` is the unit's `as? EmacsView` cast, and C's message to a nil view is
+  /// the optional chain's no-op.
+  @objc override func scrollWheel(with theEvent: NSEvent) {
+    // C 11111: `NSTRACE ("[EmacsScroller scrollWheel:]");` - empty.
+
+    let view = FRAME_NS_VIEW(emacs_frame) as? EmacsView     // C 11113
+    view?.mouseDown(with: theEvent)                    // C 11114
+  }
+}
+
+/// C: the names below are **file-scope** C constructs (macros and INLINEs of src/window.h and
+/// src/alloc.c) - they sat inside the class between rounds 43 and 46, which was a structural slip
+/// this round corrects (C keeps them outside `@implementation`), and round 47's
+/// `ns_set_vertical_scroll_bar` needs them at file scope.
+/// C: `INLINE void wset_horizontal_scroll_bar (struct window *w, Lisp_Object val)` and its
+/// vertical sibling (src/window.h) - the two setters C 10725/10727 and C 10765/10767 call.  The
+/// port's mirror carries them as Rust functions (`src/include/window.rs` 233/236), so the
+/// C-ABI entry they are imported by is one the core still owes (the `ns_display_info_*` class).
+@_silgen_name("wset_horizontal_scroll_bar")
+func wset_horizontal_scroll_bar(_ w: UnsafeMutableRawPointer?, _ val: Lisp_Object)
+@_silgen_name("wset_vertical_scroll_bar")
+func wset_vertical_scroll_bar(_ w: UnsafeMutableRawPointer?, _ val: Lisp_Object)
+
+/// C: `XSETWINDOW (a, b)` (src/window.h) - a macro entry of the `XSETFRAME`/`XSETTERMINAL`
+/// family, which C 10782 uses to build the `Lisp_Object` `mark_object` takes.
+@_silgen_name("XSETWINDOW")
+func XSETWINDOW(_ a: UnsafeMutablePointer<Lisp_Object>, _ b: UnsafeMutableRawPointer?)
+
+/// C: `void mark_object (Lisp_Object)` (src/alloc.c) - the collector's own entry, which the core
+/// provides (`src/alloc.rs` 7308, `pub unsafe extern "C" fn`).
+@_silgen_name("mark_object") func mark_object(_ obj: Lisp_Object)
+
+/// C 10623-10624: the two `#define`s the class's repeat timer uses, spelled as this file's other
+/// numeric macros are (`DOCK_IGNORE_LIMIT`): `#define SCROLL_BAR_FIRST_DELAY 0.5` and
+/// `#define SCROLL_BAR_CONTINUOUS_DELAY (1.0 / 15)`.
+fileprivate let SCROLL_BAR_FIRST_DELAY: TimeInterval = 0.5
+fileprivate let SCROLL_BAR_CONTINUOUS_DELAY: TimeInterval = 1.0 / 15
+
+/// C: `ENUM_BF (scroll_bar_part) part : 16;` (src/termhooks.h 377) - the high half of
+/// `input_event.bits`, whose writer is this entry (the `input_event_set_kind` counterpart C 10859
+/// is the first use of).
+@_silgen_name("input_event_set_part")
+func input_event_set_part(_ e: UnsafeMutablePointer<input_event>, _ v: Int32)
+
+/// C: the `struct window` member `window->horizontal_scroll_bar` (src/window.h) - the vertical
+/// reader's twin, and the two `WINDOW_SCROLL_BAR_AREA_*` macros C 5528-5529 takes the horizontal
+/// bar's own height and y from (`WINDOW_SCROLL_BAR_AREA_WIDTH`/`_X` landed with round 47).
+@_silgen_name("window_horizontal_scroll_bar")
+func window_horizontal_scroll_bar(_ w: UnsafeMutableRawPointer?) -> Lisp_Object
+@_silgen_name("WINDOW_SCROLL_BAR_AREA_HEIGHT")
+func WINDOW_SCROLL_BAR_AREA_HEIGHT(_ w: UnsafeMutableRawPointer?) -> Int32
+@_silgen_name("WINDOW_SCROLL_BAR_AREA_Y")
+func WINDOW_SCROLL_BAR_AREA_Y(_ w: UnsafeMutableRawPointer?) -> Int32
+
+/// C 5490-5571: `static void ns_set_horizontal_scroll_bar (struct window *window, int portion, int
+/// whole, int position)` - "External (hook): Update or add scrollbar."  It is the vertical hook's
+/// twin with three differences C's own text shows: C 5525 takes the *x* pair out of `window_box`,
+/// C 5528-5529 read the horizontal bar's own height and y, and C 5548-5558's update branch has no
+/// inner `oldRect`/`r` width copy (the vertical hook's C 5474 line has no counterpart here) while
+/// setting `update_p = YES`.  C 5561-5566's shared-corner clear is kept with C's own
+/// `window->vertical_scroll_bar` test.
+fileprivate func ns_set_horizontal_scroll_bar(_ window: UnsafeMutableRawPointer?,
+                                              _ portion: Int32, _ whole: Int32,
+                                              _ position: Int32) {
+  var win: Lisp_Object = nil                         // C 5496
+  var r = NSRect.zero                                // C 5497
+  var v = NSRect.zero
+  let f = XFRAME(WINDOW_FRAME(window))               // C 5498
+  let view = FRAME_NS_VIEW(f) as? EmacsView          // C 5499
+  var bar: EmacsScroller? = nil                      // C 5500
+  var top: Int32 = 0                                 // C 5501
+  var height: Int32 = 0
+  var left: Int32 = 0
+  var width: Int32 = 0
+  var window_x: Int32 = 0                            // C 5502
+  var window_width: Int32 = 0
+  var update_p = true                                // C 5503
+
+  /* Optimization; display engine sends WAY too many of these.  */
+  if !NILP(window_horizontal_scroll_bar(window)) {   // C 5506
+    bar = XNS_SCROLL_BAR(window_horizontal_scroll_bar(window)) as? EmacsScroller  // C 5508
+    if bar!.checkSamePosition(position, portion: portion, whole: whole) != 0 {    // C 5509
+      if view?.scrollbarsNeedingUpdate == 0 {        // C 5511
+        if windows_or_buffers_changed == 0 {         // C 5513
+          return                                     // C 5514
+        }
+      } else {
+        view?.scrollbarsNeedingUpdate -= 1           // C 5517
+      }
+      update_p = false                               // C 5518
+    }
+  }
+
+  // C 5522: `NSTRACE ("ns_set_horizontal_scroll_bar");` - empty at `NSTRACE_ENABLED` 0.
+
+  /* Get dimensions.  */
+  window_box(window, ANY_AREA(), &window_x, nil, &window_width, nil)   // C 5525
+  left = window_x                                    // C 5526
+  width = window_width                               // C 5527
+  height = WINDOW_SCROLL_BAR_AREA_HEIGHT(window)     // C 5528
+  top = WINDOW_SCROLL_BAR_AREA_Y(window)             // C 5529
+
+  r = NSMakeRect(CGFloat(left), CGFloat(top), CGFloat(width), CGFloat(height))   // C 5531
+  /* The parent view is flipped, so we need to flip y value.  */
+  v = view?.frame ?? .zero                           // C 5533 (C's nil receiver answers a zero rect)
+  r.origin.y = (v.size.height - r.size.height - r.origin.y)      // C 5534
+
+  XSETWINDOW(&win, window)                           // C 5536
+  block_input()                                      // C 5537
+
+  if NILP(window_horizontal_scroll_bar(window)) {    // C 5539
+    if width > 0 && height > 0 {                     // C 5541
+      ns_clear_frame_area(f, left, top, width, height)   // C 5542
+    }
+
+    bar = EmacsScroller(frame: r, window: win)       // C 5544
+    wset_horizontal_scroll_bar(window,
+                               make_mint_ptr(Unmanaged.passUnretained(bar!).toOpaque()))   // C 5545
+    update_p = true                                  // C 5546
+  } else {
+    var oldRect = NSRect.zero                        // C 5550
+    bar = XNS_SCROLL_BAR(window_horizontal_scroll_bar(window)) as? EmacsScroller   // C 5551
+    oldRect = bar!.frame                             // C 5552
+    if FRAME_LIVE_P(f) && !(oldRect == r) {          // C 5553 (C's `NSEqualRects` is `==`)
+      ns_clear_frame_area(f, left, top, width, height)   // C 5555
+      bar!.frame = r                                 // C 5556
+      update_p = true                                // C 5557
+    }
+  }
+
+  /* If there are both horizontal and vertical scroll-bars they leave
+     a square that belongs to neither. We need to clear it otherwise
+     it fills with junk.  */
+  if !NILP(window_vertical_scroll_bar(window)) {     // C 5564
+    ns_clear_frame_area(f, WINDOW_SCROLL_BAR_AREA_X(window), top,      // C 5565
+                        WINDOW_SCROLL_BAR_AREA_WIDTH(window), height)  // C 5566
+  }
+
+  if update_p {                                      // C 5568
+    _ = bar!.setPosition(position, portion: portion, whole: whole)   // C 5569
+  }
+  unblock_input()                                    // C 5570
+}
+
+/// C: `#define XNS_SCROLL_BAR(vec) ((id) xmint_pointer (vec))` (src/nsterm.h 1056, the
+/// `NS_IMPL_COCOA` arm) - a macro entry under the construct's own name; the `xmint_pointer` inside
+/// it is the INLINE the tree mirrors (`src/include/lisp.rs` 1679), and the `(id)` cast is
+/// what the call sites' `as? EmacsScroller` reads.
+@_silgen_name("XNS_SCROLL_BAR")
+func XNS_SCROLL_BAR_borrowed_raw(_ vec: Lisp_Object) -> UnsafeMutableRawPointer?
+func XNS_SCROLL_BAR(_ vec: Lisp_Object) -> AnyObject? {
+  guard let pointer = XNS_SCROLL_BAR_borrowed_raw(vec) else { return nil }
+  return Unmanaged<AnyObject>.fromOpaque(pointer).takeUnretainedValue()
+}
+
+/// C: `INLINE Lisp_Object make_mint_ptr (void *a)` (src/lisp.h) and its reader `xmint_pointer` -
+/// macros/INLINEs of that family, mirrored at `src/include/lisp.rs` 1664/1679, so the C-ABI
+/// entries are the core's to provide.
+@_silgen_name("make_mint_ptr")
+func make_mint_ptr(_ a: UnsafeMutableRawPointer?) -> Lisp_Object
+
+/// C: the `struct window` member `window->vertical_scroll_bar` (src/window.h) - a member reader of
+/// the `window_frame` family this unit already carries.
+@_silgen_name("window_vertical_scroll_bar")
+func window_vertical_scroll_bar(_ w: UnsafeMutableRawPointer?) -> Lisp_Object
+
+/// C: `WINDOW_SCROLL_BAR_AREA_WIDTH (w)`, `WINDOW_SCROLL_BAR_AREA_X (w)` and
+/// `WINDOW_TOTAL_LINES (w)` (src/window.h) - macro entries of the `WINDOW_FRAME` family.
+@_silgen_name("WINDOW_SCROLL_BAR_AREA_WIDTH")
+func WINDOW_SCROLL_BAR_AREA_WIDTH(_ w: UnsafeMutableRawPointer?) -> Int32
+@_silgen_name("WINDOW_SCROLL_BAR_AREA_X")
+func WINDOW_SCROLL_BAR_AREA_X(_ w: UnsafeMutableRawPointer?) -> Int32
+@_silgen_name("WINDOW_TOTAL_LINES")
+func WINDOW_TOTAL_LINES(_ w: UnsafeMutableRawPointer?) -> Int32
+
+/// C 5396-5486: `static void ns_set_vertical_scroll_bar (struct window *window, int portion, int
+/// whole, int position)` - "External (hook): Update or add scrollbar".  C's `XNS_SCROLL_BAR` cast is
+/// the `as? EmacsScroller` here, `NSEqualRects (a, b)` is `a == b`, the two `[view …]` reads on a
+/// possibly-nil view are C's nil-receiver answers (`?? .zero` for the rect), and C 5417-5423's
+/// counter writes are `EmacsView`'s own member; `bar` keeps C's own assumption that the value it
+/// casts is live.
+fileprivate func ns_set_vertical_scroll_bar(_ window: UnsafeMutableRawPointer?,
+                                            _ portion: Int32, _ whole: Int32,
+                                            _ position: Int32) {
+  var win: Lisp_Object = nil                         // C 5402
+  var r = NSRect.zero                                // C 5403
+  var v = NSRect.zero
+  let f = XFRAME(WINDOW_FRAME(window))               // C 5404
+  let view = FRAME_NS_VIEW(f) as? EmacsView          // C 5405
+  var bar: EmacsScroller? = nil                      // C 5406
+  var window_y: Int32 = 0                            // C 5407
+  var window_height: Int32 = 0
+  var top: Int32 = 0                                 // C 5408
+  var left: Int32 = 0
+  var height: Int32 = 0
+  var width: Int32 = 0
+  var update_p = true                                // C 5409
+
+  /* Optimization; display engine sends WAY too many of these.  */
+  if !NILP(window_vertical_scroll_bar(window)) {     // C 5412
+    bar = XNS_SCROLL_BAR(window_vertical_scroll_bar(window)) as? EmacsScroller    // C 5414
+    if bar!.checkSamePosition(position, portion: portion, whole: whole) != 0 {    // C 5415
+      if view?.scrollbarsNeedingUpdate == 0 {        // C 5417
+        if windows_or_buffers_changed == 0 {         // C 5419
+          return                                     // C 5420
+        }
+      } else {
+        view?.scrollbarsNeedingUpdate -= 1           // C 5423
+      }
+      update_p = false                               // C 5424
+    }
+  }
+
+  // C 5428: `NSTRACE ("ns_set_vertical_scroll_bar");` - empty at `NSTRACE_ENABLED` 0.
+
+  /* Get dimensions.  */
+  window_box(window, ANY_AREA(), nil, &window_y, nil, &window_height)   // C 5431
+  top = window_y                                     // C 5432
+  height = window_height                             // C 5433
+  width = WINDOW_SCROLL_BAR_AREA_WIDTH(window)       // C 5434
+  left = WINDOW_SCROLL_BAR_AREA_X(window)            // C 5435
+
+  r = NSMakeRect(CGFloat(left), CGFloat(top), CGFloat(width), CGFloat(height))   // C 5437
+  /* The parent view is flipped, so we need to flip y value.  */
+  v = view?.frame ?? .zero                           // C 5439 (C's nil receiver answers a zero rect)
+  r.origin.y = (v.size.height - r.size.height - r.origin.y)      // C 5440
+
+  XSETWINDOW(&win, window)                           // C 5442
+  block_input()                                      // C 5443
+
+  /* We want at least 5 lines to display a scrollbar.  */
+  if WINDOW_TOTAL_LINES(window) < 5 {                // C 5446
+    if !NILP(window_vertical_scroll_bar(window)) {   // C 5448
+      bar = XNS_SCROLL_BAR(window_vertical_scroll_bar(window)) as? EmacsScroller   // C 5450
+      bar!.removeFromSuperview()                     // C 5451
+      wset_vertical_scroll_bar(window, Qnil())       // C 5452
+      ns_clear_frame_area(f, left, top, width, height)   // C 5454
+    }
+    unblock_input()                                  // C 5456
+    return                                           // C 5457
+  }
+
+  if NILP(window_vertical_scroll_bar(window)) {      // C 5460
+    if width > 0 && height > 0 {                     // C 5462
+      ns_clear_frame_area(f, left, top, width, height)   // C 5463
+    }
+
+    bar = EmacsScroller(frame: r, window: win)       // C 5465
+    wset_vertical_scroll_bar(window,
+                             make_mint_ptr(Unmanaged.passUnretained(bar!).toOpaque()))   // C 5466
+    update_p = true                                  // C 5467
+  } else {
+    var oldRect = NSRect.zero                        // C 5471
+    bar = XNS_SCROLL_BAR(window_vertical_scroll_bar(window)) as? EmacsScroller   // C 5472
+    oldRect = bar!.frame                             // C 5473
+    r.size.width = oldRect.size.width                // C 5474
+    if FRAME_LIVE_P(f) && !(oldRect == r) {          // C 5475 (C's `NSEqualRects` is `==`)
+      if !(oldRect == r) {                           // C 5477
+        ns_clear_frame_area(f, left, top, width, height)   // C 5478
+      }
+      bar!.frame = r                                 // C 5479
+    }
+  }
+
+  if update_p {                                      // C 5483
+    _ = bar!.setPosition(position, portion: portion, whole: whole)   // C 5484
+  }
+  unblock_input()                                    // C 5485
+}
+
+/// C: the `enum scroll_bar_part` enumerators C 10942-10954 assigns to `last_hit_part` (src/termhooks.h
+/// 37's family, whose `scroll_bar_above_handle` this unit already imports) - enumerator entries, one
+/// per name.
+@_silgen_name("scroll_bar_before_handle")
+func scroll_bar_before_handle() -> Int32
+@_silgen_name("scroll_bar_after_handle")
+func scroll_bar_after_handle() -> Int32
+@_silgen_name("scroll_bar_below_handle")
+func scroll_bar_below_handle() -> Int32
+@_silgen_name("scroll_bar_handle")
+func scroll_bar_handle() -> Int32
+@_silgen_name("scroll_bar_horizontal_handle")
+func scroll_bar_horizontal_handle() -> Int32
+@_silgen_name("scroll_bar_move_ratio")
+func scroll_bar_move_ratio() -> Int32
+
+/// C: `SCROLL_BAR_CLICK_EVENT` and `HORIZONTAL_SCROLL_BAR_CLICK_EVENT` (members of `event_kind`,
+/// src/termhooks.h) - mirror-valued constants, the `MONITORS_CHANGED_EVENT` reading: the frozen
+/// macro table cannot decide that enum's members, and the tree's own mirror fixes both
+/// (`src/include/termhooks.rs` 35 and 36 give 8 and 9).
+@_silgen_name("SCROLL_BAR_CLICK_EVENT") fileprivate func SCROLL_BAR_CLICK_EVENT_value() -> UInt32
+fileprivate let SCROLL_BAR_CLICK_EVENT: UInt32 = SCROLL_BAR_CLICK_EVENT_value()
+@_silgen_name("HORIZONTAL_SCROLL_BAR_CLICK_EVENT") fileprivate func HORIZONTAL_SCROLL_BAR_CLICK_EVENT_value() -> UInt32
+fileprivate let HORIZONTAL_SCROLL_BAR_CLICK_EVENT: UInt32 = HORIZONTAL_SCROLL_BAR_CLICK_EVENT_value()
+
+// ==========================================================================
+// Round 49: the rest of the scroll-bar hook batch (C 5575-5640) and the dead
+// `ns_redraw_scroll_bars` (C 2771-2786)
+// ==========================================================================
+
+/// C: `WINDOW_HAS_VERTICAL_SCROLL_BAR (W)` (src/window.h 894) and
+/// `WINDOW_HAS_HORIZONTAL_SCROLL_BAR (W)` (src/window.h 909) - predicate macros, declared as `Bool`
+/// the way this unit declares `FRAME_LIVE_P` (C's `||` yields an `int`, which the `if` tests).
+@_silgen_name("WINDOW_HAS_VERTICAL_SCROLL_BAR")
+func WINDOW_HAS_VERTICAL_SCROLL_BAR(_ w: UnsafeMutableRawPointer?) -> Bool
+@_silgen_name("WINDOW_HAS_HORIZONTAL_SCROLL_BAR")
+func WINDOW_HAS_HORIZONTAL_SCROLL_BAR(_ w: UnsafeMutableRawPointer?) -> Bool
+
+/// C 5575-5593: `static void ns_condemn_scroll_bars (struct frame *f)` - "External (hook): arrange
+/// for all frame's scrollbars to be removed at next call to judge_scroll_bars, except for those
+/// redeemed."  C's descending `for` is the `while` (the `initFrame:window:` reading), its
+/// `isKindOfClass: [EmacsScroller class]` is the port's own class test, and `condemn`'s
+/// `instancetype` result is discarded as C's statement discards it.
+fileprivate func ns_condemn_scroll_bars(_ f: UnsafeMutableRawPointer?) {
+  var i: Int32 = 0                                   // C 5581
+  let subviews = FRAME_NS_VIEW(f)?.superview?.subviews   // C 5582
+
+  // C 5585: `NSTRACE ("ns_condemn_scroll_bars");` - empty at `NSTRACE_ENABLED` 0.
+
+  i = Int32(subviews?.count ?? 0) - 1                // C 5587
+  while i >= 0 {                                     // C 5587 (C's descending `for`)
+    let view = subviews?[Int(i)]                     // C 5589
+    if view is EmacsScroller {                       // C 5590
+      _ = (view as? EmacsScroller)?.condemn()        // C 5591
+    }
+    i -= 1
+  }
+}
+
+/// C 5597-5618: `static void ns_redeem_scroll_bar (struct window *window)` - "External (hook):
+/// arrange to spare this window's scrollbar at next call to judge_scroll_bars."  C's `id bar` is
+/// `AnyObject?` here, C's `XNS_SCROLL_BAR` cast is the `as? EmacsScroller`, and each `[bar
+/// reprieve]` discards the `instancetype` result as C's statement does.
+fileprivate func ns_redeem_scroll_bar(_ window: UnsafeMutableRawPointer?) {
+  var bar: AnyObject? = nil                          // C 5603
+  // C 5604: `NSTRACE ("ns_redeem_scroll_bar");` - empty.
+
+  if !NILP(window_vertical_scroll_bar(window))       // C 5605
+       && WINDOW_HAS_VERTICAL_SCROLL_BAR(window) {   // C 5606
+    bar = XNS_SCROLL_BAR(window_vertical_scroll_bar(window))     // C 5608
+    _ = (bar as? EmacsScroller)?.reprieve()          // C 5609
+  }
+
+  if !NILP(window_horizontal_scroll_bar(window))     // C 5612
+       && WINDOW_HAS_HORIZONTAL_SCROLL_BAR(window) { // C 5613
+    bar = XNS_SCROLL_BAR(window_horizontal_scroll_bar(window))   // C 5615
+    _ = (bar as? EmacsScroller)?.reprieve()          // C 5616
+  }
+}
+
+/// C 5622-5640: `static void ns_judge_scroll_bars (struct frame *f)` - "External (hook): destroy all
+/// scrollbars on frame that weren't redeemed after call to condemn_scroll_bars."  C's `continue`
+/// is written as such here, which in a `while` needs the decrement both sides of it (C's `for`
+/// does that itself); `judge`'s `bool` result is discarded as C's statement discards it.
+fileprivate func ns_judge_scroll_bars(_ f: UnsafeMutableRawPointer?) {
+  var i: Int32 = 0                                   // C 5628
+  let eview = FRAME_NS_VIEW(f) as? EmacsView         // C 5630
+  let subviews = eview?.superview?.subviews          // C 5631
+
+  // C 5633: `NSTRACE ("ns_judge_scroll_bars");` - empty.
+
+  i = Int32(subviews?.count ?? 0) - 1                // C 5634
+  while i >= 0 {                                     // C 5634 (C's descending `for`)
+    let view = subviews?[Int(i)]                     // C 5636
+    if !(view is EmacsScroller) {                    // C 5637
+      i -= 1                                         // (C's `for` increment, before the `continue`)
+      continue
+    }
+    _ = (view as? EmacsScroller)?.judge()            // C 5638
+    i -= 1
+  }
+}
+
+/* C 2771-2786: `static void ns_redraw_scroll_bars (struct frame *f)` - **dead in this build**: C
+   opens `#ifdef NS_IMPL_GNUSTEP` at C 2771 and closes it at C 2786, so the whole definition is the
+   arm this target does not take.  Recorded, not transcribed (the `ns_update_window_end` and
+   `-updateMonitors:` reading); its body would walk `[[FRAME_NS_VIEW (f) superview] subviews]`
+   backwards, skipping everything that is not an `EmacsScroller`, and send each the rest `display`.
+   It sits after round 4's C 641-991 block, which is why it is recorded here.  */
+
+// ==========================================================================
+// Round 50: the `ns_create_terminal` entry layer (C 5906-5961)
+// ==========================================================================
+
+/// C: `output_ns` (src/termhooks.h 64) - the first argument C 5917 passes on.  It is a *type tag*,
+/// not a record: the anonymous enumeration it belongs to opens at src/termhooks.h 57.
+/// Its value is the mirror's (`src/include/termhooks.rs` 159 gives 5), the reading this unit
+/// already uses for enumerators the frozen macro table cannot decide.
+fileprivate let output_ns: Int32 = 5
+
+/// C: `struct terminal *create_terminal (enum output_method, struct redisplay_interface *)`
+/// (src/terminal.c) - the core's own entry (`src/terminal.rs` 366, `pub unsafe extern "C" fn`).
+@_silgen_name("create_terminal")
+func create_terminal(_ type: Int32, _ rif: UnsafeMutableRawPointer?) -> UnsafeMutableRawPointer?
+
+/// C: the `struct ns_display_info` member write `dpyinfo->terminal = terminal` (C 5920) - the setter
+/// of the reader round 40 added, of the `ns_display_info_set_*` family round 37 established.
+@_silgen_name("ns_display_info_set_terminal")
+func ns_display_info_set_terminal(_ f: UnsafeMutableRawPointer?, _ v: UnsafeMutableRawPointer?)
+
+/// C: the `struct terminal` hook members `ns_create_terminal` writes (C 5922-5957), as
+/// `<record>_set_<member>` entries - one per member, each with C's own function-pointer prototype
+/// (src/termhooks.h) spelled as an optional `@convention(c)` type.  The writes themselves land with
+/// the function's body in the next round (the box's text records the split); the entries come first
+/// because that body cannot be written without them.
+/// C: `void (*)(struct frame *)` (src/termhooks.h 94) - C 5922's write.
+@_silgen_name("terminal_set_clear_frame_hook")
+func terminal_set_clear_frame_hook(_ t: UnsafeMutableRawPointer?,
+                       _ h: (@convention(c) (UnsafeMutableRawPointer?) -> Void)?)
+/// C: `void (*)(struct frame *)` (src/termhooks.h 103) - C 5923's write.
+@_silgen_name("terminal_set_ring_bell_hook")
+func terminal_set_ring_bell_hook(_ t: UnsafeMutableRawPointer?,
+                       _ h: (@convention(c) (UnsafeMutableRawPointer?) -> Void)?)
+/// C: `void (*)(struct frame *)` (src/termhooks.h 109) - C 5924's write.
+@_silgen_name("terminal_set_update_begin_hook")
+func terminal_set_update_begin_hook(_ t: UnsafeMutableRawPointer?,
+                       _ h: (@convention(c) (UnsafeMutableRawPointer?) -> Void)?)
+/// C: `void (*)(struct frame *)` (src/termhooks.h 110) - C 5925's write.
+@_silgen_name("terminal_set_update_end_hook")
+func terminal_set_update_end_hook(_ t: UnsafeMutableRawPointer?,
+                       _ h: (@convention(c) (UnsafeMutableRawPointer?) -> Void)?)
+/// C: `int (*)(struct terminal *, struct input_event *)` (src/termhooks.h 357) - C 5926's write.  The
+/// second parameter is **untyped** here: a `@convention(c)` type cannot name this unit's Swift view
+/// of `struct input_event` (measured - `'(…) -> Int32' is not representable in Objective-C`), which
+/// is the same limitation round 2 recorded for `@_cdecl`.
+@_silgen_name("terminal_set_read_socket_hook")
+func terminal_set_read_socket_hook(_ t: UnsafeMutableRawPointer?,
+                       _ h: (@convention(c) (UnsafeMutableRawPointer?, UnsafeMutableRawPointer?) -> Int32)?)
+/// C: `void (*)(struct frame *)` (src/termhooks.h 361) - C 5927's write.
+@_silgen_name("terminal_set_frame_up_to_date_hook")
+func terminal_set_frame_up_to_date_hook(_ t: UnsafeMutableRawPointer?,
+                       _ h: (@convention(c) (UnsafeMutableRawPointer?) -> Void)?)
+/// C: `bool (*)(struct frame *, const char *, Emacs_Color *, bool, bool)` (src/termhooks.h 119) - C 5928's write.
+@_silgen_name("terminal_set_defined_color_hook")
+func terminal_set_defined_color_hook(_ t: UnsafeMutableRawPointer?,
+                       _ h: (@convention(c) (UnsafeMutableRawPointer?, UnsafePointer<CChar>?, UnsafeMutableRawPointer?, Bool, Bool) -> Bool)?)
+/// C: `void (*)(struct frame *, Emacs_Color *)` (src/termhooks.h 139) - C 5929's write.
+@_silgen_name("terminal_set_query_frame_background_color")
+func terminal_set_query_frame_background_color(_ t: UnsafeMutableRawPointer?,
+                       _ h: (@convention(c) (UnsafeMutableRawPointer?, UnsafeMutableRawPointer?) -> Void)?)
+/// C: `void (*)(struct frame **, int, Lisp_Object *, enum scroll_bar_part *, Lisp_Object *, Lisp_Object *, Time *)` (src/termhooks.h 163) - C 5930's write.
+@_silgen_name("terminal_set_mouse_position_hook")
+func terminal_set_mouse_position_hook(_ t: UnsafeMutableRawPointer?,
+                       _ h: (@convention(c) (UnsafeMutablePointer<UnsafeMutableRawPointer?>?, Int32, UnsafeMutablePointer<Lisp_Object>?, UnsafeMutablePointer<Int32>?, UnsafeMutablePointer<Lisp_Object>?, UnsafeMutablePointer<Lisp_Object>?, UnsafeMutablePointer<UInt>?) -> Void)?)
+/// C: `Lisp_Object (*)(struct frame *)` (src/termhooks.h 171) - C 5931's write.
+@_silgen_name("terminal_set_get_focus_frame")
+func terminal_set_get_focus_frame(_ t: UnsafeMutableRawPointer?,
+                       _ h: (@convention(c) (UnsafeMutableRawPointer?) -> Lisp_Object)?)
+/// C: `void (*)(struct frame *, bool)` (src/termhooks.h 174) - C 5932's write.
+@_silgen_name("terminal_set_focus_frame_hook")
+func terminal_set_focus_frame_hook(_ t: UnsafeMutableRawPointer?,
+                       _ h: (@convention(c) (UnsafeMutableRawPointer?, Bool) -> Void)?)
+/// C: `void (*)(struct frame *)` (src/termhooks.h 179) - C 5933's write.
+@_silgen_name("terminal_set_frame_rehighlight_hook")
+func terminal_set_frame_rehighlight_hook(_ t: UnsafeMutableRawPointer?,
+                       _ h: (@convention(c) (UnsafeMutableRawPointer?) -> Void)?)
+/// C: `void (*)(struct frame *, bool)` (src/termhooks.h 191) - C 5934's write.
+@_silgen_name("terminal_set_frame_raise_lower_hook")
+func terminal_set_frame_raise_lower_hook(_ t: UnsafeMutableRawPointer?,
+                       _ h: (@convention(c) (UnsafeMutableRawPointer?, Bool) -> Void)?)
+/// C: `void (*)(struct frame *, bool)` (src/termhooks.h 195) - C 5935's write.
+@_silgen_name("terminal_set_frame_visible_invisible_hook")
+func terminal_set_frame_visible_invisible_hook(_ t: UnsafeMutableRawPointer?,
+                       _ h: (@convention(c) (UnsafeMutableRawPointer?, Bool) -> Void)?)
+/// C: `void (*)(struct frame *)` (src/termhooks.h 200) - C 5936's write.
+@_silgen_name("terminal_set_fullscreen_hook")
+func terminal_set_fullscreen_hook(_ t: UnsafeMutableRawPointer?,
+                       _ h: (@convention(c) (UnsafeMutableRawPointer?) -> Void)?)
+/// C: `void (*)(struct frame *)` (src/termhooks.h 203) - C 5937's write.
+@_silgen_name("terminal_set_iconify_frame_hook")
+func terminal_set_iconify_frame_hook(_ t: UnsafeMutableRawPointer?,
+                       _ h: (@convention(c) (UnsafeMutableRawPointer?) -> Void)?)
+/// C: `void (*)(struct frame *, bool, int, int)` (src/termhooks.h 209) - C 5938's write.
+@_silgen_name("terminal_set_set_window_size_hook")
+func terminal_set_set_window_size_hook(_ t: UnsafeMutableRawPointer?,
+                       _ h: (@convention(c) (UnsafeMutableRawPointer?, Bool, Int32, Int32) -> Void)?)
+/// C: `void (*)(struct frame *, int, int)` (src/termhooks.h 214) - C 5939's write.
+@_silgen_name("terminal_set_set_window_size_and_position_hook")
+func terminal_set_set_window_size_and_position_hook(_ t: UnsafeMutableRawPointer?,
+                       _ h: (@convention(c) (UnsafeMutableRawPointer?, Int32, Int32) -> Void)?)
+/// C: `void (*)(struct frame *, int, int, int)` (src/termhooks.h 223) - C 5940's write.
+@_silgen_name("terminal_set_set_frame_offset_hook")
+func terminal_set_set_frame_offset_hook(_ t: UnsafeMutableRawPointer?,
+                       _ h: (@convention(c) (UnsafeMutableRawPointer?, Int32, Int32, Int32) -> Void)?)
+/// C: `void (*)(struct frame *)` (src/termhooks.h 227) - C 5941's write.
+@_silgen_name("terminal_set_set_frame_alpha_hook")
+func terminal_set_set_frame_alpha_hook(_ t: UnsafeMutableRawPointer?,
+                       _ h: (@convention(c) (UnsafeMutableRawPointer?) -> Void)?)
+/// C: `Lisp_Object (*)(struct frame *, Lisp_Object, int)` (src/termhooks.h 230) - C 5942's write.
+@_silgen_name("terminal_set_set_new_font_hook")
+func terminal_set_set_new_font_hook(_ t: UnsafeMutableRawPointer?,
+                       _ h: (@convention(c) (UnsafeMutableRawPointer?, Lisp_Object, Int32) -> Lisp_Object)?)
+/// C: `void (*)(struct frame *, Lisp_Object, Lisp_Object)` (src/termhooks.h 238) - C 5943's write.
+@_silgen_name("terminal_set_implicit_set_name_hook")
+func terminal_set_implicit_set_name_hook(_ t: UnsafeMutableRawPointer?,
+                       _ h: (@convention(c) (UnsafeMutableRawPointer?, Lisp_Object, Lisp_Object) -> Void)?)
+/// C: `Lisp_Object (*)(struct frame *, int, int, int, Lisp_Object, const char **)` (src/termhooks.h 242) - C 5944's write.
+@_silgen_name("terminal_set_menu_show_hook")
+func terminal_set_menu_show_hook(_ t: UnsafeMutableRawPointer?,
+                       _ h: (@convention(c) (UnsafeMutableRawPointer?, Int32, Int32, Int32, Lisp_Object, UnsafeMutablePointer<UnsafePointer<CChar>?>?) -> Lisp_Object)?)
+/// C: `Lisp_Object (*)(struct frame *, Lisp_Object, Lisp_Object)` (src/termhooks.h 251) - C 5945's write.
+@_silgen_name("terminal_set_popup_dialog_hook")
+func terminal_set_popup_dialog_hook(_ t: UnsafeMutableRawPointer?,
+                       _ h: (@convention(c) (UnsafeMutableRawPointer?, Lisp_Object, Lisp_Object) -> Lisp_Object)?)
+/// C: `void (*)(struct window *, int, int, int)` (src/termhooks.h 287) - C 5946's write.
+@_silgen_name("terminal_set_set_vertical_scroll_bar_hook")
+func terminal_set_set_vertical_scroll_bar_hook(_ t: UnsafeMutableRawPointer?,
+                       _ h: (@convention(c) (UnsafeMutableRawPointer?, Int32, Int32, Int32) -> Void)?)
+/// C: `void (*)(struct window *, int, int, int)` (src/termhooks.h 297) - C 5947's write.
+@_silgen_name("terminal_set_set_horizontal_scroll_bar_hook")
+func terminal_set_set_horizontal_scroll_bar_hook(_ t: UnsafeMutableRawPointer?,
+                       _ h: (@convention(c) (UnsafeMutableRawPointer?, Int32, Int32, Int32) -> Void)?)
+/// C: `void (*)(struct frame *)` (src/termhooks.h 302) - C 5948's write.
+@_silgen_name("terminal_set_set_scroll_bar_default_width_hook")
+func terminal_set_set_scroll_bar_default_width_hook(_ t: UnsafeMutableRawPointer?,
+                       _ h: (@convention(c) (UnsafeMutableRawPointer?) -> Void)?)
+/// C: `void (*)(struct frame *)` (src/termhooks.h 305) - C 5949's write.
+@_silgen_name("terminal_set_set_scroll_bar_default_height_hook")
+func terminal_set_set_scroll_bar_default_height_hook(_ t: UnsafeMutableRawPointer?,
+                       _ h: (@convention(c) (UnsafeMutableRawPointer?) -> Void)?)
+/// C: `void (*)(struct frame *)` (src/termhooks.h 327) - C 5950's write.
+@_silgen_name("terminal_set_condemn_scroll_bars_hook")
+func terminal_set_condemn_scroll_bars_hook(_ t: UnsafeMutableRawPointer?,
+                       _ h: (@convention(c) (UnsafeMutableRawPointer?) -> Void)?)
+/// C: `void (*)(struct window *)` (src/termhooks.h 331) - C 5951's write.
+@_silgen_name("terminal_set_redeem_scroll_bar_hook")
+func terminal_set_redeem_scroll_bar_hook(_ t: UnsafeMutableRawPointer?,
+                       _ h: (@convention(c) (UnsafeMutableRawPointer?) -> Void)?)
+/// C: `void (*)(struct frame *)` (src/termhooks.h 344) - C 5952's write.
+@_silgen_name("terminal_set_judge_scroll_bars_hook")
+func terminal_set_judge_scroll_bars_hook(_ t: UnsafeMutableRawPointer?,
+                       _ h: (@convention(c) (UnsafeMutableRawPointer?) -> Void)?)
+/// C: `const char *(*)(void *, const char *, const char *)` (src/termhooks.h 370) - C 5953's write.
+@_silgen_name("terminal_set_get_string_resource_hook")
+func terminal_set_get_string_resource_hook(_ t: UnsafeMutableRawPointer?,
+                       _ h: (@convention(c) (UnsafeMutableRawPointer?, UnsafePointer<CChar>?, UnsafePointer<CChar>?) -> UnsafePointer<CChar>?)?)
+/// C: `void (*)(struct frame *, Emacs_Pixmap)` (src/termhooks.h 377) - C 5954's write.
+@_silgen_name("terminal_set_free_pixmap")
+func terminal_set_free_pixmap(_ t: UnsafeMutableRawPointer?,
+                       _ h: (@convention(c) (UnsafeMutableRawPointer?, UnsafeMutableRawPointer?) -> Void)?)
+/// C: `void (*)(struct frame *)` (src/termhooks.h 385) - C 5955's write.
+@_silgen_name("terminal_set_delete_frame_hook")
+func terminal_set_delete_frame_hook(_ t: UnsafeMutableRawPointer?,
+                       _ h: (@convention(c) (UnsafeMutableRawPointer?) -> Void)?)
+/// C: `void (*)(struct terminal *)` (src/termhooks.h 397) - C 5956's write.
+@_silgen_name("terminal_set_delete_terminal_hook")
+func terminal_set_delete_terminal_hook(_ t: UnsafeMutableRawPointer?,
+                       _ h: (@convention(c) (UnsafeMutableRawPointer?) -> Void)?)
+/// C: `void (*)(struct frame *, int)` (src/termhooks.h 255) - C 5957's write.
+@_silgen_name("terminal_set_change_tab_bar_height_hook")
+func terminal_set_change_tab_bar_height_hook(_ t: UnsafeMutableRawPointer?,
+                       _ h: (@convention(c) (UnsafeMutableRawPointer?, Int32) -> Void)?)
+
+// ==========================================================================
+// Round 51: `ns_new_font` (C 11410-11476) - the hook `ns_create_terminal`'s
+// body is still missing (C 5942)
+// ==========================================================================
+
+/// C: the frame and font members `ns_new_font` reads and writes.  Reads keep the accessor
+/// macro's own name (the unit's practice, `FRAME_FONT`/`FRAME_COLUMN_WIDTH` above); **writes go
+/// through the setter of the family the record belongs to** - `ns_output_set_*` for the
+/// `struct ns_output` members `FRAME_FONT`/`FRAME_FONTSET`/`FRAME_BASELINE_OFFSET` name
+/// (src/nsterm.h 1049-1051, the family `ns_output_set_current_pointer` already belongs to) and
+/// `frame_set_*` for the `struct frame` members (src/frame.h, the family `frame_set_terminal`
+/// belongs to).
+@_silgen_name("XFONT_OBJECT") func XFONT_OBJECT(_ p: Lisp_Object) -> UnsafeMutableRawPointer?
+@_silgen_name("fontset_from_font") func fontset_from_font(_ font_object: Lisp_Object) -> Int32
+@_silgen_name("ns_output_set_fontset")
+func ns_output_set_fontset(_ f: UnsafeMutableRawPointer?, _ v: Int32)
+@_silgen_name("ns_output_set_font")
+func ns_output_set_font(_ f: UnsafeMutableRawPointer?, _ v: UnsafeMutableRawPointer?)
+@_silgen_name("ns_output_set_baseline_offset")
+func ns_output_set_baseline_offset(_ f: UnsafeMutableRawPointer?, _ v: Int32)
+@_silgen_name("frame_set_column_width")
+func frame_set_column_width(_ f: UnsafeMutableRawPointer?, _ v: Int32)
+@_silgen_name("FRAME_LINE_HEIGHT") func FRAME_LINE_HEIGHT(_ f: UnsafeMutableRawPointer?) -> Int32
+@_silgen_name("frame_set_line_height")
+func frame_set_line_height(_ f: UnsafeMutableRawPointer?, _ v: Int32)
+@_silgen_name("FRAME_CONFIG_SCROLL_BAR_WIDTH")
+func FRAME_CONFIG_SCROLL_BAR_WIDTH(_ f: UnsafeMutableRawPointer?) -> Int32
+@_silgen_name("FRAME_CONFIG_SCROLL_BAR_HEIGHT")
+func FRAME_CONFIG_SCROLL_BAR_HEIGHT(_ f: UnsafeMutableRawPointer?) -> Int32
+@_silgen_name("frame_set_config_scroll_bar_cols")
+func frame_set_config_scroll_bar_cols(_ f: UnsafeMutableRawPointer?, _ v: Int32)
+@_silgen_name("frame_set_config_scroll_bar_lines")
+func frame_set_config_scroll_bar_lines(_ f: UnsafeMutableRawPointer?, _ v: Int32)
+@_silgen_name("FRAME_COLS") func FRAME_COLS(_ f: UnsafeMutableRawPointer?) -> Int32
+@_silgen_name("FRAME_LINES") func FRAME_LINES(_ f: UnsafeMutableRawPointer?) -> Int32
+/// C: `FRAME_NS_WINDOW (f)` = the `struct ns_output` member `window_desc` (src/nsterm.h 1034) - an
+/// `ns_output_<member>` reader, the family `ns_output_miniimage` belongs to.
+@_silgen_name("ns_output_window_desc")
+func ns_output_window_desc(_ f: UnsafeMutableRawPointer?) -> Int32
+/// C: `void get_font_ascent_descent (struct font *, int *, int *)` (src/font.h) and
+/// `void adjust_frame_size (struct frame *, int, int, int, bool, Lisp_Object)` (src/frame.h 1511) -
+/// the two core functions this hook calls.
+@_silgen_name("get_font_ascent_descent")
+func get_font_ascent_descent(_ font: UnsafeMutableRawPointer?,
+                             _ ascent: UnsafeMutablePointer<Int32>?,
+                             _ descent: UnsafeMutablePointer<Int32>?)
+@_silgen_name("adjust_frame_size")
+func adjust_frame_size(_ f: UnsafeMutableRawPointer?, _ new_width: Int32, _ new_height: Int32,
+                       _ inhibit: Int32, _ inhibit_x: Bool, _ parameter: Lisp_Object)
+/// C: `Qfont` - the symbol `src/textprop.c` 2439 defines (`docs/baseline/globals/symbols.tsv` 858),
+/// read as data symbol the way `Qnil` is.
+@_silgen_name("Qfont") func Qfont() -> Lisp_Object
+/// C: `struct font`'s members `baseline_offset` and `average_width` (src/font.h) - the
+/// `font_<member>` family the unit already reads (`font_descent`, `font_underline_thickness`).
+@_silgen_name("font_baseline_offset")
+func font_baseline_offset(_ font: UnsafeMutableRawPointer?) -> Int32
+@_silgen_name("font_average_width")
+func font_average_width(_ font: UnsafeMutableRawPointer?) -> Int32
+
+/// C 11410-11476: `static Lisp_Object ns_new_font (struct frame *f, Lisp_Object font_object, int
+/// fontset)` - the header above it reads "Font-related functions; these used to be in nsfaces.m",
+/// and its own comment is "External (hook)".  It lands here, ahead of `ns_create_terminal`'s body,
+/// because C 5942 hands it to `terminal->set_new_font_hook` (the dependency order P-91 ① allows);
+/// C's reassignment of the `fontset` parameter is the shadow spelling this lane uses, and C 11470's
+/// `! [view isFullscreen]` on a possibly-nil view is C's nil-receiver answer.
+fileprivate func ns_new_font(_ f: UnsafeMutableRawPointer?, _ font_object: Lisp_Object,
+                             _ fontsetIn: Int32) -> Lisp_Object {
+  let font = XFONT_OBJECT(font_object)               // C 11423
+  let view = FRAME_NS_VIEW(f) as? EmacsView          // C 11424
+  var font_ascent: Int32 = 0                         // C 11425
+  var font_descent: Int32 = 0
+  var fontset = fontsetIn                            // C 11428 reassigns C's parameter
+
+  if fontset < 0 {                                   // C 11427
+    fontset = fontset_from_font(font_object)         // C 11428
+  }
+  ns_output_set_fontset(f, fontset)                  // C 11429
+
+  if FRAME_FONT(f) == font {                         // C 11431
+    /* This font is already set in frame F.  There's nothing more to
+       do.  */
+    return font_object                               // C 11434
+  }
+
+  ns_output_set_font(f, font)                        // C 11436
+  ns_output_set_baseline_offset(f, font_baseline_offset(font))      // C 11438
+  frame_set_column_width(f, font_average_width(font))               // C 11439
+  get_font_ascent_descent(font, &font_ascent, &font_descent)        // C 11440
+  frame_set_line_height(f, font_ascent + font_descent)              // C 11441
+
+  /* Compute the scroll bar width in character columns.  */
+  if FRAME_CONFIG_SCROLL_BAR_WIDTH(f) > 0 {          // C 11444
+    let wid = FRAME_COLUMN_WIDTH(f)                  // C 11446
+    frame_set_config_scroll_bar_cols(f, (FRAME_CONFIG_SCROLL_BAR_WIDTH(f) + wid - 1) / wid)   // C 11447-11448
+  } else {
+    let wid = FRAME_COLUMN_WIDTH(f)                  // C 11452
+    frame_set_config_scroll_bar_cols(f, (14 + wid - 1) / wid)   // C 11453
+  }
+
+  /* Compute the scroll bar height in character lines.  */
+  if FRAME_CONFIG_SCROLL_BAR_HEIGHT(f) > 0 {         // C 11457
+    let height = FRAME_LINE_HEIGHT(f)                // C 11459
+    frame_set_config_scroll_bar_lines(f, (FRAME_CONFIG_SCROLL_BAR_HEIGHT(f) + height - 1) / height)   // C 11460-11461
+  } else {
+    let height = FRAME_LINE_HEIGHT(f)                // C 11465
+    frame_set_config_scroll_bar_lines(f, (14 + height - 1) / height)   // C 11466
+  }
+
+  /* Now make the frame display the given font.  */
+  if ns_output_window_desc(f) != 0 && !(view?.isFullscreen() ?? false) {   // C 11470
+    adjust_frame_size(f, FRAME_COLS(f) * FRAME_COLUMN_WIDTH(f),      // C 11471
+                      FRAME_LINES(f) * FRAME_LINE_HEIGHT(f), 3,      // C 11472
+                      false, Qfont())                                // C 11473
+  }
+
+  return font_object                                 // C 11475
+}
+
+// ==========================================================================
+// Round 52: `ns_create_terminal` (C 5906-5961) and the seven cross-lane hooks
+// ==========================================================================
+
+/// C: the `struct terminal` member write `terminal->display_info.ns = dpyinfo` (C 5919) - the writer
+/// of round 40's `terminal_display_info_ns` reader.
+@_silgen_name("terminal_set_display_info_ns")
+func terminal_set_display_info_ns(_ t: UnsafeMutableRawPointer?, _ v: UnsafeMutableRawPointer?)
+
+/// C: the seven hook functions C 5943-5957 hands the terminal that this unit does not define - the
+/// `nsfns.swift` and `nsmenu.swift` lanes export them under C's names (`@_cdecl`), so this unit
+/// reaches them by declaring the same C-ABI signature (the `Fns_get_resource` import shape).
+@_silgen_name("ns_implicitly_set_name")
+func ns_implicitly_set_name(_ f: UnsafeMutableRawPointer?, _ arg: Lisp_Object, _ oldval: Lisp_Object)
+@_silgen_name("ns_menu_show")
+func ns_menu_show(_ f: UnsafeMutableRawPointer?, _ x: Int32, _ y: Int32, _ menuflags: Int32,
+                  _ title: Lisp_Object, _ error: UnsafeMutablePointer<UnsafePointer<CChar>?>?)
+  -> Lisp_Object
+@_silgen_name("ns_popup_dialog")
+func ns_popup_dialog(_ f: UnsafeMutableRawPointer?, _ header: Lisp_Object,
+                     _ contents: Lisp_Object) -> Lisp_Object
+@_silgen_name("ns_set_scroll_bar_default_width")
+func ns_set_scroll_bar_default_width(_ f: UnsafeMutableRawPointer?)
+@_silgen_name("ns_set_scroll_bar_default_height")
+func ns_set_scroll_bar_default_height(_ f: UnsafeMutableRawPointer?)
+@_silgen_name("ns_get_string_resource")
+func ns_get_string_resource(_ rdb: UnsafeMutableRawPointer?, _ name: UnsafePointer<CChar>,
+                            _ class_: UnsafePointer<CChar>) -> UnsafeMutablePointer<CChar>?
+@_silgen_name("ns_change_tab_bar_height")
+func ns_change_tab_bar_height(_ f: UnsafeMutableRawPointer?, _ height: Int32)
+
+/// C 5906-5961: `static struct terminal *ns_create_terminal (struct ns_display_info *dpyinfo)` -
+/// "Set up use of NS before we make the first connection."  C 5915's `NSTRACE` is the empty macro;
+/// C 5917's `&ns_redisplay_interface` is round 39's table, whose address is taken the way that
+/// round takes it; C 5920's write is round 50's setter; and C 5922-5957's 36 hook writes are
+/// non-capturing `@convention(c)` closures over the ported hook functions (the round-39 shape),
+/// with the record-typed parameters C's own C prototypes cannot name converted where they cross
+/// (C 5926's `input_event *`, C 5929's `Emacs_Color *` and C 5953's `char *` return).
+fileprivate func ns_create_terminal(_ dpyinfo: UnsafeMutableRawPointer?) -> UnsafeMutableRawPointer? {
+  // C 5915: `NSTRACE ("ns_create_terminal");` - empty at `NSTRACE_ENABLED` 0.
+
+  let terminal = create_terminal(output_ns,
+                                 withUnsafeMutablePointer(to: &ns_redisplay_interface) { $0 })   // C 5917
+
+  terminal_set_display_info_ns(terminal, dpyinfo)    // C 5919
+  ns_display_info_set_terminal(dpyinfo, terminal)    // C 5920
+
+  terminal_set_clear_frame_hook(terminal, { f in ns_clear_frame(f) })            // C 5922
+  terminal_set_ring_bell_hook(terminal, { f in ns_ring_bell(f) })                // C 5923
+  terminal_set_update_begin_hook(terminal, { f in ns_update_begin(f) })          // C 5924
+  terminal_set_update_end_hook(terminal, { f in ns_update_end(f) })              // C 5925
+  terminal_set_read_socket_hook(terminal, { t, hold_quit in                      // C 5926
+    ns_read_socket(t, hold_quit?.assumingMemoryBound(to: input_event.self)) })
+  terminal_set_frame_up_to_date_hook(terminal, { f in ns_frame_up_to_date(f) })  // C 5927
+  terminal_set_defined_color_hook(terminal, { f, name, color_def, alloc, make_index in   // C 5928
+    ns_defined_color(f, name, color_def, alloc, make_index) })
+  terminal_set_query_frame_background_color(terminal, { f, bgcolor in            // C 5929
+    ns_query_frame_background_color(f, bgcolor!.assumingMemoryBound(to: Emacs_Color.self)) })
+  terminal_set_mouse_position_hook(terminal, { fp, insist, bar_window, part, x, y, time in  // C 5930
+    ns_mouse_position(fp, insist, bar_window, part, x, y, time) })
+  terminal_set_get_focus_frame(terminal, { f in ns_get_focus_frame(f) })         // C 5931
+  terminal_set_focus_frame_hook(terminal, { f, noactivate in                     // C 5932
+    ns_focus_frame(f, noactivate) })
+  terminal_set_frame_rehighlight_hook(terminal, { f in ns_frame_rehighlight(f) })  // C 5933
+  terminal_set_frame_raise_lower_hook(terminal, { f, raise_flag in               // C 5934
+    ns_frame_raise_lower(f, raise_flag) })
+  terminal_set_frame_visible_invisible_hook(terminal, { f, visible in            // C 5935
+    ns_make_frame_visible_invisible(f, visible) })
+  terminal_set_fullscreen_hook(terminal, { f in ns_fullscreen_hook(f) })         // C 5936
+  terminal_set_iconify_frame_hook(terminal, { f in ns_iconify_frame(f) })        // C 5937
+  terminal_set_set_window_size_hook(terminal, { f, change_gravity, width, height in   // C 5938
+    ns_set_window_size(f, change_gravity, width, height) })
+  terminal_set_set_window_size_and_position_hook(terminal, { f, width, height in      // C 5939
+    ns_set_window_size_and_position(f, width, height) })
+  terminal_set_set_frame_offset_hook(terminal, { f, xoff, yoff, change_gravity in     // C 5940
+    ns_set_offset(f, xoff, yoff, change_gravity) })
+  terminal_set_set_frame_alpha_hook(terminal, { f in ns_set_frame_alpha(f) })    // C 5941
+  terminal_set_set_new_font_hook(terminal, { f, font_object, fontset in          // C 5942
+    ns_new_font(f, font_object, fontset) })
+  terminal_set_implicit_set_name_hook(terminal, { f, arg, oldval in              // C 5943
+    ns_implicitly_set_name(f, arg, oldval) })
+  terminal_set_menu_show_hook(terminal, { f, x, y, menuflags, title, error_name in   // C 5944
+    ns_menu_show(f, x, y, menuflags, title, error_name) })
+  terminal_set_popup_dialog_hook(terminal, { f, header, contents in              // C 5945
+    ns_popup_dialog(f, header, contents) })
+  terminal_set_set_vertical_scroll_bar_hook(terminal,                            // C 5946
+    { window, portion, whole, position in
+      ns_set_vertical_scroll_bar(window, portion, whole, position) })
+  terminal_set_set_horizontal_scroll_bar_hook(terminal,                          // C 5947
+    { window, portion, whole, position in
+      ns_set_horizontal_scroll_bar(window, portion, whole, position) })
+  terminal_set_set_scroll_bar_default_width_hook(terminal, { frame in            // C 5948
+    ns_set_scroll_bar_default_width(frame) })
+  terminal_set_set_scroll_bar_default_height_hook(terminal, { frame in           // C 5949
+    ns_set_scroll_bar_default_height(frame) })
+  terminal_set_condemn_scroll_bars_hook(terminal, { frame in                     // C 5950
+    ns_condemn_scroll_bars(frame) })
+  terminal_set_redeem_scroll_bar_hook(terminal, { window in                      // C 5951
+    ns_redeem_scroll_bar(window) })
+  terminal_set_judge_scroll_bars_hook(terminal, { frame in                       // C 5952
+    ns_judge_scroll_bars(frame) })
+  terminal_set_get_string_resource_hook(terminal, { rdb, name, class_ in         // C 5953
+    UnsafePointer(ns_get_string_resource(rdb, name!, class_!)) })
+  terminal_set_free_pixmap(terminal, { f, pixmap in ns_free_pixmap(f, pixmap) }) // C 5954
+  terminal_set_delete_frame_hook(terminal, { f in ns_destroy_window(f) })        // C 5955
+  terminal_set_delete_terminal_hook(terminal, { t in ns_delete_terminal(t) })    // C 5956
+  terminal_set_change_tab_bar_height_hook(terminal, { f, height in               // C 5957
+    ns_change_tab_bar_height(f, height) })
+
+  /* Other hooks are NULL by default.  */
+
+  return terminal                                   // C 5960
+}
+
+// ==========================================================================
+// Round 53: `mark_nsterm` (C 11528-11547), and the dead `hide_bell` (C 1469-1483)
+// ==========================================================================
+
+/* C 1469-1483: `static void hide_bell (void)` - **dead in this build**: C opens
+   `#if !defined (NS_IMPL_COCOA) || MAC_OS_X_VERSION_MIN_REQUIRED < 101400` at C 1469 and closes it at
+   C 1483, and this target is both Cocoa and 260000, so the whole definition is the arm that does not
+   exist here.  Recorded, not transcribed (the `ns_redraw_scroll_bars` reading); its body would send
+   the file's own `bell_view` the `remove` message.  */
+
+/// C 11528-11547: `void mark_nsterm (void)` - the GC marker (declared src/nsterm.h 1276), which walks
+/// every frame's scrollers and sends each the `mark` method round 43 landed.  It needs **no new
+/// entry**: the `FOR_EACH_FRAME` spelling, `FRAME_NS_P`, `FRAME_NS_VIEW`, `CONSP`/`XCAR`/`XCDR` and
+/// the `isKindOfClass:` test are all the unit's own already, and C's descending `for` is the `while`
+/// the class rounds use.
+@_cdecl("mark_nsterm")
+func mark_nsterm() {
+  // C 11531: `NSTRACE ("mark_nsterm");` - empty at `NSTRACE_ENABLED` 0.
+
+  var tail: Lisp_Object = Vframe_list                 // C 11532-11533 (C's `FOR_EACH_FRAME`)
+  while CONSP(tail) {
+    let frame = XCAR(tail)
+    let f = XFRAME(frame)                             // C 11535
+    if FRAME_NS_P(f) {                                // C 11536
+      let subviews = FRAME_NS_VIEW(f)?.superview?.subviews   // C 11538
+      var i = Int32(subviews?.count ?? 0) - 1         // C 11539
+      while i >= 0 {                                  // C 11539 (C's descending `for`)
+        let scroller = subviews?[Int(i)]              // C 11541
+        if scroller is EmacsScroller {                // C 11542
+          _ = (scroller as? EmacsScroller)?.mark()    // C 11543
+        }
+        i -= 1
+      }
+    }
+    tail = XCDR(tail)
+  }
+}
+
+// ==========================================================================
+// Round 54: the `ns_term_init` entry layer (C 5965-6194)
+// ==========================================================================
+
+/// C: the core names `ns_term_init`'s body needs, each with C's own prototype or type.  The body
+/// itself (the prologue's pipe/FD setup, the anti-alias defaults, the whole macOS menu block of
+/// C 6083-6141, the pasteboard types, `[NSApp run]` and the reconfiguration callback) is the
+/// remainder, cut the way `ns_create_terminal`'s was (the box's text records it), together with
+/// three names this round names rather than guesses: `EmacsMenu`'s `-initWithTitle:` (the class is
+/// `nsmenu.swift` 829 and that lane has no entry for it yet - the `EmacsWindow_initWithEmacsFrame_impl`
+/// shape is what it needs), `CGDisplayRegisterReconfigurationCallback` (CoreGraphics, C 6184) and
+/// the `fd_set`/`FD_ZERO` spelling C 6002-6003 uses (this unit's `select_readfds`/`select_writefds`
+/// are `fd_set` values, and the operation's Swift form has not been settled yet).
+@_silgen_name("baud_rate") var baud_rate: Int32                          // C 5989
+@_silgen_name("Fset_input_interrupt_mode")
+func Fset_input_interrupt_mode(_ value: Lisp_Object) -> Lisp_Object      // C 5990
+@_silgen_name("emacs_pipe") func emacs_pipe(_ fds: UnsafeMutablePointer<Int32>?) -> Int32   // C 5994
+@_silgen_name("emacs_strerror")
+func emacs_strerror(_ errnum: Int32) -> UnsafeMutablePointer<CChar>?     // C 5997
+/// C: `int fcntl (int, int, ...)` (fcntl.h) - variadic, so it is reached the way this unit reaches
+/// `fprintf` (a `@_silgen_name` declaration with a Swift variadic list).
+@_silgen_name("fcntl") func fcntl(_ fd: Int32, _ cmd: Int32, _ args: CVarArg...) -> Int32   // C 6001
+@_silgen_name("xzalloc") func xzalloc(_ size: Int) -> UnsafeMutableRawPointer?   // C 6038
+@_silgen_name("allocate_kboard")
+func allocate_kboard(_ type: Lisp_Object) -> UnsafeMutableRawPointer?    // C 6043
+@_silgen_name("Qns") func Qns() -> Lisp_Object                           // C 6043
+@_silgen_name("current_kboard") var current_kboard: UnsafeMutableRawPointer?   // C 6047-6048
+@_silgen_name("initial_kboard") var initial_kboard: UnsafeMutableRawPointer?   // C 6047
+@_silgen_name("Fcons") func Fcons(_ car: Lisp_Object, _ cdr: Lisp_Object) -> Lisp_Object   // C 6054
+@_silgen_name("xlispstrdup")
+func xlispstrdup(_ string: Lisp_Object) -> UnsafeMutablePointer<CChar>?  // C 6056
+@_silgen_name("gui_init_fringe") func gui_init_fringe(_ rif: UnsafeMutableRawPointer?)   // C 6058
+@_silgen_name("inhibit_x_resources") var inhibit_x_resources: Bool       // C 6062
+@_silgen_name("extract_float") func extract_float(_ f: Lisp_Object) -> Double   // C 6070
+/// C: `ns_antialias_text` (C 6064's `&ns_antialias_text`, C 11685's `DEFVAR_LISP`) - **not a
+/// file-scope object of this file, corrected in round 55**: the reference declares and defines it
+/// nowhere (a grep over the tree finds only those two uses and one read at src/macfont.m 2934), and
+/// C 11685's `DEFVAR_LISP` builds the name `globals.f_ns_antialias_text` out of its second argument -
+/// so it is a configuration-specific global, absent from `docs/baseline/globals/symbols.tsv` for the
+/// very reason `QCmouse` is (that table comes from a build that never compiles this file).  It is a
+/// data entry whose address C 6064 hands `ns_default` (the `kbd_buffer` shape).
+@_silgen_name("ns_antialias_text") var ns_antialias_text: Lisp_Object     // C 6064
+@_silgen_name("delete_keyboard_wait_descriptor")
+func delete_keyboard_wait_descriptor(_ fd: Int32)                        // C 6075
+/// C: the `struct terminal` writes C 6043/6049/6056 makes (`kboard`, its `reference_count++` and
+/// `name`) and the `struct kboard` reader/writer pair they need, as `<record>_set_<member>` /
+/// `<record>_<member>` entries.
+@_silgen_name("terminal_set_kboard")
+func terminal_set_kboard(_ t: UnsafeMutableRawPointer?, _ k: UnsafeMutableRawPointer?)
+@_silgen_name("terminal_kboard")
+func terminal_kboard(_ t: UnsafeMutableRawPointer?) -> UnsafeMutableRawPointer?
+@_silgen_name("kboard_reference_count")
+func kboard_reference_count(_ k: UnsafeMutableRawPointer?) -> Int32
+@_silgen_name("kboard_set_reference_count")
+func kboard_set_reference_count(_ k: UnsafeMutableRawPointer?, _ v: Int32)
+@_silgen_name("terminal_set_name")
+func terminal_set_name(_ t: UnsafeMutableRawPointer?, _ v: UnsafeMutablePointer<CChar>?)
+/// C: the `struct ns_display_info` writes C 6051/6054 make (`next`, `name_list_element`) - the
+/// round-37 setter family.
+@_silgen_name("ns_display_info_set_next")
+func ns_display_info_set_next(_ f: UnsafeMutableRawPointer?, _ v: UnsafeMutableRawPointer?)
+@_silgen_name("ns_display_info_set_name_list_element")
+func ns_display_info_set_name_list_element(_ f: UnsafeMutableRawPointer?, _ v: Lisp_Object)
+
+// ==========================================================================
+// Round 55: the four names `ns_term_init`'s body takes, and one correction
+// ==========================================================================
+
+/// C: `EmacsMenu`'s `-initWithTitle:` (C 6088/6090/6092/6093) - the class is `nsmenu.swift` 829, and
+/// that lane has no entry for this initializer yet, so this is the `EmacsWindow_initWithEmacsFrame_impl`
+/// shape: the entry is declared here and its provider is that lane's to add.
+@_silgen_name("EmacsMenu_initWithTitle")
+func EmacsMenu_initWithTitle(_ title: String) -> AnyObject?
+
+/// C: `CGError CGDisplayRegisterReconfigurationCallback (CGDisplayReconfigurationCallBack, void *)`
+/// (CoreGraphics) - **round 57 removed the local declaration round 55 put here**.  Measured: the
+/// SDK's own CoreGraphics module exports that name to Swift, with C's two nominal typedefs in the
+/// callback type, so the entry was not needed - and it made the call **ambiguous**
+/// (`error: ambiguous use of 'CGDisplayRegisterReconfigurationCallback'`, two candidates, one per
+/// declaration).  C 6184 is therefore reached by name with no declaration of this unit's own; that
+/// is the `strtod` reading of round 36.
+
+/// C: the `struct terminal` member C 6058 reads, `terminal->rif` - a `<record>_<member>` reader of
+/// the family round 54 added the writer-side of.
+@_silgen_name("terminal_rif")
+func terminal_rif(_ t: UnsafeMutableRawPointer?) -> UnsafeMutableRawPointer?
+
+/// C: the function-local `static int ns_initialized = 0;` (C 5972) - a file-scope Swift `var`, since
+/// Swift has no function-local static storage (the `timed_entry` reading of round 22).
+fileprivate var ns_initialized: Int32 = 0
+
+// ==========================================================================
+// Round 56: `ns_term_shutdown` (C 6197-6215), and the two last names
+// `ns_term_init`'s body needs
+// ==========================================================================
+
+/// C: `Lisp_Object Vauto_save_list_file_name` (src/emacs.c) - C 6208's read, a data entry like the
+/// core variables this unit already imports.
+@_silgen_name("Vauto_save_list_file_name") var Vauto_save_list_file_name: Lisp_Object
+
+/// C: `EmacsMenu *svcsMenu` (src/nsmenu.m 50, declared src/nsterm.h 776) - **another unit's global**,
+/// which C 6088-6138 writes and reads inside `ns_term_init`'s menu block.  The class it points at is
+/// `nsmenu.swift` 829's, so this is the `ns_frame_parm_handlers` shape: the entry is declared here
+/// and its provider is that lane's to add (a Swift class cannot carry a C-named data symbol by
+/// itself).
+@_silgen_name("svcsMenu") var svcsMenu: UnsafeMutableRawPointer?
+
+/// C 6197-6215: `void ns_term_shutdown (int sig)` (declared src/nsterm.h 1206).  C's
+/// `[[NSAutoreleasePool alloc] init]`/`[pool release]` pair is this unit's own push/pop entries (the
+/// `ns_init_pool` reading), C 6204's `synchronize` is `UserDefaults.standard.synchronize ()`,
+/// C 6209's `unlink` takes C's `SSDATA`, and C 6212's `[NSApp terminate: NSApp]` is
+/// `NSApp.terminate (NSApp)`.
+@_cdecl("ns_term_shutdown")
+func ns_term_shutdown(_ sig: Int32) {
+  var pool: UnsafeMutableRawPointer? = nil           // C 6200
+  /* We also need an autorelease pool here, since this can be called
+     during dumping.  */
+  pool = objc_autoreleasePoolPush()                  // C 6203
+  UserDefaults.standard.synchronize()                // C 6204
+  objc_autoreleasePoolPop(pool)                      // C 6205 (C's `[pool release]`)
+
+  /* code not reached in emacs.c after this is called by shut_down_emacs: */
+  if STRINGP(Vauto_save_list_file_name) {            // C 6208
+    _ = unlink(SSDATA(Vauto_save_list_file_name))    // C 6209 (C discards `unlink`'s result)
+  }
+
+  if sig == 0 || sig == SIGTERM {                    // C 6211
+    NSApp.terminate(NSApp)                           // C 6212
+  } else { /* Force a stack trace to happen.  */
+    emacs_abort()                                    // C 6214
+  }
+}
+
+// ==========================================================================
+// Round 57: `ns_term_init`'s body (C 5969-6193)
+// ==========================================================================
+
+/// C 5965-6194: `struct ns_display_info *ns_term_init (Lisp_Object display_name)` - "Start the
+/// Application and get things rolling."  Declared src/nsterm.h 1108 and called from src/emacs.c,
+/// so it is a `@_cdecl` export of the `ns_term_shutdown` shape.  Rounds 54/55 landed every name the
+/// body needs and round 56 the last two, so this round is the body alone - one slice, because a
+/// half-written `ns_term_init` leaves the terminal half-constructed.
+///
+/// The guards this target's frozen configuration decides (`docs/baseline/config/darwin-arm64.macros.tsv`,
+/// the `hide_bell` reading: `__ENVIRONMENT_MAC_OS_X_VERSION_MIN_REQUIRED__` is 260000 and
+/// `MAC_OS_X_VERSION_MAX_ALLOWED` is that same macro, `NS_IMPL_COCOA` defined):
+///  * C 6011-6018's `>= 260000` block - the live arm, so the two `registerDefaults:` keys are
+///    transcribed; the Swift `#if` can only test the macro's definedness, which is why the arm is
+///    written out instead of a `#if`.
+///  * C 6083-6142's `#ifdef NS_IMPL_COCOA` menu block - live, transcribed in C's order.
+///  * C 6165-6169's `>= 140000` pair - the live arm is `[NSApp activate]`; the
+///    `activateIgnoringOtherApps:` arm is dead here.
+///  * C 6158's `NSFilenamesPboardType` arm (`#if NS_USE_NSPasteboardTypeFileURL != 0`; src/nsterm.h
+///    44-49 defines it 1 for Cocoa with a minimum of 101300 or more) and C 6173-6177's
+///    `#ifdef NS_IMPL_GNUSTEP` `catch_child_signal ()` - the two arms this target does not take,
+///    recorded and not transcribed (the `docs/ports/nsselect.md` reading of the same macro).
+///
+/// Three spellings C has that Swift does not, each with the reading that fixes it:
+///  * `[NSApp setDelegate: NSApp]` (C 6026): the reference's `@interface EmacsApp : NSApplication`
+///    (src/nsterm.h 378) declares no protocol list, while Swift's `NSApplication.delegate` is typed
+///    `(any NSApplicationDelegate)?` - so the property would need a conformance the reference does
+///    not declare, and `as?` would *drop* the delegate (the ObjC runtime reports no conformance for
+///    a class that never declares one).  C's message is therefore sent as a message, through
+///    `perform`, with the setter's selector spelled `#selector(setter: NSApplication.delegate)`.
+///  * `[NSApp setAppleMenu: appMenu]` (C 6137): no Swift member (round 56's probe reading
+///    `error: value of type 'NSApplication' has no member 'appleMenu'`), so the same dynamic send
+///    with `Selector(("setAppleMenu:"))` (the round-42 `orderedIndex` spelling).
+///  * `@selector (menuDown:)` (C 6106, C 6127) belongs to `EmacsView` (C 9231), whose method batch
+///    has not landed, so it is `#selector(EmacsView.menuDown(_:))` too; the four AppKit selectors and the
+///    three of this unit's own class are `#selector` expressions (measured: the parenthesised form
+///    is what silences the compiler's "no method declared" note for the two unknown ones).
+///
+/// The memory-management and representation readings this body needs: C's three
+/// `[[EmacsMenu alloc] initWithTitle:]` results are the `+1` the file's statics keep forever
+/// (`svcsMenu`, `mainMenu`, `dockMenu`), so each store is `Unmanaged.passRetained (...).toOpaque ()`
+/// - the same pair round 1's `dockMenu` reader undoes with `takeUnretainedValue ()`; C's
+/// `[[NSArray arrayWithObjects: ...] retain]` is the strong reference of ARC in the same three
+/// storages; `xzalloc (sizeof *dpyinfo)` is C's own `sizeof`, which is **280** for the `ns_cocoa`
+/// arm (`docs/baseline/ns_display_info-layout.tsv` 11) because this unit holds that record as
+/// P-55's untyped stand-in; `FD_ZERO (&x)` is `x = fd_set ()`, the initialiser the two declarations
+/// above already use; `emacs_pipe (selfds)`'s `int *` is the tuple's own storage rebound to `Int32`
+/// (`assumingMemoryBound`, the `input_event` reading); C 6070's `float = double` narrowing is
+/// Swift's explicit `Float (...)` (the round-37 `color_p ? 1 : 0` reading); and C's
+/// `NSTRACE`/`NSTRACE_MSG` calls are the empty macro's comments.
+@_cdecl("ns_term_init")
+func ns_term_init(_ display_name: Lisp_Object) -> UnsafeMutableRawPointer? {
+  var tmp: Lisp_Object = Qnil()                      // C 5973 (C declares it here; C 6066 sets it)
+  // C 5970-5971: `struct terminal *terminal;` and `struct ns_display_info *dpyinfo;` - both are
+  // declared where C assigns them (round 52's reading of the same pair in `ns_create_terminal`).
+
+  if ns_initialized != 0 { return x_display_list }   // C 5975
+  ns_initialized = 1                                 // C 5976
+
+  block_input()                                      // C 5978
+
+  // C 5980: `NSTRACE ("ns_term_init");` - empty at `NSTRACE_ENABLED` 0.
+
+  objc_autoreleasePoolPop(outerpool)                 // C 5982 (C's `[outerpool release]`)
+  outerpool = objc_autoreleasePoolPush()             // C 5983
+
+  /* count object allocs (About, click icon); on macOS use ObjectAlloc tool */
+  /*GSDebugAllocationActive (YES); */                // C 5985-5986 (the reference's own comment)
+  block_input()                                      // C 5987
+
+  baud_rate = 38400                                  // C 5989
+  _ = Fset_input_interrupt_mode(Qnil())              // C 5990
+
+  if selfds.0 == -1 {                                // C 5992
+    /// C 5994: `emacs_pipe (selfds)` - C's array decays to `int *`, so the pointer handed over is
+    /// the tuple's own storage rebound to `Int32`.
+    if withUnsafeMutablePointer(to: &selfds, { p -> Int32 in
+         emacs_pipe(UnsafeMutableRawPointer(p).assumingMemoryBound(to: Int32.self)) }) != 0 {
+      // C 5996-5997: C's `%s` takes `emacs_strerror (errno)`'s `char *`; the entry is
+      // optional-typed like this unit's other string entries, and C's value here is that errno's
+      // message, which is never NULL (`fprintf` measures the same at C 5735's `value!`).
+      fprintf(stderr, "Failed to create pipe: %s\n", emacs_strerror(errno)!)
+      emacs_abort()                                  // C 5998
+    }
+
+    _ = fcntl(selfds.0, F_SETFL, O_NONBLOCK | fcntl(selfds.0, F_GETFL))       // C 6001
+    select_readfds = fd_set()                        // C 6002 (C's `FD_ZERO (&select_readfds)`)
+    select_writefds = fd_set()                       // C 6003 (C's `FD_ZERO (&select_writefds)`)
+    _ = pthread_mutex_init(&select_mutex, nil)       // C 6004 (C discards the result)
+  }
+
+  ns_pending_files = NSMutableArray()                // C 6007
+  ns_pending_service_names = NSMutableArray()        // C 6008
+  ns_pending_service_args = NSMutableArray()         // C 6009
+
+  /* Disable problematic event processing on macOS 26 (Tahoe) to avoid
+     scrolling lag and input handling issues.  These are undocumented
+     options as of macOS 26.0.  */
+  UserDefaults.standard.register(defaults: ["NSEventConcurrentProcessingEnabled": "NO",
+                                            "NSApplicationUpdateCycleEnabled": "NO"])  // C 6015-6017
+
+  /* Start app and create the main menu, window, view.
+     Needs to be here because ns_initialize_display_info () uses AppKit classes.
+     The view will then ask the NSApp to stop and return to Emacs.  */
+  _ = EmacsApp.shared                                // C 6023 (C's `[EmacsApp sharedApplication]`)
+  if NSApp == nil {                                  // C 6024
+    return nil                                       // C 6025 (C's `return NULL`)
+  }
+  NSApp.perform(#selector(setter: NSApplication.delegate), with: NSApp!)   // C 6026
+
+  /* Start the select thread.  */
+  Thread.detachNewThreadSelector(#selector(EmacsApp.fd_handler(_:)),       // C 6029-6031
+                                 toTarget: NSApp!, with: nil)
+
+  /* debugging: log all notifications */
+  /*   [[NSNotificationCenter defaultCenter] addObserver: NSApp
+                                         selector: @selector (logNotification:)
+                                             name: nil object: nil]; */    // C 6033-6036
+
+  let dpyinfo = xzalloc(280)                         // C 6038 (`sizeof *dpyinfo`, the note above)
+
+  ns_initialize_display_info(dpyinfo)                // C 6040
+  let terminal = ns_create_terminal(dpyinfo)         // C 6041
+
+  terminal_set_kboard(terminal, allocate_kboard(Qns()))    // C 6043
+  /* Don't let the initial kboard remain current longer than necessary.
+     That would cause problems if a file loaded on startup tries to
+     prompt in the mini-buffer.  */
+  if current_kboard == initial_kboard {              // C 6047
+    current_kboard = terminal_kboard(terminal)       // C 6048
+  }
+  kboard_set_reference_count(terminal_kboard(terminal),                    // C 6049
+                             kboard_reference_count(terminal_kboard(terminal)) + 1)
+
+  ns_display_info_set_next(dpyinfo, x_display_list)  // C 6051
+  x_display_list = dpyinfo                           // C 6052
+
+  ns_display_info_set_name_list_element(dpyinfo, Fcons(display_name, Qnil()))   // C 6054
+
+  terminal_set_name(terminal, xlispstrdup(display_name))                     // C 6056
+
+  gui_init_fringe(terminal_rif(terminal))            // C 6058
+
+  unblock_input()                                    // C 6060
+
+  if !inhibit_x_resources {                          // C 6062
+    ns_default("GSFontAntiAlias", &ns_antialias_text, Qt(), Qnil(), false, false)   // C 6064-6065
+    tmp = Qnil()                                     // C 6066
+    /* this is a standard variable */
+    ns_default("AppleAntiAliasingThreshold", &tmp,   // C 6068-6069
+               make_float(10.0), make_float(6.0), true, false)
+    // C 6070: C's `float = <double>` narrowing is written as the explicit conversion.
+    ns_antialias_threshold = NILP(tmp) ? 10.0 : Float(extract_float(tmp))
+  }
+
+  // C 6073: `NSTRACE_MSG ("Versions");` - empty at `NSTRACE_ENABLED` 0.
+
+  delete_keyboard_wait_descriptor(0)                 // C 6075
+
+  ns_app_name_storage = ProcessInfo.processInfo.processName as NSString   // C 6077
+
+  /* Set up macOS app menu */
+
+  // C 6081: `NSTRACE_MSG ("Menu init");` - empty at `NSTRACE_ENABLED` 0.
+
+  var item: NSMenuItem                               // C 6086 (C's `NSMenuItem *item;`)
+  /* set up the application menu */
+  let servicesMenu = EmacsMenu_initWithTitle("Services") as! NSMenu       // C 6088
+  svcsMenu = Unmanaged.passRetained(servicesMenu).toOpaque()              // C 6088's store
+  servicesMenu.autoenablesItems = false              // C 6089
+  let appMenu = EmacsMenu_initWithTitle("Emacs") as! NSMenu               // C 6090
+  appMenu.autoenablesItems = false                   // C 6091
+  let theMainMenu = EmacsMenu_initWithTitle("") as! NSMenu                // C 6092
+  mainMenu = Unmanaged.passRetained(theMainMenu).toOpaque()               // C 6092's store
+  let theDockMenu = EmacsMenu_initWithTitle("") as! NSMenu                // C 6093
+  dockMenu = Unmanaged.passRetained(theDockMenu).toOpaque()               // C 6093's store
+
+  _ = appMenu.insertItem(withTitle: "About Emacs",                        // C 6095-6098
+                         action: #selector(NSApplication.orderFrontStandardAboutPanel(_:)),
+                         keyEquivalent: "", at: 0)
+  appMenu.insertItem(NSMenuItem.separator(), at: 1)                       // C 6099
+  _ = appMenu.insertItem(withTitle: "Preferences...",                     // C 6100-6103
+                         action: #selector(EmacsApp.showPreferencesWindow(_:)),
+                         keyEquivalent: ",", at: 2)
+  appMenu.insertItem(NSMenuItem.separator(), at: 3)                       // C 6104
+  item = appMenu.insertItem(withTitle: "Services",                        // C 6105-6108
+                            action: #selector(EmacsView.menuDown(_:)),
+                            keyEquivalent: "", at: 4)
+  appMenu.setSubmenu(servicesMenu, for: item)                             // C 6109
+  appMenu.insertItem(NSMenuItem.separator(), at: 5)                       // C 6110
+  _ = appMenu.insertItem(withTitle: "Hide Emacs",                         // C 6111-6114
+                         action: #selector(NSApplication.hide(_:)),
+                         keyEquivalent: "h", at: 6)
+  item = appMenu.insertItem(withTitle: "Hide Others",                     // C 6115-6118
+                            action: #selector(NSApplication.hideOtherApplications(_:)),
+                            keyEquivalent: "h", at: 7)
+  item.keyEquivalentModifierMask = [.command, .option]                    // C 6119
+  appMenu.insertItem(NSMenuItem.separator(), at: 8)                       // C 6120
+  _ = appMenu.insertItem(withTitle: "Quit Emacs",                         // C 6121-6124
+                         action: #selector(NSApplication.terminate(_:)),
+                         keyEquivalent: "q", at: 9)
+
+  item = theMainMenu.insertItem(withTitle: ns_app_name_storage! as String,   // C 6126-6129
+                                action: #selector(EmacsView.menuDown(_:)),
+                                keyEquivalent: "", at: 0)
+  theMainMenu.setSubmenu(appMenu, for: item)                              // C 6130
+  _ = theDockMenu.insertItem(withTitle: "New Frame",                      // C 6131-6134
+                             action: #selector(EmacsApp.newFrame(_:)),
+                             keyEquivalent: "", at: 0)
+
+  NSApp.mainMenu = theMainMenu                        // C 6136
+  NSApp.perform(Selector(("setAppleMenu:")), with: appMenu)               // C 6137
+  NSApp.servicesMenu = servicesMenu                   // C 6138
+  /* Needed at least on Cocoa, to get dock menu to show windows */
+  NSApp.windowsMenu = NSMenu()                        // C 6140
+
+  /* Register our external input/output types, used for determining
+     applicable services and also drag/drop eligibility.  */
+
+  // C 6147: `NSTRACE_MSG ("Input/output types");` - empty at `NSTRACE_ENABLED` 0.
+
+  ns_send_types_storage = NSArray(object: NSPasteboard.PasteboardType.string)     // C 6149
+  ns_return_types_storage = NSArray(object: NSPasteboard.PasteboardType.string)   // C 6150-6151
+  ns_drag_types = NSArray(objects: NSPasteboard.PasteboardType.string,            // C 6152-6160
+                          NSPasteboard.PasteboardType.tabularText,
+                          NSPasteboard.PasteboardType.fileURL,
+                          NSPasteboard.PasteboardType.URL)
+
+  // C 6162: `NSTRACE_MSG ("Call NSApp run");` - empty at `NSTRACE_ENABLED` 0.
+  NSApp.run()                                         // C 6163
+
+  NSApp.activate()                                    // C 6166 (the `>= 140000` arm)
+
+  ns_do_open_file = true                              // C 6171
+
+  /* Begin listening for display reconfiguration, so we can run the
+     appropriate hooks.  FIXME: is this called when the resolution of
+     a monitor changes?  */
+
+  _ = CGDisplayRegisterReconfigurationCallback(ns_displays_reconfigured, nil)   // C 6184-6185
+  last_known_monitors = Fns_display_monitor_attributes_list(Qnil())             // C 6187
+
+  // C 6189: `NSTRACE_MSG ("ns_term_init done");` - empty at `NSTRACE_ENABLED` 0.
+
+  unblock_input()                                     // C 6191
+
+  return dpyinfo                                      // C 6193
+}
+
+// ==========================================================================
+// Round 58: the font-panel trio - `ns_font_desc_to_font_spec` (C 6914-6988),
+// `ns_create_font_panel_buttons` (C 6990-7030) and `ns_xlfd_to_fontname` (C 11483-11526)
+// ==========================================================================
+
+/// C: the eight keywords C 6929-6966 writes into the font spec - `Qbold`/`Qitalic`/`Qmedium`/
+/// `Qsemi_light` are `src/xfaces.rs` 5320-5331's, `Qreverse_italic`/`Qcondensed`/`Qexpanded`
+/// `src/haikufont.rs` 1916-1924's and `Qnormal` `src/androidselect.rs` 1297's;
+/// `Qlight`, the ninth, is the entry this unit already has beside `Qdark` (C 2236 above).  Each is a
+/// C data symbol the core exports under its own name (the shape that entry records).
+@_silgen_name("Qbold") func Qbold() -> Lisp_Object
+@_silgen_name("Qitalic") func Qitalic() -> Lisp_Object
+@_silgen_name("Qnormal") func Qnormal() -> Lisp_Object
+@_silgen_name("Qreverse_italic") func Qreverse_italic() -> Lisp_Object
+@_silgen_name("Qcondensed") func Qcondensed() -> Lisp_Object
+@_silgen_name("Qexpanded") func Qexpanded() -> Lisp_Object
+@_silgen_name("Qmedium") func Qmedium() -> Lisp_Object
+@_silgen_name("Qsemi_light") func Qsemi_light() -> Lisp_Object
+
+/// C: `QCwidth`/`QCslant`/`QCweight`/`QCfamily` (`src/xfaces.rs` 5281-5290) and `QCsize`
+/// (`src/fns.rs` 7040) - the five keywords of C 6983-6985's `Ffont_spec` array.
+@_silgen_name("QCwidth") func QCwidth() -> Lisp_Object
+@_silgen_name("QCslant") func QCslant() -> Lisp_Object
+@_silgen_name("QCweight") func QCweight() -> Lisp_Object
+@_silgen_name("QCsize") func QCsize() -> Lisp_Object
+@_silgen_name("QCfamily") func QCfamily() -> Lisp_Object
+
+/// C: `Lisp_Object Ffont_spec (ptrdiff_t, Lisp_Object *)` (src/font.c's `<font-spec>` subr, which
+/// `src/font.rs` 5157 registers) - C 6982's `CALLN` target.  C's `CALLN (f, ...)` is
+/// `f (count, array)` with the array holding exactly the arguments (src/lisp.h 3453-3461), so the
+/// ten elements are built on the stack and passed with their count - the `Fmake_hash_table` reading
+/// of the lane.
+@_silgen_name("Ffont_spec")
+func Ffont_spec(_ nargs: Int, _ args: UnsafeMutablePointer<Lisp_Object>?) -> Lisp_Object
+
+/// C: `int c_toupper (int)` (lib/c-ctype.h, gnulib) - the port's `lib/c-ctype.rs` 103-104
+/// re-exports it under the C name (`#[unsafe(export_name = "c_toupper")]`), so it is a
+/// `@_silgen_name` import like this unit's other core entries.
+@_silgen_name("c_toupper") func c_toupper(_ c: Int32) -> Int32
+
+/// C: `void *xmalloc (size_t)` (src/lisp.h 5535) - the `xzalloc` entry's family, and C's text is
+/// why it is never NULL.  (`xfree`, C 11491's other half, is already the entry C 1776 added.)
+@_silgen_name("xmalloc") func xmalloc(_ size: Int) -> UnsafeMutableRawPointer?
+
+/// C: `int sscanf (const char *, const char *, ...)` (stdio.h) - variadic, so Swift marks the SDK's
+/// own declaration unavailable (measured: `error: 'sscanf' is unavailable: Variadic function is
+/// unavailable`), and the lane reaches the C entry by name - the `fprintf` reading above.
+@_silgen_name("sscanf")
+func sscanf(_ s: UnsafePointer<CChar>, _ format: UnsafePointer<CChar>,
+            _ args: CVarArg...) -> Int32
+
+/// C 6914-6988: `static Lisp_Object ns_font_desc_to_font_spec (NSFontDescriptor *desc, NSFont
+/// *font)` - "Convert a font descriptor to a font spec."  The `NS_IMPL_GNUSTEP` half of C 6951-6955
+/// and its `#endif` at C 6970 are the arm this target does not take (the `hide_bell` reading), so
+/// C 6957-6969's Cocoa ladder is what is transcribed; the descriptor spellings
+/// (`symbolicTraits`, `object (forKey:)` with `NSFontDescriptor.AttributeName`/`TraitKey` and their
+/// `.rawValue`) are this lane's own, the ones `nsfont.swift` 601-603 and 642-666 use for the same
+/// reads.
+fileprivate func ns_font_desc_to_font_spec(_ desc: NSFontDescriptor, _ font: NSFont) -> Lisp_Object {
+  let traits = desc.symbolicTraits                              // C 6917
+  let dict = desc.object(forKey: NSFontDescriptor.AttributeName.traits) as? NSDictionary  // C 6918
+  let family = font.familyName.map { $0 as NSString }           // C 6919
+  var tem: NSNumber?                                            // C 6921
+
+  var lwidth: Lisp_Object = Qnil()                              // C 6920 (C's declaration) / C 6923
+  var lslant: Lisp_Object = Qnil()                              // C 6924
+  var lweight: Lisp_Object = Qnil()                             // C 6925
+  var lheight: Lisp_Object = Qnil()                             // C 6926
+
+  if traits.contains(.bold) { lweight = Qbold() }               // C 6928-6929
+  if traits.contains(.italic) { lslant = Qitalic() }            // C 6931-6932
+  if traits.contains(.condensed) { lwidth = Qcondensed() }      // C 6934-6935
+  else if traits.contains(.expanded) { lwidth = Qexpanded() }   // C 6936-6937
+
+  if dict != nil {                                              // C 6939
+    tem = dict!.object(forKey: NSFontDescriptor.TraitKey.slant.rawValue) as? NSNumber   // C 6941
+
+    if tem != nil {                                             // C 6943
+      lslant = tem!.floatValue > 0
+        ? Qitalic() : (tem!.floatValue < 0 ? Qreverse_italic() : Qnormal())   // C 6944-6947
+    }
+
+    tem = dict!.object(forKey: NSFontDescriptor.TraitKey.weight.rawValue) as? NSNumber  // C 6949
+
+    if tem != nil {                                             // C 6957 (the Cocoa arm)
+      if tem!.floatValue >= 0.4 { lweight = Qbold() }           // C 6959-6960
+      else if tem!.floatValue >= 0.24 { lweight = Qmedium() }   // C 6961-6962
+      else if tem!.floatValue >= 0 { lweight = Qnormal() }      // C 6963-6964
+      else if tem!.floatValue >= -0.24 { lweight = Qsemi_light() }   // C 6965-6966
+      else { lweight = Qlight() }                               // C 6967-6968
+    }
+
+    tem = dict!.object(forKey: NSFontDescriptor.TraitKey.width.rawValue) as? NSNumber   // C 6972
+
+    if tem != nil {                                             // C 6974
+      lwidth = tem!.floatValue > 0
+        ? Qexpanded() : (tem!.floatValue < 0 ? Qcondensed() : Qnormal())   // C 6975-6977
+    }
+  }
+
+  lheight = make_float(Double(font.pointSize))                  // C 6980
+
+  // C 6982-6987: `CALLN (Ffont_spec, QCwidth, lwidth, QCslant, lslant, QCweight, lweight, QCsize,
+  // lheight, QCfamily, (family ? [family lispString] : Qnil))` - the ten elements of `CALLN`'s
+  // array, and the count C passes with them.
+  return withUnsafeTemporaryAllocation(of: Lisp_Object.self, capacity: 10) { args in
+    args[0] = QCwidth()
+    args[1] = lwidth
+    args[2] = QCslant()
+    args[3] = lslant
+    args[4] = QCweight()
+    args[5] = lweight
+    args[6] = QCsize()
+    args[7] = lheight
+    args[8] = QCfamily()
+    args[9] = family != nil ? lispString(family!) : Qnil()
+    return Ffont_spec(10, args.baseAddress)
+  }
+}
+
+/// C 6990-7030: `static NSView *ns_create_font_panel_buttons (id target, SEL select, SEL
+/// cancel_action)` - the `NS_IMPL_COCOA` arm C 6990 opens and C 7030 closes, i.e. this target's.
+/// C's `[[NSButtonCell alloc] init]` is `NSButtonCell ()`, C 7011's `release` is the runtime
+/// decrement (`Unmanaged.passUnretained (…).release ()`, round 3's reading), C 7001's
+/// `NSBezelStyleRounded` and C 7019's `NSButtonTypeMomentaryPushIn` are the SDK's own Swift
+/// spellings, and the two casts of C 7013-7014 are the `as!` this lane uses for C's unchecked
+/// `(NSButtonCell *)`.
+fileprivate func ns_create_font_panel_buttons(_ target: AnyObject?, _ select: Selector,
+                                             _ cancel_action: Selector) -> NSView {
+  let prototype = NSButtonCell()                                // C 7000
+  prototype.bezelStyle = .rounded                               // C 7001
+  prototype.title = "Cancel"                                    // C 7002
+  let cell_size = prototype.cellSize                            // C 7003
+  let frame = NSMakeRect(0, 0, cell_size.width * 2,             // C 7004-7005
+                         cell_size.height)
+  let matrix = NSMatrix(frame: frame, mode: .trackModeMatrix, prototype: prototype,
+                        numberOfRows: 1, numberOfColumns: 2)    // C 7006-7010
+
+  let ok = matrix.cell(atRow: 0, column: 0) as! NSButtonCell     // C 7013
+  let cancel = matrix.cell(atRow: 0, column: 1) as! NSButtonCell // C 7014
+
+  ok.title = "OK"                                               // C 7016
+  ok.target = target                                            // C 7017
+  ok.action = select                                            // C 7018
+  ok.setButtonType(.momentaryPushIn)                            // C 7019
+
+  cancel.title = "Cancel"                                       // C 7021
+  cancel.target = target                                        // C 7022
+  cancel.action = cancel_action                                 // C 7023
+  cancel.setButtonType(.momentaryPushIn)                        // C 7024
+
+  matrix.selectCell(ok)                                         // C 7026
+
+  return matrix                                                 // C 7028
+}
+
+/// C 11483-11526 (non-static - `@_cdecl`: src/nsterm.h 1129 declares it, and `nsfns.swift` 1099-1101
+/// imports it): `const char *ns_xlfd_to_fontname (const char *xlfd)` - "Convert an X font name
+/// (XLFD) to an NS font name.  Only family is used.  The string returned is temporarily
+/// allocated."  `@_cdecl` refuses an `UnsafePointer<T>?` result in Swift 6.4, so the result is
+/// spelled as the mutable pointer (the `ns_get_defaults_value` reading of `nsfns.swift`), the same
+/// C ABI.  `strncmp`/`strcpy`/`strlen` are the SDK's own (the `nsmenu.swift` 416 reading); `sscanf`
+/// is the variadic entry declared above; and the returned pointer belongs to an *autoreleased*
+/// `NSString`, which is why the string is kept alive with the `ns_relocate` pair below.
+@_cdecl("ns_xlfd_to_fontname")
+func ns_xlfd_to_fontname(_ xlfd: UnsafePointer<CChar>) -> UnsafeMutablePointer<CChar>? {
+  let name = xmalloc(180)!.assumingMemoryBound(to: CChar.self)   // C 11491
+  var i: Int32 = 0                                               // C 11492 (C's `int i, len;`)
+  var len: Int32 = 0                                             // C 11492
+
+  if strncmp(xlfd, "--", 2) == 0 {                              // C 11495
+    _ = sscanf(xlfd, "--%*[^-]-%179[^-]-", name)                 // C 11496
+  } else {
+    _ = sscanf(xlfd, "-%*[^-]-%179[^-]-", name)                  // C 11498
+  }
+
+  /* stopgap for malformed XLFD input */
+  if name[0] == 0 {                                              // C 11501
+    _ = strcpy(name, "Monaco")                                   // C 11502
+  }
+
+  /* undo hack in ns_fontname_to_xlfd, converting '$' to '-', '_' to ' '
+     also uppercase after '-' or ' ' */
+  name[0] = CChar(truncatingIfNeeded: c_toupper(Int32(name[0])))  // C 11506
+  len = Int32(strlen(name))                                      // C 11507 (C's for-init)
+  i = 0                                                          // C 11507 (C's for-init)
+  while i < len {                                                // C 11507
+    if name[Int(i)] == UInt8(ascii: "$") {                       // C 11509
+      name[Int(i)] = CChar(UInt8(ascii: "-"))                     // C 11511
+      if i + 1 < len {                                            // C 11512
+        name[Int(i + 1)] = CChar(truncatingIfNeeded: c_toupper(Int32(name[Int(i + 1)])))  // C 11513
+      }
+    } else if name[Int(i)] == UInt8(ascii: "_") {                // C 11515
+      name[Int(i)] = CChar(UInt8(ascii: " "))                     // C 11517
+      if i + 1 < len {                                            // C 11518
+        name[Int(i + 1)] = CChar(truncatingIfNeeded: c_toupper(Int32(name[Int(i + 1)])))  // C 11519
+      }
+    }
+    i += 1                                                       // C 11507 (C's `i++`)
+  }
+
+  /* fprintf (stderr, "converted '%s' to '%s'\n",xlfd,name); */   // C 11522
+
+  // C 11523-11525: C builds an autoreleased `NSString` and returns its `UTF8String`; an input that
+  // is not UTF-8 leaves the string nil, where C's send to nil yields NULL.  `passRetained` +
+  // `autorelease` is exactly C's autorelease (the `ns_relocate` reading above).
+  let string = NSString(utf8String: name)                        // C 11523
+  _ = string.map { Unmanaged.passRetained($0).autorelease() }     // C 11523
+  xfree(UnsafeMutableRawPointer(name))                           // C 11524
+  if string == nil { return nil }                                // C 11525
+  return UnsafeMutablePointer(mutating: string!.utf8String!)      // C 11525
+}
+
+// ==========================================================================
+// Round 59: `cancel_ns_deferred_UAZoomChangeFocus_timer` (C 8459-8470)
+// ==========================================================================
+
+/// C 8459-8470: `static void cancel_ns_deferred_UAZoomChangeFocus_timer ()` - the `NS_IMPL_COCOA`
+/// arm C 8459 opens and C 8470 closes, i.e. this target's.  C's `.valid` read is `Timer.isValid`,
+/// C 8466's release is performed by clearing the ARC-owned timer reference, and the whole body is C 1098's own static, which this unit already carries.
+///
+/// Its two callers are `EmacsView`'s: `windowWillClose:` (C 8472-8479) and
+/// `deferred_UAZoomChangeFocus_handler:` (C 8481-8492), both in the method batch that class's ledger
+/// box still owes - so this definition is landed ahead of them, the `ns_create_terminal`-style
+/// entry/definition split the ledger records.
+fileprivate func cancel_ns_deferred_UAZoomChangeFocus_timer() {
+  if ns_deferred_UAZoomChangeFocus_timer != nil                        // C 8462
+       && ns_deferred_UAZoomChangeFocus_timer!.isValid {               // C 8463
+    ns_deferred_UAZoomChangeFocus_timer!.invalidate()                  // C 8465
+  }
+  ns_deferred_UAZoomChangeFocus_timer = nil                            // C 8468
+}
+
+// ==========================================================================
+// Round 60: `syms_of_nsterm` (C 11549-11811) - the file's last function
+// ==========================================================================
+
+/// C: `struct Lisp_Fwd { ENUM_BF (Lisp_Fwd_Type) type : 8; union { … } u; }` (src/lisp.h
+/// 3118-3133).  The bitfield is one byte and the union one slot, and the union's two C members
+/// (`objvar`, `boolvar`) collapse to the one raw slot below - the `docs/ports/nsselect.md` record,
+/// extended to the `bool` member the way `nsfns.swift` 733-742 does: `DEFVAR_LISP` hands
+/// `defvar_lisp` a `Lisp_Object *` and `DEFVAR_BOOL` hands `defvar_bool` a `bool *`, and both are
+/// one pointer.
+struct Lisp_Fwd_u {
+  var ptr: UnsafeMutableRawPointer?
+}
+struct Lisp_Fwd {
+  var type: UInt8
+  var u: Lisp_Fwd_u
+}
+
+/// C: `Lisp_Fwd_Obj` (src/lisp.h 531) and `Lisp_Fwd_Bool` (src/lisp.h 532), the two members of
+/// `enum Lisp_Fwd_Type` C 11580-11786's macros build their records with, and the two registering
+/// calls those macros end in - `defvar_lisp` (src/lisp.h 3472) and `defvar_bool` (src/lisp.h 3474).
+@_silgen_name("Lisp_Fwd_Obj") func Lisp_Fwd_Obj() -> UInt8
+@_silgen_name("Lisp_Fwd_Bool") func Lisp_Fwd_Bool() -> UInt8
+@_silgen_name("defvar_lisp")
+func defvar_lisp(_ o_fwd: UnsafePointer<Lisp_Fwd>?, _ namestring: UnsafePointer<CChar>?, docstring: StaticString)
+@_silgen_name("defvar_bool")
+func defvar_bool(_ b_fwd: UnsafePointer<Lisp_Fwd>?, _ namestring: UnsafePointer<CChar>?, docstring: StaticString)
+
+/// C: `void staticpro (Lisp_Object const *)` (src/lisp.h 3919) - C 11810's call, the same entry
+/// `nsfns.swift` 753 declares.
+@_silgen_name("staticpro") func staticpro(_ varaddress: UnsafePointer<Lisp_Object>?)
+
+/// C: `Lisp_Object Fput (Lisp_Object, Lisp_Object, Lisp_Object)` and
+/// `Lisp_Object Fprovide (Lisp_Object, Lisp_Object)` (globals.h's subr table) - the two subrs
+/// C 11574-11578 and C 11789/11802 call.
+@_silgen_name("Fput")
+func Fput(_ symbol: Lisp_Object, _ propname: Lisp_Object, _ value: Lisp_Object) -> Lisp_Object
+@_silgen_name("Fprovide")
+func Fprovide(_ feature: Lisp_Object, _ subfeatures: Lisp_Object) -> Lisp_Object
+
+/// C: `Lisp_Object make_fixnum (intmax_t)` (src/lisp.h) - the five `Fput` values C 11574-11578
+/// build, the entry the lane's other units declare with the same signature.
+@_silgen_name("make_fixnum") func make_fixnum(_ n: Int) -> Lisp_Object
+
+/// C: `PDUMPER_REMEMBER_SCALAR (thing)` (src/pdumper.h 52-53) is
+/// `pdumper_remember_scalar (&(thing), sizeof (thing))`, and that INLINE (src/pdumper.h 61-68) calls
+/// the exported `pdumper_remember_scalar_impl` - the arm `HAVE_PDUMPER` 1 selects, which is the
+/// frozen configuration's.  The INLINE itself has no C symbol (`src/include/pdumper.rs`
+/// 96-101 is the port's mirror of it), so C 11555's macro is written as the call it ends in, with
+/// the same two arguments.
+@_silgen_name("pdumper_remember_scalar_impl")
+func pdumper_remember_scalar_impl(_ data: UnsafeMutableRawPointer?, _ nbytes: Int)
+
+/// C: `void syms_of_macfont (void)` (src/font.h 986) - C 11803's `NS_IMPL_COCOA`-arm call, whose
+/// definition is `macfont.swift` 11275.  (The other arm's `syms_of_nsfont ()`, C 11806, is the
+/// GNUstep half and is dead here.)
+@_silgen_name("syms_of_macfont") func syms_of_macfont()
+
+/// C: the four `enum` members of `src/termhooks.h` 457-463 the `Fput` block names, reached as the
+/// C-ABI entries carrying their own names - the shape this unit already uses for `up_modifier`,
+/// `down_modifier`, `hyper_modifier` and `shift_modifier` (docs/ports/nsselect.md's `PVEC_SUBR`
+/// reading); the four providers join that family's own open item.
+@_silgen_name("alt_modifier") func alt_modifier() -> Int32
+@_silgen_name("super_modifier") func super_modifier() -> Int32
+@_silgen_name("meta_modifier") func meta_modifier() -> Int32
+@_silgen_name("ctrl_modifier") func ctrl_modifier() -> Int32
+
+/// C: the symbols the `DEFSYM`s of C 11558-11572, C 11591-11799 name **and this function reads**.
+/// `#define DEFSYM(sym, name) /* empty */` (src/lisp.h 2394) is only a marker for make-docfile, so
+/// those call sites carry no statement (the `syms_of_nsselect` reading above) - the symbols
+/// themselves come from the generated globals, and this unit declares the three it does not
+/// already carry: `Qmodifier_value` (the `Fput` block, whose `Qalt`/`Qmeta`/`Qsuper`/`Qcontrol`
+/// are entries of the echo-area slice above), `Qns_handle_drag_motion` (C 11786) and
+/// `Qcocoa`/`Qgnustep` (C 11802/11805; `Qns_in_echo_area` is above too).
+@_silgen_name("Qmodifier_value") func Qmodifier_value() -> Lisp_Object
+@_silgen_name("Qns_handle_drag_motion") func Qns_handle_drag_motion() -> Lisp_Object
+@_silgen_name("Qcocoa") func Qcocoa() -> Lisp_Object
+@_silgen_name("Qgnustep") func Qgnustep() -> Lisp_Object
+
+/// C 11580-11786's variables that no earlier slice needed.  C's `DEFVAR_LISP`/`DEFVAR_BOOL` define
+/// members of the generated `globals` struct - which is why the reference itself carries no
+/// declaration for them - and this lane reaches every one of them as the data symbol the core
+/// exports, the ruling the seven modifiers above record (and the reason `macfont.swift` 774-775
+/// reads `ns_antialias_text`/`ns_use_thin_smoothing` the same way).
+@_silgen_name("ns_input_font") var ns_input_font: Lisp_Object
+@_silgen_name("ns_input_fontsize") var ns_input_fontsize: Lisp_Object
+@_silgen_name("ns_use_thin_smoothing") var ns_use_thin_smoothing: Lisp_Object
+@_silgen_name("ns_use_fullscreen_animation") var ns_use_fullscreen_animation: Bool
+@_silgen_name("ns_use_mwheel_acceleration") var ns_use_mwheel_acceleration: Bool
+@_silgen_name("ns_mwheel_line_height") var ns_mwheel_line_height: Lisp_Object
+@_silgen_name("ns_use_mwheel_momentum") var ns_use_mwheel_momentum: Bool
+@_silgen_name("ns_click_through") var ns_click_through: Bool
+@_silgen_name("Vns_scroll_event_delta_factor") var Vns_scroll_event_delta_factor: Lisp_Object
+@_silgen_name("Vns_drag_motion_function") var Vns_drag_motion_function: Lisp_Object
+/// C 11740-11754's three `x-*` variables are `src/xterm.c`'s - the reference says so in their own
+/// docstrings ("SKIP: real doc in xterm.c") - and the port's `src/xterm.rs` 22166-22170
+/// carries all three with `#[unsafe(no_mangle)]`, so this unit registers them and nothing else.
+@_silgen_name("Vx_toolkit_scroll_bars") var Vx_toolkit_scroll_bars: Lisp_Object
+@_silgen_name("x_use_underline_position_properties") var x_use_underline_position_properties: Bool
+@_silgen_name("x_underline_at_descent_line") var x_underline_at_descent_line: Bool
+
+/// C's `DEFVAR_LISP`/`DEFVAR_BOOL` build a function-local `static struct Lisp_Fwd` (src/lisp.h
+/// 3495-3512); Swift has no function-local statics, so each record is a fileprivate global that
+/// `syms_of_nsterm` fills in and hands to `defvar_lisp`/`defvar_bool` - the
+/// `docs/ports/nsselect.md` `O_FWD_…` shape.  Thirty of them, in C's order.
+@_silgen_name("femacs_fwd_ns_input_font") var O_FWD_ns_input_font: Lisp_Fwd
+@_silgen_name("femacs_fwd_ns_input_fontsize") var O_FWD_ns_input_fontsize: Lisp_Fwd
+@_silgen_name("femacs_fwd_ns_input_line") var O_FWD_ns_input_line: Lisp_Fwd
+@_silgen_name("femacs_fwd_ns_input_spi_name") var O_FWD_ns_input_spi_name: Lisp_Fwd
+@_silgen_name("femacs_fwd_ns_input_spi_arg") var O_FWD_ns_input_spi_arg: Lisp_Fwd
+@_silgen_name("femacs_fwd_ns_input_file") var O_FWD_ns_input_file: Lisp_Fwd
+@_silgen_name("femacs_fwd_ns_working_text") var O_FWD_ns_working_text: Lisp_Fwd
+@_silgen_name("femacs_fwd_ns_alternate_modifier") var O_FWD_ns_alternate_modifier: Lisp_Fwd
+@_silgen_name("femacs_fwd_ns_right_alternate_modifier") var O_FWD_ns_right_alternate_modifier: Lisp_Fwd
+@_silgen_name("femacs_fwd_ns_command_modifier") var O_FWD_ns_command_modifier: Lisp_Fwd
+@_silgen_name("femacs_fwd_ns_right_command_modifier") var O_FWD_ns_right_command_modifier: Lisp_Fwd
+@_silgen_name("femacs_fwd_ns_control_modifier") var O_FWD_ns_control_modifier: Lisp_Fwd
+@_silgen_name("femacs_fwd_ns_right_control_modifier") var O_FWD_ns_right_control_modifier: Lisp_Fwd
+@_silgen_name("femacs_fwd_ns_function_modifier") var O_FWD_ns_function_modifier: Lisp_Fwd
+@_silgen_name("femacs_fwd_ns_antialias_text") var O_FWD_ns_antialias_text: Lisp_Fwd
+@_silgen_name("femacs_fwd_ns_use_thin_smoothing") var O_FWD_ns_use_thin_smoothing: Lisp_Fwd
+@_silgen_name("femacs_fwd_ns_confirm_quit") var O_FWD_ns_confirm_quit: Lisp_Fwd
+@_silgen_name("femacs_fwd_ns_auto_hide_menu_bar") var O_FWD_ns_auto_hide_menu_bar: Lisp_Fwd
+@_silgen_name("femacs_fwd_ns_use_native_fullscreen") var O_FWD_ns_use_native_fullscreen: Lisp_Fwd
+@_silgen_name("femacs_fwd_ns_use_fullscreen_animation") var O_FWD_ns_use_fullscreen_animation: Lisp_Fwd
+@_silgen_name("femacs_fwd_ns_use_srgb_colorspace") var O_FWD_ns_use_srgb_colorspace: Lisp_Fwd
+@_silgen_name("femacs_fwd_ns_use_mwheel_acceleration") var O_FWD_ns_use_mwheel_acceleration: Lisp_Fwd
+@_silgen_name("femacs_fwd_ns_mwheel_line_height") var O_FWD_ns_mwheel_line_height: Lisp_Fwd
+@_silgen_name("femacs_fwd_ns_use_mwheel_momentum") var O_FWD_ns_use_mwheel_momentum: Lisp_Fwd
+@_silgen_name("femacs_fwd_Vx_toolkit_scroll_bars") var O_FWD_Vx_toolkit_scroll_bars: Lisp_Fwd
+@_silgen_name("femacs_fwd_x_use_underline_position_properties") var O_FWD_x_use_underline_position_properties: Lisp_Fwd
+@_silgen_name("femacs_fwd_x_underline_at_descent_line") var O_FWD_x_underline_at_descent_line: Lisp_Fwd
+@_silgen_name("femacs_fwd_ns_click_through") var O_FWD_ns_click_through: Lisp_Fwd
+@_silgen_name("femacs_fwd_Vns_scroll_event_delta_factor") var O_FWD_Vns_scroll_event_delta_factor: Lisp_Fwd
+@_silgen_name("femacs_fwd_Vns_drag_motion_function") var O_FWD_Vns_drag_motion_function: Lisp_Fwd
+
+/// C 11549-11811: `void syms_of_nsterm (void)` - "the symbols and variables this window system
+/// brings" (declared src/nsterm.h 1196, called from src/emacs.c 2421), the file's last function.
+/// Each `DEFVAR_LISP`/`DEFVAR_BOOL` below is the macro's three steps: the record above, the
+/// registering call, and C's own initialising assignment - and C's docstrings stay on the C text
+/// (each comment names the line range they belong to; the lane's `defvar_lisp`/`defvar_bool` are
+/// C's own two-argument calls, src/lisp.h 3472/3474, and make-docfile reads the C source, so a
+/// `doc:` argument has no port-side spelling - the reading `docs/ports/nsfns.md` 269-273 records
+/// for the four units before this one).  The `DEFSYM`s carry no statement at all
+/// (src/lisp.h 2394) and are recorded as comments in the same way.
+@_cdecl("syms_of_nsterm")
+func syms_of_nsterm() {
+  // C 11552: `NSTRACE ("syms_of_nsterm");` - empty at `NSTRACE_ENABLED` 0.
+
+  ns_antialias_threshold = 10.0                                        // C 11554
+  // C 11555: `PDUMPER_REMEMBER_SCALAR (ns_antialias_threshold)` - `sizeof` of C's `float`
+  // variable (C 298), and `addr_of_mut!`'s "the argument is an lvalue" requirement is the
+  // address Swift's `&` takes.
+  pdumper_remember_scalar_impl(
+    withUnsafeMutablePointer(to: &ns_antialias_threshold) { UnsafeMutableRawPointer($0) },
+    MemoryLayout<Float>.size)
+
+  /* From 23+ we need to tell emacs what modifiers there are.  */
+  // C 11558-11572: `DEFSYM (Qmodifier_value, "modifier-value"); DEFSYM (Qalt, "alt"); DEFSYM
+  // (Qhyper, "hyper"); DEFSYM (Qmeta, "meta"); DEFSYM (Qsuper, "super"); DEFSYM (Qcontrol,
+  // "control"); DEFSYM (QUTF8_STRING, "UTF8_STRING"); DEFSYM (Qfile, "file"); DEFSYM (Qurl,
+  // "url"); DEFSYM (Qns_drag_operation_copy, …); DEFSYM (Qns_drag_operation_link, …); DEFSYM
+  // (Qns_drag_operation_generic, …); DEFSYM (Qns_handle_drag_motion, …)` - thirteen `DEFSYM`s,
+  // each carrying no statement.
+
+  _ = Fput(Qalt(), Qmodifier_value(), make_fixnum(Int(alt_modifier())))     // C 11574
+  _ = Fput(Qhyper(), Qmodifier_value(), make_fixnum(Int(hyper_modifier())))  // C 11575
+  _ = Fput(Qmeta(), Qmodifier_value(), make_fixnum(Int(meta_modifier())))   // C 11576
+  _ = Fput(Qsuper(), Qmodifier_value(), make_fixnum(Int(super_modifier())))  // C 11577
+  _ = Fput(Qcontrol(), Qmodifier_value(), make_fixnum(Int(ctrl_modifier())))  // C 11578
+
+  // C 11580-11582: `DEFVAR_LISP ("ns-input-font", ns_input_font, …); ns_input_font = Qnil;`
+  O_FWD_ns_input_font = Lisp_Fwd(
+    type: Lisp_Fwd_Obj(), u: Lisp_Fwd_u(ptr: withUnsafeMutablePointer(to: &ns_input_font) { UnsafeMutableRawPointer($0) }))
+  defvar_lisp(&O_FWD_ns_input_font, "ns-input-font", docstring: " The font specified in the last NS event. ")
+  ns_input_font = Qnil()
+
+  // C 11584-11586: `DEFVAR_LISP ("ns-input-fontsize", ns_input_fontsize, …)`.
+  O_FWD_ns_input_fontsize = Lisp_Fwd(
+    type: Lisp_Fwd_Obj(), u: Lisp_Fwd_u(ptr: withUnsafeMutablePointer(to: &ns_input_fontsize) { UnsafeMutableRawPointer($0) }))
+  defvar_lisp(&O_FWD_ns_input_fontsize, "ns-input-fontsize", docstring: " The fontsize specified in the last NS event. ")
+  ns_input_fontsize = Qnil()
+
+  // C 11588-11590: `DEFVAR_LISP ("ns-input-line", ns_input_line, …)`.
+  O_FWD_ns_input_line = Lisp_Fwd(
+    type: Lisp_Fwd_Obj(), u: Lisp_Fwd_u(ptr: withUnsafeMutablePointer(to: &ns_input_line) { UnsafeMutableRawPointer($0) }))
+  defvar_lisp(&O_FWD_ns_input_line, "ns-input-line", docstring: " The line specified in the last NS event. ")
+  ns_input_line = Qnil()
+
+  // C 11592-11594: `DEFVAR_LISP ("ns-input-spi-name", ns_input_spi_name, …)`.
+  O_FWD_ns_input_spi_name = Lisp_Fwd(
+    type: Lisp_Fwd_Obj(), u: Lisp_Fwd_u(ptr: withUnsafeMutablePointer(to: &ns_input_spi_name) { UnsafeMutableRawPointer($0) }))
+  defvar_lisp(&O_FWD_ns_input_spi_name, "ns-input-spi-name", docstring: " The service name specified in the last NS event. ")
+  ns_input_spi_name = Qnil()
+
+  // C 11596-11598: `DEFVAR_LISP ("ns-input-spi-arg", ns_input_spi_arg, …)`.
+  O_FWD_ns_input_spi_arg = Lisp_Fwd(
+    type: Lisp_Fwd_Obj(), u: Lisp_Fwd_u(ptr: withUnsafeMutablePointer(to: &ns_input_spi_arg) { UnsafeMutableRawPointer($0) }))
+  defvar_lisp(&O_FWD_ns_input_spi_arg, "ns-input-spi-arg", docstring: " The service argument specified in the last NS event. ")
+  ns_input_spi_arg = Qnil()
+
+  // C 11600-11602: `DEFVAR_LISP ("ns-input-file", ns_input_file, …)`.
+  O_FWD_ns_input_file = Lisp_Fwd(
+    type: Lisp_Fwd_Obj(), u: Lisp_Fwd_u(ptr: withUnsafeMutablePointer(to: &ns_input_file) { UnsafeMutableRawPointer($0) }))
+  defvar_lisp(&O_FWD_ns_input_file, "ns-input-file", docstring: " The file specified in the last NS event.  ")
+  ns_input_file = Qnil()
+
+  // C 11604-11606: `DEFVAR_LISP ("ns-working-text", ns_working_text, …)`.
+  O_FWD_ns_working_text = Lisp_Fwd(
+    type: Lisp_Fwd_Obj(), u: Lisp_Fwd_u(ptr: withUnsafeMutablePointer(to: &ns_working_text) { UnsafeMutableRawPointer($0) }))
+  defvar_lisp(&O_FWD_ns_working_text, "ns-working-text", docstring: " String for visualizing working composition sequence.  ")
+  ns_working_text = Qnil()
+
+  // C 11608-11616: `DEFVAR_LISP ("ns-alternate-modifier", ns_alternate_modifier, …)`; the
+  // docstring C 11609-11615 describes the `(:ordinary …)` form.
+  O_FWD_ns_alternate_modifier = Lisp_Fwd(
+    type: Lisp_Fwd_Obj(), u: Lisp_Fwd_u(ptr: withUnsafeMutablePointer(to: &ns_alternate_modifier) { UnsafeMutableRawPointer($0) }))
+  defvar_lisp(&O_FWD_ns_alternate_modifier, "ns-alternate-modifier", docstring: " This variable describes the behavior of the alternate or option key.\nEither SYMBOL, describing the behavior for any event,\nor (:ordinary SYMBOL :function SYMBOL :mouse SYMBOL), describing behavior\nseparately for ordinary keys, function keys, and mouse events.\n\nEach SYMBOL is `control', `meta', `alt', `super', `hyper' or `none'.\nIf `none', the key is ignored by Emacs and retains its standard meaning.  ")
+  ns_alternate_modifier = Qmeta()                                      // C 11616
+
+  // C 11618-11627: `DEFVAR_LISP ("ns-right-alternate-modifier", ns_right_alternate_modifier, …)`.
+  O_FWD_ns_right_alternate_modifier = Lisp_Fwd(
+    type: Lisp_Fwd_Obj(), u: Lisp_Fwd_u(ptr: withUnsafeMutablePointer(to: &ns_right_alternate_modifier) { UnsafeMutableRawPointer($0) }))
+  defvar_lisp(&O_FWD_ns_right_alternate_modifier, "ns-right-alternate-modifier", docstring: " This variable describes the behavior of the right alternate or option key.\nEither SYMBOL, describing the behavior for any event,\nor (:ordinary SYMBOL :function SYMBOL :mouse SYMBOL), describing behavior\nseparately for ordinary keys, function keys, and mouse events.\nIt can also be `left' to use the value of `ns-alternate-modifier' instead.\n\nEach SYMBOL is `control', `meta', `alt', `super', `hyper' or `none'.\nIf `none', the key is ignored by Emacs and retains its standard meaning.  ")
+  ns_right_alternate_modifier = Qleft()                                // C 11627
+
+  // C 11629-11641: `DEFVAR_LISP ("ns-command-modifier", ns_command_modifier, …)`, whose
+  // assignment is C's own `NS_IMPL_COCOA` pair - `Qsuper` is the arm this target takes.
+  O_FWD_ns_command_modifier = Lisp_Fwd(
+    type: Lisp_Fwd_Obj(), u: Lisp_Fwd_u(ptr: withUnsafeMutablePointer(to: &ns_command_modifier) { UnsafeMutableRawPointer($0) }))
+  defvar_lisp(&O_FWD_ns_command_modifier, "ns-command-modifier", docstring: " This variable describes the behavior of the command key.\nEither SYMBOL, describing the behavior for any event,\nor (:ordinary SYMBOL :function SYMBOL :mouse SYMBOL), describing behavior\nseparately for ordinary keys, function keys, and mouse events.\n\nEach SYMBOL is `control', `meta', `alt', `super', `hyper' or `none'.\nIf `none', the key is ignored by Emacs and retains its standard meaning.  ")
+  ns_command_modifier = Qsuper()                                       // C 11638
+
+  // C 11643-11652: `DEFVAR_LISP ("ns-right-command-modifier", ns_right_command_modifier, …)`.
+  O_FWD_ns_right_command_modifier = Lisp_Fwd(
+    type: Lisp_Fwd_Obj(), u: Lisp_Fwd_u(ptr: withUnsafeMutablePointer(to: &ns_right_command_modifier) { UnsafeMutableRawPointer($0) }))
+  defvar_lisp(&O_FWD_ns_right_command_modifier, "ns-right-command-modifier", docstring: " This variable describes the behavior of the right command key.\nEither SYMBOL, describing the behavior for any event,\nor (:ordinary SYMBOL :function SYMBOL :mouse SYMBOL), describing behavior\nseparately for ordinary keys, function keys, and mouse events.\nIt can also be `left' to use the value of `ns-command-modifier' instead.\n\nEach SYMBOL is `control', `meta', `alt', `super', `hyper' or `none'.\nIf `none', the key is ignored by Emacs and retains its standard meaning.  ")
+  ns_right_command_modifier = Qleft()                                  // C 11652
+
+  // C 11654-11662: `DEFVAR_LISP ("ns-control-modifier", ns_control_modifier, …)`.
+  O_FWD_ns_control_modifier = Lisp_Fwd(
+    type: Lisp_Fwd_Obj(), u: Lisp_Fwd_u(ptr: withUnsafeMutablePointer(to: &ns_control_modifier) { UnsafeMutableRawPointer($0) }))
+  defvar_lisp(&O_FWD_ns_control_modifier, "ns-control-modifier", docstring: " This variable describes the behavior of the control key.\nEither SYMBOL, describing the behavior for any event,\nor (:ordinary SYMBOL :function SYMBOL :mouse SYMBOL), describing behavior\nseparately for ordinary keys, function keys, and mouse events.\n\nEach SYMBOL is `control', `meta', `alt', `super', `hyper' or `none'.\nIf `none', the key is ignored by Emacs and retains its standard meaning.  ")
+  ns_control_modifier = Qcontrol()                                     // C 11662
+
+  // C 11664-11673: `DEFVAR_LISP ("ns-right-control-modifier", ns_right_control_modifier, …)`.
+  O_FWD_ns_right_control_modifier = Lisp_Fwd(
+    type: Lisp_Fwd_Obj(), u: Lisp_Fwd_u(ptr: withUnsafeMutablePointer(to: &ns_right_control_modifier) { UnsafeMutableRawPointer($0) }))
+  defvar_lisp(&O_FWD_ns_right_control_modifier, "ns-right-control-modifier", docstring: " This variable describes the behavior of the right control key.\nEither SYMBOL, describing the behavior for any event,\nor (:ordinary SYMBOL :function SYMBOL :mouse SYMBOL), describing behavior\nseparately for ordinary keys, function keys, and mouse events.\nIt can also be `left' to use the value of `ns-control-modifier' instead.\n\nEach SYMBOL is `control', `meta', `alt', `super', `hyper' or `none'.\nIf `none', the key is ignored by Emacs and retains its standard meaning.  ")
+  ns_right_control_modifier = Qleft()                                  // C 11673
+
+  // C 11675-11683: `DEFVAR_LISP ("ns-function-modifier", ns_function_modifier, …)`.
+  O_FWD_ns_function_modifier = Lisp_Fwd(
+    type: Lisp_Fwd_Obj(), u: Lisp_Fwd_u(ptr: withUnsafeMutablePointer(to: &ns_function_modifier) { UnsafeMutableRawPointer($0) }))
+  defvar_lisp(&O_FWD_ns_function_modifier, "ns-function-modifier", docstring: " This variable describes the behavior of the function (fn) key.\nEither SYMBOL, describing the behavior for any event,\nor (:ordinary SYMBOL :function SYMBOL :mouse SYMBOL), describing behavior\nseparately for ordinary keys, function keys, and mouse events.\n\nEach SYMBOL is `control', `meta', `alt', `super', `hyper' or `none'.\nIf `none', the key is ignored by Emacs and retains its standard meaning.  ")
+  ns_function_modifier = Qnone()                                       // C 11683
+
+  // C 11685-11687: `DEFVAR_LISP ("ns-antialias-text", ns_antialias_text, …)`.
+  O_FWD_ns_antialias_text = Lisp_Fwd(
+    type: Lisp_Fwd_Obj(), u: Lisp_Fwd_u(ptr: withUnsafeMutablePointer(to: &ns_antialias_text) { UnsafeMutableRawPointer($0) }))
+  defvar_lisp(&O_FWD_ns_antialias_text, "ns-antialias-text", docstring: " Non-nil (the default) means to render text antialiased.  ")
+  ns_antialias_text = Qt()                                             // C 11687
+
+  // C 11689-11691: `DEFVAR_LISP ("ns-use-thin-smoothing", ns_use_thin_smoothing, …)`.
+  O_FWD_ns_use_thin_smoothing = Lisp_Fwd(
+    type: Lisp_Fwd_Obj(), u: Lisp_Fwd_u(ptr: withUnsafeMutablePointer(to: &ns_use_thin_smoothing) { UnsafeMutableRawPointer($0) }))
+  defvar_lisp(&O_FWD_ns_use_thin_smoothing, "ns-use-thin-smoothing", docstring: " Non-nil turns on a font smoothing method that produces thinner strokes.  ")
+  ns_use_thin_smoothing = Qnil()                                       // C 11691
+
+  // C 11693-11695: `DEFVAR_LISP ("ns-confirm-quit", ns_confirm_quit, …)`.
+  O_FWD_ns_confirm_quit = Lisp_Fwd(
+    type: Lisp_Fwd_Obj(), u: Lisp_Fwd_u(ptr: withUnsafeMutablePointer(to: &ns_confirm_quit) { UnsafeMutableRawPointer($0) }))
+  defvar_lisp(&O_FWD_ns_confirm_quit, "ns-confirm-quit", docstring: " Whether to confirm application quit using dialog.  ")
+  ns_confirm_quit = Qnil()                                             // C 11695
+
+  // C 11697-11700: `DEFVAR_LISP ("ns-auto-hide-menu-bar", ns_auto_hide_menu_bar, …)`.
+  O_FWD_ns_auto_hide_menu_bar = Lisp_Fwd(
+    type: Lisp_Fwd_Obj(), u: Lisp_Fwd_u(ptr: withUnsafeMutablePointer(to: &ns_auto_hide_menu_bar) { UnsafeMutableRawPointer($0) }))
+  defvar_lisp(&O_FWD_ns_auto_hide_menu_bar, "ns-auto-hide-menu-bar", docstring: " Non-nil means that the menu bar is hidden, but appears when the mouse is near.\nOnly works on Mac OS X.  ")
+  ns_auto_hide_menu_bar = Qnil()                                       // C 11700
+
+  // C 11702-11708: `DEFVAR_BOOL ("ns-use-native-fullscreen", ns_use_native_fullscreen, …)`;
+  // C 11708's second statement is the file's own `ns_last_use_native_fullscreen` copy (C 335).
+  O_FWD_ns_use_native_fullscreen = Lisp_Fwd(
+    type: Lisp_Fwd_Bool(), u: Lisp_Fwd_u(ptr: withUnsafeMutablePointer(to: &ns_use_native_fullscreen) { UnsafeMutableRawPointer($0) }))
+  defvar_bool(&O_FWD_ns_use_native_fullscreen, "ns-use-native-fullscreen", docstring: " Non-nil means to use native fullscreen on Mac OS X 10.7 and later.\nNil means use fullscreen the old (< 10.7) way.  The old way works better with\nmultiple monitors, but lacks tool bar.  This variable is ignored on\nMac OS X < 10.7.  Default is t.  ")
+  ns_use_native_fullscreen = true                                      // C 11707
+  ns_last_use_native_fullscreen = ns_use_native_fullscreen             // C 11708
+
+  // C 11710-11714: `DEFVAR_BOOL ("ns-use-fullscreen-animation", ns_use_fullscreen_animation, …)`.
+  O_FWD_ns_use_fullscreen_animation = Lisp_Fwd(
+    type: Lisp_Fwd_Bool(), u: Lisp_Fwd_u(ptr: withUnsafeMutablePointer(to: &ns_use_fullscreen_animation) { UnsafeMutableRawPointer($0) }))
+  defvar_bool(&O_FWD_ns_use_fullscreen_animation, "ns-use-fullscreen-animation", docstring: " Non-nil means use animation on non-native fullscreen.\nFor native fullscreen, this does nothing.\nDefault is nil.  ")
+  ns_use_fullscreen_animation = false                                  // C 11714
+
+  // C 11716-11720: `DEFVAR_BOOL ("ns-use-srgb-colorspace", ns_use_srgb_colorspace, …)`.
+  O_FWD_ns_use_srgb_colorspace = Lisp_Fwd(
+    type: Lisp_Fwd_Bool(), u: Lisp_Fwd_u(ptr: withUnsafeMutablePointer(to: &ns_use_srgb_colorspace) { UnsafeMutableRawPointer($0) }))
+  defvar_bool(&O_FWD_ns_use_srgb_colorspace, "ns-use-srgb-colorspace", docstring: " Non-nil means to use sRGB colorspace on Mac OS X 10.7 and later.\nNote that this does not apply to images.\nThis variable is ignored on Mac OS X < 10.7 and GNUstep.  ")
+  ns_use_srgb_colorspace = true                                        // C 11720
+
+  // C 11722-11726: `DEFVAR_BOOL ("ns-use-mwheel-acceleration", ns_use_mwheel_acceleration, …)`.
+  O_FWD_ns_use_mwheel_acceleration = Lisp_Fwd(
+    type: Lisp_Fwd_Bool(), u: Lisp_Fwd_u(ptr: withUnsafeMutablePointer(to: &ns_use_mwheel_acceleration) { UnsafeMutableRawPointer($0) }))
+  defvar_bool(&O_FWD_ns_use_mwheel_acceleration, "ns-use-mwheel-acceleration", docstring: " Non-nil means use macOS's standard mouse wheel acceleration.\nThis variable is ignored on macOS < 10.7 and GNUstep.  Default is t.  ")
+  ns_use_mwheel_acceleration = true                                    // C 11726
+
+  // C 11728-11732: `DEFVAR_LISP ("ns-mwheel-line-height", ns_mwheel_line_height, …)`.
+  O_FWD_ns_mwheel_line_height = Lisp_Fwd(
+    type: Lisp_Fwd_Obj(), u: Lisp_Fwd_u(ptr: withUnsafeMutablePointer(to: &ns_mwheel_line_height) { UnsafeMutableRawPointer($0) }))
+  defvar_lisp(&O_FWD_ns_mwheel_line_height, "ns-mwheel-line-height", docstring: " The number of pixels touchpad scrolling considers one line.\nNil or a non-number means use the default frame line height.\nThis variable is ignored on macOS < 10.7 and GNUstep.  Default is nil.  ")
+  ns_mwheel_line_height = Qnil()                                       // C 11732
+
+  // C 11734-11737: `DEFVAR_BOOL ("ns-use-mwheel-momentum", ns_use_mwheel_momentum, …)`.
+  O_FWD_ns_use_mwheel_momentum = Lisp_Fwd(
+    type: Lisp_Fwd_Bool(), u: Lisp_Fwd_u(ptr: withUnsafeMutablePointer(to: &ns_use_mwheel_momentum) { UnsafeMutableRawPointer($0) }))
+  defvar_bool(&O_FWD_ns_use_mwheel_momentum, "ns-use-mwheel-momentum", docstring: " Non-nil means mouse wheel scrolling uses momentum.\nThis variable is ignored on macOS < 10.7 and GNUstep.  Default is t.  ")
+  ns_use_mwheel_momentum = true                                        // C 11737
+
+  /* TODO: Move to common code.  */
+  // C 11740-11742: `DEFVAR_LISP ("x-toolkit-scroll-bars", Vx_toolkit_scroll_bars, …)` - the
+  // variable is `src/xterm.c`'s ("SKIP: real doc in xterm.c"), so this unit registers it only.
+  O_FWD_Vx_toolkit_scroll_bars = Lisp_Fwd(
+    type: Lisp_Fwd_Obj(), u: Lisp_Fwd_u(ptr: withUnsafeMutablePointer(to: &Vx_toolkit_scroll_bars) { UnsafeMutableRawPointer($0) }))
+  defvar_lisp(&O_FWD_Vx_toolkit_scroll_bars, "x-toolkit-scroll-bars", docstring: " SKIP: real doc in xterm.c.  ")
+  Vx_toolkit_scroll_bars = Qt()                                        // C 11742
+
+  // C 11744-11749: `DEFVAR_BOOL ("x-use-underline-position-properties", …)` and its `DEFSYM
+  // (Qx_use_underline_position_properties, "x-use-underline-position-properties")` (C 11748-11749,
+  // an empty macro).
+  O_FWD_x_use_underline_position_properties = Lisp_Fwd(
+    type: Lisp_Fwd_Bool(), u: Lisp_Fwd_u(ptr: withUnsafeMutablePointer(to: &x_use_underline_position_properties) { UnsafeMutableRawPointer($0) }))
+  defvar_bool(&O_FWD_x_use_underline_position_properties, "x-use-underline-position-properties", docstring: " SKIP: real doc in xterm.c.  ")
+  x_use_underline_position_properties = false                          // C 11747 (C's `0`)
+
+  // C 11751-11754: `DEFVAR_BOOL ("x-underline-at-descent-line", x_underline_at_descent_line, …)`.
+  O_FWD_x_underline_at_descent_line = Lisp_Fwd(
+    type: Lisp_Fwd_Bool(), u: Lisp_Fwd_u(ptr: withUnsafeMutablePointer(to: &x_underline_at_descent_line) { UnsafeMutableRawPointer($0) }))
+  defvar_bool(&O_FWD_x_underline_at_descent_line, "x-underline-at-descent-line", docstring: " SKIP: real doc in xterm.c.  ")
+  x_underline_at_descent_line = false                                  // C 11754 (C's `0`)
+
+  /* TODO: add an "auto" mode that passes clicks through to "utility" UI
+     elements, selects windows, and so on, but doesn't pass them through
+     for commands in general--as with other applications.  */           // C 11756-11758
+
+  // C 11760-11768: `DEFVAR_BOOL ("ns-click-through", ns_click_through, …)`; the docstring
+  // C 11762-11767 is the long one about which click activates.
+  O_FWD_ns_click_through = Lisp_Fwd(
+    type: Lisp_Fwd_Bool(), u: Lisp_Fwd_u(ptr: withUnsafeMutablePointer(to: &ns_click_through) { UnsafeMutableRawPointer($0) }))
+  defvar_bool(&O_FWD_ns_click_through, "ns-click-through", docstring: " Whether to pass activation clicks through to Emacs.\nWhen nil, if Emacs is not focused, the click that focuses Emacs will not\nbe interpreted as a common.  If t, it will be.  For example, when nil,\nif Emacs is inactive, two clicks are needed to move point: the first to\nactivate Emacs and the second to activate the mouse-1 binding.  When t,\nonly a single click is needed.  ")
+  ns_click_through = true                                              // C 11768
+
+  // C 11770: `DEFSYM (Qx_underline_at_descent_line, "x-underline-at-descent-line");` - empty.
+
+  // C 11772-11776: `DEFVAR_LISP ("ns-scroll-event-delta-factor", Vns_scroll_event_delta_factor,
+  // …)`.
+  O_FWD_Vns_scroll_event_delta_factor = Lisp_Fwd(
+    type: Lisp_Fwd_Obj(), u: Lisp_Fwd_u(ptr: withUnsafeMutablePointer(to: &Vns_scroll_event_delta_factor) { UnsafeMutableRawPointer($0) }))
+  defvar_lisp(&O_FWD_Vns_scroll_event_delta_factor, "ns-scroll-event-delta-factor", docstring: " A factor to apply to pixel deltas reported in scroll events.\n This is only effective for pixel deltas generated from touch pads or\n mice with smooth scrolling capability.  ")
+  Vns_scroll_event_delta_factor = make_float(1.0)                      // C 11776
+
+  // C 11778-11786: `DEFVAR_LISP ("ns-drag-motion-function", Vns_drag_motion_function, …)`.
+  O_FWD_Vns_drag_motion_function = Lisp_Fwd(
+    type: Lisp_Fwd_Obj(), u: Lisp_Fwd_u(ptr: withUnsafeMutablePointer(to: &Vns_drag_motion_function) { UnsafeMutableRawPointer($0) }))
+  defvar_lisp(&O_FWD_Vns_drag_motion_function, "ns-drag-motion-function", docstring: " Function called when another program drags items over Emacs.\n\nIt is called with three arguments FRAME, X, and Y, whenever the user\nmoves the mouse over an Emacs frame as part of a drag-and-drop\noperation.  FRAME is the frame the mouse is on top of, and X and Y are\nthe frame-relative positions of the mouse in the X and Y axes\nrespectively.  ")
+  Vns_drag_motion_function = Qns_handle_drag_motion()                  // C 11786
+
+  /* Tell Emacs about this window system.  */
+  _ = Fprovide(Qns(), Qnil())                                          // C 11789
+
+  // C 11791-11799: `DEFSYM (Qcocoa, "cocoa"); DEFSYM (Qgnustep, "gnustep"); DEFSYM (QCordinary,
+  // ":ordinary"); DEFSYM (QCfunction, ":function"); DEFSYM (QCmouse, ":mouse"); DEFSYM (Qcondensed,
+  // "condensed"); DEFSYM (Qreverse_italic, "reverse-italic"); DEFSYM (Qexpanded, "expanded");
+  // DEFSYM (Qns_in_echo_area, "ns-in-echo-area");` - nine `DEFSYM`s, each carrying no statement.
+
+  // C 11801-11807: the `NS_IMPL_COCOA` arm is this target's - `Fprovide (Qcocoa, Qnil)` and the
+  // neighbouring lane's `syms_of_macfont ()`; the `#else` arm's `Fprovide (Qgnustep, Qnil)` and
+  // `syms_of_nsfont ()` are the GNUstep half and are dead here.
+  _ = Fprovide(Qcocoa(), Qnil())                                       // C 11802
+  syms_of_macfont()                                                    // C 11803
+
+  last_known_monitors = Qnil()                                         // C 11809
+  staticpro(withUnsafePointer(to: &last_known_monitors) { $0 })         // C 11810
+}
+
+// ==========================================================================
+// Round 61: `EmacsLayer` (C 11128-11396) - the screen-buffer class
+// ==========================================================================
+
+/// C: `@interface EmacsLayer : CALayer` (src/nsterm.h 752-759) - the five ivars, in C's order, with
+/// C's own names and types.  The class's four methods the header declares (753-760) and the six it
+/// does not (`releaseSurfaces`, `checkDimensions`, `releaseContext`, `display`, `copyContentsTo:`,
+/// all class-internal in the `.m`) are the ten below.
+///
+/// Three SDK readings this class needs, each measured (`the temporary directory` probes, removed after the readings):
+///  * C 11177's `CGColorSpaceCreateWithName (kCGColorSpaceGenericRGB)`: the SDK marks that constant
+///    `nonswift` (CoreGraphics.apinotes 1122-1124), and both spellings of it are unavailable to
+///    Swift.  Measured with a C probe: its value is the string `kCGColorSpaceGenericRGB` and
+///    `CGColorSpaceCreateWithName` of that string returns the **same** object as the constant
+///    (`a=0x1011de230 b=0x1011de230`), so the name - not a different colour space - is what is
+///    handed to Swift's `CGColorSpace (name:)` replacement.
+///  * C 11302-11303's `kCGImageAlphaPremultipliedFirst | kCGBitmapByteOrder32Host`: the first is
+///    `CGImageAlphaInfo.premultipliedFirst`; the second is the soft-deprecated alias of
+///    `kCGImageByteOrder32Host` (`CGImage.h` 87), which `CGImage.h` 49-52 defines as the
+///    little-endian member on a little-endian host - this target - so the Swift spelling is that
+///    member's (`CGBitmapInfo.byteOrder32Little`).
+///  * C 11376/11389's `kIOSurfaceLockReadOnly` is the SDK's own `CF_OPTIONS` member, which Swift
+///    imports without the `k` prefix (`.readOnly`); C 11288/11335's plain `0` is the empty option
+///    set's raw value, and C 11296's `CGBitmapContextCreate` plus C 11314-11315's two CTM calls are
+///    the SDK's own Swift renames (`CGContext (data:…)`, `translateBy (x:y:)`, `scaleBy (x:y:)`,
+///    each measured as "has been replaced by").
+///  * C 11309/11206/11213's `CFRelease` and C 11332's `CGContextRelease`: dropped, because Swift
+///    owns what C releases by hand (the `docs/ports/macfont.md` 348 reading), and C 11331's
+///    `CGContextFlush` is the SDK's own rename `CGContext.flush ()`.  `'BGRA'` (C 11279) is a
+///    multi-character literal: measured `0x42475241`.
+final class EmacsLayer: CALayer {
+  /// C 754: `NSMutableArray *cache;`
+  var cache: NSMutableArray? = nil
+  /// C 755: `CGColorSpaceRef colorSpace;`
+  var colorSpace: CGColorSpace? = nil
+  /// C 756: `IOSurfaceRef currentSurface;`
+  var currentSurface: IOSurfaceRef? = nil
+  /// C 757: `CGContextRef context;`
+  var context: CGContext? = nil
+  /// C 758: `bool doubleBuffered;`
+  var doubleBuffered: Bool = false
+
+  /// C 11152-11167: `- (id) initWithDoubleBuffered: (bool)db`.  C's `self = [super init]` with its
+  /// `if (self) … else return nil` is Swift's non-failable initializer (the `EmacsMenu` reading: the
+  /// nil branch is `[super init]`'s failure, which Swift's own `super.init ()` does not have), C
+  /// 11161's `[[NSMutableArray arrayWithCapacity:] retain]` is ARC's strong reference, and
+  /// C 11154's `NSTRACE` is the empty macro.
+  init(doubleBuffered db: Bool) {
+    super.init()                                          // C 11156
+    setColorSpace(nil)                                    // C 11159
+    setDoubleBuffered(db)                                 // C 11160
+    cache = NSMutableArray(capacity: db ? 2 : 1)          // C 11161
+  }
+
+  /// C's `- (id) initWithCoder: (NSCoder *)coder`, inherited as-is: the port's initializer above is
+  /// a designated initializer, so Swift wants this one spelled out rather than synthesised (the
+  /// `EmacsMenu` reading of the same pair).
+  required init?(coder: NSCoder) {
+    super.init(coder: coder)
+  }
+
+  /// C 11170-11178: `- (void) setColorSpace: (CGColorSpaceRef)cs`.
+  func setColorSpace(_ cs: CGColorSpace?) {
+    /* We don't need to clear the cache because the new colorspace will
+       be used next time we create a new context.  */
+    if cs != nil {
+      colorSpace = cs                                     // C 11175
+    } else {
+      // C 11177: `CGColorSpaceCreateWithName (kCGColorSpaceGenericRGB)` - the reading above.
+      colorSpace = CGColorSpace(name: "kCGColorSpaceGenericRGB" as CFString)
+    }
+  }
+
+  /// C 11181-11187: `- (void) setDoubleBuffered: (bool)db`.
+  func setDoubleBuffered(_ db: Bool) {
+    if doubleBuffered != db { releaseSurfaces() }         // C 11183-11184
+
+    doubleBuffered = db                                   // C 11186
+  }
+
+  /// C 11190-11196: `- (void) dealloc` - Swift's `deinit` (a class cannot name `dealloc`; the
+  /// `EmacsScroller` reading).  C 11193's `[cache release]` is the strong reference's release and
+  /// C 11195's `[super dealloc]` is implicit here.
+  deinit {
+    releaseSurfaces()                                     // C 11192
+  }
+
+  /// C 11199-11217: `- (void) releaseSurfaces`.
+  func releaseSurfaces() {
+    contents = nil                                        // C 11201 (C's `[self setContents:nil]`)
+    releaseContext()                                      // C 11202
+
+    if currentSurface != nil {                            // C 11204
+      // C 11206: `CFRelease (currentSurface);` - dropped, the reading above.
+      currentSurface = nil                                // C 11207
+    }
+
+    if let c = cache {                                    // C 11210
+      for case let surface as IOSurfaceRef in c {         // C 11212-11213
+        // C 11213: `CFRelease ((IOSurfaceRef)object);` - dropped, the reading above; the array's
+        // own release below is what frees them (C 11215).
+        _ = surface
+      }
+
+      c.removeAllObjects()                                // C 11215
+    }
+  }
+
+  /// C 11220-11231: `- (BOOL) checkDimensions` - "Check whether the current bounds match the
+  /// IOSurfaces we are using.  If they do return YES, otherwise NO."  C's two `int` conversions of
+  /// a `CGFloat` expression are written out (Swift has no implicit narrowing).
+  func checkDimensions() -> Bool {
+    let width = Int(NSWidth(bounds) * contentsScale)      // C 11224
+    let height = Int(NSHeight(bounds) * contentsScale)    // C 11225
+    var s: IOSurfaceRef? = currentSurface                 // C 11226
+    if s == nil {                                         // C 11227 (C's nil-receiver send is NULL)
+      // C 11227's cast is unconditional, and Swift makes a *conditional* downcast to a CF type an
+      // error ("will always succeed"), so the nil test is written out and the cast is `as!`.
+      let first = cache?.firstObject
+      if first != nil { s = (first as! IOSurfaceRef) }
+    }
+
+    return s == nil || (IOSurfaceGetWidth(s!) == width    // C 11229
+                          && IOSurfaceGetHeight(s!) == height)   // C 11230
+  }
+
+  /// C 11234-11319: `- (CGContextRef) getContext` - "Return a CGContextRef that can be used for
+  /// drawing to the screen."  C 11239-11240's `NSTRACE_WHEN`/`NSTRACE_MSG` are the empty macros.
+  func getContext() -> CGContext? {
+    let scale = contentsScale                             // C 11237
+
+    if !checkDimensions() {                               // C 11242
+      releaseSurfaces()                                   // C 11243
+    }
+
+    if context == nil {                                   // C 11245
+      var surface: IOSurfaceRef? = nil                    // C 11247
+      let width = Int(NSWidth(bounds) * scale)            // C 11248
+      let height = Int(NSHeight(bounds) * scale)          // C 11249
+
+      if let c = cache {                                  // C 11251
+        for case let object as IOSurfaceRef in c {        // C 11251-11259
+          if !IOSurfaceIsInUse(object) {                  // C 11253
+            surface = object                              // C 11255
+            c.remove(object)                              // C 11256 (the SDK's rename of `removeObject:`)
+            break                                         // C 11257
+          }
+        }
+      }
+
+      if surface == nil && (cache?.count ?? 0) >= (doubleBuffered ? 2 : 1) {   // C 11261
+        /* Just grab the first one off the cache.  This may result
+           in tearing effects.  The alternative is to wait for one
+           of the surfaces to become free.  */
+        let first = cache?.firstObject                    // C 11266
+        if first != nil { surface = (first as! IOSurfaceRef) }
+        cache?.remove(surface!)                           // C 11267 (C's `removeObject:(id)surface`)
+      } else if surface == nil {                          // C 11269
+        let bytesPerRow = IOSurfaceAlignProperty(kIOSurfaceBytesPerRow,
+                                                 width * 4)   // C 11271-11272
+
+        // C 11274-11279: the five properties C's dictionary literal carries, in C's order;
+        // C 11279's `'BGRA'` is the measured `0x42475241` (the reading above).
+        surface = IOSurfaceCreate(
+          [kIOSurfaceWidth: NSNumber(value: width),
+           kIOSurfaceHeight: NSNumber(value: height),
+           kIOSurfaceBytesPerRow: NSNumber(value: bytesPerRow),
+           kIOSurfaceBytesPerElement: NSNumber(value: 4),
+           kIOSurfacePixelFormat: NSNumber(value: UInt32(0x42475241))] as CFDictionary)
+      }
+
+      if surface == nil {                                 // C 11282
+        // C 11284's `%@` is `[self delegate]`'s description, and Foundation prints `(null)` for a
+        // nil one (measured with a C probe), which is the text the fallback below reproduces.
+        NSLog("Failed to create IOSurface for frame %@",
+              delegate.map { String(describing: $0) } ?? "(null)")   // C 11284
+        return nil                                        // C 11285
+      }
+
+      let lockStatus = IOSurfaceLock(surface!, IOSurfaceLockOptions(rawValue: 0), nil)   // C 11288
+      if lockStatus != kIOReturnSuccess {                 // C 11289
+        NSLog("Failed to lock surface: %x", UInt32(lockStatus))   // C 11290
+      }
+
+      copyContentsTo(surface!)                            // C 11292
+
+      currentSurface = surface                            // C 11294
+
+      // C 11296-11303: `CGBitmapContextCreate` is the SDK's own Swift rename
+      // `CGContext (data:width:height:bitsPerComponent:bytesPerRow:space:bitmapInfo:)`
+      // (measured: "has been replaced by"), with C's seven arguments in C's order.
+      context = CGContext(data: IOSurfaceGetBaseAddress(currentSurface!),
+                          width: IOSurfaceGetWidth(currentSurface!),
+                          height: IOSurfaceGetHeight(currentSurface!),
+                          bitsPerComponent: 8,
+                          bytesPerRow: IOSurfaceGetBytesPerRow(currentSurface!),
+                          space: colorSpace!,
+                          bitmapInfo: CGImageAlphaInfo.premultipliedFirst.rawValue
+                            | CGBitmapInfo.byteOrder32Little.rawValue)
+
+      if context == nil {                                 // C 11305
+        NSLog("Failed to create context for frame %@",
+              delegate.map { String(describing: $0) } ?? "(null)")   // C 11307
+        _ = IOSurfaceUnlock(currentSurface!, IOSurfaceLockOptions(rawValue: 0), nil)   // C 11308
+        // C 11309: `CFRelease (currentSurface);` - dropped, the reading above.
+        currentSurface = nil                              // C 11310
+        return nil                                        // C 11311
+      }
+
+      // C 11314-11315: `CGContextTranslateCTM`/`CGContextScaleCTM` are the SDK's own Swift
+      // renames `translateBy (x:y:)`/`scaleBy (x:y:)` (measured: "has been replaced by").
+      context!.translateBy(x: 0, y: CGFloat(IOSurfaceGetHeight(surface!)))   // C 11314
+      context!.scaleBy(x: scale, y: -scale)               // C 11315
+    }
+
+    return context                                        // C 11318
+  }
+
+  /// C 11322-11338: `- (void) releaseContext` - "Releases the CGGraphicsContext and unlocks the
+  /// associated IOSurface, so it will be sent to VRAM."
+  func releaseContext() {
+    if context == nil {                                   // C 11328
+      return                                              // C 11329
+    }
+
+    context!.flush()                                      // C 11331 (the SDK's rename of CGContextFlush)
+    // C 11332: `CGContextRelease (context);` - dropped, the reading above.
+    context = nil                                         // C 11333
+
+    let lockStatus = IOSurfaceUnlock(currentSurface!, IOSurfaceLockOptions(rawValue: 0), nil)   // C 11335
+    if lockStatus != kIOReturnSuccess {                   // C 11336
+      NSLog("Failed to unlock surface: %x", UInt32(lockStatus))   // C 11337
+    }
+  }
+
+  /// C 11341-11358: `- (void) display` - the `CALayer` method of that name, so it is an override
+  /// here (C's `[self setContents:…]` pair is the `contents` property).
+  override func display() {
+    if context != nil && context != NSGraphicsContext.current?.cgContext {   // C 11345
+      releaseContext()                                    // C 11347
+
+      /* This forces the layer to see the surface as updated even if
+         we replace it with itself.  */
+      contents = nil                                      // C 11351
+      contents = currentSurface                           // C 11352
+
+      /* Put currentSurface back on the end of the cache.  */
+      cache?.add(currentSurface as Any)                   // C 11355
+      currentSurface = nil                                // C 11356
+    }
+  }
+
+  /// C 11361-11392: `- (void) copyContentsTo: (IOSurfaceRef) destination` - "Copy the contents of
+  /// lastSurface to DESTINATION.  This is required every time we want to use an IOSurface as its
+  /// contents are probably blanks (if it's new), or stale."
+  func copyContentsTo(_ destination: IOSurfaceRef) {
+    // C 11367's cast is unconditional (and Swift refuses a conditional downcast to a CF type), so
+    // the nil test is written out and the cast is `as!` - C 11373's `!source` is the nil test.
+    var source: IOSurfaceRef? = nil
+    if contents != nil { source = (contents as! IOSurfaceRef) }
+    let numBytes = IOSurfaceGetAllocSize(destination)     // C 11369
+
+    if source == nil || source == destination {           // C 11373
+      return                                              // C 11374
+    }
+
+    var lockStatus = IOSurfaceLock(source!,
+                                   .readOnly,
+                                   nil)                   // C 11376
+    if lockStatus != kIOReturnSuccess {                   // C 11377
+      NSLog("Failed to lock source surface: %x", UInt32(lockStatus))   // C 11378-11379
+    }
+
+    let sourceData = IOSurfaceGetBaseAddress(source!)     // C 11381
+    let destinationData = IOSurfaceGetBaseAddress(destination)   // C 11382
+
+    /* Since every IOSurface should have the exact same settings, a
+       memcpy seems like the fastest way to copy the data from one to
+       the other.  */
+    memcpy(destinationData, sourceData, numBytes)         // C 11387
+
+    lockStatus = IOSurfaceUnlock(source!,
+                                 .readOnly,
+                                 nil)                     // C 11389
+    if lockStatus != kIOReturnSuccess {                   // C 11390
+      NSLog("Failed to unlock source surface: %x", UInt32(lockStatus))   // C 11391
+    }
+  }
+}
+
+// C 11394: `#undef CACHE_MAX_SIZE` - a macro the tree never defines (a grep over `src/` finds only
+// this `#undef`), so the site carries no statement; recorded, like the other empty-macro sites.
+// C 11396: `@end` closes the class.
+
+// ==========================================================================
+// Round 62: the drag-and-drop family's entries, and the cross-unit `beginDrag` provider
+// ==========================================================================
+
+/// C: `enum ns_return_frame_mode { RETURN_FRAME_NEVER, RETURN_FRAME_EVENTUALLY, RETURN_FRAME_NOW }`
+/// (src/nsterm.h 411-416) - the type of C 10543/10494/10557's comparisons.  `nsselect.swift` 102-107
+/// declares its own view of the same enum (the two units are compiled apart, so each writes the
+/// lane ABI it needs), and this is that shape.
+enum ns_return_frame_mode: Int32 {
+  case RETURN_FRAME_NEVER = 0
+  case RETURN_FRAME_EVENTUALLY = 1
+  case RETURN_FRAME_NOW = 2
+}
+
+/// C: the `struct ns_display_info` member `dpyinfo->grabbed` - C 10602's write.  The layout
+/// baseline has the row (`docs/baseline/ns_display_info-layout.tsv` 24: `int grabbed`, offset 80),
+/// so the entry is an `Int32` member write of the round-37 family.
+@_silgen_name("ns_display_info_set_grabbed")
+func ns_display_info_set_grabbed(_ dpyinfo: UnsafeMutableRawPointer?, _ v: Int32)
+
+/// C: `Lisp_Object Fx_hide_tip (void)` - the DEFUN of src/xfns.c C 10597 calls ("Hide a tooltip");
+/// `nsfns.swift` 4433 defines the C-ABI entry this unit imports.
+@_silgen_name("Fx_hide_tip") func Fx_hide_tip() -> Lisp_Object
+
+/// C 10528-10608's own method, reached from `src/nsselect.m` 771 by *selector*: the cross-unit
+/// entry `nsselect.swift` 220-224 imports (the receiver first, then C's six arguments, with the
+/// enum C narrows to its `Int32` raw value).  Its body is the class method above.
+@_cdecl("beginDrag")
+func beginDrag(_ window: UnsafeMutableRawPointer?, _ op: NSDragOperation,
+               _ pasteboard: NSPasteboard?, _ mode: Int32,
+               _ returnFrameTo: UnsafeMutablePointer<UnsafeMutableRawPointer?>?,
+               _ prohibitSameFrame: Bool, _ followTooltip: Bool) -> NSDragOperation {
+  let w = Unmanaged<EmacsWindow>.fromOpaque(window!).takeUnretainedValue()
+  return w.beginDrag(op, forPasteboard: pasteboard,
+                     withMode: ns_return_frame_mode(rawValue: mode)!,
+                     returnFrameTo: returnFrameTo, prohibitSame: prohibitSameFrame,
+                     followTooltip: followTooltip)
+}
+
+// ==========================================================================
+// Round 63: the entries the zoom/appearance methods need
+// ==========================================================================
+
+/// C: `#define FRAME_NS_APPEARANCE(f) ((f)->ns_appearance)` (src/frame.h 1258, the `NS_IMPL_COCOA`
+/// arm) - the *reader* of the member whose writer this unit already carries
+/// (`frame_set_ns_appearance`, C 2217's slice).  C 10413/10416 read it, and the value is an `enum
+/// ns_appearance_type` member, so the entry returns the same `Int32` its enumerator entries use.
+@_silgen_name("FRAME_NS_APPEARANCE")
+func FRAME_NS_APPEARANCE(_ f: UnsafeMutableRawPointer?) -> Int32
+
+/// C 2144's `[window setAppearance]` - the message `ns_set_appearance` sends to the window, whose
+/// receiver the unit reaches through the deferred entry declared at C 2285 (the `@_silgen_name
+/// ("setAppearance") func setAppearance (_ window: NSWindow?)` line above).  The definition
+/// the class method above (C 10398) gives that entry is this provider - the `ns_set_offset` shape,
+/// where the call-site declaration keeps its own Swift name and the definition takes another, so
+/// C 2144's call keeps working unchanged.
+@_cdecl("setAppearance")
+func setAppearance(_ window: NSWindow?) {
+  (window as? EmacsWindow)?.setAppearance()
+}
+
+// ==========================================================================
+// Round 64: the entries and helpers `EmacsWindow`'s initializers need, and two providers
+// ==========================================================================
+
+/// C: the `struct frame` members and macros C 9765-9875 reads and writes, each an entry of the
+/// shape the section above already uses (`frame_<member>` for a member, the macro's own name for a
+/// macro).  `src/frame.h`'s `HAVE_WINDOW_SYSTEM` arm is the live one, which is why the reference
+/// carries their definitions at all.
+@_silgen_name("FRAME_UNDECORATED") func FRAME_UNDECORATED(_ f: UnsafeMutableRawPointer?) -> Bool
+@_silgen_name("FRAME_Z_GROUP") func FRAME_Z_GROUP(_ f: UnsafeMutableRawPointer?) -> Int32
+@_silgen_name("FRAME_Z_GROUP_BELOW") func FRAME_Z_GROUP_BELOW(_ f: UnsafeMutableRawPointer?) -> Bool
+@_silgen_name("FRAME_NS_TRANSPARENT_TITLEBAR")
+func FRAME_NS_TRANSPARENT_TITLEBAR(_ f: UnsafeMutableRawPointer?) -> Bool
+/// C: `FRAME_TEXT_COLS_TO_PIXEL_WIDTH (f, cols)` / `FRAME_TEXT_LINES_TO_PIXEL_HEIGHT (f, lines)`
+/// (src/frame.h 1742-1751) - the two macros C 9793-9794 computes the window's size with.  Both are
+/// integer expressions over other frame members, so the entries take and return the `Int32` the
+/// reference's `int` is.
+@_silgen_name("FRAME_TEXT_COLS_TO_PIXEL_WIDTH")
+func FRAME_TEXT_COLS_TO_PIXEL_WIDTH(_ f: UnsafeMutableRawPointer?, _ cols: Int32) -> Int32
+@_silgen_name("FRAME_TEXT_LINES_TO_PIXEL_HEIGHT")
+func FRAME_TEXT_LINES_TO_PIXEL_HEIGHT(_ f: UnsafeMutableRawPointer?, _ lines: Int32) -> Int32
+@_silgen_name("frame_text_cols") func frame_text_cols(_ f: UnsafeMutableRawPointer?) -> Int32
+@_silgen_name("frame_text_lines") func frame_text_lines(_ f: UnsafeMutableRawPointer?) -> Int32
+/// C: the `Lisp_Object` members `f->name` and `f->icon_name` - C 9821/9824-9825 read them, so they
+/// are readers of the same family (`frame_left_pos`'s shape) with the `Lisp_Object` value
+/// `nsfns.swift` 256's `frame_name` also carries.
+@_silgen_name("frame_name") func frame_name(_ f: UnsafeMutableRawPointer?) -> Lisp_Object
+@_silgen_name("frame_icon_name") func frame_icon_name(_ f: UnsafeMutableRawPointer?) -> Lisp_Object
+/// C: the `struct frame` member `f->border_width` (an `int`), written at C 9854 - a member-write
+/// entry of the family above (`frame_set_mouse_moved`'s shape).
+@_silgen_name("frame_set_border_width")
+func frame_set_border_width(_ f: UnsafeMutableRawPointer?, _ v: Int32)
+
+/// C 9878's `[self createToolbar: f]` - this class's own method, which has not landed yet, so the
+/// call site uses the deferred entry of the selector's first segment (the `setAppearance` /
+/// `setParentChildRelationships` shape): the definition lands with that method's batch.
+
+/// C: `#define SCREENMAX 16000` (src/nsterm.h 1273) - the clamp bound C 9843-9847 uses.  A macro
+/// with no C symbol, so it is the file-scope value the `KBD_BUFFER_SIZE` reading gives such
+/// constants, typed as the `CGFloat` the point C builds needs.
+fileprivate let SCREENMAX: CGFloat = 16000
+
+/// C: `#define IN_BOUND(min, x, max) (((x) < (min)) ? (min) : (((x) > (max)) ? (max) : (x)))`
+/// (src/nsterm.h 1283-1284) - C 9843-9847's clamp.
+/// It is spelled over the values `NSMakePoint` takes (this unit's `CGFloat`), which is the only
+/// width the file uses it at; `SCREENMAXBOUND` (nsterm.h 1285) is this same call with `SCREENMAX`
+/// on both sides, so only this one name is needed - nothing in the file calls the other.
+fileprivate func IN_BOUND(_ bmin: CGFloat, _ x: CGFloat, _ bmax: CGFloat) -> CGFloat {
+  x < bmin ? bmin : (x > bmax ? bmax : x)
+}
+
+/// C: `+[NSColor colorWithUnsignedLong: (unsigned long)]` (declared src/nsterm.h 361, defined
+/// src/nsterm.m 157 in the `NSColor (EmacsColor)` category) - **this unit ports that category**
+/// (`extension NSColor`'s `colorWithUnsignedLong (_:)` above, C 188-197), so it owns the cross-file
+/// C-ABI entry the other lanes import (`macfont.swift` 1321-1327 says as much: "the port of
+/// src/nsterm.m owns the definition").  Round 62 declared this as an *import* here by mistake -
+/// which is what the import gate reads as "imported by `nsterm.swift` and provided by nothing" -
+/// so round 64 turns it into the provider it was always meant to be; the receiver C's class method
+/// takes is dropped exactly as a class method's is, since the Swift class method above is
+/// `NSColor`'s own.
+@_silgen_name("colorWithUnsignedLong")
+func colorWithUnsignedLong(_ cls: UnsafeMutableRawPointer?, _ c: UInt) -> NSColor? {
+  _ = cls
+  return NSColor.colorWithUnsignedLong(c)
+}
+
+/// C 9759-9762's initializer, reached by *entry* from this unit's own C 1983 (line 2317 above) and
+/// from C 8615/8624/9076: the deferred import above keeps its Swift name, so the definition takes
+/// another - the `ns_set_offset` / `setAppearance` pair's shape, and the other half of what that
+/// import was waiting for.
+@_silgen_name("EmacsWindow_initWithEmacsFrame")
+func EmacsWindow_initWithEmacsFrame_impl(_ f: UnsafeMutableRawPointer?) -> AnyObject? {
+  EmacsWindow(frame: f)
+}
+
+// ==========================================================================
+// Round 65: the three providers rounds 25/62 left waiting, and one new deferred entry
+// ==========================================================================
+
+/// C 9934-10037's own method, which round 64's initializer reaches through the deferred entry above
+/// (`setParentChildRelationships_definition`, declared at C 2285's family).  That entry's provider is
+/// this C-ABI definition - the `setAppearance`/`EmacsWindow_initWithEmacsFrame_impl` shape, where the
+/// call-site declaration keeps its Swift name and the definition takes another.
+@_cdecl("setParentChildRelationships")
+func setParentChildRelationships_definition(_ window: NSWindow?) {
+  (window as? EmacsWindow)?.setParentChildRelationships()
+}
+
+/// C 8957's `- (BOOL)isFullscreen` and C 8952's `- (BOOL)fsIsNative` are `EmacsView`'s own methods
+/// (landed beside that class's record), and rounds 5/25 declared the two deferred entries for call
+/// sites that preceded them; both entries' providers were still owed, so this round adds them - the
+/// same pair of directions, and the two names `nm -u` listed until now.
+@_cdecl("isFullscreen")
+func isFullscreen_definition(_ view: NSView?) -> Bool {
+  (view as? EmacsView)?.isFullscreen() ?? false
+}
+@_cdecl("fsIsNative")
+func fsIsNative_definition(_ view: NSView?) -> Bool {
+  (view as? EmacsView)?.fsIsNative() ?? false
+}
+
+// ==========================================================================
+// Round 66: the two entries `createToolbar:` needs, and the `createToolbar` provider
+// ==========================================================================
+
+/// C: `FRAME_EXTERNAL_TOOL_BAR (f)` (src/frame.h, the `HAVE_WINDOW_SYSTEM` arm) - C 9882's test; a
+/// macro over a frame member, so it is an entry of the family above.
+@_silgen_name("FRAME_EXTERNAL_TOOL_BAR")
+func FRAME_EXTERNAL_TOOL_BAR(_ f: UnsafeMutableRawPointer?) -> Bool
+
+/// C: `void update_frame_tool_bar_1 (struct frame *f, EmacsToolbar *toolbar)` (declared
+/// src/nsterm.h 1177, defined in src/xdisp.c) - C 9900's call, so an entry with the two values C
+/// passes (the toolbar is another lane's class, hence the `AnyObject?` the class-pointer entries of
+/// this unit already use).
+@_silgen_name("update_frame_tool_bar_1")
+func update_frame_tool_bar_1(_ f: UnsafeMutableRawPointer?, _ toolbar: AnyObject?)
+
+/// C: `-[EmacsToolbar initForView: (EmacsView *)view withIdentifier: (NSString *)identifier]`
+/// (defined src/nsmenu.m 1265) - **another unit's class** (`nsmenu.swift` ports `EmacsToolbar`), so
+/// this is the cross-file class-method entry of the `EmacsMenu_initWithTitle` shape: the class name
+/// with the selector's first segment, and the provider that lane's to add.
+@_silgen_name("EmacsToolbar_initForView")
+func EmacsToolbar_initForView(_ view: NSView?, _ identifier: NSString?) -> AnyObject?
+
+/// C 9878-9910's own method, which round 64's initializer reaches through the deferred entry
+/// declared at C 2285's family (`createToolbar_definition`).  That entry's provider is this C-ABI
+/// definition - the `setAppearance`/`setParentChildRelationships` shape, where the call-site
+/// declaration keeps its Swift name and the definition takes another.
+@_cdecl("createToolbar")
+func createToolbar_definition(_ window: NSWindow?, _ f: UnsafeMutableRawPointer?) {
+  (window as? EmacsWindow)?.createToolbar(f)
+}
+
+// ==========================================================================
+// Round 67: the entries `accessibilityAttributeValue:` needs, and the class's last box
+// ==========================================================================
+
+/// C: `struct buffer *XBUFFER (Lisp_Object)` (src/buffer.h) - the lane's reading is
+/// `nsfns.swift` 203's, and C 10162's chain needs it around the `window_contents` reader below.
+@_silgen_name("XBUFFER") func XBUFFER(_ a: Lisp_Object) -> UnsafeMutableRawPointer?
+/// C: `struct window`'s `contents` member, read through `XWINDOW (…)` at C 10162 - a member reader
+/// of the `window_frame` family this unit already carries.
+@_silgen_name("window_contents")
+func window_contents(_ w: UnsafeMutableRawPointer?) -> Lisp_Object
+/// C: `BVAR (buf, mark_active)` and `BVAR (buf, enable_multibyte_characters)` (src/buffer.h 308's
+/// `BVAR`, whose mirror is `src/include/buffer.rs` 407) - the per-field reader shape
+/// `nsfns.swift`'s `buffer_filename` uses, one entry per field C reads.
+@_silgen_name("buffer_mark_active")
+func buffer_mark_active(_ buf: UnsafeMutableRawPointer?) -> Lisp_Object
+@_silgen_name("ns_accessibility_buffer_string")
+func ns_accessibility_buffer_string(_ buf: UnsafeMutableRawPointer?) -> Lisp_Object
+@_silgen_name("buffer_enable_multibyte_characters")
+func buffer_enable_multibyte_characters(_ buf: UnsafeMutableRawPointer?) -> Lisp_Object
+/// C: the four INLINE position accessors of src/buffer.h - `BUF_BEGV` (917), `BUF_BEGV_BYTE` (925),
+/// `BUF_ZV` (951) and `BUF_ZV_BYTE` (959) - each taking the buffer C 10181-10183 passes and
+/// returning the `ptrdiff_t` its own text computes.
+@_silgen_name("BUF_BEGV") func BUF_BEGV(_ buf: UnsafeMutableRawPointer?) -> Int
+@_silgen_name("BUF_BEGV_BYTE") func BUF_BEGV_BYTE(_ buf: UnsafeMutableRawPointer?) -> Int
+@_silgen_name("BUF_ZV") func BUF_ZV(_ buf: UnsafeMutableRawPointer?) -> Int
+@_silgen_name("BUF_ZV_BYTE") func BUF_ZV_BYTE(_ buf: UnsafeMutableRawPointer?) -> Int
+/// C: `INLINE unsigned char *BYTE_POS_ADDR (ptrdiff_t n)` (src/buffer.h 1078) - the accessor C
+/// 10191's `memcpy` reads through, over the buffer it names implicitly (`current_buffer`).
+@_silgen_name("BYTE_POS_ADDR")
+func BYTE_POS_ADDR(_ n: Int) -> UnsafeMutablePointer<UInt8>
+/// C: `char *SDATA (Lisp_Object)` (src/lisp.h) - the string's bytes, the `macfont.swift` 806 shape.
+@_silgen_name("SDATA") func SDATA(_ string: Lisp_Object) -> UnsafeMutablePointer<CChar>
+/// C: `Lisp_Object make_uninit_multibyte_string (ptrdiff_t, ptrdiff_t)` and
+/// `Lisp_Object make_uninit_string (ptrdiff_t)` (src/alloc.c; the latter is `macfont.swift` 584's
+/// entry) - C 10186/10188's two constructors.
+@_silgen_name("make_uninit_multibyte_string")
+func make_uninit_multibyte_string(_ nchars: Int, _ nbytes: Int) -> Lisp_Object
+@_silgen_name("make_uninit_string") func make_uninit_string(_ len: Int) -> Lisp_Object
+/// C: `Lisp_Object ns_get_local_selection (Lisp_Object selection_name, Lisp_Object target_type)`
+/// (defined src/nsselect.m 204, declared src/nsterm.h) - C 10172/10177's call, whose C-ABI
+/// definition `nsselect.swift` 441 already provides.
+@_silgen_name("ns_get_local_selection")
+func ns_get_local_selection(_ selection_name: Lisp_Object, _ target_type: Lisp_Object) -> Lisp_Object
+/// C: `QPRIMARY` and `QUTF8_STRING` - the selection name and target type C 10172 passes (`QUTF8_STRING`
+/// is `DEFSYM`'d by this file itself at C 11564, the C 555 `QCmouse` shape).
+@_silgen_name("QPRIMARY") func QPRIMARY() -> Lisp_Object
+@_silgen_name("QUTF8_STRING") func QUTF8_STRING() -> Lisp_Object
+/// C: `extern void ns_string_to_pasteboard (id pb, Lisp_Object str);` (src/nsterm.h 1134, the
+/// `__OBJC__` half; defined src/nsselect.m, and `nsselect.swift` 560 already exports the C-ABI
+/// definition) - C 9712's call.
+@_silgen_name("ns_string_to_pasteboard")
+func ns_string_to_pasteboard(_ pb: NSPasteboard?, _ str: Lisp_Object)
+
+// ==========================================================================
+// Round 68: the entries the focus/notification batch needs
+// ==========================================================================
+
+/// C: `FOCUS_IN_EVENT` and `FOCUS_OUT_EVENT` (src/termhooks.h 234/236, two members of the
+/// `enum event_kind` declared at src/termhooks.h 72) - the two enumerators C 8453/8526 write.  They
+/// are mirror-valued constants, this unit's reading for the values neither the frozen macro table
+/// nor the core's exports carry (`src/include/termhooks.rs` 49-50: 22 and 23), the
+/// `MONITORS_CHANGED_EVENT` shape.
+@_silgen_name("FOCUS_IN_EVENT") fileprivate func FOCUS_IN_EVENT_value() -> UInt32
+fileprivate let FOCUS_IN_EVENT: UInt32 = FOCUS_IN_EVENT_value()
+@_silgen_name("FOCUS_OUT_EVENT") fileprivate func FOCUS_OUT_EVENT_value() -> UInt32
+fileprivate let FOCUS_OUT_EVENT: UInt32 = FOCUS_OUT_EVENT_value()
+
+/// C 8425's `[self adjustEmacsFrameRect]` - this class's own method (defined at C 8862), whose batch
+/// has not landed, so the call site uses the deferred entry of the selector's first segment (the
+/// `setParentChildRelationships` shape); the definition lands with that method's round.
+
+/// C: `Lisp_Object help_echo_string` (src/keyboard.c's global) - C 8519's write, a data entry of
+/// the same family as this unit's other core globals.
+@_silgen_name("help_echo_string") var help_echo_string_entry: Lisp_Object
+
+/// C: `void gen_help_event (Lisp_Object, Lisp_Object, Lisp_Object, Lisp_Object, ptrdiff_t)`
+/// (declared src/keyboard.h 513, defined src/keyboard.c 3923) - C 8520's call and C 8129's.
+/// **Corrected in round 69**: this entry was declared `-> Lisp_Object` when it landed, while
+/// both C's declaration and the port's own `src/keyboard.rs` 4296 return nothing (the
+/// `_ =` the call site carried was the symptom); C discards no result, it has none.
+@_silgen_name("gen_help_event")
+func gen_help_event(_ a: Lisp_Object, _ b: Lisp_Object, _ c: Lisp_Object, _ d: Lisp_Object,
+                    _ n: Int)
+
+// ==========================================================================
+// Round 69: the entries the mouse event family needs
+// ==========================================================================
+
+/// C 7828's `static bool end_flag = false;` and C 7852's `static int totalDeltaX, totalDeltaY;`
+/// - file-scope storage in C, and at file scope here for the same reason: Swift has no
+/// function-scope `static` (the `ns_initialized` reading, C 5972).  C's statics start zeroed,
+/// which is what these initialisers say.
+fileprivate var end_flag: Bool = false
+fileprivate var totalDeltaX: Int32 = 0
+fileprivate var totalDeltaY: Int32 = 0
+/// C 8097's `static Lisp_Object last_mouse_window;` - zero-initialised in C, which is what
+/// `nil` is here (the `last_known_monitors` reading, C 88).
+fileprivate var last_mouse_window: Lisp_Object = nil
+/// C 8162's `static CGFloat last_scale;`.
+fileprivate var last_scale: CGFloat = 0
+
+/// C: `MOUSE_CLICK_EVENT`, `WHEEL_EVENT`, `HORIZ_WHEEL_EVENT`, `SELECT_WINDOW_EVENT`,
+/// `TOUCH_END_EVENT` and `PINCH_EVENT` (src/termhooks.h 74's `enum event_kind`) - the six
+/// enumerators the mouse family writes (C 7833, 7944, 8003, 8110, 8167 and their siblings are
+/// C's writes).  Mirror-valued constants, the `MONITORS_CHANGED_EVENT` reading:
+/// `src/include/termhooks.rs` 32/33/34/52/57/61 carry 5, 6, 7, 25, 30 and 34.
+@_silgen_name("MOUSE_CLICK_EVENT") fileprivate func MOUSE_CLICK_EVENT_value() -> UInt32
+fileprivate let MOUSE_CLICK_EVENT: UInt32 = MOUSE_CLICK_EVENT_value()
+@_silgen_name("WHEEL_EVENT") fileprivate func WHEEL_EVENT_value() -> UInt32
+fileprivate let WHEEL_EVENT: UInt32 = WHEEL_EVENT_value()
+@_silgen_name("HORIZ_WHEEL_EVENT") fileprivate func HORIZ_WHEEL_EVENT_value() -> UInt32
+fileprivate let HORIZ_WHEEL_EVENT: UInt32 = HORIZ_WHEEL_EVENT_value()
+@_silgen_name("SELECT_WINDOW_EVENT") fileprivate func SELECT_WINDOW_EVENT_value() -> UInt32
+fileprivate let SELECT_WINDOW_EVENT: UInt32 = SELECT_WINDOW_EVENT_value()
+@_silgen_name("TOUCH_END_EVENT") fileprivate func TOUCH_END_EVENT_value() -> UInt32
+fileprivate let TOUCH_END_EVENT: UInt32 = TOUCH_END_EVENT_value()
+@_silgen_name("PINCH_EVENT") fileprivate func PINCH_EVENT_value() -> UInt32
+fileprivate let PINCH_EVENT: UInt32 = PINCH_EVENT_value()
+
+/// C: `Lisp_Object list3 (Lisp_Object, Lisp_Object, Lisp_Object)` (declared src/lisp.h 4488,
+/// defined src/alloc.c 2678) - C 7945's list.  Provided: `src/alloc.rs` 2975.
+@_silgen_name("list3")
+func list3(_ a: Lisp_Object, _ b: Lisp_Object, _ c: Lisp_Object) -> Lisp_Object
+
+/// C: `Lisp_Object list4 (Lisp_Object, Lisp_Object, Lisp_Object, Lisp_Object)` (declared
+/// src/lisp.h 4489, defined src/alloc.c 2684) - C 8176/8186's list.  Provided:
+/// `src/alloc.rs` 2982.
+@_silgen_name("list4")
+func list4(_ a: Lisp_Object, _ b: Lisp_Object, _ c: Lisp_Object,
+           _ d: Lisp_Object) -> Lisp_Object
+
+/// C: `Lisp_Object window_from_coordinates (struct frame *, int, int, int *, bool, bool,
+/// bool)` (declared src/window.h 1124, defined src/window.c 1686) - C 7993/8098's call, whose
+/// `int *part` argument C passes as `0` (a null pointer).  Provided: `src/window.rs`
+/// 1861.
+@_silgen_name("window_from_coordinates")
+func window_from_coordinates(_ f: UnsafeMutableRawPointer?, _ x: Int32, _ y: Int32,
+                             _ part: UnsafeMutablePointer<Int32>?, _ tool_bar_p: Bool,
+                             _ tab_bar_p: Bool, _ menu_bar_p: Bool) -> Lisp_Object
+
+/// C: `int default_line_pixel_height (struct window *)` (declared src/dispextern.h 3567,
+/// defined src/xdisp.c 1595) - C 7860's call.  Provided: `src/xdisp.rs` 3120.
+@_silgen_name("default_line_pixel_height")
+func default_line_pixel_height(_ w: UnsafeMutableRawPointer?) -> Int32
+
+/// C: `Lisp_Object handle_tab_bar_click (struct frame *, int, int, bool, int)` (declared
+/// src/dispextern.h 3668, defined src/xdisp.c 15335) - C 7997's call.  **Open**: the port
+/// carries the tty spelling only (`src/xdisp.rs` 15839's `tty_handle_tab_bar_click`),
+/// so this is the core's to export (the `up_modifier` reading).
+@_silgen_name("handle_tab_bar_click")
+func handle_tab_bar_click(_ f: UnsafeMutableRawPointer?, _ x: Int32, _ y: Int32,
+                          _ down_p: Bool, _ modifiers: Int32) -> Lisp_Object
+
+/// C: `bool clear_mouse_face (Mouse_HLInfo *)` (declared src/dispextern.h 3691, defined
+/// src/xdisp.c 35662) - C 8087's call, whose result C discards.  Provided:
+/// `src/xdisp.rs` 30424.
+@_silgen_name("clear_mouse_face")
+func clear_mouse_face(_ hlinfo: UnsafeMutableRawPointer?) -> Bool
+
+/// C: `bool mwheel_coalesce_scroll_events` (src/keyboard.c 14439's
+/// `DEFVAR_BOOL ("mwheel-coalesce-scroll-events", …)`) - C 7877/7892/7935's reads, a data
+/// symbol.  Provided: `src/keyboard.rs` 14411.
+@_silgen_name("mwheel_coalesce_scroll_events")
+var mwheel_coalesce_scroll_events: Bool
+
+/// C: `INLINE bool NUMBERP (Lisp_Object x)` (src/lisp.h 3256) - C 7938's test: a header-only
+/// construct, class A.  **Open**: the mirror carries it as a Rust macro (`src/data.rs`
+/// 564), which has no C symbol yet - the `FIXNUMP` reading.
+@_silgen_name("NUMBERP") func NUMBERP(_ x: Lisp_Object) -> Bool
+
+/// C: `INLINE double XFLOATINT (Lisp_Object n)` (src/lisp.h 3370) - C 7940/7941's conversion,
+/// class A and **open** for the same reason as `NUMBERP` above.
+@_silgen_name("XFLOATINT") func XFLOATINT(_ n: Lisp_Object) -> Double
+
+/// C: `Lisp_Object Vmouse_autoselect_window` (a `DEFVAR_LISP` variable, src/xdisp.c) - C
+/// 8094's read.  Provided: `src/xdisp.rs` 32065.
+@_silgen_name("Vmouse_autoselect_window")
+var Vmouse_autoselect_window: Lisp_Object
+
+/// C: `selected_window` (src/window.c's global) - C 8103/8104's reads.  Provided:
+/// `src/window.rs` 253.
+@_silgen_name("selected_window") var selected_window: Lisp_Object
+
+/// C: `Lisp_Object focus_follows_mouse` (a `DEFVAR_LISP` variable, src/frame.c) - C 8105's
+/// read.  Provided: `src/frame.rs` 7443.
+@_silgen_name("focus_follows_mouse") var focus_follows_mouse: Lisp_Object
+
+/// C: `bool MINI_WINDOW_P (struct window *W)` (`#define MINI_WINDOW_P(W) ((W)->mini)`,
+/// src/window.h 565) - C 8104's test, reached by the macro's own name (the `FRAME_TOOLTIP_P`
+/// shape).  **Open**: the core's to export (`src/callint.rs` 397 uses it as a Rust
+/// macro).
+@_silgen_name("MINI_WINDOW_P") func MINI_WINDOW_P(_ w: UnsafeMutableRawPointer?) -> Bool
+
+/// C: the `struct frame` member `f->mouse_moved` (src/frame.h 434's `bool_bf mouse_moved : 1`)
+/// - C 8133's **read**; C 7800's write is `frame_set_mouse_moved` above.  **Open**: the mirror
+/// carries the read as a Rust macro (`src/term.rs` 121's `frame_mouse_moved!`), which
+/// has no C symbol yet (the `up_modifier` reading).
+@_silgen_name("frame_mouse_moved")
+func frame_mouse_moved(_ f: UnsafeMutableRawPointer?) -> Bool
+
+/// C: the `struct frame` member `f->tab_bar_window` (src/frame.h 254) - C 7986/7987/7994's
+/// reads.  Provided: `src/abi_shim.rs` 277, whose frozen-configuration answer is `Qnil`
+/// (the comment above it records the ruling).
+@_silgen_name("frame_tab_bar_window")
+func frame_tab_bar_window(_ f: UnsafeMutableRawPointer?) -> Lisp_Object
+
+/// C: the `struct ns_display_info` member `dpyinfo->last_mouse_frame` (src/nsterm.h 906) - C
+/// 7797's **write** (C 2561/2567/2570 read it through `ns_display_info_last_mouse_frame`).
+/// **Open**, the member-write shape `<record>_set_<member>`
+/// (`ns_display_info_set_ns_focus_frame`).
+@_silgen_name("ns_display_info_set_last_mouse_frame")
+func ns_display_info_set_last_mouse_frame(_ dpyinfo: UnsafeMutableRawPointer?,
+                                          _ v: UnsafeMutableRawPointer?)
+
+/// C: the `struct ns_display_info` member `dpyinfo->last_mouse_movement_time` (src/nsterm.h
+/// 920) - C 8078's write; its reader `ns_display_info_last_mouse_movement_time` is above.
+/// **Open**.
+@_silgen_name("ns_display_info_set_last_mouse_movement_time")
+func ns_display_info_set_last_mouse_movement_time(_ dpyinfo: UnsafeMutableRawPointer?,
+                                                  _ v: UInt)
+
+/// C: the `struct ns_display_info` members `dpyinfo->last_mouse_motion_x`/`_y` (src/nsterm.h
+/// 913-914) - C 8080/8081's writes.  **Open**, the same shape as the two above.
+@_silgen_name("ns_display_info_set_last_mouse_motion_x")
+func ns_display_info_set_last_mouse_motion_x(_ dpyinfo: UnsafeMutableRawPointer?, _ v: Int32)
+@_silgen_name("ns_display_info_set_last_mouse_motion_y")
+func ns_display_info_set_last_mouse_motion_y(_ dpyinfo: UnsafeMutableRawPointer?, _ v: Int32)
+
+/// C: the `struct ns_display_info` member `dpyinfo->grabbed` (src/nsterm.h; the layout
+/// baseline's row 24 is `int grabbed`, offset 80) - C 8010/8012's read-modify-write, the
+/// **reader** the round-62 `ns_display_info_set_grabbed` write pairs with.  **Open**.
+@_silgen_name("ns_display_info_grabbed")
+func ns_display_info_grabbed(_ dpyinfo: UnsafeMutableRawPointer?) -> Int32
+
+/// C: the `Mouse_HLInfo` member `hlinfo->mouse_face_hidden` (src/dispextern.h's record) - C
+/// 8084's read and C 8086's write.  **Open**, the pair the `mouse_highlight_set_mouse_face_defer`
+/// write opened (`<record>_<member>`, `_set_` for the write).
+@_silgen_name("mouse_highlight_mouse_face_hidden")
+func mouse_highlight_mouse_face_hidden(_ hlinfo: UnsafeMutableRawPointer?) -> Bool
+@_silgen_name("mouse_highlight_set_mouse_face_hidden")
+func mouse_highlight_set_mouse_face_hidden(_ hlinfo: UnsafeMutableRawPointer?, _ v: Int32)
+
+/// C: `help_echo_window`, `help_echo_object` and `help_echo_pos` (src/xdisp.c's globals) - the
+/// three C 8129-8130 passes (`help_echo_string` is round 68's entry, above).  Provided:
+/// `src/xdisp.rs` 2766 (window), 2768 (object) and 2770 (pos, C's `ptrdiff_t`).
+@_silgen_name("help_echo_window") var help_echo_window_entry: Lisp_Object
+@_silgen_name("help_echo_object") var help_echo_object_entry: Lisp_Object
+@_silgen_name("help_echo_pos") var help_echo_pos_entry: Int
+
+/// C: `previous_help_echo_string` (src/xdisp.c's global) - C 8091's write and C 8120/8123's
+/// reads.  Provided: `src/xdisp.rs` 2775.
+@_silgen_name("previous_help_echo_string")
+var previous_help_echo_string_entry: Lisp_Object
+
+// ==========================================================================
+// Round 70: the entries the window-shape family needs
+// ==========================================================================
+
+/// C: `DELETE_WINDOW_EVENT` and `MOVE_FRAME_EVENT` (src/termhooks.h 188 and 239, members of the
+/// `enum event_kind` declared at src/termhooks.h 74) - C 8203's and C 8233's writes.
+/// Mirror-valued constants, the `MONITORS_CHANGED_EVENT` reading
+/// (`src/include/termhooks.rs` 39 and 51: 12 and 24).
+@_silgen_name("DELETE_WINDOW_EVENT") fileprivate func DELETE_WINDOW_EVENT_value() -> UInt32
+fileprivate let DELETE_WINDOW_EVENT: UInt32 = DELETE_WINDOW_EVENT_value()
+@_silgen_name("MOVE_FRAME_EVENT") fileprivate func MOVE_FRAME_EVENT_value() -> UInt32
+fileprivate let MOVE_FRAME_EVENT: UInt32 = MOVE_FRAME_EVENT_value()
+
+/// C: `#define MINWIDTH 10` and `#define MINHEIGHT 10` (src/nsterm.h 1268-1269) - C 8278/8283's
+/// two floors.  Macros over a literal, landed as file-scope `let`s (the `DOCK_IGNORE_LIMIT`
+/// reading, C 708).
+fileprivate let MINWIDTH: Int32 = 10
+fileprivate let MINHEIGHT: Int32 = 10
+
+/// C: `FULLSCREEN_WIDTH`, `FULLSCREEN_HEIGHT` and `FULLSCREEN_MAXIMIZED` (src/frame.h 51-55's
+/// `enum fullscreen_type`; `1`, `2` and `4`) - C 8257-8268's three tests and C 8260/8263/8266's
+/// three `setFSValue:` arguments.  **Open**: the mirror carries them as Rust constants
+/// (`src/include/frame.rs`) with no C symbol yet - the `FULLSCREEN_NONE` entry above and
+/// the `up_modifier` reading.
+@_silgen_name("FULLSCREEN_WIDTH") func FULLSCREEN_WIDTH() -> Int32
+@_silgen_name("FULLSCREEN_HEIGHT") func FULLSCREEN_HEIGHT() -> Int32
+@_silgen_name("FULLSCREEN_MAXIMIZED") func FULLSCREEN_MAXIMIZED() -> Int32
+
+
+/// C: `- (void)windowDidMove: sender` (C 8645, this class's own method) - C 8350's direct call.
+/// **Deferred** (`## ABI` (4)): that batch has not landed, so the message uses a C-ABI entry of
+/// the selector's name with the receiver first (the `adjustEmacsFrameRect` reading), under a
+/// Swift name that is not the definition's; C's own argument is the `sender` it casts to
+/// `NSNotification *`, and the port passes the pointer C passes (the cast itself is C's).
+
+/// C: the `struct frame` members `f->left_pos` and `f->top_pos` (src/frame.h 604) - C
+/// 8224-8227's **writes**; C 8235/8236 read the same members back through `frame_left_pos`/
+/// `frame_top_pos` above.  **Open**, the member-write shape `frame_set_<member>`.
+@_silgen_name("frame_set_left_pos")
+func frame_set_left_pos(_ f: UnsafeMutableRawPointer?, _ v: Int32)
+@_silgen_name("frame_set_top_pos")
+func frame_set_top_pos(_ f: UnsafeMutableRawPointer?, _ v: Int32)
+
+/// C: `#define FRAME_PIXEL_WIDTH_TO_TEXT_COLS(f, width)` and `#define
+/// FRAME_PIXEL_HEIGHT_TO_TEXT_LINES(f, height)` (src/frame.h 1774-1786) - C 8277/8281's two
+/// conversions; class A header-only constructs whose bodies divide by `FRAME_COLUMN_WIDTH` and
+/// `FRAME_LINE_HEIGHT`.  **Open**: the mirror carries them as Rust functions
+/// (`src/include/frame.rs` 1841), which have no C symbol yet.
+@_silgen_name("FRAME_PIXEL_WIDTH_TO_TEXT_COLS")
+func FRAME_PIXEL_WIDTH_TO_TEXT_COLS(_ f: UnsafeMutableRawPointer?, _ width: Int32) -> Int32
+@_silgen_name("FRAME_PIXEL_HEIGHT_TO_TEXT_LINES")
+func FRAME_PIXEL_HEIGHT_TO_TEXT_LINES(_ f: UnsafeMutableRawPointer?, _ height: Int32) -> Int32
+
+/// C: `bool frame_resize_pixelwise` (a `DEFVAR_BOOL` variable, src/frame.c 7625) - C 8330's
+/// read.  Provided: `src/frame.rs` 7445.
+@_silgen_name("frame_resize_pixelwise") var frame_resize_pixelwise: Bool
+
+/// C: `ptrdiff_t esprintf (char *buf, char const *format, ...)` (declared src/lisp.h 4717,
+/// defined src/doprnt.c 552) - C 8314's call, whose result C discards.  The variadic entry is
+/// declared the way this unit's `fprintf` is (C 728's reading).  Provided:
+/// `src/doprnt.rs` 552.
+@_silgen_name("esprintf")
+func esprintf(_ buf: UnsafeMutablePointer<CChar>?, _ format: UnsafePointer<CChar>,
+              _ args: CVarArg...)
+
+/// C: `#define SET_FRAME_GARBAGED(f) (frame_garbaged = true, fset_redisplay (f), f->garbaged =
+/// true)` (src/frame.h 1173-1174) - C 8398's call, the comma expression C discards.  **Open**:
+/// the mirror carries it as a Rust macro (`src/term.rs` 127), so it has no C symbol yet
+/// (the `SET_FRAME_VISIBLE` reading above).
+@_silgen_name("SET_FRAME_GARBAGED") func SET_FRAME_GARBAGED(_ f: UnsafeMutableRawPointer?)
+
+/// C: `void cancel_mouse_face (struct frame *)` (declared src/dispextern.h 3690, defined
+/// src/xdisp.c 37724) - C 8399's call.  Provided: `src/xdisp.rs` 31985.
+@_silgen_name("cancel_mouse_face") func cancel_mouse_face(_ f: UnsafeMutableRawPointer?)
+
+// ==========================================================================
+// Round 71: the entries the window delegate/fullscreen family needs
+// ==========================================================================
+
+/// C: `ICONIFY_EVENT` and `DEICONIFY_EVENT` (src/termhooks.h 196-197, members of the `enum
+/// event_kind` declared at src/termhooks.h 74) - C 8800's and C 8831's writes.  Mirror-valued
+/// constants, the `MONITORS_CHANGED_EVENT` reading (`src/include/termhooks.rs` 41/42:
+/// 14 and 15).
+@_silgen_name("ICONIFY_EVENT") fileprivate func ICONIFY_EVENT_value() -> UInt32
+fileprivate let ICONIFY_EVENT: UInt32 = ICONIFY_EVENT_value()
+@_silgen_name("DEICONIFY_EVENT") fileprivate func DEICONIFY_EVENT_value() -> UInt32
+fileprivate let DEICONIFY_EVENT: UInt32 = DEICONIFY_EVENT_value()
+
+/// C: `FULLSCREEN_BOTH` (src/frame.h 51-55's `enum fullscreen_type`, the `0x3` member) - C
+/// 8874's `setFSValue:` argument.  **Open**: the mirror's Rust constant carries no C symbol yet,
+/// the same reading as `FULLSCREEN_WIDTH`/`HEIGHT`/`MAXIMIZED` in round 70's block.
+@_silgen_name("FULLSCREEN_BOTH") func FULLSCREEN_BOTH() -> Int32
+
+// ==========================================================================
+// Round 71: the two providers the deferred entries waited for
+// ==========================================================================
+
+/// The C-ABI half of `windowDidMove:` above (the `@_cdecl("isFullscreen")` pattern): round 70's
+/// deferred entry `windowDidMove_definition` reaches this class through it, and its call site is
+/// C 8350.
+@_cdecl("windowDidMove")
+func windowDidMove_definition(_ view: NSView?, _ sender: UnsafeMutableRawPointer?) {
+  (view as? EmacsView)?.windowDidMove(sender)
+}
+
+/// The same half for `adjustEmacsFrameRect` above: round 68 landed the deferred entry
+/// `adjustEmacsFrameRect_definition` with C 8425's call site, and this round lands the method.
+@_cdecl("adjustEmacsFrameRect")
+func adjustEmacsFrameRect_definition(_ view: NSView?) {
+  (view as? EmacsView)?.adjustEmacsFrameRect()
+}
+
+// ==========================================================================
+// Round 72: the entries the class initializer needs, and the provider it closes
+// ==========================================================================
+
+/// C: the `struct ns_output` member `f->output_data.ns->view` (src/nsterm.h 938) - C 8587's
+/// **write** (`FRAME_NS_VIEW (f) = self;`); the read's entry is `FRAME_NS_VIEW` above.
+/// **Provided**: `src/abi_shim.rs` 692 (`ns_output_set_view`, whose comment names this
+/// very call site), the shape `nsfns.swift` 276 uses.
+@_silgen_name("ns_output_set_view")
+func ns_output_set_view(_ f: UnsafeMutableRawPointer?, _ v: NSView?)
+
+/// The C-ABI half of `initFrameFromEmacs:` above (the `EmacsWindow_initWithEmacsFrame_impl`
+/// pattern): `nsfns.swift` 703's deferred entry `EmacsView_initFrameFromEmacs` reaches this class
+/// through it, and its call site is nsfns.swift 2490.
+@_silgen_name("EmacsView_initFrameFromEmacs")
+func EmacsView_initFrameFromEmacs_impl(_ f: UnsafeMutableRawPointer?) -> AnyObject? {
+  EmacsView(frameFromEmacs: f)
+}
+
+// ==========================================================================
+// Round 73: the entries the class prologue and the font panel need
+// ==========================================================================
+
+/// C: `void *macfont_get_nsctfont (struct font *font)` (declared src/macfont.h 83, defined
+/// src/macfont.m 4206-4213) - C 7088/7154/7119's three reads of the frame's font.  Provided:
+/// `macfont.swift` 11105's `@_cdecl`.
+@_silgen_name("macfont_get_nsctfont")
+func macfont_get_nsctfont(_ font: UnsafeMutableRawPointer?) -> UnsafeMutableRawPointer?
+
+/// C: `_GL_TIMESPEC_INLINE struct timespec make_timespec (time_t s, long int ns)`
+/// (lib/timespec.h 55-59, "Return a timespec with seconds S and nanoseconds NS") - C 7170's
+/// call.  A header-only construct, class A; **open**: the mirror declares it
+/// (`lib/timespec.rs` 22) without a `#[unsafe(no_mangle)]` definition yet.
+@_silgen_name("make_timespec")
+func make_timespec(_ s: Int, _ ns: Int) -> timespec
+
+// ==========================================================================
+// Round 74: the entries `keyDown:` needs, and the NS_KEYLOG constant
+// ==========================================================================
+
+/// C 7241: `#define NS_KEYLOG 0` - the constant whose every `#if NS_KEYLOG` block in the file is
+/// dead (the earlier rounds record those sites by name: C 7607-7608, C 7715-7716, C 7352-7360 and
+/// C 7403-7404 among them).  A macro over a literal, landed as a file-scope `let` (the `MINWIDTH`
+/// reading), and the one C 7243's method was waiting for.
+fileprivate let NS_KEYLOG: Int32 = 0
+
+/// C 7248: `static NSMutableArray *nsEvArray;` - the keyboard's own event array, file-scope in C
+/// and here (the `ns_initialized` reading); C 7275-7276 fills it on first use.
+fileprivate var nsEvArray: NSMutableArray? = nil
+
+/// C 7771: `static NSAttributedString *str;` - C 7769's method-local cache, hoisted here the
+/// `nsEvArray` way; the name is qualified because `str` is a local name elsewhere in this file.
+fileprivate var ns_attributed_substring_str: NSAttributedString? = nil
+
+/// C: `Lisp_Object Vmake_pointer_invisible` and `Lisp_Object Vmouse_highlight` (this file's own
+/// `DEFVAR_LISP`s, C 11705-11720) - C 7278's and C 7281's reads.  Provided:
+/// `src/frame.rs` 7427 and 7425 (`#[unsafe(no_mangle)]`).
+@_silgen_name("Vmake_pointer_invisible") var Vmake_pointer_invisible: Lisp_Object
+@_silgen_name("Vmouse_highlight") var Vmouse_highlight: Lisp_Object
+
+/// C: `QCfunction` - src/nsterm.m 11794's own `DEFSYM (QCfunction, ":function")`, the symbol
+/// C 7349 chooses.  **Open**: this file's own symbol and absent from
+/// `docs/baseline/globals/symbols.tsv` (the frozen build never compiles this file) - the
+/// `QCordinary`/`QCmouse` reading.
+@_silgen_name("QCfunction") func QCfunction() -> Lisp_Object
+
+/// C: the `Mouse_HLInfo` member `hlinfo->mouse_face_window` (src/dispextern.h's record) - C 7282's
+/// read.  **Open**, the member-read shape `mouse_highlight_mouse_face_mouse_frame` above sets
+/// (`docs/ports/nsmenu.md` 311-328).
+@_silgen_name("mouse_highlight_mouse_face_window")
+func mouse_highlight_mouse_face_window(_ hlinfo: UnsafeMutableRawPointer?) -> Lisp_Object
+
+// ==========================================================================
+// Round 75: the entries the fullscreen trio needs, and its two providers
+// ==========================================================================
+
+/// C: the generated globals `Qfullboth`, `Qfullwidth`, `Qfullheight`, `Qmaximized` and
+/// `Qfullscreen` (globals.h; `iQfullboth` 906, `iQfullwidth` 909, `iQfullheight` 907,
+/// `iQmaximized` 1273 and `iQfullscreen` 908 in `docs/baseline/globals/symbols.tsv`, all
+/// `frame.c`'s `DEFSYM`s) - C 9186/9189/9192/9195's and C 9198's arguments.  The core exports one
+/// C-ABI entry per name (the `Qnil`/`Qleft` family); the mirror carries them at
+/// `src/include/globals.rs` 2728-2737 and 3829.
+@_silgen_name("Qfullboth") func Qfullboth() -> Lisp_Object
+@_silgen_name("Qfullwidth") func Qfullwidth() -> Lisp_Object
+@_silgen_name("Qfullheight") func Qfullheight() -> Lisp_Object
+@_silgen_name("Qmaximized") func Qmaximized() -> Lisp_Object
+@_silgen_name("Qfullscreen") func Qfullscreen() -> Lisp_Object
+
+/// C: the `struct frame` member `f->want_fullscreen` (src/frame.h) - C 9172's **write**
+/// (C 9130/9138 read it through `frame_want_fullscreen` above).  **Open**, the member-write shape
+/// `frame_set_<member>`.
+@_silgen_name("frame_set_want_fullscreen")
+func frame_set_want_fullscreen(_ f: UnsafeMutableRawPointer?, _ v: Int32)
+
+// ==========================================================================
+// Round 75: the two providers rounds 25 and 70 left waiting
+// ==========================================================================
+
+/// The C-ABI half of `handleFS` above (the `@_cdecl("isFullscreen")` pattern): round 25 landed the
+/// deferred entry `handleFS_definition` beside `fsIsNative`, and its call site is C 8985.
+@_cdecl("handleFS")
+func handleFS_definition(_ view: NSView?) {
+  (view as? EmacsView)?.handleFS()
+}
+
+/// The same half for `setFSValue:` above: round 70 landed the deferred entry for C 8260/8263/8266
+/// and round 71 for C 8874/8938.
+@_cdecl("setFSValue")
+func setFSValue_definition(_ view: NSView?, _ value: Int32) {
+  (view as? EmacsView)?.setFSValue(value)
+}
+
+// ==========================================================================
+// Round 76: the entries the mouse/toolbar/layer batch needs
+// ==========================================================================
+
+/// C: the `Mouse_HLInfo` member `hlinfo->mouse_face_mouse_frame` (src/dispextern.h's record) -
+/// C 9226's **write** (C 9223 and C 2561/2567/2570 read it through
+/// `mouse_highlight_mouse_face_mouse_frame` above).  **Open**, the `<record>_set_<member>` shape.
+@_silgen_name("mouse_highlight_set_mouse_face_mouse_frame")
+func mouse_highlight_set_mouse_face_mouse_frame(_ hlinfo: UnsafeMutableRawPointer?,
+                                                _ v: UnsafeMutableRawPointer?)
+
+/// C: `void find_and_call_menu_selection (struct frame *, int, Lisp_Object, void *)` (declared
+/// src/menu.h 41-42, defined src/keyboard.c) - C 9239's call.  **Open**: the mirror declares it
+/// in the platform units' blocks only (`src/pgtkmenu.rs` 137, `src/xmenu.rs` 910).
+@_silgen_name("find_and_call_menu_selection")
+func find_and_call_menu_selection(_ f: UnsafeMutableRawPointer?, _ items: Int32,
+                                  _ vector: Lisp_Object, _ client_data: UnsafeMutableRawPointer?)
+
+/// C: the `struct frame` member `f->menu_bar_items_used` (src/frame.h) - C 9239's read.
+/// **Open**, the member-read shape `frame_<member>`.
+@_silgen_name("frame_menu_bar_items_used")
+func frame_menu_bar_items_used(_ f: UnsafeMutableRawPointer?) -> Int32
+
+/// C: the `struct frame` member `f->menu_bar_vector` (src/frame.h 234) - C 9240's read.
+/// Provided: `src/abi_shim.rs` 94 (`frame_menu_bar_vector`).
+@_silgen_name("frame_menu_bar_vector")
+func frame_menu_bar_vector(_ f: UnsafeMutableRawPointer?) -> Lisp_Object
+
+/// C: the `struct frame` member `f->tool_bar_items` (src/frame.h, a `Lisp_Object *`) - C 9263's
+/// read.  **Open**, the same family.
+@_silgen_name("frame_tool_bar_items")
+func frame_tool_bar_items(_ f: UnsafeMutableRawPointer?) -> UnsafeMutablePointer<Lisp_Object>?
+
+/// C: `#define AREF(array, idx) …` (src/lisp.h 4357-4365) - C 9263's array element read; class A,
+/// header-only.  **Open**: the mirror carries it as a Rust macro, so it has no C symbol yet.
+@_silgen_name("AREF") func AREF(_ array: Lisp_Object, _ idx: Int) -> Lisp_Object
+
+/// C: the `struct ns_output` member `f->output_data.ns->double_buffered`
+/// (`#define FRAME_DOUBLE_BUFFERED(f) ((f)->output_data.ns->double_buffered)`, src/nsterm.h 1052) -
+/// C 9293's read.  **Open**, the `ns_output_<member>` family.
+@_silgen_name("ns_output_double_buffered")
+func ns_output_double_buffered(_ f: UnsafeMutableRawPointer?) -> Bool
+
+/// C: `void expose_frame (struct frame *, int, int, int, int)` (declared src/dispextern.h 3675,
+/// defined src/xdisp.c 35466) - C 9335's call.  **Open**: the mirror declares it in other units' blocks
+/// only (`src/pgtkterm.rs` 10881, `src/widget.rs` 985).
+@_silgen_name("expose_frame")
+func expose_frame(_ f: UnsafeMutableRawPointer?, _ x: Int32, _ y: Int32, _ w: Int32, _ h: Int32)
+
+/// C: `TOOL_BAR_EVENT` (src/termhooks.h 202; the value is 21 - the mirror-valued-constant reading
+/// `src/include/termhooks.rs` 47 records) and the two enumerators C 9253/9264 index with:
+/// `TOOL_BAR_ITEM_KEY` 0 and `TOOL_BAR_ITEM_NSLOTS` 12 (`src/include/dispextern.rs`
+/// 3942/3966, src/dispextern.h 3449-3495's item-index enumeration).
+@_silgen_name("TOOL_BAR_EVENT") fileprivate func TOOL_BAR_EVENT_value() -> UInt32
+fileprivate let TOOL_BAR_EVENT: UInt32 = TOOL_BAR_EVENT_value()
+fileprivate let TOOL_BAR_ITEM_KEY: Int32 = 0
+fileprivate let TOOL_BAR_ITEM_NSLOTS: Int32 = 12
+
+/// C: `#define KEY_NS_TOGGLE_TOOLBAR ((1<<28)|(0<<16)|13)` (src/nsterm.h 805) - C 9283's code.
+/// The macro's own expression is kept (the `SCROLL_BAR_*` reading of a literal macro), typed the
+/// way C's `unsigned code` field uses it.
+fileprivate let KEY_NS_TOGGLE_TOOLBAR: UInt32 = UInt32((1 << 28) | (0 << 16) | 13)
+
+// ==========================================================================
+// Round 77: the entries the copy/layout/draw batch needs, and the provider it closes
+// ==========================================================================
+
+/// C: `bool redisplaying_p` (declared as an `extern` in the units that read it, defined
+/// src/xdisp.c) - C 9412's read.  Provided: `src/dispnew.rs` 7434 (`#[unsafe(no_mangle)]`;
+/// `src/xdisp.rs` 2748 declares it too).
+@_silgen_name("redisplaying_p") func redisplaying_p() -> Bool
+
+/// C: `#define FRAME_GARBAGED_P(f) (f)->garbaged` (src/frame.h 1177) - C 9412's test.  **Open**:
+/// the mirror carries the bit as a Rust macro (`src/term.rs`'s `frame_garbaged_p!`, the
+/// `frame_mouse_moved` reading), which has no C symbol yet.
+@_silgen_name("frame_garbaged_p")
+func frame_garbaged_p(_ f: UnsafeMutableRawPointer?) -> Bool
+
+/// C: `#define waiting_for_input (current_thread->m_waiting_for_input)` (src/thread.h 185) -
+/// C 9419's read, the twin of the write entry C 9420 uses
+/// (`set_waiting_for_input_flag`, `src/abi_shim.rs` 1092).  The read's entry is the one
+/// `nsmenu.swift` 406 declares for its own unit (`waiting_for_input_get`, whose shim comment names
+/// this very C read); this unit declares its own copy of that entry, the section's rule.
+@_silgen_name("waiting_for_input") func waiting_for_input_get() -> Bool
+@_silgen_name("set_waiting_for_input_flag") func waiting_for_input_set(_ v: Bool)
+
+/// C: `void redisplay (void)` (declared src/dispextern.h 3719, defined src/xdisp.c) - C 9423's
+/// call.  Provided: `src/abi_shim.rs` 246.
+@_silgen_name("redisplay") func redisplay()
+
+// ==========================================================================
+// Round 77: the provider round 8 left waiting
+// ==========================================================================
+
+/// The C-ABI half of `copyRect:to:` above (the `beginDrag` reading): round 8 landed the deferred
+/// entry `copyRect_definition` with C 2909's call site, and this round lands the method.
+@_cdecl("copyRect")
+func copyRect_definition(_ view: NSView?, _ srcRect: NSRect, _ dest: NSPoint) {
+  (view as? EmacsView)?.copyRect(srcRect, to: dest)
+}
+
+// ==========================================================================
+// Round 78: the entries the drag-and-drop batch needs
+// ==========================================================================
+
+/// C: `void record_unwind_protect_ptr (void (*) (void *), void *)` (declared src/lisp.h 4875,
+/// defined src/eval.c) - C 9500's call, whose callback is this unit's own
+/// `@_cdecl("ns_release_autorelease_pool")`.  **Open**: the core's to export (the `record_unwind_*`
+/// family's first use in this lane).
+@_silgen_name("record_unwind_protect_ptr")
+func record_unwind_protect_ptr(_ func: (@convention(c) (UnsafeMutableRawPointer?) -> Void)?,
+                               _ arg: UnsafeMutableRawPointer?)
+
+// ==========================================================================
+// Round 79: the entries `performDragOperation:` needs
+// ==========================================================================
+
+/// C: `Qfile` and `Qurl` (globals.h; `DEFSYM (Qfile, "file")` is src/fileio.c's and
+/// `Qurl`, "url", src/fns.c's) - C 9581/9623's symbols.  The core exports one C-ABI entry per
+/// generated global (the `Qnil`/`Qleft` family).
+@_silgen_name("Qfile") func Qfile() -> Lisp_Object
+@_silgen_name("Qurl") func Qurl() -> Lisp_Object
+
+/// C: `Qns_drag_operation_link`/`Qns_drag_operation_copy`/`Qns_drag_operation_generic` - this
+/// file's own `DEFSYM`s (src/nsterm.m 11569-11571, in the function declared at src/nsterm.m
+/// 11550).  **Open**:
+/// this file's own symbols and absent from `docs/baseline/globals/symbols.tsv` (the frozen build
+/// never compiles this file) - the `QCordinary`/`QCmouse` reading.
+@_silgen_name("Qns_drag_operation_link") func Qns_drag_operation_link() -> Lisp_Object
+@_silgen_name("Qns_drag_operation_copy") func Qns_drag_operation_copy() -> Lisp_Object
+@_silgen_name("Qns_drag_operation_generic") func Qns_drag_operation_generic() -> Lisp_Object
+
+/// C: `DRAG_N_DROP_EVENT` (src/termhooks.h 174, a member of the event-kind enumeration declared
+/// at src/termhooks.h 74-348; the value is 17 - the mirror-valued-constant reading,
+/// `src/include/termhooks.rs` 44).
+@_silgen_name("DRAG_N_DROP_EVENT") fileprivate func DRAG_N_DROP_EVENT_value() -> UInt32
+fileprivate let DRAG_N_DROP_EVENT: UInt32 = DRAG_N_DROP_EVENT_value()
+
+// ==========================================================================
+// Round 80: the two entries `nsfns.swift` has been waiting for
+// ==========================================================================
+
+/// The C-ABI half of `setMiniwindowImage:` above (the `@_cdecl("isFullscreen")` pattern): the
+/// entry `nsfns.swift` 408 declares, whose call sites are `nsfns.swift` 1969 and 2007.
+@_cdecl("setMiniwindowImage")
+func setMiniwindowImage_definition(_ view: NSView?, _ mini: Bool) {
+  _ = (view as? EmacsView)?.setMiniwindowImage(mini)
+}
+
+/// The C-ABI half of `fullscreenState` above: the entry `nsfns.swift` 410 declares, whose call
+/// site is `nsfns.swift` 1841.
+@_cdecl("fullscreenState")
+func fullscreenState_definition(_ view: NSView?) -> Int32 {
+  (view as? EmacsView)?.fullscreenState() ?? 0
+}
+
+// ==========================================================================
+// Round 81: the entries the class's last five methods need
+// ==========================================================================
+
+/// C: `#define WINDOW_TEXT_TO_FRAME_PIXEL_X(W, X) window_box_left (W, TEXT_AREA) + (X)`
+/// (src/window.h 1091-1092) - "Convert a text area relative x-position in window W to frame X
+/// pixel coordinates"; the sibling of `WINDOW_TO_FRAME_PIXEL_Y` above, and the fourth macro
+/// round 34 listed as this method's blocker (its expansion is where `window_box_left`/`TEXT_AREA`
+/// live, so the entry is what keeps them off this unit's surface).  **Open**: header-only, the
+/// core's to export.
+@_silgen_name("WINDOW_TEXT_TO_FRAME_PIXEL_X")
+func WINDOW_TEXT_TO_FRAME_PIXEL_X(_ w: UnsafeMutableRawPointer?, _ x: Int32) -> Int32
+
+/// C: `INLINE ptrdiff_t BUF_PT (struct buffer *buf)` (src/buffer.h 933-934) - "Position of point
+/// in buffer", read at C 7740.  **Open**: header-only, the core's to export (its sibling
+/// `BUF_BEGV` is already this unit's entry, C 14499).
+@_silgen_name("BUF_PT") func BUF_PT(_ buf: UnsafeMutableRawPointer?) -> Int
+
+/// C: `BVAR (buf, mark)` (src/buffer.h 308's `BVAR`, whose mirror is `src/include/buffer.rs`
+/// 407) - the per-field reader of `struct buffer`'s `mark` member, C 7748's read and the shape
+/// `buffer_mark_active` (C 14492) already sets.  **Open**: the core's to export.
+@_silgen_name("buffer_mark") func buffer_mark(_ buf: UnsafeMutableRawPointer?) -> Lisp_Object
+
+/// C: `ptrdiff_t marker_position (Lisp_Object marker)` (src/marker.c 723-724, declared src/lisp.h) -
+/// C 7748's call.  **Provided**: `src/marker.rs` 849 (`#[unsafe(no_mangle)]`).
+@_silgen_name("marker_position") func marker_position(_ marker: Lisp_Object) -> Int
+
+/// C: `struct window`'s nested `phys_cursor.x`/`phys_cursor.y` (src/window.h 332's
+/// `struct cursor_pos`) - C 7669-7670's two reads, under the member-reader names `nsfns.swift`
+/// 770 already imports.  **Open**: the core's to export.
+@_silgen_name("window_phys_cursor_x") func window_phys_cursor_x(_ w: UnsafeMutableRawPointer?) -> Int
+@_silgen_name("window_phys_cursor_y") func window_phys_cursor_y(_ w: UnsafeMutableRawPointer?) -> Int
+
+// ==========================================================================
+// Round 82: the providers this unit owes its neighbours
+// ==========================================================================
+
+/// The C-ABI half of C 2537-2538's two reads - `[[w delegate] isKindOfClass: [EmacsView class]]`
+/// and the `emacsframe` cast through it - the entries declared above (C 2834-2836) and imported by
+/// `nsfns.swift` 697-699.  The class they name is this unit's own (C 7039), which is what the
+/// ledger's (3) row was waiting for ("this unit defines them when the class lands").
+@_cdecl("emacs_view_frame")
+func emacs_view_frame_definition(_ view: AnyObject?) -> UnsafeMutableRawPointer? {
+  (view as? EmacsView)?.emacsframe
+}
+@_cdecl("is_emacs_view")
+func is_emacs_view_definition(_ obj: AnyObject?) -> Bool {
+  obj is EmacsView
+}
+
+/// The C-ABI half of `showFontPanel` above (C 7140-7160): the entry `nsfns.swift` 700 declares,
+/// whose call site there is `FRAME_NS_VIEW (f)`.  A nil view is the nil receiver C would message,
+/// which reads as the zero `Lisp_Object` - `Qnil` (`nil_lisp_object`).
+@_cdecl("showFontPanel")
+func showFontPanel_definition(_ view: NSView?) -> Lisp_Object {
+  (view as? EmacsView)?.showFontPanel() ?? Qnil()
+}
+
+/// The C-ABI half of `restackWindow:above:` above (C 10124-10155): the entry `nsfns.swift` 701-702
+/// declares, whose call site is `src/nsfns.m` 1676's `[window restackWindow:window2 above:…]`.  The
+/// receiver's nil is C's nil-message (`NO`, the `?? false`); the **argument's** nil is the entry's
+/// own gap, recorded here: C 10130 compares `[win parentWindow]` (nil for a nil `win`, so the
+/// parented case answers `NO`), while C 10144's `[children indexOfObject: nil]` is `NSNotFound` and
+/// C 10145 would insert at `NSNotFound + 1` - C does not survive its own nil-argument path, so the
+/// port answers the comparison's `NO` instead of transcribing a branch that has no Swift
+/// equivalent (the ledger's Round 82 records it).
+@_cdecl("restackWindow")
+func restackWindow_definition(_ window: AnyObject?, _ window2: NSWindow?, _ above: Bool) -> Bool {
+  guard let win = window2 else { return false }
+  return (window as? EmacsWindow)?.restackWindow(win, above: above) ?? false
+}
+
+/// The C-ABI half of `setDoubleBuffered:` above (C 11181-11187, `EmacsLayer`'s): the entry
+/// `nsfns.swift` 516-517 declares, whose call site there is
+/// `setDoubleBuffered (FRAME_NS_VIEW (f)?.layer, FRAME_DOUBLE_BUFFERED (f))`.
+@_cdecl("setDoubleBuffered")
+func setDoubleBuffered_definition(_ layer: CALayer?, _ flag: Bool) {
+  (layer as? EmacsLayer)?.setDoubleBuffered(flag)
+}
+
+// Direct display-info access is distinct from the frame-based view above.
+@_silgen_name("ns_display_info_ns_focus_frame_from_display")
+func ns_display_info_ns_focus_frame_from_display(_ info: UnsafeMutableRawPointer?) -> UnsafeMutableRawPointer?
+@_cdecl("unsignedLong")
+func ns_color_unsignedLong(_ color: NSColor?) -> UInt { color?.unsignedLong() ?? 0 }
+
+// Platform method entries used by the other Cocoa units.
+@_cdecl("setWindowClosing")
+func export_setWindowClosing(_ view: NSView?, _ closing: Bool) {
+  (view as? EmacsView)?.setWindowClosing(closing)
+}
+@_cdecl("NS_SCROLL_BAR_WIDTH_DEFAULT")
+func export_scroll_bar_width_default() -> Int32 { Int32(NSScroller.scrollerWidth(for: .regular, scrollerStyle: .legacy)) }
+@_silgen_name("colorUsingDefaultColorSpace")
+func export_colorUsingDefaultColorSpace(_ col: NSColor) -> NSColor { col.colorUsingDefaultColorSpace() }
+
+@_silgen_name("NSColor_colorWithUnsignedLong")
+func export_NSColor_colorWithUnsignedLong(_ color: UInt) -> NSColor {
+  NSColor.colorWithUnsignedLong(color)
+}
+
+@_silgen_name("ns_display_info_set_ns_focus_frame_from_display")
+func ns_display_info_set_ns_focus_frame_from_display(_ p: UnsafeMutableRawPointer?, _ f: UnsafeMutableRawPointer?)
+@_silgen_name("ns_display_info_set_highlight_frame_from_display")
+func ns_display_info_set_highlight_frame_from_display(_ p: UnsafeMutableRawPointer?, _ f: UnsafeMutableRawPointer?)
+
+// Release frame-owned native objects through the same field ownership boundary.
+@_silgen_name("ns_output_set_miniimage")
+func ns_output_set_miniimage(_ f: UnsafeMutableRawPointer?, _ value: NSImage?)
+@_silgen_name("ns_output_set_cursor_color")
+func ns_output_set_cursor_color(_ f: UnsafeMutableRawPointer?, _ value: NSColor?)
+@_silgen_name("ns_output_set_foreground_color")
+func ns_output_set_foreground_color(_ f: UnsafeMutableRawPointer?, _ value: NSColor?)
+@_silgen_name("ns_output_set_background_color")
+func ns_output_set_background_color(_ f: UnsafeMutableRawPointer?, _ value: NSColor?)
+@_silgen_name("ns_output_set_text_cursor")
+func ns_output_set_text_cursor(_ f: UnsafeMutableRawPointer?, _ value: NSObject?)

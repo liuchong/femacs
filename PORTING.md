@@ -1,5 +1,7 @@
 # PORTING.md — femacs 的 C → Rust 映射指南（v2）
 
+> Layout/bootstrap update: sources now live at the repository root. `docs/repository-bootstrap.md` records the owned macOS configurations, generation recipes, clean-export acceptance and repaired bootstrap chain. Reference-dependent commands below are historical or optional differential audits, not release build prerequisites.
+
 适用基线：`emacs/` 检出 `fd7afced403`。
 本文是逐文件移植时的裁决依据。v2 依据 2026-10-02 两名对抗评审的结论重写：
 `docs/reviews/2026-10-02-adversarial-review.md` 记录了每条缺陷、证据与处置，

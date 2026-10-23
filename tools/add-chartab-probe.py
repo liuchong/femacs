@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Insert (or remove) the temporary char-table probe in femacs/src/chartab.rs.
+"""Insert (or remove) the temporary char-table probe in src/chartab.rs.
 
 Companion of tools/add-fontset-probe.py: that one showed the device dying inside
 `Fset_char_table_range (fontset, (160 . 591), value)` - i.e. in `char_table_set_range`.  This probe
@@ -18,7 +18,7 @@ never came back:
 import pathlib
 import sys
 
-SRC = pathlib.Path (__file__).resolve ().parent.parent / "femacs/src/chartab.rs"
+SRC = pathlib.Path (__file__).resolve ().parent.parent / "src/chartab.rs"
 
 HELPER = '''/* TEMPORARY char-table probe (tools/add-chartab-probe.py).  */
 #[cfg (feature = "have_android")]

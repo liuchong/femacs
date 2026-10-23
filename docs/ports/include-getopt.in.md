@@ -17,7 +17,7 @@
 
 ## Decisions
 
-**Status: the unit is PORTED** (`femacs/lib/include/getopt.in.rs`, 2026-10-04).
+**Status: the unit is PORTED** (`lib/include/getopt.in.rs`, 2026-10-04).
 
 Criterion: the generated header (`build/emacs-ref/lib/getopt.h`), whose measured substitutions make
 `HAVE_GETOPT_H` 1 and `__GETOPT_PREFIX` `rpl_`.  The four rows above are all *recorded* names:
@@ -35,8 +35,8 @@ Criterion: the generated header (`build/emacs-ref/lib/getopt.h`), whose measured
 ## Evidence
 
 ```
-$ python3 tools/extract-abi.py --check emacs/lib/getopt.in.h femacs/lib/include/getopt.in.rs
-OK emacs/lib/getopt.in.h -> femacs/lib/include/getopt.in.rs            (0 problem rows)
+$ python3 tools/extract-abi.py --check emacs/lib/getopt.in.h lib/include/getopt.in.rs
+OK emacs/lib/getopt.in.h -> lib/include/getopt.in.rs            (0 problem rows)
 $ cd femacs && cargo run -q -p xtask -- build-tu lib/getopt1.c
 built lib/getopt1.rs -> ../build/femacs/getopt1.o
 ```

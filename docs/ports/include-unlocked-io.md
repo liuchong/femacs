@@ -119,8 +119,8 @@ $ python3 tools/extract-abi.py emacs/lib/unlocked-io.h
 ## Types and their fields - 0
 ## File-scope objects - 0
 
-$ python3 tools/extract-abi.py --check emacs/lib/unlocked-io.h femacs/lib/include/unlocked-io.rs
-OK emacs/lib/unlocked-io.h -> femacs/lib/include/unlocked-io.rs
+$ python3 tools/extract-abi.py --check emacs/lib/unlocked-io.h lib/include/unlocked-io.rs
+OK emacs/lib/unlocked-io.h -> lib/include/unlocked-io.rs
 # no `- ` problem line (`| grep -c '^- '` -> 0)
 
 $ python3 tools/check-cond-eval.py lib/unlocked-io.h

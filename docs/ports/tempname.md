@@ -38,7 +38,7 @@
 
 ## Decisions
 
-`emacs/lib/tempname.c` @ `fd7afced403`; port `femacs/lib/tempname.rs` (405 lines).  All checklist
+`emacs/lib/tempname.c` @ `fd7afced403`; port `lib/tempname.rs` (405 lines).  All checklist
 items ticked; `build-tu lib/tempname.c` -> `built lib/tempname.rs -> ../build/femacs/tempname.o`
 (0 errors), `--check` -> `OK`.
 
@@ -73,7 +73,7 @@ items ticked; `build-tu lib/tempname.c` -> `built lib/tempname.rs -> ../build/fe
   designated initializers for `tryfunc` become a const block that fills the three `__GT_*`
   slots by index (Rust has no designated initializers).
 - **Mirrors.**  `include/tempname.rs` is new and complete
-  (`tools/extract-abi.py --check emacs/lib/tempname.h femacs/lib/include/tempname.rs` -> `OK`).
+  (`tools/extract-abi.py --check emacs/lib/tempname.h lib/include/tempname.rs` -> `OK`).
   Two shared mirrors gained one item each, both after a tree-wide grep for same-named local
   declarations (status 3.24) and both verified by rebuilding their other consumers:
   `include/string.rs` + `strspn`, `include/stdint.in.rs` + `uint_fast64_t`/`UINT_FAST64_MAX`.

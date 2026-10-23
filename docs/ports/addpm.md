@@ -13,13 +13,13 @@
   `<shlobj.h>`, `<ddeml.h>`) are the reason this file is far longer than its reference; the drift is
   requested as a tolerance row in `## Owed`.
 - **Four sub-gates, all carried with both arms** (P-86 ①): C 45's `#ifndef MINGW_W64` (the frozen
-  side is `not (feature = "mingw_w64")`; that name is already in `femacs/xtask/Cargo.toml`, the
+  side is `not (feature = "mingw_w64")`; that name is already in `xtask/Cargo.toml`, the
   `w32fns.rs` 38-40 site), C 59's `#ifndef OLD_PATHS` and C 89/C 100's `#ifdef OLD_PATHS` /
   `#else` pair (both sides `feature = "old_paths"`), and C 47's inner `#ifdef _WIN32_IE`.
   `old_paths` is **not** in `Cargo.toml` yet (Owed 1).
 - **C 55-57's three SDK headers have no mirror and no SDK on this machine.**  There is no Windows
-  SDK, CRT or MinGW-w64 here (`femacs/src/w32proc.rs`'s acquisition note; the same reason
-  `femacs/nt/runemacs.rs` declares its own surface), so the unit declares everything it names - the
+  SDK, CRT or MinGW-w64 here (`src/w32proc.rs`'s acquisition note; the same reason
+  `nt/runemacs.rs` declares its own surface), so the unit declares everything it names - the
   typedefs, `MAX_PATH` and the constant table, the registry/`CoInitialize`/`MessageBox`/
   `MultiByteToWideChar`/`SHGetSpecialFolderPath` entries, `IShellLinkA`/`IPersistFile` and their two
   vtables, the two `IID`s and the class id, the DDE handles and its eight entry points - at the
@@ -30,7 +30,7 @@
 - **`COBJMACROS` is why the COM calls read the way they do.**  C 53 asks the SDK headers for the C
   object macros, so the four `IShellLinkA_*` and the two `IPersistFile_*` calls are macros and the
   port keeps each as a `macro_rules!` of the same name whose body is the header's own
-  `(p)->lpVtbl->Method (p, …)` expansion - the `femacs/src/w32fns.rs` 92-95 reading of the same
+  `(p)->lpVtbl->Method (p, …)` expansion - the `src/w32fns.rs` 92-95 reading of the same
   macro (that file declares the same `COBJMACROS` marker, as `()`, because its C spells it as a
   comment; this file's C 53 spells it `1`, so the const is `c_int` = 1 and the value compares).
 - **C 266 and C 297 hand the shell the shortcut's description.**  That string is the program's
@@ -43,7 +43,7 @@
   each of the three call sites passes it - the same limitation PORTING.md's P-22 note records for
   `marker.c`'s `CONSIDER` (Deviation 4).
 - **`SUCCEEDED` (from `<winerror.h>`) is an inline function**, because C names it in expression
-  position at all five uses; that is the `femacs/src/callproc.rs` 262-265 reading of the
+  position at all five uses; that is the `src/callproc.rs` 262-265 reading of the
   `<sys/wait.h>` `W*` family, the same class of external-header macro.
 - **C's comment text is carried as it stands**, with the two exceptions the rules force: C 1's title
   line (which named the reference program, see above) and C 285, whose own comment spells the folder
@@ -108,7 +108,7 @@
   (the `entry { … }` struct-literal path, `[entry; 7]`, the missing `sa_stack_alloc` declaration and
   `SUCCEEDED`'s macro-call syntax), the second pair is the reading above, and the last pair re-reads
   the final text.  No `cargo test`, no `--all`, no `gate-fast`, no `check-all-units.sh` was run.
-- `python3 tools/extract-abi.py --check emacs/nt/addpm.c femacs/nt/addpm.rs` -> **one row**:
+- `python3 tools/extract-abi.py --check emacs/nt/addpm.c nt/addpm.rs` -> **one row**:
   `- line count drifted 175.8%: C 347 vs Rust 957` (the tolerance row, Owed 1).  **No `missing`
   rows** - the checklist is empty (P-86 ⑩).  The port's md5 is
   `45d1744d54b4eee4e20f120a5c4f1942` (957 lines) and its first line is the port header, without the
@@ -119,19 +119,19 @@
   nt/addpm.c (347 lines; 14 blank line(s) between blocks need no row)`, **80 ledger(s) bound, 0
   failure(s)**.
 - `python3 tools/check-mirror-dupes.py` -> **24 duplicate declaration(s), 17 ratchet row(s), 7
-  failure(s)**; none of the seven is this unit's (all seven are `femacs/lib/file-has-acl.rs`, a file
+  failure(s)**; none of the seven is this unit's (all seven are `lib/file-has-acl.rs`, a file
   another lane has in flight - `git status` shows it modified and this lane did not touch it).
 - `python3 tools/check-citations.py` -> **676 file(s) scanned, 1 drift, 0 range, 1099 external, 35
-  allowed, 0 stale**; the single drift is `femacs/src/xsmfns.rs:399` (not this unit).  This unit's
+  allowed, 0 stale**; the single drift is `src/xsmfns.rs:399` (not this unit).  This unit's
   `/// C:` lines name SDK headers that are not in the tree and carry no line numbers, so they are
   neither `range` nor `drift` findings.
 - `python3 tools/check-port-lines.py` -> **41 file(s) under ten percent, 62,097 reference line(s); 47
   ratchet row(s), 0 new, 6 stale**, one of the six being `stale nt/addpm.c: no longer under the
   threshold` - i.e. the `docs/baseline/port-lines-pending.tsv` row Owed 1 names is now stale.
 - `python3 tools/check-declarations.py` -> tree reading **18 declaration sites (1 forbidden, 17
-  allowed literals), 1 failures**, and the one failure is `femacs/lib/file-has-acl.rs` (the same
+  allowed literals), 1 failures**, and the one failure is `lib/file-has-acl.rs` (the same
   in-flight file, `recital` x1).  For this unit the reading is 0 findings; before the C 285 line-break
-  fix it was `FAIL femacs/nt/addpm.rs: title x1` with the product name on one line.
+  fix it was `FAIL nt/addpm.rs: title x1` with the product name on one line.
 - **A comment-scanning trap was hit while writing this unit, and it is worth recording**: the first
   draft quoted two of C's own comments with their delimiters inside the port's block comments.  Rust
   block comments nest, so the text still parsed for `rustc`, but `tools/extract-abi.py`'s
@@ -147,7 +147,7 @@
    later item satisfies, and the definition stays at C's own line (C 66-72).
 2. **`DEFER_MS_W32_H` (C 38) has no site.**  It exists so `nt/inc/ms-w32.h` defers itself when a
    `nt/` unit includes `w32.h` first; no `w32.h` is in this unit's graph, and the name is the
-   `excluded-macros.txt` row whose replacement is the const in `femacs/src/w32.rs` 83.
+   `excluded-macros.txt` row whose replacement is the const in `src/w32.rs` 83.
 3. **C 47-49's `#ifdef _WIN32_IE` / `#undef _WIN32_IE` pair has no Rust name.**  It is a
    preprocessor operation on a macro this unit does not own (a build-environment or earlier-header
    value, whose only purpose is to keep `<shlobj.h>` above the 0x0400 floor C 45 explains); an
@@ -195,7 +195,7 @@
      own `/// C:` line - no mirror carries any of the three headers on this machine, P-88 ①) and
      carries both arms of every `#if` (P-86 ①).  Measured value + 0.01, the `widget`/`runemacs` rows'
      convention.
-   - `femacs/xtask/Cargo.toml`: the feature **`old_paths`** (not there today; `mingw_w64` already is).
+   - `xtask/Cargo.toml`: the feature **`old_paths`** (not there today; `mingw_w64` already is).
    - `docs/baseline/port-lines-pending.tsv`: this file's row `nt/addpm.c 347 3 34
      known-unported target (plan batch F)` is what `tools/check-port-lines.py --write-pending` would
      drop once the port is in; the lane may not write that file.
@@ -205,7 +205,7 @@
      mention alloca` row).
 2. **The SDK values, the vtable member orders and the record layouts** (Deviation 9): only a Windows
    host with an SDK or mingw-w64 can measure them, by the `<windows.h>`/`<shlobj.h>`/`<ddeml.h>`
-   route `femacs/nt/runemacs.rs`'s Owed 2 describes.  Until then every one of them is text.
+   route `nt/runemacs.rs`'s Owed 2 describes.  Until then every one of them is text.
 3. **No Windows arm flip is possible here**: with `windowsnt` on the unit needs `<windows.h>` and the
    CRT, so P-86 ③⑵'s `text-only` status applies to the *Windows* side; what this round *did* read is
    the three sub-gate selections against the declarations the unit carries itself (Evidence above),

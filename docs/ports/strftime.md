@@ -74,7 +74,7 @@
 
 ### Summary
 
-`femacs/lib/strftime.rs` is the live text of `emacs/lib/strftime.c` for the frozen
+`lib/strftime.rs` is the live text of `emacs/lib/strftime.c` for the frozen
 configuration: `tools/check-cond-eval.py lib/strftime.c` reports 115 conditions, 0 unknown,
 0 disagreements, so C's dead arms are not written.  The seven live functions, the 51 live
 macros/constants and the two live types (`pad_style`, the byte-count aliases) all have a
@@ -170,7 +170,7 @@ two facts the port still rests on are kept here:
 * `python3 tools/check-cond-eval.py lib/strftime.c` → `115 conditions, 0 unknown, 0 disagreements [VERIFIED]`.
 * `cd femacs && CARGO_TARGET_DIR=/tmp/femacs-target cargo run -q -p xtask -- build-tu lib/strftime.c`
   → `built lib/strftime.rs -> ../build/femacs/strftime.o`, 0 errors.
-* `python3 tools/extract-abi.py --check emacs/lib/strftime.c femacs/lib/strftime.rs` → OK.
+* `python3 tools/extract-abi.py --check emacs/lib/strftime.c lib/strftime.rs` → OK.
 * Line drift: C 2446 vs the port's ~1309 (the dead arms account for it); the row is in
   `docs/ports/line-drift-tolerance.tsv`, and the token exemptions are the ten
   `strftime.c` rows appended to `docs/ports/macro-body-notes.tsv`.

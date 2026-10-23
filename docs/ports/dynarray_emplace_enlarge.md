@@ -16,7 +16,7 @@
 ## Decisions
 
 `emacs/lib/malloc/dynarray_emplace_enlarge.c` @ `fd7afced403`; port
-`femacs/lib/malloc/dynarray_emplace_enlarge.rs`.  The frozen build leaves `_LIBC` undefined, so
+`lib/malloc/dynarray_emplace_enlarge.rs`.  The frozen build leaves `_LIBC` undefined, so
 only C 20's `<libc-config.h>` include is conditional; the body has no `#if`.
 
 - `__set_errno` is `<libc-config.h>`'s `#define __set_errno(val) (errno = (val))`, kept as the

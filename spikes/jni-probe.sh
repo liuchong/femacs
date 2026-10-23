@@ -1,5 +1,5 @@
 #!/bin/bash
-# The gate for `femacs/src/include/jni.rs`, the port's mirror of the Android NDK's <jni.h>
+# The gate for `src/include/jni.rs`, the port's mirror of the Android NDK's <jni.h>
 # (a system header of *another* target's toolchain, so - like `math.rs`/`limits.in.rs` - it has
 # no reference file to be paired with; spikes/syshdrs-probe.sh is the frozen target's analogue).
 #
@@ -14,7 +14,7 @@
 #     bash spikes/jni-probe.sh
 set -uo pipefail
 cd "$(dirname "$0")/.."
-MIRROR=femacs/src/include/jni.rs
+MIRROR=src/include/jni.rs
 NDK="${ANDROID_NDK_ROOT:-$HOME/Library/Android/sdk/ndk/29.0.14206865}"
 JNI_H="$NDK/toolchains/llvm/prebuilt/darwin-x86_64/sysroot/usr/include/jni.h"
 OUT=build/jni-probe
@@ -70,10 +70,10 @@ cat > "$OUT/rs.rs" <<RS
 #![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code,
          unused_imports, unused_macros, unused_variables)]
 use std::ffi::{c_char, c_int, c_void};
-include!("$(cd femacs/src/include && pwd)/jni.rs");
+include!("$(cd src/include && pwd)/jni.rs");
 fn main () {}
 RS
-(cd femacs && cargo run -q -p xtask -- probe ../"$OUT"/rs.rs ../"$OUT"/rs) 2> "$OUT/rs.err" \
+(cd "$HERE" && cargo run -q -p xtask -- probe ../"$OUT"/rs.rs ../"$OUT"/rs) 2> "$OUT/rs.err" \
   || { echo "jni-probe: the Rust side failed to compile:"; head -20 "$OUT/rs.err"; exit 1; }
 "$OUT/rs" > /dev/null || exit 1
 echo "jni-probe: the mirror's offset_of!/size_of assertions hold (pinned toolchain, exit 0)"

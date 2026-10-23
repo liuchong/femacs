@@ -17,7 +17,7 @@
 
 ## File-scope objects — 0
 
-# emacs/lib/readlinkat.c (123 lines) — port `femacs/lib/readlinkat.rs`
+# emacs/lib/readlinkat.c (123 lines) — port `lib/readlinkat.rs`
 
 ## Decisions
 

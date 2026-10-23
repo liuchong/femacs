@@ -58,7 +58,7 @@
 
 ## Decisions
 
-`emacs/lib/gettext.h` @ `fd7afced403`; port `femacs/lib/include/gettext.rs`.
+`emacs/lib/gettext.h` @ `fd7afced403`; port `lib/include/gettext.rs`.
 
 **Which arm is live.**  The header is not a gnulib template (there are no `@PLACEHOLDER@`s) but
 it is also not in `docs/baseline/config/cond-eval-verified.txt`, so `tools/extract-abi.py`
@@ -123,12 +123,12 @@ No other unit spells `gettext`, `dgettext`, `_libgettext_*`, `pgettext_*`, `GETT
 ## Evidence
 
 ```
-$ python3 tools/extract-abi.py --check emacs/lib/gettext.h femacs/lib/include/gettext.rs
+$ python3 tools/extract-abi.py --check emacs/lib/gettext.h lib/include/gettext.rs
   (1 C macros have a recorded Rust counterpart: _)
   (12 C macros have several definitions (configuration branches), body not compared:
    _LIBGETTEXT_FUNCAST, _LIBGETTEXT_HAVE_VARIABLE_SIZE_ARRAYS, _LIBGETTEXT_INLINE, dcgettext,
    dcngettext, dgettext ...)
-OK emacs/lib/gettext.h -> femacs/lib/include/gettext.rs
+OK emacs/lib/gettext.h -> lib/include/gettext.rs
 
 $ cd /tmp/femacs-probe2 && rustc --edition 2024 --crate-type=lib --emit=obj -C panic=abort \
     gettext_probe.rs -o gettext_probe.o
@@ -140,11 +140,11 @@ $ cd femacs && CARGO_TARGET_DIR=/tmp/femacs-target-mir2 cargo run -q -p xtask --
 built lib/getopt.rs / lib/regex_internal.rs / lib/regexec.rs / lib/regcomp.rs   # all exit 0
               # (regcomp.rs is the edited consumer: the four units whose include graph reaches
               #  this mirror)
-$ python3 tools/extract-abi.py --check emacs/<unit.c> femacs/<unit.rs>
-OK emacs/lib/getopt.c -> femacs/lib/getopt.rs
-OK emacs/lib/regcomp.c -> femacs/lib/regcomp.rs
-OK emacs/lib/regexec.c -> femacs/lib/regexec.rs
-OK emacs/lib/regex_internal.h -> femacs/lib/include/regex_internal.rs
+$ python3 tools/extract-abi.py --check emacs/<unit.c> <unit.rs>
+OK emacs/lib/getopt.c -> lib/getopt.rs
+OK emacs/lib/regcomp.c -> lib/regcomp.rs
+OK emacs/lib/regexec.c -> lib/regexec.rs
+OK emacs/lib/regex_internal.h -> lib/include/regex_internal.rs
 
 $ python3 tools/check-mirror-dupes.py
 1 duplicate declaration(s), 1 ratchet row(s), 0 failure(s)

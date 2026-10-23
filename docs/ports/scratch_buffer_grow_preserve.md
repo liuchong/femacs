@@ -42,8 +42,8 @@
 $ cd femacs && CARGO_TARGET_DIR=/tmp/femacs-target-sb cargo run -q -p xtask -- build-tu lib/malloc/scratch_buffer_grow_preserve.c
 built lib/malloc/scratch_buffer_grow_preserve.rs -> ../build/femacs/scratch_buffer_grow_preserve.o
 
-$ python3 tools/extract-abi.py --check emacs/lib/malloc/scratch_buffer_grow_preserve.c femacs/lib/malloc/scratch_buffer_grow_preserve.rs
-OK emacs/lib/malloc/scratch_buffer_grow_preserve.c -> femacs/lib/malloc/scratch_buffer_grow_preserve.rs
+$ python3 tools/extract-abi.py --check emacs/lib/malloc/scratch_buffer_grow_preserve.c lib/malloc/scratch_buffer_grow_preserve.rs
+OK emacs/lib/malloc/scratch_buffer_grow_preserve.c -> lib/malloc/scratch_buffer_grow_preserve.rs
 
 $ nm -g build/femacs/scratch_buffer_grow_preserve.o
                  U ___error

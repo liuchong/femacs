@@ -27,8 +27,8 @@
 
 ## Evidence
 
-    $ python3 tools/extract-abi.py --check emacs/src/indent.h femacs/src/include/indent.rs
-    OK emacs/src/indent.h -> femacs/src/include/indent.rs
+    $ python3 tools/extract-abi.py --check emacs/src/indent.h src/include/indent.rs
+    OK emacs/src/indent.h -> src/include/indent.rs
 
     $ python3 tools/gen-port-inventory.py
     (no "no checklist of their own" line: the fallback class is empty)

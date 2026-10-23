@@ -13,7 +13,7 @@
 > for one rule (an exported symbol must be a function the reference defines), and on this
 > revision that rule reports **one FAIL**, for a `tools/cinventory.py` mis-verdict rather than
 > for this unit's text — Evidence ④ and Owed 14 have the proof.)  What follows is P-86 ②'s substitute: the **C line-range table**, the
-> `## Evidence` readings and the `## Deviations`.  Port: `femacs/src/msdos.rs`
+> `## Evidence` readings and the `## Deviations`.  Port: `src/msdos.rs`
 > (**5716 lines**, 216,290 bytes, md5 `d48e3090be90c2663ec2900ef343b60d`), carrying **C 1-4350** —
 > the reference's every line — with **both arms of every `#if`** (slice 1: C 1-1295; slice 2:
 > C 1296-2422; slice 3: C 2423-3468; slice 4: C 3469-4350).
@@ -135,7 +135,7 @@ C 95, C 99, C 109, C 111, C 119, C 402, C 480 and C 1171), slice 2's three (C 17
 C 1907), slice 3's three (C 2433, C 2465, C 2787) and slice 4's eleven (C 3565, C 3671, C 3691,
 C 3716, C 3895, C 4128, C 4135, C 4158, C 4252, C 4281, C 4326).  C 1171's `#if 0` is the one
 with no arm at all (see its row); every other condition's two arms are carried, and three of the
-eleven (`have_select`, `chdir`, `tzset`) name features `femacs/xtask/Cargo.toml` does not
+eleven (`have_select`, `chdir`, `tzset`) name features `xtask/Cargo.toml` does not
 register yet (Owed 1).
 
 `have_x_windows` (Cargo.toml 182), `rel_alloc` (490), `msdos` (223) and `no_system_malloc` (438)
@@ -345,7 +345,7 @@ with the evaluator's own `dead_branch_map` (`-1` meaning "the frozen configurati
 else/dead side"), not from memory.
 
 **④ `extract-abi.py --check`: the empty checklist, and one tool artefact.**
-`python3 tools/extract-abi.py --check emacs/src/msdos.c femacs/src/msdos.rs` → **FAIL, exit 1**,
+`python3 tools/extract-abi.py --check emacs/src/msdos.c src/msdos.rs` → **FAIL, exit 1**,
 with exactly one row:
 
     - fn sys_opendir carries #[unsafe(no_mangle)] but the reference does not define a non-static
@@ -379,7 +379,7 @@ nothing: its checklist is empty, so it is not bound).
 `python3 tools/check-mirror-dupes.py` → `19 duplicate declaration(s), 19 ratchet row(s), 0
 failure(s)` — green, and the same 19 rows the earlier slices recorded, so this slice adds no
 duplicate.  (Earlier in this batch the same command read `43 duplicate declaration(s), 24
-failure(s)`: every `FAIL` named another lane's then-untracked `femacs/src/include/gtk.rs` against
+failure(s)`: every `FAIL` named another lane's then-untracked `src/include/gtk.rs` against
 `image.rs`/`xwidget.rs`, `grep msdos` over them was empty, and that lane's round has since
 landed.)
 `python3 tools/check-port-lines.py` → `src/msdos.c` is not in the under-ten-percent list: the port
@@ -389,7 +389,7 @@ because every item carries a `#[cfg]` line and the tables are one element per li
 **⑤a The completeness cross-check (this lane's own, not a gate).**  `tools/cinventory.py`'s
 whole-text function scan finds **96** function definitions in `emacs/src/msdos.c` (dead arms
 included — the P-86 reading, not the live one), and `grep -c "fn NAME"` finds a definition of
-every one of the 96 in `femacs/src/msdos.rs`; the file's `subrs`/`objects` lists are the empty
+every one of the 96 in `src/msdos.rs`; the file's `subrs`/`objects` lists are the empty
 ones Evidence ① explains.  The two `DEFUN` docstrings and the one `DEFVAR_LISP` docstring the
 file carries were compared byte-for-byte against C's text as well.
 
@@ -652,11 +652,11 @@ is also the one the msdos.h *mirror* resolves to, and the tool reads that pair t
 
 ## Owed (nothing here is claimed as done)
 
-1. **`femacs/xtask/Cargo.toml`**: three feature names this unit uses are registered nowhere —
+1. **`xtask/Cargo.toml`**: three feature names this unit uses are registered nowhere —
    `gnu_malloc` (C 111), `_use_lfn` (C 95) and `_dos_ds` (C 99).  (`msdos`, `no_system_malloc`,
    `rel_alloc`, `have_x_windows` and `djgpp_2_3` are precedents that are registered.)
    ✅ **Stale, closed by the integrator in 3.466**: all three *are* registered on this revision —
-   `_dos_ds` line 30, `_use_lfn` line 31, `gnu_malloc` line 93 of `femacs/xtask/Cargo.toml`, each
+   `_dos_ds` line 30, `_use_lfn` line 31, `gnu_malloc` line 93 of `xtask/Cargo.toml`, each
    with its C site in the comment (`_dos_ds (src/msdos.c)`, `_USE_LFN`, `GNU_MALLOC`), and
    `tools/feature-coverage.py` lists all three with their sites.  Nothing to register.
 2. **`include/msdos.rs` must move its prototypes into a glob-imported module.**  **Twenty-five**
@@ -672,7 +672,7 @@ is also the one the msdos.h *mirror* resolves to, and the tool reads that pair t
    Until it lands, **every** `msdos` translation unit that includes `msdos.h` and defines one of
    those names reports `E0428`, and the count grows with every slice this file gains.  ✅ **Landed by
    the integrator in 3.472** (the twenty-five declarations moved into `pub mod msdos_decls` with
-   `use msdos_decls::*;`, `femacs/src/include/msdos.rs` 363 -> 376 lines): the arm probe with
+   `use msdos_decls::*;`, `src/include/msdos.rs` 363 -> 376 lines): the arm probe with
    `msdos` + `dispextern_face_records` went **81 errors / 33 E0428 -> 56 / 8**, and the frozen
    `build-tu` plus `layout-check` show no new problem.  What remains owed is the *second* half only.
    **Slice 4 adds seven rows to that half**: six declarations that stayed at the mirror's crate
@@ -751,7 +751,7 @@ is also the one the msdos.h *mirror* resolves to, and the tool reads that pair t
     ✅ **Closed by the integrator in 3.479 as "not a mirror defect"**: this tree's convention is
     that the *including unit* supplies the types a mirror names (a header mirror carries no
     `use` of its own crate-relative paths - `PORTING.md 0.1`), and the mirror's **one** existing
-    consumer already does exactly that: `femacs/lib-src/update-game-score.rs` 37 imports
+    consumer already does exactly that: `lib-src/update-game-score.rs` 37 imports
     `{c_char, c_double, c_float, c_int, c_long, c_longlong, …}` before its `include!` at 53, and
     that unit's arm flip is green.  Adding the two names to the mirror instead would be an
     `E0252` in that consumer (two imports of one name at one scope - the `src/xgselect.rs` 3.477

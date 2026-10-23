@@ -1,4 +1,4 @@
-# emacs/lib/stdc_trailing_zeros.c  →  femacs/lib/stdc_trailing_zeros.rs (19 lines)
+# emacs/lib/stdc_trailing_zeros.c  →  lib/stdc_trailing_zeros.rs (19 lines)
 
 # ----------------------------------------------------------------------
 ## Subrs (DEFUN) — 0

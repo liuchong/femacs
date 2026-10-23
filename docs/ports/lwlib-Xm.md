@@ -5,9 +5,9 @@
 > `OBJS`) and `configure.ac` 7233 defines `USE_MOTIF` for it (3147 sets `USE_X_TOOLKIT=MOTIF`),
 > so `extract-abi.py`'s live checklist is empty in this configuration and the checkboxes cannot be
 > coverage evidence.  What follows is P-86 ②'s substitute: the **C line-range table**, the
-> `## Evidence` readings, and the per-`#if` `## Deviations`.  Port: `femacs/lwlib/lwlib-Xm.rs`
+> `## Evidence` readings, and the per-`#if` `## Deviations`.  Port: `lwlib/lwlib-Xm.rs`
 > (**2,834 lines**, `md5 5beeb53c79b9c5b65e84b82bb8e85a5b`); header mirror
-> `femacs/lwlib/include/lwlib-Xm.rs` (57 lines, `md5 45a5d4f61448a9a7abc272c6bad95104`; its
+> `lwlib/include/lwlib-Xm.rs` (57 lines, `md5 45a5d4f61448a9a7abc272c6bad95104`; its
 > `_decls` move is `## Deviations` 19).  Both arms of every `#if` are carried; the mirror moved its
 > eleven declarations into a `_decls` module (P-39, the `include/lwlib-Xaw.rs` shape).
 
@@ -25,7 +25,7 @@
   `feature = "energize"`, and C 1728's `#if XmVersion < 1002 || (defined LESSTIF_VERSION &&
   LESSTIF_VERSION < 84)` is `feature = "xm_version_lt_1002_or_lesstif_lt_84"` (a derived name for a
   compound condition, the `use_cairo_or_have_xft` precedent).  **None of the four is registered in
-  `femacs/xtask/Cargo.toml`**, so no build configuration sets them and only a probe can
+  `xtask/Cargo.toml`**, so no build configuration sets them and only a probe can
   (`## Owed` 2).
 - **The one sub-gate the unit needs but the C text does not spell** is
   `feature = "use_x_toolkit"`: `include/lwlib-widget.rs` 96-109 gates `_widget_value.change` and
@@ -182,13 +182,13 @@ reading is not vacuous.
 
 **④ The `/tmp` harness reading on the current tree text** (not the tree's `probe`).  A `/tmp`
 `materialize.py` reproduces xtask's `materialize` rule (one copy per file, first reach wins,
-`femacs/xtask/src/main.rs` 1793-1930) over `femacs/lwlib/lwlib-Xm.rs` -> 28 files, 21,815 lines, and
+`xtask/src/main.rs` 1793-1930) over `lwlib/lwlib-Xm.rs` -> 28 files, 21,815 lines, and
 the same `rustc` command as run 3 gives **exit 0, 0 errors, 2 warnings**.  This is the reading taken
 *after* the two body-token repairs (`first_child`, `make_one`), i.e. against the text `## Evidence`
 ②③ were not measured on; it is a `/tmp` harness's, not the tree's `probe`.
 
 **⑤ The text gates.**
-`python3 tools/extract-abi.py --check emacs/lwlib/lwlib-Xm.c femacs/lwlib/lwlib-Xm.rs` first
+`python3 tools/extract-abi.py --check emacs/lwlib/lwlib-Xm.c lwlib/lwlib-Xm.rs` first
 reported four function rows - `first_child does not mention 0, compositewidget`,
 `xm_create_dialog does not mention break, case, switch`, `make_one does not mention
 xmnallowshellresize`, `do_call does not mention break, case, default, switch`.  The first and third
@@ -198,7 +198,7 @@ the two `switch` rows are recorded in `docs/ports/macro-body-notes.tsv` (PORTING
 **44.3%: C 1964 vs Rust 2834**, whose tolerance row is the integrator's (`## Owed` 3).
 `python3 tools/check-declarations.py` -> **0 failures** (17 pre-existing allowed literals, 0
 forbidden).  `python3 tools/check-citations.py` -> **0 drift, 0 range, 0 stale** for this unit's two
-files (the run's single `drift` is `femacs/src/dbusbind.rs`'s, pre-existing); this unit's new
+files (the run's single `drift` is `src/dbusbind.rs`'s, pre-existing); this unit's new
 citations name headers that are not in the tree (`<X11/*>`, `<Xm/*>`) and land in the tool's counted
 `external` bucket.  `python3 tools/check-dead-file-coverage.py` -> **passed**, 0 failures, for this
 ledger's 52 rows (it reads them against `lwlib/lwlib-Xm.c` *and*, via the `<stem>.md` fallback,
@@ -288,7 +288,7 @@ are recorded (what is cited here is the text above, not the directory).
     the table above is a contiguous partition (the header's text lines sit where the `.c` is blank).
 18. **C's two `XtParent (widget)` calls inside each of C 1918-1920 and C 1930-1932 are kept as two
     calls**, not folded into a local (see `## Findings` 5).
-19. **The header mirror `femacs/lwlib/include/lwlib-Xm.rs` carries a `_decls` module** (P-39): the
+19. **The header mirror `lwlib/include/lwlib-Xm.rs` carries a `_decls` module** (P-39): the
     unit *defines* all eleven declarations it carries (`E0428` otherwise), so they live in
     `lwlib_Xm_decls` and are glob-imported - the `include/lwlib-Xaw.rs` / `include/lwlib-Xlw.rs`
     shape.
@@ -304,7 +304,7 @@ are recorded (what is cited here is the text above, not the directory).
    was not run: the probe budget is 3 of 3.)
 2. **The four sub-gate names are set by nothing but a probe**: `not_lesstif_version`,
    `xm_position_index`, `energize` and `xm_version_lt_1002_or_lesstif_lt_84` do not appear in
-   `femacs/xtask/Cargo.toml` (grep), so no build configuration can turn them on and
+   `xtask/Cargo.toml` (grep), so no build configuration can turn them on and
    `docs/baseline/feature-coverage.tsv` does not know them.  **Owner: the integrator** (the
    derivation belongs where the other platform features are registered).
 3. **The line-drift tolerance row is owed** (the integrator's file,
@@ -313,7 +313,7 @@ are recorded (what is cited here is the text above, not the directory).
    of a unit whose third of the text is a surface no mirror in this tree carries (about 700
    declaration lines of the Xt and Motif halves), of the per-arm `#[cfg]` lines, and of the
    per-block C-line comments (`lwlib-Xaw` is the same class at 75.7%).
-4. **`dupstring`'s home**: two units declare it locally (`femacs/src/term.rs` 384-385 and this one);
+4. **`dupstring`'s home**: two units declare it locally (`src/term.rs` 384-385 and this one);
    the proper home is the `lisp.rs` mirror (lisp.h 5555 declares it).  **Owner: the lisp lane** -
    then this unit's copy goes away.
 5. **The Xt/Motif surface's real shapes**: with an X11 toolchain (`xorgproto` + libXt and Motif or
@@ -322,9 +322,9 @@ are recorded (what is cited here is the text above, not the directory).
    with the reference's own `configure` which of the four sub-conditions a Motif build takes.  What
    is missing on this machine is *Xt* and *Motif* (xorgproto 2025.1's Xlib half is present and
    measured, `## Evidence` ⑥).  P-90 clause 1 asks for a dedicated Xt mirror
-   (`femacs/src/include/<sdk>.rs`); this unit's copy is one to move when it lands (P-88 clause 5).
-6. **`docs/port-map.md`'s target-line column** for `femacs/lwlib/lwlib-Xm.rs` still says 3 (and
-   `femacs/lwlib/include/lwlib-Xm.rs`'s 47), and **`docs/baseline/feature-coverage.tsv`'s row for
+   (`src/include/<sdk>.rs`); this unit's copy is one to move when it lands (P-88 clause 5).
+6. **`docs/port-map.md`'s target-line column** for `lwlib/lwlib-Xm.rs` still says 3 (and
+   `lwlib/include/lwlib-Xm.rs`'s 47), and **`docs/baseline/feature-coverage.tsv`'s row for
    `use_motif`** (line 90) is stale: no new *name* is added, but `tools/feature-coverage.py --write`
    is the integrator's reading to refresh.
 7. **`docs/baseline/port-lines-pending.tsv`**'s row for `lwlib/lwlib-Xm.c` is stale after this round

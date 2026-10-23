@@ -14,9 +14,9 @@
 
 ## Decisions
 
-`emacs/src/menu.h` @ `fd7afced403`; mirror `femacs/src/include/menu.rs` (60 lines vs C's 72).
+`emacs/src/menu.h` @ `fd7afced403`; mirror `src/include/menu.rs` (60 lines vs C's 72).
 The gate is `python3 tools/extract-abi.py --check emacs/src/menu.h
-femacs/src/include/menu.rs` -> `OK`; nothing here is defined, so any unit may include it.
+src/include/menu.rs` -> `OK`; nothing here is defined, so any unit may include it.
 
 `menu.h`'s live text for this target is the include guard, the three `MENU_*` bits
 (`enum { MENU_KEYMAPS = 0x1, MENU_FOR_CLICK = 0x2, MENU_KBD_NAVIGATION = 0x4 }`), the six

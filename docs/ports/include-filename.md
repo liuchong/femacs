@@ -24,7 +24,7 @@
 
 ## Decisions
 
-`emacs/lib/filename.h` @ `fd7afced403`; port `femacs/lib/include/filename.rs`.  Every checklist item is
+`emacs/lib/filename.h` @ `fd7afced403`; port `lib/include/filename.rs`.  Every checklist item is
 ticked and `extract-abi.py --check` reports `OK` for the pair.  The frozen target's arm is
 the one implemented; PORTING.md P-24 does not compare a macro that has several definitions,
 so the non-frozen arm's spellings are recorded here instead of being carried as text.

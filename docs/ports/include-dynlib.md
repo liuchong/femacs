@@ -14,7 +14,7 @@
 
 ## Decisions
 
-`emacs/src/dynlib.h` @ `fd7afced403`; port `femacs/src/include/dynlib.rs`.  The header is the
+`emacs/src/dynlib.h` @ `fd7afced403`; port `src/include/dynlib.rs`.  The header is the
 include guard, two typedefs (`dynlib_handle_ptr` = `void *`, `dynlib_function_ptr` = a pointer to
 `void (void)`, which the port spells `Option<unsafe extern "C" fn ()>` - the mirror's function
 pointer convention) and the prototypes, in a whole-import module so the unit's definitions

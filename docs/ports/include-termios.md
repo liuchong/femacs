@@ -1,6 +1,6 @@
 # emacs/… the frozen target's <termios.h> (system header, P-26/P-50)
 
-`femacs/lib/include/termios.rs`.  gnulib has no `termios` wrapper in this build and the
+`lib/include/termios.rs`.  gnulib has no `termios` wrapper in this build and the
 reference includes the system header, so this is a system mirror: the four typedefs
 (`tcflag_t`/`speed_t` = `unsigned long`, `cc_t` = `unsigned char`), `NCCS`, and
 `struct termios` with the layout measured from clang, each offset asserted:
@@ -15,15 +15,15 @@ request numbers are **not** here yet, because three units carry measured copies 
 
 | unit | carries | lines |
 | --- | --- | --- |
-| `femacs/src/sysdep.rs` | `tcflag_t`/`speed_t`/`cc_t`/`NCCS`/`struct termios` | 112-130 |
-| `femacs/src/process.rs` | `struct termios` (measured, real fields) | 7390-7430 |
-| `femacs/src/minibuf.rs` | `struct termios` as an opaque `[u8; 72]` stand-in | 87-95 |
+| `src/sysdep.rs` | `tcflag_t`/`speed_t`/`cc_t`/`NCCS`/`struct termios` | 112-130 |
+| `src/process.rs` | `struct termios` (measured, real fields) | 7390-7430 |
+| `src/minibuf.rs` | `struct termios` as an opaque `[u8; 72]` stand-in | 87-95 |
 
-**Convergence (2026-10-04, first two done):** `femacs/src/sysdep.rs` and `femacs/src/minibuf.rs`
+**Convergence (2026-10-04, first two done):** `src/sysdep.rs` and `src/minibuf.rs`
 dropped their copies in the two commits that follow this mirror (`sysdep.rs`'s `tcflag_t`/
 `speed_t`/`cc_t`/`NCCS`/`struct termios` block and its local `emacs_tty`/`CDISABLE`;
 `minibuf.rs`'s opaque stand-in, its `emacs_tty` and its three use-site declarations), each
-with `build-tu` + `--check` + `--cfg enable_checking` green.  `femacs/src/process.rs` is still
+with `build-tu` + `--check` + `--cfg enable_checking` green.  `src/process.rs` is still
 in flight in a lane, so its copy stays until that lane settles.  The rule for each of the
 remaining ones is unchanged:
 and `include!` this mirror - `minibuf.rs`'s opaque stand-in is the one that is *wrong* in kind

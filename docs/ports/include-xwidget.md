@@ -44,7 +44,7 @@
   `ns_impl_cocoa` for the `#elif` arms, `have_x_windows` for C 208-230, `have_xinput2` and
   `have_xinput2_4` for the two nested `#ifdef`s inside it.  **The last two are new names in this
   tree** (the C macro's own spelling, lowercased - status 3.171's rule); they need a row in
-  `femacs/xtask/Cargo.toml`'s `[features]` table like every other name there.
+  `xtask/Cargo.toml`'s `[features]` table like every other name there.
 - **No layout assertion, and one bitfield is recorded rather than packed.**  The two records hold GTK
   and AppKit members, so no compiler on this target can measure them (`include/macfont.rs` 26-27)
   and the `GCALIGNED_STRUCT` spelling is `#[repr(C, align(8))]` as `include/comp.rs` 18-19 writes it.
@@ -81,7 +81,7 @@
 
 ## Evidence
 
-- `python3 tools/extract-abi.py --check emacs/src/xwidget.h femacs/src/include/xwidget.rs`
+- `python3 tools/extract-abi.py --check emacs/src/xwidget.h src/include/xwidget.rs`
   -> **FAIL** with these seven lines, and nothing else:
   `function syms_of_xwidget does not mention syms_of_xwidget`, `valid_xwidget_spec_p ...`,
   `xwidget_view_delete_all_in_window does not mention window, xwidget_view_delete_all_in_window`,
@@ -95,8 +95,8 @@
   (`functions GLYPH_CHAR does not mention glyph_char`), and its ledger still has unchecked boxes, so
   the tree had no passing shape for this before this file.
 - With `docs/ports/macro-body-notes.tsv` extended by the seven rows below,
-  `python3 tools/extract-abi.py --check emacs/src/xwidget.h femacs/src/include/xwidget.rs`
-  -> `OK emacs/src/xwidget.h -> femacs/src/include/xwidget.rs`.  The rows are requested in this
+  `python3 tools/extract-abi.py --check emacs/src/xwidget.h src/include/xwidget.rs`
+  -> `OK emacs/src/xwidget.h -> src/include/xwidget.rs`.  The rows are requested in this
   round's report (the shared table is written by the integrator):
   `syms_of_xwidget`, `valid_xwidget_spec_p`, `xwidget_view_delete_all_in_window`,
   `x_draw_xwidget_glyph_string`, `lookup_xwidget`, `xwidget_end_redisplay`, `kill_buffer_xwidgets`,

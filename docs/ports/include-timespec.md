@@ -35,9 +35,9 @@
   `#[inline(always)] pub fn`, which is what those macros mean after preprocessing.
 - `_GL_CMP` is a *value* macro generated into gnulib's config header (`m4/gnulib-common.m4`
   4746-4754, `(((n1) > (n2)) - ((n1) < (n2)))`); it is a macro in the port too, declared once in
-  `femacs/lib/include/gnulib_config.rs` (PORTING.md 0.1-5, one home per macro) and included here,
+  `lib/include/gnulib_config.rs` (PORTING.md 0.1-5, one home per macro) and included here,
   which is where C's expansion site is.
-- `time_t` and `struct timespec` come from `<time.h>` in C, i.e. from `femacs/lib/include/time.in.rs`
+- `time_t` and `struct timespec` come from `<time.h>` in C, i.e. from `lib/include/time.in.rs`
   (the mirror of gnulib's `time.in.h`) in the port, and this mirror includes it itself — C's
   `#include <time.h>` is right there.  `buffer.rs` reaches the same mirror directly, so a unit
   including both would include it twice; `xtask`'s include-graph expansion de-duplicates that

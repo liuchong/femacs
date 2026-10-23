@@ -44,7 +44,7 @@ with the *type* - `xterm.h`'s line 23 is `#include <X11/Xlib.h>`, and `-I <X11>`
 to an arm whose defines contain `HAVE_X_WINDOWS`, so the `frozen` and `ns_cocoa` arms both
 report `fatal error: 'X11/Xlib.h' file not found` and a `parse=no` row.  That is *not*
 "this configuration has no `struct x_display_info`": the NS configuration has one, in
-`nsterm.h`, and `femacs/src/include/nsterm.rs` mirrors it.  The reason is in the run's own
+`nsterm.h`, and `src/include/nsterm.rs` mirrors it.  The reason is in the run's own
 `unavailable: N error(s)` block; the TSV keeps `parse=no` as its machine-readable half.
 """
 

@@ -5,11 +5,11 @@
 > (3019-3030) whose 3024 `AC_DEFINE`s `HAVE_NTGUI` — and `docs/baseline/frozen-build-sources.txt`
 > lists no `w32xfns.o` for this target, so `tools/extract-abi.py`'s checklist for the file is empty
 > (P-86 ②) and this ledger is that clause's substitute: the **C line-range table**, the
-> `## Evidence` readings and the `## Deviations`.  Port: `femacs/src/w32xfns.rs` (**911 lines**,
+> `## Evidence` readings and the `## Deviations`.  Port: `src/w32xfns.rs` (**911 lines**,
 > 36,785 bytes, md5 `384a7fafb1147b22062bfcce7809c463`), carrying **C 1-447 with both arms of every
 > `#if`**.  The reference `emacs/src/w32xfns.c` is 447 lines, md5
 > `3598e9e5a49a389007d104fa0636831c` (unchanged; `emacs/` is read-only), and its `docs/port-map.md`
-> 588 row pairs `src/w32xfns.c` 447 with `femacs/src/w32xfns.rs` — that row's port count (11) is the
+> 588 row pairs `src/w32xfns.c` 447 with `src/w32xfns.rs` — that row's port count (11) is the
 > integrator's regeneration (Owed 6).
 >
 > **This ledger replaces the reading it inherits.**  The previous `docs/ports/w32xfns.md` (and the
@@ -120,7 +120,7 @@ and the per-file census (P-86 ⑦) is:
 
 **No other file contributes an error**: rustc reports 17 real errors, and the "aborting due to 17
 previous errors" line closes them.  The reading is on the **pinned `nightly-2026-10-01`**
-(`femacs/rust-toolchain.toml`, which `xtask` honours because it runs rustc with `cwd = femacs/`);
+(`rust-toolchain.toml`, which `xtask` honours because it runs rustc with `cwd = `);
 a run under the machine's default **stable 1.98.1** adds one `E0658` in `lib/include/lisp.rs` 3761
 (`verror`'s `core::ffi::VaList` — the pin's own subject, recorded in Owed 4 so the two readings are
 not confused).
@@ -152,7 +152,7 @@ all it has" is not a vacuous statement.
 ⑤ **`python3 tools/check-cond-eval.py src/w32xfns.c`**: `8 conditions, 0 unknown, 0 disagreements
 [VERIFIED]` — the eight rows of `## Gate mapping`, nothing else.
 
-⑥ **`python3 tools/extract-abi.py --check emacs/src/w32xfns.c femacs/src/w32xfns.rs`**: one finding
+⑥ **`python3 tools/extract-abi.py --check emacs/src/w32xfns.c src/w32xfns.rs`**: one finding
 left, `line count drifted 103.8%: C 447 vs Rust 911` (`FAIL`), i.e. the tolerance row of Owed 7.
 Three earlier findings were fixed in this round rather than excused: `select_palette`,
 `deselect_palette` and `release_frame_dc` "does not mention output_data, w32" — the port had spelled
@@ -181,7 +181,7 @@ failure(s)` — this ledger's row is the `## C line ranges` table above.
 ⑪ **`python3 tools/check-ledger-ticks.py`**: 0 failure(s) — no tick of this ledger names a function
 another port carries, and this ledger has no ticked box at all (P-86 ②'s point).
 
-⑫ **The unit**: `femacs/src/w32xfns.rs` 911 lines, 36,785 bytes, md5
+⑫ **The unit**: `src/w32xfns.rs` 911 lines, 36,785 bytes, md5
 `384a7fafb1147b22062bfcce7809c463`; the reference `emacs/src/w32xfns.c` 447 lines, md5
 `3598e9e5a49a389007d104fa0636831c`.
 

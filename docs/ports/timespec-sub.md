@@ -15,7 +15,7 @@
 
 ## Decisions
 
-- The same shape as femacs/lib/timespec-add.rs with `ckd_sub`/`overflowing_sub`: the store
+- The same shape as lib/timespec-add.rs with `ckd_sub`/`overflowing_sub`: the store
   and the flag are two Rust statements per C call (PORTING.md 2.6/P-15), and the
   `ckd_sub` family's call arguments are compared by the checker.
 - C's `int nsdiff = a.tv_nsec - b.tv_nsec;` truncates a `long` difference; `borrow` is C's

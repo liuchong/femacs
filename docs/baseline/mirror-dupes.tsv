@@ -4,75 +4,75 @@
 # deleting one is a two-step job per unit: drop the copy, `build-tu <unit>`, then
 # `extract-abi.py --check <c> <rs>` and re-run this tool.
 # <unit>	<mirror>	<name>	<reason>
-femacs/lib/euidaccess.rs	femacs/lib/include/libc-config.rs	weak_alias	glibc's `#define weak_alias(...)`; C's own spelling of the alias, not a duplicate of the mirror's
-femacs/lib/euidaccess.rs	femacs/lib/include/unistd.in.rs	access	euidaccess.c 57-69's `#ifdef _LIBC` rename block (`#define access euidaccess` and friends): C defines the unit-side macro itself, so one construct has two spellings by C's own design (status 3.332 ③)
-femacs/lib/euidaccess.rs	femacs/lib/include/unistd.in.rs	geteuid	euidaccess.c 57-69's `#ifdef _LIBC` rename block - C's own shape
-femacs/lib/euidaccess.rs	femacs/lib/include/unistd.in.rs	getuid	euidaccess.c 57-69's `#ifdef _LIBC` rename block - C's own `#define getuid __getuid` shape
-femacs/lib/faccessat.rs	femacs/lib/include/unistd.in.rs	access	faccessat.c 46-51's `#ifndef HAVE_ACCESS` -> `# undef access / # define access euidaccess` (live in this configuration): C defines both spellings
-femacs/lib/ftoastr.rs	femacs/lib/include/ftoastr.rs	DBL_BUFSIZE_BOUND	ftoastr.h 152-155: the unit's `usize` const is an array length, and a `macro_rules!` cannot be one in Rust - the mirror keeps C's macro and the unit needs the const, so both spellings are load-bearing
-femacs/lib/ftoastr.rs	femacs/lib/include/ftoastr.rs	FLT_BUFSIZE_BOUND	see DBL_BUFSIZE_BOUND: the const is the array length the C macro's users need
-femacs/lib/ftoastr.rs	femacs/lib/include/ftoastr.rs	LDBL_BUFSIZE_BOUND	see DBL_BUFSIZE_BOUND: the const is the array length the C macro's users need
-femacs/lib/mktime.rs	femacs/lib/include/time.in.rs	tzset	mktime.c 104-105's `#undef tzset / #define tzset() my_tzset ()`: C's own redirect
-femacs/lib/time_rz.rs	femacs/lib/include/time.in.rs	mktime	the generated `<time.h>` 841-842's `#define mktime rpl_mktime`: gnulib's redirect, C's own spelling
-femacs/lib/time_rz.rs	femacs/lib/include/time.in.rs	timegm	the generated `<time.h>` 1144-1145's `#define timegm rpl_timegm`: gnulib's redirect
-femacs/src/android.rs	femacs/lib/include/unistd.in.rs	pipe2	bionic's `<unistd.h>` 299 declares `int pipe2 (int[2], int)` (measured in NDK 25.1-28.2) and android.c 369/1528 call it under the Android configuration, where no gnulib replacement applies; the mirror's `# define pipe2 rpl_pipe2` is the frozen Darwin substitution (`@REPLACE_PIPE2@` is 1 there) and android.c is outside the frozen build - two configurations' arms, not one declaration copied
-femacs/src/androidfns.rs	femacs/src/include/frame.rs	adjust_frame_size	kept (P-323): the unit does not include that mirror
-femacs/src/androidfns.rs	femacs/src/include/frame.rs	decode_live_frame	kept (P-323): the unit does not include that mirror
-femacs/src/androidfns.rs	femacs/src/include/frame.rs	delete_frame	kept (P-323): the unit does not include that mirror
-femacs/src/androidfns.rs	femacs/src/include/frame.rs	gui_figure_window_size	kept (P-323): the unit does not include that mirror
-femacs/src/androidfns.rs	femacs/src/include/frame.rs	gui_set_autolower	kept (P-323): the unit does not include that mirror
-femacs/src/androidfns.rs	femacs/src/include/frame.rs	gui_set_autoraise	kept (P-323): the unit does not include that mirror
-femacs/src/androidfns.rs	femacs/src/include/frame.rs	gui_set_border_width	kept (P-323): the unit does not include that mirror
-femacs/src/androidfns.rs	femacs/src/include/frame.rs	gui_set_borders_respect_alpha_background	kept (P-323): the unit does not include that mirror
-femacs/src/androidfns.rs	femacs/src/include/frame.rs	gui_set_bottom_divider_width	kept (P-323): the unit does not include that mirror
-femacs/src/androidfns.rs	femacs/src/include/frame.rs	gui_set_font	kept (P-323): the unit does not include that mirror
-femacs/src/androidfns.rs	femacs/src/include/frame.rs	gui_set_font_backend	kept (P-323): the unit does not include that mirror
-femacs/src/androidfns.rs	femacs/src/include/frame.rs	gui_set_fullscreen	kept (P-323): the unit does not include that mirror
-femacs/src/androidfns.rs	femacs/src/include/frame.rs	gui_set_horizontal_scroll_bars	kept (P-323): the unit does not include that mirror
-femacs/src/androidfns.rs	femacs/src/include/frame.rs	gui_set_left_fringe	kept (P-323): the unit does not include that mirror
-femacs/src/androidfns.rs	femacs/src/include/frame.rs	gui_set_line_spacing	kept (P-323): the unit does not include that mirror
-femacs/src/androidfns.rs	femacs/src/include/frame.rs	gui_set_no_special_glyphs	kept (P-323): the unit does not include that mirror
-femacs/src/androidfns.rs	femacs/src/include/frame.rs	gui_set_right_divider_width	kept (P-323): the unit does not include that mirror
-femacs/src/androidfns.rs	femacs/src/include/frame.rs	gui_set_right_fringe	kept (P-323): the unit does not include that mirror
-femacs/src/androidfns.rs	femacs/src/include/frame.rs	gui_set_screen_gamma	kept (P-323): the unit does not include that mirror
-femacs/src/androidfns.rs	femacs/src/include/frame.rs	gui_set_scroll_bar_height	kept (P-323): the unit does not include that mirror
-femacs/src/androidfns.rs	femacs/src/include/frame.rs	gui_set_scroll_bar_width	kept (P-323): the unit does not include that mirror
-femacs/src/androidfns.rs	femacs/src/include/frame.rs	gui_set_unsplittable	kept (P-323): the unit does not include that mirror
-femacs/src/androidfns.rs	femacs/src/include/frame.rs	gui_set_vertical_scroll_bars	kept (P-323): the unit does not include that mirror
-femacs/src/androidfns.rs	femacs/src/include/frame.rs	gui_set_visibility	kept (P-323): the unit does not include that mirror
-femacs/src/androidfns.rs	femacs/src/include/frame.rs	make_frame	kept (P-323): the unit does not include that mirror
-femacs/src/androidfns.rs	femacs/src/include/frame.rs	make_minibuffer_frame	kept (P-323): the unit does not include that mirror
-femacs/src/androidmenu.rs	femacs/src/include/frame.rs	check_window_system	kept (P-323): the unit does not include that mirror
-femacs/src/androidterm.rs	femacs/src/include/frame.rs	adjust_frame_size	kept (P-323): the unit does not include that mirror
-femacs/src/androidterm.rs	femacs/src/include/frame.rs	frame_ancestor_p	kept (P-323): the unit does not include that mirror
-femacs/src/androidterm.rs	femacs/src/include/frame.rs	frame_size_history_extra	kept (P-323): the unit does not include that mirror
-femacs/src/buffer.rs	femacs/src/include/frame.rs	decode_live_frame	kept: the unit spells the pointer *mut c_void (P-72 incomplete target; buffer.rs does not include frame.rs), the mirror spells *mut frame - converging needs the mirror owner
-femacs/src/charset.rs	femacs/src/include/lisp.rs	emacs_fclose	lisp.h 5316's `# define emacs_fclose fclose`; the unit spells it with `#[link_name = "fclose"]`, a different namespace with the same effect - C's own redirect
-femacs/src/comp.rs	femacs/src/include/lisp.rs	list	kept on purpose: the unit needs its own variadic `list` declaration when `have_native_comp` is flipped on (the `dead-arms` configuration), where the mirror's declaration is not in scope; without it the unit fails with E0423 (status 4.733)
-femacs/src/editfns.rs	femacs/src/include/lisp.rs	malloc_probe	kept (P-323): signature differs: unit (usize) -> () vs mirror (size_t) -> ()
-femacs/src/eval.rs	femacs/src/include/lisp.rs	malloc_probe	kept (P-323): signature differs: unit (usize) -> () vs mirror (size_t) -> ()
-femacs/src/eval.rs	femacs/src/include/lisp.rs	message3	kept (P-323): signature differs: unit (Lisp_Object) -> Lisp_Object vs mirror (Lisp_Object) -> ()
-femacs/src/floatfns.rs	femacs/lib/include/math.rs	signbit	the unit's copy is the `#[cfg (feature = "no_signbit")]` arm, i.e. C's `#ifndef signbit` dead text carried on purpose (P-51), while the mirror's is the live `<math.h>` macro - one C condition's two arms, not a duplicate
-femacs/src/haikufns.rs	femacs/src/include/lisp.rs	quit	kept (P-323): signature differs: unit () -> ! vs mirror () -> Lisp_Object
-femacs/src/insdel.rs	femacs/src/include/window.rs	bset_redisplay	kept on purpose: the window.rs mirror spells the parameter `*mut c_void` (PORTING.md 0.1-2/P-72 rule 3) while this unit's call site passes `*mut buffer`; converging means window.rs including buffer.rs, which is that mirror owner's call
-femacs/src/keyboard.rs	femacs/src/include/coding.rs	code_convert_string	kept: the unit's sixth parameter is ptrdiff_t and the mirror's is bool; withdrawing would change the call's type (P-323, measured as E0308 in status 4.995)
-femacs/src/keyboard.rs	femacs/src/include/lisp.rs	quit	kept (P-323): signature differs: unit () -> ! vs mirror () -> Lisp_Object
-femacs/src/keyboard.rs	femacs/src/include/lisp.rs	wait_reading_process_output	kept (P-323): signature differs: unit (intmax_t, c_int, c_int, bool, Lisp_Object, *mut Lisp_Process, c_int) -> () vs mirror (i64, c_int, c_int, bool, Lisp_Object, *mut c_void, c_int) -> c_int
-femacs/src/lread.rs	femacs/src/include/lisp.rs	emacs_strerror	kept (P-323): signature differs: unit (c_int) -> *const c_char vs mirror (c_int) -> *mut c_char
-femacs/src/lread.rs	femacs/src/include/lisp.rs	hash_table_free_bytes	kept (P-323): signature differs: unit (*mut c_void, usize) -> () vs mirror (*mut c_void, ptrdiff_t) -> ()
-femacs/src/pgtkselect.rs	femacs/src/include/lisp.rs	wait_reading_process_output	kept (P-323): signature differs: unit (intmax_t, c_int, c_int, bool, Lisp_Object, *mut c_void, c_int) -> c_int vs mirror (i64, c_int, c_int, bool, Lisp_Object, *mut c_void, c_int) -> c_int
-femacs/src/process.rs	femacs/src/include/lisp.rs	check_uinteger_max	kept (P-323): signature differs: unit (Lisp_Object, u64) -> u64 vs mirror (Lisp_Object, uintmax_t) -> uintmax_t
-femacs/src/sfntfont-android.rs	femacs/src/include/font.rs	hbfont_combining_capability	kept (P-323): the unit does not include that mirror
-femacs/src/sfntfont-android.rs	femacs/src/include/font.rs	hbfont_otf_capability	kept (P-323): the unit does not include that mirror
-femacs/src/sfntfont-android.rs	femacs/src/include/font.rs	hbfont_shape	kept (P-323): the unit does not include that mirror
-femacs/src/sysdep.rs	femacs/src/include/lisp.rs	emacs_strerror	kept (P-323): signature differs: unit (c_int) -> *const c_char vs mirror (c_int) -> *mut c_char
-femacs/src/term.rs	femacs/src/include/keyboard.rs	allocate_kboard	kept: the unit spells the record *mut KBOARD and the mirror *mut kboard - the same record under two names, converging is the mirror owner's call
-femacs/src/term.rs	femacs/src/include/lisp.rs	quit	kept (P-323): signature differs: unit () -> () vs mirror () -> Lisp_Object
-femacs/src/w32console.rs	femacs/src/include/frame.rs	root_frame	kept (P-323): the unit does not include that mirror
-femacs/src/w32font.rs	femacs/src/include/font.rs	font_make_entity	kept (P-323): the unit does not include that mirror
-femacs/src/w32font.rs	femacs/src/include/font.rs	font_make_object	kept (P-323): the unit does not include that mirror
-femacs/src/w32font.rs	femacs/src/include/font.rs	font_put_extra	kept (P-323): the unit does not include that mirror
-femacs/src/w32term.rs	femacs/src/include/keyboard.rs	gen_help_event	kept: the last parameter is isize in the unit and ptrdiff_t in the mirror - the same width, two spellings
-femacs/src/xmenu.rs	femacs/src/include/lisp.rs	quit	kept (P-323): signature differs: unit () -> ! vs mirror () -> Lisp_Object
-femacs/src/xselect.rs	femacs/src/include/lisp.rs	wait_reading_process_output	kept (P-323): signature differs: unit (intmax_t, c_int, c_int, bool, Lisp_Object, *mut c_void, c_int) -> c_int vs mirror (i64, c_int, c_int, bool, Lisp_Object, *mut c_void, c_int) -> c_int
-femacs/src/xterm.rs	femacs/src/include/lisp.rs	wait_reading_process_output	kept (P-323): signature differs: unit (intmax_t, c_int, c_int, bool, Lisp_Object, *mut c_void, c_int) -> c_int vs mirror (i64, c_int, c_int, bool, Lisp_Object, *mut c_void, c_int) -> c_int
+lib/euidaccess.rs	lib/include/libc-config.rs	weak_alias	glibc's `#define weak_alias(...)`; C's own spelling of the alias, not a duplicate of the mirror's
+lib/euidaccess.rs	lib/include/unistd.in.rs	access	euidaccess.c 57-69's `#ifdef _LIBC` rename block (`#define access euidaccess` and friends): C defines the unit-side macro itself, so one construct has two spellings by C's own design (status 3.332 ③)
+lib/euidaccess.rs	lib/include/unistd.in.rs	geteuid	euidaccess.c 57-69's `#ifdef _LIBC` rename block - C's own shape
+lib/euidaccess.rs	lib/include/unistd.in.rs	getuid	euidaccess.c 57-69's `#ifdef _LIBC` rename block - C's own `#define getuid __getuid` shape
+lib/faccessat.rs	lib/include/unistd.in.rs	access	faccessat.c 46-51's `#ifndef HAVE_ACCESS` -> `# undef access / # define access euidaccess` (live in this configuration): C defines both spellings
+lib/ftoastr.rs	lib/include/ftoastr.rs	DBL_BUFSIZE_BOUND	ftoastr.h 152-155: the unit's `usize` const is an array length, and a `macro_rules!` cannot be one in Rust - the mirror keeps C's macro and the unit needs the const, so both spellings are load-bearing
+lib/ftoastr.rs	lib/include/ftoastr.rs	FLT_BUFSIZE_BOUND	see DBL_BUFSIZE_BOUND: the const is the array length the C macro's users need
+lib/ftoastr.rs	lib/include/ftoastr.rs	LDBL_BUFSIZE_BOUND	see DBL_BUFSIZE_BOUND: the const is the array length the C macro's users need
+lib/mktime.rs	lib/include/time.in.rs	tzset	mktime.c 104-105's `#undef tzset / #define tzset() my_tzset ()`: C's own redirect
+lib/time_rz.rs	lib/include/time.in.rs	mktime	the generated `<time.h>` 841-842's `#define mktime rpl_mktime`: gnulib's redirect, C's own spelling
+lib/time_rz.rs	lib/include/time.in.rs	timegm	the generated `<time.h>` 1144-1145's `#define timegm rpl_timegm`: gnulib's redirect
+src/android.rs	lib/include/unistd.in.rs	pipe2	bionic's `<unistd.h>` 299 declares `int pipe2 (int[2], int)` (measured in NDK 25.1-28.2) and android.c 369/1528 call it under the Android configuration, where no gnulib replacement applies; the mirror's `# define pipe2 rpl_pipe2` is the frozen Darwin substitution (`@REPLACE_PIPE2@` is 1 there) and android.c is outside the frozen build - two configurations' arms, not one declaration copied
+src/androidfns.rs	src/include/frame.rs	adjust_frame_size	kept (P-323): the unit does not include that mirror
+src/androidfns.rs	src/include/frame.rs	decode_live_frame	kept (P-323): the unit does not include that mirror
+src/androidfns.rs	src/include/frame.rs	delete_frame	kept (P-323): the unit does not include that mirror
+src/androidfns.rs	src/include/frame.rs	gui_figure_window_size	kept (P-323): the unit does not include that mirror
+src/androidfns.rs	src/include/frame.rs	gui_set_autolower	kept (P-323): the unit does not include that mirror
+src/androidfns.rs	src/include/frame.rs	gui_set_autoraise	kept (P-323): the unit does not include that mirror
+src/androidfns.rs	src/include/frame.rs	gui_set_border_width	kept (P-323): the unit does not include that mirror
+src/androidfns.rs	src/include/frame.rs	gui_set_borders_respect_alpha_background	kept (P-323): the unit does not include that mirror
+src/androidfns.rs	src/include/frame.rs	gui_set_bottom_divider_width	kept (P-323): the unit does not include that mirror
+src/androidfns.rs	src/include/frame.rs	gui_set_font	kept (P-323): the unit does not include that mirror
+src/androidfns.rs	src/include/frame.rs	gui_set_font_backend	kept (P-323): the unit does not include that mirror
+src/androidfns.rs	src/include/frame.rs	gui_set_fullscreen	kept (P-323): the unit does not include that mirror
+src/androidfns.rs	src/include/frame.rs	gui_set_horizontal_scroll_bars	kept (P-323): the unit does not include that mirror
+src/androidfns.rs	src/include/frame.rs	gui_set_left_fringe	kept (P-323): the unit does not include that mirror
+src/androidfns.rs	src/include/frame.rs	gui_set_line_spacing	kept (P-323): the unit does not include that mirror
+src/androidfns.rs	src/include/frame.rs	gui_set_no_special_glyphs	kept (P-323): the unit does not include that mirror
+src/androidfns.rs	src/include/frame.rs	gui_set_right_divider_width	kept (P-323): the unit does not include that mirror
+src/androidfns.rs	src/include/frame.rs	gui_set_right_fringe	kept (P-323): the unit does not include that mirror
+src/androidfns.rs	src/include/frame.rs	gui_set_screen_gamma	kept (P-323): the unit does not include that mirror
+src/androidfns.rs	src/include/frame.rs	gui_set_scroll_bar_height	kept (P-323): the unit does not include that mirror
+src/androidfns.rs	src/include/frame.rs	gui_set_scroll_bar_width	kept (P-323): the unit does not include that mirror
+src/androidfns.rs	src/include/frame.rs	gui_set_unsplittable	kept (P-323): the unit does not include that mirror
+src/androidfns.rs	src/include/frame.rs	gui_set_vertical_scroll_bars	kept (P-323): the unit does not include that mirror
+src/androidfns.rs	src/include/frame.rs	gui_set_visibility	kept (P-323): the unit does not include that mirror
+src/androidfns.rs	src/include/frame.rs	make_frame	kept (P-323): the unit does not include that mirror
+src/androidfns.rs	src/include/frame.rs	make_minibuffer_frame	kept (P-323): the unit does not include that mirror
+src/androidmenu.rs	src/include/frame.rs	check_window_system	kept (P-323): the unit does not include that mirror
+src/androidterm.rs	src/include/frame.rs	adjust_frame_size	kept (P-323): the unit does not include that mirror
+src/androidterm.rs	src/include/frame.rs	frame_ancestor_p	kept (P-323): the unit does not include that mirror
+src/androidterm.rs	src/include/frame.rs	frame_size_history_extra	kept (P-323): the unit does not include that mirror
+src/buffer.rs	src/include/frame.rs	decode_live_frame	kept: the unit spells the pointer *mut c_void (P-72 incomplete target; buffer.rs does not include frame.rs), the mirror spells *mut frame - converging needs the mirror owner
+src/charset.rs	src/include/lisp.rs	emacs_fclose	lisp.h 5316's `# define emacs_fclose fclose`; the unit spells it with `#[link_name = "fclose"]`, a different namespace with the same effect - C's own redirect
+src/comp.rs	src/include/lisp.rs	list	kept on purpose: the unit needs its own variadic `list` declaration when `have_native_comp` is flipped on (the `dead-arms` configuration), where the mirror's declaration is not in scope; without it the unit fails with E0423 (status 4.733)
+src/editfns.rs	src/include/lisp.rs	malloc_probe	kept (P-323): signature differs: unit (usize) -> () vs mirror (size_t) -> ()
+src/eval.rs	src/include/lisp.rs	malloc_probe	kept (P-323): signature differs: unit (usize) -> () vs mirror (size_t) -> ()
+src/eval.rs	src/include/lisp.rs	message3	kept (P-323): signature differs: unit (Lisp_Object) -> Lisp_Object vs mirror (Lisp_Object) -> ()
+src/floatfns.rs	lib/include/math.rs	signbit	the unit's copy is the `#[cfg (feature = "no_signbit")]` arm, i.e. C's `#ifndef signbit` dead text carried on purpose (P-51), while the mirror's is the live `<math.h>` macro - one C condition's two arms, not a duplicate
+src/haikufns.rs	src/include/lisp.rs	quit	kept (P-323): signature differs: unit () -> ! vs mirror () -> Lisp_Object
+src/insdel.rs	src/include/window.rs	bset_redisplay	kept on purpose: the window.rs mirror spells the parameter `*mut c_void` (PORTING.md 0.1-2/P-72 rule 3) while this unit's call site passes `*mut buffer`; converging means window.rs including buffer.rs, which is that mirror owner's call
+src/keyboard.rs	src/include/coding.rs	code_convert_string	kept: the unit's sixth parameter is ptrdiff_t and the mirror's is bool; withdrawing would change the call's type (P-323, measured as E0308 in status 4.995)
+src/keyboard.rs	src/include/lisp.rs	quit	kept (P-323): signature differs: unit () -> ! vs mirror () -> Lisp_Object
+src/keyboard.rs	src/include/lisp.rs	wait_reading_process_output	kept (P-323): signature differs: unit (intmax_t, c_int, c_int, bool, Lisp_Object, *mut Lisp_Process, c_int) -> () vs mirror (i64, c_int, c_int, bool, Lisp_Object, *mut c_void, c_int) -> c_int
+src/lread.rs	src/include/lisp.rs	emacs_strerror	kept (P-323): signature differs: unit (c_int) -> *const c_char vs mirror (c_int) -> *mut c_char
+src/lread.rs	src/include/lisp.rs	hash_table_free_bytes	kept (P-323): signature differs: unit (*mut c_void, usize) -> () vs mirror (*mut c_void, ptrdiff_t) -> ()
+src/pgtkselect.rs	src/include/lisp.rs	wait_reading_process_output	kept (P-323): signature differs: unit (intmax_t, c_int, c_int, bool, Lisp_Object, *mut c_void, c_int) -> c_int vs mirror (i64, c_int, c_int, bool, Lisp_Object, *mut c_void, c_int) -> c_int
+src/process.rs	src/include/lisp.rs	check_uinteger_max	kept (P-323): signature differs: unit (Lisp_Object, u64) -> u64 vs mirror (Lisp_Object, uintmax_t) -> uintmax_t
+src/sfntfont-android.rs	src/include/font.rs	hbfont_combining_capability	kept (P-323): the unit does not include that mirror
+src/sfntfont-android.rs	src/include/font.rs	hbfont_otf_capability	kept (P-323): the unit does not include that mirror
+src/sfntfont-android.rs	src/include/font.rs	hbfont_shape	kept (P-323): the unit does not include that mirror
+src/sysdep.rs	src/include/lisp.rs	emacs_strerror	kept (P-323): signature differs: unit (c_int) -> *const c_char vs mirror (c_int) -> *mut c_char
+src/term.rs	src/include/keyboard.rs	allocate_kboard	kept: the unit spells the record *mut KBOARD and the mirror *mut kboard - the same record under two names, converging is the mirror owner's call
+src/term.rs	src/include/lisp.rs	quit	kept (P-323): signature differs: unit () -> () vs mirror () -> Lisp_Object
+src/w32console.rs	src/include/frame.rs	root_frame	kept (P-323): the unit does not include that mirror
+src/w32font.rs	src/include/font.rs	font_make_entity	kept (P-323): the unit does not include that mirror
+src/w32font.rs	src/include/font.rs	font_make_object	kept (P-323): the unit does not include that mirror
+src/w32font.rs	src/include/font.rs	font_put_extra	kept (P-323): the unit does not include that mirror
+src/w32term.rs	src/include/keyboard.rs	gen_help_event	kept: the last parameter is isize in the unit and ptrdiff_t in the mirror - the same width, two spellings
+src/xmenu.rs	src/include/lisp.rs	quit	kept (P-323): signature differs: unit () -> ! vs mirror () -> Lisp_Object
+src/xselect.rs	src/include/lisp.rs	wait_reading_process_output	kept (P-323): signature differs: unit (intmax_t, c_int, c_int, bool, Lisp_Object, *mut c_void, c_int) -> c_int vs mirror (i64, c_int, c_int, bool, Lisp_Object, *mut c_void, c_int) -> c_int
+src/xterm.rs	src/include/lisp.rs	wait_reading_process_output	kept (P-323): signature differs: unit (intmax_t, c_int, c_int, bool, Lisp_Object, *mut c_void, c_int) -> c_int vs mirror (i64, c_int, c_int, bool, Lisp_Object, *mut c_void, c_int) -> c_int

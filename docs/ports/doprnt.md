@@ -19,10 +19,10 @@
 
 ## Decisions
 
-`emacs/src/doprnt.c` @ `fd7afced403`; port `femacs/src/doprnt.rs`.
+`emacs/src/doprnt.c` @ `fd7afced403`; port `src/doprnt.rs`.
 
 What is verified, and what is not (review A's F4, measured on this file).  The gates are
-`python3 tools/extract-abi.py --check emacs/src/doprnt.c femacs/src/doprnt.rs` -> `OK`;
+`python3 tools/extract-abi.py --check emacs/src/doprnt.c src/doprnt.rs` -> `OK`;
 `xtask gate-fast` (inventory, `cargo check`, every finished translation unit in both
 configurations, the probe programs' Rust side, `fam`/`shadow`/`macro`, the layout
 assertions); and `xtask gate-probes` (the C differential: `inline`/`accessor`/`write`/`va`).

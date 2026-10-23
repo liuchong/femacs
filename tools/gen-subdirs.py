@@ -12,7 +12,7 @@ runs is which directory the script is pointed at.
     python3 tools/gen-subdirs.py --list     # the target list only
 
 The script must be run *in* the target directory (it does `cd "$1"` itself), so this tool passes
-the port's directory and never the reference's: `femacs/lisp/subdirs.el` is written and then
+the port's directory and never the reference's: `lisp/subdirs.el` is written and then
 compared with the reference's own `emacs/lisp/subdirs.el`.  The comparison is the reading; a byte
 difference is printed with the first differing offset.
 """
@@ -26,7 +26,7 @@ import sys
 
 REPO = pathlib.Path(__file__).resolve().parent.parent
 REF = REPO / "emacs"
-PORT = REPO / "femacs"
+PORT = REPO
 
 # The reference's generator, and the one directory whose subdirs.el its build writes (the
 # `update-subdirs` rule in `lisp/Makefile` runs over ${SUBDIRS_SUBDIRS}, which is just `lisp`).
@@ -107,4 +107,7 @@ def main() -> int:
 
 
 if __name__ == "__main__":
+    if "--compare-reference" not in sys.argv:
+        raise SystemExit(subprocess.call([sys.executable, str(REPO / "tools/bootstrap-resources.py"), "--family", "subdirs", *sys.argv[1:]]))
+    sys.argv.remove("--compare-reference")
     sys.exit(main())

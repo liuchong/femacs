@@ -20,8 +20,8 @@
 
 ## Decisions
 
-`emacs/lib/binary-io.h` @ `fd7afced403`; port `femacs/lib/include/binary-io.rs`; the gate is
-`python3 tools/extract-abi.py --check emacs/lib/binary-io.h femacs/lib/include/binary-io.rs`
+`emacs/lib/binary-io.h` @ `fd7afced403`; port `lib/include/binary-io.rs`; the gate is
+`python3 tools/extract-abi.py --check emacs/lib/binary-io.h lib/include/binary-io.rs`
 -> `OK`.
 
 - **`O_BINARY` is 0 on this target**, so the header's whole `#if O_BINARY` arm (the `setmode`/

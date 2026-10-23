@@ -24,12 +24,12 @@ a crash, because these are exactly the records the redisplay allocates and walks
 | `struct glyph_string` | 224 → **248** | 248 | -24 | **fixed** (`clip` is `Emacs_Rectangle[2]`, not `int[2]`) |
 | `struct glyph_row` | 272 → **264** | 264 | +8 | **fixed** (`continuation_lines_width` precedes `clip`) |
 | `struct face` (canonical, `include/dispextern.rs`) | 296 | 296 | 0 | **ok** - 10 offsets + size asserted in `xfaces.rs` |
-| `struct glyph` | 56 | 56 | ok | `femacs/src/include/dispextern.rs` |
-| `struct glyph_pool` | 24 | 24 | ok | `femacs/src/include/dispextern.rs` |
-| `struct glyph_matrix` | 104 | 104 | ok | `femacs/src/include/dispextern.rs` |
+| `struct glyph` | 56 | 56 | ok | `src/include/dispextern.rs` |
+| `struct glyph_pool` | 24 | 24 | ok | `src/include/dispextern.rs` |
+| `struct glyph_matrix` | 104 | 104 | ok | `src/include/dispextern.rs` |
 
 `struct frame`'s sizes/offsets were checked the same way and **agree** (six assertions in
-`femacs/src/include/frame.rs`); the three records that agree carry `const _: () = assert!` now, so
+`src/include/frame.rs`); the three records that agree carry `const _: () = assert!` now, so
 they cannot drift silently.
 
 ## Why it matters

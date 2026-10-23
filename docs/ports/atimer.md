@@ -53,7 +53,7 @@
 - **`struct sigaction` is now the measured record, not P-70's stand-in.**  `init_atimer`
   allocates one on the stack and `emacs_sigaction_init` writes into it, so an empty stand-in
   would be a size-0 object handed to a C function that fills 16 bytes.  The record therefore
-  lives in the mirror of the header that declares it, `femacs/lib/include/signal.rs`
+  lives in the mirror of the header that declares it, `lib/include/signal.rs`
   (`sizeof 16`, handler union 8 bytes at 0, `sa_mask` at 8, `sa_flags` at 12, all pinned by
   `const _` assertions measured with the frozen target's clang), and `include/syssignal.rs`'s
   2-line stand-in is deleted in the same commit, as P-70 requires.

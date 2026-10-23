@@ -44,4 +44,4 @@ boxes are ticked.  Its consumers are live: `lib-src/movemail.c` (in the referenc
    `--check`.  When movemail.c or pop.c lands, their `build-tu` becomes the compile proof.
 
 Evidence: `python3 tools/extract-abi.py --check emacs/lib-src/pop.h
-femacs/lib-src/include/pop.rs` -> `OK` (8/8 boxes).
+lib-src/include/pop.rs` -> `OK` (8/8 boxes).

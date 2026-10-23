@@ -90,8 +90,8 @@
 
 ## Evidence
 
-- `python3 tools/extract-abi.py --check emacs/src/android.h femacs/src/include/android.rs`
-  -> `OK emacs/src/android.h -> femacs/src/include/android.rs` (no `- ` problem lines), with the
+- `python3 tools/extract-abi.py --check emacs/src/android.h src/include/android.rs`
+  -> `OK emacs/src/android.h -> src/include/android.rs` (no `- ` problem lines), with the
   gate's own line `(2 C macros have a recorded Rust counterpart: ANDROID_DELETE_LOCAL_REF,
   NATIVE_NAME)` naming the two rows above.
 - Compile proof (no unit includes this mirror yet): the mirror's include graph was materialised
@@ -107,7 +107,7 @@
   / 1 ratchet row / 0 failures; `check-globals` 283 units / 0.
 
 - **This mirror's compile evidence is the Android platform probe, not `xtask layout-check`**
-  (`spikes/android_inc_probe.rs`, the `femacs/nt/inc`/`f_inc_probe.rs` shape, docs/status.md 3.102).
+  (`spikes/android_inc_probe.rs`, the `nt/inc`/`f_inc_probe.rs` shape, docs/status.md 3.102).
   `layout-check` compiles *every* `src/include` mirror into one crate, which by construction cannot
   hold the platform-exclusive mirrors: `androidgui.h` and `haikugui.h` declare the same X-compat
   block (`NativeRectangle`, `STORE_NATIVE_RECT`, the gravity/value/position constants) and the same

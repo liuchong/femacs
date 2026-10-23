@@ -26,5 +26,5 @@ compiles it instead, and that probe found three real defects that every text gat
 (docs/status.md 3.102).  Its values are C's own and need
 no clang measurement: they are literals and typedefs from the Windows SDK's own spellings.
 Evidence: `python3 tools/extract-abi.py --check emacs/nt/inc/sys/acl.h
-femacs/nt/inc/sys/include/acl.rs` -> `OK`.
+nt/inc/sys/include/acl.rs` -> `OK`.
   `../spikes/f_inc_probe.rs` compiles this mirror: it is the only compiler it has.

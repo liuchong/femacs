@@ -147,17 +147,17 @@ objects.
    | `HAS_ATTR_no_sanitize_address` | dead-text | conf_post.h 77: the same arm's `GNUC_PREREQ (4, 8, 0)`; measured true |
    | `HAS_ATTR_no_sanitize_undefined` | dead-text | conf_post.h 78: the same arm's `GNUC_PREREQ (4, 9, 0)`; measured false |
    | `UNINIT` | syntax | conf_post.h 369/371: the live `= {0,}` / the dead empty arm; a declaration suffix, which the port writes as the declaration's zero initializer (PORTING.md 1.5) |
-   | `likely` | syntax | conf_post.h 377: `__builtin_expect (!!(cond), 1)`; the port's spelling is `pub fn likely (cond: bool) -> bool` in `femacs/src/include/lisp.rs` 704 (a second item here would be an E0428 against it) |
+   | `likely` | syntax | conf_post.h 377: `__builtin_expect (!!(cond), 1)`; the port's spelling is `pub fn likely (cond: bool) -> bool` in `src/include/lisp.rs` 704 (a second item here would be an E0428 against it) |
    | `vfork` | dead-text | conf_post.h 277: `# define vfork fork`, dead (`ADDRESS_SANITIZER` false) and with no non-frozen-side feature name in the tree's table |
 5. **The four names other files already spell are carried here anyway** - this mirror is their C
    definition point, and the copies go when those files start including it (P-26, one spelling per
-   construct): `ADDRESS_SANITIZER` (`femacs/src/sysdep.rs` 769, `femacs/src/alloc.rs` 121),
-   `getenv_TZ`/`setenv_TZ` (`femacs/lib/time_rz.rs` 75-76), `VFORK` (`femacs/src/sysdep.rs`
-   961), `INLINE`/`EXTERN_INLINE` (`femacs/src/emacs.rs` 110-111, where C's own emacs.c defines
+   construct): `ADDRESS_SANITIZER` (`src/sysdep.rs` 769, `src/alloc.rs` 121),
+   `getenv_TZ`/`setenv_TZ` (`lib/time_rz.rs` 75-76), `VFORK` (`src/sysdep.rs`
+   961), `INLINE`/`EXTERN_INLINE` (`src/emacs.rs` 110-111, where C's own emacs.c defines
    them ahead of config.h).  `emacs_getenv_TZ`/`emacs_setenv_TZ` (C 182-183) are declared in
    `conf_post_decls` + glob (P-21) rather than at the crate root: src/timefns.c defines them
-   (`femacs/src/timefns.rs` 1998/2016), and a crate-root declaration would collide with that
-   definition; `femacs/lib/time_rz.rs` 69-72 keeps its own copy for now.
+   (`src/timefns.rs` 1998/2016), and a crate-root declaration would collide with that
+   definition; `lib/time_rz.rs` 69-72 keeps its own copy for now.
 6. **`c_int`/`c_char` are spelled `core::ffi::…` in the five live uses.**  This header includes
    nothing (its only `#include` is the MS-Windows `ms-w32.h`), so the mirror cannot take the bare
    names from an included foundation the way the display mirrors take them from lisp.rs - a second
@@ -168,24 +168,24 @@ objects.
 7. **Attribute spellings are carried as the no-ops their sites do not need** (PORTING.md 8):
    `NO_INLINE`/`EXTERNALLY_VISIBLE`/`ARG_NONNULL`/`ATTRIBUTE_FORMAT_PRINTF`/
    `ATTRIBUTE_MALLOC_SIZE` forward to the `_GL_ATTRIBUTE_*` markers of
-   `femacs/lib/include/attribute.rs` (the pair it keeps for its own public names),
+   `lib/include/attribute.rs` (the pair it keeps for its own public names),
    `ATTRIBUTE_SECTION`/`ATTRIBUTE_NO_SANITIZE_ADDRESS`/`ATTRIBUTE_NO_SANITIZE_UNDEFINED`/
    `ADDRESS_SANITIZER_WORKAROUND`/`PRINTF_ARCHETYPE` expand to nothing, and `INLINE` /
    `EXTERN_INLINE` / `INLINE_HEADER_BEGIN` / `INLINE_HEADER_END` are the markers P-12 asks for
    (the port's functions are ordinary `#[inline]` items).  `DECLARE_POINTER_ALIAS` is carried as a
    usable statement macro in C's shape - `let name: *mut type = { _GL_ATTRIBUTE_MAY_ALIAS! (); addr
    as *mut type };` - while its C use sites (`process.c`, `w32.c`) write the declaration directly
-   in the port (`femacs/src/process.rs` 2878-2909), so the macro has no call site yet.
+   in the port (`src/process.rs` 2878-2909), so the macro has no call site yet.
 8. **`bool_bf`** is the one typedef: `pub type bool_bf = bool;` with a size assertion (measured 1),
    the width every mirror that packs a `bool_bf` run already reproduces.
 9. **Recorded, not carried**: the HPUX block (C 96-106, four `#undef`s), the `PROFILING`/`noinline`
    blocks (C 293-300), C 109-111's deliberate compile failure, and the dead *declarations*
    (`_DebPrint` at C 162; the five `_gl_consolesafe_*` prototypes at C 414-430; the
-   `getdelim`/`getline` pairs at C 438-443, whose live home is `femacs/lib/include/stdio.rs`).
+   `getdelim`/`getline` pairs at C 438-443, whose live home is `lib/include/stdio.rs`).
    The extractor requires no function from this file, and declaring the dead Windows prototypes
    would duplicate names the system mirrors own.
 10. **Found while measuring**: C 369's arm is the live one, so `UNINIT` is `= {0,}` on this target
-    (`GCC_LINT` 1) - which `femacs/src/data.rs` 2031 states and `femacs/src/window.rs` 3346 states
+    (`GCC_LINT` 1) - which `src/data.rs` 2031 states and `src/window.rs` 3346 states
     the other way round ("`/* empty */` on this target"), a stale comment in that unit's ledger
     (not this lane's file; recorded in the lane's report).
 
@@ -204,12 +204,12 @@ objects.
   `defined GCC_LINT` (368) are true.
 - Inventory: `python3 tools/extract-abi.py emacs/src/conf_post.h` -> this ledger (66 macros, 0
   functions, 0 types, 0 objects).
-- `python3 tools/extract-abi.py --check emacs/src/conf_post.h femacs/src/include/conf_post.rs` ->
+- `python3 tools/extract-abi.py --check emacs/src/conf_post.h src/include/conf_post.rs` ->
   `FAIL` with exactly the ten `- missing macro …` lines of Decision 4 and nothing else.
 - With the proposed rows appended (`--excluded <copy of docs/ports/excluded-macros.txt plus the
   ten rows of Decision 4>`): `python3 tools/extract-abi.py --check --excluded
-  /tmp/cp-probe/excluded-macros.txt emacs/src/conf_post.h femacs/src/include/conf_post.rs` ->
-  `OK emacs/src/conf_post.h -> femacs/src/include/conf_post.rs` (0 problem lines; the run prints
+  /tmp/cp-probe/excluded-macros.txt emacs/src/conf_post.h src/include/conf_post.rs` ->
+  `OK emacs/src/conf_post.h -> src/include/conf_post.rs` (0 problem lines; the run prints
   `(10 C macros have a recorded Rust counterpart: …)`).
 - `cd femacs && CARGO_TARGET_DIR=/tmp/femacs-target-cp cargo run -q -p xtask -- build-tu
   src/conf_post.h` -> `built src/include/conf_post.rs -> ../build/femacs/include_conf_post.o`.

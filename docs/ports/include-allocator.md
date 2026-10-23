@@ -15,18 +15,18 @@
 
 ## Decisions
 
-`emacs/lib/allocator.h` @ `fd7afced403`; port `femacs/lib/include/allocator.rs`.  `struct
+`emacs/lib/allocator.h` @ `fd7afced403`; port `lib/include/allocator.rs`.  `struct
 allocator` is four function pointers; the port keeps `Option<unsafe extern "C" fn …>` for all
 four because C tests `reallocate`/`die` for null, and the pointer spellings use absolute
 `core::ffi::c_void` (the stdio.rs lesson: a mirror must not depend on the includer's imports for a
 type it names).  `stdlib_allocator` is declared in a whole-import module because
-`femacs/lib/allocator.rs` defines it.
+`lib/allocator.rs` defines it.
 
 ## Evidence
 
 ```
-$ python3 tools/extract-abi.py --check emacs/lib/allocator.h femacs/lib/include/allocator.rs
-OK emacs/lib/allocator.h -> femacs/lib/include/allocator.rs            (0 problem rows)
+$ python3 tools/extract-abi.py --check emacs/lib/allocator.h lib/include/allocator.rs
+OK emacs/lib/allocator.h -> lib/include/allocator.rs            (0 problem rows)
 $ cd femacs && cargo run -q -p xtask -- build-tu lib/allocator.c
 built lib/allocator.rs -> ../build/femacs/allocator.o
 ```

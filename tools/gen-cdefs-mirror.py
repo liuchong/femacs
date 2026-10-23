@@ -6,7 +6,7 @@
 1,200 lines of copy with no judgement in it, so this tool does the copy and the mirror keeps
 the judgement (which arm is live, and why).
 
-    python3 tools/gen-cdefs-mirror.py --dM <clang -dM output> > femacs/lib/include/cdefs.rs
+    python3 tools/gen-cdefs-mirror.py --dM <clang -dM output> > lib/include/cdefs.rs
 
 Rules, all of them mechanical and named in the mirror's own header:
 

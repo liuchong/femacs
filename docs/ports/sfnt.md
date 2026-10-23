@@ -22,7 +22,7 @@ after this slice** - the 1 is Owed 25's named `E0425: cannot find function sfnt_
 `lib/include/sys_time.rs` 44/90, `lib/include/sys_select.rs` 56 and `src/include/thread.rs`
 302/320, which this slice's `<time.h>`-mirror edge fixes** (Deviation 78 (a)), plus nothing else -
 the slice itself adds **no** error in either direction.  `python3 tools/extract-abi.py --check
-emacs/src/sfnt.c femacs/src/sfnt.rs` -> **175 rows before, 165 after**: the five functions and the
+emacs/src/sfnt.c src/sfnt.rs` -> **175 rows before, 165 after**: the five functions and the
 five macros above left the list (31 -> 26 `missing function`, 143 -> 138 `missing macro`), the
 line-count row stays (13,649 Rust lines against C's 21,215 is **35.7%**, the whole-file drift the
 C 11103-21215 remainder and the TEST programme make; slice 9 read 37.9%), and one token row was
@@ -45,7 +45,7 @@ this slice adds no error at all (HEAD's five `time_t`/`timespec` `E0425`s were r
 `<time.h>` edge, Evidence ⑤).  Its own one compile defect was an `E0308` at `_root.rs` 13849 in the
 first run: C's `sfnt_fword projection` is assigned the `sfnt_f26dot6` `DUAL_PROJECT` returns, and the
 port needed C's narrowing written out (`as sfnt_fword`, Deviation 79 (b)).
-`python3 tools/extract-abi.py --check emacs/src/sfnt.c femacs/src/sfnt.rs` -> **162 rows** (165
+`python3 tools/extract-abi.py --check emacs/src/sfnt.c src/sfnt.rs` -> **162 rows** (165
 before): `missing function` **26 -> 23** (this slice's three), `missing macro` 138 unchanged, the
 line-count row 13,649 -> **14,000** Rust lines against C's 21,215, **34.0%** (was 35.7%).  Two token
 rows were needed: `sfnt_interpret_iup_1`'s list gained `wraparound_1` (slice 10's reshape spells the
@@ -71,7 +71,7 @@ other name - the `E0605`/`E0308` pair at C 13765/13775), `sfnt_table_directory`'
 `base_character_value` is `uint16_t` and the return type is `uint32_t` (one `as`), and six bindings
 C fills through a pointer (`num_ranges`, `num_mappings`, `template`, and the three locals the
 `bsearch` calls read) are zero-initialised (Deviation 10's class, four `E0381`s).
-`python3 tools/extract-abi.py --check emacs/src/sfnt.c femacs/src/sfnt.rs` -> **150 rows** (162
+`python3 tools/extract-abi.py --check emacs/src/sfnt.c src/sfnt.rs` -> **150 rows** (162
 before): `missing function` **23 -> 11**, `missing macro` 138 unchanged, the line-count row 14,000 ->
 **14,645** Rust lines against C's 21,215, **31.0%** (was 34.0%).  Three rows the first drafts earned
 went away with the code rather than with a note: two `does not mention mappings`/`ranges` rows (the
@@ -94,7 +94,7 @@ this slice** - the same Owed 25 `E0425: cannot find function sfnt_interpret_run`
 four functions needed **no** fix at all: the first run was clean, which the ledger records as a
 reading rather than as silence (the twin's idioms came from the ported `sfnt_transform_coordinates`,
 whose body is C 2551-2618's, and the builder's from `sfnt_build_glyph_outline`).
-`python3 tools/extract-abi.py --check emacs/src/sfnt.c femacs/src/sfnt.rs` -> **146 rows** (150
+`python3 tools/extract-abi.py --check emacs/src/sfnt.c src/sfnt.rs` -> **146 rows** (150
 before): `missing function` **11 -> 7**, `missing macro` 138 unchanged, the line-count row 14,645 ->
 **14,938** Rust lines against C's 21,215, **29.6%** (was 31.0%).  Two token rows were needed and
 both are the established classes: `sfnt_decompose_instructed_outline goto` (C 12164's `fail:` and
@@ -128,7 +128,7 @@ edit: the reading is repeated rather than carried over, which is why the count i
 The macro set is checked by name too: the C 6550-8160 window holds **142** distinct `#define NAME
 (…)` names and the port's in-function `macro_rules!`s hold the same **142** (a two-way `comm` is
 empty in both directions; C defines `POP`/`POP_UNCHECKED` twice inside that window, once per TEST
-arm).  `python3 tools/extract-abi.py --check emacs/src/sfnt.c femacs/src/sfnt.rs` -> **7 rows** (146
+arm).  `python3 tools/extract-abi.py --check emacs/src/sfnt.c src/sfnt.rs` -> **7 rows** (146
 before): `missing function` **7 -> 6** (the six callers of `sfnt_interpret_run`:
 `sfnt_interpret_font_program`, `sfnt_interpret_control_value_program`,
 `sfnt_interpret_simple_glyph` and the three compound-glyph interpreters), `missing macro` **138 ->
@@ -158,7 +158,7 @@ what C's `TEST_STATIC` does outside the TEST arm - and whose `nm -u` shows the t
 the lisp.rs mirror's `sys_setjmp`).  That is where the fresh C measurement is used:
 a three-line programme (`int f (jmp_buf b) { return setjmp (b); }` and the same for `longjmp`)
 prints `_setjmp`/`_longjmp`, so C's plain `setjmp` binds the C name `setjmp`.  (ii)
-`python3 tools/extract-abi.py --check emacs/src/sfnt.c femacs/src/sfnt.rs` -> **5 rows** (7
+`python3 tools/extract-abi.py --check emacs/src/sfnt.c src/sfnt.rs` -> **5 rows** (7
 before): `missing function` **6 -> 4** (`sfnt_interpret_simple_glyph` and the three compound-glyph
 interpreters), no `missing macro` row, and the line-count row **16,872 -> 16,987** Rust lines
 against C's 21,215, **19.9%** (was 20.5%).  All four `probe` runs are **clean** - 0 errors - and
@@ -180,7 +180,7 @@ the two other compiler readings are what carry this slice.  (i) **The object**: 
 … --emit obj` -> exit 0, 0 errors, **91,816 bytes**, and `nm -g` defines all three C symbols this
 file's `cfg_attr` now produces - `_sfnt_interpret_control_value_program`,
 `_sfnt_interpret_font_program` and **`_sfnt_interpret_simple_glyph`** (C 12304's `TEST_STATIC`).
-(ii) `python3 tools/extract-abi.py --check emacs/src/sfnt.c femacs/src/sfnt.rs` -> **4 rows** (5
+(ii) `python3 tools/extract-abi.py --check emacs/src/sfnt.c src/sfnt.rs` -> **4 rows** (5
 before): `missing function` **4 -> 3** (the three compound-glyph interpreters), no `missing macro`,
 no `does not mention` row, and the line-count row **17,235 -> 17,238** Rust lines against C's
 21,215, **18.7%** (was 18.8% before the `ckd_mul` spelling below).  The slice's six `probe` runs are
@@ -206,7 +206,7 @@ nothing in this port calls it yet (its only caller is C 12794's `sfnt_interpret_
 the next slice), so rustc drops the dead function from the object altogether.  The slice's compiler
 reading is therefore the **clean first run** (0 errors), repeated on the delivered revision after
 the header comment was rewritten.  `python3 tools/extract-abi.py --check emacs/src/sfnt.c
-femacs/src/sfnt.rs` -> **3 rows** (4 before): `missing function` **3 -> 2** (the two remaining
+src/sfnt.rs` -> **3 rows** (4 before): `missing function` **3 -> 2** (the two remaining
 compound-glyph interpreters), no `missing macro`, no `does not mention` row (this slice's `alloca`
 becomes a `docs/ports/macro-body-notes.tsv` row, the `sfnt_interpret_simple_glyph` row's twin), and
 the line-count row **17,238 -> 17,470** Rust lines against C's 21,215, **17.7%** (was 18.7%).  The
@@ -226,7 +226,7 @@ defines **four** C symbols - this slice's `_sfnt_interpret_compound_glyph` (C 13
 and `_sfnt_interpret_simple_glyph`.  That growth is the measured consequence of the group becoming
 reachable: `sfnt_interpret_compound_glyph_1` and `_2` were dead text until this slice's exported
 wrapper called them, which is why slice 17's object had stayed at slice 16's size.
-`python3 tools/extract-abi.py --check emacs/src/sfnt.c femacs/src/sfnt.rs` -> **1 row** (3
+`python3 tools/extract-abi.py --check emacs/src/sfnt.c src/sfnt.rs` -> **1 row** (3
 before) - **the line-count row alone**: `missing function` **2 -> 0** (both remaining interpreters
 landed), no `missing macro`, no `does not mention` row, and the line-count row **17,470 -> 18,147**
 Rust lines against C's 21,215, **14.5%** (was 17.7%).  The whole non-TEST half of `src/sfnt.c` is
@@ -249,7 +249,7 @@ arm flip reads **0 errors at HEAD and 0 after this slice**, and **the object is 
 both sides**: every line this slice adds is behind `feature = "test"`, which the probe's cfg set
 does not carry, so the frozen arm is provably untouched - the same kind of measurement slice 17
 showed from the other side.  `python3 tools/extract-abi.py --check emacs/src/sfnt.c
-femacs/src/sfnt.rs` -> **1 row**, the line-count row, as at slice 18 (the TEST arm's items are
+src/sfnt.rs` -> **1 row**, the line-count row, as at slice 18 (the TEST arm's items are
 `#ifdef TEST` dead text for that tool), so this slice moves the line count alone: 17,470 -> **18,428**
 Rust lines against C's 21,215, **13.1%** (was 14.5%).  Two measurements are new.  (i) **The `test`
 flip is not a working configuration today**: adding `--cfg 'feature="test"'` to the probe's two cfgs
@@ -274,7 +274,7 @@ bytes**, md5 `dbed68837694579185377dbb0821ab62` (the empty object - a syntax rea
 flip reads **0 errors at HEAD and 0 after this slice**, and the object is **98,448 bytes on both
 sides** again: this slice's text is behind `feature = "test"` too, so the frozen arm is untouched
 for the same measured reason as slice 19.  `python3 tools/extract-abi.py --check emacs/src/sfnt.c
-femacs/src/sfnt.rs` -> **1 row**, the line-count row: 17,470 -> **18,672** Rust lines against C's
+src/sfnt.rs` -> **1 row**, the line-count row: 17,470 -> **18,672** Rust lines against C's
 21,215, **12.0%** (was 13.1%).  **The correction this slice carries is the reading worth keeping**:
 slice 19 said the X11 names "have no mirror in this tree", and that was stale.
 `include/xlib.rs` *is* the tree's mirror of the X11 SDK's `<X11/Xlib.h>` (`have_x_windows`-gated,
@@ -299,7 +299,7 @@ bytes**, md5 `dbed68837694579185377dbb0821ab62` (the empty object - a syntax rea
 reads **0 errors at HEAD and 0 after this slice**, and the object is **98,448 bytes on both sides**
 again: the whole slice is behind `feature = "test"`, so the frozen arm is untouched (the same
 measurement slices 19-20 recorded).  `python3 tools/extract-abi.py --check emacs/src/sfnt.c
-femacs/src/sfnt.rs` -> **1 row**, the line-count row: 18,672 -> **20,073** Rust lines against C's
+src/sfnt.rs` -> **1 row**, the line-count row: 18,672 -> **20,073** Rust lines against C's
 21,215, **5.4%** (was 12.0%), i.e. this slice alone closed more than half of the drift the unit came
 in with.  **Two verifications are new, and both were run against C's own text rather than by
 eye.**  (i) **The four rounding arrays**: the C region (18002-18081) was extracted verbatim with its
@@ -328,7 +328,7 @@ ledger; `check-cond-eval.py src/sfnt.c` **31 conditions, 0 unknown, 0 disagreeme
 bytes**, md5 `dbed68837694579185377dbb0821ab62` (the empty object - a syntax reading).  The arm flip
 reads **0 errors at HEAD and 0 after this slice**, and the object is 98,448 bytes on both sides (the
 slice is behind `feature = "test"`).  **`python3 tools/extract-abi.py --check emacs/src/sfnt.c
-femacs/src/sfnt.rs` -> `OK`** - the unit's checker now reports **zero rows**, for the first time in
+src/sfnt.rs` -> `OK`** - the unit's checker now reports **zero rows**, for the first time in
 its life: every function, `DEFUN`, macro, type, struct field, file-scope object and constant the
 tool compares is present, and the line count is inside tolerance (20,073 -> **21,327** Rust lines
 against C's 21,215, **+0.5%** - the port is now slightly *longer* than C, where slice 21 read
@@ -362,7 +362,7 @@ unknown, 0 disagreements**.
 bytes**, md5 `dbed68837694579185377dbb0821ab62` (the empty object - a syntax reading).  The arm flip
 reads **0 errors at HEAD and 0 after this slice**, and the object is **98,448 bytes on both sides**
 (the slice is behind `feature = "test"`).  `python3 tools/extract-abi.py --check emacs/src/sfnt.c
-femacs/src/sfnt.rs` -> **`OK`** again, holding at 21,888 Rust lines against C's 21,215 (**+3.2%**,
+src/sfnt.rs` -> **`OK`** again, holding at 21,888 Rust lines against C's 21,215 (**+3.2%**,
 where slice 22 read +0.5%), so the checker's two readings - completeness and the line-count
 tolerance - are both still inside their bounds while the file's last block is written.  What the
 frozen probe verifies here is *syntax only*: the two chunks parsed clean on their **first** run
@@ -399,7 +399,7 @@ C 20625-20626 and C 20742-20743) and one line left in C's own spelling (`if (fva
 1)`, C 20571, whose `->` is not Rust).  The frozen probe parses `#[cfg]`-disabled text - which is
 what caught all six, and it is the only checker that reads this arm at all.  Each body got the
 braces Rust requires and the arrow became `(*fvar)`, after which both runs are clean.  `python3
-tools/extract-abi.py --check emacs/src/sfnt.c femacs/src/sfnt.rs` -> **`OK`**, with the unit
+tools/extract-abi.py --check emacs/src/sfnt.c src/sfnt.rs` -> **`OK`**, with the unit
 **complete**: Rust 21,894 -> **22,955** lines against C's 21,215 = **+8.2%**, past the rule's 5%,
 so this slice appends the unit's one `docs/ports/line-drift-tolerance.tsv` row (**0.09**, the
 first *and* last one for it, since the file is finished); the row carries the measured composition
@@ -421,7 +421,7 @@ percent, 0 reference line(s); 0 ratchet row(s), 0 new, 0 stale** (the +8.2% file
 the tolerance this slice's row records); `check-ledger-ticks.py` **238 ledger(s) bound, 0
 failure(s)**, 0 row(s) without a ledger; `check-cond-eval.py src/sfnt.c` **31 conditions, 0
 unknown, 0 disagreements**.
-## Deviations`.  Port: `femacs/src/sfnt.rs` (13,174 lines, `grep -c ''`; `extract-abi.py`'s
+## Deviations`.  Port: `src/sfnt.rs` (13,174 lines, `grep -c ''`; `extract-abi.py`'s
 > own count, 13,174, is the same newline count), both arms of every `#if` carried — except the
 > macros C 6559-8159, whose Rust home is inside the functions that call them (P-57; the range
 > table's own row says which).
@@ -564,10 +564,10 @@ unknown, 0 disagreements**.
 | the file itself (`configure.ac` 2645, the `XCONFIGURE = android` branch; `ANDROID_STUBIFY` is defined in the other one, 2605-2606) | `all (feature = "have_android", feature = "not_android_stubify")` (on every item and on C 22-39's include graph) | a *real* Android configuration |
 | C 41 `#ifdef HAVE_MMAP` … C 43 (`#include <sys/mman.h>`) | **no gate**: `HAVE_MMAP` is 1 on this target (`docs/baseline/config/darwin-arm64.macros.tsv` 1469), so the include is live in every configuration.  Slice 2 is the first text here to *name* what the include provides, so the unit now carries C's four prototypes and the five constants in a `#[cfg (file gate)]` block at C 41's site (the P-88 ① shape; Owed 4 records that `docs/baseline/feature-coverage.tsv` has no `have_mmap` row) | always, on this target |
 | C 45 `#if defined __GNUC__ && !defined __clang__` … C 47 (`#pragma GCC diagnostic`) | **dropped**: a diagnostic pragma has no Rust counterpart (the `-Wstringop-overflow` class) | never |
-| C 49 `#ifdef TEST` … C 134 (the harness: `memory_full_up`, the six allocators, `TEST_STATIC`, `eassert`, `AVOID`) | `all (file gate, feature = "test")` — `femacs/xtask/Cargo.toml` 564 registers C's `TEST` as `test` | a test build |
+| C 49 `#ifdef TEST` … C 134 (the harness: `memory_full_up`, the six allocators, `TEST_STATIC`, `eassert`, `AVOID`) | `all (file gate, feature = "test")` — `xtask/Cargo.toml` 564 registers C's `TEST` as `test` | a test build |
 | C 136 `#else` … C 139 (`#define TEST_STATIC` + `#include "lisp.h"`) | `all (file gate, not (feature = "test"))` | the frozen-shaped configuration |
 | C 128 / C 137 (`#define TEST_STATIC static` / `#define TEST_STATIC`) | `#[cfg_attr (not (feature = "test"), unsafe (no_mangle))]` on the eleven readers C exports through it (slice 1's `sfnt_read_table_directory`/`sfnt_read_cmap_table`; slice 2's `sfnt_lookup_glyph`, `sfnt_read_head_table`, `sfnt_read_hhea_table`, `sfnt_read_loca_table_short`, `sfnt_read_loca_table_long`, `sfnt_read_maxp_table`, `sfnt_read_glyf_table`) — a construct PORTING.md does not yet cover, see Deviations 1 and Owed 1 | linkage only; the item is on the file gate either way |
-| C 224 / C 232 `#ifndef WORDS_BIGENDIAN` (the two swap helpers' bodies) | `not (feature = "words_bigendian")` (`femacs/xtask/Cargo.toml` 614); the other arm is C's empty body — the big-endian byte order needs no swap, so it is not a branch the port invents | little-endian |
+| C 224 / C 232 `#ifndef WORDS_BIGENDIAN` (the two swap helpers' bodies) | `not (feature = "words_bigendian")` (`xtask/Cargo.toml` 614); the other arm is C's empty body — the big-endian byte order needs no swap, so it is not a branch the port invents | little-endian |
 | C 1827 `#if defined HAVE_MMAP && !defined TEST` … C 1906 `#endif` | `all (file gate, not (feature = "test"))`: `HAVE_MMAP` is 1 on this target and no `have_mmap` feature is registered, so the port carries that half live (C 41's ruling, above) and gates C's `!defined TEST` half.  **C's `#if` has no `#else`**, so the other arm is empty text | a real Android non-TEST configuration |
 | C 1871 `#ifdef HAVE_POSIX_MADVISE` … C 1874 `#elif defined HAVE_MADVISE` … C 1876 `#endif` | `not (feature = "no_have_posix_madvise")` for the live `posix_madvise` arm; `feature = "no_have_posix_madvise"` + `cfg! (feature = "have_madvise")` for the `madvise` arm (the `pdumper.rs` 5281-5284 shape; `docs/baseline/feature-coverage.tsv` 241/436 register both names).  The third arm — neither macro — has no text in C | `posix_madvise`: always on this target (`HAVE_POSIX_MADVISE` is 1, 1492; `HAVE_MADVISE` is 1 too, 1445) |
 | C 4547-4554's three file-scope `#define`s (`sfnt_add`/`sfnt_sub`/`sfnt_mul`), C 4959's `APPEND_STEP`, C 5011's `TRAPEZOID_AREA` and C 5083's `TRIANGLE_AREA` (the last three inside `sfnt_poly_edges_exact`), and their `#undef`s (C 5262, C 5265-5266) | `macro_rules!` at the same scope: file scope for the first three, the enclosing block for the three function-local ones — Rust's macros are textually scoped, so the `#undef`s have no text (Deviation 35) | every configuration (C's macros are unconditional) |
@@ -661,7 +661,7 @@ rustc compiles no include from it, which is what ① reads as the 336-byte empty
 
 The seventy-two rows above tile C 1-21215 **contiguously** (blank lines included) rather than
 skipping the blanks between blocks: `tools/check-dead-file-coverage.py`'s ledger lookup resolves
-`femacs/src/include/sfnt.rs` (this file's header's mirror) to this same `sfnt.md` through its
+`src/include/sfnt.rs` (this file's header's mirror) to this same `sfnt.md` through its
 bare-stem fallback, so a table with gaps at blanks would leave `src/sfnt.h`'s non-blank lines
 uncovered and fail (the `android.md`/`w32term.md` shape).  The last row reaches C 21215, which is
 what the gate requires of the final row.
@@ -768,10 +768,10 @@ was 8 errors of other classes (`E0428`/`E0530`/`E0600`/`E0381`/`E0308`), retired
 the fixes below.
 
 **One intermediate arm reading is not about this unit.**  While this slice was being written, one
-run ended on `error[E0204]`/`error[E0277]` in `femacs/lib/include/signal.rs` (`sigaction`'s
+run ended on `error[E0204]`/`error[E0277]` in `lib/include/signal.rs` (`sigaction`'s
 `#[derive(Clone, Copy)]` against a `sigset_t` whose derives the materializer had hoisted onto the
 other `#[cfg]` arm): another lane's **in-flight** mirror edit, reverted by the time of the reading
-above — `git status` showed ` M femacs/lib/include/signal.rs` during that run and does not now.
+above — `git status` showed ` M lib/include/signal.rs` during that run and does not now.
 P-86 ⑦ is exactly this case: while the include graph is broken the arm flip does not check this
 unit's names, so that run is recorded as a blocked reading and **not** as a reading of this port.
 **Slice 7's own control reading is the 2-error run the two casts retired**: `2 × E0308`
@@ -789,7 +789,7 @@ text - and the object is **39,664 bytes** (slice 6: 36,240), a compile artefact 
 new definitions, not runtime evidence (see "Not claimed").
 
 **③ Inventory (the live checklist).**
-`python3 tools/extract-abi.py --check emacs/src/sfnt.c femacs/src/sfnt.rs` → **FAIL**, with
+`python3 tools/extract-abi.py --check emacs/src/sfnt.c src/sfnt.rs` → **FAIL**, with
 **268 `- missing …` lines — 118 functions, 147 macros, 3 constants (the three
 `SFNT_RUN_CONTEXT_*`), 0 file-scope objects, 0 fields** — down from 291 (138/147/3/0/0) at the end
 of slice 5, i.e. **all 20 of slice 6's own functions match** (`sfnt_read_hmtx_table`,
@@ -810,7 +810,7 @@ slice 5's 70.5%/6,251).  There is therefore **nothing new owed to
 (Deviation 44).
 
 **Slice 7's reading has named rows again - the first since slice 5.**
-`python3 tools/extract-abi.py --check emacs/src/sfnt.c femacs/src/sfnt.rs` → **FAIL**, with
+`python3 tools/extract-abi.py --check emacs/src/sfnt.c src/sfnt.rs` → **FAIL**, with
 **244 `- missing …` lines — 94 functions, 147 macros, 3 constants (the three
 `SFNT_RUN_CONTEXT_*`), 0 file-scope objects, 0 fields** — down from 268 (118/147/3/0/0) at the end
 of slice 6, i.e. **all 24 of this slice's own functions match** (`sfnt_round_none`,
@@ -846,7 +846,7 @@ failure(s), 0 carried by another file, 356 row(s) with no function tick**, 0 row
 ledger (this ledger carries a range table, not a tick list). —
 `python3 tools/check-mirror-dupes.py` → **19 duplicate declaration(s), 19 ratchet row(s), 0
 failure(s)** (a few minutes earlier another lane's in-flight, untracked
-`femacs/src/include/gtk.rs` made the same run read 43/19/24; that file is not in this lane's
+`src/include/gtk.rs` made the same run read 43/19/24; that file is not in this lane's
 write set and is gone from the tree at the reading above). —
 `python3 tools/check-cond-eval.py src/sfnt.c` → **31 conditions, 0 unknown, 0 disagreements
 [VERIFIED]**, unchanged (the C file is frozen, so the evaluator's table cannot move with a port
@@ -912,7 +912,7 @@ clean in that reading.**  The first run of it was **17 errors, all of them this 
 `sfnt_read_packed_points` call (C's declaration block, C 15497-15504/15870-15877); PORTING.md 1.5
 zeroes them (Deviation 53).  Every one of the 17 is retired in the delivered revision, and what
 remains is the mirror trio.  **That trio reproduces without this slice** — the third run of this
-budget: `cp /tmp/sfnt-lane/sfnt.rs.before femacs/src/sfnt.rs` (md5
+budget: `cp /tmp/sfnt-lane/sfnt.rs.before src/sfnt.rs` (md5
 `80aed2e1701986817a5de1b3172e313c`, the revision slice 7's Evidence ⑤ records) and the same
 command → the *same five* `E0425`s at the same five sites, and `error: aborting due to 5 previous
 errors` again.  The cause is structural and belongs to the mirror graph: the probe's crate carries
@@ -927,7 +927,7 @@ delivered revision (`387c378e9e25d7ce54ec1d297aeae8cb`) differs from it by the h
 prose alone (①), so the reading is of this slice's code with a staler header comment.
 
 **③ The inventory check (`extract-abi.py --check`).**
-`python3 tools/extract-abi.py --check emacs/src/sfnt.c femacs/src/sfnt.rs` → **230 missing rows**
+`python3 tools/extract-abi.py --check emacs/src/sfnt.c src/sfnt.rs` → **230 missing rows**
 (`/tmp/sfnt-lane/abi-after.txt`), **down from 244** (`/tmp/sfnt-lane/abi-before.txt` taken before
 the first edit): **exactly the fourteen functions this range defines** — `sfnt_read_packed_deltas`,
 `sfnt_read_cvar_table`, `sfnt_init_blend`, `sfnt_free_blend`, `sfnt_normalize_blend`,
@@ -1035,7 +1035,7 @@ this unit's text: `lib/include/stdbit.in.rs` 645 and `src/include/lisp.rs` 3943,
 comment" (the same class slice 8 recorded at 644/3934).
 
 **③ The inventory check (`extract-abi.py --check`).**
-`python3 tools/extract-abi.py --check emacs/src/sfnt.c femacs/src/sfnt.rs` -> **174 `- missing …`
+`python3 tools/extract-abi.py --check emacs/src/sfnt.c src/sfnt.rs` -> **174 `- missing …`
 rows** (`/tmp/sfnt-lane/abi.after2`, taken after the `macro-body-notes.tsv` rows below landed),
 **down from 230** (`/tmp/sfnt-lane/abi.before`, taken before the first edit): **-49 functions**
 (80 -> 31: the 46 definitions of the C 8161-10224 half plus `sfnt_init_graphics_state`,
@@ -1092,8 +1092,8 @@ macros' `#ifndef TEST`/`#else` pairs are all inside the frozen file the tool alr
    readers this file exports — nine of them now (slice 1's two plus slice 2's seven).  The port's
    expression is `#[cfg_attr (not (feature = "test"), unsafe (no_mangle))]`, which is the same
    bit and needs no second copy of any body.  It is the tree's heaviest user of the attribute
-   (measured on this revision: `rg -c cfg_attr femacs/src/*.rs` → `femacs/src/sfnt.rs:12` — the
-   nine attributes plus three mentions in prose — and `femacs/src/w32proc.rs:2`, another lane's
+   (measured on this revision: `rg -c cfg_attr src/*.rs` → `src/sfnt.rs:12` — the
+   nine attributes plus three mentions in prose — and `src/w32proc.rs:2`, another lane's
    in-flight file) and the tool's textual test for the attribute (`tools/extract-abi.py`
    1984-1989) does not see through it, which is what the nine
    `- function … has no #[unsafe(no_mangle)]` rows in Evidence ③ are.  Owed 1 asks PORTING.md to
@@ -1245,7 +1245,7 @@ macros' `#ifndef TEST`/`#else` pairs are all inside the frozen file the tool alr
     measurement `docs/ports/include-conf_post.md` 39 records), so P-51's rule applies and the
     feature is named after the non-frozen side (the `no_signbit`/`no_rint` shape).  C's `#else` is
     empty, so there is no second arm to carry.  **The name is not registered** -
-    `docs/baseline/feature-coverage.tsv` and `femacs/xtask/Cargo.toml` are outside this lane's
+    `docs/baseline/feature-coverage.tsv` and `xtask/Cargo.toml` are outside this lane's
     write set - which is Owed 8.
 25. **`xnmalloc`'s two arguments are cast to `isize`.**  C 4072 passes `outline->outline_used` (a
     `size_t`) and `sizeof *edges` to `xnmalloc`, whose live prototype is `lisp.h` 5544's
@@ -1336,7 +1336,7 @@ macros' `#ifndef TEST`/`#else` pairs are all inside the frozen file the tool alr
     have no Rust site (Owed 10).
 39. **This slice adds no use-site declaration.**  The two new external names it calls are already
     in this unit's include graph: `sfnt_fixed_float` (the mirror's `f32` function for C 126's macro,
-    `femacs/src/include/sfnt.rs` 192) and `xcalloc` (`src/include/lisp.rs` 3984's `(usize, usize)`
+    `src/include/sfnt.rs` 192) and `xcalloc` (`src/include/lisp.rs` 3984's `(usize, usize)`
     declaration, reached through C 138's `lisp.h`; C 5439's `xcalloc (1, size)` needs no cast).
     `memset` (C 5353) is `lib/include/string.rs` 24's and `FALLTHROUGH` (C 5331 etc.) is
     `lib/include/attribute.rs` 154's no-op macro, whose token therefore survives at its sites.
@@ -1520,7 +1520,7 @@ macros' `#ifndef TEST`/`#else` pairs are all inside the frozen file the tool alr
     `usize::MAX`).
 
 62. **The record `sfnt_gvar_glyph_header` is defined in the unit, not the mirror** (Owed 20).  C
-    15078-15088 declares it in the `.c`; the port defines it in `femacs/src/sfnt.rs` under the file
+    15078-15088 declares it in the `.c`; the port defines it in `src/sfnt.rs` under the file
     gate with `#[repr(C)]`, `Clone, Copy` and `pub` fields in C's order, so the mirror carries
     nothing (`check-mirror-dupes` accordingly sees no new duplicate).  Its two `uint16_t` fields
     have C's alignment; the frozen arm cannot measure it (nothing compiles the file) and the arm
@@ -1965,7 +1965,7 @@ macros' `#ifndef TEST`/`#else` pairs are all inside the frozen file the tool alr
    "the port expresses the linkage with `#[cfg_attr (not (feature = "test"), unsafe
    (no_mangle))]`", the `AVOID` row's shape) or a PORTING.md §11 entry; today `--check` counts it
    as named rows and a missing macro.  ✅ **Done in 3.427** for the
-   `E0428` half — **`femacs/src/include/sfnt.rs`: the declaration run now sits in
+   `E0428` half — **`src/include/sfnt.rs`: the declaration run now sits in
    `pub mod sfnt_decls { use super::*; … } use sfnt_decls::*;`** (the `include/android.rs` shape) —
    and ✅ **done in 3.441** for the export half: the tool now reads the `cfg_attr`, so the eleven
    `TEST_STATIC` readers produce no `- function … has no #[unsafe(no_mangle)]` row (Evidence ③'s
@@ -2023,7 +2023,7 @@ macros' `#ifndef TEST`/`#else` pairs are all inside the frozen file the tool alr
    does not "restore" the type spelling and re-open `family context: … the port 22`.
 8. **`no_ndebug`** — C 4322's `#ifndef NDEBUG` (Deviation 24) is the
    first `NDEBUG` site in a ported unit.  ✅ **Registered by the integrator in 3.463**:
-   `femacs/xtask/Cargo.toml` carries `no_ndebug = []  # !NDEBUG` and
+   `xtask/Cargo.toml` carries `no_ndebug = []  # !NDEBUG` and
    `python3 tools/feature-coverage.py --write` re-recorded the table, so the name is a real feature
    a `dead-arms` flip can turn on.  **Still owed**: the flip itself — `docs/ports/`'s
    `xtask dead-arms` FLIPS table has no `no_ndebug` row and `config.rs`'s `NDEBUG` constant is what
@@ -2075,7 +2075,7 @@ macros' `#ifndef TEST`/`#else` pairs are all inside the frozen file the tool alr
     `sfnt_validate_gs` definition (C 10538) is now in the file (the C 10225-10663 range, at its own
     C position per P-91 ②), so C 6316's call site type-checks and `sfnt_init_graphics_state` is the
     next live definition.  What is left is (b) alone - `sfnt_make_interpreter`'s C 6427-6431
-    `#ifdef TEST` hook block, whose three members `femacs/src/include/sfnt.rs` deliberately does
+    `#ifdef TEST` hook block, whose three members `src/include/sfnt.rs` deliberately does
     not transcribe - and it is what still gates the rest of C 6307-10224.
 
 13. **The `sfnt_decompose_glyph` `fail`-tail defect slice 7 found** (Deviation 51): the port's
@@ -2097,7 +2097,7 @@ macros' `#ifndef TEST`/`#else` pairs are all inside the frozen file the tool alr
     unported remainder) and the 60.2% line count, and nothing else.
 
 15. **The lane's `probe` budget overrun (5 of 3)**, reported rather than hidden: the fourth run
-    re-measured the revision after this slice rewrote `femacs/src/sfnt.rs`'s header comment and the
+    re-measured the revision after this slice rewrote `src/sfnt.rs`'s header comment and the
     fifth the final one after three of the slice's own `/* … */` notes were corrected, so that the
     file this ledger's header names is the file the arm reading measured.  All five readings agree
     where they overlap (exit 0, 0 errors, 39,664 bytes, the same four mirror warnings), i.e. the

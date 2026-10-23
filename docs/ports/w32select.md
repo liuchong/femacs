@@ -7,7 +7,7 @@
 > `docs/baseline/frozen-build-sources.txt` lists no `w32select.o` for this target - so
 > `extract-abi.py`'s checklist for the file is empty (P-86 ②) and this ledger is that clause's
 > substitute: the **C line-range table**, the `## Evidence` readings and the `## Deviations`.  Port:
-> `femacs/src/w32select.rs` (**2,003 lines**, 97,816 bytes, md5
+> `src/w32select.rs` (**2,003 lines**, 97,816 bytes, md5
 > `26589f8c063e5c4274d4f375643a84f3`), carrying **C 1-1370 with both arms of every `#if`**.  The
 > reference `emacs/src/w32select.c` is md5 `67bfa757dcb7cfd3bdbf97aa342fa776` (unchanged; `emacs/` is
 > read-only).
@@ -17,7 +17,7 @@
 > port is the empty unit plus the note that names the gate" (P-08, `docs/status.md` 3.31).  P-86 ①
 > replaces that conclusion with *transcribe the text, both arms, no stub*; what the earlier note
 > measured (not in the frozen source list, empty checklist, 336-byte `build-tu` object) is unchanged
-> and still true.  The stub file was `femacs/src/w32select.rs`'s 3-line head plus the two carried
+> and still true.  The stub file was `src/w32select.rs`'s 3-line head plus the two carried
 > comments (`docs/port-map.md` 583 still prints the 1,996-line reading of an earlier edit of this
 > batch).
 >
@@ -54,7 +54,7 @@ The rows are contiguous and ascending and cover every non-blank line of C 1-1370
 two rows (C 22, 64, 73-74, 98, 117, 143, 149, 209, …) are the reference's blank lines, which the gate
 does not require a row for.  `docs/port-map.md` 583-584 lists two targets for this stem
 (`src/w32select.c` 1,370 and `src/w32select.h` 28, the latter bound to
-`femacs/src/include/w32select.rs`): the table starts at C 1 and ends past the header's last line, so
+`src/include/w32select.rs`): the table starts at C 1 and ends past the header's last line, so
 both readings clear (the `docs/ports/w32heap.md` 574-575 shape; there is no `src-w32select.md`).
 
 | C | block | arm |
@@ -131,7 +131,7 @@ and that no item of this unit collides; it does **not** certify that the unit ty
 type-check of the bodies is what the include graph's own resolution errors stop (the `w32heap`/`w32proc`
 reading of the same class).
 
-④ **`python3 tools/extract-abi.py --check emacs/src/w32select.c femacs/src/w32select.rs`**: before the
+④ **`python3 tools/extract-abi.py --check emacs/src/w32select.c src/w32select.rs`**: before the
 `## Owed` 1 rows, `FAIL` with 9 findings: `does not mention` **8** (`convert_to_handle_as_ascii` `0`;
 `render` `break,case,switch`; `run_protected` `0`; `owner_callback` `break,case,switch`;
 `setup_windows_coding_system` `common_flags,mode`; `syms_of_w32select` `doc`;
@@ -155,7 +155,7 @@ failure(s)` - unchanged: this unit's declarations are in no mirror's top level e
 mirror *does* carry, and those three are definitions (which the gate does not report).
 
 ⑧ **`python3 tools/check-citations.py`**: `676 file(s) scanned, 1 drift, 0 range, 1160 external, 35
-allowed, 0 stale` - the one drift is `femacs/src/xfont.rs:388` (another lane's file), so this unit's
+allowed, 0 stale` - the one drift is `src/xfont.rs:388` (another lane's file), so this unit's
 citations (`/// C:`/`// C:` lines, ~150 of them) are all in range and current.
 
 ⑨ **`python3 tools/check-dead-file-coverage.py`**: `33 ledger(s) bound (a C range table), 0
@@ -166,11 +166,11 @@ src/w32select.c (1370 lines; 32 blank line(s) between blocks need no row)`.
 line(s); 37 ratchet row(s), 0 new, 0 stale` - this file is **not** in
 `docs/baseline/port-lines-pending.tsv` (146% of its reference), so no ratchet row applies.
 
-⑪ **The unit**: `femacs/src/w32select.rs` 2,003 lines, 97,816 bytes, md5
+⑪ **The unit**: `src/w32select.rs` 2,003 lines, 97,816 bytes, md5
 `26589f8c063e5c4274d4f375643a84f3`; the reference `emacs/src/w32select.c` 1,370 lines, md5
 `67bfa757dcb7cfd3bdbf97aa342fa776`.
 
-⑫ **The arm-reach pre-flight** (this lane's stub set: a `/tmp` copy of `femacs/{src,lib,nt}` with
+⑫ **The arm-reach pre-flight** (this lane's stub set: a `/tmp` copy of `{src,lib,nt}` with
 `include/w32select.rs`'s three declarations moved into a glob-imported `pub module` - the one mirror
 patch Findings 2 records - and a `/tmp` materializer that expands the unit's `include!` graph once per
 file): **the unit's own text has 0 findings**, and every finding (118 of them) is in another file, the
@@ -188,15 +188,15 @@ reported - the same resolution-only boundary as ③, measured twice.
    text (Deviation 4) and marks it as a finding for whoever owns the reference-side question.  The
    same class, not acted on here: C's own `#include <string.h>`/`<stdlib.h>` come only through
    `lisp.h` 30 and `ms-w32.h` 410/271.
-2. **`femacs/src/include/w32select.rs` declares the three entry points at crate root** (`syms_of_…`,
+2. **`src/include/w32select.rs` declares the three entry points at crate root** (`syms_of_…`,
    `globals_of_…`, `term_w32select`), and this unit *defines* all three - the P-39/E0428 shape
-   (`femacs/src/include/w32gui.rs` 88-108 is the fixed form: `pub mod …_decls` + `use …::*;`).
+   (`src/include/w32gui.rs` 88-108 is the fixed form: `pub mod …_decls` + `use …::*;`).
    Measured: in the real `probe` the three errors are attributed to that mirror, and with the mirror
    patched in ⑫'s copy the unit's own text has no findings.  **Attribution: the mirror** (its head
    note's "no unit `include!`s this mirror" is stale too - this unit does, at C 88).  Unfixed here:
    the mirror is outside this lane's write set; the fix is one module wrapper in that file.
 3. **`xtask`'s `materialize` leaves a degraded gated `include!` edge's `#[cfg]` attached to the next
-   item** (`femacs/xtask/src/main.rs` 1861-1864: P-89 ③'s "expands at its ungated reach" branch emits
+   item** (`xtask/src/main.rs` 1861-1864: P-89 ③'s "expands at its ungated reach" branch emits
    `// [xtask dedupe] …` for the edge and leaves the attribute line that preceded it in place, so the
    attribute ANDs onto whatever item follows).  Measured: with C 94-95 spelled as the faithful
    `#[cfg (feature = "cygwin")] include!(…)` pair, this unit's own `unsafe extern` block became
@@ -224,7 +224,7 @@ reported - the same resolution-only boundary as ③, measured twice.
    kept as `C:` lines at its position.
 2. **The `<windows.h>`/`<wingdi.h>`/`<wtypes.h>`/`<gdiplus.h>` stand-in section** (C 76-79): the
    reference tree has no file for any of the four, so the names this file uses stand at C's own
-   `#include` line (P-88 ①, no file added under `femacs/src/include/`), each with the SDK's own text
+   `#include` line (P-88 ①, no file added under `src/include/`), each with the SDK's own text
    above it.  The spellings repeat `src/w32fns.rs`'s and `src/w32proc.rs`'s sections, so a `windowsnt`
    translation unit sees one set of names.  **Nothing was measured** - `DWORD`, `LONG`, `BOOL`,
    `SIZE_T`, `WPARAM`, the handle typedefs, `MAX_PATH`, the `CF_*`/`WM_*`/`LOCALE_*`/`GMEM_*` values,
@@ -322,7 +322,7 @@ reported - the same resolution-only boundary as ③, measured twice.
    coding.h 686), `include/w32.rs` (`filename_to_utf16`, w32.h 209) and `include/w32.h`-side
    `MAX_PATH` (Deviation 2's stand-in).  Each row is one declaration with the header's text; until they
    land, this unit carries its own copies.
-3. **`femacs/src/include/w32select.rs`'s three crate-root declarations** (Findings 2): move them into
+3. **`src/include/w32select.rs`'s three crate-root declarations** (Findings 2): move them into
    `pub mod w32select_decls { use super::*; … } use w32select_decls::*;` - the `include/w32gui.rs`
    88-108 form - and refresh its head note (this unit *does* `include!` it, at C 88).  With that patch
    applied in a `/tmp` copy, this unit's own text has no findings (Evidence ⑫).

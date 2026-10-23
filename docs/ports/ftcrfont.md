@@ -10,7 +10,7 @@
 > `docs/baseline/frozen-build-sources.txt` lists no `ftcrfont.o`, so this target's `build-tu`
 > object is the **336-byte empty one** (Evidence ①) and `tools/extract-abi.py`'s checklist for the
 > file is empty (P-86 ②).  What follows is that clause's substitute: the **C line-range table**, the
-> `## Evidence` readings and the `## Deviations`.  Port: `femacs/src/ftcrfont.rs`
+> `## Evidence` readings and the `## Deviations`.  Port: `src/ftcrfont.rs`
 > (**1769 lines**, md5 `d194f28d554bf61fc2b299a5d02dfa54`), carrying **C 1-826 with both arms of
 > every `#if`**.  The reference `emacs/src/ftcrfont.c` is read-only and unchanged.
 >
@@ -46,7 +46,7 @@
 | the file itself (`FONT_OBJ`'s three cairo arms; `configure.ac` 7191-7215) | `any (feature = "use_cairo", feature = "be_cairo")` (on every item **and on the include graph**) | an X11+cairo, a pgtk or a Haiku+cairo build; not this target (the 336-byte object) |
 | C 25-33 `#ifdef HAVE_X_WINDOWS` / `#elif HAVE_HAIKU` / `#else` (the term header) | `feature = "have_x_windows"` / `feature = "have_haiku"` / **neither** (the `#else` of a three-way split) | one arm each |
 | C 40-42 / C 175-179 / C 644-664 / C 755-757 `#ifdef HAVE_PGTK` | `feature = "have_pgtk"` | the pure-GTK3 (pgtk) build |
-| C 44-48 `#ifdef USE_BE_CAIRO` (the three colour macros) | `feature = "be_cairo"` (the registered spelling of `USE_BE_CAIRO`, `femacs/xtask/Cargo.toml` 73) | the Haiku build |
+| C 44-48 `#ifdef USE_BE_CAIRO` (the three colour macros) | `feature = "be_cairo"` (the registered spelling of `USE_BE_CAIRO`, `xtask/Cargo.toml` 73) | the Haiku build |
 | C 180-183, 548-559, 563-581, 585-598, 614-626, 629-638 `#ifdef USE_BE_CAIRO` / `#ifndef USE_BE_CAIRO` (+ C 564/566, 586/588, 615/617, 630/632's nested `HAVE_X_WINDOWS` split) | `feature = "be_cairo"` against `not (feature = "be_cairo")`, and `have_x_windows` inside the latter | one arm each |
 | C 208-213, 303-305, 340-346, 666-724, 759-761, 767-770, 814-825 `#ifdef HAVE_HARFBUZZ` | `feature = "harfbuzz"` (registered; the `ftfont.rs`/`hbfont.rs` reading) | HarfBuzz present |
 | C 299-302, 333-339, 482-497, 744-746 `#ifdef HAVE_LIBOTF` | `feature = "have_libotf"` (registered) | libotf present |
@@ -61,7 +61,7 @@
 ## C line ranges
 
 One row per C block, contiguous (each row absorbs the blank lines that follow the one before),
-covering C 1-826.  `docs/port-map.md` pairs `src/ftcrfont.c` (826) with `femacs/src/ftcrfont.rs`.
+covering C 1-826.  `docs/port-map.md` pairs `src/ftcrfont.c` (826) with `src/ftcrfont.rs`.
 
 | C | block | arm |
 | --- | --- | --- |
@@ -102,9 +102,9 @@ $ cd femacs && cargo run -q -p xtask -- build-tu src/ftcrfont.c
 built src/ftcrfont.rs -> ../build/femacs/ftcrfont.o      # 336 bytes, md5 dbed68837694579185377dbb0821ab62
 $ python3 tools/check-cond-eval.py src/ftcrfont.c
 src/ftcrfont.c: 33 conditions, 0 unknown, 0 disagreements [VERIFIED]
-$ python3 tools/extract-abi.py --check emacs/src/ftcrfont.c femacs/src/ftcrfont.rs
+$ python3 tools/extract-abi.py --check emacs/src/ftcrfont.c src/ftcrfont.rs
 - line count drifted 114.2%: C 826 vs Rust 1769        (one row, the tolerance row - Owed 1)
-FAIL emacs/src/ftcrfont.c -> femacs/src/ftcrfont.rs
+FAIL emacs/src/ftcrfont.c -> src/ftcrfont.rs
 ```
 
 Every item of the unit carries a `#[cfg]`, so the frozen configuration compiles none of them and
@@ -240,7 +240,7 @@ empty), so `OTF`/`OTF_close` are the two **UNVERIFIED** declarations (Deviation 
 **⑧ The acceptance gates.**
 
 ```
-$ python3 tools/extract-abi.py --check emacs/src/ftcrfont.c femacs/src/ftcrfont.rs
+$ python3 tools/extract-abi.py --check emacs/src/ftcrfont.c src/ftcrfont.rs
 - line count drifted 114.0%: C 826 vs Rust 1768        (one row, the tolerance row - Owed 1)
 $ python3 tools/check-declarations.py
 $ python3 tools/check-mirror-dupes.py
@@ -249,7 +249,7 @@ $ python3 tools/check-dead-file-coverage.py
 $ python3 tools/check-ledger-ticks.py
 ```
 
-The last five readings are in "Not claimed" below; neither `femacs/src/ftcrfont.rs` nor this
+The last five readings are in "Not claimed" below; neither `src/ftcrfont.rs` nor this
 ledger is a finding in any of them.
 
 ## Deviations
@@ -323,10 +323,10 @@ ledger is a finding in any of them.
    <line>` citations, the layout assertions, the five unit-local SDK segments, `ftcrfont_draw`'s
    three-way arm spelled at four sites, and the eight `syms_of_ftcrfont_for_pdumper` member
    writes.  Not this lane's file to write; with it, `--check` is clean.
-2. **`femacs/src/ftfont.rs` (the unit)**: `fthbfont_begin_hb_font` is the one `font.h 955` name
+2. **`src/ftfont.rs` (the unit)**: `fthbfont_begin_hb_font` is the one `font.h 955` name
    this unit calls whose definition the sibling already has; nothing to change - listed because the
    *mirror* item below is what blocks the readings, not a missing definition.
-3. **`femacs/src/include/ftfont.rs`**: mirror `struct font_info`'s cairo arm - `cr_scaled_font`
+3. **`src/include/ftfont.rs`**: mirror `struct font_info`'s cairo arm - `cr_scaled_font`
    (`*mut cairo_scaled_font_t`), `bitmap_position_unit` (`c_double`), `metrics`
    (`*mut *mut font_metrics`) and `metrics_nrows` (`c_short`), gated `any (feature = "use_cairo",
    feature = "be_cairo")` with the record's XFT arm (`display`/`xftfont`/`x_display_id`) under the
@@ -336,7 +336,7 @@ ledger is a finding in any of them.
    must take the file gate rather than `have_x_windows` for Evidence ④'s two remaining `E0425`
    rows.  They are the three most-repeated rows in `src/ftfont.rs`, `src/xftfont.rs` and this unit.
 4. **Five mirrors this unit's segments belong in** (P-90 (1), each with two or more consumers in
-   the reference tree): `femacs/src/include/cairo.rs` (`<cairo.h>`/`<cairo-ft.h>`: four consumers -
+   the reference tree): `src/include/cairo.rs` (`<cairo.h>`/`<cairo-ft.h>`: four consumers -
    `ftcrfont.c`, `pgtkterm.c`, `xsettings.c`, `xftfont.c` - merging `include/gtk.rs`'s
    surface half with the half this unit declares, Deviation 14), `include/fontconfig.rs`
    (`ftfont.c`, `xftfont.c`, `ftcrfont.c`, `xsettings.c`), `include/freetype.rs` (`ftfont.c`,
@@ -345,14 +345,14 @@ ledger is a finding in any of them.
    the `src/hbfont.rs` segment is the third copy) and `include/otf.rs` (`ftfont.h`, `ftcrfont.c`,
    `xftfont.c`).  When they land, this unit's five segments and `src/ftfont.rs`'s
    `src/xftfont.rs`'s and `src/hbfont.rs`'s disappear in the same commit (P-88 (5) / P-90 (3)).
-5. **`femacs/lib/include/math.rs`**: `lround` (`math.h` 474; the mirror's 53-54 declare
+5. **`lib/include/math.rs`**: `lround` (`math.h` 474; the mirror's 53-54 declare
    `ceil`/`floor` only), declared at this unit's use site (the `hbfont.rs` 585-588 precedent; the
    same row `src/hbfont.rs` Owed 3).
-6. **`femacs/src/include/font.rs`** (the header mirror): `font_build_object` (font.h 848),
+6. **`src/include/font.rs`** (the header mirror): `font_build_object` (font.h 848),
    `register_font_driver` (font.h 896), the ten `ftfont_*` prototypes (font.h 935-951), the three
    `hbfont_*` ones (font.h 917-919) and `fthbfont_begin_hb_font` (font.h 955) - all declared at
    this unit's use sites today (P-55/Deviation 11's `xftfont.rs` counterpart).
-7. **`femacs/src/include/systime.rs` 27-28 and the `dead-arms` flip table**: the two P-51 pairing
+7. **`src/include/systime.rs` 27-28 and the `dead-arms` flip table**: the two P-51 pairing
    asserts (`!cfg!(feature = "have_x_windows") || HAVE_X_WINDOWS`, `… || HAIKU`) mean an arm cannot
    be compiled by `--cfg` alone; a lane that reads an X11 or Haiku arm needs the constant flipped
    with the feature (Evidence ②/④'s third row, and the reason Evidence ⑤'s preflights are `/tmp`
@@ -370,16 +370,16 @@ ledger is a finding in any of them.
    its own partial record for the `be_cairo` arm today; if that feature is ever turned on with
    `be_cairo`, this unit's copy and the mirror's collide - `E0428`, and `check-mirror-dupes.py`
    does not read type declarations).
-8b. **`femacs/src/include/haiku_support.rs` 705**: `pub fn be_use_subpixel_antialiasing ();` is
+8b. **`src/include/haiku_support.rs` 705**: `pub fn be_use_subpixel_antialiasing ();` is
     missing C's return type (`haiku_support.h` 728: `extern bool be_use_subpixel_antialiasing
     (void);`), so this unit's own C 181 cannot type-check in the Haiku arm (Evidence ④'s fourth
     row).  The mirror already carries the name, so a second declaration here is the duplicate
     `check-mirror-dupes.py` exists to find (measured: the first draft declared it and the gate
     reported `be_use_subpixel_antialiasing is already declared by
-    femacs/src/include/haiku_support.rs`, so the workaround was removed); the fix is the one-word
+    src/include/haiku_support.rs`, so the workaround was removed); the fix is the one-word
     signature.
 9. **`docs/port-map.md`'s row and `docs/status.md`'s ratchet line**: the integrator's regeneration
-   for this revision (the map still reads 11 lines for `femacs/src/ftcrfont.rs`), plus
+   for this revision (the map still reads 11 lines for `src/ftcrfont.rs`), plus
    `docs/baseline/port-lines-pending.tsv`'s stale `src/ftcrfont.c` row and
    `docs/baseline/feature-coverage.tsv`'s entry - the `docs/ports/xftfont.md` Owed 14 rows.
 10. **`docs/ports/macro-body-notes.tsv`**: **written by this lane** (the one notes file the brief
@@ -423,5 +423,5 @@ ledger is a finding in any of them.
   budgets and are labelled as the diagnostics they are.  No `cargo test`, `--all`, `gate-fast`,
   `gate-all-units.sh` or git write was performed by this lane.
 - **The other lanes' files are not this lane's evidence.**  This lane wrote only
-  `femacs/src/ftcrfont.rs`, this ledger and the one appended `macro-body-notes.tsv` row; the
+  `src/ftcrfont.rs`, this ledger and the one appended `macro-body-notes.tsv` row; the
   working tree was clean when the round started.

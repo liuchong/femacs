@@ -23,4 +23,4 @@ includes this header and no probe compiles it; the text gate is the whole accept
 (docs/status.md 3.31/3.102).
 
 Evidence: `python3 tools/extract-abi.py --check emacs/oldXMenu/copyright.h
-femacs/oldXMenu/include/copyright.rs` -> `OK` (0 ledger item(s)).
+oldXMenu/include/copyright.rs` -> `OK` (0 ledger item(s)).

@@ -139,7 +139,7 @@
 # ----------------------------------------------------------------------
 ## Decisions
 
-`emacs/src/font.c` @ `fd7afced403`; port `femacs/src/font.rs` (6,934 lines vs C's 6,091 -
+`emacs/src/font.c` @ `fd7afced403`; port `src/font.rs` (6,934 lines vs C's 6,091 -
 +13.8% on the **total** basis, declared in `docs/ports/line-drift-tolerance.tsv` with the
 reason: the use-site declaration block that stands in for the un-mirrored `font.h`, the
 `#![allow]`/include block, the carried `#[cfg (feature = …)]` arms, and the labelled blocks C
@@ -147,7 +147,7 @@ writes as `goto`; the 22 `DEFUN!` docstrings are the one place the port saves te
 
 - **Subrs 22/22, functions 82/82, macros 10/10, types 3/3, file-scope objects 8/8** — all
   boxes above are ticked, and `python3 tools/extract-abi.py --check emacs/src/font.c
-  femacs/src/font.rs` prints `OK`.
+  src/font.rs` prints `OK`.
 
 - **`FONT_DEBUG`: the arm the macro table calls dead is the *live* text, and its eight
   registrations cannot be transcribed.**  `src/font.c` is **not** in
@@ -206,7 +206,7 @@ writes as `goto`; the 22 `DEFUN!` docstrings are the one place the port saves te
   and 5946-5948 (the `#if 0` defsubrs), plus C 4926's `HAVE_LIBOTF` block.
 
 - **Use-site declarations (the mirror gap this unit reports and does not touch).**
-  `emacs/src/font.h` has only a WIP mirror (`femacs/src/include/font.rs`: `enum
+  `emacs/src/font.h` has only a WIP mirror (`src/include/font.rs`: `enum
   font_property_index` as constants and the four predicates), so this unit declares the rest
   of the header itself, each with C's own text and a `/// C: font.h <lines>` line
   (PORTING.md 0.1-2/P-72 rule 3); every record's layout is measured with the frozen clang and
@@ -350,7 +350,7 @@ would see it.
 ### Integrator to-do list (this unit's mirror gaps and the one blocked block)
 
 1. **`emacs/src/font.h`'s mirror is a WIP stub**: the records/accessors/macros listed above
-   belong in `femacs/src/include/font.rs`; this unit declares them at its use site until
+   belong in `src/include/font.rs`; this unit declares them at its use site until
    then (P-72 rule 3).  `docs/ports/font.md` is the record; `docs/ports/include-font.md`'s
    boxes stay open.
 2. **`FONT_DEBUG` is a missing row in `docs/baseline/config/source-header-macros.tsv`**

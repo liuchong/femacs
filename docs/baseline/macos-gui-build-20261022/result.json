@@ -3,56 +3,56 @@
   "scope": "Build existing Swift GUI units, activate Rust NS path in isolation; no replacement UI, no original C objects",
   "swift": [
     {
-      "unit": "femacs/platform/macos/macfont.swift",
+      "unit": "platform/macos/macfont.swift",
       "exit_code": 0,
       "seconds": 4.56,
       "error_count": 0,
       "errors": []
     },
     {
-      "unit": "femacs/platform/macos/nsfns.swift",
+      "unit": "platform/macos/nsfns.swift",
       "exit_code": 0,
       "seconds": 1.016,
       "error_count": 0,
       "errors": []
     },
     {
-      "unit": "femacs/platform/macos/nsfont.swift",
+      "unit": "platform/macos/nsfont.swift",
       "exit_code": 0,
       "seconds": 0.712,
       "error_count": 0,
       "errors": []
     },
     {
-      "unit": "femacs/platform/macos/nsimage.swift",
+      "unit": "platform/macos/nsimage.swift",
       "exit_code": 0,
       "seconds": 0.406,
       "error_count": 0,
       "errors": []
     },
     {
-      "unit": "femacs/platform/macos/nsmenu.swift",
+      "unit": "platform/macos/nsmenu.swift",
       "exit_code": 0,
       "seconds": 0.619,
       "error_count": 0,
       "errors": []
     },
     {
-      "unit": "femacs/platform/macos/nsselect.swift",
+      "unit": "platform/macos/nsselect.swift",
       "exit_code": 0,
       "seconds": 0.287,
       "error_count": 0,
       "errors": []
     },
     {
-      "unit": "femacs/platform/macos/nsterm.swift",
+      "unit": "platform/macos/nsterm.swift",
       "exit_code": 0,
       "seconds": 2.205,
       "error_count": 0,
       "errors": []
     },
     {
-      "unit": "femacs/platform/macos/nsxwidget.swift",
+      "unit": "platform/macos/nsxwidget.swift",
       "exit_code": 0,
       "seconds": 0.396,
       "error_count": 0,
@@ -88,14 +88,14 @@
   "gui_launched": false,
   "note": "Swift object compilation succeeded; Rust diagnostic used minimal NS cfg flags, not a separately configured/frozen Cocoa target. No complete GUI link was performed.",
   "source_sha256": {
-    "femacs/platform/macos/macfont.swift": "a786b36fbddddd77ee6c8db2373f5762b227b55a94ad8dbf6c44769987a3ae80",
-    "femacs/platform/macos/nsfns.swift": "81817f120ffcbe2fb7c244afee241d4d0c746cc6d58d76281c0fa2d22df249b5",
-    "femacs/platform/macos/nsfont.swift": "f927dce4c94a9c5edc4edde7f195987ce71899aa2d6a859cf5b9c903b6388949",
-    "femacs/platform/macos/nsimage.swift": "89190ad57bf5dc971833096c3046bbf79bbdb17dad74c3499f0aa0f8efc251e1",
-    "femacs/platform/macos/nsmenu.swift": "873943e345c2dc252b01948dfc39b79e6cd0015cf15f14e254c2550b63811a28",
-    "femacs/platform/macos/nsselect.swift": "85157c0cada81f3c4414d763191e74ee7798e29d07fc5e61fe6e6be03fd05e41",
-    "femacs/platform/macos/nsterm.swift": "6010be54251498f0bddcf3ca0dae8269a794dd7454d71b9e0d64a1dbed60ff01",
-    "femacs/platform/macos/nsxwidget.swift": "e92da077bab308f55522b64e159288887c94b21c976f4f8776628dba4b682378"
+    "platform/macos/macfont.swift": "a786b36fbddddd77ee6c8db2373f5762b227b55a94ad8dbf6c44769987a3ae80",
+    "platform/macos/nsfns.swift": "81817f120ffcbe2fb7c244afee241d4d0c746cc6d58d76281c0fa2d22df249b5",
+    "platform/macos/nsfont.swift": "f927dce4c94a9c5edc4edde7f195987ce71899aa2d6a859cf5b9c903b6388949",
+    "platform/macos/nsimage.swift": "89190ad57bf5dc971833096c3046bbf79bbdb17dad74c3499f0aa0f8efc251e1",
+    "platform/macos/nsmenu.swift": "873943e345c2dc252b01948dfc39b79e6cd0015cf15f14e254c2550b63811a28",
+    "platform/macos/nsselect.swift": "85157c0cada81f3c4414d763191e74ee7798e29d07fc5e61fe6e6be03fd05e41",
+    "platform/macos/nsterm.swift": "6010be54251498f0bddcf3ca0dae8269a794dd7454d71b9e0d64a1dbed60ff01",
+    "platform/macos/nsxwidget.swift": "e92da077bab308f55522b64e159288887c94b21c976f4f8776628dba4b682378"
   },
   "terminal_program_sha256": "62c12174450767c91d92193cd3d41ea225e5d64003ae2f4dd7aed0379df3967b",
   "rust_errors_unique": [

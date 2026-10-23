@@ -42,7 +42,7 @@
   includes it inside `#ifdef MSDOS` (`src/dired.c` 43-45, `src/sysdep.c` 96-98, `src/keyboard.c`
   61-63, `src/atimer.c` 36-38, `src/fileio.c` 78-80, `src/frame.c` 47-49, `src/lread.c` 48-50,
   `src/callproc.c` 82-84, `src/dosfns.c` 44, `src/msdos.c` 68), and `MSDOS` is `undef` in the
-  frozen macro table, so `femacs/src/msdos.rs` (the empty unit) records the exclusion and the
+  frozen macro table, so `src/msdos.rs` (the empty unit) records the exclusion and the
   mirror's declarations are deferred to that target with their definitions.  The `#ifndef
   HAVE_X_WINDOWS` arm of C 90-154 is nevertheless *live text for this header* (C's guard is about
   X, not about MS-DOS), which is why the dummy types and the XMenu façade are carried rather than
@@ -118,8 +118,8 @@
 
 ## Evidence
 
-- `python3 tools/extract-abi.py --check emacs/src/msdos.h femacs/src/include/msdos.rs`
-  -> `OK emacs/src/msdos.h -> femacs/src/include/msdos.rs` (no `- ` problem lines) - accepted on
+- `python3 tools/extract-abi.py --check emacs/src/msdos.h src/include/msdos.rs`
+  -> `OK emacs/src/msdos.h -> src/include/msdos.rs` (no `- ` problem lines) - accepted on
   the first attempt, including the no-op macros of C 120-126 whose C bodies are empty or `(void)`.
 - `python3 tools/check-cond-eval.py src/msdos.h` -> `src/msdos.h: 4 conditions, 0 unknown,
   1 disagreements [NOT VERIFIED]` and `DISAGREE src/msdos.h:84 `ifdef O_CLOEXEC` — clang False,
@@ -137,7 +137,7 @@
   are compiled only by a future MS-DOS target.
 - `rg -n 'include/msdos' femacs` -> no unit `include!`s the mirror: the C units that include the
   header are all inside `#ifdef MSDOS`, and their ports are the empty shapes of
-  `femacs/src/msdos.rs`/`femacs/src/dosfns.rs`.
+  `src/msdos.rs`/`src/dosfns.rs`.
 - Gates on the same worktree: `check-declarations` 13 sites (0 forbidden, 13 allowed literals) / 0
   failures; `check-mirror-dupes` 1 duplicate declaration(s) / 1 ratchet row(s) / 0 failure(s);
   `check-globals` 283 units / 0; `check-verbatim` 6 trees / 4607 files / 0 failures;

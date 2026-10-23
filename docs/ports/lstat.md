@@ -14,7 +14,7 @@
 
 ## File-scope objects — 0
 
-# emacs/lib/lstat.c (97 lines) — port `femacs/lib/lstat.rs`
+# emacs/lib/lstat.c (97 lines) — port `lib/lstat.rs`
 
 ## Decisions
 

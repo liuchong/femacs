@@ -7,7 +7,7 @@
 > `HAVE_DBUS<TAB>undef`).  `extract-abi.py`'s live checklist for the file is therefore **empty**
 > (the five sections are vacuous as coverage evidence, P-86 ②), and this ledger carries the
 > substitutes P-86 ②/③ ask for: the **C line-range table**, the `## Evidence` readings and the
-> `## Deviations`.  Port: `femacs/src/dbusbind.rs` (**3005 lines**, 135,786 bytes), carrying **C
+> `## Deviations`.  Port: `src/dbusbind.rs` (**3005 lines**, 135,786 bytes), carrying **C
 > 1-2190** - the reference's every line - with **both arms of every `#if`**.
 >
 > What the file implements when the feature is on: the D-Bus bindings - the two file-scope objects
@@ -144,7 +144,7 @@ by itself proof that the unit's text was reached, so:
 **⑤ The mutation reading (P-86 ⑦/⑧ - the flip is sensitive).**
 Copying the materialized `build/probes/dbusbind/_root.rs` and injecting a deliberate type error
 into the unit's own text (`let _mutation: c_int = signature;`, inside `xd_signature_cat`) changes
-the reading: with `rustc` (the `femacs/rust-toolchain.toml` nightly, `--edition 2024 -O
+the reading: with `rustc` (the `rust-toolchain.toml` nightly, `--edition 2024 -O
 --crate-type=lib -C panic=abort` and the same thirteen `--cfg`s) the unmutated copy reports
 `10 × E0425` and the mutated one reports the **same 10 plus 1 × E0308 pointing at the injected
 line**.  The unit's own text is therefore reached and type-checked, not silently skipped.
@@ -153,8 +153,8 @@ pinned nightly - adds one mirror-side `E0658` for `include/lisp.rs` 3761's `core
 the difference is the toolchain the proxy picks, and it is in the mirror.)
 
 **⑥ `extract-abi.py --check` reads OK, and why that is not coverage evidence.**
-`python3 tools/extract-abi.py --check emacs/src/dbusbind.c femacs/src/dbusbind.rs` →
-`OK emacs/src/dbusbind.c -> femacs/src/dbusbind.rs`, with **no `- ` row at all**.  The checklist
+`python3 tools/extract-abi.py --check emacs/src/dbusbind.c src/dbusbind.rs` →
+`OK emacs/src/dbusbind.c -> src/dbusbind.rs`, with **no `- ` row at all**.  The checklist
 is empty (P-86 ②), and the line-count rule passes through the existing tolerance row
 (`docs/ports/line-drift-tolerance.tsv` 78, `0.99`); the token comparison is **vacuous for this
 file**, which a mutation proves: renaming `make_mint_ptr` in the port and re-running the check
@@ -288,13 +288,13 @@ is the gate that reads the coverage instead (Evidence ⑦).
    set).**
 6. **`check-mirror-dupes.py` does not pass, and none of it is this file.**  Its final reading is
    `34 duplicate declaration(s), 17 ratchet row(s), 17 failure(s)`; the 17 are in
-   `femacs/src/keyboard.rs` (7), `femacs/src/coding.rs` (4), `femacs/src/tparam.rs` (2),
-   `femacs/src/xfont.rs` (2), `femacs/src/doprnt.rs` (1) and `femacs/src/ftfont.rs` (1) - in-unit
+   `src/keyboard.rs` (7), `src/coding.rs` (4), `src/tparam.rs` (2),
+   `src/xfont.rs` (2), `src/doprnt.rs` (1) and `src/ftfont.rs` (1) - in-unit
    declarations (`memcpy`/`strcpy`/`strncmp`/`memmove`/`memset`/`stpcpy`/`strcmp`, `font_add_log`,
    `x_mark_frame_dirty`) that their include graphs now also reach through
-   `femacs/lib/include/string.rs`, `include/font.rs` and `include/xterm.rs`.  **`dbusbind.rs` has
+   `lib/include/string.rs`, `include/font.rs` and `include/xterm.rs`.  **`dbusbind.rs` has
    no finding**, and those files are untouched here (they are not in this lane's working-tree
-   diff); the working tree also carries another lane's in-flight `femacs/src/include/lisp.rs` edit,
+   diff); the working tree also carries another lane's in-flight `src/include/lisp.rs` edit,
    so the number is that lane's/HEAD's reading rather than this file's.  **NOT DONE (not this
    lane's files).**
 7. **`docs/ports/dbusbind.md`'s own numbers are not measured by any gate**: the `## C line ranges`
@@ -320,4 +320,4 @@ is the gate that reads the coverage instead (Evidence ⑦).
 - **The `<dbus/dbus.h>` surface is a stand-in**: its constants, function signatures and the two
   records are written from the library's published interface; only the Rust side's own shape is
   measured (③).  A machine with `libdbus` should re-measure and retire the section into
-  `femacs/src/include/dbus.rs` (P-26/P-70's move-back).
+  `src/include/dbus.rs` (P-26/P-70's move-back).

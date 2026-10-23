@@ -23,7 +23,7 @@ comment occurrence of the bare name:
     `the reference`, never by the product's name.
 
 The second face is this repository's own tooling: `tools/`, `spikes/`, `.github/` and
-`femacs/xtask` are a scope the declaration gate has read since its sixth half (status 3.462)
+`xtask` are a scope the declaration gate has read since its sixth half (status 3.462)
 and that no reader of *this* gate ever walked - `files()` is bound to the ported trees, so a
 `#` comment in a Python tool, a probe's own C comment or a workflow's prose was read by nobody.
 Nothing in those files is copied from the reference, so the face needs no reference set: every
@@ -45,8 +45,8 @@ from pathlib import Path
 REPO = Path(__file__).resolve().parent.parent
 REF = REPO / "emacs"
 
-TREES = ("femacs/src", "femacs/lib", "femacs/lib-src", "femacs/nt",
-         "femacs/lwlib", "femacs/oldXMenu", "femacs/exec", "femacs/msdos")
+TREES = ("src", "lib", "lib-src", "nt",
+         "lwlib", "oldXMenu", "exec", "msdos")
 
 # The walk was bound to `*.rs` from its first round (status 3.803), and the platform tree is
 # Swift/Kotlin/C++ (status 3.136 names it; status 3.250 writes the rule: a tree whose files no
@@ -54,11 +54,11 @@ TREES = ("femacs/src", "femacs/lib", "femacs/lib-src", "femacs/nt",
 # copied from a `.java`, `.m` or `.cc` reference exactly the way a unit is copied from its C
 # file - its own first line names that reference - so the same reading applies to its comments.
 # The twenty-fourth half (status 3.887) binds the walk to these suffixes instead of to one.
-PLATFORM_TREE = "femacs/platform"
+PLATFORM_TREE = "platform"
 PLATFORM_SUFFIXES = (".swift", ".kt", ".cc")
 
 # The second face is this repository's own tooling - `tools/`, `spikes/`, `.github/` and
-# `femacs/xtask` - the scope the declaration gate gained in its sixth half (status 3.462) and
+# `xtask` - the scope the declaration gate gained in its sixth half (status 3.462) and
 # that no reader *of this gate* has ever walked: `files()` above is bound to the ported trees,
 # so a `#` comment in a Python tool, a probe's own C comment or a CI workflow's prose was read
 # by nobody.  Nothing in these files is copied from the reference, so this face needs no
@@ -68,7 +68,7 @@ PLATFORM_SUFFIXES = (".swift", ".kt", ".cc")
 # Three files are exempt by name, for the reason the declaration gate's `TOOL_EXEMPT` gives for
 # their `literal` class: writing the product's name down *is* their subject matter (pattern
 # tables and self-test fixtures), so the name in them is notation, not a declaration.
-OWN_TREES = ("tools", "spikes", ".github", "femacs/xtask")
+OWN_TREES = ("tools", "spikes", ".github", "xtask")
 OWN_SUFFIXES = (".py", ".sh", ".c", ".h", ".rs", ".yml", ".yaml", ".toml")
 OWN_EXEMPT = ("tools/check-declarations.py", "tools/check-own-voice.py",
               "tools/check-verbatim-declarations.py")
@@ -138,7 +138,7 @@ def reference_set(path: Path, depth: int = 4) -> list[str]:
                 continue
             for target in INCLUDE.findall(text):
                 q = (p.parent / target).resolve()
-                if q.exists() and "femacs" in q.parts:
+                if q.exists() and q.is_relative_to(REPO):
                     walk.append(q)
     return out
 
@@ -532,10 +532,10 @@ def selftest() -> int:
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             (root / "emacs/src").mkdir(parents=True)
-            (root / "femacs/src").mkdir(parents=True)
+            (root / "src").mkdir(parents=True)
             (root / "emacs/src/demo.c").write_text(
                 "/* Demo does a thing.\n   Demo may also do another thing.  */\n", encoding="utf-8")
-            target = root / "femacs/src/demo.rs"
+            target = root / "src/demo.rs"
             target.write_text(f"// femacs: port of src/demo.c @ deadbeef.\n{body}\n",
                               encoding="utf-8")
             global REPO, REF
@@ -566,10 +566,10 @@ def selftest() -> int:
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             (root / "emacs/src").mkdir(parents=True)
-            (root / "femacs/src").mkdir(parents=True)
+            (root / "src").mkdir(parents=True)
             (root / "emacs/src/demo.c").write_text(
                 "/* Demo does a thing.\n   Demo may also do another thing.  */\n", encoding="utf-8")
-            target = root / "femacs/src/demo.rs"
+            target = root / "src/demo.rs"
             target.write_text(f"{header}\n{body}\n", encoding="utf-8")
             global REPO, REF
             saved = (REPO, REF)
@@ -594,11 +594,11 @@ def selftest() -> int:
     cases += 1
     with tempfile.TemporaryDirectory() as tmp:
         root = Path(tmp)
-        for tree, name in (("femacs/platform/macos", "demo.swift"),
-                           ("femacs/platform/android/kotlin", "Demo.kt"),
-                           ("femacs/platform/haiku", "demo.cc"),
-                           ("femacs/src", "demo.rs"),
-                           ("femacs/platform/macos", "demo.m")):
+        for tree, name in (("platform/macos", "demo.swift"),
+                           ("platform/android/kotlin", "Demo.kt"),
+                           ("platform/haiku", "demo.cc"),
+                           ("src", "demo.rs"),
+                           ("platform/macos", "demo.m")):
             (root / tree).mkdir(parents=True, exist_ok=True)
             (root / tree / name).write_text("// x\n", encoding="utf-8")
         saved = (REPO, REF)
@@ -661,7 +661,7 @@ def selftest() -> int:
     with tempfile.TemporaryDirectory() as tmp:
         root = Path(tmp)
         for tree, name in (("tools", "demo.py"), ("tools", "demo.sh"), ("tools", "demo.txt"),
-                           ("spikes/miri", "Cargo.lock"), ("femacs/xtask/src", "main.rs")):
+                           ("spikes/miri", "Cargo.lock"), ("xtask/src", "main.rs")):
             (root / tree).mkdir(parents=True, exist_ok=True)
             (root / tree / name).write_text("# x\n", encoding="utf-8")
         saved = (REPO, REF)

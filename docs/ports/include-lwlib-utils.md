@@ -49,7 +49,7 @@ shape, which is also what moved the `48-49` line numbers the `src/haikuterm.rs` 
    live in `lwlib-utils.c`'s cairo arm, which the frozen configuration does not build.
 
 Evidence: `python3 tools/extract-abi.py --check emacs/lwlib/lwlib-utils.h
-femacs/lwlib/include/lwlib-utils.rs` -> `OK` (8 ledger item(s)).
+lwlib/include/lwlib-utils.rs` -> `OK` (8 ledger item(s)).
 5. **The eleven prototypes moved into `lwlib_utils_decls` (3.508)** - P-39: `lwlib-utils.c` defines
    every one of them, so a top-level copy in the mirror is `E0428` in that unit (measured on
    `src/widget.rs`'s flip for `include/widget.rs`, status 3.496/3.504; the `lwlib-Xlw.rs` shape).

@@ -5,8 +5,8 @@
 > `configure.ac` 7231 defines `USE_LUCID` for it, so `extract-abi.py`'s live checklist is empty in
 > this configuration and the checkboxes cannot be coverage evidence.  What follows is P-86 ②'s
 > substitute: the **C line-range table**, the `## Evidence` readings, and the per-`#if`
-> `## Deviations`.  Port: `femacs/lwlib/lwlib-Xaw.rs` (**1,483 lines**, `md5
-> 6828664d04fc06b5a7440fc9f9079aa9`); header mirror `femacs/lwlib/include/lwlib-Xaw.rs` (`md5
+> `## Deviations`.  Port: `lwlib/lwlib-Xaw.rs` (**1,483 lines**, `md5
+> 6828664d04fc06b5a7440fc9f9079aa9`); header mirror `lwlib/include/lwlib-Xaw.rs` (`md5
 > bbe89a42968f8fbd539ce5f9de671a5c`, its `_decls` move in `## Deviations` 16).  Both arms of every
 > `#if` are carried; the mirror moved its eight declarations into a `_decls` module (P-39, the
 > `include/lwlib-Xlw.rs` shape).
@@ -16,7 +16,7 @@
 - **File gate `feature = "use_lucid"`** (P-86 ⑧), the build's condition rather than one the C text
   spells: `lwlib/Makefile.in` 52 (`LUCID_OBJS = lwlib-Xlw.o xlwmenu.o lwlib-Xaw.o`),
   `configure.ac` 7231 (`AC_DEFINE ([USE_LUCID], [1], [Define to 1 if using the Lucid X toolkit.])`).
-  This is the same gate the sibling `femacs/lwlib/lwlib-Xlw.rs` carries: `lwlib/Makefile.in` has no
+  This is the same gate the sibling `lwlib/lwlib-Xlw.rs` carries: `lwlib/Makefile.in` has no
   `XAW_OBJS` list to read the condition from - `lwlib-Xaw.o` is an entry of `LUCID_OBJS`, the same
   list as `lwlib-Xlw.o`.
   `USE_LUCID`, `USE_X_TOOLKIT` and `HAVE_X11` are `undef` in
@@ -165,8 +165,8 @@ is **vacuous** for them.
 
 **④ The arm-reach pre-flight (P-86 ⑦'s fallback: this unit's text + the real mirrors + the two named
 mirror defects repaired in a copy).**  A `/tmp` harness reproduces xtask's `materialize` rule
-(`femacs/xtask/src/main.rs` 1793-1930: one copy per file, first reach wins, the ungated reach claims
-the slot) over `femacs/{src,lib,lwlib}/include` and compiles
+(`xtask/src/main.rs` 1793-1930: one copy per file, first reach wins, the ungated reach claims
+the slot) over `{src,lib,lwlib}/include` and compiles
 `/tmp/lxaw-lane/harness/lwlib/lwlib-Xaw.rs` = this unit's text, with `lwlib-int.rs`'s two defects
 fixed in the copy (`## Owed` 1-2) and nothing else changed.  Three arms, each
 `rustup run nightly-2026-10-01 rustc --edition 2024 --crate-type=lib --emit=obj -C panic=abort
@@ -182,7 +182,7 @@ This is the reading that says the port's statements type-check against the real 
 **not** the same reading as ② (`## Not claimed`).
 
 **⑤ The text gates.**
-`python3 tools/extract-abi.py --check emacs/lwlib/lwlib-Xaw.c femacs/lwlib/lwlib-Xaw.rs` →
+`python3 tools/extract-abi.py --check emacs/lwlib/lwlib-Xaw.c lwlib/lwlib-Xaw.rs` →
 one row left, the line-count drift (**C 844 vs Rust 1,483**, 75.7%), whose tolerance row is the
 integrator's (`## Owed` 4); the one body-token row it first reported (`xaw_create_dialog does not
 mention break, case, switch`) is recorded in `docs/ports/macro-body-notes.tsv` (the `switch` →
@@ -273,14 +273,14 @@ this machine and is `UNVERIFIED` (`## Owed` 5).
     (`for (int i = 0; xft_data[i].widget; ++i)`); the port declares it with the function's other
     locals and the loop's value sequence is C's (the same class as the `for (nr = …)` loops, which
     C declares at function scope already).
-16. **The header mirror `femacs/lwlib/include/lwlib-Xaw.rs` carries a `_decls` module** (P-39): the
+16. **The header mirror `lwlib/include/lwlib-Xaw.rs` carries a `_decls` module** (P-39): the
     eight declarations move into `lwlib_Xaw_decls` + a glob import, so this unit's definitions
     shadow the foreign declarations instead of colliding with them (`E0428`).  This is the same
     edit `include/lwlib-Xlw.rs` and `include/lwlib-utils.rs` carry.
 
 ## Owed
 
-1. **The mirror's `widget_xft_data` stand-in** (`## Evidence` ②): `femacs/lwlib/include/lwlib-int.rs`
+1. **The mirror's `widget_xft_data` stand-in** (`## Evidence` ②): `lwlib/include/lwlib-int.rs`
    20-23 declares `pub struct widget_xft_data;` for lwlib-int.h 26's incomplete tag, and the unit
    that completes the tag (C 62-70, this file) cannot share the name with it.  **Owner: the
    `lwlib-int.rs` mirror** (not this lane's whitelist).  The fix is the `xlwmenuP.rs` convention -
@@ -295,7 +295,7 @@ this machine and is `UNVERIFIED` (`## Owed` 5).
    `find_xft_data`'s `(*inst).xft_data` against a record with no such field (the harness's `## Evidence`
    ④ third arm is green only because the copy repairs this line as well).  Same owner; the fix is
    `use_cairo_or_have_xft`.
-3. **The derived `use_cairo_or_have_xft` is set by nothing but a probe**: `femacs/xtask/Cargo.toml`
+3. **The derived `use_cairo_or_have_xft` is set by nothing but a probe**: `xtask/Cargo.toml`
    701 registers it and `include/xlwmenuP.rs` 53-83 already uses it, but no build configuration sets
    it, so a Lucid + cairo/Xft build of this unit (and of that mirror) would compile the region
    **off**.  **Owner: the integrator** - the feature must be set whenever `use_cairo` or `have_xft`
@@ -311,10 +311,10 @@ this machine and is `UNVERIFIED` (`## Owed` 5).
    five enum values of `## Deviations` 2, and measure with the reference's own `configure` which
    arm of `USE_CAIRO`/`HAVE_XFT` a Lucid build takes.  What is missing on this machine is *Xt*, *Xaw*
    and *Xft* (xorgproto 2025.1's Xlib half is present and measured, `## Evidence` ⑥).  P-90 clause 1
-   asks for a dedicated Xt/Xaw mirror (`femacs/src/include/<sdk>.rs`); this unit's copy is one to
+   asks for a dedicated Xt/Xaw mirror (`src/include/<sdk>.rs`); this unit's copy is one to
    move when it lands (P-88 clause 5).
-6. **`docs/port-map.md`'s target-line column** for `femacs/lwlib/lwlib-Xaw.rs` still says 3 (and
-   `femacs/lwlib/include/lwlib-Xaw.rs`'s 39), and **`docs/baseline/feature-coverage.tsv` is stale
+6. **`docs/port-map.md`'s target-line column** for `lwlib/lwlib-Xaw.rs` still says 3 (and
+   `lwlib/include/lwlib-Xaw.rs`'s 39), and **`docs/baseline/feature-coverage.tsv` is stale
    for the five features this unit adds sites for** (`use_lucid`, `have_xaw3d`, `use_cairo`,
    `have_xft`, `use_cairo_or_have_xft`): no new *name* is added, but `tools/feature-coverage.py
    --write` is the integrator's reading to refresh.

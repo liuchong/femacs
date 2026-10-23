@@ -94,7 +94,7 @@ reference has no `src/gfilenotify.h`), so the table covers C 1-336.
   DELETED 2, CREATED 3, ATTRIBUTE_CHANGED 4, PRE_UNMOUNT 5, UNMOUNTED 6, MOVED 7);
   `G_FILE_MONITOR_NONE/WATCH_MOUNTS/SEND_MOVED` = 0/1/2; `sizeof (GTypeInstance)` 8 with
   `g_class`@0; `sizeof (GTypeClass)` 8 with `g_type`@0.
-- `extract-abi --check emacs/src/gfilenotify.c femacs/src/gfilenotify.rs` -> **OK, zero `-`
+- `extract-abi --check emacs/src/gfilenotify.c src/gfilenotify.rs` -> **OK, zero `-`
   rows** (the four DEFUNs' Lisp names, argument counts, interactive specs and **docstrings** are
   compared byte-for-byte; `dir_monitor_callback` and `Fgfile_add_watch`'s token rows are recorded
   in `docs/ports/macro-body-notes.tsv`);

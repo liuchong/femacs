@@ -41,7 +41,7 @@ import sys
 
 REPO = pathlib.Path(__file__).resolve().parent.parent
 REF = REPO / "emacs"
-PORT = REPO / "femacs"
+PORT = REPO
 REF_BUILD_LEIM = REPO / "build/emacs-ref/leim"
 DEFAULT_PROGRAM = REPO / "build/port/src/temacs"
 FALLBACK_PROGRAM = REPO / "build/port/src/emacs"
@@ -148,4 +148,7 @@ def main() -> int:
 
 
 if __name__ == "__main__":
+    if "--compare-reference" not in sys.argv:
+        raise SystemExit(subprocess.call([sys.executable, str(REPO / "tools/bootstrap-resources.py"), "--family", "ja-dic", *sys.argv[1:]]))
+    sys.argv.remove("--compare-reference")
     sys.exit(main())

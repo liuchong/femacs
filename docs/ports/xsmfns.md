@@ -5,7 +5,7 @@
 > takes nothing of C 25-581 and `docs/baseline/frozen-build-sources.txt` lists no `xsmfns.o`; the
 > checklist `tools/extract-abi.py` generates for the file is empty (P-86 ②), so this ledger carries
 > P-86 ②'s substitute - the **C line-range table**, the `## Evidence` readings and the
-> `## Deviations`.  The port is `femacs/src/xsmfns.rs`, **the whole file (C 1-581), 1,035 Rust
+> `## Deviations`.  The port is `src/xsmfns.rs`, **the whole file (C 1-581), 1,035 Rust
 > lines**, with both arms of every `#if` carried (P-86 ①: no stub, no empty unit).
 
 ## Gate mapping
@@ -18,8 +18,8 @@
 | C 474 `#ifdef USE_GTK` / C 478 `#else` (the one call pair) | `feature = "use_gtk"` / `not (feature = "use_gtk")` | one arm each |
 | C 527 `#if false` (inside the `DEFUN`) | **no gate**: dead in every configuration, recorded here and not transcribed (the `src/xfns.rs` 958 `#if false` precedent) | never |
 
-`have_x_sm` is **not yet registered** in `femacs/xtask/Cargo.toml`'s `[features]` table
-(`grep -c '^have_x_sm' femacs/xtask/Cargo.toml` -> 0) - `## Owed` 1.  A condition with no `#if`
+`have_x_sm` is **not yet registered** in `xtask/Cargo.toml`'s `[features]` table
+(`grep -c '^have_x_sm' xtask/Cargo.toml` -> 0) - `## Owed` 1.  A condition with no `#if`
 in this file still binds the port's gate set: the mirrors C 26-39 reach are themselves gated
 (`include/xlib.rs`'s `Display`/`Window`/`x11_constants` and `include/xterm.rs`'s fields are
 `have_x_windows`, `include/xterm.rs`'s `use_x_toolkit` fields are Xt-typed), so a
@@ -92,7 +92,7 @@ criterion).  **Three `build-tu` runs** (budget 3, at budget): the mid-round read
 revision, and the re-read after this file's last comment pass; all three are the same 336
 bytes/md5, because everything that changed in between is inside the gate.
 
-**The revision every reading above is of**: `femacs/src/xsmfns.rs`, md5
+**The revision every reading above is of**: `src/xsmfns.rs`, md5
 `db7b396794634e5efc0d48d3f4c83188`, 1,035 lines (the text `build-tu` run 3 and both final arm
 runs compiled).
 
@@ -159,14 +159,14 @@ the new row `error[E0308]: mismatched types` at the unit's own line.  "0 errors 
 therefore a real reading of this unit's text, not a name-resolution abort (P-86 ⑦'s criterion).
 
 **④ The acceptance gate readings (this round).**
-* `python3 tools/extract-abi.py --check emacs/src/xsmfns.c femacs/src/xsmfns.rs` -> **OK**
+* `python3 tools/extract-abi.py --check emacs/src/xsmfns.c src/xsmfns.rs` -> **OK**
   (the checklist is empty - P-86 ② - and the port's `no_mangle`/`DEFUN!`/`defsubr` names are all
   backed by the reference's *whole text*, which is what P-86's widening consults).
 * `python3 tools/check-declarations.py` -> `17 declaration sites (0 forbidden, 17 allowed
   literals), 0 failures`, and **this unit and this ledger contribute no site of any class** (the
   docstrings' bare-word program name is not one of the gate's patterns - the landed `callproc.rs`
   2337 keeps the same wording, `## Deviations` 19).  Mid-round the tree read `18 sites / 1
-  forbidden / 1 failure`, the row being `femacs/lib/file-has-acl.rs` - another lane's in-flight
+  forbidden / 1 failure`, the row being `lib/file-has-acl.rs` - another lane's in-flight
   file, which its own commit `2e53f40` then fixed.
 * `python3 tools/check-mirror-dupes.py` -> the same 17 duplicate/17 ratchet rows/0 failures as
   before this round (this unit's use-site declarations name nothing a mirror of its graph carries;
@@ -178,7 +178,7 @@ therefore a real reading of this unit's text, not a name-resolution abort (P-86 
   allowed, 1 stale`, and **this unit contributes 0 non-external findings** (one `lisp.h 30` cite
   paired a `` `strlen` `` with an include line during the round and was rewritten; the unit's own 8
   findings are all `external` - the X11/Xutil/Xatom headers this machine has, whose lines were
-  measured).  The round's 1 drift + 1 stale row are `femacs/src/include/dispextern.rs`'s alone,
+  measured).  The round's 1 drift + 1 stale row are `src/include/dispextern.rs`'s alone,
   which the same tool's per-file entry point proves mechanically (`findings_for` on that one file
   prints the drift, and its `:593` allowlist row matches nothing): commit `861cf20` inserted 83
   lines into that mirror and moved the citation from 593 to 600 without moving the row.
@@ -186,7 +186,7 @@ therefore a real reading of this unit's text, not a name-resolution abort (P-86 
 
 **⑤ The one gate reading this round that is *not* this file's** (recorded so the integrator does
 not attribute it here): `tools/check-citations.py`'s `1 drift` + `1 stale` row,
-`femacs/src/include/dispextern.rs:600` against the allowlist's `:593` entry - proven to come from
+`src/include/dispextern.rs:600` against the allowlist's `:593` entry - proven to come from
 that file alone (Evidence ④'s fourth bullet), i.e. from commit `861cf20`'s 83 inserted lines.
 
 ## Deviations
@@ -262,7 +262,7 @@ that file alone (Evidence ④'s fourth bullet), i.e. from commit `861cf20`'s 83 
 
 ## Owed by the integrator (nothing here is claimed as done)
 
-1. `femacs/xtask/Cargo.toml`'s `[features]` table must register `have_x_sm` (the name this unit's
+1. `xtask/Cargo.toml`'s `[features]` table must register `have_x_sm` (the name this unit's
    whole text hangs on; absent today), so P-51's `dead-arms` and `tools/feature-coverage.py` can
    see it.
 2. `docs/ports/line-drift-tolerance.tsv`'s `xsmfns` row (`0.99`, basis `total`, "C 582 vs the
@@ -271,7 +271,7 @@ that file alone (Evidence ④'s fourth bullet), i.e. from commit `861cf20`'s 83 
    *reason* and the tolerance must be re-derived from the landed text - tolerance rows are the
    integrator's file.
 3. `docs/baseline/port-lines-pending.tsv`'s `src/xsmfns.c` row (581/12, "known-unported target") and
-   `docs/port-map.md`'s `| `src/xsmfns.c` | 581 | `femacs/src/xsmfns.rs` | 12 |` row belong to
+   `docs/port-map.md`'s `| `src/xsmfns.c` | 581 | `src/xsmfns.rs` | 12 |` row belong to
    `tools/check-port-lines.py --write-pending` / `tools/gen-port-map.py`.
 4. The mirror gaps declared at the use site (P-55/P-72 ③; moving each is P-88 ⑤'s same-commit move
    and this lane may not write mirrors):
@@ -312,6 +312,6 @@ that file alone (Evidence ④'s fourth bullet), i.e. from commit `861cf20`'s 83 
 - **No differential or behavioural evidence** exists for this unit, and no C reference object exists
   to differ against on this target (the file is dead in the frozen configuration).
 - The mutation test (Evidence ③) proves the *reading*, not the port's fidelity: fidelity's own
-  evidence is the range table (coverage), the transcription in `femacs/src/xsmfns.rs` and review.
+  evidence is the range table (coverage), the transcription in `src/xsmfns.rs` and review.
 - The 12 `E0425` rows of arm B and the `E0080` row of both arms are **mirror-side / flip-side** and
   are named here, not fixed (P-39/P-88: this lane does not write mirrors).

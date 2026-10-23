@@ -193,7 +193,7 @@
 
 **STATE: COMPLETE.** 108/108 checklist functions, 52/52 subrs, all 5 macros, both types and
 all 11 file-scope objects are ported, and every box above is ticked.
-`python3 tools/extract-abi.py --check emacs/src/buffer.c femacs/src/buffer.rs` prints `OK`;
+`python3 tools/extract-abi.py --check emacs/src/buffer.c src/buffer.rs` prints `OK`;
 `build-tu src/buffer.c` prints `built`; the `--cfg enable_checking` compile of
 `build/femacs/units/buffer/_root.rs` exits 0; `check-globals.py` is green (the 16 `DEFVAR_*`
 carriers this unit owns are defined here, status 3.29); `check-undef.py` reports
@@ -255,7 +255,7 @@ own statements.
 
 ### Mirror change (step 9: "if you must edit a shared mirror, rebuild one other consumer")
 
-`femacs/src/include/buffer.rs` had to be edited once: 21 function declarations and four
+`src/include/buffer.rs` had to be edited once: 21 function declarations and four
 `static mut` objects it declared at crate root are **defined by this unit**, and a crate-root
 `unsafe extern "C"` item plus a same-named definition is `E0428` (measured with a 3-line
 rustc probe before the edit).  They moved into two modules plus glob imports, exactly the
@@ -271,8 +271,8 @@ rustc probe before the edit).  They moved into two modules plus glob imports, ex
 - `pub mod buffer_objs` + `use buffer_objs::*;`: `buffer_defaults`, `buffer_local_flags`,
   `buffer_local_symbols`, `Vbuffer_alist`.
 
-Size check: `femacs/src/include/buffer.rs` 1,987 → 2,000 lines (+13);
-`python3 tools/extract-abi.py --check emacs/src/buffer.h femacs/src/include/buffer.rs` still
+Size check: `src/include/buffer.rs` 1,987 → 2,000 lines (+13);
+`python3 tools/extract-abi.py --check emacs/src/buffer.h src/include/buffer.rs` still
 prints `OK`, and four consumers (`editfns`, `insdel`, `textprop`, `intervals`) plus
 `eval.rs` were rebuilt: all `built`.
 
@@ -355,7 +355,7 @@ Each carries C's own prototype in a `/// C:` line (the insdel.rs/terminal.rs sha
 
 ### Reported mirror gaps (nothing outside this unit was changed)
 
-- **`region-cache.h` has no mirror** (`femacs/src/include/region-cache.rs` does not exist; the
+- **`region-cache.h` has no mirror** (`src/include/region-cache.rs` does not exist; the
   file of that name is the *unit* for `src/region-cache.c`): this file's `#include` of it is
   replaced by `free_region_cache`'s use-site declaration above.
 - **`xwidget.h` has no mirror**: `kill_buffer_xwidgets` (xwidget.h 191's prototype and 239's
@@ -404,7 +404,7 @@ forces on `Lisp_Overlay.buffer`/`Lisp_Marker.buffer`/`build_marker`/`set_buffer_
    a real mirror defect; `Frestore_buffer_modified_p` reads `MODIFF` before the call to keep
    C's value.  One-line fix in the mirror, then this workaround can go.
 2. **`region-cache.h` has no mirror** — `free_region_cache` stays a use-site declaration until
-   someone writes `femacs/src/include/region-cache.rs`.
+   someone writes `src/include/region-cache.rs`.
 3. **`tools/check-undef.py`'s ratchet**: this unit's object now defines 120 of the names the
    ratchet listed as pending; `check-undef.py --write-pending` should be re-run at the batch
    boundary (it reports `0 new`, so nothing is a defect).

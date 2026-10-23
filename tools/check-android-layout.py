@@ -86,7 +86,7 @@ def measure(bindir, body, includes):
 def rust_assertions():
     """Every asserted size/offset in the port, as {(stem, field-or-None): value}."""
     found = []
-    for path in list((REPO / "femacs/src").rglob("*.rs")) + list((REPO / "femacs/lib").rglob("*.rs")):
+    for path in list((REPO / "src").rglob("*.rs")) + list((REPO / "lib").rglob("*.rs")):
         try:
             text = path.read_text()
         except UnicodeDecodeError:

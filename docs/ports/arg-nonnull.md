@@ -38,8 +38,8 @@
 
 ## Evidence
 
-- `python3 tools/extract-abi.py --check emacs/lib/arg-nonnull.h femacs/lib/include/arg-nonnull.rs`
-  → `OK emacs/lib/arg-nonnull.h -> femacs/lib/include/arg-nonnull.rs` (0 problem lines).
+- `python3 tools/extract-abi.py --check emacs/lib/arg-nonnull.h lib/include/arg-nonnull.rs`
+  → `OK emacs/lib/arg-nonnull.h -> lib/include/arg-nonnull.rs` (0 problem lines).
 - `python3 tools/check-cond-eval.py lib/arg-nonnull.h`
   → `2 conditions, 0 unknown to the evaluator, 0 disagreements`.
 - `python3 tools/extract-abi.py lib/arg-nonnull.h` → this ledger: 0 functions, 0 macros to mirror

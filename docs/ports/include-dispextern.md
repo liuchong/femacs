@@ -187,7 +187,7 @@ carried (besides `struct glyph_string`, `struct image` and `struct face`'s windo
 The extractor's *only* unchecked box is `NativeRectangle`, whose deferral is an
 `excluded-macros.txt` row (3.224) rather than missing work; the remaining content is the
 deferred-branch set, which `--check` leaves out (`OK emacs/src/dispextern.h ->
-femacs/src/include/dispextern.rs`).  A struct lands when the unit that needs its *layout* does
+src/include/dispextern.rs`).  A struct lands when the unit that needs its *layout* does
 (`xtask layout-asserts` must be able to assert it: a type joins `tools/gen-layout-fields.py`'s
 `STRUCTS` together with its mirror, since a key whose type is missing counts as pending and the
 ratchet only shrinks pending) - or, for a record that exists only in a window-system arm, with
@@ -204,7 +204,7 @@ configuration measures.  The two arms are 8 and 16 bytes, which is why `struct M
 (two of them) is 32 bytes in the x11 arm and 48 in `ns_cocoa`
 (`spikes/gated-layout-probe.py 'struct MonitorInfo' frame.h`, `docs/ports/xterm.md`
 Decision 16).  `python3 tools/extract-abi.py --check emacs/src/dispextern.h
-femacs/src/include/dispextern.rs` is OK with both arms present.
+src/include/dispextern.rs` is OK with both arms present.
 
 ### Deviations (recorded, not missing work)
 
@@ -292,7 +292,7 @@ femacs/src/include/dispextern.rs` is OK with both arms present.
   declaration would collide with a defining unit (PORTING.md 0.1-10) - the module + glob
   import pattern is available if the integrator wants one landing point for it.
 - Evidence: `python3 tools/extract-abi.py --check emacs/src/dispextern.h
-  femacs/src/include/dispextern.rs` reports 141 problems against 153 before the change
+  src/include/dispextern.rs` reports 141 problems against 153 before the change
   (none of them these twelve), and `build-tu src/dispnew.c`, `src/menu.c`, `src/window.c`
   and their 41 siblings that include window.rs all report `built`.
 
@@ -314,7 +314,7 @@ femacs/src/include/dispextern.rs` is OK with both arms present.
   1176), `s->first_glyph->type` (1161) and `s->first_glyph[i].u.ch` (1720) - the Swift lane's
   `nsfont_draw` (1151) and `ns_dump_glyphstring` (1711) are the immediate consumer - and the X,
   W32 and pgtk backends read the same members.  The alternative (an opaque placeholder such as
-  `femacs/src/font.rs` 739's `pub struct glyph_string;`) was rejected by the integrator, and
+  `src/font.rs` 739's `pub struct glyph_string;`) was rejected by the integrator, and
   this is the record's owner: `dispextern.h` is where C defines it.
 - **Field types: named where an owner mirror exists *in this header's include graph*,
   `*mut c_void` + `/// C:` where not.**
@@ -371,12 +371,12 @@ femacs/src/include/dispextern.rs` is OK with both arms present.
   the X/XRectangle and Haiku paths (the array is 16 bytes there, 8 here).
 - **The four `OVERLAPS_*` macros (C 1445-1448) are carried under the same feature.**  They are
   written inside the record's body in C but are macros in its sense (visible to every unit that
-  compiles the arm).  `femacs/src/dispnew.rs` 3646-3647 carries `OVERLAPS_PRED`/`OVERLAPS_SUCC`
+  compiles the arm).  `src/dispnew.rs` 3646-3647 carries `OVERLAPS_PRED`/`OVERLAPS_SUCC`
   as *live* copies of its own, because the frozen configuration has none - that is a use-site
   copy to retire when the window-system target is frozen (the `struct font` precedent, status
   3.158), not a collision today (`dispnew.rs`'s copies are live, this pair is `cfg`'d out).
 - **Two more use-site copies this record's landing creates a claim on** (reported, not edited -
-  they live in other lanes' files): `femacs/src/font.rs` 739 declares
+  they live in other lanes' files): `src/font.rs` 739 declares
   `pub struct glyph_string;` as an opaque placeholder for `font.h` 693's
   `font_driver.draw` (that field is already `#[cfg (feature = "have_window_system")]`, font.rs 283),
   so a window-system build now needs that placeholder retired; and `include/nsgui.rs`,
@@ -387,7 +387,7 @@ femacs/src/include/dispextern.rs` is OK with both arms present.
 
 ## Evidence
 
-- `python3 tools/extract-abi.py --check emacs/src/dispextern.h femacs/src/include/dispextern.rs`
+- `python3 tools/extract-abi.py --check emacs/src/dispextern.h src/include/dispextern.rs`
   -> **142 problem lines both before and after the addition, byte-identical lists** (`diff` of
   the two runs is empty).  The mirror is a WIP slice - its ledger still has 78 unchecked boxes -
   and the 142 lines are the not-yet-mirrored *live* text of this header: 43 missing macros, 76
@@ -402,7 +402,7 @@ femacs/src/include/dispextern.rs` is OK with both arms present.
   declares stubs for the four owner records and for lisp.h's/character.h's names this mirror's
   live text uses - `EMACS_INT`, `intmax_t`, `MAX_CHAR`, `CHARACTERBITS`, `EMACS_INT_MAX`,
   `CONSP`, `XCAR`, `XCDR`, `XFIXNUM`, `RANGED_FIXNUMP`, `CHARACTERP`, `CHAR_VALID_P` - then
-  `include!`s the real `femacs/src/include/dispextern.rs`):
+  `include!`s the real `src/include/dispextern.rs`):
   `rustc --edition 2024 --crate-type lib --emit metadata --cfg 'feature = "have_window_system"'
   /tmp/gstr_feature_probe.rs` -> exit 0, 0 warnings; the probe calls
   `glyph_string_bits! (padding_p, *s, true)` and `size_of::<glyph_string> ()`, so the record's
@@ -424,7 +424,7 @@ femacs/src/include/dispextern.rs` is OK with both arms present.
   `check-target-names` 595 `.rs` / 593 map targets / 0 findings.
 - Same round, `src/sfnt.h`: the placeholder `macro_rules! PROTOTYPE` the previous round added is
   deleted now that `docs/ports/excluded-macros.txt` 152 carries the row; `--check
-  emacs/src/sfnt.h femacs/src/include/sfnt.rs` prints `OK` and `(1 C macros have a recorded Rust
+  emacs/src/sfnt.h src/include/sfnt.rs` prints `OK` and `(1 C macros have a recorded Rust
   counterpart: PROTOTYPE)`.
 
 ## Decisions (the two records `frame.h` was waiting for)
@@ -464,7 +464,7 @@ femacs/src/include/dispextern.rs` is OK with both arms present.
   touch two lanes' in-flight files (`src/xdisp.rs`, `src/font.rs`) and downgrade their *typed*
   accessors to casts.  The ruling is therefore the cheap arm that keeps C's text present: this
   copy is gated `#[cfg (feature = "dispextern_face_records")]` (a row in
-  `femacs/xtask/Cargo.toml`, so `xtask dead-arms`/`gate-probes` compiles it when the feature is
+  `xtask/Cargo.toml`, so `xtask dead-arms`/`gate-probes` compiles it when the feature is
   flipped), it is field-for-field the copy `src/xfaces.rs` 279-345 asserts, and the units' typed
   copies stay live.  The alternative and its measured cost are in the mirror's own comment too,
   so a later round can take it deliberately.  The two `*mut c_void` members (`face.font`,
@@ -484,7 +484,7 @@ femacs/src/include/dispextern.rs` is OK with both arms present.
   `src/dispextern.h: 71 conditions, 0 unknown, 0 disagreements [VERIFIED]`, so the extractor
   resolves the arms against the frozen table and every item it lists is *live* text.
 - **`--check`**: `python3 tools/extract-abi.py --check emacs/src/dispextern.h
-  femacs/src/include/dispextern.rs` -> `FAIL`, **142** `- ` lines, unchanged by this slice, and
+  src/include/dispextern.rs` -> `FAIL`, **142** `- ` lines, unchanged by this slice, and
   `grep -c '^- '` before and after the two records is the same `142` with *no* line added or
   removed (`diff` of the two sorted lists is empty); the deferral line on stderr went from seven
   names to five (`bidi_it composition_it draw_fringe_bitmap_params it redisplay_interface`).
@@ -497,7 +497,7 @@ femacs/src/include/dispextern.rs` is OK with both arms present.
   layout-check` -> the run **immediately after landing the two records** printed
   `layout probe ok` / `layout-check passed` (that is this mirror's compile evidence for them);
   at the end of the round the same command is **red, and every diagnostic is in another lane's
-  in-flight `femacs/src/include/xterm.rs`** (`expected identifier, found keyword `use`` at 272,
+  in-flight `src/include/xterm.rs`** (`expected identifier, found keyword `use`` at 272,
   `expected `mut` or `const` keyword in raw pointer type` at 1263-1265) - no diagnostic names
   `dispextern.rs`, and I did not touch that file (the `ftfont.rs` precedent of status 3.181).
 - **The units' `build-tu` after the last edit**: `src/character.c` -> `built src/character.rs ->
@@ -525,7 +525,7 @@ femacs/src/include/dispextern.rs` is OK with both arms present.
   module placement in the `xstrcasecmp` entry below.
 - **The slice is defined by a measurement, not by taste: an item is landable here exactly when no
   unit already declares it.**  Matching every one of the round's 105 `- missing …` names against a
-  declaration in `femacs/src/*.rs` + `femacs/lib/*.rs` (the `fn`/`const`/`static`/`type`/
+  declaration in `src/*.rs` + `lib/*.rs` (the `fn`/`const`/`static`/`type`/
   `macro_rules!`/`mod` forms, one match per name per file) splits them 102 / 2 / 1: **102 names are
   declared by a unit** (listed by owner in the Evidence), so landing them here is `E0428` in that
   unit - the collision status 3.220 ruled on for the two face records - and `NativeRectangle` is
@@ -575,10 +575,10 @@ femacs/src/include/dispextern.rs` is OK with both arms present.
 ## Evidence (the freely landable remainder)
 
 - **`--check`, measured against the committed mirror and the working tree**: `git show
-  HEAD:femacs/src/include/dispextern.rs > /tmp/dxhead/dispextern.rs` then
+  HEAD:src/include/dispextern.rs > /tmp/dxhead/dispextern.rs` then
   `python3 tools/extract-abi.py --check emacs/src/dispextern.h /tmp/dxhead/dispextern.rs` ->
   `FAIL`, `grep -c '^- '` **142** (140 `missing` + the two `GLYPH_CHAR`/`GLYPH_FACE` token lines);
-  the same command on `femacs/src/include/dispextern.rs` -> `FAIL`, `grep -c '^- '` **106**
+  the same command on `src/include/dispextern.rs` -> `FAIL`, `grep -c '^- '` **106**
   (105 `missing` = 4 functions + 23 macros + 65 constants + 13 objects, plus one token line,
   `macro IF_DEBUG does not mention 0 (C body: ((void) 0))`).  `diff` of the two sorted lists: 37
   lines gone (the 29 landed items - the `DEFAULT_*`/`TOOL_BAR_IMAGE_*` ones twice each - plus
@@ -668,7 +668,7 @@ free         (1): NativeRectangle
   left open for names of this class, this is the one `xstrcasecmp` already uses (3.224), and it is
   preferred over a `#[cfg (feature = …)]` arm here because
   * it needs no shared row: status 3.187 requires a `--cfg` producer for a feature name, and
-    `femacs/xtask/Cargo.toml` plus the FLIPS rows are the integrator's; one feature for the whole
+    `xtask/Cargo.toml` plus the FLIPS rows are the integrator's; one feature for the whole
     class would still leave 87 names invisible to every ordinary build;
   * a module's contents are *compiled* by every unit that includes this mirror and by
     `layout-check`, so C's constants, signatures and bodies are type-checked in the normal build,
@@ -703,7 +703,7 @@ free         (1): NativeRectangle
 - **The arm's own compile coverage is a gap this round measured, and it is the integrator's to
   close.**  `xtask`'s `dead_arms()` flips exactly the six rows of its `FLIPS` array, and
   `dispextern_face_records` is not one of them; that feature name appears in the tree only in
-  `femacs/xtask/Cargo.toml` 61 and in this mirror, no `spikes/*.sh` names it, and `dead_arms()`
+  `xtask/Cargo.toml` 61 and in this mirror, no `spikes/*.sh` names it, and `dead_arms()`
   refuses a row whose config key is absent ("config.rs has no {key} to flip"), so closing it needs
   either a FLIPS row with a real config constant or a `key.is_empty()` skip in that loop.  Until
   then the two records and `FACE_FOR_CHAR` are text no compiler sees - the 86 ungated names of the
@@ -729,7 +729,7 @@ free         (1): NativeRectangle
   needs only a go-ahead, not a unit edit.
 - **The five records stay for the next round** (`bidi_it`, `composition_it`,
   `draw_fringe_bitmap_params`, `it`, `redisplay_interface`): status 3.220 assigned them the flip
-  arm, and each arm needs a row in `femacs/xtask/Cargo.toml` (the integrator's file).  All five
+  arm, and each arm needs a row in `xtask/Cargo.toml` (the integrator's file).  All five
   are unit-owned as well (`src/bidi.rs` 86, `src/dispnew.rs` 6828/6855/3569, `src/indent.rs` 180,
   `src/minibuf.rs` 666).
 - **Nine stale boxes were ticked** - `GLYPH_CODE_P`, `CHECK_MATRIX`, `DISPEXTERN_H_INCLUDED`,
@@ -744,7 +744,7 @@ free         (1): NativeRectangle
 ## Evidence (the unit-owned names)
 
 - **`--check` before and after**: `python3 tools/extract-abi.py --check emacs/src/dispextern.h
-  femacs/src/include/dispextern.rs` -> `grep -c '^- '` went **104 -> 16**; the 16 are the 15
+  src/include/dispextern.rs` -> `grep -c '^- '` went **104 -> 16**; the 16 are the 15
   `missing` names of the deferred list above plus one token line, `macro
   SET_GLYPH_FROM_GLYPH_CODE does not mention false (C body: do { if (CONSP (gc)) SET_GLYPH (glyph,
   XFIXNUM (XCAR (gc)), …)`.  `comm -23`/`comm -13` of the two sorted `- ` lists: **89 lines gone,
@@ -820,7 +820,7 @@ free         (1): NativeRectangle
   absent from `config.rs`.  The probe is the one `xtask` itself uses (a first-reach-wins expansion
   of the include graph, so nested duplicates are include-guard no-ops) over `config.rs` +
   `lisp.rs` (with its own includes) + `character.rs` + `systime.rs` + `dispextern.rs`, compiled with
-  `--cfg 'feature="dispextern_face_records"'`.  **It must be compiled from `femacs/`**, the cwd
+  `--cfg 'feature="dispextern_face_records"'`.  **It must be compiled from ``**, the cwd
   `layout_check` uses: from the repository root the same expanded root fails with `c_variadic`
   E0658s in `lisp.rs`/`jni.rs`, which is a probe-invocation artifact, not a defect of the arm.
 
@@ -835,11 +835,11 @@ free         (1): NativeRectangle
   `it.bits2 2216`, `it.bits3 2604`, `nonzero byte 2614 = 10` for `bidi_p`, and the fringe run
   `2604:34 12 2606:78 56 2608:de bc 0a 00 2612:45 23 11 00`.
 - **`--check`**: `python3 tools/extract-abi.py --check emacs/src/dispextern.h
-  femacs/src/include/dispextern.rs` -> `OK emacs/src/dispextern.h -> femacs/src/include/dispextern.rs`,
+  src/include/dispextern.rs` -> `OK emacs/src/dispextern.h -> src/include/dispextern.rs`,
   `grep -c '^- '` = **0** (from 15 at the start of the round; the three `false`/do-while rows in
   `macro-body-notes.tsv` 1243-1245, which the integrator wrote, retired the last three lines).
 - **The arm's own compile** (the flip no gate performs): the `/tmp` probe above, compiled from
-  `femacs/` with `--cfg 'feature="dispextern_face_records"'` -> exit 0, `records probe ok`; the
+  `` with `--cfg 'feature="dispextern_face_records"'` -> exit 0, `records probe ok`; the
   compile is what evaluates the 180 `const _: () = assert! (…)` lines, so every measured offset
   holds in the port too.
 - **`layout-check`** (the arm is off there, so it is the ungated text that is checked):
@@ -939,7 +939,7 @@ Evidence: `build-tu src/xfaces.c` and `src/dispnew.c` exit 0; `xtask layout-chec
   `background_transparent_valid` - one set of shifts, and the NS arm's three rows are what
   answered the count question.
 - **The reduced probe** (the mirror's own `struct image` text, cut from
-  `femacs/src/include/dispextern.rs`, with `struct timespec` from `lib/include/time.in.rs` and
+  `src/include/dispextern.rs`, with `struct timespec` from `lib/include/time.in.rs` and
   the four scalar aliases; `rustup run nightly-2026-10-01 rustc --edition 2024 --crate-type lib
   -C panic=abort --cfg 'feature="have_window_system"' …` -> **exit 0** with 35 `const _`
   assertions, `sizeof 240`/`align 8` and every `ns_cocoa` offset above; the same probe with
@@ -952,8 +952,8 @@ Evidence: `build-tu src/xfaces.c` and `src/dispnew.c` exit 0; `xtask layout-chec
 - **`build-tu`**: `src/xfaces.c` -> `built src/xfaces.rs -> ../build/femacs/xfaces.o`;
   `src/dispnew.c` -> `built src/dispnew.rs -> ../build/femacs/dispnew.o`.
 - **The other gates**: `python3 tools/extract-abi.py --check emacs/src/dispextern.h
-  femacs/src/include/dispextern.rs` -> `OK emacs/src/dispextern.h ->
-  femacs/src/include/dispextern.rs` (the type is in the extractor's *deferred* set, so the
+  src/include/dispextern.rs` -> `OK emacs/src/dispextern.h ->
+  src/include/dispextern.rs` (the type is in the extractor's *deferred* set, so the
   verdict is unchanged) and `grep -c '^- '` still 0; `python3 tools/check-cond-eval.py
   src/dispextern.h` -> `71 conditions, 0 unknown, 0 disagreements [VERIFIED]`;
   `python3 tools/check-declarations.py` -> `13 declaration sites (0 forbidden, 13 allowed
@@ -993,11 +993,11 @@ Evidence: `build-tu src/xfaces.c` and `src/dispnew.c` exit 0; `xtask layout-chec
   reduced-probe substitute `struct image` used.
 - **The frozen gates**: `xtask layout-check` -> `layout-check passed`; `build-tu src/xfaces.c`,
   `src/dispnew.c`, `src/window.c` -> `built …`; `python3 tools/extract-abi.py --check
-  emacs/src/dispextern.h femacs/src/include/dispextern.rs` -> `OK …`.
+  emacs/src/dispextern.h src/include/dispextern.rs` -> `OK …`.
 
 ## Decisions (the "whole type gated" sweep, status 3.278 ④)
 
-**The candidate rule.**  Mirrored struct names were collected from *every* `femacs/**/*.rs` (not
+**The candidate rule.**  Mirrored struct names were collected from *every* `**/*.rs` (not
 just `src/include`+`lib/include`, which missed e.g. `lib/malloc/include/dynarray.rs`); the C side
 is every `struct NAME {` definition that sits inside a `#if`/`#ifdef`/`#ifndef` region in
 `emacs/{src,lib,nt,oldXMenu,lwlib,lib-src,exec}/**/*.h` whose name no mirror declares.  Each
@@ -1044,7 +1044,7 @@ record that):
   already carried *as a marker* by `lib/include/time.in.rs` (`GNULIB_defined_struct_time_t_must_be_integral`
   plus the comment: its only member is a one-bit bitfield, and `time_t = i64` satisfies it by
   construction).
-- `Lisp_TS_Query` (treesit.h 155) is declared by a **unit**, `femacs/src/pdumper.rs` 2527, so the
+- `Lisp_TS_Query` (treesit.h 155) is declared by a **unit**, `src/pdumper.rs` 2527, so the
   mirror owes nothing.
 
 **`struct pgtk_output`'s verdict: defer, with a reason, not silently.**  Three facts together:
@@ -1079,13 +1079,13 @@ with `include-treesit.md` recording it.
 - **The frozen gates**: `xtask layout-check` -> `layout-check passed (see
   build/femacs/layout_asserts.rs)`; `build-tu src/xfaces.c` / `src/dispnew.c` / `src/window.c` ->
   `built …`; `python3 tools/extract-abi.py --check emacs/src/dispextern.h
-  femacs/src/include/dispextern.rs` -> `OK …` (the three names are in the extractor's deferred
+  src/include/dispextern.rs` -> `OK …` (the three names are in the extractor's deferred
   set); `check-cond-eval.py src/dispextern.h` -> `71 conditions, 0 unknown, 0 disagreements`;
   `check-declarations.py` -> `13 declaration sites (0 forbidden, 13 allowed literals), 0
   failures`; `check-mirror-dupes.py` -> `1 duplicate declaration(s), 1 ratchet row(s), 0
   failure(s)`.
 - **One shared-table row needs the integrator**: `docs/baseline/citations-allowlist.tsv` line 37
-  keys `femacs/src/include/dispextern.rs:544`; this batch's `gui_box` insertion moved that
+  keys `src/include/dispextern.rs:544`; this batch's `gui_box` insertion moved that
   citation to line **567**, so `check-citations` now reports the same finding twice - a `drift` at
   `:567` and a `stale` allowlist row at `:544`.  Retargeting the row's line number (544 -> 567)
   is a one-field edit in a shared table, so it is reported rather than made here.
@@ -1130,8 +1130,8 @@ with `include-treesit.md` recording it.
   src/androidmenu.c` -> `built src/androidmenu.rs -> ../build/femacs/androidmenu.o`, 336 bytes;
   that compile *is* the no-`have_android` combination, and it is unchanged.
 - `python3 tools/extract-abi.py --check emacs/src/dispextern.h
-  femacs/src/include/dispextern.rs` -> `OK emacs/src/dispextern.h ->
-  femacs/src/include/dispextern.rs`.
+  src/include/dispextern.rs` -> `OK emacs/src/dispextern.h ->
+  src/include/dispextern.rs`.
 - `python3 tools/check-citations.py` -> `675 file(s) scanned, 0 drift, 0 range, 351 external,
   33 allowed, 0 stale`.
 
@@ -1186,12 +1186,12 @@ not have; P-87 3):
 
 **Not landed, and why (each a named item).**
 
-- `check_x_display_info` (C 3993): `femacs/src/frame.rs` 6155-6156 declares it at its crate root,
-  so a declaration here makes `tools/check-mirror-dupes.py` fail (`FAIL femacs/src/frame.rs:
-  check_x_display_info is already declared by femacs/src/include/dispextern.rs (in the include
+- `check_x_display_info` (C 3993): `src/frame.rs` 6155-6156 declares it at its crate root,
+  so a declaration here makes `tools/check-mirror-dupes.py` fail (`FAIL src/frame.rs:
+  check_x_display_info is already declared by src/include/dispextern.rs (in the include
   graph)` - measured).  It lands with the commit that deletes that copy and adds the ratchet row;
   `docs/ports/w32fns.md` owed 9 stays owed.
-- C 169-172's `#include "fontset.h"`: `femacs/src/font.rs` 362/448/450/5027 declares four of
+- C 169-172's `#include "fontset.h"`: `src/font.rs` 362/448/450/5027 declares four of
   `fontset.rs`'s names at its own crate root (`face_for_char`, `fs_query_fontset`,
   `fontset_ascii`, `font_for_char`), so the edge would be four `E0428`s in that unit until they
   retire - and the units that need the names already carry the include themselves
@@ -1200,8 +1200,8 @@ not have; P-87 3):
 
 **Evidence.**
 
-- `python3 tools/extract-abi.py --check emacs/src/dispextern.h femacs/src/include/dispextern.rs`
-  -> `OK emacs/src/dispextern.h -> femacs/src/include/dispextern.rs`.
+- `python3 tools/extract-abi.py --check emacs/src/dispextern.h src/include/dispextern.rs`
+  -> `OK emacs/src/dispextern.h -> src/include/dispextern.rs`.
 - `python3 tools/check-mirror-dupes.py` -> `18 duplicate declaration(s), 18 ratchet row(s),
   0 failure(s)`.
 - `python3 tools/check-citations.py` -> `0 drift`, `0 stale` (`docs/baseline/
@@ -1260,13 +1260,13 @@ the commit that deletes those copies and adds the ratchet rows
 `docs/baseline/mirror-dupes.tsv` needs - both outside this lane's writable set.  Recorded in the
 mirror at the four names' position.
 
-**Evidence.**  `extract-abi --check emacs/src/dispextern.h femacs/src/include/dispextern.rs` ->
+**Evidence.**  `extract-abi --check emacs/src/dispextern.h src/include/dispextern.rs` ->
 `OK`; `xtask layout-check` passed (the two new prototypes' `have_window_system` gate is what keeps
 `struct glyph_string` from being named in a crate that has not got it - the ungated first draft
 read `E0425: cannot find type glyph_string` in the `have_ntgui` probe); `check-citations` 0 drift;
 `check-declarations` 13 sites / 0 forbidden; `check-mirror-dupes` 18 ratchet rows / 0 failure;
 `check-all-units.sh` 83/0 both legs.  `check_x_display_info` (C 3993) stays **not** declared: the
-note at its position records the same measurement for it (`FAIL femacs/src/frame.rs`).
+note at its position records the same measurement for it (`FAIL src/frame.rs`).
 
 ### status 3.496 (the mirror round this file took part in)
 
@@ -1362,7 +1362,7 @@ this configuration - and the port spelled the two values as `1 << 0` / `1 << 1`:
 list wants (`2`).  The fix is the three literals written as C writes them (`0x01`, `0x02`, with the
 note at the item saying why), and nothing else: the item's gate, the `ANDROID_GC_*`/`<X11/X.h>`
 split the note describes, and `NativeRectangle`'s deferral are unchanged.  Readings:
-`python3 tools/extract-abi.py --check emacs/src/dispextern.h femacs/src/include/dispextern.rs` ->
+`python3 tools/extract-abi.py --check emacs/src/dispextern.h src/include/dispextern.rs` ->
 **`OK`, 0 rows** (3 before); because a mirror changed, P-87's two legs were run -
 `CARGO_TARGET_DIR=/tmp/sweep tools/check-all-units.sh` -> **`checked 83 unit(s), 0 failure(s)`** and
 **`checking 83 unit(s), 0 unit failure(s)`** - and `cargo run -q -p xtask -- layout-check` ->
@@ -1429,6 +1429,6 @@ import (`P-39`'s shape), and the 100 use-site copies are withdrawn.
 - `python3 tools/check-mirror-dupes.py` -> `16 duplicate declaration(s), 16 ratchet row(s), 0
   failure(s)` - the 100 new hits are gone, not ratcheted.
 - The declaration gap this file's C leaves, re-measured after the move (method: compare `emacs/src/
-  *.h` declaration names against `femacs/src/include/*.rs`, then look for the name in the tree):
+  *.h` declaration names against `src/include/*.rs`, then look for the name in the tree):
   **1,033 -> 987** not in their own mirror; 966 of them are declared elsewhere in the tree and 21
   appear nowhere (all C-side stale declarations or dead branches).

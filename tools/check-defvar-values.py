@@ -53,7 +53,7 @@ def syms_of_bodies(ctext: str) -> str:
 def candidates() -> list[str]:
     """The Lisp names C initialises in `syms_of_*` but the port never assigns in its own file."""
     names = set()
-    for rs in sorted((REPO / "femacs/src").glob("*.rs")):
+    for rs in sorted((REPO / "src").glob("*.rs")):
         c = REPO / "emacs/src" / (rs.stem + ".c")
         if not c.is_file():
             continue

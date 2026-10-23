@@ -14,14 +14,14 @@
 
 ## Decisions
 
-`emacs/src/systhread.h` @ `fd7afced403`; port `femacs/src/include/systhread.rs`; the gate is
-`python3 tools/extract-abi.py --check emacs/src/systhread.h femacs/src/include/systhread.rs`
+`emacs/src/systhread.h` @ `fd7afced403`; port `src/include/systhread.rs`; the gate is
+`python3 tools/extract-abi.py --check emacs/src/systhread.h src/include/systhread.rs`
 -> `OK` (the header carries no function definitions, so the checker's inventory is the guard
 macro alone; the types are compared through the unit that uses them).
 
 - **Which arm is live.**  `THREADS_ENABLED` is `undef` (the frozen table 3678), so C 130-137's
   `#else` arm is the text: `typedef int sys_mutex_t/sys_cond_t/sys_thread_t` - and that is what
-  `femacs/src/systhread.rs` compiles against, including `sys_thread_self`'s `return 0` and
+  `src/systhread.rs` compiles against, including `sys_thread_self`'s `return 0` and
   `sys_thread_create`'s `false`.
 - **C 24-128 is transcribed now** (status 3.491): both `THREADS_ENABLED` arms and the `#error
   port me` fallback are carried under the lower-cased feature of the macro their own `#if` tests

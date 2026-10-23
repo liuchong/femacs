@@ -44,5 +44,5 @@ mirror keeps `bits: u8` with the bit masks and the `exec_tracee_bits!` accessor 
 Nothing compiles the mirror: `xtask layout-check` covers `src/include` and `lib/include`, and
 the reference build reaches no `exec/` rule.
 
-Evidence: `python3 tools/extract-abi.py --check emacs/exec/exec.h femacs/exec/include/exec.rs`
+Evidence: `python3 tools/extract-abi.py --check emacs/exec/exec.h exec/include/exec.rs`
 -> `OK` (8 ledger items).

@@ -5,11 +5,11 @@
 > (3019-3030) whose 3024 `AC_DEFINE`s `HAVE_NTGUI` — and `docs/baseline/frozen-build-sources.txt`
 > lists no `w32inevt.o` for this target, so `tools/extract-abi.py`'s checklist for the file is empty
 > (P-86 ②) and this ledger is that clause's substitute: the **C line-range table**, the
-> `## Evidence` readings and the `## Deviations`.  Port: `femacs/src/w32inevt.rs` (**1493 lines**,
+> `## Evidence` readings and the `## Deviations`.  Port: `src/w32inevt.rs` (**1493 lines**,
 > md5 `1ae106d3cc5f06097ffb003bdd77c4df`), carrying **C 1-862 with both arms of every `#if`**.  The
 > reference `emacs/src/w32inevt.c` is md5 `faa680644b22c03590fdf67e6a126906` (unchanged; `emacs/` is
 > read-only) and its `docs/port-map.md` 577 row pairs `src/w32inevt.c` 862 with
-> `femacs/src/w32inevt.rs` (the port's own count in that table is the integrator's regeneration —
+> `src/w32inevt.rs` (the port's own count in that table is the integrator's regeneration —
 > Owed 7).
 >
 > **This ledger replaces the reading it inherits.**  The previous `docs/ports/w32inevt.md` (and the
@@ -88,11 +88,11 @@ same reason).  The "C" column is `src/w32inevt.c`'s numbering; the header's 32 l
 | 741-772 | the console-input overview comment | carried as C's own comment |
 | 773-862 | `w32_console_read_socket` | file gate; C 810-847's `switch` is a `match` (Deviations 5) |
 
-## Evidence` readings and the `## Deviations`.  Port: `femacs/src/w32inevt.rs` (**1493 lines**,
+## Evidence` readings and the `## Deviations`.  Port: `src/w32inevt.rs` (**1493 lines**,
 > md5 `1ae106d3cc5f06097ffb003bdd77c4df`), carrying **C 1-862 with both arms of every `#if`**.  The
 > reference `emacs/src/w32inevt.c` is md5 `faa680644b22c03590fdf67e6a126906` (unchanged; `emacs/` is
 > read-only) and its `docs/port-map.md` 577 row pairs `src/w32inevt.c` 862 with
-> `femacs/src/w32inevt.rs` (the port's own count in that table is the integrator's regeneration —
+> `src/w32inevt.rs` (the port's own count in that table is the integrator's regeneration —
 > Owed 7).
 >
 > **This ledger replaces the reading it inherits.**  The previous `docs/ports/w32inevt.md` (and the
@@ -219,7 +219,7 @@ rather than a phase that never ran (P-86 ⑦'s trap).
 *(b) A mutation test on the materialized text.*  `build/femacs/units/w32inevt/` (from `build-tu`)
 was copied to `/tmp/w32i-lane/base` and `/tmp/w32i-lane/mut`, and one line was injected at the top of
 `key_event`'s body in the copy: `let _mutant: c_int = "w32inevt_arm_probe_no_such_type";`.  Both
-copies were compiled with the **pinned toolchain** (`femacs/rust-toolchain.toml` →
+copies were compiled with the **pinned toolchain** (`rust-toolchain.toml` →
 `nightly-2026-10-01-aarch64-apple-darwin`) and the same four `rustc` flags as the door (edition
 2024, `-O`, `--crate-type=lib`, `-C panic=abort`) under the three cfgs: **base 9 errors / 30
 warnings**, **mutant 10 errors / 30 warnings**, the extra one `E0308 mismatched types` anchored at
@@ -233,7 +233,7 @@ nightly, which is the reading the tables above quote.)*
 why the frozen macro table decides this file's arms and why C 644's `#else` is the frozen one.
 
 **⑤ The text gates.**  `python3 tools/extract-abi.py --check emacs/src/w32inevt.c
-femacs/src/w32inevt.rs` → **one** finding and no other: `line count drifted 73.2%: C 862 vs Rust
+src/w32inevt.rs` → **one** finding and no other: `line count drifted 73.2%: C 862 vs Rust
 1493`.  The three findings the first run carried were the three `switch`-body token rows of
 `docs/ports/macro-body-notes.tsv` this round appended (Deviations 5 records why; the file is
 append-only).  `python3 tools/check-declarations.py` → `0 failures` (17 allowed literals);

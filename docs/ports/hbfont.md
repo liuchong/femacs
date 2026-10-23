@@ -12,17 +12,17 @@ check here).
   records `HAVE_HARFBUZZ	undef`, and `docs/baseline/frozen-build-sources.txt` lists no
   `src/hbfont.c`.  The frozen configuration therefore compiles nothing from this file and this
   target's `build-tu` object is the 336-byte empty one (Evidence ①).  The name is registered
-  (`femacs/xtask/Cargo.toml` 112 as `harfbuzz = []  # HAVE_HARFBUZZ`,
+  (`xtask/Cargo.toml` 112 as `harfbuzz = []  # HAVE_HARFBUZZ`,
   `docs/baseline/feature-coverage.tsv` 22), so nothing has to be added for the port to be gated;
   the gate goes on every item *and* on C 20-29's include graph (P-86 ⑧).
 - **Both arms of every `#if` are carried.**  C 31's `#ifdef HAVE_NTGUI` arm is
-  `feature = "have_ntgui"` (the C macro's literal spelling, `femacs/xtask/Cargo.toml` 230), nested
+  `feature = "have_ntgui"` (the C macro's literal spelling, `xtask/Cargo.toml` 230), nested
   inside the file gate; `HAVE_NTGUI` is `undef` here and this machine has no Windows cross
   toolchain, so that arm's evidence is `text-only` (P-86 ③⑵).  C 458-460's `#if 0` block is dead
   text in every configuration and is carried as a comment.  C 87-114's 28 object-like `#define`s
   (`hb_x` -> `fn_hb_x`) have no Rust counterpart, so every call site of the body is spelled the way
   C's preprocessor leaves it - `fn_<func> (…)` under `have_ntgui`, the plain name otherwise (the
-  `femacs/src/gnutls.rs` 1206-1210 shape, `femacs/src/lcms.rs` 42-45's record of the same class).
+  `src/gnutls.rs` 1206-1210 shape, `src/lcms.rs` 42-45's record of the same class).
   There are 34 such call sites; each sits under `#[cfg (not (feature = "have_ntgui"))]` and
   `#[cfg (feature = "have_ntgui")]` in turn.
 - **`<hb.h>`/`<hb-ot.h>` have no file in the reference tree, so the surface stands in the unit**
@@ -30,13 +30,13 @@ check here).
   this machine's header (HarfBuzz 14.4.0; Evidence ⑤), never a recollection.  HarfBuzz has more
   than one consumer in the reference (`ftfont.c`, `sfntfont.c` and `w32uniscribe.c` all
   `#include <hb.h>`, and `font.h`/`ftfont.h` carry `hb_font_t` members), so P-90 ① says the
-  surface belongs in a mirror of its own, `femacs/src/include/hb.rs`; this lane may not create it,
+  surface belongs in a mirror of its own, `src/include/hb.rs`; this lane may not create it,
   and `## Owed` 2 names the move (P-88 ⑤).
 - **C 33's `#include "w32common.h"` is consumed through a module + glob import.**  The tree's
   mirror keeps its `unsafe extern "C"` items at its own top level while this unit *defines*
   `hbfont_init_w32_funcs` (C 118-150; w32common.h 99-101 declares it) - the P-39 `E0428` class,
   whose fix is a `pub mod …` plus `use …::*;` *inside the mirror* (the shape
-  `femacs/src/include/sfntfont.rs` 96-141 already has).  The module here is that mechanism applied
+  `src/include/sfntfont.rs` 96-141 already has).  The module here is that mechanism applied
   from the consumer, so the mirror's prototype and this unit's definition coexist exactly as C's
   prototype and definition do; `## Owed` 1 deletes the wrapper when the mirror is fixed.  Measured
   (rustc, both items at one scope): `error[E0428]: the name `foo` is defined multiple times`; with
@@ -49,7 +49,7 @@ check here).
   `include/systime.rs` (`termhooks.h`'s `Time`), `include/character.rs` (lisp.h's `MAX_CHAR` and
   the category enum), `include/coding.rs`, `include/window.rs`, `include/intervals.rs` and
   `../lib/include/{string.rs,stdcountof.rs,limits.in.rs}` - the same set
-  `femacs/src/abi_shim.rs` 24-42 spells for this neighbourhood.  Without them the flip stops in
+  `src/abi_shim.rs` 24-42 spells for this neighbourhood.  Without them the flip stops in
   the mirrors before this unit is read (Evidence ⑥).
 - **The three measured records are pinned with `core::assert!`, each carrying the file gate**
   (PORTING.md 1.3): the asserts name types the gate defines, and ungated they outlive the types -
@@ -89,7 +89,7 @@ The rows are contiguous and cover C 1-612 (the blank lines between blocks need n
    that reason: `extract-abi.py emacs/src/hbfont.c` lists 0 items until the port has an `fn`, and
    after that it lists the 8 live functions and the 2 file-scope objects (C 88-114's 28 macros and
    C 118-150's function are inside the dead `#ifdef HAVE_NTGUI` and are *not* required - P-86 ⑩).
-2. **The arm flip is blocked in a mirror, not in this unit.**  `femacs/src/include/font.rs` 577
+2. **The arm flip is blocked in a mirror, not in this unit.**  `src/include/font.rs` 577
    asserts `size_of::<font_driver> () == 208` ungated, while the two fields that move it
    (`begin_hb_font`, `end_hb_font`, font.rs 562-565) are `#[cfg (feature = "harfbuzz")]`: with the
    arm on the record is 224 bytes and the assertion fires (E0080) before this unit is read.  The
@@ -101,8 +101,8 @@ The rows are contiguous and cover C 1-612 (the blank lines between blocks need n
    (`decompress.rs`/`lcms.rs`/`gnutls.rs` all include the mirror and define other names).
 4. **`unicode_category_t`'s members need a glob import at each consumer**: the enum lives in
    `include/character.rs` 537-571 and C names its members bare (`case UNICODE_CATEGORY_Cc:`), so
-   the port writes `use unicode_category_t::*;` (the unit `femacs/src/character.rs` 72 does the
-   same; `femacs/src/composite.rs` 1099 spells the path out instead).  Measured: without it the
+   the port writes `use unicode_category_t::*;` (the unit `src/character.rs` 72 does the
+   same; `src/composite.rs` 1099 spells the path out instead).  Measured: without it the
    flip reported 31 `E0425`s, one per arm.
 5. **`buffer.rs`'s field is `bidi_display_reordering_`** (buffer.rs 495) and the port's `BVAR!`
    names C's trailing-underscore idiom at the call site (`BVAR! (current_buffer,
@@ -133,7 +133,7 @@ frozen reference builds no `hbfont.o` either (`build/emacs-ref/src/Makefile` 342
 'feature="harfbuzz"'` -> **exit 1, 1 error, 35 warnings, no rlib** (rustc stops on the const-eval
 error).  The one error is the mirror gap of Finding 2:
 `error[E0080]: evaluation panicked: assertion failed: std::mem::size_of::<font_driver>() == 208`,
-in `build/probes/hbfont/_…_include_font_rs.rs` (i.e. `femacs/src/include/font.rs` 577).  The 35
+in `build/probes/hbfont/_…_include_font_rs.rs` (i.e. `src/include/font.rs` 577).  The 35
 warnings are the house classes: 34 `unused doc comment` (the `/// C:` lines on the in-unit
 `unsafe extern "C"` blocks - rustdoc documents no extern block) and 1 `unused attribute`
 (`include/frame.rs` 1360's `#[inline(always)]`), none of them in this unit's own statements.
@@ -146,7 +146,7 @@ tree is untouched; the whole graph was copied and the copy's `include!` paths re
 error-free" reading; it is *not* a reading of the tree (Evidence ② is), and the missing rlib is
 why §"Not claimed" says the arm does not pass today.
 
-④ `extract-abi --check emacs/src/hbfont.c femacs/src/hbfont.rs` -> **one `-` row**:
+④ `extract-abi --check emacs/src/hbfont.c src/hbfont.rs` -> **one `-` row**:
 `line count drifted 161.3%: C 612 vs Rust 1599` - the ledger-owed tolerance row (`## Owed` 8).
 Everything else is clean: the 8 live functions find their Rust definitions, the 2 file-scope
 objects are declared, and every function body passes the token check with the two note rows this
@@ -183,11 +183,11 @@ value `MAX_CHAR`` (`dispextern.rs` 258/267) - the edges of `## Decisions` 6; the
 the port's own four error classes (Findings 4-6) and was 34 errors.
 
 ⑦ the other gates, this revision: `check-mirror-dupes.py` -> `17 duplicate declaration(s), 17
-ratchet row(s), 0 failure(s)` (no row names `femacs/src/hbfont.rs`);
+ratchet row(s), 0 failure(s)` (no row names `src/hbfont.rs`);
 `check-declarations.py` -> `10 declaration sites (0 forbidden, 10 allowed literals), 0 failures`
 (neither of this unit's two files is among the ten);
 `check-citations.py` -> whole tree `676 file(s) scanned, 2 drift, 0 range, 912 external, 35
-allowed, 0 stale`; **neither drift row is this unit's** (both are `femacs/src/ftfont.rs`, another
+allowed, 0 stale`; **neither drift row is this unit's** (both are `src/ftfont.rs`, another
 lane's file), and this unit's 57 cited paths are all *external* - the HarfBuzz headers are not in
 the reference tree, which is counted and never failed; `check-dead-file-coverage.py` ->
 `info docs/ports/hbfont.md: 16 range row(s) cover src/hbfont.c (612 lines; 11 blank line(s)
@@ -232,31 +232,31 @@ between blocks need no row)`, `62 ledger(s) bound (a C range table), 0 failure(s
 
 ## Owed by the integrator (nothing here is claimed as done)
 
-1. **`femacs/src/include/w32common.rs`**: move its crate-root `unsafe extern "C"` items into a
+1. **`src/include/w32common.rs`**: move its crate-root `unsafe extern "C"` items into a
    `pub mod w32common_decls { … }` plus `use w32common_decls::*;` (P-39's fix; the
    `include/sfntfont.rs` 96-141 shape), then delete this unit's `mod`/`use` wrapper.
    `docs/ports/include-w32common.md` needs the row.  **NOT DONE.**
-2. **`femacs/src/include/hb.rs`**: create the HarfBuzz surface's mirror (P-90 ①) and move this
+2. **`src/include/hb.rs`**: create the HarfBuzz surface's mirror (P-90 ①) and move this
    unit's C 21-22 segment into it in the same commit, deleting the copy here (P-88 ⑤).  The
    segment's `/// C:` lines and the layout assertions travel with it.
    `docs/ports/include-hb.md` would be its ledger.  **NOT DONE.**
-3. **`femacs/lib/include/math.rs`**: `lround` (`extern long int lround (double)`; the mirror
+3. **`lib/include/math.rs`**: `lround` (`extern long int lround (double)`; the mirror
    carries `cbrt`/`hypot`/`M_PI` but not this one), then delete this unit's use-site copy.
    **NOT DONE.**
-4. **`femacs/src/include/lisp.rs`**: `get_unicode_property` (lisp.h 4697
+4. **`src/include/lisp.rs`**: `get_unicode_property` (lisp.h 4697
    `extern Lisp_Object get_unicode_property (Lisp_Object, int);`), then delete the copy.
    **NOT DONE.**
-5. **`femacs/src/include/dispextern.rs`**: `bidi_mirror_char` (dispextern.h 3553
+5. **`src/include/dispextern.rs`**: `bidi_mirror_char` (dispextern.h 3553
    `extern int bidi_mirror_char (int);`), then delete the copy.  **NOT DONE.**
-6. **`femacs/src/include/font.rs`**: `font_intern_prop` (font.h 885-886), then delete the copy.
+6. **`src/include/font.rs`**: `font_intern_prop` (font.h 885-886), then delete the copy.
    **NOT DONE.**
-7. **`femacs/src/include/font.rs` 577**: gate the frozen-layout size assertion (and any other
+7. **`src/include/font.rs` 577**: gate the frozen-layout size assertion (and any other
    frozen-layout assertion a `harfbuzz`-gated field moves) on `not (feature = "harfbuzz")`.  Until
    then the arm flip cannot pass and this unit has no rlib reading of its own (Finding 2, Evidence
    ②).  **NOT DONE.**
 8. **`docs/ports/line-drift-tolerance.tsv`**: a `hbfont` row, basis `total`, tolerance **1.62**
    (measured drift 161.3%, Evidence ④, Deviation 7).  **DONE (status 3.494, integrator):** the row is
-   appended and `extract-abi.py --check emacs/src/hbfont.c femacs/src/hbfont.rs` is now **OK with zero
+   appended and `extract-abi.py --check emacs/src/hbfont.c src/hbfont.rs` is now **OK with zero
    `-` rows**.
 9. **`docs/baseline/port-lines-pending.tsv`**: regenerate with
    `tools/check-port-lines.py --write-pending` - the `src/hbfont.c` row is now above the ten-percent
@@ -265,7 +265,7 @@ between blocks need no row)`, `62 ledger(s) bound (a C range table), 0 failure(s
 10. **`docs/baseline/feature-coverage.tsv`**: regenerate with `tools/feature-coverage.py --write` -
     its `harfbuzz` row reads 176 sites / 6 files while a fresh run reports **181 / 7** (this unit's
     five gated layout assertions landed after the last regeneration); the `have_ntgui` row (595/14)
-    already agrees.  No new feature name is needed: both are registered in `femacs/xtask/Cargo.toml`
+    already agrees.  No new feature name is needed: both are registered in `xtask/Cargo.toml`
     (`harfbuzz`, `have_ntgui`).  **NOT DONE.**
 11. **`docs/status.md`**: the running-log entry for this revision (the file-count and ratchet
     numbers this lane cannot write).  **NOT DONE.**

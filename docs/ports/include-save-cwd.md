@@ -15,7 +15,7 @@
 
 ## Decisions
 
-`emacs/lib/save-cwd.h` @ `fd7afced403`; port `femacs/lib/include/save-cwd.rs`.  The header is
-`struct saved_cwd` plus three prototypes; the definitions live in `femacs/lib/save-cwd.rs`, so
+`emacs/lib/save-cwd.h` @ `fd7afced403`; port `lib/include/save-cwd.rs`.  The header is
+`struct saved_cwd` plus three prototypes; the definitions live in `lib/save-cwd.rs`, so
 the prototypes sit in a whole-import `decls` module the definitions shadow (PORTING.md 0.1-10).
 `name` is a `char *` the C only ever sets to NULL; the type keeps C's shape.

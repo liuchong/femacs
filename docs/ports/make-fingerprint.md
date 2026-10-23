@@ -38,7 +38,7 @@ Deviations, all recorded rather than hidden:
 3. **Use-site declarations (P-72 (3)).**  `SEEK_SET` and `fseeko` come from `<stdio.h>`, but the
    `stdio.rs` mirror cannot carry `fseeko` without putting `off_t` in every consumer's scope and
    `unistd.in.rs` already owns the `SEEK_*` constants, so this program declares the two it needs.
-   `ptrdiff_t` is provided by the unit itself, the way `femacs/lib/regex.rs` carries
+   `ptrdiff_t` is provided by the unit itself, the way `lib/regex.rs` carries
    `use std::ffi::c_int;` - C gets the name from `<stddef.h>` through `<stdio.h>`, and the core
    units get it from the `lisp.h` mirror, which this program does not include.
 4. **`<unlocked-io.h>` (C 52) has no mirror**: the renames it performs on stdio calls are recorded
@@ -48,7 +48,7 @@ Deviations, all recorded rather than hidden:
 Evidence: `cargo run -q -p xtask -- build-tu lib-src/make-fingerprint.c` ->
 `built lib-src/make-fingerprint.rs -> ../build/femacs/make-fingerprint.o`;
 `python3 tools/extract-abi.py --check emacs/lib-src/make-fingerprint.c
-femacs/lib-src/make-fingerprint.rs` -> `OK`; `rustc --cfg enable_checking` on the materialized
+lib-src/make-fingerprint.rs` -> `OK`; `rustc --cfg enable_checking` on the materialized
 unit -> exit 0; `check-globals` 273 units / 0 missing; `check-mirror-dupes` 0 failures;
 `check-declarations` 0.  There is **no behavioural evidence** yet: the port has no way to run this
 program (it needs the whole build chain), so the ledger claims text and object agreement only.

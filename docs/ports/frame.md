@@ -354,12 +354,12 @@ count and the blocked-symbol count**, and all three are the previous round's exa
 
 **② `extract-abi --check` reads OK.**
 ```
-$ python3 tools/extract-abi.py --check emacs/src/frame.c femacs/src/frame.rs | tail -3
+$ python3 tools/extract-abi.py --check emacs/src/frame.c src/frame.rs | tail -3
 conditions: 7306 macros from docs/baseline/config/darwin-arm64.macros.tsv (6866 defined), applied to
 the 424 files in docs/baseline/config/cond-eval-verified.txt (tools/check-cond-eval.py verifies
 them; elsewhere the table is not consulted, since it cannot decide a gnulib template's
 `@PLACEHOLDER@` conditions - P-66)
-OK emacs/src/frame.c -> femacs/src/frame.rs
+OK emacs/src/frame.c -> src/frame.rs
 ```
 No `- ` row.  This round adds **19 more non-`static` definitions** of the same class the previous
 round's 17 belonged to (`gui_set_vertical_scroll_bars`, `gui_set_horizontal_scroll_bars`,
@@ -401,8 +401,8 @@ info docs/ports/frame.md: 170 range row(s) cover src/frame.h (1956 lines; 0 blan
    # the bound-ledger count moves as other lanes add `## C line ranges` sections (it was 6 earlier
    # in this same round and 5 on a second run of the previous one); the two rows naming this ledger
    # are the ones quoted.
-   # note: port-map pairs src/frame.c with femacs/src/frame.rs (439) and src/frame.h with
-   # femacs/src/frame.rs's include mirror (440); the ledger rule resolves both to this file, so
+   # note: port-map pairs src/frame.c with src/frame.rs (439) and src/frame.h with
+   # src/frame.rs's include mirror (440); the ledger rule resolves both to this file, so
    # this table - whose last row reaches C 7,907 - is also what the gate reads for the 1,956-line
    # header (docs/ports/include-frame.md is not consulted by this rule).  See Owed 3.
 
@@ -563,7 +563,7 @@ lower-case feature; `HAVE_WINDOW_SYSTEM` is `undef` at `darwin-arm64.macros.tsv`
    C 6972-7907 closes it; until then this is a text-level gap, not a symbol-level one (the frozen
    object has neither).
 3. **`docs/ports/frame.md` is a two-target ledger** (the previous round's item, still open):
-   `docs/port-map.md` 439 pairs `src/frame.c` with `femacs/src/frame.rs` and 440 pairs `src/frame.h`
+   `docs/port-map.md` 439 pairs `src/frame.c` with `src/frame.rs` and 440 pairs `src/frame.h`
    with that unit's include mirror, and `check-dead-file-coverage.py`'s ledger rule resolves both to
    this file.  Today the one table satisfies both because its last row reaches C 7,907; if the header
    ever needs its own ranges, the fix is a `src-frame.md` for it or a rule change - the header's
@@ -602,8 +602,8 @@ produced:
 $ cd femacs && CARGO_TARGET_DIR=/tmp/femacs-target-frame cargo run -q -p xtask -- build-tu src/frame.c
 built src/frame.rs -> ../build/femacs/frame.o
 
-$ python3 tools/extract-abi.py --check emacs/src/frame.c femacs/src/frame.rs
-OK emacs/src/frame.c -> femacs/src/frame.rs
+$ python3 tools/extract-abi.py --check emacs/src/frame.c src/frame.rs
+OK emacs/src/frame.c -> src/frame.rs
 
 $ python3 tools/check-globals.py
 check-globals: 265 units, 0 DEFVAR_* variables without a definition in their own unit

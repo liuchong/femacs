@@ -6,7 +6,7 @@
 > `docs/baseline/frozen-build-sources.txt` lists no `w32font.o` for this target — so
 > `extract-abi.py`'s checklist for the file is empty (P-86 ②) and this ledger is that clause's
 > substitute: the **C line-range table**, the `## Evidence` readings and the `## Deviations`.
-> Port: `femacs/src/w32font.rs` (**3967 lines**, md5 `b0c655d37fa9b2ebd20c807c4f8af48b`), carrying
+> Port: `src/w32font.rs` (**3967 lines**, md5 `b0c655d37fa9b2ebd20c807c4f8af48b`), carrying
 > **C 1-3079 with both arms of every `#if`**.  The reference `emacs/src/w32font.c` is md5
 > `50838ad7c768e97ef32b07eea3f2a907` (unchanged; `emacs/` is read-only).
 >
@@ -55,7 +55,7 @@ because their live arms are the negations.
 The rows are contiguous and ascending and cover every non-blank line of C 1-3079; the lines between
 two rows (C 18, 37, 41, 48, 57, 69, 80, 104, …) are the reference's blank lines, which the gate does
 not require a row for.  `docs/port-map.md` 570-571 lists two targets for this stem
-(`src/w32font.c` 3,079 and `src/w32font.h` 120, the latter bound to `femacs/src/include/w32font.rs`):
+(`src/w32font.c` 3,079 and `src/w32font.h` 120, the latter bound to `src/include/w32font.rs`):
 the table starts at C 1 and ends past the header's last line, so both readings clear (the
 `docs/ports/w32heap.md` 574-575 shape; there is no `src-w32font.md`).
 
@@ -182,7 +182,7 @@ unit's own text - `w32font_open`'s `(*w32_font).glyph_idx = 0;` became
 **22** error lines against the base reading's 21, the single new one
 `error[E0308]: mismatched types`, anchored in the unit (`_root.rs:1044`, the mutated line); the
 `diff` of the two logs' `error` lines is exactly `+error[E0308]: mismatched types`.  The mutation
-was reverted and the unit verified: `shasum -a 256 femacs/src/w32font.rs` =
+was reverted and the unit verified: `shasum -a 256 src/w32font.rs` =
 `6a19666d498c83467094e832047dfe53359ea288530b4166c6bf433fa0b279ae` before and after.  (That
 revision is the one the mutation test ran on; the only later change is the
 `#[unsafe(no_mangle)]` this round's own Evidence ⑤ finding required on `w32font_get_cache`, and the
@@ -190,7 +190,7 @@ final revision's sha256 is `12ef2fd79327fb0567b8078a01dcc89ebf072e8f9b7a42899be7
 reading certifies the unit's own lines type-check under that arm (not merely resolve) and that no
 item of this unit collides.
 
-**⑤ `python3 tools/extract-abi.py --check emacs/src/w32font.c femacs/src/w32font.rs`**: before this
+**⑤ `python3 tools/extract-abi.py --check emacs/src/w32font.c src/w32font.rs`**: before this
 round's `docs/ports/macro-body-notes.tsv` rows, `FAIL` with 17 findings (16 `does not
 mention …` rows plus `function w32font_get_cache is not static in C but has no
 #[unsafe(no_mangle)] in the port`) and the line-drift row; the 16 note rows **are written** (that
@@ -244,7 +244,7 @@ materialized unit) was deleted after this ledger was written.
    `E0428` and items are order-independent).  Their text is kept as `C:` lines at its position.
 2. **The `<windows.h>` stand-in section at C 20 and the `<commdlg.h>` one at C 24** (P-88 ①): the
    reference tree has no file for either header, so the names this file uses stand at C's own
-   `#include` line (no file is added under `femacs/src/include/`), each with the SDK's own text
+   `#include` line (no file is added under `src/include/`), each with the SDK's own text
    above it.  The spellings repeat `src/w32term.rs`'s and `src/w32select.rs`'s sections, so a
    Windows translation unit sees one set of names.  **Nothing was measured** - the scalars, the
    `LOGFONT`/`TEXTMETRICW`/`NEWTEXTMETRICW`/`ENUMLOGFONTEX`/`FONTSIGNATURE`/`GLYPHMETRICS`/`MAT2`/

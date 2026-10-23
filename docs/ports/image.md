@@ -13,7 +13,7 @@
 > `--check` is *not* vacuous here, and its reading (Evidence 6/11) counts out what the next slices
 > still owe.  P-86 1 applies to the port: **transcription, both arms of every `#if`**, each item
 > behind the file gate (`have_window_system`) plus C's own condition lower-cased, and this ledger
-> records P-86 2's **C line-range table** instead of ticked boxes.  Port: `femacs/src/image.rs`
+> records P-86 2's **C line-range table** instead of ticked boxes.  Port: `src/image.rs`
 > (**10,976 lines** after this batch, measured with `grep -c ''`; the sixth slice added 2,555).
 >
 > **The first slice is C 1-1095**, ending at the `}` of `image_create_bitmap_from_file` (C 1095).
@@ -111,7 +111,7 @@
 | C 244-246 `#if defined (HAVE_WEBP) \|\| defined (HAVE_GIF)` (the `anim_prune_animation_cache` prototype, now with its call site C 2490) | `any (have_webp, have_gif)` | a WebP or GIF configuration |
 | C 2488-2491 `#if defined (HAVE_WEBP) \|\| defined (HAVE_GIF)` (inside the `clear-image-cache` subr) | `any (have_webp, have_gif)` | a WebP or GIF configuration |
 | C 2513-2552 `image_size_in_bytes`'s `#if`/`#elif` chain (`USE_CAIRO`, `X_WINDOWS \|\| ANDROID`, `HAVE_NS`, `HAVE_NTGUI`, `HAVE_HAIKU`) | one arm per condition, each excluding the ones before it (the `#elif` chain) | a window-system configuration that defines one of them |
-| C 2671 and C 2777 `#if defined (HAVE_IMAGEMAGICK) \|\| defined (HAVE_NATIVE_TRANSFORMS)` | `any (have_imagemagick, have_native_transforms)`; **`have_native_transforms` is not in `femacs/xtask/Cargo.toml` yet** (Owed 10) | an ImageMagick or native-transforms configuration |
+| C 2671 and C 2777 `#if defined (HAVE_IMAGEMAGICK) \|\| defined (HAVE_NATIVE_TRANSFORMS)` | `any (have_imagemagick, have_native_transforms)`; **`have_native_transforms` is not in `xtask/Cargo.toml` yet** (Owed 10) | an ImageMagick or native-transforms configuration |
 | C 3082-3087 `# if (defined HAVE_IMAGEMAGICK && !defined DONT_CREATE_TRANSFORMED_IMAGEMAGICK_IMAGE)` | `have_imagemagick`, `not (have_pgtk)` (the second term is C 104-111's constant, so `!defined` is `not (all (have_pgtk, have_imagemagick))`) | an ImageMagick configuration that is not PGTK |
 | C 3089-3092 `# if !defined USE_CAIRO && defined HAVE_XRENDER` | `not (use_cairo)`, `have_xrender` | an XRender configuration without cairo |
 | C 3095-3103 `#ifdef HAVE_RSVG` | `have_rsvg` (**not in the manifest yet**, Owed 7) | an SVG configuration |
@@ -461,10 +461,10 @@ python3 tools/check-declarations.py
   -> 13 declaration sites (0 forbidden, 13 allowed literals), 0 failures
 python3 tools/check-carried.py
   -> 11 carried file(s), 11 baseline row(s), 0 failure(s)
-python3 tools/extract-abi.py --check emacs/src/image.c femacs/src/image.rs | tail -3
+python3 tools/extract-abi.py --check emacs/src/image.c src/image.rs | tail -3
   -> - missing file-scope object canvas_list
      - line count drifted 87.6%: C 13805 vs Rust 1714
-     FAIL emacs/src/image.c -> femacs/src/image.rs
+     FAIL emacs/src/image.c -> src/image.rs
 ```
 `--check` is **not vacuous** for this file (P-86 10): its reading is 174 `- ` rows - 84 missing
 functions, 54 constants, 13 macros, 10 subrs, 10 defsubr records, 2 file-scope objects
@@ -581,7 +581,7 @@ python3 tools/check-carried.py
 ```
 
 **11. What `--check` still owes.**  `python3 tools/extract-abi.py --check emacs/src/image.c
-femacs/src/image.rs | tail -3` reads **139 `- ` rows** (the first slice's reading was 174, so
+src/image.rs | tail -3` reads **139 `- ` rows** (the first slice's reading was 174, so
 this batch cleared 35): 61 missing functions, 42 missing constants, 10 missing `defsubr` records,
 7 missing macros, 7 missing subrs, 2 missing file-scope objects (`canvas_map`, `canvas_list`),
 **9 token/declaration rows this slice's own definitions produced**, and the line-count row
@@ -660,7 +660,7 @@ belongs to one of four named classes, and three of them are the *earlier* slices
   `XTransform`/`XDoubleToFixed`, `XFORM`'s fields, the NS SDK records) - the `text-only` classes
   below.
 
-**The mirror lane's in-flight edits move the mirror column.**  `femacs/src/{include/dispextern,
+**The mirror lane's in-flight edits move the mirror column.**  `src/{include/dispextern,
 frame,xlib,xterm,w32gui,w32term}.rs` were being written *while* this sweep ran (`git status` at
 the time: all six modified, 08:26), so the mirror-side counts are a reading of that state, not of
 `HEAD`; the **unit-text** column is the one this slice answers for, and re-running the sweep
@@ -731,7 +731,7 @@ python3 tools/check-carried.py
 form reads 0 new rows, so nothing is pending for `src/image.c`).
 
 **17. What `--check` still owes.**
-`python3 tools/extract-abi.py --check emacs/src/image.c femacs/src/image.rs` reads **121 `- `
+`python3 tools/extract-abi.py --check emacs/src/image.c src/image.rs` reads **121 `- `
 rows** (the second slice's reading was 139, so this batch cleared **18**): 50 missing functions,
 42 missing constants, 10 missing `defsubr` records, 7 missing macros, 5 missing subrs, 2 missing
 file-scope objects (`canvas_map`, `canvas_list`), the line-count row (`line count drifted 64.6%:
@@ -747,7 +747,7 @@ except those four is work in the C 3552-13805 remainder (the nearest is `lookup_
 ```
 $ python3 tools/check-cond-eval.py src/image.c
 src/image.c: 435 conditions, 0 unknown, 0 disagreements [VERIFIED]
-$ python3 tools/extract-abi.py --check emacs/src/image.c femacs/src/image.rs     # before this batch
+$ python3 tools/extract-abi.py --check emacs/src/image.c src/image.rs     # before this batch
 119 `- ` rows (50 missing functions, 42 missing constants, 10 missing defsubr records, 7 missing
 macros, 5 missing subrs, 2 missing file-scope objects, the line-count row and the two kept
 declarations' rows) -> FAIL
@@ -804,7 +804,7 @@ Owed 16).  Those arms' evidence is the frozen reading above, the `check-cond-eva
 the per-item C citation, and the ledger says `text-only` for each.
 
 **20. What `--check` still owes, after this batch.**
-`python3 tools/extract-abi.py --check emacs/src/image.c femacs/src/image.rs` reads **105 `- ` rows**
+`python3 tools/extract-abi.py --check emacs/src/image.c src/image.rs` reads **105 `- ` rows**
 (119 before, so this batch cleared **16**): 34 missing functions, 42 missing constants, 10 missing
 `defsubr` records, 7 missing macros, 5 missing subrs, 2 missing file-scope objects
 (`canvas_map`, `canvas_list`), the line-count row (`line count drifted 55.2%: C 13805 vs Rust
@@ -913,7 +913,7 @@ names), and two of the previous rounds' own classes are **gone**: `XCreateImage`
 slice's text).
 
 **25. What `--check` reads now.**
-`python3 tools/extract-abi.py --check emacs/src/image.c femacs/src/image.rs` reads **54 `- ` rows**
+`python3 tools/extract-abi.py --check emacs/src/image.c src/image.rs` reads **54 `- ` rows**
 (102 before, so this batch cleared **48**): 19 missing functions (the PNG/JPEG/TIFF/GIF/WebP/SVG/
 ImageMagick/ImageMagick readers and `syms_of_image` and the colour table's five), 12 missing
 constants (all `PBM_*`, the Algorithms section's), 7 missing macros (`COLOR`, `COLOR_INTENSITY`,
@@ -1421,7 +1421,7 @@ slice's writable set): `xbm_scan` - `goto,uninit`; `xbm_read_bitmap_data` -
    `pgtk_bitmap_record`); `include/nsterm.rs`'s `NSArray`/`NSString`/`EmacsMenu` (the NS reading's
    last four mirror sites).  **No mirror file was touched by this lane**, so no
    `check-all-units.sh` rerun is claimed (that scan is forbidden to this lane anyway).
-7. `femacs/xtask/Cargo.toml` and the generated tables: the four features `IMAGE_TYPE_INIT`'s
+7. `xtask/Cargo.toml` and the generated tables: the four features `IMAGE_TYPE_INIT`'s
    condition names that the manifest does not have - `have_rsvg`, `have_tiff`, `have_jpeg`,
    `have_xpm` - with `docs/baseline/feature-coverage.tsv` and `docs/port-map.md` regenerated.
    (The first slice's four - `have_png`, `have_gif`, `have_webp`, `have_imagemagick` - are already
@@ -1434,7 +1434,7 @@ slice's writable set): `xbm_scan` - `goto,uninit`; `xbm_read_bitmap_data` -
    starts at `make_image_cache` (C 2224), after C 2219's `static void cache_image (struct frame *,
    struct image *);`.  **The third slice's own remainder is C 3552-13805, 121 `- ` rows in
    Evidence 17, and its next live definition is `lookup_image` (C 3556).**
-10. `femacs/xtask/Cargo.toml`: **`have_native_transforms`** (C 2671/2777's second term), which
+10. `xtask/Cargo.toml`: **`have_native_transforms`** (C 2671/2777's second term), which
    the third slice's `#[cfg]`s spell and the manifest does not have - it joins item 7's
    `have_rsvg`/`have_tiff`/`have_jpeg`/`have_xpm` list (with the generated tables regenerated).
 11. **`docs/ports/macro-body-notes.tsv`: two rows for the tokens this slice's own definitions
@@ -1530,7 +1530,7 @@ slice's writable set): `xbm_scan` - `goto,uninit`; `xbm_read_bitmap_data` -
    (`if (LA1 == XBM_TK_IDENT && strcmp (buffer, IDENT) == 0) match (); else goto failure`), same
    reading.  The five *token* rows this batch produced are already in
    `docs/ports/macro-body-notes.tsv` (Evidence 25); these three are the name-level half.
-21. **`femacs/xtask/Cargo.toml`: the feature `alloc_xpm_colors`** (C 5993-5995's derivation) with
+21. **`xtask/Cargo.toml`: the feature `alloc_xpm_colors`** (C 5993-5995's derivation) with
    `docs/baseline/feature-coverage.tsv` and `docs/port-map.md` regenerated - the third such
    registration this file asks for (item 7's four and item 10's one).
 22. **The mirror gaps this slice proves**, each with the file that owns it: `lib/include/stdio.rs`
@@ -1556,7 +1556,7 @@ slice's writable set): `xbm_scan` - `goto,uninit`; `xbm_read_bitmap_data` -
 25. **The `line-drift-tolerance.tsv` row is still owed** (items 3/24).  This slice's numbers: C
    1,802 lines (C 6166-7967) against **2,555 Rust lines added** (8,421 -> 10,976), density
    **1.42**.
-26. **`femacs/xtask/Cargo.toml`: a feature for C 6342-6346's `#ifdef XpmAllocCloseColors`** - that
+26. **`xtask/Cargo.toml`: a feature for C 6342-6346's `#ifdef XpmAllocCloseColors`** - that
    condition is `<X11/xpm.h>` 225's own `#define` (a header constant the frozen macro table
    cannot carry), so this lane writes the arm the X11 header takes and the `#else` arm
    (`attrs.closeness = 600;` + `XpmCloseness`) has no feature to be carried under; the manifest
@@ -1661,7 +1661,7 @@ this lane is aware of in which the unit compiles **with no error anywhere in the
 | `have_window_system` alone | 71 | 17 | the platform typedef/macro set (`Emacs_Pix_Container`, `Emacs_Pixmap`, `PUT_PIXEL`, `GET_PIXEL`, `BLACK_PIX_DEFAULT`, `Display_Info`, `image_sync_to_pixmaps`, ...): Evidence 23's class, i.e. not a configuration C builds |
 
 **29. What `--check` reads now.**
-`python3 tools/extract-abi.py --check emacs/src/image.c femacs/src/image.rs` reads **37 `- ` rows**
+`python3 tools/extract-abi.py --check emacs/src/image.c src/image.rs` reads **37 `- ` rows**
 (51 before, so this batch cleared **14** and added none): 9 missing functions (the PBM five,
 `lookup_image_type`, `initialize_image_type`, `image_prune_animation_caches` and `syms_of_image`),
 11 missing constants (all `PBM_*`), 4 missing subrs, 10 missing `defsubr` records, the one
@@ -1690,7 +1690,7 @@ python3 tools/check-mirror-dupes.py
 ```
 The three non-zero readings are **not this slice's**: the four `check-citations` drifts are
 `include/lisp.rs` rows (lisp.h 5276-5280, 759, 4654, 4796) and the `check-mirror-dupes` failure is
-`femacs/src/sysdep.rs`'s stale `pipe2` row.  This slice's own citation was fixed while reading it
+`src/sysdep.rs`'s stale `pipe2` row.  This slice's own citation was fixed while reading it
 (its `dispextern.h 138` row became `134-138`, the arm's first line) and its two duplicate cairo
 declarations (`cairo_create`, `cairo_destroy`, which `include/gtk.rs` already carries) were
 dropped.
@@ -1786,7 +1786,7 @@ instead of a Rust `{ }` body) and `E0381 used binding ximg isn't initialized` at
 zeroed (PORTING.md 1.5), the `xnmalloc`/`xbm_load_image` 7697 shape this file already uses.
 
 **33. `extract-abi.py --check`.**  `python3 tools/extract-abi.py --check emacs/src/image.c
-femacs/src/image.rs` -> **`FAIL` with 25 rows before the slice, 19 after**: the slice retires
+src/image.rs` -> **`FAIL` with 25 rows before the slice, 19 after**: the slice retires
 **five `missing function`** (`pbm_image_p`, `pbm_next_char`, `pbm_scan_number`, `pbm_scan_index`,
 `pbm_load`) and **all twelve `missing constant`** rows (`PBM_TYPE` … `PBM_LAST`), and the row the
 token check then demanded was paid for where the tree's rule says: two rows in

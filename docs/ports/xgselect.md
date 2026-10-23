@@ -85,7 +85,7 @@ the header's own 35 lines with it).
   and the ones in the tail were off by 3 to 13 lines).  **66 citation lines were rewritten** and the
   result re-derived against `emacs/src/xgselect.c` cite by cite; `check-citations.py` (which reads
   `<file> <line>` cites) went from 1 drift to **0 drift** with it.
-- `extract-abi.py --check emacs/src/xgselect.c femacs/src/xgselect.rs` -> **OK** (the unit defines no
+- `extract-abi.py --check emacs/src/xgselect.c src/xgselect.rs` -> **OK** (the unit defines no
   DEFUN, so this is the declaration-level reading);
 - `xtask layout-check` -> **exit 0** (`include/gtk.rs` and `include/xgselect.rs` changed);
 - `tools/check-all-units.sh` (the P-87 two legs, both required for a mirror change) ->

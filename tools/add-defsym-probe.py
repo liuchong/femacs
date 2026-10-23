@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Insert (or remove) a probe at `defsym` in femacs/src/lread.rs.
+"""Insert (or remove) a probe at `defsym` in src/lread.rs.
 
 The checking build's first fatal error is `lread.c`'s `eassert (FIXNUMP (bucket))` in `defsym`
 (status 4.843, `/Users/.../units/lread/_root.rs:5207`), i.e. `oblookup` returned something that is
@@ -15,7 +15,7 @@ writes the name and the value it got:
 import pathlib
 import sys
 
-SRC = pathlib.Path (__file__).resolve ().parent.parent / "femacs/src/lread.rs"
+SRC = pathlib.Path (__file__).resolve ().parent.parent / "src/lread.rs"
 
 HELPER = '''/* TEMPORARY probe (tools/add-defsym-probe.py).  */
 #[cfg (feature = "have_android")]

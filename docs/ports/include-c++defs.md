@@ -7,7 +7,7 @@
 > 151-152 / 163-164 / 192-193 / 225-226), so the extractor's live-line filter lists no item and
 > `tools/extract-abi.py --check` used to pass *vacuously* against a three-line note.  What follows is P-86 ②'s substitute for the empty
 > checklist: the **C line-range table**, the **Gate mapping**, the **Evidence**, the
-> **Deviations** and the **Owed**.  Port: `femacs/lib/include/c++defs.rs` (507 lines, 2026-10-05),
+> **Deviations** and the **Owed**.  Port: `lib/include/c++defs.rs` (507 lines, 2026-10-05),
 > every `#if` carried with both arms, C's own arm first and gated (`lib/include/fcntl.in.rs`'s
 > order and reason), the `#else` arm ungated.
 >
@@ -64,7 +64,7 @@
 
 | C condition | Port gate | Compiled when |
 | --- | --- | --- |
-| C 90/98/134 `defined __cplusplus` (`_GL_EXTERN_C`, `_GL_EXTERN_C_FUNC`, `_GL_FUNCDECL_SYS_NAME`) | `feature = "cplusplus"` (already registered, `femacs/xtask/Cargo.toml` 80) | a C++ configuration |
+| C 90/98/134 `defined __cplusplus` (`_GL_EXTERN_C`, `_GL_EXTERN_C_FUNC`, `_GL_FUNCDECL_SYS_NAME`) | `feature = "cplusplus"` (already registered, `xtask/Cargo.toml` 80) | a C++ configuration |
 | C 21/165/200/238/263/289/318/345 `defined __cplusplus && defined GNULIB_NAMESPACE` (the namespace pair at C 21-27 and the seven alias blocks C 165-365) | `feature = "cplusplus_gnulib_namespace"` (**new**) | C++ with `GNULIB_NAMESPACE` defined |
 | C 325/353 `!(defined __GNUC__ && !defined __clang__ && __OPTIMIZE__)` (the two warning arms) | `not (feature = "gnuc_optimize_without_clang")` (**new name**), nested inside the C++ gate | a C++ build that is clang, or is not optimising |
 | C 330 `(__GNUC__ >= 3 \|\| defined __clang__) && GNULIB_STRICT_CHECKING` | `feature = "gnuc3_or_clang_gnulib_strict_checking"` (**new**), nested inside the two above | a C++ build with `GNULIB_STRICT_CHECKING` |
@@ -111,9 +111,9 @@ exit=1
 # no item - the guard's body is the whole file either way - and the file is read blindly
 # (P-66), which is why every arm below is carried rather than chosen.
 
-$ python3 tools/extract-abi.py --check emacs/lib/c++defs.h femacs/lib/include/c++defs.rs
+$ python3 tools/extract-abi.py --check emacs/lib/c++defs.h lib/include/c++defs.rs
   (23 C macros have a recorded Rust counterpart: _GL_BEGIN_NAMESPACE, _GL_CXXALIASWARN, …)
-OK emacs/lib/c++defs.h -> femacs/lib/include/c++defs.rs
+OK emacs/lib/c++defs.h -> lib/include/c++defs.rs
 exit=0
 
 # The `OK` above is quiet by construction: every one of the 23 names still has a row in
@@ -124,12 +124,12 @@ exit=0
 
 # (/tmp/cxxdefs-lane/excluded-minus-cxxdefs.txt is the table with the 23 c++defs rows removed: 242 -> 217 rows)
 $ python3 tools/extract-abi.py --check --excluded /tmp/cxxdefs-lane/excluded-minus-cxxdefs.txt \
-    emacs/lib/c++defs.h femacs/lib/include/c++defs.rs
+    emacs/lib/c++defs.h lib/include/c++defs.rs
   (14 C macros have several definitions (configuration branches), body not compared: _GL_BEGIN_NAMESPACE, …)
 - macro _GL_FUNCDECL_RPL does not mention __va_args (C body: _GL_FUNCDECL_RPL_1 (rpl_##func, rettype, parameters, __VA_AR)
 - macro _GL_FUNCDECL_RPL_1 does not mention __va_args (C body: _GL_EXTERN_C_FUNC __VA_ARGS__ rettype rpl_func parameters)
 - macro _GL_FUNCDECL_SYS does not mention __va_args (C body: _GL_EXTERN_C_FUNC __VA_ARGS__ rettype _GL_FUNCDECL_SYS_NAME (func) par
-FAIL emacs/lib/c++defs.h -> femacs/lib/include/c++defs.rs
+FAIL emacs/lib/c++defs.h -> lib/include/c++defs.rs
 
 # ... and with the three rows this lane appended to docs/ports/macro-body-notes.tsv in place, the
 # lifted run is `OK` - so every other token of the nine single-definition bodies matches, the 14
@@ -137,9 +137,9 @@ FAIL emacs/lib/c++defs.h -> femacs/lib/include/c++defs.rs
 # `$($args:tt)*` tail - is the one recorded class that cannot be spelled:
 
 $ python3 tools/extract-abi.py --check --excluded /tmp/cxxdefs-lane/excluded-minus-cxxdefs.txt \
-    emacs/lib/c++defs.h femacs/lib/include/c++defs.rs
+    emacs/lib/c++defs.h lib/include/c++defs.rs
   (14 C macros have several definitions (configuration branches), body not compared: _GL_BEGIN_NAMESPACE, …)
-OK emacs/lib/c++defs.h -> femacs/lib/include/c++defs.rs
+OK emacs/lib/c++defs.h -> lib/include/c++defs.rs
 exit=0
 
 # The frozen arm of every pair, as its own crate root:
@@ -171,7 +171,7 @@ exit=0   # rlib 20,208 bytes: the other two arms of the `_GL_CXXALIASWARN*_2` pa
 # a plain `rustc` run on a copy with one live item broken:
 
 $ sed 's/^pub const _GL_CXXDEFS_H: bool = true;/pub const _GL_CXXDEFS_H: bool = 1;/' \
-    femacs/lib/include/c++defs.rs > /tmp/cxxdefs-lane/neg.rs
+    lib/include/c++defs.rs > /tmp/cxxdefs-lane/neg.rs
 $ rustc --edition 2024 --crate-type=lib --crate-name cxxdefs_neg -C panic=abort \
     /tmp/cxxdefs-lane/neg.rs -o /tmp/cxxdefs-lane/neg.rlib
 error[E0308]: mismatched types
@@ -190,9 +190,9 @@ error[E0308]: mismatched types
 $ python3 tools/check-dead-file-coverage.py | tail -1
 142 ledger(s) bound (a C range table), 0 failure(s)
 # NOTE: this table is NOT one of the 142.  `tools/check-dead-file-coverage.py`'s `ledger_for` has
-# no `include-` branch (check-ledger-ticks.py's copy does), so for `femacs/lib/include/*.rs` it
+# no `include-` branch (check-ledger-ticks.py's copy does), so for `lib/include/*.rs` it
 # looks for `lib-<stem>.md` / `<stem>.md` and never finds `include-<stem>.md`:
-#   $ python3 -c "…; print(m.ledger_for('femacs/lib/include/c++defs.rs', set()))"  ->  None
+#   $ python3 -c "…; print(m.ledger_for('lib/include/c++defs.rs', set()))"  ->  None
 # The table was therefore measured with the gate's own functions (parse_ranges +
 # coverage_failures) against the reference's real blank lines - the file has 30 blank lines in
 # C 1-367 and 18 of them sit between blocks, outside the table's rows:
@@ -268,7 +268,7 @@ check-citations: 676 file(s) scanned, 0 drift, 0 range, 1812 external, 36 allowe
    line each, continuations joined as `lib/include/cdefs.rs` does.\ttotal`
    Today the check does not run for this file at all: `tools/extract-abi.py`'s drift step is
    skipped for `.h` mirrors (`is_header_like`), so the row is for the day that stops being true.
-2. **Register the three new features** in `femacs/xtask/Cargo.toml`'s `[features]` table (the
+2. **Register the three new features** in `xtask/Cargo.toml`'s `[features]` table (the
    integrator's file, not this lane's): `cplusplus_gnulib_namespace`,
    `gnuc_optimize_without_clang`, `gnuc3_or_clang_gnulib_strict_checking`, plus their
    `docs/baseline/feature-coverage.tsv` rows (`tools/feature-coverage.py --write`).
@@ -288,8 +288,8 @@ check-citations: 676 file(s) scanned, 0 drift, 0 range, 1812 external, 36 allowe
 6. **`tools/check-dead-file-coverage.py` cannot bind a `lib/include/*.rs` ledger.**  Its
    `ledger_for` (unlike `check-ledger-ticks.py`'s, whose docstring it cites) lacks the
    `is_include` branch, so it looks for `lib-<stem>.md` / `<stem>.md` and never finds
-   `include-<stem>.md`: it returns `None` for `femacs/lib/include/c++defs.rs` *and* for the
-   already-ported `femacs/lib/include/fcntl.in.rs`.  The gate printed `142 ledger(s) bound, 0
+   `include-<stem>.md`: it returns `None` for `lib/include/c++defs.rs` *and* for the
+   already-ported `lib/include/fcntl.in.rs`.  The gate printed `142 ledger(s) bound, 0
    failure(s)` - this file among the unbound.  Until that is fixed the reading of this table is
    manual; the Evidence records the same measurement taken with the gate's own functions
    (20 rows, 0 failures) and could be turned into the gate's own output by copying

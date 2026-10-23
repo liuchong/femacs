@@ -18,7 +18,7 @@ from pathlib import Path
 
 REPO = Path(__file__).resolve().parent.parent
 JAVA = REPO / "emacs" / "java" / "org" / "gnu" / "emacs"
-KOTLIN = REPO / "femacs" / "platform" / "android" / "kotlin"
+KOTLIN = REPO / "platform" / "android" / "kotlin"
 OUT = REPO / "docs" / "baseline" / "kotlin-order.tsv"
 
 
@@ -27,7 +27,7 @@ def deps() -> dict[str, list[str]]:
                for p in sorted(JAVA.glob("*.java"))}
     names = set(sources)
     targets = {n for n, text in sources.items()
-               if f"femacs/platform/android/kotlin/{n}.kt" in
+               if f"platform/android/kotlin/{n}.kt" in
                (REPO / "docs" / "port-map.md").read_text(encoding="utf-8")}
     return {n: sorted({m for m in names - {n} if m in targets
                        and re.search(rf"\b{m}\b", sources[n])})

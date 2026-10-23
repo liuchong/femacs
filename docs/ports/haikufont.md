@@ -8,7 +8,7 @@
 > for the file is empty (P-86 ②).  What follows is that clause's substitute: the **C line-range
 > table**, the `## Evidence` readings and the `## Deviations`.
 >
-> Port: `femacs/src/haikufont.rs` (**1961 lines**), which carries the file **whole, C 1-1480** -
+> Port: `src/haikufont.rs` (**1961 lines**), which carries the file **whole, C 1-1480** -
 > no slice.  The 29 `static` functions (12 of them the `font_driver` table's methods), the one
 > `struct font_driver const haikufont_driver`, the 3 `DEFUN`s, the 2 exported functions
 > (`haiku_handle_font_change_event`, `syms_of_haikufont`) and the 6 file-scope objects of the
@@ -28,7 +28,7 @@
 | C `#if` / build condition | Port gate | Compiled when |
 | --- | --- | --- |
 | the file itself (`HAIKU_OBJ`, i.e. `HAVE_HAIKU` <- `HAVE_BE_APP`, configure.ac 3097-3114) | `feature = "have_haiku"` (on every item *and* on C 22-39's include graph, P-86 ⑧) | a Haiku app-kit configuration |
-| C 1463/1465's `#ifdef USE_BE_CAIRO` (the file's **only** `#if` of its own) | `feature = "be_cairo"` (the name `femacs/xtask/Cargo.toml` registers for `USE_BE_CAIRO`), both arms carried (P-51/P-86 ①) | a Haiku configuration built with `--with-be-cairo` |
+| C 1463/1465's `#ifdef USE_BE_CAIRO` (the file's **only** `#if` of its own) | `feature = "be_cairo"` (the name `xtask/Cargo.toml` registers for `USE_BE_CAIRO`), both arms carried (P-51/P-86 ①) | a Haiku configuration built with `--with-be-cairo` |
 | `HAVE_WINDOW_SYSTEM`, which this file's `struct font` writes (C 843-874) and the `font_driver.draw` member needs | `feature = "have_window_system"` (set by the arm pre-flight; a Haiku configuration always has it: configure.ac 3113 sets `window_system=haiku` and 7518 then `AC_DEFINE`s it) | every Haiku configuration |
 
 `tools/check-cond-eval.py src/haikufont.c` reads the file as
@@ -121,7 +121,7 @@ exit 1
 ```
 
 - **errors: 1**, and it is a **mirror copy**, not the unit:
-  `build/probes/haikufont/_Users_…_femacs_src_include_systime_rs.rs:28` = `femacs/src/include/systime.rs`
+  `build/probes/haikufont/_Users_…_femacs_src_include_systime_rs.rs:28` = `src/include/systime.rs`
   28's `const _: () = core::assert! (!cfg! (feature = "have_haiku") || HAIKU);` (`E0080`, `HAIKU` is
   undefined) - the item `docs/ports/haikuterm.md` Owed 6 and `docs/ports/haikuselect.md` Owed 5 name.
 - **errors in the unit itself (`_root.rs`): 0**, and **warnings in the unit: 0** (the 5 warnings are
@@ -146,7 +146,7 @@ exit 1
   elaborates.
 
 **③ The mutation control (P-86 ⑦: the reading above is not vacuous).**  Injecting one type error
-into the unit's own text - `femacs/src/haikufont.rs`'s `let mut b_len: ptrdiff_t = 0;` (C 1151)
+into the unit's own text - `src/haikufont.rs`'s `let mut b_len: ptrdiff_t = 0;` (C 1151)
 replaced by `= c"injected_control";` - changes the reading from **1 error to 2**, and the new one
 names the injected line:
 
@@ -158,11 +158,11 @@ error[E0308]: mismatched types
 ```
 
 `_root.rs`'s line numbering is the unit's own (every `include!` is replaced by one line), so the
-error is the unit's line 1537 and not a mirror's.  Restored, and `shasum -a 256 femacs/src/haikufont.rs`
+error is the unit's line 1537 and not a mirror's.  Restored, and `shasum -a 256 src/haikufont.rs`
 → `515014b7e2ecf538179aeec6cd194f0f1cec2135bd11a8351e1c0e900c33ab45` before and after the injection
 (that is the revision the injection ran on).  Readings ①/②/⑤ below were then re-taken on the final
 revision `733e6cbe05ae00adb1c56de41160453b4c17e244f58afa21147fe90fe13bb817`: `diff` between the two
-revisions is **three comment-only hunks** (C 1218-1234's citations, `femacs/src/haikufont.rs`
+revisions is **three comment-only hunks** (C 1218-1234's citations, `src/haikufont.rs`
 1618-1621; the `config.h` line's own `// C 19` → `// C 20`; and the header's `C 21-39` → `C 22-39`)
 and nothing else, and `build/femacs/haikufont.o`'s md5 is identical across them - so no reading here
 straddles a code change.
@@ -170,7 +170,7 @@ straddles a code change.
 **④ `extract-abi.py --check`.**
 
 ```
-$ python3 tools/extract-abi.py --check emacs/src/haikufont.c femacs/src/haikufont.rs
+$ python3 tools/extract-abi.py --check emacs/src/haikufont.c src/haikufont.rs
 - function haikufont_weight_to_lisp does not mention case, switch
 - function haikufont_slant_to_lisp does not mention case, switch
 - function haikufont_width_to_lisp does not mention case, switch
@@ -178,7 +178,7 @@ $ python3 tools/extract-abi.py --check emacs/src/haikufont.c femacs/src/haikufon
 - function haikufont_draw does not mention alloca, font_info
 - function syms_of_haikufont does not mention doc
 - line count drifted 32.5%: C 1480 vs Rust 1961
-FAIL emacs/src/haikufont.c -> femacs/src/haikufont.rs
+FAIL emacs/src/haikufont.c -> src/haikufont.rs
 ```
 
 **One row is the line-count row** (C 1480 → Rust 1961 = 32.5%), and its tolerance row is the
@@ -198,7 +198,7 @@ comparison itself is this same reading.
 | `check-citations.py` | `676 file(s) scanned, 0 drift, 0 range, 1604 external, 36 allowed, 0 stale` | no finding |
 
 `check-citations.py` first read **1 drift** against this unit -
-`drift femacs/src/haikufont.rs:1620 font.h 682-698` with the snippet `harfbuzz` ("is at
+`drift src/haikufont.rs:1620 font.h 682-698` with the snippet `harfbuzz` ("is at
 font.h:74") - because the
 `have_window_system` citation's line also named the harfbuzz pair: the comment now carries both
 citations (`font.h 682-698` for `draw`/`get_bitmap`/`free_bitmap`, `font.h 807-820` for the harfbuzz
@@ -206,14 +206,14 @@ pair), and the gate reads `0 drift` on the fixed text.  That is a real finding t
 pre-existing one.
 
 The five whole-tree readings were taken with **other lanes' files landing in the working tree while
-this lane ran** (`femacs/src/gmalloc.rs`, `femacs/src/pgtkselect.rs`, `femacs/oldXMenu/*.rs`,
+this lane ran** (`src/gmalloc.rs`, `src/pgtkselect.rs`, `oldXMenu/*.rs`,
 `docs/ports/macro-body-notes.tsv`'s later rows): the bound/external counts move with those lanes'
 ledgers, citations and ratchet rows (an earlier read of the same five gates, on the same tree a few
 commits' worth of edits ago, came out `18 declaration sites (1 forbidden, …), 1 failures` /
 `21 duplicate declaration(s), …, 4 failure(s)` / `116 ledger(s) bound …` / `233 ledger(s) bound …` /
 `1522 external …`).  On the final tree **four of the five gates end `0 failure(s)`**, and the earlier
 failing pair carried no `haikufont` mention at all (`grep -c haikufont` on that run's output: 0 -
-its findings were `femacs/src/gmalloc.rs` and `femacs/oldXMenu/insque.rs`, both other lanes' files);
+its findings were `src/gmalloc.rs` and `oldXMenu/insque.rs`, both other lanes' files);
 the only gate that reports a row for this file is `extract-abi --check`, and that row is the
 line-count row of ④.
 

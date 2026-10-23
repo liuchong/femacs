@@ -76,8 +76,8 @@
 
 ## Evidence
 
-    $ python3 tools/extract-abi.py --check emacs/lib/signal.in.h femacs/lib/include/signal.in.rs
-    OK emacs/lib/signal.in.h -> femacs/lib/include/signal.in.rs
+    $ python3 tools/extract-abi.py --check emacs/lib/signal.in.h lib/include/signal.in.rs
+    OK emacs/lib/signal.in.h -> lib/include/signal.in.rs
 
     $ python3 tools/check-cond-eval.py lib/signal.in.h
     lib/signal.in.h: 87 conditions, 34 unknown, 44 disagreements [NOT VERIFIED]

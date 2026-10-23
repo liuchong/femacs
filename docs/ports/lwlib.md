@@ -78,7 +78,7 @@ The consumers of the changed mirrors then read:
 units' `include!`s of the two mirrors are themselves `#[cfg]`-gated, so the frozen build never
 expands them (the objects are the empty ones they were before).  The strong readings are ④'s probes.
 
-## Deviations` and `## Owed`.  Port: `femacs/lwlib/lwlib.rs`
+## Deviations` and `## Owed`.  Port: `lwlib/lwlib.rs`
 > (**1,641 lines**), every `#if`/`#ifdef` carried with both arms.
 
 ## Gate mapping
@@ -95,7 +95,7 @@ expands them (the objects are the empty ones they were before).  The strong read
 
 `use_x_toolkit` rather than one toolkit's name (the `lwlib-Xlw.rs`/`lwlib-Xm.rs` choice) is the
 file's own condition: `lwlib.o` is in `OBJS` for **both** toolkits, and
-`femacs/lwlib/include/lwlib-widget.rs` gates `widget_value`'s `change`, `this_one_change`,
+`lwlib/include/lwlib-widget.rs` gates `widget_value`'s `change`, `this_one_change`,
 `toolkit_data` and `free_toolkit_data` - which the readers in this file use - on
 `feature = "use_x_toolkit"`, so any narrower gate would leave those fields out while the code that
 reads them is compiled.  `USE_TOOLKIT`, `USE_LUCID`, `USE_MOTIF`, `USE_XAW` and `HAVE_XAW3D` are all
@@ -237,7 +237,7 @@ in this directory already use, and the seven units whose include graph reaches t
 2. **`use_xaw` is a derived feature name** (C 39-41's `#define USE_XAW`), not a configuration
    constant - there is no `USE_XAW` in `docs/baseline/config/darwin-arm64.macros.tsv`.  The same
    reading the tree already uses for `use_cairo_or_have_xft`; it is **not** registered in
-   `femacs/xtask/Cargo.toml`'s `[features]` table yet (`## Owed` 1).
+   `xtask/Cargo.toml`'s `[features]` table yet (`## Owed` 1).
 3. **`destroy_one_instance`'s if-then-else chain** (C 803-820) gates each link with its own `#if`,
    and Rust cannot put an attribute on an `else`: the port spells C's chain as C's `else` chains do
    - the first link the preprocessor leaves in place, the rest nested under
@@ -299,7 +299,7 @@ in this directory already use, and the seven units whose include graph reaches t
      row is now stale (informational, not a failure) and `--write-pending` is the integrator's call.
    (The third book, `docs/ports/macro-body-notes.tsv`, **is** in this lane's whitelist - append
    only - and the two rows `dialog_spec_p` and `EXPLAIN` need are there.)
-2. **`use_xaw` is not in `femacs/xtask/Cargo.toml`'s `[features]` table** (generated from the
+2. **`use_xaw` is not in `xtask/Cargo.toml`'s `[features]` table** (generated from the
    tree), and `docs/baseline/feature-coverage.tsv` has no row for it.  Until the table is
    regenerated the only way to compile the Xaw arms is `--cfg 'feature="use_xaw"'` on the command
    line, which is what the probe above does.
@@ -328,7 +328,7 @@ in this directory already use, and the seven units whose include graph reaches t
   the value `UNVERIFIED`** (the port has no `<X11/*>` mirror; the surface stands in this unit).
   The one measured number is the `XEvent` union's 192-byte size, which is the frozen target's own
   Xlib and which `lwlib-Xm.md` measured.
-- **`use_xaw` is not registered** in `femacs/xtask/Cargo.toml`'s `[features]` table (`## Owed` 2), so
+- **`use_xaw` is not registered** in `xtask/Cargo.toml`'s `[features]` table (`## Owed` 2), so
   the Xaw arm is only compilable through a command-line `--cfg`, which is what ② uses.
 - **The line-count reading is a failure in `extract-abi.py --check` until the integrator writes the
   tolerance row** (`## Owed` 1): the port is 1,641 lines against C's 1,330.

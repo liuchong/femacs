@@ -28,4 +28,4 @@ third candidate carries the reference path's directories, and the readers accept
 when its first line names the file.
 
 Evidence: `python3 tools/extract-abi.py --check emacs/msdos/langinfo.h
-femacs/msdos/include/langinfo.rs` -> `OK` (1 ledger item).
+msdos/include/langinfo.rs` -> `OK` (1 ledger item).

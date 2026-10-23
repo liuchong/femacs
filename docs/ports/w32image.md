@@ -5,12 +5,12 @@
 > test (3019-3030, whose 3024 `AC_DEFINE`s `HAVE_NTGUI`) — and `docs/baseline/frozen-build-sources.txt`
 > lists no `w32image.o` for this target, so `tools/extract-abi.py`'s checklist for the file is empty
 > (P-86 ②) and this ledger is that clause's substitute: the **C line-range table**, the
-> `## Evidence` readings and the `## Deviations`.  Port: `femacs/src/w32image.rs` (**1476 lines**,
+> `## Evidence` readings and the `## Deviations`.  Port: `src/w32image.rs` (**1476 lines**,
 > md5 `c042f4627985fa246d7ada096bdf6fd1`, sha256
 > `10600c22c38cf619550bb7afe09a1b264855d977e09ad022b1514bb0bf9a19a8`), carrying **C 1-717 with both
 > arms of every `#if`**.  The reference `emacs/src/w32image.c` is md5
 > `7ecfc366f8dad6ee72804923ad1e6e9a` (unchanged; `emacs/` is read-only) and its `docs/port-map.md`
-> 576 row pairs `src/w32image.c` 717 with `femacs/src/w32image.rs` (the port's own count in that
+> 576 row pairs `src/w32image.c` 717 with `src/w32image.rs` (the port's own count in that
 > table is 13, the inherited stub's — the integrator's regeneration, Owed 7).
 >
 > **This ledger replaces the reading it inherits.**  The previous `docs/ports/w32image.md` (and the
@@ -131,7 +131,7 @@ unit; the fixes are what the 0 above measures.
 (`build/probes/w32image/`) was copied to `/tmp/w32img-lane/{base,mut}`, and one statement was
 injected at the top of `w32_image_bg_color`'s body in the copy: `let _lane_mutation: c_int =
 "w32image_arm_probe_no_such_type";`.  Both copies were compiled with the **pinned toolchain**
-(`femacs/rust-toolchain.toml` → `nightly-2026-10-01-aarch64-apple-darwin`) and the same three
+(`rust-toolchain.toml` → `nightly-2026-10-01-aarch64-apple-darwin`) and the same three
 `--cfg`s as ②: **base 34 errors / 29 warnings**, **mutant 35 errors / 29 warnings**, the extra one
 `E0308 mismatched types` anchored at the injected line in `_root.rs`, and the identifier
 `_lane_mutation` appears exactly once in the mutant's log and zero times in the base's.  The door
@@ -148,7 +148,7 @@ why the frozen macro table decides this file's arms and why every arm in `## Gat
 verdict rather than a reading of the comments.
 
 **⑤ The text gates.**  `python3 tools/extract-abi.py --check emacs/src/w32image.c
-femacs/src/w32image.rs` → **two** findings and no other: `- function decode_delay does not mention
+src/w32image.rs` → **two** findings and no other: `- function decode_delay does not mention
 break, case, default, switch` (now the `docs/ports/macro-body-notes.tsv` row this round appended,
 Deviations 6) and `- line count drifted 105.9%: C 717 vs Rust 1476` (the integrator's tolerance row,
 Owed 5).  `python3 tools/check-declarations.py` → `17 declaration sites (0 forbidden, 17 allowed
@@ -172,7 +172,7 @@ was executed anywhere (see `## Not claimed`).
    is the revision line, and C 20's one-author comment is carried as C's own words.
 2. **C 26-29's `#ifdef MINGW_W64` around `#include <objidl.h>` carries no file edge.**  `objidl.h`
    is the Windows SDK's, no mirror of it exists in the tree and P-88 ① forbids inventing one under
-   `femacs/src/include/`, so C's four lines are kept as text and the names the header supplies this
+   `src/include/`, so C's four lines are kept as text and the names the header supplies this
    file (`IStream`, C 432/436/437) stand in the `<objidl.h>` section.  Both arms of the `#ifdef`
    need them: the macro only chooses which SDK header spells them.
 3. **C 26-32's four SDK headers are an in-place stand-in section (P-88 ①), and every name in it is

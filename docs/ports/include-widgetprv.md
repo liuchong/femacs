@@ -50,8 +50,8 @@
 
 ## Evidence
 
-- `python3 tools/extract-abi.py --check emacs/src/widgetprv.h femacs/src/include/widgetprv.rs`
-  -> `OK emacs/src/widgetprv.h -> femacs/src/include/widgetprv.rs` (no `- ` problem lines) with the
+- `python3 tools/extract-abi.py --check emacs/src/widgetprv.h src/include/widgetprv.rs`
+  -> `OK emacs/src/widgetprv.h -> src/include/widgetprv.rs` (no `- ` problem lines) with the
   three stderr lines `missing type deferred: src/widgetprv.h <anon@27>/EmacsFramePart`,
   `… EmacsFrameClassRec/_EmacsFrameClassRec` and `… EmacsFrameRec/_EmacsFrameRec` (the ledger has
   unchecked boxes) - which is what the unchecked boxes are for.
@@ -78,13 +78,13 @@
 
 The 3 box(es) this sweep tentatively ticked are **real pending work, not stale bookkeeping**,
 and the tick was reverted.  Measured: while the ledger has unchecked boxes,
-`python3 tools/extract-abi.py --check emacs/src/widgetprv.h femacs/src/include/widgetprv.rs` prints `0` `- ` lines **because the tool
+`python3 tools/extract-abi.py --check emacs/src/widgetprv.h src/include/widgetprv.rs` prints `0` `- ` lines **because the tool
 defers this file's missing items to stderr** (`missing type deferred: src/widgetprv.h <name> (the ledger has
 unchecked boxes)`); with the boxes ticked the deferral lifts and the same command prints
 
     - missing type EmacsFramePart/ClassRec/Rec
 
-i.e. the type is genuinely absent from femacs/src/include/widgetprv.rs.  So: src/widgetprv.h's three records are the X11 widget interface (`EmacsFramePart`, `EmacsFrameRec`/`_EmacsFrameRec`, `EmacsFrameClassRec`/`_EmacsFrameClassRec`, plus the anonymous `<anon@27>` the tool cannot name); the frozen target has no window system, so they are dead-platform text (P-51/3.9 shape).
+i.e. the type is genuinely absent from src/include/widgetprv.rs.  So: src/widgetprv.h's three records are the X11 widget interface (`EmacsFramePart`, `EmacsFrameRec`/`_EmacsFrameRec`, `EmacsFrameClassRec`/`_EmacsFrameClassRec`, plus the anonymous `<anon@27>` the tool cannot name); the frozen target has no window system, so they are dead-platform text (P-51/3.9 shape).
 
 ## Decisions / Evidence (the eight true gaps, 2026-10-04)
 
@@ -92,8 +92,8 @@ the three X11 widget records landed as dead platform text under `have_x11` (no w
 pass (they had been left unchecked, and the earlier sweep had un-ticked some of them by
 position rather than by name - corrected here).
 
-    $ python3 tools/extract-abi.py --check emacs/src/widgetprv.h femacs/src/include/widgetprv.rs
-    OK emacs/src/widgetprv.h -> femacs/src/include/widgetprv.rs                     # `- ` lines: 0, no `missing type deferred`
+    $ python3 tools/extract-abi.py --check emacs/src/widgetprv.h src/include/widgetprv.rs
+    OK emacs/src/widgetprv.h -> src/include/widgetprv.rs                     # `- ` lines: 0, no `missing type deferred`
     $ cargo run -q -p xtask -- layout-check
     layout-check passed (see build/femacs/layout_asserts.rs)
 

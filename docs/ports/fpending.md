@@ -25,10 +25,10 @@
   and the port's own object prints the same.
 - The `return fp_->_p - fp_->_bf._base;` pointer difference is the port's
   `((*fp)._p as isize - (*fp)._bf._base as isize) as usize` (C's `ptrdiff_t` → `size_t`).
-- **Mirror edits**: `femacs/lib/include/stdio-impl.rs` is new (the measured `__sFILE`/`__sbuf`
-  layout plus `__SERR`), `femacs/lib/include/stdio.rs` now names `FILE` as that struct instead
+- **Mirror edits**: `lib/include/stdio-impl.rs` is new (the measured `__sFILE`/`__sbuf`
+  layout plus `__SERR`), `lib/include/stdio.rs` now names `FILE` as that struct instead
   of an opaque enum (the three field-reading units need it), and
-  `femacs/lib/include/fpending.rs` is this header's mirror (its declaration is in a
+  `lib/include/fpending.rs` is this header's mirror (its declaration is in a
   `pub mod` so this unit's definition shadows it, PORTING.md 0.1-10).
 - Line-count drift (C 63 vs the port's 75) is declared in docs/ports/line-drift-tolerance.tsv.
 - Call-relationship differences (D7): none.

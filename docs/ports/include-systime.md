@@ -40,8 +40,8 @@
   (every `data.c`-shaped unit) hits the same file twice — `xtask`'s include-graph expansion
   (PORTING.md 0.1-4/P-61) makes that one copy, verified by a negative test: with the expansion
   short-circuited, `layout-check` fails with `E0428: the name time_t is defined multiple times`.
-- `<timespec.h>` is `femacs/lib/include/timespec.rs` (a *reference* mirror: gnulib's module) and
-  `<sys/time.h>` is `femacs/lib/include/sys_time.rs` (a system mirror, P-26/P-50, carrying
+- `<timespec.h>` is `lib/include/timespec.rs` (a *reference* mirror: gnulib's module) and
+  `<sys/time.h>` is `lib/include/sys_time.rs` (a system mirror, P-26/P-50, carrying
   `struct timeval` with the frozen target's layout pinned by `const _` assertions).
 - Parameter names in the `extern` block come from the definitions (`keyboard.c`'s
   `set_waiting_for_input (struct timespec *time_to_clear)` and `timefns.c`'s seven); C's prototypes

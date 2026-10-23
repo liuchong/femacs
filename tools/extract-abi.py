@@ -1,7 +1,7 @@
 """Per-file inventory and mechanical equivalence check for the femacs port.
 
     python3 tools/extract-abi.py emacs/src/NAME.c            # checklist
-    python3 tools/extract-abi.py --check emacs/src/NAME.c femacs/src/NAME.rs
+    python3 tools/extract-abi.py --check emacs/src/NAME.c src/NAME.rs
     python3 tools/extract-abi.py --all                       # every pair found
 
 The inventory comes from `tools/cinventory.py`, which strips comments, honours
@@ -1249,12 +1249,12 @@ def object_selftest() -> int:
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             (root / "emacs/src").mkdir(parents=True)
-            (root / "femacs/src/include").mkdir(parents=True)
+            (root / "src/include").mkdir(parents=True)
             (root / "emacs/src/demo.h").write_text(
                 "extern int demo_object;\nextern int other_object;\n", encoding="utf-8")
-            (root / "femacs/src/include/demo.rs").write_text(
+            (root / "src/include/demo.rs").write_text(
                 "// femacs: mirror of src/demo.h @ deadbeef.\n", encoding="utf-8")
-            got = compare(root / "emacs/src/demo.h", root / "femacs/src/include/demo.rs",
+            got = compare(root / "emacs/src/demo.h", root / "src/include/demo.rs",
                           excluded_objects=rows)
         ok = got == want
         print(f"{'ok  ' if ok else 'FAIL'} excluded objects, {name}: {got}"
@@ -1487,7 +1487,7 @@ LEDGER_HEAD = re.compile(r"^#\s+(emacs/[A-Za-z0-9._/+-]+\.(?:c|h|cc|m|el))\b")
 # it that way: a unit whose Evidence quotes the grep (`src/process.c`'s ledger carries
 # `grep -c '^- [ ]' docs/ports/process.md -> 0`, status 3.198) reads as unfinished, so its
 # differences are reported as "still being ported" instead of failing (measured again 2026-10-15;
-# `femacs/xtask/src/main.rs`'s `has_unchecked_box` is the same reading).
+# `xtask/src/main.rs`'s `has_unchecked_box` is the same reading).
 UNCHECKED_BOX = re.compile(r"(?m)^\s*- \[ \]")
 
 
@@ -1546,7 +1546,7 @@ def own_ledger(c: Path, reference: Path, checklists: Path) -> Path | None:
     differences are the expected "not done yet" or a defect: a unit's fully ticked checklist
     would stand in for a header whose own mirror is half written.  Measured while the xterm lane
     was starting `src/include/xterm.rs` - the row read `done` against `xterm.c`'s ledger, while
-    `--check emacs/src/xterm.h femacs/src/include/xterm.rs` reported seven problems.  With this
+    `--check emacs/src/xterm.h src/include/xterm.rs` reported seven problems.  With this
     function, a file with no checklist of its own is judged against its *full* item set: a header
     whose mirror is complete is legitimately `done` (`src/indent.h`), and one that is not is
     reported, not hidden.
@@ -2630,8 +2630,8 @@ PORTED_DIRS = ("src", "lib", "lib-src", "lwlib", "oldXMenu", "exec", "nt", "msdo
 def pairs(reference: Path, root: Path):
     """Pair every C source with its port.
 
-    PORTING.md 0.1 fixes the layout: a `.c` is `femacs/<same path>.rs` and a `.h` is
-    `femacs/<dir>/include/NAME.rs`.  The earlier fallback list let a *header* mirror
+    PORTING.md 0.1 fixes the layout: a `.c` is `<same path>.rs` and a `.h` is
+    `<dir>/include/NAME.rs`.  The earlier fallback list let a *header* mirror
     stand in for the `.c` of the same stem (character.c was checked against the
     character.h mirror), so the kind of the reference file decides now.
     """
@@ -2662,7 +2662,7 @@ def main() -> int:
                     help="run the scanner's own cases (strip_comments)")
     ap.add_argument("--all", action="store_true")
     ap.add_argument("--reference", default="emacs")
-    ap.add_argument("--root", default="femacs")
+    ap.add_argument("--root", default=".")
     ap.add_argument("--json", action="store_true")
     ap.add_argument("--loose-lines", action="store_true")
     ap.add_argument("--checklists", default="docs/ports",

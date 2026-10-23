@@ -46,14 +46,14 @@
 # ----------------------------------------------------------------------
 ## Decisions
 
-`emacs/src/callproc.c` @ `fd7afced403`; port `femacs/src/callproc.rs` (2,441 lines vs C's
+`emacs/src/callproc.c` @ `fd7afced403`; port `src/callproc.rs` (2,441 lines vs C's
 2,262, +7.9%, declared in `docs/ports/line-drift-tolerance.tsv` on the **`total`** basis —
 the dead text is carried, not recorded).  `src/callproc.c` is in
 `docs/baseline/frozen-build-sources.txt`, so the frozen configuration compiles it and the
 full comparison applies (no 3.31 exemption).  The gates:
 
     build-tu src/callproc.c      -> built src/callproc.rs -> ../build/femacs/callproc.o
-    extract-abi.py --check       -> OK emacs/src/callproc.c -> femacs/src/callproc.rs
+    extract-abi.py --check       -> OK emacs/src/callproc.c -> src/callproc.rs
     check-symbols.py --pending   -> check-symbols: 78 units compared, 0 mismatched, 1 still pending
     check-globals.py             -> check-globals: 241 units, 0 DEFVAR_* variables without a definition in their own unit
     ledger                       -> 32/32 rows checked, 0 unchecked
@@ -279,7 +279,7 @@ references and no library defines - the first real link refused it.  Now: the ca
 files "come with" the *reference product*; the subject of that clause is the program that ships
 them, i.e. *this* one, so the rule's seventh half (PORTING.md 0.1-19) writes this repository's own
 name there instead.
-Readings: `extract-abi --check emacs/src/callproc.c femacs/src/callproc.rs` stays **OK** - a
+Readings: `extract-abi --check emacs/src/callproc.c src/callproc.rs` stays **OK** - a
 `DEFVAR_LISP` docstring is not compared by any gate (only a `DEFUN`'s digest is, `extract-abi.py`
 1724-1727), which is why the three `literal` rows in `docs/baseline/declarations-allowlist.tsv`
 could be deleted rather than re-reasoned: `check-declarations` falls 10 -> 7 rows on this change

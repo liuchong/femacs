@@ -30,4 +30,4 @@ no configuration the port builds).
 Nothing compiles the mirror: `xtask layout-check` covers `src/include` and `lib/include`.
 
 Evidence: `python3 tools/extract-abi.py --check emacs/exec/mipsfpu.h
-femacs/exec/include/mipsfpu.rs` -> `OK` (6 ledger items).
+exec/include/mipsfpu.rs` -> `OK` (6 ledger items).

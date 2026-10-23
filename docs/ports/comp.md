@@ -8,7 +8,7 @@
 > both arms of every `#if` carried, and its ledger records a **C line-range table** instead of
 > ticked boxes, because `tools/extract-abi.py`'s checklist for it is empty (P-73's live-line
 > filter; the file *is* in `docs/baseline/config/cond-eval-verified.txt` 253) and the checkbox
-> sections are therefore not coverage evidence.  The port is `femacs/src/comp.rs` (1194 lines),
+> sections are therefore not coverage evidence.  The port is `src/comp.rs` (1194 lines),
 > the file gate is `feature = "have_native_comp"`, and the frozen `build-tu` reading is still the
 > same object it was - the transcription must not leak a line into this configuration.
 >
@@ -51,7 +51,7 @@ included by no configuration - see the gap note below), and the arm-flip reading
 **The missing gates are named here, not added.**  Eight of the features the table names -
 `libgccjit_have_gcc_jit_global_set_initializer`, `libgccjit_have_gcc_jit_context_new_bitcast`,
 `libgccjit_have_reflection`, `libgccjit_have_gcc_jit_version`, `have_zlib`, `ns_self_contained`,
-`lisp_object_is_struct`, `have__setjmp` - are **not** in `femacs/xtask/Cargo.toml`'s `[features]`
+`lisp_object_is_struct`, `have__setjmp` - are **not** in `xtask/Cargo.toml`'s `[features]`
 table, so no build selects their arms and `xtask dead-arms` cannot flip them either (that command
 knows seven `FLIPS`, and `have_native_comp` is one of them).  The one consequence that is
 *measured* rather than predicted is in `## Evidence` ③: the arm-flip compile reaches all of these
@@ -61,8 +61,8 @@ arms' text as text.  Registering the features, and adding the four `LIBGCCJIT_HA
 ## C line ranges
 
 The coverage gate (`python3 tools/check-dead-file-coverage.py`) binds this ledger to **both**
-reference files of the pair: `emacs/src/comp.c` (the unit `femacs/src/comp.rs`) and
-`emacs/src/comp.h` (the mirror `femacs/src/include/comp.rs`, which resolves to this ledger by the
+reference files of the pair: `emacs/src/comp.c` (the unit `src/comp.rs`) and
+`emacs/src/comp.h` (the mirror `src/include/comp.rs`, which resolves to this ledger by the
 rule `check-ledger-ticks.py` shares).  The ranges below are therefore contiguous - chosen so that
 no non-blank line of *either* file falls outside them - and a row names the constructs of whichever
 file its range covers (comp.h's rows are the mirror's, and `docs/ports/include-comp.md` is where
@@ -143,7 +143,7 @@ is the reading P-86 ③ asks for by name.
     (!cfg! (feature = "have_native_comp") || HAVE_NATIVE_COMP);` (mirror line 2853).  The single
     `--cfg` P-86 ③⑴ prescribes therefore trips the mirror's own feature/configuration consistency
     binding - the arm that *is* faithful needs the configuration constant flipped as well, which
-    is what `xtask dead-arms` does (it copies `femacs/` to `build/dead-arms/` and flips both).
+    is what `xtask dead-arms` does (it copies `` to `build/dead-arms/` and flips both).
     That command compiles every finished unit and is outside this lane's budget, so this reading
     is the single-`cfg` one, with this artifact named.
 
@@ -167,9 +167,9 @@ is the reading P-86 ③ asks for by name.
   include graph needed `character.rs`.
 
 **④ The inventory and line readings (`extract-abi`).**
-`python3 tools/extract-abi.py --check emacs/src/comp.c femacs/src/comp.rs` →
+`python3 tools/extract-abi.py --check emacs/src/comp.c src/comp.rs` →
 `- line count drifted 2553.3%: C 45 live (of 5857) vs Rust 1194` / `FAIL emacs/src/comp.c ->
-femacs/src/comp.rs`.  The one finding is the P-86 class's own: the live-line filter leaves this
+src/comp.rs`.  The one finding is the P-86 class's own: the live-line filter leaves this
 file 45 lines, so a transcribed port cannot read as anything but drift; P-86 ⑩'s remedy is a
 baseline row in `docs/ports/line-drift-tolerance.tsv`, and **that row is written now** (status
 3.678: `comp 0.80 total`, whose number is the measured shortfall and whose reason names C 823-5577
@@ -225,7 +225,7 @@ numbers are clang's, and the arm cannot check them until the declarations exist 
    `W32_PFN_gcc_jit_…`/`fn_gcc_jit_…` names are `macro_rules!` parameters, since C pastes them
    from one identifier and Rust cannot; C's `__VA_ARGS__` (the parameter list) is the `$args`
    fragment.  `emacs/src/w32common.h` 77-97 is a `kind=deferred` row in
-   `docs/ports/excluded-macros.txt` and stays so (`femacs/src/include/w32common.rs` 175-183 keeps
+   `docs/ports/excluded-macros.txt` and stays so (`src/include/w32common.rs` 175-183 keeps
    C's text).  C's `CDECL` is empty on this ABI.
 2. **An object-like `#define` that renames an identifier has no Rust counterpart.**  C 366-441's
    sixty-four `#define gcc_jit_x fn_gcc_jit_x`, C 57-63-class `#undef`s and C 515-526's
@@ -258,7 +258,7 @@ numbers are clang's, and the arm cannot check them until the declarations exist 
    `record_unwind_protect_excursion` (lisp.h 4826), `set_internal` (lisp.h 4206), `suffix_p`
    (lisp.h 4740), `emacs_fopen` (lisp.h 5322), `md5_gz_stream` (lisp.h 5455), `hexbuf_digest`
    (lisp.h 4247) and `vsnprintf` (`<stdio.h>`; `lib/include/stdio.in.rs` 301 carries it, but no
-   unit reaches that template mirror - `femacs/src/android.rs` 1347-1348's note) are declared in
+   unit reaches that template mirror - `src/android.rs` 1347-1348's note) are declared in
    this unit with C's prototype in a `/// C: …` line.  `emacs_fclose` is *not* one of them: it is
    `include/lisp.rs` 3148's macro and is called as such.
 7. **Ungated locals C declares inside an `#if`** are declared once before the arms
@@ -272,7 +272,7 @@ numbers are clang's, and the arm cannot check them until the declarations exist 
 
 ## Owed by the integrator (nothing here is claimed as done)
 
-1. `femacs/xtask/Cargo.toml` `[features]`: the eight gate names of the Gate-mapping note, and
+1. `xtask/Cargo.toml` `[features]`: the eight gate names of the Gate-mapping note, and
    `docs/baseline/feature-coverage.tsv` (+ the generated `docs/port-map.md` line counts).
 2. `docs/ports/line-drift-tolerance.tsv`: the `src/comp.c` row is stale - it was written for the
    45-live-line revision (tolerance 0.35) and the transcription reads 2553.3% drift.  Same for
@@ -281,7 +281,7 @@ numbers are clang's, and the arm cannot check them until the declarations exist 
    its shape is decided before slice 2, say so there rather than in this ledger.
 4. The `VaList` qualification in `format_string`/the `vsnprintf` declaration landed **after** the
    arm reading of `## Evidence` ③, so that reading reports 2 `VaList` errors the file no longer
-   has; the spelling is `femacs/src/eval.rs` 105/2251's and was checked on its own under the
+   has; the spelling is `src/eval.rs` 105/2251's and was checked on its own under the
    pinned `nightly-2026-10-01`, not as part of an arm run.
 5. The `libgccjit.h` declaration shape (P-88's in-unit section vs `*mut c_void` per P-55) is the
    decision that turns `## Evidence` ③ into a real compile reading; it is not this lane's, and the

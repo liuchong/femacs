@@ -28,7 +28,7 @@
 
 ## Decisions
 
-- **`struct rlimit` comes from a new system mirror**, `femacs/lib/include/sys_resource.rs`,
+- **`struct rlimit` comes from a new system mirror**, `lib/include/sys_resource.rs`,
   with the frozen target's measured layout (16 bytes, `rlim_cur` 0, `rlim_max` 8, `rlim_t`
   8) and the target's `RLIMIT_AS` = 5, which is the value the macro table records too.
 - **Three `#if` chain arms, guarded so exactly one is live.**  `HAVE_GETRLIMIT` is 1 in the

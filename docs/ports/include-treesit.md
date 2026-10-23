@@ -46,8 +46,8 @@
 
 ## Evidence
 
-- `python3 tools/extract-abi.py --check emacs/src/treesit.h femacs/src/include/treesit.rs`
-  → `OK emacs/src/treesit.h -> femacs/src/include/treesit.rs` (0 problem lines).
+- `python3 tools/extract-abi.py --check emacs/src/treesit.h src/include/treesit.rs`
+  → `OK emacs/src/treesit.h -> src/include/treesit.rs` (0 problem lines).
 - `python3 tools/check-cond-eval.py src/treesit.h`
   → `2 conditions, 0 unknown to the evaluator, 0 disagreements`, and `src/treesit.h` is in
   `docs/baseline/config/cond-eval-verified.txt` (line 392), so the frozen table decides it.

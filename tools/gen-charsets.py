@@ -14,7 +14,7 @@ reference's read-only data, which is what the recipes name).
     python3 tools/gen-charsets.py 8859-2.map ... # named targets
     python3 tools/gen-charsets.py --list         # the target list only
 
-Outputs go to `femacs/etc/charsets/` and `femacs/lisp/international/` and are compared with the
+Outputs go to `etc/charsets/` and `lisp/international/` and are compared with the
 reference's own copies (which its build already wrote into `emacs/`) - the comparison is the
 reading; a byte difference is printed with the first differing offset.
 """
@@ -30,7 +30,7 @@ import sys
 REPO = pathlib.Path(__file__).resolve().parent.parent
 REF_BUILD = REPO / "build/emacs-ref/admin/charsets"
 REF_SRC = REPO / "emacs"
-PORT = REPO / "femacs"
+PORT = REPO
 
 
 def targets() -> list[str]:
@@ -38,7 +38,7 @@ def targets() -> list[str]:
     makefile = REF_BUILD / "Makefile"
     if not makefile.is_file():
         raise SystemExit(f"{makefile} is missing: configure the frozen reference build first")
-    out = subprocess.run(["make", "-s", "-p"], cwd=REF_BUILD, capture_output=True, text=True).stdout
+    out = subprocess.run(["make", "-s", "-n", "-p"], cwd=REF_BUILD, capture_output=True, text=True).stdout
     names: list[str] = []
     for line in out.split("\n"):
         if line.startswith("CHARSETS :=") or line.startswith("TRANS_TABLE :="):
@@ -210,4 +210,7 @@ def main() -> int:
 
 
 if __name__ == "__main__":
+    if "--compare-reference" not in sys.argv:
+        raise SystemExit(subprocess.call([sys.executable, str(REPO / "tools/bootstrap-resources.py"), "--family", "charsets", *sys.argv[1:]]))
+    sys.argv.remove("--compare-reference")
     sys.exit(main())

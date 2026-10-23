@@ -1,4 +1,4 @@
-# femacs/lib/include/sys_select.rs (no reference file)
+# lib/include/sys_select.rs (no reference file)
 
 The frozen target's `<sys/select.h>` is a system header (gnulib has no `sys_select.in.h`
 wrapper in this build), so there is no reference file to pair with and no checklist to tick.

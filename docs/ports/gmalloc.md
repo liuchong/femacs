@@ -1,6 +1,6 @@
 # emacs/src/gmalloc.c (1908 lines)
 
-Port `femacs/src/gmalloc.rs` (**2326 lines**, whole file, C 1-1908); ledger written to P-86's shape
+Port `src/gmalloc.rs` (**2326 lines**, whole file, C 1-1908); ledger written to P-86's shape
 (clause ②: the C line-range table replaces the empty checklist, plus `## Evidence`,
 `## Deviations`, `## Owed`).  Reference `emacs/src/gmalloc.c` md5 `fd327d9b580354a68d0be92386c4c4ad`;
 the port's md5 is `e999b3f05a0c68ae69ca67aa587cec70` and its sha256
@@ -24,7 +24,7 @@ before this lane touched them).
   `docs/baseline/config/darwin-arm64.macros.tsv` 3615/789/3321 record `SYSTEM_MALLOC` 1,
   `DOUG_LEA_MALLOC` undef, `REL_ALLOC` undef; `docs/baseline/frozen-build-sources.txt` (generated
   from `make -n` in that build directory) therefore lists no `gmalloc.o` for this target.  Both
-  feature names are registered (`femacs/xtask/Cargo.toml` 597 `no_system_malloc`, 86
+  feature names are registered (`xtask/Cargo.toml` 597 `no_system_malloc`, 86
   `doug_lea_malloc`); together they are C's `!SYSTEM_MALLOC && !DOUG_LEA_MALLOC`, and one alone
   would compile text C never compiles.
 - **The rename chain C 61-71 is carried, and its spelling is the one non-obvious decision.**  C
@@ -46,7 +46,7 @@ before this lane touched them).
 - **Every `#if` of the file carries both arms**, as `#[cfg]` on the items (and the includes) it
   gates; the gate table below names each one and its frozen value.  `min` (C 1371) and `abort`
   (C 383) are not on this unit's include graph and stand at their use sites (the
-  `femacs/src/w32term.rs` 1683 shape); `sbrk` stands at C 1463's site for the same reason.
+  `src/w32term.rs` 1683 shape); `sbrk` stands at C 1463's site for the same reason.
 - **`<malloc.h>` (C 28), `<pthread.h>` (C 46) and `<sys/mman.h>` (C 359) have no file in the
   reference tree and no mirror**; each stands in the unit at its own `#include` line (P-88 ①).
   Nothing gmalloc.c names from `<malloc.h>` is used (the three hooks are declared by C 312-314 and
@@ -64,7 +64,7 @@ before this lane touched them).
 | --- | --- | --- |
 | the file itself (`GMALLOC_OBJ`, i.e. `!SYSTEM_MALLOC && !DOUG_LEA_MALLOC`) | `all (feature = "no_system_malloc", not (feature = "doug_lea_malloc"))` (every item and every include edge) | false (`SYSTEM_MALLOC` 1, `DOUG_LEA_MALLOC` undef) |
 | C 24 `#ifdef HAVE_MALLOC_H` | `feature = "have_malloc_h"` (include selection; no item, see Decisions) | false (macros.tsv 1453) |
-| C 25 `# if GNUC_PREREQ (4, 2, 0)` (a `#pragma` only) | no item; recorded (a compiler directive, `femacs/lib/strftime.rs` 269) | true, inside the false arm above |
+| C 25 `# if GNUC_PREREQ (4, 2, 0)` (a `#pragma` only) | no item; recorded (a compiler directive, `lib/strftime.rs` 269) | true, inside the false arm above |
 | C 30 `#ifndef __MALLOC_HOOK_VOLATILE` | the name-keeper `pub const __MALLOC_HOOK_VOLATILE: ()` (Rust spells the qualifier at the access site) | C defines it (nothing else does) |
 | C 34 `#if defined HAVE_PTHREAD` | `feature = "have_pthread"` | true (macros.tsv 1502) |
 | C 45/199/474/743/1163 `#ifdef USE_PTHREAD` | `feature = "use_pthread"` (C's own alias, defined at C 35; the `alloc.rs` 286 `USE_VALGRIND` shape) | true under C 34 |
@@ -124,7 +124,7 @@ uncovered line).  `docs/port-map.md` 447 lists one target for this reference fil
 | 548-560 | `__malloc_initialize` | file gate |
 | 562-563 | `morecore_recursing` | file gate |
 | 564-675 | `morecore_nolock` (with C 623's `goto got_heap`) | file gate; the goto is the labeled block, C's label name kept |
-| 677-868 | `_malloc_internal_nolock` (C 693-696's `#if 0`, C 740-747's three arms, C 751/C 817's `goto out`) | file gate; the `#if 0` body dropped (the `femacs/exec/trace.rs` 1605 precedent), the three arms as gated blocks, the goto the labeled block |
+| 677-868 | `_malloc_internal_nolock` (C 693-696's `#if 0`, C 740-747's three arms, C 751/C 817's `goto out`) | file gate; the `#if 0` body dropped (the `exec/trace.rs` 1605 precedent), the three arms as gated blocks, the goto the labeled block |
 | 870-880 | `_malloc_internal` | file gate |
 | 882-900 | `malloc` (the `gmalloc` symbol) | file gate |
 | 902-929 | C 902's `#if !(defined (_LIBC))` arm: `_malloc`, `_free`, `_realloc` | file gate + `not (libc)`; C 907-909's declarations are of the definitions below |
@@ -133,7 +133,7 @@ uncovered line).  `docs/port-map.md` 447 lists one target for this reference fil
 | 957-1201 | `_free_internal_nolock` (C 991's `switch`, C 1163-1167's two arms) | file gate; `switch` -> `match`, both arms gated |
 | 1203-1211 | `_free_internal` | file gate |
 | 1213-1224 | `free` (the `gfree` symbol) | file gate |
-| 1226-1235 | C 1226's `#ifdef weak_alias` / `#else` / `cfree` / `#endif` | file gate + `weak_alias` / `not (weak_alias)` (the `femacs/lib/euidaccess.rs` 197-204 shape) |
+| 1226-1235 | C 1226's `#ifdef weak_alias` / `#else` / `cfree` / `#endif` | file gate + `weak_alias` / `not (weak_alias)` (the `lib/euidaccess.rs` 197-204 shape) |
 | 1236-1255 | the section's opening block | dropped |
 | 1257-1258 | `grealloc_hook` | file gate |
 | 1260-1380 | `_realloc_internal_nolock` (C 1286's `switch`, C 1297/1350/1370's `goto out`, C 1371's `min`) | file gate; `match` + labeled block, `min` declared at its use site (Owed) |
@@ -179,7 +179,7 @@ uncovered line).  `docs/port-map.md` 447 lists one target for this reference fil
    `lib/include/stdlib.rs`'s four declarations sit in the same crate root as the definitions.  C
    resolves the same collision with C 61-66's `#undef`/`#define`; Rust's remedy is PORTING.md P-39's
    glob-imported `pub mod` + `use`, which is that mirror's job.  The fifth error (`E0658`,
-   `c_variadic` at `femacs/src/include/lisp.rs` 3761) appeared while this lane was working - the
+   `c_variadic` at `src/include/lisp.rs` 3761) appeared while this lane was working - the
    mirrors are shared and moving - and is that mirror's, not this unit's.
 2. **A multi-line `#[cfg]` above an `include!` edge loses its gate in `xtask`'s `materialize`**
    (measured, and the reason the first frozen `build-tu` of this unit was wrong): `materialize`
@@ -188,7 +188,7 @@ uncovered line).  `docs/port-map.md` 447 lists one target for this reference fil
    two physical lines; the frozen object came out **1240 bytes with `xfree_wrapper`,
    `flush_stack_barrier` and `cons_to_integer` in it** (i.e. `include/lisp.rs`'s chain had been
    compiled into a build that must compile nothing).  Every gated edge is now one line
-   (`femacs/src/gmalloc.rs` 62/83-93/137/458/553/1985/2057), and the frozen object is the empty
+   (`src/gmalloc.rs` 62/83-93/137/458/553/1985/2057), and the frozen object is the empty
    one (Evidence ①).  The tool side of this is Owed 7.
 3. **`extract-abi.py` cannot see C's `#define` rename chain, so the five `rpl_*` items read as
    invented symbols** (Evidence ⑤).  C 66-70's renames make C 882/1215/1394/1424/1503's definitions
@@ -224,9 +224,9 @@ uncovered line).  `docs/port-map.md` 447 lists one target for this reference fil
   -C panic=abort -C codegen-units=1 -C opt-level=0 --cfg 'feature="no_system_malloc"'
   --cfg 'feature="have_pthread"' --cfg 'feature="use_pthread"' --cfg 'feature="have_sbrk"'
   --cfg 'feature="_sc_pagesize"' build/femacs/units/gmalloc/_root.rs`) -> **exit 1, 5 errors, 0 of
-  them anchored in the unit**: `femacs/lib/include/stdlib.rs` 18/20/22/24, 4 x `E0428`
+  them anchored in the unit**: `lib/include/stdlib.rs` 18/20/22/24, 4 x `E0428`
   (`malloc`, `realloc`, `calloc`, `free` - the notes point back at `_root.rs` 1969/1978/1987/2005,
-  this unit's definitions), and `femacs/src/include/lisp.rs` 3761, 1 x `E0658` (`verror`'s
+  this unit's definitions), and `src/include/lisp.rs` 3761, 1 x `E0658` (`verror`'s
   `core::ffi::VaList`; that mirror was edited by another lane during this batch - Findings 1).
   4 warnings, all `unused doc comment` on `/// C:` lines (the house warning class).
 - **arm flip, arm 2** (the same root, `--cfg 'feature="no_system_malloc"'` plus `gc_mcheck`,
@@ -266,7 +266,7 @@ uncovered line).  `docs/port-map.md` 447 lists one target for this reference fil
   `32aaaba7 0 0 0 0 0 0 0`; `PROT_READ` 0x01, `PROT_WRITE` 0x02; `SIZE_MAX` 0xffffffffffffffff,
   `PTRDIFF_MAX` 0x7fffffffffffffff.  Nineteen `const _: () = assert!(…)` lines in the unit pin the first
   ten of those; the `pthread_mutex_t`/`PROT_*` readings are in the stand-in sections.
-- **`python3 tools/extract-abi.py --check emacs/src/gmalloc.c femacs/src/gmalloc.rs`** -> 6 rows and
+- **`python3 tools/extract-abi.py --check emacs/src/gmalloc.c src/gmalloc.rs`** -> 6 rows and
   `FAIL`: five `fn rpl_malloc|rpl_calloc|rpl_free|rpl_aligned_alloc|rpl_realloc carries
   #[unsafe(no_mangle)] but the reference does not define a non-static function of that name
   (invented exported symbol)` (Finding 3, Owed 2) and
@@ -298,7 +298,7 @@ uncovered line).  `docs/port-map.md` 447 lists one target for this reference fil
    and a Rust `extern` declaration plus a same-crate definition of one name is `E0428`.
 5. **The `#elif !defined getpagesize` arm (C 1642-1644) is recorded rather than transcribed**: the
    declaration it holds is already in `include/unistd.in.rs`, which this unit includes.
-6. **`#if 0` (C 693-696) is dropped and recorded** (the `femacs/exec/trace.rs` 1605 precedent); the
+6. **`#if 0` (C 693-696) is dropped and recorded** (the `exec/trace.rs` 1605 precedent); the
    C 25 `#pragma` likewise has no Rust item.
 7. **C's implicit conversions are spelled**: `PTRDIFF_MAX as size_t` (C 405), `size.wrapping_neg ()`
    for C 1511/1478/635/646/1118's unsigned negations, `as ptrdiff_t`/`as size_t`/`as c_int` at the
@@ -331,12 +331,12 @@ uncovered line).  `docs/port-map.md` 447 lists one target for this reference fil
 1. **`docs/ports/line-drift-tolerance.tsv`**: one row for the stem `gmalloc`, tolerance >= 0.219,
    basis `total`, with Deviations 1/2/4/7/10/13/14's reasons.  Not in this lane's write set; until it
    lands `extract-abi.py --check` stays `FAIL` with that row.
-2. **The five invented-symbol rows** (Evidence ⑤): `femacs/lib/include/stdlib.rs`'s declarations are
+2. **The five invented-symbol rows** (Evidence ⑤): `lib/include/stdlib.rs`'s declarations are
    the mirror round's (Owed 5) and the `g*` names need either a `#define`-aware pass in
    `tools/extract-abi.py`'s `whole_file_exported_names` or a `PORT_ONLY_EXPORTS`-style registration
    (`src/extract-abi.py` 1623) - owner: the extractor/integrator.  Until then the port cannot be
    "clean" for this file by any spelling that keeps C's ten symbols.
-3. **Feature registration in `femacs/xtask/Cargo.toml`**: `have_malloc_h`, `use_pthread`,
+3. **Feature registration in `xtask/Cargo.toml`**: `have_malloc_h`, `use_pthread`,
    `glibc_2_34`, `glibc_2_24`, `gc_mcheck`, `gc_protect_malloc_state`, `have_sbrk`, `_sc_pagesize`,
    `have_getpagesize`, `__gnu_library__`, `__uclibc__` (11 names; `no_system_malloc`,
    `doug_lea_malloc`, `have_pthread`, `gc_malloc_check`, `weak_alias`, `libc`, `msdos` are already

@@ -22,7 +22,7 @@
   0 disagreements [VERIFIED]`), so the mirror carries both declarations as live text.
 - **The two declarations sit in a module the mirror glob-imports (`termopts_objs`), not at the
   crate root.**  The storage is the unit's: `src/keyboard.c` 348/351 define both objects, and
-  `femacs/src/keyboard.rs` 314/316 define them at *its* crate root.  A crate-root declaration of a
+  `src/keyboard.rs` 314/316 define them at *its* crate root.  A crate-root declaration of a
   name the including unit also defines at the crate root is `E0428` (measured on this tree), so the
   mirror uses the `atimer_decls` / `globals.rs`-`subrs` shape: the unit's definition shadows the
   glob import, and a unit without a definition resolves the name through it.  This is the
@@ -33,25 +33,25 @@
 - **No unit `include!`s the mirror yet**, and there is no `src/termopts.c` at all — the header's
   objects are keyboard.c's, and C's readers reach them through this header (`src/sysdep.c`
   1296/1542, `src/process.c` 6041, `src/xdisp.c`, …).  Two of the port's units declare the names at
-  their own crate roots today: `femacs/src/sysdep.rs` 404 (inside an `unsafe extern "C"` block) and
-  966, and `femacs/src/process.rs` 6317-6318.  They are not in this mirror's include graph, so
+  their own crate roots today: `src/sysdep.rs` 404 (inside an `unsafe extern "C"` block) and
+  966, and `src/process.rs` 6317-6318.  They are not in this mirror's include graph, so
   nothing here shadows them; when those units adopt the mirror their copies must retire first
   (the 3.143/3.153 use-site class), because a crate-root copy plus the glob import is fine but a
   *second crate-root declaration* is `E0428`.
-- **`femacs/src/keyboard.rs` 13-16's note that this header "has no mirror" is now stale** — the
+- **`src/keyboard.rs` 13-16's note that this header "has no mirror" is now stale** — the
   mirror exists and is shaped so that the unit can include it without moving its definitions.  The
   file belongs to another lane, so the sentence is left for its owner to refresh (recorded here so
   the discrepancy is not silent).
 
 ## Evidence
 
-- `python3 tools/extract-abi.py --check emacs/src/termopts.h femacs/src/include/termopts.rs`
-  -> `OK emacs/src/termopts.h -> femacs/src/include/termopts.rs` (no `- ` problem lines).
+- `python3 tools/extract-abi.py --check emacs/src/termopts.h src/include/termopts.rs`
+  -> `OK emacs/src/termopts.h -> src/include/termopts.rs` (no `- ` problem lines).
 - `python3 tools/check-cond-eval.py src/termopts.h` -> `1 conditions, 0 unknown to the evaluator,
   0 disagreements` (the guard).
 - `python3 tools/extract-abi.py emacs/src/termopts.h` -> this ledger: 0 subrs, 0 functions defined,
   1 macro (the guard), 0 types, 2 file-scope objects (C 24, C 27).
-- `rg -c "interrupt_input|interrupts_deferred" femacs/src/*.rs femacs/src/include/*.rs` ->
+- `rg -c "interrupt_input|interrupts_deferred" src/*.rs src/include/*.rs` ->
   `sysdep.rs:11`, `keyboard.rs:17`, `process.rs:3`, `include/termopts.rs:4`, `eval.rs:2`,
   `include/blockinput.rs:3`, `thread.rs:1`, `include/thread.rs:1`.  `rg -n 'include/termopts' femacs`
   -> no unit `include!`s the mirror.

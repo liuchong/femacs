@@ -1,6 +1,6 @@
 # emacs/src/ralloc.c (1214 lines)
 
-Port `femacs/src/ralloc.rs` (**1570 lines**, whole file, C 1-1214); ledger written to P-86's shape
+Port `src/ralloc.rs` (**1570 lines**, whole file, C 1-1214); ledger written to P-86's shape
 (clause ②: the C line-range table replaces the empty checklist, plus `## Evidence`, `## Deviations`,
 `## Owed`).  Reference `emacs/src/ralloc.c` md5 `247c259ce1c90592d18b019819e45117`; the port's md5
 `cad9b3bcf14d08260c95ffeb062ef0e6` (`md5 -q`, final revision; the 17-line empty unit it replaced was
@@ -16,7 +16,7 @@ Port `femacs/src/ralloc.rs` (**1570 lines**, whole file, C 1-1214); ledger writt
   itself is decided at `configure.ac` 3355-3368).  The frozen build's generated `config.h` leaves
   `REL_ALLOC` undefined and defines `SYSTEM_MALLOC` (1), so `docs/baseline/frozen-build-sources.txt`
   lists no `ralloc.o` for this target.  Both features are already registered
-  (`femacs/xtask/Cargo.toml` 586 `rel_alloc`, 534 `no_system_malloc`; `msdos.rs` 646-676 is their
+  (`xtask/Cargo.toml` 586 `rel_alloc`, 534 `no_system_malloc`; `msdos.rs` 646-676 is their
   earlier consumer), and the two together are C's `REL_ALLOC && !SYSTEM_MALLOC` - one feature alone
   would compile text C never compiles.
 - **This piece is *not* `text-only`**: the arm flip type-checks on this machine (one rustc, no
@@ -30,7 +30,7 @@ Port `femacs/src/ralloc.rs` (**1570 lines**, whole file, C 1-1214); ledger writt
   sides of `doug_lea_malloc` (C 84 declares it only when the macro is undefined; C 1003 reaches
   `<malloc.h>`'s when it is defined), so the crate root never carries both.
 - **`M_TOP_PAD` and `mallopt` stand in the unit at C 80-82** (P-88 ①: the declaration site is C's
-  own `#include` line, and no file is added under `femacs/src/include/`).  They are glibc's, and
+  own `#include` line, and no file is added under `src/include/`).  They are glibc's, and
   this machine has no `<malloc.h>` to measure them against, so the value is **UNVERIFIED**.
 
 ## Gate mapping
@@ -84,7 +84,7 @@ The rows are contiguous and ascending and cover C 1-1214, so the gate has no unc
 ## Findings
 
 1. **`refill_memory_reserve`'s declaration and its definition disagree on the ABI** (C 921; the
-   mirror side is `femacs/src/include/lisp.rs`, the definition is `femacs/src/alloc.rs` 4557).
+   mirror side is `src/include/lisp.rs`, the definition is `src/alloc.rs` 4557).
    C's prototype is `extern void refill_memory_reserve (void);` inside
    `#if defined REL_ALLOC && !defined SYSTEM_MALLOC` (lisp.h 4437-4439) - the same condition as this
    file's gate - and `alloc.rs` defines it as a plain `unsafe fn` (its own comment: C declares it
@@ -92,7 +92,7 @@ The rows are contiguous and ascending and cover C 1-1214, so the gate has no unc
    and a `rel_alloc` configuration's *link* would not find it.  **Named here, not fixed**: the
    repair belongs to the lisp.h mirror / the alloc.rs lane (see `## Owed`).
 2. **`include/lisp.rs` 3756 uses an unstable library type** (`core::ffi::VaList`, the `c_variadic`
-   feature) in the `verror` declaration.  With the pinned nightly (`femacs/rust-toolchain.toml`,
+   feature) in the `verror` declaration.  With the pinned nightly (`rust-toolchain.toml`,
    `nightly-2026-10-01`) it compiles; with this machine's *default stable* (1.98.1) **every unit
    that includes `lisp.rs` fails `E0658`** - measured on this unit and on
    `build/femacs/units/alloc/_root.rs`, so it is a property of the mirror, not of this port.  The
@@ -141,7 +141,7 @@ type-checked, so ②'s "0 errors" bears on `ralloc.rs`.  The injected line was r
 recompiled reading is byte-identical to ②'s warning set (exit 0, 0 errors).
 
 **③ Inventory.**
-`python3 tools/extract-abi.py --check emacs/src/ralloc.c femacs/src/ralloc.rs` →
+`python3 tools/extract-abi.py --check emacs/src/ralloc.c src/ralloc.rs` →
 **1 `- ` line**: `- line count drifted 29.3%: C 1214 vs Rust 1570`, then `FAIL`.  Everything else in
 the checklist is satisfied: all 18 functions' bodies (including `r_alloc_check`'s eight `assert`
 sites), all 7 macros (`PAGE`, `PAGE_ROUNDUP`, `MEM_ALIGN`, `MEM_ROUNDUP`, `NIL_HEAP`, `NIL_BLOC`,
@@ -159,7 +159,7 @@ the nine are C 80, 83, 995, 1013, 1161, 1175, 1179, 1193's `#if`s plus the neste
 site in this unit). — `check-mirror-dupes.py` → `17 duplicate declaration(s), 17 ratchet row(s),
 0 failure(s)` (this unit adds no row; its `sbrk`/`refill_memory_reserve` declarations are not in any
 included mirror). — `check-citations.py` → `676 file(s) scanned, 0 drift, 0 range, 1105 external, 35
-allowed, 0 stale`. — `check-citation-text.py femacs/src/ralloc.rs` → `checked 0 / mismatched 0 /
+allowed, 0 stale`. — `check-citation-text.py src/ralloc.rs` → `checked 0 / mismatched 0 /
 ranges 0 / unresolved 0` (the file's `/// C <line>` citations name no path, so neither citation
 tool reads them; the `/// C: <header text>` lines are verbatim). — `check-symbols.py --dir src` →
 `75 units compared, 1 mismatched` (that one is `xdisp`, not this unit), `invented=[]`.

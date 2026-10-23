@@ -273,7 +273,7 @@
 ## Decisions (third slice: the geometry, the flag writers and the two remaining enums)
 
 - **STATE: 33 of the 47 gap lines closed, and the two shared rows this file needs are listed
-  below.**  What landed (all in `femacs/src/include/frame.rs`, appended): `enum internal_border_part`
+  below.**  What landed (all in `src/include/frame.rs`, appended): `enum internal_border_part`
   is *not* among it - see the ownership bullet - but `enum z_group`'s four members are (C 61-67 is
   dead-arm text, while C 1266's live `#else` arm of `FRAME_Z_GROUP` names `z_group_none`, the
   `sys_types.in.rs` reading), the 18 geometry members (C 1697-1830) as `#[inline(always)] pub fn`s
@@ -328,7 +328,7 @@
 ## Evidence (third slice)
 
 - **`--check`**: `python3 tools/extract-abi.py --check emacs/src/frame.h
-  femacs/src/include/frame.rs` -> `FAIL`, **14** `- ` lines, down from 47: the four functions minus
+  src/include/frame.rs` -> `FAIL`, **14** `- ` lines, down from 47: the four functions minus
   the two that are unit-owned, the 33 macros minus the two rows and `FRAME_MOUSE_UPDATE`'s token
   line, and the nine constants.  With the two requested rows added to `/tmp` copies of the tables
   the count is **12**, all of them the unit-owned items above (measured).
@@ -352,16 +352,16 @@
   `INTERNAL_BORDER_NONE`, … `INTERNAL_BORDER_BOTTOM_LEFT_CORNER`) and one
   `error[E0659]: WINDOW_FRAME is ambiguous`, and `build-tu src/term.c` printed
   `error[E0428]: the name FRAME_FACE_CACHE is defined multiple times`; after dropping them, all
-  seven units build and `layout-check` is green.  `femacs/src/frame.rs` is **byte-identical to
-  HEAD** at the end of the round (`git diff --stat femacs/src/frame.rs` -> empty), so the ownership
+  seven units build and `layout-check` is green.  `src/frame.rs` is **byte-identical to
+  HEAD** at the end of the round (`git diff --stat src/frame.rs` -> empty), so the ownership
   question is left exactly as it was found.
 
 # ----------------------------------------------------------------------
 ## Decisions (the ownership ruling and the two shared rows, status 3.211)
 
 - **The mirror now owns `enum internal_border_part` and its nine enumerators.**  The third slice
-  left them out because two units defined them (`femacs/src/frame.rs` 351-362,
-  `femacs/src/keyboard.rs` 6155-6166, each with a comment saying the mirror did not carry them) and
+  left them out because two units defined them (`src/frame.rs` 351-362,
+  `src/keyboard.rs` 6155-6166, each with a comment saying the mirror did not carry them) and
   a second copy would be `E0428`.  That is the `stdbit.in.rs` relation of 3.181, so the ruling is
   the mirror owns the header item and the units' copies retire - done in the same commit, and the
   type and the nine constants arrive through the mirror every including unit already reads.  The
@@ -399,8 +399,8 @@
 
 The 3 unchecked box(es) above were **stale bookkeeping, not missing port work**: every
 name they list is already satisfied, measured on this worktree with
-`python3 tools/extract-abi.py --check emacs/src/frame.h femacs/src/include/frame.rs` -> **0 `- ` problem
-lines** (`femacs/src/include/frame.rs` carries the names; `lib/include/` and `src/include/` mirrors are the ones the
+`python3 tools/extract-abi.py --check emacs/src/frame.h src/include/frame.rs` -> **0 `- ` problem
+lines** (`src/include/frame.rs` carries the names; `lib/include/` and `src/include/` mirrors are the ones the
 tools compare here).  Two of `c-ctype.h`'s names are satisfied by an exclusion rather than a
 definition - `_C_CTYPE_LOWER_A_THRU_F_N` and `_C_CTYPE_LOWER_N` own rows in
 `docs/ports/excluded-macros.txt` ("c-ctype.h 126-129's parameterised case family: a Rust
@@ -452,7 +452,7 @@ own proof.
 
 1. The four non-bit fields at their C positions, under their own guards.  The two
    `HAVE_EXT_TOOL_BAR`/`HAVE_EXT_MENU_BAR` bits need those features added to
-   `femacs/xtask/Cargo.toml` first - the port's conditional-compilation table has no row for
+   `xtask/Cargo.toml` first - the port's conditional-compilation table has no row for
    either today.
 2. The bit block.  The frozen arm's bits live in bytes 240-244 and the gated arm's in 272-279,
    so the shape stays the same two `u32` units and *every* constant after the first gated bit
@@ -495,7 +495,7 @@ Two notes the C source forces:
   this build (conf_post.h 59) - the reading confirms it (596, `z_order` at 600) - so the port
   carries `c_uint` there and says why, where its `bool_bf` alias elsewhere is the bitfield spelling.
 * the four new gates (`have_ext_tool_bar`, `have_ext_menu_bar`, `have_xft`, `have_freetype`) were
-  added to `femacs/xtask/Cargo.toml`'s table in its alphabetical place.  `HAVE_EXT_TOOL_BAR` and
+  added to `xtask/Cargo.toml`'s table in its alphabetical place.  `HAVE_EXT_TOOL_BAR` and
   `HAVE_EXT_MENU_BAR` are *implied* by a window system in C (lisp.h 3933/3938 define them for NS),
   which is why the ns arm of the probe has them on and the x11 arm off - a flip of `have_ns` has to
   turn them on with it.
@@ -583,7 +583,7 @@ in-tree unit compiles against; the x11 reading is recorded here rather than repr
 reproducing it means giving `Emacs_Rectangle` an arm split, and that needs `XRectangle` - an Xlib
 mirror no unit has yet (the named task, status 3.294 ③ / 3.312 ④).
 
-Evidence: `extract-abi.py --check emacs/src/frame.h femacs/src/include/frame.rs` OK;
+Evidence: `extract-abi.py --check emacs/src/frame.h src/include/frame.rs` OK;
 `build-tu src/frame.c` builds (the frozen arm is unchanged, `MonitorInfo` is not in it); and the
 gated arm was compiled as a cut-out probe - the record above plus `assert!`s on the six numbers,
 `rustup run nightly-2026-10-01 rustc --edition 2024 --crate-type lib -C panic=abort
@@ -597,7 +597,7 @@ gated arm was compiled as a cut-out probe - the record above plus `assert!`s on 
   member (221) and the `FRAME_KBOARD` (406) / `FRAME_LIVE_P` (414) accessors that deref it, and
   `struct window` in `WINDOW_FRAME` (939) and the `WINDOWP`/`XWINDOW` calls of
   `FRAME_HAS_MINIBUF_P` (477-478, 473).  Every frozen unit happens to include `termhooks.rs`
-  and `window.rs` itself (checked: no unit in `femacs/src/` includes this mirror without both),
+  and `window.rs` itself (checked: no unit in `src/` includes this mirror without both),
   so the omission had never shown - but `src/androidmenu.c` reaches this mirror through
   `androidterm.h` 24 and includes neither header, which is how `E0425: cannot find type
   window` and `cannot find function WINDOWP/XWINDOW` appeared.  rustc reported them at 939:30,
@@ -615,8 +615,8 @@ gated arm was compiled as a cut-out probe - the record above plus `assert!`s on 
   0 `^error` lines**.
 - Frozen units that include this mirror: `build-tu src/coding.c`, `src/window.c`,
   `src/keyboard.c` -> `built …` (all three, unchanged).
-- `python3 tools/extract-abi.py --check emacs/src/frame.h femacs/src/include/frame.rs` -> `OK
-  emacs/src/frame.h -> femacs/src/include/frame.rs`.
+- `python3 tools/extract-abi.py --check emacs/src/frame.h src/include/frame.rs` -> `OK
+  emacs/src/frame.h -> src/include/frame.rs`.
 - `python3 tools/check-citations.py` -> `0 drift`, `0 stale`.
 
 # ----------------------------------------------------------------------
@@ -762,8 +762,8 @@ gone (it read `bits1` unconditionally, which under arm B would have answered `ic
 
 **Evidence (this round, all on the batch's own revision).**
 
-- `python3 tools/extract-abi.py --check emacs/src/frame.h femacs/src/include/frame.rs` -> `OK
-  emacs/src/frame.h -> femacs/src/include/frame.rs`.
+- `python3 tools/extract-abi.py --check emacs/src/frame.h src/include/frame.rs` -> `OK
+  emacs/src/frame.h -> src/include/frame.rs`.
 - `python3 tools/check-mirror-dupes.py` -> `18 duplicate declaration(s), 18 ratchet row(s),
   0 failure(s)` (the same 18/18/0 as before the batch).
 - `python3 tools/check-citations.py` -> `675 file(s) scanned, 0 drift, 0 range, 494 external,
@@ -814,8 +814,8 @@ gone (it read `bits1` unconditionally, which under arm B would have answered `ic
    call sites of `WINDOW_BUFFER_LOCAL_VALUE` above are the same class of handoff.
 4. `src/frame.rs` 6155-6156's `check_x_display_info` copy blocks the mirror's declaration: adding
    it to `include/dispextern.rs` makes `check-mirror-dupes` fail
-   (`FAIL femacs/src/frame.rs: check_x_display_info is already declared by
-   femacs/src/include/dispextern.rs (in the include graph)`), so it is deliberately **not** added
+   (`FAIL src/frame.rs: check_x_display_info is already declared by
+   src/include/dispextern.rs (in the include graph)`), so it is deliberately **not** added
    (`docs/ports/w32fns.md` owed 9 stays owed).
 
 # ----------------------------------------------------------------------

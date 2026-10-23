@@ -25,7 +25,7 @@
 > with *transcribe the text, both arms, no stub*; what the earlier note measured (not in the frozen
 > source list, empty checkbox sections, 336-byte object) is unchanged and still true here - it is
 > the *conclusion* that is withdrawn, exactly as `docs/ports/pgtkterm.md`, `docs/ports/w32.md` and
-> `docs/ports/androidvfs.md` record for their own files.  Port: `femacs/src/gtkutil.rs`
+> `docs/ports/androidvfs.md` record for their own files.  Port: `src/gtkutil.rs`
 > (**4200 lines**, from the 11 of the placeholder), carrying **C 1-1296** and **C 1297-2281** with
 > **both arms of every `#if`**.
 >
@@ -75,7 +75,7 @@
 > C 1023/1065/1104's `#if ! GTK_CHECK_VERSION (3, 22, 0)` are true.  A `use_gtk` build takes GTK's
 > own `gtk/gtkversion.h` instead, so the port spells each arm with a derived-condition feature after
 > the `android_api_le_11`/`android_api_ge_9` naming: **`gtk_check_version_ge_3_10`** and
-> **`gtk_check_version_ge_3_22`** - **both are registered in `femacs/xtask/Cargo.toml`** (100/101,
+> **`gtk_check_version_ge_3_22`** - **both are registered in `xtask/Cargo.toml`** (100/101,
 > with those C lines in their comments; slice 1's `## Owed` 1 was closed by a later batch, and slice
 > 2 uses both).  The pragma-shaped `#if GTK_CHECK_VERSION (3, 10, 0)` at C 104 gates a forward declaration
 > only, which PORTING.md 0.1-12 drops anyway, so its arm is C's text plus that feature name.
@@ -130,7 +130,7 @@
 | C 1186 `#ifndef HAVE_PGTK` (the two `gtk_window_get_size` call shapes), C 1227's `#ifndef HAVE_PGTK` / `#else`, C 1237's `#ifdef USE_CAIRO`, C 1273's `#ifndef HAVE_PGTK` (`xg_frame_set_char_size`) | `not (have_pgtk)` / `have_pgtk` / `use_cairo` / `not (have_pgtk)` | as above |
 | **slice 2 (C 1297-2281).** C 1351/1363's `#ifndef HAVE_PGTK` / `#else`, C 1359's `#ifdef USE_CAIRO` and C 1383's `#ifndef HAVE_PGTK` (`xg_frame_set_size_and_position`) | `not (have_pgtk)` / `have_pgtk` / `use_cairo` | as above |
 | C 1393's `#ifndef HAVE_PGTK` (`xg_win_to_widget`), C 1428's `#ifdef HAVE_GTK3` / C 1431's `#ifndef HAVE_PGTK` / C 1452's GTK2 `#else` (`xg_set_widget_bg`), C 1563's `#ifndef HAVE_PGTK` (`delete_cb`) | `not (have_pgtk)` / `have_gtk3` | as above |
-| C 1462 `#if defined HAVE_PGTK && defined HAVE_GSETTINGS` (the dark-mode trio) and C 1824's same fold (`xg_create_frame_widgets`), C 1927's `#ifdef HAVE_GSETTINGS` (`xg_create_frame_outer_widgets`) | `all (have_pgtk, have_gsettings)` - `have_gsettings` is **not registered** in `femacs/xtask/Cargo.toml` (Owed 9) | a pgtk build with GSettings |
+| C 1462 `#if defined HAVE_PGTK && defined HAVE_GSETTINGS` (the dark-mode trio) and C 1824's same fold (`xg_create_frame_widgets`), C 1927's `#ifdef HAVE_GSETTINGS` (`xg_create_frame_outer_widgets`) | `all (have_pgtk, have_gsettings)` - `have_gsettings` is **not registered** in `xtask/Cargo.toml` (Owed 9) | a pgtk build with GSettings |
 | C 1516/1522/1545's `#ifndef HAVE_PGTK` (`style_changed_cb`) | `not (have_pgtk)` / `have_pgtk` | as above |
 | C 1582's `#ifndef HAVE_GTK3` and C 1632's `#ifdef HAVE_GTK3` (the `GtkRcStyle`/`wfixed` pair), C 1585/1593/1689/1699/1715/1747/1789's `#ifndef HAVE_PGTK`, C 1593's `#else`, C 1611's `#if GTK_CHECK_VERSION (3, 10, 0)`, C 1620's `#if (! defined HAVE_GTK3 && defined HAVE_GTK_WINDOW_SET_HAS_RESIZE_GRIP)`, C 1693's `#if ! GTK_CHECK_VERSION (3, 22, 0)`, C 1725's `#ifdef HAVE_PGTK`, C 1734's `#if !defined HAVE_PGTK` / `#else`, C 1759's `#ifndef HAVE_GTK3` / `#else` (+ C 1771's nested `#ifdef HAVE_PGTK`) (`xg_create_frame_widgets`) | `have_gtk3` / `not (have_gtk3)`; `not (have_pgtk)` / `have_pgtk`; `gtk_check_version_ge_3_10`; `not (gtk_check_version_ge_3_22)`; `have_gtk_window_set_has_resize_grip` **not registered** (Owed 9) | as above |
 | C 1833's `#ifdef HAVE_PGTK` (`xg_create_frame_outer_widgets`), C 1883's `#if ! GTK_CHECK_VERSION (3, 22, 0)` | `have_pgtk`; `not (gtk_check_version_ge_3_22)` | a pgtk build / a GTK < 3.22 build |
@@ -139,8 +139,8 @@
 | **slice 4 (C 2562-2843).** C 2571's `#ifdef HAVE_GTK_FILE_SELECTION_NEW` (`xg_uses_old_file_dialog`), C 2739's same fold (the `xg_get_file_name_from_*`/`with_*` pair) and C 2820's (`xg_get_file_name`'s chooser choice) | `all (use_gtk, have_gtk_file_selection_new)` - registered by this slice | a GTK build whose headers still carry the old file-selection dialog (GTK2) |
 | **slice 5 (C 2844-3002).** C 2848's `#ifdef HAVE_FREETYPE` (the whole font-chooser half), C 2850/2886/2947/2961's `HAVE_GTK3` pairs, C 2918's `#ifdef HAVE_PGTK` and C 2859's `#if PANGO_VERSION_CHECK (1, 36, 7)` (the `PANGO_WEIGHT_SEMILIGHT` step of `xg_weight_to_symbol`) | `all (use_gtk, have_freetype)` for the section, `have_gtk3` for the two symbol walks/`xg_font_filter`/the chooser's desc path, `have_pgtk` inside `xg_get_font`, and `pango_version_ge_1_36_7` - registered by this slice | a GTK build with FreeType and GTK3; a pure-GTK (pgtk) build; a Pango >= 1.36.7 build |
 | C 2145's `#ifdef HAVE_PGTK` (`xg_set_undecorated`), C 2175/2190's `#ifndef HAVE_PGTK` / `#else` (`xg_frame_restack`, `xg_set_skip_taskbar`), C 2209/2229's `#ifdef HAVE_PGTK` (`xg_set_no_focus_on_map`, `xg_set_no_accept_focus`), C 2261's `#ifndef HAVE_PGTK` + C 2268's dead inner `#ifdef HAVE_PGTK` (`xg_set_frame_icon`) | `have_pgtk` / `not (have_pgtk)`; the two in-expression arm splits are arm choosers (`## Deviations` 17) | as above |
-| **slice 20 (C 4770-4876).** C 4829's `#if GTK_CHECK_VERSION (3, 20, 0)` (`xg_update_scrollbar_pos`'s re-layout after the resize) | `gtk_check_version_ge_3_20` - registered by this slice (`femacs/xtask/Cargo.toml` 151; `docs/baseline/feature-coverage.tsv` re-recorded) | a GTK >= 3.20 build |
-| **slice 22 (C 4978-5074).** C 5063's `#if ! GTK_CHECK_VERSION (3, 18, 0)` (the `gtk_adjustment_changed` the thumb setter calls only before 3.18) | `not (gtk_check_version_ge_3_18)` - registered by this slice (`femacs/xtask/Cargo.toml` 151; `docs/baseline/feature-coverage.tsv` re-recorded) | a GTK < 3.18 build |
+| **slice 20 (C 4770-4876).** C 4829's `#if GTK_CHECK_VERSION (3, 20, 0)` (`xg_update_scrollbar_pos`'s re-layout after the resize) | `gtk_check_version_ge_3_20` - registered by this slice (`xtask/Cargo.toml` 151; `docs/baseline/feature-coverage.tsv` re-recorded) | a GTK >= 3.20 build |
+| **slice 22 (C 4978-5074).** C 5063's `#if ! GTK_CHECK_VERSION (3, 18, 0)` (the `gtk_adjustment_changed` the thumb setter calls only before 3.18) | `not (gtk_check_version_ge_3_18)` - registered by this slice (`xtask/Cargo.toml` 151; `docs/baseline/feature-coverage.tsv` re-recorded) | a GTK < 3.18 build |
 
 ## C line ranges
 
@@ -221,7 +221,7 @@
 | 5692-5810 | C 5693-5694's **`is_box_type`** (C 5695-5708 - is the item's box the orientation we want?  GTK3 asks the widget through `gtk_orientable_get_orientation` and `GTK_IS_BOX`, GTK2 asks the type through `GTK_IS_VBOX`/`GTK_IS_HBOX`), **`xg_tool_item_stale_p`** (C 5711-5759 - may this button be reused? the remembered stock/icon/image against C's, then the box's orientation and the label, updating the label when that is the only change) and **`xg_update_tool_bar_sizes`** (C 5761-5810 - the bar's preferred size, its container position, and the four frame slots, answering `true` when any of them moved; **this is the definition slice 28's `tb_size_cb` was waiting for, so the P-91 ④ site closes here**) | file gate (`use_gtk`) plus C's own `HAVE_GTK3` and `USE_CAIRO` folds; the mirror gains `GTK_IS_VBOX`/`GTK_IS_HBOX` (GTK2's, under the negated GTK3 feature) and GTK3's `gtk_orientable_get_orientation` | slice 30 below |
 | 5811-5846 | C 5812-5815's **`find_icon_from_name`** (C 5816-5846 - what is this name?  the `"n:"` prefix means "already an icon name" and the rest must exist in the theme, a plain name is a stock id first under GTK2 (C 5830-5833's `gtk_stock_lookup` arm) and an icon name under both, and anything left over comes back `NULL` with `*icon_name` cleared; `update_frame_tool_bar` is its only caller, C 6001/6009) | file gate (`use_gtk`) plus C's own `#ifndef HAVE_GTK3`; the mirror gains `GtkIconTheme` + `gtk_icon_theme_get_for_screen`/`gtk_icon_theme_has_icon` and, under the negated GTK3 feature, GTK2's `GtkStockItem` + `gtk_stock_lookup`; **the round writes the `if`/`else if` chain once per face** because C's middle arm is inside a version fold (recorded as a deviation) | slice 31 below |
 | 5847-6162 | C 5849-5850's comment and **`update_frame_tool_bar`** (C 5851-6162 - the file's largest remaining item and its one entry point: the button margin with C 5895-5896's "default for GTK is zero" adjustment, the bar's creation on first use, C 5909-5928's up-to-date test and bookkeeping, then the item walk with C 5957-5968's separator arm, C 5982-5988's invalid-image arm, C 5991-6015's stock/icon resolution, C 6027-6046's vector image pick and `lookup_image`, C 6065-6074's staleness test, C 6076-6132's widget creation under five version folds, and C 6141-6161's removal, packing and resize) | file gate (`use_gtk`) plus C's own `HAVE_PGTK`, `USE_CAIRO`, `HAVE_GTK3` and `GTK_CHECK_VERSION (3, 14, 0)` folds; the mirror gains sixteen items (the tool-bar item/render surface, GTK2's `gtk_image_new_from_stock` and `gtk_misc_set_padding` under negated features, `g_object_set_data_full`, and the four 3.14 margin setters); the unit carries three use-site declarations (`valid_image_p`, `lookup_image`, `prepare_image_for_display`) and a copy of `IMAGE_FROM_ID` (Owed 18) | slice 32 below |
-| 6163-6312 | C 6164-6165's comment and three items: **`free_frame_tool_bar`** (C 6167-6209 - take the bar out of its box when it was packed, otherwise destroy it, clear the frame's four toolbar slots, free the `xg_frame_tb_info` record and ask for a resize), **`xg_change_toolbar_position`** (C 6211-6239 - hold a reference across the re-pack, remove the widget from whichever box holds it, `xg_pack_tool_bar` at `pos`, drop the reference and resize when the sizes moved) and **`xg_initialize`** (C 6246-6312 - keep libXft linked, clear the three file-scope objects and the scroll-bar widget map, then set the menu-bar accelerator and the `Emacs` key theme and install the two `C-g` binding sets) | file gate (`use_gtk`) plus C's own `HAVE_XFT`, the `have_pgtk`-or-not-GTK3 fold, `HAVE_GTK3`, the **new `gtk_check_version_ge_3_16` feature** (registered by this slice in `femacs/xtask/Cargo.toml`), `HAVE_FREETYPE` and `HAVE_XWIDGETS`; the mirror gains twelve items (the binding-set surface, the two `GTK_TYPE_*` macro pairs, `GDK_KEY_g`/`GDK_CONTROL_MASK`, the pre-3.16 string-property setter and `XftInit`) | slice 33 below |
+| 6163-6312 | C 6164-6165's comment and three items: **`free_frame_tool_bar`** (C 6167-6209 - take the bar out of its box when it was packed, otherwise destroy it, clear the frame's four toolbar slots, free the `xg_frame_tb_info` record and ask for a resize), **`xg_change_toolbar_position`** (C 6211-6239 - hold a reference across the re-pack, remove the widget from whichever box holds it, `xg_pack_tool_bar` at `pos`, drop the reference and resize when the sizes moved) and **`xg_initialize`** (C 6246-6312 - keep libXft linked, clear the three file-scope objects and the scroll-bar widget map, then set the menu-bar accelerator and the `Emacs` key theme and install the two `C-g` binding sets) | file gate (`use_gtk`) plus C's own `HAVE_XFT`, the `have_pgtk`-or-not-GTK3 fold, `HAVE_GTK3`, the **new `gtk_check_version_ge_3_16` feature** (registered by this slice in `xtask/Cargo.toml`), `HAVE_FREETYPE` and `HAVE_XWIDGETS`; the mirror gains twelve items (the binding-set surface, the two `GTK_TYPE_*` macro pairs, `GDK_KEY_g`/`GDK_CONTROL_MASK`, the pre-3.16 string-property setter and `XftInit`) | slice 33 below |
 | 6313-6447 | C 6313's blank and C 6314's `#ifndef HAVE_PGTK` (whose `#endif` is C 6629, far past this slice, so the fold prefixes the five items below), then **`xg_add_virtual_mods`** (C 6315-6336 - X's real masks into GDK's virtual bits, with C 6324's "GDK always assumes Mod1 is alt" arm), **`xg_virtual_mods_to_x`** (C 6338-6357 - the Other direction: strip the seven GDK bits and map Meta/Super/Hyper back through the display's masks), **`xg_im_context_commit`** (C 6359-6408 - a `MULTIBYTE_CHAR_KEYSTROKE_EVENT` from the committed string, decoded as UTF-8 with C 6380-6381's unibyte fallback, the `coding` property, and under XInput2 the device that sent the filtered keystroke), **`xg_im_context_preedit_changed`** (C 6410-6435 - the preedit string, its attribute list and the cursor, with C 6425-6429's `min`/`max` pair tagging the character under the cursor) and **`xg_im_context_preedit_end`** (C 6437-6446 - an empty `PREEDIT_TEXT_EVENT`) | file gate (`use_gtk`) plus the pgtk fold and, inside `xg_im_context_commit`, C 6365-6368/6387-6401's `HAVE_XINPUT2` pair; the mirror gains eleven items (the seven GDK modifier bits, `PangoAttrList`, `gtk_im_context_get_preedit_string`, `pango_attr_list_unref`); the unit carries two use-site declarations (`decode_string_utf_8`, `xi_device_from_id`) | slice 34 below |
 | 6448-6628 | **`xg_widget_key_press_event_cb`** (C 6450-6627 - the file's largest event handler: C 6463-6471's `FOR_EACH_FRAME` walk for the frame whose widget this is, C 6476's popup test, C 6479-6485's pending-keystroke bookkeeping under XInput2, C 6487-6489's native-input guard, C 6491-6499's event frame/modifiers/timestamp, C 6501-6510's device lookup, and then the keysym classification - C 6512's `is_modifier`, C 6515-6520's GTK2 range guard, C 6524-6530's ASCII range, C 6533-6541's Unicode keysym range, C 6543-6598's `Is…Key` family with the fourteen `GDK_KEY_dead_*` folds, and C 6600-6613's `gdk_keyval_to_unicode` pair - then C 6615-6620's store and C 6622-6626's connection exercise) | file gate (`use_gtk`) plus the pgtk fold and C's own `HAVE_XINPUT2`, `HAVE_GTK3` and `USABLE_SIGIO` arms; **no mirror change** - the four `Is…Key` macros, the twenty-two `GDK_KEY_*` rows, `gunichar` with `gdk_keyval_to_unicode` and `XNoOp` are all unit-local (three other units declare the first two groups over the mirror, and the mirror cannot name a unit-local type) | slice 35 below |
 | 6629-6753 | **`xg_filter_key`** (C 6629-6727 - hand an X key event to GTK's input method: C 6632-6637's event type with its `HAVE_XINPUT2` conjunct, C 6644-6645's window, C 6647-6670's device selection (the seat under 3.20, the first master device under 3.16, neither before that), then the key event filled from the core event (C 6676-6695, with C 6678-6681's `HAVE_XKB` group and C 6692's 3.6 modifier probe) or from an XInput2 cookie (C 6698-6718), and C 6721-6726's filter call and free) and **`xg_widget_style_updated`** (C 6731-6751, under C 6730's `GTK_CHECK_VERSION (3, 10, 0)`: clear the opaque-region hint through the `_NET_WM_OPAQUE_REGION` property on X or through GDK on pgtk, when the frame's background is not opaque), plus C 6728's and C 6752-6753's closing `#endif`s | file gates plus C's own `HAVE_XINPUT2`, `have_xkb`, 3.6, 3.16, 3.20 and 3.10 folds; the mirror gains seven rows (`GdkKeymap`, `gdk_keymap_get_for_display`, `gdk_keymap_translate_keyboard_state`, `gdk_x11_keymap_key_is_modifier` under a new 3.6 feature, `gdk_device_manager_list_devices`, `GdkDeviceType` + `GDK_DEVICE_TYPE_MASTER`, `GDK_SOURCE_KEYBOARD`), and the unit carries this file's last local groups (the two event-type constants, `GdkModifierType`, `XKeyEvent`, the four `gdk_*` entry points, `GDK_KEY_PRESS`/`RELEASE`, `XkbGroupForCoreState`, and the XInput2 tail records) | **slice 36, the file's last** |
@@ -231,7 +231,7 @@ blanks between blocks, and the last row runs on to C 6753, the reference's last 
 `tools/check-dead-file-coverage.py`'s per-line classification finds no non-blank line without a row.
 
 The gate binds this ledger to **two** references - `src/gtkutil.c` and `src/gtkutil.h` - because
-`docs/port-map.md` pairs `femacs/src/include/gtkutil.rs`'s target with the same ledger by its
+`docs/port-map.md` pairs `src/include/gtkutil.rs`'s target with the same ledger by its
 `include-` stem rule; the second binding is satisfied by the same ranges (they run past C 245 and
 cover its blanks), exactly as `docs/ports/pgtkterm.md` records for `src/pgtkterm.h`.  The header
 mirror's own state is `docs/ports/include-gtkutil.md`'s (a placeholder: guard only) and this table
@@ -447,7 +447,7 @@ python3 tools/check-cond-eval.py src/gtkutil.c
 the file is not in `docs/baseline/port-lines-pending.tsv`), so no ratchet row is owed here.
 
 **④S2 `extract-abi.py --check` (the ABI reading), final revision.**
-`python3 tools/extract-abi.py --check emacs/src/gtkutil.c femacs/src/gtkutil.rs` -> **124 `- ` lines**
+`python3 tools/extract-abi.py --check emacs/src/gtkutil.c src/gtkutil.rs` -> **124 `- ` lines**
 (slice 1: 153; the drop is the C 1297-2281 functions leaving the missing list), `FAIL` (the unported
 remainder - C 2282-6753, ~95 functions - is most of them).  Every slice-2 name is present: the check
 reports **no** `missing function` for any of `xg_frame_set_size_and_position`, `xg_win_to_widget`,
@@ -544,7 +544,7 @@ have_gtk3, use_cairo, have_xinput2; I<C> is use_gtk, have_x_windows, have_window
 | C | 1+1 | `no field bg on type GtkStyle` / `fg` | C 798-800's GTK2 arm reads two `GdkColor` arrays out of `struct _GtkStyle`; the record is GTK2's and **UNVERIFIED** here, so the port carries the opaque head and names the two member reads (Owed 6) |
 
 **③ `extract-abi.py --check`.**  `python3 tools/extract-abi.py --check emacs/src/gtkutil.c
-femacs/src/gtkutil.rs` -> `FAIL`, **149 `- ` lines**: 116 `missing function`, 9 `missing macro`,
+src/gtkutil.rs` -> `FAIL`, **149 `- ` lines**: 116 `missing function`, 9 `missing macro`,
 6 `missing constant`, 8 `missing file-scope object`, plus the ten "does not mention"/byte-class rows
 and the line-drift row (`61.6%: C 6753 vs Rust 2593`).  The file has no subr
 (`## Subrs (DEFUN) — 0`), so no `missing subr` row exists.  P-86 ⑩: the check stops being vacuous as
@@ -595,7 +595,7 @@ python3 tools/check-cond-eval.py src/gtkutil.c
 One of those is **not this unit's**: `check-cond-eval.py`'s single disagreement is C 6652, six times
 past this slice (the file is one of the four `docs/status.md` 6868 lists with this exact 212/1/1
 reading).  An earlier run of `check-mirror-dupes.py` in this batch read `2 failure(s)`, both
-`femacs/src/w32proc.rs`'s `signal` declaration - another lane's file, in flight while this slice was
+`src/w32proc.rs`'s `signal` declaration - another lane's file, in flight while this slice was
 being written, not touched here and cleared by that lane by the final run above.  `check-port-lines.py`
 reports **no row for `src/gtkutil.c`**: neither before this batch nor after it does
 `docs/baseline/port-lines-pending.tsv` carry the file, so no ratchet row is owed by this slice (the
@@ -683,7 +683,7 @@ X11 additions C 1062-1112 needs quote `Xutil.h` 74/75/102/103/105, `X.h` 201/607
 
 ## Owed
 
-9. **`femacs/xtask/Cargo.toml`: three feature names this slice uses and the tree has not registered**
+9. **`xtask/Cargo.toml`: three feature names this slice uses and the tree has not registered**
    - **`have_gsettings`** (C 1462/1824/1927, `GSETTINGS`), **`have_gtk_window_set_has_resize_grip`**
    (C 1620) and **`use_toolkit_scroll_bars`** (C 2124, `USE_TOOLKIT_SCROLL_BARS`).  (Slice 1's Owed 1
    for `gtk_check_version_ge_3_10`/`_3_22` is closed: both are registered, `Cargo.toml` 100/101.)
@@ -718,7 +718,7 @@ X11 additions C 1062-1112 needs quote `Xutil.h` 74/75/102/103/105, `X.h` 201/607
 13. **`docs/port-map.md`**: its target cell for `src/gtkutil.c` still reads 11 lines (the port is
     4200).  The map is generated (`tools/gen-port-map.py`), so the integrator's regeneration is the
     step; `tools/check-port-lines.py` itself still reports no row for this file (Evidence ③S2).
-14. **The P-90 move grows**: `femacs/src/include/gtk.rs` (still unwritten) now owes slice 2's ~60 new
+14. **The P-90 move grows**: `src/include/gtk.rs` (still unwritten) now owes slice 2's ~60 new
     GDK/GTK/GLib/cairo-surface names as well as slice 1's 220, and this unit's copies must be deleted
     in that commit.
 
@@ -766,7 +766,7 @@ X11 additions C 1062-1112 needs quote `Xutil.h` 74/75/102/103/105, `X.h` 201/607
    the `<gtk/gtk.h>`/`<glib-object.h>`/`<cairo.h>`/`<gdk-pixbuf/gdk-pixbuf.h>` names they pull in
    have no file in the reference tree and no mirror, so 220 declarations (86 types/constants, 31
    macros, 103 entry points) stand at C 49's position rather than in a new file under
-   `femacs/src/include/`.  The records C reads members of carry exactly those members
+   `src/include/`.  The records C reads members of carry exactly those members
    (`GtkAllocation`, `GtkRequisition`, `GdkRGBA`, `GdkColor`, `GtkWidgetClass.get_preferred_width`,
    `EmacsMenuBar.parent`, `EmacsMenuBarClass.parent`) and **every size and offset of theirs is
    UNVERIFIED** - no GTK tree exists here to measure with (P-88 ②).  P-90 ③'s move is owed (Owed 2).
@@ -836,14 +836,14 @@ X11 additions C 1062-1112 needs quote `Xutil.h` 74/75/102/103/105, `X.h` 201/607
 
 ## Owed
 
-1. **`femacs/xtask/Cargo.toml`: two feature names this unit uses and the tree has not registered** -
+1. **`xtask/Cargo.toml`: two feature names this unit uses and the tree has not registered** -
    **`gtk_check_version_ge_3_10`** (C 104-106) and **`gtk_check_version_ge_3_22`** (C 1023, 1065,
    1104, 2739-like sites in the remainder).  The naming follows `android_api_le_11`'s derived-condition
    row; the frozen verdicts come from `xterm.h` 73-75 (Deviation 9).  **Slice 33 registers a third
    name of the same family** - `gtk_check_version_ge_3_16`, C 6282's fold - and leaves this item's two
    (the `_3_10`/`_3_22` pair) where they were.
 2. **The P-90 move: the cairo/GLib/GDK/GTK declarations should move into a dedicated SDK mirror
-   `femacs/src/include/gtk.rs` (P-90; `src/pgtkterm.rs`'s in-unit copy owes the same move), and this
+   `src/include/gtk.rs` (P-90; `src/pgtkterm.rs`'s in-unit copy owes the same move), and this
    unit's copy must be deleted in that commit.**  The 220 names are these: **GLib/GObject** - `gchar`,
    `guchar`, `gint`, `gboolean`, `guint`, `guint32`, `gulong`, `gsize`, `gpointer`, `GQuark`, `GType`,
    `GError` (`_GError`), `GConvertError`, `G_CONVERT_ERROR_ILLEGAL_SEQUENCE`, `GLogLevelFlags`,
@@ -1027,7 +1027,7 @@ X11 additions C 1062-1112 needs quote `Xutil.h` 74/75/102/103/105, `X.h` 201/607
 
 ## P-90 mirror round (2026-10-05): the surface moved out of this unit
 
-- **`femacs/src/include/gtk.rs` is now the third-party surface's single home** (P-90 ①/②/③; the
+- **`src/include/gtk.rs` is now the third-party surface's single home** (P-90 ①/②/③; the
   P-88 ⑤ move-back).  The 1407-line in-unit segment this ledger's slices 1-2 declared (C 44/49's
   chain: GLib/GObject, cairo, GDK, GTK) was moved there verbatim and replaced, at the same C
   position, by the two edges `#[cfg (feature = "use_gtk")] include!("include/gtk.rs");` and
@@ -1101,7 +1101,7 @@ wrappers (`GTK_DIALOG`, `GTK_MISC`, `GTK_BUILDABLE`), `GtkAlign` with its two co
 recorded in `docs/ports/include-gtk.md`'s round section.
 
 **Two features this slice registered.**  C 2363's `GTK_CHECK_VERSION (3, 12, 0)` and C 2419's
-`(3, 14, 0)` had no feature name, so the tree could not spell the pair: `femacs/xtask/Cargo.toml`
+`(3, 14, 0)` had no feature name, so the tree could not spell the pair: `xtask/Cargo.toml`
 now carries `gtk_check_version_ge_3_12` and `gtk_check_version_ge_3_14` (each with C's condition
 and site in the comment) and `python3 tools/feature-coverage.py --write` re-recorded
 `docs/baseline/feature-coverage.tsv`.  The two names join `gtk_check_version_ge_3_10`/`_3_22`,
@@ -1167,7 +1167,7 @@ GTK/GLib prototype and every value this slice added to the mirror stays UNVERIFI
     surface disappears and arm B reads **543** errors instead of the ~60 the file's Evidence (2)
     recorded at slice 2 - every `GTK_WINDOW!`/`GtkWidget`/`TRUE` in slices 1-3 among them (the first
     anchors are in slice 2's text).  The reading is an artifact of the materialiser, not of any
-    slice's transcription, and the fix belongs to `femacs/xtask` (the dedupe should either keep the
+    slice's transcription, and the fix belongs to `xtask` (the dedupe should either keep the
     edge where its own cfg is on, or place the shared mirror's copy outside every gate); until then
     the file's arm-B reading is reported with this reason, as slice 3's section does.
 
@@ -1341,7 +1341,7 @@ GTK/GLib prototype and value stays **UNVERIFIED** (no GTK tree here), and `GtkFi
 member has no measured offset (Owed 6's class).
 
 **The feature this slice registered.**  C 2571/2739/2820's `#ifdef HAVE_GTK_FILE_SELECTION_NEW` had
-no name, so the tree could not spell the arm: `femacs/xtask/Cargo.toml` now carries
+no name, so the tree could not spell the arm: `xtask/Cargo.toml` now carries
 `have_gtk_file_selection_new` (C's condition and its three sites in the comment) and
 `python3 tools/feature-coverage.py --write` re-recorded `docs/baseline/feature-coverage.tsv`
 (6 uses, one definition).  The gate table above gains its row.
@@ -1415,7 +1415,7 @@ stay distinguishable instead of carrying numbers from memory (the `src/xwidget.r
 `GDestroyNotify` is GLib's, so it quotes `gtypes.h` 140 and its line.
 
 **The feature this slice registered.**  C 2859's `#if PANGO_VERSION_CHECK (1, 36, 7)` had no name,
-so the tree could not spell the arm: `femacs/xtask/Cargo.toml` now carries
+so the tree could not spell the arm: `xtask/Cargo.toml` now carries
 `pango_version_ge_1_36_7` (C's condition and its one site in the comment) and
 `python3 tools/feature-coverage.py --write` re-recorded `docs/baseline/feature-coverage.tsv`.  The
 gate table above gains its row.
@@ -2397,7 +2397,7 @@ two fresh names **`gtk_container_child_get`** (gtk/gtkcontainer.h, C 4804-4805's
 with its `gint` out-parameters, variadic like the style reader slice 16 added) and
 **`gtk_widget_get_size_request`** (gtk/gtkwidget.h, C 4806), both UNVERIFIED.  C 4829's
 `#if GTK_CHECK_VERSION (3, 20, 0)` had **no feature name**, so the round registers
-**`gtk_check_version_ge_3_20`** in `femacs/xtask/Cargo.toml` (C's condition and its site in the
+**`gtk_check_version_ge_3_20`** in `xtask/Cargo.toml` (C's condition and its site in the
 comment) and re-records `docs/baseline/feature-coverage.tsv` (`1038 feature(s), 1031 never
 enabled`); the gate table above gains that row - the slice-4 registration's shape.
 
@@ -2548,7 +2548,7 @@ comment above the horizontal setter.
   the whole reference tree, so the port carries `XG_SB_RANGE` alone (the "carry what the text
   touches" rule), and no later slice will declare its sibling.
 - **The round registers `gtk_check_version_ge_3_18`** for C 5063's `#if ! GTK_CHECK_VERSION (3, 18,
-  0)` (the `gtk_adjustment_changed` that only the older GTK needs): `femacs/xtask/Cargo.toml`, the
+  0)` (the `gtk_adjustment_changed` that only the older GTK needs): `xtask/Cargo.toml`, the
   re-recorded `docs/baseline/feature-coverage.tsv` and the gate-table row above - the slice-20
   registration's shape.
 
@@ -3275,7 +3275,7 @@ C 6312 - the next text is C 6314's `#ifndef HAVE_PGTK` and C 6315-6316's `xg_add
 
 **A ninth arm set, and a feature the tree did not have.**  C 6282's `#if GTK_CHECK_VERSION (3, 16, 0)`
 is a fold this unit had never opened, so the round (a) registers `gtk_check_version_ge_3_16` in
-`femacs/xtask/Cargo.toml` (the row cites C 6282) and (b) adds the matching arm set - and that set is
+`xtask/Cargo.toml` (the row cites C 6282) and (b) adds the matching arm set - and that set is
 measured: 34 -> 39 rows for the two Owed 11 bits, i.e. the `g_object_set` arm compiles.  The set joins
 the eight the earlier rounds used, and the ledger's Evidence records it as the ninth.
 
@@ -3315,7 +3315,7 @@ the eight the earlier rounds used, and the ledger's Evidence records it as the n
    (C 6,753 vs 9,302), still the closing round's.
 4. The ten gates: all `rc=0`, 0 FAIL (and `tools/check-all-units.sh` reads `checked 83 unit(s),
    0 failure(s)`); the table's last row splits at C 6312; `docs/ports/include-gtk.md` gains the
-   `status 4.363` section (twelve items); `femacs/xtask/Cargo.toml` gains the 3.16 feature row.
+   `status 4.363` section (twelve items); `xtask/Cargo.toml` gains the 3.16 feature row.
 
 **Not claimed.**  No arm was compiled against a real GTK or libXft tree - there is none on this
 machine - so the twelve mirror rows are UNVERIFIED; the five `bool_bf` rows are Owed 11's class
@@ -3354,7 +3354,7 @@ against every declaration line of every other unit: 75 names, 9 collisions (a te
 the frozen sweep - so its copy is closed by construction (the mirror no longer declares the five
 bits it keeps).
 
-**What the unit now carries.**  The nine names stand in `femacs/src/gtkutil.rs` under this unit's
+**What the unit now carries.**  The nine names stand in `src/gtkutil.rs` under this unit's
 gate, with the reason recorded there; the four bits no other unit declares (`GDK_MOD2_MASK` through
 `GDK_MOD5_MASK`) stay in the mirror, so the modifier family is split 4/5 across the two homes rather
 than one family living in two places for the same unit.  **`## Owed` 18 gains the item**: the mirror
@@ -3508,7 +3508,7 @@ macro gap remains the mirror's; and the pgtk reading is the probe's (Owed 17).
 
 **The readings this round establishes.**
 
-1. **`extract-abi.py --check emacs/src/gtkutil.c femacs/src/gtkutil.rs` -> `OK`** with **zero
+1. **`extract-abi.py --check emacs/src/gtkutil.c src/gtkutil.rs` -> `OK`** with **zero
    `- ` rows**: every function, record, macro and constant of the reference's 6,753 lines is either
    transcribed or recorded with its reason.  The line it prints beside the verdict is `(1 C macros
    have a recorded Rust counterpart: xp)` - the exclusion above.

@@ -40,12 +40,12 @@
 
 ## Decisions
 
-`emacs/lib/c-ctype.h` @ `fd7afced403`; port `femacs/lib/include/c-ctype.rs`.
+`emacs/lib/c-ctype.h` @ `fd7afced403`; port `lib/include/c-ctype.rs`.
 
 - **WIP**: the port carries the ASCII arm's three case-macro sets and the three predicates
   filevercmp.c needs (`c_isalpha`/`c_isalnum`/`c_isdigit`); the remaining predicates and the
   `c_to*` pair are unchecked, as is `C_CTYPE_INLINE`'s `_GL_INLINE` marker (the wrapper unit
-  `femacs/lib/c-ctype.rs` carries `_GL_CTYPE_INLINE`).
+  `lib/c-ctype.rs` carries `_GL_CTYPE_INLINE`).
 - The frozen target takes the `C_CTYPE_ASCII` arm, so the EBCDIC case lists and the two
   `#error` arms are not carried (P-24 does not compare a macro that has several definitions).
 - `--check` reports the unimplemented functions; the ledger's unchecked boxes are what keeps
@@ -55,8 +55,8 @@
 
 The 19 unchecked box(es) above were **stale bookkeeping, not missing port work**: every
 name they list is already satisfied, measured on this worktree with
-`python3 tools/extract-abi.py --check emacs/lib/c-ctype.h femacs/lib/include/c-ctype.rs` -> **0 `- ` problem
-lines** (`femacs/lib/include/c-ctype.rs` carries the names; `lib/include/` and `src/include/` mirrors are the ones the
+`python3 tools/extract-abi.py --check emacs/lib/c-ctype.h lib/include/c-ctype.rs` -> **0 `- ` problem
+lines** (`lib/include/c-ctype.rs` carries the names; `lib/include/` and `src/include/` mirrors are the ones the
 tools compare here).  Two of `c-ctype.h`'s names are satisfied by an exclusion rather than a
 definition - `_C_CTYPE_LOWER_A_THRU_F_N` and `_C_CTYPE_LOWER_N` own rows in
 `docs/ports/excluded-macros.txt` ("c-ctype.h 126-129's parameterised case family: a Rust

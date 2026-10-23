@@ -24,8 +24,8 @@ import sys
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parent.parent
-TREES = ("femacs/src", "femacs/lib", "femacs/lib-src", "femacs/lwlib", "femacs/oldXMenu",
-         "femacs/nt", "femacs/exec", "femacs/xtask")
+TREES = ("src", "lib", "lib-src", "lwlib", "oldXMenu",
+         "nt", "exec", "xtask")
 LITERAL = re.compile(r"(?<![0-9A-Za-z_.])0[0-7]+\b")
 
 

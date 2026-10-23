@@ -231,7 +231,7 @@
 
 ## Decisions
 
-Port of `emacs/src/fns.c` (6,973 lines) to `femacs/src/fns.rs` (7307 lines; 4.8% drift, inside the
+Port of `emacs/src/fns.c` (6,973 lines) to `src/fns.rs` (7307 lines; 4.8% drift, inside the
 5% rule, so no `line-drift-tolerance.tsv` row).  All 104 `DEFUN`s, 101 functions, 4 macros, 8
 constants, 3 types and 6 file-scope objects are ported; `tools/extract-abi.py --check` reports `OK`.
 

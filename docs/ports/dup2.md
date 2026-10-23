@@ -22,7 +22,7 @@
 
 ## Decisions
 
-`emacs/lib/dup2.c` @ `fd7afced403`; port `femacs/lib/dup2.rs`.  All checklist items ticked;
+`emacs/lib/dup2.c` @ `fd7afced403`; port `lib/dup2.rs`.  All checklist items ticked;
 `build-tu` → `built dup2.rs -> build/femacs/dup2.o`, `--check` → `OK`.
 
 - **Live arm.**  `rpl_dup2` is unconditional; inside it `#ifdef F_GETFL` is live (the frozen

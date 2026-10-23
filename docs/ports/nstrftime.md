@@ -18,7 +18,7 @@
 
 ### Summary
 
-`femacs/lib/nstrftime.rs` is the port of `emacs/lib/nstrftime.c`, the whole of whose C text
+`lib/nstrftime.rs` is the port of `emacs/lib/nstrftime.c`, the whole of whose C text
 is a rename plus an include:
 
     #define my_strftime nstrftime
@@ -78,8 +78,8 @@ is no `strftime.o`).
 * `cd femacs && CARGO_TARGET_DIR=/tmp/femacs-target cargo run -q -p xtask -- build-tu lib/nstrftime.c`
   → `built lib/nstrftime.rs -> ../build/femacs/nstrftime.o`, 0 errors (this is also the
   build that type-checks the shared body, exactly as C compiles it only through this shim).
-* `python3 tools/extract-abi.py --check emacs/lib/nstrftime.c femacs/lib/nstrftime.rs` → OK.
-* `python3 tools/extract-abi.py --check emacs/lib/strftime.c femacs/lib/strftime.rs` → OK
+* `python3 tools/extract-abi.py --check emacs/lib/nstrftime.c lib/nstrftime.rs` → OK.
+* `python3 tools/extract-abi.py --check emacs/lib/strftime.c lib/strftime.rs` → OK
   (the shared file's body, its 51 macros and its 7 functions are unaffected).
 * No behavioural differential probe was run (the round's workflow stops at
   `build-tu`/`--check`).

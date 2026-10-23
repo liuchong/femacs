@@ -21,7 +21,7 @@
   `volatile_memset` function pointer) are named at their site (P-51).
 - `memset_explicit` is a non-`static` definition → `#[unsafe(no_mangle)]` (P-52); the
   reference object confirms `T _memset_explicit` (gnulib's `<string.h>` does not rename it).
-- **Mirror edit**: `femacs/lib/include/string.rs` gained the system `memset_s` declaration
+- **Mirror edit**: `lib/include/string.rs` gained the system `memset_s` declaration
   (`errno_t` is `int` and `rsize_t` is `size_t` on this target), which is the entry the live
   arm calls (PORTING.md 0.1-3: system entries belong to the mirror).
 - Line-count drift (C 54 vs the port's 46) is declared in docs/ports/line-drift-tolerance.tsv.

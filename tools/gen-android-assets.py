@@ -31,10 +31,10 @@ import sys
 
 REPO = pathlib.Path(__file__).resolve().parent.parent
 # C's four sources.  `src/bitmaps` is where this reference keeps the bitmaps; the port's copy of
-# that tree lives under `etc/images` (they are the same files, and `femacs/src/bitmaps` does not
+# that tree lives under `etc/images` (they are the same files, and `src/bitmaps` does not
 # exist - recorded rather than invented).
-TREES = (("lisp", REPO / "femacs/lisp"), ("etc", REPO / "femacs/etc"),
-         ("info", REPO / "femacs/info"), ("bitmaps", REPO / "femacs/src/bitmaps"))
+TREES = (("lisp", REPO / "lisp"), ("etc", REPO / "etc"),
+         ("info", REPO / "info"), ("bitmaps", REPO / "src/bitmaps"))
 # `info/` is a *generated* tree (makeinfo, P-102/P-223): when it is not built yet the other three
 # are still staged, and the absence is reported rather than treated as an error.
 OPTIONAL = {"info"}

@@ -129,15 +129,15 @@ reference's final line; `docs/port-map.md` 479 binds this ledger to `src/kqueue.
 4. **all five arms compiled** (P-86 ⑥): `rustc --edition 2024 --crate-type=lib -O --cfg
    'feature="have_kqueue"' --cfg 'feature="no_getrlimit"' --cfg 'feature="no_o_evtonly"'
    --cfg 'feature="no_o_symlink"' --cfg 'feature="no_ev_enable"' build/probes/kqueue/_root.rs`
-   (run from `femacs/`, so the repository's pinned toolchain applies) -> **exit 0, 0 errors,
+   (run from ``, so the repository's pinned toolchain applies) -> **exit 0, 0 errors,
    14 warnings, a 13,153,304-byte rlib**.
 5. **arm-reach preflight (P-86 ⑦, the reading is not vacuous)**: the same materialisation, same
    flags, with one injected type error in the unit's *own* text
    (`list_length (watch_list) + 1.0`) -> 1 error, `E0277 cannot add {float} to isize` at
    `_root.rs:571:56`; the unmutated run of the same command is 0 errors.  So the compile does read
    this unit's text and "0 errors of its own" is a measurement, not an empty reading.
-6. **toolchain**: from `femacs/` the probe runs under the repository's pin
-   (`femacs/rust-toolchain.toml`, `nightly-2026-10-01` = rustc 1.101.0-nightly (21b707e3f
+6. **toolchain**: from `` the probe runs under the repository's pin
+   (`rust-toolchain.toml`, `nightly-2026-10-01` = rustc 1.101.0-nightly (21b707e3f
    2026-09-30)).  A bare `rustc` from the repository root picks stable 1.98.1 and reports
    `include/lisp.rs` 3756's `verror` `c_variadic` (`E0658`) - a pre-existing mirror property, not
    this unit's (the `docs/ports/minibuf.md` reading; PORTING.md P-04).
@@ -149,7 +149,7 @@ reference's final line; `docs/port-map.md` 479 binds this ledger to `src/kqueue.
    filter@**8**, flags@**10**, fflags@**12**, data@**16**, udata@**24**; `sizeof (struct
    rlimit)` = **16** with rlim_cur@**0**, rlim_max@**8** and `sizeof (rlim_t)` = **8**;
    `sizeof (struct timespec)` = **16** with tv_sec@**0**, tv_nsec@**8**.
-8. **`extract-abi.py --check emacs/src/kqueue.c femacs/src/kqueue.rs`** -> `7306 macros … applied
+8. **`extract-abi.py --check emacs/src/kqueue.c src/kqueue.rs`** -> `7306 macros … applied
    to the 424 files`, then **one** `- ` row left: `line count drifted 30.5%: C 550 vs Rust 718`
    (the tolerance row is the integrator's, `## Owed` 1).  The three token rows this round reported
    (`kqueue_generate_event does not mention 1`, `kqueue_compare_dir_list does not mention 1, goto`,
@@ -158,7 +158,7 @@ reference's final line; `docs/port-map.md` 479 binds this ledger to `src/kqueue.
 9. `python3 tools/check-declarations.py` -> `10 declaration sites (0 forbidden, 10 allowed
    literals), 0 failures`; `python3 tools/check-citations.py` -> `676 file(s) scanned, 0 drift, 0
    range, 731 external, 35 allowed, 0 stale`; both exit 0.  Neither reports a finding in
-   `femacs/src/kqueue.rs` or `docs/ports/kqueue.md`.
+   `src/kqueue.rs` or `docs/ports/kqueue.md`.
 
 ## Deviations
 
@@ -203,7 +203,7 @@ reference's final line; `docs/port-map.md` 479 binds this ledger to `src/kqueue.
    integrator writes that file (P-86 ⑩), so `extract-abi --check` for this pair stays FAIL until
    the row lands.  **DONE (status 3.489, integrator):** the `total`/`0.32` row is appended
    (C 550 total vs the port's 718 lines, 30.5% drift, the measured value + 0.01), and
-   `extract-abi --check emacs/src/kqueue.c femacs/src/kqueue.rs` is now **OK with zero `-` rows**.
+   `extract-abi --check emacs/src/kqueue.c src/kqueue.rs` is now **OK with zero `-` rows**.
 2. **`docs/status.md` §3.x** for this file's round (the §3.31 text this ledger replaces) and the
    `docs/ports/pending.tsv` accounting.  **DONE (status 3.489, integrator):** §3.489 written; the
    pending ratchet needs no row for this file (718 target lines are far past the ten-percent

@@ -18,7 +18,7 @@
 
 ### Summary
 
-`femacs/lib/qcopy-acl.rs` is the live text of `emacs/lib/qcopy-acl.c` for the frozen
+`lib/qcopy-acl.rs` is the live text of `emacs/lib/qcopy-acl.c` for the frozen
 configuration (`tools/check-cond-eval.py lib/qcopy-acl.c`: 6 conditions, 0 unknown,
 0 disagreements), so `USE_XATTR` is undefined and only the `#else` arm of the copy is
 written.  `--check` is OK and the object reproduces the reference's symbols:
@@ -64,7 +64,7 @@ written.  `--check` is OK and the object reproduces the reference's symbols:
 * `cd femacs && CARGO_TARGET_DIR=/tmp/femacs-target cargo run -q -p xtask -- build-tu lib/qcopy-acl.c`
   → `built lib/qcopy-acl.rs -> ../build/femacs/qcopy-acl.o`, 0 errors, no warnings from the
   unit.
-* `python3 tools/extract-abi.py --check emacs/lib/qcopy-acl.c femacs/lib/qcopy-acl.rs` → OK.
+* `python3 tools/extract-abi.py --check emacs/lib/qcopy-acl.c lib/qcopy-acl.rs` → OK.
 * Symbol comparison against the frozen object (above).
 * No behavioural differential probe was run (the round's workflow stops at
   `build-tu`/`--check`; executing `qcopy_acl` needs an ACL-bearing file system and the two

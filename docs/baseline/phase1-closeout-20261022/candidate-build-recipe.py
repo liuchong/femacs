@@ -6,9 +6,9 @@ for src in (root/"build/femacs").glob("*.o"):
  if not src.name.startswith("bytecode."):
   dst=units/src.name
   if not dst.exists():dst.symlink_to(src)
-src=root/"femacs/src/bytecode.rs"
+src=root/"src/bytecode.rs"
 original=src.read_bytes()
-helper=root/"femacs/src/bytecode_hot.rs"
+helper=root/"src/bytecode_hot.rs"
 assert not helper.exists()
 source=original.decode()
 assert 'include!("bytecode_hot.rs");' not in source

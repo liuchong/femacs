@@ -14,8 +14,8 @@
 
 ## Decisions
 
-`emacs/lib/boot-time.h` @ `fd7afced403`; port `femacs/lib/include/boot-time.rs`; the gate is
-`python3 tools/extract-abi.py --check emacs/lib/boot-time.h femacs/lib/include/boot-time.rs`
+`emacs/lib/boot-time.h` @ `fd7afced403`; port `lib/include/boot-time.rs`; the gate is
+`python3 tools/extract-abi.py --check emacs/lib/boot-time.h lib/include/boot-time.rs`
 -> `OK`.
 
 - Built for `src/filelock.c`, which includes `<boot-time.h>` at C 41 (gnulib's `get_boot_time`

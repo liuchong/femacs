@@ -35,9 +35,9 @@
 
 ## Decisions
 
-`emacs/src/filelock.c` @ `fd7afced403`; port `femacs/src/filelock.rs` (911 lines vs C's 840,
+`emacs/src/filelock.c` @ `fd7afced403`; port `src/filelock.rs` (911 lines vs C's 840,
 811 live - the 12.3% drift is declared in `docs/ports/line-drift-tolerance.tsv`); the gate is
-`python3 tools/extract-abi.py --check emacs/src/filelock.c femacs/src/filelock.rs` -> `OK`, and
+`python3 tools/extract-abi.py --check emacs/src/filelock.c src/filelock.rs` -> `OK`, and
 `build-tu src/filelock.c` prints `built`.
 
 ### Dead text (not transcribed)

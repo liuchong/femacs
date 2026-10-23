@@ -24,7 +24,7 @@
 ## Decisions
 
 `emacs/lib/malloc/dynarray-skeleton.c` @ `fd7afced403`; port
-`femacs/lib/malloc/dynarray-skeleton.rs`.  The reference is a **template** (C 19-86 documents
+`lib/malloc/dynarray-skeleton.rs`.  The reference is a **template** (C 19-86 documents
 its parameters), and Rust has no textual include or `##` pasting, so PORTING.md 10.13(2)
 applies: the shared text lands as the prelude `macro_rules! dynarray_skeleton_body` and every
 instantiation point goes through it.  This file **instantiates nothing** (the
@@ -33,7 +33,7 @@ one.
 
 **Instantiation points.**  `lib/regexec.c` 1437-1441 (`DYNARRAY_STRUCT regmatch_list`,
 `DYNARRAY_ELEMENT regmatch_t`, `DYNARRAY_PREFIX regmatch_list_`) ->
-`femacs/lib/regexec.rs`, which keeps the three `macro_rules!` bindings C's `#define`s write,
+`lib/regexec.rs`, which keeps the three `macro_rules!` bindings C's `#define`s write,
 includes this mirror at C 1441's position and invokes `dynarray_skeleton_body!` once.
 `lib/malloc/dynarray_*.c` do **not** instantiate it: they include `<dynarray.h>` with none of
 the three names defined, so the wrapper takes its `#else` arm (`<malloc/dynarray.h>`).
@@ -98,7 +98,7 @@ at its C position here and in `docs/ports/regexec.md`):
   ../build/femacs/dynarray-skeleton.o` (no reference object of its own exists: the template is
   only ever included).
 - `python3 tools/extract-abi.py --check emacs/lib/malloc/dynarray-skeleton.c
-  femacs/lib/malloc/dynarray-skeleton.rs` -> `FAIL` with exactly **one** problem:
+  lib/malloc/dynarray-skeleton.rs` -> `FAIL` with exactly **one** problem:
   `- line count drifted 15.5%: C 528 vs Rust 446`.  The 9 checklist boxes stay unchecked until
   that row lands (the ledger rule is "only a green `--check` ticks a box").
 - manual `rustc --edition 2024 --crate-type=lib --emit=metadata ... units/dynarray-skeleton/

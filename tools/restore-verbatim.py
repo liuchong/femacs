@@ -43,7 +43,7 @@ def main() -> int:
     differing, copied, missing = [], 0, 0
     for tree in TREES:
         ref = REPO / "emacs" / tree
-        port = REPO / "femacs" / tree
+        port = REPO / tree
         if not ref.is_dir():
             continue
         for rp in ref.rglob("*"):

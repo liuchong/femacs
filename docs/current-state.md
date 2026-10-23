@@ -1,3 +1,5 @@
+> Repository layout update: implementation sources now live at the root. Current independent build commands are in `README.md` and `docs/repository-bootstrap.md`. Historical commands and evidence below retain their original context; reference-based comparisons are optional audit tooling, not release build dependencies.
+
 # 当前状态：二期 macOS 图形版可试用（2026-10-23）
 
 原生 Cocoa 图形版已完成构建与实际运行，使用 Rust 核心及 Swift 平台实现。经典 Ctrl/Meta/方向键已修复，性能不作为本期目标。

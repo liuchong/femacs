@@ -1,4 +1,4 @@
-# emacs/lib/openat-die.c  →  femacs/lib/openat-die.rs (7 lines)
+# emacs/lib/openat-die.c  →  lib/openat-die.rs (7 lines)
 
 # ----------------------------------------------------------------------
 ## Subrs (DEFUN) — 0
@@ -47,4 +47,4 @@ fd7afced403.`），33 行的比值因此是 371.4%，越过 3.70 的容差——
 **一行之差**。容差按同一张表的规则上调到 3.80，并把原因写成同一行：7 行的基线放不下端口自己的
 固定开销（出处行、`#![allow (…)]` 块、`abort () -> !` 声明、两个 `include!` 与它们的说明），
 而**一行对 7 行就是 14 个百分点**——这张表在小文件上量的是比值，不是密度。
-读数：`python3 tools/extract-abi.py --check emacs/lib/openat-die.c femacs/lib/openat-die.rs` **OK**。
+读数：`python3 tools/extract-abi.py --check emacs/lib/openat-die.c lib/openat-die.rs` **OK**。

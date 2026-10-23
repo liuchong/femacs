@@ -20,7 +20,7 @@
   `gmtime_r`/`localtime_r` are non-`static` definitions, so both export their C names
   (`#[unsafe(no_mangle)]`, P-52); `copy_tm_result` is `static` and must not.
 - **Mirror edit**: this unit defines `gmtime_r`/`localtime_r`, which `<time.h>`'s mirror
-  declares.  `femacs/lib/include/time.in.rs` now keeps its declarations in a uniquely-named
+  declares.  `lib/include/time.in.rs` now keeps its declarations in a uniquely-named
   `pub mod time_decls` + glob import (E0428; PORTING.md 0.1-10, the utimens.rs/stdio.rs
   shape).  `time_decls`, not `decls`, because two mirrors in one unit must not share the
   module name (docs/status.md 3.18).

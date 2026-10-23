@@ -12,7 +12,7 @@
 > is the 336-byte empty one (Evidence 1) - so this ledger carries the **C line-range table**, the
 > `## Evidence` readings and the `## Deviations` instead of ticked boxes (P-86 2).
 >
-> Port: `femacs/lib-src/seccomp-filter.rs`, **the whole file, C 1-409** (1,071 Rust lines), both
+> Port: `lib-src/seccomp-filter.rs`, **the whole file, C 1-409** (1,071 Rust lines), both
 > arms of every gate carried (P-86 1) and nothing stubbed.  The old revision's conclusion ("not in
 > the frozen build, so the port is the empty unit plus a note") was P-86 1's "not started" case;
 > its measurements are still true and are where the file gate comes from.
@@ -78,12 +78,12 @@ no `lib-src/seccomp-filter.h` binding), so one table is what `check-dead-file-co
    names the injected line (839) - so the 0-error reading is a reading of *this unit's text*, not
    the "broken include graph stops before the unit" empty reading.  The graph here is the unit plus
    one 1,463-byte copy of `config.rs`.  The toolchain is the pinned one
-   (`femacs/rust-toolchain.toml`): from the repository root a bare `rustc` reports `E0658:
+   (`rust-toolchain.toml`): from the repository root a bare `rustc` reports `E0658:
    C-variadic functions are unstable` on `fail`, which is P-04's pin, not this unit's error.
 4. **Budget, as run.**  `build-tu` 2 runs (the pre-fix revision and the final one) of the 3
    allowed; `probe` 3 runs (arm B twice - once before the final comment-only edit - and arm A
    once) of the 3 allowed; `cargo test`/`--all`/`gate-fast`/`check-all-units.sh` were not run.  The
-   readings above are all of the final revision of `femacs/lib-src/seccomp-filter.rs`.
+   readings above are all of the final revision of `lib-src/seccomp-filter.rs`.
 
 5. **The Linux half is measured, not remembered** (P-88 2).  Readings are `clang`'s, via the
    NDK 29.0.14206865 sysroot as the closest local x86-64 Linux target
@@ -122,7 +122,7 @@ no `lib-src/seccomp-filter.h` binding), so one table is what `check-dead-file-co
    `lstat64` -10028, `sigaction` -10054, `sigprocmask` -10057, `stat64` -10062; lines
    78/80/97/123/126/131 and their `__SNR_*` pairs at 619/681/1065/1911/1939/2001).
 7. **The ABI check.**  `python3 tools/extract-abi.py --check emacs/lib-src/seccomp-filter.c
-   femacs/lib-src/seccomp-filter.rs` -> one row, `line count drifted 161.9%: C 409 vs Rust 1071`
+   lib-src/seccomp-filter.rs` -> one row, `line count drifted 161.9%: C 409 vs Rust 1071`
    (Owed 1).  The three token rows this port does have (`RULE`, `RULE0`, `fail`) are rows 1422-1424
    of `docs/ports/macro-body-notes.tsv`, which this lane wrote; there is no `missing` row, so every
    C name (5 functions, 5 macros, 2 constants, 1 file-scope object) is carried.
@@ -234,5 +234,5 @@ no `lib-src/seccomp-filter.h` binding), so one table is what `check-dead-file-co
   `seccomp_attr_set`/`seccomp_rule_add`'s variadic arguments are C's, unchecked.
 - C 259-261's arm is compiled under `__nr_faccessat2` but the *rule it adds* was never handed to a
   kernel: whether `faccessat2` exists at run time is the kernel's, not this reading's.
-- Only `femacs/lib-src/seccomp-filter.rs`, this ledger, and rows 1422-1424 of
+- Only `lib-src/seccomp-filter.rs`, this ledger, and rows 1422-1424 of
   `docs/ports/macro-body-notes.tsv` were written by this lane.

@@ -36,7 +36,7 @@ import re
 import sys
 
 REPO = pathlib.Path(__file__).resolve().parent.parent
-PORT = REPO / "femacs"
+PORT = REPO
 TABLE = REPO / "docs/baseline/enum-transmutes.tsv"
 
 INT_TYPES = ("c_int", "c_uint", "c_uchar", "c_char", "i8", "i16", "i32", "u8", "u16", "u32",
@@ -50,7 +50,7 @@ VARIANT = re.compile(r"^\s*([A-Za-z_][A-Za-z0-9_]*)\s*(?:=\s*(.+?))?\s*$")
 def sites() -> dict[tuple[str, str, str], list[int]]:
     """Every integer-to-enum transmute, keyed by (file, source type, target type)."""
     found: dict[tuple[str, str, str], list[int]] = {}
-    for path in sorted(PORT.rglob("*.rs")):
+    for path in sorted((p for tree in ('src','lib','lib-src','lwlib','oldXMenu','nt','msdos','exec','platform','xtask') for p in (PORT/tree).rglob("*.rs"))):
         if "target" in path.parts:
             continue
         rel = str(path.relative_to(PORT))
@@ -86,7 +86,7 @@ def variants(body: str) -> list[str]:
 
 def enum_discriminants(name: str) -> list[str] | None:
     """The discriminant set of a payload-less enum, as the port declares it."""
-    for path in sorted(PORT.rglob("*.rs")):
+    for path in sorted((p for tree in ('src','lib','lib-src','lwlib','oldXMenu','nt','msdos','exec','platform','xtask') for p in (PORT/tree).rglob("*.rs"))):
         if "target" in path.parts:
             continue
         for match in ENUM.finditer(path.read_text(errors="replace")):

@@ -13,12 +13,12 @@
 > not a vacuous pass.  What this ledger adds is P-86 ②'s substitute shape - the **C line-range
 > table**, accounting for every line of the reference because the arm cannot be compiled on this
 > machine - beside the `## Evidence` arm readings and the `## Deviations`.  Port:
-> `femacs/src/pgtkfns.rs` (**5,319** lines, from the 11 of the placeholder), carrying **C 1-1147**,
+> `src/pgtkfns.rs` (**5,319** lines, from the 11 of the placeholder), carrying **C 1-1147**,
 > **C 1149-1196**, **C 1197-1752**, **C 1754-1996**, **C 1999-2208**, **C 2210-2403**,
 > **C 2405-2549**, **C 2551-2838**, **C 2840-3025**, **C 3027-3317**, **C 3319-3525**,
 > **C 3528-3676**, **C 3678-3772** and **C 3774-3906** - fourteen slices, i.e. **the whole file** -
 > with **both arms of every `#if`**.  **The unit closes** (status 3.728):
-> `python3 tools/extract-abi.py --check emacs/src/pgtkfns.c femacs/src/pgtkfns.rs` reads **OK**, so
+> `python3 tools/extract-abi.py --check emacs/src/pgtkfns.c src/pgtkfns.rs` reads **OK**, so
 > the C line-range table below is the file's coverage evidence and no item is left; the last
 > reading's components are the two rows the closure retired (the `syms_of_pgtkfns` body's `doc:`
 > tokens, recorded as a `macro-body-notes.tsv` row - Deviation 84 - and the line-count row, which
@@ -192,7 +192,7 @@ configuration defines neither `have_window_system` nor `have_xwidgets`); they ar
 (see `## Owed`), exactly as `docs/ports/pgtkterm.md`'s Evidence ② records for the same three files.
 
 **③ `extract-abi.py --check`.**  `python3 tools/extract-abi.py --check emacs/src/pgtkfns.c
-femacs/src/pgtkfns.rs` -> `FAIL`, **109 `- ` lines**: 101 `missing …` (all of them the unported
+src/pgtkfns.rs` -> `FAIL`, **109 `- ` lines**: 101 `missing …` (all of them the unported
 remainder of the 3906-line file - P-86 ⑩: the check stops being vacuous as soon as the port has a
 `fn`, and the comparison is against the file's *whole* inventory), plus **7 token lines** and the
 drift line:
@@ -255,10 +255,10 @@ no such tree exists here (above); the four records (`GdkPixbuf`, `GtkCssProvider
    `"gtkutil.h"` have no file in the reference tree and no mirror, so 31 declarations (6 records, 5 GLib
    scalar typedefs, `cairo_surface_type_t` with its four constants and `cairo_region_t`, the
    `GTK_WINDOW` macro, and 13 entry points) stand at C 28's position rather than in a new file under
-   `femacs/src/include/`.  cairo's and GLib's are read from this machine's headers (Evidence ⑤);
+   `src/include/`.  cairo's and GLib's are read from this machine's headers (Evidence ⑤);
    **GTK, GDK and gdk-pixbuf are not on this machine**, so those cite the header alone, their records
    are the never-dereferenced shape and every layout claim about them is UNVERIFIED.  P-90 ③'s move
-   into one `femacs/src/include/gtk.rs` is owed (Owed 3).
+   into one `src/include/gtk.rs` is owed (Owed 3).
 4. **The export-type chain's four `#ifdef`s are an arm chooser** (C 928/933/942/947).  C's text is
    `#ifdef CAIRO_HAS_PDF_SURFACE / if (…) …; else / #endif` four times, so the statement C compiles
    is a chain of exactly the arms whose cairo macro is defined, ending in C 957's `error`.  Rust
@@ -759,7 +759,7 @@ no such tree exists here (above); the four records (`GdkPixbuf`, `GtkCssProvider
    (lisp.h 607/4409/5117/5120), `font_open_by_name` (font.h 883), the 25 `gui_*`
    (frame.h 1844-1871, dispextern.h 3656/3994/4001) and the 13
    `pgtk_*` of Owed 1 should move to their own mirrors when those are completed.
-3. **The third-party declarations should move into one `femacs/src/include/gtk.rs`** (P-90 ①/③; the
+3. **The third-party declarations should move into one `src/include/gtk.rs`** (P-90 ①/③; the
    `gtkutil.rs`/`pgtkterm.rs` in-unit segments are owed the same move).  The names this unit
    declares, by header: `<glib/gtypes.h>` `gpointer`, `gchar`, `gint`, `gboolean`;
    `<glib/glibconfig.h>` `gssize`; `<glib/gerror.h>` `GError`, `g_error_free`;
@@ -835,7 +835,7 @@ no such tree exists here (above); the four records (`GdkPixbuf`, `GtkCssProvider
   the four `CAIRO_SURFACE_TYPE_*` (`cursor` C 929/936/943/954), `cairo_region_t`, `gpointer`,
   `gchar`, `gint`, `gboolean`, `gssize`, `GError`, the five handles `GdkPixbuf`/`GtkCssProvider`/
   `GtkWidget`/`GtkWindow`/`GdkWindow` with `GTK_WINDOW`, and thirteen entry points - 155 lines in
-  all, and every one of those names is `femacs/src/include/gtk.rs`'s (the third-party surface's
+  all, and every one of those names is `src/include/gtk.rs`'s (the third-party surface's
   single home).  This unit now reaches it through the edge `#[cfg (feature = "have_pgtk")]
   include!("include/gtk.rs");` at C 28's chain.  **The edge stands in the unit, not in
   `include/gtkutil.rs`**, which is the C position's owner: that mirror does not carry its C 26 edge
@@ -889,7 +889,7 @@ macro invocation) was retired by moving the citation to a trailing comment, whic
 existing spelling for the two `DEFUN!`s of the first slice.
 
 **⑦ `extract-abi.py --check`.**  `python3 tools/extract-abi.py --check emacs/src/pgtkfns.c
-femacs/src/pgtkfns.rs` -> `FAIL`, **103 `- ` rows -> 101**: the slice retires
+src/pgtkfns.rs` -> `FAIL`, **103 `- ` rows -> 101**: the slice retires
 `missing function Fpgtk_set_monitor_scale_factor` and
 `missing subr Fpgtk_set_monitor_scale_factor (pgtk-set-monitor-scale-factor)`, and the line-count
 row moves 54.7% -> **53.5%** (C 3,906 vs Rust 1,816).  The 101 rows left are the remainder's -
@@ -1063,14 +1063,14 @@ empty one).  `xg_frame_restack` is a declaration here - its definition is `src/g
 and the port has no GTK to link against.
 
 35. **`SCHEMA_ID`'s literal is the one new *allowlisted* product-name site** (C 1796,
-    `docs/baseline/declarations-allowlist.tsv`'s `femacs/src/pgtkfns.rs` row).  The value is the
+    `docs/baseline/declarations-allowlist.tsv`'s `src/pgtkfns.rs` row).  The value is the
     GSettings schema id the reference's own data file installs
     (the `etc/` schema XML whose *name* is that id - one of the verbatim-copied trees - so the
     ledger spells it in the allowlist row rather than in this prose; the gate's `title` class reads
     ledger prose) and that GIO's `g_settings_schema_source_lookup` resolves **by name**: other programs and the user's own
     GSettings database read it, so renaming it would change behaviour rather than make a statement
     about this repository - 0.1-19's eighth half (status 3.599), the class the Windows registry-path
-    rows (`src/w32.rs` 4679, `femacs/nt/addpm.rs` 560, whose values are the allowlist's) and the X
+    rows (`src/w32.rs` 4679, `nt/addpm.rs` 560, whose values are the allowlist's) and the X
     clipboard window class (`src/w32select.rs`) already carry.  **Measured**: the gate first read
     `literal x1: const SCHEMA_ID: … c"…".as_ptr ();` (a failure with no row - the value is the
     allowlist row's, quoted there), and after the row it reads `18 declaration sites (0 forbidden,
@@ -1385,7 +1385,7 @@ unit (Deviation 68: `try_window`, `set_window_buffer`, the `SET_TEXT_POS` copy, 
 `!= 0`), and two declarations the slice added in its own block are recorded in it (Deviation 65's
 `ENABLE_CHECKING` arm has its own `glyph_row` shape; `xg_show_tooltip` at gtkutil.h 214 keeps the
 `HAVE_PGTK` arm's two-argument form while `src/gtkutil.rs` defines both arms).  `extract-abi.py
---check emacs/src/pgtkfns.c femacs/src/pgtkfns.rs` reads **55 rows** (57 -> 55: `missing subr
+--check emacs/src/pgtkfns.c src/pgtkfns.rs` reads **55 rows** (57 -> 55: `missing subr
 Fx_show_tip (x-show-tip)` and `missing subr Fx_hide_tip (x-hide-tip)` retire, no row appears), and
 the line-count row stays retired under Deviation 69's tolerance.
 
@@ -1428,7 +1428,7 @@ error sites; Deviation 71 measures the new macros' own share as zero.
 **㊺ What the slice calls, and what `--check` reads.**  Four items are declared or spelled here
 (Deviations 70-71: `FRAME_WIDGET` and the three pgtkterm.h toolbar rows), three GTK/GDK entry points
 landed in `include/gtk.rs` and one duplicate was retired in `src/pgtkselect.rs` (Deviation 73), and
-`extract-abi.py --check emacs/src/pgtkfns.c femacs/src/pgtkfns.rs` reads **51 rows** (55 -> 51:
+`extract-abi.py --check emacs/src/pgtkfns.c src/pgtkfns.rs` reads **51 rows** (55 -> 51:
 `missing function frame_geometry`, `missing subr Fpgtk_frame_geometry`, `missing subr
 Fpgtk_frame_edges`, `missing subr Fpgtk_set_mouse_absolute_pixel_position` and `missing subr
 Fpgtk_mouse_absolute_pixel_position` retire, and the four subrs' docstrings were compared by the
@@ -1477,7 +1477,7 @@ argument` sites (Deviation 74) - a class this unit had not read before, fixed ra
 **㊾ What the slice calls, and what `--check` reads.**  Nine declarations and one function are added
 (Deviations 74/76), the GObject records and macros moved into `include/gtk.rs` with `gfilenotify`'s
 copies dropped (Deviation 75), and `extract-abi.py --check emacs/src/pgtkfns.c
-femacs/src/pgtkfns.rs` reads **44 rows** (50 -> 44 + the drift row, which Deviation 77's tolerance
+src/pgtkfns.rs` reads **44 rows** (50 -> 44 + the drift row, which Deviation 77's tolerance
 retires: `missing function clean_up_dialog`, `missing subr Fpgtk_page_setup_dialog`, `missing subr
 Fpgtk_get_page_setup`, `missing subr Fpgtk_print_frames_dialog`, `missing subr Fx_file_dialog` and
 `missing subr Fpgtk_backend_display_class` retire - the same reading compares those subrs'
@@ -1522,7 +1522,7 @@ two macro names - and both were repaired rather than recorded.
 
 **What the slice calls, and what `--check` reads.**  Three GTK rows landed in `include/gtk.rs` and
 two declarations in this unit (Deviations 79-80).  `extract-abi.py --check emacs/src/pgtkfns.c
-femacs/src/pgtkfns.rs` reads **40 rows** (44 -> 40 + the drift row, retired by Deviation 81's
+src/pgtkfns.rs` reads **40 rows** (44 -> 40 + the drift row, retired by Deviation 81's
 tolerance): `missing function unwind_gerror_ptr`, `missing subr Fx_select_font`,
 `missing subr Fx_gtk_debug` and `missing subr Fx_gtk_launch_uri` retire, and the same reading
 compares `x-gtk-launch-uri`'s docstring (the other three carry C's own `SKIP: real doc in xfns.c.`).
@@ -1565,7 +1565,7 @@ no warning of any class (the DEFVAR/DEFSYM macros expand to the mirror's own def
 seven variables shadow `globals.rs`'s declarations - Deviation 82), and the file's remaining
 diagnostics are the unit's registered placeholder classes, unchanged by this slice.
 
-**The closure.**  `python3 tools/extract-abi.py --check emacs/src/pgtkfns.c femacs/src/pgtkfns.rs`
+**The closure.**  `python3 tools/extract-abi.py --check emacs/src/pgtkfns.c src/pgtkfns.rs`
 reads **OK**: the forty rows of the thirteenth slice's reading are gone.  Two of them needed
 decisions rather than transcription (Deviation 84's `macro-body-notes.tsv` row for the body's `doc:`
 tokens, and Deviation 85's tolerance row, whose final value is **0.40**) and one item is Owed 14

@@ -1,6 +1,6 @@
 # emacs/oldXMenu/Create.c (752 lines)
 
-> Filled in: the port is `femacs/oldXMenu/Create.rs` (**1291 lines**).  Until this round it was the
+> Filled in: the port is `oldXMenu/Create.rs` (**1291 lines**).  Until this round it was the
 > empty unit that docs/status.md 3.31 prescribed; P-86 ① overturns that reading ("3 行的头注释不是
 > '落完'，是'还没开始'"), and `oldXMenu/Activate.rs` + `oldXMenu/Internal.rs` are the siblings that
 > already carry this directory's shape.
@@ -125,13 +125,13 @@ The rows are contiguous and ascending; C's blank lines between the blocks need n
    `_y_hot` - were compared the same way (30 values, 0 mismatches).  The bytes are *data*, not a
    behaviour: no bitmap was ever drawn.
 6. **text gates**: `python3 tools/extract-abi.py --check emacs/oldXMenu/Create.c
-   femacs/oldXMenu/Create.rs` -> the two constant findings and the `XMenuCreate` token finding are
+   oldXMenu/Create.rs` -> the two constant findings and the `XMenuCreate` token finding are
    closed (the token one by the appended `docs/ports/macro-body-notes.tsv` row) and the one remaining
    row is the line-count drift, which is `docs/ports/line-drift-tolerance.tsv`'s and is not this
    lane's to write (`## Owed` 3); `python3 tools/check-declarations.py` -> **exit 0**;
    `python3 tools/check-mirror-dupes.py` -> **17 duplicate(s), 17 ratchet row(s), 0 failure(s)**;
    `python3 tools/check-citations.py` -> **1 drift, 0 range, 1812 external, 0 stale**, and that one
-   drift is `femacs/src/w32image.rs` 76's `lisp.h 30` (another lane's file) - **this unit
+   drift is `src/w32image.rs` 76's `lisp.h 30` (another lane's file) - **this unit
    contributes 0 drift**; `python3 tools/check-dead-file-coverage.py` -> **139 ledger(s) bound, 0
    failure(s)**; `python3 tools/check-ledger-ticks.py` -> **0 failure(s)**.
 
@@ -139,7 +139,7 @@ The rows are contiguous and ascending; C's blank lines between the blocks need n
 
 | file | lines | md5 | sha256 |
 | --- | ---: | --- | --- |
-| `femacs/oldXMenu/Create.rs` (this revision) | 1291 | `4cc475f85a2868607b7bf0eeda10d979` | `68e58aada08155d0986ac32b0e27ed2f2698f0cd06c005c2efe8ff3b4a6a9a16` |
+| `oldXMenu/Create.rs` (this revision) | 1291 | `4cc475f85a2868607b7bf0eeda10d979` | `68e58aada08155d0986ac32b0e27ed2f2698f0cd06c005c2efe8ff3b4a6a9a16` |
 | `build/femacs/Create.o` (frozen reading) | - | - | `d1ea88b2fe3d960975d134e566e6593217e9ad67abdc2db5a451ea9620edd0ed` (336 bytes) |
 | `/tmp/create-lane/create3.rlib` (arm reading, take 3) | - | - | `ffaea07de2ecfd6da7f86af41ef5e2ae21c5edb4d71458d675c3359939a97b32` (320,192 bytes) |
 
@@ -255,7 +255,7 @@ unexported `static mut [c_char; N]` and each compared byte for byte with its ref
 2. **`lib/include/stdlib.rs` should carry `atoi` and `atof`** (integrator): C 51's `<stdlib.h>`
    mirror has `malloc`/`calloc`/`strtod`/`strtol`/… but not the two ASCII conversions this file is
    the first consumer of, so they are declared at C 51's line in the unit.  `lib/include/stdlib.rs`
-   is not in this lane's write scope (`femacs/lib/include/**`).
+   is not in this lane's write scope (`lib/include/**`).
 3. **`docs/ports/line-drift-tolerance.tsv`**: the `Create` row for the line-count drift, which
    P-86 clause 10's second reading prints and which is not the porter's row to write.  Measured value
    **71.7%** (C 752 vs the port's 1291), so the row is `0.73` (`max (0.05, tolerance)`, the peers'
@@ -269,7 +269,7 @@ unexported `static mut [c_char; N]` and each compared byte for byte with its ref
    `tools/check-port-lines.py --write-pending` are the generators and both are the integrator's step
    (P-86 clause 4 - neither file is in this lane's write scope).  The map's *reference* count (752) is
    what `check-dead-file-coverage.py` reads and is unaffected.
-5. **`femacs/xtask/Cargo.toml`**: nothing - `have_x_windows` is already registered in the generated
+5. **`xtask/Cargo.toml`**: nothing - `have_x_windows` is already registered in the generated
    `cfg` namespace, and this file's only sub-gate is a constant, so no second feature is needed.
    Recorded so the absence is a reading, not an omission.
 6. **`XCreateGC`'s fourth parameter**: typing it `*mut XGCValues` in `include/xlib.rs` (with the

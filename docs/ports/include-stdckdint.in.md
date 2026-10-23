@@ -40,7 +40,7 @@
   pair at the site.**  C 52-54 are the store-and-report shape (`ckd_add (&x, a, b)` writes the
   wrapped sum and returns the overflow flag); the ported units write
   `let (value, overflowed) = … .overflowing_add (…)` plus the store instead (P-15: measured in
-  `femacs/lib/timespec-add.rs` 33-38, `femacs/lib/mktime.rs` 36/315/405, `femacs/src/doprnt.rs`
+  `lib/timespec-add.rs` 33-38, `lib/mktime.rs` 36/315/405, `src/doprnt.rs`
   83), and no ported unit names `ckd_add`/`ckd_sub`/`ckd_mul` (Evidence).  So each frozen arm is
   `pub const ckd_add: () = ();` - the marker shape `lib/include/gnulib_config.rs` uses for a
   name whose counterpart the port spells elsewhere - with the frozen spelling
@@ -48,8 +48,8 @@
   usable macro**, the body is the `overflowing_*` pair plus the store into `*$r`; nothing else in
   the tree depends on the choice.
 - **The consumers are wired** (P-66's include discipline: the unit's C file includes
-  `<stdckdint.h>`, so the ported unit includes the mirror): `femacs/lib/timespec-add.rs`
-  (C 26) and `femacs/lib/timespec-sub.rs` (C 27), both `built` in Evidence, with their own
+  `<stdckdint.h>`, so the ported unit includes the mirror): `lib/timespec-add.rs`
+  (C 26) and `lib/timespec-sub.rs` (C 27), both `built` in Evidence, with their own
   `--check` unchanged.  The remaining includers are the integrator's sweep, the
   `include-dirent.in.md` pattern: `lib/mktime.c` 49, `lib/strftime.c` 111,
   `lib/group-member.c` 24, `lib/stdio-consolesafe.c` 22, `lib/file-has-acl.c` 52,
@@ -82,17 +82,17 @@ $ clang -std=gnu23 -I build/emacs-ref/src -I build/emacs-ref/lib -include config
 #define ckd_mul(R,A,B) __builtin_mul_overflow((A), (B), (R))
 #define ckd_sub(R,A,B) __builtin_sub_overflow((A), (B), (R))
 
-$ python3 tools/extract-abi.py --check emacs/lib/stdckdint.in.h femacs/lib/include/stdckdint.in.rs
+$ python3 tools/extract-abi.py --check emacs/lib/stdckdint.in.h lib/include/stdckdint.in.rs
   (1 C macros have a recorded Rust counterpart: _)
-OK emacs/lib/stdckdint.in.h -> femacs/lib/include/stdckdint.in.rs
+OK emacs/lib/stdckdint.in.h -> lib/include/stdckdint.in.rs
 
 # the negative control: the bearing token is the gnulib macro's name, not `bool` (a skipped token)
-$ sed 's/_GL_INT_ADD_WRAPV/_GL_INT_NOPE_WRAPV/' femacs/lib/include/stdckdint.in.rs > /tmp/gt-neg2/n3b.rs
+$ sed 's/_GL_INT_ADD_WRAPV/_GL_INT_NOPE_WRAPV/' lib/include/stdckdint.in.rs > /tmp/gt-neg2/n3b.rs
 $ python3 tools/extract-abi.py --check emacs/lib/stdckdint.in.h /tmp/gt-neg2/n3b.rs
 - macro ckd_add does not mention _gl_int_add_wrapv (C body: ((bool) _GL_INT_ADD_WRAPV (a, b, r)))
 FAIL emacs/lib/stdckdint.in.h -> /tmp/gt-neg2/n3b.rs
 $ sed 's/(_GL_INT_ADD_WRAPV! ($a, $b, $r)) as bool/(_GL_INT_ADD_WRAPV! ($a, $b, $r))/' \
-    femacs/lib/include/stdckdint.in.rs > /tmp/gt-neg2/n3.rs
+    lib/include/stdckdint.in.rs > /tmp/gt-neg2/n3.rs
 $ python3 tools/extract-abi.py --check emacs/lib/stdckdint.in.h /tmp/gt-neg2/n3.rs
 OK emacs/lib/stdckdint.in.h -> /tmp/gt-neg2/n3.rs      # measured: `bool` is in MACRO_TOKEN_SKIP
 
@@ -101,16 +101,16 @@ $ cd femacs && CARGO_TARGET_DIR=/tmp/femacs-target-gt cargo run -q -p xtask -- b
 built lib/timespec-add.rs -> ../build/femacs/timespec-add.o
 $ cd femacs && CARGO_TARGET_DIR=/tmp/femacs-target-gt cargo run -q -p xtask -- build-tu lib/timespec-sub.c
 built lib/timespec-sub.rs -> ../build/femacs/timespec-sub.o
-$ python3 tools/extract-abi.py --check emacs/lib/timespec-add.c femacs/lib/timespec-add.rs
-OK emacs/lib/timespec-add.c -> femacs/lib/timespec-add.rs
-$ python3 tools/extract-abi.py --check emacs/lib/timespec-sub.c femacs/lib/timespec-sub.rs
-OK emacs/lib/timespec-sub.c -> femacs/lib/timespec-sub.rs
+$ python3 tools/extract-abi.py --check emacs/lib/timespec-add.c lib/timespec-add.rs
+OK emacs/lib/timespec-add.c -> lib/timespec-add.rs
+$ python3 tools/extract-abi.py --check emacs/lib/timespec-sub.c lib/timespec-sub.rs
+OK emacs/lib/timespec-sub.c -> lib/timespec-sub.rs
 
 # no ported unit names the three macros
-$ rg -n "\bckd_(add|sub|mul)\s*\(" femacs/src femacs/lib femacs/lib-src | grep -v 'include/stdckdint.in.rs' | head -3
-femacs/lib-src/etags.rs:9032:  /* C's `ckd_mul (&nbytes, nitems, item_size)`: the store happens only when the
-femacs/lib/mktime.rs:315:  /* C 399's `ckd_sub (&negative_offset_guess, 0, off)` stores the wrapped difference and
-femacs/lib/mktime.rs:405:              /* C 476's `ckd_add (&ot, t, delta * direction)` stores the wrapped sum in
+$ rg -n "\bckd_(add|sub|mul)\s*\(" src lib lib-src | grep -v 'include/stdckdint.in.rs' | head -3
+lib-src/etags.rs:9032:  /* C's `ckd_mul (&nbytes, nitems, item_size)`: the store happens only when the
+lib/mktime.rs:315:  /* C 399's `ckd_sub (&negative_offset_guess, 0, off)` stores the wrapped difference and
+lib/mktime.rs:405:              /* C 476's `ckd_add (&ot, t, delta * direction)` stores the wrapped sum in
 # the three hits are comments quoting C's calls; there is no Rust call site
 
 # the file is a gnulib template, so it stays off the verified list (P-66) and `--check` reads

@@ -116,7 +116,7 @@
 
 - **The mirror is its own compilation unit**, like the rest of this batch: absolute
   `core::ffi::` paths, no `use`, no `include!`, and `build-tu lib/stddef.in.h` reaches
-  `femacs/lib/include/stddef.in.rs` as the crate root.  Nothing in the port includes it today:
+  `lib/include/stddef.in.rs` as the crate root.  Nothing in the port includes it today:
   `<stddef.h>`'s substance on the frozen target is Rust's own types (`usize`, `isize`,
   `core::ffi`) plus the system header's `max_align_t`/`NULL`/`unreachable`, and a unit that
   needs those writes them directly (the `usize`/`isize` mapping of PORTING.md 1.1).
@@ -132,10 +132,10 @@ $ python3 tools/extract-abi.py emacs/lib/stddef.in.h
 ## Types and their fields - 0
 ## File-scope objects - 0
 
-$ python3 tools/extract-abi.py --check emacs/lib/stddef.in.h femacs/lib/include/stddef.in.rs
+$ python3 tools/extract-abi.py --check emacs/lib/stddef.in.h lib/include/stddef.in.rs
   (1 C macros have a recorded Rust counterpart: _)
   (8 C macros have several definitions (configuration branches), body not compared: GNULIB_defined_max_align_t, NULL, _GL_ATTRIBUTE_NOTHROW, _GL_HAS_BUILTIN_UNREACHABLE, _GL_STDDEF_ALIGNAS, __CLANG_MAX_ALIGN_T_DEFINED ...)
-OK emacs/lib/stddef.in.h -> femacs/lib/include/stddef.in.rs
+OK emacs/lib/stddef.in.h -> lib/include/stddef.in.rs
 # no `- ` problem line (`| grep -c '^- '` -> 0)
 
 $ python3 tools/check-cond-eval.py lib/stddef.in.h

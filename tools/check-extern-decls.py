@@ -22,14 +22,14 @@ import re
 import sys
 
 REPO = pathlib.Path(__file__).resolve().parent.parent
-PORT = REPO / "femacs"
+PORT = REPO
 
 DECL = re.compile(r"^\s*pub fn ([A-Za-z_][A-Za-z0-9_]*) *\(", re.MULTILINE)
 DEF = re.compile(r"^(?:pub )?(?:unsafe )?(?:extern \"C\" )?fn ([A-Za-z_][A-Za-z0-9_]*) *[(<]", re.MULTILINE)
 
 
 def sources() -> list[pathlib.Path]:
-    return sorted(p for p in PORT.rglob("*.rs") if "target" not in p.parts)
+    return sorted(p for p in (p for tree in ('src','lib','lib-src','lwlib','oldXMenu','nt','msdos','exec','platform','xtask') for p in (PORT/tree).rglob("*.rs")) if "target" not in p.parts)
 
 
 def main() -> int:

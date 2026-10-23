@@ -63,11 +63,11 @@
 
 ## Decisions
 
-`emacs/src/chartab.c` @ `fd7afced403`; port `femacs/src/chartab.rs` (1,704 lines vs C's 1391,
+`emacs/src/chartab.c` @ `fd7afced403`; port `src/chartab.rs` (1,704 lines vs C's 1391,
 of which **1387** are live - the 22.9% drift is declared in
 `docs/ports/line-drift-tolerance.tsv` with the `live` basis and is explained under "Line
 count" below).  The gates are
-`python3 tools/extract-abi.py --check emacs/src/chartab.c femacs/src/chartab.rs` -> `OK`,
+`python3 tools/extract-abi.py --check emacs/src/chartab.c src/chartab.rs` -> `OK`,
 `build-tu src/chartab.c` -> `built` and
 `python3 tools/check-symbols.py --pending docs/baseline/symbol-pending.txt` ->
 `0 mismatched` (this unit is under `src/`, which that gate does not compare - it walks
@@ -105,7 +105,7 @@ clang-verified one and no `docs/baseline/config/source-header-macros.tsv` row is
    (PORTING.md 0.1-12).  Rust items are order-independent, and `UNIPROP_GET_DECODER`'s body
    names `uniprop_get_decoder` only at its call sites.
 2. **`charset.h` has no mirror yet** (`docs/port-map.md` still lists
-   `femacs/src/include/charset.rs` as unstarted), so the names this unit's live text takes
+   `src/include/charset.rs` as unstarted), so the names this unit's live text takes
    from it are written at their use site, with C's own bodies and comments (PORTING.md
    0.1-2/P-72, the terminal.rs/filelock.rs shape).  That block is 206 of the port's lines and
    contains: `enum charset_method` and the two `enum charset_attr_index` members the code
@@ -207,13 +207,13 @@ declaration already carries.
 
 ### Changes outside the unit
 
-None to the tree's sources: this round added `femacs/src/chartab.rs`,
+None to the tree's sources: this round added `src/chartab.rs`,
 `docs/ports/chartab.md`, seven `docs/ports/macro-body-notes.tsv` rows and one
 `docs/ports/line-drift-tolerance.tsv` row.  No new mirror was created (the `charset.h`
 material is deliberately at the use site; see deviation 2) and no tool was changed.
 
 **Note for the integrator**: at the first attempt `build-tu src/chartab.c` failed inside
-`femacs/src/include/thread.rs`, a shared mirror another unit owns that was being rewritten in
+`src/include/thread.rs`, a shared mirror another unit owns that was being rewritten in
 the same worktree at the time (its `eassert!`/`XUNTAG!` calls sit before the `include!` that
 defines those macros).  The failure was not specific to this unit - `build-tu src/casetab.c`,
 green before, printed the same errors - so the `built` line was first taken in an isolated

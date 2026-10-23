@@ -2,7 +2,7 @@
 # Type-check the Android Kotlin shell against the platform's android.jar - offline.
 #
 # `docs/port-plan.md`'s platform row and DoD-6 need the Android leg to build.  The Kotlin
-# sources (`femacs/platform/android/**/*.kt`, the port of `java/**/*.java`) do not need a full
+# sources (`platform/android/**/*.kt`, the port of `java/**/*.java`) do not need a full
 # Android build to be *checked*: Android Studio ships a Kotlin compiler and a JDK, and the SDK
 # ships `android.jar`, so the compile can run with nothing downloaded and nothing installed.
 #
@@ -85,17 +85,17 @@ mkdir -p "$OUT"
 GEN="$OUT/gen"
 mkdir -p "$GEN"
 RES_ZIP="$OUT/res.zip"
-"$AAPT2" compile --dir "$REPO/femacs/platform/android/res" -o "$RES_ZIP" || exit $?
+"$AAPT2" compile --dir "$REPO/platform/android/res" -o "$RES_ZIP" || exit $?
 # `android:debuggable` is C's `@ANDROID_DEBUGGABLE@` substitution (`java/AndroidManifest.xml.in`
 # 222): the reference build sets it from its configuration, the port has no configure step, so it
 # is off by default and `FEMACS_ANDROID_DEBUGGABLE=1` turns it on.  A debuggable APK is what makes
 # bionic's `libc.debug.malloc.options` (guard pages) apply to the app's own process - the only
 # on-device way to fault at the first out-of-bounds write instead of at its symptom (status 4.885).
-MANIFEST="$REPO/femacs/platform/android/AndroidManifest.xml"
+MANIFEST="$REPO/platform/android/AndroidManifest.xml"
 if [ "${FEMACS_ANDROID_DEBUGGABLE:-0}" = "1" ]; then
   MANIFEST="$OUT/AndroidManifest.debug.xml"
   sed 's/android:debuggable="false"/android:debuggable="true"/' \
-    "$REPO/femacs/platform/android/AndroidManifest.xml" > "$MANIFEST" || exit 1
+    "$REPO/platform/android/AndroidManifest.xml" > "$MANIFEST" || exit 1
   grep -q 'android:debuggable="true"' "$MANIFEST" || {
     echo "FEMACS_ANDROID_DEBUGGABLE=1: the manifest has no debuggable attribute to flip" >&2
     exit 1; }
@@ -114,7 +114,7 @@ JAVAC_RELEASE=${JAVAC_RELEASE:-17}
 "$JAVA_HOME/bin/javac" --release "$JAVAC_RELEASE" -classpath "$ANDROID_JAR" -d "$OUT/rclasses" "$R_JAVA" || exit $?
 (cd "$OUT/rclasses" && "$JAVA_HOME/bin/jar" cf "$OUT/R.jar" .) || exit $?
 R_JAR="$OUT/R.jar"
-echo "resources: R.jar built from $(find "$REPO/femacs/platform/android/res" -type f | wc -l | tr -d ' ') resource file(s)"
+echo "resources: R.jar built from $(find "$REPO/platform/android/res" -type f | wc -l | tr -d ' ') resource file(s)"
 
 # The reference generates a class at build time (`EmacsConfig`, java/Makefile.in 411-424); the
 # Kotlin sources name it, so the generator runs first and its file joins the compilation.
@@ -129,7 +129,7 @@ else
   python3 "$REPO/tools/gen-emacs-config.py" --out "$OUT/generated" || exit $?
 fi
 
-FILES=$(find "$REPO/femacs/platform/android" "$OUT/generated" -name '*.kt' | sort)
+FILES=$(find "$REPO/platform/android" "$OUT/generated" -name '*.kt' | sort)
 COUNT=$(printf '%s\n' "$FILES" | grep -c .)
 echo "compiling $COUNT Kotlin file(s) against $ANDROID_JAR"
 # shellcheck disable=SC2086

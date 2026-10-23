@@ -41,8 +41,8 @@ from pathlib import Path
 REPO = Path(__file__).resolve().parent.parent
 ALLOWLIST = REPO / "docs" / "baseline" / "citations-allowlist.tsv"
 
-TREES = ["femacs/src", "femacs/lib", "femacs/lib-src", "femacs/platform", "femacs/exec",
-         "femacs/lwlib", "femacs/oldXMenu", "femacs/nt", "femacs/msdos"]
+TREES = ["src", "lib", "lib-src", "platform", "exec",
+         "lwlib", "oldXMenu", "nt", "msdos"]
 SUFFIXES = {".rs", ".swift", ".kt", ".cc", ".cpp"}
 
 CITE = re.compile(r"(?P<path>[A-Za-z0-9_./+-]+\.(?:in\.h|h|m|mm|cc|c))\s+"

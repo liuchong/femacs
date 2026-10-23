@@ -188,8 +188,8 @@
 
 ## Decisions
 
-`emacs/src/buffer.h` @ `fd7afced403`; port `femacs/src/include/buffer.rs`; the gate is
-`python3 tools/extract-abi.py --check emacs/src/buffer.h femacs/src/include/buffer.rs` -> `OK`
+`emacs/src/buffer.h` @ `fd7afced403`; port `src/include/buffer.rs`; the gate is
+`python3 tools/extract-abi.py --check emacs/src/buffer.h src/include/buffer.rs` -> `OK`
 (one macro, `FOR_EACH_LIVE_BUFFER`, is recorded in `docs/ports/excluded-macros.txt`).
 
 ### Layout is proven, not assumed
@@ -284,7 +284,7 @@ same name, an `INLINE` function becomes an `#[inline(always)]` function.
 
 ### Evidence
 
-- `python3 tools/extract-abi.py --check emacs/src/buffer.h femacs/src/include/buffer.rs`
+- `python3 tools/extract-abi.py --check emacs/src/buffer.h src/include/buffer.rs`
   -> `OK`.  What that proves: every C function/macro/type/field/global name is present,
   the struct field *sets* match, and no body is a stub.  What it does **not** prove (the
   first adversarial review measured this with a six-mutation matrix): function bodies,
@@ -335,7 +335,7 @@ recorded as an open item:
 | the `cfg (feature = "have_tree_sitter")` was not tied to the frozen configuration | `const _` assertion |
 | crate-root `extern` declarations in `lisp.rs` (74, of which ~62 are Emacs C functions) will collide with `E0428` when the defining unit lands | recorded as P-39 with the plan (move them into a `pub mod` + `use …::*`, the P-21/P-28 shadowing shape) |
 | `#[repr(C, align(8))]`, the include-guard constant and the `buf_charpos_to_bytepos` parameter name | recorded / corrected above |
-- **Two edits when `femacs/src/textprop.rs` landed** (the P-70 same-commit rule,
+- **Two edits when `src/textprop.rs` landed** (the P-70 same-commit rule,
   PORTING.md 0.1-10/P-21), both recorded in `docs/ports/textprop.md`:
   1. buffer.h 1246-1247's two objects (`interval_insert_behind_hooks`,
      `interval_insert_in_front_hooks`) are defined by textprop.c, so they moved from the
@@ -359,8 +359,8 @@ recorded as an open item:
   `XOVERLAY (ov)->interval` (1529-1537).  `character.rs` and `lisp.rs`, the other two includes
   on 26-28, are foundation mirrors every unit puts first (xtask's include graph forces them);
   `itree.rs` is not, so this mirror carries that one include (P-72 rule ④).
-- Measured no-op for the frozen units: all **59** units in `femacs/src/` that include this
-  mirror also include `itree.rs` (scan: `grep -l 'include!("include/buffer.rs")' femacs/src/*.rs`
+- Measured no-op for the frozen units: all **59** units in `src/` that include this
+  mirror also include `itree.rs` (scan: `grep -l 'include!("include/buffer.rs")' src/*.rs`
   -> 59 files, and the same loop with `itree.rs` leaves none out).  `src/androidmenu.c` is the
   one that reaches this mirror through `keyboard.h` (see `docs/ports/include-keyboard.md`).
 
@@ -381,8 +381,8 @@ recorded as an open item:
 
 ## Evidence (`itree.rs`)
 
-- `python3 tools/extract-abi.py --check emacs/src/buffer.h femacs/src/include/buffer.rs` -> `OK
-  emacs/src/buffer.h -> femacs/src/include/buffer.rs` (112 functions, 53 macros, 4 types and 6
+- `python3 tools/extract-abi.py --check emacs/src/buffer.h src/include/buffer.rs` -> `OK
+  emacs/src/buffer.h -> src/include/buffer.rs` (112 functions, 53 macros, 4 types and 6
   file-scope objects, unchanged).
 - `python3 tools/check-citations.py` -> `0 drift`, `0 stale` (this file has no allowlist row; the
   comment names buffer.h 1488 and 1529-1537, which `tools/check-citation-text.py` does not

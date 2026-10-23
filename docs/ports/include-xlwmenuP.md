@@ -46,4 +46,4 @@ compiles it; the text gate is the whole acceptance (docs/status.md 3.31/3.102).
    `extern` block (PORTING.md 0.1-2).
 
 Evidence: `python3 tools/extract-abi.py --check emacs/lwlib/xlwmenuP.h
-femacs/lwlib/include/xlwmenuP.rs` -> `OK` (2 ledger item(s)).
+lwlib/include/xlwmenuP.rs` -> `OK` (2 ledger item(s)).

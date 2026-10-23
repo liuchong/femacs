@@ -14,7 +14,7 @@
 
 ## Decisions
 
-- The same shape as femacs/lib/c-strcasecmp.rs, and blind for the same reason: C 42's
+- The same shape as lib/c-strcasecmp.rs, and blind for the same reason: C 42's
   `UCHAR_MAX <= INT_MAX` is live and its `else` arm is carried so the checker sees `_GL_CMP`.
 - `c_tolower` and the `_C_CTYPE_UPPER` switch→match mapping are the c-ctype.rs mirror's (its
   ledger rows live in docs/ports/macro-body-notes.tsv).

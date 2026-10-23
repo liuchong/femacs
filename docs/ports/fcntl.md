@@ -16,7 +16,7 @@
 
 ## Decisions
 
-`emacs/lib/fcntl.c` @ `fd7afced403`; port `femacs/lib/fcntl.rs` (247 lines).  All checklist items
+`emacs/lib/fcntl.c` @ `fd7afced403`; port `lib/fcntl.rs` (247 lines).  All checklist items
 ticked; `build-tu lib/fcntl.c` -> `built lib/fcntl.rs -> ../build/femacs/fcntl.o` (0 errors),
 `--check` -> `OK`.
 

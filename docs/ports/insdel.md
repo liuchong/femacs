@@ -76,14 +76,14 @@
 # ----------------------------------------------------------------------
 ## Decisions
 
-`emacs/src/insdel.c` @ `fd7afced403`; port `femacs/src/insdel.rs` (2,495 lines vs C's
+`emacs/src/insdel.c` @ `fd7afced403`; port `src/insdel.rs` (2,495 lines vs C's
 2,280 live of 2,592 — the 9.0% drift against the **`live`** baseline is declared in
 `docs/ports/line-drift-tolerance.tsv`).  `src/insdel.c` is in
 `docs/baseline/frozen-build-sources.txt`, so the frozen configuration compiles it: there is
 no 3.31 exemption and the full comparison applies.  The gates:
 
     build-tu src/insdel.c        -> built src/insdel.rs -> ../build/femacs/insdel.o
-    extract-abi.py --check       -> OK emacs/src/insdel.c -> femacs/src/insdel.rs
+    extract-abi.py --check       -> OK emacs/src/insdel.c -> src/insdel.rs
     check-symbols.py --pending   -> check-symbols: 78 units compared, 0 mismatched, 1 still pending
     check-globals.py             -> check-globals: 242 units, 0 DEFVAR_* variables without a definition in their own unit
     ledger                       -> 62/62 rows checked, 0 unchecked

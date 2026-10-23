@@ -79,9 +79,9 @@
   `is_null ()`/`null_mut ()`, the `FRAME_LIVE_P` class).
 - **The `up_obj`/`write_protect`/`visible`/`front_sticky`/`rear_sticky` families** in
   `docs/ports/token-aliases.tsv` carry the occurrence check for every read and write of the
-  packed bits (both inside the mirror's macros and in `femacs/src/intervals.rs`); the
+  packed bits (both inside the mirror's macros and in `src/intervals.rs`); the
   `gcmarkbit` bit is alloc.c's alone and has no family yet.
-- **`femacs/src/include/buffer.rs` needed one integrator edit** and this unit reports it:
+- **`src/include/buffer.rs` needed one integrator edit** and this unit reports it:
   buffer.h's six prototypes for functions other units define (intervals.c's five
   point-setters and buffer.c's `enlarge_buffer_text`) moved into a `buffer_point_decls`
   module + glob import, because a root-scope declaration plus intervals.c's definition is one
@@ -91,7 +91,7 @@
   `FRONT_NONSTICKY_P`) is literal-false text, not a configuration arm, so P-51's feature gate
   does not apply and the three macros are not mirrored (the cm.rs/font.rs precedent).
 - **The `Defined in textprop.c` block moved into a module + glob import** when
-  `femacs/src/textprop.rs` landed (the P-70 same-commit rule, PORTING.md 0.1-10/P-21): all
+  `src/textprop.rs` landed (the P-70 same-commit rule, PORTING.md 0.1-10/P-21): all
   nine prototypes of intervals.h 291-310 are defined by that unit, and a same-named
   `unsafe extern "C"` item at the mirror's root would be one `E0428` against the definition
   (the composite.rs `composite_decls`/charset.rs `charset_decls` shape).  They now live in

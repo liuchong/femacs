@@ -43,14 +43,14 @@
 
 ## Evidence
 
-- `python3 tools/extract-abi.py --check emacs/src/sfntfont.h femacs/src/include/sfntfont.rs`
-  -> `OK emacs/src/sfntfont.h -> femacs/src/include/sfntfont.rs` (no `- ` problem lines).
+- `python3 tools/extract-abi.py --check emacs/src/sfntfont.h src/include/sfntfont.rs`
+  -> `OK emacs/src/sfntfont.h -> src/include/sfntfont.rs` (no `- ` problem lines).
 - `python3 tools/check-cond-eval.py src/sfntfont.h` -> `3 conditions, 0 unknown to the evaluator,
   0 disagreements`; `grep -n sfntfont docs/baseline/config/cond-eval-verified.txt` -> 362-363.
 - `python3 tools/extract-abi.py emacs/src/sfntfont.h` -> this ledger: 0 subrs, 0 functions defined,
   1 macro (the guard), 0 types, 0 file-scope objects (`--check` asks only for the guard, and the
   four declarations groups are carried because they are the header's live text).
-- The `glyph_string` measurement: `sed -n '1358,1366p' femacs/src/include/dispextern.rs` ->
+- The `glyph_string` measurement: `sed -n '1358,1366p' src/include/dispextern.rs` ->
   `#[cfg (feature = "have_window_system")]` immediately above `pub struct glyph_string`; the mirror's head
   NOTE records the two `E0425`s the integrator's edit was made from.
 - **Compile evidence**: `cd femacs && CARGO_TARGET_DIR=/tmp/femacs-target-win cargo run -q -p xtask

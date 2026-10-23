@@ -30,7 +30,7 @@
   record, and the probe below is what pins the live one.
 - **The one consumer is another lane's file, so the mirror's compiler is a `/tmp` probe.**
   C's only includer is `src/keyboard.c` 83 (`#include <ignore-value.h>`, used at 12582:
-  `ignore_value (write (STDOUT_FILENO, msg, strlen (msg)));`), whose port `femacs/src/keyboard.rs`
+  `ignore_value (write (STDOUT_FILENO, msg, strlen (msg)));`), whose port `src/keyboard.rs`
   is in flight in another lane and is not this batch's to touch.  The probe supplies the same
   shape a unit would (`include!` of the mirror, `assert! (!cfg! (feature = …))`, a single-
   evaluation assertion) and its commands are in Evidence.
@@ -48,12 +48,12 @@ $ printf '#include "ignore-value.h"\nignore_value (x)\n' > /tmp/iv.c
 $ clang -std=gnu23 -I emacs/lib -E /tmp/iv.c | tail -1
 ((void) (x))
 
-$ python3 tools/extract-abi.py --check emacs/lib/ignore-value.h femacs/lib/include/ignore-value.rs
+$ python3 tools/extract-abi.py --check emacs/lib/ignore-value.h lib/include/ignore-value.rs
   (1 C macros have several definitions (configuration branches), body not compared: ignore_value)
-OK emacs/lib/ignore-value.h -> femacs/lib/include/ignore-value.rs
+OK emacs/lib/ignore-value.h -> lib/include/ignore-value.rs
 
 # the negative control: the check compares the name (the bodies are exempt for a branched macro)
-$ grep -v "ignore_value" femacs/lib/include/ignore-value.rs > /tmp/gt-neg2/n1.rs
+$ grep -v "ignore_value" lib/include/ignore-value.rs > /tmp/gt-neg2/n1.rs
 $ python3 tools/extract-abi.py --check emacs/lib/ignore-value.h /tmp/gt-neg2/n1.rs
 - missing macro ignore_value
 FAIL emacs/lib/ignore-value.h -> /tmp/gt-neg2/n1.rs
@@ -72,8 +72,8 @@ exit=0        # the `assert! (!cfg! (feature = "gnu_warn_unused_result"))` guard
 
 $ rg -n '#include <ignore-value.h>' emacs/src emacs/lib
 emacs/src/keyboard.c:83:#include <ignore-value.h>          # the only includer
-$ rg -n "ignore_value" femacs/src femacs/lib femacs/lib-src | grep -v include/ignore-value
-(no output: no ported unit names the macro yet - `femacs/src/keyboard.rs` is the in-flight file
+$ rg -n "ignore_value" src lib lib-src | grep -v include/ignore-value
+(no output: no ported unit names the macro yet - `src/keyboard.rs` is the in-flight file
 that will, and it is another lane's)
 
 # and what the condition evaluator says about the file (it is not on the verified list, so

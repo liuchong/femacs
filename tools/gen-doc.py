@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate femacs/etc/DOC from the port's own docstring carriers (PORTING.md P-105).
+"""Generate etc/DOC from the port's own docstring carriers (PORTING.md P-105).
 
 The reference builds `etc/DOC` by running `make-docfile -d <srcdir> <obj>…`, and that
 program reads the *source* file named after each object (`<srcdir>/<stem>.c`, `.m` for
@@ -27,7 +27,7 @@ this scanner can read C's text.
 Usage
 -----
     python3 tools/gen-doc.py                 # build in memory, compare with the reference
-    python3 tools/gen-doc.py --write         # also write femacs/etc/DOC
+    python3 tools/gen-doc.py --write         # also write etc/DOC
     python3 tools/gen-doc.py --section alloc # one section only (diagnostics)
     python3 tools/gen-doc.py --swift-worklist # what P-106 still owes the Swift units
     python3 tools/gen-doc.py --selftest      # P-106 ③: a .swift record against its .m source
@@ -42,8 +42,8 @@ from pathlib import Path
 
 REPO = Path(__file__).resolve().parent.parent
 DEFAULT_REFERENCE = REPO / "build/emacs-ref/etc/DOC"
-DEFAULT_OUT = REPO / "femacs/etc/DOC"
-SWIFT_DIR = REPO / "femacs/platform/macos"
+DEFAULT_OUT = REPO / "etc/DOC"
+SWIFT_DIR = REPO / "platform/macos"
 REFERENCE_SRC = REPO / "emacs/src"
 
 # The invocations that carry records.  C's scanner recognizes the prefixes (make-docfile.c
@@ -575,10 +575,10 @@ def port_source(stem: str) -> Path:
     if stem in SWIFT_STEMS:
         return SWIFT_DIR / f"{stem}.swift"
     for d in ("src", "lib", "lib-src", "lwlib", "oldXMenu"):
-        p = REPO / "femacs" / d / f"{stem}.rs"
+        p = REPO / d / f"{stem}.rs"
         if p.exists():
             return p
-    return REPO / "femacs/src" / f"{stem}.rs"
+    return REPO / "src" / f"{stem}.rs"
 
 
 def reference_sections(ref: bytes) -> list[str]:
@@ -994,6 +994,8 @@ def worklist(ref: bytes, built: bytes) -> list[tuple[str, ...]]:
 
 def main() -> int:
     ap = argparse.ArgumentParser()
+    ap.add_argument("--compare-reference", action="store_true", help="optional reference DOC audit")
+    ap.add_argument("--owned", action="store_true", help="generate from committed section order and owned source carriers")
     ap.add_argument("--reference", type=Path, default=DEFAULT_REFERENCE)
     ap.add_argument("--out", type=Path, default=DEFAULT_OUT)
     ap.add_argument("--write", action="store_true", help="write the generated DOC")
@@ -1009,6 +1011,14 @@ def main() -> int:
     ap.add_argument("--limit", type=int, default=40, help="max lines per report section")
     a = ap.parse_args()
 
+    if a.owned or not (a.compare_reference or a.selftest or a.swift_worklist or a.classify or a.worklist or a.strict):
+        order=(REPO/'build-support/doc-sections.txt').read_text().splitlines()
+        data=b''.join(b'\x1fS'+obj.encode()+b'\n' for obj in order)
+        built,warn,pending=build(data,a.section)
+        if pending:raise SystemExit('missing owned DOC carriers: '+str(pending))
+        a.out.parent.mkdir(parents=True,exist_ok=True);a.out.write_bytes(built)
+        print(f'owned DOC: {len(built)} bytes, {len(order)} sections')
+        return 0
     if not a.reference.exists():
         print(f"reference DOC not found: {a.reference}", file=sys.stderr)
         return 2

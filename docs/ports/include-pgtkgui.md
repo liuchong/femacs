@@ -92,8 +92,8 @@
 
 ## Evidence
 
-- `python3 tools/extract-abi.py --check emacs/src/pgtkgui.h femacs/src/include/pgtkgui.rs`
-  -> `OK emacs/src/pgtkgui.h -> femacs/src/include/pgtkgui.rs` (no `- ` problem lines).
+- `python3 tools/extract-abi.py --check emacs/src/pgtkgui.h src/include/pgtkgui.rs`
+  -> `OK emacs/src/pgtkgui.h -> src/include/pgtkgui.rs` (no `- ` problem lines).
 - `python3 tools/extract-abi.py emacs/src/pgtkgui.h` -> this ledger: 0 subrs, 0 functions defined,
   38 macros, 2 types, 0 file-scope objects.
 - The measurements (`clang -std=gnu23 -O0 -I emacs/src` on a TU that includes `pgtkgui.h` and prints

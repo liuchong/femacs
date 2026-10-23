@@ -9,7 +9,7 @@
 > `pgtkterm.c`, `pgtkfns.c` and `xselect.c`, what the earlier `status.md` 3.31 note measured (not in
 > the frozen source list, empty checklist, 336-byte object) is unchanged and still true; P-86 ①
 > replaces the *conclusion* — "the port is the empty unit plus the note that names the gate" — with
-> **transcribe the text, both arms, no stub**.  Port: `femacs/src/pgtkselect.rs` (2329 lines, from
+> **transcribe the text, both arms, no stub**.  Port: `src/pgtkselect.rs` (2329 lines, from
 > the 11 lines of the placeholder), carrying **C 1-1975**.
 >
 > **The file gate is `have_pgtk`** (`HAVE_PGTK`, `configure.ac` 3176), on every item *and on the
@@ -24,14 +24,14 @@
 > (narrow) and the gate plus the implications a real pgtk build has
 > (`have_window_system`, `use_gtk`, `have_gtk3`).
 >
-> **The GTK/GDK surface's single home is `femacs/src/include/gtk.rs`** (P-90 ①②).  C's text does not
+> **The GTK/GDK surface's single home is `src/include/gtk.rs`** (P-90 ①②).  C's text does not
 > itself `#include <gtk/gtk.h>`: the names arrive through C 23's `"pgtkterm.h"`, whose 31 is
 > `#include <gtk/gtk.h>` under its own `HAVE_PGTK`.  That edge is owed by `include/pgtkterm.rs`
 > (`## Owed` of `docs/ports/include-pgtkterm.md`), so — the `src/pgtkfns.rs` C 28 stand-in shape —
 > this unit carries the edge itself at C 23's chain.  What the mirror does *not* carry is the GDK
 > **selection** surface this file is made of: the nine atoms/values, `GdkPropMode`,
 > `GtkTargetEntry`/`GtkTargetList` and the seventeen entry points in
-> `femacs/src/pgtkselect.rs` 118-292 are declared in-unit at C's `#include` position (PORTING.md
+> `src/pgtkselect.rs` 118-292 are declared in-unit at C's `#include` position (PORTING.md
 > P-88 ①) and their move into `include/gtk.rs` is owed (P-90 ③; `## Owed` 1/2).
 >
 > **Acquisition: this batch is `text-only` (P-86 ③⑵).**  Measured on this machine: `ls -d
@@ -159,8 +159,8 @@ exit 1;  8 lines matching ^error  (7 errors + the abort line)
 
 | # | error | span | cause (owner) |
 | --- | --- | --- | --- |
-| 1-4 | `E0609 no field window/atom/state on GdkEventProperty` (narrow 4, wide 4) | `femacs/src/pgtkselect.rs` 1318/1324/1325/1327 (C 957-964) | **mirror**: `include/gtk.rs` 1660-1672 holds `GdkEventProperty` as `_private: [u8; 0]` — C's member reads have no field (`## Owed` 3) |
-| 5-6 | `E0609 no field selection/property on GdkEventSelection` (narrow 2, wide 2) | `femacs/src/pgtkselect.rs` 2161/2165 (C 1796-1800) | **mirror**: `include/gtk.rs` 1664-1670's placeholder — the same gap (`## Owed` 3) |
+| 1-4 | `E0609 no field window/atom/state on GdkEventProperty` (narrow 4, wide 4) | `src/pgtkselect.rs` 1318/1324/1325/1327 (C 957-964) | **mirror**: `include/gtk.rs` 1660-1672 holds `GdkEventProperty` as `_private: [u8; 0]` — C's member reads have no field (`## Owed` 3) |
+| 5-6 | `E0609 no field selection/property on GdkEventSelection` (narrow 2, wide 2) | `src/pgtkselect.rs` 2161/2165 (C 1796-1800) | **mirror**: `include/gtk.rs` 1664-1670's placeholder — the same gap (`## Owed` 3) |
 | 7 | `E0658 c_variadic` (both) | `include/lisp.rs` 3761 | **mirror**: `verror`'s `VaList` parameter (the row `docs/ports/pgtkterm.md` and `docs/ports/pgtkfns.md` record) |
 | 8-10 | `E0425 cannot find type XrmDatabase` ×2, `XRectangle` ×1 (**narrow only**) | `include/pgtkterm.rs` 199/210/642 | **mirror/config**: `include/xlib.rs`'s X11 records are `have_x_windows`-only (status 3.542), and `include/pgtkterm.rs`'s own copy names them without that arm; the wide reading removes them (`include-pgtkterm.md`) |
 | 11-13 | `E0425 cannot find type GtkCssProvider` ×3 (**narrow only**) | `include/pgtkterm.rs` 289/290/291 | **mirror/config**: `include/gtk.rs` gates that GTK3 class on `have_gtk3`, which a real pgtk build always has (the second reading is what shows it gone) |
@@ -184,7 +184,7 @@ reading.  Restored, and verified: `shasum` of the root is `dc871b752e6ab55e9cc94
 before and after, identical.
 
 **④ `extract-abi.py --check`.**  `python3 tools/extract-abi.py --check emacs/src/pgtkselect.c
-femacs/src/pgtkselect.rs` → `FAIL`, and after the fourteen `macro-body-notes.tsv` rows this batch
+src/pgtkselect.rs` → `FAIL`, and after the fourteen `macro-body-notes.tsv` rows this batch
 appended (one append, at the end of the file) the whole output is the expected lone line:
 
 ```
@@ -235,10 +235,10 @@ python3 tools/check-declarations.py
   -> 17 declaration sites (0 forbidden, 17 allowed literals), 0 failures        (no pgtkselect row)
 python3 tools/check-mirror-dupes.py
   -> 18 duplicate declaration(s), 17 ratchet row(s), 1 failure(s)              (the one failure is
-     `femacs/src/gmalloc.rs`; no pgtkselect row -> no new failure for this file)
+     `src/gmalloc.rs`; no pgtkselect row -> no new failure for this file)
 python3 tools/check-citations.py
   -> 676 file(s) scanned, 0 drift, 0 range, 1522 external, 36 allowed, 0 stale (one `external` row
-     is this file's: `femacs/src/pgtkselect.rs:192 glib/gtypes.h 98`)
+     is this file's: `src/pgtkselect.rs:192 glib/gtypes.h 98`)
 python3 tools/check-dead-file-coverage.py
   -> 116 ledger(s) bound (a C range table), 0 failure(s); this file's row is
      `info docs/ports/pgtkselect.md: 55 range row(s) cover src/pgtkselect.c (1975 lines; 65 blank
@@ -314,13 +314,13 @@ Those are the numbers in the port's `const _:` assertions.  **No layout assertio
 
 1. **The GDK selection surface moves into `include/gtk.rs`.**  The nine atoms/values, `GdkPropMode`,
    `GtkTargetEntry`, `GtkTargetList` and the seventeen entry points
-   (`femacs/src/pgtkselect.rs` 118-292) are this unit's in-unit segment (P-88 ①); P-90 ①② make the
+   (`src/pgtkselect.rs` 118-292) are this unit's in-unit segment (P-88 ①); P-90 ①② make the
    surface's single home `include/gtk.rs`, so they move there in the next mirror round (P-88 ⑤'s
    move-back shape) and this segment disappears.  Owner: the mirror round.  The GDK values stay
    UNVERIFIED until then.
 2. **`include/pgtkterm.rs`'s C 31 edge** (`#include <gtk/gtk.h>`) would put `include/gtk.rs` on every
    pgtk unit's graph and retire this unit's stand-in edge at C 23's chain
-   (`femacs/src/pgtkselect.rs` 90-91).  Owner: `docs/ports/include-pgtkterm.md` (its measured blocker
+   (`src/pgtkselect.rs` 90-91).  Owner: `docs/ports/include-pgtkterm.md` (its measured blocker
    set is the unlanded copies in `src/image.rs`/`src/xwidget.rs`).
 3. **`include/gtk.rs`'s two event records need their first member-reader's members.**
    `GdkEventProperty` (gtk.rs 1660-1672) must carry `type`/`window`/`send_event`/`atom`/`time`/`state`

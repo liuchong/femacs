@@ -32,8 +32,8 @@
 
 ## Decisions
 
-`emacs/src/region-cache.c` @ `fd7afced403`; port `femacs/src/region-cache.rs`; the gate is
-`python3 tools/extract-abi.py --check emacs/src/region-cache.c femacs/src/region-cache.rs`
+`emacs/src/region-cache.c` @ `fd7afced403`; port `src/region-cache.rs`; the gate is
+`python3 tools/extract-abi.py --check emacs/src/region-cache.c src/region-cache.rs`
 -> `OK` (6 exported functions, 5 macros, 2 structs, 0 subrs, 0 file-scope objects).
 
 - **Includes (C 22-27).**  The port mirrors `config.h`, `<stdio.h>`, `lisp.h`, `character.h`,

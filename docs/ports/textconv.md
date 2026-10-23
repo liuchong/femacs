@@ -11,7 +11,7 @@
 > `#if` of its own - but the file gate is the build's, and this ledger carries both P-86 2's
 > **C line-range table** and the readings.
 >
-> Port: `femacs/src/textconv.rs` (**3048 lines**, md5 `7dc3259b2fc8a11f8cdd1e7fe4812db9`), carrying **C 1-2640 with
+> Port: `src/textconv.rs` (**3048 lines**, md5 `7dc3259b2fc8a11f8cdd1e7fe4812db9`), carrying **C 1-2640 with
 > both arms of every `#if`**.  The reference `emacs/src/textconv.c` is md5
 > `d7770484b5b17f5d32dc0580c910ff7f` (unchanged; `emacs/` is read-only).
 >
@@ -209,7 +209,7 @@ them as `c_int` constants at C 70's position.)
    file-local, so the frozen clang cannot be pointed at it), and it is the same 16/8 the port
    asserts.
 4. **The token and inventory reading.**  `python3 tools/extract-abi.py --check
-   emacs/src/textconv.c femacs/src/textconv.rs` -> one `- ` line left: `line count drifted 15.5%:
+   emacs/src/textconv.c src/textconv.rs` -> one `- ` line left: `line count drifted 15.5%:
    C 2640 vs Rust 3048` (`## Owed` 5 is its row).  The five token notes it raised before the
    `macro-body-notes.tsv` rows were appended (the macro's `0`, and `case`/`default`/`goto`/`switch`/
    `uninit`/`doc` on `textconv_query`, `locate_and_save_position_in_field`,
@@ -221,8 +221,8 @@ them as `c_int` constants at C 70's position.)
    `/// C:` and `/* C: */` citations all resolve; the wrapped-citation shape that reported four
    drifts early in the round is gone).
 7. `python3 tools/check-declarations.py` -> `19 declaration sites (2 forbidden, 17 allowed
-   literals), 2 failures`, and **both failures are `femacs/src/xmenu.rs`** (another lane's in-flight
-   file); `femacs/src/textconv.rs` contributes 0 sites and 0 findings.
+   literals), 2 failures`, and **both failures are `src/xmenu.rs`** (another lane's in-flight
+   file); `src/textconv.rs` contributes 0 sites and 0 findings.
 8. `python3 tools/check-mirror-dupes.py` -> `32 duplicate declaration(s), 17 ratchet row(s), 15
    failure(s)`, naming `gmalloc.rs` and `xmenu.rs` (another lane's in-flight files) - **no row and no
    failure names `textconv.rs`** (the unit declares the names no mirror in its graph carries, and it
@@ -237,7 +237,7 @@ them as `c_int` constants at C 70's position.)
 ## Deviations
 
 1. **`textconv.h` is carried in place, and its function prototypes are dropped.**  The header's
-   mirror (`femacs/src/include/textconv.rs`) declares `register_textconv_interface` at its top level
+   mirror (`src/include/textconv.rs`) declares `register_textconv_interface` at its top level
    (outside its `textconv_decls` module) and this unit defines that function, which is `E0428`
    (measured on this checkout: two items, one name, one crate).  So the unit carries the three
    records, the two enums and `TEXTCONV_SKIP_CONVERSION_REGION` at C 35's position with `/// C:
@@ -287,21 +287,21 @@ them as `c_int` constants at C 70's position.)
 
 ## Owed
 
-1. **`femacs/src/include/textconv.rs`: move `register_textconv_interface` into `textconv_decls`.**
+1. **`src/include/textconv.rs`: move `register_textconv_interface` into `textconv_decls`.**
    That is the one declaration that keeps its own defining unit from `include!`ing the mirror
    (Deviation 1).  With it moved, this unit's C 35 surface section (records, enums, constant) can be
    deleted in favour of `include!("include/textconv.rs")` + `use textconv_decls::*;`, the shape
-   `src/androidterm.rs` 152 uses.  `femacs/src/include/**` is not this lane's to write.
-2. **Register `textconv_debug` in `femacs/xtask/Cargo.toml`** (the `trace_selection` /
+   `src/androidterm.rs` 152 uses.  `src/include/**` is not this lane's to write.
+2. **Register `textconv_debug` in `xtask/Cargo.toml`** (the `trace_selection` /
    `have_sys_types_h` situation `docs/ports/xselect.md` records), so C 55's guard has a registered
    name; until then the `not (...)` arm is live in every configuration and the port compiles.
-3. **`femacs/src/include/lisp.rs` owes seven declarations** this unit now writes in place:
+3. **`src/include/lisp.rs` owes seven declarations** this unit now writes in place:
    `record_unwind_protect_excursion` (lisp.h 4826), `insert_from_string` (4335-4336), `del_range_1`
    (4346), `safe_del_range` (4351), `save_restriction_save` (4924), `save_restriction_restore`
-   (4925) and `find_field` (4920-4921); `femacs/src/include/keyboard.rs` owes
+   (4925) and `find_field` (4920-4921); `src/include/keyboard.rs` owes
    `reading_key_sequence` (keyboard.h 252).  When they land, this unit's `unsafe extern "C"` block
    at C 81's position shrinks to nothing (one declaration per name, P-26).
-4. **`femacs/src/include/window.rs` owes `ephemeral_last_point`** (window.h 302, under
+4. **`src/include/window.rs` owes `ephemeral_last_point`** (window.h 302, under
    `#ifdef HAVE_TEXT_CONVERSION`), which retires the `ephemeral_last_point!` accessor macro
    (Deviation 2).
 5. **`docs/ports/line-drift-tolerance.tsv` needs a row, and this lane may not write it.**

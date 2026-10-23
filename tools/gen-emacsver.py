@@ -20,7 +20,7 @@ from the reference's `AC_INIT` and must agree with the port's own `PACKAGE_VERSI
     python3 tools/gen-emacsver.py             # write the two files and compare with the reference
     python3 tools/gen-emacsver.py --check     # compare only, write nothing
 
-Nothing under `emacs/` is ever written: the output path is asserted to be inside `femacs/`, and
+Nothing under `emacs/` is ever written: the output path is asserted to be inside ``, and
 the two recipes are read back from the reference's makefiles so a moved rule fails loudly instead
 of silently generating the wrong bytes.
 """
@@ -35,7 +35,7 @@ import sys
 
 REPO = pathlib.Path(__file__).resolve().parent.parent
 REF = REPO / "emacs"
-PORT = REPO / "femacs"
+PORT = REPO
 
 # The reference's two `configure`-generated version stamps, with the make rule that writes each
 # one.  `sed` is the substitution that rule performs; `value` says which of the two derived
@@ -169,4 +169,7 @@ def main() -> int:
 
 
 if __name__ == "__main__":
+    if "--compare-reference" not in sys.argv:
+        raise SystemExit(subprocess.call([sys.executable, str(REPO / "tools/bootstrap-resources.py"), "--family", "versions", *sys.argv[1:]]))
+    sys.argv.remove("--compare-reference")
     sys.exit(main())

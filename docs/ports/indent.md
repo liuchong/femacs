@@ -74,7 +74,7 @@
   None of them is a *constant condition* that needs `if HAVE_X { … }`, and none is
   structural, so no `#[cfg (feature = …)]` text is carried; the row in
   `docs/ports/line-drift-tolerance.tsv` therefore declares the `live` basis.
-- **`indent.h`'s mirror landed with this unit** (`femacs/src/include/indent.rs`, the
+- **`indent.h`'s mirror landed with this unit** (`src/include/indent.rs`, the
   charset.h/intervals.h precedent): `struct position`, its five prototypes and the one
   `extern` object.  This unit defines all five prototypes, so they moved into an
   `indent_decls` module + glob import (PORTING.md 0.1-10) and `last_known_column_point`
@@ -92,11 +92,11 @@
 - **Two integrator edits to other people's files** (both reported, both the
   "the change lands in the same commit as the definition" rule, PORTING.md P-70/§3.53-3.56
   class):
-  1. `femacs/src/include/disptab.rs`: `buffer_display_table` (disptab.h 70) is *this unit's*
+  1. `src/include/disptab.rs`: `buffer_display_table` (disptab.h 70) is *this unit's*
      definition, and a same-named declaration at the mirror's root is one `E0428` in the
      crate that defines it.  The one-line declaration moved into a new `pub mod
      disptab_decls` + glob import; `window_display_table` (window.c's) stays at the root.
-  2. `femacs/src/include/intervals.rs`: `TEXT_PROP_MEANS_INVISIBLE`'s **first arm matched
+  2. `src/include/intervals.rs`: `TEXT_PROP_MEANS_INVISIBLE`'s **first arm matched
      the literal token `(prop)`**, so only a call site that spelled the token `prop` could
      use it — `indent.c`'s four calls (`TEXT_PROP_MEANS_INVISIBLE (prop)`,
      `… (propval)`) failed with `cannot find value `prop``.  The arm was an exact duplicate

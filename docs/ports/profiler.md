@@ -52,9 +52,9 @@
 
 ## Decisions
 
-`emacs/src/profiler.c` @ `fd7afced403`; port `femacs/src/profiler.rs` (701 lines, 4.4% shorter
+`emacs/src/profiler.c` @ `fd7afced403`; port `src/profiler.rs` (701 lines, 4.4% shorter
 than C's 733 - inside the 5% the rule allows, so no tolerance row); the gate is
-`python3 tools/extract-abi.py --check emacs/src/profiler.c femacs/src/profiler.rs` -> `OK`,
+`python3 tools/extract-abi.py --check emacs/src/profiler.c src/profiler.rs` -> `OK`,
 and `build-tu src/profiler.c` prints `built`.
 
 ### Dead text (not transcribed)

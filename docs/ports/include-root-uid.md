@@ -29,15 +29,15 @@
   comes from the header's only user, `lib/euidaccess.c`, which compares it against `geteuid ()`, and
   that unit provides `uid_t` through its own includes (PORTING.md 0.1-9).
 - **What the use-site copy said was wrong, and it is corrected with the copy's retirement.**  Before
-  this mirror existed, `femacs/lib/euidaccess.rs` carried `pub const ROOT_UID: uid_t = 0;` with the
+  this mirror existed, `lib/euidaccess.rs` carried `pub const ROOT_UID: uid_t = 0;` with the
   note that "root-uid.h is two lines: `#include <sys/types.h>` and that define".  The reference's
   header has no `#include` at all, and it is 30 lines: the guard, a comment, and the `__TANDEM`
   pair.  The unit now includes the mirror at C 32-34's position and the sentence is gone.
 
 ## Evidence
 
-- `python3 tools/extract-abi.py --check emacs/lib/root-uid.h femacs/lib/include/root-uid.rs`
-  -> `OK emacs/lib/root-uid.h -> femacs/lib/include/root-uid.rs` (no `- ` problem lines), with the
+- `python3 tools/extract-abi.py --check emacs/lib/root-uid.h lib/include/root-uid.rs`
+  -> `OK emacs/lib/root-uid.h -> lib/include/root-uid.rs` (no `- ` problem lines), with the
   branch-macro note quoted above.
 - `python3 tools/check-cond-eval.py lib/root-uid.h`
   -> `2 conditions, 0 unknown to the evaluator, 1 disagreements`.

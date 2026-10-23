@@ -1,4 +1,4 @@
-# emacs/lib/c-ctype.c  →  femacs/lib/c-ctype.rs (20 lines)
+# emacs/lib/c-ctype.c  →  lib/c-ctype.rs (20 lines)
 
 # ----------------------------------------------------------------------
 ## Subrs (DEFUN) — 0

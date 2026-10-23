@@ -2,7 +2,7 @@
 
 ## Decisions
 
-`emacs/lwlib/lwlib-Xlw.c` @ `fd7afced403`; port `femacs/lwlib/lwlib-Xlw.rs` (**484 lines**); the gate
+`emacs/lwlib/lwlib-Xlw.c` @ `fd7afced403`; port `lwlib/lwlib-Xlw.rs` (**484 lines**); the gate
 is `feature = "use_lucid"` (P-86 clause 8), the build's condition rather than one the C text spells:
 `lwlib/Makefile.in` 52 (`LUCID_OBJS = lwlib-Xlw.o xlwmenu.o lwlib-Xaw.o`) and `configure.ac` 7231's
 `AC_DEFINE ([USE_LUCID], [1], [Define to 1 if using the Lucid X toolkit.])`.  `USE_LUCID`,
@@ -69,7 +69,7 @@ single references - `lwlib/lwlib-Xlw.c` alone (its header is bound to
   (the empty object the file gate leaves).
 - **arm flip (status 3.500)**: `probe lwlib/lwlib-Xlw.rs --crate-type=lib -C panic=abort
   --cfg 'feature="use_lucid"'` -> **exit 0, 0 errors, 4 warnings, a 7,748,568-byte rlib**.
-- `python3 tools/extract-abi.py --check emacs/lwlib/lwlib-Xlw.c femacs/lwlib/lwlib-Xlw.rs` ->
+- `python3 tools/extract-abi.py --check emacs/lwlib/lwlib-Xlw.c lwlib/lwlib-Xlw.rs` ->
   **OK, zero `-` rows** (after the `total`/0.80 tolerance row).
 - `layout-check` **passed**; `tools/check-all-units.sh` (the mirror round this file needed) and the
   other gates are recorded in `docs/status.md` 3.500.

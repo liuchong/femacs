@@ -47,7 +47,7 @@
 
 ## Decisions
 
-- 闸门实测：`python3 tools/extract-abi.py --check emacs/lib/regex_internal.c femacs/lib/regex_internal.rs` → **OK**；
+- 闸门实测：`python3 tools/extract-abi.py --check emacs/lib/regex_internal.c lib/regex_internal.rs` → **OK**；
   `cargo run -q -p xtask -- build-tu lib/regex_internal.c` → **0 error**（23 warning，均为 allow 范围内的
   non_snake_case/dead_code 之类）。
 - **闸门/工具修复（本轮附带，非本文件内容）**：`tools/cinventory.py` 的 `function_spans` 取"定义行上方

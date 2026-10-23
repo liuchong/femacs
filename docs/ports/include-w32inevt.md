@@ -20,7 +20,7 @@
   nothing of its own.  The frozen configuration compiles no Windows unit at all - this target's
   platform object variables (`WINDOW_SYSTEM_OBJ=`, `HAIKU_OBJ = `, `MSDOS_OBJ =`, `CYGWIN_OBJ=`)
   are empty (`docs/baseline/frozen-build-sources.txt`, docs/status.md 3.31) - so
-  `femacs/src/w32inevt.rs` is the empty-shape note that names the exclusion, and the mirror
+  `src/w32inevt.rs` is the empty-shape note that names the exclusion, and the mirror
   carries the declarations anyway, because the header's *text* is what a mirror mirrors (the
   `src/w32select.h` precedent, status 3.158).
 - **P-72 decides every name here: the mirror may only name what its own text reaches.**  The header
@@ -42,8 +42,8 @@
 
 ## Evidence
 
-- `python3 tools/extract-abi.py --check emacs/src/w32inevt.h femacs/src/include/w32inevt.rs`
-  -> `OK emacs/src/w32inevt.h -> femacs/src/include/w32inevt.rs` (no `- ` problem lines).
+- `python3 tools/extract-abi.py --check emacs/src/w32inevt.h src/include/w32inevt.rs`
+  -> `OK emacs/src/w32inevt.h -> src/include/w32inevt.rs` (no `- ` problem lines).
 - `python3 tools/check-cond-eval.py src/w32inevt.h` -> `1 conditions, 0 unknown to the evaluator,
   0 disagreements` (that condition is the guard).
 - `python3 tools/extract-abi.py emacs/src/w32inevt.h` -> this ledger: 0 subrs, 0 functions defined,
@@ -55,7 +55,7 @@
   2024 --crate-type bin --emit metadata spikes/win_inc_probe.rs` -> OK, and the probe joined
   `xtask`'s `probe_programs` gate next to `f_inc_probe.rs`, so it is re-measured every round.
 - `rg -n "w32_console_unicode_input|w32_console_read_socket|w32_console_mouse_position"
-  femacs/src` -> this mirror, plus three copied C *comments* (`src/w32notify.rs` 40 and 49,
+  src` -> this mirror, plus three copied C *comments* (`src/w32notify.rs` 40 and 49,
   `src/keyboard.rs` 8928) - there is no use-site declaration to retire (unlike 3.143/3.153).
 - Gates on the same worktree: `check-declarations` 13 sites (0 forbidden, 13 allowed literals) / 0
   failures; `check-mirror-dupes` 1 duplicate declaration(s) / 1 ratchet row(s) / 0 failure(s);

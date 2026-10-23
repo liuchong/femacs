@@ -47,8 +47,8 @@
 
 ## Evidence
 
-- `python3 tools/extract-abi.py --check emacs/src/macfont.h femacs/src/include/macfont.rs`
-  -> `OK emacs/src/macfont.h -> femacs/src/include/macfont.rs` (no `- ` problem lines).
+- `python3 tools/extract-abi.py --check emacs/src/macfont.h src/include/macfont.rs`
+  -> `OK emacs/src/macfont.h -> src/include/macfont.rs` (no `- ` problem lines).
 - `python3 tools/check-cond-eval.py src/macfont.h` -> `4 conditions, 0 unknown to the evaluator,
   0 disagreements`.
 - `python3 tools/extract-abi.py emacs/src/macfont.h` -> this ledger: 0 subrs, 0 functions defined,

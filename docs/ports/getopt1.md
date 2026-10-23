@@ -19,7 +19,7 @@
 
 ## Decisions
 
-`emacs/lib/getopt1.c` @ `fd7afced403`; port `femacs/lib/getopt1.rs` (200 lines).  All checklist
+`emacs/lib/getopt1.c` @ `fd7afced403`; port `lib/getopt1.rs` (200 lines).  All checklist
 items ticked; `build-tu lib/getopt1.c` -> `built lib/getopt1.rs -> ../build/femacs/getopt1.o`
 (0 errors), `--check` -> `OK`.
 

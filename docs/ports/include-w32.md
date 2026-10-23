@@ -47,7 +47,7 @@
   Windows units (`src/w32.c`, `src/w32proc.c`, `src/w32fns.c`, `src/w32term.c`, …), `WINDOWSNT` and
   `HAVE_NTGUI` are `undef` in `docs/baseline/config/darwin-arm64.macros.tsv`, and C 23-25's
   `#ifdef CYGWIN / #error "w32.h is not compatible with Cygwin"` is the header's own statement that
-  it belongs to one configuration only.  `femacs/src/w32.rs` is the empty unit that records the
+  it belongs to one configuration only.  `src/w32.rs` is the empty unit that records the
   exclusion, no unit `include!`s this mirror, and the declarations are deferred to the Windows
   target with their definitions.  The `#error` is ported as `const _: () = assert! (!cfg!
   (feature = "cygwin"));` - it is a hard exclusion rather than a branch, so the port expresses it
@@ -130,7 +130,7 @@
 
 ## Evidence
 
-- `python3 tools/extract-abi.py --check emacs/src/w32.h femacs/src/include/w32.rs` -> **FAIL**
+- `python3 tools/extract-abi.py --check emacs/src/w32.h src/include/w32.rs` -> **FAIL**
   with exactly these lines and no others:
   ```
   missing type deferred: src/w32.h _child_process/child_process (the ledger has unchecked boxes)
@@ -178,13 +178,13 @@
 
 The 1 box(es) this sweep tentatively ticked are **real pending work, not stale bookkeeping**,
 and the tick was reverted.  Measured: while the ledger has unchecked boxes,
-`python3 tools/extract-abi.py --check emacs/src/w32.h femacs/src/include/w32.rs` prints `0` `- ` lines **because the tool
+`python3 tools/extract-abi.py --check emacs/src/w32.h src/include/w32.rs` prints `0` `- ` lines **because the tool
 defers this file's missing items to stderr** (`missing type deferred: src/w32.h <name> (the ledger has
 unchecked boxes)`); with the boxes ticked the deferral lifts and the same command prints
 
     - missing type _child_process
 
-i.e. the type is genuinely absent from femacs/src/include/w32.rs.  So: src/w32.h's `_child_process`/`child_process` is the Windows subprocess record; dead-platform text (no `_WIN32`), P-51/3.9 shape.
+i.e. the type is genuinely absent from src/include/w32.rs.  So: src/w32.h's `_child_process`/`child_process` is the Windows subprocess record; dead-platform text (no `_WIN32`), P-51/3.9 shape.
 
 ## Decisions / Evidence (the eight true gaps, 2026-10-04)
 
@@ -192,8 +192,8 @@ i.e. the type is genuinely absent from femacs/src/include/w32.rs.  So: src/w32.h
 pass (they had been left unchecked, and the earlier sweep had un-ticked some of them by
 position rather than by name - corrected here).
 
-    $ python3 tools/extract-abi.py --check emacs/src/w32.h femacs/src/include/w32.rs
-    OK emacs/src/w32.h -> femacs/src/include/w32.rs                     # `- ` lines: 0, no `missing type deferred`
+    $ python3 tools/extract-abi.py --check emacs/src/w32.h src/include/w32.rs
+    OK emacs/src/w32.h -> src/include/w32.rs                     # `- ` lines: 0, no `missing type deferred`
     $ cargo run -q -p xtask -- layout-check
     layout-check passed (see build/femacs/layout_asserts.rs)
 
@@ -213,12 +213,12 @@ modules), which removes the collision because a crate-root definition shadows a 
 **Owed, and not disguised by that move.**  A *real* Windows build has to read C's own values here
 (`FD_SETSIZE` 2048, `MAXDESC` 2048), and the arbitration that expresses C's `#undef`/`#define`
 ordering is a *complementary* gate - `not (feature = "windowsnt")` - on the two `lib/include`
-mirrors, which are outside this lane's writable set (`femacs/lib/include/**`).  Until it lands,
+mirrors, which are outside this lane's writable set (`lib/include/**`).  Until it lands,
 these names are reachable in a `windowsnt` crate only where nothing else declares them, and the
 `MAXDESC`/`SELECT_TYPE`/`FD_*` items still at this file's top level resolve `FD_SETSIZE`/`fd_set`
 through the glob.
 
-**Evidence.**  `extract-abi --check emacs/src/w32.h femacs/src/include/w32.rs` -> `OK`;
+**Evidence.**  `extract-abi --check emacs/src/w32.h src/include/w32.rs` -> `OK`;
 `xtask layout-check` passed; the `w32term` flip above falls from 26 to 0 `E0428`;
 `check-all-units.sh` 83/0 both legs.
 

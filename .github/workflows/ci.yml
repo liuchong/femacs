@@ -1,55 +1,27 @@
-# Two tiers.  The fast tier runs on every push and needs nothing but Python,
-# rustc and the frozen baselines: it proves the mechanical gates (inventory,
-# generated-artifact freshness, layout assertions) still hold.  The heavy tier
-# needs the reference configured and built and the ERT suite runnable, so
-# it is manual until the port reaches the loading ladder.
 name: ci
-
 on:
   push:
     branches: [master]
   pull_request:
   workflow_dispatch:
-
-env:
-  CARGO_TARGET_DIR: ${{ github.workspace }}/build/cargo
-
 jobs:
-  fast:
-    name: fast tier (inventory, freshness, layout)
-    runs-on: ubuntu-latest
+  standalone-macos:
+    runs-on: macos-26
+    env:
+      CARGO_TARGET_DIR: build/cargo
     steps:
       - uses: actions/checkout@v4
-        with:
-          submodules: false
-      - name: Check the reference checkout is present and clean
+      - name: Install declared prerequisites
+        run: brew install gawk
+      - name: Check root layout and committed build inputs
+        run: python3 tools/test-repository-bootstrap.py
+      - name: Build terminal from owned source only
+        run: cargo run -p xtask -- build-terminal
+      - name: Batch edit and Unicode smoke
+        run: build/terminal/port/src/emacs -Q --batch --eval '(progn (with-temp-buffer (insert "你好 abc") (goto-char (point-min)) (forward-char 2) (unless (= (point) 3) (error "Unicode movement failed"))) (princ "standalone batch ok"))'
+      - name: Build native application from owned source only
+        run: cargo run -p xtask -- build-macos
+      - name: Verify application signature and batch startup
         run: |
-          test -d emacs/src || { echo "the emacs/ reference checkout is missing"; exit 1; }
-          git -C emacs status --short
-      - name: Generated artifacts are fresh
-        run: |
-          python3 tools/gen-port-map.py
-          python3 tools/gen-baseline.py
-          python3 tools/gen-lifetimes.py
-          git diff --exit-code -- docs/port-map.md docs/baseline LIFETIMES.tsv
-      - name: Inventory gate (every ported file matches its C source)
-        run: python3 tools/extract-abi.py --all
-      - name: Workspace check
-        run: cargo check --manifest-path femacs/Cargo.toml
-      - name: Layout gate (Rust mirror vs the frozen C layout)
-        run: cargo run --quiet --manifest-path femacs/Cargo.toml -p xtask -- layout-check
-
-  heavy:
-    name: heavy tier (reference build, port build, ERT)
-    if: github.event_name == 'workflow_dispatch'
-    runs-on: macos-14
-    steps:
-      - uses: actions/checkout@v4
-      - name: Configure the reference out of tree
-        run: |
-          mkdir -p build/emacs-ref && cd build/emacs-ref
-          ../../emacs/configure --without-all --with-x=no --with-ns=no || true
-          make -C lib stdbit.h byteswap.h stdint.h limits.h
-          make -C src globals.h
-      - name: Heavy gate
-        run: cargo run --manifest-path femacs/Cargo.toml -p xtask -- gate-full
+          codesign --verify --deep --strict dist/macos/Femacs.app
+          dist/macos/Femacs.app/Contents/MacOS/Femacs -Q --batch --eval '(princ "Cocoa batch ok")'

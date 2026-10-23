@@ -69,7 +69,7 @@
 
 - **The bound values the port actually uses are not in this mirror.**  The live values the
   frozen target reports (`_GL_FLT/DBL/LDBL_PREC_BOUND` 9/17/17, `FLT/DBL/LDBL_BUFSIZE_BOUND`
-  21/30/30) are carried by `femacs/lib/ftoastr.rs`, which defined them before this mirror
+  21/30/30) are carried by `lib/ftoastr.rs`, which defined them before this mirror
   existed (its own ledger's "No `ftoastr.h` mirror yet; the header's constants are carried
   here").  The mirror spells the same names as macros (C's shape) and constants (the gate's),
   and leaves the unit's `pub const` copies in place: a macro and a `const` are different
@@ -111,8 +111,8 @@ $ python3 tools/extract-abi.py emacs/lib/ftoastr.h
 ## Types and their fields - 0
 ## File-scope objects - 0
 
-$ python3 tools/extract-abi.py --check emacs/lib/ftoastr.h femacs/lib/include/ftoastr.rs
-OK emacs/lib/ftoastr.h -> femacs/lib/include/ftoastr.rs
+$ python3 tools/extract-abi.py --check emacs/lib/ftoastr.h lib/include/ftoastr.rs
+OK emacs/lib/ftoastr.h -> lib/include/ftoastr.rs
 # no `- ` problem line (`| grep -c '^- '` -> 0)
 
 $ python3 tools/check-cond-eval.py lib/ftoastr.h

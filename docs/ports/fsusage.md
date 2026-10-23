@@ -17,7 +17,7 @@
 
 ## Decisions
 
-`emacs/lib/fsusage.c` @ `fd7afced403`; port `femacs/lib/fsusage.rs` (155 lines).  All checklist
+`emacs/lib/fsusage.c` @ `fd7afced403`; port `lib/fsusage.rs` (155 lines).  All checklist
 items ticked; `build-tu lib/fsusage.c` -> `built lib/fsusage.rs -> ../build/femacs/fsusage.o`
 (0 errors), `--check` -> `OK`.
 

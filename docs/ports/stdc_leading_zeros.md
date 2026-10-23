@@ -1,4 +1,4 @@
-# emacs/lib/stdc_leading_zeros.c  →  femacs/lib/stdc_leading_zeros.rs (19 lines)
+# emacs/lib/stdc_leading_zeros.c  →  lib/stdc_leading_zeros.rs (19 lines)
 
 # ----------------------------------------------------------------------
 ## Subrs (DEFUN) — 0

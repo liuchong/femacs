@@ -13,7 +13,7 @@
 
 ## File-scope objects — 0
 
-# emacs/lib/cloexec.c (83 lines) — port `femacs/lib/cloexec.rs`
+# emacs/lib/cloexec.c (83 lines) — port `lib/cloexec.rs`
 
 ## Decisions
 

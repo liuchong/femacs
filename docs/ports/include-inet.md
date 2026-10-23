@@ -23,4 +23,4 @@ which compiles the `src/include` and `lib/include` mirrors, does not reach it; i
 `nt/inc` is on the include path instead, and `src/process.c` is one of the units whose
 `#include <arpa/inet.h>` resolves here.
 Evidence: `python3 tools/extract-abi.py --check emacs/nt/inc/arpa/inet.h
-femacs/nt/inc/arpa/include/inet.rs` -> `OK`.
+nt/inc/arpa/include/inet.rs` -> `OK`.

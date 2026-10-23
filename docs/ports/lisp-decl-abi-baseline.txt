@@ -1,4 +1,4 @@
-# Declarations in femacs/src/include/lisp.rs whose type does not match the reference
+# Declarations in src/include/lisp.rs whose type does not match the reference
 # lisp.h, found by spikes/lisp-abi-probe.sh.  One name per line with the reason on the
 # same line after a #; the probe skips them and fails on any *new* deviation.
 #

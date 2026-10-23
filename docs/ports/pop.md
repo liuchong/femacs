@@ -23,7 +23,7 @@
 > **This ledger replaces, not extends, what it said before.**  Until this revision it read "a file
 > whose whole body is inside a disabled `#if` is ported as an empty unit with the note that names
 > the gate" (the P-08 reading).  P-86 ① replaces that with *transcribe the text, both arms, no
-> stub*: the port is `femacs/lib-src/pop.rs` (**2204 lines**, 84,117 bytes, md5
+> stub*: the port is `lib-src/pop.rs` (**2204 lines**, 84,117 bytes, md5
 > `ebe410a3dcf2f6a2fb95d7d29b6694b9`), carrying C 1-1703 — the reference's every line — with both
 > arms of every `#if`, and the frozen object is *still* the 336-byte empty one because every item
 > sits under the file gate (Evidence ①).
@@ -88,7 +88,7 @@ evaluator reports are the whole set.
 - **What the file needs that the tree does not carry**: `<sys/socket.h>`, `<netinet/in.h>`,
   `<netdb.h>`, `<hesiod.h>`, the five Kerberos headers and the three Windows socket headers have
   no mirror, so their records, constants and entries are declared **in the unit** at the C
-  `#include` line that brings them (P-88 ①) - `femacs/src/include/` and `femacs/lib/include/`
+  `#include` line that brings them (P-88 ①) - `src/include/` and `lib/include/`
   are untouched (Deviation 10; Owed 6).
 
 ## C line ranges
@@ -194,8 +194,8 @@ here: no Windows SDK (`which x86_64-w64-mingw32-gcc` is empty), and the six mirr
 duplicates are Owed 7.
 
 **④ Inventory and the ledger's own gates.**
-`python3 tools/extract-abi.py --check emacs/lib-src/pop.c femacs/lib-src/pop.rs` ->
-`OK emacs/lib-src/pop.c -> femacs/lib-src/pop.rs`, **no `- ` line at all** - unlike
+`python3 tools/extract-abi.py --check emacs/lib-src/pop.c lib-src/pop.rs` ->
+`OK emacs/lib-src/pop.c -> lib-src/pop.rs`, **no `- ` line at all** - unlike
 `src/androidmenu.c`'s two (a `goto` token and a 17.6% drift) and
 `lib-src/update-game-score.c`'s five token rows.  The reason is P-86 ⑩'s own boundary: the
 token rows are keyed to *live* functions, and the frozen live set of this file is empty, so the
@@ -207,7 +207,7 @@ threshold` (0 new, 2 stale rows; the other stale row belongs to another lane).
 `python3 tools/check-citations.py` -> `676 file(s) scanned, 0 drift, 0 range, 720 external, 35
 allowed, 0 stale`, and **no `pop` row at all** in any class.  `python3
 tools/check-declarations.py` -> no `pop` row (the run's one `recital` failure is in
-`femacs/src/sound.rs`, another lane's unit).  `python3 tools/check-target-names.py` -> `629 .rs
+`src/sound.rs`, another lane's unit).  `python3 tools/check-target-names.py` -> `629 .rs
 files, 591 map targets, 0 finding(s)`; `tools/check-mirror-dupes.py` -> `19 duplicate
 declaration(s), 19 ratchet row(s), 0 failure(s)`; `tools/check-ledger-ticks.py` -> `0 failure(s)`
 (this ledger's five counting sections are empty, which that tool counts as 356-row class "a unit
@@ -279,7 +279,7 @@ The Windows and Kerberos surfaces cannot be measured here and are marked UNVERIF
 
 ## Owed by the integrator (status per item; nothing here is claimed as done until marked)
 
-1. **`femacs/xtask/Cargo.toml`'s feature registration** for the thirteen new names:
+1. **`xtask/Cargo.toml`'s feature registration** for the thirteen new names:
    `mail_use_pop`, `hesiod`, `mailhost`, `kerberos`, `kerberos5`, `have_krb5_h`, `have_krb_h`,
    `have_kerberosiv_krb_h`, `have_kerberos_krb_h`, `have_com_err_h`, `have_krb5_error_text`,
    `have_krb5_error_e_text`, `mingw32_version_ge_5000002` (`windowsnt` is already there).  Until

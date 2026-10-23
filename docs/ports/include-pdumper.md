@@ -32,8 +32,8 @@
 
 ## Decisions
 
-`emacs/src/pdumper.h` @ `fd7afced403`; port `femacs/src/include/pdumper.rs`; the gate is
-`python3 tools/extract-abi.py --check emacs/src/pdumper.h femacs/src/include/pdumper.rs`
+`emacs/src/pdumper.h` @ `fd7afced403`; port `src/include/pdumper.rs`; the gate is
+`python3 tools/extract-abi.py --check emacs/src/pdumper.h src/include/pdumper.rs`
 -> `OK`.
 
 - **Declarations grouped into `pdumper_decls`.**  C interleaves `extern` prototypes with the
@@ -68,7 +68,7 @@
   `core::ptr::addr_of_mut!` keeps C's lvalue requirement and `core::mem::size_of_val` is the
   unevaluated `sizeof` of that same place.
 - **`uintptr_t`** had no home yet; the type belongs to `<stdint.h>`, so it is declared in
-  `femacs/lib/include/stdint.in.rs` (`stdint.in.h` 324, the row of
+  `lib/include/stdint.in.rs` (`stdint.in.h` 324, the row of
   `docs/ports/include-stdint.in.md` is now ticked) next to `uint64_t`, not invented here.
 - **`pdumper_load_result`** keeps C's members in order with their implicit values
   (`#[repr(C)] #[derive(Clone, Copy, PartialEq, Eq)] pub enum`, the itree.h `itree_order`

@@ -77,7 +77,7 @@ import sys
 
 REPO = pathlib.Path(__file__).resolve().parent.parent
 REF = REPO / "emacs"
-PORT = REPO / "femacs"
+PORT = REPO
 PROGRAM = REPO / "build/port/src/temacs"
 # The cross-check wants a *state-matched* comparator, and the port has no dump yet: C's build
 # compiles with the undumped `temacs` for the bootstrap phase and with the dumped program later, so
@@ -497,4 +497,7 @@ def main() -> int:
 
 
 if __name__ == "__main__":
+    if "--compare-reference" not in sys.argv:
+        raise SystemExit(subprocess.call([sys.executable,str(REPO / "tools/bootstrap-resources.py"),"--family","bytecode",*sys.argv[1:]]))
+    sys.argv.remove("--compare-reference")
     sys.exit(main())

@@ -16,7 +16,7 @@
 
 - **A new mirror for the system `<signal.h>`.**  C's arms are guarded by `#if defined SIGX`,
   which the *system* header decides and the frozen configuration table does not carry, so the
-  evaluator asks for every arm.  `femacs/lib/include/signal.rs` records the 31 signals the
+  evaluator asks for every arm.  `lib/include/signal.rs` records the 31 signals the
   frozen target defines with the values measured from its clang (`-dM -E`); the other 32
   (SIGPWR, SIGSTKFLT, the AIX/IRIX/Solaris/HP-UX ones, ...) do not exist here, so their arms are
   kept as text under `#[cfg (feature = "signal_…")]` with C's string, the P-51 shape: the text

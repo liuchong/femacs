@@ -145,10 +145,10 @@
 # ----------------------------------------------------------------------
 ## Decisions
 
-The gates (`femacs/` is the working directory for the `xtask`/`rustc` commands):
+The gates (`` is the working directory for the `xtask`/`rustc` commands):
 
     build-tu src/xfaces.c                     -> built src/xfaces.rs -> ../build/femacs/xfaces.o
-    extract-abi.py --check                    -> OK emacs/src/xfaces.c -> femacs/src/xfaces.rs
+    extract-abi.py --check                    -> OK emacs/src/xfaces.c -> src/xfaces.rs
     check-globals.py                          -> check-globals: 267 units, 0 DEFVAR_* variables without a definition in their own unit
     check-undef.py                            -> check-undef: 25 ratchet entries are stale (now satisfied): _Fcopy_hash_table
                                                  _Vface_alternative_font_family_alist _Vface_font_rescale_alist _Vface_ignored_fonts

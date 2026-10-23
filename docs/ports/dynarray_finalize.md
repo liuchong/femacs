@@ -16,11 +16,11 @@
 ## Decisions
 
 `emacs/lib/malloc/dynarray_finalize.c` @ `fd7afced403`; port
-`femacs/lib/malloc/dynarray_finalize.rs`.  The frozen build leaves `_LIBC` undefined, so only
+`lib/malloc/dynarray_finalize.rs`.  The frozen build leaves `_LIBC` undefined, so only
 C 20's `<libc-config.h>` include is conditional; the body has no `#if`.
 
 - C 32's `__dynarray_error (list)` is the shared header's `static inline`
-  (`femacs/lib/malloc/include/dynarray.rs`), which C 23's `<dynarray.h>` reaches through the
+  (`lib/malloc/include/dynarray.rs`), which C 23's `<dynarray.h>` reaches through the
   gnulib wrapper's `#else` arm.
 - C 45's `(struct dynarray_finalize_result) { NULL, 0 }` is the port's
   `dynarray_finalize_result { array: null_mut (), length: 0 }`; C 58-59's designated

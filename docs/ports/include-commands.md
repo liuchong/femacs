@@ -26,4 +26,4 @@
 - commands.h has no conditional, so the mirror is the whole header; the include guard is the
   `pub const EMACS_COMMANDS_H: bool = true;` the other mirrors use (PORTING.md 0.1).
 - Evidence: `tools/extract-abi.py --check emacs/src/commands.h
-  femacs/src/include/commands.rs` -> OK.
+  src/include/commands.rs` -> OK.

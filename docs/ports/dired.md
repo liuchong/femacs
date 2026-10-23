@@ -37,10 +37,10 @@
 
 ## Decisions
 
-`emacs/src/dired.c` @ `fd7afced403`; port `femacs/src/dired.rs` (1162 lines vs C's 1213,
+`emacs/src/dired.c` @ `fd7afced403`; port `src/dired.rs` (1162 lines vs C's 1213,
 1067 live - the 8.9% drift against the live baseline is declared in
 `docs/ports/line-drift-tolerance.tsv`); the gate is
-`python3 tools/extract-abi.py --check emacs/src/dired.c femacs/src/dired.rs` -> `OK`, and
+`python3 tools/extract-abi.py --check emacs/src/dired.c src/dired.rs` -> `OK`, and
 `build-tu src/dired.c` prints `built`.  `src/dired.c` is in
 `docs/baseline/frozen-build-sources.txt`, so the frozen configuration compiles it: there is no
 3.31 exemption here and the full comparison applies.

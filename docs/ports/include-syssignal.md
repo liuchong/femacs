@@ -31,10 +31,10 @@
 - **`emacs_raise` stays a macro** (P-37): nothing in the tree defines the name, so
   `#ifndef emacs_raise` is live and the port keeps C's spelling — the call site reads
   `emacs_raise! (sig)`.  Its body needs `raise`, which the `<signal.h>` mirror now declares
-  (`femacs/lib/include/signal.rs`, right after `pthread_sigmask`).
+  (`lib/include/signal.rs`, right after `pthread_sigmask`).
 - **`struct sigaction` is the measured system record, not a stand-in** (it was P-70's
   2-line stand-in until `src/atimer.c` needed it): the type belongs to `<signal.h>`, so the
-  record lives in `femacs/lib/include/signal.rs` beside `sigset_t`, with the frozen target's
+  record lives in `lib/include/signal.rs` beside `sigset_t`, with the frozen target's
   measured layout (`sizeof 16`, `sa_mask` at 8, `sa_flags` at 12, handler union 8 bytes at 0)
   pinned by `const _` assertions; this mirror only names it.  P-70 requires the stand-in to go
   in the same commit that lands the real record (two declarations of one name in a TU are

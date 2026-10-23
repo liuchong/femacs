@@ -9,7 +9,7 @@
 > is that clause's substitute: the **C line-range table**, the `## Evidence` readings and the
 > `## Deviations`.
 >
-> Port: `femacs/src/emacs-module.rs` (**2010 lines**, md5 `1825d8a7e1d5d34f610e145e980c00db`),
+> Port: `src/emacs-module.rs` (**2010 lines**, md5 `1825d8a7e1d5d34f610e145e980c00db`),
 > carrying **C 1-1798 with both arms of every `#if`**.  The reference `emacs/src/emacs-module.c` is
 > md5 `19364d4adcd108826472d06a1cb937d6` (unchanged; `emacs/` is read-only).
 >
@@ -31,7 +31,7 @@
 > | the file itself (`HAVE_MODULES`; `undef` in `docs/baseline/config/darwin-arm64.macros.tsv`) | `feature = "have_modules"`, on every item *and* on C 78-96's include graph (P-86 ⑧) | the whole file |
 > | `#ifdef WINDOWSNT` | `feature = "windowsnt"` | C 112-115 |
 > | `#ifdef HAVE_WINDOW_SYSTEM` | `feature = "have_window_system"` (the `#else` arm is C 973) | C 970-974 |
-> | `#if GCC_LINT && __GNUC__ && !__clang__` | `feature = "gcc_lint_not_clang"` (the triple is one feature: `GCC_LINT` is 1 but `__clang__` is defined in the frozen table, so the condition is false there — the `femacs/src/eval.rs` 1604-1606 spelling) | C 1076-1083 |
+> | `#if GCC_LINT && __GNUC__ && !__clang__` | `feature = "gcc_lint_not_clang"` (the triple is one feature: `GCC_LINT` is 1 but `__clang__` is defined in the frozen table, so the condition is false there — the `src/eval.rs` 1604-1606 spelling) | C 1076-1083 |
 
 ## C line ranges
 
@@ -128,7 +128,7 @@ exit 1
 
 - **errors: 1**, and it is a **mirror copy**, not the unit:
   `build/probes/emacs-module/_Users_…_femacs_src_include_dispextern_rs.rs:796` =
-  `femacs/src/include/dispextern.rs` 796's `pub type Emacs_Pix_Context = Emacs_Pix_Container;`
+  `src/include/dispextern.rs` 796's `pub type Emacs_Pix_Context = Emacs_Pix_Container;`
   (`E0425`; rustc's own note points at dispextern.rs 739, whose `Emacs_Pix_Container` arm is
   `all (have_window_system, have_x_windows, not use_cairo)` — with `have_window_system` and no GUI
   backend a real configuration does not exist, so the mirror's arm set has a hole there;
@@ -183,13 +183,13 @@ mingw32-gcc` is empty and no `windows.h`/`winnt.h` exists on this machine.
 **⑤ `extract-abi.py --check`.**
 
 ```
-$ python3 tools/extract-abi.py --check emacs/src/emacs-module.c femacs/src/emacs-module.rs
+$ python3 tools/extract-abi.py --check emacs/src/emacs-module.c src/emacs-module.rs
 - missing field Lisp_Module_Function.header
 … the nine C fields …
 - struct Lisp_Module_Function: missing fields ['header', …, 'finalizer']
 - stub or empty body in fn finalize_runtime_unwind
 - line count drifted 11.8%: C 1798 vs Rust 2010
-FAIL emacs/src/emacs-module.c -> femacs/src/emacs-module.rs
+FAIL emacs/src/emacs-module.c -> src/emacs-module.rs
 ```
 
 **Twelve rows.**  Nine token rows were cleared by this lane's nine appended rows in
@@ -208,8 +208,8 @@ empty), and the line-count row (11.8%, the integrator's tolerance row).
 
 | gate | whole-tree last line | this lane's files |
 | --- | --- | --- |
-| `check-citations.py` | `676 file(s) scanned, 1 drift, 0 range, 1603 external, 36 allowed, 0 stale` (the one drift is `femacs/src/xmenu.rs:872`, another lane's file, and it landed while this lane ran) | no finding: the integrator's `termhooks.h 27` drift report was fixed in this lane (the citation now reads `dispextern.h 1392 `struct frame *f``), and `grep -c emacs-module` on the findings is 0 |
-| `check-declarations.py` | `19 declaration sites (2 forbidden, 17 allowed literals), 2 failures` — both findings name `femacs/src/xmenu.rs` (another lane's file: a `recital` and a `title`) | no finding |
+| `check-citations.py` | `676 file(s) scanned, 1 drift, 0 range, 1603 external, 36 allowed, 0 stale` (the one drift is `src/xmenu.rs:872`, another lane's file, and it landed while this lane ran) | no finding: the integrator's `termhooks.h 27` drift report was fixed in this lane (the citation now reads `dispextern.h 1392 `struct frame *f``), and `grep -c emacs-module` on the findings is 0 |
+| `check-declarations.py` | `19 declaration sites (2 forbidden, 17 allowed literals), 2 failures` — both findings name `src/xmenu.rs` (another lane's file: a `recital` and a `title`) | no finding |
 | `check-mirror-dupes.py` | `17 duplicate declaration(s), 17 ratchet row(s), 0 failure(s)` | no finding |
 | `check-dead-file-coverage.py` | `122 ledger(s) bound (a C range table), 0 failure(s)` | this ledger is bound to `src/emacs-module.c`: `64 range row(s) cover src/emacs-module.c (1798 lines; 66 blank line(s) between blocks need no row)`, no failure |
 | `check-ledger-ticks.py` | `234 ledger(s) bound …, 0 failure(s), …, 356 row(s) with no function tick, 0 row(s) without a ledger` | no finding (this ledger has no `- [x]` ticks) |
@@ -242,7 +242,7 @@ lane measured, not this lane's: its own artifacts are the 336-byte object and th
    `module_assert_env`/`module_abort`/`module_out_of_memory` call their definitions textually later
    in the file.
 4. **`struct Lisp_Module_Function` is defined in the `lisp_module_function_def` module** (the
-   `make_string_from_utf8_def` device, `femacs/src/coding.rs` 7372-7383): `include/lisp.rs`
+   `make_string_from_utf8_def` device, `src/coding.rs` 7372-7383): `include/lisp.rs`
    2350-2355 already spells the type as a crate-root incomplete-type record (lisp.h only uses it
    through pointers), so a second crate-root item of that name would be `E0428`.  The unit's own
    references spell the path; `XMODULE_FUNCTION`'s crate-root pointer is cast at the use site.
@@ -250,7 +250,7 @@ lane measured, not this lane's: its own artifacts are the 336-byte object and th
 5. **C's two function-pointer casts are `std::mem::transmute`**: C 1242's
    `(emacs_init_function) dynlib_func (…)` and C 1353's `(module_funcptr) function->subr` — Rust has
    no `as` cast between `Option<fn>` types, and the tree already spells this cast that way
-   (`femacs/src/comp.rs` 137).
+   (`src/comp.rs` 137).
 6. **The C conditions the port writes out** (each one a token row in `macro-body-notes.tsv`):
    C 968's `= 0` is `core::ptr::null_mut ()`; C 1062-1063's `min (SIZE_MAX, PTRDIFF_MAX)` converts
    both operands to `size_t` (the port's `min` is the `isize` one) so the comparison is written out;
@@ -272,7 +272,7 @@ lane measured, not this lane's: its own artifacts are the 336-byte object and th
    `hash_hash_t hashcode;` (C 431), `intmax_t i;` (C 747), `struct timespec value;`,
    `emacs_value value;`, `struct module_global_reference *ref;`-style locals.  C's four
    `struct` locals in `module-load`/`funcall_module` (C 1246-1249/C 1295-1296) are
-   `unsafe { std::mem::zeroed () }` (the `femacs/src/android.rs` 458 reading), since Rust has no
+   `unsafe { std::mem::zeroed () }` (the `src/android.rs` 458 reading), since Rust has no
    partial initialization.
 10. **The helpers the vtable stores are `unsafe extern "C" fn`** (C's own functions have C linkage,
     and `initialize_environment`/`module_get_environment` store their addresses); the helpers whose
@@ -301,7 +301,7 @@ lane measured, not this lane's: its own artifacts are the 336-byte object and th
    the unit now declares for itself (Deviations 11).
 2. **Nine declarations and one typedef the mirrors do not carry yet**, each declared at its use site with the
    owner header's own prototype (P-88 ①'s single-consumer rule; the per-unit `mark_object` shape
-   `femacs/src/xselect.rs` 3211 already uses).  Each row is `owner header line → name`:
+   `src/xselect.rs` 3211 already uses).  Each row is `owner header line → name`:
    `lisp.h 4816 → push_handler_nosignal`, `lisp.h 4259 → hash_remove_from_table`,
    `lisp.h 4432 → memory_full`, `lisp.h 4436 → mark_object`, `lisp.h 4892 → make_user_ptr`,
    `lisp.h 4828 → record_unwind_protect_module`, `coding.h 693-694 → encode_string_utf_8`,
@@ -309,7 +309,7 @@ lane measured, not this lane's: its own artifacts are the 336-byte object and th
    `lisp.h 4889 → module_funcptr` (`typedef void (*module_funcptr) (void);`).  When the
    mirror that owns one adds it, the unit's copy must go (a second identical `extern` declaration in
    the same crate root is `E0428`).  `vfprintf` is the same shape but has a precedent
-   (`femacs/src/pdumper.rs` 123-126 declares it in-unit too, `lib/include/stdio.rs` keeps only
+   (`src/pdumper.rs` 123-126 declares it in-unit too, `lib/include/stdio.rs` keeps only
    `fprintf`).
 3. **The line-count tolerance row** (`line count drifted 11.8%: C 1798 vs Rust 2010`) belongs in
    `docs/ports/line-drift-tolerance.tsv`, which this lane may not write.  The measured drift is the

@@ -19,6 +19,6 @@ C and none in the port) and the `num_processors` prototype in a glob-imported mo
 has no include guard (it opens with a comment block and the `#ifdef __cplusplus` pair,
 which PORTING.md 0.1 drops), so there is no guard marker constant; `unsigned long int` is the
 port's `c_ulong`.  `python3 tools/extract-abi.py --check emacs/lib/nproc.h
-femacs/lib/include/nproc.rs` -> `OK`; the enum is really gated (deleting
+lib/include/nproc.rs` -> `OK`; the enum is really gated (deleting
 `NPROC_CURRENT_OVERRIDABLE` -> `missing constant`, setting `NPROC_ALL = 5` -> `constant
 NPROC_ALL: C 0 vs Rust enum 5`).

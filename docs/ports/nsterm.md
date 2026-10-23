@@ -1,7 +1,7 @@
 # emacs/src/nsterm.m (11811 lines)
 
 > **Giant unit.**  `src/nsterm.m` is 11,811 lines and is transcribed in C order, one slice per
-> round; the unit is `femacs/platform/macos/nsterm.swift`, and `## Progress` below names the
+> round; the unit is `platform/macos/nsterm.swift`, and `## Progress` below names the
 > covered range.  Like every `.m` of batch F the file is **not compiled by the frozen
 > configuration** (`docs/baseline/frozen-build-sources.txt`, `docs/status.md` 3.31): the frozen
 > target is darwin-arm64 with no window system, so `HAVE_NS` and `NS_IMPL_COCOA` are undefined
@@ -104,7 +104,7 @@
       round 7's entry
 - [x] ns_get_color  (line 2191, static) — landed as `fileprivate func`; C reassigns its `name`
       parameter twice, which the port reads off `nsname` (Decisions), and `parse_color_spec` is the
-      core's own export (`femacs/src/xfaces.rs` 760)
+      core's own export (`src/xfaces.rs` 760)
 - [x] ns_lisp_to_color  (line 2301) — landed as `@_cdecl("ns_lisp_to_color")` (src/nsterm.h 1148 -
       `nsfns.swift` 118-119 imports this signature)
 - [x] ns_query_color  (line 2315, static) — landed as `fileprivate func`; C's `void *col` is typed
@@ -144,7 +144,7 @@
 - [x] ns_define_fringe_bitmap  (line 3092, static) — landed as `fileprivate func` (C's `static void`); C's `alloca` is `withUnsafeTemporaryAllocation` (the reading `macfont.swift` 1684/2978 gives) and the `points`/`cur` pointer walk keeps its shape; the trace state machine's `char` letters are `CChar`s
 - [x] ns_destroy_fringe_bitmap  (line 3199, static) — landed as `fileprivate func`; one `removeObject(forKey:)` on the `fringe_bmp` table below
 - [x] ns_draw_fringe_bitmap  (line 3206, static) — landed as `fileprivate func`; `struct draw_fringe_bitmap_params` is read member by member (13 entries), and C's `bmp = [bmp copy]` … `[bmp release]` pair is ARC's own copy (no release call - the round-3 reading), with `[bmp transformUsingAffineTransform:]` taking the transform `as AffineTransform`
-- [x] ns_draw_window_cursor  (line 3295, static) — landed as `fileprivate func` (C's `static void`, the RIF cursor hook); `get_phys_cursor_glyph` is provided by `femacs/src/window.rs` 8078, while `get_phys_cursor_geometry`/`draw_phys_cursor_glyph` (xdisp.c's `HAVE_WINDOW_SYSTEM` arms) and `draw_fringe_bitmap` (fringe.c) are the round's three **gated/dead** owed entries - the 3.262 shape
+- [x] ns_draw_window_cursor  (line 3295, static) — landed as `fileprivate func` (C's `static void`, the RIF cursor hook); `get_phys_cursor_glyph` is provided by `src/window.rs` 8078, while `get_phys_cursor_geometry`/`draw_phys_cursor_glyph` (xdisp.c's `HAVE_WINDOW_SYSTEM` arms) and `draw_fringe_bitmap` (fringe.c) are the round's three **gated/dead** owed entries - the 3.262 shape
 - [x] ns_draw_vertical_window_border  (line 3430, static) — landed as `fileprivate func`; one `FACE_FROM_ID_OR_NULL` on `VERTICAL_BORDER_FACE_ID` and one `face_foreground` read (round 15's entry)
 - [x] ns_draw_window_divider  (line 3453, static) — landed as `fileprivate func`; the three divider face ids and `FRAME_FOREGROUND_PIXEL` are new entries, `face_foreground`/`NSRectFill`/`NSFocus`-family are existing ones
 - [x] ns_show_hourglass  (line 3512, static) — landed as `fileprivate func`; the RIF `show_hourglass_hook`, and C's whole body is its TODO comment (the port keeps the comment, so `f` is unused here exactly as it is in C)
@@ -208,9 +208,9 @@
 - [x] ns_default_font_parameter  (line 5770, static) — C 5769-5773, landed as `fileprivate func ns_default_font_parameter (_:_:)`: C's body is empty and the comment above the definition (C 5766-5768) says why, so both parameters stay unread (the `applicationWillBecomeActive` reading)
 - [x] ns_update_window_end  (line 5776, static) — **dead in this build**: C opens `#ifdef NS_IMPL_GNUSTEP` at C 5774 and closes it at C 5783, so the whole definition is the arm this target does not take.  Recorded, not transcribed (the `-updateMonitors:` reading); its two statements, named in the round's note, are `NSTRACE` (empty) and `ns_redraw_scroll_bars (WINDOW_XFRAME (w))`
 - [x] ns_flush_display  (line 5786, static) — C 5785-5792, landed as `fileprivate func ns_flush_display (_:)`: C's body is `EVENT_INIT` plus one `ns_read_socket_1` call whose value C discards; it waited on `FRAME_TERMINAL (f)`, which this round declares as a macro entry under the construct's own name (the `FRAME_DISPLAY_INFO` shape, and the other direction of `nsfns.swift` 639's `frame_set_terminal`)
-- [x] ns_displays_reconfigured  (line 5839, static) — C 5837-5868 (the `NS_IMPL_COCOA` arm), landed as `fileprivate func ns_displays_reconfigured (_:_:_:)`: it needed this unit's view of `union buffered_input_event` (src/keyboard.h 228-235), the kbd buffer's three data entries (`kbd_buffer`/`kbd_fetch_ptr`/`kbd_store_ptr`, the core's `#[unsafe(no_mangle)]` statics), `Fequal`, the nsfns lane's `Fns_display_monitor_attributes_list`, `XSETTERMINAL` (a macro entry) and the member reader `ns_display_info_terminal` this round adds; the two enumerators it reads are mirror-valued constants (`KBD_BUFFER_SIZE` 4096, `MONITORS_CHANGED_EVENT` 35 - the values `femacs/src/include/keyboard.rs` 43 and `termhooks.rs` 62 fix)
+- [x] ns_displays_reconfigured  (line 5839, static) — C 5837-5868 (the `NS_IMPL_COCOA` arm), landed as `fileprivate func ns_displays_reconfigured (_:_:_:)`: it needed this unit's view of `union buffered_input_event` (src/keyboard.h 228-235), the kbd buffer's three data entries (`kbd_buffer`/`kbd_fetch_ptr`/`kbd_store_ptr`, the core's `#[unsafe(no_mangle)]` statics), `Fequal`, the nsfns lane's `Fns_display_monitor_attributes_list`, `XSETTERMINAL` (a macro entry) and the member reader `ns_display_info_terminal` this round adds; the two enumerators it reads are mirror-valued constants (`KBD_BUFFER_SIZE` 4096, `MONITORS_CHANGED_EVENT` 35 - the values `src/include/keyboard.rs` 43 and `termhooks.rs` 62 fix)
 - [x] ns_delete_display  (line 5872, static) — C 5871-5875, landed as `fileprivate func ns_delete_display (_:)`: C's whole body is the comment `/* TODO...  */`, so the body is empty here too and the parameter unread (the `ns_default_font_parameter`/`applicationWillBecomeActive` reading: a body C leaves empty is transcribed empty rather than stubbed)
-- [x] ns_delete_terminal  (line 5880, static) — C 5877-5902, landed as `fileprivate func ns_delete_terminal (_:)`: it needed `terminal_display_info_ns` (already the core's own shim, `femacs/src/abi_shim.rs` 412), `image_destroy_all_bitmaps` (the core's, `femacs/src/image.rs` 1841) and one new member entry, `terminal_name`, for C 5888's guard; `ns_delete_display` (C 5900) landed in round 38, and C 5896's `setActivationPolicy:` is `NSApp.setActivationPolicy (.prohibited)`
+- [x] ns_delete_terminal  (line 5880, static) — C 5877-5902, landed as `fileprivate func ns_delete_terminal (_:)`: it needed `terminal_display_info_ns` (already the core's own shim, `src/abi_shim.rs` 412), `image_destroy_all_bitmaps` (the core's, `src/image.rs` 1841) and one new member entry, `terminal_name`, for C 5888's guard; `ns_delete_display` (C 5900) landed in round 38, and C 5896's `setActivationPolicy:` is `NSApp.setActivationPolicy (.prohibited)`
 - [x] ns_create_terminal  (line 5908, static) — C 5906-5961, landed as `fileprivate func ns_create_terminal (_:) -> UnsafeMutableRawPointer?`: round 50 landed the entry layer (create_terminal/output_ns/ns_display_info_set_terminal + the 36 setters) and round 51 the last hook it needed (`ns_new_font`), so round 52 is the body - C 5917's create call with the round-39 table's address, C 5919's `terminal_set_display_info_ns` write, C 5920's setter, the 36 hook writes as non-capturing `@convention(c)` closures over the ported functions (seven of them the nsfns/nsmenu lanes' `@_cdecl` entries), and C 5960's return
 - [x] ns_term_init  (line 5965) - **landed in round 57** (the body whole, C 5969-6193; rounds 54/55 built its entry layer and round 56 settled the last two unknowns): the entry layer its body needs is in the unit now (17 core names - `baud_rate`, `Fset_input_interrupt_mode`, `emacs_pipe`, `emacs_strerror`, `fcntl`, `xzalloc`, `allocate_kboard`, `Qns`, `current_kboard`, `initial_kboard`, `Fcons`, `xlispstrdup`, `gui_init_fringe`, `inhibit_x_resources`, `extract_float`, `ns_antialias_text`, `delete_keyboard_wait_descriptor` - plus the `terminal`/`kboard`/`ns_display_info` member writes it makes).  **Round 55 landed the rest of that layer**: `EmacsMenu`'s `-initWithTitle:` (declared here; the class is `nsmenu.swift` 829 and that lane has no entry for it yet - the `EmacsWindow_initWithEmacsFrame` shape), `CGDisplayRegisterReconfigurationCallback` (C 6184), `terminal_rif` (C 6058's read) and the file-scope `ns_initialized` (C 5972's function-local `static`), and it **corrected round 54's claim** about `ns_antialias_text` (see `## File-scope objects`).  **The body (C 5969-6193) is the remainder**, and round 56 settled its last two unknowns: `svcsMenu` is **`src/nsmenu.m` 50's global** (declared src/nsterm.h 776), so the port reaches it as a data entry whose provider is the `nsmenu` lane's (the `ns_window_parm_handlers` shape); and C 6137's `[NSApp setAppleMenu: appMenu]` **cannot be written the way Swift spells AppKit** - the modern SDK has no `NSApplication.appleMenu` (measured: `error: value of type 'NSApplication' has no member 'appleMenu'`), so that one call goes through the selector dynamically (`NSApp.perform (Selector ("setAppleMenu:"), with: appMenu)`), which is C's own call and not an invention; round 57 then wrote the body whole - the guarded arms decided by the frozen configuration, the two dynamic sends, the three `Unmanaged.passRetained` stores and the pasteboard triple - see `### Round 57` in `## Evidence`
 - [x] ns_term_shutdown  (line 6198) — C 6197-6215, landed as `@_cdecl("ns_term_shutdown")` (declared src/nsterm.h 1206): C's `[[NSAutoreleasePool alloc] init]`/`[pool release]` pair is this unit's own push/pop entries, C 6209's `unlink` takes C's `SSDATA`, and C 6212's `[NSApp terminate: NSApp]` is `NSApp.terminate (NSApp)`
@@ -224,7 +224,7 @@
 - [x] cancel_ns_deferred_UAZoomChangeFocus_timer  (line 8460, static) — C 8459-8470 (the `NS_IMPL_COCOA` arm C 8459 opens and C 8470 closes), landed as `fileprivate func cancel_ns_deferred_UAZoomChangeFocus_timer ()` (round 59): C's `.valid` read is `Timer.isValid` and C 8466's `release` is the runtime decrement; its two callers (`windowWillClose:` C 8472-8479 and `deferred_UAZoomChangeFocus_handler:` C 8481-8492) are EmacsView's method batch, still owed by that box
 - [x] nswindow_orderedIndex_sort  (line 10085, static) — landed as `fileprivate func nswindow_orderedIndex_sort (_:_:_:) -> Int`: C sends `orderedIndex` as a **message**, and on Cocoa that selector is not declared on `NSWindow` at all (C's own definition of it is the GNUstep arm at C 10074-10077), so the port sends the same dynamic message instead of inventing a property; the three `NSOrdered*` results are C 10090-10095's three returns
 - [x] ns_new_font  (line 11418, static) — C 11410-11476, landed as `fileprivate func ns_new_font (_:_:_:)` (round 51 took it ahead of `ns_create_terminal`'s body because C 5942 hands it to `terminal->set_new_font_hook`, the dependency order P-91 ① allows): C's `font` reads are the `font_<member>` family, the `struct ns_output` writes are `ns_output_set_*` and the `struct frame` writes `frame_set_*` (this round's entry rule), C's parameter reassignment is the shadow spelling, and C 11470's `! [view isFullscreen]` on a possibly-nil view is C's nil-receiver answer
-- [x] ns_xlfd_to_fontname  (line 11484) — C 11483-11526, landed as `@_cdecl("ns_xlfd_to_fontname")` (declared src/nsterm.h 1129, imported by `nsfns.swift` 1099-1101): `sscanf` is variadic and reaches the C entry by name (the `fprintf` reading), `strncmp`/`strcpy`/`strlen` are the SDK's, `c_toupper` is `femacs/lib/c-ctype.rs` 103-104's export, and the returned pointer belongs to an autoreleased `NSString` (the `ns_relocate` pair)
+- [x] ns_xlfd_to_fontname  (line 11484) — C 11483-11526, landed as `@_cdecl("ns_xlfd_to_fontname")` (declared src/nsterm.h 1129, imported by `nsfns.swift` 1099-1101): `sscanf` is variadic and reaches the C entry by name (the `fprintf` reading), `strncmp`/`strcpy`/`strlen` are the SDK's, `c_toupper` is `lib/c-ctype.rs` 103-104's export, and the returned pointer belongs to an autoreleased `NSString` (the `ns_relocate` pair)
 - [x] mark_nsterm  (line 11529) — C 11528-11547, landed as `@_cdecl("mark_nsterm")` (C's own non-static entry): it walks every frame's scrollers and sends each the `mark` method round 43 landed; the `FOR_EACH_FRAME` spelling, `FRAME_NS_P`, `FRAME_NS_VIEW` and the `isKindOfClass:` test are the unit's own already, so it needed **no new entry**
 - [x] syms_of_nsterm  (line 11550) — C 11549-11811, landed as `@_cdecl("syms_of_nsterm")` (declared src/nsterm.h 1196, called src/emacs.c 2421), the file's last function (round 60): the `PDUMPER_REMEMBER_SCALAR` pair, the 13 `DEFSYM`s of the modifier block and the 11 later ones (empty macros, recorded), the five `Fput`s, **30 `DEFVAR`s** (22 `DEFVAR_LISP` + 8 `DEFVAR_BOOL`) with their fileprivate `O_FWD_…` records, `Fprovide (Qns)`, the `NS_IMPL_COCOA` arm's `Fprovide (Qcocoa)` + `syms_of_macfont ()`, and the closing `last_known_monitors = Qnil` + `staticpro`.  The `DEFVAR` variables are the generated `globals` struct's members, which is why the reference carries no declaration for them, and this lane reaches each as the data symbol the core exports (the ruling the seven modifiers record); the docstrings stay on the C text, since C's `defvar_lisp`/`defvar_bool` take no `doc:` argument
 
@@ -322,7 +322,7 @@ spelling the same selector is one box and is named where it occurs.)
   - [x] `- (NSInteger)conversationIdentifier`  (line 7699) — landed as `@objc func conversationIdentifier () -> Int`: C returns the receiver's own address as an integer, which Swift spells through `Unmanaged`
   - [x] `- (void)doCommandBySelector: (SEL)aSelector`  (line 7705) — landed as `@objc override func doCommand (by aSelector: Selector)` (round 81 renamed it to the spelling the compiler's `NSTextInputClient` witness needs - NSTextInputClient.h 41's `doCommandBySelector:`, "obsoleted in Swift 3" - and the `override` is `NSResponder`'s own declaration, NSResponder.h 145; the derived selector is still C 7705's, measured): C 7709-7710's `NS_KEYLOG` block is dead, the `deleteBackward:` arm writes `NON_ASCII_KEYSTROKE_EVENT` (the enum value the port's mirror fixes) and code `0xFF08`, and C's `EV_TRAILER ((id)nil)` passes the same `emacsframe` this unit's other callers do
   - [x] `- (NSArray *)validAttributesForMarkedText`  (line 7725) — landed as `@objc func validAttributesForMarkedText () -> [NSAttributedString.Key]`: C's lazy `static NSArray *arr` starts empty and is never filled (its one `arrayWithObject:` is commented out at C 7729), so the body is the empty array
-  - [x] `- (NSRange)selectedRange`  (line 7733) — landed as `@objc func selectedRange () -> NSRange` (round 81, `<NSTextInputClient>`'s required method): C 7738-7740's chain is `frame_selected_window`/`XWINDOW`/`window_contents`/`XBUFFER` plus the new `BUF_PT` entry, C 7742's `BVAR (buf, mark_active)` is the existing `buffer_mark_active` reader and C 7748's `BVAR (buf, mark)` the new `buffer_mark` with `marker_position` (**provided** by the core, `femacs/src/marker.rs` 849), and C's `min`/`max` are Swift's `min`/`max`
+  - [x] `- (NSRange)selectedRange`  (line 7733) — landed as `@objc func selectedRange () -> NSRange` (round 81, `<NSTextInputClient>`'s required method): C 7738-7740's chain is `frame_selected_window`/`XWINDOW`/`window_contents`/`XBUFFER` plus the new `BUF_PT` entry, C 7742's `BVAR (buf, mark_active)` is the existing `buffer_mark_active` reader and C 7748's `BVAR (buf, mark)` the new `buffer_mark` with `marker_position` (**provided** by the core, `src/marker.rs` 849), and C's `min`/`max` are Swift's `min`/`max`
   - [x] `- (NSUInteger)characterIndexForPoint: (NSPoint)thePoint`  (line 7759) — landed as `@objc func characterIndex (for thePoint: NSPoint) -> Int` (round 81 renamed it and re-typed the answer to the witness the compiler needs - NSTextInputClient.h 77's `characterIndex(for:) -> Int`, the derived selector still C 7759's, measured; the `NSUInteger` C returns is 0 either way), C's whole body being `return 0;`
   - [x] `- (unsigned int)characterIndexForPoint: (NSPoint)thePoint`  (line 7761; the `#if defined (NS_IMPL_COCOA) || GNUSTEP_GUI…` arm of the box above) — the same selector and the same body; this target takes C 7757's first conjunct, so the row above is the live spelling and the two share one Swift `func`
   - [x] `- (NSAttributedString *)attributedSubstringFromRange: (NSRange)theRange`  (line 7769) — landed as `@objc(attributedSubstringFromRange:) func attributedSubstringFromRange (_:) -> NSAttributedString` (round 81): C 7771-7772's method-local `static NSAttributedString *str` is hoisted file-scope as `ns_attributed_substring_str` (the `nsEvArray` reading of C 7248, the name qualified because `str` is a local name elsewhere in the file), C 7773-7774's `NS_KEYLOG` block is dead, and C 7778 closes `<NSTextInput>`'s implementation
@@ -377,8 +377,8 @@ spelling the same selector is one box and is named where it occurs.)
   - [x] `- (void) setFSValue: (int)value`  (line 9177) — landed as `func setFSValue (_:)`: the same `if`/`else if` chain shape as `handleFS` (the `case` labels are entries), with the five generated globals `Qfullboth`/`Qfullwidth`/`Qfullheight`/`Qmaximized`/`Qfullscreen` as new entries and `store_frame_param` already in place; this round also lands the `@_cdecl("setFSValue")` provider (nsfns.swift 411's entry and this unit's own round-70 deferred entry both waited for it) and turns round 70's in-unit entry into direct calls of this method (`[self setFSValue:]`, C's own shape)
   - [x] `- (void)mouseEntered: (NSEvent *)theEvent`  (line 9202) — landed as `@objc override func mouseEntered (with:)`: C's `if (emacsframe)` guard and the display-info member write round 69's setter pairs with
   - [x] `- (void)mouseExited: (NSEvent *)theEvent`  (line 9211) — landed as `@objc override func mouseExited (with:)`: C 9213's conditional `MOUSE_HL_INFO` is the entry called only when the frame exists, C 9225's call is `clear_mouse_face` (round 69) and C 9226's write the new `mouse_highlight_set_mouse_face_mouse_frame` member entry
-  - [x] `- (instancetype)menuDown: sender`  (line 9231) — landed as `@objc func menuDown (_:) -> AnyObject?`: C's `context_menu_value` is this unit's own exported data symbol (its storage), `[sender tag]` the menu item's property, and C 9239-9241's call is the new `find_and_call_menu_selection` entry with C's own `menu_bar_items_used`/`menu_bar_vector` reads (the latter provided by `femacs/src/abi_shim.rs` 94)
-  - [x] `- (instancetype)toolbarClicked: (id)item`  (line 9250) — landed as `@objc func toolbarClicked (_:) -> AnyObject?`: C 9253's `TOOL_BAR_ITEM_NSLOTS`/`TOOL_BAR_ITEM_KEY` are mirror-valued constants (`femacs/src/include/dispextern.rs` 3942/3966: 0 and 12), C 9261's kind the `TOOL_BAR_EVENT` constant, C 9263's `AREF` the new lisp.h entry over the new `frame_tool_bar_items` member read, and C 9262's commented-out `XSETINT` is kept as C's own comment
+  - [x] `- (instancetype)menuDown: sender`  (line 9231) — landed as `@objc func menuDown (_:) -> AnyObject?`: C's `context_menu_value` is this unit's own exported data symbol (its storage), `[sender tag]` the menu item's property, and C 9239-9241's call is the new `find_and_call_menu_selection` entry with C's own `menu_bar_items_used`/`menu_bar_vector` reads (the latter provided by `src/abi_shim.rs` 94)
+  - [x] `- (instancetype)toolbarClicked: (id)item`  (line 9250) — landed as `@objc func toolbarClicked (_:) -> AnyObject?`: C 9253's `TOOL_BAR_ITEM_NSLOTS`/`TOOL_BAR_ITEM_KEY` are mirror-valued constants (`src/include/dispextern.rs` 3942/3966: 0 and 12), C 9261's kind the `TOOL_BAR_EVENT` constant, C 9263's `AREF` the new lisp.h entry over the new `frame_tool_bar_items` member read, and C 9262's commented-out `XSETINT` is kept as C's own comment
   - [x] `- (BOOL) validateToolbarItem: (NSToolbarItem *) toolbarItem`  (line 9270) — landed as `@objc func validateToolbarItem (_:) -> Bool`; C's whole body is the item's own `isEnabled`
   - [x] `- (instancetype)toggleToolbar: (id)sender`  (line 9275) — landed as `@objc func toggleToolbar (_:) -> AnyObject?`: C 9282's kind is `NS_NONKEY_EVENT` and C 9283's code the new `KEY_NS_TOGGLE_TOOLBAR` constant carrying src/nsterm.h 805's own expression
   - [x] `- (CALayer *)makeBackingLayer`  (line 9290) — landed as `@objc override func makeBackingLayer () -> CALayer`: C 9292-9293's `[[EmacsLayer alloc] initWithDoubleBuffered: …]` is this unit's own convenience initializer (C 11152, round 61), `FRAME_DOUBLE_BUFFERED` the new `ns_output_double_buffered` member read, and C 9295's `[l setDelegate:(id)self]` is sent dynamically (the `setDelegate:` reading of C 9808) because `CALayer`'s delegate is typed and the class declares no protocol list yet
@@ -434,7 +434,7 @@ spelling the same selector is one box and is named where it occurs.)
   - [x] `- (instancetype)condemn`  (line 10734) — landed as `func condemn () -> EmacsScroller` (C's `instancetype` is this class's own type); C 10736's `NSTRACE` is the empty macro
   - [x] `- (instancetype)reprieve`  (line 10742) — landed as `func reprieve () -> EmacsScroller`, `condemn`'s sibling
   - [x] `-(bool)judge`  (line 10750) — landed as `func judge () -> Bool`: C's `block_input ()`/`unblock_input ()` pair wraps the teardown, C 10759's cast is the `as? EmacsView` the unit already uses, and C 10771's `[self release]` is the reference the method drops (`Unmanaged.passUnretained (self).release ()`)
-  - [x] `- (void) mark`  (line 10777) — landed as `func mark ()` (C's own spacing in the selector): it needs `XSETWINDOW` (a macro entry of the `XSETFRAME` family) and the collector's `mark_object` (already the core's, `femacs/src/alloc.rs` 7308)
+  - [x] `- (void) mark`  (line 10777) — landed as `func mark ()` (C's own spacing in the selector): it needs `XSETWINDOW` (a macro entry of the `XSETFRAME` family) and the collector's `mark_object` (already the core's, `src/alloc.rs` 7308)
   - [x] `- (void)resetCursorRects`  (line 10788) — landed as `override func resetCursorRects ()`: the `NS_IMPL_GNUSTEP || MAC_OS_X_VERSION_MIN_REQUIRED < 101300` block at C 10796-10802 (its `setOnMouseEntered:` message included) is dead on this target (260000), so it is recorded, not transcribed
   - [x] `- (int) checkSamePosition: (int) position portion: (int) portion whole: (int) whole`  (line 10806) — landed as `func checkSamePosition (_:portion:whole:) -> Int32`: C's whole body is the four-way conjunct and it returns an `int`, so the port spells C's integral conversion of it
   - [x] `- (instancetype)setPosition: (int)position portion: (int)portion whole: (int)whole`  (line 10814) — landed as `func setPosition (_:portion:whole:) -> EmacsScroller`: the `NS_IMPL_COCOA` arms are the live ones (C 10825-10826, C 10839-10840), the two setters are Swift's `knobProportion`/`doubleValue`, C 10835's `max ((float)whole*min_portion/pixel_length, portion)` is `Swift.max` over C's promoted `float` arithmetic with C's truncation back into the `int`, and C's reassignment of the `portion` parameter is the shadow the lane already uses for that shape
@@ -495,10 +495,10 @@ spelling the same selector is one box and is named where it occurs.)
 unit also declares Swift **views** of `struct input_event` (src/termhooks.h 371-412) - which this
 file's `emacs_event` points at - and, since round 14, of `struct font_metrics` (src/font.h
 414-417), which `ns_compute_glyph_string_overhangs` holds as a local and hands to the core's
-driver slot through a pointer (the same view `macfont.swift` 49-60 and `femacs/src/font.rs` 196
+driver slot through a pointer (the same view `macfont.swift` 49-60 and `src/font.rs` 196
 already carry; `spikes/gated-layout-probe.py` reads all three arms as `sizeof=10, align=2`, members
 0/2/4/6/8 - Evidence).  The record is termhooks.h's and already has a Rust mirror
-(`femacs/src/include/termhooks.rs`); a Swift unit cannot see a Rust record, so the view repeats
+(`src/include/termhooks.rs`); a Swift unit cannot see a Rust record, so the view repeats
 the mirror's member names, and its layout is measured rather than assumed - clang `sizeof 64`,
 `align 8`, and the offsets in `## Evidence`, which the Swift side matches exactly.)
 
@@ -728,7 +728,7 @@ Swift has no `#include`, so the unit carries its C environment itself, the way
 `docs/ports/nsimage.md`'s `## ABI` describes for the lane: `@_silgen_name` imports of the ported
 core and of the lane's own C constructs, this unit's own C interface exported with `@_cdecl`, and
 the constructs that have no symbol at all spelled out here.  `src/nsterm.h` already has a Rust
-mirror (`femacs/src/include/nsterm.rs`, status 3.199) - this unit does not repeat it; it declares
+mirror (`src/include/nsterm.rs`, status 3.199) - this unit does not repeat it; it declares
 only what its own slice reads.
 
 ### Round 2: the `EV_*` accessors, the held pair, and the event-loop utilities
@@ -797,7 +797,7 @@ its mirror's record is not this unit's); `context_menu_value` is C's `long` = `I
 ### `EmacsMenu *` is another unit's class (P-55)
 
 `EmacsMenu` is src/nsterm.h 540's class, implemented by src/nsmenu.m - this lane's
-`femacs/platform/macos/nsmenu.swift`, which is compiled as its own unit and is not joint with
+`platform/macos/nsmenu.swift`, which is compiled as its own unit and is not joint with
 this one.  C's `EmacsMenu *dockMenu`/`mainMenu` therefore keep P-55's untyped pointer, and the
 class's methods are reached as C-ABI entries with the receiver first (the reading
 `docs/ports/nsselect.md` gives `EmacsWindow`).
@@ -822,7 +822,7 @@ C 178.  The landed `nsimage.swift` imports the symbol as a C-ABI *variable*
 (`@_silgen_name("ns_use_srgb_colorspace") var …: Bool`, its line 145), so this unit matches that
 shape rather than the function-returning-a-pointer form a first reading suggests; the two units
 must agree because each is compiled alone and the linker sees one symbol.  **Open item:** nothing
-in `femacs/src` exports that data symbol today (`rg ns_use_srgb_colorspace femacs/` finds the
+in `src` exports that data symbol today (`rg ns_use_srgb_colorspace ` finds the
 Swift import only), so the port of `syms_of_nsterm` - or the core's globals record - has to
 supply it.
 
@@ -830,7 +830,7 @@ supply it.
 
 C's own declaration (src/keyboard.h 463) and definition (src/keyboard.c 7920) both return `int`,
 and that is what `ev_modifiers_helper` stores into its `unsigned int modifiers`.  The port's
-`femacs/src/keymap.rs` mirror declares it returning `Lisp_Object` (a mismatch carried from the
+`src/keymap.rs` mirror declares it returning `Lisp_Object` (a mismatch carried from the
 previous round's reading and flagged, not fixed here: `keymap.rs` is not this lane's file).
 The Swift side takes C's `Int32` and converts with `UInt32(bitPattern:)`.
 
@@ -1146,12 +1146,12 @@ level's `rawValue` arithmetic; `NSAppKitVersionNumber10_10` (C 2139) is
 the 10_7 pair.
 
 **The slice's entries are the 3.255 classes, and the member writes take the shim's own naming.**
-The six `frame_set_<member>` writes follow `femacs/src/abi_shim.md`'s existing export names
+The six `frame_set_<member>` writes follow `src/abi_shim.md`'s existing export names
 (`frame_set_border_width`, `frame_set_tab_bar_resized`, …), and `nsfns.swift` 573/577 already
 import `frame_set_undecorated`/`frame_set_ns_transparent_titlebar`, so the two units agree
 name for name.  The enumerator families, the seven globals and the header-only accessors stay
 class A: their values are the core's facts (an enumerator's number, a generated global's storage),
-so `femacs/src/abi_shim.rs` exports each name.
+so `src/abi_shim.rs` exports each name.
 
 **`Emacs_Color` is a Swift `struct` of this unit, and its layout is measured.**  C's
 `typedef struct { unsigned long pixel; unsigned short red, green, blue; } Emacs_Color`
@@ -1385,7 +1385,7 @@ at C 3040-3044).  `ns_shift_glyphs_for_insert` adds *no* new name at all: its co
 `struct font_metrics metrics;` as a *local* and hands `&metrics` to the core's driver slot, which
 fills it through the pointer; C then reads `rbearing`/`width`/`lbearing`.  That is the
 `Emacs_Color`/`input_event` situation (the unit owns the storage), so the unit declares the view -
-the same five `short`s `macfont.swift` 49-60 and `femacs/src/font.rs` 196 already carry.  Its layout
+the same five `short`s `macfont.swift` 49-60 and `src/font.rs` 196 already carry.  Its layout
 is *measured*, and this round is the first to use the gated-arm probe the integrator landed in
 3.271: `spikes/gated-layout-probe.py 'struct font_metrics' font.h` reads **frozen**, x11 and
 ns_cocoa alike as `sizeof=10, align=2` with `lbearing 0, rbearing 2, width 4, ascent 6, descent 8`
@@ -1453,7 +1453,7 @@ letters (`'n'`/`'e'`/`'s'`/`'w'`) as `CChar`s, with C's truthiness tests written
 
 **Two names from a file no configuration compiles.**  `gui_define_fringe_bitmap` (src/fringe.c
 1853) and `max_used_fringe_bitmap` (src/fringe.c 497) have **no symbol in the reference objects**,
-because the frozen configuration compiles no `fringe.c` at all - `femacs/src/fringe.rs` is the
+because the frozen configuration compiles no `fringe.c` at all - `src/fringe.rs` is the
 empty unit status 3.31 records, quoting the build's empty platform object variables.  Both are
 therefore owed entries (the function's row carries the gate the file itself has, the
 `remember_mouse_glyph`/`gui_clear_cursor` family), and the global is a data symbol of the core's.
@@ -1478,9 +1478,9 @@ that defines `HAVE_WINDOW_SYSTEM`, i.e. the Cocoa target this whole lane is writ
 `get_phys_cursor_geometry` (src/xdisp.c 2707) and `draw_phys_cursor_glyph` (src/xdisp.c 35099) -
 both inside `HAVE_WINDOW_SYSTEM` (the `#ifdef`s at 2488 and 35045), measured absent from
 `xdisp.o` - and `draw_fringe_bitmap` (src/fringe.c 838), whose *file* no built configuration
-compiles at all (`femacs/src/fringe.rs` is the empty unit status 3.31 records, the same one round
+compiles at all (`src/fringe.rs` is the empty unit status 3.31 records, the same one round
 15's two names came from).  `get_phys_cursor_glyph` is the contrast: src/window.c 8228, no gate,
-`T` in `window.o`, and the port's `femacs/src/window.rs` 8078 already exports it - a plain import.
+`T` in `window.o`, and the port's `src/window.rs` 8078 already exports it - a plain import.
 
 **Three spellings re-shaped, each recorded.**  C's `(phys_cursor_glyph = get_phys_cursor_glyph (w))
 == NULL` is the assignment-in-condition shape again (hoisted, the same short-circuit); the
@@ -1641,7 +1641,7 @@ fact, so the address cannot be spelled at the use site - the family's second *op
 **`image_ascent` is defined in a file no configuration here builds.**  It is declared at
 src/dispextern.h 3774, inside the header's `HAVE_WINDOW_SYSTEM` block (opened at 3727), and defined
 at src/image.c 1911; src/image.c is not in `docs/baseline/frozen-build-sources.txt`, and its port
-(`femacs/src/image.rs`) is an empty unit.  No object holds the symbol, so the row is a shim work
+(`src/image.rs`) is an empty unit.  No object holds the symbol, so the row is a shim work
 order rather than a "provided" reading - the class round 17's two gated xdisp.c functions record.
 
 **Two macros are *spelled*, not imported - the (B)-first half of the 3.255 ruling.**
@@ -1904,7 +1904,7 @@ what `nm -g` shows (Evidence).
 | globals (round 10) | `Qparent_frame`, `Qabove`, `Qabove_suspended`, `Qbelow`, `Qdark`, `Qlight`, `Vframe_alpha_lower_limit` | the `DEFSYM`/`DEFVAR_LISP` carriers (`build/emacs-ref/src/emacs.o` holds `_Qdark` and friends as `S`; `Vframe_alpha_lower_limit` is `globals.f_…`, globals.h 280-281, so it has no symbol until the core exports one) | **open**: the core's to export |
 | `fset_parent_frame` | `INLINE void fset_parent_frame (struct frame *, Lisp_Object)` (src/frame.h 774) | src/frame.h 774 | **open**: `nsfns.swift` 641-642 imports it under this name and signature |
 | member entry `frame_alpha` | the `double alpha[2]` member `f->alpha[0]`/`[1]` (src/frame.h 707-711) | src/frame.h | **open**: the subscript is the entry's second argument |
-| `store_frame_param`, `parse_color_spec`, `error` | `void store_frame_param (struct frame *, Lisp_Object, Lisp_Object)` (src/lisp.h 5117); `bool parse_color_spec (const char *, unsigned short *, unsigned short *, unsigned short *)` (src/dispextern.h 3798); `AVOID error (const char *, ...)` (src/lisp.h 4835) | defined src/frame.c 3872 / src/xfaces.c 987 / src/eval.c (`_error` is `T` there) | **provided**: `femacs/src/frame.rs` 3842 and `femacs/src/xfaces.rs` 760, and the core's `error` the other three Swift units already import |
+| `store_frame_param`, `parse_color_spec`, `error` | `void store_frame_param (struct frame *, Lisp_Object, Lisp_Object)` (src/lisp.h 5117); `bool parse_color_spec (const char *, unsigned short *, unsigned short *, unsigned short *)` (src/dispextern.h 3798); `AVOID error (const char *, ...)` (src/lisp.h 4835) | defined src/frame.c 3872 / src/xfaces.c 987 / src/eval.c (`_error` is `T` there) | **provided**: `src/frame.rs` 3842 and `src/xfaces.rs` 760, and the core's `error` the other three Swift units already import |
 | `STRINGP`, `SSDATA`, `SYMBOL_NAME` | `INLINE bool STRINGP` (src/lisp.h 1582), `INLINE char *SSDATA` (src/lisp.h 1658), `INLINE Lisp_Object SYMBOL_NAME` (src/lisp.h 2350) | header-only | **open**: the core's to export (`nsfns.swift` 184/200-201 imports the same three) |
 | `FLOATP`, `XFLOAT_DATA` | `#define FLOATP(x) lisp_h_FLOATP (x)` (src/lisp.h 448), `INLINE double XFLOAT_DATA (Lisp_Object)` (src/lisp.h 3186) | header-only | **open**: the core's to export |
 | `FRAME_TOOLTIP_P` | `#define FRAME_TOOLTIP_P(f) ((f)->tooltip)` (src/frame.h 1256) | header-only | **open**: the core's to export |
@@ -1915,7 +1915,7 @@ what `nm -g` shows (Evidence).
 | `Qdrag_source`, `Qdropping`, `scroll_bar_above_handle` | two `DEFSYM`s (`S` in `build/emacs-ref/src/emacs.o`) and one `enum scroll_bar_part` enumerator (src/termhooks.h 37) | src/emacs.c / src/termhooks.h | **open**: the core's to export |
 | `XSETINT` | `#define XSETINT(a, b) ((a) = make_fixnum (b))` (src/lisp.h 1341) | header-only | **open**: the lvalue shape `XSETFRAME` has |
 | `fputs` | `int fputs (const char *, FILE *)` | stdio.h | libSystem (`docs/ports/nsfont.swift` 1178; `stderr` is the overlay's) |
-| `note_mouse_highlight` | `void note_mouse_highlight (struct frame *, int, int)` (src/dispextern.h 3688) | defined src/xdisp.c | **open**: the reference defines it (`T` in `build/emacs-ref/src/xdisp.o`) but the ported core only *declares* it (`femacs/src/dispnew.rs` 281) - the definition is `xdisp.rs`'s, still in flight, so the gate reports the name as imported-and-unprovided (Evidence) |
+| `note_mouse_highlight` | `void note_mouse_highlight (struct frame *, int, int)` (src/dispextern.h 3688) | defined src/xdisp.c | **open**: the reference defines it (`T` in `build/emacs-ref/src/xdisp.o`) but the ported core only *declares* it (`src/dispnew.rs` 281) - the definition is `xdisp.rs`'s, still in flight, so the gate reports the name as imported-and-unprovided (Evidence) |
 | `remember_mouse_glyph` | `void remember_mouse_glyph (struct frame *, int, int, NativeRectangle *)` (src/dispextern.h 3586; `NativeRectangle` is `NSRect`, src/nsgui.h 80) | defined xdisp.c 2779, **inside `HAVE_WINDOW_SYSTEM`** (the `#ifdef` at xdisp.c 2488) | **open, gated**: the frozen configuration leaves it undefined, so the object has no symbol and the shim exports it under the same gate - the status 3.255 ③ `frame_set_double_buffered` reading (only a window-system build can satisfy the name) |
 | `emacs_view_frame`, `is_emacs_view` | the `EmacsView` messages C 2537-2538 sends | this unit's own class, C 7039 | **open**: receiver-first entries, defined when the class lands; `nsfns.swift` 689-691 imports the same two names |
 | `is_emacs_tooltip` | `[[w delegate] isKindOfClass: [EmacsTooltip class]]` (C 2534) | `nsmenu.swift`'s `EmacsTooltip` (`src/nsmenu.m` 1421) | **open**: that class's own unit defines it here |
@@ -1927,18 +1927,18 @@ what `nm -g` shows (Evidence).
 | `gui_clear_cursor` | `void gui_clear_cursor (struct window *)` (src/dispextern.h; defined src/xdisp.c 35466 **inside `HAVE_WINDOW_SYSTEM`**, the `#ifdef` at xdisp.c 35045) | src/xdisp.c | **open, gated**: the frozen configuration leaves it undefined, so the object has no symbol (measured) - the status 3.255 ③ shape again |
 | `Vface_remapping_alist` | src/xfaces.c's `DEFVAR_LISP ("face-remapping-alist", …)` | src/xfaces.c | **provided**: the core's flattened global exports `_Vface_remapping_alist` (measured) |
 | `FRAME_DEFAULT_FACE`, `FRAME_ROOT_WINDOW`, `XWINDOW`, `NS_FACE_BACKGROUND`, `FRAME_INTERNAL_BORDER_WIDTH`, `FRAME_PIXEL_WIDTH`, `FRAME_PIXEL_HEIGHT` | the frame/window/face accessors (src/nsterm.h 1043, src/frame.h 1201/1066, src/window.h) | the reference's headers | **open**: already ratcheted from the other Swift units' imports; round 13 is where this unit starts reading them |
-| `mark_window_cursors_off`, `lookup_basic_face`, `NSRectFill` | `void mark_window_cursors_off (struct window *)` (src/dispextern.h), `int lookup_basic_face (struct window *, struct frame *, int)` (src/xfaces.c), `void NSRectFill (NSRect)` (AppKit) | src/window.c / src/xfaces.c / AppKit's NSGraphics.h | **provided**: the core's own (`femacs/src/window.rs` 5788, `femacs/src/xfaces.rs` 3753) and the SDK's (`system` in the gate's classes) |
+| `mark_window_cursors_off`, `lookup_basic_face`, `NSRectFill` | `void mark_window_cursors_off (struct window *)` (src/dispextern.h), `int lookup_basic_face (struct window *, struct frame *, int)` (src/xfaces.c), `void NSRectFill (NSRect)` (AppKit) | src/window.c / src/xfaces.c / AppKit's NSGraphics.h | **provided**: the core's own (`src/window.rs` 5788, `src/xfaces.rs` 3753) and the SDK's (`system` in the gate's classes) |
 | `copyRect` (`copyRect_entry`) | C 2909: `[view copyRect:srcRect to:dest];` - `EmacsView -copyRect:to:` (C 9340) | **this unit's own class** | **deferred** (`## ABI` (4)): the first selector segment as the entry name, the `beginDrag` reading |
 | the glyph_row/window/glyph-string records (round 14) | `window_pseudo_window_p` (src/window.h), `glyph_row_mode_line_p`/`glyph_row_full_width_p`/`glyph_row_set_redraw_fringe_bitmaps_p` (the `glyph_row_*` family round 4 opened with `glyph_row_y`/`glyph_row_visible_height`), `glyph_string_set_left_overhang`/`glyph_string_set_right_overhang`/`glyph_string_char2b`/`glyph_string_nchars`/`glyph_string_font`/`glyph_string_cmp`/`glyph_string_cmp_id`/`glyph_string_cmp_from`/`glyph_string_cmp_to`/`glyph_string_first_glyph` (the new family), `glyph_type` (the `unsigned type : 3` bitfield) and the enumerators `CHAR_GLYPH`/`COMPOSITE_GLYPH` (src/dispextern.h 431-438) | src/dispextern.h / src/window.h | **open**: member/enumerator entries, `<record>_<member>` with `_set_` for the two writes |
-| `composition_pixel_width`, `composition_lbearing`, `composition_rbearing` | `struct composition`'s `short pixel_width, ascent, descent; short lbearing, rbearing;` (src/composite.h 148) | src/composite.h | **open**: the record belongs to the core (`femacs/src/composite.rs`), so the three reads are member entries |
+| `composition_pixel_width`, `composition_lbearing`, `composition_rbearing` | `struct composition`'s `short pixel_width, ascent, descent; short lbearing, rbearing;` (src/composite.h 148) | src/composite.h | **open**: the record belongs to the core (`src/composite.rs`), so the three reads are member entries |
 | `windows_or_buffers_changed` | `int windows_or_buffers_changed` (src/xdisp.c) | src/xdisp.c | **open**: a plain global the objects hold (`C`, common, in `build/emacs-ref/src/xdisp.o`), so the core exports a data symbol of its own name |
 | `font_driver`, `font_driver_text_extents` | `struct font`'s member `driver` and the driver slot `void (*text_extents) (struct font *, const unsigned *, int, struct font_metrics *)` (src/font.h 672-673) | src/font.h | **open**: C's `font->driver->text_extents (…)` as two member entries, the second returning the C function pointer (`@convention(c)`, the slot `macfont.swift` 11162 declares) - no `struct font`/`struct font_driver` view in this unit |
-| `composition_gstring_from_id`, `composition_gstring_width` | `Lisp_Object composition_gstring_from_id (ptrdiff_t)` and `int composition_gstring_width (Lisp_Object, ptrdiff_t, ptrdiff_t, struct font_metrics *)` (src/composite.h) | defined src/composite.c | **provided**: `femacs/src/composite.rs` 758 and 829 |
+| `composition_gstring_from_id`, `composition_gstring_width` | `Lisp_Object composition_gstring_from_id (ptrdiff_t)` and `int composition_gstring_width (Lisp_Object, ptrdiff_t, ptrdiff_t, struct font_metrics *)` (src/composite.h) | defined src/composite.c | **provided**: `src/composite.rs` 758 and 829 |
 | the fringe records (round 15) | `WINDOW_FRAME` (src/frame.h 929, the macro - the bare `w->frame` read stays round 13's `window_frame`, one entry per C spelling), `face_foreground`/`face_background` (the **bare** `struct face` reads C 3254/3279/3281 - `NS_FACE_BACKGROUND` is the macro's entry), the thirteen `draw_fringe_bitmap_params_*` members (src/dispextern.h) and `ns_output_cursor_color` (the `struct ns_output` member read at C 3283, already ratcheted from `nsfns.swift` 282) | src/frame.h / src/dispextern.h / src/nsterm.h | **open**: member/macro entries under `<record>_<member>`, the family `macfont`/`nsmenu` established |
-| `gui_define_fringe_bitmap`, `max_used_fringe_bitmap` | `void gui_define_fringe_bitmap (struct frame *, int)` (src/fringe.c 1853) and `int max_used_fringe_bitmap = MAX_STANDARD_FRINGE_BITMAPS;` (src/fringe.c 497) | src/fringe.c | **open, gated**: the frozen configuration compiles no `fringe.c` at all (`femacs/src/fringe.rs` is the empty unit status 3.31 records), so neither has a reference-side symbol (measured) - the function's row carries the gate the file has, and the global is a data symbol |
+| `gui_define_fringe_bitmap`, `max_used_fringe_bitmap` | `void gui_define_fringe_bitmap (struct frame *, int)` (src/fringe.c 1853) and `int max_used_fringe_bitmap = MAX_STANDARD_FRINGE_BITMAPS;` (src/fringe.c 497) | src/fringe.c | **open, gated**: the frozen configuration compiles no `fringe.c` at all (`src/fringe.rs` is the empty unit status 3.31 records), so neither has a reference-side symbol (measured) - the function's row carries the gate the file has, and the global is a data symbol |
 | the cursor records (round 16) | `WINDOW_XFRAME` (src/window.h 620's macro), the five `struct window` cursor members `window_set_phys_cursor_type`/`window_set_phys_cursor_on_p`/`window_phys_cursor_width`/`window_set_phys_cursor_width`/`window_phys_cursor_hpos` (**gated**: src/window.h 340-350's `HAVE_WINDOW_SYSTEM` block), the four `struct glyph_row` members `glyph_row_exact_window_width_line_p`/`glyph_row_used` (the `short used[1 + LAST_AREA]` member with C's `TEXT_AREA` subscript as the argument)/`glyph_row_set_cursor_in_fringe_p`/`glyph_row_height`, the two `struct glyph` members `glyph_resolved_level`/`glyph_pixel_width`, the macros `FRAME_CURSOR_WIDTH`/`FRAME_FOREGROUND_PIXEL`, the enumerators `TEXT_AREA`/`DRAW_CURSOR`/six `text_cursor_kinds`/four face ids | src/window.h / src/dispextern.h / src/frame.h | **open**: member/macro/enumerator entries; the five window members keep the gate their C declaration has |
-| `get_phys_cursor_geometry`, `draw_phys_cursor_glyph`, `draw_fringe_bitmap` | `void get_phys_cursor_geometry (struct window *, struct glyph_row *, struct glyph *, int *, int *, int *)` (src/xdisp.c 2707), `void draw_phys_cursor_glyph (struct window *, struct glyph_row *, enum draw_glyphs_face)` (src/xdisp.c 35099), `void draw_fringe_bitmap (struct window *, struct glyph_row *, int)` (src/fringe.c 838) | src/xdisp.c (both inside `HAVE_WINDOW_SYSTEM`, opened at 2488 and 35045) / src/fringe.c (a file no built configuration compiles - `femacs/src/fringe.rs`) | **open, gated**: none has a reference-side symbol (measured), so each row carries its gate - the 3.255 ③ / 3.262 shape |
-| `get_phys_cursor_glyph` | `struct glyph *get_phys_cursor_glyph (struct window *)` (src/window.h 1186; defined src/window.c 8228, no gate) | src/window.c | **provided**: `femacs/src/window.rs` 8078, and `_get_phys_cursor_glyph` is `T` in `build/emacs-ref/src/window.o` |
+| `get_phys_cursor_geometry`, `draw_phys_cursor_glyph`, `draw_fringe_bitmap` | `void get_phys_cursor_geometry (struct window *, struct glyph_row *, struct glyph *, int *, int *, int *)` (src/xdisp.c 2707), `void draw_phys_cursor_glyph (struct window *, struct glyph_row *, enum draw_glyphs_face)` (src/xdisp.c 35099), `void draw_fringe_bitmap (struct window *, struct glyph_row *, int)` (src/fringe.c 838) | src/xdisp.c (both inside `HAVE_WINDOW_SYSTEM`, opened at 2488 and 35045) / src/fringe.c (a file no built configuration compiles - `src/fringe.rs`) | **open, gated**: none has a reference-side symbol (measured), so each row carries its gate - the 3.255 ③ / 3.262 shape |
+| `get_phys_cursor_glyph` | `struct glyph *get_phys_cursor_glyph (struct window *)` (src/window.h 1186; defined src/window.c 8228, no gate) | src/window.c | **provided**: `src/window.rs` 8078, and `_get_phys_cursor_glyph` is `T` in `build/emacs-ref/src/window.o` |
 | Carbon and CoreFoundation (round 12) | `TISCopyCurrentKeyboardLayoutInputSource`, `TISGetInputSourceProperty`, `UCKeyTranslate`, `LMGetKbdType`, `kUCKeyActionDown`, `kUCKeyTranslateNoDeadKeysBit` and the four key masks (`shiftKey`/`optionKey`/`rightOptionKey`/`cmdKey`), plus `CFDataGetBytePtr` | Carbon.HIToolbox / CoreFoundation (C 72-73's `#include <Carbon/Carbon.h>`, C 70-80's arm) | **system**: these are *module* calls, not `@_silgen_name` entries - `import Carbon` at the top of the unit - which is a new kind of dependency for this file: the eventual Cocoa link line needs `-framework Carbon` |
 | `FRAME_BACKGROUND_COLOR` | `#define FRAME_BACKGROUND_COLOR(f) ((f)->output_data.ns->background_color)` (src/nsterm.h 1038) | header-only | **open**: `macfont.swift` 756 imports the same name and type |
 | `get_glyph_string_clip_rects`, `font_for_underline_metrics` | `int get_glyph_string_clip_rects (struct glyph_string *, NativeRectangle *, int)` (src/dispextern.h 3661) and `struct font *font_for_underline_metrics (struct glyph_string *)` (src/dispextern.h 3638) | src/xdisp.c 2495 and 32256, both **inside that file's `HAVE_WINDOW_SYSTEM` block** (opened at 2488 and 30717) | **open, gated**: neither has a reference-side symbol (measured this round), so each row carries its gate - the 3.255 ③ / 3.262 shape |
@@ -2044,7 +2044,7 @@ call site takes an entry and the definition lands at its own C line - and **both
   seven modifiers are this file's own `DEFSYM`/`DEFVAR_LISP`, so the core has to export them the
   way it exports the rest; `QCmouse` is also absent from `docs/baseline/globals/symbols.tsv`,
   whose table comes from a build that never compiles this file;
-* `femacs/platform/macos/nsmenu.swift` (another lane's unit): the `EmacsMenu` class whose
+* `platform/macos/nsmenu.swift` (another lane's unit): the `EmacsMenu` class whose
   pointer this unit carries untyped;
 * other lanes read this unit's exports: `nsselect.swift` calls `ns_send_types()`,
   `ns_return_types()` and `ns_release_object` (as a callback, 215/793); `emacs.c`'s port will call
@@ -2068,7 +2068,7 @@ call site takes an entry and the definition lands at its own C line - and **both
   slice that reads them), `glyph_type`, the `CHAR_GLYPH`/`COMPOSITE_GLYPH` enumerators, the three
   `composition_*` member reads, `font_driver`, `font_driver_text_extents` and the
   `windows_or_buffers_changed` data symbol.  Provided already: `composition_gstring_from_id`/
-  `composition_gstring_width` (`femacs/src/composite.rs` 758/829) and the `struct glyph_row`
+  `composition_gstring_width` (`src/composite.rs` 758/829) and the `struct glyph_row`
   family's first two rows (`glyph_row_y`/`glyph_row_visible_height`);
 * the core, **round 15's names**: `WINDOW_FRAME`, `face_foreground`, `face_background`, the thirteen
   `draw_fringe_bitmap_params_*` members and - the two from a file no built configuration compiles -
@@ -2087,7 +2087,7 @@ call site takes an entry and the definition lands at its own C line - and **both
   `glyph_string_*` member entries (thirteen reads and the two `_set_` writes); the two `glyph_*`
   (src/dispextern.h 506); the eleven `face_*`; the three `font_*`; and the six
   `FACE_UNDERLINE_*`/`FACE_NO_UNDERLINE` enumerators.  `face_underline` is the one the gate files
-  as `rust-side` - the name already appears in the ported Rust text (`femacs/src/xfaces.rs`).
+  as `rust-side` - the name already appears in the ported Rust text (`src/xfaces.rs`).
   Provided already: `NSRectFill`/`NSRectClip` (AppKit), `DRAW_CURSOR`, `glyph_string_first_glyph`,
   `glyph_string_char2b`, `glyph_string_font` and `enum glyph_type`'s pair; `XFIXNAT` and
   `Qunbound` already carry ratchet rows (they are not among the 43 `FAIL` names);
@@ -2107,7 +2107,7 @@ call site takes an entry and the definition lands at its own C line - and **both
   `T` in `build/emacs-ref/src/xdisp.o`) and the five CoreGraphics calls are the SDK's own symbols.
   The gate files **36 of the 44 as `FAIL`** - five `reference-source` and thirty-one
   `unclassified`, the rounds-13/14 shape - and round 17's forty-three are gone from that list;
-* `femacs/platform/macos/nsimage.swift` (another lane's unit), round 18's addition: the
+* `platform/macos/nsimage.swift` (another lane's unit), round 18's addition: the
   `EmacsImage -stippleMask` entry of (2) - C 4120's message - is that side's to define (receiver
   first, the `EmacsImage_allocInitFromFile` shape).  **Round 19 adds four more of that class's**:
   the two `@public` ivars `transform`/`smoothing` (src/nsterm.h 680-681) as
@@ -2153,7 +2153,7 @@ call site takes an entry and the definition lands at its own C line - and **both
   twenty-seven `unclassified` and one `reference` - because `FRAME_COLUMN_WIDTH`
   (`docs/baseline/swift-import-pending.txt` 94), `LGSTRING_GLYPH` (161) and `XCHAR_TABLE` (412)
   already carry rows and the two window queries are provided (Evidence);
-* `femacs/platform/macos/nsmenu.swift` (another lane's unit), round 11's addition: the
+* `platform/macos/nsmenu.swift` (another lane's unit), round 11's addition: the
   `EmacsTooltip` class is landed there, so the `is_emacs_tooltip` entry of (2) - C 2534's
   `isKindOfClass: [EmacsTooltip class]` - is that side's to define (receiver first, the
   `is_emacs_view` shape).  This unit imports it and nothing else;
@@ -2180,15 +2180,15 @@ call site takes an entry and the definition lands at its own C line - and **both
   C symbol, `ns_redisplay_interface`, needs a port-side definition for the same reason the handlers
   array does: Swift cannot emit a C-named data symbol, so the port carries it as a file-scope value.
 * **the core, round 40's names**: the kbd buffer's three data symbols are already the core's
-  (`femacs/src/keyboard.rs` 178-186: `kbd_buffer`, `kbd_fetch_ptr`, `kbd_store_ptr`, all
+  (`src/keyboard.rs` 178-186: `kbd_buffer`, `kbd_fetch_ptr`, `kbd_store_ptr`, all
   `#[unsafe(no_mangle)] static mut`), as are `kbd_buffer_store_event` (keyboard.rs 4118) and
-  `Fequal` (the globals mirror, `femacs/src/include/globals.rs` 7577); the nsfns lane already
+  `Fequal` (the globals mirror, `src/include/globals.rs` 7577); the nsfns lane already
   exports `Fns_display_monitor_attributes_list` (`nsfns.swift` 3669).  What is *not* supplied
   anywhere and is therefore this round's own addition: the member reader
   `ns_display_info_terminal`, the macro entry `XSETTERMINAL` (src/lisp.h 1384 - the core owes the
   C-ABI entry the way it owes `XSETFRAME`), and the two enumerator values, which this unit takes
-  from its own mirror instead (`KBD_BUFFER_SIZE` 4096 at `femacs/src/include/keyboard.rs` 43,
-  `MONITORS_CHANGED_EVENT` 35 at `femacs/src/include/termhooks.rs` 62) because neither the frozen
+  from its own mirror instead (`KBD_BUFFER_SIZE` 4096 at `src/include/keyboard.rs` 43,
+  `MONITORS_CHANGED_EVENT` 35 at `src/include/termhooks.rs` 62) because neither the frozen
   macro table nor the core's exports carry them.
 * **round 42's omission**: `+[EmacsScroller scrollerWidth]` (C 10626-10648) cannot be declared in Swift at
   all - the SDK marks `NSScroller`'s `+scrollerWidth` unavailable, so the plain override and the
@@ -2247,22 +2247,22 @@ call site takes an entry and the definition lands at its own C line - and **both
   `-handleFS`, C 9126, in that class's method batch).  It is the same pair of directions round 64
   corrected for `colorWithUnsignedLong`: the declaration keeps its Swift name so the existing call
   sites are untouched, and the definition takes another.
-* **round 43's names**: `mark_object` is already the core's (`femacs/src/alloc.rs` 7308), while
+* **round 43's names**: `mark_object` is already the core's (`src/alloc.rs` 7308), while
   `wset_horizontal_scroll_bar`/`wset_vertical_scroll_bar` (src/window.h's INLINE setters - the port
-  mirrors them as Rust functions at `femacs/src/include/window.rs` 233/236) and the macro entry
+  mirrors them as Rust functions at `src/include/window.rs` 233/236) and the macro entry
   `XSETWINDOW` (src/window.h, the `XSETFRAME` family) are C-ABI entries the core still owes.
 * **round 44's names**: the bitfield writer `input_event_set_part` (src/termhooks.h 377's
   `scroll_bar_part part : 16`, the `input_event_set_kind` counterpart) is the one C-ABI entry this
   round adds and the core still owes; the two enumerators it writes
   (`SCROLL_BAR_CLICK_EVENT` 8, `HORIZONTAL_SCROLL_BAR_CLICK_EVENT` 9) are mirror-valued constants
-  (`femacs/src/include/termhooks.rs` 35/36), not exports.
+  (`src/include/termhooks.rs` 35/36), not exports.
 * **round 45's names**: the six `enum scroll_bar_part` enumerators C 10942-10954 assigns to
   `last_hit_part` (`scroll_bar_before_handle`, `scroll_bar_after_handle`, `scroll_bar_below_handle`,
   `scroll_bar_handle`, `scroll_bar_horizontal_handle`, `scroll_bar_move_ratio`) are enumerator
   entries of the `scroll_bar_above_handle` family this unit already imports, so the core owes them
   the same way.
 * **round 47's names**: `XNS_SCROLL_BAR` (src/nsterm.h 1056's macro - the `xmint_pointer` inside it
-  is the mirror's, `femacs/src/include/lisp.rs` 1679), `make_mint_ptr` (src/lisp.h's INLINE, mirrored
+  is the mirror's, `src/include/lisp.rs` 1679), `make_mint_ptr` (src/lisp.h's INLINE, mirrored
   at lisp.rs 1664), the member reader `window_vertical_scroll_bar` (the `window_frame` family) and
   the three macros `WINDOW_SCROLL_BAR_AREA_WIDTH`/`WINDOW_SCROLL_BAR_AREA_X`/`WINDOW_TOTAL_LINES`
   are the C-ABI entries this round adds and the core still owes.
@@ -2299,7 +2299,7 @@ call site takes an entry and the definition lands at its own C line - and **both
 * **round 68's names**: `adjustEmacsFrameRect` is a new *deferred* entry (EmacsView's own method,
   C 8862, whose batch has not landed), `gen_help_event` (declared src/keyboard.h 513) and the
   `help_echo_string` global are entries the core owes, and `FOCUS_IN_EVENT`/`FOCUS_OUT_EVENT` are
-  mirror-valued constants (22/23 at `femacs/src/include/termhooks.rs` 49-50) because neither the
+  mirror-valued constants (22/23 at `src/include/termhooks.rs` 49-50) because neither the
   frozen macro table nor the core's exports carry them - the `MONITORS_CHANGED_EVENT` reading.
 * **round 67's names**: the buffer/window readers C 10162-10183 needs - `XBUFFER`,
   `window_contents` (C 10162's `XWINDOW (…)->contents`), the two per-field `BVAR` readers
@@ -2345,7 +2345,7 @@ call site takes an entry and the definition lands at its own C line - and **both
   `buffer_mark_active`; **open**) and `window_phys_cursor_x`/`window_phys_cursor_y` (`struct window`'s
   nested `phys_cursor.x`/`.y`, src/window.h 332; **open**: the two readers `nsfns.swift` 770 already
   imports) - plus `marker_position` (src/marker.c 723-724), which is **provided**:
-  `femacs/src/marker.rs` 849's `#[unsafe(no_mangle)]`.
+  `src/marker.rs` 849's `#[unsafe(no_mangle)]`.
 * **round 82's names**: the providers the entries above were waiting for, now that every class they
   name has landed - `emacs_view_frame` and `is_emacs_view` (C 2537-2538's two reads; **provided
   here**, the (3) row that said "this unit defines them when the class lands"), `showFontPanel`
@@ -2364,7 +2364,7 @@ call site takes an entry and the definition lands at its own C line - and **both
 * `swiftc --version` -> `swift-driver version: 1.168.6 Apple Swift version 6.4
   (swiftlang-6.4.0.34.1 clang-2100.3.34.1)`, `Target: arm64-apple-macosx26.0`.
 * `cd /Users/liu/projects/src/github.com/liuchong/femacs && swiftc -parse-as-library -c -o
-  /tmp/s188/nsterm.o femacs/platform/macos/nsterm.swift` -> **exit 0, no output** (no warnings).
+  /tmp/s188/nsterm.o platform/macos/nsterm.swift` -> **exit 0, no output** (no warnings).
   The same command on the revision this round received printed twelve errors - the list is in
   `## Decisions`; `swiftc -parse` alone prints nothing for either revision, which is why the
   ledger's gate is the `-c` form.
@@ -2374,7 +2374,7 @@ call site takes an entry and the definition lands at its own C line - and **both
 * `nm -u /tmp/s188/nsterm.o` -> the unit's own imports, `_EQ`, `_Qleft`, `_Qnil`, `_SYMBOLP`,
   `_ns_use_srgb_colorspace`, `_parse_solitary_modifier`, `_plist_get`, alongside the Swift
   runtime and AppKit entries.
-* `python3 tools/check-swift-units.py` -> `femacs/platform/macos/nsterm.swift: 142 C
+* `python3 tools/check-swift-units.py` -> `platform/macos/nsterm.swift: 142 C
   definition(s), 140 unported, 0 row(s); 6 C symbol import(s)` and the tool's last line
   `140 new, 0 stale, 6 Swift unit(s) landed`.  The 140 `new` are this file's un-ported definitions
   (this is a giant unit in flight, so they are expected here the way `nsmenu.swift`'s three
@@ -2425,7 +2425,7 @@ call site takes an entry and the definition lands at its own C line - and **both
   -I <SDK>/Foundation.framework/Headers` on a probe that declares the four `CGFloat` members) ->
   `sizeof 32 align 8 top 0 bottom 8 left 16 right 24 (CGFloat 8)`.
 * `EmacsMargins`' layout, Swift side (`swiftc -o /tmp/s188r4/layoutprobe
-  femacs/platform/macos/nsterm.swift /tmp/s188r4/main.swift /tmp/s188r4/stubs.c -Xlinker
+  platform/macos/nsterm.swift /tmp/s188r4/main.swift /tmp/s188r4/stubs.c -Xlinker
   -undefined -Xlinker dynamic_lookup`, then the program) -> `EmacsMargins size 32 align 8 top 0
   bottom 8 left 16 right 24` (the stub C file defines the data symbols the core still owes, so
   that dyld can start the program - the same note as the `input_event` probe).
@@ -2469,7 +2469,7 @@ call site takes an entry and the definition lands at its own C line - and **both
   which is the object-time proof that `Unmanaged.passRetained(x).autorelease()` is C's
   autorelease and not a no-op; `_objc_retain`/`_objc_release` are the two hooks' runtime entries.
 * `struct input_event`'s layout, Swift side (`swiftc -o /tmp/s188r2/layoutprobe
-  femacs/platform/macos/nsterm.swift /tmp/s188r2/main.swift /tmp/s188r2/stubs.c -Xlinker
+  platform/macos/nsterm.swift /tmp/s188r2/main.swift /tmp/s188r2/stubs.c -Xlinker
   -undefined -Xlinker dynamic_lookup`, then the program) -> `input_event size 64 stride 64
   align 8`, `bits 0`, `code 4`, `modifiers 8`, `x 16`, `y 24`, `timestamp 32`,
   `frame_or_window 40`, `arg 48`, `device 56` - member for member the same as the C side.
@@ -2523,12 +2523,12 @@ call site takes an entry and the definition lands at its own C line - and **both
 * `Emacs_Color`'s layout, C side (`clang -std=gnu23 -I build/emacs-ref/src -I build/emacs-ref/lib
   -I emacs/src -I emacs/lib` on a probe including `<config.h>` and `<dispextern.h>`) ->
   `Emacs_Color sizeof 16 align 8 pixel 0 red 8 green 10 blue 12`; Swift side
-  (`swiftc -o /tmp/s188r10/layoutprobe femacs/platform/macos/nsterm.swift /tmp/s188r10/main.swift
+  (`swiftc -o /tmp/s188r10/layoutprobe platform/macos/nsterm.swift /tmp/s188r10/main.swift
   /tmp/s188r10/stubs.c -Xlinker -undefined -Xlinker dynamic_lookup`, then the program) ->
   `Emacs_Color size 14 stride 16 align 8` and the same four offsets (`pixel 0 red 8 green 10
   blue 12`).  Swift's `size` omits the tail padding C's `sizeof` rounds up; `stride` (16) is the
   storage unit and matches C, and the member offsets and the alignment agree member for member.
-* `python3 tools/check-swift-units.py` -> `femacs/platform/macos/nsterm.swift: 142 C
+* `python3 tools/check-swift-units.py` -> `platform/macos/nsterm.swift: 142 C
   definition(s), 87 unported, 98 row(s); 115 C symbol import(s)` and `0 new, 17 stale, 7 Swift
   unit(s) landed`.  Eleven of the seventeen stale rows are this unit's - the eleven landed names
   that had rows; the other four this slice landed (the generator gap's) have no row to go stale -
@@ -2590,7 +2590,7 @@ call site takes an entry and the definition lands at its own C line - and **both
   symbol table, not just `-g`); the four non-static xdisp.c names the object is also missing
   (`x_y_to_column_row`, `get_glyph_string_clip_rects`, `get_glyph_string_clip_rect`,
   `get_phys_cursor_geometry`) are the same region's.
-* `python3 tools/check-swift-units.py` -> `femacs/platform/macos/nsterm.swift: 150 C
+* `python3 tools/check-swift-units.py` -> `platform/macos/nsterm.swift: 150 C
   definition(s), 84 unported, 87 row(s); 134 C symbol import(s)` (the C count and the import count
   are the fixed reader's).  The run that opened this round read `1 new, 10 stale, 7 Swift unit(s)
   landed`, and the `new` was `ns_get_shifted_character` (C 2693 - the eighth name status 3.260's
@@ -2605,7 +2605,7 @@ call site takes an entry and the definition lands at its own C line - and **both
   lines plus the stale-ratchet count).  The `FAIL` names that belong to this slice are **sixteen**,
   each with the tool's own class: `FRAME_TOOLTIP_P`, `XSETINT` and `remember_mouse_glyph`
   (`reference-source`), `Qdrag_source`/`Qdropping` (`reference`), `note_mouse_highlight`
-  (`reference` - the reference defines it, `femacs/src/dispnew.rs` 281 only declares it, and the
+  (`reference` - the reference defines it, `src/dispnew.rs` 281 only declares it, and the
   definition is the in-flight `xdisp.rs`'s), `is_emacs_tooltip`, `frame_set_mouse_moved`, the five
   `ns_display_info_*` last-mouse members and the two `Mouse_HLInfo` coordinates
   (`unclassified`).  Four of the slice's imports are **not** in the list because something already
@@ -2638,7 +2638,7 @@ call site takes an entry and the definition lands at its own C line - and **both
   definition, and `check-swift-imports` counts it as provided because the providers include the
   Swift units' own `@_cdecl` names.  Carbon's and CoreFoundation's calls are SDK symbols (nothing
   in the reference objects, and the gate classes them as system).
-* `python3 tools/check-swift-units.py` -> `femacs/platform/macos/nsterm.swift: 150 C
+* `python3 tools/check-swift-units.py` -> `platform/macos/nsterm.swift: 150 C
   definition(s), 78 unported, 84 row(s); 138 C symbol import(s)` and `0 new, 10 stale, 7 Swift
   unit(s) landed`: six of the stale rows are this slice's (`get_keysym_name`, `nil_or_none`,
   `ns_convert_key`, `ns_define_frame_cursor`, `ns_get_shifted_character`, `right_mod`) and the
@@ -2673,7 +2673,7 @@ call site takes an entry and the definition lands at its own C line - and **both
   members, `FRAME_TOP_MARGIN_HEIGHT`, `FRAME_BOTTOM_MARGIN_HEIGHT`, `gui_clear_cursor`,
   `Vface_remapping_alist` and `NSRectFill`.  The `gui_clear_cursor` zero is the gated one (its guard
   is measured below); `mark_window_cursors_off`/`lookup_basic_face`/`Vface_remapping_alist` are
-  provided by the ported core (`femacs/src/window.rs` 5788, `femacs/src/xfaces.rs` 3753, the
+  provided by the ported core (`src/window.rs` 5788, `src/xfaces.rs` 3753, the
   flattened globals), and `NSRectFill` is AppKit's, which the gate's own classifier calls `system`
   (`SDK_SYMBOLS`, the AppKit `.tbd`).
 * `gui_clear_cursor`'s guard, measured the way `remember_mouse_glyph`'s was: tracking the
@@ -2690,7 +2690,7 @@ call site takes an entry and the definition lands at its own C line - and **both
   bit-block rows (`tooltip` 275:6, `no_focus_on_map` 277:1, `z_group` 277:2-3).  Both tables were
   read, not regenerated, by this round: `spikes/gated-layout-probe.py` remains the integrator's to
   re-run.
-* `python3 tools/check-swift-units.py` -> `femacs/platform/macos/nsterm.swift: 150 C
+* `python3 tools/check-swift-units.py` -> `platform/macos/nsterm.swift: 150 C
   definition(s), 74 unported, 84 row(s); 162 C symbol import(s)` and `0 new, 14 stale, 7 Swift
   unit(s) landed`: **ten of the stale rows are this lane's** - round 13's four and round 12's six,
   which the manifest has not absorbed yet (the round-12 delivery is still uncommitted in this
@@ -2732,7 +2732,7 @@ call site takes an entry and the definition lands at its own C line - and **both
   `short lbearing 0, rbearing 2, width 4, ascent 6, descent 8`.  This record parses in the frozen
   arm as well (`parse=no` is the NS-only types' row), so the view's layout needs no arm at all;
   the Swift side's five `Int16` members give the same 10 bytes at the same offsets.
-* `python3 tools/check-swift-units.py` -> `femacs/platform/macos/nsterm.swift: 150 C
+* `python3 tools/check-swift-units.py` -> `platform/macos/nsterm.swift: 150 C
   definition(s), 71 unported, 74 row(s); 186 C symbol import(s)` and `0 new, 3 stale, 7 Swift
   unit(s) landed` - the three stale rows are exactly this slice's three definitions.
 * `python3 tools/check-declarations.py` -> `13 declaration sites (0 forbidden, 13 allowed
@@ -2762,8 +2762,8 @@ call site takes an entry and the definition lands at its own C line - and **both
   `build/emacs-ref/lib/*.o`, all 19 imports plus the three definitions): **0 for every one of
   them** - the macros and member entries have no symbol, and `gui_define_fringe_bitmap` /
   `max_used_fringe_bitmap` do not either because the frozen configuration compiles no `fringe.c`
-  (its note in `femacs/src/fringe.rs` quotes the build's empty `WINDOW_SYSTEM_OBJ=` and the rest).
-* `python3 tools/check-swift-units.py` -> `femacs/platform/macos/nsterm.swift: 150 C
+  (its note in `src/fringe.rs` quotes the build's empty `WINDOW_SYSTEM_OBJ=` and the rest).
+* `python3 tools/check-swift-units.py` -> `platform/macos/nsterm.swift: 150 C
   definition(s), 68 unported, 71 row(s); 204 C symbol import(s)` and `0 new, 3 stale, 7 Swift
   unit(s) landed` - the three stale rows are exactly this slice's three definitions.
 * `python3 tools/check-declarations.py` -> `13 declaration sites (0 forbidden, 13 allowed
@@ -2798,7 +2798,7 @@ call site takes an entry and the definition lands at its own C line - and **both
   provided one).  `get_phys_cursor_geometry` (xdisp.c 2707, inside the `#ifdef` at 2488),
   `draw_phys_cursor_glyph` (xdisp.c 35099, inside the one at 35045) and `draw_fringe_bitmap`
   (fringe.c 838, a file no build compiles) are the three gated/dead zeros.
-* `python3 tools/check-swift-units.py` -> `femacs/platform/macos/nsterm.swift: 150 C
+* `python3 tools/check-swift-units.py` -> `platform/macos/nsterm.swift: 150 C
   definition(s), 65 unported, 68 row(s); 235 C symbol import(s)` and `0 new, 3 stale, 7 Swift
   unit(s) landed` - the three stale rows are exactly this slice's three definitions.
 * `python3 tools/check-declarations.py` -> `13 declaration sites (0 forbidden, 13 allowed
@@ -2840,7 +2840,7 @@ call site takes an entry and the definition lands at its own C line - and **both
   `S` in `build/emacs-ref/src/emacs.o` - the provided pair) and **0 for the other forty-three** -
   the member entries, the enumerators, `WINDOW_BUFFER_LOCAL_VALUE`, `XFIXNAT` and the two gated
   functions have no reference-side symbol.
-* `python3 tools/check-swift-units.py` -> `femacs/platform/macos/nsterm.swift: 150 C
+* `python3 tools/check-swift-units.py` -> `platform/macos/nsterm.swift: 150 C
   definition(s), 58 unported, 65 row(s); 280 C symbol import(s)` and `0 new, 7 stale, 7 Swift
   unit(s) landed`.  The seven stale rows are exactly this slice's seven definitions, i.e. the
   rows `docs/baseline/swift-units.tsv` still carries for them; the tool's `58 unported` is the
@@ -2861,9 +2861,9 @@ call site takes an entry and the definition lands at its own C line - and **both
   `Qunbound`/`Qunderline_minimum_offset` are the two the audit found provided.
 * `python3 tools/check-mirror-dupes.py` -> `20 duplicate declaration(s), 111 ratchet row(s), 91
   failure(s)` on one run and `56 / 111 / 55` on another: the failures are all `STALE` rows naming
-  **other units** (`femacs/src/dispnew.rs`, `femacs/src/xdisp.rs`, `femacs/src/xfaces.rs` -
+  **other units** (`src/dispnew.rs`, `src/xdisp.rs`, `src/xfaces.rs` -
   `AUTO_FRAME_ARG`, `CHECK_FRAME`, `SET_FRAME_GARBAGED`, `WINDOW_TAB_LINE_HEIGHT`,
-  `WINDOW_TOP_EDGE_Y`, `WINDOW_XFRAME` and siblings, "from femacs/src/include/frame.rs is gone"),
+  `WINDOW_TOP_EDGE_Y`, `WINDOW_XFRAME` and siblings, "from src/include/frame.rs is gone"),
   i.e. an in-flight lane regenerating that mirror while this round ran - and
   `grep -c nsterm docs/baseline/mirror-dupes.tsv` is **0**, so no row of the new duplicate-name
   ratchet names this unit and the gate does not touch this lane.
@@ -2888,7 +2888,7 @@ call site takes an entry and the definition lands at its own C line - and **both
   the provided row) and **0 for the other forty-three** - the member/operation entries, the three
   enumerators, the four macro names and the SDK's five CoreGraphics calls have no reference-side
   symbol.
-* `python3 tools/check-swift-units.py` -> `femacs/platform/macos/nsterm.swift: 150 C definition(s),
+* `python3 tools/check-swift-units.py` -> `platform/macos/nsterm.swift: 150 C definition(s),
   53 unported, 58 row(s); 324 C symbol import(s)` and `0 new, 5 stale, 7 Swift unit(s) landed`.
   The five stale rows are exactly this slice's five definitions - the rows
   `docs/baseline/swift-units.tsv` still carries for them, the integrator's to drop - and the tool's
@@ -2936,7 +2936,7 @@ call site takes an entry and the definition lands at its own C line - and **both
   `build/emacs-ref/lib/*.o`): **0 symbols for all twenty-seven** - the member/operation entries,
   the five enumerators, the four globals, `face_id`, `image_ascent` and the four `EmacsImage`
   cross-lane names have none (src/image.c is not compiled, and the globals are `globals` fields).
-* `python3 tools/check-swift-units.py` -> `femacs/platform/macos/nsterm.swift: 150 C definition(s),
+* `python3 tools/check-swift-units.py` -> `platform/macos/nsterm.swift: 150 C definition(s),
   51 unported, 53 row(s); 347 C symbol import(s)` and `0 new, 2 stale, 7 Swift unit(s) landed`.
   The two stale rows are exactly this slice's two definitions - the rows
   `docs/baseline/swift-units.tsv` still carries, the integrator's to drop - and `51 unported` is
@@ -2992,7 +2992,7 @@ call site takes an entry and the definition lands at its own C line - and **both
   `xdisp.o` - and **57 have none** (the member and operation entries, the macro/enumerator names,
   the two `globals` fields, `prepare_face_for_display`, the gated `get_glyph_string_clip_rect`, and
   `x_draw_xwidget_glyph_string`, whose file this build does not compile).
-* `python3 tools/check-swift-units.py` -> `femacs/platform/macos/nsterm.swift: 150 C definition(s),
+* `python3 tools/check-swift-units.py` -> `platform/macos/nsterm.swift: 150 C definition(s),
   45 unported, 51 row(s); 405 C symbol import(s)` and `0 new, 6 stale, 7 Swift unit(s) landed`.
   The six stale rows are exactly this slice's six definitions - `docs/baseline/swift-units.tsv`'s
   rows for them, the integrator's to drop - and `45 unported` is the ledger's 41 open boxes **plus**
@@ -3014,7 +3014,7 @@ call site takes an entry and the definition lands at its own C line - and **both
   `src/lisp.h 2081`, `src/nsterm.h 1049`), so the snippet that follows each cited number now lives
   on the cited line - the gate's drift rule.  Mid-round the same tree read `5 drift / 4 stale` from
   two other lanes' in-flight mirror files (their rows named only
-  `femacs/src/include/coding.rs` and `femacs/src/include/dispextern.rs`); those lanes cleared them,
+  `src/include/coding.rs` and `src/include/dispextern.rs`); those lanes cleared them,
   and the reading above is the tree at rest.
 * `python3 tools/check-declarations.py` -> `13 declaration sites (0 forbidden, 13 allowed
   literals), 0 failures` - unchanged by this slice.
@@ -3032,13 +3032,13 @@ call site takes an entry and the definition lands at its own C line - and **both
   the worked example), because importing a macro name puts a symbol in the frozen record that C
   does not have (P-08).  **(A) only when the expansion needs core-internal facts** - the
   `Lisp_Object` predicates/accessors, `globals.h` entries, enumerators, cross-record INLINEs: there
-  the core exports a same-name C-ABI entry from `femacs/src/abi_shim.rs` and the ratchet row stays
+  the core exports a same-name C-ABI entry from `src/abi_shim.rs` and the ratchet row stays
   until it does.  The audit recorded above (24 macro names, 0 symbols in `build/emacs-ref/**/*.o`)
   is what puts this file's remaining macro entries in class A.
 
 ### Round 21: the `EmacsApp` class's first five methods (C 6225-6400)
 
-* **`swiftc -parse-as-library -c femacs/platform/macos/nsterm.swift`** (this lane's compile gate,
+* **`swiftc -parse-as-library -c platform/macos/nsterm.swift`** (this lane's compile gate,
   the form `docs/ports/nsselect.md` uses): **exit 0**, **0 errors**, the same **seven** warnings
   every round since C 1500 carries (four `lockFocus`/`unlockFocus` deprecations, three
   `'scanFloat' was deprecated in macOS 10.15`), and **no new one**.  Object `/tmp/nsterm21.o`,
@@ -3048,7 +3048,7 @@ call site takes an entry and the definition lands at its own C line - and **both
   an optional where C's `NSEvent *event` is a bare pointer; the port unwraps it, and the comment
   beside the call records why the unwrap cannot fire (`untilDate` is `distantFuture`).
 * **`python3 tools/check-swift-units.py`**: **`0 new, 0 stale, 7 Swift unit(s) landed`**, with
-  `femacs/platform/macos/nsterm.swift: 150 C definition(s), 45 unported, 45 row(s); 409 C symbol
+  `platform/macos/nsterm.swift: 150 C definition(s), 45 unported, 45 row(s); 409 C symbol
   import(s)` - every number unchanged from round 20, which is the expected reading: an
   Objective-C *method* is not one of C's functions, so this round's five methods sit outside the
   reader's subject, and the two `@_silgen_name` imports it adds (`ns_run_ascript` and
@@ -3060,13 +3060,13 @@ call site takes an entry and the definition lands at its own C line - and **both
 
 ### Round 22: `ns_send_appdefined`, `EV_TRAILER`/`EV_TRAILER2`, and the two `EmacsApp` methods that call it
 
-* **`swiftc -parse-as-library -c femacs/platform/macos/nsterm.swift`**: **exit 0**, **0 errors**,
+* **`swiftc -parse-as-library -c platform/macos/nsterm.swift`**: **exit 0**, **0 errors**,
   and **eight** warnings against the previous rounds' seven.  The new one is
   `'context' was deprecated in macOS 10.12: This method always returns nil` at C 5074's
   `context: NSApp.context` - C's own `[NSApp context]`, kept as the reference writes it (the
   `lockFocus` precedent: the port keeps the call and records the deprecation instead of silencing
   it).  Object `/tmp/nsterm22.o`, **472328 bytes**, md5 `738b92bd18467f2da42e06ee24ecddbb`.
-* **`python3 tools/check-swift-units.py`**: `femacs/platform/macos/nsterm.swift: 150 C
+* **`python3 tools/check-swift-units.py`**: `platform/macos/nsterm.swift: 150 C
   definition(s), **44** unported, 44 row(s); 411 C symbol import(s)` - one fewer unported than
   round 21's 45, and **one stale row was cleared**: `docs/baseline/swift-units.tsv` named
   `ns_send_appdefined`, and the gate reported exactly that row as `stale` the moment the function
@@ -3083,10 +3083,10 @@ call site takes an entry and the definition lands at its own C line - and **both
 
 ### Round 23: `EmacsApp`'s four notification methods (C 6556-6613)
 
-* **`swiftc -parse-as-library -c femacs/platform/macos/nsterm.swift`**: **exit 0**, **0 errors**,
+* **`swiftc -parse-as-library -c platform/macos/nsterm.swift`**: **exit 0**, **0 errors**,
   **eight** warnings - the same eight round 22 ended with, so **no new warning** this round.
   Object `/tmp/nsterm23.o`, **477184 bytes**, md5 `3f25b82186a480e057d595e645bb4dca`.
-* **`python3 tools/check-swift-units.py`**: `femacs/platform/macos/nsterm.swift: 150 C
+* **`python3 tools/check-swift-units.py`**: `platform/macos/nsterm.swift: 150 C
   definition(s), 44 unported, 44 row(s); **415** C symbol import(s)` - the unported count is
   unchanged by construction (these four are Objective-C methods, outside that reader's subject),
   and the three imports it adds - `Qpre_sleep`, `Qpost_wake` and `kbd_buffer_store_event` - plus
@@ -3108,7 +3108,7 @@ call site takes an entry and the definition lands at its own C line - and **both
 
 ### Round 24: `EmacsWindow`'s class record and five of its methods (C 9756)
 
-* **`swiftc -parse-as-library -c femacs/platform/macos/nsterm.swift`**: **exit 0**, **0 errors**,
+* **`swiftc -parse-as-library -c platform/macos/nsterm.swift`**: **exit 0**, **0 errors**,
   **eight** warnings - the same eight rounds 22 and 23 carry, so **no new warning**.  Object
   `/tmp/nsterm24.o`, **504,048 bytes**, md5 `af13a351891674e7608337aa8c3b18e0` (the
   citation repair below moved it from the first compile's 503,392 / `3794318feaaccaea07816cee1dab332f`: a
@@ -3135,7 +3135,7 @@ call site takes an entry and the definition lands at its own C line - and **both
 
 ### Round 25: `EmacsView`'s class record, `isFullscreen`, `updateCollectionBehavior` and `check_native_fs`
 
-* **`swiftc -parse-as-library -c femacs/platform/macos/nsterm.swift`**: **exit 0**, **0 errors**,
+* **`swiftc -parse-as-library -c platform/macos/nsterm.swift`**: **exit 0**, **0 errors**,
   **eight** warnings - the same eight rounds 22-24 carry, so **no new warning**.  Object
   `/tmp/nsterm25.o`, **563696 bytes**, md5 `fc27aa476b41e28d3c7b551b1d48ab62`.
 * **`python3 tools/check-swift-units.py`**: `nsterm.swift: 150 C definition(s), **43** unported,
@@ -3155,7 +3155,7 @@ call site takes an entry and the definition lands at its own C line - and **both
 
 ### Round 26: `ns_select_1`, `ns_select` and `ns_run_loop_break` (C 5203-5385)
 
-* **`swiftc -parse-as-library -c femacs/platform/macos/nsterm.swift`**: **exit 0**, **0 errors**,
+* **`swiftc -parse-as-library -c platform/macos/nsterm.swift`**: **exit 0**, **0 errors**,
   **eight** warnings - back to the level rounds 22-25 carry, so **no new warning** once the
   intermediate ones were cleared, and `tools/check-own-voice.py`'s one reading of this round is repaired in the same commit (a paraphrase that used the bare product name became "the reference", with C's own sentence carried as a citation).  Object `/tmp/nsterm26.o`, **575,784 bytes**, md5 `e8d700136a0e6e5ea7de10d44d832b66` - taken after that repair, a comment reaching the object the way round 24's did.
 * **Five errors on the first compile and one new warning after them**, all repaired in place:
@@ -3184,7 +3184,7 @@ call site takes an entry and the definition lands at its own C line - and **both
 
 ### Round 27: `EmacsApp`'s termination and file-open handlers (C 6633-6758)
 
-* **`swiftc -parse-as-library -c femacs/platform/macos/nsterm.swift`**: **exit 0**, **0 errors**,
+* **`swiftc -parse-as-library -c platform/macos/nsterm.swift`**: **exit 0**, **0 errors**,
   **eight** warnings - the same eight rounds 22-26 carry, so **no new warning**.  Object
   `/tmp/nsterm27.o`, **604,976 bytes**, md5 `1e71802d7b4e842a599cfd7a07f50ca0`.
 * **`python3 tools/check-swift-units.py`**: `nsterm.swift: 150 C definition(s), **38** unported,
@@ -3215,10 +3215,10 @@ call site takes an entry and the definition lands at its own C line - and **both
   gives no initialisers, so the value is the declaration order counted under the Cocoa build's
   configuration: `NS_TEXT_EVENT` 29 and `NS_NONKEY_EVENT` **30**.  The count is calibrated against
   the one value that is machine-checked - `SLEEP_EVENT = 28`
-  (`femacs/src/include/termhooks.rs` 55) - which is what the same count yields for the frozen
+  (`src/include/termhooks.rs` 55) - which is what the same count yields for the frozen
   configuration.  **This is the unit's first UNVERIFIED constant**: there is no Cocoa build here to
   check it against the reference, and the entry above records that rather than hiding it.
-* **`swiftc -parse-as-library -c femacs/platform/macos/nsterm.swift`**: **exit 0**, **0 errors**,
+* **`swiftc -parse-as-library -c platform/macos/nsterm.swift`**: **exit 0**, **0 errors**,
   **eight** warnings - the same eight rounds 22-27 carry, so **no new warning**.  Object
   `/tmp/nsterm28.o`, **620,952 bytes**, md5 `51e13f5dd66d43807294200ea901e25b`.  The first compile failed with one error,
   `overriding declaration requires an 'override' keyword`, because `-terminate:` overrides
@@ -3237,7 +3237,7 @@ call site takes an entry and the definition lands at its own C line - and **both
 
 ### Round 29: `showPreferencesWindow:`, `newFrame:` and `fd_handler:` (C 6402-6429, C 6783-6870)
 
-* **`swiftc -parse-as-library -c femacs/platform/macos/nsterm.swift`**: **exit 0**, **0 errors**,
+* **`swiftc -parse-as-library -c platform/macos/nsterm.swift`**: **exit 0**, **0 errors**,
   **eight** warnings - the same eight rounds 22-28 carry, so **no new warning**.  Object
   `/tmp/nsterm29.o`, **631,608 bytes**, md5 `ba37f082a5702630d97eb6a20854bbb8`.
 * **One Swift-versus-C shape, recorded in the source**: C 6825/6832 hold the *addresses* of two
@@ -3258,7 +3258,7 @@ call site takes an entry and the definition lands at its own C line - and **both
 
 ### Round 30: `applicationDidFinishLaunching:` and `requestService:` (C 6490-6554, C 6881-6887)
 
-* **`swiftc -parse-as-library -c femacs/platform/macos/nsterm.swift`**: **exit 0**, **0 errors**,
+* **`swiftc -parse-as-library -c platform/macos/nsterm.swift`**: **exit 0**, **0 errors**,
   **eight** warnings - the same eight rounds 22-29 carry, so **no new warning**.  Object
   `/tmp/nsterm30.o`, **643,776 bytes**, md5 `0fb82a0b8c9224c5241f16b3bf27081f`.
 * **Four errors on the first compiles, all of them Swift's own naming, all recorded in the source**:
@@ -3269,7 +3269,7 @@ call site takes an entry and the definition lands at its own C line - and **both
   'FileHandle'`; and `UInt (FD_SETSIZE)` does not assign to `rlim_t` (`UInt64`), which the cast
   spells.
 * **Four imports**: `CFSocketGetTypeID`/`CFFileDescriptorGetTypeID` (CoreFoundation's two `CFTypeID`
-  entries), `build_string` (the port's `femacs/src/alloc.rs`), `EmacsImage_allocInitFromFile` (the
+  entries), `build_string` (the port's `src/alloc.rs`), `EmacsImage_allocInitFromFile` (the
   `<Class>_<selector>` C-ABI entry round 18 set for that class) and the selection lane's
   `stringWithLispString`/`ns_string_from_pasteboard` pair.
 * **`python3 tools/check-swift-units.py`**: `nsterm.swift: 150 C definition(s), 36 unported,
@@ -3283,7 +3283,7 @@ call site takes an entry and the definition lands at its own C line - and **both
 
 ### Round 31: `EmacsWindow`'s ordering methods (C 10043-10122) and `EmacsApp`'s last box
 
-* **`swiftc -parse-as-library -c femacs/platform/macos/nsterm.swift`**: **exit 0**, **0 errors**,
+* **`swiftc -parse-as-library -c platform/macos/nsterm.swift`**: **exit 0**, **0 errors**,
   **eight** warnings - the same eight rounds 22-30 carry, so **no new warning**.  Object
   `/tmp/nsterm31.o`, **653,152 bytes**, md5 `75b0f294cee40095ea1996af91ed28c8`.
 * **Three errors on the first compiles, all of them this round's own doing and all recorded**: the
@@ -3305,7 +3305,7 @@ call site takes an entry and the definition lands at its own C line - and **both
 
 ### Round 32: `EmacsView`'s leaf input methods (C 7593-7767)
 
-* **`swiftc -parse-as-library -c femacs/platform/macos/nsterm.swift`**: **exit 0**, **0 errors**,
+* **`swiftc -parse-as-library -c platform/macos/nsterm.swift`**: **exit 0**, **0 errors**,
   **eight** warnings - the same eight rounds 22-31 carry, so **no new warning**.  Object
   `/tmp/nsterm32.o`, **669,824 bytes**, md5 `fc8052696523d4a1d0c8bff1f055cc9d`.
 * **Six methods and the two enum constants they need**: `hasMarkedText` (C 7593),
@@ -3329,7 +3329,7 @@ call site takes an entry and the definition lands at its own C line - and **both
 
 ### Round 33: `EmacsView`'s composing pair and three light Cocoa-arm methods (C 7435-7456, C 7481-7568, C 7572-7621)
 
-* **`swiftc -parse-as-library -c femacs/platform/macos/nsterm.swift`**: **exit 0**, **0 errors**,
+* **`swiftc -parse-as-library -c platform/macos/nsterm.swift`**: **exit 0**, **0 errors**,
   **eight** warnings - the same eight rounds 22-32 carry, so **no new warning**.  Object
   `/tmp/nsterm33.o`, **685,976 bytes**, md5 `322c7bbe4a128c5353a0212a5506dd19`.  Two errors on the first compile, both
   recorded: `overriding declaration requires an 'override' keyword` for the one-argument
@@ -3343,7 +3343,7 @@ call site takes an entry and the definition lands at its own C line - and **both
 * **What this round wrote out instead of importing**: `UTF_16_HIGH_SURROGATE_P`,
   `UTF_16_LOW_SURROGATE_P` and `surrogates_to_codepoint`.  Their C bodies are `src/coding.h`
   674/680/760-768, and the port's mirror spells them as plain Rust functions
-  (`femacs/src/include/coding.rs` 304/308/317) rather than C-ABI entries, so they cannot be
+  (`src/include/coding.rs` 304/308/317) rather than C-ABI entries, so they cannot be
   reached by `@_silgen_name`; each Swift body is the macro's own expression, with the two dead
   `eassert`s of an unset `ENABLE_CHECKING` carried as the comment they are.
 * **And one more UNVERIFIED constant**: `NS_TEXT_EVENT = 29`, the member beside round 28's
@@ -3359,7 +3359,7 @@ call site takes an entry and the definition lands at its own C line - and **both
 
 ### Round 34: `ns_in_echo_area` (C 7623-7648)
 
-* **`swiftc -parse-as-library -c femacs/platform/macos/nsterm.swift`**: **exit 0**, **0 errors**,
+* **`swiftc -parse-as-library -c platform/macos/nsterm.swift`**: **exit 0**, **0 errors**,
   **eight** warnings - the same eight rounds 22-33 carry, so **no new warning**.  Object
   `/tmp/nsterm34.o`, **691,024 bytes**, md5 `8a76d3d2b4e0775e9d6fca03735223f6`.
 * **Three C functions and the imports they need**: `ns_in_echo_area_1` (C 7623),
@@ -3387,7 +3387,7 @@ call site takes an entry and the definition lands at its own C line - and **both
 
 ### Round 35: `ns_free_pixmap`, the two display metrics, and `ns_string_to_lispmod` (C 5648-5710)
 
-* **`swiftc -parse-as-library -c femacs/platform/macos/nsterm.swift`**: **exit 0**, **0 errors**,
+* **`swiftc -parse-as-library -c platform/macos/nsterm.swift`**: **exit 0**, **0 errors**,
   **eight** warnings - the same eight rounds 22-34 carry, so **no new warning**.  Object
   `/tmp/nsterm35.o`, **695,696 bytes**, md5 `18df1c23bd60508bcd24783a908ffc78` (taken after the
   fix below, per the round 24 note about object digests following comment edits).  The unit is
@@ -3416,7 +3416,7 @@ call site takes an entry and the definition lands at its own C line - and **both
 
 ### Round 36: `ns_default`, `ns_default_font_parameter`, and the dead GNUstep `ns_update_window_end` (C 5713-5783)
 
-* **`swiftc -parse-as-library -c femacs/platform/macos/nsterm.swift`**: **exit 0**, **0 errors**,
+* **`swiftc -parse-as-library -c platform/macos/nsterm.swift`**: **exit 0**, **0 errors**,
   **eight** warnings - the same eight rounds 22-35 carry, so **no new warning**.  Object
   `/tmp/nsterm36.o`, **700,568 bytes**, md5 `3ed96154faa125e1f9add0675271f72b`.  The unit is
   **8,419 lines**.
@@ -3424,8 +3424,8 @@ call site takes an entry and the definition lands at its own C line - and **both
   reader), `ns_default_font_parameter` (C 5769-5773, empty in C) and `ns_update_window_end`
   (C 5775-5783, dead).  The imports are `ns_get_defaults_value` (src/nsterm.h 1170; defined in
   src/nsfns.m 1886, which this lane's `nsfns.swift` 2858-2865 already exports), `c_strcasecmp`
-  (gnulib; this tree's own `femacs/lib/c-strcasecmp.rs` 22) and `make_float` (src/alloc.c;
-  `femacs/src/alloc.rs` 2789).  `fprintf`/`stderr` were already in the unit (round 3).
+  (gnulib; this tree's own `lib/c-strcasecmp.rs` 22) and `make_float` (src/alloc.c;
+  `src/alloc.rs` 2789).  `fprintf`/`stderr` were already in the unit (round 3).
 * **Two compile failures and their fixes** (both named in the source): ⑴ every pointer use needed
   C's own guard made explicit - `c_strcasecmp (value!, …)`, `strtod (value!, &pos)` and
   `fprintf (…, value!)` - because a Swift `Optional` pointer does not convert where these entries
@@ -3455,7 +3455,7 @@ call site takes an entry and the definition lands at its own C line - and **both
 
 ### Round 37: `ns_initialize_display_info` (C 5741-5764)
 
-* **`swiftc -parse-as-library -c femacs/platform/macos/nsterm.swift`**: **exit 0**, **0 errors**,
+* **`swiftc -parse-as-library -c platform/macos/nsterm.swift`**: **exit 0**, **0 errors**,
   **eight** warnings - the same eight rounds 22-36 carry, so **no new warning**.  Object
   `/tmp/nsterm37.o`, **712,856 bytes**, md5 `e5d6726aecabdf8838370b7fab226415`.  The unit is
   **8,491 lines**.
@@ -3498,7 +3498,7 @@ call site takes an entry and the definition lands at its own C line - and **both
 
 ### Round 38: `ns_flush_display`, the empty `ns_delete_display`, and the object nobody tracked (C 5785-5875)
 
-* **`swiftc -parse-as-library -c femacs/platform/macos/nsterm.swift`**: **exit 0**, **0 errors**,
+* **`swiftc -parse-as-library -c platform/macos/nsterm.swift`**: **exit 0**, **0 errors**,
   **eight** warnings - the same eight rounds 22-37 carry, so **no new warning**, and this round
   needed **no fix round**: it compiled on the first attempt.  Object `/tmp/nsterm38.o`,
   **713,480 bytes**, md5 `6819aed85a22bdec8a6b17db5990c2d7`.  The unit is **8,519 lines**.
@@ -3529,14 +3529,14 @@ call site takes an entry and the definition lands at its own C line - and **both
 
 ### Round 39: the redisplay interface table (C 5801-5835)
 
-* **`swiftc -parse-as-library -c femacs/platform/macos/nsterm.swift`**: **exit 0**, **0 errors**,
+* **`swiftc -parse-as-library -c platform/macos/nsterm.swift`**: **exit 0**, **0 errors**,
   **eight** warnings - the same eight rounds 22-38 carry, so **no new warning**, and like round 38
   this one **needed no fix round**.  Object `/tmp/nsterm39.o`, **754,584 bytes**, md5
   `93927fa69f456a94ce4ec8f5217f6a11`.  The unit is **8,673 lines**.
 * **The record, in the arm this unit ports.**  `struct redisplay_interface` is measured four times
   in `docs/baseline/redisplay_interface-layout.tsv`: the *frozen* configuration is **13 members /
   sizeof 104** (it leaves `HAVE_WINDOW_SYSTEM` false, and the Rust mirror
-  `femacs/src/include/dispextern.rs` 3794 is that shape), while `x11`, `x11_ext` and **`ns_cocoa`**
+  `src/include/dispextern.rs` 3794 is that shape), while `x11`, `x11_ext` and **`ns_cocoa`**
   are **28 members / sizeof 224**.  C 5801-5835 initialises 28 members, so this unit carries its
   own view of the `ns_cocoa` shape (members at 0, 8, 16, … 216) rather than the mirror's - the same
   relationship `input_event` has to `termhooks.rs`.  Every member is a function pointer, spelled as
@@ -3568,7 +3568,7 @@ call site takes an entry and the definition lands at its own C line - and **both
 
 ### Round 40: `ns_displays_reconfigured` (C 5837-5868)
 
-* **`swiftc -parse-as-library -c femacs/platform/macos/nsterm.swift`**: **exit 0**, **0 errors**,
+* **`swiftc -parse-as-library -c platform/macos/nsterm.swift`**: **exit 0**, **0 errors**,
   **eight** warnings - the same eight rounds 22-39 carry, so **no new warning**.  Object
   `/tmp/nsterm40.o`, **760,632 bytes**, md5 `2267c28a739f4b03af29f98a05638e0a` (**taken after the
   citation fix below**).  The unit is **8,780 lines**.
@@ -3579,8 +3579,8 @@ call site takes an entry and the definition lands at its own C line - and **both
   read as `input_event_kind (&ev!.pointee.ie)`, i.e. the same low 16 bits the record's own view
   documents; ⑵ the kbd buffer's three data entries - `kbd_buffer` (declared with the element type,
   because C's use here is the array's address), `kbd_fetch_ptr`, `kbd_store_ptr`, all
-  `#[unsafe(no_mangle)] static mut` in the core (`femacs/src/keyboard.rs` 178-186); ⑶ `Fequal`
-  (the core's globals mirror, `femacs/src/include/globals.rs` 7577); ⑷ the nsfns lane's
+  `#[unsafe(no_mangle)] static mut` in the core (`src/keyboard.rs` 178-186); ⑶ `Fequal`
+  (the core's globals mirror, `src/include/globals.rs` 7577); ⑷ the nsfns lane's
   `Fns_display_monitor_attributes_list` (`nsfns.swift` 3669); ⑸ `XSETTERMINAL` as a macro entry
   (src/lisp.h 1384, the `XSETFRAME` shape); ⑹ a new member reader `ns_display_info_terminal` for
   C 5865's `x_display_list->terminal` (the `ns_display_info_next` family, which the mouse-move
@@ -3589,8 +3589,8 @@ call site takes an entry and the definition lands at its own C line - and **both
   `MONITORS_CHANGED_EVENT` (35) are *not* in `docs/baseline/config/*.tsv` nor exported by the core,
   and C's `enum event_kind` has guarded members before `MONITORS_CHANGED_EVENT` (`HAVE_DBUS`,
   `THREADS_ENABLED`, …), so neither the frozen macro table nor counting alone decides them.  Both
-  values are taken from this tree's own mirror (`femacs/src/include/keyboard.rs` 43,
-  `femacs/src/include/termhooks.rs` 62) - the reading round 33's
+  values are taken from this tree's own mirror (`src/include/keyboard.rs` 43,
+  `src/include/termhooks.rs` 62) - the reading round 33's
   `MULTIBYTE_CHAR_KEYSTROKE_EVENT` established for exactly this class.
 * **One compile failure and its fix**: `kbd_buffer_store_event` was already this unit's entry (the
   C 1373 block's declaration), so C 5867's call reuses it rather than redeclaring it - the fix
@@ -3613,14 +3613,14 @@ call site takes an entry and the definition lands at its own C line - and **both
 
 ### Round 41: `ns_delete_terminal` (C 5877-5902)
 
-* **`swiftc -parse-as-library -c femacs/platform/macos/nsterm.swift`**: **exit 0**, **0 errors**,
+* **`swiftc -parse-as-library -c platform/macos/nsterm.swift`**: **exit 0**, **0 errors**,
   **eight** warnings - the same eight rounds 22-40 carry, so **no new warning**, and like rounds
   38/39 it **needed no fix round**.  Object `/tmp/nsterm41.o`, **761,520 bytes**, md5
   `4575f252497a81e0467d977f679b14f4`.  The unit is **8,828 lines**.
 * **What the definition needed**: `terminal->display_info.ns` (C 5882) is already the core's own
-  shim (`femacs/src/abi_shim.rs` 412, `terminal_display_info_ns`) - the first member entry of this
+  shim (`src/abi_shim.rs` 412, `terminal_display_info_ns`) - the first member entry of this
   lane that was provided before its Swift side landed; `image_destroy_all_bitmaps` (C 5899) is the
-  core's (`femacs/src/image.rs` 1841); `block_input`/`unblock_input` (C 5891/5901) and the
+  core's (`src/image.rs` 1841); `block_input`/`unblock_input` (C 5891/5901) and the
   `NSTRACE` empty macro are the unit's existing shapes; `ns_delete_display` (C 5900) landed in
   round 38; and C 5896's `[NSApp setActivationPolicy: NSApplicationActivationPolicyProhibited]` is
   `NSApp.setActivationPolicy (.prohibited)`.  **One new name**: `terminal_name`, the member entry
@@ -3646,7 +3646,7 @@ call site takes an entry and the definition lands at its own C line - and **both
 
 ### Round 42: the `EmacsScroller` record and `initFrame:window:` (C 10620-10701)
 
-* **`swiftc -parse-as-library -c femacs/platform/macos/nsterm.swift`**: **exit 0**, **0 errors**,
+* **`swiftc -parse-as-library -c platform/macos/nsterm.swift`**: **exit 0**, **0 errors**,
   **eight** warnings - the same eight rounds 22-41 carry, so **no new warning**.  Object
   `/tmp/nsterm42.o`, **804,112 bytes**, md5 `1ecb1c3e047774ffac1c2a22ba7aaf78`.  The unit is
   **8,956 lines**.
@@ -3680,7 +3680,7 @@ call site takes an entry and the definition lands at its own C line - and **both
 
 ### Round 43: `EmacsScroller`'s record-keeping methods (C 10703-10804)
 
-* **`swiftc -parse-as-library -c femacs/platform/macos/nsterm.swift`**: **exit 0**, **0 errors**,
+* **`swiftc -parse-as-library -c platform/macos/nsterm.swift`**: **exit 0**, **0 errors**,
   **eight** warnings - the same eight rounds 22-42 carry, so **no new warning**.  Object
   `/tmp/nsterm43.o`, **813,304 bytes**, md5 `bb3129da32d8656740cc4cfe6a7fb3fb`.  The unit is
   **9,086 lines**.
@@ -3710,7 +3710,7 @@ call site takes an entry and the definition lands at its own C line - and **both
 
 ### Round 44: `EmacsScroller`'s position and event methods (C 10806-10927)
 
-* **`swiftc -parse-as-library -c femacs/platform/macos/nsterm.swift`**: **exit 0**, **0 errors**,
+* **`swiftc -parse-as-library -c platform/macos/nsterm.swift`**: **exit 0**, **0 errors**,
   **eight** warnings - the same eight rounds 22-43 carry, so **no new warning**.  Object
   `/tmp/nsterm44.o`, **831,912 bytes**, md5 `d12150a92426ec8d2ba3a0f5a47162e0`.  The unit is
   **9,231 lines**.
@@ -3741,7 +3741,7 @@ call site takes an entry and the definition lands at its own C line - and **both
 
 ### Round 45: `EmacsScroller`'s `mouseDown:` (C 10927-11047)
 
-* **`swiftc -parse-as-library -c femacs/platform/macos/nsterm.swift`**: **exit 0**, **0 errors**,
+* **`swiftc -parse-as-library -c platform/macos/nsterm.swift`**: **exit 0**, **0 errors**,
   **eight** warnings - the same eight rounds 22-44 carry, so **no new warning**.  Object
   `/tmp/nsterm45.o`, **838,456 bytes**, md5 `dc438486d790b23e0e567360cb4d6b97`.  The unit is
   **9,370 lines**.
@@ -3771,7 +3771,7 @@ call site takes an entry and the definition lands at its own C line - and **both
 
 ### Round 46: `EmacsScroller` closed (C 11050-11115)
 
-* **`swiftc -parse-as-library -c femacs/platform/macos/nsterm.swift`**: **exit 0**, **0 errors**,
+* **`swiftc -parse-as-library -c platform/macos/nsterm.swift`**: **exit 0**, **0 errors**,
   **eight** warnings - the same eight rounds 22-45 carry, so **no new warning**, and the round
   **compiled first try** (the three renamed spellings below were pre-applied from round 45's
   measurements).  Object `/tmp/nsterm46.o`, **843,232 bytes**, md5
@@ -3799,7 +3799,7 @@ call site takes an entry and the definition lands at its own C line - and **both
 
 ### Round 47: `ns_set_vertical_scroll_bar` (C 5396-5486)
 
-* **`swiftc -parse-as-library -c femacs/platform/macos/nsterm.swift`**: **exit 0**, **0 errors**,
+* **`swiftc -parse-as-library -c platform/macos/nsterm.swift`**: **exit 0**, **0 errors**,
   **eight** warnings - the same eight rounds 22-46 carry, so **no new warning**.  Object
   `/tmp/nsterm47.o`, **849,096 bytes**, md5 `ea9a9a0d055d36c26b107cc24795f0b2`.  The unit is
   **9,561 lines**.
@@ -3829,7 +3829,7 @@ call site takes an entry and the definition lands at its own C line - and **both
 
 ### Round 48: `ns_set_horizontal_scroll_bar` (C 5490-5571)
 
-* **`swiftc -parse-as-library -c femacs/platform/macos/nsterm.swift`**: **exit 0**, **0 errors**,
+* **`swiftc -parse-as-library -c platform/macos/nsterm.swift`**: **exit 0**, **0 errors**,
   **eight** warnings - the same eight rounds 22-47 carry, so **no new warning**, and the round
   **compiled first try**.  Object `/tmp/nsterm48.o`, **854,424 bytes**, md5
   `844f126505fa3884d27ba6b84259b98a`.  The unit is **9,661 lines**.
@@ -3853,7 +3853,7 @@ call site takes an entry and the definition lands at its own C line - and **both
 
 ### Round 49: the scroll-bar hook batch closes (C 5575-5640), and the batch's dead arm (C 2771-2786)
 
-* **`swiftc -parse-as-library -c femacs/platform/macos/nsterm.swift`**: **exit 0**, **0 errors**,
+* **`swiftc -parse-as-library -c platform/macos/nsterm.swift`**: **exit 0**, **0 errors**,
   **eight** warnings - the same eight rounds 22-48 carry, so **no new warning**, and the round
   **compiled first try**.  Object `/tmp/nsterm49.o`, **860,064 bytes**, md5
   `53c692b9cd3ec35e7ea610c27e833003`.  The unit is **9,746 lines**.
@@ -3882,7 +3882,7 @@ call site takes an entry and the definition lands at its own C line - and **both
 
 ### Round 50: the `ns_create_terminal` entry layer (C 5906-5961)
 
-* **`swiftc -parse-as-library -c femacs/platform/macos/nsterm.swift`**: **exit 0**, **0 errors**,
+* **`swiftc -parse-as-library -c platform/macos/nsterm.swift`**: **exit 0**, **0 errors**,
   **eight** warnings - the same eight rounds 22-49 carry, so **no new warning**.  Object
   `/tmp/nsterm50.o`, **860,304 bytes**, md5 `ce0bc8cd21cc37fa3f4bbf490c6c81c1` (**identical before and after the citation fix below** - a
   comment-only edit does not change the object).  The unit is
@@ -3893,9 +3893,9 @@ call site takes an entry and the definition lands at its own C line - and **both
   entries come first; the body (the create call, the two display-info writes and the 36
   assignments with their non-capturing `@convention(c)` closures, the round-39 shape) is the
   remainder, and the box's text says so.
-* **What landed**: `create_terminal` (the core's own entry, `femacs/src/terminal.rs` 366),
+* **What landed**: `create_terminal` (the core's own entry, `src/terminal.rs` 366),
   `output_ns` (src/termhooks.h 64's enumerator - a *type tag*, not a record - mirror-valued 5 at
-  `femacs/src/include/termhooks.rs` 159), `ns_display_info_set_terminal` (the writer C 5920 needs,
+  `src/include/termhooks.rs` 159), `ns_display_info_set_terminal` (the writer C 5920 needs,
   of the family round 37 established and round 40 read), and the **36 `terminal_set_<member>`
   setters**, each declared with C's prototype transcribed from src/termhooks.h and the C line
   `ns_create_terminal` writes it at.
@@ -3918,7 +3918,7 @@ call site takes an entry and the definition lands at its own C line - and **both
 
 ### Round 51: `ns_new_font` (C 11410-11476)
 
-* **`swiftc -parse-as-library -c femacs/platform/macos/nsterm.swift`**: **exit 0**, **0 errors**,
+* **`swiftc -parse-as-library -c platform/macos/nsterm.swift`**: **exit 0**, **0 errors**,
   **eight** warnings - the same eight rounds 22-50 carry, so **no new warning**, and the round
   **compiled first try**.  Object `/tmp/nsterm51.o`, **864,336 bytes**, md5
   `a95602d825bbf424d56c6ec1661a26d7`.  The unit is **10,037 lines**.
@@ -3946,7 +3946,7 @@ call site takes an entry and the definition lands at its own C line - and **both
 
 ### Round 52: `ns_create_terminal` (C 5906-5961)
 
-* **`swiftc -parse-as-library -c femacs/platform/macos/nsterm.swift`**: **exit 0**, **0 errors**,
+* **`swiftc -parse-as-library -c platform/macos/nsterm.swift`**: **exit 0**, **0 errors**,
   **eight** warnings - the same eight rounds 22-51 carry, so **no new warning**, and the round
   **compiled first try** (the 36-entry table included).  Object `/tmp/nsterm52.o`, **883,472 bytes**,
   md5 `2cbf5e8968af8fc18aabcd1e542ba8eb`.  The unit is **10,151 lines**.
@@ -3973,7 +3973,7 @@ call site takes an entry and the definition lands at its own C line - and **both
 
 ### Round 53: `mark_nsterm` (C 11528-11547)
 
-* **`swiftc -parse-as-library -c femacs/platform/macos/nsterm.swift`**: **exit 0**, **0 errors**,
+* **`swiftc -parse-as-library -c platform/macos/nsterm.swift`**: **exit 0**, **0 errors**,
   **eight** warnings - the same eight rounds 22-52 carry, so **no new warning**, and the round
   **compiled first try**.  Object `/tmp/nsterm53.o`, **885,736 bytes**, md5
   `90e4176a5263d8fd0dd94d706306adf4`.  The unit is **10,189 lines**.
@@ -3994,7 +3994,7 @@ call site takes an entry and the definition lands at its own C line - and **both
 
 ### Round 54: the `ns_term_init` entry layer (C 5965-6194)
 
-* **`swiftc -parse-as-library -c femacs/platform/macos/nsterm.swift`**: **exit 0**, **0 errors**,
+* **`swiftc -parse-as-library -c platform/macos/nsterm.swift`**: **exit 0**, **0 errors**,
   **eight** warnings - the same eight rounds 22-53 carry, so **no new warning**, and the round
   **compiled first try**.  Object `/tmp/nsterm54.o`, **886,048 bytes**, md5
   `d7a907a82a95d902217f7e489858f4ff`.  The unit is **10,249 lines**.
@@ -4023,7 +4023,7 @@ call site takes an entry and the definition lands at its own C line - and **both
 
 ### Round 55: the rest of `ns_term_init`'s entry layer, and a correction (C 5965-6194)
 
-* **`swiftc -parse-as-library -c femacs/platform/macos/nsterm.swift`**: **exit 0**, **0 errors**,
+* **`swiftc -parse-as-library -c platform/macos/nsterm.swift`**: **exit 0**, **0 errors**,
   **eight** warnings - the same eight rounds 22-54 carry, so **no new warning** after the correction.
   Object `/tmp/nsterm55.o`, **886,304 bytes**, md5 `1dd2b56c8f277bffcb65b6e5fb2035c3`.  The unit is
   **10,279 lines**.
@@ -4052,7 +4052,7 @@ call site takes an entry and the definition lands at its own C line - and **both
 
 ### Round 56: `ns_term_shutdown` (C 6197-6215), and the body's last two unknowns
 
-* **`swiftc -parse-as-library -c femacs/platform/macos/nsterm.swift`**: **exit 0**, **0 errors**,
+* **`swiftc -parse-as-library -c platform/macos/nsterm.swift`**: **exit 0**, **0 errors**,
   **eight** warnings - the same eight rounds 22-55 carry, so **no new warning**, and the round
   **compiled first try**.  Object `/tmp/nsterm56.o`, **887,808 bytes**, md5
   `736c17579b9955a1280dceef9b7a56fd`.  The unit is **10,321 lines**.
@@ -4080,7 +4080,7 @@ call site takes an entry and the definition lands at its own C line - and **both
 
 ### Round 57: `ns_term_init`'s body (C 5969-6193)
 
-* **`swiftc -parse-as-library -c femacs/platform/macos/nsterm.swift`**: **exit 0**, **0 errors**,
+* **`swiftc -parse-as-library -c platform/macos/nsterm.swift`**: **exit 0**, **0 errors**,
   **eight** warnings - the same eight rounds 22-56 carry, so **no new warning**.  Object
   `/tmp/nsterm57.o`, **919,064 bytes**, md5 `f6c5e2c55c49ffade57476997432ece3`.  The unit is
   **10,572 lines**.  The first measurement stopped on one call; the failure and its fix are the
@@ -4156,7 +4156,7 @@ call site takes an entry and the definition lands at its own C line - and **both
 
 ### Round 58: the font-panel trio - `ns_font_desc_to_font_spec` (C 6914-6988), `ns_create_font_panel_buttons` (C 6990-7030), `ns_xlfd_to_fontname` (C 11483-11526)
 
-* **`swiftc -parse-as-library -c femacs/platform/macos/nsterm.swift`**: **exit 0**, **0 errors**,
+* **`swiftc -parse-as-library -c platform/macos/nsterm.swift`**: **exit 0**, **0 errors**,
   **eight** warnings - the same eight rounds 22-57 carry, so **no new warning**.  Object
   `/tmp/nsterm58.o`, **954,672 bytes**, md5 `f23997532b7662c8b7d35fb8e9205619`.  The unit is
   **10,786 lines**.  The first measurement stopped on three errors; they are the entry below.
@@ -4181,7 +4181,7 @@ call site takes an entry and the definition lands at its own C line - and **both
 * **New entries this round declares** (17, all named): the eight font keywords (`Qbold`, `Qitalic`,
   `Qnormal`, `Qreverse_italic`, `Qcondensed`, `Qexpanded`, `Qmedium`, `Qsemi_light`; `Qlight` was
   already here), the five `Ffont_spec` keywords (`QCwidth`, `QCslant`, `QCweight`, `QCsize`,
-  `QCfamily`), `Ffont_spec` itself, `c_toupper` (`femacs/lib/c-ctype.rs` 103-104 re-exports it under
+  `QCfamily`), `Ffont_spec` itself, `c_toupper` (`lib/c-ctype.rs` 103-104 re-exports it under
   the C name), `xmalloc` and the variadic `sscanf` (Swift marks the SDK's own unavailable - measured).
 * **`python3 tools/check-swift-units.py`**: `nsterm.swift: 150 C definition(s), **8** unported,
   8 row(s); **595** C symbol import(s)` - three fewer unported than round 57's 11 (these three
@@ -4196,7 +4196,7 @@ call site takes an entry and the definition lands at its own C line - and **both
 
 ### Round 59: `cancel_ns_deferred_UAZoomChangeFocus_timer` (C 8459-8470)
 
-* **`swiftc -parse-as-library -c femacs/platform/macos/nsterm.swift`**: **exit 0**, **0 errors**,
+* **`swiftc -parse-as-library -c platform/macos/nsterm.swift`**: **exit 0**, **0 errors**,
   **eight** warnings - the same eight rounds 22-58 carry, so **no new warning**, and the round
   **compiled first try**.  Object `/tmp/nsterm59.o`, **956,440 bytes**, md5
   `0a101815faffdc859d4d4a7156f9fd4f`.  The unit is **10,808 lines**.
@@ -4219,7 +4219,7 @@ call site takes an entry and the definition lands at its own C line - and **both
 
 ### Round 60: `syms_of_nsterm` (C 11549-11811) - the file's last function
 
-* **`swiftc -parse-as-library -c femacs/platform/macos/nsterm.swift`**: **exit 0**, **0 errors**,
+* **`swiftc -parse-as-library -c platform/macos/nsterm.swift`**: **exit 0**, **0 errors**,
   **eight** warnings - the same eight rounds 22-59 carry, so **no new warning**.  Object
   `/tmp/nsterm60.o`, **1,011,888 bytes**, md5 `003b4fad7535ad4d0569297b76819adb`.  The unit is
   **11,197 lines**.  The first measurement stopped on four errors; they are the entry below.
@@ -4238,7 +4238,7 @@ call site takes an entry and the definition lands at its own C line - and **both
   `Vns_scroll_event_delta_factor`, `Vns_drag_motion_function`, `Vx_toolkit_scroll_bars`,
   `x_use_underline_position_properties`, `x_underline_at_descent_line`) are new imports here.  The
   last three are `src/xterm.c`'s - the reference's own docstrings say so ("SKIP: real doc in
-  xterm.c") and `femacs/src/xterm.rs` 22166-22170 already carries them.
+  xterm.c") and `src/xterm.rs` 22166-22170 already carries them.
 * **The `DEFVAR` machinery** is the lane's (`docs/ports/nsselect.md`): the `Lisp_Fwd`/`Lisp_Fwd_u`
   records (one slot for C's two-member union, the `nsfns.swift` 733-742 extension), `Lisp_Fwd_Obj`/
   `Lisp_Fwd_Bool`, `defvar_lisp`/`defvar_bool`, `staticpro`, `make_fixnum`, `Fput` and `Fprovide`.
@@ -4248,7 +4248,7 @@ call site takes an entry and the definition lands at its own C line - and **both
 * **`PDUMPER_REMEMBER_SCALAR` and the four enumerator entries**: the macro (src/pdumper.h 52-53) is
   `pdumper_remember_scalar (&thing, sizeof thing)`, whose INLINE body calls the exported
   `pdumper_remember_scalar_impl` on the `HAVE_PDUMPER` 1 arm - the INLINE has no C symbol
-  (`femacs/src/include/pdumper.rs` 96-101 mirrors it), so C 11555 is written as that call with the
+  (`src/include/pdumper.rs` 96-101 mirrors it), so C 11555 is written as that call with the
   same two arguments.  `alt_modifier`/`super_modifier`/`meta_modifier`/`ctrl_modifier` (src/termhooks.h
   457-463) join the four enumerator entries this unit already has (the `PVEC_SUBR` reading), with the
   same open item: their providers are the port's C-ABI side's.
@@ -4280,7 +4280,7 @@ call site takes an entry and the definition lands at its own C line - and **both
 
 ### Round 61: `EmacsLayer` (C 11128-11396) - the screen-buffer class
 
-* **`swiftc -parse-as-library -c femacs/platform/macos/nsterm.swift`**: **exit 0**, **0 errors**,
+* **`swiftc -parse-as-library -c platform/macos/nsterm.swift`**: **exit 0**, **0 errors**,
   **eight** warnings - the same eight rounds 22-60 carry, so **no new warning**.  Object
   `/tmp/nsterm61.o`, **1,087,192 bytes**, md5 `c9d73011438683c3162129e02d7861ba`.  The unit is
   **11,494 lines**.  The first four measurements stopped on errors; they are the entries below.
@@ -4331,7 +4331,7 @@ call site takes an entry and the definition lands at its own C line - and **both
 
 ### Round 62: `EmacsWindow`'s drag-and-drop family (C 10470-10608) and its four ivars
 
-* **`swiftc -parse-as-library -c femacs/platform/macos/nsterm.swift`**: **exit 0**, **0 errors**,
+* **`swiftc -parse-as-library -c platform/macos/nsterm.swift`**: **exit 0**, **0 errors**,
   **eight** warnings - the same eight rounds 22-61 carry, so **no new warning**.  Object
   `/tmp/nsterm62.o`, **1,109,312 bytes**, md5 `e73693675fcc15730cb126c4913d2662`.  The unit is
   **11,654 lines**.  The first measurement stopped on one error; it is the `@objc` entry below.
@@ -4377,7 +4377,7 @@ call site takes an entry and the definition lands at its own C line - and **both
 
 ### Round 63: `EmacsWindow`'s zoom, appearance and frame setters (C 10299-10442)
 
-* **`swiftc -parse-as-library -c femacs/platform/macos/nsterm.swift`**: **exit 0**, **0 errors**,
+* **`swiftc -parse-as-library -c platform/macos/nsterm.swift`**: **exit 0**, **0 errors**,
   **eight** warnings - the same eight rounds 22-62 carry, so **no new warning**.  Object
   `/tmp/nsterm63.o`, **1,117,648 bytes**, md5 `6206cfed7a6ea4f999de69d45bc5dbd8`.  The unit is
   **11,755 lines**.  The first measurement stopped on one error; it is the entry below.
@@ -4422,7 +4422,7 @@ call site takes an entry and the definition lands at its own C line - and **both
 
 ### Round 64: `EmacsWindow`'s two initializers (C 9759-9875), and two providers the unit owed
 
-* **`swiftc -parse-as-library -c femacs/platform/macos/nsterm.swift`**: **exit 0**, **0 errors**,
+* **`swiftc -parse-as-library -c platform/macos/nsterm.swift`**: **exit 0**, **0 errors**,
   **eight** warnings - the same eight rounds 22-63 carry, so **no new warning**.  Object
   `/tmp/nsterm64.o`, **1,125,664 bytes**, md5 `51da4272074d8c254560db12fbf0e749`.  The unit is
   **11,947 lines**.  The first two measurements stopped on errors; they are the entries below.
@@ -4463,7 +4463,7 @@ call site takes an entry and the definition lands at its own C line - and **both
 
 ### Round 65: `setParentChildRelationships` (C 9934-10037), `restackWindow:above:` (C 10124-10155) and three providers
 
-* **`swiftc -parse-as-library -c femacs/platform/macos/nsterm.swift`**: **exit 0**, **0 errors**,
+* **`swiftc -parse-as-library -c platform/macos/nsterm.swift`**: **exit 0**, **0 errors**,
   **eight** warnings - the same eight rounds 22-64 carry, so **no new warning**, and the round
   **compiled first try**.  Object `/tmp/nsterm65.o`, **1,139,928 bytes**, md5
   `66755ac1c8c0f8117e919bf7caefd3c4`.  The unit is **12,098 lines**.
@@ -4497,7 +4497,7 @@ call site takes an entry and the definition lands at its own C line - and **both
 
 ### Round 66: `createToolbar:`, `dealloc` and `constrainFrameRect:toScreen:` (C 9878-10296)
 
-* **`swiftc -parse-as-library -c femacs/platform/macos/nsterm.swift`**: **exit 0**, **0 errors**,
+* **`swiftc -parse-as-library -c platform/macos/nsterm.swift`**: **exit 0**, **0 errors**,
   **eight** warnings - the same eight rounds 22-65 carry, so **no new warning**.  Object
   `/tmp/nsterm66.o`, **1,148,312 bytes**, md5 `7c05d64bda9e5ff0fd47d8b13efd25b8`.  The unit is
   **12,246 lines**.  The first two measurements stopped on errors; they are the entries below.
@@ -4533,7 +4533,7 @@ call site takes an entry and the definition lands at its own C line - and **both
 
 ### Round 67: `accessibilityAttributeValue:` (C 10158-10211) - and `EmacsWindow` closes
 
-* **`swiftc -parse-as-library -c femacs/platform/macos/nsterm.swift`**: **exit 0**, **0 errors**,
+* **`swiftc -parse-as-library -c platform/macos/nsterm.swift`**: **exit 0**, **0 errors**,
   **nine** warnings - the eight rounds 22-66 carry, **plus one new one**, which is this method's own
   deprecation: `'accessibilityAttributeValue' was deprecated in macOS 10.10: Use the NSAccessibility
   protocol methods instead (see NSAccessibilityProtocols.h)` at the override.  It cannot be avoided
@@ -4568,7 +4568,7 @@ call site takes an entry and the definition lands at its own C line - and **both
 
 ### Round 68: the focus/notification batch (C 8404-8556), and three stale boxes closed
 
-* **`swiftc -parse-as-library -c femacs/platform/macos/nsterm.swift`**: **exit 0**, **0 errors**,
+* **`swiftc -parse-as-library -c platform/macos/nsterm.swift`**: **exit 0**, **0 errors**,
   **nine** warnings - the same nine round 67 leaves (the eight of rounds 22-66 plus
   `accessibilityAttributeValue`'s own deprecation), so **no new warning**.  Object
   `/tmp/nsterm68.o`, **1,177,568 bytes**, md5 `3e60fb6df5ee7cc231dc507e33f2381d`.  The unit is
@@ -4601,7 +4601,7 @@ call site takes an entry and the definition lands at its own C line - and **both
 
 ### Round 69: the mouse event family (C 7783-8193), and a correction to round 68's `gen_help_event`
 
-* **`swiftc -parse-as-library -c femacs/platform/macos/nsterm.swift`**: **exit 0**, **0 errors**,
+* **`swiftc -parse-as-library -c platform/macos/nsterm.swift`**: **exit 0**, **0 errors**,
   **nine** warnings - the same nine round 68 leaves.  The first run added a **tenth**: C 7926's
   `fabs` is deprecated in Swift ("renamed to 'abs'"), so the port takes the SDK's own spelling
   (`abs`; class B, the `NSRectFill` -> `NSRect.fill` reading) and the count returns to nine.
@@ -4625,26 +4625,26 @@ call site takes an entry and the definition lands at its own C line - and **both
   says so at the declaration and here (upstream's own arm would read whatever was on the stack).
 * **The ABI block adds 26 entries and six mirror-valued enumerator constants**
   (`MOUSE_CLICK_EVENT` 5, `WHEEL_EVENT` 6, `HORIZ_WHEEL_EVENT` 7, `SELECT_WINDOW_EVENT` 25,
-  `TOUCH_END_EVENT` 30, `PINCH_EVENT` 34 - read off `femacs/src/include/termhooks.rs`
-  32/33/34/52/57/61).  **Provided** (each measured by grep): `list3` (`femacs/src/alloc.rs` 2975),
-  `list4` (2982), `window_from_coordinates` (`femacs/src/window.rs` 1861),
-  `default_line_pixel_height` (`femacs/src/xdisp.rs` 3120), `clear_mouse_face` (30424),
-  `mwheel_coalesce_scroll_events` (`femacs/src/keyboard.rs` 14411), `Vmouse_autoselect_window`
-  (`femacs/src/xdisp.rs` 32065), `selected_window` (`femacs/src/window.rs` 253),
-  `focus_follows_mouse` (`femacs/src/frame.rs` 7443), `help_echo_window`/`help_echo_object`/
-  `help_echo_pos`/`previous_help_echo_string` (`femacs/src/xdisp.rs` 2766/2768/2770/2775) and
-  `frame_tab_bar_window` (`femacs/src/abi_shim.rs` 277, whose own comment carries the frozen
+  `TOUCH_END_EVENT` 30, `PINCH_EVENT` 34 - read off `src/include/termhooks.rs`
+  32/33/34/52/57/61).  **Provided** (each measured by grep): `list3` (`src/alloc.rs` 2975),
+  `list4` (2982), `window_from_coordinates` (`src/window.rs` 1861),
+  `default_line_pixel_height` (`src/xdisp.rs` 3120), `clear_mouse_face` (30424),
+  `mwheel_coalesce_scroll_events` (`src/keyboard.rs` 14411), `Vmouse_autoselect_window`
+  (`src/xdisp.rs` 32065), `selected_window` (`src/window.rs` 253),
+  `focus_follows_mouse` (`src/frame.rs` 7443), `help_echo_window`/`help_echo_object`/
+  `help_echo_pos`/`previous_help_echo_string` (`src/xdisp.rs` 2766/2768/2770/2775) and
+  `frame_tab_bar_window` (`src/abi_shim.rs` 277, whose own comment carries the frozen
   configuration's `Qnil` ruling).  **Open** (the core's to export, each with the reason in its
   comment): `handle_tab_bar_click` (the port carries the tty spelling only,
-  `femacs/src/xdisp.rs` 15839), `NUMBERP`/`XFLOATINT` (class A header-only constructs the mirror
+  `src/xdisp.rs` 15839), `NUMBERP`/`XFLOATINT` (class A header-only constructs the mirror
   carries as Rust macros), `MINI_WINDOW_P`, `frame_mouse_moved` (the mirror's macro,
-  `femacs/src/term.rs` 121), and the member entries `ns_display_info_set_last_mouse_frame`,
+  `src/term.rs` 121), and the member entries `ns_display_info_set_last_mouse_frame`,
   `ns_display_info_set_last_mouse_movement_time`, `ns_display_info_set_last_mouse_motion_x`/`_y`,
   `ns_display_info_grabbed` and `mouse_highlight_mouse_face_hidden`/
   `mouse_highlight_set_mouse_face_hidden` (the `<record>_<member>` family, `docs/ports/nsmenu.md`
   311-328).
 * **A correction to round 68**: the `gen_help_event` entry was declared `-> Lisp_Object` while C's
-  declaration (src/keyboard.h 513) and the port's own definition (`femacs/src/keyboard.rs` 4296)
+  declaration (src/keyboard.h 513) and the port's own definition (`src/keyboard.rs` 4296)
   return nothing - the `_ =` at C 8520's call site was the symptom.  This round removes both, and
   C 8129's call in `mouseMoved:` uses the corrected shape.
 * **`python3 tools/check-swift-units.py`**: `nsterm.swift: 150 C definition(s), 6 unported, 6
@@ -4656,7 +4656,7 @@ call site takes an entry and the definition lands at its own C line - and **both
 
 ### Round 70: the window-shape family (C 8195-8401)
 
-* **`swiftc -parse-as-library -c femacs/platform/macos/nsterm.swift`**: **exit 0**, **0 errors**,
+* **`swiftc -parse-as-library -c platform/macos/nsterm.swift`**: **exit 0**, **0 errors**,
   **nine** warnings - the same nine round 69 leaves.  The first run had **seven errors**; once
   they were fixed it left one **new** warning (a non-optional `NSScreen` compared against `nil`),
   whose fix keeps C 8217's subscript evaluation and records C 8222's test as one Swift's types
@@ -4682,14 +4682,14 @@ call site takes an entry and the definition lands at its own C line - and **both
   subscript has) and C 8301's `[[self window] title] != NULL` (the same shape: a message to a nil
   window reads nil and a non-nil window always has a title string).
 * **The ABI block adds 12 entries and four file-scope constants**.  The constants are
-  `DELETE_WINDOW_EVENT` 12 and `MOVE_FRAME_EVENT` 24 (`femacs/src/include/termhooks.rs` 39/51,
+  `DELETE_WINDOW_EVENT` 12 and `MOVE_FRAME_EVENT` 24 (`src/include/termhooks.rs` 39/51,
   the `MONITORS_CHANGED_EVENT` reading) and `MINWIDTH`/`MINHEIGHT` 10 (src/nsterm.h 1268-1269,
   the `DOCK_IGNORE_LIMIT` reading).  **Provided**: `frame_resize_pixelwise`
-  (`femacs/src/frame.rs` 7445), `esprintf` (`femacs/src/doprnt.rs` 552) and `cancel_mouse_face`
-  (`femacs/src/xdisp.rs` 31985).  **Open**: `FULLSCREEN_WIDTH`/`FULLSCREEN_HEIGHT`/
+  (`src/frame.rs` 7445), `esprintf` (`src/doprnt.rs` 552) and `cancel_mouse_face`
+  (`src/xdisp.rs` 31985).  **Open**: `FULLSCREEN_WIDTH`/`FULLSCREEN_HEIGHT`/
   `FULLSCREEN_MAXIMIZED` (the mirror's Rust constants), `frame_set_left_pos`/`frame_set_top_pos`,
   `FRAME_PIXEL_WIDTH_TO_TEXT_COLS`/`FRAME_PIXEL_HEIGHT_TO_TEXT_LINES` (class A) and
-  `SET_FRAME_GARBAGED` (the mirror's macro, `femacs/src/term.rs` 127).  **Deferred** (`## ABI`
+  `SET_FRAME_GARBAGED` (the mirror's macro, `src/term.rs` 127).  **Deferred** (`## ABI`
   (4)): `setFSValue` (declared src/nsterm.h 504, defined src/nsterm.m 9177 and unlanded;
   `nsfns.swift` 411 declares the same entry for its own unit) and `windowDidMove` (C 8645,
   unlanded).
@@ -4701,7 +4701,7 @@ call site takes an entry and the definition lands at its own C line - and **both
 
 ### Round 71: the window delegate and fullscreen family (C 8645-8950)
 
-* **`swiftc -parse-as-library -c femacs/platform/macos/nsterm.swift`**: **exit 0**, **0 errors**,
+* **`swiftc -parse-as-library -c platform/macos/nsterm.swift`**: **exit 0**, **0 errors**,
   **nine** warnings - the same nine round 70 leaves, with **nothing new on the first run**.
   Object `/tmp/nsterm71.o`, **1,270,592 bytes**, md5 `303a877c84886fb120df23dc79963e21`.  The unit
   is **13,687 lines**.
@@ -4726,7 +4726,7 @@ call site takes an entry and the definition lands at its own C line - and **both
 * **The ABI block adds one entry and two file-scope constants**: `FULLSCREEN_BOTH` (src/frame.h
   54, `0x3`; **open** - the mirror's Rust constant carries no C symbol yet) and the
   mirror-valued `ICONIFY_EVENT` 14 / `DEICONIFY_EVENT` 15
-  (`femacs/src/include/termhooks.rs` 41/42).
+  (`src/include/termhooks.rs` 41/42).
 * **`python3 tools/check-swift-units.py`**: `nsterm.swift: 150 C definition(s), 6 unported, 6
   row(s);` **680** C symbol imports (round 70 read 679) and the tail line **`0 new, 0 stale, 7
   Swift unit(s) landed`**, so no `docs/baseline/swift-units.tsv` row moves.
@@ -4735,7 +4735,7 @@ call site takes an entry and the definition lands at its own C line - and **both
 
 ### Round 72: the class initializer (C 8559-8642), and the provider `nsfns.swift` has waited for
 
-* **`swiftc -parse-as-library -c femacs/platform/macos/nsterm.swift`**: **exit 0**, **0 errors**,
+* **`swiftc -parse-as-library -c platform/macos/nsterm.swift`**: **exit 0**, **0 errors**,
   **nine** warnings.  The first run had none, but the *second* (after the send-types fix below)
   is the one that reads nine: the first run carried a **tenth** warning Swift raised on the port's
   own line ("cast from '() -> NSArray?' to unrelated type '[NSPasteboard.PasteboardType]' always
@@ -4758,7 +4758,7 @@ call site takes an entry and the definition lands at its own C line - and **both
 * **The provider `nsfns.swift` has waited for since round 29 lands**: `@_cdecl("EmacsView_initFrameFromEmacs")`
   (the `EmacsWindow_initWithEmacsFrame_impl` pattern), whose call site is nsfns.swift 2490.
 * **The ABI block adds one entry**: `ns_output_set_view` (C 8587's `FRAME_NS_VIEW (f) = self;`),
-  **provided** by `femacs/src/abi_shim.rs` 692 - whose own comment names this very call site.
+  **provided** by `src/abi_shim.rs` 692 - whose own comment names this very call site.
 * **`python3 tools/check-swift-units.py`**: `nsterm.swift: 150 C definition(s), 6 unported, 6
   row(s);` **681** C symbol imports (round 71 read 680) and **`0 new, 0 stale, 7 Swift unit(s)
   landed`**.
@@ -4767,7 +4767,7 @@ call site takes an entry and the definition lands at its own C line - and **both
 
 ### Round 73: the class prologue and the font panel (C 7041-7235)
 
-* **`swiftc -parse-as-library -c femacs/platform/macos/nsterm.swift`**: **exit 0**, **0 errors**,
+* **`swiftc -parse-as-library -c platform/macos/nsterm.swift`**: **exit 0**, **0 errors**,
   **nine** warnings - the same nine round 72 leaves, and **nothing new on the first run**.
   Object `/tmp/nsterm73.o`, **1,296,632 bytes**, md5 `6af9ed35db8c47484bde04a6438d7148`.  The unit
   is **13,993 lines**.
@@ -4792,7 +4792,7 @@ call site takes an entry and the definition lands at its own C line - and **both
 * **The ABI block adds two entries**: `macfont_get_nsctfont` (declared src/macfont.h 83, defined
   src/macfont.m 4206-4213; **provided** by `macfont.swift` 11105's `@_cdecl`) and
   `make_timespec` (`lib/timespec.h` 55-59's inline; **open** - the mirror declares it at
-  `femacs/lib/timespec.rs` 22 without a definition yet).  `FRAME_FONT` (C 6375) is the read C's
+  `lib/timespec.rs` 22 without a definition yet).  `FRAME_FONT` (C 6375) is the read C's
   `output_data.ns->font` needs, and `FRAME_POINTER_TYPE`'s read is the `ns_output_current_pointer`
   member entry.
 * **`python3 tools/check-swift-units.py`**: `nsterm.swift: 150 C definition(s), 6 unported, 6
@@ -4803,7 +4803,7 @@ call site takes an entry and the definition lands at its own C line - and **both
 
 ### Round 74: `keyDown:` (C 7243-7427), and the `NS_KEYLOG` box it was waiting for
 
-* **`swiftc -parse-as-library -c femacs/platform/macos/nsterm.swift`**: **exit 0**, **0 errors**,
+* **`swiftc -parse-as-library -c platform/macos/nsterm.swift`**: **exit 0**, **0 errors**,
   **nine** warnings - the same nine round 73 leaves.  The first run had **two errors**, both
   settled by measurement: `NSWindow` has no `isKindOfClass` in Swift (C 7261's test is
   `theEvent.window is EmacsWindow`) and the port's own `flags` had to be `UInt` (the type
@@ -4820,7 +4820,7 @@ call site takes an entry and the definition lands at its own C line - and **both
   file-scope array (the `ns_initialized` reading); C 7254's `NSEventTypeKeyDown` is Swift's
   `.keyDown`; C 7263's delegate test is `!==` (identity, not `isEqual:`); C 7278's
   `[NSCursor setHiddenUntilMouseMoves:]` is the class method and `Vmake_pointer_invisible` a new
-  `DEFVAR_LISP` entry (provided, `femacs/src/frame.rs` 7427); C 7280-7286's three member reads are
+  `DEFVAR_LISP` entry (provided, `src/frame.rs` 7427); C 7280-7286's three member reads are
   `mouse_face_hidden` (round 69), `mouse_face_window` (new) and `frame_tab_bar_window` (round 70);
   C 7298/7300's numeric-pad flag is the option set's `.numericPad`; C 7312-7318's
   `#ifdef NS_IMPL_GNUSTEP` arm inside the delete hack is **dead**; C 7376-7381's
@@ -4830,7 +4830,7 @@ call site takes an entry and the definition lands at its own C line - and **both
   (the `styleMask` reading).
 * **The ABI block adds four entries and one constant**: the constant above, the file-scope
   `nsEvArray`, the two data entries `Vmake_pointer_invisible`/`Vmouse_highlight` (**provided** by
-  `femacs/src/frame.rs` 7427/7425), `QCfunction` (this file's own `DEFSYM`, **open** - the
+  `src/frame.rs` 7427/7425), `QCfunction` (this file's own `DEFSYM`, **open** - the
   `QCordinary`/`QCmouse` reading) and the member read `mouse_highlight_mouse_face_window`
   (**open**).
 * **`python3 tools/check-swift-units.py`**: `nsterm.swift: 150 C definition(s), 6 unported, 6
@@ -4841,7 +4841,7 @@ call site takes an entry and the definition lands at its own C line - and **both
 
 ### Round 75: the fullscreen trio (C 9017-9200), and the two providers they waited for
 
-* **`swiftc -parse-as-library -c femacs/platform/macos/nsterm.swift`**: **exit 0**, **0 errors**,
+* **`swiftc -parse-as-library -c platform/macos/nsterm.swift`**: **exit 0**, **0 errors**,
   **nine** warnings - the same nine round 74 leaves.  The first run had **eleven errors**, all
   settled by measurement: ⑴ `toggleFullScreen:` is **not** an `NSResponder` method in Swift, so
   the port must not write `override` (the compiler's "method does not override any method from its
@@ -4881,13 +4881,13 @@ call site takes an entry and the definition lands at its own C line - and **both
 
 ### Round 76: the mouse/toolbar/layer batch (C 9202-9336)
 
-* **`swiftc -parse-as-library -c femacs/platform/macos/nsterm.swift`**: **exit 0**, **0 errors**,
+* **`swiftc -parse-as-library -c platform/macos/nsterm.swift`**: **exit 0**, **0 errors**,
   **nine** warnings - the same nine rounds 73-75 leave, after a mid-round reading worth recording:
   landing `menuDown:` and `toggleToolbar:` made the three *by-name* selectors the earlier rounds
   wrote for them (`Selector(("menuDown:"))` twice and `Selector(("toggleToolbar:"))` once) warn
   ("use '#selector' instead of explicitly constructing a 'Selector'"), so this round types them -
   the same step round 68 took when it landed `deferred_UAZoomChangeFocus_handler:`.  The first run
-  also had two errors: this unit had no `frame_menu_bar_vector` entry (`femacs/src/abi_shim.rs` 94
+  also had two errors: this unit had no `frame_menu_bar_vector` entry (`src/abi_shim.rs` 94
   provides it) and `CALayer`'s `delegate` is typed, so C 9295's `[l setDelegate:(id)self]` is sent
   dynamically (the C 9808 reading).  Object `/tmp/nsterm76.o`, **1,343,240 bytes**, md5
   `911d9fe9160ef01cdae20460d4e2a78b`.  The unit is **14,609 lines**.
@@ -4906,11 +4906,11 @@ call site takes an entry and the definition lands at its own C line - and **both
 * **The ABI block adds eight entries and four constants**: `mouse_highlight_set_mouse_face_mouse_frame`
   (member write, **open**), `find_and_call_menu_selection` (declared src/menu.h 41-42, **open** - the
   mirror declares it in other units' blocks), `frame_menu_bar_items_used` (**open**),
-  `frame_menu_bar_vector` (**provided**, `femacs/src/abi_shim.rs` 94), `frame_tool_bar_items`
+  `frame_menu_bar_vector` (**provided**, `src/abi_shim.rs` 94), `frame_tool_bar_items`
   (**open**), `AREF` (class A, **open**), `ns_output_double_buffered` (**open**, the
   `FRAME_DOUBLE_BUFFERED` member) and `expose_frame` (**open**); the constants are `TOOL_BAR_EVENT`
-  21 (`femacs/src/include/termhooks.rs` 47), `TOOL_BAR_ITEM_KEY` 0 and `TOOL_BAR_ITEM_NSLOTS` 12
-  (`femacs/src/include/dispextern.rs` 3942/3966) and `KEY_NS_TOGGLE_TOOLBAR`
+  21 (`src/include/termhooks.rs` 47), `TOOL_BAR_ITEM_KEY` 0 and `TOOL_BAR_ITEM_NSLOTS` 12
+  (`src/include/dispextern.rs` 3942/3966) and `KEY_NS_TOGGLE_TOOLBAR`
   (`UInt32((1 << 28) | (0 << 16) | 13)`, src/nsterm.h 805's own expression).
 * **`python3 tools/check-swift-units.py`**: `nsterm.swift: 150 C definition(s), 6 unported, 6
   row(s);` **698** C symbol imports (round 75 read 690) and **`0 new, 0 stale, 7 Swift unit(s)
@@ -4920,7 +4920,7 @@ call site takes an entry and the definition lands at its own C line - and **both
 
 ### Round 77: the copy/layout/draw batch (C 9340-9446), and the provider round 8 left waiting
 
-* **`swiftc -parse-as-library -c femacs/platform/macos/nsterm.swift`**: **exit 0**, **0 errors**,
+* **`swiftc -parse-as-library -c platform/macos/nsterm.swift`**: **exit 0**, **0 errors**,
   **nine** warnings - the same nine round 76 leaves.  The first run had **four errors**, all one
   reading: `(self.layer as? EmacsLayer)?.getContext()!` leaves the label optional (the `!` binds
   inside the optional chain), so C 9360's assumption is written as
@@ -4942,11 +4942,11 @@ call site takes an entry and the definition lands at its own C line - and **both
   method is only reached through C 9295's dynamic `setDelegate:` send (the class declares no
   protocol list yet), and C 9400-9409's comment is kept; and C 9436's guard reads as the two tests
   with C's implicit `int` conversions written out for the four rect accessors.
-* **The ABI block adds five entries**: `redisplaying_p` (**provided**, `femacs/src/dispnew.rs`
+* **The ABI block adds five entries**: `redisplaying_p` (**provided**, `src/dispnew.rs`
   7434), `frame_garbaged_p` (**open**, the mirror's macro), the `waiting_for_input` read
-  (**provided** by the write-half's shim family, `femacs/src/abi_shim.rs` 1092; `nsmenu.swift` 406
+  (**provided** by the write-half's shim family, `src/abi_shim.rs` 1092; `nsmenu.swift` 406
   declares the same entry for its own unit) and `redisplay` (**provided**,
-  `femacs/src/abi_shim.rs` 246).
+  `src/abi_shim.rs` 246).
 * **`python3 tools/check-swift-units.py`**: `nsterm.swift: 150 C definition(s), 6 unported, 6
   row(s);` **703** C symbol imports (round 76 read 698) and **`0 new, 0 stale, 7 Swift unit(s)
   landed`**; `check-citations` reads **676 / 0 drift / 0 range / 2,416 external / 36 allowed /
@@ -4956,7 +4956,7 @@ call site takes an entry and the definition lands at its own C line - and **both
 
 ### Round 78: the drag-and-drop batch's first four (C 9452-9536)
 
-* **`swiftc -parse-as-library -c femacs/platform/macos/nsterm.swift`**: **exit 0**, **0 errors**,
+* **`swiftc -parse-as-library -c platform/macos/nsterm.swift`**: **exit 0**, **0 errors**,
   **nine** warnings - the same nine round 77 leaves.  The first run had **twelve errors**, all
   settled by measurement: ⑴ the four methods need `override` (`NSView` conforms to
   `NSDraggingDestination` in Swift, so the compiler asks for it); ⑵ `mustNotDropOn:` is
@@ -4986,7 +4986,7 @@ call site takes an entry and the definition lands at its own C line - and **both
 
 ### Round 79: `performDragOperation:` (C 9538-9654)
 
-* **`swiftc -parse-as-library -c femacs/platform/macos/nsterm.swift`**: **exit 0**, **0 errors**,
+* **`swiftc -parse-as-library -c platform/macos/nsterm.swift`**: **exit 0**, **0 errors**,
   **nine** warnings - the same nine round 78 leaves, and **nothing new on the first run**.  Object
   `/tmp/nsterm79.o`, **1,372,752 bytes**, md5 `9832b7b4007f851d1acda2966ed7f8f9`.  The unit is
   **14,956 lines**.
@@ -5008,7 +5008,7 @@ call site takes an entry and the definition lands at its own C line - and **both
 * **The ABI block adds six entries and one constant**: `Qfile`/`Qurl` (the generated-globals
   family) and the three `Qns_drag_operation_*` this file's own `DEFSYM`s carry (**open** - the
   `QCordinary`/`QCmouse` reading), plus `DRAG_N_DROP_EVENT` 17
-  (`femacs/src/include/termhooks.rs` 44).
+  (`src/include/termhooks.rs` 44).
 * **`python3 tools/check-swift-units.py`**: `nsterm.swift: 150 C definition(s), 6 unported, 6
   row(s);` **709** C symbol imports (round 78 read 704) and **`0 new, 0 stale, 7 Swift unit(s)
   landed`**; `check-citations` reads **676 / 0 drift / 0 range / 2,416 external / 36 allowed /
@@ -5018,7 +5018,7 @@ call site takes an entry and the definition lands at its own C line - and **both
 
 ### Round 80: the class's last five methods (C 9657-9744), and the two providers `nsfns.swift` waited for
 
-* **`swiftc -parse-as-library -c femacs/platform/macos/nsterm.swift`**: **exit 0**, **0 errors**,
+* **`swiftc -parse-as-library -c platform/macos/nsterm.swift`**: **exit 0**, **0 errors**,
   **nine** warnings - the same nine rounds 73-79 leave.  The first run had **one error**:
   `cannot find type 'EmacsImage' in scope` - the class is `nsimage.swift`'s (src/nsterm.h 542) and
   this unit compiles alone, so C 9731's `[image isKindOfClass: [EmacsImage class]]` is the
@@ -5065,7 +5065,7 @@ call site takes an entry and the definition lands at its own C line - and **both
 
 ### Round 81: the class's last five boxes, the protocol list, and `EmacsView` closes (C 7458-7776)
 
-* **`swiftc -parse-as-library -c femacs/platform/macos/nsterm.swift`**: **exit 0**, **0 errors**,
+* **`swiftc -parse-as-library -c platform/macos/nsterm.swift`**: **exit 0**, **0 errors**,
   **seventeen** warnings - the nine rounds 73-80 leave plus **eight this round's conformance
   surfaces**, named below.  The first run had **six errors**, the second **two**, and every one of
   them is a reading:
@@ -5103,7 +5103,7 @@ call site takes an entry and the definition lands at its own C line - and **both
   **`0 new, 0 stale, 7 Swift unit(s) landed`**.
 * **The ABI block adds six entries**: `WINDOW_TEXT_TO_FRAME_PIXEL_X`, `BUF_PT`, `buffer_mark` and
   the `window_phys_cursor_x`/`_y` pair (**open** - header-only or the core's member readers) plus
-  `marker_position` (**provided**, `femacs/src/marker.rs` 849).
+  `marker_position` (**provided**, `src/marker.rs` 849).
 * **Not claimed**: no runtime evidence - no input method, service or accessibility client asked
   this class any of the five questions, and the protocol list's effect (AppKit routing the eleven
   requirements here) is a compile-time reading of a conformance that would need a live window
@@ -5111,7 +5111,7 @@ call site takes an entry and the definition lands at its own C line - and **both
 
 ### Round 82: the providers this unit owed its neighbours (five land, one entry is deleted)
 
-* **`swiftc -parse-as-library -c femacs/platform/macos/nsterm.swift`**: **exit 0**, **0 errors**,
+* **`swiftc -parse-as-library -c platform/macos/nsterm.swift`**: **exit 0**, **0 errors**,
   **seventeen** warnings - the same seventeen round 81 leaves, **nothing new on the first run**.
   Object `/tmp/nsterm82.o`, **1,415,320 bytes**, md5 `bafd6c7e9db0b3fa70164f19ab2d632d`.  The unit is
   **15,294 lines**.

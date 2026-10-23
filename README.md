@@ -23,8 +23,43 @@ again in Rust is exactly what this project is about.
 
 ## Status
 
-Early days. The repository currently holds documentation and a license, and no runnable
-implementation yet.
+The translated Rust core and native Swift Cocoa frontend run on Apple Silicon macOS.
+Functional acceptance is separate from the original performance target; no speedup is claimed.
+
+## Build and try
+
+Install Xcode command-line tools, Python 3.9+, Rust via rustup, and GNU awk (`brew install gawk`).
+The committed `rust-toolchain.toml` selects the compiler. From the repository root:
+
+```sh
+cargo run -p xtask -- build-terminal
+build/terminal/port/src/emacs -Q -nw
+cargo run -p xtask -- build-macos
+dist/macos/Femacs.app/Contents/MacOS/Femacs -Q
+```
+
+Both build entries bootstrap resources from this repository. They do not require an installed
+editor, an `emacs/` checkout, configure, reference objects, or previous build output. Compiler
+and runtime workloads should run under your resource controller. The Cocoa build is native
+Rust/Swift; terminal and GUI outputs are separate.
+
+To regenerate resources after a source/data change:
+
+```sh
+python3 tools/bootstrap-resources.py --program build/terminal/port/src/emacs --family all
+```
+
+`--family bytecode --all-bytecode` also compiles optional Lisp libraries. See
+[bootstrap design and acceptance](docs/repository-bootstrap.md) for the generation stages,
+requirements, clean-export evidence and optional reference-audit boundary.
+
+## Source layout
+
+`src/`, `lib/`, `lib-src/`, `platform/` and `xtask/` are at the repository root.
+`lisp/`, `leim/`, `admin/` and `etc/` contain the committed raw inputs and generators;
+`doc/` is the copied manual source and `docs/` is project documentation.
+`build-support/` contains maintained target/recipe descriptions. `build/`, `target/`,
+`.femacs-cache/` and `dist/macos/` are generated and ignored.
 
 ## Documentation
 

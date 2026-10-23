@@ -31,7 +31,7 @@ Because the fix is out of scope for range citations, the `mismatched` count is a
 queue*: each row has to be triaged into a wrong line/file (fixable) or a cross-line /
 generated-header / `#if`-duplicate citation (reported, not guessed at).
 
-    python3 tools/check-citation-text.py femacs/src femacs/lib
+    python3 tools/check-citation-text.py src lib
     python3 tools/check-citation-text.py --all          # also print matching citations
     python3 tools/check-citation-text.py --limit 40
 """
@@ -45,7 +45,7 @@ from pathlib import Path
 
 REPO = Path(__file__).resolve().parent.parent
 SUFFIXES = {".rs", ".swift"}
-DEFAULT_TREES = ["femacs/src", "femacs/lib"]
+DEFAULT_TREES = ["src", "lib"]
 
 # The roots the citation text may live under, in the task's order.
 ROOTS = ["emacs", "emacs/src", "emacs/lib", "emacs/lib-src"]

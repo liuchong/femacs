@@ -27,21 +27,21 @@
 # ----------------------------------------------------------------------
 ## Decisions
 
-`emacs/lib/ftoastr.c` @ `fd7afced403`; port `femacs/lib/ftoastr.rs`; the gates are
+`emacs/lib/ftoastr.c` @ `fd7afced403`; port `lib/ftoastr.rs`; the gates are
 `build-tu lib/ftoastr.c` -> `built` and `python3 tools/extract-abi.py --check
-emacs/lib/ftoastr.c femacs/lib/ftoastr.rs` -> `OK`.  The file is a *template*: the frozen
+emacs/lib/ftoastr.c lib/ftoastr.rs` -> `OK`.  The file is a *template*: the frozen
 build never compiles it as its own object (`build/emacs-ref/lib/` carries `dtoastr.o` and no
 `ftoastr.o`), and `dtoastr.c` is the only shim this target compiles.
 
 - **The 10.13② shape is a prelude `macro_rules!`.**  PORTING.md 10.13② asks the shared body to
   land first as a prelude `macro_rules!` (or a parameterised unit) with the instantiations
-  after.  `femacs/lib/ftoastr.rs` is that prelude: its body is `macro_rules! ftoastr_body`,
+  after.  `lib/ftoastr.rs` is that prelude: its body is `macro_rules! ftoastr_body`,
   parameterised on C's `LENGTH` and the arm's bindings (`$float`/`$promoted`/`$dig`/`$min`/
   `$prec_bound`/`$strtof`) plus the entry's `$name`/`$export` - the `strftime.rs` shape, whose
   `nstrftime.c` shim is its only instantiation.  C's three arms (C 44-70) become the
   `$length == 1`/`$length == 2`/else selection.
 
-- **The arm/parameter mapping.**  `femacs/lib/dtoastr.rs` (the `LENGTH == 2` shim C 52-58's
+- **The arm/parameter mapping.**  `lib/dtoastr.rs` (the `LENGTH == 2` shim C 52-58's
   arm selects, and the only instantiation) passes `$length` 2, `$name` `dtoastr`, `$export`
   `"dtoastr"`, `$float` `c_double`, `$promoted` `c_double`, `$dig` `DBL_DIG`, `$min` `DBL_MIN`,
   `$prec_bound` `_GL_DBL_PREC_BOUND`, `$strtof` `strtod`.  C's standalone reading (the one this
@@ -71,7 +71,7 @@ build never compiles it as its own object (`build/emacs-ref/lib/` carries `dtoas
   smaller, clamps the probe to `width`, and only writes the real buffer when it fits.
 
 - **No `#![allow (…)]` here.**  An inner attribute inside an included file is E0753 (the
-  `strftime.rs` decision), so `femacs/lib/dtoastr.rs` - the unit that compiles the body -
+  `strftime.rs` decision), so `lib/dtoastr.rs` - the unit that compiles the body -
   carries the list; this file's own `build-tu` therefore compiles with warnings, not errors.
 
 - **No `ftoastr.h` mirror yet; the header's constants are carried here.**  `ftoastr.h` is not on

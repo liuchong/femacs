@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Insert (or remove) the temporary fontset probe in femacs/src/fontset.rs.
+"""Insert (or remove) the temporary fontset probe in src/fontset.rs.
 
 Why it exists: on the Android device the process dies with signal 7 (SIGBUS) while
 `set-fontset-font` is writing entries.  `logcat` loses the tail of a dying process, so the
@@ -22,7 +22,7 @@ between an `if` and its `{`.
 import pathlib
 import sys
 
-SRC = pathlib.Path (__file__).resolve ().parent.parent / "femacs/src/fontset.rs"
+SRC = pathlib.Path (__file__).resolve ().parent.parent / "src/fontset.rs"
 
 HELPER = '''/* TEMPORARY fontset probe (tools/add-fontset-probe.py).  */
 #[cfg (feature = "have_android")]

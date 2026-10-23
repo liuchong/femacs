@@ -6,7 +6,7 @@
 > `docs/baseline/frozen-build-sources.txt` lists no `w32menu.o` for this target - so
 > `extract-abi.py`'s checklist for the file is empty (P-86 ②) and this ledger is that clause's
 > substitute: the **C line-range table**, the `## Evidence` readings and the `## Deviations`.
-> Port: `femacs/src/w32menu.rs` (**2904 lines**, md5 `51dd2c51a9a01f0f0705f85599e262f4`), carrying
+> Port: `src/w32menu.rs` (**2904 lines**, md5 `51dd2c51a9a01f0f0705f85599e262f4`), carrying
 > **C 1-1850 with both arms of every `#if`**.  The reference `emacs/src/w32menu.c` is md5
 > `fad9ed45bf9fac988ec5283541f8975f` (unchanged; `emacs/` is read-only).
 >
@@ -60,7 +60,7 @@ live arms are the negations.
 
 The rows are contiguous and ascending and cover every line of C 1-1850 (260 of them are the
 reference's blank lines, which the gate does not require a row for; rows here absorb them).
-`docs/port-map.md` 579 pairs `src/w32menu.c` 1,850 with `femacs/src/w32menu.rs`, and that is the
+`docs/port-map.md` 579 pairs `src/w32menu.c` 1,850 with `src/w32menu.rs`, and that is the
 only reference file this stem has.
 
 | C | block | arm |
@@ -198,7 +198,7 @@ c_int,` beside the recorded bitfields' comment - re-compiled in the base arm: **
 messages, 0 of them anchored in this unit**.  So the six in-unit anchors of ② are exactly the one
 mirror gap, and this unit's own text type-checks once that field has a storage unit.
 
-**⑥ `python3 tools/extract-abi.py --check emacs/src/w32menu.c femacs/src/w32menu.rs`**: after this
+**⑥ `python3 tools/extract-abi.py --check emacs/src/w32menu.c src/w32menu.rs`**: after this
 round's five `docs/ports/macro-body-notes.tsv` rows (Appendix below), exactly **one** finding
 remains: `FAIL line count drifted 57.0%: C 1850 vs Rust 2904` -
 `docs/ports/line-drift-tolerance.tsv`'s row, which is not in this lane's write set (Owed 1).
@@ -215,8 +215,8 @@ reference's opening block", dropped per PORTING.md 0.1-19), and the reading abov
 
 **⑧ `python3 tools/check-mirror-dupes.py`**: `17 duplicate declaration(s), 17 ratchet row(s), 0
 failure(s)` - the baseline the other Windows units report, and no row names `w32menu`.  The first
-run of this batch read **1 failure**: `femacs/src/w32menu.rs: set_buffer_internal_1 is already
-declared by femacs/src/include/buffer.rs (in the include graph)`; the unit's own copy was
+run of this batch read **1 failure**: `src/w32menu.rs: set_buffer_internal_1 is already
+declared by src/include/buffer.rs (in the include graph)`; the unit's own copy was
 **removed** (Deviation 9) and the reading above is the final one.
 
 **⑨ `python3 tools/check-citations.py`**: `676 file(s) scanned, 0 drift, 0 range, 1514 external, 36
@@ -398,7 +398,7 @@ reasons (append-only, as the lane's write set allows).
    C 608/671/692/980/1133/1147/1204 `free_menubar_widget_value_tree` (menu.c 593), C 585
    `digest_single_submenu` (menu.c 619) and C 633 `update_submenu_strings` (menu.c 846); this
    unit's `menu.rs` peer records that those five functions are **not** transcribed there
-   (`femacs/src/menu.rs` 611-618), so the four externs in this unit are undefined symbols on a
+   (`src/menu.rs` 611-618), so the four externs in this unit are undefined symbols on a
    Windows link.  (Integrator: the menu.c lane.)
 7. **The layout assertions for the `<windows.h>`/`<commctrl.h>` records** (`RECT`, `POINT`,
    `MENUITEMINFO`, `_TASKDIALOG_BUTTON`, `_TASKDIALOGCONFIG`, `SYSTEM_INFO`-class neighbours) and

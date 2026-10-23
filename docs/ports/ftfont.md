@@ -19,7 +19,7 @@
 > (C 3230-3243) - and with it the unit's own gate reads **OK** (Evidence ⑮): the five names slice
 > 2's reading listed are gone.  C 1727-3087 stays owed exactly as the paragraph below says.
 >
-> Port: `femacs/src/ftfont.rs`, **slice 1 = C 1-1352, slice 2 = C 1353-1725 and slice 3 =
+> Port: `src/ftfont.rs`, **slice 1 = C 1-1352, slice 2 = C 1353-1725 and slice 3 =
 > C 3088-3243**, both arms of every `#if` carried.  Slice 1 ends on the `}` of `ftfont_entity_pattern` (C 1352) - the last of the
 > three entry points `ftfont.h` 45-47 declares - and the old revision's conclusion ("not in the
 > frozen build, so the port is the empty unit plus a note") is P-86 ①'s "not started" case; its
@@ -81,7 +81,7 @@ reading below says so in numbers.
 | C 1675-1679 `#ifdef FT_LOAD_TARGET_MONO` / `#else` | `feature = "ft_load_target_mono"` (slice 2; the two arms are two `#[cfg]`-selected statements) | the FreeType headers define `FT_LOAD_TARGET_MONO` |
 
 Seven of those names were **not in the tree's feature table** when slice 1 landed; the integrator
-registered them in status 3.497 (`femacs/xtask/Cargo.toml`'s `have_libotf` 137, `fc_capability` 85,
+registered them in status 3.497 (`xtask/Cargo.toml`'s `have_libotf` 137, `fc_capability` 85,
 `fc_color` 86, `fc_embolden` 87, `fc_fontformat` 88, `fc_variable` 89 and `xft_version_lt_2_3_6`
 730, each with its C criterion line), so Owed 5 now holds **one** new name: slice 2's
 `ft_load_target_mono`.
@@ -113,8 +113,8 @@ registered them in status 3.497 (`femacs/xtask/Cargo.toml`'s `have_libotf` 137, 
 - **`<X11/Xlib.h>`/`<X11/Xft/Xft.h>` (C 30-31) and `<cairo-ft.h>` (C 34) need no declaration
   here.**  No name either header defines is used by C 1-1352's body: the Xft version macros of
   C 660-663 are the derived feature, and the Xft/cairo types reach `struct font_info`, which is
-  `femacs/src/include/ftfont.rs`'s item.  The two include blocks are therefore notes at their C
-  line, and the X11 surface itself has the dedicated mirror `femacs/src/include/xlib.rs`.
+  `src/include/ftfont.rs`'s item.  The two include blocks are therefore notes at their C
+  line, and the X11 surface itself has the dedicated mirror `src/include/xlib.rs`.
 - **Three entry points `ftfont.h` declares are defined at C 1203-1352**, and each carries
   `#[unsafe(no_mangle)] pub unsafe extern "C"` (PORTING.md 0.2); the same is true of
   `ftfont_get_cache` (C 495), `ftfont_list2` (C 1091), `ftfont_match2` (C 1151) and
@@ -140,7 +140,7 @@ registered them in status 3.497 (`femacs/xtask/Cargo.toml`'s `have_libotf` 137, 
 
 Rows are **contiguous and ascending** (each absorbs the blank lines that follow the one before) and
 cover C 1-3243; `docs/port-map.md` 443 pairs only `src/ftfont.c` with this unit, so one table is
-what `check-dead-file-coverage.py` reads.  `transcribed` = in `femacs/src/ftfont.rs`; `owed` = a
+what `check-dead-file-coverage.py` reads.  `transcribed` = in `src/ftfont.rs`; `owed` = a
 later slice.  The `arm` cell gives the port gate, which `## Gate mapping` derives.
 
 | C | block | arm |
@@ -324,7 +324,7 @@ invokes rustc).  The five, in order: (1) 18 errors + abort; (2) 0 errors, 59 war
 the only difference from run 5 is the rlib's bytes, i.e. the other lanes' concurrent mirror
 edits.  The four direct-rustc iterations are the same materialisation
 read by the repository's own toolchain (`rustc +nightly-2026-10-01`, the pin
-`femacs/rust-toolchain.toml` names) and are where the per-category counts below come from; a direct
+`rust-toolchain.toml` names) and are where the per-category counts below come from; a direct
 `rustc` from outside the repository uses the stable toolchain and adds one **mirror-side** `E0658`
 (`include/lisp.rs` 3756's `verror`, `c_variadic` - the `docs/ports/gnutls.md` 246 reading).
 
@@ -367,7 +367,7 @@ two-line file (`freetype/config/ftstdlib.h` 36 and 88 pull them), which is why
 `lib/include/string.rs`/`stdlib.rs` are included at C 23-24.
 
 **⑥ Inventory (`extract-abi.py --check`).**
-`python3 tools/extract-abi.py --check emacs/src/ftfont.c femacs/src/ftfont.rs` -> **FAIL, 14 `- `
+`python3 tools/extract-abi.py --check emacs/src/ftfont.c src/ftfont.rs` -> **FAIL, 14 `- `
 rows**, none of them a slice item that is missing: **12 `missing function` rows** name the unported
 remainder (`ftfont_open`, `ftfont_close`, `ftfont_has_char`, `ftfont_encode_char`,
 `ftfont_glyph_metrics`, `ftfont_text_extents`, `ftfont_get_bitmap`, `ftfont_anchor_point`,
@@ -450,14 +450,14 @@ this unit's text.  **This is not the repository probe's reading** (P-86 ⑦: the
 different compilation unit), and the two differ exactly by the three stubs.
 
 **⑫ Slice 2's `--check` and the gate readings.**  `python3 tools/extract-abi.py --check
-emacs/src/ftfont.c femacs/src/ftfont.rs` -> **FAIL, 6 `- ` rows**: 4 `missing function` rows
+emacs/src/ftfont.c src/ftfont.rs` -> **FAIL, 6 `- ` rows**: 4 `missing function` rows
 (`ftfont_combining_capability` C 3141, `ftfont_filter_properties` C 3134, `syms_of_ftfont` C 3185,
 `syms_of_ftfont_for_pdumper` C 3230), 1 `missing file-scope object ftfont_driver` (Owed 7) and 1
 `line count drifted 7.1%: C 3243 vs Rust 3472` - i.e. the 12 `missing function` rows of slice 1's
 reading minus this slice's **8** definitions (the seven functions plus the `static`
 `ftfont_glyph_metrics`), and the drift has crossed from *under* to *over*.  The other gates:
 `python3 tools/check-mirror-dupes.py` -> `17 duplicate declaration(s), 17 ratchet row(s),
-0 failure(s)`, **no row naming `femacs/src/ftfont.rs`**; `python3 tools/check-citations.py` ->
+0 failure(s)`, **no row naming `src/ftfont.rs`**; `python3 tools/check-citations.py` ->
 `676 file(s) scanned, 0 drift, 0 range, 1044 external, 35 allowed, 0 stale`, of which **238 rows are
 this unit's and all 238 are `external`** (the Fontconfig and FreeType header lines; 0 drift, 0
 range, 0 stale); `python3 tools/check-declarations.py` -> `10 declaration sites (0 forbidden, 10
@@ -467,7 +467,7 @@ this round), this ledger's own line still `48 range row(s) cover src/ftfont.c
 (3243 lines; 0 blank line(s) between blocks need no row)`; `python3 tools/check-port-lines.py` ->
 `50 file(s) under ten percent, 66,970 reference line(s); 51 ratchet row(s), 0 new, 1 stale`, **no
 `src/ftfont.c` row** (the one stale row is `lwlib/lwlib-Xlw.c`, another lane's file crossing the
-threshold; the `drift` rows slice 1 reported in `femacs/src/include/dispextern.rs` are gone from the
+threshold; the `drift` rows slice 1 reported in `src/include/dispextern.rs` are gone from the
 current citations reading); `python3 tools/check-ledger-ticks.py` -> `234 ledger(s) bound (a function tick
 to compare), 0 failure(s), 0 carried by another file`; `python3 tools/check-carried.py` -> `11
 carried file(s), 11 baseline row(s), 0 failure(s)`.
@@ -493,7 +493,7 @@ behind `have_freetype`, so the frozen feature set compiles the `config.rs` inclu
   and this round's baseline shows they are still there.
 
 **⑮ The unit's own gate, and the ratchet row it needed.**  `python3 tools/extract-abi.py --check
-emacs/src/ftfont.c femacs/src/ftfont.rs` -> **`OK`**: the five names slice 2's reading listed
+emacs/src/ftfont.c src/ftfont.rs` -> **`OK`**: the five names slice 2's reading listed
 (`ftfont_filter_properties`, `ftfont_combining_capability`, `ftfont_driver`, `syms_of_ftfont`,
 `syms_of_ftfont_for_pdumper`) are gone, and the one `- ` row left was the line count - the
 `ftfont 0.16 total` row of `docs/ports/line-drift-tolerance.tsv` now covers it (C 3243 vs the port's
@@ -519,7 +519,7 @@ table), 0 failure(s)`; `check-ledger-ticks.py` `238 ledger(s) bound ..., 0 failu
 2. **C 29-35's three SDK includes are notes, not `include!`s.**  No name from `<X11/Xlib.h>`,
    `<X11/Xft/Xft.h>` or `<cairo-ft.h>` is used by C 1-1352's body: the Xft version macros are the
    derived feature `xft_version_lt_2_3_6`, and the Xft/cairo types belong to `struct font_info`
-   (`femacs/src/include/ftfont.rs`'s item, under its own arm).  The X11 surface's own mirror is
+   (`src/include/ftfont.rs`'s item, under its own arm).  The X11 surface's own mirror is
    `include/xlib.rs` (P-90 ①).
 3. **The Fontconfig, FreeType, Libotf and HarfBuzz surfaces stand in the unit at C 23-24 / C 472**
    (P-88 ①'s use-site rule: a third-party header with no file in the reference tree).  Every
@@ -679,7 +679,7 @@ table), 0 failure(s)`; `check-ledger-ticks.py` `238 ledger(s) bound ..., 0 failu
    (Finding 9, Evidence ⑫).  Named here because P-86 ④'s closing step
    asks for the reading, not because a row moved.
 3. **The mirror gaps this slice's compile readings name**, each in the file that owns it:
-   (a) `femacs/src/include/ftfont.rs`: `struct font_info` is gated `have_x_windows` while C's record
+   (a) `src/include/ftfont.rs`: `struct font_info` is gated `have_x_windows` while C's record
    is unconditional and its two `HAVE_LIBOTF` members are recorded as dead text - so
    `ftfont_get_otf`'s `have_libotf` arm (C 472-493) cannot be typed (Deviation 17);
    **`font_info` is slice 2's blocker too**: under the file gate the name does not exist at all, so
@@ -689,15 +689,15 @@ table), 0 failure(s)`; `check-ledger-ticks.py` `238 ledger(s) bound ..., 0 failu
    `ftfont_entity_pattern`, its C 45-54) collide with this unit's definitions in any configuration
    that has `have_x_windows` on (Evidence ⑦): they belong in a `pub mod` the unit does not
    glob-import (P-39's shape);
-   (c) `femacs/src/include/font.rs`: declare `font_make_entity` (font.h 842), `font_build_object`
+   (c) `src/include/font.rs`: declare `font_make_entity` (font.h 842), `font_build_object`
    (font.h 848 - slice 2's C 1407 calls it, and the unit declares it at that site), `font_style_to_value`
    (font.h 854), `font_intern_prop` (font.h 885), `font_put_extra` (font.h 913) and `font_add_log`
    (font.h 1001 - the mirror's own `FONT_ADD_LOG!` body calls it);
-   (d) `femacs/lib/include/string.rs`: `strstr` (the rest of the family this slice calls is there);
-   (e) `femacs/src/include/dispextern.rs`: `xstrcasecmp` is inside `pub mod dispextern_externs`,
+   (d) `lib/include/string.rs`: `strstr` (the rest of the family this slice calls is there);
+   (e) `src/include/dispextern.rs`: `xstrcasecmp` is inside `pub mod dispextern_externs`,
    which no glob import reaches - the unit calls it by that path, and `src/font.rs` 298 keeps its
    own copy; the mirror's owner may prefer one spelling;
-   (f) **`femacs/src/include/font.rs`'s `struct font` gates eight members on
+   (f) **`src/include/font.rs`'s `struct font` gates eight members on
    `have_window_system`** (`underline_thickness`, `underline_position`, `vertical_centering`,
    `baseline_offset`, `relative_compose`, `default_ascent`, `encoding_charset`,
    `repertory_charset`, its 112-127), which is C's own gate (font.h 320-403) and right for that
@@ -707,7 +707,7 @@ table), 0 failure(s)`; `check-ledger-ticks.py` `238 ledger(s) bound ..., 0 failu
    unit's items, and fix the two frozen-layout assertions the sixth cfg trips, Evidence ⑨'s second
    reading) or the mirror's (stop gating the eight members) - the integrator owns the choice.
 4. **The four SDK mirrors P-90 ① wants** (`docs/ports/include-fontconfig.md`, `-freetype.md`,
-   `-xft.md`, `-hb.md`): the C 23-24 segment of the unit moves into `femacs/src/include/
+   `-xft.md`, `-hb.md`): the C 23-24 segment of the unit moves into `src/include/
    fontconfig.rs` and the C 472 / C 570-590 segment into `include/freetype.rs`, `include/xft.rs` and
    `include/hb.rs`, deleting the in-unit copies in the same commit (P-90 ③ / P-88 ⑤).  Slice 2 grew
    that FreeType segment by one record family (`FT_FaceRec_`'s 30 fields, `FT_SizeRec_`,
@@ -716,7 +716,7 @@ table), 0 failure(s)`; `check-ledger-ticks.py` `238 ledger(s) bound ..., 0 failu
    the constants and seven entry points - Evidence ⑩'s measured layouts), and the `FC_PROPORTIONAL`
    / `FC_DUAL` pair - so the move is now worth more than it was.  Xft has no headers on this
    machine, so that mirror's numbers would be UNVERIFIED here.
-5. **One more feature to register** (`femacs/xtask/Cargo.toml` +
+5. **One more feature to register** (`xtask/Cargo.toml` +
    `docs/baseline/feature-coverage.tsv`), with its C criterion line: **`ft_load_target_mono`**
    (C 1675-1679's `#ifdef FT_LOAD_TARGET_MONO` / `#else` pair, the FreeType headers' own macro - the
    `fc_*` family's shape, and the *derived-condition* convention
@@ -724,7 +724,7 @@ table), 0 failure(s)`; `check-ledger-ticks.py` `238 ledger(s) bound ..., 0 failu
    names (`have_libotf` C 472/570, `fc_fontformat` C 155, `fc_variable` C 203/930, `fc_capability`
    C 921/1005, `fc_color` C 659/927/972, `fc_embolden` C 1297, `xft_version_lt_2_3_6` C 660-663)
    **are registered** (status 3.497, the lines are in the Gate mapping's closing paragraph).
-   **DONE (status 3.502, integrator):** `ft_load_target_mono` is in `femacs/xtask/Cargo.toml`'s
+   **DONE (status 3.502, integrator):** `ft_load_target_mono` is in `xtask/Cargo.toml`'s
    `[features]` table with its C criterion line, and `tools/feature-coverage.py --write` has been
    re-run.  Furthermore:
    item is the one name slice 2 adds.  `tools/feature-coverage.py --write` has not been re-run for
@@ -755,7 +755,7 @@ table), 0 failure(s)`; `check-ledger-ticks.py` `238 ledger(s) bound ..., 0 failu
    (C 3134), `ftfont_combining_capability` (C 3141), the `ftfont_driver` record (C 3154),
    `syms_of_ftfont` (C 3185) and `syms_of_ftfont_for_pdumper` (C 3230) are **done** (slice 3);
    `have_otf_get_variation_glyphs` and `have_ft_face_getcharvariantindex` *are* in the tree's
-   feature table now (`femacs/xtask/Cargo.toml`), so the earlier note that they were unregistered is
+   feature table now (`xtask/Cargo.toml`), so the earlier note that they were unregistered is
    stale.  What is still owed is C 1727-3087: C 1730/1774 (libotf), C 1794-2948 (m17n), C 2956
    `ftfont_variation_glyphs` and C 2991 `fthbfont_begin_hb_font`.  The C line-range table's `owed`
    rows are the authority for the boundaries; the four `missing function` rows of Evidence ⑫ were
@@ -789,13 +789,13 @@ table), 0 failure(s)`; `check-ledger-ticks.py` `238 ledger(s) bound ..., 0 failu
   `ftfont_combining_capability`, `ftfont_driver`'s record, `syms_of_ftfont` and
   `syms_of_ftfont_for_pdumper`), which are the 4 `missing function` rows and the
   `ftfont_driver` object of Evidence ⑫.
-- Only `femacs/src/ftfont.rs` and `docs/ports/ftfont.md` were written by this lane (slice 1 also
+- Only `src/ftfont.rs` and `docs/ports/ftfont.md` were written by this lane (slice 1 also
   added the six rows of `docs/ports/macro-body-notes.tsv`; slice 2 needed none - its two `#if`
   pairs and its ternary chain carry no macro body, and the boolean spellings it changes are already
   named in Deviation 23).
 
 The integrator's remaining steps for this unit (status 3.497): the seven feature names of `## Owed`
-4's table are registered in `femacs/xtask/Cargo.toml`
+4's table are registered in `xtask/Cargo.toml`
 (`have_libotf`, `fc_capability`, `fc_color`, `fc_embolden`, `fc_fontformat`, `fc_variable`,
 `xft_version_lt_2_3_6`), `tools/feature-coverage.py --write` has been re-run, and the round is
    written up in `docs/status.md` 3.497.  `docs/baseline/port-lines-pending.tsv` needs nothing (item 2).
@@ -806,5 +806,5 @@ The integrator's remaining steps for this unit (status 3.497): the seven feature
    foo` row.  Measured on this unit: with `&raw const ftfont_driver` at C 1429's two sites the row is
    gone; with `std::ptr::addr_of! (ftfont_driver)` it is back.  Any unit that takes the address of a
    file-scope object it has not ported yet can lose that evidence the same way (`&raw const` appears
-   9 times in `femacs/src/alloc.rs` alone, there over locals) - the tool fix is to exclude a `const`
+   9 times in `src/alloc.rs` alone, there over locals) - the tool fix is to exclude a `const`
    that follows the `raw` of an address-of expression.

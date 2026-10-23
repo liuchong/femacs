@@ -4,7 +4,7 @@
 set -uo pipefail
 cd "$(dirname "$0")/.."
 mkdir -p build
-if (cd femacs && cargo run -q -p xtask -- probe \
+if (cd "$HERE" && cargo run -q -p xtask -- probe \
         ../spikes/macro_probe.rs ../build/macro-probe.rmeta 2> ../build/macro-probe.err); then
   echo "macro-probe: every expansion compiles"
 else

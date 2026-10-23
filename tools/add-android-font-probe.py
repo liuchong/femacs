@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Insert (or remove) the temporary font-enumeration probe in femacs/src/sfntfont-android.rs.
+"""Insert (or remove) the temporary font-enumeration probe in src/sfntfont-android.rs.
 
 The 4.829 reading says the process stops in the allocation path, but two threads append to the one
 `probe.log`: the thread that loads Lisp and the thread that runs `Fandroid_enumerate_fonts`.  A
@@ -16,7 +16,7 @@ tid-tagged lines:
 import pathlib
 import sys
 
-SRC = pathlib.Path (__file__).resolve ().parent.parent / "femacs/src/sfntfont-android.rs"
+SRC = pathlib.Path (__file__).resolve ().parent.parent / "src/sfntfont-android.rs"
 
 HELPER = '''/* TEMPORARY font-enumeration probe (tools/add-android-font-probe.py).  */
 #[cfg (all (feature = "have_android", feature = "not_android_stubify"))]

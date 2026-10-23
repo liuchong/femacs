@@ -56,7 +56,7 @@ def link(out: Path) -> tuple[list[str], str]:
     # The pinned runtime, not whatever `rustc` is on PATH: the channel comes from the workspace's
     # own `rust-toolchain.toml` (status 3.251 measured the three rlibs by hand).
     channel = "nightly-2026-10-01"
-    toolchain = REPO / "femacs" / "rust-toolchain.toml"
+    toolchain = REPO / "rust-toolchain.toml"
     if toolchain.is_file():
         for line in toolchain.read_text(encoding="utf-8").splitlines():
             if line.strip().startswith("channel"):

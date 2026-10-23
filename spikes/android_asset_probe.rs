@@ -1,4 +1,4 @@
-// The compiler for `femacs/src/include/android-asset.rs`, the port's emulation of the Android
+// The compiler for `src/include/android-asset.rs`, the port's emulation of the Android
 // asset-manager API (emacs/src/android-asset.h).
 //
 // The mirror has no unit of its own on the frozen target: `android.c` is the only file that
@@ -22,8 +22,8 @@
 #![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code,
          unused_imports, unused_macros, unused_variables, unused_unsafe, static_mut_refs,
          clashing_extern_declarations)]
-include!("../femacs/src/include/config.rs");
-include!("../femacs/src/include/lisp.rs");
-include!("../femacs/src/include/android-asset.rs");
+include!("../src/include/config.rs");
+include!("../src/include/lisp.rs");
+include!("../src/include/android-asset.rs");
 
 fn main () {}

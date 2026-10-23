@@ -1,4 +1,4 @@
-# the GTK SDK surface — `femacs/src/include/gtk.rs` (1584 lines)
+# the GTK SDK surface — `src/include/gtk.rs` (1584 lines)
 
 # ----------------------------------------------------------------------
 ## Subrs (DEFUN) — 0
@@ -87,8 +87,8 @@ rather than inventing behaviour.  `ls -d /opt/homebrew/include/gtk-3.0 /opt/home
 
 | includer | at | gate |
 | --- | --- | --- |
-| `femacs/src/gtkutil.rs` | C 44's chain (`"gtkutil.h"` 26's `<gtk/gtk.h>`, with C 49's `<gdk/gdkkeysyms.h>`) | `feature = "use_gtk"` |
-| `femacs/src/pgtkterm.rs` | C 28's `<cairo.h>` / C 48's chain | `feature = "have_pgtk"` |
+| `src/gtkutil.rs` | C 44's chain (`"gtkutil.h"` 26's `<gtk/gtk.h>`, with C 49's `<gdk/gdkkeysyms.h>`) | `feature = "use_gtk"` |
+| `src/pgtkterm.rs` | C 28's `<cairo.h>` / C 48's chain | `feature = "have_pgtk"` |
 | `include/pgtkterm.rs` | its C 31 (`#include <gtk/gtk.h>`) | `feature = "have_pgtk"` |
 
 **`include/gtkutil.rs`'s C 26 edge is owed** (Owed 1 below): its consumer set includes
@@ -161,7 +161,7 @@ TU.
 - `python3 tools/check-mirror-dupes.py` -> `19 duplicate declaration(s), 19 ratchet row(s),
   0 failure(s)`; `python3 tools/check-target-names.py` -> `629 .rs files, 591 map targets,
   0 finding(s)`; `python3 tools/extract-abi.py --check emacs/src/pgtkterm.h
-  femacs/src/include/pgtkterm.rs` -> `OK emacs/src/pgtkterm.h -> femacs/src/include/pgtkterm.rs`.
+  src/include/pgtkterm.rs` -> `OK emacs/src/pgtkterm.h -> src/include/pgtkterm.rs`.
 
 ## Owed
 
@@ -597,7 +597,7 @@ Both are Owed 18 of `docs/ports/gtkutil.md`.
 **And a name whose home was already here.**  The round's draft declared `xnrealloc` (lisp.h 5546,
 C 4388) in its own unit, on the reading that no mirror carries it; `tools/check-mirror-dupes.py`
 said otherwise - `17 duplicate declaration(s), 16 ratchet row(s), 1 failure(s)`, "already declared by
-`femacs/src/include/lisp.rs` (in the include graph)" - because this file's sibling `include/lisp.rs`
+`src/include/lisp.rs` (in the include graph)" - because this file's sibling `include/lisp.rs`
 carries it at 3772 inside `lisp_safe_decls` and re-exports it at 3268's `use lisp_safe_decls::*;`.
 Deleting the copy brought the gate back to `16/16/0` with every arm reading unchanged, so the
 lisp.h mirror's row was in place all along.
@@ -721,7 +721,7 @@ owed rows only - arm A 27 -> 28 (and the same +1 with `gtk_check_version_ge_3_14
 `gtk_check_version_ge_3_20`), arm A without `have_xinput2` 26 -> 27, arm C 70 -> 71, arm C plus
 `have_freetype` 70 -> 71 - one more `GTK_WIDGET_TO_X_WIN!` instance in each face, while the
 out-of-tree pgtk probe stays **byte-identical at 24**.  This round also registered the
-`gtk_check_version_ge_3_20` feature in `femacs/xtask/Cargo.toml` (C 4829's condition) and
+`gtk_check_version_ge_3_20` feature in `xtask/Cargo.toml` (C 4829's condition) and
 re-recorded `docs/baseline/feature-coverage.tsv`.
 
 ### status 4.354 (the gtkutil twenty-fourth-slice round this file took part in)
@@ -1016,7 +1016,7 @@ with a name any other unit declares.
 **UNVERIFIED.**  No GTK or libXft tree is on this machine, so all twelve rows are taken from GTK's
 documented shapes and this file's conventions, not from headers on disk - the boundary `status 4.355`
 recorded for the GtkPrint* surface.  The round also registers the ninth version feature the unit
-needs (`gtk_check_version_ge_3_16`) in `femacs/xtask/Cargo.toml`.
+needs (`gtk_check_version_ge_3_16`) in `xtask/Cargo.toml`.
 
 
 ### status 4.364 (the gtkutil thirty-fourth-slice round this file took part in)
@@ -1101,7 +1101,7 @@ introduced.
   **`gdk_keymap_translate_keyboard_state`** - C 6639's read and C 6683-6688/6706-6711's two calls, in
   both faces.
 - **`gdk_x11_keymap_key_is_modifier`** under the round's new `gtk_check_version_ge_3_6` feature
-  (registered in `femacs/xtask/Cargo.toml`, citing C 6692) - C 6693-6694's and C 6715-6716's calls.
+  (registered in `xtask/Cargo.toml`, citing C 6692) - C 6693-6694's and C 6715-6716's calls.
 - **`GdkDeviceType`** with **`GDK_DEVICE_TYPE_MASTER`** (the documented first member) and
   **`gdk_device_manager_list_devices`** - C 6654-6655's read, which C's own `#elif
   GTK_CHECK_VERSION (3, 16, 0)` guards but whose *row* carries no gate (the arm's gate is the unit's).

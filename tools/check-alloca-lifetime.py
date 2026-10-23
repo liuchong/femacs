@@ -24,7 +24,7 @@ import re
 import sys
 
 REPO = pathlib.Path(__file__).resolve().parent.parent
-ROOT = REPO / "femacs"
+ROOT = REPO
 
 ITEM = re.compile(r'^(pub\s+)?(unsafe\s+)?(extern\s+"C"\s+)?fn\s+([A-Za-z0-9_]+)\s*[<(]')
 LHS = re.compile(r'(?:let\s+(?:mut\s+)?([A-Za-z0-9_]+)\s*(?::[^=]*)?=\s*|([A-Za-z0-9_]+)\s*=\s*)SAFE_')
@@ -98,7 +98,7 @@ def screen(path: pathlib.Path) -> tuple[list[str], list[str]]:
 def main() -> int:
     no_free: list[str] = []
     after: list[str] = []
-    for path in sorted(ROOT.rglob('*.rs')):
+    for path in sorted((p for tree in ('src','lib','lib-src','lwlib','oldXMenu','nt','msdos','exec','platform','xtask') for p in (ROOT/tree).rglob("*.rs"))):
         a, b = screen(path)
         no_free += a
         after += b

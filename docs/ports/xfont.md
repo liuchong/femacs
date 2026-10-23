@@ -7,7 +7,7 @@
 > `xfont.o`.  The file's own body sits under no `#if` of its own (the gate is the *build's* - the
 > `lwlib-Xlw.c` shape), so `extract-abi.py`'s checklist is **not** empty and this ledger carries
 > both P-86 ②'s substitute (the C line-range table) and the readings.  Port:
-> `femacs/src/xfont.rs` (**1731 lines**, `grep -c ''`), both arms of every `#if` carried.
+> `src/xfont.rs` (**1731 lines**, `grep -c ''`), both arms of every `#if` carried.
 >
 > This ledger replaces the previous revision's conclusion ("not compiled by the frozen
 > configuration, so the port is the empty unit plus a note"): P-86 ① rules that a header comment is
@@ -169,7 +169,7 @@ unit asserts both through the same 32-byte shift `include/font.rs`'s `FONT_WS_SH
 **⑦ The acceptance gates.**
 
 ```
-$ python3 tools/extract-abi.py --check emacs/src/xfont.c femacs/src/xfont.rs
+$ python3 tools/extract-abi.py --check emacs/src/xfont.c src/xfont.rs
 - line count drifted 48.5%: C 1166 vs Rust 1731        (one row, the tolerance row - Owed 3)
 $ python3 tools/check-declarations.py                  # 0 findings
 $ python3 tools/check-mirror-dupes.py                  # 17 duplicate(s), 17 ratchet row(s), 0 failure(s)
@@ -196,7 +196,7 @@ body's; it reported four rows, all of which the `macro-body-notes.tsv` additions
 5. **C 1006's condition is split**: `HAVE_XRENDER` is the registered feature `have_xrender`, and the
    version half (`RENDER_MAJOR > 0 || RENDER_MINOR >= 2`) is the derived
    `render_version_ge_0_2` - no `#[cfg]` can read `RENDER_MAJOR` out of `<X11/extensions/Xrender.h>`
-   (the `xft_version_lt_2_3_6` shape, `femacs/xtask/Cargo.toml` 755).  It is **not registered**
+   (the `xft_version_lt_2_3_6` shape, `xtask/Cargo.toml` 755).  It is **not registered**
    (Owed 1).
 6. **The X11 surface stands in the unit** (P-88 ①): `<X11/Xlib.h>`'s four font records, twelve
    entry points and three atoms, and - under the pair above - `<X11/extensions/Xrender.h>`'s
@@ -265,12 +265,12 @@ body's; it reported four rows, all of which the `macro-body-notes.tsv` additions
 
 ## Owed
 
-1. **`femacs/xtask/Cargo.toml`**: register `render_version_ge_0_2` (the derived
+1. **`xtask/Cargo.toml`**: register `render_version_ge_0_2` (the derived
    `RENDER_MAJOR > 0 || RENDER_MINOR >= 2`, `<X11/extensions/Xrender.h>`), the name C 1006's second
    operand needs and nothing else in the tree carries.  (The integrator registered the sibling
    derived names `xft_version_lt_2_3_6` 755 and the `sqlite_version_number_*`/`webkit_check_*`
    family; this one is new.)
-2. **`femacs/src/include/xlib.rs`**: the X11 surface this unit declares at its use site (P-90 ①;
+2. **`src/include/xlib.rs`**: the X11 surface this unit declares at its use site (P-90 ①;
    that mirror already carries `XID` 837, `Atom` 844 and `GC` 892) - the four records
    (`XCharStruct`, `XFontProp`, `XFontStruct`, `XChar2b`), the twelve entry points
    (`XLoadQueryFont`, `XGetAtomName`, `XListFonts`, `XDrawImageString`, `XDrawImageString16`,
@@ -285,19 +285,19 @@ body's; it reported four rows, all of which the `macro-body-notes.tsv` additions
    the per-item `#[cfg (feature = "have_x_windows")]` of P-86 ①, the layout assertions, the
    unit-local X11 declaration segment and the seven-arm `xfont_draw`.  `extract-abi.py --check` reports exactly this row today
    (Evidence ⑦).  Not this lane's file to write.
-4. **`femacs/src/include/xterm.rs`**: `Time` (nine errors of the X11 arm; `<X11/Xlib.h>`'s
+4. **`src/include/xterm.rs`**: `Time` (nine errors of the X11 arm; `<X11/Xlib.h>`'s
    `unsigned long`, named by `struct input_event` 110, `struct terminal` 259, `x_display_info`
    497/501/544/669/677 and one more at 1430), and - for the XRender arm - `x_display_info`'s
    `xrender_supported_p`/`xrender_major`/`xrender_minor` (the mirror's own
    `FRAME_CHECK_XR_VERSION!` 1178 is `E0609` without them) and `XRenderPictFormat` (its
    `pict_format` field 398).  The xfns ledger's Owed 1 lists the same class.
-5. **`femacs/src/include/xterm.rs` / `femacs/src/include/font.rs`**: `x_mark_frame_dirty`
+5. **`src/include/xterm.rs` / `src/include/font.rs`**: `x_mark_frame_dirty`
    (xterm.h 1405) and `font_add_log` (font.h 1001) - the two names those mirrors' own macro bodies
    (`FRAME_X_DRAWABLE!` 974, `FONT_ADD_LOG!` 290) call and no mirror declares - together with
    `x_catch_errors`/`x_had_errors_p`/`x_clear_errors`/`x_uncatch_errors`/
    `x_display_info_for_display` (xterm.h) and the eight `font.c` entry points this unit declares at
    its use site (Deviations 10).
-6. **`femacs/src/include/dispextern.rs`**: `struct face` and the unit-local copies (status 3.220).
+6. **`src/include/dispextern.rs`**: `struct face` and the unit-local copies (status 3.220).
    This unit follows the `dispnew.rs` shape (a partial record with the two offsets it reads); when
    the mirror's record becomes available to every unit, this copy needs the
    `#[cfg (not (feature = "dispextern_face_records"))]` the status note prescribes, together with
@@ -342,5 +342,5 @@ body's; it reported four rows, all of which the `macro-body-notes.tsv` additions
   git write was performed by this lane (the 4 `macro-body-notes.tsv` rows this lane appended were
   swept into another lane's commit `1445fbc` while this unit was in flight - reported, not a write
   by this lane).
-- **`femacs/src/xfont.rs` may move under a later round** (the mirror gaps of Owed 2/4/5), and
+- **`src/xfont.rs` may move under a later round** (the mirror gaps of Owed 2/4/5), and
   `docs/port-map.md`'s row and `docs/status.md`'s ratchet line are the integrator's to refresh.

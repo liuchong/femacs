@@ -103,7 +103,7 @@
   `charset_attr_index`, `charset_method`), `struct charset`, `struct charset_table`, the 63
   macros, the two INLINE functions (`charset_attributes_getter`, `set_charset_attr`) and
   the nineteen `extern` objects plus seven prototypes.  The mirror lands with
-  `femacs/src/charset.rs` (the composite.rs/intervals.rs precedent).
+  `src/charset.rs` (the composite.rs/intervals.rs precedent).
 - **`bits: u8` for the six `bool_bf : 1` members** of `struct charset` (PORTING.md 1.3):
   `bool_bf` is `bool` on the frozen target (conf_post.h 56-61), so C stores all six in one
   byte.  The mirror reads and writes them with `charset_bits!` over the `CHARSET_*_P`

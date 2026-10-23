@@ -36,8 +36,8 @@
   asserted in the parent mirror against the judge's compiler.
 
 ## Evidence
-- `python3 tools/extract-abi.py --check emacs/src/module-env-28.h femacs/src/include/module-env-28.rs`
-  -> `OK emacs/src/module-env-28.h -> femacs/src/include/module-env-28.rs` (no `- ` problem lines).
+- `python3 tools/extract-abi.py --check emacs/src/module-env-28.h src/include/module-env-28.rs`
+  -> `OK emacs/src/module-env-28.h -> src/include/module-env-28.rs` (no `- ` problem lines).
   The extractor's item list for this file is **empty** (`0 subrs, 0 functions defined, 0 macros,
   0 types, 0 file-scope objects`), because its text is a bare member list with no enclosing
   record: a fragment cannot be a translation unit, so there is nothing for the checklist to ask

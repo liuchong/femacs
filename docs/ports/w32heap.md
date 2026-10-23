@@ -1,6 +1,6 @@
 # emacs/src/w32heap.c (554 lines)
 
-Port `femacs/src/w32heap.rs` (**888 lines**, whole file, C 1-554); ledger written to P-86's shape
+Port `src/w32heap.rs` (**888 lines**, whole file, C 1-554); ledger written to P-86's shape
 (clause ②: the C line-range table replaces the empty checklist, plus `## Evidence`, `## Deviations`,
 `## Owed`).  Reference `emacs/src/w32heap.c` md5 `2f105bcc301c18f873c7bd29f1a5437c`; the port's md5
 is `100749b735779b672d9562b86d5e017e` (the 31-line stub it replaced was
@@ -163,7 +163,7 @@ reaches; that file is not this batch's to write.
   Live: the same injected type error yields `E0308` there.  It is *not* the flip - the stubs are
   this lane's, so it says the unit's text is well-typed against the names its graph supplies, not
   that the SDK's prototypes or the record layouts are right.
-- **`python3 tools/extract-abi.py --check emacs/src/w32heap.c femacs/src/w32heap.rs`** (non-vacuous
+- **`python3 tools/extract-abi.py --check emacs/src/w32heap.c src/w32heap.rs`** (non-vacuous
   once the port has `fn`s, P-86 ⑩) -> 3 rows, all named: `- function getrlimit does not mention
   break, case, default, switch`, `- function setrlimit does not mention …` (the two `match`es of
   PORTING.md 2.2) and `- line count drifted 60.3%: C 554 vs Rust 888`, then `FAIL`.  No

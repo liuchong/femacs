@@ -249,7 +249,7 @@
 # ----------------------------------------------------------------------
 ## Decisions
 
-`emacs/src/process.c` @ `fd7afced403`; port `femacs/src/process.rs`.  **WIP: this port is a
+`emacs/src/process.c` @ `fd7afced403`; port `src/process.rs`.  **WIP: this port is a
 faithful prefix, C 1-2624 of 9,123 lines** (through `Fmake_pipe_process`).  The 123 unchecked
 rows above are the remainder (C 2626-9123: the socket layer, `make-network-process`,
 `accept-process-output`, `wait_reading_process_output`, the read/write/signal machinery and
@@ -359,7 +359,7 @@ progress* rather than failing (measured: `checked 365 ported files: 339 done, 26
 
 ## Integrator note (WIP state, 2026-10-04)
 
-- `python3 tools/extract-abi.py --check emacs/src/process.c femacs/src/process.rs` currently
+- `python3 tools/extract-abi.py --check emacs/src/process.c src/process.rs` currently
   ends `FAIL ... (182 problems)`; 166 are `missing …` for the unported remainder and the rest
   are the ledger's 123 unchecked rows.  One of them is a real *todo for the remainder*:
   C 8362/8376/8337/8343 define `add_keyboard_wait_descriptor`,
@@ -384,7 +384,7 @@ progress* rather than failing (measured: `checked 365 ported files: 339 done, 26
 
 ## Progress update (2026-10-04, second round)
 
-The port now covers **C 1-6541** of 9,123 lines (`femacs/src/process.rs`, 6,379 lines): the whole
+The port now covers **C 1-6541** of 9,123 lines (`src/process.rs`, 6,379 lines): the whole
 socket layer (`make-network-process`, `connect_network_socket`, the `getaddrinfo`/`getifaddrs`
 machinery, the datagram address accessors, `set_socket_option` and the `ifflag_table`),
 `accept-process-output`, `wait_reading_process_output` with its fd-mask helpers, and the
@@ -426,14 +426,14 @@ Additional Decisions this round:
 
 ## Final state (2026-10-04, third round — the port is complete)
 
-`femacs/src/process.rs` now covers **C 1-9,123** (9,202 Rust lines; the ledger's 235 rows are
+`src/process.rs` now covers **C 1-9,123** (9,202 Rust lines; the ledger's 235 rows are
 all ticked).  The gates, each run from the repository root unless noted:
 
     build-tu src/process.c        -> built src/process.rs -> ../build/femacs/process.o
-    extract-abi.py --check        -> OK emacs/src/process.c -> femacs/src/process.rs
+    extract-abi.py --check        -> OK emacs/src/process.c -> src/process.rs
     check-globals.py              -> check-globals: 265 units, 0 DEFVAR_* variables without a definition in their own unit
     check-linkage.py              -> check-linkage: 4 unit object(s) compared ..., 0 with 0 missing symbol(s)
-    rustc --cfg enable_checking   -> exit 0 (from femacs/)
+    rustc --cfg enable_checking   -> exit 0 (from )
     check-declarations.py         -> 8 declaration sites (0 forbidden, 8 allowed literals), 0 failures
     check-verbatim.py             -> 6 trees, 4607 files, 0 failures
     check-undef.py                -> 20 NEW entries, *all* referenced by frame.o (the concurrent
@@ -524,18 +524,18 @@ exposes**:
   removal turns it into one new pending name.  Only `Vinternal__daemon_sockname` remains as
   this file's own `DEFVAR_LISP` carrier (status 3.29).
 - **The `TIOCNOTTY` fix is +17 lines** (the carried cfg block, the constant declaration and the
-  comment became the compiled body); `femacs/src/process.rs` is now **9,226** lines against C's
+  comment became the compiled body); `src/process.rs` is now **9,226** lines against C's
   9,122 (1.06 %), and the tolerance file carries a fresh `process` row.
 
 Gates re-run this round, each from the repository root unless noted:
 
 ```text
 build-tu src/process.c        -> built src/process.rs -> ../build/femacs/process.o
-extract-abi.py --check        -> OK emacs/src/process.c -> femacs/src/process.rs
+extract-abi.py --check        -> OK emacs/src/process.c -> src/process.rs
 check-globals.py              -> check-globals: 266 units, 0 DEFVAR_* variables without a definition in their own unit
 check-linkage.py              -> check-linkage: 3 unit object(s) compared ..., 0 with 0 missing symbol(s)
 check-symbols.py --dir src    -> check-symbols: 64 units compared, 0 mismatched, 0 still pending
-rustc --cfg enable_checking   -> exit 0 (from femacs/)
+rustc --cfg enable_checking   -> exit 0 (from )
 check-declarations.py         -> 8 declaration sites (0 forbidden, 8 allowed literals), 0 failures
 check-verbatim.py             -> 6 trees, 4607 files, 0 failures
 check-undef.py                -> 515 unit object(s), 151 reference object(s)/archive(s): 151 pending, 1 NEW
@@ -550,7 +550,7 @@ grep -c '^\- \[ \]' docs/ports/process.md -> 0   (235 rows ticked)
   `font.h\tFONT_DEBUG`; because `font.h` itself defines `FONT_DEBUG` (C 998), a global
   "defined" makes font.h's own `#ifndef FONT_DEBUG` at C 997 disagree with clang
   (`clang True, evaluator False`).  Removing the row fixes `src/font.h` but breaks
-  `extract-abi.py --check emacs/src/font.c femacs/src/font.rs` (four `unexpected defsubr`), so
+  `extract-abi.py --check emacs/src/font.c src/font.rs` (four `unexpected defsubr`), so
   the row is load-bearing for that lane and was left in place.  With the `TIOCNOTTY` row gone,
   `src/font.h` is the *only* file the `--verified` run still reports (`verified list
   regressed: src/font.h`, exit 1); it needs a font-lane decision — drop the row and take the
@@ -591,12 +591,12 @@ Gates on the current tree (repository root unless noted):
 
 ```text
 build-tu src/process.c        -> built src/process.rs -> ../build/femacs/process.o
-extract-abi.py --check        -> OK emacs/src/process.c -> femacs/src/process.rs
+extract-abi.py --check        -> OK emacs/src/process.c -> src/process.rs
 check-globals.py              -> check-globals: 267 units, 0 DEFVAR_* variables without a definition in their own unit
 check-mirror-dupes.py         -> 1 duplicate declaration(s), 1 ratchet row(s), 0 failure(s)
 check-linkage.py              -> check-linkage: 2 unit object(s) compared ..., 0 with 0 missing symbol(s)
 check-symbols.py --dir src    -> check-symbols: 67 units compared, 0 mismatched, 0 still pending
-rustc --cfg enable_checking   -> exit 0 (from femacs/)
+rustc --cfg enable_checking   -> exit 0 (from )
 check-declarations.py         -> 8 declaration sites (0 forbidden, 8 allowed literals), 0 failures
 check-verbatim.py             -> 6 trees, 4607 files, 0 failures
 check-cond-eval.py --verified -> 5717 conditions, 4 unknown to the evaluator, 0 disagreements
@@ -622,7 +622,7 @@ declared `c_int`: 4-byte aligned, so the 8-byte read panicked with `misaligned p
 EMACS_INT)` casts are gone, since C writes the bare variable.
 
 Readings: `build-tu src/process.c` -> `built`; `extract-abi --check emacs/src/process.c
-femacs/src/process.rs` -> `OK`; `check-all-units.sh` -> 83/0 on both legs; and the dump run moves from
+src/process.rs` -> `OK`; `check-all-units.sh` -> 83/0 on both legs; and the dump run moves from
 `rc=134` to `rc=255` with 110 -> **114 `^Loading` lines** and `Dump mode: pdump` - the dump path is
 engaged now and stops on the fixture's missing `../etc/DOC` (the reference build's DOC is at
 `build/emacs-ref/etc/DOC`), which is a harness path rather than a defect in this unit.  PORTING.md

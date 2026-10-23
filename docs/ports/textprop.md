@@ -87,11 +87,11 @@
   `set_text_properties_1`, `text_property_list`, `add_text_properties_from_list`,
   `extend_property_ranges`, `get_char_property_and_overlay`,
   `text_property_stickiness`, `syms_of_textprop`) moved into `pub mod textprop_decls` +
-  glob import in `femacs/src/include/intervals.rs`; the three prototypes of the "Declared in
+  glob import in `src/include/intervals.rs`; the three prototypes of the "Declared in
   intervals.c" block that this file also defines (`verify_interval_modification`,
   `validate_interval_range`, `interval_of`) were already in `intervals_decls` + glob import.
   (2) `buffer.h`'s two `interval_insert_*_hooks` objects moved into `pub mod textprop_objs` +
-  glob import in `femacs/src/include/buffer.rs`.  Both are recorded in
+  glob import in `src/include/buffer.rs`.  Both are recorded in
   `docs/ports/intervals.md` and `docs/ports/include-buffer.md`; `build-tu` was re-run for
   `src/intervals.c` and `src/insdel.c` (and their `--check`s) to prove no other consumer
   regressed.

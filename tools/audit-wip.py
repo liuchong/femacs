@@ -42,12 +42,12 @@ def port_path_for(ref: str) -> pathlib.Path | None:
     rel = pathlib.Path(ref)
     stem = rel.stem
     if rel.suffix == ".h":
-        cands = [REPO / "femacs" / rel.parent / "include" / (stem + ".rs"),
-                 REPO / "femacs" / rel.parent / (stem + ".rs")]
-        cands += [REPO / "femacs/src/include" / (stem + ".rs"),
-                  REPO / "femacs/lib/include" / (stem + ".rs")]
+        cands = [REPO / rel.parent / "include" / (stem + ".rs"),
+                 REPO / rel.parent / (stem + ".rs")]
+        cands += [REPO / "src/include" / (stem + ".rs"),
+                  REPO / "lib/include" / (stem + ".rs")]
     else:
-        cands = [REPO / "femacs" / rel.with_suffix(".rs")]
+        cands = [REPO / rel.with_suffix(".rs")]
     return next((p for p in cands if p.is_file()), None)
 
 

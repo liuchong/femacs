@@ -67,8 +67,8 @@
 
 ## Evidence
 
-    $ python3 tools/extract-abi.py --check emacs/lib/sys_select.in.h femacs/lib/include/sys_select.in.rs
-    OK emacs/lib/sys_select.in.h -> femacs/lib/include/sys_select.in.rs
+    $ python3 tools/extract-abi.py --check emacs/lib/sys_select.in.h lib/include/sys_select.in.rs
+    OK emacs/lib/sys_select.in.h -> lib/include/sys_select.in.rs
 
     $ python3 tools/check-cond-eval.py lib/sys_select.in.h
     lib/sys_select.in.h: 40 conditions, 18 unknown, 29 disagreements [NOT VERIFIED]

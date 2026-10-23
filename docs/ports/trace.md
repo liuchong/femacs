@@ -11,7 +11,7 @@
 > (`docs/baseline/feature-coverage.tsv` 11, the gate `src/androidmenu.rs` and `src/sfnt.rs` use) - on
 > every item *and* on the include graph (P-86 ⑧).
 >
-> Port: `femacs/exec/trace.rs` (**3,106 lines** before this ledger's rows; first line
+> Port: `exec/trace.rs` (**3,106 lines** before this ledger's rows; first line
 > `// femacs: port of exec/trace.c @ fd7afced403.`), the whole file, C 1-2258, **both arms of every
 > one of its 73 conditions** (P-86 ①) and nothing stubbed.  The previous revision was the three-line
 > P-08 note ("not compiled by the frozen configuration … the port is an empty unit").
@@ -178,7 +178,7 @@ reading is 0 errors with the same 220,472-byte rlib.  So rustc really does
 compile *this unit's* statements under `have_android`, rather than stopping in a mirror.
 
 **④ `extract-abi.py --check` (P-86 ⑩: no longer vacuous, since the unit has `fn`s).**
-`python3 tools/extract-abi.py --check emacs/exec/trace.c femacs/exec/trace.rs` → **one `- ` row**:
+`python3 tools/extract-abi.py --check emacs/exec/trace.c exec/trace.rs` → **one `- ` row**:
 `line count drifted 37.6%: C 2258 vs Rust 3106`.  The twelve token rows the first run produced
 (`user_alloca goto`; `handle_clone_prepare new_child,waiting_for_syscall`; `handle_clone
 goto,new_child,waiting_for_syscall`; `check_signal break,case,default,switch`; `handle_exec
@@ -211,7 +211,7 @@ here).
 `python3 tools/check-ledger-ticks.py` → **no row names this ledger**: it has no ticked box (a P-86
 ledger's checklist is empty, so the C range table is the coverage evidence, P-86 ②).
 `python3 tools/check-citations.py` → **no drift row names this unit**: every citation in
-`femacs/exec/trace.rs` is a bare `C <line>` (or a `/// C: <header>: …` line for the external
+`exec/trace.rs` is a bare `C <line>` (or a `/// C: <header>: …` line for the external
 surface), which the tool counts as prose rather than a `path line` citation; the `exec/configure.ac`
 rows it does read are counted and checked.
 
@@ -347,7 +347,7 @@ Deviation 3).
    is what `tools/extract-abi.py --check` and `gate-fast` need; the file is not this lane's to write
    (the P-86 ⑩ precedent: the same class of row was written by the integrator for `ntlib` in
    3.504).  Without it `--check` reports the one row Evidence ④ reads.
-4. **The new feature names need registering** (`femacs/xtask/Cargo.toml`'s `[features]` table and
+4. **The new feature names need registering** (`xtask/Cargo.toml`'s `[features]` table and
    `docs/baseline/feature-coverage.tsv`, the mechanism `_timezone_defined` went through in 3.504):
    `have_sys_uio_h`, `have_process_vm`, `have_seccomp`, `have_siginfo_t_si_syscall`, `readlink_syscall`,
    `open_syscall`, `sigsys`, `sys_seccomp`, `ptrace_geteventmsg`, `ptrace_event_seccomp`,
@@ -359,8 +359,8 @@ Deviation 3).
 5. **`docs/baseline/port-lines-pending.tsv`'s `exec/trace.c` row is now stale** and wants removing
    (the ratchet's own reading, `tools/check-port-lines.py`).  `docs/baseline/**` is not this lane's
    to write.
-6. **The include graph's other two `exec/` units are still the P-08 note** (`femacs/exec/exec.rs`,
-   `femacs/exec/include/exec.rs` is complete but `exec/exec.c`'s port is not), so `format_pid` and
+6. **The include graph's other two `exec/` units are still the P-08 note** (`exec/exec.rs`,
+   `exec/include/exec.rs` is complete but `exec/exec.c`'s port is not), so `format_pid` and
    `exec_0` - the two symbols this file calls and does not define - have no definition anywhere in
    the ported tree yet.  That is their own lanes' work; this unit's link is not claimed.
 

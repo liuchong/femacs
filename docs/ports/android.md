@@ -5,7 +5,7 @@
 > (2602), and `docs/baseline/frozen-build-sources.txt` lists no `android.o` for this target, so
 > `extract-abi.py`'s checklist for the file is empty and its checkbox sections cannot be coverage
 > evidence.  What follows is P-86 ②'s substitute: the **C line-range table** for these slices, the
-> `## Evidence` readings and the `## Deviations`.  Port: `femacs/src/android.rs` (2,103 lines),
+> `## Evidence` readings and the `## Deviations`.  Port: `src/android.rs` (2,103 lines),
 > both arms of every `#if` carried.
 >
 > **This file's ledger replaces the previous revision's conclusion** ("the file is not in the
@@ -217,7 +217,7 @@ target's table has it undefined but builds no `android.o`) | `feature = "have_wi
 `not_android_stubify` is the feature the tree already registered for C's
 `HAVE_ANDROID && !defined ANDROID_STUBIFY` (`docs/baseline/feature-coverage.tsv` line 640, first
 used by `alloc.rs` 6428); `android_api_lt_21` is the one **derived** feature this slice adds and it
-is not in `femacs/xtask/Cargo.toml` yet (owed, below).
+is not in `xtask/Cargo.toml` yet (owed, below).
 
 `HAVE_WINDOW_SYSTEM` (configure.ac 7518) has no `#if` in this slice and therefore no gate.
 `frame.rs`'s flag block 3.408 laid down is gated on `have_window_system`, and this unit carries
@@ -509,7 +509,7 @@ no `window.h`).
 The fifty rows tile C 1-1869 **contiguously** (blank lines included, two of them one-line rows for
 the blanks at C 1838 and C 1869) rather than skipping the blanks between blocks, and the last row
 runs on to C 7594, the reference's last line: `tools/check-dead-file-coverage.py`'s ledger lookup resolves
-`femacs/src/include/android.rs` (this file's sibling header's mirror) to this same `android.md`
+`src/include/android.rs` (this file's sibling header's mirror) to this same `android.md`
 through its bare-stem fallback, so a table with gaps at blanks leaves 7 of `src/android.h`'s
 non-blank lines uncovered and fails.  (`docs/ports/w32term.md` is the same shape and passes for
 the same reason: its rows reach past `src/w32term.h`'s 929.)
@@ -517,7 +517,7 @@ the same reason: its rows reach past `src/w32term.h`'s 929.)
 ## Evidence
 
 The readings below are on the revision that carries **both slices** (C 1-1869,
-`femacs/src/android.rs` 2,103 lines); the previous revision's readings for C 1-1037 alone are
+`src/android.rs` 2,103 lines); the previous revision's readings for C 1-1037 alone are
 superseded and are noted where they differ.
 
 **① The frozen configuration (`build-tu`).**
@@ -593,7 +593,7 @@ CARGO_TARGET_DIR=/tmp/android2-lane/cargo cargo run -q -p xtask -- probe src/and
   reading.  The readings quoted in ②a/②b are ⑦ and ⑧, i.e. the **final revision**; the two edits
   between ⑧ and this ledger are comment-only (the port's C-line references and the unit's header).
 
-**③ Inventory.**  `python3 tools/extract-abi.py --check emacs/src/android.c femacs/src/android.rs`
+**③ Inventory.**  `python3 tools/extract-abi.py --check emacs/src/android.c src/android.rs`
 (exit 1 in both revisions; the failure is the file's own boundary, see below):
 
 | | before (C 1-1037 only) | after (C 1-1869) |
@@ -628,7 +628,7 @@ python3 tools/check-dead-file-coverage.py
     info docs/ports/android.md: 50 range row(s) cover src/android.h (363 lines; …)
     … 18 ledger(s) bound (a C range table), 0 failure(s)          [exit 0]
 python3 tools/check-declarations.py
-  → FAIL femacs/src/android.rs: literal x1: macro_rules! PACKAGE_STRING { () => { "…" }; }
+  → FAIL src/android.rs: literal x1: macro_rules! PACKAGE_STRING { () => { "…" }; }
     (the `…` is `<config.h>` 2205's `PACKAGE_STRING`, the product name and version, elided here
     for the reason this section gives at the end)
     14 declaration sites (0 forbidden, 14 allowed literals), 1 failures   [exit 1]
@@ -719,7 +719,7 @@ readings exist only with `android_api_lt_21` selected.
   prototype in a `/// C: …` line): `fdopen` and `getline` (C 37's `<stdio.h>`:
   `lib/include/stdio.rs` is the frozen *system* header mirror and carries neither, while the gnulib
   *template* mirror `lib/include/stdio.in.rs` 238/248 does carry both but is reached by no unit -
-  `rg -ln 'stdio.in.rs' femacs/src femacs/lib` is empty), `strdup` (C 37's `<string.h>`; the mirror
+  `rg -ln 'stdio.in.rs' src lib` is empty), `strdup` (C 37's `<string.h>`; the mirror
   has no declaration, `sysdep.rs` 727 / `emacsclient.rs` 302 declare it in their own units),
   `setenv` (C 37's chain `<stdlib.h>`; unreachable `stdlib.in.rs` 248, the `sysdep.rs` 956 shape),
   `dirname` (C 29's `<libgen.h>`: **no mirror exists anywhere in the tree** - this unit is the first
@@ -778,7 +778,7 @@ readings exist only with `android_api_lt_21` selected.
 
 ## Owed by the integrator (status per item; nothing here is claimed as done until marked)
 
-1. ✅ **Done in 3.412** — `femacs/xtask/Cargo.toml`'s `[features]` table: **`android_api_lt_21`** (comment: the derived
+1. ✅ **Done in 3.412** — `xtask/Cargo.toml`'s `[features]` table: **`android_api_lt_21`** (comment: the derived
    condition `__ANDROID_API__ < 21`, android.c 297/310/367/426/509/522/604/672/713/738/923/973;
    its negation is C's `>= 21` arm).  Without it none of this slice's `#if` pairs can be selected.
 2. ✅ **Done** — `docs/ports/macro-body-notes.tsv`: `android_write_event` →
@@ -806,7 +806,7 @@ readings exist only with `android_api_lt_21` selected.
    `<pthread.h>`/`<semaphore.h>` block, the `<signal.h>` extras, `gettid`/`kill`, the
    `<android/log.h>` pair and (slice 11) C 63's `<android/bitmap.h>` names - the three
    functions, `ANDROID_BITMAP_FORMAT_RGBA_8888` and the `android_bitmap` module's record, which
-   is the same round `docs/ports/sfntfont-android.md` Owed 4b asks for (`femacs/src/include/android.rs`
+   is the same round `docs/ports/sfntfont-android.md` Owed 4b asks for (`src/include/android.rs`
    44-46's opaque tag becomes the record and both units' copies go).  **`pipe2` is settled and stays where it is** (3.414): bionic's
    `<unistd.h>` declares it for this configuration, and `docs/baseline/mirror-dupes.tsv` now
    carries the ratchet row that says why the mirror's Darwin redirect and this declaration are two
@@ -838,7 +838,7 @@ readings exist only with `android_api_lt_21` selected.
 10. `docs/baseline/declarations-allowlist.tsv` (not in this lane's writable set): **one `literal`
    row for the product name slice 2's log format carries**, of the same class as its six existing
    rows.  `tools/check-declarations.py` prints the exact site -
-   `FAIL femacs/src/android.rs: literal x1: macro_rules! PACKAGE_STRING { () => { "…" }; }`
+   `FAIL src/android.rs: literal x1: macro_rules! PACKAGE_STRING { () => { "…" }; }`
    (value elided, see Evidence ④) - and today's reading is `1 failures`.  The row's reason is the one that class
    uses: `<config.h>` 2205's `PACKAGE_STRING`, which C 1511-1513 concatenates into
    `__android_log_print`'s format, is ported semantics and cannot be spelled otherwise; the port
@@ -861,14 +861,14 @@ readings exist only with `android_api_lt_21` selected.
    `android_answer_query` (C 7016).  C links through C 3006-3008's forward declarations; a Rust
    crate needs the definitions first, so the machinery slice carries C 6880-7096 **and** then
    C 3010-3032 (the `PORTING.md` §8 `__atomic_*` device is already in the tree:
-   `femacs/src/androidterm.rs` 6163/8057).
+   `src/androidterm.rs` 6163/8057).
 
 12. ✅ **Settled by 4.172 (slice 19)** - `android_create_pixmap_from_bitmap_data` is the first `android_lock_bitmap` caller and casts through `type AndroidBitmapInfo_tag = AndroidBitmapInfo` (the alias is beside the C 63 stand-in).  The original item: **The `android_lock_bitmap` call sites (C 3954/4460/4468/4482 and the definition at C 5601) will
    need the tag spelling slice 11's record settled.**  C's `android_lock_bitmap` (declared in
-   `src/android.h`, mirror `femacs/src/include/android.rs` 269) takes the *opaque* `<android/bitmap.h>`
+   `src/android.h`, mirror `src/include/android.rs` 269) takes the *opaque* `<android/bitmap.h>`
    tag pointer, while this unit now carries the five-member record in its own `android_bitmap`
    module - so those sites must cast the record's pointer to the mirror's tag, the
-   `femacs/src/sfntfont-android.rs` 91/710 device (`type AndroidBitmapInfo_tag = AndroidBitmapInfo;`
+   `src/sfntfont-android.rs` 91/710 device (`type AndroidBitmapInfo_tag = AndroidBitmapInfo;`
    plus `(&raw mut info) as *mut AndroidBitmapInfo_tag`).  Recorded as a *future* slice's wiring
    rather than a defect: nothing in C 1-3002 calls `android_lock_bitmap`.
 
@@ -923,7 +923,7 @@ once: the 40 Kotlin targets declare `package org.femacs` (11 identity strings wi
 `getApplicationInfo`, `EmacsNoninteractive`'s `loadClass`), and this unit's 41 `FindClass`/descriptor
 lines plus the three `export_name`s move with them (`Java_org_femacs_EmacsNative_*`).  P-83 (1)(2)
 now says it in one line: the package is ours, the class/field/method names are byte-identical on
-both sides.  Evidence: `spikes/kotlin-compile-probe.sh femacs/platform/android/kotlin/*.kt` -> **exit
+both sides.  Evidence: `spikes/kotlin-compile-probe.sh platform/android/kotlin/*.kt` -> **exit
 0** (the probe re-homes the reference `.java` stand-ins into the same package, so the whole batch is
 still a real compile; measured 3.503, `JAVA_TOOL_OPTIONS=-Xmx2g`).  The Rust side has no compiler on
 this machine for the `have_android` arm (the mirror blockers of P-86 (7)), so its evidence is textual
@@ -1111,7 +1111,7 @@ bring that count to **21**, the two `missing file-scope object` rows stand, ther
   `androidgui.h` 44 typedefs `android_time` as `unsigned int`, and the crossing/motion/button/touch
   records are the `unsigned long` ones (C 378/387/396/432/456; C 315/344/354 are the three
   `android_time` members slices 5-6 write), so the faithful conversion is the `c_ulong` one - the
-  mirror already declares those four members `c_ulong` (`femacs/src/include/androidgui.rs`
+  mirror already declares those four members `c_ulong` (`src/include/androidgui.rs`
   444/456/468/511).  The first probe's eight `E0308` rows were that spelling, not the mirror.
 - **C's `++event_serial`** is the two-statement form (the `c_uint` write, then the read), and the
   `as c_ulong`/`as android_window`/`as c_uint` conversions are C's own promotions into the record's
@@ -1140,7 +1140,7 @@ file-scope object` rows stand, there is **0 `does not mention`**, and the line-c
 
 - **C 2567-2568's `float`-into-`double` pair** is the one conversion this slice adds: the JNI
   parameters are `jfloat` and `android_wheel_event`'s members are `double` (`androidgui.h`'s wheel
-  record, mirror `femacs/src/include/androidgui.rs` 545-546), so the port writes
+  record, mirror `src/include/androidgui.rs` 545-546), so the port writes
   `x_delta as f64`/`y_delta as f64` - C's own default argument promotion.
 - **C 2659-2660's `NULL`/`0` pair** is `std::ptr::null_mut ()` and `0` in the `dnd` member (the
   `*mut c_ushort`/`size_t` pair), the spelling the unit's own C 145-158 declarations already use.
@@ -1170,7 +1170,7 @@ symbol`** rows bring that count to **29**, the two `missing file-scope object` r
 
 - **C's `(*env)->Method (env, …)` is the port's `((*(*env)).Method.unwrap ()) (env, …)`** - the
   `JNIEnv` is the NDK mirror's `*const JNINativeInterface` and the table's entries are `Option`
-  fields (`include/jni.rs` 302-304), the shape `femacs/src/androidterm.rs` 6228/6234/6251 already
+  fields (`include/jni.rs` 302-304), the shape `src/androidterm.rs` 6228/6234/6251 already
   carries for the same three members.  The `*mut JNIEnv` parameter C declares is the mirror's own
   pointer, so no cast is needed at the call.
 - **C 2685/2727's `malloc (length * sizeof *buffer)`** is
@@ -1213,7 +1213,7 @@ reads **58.0%** (C 7,594 against the port's 3,193).
 
 - **C 2844's `switch (detail)` is the port's `match`**, with C's two labels and its `default` kept
   in C's order and an explanatory comment above it (the `android_detect_focus_change` shape,
-  `femacs/src/androidterm.rs` 782-790); the four tokens `switch`/`case`/`default`/`break` have no
+  `src/androidterm.rs` 782-790); the four tokens `switch`/`case`/`default`/`break` have no
   Rust counterpart, and C 2845/2850/2854/2858's braces and jumps have no line of their own.
 - **C 2788's `const void *characters`** is the one local C reuses for both `GetStringUTFChars`
   (`*const c_char`) and `GetStringChars` (`*const jchar`), so the port writes the two conversions
@@ -1251,7 +1251,7 @@ against the port's 3,372).
 ### Deviations this slice adds
 
 - **C 63's `<android/bitmap.h>` has no mirror, so its names are declared in the unit** (the P-88
-  device the `<android/log.h>` block below uses; `femacs/src/sfntfont-android.rs` 69-88 is the
+  device the `<android/log.h>` block below uses; `src/sfntfont-android.rs` 69-88 is the
   sibling unit's copy of it).  The five-member record lives in a module of its own
   (`android_bitmap`) because `include/android.rs` 44-46 keeps C's tag opaque for
   `android_lock_bitmap` and `include!` is textual - a module-local declaration is a different scope,
@@ -1437,7 +1437,7 @@ back to **0**.
 - **`__builtin_expect` is carried as the unit's own branch-hint macro** (PORTING.md 2.6 - the hint
   itself has no Rust counterpart, which is what the `macro-body-notes` row above records), defined
   just above its first use site the way this unit defines `ANDROID_DELETE_LOCAL_REF!`; the shape is
-  `femacs/lib/memmem.rs` 32-35, the other unit that carries the builtin.
+  `lib/memmem.rs` 32-35, the other unit that carries the builtin.
 - **C 3170's in-body `static_assert`** is an in-body `const _: () = core::assert! (…)` (the
   `dispnew.rs` 6324-6325 shape for the same statement) - and it is the reason the body's token count
   needed the notes row.
@@ -2394,7 +2394,7 @@ and C 4221/4227/4239/4245's four `ckd_mul` calls are spelled `uintptr_t::overflo
 rather than the method form, because the family reading looks for C's operands *inside* the call and
 the method's receiver sits outside it (the ledger's P-15 note still describes the pair).
 
-**Readings.**  `python3 tools/extract-abi.py --check emacs/src/android.c femacs/src/android.rs` ->
+**Readings.**  `python3 tools/extract-abi.py --check emacs/src/android.c src/android.rs` ->
 **OK** (0 rows; the line-count reading is covered by this file's own `line-drift-tolerance.tsv` row,
 0.26 at +21.2%); the arm probe (base configuration, `have_android` + `not_android_stubify`) still
 stops on `lib/include/signal.rs`'s missing bionic `sa_sigaction` member alone (Owed 6, not this

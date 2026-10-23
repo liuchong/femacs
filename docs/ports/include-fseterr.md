@@ -23,8 +23,8 @@
 ## Evidence
 
 ```
-$ python3 tools/extract-abi.py --check emacs/lib/fseterr.h femacs/lib/include/fseterr.rs
-OK emacs/lib/fseterr.h -> femacs/lib/include/fseterr.rs            (0 problem rows)
+$ python3 tools/extract-abi.py --check emacs/lib/fseterr.h lib/include/fseterr.rs
+OK emacs/lib/fseterr.h -> lib/include/fseterr.rs            (0 problem rows)
 $ cd femacs && cargo run -q -p xtask -- build-tu lib/fseterr.c
 built lib/fseterr.rs -> ../build/femacs/fseterr.o
 ```

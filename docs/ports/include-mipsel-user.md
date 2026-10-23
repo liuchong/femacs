@@ -28,4 +28,4 @@ toolchain exists on this host and `exec/` is compiled by no configuration the po
 what the field types imply (256 bytes of registers, then six 8-byte words) and document them.
 
 Evidence: `python3 tools/extract-abi.py --check emacs/exec/mipsel-user.h
-femacs/exec/include/mipsel-user.rs` -> `OK` (1 ledger item).
+exec/include/mipsel-user.rs` -> `OK` (1 ledger item).

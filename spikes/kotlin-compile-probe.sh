@@ -1,14 +1,14 @@
 #!/usr/bin/env bash
 # Compile the port's Kotlin targets, offline, with the compiler Gradle already ships.
 #
-# The Kotlin targets (`femacs/platform/android/kotlin/*.kt`, the batch-F rewrite of `java/**`) need
+# The Kotlin targets (`platform/android/kotlin/*.kt`, the batch-F rewrite of `java/**`) need
 # a compiler this machine did not expose on PATH: `kotlinc` is absent, but Gradle 9.7.1 ships
 # `kotlin-compiler-embeddable-2.4.0.jar` in its lib directory, and the Android SDK ships
 # `platforms/*/android.jar` - so the CLI runs as a plain `java -cp "<gradle lib>/*"`, with no
 # plugin download and no project model (measured 3.286; putting only the compiler's own three jars
 # on the classpath fails with `NoClassDefFoundError: kotlin/reflect/...`).
 #
-#     spikes/kotlin-compile-probe.sh femacs/platform/android/kotlin/EmacsHolder.kt [more.kt ...]
+#     spikes/kotlin-compile-probe.sh platform/android/kotlin/EmacsHolder.kt [more.kt ...]
 #
 # Exit status is the compiler's: a target that does not compile fails here, which is what makes a
 # Kotlin file's "ported" claim checkable before any Gradle project exists.  Sources are compiled

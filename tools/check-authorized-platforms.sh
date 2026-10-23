@@ -43,12 +43,12 @@ fi
 rm -f "$DIFF_LOG"
 
 echo "== Android: gate-android =="
-if (cd "$REPO/femacs" && CARGO_TARGET_DIR=${CARGO_TARGET_DIR:-/tmp/xt-cargo} \
+if (cd "$REPO" && CARGO_TARGET_DIR=${CARGO_TARGET_DIR:-/tmp/xt-cargo} \
       cargo run -q -p xtask -- gate-android 2>&1 | tail -1); then :; else status=1; fi
 
 echo "== Android: native library =="
 (
-  cd "$REPO/femacs" || exit 1
+  cd "$REPO" || exit 1
   FEMACS_CONFIG=android-arm64 CARGO_TARGET_DIR=${CARGO_TARGET_DIR:-/tmp/xt-cargo} \
     cargo run -q -p xtask -- gen-config >/dev/null || exit 1
   # The objects are a build product and are cleaned between rounds, so build them here rather
@@ -77,7 +77,7 @@ echo "== Android: native library =="
   # file left the Android values behind, dirty, for the next session to find (measured 4.705).
   FEMACS_CONFIG=darwin-arm64 CARGO_TARGET_DIR=${CARGO_TARGET_DIR:-/tmp/xt-cargo} \
     cargo run -q -p xtask -- gen-config >/dev/null || exit 1
-  git -C "$REPO" diff --quiet -- femacs/src/include/config.rs || {
+  git -C "$REPO" diff --quiet -- src/include/config.rs || {
     echo "   config.rs did not come back to the frozen configuration" >&2; exit 1; }
 ) || status=1
 
@@ -118,7 +118,7 @@ if python3 "$REPO/tools/check-android-assertions.py" --check \
 # real defect (measured twice: status 4.963 and 4.980).  Build it here when it is absent.
 if [ ! -x "$REPO/build/port/asset-directory-tool" ] && [ ! -x "$REPO/build/port/lib-src/asset-directory-tool" ]; then
   echo "   asset-directory-tool is missing: building it"
-  (cd "$REPO/femacs" && FEMACS_CONFIG=darwin-arm64 FEMACS_TARGET=aarch64-apple-darwin \
+  (cd "$REPO" && FEMACS_CONFIG=darwin-arm64 FEMACS_TARGET=aarch64-apple-darwin \
      CARGO_TARGET_DIR=${CARGO_TARGET_DIR:-/tmp/xt-cargo} \
      cargo run -q -p xtask -- link-program asset-directory-tool >/dev/null 2>&1) || {
      echo "   could not build asset-directory-tool" >&2; status=1; }

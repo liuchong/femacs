@@ -16,7 +16,7 @@
 # ----------------------------------------------------------------------
 ## Decisions
 
-`femacs/lib/set-permissions.rs` is the live text of `emacs/lib/set-permissions.c`
+`lib/set-permissions.rs` is the live text of `emacs/lib/set-permissions.c`
 (`tools/check-cond-eval.py`: 25 conditions, 0 unknown, 0 disagreements).  `USE_ACL` is 0, so
 the whole `#if USE_ACL` chain (C 29-472: the FreeBSD/Cygwin `HAVE_ACL_FROM_TEXT` arm, the
 Solaris/Cygwin `HAVE_FACL && GETACL` arm with its `ACE_GETACL` half, the HP-UX `HAVE_GETACL`

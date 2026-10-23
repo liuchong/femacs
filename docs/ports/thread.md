@@ -85,12 +85,12 @@
 
 ## Decisions
 
-`emacs/src/thread.c` @ `fd7afced403`; port `femacs/src/thread.rs` (1319 lines vs C's 1314,
+`emacs/src/thread.c` @ `fd7afced403`; port `src/thread.rs` (1319 lines vs C's 1314,
 **1255** live - the 5.1% drift against the live baseline is declared in
 `docs/ports/line-drift-tolerance.tsv` with the `live` basis, because the six dead regions this
 port records instead of carrying are 60 C lines).  The gates are
 `build-tu src/thread.c` -> `built src/thread.rs -> ../build/femacs/thread.o`,
-`python3 tools/extract-abi.py --check emacs/src/thread.c femacs/src/thread.rs` -> `OK` and
+`python3 tools/extract-abi.py --check emacs/src/thread.c src/thread.rs` -> `OK` and
 `python3 tools/check-symbols.py --pending docs/baseline/symbol-pending.txt` ->
 `78 units compared, 0 mismatched, 1 still pending` (the compared set is the `lib/` units with a
 reference object; it is not this port's).  `src/thread.c` is in
@@ -243,7 +243,7 @@ collapse into single-line literals.
 
 ### Changes outside the unit (for integrator review)
 
-1. `femacs/xtask/src/main.rs`: `materialize` now expands the `include!` graph **in place** (C's
+1. `xtask/src/main.rs`: `materialize` now expands the `include!` graph **in place** (C's
    textual order, with the include-guard dedupe kept) instead of emitting every dependency
    before the file that includes it.  This is what lets thread.h's mirror use `lisp.h`'s
    `eassert!`/`XUNTAG!` in `XTHREAD`/`XMUTEX`/`XCONDVAR`: C's thread.h 2289 sits *inside* lisp.h,
@@ -264,8 +264,8 @@ collapse into single-line literals.
    `include/stdlib.rs`; `lib/sigdescr_np.rs` cannot find `c_void`/`c_uint`;
    `lib/canonicalize-lgpl.rs` sees two `F_OK` definitions in unistd.in.rs/fcntl.in.rs).  They are
    other units' files and are left for their owners; `materialize` itself is not implicated
-   (`git stash push -- femacs/xtask/src/main.rs` reproduces all three).
-2. `femacs/src/include/regex-emacs.rs`: `struct re_registers` (regex-emacs.h 28-35) is added -
+   (`git stash push -- xtask/src/main.rs` reproduces all three).
+2. `src/include/regex-emacs.rs`: `struct re_registers` (regex-emacs.h 28-35) is added -
    C declares it *before* including lisp.h precisely because thread.h needs it, and this port is
    its first consumer (`free_search_regs`); docs/ports/include-regex-emacs.md's box is ticked.
    The mirror's other pending differences (`EMACS_REGEX_H`'s `1`, `re_match_object`,

@@ -29,14 +29,14 @@
 
 ## Decisions
 
-`emacs/lib/stat-time.h` @ `fd7afced403`; port `femacs/lib/include/stat-time.rs`.  Fourteen of the
+`emacs/lib/stat-time.h` @ `fd7afced403`; port `lib/include/stat-time.rs`.  Fourteen of the
 sixteen checklist items are ticked; the two unchecked ones need a row in a shared file that
 this lane must not write (the integrator owns `docs/ports/excluded-macros.txt` and
 `docs/ports/macro-body-notes.tsv`), and both rows are given verbatim below.  With them the
 pair is `OK`.
 
 **What the header is.**  Nine `_GL_STAT_TIME_INLINE` definitions (the C99 inline model), so
-they are ordinary Rust items here and the `.c` wrapper `femacs/lib/stat-time.rs` keeps the
+they are ordinary Rust items here and the `.c` wrapper `lib/stat-time.rs` keeps the
 `_GL_STAT_TIME_INLINE`/`_GL_EXTERN_INLINE` relationship and re-exports the nine (PORTING.md
 10.6/10.12, P-81).  The header is **not** in `docs/baseline/config/cond-eval-verified.txt`,
 so `extract-abi.py` reads every arm as live (P-08's blind default) and the mirror carries the
@@ -79,7 +79,7 @@ the `return 0` arms' `0` in the comparison.
 **The two unchecked boxes.**
 
 1. `_GL_STAT_TIME_INLINE` (C 38-40's `#ifndef` fallback): the unit
-   `femacs/lib/stat-time.rs` 11 defines the name to `_GL_EXTERN_INLINE` before including this
+   `lib/stat-time.rs` 11 defines the name to `_GL_EXTERN_INLINE` before including this
    mirror, exactly as `lib/stat-time.c` does, and Rust has no macro shadowing - so the mirror
    **cannot** hold the name without an `E0428`.  This is the same construct as the six
    `*_INLINE` rows already in `docs/ports/excluded-macros.txt`, and the row to add is:
@@ -109,13 +109,13 @@ its one ratchet row.
 ## Evidence
 
 ```
-$ python3 tools/extract-abi.py --check emacs/lib/stat-time.h femacs/lib/include/stat-time.rs
+$ python3 tools/extract-abi.py --check emacs/lib/stat-time.h lib/include/stat-time.rs
   (4 C macros have a recorded Rust counterpart: STAT_TIMESPEC, STAT_TIMESPEC_NS,
    STAT_TIMESPEC_OFFSETOF, _gl_make_timespec)
 - missing macro _GL_STAT_TIME_INLINE
 - function get_stat_birthtime does not mention have_struct_stat_st_birthtim_tv_nsec,
   have_struct_stat_st_birthtimensec
-FAIL emacs/lib/stat-time.h -> femacs/lib/include/stat-time.rs
+FAIL emacs/lib/stat-time.h -> lib/include/stat-time.rs
 # those two lines are exactly what the two rows above answer; nothing else is reported.
 
 $ cd femacs && CARGO_TARGET_DIR=/tmp/femacs-target-mir-limits \
@@ -148,8 +148,8 @@ were appended to copies in `/tmp` and
 
 ```
 $ python3 tools/extract-abi.py --check --excluded /tmp/mem-excl.txt \
-    --macro-notes /tmp/mem-notes.tsv emacs/lib/stat-time.h femacs/lib/include/stat-time.rs
-OK emacs/lib/stat-time.h -> femacs/lib/include/stat-time.rs
+    --macro-notes /tmp/mem-notes.tsv emacs/lib/stat-time.h lib/include/stat-time.rs
+OK emacs/lib/stat-time.h -> lib/include/stat-time.rs
 ```
 
 so the mirror plus those two rows is the complete pair.  Nothing in either shared file was

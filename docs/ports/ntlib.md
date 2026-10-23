@@ -1,7 +1,7 @@
 # emacs/lib-src/ntlib.c (601 lines)
 
 `docs/port-map.md` binds this ledger to `lib-src/ntlib.c` alone; the reference's `lib-src/ntlib.h`
-is the unit's one header, and its mirror (`femacs/lib-src/include/ntlib.rs`, ledger
+is the unit's one header, and its mirror (`lib-src/include/ntlib.rs`, ledger
 `docs/ports/include-ntlib.md`) is consumed by the unit at C 44 - see `## Findings` 2 and `## Owed` 1
 for the shape that consumption needs.
 
@@ -19,7 +19,7 @@ for the shape that consumption needs.
 > file is not compiled by the frozen configuration: 32 declarations are deferred to the platform
 > target, and the port is an empty unit plus the note that names the gate" (the P-08 reading,
 > `docs/status.md` 3.31).  P-86 ① (2026-10-05, "规则，立即生效") replaces that with *transcribe the
-> text, both arms, no stub*: the port is `femacs/lib-src/ntlib.rs` (**1,181 lines**, 49,622 bytes,
+> text, both arms, no stub*: the port is `lib-src/ntlib.rs` (**1,181 lines**, 49,622 bytes,
 > md5 `2b6939eacfe2da097361c22b2c51c02f`), carrying C 1-601 - the reference's every line - under the
 > file gate, and the frozen object is *still* the 336-byte empty one because every item sits behind
 > that gate.  The 32 declarations the old note counted are the ten shadow routines, `stat`/`lstat`/
@@ -48,7 +48,7 @@ for the shape that consumption needs.
 - **C 44's `#include "ntlib.h"` is consumed through a module plus a glob import.**  That mirror
   keeps its `unsafe extern "C"` block at its own top level while the unit *defines* all ten of its
   routines (C 69-236) - the P-39 `E0428` class.  The wrapper is the P-21/P-28 shadowing mechanism
-  C's "prototype plus definition" needs, applied from the consumer as `femacs/src/hbfont.rs`
+  C's "prototype plus definition" needs, applied from the consumer as `src/hbfont.rs`
   622-628 does; `## Findings` 2 measures it and `## Owed` 1 carries the move-back.
 - **`<sys/types.h>` (C 30) and `<pwd.h>` (ntlib.h 18) both declare `uid_t`/`gid_t`.**  In this
   build `<sys/types.h>` is gnulib's generated `lib/sys/types.h` (from `lib/sys_types.in.h`), and
@@ -59,14 +59,14 @@ for the shape that consumption needs.
   lookups C also defines) from the `nt/inc/pwd.rs` mirror C's own line reaches.
 - **`<sys/stat.h>` (C 33) is the `nt/inc` override.**  This file's own C 287-288 comment says its
   `struct stat` is the one that belongs here, so the unit includes
-  `femacs/nt/inc/sys/include/stat.rs` and **not** the frozen target's
-  `femacs/lib/include/sys_stat.in.rs`: the two mirrors declare `struct stat`, `stat`/`lstat`/
+  `nt/inc/sys/include/stat.rs` and **not** the frozen target's
+  `lib/include/sys_stat.in.rs`: the two mirrors declare `struct stat`, `stat`/`lstat`/
   `fstat`, `fstatat` and the `S_IF*` values, and one translation unit can hold only one spelling of
   each (`## Findings` 4).
 - **The `<windows.h>` surface stands in the unit** (P-88 ①), at C 26's line: the type/handle
   typedefs, `FILETIME`/`SYSTEMTIME`/`WIN32_FIND_DATA`/`BY_HANDLE_FILE_INFORMATION`, the twenty-one
   constants C reads and the nineteen entry points it calls, each with the SDK's own text above it.
-  The spellings repeat `femacs/nt/runemacs.rs` 66-268 and `femacs/src/w32proc.rs` 226-447 so that a
+  The spellings repeat `nt/runemacs.rs` 66-268 and `src/w32proc.rs` 226-447 so that a
   `windowsnt` translation unit sees one set of names; no record's size or offset is asserted.
 - **Seven token rows in `docs/ports/macro-body-notes.tsv`** are this unit's (a `switch` becomes a
   `match`, `alloca` is P-05's stack pool, `long double` is `c_longdouble`, `__int64` is
@@ -82,8 +82,8 @@ line before the next one begins - so the file's 81 blank lines (C 2, 4, 7, 9, 14
 328, 354, 367, 373, 377, 392, 398, 403, 405, 408, 414, 422, 427, 435, 441, 466, 469, 478, 481,
 485, 500, 506, 509, 511, 514, 520, 528, 539, 556, 562, 569 and 595) sit inside a row rather than
 between two.  That is not cosmetic: `tools/check-dead-file-coverage.py` binds a header's mirror to
-the same ledger as its `.c` (`docs/port-map.md` 38-39 -> `femacs/lib-src/ntlib.rs` and
-`femacs/lib-src/include/ntlib.rs`, and the rule builds `docs/ports/ntlib.md` for both; the
+the same ledger as its `.c` (`docs/port-map.md` 38-39 -> `lib-src/ntlib.rs` and
+`lib-src/include/ntlib.rs`, and the rule builds `docs/ports/ntlib.md` for both; the
 `include-`-named ledger is not a name that rule reaches), so this table is also read against
 `lib-src/ntlib.h`'s 96 lines - which a table with gaps at C 25/43/45/53/63/65/75/84/87 did not
 cover (`## Findings` 8 is the reading).
@@ -137,7 +137,7 @@ cover (`## Findings` 8 is the reading).
    ntlib_decls::*;`, which is the P-21/P-28 shadowing mechanism, and the probe's reading is 0
    errors (Evidence ②).  This is the same class `docs/ports/hbfont.md` Finding 3 records for
    `include/w32common.rs`; the mirror-side fix (a `pub mod …` plus a glob import *inside* the
-   mirror, the `femacs/lib-src/include/pop.rs` 82-112 shape) is `## Owed` 1.
+   mirror, the `lib-src/include/pop.rs` 82-112 shape) is `## Owed` 1.
 3. **`uid_t`/`gid_t` are declared by two mirrors of this unit's graph.**  `nt/inc/include/pwd.rs`
    18-19 (C's `<pwd.h>`, reached through ntlib.h 18) and `lib/include/sys_types.in.rs` 66/82 (C's
    `<sys/types.h>`) both declare them, and one Rust translation unit cannot hold both (measured on
@@ -167,7 +167,7 @@ cover (`## Findings` 8 is the reading).
 
 8. **A `.c` and its `.h` share one ledger binding, so the range table has to be contiguous.**
    `tools/check-dead-file-coverage.py`'s `ledger_for` builds `docs/ports/<stem>.md` for
-   `femacs/lib-src/include/ntlib.rs` as well as for `femacs/lib-src/ntlib.rs` (it strips the
+   `lib-src/include/ntlib.rs` as well as for `lib-src/ntlib.rs` (it strips the
    `include/` directory and falls back to the bare stem; `docs/ports/include-ntlib.md` is not a
    name the rule reaches), so this table is read against `lib-src/ntlib.h`'s 96 lines too.  The
    first version of the table left the blank lines between blocks out (81 of them, as the class's
@@ -208,7 +208,7 @@ rewrite Evidence ⑤ records, and this final one after eleven citation correctio
 reported here; `build-tu` was spent 3 发, inside its ≤3.
 
 **③ `extract-abi.py --check` (P-86 ⑩: non-vacuous now that the unit has `fn`s).**
-`python3 tools/extract-abi.py --check emacs/lib-src/ntlib.c femacs/lib-src/ntlib.rs` →
+`python3 tools/extract-abi.py --check emacs/lib-src/ntlib.c lib-src/ntlib.rs` →
 `FAIL`, with **one `- ` row**: `line count drifted 96.5%: C 601 vs Rust 1181`.  The unit's
 item-level rows are **zero**: the check also prints `(1 C macros have a recorded Rust counterpart:
 DEFER_MS_W32_H)`, and the seven token rows the first run of this reading produced
@@ -239,7 +239,7 @@ zero.
 `python3 tools/check-citations.py` → `676 file(s) scanned, 0 drift, 0 range, 1,087 external, 35
 allowed, 0 stale`, and **no row names this unit** (`… | grep -c ntlib` is `0`, and the two rows the
 tool read for this unit's own citations are the checked ones).  A reading taken a few minutes
-earlier reported `1 drift`, and that row was `femacs/src/widget.rs:78` - another lane's in-flight
+earlier reported `1 drift`, and that row was `src/widget.rs:78` - another lane's in-flight
 file, which that lane has since corrected; this unit contributed 0 drift rows either way.
 `python3 tools/check-citation-text.py` → `checked 882 / mismatched 55 / ranges 477 / unresolved
 474`, with **no row for this unit** in the mismatch queue (the eleven C line numbers the first draft
@@ -255,8 +255,8 @@ quoted.)
 
 1. **C 23's `#define DEFER_MS_W32_H` is a `pub const … : bool = true`, not a `cfg`.**  It names a
    compile-time switch rather than a call and a Rust `macro_rules!` is not seen before its
-   definition, so the port carries the constant the `femacs/src/w32.rs` 77-83 and
-   `femacs/nt/runemacs.rs` 43 readings establish.  It carries the file gate (it is a body item),
+   definition, so the port carries the constant the `src/w32.rs` 77-83 and
+   `nt/runemacs.rs` 43 readings establish.  It carries the file gate (it is a body item),
    because the switch it stands for is the Windows build's.
 2. **C 44's `#include "ntlib.h"` is consumed through a module plus a glob import** (Finding 2).
    `## Owed` 1 is the move-back; this is a consumer-side application of the P-21/P-28 mechanism,
@@ -272,7 +272,7 @@ quoted.)
    `switch`/`case`/`default`/`break`/`goto` tokens are the `fstat` row of Evidence ③.
 5. **C 523's `unlink (to)` is `_unlink (to)` in the port.**  `ntlib.h` 66-67 is `#undef unlink` /
    `#define unlink _unlink`, so the CRT entry is the one C's preprocessor leaves at that call site
-   (the `femacs/src/w32proc.rs` 44-48 reading of the same header family); the token is the
+   (the `src/w32proc.rs` 44-48 reading of the same header family); the token is the
    `sys_rename` row of Evidence ③.
 6. **C 46-52's seven forward declarations are dropped** (PORTING.md 0.1-12).  Five of them are the
    definitions below; `sys_ctime` is `src/w32.c` 3280's definition and `mkostemp` is gnulib's, and
@@ -287,13 +287,13 @@ quoted.)
    type aliases (`_dev_t`, `_ino_t`, `_mode_t`, `_off_t`) are spelled with the widths MSVCRT
    documents - `_ino_t`'s `short` is the one with a reading in the reference tree (`src/w32.c`
    5871).  `LC_CTYPE`'s value is the same class.
-9. **C's `long double` is the port's `c_longdouble`** (= `c_double`, the `femacs/src/editfns.rs`
-   197 / `femacs/src/haiku.rs` 474-478 alias), and C 268/313/437's `4096.0L * 1024.0L * 1024.0L`
+9. **C's `long double` is the port's `c_longdouble`** (= `c_double`, the `src/editfns.rs`
+   197 / `src/haiku.rs` 474-478 alias), and C 268/313/437's `4096.0L * 1024.0L * 1024.0L`
    and C 271's `1.0e7L` are written without the `L` suffix Rust has not got - the `convert_time`
    row of Evidence ③ records the two tokens that costs.
 10. **The SDK's `...A`/`...W` aliases keep C's own name.**  C writes `GetCurrentDirectory`,
     `GetDriveType`, `GetUserName` and `FindFirstFile`; the port declares those names (the
-    `femacs/nt/runemacs.rs` 240-268 and `femacs/src/w32.rs` 404-409 reading), which is also what
+    `nt/runemacs.rs` 240-268 and `src/w32.rs` 404-409 reading), which is also what
     PORTING.md 0.2's "the names are identical" asks for; the ANSI record is the one the file's
     `char` fields show this build selects.
 11. **`_dev_t`/`_ino_t`/`_mode_t`/`_off_t` are declared in the unit.**  The
@@ -305,7 +305,7 @@ quoted.)
 
 1. **The `lib-src/include/ntlib.rs` mirror needs the module-plus-glob shape**, and then this
    unit's `mod ntlib_decls`/`use ntlib_decls::*` wrapper is deleted (the
-   `femacs/lib-src/include/pop.rs` 82-112 shape, `docs/ports/include-ntlib.md`'s owner).
+   `lib-src/include/pop.rs` 82-112 shape, `docs/ports/include-ntlib.md`'s owner).
 2. **A Windows host or mingw toolchain** would measure the `<windows.h>` and CRT surface: the four
    records' sizes/offsets, the twenty-one constants' values, `LC_CTYPE`, the four MSVCRT type
    widths, and whether the nineteen entry points' `WINAPI` convention is `extern "system"` here.
@@ -320,7 +320,7 @@ quoted.)
 4. **`docs/baseline/port-lines-pending.tsv`'s `lib-src/ntlib.c` row is now stale** and wants
    removing (Evidence ⑤'s `1 stale` line).  `docs/baseline/**` is not this lane's to write.
 5. **`_timezone_defined` is a new feature name** and needs registering the way the tree registers
-   its other `#if` conditions (`femacs/xtask/Cargo.toml` + `docs/baseline/feature-coverage.tsv`);
+   its other `#if` conditions (`xtask/Cargo.toml` + `docs/baseline/feature-coverage.tsv`);
    `windowsnt` itself is already registered (`docs/baseline/feature-coverage.tsv` 8).
 6. **The `uid_t`/`gid_t` pair** that Finding 3 measures: after the mirror round (`## Owed` 1's
    class) one of the two mirrors should stop declaring them, and this unit's explicit-import form

@@ -292,7 +292,7 @@
 ## Decisions
 
 - **`coding.h`'s mirror is used as it stands.**  `python3 tools/extract-abi.py --check
-  emacs/src/coding.h femacs/src/include/coding.rs` reports `OK`, so the header's types,
+  emacs/src/coding.h src/include/coding.rs` reports `OK`, so the header's types,
   constants, accessors and the three `extern` objects come from the mirror; the macros the
   header does *not* carry (`CODING_ISO_*`, `CODING_UTF_8_BOM`/`CODING_UTF_16_*`,
   `CODING_CCL_DECODER`/`_ENCODER`/`_VALIDS`, `SAFE_CHARSET_P`, `MAX_ANNOTATION_LENGTH`,
@@ -306,7 +306,7 @@
   a module that is glob-imported, which is P-21's mechanism (the crate-root declaration
   shadows the import for name resolution while the definition still emits C's own symbol).
   **Mirror gap, reported:** moving those three into a `coding_objs`-style module in
-  `femacs/src/include/coding.rs` would let the unit define them at the crate root like every
+  `src/include/coding.rs` would let the unit define them at the crate root like every
   other unit.
 
 - **The `iso_2022_spec` lvalue flags.**  The mirror packs `single_shifting`, `bol` and
@@ -340,12 +340,12 @@
   `docs/ports/macro-body-notes.tsv`.
 
 - **`CHAR_CHARSET_P` — mirror defect, worked around at the use site.**  The
-  `femacs/src/include/charset.rs` mirror's `CHAR_CHARSET_P` compares the boolean
+  `src/include/charset.rs` mirror's `CHAR_CHARSET_P` compares the boolean
   `CHARSET_FAST_MAP_REF!` against `0` (`error[E0308]: expected bool, found integer`), so any
   use of it fails to compile.  This unit is its first user; `encode_coding_emacs_mule` and
   `encode_coding_iso_2022` define a faithful transcription of charset.h 519-529 locally and
   shadow the mirror inside those functions.  **The mirror is not edited** (the charset lane
-  owns it); the one-token fix is to drop the `!= 0` in `femacs/src/include/charset.rs:599`.
+  owns it); the one-token fix is to drop the `!= 0` in `src/include/charset.rs:599`.
 
 - **`CODING_INHIBIT_CHARACTER_SUBSTITUTION`.**  C's `#define … '?'` is a `char` const in the
   port (the constant gate compares the written value, and `c_int = '?' as c_int` does not
@@ -372,7 +372,7 @@
 - **The five functions the `coding.rs` mirror declares at its crate root stay in
   `*_def` modules.**  `code_convert_string_norecord`, `decode_file_name`,
   `encode_file_name`, `decode_coding_object` and `encode_coding_object` are crate-root
-  `unsafe extern "C"` declarations in `femacs/src/include/coding.rs` (coding.h 691-713), so a
+  `unsafe extern "C"` declarations in `src/include/coding.rs` (coding.h 691-713), so a
   crate-root definition is `E0428`; each definition lives in a glob-imported module
   (`decode_coding_gap_def`'s device) and the crate-root declaration still resolves to it.
   **Mirror gap, reported** (the same class as the `coding_objs` note above): moving those
@@ -459,9 +459,9 @@ coding-system API they need), §11 (`init_coding_once`) and §12 (`syms_of_codin
 `encode_file_name`, `make_subsidiaries`, `init_coding_once`, `syms_of_coding`,
 `reset_coding_after_pdumper_load`) and the `UTF_8_SEQUENCE_LENGTH` macro (C 10058).
 
-- `femacs/src/coding.rs` **compiles** (`cargo run -p xtask -- build-tu src/coding.c` →
+- `src/coding.rs` **compiles** (`cargo run -p xtask -- build-tu src/coding.c` →
   `built src/coding.rs -> ../build/femacs/coding.o`).
-- `extract-abi.py --check emacs/src/coding.c femacs/src/coding.rs` reports **0**
+- `extract-abi.py --check emacs/src/coding.c src/coding.rs` reports **0**
   `does not mention` lines (every landed function's and macro's body tokens are accounted
   for, with the reasons in `docs/ports/macro-body-notes.tsv`) and **86** `missing` lines, all
   of them the items listed above; the `line count drifted` line still follows from the
@@ -479,7 +479,7 @@ coding-system API they need), §11 (`init_coding_once`) and §12 (`syms_of_codin
 
 ## Integrator note (2026-10-04, third window) — unit COMPLETE, gates green
 
-`femacs/src/coding.rs` now carries all of `emacs/src/coding.c` (C 1-12,312): the second half
+`src/coding.rs` now carries all of `emacs/src/coding.c` (C 1-12,312): the second half
 of §10 (`decode_coding_object`, `encode_coding_object`, `preferred_coding_system`,
 `detect_coding_system`, the `char_encodable_p` / `code_convert_region` / `code_convert_string`
 / `code_convert_string_norecord` / `string_ascii_p` helpers, `get_buffer_gap_address`,
@@ -492,8 +492,8 @@ Gate lines, verbatim (last line of each command):
 
 - ① `cd femacs && CARGO_TARGET_DIR=/tmp/femacs-target-coding3 cargo run -q -p xtask -- build-tu src/coding.c`
   → `built src/coding.rs -> ../build/femacs/coding.o`
-- ② `python3 tools/extract-abi.py --check emacs/src/coding.c femacs/src/coding.rs`
-  → `OK emacs/src/coding.c -> femacs/src/coding.rs` (the 86 `missing` lines are 0 and
+- ② `python3 tools/extract-abi.py --check emacs/src/coding.c src/coding.rs`
+  → `OK emacs/src/coding.c -> src/coding.rs` (the 86 `missing` lines are 0 and
   `does not mention` stays 0; the only problems the first run had beyond those were the three
   `docstring differs` lines the doc-escape rule above explains and the `sizeof` family's
   `8859` count)
@@ -550,9 +550,9 @@ Gate lines, verbatim (last line of each command):
   symbols the reference exports**: the DEFVAR carriers are exempt (387 of them tree-wide), so a
   carrier that is *never assigned* (e.g. one C initialises in `startup.el`) still matches.
 - **Two mirror defects this unit works around, still open** (the mirror is not edited here):
-  `femacs/src/include/charset.rs`'s `CHAR_CHARSET_P` compares a `bool` against `0`
+  `src/include/charset.rs`'s `CHAR_CHARSET_P` compares a `bool` against `0`
   (`E0308`), so `char_encodable_p` is now its *second* use site with a local transcription
-  (the two `encode_coding_*` functions are the first); and `femacs/src/include/coding.rs`
+  (the two `encode_coding_*` functions are the first); and `src/include/coding.rs`
   declares `code_convert_string_norecord`, `decode_file_name`, `encode_file_name`,
   `decode_coding_object` and `encode_coding_object` at its crate root, which is why five
   definitions sit in `*_def` modules.

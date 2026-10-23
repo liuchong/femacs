@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Which mirrored `struct`s are missing members, per configuration.
 
-`femacs/src/include/*.rs` carries one mirror per C header, and each mirror's structs are written
+`src/include/*.rs` carries one mirror per C header, and each mirror's structs are written
 against the *frozen* configuration's member list.  This tool checks that claim over every mirrored
 struct at once: it finds the C header each struct comes from, asks `gated-layout-probe.py` for the
 struct's layout in each arm, and reports the members that appear in an arm's reading but have no
@@ -43,7 +43,7 @@ OBJC = {"nsterm", "nsgui", "nsfns", "macfont"}
 def port_structs() -> dict[str, tuple[str, set[str]]]:
     """`struct name -> (mirror path, member names)` for every struct in every mirror."""
     out: dict[str, tuple[str, set[str]]] = {}
-    for path in sorted(glob.glob(str(REPO / "femacs/src/include/*.rs"))):
+    for path in sorted(glob.glob(str(REPO / "src/include/*.rs"))):
         text = pathlib.Path(path).read_text(encoding="utf-8")
         for m in re.finditer(r"^pub struct ([a-z_0-9]+)\b.*?^}", text, re.S | re.M):
             body = m.group(0)

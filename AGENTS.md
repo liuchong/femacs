@@ -17,19 +17,17 @@
 | `docs/retired-scaffolding.md` | 丢弃日志（P-102 ④） |
 | `docs/acceptance.md` / `docs/port-plan.md` §7.1 | 验收阶梯 L0–L5 |
 
-开工先跑这三条，把读数记进本轮汇报：
+开工先确认 `git status --short` 和当前提交。独立生成与 macOS 构建不要求参照检出；`python3 tools/test-repository-bootstrap.py` 检查根布局和已提交输入。
+只有明确做对照审计且存在只读 `emacs/` 时，才运行 `tools/extract-abi.py --all` 与 `git -C emacs status --short`；缺参照不阻塞构建。
+
+当前独立构建入口（仓库根目录）：
 
 ```sh
-git status --short && git log --oneline -5
-python3 tools/extract-abi.py --all          # 覆盖清单：必须 0 failing
-git -C emacs status --short                 # 参照树只读：必须为空
+cargo run -p xtask -- build-terminal
+cargo run -p xtask -- build-macos
 ```
 
-常用调用（唯一入口；`<cmd>` ∈ `gen-config | layout-asserts | layout-check | build-tu <c-file> | gate-fast | gate-probes | dead-arms | gate-load | link-program <c-file> | gate-full`）：
-
-```sh
-cd femacs && CARGO_TARGET_DIR=/tmp/xt-cargo cargo run -q -p xtask -- <cmd>
-```
+编译与运行按现行 controlled-run 保护；普通 Git、搜索、文件及轻量检查直接运行。源码与生成链、外部依赖及验收见 `docs/repository-bootstrap.md`。旧审计命令和历史记录保留其上下文，不作为独立构建的前置条件。
 
 参照程序：状态相消对照用**无 dump** 的 `build/emacs-ref/src/temacs`；带 dump 的是 `build/emacs-ref/src/emacs`。
 
@@ -46,20 +44,20 @@ cd femacs && CARGO_TARGET_DIR=/tmp/xt-cargo cargo run -q -p xtask -- <cmd>
 6. **参照树只读**：`git -C emacs status --short` 必须始终为空；**任何写盘工具必须先断言输出不在 `emacs/` 下**。
 7. **原样复制，一个字不改**：`lisp/`、`leim/`、`test/`、`etc/`、`doc/`、`admin/` 的数据。**不要花 token 重写 Lisp**；测试失败改实现，**不许**改测试、不许跳过或删除。
 8. **非 C 原生代码用新技术**：`src/*.m` → **Swift**（不用 Objective-C）、`java/**` → Kotlin、`src/haiku_*.cc` → 现代 C++、汇编照旧；**能用 Rust 就用 Rust**。
-9. **不混合链接**：不做 C/Rust 混编的中间态二进制，不做 shim/适配层；构建脚手架（autotools、`Makefile.in`、`configure.ac`）不移植，由 Cargo workspace + `femacs/xtask` 取代。
+9. **不混合链接**：不做 C/Rust 混编的中间态二进制，不做 shim/适配层；构建脚手架（autotools、`Makefile.in`、`configure.ac`）不移植，由 Cargo workspace + `xtask` 取代。
 10. **产品名与版本声明**：端口自己的文档、注释、提交信息里**不写参照的产品名**（法律风险），一律写"参照 / the reference"；这道门是 `tools/check-own-voice.py`。
 11. **实验纪律**：任何"修法实验"先在 `PORTING.md` 立项（P-1xx）再动手；被否证的版本**连同它带来的白名单/基线/工具改动一并回退**（还原见 §4），回退后**四门复绿**才允许继续推进（P-118）。
 
 ## 2 工具与语言政策（P-102）
 
-- 只允许两种工具语言：构建/链接/闸门 = **Rust**（`femacs/xtask`）；生成物、清单、比对、门 = **Python**（`tools/`）。**不新增第三种**。
-- **确实必需的保留**：驱动器、"与参照配方的适配器"（例 `femacs/admin/charsets/*.awk`，它们是参照配方的输入，换语言会改变生成物字节）、`femacs/test/**` 下的测试夹具。
+- 只允许两种工具语言：构建/链接/闸门 = **Rust**（`xtask`）；生成物、清单、比对、门 = **Python**（`tools/`）。**不新增第三种**。
+- **确实必需的保留**：驱动器、"与参照配方的适配器"（例 `admin/charsets/*.awk`，它们是参照配方的输入，换语言会改变生成物字节）、`test/**` 下的测试夹具。
 - **过时的丢弃**：参照自己的构建脚手架在端口里没有读者，直接丢弃——但**必须逐条登记**到 `docs/retired-scaffolding.md`（路径 / 原用途 / 取代者 / 日期 / 提交），**不许静默删除**。
 
 ## 3 编译与资源纪律
 
 - **不要频繁编译**：单文件用 `xtask build-tu <c-file>`；批次末才 `xtask gate-fast` / `gate-probes`；不要反复跑全量 `cargo build` / `make`。
-- 产物用独立目录（`CARGO_TARGET_DIR=/tmp/...` 或仓库内 `build/`），**及时清理**（`build/`、`femacs/target/` 是生成物，可重建）。
+- 产物用独立目录（`CARGO_TARGET_DIR=/tmp/...` 或仓库内 `build/`），**及时清理**（`build/`、`target/` 是生成物，可重建）。
 - **不要乱扫文件、不要全盘扫描**：只读与当前任务相关的目录/文件。
 - **不要起大内存任务**：统计/比对脚本必须流式、分文件、有界；历史上一个 Python 脚本吃光内存导致工作进程被中断。
 - **受控执行器是唯一入口**：一切编译、链接、测试、解释器与行为未知的程序都经
@@ -94,7 +92,7 @@ cd femacs && CARGO_TARGET_DIR=/tmp/xt-cargo cargo run -q -p xtask -- <cmd>
 - 验收以**测试与机器门的实际读数**为准（`gate-fast`、`gate-load`、L0–L5、ERT、逐字节比对），不以人工审查代替。
 - 剩余欠账与最近读数：读 `docs/current-state.md` 的**欠账清单**（逐条「现状 / 证据 / 复跑命令」，2026-10-20 复核过一轮）与 `docs/status.md` 末轮记录。
 
-- **用完即清（P-190）**：`xtask dump` 每轮新增一对 `build/port/src/emacs-32.0.50.N{,.pdmp}`（~16 MB），加上 `build/*.dbg*`、`build/probes`、探针目录与 `/tmp` 一次性临时树，**用完即删**；保留在用项 = `build/port/src/{temacs,emacs,emacs.pdmp,bootstrap-emacs.pdmp}`、`build/femacs/*.o` 与 `units/`、`build/emacs-ref/**`、`build/lisp-l1`。每轮收尾 `du -sh build/* | sort -h` 看一眼；删前 `grep -rl <名> tools femacs/xtask docs` 确认没人读；删后复验 dump + smoke，并把释放量记进 `docs/status.md`。
+- **用完即清（P-190）**：`xtask dump` 每轮新增一对 `build/port/src/emacs-32.0.50.N{,.pdmp}`（~16 MB），加上 `build/*.dbg*`、`build/probes`、探针目录与 `/tmp` 一次性临时树，**用完即删**；保留在用项 = `build/port/src/{temacs,emacs,emacs.pdmp,bootstrap-emacs.pdmp}`、`build/femacs/*.o` 与 `units/`、`build/emacs-ref/**`、`build/lisp-l1`。每轮收尾 `du -sh build/* | sort -h` 看一眼；删前 `grep -rl <名> tools xtask docs` 确认没人读；删后复验 dump + smoke，并把释放量记进 `docs/status.md`。
 
 ## 7 速查
 

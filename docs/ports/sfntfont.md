@@ -6,7 +6,7 @@
 > one line earlier at 2598; 2605-2606 is the other branch, where `ANDROID_STUBIFY` is defined), and
 > `docs/baseline/frozen-build-sources.txt` lists no `sfntfont.o`.  What follows is P-86 ②'s **C
 > line-range table** for this slice, the `## Evidence` readings and the `**㉙ Slice 13's readings.**  `python3 tools/extract-abi.py --check emacs/src/sfntfont.c
-femacs/src/sfntfont.rs` -> **FAIL**, **7** `- ` rows: **6** `- missing function …` (`init_sfntfont`,
+src/sfntfont.rs` -> **FAIL**, **7** `- ` rows: **6** `- missing function …` (`init_sfntfont`,
 `init_sfntfont_vendor`, `mark_sfntfont`, `syms_of_sfntfont`, `sfntfont_detect_sigbus`,
 `sfntfont_get_variation_glyphs`) and **1** line-count row (**4,592** Rust lines against C's 4,222 is
 **8.8%**, outside the 5% - this slice's banner, two entry points and their doc comments took the file
@@ -30,7 +30,7 @@ ratchet row(s), 0 new, 0 stale`; `check-cond-eval.py src/sfntfont.c` `27 conditi
 disagreements [VERIFIED]`.
 
 **㉚ Slice 14's readings.**  `python3 tools/extract-abi.py --check emacs/src/sfntfont.c
-femacs/src/sfntfont.rs` -> **FAIL**, **5** `- ` rows: **4** `- missing function …` (`init_sfntfont`,
+src/sfntfont.rs` -> **FAIL**, **5** `- ` rows: **4** `- missing function …` (`init_sfntfont`,
 `init_sfntfont_vendor`, `mark_sfntfont`, `syms_of_sfntfont` - the initialization subrs of C 4115-4222)
 and **1** line-count row (**4,780** Rust lines against C's 4,222 is **13.2%**).  Slice 13 read 7 rows:
 this slice removed `sfntfont_get_variation_glyphs` and `sfntfont_detect_sigbus`, and needed one token
@@ -50,7 +50,7 @@ table), 0 failure(s)` - the last row now ends at C 3983 and the table still tile
 `27 conditions, 0 unknown, 0 disagreements [VERIFIED]`.
 
 **㉛ Slice 15's readings.**  `python3 tools/extract-abi.py --check emacs/src/sfntfont.c
-femacs/src/sfntfont.rs` -> **FAIL**, **1** `- ` row: the line-count row (**4,897** Rust lines against
+src/sfntfont.rs` -> **FAIL**, **1** `- ` row: the line-count row (**4,897** Rust lines against
 C's 4,222 is **16.0%**).  **Every missing-definition row is gone** - the four initialization subrs
 left the list, so the unit's live text has no name the reference has and the port lacks; the only
 text still owed is the dead HarfBuzz arm (C 3984-4110, above), which the extractor does not count as
@@ -72,7 +72,7 @@ the table's last row now ends at C 4222 and still tiles C 1-4222; `check-declara
 0 disagreements [VERIFIED]`.
 
 **㉜ Slice 16's readings - the file's close.**  `python3 tools/extract-abi.py --check
-emacs/src/sfntfont.c femacs/src/sfntfont.rs` -> **`OK emacs/src/sfntfont.c -> femacs/src/sfntfont.rs`**:
+emacs/src/sfntfont.c src/sfntfont.rs` -> **`OK emacs/src/sfntfont.c -> src/sfntfont.rs`**:
 **0** `- ` rows, against slice 15's 1.  The line-count question is answered by
 `docs/ports/line-drift-tolerance.tsv`'s `sfntfont 0.23 total` row, whose reason is the measured
 composition of the port's 5,153 lines (154 `#[cfg]` attribute lines, 1,240 comment-only lines,
@@ -103,7 +103,7 @@ percent, 0 ratchet row(s), 0 new, 0 stale`; `check-ledger-ticks.py` `238 ledger(
 `have_hb_font_set_var_named_instance` in it.
 
 ## Deviations`.  Port:
-> `femacs/src/sfntfont.rs` (**4,415 lines** after slice 12, `grep -c ''`), both arms of every `#if`
+> `src/sfntfont.rs` (**4,415 lines** after slice 12, `grep -c ''`), both arms of every `#if`
 > carried.  **The line-count drift row is gone** (4,415 against C's 4,222 is 4.6%; slice 11's 4,210
 > was already inside the 5% - Evidence ㉖/㉘).
 >
@@ -213,7 +213,7 @@ percent, 0 ratchet row(s), 0 new, 0 stale`; `check-ledger-ticks.py` `238 ledger(
 | C `#if` / build condition | Port gate | Compiled when |
 | --- | --- | --- |
 | the file itself (`configure.ac` 2645, the `XCONFIGURE = android` branch; `ANDROID_STUBIFY` is defined in the other one, 2605-2606) | `all (feature = "have_android", feature = "not_android_stubify")` (on every item and on C 22-42's include graph) | a *real* Android configuration |
-| C 36 `#ifdef HAVE_HARFBUZZ` … C 39 `#endif` (`#include <hb.h>`, `#include <hb-ot.h>`) | `feature = "harfbuzz"` (`femacs/xtask/Cargo.toml` 93; `docs/baseline/feature-coverage.tsv` 122) | a HarfBuzz build |
+| C 36 `#ifdef HAVE_HARFBUZZ` … C 39 `#endif` (`#include <hb.h>`, `#include <hb-ot.h>`) | `feature = "harfbuzz"` (`xtask/Cargo.toml` 93; `docs/baseline/feature-coverage.tsv` 122) | a HarfBuzz build |
 | C 42 `#include TERM_HEADER` (`configure.ac` 7180 chooses it) | no gate of its own: `TERM_HEADER` is `androidterm.h` in exactly the configuration the file gate selects (`window_system=android`, 2594-2596), so the arm is one `include!` behind the file gate | every real Android configuration |
 | C 85 `#ifdef HAVE_MMAP` … C 88 `#endif` (the member `glyf_table_mapped`) | **no gate**: `HAVE_MMAP` is 1 in `docs/baseline/config/darwin-arm64.macros.tsv` (1168) and the condition has no `#else` arm, so the live member is ordinary text (the `docs/ports/sfnt.md` C 41-43 ruling) | always, on this target |
 | C 90 `#ifdef HAVE_HARFBUZZ` … C 96 `#endif` (the members `fd` and `directory`) | `feature = "harfbuzz"`, nested in the file gate | a HarfBuzz build |
@@ -268,7 +268,7 @@ this tree has not registered yet is `HAVE_HB_FONT_SET_VAR_NAMED_INSTANCE` (C 409
 
 The 23 rows above tile C 1-1240 **contiguously** (blank lines included) rather than skipping
 the blanks between blocks: `tools/check-dead-file-coverage.py`'s ledger lookup resolves
-`femacs/src/include/sfntfont.rs` (this file's header's mirror) to this same `sfntfont.md` through
+`src/include/sfntfont.rs` (this file's header's mirror) to this same `sfntfont.md` through
 its bare-stem fallback, so a table with gaps at blanks would leave `src/sfntfont.h`'s non-blank
 lines uncovered and fail (the `sfnt.md`/`androidterm.md` shape).  The last row reaches C 4222,
 which is why the coverage reading below is `0 blank line(s) between blocks need no row` for
@@ -317,7 +317,7 @@ with `1 << 0`/`1 << 1` is that measurement, and `sizeof 136` is the 3-byte pad i
 
 **③ The HarfBuzz headers are not in the reference tree.**
 `ls emacs/src/hb.h emacs/src/hb-ot.h` is empty and no `/// C: #include <hb.h>` segment exists
-anywhere in `femacs/`, so C 37-38 are P-88's class; no name in C 1-1240 comes from them (the first
+anywhere in ``, so C 37-38 are P-88's class; no name in C 1-1240 comes from them (the first
 `hb_*` type in the file is `hb_blob_t`, C 3989), so the arm is a comment and the declaration
 segment is owed with the slice that names one.
 
@@ -345,7 +345,7 @@ segment is owed with the slice that names one.
   the `bailN` ladder frees, the six `(*array[i])` places, the missing `strtok_r` declaration and the
   `c_int` truthiness test), run 2 read the **1 error** above, and run 3 is the same 1-error reading
   on the final revision.  The remaining iteration was done by re-running `rustc` directly on the
-  materialized `build/probes/sfntfont/_root.rs` (from inside `femacs/`, so the pinned
+  materialized `build/probes/sfntfont/_root.rs` (from inside ``, so the pinned
   `nightly-2026-10-01` applies - a plain `rustc` from the repository root picks stable 1.98.1 and
   adds the mirror's `E0658 c_variadic` at `include/lisp.rs` 3756, which is a toolchain artifact and
   not this unit's).
@@ -366,7 +366,7 @@ above (`src/sfntfont.c` 4,222 lines covered, `src/sfntfont.h` 78 lines covered, 
 `python3 tools/check-declarations.py` → `10 declaration sites (0 forbidden, 10 allowed literals),
 0 failures`. — `python3 tools/check-ledger-ticks.py` → nothing to bind (this ledger has no
 `## Functions defined` section; the `androidterm.md` class). — `python3 tools/extract-abi.py
---check emacs/src/sfntfont.c femacs/src/sfntfont.rs` → **FAIL**, `59` lines: **48 `- missing …`
+--check emacs/src/sfntfont.c src/sfntfont.rs` → **FAIL**, `59` lines: **48 `- missing …`
 lines** (42 of the inventory's 57 functions, 2 constants - `SFNT_OUTLINE_CACHE_SIZE` and
 `SFNT_RASTER_CACHE_SIZE` - and 4 file-scope objects: `sfnt_vendor_name`, `sfnt_font_driver`,
 `open_fonts` and `sfnt_put_glyphs`; all of it C 1241-4222), **9 `- … does not mention …` rows** and
@@ -383,7 +383,7 @@ longer under the threshold` - 1,554 Rust lines against the 422-line threshold); 
 (`src/gtkutil.c`, `src/sfnt.c`, `src/w32proc.c`) are not this lane's. —
 `python3 tools/check-citations.py` -> `675 file(s) scanned, 2 drift, 0 range, 711 external, 33
 allowed, 0 stale` and **exit 1**: both drift rows are in **other lanes' in-flight ports**
-(`femacs/src/gtkutil.rs:92`, `femacs/src/w32proc.rs:456`; at HEAD those two files are the 11-line
+(`src/gtkutil.rs:92`, `src/w32proc.rs:456`; at HEAD those two files are the 11-line
 placeholder shape, so the rows are not this file's and not a HEAD reading), while this lane's own
 two citation-looking lines were rewritten to drop that shape - Owed 6.
 **⑦ Slice 2's frozen reading and its arm flip (HEAD as the baseline, P-86 ⑦).**
@@ -400,7 +400,7 @@ warnings stay the mirror-side `unused doc comment` class Owed 1 names.  The emit
 round - the diagnostics are the reading, not the artifact size.
 
 **⑧ Slice 2's `--check` and the gates.**  `python3 tools/extract-abi.py --check
-emacs/src/sfntfont.c femacs/src/sfntfont.rs` -> **FAIL**, **46** `- ` rows: **39** `- missing
+emacs/src/sfntfont.c src/sfntfont.rs` -> **FAIL**, **46** `- ` rows: **39** `- missing
 function …`, 2 `- missing constant …` (`SFNT_OUTLINE_CACHE_SIZE`, `SFNT_RASTER_CACHE_SIZE`), 4
 `- missing file-scope object …` (`sfnt_vendor_name`, `sfnt_font_driver`, `open_fonts`,
 `sfnt_put_glyphs`) and the line-count row, now `57.9%: C 4222 vs Rust 1776` (HEAD read 49 rows -
@@ -431,7 +431,7 @@ and rustc accepts it (the one new dependency, `INT_MAX` from `limits.in.rs`, is 
 added at C 25 exists for).
 
 **⑩ Slice 3's `--check` and the gates.**  `python3 tools/extract-abi.py --check
-emacs/src/sfntfont.c femacs/src/sfntfont.rs` -> **FAIL**, **42** `- ` rows: **35** `- missing
+emacs/src/sfntfont.c src/sfntfont.rs` -> **FAIL**, **42** `- ` rows: **35** `- missing
 function …`, 2 `- missing constant …`, 4 `- missing file-scope object …` and the line-count row,
 now `53.5%: C 4222 vs Rust 1962` (slice 2 read 46 rows and `57.9%: C 4222 vs Rust 1776`).  The four
 that left the function list are this slice's: `sfntfont_read_cmap`, `sfntfont_glyph_valid`,
@@ -459,7 +459,7 @@ is gated off in the frozen build).  The emitted object is 14,800 bytes in both r
 before, because nothing calls these functions yet.
 
 **⑫ Slice 4's `--check` and the gates.**  `python3 tools/extract-abi.py --check
-emacs/src/sfntfont.c femacs/src/sfntfont.rs` -> **FAIL**, **38** `- ` rows: **33** `- missing
+emacs/src/sfntfont.c src/sfntfont.rs` -> **FAIL**, **38** `- ` rows: **33** `- missing
 function …`, 2 `- missing constant …`, 2 `- missing file-scope object …` and the line-count row,
 now `46.6%: C 4222 vs Rust 2256` (slice 3 read 42 rows and `53.5%: C 4222 vs Rust 1962`).  The
 four that left the function list are `sfntfont_list_1` and `sfntfont_registry_for_desc`, plus the
@@ -488,7 +488,7 @@ second run is the 0-error reading above, i.e. **the arm flip again caught what `
 `--check` cannot see**.
 
 **⑭ Slice 5's `--check` and the gates.**  `python3 tools/extract-abi.py --check
-emacs/src/sfntfont.c femacs/src/sfntfont.rs` -> **FAIL**, **32** `- ` rows: **29** `- missing
+emacs/src/sfntfont.c src/sfntfont.rs` -> **FAIL**, **32** `- ` rows: **29** `- missing
 function …`, **2** `- missing file-scope object …` (`open_fonts`, `sfnt_put_glyphs`) and the
 line-count row, now `40.7%: C 4222 vs Rust 2503` (slice 4 read 38 rows and `46.6%: C 4222 vs Rust
 2256`).  **The `missing constant` class is now 0 rows** - C 2048's `SFNT_OUTLINE_CACHE_SIZE` and
@@ -527,7 +527,7 @@ and the object is **22,256 bytes in both**, because these four helpers are not o
 statics).  The first run of this slice read **one `E0308`**: C 2124's `glyph->simple` is a *pointer*
 (`sfnt.h` 677), so C's truth test is Rust's null test (Deviation 21 (a)) - another defect only the
 arm flip can see (`build-tu` gates the whole file off and `--check` compares names and tokens).
-`python3 tools/extract-abi.py --check emacs/src/sfntfont.c femacs/src/sfntfont.rs` -> **FAIL**,
+`python3 tools/extract-abi.py --check emacs/src/sfntfont.c src/sfntfont.rs` -> **FAIL**,
 **28** `- ` rows: **25** `- missing function …`, the 2 remaining file-scope objects (`open_fonts`,
 `sfnt_put_glyphs`) and the line-count row, now `36.4%: C 4222 vs Rust 2686` (slice 5 read 32 rows
 and `40.7%: C 4222 vs Rust 2503`).  The `- does not mention …` class reads **0** rows in both
@@ -551,7 +551,7 @@ and two bindings C leaves uninitialised and passes by address (`dcontext`, `adva
 zero-initialised (`E0381`, Deviation 10's class).  The second run is the 0-error reading above.
 
 **⑱ Slice 7's `--check` and the gates.**  `python3 tools/extract-abi.py --check
-emacs/src/sfntfont.c femacs/src/sfntfont.rs` -> **FAIL**, **23** `- ` rows: **20** `- missing
+emacs/src/sfntfont.c src/sfntfont.rs` -> **FAIL**, **23** `- ` rows: **20** `- missing
 function …`, the 2 remaining file-scope objects (`open_fonts`, `sfnt_put_glyphs`) and the line-count
 row, now `26.7%: C 4222 vs Rust 3096` (slice 6 read 28 rows and `36.4%: C 4222 vs Rust 2686`).  The
 five that left the function list are this slice's (`sfntfont_get_glyph_outline`,
@@ -594,7 +594,7 @@ cfg sets, each as a HEAD-baseline pair (P-86 ⑦):
   * file gate **plus** `have_window_system`: HEAD **0 errors**, slice 8 **0 errors** - this is the
     run that type-checks the two gated items (and it is why the record's assertion block had to be
     gated out of that configuration first).
-`python3 tools/extract-abi.py --check emacs/src/sfntfont.c femacs/src/sfntfont.rs` -> **FAIL**,
+`python3 tools/extract-abi.py --check emacs/src/sfntfont.c src/sfntfont.rs` -> **FAIL**,
 **20** `- ` rows: **18** `- missing function …`, **1** `- missing file-scope object …`
 (`sfnt_put_glyphs` - `open_fonts` is this slice's) and the line-count row, now `20.4%: C 4222 vs
 Rust 3359` (slice 7 read 23 rows and `26.7%: C 4222 vs Rust 3096`).  The two functions that left the
@@ -615,7 +615,7 @@ port's binding is `mut` - the arm flip's sixth consecutive slice finding somethi
 file gated off) and `--check` (names and tokens) cannot see.
 
 **㉒ Slice 9's `--check` and the gates.**  `python3 tools/extract-abi.py --check
-emacs/src/sfntfont.c femacs/src/sfntfont.rs` -> **FAIL**, **18** `- ` rows: **16** `- missing
+emacs/src/sfntfont.c src/sfntfont.rs` -> **FAIL**, **18** `- ` rows: **16** `- missing
 function …`, **1** `- missing file-scope object …` (`sfnt_put_glyphs`) and the line-count row, now
 `15.7%: C 4222 vs Rust 3560` (slice 8 read 20 rows and `20.4%: C 4222 vs Rust 3359`).  The two
 functions that left the list are `sfntfont_setup_interpreter` and `sfnt_close_tables`, and **one
@@ -640,7 +640,7 @@ One thing the first draft got *wrong* and this round removed before measuring: a
 have would be inventing behaviour (PORTING.md's no-invention rule); the port keeps C's own text.
 
 **㉔ Slice 10's `--check` and the gates.**  `python3 tools/extract-abi.py --check
-emacs/src/sfntfont.c femacs/src/sfntfont.rs` -> **FAIL**, **17** `- ` rows: **15** `- missing
+emacs/src/sfntfont.c src/sfntfont.rs` -> **FAIL**, **17** `- ` rows: **15** `- missing
 function …`, **1** `- missing file-scope object …` (`sfnt_put_glyphs`) and the line-count row, now
 `10.0%: C 4222 vs Rust 3800` (slice 9 read 18 rows and `15.7%: C 4222 vs Rust 3560`) - the drift is
 now the only remaining class the 5% rule would flag.  The one function that left the list is
@@ -669,7 +669,7 @@ flip doing its job on the file's biggest function, where `build-tu` compiles not
 sees only names and tokens.
 
 **㉖ Slice 11's `--check` and the gates.**  `python3 tools/extract-abi.py --check
-emacs/src/sfntfont.c femacs/src/sfntfont.rs` -> **FAIL**, **13** `- ` rows: **12** `- missing
+emacs/src/sfntfont.c src/sfntfont.rs` -> **FAIL**, **13** `- ` rows: **12** `- missing
 function …` and **1** `- missing file-scope object …` (`sfnt_put_glyphs`) - **and no line-count row
 at all**: with 4,210 Rust lines against C's 4,222 the drift is inside the 5% the rule allows, so the
 `line count drifted …` row this ledger has carried since slice 1 is **gone** (slice 10 read 17 rows
@@ -696,7 +696,7 @@ C 3507's `metrics`, whose address is passed before it is read (`E0381`).  Both a
 the second run is the 0-error reading above.
 
 **㉘ Slice 12's `--check` and the gates.**  `python3 tools/extract-abi.py --check
-emacs/src/sfntfont.c femacs/src/sfntfont.rs` -> **FAIL**, **9** `- ` rows: **8** `- missing
+emacs/src/sfntfont.c src/sfntfont.rs` -> **FAIL**, **9** `- ` rows: **8** `- missing
 function …` (`init_sfntfont`, `init_sfntfont_vendor`, `mark_sfntfont`, `syms_of_sfntfont`,
 `sfntfont_detect_sigbus`, `sfntfont_draw`, `sfntfont_get_variation_glyphs`,
 `sfntfont_list_family`) and **1** `- missing file-scope object …` (`sfnt_put_glyphs`) - still no
@@ -1014,7 +1014,7 @@ docstrings are C's bytes unchanged.
    C 3504's definition is the file's one `sfntfont_measure_pcm`; the C 2681-2682 prototype is kept
    as a note at its own site, and both arm flips read 0 errors.
 
-1. **`femacs/src/include/sfntfont.rs`: wrap the declaration run in
+1. **`src/include/sfntfont.rs`: wrap the declaration run in
    `pub mod sfntfont_decls { use super::*; … } use sfntfont_decls::*;`** (the `include/sfnt.rs`
    shape landed in 3.427, P-86 ⑩).  Until then the arm flip's **only** error is the `E0428` for
    `sfnt_enum_font` at that mirror's line 55, and this unit's own text is never *fully* compiled
@@ -1044,7 +1044,7 @@ docstrings are C's bytes unchanged.
 11. **`xtask dead-arms` does not cover this unit**: its two dead arms were compiled by hand in a
    scratch copy with the frozen constants flipped (Evidence ㉜, `0 errors`, 29,088 bytes), which is
    the reading P-51 asks for but not the tree's own probe.  Adding `src/sfntfont.rs` to the
-   `dead-arms` list is an `xtask` change (the tool copies `femacs/` and flips the constants), so it
+   `dead-arms` list is an `xtask` change (the tool copies `` and flips the constants), so it
    belongs to a batch close rather than to this lane's port.
 5. **`tools/check-port-lines.py --write-pending`**: this file's ratchet row is stale (1,554 Rust
    lines against a 422-line threshold, so the file has *left* P-86's under-ten-percent class with
@@ -1054,8 +1054,8 @@ docstrings are C's bytes unchanged.
    stale row is gone, so nothing is owed under this item any more.
 6. **`docs/baseline/citations-allowlist.tsv`** (outside this lane's write scope): the working
    tree's `tools/check-citations.py` reads **2 drift** rows, both belonging to *other* lanes'
-   in-flight ports - `femacs/src/gtkutil.rs:92` (`lisp.h 30`, `strlen` is at lisp.h 4558) and
-   `femacs/src/w32proc.rs:456` (`lisp.h 30`, `memset` is at lisp.h 2008) - so the gate exits 1 on
+   in-flight ports - `src/gtkutil.rs:92` (`lisp.h 30`, `strlen` is at lisp.h 4558) and
+   `src/w32proc.rs:456` (`lisp.h 30`, `memset` is at lisp.h 2008) - so the gate exits 1 on
    work this lane does not own.  This lane's own two lines had that
    `lisp.h 30`-then-a-backticked-identifier shape until they were rewritten out of it; the fix for
    the other two is an allowlist row or the same rewrite, and belongs to those lanes or to the

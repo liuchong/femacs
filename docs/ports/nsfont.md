@@ -14,18 +14,18 @@
 >    from its first line ("Font back-end driver for the GNUstep window system") to its
 >    `GSFontEnumerator`/`DPSmoveto`/`GSShowGlyphs` calls.  There is no Cocoa arm to take.
 >
-> The unit `femacs/platform/macos/nsfont.swift` therefore carries **the whole file** - the
+> The unit `platform/macos/nsfont.swift` therefore carries **the whole file** - the
 > descriptor / entity / charset / script layer (35-830), the driver entry points, the glyph
 > and metrics caches, the shaping, the `font_driver` record and `syms_of_nsfont` - and its
 > C-ABI boundary is the core's (the lane's rule of `docs/status.md` 3.144: Swift speaks to the
 > Rust port only through the C ABI).  **Round 83 lands the two bodies the record kept out**:
 > `nsfont_draw` (1151) and `ns_dump_glyphstring` (1711) dereference `struct glyph_string`,
-> and this tree still declares that record only as the opaque placeholder `femacs/src/font.rs`
+> and this tree still declares that record only as the opaque placeholder `src/font.rs`
 > 739 (P-70, because font.c only ever passes a pointer to it) - so every member the two bodies
 > read is a reader entry of the `glyph_string_*` family this unit now declares beside its
 > neighbours (`## ABI` (2g)), which is what the `## Deferred` section below records as the
 > blocker's resolution.  Everything in the file is ported.  (Round 1 recorded the core's `font.h` mirror as 84 lines of "lands with font.c";
-> that is stale: `femacs/src/include/font.rs` (3.158/3.159) and `femacs/src/font.rs` carry
+> that is stale: `src/include/font.rs` (3.158/3.159) and `src/font.rs` carry
 > `font`, `font_metrics`, `font_driver`, `font_bitmap` and `Lisp_Fwd`, and this unit names
 > them.)
 
@@ -146,10 +146,10 @@ proves it - it never crosses the ABI and keeps its enums).
 | `XCharStruct` | nsgui.h 46-53 | - | sizeof 20 | sizeof 20 |
 | `ns_glyph_layout` | this file 51-71 | - | sizeof 52, stride 56 | stride 56 |
 | `gs_font_data` (enums kept) | this file 109-116 | - | sizeof 16, family_name 8 | sizeof 32, family_name 24 |
-| `font` | font.h 275-404 (windowed) | `femacs/src/include/font.rs` (frozen: 184) | sizeof 216, props 8, driver 208 | sizeof 216, props 8, driver 208 |
-| `font_metrics` | font.h 414-417 | `femacs/src/font.rs` 196 | sizeof 10, 0/2/4/6/8 | sizeof 10, 0/2/4/6/8 |
-| `font_bitmap` | font.h 419-430 | `femacs/src/font.rs` 208 | size 36, stride 40, buffer 16 | sizeof 40, buffer 16 |
-| `font_driver` | font.h 589-821 (windowed) | `femacs/src/font.rs` 266 (frozen: 208, no `draw`) | sizeof 232, all 30 offsets | sizeof 232, all 30 offsets |
+| `font` | font.h 275-404 (windowed) | `src/include/font.rs` (frozen: 184) | sizeof 216, props 8, driver 208 | sizeof 216, props 8, driver 208 |
+| `font_metrics` | font.h 414-417 | `src/font.rs` 196 | sizeof 10, 0/2/4/6/8 | sizeof 10, 0/2/4/6/8 |
+| `font_bitmap` | font.h 419-430 | `src/font.rs` 208 | size 36, stride 40, buffer 16 | sizeof 40, buffer 16 |
+| `font_driver` | font.h 589-821 (windowed) | `src/font.rs` 266 (frozen: 208, no `draw`) | sizeof 232, all 30 offsets | sizeof 232, all 30 offsets |
 | `Lisp_Fwd`/`Lisp_Fwd_u` | lisp.h 3118-3133 | - (the `nsselect` unit's type, same spelling) | sizeof 16, u 8 | sizeof 16, u 8 |
 | `nsfont_info` | nsterm.h 824-849 (`NS_IMPL_GNUSTEP`) | - (platform record) | sizeof 296, name 216, glyphs 280, metrics 288 | same |
 | `ns_display_info` (prefix) | nsterm.h 853-928 | - | prefix sizeof 24, name_list_element 16 | full record 280, name_list_element 16 |
@@ -184,7 +184,7 @@ read C's own members by name.
   `syms_of_nsfont` fills it and calls `defvar_lisp` - the `docs/ports/nsselect.md` shape.
 - `VECSIZE (struct nsfont_info)` is `(sizeof (type) - header_size + word_size - 1) /
   word_size` (lisp.h 2015-2016); the core mirror spells the macro as a `const fn` over the
-  type's size (`femacs/src/include/lisp.rs` 2925), and this lane declares that entry rather
+  type's size (`src/include/lisp.rs` 2925), and this lane declares that entry rather
   than re-deriving C's arithmetic.
 - `pdumper_do_now_and_after_load (hook)` (pdumper.h 92-99) is `INLINE` with a
   `HAVE_PDUMPER` body; it is a core C-ABI entry here.
@@ -257,13 +257,13 @@ Two bodies, one blocker.  The list the integrator asked for, in the requested sh
 
 | record | C definition | which functions need it | how long missing |
 | --- | --- | --- | --- |
-| `struct glyph_string` | dispextern.h **1362-1507**, inside `#ifdef HAVE_WINDOW_SYSTEM`; `femacs/src/font.rs` 739 declares it **opaque** (P-70: "font.c only ever passes a pointer to it") | `nsfont_draw` (1151) reads `s->first_glyph->type` (through `struct glyph`, mirrored at `femacs/src/include/dispextern.rs` 289), `s->char2b`, `s->font`, `s->f`, `s->face`, `s->width`, `s->hl`; `ns_dump_glyphstring` (1711) reads `s->nchars`, `s->x`, `s->y`, `s->left_overhang`, `s->right_overhang`, `s->row->overlapping_p`, `s->background_filled_p`, `s->first_glyph[i].u.ch` | since round 1 (2026-10-04) |
+| `struct glyph_string` | dispextern.h **1362-1507**, inside `#ifdef HAVE_WINDOW_SYSTEM`; `src/font.rs` 739 declares it **opaque** (P-70: "font.c only ever passes a pointer to it") | `nsfont_draw` (1151) reads `s->first_glyph->type` (through `struct glyph`, mirrored at `src/include/dispextern.rs` 289), `s->char2b`, `s->font`, `s->f`, `s->face`, `s->width`, `s->hl`; `ns_dump_glyphstring` (1711) reads `s->nchars`, `s->x`, `s->y`, `s->left_overhang`, `s->right_overhang`, `s->row->overlapping_p`, `s->background_filled_p`, `s->first_glyph[i].u.ch` | since round 1 (2026-10-04) |
 
 Two secondary records the same two bodies would then need, both of which have owner mirrors
 for the **frozen (non-windowed)** configuration only, with the `HAVE_WINDOW_SYSTEM` members
 absent (so a Swift mirror here would have to be measured for the NS form, as `struct font`'s
-was): `struct face` (`femacs/src/font.rs` 464; C's windowed form adds `gc`, `stipple`, `extra`)
-and `struct glyph_row`'s `overlapping_p` bit (`femacs/src/include/dispextern.rs` 767, whose own
+was): `struct face` (`src/font.rs` 464; C's windowed form adds `gc`, `stipple`, `extra`)
+and `struct glyph_row`'s `overlapping_p` bit (`src/include/dispextern.rs` 767, whose own
 comment says `HAVE_WINDOW_SYSTEM`'s `clip` is behind its feature).
 
 `nsfont_draw`'s driver slot (`font_driver.draw`) was written `nil` in `nsfont_driver` for this
@@ -397,7 +397,7 @@ unit declares them because it compiles alone):
 - `swiftc --version` -> `swift-driver version: 1.168.6 Apple Swift version 6.4
   (swiftlang-6.4.0.34.1 clang-2100.3.34.1)`, `Target: arm64-apple-macosx26.0`.
 - `cd /Users/liu/projects/src/github.com/liuchong/femacs && swiftc -parse-as-library -c -o
-  /tmp/nsfont.o femacs/platform/macos/nsfont.swift` -> **exit 0**, no warnings, **no
+  /tmp/nsfont.o platform/macos/nsfont.swift` -> **exit 0**, no warnings, **no
   `-swift-version` flag** (swiftc 6.4's default language mode is 5).  With
   `-swift-version 6` the same file reports **7 `[#MutableGlobalVariable]` errors** - the
   nonisolated global mutable state C's globals are: `Vchar_script_table` (538),
@@ -432,7 +432,7 @@ unit declares them because it compiles alone):
     `underpos` 232, `underwidth` 236, `size` 240, `nsfont` 248, `bold` 256, `ital` 257,
     `synthItal` 258, `max_bounds` 260, `glyphs` 280, `metrics` 288; `XCharStruct` 20
   - `struct ns_display_info` -> `sizeof` 280, `next` 0, `terminal` 8, `name_list_element` 16
-- The same two records, Swift side: `swiftc -o … femacs/platform/macos/nsfont.swift
+- The same two records, Swift side: `swiftc -o … platform/macos/nsfont.swift
   <a main that prints MemoryLayout> <a C stub defining the two imported variables>
   -Xlinker -undefined -Xlinker dynamic_lookup`, then the program:
   - `font_metrics` sizeof 10, stride 10, 0/2/4/6/8 **= C**
@@ -460,7 +460,7 @@ unit declares them because it compiles alone):
 - `python3 tools/extract-abi.py emacs/src/nsfont.m` -> 0 subrs, **36** functions (the six
   line-wrapped signatures are in the list since `tools/cinventory.py`'s 3.160 fix), 3 macros,
   2 types, 1 file-scope object.
-- `python3 tools/extract-abi.py --check emacs/src/nsfont.m femacs/platform/macos/nsfont.swift`
+- `python3 tools/extract-abi.py --check emacs/src/nsfont.m platform/macos/nsfont.swift`
   -> `FAIL`, with **36** `missing function` rows plus the macros/types/object: the extractor
   has no Swift reader (status 3.160 item 2), so a `.swift` target cannot be compared and no
   gate can be made green by anything in this file.  This unit's evidence is therefore the
@@ -480,7 +480,7 @@ unit declares them because it compiles alone):
   literals), 0 failures`; `python3 tools/check-verbatim.py` -> `6 trees, 4607 files, 0
   failures`; `python3 tools/check-globals.py` -> `283 units, 0 DEFVAR_* variables without a
   definition in their own unit`; `python3 tools/check-mirror-dupes.py` -> `1 duplicate
-  declaration(s), 1 ratchet row(s), 0 failure(s)` (the row is `femacs/src/insdel.rs`, another
+  declaration(s), 1 ratchet row(s), 0 failure(s)` (the row is `src/insdel.rs`, another
   lane's, not this file's); `python3 tools/check-target-names.py` -> `577 .rs files, 593 map
   targets, 0 finding(s)`; `python3 tools/check-symbols.py` -> `86 units compared, 2 mismatched`
   (`lib/mempcpy`, `lib/regex`, pre-existing).
@@ -489,7 +489,7 @@ unit declares them because it compiles alone):
 
 - **Round 83 lands the file's last two bodies** (`nsfont_draw`, C 1151-1212, and
   `ns_dump_glyphstring`, C 1710-1722) and closes the hole the `## Deferred` section named:
-  `swiftc -parse-as-library -c femacs/platform/macos/nsfont.swift` -> **exit 0**, **0 errors**,
+  `swiftc -parse-as-library -c platform/macos/nsfont.swift` -> **exit 0**, **0 errors**,
   **0 warnings** (the file's baseline is 0 warnings, and the two the first run raised -
   "result of call to 'putc' is unused" - were repaired in place by writing C's own discard
   (`_ = putc (...)`), not by naming them).  Object `/tmp/nsfont83.o`, **409,936 bytes**, md5

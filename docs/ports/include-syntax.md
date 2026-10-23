@@ -48,5 +48,5 @@
 - `BEGV_BYTE` is the buffer.rs macro `BEGV_BYTE! ()`; `parse_sexp_lookup_properties` is the
   generated global, read in an `unsafe` block.
 - Evidence: `tools/extract-abi.py --check emacs/src/syntax.h
-  femacs/src/include/syntax.rs` -> OK; the mirror is compiled by
+  src/include/syntax.rs` -> OK; the mirror is compiled by
   `xtask build-tu src/casefiddle.c` (casefiddle.c includes syntax.h).

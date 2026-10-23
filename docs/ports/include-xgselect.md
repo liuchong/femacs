@@ -18,7 +18,7 @@
   include guard, C 28-33 are live text (there is no `#if` in the file at all), and the header
   includes `lisp.h` and `sysselect.h` (C 23-24) for `fd_set`/`sigset_t`.  Its only definer,
   `src/xgselect.c`, is wholly inside `#ifdef HAVE_GLIB`, which the frozen configuration leaves
-  undefined, so that unit is an empty shape (`femacs/src/xgselect.rs`) and no translation unit
+  undefined, so that unit is an empty shape (`src/xgselect.rs`) and no translation unit
   reaches this header here.  The mirror carries the declarations anyway, because the header's
   *text* is what a mirror mirrors (the `src/w32select.h` precedent, status 3.158).
 - **P-72 decides every name: the mirror names no type it does not declare.**  The header owns no
@@ -36,8 +36,8 @@
 
 ## Evidence
 
-- `python3 tools/extract-abi.py --check emacs/src/xgselect.h femacs/src/include/xgselect.rs`
-  -> `OK emacs/src/xgselect.h -> femacs/src/include/xgselect.rs` (no `- ` problem lines).
+- `python3 tools/extract-abi.py --check emacs/src/xgselect.h src/include/xgselect.rs`
+  -> `OK emacs/src/xgselect.h -> src/include/xgselect.rs` (no `- ` problem lines).
 - `python3 tools/check-cond-eval.py src/xgselect.h` -> `1 conditions, 0 unknown to the
   evaluator, 0 disagreements` (that condition is the guard).
 - `python3 tools/extract-abi.py emacs/src/xgselect.h` -> this ledger: 0 subrs, 0 functions
@@ -46,8 +46,8 @@
   evidence is a probe: `spikes/x_inc_probe.rs` supplies the names an X translation unit takes
   from the system and `include!`s this mirror; it is registered in `xtask`'s `PROBES`, so the
   declarations are compiled every round instead of being measured by `--check` alone.
-- `rg -n "xg_select|suppress_xg_select|release_xg_select|release_select_lock" femacs/src` ->
-  this mirror only (the unit `femacs/src/xgselect.rs` is the empty-shape note and names none of
+- `rg -n "xg_select|suppress_xg_select|release_xg_select|release_select_lock" src` ->
+  this mirror only (the unit `src/xgselect.rs` is the empty-shape note and names none of
   them), so there is no use-site declaration to retire.
 - Gates on the same worktree: `check-declarations` 13 sites (0 forbidden, 13 allowed literals) /
   0 failures; `check-mirror-dupes` 1 duplicate declaration(s) / 1 ratchet row(s) / 0 failures;

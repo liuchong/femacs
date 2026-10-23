@@ -4,7 +4,7 @@
 > lists no `exec/` object: the loader belongs to the unexec dump path and this build is
 > `HAVE_PDUMPER=1`.  PORTING.md P-86 governs this class - the body is **transcribed as it stands**
 > (the previous revision was the three-line P-08 note) - and P-86 ②'s C line-range table is below.
-> Port: `femacs/exec/test.rs` (129 lines), first line
+> Port: `exec/test.rs` (129 lines), first line
 > `// femacs: port of exec/test.c @ fd7afced403.`
 
 # ----------------------------------------------------------------------
@@ -34,7 +34,7 @@ and `exit` (the `lib-src/emacsclient.rs` 292-295 note records the same gap).
 * `nm -g build/femacs/test.o` → `_main` defined; `_exec_init`, `_tracing_execve`, `_after_fork`,
   `_exec_waitpid`, `_environ`, `___error`, `___stderrp`, `_fork`, `_exit`, `_sigemptyset`,
   `_sigaddset`, `_sigprocmask` undefined (the mirrors' and C's own declarations).
-* `python3 tools/extract-abi.py --check emacs/exec/test.c femacs/exec/test.rs` → one token row
+* `python3 tools/extract-abi.py --check emacs/exec/test.c exec/test.rs` → one token row
   (`function main does not mention true`, exempted in `macro-body-notes.tsv`) and the line drift
   (22.9%, declared in `line-drift-tolerance.tsv`).
 
@@ -53,7 +53,7 @@ and `exit` (the `lib-src/emacsclient.rs` 292-295 note records the same gap).
 
 ## Owed
 
-* `femacs/exec/include/exec.rs`'s two nested `include!` paths were **one level too deep**
+* `exec/include/exec.rs`'s two nested `include!` paths were **one level too deep**
   (`../../../lib/include/…`, i.e. the repository root) and were corrected to `../../lib/include/…`
   in this round: nothing had included that mirror before, so no gate read the broken edge (the
   P-86 ⑦/P-89 class).  `USER_WORD` - the mirror's own file note said it is `uintptr_t`, but no

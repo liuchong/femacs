@@ -4,7 +4,7 @@
 > lists no `exec/` object (the loader belongs to the unexec dump path; this build is
 > `HAVE_PDUMPER=1`).  PORTING.md P-86 governs this class - the body is **transcribed as it stands**
 > (the previous revision was the three-line P-08 note) - and P-86 ②'s C line-range table is below.
-> Port: `femacs/exec/mipsfpu.rs` (310 lines), first line
+> Port: `exec/mipsfpu.rs` (310 lines), first line
 > `// femacs: port of exec/mipsfpu.c @ fd7afced403.`
 
 # ----------------------------------------------------------------------
@@ -43,7 +43,7 @@ target - which has no `__mips_isa_rev` - compiles the `#else` arm.
 * `cargo run -q -p xtask -- build-tu exec/mipsfpu.c` → `built exec/mipsfpu.rs ->
   ../build/femacs/mipsfpu.o`, **exit 0**, object **10,904 bytes**; `nm -g` shows
   `_cpu_supports_fr0_p` and `_determine_fpu_mode` defined (C's two non-`static` definitions).
-* `python3 tools/extract-abi.py --check emacs/exec/mipsfpu.c femacs/exec/mipsfpu.rs` → one token
+* `python3 tools/extract-abi.py --check emacs/exec/mipsfpu.c exec/mipsfpu.rs` → one token
   row (`function valid_abi_p does not mention case, default, switch`, exempted in
   `macro-body-notes.tsv`) and a 7.3% line drift (declared in `line-drift-tolerance.tsv`).
 * `python3 tools/check-cond-eval.py exec/mipsfpu.c` → `1 conditions, 0 unknown, 0 disagreements
@@ -68,7 +68,7 @@ target - which has no `__mips_isa_rev` - compiles the `#else` arm.
 
 ## Owed
 
-* `femacs/exec/include/mipsfpu.rs` declared `cpu_supports_fr0_p`/`determine_fpu_mode` at the
+* `exec/include/mipsfpu.rs` declared `cpu_supports_fr0_p`/`determine_fpu_mode` at the
   mirror's top level while this unit defines them: they now sit in a glob-imported
   `mipsfpu_decls` module (PORTING.md 0.1-10, measured here - the two `E0428`s are gone).
 * No runtime evidence of any kind: the object was never linked and never run (see

@@ -294,7 +294,7 @@ so "0 in our text" is a reading and not a silence.  This is **not** a Windows-ta
 stubs are harness scaffolding, and the four defects it measured are the mirrors'.
 
 **④ Inventory.**
-`python3 tools/extract-abi.py --check emacs/src/w32fns.c femacs/src/w32fns.rs` →
+`python3 tools/extract-abi.py --check emacs/src/w32fns.c src/w32fns.rs` →
 `- missing file-scope object deferred_msg_head`, `- function w32_fullscreen_rect does not mention
 break, case, default, switch`, `- line count drifted 87.5%: C 12488 vs Rust 1561`, then `FAIL`.
 The file's checklist is empty (P-86 ⑩), so the check compares the whole reference text against this
@@ -345,7 +345,7 @@ baseline row(s), 0 failure(s)`. — `check-ledger-ticks.py` → bound, 0 failure
   needs `MAKEINTRESOURCE`, declared next to it.
 - **`<windows.h>` has no file in the reference tree, so this unit declares the names its slice
   uses** (P-88 ①: the section stands with C 82-95's SDK block, no file is added under
-  `femacs/src/include/`).  The spellings are PORTING.md's table, not measurements: `HANDLE` and the
+  `src/include/`).  The spellings are PORTING.md's table, not measurements: `HANDLE` and the
   other handles are `*mut c_void`, `BOOL` is `c_int`, `DWORD` is `u32` (the Windows ABI's 32 bits -
   *not* this target's `c_long`), `LONG` is `i32`.  **No clang probe was possible** (there is no
   `windows.h` on this machine), so `RECT`/`POINT`/`MSG`/`TITLEBARINFO`/`MONITOR_INFO`/`_WTS_VIRTUAL_CLASS`/
@@ -438,7 +438,7 @@ baseline row(s), 0 failure(s)`. — `check-ledger-ticks.py` → bound, 0 failure
    until the file's last slice lands - the trade-off is the integrator's).
 3. `docs/ports/macro-body-notes.tsv`: one row, `w32_fullscreen_rect` →
    `switch,case,default,break` (PORTING.md 2.2's `match`; the `set_internal` row is the precedent).
-4. `femacs/xtask/Cargo.toml`: two features are named by this unit and registered nowhere -
+4. `xtask/Cargo.toml`: two features are named by this unit and registered nowhere -
    `mingw_w64` (`MINGW_W64`, C 38/63) and `win32_windows_ge_0410` (C 167's `_WIN32_WINDOWS >=
    0x0410`, named as `lib/include/boot-time-aux.rs` names `win32_vista`).
 5. The ten mirror declarations this unit's definitions collide with must move into a
@@ -515,7 +515,7 @@ unmeasured `HAVE_NTGUI` frame flags, and the lane was instructed not to change t
 that arm's failure is recorded as **the mirror's known rejection**, as the brief says.
 
 **③ Inventory.**
-`python3 tools/extract-abi.py --check emacs/src/w32fns.c femacs/src/w32fns.rs` -> **330 findings
+`python3 tools/extract-abi.py --check emacs/src/w32fns.c src/w32fns.rs` -> **330 findings
 before, 282 after** (`/tmp/w32fns-lane-before.txt` is the before log).  Of the 48: **44 `missing
 function` rows** are the slice's 44 definitions (`135 -> 91`), **8** are the body-token rows the
 `macro-body-notes.tsv` entries below record, and **1** was the C 117 declaration (Deviations).
@@ -609,7 +609,7 @@ does not compile and is not one of the two budgets).  `build/femacs/units/w32fns
 - **`INIT_WINDOW_CLASS` names `w32_wnd_proc`**, which this file defines at C 4528 (past the
   remainder's start): P-91 ④'s "same file, C line known, not ported yet" class, named here so the
   next lane's arm reading has it.
-- **The C 117 correction aside, nothing outside `femacs/src/w32fns.rs`, this ledger and the two
+- **The C 117 correction aside, nothing outside `src/w32fns.rs`, this ledger and the two
   append-only tables was touched**; no mirror was changed (slice 1's owed items 5-8 stay owed).
 
 ### Owed by the integrator (slice 2)
@@ -630,7 +630,7 @@ does not compile and is not one of the two budgets).  `build/femacs/units/w32fns
    outside `w32term.rs`, so the macro bodies need the `PALETTERGB!` spelling.
 5. **The COM surface decision for C 2538-2700** (`IDropTarget`, `IDataObject`, `FORMATETC`,
    `STGMEDIUM`, the `COBJMACROS` spellings): P-90 ①'s test says a dedicated SDK mirror
-   (`femacs/src/include/ole.rs` + its ledger), because `w32select.c` is the second consumer; the
+   (`src/include/ole.rs` + its ledger), because `w32select.c` is the second consumer; the
    next slice cannot be spelled before that decision, which is why this lane stopped at C 2536.
 6. **The in-unit declarations** listed in the Deviations are candidates to move into their mirrors
    (`include/dispextern.rs`, `include/frame.rs`, `include/lisp.rs`, `include/coding.rs`,
@@ -640,7 +640,7 @@ does not compile and is not one of the two budgets).  `build/femacs/units/w32fns
    `fullscreen_type`, `include/dispextern.rs` 3993's `check_x_display_info`, the layout
    assertions) are **unchanged by this lane**.  Slice 1's item 4 (the two features
    `mingw_w64`/`win32_windows_ge_0410`) is **discharged**: both are registered in
-   `femacs/xtask/Cargo.toml` (219, 280), as are `ntgui_unicode` (222), `cygwin` (82),
+   `xtask/Cargo.toml` (219, 280), as are `ntgui_unicode` (222), `cygwin` (82),
    `glyph_debug` (132), `have_ntgui` (339) and `windowsnt` (831).
 
 ### Owed by the next lane
@@ -671,14 +671,14 @@ family, `w32_msg_worker`, `signal_user_input` and `post_character_message`.
 **The COM surface is declared in the unit, and P-90 ①'s mirror is still owed.**  Slice 2 stopped
 in front of C 2538-2700 because that surface has a second consumer (`w32select.c`'s `IDataObject`
 half) and P-90 ① gives such a surface a dedicated SDK mirror.  This lane's writable set does not
-include `femacs/src/include/`, so the surface stands **where C's own `#include` lines are**
+include `src/include/`, so the surface stands **where C's own `#include` lines are**
 (C 41-46's `<initguid.h>`/`<shlobj.h>`/`<shobjidl.h>`/`<oleidl.h>`/`<objidl.h>`/`<ole2.h>` block,
 the same P-88 ① shape as this file's `<windows.h>` section): `IUnknown`, `IUnknownVtbl`,
 `IDropTarget`, `IDropTargetVtbl`, `IDataObject`, `IDataObjectVtbl`, `GUID`/`IID`/`REFIID`/`POINTL`,
 `FORMATETC`, `STGMEDIUM`, `DVTARGETDEVICE`/`CLIPFORMAT`/`HBITMAP`/`HMETAFILEPICT`/`HENHMETAFILE`/
 `HGLOBAL`, the `S_OK`/`E_NOINTERFACE`/`DROPEFFECT_*`/`DVASPECT_CONTENT`/`TYMED_HGLOBAL` codes, the
 `SUCCEEDED` and `COBJMACROS`' `IDataObject_GetData` spellings, and the three allocator/GDI entries
-the family calls.  The **move-back into `femacs/src/include/ole.rs`** (plus its ledger and the
+the family calls.  The **move-back into `src/include/ole.rs`** (plus its ledger and the
 `w32select.rs` consumer) is the mirror round's, and the ledger's owed list carries it.
 
 **It is `text-only` for the records' layouts** (P-86 ③⑵), like the two slices before it: this
@@ -729,12 +729,12 @@ are the mirrors' own (see the Deviations).
 
 **The warnings run 5 raises in this slice's text are the tree-wide class, not a new one**: 5
 `unused doc comment` warnings (the `/// …` lines this file puts above its `unsafe extern "system"`
-blocks - 96 such sites exist under `femacs/src` and `femacs/lib`, and `_root.rs` raises 19, 14 of
+blocks - 96 such sites exist under `src` and `lib`, and `_root.rs` raises 19, 14 of
 them in the landed prefix), and the three `unreachable pattern` warnings at `_root.rs` 1164-1185
 are the **landed** `w32_fullscreen_rect`'s `match`: the three in-unit `FULLSCREEN_*` use-site
 constants are placeholders (slice 1's Deviations), so its arms collapse.
 
-**③ Inventory.**  `python3 tools/extract-abi.py --check emacs/src/w32fns.c femacs/src/w32fns.rs`
+**③ Inventory.**  `python3 tools/extract-abi.py --check emacs/src/w32fns.c src/w32fns.rs`
 -> **282 findings before, 218 after** (`/tmp/w32fns-lane-before3.txt` is the before log), and the
 64-row drop is exactly `missing function` 91 -> 51 (40 rows: the slice's definitions),
 `missing macro` 39 -> 25 (14: the two SDK sections' `#define`s), `missing file-scope object`
@@ -754,7 +754,7 @@ line(s) between blocks need no row)`, `145 ledger(s) bound …, 0 failure(s)` (t
 that coverage). - `check-mirror-dupes.py` -> `17 duplicate declaration(s), 17 ratchet row(s), 0
 failure(s)` (unchanged). - `check-citations.py` -> `676 file(s) scanned, 5 drift, 0 range, 1960
 external, 33 allowed, 3 stale`: **none in this file** (all five drifts and all three stale rows are
-`femacs/src/image.rs` and `femacs/src/include/lisp.rs`, another lane's in-flight text). -
+`src/image.rs` and `src/include/lisp.rs`, another lane's in-flight text). -
 `check-declarations.py` -> `0 failures` (no new declaration site: this slice's literals are C's
 `"MSWHEEL_ROLLMSG"`, `"GetConsoleWindow"`, `"kernel32.dll"`, `"message 0x%04x"`, C's table names
 and `c"SCROLLBAR"`; the file carries no product-name literal of its own). - `check-ledger-ticks.py`
@@ -779,7 +779,7 @@ end.
 - **The COM/OLE section is in the unit** (P-88 ①) while P-90 ①'s dedicated mirror is the owed
   item above; the section's first half is C 41-46, and the ledger's owed list names the move-back.
 - **`emacsdebug` and `msg_debug` are features this tree does not register.**  P-86 ① names a gate
-  after C's own macro; both are named here, and `femacs/xtask/Cargo.toml` must register them
+  after C's own macro; both are named here, and `xtask/Cargo.toml` must register them
   (owed) - until then C 3617-3673's arm and C 3816-3820's are text rustc never sees.
 - **The SDK names this slice declares are typed at the width of the port's member they meet**
   (C's `#define`s are untyped): the message ids are `c_int` (the mirror's `WM_EMACS_*` are `c_int`,
@@ -854,9 +854,9 @@ end.
 
 ### Owed by the integrator (slice 3)
 
-1. `femacs/xtask/Cargo.toml`: register `emacsdebug` and `msg_debug` (the two features the gate
+1. `xtask/Cargo.toml`: register `emacsdebug` and `msg_debug` (the two features the gate
    mapping adds).  Slice 1's item 4 for `mingw_w64`/`win32_windows_ge_0410` was discharged.
-2. `femacs/src/include/ole.rs` + `docs/ports/include-ole.md`: P-90 ①'s dedicated mirror for the
+2. `src/include/ole.rs` + `docs/ports/include-ole.md`: P-90 ①'s dedicated mirror for the
    COM/OLE surface this unit now carries in place, and the same commit's deletion of the in-unit
    copies (P-88 ⑤'s move-back).  The second consumer is `w32select.c`'s `IDataObject` half.
 3. `docs/ports/line-drift-tolerance.tsv`: still owed (slice 1's item 2, slice 2's item 1); the
@@ -983,7 +983,7 @@ above plus two re-runs after this lane's own last two revisions - the same 35-li
 budget this lane was given, and both overruns are the same cause: the readings on this page must be
 the final revision's.
 
-**③ The inventory (`tools/extract-abi.py --check emacs/src/w32fns.c femacs/src/w32fns.rs`).**
+**③ The inventory (`tools/extract-abi.py --check emacs/src/w32fns.c src/w32fns.rs`).**
 **218 -> 205** `- ` rows; the file's line-count drift row reads `25.5%: C 12488 vs Rust 9302`
 (was 47.5%).  Every remaining row is a `missing …` item of the **rest of the file** (the tip/tray
 statics, the sleep-notification family, the exception handler, `syms_of_w32fns`, the subrs) or the
@@ -1003,14 +1003,14 @@ src/w32fns.c (12488 lines; 102 blank line(s) between blocks need no row)` and `1
 check-port-lines.py` -> `0 file(s) under ten percent, 0 reference line(s); 0 ratchet row(s), 0
 new, 0 stale`. - `[1] check-citations.py` -> `676 file(s) scanned, 4 drift, 0 range, 1991 external,
 32 allowed, 4 stale`; **none of those rows is this unit's or this ledger's** - the four drift and
-four stale rows are `femacs/src/include/lisp.rs` 2785/3873/4002/4130, another lane's in-flight
+four stale rows are `src/include/lisp.rs` 2785/3873/4002/4130, another lane's in-flight
 mirror round (they were `0 drift, 0 stale` when slice 3 landed). - `[0] check-declarations.py` ->
 `17 declaration sites (0 forbidden, 17 allowed literals), 0 failures` (13 sites before this
 slice). - `[0] check-carried.py` -> `11 carried file(s), 11 baseline row(s), 0 failure(s)`. - `[0]
 check-ledger-ticks.py` -> `238 ledger(s) bound (a function tick to compare), 0 failure(s), …` (no
 row names this unit).
 
-**⑤ Lines and hashes.**  `femacs/src/w32fns.rs` **6,551 -> 9,302** lines (md5
+**⑤ Lines and hashes.**  `src/w32fns.rs` **6,551 -> 9,302** lines (md5
 `f55d262bde28622d4bc0ad7e134a380c` -> `e5dd1dd68b108ac4049802e25ec57073`); `docs/ports/w32fns.md`
 md5 `5cca0bdce9e73900d72043c2fe6aebd1` before this lane; `docs/ports/macro-body-notes.tsv` md5
 `c95e346396f1dee88479bfabda873bac` -> `e292117f95b1314db83708de0e725e6b` (one row appended, nothing
@@ -1018,7 +1018,7 @@ rewritten).
 
 ### Deviations (slice 4)
 
-- **The two feature names this slice adds are not registered** (`femacs/xtask/Cargo.toml`): C
+- **The two feature names this slice adds are not registered** (`xtask/Cargo.toml`): C
   4599/4676's `W32_DEBUG_DISPLAY` is `w32_debug_display` (the two `DebPrint` arms) and C 4135's
   `DBG_WM_CHARS` is `dbg_wm_chars` (the `FPRINTF_WM_CHARS` macro pair).  P-86 ① names a gate after
   C's own macro, so both arms are carried; until the features exist, rustc never reads either arm.
@@ -1111,15 +1111,15 @@ rewritten).
 
 ### Owed by the integrator (slice 4)
 
-1. `femacs/xtask/Cargo.toml`: register `w32_debug_display` and `dbg_wm_chars` (the two features
+1. `xtask/Cargo.toml`: register `w32_debug_display` and `dbg_wm_chars` (the two features
    this slice names; slice 3's item 1 for `emacsdebug`/`msg_debug` is the same row).
-2. `femacs/src/include/w32term.rs`: storage units (or `w32_output_bits!` arms) for the two
+2. `src/include/w32term.rs`: storage units (or `w32_output_bits!` arms) for the two
    `w32_output` bitfields C 378/400 record - `hourglass_p` and `menubar_active`.  This slice's nine
    `E0609`s are that row, and `src/w32menu.rs` 938 carries it for the same two members.
-3. `femacs/src/include/frame.rs`: `tab_bar_window`, `tab_bar_resized`, `tab_bar_redisplayed`,
+3. `src/include/frame.rs`: `tab_bar_window`, `tab_bar_resized`, `tab_bar_redisplayed`,
    `tool_bar_window`, `tool_bar_resized`, `tool_bar_redisplayed` (the ten prefix `E0609`s; slice
    1's item 8's list).
-4. `femacs/src/include/keyboard.rs`: keyboard.h 525's `lispy_function_keys` declaration (C 524-526's
+4. `src/include/keyboard.rs`: keyboard.h 525's `lispy_function_keys` declaration (C 524-526's
    `HAVE_NTGUI || HAVE_X_WINDOWS || HAVE_PGTK` arm, the `HAVE_NTGUI` table being C 5212-5403), and
    the deletion of this unit's copy in the same commit (P-88 ⑤'s move-back).
 5. The in-unit SDK section this slice adds (item 2's list: `CRITICAL_SECTION`, the seven records,
@@ -1193,7 +1193,7 @@ variables as statics, not as accessors, so C 6093's call takes the name bare).
 `menubar_active`/`hourglass_p`/`tab_bar_*`/`tool_bar_*` (27 of the 43) and the mirror `E0428`s.  They
 join this file's owed list; nothing in this file's own text can spell a member the mirror lacks.
 
-**③ The inventory (`tools/extract-abi.py --check emacs/src/w32fns.c femacs/src/w32fns.rs`).**
+**③ The inventory (`tools/extract-abi.py --check emacs/src/w32fns.c src/w32fns.rs`).**
 **205 -> 202** `- ` rows - the three functions this slice defines are no longer `missing function`
 rows, and no new row names them - and the line-count drift row reads `24.3%: C 12488 vs Rust 9451`
 (was 25.5%).  One row this slice's text produced -
@@ -1211,7 +1211,7 @@ check-dead-file-coverage.py` -> `info docs/ports/w32fns.md: 156 range row(s) cov
 (12488 lines; 102 blank line(s) between blocks need no row)` and `0 failure(s)` (the table has this
 slice's row).
 
-**⑤ Lines.**  `femacs/src/w32fns.rs` **9,302 -> 9,451** lines; `docs/ports/w32fns.md` gains this
+**⑤ Lines.**  `src/w32fns.rs` **9,302 -> 9,451** lines; `docs/ports/w32fns.md` gains this
 section; `docs/ports/macro-body-notes.tsv` gains one appended row (nothing rewritten).
 
 ### Deviations (slice 5)
@@ -1266,7 +1266,7 @@ because this slice's repairs also cleared the two `dwStyle`-class lines slice 5 
 member, the same "mirror record lacks a member" class as `menubar_active`/`hourglass_p`/`tab_bar_*`/
 `tool_bar_*` (27 lines) and the mirror `E0428`s.
 
-**③ The inventory (`tools/extract-abi.py --check emacs/src/w32fns.c femacs/src/w32fns.rs`).**
+**③ The inventory (`tools/extract-abi.py --check emacs/src/w32fns.c src/w32fns.rs`).**
 **202 -> 197** `- ` rows and the drift row reads `22.9%: C 12488 vs Rust 9624` (was 24.3%).  The five
 rows this slice's final text retired: the three it produced (two token rows -
 `w32_icon`/`w32_make_gc` `does not mention 0`, C's `0` arguments spelled `core::ptr::null ()`/
@@ -1282,7 +1282,7 @@ rows this slice's final text retired: the three it produced (two token rows -
 `info docs/ports/w32fns.md: 157 range row(s) cover src/w32fns.c (12488 lines; 102 blank line(s)
 between blocks need no row)` and `0 failure(s)`.
 
-**⑤ Lines.**  `femacs/src/w32fns.rs` **9,451 -> 9,624** lines; this section; two appended
+**⑤ Lines.**  `src/w32fns.rs` **9,451 -> 9,624** lines; this section; two appended
 `macro-body-notes.tsv` rows.
 
 ### Deviations (slice 6)
@@ -1384,7 +1384,7 @@ toolchain and no `<windows.h>` on this machine, so `IDC_*`/`SM_CX*SCROLL` and ev
 of the slice are spelled from PORTING.md's table and never compiled.
 
 **③ `extract-abi.py --check`.**  `python3 tools/extract-abi.py --check emacs/src/w32fns.c
-femacs/src/w32fns.rs` → **197 rows** (the count slice 6 left), with one row retired and one added:
+src/w32fns.rs` → **197 rows** (the count slice 6 left), with one row retired and one added:
 `missing subr Fx_create_frame (x-create-frame)` is gone (this slice's `DEFUN!` declares the subr) and
 `subr Fx_create_frame does not mention explicit_name` arrives (C 6416/6421's member, which the port
 writes through `FRAME_EXPLICIT_NAME!`; the row's `macro-body-notes.tsv` entry is below).  The
@@ -1465,7 +1465,7 @@ name inside a `DEFUN!` body is **not** reported by the probe (a deliberately inj
 while member errors (`E0609`) and initialization errors (`E0381`) from the very same body do).
 So this slice added a textual sweep as a reading: for a code region, strip comments and string
 literals, drop field accesses and macro invocation names, and require an item of that name
-anywhere in `femacs/`.  It reports, over the two regions of the file's `have_ntgui` text
+anywhere in ``.  It reports, over the two regions of the file's `have_ntgui` text
 (`src/w32fns.rs` 9620-10259 = slices 5-7, and 10245-10561 = this slice), **missing: []** - after
 the eight names it found are defined:
 
@@ -1868,7 +1868,7 @@ run.
 cover src/w32fns.c (12488 lines; 109 blank line(s) between blocks need no row)**, `0 failure(s)`
 (161 rows / 108 blanks before the split).  The ten gates read 0 failures.
 
-**⑤ The name sweep.**  `python3 tools/check-unit-names.py femacs/src/w32fns.rs 11509 11681` reads
+**⑤ The name sweep.**  `python3 tools/check-unit-names.py src/w32fns.rs 11509 11681` reads
 `missing: []` (`GetCursorPos` and `delete_frame` are declared by this slice itself).
 
 ### Deviations (slice 13)
@@ -3556,7 +3556,7 @@ move produced no new collision, and **no error sits at or beyond `src/w32fns.rs`
 
 **③ The name sweep (`check-unit-names.py`).**  `src/w32fns.rs` 17,228-17,361: 4 capitalized
 identifiers, the one missing being `Some` - the prelude variant the table uses, not an item under
-`femacs/` (the tool's documented non-item class); no unresolved value.
+`` (the tool's documented non-item class); no unresolved value.
 
 **④ `extract-abi.py --check`.**  **63** rows, unchanged: the table is an object no `missing` row ever
 named (the mirror declares it), and **no token row appears**.  The drift row the first reading added
@@ -4001,7 +4001,7 @@ inside that comment; no unresolved item name.
 
 **④ `extract-abi.py --check` - `OK`.**  **47 → 0** rows: the forty-six `missing defsubr` rows and
 `missing function syms_of_w32fns` retire, and the reading is `OK emacs/src/w32fns.c ->
-femacs/src/w32fns.rs` with four recorded C macros (`C_CHILDREN_TITLEBAR`, `DEFAULT_IMAGE_BASE`,
+src/w32fns.rs` with four recorded C macros (`C_CHILDREN_TITLEBAR`, `DEFAULT_IMAGE_BASE`,
 `FPRINTF_WM_CHARS`, `MOUSEEVENTF_FROMTOUCH` - the branches the token check does not compare).  Two
 rows the first reading added are answered: a token row (`function syms_of_w32fns does not mention 1`
 - C's two `= 1;` sites on `bool` variables are the port's `= true;`, one new
@@ -4044,7 +4044,7 @@ slice that used it.**  Three facts a fresh
 reader would otherwise have to re-derive, all read off the tree just now:
 
 - **This file's text convention is *prose* `C NNNN` citations, not column-end ticks.**  A tick
-  counter (the `src/w32.c` lane's `// C NNNN` device) reads `femacs/src/w32fns.rs` as 508 ticks and
+  counter (the `src/w32.c` lane's `// C NNNN` device) reads `src/w32fns.rs` as 508 ticks and
   a maximum of C 5,716, which is an artefact: the file cites its C lines inside `///`/`/* */` prose
   (e.g. `/* C: `command:` (C 5708-5712).  */`).  Coverage is the range table plus `--check` plus
   `check-dead-file-coverage.py`, as this ledger already says - **do not** re-tick the file.

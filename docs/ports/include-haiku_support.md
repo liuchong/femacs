@@ -94,8 +94,8 @@
 
 ## Evidence
 
-- `python3 tools/extract-abi.py --check emacs/src/haiku_support.h femacs/src/include/haiku_support.rs`
-  -> `OK emacs/src/haiku_support.h -> femacs/src/include/haiku_support.rs` (no `- ` problem lines).
+- `python3 tools/extract-abi.py --check emacs/src/haiku_support.h src/include/haiku_support.rs`
+  -> `OK emacs/src/haiku_support.h -> src/include/haiku_support.rs` (no `- ` problem lines).
 - `tools/check-cond-eval.py src/haiku_support.h` -> every condition decided, 0 disagreements.
 - Compile proof (the mirror has no unit that includes it yet): a probe crate that `include!`s this
   mirror, supplies `c_int`/`c_char`/`c_ushort`/… and the two lisp.h aliases a unit provides
@@ -111,7 +111,7 @@
   `check-mirror-dupes` 0 failures; `check-globals` 0.
 
 - **This mirror's compile evidence is the Haiku platform probe, not `xtask layout-check`**
-  (`spikes/haiku_inc_probe.rs`, the `femacs/nt/inc`/`f_inc_probe.rs` shape, docs/status.md 3.102).
+  (`spikes/haiku_inc_probe.rs`, the `nt/inc`/`f_inc_probe.rs` shape, docs/status.md 3.102).
   `layout-check` compiles *every* `src/include` mirror into one crate, which by construction cannot
   hold the platform-exclusive mirrors: `haikugui.h` and `androidgui.h` declare the same X-compat
   block (`NativeRectangle`, `STORE_NATIVE_RECT`, the gravity/value/position constants) and the same

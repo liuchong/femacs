@@ -15,9 +15,9 @@
 
 ## Decisions
 
-`emacs/lib/regex.c` @ `fd7afced403`; port `femacs/lib/regex.rs`; the gates are
+`emacs/lib/regex.c` @ `fd7afced403`; port `lib/regex.rs`; the gates are
 `build-tu lib/regex.c` -> `built`, `python3 tools/extract-abi.py --check emacs/lib/regex.c
-femacs/lib/regex.rs` -> `OK`, and the symbol ratchet
+lib/regex.rs` -> `OK`, and the symbol ratchet
 (`tools/check-symbols.py --pending docs/baseline/symbol-pending.txt`, where this unit is listed).
 
 - **What this file is.**  The aggregate translation unit: C 57-59 `#include` `regex_internal.c`,
@@ -25,8 +25,8 @@ femacs/lib/regex.rs` -> `OK`, and the symbol ratchet
   objects for the three.  The inventory of *this* file is two macros, because the extractor does
   not follow those includes (they are `.c` files, not headers).
 - **Where the aggregate lives in the port.**  PORTING.md 0.1's "one `.c` = one `.rs`" rule
-  applies to the three files C writes, so the port keeps `femacs/lib/regex_internal.rs`,
-  `femacs/lib/regcomp.rs` and `femacs/lib/regexec.rs` as units (each with its own gate and
+  applies to the three files C writes, so the port keeps `lib/regex_internal.rs`,
+  `lib/regcomp.rs` and `lib/regexec.rs` as units (each with its own gate and
   ledger, docs/ports/regex_internal.md, /regcomp.md, /regexec.md), and their objects carry the
   13 `rpl_*` definitions the reference `regex.o` exports.  That is why `lib/regex` is listed in
   `docs/baseline/symbol-pending.txt`: this object's own table is empty by construction.  Closing

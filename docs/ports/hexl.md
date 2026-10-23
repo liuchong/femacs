@@ -52,7 +52,7 @@ Deviations, all recorded rather than hidden:
 
 Evidence: `cargo run -q -p xtask -- build-tu lib-src/hexl.c` ->
 `built lib-src/hexl.rs -> ../build/femacs/hexl.o`; `python3 tools/extract-abi.py --check
-emacs/lib-src/hexl.c femacs/lib-src/hexl.rs` -> `OK` (4/4 boxes, the `prixmax` row in place);
+emacs/lib-src/hexl.c lib-src/hexl.rs` -> `OK` (4/4 boxes, the `prixmax` row in place);
 `rustc --cfg enable_checking` on the materialized unit -> exit 0; `check-globals` 273 units /
 0 missing; `check-declarations` 0; `check-verbatim` 6 trees / 0 failures.  There is **no
 behavioural evidence**: the port cannot run this program yet (it needs the build chain), so the

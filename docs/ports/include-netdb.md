@@ -26,4 +26,4 @@ which compiles the `src/include` and `lib/include` mirrors, does not reach it; i
 `nt/inc` is on the include path instead, and `src/process.c`, `src/sysdep.c`, `lib-src/pop.c` and
 `lib-src/movemail.c` are among the units whose `#include <netdb.h>` resolves here.
 Evidence: `python3 tools/extract-abi.py --check emacs/nt/inc/netdb.h
-femacs/nt/inc/include/netdb.rs` -> `OK`.
+nt/inc/include/netdb.rs` -> `OK`.

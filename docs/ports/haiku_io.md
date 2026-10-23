@@ -5,7 +5,7 @@
 > lists no such object.  PORTING.md P-86 governs the class - the body is **transcribed as it stands**
 > (the previous revision was the P-08 note), the file gate `have_haiku` is carried on every item and on
 > the include edges (P-86 ⑧) - and P-86 ②'s C line-range table is below.  Port:
-> `femacs/src/haiku_io.rs`.
+> `src/haiku_io.rs`.
 
 # ----------------------------------------------------------------------
 ## Gate mapping
@@ -42,7 +42,7 @@ values are use-site declarations with the standing `UNVERIFIED` mark (P-88 ①/�
   254-class -> 23 -> 12 -> 7 as the unit's own text was fixed (a `pthread.rs` include that does not
   exist, the `c_*` names that the `lisp.rs` mirror supplies, `uint32` -> `c_uint`, and `kill`/`SIGPOLL`
   declared at the use site).
-* `python3 tools/extract-abi.py --check emacs/src/haiku_io.c femacs/src/haiku_io.rs` → one token row
+* `python3 tools/extract-abi.py --check emacs/src/haiku_io.c src/haiku_io.rs` → one token row
   (`function haiku_len does not mention case, switch`, exempted in `macro-body-notes.tsv`) plus the line
   drift declared in `line-drift-tolerance.tsv`.
 * `python3 tools/check-cond-eval.py src/haiku_io.c` → `0 conditions, 0 unknown, 0 disagreements
@@ -74,9 +74,9 @@ values are use-site declarations with the standing `UNVERIFIED` mark (P-88 ①/�
 The arm reading above names five real mirror errors; four of them are one defect and it is worth
 stating exactly, because it blocks every platform arm that includes `src/termhooks.h`:
 
-* `femacs/src/include/termhooks.rs` **has no `include!` lines at all**, and names `*mut coding_system`
+* `src/include/termhooks.rs` **has no `include!` lines at all**, and names `*mut coding_system`
   four times (215/216, the two `struct terminal` fields, and 354/357, `TERMINAL_TERMINAL_CODING` /
-  `TERMINAL_KEYBOARD_CODING`).  The type is defined in `femacs/src/include/coding.rs` 133, which is
+  `TERMINAL_KEYBOARD_CODING`).  The type is defined in `src/include/coding.rs` 133, which is
   *not* in that mirror's graph, so any unit that includes `termhooks.rs` without `coding.rs` fails on
   it - `haiku_io.rs` is one, and P-86's own notes list these four errors as the blocker for the
   `have_android` flip arms (status 3.413/3.431).
@@ -85,7 +85,7 @@ stating exactly, because it blocks every platform arm that includes `src/termhoo
   `*mut c_void` - the shape `src/include/window.rs` 104 already carries for `current_matrix`, and the
   `rif` field two lines below this one carries for `struct redisplay_interface *`.
 * The cost is churn in the three units that *do* have the type and use the accessors today -
-  `femacs/src/coding.rs` (6 sites), `femacs/src/composite.rs` (2) and `femacs/src/keyboard.rs` (2) -
+  `src/coding.rs` (6 sites), `src/composite.rs` (2) and `src/keyboard.rs` (2) -
   each needing a cast at its use site; that is why this is a mirror round of its own rather than a
   line in this file's landing, and why it is recorded here with the counts instead of being attempted
   half-way.

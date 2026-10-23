@@ -343,7 +343,7 @@ definitions of the name and the port has three `#[cfg]`-gated ones (the same cal
 ## 2026-10-04: the systty/syswait/termios mirrors landed and this unit converged on them
 
 `"sysstdio.h"`, `"sysselect.h"`, `"systty.h"` and `"syswait.h"` now have mirrors
-(`femacs/src/include/sysstdio.rs`, `lib/include/sys_select.rs`, `src/include/systty.rs`,
+(`src/include/sysstdio.rs`, `lib/include/sys_select.rs`, `src/include/systty.rs`,
 `src/include/syswait.rs`), and `systty.rs` brings the new system mirror
 `lib/include/termios.rs` with it.  This unit therefore:
 
@@ -358,7 +358,7 @@ definitions of the name and the port has three `#[cfg]`-gated ones (the same cal
   point per type), and the mirror carries the same clang-measured assertions;
 - pointed C 38 (`#include "sysselect.h"`) at `include/sysselect.rs` as well (it brings the
   system mirror, so the unit still gets `fd_set`/`FD_SETSIZE`); the checked `fd_*` wrappers and
-  the re-pointed `FD_*` macros arrive with it, exactly as in C.  `femacs/src/include/thread.rs`
+  the re-pointed `FD_*` macros arrive with it, exactly as in C.  `src/include/thread.rs`
   (thread.h's own `#include "sysselect.h"`) still includes the system mirror directly - that
   mirror is shared with units that include `<sys/select.h>` themselves (`lib/pselect.rs`), so
   the switch there belongs to a separate, wider convergence;
@@ -369,7 +369,7 @@ definitions of the name and the port has three `#[cfg]`-gated ones (the same cal
   (`limits.in.rs`'s `CHAR_BIT: c_int` precedent) while `memcmp`'s third parameter is `size_t`.
 
 Evidence: `build-tu src/sysdep.c` -> `built`; `extract-abi.py --check emacs/src/sysdep.c
-femacs/src/sysdep.rs` -> `OK`; `rustc --cfg enable_checking` on the materialized unit -> exit 0;
+src/sysdep.rs` -> `OK`; `rustc --cfg enable_checking` on the materialized unit -> exit 0;
 `check-globals` 273 units / 0 missing; `check-mirror-dupes` 0 failures (the two mirrors removed
 duplicates rather than adding any); `check-declarations` 0.
 

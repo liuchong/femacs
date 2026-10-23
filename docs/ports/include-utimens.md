@@ -18,7 +18,7 @@
 
 ## Decisions
 
-`emacs/lib/utimens.h` @ `fd7afced403`; port `femacs/lib/include/utimens.rs`.  All checklist
+`emacs/lib/utimens.h` @ `fd7afced403`; port `lib/include/utimens.rs`.  All checklist
 items ticked; `--check` → `OK`.
 
 - The declarations live in `pub mod decls` + glob import, because `lib/utimens.c` defines

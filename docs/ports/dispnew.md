@@ -205,13 +205,13 @@
 # ----------------------------------------------------------------------
 ## Decisions
 
-`emacs/src/dispnew.c` @ `fd7afced403`; port `femacs/src/dispnew.rs` (8,565 lines vs C's 7,584
+`emacs/src/dispnew.c` @ `fd7afced403`; port `src/dispnew.rs` (8,565 lines vs C's 7,584
 - +12.9% on the **total** basis, declared in `docs/ports/line-drift-tolerance.tsv` with the
 reason: the both-arms-carry policy below, the use-site records and the docstring literals).
 
 - **Subrs 13/13, functions 150/150, macros 4/4, types 4/4, file-scope objects 20/20** — all
 boxes above are ticked, and `python3 tools/extract-abi.py --check emacs/src/dispnew.c
-femacs/src/dispnew.rs` prints `OK`.
+src/dispnew.rs` prints `OK`.
 
 - **`src/dispnew.c` is not in `cond-eval-verified.txt`, so both arms of every `#if` are
   carried** (P-51/status 3.49; `python3 tools/check-cond-eval.py src/dispnew.c` prints

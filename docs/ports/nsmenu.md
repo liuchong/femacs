@@ -4,9 +4,9 @@
 > `docs/status.md` 3.31): the frozen target is darwin-arm64 with no window system, so `HAVE_NS`
 > and `NS_IMPL_COCOA` are undefined and src/nsmenu.m belongs to the 77 src files `make -n` never
 > reaches.  Batch F ports the Objective-C front end to Swift anyway (`docs/port-map.md`'s Swift
-> table, `src/*.m` -> `femacs/platform/macos/*.swift`), so this ledger is the checklist of the
+> table, `src/*.m` -> `platform/macos/*.swift`), so this ledger is the checklist of the
 > **Cocoa/AppKit build** the file's `NS_IMPL_COCOA` arms describe, and the unit is
-> `femacs/platform/macos/nsmenu.swift`.  Line numbers are the raw reference lines.
+> `platform/macos/nsmenu.swift`.  Line numbers are the raw reference lines.
 
 # ----------------------------------------------------------------------
 ## Subrs (DEFUN) — 2
@@ -398,7 +398,7 @@ call site (empty in the reference, src/lisp.h 2394).
   `swift-driver version: 1.168.6 Apple Swift version 6.4 (swiftlang-6.4.0.34.1 clang-2100.3.34.1)`,
   `Target: arm64-apple-macosx26.0`.
 - `cd /Users/liu/projects/src/github.com/liuchong/femacs && swiftc -parse-as-library -c -o
-  /tmp/nm/nsmenu.o femacs/platform/macos/nsmenu.swift` -> **exit 0**, default language mode, 0
+  /tmp/nm/nsmenu.o platform/macos/nsmenu.swift` -> **exit 0**, default language mode, 0
   errors, two warnings, both AppKit deprecations C's own text has:
   `'configuration' was deprecated in macOS 15.0` (nsmenu.swift 1431) and `'setConfiguration' was
   deprecated in macOS 15.0` (nsmenu.swift 1440) - C's `[toolbar configurationDictionary]` and
@@ -420,7 +420,7 @@ call site (empty in the reference, src/lisp.h 2394).
   `specpdl_ref 8`; `timespec 16 tv_sec 0 tv_nsec 8`; `widget_value 80 align 8 lname 0 name 8
   value 16 lkey 24 key 32 help 40 enabled 48 selected 49 edited 50 button_type 52 contents 56
   call_data 64 next 72`; `BUTTON_TYPE_NONE 0 TOGGLE 1 RADIO 2 MENU_KEYMAPS 1`.
-- Layout, Swift side (`swiftc -o /tmp/nm/layoutbin femacs/platform/macos/nsmenu.swift
+- Layout, Swift side (`swiftc -o /tmp/nm/layoutbin platform/macos/nsmenu.swift
   /tmp/nm/layout/main.swift /tmp/nm/layout/stub.c -Xlinker -undefined -Xlinker dynamic_lookup`,
   where `main.swift` prints `MemoryLayout`/`offset(of:)` of the file's own types and `stub.c`
   defines the nine imported data symbols) -> `vectorlike_header 8`; `Lisp_Subr 56` with the same
@@ -437,10 +437,10 @@ call site (empty in the reference, src/lisp.h 2394).
   measured sentinel at src/dispextern.h 3495, not 13.)
 - `python3 tools/extract-abi.py emacs/src/nsmenu.m` -> the checklist above: 2 subrs (doc digests
   `e959e2321367`, `140765ec91aa`), 12 functions, 6 macros, 1 type, 3 file-scope objects.
-- `python3 tools/check-swift-units.py` -> `femacs/platform/macos/nsmenu.swift: 12 C definition(s),
+- `python3 tools/check-swift-units.py` -> `platform/macos/nsmenu.swift: 12 C definition(s),
   0 unported, 0 row(s); 130 C symbol import(s)`, last line
   `140 new, 0 stale, 6 Swift unit(s) landed`.  The 140 `new` rows are all
-  `femacs/platform/macos/nsterm.swift` (another lane's in-flight file, untracked); **zero new and
+  `platform/macos/nsterm.swift` (another lane's in-flight file, untracked); **zero new and
   zero stale rows are this unit**, so it needs no `swift-units.tsv` row.
 - `python3 tools/check-cond-eval.py src/nsmenu.m` -> `src/nsmenu.m: 29 conditions, 0 unknown,
   3 disagreements [NOT VERIFIED]`, all three at `ifndef HAVE_MULTILINGUAL_MENU`
@@ -456,7 +456,7 @@ call site (empty in the reference, src/lisp.h 2394).
     three conditions after it (956, 1006, 1059) are the only ones recorded dead.
 - `python3 tools/check-citations.py` -> the last line moves with the other lanes' in-flight edits
   (other files in this tree are being written concurrently); **zero rows name
-  `femacs/platform/macos/nsmenu.swift`**.  An ad-hoc cross-check (not a repo tool: for each
+  `platform/macos/nsmenu.swift`**.  An ad-hoc cross-check (not a repo tool: for each
   `/// C: <file> <line>` in the file, does the snippet the citation names appear within +-3 lines
   of the line it cites?) now reports 0 findings; it is what found the six citations that pointed
   at the wrong line - `safe_run_hooks` (keyboard.h 507 -> lisp.h 5097), `build_string` (lisp.h

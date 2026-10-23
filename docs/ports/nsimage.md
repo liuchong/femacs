@@ -4,9 +4,9 @@
 > `docs/status.md` 3.31): the frozen target is darwin-arm64 with no window system, so `HAVE_NS`
 > and `NS_IMPL_COCOA` are undefined and src/nsimage.m belongs to the 77 src files `make -n`
 > never reaches.  Batch F ports the Objective-C front end to Swift anyway
-> (`docs/port-map.md`'s Swift table, `src/*.m` -> `femacs/platform/macos/*.swift`), so this
+> (`docs/port-map.md`'s Swift table, `src/*.m` -> `platform/macos/*.swift`), so this
 > ledger is the checklist of the **Cocoa/AppKit build** that the file's `NS_IMPL_COCOA` arms
-> describe, and the unit is `femacs/platform/macos/nsimage.swift`.  Line numbers are the raw
+> describe, and the unit is `platform/macos/nsimage.swift`.  Line numbers are the raw
 > reference lines.
 
 # ----------------------------------------------------------------------
@@ -320,7 +320,7 @@ C macro does: `eassert` (src/lisp.h 181, the disabled form) and `COLORSPACE_NAME
 
 ### (3) What the lane still has to settle (flagged for the integrator)
 
-1. The core must export (2.b)'s entries; `femacs/src/include/lisp.rs` and
+1. The core must export (2.b)'s entries; `src/include/lisp.rs` and
    `globals.rs` define them as Rust items today (`#[inline(always)] pub fn`), and
    `#[unsafe(no_mangle)] pub extern "C"` on those items is the whole change.  The alternative -
    transcribing the constructs in Swift - is rejected: `EQ` alone needs the core's tag bits and
@@ -341,7 +341,7 @@ C macro does: `eassert` (src/lisp.h 181, the disabled form) and `COLORSPACE_NAME
   `swift-driver version: 1.168.6 Apple Swift version 6.4 (swiftlang-6.4.0.34.1 clang-2100.3.34.1)`,
   `Target: arm64-apple-macosx26.0` (SDK `MacOSX.sdk`, macOS 26.6.2).
 - `cd /Users/liu/projects/src/github.com/liuchong/femacs && swiftc -parse-as-library -c -o
-  /tmp/nsimage.o femacs/platform/macos/nsimage.swift` -> **exit 0**, in the default language
+  /tmp/nsimage.o platform/macos/nsimage.swift` -> **exit 0**, in the default language
   mode (Swift 5 semantics; no `-swift-version` flag was needed and none was used), with two
   warnings: `class EmacsImage: NSImage {` is a non-final class and `var bmRep` is a mutable
   stored property, so the class cannot conform to `Sendable` - "this is an error in the Swift 6
@@ -361,7 +361,7 @@ C macro does: `eassert` (src/lisp.h 181, the disabled form) and `COLORSPACE_NAME
   152, dependencies 160, relief 168, hmargin 172, vmargin 176, type 184, load_failed_p 192,
   lisp_data 200, hash 208, id 216, next 224, prev 232`; `sizeof timespec 16` (`tv_sec` 0,
   `tv_nsec` 8).  (`refresh` at 100 puts the three `bool_bf` bits in the byte at 96.)
-- The same layout, Swift side (`swiftc -o /tmp/run femacs/platform/macos/nsimage.swift
+- The same layout, Swift side (`swiftc -o /tmp/run platform/macos/nsimage.swift
   /tmp/nsimage-layout-check/main.swift <a one-line C stub that defines the unit's C globals>
   -Xlinker -undefined -Xlinker dynamic_lookup`, then the program, which prints
   `MemoryLayout<image>` of the unit's own struct) -> `sizeof image 240; pixmap 16, mask 24,

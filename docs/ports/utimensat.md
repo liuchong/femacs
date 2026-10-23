@@ -20,7 +20,7 @@
 
 ## Decisions
 
-`emacs/lib/utimensat.c` @ `fd7afced403`; port `femacs/lib/utimensat.rs` (257 lines).  All
+`emacs/lib/utimensat.c` @ `fd7afced403`; port `lib/utimensat.rs` (257 lines).  All
 checklist items ticked (the six `AT_FUNC_*` macros; the file's function inventory is empty,
 see below); `build-tu lib/utimensat.c` → `built lib/utimensat.rs -> ../build/femacs/utimensat.o`,
 `--check` → `OK`.

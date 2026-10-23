@@ -72,7 +72,7 @@
 - **Degradations (PORTING.md P-55/P-72 rule 3).**  `struct emacs_value_tag` is defined by
   `src/emacs-module.c` 125, and `struct emacs_env_private`/`struct emacs_runtime_private` by its
   163/177 - records of the *unit*, whose port is the empty shape `HAVE_MODULES` leaves
-  (`femacs/src/emacs-module.rs`), so the three pointers keep C's depth with an untyped interior
+  (`src/emacs-module.rs`), so the three pointers keep C's depth with an untyped interior
   (`emacs_value` stays an alias with C's name, so its ~40 uses in the member list spell one type,
   P-26); the C text of each is in a `/// C:` line.  `size_t`/`ptrdiff_t`/`intmax_t` are
   `include/lisp.rs` 50-53's aliases, which every unit and the layout probe carry (PORTING.md
@@ -98,7 +98,7 @@
 
 ## Evidence
 
-- `python3 tools/extract-abi.py --check emacs/src/emacs-module.in.h femacs/src/include/emacs-module.in.rs`
+- `python3 tools/extract-abi.py --check emacs/src/emacs-module.in.h src/include/emacs-module.in.rs`
   -> **OK** (no `- ` problem lines).  The four items the first run reported - the three
   attribute/noexcept macros and `EMACS_MAJOR_VERSION`, whose body is the template's own
   `@emacs_major_version@` text - are recorded in `docs/ports/excluded-macros.txt` (three
@@ -135,7 +135,7 @@
   **evaluates its 62 layout assertions every round** (a false assertion would be a compile error).
 - `rg -n 'include/emacs-module' femacs` -> no unit `include!`s this mirror: the C header's readers
   are the module-support units, whose port is the empty shape `HAVE_MODULES` leaves
-  (`femacs/src/emacs-module.rs`), and `src/emacs-module.c`'s own readers on other platforms reach
+  (`src/emacs-module.rs`), and `src/emacs-module.c`'s own readers on other platforms reach
   the API through that unit.
 - Gates on the same worktree: `check-declarations` 13 sites (0 forbidden, 13 allowed literals) / 0
   failures; `check-mirror-dupes` 1 duplicate declaration(s) / 1 ratchet row(s) / 0 failure(s);

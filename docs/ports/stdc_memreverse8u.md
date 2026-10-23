@@ -1,4 +1,4 @@
-# emacs/lib/stdc_memreverse8u.c  →  femacs/lib/stdc_memreverse8u.rs (19 lines)
+# emacs/lib/stdc_memreverse8u.c  →  lib/stdc_memreverse8u.rs (19 lines)
 
 # ----------------------------------------------------------------------
 ## Subrs (DEFUN) — 0

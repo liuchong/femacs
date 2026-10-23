@@ -74,7 +74,7 @@
 # ----------------------------------------------------------------------
 ## Decisions
 
-`emacs/src/minibuf.c` @ `fd7afced403`; port `femacs/src/minibuf.rs` (2,779 lines vs C's 2,759
+`emacs/src/minibuf.c` @ `fd7afced403`; port `src/minibuf.rs` (2,779 lines vs C's 2,759
 total / 2,748 live — +0.7% on the **total** basis and +1.1% on the `live` one, both inside
 the 5% the rule allows every file, so **no row was added to
 `docs/ports/line-drift-tolerance.tsv`**; the per-function token comparison is the real
@@ -83,7 +83,7 @@ the frozen configuration compiles it: there is no 3.31 exemption and the full co
 applies.  The gates:
 
     build-tu src/minibuf.c        -> built src/minibuf.rs -> ../build/femacs/minibuf.o
-    extract-abi.py --check        -> OK emacs/src/minibuf.c -> femacs/src/minibuf.rs
+    extract-abi.py --check        -> OK emacs/src/minibuf.c -> src/minibuf.rs
     check-symbols.py --pending    -> check-symbols: 78 units compared, 0 mismatched, 1 still pending
     check-globals.py              -> check-globals: 251 units, 0 DEFVAR_* variables without a definition in their own unit
     ledger                        -> 60/60 rows checked, 0 unchecked
@@ -92,7 +92,7 @@ applies.  The gates:
 An extra compile with `--cfg enable_checking` (the repo's step 6) also succeeds
 (`rustc --edition 2024 --crate-type=lib --emit=obj -C panic=abort -C codegen-units=1
 -C opt-level=0 --cfg enable_checking build/femacs/units/minibuf/_root.rs`, run **from
-`femacs/`** so rustup applies the pinned toolchain — the bare `rustc` at the repo root picks
+``** so rustup applies the pinned toolchain — the bare `rustc` at the repo root picks
 the default toolchain and fails inside `lisp.rs`'s `verror` with E0658, `c_variadic`, a
 pre-existing mirror property, not this unit's).  The only diagnostics are the two
 pre-existing mirror warnings (`include/lisp.rs` 3836's unused doc comment and
@@ -139,7 +139,7 @@ pre-existing mirror warnings (`include/lisp.rs` 3836's unused doc comment and
   the ledger's `live`-basis row would apply (it is not needed: the drift is inside 5% on
   both bases).
 - **Use-site declarations (mirror gaps).**  Each is written with C's own prototype in a
-  `/// C:` line; nothing under `femacs/src/include/` or `femacs/lib/include/` was touched, so
+  `/// C:` line; nothing under `src/include/` or `lib/include/` was touched, so
   no other consumer needed rebuilding:
   * `lisp.h` 4799 `FUNCTIONP`, 4266 `merge_c` (its `bool (*)(Lisp_Object, Lisp_Object)`
     parameter is `Option<unsafe extern "C" fn (Lisp_Object, Lisp_Object) -> bool>`, P-27),
@@ -164,7 +164,7 @@ pre-existing mirror warnings (`include/lisp.rs` 3836's unused doc comment and
   * `<stdio.h>`: `fflush`, `getchar`, `putchar`, `putc` and `stdout` (an object-like macro
     on this target: `#[cfg_attr (target_os = "macos", link_name = "__stdoutp")]`, the cm.rs
     shape).  `<unistd.h>`: `STDIN_FILENO` (a measured constant).  `systty.h` **has a mirror
-    since 2026-10-04** (`femacs/src/include/systty.rs`, which brings the system mirror
+    since 2026-10-04** (`src/include/systty.rs`, which brings the system mirror
     `lib/include/termios.rs`): this unit now gets `struct emacs_tty` (75-85), the real
     `struct termios` inside it, `CDISABLE` and the three tty declarations (87-89) from there,
     and the opaque `struct termios { _storage: [u8; 72] }` stand-in this unit carried until

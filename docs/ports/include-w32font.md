@@ -50,8 +50,8 @@
 
 ## Evidence
 
-- `python3 tools/extract-abi.py --check emacs/src/w32font.h femacs/src/include/w32font.rs`
-  -> `OK emacs/src/w32font.h -> femacs/src/include/w32font.rs` (no `- ` problem lines).
+- `python3 tools/extract-abi.py --check emacs/src/w32font.h src/include/w32font.rs`
+  -> `OK emacs/src/w32font.h -> src/include/w32font.rs` (no `- ` problem lines).
 - `python3 tools/extract-abi.py emacs/src/w32font.h` -> this ledger: 0 subrs, 0 functions defined,
   11 macros, 3 types, 0 file-scope objects.
 - The measurement of `w32_metric_cache` (`clang -std=gnu23` on a file that repeats C 40-45's

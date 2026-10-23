@@ -17,7 +17,7 @@ loop only mirrors the frame addresses.
 import pathlib, shutil, sys
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
-SRC = ROOT / "femacs/src/sysdep.rs"
+SRC = ROOT / "src/sysdep.rs"
 BAK = pathlib.Path("/tmp/crash-backtrace-probe-backup.rs")
 
 HELPER = '''/* TEMPORARY probe (tools/add-crash-backtrace-probe.py): the crash frames, on logcat.  */

@@ -8,7 +8,7 @@
 > `xftfont.o`.  The file's own body sits under no `#if` of its own (the gate is the *build's* - the
 > `lwlib-Xlw.c`/`xfont.c` shape), so `extract-abi.py`'s checklist is **not** empty and this ledger
 > carries P-86 (2)'s substitute (the C line-range table) and the readings.  Port:
-> `femacs/src/xftfont.rs` (**1980 lines**, `wc -l`), every arm of every `#if` carried.
+> `src/xftfont.rs` (**1980 lines**, `wc -l`), every arm of every `#if` carried.
 >
 > This ledger replaces the previous revision's conclusion ("not compiled by the frozen
 > configuration, so the port is the empty unit plus a note"): P-86 (1) rules that a header comment is
@@ -86,7 +86,7 @@ A 336-byte object is the **empty** one: the file gate compiles not one item of t
 no evidence of the text - it is evidence of the gate, and (like `ftfont.c`'s reading) it is also a
 cheap syntax gate over the whole unit: rustc parses the gated-off text and reported the one error
 above before anything else ran.  The object was rebuilt from the final text
-(`shasum femacs/src/xftfont.rs` = `032f2c1c7b57a80c97eef9d0cdf032a81b74052d`).
+(`shasum src/xftfont.rs` = `032f2c1c7b57a80c97eef9d0cdf032a81b74052d`).
 
 **2. The arm reading (`xtask probe`), with the file gate and every sub-gate on.**
 
@@ -208,7 +208,7 @@ $ clang -std=gnu23 -fsyntax-only -Xclang -fdump-record-layouts-complete \
 **8. The acceptance gates.**
 
 ```
-$ python3 tools/extract-abi.py --check emacs/src/xftfont.c femacs/src/xftfont.rs
+$ python3 tools/extract-abi.py --check emacs/src/xftfont.c src/xftfont.rs
 - line count drifted 138.0%: C 832 vs Rust 1980        (one row, the tolerance row - Owed 1)
 $ python3 tools/check-declarations.py
 17 declaration sites (0 forbidden, 17 allowed literals), 0 failures
@@ -224,9 +224,9 @@ $ python3 tools/check-ledger-ticks.py
 357 row(s) with no function tick, 0 row(s) without a ledger
 ```
 
-All six readings are the final ones; neither `femacs/src/xftfont.rs` nor this ledger has a finding in
+All six readings are the final ones; neither `src/xftfont.rs` nor this ledger has a finding in
 any of them.  (An earlier run of `check-declarations.py` in this session reported one `title` finding
-in `femacs/src/xsettings.rs`, a bug-address URL - another lane's file, `git status` shows it modified
+in `src/xsettings.rs`, a bug-address URL - another lane's file, `git status` shows it modified
 by that lane, and the final read is clean.)  The token half of
 `--check` reports nothing else: the three rows this lane appended to `docs/ports/macro-body-notes.tsv`
 (Owed 12) cover the only three C tokens the unit's bodies legitimately cannot spell.
@@ -318,38 +318,38 @@ by that lane, and the final read is clean.)  The token half of
    `#[cfg (feature = "have_xft")]` of P-86 (1) and its sub-gates, the layout assertions, the five
    unit-local SDK segments and the two cfg-selected statements of Deviation 3.  Not this lane's file
    to write.
-2. **`femacs/xtask/Cargo.toml`**: register six feature names this file's arms use and the table does
+2. **`xtask/Cargo.toml`**: register six feature names this file's arms use and the table does
    not carry - `have_m17n_flt` (`HAVE_M17N_FLT`), `ft_bdf_h` (`FT_BDF_H`), `fc_dual`/`fc_charcell`
    (`FC_DUAL`/`FC_CHARCELL`), `have_otf_get_variation_glyphs`/`have_ft_face_getcharvariantindex`
    (`HAVE_OTF_GET_VARIATION_GLYPHS`/`HAVE_FT_FACE_GETCHARVARIANTINDEX`).
-3. **`femacs/src/include/ftfont.rs`**: mirror `struct font_info`'s three recorded members -
+3. **`src/include/ftfont.rs`**: mirror `struct font_info`'s three recorded members -
    `maybe_otf`/`otf` (`HAVE_LIBOTF`) and `hb_font` (`HAVE_HARFBUZZ`).  They are Evidence 2's nine
    `E0609` rows: C 309/310/313 and 348/350/351/355/357/358 cannot type-check until the mirror
    carries them.
-4. **`femacs/src/include/systime.rs` 27 and/or the `dead-arms` flip table**: `const _: () =
+4. **`src/include/systime.rs` 27 and/or the `dead-arms` flip table**: `const _: () =
    assert! (!cfg! (feature = "have_x_windows") || HAVE_X_WINDOWS);` means an arm cannot be compiled
    by `--cfg` alone; a lane that reads an X11 arm needs the constant flipped with the feature
    (Evidence 2's tenth error, and the reason Evidence 5's preflight is a `/tmp` copy).
-5. **`femacs/src/include/dispextern.rs` 92-94**: split the `GCForeground`/`GCBackground` pair by arm
+5. **`src/include/dispextern.rs` 92-94**: split the `GCForeground`/`GCBackground` pair by arm
    (the Emacs_GC `0x01`/`0x02` under the arms that build an `Emacs_GC`, `<X11/X.h>` 566-567's
    `(1L<<2)`/`(1L<<3)` under `have_x_windows`).  Deviation 10 is the defect it causes here.
-6. **`femacs/src/include/xlib.rs`**: the `<X11/Xlib.h>` surface this unit declares at its use site
+6. **`src/include/xlib.rs`**: the `<X11/Xlib.h>` surface this unit declares at its use site
    (P-90 (1)) - `XGCValues` (177-203), `XGetGCValues` (2623), `XScreenNumberOfScreen` (1839) and
    `Region` (`<X11/Xutil.h>` 273).  `include/xlib.rs` already carries `Display`, `GC`, `XColor`,
    `XRectangle` and the rest.  When they land, this unit's Xlib segment disappears in the same commit
    (P-90 (3) / P-88 (5)).
-7. **`femacs/src/include/xft.rs`** (P-90 (1): four consumers in the tree - `src/ftfont.c`,
+7. **`src/include/xft.rs`** (P-90 (1): four consumers in the tree - `src/ftfont.c`,
    `src/xftfont.c`, `src/ftcrfont.c` and `src/ftfont.h`): the whole `<X11/Xft/Xft.h>` surface -
    `XftFont`, `XftColor`, `XftDraw`, the sixteen entry points and the `XftPatternDestroy` macro,
    with the layouts of Evidence 6 and the provenance Deviation 13 records.
-8. **`femacs/src/include/fontconfig.rs`** (two or more consumers): the Fontconfig records/enums,
+8. **`src/include/fontconfig.rs`** (two or more consumers): the Fontconfig records/enums,
    the five entry points, the ten object-name macros and the six spacing constants.
-9. **`femacs/src/include/freetype.rs`**: the FreeType surface (`FT_FaceRec_` and the records it
+9. **`src/include/freetype.rs`**: the FreeType surface (`FT_FaceRec_` and the records it
    names, the scalars, `BDF_PropertyRec`, `FT_Get_BDF_Property`, `FT_FACE_FLAG_SFNT`) - the same
    segment `src/ftfont.rs` carries, which is what makes one mirror the right home (P-88 (5)).
-10. **`femacs/src/include/xrender.rs`**: `XRenderColor`, `XGlyphInfo`, `Picture`, `PictOpSrc` and
+10. **`src/include/xrender.rs`**: `XRenderColor`, `XGlyphInfo`, `Picture`, `PictOpSrc` and
     the two entry points.
-11. **`femacs/src/include/dispextern.rs`**: `glyph_string.clip` should be `[XRectangle; 2]` under
+11. **`src/include/dispextern.rs`**: `glyph_string.clip` should be `[XRectangle; 2]` under
     `have_x_windows` instead of the `int[2]` fallback (Deviation 15).
 12. **`docs/ports/macro-body-notes.tsv`**: **written by this lane** (the one notes file the brief
     allows, appended only): three rows - `xftfont_draw`/`alloca`,
@@ -360,7 +360,7 @@ by that lane, and the final read is clean.)  The token half of
     with libotf should re-read the two declarations.  The `<X11/Xft/Xft.h>` layouts were measured
     against the 2.3.6 release's headers, not an installed SDK.
 14. **`docs/port-map.md`'s row and `docs/status.md`'s ratchet line**: the integrator's to refresh
-    (the map still says 11 lines for `femacs/src/xftfont.rs`).
+    (the map still says 11 lines for `src/xftfont.rs`).
 
 ## Not claimed
 
@@ -390,9 +390,9 @@ by that lane, and the final read is clean.)  The token half of
   reading, the mutation, the restore, and the final-text re-run after the last source change).  The
   `/tmp` preflight and the plain-`rustc` diagnostics are outside both budgets.  No `cargo test`,
   `--all`, `gate-fast` or `check-all-units.sh` was run, and no git write was performed by this lane.
-- **`femacs/src/xftfont.rs` may move under a later round** (the mirror moves of Owed 6-10), and the
+- **`src/xftfont.rs` may move under a later round** (the mirror moves of Owed 6-10), and the
   `/tmp` scratch this lane worked in is deleted.
 - **The other lanes' files are not this lane's evidence.**  `git status` shows four other units
   modified (one lane's `xsettings.rs` among them, whose transient `check-declarations.py` finding is
-  Evidence 8's parenthetical); this lane wrote only `femacs/src/xftfont.rs`, this ledger and the three
+  Evidence 8's parenthetical); this lane wrote only `src/xftfont.rs`, this ledger and the three
   appended `macro-body-notes.tsv` rows, and ran no git write at all.

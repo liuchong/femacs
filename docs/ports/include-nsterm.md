@@ -71,8 +71,8 @@
 
 ## Evidence
 
-- `python3 tools/extract-abi.py --check emacs/src/nsterm.h femacs/src/include/nsterm.rs`
-  -> `OK emacs/src/nsterm.h -> femacs/src/include/nsterm.rs` (no `- ` problem lines).
+- `python3 tools/extract-abi.py --check emacs/src/nsterm.h src/include/nsterm.rs`
+  -> `OK emacs/src/nsterm.h -> src/include/nsterm.rs` (no `- ` problem lines).
 - `python3 tools/extract-abi.py emacs/src/nsterm.h` -> this ledger: 0 subrs, 0 functions defined,
   0 macros, 0 constants, 0 types, 0 objects (the guards above).  The all-branches view, for the
   record: `python3 -c 'import importlib.util as u; from pathlib import Path;
@@ -103,7 +103,7 @@
   `python3 -c 'import importlib.util as u, re; from pathlib import Path;
   s=u.spec_from_file_location("ci","tools/cinventory.py"); ci=u.module_from_spec(s);
   s.loader.exec_module(ci); i=ci.inventory(Path("emacs/src/nsterm.h"));
-  rs=Path("femacs/src/include/nsterm.rs").read_text();
+  rs=Path("src/include/nsterm.rs").read_text();
   print([n for n in list(i["macros"])+list(i["constants"])+[g["name"] for g in i["globals"]]
   +[f["name"] for f in i["struct_fields"]] if not re.search(r"\\b"+re.escape(n)+r"\\b", rs)])'`
   -> `[]`.

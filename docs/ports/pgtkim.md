@@ -7,7 +7,7 @@
 > lists no pgtk object for this target, so `extract-abi.py`'s checklist for the file is empty and
 > its checkbox section cannot be coverage evidence.  What follows is P-86 ②'s substitute: the
 > **C line-range table**, the `## Evidence` readings, the `## Findings` and the `## Deviations`.
-> Port: `femacs/src/pgtkim.rs` (605 lines), the **whole file, C 1-311**, every item under the file
+> Port: `src/pgtkim.rs` (605 lines), the **whole file, C 1-311**, every item under the file
 > gate.
 
 # ----------------------------------------------------------------------
@@ -25,7 +25,7 @@
 deliberately not carried, because a `- [x]` here would be a claim `check-ledger-ticks.py` binds to
 the port's text while the coverage evidence for a P-86 file is the table below - the
 `docs/ports/gfilenotify.md` shape.  The unit *is* complete: all 15 functions, the one subr and the
-`DEFVAR_LISP`-owned `Vpgtk_use_im_context_on_new_connection` are in `femacs/src/pgtkim.rs`.)
+`DEFVAR_LISP`-owned `Vpgtk_use_im_context_on_new_connection` are in `src/pgtkim.rs`.)
 
 ## Decisions
 
@@ -40,7 +40,7 @@ the port's text while the coverage evidence for a P-86 file is the table below -
 - **The arm reading adds `have_gtk3` (Evidence ②), and *not* `use_gtk`.**  `have_gtk3` is implied by
   the same arm: `with_gtk3=yes` (3173) is what makes the GTK3 pkg check run and define
   `HAVE_GTK3` (`configure.ac` 3755-3756), and the GTK surface mirror gates three of the names the
-  pgtk records use on it (`femacs/src/include/gtk.rs` 1119-1120 `GtkCssProvider`, 517-673 and
+  pgtk records use on it (`src/include/gtk.rs` 1119-1120 `GtkCssProvider`, 517-673 and
   1094/1586's GTK3-only entry points) - measured: without the flag the reading carries 3 extra
   `cannot find type GtkCssProvider` errors, with it they are gone.  `use_gtk` is the *GTK-in-X11*
   define (`configure.ac` 3820-3826, `HAVE_GTK=yes`), and the pgtk arm sets `USE_X_TOOLKIT=none`
@@ -192,10 +192,10 @@ macro` errors and the unit's own 3 `E0381`s (below).  Run 3 read 13 (10 mirror +
 The set is stable across the tree's own movement: a **second, independent reading of the same 10**
 was taken on a fresh materialisation (`build-tu` run 2, `build/femacs/units/pgtkim/_root.rs`,
 compiled with the two `--cfg`s by `rustc --emit=metadata`) *after* another lane's
-`femacs/src/include/systhread.rs` edit landed mid-flight - the edit that turns
+`src/include/systhread.rs` edit landed mid-flight - the edit that turns
 `tools/check-mirror-dupes.py`'s reading from `17 duplicate declaration(s), 17 ratchet row(s),
 0 failure(s)` into `27 duplicate declaration(s) … 10 failure(s)`, every failure in
-`femacs/src/android.rs`/`femacs/src/sysdep.rs` and **none of them this unit's**.  The fresh reading
+`src/android.rs`/`src/sysdep.rs` and **none of them this unit's**.  The fresh reading
 is the same 10 anchors, so nothing in that edit reaches this unit's errors.
 
 **③ The unit's own statements are clean (`text-only`, P-86 ⑦'s "mask the gap" reading, /tmp only).**
@@ -220,7 +220,7 @@ fixed to `== 0`) and run 3's three `error[E0381]: used binding … isn't initial
 so rustc does type-check this unit's text and does report what it finds there.
 
 **④ `extract-abi.py --check`.**  `python3 tools/extract-abi.py --check emacs/src/pgtkim.c
-femacs/src/pgtkim.rs` -> `FAIL`, **exactly 1 `- ` line**:
+src/pgtkim.rs` -> `FAIL`, **exactly 1 `- ` line**:
 
 ```
 - line count drifted 94.5%: C 311 vs Rust 605
@@ -274,7 +274,7 @@ info docs/ports/pgtkim.md: 19 range row(s) cover src/pgtkim.c (311 lines; 17 bla
 blocks need no row); 59 ledger(s) bound (a C range table), 0 failure(s)
 ```
 
-The requirement this batch bears is "no `FAIL`/`STALE` row naming `femacs/src/pgtkim.rs`", and that
+The requirement this batch bears is "no `FAIL`/`STALE` row naming `src/pgtkim.rs`", and that
 holds in both readings (the second one's 10 failures are the other lane's, reported above);
 `grep -c pgtkim` over the gate's output is **0**.
 
@@ -327,7 +327,7 @@ holds in both readings (the second one's 10 failures are the other lane's, repor
    Evidence ④'s one `- ` line - C 311 total vs the port's 605 (94.5% measured; `total` basis, so a
    tolerance of 0.96 with the reason "the P-86 ①/⑩ scaffolding: the per-item gate and citations, the
    P-88 ① Pango segment, the include-edge notes").  **DONE (status 3.492, integrator):** the row is
-   appended (`0.96`, `total` basis) and `extract-abi.py --check emacs/src/pgtkim.c femacs/src/pgtkim.rs`
+   appended (`0.96`, `total` basis) and `extract-abi.py --check emacs/src/pgtkim.c src/pgtkim.rs`
    is now **OK with zero `-` rows**.
 2. **`docs/ports/include-pgtkterm.md`**: `include/pgtkterm.rs` 772-776's dangling doc comment is a
    syntax error under `have_pgtk` (Findings 3).  Either the `prototypes` block gains the declaration
@@ -345,17 +345,17 @@ holds in both readings (the second one's 10 failures are the other lane's, repor
 6. **`docs/ports/include-pgtkterm.md`**: its include list expands those five reference headers before
    `lisp.rs` (Findings 2); carrying `include!("lisp.rs")` first, or moving the macro users under the
    macro definitions, would remove the constraint the unit works around today.
-7. **`femacs/src/include/gtk.rs` / `include-gtk.md` (P-88 ⑤ move-out)**: the eight
+7. **`src/include/gtk.rs` / `include-gtk.md` (P-88 ⑤ move-out)**: the eight
    `gtk_im_context_*` entry points this unit declares at C 23's position (`gtk_im_context_reset`,
    `focus_in`, `focus_out`, `set_client_window`, `filter_keypress`, `get_preedit_string`,
    `set_surrounding`, `set_cursor_location`) belong in the GTK surface's single home; two of their
    neighbours (`gtk_im_multicontext_new`, `gtk_im_context_set_use_preedit`) are already there
    (its 1276-1284), so their move is what removes this unit's segment.
-8. **`femacs/src/include/pango.rs` (new mirror) + `docs/ports/include-pango.md`**: the Pango
+8. **`src/include/pango.rs` (new mirror) + `docs/ports/include-pango.md`**: the Pango
    surface this unit carries in-unit (Deviation 2) - `src/gtkutil.c` C 2892-2969 is the second
    consumer, so P-90 ① gives it a home of its own, and a Pango toolchain is what measures the five
    placeholder values and the four records' layouts.
-9. **`docs/baseline/feature-coverage.tsv` / `femacs/xtask/Cargo.toml`**: **no new feature name is
+9. **`docs/baseline/feature-coverage.tsv` / `xtask/Cargo.toml`**: **no new feature name is
    needed.**  `have_pgtk` is registered (feature-coverage 14, Cargo.toml 229) and so is `have_gtk3`
    (27, Cargo.toml 209); this unit adds no third gate.  The pair the arm reading uses is recorded in
    `## Decisions` and Evidence ②, and the `have_gtk3`-as-a-pgtk-subgate reading is worth an entry in

@@ -199,7 +199,7 @@
 - **`--check` verdict with the ten requested rows**: a `/tmp` copy of each shared table plus the
   ten rows, passed through `--excluded`/`--macro-notes`,
   `python3 tools/extract-abi.py --check --excluded … --macro-notes … emacs/lib/stdlib.in.h
-  femacs/lib/include/stdlib.in.rs` -> `OK emacs/lib/stdlib.in.h -> femacs/lib/include/stdlib.in.rs`
+  lib/include/stdlib.in.rs` -> `OK emacs/lib/stdlib.in.h -> lib/include/stdlib.in.rs`
   with `grep -c '^- '` -> `0`; with the tree's tables it reports exactly those ten lines (nine
   `missing`, one `does not mention _gl_mb_cur_max`).  The type is not one of them: the same command
   prints on stderr `missing type deferred: lib/stdlib.in.h random_data (the ledger has unchecked
@@ -239,9 +239,9 @@
     running it prints `stdlib.in.rs probe ok: RAND_MAX=2147483647, MB_CUR_MAX=1`, exit 0.
   - **A correction to this bullet, made in the `stdio.in.h` round (2026-10-04)**: it used to say
     "this mirror is one of the 97, not of the 11 skips, so it went through rustc inside the shared
-    single-module crate".  That is **wrong**.  `xtask layout-check` seeds `femacs/src/include/*.rs`
+    single-module crate".  That is **wrong**.  `xtask layout-check` seeds `src/include/*.rs`
     plus the two `foundation` mirrors and compiles what the `include!` graph *reaches*
-    (`femacs/xtask/src/main.rs` 795-812), so the "97" was the `src/include` seed count and says
+    (`xtask/src/main.rs` 795-812), so the "97" was the `src/include` seed count and says
     nothing about a `lib/include` file.  Measured in the later round:
     `grep -c 'lib/include/stdlib.in.rs' build/femacs/layout_probe.rs` -> `0` and
     `build/femacs/layout_probe_src/` has no `…_stdlib_in_rs.rs`, while `…_stdbit_in_rs.rs` *is*
@@ -251,7 +251,7 @@
     command's own reading was as quoted: `layout-check: 86 of 97 mirror(s) compiled, 11
     platform-exclusive skipped (…)`, `layout probe ok`, `layout-check passed`, exit 0 - for the
     crate, not for this file.  (That round the command was red at one point and the *only*
-    diagnostic was another lane's untracked `femacs/src/include/textconv.rs`
+    diagnostic was another lane's untracked `src/include/textconv.rs`
     (`error: extern block is not supported in `extern` blocks` at 174:5); no diagnostic ever named
     `stdlib.in.rs`, and that lane has since fixed the file - I did not touch it.)
   - No unit includes this mirror yet (`grep -rn 'include!.*stdlib.in.rs' femacs` -> nothing), so
@@ -267,13 +267,13 @@
 
 The 1 box(es) this sweep tentatively ticked are **real pending work, not stale bookkeeping**,
 and the tick was reverted.  Measured: while the ledger has unchecked boxes,
-`python3 tools/extract-abi.py --check emacs/lib/stdlib.in.h femacs/lib/include/stdlib.in.rs` prints `0` `- ` lines **because the tool
+`python3 tools/extract-abi.py --check emacs/lib/stdlib.in.h lib/include/stdlib.in.rs` prints `0` `- ` lines **because the tool
 defers this file's missing items to stderr** (`missing type deferred: lib/stdlib.in.h <name> (the ledger has
 unchecked boxes)`); with the boxes ticked the deferral lifts and the same command prints
 
     - missing type random_data
 
-i.e. the type is genuinely absent from femacs/lib/include/stdlib.in.rs.  So: lib/stdlib.in.h's `struct random_data` is a template arm: the frozen arm is decided by the generated header (`build/emacs-ref/lib/stdlib.h`, P-66/3.207's `sys_time.in.h` precedent) - measure it there before writing the record.
+i.e. the type is genuinely absent from lib/include/stdlib.in.rs.  So: lib/stdlib.in.h's `struct random_data` is a template arm: the frozen arm is decided by the generated header (`build/emacs-ref/lib/stdlib.h`, P-66/3.207's `sys_time.in.h` precedent) - measure it there before writing the record.
 
 ## Decisions / Evidence (the eight true gaps, 2026-10-04)
 
@@ -281,8 +281,8 @@ i.e. the type is genuinely absent from femacs/lib/include/stdlib.in.rs.  So: lib
 pass (they had been left unchecked, and the earlier sweep had un-ticked some of them by
 position rather than by name - corrected here).
 
-    $ python3 tools/extract-abi.py --check emacs/lib/stdlib.in.h femacs/lib/include/stdlib.in.rs
-    OK emacs/lib/stdlib.in.h -> femacs/lib/include/stdlib.in.rs                     # `- ` lines: 0, no `missing type deferred`
+    $ python3 tools/extract-abi.py --check emacs/lib/stdlib.in.h lib/include/stdlib.in.rs
+    OK emacs/lib/stdlib.in.h -> lib/include/stdlib.in.rs                     # `- ` lines: 0, no `missing type deferred`
     $ cargo run -q -p xtask -- layout-check
     layout-check passed (see build/femacs/layout_asserts.rs)
 

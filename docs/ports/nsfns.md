@@ -4,9 +4,9 @@
 > `docs/status.md` 3.31): the frozen target is darwin-arm64 with no window system, so `HAVE_NS`
 > and `NS_IMPL_COCOA` are undefined and src/nsfns.m belongs to the 77 src files `make -n` never
 > reaches.  Batch F ports the Objective-C front end to Swift anyway (`docs/port-map.md`'s Swift
-> table, `src/*.m` -> `femacs/platform/macos/*.swift`), so this ledger is the checklist of the
+> table, `src/*.m` -> `platform/macos/*.swift`), so this ledger is the checklist of the
 > **Cocoa/AppKit build** the file's arms describe, and the unit is
-> `femacs/platform/macos/nsfns.swift`.  Line numbers are the raw reference lines.
+> `platform/macos/nsfns.swift`.  Line numbers are the raw reference lines.
 >
 > **State: complete (C 40-4348).** The file is 4348 lines and the largest remaining Swift
 > unit after src/nsterm.m, so it is landing in batches the way `macfont.swift` did.  Batch 1
@@ -655,13 +655,13 @@ typealias, the `err_*`/`empty` C strings, and the `ns_color_with_unsigned_long` 
   `swift-driver version: 1.168.6 Apple Swift version 6.4 (swiftlang-6.4.0.34.1 clang-2100.3.34.1)`,
   `Target: arm64-apple-macosx26.0`.
 - `cd /Users/liu/projects/src/github.com/liuchong/femacs && swiftc -parse-as-library -c -o
-  /tmp/nsfns/nsfns.o femacs/platform/macos/nsfns.swift` -> **exit 0**, 0 errors, **0 warnings**.
+  /tmp/nsfns/nsfns.o platform/macos/nsfns.swift` -> **exit 0**, 0 errors, **0 warnings**.
 - `nm -g /tmp/nsfns/nsfns.o | grep ' T _'`, minus Swift's own `__swift*` symbols -> the six
   exported C names, in address order: `_stringWithLispString`, `_lispString`,
   `_ns_implicitly_set_name`, `_ns_set_doc_edited`, `_ns_change_tab_bar_height`,
   `_ns_make_frame_key_window`.
 - `python3 tools/check-swift-units.py` ->
-  `femacs/platform/macos/nsfns.swift: 56 C definition(s), 21 unported, 21 row(s); 216 C symbol
+  `platform/macos/nsfns.swift: 56 C definition(s), 21 unported, 21 row(s); 216 C symbol
   import(s)`; overall last line `140 new, 0 stale, 7 Swift unit(s) landed` (the 140 `new` rows
   are `nsterm.swift`, another lane's in-flight file).  The manifest was refreshed with the
   writer, then reduced to this unit's rows only: `cp docs/baseline/swift-units.tsv
@@ -672,7 +672,7 @@ typealias, the `err_*`/`empty` C strings, and the `ns_color_with_unsigned_long` 
 - `python3 tools/check-cond-eval.py src/nsfns.m` ->
   `src/nsfns.m: 64 conditions, 0 unknown, 0 disagreements [VERIFIED]`.
 - `python3 tools/check-citations.py` -> the last line moves with the other lanes' in-flight
-  edits; **zero rows name `femacs/platform/macos/nsfns.swift`** (six did before the pass below
+  edits; **zero rows name `platform/macos/nsfns.swift`** (six did before the pass below
   and were corrected: `NS_IMPL_COCOA`'s citation pointed at nsterm.h 70-76 instead of 36,
   `BVAR` at buffer.h 318 instead of 308, and `src/dispnew.h` - which does not exist in this
   tree - for `adjust_frame_glyphs`/`free_glyphs`/`clear_glyph_matrix`/
@@ -690,14 +690,14 @@ typealias, the `err_*`/`empty` C strings, and the `ns_color_with_unsigned_long` 
 
 ### Batch 2 evidence
 
-- `swiftc -parse-as-library -c -o /tmp/nsfns.o femacs/platform/macos/nsfns.swift` -> **exit 0,
+- `swiftc -parse-as-library -c -o /tmp/nsfns.o platform/macos/nsfns.swift` -> **exit 0,
   0 errors, 0 warnings** (the batch's only warning - `main_window` never mutated - was fixed).
 - `nm -g /tmp/nsfns.o | grep ' T _'` minus Swift's own `__swift*` symbols -> **thirteen**
   exported C names: batch 1's six plus `_Fx_create_frame`, `_Fns_frame_list_z_order`,
   `_Fns_frame_restack`, `_Fx_select_font`, `_Fns_popup_color_panel`, `_ns_run_file_dialog`,
   `_Fns_read_file_name`.
 - `python3 tools/check-swift-units.py` ->
-  `femacs/platform/macos/nsfns.swift: 56 C definition(s), 19 unported, 19 row(s); 346 C symbol
+  `platform/macos/nsfns.swift: 56 C definition(s), 19 unported, 19 row(s); 346 C symbol
   import(s)`; last line `0 new, 0 stale, 7 Swift unit(s) landed`.  Two rows left the manifest -
   `ns_run_file_dialog` and `ns_window_is_ancestor`, the two C definitions this batch landed -
   and the `diff` vs the backup is **2 removed / 0 added / 0 other files** (the gate reported
@@ -705,7 +705,7 @@ typealias, the `err_*`/`empty` C strings, and the `ns_color_with_unsigned_long` 
 - `python3 tools/check-cond-eval.py src/nsfns.m` -> `64 conditions, 0 unknown, 0 disagreements
   [VERIFIED]` (unchanged: this batch takes the `NS_IMPL_COCOA` arms the file already had).
 - `python3 tools/check-citations.py` -> **zero rows name
-  `femacs/platform/macos/nsfns.swift`**; two were corrected in this batch: `ENCODE_FILE`/
+  `platform/macos/nsfns.swift`**; two were corrected in this batch: `ENCODE_FILE`/
   `DECODE_FILE` cited coding.h 800/803 (the file has 790 lines) -> **648/652**, and the
   `PVEC_SUBR`/`PSEUDOVECTOR_AREA_BITS` pair on one citation line (which the gate paired with the
   wrong snippet) -> one citation per line.
@@ -714,18 +714,18 @@ typealias, the `err_*`/`empty` C strings, and the `ns_color_with_unsigned_long` 
 
 ### Batch 3 evidence
 
-- `swiftc -parse-as-library -c -o /tmp/nsfns.o femacs/platform/macos/nsfns.swift` -> **exit 0,
+- `swiftc -parse-as-library -c -o /tmp/nsfns.o platform/macos/nsfns.swift` -> **exit 0,
   0 errors, 0 warnings**.
 - `nm -g /tmp/nsfns.o | grep ' T _'` minus Swift's own `__swift*` symbols -> **43** exported C
   names (batch 1's 6 + batch 2's 7 + this batch's 30).
 - `python3 tools/check-swift-units.py` ->
-  `femacs/platform/macos/nsfns.swift: 56 C definition(s), 11 unported, 11 row(s); 393 C symbol
+  `platform/macos/nsfns.swift: 56 C definition(s), 11 unported, 11 row(s); 393 C symbol
   import(s)`; last line `0 new, 3 stale, 7 Swift unit(s) landed` (the 3 `stale` rows are
   `nsterm.swift`'s, another lane's).  Eight rows left the manifest - the eight C definitions
   this batch landed - and the `diff` vs the backup is **8 removed / 0 added / 0 other files**.
 - `python3 tools/check-cond-eval.py src/nsfns.m` -> `64 conditions, 0 unknown, 0 disagreements
   [VERIFIED]` (unchanged: every arm this batch took was already decided).
-- `python3 tools/check-citations.py` -> **zero rows name `femacs/platform/macos/nsfns.swift`**.
+- `python3 tools/check-citations.py` -> **zero rows name `platform/macos/nsfns.swift`**.
 - `python3 tools/check-declarations.py` -> `13 declaration sites (0 forbidden, 13 allowed
   literals), 0 failures`; `check-verbatim.py` -> `6 trees, 4607 files, 0 failures`;
   `check-mirror-dupes.py` -> `1 duplicate declaration(s), 1 ratchet row(s), 0 failure(s)`.
@@ -736,19 +736,19 @@ typealias, the `err_*`/`empty` C strings, and the `ns_color_with_unsigned_long` 
 
 ### Batch 4 evidence
 
-- `swiftc -parse-as-library -c -o /tmp/nsfns.o femacs/platform/macos/nsfns.swift` -> **exit 0,
+- `swiftc -parse-as-library -c -o /tmp/nsfns.o platform/macos/nsfns.swift` -> **exit 0,
   0 errors, 0 warnings**.
 - `nm -g /tmp/nsfns.o | grep ' T _'` minus Swift's own `__swift*` symbols -> **52** exported C
   names (batch 1+2+3's 43 + this batch's 9).
 - `python3 tools/check-swift-units.py` ->
-  `femacs/platform/macos/nsfns.swift: 56 C definition(s), 6 unported, 6 row(s); 420 C symbol
+  `platform/macos/nsfns.swift: 56 C definition(s), 6 unported, 6 row(s); 420 C symbol
   import(s)`; last line `0 new, 4 stale, 7 Swift unit(s) landed` (the 4 `stale` rows are another
   lane's).  Five rows left the manifest - the five C definitions this batch landed - and the
   `diff` vs the backup is **5 removed / 0 added / 0 other files**.
 - **Layout, both sides** (`clang -std=gnu23 -DHAVE_WINDOW_SYSTEM=1 -DHAVE_NS=1
   -DNS_IMPL_COCOA=1 -I build/emacs-ref/src -I build/emacs-ref/lib -I emacs/src -I emacs/lib` on a
   probe that includes `<config.h>`, `"lisp.h"`, `"nsterm.h"`, `"frame.h"`; and `swiftc -o run
-  femacs/platform/macos/nsfns.swift /tmp/nsfns4/main.swift /tmp/nsfns4/stub.c -Xlinker
+  platform/macos/nsfns.swift /tmp/nsfns4/main.swift /tmp/nsfns4/stub.c -Xlinker
   -undefined -Xlinker dynamic_lookup`, where `main.swift` prints `MemoryLayout`/`offset(of:)` and
   `stub.c` defines the file's imported data symbols) -> both sides print
   `sizeof Emacs_Rectangle 16 sizeof MonitorInfo 48 align 8` and
@@ -779,12 +779,12 @@ typealias, the `err_*`/`empty` C strings, and the `ns_color_with_unsigned_long` 
   therefore answered from the reference text, which is what `check-swift-imports.py`'s
   `reference-source` class already does.
 
-- `swiftc -parse-as-library -c -o /tmp/nsfns.o femacs/platform/macos/nsfns.swift` -> **exit 0,
+- `swiftc -parse-as-library -c -o /tmp/nsfns.o platform/macos/nsfns.swift` -> **exit 0,
   0 errors, 0 warnings**.
 - `nm -g /tmp/nsfns.o | grep ' T _'` minus Swift's own `__swift*` symbols -> **61** exported C
   names (batches 1-4's 52 + this batch's 9).
 - `python3 tools/check-swift-units.py` ->
-  `femacs/platform/macos/nsfns.swift: 56 C definition(s), 5 unported, 5 row(s); 495 C symbol
+  `platform/macos/nsfns.swift: 56 C definition(s), 5 unported, 5 row(s); 495 C symbol
   import(s)`; last line `0 new, 6 stale, 7 Swift unit(s) landed` (the 6 `stale` rows are other
   lanes').  One row left the manifest - `frame_geometry`, the one C definition this batch
   landed - and the `diff` vs the backup is **1 removed / 0 added / 0 other files**.
@@ -799,12 +799,12 @@ typealias, the `err_*`/`empty` C strings, and the `ns_color_with_unsigned_long` 
 
 ### Batch 6 evidence
 
-- `swiftc -parse-as-library -c -o /tmp/nsfns.o femacs/platform/macos/nsfns.swift` -> **exit 0,
+- `swiftc -parse-as-library -c -o /tmp/nsfns.o platform/macos/nsfns.swift` -> **exit 0,
   0 errors, 0 warnings**.
 - `nm -g /tmp/nsfns.o | grep ' T _'` minus Swift's own `__swift*` symbols -> **69** exported C
   names (batches 1-5's 61 + this batch's 8).
 - `python3 tools/check-swift-units.py` ->
-  `femacs/platform/macos/nsfns.swift: 56 C definition(s), **1 unported**, 5 row(s); 512 C symbol
+  `platform/macos/nsfns.swift: 56 C definition(s), **1 unported**, 5 row(s); 512 C symbol
   import(s)`; last line `0 new, 4 stale, 7 Swift unit(s) landed`.  The single `unported` name is
   `interpret_services_menu` (GNUstep-only, C 200-258), the unit's deliberate manifest row; the 4
   `stale` rows are this batch's four landed definitions (`all_nonzero_ascii`, `count_utf8_chars`,

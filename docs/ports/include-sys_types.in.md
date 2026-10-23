@@ -25,7 +25,7 @@
 
 ## Decisions
 
-`emacs/lib/sys_types.in.h` @ `fd7afced403`; port `femacs/lib/include/sys_types.in.rs`.
+`emacs/lib/sys_types.in.h` @ `fd7afced403`; port `lib/include/sys_types.in.rs`.
 
 **The template.**  The reference is a gnulib template (`@PRAGMA_SYSTEM_HEADER@`,
 `@GUARD_PREFIX@`, `@INCLUDE_NEXT@`, `@NEXT_SYS_TYPES_H@`, `@WINDOWS_64_BIT_OFF_T@`,
@@ -90,11 +90,11 @@ as described above.
 ## Evidence
 
 ```
-$ python3 tools/extract-abi.py --check emacs/lib/sys_types.in.h femacs/lib/include/sys_types.in.rs
+$ python3 tools/extract-abi.py --check emacs/lib/sys_types.in.h lib/include/sys_types.in.rs
   (1 C macros have a recorded Rust counterpart: _)
   (3 C macros have several definitions (configuration branches), body not compared:
    GNULIB_defined_ino_t, ino_t, off_t)
-OK emacs/lib/sys_types.in.h -> femacs/lib/include/sys_types.in.rs
+OK emacs/lib/sys_types.in.h -> lib/include/sys_types.in.rs
 
 $ cd /tmp/femacs-probe2 && rustc --edition 2024 --crate-type=lib --emit=obj -C panic=abort \
     sys_types_probe.rs -o sys_types_probe.o
@@ -105,8 +105,8 @@ exit=0        # the probe `use std::ffi::{c_int, c_uint};` + include!s the mirro
 
 $ cd femacs && CARGO_TARGET_DIR=/tmp/femacs-target-mir2 cargo run -q -p xtask -- build-tu lib/fstatat.c
 built lib/fstatat.rs -> ../build/femacs/fstatat.o        # exit 0
-$ python3 tools/extract-abi.py --check emacs/lib/fstatat.c femacs/lib/fstatat.rs
-OK emacs/lib/fstatat.c -> femacs/lib/fstatat.rs          # a real consumer of this mirror
+$ python3 tools/extract-abi.py --check emacs/lib/fstatat.c lib/fstatat.rs
+OK emacs/lib/fstatat.c -> lib/fstatat.rs          # a real consumer of this mirror
 
 $ python3 tools/check-mirror-dupes.py
 1 duplicate declaration(s), 1 ratchet row(s), 0 failure(s)

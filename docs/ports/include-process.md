@@ -37,7 +37,7 @@
 - **`enum { PROCESS_OPEN_FDS = 6 }`** is the array bound of `open_fd`, so the port declares the
   same constant rather than spelling `6`.
 - **Not yet done: none for this header.**  `extract-abi.py --check emacs/src/process.h
-  femacs/src/include/process.rs` reports `OK`; the `fd_callback` typedef and the prototypes
+  src/include/process.rs` reports `OK`; the `fd_callback` typedef and the prototypes
   after line 277 are declarations, which the checker does not inventory (PORTING.md P-64
   records that limitation), and they land with `process.c`/`sysdep.c`.
 

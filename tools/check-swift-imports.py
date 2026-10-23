@@ -11,7 +11,7 @@ the built *Rust* unit objects, so a Swift-only symbol there would be a row nothi
 
 The measurement is the same shape as `check-undef.py`'s:
 
-  * the **imports** are every `@_silgen_name("X")` in `femacs/platform/**/*.swift`;
+  * the **imports** are every `@_silgen_name("X")` in `platform/**/*.swift`;
   * the **providers** are the symbols the built Rust units export (`nm -g build/femacs/**/*.o`,
     the same objects `layout-check` and `check-symbols.py` read) plus the `@_cdecl` names the
     Swift units themselves define;
@@ -37,7 +37,7 @@ import subprocess
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parent.parent
-SWIFT_DIRS = ("femacs/platform",)
+SWIFT_DIRS = ("platform",)
 OBJECT_GLOBS = ("build/femacs/**/*.o",)
 PENDING = REPO / "docs/baseline/swift-import-pending.txt"
 
@@ -185,8 +185,8 @@ def rust_items() -> tuple[set[str], dict[str, str]]:
     """
     names: set[str] = set()
     gated: dict[str, str] = {}
-    for g in ("femacs/src/*.rs", "femacs/src/include/*.rs", "femacs/lib/*.rs",
-              "femacs/lib/include/*.rs"):
+    for g in ("src/*.rs", "src/include/*.rs", "lib/*.rs",
+              "lib/include/*.rs"):
         for path in glob.glob(str(REPO / g)):
             txt = Path(path).read_text(encoding="utf-8", errors="replace")
             lines = txt.split("\n")

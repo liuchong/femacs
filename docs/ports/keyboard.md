@@ -345,7 +345,7 @@
 
 **Status: the unit is PORTED — every line of `emacs/src/keyboard.c` has a Rust counterpart.**
 `emacs/src/keyboard.c` is 14,682 lines; the port covers **C 96-14682** (the whole file), and
-`femacs/src/keyboard.rs` is **15,360 lines** — 4.6% over C's total, inside the 5% default drift
+`src/keyboard.rs` is **15,360 lines** — 4.6% over C's total, inside the 5% default drift
 tolerance, so `tools/extract-abi.py --check` reports **no `line count drifted` row**.  Every
 `DEFUN` (38) is ported, the temporary scaffold block is **gone**, and `--check` has **zero
 `missing` rows**: what remains are **two `does not mention` rows**, each of which needs a
@@ -872,7 +872,7 @@ the seven use-site declarations its text needs.
 - `rustc --edition 2024 --crate-type lib --emit obj -C panic=abort -C codegen-units=1
   -C opt-level=0 --cfg enable_checking ../build/femacs/units/keyboard/_root.rs` -> exit 0
   (11 warnings, no errors)
-- `tools/extract-abi.py --check emacs/src/keyboard.c femacs/src/keyboard.rs` -> `FAIL`, with
+- `tools/extract-abi.py --check emacs/src/keyboard.c src/keyboard.rs` -> `FAIL`, with
   `212` `missing` rows (102 functions, 38 subrs, 38 `defsubr`s, 26 file-scope objects, 8 macros,
   6 constants) and `line count drifted 66.4%: C 14682 vs Rust 4938`
 - `tools/check-symbols.py --dir src` -> keyboard `invented=[]`, `missing` = the 73 symbols of the
@@ -891,7 +891,7 @@ the seven use-site declarations its text needs.
 - `rustc --edition 2024 --crate-type lib --emit obj -C panic=abort -C codegen-units=1
   -C opt-level=0 --cfg enable_checking ../build/femacs/units/keyboard/_root.rs` -> exit 0
   (no errors)
-- `tools/extract-abi.py --check emacs/src/keyboard.c femacs/src/keyboard.rs` -> `FAIL`, with
+- `tools/extract-abi.py --check emacs/src/keyboard.c src/keyboard.rs` -> `FAIL`, with
   `173` `missing` rows (87 functions, 31 subrs, 38 `defsubr`s, 11 file-scope objects, 6 macros,
   0 constants) and `line count drifted 57.1%: C 14682 vs Rust 6304`
 - `tools/check-symbols.py --dir src` -> keyboard `invented=[]`, `missing` = the unported
@@ -928,7 +928,7 @@ the seven use-site declarations its text needs.
 - `xtask build-tu src/keyboard.c` -> `built src/keyboard.rs -> ../build/femacs/keyboard.o`
 - `rustc --edition 2024 --crate-type lib --emit metadata -C panic=abort -C codegen-units=1
   -C opt-level=0 ../build/femacs/units/keyboard/_root.rs -o /tmp/kbd5.rmeta` -> exit 0
-- `tools/extract-abi.py --check emacs/src/keyboard.c femacs/src/keyboard.rs` -> `FAIL`, with
+- `tools/extract-abi.py --check emacs/src/keyboard.c src/keyboard.rs` -> `FAIL`, with
   `172` `missing` rows (86 functions, 31 subrs, 38 `defsubr`s, 11 file-scope objects, 6 macros,
   0 constants) and `line count drifted 54.4%: C 14682 vs Rust 6701`
 - `tools/check-mirror-dupes.py` -> `1 duplicate declaration(s), 1 ratchet row(s), 0 failure(s)`
@@ -945,7 +945,7 @@ the seven use-site declarations its text needs.
 - `rustc --edition 2024 --crate-type lib --emit metadata -C panic=abort -C codegen-units=1
   -C opt-level=0 ../build/femacs/units/keyboard/_root.rs -o /tmp/kbd5.rmeta` -> exit 0
   (11 warnings, no errors — the same eleven the recovery step's run had)
-- `tools/extract-abi.py --check emacs/src/keyboard.c femacs/src/keyboard.rs` -> `FAIL`, with
+- `tools/extract-abi.py --check emacs/src/keyboard.c src/keyboard.rs` -> `FAIL`, with
   `167` `missing` rows (81 functions, 31 subrs, 38 `defsubr`s, 11 file-scope objects, 6 macros,
   0 constants), `line count drifted 45.3%: C 14682 vs Rust 8030`, and the one token row
   `function make_lispy_event does not mention case, continue, default, switch`
@@ -1062,8 +1062,8 @@ layer** (C 8052-8574: `get_input_pending`, `gobble_input`, `tty_read_avail_input
 - `rustc --edition 2024 --crate-type=lib --emit=metadata --crate-name kbd6_check -C panic=abort
   -C codegen-units=1 -C opt-level=0 ../build/femacs/units/keyboard/_root.rs -o /tmp/kbd6.rmeta`
   -> exit 0 (11 warnings, no errors — the same eleven the previous lane's run had; run from
-  `femacs/`, so the pinned `nightly-2026-10-01` toolchain applies)
-- `tools/extract-abi.py --check emacs/src/keyboard.c femacs/src/keyboard.rs` -> `FAIL`, with
+  ``, so the pinned `nightly-2026-10-01` toolchain applies)
+- `tools/extract-abi.py --check emacs/src/keyboard.c src/keyboard.rs` -> `FAIL`, with
   `134` `missing` rows (57 functions, 28 subrs, 38 `defsubr`s, 9 file-scope objects, 2 macros,
   0 constants), `line count drifted 36.3%: C 14682 vs Rust 9355`, and **three** `does not
   mention` token rows (`parse_modifiers_uncached`: `case, switch`; `parse_solitary_modifier`:
@@ -1156,9 +1156,9 @@ families each ending in `init_*_bar_items`/`append_*_bar_item`.
 - `xtask build-tu src/keyboard.c` -> `built src/keyboard.rs -> ../build/femacs/keyboard.o`
 - `rustc --edition 2024 --crate-type=lib --emit=metadata --crate-name kbd6_check -C panic=abort
   -C codegen-units=1 -C opt-level=0 ../build/femacs/units/keyboard/_root.rs -o /tmp/kbd6.rmeta`
-  -> exit 0 (11 warnings, no errors; run from `femacs/`, so the pinned `nightly-2026-10-01`
+  -> exit 0 (11 warnings, no errors; run from ``, so the pinned `nightly-2026-10-01`
   toolchain applies)
-- `tools/extract-abi.py --check emacs/src/keyboard.c femacs/src/keyboard.rs` -> `FAIL`, with
+- `tools/extract-abi.py --check emacs/src/keyboard.c src/keyboard.rs` -> `FAIL`, with
   `105` `missing` rows (38 functions, 28 subrs, 38 `defsubr`s, 0 file-scope objects, 1 macro,
   0 constants), `line count drifted 25.1%: C 14682 vs Rust 10990`, **no** `does not mention` row
   from this round's text, and the one other row
@@ -1234,9 +1234,9 @@ The round's subject is the **key-remap and read-char layer**: `read_char_x_menu_
 - `xtask build-tu src/keyboard.c` -> `built src/keyboard.rs -> ../build/femacs/keyboard.o`
 - `rustc --edition 2024 --crate-type=lib --emit=metadata --crate-name kb4_check -C panic=abort
   -C codegen-units=1 -C opt-level=0 ../build/femacs/units/keyboard/_root.rs -o /tmp/kb4.rmeta`
-  -> exit 0 (11 warnings, no errors; run from `femacs/`, so the pinned `nightly-2026-10-01`
+  -> exit 0 (11 warnings, no errors; run from ``, so the pinned `nightly-2026-10-01`
   toolchain applies)
-- `tools/extract-abi.py --check emacs/src/keyboard.c femacs/src/keyboard.rs` -> `FAIL`, with
+- `tools/extract-abi.py --check emacs/src/keyboard.c src/keyboard.rs` -> `FAIL`, with
   `91` `missing` rows (27 functions, 25 subrs, 38 `defsubr`s, 1 file-scope object — the unported
   C 12596 `force_quit_count` — 0 macros, 0 constants),
   `line count drifted 19.9%: C 14682 vs Rust 11766`, **three doc-string rows pass** (the three
@@ -1345,7 +1345,7 @@ comment).
 - `xtask build-tu src/keyboard.c` -> `built src/keyboard.rs -> ../build/femacs/keyboard.o`
   (11 warnings, no errors; the warnings are the file's existing unused-doc-comment/lint set plus
   the `disable_text_conversion_p` parameter when the `have_text_conversion` feature is off)
-- `tools/extract-abi.py --check emacs/src/keyboard.c femacs/src/keyboard.rs` -> `FAIL`, with
+- `tools/extract-abi.py --check emacs/src/keyboard.c src/keyboard.rs` -> `FAIL`, with
   **90** `missing` rows (26 functions — `read_key_sequence`'s row is gone — 25 subrs, 38
   `defsubr`s, 1 file-scope object, 0 macros, 0 constants), `line count drifted 12.6%: C 14682 vs
   Rust 12827`, one `missing type deferred: src/keyboard.c event_head` (the unported C 13310
@@ -1441,7 +1441,7 @@ entry points.  Sixteen subrs and nine functions in all.
 
 - `xtask build-tu src/keyboard.c` -> `built src/keyboard.rs -> ../build/femacs/keyboard.o`
   (11 warnings, no errors)
-- `tools/extract-abi.py --check emacs/src/keyboard.c femacs/src/keyboard.rs` -> `FAIL`, with
+- `tools/extract-abi.py --check emacs/src/keyboard.c src/keyboard.rs` -> `FAIL`, with
   **65** `missing` rows (17 functions, 9 subrs, 38 `defsubr`s, 1 file-scope object, 0 macros,
   0 constants), `line count drifted 8.5%: C 14682 vs Rust 13440`, `missing type deferred:
   src/keyboard.c event_head` and **two** new `does not mention` rows this round adds
@@ -1545,7 +1545,7 @@ and the **last nine** `DEFUN`s of the file.
 
 - `xtask build-tu src/keyboard.c` -> `built src/keyboard.rs -> ../build/femacs/keyboard.o`
   (11 warnings, no errors)
-- `tools/extract-abi.py --check emacs/src/keyboard.c femacs/src/keyboard.rs` -> `FAIL`, with
+- `tools/extract-abi.py --check emacs/src/keyboard.c src/keyboard.rs` -> `FAIL`, with
   **47** `missing` rows (9 functions, **0 subrs — every `DEFUN` in the file is now ported**, 38
   `defsubr`s, **0 file-scope objects** — `force_quit_count` is defined here now — 0 macros,
   0 constants); the `line count drifted` row is **gone** (14,062 vs 14,682 = 4.2% short, inside
@@ -1621,7 +1621,7 @@ The round closes the file: nine functions, the `struct event_head` + `head_table
 - **The round's two `#if 0`/`#ifdef` sites**: `echo-area-clear-hook`'s `DEFVAR_LISP` inside
   `#if 0` (dead in C itself — recorded, not transcribed, P-08) and C 14101-14108's
   `#ifdef USE_LUCID` `DEFVAR_BOOL` + assignment (carried under `use_lucid`).
-- **Three new cfg feature names** (P-51; the registry is `femacs/xtask/Cargo.toml`'s
+- **Three new cfg feature names** (P-51; the registry is `xtask/Cargo.toml`'s
   `[features]` table, 3.183 — this lane may not edit it): `no_usable_sigio_or_sigpoll`
   (`!(USABLE_SIGIO || USABLE_SIGPOLL)`, the outer `#else` in `set-input-interrupt-mode`),
   `no_interrupt_input` (`!INTERRUPT_INPUT`, `init_keyboard`'s `#else`) and `use_lucid`
@@ -1629,7 +1629,7 @@ The round closes the file: nine functions, the `struct event_head` + `head_table
   existing **`no_sigtstp`** (`# !SIGTSTP`, already used by `process.rs`).
 - **The one use-site declaration this round adds**: `mark_object` (lisp.h 4436; `alloc.rs`
   defines it, the `lisp.rs` mirror carries `mark_objects` only).
-- **One process note**: `femacs/lib/include/stdbit.in.rs` (another lane's WIP mirror, reached
+- **One process note**: `lib/include/stdbit.in.rs` (another lane's WIP mirror, reached
   through `include/lisp.rs`'s `#include <stdbit.h>`) was mid-edit during this round and broke
   `build-tu` for ~10 minutes with three missing `_gl_stdbit_popcount*!` macros; the lane waited
   rather than touching the peer's file, and the build was green again afterwards.
@@ -1638,7 +1638,7 @@ The round closes the file: nine functions, the `struct event_head` + `head_table
 
 - `xtask build-tu src/keyboard.c` -> `built src/keyboard.rs -> ../build/femacs/keyboard.o`
   (11 warnings, no errors)
-- `tools/extract-abi.py --check emacs/src/keyboard.c femacs/src/keyboard.rs` -> `FAIL`, with
+- `tools/extract-abi.py --check emacs/src/keyboard.c src/keyboard.rs` -> `FAIL`, with
   **0 `missing` rows** (0 functions, 0 subrs, 0 `defsubr`s, 0 file-scope objects, 0 macros,
   0 constants), **no `line count drifted` row** (15,360 vs 14,682 = 4.6% over, inside the 5%
   default) and **no `missing type deferred` row** (the `event_head` type landed).  The only rows
@@ -1664,7 +1664,7 @@ The round closes the file: nine functions, the `struct event_head` + `head_table
 syms_of_keyboard	doc	keyboard.c 13413-14514: the 87 `DEFVAR_*` invocations take C's docstring positionally (the mirror's macro parameter is `$doc`), so C's `doc:` label has no counterpart; the docstrings themselves are carried verbatim as the macro's third argument (the `syms_of_data` precedent)
 is_ignored_event	case,default	keyboard.c 13360-13409: C's `switch (event->kind)` becomes the port's `match` on the same arms in the same order (PORTING.md 2.2) — the label `'switch` and its `break 'switch` keep `switch`/`break`, so `case` and `default` are the only tokens left
 ```
-`femacs/xtask/Cargo.toml`'s `[features]` table (three new names; alphabetical order, comment = the C condition):
+`xtask/Cargo.toml`'s `[features]` table (three new names; alphabetical order, comment = the C condition):
 ```
 no_interrupt_input                          = []  # !INTERRUPT_INPUT
 no_usable_sigio_or_sigpoll                  = []  # !(USABLE_SIGIO || USABLE_SIGPOLL)

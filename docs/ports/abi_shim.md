@@ -1,4 +1,4 @@
-# femacs/src/abi_shim.rs (the C-ABI entry points the macOS Swift units import; no reference file)
+# src/abi_shim.rs (the C-ABI entry points the macOS Swift units import; no reference file)
 
 This file is **not** the port of a reference file: C has no functions with these names.  It is the
 core side's table of honouring the names the macOS Swift units import with `@_silgen_name`
@@ -10,7 +10,7 @@ units can link.
 
 The first line is the `DECLARED` pattern `check-target-names.py` accepts for a product that is not
 a port (`^// femacs: generated mirror of the frozen build's`), which is why the file is under
-`femacs/src/` yet appears in no row of `docs/port-inventory.md` or `docs/port-map.md`; both were
+`src/` yet appears in no row of `docs/port-inventory.md` or `docs/port-map.md`; both were
 re-run to confirm it (see `- **The gate audit (this file's 73 gated entries, no export added or changed)**: a `/tmp` script
   parsed every `#[cfg (...)]` of this file and every identifier each gated body names, resolved
   each identifier's home in the mirror tree and compared gates.  Line: `# shim items: 179;
@@ -28,9 +28,9 @@ re-run to confirm it (see `- **The gate audit (this file's 73 gated entries, no 
 
 - **The twenty citation drifts this file had are fixed (the round after batch 13)**:
   `python3 tools/check-citations.py` reported `44 drift` tree-wide with **20 in
-  `femacs/src/abi_shim.rs`**; all twenty now cite the reference line the quoted text actually
+  `src/abi_shim.rs`**; all twenty now cite the reference line the quoted text actually
   lives on, and the tool's own reading is `17 drift, 1 range, 344 external, 33 allowed, 0 stale`
-  with **no `abi_shim` finding left** (the remaining drift is `femacs/platform/macos/*.swift`,
+  with **no `abi_shim` finding left** (the remaining drift is `platform/macos/*.swift`,
   another lane's).  Three of the twenty were genuinely stale *numbers* - `FRAME_MENU_BAR_LINES`
   1113 -> frame.h 1086, `FRAME_TAB_BAR_LINES` 1126 -> 1090, `FRAME_TAB_BAR_HEIGHT` 1127 -> 1091 -
   and the other seventeen were a *pairing* problem the tool's rule makes visible: it pairs the
@@ -228,7 +228,7 @@ those names in Rust; the module is why the crate root can hold both (measured, `
 | `WINDOW_FRAME` | `nsterm.swift` 3747 (`(UnsafeMutableRawPointer?) -> Lisp_Object`) | `abi_shim.rs` 1381 **`mirror-named`** | `#define WINDOW_FRAME(w) ((w)->frame)` frame.h 929; read nsterm.m 3228 |
 | `face_foreground` | `nsterm.swift` 3751 (`(UnsafeMutableRawPointer?) -> UInt`) | `abi_shim.rs` 2055 **`dispextern_face_records`** | `unsigned long foreground;` dispextern.h 1816; bare read nsterm.m 3279 |
 | `face_background` | `nsterm.swift` 3752 (`-> UInt`) | `abi_shim.rs` 2067 **`dispextern_face_records`** | `unsigned long background;` dispextern.h 1819; bare read nsterm.m 3254/3281 |
-| `gui_define_fringe_bitmap` | `nsterm.swift` 3794 (`(UnsafeMutableRawPointer?, Int32)`) | `femacs/src/fringe.rs` 2482 **`have_window_system`** - this shim's stand-in was removed in status 3.669 (P-88 (5)) | `void gui_define_fringe_bitmap (struct frame *, int)` fringe.c 1853 (declared dispextern.h 3711); call nsterm.m 3263 |
+| `gui_define_fringe_bitmap` | `nsterm.swift` 3794 (`(UnsafeMutableRawPointer?, Int32)`) | `src/fringe.rs` 2482 **`have_window_system`** - this shim's stand-in was removed in status 3.669 (P-88 (5)) | `void gui_define_fringe_bitmap (struct frame *, int)` fringe.c 1853 (declared dispextern.h 3711); call nsterm.m 3263 |
 | `max_used_fringe_bitmap` | `nsterm.swift` 3796 (`var max_used_fringe_bitmap: Int32`) | `abi_shim.rs` 1397 **`mirror-named`** (the definition; `D`) | `int max_used_fringe_bitmap = MAX_STANDARD_FRINGE_BITMAPS;` fringe.c 497 (read nsterm.m 3261) |
 | `draw_fringe_bitmap_params_face` | `nsterm.swift` 3757-3758 (`-> UnsafeMutableRawPointer?`) | `abi_shim.rs` 2079 **`dispextern_face_records`** | `struct face *face;` dispextern.h 2232; read nsterm.m 3229 |
 | `draw_fringe_bitmap_params_which` | `nsterm.swift` 3759-3760 (`-> Int32`) | `abi_shim.rs` 2089 **`dispextern_face_records`** | `int which;` dispextern.h 2225; read nsterm.m 3235/3258/3261 |
@@ -269,7 +269,7 @@ those names in Rust; the module is why the crate root can hold both (measured, `
 | `WINDOW_DIVIDER_LAST_PIXEL_FACE_ID` | `nsterm.swift` 4049 (`() -> Int32`) | `abi_shim.rs` 1474 **`mirror-named`** | `WINDOW_DIVIDER_LAST_PIXEL_FACE_ID,` dispextern.h 1976 (face-id enum 1962-1976) = 15 |
 | `get_phys_cursor_geometry` | `nsterm.swift` 4060-4063 (`(…, UnsafeMutablePointer<Int32>? ×3)`) | `abi_shim.rs` 2431 **`have_window_system`** | src/xdisp.c 2707-2771, inside `#ifdef HAVE_WINDOW_SYSTEM` (2488) |
 | `draw_phys_cursor_glyph` | `nsterm.swift` 4065-4066 (`(…, Int32)`) | `abi_shim.rs` 2511 **`have_window_system`** | src/xdisp.c 35099-35145, inside `#ifdef HAVE_WINDOW_SYSTEM` (35086) |
-| `draw_fringe_bitmap` | `nsterm.swift` 4068-4069 (`(…, Int32)`) | `femacs/src/fringe.rs` 1276 **`have_window_system`** - this shim's stand-in was removed in status 3.669 (P-88 (5)); the unit's is C 838-905's function, slice 1 | src/fringe.c 838-905; no build compiles 
+| `draw_fringe_bitmap` | `nsterm.swift` 4068-4069 (`(…, Int32)`) | `src/fringe.rs` 1276 **`have_window_system`** - this shim's stand-in was removed in status 3.669 (P-88 (5)); the unit's is C 838-905's function, slice 1 | src/fringe.c 838-905; no build compiles
 
 **`ns_output_*` / `ns_output_set_*` (batch 6) and the batch-7 additions**: the `have_ns` mark is the gate of `struct ns_output` (nsterm.h 935-1022, mirrored gated in `include/nsterm.rs` 419-489); `dispextern_face_records` is the gate `include/dispextern.rs` 1941 puts on `struct face`; `mirror-named` means the name is also a Rust item in a mirror, so the C-ABI spelling stands in `c_abi_of_mirror_named_items` (see `## Decisions`).  Batch 8's fifteen are the family read below (`Q*` and the accessors); fourteen carry `mirror-named`, and `XSETFRAME` is the one entry of the family whose mirror spelling is a `macro_rules!` rather than an item, so its name is free at the crate root - the split is the criterion, not an accident (`## Decisions`).
 
@@ -505,8 +505,8 @@ arm; the flip arms are compiled one at a time and several of them are known not 
 **Method** (one script, kept out of `tools/` on purpose - the lane's write set is this file and
 this document; it ran from `/tmp` and was deleted): parse every `#[cfg (...)]` of this file's
 items; extract each body's identifiers (types, called items, macros, constants - the field names
-are checked by hand below); resolve each identifier's home in `femacs/src/include/*.rs` or
-`femacs/lib/include/*.rs` and take *that* item's own nearest `#[cfg (...)]`; then require the
+are checked by hand below); resolve each identifier's home in `src/include/*.rs` or
+`lib/include/*.rs` and take *that* item's own nearest `#[cfg (...)]`; then require the
 entry's gate to imply the mirror item's.  Re-run after batch 13 added six
 gated entries: `# shim items: 206; gated: 79`, verdict still **0 mismatches**, distribution
 `have_ns` 45, `have_ns,ns_impl_cocoa` 1, `dispextern_face_records` 16, `have_window_system`
@@ -624,13 +624,13 @@ audit is about - but to have the mirror carry that arm's shift list (status 3.26
 | `draw_fringe_bitmap_params_ny` | `dispextern_face_records` | `src/include/dispextern.rs:2786` `dispextern_face_records` | C ungated (dispextern.h 1787-1937 / 2223-2233); the gate is the mirror's (3.220) | 相符 |
 | `draw_fringe_bitmap_params_cursor_p` | `dispextern_face_records` | `src/include/dispextern.rs:2786` `dispextern_face_records` | C ungated (dispextern.h 1787-1937 / 2223-2233); the gate is the mirror's (3.220) | 相符 |
 | `draw_fringe_bitmap_params_overlay_p` | `dispextern_face_records` | `src/include/dispextern.rs:2786` `dispextern_face_records` | C ungated (dispextern.h 1787-1937 / 2223-2233); the gate is the mirror's (3.220) | 相符 |
-| `gui_define_fringe_bitmap` | `have_window_system` | the unit (`femacs/src/fringe.rs` 2482) since 3.669; the shim's stand-in is gone  (+ ungated: src/include/dispextern.rs:2510, src/include/frame.rs:107, …) | frozen Makefile 303/478 (`WINDOW_SYSTEM_OBJ` empty; fringe.c is in no source list) | 相符 |
+| `gui_define_fringe_bitmap` | `have_window_system` | the unit (`src/fringe.rs` 2482) since 3.669; the shim's stand-in is gone  (+ ungated: src/include/dispextern.rs:2510, src/include/frame.rs:107, …) | frozen Makefile 303/478 (`WINDOW_SYSTEM_OBJ` empty; fringe.c is in no source list) | 相符 |
 | `window_set_phys_cursor_type` | `have_window_system` | `src/include/window.rs:121` `phys_cursor_type` `have_window_system` (field; cfg at 120) | window.h 344, inside the block 341-352 | 相符 |
 | `window_phys_cursor_width` | `have_window_system` | `src/include/window.rs:123` `phys_cursor_width` `have_window_system` (field; cfg at 122) | window.h 347, inside the block 341-352 | 相符 |
 | `window_set_phys_cursor_width` | `have_window_system` | `src/include/window.rs:123` `phys_cursor_width` `have_window_system` (field; cfg at 122) | window.h 347, inside the block 341-352 | 相符 |
 | `get_phys_cursor_geometry` | `have_window_system` | `src/include/window.rs:123` `phys_cursor_width` `have_window_system` (field, read and written)  (+ ungated: src/include/termhooks.rs:425, src/include/frame.rs:107, lib/include/min-max.rs:17) | src/xdisp.c 2707-2771 inside `#ifdef HAVE_WINDOW_SYSTEM` (2488) | 相符 |
 | `draw_phys_cursor_glyph` | `have_window_system` | (no gated mirror item)  (+ ungated: src/include/termhooks.rs:425, src/include/frame.rs:107) | src/xdisp.c 35099-35145 inside `#ifdef HAVE_WINDOW_SYSTEM` (35086) | 相符 |
-| `draw_fringe_bitmap` | `have_window_system` | the unit (`femacs/src/fringe.rs` 1276) since 3.669; the shim's stand-in is gone  (+ ungated: src/include/termhooks.rs:425, src/include/frame.rs:107) | fringe.c 
+| `draw_fringe_bitmap` | `have_window_system` | the unit (`src/fringe.rs` 1276) since 3.669; the shim's stand-in is gone  (+ ungated: src/include/termhooks.rs:425, src/include/frame.rs:107) | fringe.c
 
 ## Decisions
 - **Batch 5 lands the `frame_*` family's second half plus the head of the read family: 15 exports,
@@ -713,7 +713,7 @@ audit is about - but to have the mirror carry that arm's shift list (status 3.26
   batches are landed.
 - **Two names of the round's batch list have no importer and were not landed**: the Swift tree has
   no `@_silgen_name("frame_set_left_pos")` / `@_silgen_name("frame_set_top_pos")` anywhere
-  (`rg` over `femacs/platform/macos/*.swift` finds only the two *readers*, `frame_left_pos` /
+  (`rg` over `platform/macos/*.swift` finds only the two *readers*, `frame_left_pos` /
   `frame_top_pos`) and `docs/baseline/swift-import-pending.txt` has no row for either, so exporting
   them would add C-ABI surface nobody imports.  They wait for a real import (or a ruling).
 
@@ -946,7 +946,7 @@ which of the five window names really are gated).
   frame lane, not for this one.
 - **Three names of the handoff are *not* this batch's, each measured.**  `windows_or_buffers_changed`
   (`S` in `build/femacs/*.o`), `composition_gstring_from_id` and `composition_gstring_width`
-  (both `T`, `femacs/src/composite.rs`) are already provided by the core, so nothing was added for
+  (both `T`, `src/composite.rs`) are already provided by the core, so nothing was added for
   them; the Swift lane's own comment says the same (`nsterm.swift` 3600-3603).
 - **Two shapes of this batch are new spellings of rules already in this file.**  The two
   `enum glyph_type` enumerators are Rust `pub const`s at the mirror's crate root
@@ -987,7 +987,7 @@ which of the five window names really are gated).
   boundary is written down rather than hidden.**  C's definition is src/fringe.c 1853, a file the
   frozen configuration does not compile at all (Makefile's `WINDOW_SYSTEM_OBJ` empty,
   `build/emacs-ref/src/Makefile` 303/478 and `docs/baseline/frozen-build-sources.txt`; the port's
-  unit is the empty `femacs/src/fringe.rs`, status 3.31), so the name is owed to a
+  unit is the empty `src/fringe.rs`, status 3.31), so the name is owed to a
   `HAVE_WINDOW_SYSTEM` build - status 3.255 item 3's class, the shape batch 5's `have_ns`
   exports took.  C's tail (`fb = fringe_bitmaps[n]; if (fb) rif->define_fringe_bitmap (n,
   fb->bits, fb->height, fb->width);`) needs `fringe_bitmaps` (fringe.c 496's file-scope `static
@@ -1412,13 +1412,13 @@ which of the five window names really are gated).
 
 ## 2026-10-06: two fringe exports moved back to their unit (status 3.669)
 
-`femacs/src/abi_shim.rs` no longer defines the two names this ledger's rows 231 and 272 used to
+`src/abi_shim.rs` no longer defines the two names this ledger's rows 231 and 272 used to
 point at, and it carries a note where the first of them was.  Both were stand-ins recorded as
-"the unit does not exist yet" (`femacs/src/fringe.rs` was the empty P-86 unit at status 3.31):
+"the unit does not exist yet" (`src/fringe.rs` was the empty P-86 unit at status 3.31):
 
-* `gui_define_fringe_bitmap` - the unit now carries C 1852-1863 (slice 2, `femacs/src/fringe.rs`
+* `gui_define_fringe_bitmap` - the unit now carries C 1852-1863 (slice 2, `src/fringe.rs`
   2482), body and all;
-* `draw_fringe_bitmap` - the unit has carried C 838-905 since slice 1 (`femacs/src/fringe.rs`
+* `draw_fringe_bitmap` - the unit has carried C 838-905 since slice 1 (`src/fringe.rs`
   1276).
 
 Both are `#[unsafe(no_mangle)] pub unsafe extern "C" fn` under `have_window_system`, so the two

@@ -120,7 +120,7 @@
   `header`@0, `props`@8, `min_width`@144, `max_width`@148, `pixel_size`@152, `height`@156,
   `space_width`@160, `average_width`@164, `ascent`@168, `descent`@172, `driver`@176,
   `FONT_OBJECT_MAX` 17.  The mirror pins `sizeof`/`alignof` and all twelve offsets.
-- The five retirements rebuild (from `femacs/`, `CARGO_TARGET_DIR=/tmp/femacs-target-font`):
+- The five retirements rebuild (from ``, `CARGO_TARGET_DIR=/tmp/femacs-target-font`):
   `cargo run -q -p xtask -- build-tu src/font.c` -> `built src/font.rs -> ../build/femacs/font.o`;
   `src/window.c` -> `built src/window.rs -> ../build/femacs/window.o`; `src/xfaces.c` ->
   `built src/xfaces.rs -> ../build/femacs/xfaces.o`; the two units whose padded prefixes went
@@ -130,7 +130,7 @@
   `src/keyboard.c`) all report `built`; `cargo run -q -p xtask -- layout-check` ->
   `layout-check passed`; and the two platform mirrors that include this one still compile under
   their own probes (`probe ../spikes/haiku_inc_probe.rs …` and the android one, exit 0).
-- `python3 tools/extract-abi.py --check emacs/src/font.h femacs/src/include/font.rs`: the
+- `python3 tools/extract-abi.py --check emacs/src/font.h src/include/font.rs`: the
   `missing type deferred: src/font.h font` line is **gone** (the record is found now) and no
   `- missing field font.…` line appears.  The 49 remaining `- ` problems are exactly the
   ledger's other unchecked boxes (16 functions, 26 macros, 7 constants) — the same list this
@@ -138,11 +138,11 @@
   of the header lands (the ledger's own rule; `--check` has no exemption for a WIP mirror
   except the missing-type one).
 - The unit pairs stay `OK`: `python3 tools/extract-abi.py --check emacs/src/font.c
-  femacs/src/font.rs` (also `window.c`, `xfaces.c`, `alloc.c`, `composite.c`), and
+  src/font.rs` (also `window.c`, `xfaces.c`, `alloc.c`, `composite.c`), and
   `python3 tools/check-mirror-dupes.py` reports `1 duplicate declaration(s), 1 ratchet row(s),
   0 failure(s)`.
 - `python3 tools/extract-abi.py --check emacs/src/haikuterm.h
-  femacs/src/include/haikuterm.rs` -> `OK`; its `missing type deferred: src/haikuterm.h
+  src/include/haikuterm.rs` -> `OK`; its `missing type deferred: src/haikuterm.h
   haikufont_info` line is unchanged, and the type that blocked that record — this one — now
   exists, so the remaining reason is only that `haikufont_info` itself is not written in that
   mirror (the Haiku lane's file, whose ledger box is still unchecked).
@@ -150,8 +150,8 @@
 ## Decisions (font_driver round)
 
 - **`struct font_driver` (C 589-821) and `struct font_driver_list` (C 824-837) moved into this
-  mirror from `femacs/src/font.rs`**, which carried them at the use site; the unit's copies are
-  retired (PORTING.md P-26, the 3.181/3.211/3.220 ownership rule), and `femacs/src/alloc.rs`'s
+  mirror from `src/font.rs`**, which carried them at the use site; the unit's copies are
+  retired (PORTING.md P-26, the 3.181/3.211/3.220 ownership rule), and `src/alloc.rs`'s
   own `font_driver` stand-in was retired for the same reason (`build-tu src/alloc.c` was the
   check that found it).  Layout, measured with the probe this ledger records: `struct
   font_driver` sizeof 208, align 8, `type`@0 `get_cache`@16 `list`@24 `match`@32
@@ -216,12 +216,12 @@
   `build/femacs/units/androidmenu/_root.rs` -> before the gate: `E0080` (above), the only
   remaining error after the name-resolution blockers were fixed; after: **exit 0, 0 `^error`
   lines**.
-- `python3 tools/extract-abi.py --check emacs/src/font.h femacs/src/include/font.rs` -> `OK
-  emacs/src/font.h -> femacs/src/include/font.rs`.
+- `python3 tools/extract-abi.py --check emacs/src/font.h src/include/font.rs` -> `OK
+  emacs/src/font.h -> src/include/font.rs`.
 - `python3 tools/check-citations.py` -> `0 drift`, `0 stale` (the allowlist row at
-  `femacs/src/include/font.rs:5` is above the insertion and did not move).
+  `src/include/font.rs:5` is above the insertion and did not move).
 - Frozen: this `const _` is still active in the frozen configuration (the gate is
-  `not have_android`); 30 units in `femacs/src/` include this mirror, and the frozen units
+  `not have_android`); 30 units in `src/` include this mirror, and the frozen units
   re-read for this change (`src/keyboard.c` among them) are in that set - `build-tu` ->
   `built …`.
 

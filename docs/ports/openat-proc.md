@@ -15,7 +15,7 @@
 
 ## Decisions
 
-`emacs/lib/openat-proc.c` @ `fd7afced403`; port `femacs/lib/openat-proc.rs` (188 lines).  All
+`emacs/lib/openat-proc.c` @ `fd7afced403`; port `lib/openat-proc.rs` (188 lines).  All
 checklist items ticked; `build-tu lib/openat-proc.c` -> `built lib/openat-proc.rs ->
 ../build/femacs/openat-proc.o` (0 errors), `--check` -> `OK`; the object defines
 `_openat_proc_name`, the reference object's only definition.

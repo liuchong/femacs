@@ -2,7 +2,7 @@
 
 ## Decisions
 
-`emacs/src/haiku.c` @ `fd7afced403`; port `femacs/src/haiku.rs` (**487 lines**); the gate is
+`emacs/src/haiku.c` @ `fd7afced403`; port `src/haiku.rs` (**487 lines**); the gate is
 `feature = "have_haiku"` (P-86 clause 8), which is the **build's** condition rather than one the C
 text spells: `configure.ac` 3097-3107 builds `HAIKU_OBJ="$HAIKU_OBJ haiku.o"` and 3107 defines
 `HAVE_HAIKU`, and `src/Makefile.in` 378/469 put `$(HAIKU_OBJ)` into the object list.
@@ -63,7 +63,7 @@ The rows are contiguous and ascending; `docs/port-map.md` binds this ledger to `
   --cfg 'feature="have_haiku"'` -> **exit 0, 0 errors, 14 warnings, an 8,837,304-byte rlib**.  The
   warnings are the house classes (`unnecessary parentheses` around C's parenthesised conditions,
   `unused doc comment` on the in-unit `extern` block); none is in the unit's statements.
-- `python3 tools/extract-abi.py --check emacs/src/haiku.c femacs/src/haiku.rs` -> **OK, zero `-`
+- `python3 tools/extract-abi.py --check emacs/src/haiku.c src/haiku.rs` -> **OK, zero `-`
   rows** (after two `docs/ports/macro-body-notes.tsv` rows for `DBL_EPSILON`, see `## Deviations`).
 - `check-mirror-dupes` **17/17/0** with no row naming this unit; `check-declarations` 10 sites /
   0 failures; `check-citations` 0 drift; `check-dead-file-coverage` binds this table with 0 failures.

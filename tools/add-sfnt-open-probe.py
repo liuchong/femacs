@@ -20,7 +20,7 @@ The last tag printed names the stage the crash is in.
 import pathlib, shutil, sys
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
-SRC = ROOT / "femacs/src/sfntfont.rs"
+SRC = ROOT / "src/sfntfont.rs"
 BAK = pathlib.Path("/tmp/sfnt-open-probe-backup.rs")
 
 HELPER = '''/* TEMPORARY probe (tools/add-sfnt-open-probe.py).  */

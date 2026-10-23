@@ -51,8 +51,8 @@
 
 ## Decisions
 
-`emacs/src/character.h` @ `fd7afced403`; port `femacs/src/include/character.rs`; the gate is
-`python3 tools/extract-abi.py --check emacs/src/character.h femacs/src/include/character.rs` -> `OK`.
+`emacs/src/character.h` @ `fd7afced403`; port `src/include/character.rs`; the gate is
+`python3 tools/extract-abi.py --check emacs/src/character.h src/include/character.rs` -> `OK`.
 
 - `#if` branches: none in this header.
 - Layout: no structs here; the constants and the 34 inline functions keep C's bodies

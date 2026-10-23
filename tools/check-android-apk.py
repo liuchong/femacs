@@ -45,14 +45,14 @@ def main() -> int:
     # The manifest is the build's own input, so it is also the stable place to read the package and
     # the declared activities; the badging output (when the tools print it) is cross-checked but not
     # required (one invocation produced it, another did not - measured).
-    manifest = (REPO / "femacs/platform/android/AndroidManifest.xml").read_text("utf-8")
+    manifest = (REPO / "platform/android/AndroidManifest.xml").read_text("utf-8")
     package = re.search(r'package="([^"]+)"', manifest)
     if not package or package.group(1) != "org.femacs":
         failures.append(f"the manifest's package is {package.group(1) if package else 'missing'}")
     launchables = re.findall(r'<activity[^>]*android:name="([^"]+)"', manifest)
     if not launchables:
         failures.append("no launchable activity is printed")
-    kotlin_sources = {p.stem for p in (REPO / "femacs/platform/android/kotlin").glob("*.kt")}
+    kotlin_sources = {p.stem for p in (REPO / "platform/android/kotlin").glob("*.kt")}
     for raw in launchables:
         # `.Foo` is package-relative in a manifest (the reference writes both spellings).
         cls = (package.group(1) + raw) if raw.startswith(".") else raw

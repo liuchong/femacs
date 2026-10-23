@@ -4,7 +4,7 @@
 > `emacs/nt/Makefile.in` for the Windows port only, and `docs/baseline/frozen-build-sources.txt`
 > lists no `nt/cmdproxy` object for this target, so `extract-abi.py`'s checklist for the file is
 > empty (P-86 clause 2) and this ledger is that clause's substitute: the **C line-range table**, the
-> `## Evidence` readings and the `## Deviations`.  Port: `femacs/nt/cmdproxy.rs` (**1337 lines**,
+> `## Evidence` readings and the `## Deviations`.  Port: `nt/cmdproxy.rs` (**1337 lines**,
 > md5 `9e43f0e5422ef69aaf915a876ac7a24e`), carrying **C 1-965 with both arms of every `#if`**.  The
 > reference `emacs/nt/cmdproxy.c` is md5 `4674005cf012355838a3f42034f5d151` (unchanged; `emacs/` is
 > read-only).
@@ -33,7 +33,7 @@
 | C `#if` / build condition | Port gate | Compiled when |
 | --- | --- | --- |
 | the file itself (`emacs/nt/Makefile.in`'s `OTHERS`; the Windows port) | `feature = "windowsnt"` (on every item *and* on C 35-43's include graph) | the native MS Windows build (`nt/inc/ms-w32.h` 23-25 defines `WINDOWSNT`); not this target |
-| C 49-51 `#ifdef _UCRT` / `# define _snprintf snprintf` / `#endif` | `feature = "ucrt"` for the `snprintf` arm and the `use` alias, `not (feature = "ucrt")` for C 55's `_snprintf` declaration; both arms carried | `_UCRT` is a compiler-provided MSVC/UCRT macro and is not in `docs/baseline/config/darwin-arm64.macros.tsv`, so the frozen side is the `not (ucrt)` arm; `ucrt` is not registered in `femacs/xtask/Cargo.toml` yet (Owed 1) |
+| C 49-51 `#ifdef _UCRT` / `# define _snprintf snprintf` / `#endif` | `feature = "ucrt"` for the `snprintf` arm and the `use` alias, `not (feature = "ucrt")` for C 55's `_snprintf` declaration; both arms carried | `_UCRT` is a compiler-provided MSVC/UCRT macro and is not in `docs/baseline/config/darwin-arm64.macros.tsv`, so the frozen side is the `not (ucrt)` arm; `ucrt` is not registered in `xtask/Cargo.toml` yet (Owed 1) |
 | C 64-68 `#if __GNUC__ + (__GNUC_MINOR__ >= 4) >= 5` / `… __attribute__((noreturn));` / `#else` / `…;` / `#endif` | **no Rust name** (both arms are declarations and are dropped, PORTING.md 0.1-12); the consequence is `fail`'s `-> !` | the frozen table has `__GNUC__` 4 / `__GNUC_MINOR__` 2 (macros.tsv 6264/6259), so the `#else` arm is the live one; Deviation 3 |
 | C 497-510 `#if 0` | **no gate**: C's own preprocessor never compiles it; the port keeps C's text inside a comment (the `src/cm.rs` 86 reading) | never |
 | C 543-550 `#if 0` | as above | never |
@@ -122,7 +122,7 @@ the base 0 is a real type-check.  (The first attempt ran the *stable* toolchain 
 above is the comparable one.)
 
 **④ `extract-abi --check`.**  `python3 tools/extract-abi.py --check emacs/nt/cmdproxy.c
-femacs/nt/cmdproxy.rs` → **one** finding left: `line count drifted 38.5%: C 965 vs Rust 1337`.  The
+nt/cmdproxy.rs` → **one** finding left: `line count drifted 38.5%: C 965 vs Rust 1337`.  The
 six findings the first run carried were the body-token rows for the C-variadic `*printf` family and
 for `alloca`/`switch`, appended by this lane to `docs/ports/macro-body-notes.tsv` (Deviation 6;
 that file is append-only, and seven rows were added).  The drift row is the integrator's
@@ -141,7 +141,7 @@ reading below, after the table above was written).
    appears once, in C's order.
 2. **C 37's `<windows.h>` is an in-place stand-in section** (P-88 clause 1/2, P-90 clause 4): the
    nine scalar typedefs, `PHANDLER_ROUTINE`, the three records (`STARTUPINFO`,
-   `SECURITY_ATTRIBUTES`, `PROCESS_INFORMATION` — copied from `femacs/nt/runemacs.rs` 157-227, the
+   `SECURITY_ATTRIBUTES`, `PROCESS_INFORMATION` — copied from `nt/runemacs.rs` 157-227, the
    same SDK header and the same ANSI arm), the ten constants and the nineteen entry points this file
    spells.  **Every one is UNVERIFIED**: no Windows SDK, CRT or MinGW-w64 exists on this machine, so
    every value that is not a citation of a landed unit (`MAX_PATH` 260, `TRUE`/`FALSE`, `DWORD`,
@@ -158,7 +158,7 @@ reading below, after the table above was written).
 4. **C 39-43's five headers.**  `<stdarg.h>` and `<malloc.h>` have no mirror: the first contributes
    `core::ffi::VaList` (PORTING.md 2.4 — `va_start`/`va_end` have no counterpart, the `...`
    parameter *is* the list) and the second only `alloca`, which is P-05's `sa_stack_alloc`
-   (`femacs/src/alloc.rs` 1039) — the one deliberate class of port-only exports, declared once here
+   (`src/alloc.rs` 1039) — the one deliberate class of port-only exports, declared once here
    as `nt/runemacs.rs` 320-325 does.  `<stdlib.h>`, `<string.h>` and `<ctype.h>` are mirrors; the
    eight names they do not carry (`atoi`, `exit`, `strdup`, `strcat`, `strpbrk`, `strncpy`,
    `stricmp`, `strnicmp`) are declared at their use sites (P-88 clause 1).  `stdlib.rs` also spells
@@ -168,7 +168,7 @@ reading below, after the table above was written).
    `# define _snprintf snprintf` is rendered as `#[cfg (feature = "ucrt")] use self::snprintf as
    _snprintf;`, so the eleven call sites in `main` keep C's own `_snprintf` spelling on both arms
    (`use` is the port's spelling of a name alias; a `macro_rules!` would have forced `!` at every
-   site and changed all eleven statements).  `ucrt` is **not** in `femacs/xtask/Cargo.toml` —
+   site and changed all eleven statements).  `ucrt` is **not** in `xtask/Cargo.toml` —
    Owed 1.  The `ucrt` arm is compiled by no reading of this round (the mandated `probe` command
    sets `windowsnt`/`have_ntgui`/`have_window_system` only), so it is text that the frozen door
    parses and the arm door strips.
@@ -222,7 +222,7 @@ reading below, after the table above was written).
 
 ## Owed by the integrator (status per item; nothing here is claimed as done until marked)
 
-1. **One feature registration**: `femacs/xtask/Cargo.toml` has no `ucrt`, which C 49's
+1. **One feature registration**: `xtask/Cargo.toml` has no `ucrt`, which C 49's
    `#ifdef _UCRT` needs (the `old_paths` row the `nt/addpm.md` round owes, same class).  Until it is
    registered, `rustc` warns `unexpected_cfgs` for that arm.
 2. **One tolerance row**: `docs/ports/line-drift-tolerance.tsv` needs a `cmdproxy` row of **0.39**,

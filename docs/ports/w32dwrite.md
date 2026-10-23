@@ -5,7 +5,7 @@
 > `docs/baseline/frozen-build-sources.txt`), so `w32dwrite.o` is in no source list and
 > `extract-abi.py`'s checklist for the file is empty (P-86 (2)) — this ledger is that clause's
 > substitute: the **C line-range table**, the `## Evidence` readings and the `## Deviations`.
-> Port: `femacs/src/w32dwrite.rs` (**2415 lines**, md5 `a831345a7968db78edd9bcfcc459b576`, sha256
+> Port: `src/w32dwrite.rs` (**2415 lines**, md5 `a831345a7968db78edd9bcfcc459b576`, sha256
 > `e3a19d5efe4cf3b97d1f6024e0a784e53ea3c500419aa3931999d7d5bfb5cae9`), carrying **C 1-1399 with both
 > arms of every `#if`**.  The reference `emacs/src/w32dwrite.c` is md5
 > `11001339948e3d4939aee0a262cf5688` (unchanged; `emacs/` is read-only).
@@ -152,7 +152,7 @@ compile).**  `xtask`'s materializer was re-applied by a local script
 (`/tmp/w32dw-lane/render2.py`, deleted with the scratch dir) that reproduces its shape (the unit's
 own text is `_root.rs`, 2416 lines against `xtask`'s 2415 — one trailing line; every gated mirror
 becomes its own copy), then the root was compiled once per configuration with the pinned toolchain
-(`rustup`'s `nightly-2026-10-01`, `femacs/rust-toolchain.toml`) and
+(`rustup`'s `nightly-2026-10-01`, `rust-toolchain.toml`) and
 `--edition 2024 --crate-type lib --emit obj -C panic=abort -C opt-level=0`:
 
 | configuration | exit | typed `error[…]` | plain `error: …` | anchored in `_root.rs` |
@@ -185,7 +185,7 @@ unit's own text).  The mutation was reverted and the unit verified: md5
 "0 in this unit" certifies that the unit's own lines type-check under that arm, not merely that they
 resolve.
 
-**⑤ `python3 tools/extract-abi.py --check emacs/src/w32dwrite.c femacs/src/w32dwrite.rs`**: before
+**⑤ `python3 tools/extract-abi.py --check emacs/src/w32dwrite.c src/w32dwrite.rs`**: before
 this round's `docs/ports/macro-body-notes.tsv` rows it was `FAIL` with four findings (three
 `does not mention …` rows plus the line-drift row); the three note rows **are written** (that file is
 in this lane's write set, appended at its end: `EMACS_DWRITE_UNUSED`/`stdmethodcalltype`,
@@ -198,7 +198,7 @@ in this lane's write set, appended at its end: `EMACS_DWRITE_UNUSED`/`stdmethodc
 all inside their cited windows.
 
 **⑦ `python3 tools/check-declarations.py`**: exit 0, no `decl`/`version`/`title`/`recital`/`literal`
-row for `femacs/src/w32dwrite.rs` (the file's comments quote the SDK and C's own design notes and
+row for `src/w32dwrite.rs` (the file's comments quote the SDK and C's own design notes and
 recite nothing about the reference's opening block — that block is dropped, Deviation 1).
 
 **⑧ `python3 tools/check-mirror-dupes.py`**: `17 duplicate declaration(s), 17 ratchet row(s),
@@ -211,13 +211,13 @@ gate leaves it alone; the coverage gate reads the `## C line ranges` table above
 ascending order without overlap).
 
 **⑪ The shared working tree.**  Evidence ②③④ ran against the tree as it stood on 2026-10-05,
-whose `femacs/src/include/frame.rs` also carries **another lane's uncommitted** `FRAME_*_P`
-predicate edit (`git diff` rows from line 841 on) and `femacs/src/w32console.rs` carries another
+whose `src/include/frame.rs` also carries **another lane's uncommitted** `FRAME_*_P`
+predicate edit (`git diff` rows from line 841 on) and `src/w32console.rs` carries another
 lane's edit as well — neither is this lane's file and both were left untouched.  The readings' only `include/frame.rs` row is still the `compile_error!` at its 329, so
 the other lane's work neither added nor removed an error in this unit's graph; the by-file split
 above is what it is at that revision, not at a committed one.
 
-**⑫ The toolchain**: `femacs/rust-toolchain.toml` pins `nightly-2026-10-01`
+**⑫ The toolchain**: `rust-toolchain.toml` pins `nightly-2026-10-01`
 (`rustc 1.101.0-nightly (21b707e3f 2026-09-30)`); Evidence ②③④ were taken with it.  With the
 machine's *default* stable toolchain the same base arm adds one mirror row
 (`include/lisp.rs` 3762's `E0658 use of unstable library feature c_variadic`, the pin's reason).

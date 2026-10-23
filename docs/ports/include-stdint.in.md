@@ -149,7 +149,7 @@
 
 ## Decisions
 
-`emacs/lib/stdint.in.h` @ `fd7afced403`; port `femacs/lib/include/stdint.in.rs`.
+`emacs/lib/stdint.in.h` @ `fd7afced403`; port `lib/include/stdint.in.rs`.
 
 **The template.**  The reference is a gnulib template: `@GUARD_PREFIX@`,
 `@PRAGMA_SYSTEM_HEADER@`, `@PRAGMA_COLUMNS@`, `@INCLUDE_NEXT@`, `@NEXT_STDINT_H@`,
@@ -243,11 +243,11 @@ uintptr_t	syntax	stdint.in.h 324: `# define uintptr_t gl_uintptr_t` is a type re
   m4 placeholders, so neither can be the body of the frozen value:
 
 ```
-INT_FAST16_MIN	dead-text	stdint.in.h 467's `# define INT_FAST16_MIN INT_FAST32_MIN` is dead on the frozen target (the template's whole limit section is under `#if ! @HAVE_C99_STDINT_H@`, which is false here) and the frozen `int_fast16_t` is `short` (`__INT_FAST16_TYPE__`, 2 bytes, measured), so the value is the 16-bit one (-32768); the mirror spells the frozen limit (`pub const INT_FAST16_MIN: core::ffi::c_int = INT16_MIN;` in `femacs/lib/include/stdint.in.rs`) and docs/ports/include-stdint.in.md records the measurement
+INT_FAST16_MIN	dead-text	stdint.in.h 467's `# define INT_FAST16_MIN INT_FAST32_MIN` is dead on the frozen target (the template's whole limit section is under `#if ! @HAVE_C99_STDINT_H@`, which is false here) and the frozen `int_fast16_t` is `short` (`__INT_FAST16_TYPE__`, 2 bytes, measured), so the value is the 16-bit one (-32768); the mirror spells the frozen limit (`pub const INT_FAST16_MIN: core::ffi::c_int = INT16_MIN;` in `lib/include/stdint.in.rs`) and docs/ports/include-stdint.in.md records the measurement
 INT_FAST16_MAX	dead-text	stdint.in.h 468's `# define INT_FAST16_MAX INT_FAST32_MAX` is dead on the frozen target and the frozen value is 32767 (measured); the mirror spells `pub const INT_FAST16_MAX: core::ffi::c_int = INT16_MAX;`, and docs/ports/include-stdint.in.md records the measurement
 UINT_FAST16_MAX	dead-text	stdint.in.h 469's `# define UINT_FAST16_MAX UINT_FAST32_MAX` is dead on the frozen target and the frozen value is 65535 (measured); the mirror spells `pub const UINT_FAST16_MAX: core::ffi::c_int = UINT16_MAX;`, and docs/ports/include-stdint.in.md records the measurement
-SIG_ATOMIC_MAX	dead-text	stdint.in.h 562's `_STDINT_MAX (@HAVE_SIGNED_SIG_ATOMIC_T@, @BITSIZEOF_SIG_ATOMIC_T@, 0@SIG_ATOMIC_T_SUFFIX@)` is dead on the frozen target (`HAVE_C99_STDINT_H` is 1, so the system `<stdint.h>` the template includes next supplies the value, measured 2147483647) and its body is the template's own `@PLACEHOLDER@` text, which has no Rust spelling; the mirror spells the frozen value (`pub const SIG_ATOMIC_MAX: core::ffi::c_int = core::ffi::c_int::MAX;` in `femacs/lib/include/stdint.in.rs`) and docs/ports/include-stdint.in.md records the measurement
-WCHAR_MAX	dead-text	stdint.in.h 595's `_STDINT_MAX (@HAVE_SIGNED_WCHAR_T@, @BITSIZEOF_WCHAR_T@, 0@WCHAR_T_SUFFIX@)` is dead on the frozen target (`HAVE_C99_STDINT_H` is 1; the frozen `wchar_t` is a 32-bit signed `int`, measured 2147483647) and its body is the template's own `@PLACEHOLDER@` text, which has no Rust spelling; the mirror spells the frozen value (`pub const WCHAR_MAX: core::ffi::c_int = core::ffi::c_int::MAX;` in `femacs/lib/include/stdint.in.rs`) and docs/ports/include-stdint.in.md records the measurement
+SIG_ATOMIC_MAX	dead-text	stdint.in.h 562's `_STDINT_MAX (@HAVE_SIGNED_SIG_ATOMIC_T@, @BITSIZEOF_SIG_ATOMIC_T@, 0@SIG_ATOMIC_T_SUFFIX@)` is dead on the frozen target (`HAVE_C99_STDINT_H` is 1, so the system `<stdint.h>` the template includes next supplies the value, measured 2147483647) and its body is the template's own `@PLACEHOLDER@` text, which has no Rust spelling; the mirror spells the frozen value (`pub const SIG_ATOMIC_MAX: core::ffi::c_int = core::ffi::c_int::MAX;` in `lib/include/stdint.in.rs`) and docs/ports/include-stdint.in.md records the measurement
+WCHAR_MAX	dead-text	stdint.in.h 595's `_STDINT_MAX (@HAVE_SIGNED_WCHAR_T@, @BITSIZEOF_WCHAR_T@, 0@WCHAR_T_SUFFIX@)` is dead on the frozen target (`HAVE_C99_STDINT_H` is 1; the frozen `wchar_t` is a 32-bit signed `int`, measured 2147483647) and its body is the template's own `@PLACEHOLDER@` text, which has no Rust spelling; the mirror spells the frozen value (`pub const WCHAR_MAX: core::ffi::c_int = core::ffi::c_int::MAX;` in `lib/include/stdint.in.rs`) and docs/ports/include-stdint.in.md records the measurement
 ```
 
   The counterpart names whose C body the gate does *not* compare (`PTRDIFF_MIN`/`MAX`,
@@ -347,10 +347,10 @@ src/pdumper.c    -> built src/pdumper.rs     (converged; DUMP_OFF_*/DUMP_BITSET_
 src/alloc.c      -> built src/alloc.rs       (converged; UINTPTR_MAX read from the mirror)
 
 # the gates (with the 31 rows appended to docs/ports/excluded-macros.txt)
-$ python3 tools/extract-abi.py --check emacs/lib/stdint.in.h femacs/lib/include/stdint.in.rs
-OK emacs/lib/stdint.in.h -> femacs/lib/include/stdint.in.rs
-$ python3 tools/extract-abi.py --check emacs/lib/limits.in.h femacs/lib/include/limits.in.rs
-OK emacs/lib/limits.in.h -> femacs/lib/include/limits.in.rs
+$ python3 tools/extract-abi.py --check emacs/lib/stdint.in.h lib/include/stdint.in.rs
+OK emacs/lib/stdint.in.h -> lib/include/stdint.in.rs
+$ python3 tools/extract-abi.py --check emacs/lib/limits.in.h lib/include/limits.in.rs
+OK emacs/lib/limits.in.h -> lib/include/limits.in.rs
 $ python3 tools/check-mirror-dupes.py
 1 duplicate declaration(s), 1 ratchet row(s), 0 failure(s)
 $ python3 tools/check-declarations.py
@@ -361,17 +361,17 @@ $ python3 tools/check-globals.py
 check-globals: 283 units, 0 DEFVAR_* variables without a definition in their own unit
 
 # the same three checks on the two converged units
-$ python3 tools/extract-abi.py --check emacs/src/alloc.c femacs/src/alloc.rs
-OK emacs/src/alloc.c -> femacs/src/alloc.rs
-$ python3 tools/extract-abi.py --check emacs/src/pdumper.c femacs/src/pdumper.rs
-OK emacs/src/pdumper.c -> femacs/src/pdumper.rs
-$ python3 tools/extract-abi.py --check emacs/lib/endian.in.h femacs/lib/include/endian.in.rs
-OK emacs/lib/endian.in.h -> femacs/lib/include/endian.in.rs
-$ python3 tools/extract-abi.py --check emacs/lib/byteswap.in.h femacs/lib/include/byteswap.in.rs
-OK emacs/lib/byteswap.in.h -> femacs/lib/include/byteswap.in.rs
+$ python3 tools/extract-abi.py --check emacs/src/alloc.c src/alloc.rs
+OK emacs/src/alloc.c -> src/alloc.rs
+$ python3 tools/extract-abi.py --check emacs/src/pdumper.c src/pdumper.rs
+OK emacs/src/pdumper.c -> src/pdumper.rs
+$ python3 tools/extract-abi.py --check emacs/lib/endian.in.h lib/include/endian.in.rs
+OK emacs/lib/endian.in.h -> lib/include/endian.in.rs
+$ python3 tools/extract-abi.py --check emacs/lib/byteswap.in.h lib/include/byteswap.in.rs
+OK emacs/lib/byteswap.in.h -> lib/include/byteswap.in.rs
 
 # without those 31 rows (the state this lane leaves behind: the file is the integrator's)
-$ python3 tools/extract-abi.py --check emacs/lib/stdint.in.h femacs/lib/include/stdint.in.rs
-FAIL emacs/lib/stdint.in.h -> femacs/lib/include/stdint.in.rs   (31 problem lines: the 26 type
+$ python3 tools/extract-abi.py --check emacs/lib/stdint.in.h lib/include/stdint.in.rs
+FAIL emacs/lib/stdint.in.h -> lib/include/stdint.in.rs   (31 problem lines: the 26 type
 renames, the three 16-bit fast limits and the two `@PLACEHOLDER@` bodies listed above)
 ```

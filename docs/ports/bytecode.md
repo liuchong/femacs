@@ -42,13 +42,13 @@
 
 ## Decisions
 
-`emacs/src/bytecode.c` @ `fd7afced403`; port `femacs/src/bytecode.rs` (1931 lines vs C's 1852,
+`emacs/src/bytecode.c` @ `fd7afced403`; port `src/bytecode.rs` (1931 lines vs C's 1852,
 **1773** live — the 8.9% drift against the live baseline is declared in
 `docs/ports/line-drift-tolerance.tsv` with the `live` basis, because the 80 dead lines are
 recorded here instead of carried).  The gates are
 `build-tu src/bytecode.c` ->
 `built src/bytecode.rs -> ../build/femacs/bytecode.o`,
-`python3 tools/extract-abi.py --check emacs/src/bytecode.c femacs/src/bytecode.rs` -> `OK`,
+`python3 tools/extract-abi.py --check emacs/src/bytecode.c src/bytecode.rs` -> `OK`,
 `python3 tools/check-symbols.py --pending docs/baseline/symbol-pending.txt` ->
 `78 units compared, 0 mismatched, 1 still pending` (the compared set is the `lib/` units with
 a reference object; it is not this port's) and `python3 tools/check-globals.py` ->
@@ -161,7 +161,7 @@ clang-verified one; no `source-header-macros.tsv` row was needed.
    body defeats it), so the unit also defines `pub const BYTE_CODES: ptrdiff_t = 0` with that
    comment; nothing reads it, and the macro's body is still the guard.
 5. **`bc->fp` is untyped in the mirror.**  `struct bc_thread_state.fp` is `*mut c_void` in
-   `femacs/src/include/thread.rs` (P-55, the type no mirror carries), so each use casts
+   `src/include/thread.rs` (P-55, the type no mirror carries), so each use casts
    (`(*bc).fp as *mut bc_frame`).  `struct bc_frame` itself is defined here as C defines it,
    with the flexible array member as `[Lisp_Object; 0]` (§1.3).  Its layout is pinned by six
    `const _` assertions whose numbers come from the C compiler (see "Measured layout" below);
@@ -187,7 +187,7 @@ clang-verified one; no `source-header-macros.tsv` row was needed.
    precedent), keeping C's order of test/update/body.
 10. **`lisp_eval_depth` is `i64` in the mirror** where C's is `EMACS_INT`, so the two
     comparisons against `max_lisp_eval_depth` carry `as EMACS_INT`.
-11. **`record_in_backtrace`'s return value**: `femacs/src/include/lisp.rs` drops it (the
+11. **`record_in_backtrace`'s return value**: `src/include/lisp.rs` drops it (the
     mirror returns `()`), so the port takes C's `count` with `SPECPDL_INDEX ()` at the same
     point — C 3760-3766's `specpdl_ref count = SPECPDL_INDEX ()`.  This is a **mirror gap for
     the integrator**: the Lisp entry's own `count1` is what `do_debug_on_call` needs, and

@@ -46,4 +46,4 @@ and no probe compiles it: `xtask layout-check` reaches only `src/include` and `l
    declaration order, as `const SEPARATOR_*: menu_separator` (PORTING.md 1.3).
 
 Evidence: `python3 tools/extract-abi.py --check emacs/lwlib/lwlib.h
-femacs/lwlib/include/lwlib.rs` -> `OK` (1 ledger item(s), the include guard).
+lwlib/include/lwlib.rs` -> `OK` (1 ledger item(s), the include guard).

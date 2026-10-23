@@ -34,4 +34,4 @@
 - **Compile evidence**: the mirror was first compiled inside a two-file probe (`config.rs` +
   `lisp.rs` + this mirror) with `rustc --edition 2024 --crate-type lib --emit metadata` — RC=0.
   It is now included by `src/atimer.rs` (`xtask build-tu src/atimer.c` → `built`, 0 errors), and
-  `extract-abi.py --check emacs/src/atimer.h femacs/src/include/atimer.rs` is OK.
+  `extract-abi.py --check emacs/src/atimer.h src/include/atimer.rs` is OK.

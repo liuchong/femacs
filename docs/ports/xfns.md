@@ -11,7 +11,7 @@ C 7609-7729, C 7731-7950, C 7953-7995, C 7998-8073, C 8075-8176, C 8178-8256, C 
 > lists no `xfns.o`, so `extract-abi.py`'s checklist for the file is empty and its checkbox
 > sections cannot be coverage evidence.  What follows is P-86 ②'s substitute: the **C line-range
 > table** for this slice, the `## Evidence` readings and the `## Deviations`.  Port:
-> `femacs/src/xfns.rs` (**1,120 lines** after slice 1, **3,051 lines** after the second slice,
+> `src/xfns.rs` (**1,120 lines** after slice 1, **3,051 lines** after the second slice,
 > **5,455 lines** after the third, **5,662 lines** after the fourth, **5,991 lines** after the fifth,
 > **6,325 lines** after the sixth, **6,543 lines** after the seventh, **6,727 lines** after the
 > eighth, **7,133 lines** after the ninth, **7,982 lines** after the tenth, **8,168 lines** after
@@ -64,7 +64,7 @@ C 7609-7729, C 7731-7950, C 7953-7995, C 7998-8073, C 8075-8176, C 8178-8256, C 
 | the file itself (`WINDOW_SYSTEM_OBJ`, i.e. `HAVE_WINDOW_SYSTEM`; `configure.ac` 7521) | `feature = "have_x_windows"` (on every item and on C 20-126's include graph) | an X11 configuration |
 | C 40 `#ifdef HAVE_X_I18N` … C 42 (`textconv.h`) | `all (feature = "have_x_windows", feature = "have_x_i18n")` | an X11 configuration with X11 I18N |
 | C 47 `#ifdef USE_XCB` … C 50 (the `<xcb/*>` headers) | `all (feature = "have_x_windows", feature = "use_xcb")` | X11, XCB transport |
-| C 55 `#ifdef HAVE_XRANDR` … C 57 | `feature = "have_xrandr"` (**not registered** in `femacs/xtask/Cargo.toml`; owed, below) | an X11 configuration with Xrandr |
+| C 55 `#ifdef HAVE_XRANDR` … C 57 | `feature = "have_xrandr"` (**not registered** in `xtask/Cargo.toml`; owed, below) | an X11 configuration with Xrandr |
 | C 58 `#ifdef HAVE_XINERAMA` … C 60 | `feature = "have_xinerama"` (**not registered**; owed) | an X11 configuration with Xinerama |
 | C 62 `#ifdef USE_GTK` … C 64 (`gtkutil.h`) | `all (feature = "have_x_windows", feature = "use_gtk")` | the GTK configuration |
 | C 66 `#ifdef HAVE_XDBE` … C 68 | `all (feature = "have_x_windows", feature = "have_xdbe")` | an X11 configuration with Xdbe |
@@ -96,7 +96,7 @@ C 7609-7729, C 7731-7950, C 7953-7995, C 7998-8073, C 8075-8176, C 8178-8256, C 
 
 `use_xcb`, `have_x_i18n`, `glyph_debug`, `use_gtk`, `have_gtk3`, `have_xrender`, `use_x_toolkit`,
 `use_lucid`, `have_xdbe`, `have_xinput2` and `usg` are names
-`femacs/xtask/Cargo.toml` already registers.  `use_motif`, `have_xaw3d`, `have_xrandr` and
+`xtask/Cargo.toml` already registers.  `use_motif`, `have_xaw3d`, `have_xrandr` and
 `have_xinerama` are the C macros this slice's heads test that the manifest does **not** register
 yet: they are used in the port's `#[cfg]`s as C's own names lower-cased and are owed to the
 manifest, not added here (the task's rule; the license to add them is the integrator's).
@@ -331,7 +331,7 @@ describe the revision exactly one comment-only pass earlier.
 **⑥ The three self-checks of the task, run on this revision.**
 
 ```
-$ python3 tools/extract-abi.py --check emacs/src/xfns.c femacs/src/xfns.rs
+$ python3 tools/extract-abi.py --check emacs/src/xfns.c src/xfns.rs
 - missing defsubr (&raw const Sx_backspace_delete_keys_p)          ... 45 rows
 - missing function XDestroySubwindows                              ... 105 rows
 - missing function XScreenNumberOfScreen
@@ -342,7 +342,7 @@ $ python3 tools/extract-abi.py --check emacs/src/xfns.c femacs/src/xfns.rs
 - function check_x_display_info does not mention 0
 - function x_real_pos_and_offsets does not mention uninit
 - line count drifted 89.5%: C 10662 vs Rust 1120
-FAIL emacs/src/xfns.c -> femacs/src/xfns.rs
+FAIL emacs/src/xfns.c -> src/xfns.rs
 exit 1
 
 $ python3 tools/check-dead-file-coverage.py
@@ -352,7 +352,7 @@ info docs/ports/xfns.md: 28 range row(s) cover src/xfns.c (10662 lines; 0 blank 
 exit 0
 
 $ python3 tools/check-declarations.py
-FAIL femacs/src/android.rs: literal x1: macro_rules! PACKAGE_STRING { () => { "<the reference
+FAIL src/android.rs: literal x1: macro_rules! PACKAGE_STRING { () => { "<the reference
   program's own version string>" }; }        # the literal is not reproduced here: quoting it
                                              # would be this ledger's own `title` finding
 14 declaration sites (0 forbidden, 14 allowed literals), 1 failures
@@ -369,7 +369,7 @@ carry) - plus the line-count drift row every slice of a large file has.  All thr
 `docs/ports/macro-body-notes.tsv` and `docs/ports/line-drift-tolerance.tsv`, files this lane may
 not write; "Owed" names them.  `check-dead-file-coverage.py` is 0 failures (the table above is its
 reading: 28 rows, 0 blank lines needing a row).  `check-declarations.py`'s one failure is
-`femacs/src/android.rs`'s `PACKAGE_STRING` literal (another lane's file, untouched here - and
+`src/android.rs`'s `PACKAGE_STRING` literal (another lane's file, untouched here - and
 quoted only by name, since reproducing the literal would make this ledger carry the class itself);
 this lane's two files produce no finding.
 
@@ -420,7 +420,7 @@ paragraph came after ④).  Both objects are single `--emit obj` outputs of a fe
 - **The Window ↔ `xcb_window_t` / Atom ↔ `xcb_atom_t` seam is spelled out** (`use_xcb` arms of
   C 331-484, 487-535, 537-565).  C converts implicitly (`Window` is `unsigned long`,
   `xcb_window_t` is `uint32_t`); the port writes `as xcb_window_t` / `as xcb_atom_t` /
-  `as Window` at each site, exactly the shape `femacs/src/xterm.rs` 3004-3021 uses for the same
+  `as Window` at each site, exactly the shape `src/xterm.rs` 3004-3021 uses for the same
   seam.  The narrow reply fields (`int16_t`/`uint16_t`) take `as c_int` / `as c_uint`, C's own
   implicit widening.
 - **`ow - fw + outer_x` keeps C's unsigned arithmetic** (C 586-587): `ow.wrapping_sub (fw)
@@ -474,7 +474,7 @@ paragraph came after ④).  Both objects are single `--emit obj` outputs of a fe
   the last one lands - **closed by slice 51**: the row is `xfns\t0.41`, C 10,662 total against the
   port's 14,918 (39.9%, measured), with the row itself carrying the account of where the text comes
   from, and `--check` reads OK from that round on.
-- **`femacs/xtask/Cargo.toml`**: the four unregistered features `use_motif`, `have_xaw3d`,
+- **`xtask/Cargo.toml`**: the four unregistered features `use_motif`, `have_xaw3d`,
   `have_xrandr`, `have_xinerama` (the manifest's rule is that the ported tree's `cfg` namespace is
   generated, so these are the integrator's rows).
 - **`docs/port-map.md`**: the `src/xfns.c` row still reads 11 port lines (the map is generated by
@@ -511,7 +511,7 @@ paragraph came after ④).  Both objects are single `--emit obj` outputs of a fe
   `macro-body-notes.tsv` / `line-drift-tolerance.tsv` rows a `goto`- or line-count-based check
   would want) live in files this lane may not write, so ⑥ records the reading rather than fixing
   it.
-- The `## Evidence` numbers are from the revisions named there; the tree's `femacs/src/xfns.rs`
+- The `## Evidence` numbers are from the revisions named there; the tree's `src/xfns.rs`
   may move under a later slice, and `docs/port-map.md`'s row is stale by design.
 
 ## P-90's fourth step (2026-10-05, status 3.484): the GTK names move to the mirror
@@ -629,7 +629,7 @@ definition and the row disappears with it.  The drift row stays (`C 10662 vs Rus
 **⑦ The budget, reported as used.**  The brief allows three `build-tu` and three `probe` shots.
 `build-tu` was run **once** (exit 0, the 336-byte object).  `probe` was run **eleven** times, and
 the extra eight are itemised here rather than hidden: (1) the plain X11 arm, (2) the same arm over
-`HEAD:femacs/src/xfns.rs` in place, to have a baseline for ⑥ and to attribute a 24-error
+`HEAD:src/xfns.rs` in place, to have a baseline for ⑥ and to attribute a 24-error
 `E0423 current_buffer` reading that appeared in shot 1 - it was **another lane's in-flight edit of
 `include/buffer.rs`** (that file's mtime moved during this round and a re-run of the identical text
 reads clean), not this slice's text; (3)-(4) the `have_x_i18n` arm before and after the first
@@ -725,7 +725,7 @@ harness, not a second measurement of a different thing.
   arms name (`Widget`, `Pixel`, `Arg`, `XtArgVal`, `String`, `XtSetArg`, `XtSetValues`,
   `XtVaSetValues`, `XtDisplay`, `XtWindow`, `XtNinput`, `XtNborderColor`) - no libXt exists on
   this machine, so each declaration names the header alone, as `include/gtk.rs`'s GDK/GTK rows do.
-- **`femacs/xtask/Cargo.toml`**: unchanged from slice 1's list (`use_motif`, `have_xaw3d`,
+- **`xtask/Cargo.toml`**: unchanged from slice 1's list (`use_motif`, `have_xaw3d`,
   `have_xrandr`, `have_xinerama`); this slice adds no feature name.
 - **`src/xfns.c` itself**: `XScreenNumberOfScreen` (C 7479) must land with `#[unsafe(no_mangle)]`
   before Evidence ⑥'s one new `--check` row can go away.
@@ -771,7 +771,7 @@ Rust lines** (5,455 - 3,051), 1.45x the C slice's 1,662 - slice 2's ratio.
 them (measured: `grep` over the 59-file include closure finds no `pub type XIM` / `pub struct
 XIMCallback` / `pub const XIMPreeditArea`).  P-88 ① therefore applies to the whole surface: the
 types, the two enumerations, the nine masks, the sixteen `XN*` name strings and the eight entry
-points are declared in `femacs/src/xfns.rs` at C 2726's position under `have_x_i18n`, each with the
+points are declared in `src/xfns.rs` at C 2726's position under `have_x_i18n`, each with the
 `<X11/Xlib.h>` line it comes from and its measured layout.  `XPoint` (Xlib.h 422-426) is the same
 case for the record `create_frame_xic`/`xic_set_preeditarea` pass by address.  The mirror rows this
 owes are in `## Owed`.
@@ -849,7 +849,7 @@ with `have_ext_tool_bar` but not `have_ext_menu_bar` is refused by `include/fram
 ④'s.
 
 **⑥ `extract-abi.py --check`**: **197 findings before, 164 after** (`- ` rows; measured with the
-current tool on both sides, the "before" side being `HEAD:femacs/src/xfns.rs` written in place so
+current tool on both sides, the "before" side being `HEAD:src/xfns.rs` written in place so
 that its `include!` graph resolves - a `/tmp` copy resolves no include and reads five file-scope
 rows differently).  By class: `missing function` **77 -> 45**, `missing macro` 1 -> 1
 (`RANDR13_LIBRARY`), `missing constant` 0 -> 0, `missing file-scope object` 5 -> 4
@@ -947,7 +947,7 @@ failures, `check-port-lines.py` 0 files under ten percent, `check-target-names.p
   `xg_get_scale` (181), `xg_get_default_scrollbar_width`/`_height` (206/207).
   **`include/gtk.rs`**: `gtk_im_context_set_cursor_location` (gtk/gtkimcontext.h) and the
   `GtkResizeMode`/`gdk_x11_window_set_frame_sync_enabled` rows slice 2 already owed.
-- **`femacs/xtask/Cargo.toml`**: slice 1's four unregistered names (`use_motif`, `have_xaw3d`,
+- **`xtask/Cargo.toml`**: slice 1's four unregistered names (`use_motif`, `have_xaw3d`,
   `have_xrandr`, `have_xinerama`) plus the gates this slice's arms name that the table does not
   register yet: `use_toolkit_scroll_bars`, `have_xiccallback_callback`, `debug_xic_fontset`,
   `have_clock_gettime`, `have_window_system`, `have_ext_menu_bar`, `have_ext_tool_bar`,
@@ -1026,7 +1026,7 @@ attribute and nothing else - `build/femacs/xfns.o` is the **336-byte** empty obj
 measured this round).  The unit still *parses* every gated item, so this run also re-reads the
 whole file.
 
-**② The plain-X11 arm** (`--cfg 'feature="have_x_windows"'`, run from `femacs/` so the pinned
+**② The plain-X11 arm** (`--cfg 'feature="have_x_windows"'`, run from `` so the pinned
 nightly of `rust-toolchain.toml` is used): **exit 1, 4 errors**, all four registered - the
 `include/systime.rs` 27 assertion (slice 1's class), `cannot find function x_display_info_for_name`
 (slice 1's call at C 197; its definition is C 7613, in the remainder), `no field wait_for_wm on
@@ -1081,8 +1081,8 @@ the same numbers, so a layout change cannot pass silently.
 **⑥ The other gates** (all run at this revision): `check-declarations.py` **0 failures** (17
 declaration sites, 0 forbidden, 17 allowed literals - the same reading as before this slice),
 `check-mirror-dupes.py` **1 failure at the round's last run** (16 duplicates, 17 ratchet rows) - and
-it is not this slice's: the finding is `STALE femacs/src/sysdep.rs: pipe2 from
-femacs/lib/include/unistd.in.rs is gone`, i.e. the in-flight `src/sysdep.rs` another lane is editing
+it is not this slice's: the finding is `STALE src/sysdep.rs: pipe2 from
+lib/include/unistd.in.rs is gone`, i.e. the in-flight `src/sysdep.rs` another lane is editing
 in this same tree; the same gate read 17/17/0 failures earlier in this round, before that edit
 landed. `check-citations.py` 0 drift, `check-ledger-ticks.py` 0 failures, `check-port-lines.py` 0
 files under ten percent, `check-target-names.py` 0 findings, `check-dead-file-coverage.py` 0
@@ -1093,7 +1093,7 @@ two).
 **⑦ Budget.**  `build-tu` 1/3, probe 4/3 (`probe` counted as one `rustc` invocation of the
 unit's `_root.rs`: one plain-X11 run from the repository root that picked the wrong toolchain -
 `rustc 1.98.1`, reported `E0658 c_variadic` for a file the pinned nightly compiles, and is
-therefore *not* an arm reading - then the plain-X11 run from `femacs/`, and the GTK run), layout
+therefore *not* an arm reading - then the plain-X11 run from ``, and the GTK run), layout
 `clang` 1 (not a Rust probe).  The over-budget run is the mistoolchained one; it produced no
 reading used in this ledger.
 
@@ -1225,7 +1225,7 @@ below.
 `build/femacs/xfns.o` is the **336-byte** empty object (exit 0, measured this round, and the same
 336 bytes on the baseline side).
 
-**② The plain-X11 arm** (`--cfg 'feature="have_x_windows"'`, run from `femacs/`): **exit 1,
+**② The plain-X11 arm** (`--cfg 'feature="have_x_windows"'`, run from ``): **exit 1,
 5 errors / 9 warnings** on *both* sides - the systime assertion, `x_display_info_for_name`,
 `wait_for_wm`, `alpha_identical_p` and the `c_variadic` declaration, all of them registered
 classes.  This arm reads nothing of this slice: every one of the five definitions needs
@@ -1251,7 +1251,7 @@ missing subrs, 45 missing defsubrs and the function-token rows - are unchanged b
 **`checked 83 unit(s), 0 failure(s)`** + **`checking 83 unit(s), 0 unit failure(s)`** (the reading
 in the working tree, i.e. with this slice in flight).
 
-**⑥ `--check` for the mirror itself**: `emacs/src/xterm.h -> femacs/src/include/xterm.rs` reads
+**⑥ `--check` for the mirror itself**: `emacs/src/xterm.h -> src/include/xterm.rs` reads
 **OK** (0 rows) with the new field.
 
 ### Deviations (this slice)
@@ -2094,7 +2094,7 @@ records (`XRRScreenResources`, `XRRMonitorInfo`, `XRROutputInfo`, `XRRCrtcInfo`)
 members the C reads, in the header's own order, with their layouts left to the integrator - and the
 eleven entry points plus `XGetAtomName` and the four `xcb_get_atom_name_*` names stand beside them.
 The two version conditions are the **derived features** `have_xrandr_1_3`/`have_xrandr_1_5`
-(registered in `femacs/xtask/Cargo.toml`, the `have_xrender_0_2` shape).
+(registered in `xtask/Cargo.toml`, the `have_xrender_0_2` shape).
 
 ### Evidence (this slice)
 
@@ -2947,7 +2947,7 @@ verbatim doc string (C 7956-7967), the argument list (C 7968) and the body: C 79
 WS, WSX, WSR, WSRX, WSR12 and XCB **15 / 9**, LUCID **23 / 12**, GTK and GTK22 **42 / 20**, XI2
 **19 / 9**, XSN **13 / 9**, XR **19 / 9** and Xt **16 / 12** - and the `^error` and `^warning` line
 sets are empty-diff against the in-tree HEAD baseline in every one of the fourteen (measured by
-putting `git show HEAD:femacs/src/xfns.rs` back at the same path, probing all fourteen, restoring
+putting `git show HEAD:src/xfns.rs` back at the same path, probing all fourteen, restoring
 the slice and diffing both sets).  The body compiled clean: no `E0381`, no `E0308` and no new
 unresolved name - the four names it calls were all declared by earlier slices.
 
@@ -3765,7 +3765,7 @@ was added for.  Both logs carry the injected line's text once.
 
 **① The frozen configuration (`build-tu`).**  exit 0, the **336-byte** empty object
 (`sha256 d1ea88b2fe3d960975d134e566e65932...`, the identity every unit's frozen object has), on the
-final `femacs/src/xfns.rs` md5 `9e0af05033877f8ac54dcb803ba579ce` (slice 38's end hash was
+final `src/xfns.rs` md5 `9e0af05033877f8ac54dcb803ba579ce` (slice 38's end hash was
 `79e7dfa8acb3f9ea8ecd74e1a88c4293`).
 
 **② The fifteen arms.**  See above: fourteen byte-identical, MOTIF 29 -> 20 with the nine named
@@ -3799,7 +3799,7 @@ drift row moving from `21.1%` to `22.1%: C 10662 vs Rust 13022`.  `check-mirror-
 - The real shapes of the Xt/Motif surface - every offset in `XmAnyCallbackStruct` and
   `XmCR_CANCEL`'s value - are the toolchain row `docs/ports/lwlib-Xm.md`'s `## Owed` 5 names.
 - `use_motif` (with `have_xrandr`, `have_xinerama` and `have_xaw3d`) is still absent from
-  `femacs/xtask/Cargo.toml`'s feature table; the fifteen-arm probe passes it with `--cfg`.
+  `xtask/Cargo.toml`'s feature table; the fifteen-arm probe passes it with `--cfg`.
 - The `x_output` bitfield class (`explicit_parent` and friends) stays the mirror round slice 34's
   Owed describes; it is six of the MOTIF arm's twenty pre-existing rows.
 
@@ -3847,7 +3847,7 @@ one line of this subr.
 ### Evidence (this slice)
 
 **① The frozen configuration (`build-tu`).**  exit 0, the **336-byte** empty object
-(`sha256 d1ea88b2fe3d960975d134e566e65932...`), on the final `femacs/src/xfns.rs` md5
+(`sha256 d1ea88b2fe3d960975d134e566e65932...`), on the final `src/xfns.rs` md5
 `ba821e3add72169d17c10607c8bf7283` (slice 39's end hash was
 `9e0af05033877f8ac54dcb803ba579ce`).
 
@@ -3902,7 +3902,7 @@ docstring row at all.  **The row retires with C 9670.**  `check-mirror-dupes.py`
   three XInput2 records' offsets - are the toolchain rows `docs/ports/lwlib-Xm.md`'s `## Owed` 5
   names.
 - `use_motif` (with `have_xrandr`, `have_xinerama` and `have_xaw3d`) is still absent from
-  `femacs/xtask/Cargo.toml`'s feature table; the sixteen-arm probe passes it with `--cfg`.
+  `xtask/Cargo.toml`'s feature table; the sixteen-arm probe passes it with `--cfg`.
 - The `x_output` bitfield class (`explicit_parent` and friends) stays the mirror round slice 34's
   Owed describes; it is six of the MOTIF arm's twenty pre-existing rows.
 
@@ -3939,7 +3939,7 @@ injected line's text once.
 ### Evidence (this slice)
 
 **① The frozen configuration (`build-tu`).**  exit 0, the **336-byte** empty object, on the final
-`femacs/src/xfns.rs` md5 `28c4434a6c85a0b748b63b510c74a144` (slice 40's end hash was
+`src/xfns.rs` md5 `28c4434a6c85a0b748b63b510c74a144` (slice 40's end hash was
 `ba821e3add72169d17c10607c8bf7283`).
 
 **② The sixteen arms.**  See above.
@@ -3984,7 +3984,7 @@ both C definitions remain and the row cannot be retired from the port side.
   three XInput2 records' offsets - are the toolchain rows `docs/ports/lwlib-Xm.md`'s `## Owed` 5
   names; `src/xfns.c`'s absence from the verified condition list is the tool-side row above.
 - `use_motif` (with `have_xrandr`, `have_xinerama` and `have_xaw3d`) is still absent from
-  `femacs/xtask/Cargo.toml`'s feature table; the sixteen-arm probe passes it with `--cfg`.
+  `xtask/Cargo.toml`'s feature table; the sixteen-arm probe passes it with `--cfg`.
 - The `x_output` bitfield class (`explicit_parent` and friends) stays the mirror round slice 34's
   Owed describes; it is six of the MOTIF arm's twenty pre-existing rows.
 
@@ -4027,7 +4027,7 @@ GTK at 47, MOTIF at 20, XCB at 18 and Xt at 20.  Both logs carry the injected li
 ### Evidence (this slice)
 
 **① The frozen configuration (`build-tu`).**  exit 0, the **336-byte** empty object, on the final
-`femacs/src/xfns.rs` md5 `ee7670a2928e595102c8915f113b7427` (slice 41's end hash was
+`src/xfns.rs` md5 `ee7670a2928e595102c8915f113b7427` (slice 41's end hash was
 `28c4434a6c85a0b748b63b510c74a144`).
 
 **② The eighteen arms.**  See above.
@@ -4066,7 +4066,7 @@ moves from `28.7%` to `29.3%: C 10662 vs Rust 13791`.
   three XInput2 records' offsets - are the toolchain rows `docs/ports/lwlib-Xm.md`'s `## Owed` 5
   names.
 - `use_motif` (with `have_xrandr`, `have_xinerama` and `have_xaw3d`) is still absent from
-  `femacs/xtask/Cargo.toml`'s feature table; the eighteen-arm probe passes it with `--cfg`.
+  `xtask/Cargo.toml`'s feature table; the eighteen-arm probe passes it with `--cfg`.
 - The `x_output` bitfield class (`explicit_parent` and friends) stays the mirror round slice 34's
   Owed describes; it is six of the MOTIF arm's twenty pre-existing rows.
 
@@ -4112,7 +4112,7 @@ injected line's text once.
 ### Evidence (this slice)
 
 **① The frozen configuration (`build-tu`).**  exit 0, the **336-byte** empty object, on the final
-`femacs/src/xfns.rs` md5 `2d71dd84381f0469212d84aa0fd4ec76` (slice 42's end hash was
+`src/xfns.rs` md5 `2d71dd84381f0469212d84aa0fd4ec76` (slice 42's end hash was
 `ee7670a2928e595102c8915f113b7427`).
 
 **② The records' measurement** (`clang -I/opt/homebrew/include -o /tmp/s43/xkb /tmp/s43/xkb.c`,
@@ -4158,7 +4158,7 @@ match the reference's values) and the drift row moves from `29.3%` to `31.5%: C 
 - The XKB records' five unread pointers and `XkbNamesRec.key_aliases` are the same toolchain row
   `docs/ports/lwlib-Xm.md`'s `## Owed` 5 names for the other X surfaces.
 - `use_motif` (with `have_xrandr`, `have_xinerama` and `have_xaw3d`) is still absent from
-  `femacs/xtask/Cargo.toml`'s feature table; the nineteen-arm probe passes it with `--cfg`.
+  `xtask/Cargo.toml`'s feature table; the nineteen-arm probe passes it with `--cfg`.
 - The `x_output` bitfield class (`explicit_parent` and friends) stays the mirror round slice 34's
   Owed describes; it is six of the MOTIF arm's twenty pre-existing rows.
 
@@ -4213,7 +4213,7 @@ GTK at 47, GTKFT at 47 and XCB at 18.  All three logs carry the injected line's 
 ### Evidence (this slice)
 
 **① The frozen configuration (`build-tu`).**  exit 0, the **336-byte** empty object
-(`sha256 d1ea88b2fe3d960975d134e566e65932...`), on the final `femacs/src/xfns.rs` md5
+(`sha256 d1ea88b2fe3d960975d134e566e65932...`), on the final `src/xfns.rs` md5
 `cb66f3f2dc4bfe92ab4377e779bb398f` (slice 43's end hash was `2d71dd84381f0469212d84aa0fd4ec76`).
 
 **② The twenty arms.**  See above.
@@ -4252,7 +4252,7 @@ decodes to C's value (the fix is one character inside the string).
   the checker pairs each C `DEFUN` with the first Rust subr of that name, and it retires only when
   `src/xfns.c` joins `docs/baseline/config/cond-eval-verified.txt` or the checker pairs
   definitions in order - neither is a port change.
-- The four cairo features are still absent from `femacs/xtask/Cargo.toml`'s feature table;
+- The four cairo features are still absent from `xtask/Cargo.toml`'s feature table;
   the twenty-arm probe passes them with `--cfg`.
 - `use_motif` (with `have_xrandr`, `have_xinerama` and `have_xaw3d`) is still absent from that
   table for the same reason.
@@ -4304,7 +4304,7 @@ plain-X at 18 and Xt at 20.
 ### Evidence (this slice)
 
 **① The frozen configuration (`build-tu`).**  exit 0, the **336-byte** empty object, on the final
-`femacs/src/xfns.rs` md5 `157215841edd59c35961c3b6a61d9663` (slice 44's end hash was
+`src/xfns.rs` md5 `157215841edd59c35961c3b6a61d9663` (slice 44's end hash was
 `cb66f3f2dc4bfe92ab4377e779bb398f`).
 
 **② The twenty-one arms.**  See above.
@@ -4318,7 +4318,7 @@ moves from `33.1%` to `34.2%: C 10662 vs Rust 14311`.
 ### Deviations (this slice)
 
 1. **The `GTK314` arm is new**, its baseline is the in-tree HEAD text's 47 / 20, and
-   `gtk_check_version_ge_3_14` is **not registered** in `femacs/xtask/Cargo.toml` (the `## Owed`
+   `gtk_check_version_ge_3_14` is **not registered** in `xtask/Cargo.toml` (the `## Owed`
    row, the same state `use_motif`/`have_xrandr`/`have_xaw3d` are in); the probe passes it with
    `--cfg`.
 2. **C 10084's `CONS_TO_INTEGER (time_object, uint32_t, time)`** is the wide binding plus cast
@@ -4342,7 +4342,7 @@ moves from `33.1%` to `34.2%: C 10662 vs Rust 14311`.
   `src/xfns.c` joins `docs/baseline/config/cond-eval-verified.txt` or the checker pairs
   definitions in order - neither is a port change.
 - `gtk_check_version_ge_3_14` (and `use_motif`, `have_xrandr`, `have_xinerama`, `have_xaw3d` and
-  the four cairo features) is still absent from `femacs/xtask/Cargo.toml`'s feature table; the
+  the four cairo features) is still absent from `xtask/Cargo.toml`'s feature table; the
   twenty-one-arm probe passes them with `--cfg`.
 - The `x_output` bitfield class (`explicit_parent` and friends) stays the mirror round slice 34's
   Owed describes; it is six of the MOTIF arm's twenty pre-existing rows.
@@ -4404,7 +4404,7 @@ gate lets in.  All three were reverted (the two texts' sha256 agree).
 ### Evidence (this slice)
 
 **① The frozen configuration (`build-tu`).**  exit 0, the **336-byte** empty object, on the final
-`femacs/src/xfns.rs` md5 `c2b7a3d42ea021b066402b2fe520768a` (slice 45's end hash was
+`src/xfns.rs` md5 `c2b7a3d42ea021b066402b2fe520768a` (slice 45's end hash was
 `157215841edd59c35961c3b6a61d9663`).
 
 **② The twenty-two arms.**  All end at their level - plain-X, XKB and XKBX **18 / 9**, WS, WSX,
@@ -4430,7 +4430,7 @@ explained `subr Fx_file_dialog: docstring differs`.
    device), and its `HAVE_XDBE` pair is two cfg'd constants.
 4. **The four `#ifndef HAVE_X…` features are unregistered** (`have_xkbrefreshkeyboardmapping`,
    `have_xkbfreenames`, `have_xdisplaycells`, `have_xdestroysubwindows`): like `use_motif` they
-   stay out of `femacs/xtask/Cargo.toml` and the probe passes them with `--cfg` (the **XKBX** arm).
+   stay out of `xtask/Cargo.toml` and the probe passes them with `--cfg` (the **XKBX** arm).
 5. **`XkbMapNotifyEvent`** (XKBlib.h 61-88) is carried as its measured shape (`sizeof` **104**,
    align 8) with its member records owed - the `XEvent` rule of `include/xlib.rs` 1405-1413; and
    **`Status`** is `c_int` (measured **4**).
@@ -4446,7 +4446,7 @@ explained `subr Fx_file_dialog: docstring differs`.
   `docs/baseline/config/cond-eval-verified.txt` or the checker pairs definitions in order.
 - The four `#ifndef` features and `gtk_check_version_ge_3_14` (with `use_motif`, `have_xrandr`,
   `have_xinerama`, `have_xaw3d` and the four cairo features) are still absent from
-  `femacs/xtask/Cargo.toml`; the twenty-two-arm probe passes them with `--cfg`.
+  `xtask/Cargo.toml`; the twenty-two-arm probe passes them with `--cfg`.
 - `XkbMapNotifyEvent`'s member records are owed with the other XKB records
   (`docs/ports/lwlib-Xm.md`'s `## Owed` 5 names the toolchain row for that surface).
 - The `x_output` bitfield class (`explicit_parent` and friends) stays the mirror round slice 34's
@@ -4462,7 +4462,7 @@ the MOTIF/MOTIFXI2 arms' pre-existing rows are not this slice's.
 
 **The slice is C 10298-10662**: `syms_of_xfns`, the file's last definition - 338 Rust lines
 (14,580 -> 14,918) for 365 C lines.  With it `emacs/src/xfns.c` (**10,662 lines**) is complete in
-`femacs/src/xfns.rs` (**14,918 lines**, 39.9% above the reference's own line count, which the
+`src/xfns.rs` (**14,918 lines**, 39.9% above the reference's own line count, which the
 drift row records).
 
 **All twenty-two arms are byte-identical to slice 46** - plain-X, XKB and XKBX **18 / 9**, WS, WSX,
@@ -4495,7 +4495,7 @@ the `gtk_check_version_ge_3_14` dimension is what compiles that registration.
 ### Evidence (this slice)
 
 **① The frozen configuration (`build-tu`).**  exit 0, the **336-byte** empty object, on the final
-`femacs/src/xfns.rs` md5 `3f475898c9b321896ea366259cd63890` (slice 46's end hash was
+`src/xfns.rs` md5 `3f475898c9b321896ea366259cd63890` (slice 46's end hash was
 `c2b7a3d42ea021b066402b2fe520768a`).
 
 **② The twenty-two arms.**  See above.
@@ -4568,7 +4568,7 @@ sites and the macro name at others, so the repair is site-by-site:
   provider accesses were restored to `(*(FRAME_X_OUTPUT! (f) as *mut x_output)).…` - the gate asks
   for both tokens because C's text carries both forms.
 
-**Readings.**  `extract-abi.py --check emacs/src/xfns.c femacs/src/xfns.rs`: **24 rows -> 15**, and
+**Readings.**  `extract-abi.py --check emacs/src/xfns.c src/xfns.rs`: **24 rows -> 15**, and
 the diff is nine rows closed (`x_change_tool_bar_height`, `x_set_background_color`,
 `x_set_border_pixel`, `x_set_cursor_color`, `x_set_foreground_color`, `x_set_icon_name`,
 `x_set_menu_bar_lines`, `x_set_scroll_bar_foreground`, `x_set_scroll_bar_background`) plus three
@@ -4636,7 +4636,7 @@ arms (C 4432-4474, C 4479-4619) that never use the macro; C 3289/3331's two read
 its own port.  But the token check reads one C text per name and compares *every* arm against it,
 so this one row covers all three.  The row records the cause; it is not a permission.
 
-**Readings** - `extract-abi.py --check emacs/src/xfns.c femacs/src/xfns.rs`, measured on three
+**Readings** - `extract-abi.py --check emacs/src/xfns.c src/xfns.rs`, measured on three
 states of the same tree:
 
 - **15 -> 10**: the five repairs close five rows whole (`unwind_create_frame does not mention
@@ -4717,10 +4717,10 @@ one cannot be closed from this lane.
 - `RANDR13_LIBRARY` in `docs/ports/excluded-macros.txt` as `config` - C 6413-6414 defines it as
   `RANDR_MAJOR > 1 || (RANDR_MAJOR == 1 && RANDR_MINOR >= 3)` and C 6443 `#undef`s it after use, so
   it selects a branch rather than carrying a value.  The port writes C 6416's and C 6438's blocks
-  under the derived feature `have_xrandr_1_3`, which `femacs/xtask/Cargo.toml` 806 registers with
+  under the derived feature `have_xrandr_1_3`, which `xtask/Cargo.toml` 806 registers with
   these very lines named (the integrator's 3.920 row).
 
-**Readings.**  `extract-abi.py --check emacs/src/xfns.c femacs/src/xfns.rs`: **7 rows -> 2**, the
+**Readings.**  `extract-abi.py --check emacs/src/xfns.c src/xfns.rs`: **7 rows -> 2**, the
 five closed ones being `missing macro RANDR13_LIBRARY`, `macro INSTALL_CURSOR does not mention
 mouse_cursor, short_index`, `x_set_mouse_color`, `xg_set_icon_from_xpm_data` and `subr
 Fx_create_frame`; **no row was added**.  Slice 49's entry above and `docs/status.md` 3.957 said
@@ -4748,7 +4748,7 @@ to skip a check.  The file's checklist is now limited by one gate gap and one in
 ## Slice 51 (2026-10-08, status 4.062 - the integrator sets the round number): the closing round - `--check` reads OK (0 rows)
 
 Both rows slice 50 left standing are closed this round, and **neither by moving a line of the
-port**: `femacs/src/xfns.rs` is unchanged at **14,918 lines**, md5
+port**: `src/xfns.rs` is unchanged at **14,918 lines**, md5
 `b7e316b96ec6e8dc9942335a1fb815cd` (C `emacs/src/xfns.c` 10,662 lines, md5
 `012cee2a6952d70bc8aa6befb1b22a21`).
 
@@ -4785,7 +4785,7 @@ answer rather than a rewrite.  This is the debt **this file has recorded since s
 `## Owed` bullet says the row is owed "until the last one lands", slice 47 landed the last line
 (C 10298-10662), and the row follows here.  The bullet is marked closed above.
 
-**Readings.**  `extract-abi.py --check emacs/src/xfns.c femacs/src/xfns.rs`: **2 rows -> OK (0
+**Readings.**  `extract-abi.py --check emacs/src/xfns.c src/xfns.rs`: **2 rows -> OK (0
 rows)**.  `extract-abi.py --all` (2m51s): **`checked 590 ported files: 580 done, 0 in progress, 10
 failing`** - was 579/0/11, and `src/xfns.c` leaves the list.  The ten that remain are the platform
 units (android.c, androidfns.c, androidterm.c, androidvfs.c, gtkutil.c, haikuterm.c, w32.c,

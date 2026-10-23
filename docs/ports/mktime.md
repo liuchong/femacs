@@ -33,11 +33,11 @@
 
 ### Summary
 
-`femacs/lib/mktime.rs` is the live text of `emacs/lib/mktime.c` for the frozen
+`lib/mktime.rs` is the live text of `emacs/lib/mktime.c` for the frozen
 configuration (`tools/check-cond-eval.py lib/mktime.c`: 16 conditions, 0 unknown,
 0 disagreements).  The 11 functions and 6 macros all have a counterpart, and
 `extract-abi.py --check` is OK.  The companion mirror is
-`femacs/lib/include/mktime-internal.rs` (ledger `docs/ports/include-mktime-internal.md`).
+`lib/include/mktime-internal.rs` (ledger `docs/ports/include-mktime-internal.md`).
 
 ### The two symbols this unit emits (measured, not guessed)
 
@@ -114,7 +114,7 @@ prints the same two definitions and the same four undefined calls.
   0 disagreements [VERIFIED]`.
 * `cd femacs && CARGO_TARGET_DIR=/tmp/femacs-target cargo run -q -p xtask -- build-tu lib/mktime.c`
   → `built lib/mktime.rs -> ../build/femacs/mktime.o`, 0 errors.
-* `python3 tools/extract-abi.py --check emacs/lib/mktime.c femacs/lib/mktime.rs` → OK.
+* `python3 tools/extract-abi.py --check emacs/lib/mktime.c lib/mktime.rs` → OK.
 * Symbol-level check against the frozen reference object: `nm -g` on both objects
   (see above).  No differential *behaviour* probe was run (the round's workflow stops at
   `build-tu`/`--check`).

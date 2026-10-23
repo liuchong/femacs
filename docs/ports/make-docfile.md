@@ -42,7 +42,7 @@
 
 ## Decisions
 
-- **Shape.** One unit, `femacs/lib-src/make-docfile.rs`, written in the `lib-src/hexl.rs` /
+- **Shape.** One unit, `lib-src/make-docfile.rs`, written in the `lib-src/hexl.rs` /
   `lib-src/make-fingerprint.rs` shape: `#![allow (…)]`, `use std::ffi::{…}`, the `include!`
   list in C's own order, then C's objects/functions in C's order, `main` as
   `#[unsafe(no_mangle)] pub unsafe extern "C" fn main (argc: c_int, argv: *mut *mut c_char)
@@ -124,7 +124,7 @@
   `break,case,default,switch`, `scan_c_stream` + `goto`) and the `line-drift-tolerance.tsv`
   row (0.38 against the measured 36.9 per cent) are in the shared `docs/ports/*.tsv` files now,
   so the check runs against them rather than against a copy: `python3 tools/extract-abi.py
-  --check emacs/lib-src/make-docfile.c femacs/lib-src/make-docfile.rs` -> `OK`, and the
+  --check emacs/lib-src/make-docfile.c lib-src/make-docfile.rs` -> `OK`, and the
   ledger's 30 boxes are checked because of that reading.
 
 ## Evidence:
@@ -133,7 +133,7 @@
   (the ledger itself; 21 functions / 2 structs / 6 file-scope objects / 0 macros / 0 subrs).
 - `cd femacs && CARGO_TARGET_DIR=/tmp/femacs-target-mdf cargo run -q -p xtask -- build-tu lib-src/make-docfile.c`
   -> `built lib-src/make-docfile.rs -> ../build/femacs/make-docfile.o`
-- `python3 tools/extract-abi.py --check emacs/lib-src/make-docfile.c femacs/lib-src/make-docfile.rs`
+- `python3 tools/extract-abi.py --check emacs/lib-src/make-docfile.c lib-src/make-docfile.rs`
   -> last line `FAIL …`, 6 problems, all of the shared-row class above:
   `function error does not mention va_end`,
   `function fatal does not mention va_end`,
@@ -144,7 +144,7 @@
 - `python3 tools/extract-abi.py --check --macro-notes /tmp/mdf-notes.tsv <same files>`
   -> last line `FAIL …`, one problem: the line-count drift only.
 - `python3 tools/extract-abi.py --check --loose-lines --macro-notes /tmp/mdf-notes.tsv <same files>`
-  -> `OK emacs/lib-src/make-docfile.c -> femacs/lib-src/make-docfile.rs`.
+  -> `OK emacs/lib-src/make-docfile.c -> lib-src/make-docfile.rs`.
 - `cd femacs && rustc --edition 2024 --crate-type=lib --emit=metadata --crate-name mdf_check
   -C panic=abort -C codegen-units=1 -C opt-level=0
   ../build/femacs/units/make-docfile/_root.rs -o /tmp/mdf.rmeta` -> exit 0 (3 warnings, none
@@ -157,8 +157,8 @@
   `8 declaration sites (0 forbidden, 8 allowed literals), 0 failures`.
 - `python3 tools/check-mirror-dupes.py` -> `9 duplicate declaration(s), 1 ratchet row(s),
   8 failure(s)`; every failure is another lane's in-flight pair
-  (`femacs/src/xdisp.rs`, `femacs/src/dispnew.rs`, `femacs/src/menu.rs` against
-  `femacs/src/include/window.rs`), none names this unit.
+  (`src/xdisp.rs`, `src/dispnew.rs`, `src/menu.rs` against
+  `src/include/window.rs`), none names this unit.
 - The ledger's boxes were left unchecked by the lane: `--check` was not yet `OK` against
   the shared files, and `extract-abi.py --all` would have counted the unit as in progress
   rather than failing it.  With the shared rows in place the check prints `OK` (see the

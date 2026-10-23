@@ -94,14 +94,14 @@
 # ----------------------------------------------------------------------
 ## Decisions
 
-`emacs/src/timefns.c` @ `fd7afced403`; port `femacs/src/timefns.rs` (2,172 lines vs C's
+`emacs/src/timefns.c` @ `fd7afced403`; port `src/timefns.rs` (2,172 lines vs C's
 2,144, +1.3%, inside the default 5% - the row in `docs/ports/line-drift-tolerance.tsv`
 spells out why the **`total`** basis is the right one here).  `src/timefns.c` is in
 `docs/baseline/frozen-build-sources.txt`, so the frozen configuration compiles it and the
 full comparison applies (no 3.31 exemption).  The gates:
 
     build-tu src/timefns.c      -> built src/timefns.rs -> ../build/femacs/timefns.o
-    extract-abi.py --check      -> OK emacs/src/timefns.c -> femacs/src/timefns.rs
+    extract-abi.py --check      -> OK emacs/src/timefns.c -> src/timefns.rs
     check-symbols.py --pending  -> check-symbols: 78 units compared, 0 mismatched, 1 still pending
     check-globals.py            -> check-globals: 240 units, 0 DEFVAR_* variables without a definition in their own unit
     ledger                      -> 80 rows, 0 unchecked
@@ -116,7 +116,7 @@ frozen `-dM` dump at all) or `TRILLION <= ULONG_MAX`, so `--check` reports
 `tools/extract-abi.py`'s `blind_conditions`, keeps *both* arms of every `#if` live.  The
 port therefore **carries** the arms the frozen build does not compile, each under a
 `#[cfg (feature = "…")]` naming the C condition's non-frozen side (PORTING.md P-51, the
-`femacs/lib/boot-time.rs` precedent).  None of the features is set by any build tool
+`lib/boot-time.rs` precedent).  None of the features is set by any build tool
 (`xtask dead-arms` can only flip the keys `config.rs` carries - status 3.9), so the
 compiled build is exactly what clang compiles.  The arms, by C line:
 
@@ -244,7 +244,7 @@ collapsing C's comment lines into literals.
 
 ### Changes outside the unit (for integrator review)
 
-1. `femacs/src/include/systime.rs`: the ten declarations the mirror carries were moved
+1. `src/include/systime.rs`: the ten declarations the mirror carries were moved
    into a `pub mod systime_decls { use super::*; … } use systime_decls::*;` (the
    `time.in.rs` `time_decls` / `bignum_externs` shape, PORTING.md 0.1-10).  `timefns.c` is
    the *defining* unit of seven of them, and a definition at the crate root collided with

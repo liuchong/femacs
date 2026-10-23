@@ -1,6 +1,6 @@
 # emacs/oldXMenu/Activate.c (642 lines)
 
-> Filled in: the port is `femacs/oldXMenu/Activate.rs` (**926 lines**).  Until this round it was the
+> Filled in: the port is `oldXMenu/Activate.rs` (**926 lines**).  Until this round it was the
 > empty unit that docs/status.md 3.31 prescribed; P-86 ① overturns that reading ("3 行的头注释不是
 > '落完'，是'还没开始'"), and `oldXMenu/Internal.rs` is the sibling that already carries this
 > directory's shape.
@@ -114,7 +114,7 @@ The rows are contiguous and ascending; C's blank lines between the blocks need n
      `_XRaiseWindow`, `_XSetWindowBackground`, `_XSetWindowBackgroundPixmap`, `_XSync`,
      `_XUngrabKeyboard`, `_XUngrabPointer`, `_XUnmapWindow`.
 4. **the gates this lane owed**:
-   - `python3 tools/extract-abi.py --check emacs/oldXMenu/Activate.c femacs/oldXMenu/Activate.rs` ->
+   - `python3 tools/extract-abi.py --check emacs/oldXMenu/Activate.c oldXMenu/Activate.rs` ->
      **one finding**: `line count drifted 44.2%: C 642 vs Rust 926` (`## Owed` 1).  The name
      comparison is clean: no missing function (the three definitions in the C text are all carried),
      no missing file-scope object (`x_menu_grab_keyboard`, `wait_func`, `wait_data`,
@@ -123,8 +123,8 @@ The rows are contiguous and ascending; C's blank lines between the blocks need n
      fallthrough, qlength, switch`) is recorded in `docs/ports/macro-body-notes.tsv` (one row,
      appended).
    - `python3 tools/check-declarations.py` -> **0 failures**.
-   - `python3 tools/check-mirror-dupes.py` -> **0 failures** (the tool's scope is `femacs/src` and
-     `femacs/lib`; `femacs/oldXMenu` units are not scanned, and this unit declares no name an
+   - `python3 tools/check-mirror-dupes.py` -> **0 failures** (the tool's scope is `src` and
+     `lib`; `oldXMenu` units are not scanned, and this unit declares no name an
      in-scope mirror carries).
    - `python3 tools/check-citations.py` -> **0 range, 0 drift**; this unit's `Xlib.h`/`X.h`/
      `keysym.h`/`keysymdef.h` citations are in the `external` bucket (system headers, counted, never
@@ -138,7 +138,7 @@ The rows are contiguous and ascending; C's blank lines between the blocks need n
 
 | file | lines | md5 | sha256 |
 | --- | ---: | --- | --- |
-| `femacs/oldXMenu/Activate.rs` (this revision) | 926 | `bfbfa03d427a24de677a03c0031a1f66` | `be50fdebdc93cc80d93cdd3069b37ac86259b021bbae8d38dff91f85b83166a1` |
+| `oldXMenu/Activate.rs` (this revision) | 926 | `bfbfa03d427a24de677a03c0031a1f66` | `be50fdebdc93cc80d93cdd3069b37ac86259b021bbae8d38dff91f85b83166a1` |
 | `build/femacs/Activate.o` (frozen reading) | - | `dbed68837694579185377dbb0821ab62` | - |
 | `/tmp/activate-lane/activate.rlib` (arm reading, take 3) | - | - | `6654b607159adc008672cd1766eb76f737b6c66645ee56a785e03eaed63f5f47` (246,360 bytes) |
 
@@ -248,7 +248,7 @@ The rows are contiguous and ascending; C's blank lines between the blocks need n
   `tools/check-port-lines.py --write-pending` are the generators and both are the integrator's step
   (P-86 clause 4 - neither file is in this lane's write scope).  The map's *reference* count (642) is
   what `check-dead-file-coverage.py` reads and is unaffected.
-- **`femacs/xtask/Cargo.toml`**: nothing - `have_x_windows` and `have_xinput2` are both already
+- **`xtask/Cargo.toml`**: nothing - `have_x_windows` and `have_xinput2` are both already
   registered in the generated `cfg` namespace.  Recorded so the absence is a reading, not an
   omission.
 - **A finding about `oldXMenu/Internal.rs`'s arm reading (integrator)**: `oldXMenu/include/

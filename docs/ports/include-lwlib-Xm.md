@@ -31,4 +31,4 @@ and no probe compiles it; the text gate is the whole acceptance (docs/status.md 
    opening block is not part of the mirror (PORTING.md 0.1-19).
 
 Evidence: `python3 tools/extract-abi.py --check emacs/lwlib/lwlib-Xm.h
-femacs/lwlib/include/lwlib-Xm.rs` -> `OK` (2 ledger item(s)).
+lwlib/include/lwlib-Xm.rs` -> `OK` (2 ledger item(s)).

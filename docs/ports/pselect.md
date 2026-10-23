@@ -26,10 +26,10 @@
 - C 103's `for (int i = 0; …)` is the port's `while` with an explicit step; the three
   `FD_ISSET` uses keep C's short-circuit (`rfds && FD_ISSET (i, rfds)` → `! rfds.is_null () &&
   FD_ISSET (…)`), and `restrict` has no Rust spelling (PORTING.md 0.3).
-- **Mirror edits**: `femacs/lib/include/sys_select.rs` is new (the measured `fd_set` =
+- **Mirror edits**: `lib/include/sys_select.rs` is new (the measured `fd_set` =
   32 × `__int32_t`, `FD_SETSIZE`, `__DARWIN_NFDBITS`, the `FD_ISSET` inline rewritten over the
   measurement, and the `select`/`pselect`/`__darwin_check_fd_set_overflow` declarations);
-  `femacs/lib/include/signal.rs` gained `sigset_t` (docs/ports/pthread_sigmask.md).
+  `lib/include/signal.rs` gained `sigset_t` (docs/ports/pthread_sigmask.md).
 - The one deviation in the mirror is recorded in docs/ports/include-sys_select.md: C's
   `__darwin_check_fd_set` tests the address of `__darwin_check_fd_set_overflow` for null (a
   weak-link guard for old systems); the port calls it unconditionally, since this target's

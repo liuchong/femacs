@@ -6,7 +6,7 @@
     Kept    assembly and data files that are used as they are - the six
             `exec/loader-*.s`, "path preserved" (status 3.284);
     C++     code that must talk to a C++ API (Haiku) - the five `*.cc`, whose
-            target moves to `femacs/platform/haiku/NAME.cc`.
+            target moves to `platform/haiku/NAME.cc`.
 
 Their target language *is* the reference's language or the file is data, so the port's
 deliverable is the text itself - which is why they are also the two classes that kept the
@@ -75,7 +75,7 @@ def map_rows() -> list[tuple[str, str, str]]:
         if not klass or not line.startswith("| `"):
             continue
         cells = [c.strip().strip("`") for c in line.split("|")[1:-1]]
-        if len(cells) >= 3 and cells[0] and cells[2].startswith("femacs/"):
+        if len(cells) >= 3 and cells[0] and cells[2] and not Path(cells[2]).is_absolute() and ".." not in Path(cells[2]).parts:
             out.append((klass, cells[0], cells[2]))
     return out
 
@@ -112,7 +112,7 @@ def read_substitutions() -> dict[str, list[tuple[int, str, str]]]:
 
 def phrase_of(klass: str, reference: str, target: str) -> str:
     """`kept from` when the path is preserved, `port of` when it moves."""
-    return "kept from" if target == f"femacs/{reference}" else "port of"
+    return "kept from" if target == f"{reference}" else "port of"
 
 
 def check_one(root: Path, klass: str, path: str, reference: str, ref_sha: str,

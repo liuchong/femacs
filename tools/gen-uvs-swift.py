@@ -27,7 +27,7 @@ from pathlib import Path
 
 REPO = Path(__file__).resolve().parent.parent
 C_SOURCE = REPO / "emacs" / "src" / "macuvs.h"
-SWIFT = REPO / "femacs" / "platform" / "macos" / "macfont.swift"
+SWIFT = REPO / "platform" / "macos" / "macfont.swift"
 
 BEGIN = "// gen-uvs-swift: begin"
 END = "// gen-uvs-swift: end"

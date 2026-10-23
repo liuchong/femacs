@@ -36,7 +36,7 @@ first attempt look like a missing declaration.
     sizeof(lisp_mutex_t)                             64   (darwin 16)
     sizeof(struct Lisp_Mutex)                        80   (darwin 32)
 
-The five are now per-target in `femacs/src/include/thread.rs` (`feature = "have_android"`), and
+The five are now per-target in `src/include/thread.rs` (`feature = "have_android"`), and
 darwin still builds.
 
 ## What is still open
@@ -74,6 +74,6 @@ still written, and `struct frame` is complete in it.)
     output_data       520
 
 These six are now `const _: () = core::assert! (core::mem::offset_of! (frame, …) == N);` in
-`femacs/src/include/frame.rs` under `have_android`/`not_android_stubify`, so a `#[cfg]` arm that
+`src/include/frame.rs` under `have_android`/`not_android_stubify`, so a `#[cfg]` arm that
 disagrees with the configuration breaks the Android build instead of shifting every later field -
 `output_data.android` is what `android_new_font` writes `FRAME_FONTSET` through.

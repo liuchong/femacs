@@ -32,14 +32,14 @@ REPO = Path(__file__).resolve().parent.parent
 # libraries (`lib-src`, `exec`, `lwlib`, `oldXMenu`, `nt`, `msdos`) carry `#[cfg]` sites of their
 # own - `nt/runemacs.rs`'s `choose_newest_exe` was the first one this table could not see, because
 # the walk stopped at the two core trees (status 3.469; `check-declarations.py`'s `SCAN_DIRS` lists
-# the same eight trees for the same reason).  `femacs/xtask` stays out: it is the tooling, not a port.
-TREES = ("femacs/src", "femacs/lib", "femacs/lib-src", "femacs/exec", "femacs/lwlib",
-         "femacs/oldXMenu", "femacs/nt", "femacs/msdos")
+# the same eight trees for the same reason).  `xtask` stays out: it is the tooling, not a port.
+TREES = ("src", "lib", "lib-src", "exec", "lwlib",
+         "oldXMenu", "nt", "msdos")
 FEATURE = re.compile(r'feature\s*=\s*"([a-z0-9_]+)"')
 FLIP = re.compile(r'\(\s*"([a-z0-9_]*)"\s*,\s*"([A-Z0-9_]*)"\s*,\s*"(\w+)"\s*\)')
-CONFIG = REPO / "femacs/src/include/config.rs"
-CARGO = REPO / "femacs/Cargo.toml"
-XTASK = REPO / "femacs/xtask/src/main.rs"
+CONFIG = REPO / "src/include/config.rs"
+CARGO = REPO / "Cargo.toml"
+XTASK = REPO / "xtask/src/main.rs"
 OUT = REPO / "docs/baseline/feature-coverage.tsv"
 
 

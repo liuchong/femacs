@@ -53,5 +53,5 @@ includes this header and no probe compiles it; the text gate is the whole accept
    opening block is not part of the mirror (PORTING.md 0.1-19).
 
 Evidence: `python3 tools/extract-abi.py --check emacs/oldXMenu/XMenuInt.h
-femacs/oldXMenu/include/XMenuInt.rs` -> `OK` (8 ledger item(s); `Pixel` is the one recorded
+oldXMenu/include/XMenuInt.rs` -> `OK` (8 ledger item(s); `Pixel` is the one recorded
 exclusion).

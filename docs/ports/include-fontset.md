@@ -21,7 +21,7 @@
   are mirrored.  Nothing in the frozen configuration includes `fontset.h` on this target -
   `src/fontset.c` is not in `docs/baseline/frozen-build-sources.txt` and the `HAVE_WINDOW_SYSTEM`
   arms that reach the header (`font.c` 43-44, `frame.c`'s `GUI` block) are dead (PORTING.md P-08)
-  - so `femacs/src/fontset.rs` is the empty-shape note the 3.31 policy requires.  The header's
+  - so `src/fontset.rs` is the empty-shape note the 3.31 policy requires.  The header's
   text being live while its unit is empty is the `src/w32select.h` reading (status 3.158).
 - **Every name here is decided by P-55/P-72, and only two of them degrade.**  The header includes
   `lisp.h` and nothing else (C 29) and forward-declares `struct face` (C 31).  `Lisp_Object` and
@@ -34,7 +34,7 @@
   records fail.  Each degraded parameter carries the `/// C:` line P-55 requires, inside the
   `unsafe extern "C"` block above the declaration it describes; the use site casts.
 - **The declarations `font.c`'s port keeps today are use-site copies and are reported, not
-  edited.**  `femacs/src/font.rs` 627-634 declares `face_for_char` (annotated
+  edited.**  `src/font.rs` 627-634 declares `face_for_char` (annotated
   `/// C: dispextern.h 3811`, which is the declaration `font.c` actually sees - `dispextern.h`
   re-declares it) and `font.rs` 713-724 declares `fs_query_fontset`/`fontset_ascii` with the note
   "`emacs/src/fontset.h` has no mirror at all".  That note is now false, and once `font.rs`
@@ -53,8 +53,8 @@
 
 ## Evidence
 
-- `python3 tools/extract-abi.py --check emacs/src/fontset.h femacs/src/include/fontset.rs`
-  -> `OK emacs/src/fontset.h -> femacs/src/include/fontset.rs` (no `- ` problem lines).
+- `python3 tools/extract-abi.py --check emacs/src/fontset.h src/include/fontset.rs`
+  -> `OK emacs/src/fontset.h -> src/include/fontset.rs` (no `- ` problem lines).
 - `python3 tools/check-cond-eval.py src/fontset.h` -> `1 conditions, 0 unknown to the evaluator,
   0 disagreements` (the condition is the guard).
 - This ledger: 0 subrs, 0 functions defined, 1 macro (the guard), 0 types, 0 file-scope objects.

@@ -130,7 +130,7 @@
   (`docs/ports/include-region-cache.md`, status 3.74), which spells `struct region_cache *` as
   the ABI-equal `*mut c_void`; this unit keeps its use-site `pub type region_cache = c_void;`
   because six of its local declarations name C's type (P-55/P-72 rule 3; the definitions are
-  `femacs/src/region-cache.rs`), and the declarations that stood here went away with the mirror.  `memrchr`, `substring_both`, `make_specified_string`,
+  `src/region-cache.rs`), and the declarations that stood here went away with the mirror.  `memrchr`, `substring_both`, `make_specified_string`,
   `copy_text` and `open_memstream`/`stderr`/`print_compiled_pattern` are the same shape:
   each is a lisp.h/`<string.h>`/<stdio.h> declaration this unit needs and no mirror carries.
   None of these edits touches a shared mirror, so no other consumer needed rebuilding.
@@ -197,13 +197,13 @@ are the same five + five the C text makes.
   ten `const _` layout assertions), the `RE_PATTERN_*` masks, `REGS_UNALLOCATED`/
   `REGS_REALLOCATE`/`REGS_FIXED`, the twelve bit accessors, the five `re_*` prototypes and
   `print_compiled_pattern`, because `docs/ports/include-regex-emacs.md` stopped at the
-  character-class API.  `femacs/src/include/regex-emacs.rs` carries all of them now (the
+  character-class API.  `src/include/regex-emacs.rs` carries all of them now (the
   `thread.md` precedent: a mirror lands in the same commit as its definition unit), and those
   copies are deleted here - 133 lines out, 9 comment lines in - or this unit would be an
   `E0428` (the mirror is `include!`d at search.rs 77).  `build-tu src/search.c` prints
   `built src/search.rs` and `--cfg enable_checking`'s second pass prints
   `built src/search.rs (--cfg enable_checking)`, and
-  `tools/extract-abi.py --check emacs/src/search.c femacs/src/search.rs` still prints `OK`.
+  `tools/extract-abi.py --check emacs/src/search.c src/search.rs` still prints `OK`.
   `re_match_object` stays defined here (C's search.c 75 owns it; regex-emacs.c does not
   define it), and `REGS_*` went with the rest because the mirror's note records that C
   defines them in `regex-emacs.c` 862, not in the header.

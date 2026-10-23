@@ -22,11 +22,11 @@ transcribed (PORTING.md P-08).  The live inventory is the guard alone.
 
 **One declaration is live**: C 98's `extern void syms_of_gnutls (void);` sits outside that block,
 and src/emacs.c 2462 calls it unconditionally, so the mirror declares it in `gnutls_decls` + glob
-import (P-21) - `femacs/src/gnutls.rs` defines it, and the definition shadows the import.  The
+import (P-21) - `src/gnutls.rs` defines it, and the definition shadows the import.  The
 generated checklist does not list it (the extractor counts definitions, not declarations), which
-is why it is called out here.  Found while writing this mirror: `femacs/src/emacs.rs`'s use-site
+is why it is called out here.  Found while writing this mirror: `src/emacs.rs`'s use-site
 note pointed at `gnutls.h 118`, a line that does not exist in the header - corrected to 98 in the
 same commit.
 
-Evidence: `extract-abi.py --check emacs/src/gnutls.h femacs/src/include/gnutls.rs` -> `OK`;
+Evidence: `extract-abi.py --check emacs/src/gnutls.h src/include/gnutls.rs` -> `OK`;
 `layout-check` passes with the mirror in the probe.

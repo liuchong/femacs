@@ -7,11 +7,11 @@
 > `docs/baseline/frozen-build-sources.txt` lists no `w16select.o`.  So `tools/extract-abi.py`'s
 > checklist for the file is empty (P-86 ②) and this ledger is that clause's substitute: the **C
 > line-range table**, the `## Evidence` readings and the `## Deviations`.  Port:
-> `femacs/src/w16select.rs` (**988 lines**, 50,738 bytes, md5
+> `src/w16select.rs` (**988 lines**, 50,738 bytes, md5
 > `3f97833556e72cc11c88a7fa427bde9e`), carrying **C 1-692 with the whole body under its single
 > `#ifdef`**.  The reference `emacs/src/w16select.c` is md5 `e543fa63ae75d0078e82b9ca43cad533`
 > (unchanged; `emacs/` is read-only), and its `docs/port-map.md` 562 row pairs `src/w16select.c`
-> 692 with `femacs/src/w16select.rs` (the port's own count in that table is the integrator's
+> 692 with `src/w16select.rs` (the port's own count in that table is the integrator's
 > regeneration — Owed 4).
 >
 > **This ledger replaces the reading it inherits.**  The previous `docs/ports/w16select.md` (and
@@ -47,7 +47,7 @@
 
 | C `#if` / build condition | Port gate | Compiled when |
 | --- | --- | --- |
-| the file itself (`MSDOS_OBJ`, `emacs/src/Makefile.in` 306 + `emacs/msdos/sed1v2.inp` 136; the macro is `MSDOS`, `configure.ac` 6953's `AH_TEMPLATE`) | `feature = "msdos"` (registered, `femacs/xtask/Cargo.toml` 400), on every item *and* on C 32-42's include graph | the DJGPP (MS-DOS) build; `MSDOS` is `undef` in `docs/baseline/config/darwin-arm64.macros.tsv` 2849, so no configuration this machine can build sets it |
+| the file itself (`MSDOS_OBJ`, `emacs/src/Makefile.in` 306 + `emacs/msdos/sed1v2.inp` 136; the macro is `MSDOS`, `configure.ac` 6953's `AH_TEMPLATE`) | `feature = "msdos"` (registered, `xtask/Cargo.toml` 400), on every item *and* on C 32-42's include graph | the DJGPP (MS-DOS) build; `MSDOS` is `undef` in `docs/baseline/config/darwin-arm64.macros.tsv` 2849, so no configuration this machine can build sets it |
 | C 31 `#include <config.h>` | **no gate** (C has it outside `#ifdef MSDOS`; `include/config.rs`) | every build — the file's only ungated edge (P-86 ⑧) |
 
 `tools/check-cond-eval.py src/w16select.c` reads **`1 conditions, 0 unknown, 0 disagreements
@@ -203,16 +203,16 @@ claim.  The single condition is `MSDOS`, `undef` in
 `docs/baseline/config/darwin-arm64.macros.tsv` 2849.
 
 **④ The text gates.**
-`python3 tools/extract-abi.py --check emacs/src/w16select.c femacs/src/w16select.rs` -> **`OK …`**,
+`python3 tools/extract-abi.py --check emacs/src/w16select.c src/w16select.rs` -> **`OK …`**,
 zero problem lines *and* the P-86 ② vacuous pass: `MSDOS` is undef, so `tools/cinventory.py`'s
 live-line filter gives the C side an **empty checklist** and the range table above is that clause's
 substitute (P-86 ②, ⑩).  `python3 tools/check-declarations.py` -> **`17 declaration sites (0
 forbidden, 17 allowed literals), 0 failures`**.  `python3 tools/check-citations.py` -> **`676
 file(s) scanned, 1 drift, 0 range, 1812 external, 36 allowed, 0 stale`**, and the one `drift` row is
-**not this unit's**: `femacs/src/w16select.rs` contributes **0 findings of any class** (measured
+**not this unit's**: `src/w16select.rs` contributes **0 findings of any class** (measured
 with the gate's own `findings_for`), because its line citations are the `// C <n>:` form and its
 header citations the `C: <header>:` form, neither of which the gate's `path.h <n>` pattern matches.
-The drift is `femacs/src/w32image.rs:76` (`lisp.h 30`, "`memset` is at lisp.h:2008") — another
+The drift is `src/w32image.rs:76` (`lisp.h 30`, "`memset` is at lisp.h:2008") — another
 lane's in-flight file, present in the shared working tree, and the external count rose from 1779 to
 1812 with the other lanes' files over the same window, not with this one.
 `python3 tools/check-mirror-dupes.py` -> **`17 duplicate declaration(s), 17 ratchet row(s), 0
@@ -311,7 +311,7 @@ executed anywhere.
    `src/w16select.c` includes neither `msdos.h` nor `dosfns.h`, so Evidence ②'s green arm says
    nothing about them.  They are recorded here only so the integrator does not read this lane's
    `0 errors` as a fix.
-4. **`docs/port-map.md` 562's port count.**  The row still reads `femacs/src/w16select.rs | 19`;
+4. **`docs/port-map.md` 562's port count.**  The row still reads `src/w16select.rs | 19`;
    this port is 988 lines.  The regeneration is the integrator's (`--write-pending`), and
    `docs/port-map.md` is not this lane's writable set.  The companion row is
    `docs/baseline/port-lines-pending.tsv`'s `src/w16select.c 692 19 69` line, which

@@ -74,8 +74,8 @@
 
 ## Evidence
 
-- `python3 tools/extract-abi.py --check emacs/lib/diffseq.h femacs/lib/include/diffseq.rs`
-  -> `OK emacs/lib/diffseq.h -> femacs/lib/include/diffseq.rs` (no `- ` problem lines), with the
+- `python3 tools/extract-abi.py --check emacs/lib/diffseq.h lib/include/diffseq.rs`
+  -> `OK emacs/lib/diffseq.h -> lib/include/diffseq.rs` (no `- ` problem lines), with the
   gate's own line `(1 C macros have several definitions (configuration branches), body not
   compared: XREF_YREF_EQUAL)` - C defines that macro twice (once per function), so only its
   presence is compared.
@@ -90,7 +90,7 @@
   ratchet row / 0 failures; `check-globals` 283 units / 0; `check-target-names` 0 findings.
 - **Parse-clean, unresolved only by the includer's names** (extra evidence, since no unit
   compiles this file yet): `rustup run nightly-2026-10-01 rustc --edition 2024 --crate-type=lib
-  --emit=metadata -o /tmp/diffseq.rmeta femacs/lib/include/diffseq.rs` reports
+  --emit=metadata -o /tmp/diffseq.rmeta lib/include/diffseq.rs` reports
   `122 x E0425` (the includer's `OFFSET`, `ELEMENT`, `XVECREF_YVECREF_EQUAL`, `NOTE_DELETE`,
   `NOTE_INSERT`, `EXTRA_CONTEXT_FIELDS`, `EQUAL`) and `4 x E0433`, and **0 syntax errors** - so
   the transcription is a syntactically valid Rust unit whose only missing items are exactly the

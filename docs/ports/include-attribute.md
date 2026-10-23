@@ -45,7 +45,7 @@
 
 ## Decisions
 
-`emacs/lib/attribute.h` @ `fd7afced403`; port `femacs/lib/include/attribute.rs`.  Every
+`emacs/lib/attribute.h` @ `fd7afced403`; port `lib/include/attribute.rs`.  Every
 checklist item is ticked and `extract-abi.py --check` reports `OK` for the pair.  The header
 is in `docs/baseline/config/cond-eval-verified.txt`, so the gate reads its `#if`s with the
 frozen configuration and the 32 names below are the ones that build selects.
@@ -91,8 +91,8 @@ one ratchet row.
 ## Evidence
 
 ```
-$ python3 tools/extract-abi.py --check emacs/lib/attribute.h femacs/lib/include/attribute.rs
-OK emacs/lib/attribute.h -> femacs/lib/include/attribute.rs
+$ python3 tools/extract-abi.py --check emacs/lib/attribute.h lib/include/attribute.rs
+OK emacs/lib/attribute.h -> lib/include/attribute.rs
 
 $ cd /tmp/femacs-probe && rustc --edition 2024 --crate-type=lib --emit=obj \
     -C panic=abort attribute_probe.rs -o /tmp/femacs-probe/attribute_probe.o

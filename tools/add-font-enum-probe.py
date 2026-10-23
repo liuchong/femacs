@@ -16,7 +16,7 @@ undo path is a saved copy, never `git checkout --`.
 """
 import pathlib, shutil, sys
 
-SRC = pathlib.Path("femacs/src/sfntfont-android.rs")
+SRC = pathlib.Path("src/sfntfont-android.rs")
 BAK = pathlib.Path("/tmp/sfntfont-android.rs.probe-backup")
 
 OPEN_ANCHOR = "      dir = opendir (system_font_directories[i as usize]);\n"

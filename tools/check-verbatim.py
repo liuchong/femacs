@@ -2,7 +2,7 @@
 """Verify that the verbatim trees are byte-identical to the reference checkout.
 
 docs/port-map.md classifies six trees as `Verbatim` (`lisp`, `test`, `etc`, `doc`,
-`leim`, `admin` -> `femacs/<top>/**`): the goal says they are *copied*, one byte at a
+`leim`, `admin` -> `<top>/**`): the goal says they are *copied*, one byte at a
 time, and that no test file may be modified, skipped or deleted.  Prose cannot prove
 that, so this is the gate:
 
@@ -44,11 +44,11 @@ import subprocess
 import sys
 from pathlib import Path
 
-# docs/port-map.md's VERBATIM_DIRS: `<reference dir>` -> `femacs/<same name>`.
+# docs/port-map.md's VERBATIM_DIRS: `<reference dir>` -> `<same name>`.
 VERBATIM_DIRS = ("lisp", "test", "etc", "doc", "leim", "admin")
 REPO = Path(__file__).resolve().parent.parent
 REFERENCE = Path("emacs")
-TARGET = Path("femacs")
+TARGET = Path(".")
 BLOCK = 1 << 20
 # The sanctioned identity lines (0.1-19's tenth half).  Hand-written, one row per line,
 # each with the reason it cannot stay the reference's text; see the module docstring.
@@ -197,16 +197,16 @@ def main() -> int:
             failures += 1
             continue
         a = files_under(src if (src / ".git").is_dir() else src.parent, tree)
-        b = files_under(REPO, f"{TARGET}/{tree}")
+        b = files_under(REPO, str(TARGET / tree))
         missing = sorted(rel for rel in set(a) - set(b)
-                         if f"{TARGET}/{tree}/{rel}" not in absent)
+                         if str(TARGET / tree / rel) not in absent)
         extra = sorted(set(b) - set(a))
         changed: list[str] = []
         sanctioned = 0
         for rel in sorted(set(a) & set(b)):
-            rows = subs.get(f"{TARGET}/{tree}/{rel}")
+            rows = subs.get(str(TARGET / tree / rel))
             if rows:
-                used.add(f"{TARGET}/{tree}/{rel}")
+                used.add(str(TARGET / tree / rel))
                 bad, n = line_readings(a[rel], b[rel], rows)
                 changed += [f"{rel}: {m}" for m in bad]
                 sanctioned += n

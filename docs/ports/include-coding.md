@@ -111,7 +111,7 @@
   `encode_file_name`, `decode_file_name`, `decode_coding_gap`, `decode_coding_object`,
   `encode_coding_object`, `make_string_from_utf8`).
 - **Not yet done: none.**  `python3 tools/extract-abi.py --check emacs/src/coding.h
-  femacs/src/include/coding.rs` reports `OK` for every function, macro, type, extern and global
+  src/include/coding.rs` reports `OK` for every function, macro, type, extern and global
   of the frozen configuration.
 
 # ----------------------------------------------------------------------
@@ -132,8 +132,8 @@
 
 ## Evidence (`composite.rs`)
 
-- `python3 tools/extract-abi.py --check emacs/src/coding.h femacs/src/include/coding.rs` -> `OK
-  emacs/src/coding.h -> femacs/src/include/coding.rs` (the include adds no item the comparison
+- `python3 tools/extract-abi.py --check emacs/src/coding.h src/include/coding.rs` -> `OK
+  emacs/src/coding.h -> src/include/coding.rs` (the include adds no item the comparison
   can see).
 - `python3 tools/check-citations.py` -> `675 file(s) scanned, 0 drift, 0 range, 351 external,
   33 allowed, 0 stale` (the placement is what keeps the four rows above matching).

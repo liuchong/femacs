@@ -96,7 +96,7 @@
   three types, the 21 file-scope objects and the four `DEFVAR_*` variables this unit owns.
   The 8 non-`static` definitions carry `#[unsafe(no_mangle)]` (PORTING.md 0.2); the 12
   `static` helpers stay plain `unsafe fn`.
-- **`charset.h`'s mirror landed with this unit** (`femacs/src/include/charset.rs`, the
+- **`charset.h`'s mirror landed with this unit** (`src/include/charset.rs`, the
   composite.rs/intervals.rs precedent): the three enums, both structs, the 63 macros, the
   two INLINE functions, all nineteen `extern` objects and every prototype.  This unit
   defines five of the header's prototypes, so that block moved into a `charset_decls`

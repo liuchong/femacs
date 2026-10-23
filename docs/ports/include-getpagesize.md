@@ -25,5 +25,5 @@ src/gmalloc.c, src/ralloc.c), which is why the mapping exists at all - a unit th
 gets nothing from it here, as in C.
 
 Evidence: `python3 tools/extract-abi.py --check emacs/src/getpagesize.h
-femacs/src/include/getpagesize.rs` -> `OK`; `xtask layout-check` compiles every `src/include/*.rs`
+src/include/getpagesize.rs` -> `OK`; `xtask layout-check` compiles every `src/include/*.rs`
 into one crate and passes with this file present (an empty mirror still has to parse).

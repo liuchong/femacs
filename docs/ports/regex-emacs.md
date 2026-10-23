@@ -182,7 +182,7 @@
 
 **Complete (2026-10-04).**  Every one of the ledger's 168 rows is ticked, the unit compiles
 (`built src/regex-emacs.rs`), and `tools/extract-abi.py --check emacs/src/regex-emacs.c
-femacs/src/regex-emacs.rs` prints `OK`.
+src/regex-emacs.rs` prints `OK`.
 
 **Dead arms: carried, not recorded (status 3.49/P-51).**  `src/regex-emacs.c` is *not* in
 `docs/baseline/config/cond-eval-verified.txt`: `tools/check-cond-eval.py src/regex-emacs.c`
@@ -211,12 +211,12 @@ definition is gated the same way: in the frozen build the unit emits no such sym
 
 **The `regex-emacs.h` mirror lands with this unit** (the `docs/ports/thread.md` precedent):
 `struct re_pattern_buffer`, its six bit accessors, the `RE_PATTERN_*` masks and the eight
-declarations are in `femacs/src/include/regex-emacs.rs`, the declarations in
+declarations are in `src/include/regex-emacs.rs`, the declarations in
 `pub mod regex_emacs_decls` + glob import because this unit defines them (PORTING.md 0.1-10:
 a same-named declaration plus definition in one unit is an `E0428`).  `src/search.c`'s port
 carried its own copy of the record, the masks, the accessors, the five `re_*` prototypes and
 `print_compiled_pattern`; those copies are deleted in the same commit, and `src/search.c`
-rebuilds and `--check`s `OK` with the mirror's text (`femacs/src/search.rs` 3,846 -> 3,722
+rebuilds and `--check`s `OK` with the mirror's text (`src/search.rs` 3,846 -> 3,722
 lines).  `src/syntax.c`, `src/thread.c` and `src/emacs.c` - the mirror's other consumers -
 also rebuild after the change.
 

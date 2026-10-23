@@ -1,6 +1,6 @@
 # emacs/oldXMenu/insque.c (57 lines)
 
-> Filled in: the port is `femacs/oldXMenu/insque.rs`.  Until this round it was the empty unit that
+> Filled in: the port is `oldXMenu/insque.rs`.  Until this round it was the empty unit that
 > docs/status.md 3.31 prescribed; P-86 ① overturns that reading ("3 行的头注释不是'落完'，是'还没开始'"),
 > and `oldXMenu/Internal.rs` is the sibling that already carries this directory's shape.
 

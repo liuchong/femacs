@@ -29,7 +29,7 @@
 | C 38-42, 101-105, 186-190, 252-256 (`TREE_SITTER_LANGUAGE_VERSION >= 15`) | `feature = "treesit_language_version_ge_15"` — **a name this tree has not registered** (see `## Deviations`) | tree-sitter 0.25 or newer |
 | C 88-92, 165-169, 237-241, 303-307 (`HAVE_TS_TREE_CURSOR_GOTO_PREVIOUS_SIBLING`) | `feature = "have_ts_tree_cursor_goto_previous_sibling"` — **also unregistered** | a tree-sitter with `ts_tree_cursor_goto_previous_sibling` |
 
-`have_tree_sitter` is the name `femacs/xtask/Cargo.toml` 161 registers for C's `HAVE_TREE_SITTER`
+`have_tree_sitter` is the name `xtask/Cargo.toml` 161 registers for C's `HAVE_TREE_SITTER`
 (one of the 24 sites `docs/baseline/feature-coverage.tsv` 26 lists, `enabled by:` empty today);
 `windowsnt` is the name `src/decompress.rs` and `src/vm-limit.rs` 95 already use for that
 configuration.  The two version-derived names have no row anywhere in the tree yet: this file is
@@ -77,10 +77,10 @@ of each pair is the one that is *not* compiled - and neither is, because the fil
 
 ## Decisions
 
-`emacs/src/treesit.c` @ `fd7afced403`; port `femacs/src/treesit.rs` (1216 lines, of which the
+`emacs/src/treesit.c` @ `fd7afced403`; port `src/treesit.rs` (1216 lines, of which the
 transcribed slice is the whole increase from the 48-line live-text-only revision); the gates are
 `build-tu src/treesit.c` -> `built` and
-`python3 tools/extract-abi.py --check emacs/src/treesit.c femacs/src/treesit.rs` -> **`FAIL`** on
+`python3 tools/extract-abi.py --check emacs/src/treesit.c src/treesit.rs` -> **`FAIL`** on
 the line-count ratchet only (see `## Evidence` ③, which names the row that has to change).
 
 - **Which text is live.**  `HAVE_TREE_SITTER` is `undef` (macros.tsv 1656), so 53 of 5,634 lines
@@ -115,7 +115,7 @@ the line-count ratchet only (see `## Evidence` ③, which names the row that has
 - **Two unregistered feature names.**  `treesit_language_version_ge_15` and
   `have_ts_tree_cursor_goto_previous_sibling` stand for C's `TREE_SITTER_LANGUAGE_VERSION >= 15` and
   `HAVE_TS_TREE_CURSOR_GOTO_PREVIOUS_SIBLING` pairs.  The tree has no tree-sitter version gate and
-  this unit does not add names to `femacs/xtask/Cargo.toml` (`## Gate mapping`; the androidvfs
+  this unit does not add names to `xtask/Cargo.toml` (`## Gate mapping`; the androidvfs
   `android_api_ge_9` precedent).  Both are off in every configuration the tree can build today,
   which is the frozen side of each pair as well.
 - **C 27's `#include "treesit.h"` is not an `include!` edge.**  The mirror declares
@@ -131,7 +131,7 @@ the line-count ratchet only (see `## Evidence` ③, which names the row that has
   cost a two-arm `#[cfg]` pair; a wrapper function per name is the cheaper alternative spelling and
   is a PORTING.md §11 decision, not this lane's.
 - **`DEF_DLL_FN`/`LOAD_DLL_FN` are written out in long form** in this unit, as
-  `femacs/src/include/w32common.rs` 171-184 defers them (P-22) and `src/decompress.rs` resolved
+  `src/include/w32common.rs` 171-184 defers them (P-22) and `src/decompress.rs` resolved
   them: C pastes `W32_PFN_##func`/`fn_##func` and stringifies the name, so both are parameters
   here.  `CDECL` is empty on this target's ABI, so the pointer type is the plain `extern "C"` one.
 - **`dynlib_*` comes from the mirror that owns it.**  C 864-941 names `dynlib_handle_ptr`,
@@ -149,7 +149,7 @@ the line-count ratchet only (see `## Evidence` ③, which names the row that has
 - **`(*ranges).end_byte == -1` is `u32::MAX`.**  C compares a `uint32_t` with the `int` -1, i.e.
   the all-ones value; a bare `-1` is not a `u32` expression in Rust.
 - **`%"PRIu32"` in C 609's `printf` is the concatenated literal** `c" [%u, %u)"`, the value
-  `femacs/lib/include/inttypes.in.rs` 201 measures for the frozen `<inttypes.h>`.
+  `lib/include/inttypes.in.rs` 201 measures for the frozen `<inttypes.h>`.
 - **Named gaps this unit does not close** (listed in `## Decisions`): the `TS*` types and the two
   api.h version macros, `XTS_PARSER`/`Lisp_TS_Parser`, and the `line-drift-tolerance.tsv` row.
 
@@ -179,11 +179,11 @@ No gated item and no gated mirror name reaches the frozen object.
 (*The pre-round object's byte size is not recorded in the earlier ledger, so "unchanged" is read
 from the symbol set and the 2-warning profile, both of which the 48-line revision produced too.*)
 
-**② The line count.**  `wc -l femacs/src/treesit.rs` -> **1216** (was 48); the transcribed C span is
+**② The line count.**  `wc -l src/treesit.rs` -> **1216** (was 48); the transcribed C span is
 C 29-946, 918 lines of C.
 
 **③ `extract-abi --check` fails on the ratchet, and the row that fixes it is not this lane's.**
-`python3 tools/extract-abi.py --check emacs/src/treesit.c femacs/src/treesit.rs` ->
+`python3 tools/extract-abi.py --check emacs/src/treesit.c src/treesit.rs` ->
 `- line count drifted 2194.3%: C 53 live (of 5634) vs Rust 1216` / `FAIL …`, **exit 1**.
 `docs/ports/line-drift-tolerance.tsv` 145 is
 `treesit	0.35	C 53 live (of 5634) vs the port's 69: … (P-08).	live` - a `live`-basis row whose
@@ -206,7 +206,7 @@ sizeof(treesit_loaded_lang)=16 alignof=8 lang=0 filename=8
 sizeof(treesit_lang_cache_entry)=24 alignof=8 symbol=0 lang=8
 ```
 (`typedef struct TSLanguage TSLanguage; typedef intptr_t Lisp_Object;` - the incomplete api.h type
-if the header were present, and the port's word-sized tagged pointer, `femacs/src/include/lisp.rs`
+if the header were present, and the port's word-sized tagged pointer, `src/include/lisp.rs`
 82-83.)  Those four numbers are the `const _: () = assert! (…)` items in the port
 (`std::mem::size_of`/`offset_of`), which the flip would check if the arm could be compiled.
 The temporary directory is cleaned up, so the probe's source is kept here:
@@ -273,7 +273,7 @@ prose reaches the unit or this ledger; the walk read 682 files).
 `info docs/ports/treesit.md: 31 range row(s) cover src/treesit.c (5634 lines; 0 blank line(s) between
 blocks need no row)` / `25 ledger(s) bound (a C range table), 0 failure(s)` -> **0 failures**.  The
 same run also prints the line `31 range row(s) cover src/treesit.h` for this table: the tool resolves
-`femacs/src/include/treesit.rs` to the *stem*'s ledger, and the header's own
+`src/include/treesit.rs` to the *stem*'s ledger, and the header's own
 `docs/ports/include-treesit.md` carries no range table, so the unit's table answers for it too - the
 pre-existing behaviour for every `.c`/`.h` pair (`w32term.c` and `w32term.h` both print
 `docs/ports/w32term.md`), recorded here so the reading is not read as a claim about the header.

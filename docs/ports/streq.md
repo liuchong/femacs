@@ -1,4 +1,4 @@
-# emacs/lib/streq.c  →  femacs/lib/streq.rs (19 lines)
+# emacs/lib/streq.c  →  lib/streq.rs (19 lines)
 
 # ----------------------------------------------------------------------
 ## Subrs (DEFUN) — 0

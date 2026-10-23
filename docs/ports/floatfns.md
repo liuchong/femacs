@@ -55,10 +55,10 @@
 
 ## Decisions
 
-`emacs/src/floatfns.c` @ `fd7afced403`; port `femacs/src/floatfns.rs` (677 lines).
+`emacs/src/floatfns.c` @ `fd7afced403`; port `src/floatfns.rs` (677 lines).
 
 What is verified, and by what.  `python3 tools/extract-abi.py --check emacs/src/floatfns.c
-femacs/src/floatfns.rs` -> `OK`; `xtask build-tu src/floatfns.c` compiles the unit in both
+src/floatfns.rs` -> `OK`; `xtask build-tu src/floatfns.c` compiles the unit in both
 configurations (plain and `--cfg enable_checking`); `xtask gate-fast` (inventory, `cargo
 check`, every finished translation unit, the probe programs, `fam`/`shadow`/`macro`, the
 layout assertions); `xtask gate-probes` for the C differential of the mirrors this unit
@@ -77,9 +77,9 @@ P-30's territory and needs the loading ladder.
   `const _: () = assert! (!cfg! (…) || …)` (the `buffer.rs` shape, P-08).
 - **`<math.h>` and `<limits.h>` (P-26).**  C gets every libm call and `INT_MIN`/`INT_MAX`
   from system headers the port has not mirrored yet, so they live in the system mirrors
-  `femacs/lib/include/math.rs` (new: the 22 libm functions, the `HUGE_VAL`/`FP_ILOGB0`
+  `lib/include/math.rs` (new: the 22 libm functions, the `HUGE_VAL`/`FP_ILOGB0`
   constants measured from the frozen target's clang, and the `isnan`/`isfinite`/`isinf`/
-  `signbit` macros) and `femacs/lib/include/limits.in.rs` (extended: `INT_MIN`, `INT_MAX`).
+  `signbit` macros) and `lib/include/limits.in.rs` (extended: `INT_MIN`, `INT_MAX`).
   `DBL_MANT_DIG` (53) and `DBL_MIN_EXP` (-1021), which `double_integer_scale` and
   `rescale_for_division` need, were added to `lib/include/float.in.rs` from the same
   measured report.

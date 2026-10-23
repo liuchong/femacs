@@ -59,12 +59,12 @@ the frozen headers with `-std=gnu23` prints `sizeof (union specbinding) = 32`, `
 `src/lisp.h` is included by nearly every unit of the tree, so its `core::ffi` import list is the
 place every unit's `c_*` spellings come from - and the `nt/inc` mirrors spell MSVC's `__int64` as
 `c_longlong` (`sys/stat.rs`'s `st_size`, `resource.rs`'s `rlim_t`), a name that list did not
-carry.  `femacs/src/w32.rs`'s `windowsnt` probe read **three** `cannot find type c_longlong` rows
+carry.  `src/w32.rs`'s `windowsnt` probe read **three** `cannot find type c_longlong` rows
 for it (one per mirror site, carried since slice 1); adding the name to this mirror's
 `use std::ffi::{…}` retired all three in one edit and needed no other change - the frozen probe is
 unchanged (**exit 0**, **336-byte** empty object), and the same probe's located-site count fell
 **135 -> 98** in the round that made the edit (that round also spelled the socket types
-`femacs/nt/inc/sys/include/socket.rs` assigns to its includers; `docs/ports/w32.md` records both).
+`nt/inc/sys/include/socket.rs` assigns to its includers; `docs/ports/w32.md` records both).
 
 ## Declarations (status 4.998)
 

@@ -79,10 +79,10 @@ def main():
     defined, truthy = config_features(path)
 
     used = {}
-    for src in sorted(list((REPO / "femacs/src").rglob("*.rs"))
-                      + list((REPO / "femacs/lib").rglob("*.rs"))
+    for src in sorted(list((REPO / "src").rglob("*.rs"))
+                      + list((REPO / "lib").rglob("*.rs"))
                       + [p for d in ("lib-src", "lwlib", "oldXMenu", "exec", "nt")
-                         for p in (REPO / "femacs" / d).rglob("*.rs")]):
+                         for p in (REPO / d).rglob("*.rs")]):
         try:
             text = src.read_text()
         except (UnicodeDecodeError, FileNotFoundError):

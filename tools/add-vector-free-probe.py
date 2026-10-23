@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Insert (or remove) the free-list probe in femacs/src/alloc.rs.
+"""Insert (or remove) the free-list probe in src/alloc.rs.
 
 4.836's tombstone read as `vector_free_lists[0]` holding -2, which only happens when a vector on
 that list has `contents[0] == 0` (`next_vector` subtracts the Lisp_Int0 tag from a value that was
@@ -20,7 +20,7 @@ the crash the way the 4.829 probes did:
 import pathlib
 import sys
 
-SRC = pathlib.Path (__file__).resolve ().parent.parent / "femacs/src/alloc.rs"
+SRC = pathlib.Path (__file__).resolve ().parent.parent / "src/alloc.rs"
 
 HELPER = '''/* TEMPORARY free-list probe (tools/add-vector-free-probe.py).  */
 #[cfg (feature = "have_android")]

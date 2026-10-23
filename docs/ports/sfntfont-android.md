@@ -6,7 +6,7 @@
 > the other one, so `docs/baseline/frozen-build-sources.txt` lists no `sfntfont-android.o` and
 > `tools/extract-abi.py`'s checklist for the file is empty (P-86 ②).  This ledger is that clause's
 > substitute: the **C line-range table**, the `## Evidence` readings and the `## Deviations`.
-> Port: `femacs/src/sfntfont-android.rs` (**1005 lines**, md5 `5110a27299d16dfec9d5bff292653630`),
+> Port: `src/sfntfont-android.rs` (**1005 lines**, md5 `5110a27299d16dfec9d5bff292653630`),
 > carrying **C 1-821 with both arms of every `#if`**.  The reference `emacs/src/sfntfont-android.c`
 > is md5 `bd161722c271c80bff8483c670b0dfab` (unchanged; `emacs/` is read-only) and
 > `docs/port-map.md` 526 pairs the two (that row's port-side count is the integrator's
@@ -50,14 +50,14 @@
 | C 250 `#if 0` … C 256 `#else` … C 260 `#endif` (inside `sfntfont_android_over_8888_1`) | **no gate**: dead in every configuration; C's arm is kept as a comment (the `w32inevt.md` C 120 reading) | never |
 | C 326-328 `#ifdef __aarch64__` (the `lim_x` local), C 361-375 (`#ifdef __aarch64__` inside the pixel loop) | `feature = "aarch64"` / `not (feature = "aarch64")` | one arm per configuration |
 | C 490 `#ifndef __aarch64__` … C 492 `#else` … C 494 `#endif` (the two `stride` expressions) | `not (feature = "aarch64")` / `feature = "aarch64"`; both carried | one arm per configuration |
-| C 666 `#ifdef HAVE_HARFBUZZ` … C 673 `#endif` (the four driver members) | `feature = "harfbuzz"` (`femacs/xtask/Cargo.toml` 141; `HAVE_HARFBUZZ` is `undef` in the frozen table) | a HarfBuzz build |
+| C 666 `#ifdef HAVE_HARFBUZZ` … C 673 `#endif` (the four driver members) | `feature = "harfbuzz"` (`xtask/Cargo.toml` 141; `HAVE_HARFBUZZ` is `undef` in the frozen table) | a HarfBuzz build |
 | C 609 `#undef MAX_ALLOCA` | no counterpart: `MAX_ALLOCA` is lisp.h 5616's *enum* constant in both languages, so C's `#undef` is a no-op (Deviations 10) | n/a |
 
 `tools/check-cond-eval.py src/sfntfont-android.c` reads **`8 conditions, 0 unknown, 0 disagreements
 [VERIFIED]`** (Evidence ④): the eight are C 26, 74, 195, 250, 326, 361, 490 and 666 — the whole
 conditional text of the file.  `ANDROID_STUBIFY` has **no `#if` in this file** (the gate is
 `configure.ac`'s) and the tree has not registered it as a feature; `not_android_stubify`
-(`femacs/xtask/Cargo.toml` 643) is C's `HAVE_ANDROID && !defined ANDROID_STUBIFY` as the tree spells
+(`xtask/Cargo.toml` 643) is C's `HAVE_ANDROID && !defined ANDROID_STUBIFY` as the tree spells
 it, and the arm flip therefore *sets* it (P-86 ⑥: a single `have_android` cfg would have selected
 nothing at all).
 
@@ -166,7 +166,7 @@ probe prints `_strstr`/`_strcmp` (no `rpl_` redirect), which is what lets Deviat
 **④ The other gates (repository root, final revision), one line each.**
 `python3 tools/check-cond-eval.py src/sfntfont-android.c` → `8 conditions, 0 unknown, 0
 disagreements [VERIFIED]`. — `python3 tools/extract-abi.py --check emacs/src/sfntfont-android.c
-femacs/src/sfntfont-android.rs` → **one finding**: `line count drifted 22.4%: C 821 vs Rust 1005`
+src/sfntfont-android.rs` → **one finding**: `line count drifted 22.4%: C 821 vs Rust 1005`
 (Owed 1).  All fourteen functions, both `GET_SCANLINE_BUFFER` definitions, `U255TO256`, the subr
 `Fandroid_enumerate_fonts` with its `defsubr`, and the three file-scope objects
 (`font_cache`, `scanline_buffer`, `max_scanline_buffer_size`) are present, and every function
@@ -205,7 +205,7 @@ and 122 comment lines.
    `.val[i]` (the `macro-body-notes.tsv` row for `sfntfont_android_over_8888_1`/`val`).  The gate is
    `feature = "aarch64"`, not `target_arch`: C's own header choice ties the two.
 3. **The NDK surface is declared in place** (P-88 ①/P-90 ①, no new file under
-   `femacs/src/include/`): `ANDROID_LOG_VERBOSE` and `__android_log_print` (C 31),
+   `src/include/`): `ANDROID_LOG_VERBOSE` and `__android_log_print` (C 31),
    `ANDROID_BITMAP_FORMAT_RGBA_8888` and `AndroidBitmap_unlockPixels` (C 37's `android.h` chain),
    and `__ANDROID_API__` (24, the toolchain's own `-D`, the `androidmenu.rs` 68-73 shape — the
    mirror's `android_get_current_api_level` macro names it and leaves it to the consumer).  All are
@@ -261,7 +261,7 @@ and 122 comment lines.
     (the two records are the same four members).
 14. **`#[cfg] … include!` must be two lines, not one.**  The first frozen `build-tu` read 43 errors
     because `xtask`'s `gate_states` records a line as gated only when an attribute *run reached* it
-    (`femacs/xtask/src/main.rs`), so `#[cfg (…)] include!("…");` on one line is read as **ungated**
+    (`xtask/src/main.rs`), so `#[cfg (…)] include!("…");` on one line is read as **ungated**
     and the whole mirror graph was compiled in the frozen configuration.  Every include edge here is
     therefore attribute-then-edge, the tree's own spelling.  Worth a `PORTING.md` P-86 note; the
     *items* can merge their attribute onto their own line (the `vm-limit.rs` 114 shape, used for the
@@ -282,11 +282,11 @@ and 122 comment lines.
    reason (1005 Rust lines against a 821-line threshold, so the file leaves P-86's
    under-ten-percent class with this batch).
 4. **Two mirror rounds** (both outside this lane's write scope; each removes a Deviation):
-   (a) `femacs/src/include/character.rs` (or another mirror on the `androidterm.h` chain) needs its
+   (a) `src/include/character.rs` (or another mirror on the `androidterm.h` chain) needs its
    `include!("lisp.rs")` edge for C's character.h 26 → Deviations 12's extra edge goes;
-   (b) `femacs/src/include/sfntfont.rs`'s six driver-hook prototypes should spell the *record's*
+   (b) `src/include/sfntfont.rs`'s six driver-hook prototypes should spell the *record's*
    pointer stand-ins (`*mut c_void`/`*mut glyph_string`/`*mut font_metrics`, P-72 ③), and
-   `femacs/src/include/android.rs` should carry `<android/bitmap.h>`'s record (or the P-90 ①
+   `src/include/android.rs` should carry `<android/bitmap.h>`'s record (or the P-90 ①
    SDK-mirror decision) → Deviations 4 and 5's module copies and their six
    `clashing_extern_declarations` warnings go.  The same round could give
    `android_get_current_api_level`'s `__ANDROID_API__` a home (Deviations 3) and clear

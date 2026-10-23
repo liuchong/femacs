@@ -1,4 +1,4 @@
-# emacs/lib/memeq.c  →  femacs/lib/memeq.rs (19 lines)
+# emacs/lib/memeq.c  →  lib/memeq.rs (19 lines)
 
 # ----------------------------------------------------------------------
 ## Subrs (DEFUN) — 0

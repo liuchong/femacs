@@ -10,7 +10,7 @@
 > `## Evidence` readings and the per-`#if` `## Deviations`.  Nothing in this ledger is a
 > behaviour claim.
 >
-> Port: **`femacs/src/fontset.rs` carries the whole file** (C 1-2257), 2,622 lines (md5
+> Port: **`src/fontset.rs` carries the whole file** (C 1-2257), 2,622 lines (md5
 > `b8adba1f77d972e9ec4331d7d76526d8`; the reference's own md5 is
 > `e04b3ade6744baed5d88945dc6278bb4`), both arms of
 > every `#if` carried.  The file gate is C's own `HAVE_WINDOW_SYSTEM` ->
@@ -174,9 +174,9 @@ the Darwin configuration):
 
 | # | error | header | line |
 | --- | --- | --- | --- |
-| 4 | `E0425 cannot find function font_deferred_log` | `femacs/src/include/font.rs` | 308 (the body of the mirror's `FONT_DEFERRED_LOG!`, which this unit invokes four times) |
-| 4 | `E0425 cannot find type NSArray` (`*2`) / `NSString` / `EmacsMenu` | `femacs/src/include/nsterm.rs` | 215-218 |
-| 2 | `E0425 cannot find type composition` | `femacs/src/include/dispextern.rs` | 1639 (`glyph_string.cmp`) |
+| 4 | `E0425 cannot find function font_deferred_log` | `src/include/font.rs` | 308 (the body of the mirror's `FONT_DEFERRED_LOG!`, which this unit invokes four times) |
+| 4 | `E0425 cannot find type NSArray` (`*2`) / `NSString` / `EmacsMenu` | `src/include/nsterm.rs` | 215-218 |
+| 2 | `E0425 cannot find type composition` | `src/include/dispextern.rs` | 1639 (`glyph_string.cmp`) |
 
 **0 rows are in this unit's own text**: `build/probes/fontset/_root.rs` (which *is* this unit's
 text plus the mirrors' copies) is not the primary location of any of the ten.  The 11 warnings
@@ -210,7 +210,7 @@ unpinned stable toolchain reports - the `docs/ports/gnutls.md` 246 / `docs/ports
 reading.)
 
 **⑤ The item gate.**  `python3 tools/extract-abi.py --check emacs/src/fontset.c
-femacs/src/fontset.rs` -> **FAIL on one row only**: `line count drifted 16.2%: C 2257 vs Rust
+src/fontset.rs` -> **FAIL on one row only**: `line count drifted 16.2%: C 2257 vs Rust
 2622`.  Every other rule passes: all 33 functions, all 26 C macros, the seven subrs (Lisp name,
 `min`/`max` and the docstring digest each), the six `defsubr` rows and the six file-scope objects
 the extractor's item list names.  The five token exceptions the file needs are rows in
@@ -226,11 +226,11 @@ checklist was empty and it printed `OK` - P-86 ⑩.)
     python3 tools/check-ledger-ticks.py       -> 233 ledger(s) bound (a function tick to compare), 0 failure(s)
     python3 tools/check-citations.py          -> 676 file(s) scanned, 5 drift, 0 range, 1189 external, 30 allowed, 5 stale
 
-`check-mirror-dupes`'s failures are in `femacs/src/{doprnt,ftfont,keyboard,tparam,xfont}.rs`
+`check-mirror-dupes`'s failures are in `src/{doprnt,ftfont,keyboard,tparam,xfont}.rs`
 (other lanes' in-flight files; the count moved from 17 to 5 while this round ran, because those
 lanes were editing them); **none** names this unit in either reading.  `check-citations`' 5 drift/1 range/5
 stale rows are all `src/include/lisp.rs` except the one this round fixed
-(`femacs/src/fontset.rs`'s `fontset.h 88-89` -> `fontset.h 46`, the only line in that header that
+(`src/fontset.rs`'s `fontset.h 88-89` -> `fontset.h 46`, the only line in that header that
 declares `face_for_font`); its re-run reports **0** finding for this unit.
 
 The readings in ①-④ were taken on the revision before the last edit of this round, which is the
@@ -247,7 +247,7 @@ conversions.  `INT_STRLEN_BOUND (ptrdiff_t)` is 20 on this target (the C express
 
 ## Deviations
 
-1. **C 37's `#include "fontset.h"` is not included.**  The mirror (`femacs/src/include/fontset.rs`)
+1. **C 37's `#include "fontset.h"` is not included.**  The mirror (`src/include/fontset.rs`)
    declares its ten entry points in **one top-level** `unsafe extern "C" { … }`, and nine of them
    are defined by this unit (C 861-1234, 1266, 1798), so `include!("include/fontset.rs")` here is
    rustc's `E0428: the name … is defined multiple times` - measured in Evidence ③'s run (1), 9
@@ -348,13 +348,13 @@ conversions.  `INT_STRLEN_BOUND (ptrdiff_t)` is 20 on this target (the C express
    `extract-abi.py --check` for this pair is clean (Evidence ⑤'s one remaining row).
 2. **Three mirror-side findings** (each is a header another lane owns; named here for the
    integrator):
-   (a) `femacs/src/include/fontset.rs`: the ten prototypes sit in one top-level
+   (a) `src/include/fontset.rs`: the ten prototypes sit in one top-level
    `unsafe extern "C" { … }`; the nine this unit defines need the `pub mod` + `use …::*;` shape
    (P-39 / P-21) before this unit can `include!` that mirror at C 37.  (b)
-   `femacs/src/include/font.rs` 306-309: the `FONT_DEFERRED_LOG!` body names `font_deferred_log`,
+   `src/include/font.rs` 306-309: the `FONT_DEFERRED_LOG!` body names `font_deferred_log`,
    which that mirror does not declare in the scope of its includers (4 errors in Evidence ②).
-   (c) `femacs/src/include/nsterm.rs` 215-218: `NSArray`, `NSString` and `EmacsMenu` are named but
-   not declared (the NS arm's Objective-C surface); and `femacs/src/include/dispextern.rs` 1639:
+   (c) `src/include/nsterm.rs` 215-218: `NSArray`, `NSString` and `EmacsMenu` are named but
+   not declared (the NS arm's Objective-C surface); and `src/include/dispextern.rs` 1639:
    `glyph_string.cmp` is `*mut composition` with no `composition` in scope (P-88 ②'s
    untyped-pointer rule).
 

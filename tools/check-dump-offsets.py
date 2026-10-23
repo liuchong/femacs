@@ -21,7 +21,7 @@ from pathlib import Path
 
 REPO = Path(__file__).resolve().parent.parent
 REFERENCE = REPO / "emacs" / "src" / "pdumper.c"
-PORT = REPO / "femacs" / "src" / "pdumper.rs"
+PORT = REPO / "src" / "pdumper.rs"
 
 # `dump_offsetof (struct X, path)` - the macro's own call sites.
 C_MACRO = re.compile(r"dump_offsetof\s*\(\s*(?:struct\s+)?([A-Za-z_]\w*)\s*,\s*([\w.]+)\s*\)")

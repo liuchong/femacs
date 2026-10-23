@@ -1,6 +1,6 @@
 # lib/include mirrors the layout probe seeds as their own crate root (status 3.11, closed 3.217).
 #
-# The probe seeds `femacs/src/include/*.rs` and follows their `include!` graph, so a lib mirror is
+# The probe seeds `src/include/*.rs` and follows their `include!` graph, so a lib mirror is
 # only compiled there when a src mirror reaches it (`lib/include/stdbit.in.rs` is reached by
 # `src/include/lisp.rs`; `lib/include/stdlib.in.rs` is not reached by anything).  Status 3.11
 # recorded that gap and asked for the seed to include `lib/include` once the in-flight ones had

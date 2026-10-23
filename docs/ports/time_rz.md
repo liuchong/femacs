@@ -25,7 +25,7 @@
 
 ### Summary
 
-`femacs/lib/time_rz.rs` is the live text of `emacs/lib/time_rz.c` for the frozen
+`lib/time_rz.rs` is the live text of `emacs/lib/time_rz.c` for the frozen
 configuration (`tools/check-cond-eval.py lib/time_rz.c`: 6 conditions, 0 unknown,
 0 disagreements).  The 9 functions all have a counterpart, `extract-abi.py --check` is OK,
 and the unit's object reproduces the reference's symbols exactly:
@@ -102,14 +102,14 @@ to the time mirror.
 
 ### Shared files touched (all additive)
 
-* `femacs/lib/include/time.in.rs`: appended a second `unsafe extern "C"` block declaring
+* `lib/include/time.in.rs`: appended a second `unsafe extern "C"` block declaring
   `rpl_mktime` and `rpl_timegm` (with the reference-object evidence).  Nothing existing was
   reordered; `--check emacs/lib/time.in.h …` reports the same two pre-existing WIP items as
   before the append.
-* `femacs/lib/include/string.rs`: appended `_gl_strnul` + `strnul!` (string.in.h 1250-1305;
+* `lib/include/string.rs`: appended `_gl_strnul` + `strnul!` (string.in.h 1250-1305;
   the header's `_GL_STRNUL_INLINE` function is the mirror's, per PORTING.md 10.12).  The
   `streq!` macro this unit also calls came from another change already in the tree.
-* `femacs/lib/include/flexmember.rs` (new mirror) + `docs/ports/include-flexmember.md`:
+* `lib/include/flexmember.rs` (new mirror) + `docs/ports/include-flexmember.md`:
   `FLEXALIGNOF`, `FLEXSIZEOF`, `FLEXNSIZEOF`.  `FLEXNSIZEOF` is expanded by no ported unit;
   it keeps C's place expression (`sizeof (((type *) 0)->member[0])`) with `size_of_val`.
 * `docs/ports/token-aliases.tsv`: the `sizeof` family gained `size_of_val`, and a `free`
@@ -124,7 +124,7 @@ to the time mirror.
   0 disagreements [VERIFIED]`.
 * `cd femacs && CARGO_TARGET_DIR=/tmp/femacs-target cargo run -q -p xtask -- build-tu lib/time_rz.c`
   → `built lib/time_rz.rs -> ../build/femacs/time_rz.o`, 0 errors.
-* `python3 tools/extract-abi.py --check emacs/lib/time_rz.c femacs/lib/time_rz.rs` → OK.
+* `python3 tools/extract-abi.py --check emacs/lib/time_rz.c lib/time_rz.rs` → OK.
 * Symbol comparison against the frozen object (above).  No *behavioural* differential probe
   was run (the round's workflow stops at `build-tu`/`--check`).
 

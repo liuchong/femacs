@@ -2,8 +2,8 @@
 
 ## Decisions
 
-`emacs/lwlib/lwlib-utils.c` @ `fd7afced403`; port `femacs/lwlib/lwlib-utils.rs` (**740 lines**);
-mirror `femacs/lwlib/include/lwlib-utils.rs` (195 lines).  The gate is `feature = "use_lucid"`
+`emacs/lwlib/lwlib-utils.c` @ `fd7afced403`; port `lwlib/lwlib-utils.rs` (**740 lines**);
+mirror `lwlib/include/lwlib-utils.rs` (195 lines).  The gate is `feature = "use_lucid"`
 (P-86 clause 8), the build's condition rather than one the C text spells: the reference lists
 `lwlib-utils.o` inside the widget library's object list (`lwlib/Makefile.in` 58:
 `OBJS = lwlib.o $(TOOLKIT_OBJS) lwlib-utils.o`, whose toolkit lists are line 52's `LUCID_OBJS` and
@@ -15,7 +15,7 @@ file and the port's frozen object is the empty one.
 
 The header shares this ledger (`docs/port-map.md` binds both `lwlib/lwlib-utils.c` and
 `lwlib/lwlib-utils.h` to it): its 63 lines are inside the table below, and its mirror is
-`femacs/lwlib/include/lwlib-utils.rs`, whose declarations moved into `lwlib_utils_decls` (P-39) so
+`lwlib/include/lwlib-utils.rs`, whose declarations moved into `lwlib_utils_decls` (P-39) so
 that this unit's definitions shadow the foreign declarations instead of colliding with them
 (`E0428`).
 
@@ -127,7 +127,7 @@ unit's own text is therefore really type-checked, and "0 errors" is a reading ra
 early abort in the include graph.
 
 **⑤ Inventory.**  `python3 tools/extract-abi.py --check emacs/lwlib/lwlib-utils.c
-femacs/lwlib/lwlib-utils.rs` → one `- ` row only:
+lwlib/lwlib-utils.rs` → one `- ` row only:
 `- line count drifted 154.3%: C 291 vs Rust 740`, then `FAIL`.  All five live functions, their
 bodies' tokens and the `#[unsafe(no_mangle)]` set are otherwise clean (the cairo half is dead text
 in the frozen configuration, so this check does not see it - the C range table above is its
@@ -138,7 +138,7 @@ declaration sites (0 forbidden, 17 allowed literals), 0 failures; `tools/check-m
 17 duplicate declaration(s), 17 ratchet row(s), 0 failures; `tools/check-dead-file-coverage.py` →
 `lwlib-utils.md: 18 range row(s) cover lwlib/lwlib-utils.c (291 lines)` and the same 18 over
 `lwlib/lwlib-utils.h` (63 lines), 0 failures; `tools/check-citations.py` → 0 drift, 0 range, 0
-stale; `tools/check-citation-text.py femacs/lwlib` → 0 of every class; `tools/check-port-lines.py`
+stale; `tools/check-citation-text.py lwlib` → 0 of every class; `tools/check-port-lines.py`
 → the `lwlib/lwlib-utils.c` row is now stale (informational: the port is no longer under ten
 percent) and 0 files are new; `tools/check-ledger-ticks.py` → 0 failures.
 
@@ -180,7 +180,7 @@ percent) and 0 files are new; `tools/check-ledger-ticks.py` → 0 failures.
 8. **C's implicit conversions are spelled**: `Dimension`/`c_uint` → `c_int` at C 45-46,
    `double` → `c_int` at C 195-198 (`lround`'s `c_long`), `double` → `c_ushort`/`c_short` at
    C 282-289, and `int` → `double` at C 161-162.  No semantic change.
-9. **The mirror's `_decls` container** (`femacs/lwlib/include/lwlib-utils.rs`, P-39) groups C 4's
+9. **The mirror's `_decls` container** (`lwlib/include/lwlib-utils.rs`, P-39) groups C 4's
    declaration with C 9-16's and C 45-60's; the two typedefs C 6-7 declares follow the container -
    the one reordering the container forces.  The container's item order inside it is C's.
 
@@ -203,11 +203,11 @@ percent) and 0 files are new; `tools/check-ledger-ticks.py` → 0 failures.
    comments (the `lwlib-Xlw` row is the same class at 78.6%).
 4. **The `docs/baseline/port-lines-pending.tsv` row** for `lwlib/lwlib-utils.c` is stale after this
    round (informational); the integrator's `tools/check-port-lines.py --write-pending` retires it.
-5. **`femacs/src/haikuterm.rs` 30 cites this mirror by line number** ("the
+5. **`src/haikuterm.rs` 30 cites this mirror by line number** ("the
    `lwlib/include/lwlib-utils.rs` 48-49 reading of the same dead region"): the `_decls` container
    moved that comment to **61-62**.  That file is not this lane's to edit (its own comment is prose,
    not a machine-checked citation).
-6. **`docs/port-map.md`'s target-line column** for `femacs/lwlib/lwlib-utils.rs` still says 3.
+6. **`docs/port-map.md`'s target-line column** for `lwlib/lwlib-utils.rs` still says 3.
 
 ## Not claimed
 

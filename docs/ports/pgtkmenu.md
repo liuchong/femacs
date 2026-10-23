@@ -8,7 +8,7 @@
 > not in this target's source list at all.  What the earlier `status.md` 3.31 note measured (not in
 > the frozen source list, empty checklist, 336-byte object) is unchanged and still true; P-86 ①
 > replaces the *conclusion* — "the port is the empty unit plus the note that names the gate" — with
-> **transcribe the text, no stub**.  Port: `femacs/src/pgtkmenu.rs` (1486 lines, from the 11 lines
+> **transcribe the text, no stub**.  Port: `src/pgtkmenu.rs` (1486 lines, from the 11 lines
 > of the placeholder), carrying **C 1-1123**.
 >
 > **The file gate is `have_pgtk`** (`HAVE_PGTK`, `configure.ac` 3176), on every item *and on the
@@ -24,7 +24,7 @@
 > readings below are the gate alone (narrow) and the gate plus the implications a real pgtk build has
 > (`have_window_system`, `use_gtk`, `have_gtk3`).
 >
-> **The GTK/GDK surface's single home is `femacs/src/include/gtk.rs`** (P-90 ①②).  C does not reach
+> **The GTK/GDK surface's single home is `src/include/gtk.rs`** (P-90 ①②).  C does not reach
 > it directly: C 36's `"gtkutil.h"` includes `<gtk/gtk.h>` at gtkutil.h 26 and `"pgtkterm.h"` at its
 > 29 (under `HAVE_PGTK`), and C 37 is the file's own `#include <gtk/gtk.h>`; the unit carries those
 > edges at those C positions (the `src/pgtkfns.rs` C 28 stand-in shape).  What the *mirrors* do not
@@ -166,7 +166,7 @@ readings say the unit's own text is what is being checked:
    is on the read path.
 
 **④ `extract-abi.py --check`.**  `python3 tools/extract-abi.py --check emacs/src/pgtkmenu.c
-femacs/src/pgtkmenu.rs` → `FAIL`, and after the one `macro-body-notes.tsv` row this batch appended
+src/pgtkmenu.rs` → `FAIL`, and after the one `macro-body-notes.tsv` row this batch appended
 (one append, at the end of the file, beside its own section comment) the whole output is the
 expected lone line:
 
@@ -209,7 +209,7 @@ python3 tools/check-dead-file-coverage.py
 python3 tools/check-ledger-ticks.py
   -> this ledger is not bound (it carries no `## Functions defined` checklist; P-86 ② replaces it
      with the C line-range table above)
-python3 tools/extract-abi.py --check emacs/src/pgtkmenu.c femacs/src/pgtkmenu.rs
+python3 tools/extract-abi.py --check emacs/src/pgtkmenu.c src/pgtkmenu.rs
   -> FAIL, the lone line-count drift row of ④ (the token row is cleared)
 ```
 

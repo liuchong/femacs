@@ -20,7 +20,7 @@
   0 disagreements [VERIFIED]`, that one condition being the guard).  The frozen configuration's
   platform object variables are all empty (`CYGWIN_OBJ=`, `MSDOS_OBJ=`, `WINDOW_SYSTEM_OBJ=`,
   `HAIKU_OBJ=` in `docs/baseline/frozen-build-sources.txt`; docs/status.md 3.31), so
-  `src/cygw32.c` has no translation unit here: `femacs/src/cygw32.rs` is the empty shape that
+  `src/cygw32.c` has no translation unit here: `src/cygw32.rs` is the empty shape that
   names the exclusion, and the three entry points the mirror carries are deferred to the Cygwin
   target together with their definitions (the `src/w32select.h` precedent, status 3.158).
 - **P-72 decides the names: the mirror may only name what its own text reaches.**  The three
@@ -47,8 +47,8 @@
 
 ## Evidence
 
-- `python3 tools/extract-abi.py --check emacs/src/cygw32.h femacs/src/include/cygw32.rs`
-  -> `OK emacs/src/cygw32.h -> femacs/src/include/cygw32.rs` (no `- ` problem lines).
+- `python3 tools/extract-abi.py --check emacs/src/cygw32.h src/include/cygw32.rs`
+  -> `OK emacs/src/cygw32.h -> src/include/cygw32.rs` (no `- ` problem lines).
 - `python3 tools/check-cond-eval.py src/cygw32.h` -> `1 conditions, 0 unknown to the evaluator,
   0 disagreements` (that condition is the guard).
 - `python3 tools/extract-abi.py emacs/src/cygw32.h` -> this ledger: 0 subrs, 0 functions defined,

@@ -4,39 +4,39 @@
 # quote is the member's type or a neighbour's name.  Every row carries that reason; a row that no
 # longer matches a finding is a failure, the same rule the other manifests use.  Columns:
 # <port file>:<line>\t<reason>.
-femacs/src/include/coding.rs:170	coding.h 384-392 is struct coding_detection_info; the quoted `detector` is a member of struct coding_system
-femacs/src/include/coding.rs:215	coding.h 267-281 is the five CODING_MODE_* values; `mode` is the member they are stored in
-femacs/src/include/coding.rs:222	coding.h 507-516 is the ten CODING_ANNOTATION_* values; `common_flags` is the member they land in
-femacs/src/include/coding.rs:311	coding.h 704 is make_string_from_utf8's prototype; `build_string_from_utf8` is the sentence's "who calls it" note
-femacs/src/include/lisp.rs:32	lisp.h 34 is an #include line and the quoted type is what that include brings in (the include-line class)
-femacs/src/include/lisp.rs:4265	lisp.h 4796 is `extern AVOID signal_error (...)`; the quoted `_Noreturn void` is how AVOID expands
-femacs/src/include/font.rs:5	composite.h 28 is an #include line (that is the cited text) and the quoted struct is what the include brings in
-femacs/lib/include/verify.rs:29	verify.h 41/45 are the two _GL_HAVE__STATIC_ASSERT defines; `_Static_assert` is only mentioned in the 24 comment
-femacs/lib/include/verify.rs:106	verify.h 267-270 is the MSVC arm's _Static_assert definition; `_GL_STATIC_ASSERT_H` is the outer guard at 240
-femacs/lib/include/verify.rs:154	verify.h 323/334 are the two _GL_HAS_BUILTIN_* fallbacks; `assume` is the macro this paragraph discusses
-femacs/src/atimer.rs:39	lisp.h 30 is an #include line; `memset` is what that include brings in
-femacs/src/character.rs:25	lisp.h 30 is an #include line; `str_as_multibyte` is a name the sentence discusses
-femacs/src/character.rs:28	character.c 32 is the `<sys/types.h>` include line; `ptrdiff_t` is what it brings in
-femacs/src/chartab.rs:18	lisp.h 34/28 are include lines; `countof` belongs to the second citation
-femacs/src/cm.rs:34	cm.c 23 is the include line this docstring quotes as its example (the class the tool documents)
-femacs/src/fileio.rs:50	frame.h 22 is the `#include "termhooks.h"` line; `terminal` is what it brings in
-femacs/src/include/comp.rs:8	comp.h 23 is an include line; `dynlib_handle_ptr` is a member the sentence names
-femacs/src/include/fontset.rs:42	fontset.h 29 is an include line; `Lisp_Object` is what it brings in
-femacs/src/include/pdumper.rs:19	pdumper.h 23 is an include line; `FILE` is what it brings in
-femacs/src/profiler.rs:37	lisp.h 30 is an include line; `memcpy` is what that include brings in
-femacs/src/scroll.rs:39	lisp.h 30 is an include line; `memset` is what that include brings in
-femacs/src/data.rs:1409	data.c 84 is the `eassert` the sentence cites; `set_blv_valcell` is the related function it names
-femacs/src/filelock.rs:31	lisp.h 5303-5334 is right; `kill` belongs to the `<signal.h>` group named later in the sentence
-femacs/src/include/androidterm.rs:19	androidgui.h 33-42 is the handle typedefs; `frame` is another mirror's type
-femacs/src/include/charset.rs:27	charset.h 322 is right; `struct charset` is the type the sentence discusses
-femacs/src/include/cm.rs:168	cm.h 123-127 is right; `bool_bf` is the member's type
-femacs/src/include/dispextern.rs:620	dispextern.h 648-661 is right; `struct glyph *` is a parameter type
-femacs/src/include/lisp.rs:2796	lisp.h 5276-5280 is right; the condition is at 5273
-femacs/src/include/lisp.rs:4004	lisp.h 759 is the `lispfwd` typedef; `KBOARD` is the type named in the second half
-femacs/src/include/lisp.rs:4137	lisp.h 4654 is right; `struct buffer` belongs to the third citation on the line
-femacs/src/include/termchar.rs:13	termhooks.h 533-542 is `union display_info`; `FRAME_TTY` is the macro that reads it
-femacs/src/include/termhooks.rs:13	termhooks.h 27 is the `#include "dispextern.h"` line (status 3.527 added the edge); `struct terminal` is the type the sentence quotes, not the line's own subject (the include-line class)
-femacs/src/include/termhooks.rs:376	termhooks.h 920-921 is right; `tty_display_info` is the type being read
-femacs/src/include/pgtkgui.rs:15	dispextern.h 179 is right (the `#ifndef NativeRectangle` / `#define NativeRectangle int` fallback the comment is about); the quoted `HAVE_PGTK` is the feature that makes both fallbacks dead, named in the same sentence (dispextern.h 149)
-femacs/src/w32proc.rs:469	lisp.h 30 is an #include line; `memset` is what that include brings in
-femacs/src/gtkutil.rs:92	lisp.h 30 is an #include line; `strlen` is what that include brings in
+src/include/coding.rs:170	coding.h 384-392 is struct coding_detection_info; the quoted `detector` is a member of struct coding_system
+src/include/coding.rs:215	coding.h 267-281 is the five CODING_MODE_* values; `mode` is the member they are stored in
+src/include/coding.rs:222	coding.h 507-516 is the ten CODING_ANNOTATION_* values; `common_flags` is the member they land in
+src/include/coding.rs:311	coding.h 704 is make_string_from_utf8's prototype; `build_string_from_utf8` is the sentence's "who calls it" note
+src/include/lisp.rs:32	lisp.h 34 is an #include line and the quoted type is what that include brings in (the include-line class)
+src/include/lisp.rs:4265	lisp.h 4796 is `extern AVOID signal_error (...)`; the quoted `_Noreturn void` is how AVOID expands
+src/include/font.rs:5	composite.h 28 is an #include line (that is the cited text) and the quoted struct is what the include brings in
+lib/include/verify.rs:29	verify.h 41/45 are the two _GL_HAVE__STATIC_ASSERT defines; `_Static_assert` is only mentioned in the 24 comment
+lib/include/verify.rs:106	verify.h 267-270 is the MSVC arm's _Static_assert definition; `_GL_STATIC_ASSERT_H` is the outer guard at 240
+lib/include/verify.rs:154	verify.h 323/334 are the two _GL_HAS_BUILTIN_* fallbacks; `assume` is the macro this paragraph discusses
+src/atimer.rs:39	lisp.h 30 is an #include line; `memset` is what that include brings in
+src/character.rs:25	lisp.h 30 is an #include line; `str_as_multibyte` is a name the sentence discusses
+src/character.rs:28	character.c 32 is the `<sys/types.h>` include line; `ptrdiff_t` is what it brings in
+src/chartab.rs:18	lisp.h 34/28 are include lines; `countof` belongs to the second citation
+src/cm.rs:34	cm.c 23 is the include line this docstring quotes as its example (the class the tool documents)
+src/fileio.rs:50	frame.h 22 is the `#include "termhooks.h"` line; `terminal` is what it brings in
+src/include/comp.rs:8	comp.h 23 is an include line; `dynlib_handle_ptr` is a member the sentence names
+src/include/fontset.rs:42	fontset.h 29 is an include line; `Lisp_Object` is what it brings in
+src/include/pdumper.rs:19	pdumper.h 23 is an include line; `FILE` is what it brings in
+src/profiler.rs:37	lisp.h 30 is an include line; `memcpy` is what that include brings in
+src/scroll.rs:39	lisp.h 30 is an include line; `memset` is what that include brings in
+src/data.rs:1409	data.c 84 is the `eassert` the sentence cites; `set_blv_valcell` is the related function it names
+src/filelock.rs:31	lisp.h 5303-5334 is right; `kill` belongs to the `<signal.h>` group named later in the sentence
+src/include/androidterm.rs:19	androidgui.h 33-42 is the handle typedefs; `frame` is another mirror's type
+src/include/charset.rs:27	charset.h 322 is right; `struct charset` is the type the sentence discusses
+src/include/cm.rs:168	cm.h 123-127 is right; `bool_bf` is the member's type
+src/include/dispextern.rs:620	dispextern.h 648-661 is right; `struct glyph *` is a parameter type
+src/include/lisp.rs:2796	lisp.h 5276-5280 is right; the condition is at 5273
+src/include/lisp.rs:4004	lisp.h 759 is the `lispfwd` typedef; `KBOARD` is the type named in the second half
+src/include/lisp.rs:4137	lisp.h 4654 is right; `struct buffer` belongs to the third citation on the line
+src/include/termchar.rs:13	termhooks.h 533-542 is `union display_info`; `FRAME_TTY` is the macro that reads it
+src/include/termhooks.rs:13	termhooks.h 27 is the `#include "dispextern.h"` line (status 3.527 added the edge); `struct terminal` is the type the sentence quotes, not the line's own subject (the include-line class)
+src/include/termhooks.rs:376	termhooks.h 920-921 is right; `tty_display_info` is the type being read
+src/include/pgtkgui.rs:15	dispextern.h 179 is right (the `#ifndef NativeRectangle` / `#define NativeRectangle int` fallback the comment is about); the quoted `HAVE_PGTK` is the feature that makes both fallbacks dead, named in the same sentence (dispextern.h 149)
+src/w32proc.rs:469	lisp.h 30 is an #include line; `memset` is what that include brings in
+src/gtkutil.rs:92	lisp.h 30 is an #include line; `strlen` is what that include brings in

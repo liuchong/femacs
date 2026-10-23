@@ -1,5 +1,5 @@
 /* The C side of spikes/syshdrs-probe.sh: the values and macros the port's *system*
-   header mirrors carry (`femacs/lib/include/math.rs`, `limits.in.rs`, `float.in.rs`).
+   header mirrors carry (`lib/include/math.rs`, `limits.in.rs`, `float.in.rs`).
    These mirrors have no reference file to be paired with, so this probe is their gate:
    the numbers and the four macros come from clang's own headers, and the Rust side must
    print the same lines (review B's B4).  */

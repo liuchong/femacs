@@ -1,4 +1,4 @@
-# `femacs/src/include/xlib.rs` — the X11 SDK surface
+# `src/include/xlib.rs` — the X11 SDK surface
 
 **First line.** `// femacs: mirror of the X11 SDK's <X11/Xlib.h> (system header of another
 target's toolchain, PORTING.md P-26/P-49).`  There is no C file to pair it with: `<X11/Xlib.h>` is

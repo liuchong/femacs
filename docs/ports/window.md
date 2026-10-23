@@ -265,7 +265,7 @@
 # ----------------------------------------------------------------------
 ## Decisions
 
-**Port status: DONE — the unit is transcribed end to end.**  `femacs/src/window.rs`
+**Port status: DONE — the unit is transcribed end to end.**  `src/window.rs`
 transcribes **`emacs/src/window.c` lines 1-9740**: the 121 subrs, the 113 functions, the one
 macro, the three records and the thirteen file-scope objects, plus the file's `#include`
 prelude.  The second lane finished C 4905-9740 (the window-configuration save/restore block,
@@ -471,7 +471,7 @@ See the final report accompanying this ledger, which quotes every gate's last li
 
 * `build-tu src/window.c` = `built src/window.rs -> ../build/femacs/window.o`;
 * `rustc --cfg enable_checking ../build/femacs/units/window/_root.rs` = exit 0 (3 warnings);
-* `python3 tools/extract-abi.py --check emacs/src/window.c femacs/src/window.rs` = `OK …`
+* `python3 tools/extract-abi.py --check emacs/src/window.c src/window.rs` = `OK …`
   **with the 10 rows of the "追加行" section appended to
   `docs/ports/macro-body-notes.tsv`**; with the shared file untouched it reports the 26
   token-class items those rows cover (no missing function/subr/field/macro and no line drift);
@@ -499,7 +499,7 @@ demanding the dead-arm text.  Consequences, each measured with `extract-abi.py -
   `false` in the frozen table, so the `#else` single statement is the live text);
 - the `Frecenter` row keeps only `uninit` (the two `minimize_*` tokens were the same cause).
 
-`extract-abi.py --check emacs/src/window.c femacs/src/window.rs` is still `OK` after the prune.
+`extract-abi.py --check emacs/src/window.c src/window.rs` is still `OK` after the prune.
 
 ### Integrator addition (2026-10-04, window.h's geometry family)
 

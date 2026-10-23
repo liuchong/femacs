@@ -171,8 +171,8 @@
   template's fallback `#  define __has_feature(a) 0` (C 1096-1097) is skipped, so the port has no
   counterpart - and the correction is a wording one for the integrator.
 - **Compile evidence note, and a correction to the previous round's ledger.**  `xtask layout-check`
-  seeds `femacs/src/include/*.rs` plus the two `foundation` mirrors and then compiles whatever the
-  `include!` graph *reaches* (`femacs/xtask/src/main.rs` 795-812): a `lib/include/*.rs` mirror is
+  seeds `src/include/*.rs` plus the two `foundation` mirrors and then compiles whatever the
+  `include!` graph *reaches* (`xtask/src/main.rs` 795-812): a `lib/include/*.rs` mirror is
   compiled only when some `src/include` mirror includes it.  Measured: `build/femacs/layout_probe.rs`
   lists 99 mirrors = every `src/include/*.rs`, and the materialized set
   (`build/femacs/layout_probe_src/`) contains `…_lib_include_stdbit_in_rs.rs` (reached through
@@ -220,7 +220,7 @@
 - **`--check` verdict with the six requested rows**: a `/tmp` copy of the excluded table plus the
   six rows, passed through `--excluded`/`--macro-notes`,
   `python3 tools/extract-abi.py --check --excluded … --macro-notes … emacs/lib/stdio.in.h
-  femacs/lib/include/stdio.in.rs` -> `OK emacs/lib/stdio.in.h -> femacs/lib/include/stdio.in.rs`
+  lib/include/stdio.in.rs` -> `OK emacs/lib/stdio.in.h -> lib/include/stdio.in.rs`
   and `grep -c '^- '` -> `0`; with the tree's tables it reports exactly those six lines.
 - **The six rows requested** (`<TAB>` is a literal tab), all `kind=config`:
   `getline<TAB>config<TAB>stdio.in.h 1155-1162: the file's one C *function* is the C++ arm's inline definition inside C 1144's `# if @REPLACE_GETLINE@`, which the generated header substitutes to `# if 0` (line 1691) - dead text.  The live `getline` is the *system's* (generated header 1717 `#  if !1` = `!@HAVE_DECL_GETLINE@`, so even gnulib's own `_GL_FUNCDECL_SYS` is skipped); the mirror declares it in its `stdio_in_decls` module, so the port has the name but no definition, which is what this row records`

@@ -16,9 +16,9 @@
 # ----------------------------------------------------------------------
 ## Decisions
 
-`emacs/lib/dtoastr.c` @ `fd7afced403`; port `femacs/lib/dtoastr.rs` (42 lines); the gates are
+`emacs/lib/dtoastr.c` @ `fd7afced403`; port `lib/dtoastr.rs` (42 lines); the gates are
 `build-tu lib/dtoastr.c` -> `built`, `python3 tools/extract-abi.py --check emacs/lib/dtoastr.c
-femacs/lib/dtoastr.rs` -> `OK`, and the symbol ratchet (the unit no longer needs its
+lib/dtoastr.rs` -> `OK`, and the symbol ratchet (the unit no longer needs its
 `docs/baseline/symbol-pending.txt` entry).
 
 - **The file is an inclusion shim** (PORTING.md 10.13②): C 18-19 are `#define LENGTH 2` and
@@ -26,7 +26,7 @@ femacs/lib/dtoastr.rs` -> `OK`, and the symbol ratchet (the unit no longer needs
   `ftoastr.c` template for `double`.  The port's own text is C 18's `LENGTH` plus the
   instantiation.
 
-- **The instantiation is landed** on the shared body `femacs/lib/ftoastr.rs`, which is
+- **The instantiation is landed** on the shared body `lib/ftoastr.rs`, which is
   `macro_rules! ftoastr_body` (PORTING.md 10.13②'s "prelude `macro_rules!` or parameterised
   unit", the `strftime.rs`/`nstrftime.rs` shape).  This shim is that macro's only
   instantiation: `include!("ftoastr.rs")` brings the prelude, and `ftoastr_body! (2, dtoastr,

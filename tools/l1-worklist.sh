@@ -2,8 +2,8 @@
 # L1's worklist: byte-compile a Lisp directory with the port's own program, one
 # `Compiling <file>...` line per file plus the compiler's own error text, then summarize.
 #
-#   tools/l1-worklist.sh femacs/lisp/emacs-lisp              # every *.el in the directory
-#   tools/l1-worklist.sh femacs/lisp/emacs-lisp bindat.el    # named files only
+#   tools/l1-worklist.sh lisp/emacs-lisp              # every *.el in the directory
+#   tools/l1-worklist.sh lisp/emacs-lisp bindat.el    # named files only
 #
 # Why a worklist rather than a gate: the port's byte-compiler is the gate for L1
 # (`lisp/emacs-lisp/*.elc` all load) and for the completion definition's generated-artefact

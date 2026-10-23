@@ -28,8 +28,8 @@
 
 ## Decisions
 
-`emacs/src/casetab.c` @ `fd7afced403`; port `femacs/src/casetab.rs`; the gate is
-`python3 tools/extract-abi.py --check emacs/src/casetab.c femacs/src/casetab.rs` -> `OK`.
+`emacs/src/casetab.c` @ `fd7afced403`; port `src/casetab.rs`; the gate is
+`python3 tools/extract-abi.py --check emacs/src/casetab.c src/casetab.rs` -> `OK`.
 
 - Include order: config.h, lisp.h, buffer.h — with buffer.h's own character.h/itree.h —
   becomes `config.rs`, `lisp.rs`, `character.rs`, `itree.rs`, `buffer.rs` (0.1-4).

@@ -271,28 +271,28 @@ PRId8 => "hh" "d"     PRId16 => "hd"      PRId32 => "d"      PRId64 => "ll" "d"
 PRIdMAX => "j" "d"    PRIdPTR => "ld"     PRIxMAX => "j" "x"  SCNd8 => "hh" "d"
 SCNd64 => "ll" "d"    SCNdMAX => "j" "d"  SCNxPTR => "lx"     (155 defined, 12 undefined)
 
-$ python3 tools/extract-abi.py --check emacs/lib/inttypes.in.h femacs/lib/include/inttypes.in.rs
+$ python3 tools/extract-abi.py --check emacs/lib/inttypes.in.h lib/include/inttypes.in.rs
   (49 C macros have several definitions (configuration branches), body not compared: ...)
-OK emacs/lib/inttypes.in.h -> femacs/lib/include/inttypes.in.rs
+OK emacs/lib/inttypes.in.h -> lib/include/inttypes.in.rs
 
 # the negative controls: C's side is compared, and the checker bites
 $ sed 's/pub const PRId8: &core::ffi::CStr = c"d";/pub const PRId8: \&core::ffi::CStr = c"q";/' \
-    femacs/lib/include/inttypes.in.rs > /tmp/gt-neg-itt/c1.rs
+    lib/include/inttypes.in.rs > /tmp/gt-neg-itt/c1.rs
 $ python3 tools/extract-abi.py --check emacs/lib/inttypes.in.h /tmp/gt-neg-itt/c1.rs
 - constant PRId8: C "d" vs Rust c"q" (different bytes)
 FAIL emacs/lib/inttypes.in.h -> /tmp/gt-neg-itt/c1.rs
 $ sed 's/  () => { concat! (_PRI64_PREFIX! (), "d") };/  () => { concat! ("l", "d") };/' \
-    femacs/lib/include/inttypes.in.rs > /tmp/gt-neg-itt/c2.rs
+    lib/include/inttypes.in.rs > /tmp/gt-neg-itt/c2.rs
 $ python3 tools/extract-abi.py --check emacs/lib/inttypes.in.h /tmp/gt-neg-itt/c2.rs
 - macro PRId64 does not mention _pri64_prefix (C body: _PRI64_PREFIX "d")
 FAIL emacs/lib/inttypes.in.h -> /tmp/gt-neg-itt/c2.rs
 $ sed 's/pub const PRId32: &core::ffi::CStr = c"d";/pub const PRId32: \&core::ffi::CStr = c"q";/' \
-    femacs/lib/include/inttypes.in.rs > /tmp/gt-neg-itt/c5.rs        # a `same`-case value
+    lib/include/inttypes.in.rs > /tmp/gt-neg-itt/c5.rs        # a `same`-case value
 $ python3 tools/extract-abi.py --check emacs/lib/inttypes.in.h /tmp/gt-neg-itt/c5.rs
 - constant PRId32: C "d" vs Rust c"q" (different bytes)
 FAIL emacs/lib/inttypes.in.h -> /tmp/gt-neg-itt/c5.rs
 $ sed 's/pub const GNULIB_defined_imaxdiv_t: c_int = 1;/pub const GNULIB_defined_imaxdiv_t: c_int = 2;/' \
-    femacs/lib/include/inttypes.in.rs > /tmp/gt-neg-itt/c6.rs
+    lib/include/inttypes.in.rs > /tmp/gt-neg-itt/c6.rs
 $ python3 tools/extract-abi.py --check emacs/lib/inttypes.in.h /tmp/gt-neg-itt/c6.rs
 - constant GNULIB_defined_imaxdiv_t: C 1 vs Rust 2
 FAIL emacs/lib/inttypes.in.h -> /tmp/gt-neg-itt/c6.rs
@@ -315,10 +315,10 @@ $ cd femacs && CARGO_TARGET_DIR=/tmp/femacs-target-gt cargo run -q -p xtask -- b
 built lib-src/hexl.rs -> ../build/femacs/hexl.o
 $ cd femacs && CARGO_TARGET_DIR=/tmp/femacs-target-gt cargo run -q -p xtask -- build-tu lib/strtoimax.c
 built lib/strtoimax.rs -> ../build/femacs/strtoimax.o
-$ python3 tools/extract-abi.py --check emacs/lib-src/hexl.c femacs/lib-src/hexl.rs
-OK emacs/lib-src/hexl.c -> femacs/lib-src/hexl.rs
-$ python3 tools/extract-abi.py --check emacs/lib/strtoimax.c femacs/lib/strtoimax.rs
-OK emacs/lib/strtoimax.c -> femacs/lib/strtoimax.rs
+$ python3 tools/extract-abi.py --check emacs/lib-src/hexl.c lib-src/hexl.rs
+OK emacs/lib-src/hexl.c -> lib-src/hexl.rs
+$ python3 tools/extract-abi.py --check emacs/lib/strtoimax.c lib/strtoimax.rs
+OK emacs/lib/strtoimax.c -> lib/strtoimax.rs
 
 # the remaining units whose C file includes <inttypes.h> (the integrator's sweep, one line each)
 $ rg -n '#include <inttypes.h>' emacs/lib emacs/lib-src

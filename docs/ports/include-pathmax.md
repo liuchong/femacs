@@ -41,8 +41,8 @@
 
 ## Evidence
 
-- `python3 tools/extract-abi.py --check emacs/lib/pathmax.h femacs/lib/include/pathmax.rs`
-  -> `OK emacs/lib/pathmax.h -> femacs/lib/include/pathmax.rs` (no `- ` problem lines), with the
+- `python3 tools/extract-abi.py --check emacs/lib/pathmax.h lib/include/pathmax.rs`
+  -> `OK emacs/lib/pathmax.h -> lib/include/pathmax.rs` (no `- ` problem lines), with the
   branch-macro note above.
 - `python3 tools/check-cond-eval.py lib/pathmax.h` -> `10 conditions, 0 unknown to the evaluator,
   1 disagreement`.

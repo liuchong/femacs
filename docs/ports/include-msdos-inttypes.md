@@ -36,4 +36,4 @@ only arm with content.  Nothing compiles the mirror (no `msdos/` unit is built a
 (`nt/inc/inttypes.h` shares the stem; status 3.103's third candidate).
 
 Evidence: `python3 tools/extract-abi.py --check emacs/msdos/inttypes.h
-femacs/msdos/include/inttypes.rs` -> `OK` (4 ledger items).
+msdos/include/inttypes.rs` -> `OK` (4 ledger items).

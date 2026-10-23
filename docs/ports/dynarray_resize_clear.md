@@ -16,7 +16,7 @@
 ## Decisions
 
 `emacs/lib/malloc/dynarray_resize_clear.c` @ `fd7afced403`; port
-`femacs/lib/malloc/dynarray_resize_clear.rs`.  The frozen build leaves `_LIBC` undefined, so
+`lib/malloc/dynarray_resize_clear.rs`.  The frozen build leaves `_LIBC` undefined, so
 only C 20's `<libc-config.h>` include is conditional; the body has no `#if`.
 
 - C 31's `__libc_dynarray_resize (list, size, scratch, element_size)` is the shared mirror's

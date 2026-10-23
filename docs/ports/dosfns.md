@@ -7,10 +7,10 @@
 > `docs/baseline/frozen-build-sources.txt` lists no `dosfns.o`.  So `tools/extract-abi.py`'s
 > checklist for the file is empty (P-86 ②) and this ledger is that clause's substitute: the **C
 > line-range table**, the `## Evidence` readings and the `## Deviations`.  Port:
-> `femacs/src/dosfns.rs` (**1218 lines**, md5 `f17629839549f3e069b2ebb166303326`), carrying **C
+> `src/dosfns.rs` (**1218 lines**, md5 `f17629839549f3e069b2ebb166303326`), carrying **C
 > 1-798 with both arms of every `#if`**.  The reference `emacs/src/dosfns.c` is md5
 > `499c403b6d64ae28b2b19dacbc514c07` (unchanged; `emacs/` is read-only), and its `docs/port-map.md`
-> 419 row pairs `src/dosfns.c` 798 with `femacs/src/dosfns.rs` (the port's own count in that table
+> 419 row pairs `src/dosfns.c` 798 with `src/dosfns.rs` (the port's own count in that table
 > is the integrator's regeneration — Owed 4).
 >
 > **This ledger replaces the reading it inherits.**  The previous `docs/ports/dosfns.md` (and the
@@ -36,7 +36,7 @@
 
 | C `#if` / build condition | Port gate | Compiled when |
 | --- | --- | --- |
-| the file itself (`MSDOS_OBJ`, `emacs/src/Makefile.in` 306 + `emacs/msdos/sed1v2.inp` 136; the macro is `MSDOS`, `configure.ac` 6953's `AH_TEMPLATE`) | `feature = "msdos"` (registered, `femacs/xtask/Cargo.toml` 400), on every item *and* on C 26-54's include graph | the DJGPP (MS-DOS) build; `MSDOS` is `undef` in `docs/baseline/config/darwin-arm64.macros.tsv` 2849, so no configuration this machine can build sets it |
+| the file itself (`MSDOS_OBJ`, `emacs/src/Makefile.in` 306 + `emacs/msdos/sed1v2.inp` 136; the macro is `MSDOS`, `configure.ac` 6953's `AH_TEMPLATE`) | `feature = "msdos"` (registered, `xtask/Cargo.toml` 400), on every item *and* on C 26-54's include graph | the DJGPP (MS-DOS) build; `MSDOS` is `undef` in `docs/baseline/config/darwin-arm64.macros.tsv` 2849, so no configuration this machine can build sets it |
 | C 21 `#include <config.h>` | **no gate** (C has it outside `#ifdef MSDOS`; `include/config.rs`) | every build — the file's only ungated edge (P-86 ⑧) |
 | C 163, C 252, C 321, C 375, C 675, C 711, C 738 `#ifndef HAVE_X_WINDOWS` | `not (feature = "have_x_windows")` (registered, `Cargo.toml` 359) | `HAVE_X_WINDOWS` is `undef` here, so this is the live side *of its condition* - the `src/msdos.rs` 20/402 spelling; the whole file is still behind the `msdos` gate |
 | C 275 `#ifndef SYSTEM_MALLOC` and C 537/C 572's pair | `feature = "no_system_malloc"` (the registered `!SYSTEM_MALLOC`, `Cargo.toml` 438; the `src/msdos.rs` 659 spelling) | the two `.c` conditions have no `#else` in C: C 537-539 and C 572-577's *other* arm is the unguarded statement below them, and both arms are carried (P-51) |
@@ -196,20 +196,20 @@ claim.  Every one of the eleven is also decided by the frozen macro table: `MSDO
 `docs/baseline/config/darwin-arm64.macros.tsv` (2849, and the two others' rows).
 
 **⑤ The text gates.**  `python3 tools/extract-abi.py --check emacs/src/dosfns.c
-femacs/src/dosfns.rs` -> **`OK …`**, zero problem lines *and* the P-86 ② vacuous pass: `MSDOS` is
+src/dosfns.rs` -> **`OK …`**, zero problem lines *and* the P-86 ② vacuous pass: `MSDOS` is
 undef, so `tools/cinventory.py`'s live-line filter gives the C side an **empty checklist** and the
 range table above is that clause's substitute (P-86 ②, ⑩).  `python3 tools/check-declarations.py`
 -> **`17 declaration sites (0 forbidden, 17 allowed literals), 0 failures`**.
 `python3 tools/check-citations.py` -> **`676 file(s) scanned, 1 drift, 0 range, 1779 external, 36
 allowed, 0 stale`**, and the one `drift` row is **not this unit's**:
-`femacs/src/sfntfont-android.rs:823` cites `font.h 682-698` for `harfbuzz`, which is at `font.h`
-74 (another lane's in-flight file; `femacs/src/dosfns.rs` has **0 drift** and 0 `range`).  This
+`src/sfntfont-android.rs:823` cites `font.h 682-698` for `harfbuzz`, which is at `font.h`
+74 (another lane's in-flight file; `src/dosfns.rs` has **0 drift** and 0 `range`).  This
 unit's citations name `include/config.rs`, `lisp.h`, `dispextern.h`, `unistd.h`, `string.h`,
 `vm-limit.c` and the DJGPP headers, the last of which resolve as `external` (the tree cannot be
 asked about a header it does not carry).  `python3 tools/check-mirror-dupes.py` -> **`18
 duplicate declaration(s), 17 ratchet row(s), 1 failure(s)`**, and the failure is again **not this
-unit's**: `femacs/src/ftcrfont.rs` duplicates `be_use_subpixel_antialiasing` from
-`femacs/src/include/haiku_support.rs` (no `dosfns` row appears in either reading).  `python3 tools/check-dead-file-coverage.py` and
+unit's**: `src/ftcrfont.rs` duplicates `be_use_subpixel_antialiasing` from
+`src/include/haiku_support.rs` (no `dosfns` row appears in either reading).  `python3 tools/check-dead-file-coverage.py` and
 `python3 tools/check-ledger-ticks.py` bind the two tables/sections above.
 
 **⑤a The reading `--check` cannot take, taken by hand.**  Because `MSDOS` is undef, the C side's
@@ -309,7 +309,7 @@ it measures the gates and not the code.
    mirrors already made (`include/msdos.rs` 88's `msdos_decls`, `include/w32inevt.rs`'s owed row):
    put the eight in a module the unit glob-imports, so the definition shadows the declaration —
    which is C's prototype + definition split.  `docs/ports/w32inevt.md` Owed 1 is the same row for
-   its own three names.  **`femacs/src/include/**` is not this lane's writable set.**
+   its own three names.  **`src/include/**` is not this lane's writable set.**
 2. **One mirror-vs-mirror row: `include/msdos.rs` 234's `EINPROGRESS 112` against
    `lib/include/errno.rs` 92's 36.**  The `msdos` mirror's own note says its MS-DOS overrides carry
    the feature "rather than duplicated unmarked"; under the gate they *are* duplicated, because
@@ -320,7 +320,7 @@ it measures the gates and not the code.
    on.**  Measured (Deviations 3): the same three rows cost the first probe 3 errors for a header
    this unit does not name.  A unit that *does* carry C's `AH_BOTTOM` edge cannot compile the
    `msdos` arm until the owner reconciles them.
-4. **`docs/port-map.md` 419's port count.**  The row still reads `femacs/src/dosfns.rs | 12`; this
+4. **`docs/port-map.md` 419's port count.**  The row still reads `src/dosfns.rs | 12`; this
    port is 1218 lines.  The regeneration is the integrator's (`--write-pending`), and
    `docs/port-map.md` is not this lane's writable set.  `docs/ports/line-drift-tolerance.tsv` (the
    row that explains a ratio this far above 1) is the same kind of follow-up and the same
@@ -337,10 +337,10 @@ it measures the gates and not the code.
    semantics — "see hidden files" — are the only thing the port can be sure of).
 7. **`dosmemput`'s return type against `src/msdos.rs` 603** (Deviations 14): the two units'
    excerpts disagree and only the DJGPP header settles it.
-8. **`femacs/src/include/dosfns.rs` 27-29's claim is now stale.**  That mirror's note says
-   "`src/dosfns.c`'s port is the empty shape `femacs/src/dosfns.rs` records and no unit `include!`s
+8. **`src/include/dosfns.rs` 27-29's claim is now stale.**  That mirror's note says
+   "`src/dosfns.c`'s port is the empty shape `src/dosfns.rs` records and no unit `include!`s
    this mirror yet"; this unit includes it at C 43 and is no longer the empty shape.  The mirror is
-   not this lane's writable set (`femacs/src/include/**`), so the correction is owed.
+   not this lane's writable set (`src/include/**`), so the correction is owed.
 9. **The Intel x86 `char` sign (Deviations 13)** — a DJGPP-only question, owed with the toolchain.
 
 ## Not claimed

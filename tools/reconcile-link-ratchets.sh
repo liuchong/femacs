@@ -57,15 +57,15 @@ rm -f "$wt"/build/femacs/*.checking.o
 # (building it directly is 446 errors), so the units that include it are the stems instead - a
 # mirror reaches its objects only through them (measured 3.279: an in-flight `src/include/xterm.rs`
 # made the old rule try to build the mirror itself).
-units=$(git status --porcelain -- femacs/src ':!femacs/src/include' | awk '{print $NF}')
-mirrors=$(git status --porcelain -- femacs/src/include | awk '{print $NF}' | sed 's|^femacs/src/include/||')
+units=$(git status --porcelain -- src ':!src/include' | awk '{print $NF}')
+mirrors=$(git status --porcelain -- src/include | awk '{print $NF}' | sed 's|^src/include/||')
 # `grep -l` exits 1 when a changed mirror has no includer yet - a mirror landed before the unit
 # that will include it (measured 3.319: the new `src/include/xlib.rs` killed this script after
 # 1.6 s with *no output at all*, because `set -o pipefail` turned that 1 into a silent death).
 # The `|| true` is what makes "no unit includes it yet" a reading rather than a failure.
-stems=$(for u in $units; do echo "$u" | sed 's|^femacs/||' | sed 's|\.rs$|.c|'; done; \
-        for m in $mirrors; do grep -l "include/$m" femacs/src/*.rs 2>/dev/null \
-          | sed 's|^femacs/||' | sed 's|\.rs$|.c|' || true; done | sort -u | tr '\n' ' ')
+stems=$(for u in $units; do echo "$u" | sed 's|^||' | sed 's|\.rs$|.c|'; done; \
+        for m in $mirrors; do grep -l "include/$m" src/*.rs 2>/dev/null \
+          | sed 's|^||' | sed 's|\.rs$|.c|' || true; done | sort -u | tr '\n' ' ')
 if [ -n "$stems" ]; then
   echo "rebuilding at HEAD: $stems"
   for stem in $stems; do

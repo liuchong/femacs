@@ -173,8 +173,8 @@
 
 ## Evidence
 
-- `python3 tools/extract-abi.py --check emacs/src/sfnt.h femacs/src/include/sfnt.rs`
-  -> `OK emacs/src/sfnt.h -> femacs/src/include/sfnt.rs` (no `- ` problem lines); the run prints
+- `python3 tools/extract-abi.py --check emacs/src/sfnt.h src/include/sfnt.rs`
+  -> `OK emacs/src/sfnt.h -> src/include/sfnt.rs` (no `- ` problem lines); the run prints
   `(1 C macros have a recorded Rust counterpart: PROTOTYPE)` after the `macro_rules!`
   placeholder was deleted - the name is answered by `docs/ports/excluded-macros.txt` now.
 - `python3 tools/check-cond-eval.py src/sfnt.h` -> `7 conditions, 0 unknown to the evaluator,

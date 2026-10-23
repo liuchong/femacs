@@ -8,7 +8,7 @@
 > for the file is empty (P-86 ②).  What follows is that clause's substitute: the **C line-range
 > table**, the `## Evidence` readings and the `## Deviations`.
 >
-> Port: `femacs/src/haikumenu.rs` (**1188 lines**), which carries the file **whole, C 1-845** - no
+> Port: `src/haikumenu.rs` (**1188 lines**), which carries the file **whole, C 1-845** - no
 > slice.  The 14 functions (6 `static`), the 2 `DEFUN`s, the 3 file-scope objects (`menu_item_selection`,
 > `menu_timer_timespec`, `popup_activated_p`) and the 4 `DEFSYM`s of the reference stand at C's own
 > line, in C's own order.
@@ -130,11 +130,11 @@ refuses to shadow a `static` with (E0530).  All three are in the port's text and
 before the reading above (Deviations 1, 7, 10).
 
 **③ Inventory.**  `python3 tools/extract-abi.py --check emacs/src/haikumenu.c
-femacs/src/haikumenu.rs` → **one row and `FAIL`**:
+src/haikumenu.rs` → **one row and `FAIL`**:
 
 ```
 - line count drifted 40.6%: C 845 vs Rust 1188
-FAIL emacs/src/haikumenu.c -> femacs/src/haikumenu.rs
+FAIL emacs/src/haikumenu.c -> src/haikumenu.rs
 ```
 
 Nothing else fails: no missing function, `DEFUN`, macro, type, field or file-scope object, and no
@@ -238,7 +238,7 @@ between blocks need no row)`.  **Not run here** (outside this lane's budget):
    `docs/ports/haikuselect.md` Owed 1 names.
 4. **The 15 use-site declarations (Deviations 14) are owed to their mirrors** (P-72 rule 4):
    frame.h's three, lisp.h's six, keyboard.h's five and dispextern.h's two.  Each line of the block
-   in `femacs/src/haikumenu.rs` names the prototype and the header line it was read from.
+   in `src/haikumenu.rs` names the prototype and the header line it was read from.
 5. **`docs/baseline/port-lines-pending.tsv`'s row for `src/haikumenu.c` is now stale**: the tree
    reads `stale src/haikumenu.c: no longer under the threshold` for the row
    `src/haikumenu.c 845 11 845 known-unported target` - 1,188 Rust lines for 845 C lines is 141%,

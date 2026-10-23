@@ -5,7 +5,7 @@
 > at 3019), and `docs/baseline/frozen-build-sources.txt` lists no `w32proc.o` for this target - so
 > `extract-abi.py`'s checklist for the file is empty (P-86 ②) and this ledger is that clause's
 > substitute: the **C line-range table**, the `## Evidence` readings and the `## Deviations`.  Port:
-> `femacs/src/w32proc.rs` (**6635 lines**, md5 `893c7fb6ad06991e9d946b148ad4f358`), carrying
+> `src/w32proc.rs` (**6635 lines**, md5 `893c7fb6ad06991e9d946b148ad4f358`), carrying
 > **C 1-4321** - P-86 ④'s first twenty-four slices of this file - with **both arms of every `#if`**.
 >
 > **This ledger overturns its own earlier conclusion.**  Until this batch it read "the frozen
@@ -176,7 +176,7 @@ a glob-imported module - the `w32.md` owed-6 class), `src/include/w32common.rs` 
 Budget: `probe` was spent **4 发** (the 4th re-reads the unit after its last two fixes) - one over
 the ≤3 asked for, reported here.
 
-③ **`python3 tools/extract-abi.py --check emacs/src/w32proc.c femacs/src/w32proc.rs`** (non-vacuous
+③ **`python3 tools/extract-abi.py --check emacs/src/w32proc.c src/w32proc.rs`** (non-vacuous
 now, P-86 ⑩): 118 findings, all of them the slice boundary or the four token rows below -
 `missing function` 39, `missing subr` 20, `missing defsubr` 20, `missing file-scope object` 15,
 `missing macro` 12, `missing constant` 7, **`does not mention` 4**, `line count drifted 68.4%: C
@@ -208,7 +208,7 @@ line(s); 75 ratchet row(s), 0 new, 0 stale` - this file is **not** in
 `docs/baseline/port-lines-pending.tsv` (it is 31.6% of its reference after this slice, over the ten
 percent threshold), so unlike `docs/ports/w32.md`'s owed 1 there is no ratchet row for it to drop.
 
-⑧ **The unit**: `femacs/src/w32proc.rs` 1550 lines, 66,415 bytes, md5
+⑧ **The unit**: `src/w32proc.rs` 1550 lines, 66,415 bytes, md5
 `e7f0a31a5072265f75da9d7199ba66c1`; the reference `emacs/src/w32proc.c` md5
 `fa33eefb166b44da521fa105787f27d4` (4903 lines, unchanged - `emacs/` is read-only).
 
@@ -221,14 +221,14 @@ collide with this unit's own definitions are the ones Evidence ② names
 
 ## Deviations
 
-1. **The two stand-in sections (P-88 ①).**  `femacs/src/w32proc.rs` carries the names of C 36's
+1. **The two stand-in sections (P-88 ①).**  `src/w32proc.rs` carries the names of C 36's
    `<signal.h>` (MinGW's runtime header, which has no file in the reference tree: `sigset_t`, the
    seven `SIG*` numbers, `SIG_DFL`/`SIG_IGN`/`SIG_ERR`, `signal`, `raise`) and of C 50's
    `<windows.h>` (the scalar and handle typedefs, `FILETIME`, `ULARGE_INTEGER`, `CRITICAL_SECTION`,
    `GetThreadTimes_Proc`'s shape via `PHANDLER_ROUTINE`/`LPTHREAD_START_ROUTINE`, the seventeen
    entry points and their constants).  Every declaration carries a `/// C:` line with the header's
    own text; the declaration site is C's own `#include` line and no file is added under
-   `femacs/src/include/`, which is the reference headers' mirror layer.
+   `src/include/`, which is the reference headers' mirror layer.
 2. **`sigset_t` is the unit's, and its width is UNVERIFIED.**  `nt/inc/ms-w32.h` 345-349 typedefs it
    as the runtime's `_sigset_t`, which the tree does not define; `docs/ports/include-ms-w32.md`
    lists it under "Names with no mirror" and says such names are "named from the including unit", so
@@ -238,7 +238,7 @@ collide with this unit's own definitions are the ones Evidence ② names
 3. **`ULARGE_INTEGER`'s nameless inner struct gets a name.**  The SDK's `LowPart`/`HighPart` views
    live in an unnamed `struct` inside the union; Rust has no nameless struct, so the port names it
    `u` and C's `temp_creation.LowPart` reads as `temp_creation.u.LowPart` (the same deviation
-   `femacs/src/w32.rs` records for `LARGE_INTEGER`).  The union and `CRITICAL_SECTION`,
+   `src/w32.rs` records for `LARGE_INTEGER`).  The union and `CRITICAL_SECTION`,
    `FILETIME`, `OSVERSIONINFO`-shaped records are `UNVERIFIED` here; their layout assertions are
    owed (see `## Owed` 6).
 4. **C's `volatile` on `struct itimer_data`'s members is dropped.**  Rust has no field form for it
@@ -248,7 +248,7 @@ collide with this unit's own definitions are the ones Evidence ② names
    it transitively (C 63 `"w32term.h"` → `w32gui.h` → `systime.h` → `<sys/time.h>`), where the
    MinGW build gets `nt/inc/sys/time.h` (`ITIMER_REAL` 0, `ITIMER_PROF` 1, `struct itimerval` over
    the runtime's `timeval`).  The port's `include/w32term.rs` pulls `w32gui.rs` → `systime.rs` →
-   `femacs/lib/include/sys_time.rs` instead (so `ITIMER_PROF` is 2), and the shim's own note records
+   `lib/include/sys_time.rs` instead (so `ITIMER_PROF` is 2), and the shim's own note records
    the same conflict from its side; this unit's `#defines` and its use of the three names are C's, and
    the reconciliation is the mirror round's (Owed 5).  `alarm`'s `#ifdef HAVE_SETITIMER` arm is
    still live text, so the divergence changes no code path.
@@ -294,16 +294,16 @@ collide with this unit's own definitions are the ones Evidence ② names
 
 ## Owed (nothing here is claimed as done)
 
-1. **`femacs/xtask/Cargo.toml`**: three feature names this unit uses are registered nowhere -
+1. **`xtask/Cargo.toml`**: three feature names this unit uses are registered nowhere -
    `have_langinfo_codeset` (C 52), `mingw64` (C 120) and `have_setitimer` (C 899).
    (`windowsnt` and `have_ntgui` are precedents that are registered.)
 2. **`docs/ports/line-drift-tolerance.tsv`**: one row for the stem `w32proc`, tolerance ≥ 0.69, basis
    `total`, with this slice's reason from the Deviations (the two stand-in sections and the per-item
    `/// C:` citations are the physical-line cost); until then `extract-abi.py --check` reports `line
    count drifted 68.4%` (Evidence ③).
-3. **`femacs/lib/include/errno.rs`**: two rows, `ESRCH` 3 and `EFAULT` 14 (C 720-721, 767-768 set
-   them; the mirror carries neither).  **`femacs/lib/include/stdlib.rs`**: the `exit` row
-   ("`_Noreturn void exit (int);`").  **`femacs/lib/include/sys_types.in.rs`**: the `ssize_t` row.
+3. **`lib/include/errno.rs`**: two rows, `ESRCH` 3 and `EFAULT` 14 (C 720-721, 767-768 set
+   them; the mirror carries neither).  **`lib/include/stdlib.rs`**: the `exit` row
+   ("`_Noreturn void exit (int);`").  **`lib/include/sys_types.in.rs`**: the `ssize_t` row.
    Until they land, this unit declares all four itself (Deviations 12) - and each declaration
    becomes an `E0428` the day the mirror grows the name.
 4. **`docs/ports/macro-body-notes.tsv`**: four rows, `sigprocmask` and `w32_raise`
@@ -356,7 +356,7 @@ state, not this slice's: the unit's own text contributes **0 errors** to that re
 The three mirror rows this slice asked for are not one job:
 
 * `errno.rs`'s `ESRCH`/`EFAULT` - **done** in 3.446, together with `ENOEXEC` (all three measured).
-* `sys_types.in.rs`'s `ssize_t` - **must not be added**.  `femacs/lib/include/unistd.in.rs` already
+* `sys_types.in.rs`'s `ssize_t` - **must not be added**.  `lib/include/unistd.in.rs` already
   includes `sys_types.in.rs` (31) and declares `pub type ssize_t = c_long;` (34), so a second copy
   there would be `E0428` in every unit that includes both - the same tree-wide class 3.444's own
   mis-placed attribute produced (74 units).  A unit that needs `ssize_t` includes `unistd.in.rs`.
@@ -459,7 +459,7 @@ direction.  This is owed item 8's fact, re-measured, not a fresh reading: every 
 positive reading is therefore not the probe**; it is Evidence ③.
 
 **Evidence ③ - the name sweep, and the one real defect it found.**  `python3
-tools/check-unit-names.py femacs/src/w32proc.rs 1703 2069` -> `25 capitalized identifiers, missing:
+tools/check-unit-names.py src/w32proc.rs 1703 2069` -> `25 capitalized identifiers, missing:
 ['Some']`, where `Some` is the prelude variant the tool's docstring records as a false positive.
 **The first reading of this slice instead reported `WAIT_ABANDONED_0`**, and that was a genuine
 hole: C 1108-1109 names it (the `case WAIT_ABANDONED_0:` / `+ 1` pair) and the name exists nowhere
@@ -472,7 +472,7 @@ sweep plus a hand reading of C 1041-1299's text are the two readings that can, w
 round ran the sweep before, not after, deciding the slice was done.  The fix is Deviations 37.
 
 **Evidence ④ - the `--check` reading.**  `python3 tools/extract-abi.py --check emacs/src/w32proc.c
-femacs/src/w32proc.rs` -> **100 `- missing` rows, down from 102** (`missing function
+src/w32proc.rs` -> **100 `- missing` rows, down from 102** (`missing function
 wait_objects_thread` and `missing function start_wait_objects` retire; nothing else changes), plus
 two problem rows this round owns: `- function wait_objects_thread does not mention break, case,
 switch` (new; the macro-body-notes row of Deviations 38) and `- line count drifted 57.8%: C 4903 vs
@@ -544,7 +544,7 @@ shot, the same P-08 object as slices 1-3).
 four bodies are outside every type reading too (owed items 8/10, unchanged).
 
 **Evidence ③ - the name sweep is clean this round, and that is the reading that matters here.**
-`python3 tools/check-unit-names.py femacs/src/w32proc.rs 2070 2335` -> `17 capitalized
+`python3 tools/check-unit-names.py src/w32proc.rs 2070 2335` -> `17 capitalized
 identifiers, missing: []` - the first *clean* sweep in this lane (slice 3's found
 `WAIT_ABANDONED_0`; slices 1/2's found the pairs they recorded).  The round's own new SDK name,
 `WAIT_ABANDONED` (C 1314), was added **before** the sweep, which is the order slice 3's defect
@@ -602,7 +602,7 @@ src/w32proc.c` -> exit 0, **336 bytes** (one shot, the same P-08 object as slice
 every type reading as well (owed items 8/10/11).
 
 **Evidence ③ - the name sweep is clean again.**  `python3 tools/check-unit-names.py
-femacs/src/w32proc.rs 2337 2567` -> `13 capitalized identifiers, missing: []`.  The round's own two
+src/w32proc.rs 2337 2567` -> `13 capitalized identifiers, missing: []`.  The round's own two
 new SDK names (`MsgWaitForMultipleObjects`, `QS_ALLINPUT`) went into the use-site block before the
 sweep, the order slice 3's defect established.
 
@@ -656,7 +656,7 @@ src/w32proc.c` -> exit 0, **336 bytes** (the same P-08 object as slices 1-5).
 `compile_error!`), 0 anchored in this unit** - the sixth identical reading (owed items 8/10/11/12).
 
 **Evidence ③ - the name sweep, and the trap this round's own prose hit.**  `python3
-tools/check-unit-names.py femacs/src/w32proc.rs 2568 2734` first read `missing: ['PORTING', 'Rust']`
+tools/check-unit-names.py src/w32proc.rs 2568 2734` first read `missing: ['PORTING', 'Rust']`
 - **not** missing names but the tool's documented *nested-comment* false positive, produced by this
 round's own prose: two of the new comments quoted C's one-line comments **with their `*/`**, so the
 scanner's non-nesting comment rule ended the comment early and read the rest as code.  Rewriting
@@ -720,13 +720,13 @@ join the queue owed items 8/10/11/12/13 name (the `compile_error!` is the mirror
 `HAVE_NTGUI` `struct frame` gap, unchanged).
 
 **Evidence ③ - the name sweep, and the two false-positive classes it read.**  `python3
-tools/check-unit-names.py femacs/src/w32proc.rs 2735 3193` -> `41 capitalized identifiers, missing:
+tools/check-unit-names.py src/w32proc.rs 2735 3193` -> `41 capitalized identifiers, missing:
 ['Internal', 'InternalHigh', 'Offset', 'OffsetHigh', 'Pointer', 'Some']` - **both classes are the
 tool's own documented limitations, not missing names**: the five field names are the *field*
 declarations of the SDK records this round spells (`pub Internal: ULONG_PTR,` - the tool strips
 `.field` accesses but not field definitions), and `Some` is the prelude variant.  Both were
 confirmed by a control run on the peer unit that spelled the same records: `check-unit-names.py
-femacs/src/w32.rs 11860 11920` reads the same five field names.  Nothing this round uses is
+src/w32.rs 11860 11920` reads the same five field names.  Nothing this round uses is
 undefined.
 
 **Evidence ④ - the `--check` reading.**  **90 -> 85 `- missing` rows**, and the five that retire are
@@ -786,7 +786,7 @@ of them: this round removes the `missing file-scope object process_dir` row so t
 'feature="have_langinfo_codeset"'` -> **exit 1, 37 errors, 0 anchored in this unit** - the eighth
 identical reading.
 
-**Evidence ③ - the name sweep.**  `check-unit-names.py femacs/src/w32proc.rs 3194 3209` -> `0
+**Evidence ③ - the name sweep.**  `check-unit-names.py src/w32proc.rs 3194 3209` -> `0
 capitalized identifiers, missing: []` (the round adds no name at all, which is the point).
 
 **Evidence ④ - the `--check` reading.**  **85 -> 84 `- missing` rows**: `missing file-scope object
@@ -838,7 +838,7 @@ could have moved: the round adds 108 lines of SDK declarations, and a wrong name
 shown as an `E0428` (the class the probe *does* report).
 
 **Evidence ③ - the name sweep, and the `#if 0` text it reads.**  `check-unit-names.py
-femacs/src/w32proc.rs 3210 3420` -> `34 capitalized identifiers, missing: ['EH_Fail',
+src/w32proc.rs 3210 3420` -> `34 capitalized identifiers, missing: ['EH_Fail',
 'InitializeSecurityDescriptor', 'SECURITY_DESCRIPTOR_REVISION', 'SetSecurityDescriptorDacl']` - the
 four names of the C 2154-2160 `#if 0` region, i.e. the tool's documented **nested-comment** false
 positive: that region carries an inner `/* … */`, so the scanner ends the comment early and reads
@@ -893,7 +893,7 @@ lines** (+83).  The next row's first item is C 2270-2273's `waitpid` comment.
 --cfg 'feature="windowsnt"' --cfg 'feature="have_ntgui"' --cfg 'feature="have_setitimer"' --cfg
 'feature="have_langinfo_codeset"'` -> **exit 1, 37 errors (27 `E0428` + 9 `E0425` + 1
 `compile_error!`), 0 anchored in this unit** - the tenth identical reading.
-**Evidence ③ - the name sweep.**  `check-unit-names.py femacs/src/w32proc.rs 3421 3503` -> `6
+**Evidence ③ - the name sweep.**  `check-unit-names.py src/w32proc.rs 3421 3503` -> `6
 capitalized identifiers, missing: []` - clean, including the two carried `FULL_DEBUG` regions (the
 C 2251-2255 one does hold an inner `/* … */`, but every name its tail carries - `DebPrint`,
 `WaitForSingleObject`, `WAIT_OBJECT_0` - is an item the tree already has, so the documented
@@ -937,7 +937,7 @@ their `/* C … */` carry); the fix is the only text change between that run and
 --cfg 'feature="windowsnt"' --cfg 'feature="have_ntgui"' --cfg 'feature="have_setitimer"' --cfg
 'feature="have_langinfo_codeset"'` -> **exit 1, 37 errors (27 `E0428` + 9 `E0425` + 1
 `compile_error!`), 0 anchored in this unit** - the eleventh identical reading.
-**Evidence ③ - the name sweep.**  `check-unit-names.py femacs/src/w32proc.rs 3504 3729` -> `17
+**Evidence ③ - the name sweep.**  `check-unit-names.py src/w32proc.rs 3504 3729` -> `17
 capitalized identifiers, missing: []` - clean, including both carried `FULL_DEBUG` regions (neither
 holds an inner `/* … */`).
 **Evidence ④ - the `--check` and do/while readings.**  **81 -> 80 `- missing` rows**
@@ -988,12 +988,12 @@ device is therefore verified from both sides: a top-level declaration is an `E04
 unit's definition, a glob-imported one is shadowed by it.**  Note the probe *did* report these (it
 is a name-resolution reading for `E0428`) even though it cannot report a *missing* name.
 
-**Evidence ③ - the name sweep.**  `check-unit-names.py femacs/src/w32proc.rs 3726 4050` -> `98
+**Evidence ③ - the name sweep.**  `check-unit-names.py src/w32proc.rs 3726 4050` -> `98
 capitalized identifiers, missing: [54 names]` - **every one of the 54 is a *field* of the PE records
 this round spells** (`Machine`, `NumberOfSections`, `AddressOfEntryPoint`, `Misc`, `Name`, …), i.e.
 the class the tool's own docstring records (it strips `.field` accesses but not field
 *definitions*), and `Some` does not appear this time because the slice has no `Option` use.  The
-control is the peer unit's identical spelling (slice 7: `check-unit-names.py femacs/src/w32.rs
+control is the peer unit's identical spelling (slice 7: `check-unit-names.py src/w32.rs
 11860 11920` reads the five field names of `child_process` and `OVERLAPPED`).
 
 **Evidence ④ - the `--check` reading.**  **80 -> 75 `- missing` rows** (`missing function
@@ -1062,10 +1062,10 @@ three runs).
 'feature="windowsnt"' --cfg 'feature="have_ntgui"' --cfg 'feature="have_setitimer"' --cfg
 'feature="have_langinfo_codeset"'` -> **exit 1, 37 errors (27 `E0428` + 9 `E0425` + 1
 `compile_error!`), 0 anchored in this unit** - the lane's baseline again after slice 12's mirror fix.
-**Evidence ③ - the name sweep.**  `check-unit-names.py femacs/src/w32proc.rs 4059 4358` -> `64
+**Evidence ③ - the name sweep.**  `check-unit-names.py src/w32proc.rs 4059 4358` -> `64
 capitalized identifiers, missing: [64 names]` - every one a *field* of the records this round
 spells (`e_magic`, `DataDirectory`, `FirstThunk`, `Subsystem`, …), the tool's documented class
-(slice 7's control: `femacs/src/w32.rs` 11860-11920 reads the same class for `child_process`).
+(slice 7's control: `src/w32.rs` 11860-11920 reads the same class for `child_process`).
 **Evidence ④ - the `--check` reading.**  **75 -> 73 `- missing` rows**: `missing function
 w32_executable_type` and `missing macro RVA_TO_PTR`.  One token row, now the `goto` alone (above).
 Drift 17.4% -> **11.2%**, inside the stem's 0.36 row.
@@ -1112,7 +1112,7 @@ and sorts the result.  Port: 4,358 -> **4448 lines** (+90).  The next row's firs
 'feature="windowsnt"' --cfg 'feature="have_ntgui"' --cfg 'feature="have_setitimer"' --cfg
 'feature="have_langinfo_codeset"'` -> **exit 1, 37 errors (27 `E0428` + 9 `E0425` + 1
 `compile_error!`), 0 anchored in this unit** - the baseline.
-**Evidence ③ - the name sweep.**  `check-unit-names.py femacs/src/w32proc.rs 4359 4448` -> `2
+**Evidence ③ - the name sweep.**  `check-unit-names.py src/w32proc.rs 4359 4448` -> `2
 capitalized identifiers, missing: ['Some']` - the prelude variant alone (the tool's documented
 false positive; `toupper`, `qsort` and `compare_env` all resolve).
 **Evidence ④ - the `--check` reading.**  **73 -> 71 `- missing` rows**: `missing function
@@ -1156,7 +1156,7 @@ this unit** - two *fewer* than the standing baseline of 37, which is the better 
 this reading is recorded rather than smoothed over.
 
 **Evidence ③ - the name sweep, and the tool's two reading limits.**  `check-unit-names.py
-femacs/src/w32proc.rs 4449 4884` -> `31 capitalized identifiers, missing: ['CRT', 'P', 'PORTING',
+src/w32proc.rs 4449 4884` -> `31 capitalized identifiers, missing: ['CRT', 'P', 'PORTING',
 'SDK']`.  None of the four is an identifier: they are words of this round's own prose, read as code
 by the tool's two documented limits - the block-comment scan does not nest (so the carried
 `#if 0` region's inner `/* … */` re-synchronises the scan one delimiter out of phase) and the scan
@@ -1211,7 +1211,7 @@ declaration in its `/// C:` line) is the round's only text change between the tw
 `compile_error!`), 0 anchored in this unit** - the reading slice 15's errno cleanup produced, and the
 shape this round adds no name to.
 
-**Evidence ③ - the name sweep.**  `check-unit-names.py femacs/src/w32proc.rs 4901 4907` -> `1
+**Evidence ③ - the name sweep.**  `check-unit-names.py src/w32proc.rs 4901 4907` -> `1
 capitalized identifier, missing: []`.
 
 **Evidence ④ - the `--check` reading.**  **70 -> 67 `- missing` rows**, and the three that retire
@@ -1251,7 +1251,7 @@ next row's first item is C 3485-3488's `w32_valid_process_id` comment.
 'feature="windowsnt"' --cfg 'feature="have_ntgui"' --cfg 'feature="have_setitimer"' --cfg
 'feature="have_langinfo_codeset"'` -> **exit 1, 35 errors (25 `E0428` + 9 `E0425` + 1
 `compile_error!`), 0 anchored in this unit** - slice 15's improved baseline, unchanged.
-**Evidence ③ - the name sweep.**  `check-unit-names.py femacs/src/w32proc.rs 4908 5379` -> `33
+**Evidence ③ - the name sweep.**  `check-unit-names.py src/w32proc.rs 4908 5379` -> `33
 capitalized identifiers, missing: []` - clean, including the three carried dead arms.
 **Evidence ④ - the `--check`, do/while and drift readings.**  **67 -> 66 `- missing` rows**
 (`missing function sys_select`), one token row (`does not mention goto`, recorded in
@@ -1301,7 +1301,7 @@ move"), so this round is its **eleventh** P-39 move: the declaration sits in the
 the ledger row.  Re-read after the move: **35 errors (25 + 9 + 1), 0 anchored in this unit** - the
 baseline slice 15 produced, restored.  (Slice 12's `w32heap_file_decls` was the same device; the
 probe reports this class because `E0428` *is* a name-resolution error.)
-**Evidence ③ - the name sweep.**  `check-unit-names.py femacs/src/w32proc.rs 5380 5454` -> `16
+**Evidence ③ - the name sweep.**  `check-unit-names.py src/w32proc.rs 5380 5454` -> `16
 capitalized identifiers, missing: []`.
 **Evidence ④ - the `--check` reading.**  **66 -> 64 `- missing` rows**: `missing function
 w32_valid_process_id` and `missing function find_child_console`.  No token rows; drift -9.7% ->
@@ -1340,7 +1340,7 @@ the SDK block alone, then the functions).
 'feature="have_langinfo_codeset"'` -> **exit 1, 35 errors (25 `E0428` + 9 `E0425` + 1
 `compile_error!`), 0 anchored in this unit** - the baseline, unchanged by 103 lines of new
 declarations (the reading a wrong name there would have moved, `E0428` being name resolution).
-**Evidence ③ - the name sweep.**  `check-unit-names.py femacs/src/w32proc.rs 5455 5956` -> `69
+**Evidence ③ - the name sweep.**  `check-unit-names.py src/w32proc.rs 5455 5956` -> `69
 capitalized identifiers, missing: ['Msg', 'Some']`: `Some` is the prelude variant and `Msg` is the
 *parameter name* of this round's `PostMessage` declaration - the tool's docstring names exactly that
 class ("the parameter names of a declaration (C's own `Msg: UINT` in a `SendMessageW` prototype)").
@@ -1391,7 +1391,7 @@ between the two runs.
 'feature="windowsnt"' --cfg 'feature="have_ntgui"' --cfg 'feature="have_setitimer"' --cfg
 'feature="have_langinfo_codeset"'` -> **exit 1, 35 errors (25 `E0428` + 9 `E0425` + 1
 `compile_error!`), 0 anchored in this unit** - the baseline.
-**Evidence ③ - the name sweep.**  `check-unit-names.py femacs/src/w32proc.rs 5957 6059` -> `11
+**Evidence ③ - the name sweep.**  `check-unit-names.py src/w32proc.rs 5957 6059` -> `11
 capitalized identifiers, missing: ['Sw32_has_winsock', 'Sw32_unload_winsock']` - the two `S…`
 statics the `DEFUN!` macro generates, the tool's documented *macro-generated names* class.  Nothing
 this round uses is undefined.
@@ -1433,7 +1433,7 @@ two-character drive test, `w32_get_long_filename`, and the drive-only fixup) and
 'feature="windowsnt"' --cfg 'feature="have_ntgui"' --cfg 'feature="have_setitimer"' --cfg
 'feature="have_langinfo_codeset"'` -> **exit 1, 35 errors (25 `E0428` + 9 `E0425` + 1
 `compile_error!`), 0 anchored in this unit** - the baseline.
-**Evidence ③ - the name sweep.**  `check-unit-names.py femacs/src/w32proc.rs 6060 6227` -> `37
+**Evidence ③ - the name sweep.**  `check-unit-names.py src/w32proc.rs 6060 6227` -> `37
 capitalized identifiers, missing: ['Sw32_short_file_name', 'Sw32_long_file_name',
 'Sw32_set_process_priority']` - the macro-generated `S…` statics again.
 **Evidence ④ - the `--check` and docstring readings.**  **57 -> 54 `- missing` rows** (the three
@@ -1464,7 +1464,7 @@ next row's first item is C 4137's `#ifdef HAVE_LANGINFO_CODESET` arm.
 'feature="windowsnt"' --cfg 'feature="have_ntgui"' --cfg 'feature="have_setitimer"' --cfg
 'feature="have_langinfo_codeset"'` -> **exit 1, 35 errors (25 `E0428` + 9 `E0425` + 1
 `compile_error!`), 0 anchored in this unit**.
-**Evidence ③ - the name sweep.**  `check-unit-names.py femacs/src/w32proc.rs 6228 6296` -> `14
+**Evidence ③ - the name sweep.**  `check-unit-names.py src/w32proc.rs 6228 6296` -> `14
 capitalized identifiers, missing: ['Sw32_application_type']` - the macro-generated static again.
 **Evidence ④ - the `--check` reading.**  **54 -> 53 `- missing` rows** (the subr row).  No token
 rows; the docstring rides in the invocation as slice 21's do.  Drift -27.0% -> **-28.4%**.
@@ -1496,7 +1496,7 @@ brackets; the fix is the round's only text change between the two runs.
 'feature="have_langinfo_codeset"'` -> **exit 1, 35 errors (25 `E0428` + 9 `E0425` + 1
 `compile_error!`), 0 anchored in this unit** - unchanged by the round's ~30 new declarations, which
 is the reading a wrong name among them would have moved.
-**Evidence ③ - the name sweep.**  `check-unit-names.py femacs/src/w32proc.rs 6297 6502` -> `33
+**Evidence ③ - the name sweep.**  `check-unit-names.py src/w32proc.rs 6297 6502` -> `33
 capitalized identifiers, missing: ['LCType', 'Locale']` - the *parameter names* of this round's
 `GetLocaleInfo` declaration (`decltype DWORD LCType, LCID Locale`), the class the tool's docstring
 names, as slice 19's `Msg` was.
@@ -1531,7 +1531,7 @@ comment with C 4325's `Vw32_valid_locale_ids`.
 'feature="windowsnt"' --cfg 'feature="have_ntgui"' --cfg 'feature="have_setitimer"' --cfg
 'feature="have_langinfo_codeset"'` -> **exit 1, 35 errors (25 `E0428` + 9 `E0425` + 1
 `compile_error!`), 0 anchored in this unit**.
-**Evidence ③ - the name sweep.**  `check-unit-names.py femacs/src/w32proc.rs 6503 6635` -> `26
+**Evidence ③ - the name sweep.**  `check-unit-names.py src/w32proc.rs 6503 6635` -> `26
 capitalized identifiers, missing: ['Locale', 'Sw32_get_locale_info',
 'Sw32_get_current_locale_id']` - the `IsValidLocale` declaration's parameter name and the two
 `DEFUN!` statics, all three in the tool's documented classes.
@@ -1580,7 +1580,7 @@ appended-item experiment (a probe copy with a deliberately unknown name - in val
 an item signature - appended at the end) reports nothing for it, i.e. the reading is blind to name
 errors past the point where the include graph's own errors abort the pass; a *missing* name is
 caught by Evidence ③'s sweep, never by ②.
-**Evidence ③ - the name sweep.**  `check-unit-names.py femacs/src/w32proc.rs 6637 7159` -> `92
+**Evidence ③ - the name sweep.**  `check-unit-names.py src/w32proc.rs 6637 7159` -> `92
 capitalized identifiers, missing: ['Clone', 'CodePage', 'Copy', 'Flags', 'Locale', 'Some',
 'Sw32_get_codepage_charset', 'Sw32_get_console_codepage', 'Sw32_get_console_output_codepage',
 'Sw32_get_default_locale_id', 'Sw32_get_keyboard_layout', 'Sw32_get_valid_codepages',
@@ -1660,7 +1660,7 @@ use site too and read **36: 26 `E0428` + 9 `E0425` + 1 `compile_error!`**, the e
 (TM C 30's `#include <stdlib.h>`), so the duplicate was removed and the note in that block records
 it (Deviation 97).  This is the second measurement in a row that the `E0428` reading is the one
 that catches an over-declaration.
-**Evidence ③ - the name sweep.**  `check-unit-names.py femacs/src/w32proc.rs 7164 7462` -> `37
+**Evidence ③ - the name sweep.**  `check-unit-names.py src/w32proc.rs 7164 7462` -> `37
 capitalized identifiers, missing: ['Locale', 'Some']` - the `SetThreadLocale` declaration's
 parameter name (class e) and the prelude variant (class f).
 **Evidence ④ - the `--check` reading.**  **31 -> 21 `- missing` rows**: the round satisfies the
@@ -1712,7 +1712,7 @@ ported in full** - the lane's first file closes here, and the next lane picks up
 `compile_error!`), 0 anchored in this unit** - unchanged through the round's `DEFSYM!`/`defsubr`/
 `DEFVAR_*` block, whose macro names are the only part of it this reading resolves (Evidence ②'s
 slice-25 note).
-**Evidence ③ - the name sweep.**  `check-unit-names.py femacs/src/w32proc.rs 7463 7569` -> `38
+**Evidence ③ - the name sweep.**  `check-unit-names.py src/w32proc.rs 7463 7569` -> `38
 capitalized identifiers, missing: ['Sw32_application_type', … 'Sw32_unload_winsock']` - the twenty
 `DEFUN!` statics (class c), the block's only class.
 **Evidence ④ - the `--check` reading, and the file's completion.**  **21 -> 0 `- missing` rows**:
@@ -1767,7 +1767,7 @@ normalization, so the two sides cannot drift again.
 'feature="have_langinfo_codeset"'` -> **35 errors (25 `E0428` + 9 `E0425` + 1 `compile_error!`), 0
 anchored in this unit** - unchanged, as a doc-slot text change should leave it.
 **Evidence ③ - the name sweep.**  Not re-run: no name changed this round.
-**Evidence ④ - the `--check` reading.**  **`OK emacs/src/w32proc.c -> femacs/src/w32proc.rs`** -
+**Evidence ④ - the `--check` reading.**  **`OK emacs/src/w32proc.c -> src/w32proc.rs`** -
 the 18 docstring rows are gone and the file now passes the checker outright.  The port is 7569
 lines (unchanged); the drift row stays inside the 0.55 tolerance row.
 

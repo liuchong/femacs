@@ -107,7 +107,7 @@
   `term.rs`, the documented P-66 boundary), and `TERMINAL_FONT_CACHE` (every arm is dead on
   this target).
 - **Gate**: `python3 tools/extract-abi.py --check emacs/src/termhooks.h
-  femacs/src/include/termhooks.rs` → `OK`.
+  src/include/termhooks.rs` → `OK`.
 
 ## `struct terminal`'s four gated hooks (status 3.277)
 

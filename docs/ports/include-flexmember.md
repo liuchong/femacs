@@ -17,7 +17,7 @@
 # ----------------------------------------------------------------------
 ## Decisions
 
-`femacs/lib/include/flexmember.rs` mirrors `emacs/lib/flexmember.h`; all three of its macros
+`lib/include/flexmember.rs` mirrors `emacs/lib/flexmember.h`; all three of its macros
 have a counterpart and `--check` is OK.
 
 * C 36-40's `FLEXALIGNOF` has two arms; `tools/check-cond-eval.py` is VERIFIED for this

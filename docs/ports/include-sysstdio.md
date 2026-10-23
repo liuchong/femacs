@@ -23,7 +23,7 @@ hashes as `dd29ecf524b0`, i.e. the literal `""`).  `#ifndef PIPE_BUF` (C 43-45) 
 frozen `<limits.h>` defines PIPE_BUF (512, macros.tsv).
 
 1. **The three functions are declarations only.**  C defines `errputc`, `errwrite` and
-   `close_output_streams` in src/sysdep.c, which is ported - `femacs/src/sysdep.rs` 4147, 4161,
+   `close_output_streams` in src/sysdep.c, which is ported - `src/sysdep.rs` 4147, 4161,
    4168 define them - so this mirror declares and never defines (PORTING.md 0.1-3), and the
    module plus glob import is the P-21 shape (`sysstdio_decls`, the atimer_decls precedent).
 2. **String-literal macros are constants here.**  The extractor compares a string-literal macro
@@ -43,7 +43,7 @@ frozen `<limits.h>` defines PIPE_BUF (512, macros.tsv).
    the first draft of this file lacked - `xtask layout-check` caught it as `E0425: cannot find
    type c_int`.  Recorded in docs/status.md 3.91.
 
-Evidence: `extract-abi.py --check emacs/src/sysstdio.h femacs/src/include/sysstdio.rs` -> `OK`;
+Evidence: `extract-abi.py --check emacs/src/sysstdio.h src/include/sysstdio.rs` -> `OK`;
 `xtask layout-check` passes with this file present (it is the probe's first `src/include` mirror
 that declares externs, so the probe compiles the module path too).
 

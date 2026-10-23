@@ -48,7 +48,7 @@
 
 ## Decisions
 
-Reference `emacs/src/sort.c` @ `fd7afced403`; port `femacs/src/sort.rs`.
+Reference `emacs/src/sort.c` @ `fd7afced403`; port `src/sort.rs`.
 
 ### `#if` branches
 
@@ -97,7 +97,7 @@ None: `sort.c` has no conditional compilation (verified with `grep -n '#if'`).
    keyword has no Rust spelling; the macro is defined once in `lisp.rs` (PORTING.md
    2.5).
 9. **`PTRDIFF_WIDTH`** (C 127, from gnulib `<stdint.h>`) comes from the new
-   `femacs/lib/include/stdint.in.rs` mirror (with `femacs/lib/include/limits.in.rs`
+   `lib/include/stdint.in.rs` mirror (with `lib/include/limits.in.rs`
    for `_GL_INTEGER_WIDTH`); both are WIP mirrors marked as such.
 10. **`calln (ms->predicate, a, b)`** is `calln! (…)`; the macro's `ARRAYELTS`
     replacement had to stop evaluating its argument (a constant expression cannot

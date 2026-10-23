@@ -61,7 +61,7 @@ arm (PORTING.md P-51; no mirror exists for `<sys/sysinfo.h>`, `<OS.h>` or `<wind
 `GetTickCount64Func != NULL` test and the call it guards.
 
 Evidence: `python3 tools/extract-abi.py --check emacs/lib/boot-time-aux.h
-femacs/lib/include/boot-time-aux.rs` -> `OK`; `cargo run -q -p xtask -- build-tu lib/boot-time.c`
+lib/include/boot-time-aux.rs` -> `OK`; `cargo run -q -p xtask -- build-tu lib/boot-time.c`
 -> `built`; `cargo run -q -p xtask -- layout-check` -> `layout-check passed`;
 `cargo run -q -p xtask -- dead-arms` -> `322 translation unit(s) compiled with the non-frozen
 arms` (it was the failing unit before this mirror existed).

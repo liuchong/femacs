@@ -16,7 +16,7 @@
 Mirror of src/macuvs.h, complete: the header declares **no** subr, function, macro, type or
 file-scope object - it is one data table.  C 9's `static const unsigned char
 mac_uvs_table_adobe_japan1_bytes[] = { … };` (C 10-9218, 73,655 values, 8 per line) is mirrored
-as `pub const mac_uvs_table_adobe_japan1_bytes: [u8; 73655]` in `femacs/src/include/macuvs.rs`.
+as `pub const mac_uvs_table_adobe_japan1_bytes: [u8; 73655]` in `src/include/macuvs.rs`.
 Three points are decisions rather than transcription:
 
 1. **`const`, not `pub static`.** C's `static` gives the array internal linkage: every
@@ -30,7 +30,7 @@ Three points are decisions rather than transcription:
    line *n* of C's - the 20 lines the mirror adds on top are the provenance note, C's own head
    comment (C 1-7, verbatim) and the `/// C 9:` quotation.
 3. **Differential proof, since the gate has nothing to compare.** `tools/extract-abi.py --check
-   emacs/src/macuvs.h femacs/src/include/macuvs.rs` -> `OK`, but the extractor counts zero items
+   emacs/src/macuvs.h src/include/macuvs.rs` -> `OK`, but the extractor counts zero items
    in a data-only header, so that `OK` alone would not prove the bytes.  The bytes were therefore
    compared the way C and Rust see them: a `/tmp` C probe that `#include "macuvs.h"` and
    `fwrite`s `sizeof mac_uvs_table_adobe_japan1_bytes` bytes, and a `/tmp` Rust probe that

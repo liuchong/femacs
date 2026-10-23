@@ -31,4 +31,4 @@ which compiles the `src/include` and `lib/include` mirrors, does not reach it; i
 `nt/inc` is on the include path instead, and `src/fileio.c`, `src/dired.c` and `src/w32.c` are
 among the units whose `#include <pwd.h>` resolves here.
 Evidence: `python3 tools/extract-abi.py --check emacs/nt/inc/pwd.h
-femacs/nt/inc/include/pwd.rs` -> `OK`.
+nt/inc/include/pwd.rs` -> `OK`.

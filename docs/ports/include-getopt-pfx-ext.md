@@ -22,7 +22,7 @@
 
 ## Decisions
 
-**Status: the unit is PORTED** (`femacs/lib/include/getopt-pfx-ext.rs`, 2026-10-04).
+**Status: the unit is PORTED** (`lib/include/getopt-pfx-ext.rs`, 2026-10-04).
 
 Criterion: the generated header's `__GETOPT_PREFIX` is `rpl_`, so C 28-34's arm is live - the three
 paste macros (`__GETOPT_CONCAT`, `__GETOPT_XCONCAT`, `__GETOPT_ID`) rename `getopt_long`,
@@ -41,8 +41,8 @@ object - so those three are `linkage` rows.
 ## Evidence
 
 ```
-$ python3 tools/extract-abi.py --check emacs/lib/getopt-pfx-ext.h femacs/lib/include/getopt-pfx-ext.rs
-OK emacs/lib/getopt-pfx-ext.h -> femacs/lib/include/getopt-pfx-ext.rs            (0 problem rows)
+$ python3 tools/extract-abi.py --check emacs/lib/getopt-pfx-ext.h lib/include/getopt-pfx-ext.rs
+OK emacs/lib/getopt-pfx-ext.h -> lib/include/getopt-pfx-ext.rs            (0 problem rows)
 $ nm build/emacs-ref/lib/getopt1.o | grep -E ' T _rpl_getopt'
 0000000000000000 T _rpl_getopt_long
 $ cd femacs && cargo run -q -p xtask -- build-tu lib/getopt1.c

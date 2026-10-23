@@ -145,7 +145,7 @@
 # ----------------------------------------------------------------------
 ## Decisions
 
-`emacs/src/editfns.c` @ `fd7afced403`; port `femacs/src/editfns.rs` (5,308 lines vs C's 4,975 -
+`emacs/src/editfns.c` @ `fd7afced403`; port `src/editfns.rs` (5,308 lines vs C's 4,975 -
 +6.7% on the **total** basis, declared in `docs/ports/line-drift-tolerance.tsv` with the
 reason: this unit carries `emacs/lib/diffseq.h`'s own text inline, and the rest is the P-08
 dead-arm record plus the 80 `DEFUN!` invocations whose bodies hang off the invocation).

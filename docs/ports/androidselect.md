@@ -6,7 +6,7 @@
 > `docs/baseline/frozen-build-sources.txt` lists no `androidselect.o` for this target and
 > `extract-abi.py`'s checklist for the file is empty - its checkbox sections cannot be coverage
 > evidence.  What follows is P-86 ②'s substitute: the **C line-range table**, the `## Evidence`
-> readings, and the `## Deviations`.  Port: `femacs/src/androidselect.rs` (1,312 lines), both arms
+> readings, and the `## Deviations`.  Port: `src/androidselect.rs` (1,312 lines), both arms
 > of every `#if` carried.  This **overturns the decision this ledger used to record** ("the file is
 > not in the frozen build, so the port is the empty unit plus a note"): P-86 ① rules that a
 > three-line header comment is *not started*, not *done*.  The old note's measurements are still
@@ -90,10 +90,10 @@ error is listed with the fix that followed it; the final revision's own reading 
 
 | file | line | error |
 | --- | --- | --- |
-| an included mirror, `femacs/src/include/window.rs` | 346 | `E0425 cannot find function … BUFFERP` (window.h 605) |
-| an included mirror, `femacs/src/include/window.rs` | 371 | `E0425 … BUFFERP` (window.h 605) |
-| an included mirror, `femacs/src/include/window.rs` | 372 | `E0425 cannot find function buffer_local_value` (window.h 634-635) |
-| an included mirror, `femacs/src/include/window.rs` | 441 | `E0425 … BUFFERP` (window.h 1199) |
+| an included mirror, `src/include/window.rs` | 346 | `E0425 cannot find function … BUFFERP` (window.h 605) |
+| an included mirror, `src/include/window.rs` | 371 | `E0425 … BUFFERP` (window.h 605) |
+| an included mirror, `src/include/window.rs` | 372 | `E0425 cannot find function buffer_local_value` (window.h 634-635) |
+| an included mirror, `src/include/window.rs` | 441 | `E0425 … BUFFERP` (window.h 1199) |
 | this unit's own text (fixed) | `Fandroid_notifications_notify_1` | `E0381 used binding i isn't initialized` - C 756's `for (i = 0; …)` initialiser; the port now declares the counter initialised |
 
 `window.rs` is in this graph the way it is in C's: `frame.h` 23 includes `window.h`, and
@@ -131,13 +131,13 @@ only differences are the `include!` lines xtask rewrites to absolute paths and i
 reading is the final revision's.
 
 **③ Inventory.**
-`python3 tools/extract-abi.py --check emacs/src/androidselect.c femacs/src/androidselect.rs` →
+`python3 tools/extract-abi.py --check emacs/src/androidselect.c src/androidselect.rs` →
 
     - function extract_fd_offsets does not mention goto
     - subr Fandroid_get_clipboard_targets does not mention goto
     - subr Fandroid_get_clipboard_data does not mention goto
     - line count drifted 7.5%: C 1220 vs Rust 1312
-    FAIL emacs/src/androidselect.c -> femacs/src/androidselect.rs
+    FAIL emacs/src/androidselect.c -> src/androidselect.rs
 
 (plus one informational line: `FIND_METHOD` has several C definitions, so its body is not
 compared).  The file's checklist is empty (P-86 ⑩), so `--check` compares the eight subr
@@ -168,10 +168,10 @@ The `check-port-lines.py` row is this file's own ratchet row leaving the table (
   `androidselect.o` only in the really-Android branch while 2597's list (`androidmenu.o`) is in
   both.  The three configuration cases this creates are covered because the port keeps *all three*
   arms of its only `#if` chain (P-86 ①): a build that switches an arm off still has the other two.
-- **The two derived feature names are not in `femacs/xtask/Cargo.toml`'s `[features]` table.**
+- **The two derived feature names are not in `xtask/Cargo.toml`'s `[features]` table.**
   `android_api_le_11` and `android_api_le_30` stand for C's `#if __ANDROID_API__ <= 11` and `<= 30`;
   the table carries no `__ANDROID_API__`-conditioned name today (measured: no row's comment names
-  it, and `rg 'api' femacs/xtask/Cargo.toml` finds none).  Owed by the integrator - a port lane does
+  it, and `rg 'api' xtask/Cargo.toml` finds none).  Owed by the integrator - a port lane does
   not add feature names to that manifest.
 - **Rust has no `#[cfg]` on an `else` clause, so each `#if` is a compile-time operand of its arm's
   own runtime test** (`cfg! (feature = "android_api_le_11") && android_get_current_api_level () <=
@@ -185,7 +185,7 @@ The `check-port-lines.py` row is this file's own ratchet row leaving the table (
   unconditionally** (the arm that reads it is carried, so its declaration must compile); C's
   `static` is zeroed and the port's is the `Option<unsafe extern "C" fn …>` the function-pointer
   field shape uses.  The same for C 435's `AFileDescriptor_getFd`, which has no `#if` in C.
-- **`<dlfcn.h>` (C 24) has no mirror in this tree** (`femacs/lib/include/dlfcn.rs` does not exist;
+- **`<dlfcn.h>` (C 24) has no mirror in this tree** (`lib/include/dlfcn.rs` does not exist;
   `src/dynlib.rs` 17-30 declares the same entries in-unit for its own `<dlfcn.h>`, the
   "getgroups.c shape").  The unit declares `dlopen`, `dlsym`, `RTLD_LAZY` and `RTLD_GLOBAL` at the
   use site with the **NDK's** values, measured on this machine's
@@ -260,7 +260,7 @@ The `check-port-lines.py` row is this file's own ratchet row leaving the table (
    `android_get_clipboard_targets` and `android_get_clipboard_data` → `goto` (PORTING.md 2.2's
    labeled-block spelling; the `androidmenu.rs` `android_menu_show` row is the precedent).
 2. `docs/ports/line-drift-tolerance.tsv`: one row for `androidselect`, with the reason above.
-3. `femacs/xtask/Cargo.toml`'s `[features]` table: `android_api_le_11` and `android_api_le_30`
+3. `xtask/Cargo.toml`'s `[features]` table: `android_api_le_11` and `android_api_le_30`
    (comments: the derived conditions `__ANDROID_API__ <= 11` / `<= 30`, androidselect.c 432/447 and
    478 - note the second row's `not (…)` spelling in this port).
 4. **The mirror gap that blocks the flip reading**: `include/window.rs` names `BUFFERP`

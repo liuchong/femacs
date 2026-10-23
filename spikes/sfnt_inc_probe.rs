@@ -33,8 +33,8 @@ pub struct Lisp_Object { pub word: usize }
 /// (the mirror's own assertion records the measurement).
 pub type jmp_buf = [u8; 192];
 
-include!("../femacs/src/include/sfnt.rs");
-include!("../femacs/src/include/fontset.rs");
+include!("../src/include/sfnt.rs");
+include!("../src/include/fontset.rs");
 
 // The probe is a compile proof, not a program: every item of both mirrors is checked whether
 // or not anything uses it (the ~150 `sfnt_*` entry points are declared and never defined here,

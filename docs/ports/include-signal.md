@@ -34,4 +34,4 @@ which compiles the `src/include` and `lib/include` mirrors, does not reach it; i
 `nt/inc` is on the include path instead, and `src/comp.c`, `src/filelock.c` and `src/w32term.c`
 are among the units whose `#include <signal.h>` resolves here.
 Evidence: `python3 tools/extract-abi.py --check emacs/nt/inc/signal.h
-femacs/nt/inc/include/signal.rs` -> `OK`.
+nt/inc/include/signal.rs` -> `OK`.

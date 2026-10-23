@@ -66,8 +66,8 @@
 
 ## Evidence
 
-- `python3 tools/extract-abi.py --check emacs/src/disptab.h femacs/src/include/disptab.rs`
-  -> `OK emacs/src/disptab.h -> femacs/src/include/disptab.rs`.
+- `python3 tools/extract-abi.py --check emacs/src/disptab.h src/include/disptab.rs`
+  -> `OK emacs/src/disptab.h -> src/include/disptab.rs`.
 - `xtask build-tu` -> `built` for all ten units that include this mirror: `src/term.c`,
   `src/dispnew.c`, `src/doc.c`, `src/indent.c`, `src/xfaces.c`, `src/print.c`, `src/window.c`,
   `src/character.c`, `src/xdisp.c` and `src/keyboard.c` (the last two are the in-flight units).

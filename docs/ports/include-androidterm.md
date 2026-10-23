@@ -115,7 +115,7 @@
   (dispextern.h 165-166) and androidgui.h's `android_time`, none of which is reachable on this
   target.
 - **`androidterm.c` is not in the frozen build**, so `docs/port-map.md` 372-373 keeps
-  `femacs/src/androidterm.rs` as the note-only placeholder (docs/status.md 3.31): the mirror is not
+  `src/androidterm.rs` as the note-only placeholder (docs/status.md 3.31): the mirror is not
   reachable from any built translation unit's include graph and is compiled only when a future
   Android configuration freezes.  This is the same state `include/gtkutil.rs` and
   `include/pgtkterm.rs` are in.
@@ -124,8 +124,8 @@
 
 - `python3 tools/check-cond-eval.py src/androidterm.h` ->
   `src/androidterm.h: 3 conditions, 0 unknown, 0 disagreements [VERIFIED]`.
-- `python3 tools/extract-abi.py --check emacs/src/androidterm.h femacs/src/include/androidterm.rs`
-  -> `OK emacs/src/androidterm.h -> femacs/src/include/androidterm.rs` (no `- ` problem lines).
+- `python3 tools/extract-abi.py --check emacs/src/androidterm.h src/include/androidterm.rs`
+  -> `OK emacs/src/androidterm.h -> src/include/androidterm.rs` (no `- ` problem lines).
 - Layout measured with the frozen target's clang (the header cannot be compiled on this target as
   it stands: dispextern.h 175's `Emacs_Cursor` collides with androidgui.h 42's, so the probe adds
   `-include` shims for `HAVE_WINDOW_SYSTEM`, `Display_Info`, `Emacs_Pix_Container` and
@@ -176,8 +176,8 @@
 ## Evidence (the macro bodies)
 
 - `python3 tools/extract-abi.py --check emacs/src/androidterm.h
-  femacs/src/include/androidterm.rs` -> `OK emacs/src/androidterm.h ->
-  femacs/src/include/androidterm.rs` (19 macros, 5 types, 4 file-scope objects - the bodies'
+  src/include/androidterm.rs` -> `OK emacs/src/androidterm.h ->
+  src/include/androidterm.rs` (19 macros, 5 types, 4 file-scope objects - the bodies'
   token sets are unchanged, which is what that gate compares).
 - `rustup run nightly-2026-10-01 rustc --edition 2024 --crate-type lib --emit obj -C panic=abort
   --cfg 'feature="have_android"' --cfg 'feature="not_android_stubify"' -o /tmp/am.o

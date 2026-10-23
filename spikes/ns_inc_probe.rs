@@ -10,7 +10,7 @@
 // (`XCharStruct`, `Emacs_Pixmap`, `Window`, `NativeRectangle`, the gravity/value/position
 // constants).  C keeps those apart with its platform `#if`s and by compiling one backend at a
 // time; a single crate has one definition point per name, so each platform's mirrors get their
-// own probe the way the `femacs/nt/inc` mirrors have `spikes/f_inc_probe.rs` (docs/status.md
+// own probe the way the `nt/inc` mirrors have `spikes/f_inc_probe.rs` (docs/status.md
 // 3.102/3.147).  `tools/extract-abi.py --check` only compares text, so without this probe
 // nothing would compile either file.
 //
@@ -28,7 +28,7 @@
 //
 // (`xtask probe` materialises the `include!` graph the way the units are built - each file
 // once, C's include-guard order - and then runs rustc, which resolves the pinned toolchain
-// from femacs/rust-toolchain.toml.  The probe is not in `xtask`'s `PROBES` list yet; the
+// from rust-toolchain.toml.  The probe is not in `xtask`'s `PROBES` list yet; the
 // integrator decides that, and whether the two mirrors join
 // `docs/baseline/layout-excluded-mirrors.txt`, which is data this lane may not edit.)
 #![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code,
@@ -46,8 +46,8 @@ use std::ffi::{c_char, c_int, c_long, c_void};
 #[derive(Clone, Copy)]
 pub struct Lisp_Object { pub word: usize }
 
-include!("../femacs/src/include/nsgui.rs");
-include!("../femacs/src/include/nsxwidget.rs");
+include!("../src/include/nsgui.rs");
+include!("../src/include/nsxwidget.rs");
 
 // The probe is a compile proof, not a program: every item of both mirrors is checked whether
 // or not anything uses it (`nsxwidget.rs`'s 21 entry points are declared and never defined

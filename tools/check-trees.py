@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Compare the four copied trees with the reference's, accounting for the required name rewrite.
 
-DoD item 5 is "`diff -r emacs/lisp femacs/lisp`, `test/`, `etc/`, `doc/` with no differences" -
+DoD item 5 is "`diff -r emacs/lisp lisp`, `test/`, `etc/`, `doc/` with no differences" -
 but PORTING.md 0.1-19 *requires* one class of difference: the program's name, which the port's
 copies carry where the reference's carry the reference's.  A raw `diff -r` therefore reports
 thousands of lines that are not defects, and a difference that *is* one hides among them.
@@ -33,7 +33,7 @@ import sys
 
 REPO = pathlib.Path(__file__).resolve().parent.parent
 REF = REPO / "emacs"
-PORT = REPO / "femacs"
+PORT = REPO
 TREES = ["lisp", "test", "etc", "doc"]
 PORT_NAME = "femacs"
 NAME_LINE = re.compile(r"This file is part of ([^.\n]+)\.")
@@ -56,7 +56,7 @@ def retired_paths() -> set[str]:
     if not log.is_file():
         return set()
     import re as _re
-    return set(_re.findall(r"`femacs/([^`]+)`", log.read_text()))
+    return set(_re.findall(r"`([^`]+)`", log.read_text()))
 
 
 def product_name() -> str:

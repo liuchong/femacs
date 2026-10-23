@@ -1,5 +1,5 @@
 // DRAFT mirror lines for src/lisp.h, emitted by tools/emit-mirror.py.
-// They are NOT part of femacs/src/include/lisp.rs: the layout gate rejected the
+// They are NOT part of src/include/lisp.rs: the layout gate rejected the
 // block because several of these types map incompletely (for example `handler`
 // has fields this tool cannot express yet), so every type here must be completed
 // and layout-verified before it is merged into the real mirror.

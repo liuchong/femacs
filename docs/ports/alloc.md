@@ -476,7 +476,7 @@
   report; the names C declares in `lisp.h` are in the `lisp.rs` mirror
   (`valid_lisp_object_p`, `consing_until_gc`, `build_symbol_with_pos`, …).  Declared at their
   use site here, each with a `/// C:` line: `struct font`, `struct font_driver` (both in the
-  *mirror* `include/font.rs` are WIP — they exist in `femacs/src/font.rs`, the font *unit*,
+  *mirror* `include/font.rs` are WIP — they exist in `src/font.rs`, the font *unit*,
   which cannot be included), `struct face`, `struct face_cache`, `FRAME_FACE_CACHE`,
   `FACE_FROM_ID_OR_NULL` (frame.h 1656), `valid_font_driver`, `aligned_alloc` (lisp.h 4671),
   `putenv`, `malloc_probe` (profiler.h), `parse_str_as_multibyte` (character.h 1046),
@@ -602,7 +602,7 @@
   pass's object has both (`_die` T, `_suppress_checking` S) - the pass is
   `rustc --edition 2024 --crate-type lib --emit obj --crate-name alloc --cfg enable_checking
   -C panic=abort -C codegen-units=1 -C opt-level=0 <root>` (xtask's own arguments), exit 0.
-  `python3 tools/extract-abi.py --check emacs/src/alloc.c femacs/src/alloc.rs` -> `OK`, and
+  `python3 tools/extract-abi.py --check emacs/src/alloc.c src/alloc.rs` -> `OK`, and
   `build-tu src/alloc.c` -> `built src/alloc.rs -> ../build/femacs/alloc.o` (the frozen build
   is unchanged; the two fixes are inside the checking-gated item and its declaration).
 
@@ -664,7 +664,7 @@ the wrap are written `wrapping_add`/`wrapping_sub` with C's own text kept in the
 
 Eight sites: the eight additions of the sum, and the counter's `+=` plus the three `-=`.
 Readings: `build-tu src/alloc.c` exit 0; `extract-abi.py --check emacs/src/alloc.c
-femacs/src/alloc.rs` OK; `gate-load` `undefined symbols: 0`; the L1 byte-compile worklist went from
+src/alloc.rs` OK; `gate-load` `undefined symbols: 0`; the L1 byte-compile worklist went from
 `3 .elc` + `Abort trap: 6` to 38 `.elc` + 47 failing files (docs/status.md 4.373); the twelve text
 gates, `tools/check-all-units.sh` (83/0) and the L0 differential (`19 expression(s), 0
 failure(s)`) all unchanged green.

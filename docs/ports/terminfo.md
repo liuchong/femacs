@@ -22,7 +22,7 @@
   evaluator asks for the arm and the port defines the three objects here: `UP` and `BC` as
   `*mut c_char` and `PC` as `c_char` (C's `char *UP, *BC, PC;` declares the third differently).
 - **These are the definitions, not declarations.**  `tparam.h` 41-42 declares `extern char *BC;
-  extern char *UP;`, and the port had defined both in femacs/src/tparam.rs when tparam.c was
+  extern char *UP;`, and the port had defined both in src/tparam.rs when tparam.c was
   ported (before this file was); porting terminfo.c corrected that: tparam.rs now carries the
   two `extern` declarations and this unit owns the objects, which is where C defines them.
 - **`xstrdup` (lisp.h 5551) was added to the lisp.h mirror** for `tparam`'s return, and `tparm`

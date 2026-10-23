@@ -95,7 +95,7 @@ def main() -> int:
                     break
                 depth -= 1
         span = f"{start + 1}-{region_end(lines, start)}" if start is not None else ""
-        port = c_file.replace("emacs/src/", "femacs/src/").replace("emacs/lib/", "femacs/lib/")
+        port = c_file.replace("emacs/src/", "src/").replace("emacs/lib/", "lib/")
         port = re.sub(r"\.c$", ".rs", port)
         has_port = (REPO / port).is_file()
         rows.append((name, where, span, port if has_port else "", conds,

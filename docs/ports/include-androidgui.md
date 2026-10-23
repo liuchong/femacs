@@ -127,8 +127,8 @@
 
 ## Evidence
 
-- `python3 tools/extract-abi.py --check emacs/src/androidgui.h femacs/src/include/androidgui.rs`
-  -> `OK emacs/src/androidgui.h -> femacs/src/include/androidgui.rs` (no `- ` problem lines).
+- `python3 tools/extract-abi.py --check emacs/src/androidgui.h src/include/androidgui.rs`
+  -> `OK emacs/src/androidgui.h -> src/include/androidgui.rs` (no `- ` problem lines).
 - Compile proof (no unit includes this mirror yet): a probe crate that `include!`s it, supplies
   `c_int`/`c_ushort`/…, the three lisp.h aliases a unit provides (`size_t`, `ptrdiff_t`,
   `intptr_t`) and the `Emacs_Rectangle` record the `NativeRectangle` macro names, compiles clean:
@@ -144,7 +144,7 @@
 - **The `layout-check` collision, measured** (`cd femacs && CARGO_TARGET_DIR=/tmp/femacs-target-mir-probe cargo run -q -p xtask -- layout-check` -> `layout probe failed to compile (exit status: 1)`, 35 x `E0428`).  This file is the *redefinition* site for all of them: 38 `XCharStruct`, 45 `Emacs_Pixmap`, 47 `Emacs_Window`, 51 `Drawable`, 53 `Emacs_Cursor` and the 29 X-compat constants at 262-292, against `haikugui.rs`; `Emacs_Cursor` also collides with `dispextern.rs` 62 (C's platform `#if`s keep those apart - `include-androidterm.md` records the same class for its own `Emacs_Cursor` note).  The two X-compat *macros* do not error (two `macro_rules!` of one name shadow each other).  The resolution is the platform probe recorded below (ruled 2026-10-04: no `cfg`, no `pub mod` wrapper, `layout-check`'s single-crate model left alone); these names are the reason the platform mirrors cannot share that probe.
 
 - **This mirror's compile evidence is the Android platform probe, not `xtask layout-check`**
-  (`spikes/android_inc_probe.rs`, the `femacs/nt/inc`/`f_inc_probe.rs` shape, docs/status.md 3.102).
+  (`spikes/android_inc_probe.rs`, the `nt/inc`/`f_inc_probe.rs` shape, docs/status.md 3.102).
   `layout-check` compiles *every* `src/include` mirror into one crate, which by construction cannot
   hold the platform-exclusive mirrors: `androidgui.h` and `haikugui.h` declare the same X-compat
   block (`NativeRectangle`, `STORE_NATIVE_RECT`, the gravity/value/position constants) and the same
@@ -186,7 +186,7 @@
   pair at `androidgui.rs` 53 / `dispextern.rs` 82 among them); after: **exit 0, 0 `^error`
   lines**, `/tmp/am.o` 89,808 bytes.
 - `python3 tools/extract-abi.py --check emacs/src/androidgui.h
-  femacs/src/include/androidgui.rs` -> `OK emacs/src/androidgui.h ->
-  femacs/src/include/androidgui.rs`.
+  src/include/androidgui.rs` -> `OK emacs/src/androidgui.h ->
+  src/include/androidgui.rs`.
 - `python3 tools/check-citations.py` -> `0 drift`, `0 stale` (this file's comment block changed
   length, but no allowlist row keys it).

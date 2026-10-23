@@ -17,7 +17,7 @@
 
 ## Decisions
 
-`emacs/lib/nanosleep.c` @ `fd7afced403`; port `femacs/lib/nanosleep.rs`.  All checklist items
+`emacs/lib/nanosleep.c` @ `fd7afced403`; port `lib/nanosleep.rs`.  All checklist items
 ticked; `build-tu` → `built nanosleep.rs -> build/femacs/nanosleep.o`, `--check` → `OK`.
 
 - **Live arm.**  The frozen configuration sets `HAVE_BUG_BIG_NANOSLEEP`, so C 39-80's arm is

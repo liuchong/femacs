@@ -27,7 +27,7 @@
 
 ## File-scope objects — 0
 
-- **Status: the unit is PORTED** (`femacs/lib/include/libc-config.rs`, 2026-10-04).
+- **Status: the unit is PORTED** (`lib/include/libc-config.rs`, 2026-10-04).
 
 ## Decisions
 
@@ -50,8 +50,8 @@ machinery that the port has nothing for.
 ## Evidence
 
 ```
-$ python3 tools/extract-abi.py --check emacs/lib/libc-config.h femacs/lib/include/libc-config.rs
-OK emacs/lib/libc-config.h -> femacs/lib/include/libc-config.rs            (0 problem rows)
+$ python3 tools/extract-abi.py --check emacs/lib/libc-config.h lib/include/libc-config.rs
+OK emacs/lib/libc-config.h -> lib/include/libc-config.rs            (0 problem rows)
 $ cd femacs && cargo run -q -p xtask -- build-tu lib/libc-config.h
 built lib/include/libc-config.rs -> ../build/femacs/include_libc-config.o
 ```

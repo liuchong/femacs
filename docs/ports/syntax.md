@@ -87,11 +87,11 @@
 
 ## Decisions
 
-Round 59: **complete.**  `femacs/src/syntax.rs` carries the whole file (C 1-3851): every `static`
+Round 59: **complete.**  `src/syntax.rs` carries the whole file (C 1-3851): every `static`
 helper, every macro, every subr, `init_syntax_once`, `scan_lists`, `scan_sexps_forward`,
 `internalize_parse_state` and `syms_of_syntax`.  `build-tu src/syntax.c` builds
 (`../build/femacs/syntax.o`, 0 errors) and `extract-abi.py --check emacs/src/syntax.c
-femacs/src/syntax.rs` reports **OK**.
+src/syntax.rs` reports **OK**.
 
 Round 58 left C 2660-3851 unwritten; this round added it in C's order - `scan_lists` (C 2660),
 `INC_FROM` (C 3212), `scan_sexps_forward` (C 3179), `internalize_parse_state` (C 3503), the four subrs

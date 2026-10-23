@@ -14,7 +14,7 @@
 
 ## File-scope objects — 0
 
-# emacs/lib/filemode.c (166 lines) — port `femacs/lib/filemode.rs`
+# emacs/lib/filemode.c (166 lines) — port `lib/filemode.rs`
 
 ## Decisions
 

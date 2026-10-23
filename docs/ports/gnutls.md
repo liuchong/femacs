@@ -109,22 +109,22 @@ generated file, `tools/feature-coverage.py --write`).
   unit's head comment spells the same table; the `#if` conditions themselves are clang's.
 - **`<gnutls/gnutls.h>`, `<gnutls/x509.h>` and `<gnutls/crypto.h>` (`src/gnutls.h` 23-24, 28)
   have no file in the reference tree, so their declarations stand in the unit** (P-88 ①: not
-  under `femacs/src/include/`, which mirrors the *reference* headers).  The enumerated surface is
+  under `src/include/`, which mirrors the *reference* headers).  The enumerated surface is
   exactly what C 30-1130 names: 31 type names, 15 constants/function declarations on the
   non-Windows arm, and byte-for-byte header lines in `/// C:` notes.
 - **`src/gnutls.h`'s own `#ifdef HAVE_GNUTLS` arm is still the P-08 stub in its mirror**
-  (`femacs/src/include/gnutls.rs`, 26 lines, unchanged this round — it is not in this lane's write
+  (`src/include/gnutls.rs`, 26 lines, unchanged this round — it is not in this lane's write
   scope), so the eleven names this slice needs from it (`gnutls_initstage_t` and its members,
   `GNUTLS_INITSTAGE`, `GNUTLS_LOG`, `GNUTLS_LOG2`, the two `GNUTLS_EMACS_ERROR_*` codes,
   `GNUTLS_EMACS_HANDSHAKES_LIMIT`) are declared at this use site under the same gate — the
-  P-72 rule-4 shape `femacs/src/font.rs` 380-381 uses for `nconc2`, and Owed 4 moves them into
+  P-72 rule-4 shape `src/font.rs` 380-381 uses for `nconc2`, and Owed 4 moves them into
   the mirror (P-88 ⑤/P-26's single-declaration-point rule).
 - **`GNUTLS_LOG`/`GNUTLS_LOG2` keep C's adjacent-literal concatenation** via `concat!`, so their
   `$string` is a `literal`; every call site inside C 30-1130 passes one (`GNUTLS_LOG` at C 312,
   952, 959; `GNUTLS_LOG2` at C 453, 843, 853, 859, 895).  `GNUTLS_LOG2i` is not called in the
   slice and stays owed with the rest of the mirror's arm.
 - **The Windows arm's 102 `DEF_DLL_FN`/`LOAD_DLL_FN` pairs are written in long form**, the shape
-  `femacs/src/decompress.rs` 212-271 (first consumer) and `femacs/src/lcms.rs` 204-290 (second)
+  `src/decompress.rs` 212-271 (first consumer) and `src/lcms.rs` 204-290 (second)
   established: Rust has no token pasting, so `W32_PFN_<func>` and `fn_<func>` are parameters.  C's
   `#define <func> fn_<func>` renames have no counterpart either, so every call site of a renamed
   entry point is spelled twice (`fn_<func> (...)` under `windowsnt`, the plain name otherwise) —
@@ -145,7 +145,7 @@ The rows are **contiguous** on purpose, in ascending order with no overlap:
 `docs/port-map.md` binds this ledger to `src/gnutls.c` (3196 lines) *and* to `src/gnutls.h`
 (100 lines), and `tools/check-dead-file-coverage.py` reads the same table against **both**
 references, so the union runs C 1-3196 and covers the header's 100 lines with it.  Rows marked
-**landed** are in `femacs/src/gnutls.rs`; rows marked **not ported** are the text later slices
+**landed** are in `src/gnutls.rs`; rows marked **not ported** are the text later slices
 owe.  The one slice this revision lands is C 30-1130 (rows 5-35 below).
 
 | C | block | arm |
@@ -290,7 +290,7 @@ values are the *host header's*; a build against a different GnuTLS release is **
 | `python3 tools/check-declarations.py` | `10 declaration sites (0 forbidden, 10 allowed literals), 0 failures` |
 | `python3 tools/check-dead-file-coverage.py` | the table above (`src/gnutls.c` + `src/gnutls.h`) |
 | `python3 tools/check-port-lines.py` | `58 file(s) under ten percent … 0 new, 3 stale`, with `stale src/gnutls.c: no longer under the threshold` — the file has left the P-86 class (1897 / 3196 = 59.4%) |
-| `python3 tools/extract-abi.py --check emacs/src/gnutls.c femacs/src/gnutls.rs` | **FAIL** — `- line count drifted 1429.0%: C 124 live (of 3196) vs Rust 1897`.  This is P-86 ⑩ exactly: the check is no longer vacuous (the port has `fn`s now) and its line-count half compares the port against the C *live* baseline; the fix is the tolerance row (Owed 1), which is outside this lane's write scope.  No other problem is reported (no missing/extra item, no macro-body, no DEFUN/docstring finding). |
+| `python3 tools/extract-abi.py --check emacs/src/gnutls.c src/gnutls.rs` | **FAIL** — `- line count drifted 1429.0%: C 124 live (of 3196) vs Rust 1897`.  This is P-86 ⑩ exactly: the check is no longer vacuous (the port has `fn`s now) and its line-count half compares the port against the C *live* baseline; the fix is the tolerance row (Owed 1), which is outside this lane's write scope.  No other problem is reported (no missing/extra item, no macro-body, no DEFUN/docstring finding). |
 
 ## Deviations
 
@@ -312,7 +312,7 @@ values are the *host header's*; a build against a different GnuTLS release is **
    two gnutls `bool_bf` members (`gnutls_p`, `gnutls_complete_negotiation_p`) have no bit to name
    yet — they are part of Owed 4.
 6. **`ckd_mul`/`ckd_add` (C 1089-1090) are the P-15 `overflowing_*` pair with the write-back**,
-   in C's own short-circuit order (`femacs/src/casefiddle.rs` 315-320's shape).
+   in C's own short-circuit order (`src/casefiddle.rs` 315-320's shape).
 7. **`emacs_gnutls_nonblock_errno` (C 670-691) is `unsafe extern "C" fn`** — C passes its address
    to `gnutls_transport_set_errno_function`, whose parameter type is a C function pointer
    (measured by the flip's first `E0308`).
@@ -326,12 +326,12 @@ values are the *host header's*; a build against a different GnuTLS release is **
    the tree) and are counted as such.
 9. **`errno.in.rs`, not `errno.rs`, is this unit's `<errno.h>`**: the two names the gated text
    needs beyond the system half (`ENOTCONN` 57, `ECONNRESET` 54) live in the template mirror's
-   ungated fallback block, and `femacs/exec/mipsfpu.rs` 27 includes it for the same C line.  With
+   ungated fallback block, and `exec/mipsfpu.rs` 27 includes it for the same C line.  With
    `errno.rs` alone the flip reports `E0408` (`ENOTCONN` unbound) and `E0425` (`ECONNRESET`) —
    both measured before the change.
 10. **`message` (lisp.h 4389), `memory_full` (lisp.h 4432) and `nconc2` (lisp.h 4271) are declared
     at this use site** (P-72 rule 4) because `include/lisp.rs` does not carry them yet;
-    `femacs/src/process.rs` 1609, `femacs/src/image.rs` 203 and `femacs/src/font.rs` 381 declare
+    `src/process.rs` 1609, `src/image.rs` 203 and `src/font.rs` 381 declare
     them the same way.  Owed 4 moves them to the mirror.
 11. **`GNUTLS_LOG`/`GNUTLS_LOG2` take a `literal` `$string`** (`concat!` does C's adjacent-literal
     concatenation at compile time); `GNUTLS_LOG2i` is not carried because the slice does not call
@@ -346,7 +346,7 @@ values are the *host header's*; a build against a different GnuTLS release is **
    `0.1 … live` to the `total` basis with tolerance `0.41` (C 3196 vs the port's 1897), the
    P-86 ⑩ step.  **DONE (status 3.488, integrator):** the `total`/`0.41` row is appended
    (C 3196 total vs the port's **1901** lines; the old `live` row stays - append-only, newest
-   governs), and `extract-abi --check emacs/src/gnutls.c femacs/src/gnutls.rs` is now
+   governs), and `extract-abi --check emacs/src/gnutls.c src/gnutls.rs` is now
    **OK with zero `-` rows**.
 2. `docs/baseline/port-lines-pending.tsv`: regenerate with
    `tools/check-port-lines.py --write-pending` — the `src/gnutls.c` row is reported `stale`
@@ -358,12 +358,12 @@ values are the *host header's*; a build against a different GnuTLS release is **
    `have_gnutls_certificate_set_x509_key_file2`, `have_gnutls_cipher_get_iv_size`,
    `have_gnutls_cipher_get_tag_size`, `have_gnutls_digest_list`, `have_gnutls_mac_get_nonce_size`,
    `have_gnutls_aead`, `have_gnutls_etm_status`, `have_gnutls_ext_get_name`,
-   `have_gnutls_compression_get`, `emsgsize`, `econnreset`.  `femacs/xtask/Cargo.toml`'s feature
+   `have_gnutls_compression_get`, `emsgsize`, `econnreset`.  `xtask/Cargo.toml`'s feature
    list (the file holds `have_gnutls`) is the same file the probe's `--cfg`s came from by hand.
    **DONE (status 3.488, integrator):** all thirteen names are registered in
-   `femacs/xtask/Cargo.toml`'s `[features]` table (each row cites its `src/gnutls.c` line), and
+   `xtask/Cargo.toml`'s `[features]` table (each row cites its `src/gnutls.c` line), and
    `tools/feature-coverage.py --write` has been re-run.
-4. `femacs/src/include/process.rs`: carry `process.h` 194-216's `#ifdef HAVE_GNUTLS` member block —
+4. `src/include/process.rs`: carry `process.h` 194-216's `#ifdef HAVE_GNUTLS` member block —
    `gnutls_initstage` (`gnutls_initstage_t`), `gnutls_state`, `gnutls_x509_cred`
    (`gnutls_certificate_client_credentials`), `gnutls_anon_cred` (`gnutls_anon_client_credentials_t`),
    `gnutls_certificates` (`gnutls_x509_crt_t *`), `gnutls_certificates_length`,
@@ -376,7 +376,7 @@ values are the *host header's*; a build against a different GnuTLS release is **
    one surface, one home — the alias `gnutls_certificate_client_credentials` is `src/gnutls.h`'s
    neighbour, not the third-party header's, and belongs in `include/gnutls.rs`).
    `docs/ports/include-process.md` needs the matching rows.  **NOT DONE.**
-5. `femacs/src/include/gnutls.rs` (the `src/gnutls.h` mirror, still the 26-line P-08 stub): carry
+5. `src/include/gnutls.rs` (the `src/gnutls.h` mirror, still the 26-line P-08 stub): carry
    `src/gnutls.h` 22-94's `#ifdef HAVE_GNUTLS` arm under `have_gnutls` — the three includes
    (`<gnutls/gnutls.h>`, `<gnutls/x509.h>`, `<gnutls/crypto.h>`) or a pointer to the unit's
    segment, `GNUTLS_EMACS_HANDSHAKES_LIMIT` (6000), the `gnutls_initstage_t` enum,

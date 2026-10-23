@@ -1,4 +1,4 @@
-// The batch-F header mirrors under `femacs/nt/inc/` had no compiler: no translation unit of the
+// The batch-F header mirrors under `nt/inc/` had no compiler: no translation unit of the
 // frozen configuration includes one (no `nt/` or `msdos/` unit is compiled - see
 // `docs/baseline/frozen-build-sources.txt`'s batch-F section), `xtask layout-check` compiles only
 // the `src/include` and `lib/include` mirrors, and `tools/extract-abi.py --check` compares text.
@@ -32,14 +32,14 @@ pub struct timeval
 // One flat namespace, the way a unit includes its mirrors: a Windows translation unit that takes
 // all eight headers at once is exactly this.  The names do not overlap (each guard, constant and
 // prototype is the header's own), and `acl.rs` brings `<sys/types.h>` in itself.
-include!("../femacs/nt/inc/sys/include/param.rs");
-include!("../femacs/nt/inc/sys/include/time.rs");
-include!("../femacs/nt/inc/sys/include/file.rs");
-include!("../femacs/nt/inc/sys/include/ioctl.rs");
-include!("../femacs/nt/inc/sys/include/acl.rs");
-include!("../femacs/nt/inc/sys/include/mman.rs");
-include!("../femacs/nt/inc/sys/include/resource.rs");
-include!("../femacs/nt/inc/sys/include/wait.rs");
+include!("../nt/inc/sys/include/param.rs");
+include!("../nt/inc/sys/include/time.rs");
+include!("../nt/inc/sys/include/file.rs");
+include!("../nt/inc/sys/include/ioctl.rs");
+include!("../nt/inc/sys/include/acl.rs");
+include!("../nt/inc/sys/include/mman.rs");
+include!("../nt/inc/sys/include/resource.rs");
+include!("../nt/inc/sys/include/wait.rs");
 
 // The probe is a compile proof, not a program: `include!` expands each mirror's text into its
 // module and the compiler checks every item, used or not (`nt/inc/sys/include/ioctl.rs` carries no

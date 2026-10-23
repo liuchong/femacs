@@ -38,7 +38,7 @@ and no probe compiles it; the text gate is the whole acceptance (docs/status.md 
    "C" fn (...)>` (P-27).
 
 Evidence: `python3 tools/extract-abi.py --check emacs/lwlib/lwlib-int.h
-femacs/lwlib/include/lwlib-int.rs` -> `OK` (1 ledger item(s), the include guard).
+lwlib/include/lwlib-int.rs` -> `OK` (1 ledger item(s), the include guard).
 
 ## 2026-10-05: the tag's stand-in and the field's gate (3.517)
 
@@ -63,7 +63,7 @@ private glob import is not re-exported to a downstream glob (`docs/ports/lwlib.m
 and `## Deviations` 13).
 
 Evidence: `python3 tools/extract-abi.py --check emacs/lwlib/lwlib-int.h
-femacs/lwlib/include/lwlib-int.rs` -> `OK`; `lwlib/lwlib-Xlw.rs` (5,240 bytes), `lwlib/lwlib-utils.rs`
+lwlib/include/lwlib-int.rs` -> `OK`; `lwlib/lwlib-Xlw.rs` (5,240 bytes), `lwlib/lwlib-utils.rs`
 (3,008 bytes) and `lwlib/xlwmenu.rs` (36,424 bytes) each re-read under their own gates with **exit 0
 and 0 errors**, and `src/widget.rs`'s `use_x_toolkit` flip reports no error from either mirror
 (docs/ports/lwlib.md `## Evidence` ④).

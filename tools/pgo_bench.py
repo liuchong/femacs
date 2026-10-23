@@ -32,7 +32,7 @@ TASK_CASES = ["startup", "load", "edit", "regex", "gc"]
 SIDES = ["o2", "pgo", "ref"]
 PAIR_FILES = ["temacs", "emacs", "emacs.pdmp", "bootstrap-emacs.pdmp"]
 
-# femacs/lib/fingerprint.rs's placeholder array.  make-fingerprint must replace it
+# lib/fingerprint.rs's placeholder array.  make-fingerprint must replace it
 # exactly once per link; a surviving copy means the dump's fingerprint is not bound
 # to this binary.
 PLACEHOLDER = bytes([

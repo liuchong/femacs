@@ -57,7 +57,7 @@
 # ----------------------------------------------------------------------
 ## Decisions
 
-`emacs/src/composite.c` @ `fd7afced403`; port `femacs/src/composite.rs` (2,381 lines vs C's
+`emacs/src/composite.c` @ `fd7afced403`; port `src/composite.rs` (2,381 lines vs C's
 2,312 live of 2,322 — the 2.98% drift is measured against the **`live`** baseline declared in
 `docs/ports/line-drift-tolerance.tsv`, because the one dead arm is recorded here rather than
 transcribed).  `src/composite.c` is in `docs/baseline/frozen-build-sources.txt`, so the frozen
@@ -65,8 +65,8 @@ configuration compiles it: there is no §3.31 exemption and the full comparison 
 gates:
 
     build-tu src/composite.c      -> built src/composite.rs -> ../build/femacs/composite.o
-    extract-abi.py --check        -> OK emacs/src/composite.c -> femacs/src/composite.rs
-    extract-abi.py --check (.h)   -> OK emacs/src/composite.h -> femacs/src/include/composite.rs
+    extract-abi.py --check        -> OK emacs/src/composite.c -> src/composite.rs
+    extract-abi.py --check (.h)   -> OK emacs/src/composite.h -> src/include/composite.rs
     check-symbols.py --pending    -> check-symbols: 78 units compared, 0 mismatched, 1 still pending
     check-globals.py              -> check-globals: 243 units, 0 DEFVAR_* variables without a definition in their own unit
     ledger                        -> 43/43 rows checked, 0 unchecked
@@ -164,7 +164,7 @@ declaration is (the `floatfns.c` `rescale_for_division` shape, PORTING.md 1.5).
 
 ### The mirror: composite.h was a WIP, and this unit completed it
 
-`femacs/src/include/composite.rs` (469 lines) now carries the whole header:
+`src/include/composite.rs` (469 lines) now carries the whole header:
 `composition_method` and its five constants, `MAX_COMPOSITION_COMPONENTS`, the `CHECK_*`
 masks, `struct composition`, the eleven `LGLYPH_IX_*`/`LGLYPH_SIZE` constants, the five INLINE
 functions (`composition_registered_p`, `COMPOSITION_ENCODE_RULE_VALID`, `composition_method`,
@@ -183,7 +183,7 @@ PORTING.md 3.8; the call site passes `&raw mut rule, &raw mut gref, &raw mut nre
 and the two objects moved into `pub mod composite_decls` + `pub mod composite_objs` with glob
 imports (PORTING.md 0.1-10 and P-21, the `tempname.rs`/`thread.rs` shape): this unit *defines*
 all nine functions and both objects, and a same-scope declaration would be `E0428`.
-`tools/extract-abi.py --check emacs/src/composite.h femacs/src/include/composite.rs` is now
+`tools/extract-abi.py --check emacs/src/composite.h src/include/composite.rs` is now
 `OK` and every row of `docs/ports/include-composite.md` is ticked.
 
 The unit's `include!` list follows C's textual order and adds the four mirrors C reaches
@@ -295,7 +295,7 @@ occurrence check).  `docs/ports/line-drift-tolerance.tsv` gains the `composite` 
 
 ### Changes outside the unit (for integrator review)
 
-1. `femacs/src/include/composite.rs`: the WIP mirror completed (see above; it is this unit's
+1. `src/include/composite.rs`: the WIP mirror completed (see above; it is this unit's
    own header mirror).
 2. `docs/ports/macro-body-notes.tsv`: the ten rows above (appended).
 3. `docs/ports/token-aliases.tsv`: the `long_line_optimizations_p` family (appended).

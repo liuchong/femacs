@@ -87,7 +87,7 @@
 
 ## Decisions
 
-`emacs/lib/errno.in.h` @ `fd7afced403`; port `femacs/lib/include/errno.in.rs` (375 lines,
+`emacs/lib/errno.in.h` @ `fd7afced403`; port `lib/include/errno.in.rs` (375 lines,
 `include!("errno.rs")` among them).  The batch's other file, `lib/dirent.in.h`, has its own
 ledger (`include-dirent.in.md`).
 
@@ -241,17 +241,17 @@ counterpart (PORTING.md 0.1, P-08); the guard's own name reads as `_` to the ext
 `docs/ports/excluded-macros.txt` already records, and the mirror writes the frozen spelling
 `_GL_ERRNO_H` (the `fcntl.in.rs` shape).
 
-**The consumer.**  `femacs/lib/dup2.rs` 31 reads this mirror now (it named `include/errno.rs`
+**The consumer.**  `lib/dup2.rs` 31 reads this mirror now (it named `include/errno.rs`
 before, and its unit check stays `OK`); the other 75 units that include the system half are
 the integrator's mechanical sweep, since the mirror is a superset of `errno.rs` - two of them,
-`femacs/src/keyboard.rs` and `femacs/src/xdisp.rs`, belong to another lane that is in flight.
+`src/keyboard.rs` and `src/xdisp.rs`, belong to another lane that is in flight.
 No unit declares one of the 47 codes the mirror adds (measured: 0 hits), so the sweep is an
 include-line change.
 
-**The read caught one stale use-site note** (fixed in this batch): `femacs/lib/dup2.rs` 35-37
+**The read caught one stale use-site note** (fixed in this batch): `lib/dup2.rs` 35-37
 said `EMFILE` was "the one code the live path names that the errno mirror has not got", while
 `errno.rs` 89-90 has carried `EMFILE 24` since status 3.80 retired that unit's own copy; the
-note is rewritten to point at the mirror.  `femacs/lib/dirent.rs`'s two citations of
+note is rewritten to point at the mirror.  `lib/dirent.rs`'s two citations of
 `dirent.in.h` were off by the generated file's numbering (its 953-959 is the generated
 `build/emacs-ref/lib/dirent.h`'s range, the template's is 406-413); they are corrected in the
 dirent half of this batch.
@@ -295,19 +295,19 @@ ETXTBSY 26 EUSERS 68 EWOULDBLOCK EAGAIN EXDEV 18
 # (`EOTHER`, the template's C 130, is the one name this table has not got.)
 
 # the negative control: the check compares values and tokens, not just name presence
-$ mkdir -p /tmp/gt-neg && cp femacs/lib/include/errno.rs femacs/lib/include/errno.in.rs /tmp/gt-neg/
+$ mkdir -p /tmp/gt-neg && cp lib/include/errno.rs lib/include/errno.in.rs /tmp/gt-neg/
 $ sed 's/pub const ELOOP: c_int = 114;/pub const ELOOP: c_int = 999;/' \
-      femacs/lib/include/errno.in.rs > /tmp/gt-neg/errno.in.rs
+      lib/include/errno.in.rs > /tmp/gt-neg/errno.in.rs
 $ python3 tools/extract-abi.py --check emacs/lib/errno.in.h /tmp/gt-neg/errno.in.rs
 - macro ELOOP does not mention 114 (C body: 114)
 - constant ELOOP: C 114 vs Rust 999
 FAIL emacs/lib/errno.in.h -> /tmp/gt-neg/errno.in.rs
 
-$ python3 tools/extract-abi.py --check emacs/lib/errno.in.h femacs/lib/include/errno.in.rs
+$ python3 tools/extract-abi.py --check emacs/lib/errno.in.h lib/include/errno.in.rs
   (1 C macros have a recorded Rust counterpart: _)
   (27 C macros have several definitions (configuration branches), body not compared:
    EBADMSG, ECANCELED, ECONNABORTED, EDQUOT, EIDRM, ENETRESET ...)
-OK emacs/lib/errno.in.h -> femacs/lib/include/errno.in.rs
+OK emacs/lib/errno.in.h -> lib/include/errno.in.rs
 
 # the mirror compiles, and every value it ends up with is pinned in the probe
 $ cd /tmp/femacs-gt-probe-errno && rustc --edition 2024 --crate-type=lib --emit=obj \
@@ -318,8 +318,8 @@ exit=0        # 45 frozen-value assertions + the seven values `errno.rs` carries
 # one consumer reads the mirror end to end
 $ cd femacs && CARGO_TARGET_DIR=/tmp/femacs-target-gt cargo run -q -p xtask -- build-tu lib/dup2.c
 built lib/dup2.rs -> ../build/femacs/dup2.o
-$ python3 tools/extract-abi.py --check emacs/lib/dup2.c femacs/lib/dup2.rs
-OK emacs/lib/dup2.c -> femacs/lib/dup2.rs
+$ python3 tools/extract-abi.py --check emacs/lib/dup2.c lib/dup2.rs
+OK emacs/lib/dup2.c -> lib/dup2.rs
 
 $ python3 tools/check-mirror-dupes.py
 1 duplicate declaration(s), 1 ratchet row(s), 0 failure(s)

@@ -46,9 +46,9 @@
 
 ## Decisions
 
-`emacs/src/thread.h` @ `fd7afced403`; port `femacs/src/include/thread.rs` (320 lines vs C's
+`emacs/src/thread.h` @ `fd7afced403`; port `src/include/thread.rs` (320 lines vs C's
 348); the gate is
-`python3 tools/extract-abi.py --check emacs/src/thread.h femacs/src/include/thread.rs` -> `OK`.
+`python3 tools/extract-abi.py --check emacs/src/thread.h src/include/thread.rs` -> `OK`.
 The header's seven conditions are decided by
 `docs/baseline/config/darwin-arm64.macros.tsv` (`HAVE_ANDROID`, `ANDROID_STUBIFY`, `WINDOWSNT`,
 `MSDOS` all `undef`, `HAVE___BUILTIN_FRAME_ADDRESS` 1), and

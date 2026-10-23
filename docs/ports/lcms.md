@@ -7,7 +7,7 @@
 > *ported by transcription*, both arms of every `#if` carried, and its ledger records a **C
 > line-range table** instead of ticked boxes, because `extract-abi.py`'s checklist for it is empty
 > (P-73's live-line filter; the file *is* in `docs/baseline/config/cond-eval-verified.txt` 320) and
-> the checkbox sections are therefore not coverage evidence.  The port is `femacs/src/lcms.rs`
+> the checkbox sections are therefore not coverage evidence.  The port is `src/lcms.rs`
 > (877 lines), the file gate is `feature = "have_lcms2"`, and the frozen `build-tu` reading below
 > still has to be the empty object it was - the transcription must not leak a line into this
 > configuration.
@@ -153,7 +153,7 @@ file(s) under ten percent, 243,405 reference line(s); 95 ratchet row(s), 0 new, 
 the stale rows being `src/lcms.c: no longer under the threshold` (the others are two other
 lanes' rows); `--write-pending` is the integrator's step. — `python3
 tools/check-citations.py` → `675 file(s) scanned, 1 drift, 0 range, 456 external, 33 allowed, 0
-stale`; the one drift is `femacs/src/androidselect.rs:97` (another lane's file), **0 findings name
+stale`; the one drift is `src/androidselect.rs:97` (another lane's file), **0 findings name
 this unit**, and the external count rose from 350 to 456 because the `lcms2.h`/`math.h` citations
 name headers the reference tree does not carry. — `python3 tools/check-declarations.py` → `13
 declaration sites (0 forbidden, 13 allowed literals), 0 failures`. — `python3
@@ -167,7 +167,7 @@ nested blocks are all decided by the frozen table, which is why the Gate mapping
 the port's `#[cfg]`s agree item for item.
 
 **⑥ `extract-abi.py --check` FAILs, and the seventeen lines are P-86 ⑩'s owed baseline row.**
-`python3 tools/extract-abi.py --check emacs/src/lcms.c femacs/src/lcms.rs` → **FAIL**, with
+`python3 tools/extract-abi.py --check emacs/src/lcms.c src/lcms.rs` → **FAIL**, with
 exactly these seventeen lines and no others:
 ```
 - DEFUN! Flcms2_available_p: the reference file has no such DEFUN
@@ -188,7 +188,7 @@ exactly these seventeen lines and no others:
 - unexpected defsubr (&Slcms_xyz_to_jch): the reference file does not register it
 - fn syms_of_lcms2 carries #[unsafe(no_mangle)] but the reference does not define a non-static function of that name (invented exported symbol)
 ```
-Every line is the same finding, and it is the same one `femacs/src/decompress.rs` reports: the file
+Every line is the same finding, and it is the same one `src/decompress.rs` reports: the file
 is in `cond-eval-verified.txt` (320), the frozen table decides `HAVE_LCMS2` as `undef`, P-73's
 live-line filter therefore yields an **empty** item list for the *reference* while the port
 declares the items the dead arm contains, so each correct item reads as invented.  The checklist
@@ -206,7 +206,7 @@ are `fn`s that are **not** exported, so they draw no "invented exported symbol" 
   in Evidence ④.  A future tree that grows an `lcms2.h` mirror moves the section into it and deletes
   the copy in the same commit (P-88 ⑤).
 - **`DEF_DLL_FN`/`LOAD_DLL_FN` are written in long form** (C 40-52, C 64-70), the same way
-  `femacs/src/decompress.rs` (their first consumer) writes them: C pastes `W32_PFN_##func` /
+  `src/decompress.rs` (their first consumer) writes them: C pastes `W32_PFN_##func` /
   `fn_##func` from one identifier and takes the parameter list as `__VA_ARGS__`, which Rust cannot
   express, and `emacs/src/w32common.h` 77-97 is a `kind=deferred` row in
   `docs/ports/excluded-macros.txt` (P-22).  The two generated names are macro parameters, the
@@ -242,7 +242,7 @@ are `fn`s that are **not** exported, so they draw no "invented exported symbol" 
   C's `!(cmsWhitePointFromTemp (…))` (C 560) is `== 0`, and `cmsCIECAM02Init (0, vc)` (C 282, 292)
   is a null `cmsContext`.
 - **Three `<math.h>` names are declared at the use site (P-72 rule 4)**: `M_PI` (math.h 751),
-  `cbrt` (math.h 455) and `hypot` (math.h 459) are not in `femacs/lib/include/math.rs` yet, so the
+  `cbrt` (math.h 455) and `hypot` (math.h 459) are not in `lib/include/math.rs` yet, so the
   unit carries them - `M_PI` as a `const`, the two functions as `unsafe extern "C"` - with their
   header lines.  They belong in that mirror when it is next extended.
 - **Line count.**  C 604 vs Rust 895 (48.2%): P-86's per-item `#[cfg]` gates (both arms carried),
@@ -257,7 +257,7 @@ are `fn`s that are **not** exported, so they draw no "invented exported symbol" 
    Evidence ⑥.  Seventeen lines, all one finding (the `decompress.rs` ledger records the same
    class, with six).
 2. `tools/check-port-lines.py --write-pending`: the `src/lcms.c` row is stale (retired).
-3. `femacs/lib/include/math.rs`: `M_PI`, `cbrt` and `hypot` (Evidence's Deviations; the unit
+3. `lib/include/math.rs`: `M_PI`, `cbrt` and `hypot` (Evidence's Deviations; the unit
    declares them meanwhile and must drop its copies in the commit that adds them - P-70/P-88 ⑤).
 4. `docs/ports/excluded-macros.txt`: the `DEF_DLL_FN`/`LOAD_DLL_FN` rows stay `kind=deferred`;
    their reason text can now name the two consuming units, and the third consumer should move the

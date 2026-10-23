@@ -29,7 +29,7 @@
   (PORTING.md 0.1-10), so a bare `pthread_sigmask (…)` would resolve to the definition itself.
   Measured on the port's object: `nm -g build/femacs/pthread_sigmask.o` prints
   `T _rpl_pthread_sigmask` and `U _pthread_sigmask`.
-- **Same idiom, landed file, defect (report only, not fixed here)**: `femacs/lib/nanosleep.rs`
+- **Same idiom, landed file, defect (report only, not fixed here)**: `lib/nanosleep.rs`
   ports nanosleep.c's identical `# undef nanosleep` between signature and body by naming the
   item `nanosleep` *and* calling `nanosleep (…)` in its body — which resolves to the definition
   itself, i.e. the 24-day-chunk loop would recurse instead of calling the system sleep, and the
@@ -40,7 +40,7 @@
   one) are in cond-eval-verified.txt's table and are named in a comment rather than carried
   (P-75); `#include <stddef.h>` and `<string.h>` are theirs too, and the port includes the
   string mirror because C's include closure has it.
-- **Mirror edit**: `femacs/lib/include/signal.rs` gained `sigset_t` (Darwin's
+- **Mirror edit**: `lib/include/signal.rs` gained `sigset_t` (Darwin's
   `struct __darwin_sigset_t { __uint32_t __val; }`, 4 bytes, measured), `SIG_BLOCK`/`SIG_UNBLOCK`/
   `SIG_SETMASK` (1/2/3) and a uniquely-named `signal_decls` module with `sigemptyset`/
   `sigaddset`/`sigprocmask`/`pthread_sigmask` (the stdio.rs shape, so a unit that defines one

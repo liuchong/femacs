@@ -148,7 +148,7 @@
   `match_ctx_add_entry`'s `(from == to ? -1 : 0)` for a `bitset_word_t` field is
   `(-1isize) as bitset_word_t`.
 - **`utf8_sb_map`** is `static const bitset_t` in regcomp.c 554 (owner:
-  `femacs/lib/regcomp.rs`) and regexec.c 3551 reads it. Since the two files are separate
+  `lib/regcomp.rs`) and regexec.c 3551 reads it. Since the two files are separate
   objects in the port, this unit repeats the measured initializer
   (`[BITSET_WORD_MAX, BITSET_WORD_MAX, 0, 0]`) under `// C:` provenance; the read sits in
   the constant-false arm of `ASCII_CHARS % BITSET_WORD_BITS == 0` (128 % 64), so it is dead
@@ -167,7 +167,7 @@
   each spot, which also retires the `find_collation_sequence_value` prototype and
   definition, `__compat_regexec`, `re_exec` and `transit_state_sb`.
 - **Line count.** C 4306 vs the port's 4359 (1.2%) after the dynarray instantiation moved
-  into `femacs/lib/malloc/dynarray-skeleton.rs`'s macro; the tolerance row in
+  into `lib/malloc/dynarray-skeleton.rs`'s macro; the tolerance row in
   `docs/ports/line-drift-tolerance.tsv` (`regexec 0.15`, whose reason still names the
   written-out instantiation and now needs a re-take) covers the labelled blocks, the
   if/else-if chains and the unit's fixed costs.

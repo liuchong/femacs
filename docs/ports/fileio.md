@@ -143,7 +143,7 @@
 # ----------------------------------------------------------------------
 ## Decisions
 
-`emacs/src/fileio.c` @ `fd7afced403`; port `femacs/src/fileio.rs` (5,987 lines vs C's 7,085 total /
+`emacs/src/fileio.c` @ `fd7afced403`; port `src/fileio.rs` (5,987 lines vs C's 7,085 total /
 6,927 live - **-13.6% against the live count**), declared in `docs/ports/line-drift-tolerance.tsv` with
 the `live` basis and the reason: this unit's dead region is *recorded* (P-08), and the 55 `DEFUN`
 docstrings are one-line string literals, which saves C's 8-30 line `doc: /* ... */` comments

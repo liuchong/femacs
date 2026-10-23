@@ -7,7 +7,7 @@
 // gravity/value/position constants) and the same `XCharStruct`/`Emacs_Pixmap`/`Emacs_Window`/
 // `Emacs_Cursor`/`Drawable` aliases, and C only ever includes one of them behind its platform
 // `#if` (`HAVE_HAIKU`).  So the two platform mirror sets get a probe each, the way the
-// `femacs/nt/inc` mirrors have `spikes/f_inc_probe.rs` (docs/status.md 3.102): one flat
+// `nt/inc` mirrors have `spikes/f_inc_probe.rs` (docs/status.md 3.102): one flat
 // namespace holding what a Haiku translation unit sees.
 //
 // The one name the Haiku mirrors themselves declare twice is `Emacs_Cursor`: on a Haiku build
@@ -28,7 +28,7 @@
 //
 // (`xtask probe` materialises the `include!` graph the way the units are built - each file once,
 // C's include-guard order - and then runs rustc, which resolves the pinned toolchain from
-// femacs/rust-toolchain.toml.)
+// rust-toolchain.toml.)
 #![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code,
          unused_imports, unused_macros, unused_variables, unused_unsafe, static_mut_refs)]
 
@@ -37,33 +37,33 @@
 // aliases and the `eassert!`/`eassume!`/`XUNTAG!` macros the other mirrors expand.  The probe
 // therefore declares no `use std::ffi` of its own - lisp.rs carries that import, exactly as it
 // does for a unit.
-include!("../femacs/src/include/config.rs");
-include!("../femacs/src/include/lisp.rs");
+include!("../src/include/config.rs");
+include!("../src/include/lisp.rs");
 
 // The transitive mirrors those two need and that the probe therefore supplies the way a unit
 // does: `frame.rs` reads `WINDOWP`/`XWINDOW` (window.h) and `termhooks.rs` names `coding_system`
 // (coding.h) - the reference's haikuterm.c includes both headers itself.
-include!("../femacs/src/include/itree.rs");
-include!("../femacs/src/include/buffer.rs");
-include!("../femacs/src/include/window.rs");
-include!("../femacs/src/include/composite.rs");
-include!("../femacs/src/include/coding.rs");
+include!("../src/include/itree.rs");
+include!("../src/include/buffer.rs");
+include!("../src/include/window.rs");
+include!("../src/include/composite.rs");
+include!("../src/include/coding.rs");
 
-include!("../femacs/src/include/haikugui.rs");
-include!("../femacs/src/include/haiku_support.rs");
+include!("../src/include/haikugui.rs");
+include!("../src/include/haiku_support.rs");
 
 // `src/haikuselect.h` is the third Haiku header the port mirrors; nothing on this target
 // includes it (`src/haikuselect.c` is not compiled), and its own include list is
 // `lib/include/stdint.in.rs` + `lib/include/unistd.in.rs` for `int32_t`/`int64_t`/
 // `uint32_t`/`ssize_t`, so the probe is its only compiler too.
-include!("../femacs/src/include/haikuselect.rs");
+include!("../src/include/haikuselect.rs");
 
 mod dispextern_dead_arm {
   use super::*;
-  include!("../femacs/src/include/dispextern.rs");
+  include!("../src/include/dispextern.rs");
 }
 use dispextern_dead_arm::*;
 
-include!("../femacs/src/include/haikuterm.rs");
+include!("../src/include/haikuterm.rs");
 
 fn main () {}

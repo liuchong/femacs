@@ -3,7 +3,7 @@
 
 Why this exists (docs/status.md 3.349): `docs/ports/xterm.md` ticked
 `x_dnd_compute_toplevels` - with its decision and its readings - in `c8a3d8a`, while the code
-half of that slice (666 lines of `femacs/src/xterm.rs`) stayed in the lane's working tree.
+half of that slice (666 lines of `src/xterm.rs`) stayed in the lane's working tree.
 HEAD then contradicted itself for two rounds, and none of the four gates in this area could
 see it: `check-port-lines` compares line counts, `audit-wip` counts unticked boxes,
 `check-swift-units` only reads the Swift units, and `extract-abi.py --check` measures the ABI
@@ -52,8 +52,8 @@ TICK = re.compile(r"^\s*- \[x\]\s+([A-Za-z_][A-Za-z0-9_]*)")
 def ledger_for(target: str, all_refs: set[str]) -> pathlib.Path | None:
     """The ledger a target's map row uses, or None when it has none.
 
-    `femacs/src/xrdb.rs` -> `docs/ports/xrdb.md`; `femacs/src/include/window.rs` ->
-    `docs/ports/include-window.md`; `femacs/lib-src/etags.rs` -> `docs/ports/lib-src-etags.md`
+    `src/xrdb.rs` -> `docs/ports/xrdb.md`; `src/include/window.rs` ->
+    `docs/ports/include-window.md`; `lib-src/etags.rs` -> `docs/ports/lib-src-etags.md`
     (the fallback to the bare stem is what the older, flatter names use).
 
     A header's ledger falls back to the bare stem **only when the reference has no sibling of
@@ -62,7 +62,7 @@ def ledger_for(target: str, all_refs: set[str]) -> pathlib.Path | None:
     `lib/boot-time.c`'s.  That test is what keeps this gate from binding a header to another
     file's ticks (measured: without it, 1435 false failures).
     """
-    rel = pathlib.PurePosixPath(target).relative_to("femacs")
+    rel = pathlib.PurePosixPath(target)
     stem, base = rel.stem, rel.parent
     is_include = base.name == "include"
     if is_include:
@@ -159,14 +159,14 @@ def main() -> int:
 
     # A name the ledger's own target lacks is not always a gap: this project records lisp.h's
     # `INLINE` accessors through the unit that needed them (`get_act_rec`/`set_act_rec` are
-    # `femacs/src/eval.rs`'s, with a comment saying the mirror does not carry them), and a
+    # `src/eval.rs`'s, with a comment saying the mirror does not carry them), and a
     # use-site declaration elsewhere in the tree is the same shape.  So one pass over the ported
     # Rust files asks whether the name exists *anywhere*: present -> carried elsewhere
     # (informational, and the debt stays visible); absent -> the 3.349 failure.
     where: dict[str, str] = {}
     if missing:
         wanted = {name for _, _, _, name in missing}
-        for path in REPO.glob("femacs/**/*.rs"):
+        for path in REPO.glob("**/*.rs"):
             if not wanted:
                 break
             if "/target/" in path.as_posix():

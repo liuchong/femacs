@@ -26,14 +26,14 @@
 > is the *conclusion* that is withdrawn, exactly as `docs/ports/msdos.md`, `docs/ports/w32proc.md`
 > and `docs/ports/xgselect.md` record for their own files.
 >
-> Port: `femacs/src/sound.rs` (**2027 lines**, 116826 bytes, md5 `7256d9a6c228b8546f16b13927d62438`), carrying **C 1-1554**,
+> Port: `src/sound.rs` (**2027 lines**, 116826 bytes, md5 `7256d9a6c228b8546f16b13927d62438`), carrying **C 1-1554**,
 > the reference's every line, with **both arms of every `#if`**.
 >
 > **There is no `src/sound.h`.**  The earlier task note expected `docs/port-map.md` to bind this
 > ledger to a `sound.h` as well; that file does not exist in the pinned reference
 > (`find emacs -iname '*sound*'` finds `src/sound.c` and four `.el`/`.elc` Lisp files only), and the
 > map has exactly one row for this pair (`docs/port-map.md` 530, `src/sound.c` → 1,554 →
-> `femacs/src/sound.rs`).  So the range table below covers the one reference it has, C 1-1554, and
+> `src/sound.rs`).  So the range table below covers the one reference it has, C 1-1554, and
 > `tools/check-dead-file-coverage.py` reads it against that single row.
 
 ## Decisions
@@ -153,7 +153,7 @@ the first `#if` block of `vox_close` instead of the block C declares it in - fix
 is already the `Option<…>` the setter takes - fixed), and after adding `#[repr(C)]` to the five opaque
 ALSA records the flip is the clean reading above.
 
-③ **`tools/extract-abi.py --check emacs/src/sound.c femacs/src/sound.rs` → `OK`** with **no `- ` line**.
+③ **`tools/extract-abi.py --check emacs/src/sound.c src/sound.rs` → `OK`** with **no `- ` line**.
 The port *does* have `fn`s now, so this is P-86 ⑩'s non-vacuous case: the only two names it could
 demand are `syms_of_sound` and the two subrs, and all three exist as definitions in the whole
 reference text, so no baseline row is needed (`docs/ports/macro-body-notes.tsv` gets nothing from this
@@ -236,7 +236,7 @@ The four `const _: () = core::assert! (…)` in the port carry the first three r
 12. **The external-header stand-ins are this unit's (P-88 ①/P-88 ④):** `<sys/ioctl.h>` (C 58),
     the three soundcard headers (C 63-71), `<alsa/asoundlib.h>` (C 73), `<mbstring.h>` (C 83),
     `<windows.h>` (C 84) and `<mmsystem.h>` (C 85) have **no file in the reference tree**, so their
-    names are declared where C's `#include` is and no file is added under `femacs/src/include/`;
+    names are declared where C's `#include` is and no file is added under `src/include/`;
     the same holds for the five `lisp.h` names, `strcat`/`message_with_string`/`_snprintf`/
     `wcscpy`/`wcscat`, and `u_int32_t`/`u_int16_t`.  Every unmeasured item is marked **UNVERIFIED**.
 13. **Wide-string literals are `[u16; N]` constants** (C 1311's open-quote literal and C 1313's MCI
@@ -256,7 +256,7 @@ The four `const _: () = core::assert! (…)` in the port carry the first three r
 
 ## Owed by the integrator (status per item; nothing here is claimed as done until marked)
 
-1. **`femacs/xtask/Cargo.toml`: eight new features must be registered** — `have_sound`,
+1. **`xtask/Cargo.toml`: eight new features must be registered** — `have_sound`,
    `have_machine_soundcard_h`, `have_sys_soundcard_h`, `have_soundcard_h`, `have_alsa`, `snd_sentry`,
    `default_alsa_sound_device`, `estrpip` (all with the macro they mirror in the table's comment
    column).  `tools/feature-coverage.py` will report them as "enabled by -" until then, which is the
@@ -278,7 +278,7 @@ The four `const _: () = core::assert! (…)` in the port carry the first three r
    line), and `docs/baseline/excluded-macros.txt` needs no entry for it either - recorded so the
    next reader does not look.  **NO ACTION NEEDED.**
 5. **The five `lisp.h` names declared in-unit** (`emacs_write_sig`, `emacs_strerror`, `openp`,
-   `plist_get`, `record_unwind_protect_void`) belong in `femacs/src/include/lisp.rs` at the next
+   `plist_get`, `record_unwind_protect_void`) belong in `src/include/lisp.rs` at the next
    mirror round (P-70's move-back shape); likewise `u_int32_t`/`u_int16_t` into
    `lib/include/sys_types.in.rs`, `strcat` into `lib/include/string.rs`, and `ioctl` into whatever
    mirror the tree picks for `<sys/ioctl.h>` (three units declare it in-unit today - `src/keyboard.rs`

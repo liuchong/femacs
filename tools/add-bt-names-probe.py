@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Insert (or remove) a name-resolving copy of the fatal-signal backtrace in femacs/src/sysdep.rs.
+"""Insert (or remove) a name-resolving copy of the fatal-signal backtrace in src/sysdep.rs.
 
 `backtrace_symbols_fd` writes to stderr, which an Android app process does not have, and its
 addresses alone cannot be turned back into symbols without the module's load base.  This probe
@@ -12,7 +12,7 @@ the frame that faulted instead of narrowing it one statement at a time.
 import pathlib
 import sys
 
-SRC = pathlib.Path (__file__).resolve ().parent.parent / "femacs/src/sysdep.rs"
+SRC = pathlib.Path (__file__).resolve ().parent.parent / "src/sysdep.rs"
 
 HELPER = '''/* TEMPORARY probe (tools/add-bt-names-probe.py): the fatal backtrace with symbol names.  */
 unsafe fn bt_names_probe (buffer: *mut *mut c_void, npointers: c_int)

@@ -168,14 +168,14 @@ def main() -> int:
         return self_test()
     ea = load_extract_abi()
     if a.pair:
-        pairs = [(REPO / "emacs" / p, (REPO / "femacs" / p).with_suffix(".rs")) for p in a.pair]
+        pairs = [(REPO / "emacs" / p, (REPO / p).with_suffix(".rs")) for p in a.pair]
         pairs = [(c, r) for c, r in pairs if c.is_file() and r.is_file()]
     else:
         pairs = []
         for c in sorted((REPO / "emacs").rglob("*")):
             if c.suffix not in (".c", ".h"):
                 continue
-            rs = (REPO / "femacs" / c.relative_to(REPO / "emacs")).with_suffix(".rs")
+            rs = (REPO / c.relative_to(REPO / "emacs")).with_suffix(".rs")
             if rs.is_file():
                 pairs.append((c, rs))
     bad = 0

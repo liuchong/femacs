@@ -5,7 +5,7 @@
 > Linux-kernel target, so `docs/baseline/frozen-build-sources.txt` lists no `inotify.o` here and
 > `extract-abi.py`'s checklist for the file is empty - its checkbox sections cannot be coverage
 > evidence (P-86 ②).  What follows is P-86 ②'s substitute: the **C line-range table**, the
-> `## Evidence` readings and the `## Deviations`.  Port: `femacs/src/inotify.rs`, the whole file
+> `## Evidence` readings and the `## Deviations`.  Port: `src/inotify.rs`, the whole file
 > (836 Rust lines at the first `--check`, 844 after the three `#ifndef` pairs were written out),
 > both arms of every `#if` carried.  The old revision's conclusion ("not in the frozen build, so
 > the port is the empty unit plus a note") was P-86 ①'s "not started" case; its measurements (the
@@ -194,7 +194,7 @@ contiguous, ascend without overlapping, and the last one ends at the reference's
    compiles.
 3. **the same two arms, and the Android one, compiled directly on the revision carried now**
    (`rustc --edition 2024 --crate-type=lib -O -C panic=abort <cfg…>
-   build/femacs/units/inotify/_root.rs -o …`, run from `femacs/` so the repository's pin applies;
+   build/femacs/units/inotify/_root.rs -o …`, run from `` so the repository's pin applies;
    the tool's `probe` subcommand is exactly this invocation plus `materialize`, and the arm budget
    below is reported honestly): all three -> **exit 0, 0 errors, 18 warnings (1 in the unit's own
    text)**; the rlibs are **13,779,816** (default arm), **13,784,216** (all sub-gates) and
@@ -210,7 +210,7 @@ contiguous, ascend without overlapping, and the last one ends at the reference's
    mismatched types` at `/tmp/inotify-lane/mut_root.rs:833:56`; the unmutated run of the same
    command is **0 errors**.  So the compile does read this unit's statements and "0 errors of its
    own" is a measurement, not an empty reading.
-5. **toolchain**: from `femacs/` the readings run under `femacs/rust-toolchain.toml`'s
+5. **toolchain**: from `` the readings run under `rust-toolchain.toml`'s
    `nightly-2026-10-01`; a bare `rustc` from the repository root picks stable 1.98.1 and reports
    `include/lisp.rs`'s `verror` `c_variadic` (`E0658`) - a pre-existing mirror property
    (`docs/ports/minibuf.md`), not this unit's.
@@ -238,7 +238,7 @@ contiguous, ascend without overlapping, and the last one ends at the reference's
    `FIONREAD` **21531**.
    The reading was taken with `_Static_assert (X == 0, …)` probes, so clang itself prints each
    value (`expression evaluates to '… == 0'`).
-8. **`extract-abi.py --check emacs/src/inotify.c femacs/src/inotify.rs`** -> the 7,306-macro table
+8. **`extract-abi.py --check emacs/src/inotify.c src/inotify.rs`** -> the 7,306-macro table
    notice, then **one** `- ` row: `line count drifted 43.1%: C 590 vs Rust 844` (the tolerance row
    is the integrator's, `## Owed` 1).  The first edition's other six rows are gone: the three
    `macro … does not mention 0` rows and the three `constant …: C 0 vs Rust 0x…` rows were the
@@ -247,17 +247,17 @@ contiguous, ascend without overlapping, and the last one ends at the reference's
    `docs/ports/macro-body-notes.tsv` row was needed, and none was added**.
 9. `python3 tools/check-mirror-dupes.py` -> **24 duplicate declaration(s), 17 ratchet row(s), 7
    failure(s)**: the 17 ratchet rows are the file's own baseline (unchanged) and all 7 failures are
-   `femacs/lib/file-has-acl.rs`'s (another lane's in-flight file - attributed, not touched).  This
+   `lib/file-has-acl.rs`'s (another lane's in-flight file - attributed, not touched).  This
    unit contributes **0 duplicates and 0 rows**: `ioctl`, `strnlen`, `assoc_no_quit`,
    `equal_no_quit`, `FIONREAD`, the `IN_*` names and the four `inotify_*` entry points are declared
    by no mirror in its include graph.
 10. `python3 tools/check-declarations.py` -> **exit 1**, `18 declaration sites (1 forbidden, 17
-    allowed literals), 1 failures`, and the failure is `femacs/lib/file-has-acl.rs: recital x1`
+    allowed literals), 1 failures`, and the failure is `lib/file-has-acl.rs: recital x1`
     (another lane's file).  **This unit and this ledger are not named in its output** (0 `inotify`
     lines), i.e. no product-name, licence, version or `recital` finding.
 11. `python3 tools/check-citations.py` -> **exit 1**, `676 file(s) scanned, 2 drift, 0 range, 1103
-    external, 34 allowed, 1 stale`; the two drift rows are `femacs/src/include/dispextern.rs:600`
-    and `femacs/src/xsmfns.rs:428` (other lanes' files).  **0 `inotify` lines**: this unit's
+    external, 34 allowed, 1 stale`; the two drift rows are `src/include/dispextern.rs:600`
+    and `src/xsmfns.rs:428` (other lanes' files).  **0 `inotify` lines**: this unit's
     `/// C:` citations (lisp.h 4274/4282, string.h, termhooks.h 291) and this ledger carry no
     range/drift finding.
 12. `python3 tools/check-dead-file-coverage.py` -> **exit 0**, `82 ledger(s) bound (a C range
@@ -276,7 +276,7 @@ contiguous, ascend without overlapping, and the last one ends at the reference's
 1. **`<sys/inotify.h>` and `<sys/ioctl.h>` are this unit's sections** (C 31-32): the reference
    tree has no such file (P-88 ①), so the declarations stand at C's `#include` lines, each
    carrying a `/// C:` quote of the header's own line, and no file was added under
-   `femacs/src/include/`.  If a second consumer appears they move into mirrors of their own in the
+   `src/include/`.  If a second consumer appears they move into mirrors of their own in the
    same commit (P-88 ⑤ / P-90 ②).
 2. **C's `IN_*` masks are typed `uint32_t` in the port.**  C spells them as `int` literals (except
    `IN_ONESHOT`, `0x80000000`, whose C type is `unsigned int`), and every use here is a `uint32_t`

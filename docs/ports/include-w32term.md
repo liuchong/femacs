@@ -193,7 +193,7 @@
   `__attribute__((force_align_arg_pointer))`), `SCROLL_BAR_PACK`/`SCROLL_BAR_UNPACK`,
   `w32_kbdhook_active` and the `NTGUI_UNICODE` block.
 - **The inner arms and the feature each one carries.**  `_WIN64` is a compiler predefine and not in
-  the table; the tree's own feature is `win64` (`femacs/xtask/Cargo.toml` 561, `# _WIN64`, the
+  the table; the tree's own feature is `win64` (`xtask/Cargo.toml` 561, `# _WIN64`, the
   `nt/inc/include/stdint.rs` 34 reading), so C 536-552's 64-bit arm is `win64` and the 32-bit
   `#else` is `not (win64)`.  `NTGUI_UNICODE` (C 892) is defined by `conf_post.h` 169-170 **only**
   for `defined CYGWIN && defined HAVE_NTGUI` ("Cygwin runs only on UNICODE-supporting systems"), so
@@ -235,8 +235,8 @@
 
 ## Evidence
 
-- `python3 tools/extract-abi.py --check emacs/src/w32term.h femacs/src/include/w32term.rs`
-  -> `OK emacs/src/w32term.h -> femacs/src/include/w32term.rs` (no `- ` problem lines); the tool
+- `python3 tools/extract-abi.py --check emacs/src/w32term.h src/include/w32term.rs`
+  -> `OK emacs/src/w32term.h -> src/include/w32term.rs` (no `- ` problem lines); the tool
   prints `(8 C macros have several definitions (configuration branches), body not compared:
   ALIGN_STACK, GUISTR, GUI_ENCODE_FILE, GUI_ENCODE_SYSTEM, GUI_FN, SCROLL_BAR_PACK ...)`, which is
   C's own two-arm structure.
@@ -291,8 +291,8 @@ answers per call site, exactly as C's does; `os_subtype` is the same shield's cr
 
 **Evidence.**
 
-- `python3 tools/extract-abi.py --check emacs/src/w32term.h femacs/src/include/w32term.rs` -> `OK
-  emacs/src/w32term.h -> femacs/src/include/w32term.rs`.
+- `python3 tools/extract-abi.py --check emacs/src/w32term.h src/include/w32term.rs` -> `OK
+  emacs/src/w32term.h -> src/include/w32term.rs`.
 - `python3 tools/check-declarations.py` -> `13 declaration sites (0 forbidden, 13 allowed
   literals), 0 failures`.
 - No arm compile is possible here (no Windows toolchain); the two fixes are text-level and their
@@ -350,7 +350,7 @@ treatment.  Moving the whole block now would be a claim no reading supports.
   `*mut w32_output` (2) - all of them `E0609`/`E0606`/`E0425` in the *unit's* text.
   `src/w32fns.rs`'s residual 5 are the same two typedefs and two `Emacs_GC` sites (the
   `have_ntgui` arm of `dispextern.h` 45-77, a `dispextern.rs` gap this lane did not close).
-- `python3 tools/extract-abi.py --check emacs/src/w32term.h femacs/src/include/w32term.rs` -> `OK`.
+- `python3 tools/extract-abi.py --check emacs/src/w32term.h src/include/w32term.rs` -> `OK`.
 - `cd femacs && cargo run -q -p xtask -- layout-check` -> `layout probe ok`, `layout-check passed`.
 - `python3 tools/check-citations.py` -> `0 drift`; `python3 tools/check-declarations.py` ->
   `13 declaration sites (0 forbidden, 13 allowed literals), 0 failures`;
@@ -389,7 +389,7 @@ distinction in `w32term_objs`' note).
 src/w32fns.rs /tmp/w35lane/x.rlib --crate-type=lib -C panic=abort --cfg 'feature="have_ntgui"'
 --cfg 'feature="windowsnt"'` -> **42 errors**, the same fifteen `E0428` names as before the move and
 none for `w32_frame_parm_handlers`; `build-tu src/w32fns.c` -> exit 0, the object 336 bytes;
-`python3 tools/extract-abi.py --check emacs/src/w32term.h femacs/src/include/w32term.rs` -> `OK`;
+`python3 tools/extract-abi.py --check emacs/src/w32term.h src/include/w32term.rs` -> `OK`;
 `python3 tools/check-mirror-dupes.py` -> 0 failure(s).  The unit-side readings are
 `docs/ports/w32fns.md`'s `## Slice 35 (C 11522-11583)`.
 
@@ -411,7 +411,7 @@ slice lands it, so the mirror needs no second edit.
 src/w32fns.rs /tmp/w38lane/x.rlib --crate-type=lib -C panic=abort --cfg 'feature="have_ntgui"'
 --cfg 'feature="windowsnt"'` -> **43 errors / one `E0428` for `globals_of_w32fns` before, 42 after**;
 `build-tu src/w32fns.c` -> exit 0, the object 336 bytes;
-`python3 tools/extract-abi.py --check emacs/src/w32term.h femacs/src/include/w32term.rs` -> `OK`;
+`python3 tools/extract-abi.py --check emacs/src/w32term.h src/include/w32term.rs` -> `OK`;
 `python3 tools/check-mirror-dupes.py` -> 0 failure(s).  The unit-side readings are
 `docs/ports/w32fns.md`'s `## Slice 38 (C 12283-12450)`.
 
@@ -435,7 +435,7 @@ ledger's "The declaration homes" section records for 27 earlier names.
 --crate-type=lib -C panic=abort --cfg 'feature="have_ntgui"' --cfg 'feature="windowsnt"' --cfg
 'feature="have_window_system"' --cfg 'feature="dispextern_face_records"'` -> **23 errors before,
 22 after** (and 0 anchored in the unit's text either way);
-`python3 tools/extract-abi.py --check emacs/src/w32term.h femacs/src/include/w32term.rs` -> `OK`;
+`python3 tools/extract-abi.py --check emacs/src/w32term.h src/include/w32term.rs` -> `OK`;
 `python3 tools/check-mirror-dupes.py` -> 0 failure(s).  The unit-side readings are
 `docs/ports/w32term.md`'s `### Slice 7 (C 3433-3629)`.
 
@@ -456,7 +456,7 @@ Owed 4's.
 --crate-type=lib -C panic=abort --cfg 'feature="have_ntgui"' --cfg 'feature="windowsnt"' --cfg
 'feature="have_window_system"' --cfg 'feature="dispextern_face_records"' --cfg
 'feature="have_w32notify"'` -> **23 before, 22 after**, 0 anchored in the unit's text either way;
-`python3 tools/extract-abi.py --check emacs/src/w32term.h femacs/src/include/w32term.rs` -> `OK`;
+`python3 tools/extract-abi.py --check emacs/src/w32term.h src/include/w32term.rs` -> `OK`;
 `python3 tools/check-mirror-dupes.py` -> 0 failure(s).  The unit-side readings are
 `docs/ports/w32term.md`'s `### Slice 8 (C 3631-3763)`.
 

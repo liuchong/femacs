@@ -36,7 +36,7 @@
 
 ## Decisions (2026-10-17, before the port)
 
-- **Target**: `femacs/platform/macos/nsxwidget.swift`, the lane `docs/port-map.md` names
+- **Target**: `platform/macos/nsxwidget.swift`, the lane `docs/port-map.md` names
   (`src/nsxwidget.m` -> Swift).  The unit is **not compiled by the frozen configuration**
   (`--with-ns=no`), like the other seven `.m` lanes; it exists for 1:1 coverage, and
   `tools/check-swift-units.py` is what will check its function set against this list.

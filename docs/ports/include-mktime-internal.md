@@ -25,7 +25,7 @@
 # ----------------------------------------------------------------------
 ## Decisions
 
-`femacs/lib/include/mktime-internal.rs` mirrors `emacs/lib/mktime-internal.h`.  The
+`lib/include/mktime-internal.rs` mirrors `emacs/lib/mktime-internal.h`.  The
 header is one of the four files `tools/check-cond-eval.py` cannot decide (its 5
 conditions include the `<time.h>` template's `@…@` placeholders, so it is compared
 blindly): the mirror is therefore written from the *frozen* configuration's text —
@@ -48,5 +48,5 @@ still demands is answered:
   macro rows (`__libc_lock_*`) are in `macro-body-notes.tsv`.
 
 Verification: `python3 tools/extract-abi.py --check emacs/lib/mktime-internal.h
-femacs/lib/include/mktime-internal.rs` → OK; the mirror compiles as part of
+lib/include/mktime-internal.rs` → OK; the mirror compiles as part of
 `build-tu lib/mktime.c`.

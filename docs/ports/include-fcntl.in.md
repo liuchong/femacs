@@ -62,7 +62,7 @@
 
 ## Decisions
 
-`emacs/lib/fcntl.in.h` @ `fd7afced403`; port `femacs/lib/include/fcntl.in.rs`.
+`emacs/lib/fcntl.in.h` @ `fd7afced403`; port `lib/include/fcntl.in.rs`.
 
 **The template.**  `@GUARD_PREFIX@`, `@PRAGMA_SYSTEM_HEADER@`, `@INCLUDE_NEXT@`,
 `@NEXT_FCNTL_H@` and the `@GNULIB_*@`/`@REPLACE_*@`/`@HAVE_*@` selectors cannot be evaluated by
@@ -158,12 +158,12 @@ this mirror (the ledger of that unit owns it).  No other unit spells the names t
 ## Evidence
 
 ```
-$ python3 tools/extract-abi.py --check emacs/lib/fcntl.in.h femacs/lib/include/fcntl.in.rs
+$ python3 tools/extract-abi.py --check emacs/lib/fcntl.in.h lib/include/fcntl.in.rs
   (1 C macros have a recorded Rust counterpart: _)
   (10 C macros have several definitions (configuration branches), body not compared:
    GNULIB_defined_F_DUPFD_CLOEXEC, GNULIB_defined_O_CLOEXEC, GNULIB_defined_O_NONBLOCK,
    O_BINARY, O_CLOEXEC, O_NONBLOCK ...)
-OK emacs/lib/fcntl.in.h -> femacs/lib/include/fcntl.in.rs
+OK emacs/lib/fcntl.in.h -> lib/include/fcntl.in.rs
 
 $ cd /tmp/femacs-probe2 && rustc --edition 2024 --crate-type=lib --emit=obj -C panic=abort \
     fcntl_probe.rs -o fcntl_probe.o
@@ -180,9 +180,9 @@ built lib/fcntl.rs / lib/open.rs / lib/tempname.rs / lib/openat-proc.rs / lib/sa
       lib/lchmod.rs / lib/utimens.rs / lib/pipe2.rs / lib/fstatat.rs / lib/fchmodat.rs /
       lib/binary-io.rs / lib/careadlinkat.rs / lib/canonicalize-lgpl.rs    # all exit 0
 built src/term.rs -> ../build/femacs/term.o          # exit 0 (the edited consumer)
-$ python3 tools/extract-abi.py --check emacs/<unit.c> femacs/<unit.rs>
-OK emacs/lib/fcntl.c -> femacs/lib/fcntl.rs
-OK emacs/src/term.c -> femacs/src/term.rs
+$ python3 tools/extract-abi.py --check emacs/<unit.c> <unit.rs>
+OK emacs/lib/fcntl.c -> lib/fcntl.rs
+OK emacs/src/term.c -> src/term.rs
 
 $ python3 tools/check-mirror-dupes.py
 1 duplicate declaration(s), 1 ratchet row(s), 0 failure(s)

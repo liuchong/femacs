@@ -23,7 +23,7 @@
 # has just materialised and re-compiles it with `--cfg enable_checking`, emitting metadata to a
 # scratch directory so no `.rlib` is left behind.
 #
-#   * The `cd "$root/femacs"` below is what pins the toolchain (`femacs/rust-toolchain.toml`'s
+#   * The `cd "$root/femacs"` below is what pins the toolchain (`rust-toolchain.toml`'s
 #     nightly-2026-10-01).  Run from the repository root with a bare `rustc` and stable 1.98.1
 #     reports 134 `E0658 c_variadic` errors across 75 of the 83 units, which both looks red and
 #     *hides the real errors* behind them (measured, 2026-10-05).

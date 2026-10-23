@@ -8,7 +8,7 @@
 > `androidvfs.o` for this target, and `extract-abi.py`'s checklist for the file is empty (P-86
 > ⑩: its checkbox sections cannot be coverage evidence).  What follows is P-86 ②'s substitute:
 > the **C line-range table**, the `## Evidence` readings and the `## Deviations`.  Port:
-> `femacs/src/androidvfs.rs` (**10,003 lines**, md5 `59b89e4dc18a05780c2921eede0f4d96`), carrying
+> `src/androidvfs.rs` (**10,003 lines**, md5 `59b89e4dc18a05780c2921eede0f4d96`), carrying
 > **C 1-7950** — the file is ported whole; slice 22 wrote C 7085-7950, so `extract-abi.py --check`
 > has no `missing …` row left for this unit.  Slice 19 had closed every deferral this lane had
 > accumulated (C 2520-2537's `content_vfs_ops`, C 2549-2639's
@@ -286,7 +286,7 @@ this unit's crate-root `assert` macro wins over the prelude's for the mirrors th
 consequence recorded as Owed 3, and it is why every layout assertion this unit writes of its own
 spells `core::assert!`.
 
-**④ Inventory.**  `python3 tools/extract-abi.py --check emacs/src/androidvfs.c femacs/src/androidvfs.rs`
+**④ Inventory.**  `python3 tools/extract-abi.py --check emacs/src/androidvfs.c src/androidvfs.rs`
 → **FAIL, 181 `- ` lines** (the file's checklist is empty, P-86 ⑩, so the two inventories are
 compared directly):
 
@@ -323,7 +323,7 @@ python3 tools/check-declarations.py
   → 14 declaration sites (0 forbidden, 14 allowed literals), 0 failures        [exit 0]
 ```
 
-`check-declarations.py` read `1 failures` at this slice's start (the `femacs/src/android.rs`
+`check-declarations.py` read `1 failures` at this slice's start (the `src/android.rs`
 `PACKAGE_STRING` literal of `docs/ports/android.md` Owed 10) and reads `0 failures` now: another
 lane landed that allowlist row while this slice was in flight, and this unit added no literal of
 its own — the 14 sites are unchanged.  `check-port-lines.py`'s `stale src/androidvfs.c` row is
@@ -337,7 +337,7 @@ this file's own ratchet row leaving the table: C 995 carried against the unit's 
    both.  Every item of this slice and every `include!` edge of C 20-55's graph carries
    `all (feature = "have_android", feature = "not_android_stubify")` (the androidselect.rs shape).
 2. **The API-level feature name is not registered.**  C 46's `#if __ANDROID_API__ >= 9` and C 50's
-   `#else` are gated on `android_api_ge_9`, a name `femacs/xtask/Cargo.toml`'s `[features]` table
+   `#else` are gated on `android_api_ge_9`, a name `xtask/Cargo.toml`'s `[features]` table
    does **not** carry (it holds `android_api_lt_21`/`android_api_le_11`/`android_api_le_30` and
    nothing else `__ANDROID_API__`-conditioned).  A port lane does not add feature names to that
    manifest, so `#[cfg]` on the unregistered name is false and a build today gets C's `#else` arm;
@@ -412,7 +412,7 @@ this file's own ratchet row leaving the table: C 995 carried against the unit's 
 
 ## Owed by the integrator (status per item; nothing here is claimed as done until marked)
 
-1. `femacs/xtask/Cargo.toml`'s `[features]` table: **`android_api_ge_9`** (the derived condition
+1. `xtask/Cargo.toml`'s `[features]` table: **`android_api_ge_9`** (the derived condition
    `__ANDROID_API__ >= 9`, androidvfs.c 46/50; its negation is C's `#else` arm).  Without it C's
    `>= 9` arm cannot be selected by a build (the readings in ②b passed the flag by hand).
 2. **`include/android.rs`: delete C 164's stand-in** (`pub struct android_vdir;`) once this
@@ -723,7 +723,7 @@ The whole-file line-count row now reads **75.3%** (C 7,950 against 1,966 Rust li
 238/0, `check-carried` 11/11/4/0, `check-verbatim` 6 trees/4,604 files/0, `check-verbatim-
 declarations` 0, `check-dead-file-coverage` 145/0, `check-citations` 676/0/0/2,556/36/0), but
 `check-declarations` read **20 declaration sites (2 forbidden, 18 allowed literals), 4 failures** -
-all four in **another unit** (`femacs/src/haikuterm.rs`'s C 4536/4542/4547 text and the matching
+all four in **another unit** (`src/haikuterm.rs`'s C 4536/4542/4547 text and the matching
 ledger line), committed state this slice does not touch.  The integrator fixed that as round 4.110;
 that reading is recorded there, and this round's own text contributes none of the four.
 
@@ -764,8 +764,8 @@ Port: **1,966 -> 2,281 lines**.
 
 **The round's use-site declarations, written before the probe** (P-88 ①, Deviation 19): five names no
 mirror this unit includes carries - `<dlfcn.h>`'s `dlsym` and its `RTLD_DEFAULT` (measured 0 in
-bionic's header, the `femacs/exec/trace.rs` 503-513 shape), `<sys/ioctl.h>`'s variadic `ioctl` (the
-`femacs/src/inotify.rs` 222 spelling), `<linux/ashmem.h>`'s two constants (**measured** with this
+bionic's header, the `exec/trace.rs` 503-513 shape), `<sys/ioctl.h>`'s variadic `ioctl` (the
+`src/inotify.rs` 222 spelling), `<linux/ashmem.h>`'s two constants (**measured** with this
 machine's NDK 29.0.14206865 through its clang: `ASHMEM_SET_NAME` 0x41007701 and `ASHMEM_SET_SIZE`
 0x40087703 - `__ASHMEMIOC` is 0x77, `ASHMEM_NAME_LEN` 256, and `_IOW` packs
 `1U << 30 | sizeof << 16 | type << 8 | nr`, so neither is the `'a'`-based value a reader would guess)
@@ -777,12 +777,12 @@ the `>= 9` arm, the same two counts slice 5's tail read, so this round's text ad
 two drafts, all the class this ledger already records - C's implicit conversions written out:
 
 - C's adjacent string literals C 1455-1458 are `concat!` with an explicit `"\0"` and a
-  `as *const c_char` cast (the `femacs/src/comp.rs` 627/640 spelling); the first draft's
+  `as *const c_char` cast (the `src/comp.rs` 627/640 spelling); the first draft's
   `concat! (...).as_ptr ()` passed a `*const u8` where the variadic call wants `*const i8`, and
   dropping `"\0"` would have left the C string unterminated;
 - C 1531's `if (!size)` is `if size == 0` (a `size_t` is not a `bool`);
 - C 1476's `unsigned char *mem` receiving `mmap`'s `void *` is four written-out casts - two
-  `… as *mut c_uchar` on the assignments (the `femacs/src/w32.rs` 3921 shape) and two
+  `… as *mut c_uchar` on the assignments (the `src/w32.rs` 3921 shape) and two
   `mem as *mut c_void == MAP_FAILED` comparisons, plus the two `AAsset_read`/`munmap` argument
   casts, which were written that way in the first draft.
 
@@ -809,12 +809,12 @@ row now reads **71.3%** (C 7,950 against 2,281 Rust lines).
     value; })` - a cached read plus a compile-time hint whose only content is the NDK's own
     `__ANDROID_API__` floor.  This unit declares the *function* (android.h 148's prototype, under
     this unit's gate) and writes C's call as C writes it, because the tree already decided this
-    class the same way in a unit that *does* carry the mirror: `femacs/src/androidselect.rs` 585/613
+    class the same way in a unit that *does* carry the mirror: `src/androidselect.rs` 585/613
     keeps C's `android_get_current_api_level () <= 11`/`<= 30` tests and records the invariant in
     its ledger (its 23/581 lines).  The macro's two other halves are recorded rather than dropped:
     `__ANDROID_API__` is the NDK's `__ANDROID_MIN_SDK_VERSION__`, **measured 24** with this machine's
-    NDK (`femacs/src/androidmenu.rs` 68-73 is the measured row this one repeats), and the `eassume`
-    is `femacs/src/include/lisp.rs` 407's macro, which the `#[cfg (enable_checking)]` arms alone
+    NDK (`src/androidmenu.rs` 68-73 is the measured row this one repeats), and the `eassume`
+    is `src/include/lisp.rs` 407's macro, which the `#[cfg (enable_checking)]` arms alone
     compile - so a ported call site cannot observe it either way.  The port therefore reads the same
     value C reads; what it does not carry is the *hint*.
 
@@ -919,7 +919,7 @@ carries).  Five real defects came out of the first drafts: the `for (next = &all
 *next);)` loop's step is `&raw mut (**next).next` (a `*mut *mut T` does not auto-deref for a field
 read - `E0609`), the `readdir` member is the mirror's untyped `*mut c_void` so the assignment needs
 `std::mem::transmute` (`E0605` forbids the `as` cast between function-pointer types; the
-`femacs/src/sysdep.rs` 2873 spelling), `DT_DIR`/`DT_REG` are not in `lib/include/dirent.rs`
+`src/sysdep.rs` 2873 spelling), `DT_DIR`/`DT_REG` are not in `lib/include/dirent.rs`
 (declared at the use site, measured 4/8 with this machine's NDK), and `AAsset_close` is the ninth
 name of the arm-split `<android/asset_manager.h>` family, so the `>= 9` arm declares it (arm B alone
 read `E0425` for it - the arm work the slice-4/5 Deviations 17/18 describe, done before the probe
@@ -1739,7 +1739,7 @@ the symbol's suffix.  The reference's own package identity stays elided in the t
 `docs/ports/excluded-macros.txt` 150 device) and is read out of the reference text instead, so this
 tree's prose never spells it.
 
-**Readings.**  `python3 tools/extract-abi.py --check emacs/src/androidvfs.c femacs/src/androidvfs.rs`
+**Readings.**  `python3 tools/extract-abi.py --check emacs/src/androidvfs.c src/androidvfs.rs`
 -> **OK** (the five `invented exported symbol` rows are gone and the file's own
 `line-drift-tolerance.tsv` row covers the line-count reading); `python3 tools/extract-abi.py
 --selftest` -> 0 failures, with five new cases pinning the acceptance (composing macro plus

@@ -1,9 +1,9 @@
 # emacs/lib-src/emacsclient.c (2524 lines)
 
 # STATUS (read this first).  The unit is complete: every item below is implemented in
-# femacs/lib-src/emacsclient.rs and every live statement of the C file is carried.  The
+# lib-src/emacsclient.rs and every live statement of the C file is carried.  The
 # boxes are ticked on that basis, and the one open item is a *shared-file* one:
-# `tools/extract-abi.py --check emacs/lib-src/emacsclient.c femacs/lib-src/emacsclient.rs`
+# `tools/extract-abi.py --check emacs/lib-src/emacsclient.c lib-src/emacsclient.rs`
 # currently reports 9 problem lines, all of them of the form "does not mention …": each is
 # a row `docs/ports/macro-body-notes.tsv` must carry (the nine rows are listed verbatim under
 # "Owed note rows" below, with the reason each token cannot reappear).  `docs/ports/*.tsv` is the
@@ -21,7 +21,7 @@
 #   - function local_sockname does not mention priumax
 #   - function set_local_socket does not mention priumax
 #   - function set_socket does not mention alternate, alternate_editor, editor, emacs_server_file, environment, file, variable
-#   FAIL emacs/lib-src/emacsclient.c -> femacs/lib-src/emacsclient.rs
+#   FAIL emacs/lib-src/emacsclient.c -> lib-src/emacsclient.rs
 
 
 # ----------------------------------------------------------------------
@@ -98,7 +98,7 @@
 
 ## Decisions
 
-- **Shape.** One unit, `femacs/lib-src/emacsclient.rs`, written in the `lib-src/make-docfile.rs`
+- **Shape.** One unit, `lib-src/emacsclient.rs`, written in the `lib-src/make-docfile.rs`
   / `lib-src/hexl.rs` shape: `#![allow (…)]`, `use std::ffi::{…}`, the `include!` list in C's
   own order, then C's file-scope objects and functions in C's order, with `main` as
   `#[unsafe(no_mangle)] pub unsafe extern "C" fn main (argc: c_int, argv: *mut *mut c_char)
@@ -271,7 +271,7 @@ set_socket	alternate,alternate_editor,editor,emacs_server_file,environment,file,
   --crate-name ec_check -C panic=abort -C codegen-units=1 -C opt-level=0
   ../build/femacs/units/emacsclient/_root.rs -o /tmp/ec.rmeta` -> exit 0.
 - **The ABI checklist.**  `python3 tools/extract-abi.py --check emacs/lib-src/emacsclient.c
-  femacs/lib-src/emacsclient.rs` -> the ten problem lines quoted in STATUS above; nine are the
+  lib-src/emacsclient.rs` -> the ten problem lines quoted in STATUS above; nine are the
   owed rows.  Adding the rows makes the command print `OK` (no port change needed); the
   line-count drift is 4.9%, inside the 5% the rule allows every file.
 - **The measurements** every use-site declaration quotes were taken with the frozen target's
@@ -287,8 +287,8 @@ set_socket	alternate,alternate_editor,editor,emacs_server_file,environment,file,
 - **The nine rows are sufficient, verified rather than asserted.**  Writing them to a *copy*
   of the table (`/tmp/ec-notes.tsv`, not the integrator's file) and running
   `python3 tools/extract-abi.py --check --macro-notes /tmp/ec-notes.tsv
-  emacs/lib-src/emacsclient.c femacs/lib-src/emacsclient.rs` prints
-  `OK emacs/lib-src/emacsclient.c -> femacs/lib-src/emacsclient.rs` with no problem line at
+  emacs/lib-src/emacsclient.c lib-src/emacsclient.rs` prints
+  `OK emacs/lib-src/emacsclient.c -> lib-src/emacsclient.rs` with no problem line at
   all.  So the port needs no change for the gate; the nine rows above are the whole
   remainder.
 - **The four house gates** (each from the repository root, exit status 0):
@@ -297,6 +297,6 @@ set_socket	alternate,alternate_editor,editor,emacs_server_file,environment,file,
   (0 forbidden, 8 allowed literals), 0 failures` (this unit adds none: its comments carry no
   product name, and the usage message's own "Emacs" is the *word*, not the product name the
   rule reads); `python3 tools/check-mirror-dupes.py` -> `1 duplicate declaration(s), 1 ratchet
-  row(s), 0 failure(s)` (the row is `femacs/src/insdel.rs`'s, pre-existing -- this unit declares
+  row(s), 0 failure(s)` (the row is `src/insdel.rs`'s, pre-existing -- this unit declares
   nothing a mirror in its include graph already carries); `python3 tools/check-verbatim.py` ->
   `6 trees, 4607 files, 0 failures`.

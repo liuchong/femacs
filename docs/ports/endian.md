@@ -1,4 +1,4 @@
-# emacs/lib/endian.c  →  femacs/lib/endian.rs (22 lines)
+# emacs/lib/endian.c  →  lib/endian.rs (22 lines)
 
 # ----------------------------------------------------------------------
 ## Subrs (DEFUN) — 0

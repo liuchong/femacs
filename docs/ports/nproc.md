@@ -19,7 +19,7 @@
 
 ## Decisions
 
-`emacs/lib/nproc.c` @ `fd7afced403`; port `femacs/lib/nproc.rs` (279 lines).  All checklist
+`emacs/lib/nproc.c` @ `fd7afced403`; port `lib/nproc.rs` (279 lines).  All checklist
 items ticked; `build-tu lib/nproc.c` -> `built lib/nproc.rs -> ../build/femacs/nproc.o`
 (0 errors), `--check` -> `OK`.
 

@@ -1,4 +1,4 @@
-# emacs/lib/fingerprint.c  →  femacs/lib/fingerprint.rs (66 lines)
+# emacs/lib/fingerprint.c  →  lib/fingerprint.rs (66 lines)
 
 # ----------------------------------------------------------------------
 ## Subrs (DEFUN) — 0

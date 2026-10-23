@@ -48,7 +48,7 @@ import sys
 
 REPO = pathlib.Path(__file__).resolve().parent.parent
 REF = REPO / "emacs"
-PORT = REPO / "femacs"
+PORT = REPO
 REF_BUILD = REPO / "build/emacs-ref/admin/unidata"
 PORT_EMACS = REPO / "build/port/src/temacs"
 
@@ -451,4 +451,7 @@ def main() -> int:
 
 
 if __name__ == "__main__":
+    if "--compare-reference" not in sys.argv:
+        raise SystemExit(subprocess.call([sys.executable, str(REPO / "tools/bootstrap-resources.py"), "--family", "unicode", *sys.argv[1:]]))
+    sys.argv.remove("--compare-reference")
     sys.exit(main())

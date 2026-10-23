@@ -18,7 +18,18 @@
 
 ## 现状
 
-刚起步。仓库里目前只有文档和许可证，还没有可运行的实现。
+Rust 内核及原生 Swift macOS 界面已有可运行实现；功能验收与性能目标分开，不声称性能已达标。
+
+在 Apple Silicon macOS 安装 Xcode 命令行工具、Python 3、rustup 和 GNU awk（`brew install gawk`）后，在仓库根目录执行：
+
+```sh
+cargo run -p xtask -- build-terminal
+build/terminal/port/src/emacs -Q -nw
+cargo run -p xtask -- build-macos
+dist/macos/Femacs.app/Contents/MacOS/Femacs -Q
+```
+
+源码已经提升至根目录。构建从已提交的原始数据和生成器自举，不依赖被忽略的参照目录、旧缓存或已安装的编辑器。详情见[独立构建与验收](../../repository-bootstrap.md)。
 
 ## 文档
 

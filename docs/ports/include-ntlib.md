@@ -63,4 +63,4 @@ Nothing compiles the mirror (`xtask layout-check` covers `src/include` and `lib/
 and no ported unit includes it).
 
 Evidence: `python3 tools/extract-abi.py --check emacs/lib-src/ntlib.h
-femacs/lib-src/include/ntlib.rs` -> `OK` (39 ledger items).
+lib-src/include/ntlib.rs` -> `OK` (39 ledger items).

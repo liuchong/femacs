@@ -19,11 +19,11 @@
 # ----------------------------------------------------------------------
 ## Decisions
 
-`emacs/lib/at-func.c` @ `fd7afced403`; port `femacs/lib/at-func.rs` (144 lines); the gates are
+`emacs/lib/at-func.c` @ `fd7afced403`; port `lib/at-func.rs` (144 lines); the gates are
 `build-tu lib/at-func.c` -> `built` (`build/femacs/at-func.o`, no C-visible exports - the
 template instantiates nothing; in C the includers define their own entries, so the reference has
 no object of its own here) and
-`python3 tools/extract-abi.py --check emacs/lib/at-func.c femacs/lib/at-func.rs` -> `OK`.  No
+`python3 tools/extract-abi.py --check emacs/lib/at-func.c lib/at-func.rs` -> `OK`.  No
 `build/emacs-ref/lib/at-func.o` exists, so `tools/check-symbols.py` does not compare this unit.
 
 - **The 10.13② shape is a prelude that instantiates nothing.**  gnulib compiles this source
@@ -35,7 +35,7 @@ no object of its own here) and
   own, which the port's 0 exports match.
 
 - **The five consumers keep their own copies.**  They do not `include!("at-func.rs")`; each
-  `femacs/lib/{faccessat,fchmodat,fstatat,readlinkat,utimensat}.rs` records the `AT_FUNC_*`
+  `lib/{faccessat,fchmodat,fstatat,readlinkat,utimensat}.rs` records the `AT_FUNC_*`
   parameters itself.  Four of them (`faccessat.rs`, `fchmodat.rs`, `fstatat.rs`,
   `readlinkat.rs`) keep only the parameter `macro_rules!` under
   `#[cfg (feature = "no_…")]`, because their `#include "at-func.c"` arm is dead under the

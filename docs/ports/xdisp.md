@@ -592,7 +592,7 @@ Ticked in the ledger above, bucket by bucket — **measured** with `grep -c '^- 
 section (`Subrs` 4/13, `Functions` 249/302, `Macros` 31/38, `Types and their fields` 2/2,
 `File-scope objects` 59/60) — **345 of the 415 boxes** (249+4+31+2+59); the remaining 70 are
 untouched.  **The scaffold shrinks 12 -> 11** (measured with
-`git show HEAD:femacs/src/xdisp.rs | awk '/TEMPORARY SCAFFOLD/{f=1} f' | grep -c '^  fn '` = 12):
+`git show HEAD:src/xdisp.rs | awk '/TEMPORARY SCAFFOLD/{f=1} f' | grep -c '^  fn '` = 12):
 `display_line`'s entry is deleted and none is added — every name the round's body reaches is
 already defined in the unit, defined before use in C, the include graph's, or one of the eleven
 entries that remain.  (The burned entry's citation was wrong: it said `dispextern.h 3595`, but
@@ -3196,7 +3196,7 @@ The ten function boxes of C 4667-5790 (`handle_fontified_prop` through `display_
 the three macro boxes of `AINC` (C 17604), `GIVE_UP` (C 22628) and `RECORD_MAX_MIN_POS`
 (C 26024) were landed by earlier rounds but left unticked (that round's Decisions sentence says
 so: "Unticked and reported, not ticked here").  This round checks the artifact rather than the
-sentence: each of the ten names has its definition in `femacs/src/xdisp.rs` and each of the three
+sentence: each of the ten names has its definition in `src/xdisp.rs` and each of the three
 macros has its `macro_rules!`, and `python3 tools/extract-abi.py --check` reports none of the
 thirteen ("missing") — so the boxes are ticked now and `tools/check-ledger-ticks.py` binds them
 (0 failures).  The `--check` line count is unaffected either way: those thirteen were never in it.
@@ -3461,7 +3461,7 @@ thirteen ("missing") — so the boxes are ticked now and `tools/check-ledger-tic
      E0423 rows (all `current_buffer`, all in `_root.rs`) go to zero, and `--check` gains no
      `does not mention current_buffer` row for this unit.  The same conversion leaves such a
      row in the units that only *store* the accessor (`--check emacs/src/buffer.c
-     femacs/src/buffer.rs` reads one, `init_buffer_once`); that residual is the conversion
+     src/buffer.rs` reads one, `init_buffer_once`); that residual is the conversion
      round's, not this unit's, and integrator item 14 names it.
 301. **The unit's own header comment is updated** (`src/xdisp.rs`'s "This lane is incremental"
      paragraph): it named the hole as the live text still missing, and it now names the
@@ -3537,7 +3537,7 @@ thirteen ("missing") — so the boxes are ticked now and `tools/check-ledger-tic
 11. **Decided 2026-10-06 (status 3.678): the row this item asks for is written** -
     `xdisp 0.13 live`, with the measured numbers (the evaluator's live baseline 29836 against the
     port's 33404, i.e. 12.0% longer) and the reason this table's header gives for a unit whose dead
-    region is recorded in its ledger.  `extract-abi --check emacs/src/xdisp.c femacs/src/xdisp.rs`
+    region is recorded in its ledger.  `extract-abi --check emacs/src/xdisp.c src/xdisp.rs`
     reads **OK** now; transcribing the `HAVE_WINDOW_SYSTEM` half (P-86 ①) would move the row again
     and remains the larger, separate job this item named.  The note as it stood:
     `docs/ports/line-drift-tolerance.tsv` (the integrator's file, not touched here): with the
@@ -3558,7 +3558,7 @@ thirteen ("missing") — so the boxes are ticked now and `tools/check-ledger-tic
     `set_current_buffer! (...)`, and the 169 `E0423` rows that the unconverted file leaves in
     this unit go to zero).  The conversion still leaves a `does not mention current_buffer`
     `--check` row in units that *store* the accessor without reading it in the same body
-    (`--check emacs/src/buffer.c femacs/src/buffer.rs` reads one, `init_buffer_once`); that row
+    (`--check emacs/src/buffer.c src/buffer.rs` reads one, `init_buffer_once`); that row
     class belongs to the conversion round - an appended `docs/ports/macro-body-notes.tsv` row
     per site, or the store spelling those units choose.  This unit gained no such row.
 13. The two identity strings of deviation 298 (`icon_title_name_format`'s
@@ -3805,7 +3805,7 @@ thirteen ("missing") — so the boxes are ticked now and `tools/check-ledger-tic
     unit's six `redisplay_window` sites (C 21479-21506) read C's own names again — deviation 185
     is superseded.
 
-59. `femacs/src/xdisp.rs`'s `clear_glyph_row` citation: **CLOSED** (d90609a/3.357 fixed it to
+59. `src/xdisp.rs`'s `clear_glyph_row` citation: **CLOSED** (d90609a/3.357 fixed it to
     dispextern.h 3916, `clear_glyph_row`'s real line; 3914 is `blank_row`'s).
 
 60. **Scaffold shape**: `try_window`'s declaration retires as its definition lands —
@@ -3823,7 +3823,7 @@ thirteen ("missing") — so the boxes are ticked now and `tools/check-ledger-tic
     `redisplay_window` row's class)`, and `row_containing_pos` / `true` / `xdisp.c 22491: C's
     tail `while (true)` is the port's `loop` (Rust's `while true` is not diverging), so the
     `true` token has no site (deviation 197)`.
-63. **CLOSED (3.385, the follow-up fix).**  `femacs/src/xdisp.rs` 18899 (C 19892,
+63. **CLOSED (3.385, the follow-up fix).**  `src/xdisp.rs` 18899 (C 19892,
     `try_cursor_movement`) read `(*(*w).current_matrix).nrows` — a type error that `eassert!`'s
     empty frozen arm kept out of `build-tu`'s sight.  It is now
     `(*((*w).current_matrix as *mut glyph_matrix)).nrows`, the unit's existing spelling for the
@@ -3938,14 +3938,14 @@ thirteen ("missing") — so the boxes are ticked now and `tools/check-ledger-tic
 
 80. **Four new use-site declarations** (deviation 276) belong in the mirror chain next:
     `include/keyboard.rs`'s extern block should carry `menu_separator_name_p` (keyboard.h 473),
-    `push_kboard` (keyboard.h 480) and `pop_kboard` (keyboard.h 481) — `femacs/src/keyboard.rs`
+    `push_kboard` (keyboard.h 480) and `pop_kboard` (keyboard.h 481) — `src/keyboard.rs`
     is the C unit that defines `push_kboard`/`pop_kboard`, and the mirror does not carry the
     prototypes today; `include/dispextern.rs` should carry `fill_up_frame_row_with_spaces`
     (dispextern.h 3929) next to `clear_glyph_matrix_rows`/`shift_glyph_matrix`, since
-    `femacs/src/dispnew.rs` defines it non-`static` with `#[unsafe(no_mangle)]`.  Until then the
+    `src/dispnew.rs` defines it non-`static` with `#[unsafe(no_mangle)]`.  Until then the
     unit declares all four itself and the mirror-dupes gate is at its 17-row ratchet.
 81. **The scaffold shrinks 11 -> 8** (measured with
-    `awk '/TEMPORARY SCAFFOLD/{f=1} f && /^  fn /{c++} END{print c}' femacs/src/xdisp.rs` = 8):
+    `awk '/TEMPORARY SCAFFOLD/{f=1} f && /^  fn /{c++} END{print c}' src/xdisp.rs` = 8):
     `display_menu_bar`, `display_mode_lines` and `display_mode_line` are retired with their
     definitions and none is added — the round's bodies reach `display_string`,
     `display_mode_element`, `display_count_lines`, `pint2str`, `produce_special_glyphs`,
@@ -3982,7 +3982,7 @@ thirteen ("missing") — so the boxes are ticked now and `tools/check-ledger-tic
     (`calc_pixel_width_or_height`, `pint2str`, `display_count_lines`, `display_mode_element`,
     `display_string`) and one (`pad_mode_line`) was added, with C's prototype in a `/// C:`
     line, because `display_string` calls it and its definition (C 33406) is eight hundred C
-    lines past this round's end.  `grep -c "TEMPORARY SCAFFOLD" femacs/src/xdisp.rs` is still
+    lines past this round's end.  `grep -c "TEMPORARY SCAFFOLD" src/xdisp.rs` is still
     1 (the block's own banner).
 87. **Text-vs-machine gap (items 69/72/75/79's class), this round's share.**  The round's own
     prose names the C ranges, the token counts and the readings quoted in the Evidence section;
@@ -3992,12 +3992,12 @@ thirteen ("missing") — so the boxes are ticked now and `tools/check-ledger-tic
 ### Gate evidence for this WIP state
 
 See the final report accompanying this ledger, which quotes every gate's last line.  Every
-reading below is from this round's own run, against `femacs/src/xdisp.rs` md5
+reading below is from this round's own run, against `src/xdisp.rs` md5
 `25a1231b6aa5e72965c02096b8c3ce02` (25,692 lines = HEAD's 24,435 plus the round's 1,257 net
 inserted lines) and the mirrors it includes: `include/dispextern.rs`, `include/window.rs`,
 `include/buffer.rs`, `include/lisp.rs` (the last three are other lanes' and mutable).  The
 `^- ` baseline is the same file's **HEAD revision** measured with this round's extractor
-(`git show HEAD:femacs/src/xdisp.rs` into a scratch path, 77 lines: 44 `missing function`,
+(`git show HEAD:src/xdisp.rs` into a scratch path, 77 lines: 44 `missing function`,
 5 `missing macro`, 6 `missing subr`, 13 `missing defsubr`, 2 `missing file-scope object`,
 3 `does not mention`, 3 `is not static`, 1 `line count drifted`).
 
@@ -4011,7 +4011,7 @@ inserted lines) and the mirrors it includes: `include/dispextern.rs`, `include/w
   three; the second's seven errors are in the next bullet).  **Cross-lane note**: the object
   above is the reading at the mirror state this round compiled against; `git status` shows
   `include/dispextern.rs` and `include/frame.rs` modified **after** that run by the mirror lane
-  (`femacs/src/include/dispextern.rs` is the header this unit includes at C 482 and carries the
+  (`src/include/dispextern.rs` is the header this unit includes at C 482 and carries the
   measured `struct it` the round reads), so a later re-run may read differently — the standing
   "the mirrors are other lanes' and mutable" caveat, and the reason the ledger pins the md5s it
   measured against;
@@ -4023,9 +4023,9 @@ inserted lines) and the mirrors it includes: `include/dispextern.rs`, `include/w
   mirror spelling (`E0609 indicate_empty_lines`), `glyph->pixel_width`'s `short` (`E0308`), the
   `XFIXNUM` store into `overlay_arrow_bitmap` (`E0308`) and the five `display_line` call sites
   the scaffold's `c_int` typing had given `!= 0` (`E0308`);
-* `python3 tools/extract-abi.py --check emacs/src/xdisp.c femacs/src/xdisp.rs` = `FAIL`; its last
+* `python3 tools/extract-abi.py --check emacs/src/xdisp.c src/xdisp.rs` = `FAIL`; its last
   two lines are `- line count drifted 35.5%: C 39805 vs Rust 25692` and
-  `FAIL emacs/src/xdisp.c -> femacs/src/xdisp.rs`.  The `^- ` count is **77 -> 77**: the round
+  `FAIL emacs/src/xdisp.c -> src/xdisp.rs`.  The `^- ` count is **77 -> 77**: the round
   retires `missing function display_line` (44 -> 43) and `missing macro RECORD_MAX_MIN_POS`
   (5 -> 4) and adds the two `does not mention` rows the Progress section names
   (`does not mention` 3 -> 5, of which one is the `macro … does not mention false` family).
@@ -4034,7 +4034,7 @@ inserted lines) and the mirrors it includes: `include/dispextern.rs`, `include/w
   `macro-body-notes.tsv` rows appended the `does not mention` set returns to 3 and the reading
   drops to **75**;
 * `python3 tools/check-citations.py` = `675 file(s) scanned, 0 drift, 0 range, 499 external,
-  33 allowed, 0 stale`; **`femacs/src/xdisp.rs` has no finding** (this round adds one `/// C:`
+  33 allowed, 0 stale`; **`src/xdisp.rs` has no finding** (this round adds one `/// C:`
   line for the new use-site declaration);
 * `python3 tools/check-declarations.py` = `13 declaration sites (0 forbidden, 13 allowed
   literals), 0 failures`; its final line is `walked past 0 file(s) of an unscanned kind: none
@@ -4044,7 +4044,7 @@ inserted lines) and the mirrors it includes: `include/dispextern.rs`, `include/w
   failure(s)`; both failures name `docs/ports/android.md` (`4 reference line(s) with text are not
   in any range (141, 386, 464, 669)` and `7 reference line(s) with text are not in any range (21,
   141, 272, 309, 313, 334, 340)`), which is another lane's in-flight ledger — `git status` shows
-  `docs/ports/android.md`, `femacs/src/android.rs` and `femacs/src/image.rs` modified but
+  `docs/ports/android.md`, `src/android.rs` and `src/image.rs` modified but
   uncommitted, and this unit touches none of them.  This unit is not a P-86 file; the gate is run
   because the brief's reading list names it;
 * `python3 tools/check-ledger-ticks.py` = `235 ledger(s) bound (a function tick to compare), 0
@@ -4066,7 +4066,7 @@ nightly-2026-10-01 rustc --edition 2024 --crate-type=lib -C panic=abort -C codeg
 the same six warnings.  It matters here because `build-tu` does **not** compile the
 `#[cfg (enable_checking)]` arm (`xtask`'s single-unit `build_tu` runs one rustc pass), so this
 round's five `eassert!`s (deviation 244) were checked only by this probe.  The probe is run from
-`femacs/` with `rustup run nightly-2026-10-01`, over the materialised `_root.rs` `build-tu` has
+`` with `rustup run nightly-2026-10-01`, over the materialised `_root.rs` `build-tu` has
 just written and with the same flags `tools/check-all-units.sh`'s checking leg uses (with
 `--emit=metadata` instead of `--emit=obj`, into a scratch directory, so no `.rlib` is left
 behind); a bare `rustc` from the repository root falls through to stable and reports spurious
@@ -4077,7 +4077,7 @@ family — the round's only type-level work is the `it_bits!`/`it_bits3_*` acces
 already-measured 96-bit `bits3` run (`struct it`'s byte 2604, whose `const _` assertions are
 unchanged) — and the task's reading list is `build-tu` plus the text gates above.
 
-**This round (C 26937-27028).**  `femacs/src/xdisp.rs` md5 `7d0539d6438f7806f23a006d2c994cc4`
+**This round (C 26937-27028).**  `src/xdisp.rs` md5 `7d0539d6438f7806f23a006d2c994cc4`
 (25,779 lines; HEAD's revision is 25,692 lines, md5 `25a1231b6aa5e72965c02096b8c3ce02`).
 
 * `cd femacs && CARGO_TARGET_DIR=/tmp/xdisp32 cargo run -q -p xtask -- build-tu src/xdisp.c` =
@@ -4086,7 +4086,7 @@ unchanged) — and the task's reading list is `build-tu` plus the text gates abo
   `2a2e940f0960a293ff33b8c234787b7b`), with the same six warnings as every previous round and
   none added.  `nm build/femacs/xdisp.o` reads `T _Fcurrent_bidi_paragraph_direction` and
   `s __RNvCs3P4vcM1aRw9_5xdisp33Scurrent_bidi_paragraph_direction`.
-* `python3 tools/extract-abi.py --check emacs/src/xdisp.c femacs/src/xdisp.rs` = **71 `- ` lines**
+* `python3 tools/extract-abi.py --check emacs/src/xdisp.c src/xdisp.rs` = **71 `- ` lines**
   (the round's HEAD reading is 72 with this extractor: it retires `missing subr
   Fcurrent_bidi_paragraph_direction` and `missing defsubr (&raw const
   Scurrent_bidi_paragraph_direction)`, and adds `subr Fcurrent_bidi_paragraph_direction does not
@@ -4102,17 +4102,17 @@ readings above: `build-tu` again exit 0 (one invocation, the same six warnings),
 **2,684,688 bytes**, md5 `7aaf0b43ac76352217bee6bbdd799c9e`; `nm` reads
 `T _Fbidi_find_overridden_directionality` and its `Sbidi_find_overridden_directionality` static;
 `extract-abi --check` **70 `- ` lines** (the round's HEAD baseline is 72) with no `does not
-mention` line and `line count drifted 34.9%`; `femacs/src/xdisp.rs` is now 25,909 lines.
+mention` line and `line count drifted 34.9%`; `src/xdisp.rs` is now 25,909 lines.
 
 **One correction after the commit (3.422).**  The first version declared `validate_subarray`
-locally and `check-mirror-dupes` reported `FAIL femacs/src/xdisp.rs: validate_subarray is already
-declared by femacs/src/include/lisp.rs (in the include graph)` - the lisp.rs mirror carried it all
+locally and `check-mirror-dupes` reported `FAIL src/xdisp.rs: validate_subarray is already
+declared by src/include/lisp.rs (in the include graph)` - the lisp.rs mirror carried it all
 along (3719-3721), so the local copy is gone and a comment records why; the gate is back to
 `19 duplicate declaration(s), 19 ratchet row(s), 0 failure(s)`.  The re-build after that is exit 0
 with the same six warnings and object md5 `e8f95d661dc6f5033c3543544f3bbe8b`; `extract-abi --check`
 stays at 70 with no `does not mention`.
 
-**This round (C 27181-27636).**  `femacs/src/xdisp.rs` md5 `e8d54bdc37c401f09759e8e6932b1cc9`
+**This round (C 27181-27636).**  `src/xdisp.rs` md5 `e8d54bdc37c401f09759e8e6932b1cc9`
 (26,406 lines; the round's HEAD revision is 25,908 lines, md5 `70de58ef2241dd900f9971e2cb86978d`).
 **Cross-lane note**: while this round was in flight another lane rewrote the unit's own
 `const _: () = assert! (…)` layout assertions to `core::assert! (…)` (the eight `struct`s at lines
@@ -4138,7 +4138,7 @@ assertions are compile-time only and comments are not code).
   static).  No new undefined symbol: every name the body reaches was already defined in the
   unit, in the include graph, or carried by one of the eleven `TEMPORARY SCAFFOLD` entries the
   round leaves untouched.
-* `python3 tools/extract-abi.py --check emacs/src/xdisp.c femacs/src/xdisp.rs` = **69 `- `
+* `python3 tools/extract-abi.py --check emacs/src/xdisp.c src/xdisp.rs` = **69 `- `
   lines** (the HEAD revision measured with this extractor is **70**): it retires `missing subr
   Fmove_point_visually` and `missing macro ROW_GLYPH_NEWLINE_P` and adds the round's one
   `does not mention` row, `subr Fmove_point_visually does not mention goto` (deviation 265;
@@ -4170,12 +4170,12 @@ assertions are compile-time only and comments are not code).
 
 ## Evidence (this round: C 32971-39805; all commands from `cwd=/Users/liu/projects/src/github.com/liuchong/femacs`)
 
-**Before the round.**  The working tree's `femacs/src/xdisp.rs` was `HEAD`'s
-(`git show HEAD:femacs/src/xdisp.rs`, 29,626 lines, md5 `9c171c3f48f6bf7107bbfe61a2c4fbb6`).
+**Before the round.**  The working tree's `src/xdisp.rs` was `HEAD`'s
+(`git show HEAD:src/xdisp.rs`, 29,626 lines, md5 `9c171c3f48f6bf7107bbfe61a2c4fbb6`).
 
-* `python3 tools/extract-abi.py --check emacs/src/xdisp.c femacs/src/xdisp.rs` (saved to
+* `python3 tools/extract-abi.py --check emacs/src/xdisp.c src/xdisp.rs` (saved to
   `/tmp`): **37** `- ` lines, last line `- line count drifted 25.6%: C 39805 vs Rust 29626`,
-  `FAIL emacs/src/xdisp.c -> femacs/src/xdisp.rs`.  The row classes were 22 `missing function`
+  `FAIL emacs/src/xdisp.c -> src/xdisp.rs`.  The row classes were 22 `missing function`
   (this slice's own 22 - the 20 functions plus `syms_of_xdisp` and `init_xdisp`), 13
   `missing defsubr` and the two `not static` rows.
 * `python3 tools/check-cond-eval.py src/xdisp.c`: `196 conditions, 0 unknown, 0 disagreements
@@ -4183,12 +4183,12 @@ assertions are compile-time only and comments are not code).
 * The round's dead ranges (3,682 C lines of the 6,835 in C 32971-39805) were measured with the
   frozen table before transcribing; C's live text for the whole file is **29,836** lines and
   the tail's live text is **3,153**.
-* `git status --short` = ` M femacs/src/xwidget.rs` (that lane's in-flight file); no other
+* `git status --short` = ` M src/xwidget.rs` (that lane's in-flight file); no other
   unit's file was touched, and no other lane's file was edited.
 
 **After the round.**
 
-* `python3 tools/extract-abi.py --check emacs/src/xdisp.c femacs/src/xdisp.rs`: **2** `- `
+* `python3 tools/extract-abi.py --check emacs/src/xdisp.c src/xdisp.rs`: **2** `- `
   lines (`37 -> 2`): `missing function tty_handle_tab_bar_click` (the C 15616-16624 hole, not
   this slice's) and the drift row `- line count drifted 16.3%: C 39805 vs Rust 33330`.  The 35
   retired rows are the 22 `missing function` rows, the 13 `missing defsubr` rows and the two
@@ -4196,7 +4196,7 @@ assertions are compile-time only and comments are not code).
   `does not mention` rows the round's bodies would leave (`note_line_or_margin_highlight`
   `uninit`; `note_mouse_highlight` `uninit,goto`; `syms_of_xdisp` `doc`) are retired by the
   three `macro-body-notes.tsv` rows appended this round (the table was saved to `/tmp` first).
-* `femacs/src/xdisp.rs`: 33,330 lines, md5 `7719c0dbe8a3cb6e07879b359bafe56b`
+* `src/xdisp.rs`: 33,330 lines, md5 `7719c0dbe8a3cb6e07879b359bafe56b`
   (`29,626 -> 33,330`, +3,704).
 * `docs/ports/xdisp.md`: **1** unchecked box (`24 -> 1`: the 23 boxes ticked are this slice's
   20 functions, `init_xdisp`, and the three subrs `set-buffer-redisplay`, `line-pixel-height`
@@ -4279,20 +4279,20 @@ brief's two budgeted commands, disclosed here) supplied the full 57-error list f
 
 ## Evidence (this round: C 28463-30710; all commands from `cwd=/Users/liu/projects/src/github.com/liuchong/femacs`)
 
-**Before the round.**  The working tree's `femacs/src/xdisp.rs` was `HEAD`'s
-(`git show HEAD:femacs/src/xdisp.rs`, 27,160 lines, md5 `5486db2473f4b33139a244cadeab2d2a`).
+**Before the round.**  The working tree's `src/xdisp.rs` was `HEAD`'s
+(`git show HEAD:src/xdisp.rs`, 27,160 lines, md5 `5486db2473f4b33139a244cadeab2d2a`).
 
-* `python3 tools/extract-abi.py --check emacs/src/xdisp.c femacs/src/xdisp.rs` (saved to
+* `python3 tools/extract-abi.py --check emacs/src/xdisp.c src/xdisp.rs` (saved to
   `/tmp`): **58** `- ` lines, last line `- line count drifted 31.8%: C 39805 vs Rust 27160`,
-  `FAIL emacs/src/xdisp.c -> femacs/src/xdisp.rs`.
+  `FAIL emacs/src/xdisp.c -> src/xdisp.rs`.
 * `python3 tools/check-cond-eval.py src/xdisp.c`: `196 conditions, 0 unknown, 0 disagreements
   [VERIFIED]` - the ledger's `#if` verdicts stand, so the round transcribed the live arms only.
-* `git status --short` = ` M docs/ports/macro-body-notes.tsv`, ` M femacs/src/xterm.rs` (that
+* `git status --short` = ` M docs/ports/macro-body-notes.tsv`, ` M src/xterm.rs` (that
   lane's in-flight file); no other unit's file was touched.
 
 **After the round.**
 
-* `python3 tools/extract-abi.py --check emacs/src/xdisp.c femacs/src/xdisp.rs`: **40** `- `
+* `python3 tools/extract-abi.py --check emacs/src/xdisp.c src/xdisp.rs`: **40** `- `
   lines (`58 -> 40`).  The **21** retired rows are the thirteen `missing function` rows of this
   round's functions, the two `missing subr` rows (`Fformat_mode_line`, `Finvisible_p`), the
   three `missing macro` rows (`OK_PIXELS`, `OK_ALIGN_TO`, `LNUM_ONCE`), the two `missing
@@ -4307,14 +4307,14 @@ brief's two budgeted commands, disclosed here) supplied the full 57-error list f
   C 15616 hole are not transcribed, so the 5% tolerance cannot close yet).
 
 **2026-10-18 更正（4.703）**：上面那句"the C 15616 hole are not transcribed"与"C 30717-39805 … 未转写"**已过时一半** ✓：
-① **C 15616 的洞已补** ✓ —— `tty_handle_tab_bar_click`（C 15616-15654）与 `tty_get_tab_bar_item` 都在 `femacs/src/xdisp.rs`（15807 / `tty_handle_tab_bar_click_decl` 模块）✓，
-`python3 tools/extract-abi.py --check emacs/src/xdisp.c femacs/src/xdisp.rs` ⇒ **OK** ✓。
+① **C 15616 的洞已补** ✓ —— `tty_handle_tab_bar_click`（C 15616-15654）与 `tty_get_tab_bar_item` 都在 `src/xdisp.rs`（15807 / `tty_handle_tab_bar_click_decl` 模块）✓，
+`python3 tools/extract-abi.py --check emacs/src/xdisp.c src/xdisp.rs` ⇒ **OK** ✓。
 ② **C 30717-39805 仍有真缺口** ✓，且**已量清**：该区间的 95 个函数定义名里，**62 个在 `xdisp.rs` 中不存在** ✓ —— 全部是 `#ifdef HAVE_WINDOW_SYSTEM` / glyph-string / GUI 一族
 （`append_glyph_string`、`fill_glyph_string`、`expose_window_tree`、`gui_*`、`show_hourglass`、`update_window_cursor` …）✓，即**冻结配置下不编译的死臂** ✓。
 `--check` 之所以 OK ✓，是因为它比的是**活文本**（P-86 的容差）✓；行数比的 5% 容差因此收不口 ✓（C 39,805 / Rust 33,411，漂移 16.1% ✓）。
 ⇒ **DoD-1 的口径差别正落在这里** ✓：按 A/C 这些死臂记 `text-only` 即算 ✓；按 B（每行都要转写）则**必须把这一族补上** ✓ —— 与 `comp.c` 的做法相同 ✓。
 
-* `femacs/src/xdisp.rs`: 29,626 lines, md5 `9c171c3f48f6bf7107bbfe61a2c4fbb6`
+* `src/xdisp.rs`: 29,626 lines, md5 `9c171c3f48f6bf7107bbfe61a2c4fbb6`
   (`27,160 -> 29,626`, +2,466).
 * `docs/ports/xdisp.md`: 24 unchecked boxes (`44 -> 24`: 20 ticked for this round's own
   definitions - thirteen functions, two subrs, three macros, two file-scope objects; the
@@ -4388,18 +4388,18 @@ the intervening `probe` run compiled the same unit to an rlib with no error.
 
 ## Evidence (this round: C 15616-16624, the unit's last hole; all commands from `cwd=/Users/liu/projects/src/github.com/liuchong/femacs`)
 
-**Before the round.**  `femacs/src/xdisp.rs` was `HEAD`'s at this lane's start (33,330 lines,
+**Before the round.**  `src/xdisp.rs` was `HEAD`'s at this lane's start (33,330 lines,
 md5 `7719c0dbe8a3cb6e07879b359bafe56b`), and `extract-abi.py --check emacs/src/xdisp.c
-femacs/src/xdisp.rs` read **2** `- ` rows: `- missing function tty_handle_tab_bar_click` and
+src/xdisp.rs` read **2** `- ` rows: `- missing function tty_handle_tab_bar_click` and
 `- line count drifted 16.3%: C 39805 vs Rust 33330`.
 
 **After the round.**
 
-* `python3 tools/extract-abi.py --check emacs/src/xdisp.c femacs/src/xdisp.rs`: **1** `- ` row
+* `python3 tools/extract-abi.py --check emacs/src/xdisp.c src/xdisp.rs`: **1** `- ` row
   (`2 -> 1`), `- line count drifted 16.1%: C 39805 vs Rust 33404`; the `missing function
   tty_handle_tab_bar_click` row is the one that retires.  The drift row is item 11's (the
   tolerance table's basis) and stays `FAIL`.
-* `femacs/src/xdisp.rs`: **33,404** lines, md5 `2df42827a4f2fdd23bc5fcbc7d0d1fcf`
+* `src/xdisp.rs`: **33,404** lines, md5 `2df42827a4f2fdd23bc5fcbc7d0d1fcf`
   (33,330 -> 33,404; +74: the 72-line hole block, the header update, and the
   167-site accessor sweep with no net line change).
 * `cd femacs && CARGO_TARGET_DIR=/tmp/xtb-lane cargo run -q -p xtask -- build-tu src/xdisp.c`

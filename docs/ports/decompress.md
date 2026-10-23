@@ -8,7 +8,7 @@
 > records a **C line-range table** instead of ticked boxes, because `extract-abi.py`'s checklist
 > for it is empty (P-73's live-line filter; the file *is* in
 > `docs/baseline/config/cond-eval-verified.txt` 261) and the checkbox sections are therefore not
-> coverage evidence.  The port is `femacs/src/decompress.rs` (627 lines), the file gate is
+> coverage evidence.  The port is `src/decompress.rs` (627 lines), the file gate is
 > `feature = "have_zlib"`, and the frozen `build-tu` reading below still has to be the empty
 > object it was - the transcription must not leak a single line into this configuration.
 
@@ -76,7 +76,7 @@ before reaching its own body.
 **③ The sub-gate flip, and why it is P-51's class.**
 `… --cfg 'feature="have_zlib"' --cfg 'feature="have_native_comp"'` → **exit 1, 1 error**:
 `error[E0080]: evaluation panicked: assertion failed: !cfg!(feature = "have_native_comp") ||
-HAVE_NATIVE_COMP` at `femacs/src/include/lisp.rs` 2853 - the `const _: () = assert! (…)` P-51
+HAVE_NATIVE_COMP` at `src/include/lisp.rs` 2853 - the `const _: () = assert! (…)` P-51
 requires to bind a carried feature to its configuration constant.  A bare `--cfg` therefore
 **cannot** compile C 68-167's arm, by design; its compile reading belongs to `xtask dead-arms`
 (which the task's budget excludes), so `md5_gz_stream`, `accumulate_and_process_md5` and
@@ -145,7 +145,7 @@ line(s); 95 ratchet row(s), 0 new, 3 stale`, one of the stale rows being
 `src/decompress.c: no longer under the threshold` (this unit's row retires; the others are two
 other lanes' rows).  `--write-pending` is the integrator's step. —
 `python3 tools/check-citations.py` → `675 file(s) scanned, 1 drift, 0 range, 456 external, 33
-allowed, 0 stale`; the one drift is `femacs/src/androidselect.rs:97` (another lane's file), **0
+allowed, 0 stale`; the one drift is `src/androidselect.rs:97` (another lane's file), **0
 of the findings name this unit**, and the external count rose from 350 to 456 because the zlib.h
 and zconf.h citations name a header the tree does not carry. — `python3
 tools/check-declarations.py` → `13 declaration sites (0 forbidden, 13 allowed literals), 0
@@ -161,7 +161,7 @@ conditions, 0 unknown, 0 disagreements [VERIFIED]`: the guard, `HAVE_ZLIB`, `WIN
 which is why the Gate mapping above and the port's `#[cfg]`s agree item for item.
 
 **⑦ `extract-abi.py --check` FAILs, and the six lines are P-86 ⑩'s owed baseline row.**
-`python3 tools/extract-abi.py --check emacs/src/decompress.c femacs/src/decompress.rs` → **FAIL**,
+`python3 tools/extract-abi.py --check emacs/src/decompress.c src/decompress.rs` → **FAIL**,
 with exactly these six lines and no others:
 ```
 - DEFUN! Fzlib_available_p: the reference file has no such DEFUN
@@ -188,7 +188,7 @@ file's whole body is dead, compare the port against the file's text, not the liv
 - **`DEF_DLL_FN`/`LOAD_DLL_FN` are written in long form** (C 35-39, C 51-53): C pastes
   `W32_PFN_##func`/`fn_##func` from one identifier and takes the parameter list as `__VA_ARGS__`,
   which Rust cannot express; `emacs/src/w32common.h` 77-97 is a `kind=deferred` row in
-  `docs/ports/excluded-macros.txt` and `femacs/src/include/w32common.rs` keeps the C bodies as a
+  `docs/ports/excluded-macros.txt` and `src/include/w32common.rs` keeps the C bodies as a
   comment (P-22 says the shape is the first consuming target's decision).  This unit is that
   consumer: the two generated names are macro parameters, the parameter list is a `ty` fragment,
   and the loader's cast `(W32_PFN_##func) get_proc_addr (…)` is a `transmute` (C's cast between two
@@ -237,6 +237,6 @@ file's whole body is dead, compare the port against the file's text, not the liv
 2. `tools/check-port-lines.py --write-pending`: the `src/decompress.c` row is stale (retired).
 3. `docs/ports/excluded-macros.txt`: the `DEF_DLL_FN` / `LOAD_DLL_FN` rows are `kind=deferred` and
    stay so (their first consumer is this unit, and the shape is recorded here), but the rows'
-   reason text can now point at `femacs/src/decompress.rs` as the first consumer's shape.
+   reason text can now point at `src/decompress.rs` as the first consumer's shape.
 4. `docs/baseline/feature-coverage.tsv` (generated): gains the `have_zlib` row.
 5. `docs/port-map.md` (generated): the target's line count for `src/decompress.c` is stale (12).

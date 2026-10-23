@@ -32,8 +32,8 @@ import sys
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parent.parent
-LISP_MIRROR = REPO / "femacs" / "src" / "include" / "lisp.rs"
-BUFFER_UNIT = REPO / "femacs" / "src" / "buffer.rs"
+LISP_MIRROR = REPO / "src" / "include" / "lisp.rs"
+BUFFER_UNIT = REPO / "src" / "buffer.rs"
 SITES = [(LISP_MIRROR, name) for name in
          ("DEFVAR_LISP", "DEFVAR_LISP_NOPRO", "DEFVAR_INT", "DEFVAR_BOOL", "DEFVAR_KBOARD")]
 SITES.append((BUFFER_UNIT, "DEFVAR_PER_BUFFER"))

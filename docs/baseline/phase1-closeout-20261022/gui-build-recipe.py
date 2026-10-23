@@ -4,7 +4,7 @@ root=Path.cwd();work=root/'build/macos-gui-20261022';logs=work/'logs';logs.mkdir
 assert not work.resolve().is_relative_to((root/'emacs').resolve())
 report={'baseline':subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip(),'scope':'Build existing Swift GUI units, activate Rust NS path in isolation; no replacement UI, no original C objects','swift':[]}
 def save(): (work/'result.json').write_text(json.dumps(report,indent=2)+'\n')
-for src in sorted((root/'femacs/platform/macos').glob('*.swift')):
+for src in sorted((root/'platform/macos').glob('*.swift')):
  log=logs/(src.stem+'.log');out=work/(src.stem+'.o');t=time.monotonic()
  cmd=['xcrun','swiftc','-parse-as-library','-module-name','femacs_'+src.stem,'-c',str(src),'-o',str(out)]
  with log.open('w') as f: result=subprocess.run(cmd,cwd=root,stdout=f,stderr=subprocess.STDOUT)
@@ -15,7 +15,7 @@ for src in sorted((root/'femacs/platform/macos').glob('*.swift')):
 (work/'ns-flags.json').write_text(json.dumps({'features':{'HAVE_NS':'1','HAVE_WINDOW_SYSTEM':'1','NS_IMPL_COCOA':'1'}},indent=2)+'\n')
 env={**os.environ,'FEMACS_CONFIG':'../../../build/macos-gui-20261022/ns-flags','FEMACS_BUILD_ROOT':str(work/'rust'),'CARGO_TARGET_DIR':str(work/'cargo')}
 t=time.monotonic();log=logs/'rust-ns.log'
-with log.open('w') as f: result=subprocess.run(['cargo','run','-q','-p','xtask','--','build-tu','src/frame.c'],cwd=root/'femacs',env=env,stdout=f,stderr=subprocess.STDOUT)
+with log.open('w') as f: result=subprocess.run(['cargo','run','-q','-p','xtask','--','build-tu','src/frame.c'],cwd=root,env=env,stdout=f,stderr=subprocess.STDOUT)
 text=log.read_text(errors='replace');report['rust_ns']={'exit_code':result.returncode,'seconds':round(time.monotonic()-t,3),'errors':re.findall(r'error(?:\[[^\]]+\])?:[^\n]+',text)[:25]};save();print('rust_ns',result.returncode,report['rust_ns']['errors'][:4],flush=True)
 # Report currently unresolved non-SDK references without pretending terminal objects are a GUI core.
 objects=list(work.glob('*.o'));existing=list((root/'build/femacs').glob('*.o'))

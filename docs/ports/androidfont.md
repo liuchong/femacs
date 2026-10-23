@@ -5,7 +5,7 @@
 > `docs/baseline/frozen-build-sources.txt` lists no `androidfont.o` for this target, so
 > `extract-abi.py`'s checklist for the file is empty and its checkbox sections cannot be coverage
 > evidence.  What follows is P-86 ②'s substitute: the **C line-range table**, the `## Evidence`
-> readings, and the `## Deviations`.  Port: `femacs/src/androidfont.rs` (1,391 lines), both arms of
+> readings, and the `## Deviations`.  Port: `src/androidfont.rs` (1,391 lines), both arms of
 > every `#if` carried.  This ledger replaces the previous revision's conclusion ("the file is not in
 > the frozen build, so the port is the empty unit plus a note"): P-86 ① rules that a three-line
 > header comment is not started, not done.  The old note's measurements are still true and are
@@ -163,13 +163,13 @@ CARGO_TARGET_DIR=/tmp/afont-p86/cargo cargo run -q -p xtask -- probe src/android
   The ②d harness compiles are direct `rustc` invocations, not `xtask probe`.
 
 **③ Inventory.** `python3 tools/extract-abi.py --check emacs/src/androidfont.c
-femacs/src/androidfont.rs` →
+src/androidfont.rs` →
 
 ```
   (4 C macros have several definitions (configuration branches), body not compared:
    DO_CARDINAL_FIELD, DO_SYMBOL_FIELD, FIND_FIELD, FIND_METHOD)
 - line count drifted 26.2%: C 1102 vs Rust 1391
-FAIL emacs/src/androidfont.c -> femacs/src/androidfont.rs
+FAIL emacs/src/androidfont.c -> src/androidfont.rs
 ```
 
 One `- ` line and no other: the file's checklist is empty (P-86 ⑩), so what `--check` compares here
@@ -198,7 +198,7 @@ python3 tools/check-carried.py
 ```
 
 These are repo-wide readings taken in a worktree that also carries other lanes' in-flight edits
-(`femacs/src/{frame,xdisp,w32fns}.rs`, their ledgers and `docs/port-map.md` are dirty in it), so the
+(`src/{frame,xdisp,w32fns}.rs`, their ledgers and `docs/port-map.md` are dirty in it), so the
 library-wide counts (`91 file(s)`, `675 file(s)`, the ratchet totals) move as those land - a later
 run of the same checks already reads `90 file(s) …, 92 ratchet row(s), 0 new, 2 stale` with
 `src/w32fns.c` stale beside this file's row.  The rows this unit owns are the `src/androidfont.c`

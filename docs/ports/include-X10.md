@@ -38,4 +38,4 @@ includes this header and no probe compiles it; the text gate is the whole accept
    empty shapes of docs/status.md 3.31).
 
 Evidence: `python3 tools/extract-abi.py --check emacs/oldXMenu/X10.h
-femacs/oldXMenu/include/X10.rs` -> `OK` (6 ledger item(s)).
+oldXMenu/include/X10.rs` -> `OK` (6 ledger item(s)).

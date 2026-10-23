@@ -167,11 +167,11 @@ def main() -> int:
     if args.selftest:
         return selftest()
     if args.units:
-        pairs = [(REFERENCE / "src" / (u + ".c"), REPO / "femacs/src" / (u + ".rs")) for u in args.units]
+        pairs = [(REFERENCE / "src" / (u + ".c"), REPO / "src" / (u + ".rs")) for u in args.units]
     else:
-        pairs = [(c, REPO / "femacs/src" / (c.stem + ".rs"))
+        pairs = [(c, REPO / "src" / (c.stem + ".rs"))
                  for c in sorted((REFERENCE / "src").glob("*.c"))
-                 if (REPO / "femacs/src" / (c.stem + ".rs")).is_file()]
+                 if (REPO / "src" / (c.stem + ".rs")).is_file()]
     allow = read_allowlist()
     used: set[tuple[str, int]] = set()
     total_c = total_checked = 0

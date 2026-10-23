@@ -1,6 +1,6 @@
 # emacs/lib-src/ebrowse.c (3926 lines)
 
-# STATUS (read this first).  The port is complete: `femacs/lib-src/ebrowse.rs` carries every
+# STATUS (read this first).  The port is complete: `lib-src/ebrowse.rs` carries every
 # live statement of the C file (all 66 functions, all 37 macros, the six structures and the 41
 # file-scope objects), `xtask build-tu lib-src/ebrowse.c` ends in `built`, and the unit has been
 # run against the reference program - the differential run in "## Evidence" below compares the
@@ -314,7 +314,7 @@ inlined `goto` targets of decision 3.  This is the tolerance row owed below; ema
 ## Evidence
 
 * `xtask build-tu lib-src/ebrowse.c` -> `built lib-src/ebrowse.rs -> ../build/femacs/ebrowse.o`.
-* `python3 tools/extract-abi.py --check emacs/lib-src/ebrowse.c femacs/lib-src/ebrowse.rs` ->
+* `python3 tools/extract-abi.py --check emacs/lib-src/ebrowse.c lib-src/ebrowse.rs` ->
   `FAIL`, with the 15 problem lines quoted under "## Owed shared rows" and nothing else: no
   missing function, macro, type, field, constant or file-scope object; no docstring or subr
   difference; no stub.  The same command prints `OK` once those rows exist.
@@ -330,7 +330,7 @@ inlined `goto` targets of decision 3.  This is the tolerance row owed below; ema
   uses.
 * Behavioural differential evidence, which the sibling lib-src units do not have.  An ad-hoc
   driver in `/tmp` compiles the materialised unit as a library (renaming C's `main` in a *copy*,
-  `femacs/lib-src/ebrowse.rs` is untouched) and links it with the frozen `libgnu.a`; the
+  `lib-src/ebrowse.rs` is untouched) and links it with the frozen `libgnu.a`; the
   resulting binary and the reference `ebrowse` built from `emacs/lib-src/ebrowse.c` were run
   side by side, comparing BROWSE output, stdout, stderr and exit status:
   * every `.c`/`.h`/`.cc`/`.hpp`/`.hh` file in the reference tree (661 files) with `-x`;
@@ -400,7 +400,7 @@ tokens inside them count as code).
   under `## Owed shared rows` (the `switch`/`case`/`default`/`goto`/`FALLTHROUGH` families and
   `version`'s two folded `<config.h>` names), and `docs/ports/line-drift-tolerance.tsv` the
   measured 0.13.  `python3 tools/extract-abi.py --check emacs/lib-src/ebrowse.c
-  femacs/lib-src/ebrowse.rs` now prints `OK` and the 150 boxes above are checked against that
+  lib-src/ebrowse.rs` now prints `OK` and the 150 boxes above are checked against that
   reading.
 - **Behavioural evidence (the lane's, reproduced with the same binaries)**: the materialised unit
   was compiled in `/tmp` (renamed `main`) and run beside the reference `ebrowse` built from
@@ -417,6 +417,6 @@ tokens inside them count as code).
 
 C's banner tells the user the program is distributed under the same terms as the reference
 product.  That sentence is a statement about *this* program, so it now states this repository's
-own terms (`GPL-3.0-or-later`, the value `femacs/Cargo.toml` carries) and drops the name
+own terms (`GPL-3.0-or-later`, the value `Cargo.toml` carries) and drops the name
 (PORTING.md 0.1-19's name half).  The version number, `COPYRIGHT` and the rest of the literal are
 C's, byte for byte.

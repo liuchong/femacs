@@ -43,7 +43,7 @@
 
 ## Decisions
 
-`emacs/lib/dirent.in.h` @ `fd7afced403`; port `femacs/lib/include/dirent.in.rs` (200 lines: a mirror that
+`emacs/lib/dirent.in.h` @ `fd7afced403`; port `lib/include/dirent.in.rs` (200 lines: a mirror that
 `include!`s `dirent.rs` - the system half - and `attribute.rs`).
 
 **The template.**  A gnulib template: `@GUARD_PREFIX@`, `@PRAGMA_SYSTEM_HEADER@`,
@@ -87,16 +87,16 @@ define no name this header owns (their arms are `_GL_FUNCDECL_SYS` declarations 
 `_GL_DIRENT_H`.
 
 **The frozen record of `struct dirent` is elsewhere, and that is recorded, not hidden.**: the
-generated header's live `struct dirent` is the system's (1048 bytes: `femacs/src/dired.rs` 79
+generated header's live `struct dirent` is the system's (1048 bytes: `src/dired.rs` 79
 measures and declares it at its use site); this mirror carries only the template's own
 fallback record, gated.  A later convergence can move `src/dired.rs`'s copy into `dirent.rs`.
 
-**The consumer.**  `femacs/lib/fdopendir.rs` 15 reads this mirror now (it named
+**The consumer.**  `lib/fdopendir.rs` 15 reads this mirror now (it named
 `include/dirent.rs` before; its unit check stays `OK` and its build is the Evidence).  The
 other four units that include the system half are the integrator's sweep:
-`femacs/lib/dirfd.rs`, `femacs/lib/file-has-acl.rs`, `femacs/src/dired.rs` - whose own
+`lib/dirfd.rs`, `lib/file-has-acl.rs`, `src/dired.rs` - whose own
 `DT_UNKNOWN`/`DT_DIR`/`DT_LNK` and `struct dirent` (lines 74-79 and 96-98) become `E0428`s the
-moment it switches - and `femacs/src/include/android.rs`, which is another lane's in-flight
+moment it switches - and `src/include/android.rs`, which is another lane's in-flight
 file.
 
 **The read caught a citation defect** (fixed in `dirent.rs`, this batch): its `IFTODT`
@@ -177,25 +177,25 @@ $ grep -n 'define IFTODT\|define IFTODT' build/emacs-ref/lib/dirent.h
 963:# define DTTOIF(dirtype) \
 
 # the negative control: the check compares values and tokens, not just name presence
-$ mkdir -p /tmp/gt-neg && cp femacs/lib/include/dirent.rs femacs/lib/include/attribute.rs \
-      femacs/lib/include/dirent.in.rs /tmp/gt-neg/
+$ mkdir -p /tmp/gt-neg && cp lib/include/dirent.rs lib/include/attribute.rs \
+      lib/include/dirent.in.rs /tmp/gt-neg/
 $ sed 's/^pub const DT_DIR: c_int = 4;/pub const DT_DIR: c_int = 5;/' \
-      femacs/lib/include/dirent.in.rs > /tmp/gt-neg/dirent.in.rs
+      lib/include/dirent.in.rs > /tmp/gt-neg/dirent.in.rs
 $ python3 tools/extract-abi.py --check emacs/lib/dirent.in.h /tmp/gt-neg/dirent.in.rs
 - macro DT_DIR does not mention 4 (C body: 4)
 - constant DT_DIR: C 4 vs Rust 5
 FAIL emacs/lib/dirent.in.h -> /tmp/gt-neg/dirent.in.rs
 $ sed 's/if S_ISREG (\$mode) { DT_REG }/if ((\$mode) \& 0o170000) == 0o100000 { DT_REG }/' \
-      femacs/lib/include/dirent.in.rs > /tmp/gt-neg/dirent.in2.rs
+      lib/include/dirent.in.rs > /tmp/gt-neg/dirent.in2.rs
 $ python3 tools/extract-abi.py --check emacs/lib/dirent.in.h /tmp/gt-neg/dirent.in2.rs
 - macro IFTODT does not mention s_isreg (C body: (S_ISREG (mode) ? DT_REG : …)
 FAIL emacs/lib/dirent.in.h -> /tmp/gt-neg/dirent.in2.rs
 
-$ python3 tools/extract-abi.py --check emacs/lib/dirent.in.h femacs/lib/include/dirent.in.rs
+$ python3 tools/extract-abi.py --check emacs/lib/dirent.in.h lib/include/dirent.in.rs
   (2 C macros have a recorded Rust counterpart: _, _GL_ATTRIBUTE_PURE)
   (4 C macros have several definitions (configuration branches), body not compared:
    _GL_ATTRIBUTE_DEALLOC, _GL_ATTRIBUTE_MALLOC, _GL_DIRENT_S_IFWHT, _GL_DIRENT_S_ISWHT)
-OK emacs/lib/dirent.in.h -> femacs/lib/include/dirent.in.rs
+OK emacs/lib/dirent.in.h -> lib/include/dirent.in.rs
 
 # the mirror compiles, with every value pinned and the dead arms asserted off
 $ cd /tmp/femacs-gt-probe-dirent && rustc --edition 2024 --crate-type=lib --emit=obj \
@@ -208,8 +208,8 @@ exit=0        # the nine `DT_*` values + `_GL_DT_NOTDIR` + three `IFTODT!()` con
 # one consumer reads the mirror end to end
 $ cd femacs && CARGO_TARGET_DIR=/tmp/femacs-target-gt cargo run -q -p xtask -- build-tu lib/fdopendir.c
 built lib/fdopendir.rs -> ../build/femacs/fdopendir.o
-$ python3 tools/extract-abi.py --check emacs/lib/fdopendir.c femacs/lib/fdopendir.rs
-OK emacs/lib/fdopendir.c -> femacs/lib/fdopendir.rs
+$ python3 tools/extract-abi.py --check emacs/lib/fdopendir.c lib/fdopendir.rs
+OK emacs/lib/fdopendir.c -> lib/fdopendir.rs
 
 $ python3 tools/check-mirror-dupes.py
 1 duplicate declaration(s), 1 ratchet row(s), 0 failure(s)

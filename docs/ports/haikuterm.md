@@ -7,7 +7,7 @@
 > `haikuterm.o` for this target and `extract-abi.py`'s checklist for the file is empty (P-86 ②).
 > What follows is that clause's substitute: the **C line-range table**, the `## Evidence`
 > readings, the `## Deviations` and the per-slice sections at this file's foot.  Port:
-> `femacs/src/haikuterm.rs` (**6,908 lines**), which carries **every line of C 1-4898** - P-86 ④'s
+> `src/haikuterm.rs` (**6,908 lines**), which carries **every line of C 1-4898** - P-86 ④'s
 > twenty-seven slices of this file, the last of them the tail C 4619-4898
 > - with every `#if`'s arms both carried, **plus one block lifted out of order**:
 > `haiku_clear_under_internal_border` (C 4571-4618) is written at this file's foot because the
@@ -15,7 +15,7 @@
 > that does not exist yet.  C 3140-3170 itself - slice 20's standing deferral, half discharged by
 > slice 21's ABI change - **landed in slice 22**; there is no longer a deferred range inside the
 > prefix.  **The file is closed**: no range is owed, and `tools/extract-abi.py --check
-> emacs/src/haikuterm.c femacs/src/haikuterm.rs` reads `OK` (slice 27's Evidence ③).
+> emacs/src/haikuterm.c src/haikuterm.rs` reads `OK` (slice 27's Evidence ③).
 >
 > **The one range slice 22 lifted out of order.**  C 4571-4618 stands outside the prefix and outside
 > C's own reading order in the file; its row below says why, and the two rows around it (3207-4570,
@@ -202,8 +202,8 @@
 | C `#if` / build condition | Port gate | Compiled when |
 | --- | --- | --- |
 | the file itself (`HAIKU_OBJ`, i.e. `HAVE_HAIKU` ← `HAVE_BE_APP`, configure.ac 3106-3114) | `feature = "have_haiku"` (on every item *and* on C 21-38's include graph) | a Haiku app-kit configuration |
-| C 40 `#ifdef USE_BE_CAIRO` … C 42 | `feature = "be_cairo"` (the name `femacs/xtask/Cargo.toml` registers for `USE_BE_CAIRO`) | a Haiku build with cairo - **carried as a record only**: `<cairo.h>` is a system header with no mirror and no name from it is used in this slice (see Deviations) |
-| C 1330 `#ifdef GCC_LINT` / `#else` (slice 3) | `feature = "gcc_lint"` (the name `femacs/xtask/Cargo.toml` 127 registers for `GCC_LINT`) | a `gcc_lint` build.  **Both arms carry**; this target's live arm is the `#else` (C 1333's `PACIFY_GCC_BUG_81401 = 0`), which is what sizes C 1335's `char buf[7 + ...]` - the constant the port names once per arm and reads in the array's length |
+| C 40 `#ifdef USE_BE_CAIRO` … C 42 | `feature = "be_cairo"` (the name `xtask/Cargo.toml` registers for `USE_BE_CAIRO`) | a Haiku build with cairo - **carried as a record only**: `<cairo.h>` is a system header with no mirror and no name from it is used in this slice (see Deviations) |
+| C 1330 `#ifdef GCC_LINT` / `#else` (slice 3) | `feature = "gcc_lint"` (the name `xtask/Cargo.toml` 127 registers for `GCC_LINT`) | a `gcc_lint` build.  **Both arms carry**; this target's live arm is the `#else` (C 1333's `PACIFY_GCC_BUG_81401 = 0`), which is what sizes C 1335's `char buf[7 + ...]` - the constant the port names once per arm and reads in the array's length |
 | C 4148 `#if 0` … C 4156 | not in this slice (dead text in every configuration) | - |
 | C 4772, C 4895 `#ifdef USE_BE_CAIRO` | not in this slice | - |
 
@@ -319,7 +319,7 @@ and `rustup target list --installed` lists no haiku target (rustc's own `--print
 names `i686-unknown-haiku`/`x86_64-unknown-haiku`, but no `std` for either is installed);
 `brew list | grep -i -E 'haiku|beos'` is empty; and `find / -maxdepth 6 -name 'be_interface.h'
 -o -maxdepth 6 -name 'Application.h' -path '*haiku*'` finds nothing.  So the port is **not
-compiled or linked against a Haiku system** and the C++ half (`femacs/platform/haiku/*.cc`,
+compiled or linked against a Haiku system** and the C++ half (`platform/haiku/*.cc`,
 `libbe`) is out of reach here.  The reading that replaces the flip is ③ - and it is a `/tmp`
 harness reading, not a Haiku-target compile.
 
@@ -364,7 +364,7 @@ macros reading `struct image`'s bit members as if they were fields, and two drop
 (`return 0;` and `s->face`) that the `--check` token comparison reported.
 
 **④ Inventory.**  `python3 tools/extract-abi.py --check emacs/src/haikuterm.c
-femacs/src/haikuterm.rs` → **76 `- ` rows plus `FAIL`**: 69 × `missing function` and 1 ×
+src/haikuterm.rs` → **76 `- ` rows plus `FAIL`**: 69 × `missing function` and 1 ×
 `missing macro ASSIGN_CURSOR` (both classes entirely inside the C 1045-4898 remainder of the
 coverage table - C's `ASSIGN_CURSOR` is defined at C 4512), 5 spelling rows in this slice's own
 text (`haiku_focus_frame`/`haiku_new_focus_frame` → `1`, `haiku_implicitly_set_name` → `0`,
@@ -381,7 +381,7 @@ table is one of them). - `check-port-lines.py` → `87 file(s) under ten percent
 line(s); 90 ratchet row(s), 0 new, 3 stale`, one stale row being `src/haikuterm.c: no longer under
 the threshold` (this unit's row retires; `--write-pending` is the integrator's step). -
 `check-citations.py` → `675 file(s) scanned, 1 drift, 0 range, 491 external, 33 allowed, 0 stale`
-- the drift row is `femacs/src/image.rs:515` (another lane's file); this unit's citations are
+- the drift row is `src/image.rs:515` (another lane's file); this unit's citations are
 clean. - `check-declarations.py` → `13 declaration sites (0 forbidden, 13 allowed literals), 0
 failures`. - `check-carried.py` → `11 carried file(s), 11 baseline row(s), 0 failure(s)` (the
 `Kept`/C++ classes this gate owns; this batch adds none).  **Not run here** (outside this lane's
@@ -399,7 +399,7 @@ mirror lines need), `cargo test`, `extract-abi --all`.
    **Why every row is contiguous.**  The table's rows run from C 1 to C 4898 without leaving a
    line out, so the blank lines inside an item's tail are covered too.  That is not a style
    choice: `tools/check-dead-file-coverage.py`'s `ledger_for` resolves
-   `femacs/src/include/haikuterm.rs` (port-map row 463) to `docs/ports/haikuterm.md` as well -
+   `src/include/haikuterm.rs` (port-map row 463) to `docs/ports/haikuterm.md` as well -
    `include-haikuterm.md` is not one of the two names it tries - so this one table is read
    against **both** `src/haikuterm.c` and `src/haikuterm.h`, whose blank lines fall in different
    places.  Covering the blanks is what the gate allows (it requires only that no line *with
@@ -424,7 +424,7 @@ mirror lines need), `cargo test`, `extract-abi --all`.
    frozen graph.
 4. **Two mirror lines this batch changed** (both named, both minimal, P-87's full re-verification
    owed to the integrator because this lane may not run `check-all-units.sh`):
-   (a) `femacs/src/include/haikuterm.rs`, `FRAME_COMPLETE_P` gained C's write arm
+   (a) `src/include/haikuterm.rs`, `FRAME_COMPLETE_P` gained C's write arm
    (`($f:expr, $v:expr)`) - the mirror's own `haiku_output_bits!` table already carries
    `complete_p`'s two-argument arm, and C 237/271 writes the member, so the read-only macro was a
    gap; the shape is `FRAME_DIRTY_P`'s, three lines below it.  (b) the same file's
@@ -619,7 +619,7 @@ mirror lines need), `cargo test`, `extract-abi --all`.
     `alloca` for `docs/ports/macro-body-notes.tsv` (the stack pool, PORTING.md P-05).
 31. **The `USE_BE_CAIRO` pair is carried under `be_cairo`, and its arm was flipped.**  C 4772-4793's
     block is dead on this target (the frozen table leaves `USE_BE_CAIRO` undefined, exactly as
-    C 40-42's `<cairo.h>` include is), so the port writes it under the feature `femacs/xtask/
+    C 40-42's `<cairo.h>` include is), so the port writes it under the feature `xtask/
     Cargo.toml` 73 names for that macro - with the unit's own opaque `cairo_t`, use-site
     declarations for `cairo_save`/`cairo_restore` (`src/pgtkterm.rs` 3622-3636's spelling) and
     `EmacsView_cairo_context`, and C's `FRAME_CR_CONTEXT` (haikuterm.h 297-301) as a two-arm macro
@@ -1321,7 +1321,7 @@ are the `missing function` rows for the three items this slice lands; the 47 tha
    them**: `include/frame.rs` 776-780 already carries C's macro, so C 2140's `XSETFRAME (frame, f)`
    is the port's `XSETFRAME! (frame, f)` (the `androidfns.rs` 1214 spelling).  A first draft
    declared it as an extern and `tools/check-mirror-dupes.py` failed it in one line
-   (`XSETFRAME is already declared by femacs/src/include/frame.rs (in the include graph)`) - the
+   (`XSETFRAME is already declared by src/include/frame.rs (in the include graph)`) - the
    gate caught the duplicate before the commit, which is why the note is here.
 7. **`haiku_set_window_size`'s `change_gravity` parameter is unused in C's body** (C 2132), so the
    port names it and drops it with `let _ = change_gravity;` (the unit's `unused_variables`
@@ -2105,7 +2105,7 @@ which this unit has no record for (P-72 rule 3).
 
 **Evidence ① - the arm-reach pre-flight (`xtask probe`, P-86 ③).**  Two runs, and a control:
 
-- **before** (the HEAD revision at `femacs/src/haikuterm.rs`, materialized as a sibling file of the
+- **before** (the HEAD revision at `src/haikuterm.rs`, materialized as a sibling file of the
   same directory so its `include!`s resolve): `exit 1`, **35 errors, 6 warnings**, every error in a
   mirror (`include/character.rs`, `include/buffer.rs`, `include/window.rs`, `include/frame.rs`,
   `include/termhooks.rs`, `include/haikuterm.rs`'s `haiku_output_bits` ×4, `include/systime.rs`'s
@@ -2244,7 +2244,7 @@ unit's own text**, with the mirror files and line numbers byte-identical to slic
 `haikuterm.rs`'s `haiku_output_bits` ×4, `systime.rs`'s `E0080` ×1).
 
 **Evidence ② - the same reading on HEAD, and the difference it makes.**  HEAD's
-`femacs/src/haikuterm.rs` was materialized as a sibling file of the same directory (so its
+`src/haikuterm.rs` was materialized as a sibling file of the same directory (so its
 `include!`s resolve identically) and probed with the same arm set: **35 primary errors**.  The
 diff of the two normalized outputs is **109 lines**, all of them line-number shifts inside
 `_root.rs` plus **one retired error**: `cannot find function note_mouse_highlight` (the mirror
@@ -2271,7 +2271,7 @@ line-count drift row stays silent (6,010 of 4,898 C lines is past the tolerance'
 `check-verbatim-declarations`, `check-ledger-ticks` (238 ledgers bound, 0 failures),
 `check-carried` and `check-dead-file-coverage` (145 ledgers bound, 0 failures) are green, and
 `check-cond-eval.py src/haikuterm.c` reads `5 conditions, 0 unknown, 0 disagreements`.
-**`check-citations` reported 1 drift** - `femacs/src/haikuterm.rs` cited
+**`check-citations` reported 1 drift** - `src/haikuterm.rs` cited
 `frame.h 1049-1069` for `FRAME_MENU_BAR_HEIGHT`/`_LINES` when they are **frame.h 1086-1087**
 (1049-1069 is `FRAME_EXTERNAL_MENU_BAR`'s block just above them).  Fixed in the same round and
 re-read: `0 drift, 0 range`.  That is the second round in a row where a guessed header/line pair
@@ -2282,7 +2282,7 @@ first).
 
 - `docs/ports/line-drift-tolerance.tsv`'s `haikuterm` row: the file is now **6,010 Rust lines for
   4,898 C lines**; the row's placeholder is the integrator's to re-derive when the file closes.
-- The P-87 scan is not owed by this round: no mirror file is touched (`femacs/src/haikuterm.rs`
+- The P-87 scan is not owed by this round: no mirror file is touched (`src/haikuterm.rs`
   is a unit, not a mirror) - but **one unit-level macro changed** (`want_fullscreen!` gained its
   write arm), and that is a change to code the unit's own already-landed slices read, so the
   integrator's `check-all-units.sh` reading covers it.
@@ -2462,8 +2462,8 @@ non-`static`), the `USE_BE_CAIRO` pair (C 4772-4793), `haiku_merge_cursor_foregr
 table**, and the file owes the integrator no range at all.
 
 **Evidence ① - the file's own gate reads `OK`.**  `python3 tools/extract-abi.py --check
-emacs/src/haikuterm.c femacs/src/haikuterm.rs` → **`OK emacs/src/haikuterm.c ->
-femacs/src/haikuterm.rs`**: no `missing function`, no `missing macro`, no spelling row.  The rows it
+emacs/src/haikuterm.c src/haikuterm.rs` → **`OK emacs/src/haikuterm.c ->
+src/haikuterm.rs`**: no `missing function`, no `missing macro`, no spelling row.  The rows it
 took to get here from slice 1's 76-row reading are all named in the per-slice sections: the last
 three were this round's (`haiku_translate_transform does not mention 0` - fixed by spelling C's own
 index; `haiku_merge_cursor_foreground does not mention face` and `syms_of_haikuterm does not
@@ -2549,7 +2549,7 @@ product-name literal this repository has decided *not* to carry, and this litera
 rule substitutes rather than keeps.
 
 **Evidence ③ - the file's own gate does not move.**  `python3 tools/extract-abi.py --check
-emacs/src/haikuterm.c femacs/src/haikuterm.rs` still reads **`OK`** (no `missing …` row, no spelling
+emacs/src/haikuterm.c src/haikuterm.rs` still reads **`OK`** (no `missing …` row, no spelling
 row): the checker compares the item inventory and the registered body tokens, not the *contents* of a
 string literal, which is why the substitution adds nothing - measured, and the same reason
 `src/xterm.rs` reads `OK` with its own substitution in place.

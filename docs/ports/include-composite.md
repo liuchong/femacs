@@ -74,7 +74,7 @@
 
 ## Decisions (2026-10-03, completed with the composite.c port)
 
-`emacs/src/composite.h` @ `fd7afced403`; mirror `femacs/src/include/composite.rs` (469 lines).
+`emacs/src/composite.h` @ `fd7afced403`; mirror `src/include/composite.rs` (469 lines).
 The header was a WIP until `composite.c` landed (it is the unit that defines every function
 and both objects the header declares), and this round completed it:
 
@@ -103,7 +103,7 @@ and both objects the header declares), and this round completed it:
   `*mut c_void` (`struct font_metrics *`, `struct composition_it *`, `struct face *`), each
   with the C prototype in a `/// C:` line above it (P-72 rule 3); the defining unit spells the
   precise type where it has one.
-* `tools/extract-abi.py --check emacs/src/composite.h femacs/src/include/composite.rs`
+* `tools/extract-abi.py --check emacs/src/composite.h src/include/composite.rs`
   reports `OK`; all 61 ledger rows are ticked.
 
 The two offsets measured for the unit (`struct font`'s `driver` at 176, `struct

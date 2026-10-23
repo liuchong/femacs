@@ -8,11 +8,11 @@ type by construction; where the port lets a unit own the object instead (status 
 the *declaration* has to agree - status 3.638's `process_error_pause_time: c_int` was 4-byte aligned
 and the 8-byte read panicked with `misaligned pointer dereference`.  PORTING.md P-97 is the rule.
 
-    python3 tools/check-defvar-carriers.py            # every unit under femacs/src
+    python3 tools/check-defvar-carriers.py            # every unit under src
     python3 tools/check-defvar-carriers.py --selftest # prove the reading fires (the 3.638 case)
 
 For each site the variable's declaration is looked up in the unit itself and then in
-`femacs/src/include/*.rs`; a declaration that is *not* found is counted as unchecked (the name may be
+`src/include/*.rs`; a declaration that is *not* found is counted as unchecked (the name may be
 a macro or a field), while a found declaration whose type is not one of the C-equivalent spellings is
 a failure.
 """
@@ -25,7 +25,7 @@ import sys
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parent.parent
-SRC = REPO / "femacs/src"
+SRC = REPO / "src"
 MIRRORS = SRC / "include"
 # macro -> (C's forward kind, the spellings that have C's size and alignment)
 MACROS = {

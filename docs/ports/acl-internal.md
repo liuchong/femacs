@@ -16,7 +16,7 @@
 # ----------------------------------------------------------------------
 ## Decisions
 
-`femacs/lib/acl-internal.rs` is the live text of `emacs/lib/acl-internal.c`
+`lib/acl-internal.rs` is the live text of `emacs/lib/acl-internal.c`
 (`tools/check-cond-eval.py`: 22 conditions, 0 unknown, 0 disagreements).  What the frozen
 configuration keeps is C 20's qualifier and C 494-523's `free_permission_context`, whose
 *own* body is empty here (its `#if USE_ACL` chain, C 497-522, is dead); everything else —

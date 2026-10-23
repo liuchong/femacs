@@ -10,7 +10,7 @@
 //
 // **It must be compiled with `--cfg 'feature="have_window_system"'`** (the feature name is the C
 // macro `HAVE_WINDOW_SYSTEM` lower-cased, the tree's convention; the whole namespace is declared in
-// `femacs/xtask/Cargo.toml`'s `[features]` table, all off by default).  `xtask probe` passes extra
+// `xtask/Cargo.toml`'s `[features]` table, all off by default).  `xtask probe` passes extra
 // rustc arguments through, so the invocation is
 //
 //     cd femacs && cargo run -q -p xtask -- probe ../spikes/window_system_probe.rs \
@@ -28,7 +28,7 @@
 // `*mut c_void`; nothing here needs a stub for them.
 //
 // Negative control (run once, against a copy of the mirror — the tree is never mutated): renaming
-// `pub f: *mut frame` to `*mut frame_typo` in a `/tmp` copy of `femacs/src/include/dispextern.rs`
+// `pub f: *mut frame` to `*mut frame_typo` in a `/tmp` copy of `src/include/dispextern.rs`
 // and pointing this probe at the copy makes rustc report
 // `error[E0425]: cannot find type `frame_typo` in this scope`, i.e. the probe really resolves the
 // record's field types rather than skipping a `cfg`'d-out item.
@@ -76,7 +76,7 @@ pub fn RANGED_FIXNUMP (_lo: EMACS_INT, _x: Lisp_Object, _hi: EMACS_INT) -> bool 
 pub fn CHARACTERP (_x: Lisp_Object) -> bool { false }
 pub fn CHAR_VALID_P (_c: intmax_t) -> bool { false }
 
-include!("../femacs/src/include/dispextern.rs");
+include!("../src/include/dispextern.rs");
 
 // The probe is a compile proof, not a program: it touches the record and its bit accessors so both
 // the struct and `glyph_string_bits!` are instantiated, and nothing else.

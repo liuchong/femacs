@@ -18,7 +18,7 @@
 
 Mirror of src/systty.h, complete for the frozen target (`DOS_NT`, `HPUX`, `AIX` undefined).
 
-1. **Includes.**  `<termios.h>` → the new system mirror `femacs/lib/include/termios.rs`
+1. **Includes.**  `<termios.h>` → the new system mirror `lib/include/termios.rs`
    (measured: `sizeof (struct termios)` 72, offsets 0/8/16/24/32/56/64, `NCCS` 20);
    `<fcntl.h>`/`<unistd.h>` have mirrors.  `<sys/ioctl.h>` has none yet, and nothing in this
    header names one of its requests - the units that need `TIOCGWINSZ` and friends carry them at
@@ -26,7 +26,7 @@ Mirror of src/systty.h, complete for the frozen target (`DOS_NT`, `HPUX`, `AIX` 
 2. **`CDISABLE` is a value, not a token.**  C's body is the *system* macro `_POSIX_VDISABLE`,
    which the frozen target defines as `((unsigned char)'\377')` (macros.tsv) - measured 255.  The
    mirror writes `pub const CDISABLE: cc_t = 255;`, the same form the two units that already
-   spell it use (`femacs/src/process.rs` 7417, `femacs/src/sysdep.rs` 624), and
+   spell it use (`src/process.rs` 7417, `src/sysdep.rs` 624), and
    `docs/ports/macro-body-notes.tsv` carries the exemption row (the token check's escape hatch
    for exactly this class).
 3. **`struct emacs_tty`** holds one `struct termios main` (the `DOS_NT` arm is dead); the mirror
@@ -38,5 +38,5 @@ Mirror of src/systty.h, complete for the frozen target (`DOS_NT`, `HPUX`, `AIX` 
    attribute rule).  `struct Lisp_Process *` is an incomplete type in C here, so the port writes
    `*mut c_void` with the C prototype above it (P-72 (3)).
 
-Evidence: `extract-abi.py --check emacs/src/systty.h femacs/src/include/systty.rs` -> `OK`
+Evidence: `extract-abi.py --check emacs/src/systty.h src/include/systty.rs` -> `OK`
 (3/3 ledger items); `layout-check` passes with both mirrors in the probe.

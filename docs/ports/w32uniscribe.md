@@ -6,7 +6,7 @@
 > `docs/baseline/frozen-build-sources.txt` lists no `w32uniscribe.o` for this target — so
 > `extract-abi.py`'s checklist for the file is empty (P-86 ②) and this ledger is that clause's
 > substitute: the **C line-range table**, the `## Evidence` readings and the `## Deviations`.
-> Port: `femacs/src/w32uniscribe.rs` (**2766 lines**, md5 `cc0449a0282d263b49e00840dd4f106d`, sha256
+> Port: `src/w32uniscribe.rs` (**2766 lines**, md5 `cc0449a0282d263b49e00840dd4f106d`, sha256
 > `967fde4731fac8760dca4e5aaa7c44a06eca1b48ab2e5e411a84f848cbb65dbf`), carrying **C 1-1628 with both
 > arms of every `#if`**.  The reference `emacs/src/w32uniscribe.c` is md5
 > `744023a043e526b50e8d0b083e4c88c1` (unchanged; `emacs/` is read-only).
@@ -152,7 +152,7 @@ are fixed) and compiled it once per configuration with
 So *every* arm of the file's four conditions type-checks with no error anchored in this unit, and the
 frozen row is Evidence ①.  **Toolchain note**: run with the *default* stable toolchain the same
 configurations report one extra mirror error, `src/include/lisp.rs` 3761's
-`E0658 use of unstable library feature c_variadic`; `femacs/rust-toolchain.toml` pins
+`E0658 use of unstable library feature c_variadic`; `rust-toolchain.toml` pins
 `nightly-2026-10-01`, where that feature is stable, and the sweep above uses the pinned toolchain
 (the reading `docs/ports/w32font.md`'s Evidence records for its own sweep).
 
@@ -162,12 +162,12 @@ unit's own text — `free_cb`'s body got a `let _mutation: *mut u8 = ptr;` line 
 lines against ②'s 1, the single new one `error[E0308]: mismatched types`, anchored in the unit's own
 text (`build/probes/w32uniscribe/_root.rs:2303:28`, and the unit's own line 2303 is that line — the
 materialized root *is* the unit's text).  The mutation was reverted and the unit verified:
-`shasum -a 256 femacs/src/w32uniscribe.rs` = `967fde47…cbb65dbf` before and after, and
+`shasum -a 256 src/w32uniscribe.rs` = `967fde47…cbb65dbf` before and after, and
 `grep -c _mutation` is 0.  (The same mutation was run once on the pre-fix revision, where it landed
 at `_root.rs:2289:28` with the same single `E0308`.)  So ②'s reading certifies the unit's own lines
 type-check under that arm (not merely resolve) and that no item of this unit collides.
 
-**⑤ `python3 tools/extract-abi.py --check emacs/src/w32uniscribe.c femacs/src/w32uniscribe.rs`**:
+**⑤ `python3 tools/extract-abi.py --check emacs/src/w32uniscribe.c src/w32uniscribe.rs`**:
 before this round's `docs/ports/macro-body-notes.tsv` rows it was `FAIL` with 17 findings (16
 `does not mention …`/`family` rows plus `constant _WIN32_WINNT: C 0x0600 vs Rust 0x500`) and the
 line-drift row; the eight note rows **are written** (that file is in this lane's write set, appended
@@ -185,17 +185,17 @@ disagreements [VERIFIED]` — the Gate-mapping rows, nothing else.
 `17 declaration sites (0 forbidden, 17 allowed literals), 0 failures`, `read 683 files (625 .rs
 40 .kt 7 .swift 6 .s 5 .cc)` — **neither this unit nor this ledger carries a finding**.  (Two earlier
 runs of the same gate, minutes apart, read `18 declaration sites (1 forbidden, …), 1 failures` with
-the one failure in `femacs/oldXMenu/insque.rs`: other lanes are landing files into this shared
+the one failure in `oldXMenu/insque.rs`: other lanes are landing files into this shared
 working tree, which is why ⑦-⑫ name the readings' *identity* as well as their numbers.)
 
 **⑧ `python3 tools/check-mirror-dupes.py`**: the last reading is `18 duplicate declaration(s), 17
-ratchet row(s), 1 failure(s)`, the one failure being `femacs/src/gmalloc.rs: free is already declared
-by femacs/lib/include/stdlib.rs` — **no row names `w32uniscribe`** (checked; the gate's own output
+ratchet row(s), 1 failure(s)`, the one failure being `src/gmalloc.rs: free is already declared
+by lib/include/stdlib.rs` — **no row names `w32uniscribe`** (checked; the gate's own output
 mentions this stem 0 times): this unit's only top-level names are the driver, the two counters and
 `uniscribe_check_otf`, whose declaration `include/w32font.rs` 176 already keeps in a glob-imported
 module (definitions are not what this gate reports), and everything else is `static`/private.  Two
 earlier runs of the same gate read `21 duplicate declaration(s) … 4 failure(s)` (all in
-`femacs/src/gmalloc.rs`) and `17 duplicate declaration(s), 17 ratchet row(s), 0 failure(s)` — the
+`src/gmalloc.rs`) and `17 duplicate declaration(s), 17 ratchet row(s), 0 failure(s)` — the
 same other lane's file, in flux (see ⑦'s note).
 
 **⑨ `python3 tools/check-citations.py`**: `676 file(s) scanned, 0 drift, 0 range, 1522 external, 36
@@ -323,7 +323,7 @@ readings leave them.
    `TRUETYPE_FONTTYPE`/`ETO_GLYPH_INDEX`/`NTMFLAGS_OPENTYPE`, once a Windows or mingw toolchain
    exists (`xtask layout-asserts` reads a C compiler's readings; `x86_64-w64-mingw32-gcc` is absent
    here).  The two `SCRIPT_*` bitfield runs owe a real offset/width measurement as well.
-5. **A dedicated `<hb.h>`/`<hb-ot.h>` mirror** (`femacs/src/include/hb.rs`, P-90 ①): the surface has
+5. **A dedicated `<hb.h>`/`<hb-ot.h>` mirror** (`src/include/hb.rs`, P-90 ①): the surface has
    more than one consumer in the reference (`src/ftfont.c`, `src/sfntfont.c`, this file), so this
    unit's in-unit stand-in section should move there and be deleted here.  `src/hbfont.rs`'s own
    Owed 2 is the same row.
@@ -336,8 +336,8 @@ readings leave them.
 8. **`docs/baseline/feature-coverage.tsv` and `docs/status.md`**: the integrator's regeneration and
    running-log entry for this revision (the `docs/ports/w32font.md` Owed 10/11 rows).
 9. **The gates that still fail in this shared working tree fail for reasons that are not this
-   unit's**: `tools/check-declarations.py`'s `femacs/oldXMenu/insque.rs` row and
-   `tools/check-mirror-dupes.py`'s `femacs/src/gmalloc.rs` row, both another lane's work in flux
+   unit's**: `tools/check-declarations.py`'s `oldXMenu/insque.rs` row and
+   `tools/check-mirror-dupes.py`'s `src/gmalloc.rs` row, both another lane's work in flux
    (Evidence ⑦/⑧).  Named here so the next reader does not attribute them to this file.
 
 ## Not claimed

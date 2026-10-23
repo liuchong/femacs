@@ -52,18 +52,18 @@ unsafe fn startup_probe_n (tag: *const c_char, v: isize)
 '''
 
 EDITS = [
-    ("femacs/src/lread.rs",
+    ("src/lread.rs",
      "unsafe fn readevalloop (readcharfun: Lisp_Object, infile0: *mut infile,",
      "  if !NILP (sourcename)\n    { CHECK_STRING (sourcename); }\n",
      "  if !NILP (sourcename)\n    { CHECK_STRING (sourcename); }\n"
      "  if STRINGP (sourcename)\n"
      "    { startup_probe (c\"load\".as_ptr (), SSDATA (sourcename) as *const c_char); }\n"),
-    ("femacs/src/fringe.rs",
+    ("src/fringe.rs",
      "unsafe fn init_fringe_bitmap (which: c_int, fb: *mut fringe_bitmap, once_p: c_int)",
      "unsafe fn init_fringe_bitmap (which: c_int, fb: *mut fringe_bitmap, once_p: c_int)\n{\n",
      "unsafe fn init_fringe_bitmap (which: c_int, fb: *mut fringe_bitmap, once_p: c_int)\n{\n"
      "  startup_probe_n (c\"fringe\".as_ptr (), which as isize);\n"),
-    ("femacs/src/emacs.rs",
+    ("src/emacs.rs",
      "  Vsystem_type = intern_c_string (SYSTEM_TYPE.as_ptr ());",
      "  Vsystem_type = intern_c_string (SYSTEM_TYPE.as_ptr ());\n",
      "  Vsystem_type = intern_c_string (SYSTEM_TYPE.as_ptr ());\n"
@@ -72,7 +72,7 @@ EDITS = [
     # is the faithful `android` (status 4.805).  These three bracket it: the Lisp-level entry
     # (`check_file_access`), the VFS entry (`android_faccessat`), and the asset VFS's own
     # `access`.
-    ("femacs/src/fileio.rs",
+    ("src/fileio.rs",
      "unsafe fn check_file_access (file: Lisp_Object, operation: Lisp_Object,",
      "  let mut file = file;                        /* C reassigns `file` below.  */\n"
      "  file = Fexpand_file_name (file, Qnil ());\n",
@@ -80,30 +80,30 @@ EDITS = [
      "  file = Fexpand_file_name (file, Qnil ());\n"
      "  if STRINGP (file)\n"
      "    { startup_probe (c\"check-access\".as_ptr (), SSDATA (file) as *const c_char); }\n"),
-    ("femacs/src/androidvfs.rs",
+    ("src/androidvfs.rs",
      "pub unsafe extern \"C\" fn android_faccessat (dirfd: c_int, mut pathname: *const c_char,",
      "					    mode: c_int, flags: c_int) -> c_int\n{\n",
      "					    mode: c_int, flags: c_int) -> c_int\n{\n"
      "  startup_probe (c\"faccessat\".as_ptr (), pathname);\n"),
-    ("femacs/src/androidvfs.rs",
+    ("src/androidvfs.rs",
      "unsafe fn android_scan_directory_tree (file: *const c_char, limit_return: *mut size_t)",
      "unsafe fn android_scan_directory_tree (file: *const c_char, limit_return: *mut size_t)\n"
      "				       -> *const c_char\n{\n",
      "unsafe fn android_scan_directory_tree (file: *const c_char, limit_return: *mut size_t)\n"
      "				       -> *const c_char\n{\n"
      "  startup_probe (c\"scan-tree\".as_ptr (), file);\n"),
-    ("femacs/src/androidvfs.rs",
+    ("src/androidvfs.rs",
      "unsafe extern \"C\" fn android_afs_access (vnode: *mut android_vnode, mode: c_int) -> c_int",
      "unsafe extern \"C\" fn android_afs_access (vnode: *mut android_vnode, mode: c_int) -> c_int\n{\n",
      "unsafe extern \"C\" fn android_afs_access (vnode: *mut android_vnode, mode: c_int) -> c_int\n{\n"
      "  startup_probe (c\"afs-access\".as_ptr (), (*((vnode as *mut android_afs_vnode))).name);\n"),    # The font driver: with the byte order finally right (`status 4.806`), fonts register and the
     # startup proceeds into font matching and opening - the two places a defect can now live.
-    ("femacs/src/sfntfont.rs",
+    ("src/sfntfont.rs",
      "pub unsafe extern \"C\" fn sfntfont_list (f: *mut c_void, font_spec: Lisp_Object) -> Lisp_Object\n{                                                          // C 1978-2027",
      "pub unsafe extern \"C\" fn sfntfont_list (f: *mut c_void, font_spec: Lisp_Object) -> Lisp_Object\n{                                                          // C 1978-2027\n",
      "pub unsafe extern \"C\" fn sfntfont_list (f: *mut c_void, font_spec: Lisp_Object) -> Lisp_Object\n{                                                          // C 1978-2027\n"
      "  startup_probe_n (c\"sfntfont-list\".as_ptr (), 1);\n"),
-    ("femacs/src/sfntfont.rs",
+    ("src/sfntfont.rs",
      "  let mut font_info: *mut sfnt_font_info;",
      "  let mut font_info: *mut sfnt_font_info;",
      "  let mut font_info: *mut sfnt_font_info;\n"

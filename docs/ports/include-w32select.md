@@ -22,7 +22,7 @@
   content even though nothing on this target links them.
 - **The unit is an empty shape and the mirror is not, and both are right.**  The frozen
   configuration does not compile `src/w32select.c` (docs/baseline/frozen-build-sources.txt: this
-  target's platform object lists are empty), so `femacs/src/w32select.rs` is the recorded note that
+  target's platform object lists are empty), so `src/w32select.rs` is the recorded note that
   names the exclusion; the *header's* text is unconditional, so the mirror carries its declarations
   and their definitions are deferred to the Windows target.  Two different files, two different
   answers - which is why the extractor's per-pair reading is per-pair.
@@ -37,13 +37,13 @@
 
 ## Evidence
 
-- `python3 tools/extract-abi.py --check emacs/src/w32select.h femacs/src/include/w32select.rs`
-  -> `OK emacs/src/w32select.h -> femacs/src/include/w32select.rs` (no `- ` problem lines).
+- `python3 tools/extract-abi.py --check emacs/src/w32select.h src/include/w32select.rs`
+  -> `OK emacs/src/w32select.h -> src/include/w32select.rs` (no `- ` problem lines).
 - `python3 tools/check-cond-eval.py src/w32select.h`
   -> `1 conditions, 0 unknown to the evaluator, 0 disagreements` (that condition is the guard).
 - `python3 tools/extract-abi.py emacs/src/w32select.h` -> this ledger: 0 subrs, 0 functions,
   1 macro (the guard), 0 types, 0 file-scope objects.
-- `rg -n "syms_of_w32select|globals_of_w32select|term_w32select" femacs/src` -> only this mirror,
+- `rg -n "syms_of_w32select|globals_of_w32select|term_w32select" src` -> only this mirror,
   so there is no use-site copy to retire (unlike the 3.143/3.153 cases).
 - **The mirror does have a compiler now** (status 3.159): `spikes/win_inc_probe.rs` supplies the
   names a Windows translation unit takes from the system and `include!`s this mirror together with

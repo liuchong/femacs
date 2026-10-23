@@ -10,7 +10,7 @@
 > every `#if` are carried - and P-86 ② applies too: `extract-abi.py` has no live item to tick, so
 > the substitute is the **C line-range table** below plus this ledger's readings.
 >
-> Port: `femacs/src/xselect.rs` (**3,900 lines**, `grep -c ''`), md5
+> Port: `src/xselect.rs` (**3,900 lines**, `grep -c ''`), md5
 > `7fea63a0696fbdd83e1d76364bcb9732`.
 >
 > This ledger replaces the previous revision's conclusion ("not compiled by the frozen
@@ -24,7 +24,7 @@
 | the file itself (`XOBJ`, i.e. `HAVE_X_WINDOWS`; `configure.ac` 7196) | `feature = "have_x_windows"` (on every item **and on the include graph**) | an X11 configuration |
 | C 30 `#ifdef HAVE_SYS_TYPES_H` (`#include <sys/types.h>`) | `all (feature = "have_x_windows", feature = "have_sys_types_h")` (**`have_sys_types_h` is not registered**; Owed 1) | an X11 configuration with `<sys/types.h>` (the frozen table has `HAVE_SYS_TYPES_H 1`, macros.tsv 1637) |
 | C 72 `#ifdef TRACE_SELECTION` (the four `TRACE*` macro pairs) | `feature = "trace_selection"` for the `fprintf` arm; the `(void) 0` arm is the plain item (**not registered**; Owed 1) | `TRACE_SELECTION` is undefined in the frozen table, so the `(void) 0` arm is live and the `fprintf` arm is dead text (P-51) |
-| C 2764 and C 2791 `#ifdef HAVE_XFIXES` | `feature = "have_xfixes"` (registered, `femacs/xtask/Cargo.toml` 305) | an X11 configuration with the XFIXES extension (`undef`, macros.tsv 1695) |
+| C 2764 and C 2791 `#ifdef HAVE_XFIXES` | `feature = "have_xfixes"` (registered, `xtask/Cargo.toml` 305) | an X11 configuration with the XFIXES extension (`undef`, macros.tsv 1695) |
 | C 24 `#if 10 <= __GNUC__` (one `#pragma`) | no arm: a pragma has no Rust spelling, and clang's `__GNUC__` is 4 (macros.tsv 6264) | - (C's text is kept as a comment; `## Deviations` 1) |
 | C 1708 `#if false` | no arm: dead in every configuration | - (recorded at its position; `## Deviations` 3) |
 
@@ -135,7 +135,7 @@ injected into this unit's own text (`let mut val: Atom = crate::x11_constants::N
 the *same* command re-run: the output is ②'s three errors **plus exactly one new one**, `E0308:
 mismatched types … expected u64, found i64` naming the injected line (`_root.rs` 539) - so this
 unit's own text *is* type-checked and the include graph is not aborting before it.  Restored, and
-`shasum -a 256 femacs/src/xselect.rs` → `cd73b1248500480c557dc37d686358c06319b492a8da80b74b0d8ad5960c7fce`,
+`shasum -a 256 src/xselect.rs` → `cd73b1248500480c557dc37d686358c06319b492a8da80b74b0d8ad5960c7fce`,
 the pre-mutation value.
 
 **⑤ The measurements (clang, this machine's `xorgproto` 2025.1 + libX11 under `/opt/homebrew/include`).**
@@ -165,7 +165,7 @@ baseline for records this file declares itself).
 
 **⑥ The inventory gate and the token gate.**
 
-    python3 tools/extract-abi.py --check emacs/src/xselect.c femacs/src/xselect.rs
+    python3 tools/extract-abi.py --check emacs/src/xselect.c src/xselect.rs
 
 → `FAIL` with **one** problem line, `line count drifted 10.1%: C 3541 vs Rust 3,900` - the
 tolerance row of Owed 2, which this lane may not write.  The body/token checks are green: the eleven
@@ -237,7 +237,7 @@ diagnostics.  No `cargo test`, `xtask --all`, `gate-fast`, `xtask dead-arms` or
 
 ## Owed
 
-1. **`femacs/xtask/Cargo.toml` `[features]`**: register `have_sys_types_h` (C 30's `#ifdef`) and
+1. **`xtask/Cargo.toml` `[features]`**: register `have_sys_types_h` (C 30's `#ifdef`) and
    `trace_selection` (C 72's) - this lane cannot write that file.  `have_x_windows` (303) and
    `have_xfixes` (305) are already there; `docs/baseline/feature-coverage.tsv` then needs
    `python3 tools/feature-coverage.py --write`.
@@ -300,6 +300,6 @@ diagnostics.  No `cargo test`, `xtask --all`, `gate-fast`, `xtask dead-arms` or
 - **The layout asserts are this machine's readings** (`xorgproto` 2025.1 / libX11 under
   `/opt/homebrew/include`); another X11 SDK could lay `XEvent`'s members out differently, and the
   file's own four records are asserted against values no baseline row yet records.
-- **`femacs/src/xselect.rs` may move under a later round** (Owed 3-11), and the seven `DEFVAR_*`
+- **`src/xselect.rs` may move under a later round** (Owed 3-11), and the seven `DEFVAR_*`
   variables are defined here (P-21) with no post-load hook of their own beyond C 3494's
   `pdumper_do_now_and_after_load`.

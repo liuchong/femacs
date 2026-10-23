@@ -47,8 +47,8 @@
 $ cd femacs && CARGO_TARGET_DIR=/tmp/femacs-target-sb cargo run -q -p xtask -- build-tu lib/malloc/scratch_buffer_grow.c
 built lib/malloc/scratch_buffer_grow.rs -> ../build/femacs/scratch_buffer_grow.o
 
-$ python3 tools/extract-abi.py --check emacs/lib/malloc/scratch_buffer_grow.c femacs/lib/malloc/scratch_buffer_grow.rs
-OK emacs/lib/malloc/scratch_buffer_grow.c -> femacs/lib/malloc/scratch_buffer_grow.rs
+$ python3 tools/extract-abi.py --check emacs/lib/malloc/scratch_buffer_grow.c lib/malloc/scratch_buffer_grow.rs
+OK emacs/lib/malloc/scratch_buffer_grow.c -> lib/malloc/scratch_buffer_grow.rs
 
 # the port's exports and C references, against the reference object (Rust panic symbols elided)
 $ nm -g build/femacs/scratch_buffer_grow.o          $ nm -g build/emacs-ref/lib/malloc/scratch_buffer_grow.o

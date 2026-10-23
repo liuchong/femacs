@@ -79,4 +79,4 @@ and no probe compiles it; the text gate is the whole acceptance (docs/status.md 
    the two prototypes are declarations only (PORTING.md 0.1-2).
 
 Evidence: `python3 tools/extract-abi.py --check emacs/lwlib/xlwmenu.h
-femacs/lwlib/include/xlwmenu.rs` -> `OK` (45 ledger item(s)).
+lwlib/include/xlwmenu.rs` -> `OK` (45 ledger item(s)).

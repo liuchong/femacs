@@ -124,7 +124,7 @@ def main() -> int:
         script.write_text(probe_script(files), encoding="utf-8")
 
         reference = run(args.reference, script, REPO / "emacs/lisp", args.locale)
-        port = run(args.port, script, REPO / "femacs/lisp", args.locale)
+        port = run(args.port, script, REPO / "lisp", args.locale)
 
     failures = 0
     for label, _, _ in CASES:

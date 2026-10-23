@@ -16,19 +16,17 @@ def main():
  if out.is_relative_to((ROOT/'emacs').resolve()):raise SystemExit('reference source is read-only')
  out.mkdir(parents=True,exist_ok=True)
  rows=list(csv.DictReader((ROOT/'docs/baseline/globals/symbols.tsv').open(),delimiter='\t'))
- symbols=[(r['q_name'],r['lisp_name']) for r in rows];known=dict(symbols);extra={};overrides={};variables={};forwards={}
+ symbols=[(r['q_name'],r['lisp_name']) for r in rows]
+ metadata=json.loads((ROOT/'build-support/macos/cocoa/symbols.json').read_text())
+ extra=metadata['extra_symbols'];overrides=metadata['target_name_overrides'];variables={};forwards={}
+ kinds={'Lisp_Object':('Lisp_Object','Lisp_Fwd_Obj','objvar','core::ptr::null_mut()'),'bool':('bool','Lisp_Fwd_Bool','boolvar','false'),'EMACS_INT':('EMACS_INT','Lisp_Fwd_Int','intvar','0')}
+ for name,ty in metadata['cocoa_variables'].items():variables[name]=kinds[ty]
  for name in PLATFORM:
-  source=(ROOT/f'emacs/src/{name}.m').read_text()
-  for m in re.finditer(r'DEFSYM\s*\(\s*(\w+)\s*,\s*"([^"\n]*)"',source):
-   if m[1] in known and known[m[1]]!=m[2]:overrides[m[1]]=m[2]
-   if m[1] not in known:extra[m[1]]=m[2]
-  for m in re.finditer(r'DEFVAR_(LISP|BOOL|INT)\s*\(\s*"([^"\n]*)"\s*,\s*(\w+)',source):
-   kind={'LISP':('Lisp_Object','Lisp_Fwd_Obj','objvar','core::ptr::null_mut()'),'BOOL':('bool','Lisp_Fwd_Bool','boolvar','false'),'INT':('EMACS_INT','Lisp_Fwd_Int','intvar','0')}[m[1]]
-   variables[m[3]]=kind
-  swift=(ROOT/f'femacs/platform/macos/{name}.swift').read_text()
+  swift=(ROOT/f'platform/macos/{name}.swift').read_text()
   for m in re.finditer(r'(?:fileprivate var|@_silgen_name\("femacs_fwd_[^"]+"\) var)\s+O_FWD_(\w+)\s*:\s*Lisp_Fwd',swift):forwards[m[1]]=name
+ if forwards!=metadata['forwards']:raise ValueError('Cocoa forwarding metadata differs from Swift source; update the owned target description')
  symbols=[(q,overrides.get(q,name)) for q,name in symbols]+sorted(extra.items())
- original=(ROOT/'femacs/src/include/globals.rs').read_text();tail=original[original.index('// --- variables declared by DEFVAR_*'):]
+ original=(ROOT/'src/include/globals.rs').read_text();tail=original[original.index('// --- variables declared by DEFVAR_*'):]
  header=['// Generated target-local Cocoa metadata; nil/t and existing baseline indices are preserved.']
  for i,(q,_) in enumerate(symbols):header += [f'pub const i{q}: usize = {i};',f'#[inline(always)] pub fn {q}() -> Lisp_Object {{ builtin_lisp_symbol({i}) }}']
  header += [f'pub const lispsym_count: usize = {len(symbols)};', 'unsafe extern "C" { pub static mut lispsym: [Lisp_Symbol; lispsym_count]; }',tail]
@@ -46,7 +44,7 @@ def main():
   code += ['#[unsafe(no_mangle)]',f'pub static mut {name}: *mut c_void = core::ptr::null_mut();']
  code += ['#[unsafe(no_mangle)]','pub static mut context_menu_value: isize = 0;']
 
- handlers=(ROOT/'femacs/platform/macos/nsfns.swift').read_text().split('let ns_frame_parm_handlers: [frame_parm_handler?] = [',1)[1].split('\n]',1)[0]
+ handlers=(ROOT/'platform/macos/nsfns.swift').read_text().split('let ns_frame_parm_handlers: [frame_parm_handler?] = [',1)[1].split('\n]',1)[0]
  entries=[]
  for line in handlers.splitlines():
   line=line.strip()

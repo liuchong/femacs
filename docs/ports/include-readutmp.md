@@ -179,9 +179,9 @@ $ python3 tools/extract-abi.py emacs/lib/readutmp.h
 ## Types and their fields - 2   (gl_utmp 8 fields, utmpx32 11 fields - both ticked)
 ## File-scope objects - 0
 
-$ python3 tools/extract-abi.py --check emacs/lib/readutmp.h femacs/lib/include/readutmp.rs
+$ python3 tools/extract-abi.py --check emacs/lib/readutmp.h lib/include/readutmp.rs
   (12 C macros have several definitions (configuration branches), body not compared: BOOT_TIME, END_UTMP_ENT, GET_UTMP_ENT, LOGIN_PROCESS, SET_UTMP_ENT, UTMP_FILE ...)
-OK emacs/lib/readutmp.h -> femacs/lib/include/readutmp.rs
+OK emacs/lib/readutmp.h -> lib/include/readutmp.rs
 # no `- ` problem line (`| grep -c '^- '` -> 0)
 
 $ python3 tools/check-cond-eval.py lib/readutmp.h

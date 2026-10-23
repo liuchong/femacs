@@ -27,5 +27,5 @@ compiles it instead, and that probe found three real defects that every text gat
 no clang measurement: they are literals and typedefs from the Windows SDK's own spellings.
 
 Evidence: `python3 tools/extract-abi.py --check emacs/nt/inc/sys/time.h
-femacs/nt/inc/sys/include/time.rs` -> `OK` (4 ledger item(s)).
+nt/inc/sys/include/time.rs` -> `OK` (4 ledger item(s)).
   `../spikes/f_inc_probe.rs` compiles this mirror: it is the only compiler it has.

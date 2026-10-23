@@ -128,9 +128,9 @@ $ python3 tools/extract-abi.py emacs/lib/intprops.h
 ## File-scope objects - 0
 $ python3 tools/extract-abi.py --json emacs/lib/intprops.h | …    # constants: {}   containers: []
 
-$ python3 tools/extract-abi.py --check emacs/lib/intprops.h femacs/lib/include/intprops.rs
+$ python3 tools/extract-abi.py --check emacs/lib/intprops.h lib/include/intprops.rs
   (6 C macros have several definitions (configuration branches), body not compared: TYPE_IS_INTEGER, TYPE_MAXIMUM, TYPE_MINIMUM, _GL_ADD_OVERFLOW, _GL_MULTIPLY_OVERFLOW, _GL_SUBTRACT_OVERFLOW)
-OK emacs/lib/intprops.h -> femacs/lib/include/intprops.rs
+OK emacs/lib/intprops.h -> lib/include/intprops.rs
 # no `- ` problem line (`| grep -c '^- '` -> 0)
 
 # the criterion: the control defines none of these; intprops.h's live text is this

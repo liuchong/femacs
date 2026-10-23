@@ -130,16 +130,16 @@
   the mirror's mask writers, and `BITSET_WORDS`/`SBC_MAX`/`RE_DUP_MAX` are the mirror's
   constants (the last one cast to `Idx` because C compares it with an `Idx`).
 - **Mirror additions this file needed** (five files, all reported to the main agent):
-  `femacs/lib/include/ctype.rs` gained `iscntrl`/`isgraph`/`isprint`/`ispunct`/`isxdigit`
+  `lib/include/ctype.rs` gained `iscntrl`/`isgraph`/`isprint`/`ispunct`/`isxdigit`
   (C's `<ctype.h>` names the twelve classes `build_charclass` looks up — added after
   grepping the tree: no other declaration site exists);
-  `femacs/lib/include/stdint.in.rs` gained `int_fast32_t`/`uint_fast32_t` (measured with the
+  `lib/include/stdint.in.rs` gained `int_fast32_t`/`uint_fast32_t` (measured with the
   frozen target's compiler: both 4 bytes);
-  `femacs/lib/include/limits.in.rs` gained `MB_LEN_MAX` (measured: 6, used by
+  `lib/include/limits.in.rs` gained `MB_LEN_MAX` (measured: 6, used by
   `re_compile_fastmap_iter`'s `char buf[MB_LEN_MAX]`);
-  `femacs/lib/include/regex_internal.rs` gained `PartialEq, Eq` on `re_context_type` and
+  `lib/include/regex_internal.rs` gained `PartialEq, Eq` on `re_context_type` and
   `bracket_elem_type` (C compares both with `==`; derives change no layout);
-  `femacs/lib/include/regex.rs`'s `regex.h` 210 `extern reg_syntax_t re_syntax_options`
+  `lib/include/regex.rs`'s `regex.h` 210 `extern reg_syntax_t re_syntax_options`
   moved into `pub mod regex_decls` so this unit's *definition* of the same name can stand
   (PORTING.md 0.1-10; Rust forbids an extern static and a defined static in one scope).
 - **The functions this unit calls but does not define** are `static` in the *aggregate*

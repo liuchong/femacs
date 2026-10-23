@@ -41,7 +41,7 @@ RANGE = re.compile(r"^(\d+)(?:\s*-\s*(\d+))?$")
 
 def ledger_for(target: str, refs: set[str]) -> pathlib.Path | None:
     """The ledger a port-map target uses (the rule `check-ledger-ticks.py` shares)."""
-    rel = pathlib.PurePosixPath(target).relative_to("femacs")
+    rel = pathlib.PurePosixPath(target)
     stem, base = rel.stem, rel.parent
     if base.name == "include":
         base = base.parent

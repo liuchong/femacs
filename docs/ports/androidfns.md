@@ -6,7 +6,7 @@
 > `androidfns.o` for this target and `extract-abi.py`'s checklist for the file is empty - its
 > checkbox sections cannot be coverage evidence (P-86 ②).  What follows is P-86 ②'s substitute: the
 > **C line-range table**, the `## Evidence` readings and the `## Deviations`.
-> Port: `femacs/src/androidfns.rs`, **slice 1 = C 1-1214** (1,573 Rust lines), **slice 2 = C
+> Port: `src/androidfns.rs`, **slice 1 = C 1-1214** (1,573 Rust lines), **slice 2 = C
 > 1216-1489** (1,994 Rust lines), **slice 3 = C 1490-1704** (2,225 Rust lines), **slice 4 = C
 > 1705-1800** (2,332 Rust lines), **slice 5 = C 1801-1910** (2,447 Rust lines), **slice 6 = C
 > 1911-2170** (2,757 Rust lines), **slice 7 = C 2171-2296** (2,898 Rust lines), **slice 8 = C
@@ -233,7 +233,7 @@ ratchet row(s), 0 new, 0 stale` (exit 0) and **no `androidfns` row**: 1,573 Rust
 `--write-pending`.
 
 **⑥ Inventory (`extract-abi.py --check`).**
-`python3 tools/extract-abi.py --check emacs/src/androidfns.c femacs/src/androidfns.rs` → **FAIL,
+`python3 tools/extract-abi.py --check emacs/src/androidfns.c src/androidfns.rs` → **FAIL,
 116 `- ` rows**, none of them a slice item that is missing: **110 `missing …` rows** name the
 unported remainder (C 1216-3797; 35 of them `missing defsubr`), **5 rows** are the token notes of
 Deviations 11-13 and **1 row** is `line count drifted 58.6%: C 3797 vs Rust 1573` (the slice's
@@ -377,7 +377,7 @@ four pointer sizes to 4 (that target is not in this port's gate set).
   can be verified" claim: two of the slice's C sites are unreachable under the flip's own gate set
   (Evidence ②), and the mirror's wrong *values* (Deviations 5, 8) are not exercised by a compiler.
 - C 1216-3797 is unported; nothing here speaks for those 2,583 lines.
-- Only `femacs/src/androidfns.rs` and `docs/ports/androidfns.md` were written by this lane.
+- Only `src/androidfns.rs` and `docs/ports/androidfns.md` were written by this lane.
 
 ## Slice 2 (2026-10-08, status 4.063 - the integrator sets the round number): C 1216-1489
 
@@ -421,7 +421,7 @@ were the mirror's window-system layout assertions, repaired by the mirror rounds
 `526b4670`), and the arm set that produced them is now clean.
 
 **Evidence ④ - the file's own gate (`extract-abi.py --check`).**
-`python3 tools/extract-abi.py --check emacs/src/androidfns.c femacs/src/androidfns.rs`: **111 rows ->
+`python3 tools/extract-abi.py --check emacs/src/androidfns.c src/androidfns.rs`: **111 rows ->
 94**.  The closed seventeen are **16 `missing subr`** (34 -> 18: the fifteen `DEFUN`s above and the
 monitor-attributes one) and **1 `missing function`** (24 -> 23: `android_make_monitor_attribute_list`).
 Unchanged: **35 `missing defsubr`** (the `syms_of_*` registration block, the file's last item),

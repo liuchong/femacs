@@ -346,7 +346,7 @@
   precedent).
 
 - **Mirror defects this unit found (integrator owns the file).**
-  1. **`safe_calln!` was wrong; FIXED by the integrator (status 3.69)** - `femacs/src/include/lisp.rs`: C's
+  1. **`safe_calln!` was wrong; FIXED by the integrator (status 3.69)** - `src/include/lisp.rs`: C's
      `safe_calln` is `CALLMANY (safe_funcall, ((Lisp_Object []) {__VA_ARGS__}))`
      (lisp.h 4845-4847) — a call to the error-catching `safe_funcall` you find at
      `emacs/src/eval.c:3230`.  The mirror expands to `calln!` (`CALLN! (Ffuncall, …)`)

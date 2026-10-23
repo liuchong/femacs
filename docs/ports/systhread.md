@@ -26,12 +26,12 @@
 
 ## Decisions
 
-`emacs/src/systhread.c` @ `fd7afced403`; port `femacs/src/systhread.rs` (**462 lines** after
+`emacs/src/systhread.c` @ `fd7afced403`; port `src/systhread.rs` (**462 lines** after
 status 3.491, C's 553; the live baseline the tolerance row uses is 101 lines) and the header
-mirror `femacs/src/include/systhread.rs` (**176 lines**).  The gates are
+mirror `src/include/systhread.rs` (**176 lines**).  The gates are
 `build-tu src/systhread.c` -> `built` (exit 0, an unchanged 2600-byte object with exactly the
 thirteen `_sys_*` symbols) and
-`python3 tools/extract-abi.py --check emacs/src/systhread.c femacs/src/systhread.rs`, which
+`python3 tools/extract-abi.py --check emacs/src/systhread.c src/systhread.rs`, which
 **fails on the line-count row alone** (`C 101 live (of 553) vs Rust 462`) because the
 `WINDOWSNT` arm is still owed; per the 3.434 clause-5 ruling a partially ported file gets no
 tolerance row.

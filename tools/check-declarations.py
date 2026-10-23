@@ -16,16 +16,16 @@ the worked example of the one class that *stays*.
     python3 tools/check-declarations.py --write-allowlist  # rewrite the allowlist from the tree
 
 Four classes are reported, each by `<path>\t<class>\t<count>\t<line>\t<reason>`.  Every
-ported tree is scanned - `femacs/src` and `femacs/lib` plus batch F's own programs and
+ported tree is scanned - `src` and `lib` plus batch F's own programs and
 libraries (`lib-src`, `exec`, `lwlib`, `oldXMenu`, `nt`) and its non-C platform trees
-(`femacs/platform`: the Swift/Kotlin/C++ targets of `src/*.m`, `java/`, `haiku_*.cc`);
-`femacs/xtask` is this gate's own
+(`platform`: the Swift/Kotlin/C++ targets of `src/*.m`, `java/`, `haiku_*.cc`);
+`xtask` is this gate's own
 source, scanned for the first three classes and exempt from the fourth.  What is read is
 decided by *suffix*, not by tree (`SRC_SUFFIXES`): the platform trees are Swift/Kotlin/C++
 today, and a tree named in `SCAN_DIRS` whose files the walk does not match is a tree the
 gate only *claims* to read.  The one kind whose comments are not C's is the Kept assembly
-(`femacs/exec/loader-*.s`, `docs/port-map.md`); `.s` is in `SRC_SUFFIXES` and its dialect
-leaders are `LINE_COMMENTS`/`HASH_LINE_START` below (status 3.295).  3.250 found `femacs/platform` in exactly that state - seven
+(`exec/loader-*.s`, `docs/port-map.md`); `.s` is in `SRC_SUFFIXES` and its dialect
+leaders are `LINE_COMMENTS`/`HASH_LINE_START` below (status 3.295).  3.250 found `platform` in exactly that state - seven
 `.swift` files, a `*.rs` glob that matched none of them, while those same files transcribe
 the comments of `src/*.m`, whose first twenty lines are the product-name prose this gate
 exists to keep out:
@@ -106,7 +106,7 @@ This repository's own prose is a scope of its own (status 3.340).  The walk abov
 bounded by *suffix* over the ported trees and by `DOC_DIRS` over the ledgers, so the
 documents that say what this repository *is* - the root README, the plan set, the
 translations, the manifests - were read by nobody; every run printed that bound as
-`walked past ... femacs/xtask/Cargo.toml`.  A prose file has no literals and no comments,
+`walked past ... xtask/Cargo.toml`.  A prose file has no literals and no comments,
 so the classes that bind it are `version` and `title`: naming *our own* licence is not a
 finding, but a document here may not declare this repository to be the reference product.
 
@@ -141,16 +141,16 @@ REPO = Path(__file__).resolve().parent.parent
 # Every ported tree, not just the two the first 350 units came from: batch F ports
 # programs and libraries of their own (`lib-src`, `exec`, `lwlib`, `oldXMenu`, `nt`),
 # and 3.98's `lib-src/hexl.rs` showed the omission mattered - that file recited the
-# reference block's provenance sentence and no gate read it (status 3.100).  `femacs/xtask`
+# reference block's provenance sentence and no gate read it (status 3.100).  `xtask`
 # is this gate's own source, not a port.
-SCAN_DIRS = ("femacs/src", "femacs/lib", "femacs/lib-src", "femacs/exec", "femacs/lwlib",
-             "femacs/oldXMenu", "femacs/nt", "femacs/msdos",
+SCAN_DIRS = ("src", "lib", "lib-src", "exec", "lwlib",
+             "oldXMenu", "nt", "msdos",
              # batch F's non-C platform trees (src/*.m -> Swift, java/ -> Kotlin,
              # haiku_*.cc -> C++).  They do not exist yet; naming them here is what makes
              # the rule bind the first file written into them rather than the first review.
-             "femacs/platform", "femacs/xtask")
+             "platform", "xtask")
 # What the walk reads.  Keyed on the suffix, so a tree named in SCAN_DIRS cannot be bound
-# by the *name* alone: `femacs/platform` is the Swift target of `src/*.m` and holds seven
+# by the *name* alone: `platform` is the Swift target of `src/*.m` and holds seven
 # `.swift` files and no `.rs` at all, so a `*.rs` glob read none of the tree whose comments
 # are the ones most likely to carry the reference's opening block (3.250).  `//` and
 # `/* */` are the same syntax in every language here and the scanner already models raw and
@@ -159,7 +159,7 @@ SCAN_DIRS = ("femacs/src", "femacs/lib", "femacs/lib-src", "femacs/exec", "femac
 # (a verbatim tree is not scanned at all: `tools/check-verbatim.py` owns those).
 SRC_SUFFIXES = (".rs", ".swift", ".kt", ".kts", ".java", ".cpp", ".cc", ".cxx", ".m", ".mm",
                 ".h", ".hpp", ".c", ".s", ".S")
-# The recital rule binds the ported units and mirrors; `femacs/xtask` explains the rule in
+# The recital rule binds the ported units and mirrors; `xtask` explains the rule in
 # its own comments and is outside it (a licence remark about this repository belongs in
 # docs/status.md and the ledger, never in a ported unit).
 RECITAL_TREES = SCAN_DIRS[:-1]
@@ -185,10 +185,10 @@ ALLOWLIST = REPO / "docs/baseline/declarations-allowlist.tsv"
 # the first has no suffix at all and the second is a table of this repository's own - both
 # are manifests of ours, so they are read by name rather than by a suffix that would have
 # to be invented for them.
-PROSE_FILES = ("README.md", "PORTING.md", "LICENSE", "femacs/README.md",
+PROSE_FILES = ("README.md", "PORTING.md", "LICENSE", "README.md",
                ".gitignore", "LIFETIMES.tsv",
-               "femacs/Cargo.toml", "femacs/xtask/Cargo.toml", "femacs/rust-toolchain.toml",
-               "femacs/Cargo.lock")
+               "Cargo.toml", "xtask/Cargo.toml", "rust-toolchain.toml",
+               "Cargo.lock")
 # `spikes` is here for the reason the run's own last line exists (status 3.476): the tool walk
 # binds `TOOL_SUFFIXES`, which has no `.md` and no `.lock`, so the two files the coverage line
 # had been naming as walked past - `spikes/shim/README.md` and `spikes/miri/Cargo.lock` - were
@@ -304,7 +304,7 @@ TOOL_SUFFIXES = (".py", ".sh", ".rs", ".c", ".h", ".cc", ".s", ".S", ".toml", ".
 HASH_LINE_ANYWHERE = (".py", ".sh", ".toml", ".yml", ".yaml")
 # What binds a tool: the four classes a ported unit gets, minus `recital`.  A gate or a probe
 # has to say what it enforces (`tools/check-declarations.py`'s own docstring is the largest
-# instance) and to quote C's prose it strips, which is the `femacs/xtask` shape - that tree is
+# instance) and to quote C's prose it strips, which is the `xtask` shape - that tree is
 # out of `RECITAL_TREES` for the same reason.
 TOOL_CLASSES = ("decl", "version", "title", "literal")
 # One exemption rule, by file and class: **a tool whose job is to recognise or strip the
@@ -474,7 +474,7 @@ def classify(code: str, comment: str, recital: bool = True) -> str | None:
     a statement *about this file* and is classed `decl` (the ownership block),
     `version` (the removed parenthetical) or `title` (any other product name).
     `recital` is the fourth class - a comment that talks about the licence or the
-    product-name handling instead of carrying one; it is off for `femacs/xtask`,
+    product-name handling instead of carrying one; it is off for `xtask`,
     which is the gate's own source and names the classes in prose on purpose.
     """
     if (any(p in code for p in DECL_PROSE) or any(p in code for p in PRODUCT)
@@ -509,7 +509,7 @@ def scanned_files(root: Path) -> list[tuple[str, Path]]:
 def unread_files(root: Path) -> list[str]:
     """Files under a scanned tree that the gate does not read, as `rel path` strings.
 
-    Never empty by accident: `femacs/xtask/Cargo.toml` is the standing example.  It is a
+    Never empty by accident: `xtask/Cargo.toml` is the standing example.  It is a
     reading, printed every run, because the failure mode it catches is a *silent* one -
     a tree the docstring says is scanned while every file in it is skipped.
     """
@@ -917,7 +917,7 @@ def findings(root: Path) -> list[tuple[str, str, str]]:
             # The raw line is the key, not the code half: the report has to show
             # the line a reader will open in an editor, quotes and all.
             snippet = " ".join(raw_lines[line_no].split())[:240] if line_no < len(raw_lines) else ""
-            klass = classify(k, c, recital=not rel.startswith("femacs/xtask/"))
+            klass = classify(k, c, recital=not rel.startswith("xtask/"))
             if klass:
                 out.append((rel, klass, snippet))
     for rel, path in doc_files(root):
@@ -1014,7 +1014,7 @@ SELFTEST = (
     ("declaration block reports decl, not recital", "/* Copyright (C) 2026 Free Software Foundation, Inc. */", ["decl"]),
     ("licence prose in a literal is ported semantics", 'let s = "under the terms of the GNU General Public License";', ["literal"]),
     ("emacs path is not the product", "// femacs: mirror of emacs/src/lisp.h", []),
-    # The other languages of a scanned tree - the shapes `femacs/platform` writes.  The
+    # The other languages of a scanned tree - the shapes `platform` writes.  The
     # scanner is syntax-driven (comments, `"` strings), so nothing language-specific is
     # needed; these cases exist because the *walk* decides whether they are reached at all
     # (3.250), and a case per language is what makes a walk that skips them visible.
@@ -1032,7 +1032,7 @@ SELFTEST = (
 )
 
 
-# The Kept assembly files (`femacs/exec/loader-*.s`, status 3.295): a copied block in the
+# The Kept assembly files (`exec/loader-*.s`, status 3.295): a copied block in the
 # x86/MIPS dialect and in the ARM one.  These are scanned with `suffix=".s"`, because that
 # is what decides the leaders - the same text without it is code, not a comment (which is
 # exactly the finding the two cases would report).
@@ -1142,16 +1142,16 @@ SELFTEST_BASELINE_TABLE = (
 SELFTEST_BASELINE_OWN = (
     ("a registration reason naming the product",
      "docs/baseline/verbatim-declaration-keeps.tsv",
-     "femacs/doc/emacs/abbrevs.texi\t1\t@c This is part of the Emacs manual.\t"
+     "doc/emacs/abbrevs.texi\t1\t@c This is part of the Emacs manual.\t"
      "manual-membership\tthe titles are narrative (934 `GNU Emacs` lines in `doc/`)\n",
      ["title"]),
     ("a quoted sentence in the column before it is a measured value",
      "docs/baseline/verbatim-declaration-keeps.tsv",
-     "femacs/doc/lispref/abbrevs.texi\t1\t@c This is part of the GNU Emacs Lisp Reference "
+     "doc/lispref/abbrevs.texi\t1\t@c This is part of the GNU Emacs Lisp Reference "
      "Manual.\tmanual-membership\tthe copied sentence stays\n", []),
     ("a registration reason carrying the removed version form",
      "docs/baseline/declarations-allowlist.tsv",
-     "femacs/src/x.rs\tliteral\t1\tconst P: &CStr = c" + chr(34) + "x" + chr(34) + ";\t"
+     "src/x.rs\tliteral\t1\tconst P: &CStr = c" + chr(34) + "x" + chr(34) + ";\t"
      "the row above was `// femacs: port of src/x.c @ fd7afced403 (GNU Emacs 32.0.50).`\n",
      ["version"]),
     ("a measured-value table has no reason column to read",
@@ -1347,7 +1347,7 @@ def main() -> int:
     print(f"{len(counted)} declaration sites ({decls} forbidden, {literals} allowed literals), "
           f"{failures} failures")
     # The coverage line is the gate's own bound: what it read, and what it walked past.
-    # 3.250 added it because `femacs/platform` was "scanned" by name while its seven
+    # 3.250 added it because `platform` was "scanned" by name while its seven
     # `.swift` files - the ones transcribing `src/*.m` - were read by nobody.
     spans = " ".join(f"{n} {ext}" for ext, n in sorted(by_suffix.items(), key=lambda kv: -kv[1]))
     print(f"read {len(read)} files ({spans})")
@@ -1390,7 +1390,7 @@ def main() -> int:
              if tool_left else ""))
     # The bound the walk prints last: `skip` is what the *suffix* walk passed over, and a
     # file the prose scope reads is no longer part of that hole (3.340 closed its one member,
-    # `femacs/xtask/Cargo.toml`), so the line stays printed with the count it now reads.
+    # `xtask/Cargo.toml`), so the line stays printed with the count it now reads.
     covered = ({rel for rel, _ in prose} | {rel for rel, _ in doc}
                | {rel for rel, _ in baseline_table_files(root)} | set(BASELINE_PROSE))
     sanctioned = tuple(prefix for prefix, _ in PROSE_EXEMPT)

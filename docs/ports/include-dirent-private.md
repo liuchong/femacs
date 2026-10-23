@@ -55,8 +55,8 @@
 
 ## Evidence
 
-- `python3 tools/extract-abi.py --check emacs/lib/dirent-private.h femacs/lib/include/dirent-private.rs`
-  -> `OK emacs/lib/dirent-private.h -> femacs/lib/include/dirent-private.rs` (no `- ` problem lines),
+- `python3 tools/extract-abi.py --check emacs/lib/dirent-private.h lib/include/dirent-private.rs`
+  -> `OK emacs/lib/dirent-private.h -> lib/include/dirent-private.rs` (no `- ` problem lines),
   with the recorded-counterpart line for `WIN32_LEAN_AND_MEAN` above.
 - `python3 tools/check-cond-eval.py lib/dirent-private.h` -> `2 conditions, 0 unknown to the
   evaluator, 2 disagreements`.

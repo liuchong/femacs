@@ -29,7 +29,7 @@
 > **This ledger replaces, not extends, what it said before.**  Until this revision it read "C
 > 33-853 is dead, recorded here, not transcribed" (the P-08 reading) and its gate row was the
 > `live`-basis one in `docs/ports/line-drift-tolerance.tsv` 145.  P-86 ① replaces that with
-> *transcribe the text, both arms, no stub*: the port is `femacs/src/sqlite.rs` (**1311 lines**,
+> *transcribe the text, both arms, no stub*: the port is `src/sqlite.rs` (**1311 lines**,
 > 73,499 bytes, md5 `ba31bdb4a3b52241987f50b1985df81e`), carrying **C 1-933** - the reference's
 > every line - with **both arms of every `#if`**.  What the earlier note *measured* (an empty live
 > checklist, the four `#else`-only live bodies) is unchanged and still true; it is the
@@ -77,7 +77,7 @@ Eight names are new and are Owed 1: `have_sqlite3`, `have_sqlite3_load_extension
   C 858-933 unbuildable in the frozen configuration - which is exactly what `build-tu` measures -
   and C's own text has both of them *outside* C 31's `#ifdef` as well (Deviation 1).
 - **`<sqlite3.h>` is stated in the unit** (P-88 ①): the declaration site is C 33's `#include`
-  line, no file is added under `femacs/src/include/`, and every type, constant and prototype
+  line, no file is added under `src/include/`, and every type, constant and prototype
   carries the header line it comes from.  The header **is** on this machine, so nothing here is
   guessed: the two opaque pointers, `sqlite3_int64` and all eighteen constants were measured with
   clang against `/opt/homebrew/opt/sqlite/include/sqlite3.h` (SQLite 3.53.4, `SQLITE_VERSION_NUMBER`
@@ -219,7 +219,7 @@ they cannot change this reading, and the frozen object was re-measured byte-iden
 restored from a copy and re-checked by md5 (the copy was taken before the mutation).  So the include graph is not the abort class P-86 ⑦ warns about: the
 flip reaches this unit's text and reports on it.
 
-⑥ **`python3 tools/extract-abi.py --check emacs/src/sqlite.c femacs/src/sqlite.rs` -> `FAIL`**,
+⑥ **`python3 tools/extract-abi.py --check emacs/src/sqlite.c src/sqlite.rs` -> `FAIL`**,
 with exactly **one** problem line and no other:
 
     - line count drifted 1602.6%: C 77 live (of 933) vs Rust 1311
@@ -246,7 +246,7 @@ is in the report's section ③.
 this unit**: the two mirror-name citations (`coding.h` 693-694, `<strings.h>` 81) and the
 twenty-eight `<sqlite3.h>` cites resolve as external (the header is not in the tree) or are quoted
 in full, and every `// C nn:` citation in the unit was taken from `emacs/src/sqlite.c` itself.  A
-re-run at the end of the lane, with another lane's in-flight `femacs/src/gnutls.rs` in the tree,
+re-run at the end of the lane, with another lane's in-flight `src/gnutls.rs` in the tree,
 reads `1 drift, 51 range, 730 external` - **every one of those 52 findings is in that other file**
 (its new `gnutls.h` cites resolve to the 100-line `emacs/src/gnutls.h`), and this unit still
 contributes none.
@@ -317,7 +317,7 @@ shape `src/sound.rs` 60 uses, and the class is what the gate exists to find.
 
 ## Owed by the integrator (status per item; nothing here is claimed as done until marked)
 
-1. **`femacs/xtask/Cargo.toml`'s feature registration** for the eight new names:
+1. **`xtask/Cargo.toml`'s feature registration** for the eight new names:
    `have_sqlite3` (HAVE_SQLITE3), `have_sqlite3_load_extension` (HAVE_SQLITE3_LOAD_EXTENSION),
    `sqlite3_dbconfig_enable_load_extension` (`<sqlite3.h>`'s SQLITE_DBCONFIG_ENABLE_LOAD_EXTENSION),
    `sqlite_version_number_ge_3007015` / `sqlite_version_number_ge_3006005` (SQLITE_VERSION_NUMBER),
@@ -325,7 +325,7 @@ shape `src/sound.rs` 60 uses, and the class is what the gate exists to find.
    `windowsnt` is already there.  Until they land, a Cargo-driven build cannot pass
    `--cfg feature="have_sqlite3"` and `unexpected_cfgs` will warn; the readings above used
    `rustc --cfg` directly, which needs no registration.  **DONE (status 3.487, integrator):** the eight
-   names are in `femacs/xtask/Cargo.toml`'s `[features]` table at their alphabetical positions, each
+   names are in `xtask/Cargo.toml`'s `[features]` table at their alphabetical positions, each
    carrying its C judgement line (`have_sqlite3` cites macros.tsv 1551 = undef), and
    `python3 tools/feature-coverage.py --write` now lists all eight.
 2. **`docs/ports/line-drift-tolerance.tsv`'s row for `sqlite`.**  The old row (145) is the
@@ -334,7 +334,7 @@ shape `src/sound.rs` 60 uses, and the class is what the gate exists to find.
    the old row stays (append-only, the newest governs).  Until then `extract-abi --check` FAILs
    with that one line (Evidence ⑥).  **DONE (status 3.487, integrator):** the `total`/`0.41` row is
    appended (row 145's `live` row stays - append-only, newest governs), and
-   `extract-abi --check emacs/src/sqlite.c femacs/src/sqlite.rs` is now **OK with zero `-` rows**.
+   `extract-abi --check emacs/src/sqlite.c src/sqlite.rs` is now **OK with zero `-` rows**.
 3. **`docs/baseline/port-lines-pending.tsv`'s `src/sqlite.c` row** must leave the pending list via
    `python3 tools/check-port-lines.py --write-pending`; that file is outside this lane's write set.
    **DONE / no-op (status 3.487, integrator):** `src/sqlite.c` was never on that list - its target
@@ -348,7 +348,7 @@ shape `src/sound.rs` 60 uses, and the class is what the gate exists to find.
    contains no code `goto` (its five `goto` tokens are all inside `// C …: \`goto exit;\``
    comments), so the `goto` token class that gave `src/androidmenu.c` and `src/sfnt.c` rows is not
    reached here.  **NO ACTION NEEDED.**
-5. **The mirror gaps this file names**: `encode_string_utf_8` belongs in `femacs/src/include/coding.rs`
+5. **The mirror gaps this file names**: `encode_string_utf_8` belongs in `src/include/coding.rs`
    (its `coding.h` 693-694 declaration), and `strcasecmp` needs whatever mirror the tree picks for
    `<strings.h>` - three units declare it in-unit today (`src/term.rs` 209, `src/sysdep.rs` 731, this
    one), so that is a mirror round rather than a one-file edit (P-88's move-back shape).

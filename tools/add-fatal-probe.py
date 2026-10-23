@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Insert (or remove) a probe at the top of `terminate_due_to_signal` in femacs/src/emacs.rs.
+"""Insert (or remove) a probe at the top of `terminate_due_to_signal` in src/emacs.rs.
 
 4.831's device runs die with SIGSEGV and *no* output at all.  C's fatal path explains why that is
 possible: `terminate_due_to_signal` runs `shut_down_emacs` (which runs Lisp) *before* it calls
@@ -15,7 +15,7 @@ shutdown and never reach the backtrace.  This probe takes the backtrace first:
 import pathlib
 import sys
 
-SRC = pathlib.Path (__file__).resolve ().parent.parent / "femacs/src/emacs.rs"
+SRC = pathlib.Path (__file__).resolve ().parent.parent / "src/emacs.rs"
 
 HELPER = '''/* TEMPORARY fatal-path probe (tools/add-fatal-probe.py).  */
 unsafe fn fp_probe (sig: c_int)

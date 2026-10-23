@@ -31,7 +31,7 @@ no probe compiles it; the text gate is the whole acceptance (docs/status.md 3.31
    a static of the `Option<unsafe extern "C" fn ...>` type `lwlib-int.rs` declares (P-27).
 
 Evidence: `python3 tools/extract-abi.py --check emacs/lwlib/lwlib-Xlw.h
-femacs/lwlib/include/lwlib-Xlw.rs` -> `OK` (3 ledger item(s)).
+lwlib/include/lwlib-Xlw.rs` -> `OK` (3 ledger item(s)).
 
 ### status 3.500 (the mirror change this file took)
 

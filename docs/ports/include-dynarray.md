@@ -22,7 +22,7 @@
 # ----------------------------------------------------------------------
 ## Decisions
 
-`emacs/lib/dynarray.h` @ `fd7afced403`; port `femacs/lib/include/dynarray.rs`.  This is the
+`emacs/lib/dynarray.h` @ `fd7afced403`; port `lib/include/dynarray.rs`.  This is the
 gnulib wrapper.  Its two readings and what the frozen build does with them:
 
 - `#if defined DYNARRAY_STRUCT || defined DYNARRAY_ELEMENT || defined DYNARRAY_PREFIX`
@@ -32,8 +32,8 @@ gnulib wrapper.  Its two readings and what the frozen build does with them:
   wrapper through `regex_internal.h` 35 with none of the three names defined
   (`build/emacs-ref/lib/deps/regex.d` lists `emacs/lib/dynarray.h` then
   `emacs/lib/malloc/dynarray.h`, never a `.gl.h`).  The arm's two generated includes are
-  therefore represented by `femacs/lib/malloc/dynarray-skeleton.rs` (the template as a
-  `macro_rules!`) and its one instantiation in `femacs/lib/regexec.rs`; this mirror keeps the
+  therefore represented by `lib/malloc/dynarray-skeleton.rs` (the template as a
+  `macro_rules!`) and its one instantiation in `lib/regexec.rs`; this mirror keeps the
   `_GL_LIKELY`/`_GL_UNLIKELY` text that precedes them.
 - `#else` (C 279-281): `#include <malloc/dynarray.h>`, the reading every
   `lib/malloc/dynarray_*.c` takes and the one this mirror's `include!` spells.
@@ -55,7 +55,7 @@ gnulib wrapper.  Its two readings and what the frozen build does with them:
 
 - `cd femacs && CARGO_TARGET_DIR=/tmp/femacs-target-dyn cargo run -q -p xtask -- build-tu
   lib/dynarray.h` -> `built lib/include/dynarray.rs -> ../build/femacs/include_dynarray.o`.
-- `python3 tools/extract-abi.py --check emacs/lib/dynarray.h femacs/lib/include/dynarray.rs`
+- `python3 tools/extract-abi.py --check emacs/lib/dynarray.h lib/include/dynarray.rs`
   -> `OK` (8 macros, 0 functions, 0 types).
 - manual `rustc --edition 2024 --crate-type=lib --emit=metadata ... units/dynarray/_root.rs`
   (this mirror's materialized root) -> exit 0.

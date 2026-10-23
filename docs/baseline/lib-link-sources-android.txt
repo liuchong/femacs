@@ -8,7 +8,7 @@
 #   * `lib/mini-gmp.c` is listed alongside its includer `lib/mini-gmp-gnulib.c`.  C compiles the
 #     wrapper - `#include "mini-gmp.c"` under gnulib's allocator bindings - into one object
 #     (`nxm -g build/emacs-ref/lib/mini-gmp-gnulib.o` prints 127 `T _mpz_*`), while the port keeps
-#     the includer an empty unit and the definitions in `femacs/lib/mini-gmp.rs`
+#     the includer an empty unit and the definitions in `lib/mini-gmp.rs`
 #     (tools/check-symbols.py's `ALIASES`, tools/check-link.py 22-23).  Without the includee the
 #     Android link left all 59 `mpz_*` imports unresolved (status 4.708).
 #

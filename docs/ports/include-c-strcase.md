@@ -34,7 +34,7 @@
   attribute (PORTING.md 8; `attribute.rs` 303 already carries the name as a no-op for the
   definitions that keep C's token), so the mirror does not `include!` `attribute.rs` for it.
 - **The two consumers are wired**, which is also the mirror's compile evidence:
-  `femacs/lib/c-strcasecmp.rs` and `femacs/lib/c-strncasecmp.rs` now `include!` it, with their
+  `lib/c-strcasecmp.rs` and `lib/c-strncasecmp.rs` now `include!` it, with their
   own definitions shadowing the mirror's declarations (PORTING.md 0.1-10) - their `--check`s and
   `check-mirror-dupes` are unchanged (Evidence).
 - No shared-table row is needed: `--check` compares the guard's presence and the declarations are
@@ -43,11 +43,11 @@
 ## Evidence
 
 ```
-$ python3 tools/extract-abi.py --check emacs/lib/c-strcase.h femacs/lib/include/c-strcase.rs
-OK emacs/lib/c-strcase.h -> femacs/lib/include/c-strcase.rs
+$ python3 tools/extract-abi.py --check emacs/lib/c-strcase.h lib/include/c-strcase.rs
+OK emacs/lib/c-strcase.h -> lib/include/c-strcase.rs
 
 # the negative control (the guard is the only inventoried item)
-$ grep -v "C_STRCASE_H" femacs/lib/include/c-strcase.rs > /tmp/gt-neg2/n4.rs
+$ grep -v "C_STRCASE_H" lib/include/c-strcase.rs > /tmp/gt-neg2/n4.rs
 $ python3 tools/extract-abi.py --check emacs/lib/c-strcase.h /tmp/gt-neg2/n4.rs
 - missing macro C_STRCASE_H
 FAIL emacs/lib/c-strcase.h -> /tmp/gt-neg2/n4.rs
@@ -57,10 +57,10 @@ $ cd femacs && CARGO_TARGET_DIR=/tmp/femacs-target-gt cargo run -q -p xtask -- b
 built lib/c-strcasecmp.rs -> ../build/femacs/c-strcasecmp.o
 $ cd femacs && CARGO_TARGET_DIR=/tmp/femacs-target-gt cargo run -q -p xtask -- build-tu lib/c-strncasecmp.c
 built lib/c-strncasecmp.rs -> ../build/femacs/c-strncasecmp.o
-$ python3 tools/extract-abi.py --check emacs/lib/c-strcasecmp.c femacs/lib/c-strcasecmp.rs
-OK emacs/lib/c-strcasecmp.c -> femacs/lib/c-strcasecmp.rs
-$ python3 tools/extract-abi.py --check emacs/lib/c-strncasecmp.c femacs/lib/c-strncasecmp.rs
-OK emacs/lib/c-strncasecmp.c -> femacs/lib/c-strncasecmp.rs
+$ python3 tools/extract-abi.py --check emacs/lib/c-strcasecmp.c lib/c-strcasecmp.rs
+OK emacs/lib/c-strcasecmp.c -> lib/c-strcasecmp.rs
+$ python3 tools/extract-abi.py --check emacs/lib/c-strncasecmp.c lib/c-strncasecmp.rs
+OK emacs/lib/c-strncasecmp.c -> lib/c-strncasecmp.rs
 $ python3 tools/check-mirror-dupes.py
 1 duplicate declaration(s), 1 ratchet row(s), 0 failure(s)
 $ rg -n '#include "c-strcase.h"' emacs/lib

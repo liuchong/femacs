@@ -38,5 +38,5 @@ derivation - and no `src/` unit includes one), so `xtask layout-check`,
 which compiles the `src/include` and `lib/include` mirrors, does not reach it; in a MinGW build
 `nt/inc` is on the include path instead.
 Evidence: `python3 tools/extract-abi.py --check emacs/nt/inc/stdalign.h
-femacs/nt/inc/include/stdalign.rs` -> `OK` (with the expected notes that `alignas` already has an
+nt/inc/include/stdalign.rs` -> `OK` (with the expected notes that `alignas` already has an
 exclusion row and `_Alignof` is defined twice).

@@ -68,23 +68,23 @@ unsafe fn asset_probe_s (tag: *const core::ffi::c_char, s: *const core::ffi::c_c
 
 EDITS = [
     # 1. the asset's reported length
-    ("femacs/src/androidvfs.rs", "unsafe fn android_hack_asset_fd (asset: *mut AAsset) -> c_int",
+    ("src/androidvfs.rs", "unsafe fn android_hack_asset_fd (asset: *mut AAsset) -> c_int",
      "  size = AAsset_getLength (asset) as size_t;                            // C 1494",
      "  size = AAsset_getLength (asset) as size_t;                            // C 1494\n"
      "  asset_probe (c\"asset-size\".as_ptr () as *const core::ffi::c_char, size as isize);"),
     # 2. which half of the function runs
-    ("femacs/src/androidvfs.rs", "unsafe fn android_hack_asset_fd (asset: *mut AAsset) -> c_int",
+    ("src/androidvfs.rs", "unsafe fn android_hack_asset_fd (asset: *mut AAsset) -> c_int",
      "  if !ashmem_readable_p",
      "  asset_probe (c\"ashmem-readable\".as_ptr () as *const core::ffi::c_char,\n"
      "	       ashmem_readable_p as isize);\n"
      "  if !ashmem_readable_p"),
     # 3. the descriptor the API > 28 path obtained
-    ("femacs/src/androidvfs.rs", "unsafe fn android_hack_asset_fd (asset: *mut AAsset) -> c_int",
+    ("src/androidvfs.rs", "unsafe fn android_hack_asset_fd (asset: *mut AAsset) -> c_int",
      "  fd = (asharedmemory_create.unwrap ()) (c\"\".as_ptr (), size);           // C 1578",
      "  fd = (asharedmemory_create.unwrap ()) (c\"\".as_ptr (), size);           // C 1578\n"
      "  asset_probe (c\"ashared-fd\".as_ptr () as *const core::ffi::c_char, fd as isize);"),
     # 4. what `insert-file-contents` measured for the file it is about to read
-    ("femacs/src/fileio.rs", "DEFUN! (\"insert-file-contents\", Finsert_file_contents, Sinsert_file_contents,",
+    ("src/fileio.rs", "DEFUN! (\"insert-file-contents\", Finsert_file_contents, Sinsert_file_contents,",
      "	    st_size = st.st_size;",
      "	    st_size = st.st_size;\n"
      "	    asset_probe_s (c\"insert\".as_ptr () as *const core::ffi::c_char,\n"
@@ -106,7 +106,7 @@ def insert_above_attributes(text, anchor, block):
 
 def main():
     if "--remove" in sys.argv:
-        for rel in ("femacs/src/androidvfs.rs", "femacs/src/fileio.rs"):
+        for rel in ("src/androidvfs.rs", "src/fileio.rs"):
             p = ROOT / rel
             b = BAK / p.name
             if b.is_file():

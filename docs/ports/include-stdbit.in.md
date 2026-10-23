@@ -282,7 +282,7 @@
   `1433:/* #undef HAVE_STDBIT_H */`, and `docs/baseline/config/darwin-arm64.macros.tsv` records the
   same `undef`.  So the system has no `<stdbit.h>` and gnulib's header defines the whole C23 API
   itself (its C 40-46 `#if 0` block around the `# include_next` is the dead arm).  **A correction
-  for the record**: `femacs/lib/include/stdbit.rs` 3 said "the frozen configuration has
+  for the record**: `lib/include/stdbit.rs` 3 said "the frozen configuration has
   HAVE_STDBIT_H = 1" - inverted; both sources say `undef` (the integrator fixed that sentence in
   the file).  Its *slice* was still right (it mirrors the live builtin arms), but the sentence was
   not, and `stdbit.rs` is unpaired in the inventory, so no gate ever read it.
@@ -377,7 +377,7 @@
 - **`--check` with the eight requested rows (the closure verdict)**:
   `python3 tools/extract-abi.py --check --excluded /tmp/abip/tab/excluded-macros.txt
   --macro-notes /tmp/abip/tab/macro-body-notes.tsv emacs/lib/stdbit.in.h
-  femacs/lib/include/stdbit.in.rs` -> `OK emacs/lib/stdbit.in.h -> femacs/lib/include/stdbit.in.rs`
+  lib/include/stdbit.in.rs` -> `OK emacs/lib/stdbit.in.h -> lib/include/stdbit.in.rs`
   and `grep -c '^- '` -> `0`.  With the tree's unmodified tables the same command reports exactly 8
   lines: `- missing function __popcnt64`, `- missing function _gl_stdbit_popcount_supported`,
   `- missing function _gl_stdbit_popcount_wide`, `- function stdc_bit_floor_ull does not mention

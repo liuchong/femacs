@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Triage reading: capitalized names a unit's code uses that no item in `femacs/` defines.
+"""Triage reading: capitalized names a unit's code uses that no item in `` defines.
 
 Why this exists (docs/ports/w32fns.md, slice 8's Evidence): the `have_ntgui` arm probe is not a
 name-resolution reading for `DEFUN!` bodies.  Measured 2026-10-14: a deliberately injected
@@ -11,13 +11,13 @@ body are present.  Two real defects came out of that gap and are now fixed:
     nowhere (slice 8);
   * `validate_x_resource_name` - called since slice 6, declared nowhere (slice 10).
 
-    python3 tools/check-unit-names.py femacs/src/w32fns.rs 10836 11019 [NAME ...]
+    python3 tools/check-unit-names.py src/w32fns.rs 10836 11019 [NAME ...]
 
 The two trailing numbers are the 1-based line range to read; any further arguments are names to
 skip (locals whose spelling looks capitalized, macro-generated subr statics, ...).  What it does:
 strip comments and string literals, drop field accesses and macro invocation names, then require
 an item (`fn`/`const`/`static`/`struct`/`type`/`enum`/`union`/`macro_rules!`) of that name anywhere
-under `femacs/`.
+under ``.
 
 Extended measurement (w32fns slice 36, 2026-10-14): the gap is not limited to `DEFUN!` bodies or to
 values.  Four deliberate injections into `src/w32fns.rs`'s `load_unicows_dll_for_w32fns`, read with
@@ -105,7 +105,7 @@ def main() -> int:
     names = sorted({m for m in re.findall(r"\b[A-Z][A-Za-z0-9_]*\b", code)})
 
     corpus = [p.read_text(encoding="utf-8", errors="ignore")
-              for p in pathlib.Path("femacs").rglob("*.rs")]
+              for tree in ('src','lib','lib-src','lwlib','oldXMenu','nt','msdos','exec','platform','xtask') for p in pathlib.Path(tree).rglob("*.rs")]
     missing = [n for n in names
                if n not in skip and not any(item_pattern(n).search(c) for c in corpus)]
     print(f"region {path}:{start + 1}-{end}: {len(names)} capitalized identifiers, "

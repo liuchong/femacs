@@ -132,7 +132,7 @@ def main() -> int:
     # Recursive for the same reason check-globals.py is: `lib/malloc/` is a ported
     # subdirectory now, and a single-level glob left its three units out of the symbol
     # comparison entirely (status 3.121).  `include` is the mirror directory, never a unit.
-    femacs_dir = f"{ROOT}/femacs/{a.dir}"
+    femacs_dir = f"{ROOT}/{a.dir}"
     for rs in sorted(path for path in glob.glob(f"{femacs_dir}/**/*.rs", recursive=True)
                      if "include" not in os.path.relpath(path, femacs_dir).split(os.sep)):
         # The reference object keeps the reference's own directory (`lib/malloc/x.o`), which

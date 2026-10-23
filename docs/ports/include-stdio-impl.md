@@ -46,7 +46,7 @@
 
 ## Decisions
 
-`emacs/lib/stdio-impl.h` @ `fd7afced403`; port `femacs/lib/include/stdio-impl.rs`
+`emacs/lib/stdio-impl.h` @ `fd7afced403`; port `lib/include/stdio-impl.rs`
 (251 lines).  Every checklist item is ticked and `extract-abi.py --check` reports `OK` for the
 pair with no row needed in `docs/ports/excluded-macros.txt`.
 
@@ -94,10 +94,10 @@ the measured fields).
 ## Evidence
 
 ```
-$ python3 tools/extract-abi.py --check emacs/lib/stdio-impl.h femacs/lib/include/stdio-impl.rs
+$ python3 tools/extract-abi.py --check emacs/lib/stdio-impl.h lib/include/stdio-impl.rs
   (10 C macros have several definitions (configuration branches), body not compared:
    _IOERR, _IOREAD, _IORW, _IOWRT, _IO_IN_BACKUP, _IO_UNBUFFERED ...)
-OK emacs/lib/stdio-impl.h -> femacs/lib/include/stdio-impl.rs
+OK emacs/lib/stdio-impl.h -> lib/include/stdio-impl.rs
 
 $ cd /tmp/femacs-target-mir3 && rustc --edition 2024 --crate-type=lib --emit=obj -C panic=abort \
     stdio_probe.rs -o stdio_probe.o
@@ -107,9 +107,9 @@ rustc exit=0   # the probe asserts size_of::<__sFILE>() == 152, the `_bf` offset
 $ cd femacs && CARGO_TARGET_DIR=/tmp/femacs-target-mir3 cargo run -q -p xtask -- build-tu <unit.c>
 built lib/fpending.rs      built lib/fseterr.rs            # both exit 0, both consumers
 
-$ python3 tools/extract-abi.py --check emacs/lib/fpending.c femacs/lib/fpending.rs
-OK emacs/lib/fpending.c -> femacs/lib/fpending.rs
-OK emacs/lib/fseterr.c -> femacs/lib/fseterr.rs
+$ python3 tools/extract-abi.py --check emacs/lib/fpending.c lib/fpending.rs
+OK emacs/lib/fpending.c -> lib/fpending.rs
+OK emacs/lib/fseterr.c -> lib/fseterr.rs
 
 $ python3 tools/check-mirror-dupes.py
 1 duplicate declaration(s), 1 ratchet row(s), 0 failure(s)

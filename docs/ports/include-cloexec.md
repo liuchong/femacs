@@ -13,6 +13,6 @@
 
 ## Decisions
 
-`emacs/lib/cloexec.h` @ `fd7afced403`; port `femacs/lib/include/cloexec.rs`.  The header is the
-two prototypes (`set_cloexec_flag`, `dup_cloexec`) and their comments; `femacs/lib/cloexec.rs`
+`emacs/lib/cloexec.h` @ `fd7afced403`; port `lib/include/cloexec.rs`.  The header is the
+two prototypes (`set_cloexec_flag`, `dup_cloexec`) and their comments; `lib/cloexec.rs`
 defines both.  The `extern "C"` wrapper C 17-19/37-39 spells is a no-op in Rust.

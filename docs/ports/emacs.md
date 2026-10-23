@@ -264,12 +264,12 @@ call the reference does not make: the other Rust-only identifiers in the bodies 
 
 ## 2026-10-04: the sysstdio.rs item above is done
 
-`femacs/src/include/sysstdio.rs` landed, and this unit now includes it where C does (C 35's
+`src/include/sysstdio.rs` landed, and this unit now includes it where C does (C 35's
 `#include "sysstdio.h"`, replacing the flattening to `../lib/include/stdio.rs`), so the
 use-site declaration of `close_output_streams` (with its `/// C: sysstdio.h 33:` line) is gone:
 the name comes from the mirror's `sysstdio_decls` glob import, and src/sysdep.c's definition
 (ported) is what the atexit call reaches.  Evidence: `build-tu src/emacs.c` -> `built`;
-`extract-abi --check emacs/src/emacs.c femacs/src/emacs.rs` -> `OK`; `rustc --cfg
+`extract-abi --check emacs/src/emacs.c src/emacs.rs` -> `OK`; `rustc --cfg
 enable_checking` exit 0; `check-mirror-dupes` 0 failures.
 
 ## 2026-10-04: printf and the exit codes come from the mirrors

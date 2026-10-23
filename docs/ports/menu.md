@@ -45,10 +45,10 @@
 
 ## Decisions
 
-`emacs/src/menu.c` @ `fd7afced403`; port `femacs/src/menu.rs` (1209 lines vs C's 1638, of which
+`emacs/src/menu.c` @ `fd7afced403`; port `src/menu.rs` (1209 lines vs C's 1638, of which
 **1072** are live - the 12.9% drift is declared in `docs/ports/line-drift-tolerance.tsv` with
 the `live` basis, because this port records the dead region instead of carrying it).  The gates
-are `python3 tools/extract-abi.py --check emacs/src/menu.c femacs/src/menu.rs` -> `OK` and
+are `python3 tools/extract-abi.py --check emacs/src/menu.c src/menu.rs` -> `OK` and
 `build-tu src/menu.c` -> `built`; the two token rows this port needs
 (`have_boxes`' `0`, `syms_of_menu`'s `doc`) are in `docs/ports/macro-body-notes.tsv`.
 
@@ -72,7 +72,7 @@ too.  567 of C's 1638 lines are dead; each region is named here instead:
 - C 566-873: the `widget_value` tree - `make_widget_value` (571),
   `free_menubar_widget_value_tree` (593), `digest_single_submenu` (619) and
   `update_submenu_strings` (846) - which needs lwlib-widget.h's `widget_value` (no mirror; see
-  `femacs/src/include/menu.rs`).  C 694/781's `#elif !defined (HAVE_MULTILINGUAL_MENU)` arms
+  `src/include/menu.rs`).  C 694/781's `#elif !defined (HAVE_MULTILINGUAL_MENU)` arms
   are inside it.
 - C 875-964: `find_and_call_menu_selection` (884), the same guard plus `HAVE_HAIKU`.
 - C 967-1031: `find_and_return_menu_selection` (971), `#ifdef HAVE_NS`.
@@ -152,11 +152,11 @@ declares come from the mirrors instead (see the next item).
    committed one - the change moves no other file's verdicts (it can only turn an `unknown`
    into a decided one, and only for a condition whose logical line holds an unterminated
    `/*`).  `src/menu.c` is added to that list.
-2. `femacs/src/include/keyboard.rs`: keyboard.h 344-358's five `menu_items*` objects are
+2. `src/include/keyboard.rs`: keyboard.h 344-358's five `menu_items*` objects are
    `src/menu.c`'s own definitions, so they moved into `pub mod keyboard_objs` + glob import
    (the globals.rs `variables` shape, PORTING.md 0.1-10/P-21) - otherwise this unit's
    `#[unsafe(no_mangle)] pub static mut` definitions collide with the mirror's declarations
-   (E0428).  `--check emacs/src/keyboard.h femacs/src/include/keyboard.rs` is still `OK`.
+   (E0428).  `--check emacs/src/keyboard.h src/include/keyboard.rs` is still `OK`.
 
 ### Integrator addition (2026-10-04, window.h's geometry family)
 

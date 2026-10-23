@@ -73,7 +73,7 @@
   (`INT_MAX`), `minmax.rs` (`MIN`), `unistd.in.rs` (`SEEK_SET`/`SEEK_CUR`/`SEEK_END`) and
   `sys_types.in.rs` (`off_t`).
 - **`ESPIPE` is declared here, not in `errno.rs`.**  C 520 writes `errno = ESPIPE`; the port's
-  `<errno.h>` slice (`femacs/lib/include/errno.rs`) carries the other errno values this file names
+  `<errno.h>` slice (`lib/include/errno.rs`) carries the other errno values this file names
   but not that one, so the includer supplies it with the frozen target's number (the SDK's
   `sys/errno.h`: `#define ESPIPE 29`).  If `errno.rs` grows the constant this line is the one that
   goes - it is recorded here so the two do not become an `E0428`.
@@ -90,7 +90,7 @@
   unit (docs/status.md 3.31) and `xtask layout-check`'s single crate also cannot hold this mirror
   beside the platform-exclusive ones.  `spikes/android_asset_probe.rs` compiles it in one flat
   namespace with `config.rs`, `lisp.rs` and its own `include!` closure, the shape
-  `spikes/f_inc_probe.rs` gave `femacs/nt/inc` (docs/status.md 3.102).
+  `spikes/f_inc_probe.rs` gave `nt/inc` (docs/status.md 3.102).
 - **The probe's closure needs no extra mirror beyond the unit's own headers**: `lisp.rs` includes
   `comp.rs` (C's `lisp.h` 2168 `#include "comp.h"`), and `comp.rs` includes `dynlib.rs` (C's
   `comp.h` 23 `#include <dynlib.h>`), which is where `Lisp_Native_Comp_Unit`'s `dynlib_handle_ptr`
@@ -101,8 +101,8 @@
 
 ## Evidence
 
-- `python3 tools/extract-abi.py --check emacs/src/android-asset.h femacs/src/include/android-asset.rs`
-  -> `OK emacs/src/android-asset.h -> femacs/src/include/android-asset.rs` (no `- ` problem lines).
+- `python3 tools/extract-abi.py --check emacs/src/android-asset.h src/include/android-asset.rs`
+  -> `OK emacs/src/android-asset.h -> src/include/android-asset.rs` (no `- ` problem lines).
 - `python3 tools/check-cond-eval.py src/android-asset.h` ->
   `src/android-asset.h: 0 conditions, 0 unknown, 0 disagreements [VERIFIED]`.
 - Compile proof: `cd femacs && CARGO_TARGET_DIR=/tmp/femacs-target-mir-asset cargo run -q -p xtask --

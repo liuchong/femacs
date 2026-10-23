@@ -1,7 +1,7 @@
 """Layered real-input acceptance; run only inside controlled-run runtime protection.
 
 Each terminal case starts an isolated real editor PTY, records command/point/text and
-compares the same input with the fixed reference. GUI cases require the actual app
+optionally compares the same input with an explicitly supplied reference. GUI cases require the actual app
 and the native event sender (Accessibility permission). A missing GUI is a failure,
 never a skip disguised as success. No production key rebinding or weakened tests.
 """
@@ -371,7 +371,7 @@ def terminal_file_workflow(binary, work):
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--binary',type=Path,default=ROOT/'build/port/src/emacs')
-    parser.add_argument('--reference',type=Path,default=ROOT/'build/emacs-ref/src/emacs')
+    parser.add_argument('--reference',type=Path,help='optional differential comparator; omitted for standalone acceptance')
     parser.add_argument('--out',type=Path,default=ROOT/'build/macos-acceptance')
     parser.add_argument('--case',action='append')
     parser.add_argument('--file-workflow',action='store_true')
@@ -392,15 +392,15 @@ def main():
         (args.out/'results.json').write_text(json.dumps(rows,ensure_ascii=False,indent=2)+'\n')
         return 0 if all(row['passed'] for row in rows) else 1
     if args.file_workflow:
-        for label,binary in [('reference',args.reference.resolve()),('port',args.binary.resolve())]:
+        for label,binary in ([('reference',args.reference.resolve())] if args.reference else [])+[('port',args.binary.resolve())]:
             row=terminal_file_workflow(binary,args.out/'file-workflow'/label)
             rows.append(dict(role=label,**row));print(label,row,flush=True)
     for case in cases:
         pair={}
-        for label,binary in [('reference',args.reference.resolve()),('port',args.binary.resolve())]:
+        for label,binary in ([('reference',args.reference.resolve())] if args.reference else [])+[('port',args.binary.resolve())]:
             row=terminal_case(binary,*case,args.out/case[0]/label);rows.append(dict(role=label,**row));pair[label]=row
             print(label,case[0],'PASS' if row['passed'] else 'FAIL',row.get('actual'),flush=True)
-        if pair['port'].get('actual')!=pair['reference'].get('actual'):
+        if args.reference and pair['port'].get('actual')!=pair['reference'].get('actual'):
             rows.append({'id':case[0]+'-differential','passed':False,'reason':'command/point/text/keys differ'})
     (args.out/'results.json').write_text(json.dumps(rows,ensure_ascii=False,indent=2)+'\n')
     return 0 if all(row['passed'] for row in rows) else 1

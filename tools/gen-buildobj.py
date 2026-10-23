@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Write `femacs/src/include/buildobj.rs` from the frozen build's `src/buildobj.h`.
+"""Write `src/include/buildobj.rs` from the frozen build's `src/buildobj.h`.
 
 `src/Makefile.in` 673-678 generates that header from `$(ALLOBJS)`, one quoted `name.o`
 per object file.  `src/doc.c`'s `Fsnarf_documentation` is the only C code that includes
@@ -20,7 +20,7 @@ from pathlib import Path
 
 REPO = Path(__file__).resolve().parent.parent
 HEADER = REPO / "build/emacs-ref/src/buildobj.h"
-OUTPUT = REPO / "femacs/src/include/buildobj.rs"
+OUTPUT = REPO / "src/include/buildobj.rs"
 
 HEAD = """// femacs: generated mirror of the frozen build's `src/buildobj.h` (PORTING.md 0.1, the
 // `config.rs` precedent: a generated header lives in `src/include/`).

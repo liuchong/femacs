@@ -190,7 +190,7 @@ the rows in `docs/baseline/swift-units.tsv`.
       `NSUInteger` the lane rule requires); the 256-byte `row_nkeys_or_perm` is a 256-element
       tuple, indexed through `row_nkeys_or_perm_at`/`set_row_nkeys_or_perm`
 - [x] glyph_string (src/dispextern.h 1362-1507) -> `struct glyph_string`.  The owner mirror is
-      `femacs/src/include/dispextern.rs` 1366 (behind `feature = "have_window_system"`, rc
+      `src/include/dispextern.rs` 1366 (behind `feature = "have_window_system"`, rc
       3.183) but is not layout-asserted there, so this lane measured the windowed form itself:
       `sizeof` **272**, align 8, and the 27 offsets of `## Evidence`; the eight-bit run at 120
       is one `UInt8` with `padding_p`/`for_overlaps` accessors (measured bit positions), and
@@ -656,7 +656,7 @@ over), `staticpro` (lisp.h 3919, for `macfont_family_cache`), `pdumper_do_now_an
 
 Round 7's segment added `CHECK_FONT_GET_OBJECT` (font.h 553), the sixteen
 `LGSTRING_*`/`LGLYPH_*` entries `macfont_shape` reads (composite.h 252-325; the core's
-`femacs/src/include/composite.rs` mirrors every one of them as a `pub fn`, so the Swift
+`src/include/composite.rs` mirrors every one of them as a `pub fn`, so the Swift
 declarations are the only ones this lane writes - no second definition), `QL2R`/`QR2L`
 (src/font.c 5897-5898), `Fvector` (globals.h, the `CALLN` target) and `memory_full_up`
 (lisp.h 4433).
@@ -664,7 +664,7 @@ declarations are the only ones this lane writes - no second definition), `QL2R`/
 Round 6's segment added `font_build_object` (src/font.h 848, defined src/font.c 250 - the
 entry `macfont_open` builds the font object with) and `VECSIZE` (src/lisp.h 2015-2016, the
 macro over the record's `sizeof`; the core mirror spells it as a `const fn` over that size,
-`femacs/src/include/lisp.rs` 2925, and `nsfont.swift` declares the same entry), plus
+`src/include/lisp.rs` 2925, and `nsfont.swift` declares the same entry), plus
 `QCdestination`, `QCantialias` and `QCminspace` (see (2)c).
 
 Round 5's segment added the entries the OpenType and spec functions call: `EQ` (lisp.h 1315),
@@ -749,7 +749,7 @@ rows leaving, with the three permanent rows' `reason` text intact).
 - `swiftc --version` -> `swift-driver version: 1.168.6 Apple Swift version 6.4
   (swiftlang-6.4.0.34.1 clang-2100.3.34.1)`, `Target: arm64-apple-macosx26.0`.
 - `cd /Users/liu/projects/src/github.com/liuchong/femacs && swiftc -parse-as-library -c -o
-  /tmp/macfont.o femacs/platform/macos/macfont.swift` -> **exit 0**, no warnings, no
+  /tmp/macfont.o platform/macos/macfont.swift` -> **exit 0**, no warnings, no
   `-swift-version` flag (swiftc 6.4's default language mode is 5).
 - `nm -g /tmp/macfont.o` -> one non-mangled defined symbol, `T _macfont_update_antialias_threshold`
   (every other `T`/`D`/`S` row is Swift runtime or `$s`-mangled); `nm -u` lists 379 undefined
@@ -771,7 +771,7 @@ rows leaving, with the three permanent rows' `reason` text intact).
     `collection`@304
   - the local `numeric_traits` struct -> `sizeof` 216, `index`@0, `trait`@8, `points`@16,
     `adjust_func`@208
-- The same records, Swift side (`swiftc -o … femacs/platform/macos/macfont.swift <a main that
+- The same records, Swift side (`swiftc -o … platform/macos/macfont.swift <a main that
   prints MemoryLayout> -Xlinker -undefined -Xlinker dynamic_lookup`, then the program):
   `mac_glyph_layout` size 50/stride 56 with all six offsets = C; `macfont_metrics` size 8
   (align 2) with all six offsets = C; `macfont_info` size 262/stride 264 with every offset = C
@@ -788,12 +788,12 @@ rows leaving, with the three permanent rows' `reason` text intact).
   emacs/src/Makefile.in` -> only the four uses in macfont.h/macfont.m; nothing defines it.
 - `python3 tools/extract-abi.py emacs/src/macfont.m` -> 0 subrs, 74 functions, 26 macros,
   12 types, 6 file-scope objects (`cf_charset_table` absent - the blind spot).
-- `python3 tools/check-swift-units.py` -> `femacs/platform/macos/macfont.swift: 74 C
+- `python3 tools/check-swift-units.py` -> `platform/macos/macfont.swift: 74 C
   definition(s), 39 unported, 39 row(s); 54 C symbol import(s)` and `0 new, 0 stale, 4 Swift
   unit(s) landed` (this unit's 39 rows were in `docs/baseline/swift-units.tsv` when the gate
   ran - a `--write-manifest` run outside this lane wrote them).
 - Round 2's additions, same commands: `swiftc -parse-as-library -c -o /tmp/macfont.o
-  femacs/platform/macos/macfont.swift` -> **exit 0**, no warnings, with the 73,655-byte
+  platform/macos/macfont.swift` -> **exit 0**, no warnings, with the 73,655-byte
   generated data block in the file (`wc -l` 8,794 after the round's last edit); `nm -g` still
   shows only `T _macfont_update_antialias_threshold` (the round added no export - the driver
   record's getter comes with the entry points); `nm -u` 426 entries.
@@ -802,7 +802,7 @@ rows leaving, with the three permanent rows' `reason` text intact).
   `the block in macfont.swift matches src/macuvs.h (73655 values)`.  The generated block is
   `// gen-uvs-swift: begin` … `// gen-uvs-swift: end`.
 - Round 4's readings: `swiftc -parse-as-library -c -o /tmp/macfont.o
-  femacs/platform/macos/macfont.swift` -> **exit 0**, no warnings; `nm -g` unchanged (only
+  platform/macos/macfont.swift` -> **exit 0**, no warnings; `nm -g` unchanged (only
   `T _macfont_update_antialias_threshold`).
 - **The `struct glyph_string` measurement** (`clang -std=gnu23 -DHAVE_WINDOW_SYSTEM=1
   -DHAVE_NS=1 -I build/emacs-ref/src -I build/emacs-ref/lib -I emacs/src -I emacs/lib`):
@@ -821,7 +821,7 @@ rows leaving, with the three permanent rows' `reason` text intact).
   tool's `--write-manifest` (the writer now preserves the integrator's `reason` column, rc
   477434c - verified by diffing: the only change is the landed row leaving).
 - Round 3's readings: `swiftc -parse-as-library -c -o /tmp/macfont.o
-  femacs/platform/macos/macfont.swift` -> **exit 0**, no warnings; the file is 8,942 lines at
+  platform/macos/macfont.swift` -> **exit 0**, no warnings; the file is 8,942 lines at
   the reading; `nm -g` unchanged (only `T _macfont_update_antialias_threshold`); `nm -u` 434.
 - **Groundwork for the next round, measured**: `struct glyph_string` under this target's
   windowed configuration (`clang -std=gnu23 -DHAVE_WINDOW_SYSTEM=1 -DHAVE_NS=1 -I
@@ -837,8 +837,8 @@ rows leaving, with the three permanent rows' `reason` text intact).
 - `emacs/` untouched; the probe files under `/tmp/mflay` and `/tmp/macfont.o` were deleted
   after the readings.
 - Round 5's readings: `swiftc -parse-as-library -c -o /tmp/macfont.o
-  femacs/platform/macos/macfont.swift` -> **exit 0**, 0 warnings, no `-swift-version` flag;
-  `wc -l` on `femacs/platform/macos/macfont.swift` -> **10,266** lines at the reading;
+  platform/macos/macfont.swift` -> **exit 0**, 0 warnings, no `-swift-version` flag;
+  `wc -l` on `platform/macos/macfont.swift` -> **10,266** lines at the reading;
   `nm -g /tmp/macfont.o` unchanged - exactly one non-mangled `T`, `_macfont_update_antialias_threshold`
   (the round's seven functions are `fileprivate`, so it adds no export); `nm -u` -> 520 entries,
   including the round's new entries `_EQ`, `_CONSP`, `_SYMBOLP`, `_FIXNUMP`, `_XFIXNUM`,
@@ -846,7 +846,7 @@ rows leaving, with the three permanent rows' `reason` text intact).
   `_list_length`, `_Fnreverse`, `_FONT_WEIGHT_NUMERIC`, `_FONT_SLANT_NUMERIC`, `_FONT_ADD_LOG`,
   `_QClang`, `_QCotf`, `_QCscript`, `_Qascii_0`, `_Qunicode_bmp`, `_Qemoji`, and the two data
   symbols `_Votf_script_alist` / `_Vscript_representative_chars`.
-- `python3 tools/check-swift-units.py` -> `femacs/platform/macos/macfont.swift: 74 C
+- `python3 tools/check-swift-units.py` -> `platform/macos/macfont.swift: 74 C
   definition(s), 14 unported, 14 row(s); 100 C symbol import(s)` and `0 new, 0 stale, 4 Swift
   unit(s) landed`; the seven landed rows were removed with the writer
   (`python3 tools/check-swift-units.py --write-manifest`), diffed against a copy first.
@@ -855,13 +855,13 @@ rows leaving, with the three permanent rows' `reason` text intact).
   failures`.
 - `emacs/` untouched; `/tmp` probe files removed after the readings.
 - Round 6's readings: `swiftc -parse-as-library -c -o /tmp/macfont.o
-  femacs/platform/macos/macfont.swift` -> **exit 0**, 0 warnings (the compile's stdout and
+  platform/macos/macfont.swift` -> **exit 0**, 0 warnings (the compile's stdout and
   stderr are both empty), no `-swift-version` flag; `wc -l` -> **10,596** lines; `nm -g /tmp/macfont.o`
   -> still exactly one non-mangled `T`, `_macfont_update_antialias_threshold`; `nm -u` -> 535
   entries, the round's new ones being `_font_build_object`, `_VECSIZE`, `_QCdestination`,
   `_QCantialias`, `_QCminspace` and **`_macfont_driver`** (the 3a self-reference of `## ABI`
   (2)f, which the closure round's `@_cdecl("macfont_driver")` must resolve).
-- `python3 tools/check-swift-units.py` -> `femacs/platform/macos/macfont.swift: 74 C
+- `python3 tools/check-swift-units.py` -> `platform/macos/macfont.swift: 74 C
   definition(s), 10 unported, 10 row(s); 106 C symbol import(s)` and `0 new, 0 stale, 4 Swift
   unit(s) landed`; the four landed rows were removed with
   `python3 tools/check-swift-units.py --write-manifest` (12 rows), diffed against a copy first
@@ -872,16 +872,16 @@ rows leaving, with the three permanent rows' `reason` text intact).
   src/macuvs.h (73655 values)`; `python3 tools/check-globals.py` -> `283 units, 0 DEFVAR_*
   variables without a definition in their own unit`.
 - Round 7's readings: `swiftc -parse-as-library -c -o /tmp/macfont.o
-  femacs/platform/macos/macfont.swift` -> **exit 0**, 0 warnings (stdout and stderr both
+  platform/macos/macfont.swift` -> **exit 0**, 0 warnings (stdout and stderr both
   empty), no `-swift-version` flag; `wc -l` -> **11,069** lines; `nm -g /tmp/macfont.o` -> still
   exactly one non-mangled `T`, `_macfont_update_antialias_threshold`; `nm -u` -> 568 entries, of
   which 16 are the round's `LGSTRING_*`/`LGLYPH_*` imports (plus `_CHECK_FONT_GET_OBJECT`,
   `_QL2R`, `_QR2L`, `_Fvector`, `_memory_full_up`, and 3a's `_macfont_driver`, still unresolved
   until the closure round).
-- `python3 tools/check-swift-units.py` -> `femacs/platform/macos/macfont.swift: 74 C
+- `python3 tools/check-swift-units.py` -> `platform/macos/macfont.swift: 74 C
   definition(s), 7 unported, 7 row(s); 127 C symbol import(s)` and `0 new, 0 stale, 7 Swift
   unit(s) landed` (the tool now sees seven units).  **Cross-lane note**: the tree gained
-  `femacs/platform/macos/nsterm.swift` *during* this round (142 C definitions), so the
+  `platform/macos/nsterm.swift` *during* this round (142 C definitions), so the
   sanctioned writer wrote its 140 rows into the shared manifest along with the removal of this
   round's three; the earlier backup already carried another lane's 21 `nsfns.swift` rows, so
   whole-tree refreshes by the writer are what the shared file has been getting.  The 140 nsterm
@@ -896,7 +896,7 @@ rows leaving, with the three permanent rows' `reason` text intact).
   (0 forbidden, 13 allowed literals), 0 failures`; `python3 tools/check-verbatim.py` -> `6
   trees, 4607 files, 0 failures`.
 - Round 8's readings (**the closure**): `swiftc -parse-as-library -c -o /tmp/macfont.o
-  femacs/platform/macos/macfont.swift` -> **exit 0**, 0 warnings (stdout and stderr both
+  platform/macos/macfont.swift` -> **exit 0**, 0 warnings (stdout and stderr both
   empty), no `-swift-version` flag; `wc -l` -> **11,313** lines.
 - **The acceptance check rc 3.220 attached to the same-file `@_silgen_name` self-reference**:
   `nm -u /tmp/macfont.o | grep -E '_macfont_driver|_font_build_object|_VECSIZE|_QC'` ->
@@ -906,7 +906,7 @@ rows leaving, with the three permanent rows' `reason` text intact).
 - `nm -g /tmp/macfont.o | grep -E ' T _[a-zA-Z]'` -> exactly five non-mangled exports, all of
   them C's own names: `_mac_register_font_driver`, `_macfont_driver`, `_macfont_get_nsctfont`,
   `_macfont_update_antialias_threshold`, `_syms_of_macfont`.  `nm -u` -> 572 entries.
-- `python3 tools/check-swift-units.py` -> `femacs/platform/macos/macfont.swift: 74 C
+- `python3 tools/check-swift-units.py` -> `platform/macos/macfont.swift: 74 C
   definition(s), **3 unported, 3 row(s)**; 131 C symbol import(s)` and `0 new, 0 stale, 7 Swift
   unit(s) landed`; the writer removed this round's four rows (162 rows total), diffed against a
   copy first.  The three rows left are the unit's permanent ones (`mac_ctfont_get_glyph_for_cid`,

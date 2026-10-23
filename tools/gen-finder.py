@@ -16,7 +16,7 @@ The reading is the reference's own file with the sanctioned product-name rewrite
 generator reads the copied trees, whose declaration and summary lines carry this repository's
 name (docs/baseline/verbatim-substitutions.tsv), so those lines come out rewritten.
 
-    python3 tools/gen-finder.py                 # write femacs/lisp/finder-inf.el
+    python3 tools/gen-finder.py                 # write lisp/finder-inf.el
     python3 tools/gen-finder.py --check        # also diff against the reference's own product
 """
 
@@ -28,7 +28,7 @@ import subprocess
 import sys
 
 REPO = pathlib.Path(__file__).resolve().parent.parent
-PORT_LISP = REPO / "femacs/lisp"
+PORT_LISP = REPO / "lisp"
 PROGRAM = REPO / "build/port/src/emacs"
 REFERENCE = REPO / "emacs/lisp/finder-inf.el"
 
@@ -97,4 +97,7 @@ def main() -> int:
 
 
 if __name__ == "__main__":
+    if "--compare-reference" not in sys.argv:
+        raise SystemExit(subprocess.call([sys.executable, str(REPO / "tools/bootstrap-resources.py"), "--family", "indexes", *sys.argv[1:]]))
+    sys.argv.remove("--compare-reference")
     sys.exit(main())

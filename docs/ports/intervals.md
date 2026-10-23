@@ -73,7 +73,7 @@
   `docs/baseline/config/cond-eval-verified.txt`, so the branch selection is clang's and the
   one `#if` is the literal `#if 0` at C 1643-1648: **recorded here, not transcribed**
   (P-08), which is why `docs/ports/line-drift-tolerance.tsv` declares the `live` basis.
-- **`intervals.h`'s mirror landed with this unit** (`femacs/src/include/intervals.rs`, the
+- **`intervals.h`'s mirror landed with this unit** (`src/include/intervals.rs`, the
   composite.rs/ccl.rs precedent).  This unit defines 24 of the header's prototypes, so that
   block of the header moved into an `intervals_decls` module + glob import (PORTING.md
   0.1-10); the three textprop.c defines (`verify_interval_modification`,
@@ -170,7 +170,7 @@ C's own macros expanding at the same points, and `error`'s one variadic call kee
 `!= 0` at its one use site.
 
 - **Follow-up (2026-10-03, `src/textprop.c`)**: the mirror's "Defined in textprop.c" block
-  moved into `pub mod textprop_decls` + glob import when `femacs/src/textprop.rs` landed, the
+  moved into `pub mod textprop_decls` + glob import when `src/textprop.rs` landed, the
   P-70 same-commit rule (the ledger's own `buffer_point_decls` row is the same shape); detail
   in `docs/ports/include-intervals.md` and `docs/ports/textprop.md`.  No `.c` side of this
   unit changed, and its `build-tu`/`--check` were re-run and are still clean.

@@ -32,8 +32,8 @@ import sys
 
 REPO = pathlib.Path(__file__).resolve().parent.parent
 # The port's own source trees (the copied trees carry no Rust).
-ROOTS = ("femacs/src", "femacs/lib", "femacs/lib-src", "femacs/lwlib", "femacs/oldXMenu",
-         "femacs/exec", "femacs/nt", "femacs/msdos", "femacs/java")
+ROOTS = ("src", "lib", "lib-src", "lwlib", "oldXMenu",
+         "exec", "nt", "msdos", "java")
 BASELINE = REPO / "docs/baseline/c-string-literals.tsv"
 
 # A literal immediately before `.as_ptr ()`: the `c`/`b` prefix is captured, and a literal that is

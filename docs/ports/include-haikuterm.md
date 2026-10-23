@@ -98,8 +98,8 @@
 
 ## Evidence
 
-- `python3 tools/extract-abi.py --check emacs/src/haikuterm.h femacs/src/include/haikuterm.rs`
-  -> `OK emacs/src/haikuterm.h -> femacs/src/include/haikuterm.rs` (no `- ` problem lines), now
+- `python3 tools/extract-abi.py --check emacs/src/haikuterm.h src/include/haikuterm.rs`
+  -> `OK emacs/src/haikuterm.h -> src/include/haikuterm.rs` (no `- ` problem lines), now
   that `struct haikufont_info` is mirrored.  The missing-type check (status 3.149/3.151/3.152)
   named this header's record as its live example while `include/font.rs` did not carry
   `struct font`; the record landed in status 3.158 and the struct in the same pass, which is what

@@ -175,7 +175,7 @@
 The gates:
 
     build-tu src/lread.c            -> built src/lread.rs -> ../build/femacs/lread.o
-    extract-abi.py --check          -> OK emacs/src/lread.c -> femacs/src/lread.rs
+    extract-abi.py --check          -> OK emacs/src/lread.c -> src/lread.rs
                                        (15 C macros have several definitions, body not compared;
                                        3 C macros have a recorded Rust counterpart)
     check-symbols.py --dir src      -> 29 units compared, 0 mismatched, 0 still pending

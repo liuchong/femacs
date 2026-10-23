@@ -41,8 +41,8 @@
 
 ## Evidence
 
-- `python3 tools/extract-abi.py --check emacs/src/ftfont.h femacs/src/include/ftfont.rs`
-  -> `OK emacs/src/ftfont.h -> femacs/src/include/ftfont.rs` (no `- ` problem lines).
+- `python3 tools/extract-abi.py --check emacs/src/ftfont.h src/include/ftfont.rs`
+  -> `OK emacs/src/ftfont.h -> src/include/ftfont.rs` (no `- ` problem lines).
 - `python3 tools/extract-abi.py emacs/src/ftfont.h` -> this ledger: 0 subrs, 0 functions defined,
   1 macro (the guard), 1 type (`font_info`), 0 file-scope objects.
 - **No unit includes this mirror** (`rg -n 'include/ftfont' femacs` -> no hits); it is compiled by

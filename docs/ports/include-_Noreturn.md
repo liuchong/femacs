@@ -36,8 +36,8 @@
   `/tmp` probe.**  Measured: no `#include <_Noreturn.h>` anywhere in the reference tree (only
   `ChangeLog`/`gnulib.mk`/`m4/gnulib-comp.m4` name the file), which is why the header's own use is
   `build-aux/snippet/`'s business and not this target's.  The port's use sites spell the attribute
-  as `-> !` (measured: `femacs/lib-src/hexl.rs` 45, `femacs/lib-src/emacsclient.rs` 800,
-  `femacs/src/data.rs` 115), and `femacs/lib-src/make-docfile.rs` 986 writes the literal
+  as `-> !` (measured: `lib-src/hexl.rs` 45, `lib-src/emacsclient.rs` 800,
+  `src/data.rs` 115), and `lib-src/make-docfile.rs` 986 writes the literal
   `_Noreturn ` string - ported semantics, not a macro use.
 - No shared-table row is needed: the name's body is exempt (four definitions in C), its presence is
   what `--check` compares, and the marker satisfies that.
@@ -51,12 +51,12 @@ _Noreturn void f (void);
 $ clang -std=gnu23 -I emacs/lib -dM -E -include _Noreturn.h -x c /dev/null | grep -i noreturn
 (no output: the header defines no macro at all on this target)
 
-$ python3 tools/extract-abi.py --check emacs/lib/_Noreturn.h femacs/lib/include/_Noreturn.rs
+$ python3 tools/extract-abi.py --check emacs/lib/_Noreturn.h lib/include/_Noreturn.rs
   (1 C macros have several definitions (configuration branches), body not compared: _Noreturn)
-OK emacs/lib/_Noreturn.h -> femacs/lib/include/_Noreturn.rs
+OK emacs/lib/_Noreturn.h -> lib/include/_Noreturn.rs
 
 # the negative control: the name has to be there (the four C bodies exempt the body comparison)
-$ grep -v "_Noreturn" femacs/lib/include/_Noreturn.rs > /tmp/gt-neg2/n2.rs
+$ grep -v "_Noreturn" lib/include/_Noreturn.rs > /tmp/gt-neg2/n2.rs
 $ python3 tools/extract-abi.py --check emacs/lib/_Noreturn.h /tmp/gt-neg2/n2.rs
 - missing macro _Noreturn
 FAIL emacs/lib/_Noreturn.h -> /tmp/gt-neg2/n2.rs

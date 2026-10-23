@@ -78,8 +78,8 @@
 
 ## Evidence
 
-    $ python3 tools/extract-abi.py --check emacs/lib/sys_time.in.h femacs/lib/include/sys_time.in.rs
-    OK emacs/lib/sys_time.in.h -> femacs/lib/include/sys_time.in.rs
+    $ python3 tools/extract-abi.py --check emacs/lib/sys_time.in.h lib/include/sys_time.in.rs
+    OK emacs/lib/sys_time.in.h -> lib/include/sys_time.in.rs
 
     $ python3 tools/check-cond-eval.py lib/sys_time.in.h
     lib/sys_time.in.h: 31 conditions, 1 unknown, 2 disagreements [NOT VERIFIED]
@@ -103,5 +103,5 @@
     -> no consumer compiles this mirror standalone; the sibling template mirror has the same
        reading: `build-tu lib/stdlib.in.h` -> E0425 `c_int` / `c_char`
 
-    $ python3 tools/extract-abi.py --check emacs/lib/stdlib.in.h femacs/lib/include/stdlib.in.rs
+    $ python3 tools/extract-abi.py --check emacs/lib/stdlib.in.h lib/include/stdlib.in.rs
     OK (the sibling template mirror's own criterion, for comparison)

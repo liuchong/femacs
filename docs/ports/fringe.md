@@ -13,7 +13,7 @@
 > *conclusion* - its measurements still hold and are where the file gate comes from - and the text is
 > carried **in full** (P-86 ①).
 >
-> Port: `femacs/src/fringe.rs`, **slice 1 = C 1-1364**, both arms of every `#if` carried.
+> Port: `src/fringe.rs`, **slice 1 = C 1-1364**, both arms of every `#if` carried.
 > The slice ends on the `}` of `update_window_fringes` (C 1364), the file's last definition before
 > the initialization section; **the next definition is `destroy_fringe_bitmap` (C 1370-1371)**.
 >
@@ -78,7 +78,7 @@ No new feature name is needed: the file gate's four inner arms are all registere
 
 Rows are **contiguous and ascending** (each absorbs the blank lines that follow the one before) and
 cover C 1-1880; `docs/port-map.md` 441 pairs only `src/fringe.c` with this unit, so one table is what
-`check-dead-file-coverage.py` reads.  `transcribed` = in `femacs/src/fringe.rs`; `owed` = a later
+`check-dead-file-coverage.py` reads.  `transcribed` = in `src/fringe.rs`; `owed` = a later
 slice.  The `arm` cell gives the port gate, which `## Gate mapping` derives.
 
 | C | block | arm |
@@ -182,7 +182,7 @@ slice.  The `arm` cell gives the port gate, which `## Gate mapping` derives.
    and this round's instruction).
 8. **The four arms C 1433+ selects on would be *new* feature names if the file gate were wrong.**
    They are not needed: `have_x_windows`, `have_android`, `have_pgtk` and `have_ntgui` are registered
-   (`docs/baseline/feature-coverage.tsv`, `femacs/xtask/Cargo.toml` 236-259), so this lane registers
+   (`docs/baseline/feature-coverage.tsv`, `xtask/Cargo.toml` 236-259), so this lane registers
    nothing - the integrator's list is the mirror one in Owed 3.
 
 ## Evidence
@@ -225,7 +225,7 @@ flip's own-text reading is real, and the three files above are what stands betwe
 is named in Owed 3.
 
 **③ The direct `rustc` iterations behind ② (the pinned nightly, run against the materialised root).**
-The repository's own toolchain is `femacs/rust-toolchain.toml`'s `rustc +nightly-2026-10-01`; the
+The repository's own toolchain is `rust-toolchain.toml`'s `rustc +nightly-2026-10-01`; the
 materialiser's `_root.rs` can be compiled directly, and that is where the per-class counts above come
 from.  Nine such runs in four groups: (a) two on the first arm set (`have_window_system` +
 `dispextern_face_records`, **86 errors**, all mirror-side except the two this unit then fixed);
@@ -254,7 +254,7 @@ ab 00 00 00`; `width=0xCD: 00 cd 00 00`; `period=0xEF: 00 00 ef 00`; `align=3: 0
 trailing padding - the constants and the three assertions in the unit are that reading.
 
 **⑥ Inventory (`extract-abi.py --check`).**
-`python3 tools/extract-abi.py --check emacs/src/fringe.c femacs/src/fringe.rs` -> **FAIL, 17 `- `
+`python3 tools/extract-abi.py --check emacs/src/fringe.c src/fringe.rs` -> **FAIL, 17 `- `
 rows**: **9 `missing function`** (`destroy_fringe_bitmap`, `gui_define_fringe_bitmap`,
 `gui_init_fringe`, `init_fringe`, `init_fringe_bitmap`, `init_fringe_once`,
 `init_fringe_once_for_pdumper`, `mark_fringe_data`, `syms_of_fringe` - the unported C 1365-1880),
@@ -271,7 +271,7 @@ this lane's six `macro-body-notes.tsv` rows was **23 rows**: the same 17 plus 6 
 range table), 0 failure(s)` (69 of them with this ledger bound), and its own line for this ledger is
 `info docs/ports/fringe.md: 56 range row(s) cover src/fringe.c (1880 lines; 0 blank line(s) between
 blocks need no row)`.  - `python3 tools/check-mirror-dupes.py` -> `17
-duplicate declaration(s), 17 ratchet row(s), 0 failure(s)`, no row naming `femacs/src/fringe.rs`. -
+duplicate declaration(s), 17 ratchet row(s), 0 failure(s)`, no row naming `src/fringe.rs`. -
 `python3 tools/check-declarations.py` -> `10 declaration sites (0 forbidden, 10 allowed literals), 0
 failures` (exit 0).  - `python3 tools/check-citations.py` -> `676 file(s) scanned, 0 drift, 0 range,
 1044 external, 35 allowed, 0 stale` (the `external` tally moved by two while this lane worked - other
@@ -298,7 +298,7 @@ and the reason `STANDARD_BITMAP_HEIGHT` keeps C's division while its `sizeof` be
 
 **⑨ Slice 2 (C 1365-1880): the readings of the round that landed it (2026-10-06, status 3.669).**
 
-a) `python3 tools/extract-abi.py --check emacs/src/fringe.c femacs/src/fringe.rs` -> **OK**.  The three
+a) `python3 tools/extract-abi.py --check emacs/src/fringe.c src/fringe.rs` -> **OK**.  The three
 readings before it: the 17 `- ` rows of Evidence ⑥ (9 `missing function`, 4 `missing subr`,
 4 `missing defsubr`); after the text landed, `- function syms_of_fringe does not mention doc` and
 `- line count drifted 33.1%: C 1880 vs Rust 2502`.  The first is the `doc:` label of C 1770/1779's
@@ -356,7 +356,7 @@ core export(s), 792 unprovided, 801 ratchet row(s), 9 failure(s)`.  The two dele
 `#[unsafe(no_mangle)]` under `have_window_system`, which the frozen configuration does not compile, so
 they were never providers in this reading - the **9 vs 136 is the object set**, and the claim this
 round makes is only that the two Swift imports at `nsterm.swift` 3794 and 4115 name a unit that
-carries them (`femacs/src/fringe.rs` 2482 / 1276, same gate).
+carries them (`src/fringe.rs` 2482 / 1276, same gate).
 
 ## Deviations
 
@@ -420,7 +420,7 @@ carries them (`femacs/src/fringe.rs` 2482 / 1276, same gate).
     prototype, PORTING.md 0.1-12 / P-91); the definition stays where C defines it.  The definition is
     `unsafe extern "C" fn`, because `pdumper_do_now_and_after_load` takes an
     `unsafe extern "C" fn ()` and C's `static void (void)` has that type - the same correction
-    `init_alloc_once_for_pdumper` (`femacs/src/alloc.rs` 7994) carries.
+    `init_alloc_once_for_pdumper` (`src/alloc.rs` 7994) carries.
 17. **C 1662's chained assignment `fb.bits = b = (unsigned short *) (xfb + 1);` is two statements**
     (`b = ...; fb.bits = b;`): Rust's `=` is not an expression, so C's right-to-left chain has no
     single-statement spelling.
@@ -459,7 +459,7 @@ carries them (`femacs/src/fringe.rs` 2482 / 1276, same gate).
 3. **The mirror items the flip names**, each in the file that owns it - the readings of this
    round's six flips (Evidence ⑨ c) put every one of them in the include graph, none in this unit's
    text:
-   (a) `femacs/src/include/dispextern.rs` 2661-2669: the three globals of C 3617-3618/3710
+   (a) `src/include/dispextern.rs` 2661-2669: the three globals of C 3617-3618/3710
    (`last_tab_bar_item`, `last_tool_bar_item`, `max_used_fringe_bitmap`) sit at the mirror's top
    level, so this unit's C-faithful definition is an `E0428` (Finding 2).  They belong in a module the
    including units do not glob-import - the shape the mirror's own note (3.220) uses for its other 102
@@ -468,16 +468,16 @@ carries them (`femacs/src/fringe.rs` 2482 / 1276, same gate).
    (3739) have no definition in the `have_window_system` + `have_x_windows` set, and `struct face`'s
    thirteen `sizeof`/`offset_of` assertions (2188-2216) fail in it - i.e. the record's arms need the
    arms' own typedefs (the mirror's 700-702 note records the two deferred ones);
-   (c) `femacs/src/include/font.rs`: `font`'s two and `font_driver`'s six assertions (137/149/584-598)
+   (c) `src/include/font.rs`: `font`'s two and `font_driver`'s six assertions (137/149/584-598)
    fail in the same set (3.496/3.497 were the last to touch that record);
-   (d) `femacs/src/include/systime.rs` 27: `!cfg!(feature = "have_x_windows") || HAVE_X_WINDOWS` - a
+   (d) `src/include/systime.rs` 27: `!cfg!(feature = "have_x_windows") || HAVE_X_WINDOWS` - a
    flip of `have_x_windows` must also move `config.rs`'s constant, which is the integrator's
    (`docs/baseline/feature-coverage.tsv`'s "config constant" column is what says so);
-   (e) `femacs/src/include/dispextern.rs`'s X11 arm has no `estimate_mode_line_height` edge either -
+   (e) `src/include/dispextern.rs`'s X11 arm has no `estimate_mode_line_height` edge either -
    its definition is `src/xdisp.rs`'s export (three rows of the flip's 29).
 4. **The two ABI-shim copies: done in this round** (P-88 (5)'s move-back, Evidence ⑨ e).
    `src/abi_shim.rs`'s stand-ins for `gui_define_fringe_bitmap` (2214-2240) and `draw_fringe_bitmap`
-   are gone; the file carries a note where the first of them was, and `femacs/src/fringe.rs` provides
+   are gone; the file carries a note where the first of them was, and `src/fringe.rs` provides
    both names - `draw_fringe_bitmap` (slice 1, C 838) and `gui_define_fringe_bitmap` (slice 2,
    C 1852-1863) - each `#[unsafe(no_mangle)] pub unsafe extern "C" fn` under `have_window_system`.
    `docs/ports/abi_shim.md`'s two rows name the unit now.
@@ -489,7 +489,7 @@ carries them (`femacs/src/fringe.rs` 2482 / 1276, same gate).
    item 3's mirror gaps (the flip reads them) and the arm readings that will follow them.
 
 7. **No feature name to register** (Finding 8): the file gate and its four inner arms are registered
-   already, so the integrator's list is Owed 3's mirror items, not `femacs/xtask/Cargo.toml`.
+   already, so the integrator's list is Owed 3's mirror items, not `xtask/Cargo.toml`.
 
 ## Not claimed
 
@@ -500,14 +500,14 @@ carries them (`femacs/src/fringe.rs` 2482 / 1276, same gate).
   file and its rows); the useful reading is that **this unit's own text contributes 0 error rows in
   every one of them**, not that an arm builds.
 - **The dump hook is registered but not exercised.**  Slice 2 adds the port's 23rd
-  `pdumper_do_now_and_after_load` site (C 1799; `grep -rn` over `femacs/src/*.rs` reads 22 -> 23,
+  `pdumper_do_now_and_after_load` site (C 1799; `grep -rn` over `src/*.rs` reads 22 -> 23,
   against the reference's 27 by the same grep over `emacs/src/*.c`), and status 3.665's hook walk -
   "the port registers 22, C 26, and `init_fringe_once` is the unported one" - is what this closes at
   the text level.  Under the frozen configuration `init_fringe_once` is compiled out with the rest of
   the file, so the port's **registered** hook set does not move and no dump was taken this round.
 - The layout and constants in Evidence ⑤ are this machine's clang readings of C 78-85's own text; the
   frozen configuration compiles no such record, so nothing here is a claim about another target.
-- The files this round wrote are `femacs/src/fringe.rs`, `femacs/src/abi_shim.rs` (the P-88 (5)
+- The files this round wrote are `src/fringe.rs`, `src/abi_shim.rs` (the P-88 (5)
   move-back), `docs/ports/fringe.md`, `docs/ports/abi_shim.md`,
   `docs/ports/line-drift-tolerance.tsv` and `docs/ports/macro-body-notes.tsv`.  `docs/port-map.md`
   was regenerated (it is a generated file).

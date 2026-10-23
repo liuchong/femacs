@@ -107,7 +107,7 @@
 
 ## Decisions
 
-`emacs/lib/unistd.in.h` @ `fd7afced403`; port `femacs/lib/include/unistd.in.rs` (330 lines).
+`emacs/lib/unistd.in.h` @ `fd7afced403`; port `lib/include/unistd.in.rs` (330 lines).
 
 **The template.**  The reference is a gnulib template (`@GUARD_PREFIX@`,
 `@PRAGMA_SYSTEM_HEADER@`, `@INCLUDE_NEXT@`, `@NEXT_UNISTD_H@`, `@GNULIB_*@`, `@REPLACE_*@`,
@@ -177,7 +177,7 @@ rows in a `/tmp` copy the pair is `OK`; without them the check reports exactly t
 `missing macro` lines, which is why their two boxes above stay unchecked:
 
 ```
-_GL_UNISTD_INLINE	syntax	unistd.in.h 180-182's `#ifndef _GL_UNISTD_INLINE / # define _GL_UNISTD_INLINE _GL_INLINE` spells gnulib's `static inline`; the unit `lib/unistd.c` carries the qualifier itself (`#define _GL_UNISTD_INLINE _GL_EXTERN_INLINE` before the include, the unit's own `pub const` in femacs/lib/unistd.rs), so the mirror cannot hold the name without an E0428
+_GL_UNISTD_INLINE	syntax	unistd.in.h 180-182's `#ifndef _GL_UNISTD_INLINE / # define _GL_UNISTD_INLINE _GL_INLINE` spells gnulib's `static inline`; the unit `lib/unistd.c` carries the qualifier itself (`#define _GL_UNISTD_INLINE _GL_EXTERN_INLINE` before the include, the unit's own `pub const` in lib/unistd.rs), so the mirror cannot hold the name without an E0428
 _GL_GETPAGESIZE_INLINE	syntax	same construct (unistd.in.h 183-185); the header's only user is the `getpagesize` inline definition at C 1464, which is dead here (@GNULIB_GETPAGESIZE@ is 0) and which the mirror spells as a macro (`getpagesize`) plus the system declaration, so nothing holds the qualifier
 ```
 
@@ -205,24 +205,24 @@ built only by `gate-fast`/`build-tu`).  The lesson is recorded in Evidence: afte
 to a mirror, `build-tu` **every** finished unit in its include graph, `lib-src`/`nt` included.
 
 **Not edited** (another lane's in-flight units, reported instead of patched):
-`femacs/lib-src/etags.rs` 1161 declares `pub const STDOUT_FILENO: c_int = 1;` and includes this
+`lib-src/etags.rs` 1161 declares `pub const STDOUT_FILENO: c_int = 1;` and includes this
 mirror, so it is an `E0428` waiting for its build (the mirror now carries the name).
 
 ## Evidence
 
 ```
-$ python3 tools/extract-abi.py --check emacs/lib/unistd.in.h femacs/lib/include/unistd.in.rs
+$ python3 tools/extract-abi.py --check emacs/lib/unistd.in.h lib/include/unistd.in.rs
   (1 C macros have a recorded Rust counterpart: _)
   (23 C macros have several definitions (configuration branches), body not compared:
    _gl_getpagesize, access, chdir, close, dup, dup2 ...)
 - missing macro _GL_GETPAGESIZE_INLINE
 - missing macro _GL_UNISTD_INLINE
-FAIL emacs/lib/unistd.in.h -> femacs/lib/include/unistd.in.rs
+FAIL emacs/lib/unistd.in.h -> lib/include/unistd.in.rs
 # the same command with the two rows above appended to a /tmp copy of the shared file:
 $ python3 tools/extract-abi.py --check --excluded /tmp/mem-excl-unistd.txt \
-    emacs/lib/unistd.in.h femacs/lib/include/unistd.in.rs
+    emacs/lib/unistd.in.h lib/include/unistd.in.rs
   (3 C macros have a recorded Rust counterpart: _, _GL_GETPAGESIZE_INLINE, _GL_UNISTD_INLINE)
-OK emacs/lib/unistd.in.h -> femacs/lib/include/unistd.in.rs
+OK emacs/lib/unistd.in.h -> lib/include/unistd.in.rs
 
 $ cd /tmp/femacs-target-mir3 && rustc --edition 2024 --crate-type=lib --emit=obj -C panic=abort \
     unistd_probe.rs -o unistd_probe.o
@@ -238,13 +238,13 @@ built src/sysdep.rs     built src/dispnew.rs    built src/minibuf.rs   built src
 built src/alloc.rs      built lib/nproc.rs      built lib/getloadavg.rs  built lib/fsusage.rs
 # all exit 0 (12 consumers, the six edited ones among them)
 
-$ python3 tools/extract-abi.py --check emacs/<edited unit>.c femacs/<edited unit>.rs
-OK emacs/src/callproc.c -> femacs/src/callproc.rs
-OK emacs/src/dispnew.c -> femacs/src/dispnew.rs
-OK emacs/src/emacs.c -> femacs/src/emacs.rs
-OK emacs/src/minibuf.c -> femacs/src/minibuf.rs
-OK emacs/src/print.c -> femacs/src/print.rs
-OK emacs/src/sysdep.c -> femacs/src/sysdep.rs
+$ python3 tools/extract-abi.py --check emacs/<edited unit>.c <edited unit>.rs
+OK emacs/src/callproc.c -> src/callproc.rs
+OK emacs/src/dispnew.c -> src/dispnew.rs
+OK emacs/src/emacs.c -> src/emacs.rs
+OK emacs/src/minibuf.c -> src/minibuf.rs
+OK emacs/src/print.c -> src/print.rs
+OK emacs/src/sysdep.c -> src/sysdep.rs
 
 $ # the whole include graph of both mirrors, lib-src/nt included (57 units, `build-tu` each):
 $ for u in <every unit with `include!(*unistd.in.rs)` or `*sys_stat.in.rs)`>; do
@@ -255,8 +255,8 @@ built lib-src/movemail.rs  lib/*.rs (35)  src/*.rs (21)              # all exit 
 # gate-fast reported them first): the unit's own `STDOUT_FILENO` and `environ`; both copies are
 # gone now, and `build-tu lib/faccessat.c` found a third one - that unit's own
 # `pub const _GL_INCLUDING_UNISTD_H: () = ();` (its C 22 marker) - which is why the mirror holds
-# that name as a macro instead (see the table above).  `femacs/src/keyboard.rs`,
-# `femacs/src/xdisp.rs` and `femacs/lib-src/etags.rs` were *not* built (another lane's
+# that name as a macro instead (see the table above).  `src/keyboard.rs`,
+# `src/xdisp.rs` and `lib-src/etags.rs` were *not* built (another lane's
 # in-flight units, PORTING.md 0.1-3's "stop and report" case).
 
 $ python3 tools/check-mirror-dupes.py
@@ -279,10 +279,10 @@ trio the lane carried as its fourteenth slice - and this header declares both at
 `#[cfg (not (feature = "windowsnt"))]`, joining the `getwd`/`getppid`/`getgid`/`getegid`/`fchown`
 rows this mirror already gates (the device status 3.483 and `docs/ports/pop.md` Owed 7 record).
 
-Evidence: `femacs/src/w32.rs`'s `windowsnt` probe read **125 error lines / 150 located sites**
+Evidence: `src/w32.rs`'s `windowsnt` probe read **125 error lines / 150 located sites**
 with the two declarations live; after the gate it reads **123 / 148**, and the two `E0428` rows are
 gone.  The frozen probe is unchanged (**exit 0**, **336-byte** empty object) and this mirror's own
-`python3 tools/extract-abi.py --check emacs/lib/unistd.in.h femacs/lib/include/unistd.in.rs` still
+`python3 tools/extract-abi.py --check emacs/lib/unistd.in.h lib/include/unistd.in.rs` still
 reads **OK**.  `readlinkat` (declared on line 41) is deliberately **not** gated yet: `w32.c`'s own
 `readlinkat` is C 6475, the next slice's first definition, and this lane gates only what a slice
 has measured.
@@ -297,7 +297,7 @@ header's line 41; it now carries `#[cfg (not (feature = "windowsnt"))]` like `re
 Evidence: the probe reads **123 error lines / 149 located sites** before the gate and **122 / 148**
 after (the slice-14 text reads 123 / 148), the frozen probe is unchanged (**exit 0**, **336-byte**
 empty object), and this mirror's own
-`python3 tools/extract-abi.py --check emacs/lib/unistd.in.h femacs/lib/include/unistd.in.rs` still
+`python3 tools/extract-abi.py --check emacs/lib/unistd.in.h lib/include/unistd.in.rs` still
 reads **OK**.  All three of `C 6118`/`C 6331`/`C 6475`'s names are now gated; the remaining
 declarations of this header that `w32.c` might answer for will be gated the same way as their
 slices measure them.

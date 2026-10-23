@@ -5,7 +5,7 @@
 > Android configuration - and `docs/baseline/frozen-build-sources.txt` 92 records that derivation.
 > PORTING.md P-86 governs the class: the body is **transcribed as it stands** (the previous revision
 > was the P-08 note), the file gate is carried down to the include edges (P-86 ⑧), and P-86 ②'s C
-> line-range table is below.  Port: `femacs/lib-src/asset-directory-tool.rs`, first line
+> line-range table is below.  Port: `lib-src/asset-directory-tool.rs`, first line
 > `// femacs: port of lib-src/asset-directory-tool.c @ fd7afced403.`
 
 # ----------------------------------------------------------------------
@@ -47,7 +47,7 @@ empty (measured: a 336-byte object).
   included mirrors; the arm reading started at 254 errors (a preamble that did not carry the
   `c_*` family), went to 16, then 5, and 0 after the three fixes below.
 * `python3 tools/extract-abi.py --check emacs/lib-src/asset-directory-tool.c
-  femacs/lib-src/asset-directory-tool.rs` → one token row (`function main_2 does not mention
+  lib-src/asset-directory-tool.rs` → one token row (`function main_2 does not mention
   static_assert`, exempted in `macro-body-notes.tsv`) plus the line drift declared in
   `line-drift-tolerance.tsv`.
 * `python3 tools/check-cond-eval.py lib-src/asset-directory-tool.c` → `1 conditions, 0 unknown,

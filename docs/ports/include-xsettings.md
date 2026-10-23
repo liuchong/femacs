@@ -21,7 +21,7 @@
   extractor decides every arm from the frozen table.
 - **Nothing on this target compiles the header.**  `src/xsettings.c` is not in the frozen build's
   source list (its platform object variables are empty, docs/baseline/frozen-build-sources.txt),
-  so `femacs/src/xsettings.rs` is the empty-shape note that names the exclusion, and the mirror
+  so `src/xsettings.rs` is the empty-shape note that names the exclusion, and the mirror
   carries the live declarations the way `src/w32select.h` (3.158) and `src/xgselect.h` (3.162) do.
 - **P-72 decides the names, and the header owns none of them.**  `Display_Info` is C 33-35's
   `#ifdef HAVE_PGTK` typedef - *dead text* on this target - and the live declarations reach it as
@@ -40,8 +40,8 @@
 
 ## Evidence
 
-- `python3 tools/extract-abi.py --check emacs/src/xsettings.h femacs/src/include/xsettings.rs`
-  -> `OK emacs/src/xsettings.h -> femacs/src/include/xsettings.rs` (no `- ` problem lines).
+- `python3 tools/extract-abi.py --check emacs/src/xsettings.h src/include/xsettings.rs`
+  -> `OK emacs/src/xsettings.h -> src/include/xsettings.rs` (no `- ` problem lines).
 - `python3 tools/check-cond-eval.py src/xsettings.h` -> `6 conditions, 0 unknown to the evaluator,
   0 disagreements`.
 - `python3 tools/extract-abi.py emacs/src/xsettings.h` -> this ledger: 0 subrs, 0 functions

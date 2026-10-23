@@ -14,7 +14,7 @@
 > empty unit plus the note that names the gate", with **transcribe the text, both arms, no stub**
 > (the same replacement `docs/ports/msdos.md`, `w32.md`, `w32proc.md` and `androidvfs.md` record).
 >
-> Port: `femacs/src/termcap.rs` (**883 lines**, 35,922 bytes, md5 `b581da3898fbce63a4413d46ff2f986a`),
+> Port: `src/termcap.rs` (**883 lines**, 35,922 bytes, md5 `b581da3898fbce63a4413d46ff2f986a`),
 > carrying **C 1-640** - every line of the reference - with both arms of every `#if`.
 
 # ----------------------------------------------------------------------
@@ -179,7 +179,7 @@ compare against - the `build-tu` reading says "the port is empty here", not "the
 `cd femacs && CARGO_TARGET_DIR=/tmp/termcap-lane cargo run -q -p xtask -- probe src/termcap.rs
 /tmp/termcap-lane/x.rlib --crate-type=lib -C panic=abort --cfg 'feature="msdos"'`
 → **exit 1, 17 errors** (plus the abort line), and the census by file - re-measured on xtask's own
-materialization (`build/probes/termcap/_root.rs`) with the pinned toolchain from `femacs/` - is:
+materialization (`build/probes/termcap/_root.rs`) with the pinned toolchain from `` - is:
 
 | file | errors |
 | --- | ---: |
@@ -225,7 +225,7 @@ The last two rows are the named hole: the `bufsize`/`termcap_file` arms are C's 
 macros and have no text in the port (the `sound.rs` `default_alsa_sound_device` class).
 
 **④ The ABI gate.**  `python3 tools/extract-abi.py --check emacs/src/termcap.c
-femacs/src/termcap.rs` → **one `- ` row, the line-count drift** (`line count drifted 38.0%: C 640
+src/termcap.rs` → **one `- ` row, the line-count drift** (`line count drifted 38.0%: C 640
 vs Rust 883`), and nothing else: the first run's other three rows are fixed (the `TERMCAP_FILE`
 bytes → `&CStr`, Finding 5; `tgetent`'s `goto` and `scan_file`'s `1` → the two
 `docs/ports/macro-body-notes.tsv` rows Owed 7 names).  The drift row is the tolerance row the main
@@ -233,10 +233,10 @@ agent writes (Owed 2).
 
 **⑤ The four static gates, on this revision.**
 `python3 tools/check-mirror-dupes.py` → **17 duplicate declaration(s), 17 ratchet row(s), 0
-failure(s)** - no row names `femacs/src/termcap.rs`.
+failure(s)** - no row names `src/termcap.rs`.
 `python3 tools/check-declarations.py` → **0 failures** (10 allowed literals tree-wide, none here).
 `python3 tools/check-citations.py` → **676 files scanned, 2 drift, 0 range, 0 stale**; the two drift
-rows are `femacs/src/ftfont.rs` 65/66 (another lane's, pre-existing), this unit contributes none.
+rows are `src/ftfont.rs` 65/66 (another lane's, pre-existing), this unit contributes none.
 `python3 tools/check-dead-file-coverage.py` → **0 failures**; this ledger is one of the bound ones
 (28 range rows covering C 1-640, the same reading the table's own line carries).
 `python3 tools/check-cond-eval.py src/termcap.c` → `9 conditions, 0 unknown, 0 disagreements
@@ -297,13 +297,13 @@ The integrator's list; nothing here is claimed as done by this lane.
 2. **`docs/ports/line-drift-tolerance.tsv`: one row**, stem `termcap`, tolerance ≥ 0.38, basis
    `total`, with this ledger's reason (C 640 vs the port's 883, 38.0%).  **DONE (status 3.495,
    integrator):** the `total`/`0.39` row is appended and `extract-abi.py --check
-   emacs/src/termcap.c femacs/src/termcap.rs` is now **OK with zero `-` rows**.
-3. **Feature registrations** (`femacs/xtask/Cargo.toml` + `docs/baseline/feature-coverage.tsv`):
+   emacs/src/termcap.c src/termcap.rs` is now **OK with zero `-` rows**.
+3. **Feature registrations** (`xtask/Cargo.toml` + `docs/baseline/feature-coverage.tsv`):
    `is_ebcdic_host` (C 111/193) and `internal_terminal` (C 359).  `msdos`, `debug`, `test`,
    `bufsize` and `termcap_file` are already spelled in the tree (`msdos`/`test`/`debug` by other
    units; `bufsize`/`termcap_file` by this one - `feature-coverage.py --write` will list them).
    **DONE (status 3.495, integrator):** all four names (`is_ebcdic_host`, `internal_terminal`,
-   `bufsize`, `termcap_file`) are in `femacs/xtask/Cargo.toml`'s `[features]` table with their C
+   `bufsize`, `termcap_file`) are in `xtask/Cargo.toml`'s `[features]` table with their C
    judgement lines, and `feature-coverage.py --write` has been re-run.
 4. **`lib/include/stdlib.rs`: `atoi`** (C 87's only use; declared in this unit, Finding 4).
 5. **`include/lisp.rs`'s chain: `lisp.h` 30's `<string.h>`** (`lib/include/string.rs`), which

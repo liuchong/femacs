@@ -21,4 +21,4 @@ Mirror of lib/tempname.h, complete: the `GL_TEMPNAME_H` guard marker (the idx.rs
 three `GT_*` kinds of C 30-32 (the live `#else` arm; `__GT_FILE` is undefined when the header is
 included by lib/tempname.c, and C 34-37's `#error` compares the two spellings' values), and the
 four prototypes in `pub mod tempname_decls` + glob import (PORTING.md 0.1-10).
-`python3 tools/extract-abi.py --check emacs/lib/tempname.h femacs/lib/include/tempname.rs` -> `OK`.
+`python3 tools/extract-abi.py --check emacs/lib/tempname.h lib/include/tempname.rs` -> `OK`.

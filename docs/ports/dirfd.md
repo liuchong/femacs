@@ -23,7 +23,7 @@
   757: `(Dir_p) -1`), kept as a `macro_rules!` (P-37) whose body is C's expansion; its own
   parameter name `Dir_p` is the macro's argument, which the checker exempts.
 - `dirfd` is a non-`static` definition, so the port exports it (`#[unsafe(no_mangle)]`, P-52).
-- **Mirror edit**: `femacs/lib/include/dirent.rs` now keeps its declarations in a
+- **Mirror edit**: `lib/include/dirent.rs` now keeps its declarations in a
   uniquely-named `pub mod dirent_decls` + glob import, because this unit *defines* `dirfd`, a
   name that mirror declares — a crate-root definition and a crate-root declaration collide
   (E0428; PORTING.md 0.1-10, the utimens.rs/stdio.rs shape).

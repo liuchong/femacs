@@ -110,7 +110,7 @@
 - **The gate caught a real typo here.**  `EVENT_END`'s first draft dropped the outer
   `CAR_SAFE`; the token check reported "does not mention car_safe" before the commit.
 - **Not yet done: none for this header.**  `extract-abi.py --check emacs/src/keyboard.h
-  femacs/src/include/keyboard.rs` reports `OK`; the prototypes after line 520 are declarations
+  src/include/keyboard.rs` reports `OK`; the prototypes after line 520 are declarations
   (outside the checker's inventory, P-64) and land with keyboard.c.
 
 ## Decisions (2026-10-03)
@@ -144,10 +144,10 @@
   shadows the unit's glob-imported definition - so degrading it breaks two frozen units
   (`E0308`).  The mirror therefore includes the owner, `buffer.rs` (P-72 rule ④'s "the unit
   that needs the complete type adds the mirror"), one header further than C's own list.
-- **The three lines are measured no-ops for every frozen unit.**  All 31 units in `femacs/src/`
+- **The three lines are measured no-ops for every frozen unit.**  All 31 units in `src/`
   that include this mirror also include `coding.rs`, `termhooks.rs` and `buffer.rs` - except
   `src/androidmenu.c`, which is the one the change is for.  (Scan: `grep -l
-  'include!("include/keyboard.rs")' femacs/src/*.rs` -> 31 files; each of the three owners
+  'include!("include/keyboard.rs")' src/*.rs` -> 31 files; each of the three owners
   checked the same way.)
 
 ## Evidence (the three includes)
@@ -160,8 +160,8 @@
 - `build-tu src/keyboard.c` -> `built src/keyboard.rs -> ../build/femacs/keyboard.o`;
   `build-tu src/coding.c` and `src/window.c` -> `built …` (the three frozen units that carry
   this mirror's neighbours).
-- `python3 tools/extract-abi.py --check emacs/src/keyboard.h femacs/src/include/keyboard.rs`
-  -> `OK emacs/src/keyboard.h -> femacs/src/include/keyboard.rs`.
+- `python3 tools/extract-abi.py --check emacs/src/keyboard.h src/include/keyboard.rs`
+  -> `OK emacs/src/keyboard.h -> src/include/keyboard.rs`.
 - `python3 tools/check-citations.py` -> `0 drift`, `0 stale`.
 
 ## Declarations (status 4.996)

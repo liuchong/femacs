@@ -41,7 +41,7 @@
   of naming the feature after the non-frozen side).  Nothing compiles them: the feature is
   not in `xtask dead-arms`'s FLIPS, and android.h has no mirror.
 - **`#include "buildobj.h"` (C 520)** is a *generated* header, so its mirror is generated
-  too: `femacs/src/include/buildobj.rs` is written by `tools/gen-buildobj.py` from the frozen
+  too: `src/include/buildobj.rs` is written by `tools/gen-buildobj.py` from the frozen
   build's `build/emacs-ref/src/buildobj.h` (which `make -C build/emacs-ref/src buildobj.h`
   produces from `$(ALLOBJS)`, `src/Makefile.in` 673-678; 75 objects).  The array name stays C's
   `buildobj`, its elements are `&CStr` so `buildobj[i].as_ptr ()` is C's `char const *`, and
@@ -82,4 +82,4 @@
   declared (`Fsnarf_documentation` is this unit's own subr, called by `reread_doc_file` the way
   C calls it).
 - Evidence: `xtask build-tu src/doc.c` -> `built src/doc.rs -> ../build/femacs/doc.o`;
-  `tools/extract-abi.py --check emacs/src/doc.c femacs/src/doc.rs` -> OK.
+  `tools/extract-abi.py --check emacs/src/doc.c src/doc.rs` -> OK.

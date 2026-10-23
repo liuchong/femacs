@@ -5,7 +5,7 @@
 > `HAVE_W32` test that also `AC_DEFINE`s `HAVE_NTGUI`), and `docs/baseline/frozen-build-sources.txt`
 > lists no `w32term.o` for this target - so `extract-abi.py`'s checklist for the file is empty
 > (P-86 ②) and this is that clause's substitute: the **C line-range table**, the `## Evidence`
-> readings and the `## Deviations`.  Port: `femacs/src/w32term.rs` (**4123 lines**), which carries
+> readings and the `## Deviations`.  Port: `src/w32term.rs` (**4123 lines**), which carries
 > **C 1-2715** in three slices - P-86 ④'s **slice 1** (C 1-1002, 1592 lines), **slice 2**
 > (C 1003-1949) and this batch's **slice 3** (C 1950-2715, the image page and the underline
 > drawing) - with **both arms of every `#if` carried**.
@@ -78,8 +78,8 @@ file has exactly one build condition of its own (the file gate) plus the platfor
 ## C line ranges
 
 One row per C block, in C's order.  This ledger is the map's ledger for **both** rows of the
-`w32term` stem (`src/w32term.c` -> `femacs/src/w32term.rs` and `src/w32term.h` ->
-`femacs/src/include/w32term.rs`), so `check-dead-file-coverage.py` reads the same table
+`w32term` stem (`src/w32term.c` -> `src/w32term.rs` and `src/w32term.h` ->
+`src/include/w32term.rs`), so `check-dead-file-coverage.py` reads the same table
 against both references and each row's range therefore runs to the line before the next
 row's start - the `docs/ports/frame.md` table does the same for `frame.c`/`frame.h`, and it
 is what keeps a blank line in one reference from becoming a gap in the other's reading.
@@ -254,7 +254,7 @@ type checking, so "0 errors in the unit" would be an *empty* reading here (P-86 
 **3. The arm-reach pre-flight and the mutation tests (P-86 ⑦) - a *different* reading.**
 The materialization's own copies (the unit's text line for line; the only differences are xtask's
 `include!` path rewrites) with nine patch classes and nothing else, each conditional because
-`femacs/src/include/**` is owned by another lane and moved during this batch:
+`src/include/**` is owned by another lane and moved during this batch:
 
 | # | patch | applied |
 | --- | --- | --- |
@@ -310,9 +310,9 @@ python3 tools/check-carried.py
   -> 11 carried file(s), 11 baseline row(s), 0 failure(s)
 python3 tools/check-cond-eval.py src/w32term.c
   -> src/w32term.c: 41 conditions, 2 unknown, 0 disagreements [VERIFIED]
-python3 tools/extract-abi.py --check emacs/src/w32term.c femacs/src/w32term.rs | tail -3
+python3 tools/extract-abi.py --check emacs/src/w32term.c src/w32term.rs | tail -3
   -> - line count drifted 81.1%: C 8414 vs Rust 1592
-     FAIL emacs/src/w32term.c -> femacs/src/w32term.rs
+     FAIL emacs/src/w32term.c -> src/w32term.rs
 ```
 `--check` is **not vacuous** for this file (P-86 ⑩): its reading is **134 `- ` rows**, and
 **133 of them are the C 1003-8414 remainder** (124 missing functions, the remainder's two macros
@@ -332,7 +332,7 @@ cd femacs && CARGO_TARGET_DIR=/tmp/w32term2-lane/cargo cargo run -q -p xtask -- 
      **336 bytes** - the same empty object as Evidence 1, because every item of this slice sits
      behind `have_ntgui` too.  Run three times over the batch (twice while the text was being
      written and once after the fixes below); only the last is the final revision's reading.
-python3 tools/extract-abi.py --check emacs/src/w32term.c femacs/src/w32term.rs
+python3 tools/extract-abi.py --check emacs/src/w32term.c src/w32term.rs
   -> **110 `- ` rows, 0 of them a "does not mention" row**: 102 missing functions, one missing
      macro (`LOAD_PROC`, C 8244), six missing file-scope objects and the line-count row
      (`line count drifted 65.0%: C 8414 vs Rust 2941`).  Slice 1's reading was **134** rows, so
@@ -351,7 +351,7 @@ python3 tools/check-citations.py
 python3 tools/check-declarations.py
   -> `14 declaration sites (0 forbidden, 14 allowed literals), 0 failures` on the final
      revision.  The mid-batch run read `1 failures`, and it was **not this file**:
-     `femacs/src/android.rs`'s `PACKAGE_STRING` literal, in flight in another lane while this
+     `src/android.rs`'s `PACKAGE_STRING` literal, in flight in another lane while this
      batch ran (this unit adds no declaration site of its own)
 ```
 
@@ -564,7 +564,7 @@ switch`, is answered by the `docs/ports/macro-body-notes.tsv` row this batch app
   first draft (nine sites plus the four `glyph_u_cmp_bits!` expansions, the `RGB!` promotions and
   `composition_gstring_width`'s arguments) - the same defect existed in **slice 1's** C 970 line
   and was corrected with them (`(*( (*f).output_data.w32 as *mut w32_output )).cursor_pixel`,
-  `femacs/src/w32term.rs` 1553), which is the only slice-1 text this batch changed.
+  `src/w32term.rs` 1553), which is the only slice-1 text this batch changed.
 - **C's `for (i = 0; …; ++i)` is the header's assignment plus a `while` whose last statement is
   C's increment** (slice 1's C 997-1001 reading), and `w32_draw_glyph_string_box`'s empty-bodied
   `for (last_glyph = g++; …; last_glyph = g++)` is that walk with C's two assignments in C's
@@ -677,7 +677,7 @@ switch`, is answered by the `docs/ports/macro-body-notes.tsv` row this batch app
    "under ten percent" set with this batch.
 2. `docs/ports/line-drift-tolerance.tsv`: one row, `w32term`, tolerance ≥ 0.63, basis `total`,
    with the slice's reason from the Deviations.
-3. `femacs/xtask/Cargo.toml`: two features are named by this unit and registered nowhere -
+3. `xtask/Cargo.toml`: two features are named by this unit and registered nowhere -
    `win32_winnt_lt_0500` (C 98's `_WIN32_WINNT < 0x0500`) and `win32_winnt_lt_0601` (C 129's).
    (`win32_windows_ge_0410` and `win32_vista` are the in-tree precedents for the naming.)
 4. `docs/ports/include-w32term.md`: the mirror file this unit collides with needs the
@@ -769,7 +769,7 @@ switch`, is answered by the `docs/ports/macro-body-notes.tsv` row this batch app
 18. **`<windows.h>` / `<wingdi.h>` has no mirror at all.**  `WORD`, `HFONT`, `RGB`, `PALETTERGB`,
     `GetRValue`/`GetGValue`/`GetBValue`, `CreatePatternBrush`, `SetTextAlign` and `TA_LEFT`/
     `TA_BASELINE` are this slice's additions to that per-unit section (P-88 clause 1: the
-    declaration site is C 25's include chain, no file is added under `femacs/src/include/`).  If a
+    declaration site is C 25's include chain, no file is added under `src/include/`).  If a
     Windows/mingw header mirror is ever added, the section's rows move into it (P-26/P-70).
 19. `w32_check_font` (C 7747): named by this slice's two `IF_DEBUG (w32_check_font (…))` sites
     and declared nowhere, because C's prototype (C 256, inside `#ifdef GLYPH_DEBUG`) is dropped

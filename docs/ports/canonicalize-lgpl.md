@@ -36,7 +36,7 @@
 
 ## Decisions
 
-`emacs/lib/canonicalize-lgpl.c` @ `fd7afced403`; port `femacs/lib/canonicalize-lgpl.rs` (567 lines).
+`emacs/lib/canonicalize-lgpl.c` @ `fd7afced403`; port `lib/canonicalize-lgpl.rs` (567 lines).
 All 22 checklist items are ticked.  Evidence: `xtask build-tu lib/canonicalize-lgpl.c` →
 `built canonicalize-lgpl.rs -> build/femacs/canonicalize-lgpl.o` (0 errors) and
 `extract-abi.py --check` → `OK`.

@@ -55,7 +55,7 @@
 
 ## Decisions
 
-- **PORTING.md 0.1**: the mirror is `femacs/lib/include/endian.in.rs`; the generated
+- **PORTING.md 0.1**: the mirror is `lib/include/endian.in.rs`; the generated
   header (build/emacs-ref/lib/endian.h) substitutes `_GL_ENDIAN_H`, `HAVE_ENDIAN_H` = 0,
   `HAVE_SYS_ENDIAN_H` = 1 and `ENDIAN_H_JUST_MISSING_STDINT` = 0, so gnulib's own arm is
   the live one and the twelve identifiers are `#define`d to `rpl_endian_*` - which is why

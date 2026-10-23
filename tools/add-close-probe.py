@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Insert (or remove) the `emacs_pipe`/`emacs_close` probe in femacs/src/sysdep.rs.
+"""Insert (or remove) the `emacs_pipe`/`emacs_close` probe in src/sysdep.rs.
 
 The 4.846 run reaches `loadup.el` and dies in the GC's `valid_pointer_p`, which builds a pipe,
 writes the candidate pointer into it and closes both ends; `emacs_close`'s
@@ -12,7 +12,7 @@ descriptor.  This probe writes both descriptors and the close's errno to fd 2 (l
 import pathlib
 import sys
 
-SRC = pathlib.Path (__file__).resolve ().parent.parent / "femacs/src/sysdep.rs"
+SRC = pathlib.Path (__file__).resolve ().parent.parent / "src/sysdep.rs"
 
 HELPER = '''/* TEMPORARY probe (tools/add-close-probe.py).  */
 unsafe fn cl_probe (tag: *const c_char, a: c_int, b: c_int, c: c_int)

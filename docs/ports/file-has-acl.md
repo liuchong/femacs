@@ -5,7 +5,7 @@
 > not empty; what the class needed here was the other half of P-86 ①: every `#if`'s **both arms**
 > carried as `#[cfg (feature = …)]` text, in C's order, with the file's own dead regions (C 48-382
 > and C 519-964, 781 of the 986 lines) transcribed rather than described.  The port is
-> `femacs/lib/file-has-acl.rs` (1,463 lines); the coverage table at the end of this deck is what
+> `lib/file-has-acl.rs` (1,463 lines); the coverage table at the end of this deck is what
 > `tools/check-dead-file-coverage.py` reads.
 
 ## Gate mapping
@@ -72,7 +72,7 @@ object's three (`nm -g`: `_fdfile_has_aclinfo`, `_file_has_acl`, `_file_has_acli
 `build/emacs-ref/lib/file-has-acl.o` has the same three).  The reference's two local symbols
 (`_UNKNOWN_SECURITY_CONTEXT`, `ltmp*`) have no exported counterpart, as before.
 
-② **`python3 tools/extract-abi.py --check emacs/lib/file-has-acl.c femacs/lib/file-has-acl.rs`
+② **`python3 tools/extract-abi.py --check emacs/lib/file-has-acl.c lib/file-has-acl.rs`
 → `OK`** (one `- ` line was the first revision's `USE_LINUX_XATTR`, whose two arms are two
 consts: the frozen `false` must be the first of the two for the macro-body rule to read it).
 
@@ -118,7 +118,7 @@ first revision's seven findings were this unit's own copies of `acl`, `acl_nontr
 `acl_get_fd_np`, and every surface now sits in a `mod`, which that gate treats as another scope).
 
 ⑧ **`python3 tools/check-citations.py` → no finding in this unit** (the run's other findings are
-two other lanes' in-flight files, `femacs/src/include/dispextern.rs` and `femacs/src/xsmfns.rs`).
+two other lanes' in-flight files, `src/include/dispextern.rs` and `src/xsmfns.rs`).
 `python3 tools/check-declarations.py` → tree baseline, 0 failures.
 
 ## Deviations
@@ -166,12 +166,12 @@ two other lanes' in-flight files, `femacs/src/include/dispextern.rs` and `femacs
 
 ## Owed
 
-1. **The integrator's feature table** (`femacs/xtask/Cargo.toml`, outside this lane's write set):
+1. **The integrator's feature table** (`xtask/Cargo.toml`, outside this lane's write set):
    `use_linux_xattr`, `have_smack`, `use_selinux_selinux_h`, `se_selinux_inline`,
    `have_acl_extended_file`, `have_acl_type_extended`, `have_acl_get_fd`, `have_acl_get_link_np`,
    `acl_no_trivial`, `have_aclx_get`, `acl_aix_wip`.  The rest of the gates reuse names the ACL
    cluster already registered.
-2. **The mirror's `MODE_INSIDE_ACL`** (`femacs/lib/include/acl-internal.rs` 158, 190, 294): C's
+2. **The mirror's `MODE_INSIDE_ACL`** (`lib/include/acl-internal.rs` 158, 190, 294): C's
    C 118-121 and C 152-155 arms are `# ifndef`/`# if defined __CYGWIN__` alternatives to C 233-236's
    `# ifndef MODE_INSIDE_ACL`, but all three are carried as separate `pub const`s, so a flip that
    enables `use_acl_have_acl_get_file` or `use_acl_getacl` is an `E0428` before this unit is read

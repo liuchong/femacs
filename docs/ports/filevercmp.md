@@ -19,7 +19,7 @@
 
 ## Decisions
 
-`emacs/lib/filevercmp.c` @ `fd7afced403`; port `femacs/lib/filevercmp.rs` (220 lines).  All
+`emacs/lib/filevercmp.c` @ `fd7afced403`; port `lib/filevercmp.rs` (220 lines).  All
 checklist items ticked; `build-tu` → `built filevercmp.rs -> build/femacs/filevercmp.o` and
 `--check` → `OK`.
 

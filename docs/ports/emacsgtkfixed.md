@@ -9,7 +9,7 @@
 > `docs/baseline/frozen-build-sources.txt` lists no `emacsgtkfixed.o`, so `extract-abi.py`'s live
 > checklist for the file is empty and its checkbox sections cannot be coverage evidence.  What
 > follows is P-86 ②'s substitute: the **C line-range table**, the `## Evidence` readings and the
-> `## Deviations`.  Port: `femacs/src/emacsgtkfixed.rs`, **both arms of C 25's `#ifdef HAVE_PGTK`
+> `## Deviations`.  Port: `src/emacsgtkfixed.rs`, **both arms of C 25's `#ifdef HAVE_PGTK`
 > carried**.
 
 ## Subrs (DEFUN) — 0
@@ -31,7 +31,7 @@ as C's text and owes the expansion (`## Owed` 6).
 
 `struct _EmacsFixedPrivate` (C 41-44, one `struct frame *f`).  The two records the *header*
 defines (`struct _EmacsFixed`, `struct _EmacsFixedClass`) belong to
-`femacs/src/include/emacsgtkfixed.rs`; this unit restates them for the arm that mirror withholds
+`src/include/emacsgtkfixed.rs`; this unit restates them for the arm that mirror withholds
 them from (`## Deviations` 2).
 
 ## File-scope objects — 0
@@ -212,12 +212,12 @@ the port's own text is closed, and the 13 errors are exactly those four mirror-s
 is a */tmp* reading of a patched copy - it is not a reading of the tree.
 
 **⑤ The gates.**  `python3 tools/extract-abi.py --check emacs/src/emacsgtkfixed.c
-femacs/src/emacsgtkfixed.rs` -> **FAIL**, with exactly **one `- ` row**: `line count drifted
+src/emacsgtkfixed.rs` -> **FAIL**, with exactly **one `- ` row**: `line count drifted
 141.4%: C 210 vs Rust 507` (the integrator's `docs/ports/line-drift-tolerance.tsv` row; nothing
 else is missing).  `check-mirror-dupes.py` -> **17 duplicate declaration(s), 17 ratchet row(s),
 0 failure(s)**, none of them naming this unit.  `check-declarations.py` -> `10 declaration sites
 (0 forbidden, 10 allowed literals), 0 failures`.  `check-citations.py` -> `676 file(s) scanned,
-2 drift, 0 range, 912 external, 35 allowed, 0 stale` - the two drifts are `femacs/src/ftfont.rs`
+2 drift, 0 range, 912 external, 35 allowed, 0 stale` - the two drifts are `src/ftfont.rs`
 67/68, another lane's; this unit's citations are all `external` (X11/GLib headers have no file in
 the reference tree), so it contributes 0 drift.  `check-dead-file-coverage.py` -> `61 ledger(s)
 bound (a C range table), 0 failure(s)` before this ledger's table lands.
@@ -243,7 +243,7 @@ bound (a C range table), 0 failure(s)` before this ledger's table lands.
    `x_top_window_to_frame (dpyinfo, w as c_int)` narrows C's `Window` to the prototype's `int`.
 5. **C 82's `priv->f = 0` keeps C's literal** (`0 as *mut frame`): the `null` family of
    `docs/ports/token-aliases.tsv` covers C's `NULL`, not this literal, and the body-token gate
-   requires the `0` (the `femacs/src/alloc.rs` 1111 `val = 0 as *mut c_void;` spelling).
+   requires the `0` (the `src/alloc.rs` 1111 `val = 0 as *mut c_void;` spelling).
 6. **`sizeof (EmacsFixedPrivate)` is `core::mem::size_of::<EmacsFixedPrivate> () as gsize`**: the
    prototype's parameter is `gsize`, which is not `usize` to rustc even where both are 64-bit.
 7. **The unnamed `struct { int x; int y; }` C shares between `min_aspect` and `max_aspect`** is
@@ -264,17 +264,17 @@ bound (a C range table), 0 failure(s)` before this ledger's table lands.
 
 ## Owed by the integrator (nothing here is claimed as done)
 
-1. **`femacs/src/include/gtk.rs`: `GtkWidgetClass` needs `get_preferred_height`** (C 73;
+1. **`src/include/gtk.rs`: `GtkWidgetClass` needs `get_preferred_height`** (C 73;
    `docs/ports/include-gtkutil.md` already names this addition).  Until it lands the X11 and PGTK
    arms both carry one `E0609` whose span is this unit's own field write.
-2. **`femacs/src/include/xterm.rs`: `SELECTION_EVENT_DISPLAY` (1436), `x_make_truecolor_pixel`
+2. **`src/include/xterm.rs`: `SELECTION_EVENT_DISPLAY` (1436), `x_make_truecolor_pixel`
    (1503) and `x_mutable_colormap` (1532) need `unsafe` bodies or `unsafe fn`** - their ten
    `E0133`s block every `have_x_windows` arm, not just this one.
-3. **`femacs/src/include/systime.rs` 27's assertion** is the mirror's intended refusal to be flipped
+3. **`src/include/systime.rs` 27's assertion** is the mirror's intended refusal to be flipped
    on a target without `HAVE_X_WINDOWS`; the X11 arm's flip reading will carry its `E0080` until an
    X11 target is frozen (or the flip is done through `xtask dead-arms`, which also flips the frozen
    constant).
-4. **`femacs/src/include/emacsgtkfixed.rs`**: (a) its `emacs_fixed_new` prototype must go into a
+4. **`src/include/emacsgtkfixed.rs`**: (a) its `emacs_fixed_new` prototype must go into a
    `pub mod …_decls { … } use …_decls::*;` (P-39's shape, `include/xterm.rs` 212's precedent) or
    this unit's definition is `E0428`; (b) its two records' `#[cfg (feature = "have_pgtk")]` gate is
    wrong (`emacsgtkfixed.h` 39-50 is unconditional) and its head note already says these records
@@ -284,7 +284,7 @@ bound (a C range table), 0 failure(s)` before this ledger's table lands.
 5. **`docs/ports/line-drift-tolerance.tsv`**: a row for this unit (C 210 vs Rust 507 = 141.4%
    drift).  `extract-abi --check` reads FAIL with that one `- ` row and nothing else.
    **DONE (status 3.493, integrator):** the `total`/`1.43` row is appended, and
-   `extract-abi.py --check emacs/src/emacsgtkfixed.c femacs/src/emacsgtkfixed.rs` is now
+   `extract-abi.py --check emacs/src/emacsgtkfixed.c src/emacsgtkfixed.rs` is now
    **OK with zero `-` rows**.
 6. **`G_DEFINE_TYPE`'s expansion (C 56)** is owed: it defines `emacs_fixed_get_type` (declared in
    this unit via a module + glob import, `## Evidence` ④'s control shows the pattern), forward-
@@ -293,7 +293,7 @@ bound (a C range table), 0 failure(s)` before this ledger's table lands.
    item-defining macro of a third-party header (§11 owes one) - the `src/gtkutil.rs` 313-320
    treatment of the sibling invocation.
 7. **No feature registration is owed**: `use_gtk` (configure.ac 3826), `have_gtk3` (3756),
-   `have_pgtk` (3176) and `have_x_windows` (mirror-side) are all in `femacs/xtask/Cargo.toml`
+   `have_pgtk` (3176) and `have_x_windows` (mirror-side) are all in `xtask/Cargo.toml`
    (212/232/252/681), and C 33's version gate needs none (see `## Decisions`).
 8. **`docs/port-map.md`'s row for this file** still reads the 11-line stub's count (428); it is
    regenerated by `tools/gen-port-map.py`, which is outside this lane's write scope.

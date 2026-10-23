@@ -28,7 +28,7 @@ import subprocess
 import sys
 
 REPO = pathlib.Path(__file__).resolve().parent.parent
-PORT_TREE = REPO / "femacs"
+PORT_TREE = REPO
 BUILD = REPO / "build/femacs"
 PROGRAM = REPO / "build/port/src/temacs"
 LINK_ARGS = REPO / "build/load/link-args.rsp"

@@ -19,4 +19,4 @@ Mirror of lib/fsusage.h, complete: `struct fs_usage` (all seven fields, C's `uin
 port's `u64`, C's `bool` -> Rust's `bool`), the `get_fs_usage` prototype in a glob-imported
 module (PORTING.md 0.1-10), and C 21-22's include guard `FSUSAGE_H_` kept as the marker constant
 (the idx.rs shape).  `python3 tools/extract-abi.py --check emacs/lib/fsusage.h
-femacs/lib/include/fsusage.rs` -> `OK`.
+lib/include/fsusage.rs` -> `OK`.

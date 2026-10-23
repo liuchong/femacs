@@ -202,7 +202,7 @@ list is the tail this file documents.
   constants `MARGIN_IN_LINES`/`MARGIN_IN_PIXELS` it was still reporting.  The 9 file-scope
   objects and `WINDOW_H_INCLUDED` were already mirrored by the first slice - their boxes were
   stale and are ticked here.
-  `python3 tools/extract-abi.py --check emacs/src/window.h femacs/src/include/window.rs` = `OK`.
+  `python3 tools/extract-abi.py --check emacs/src/window.h src/include/window.rs` = `OK`.
 
 - **They keep C's `macro_rules!` shape, unlike the first 39 accessors.**  A macro body is
   resolved where it is *expanded*, so it may name frame.h's `struct frame`/`FRAME_*` and
@@ -253,12 +253,12 @@ list is the tail this file documents.
 
 ### Evidence
 
-- `python3 tools/extract-abi.py --check emacs/src/window.h femacs/src/include/window.rs` -> `OK`
+- `python3 tools/extract-abi.py --check emacs/src/window.h src/include/window.rs` -> `OK`
   (was 55 missing macros + 2 missing constants).
-- `python3 tools/extract-abi.py --check emacs/src/window.c femacs/src/window.rs` -> `OK` after
+- `python3 tools/extract-abi.py --check emacs/src/window.c src/window.rs` -> `OK` after
   the deletions (the unit's own ledger row for the 493 removed lines is in
   docs/ports/line-drift-tolerance.tsv).
-- `python3 tools/extract-abi.py --check emacs/src/dispextern.h femacs/src/include/dispextern.rs`
+- `python3 tools/extract-abi.py --check emacs/src/dispextern.h src/include/dispextern.rs`
   -> still `FAIL` for its own open items, 12 fewer than before (153 -> 141), none of them the
   twelve this change moved.
 - `CARGO_TARGET_DIR=/tmp/femacs-target-win cargo run -q -p xtask -- build-tu <unit>.c`: all 44
@@ -320,12 +320,12 @@ probe with no missing member (`struct window`).
 ## Evidence (the 29 function prototypes)
 
 - **The count**: a script over `emacs/src/window.h`'s `extern … (…);` lines reads **38 function
-  prototypes**, of which **29** did not occur in `femacs/src/include/window.rs`; the other 9
+  prototypes**, of which **29** did not occur in `src/include/window.rs`; the other 9
   (`wset_redisplay`, `fset_redisplay`, `bset_redisplay`, `window_wants_mode_line`,
   `window_wants_header_line`, `window_wants_tab_line`, `window_body_width`, `window_body_height`,
   `window_scroll_margin`) were already there.
-- **`python3 tools/extract-abi.py --check emacs/src/window.h femacs/src/include/window.rs`** ->
-  `OK emacs/src/window.h -> femacs/src/include/window.rs`.
+- **`python3 tools/extract-abi.py --check emacs/src/window.h src/include/window.rs`** ->
+  `OK emacs/src/window.h -> src/include/window.rs`.
 - **`build-tu`**: `src/window.c`, `src/frame.rs`, `src/keyboard.rs`, `src/buffer.rs`,
   `src/process.rs`, `src/bytecode.rs`, `src/composite.rs`, `src/dispnew.rs`, `src/emacs.rs`,
   `src/font.rs`, `src/indent.rs`, `src/minibuf.rs` - all `built …`.
@@ -421,8 +421,8 @@ include!("buffer.rs");                        // window.h 605/634/635/1199's BUF
 
 ### Evidence
 
-- `python3 tools/extract-abi.py --check emacs/src/window.h femacs/src/include/window.rs` ->
-  `OK emacs/src/window.h -> femacs/src/include/window.rs`.
+- `python3 tools/extract-abi.py --check emacs/src/window.h src/include/window.rs` ->
+  `OK emacs/src/window.h -> src/include/window.rs`.
 - `python3 tools/check-mirror-dupes.py` -> before **and** after: `18 duplicate declaration(s), 18
   ratchet row(s), 0 failure(s)` (the ratchet is unmoved - an `include!` line is not a declaration).
 - `CARGO_TARGET_DIR=… tools/check-all-units.sh` (P-87, the whole point of this shape) ->
@@ -487,8 +487,8 @@ configuration can see them (the calls sit inside `#[cfg (feature = "have_haiku")
 
 **Evidence.**
 
-- `python3 tools/extract-abi.py --check emacs/src/window.h femacs/src/include/window.rs` -> `OK
-  emacs/src/window.h -> femacs/src/include/window.rs`.
+- `python3 tools/extract-abi.py --check emacs/src/window.h src/include/window.rs` -> `OK
+  emacs/src/window.h -> src/include/window.rs`.
 - `python3 tools/check-mirror-dupes.py` -> `18 duplicate declaration(s), 18 ratchet row(s),
   0 failure(s)`.
 - Frozen includers (`build-tu`): `src/window.c`, `src/xdisp.c`, `src/editfns.c`,

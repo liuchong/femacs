@@ -19,14 +19,14 @@
 # ----------------------------------------------------------------------
 ## Decisions
 
-`emacs/lib/malloc/dynarray.h` @ `fd7afced403`; port `femacs/lib/malloc/include/dynarray.rs`.
+`emacs/lib/malloc/dynarray.h` @ `fd7afced403`; port `lib/malloc/include/dynarray.rs`.
 This is the shared glibc header.  The gnulib wrapper (`emacs/lib/dynarray.h`) reaches it in
 *two* readings and both reach the same text: the `#if defined DYNARRAY_STRUCT …` arm includes
 the generated `malloc/dynarray.gl.h`, and the `#else` arm includes `<malloc/dynarray.h>`; the
 generated file differs from this header only by its `DO NOT EDIT!` first line and by the five
 `libc_hidden_proto` lines (`diff build/emacs-ref/lib/malloc/dynarray.gl.h
 emacs/lib/malloc/dynarray.h` is exactly those six lines).  The port therefore keeps the text
-once, here, and `femacs/lib/include/dynarray.rs` includes it for the `#else` reading.
+once, here, and `lib/include/dynarray.rs` includes it for the `#else` reading.
 
 - **The two structs carry measured layout assertions.**  `docs/baseline/layout` has no row for
   `struct dynarray_header`/`struct dynarray_finalize_result`, so the numbers are the frozen
@@ -64,7 +64,7 @@ once, here, and `femacs/lib/include/dynarray.rs` includes it for the `#else` rea
   lib/malloc/dynarray.h` -> `built lib/malloc/include/dynarray.rs ->
   ../build/femacs/include_dynarray.o`.
 - `python3 tools/extract-abi.py --check emacs/lib/malloc/dynarray.h
-  femacs/lib/malloc/include/dynarray.rs` -> `OK`.
+  lib/malloc/include/dynarray.rs` -> `OK`.
 - manual `rustc --edition 2024 --crate-type=lib --emit=metadata --crate-name dyn_check
   -C panic=abort -C codegen-units=1 -C opt-level=0 ../build/femacs/units/dynarray/_root.rs`
   -> exit 0.

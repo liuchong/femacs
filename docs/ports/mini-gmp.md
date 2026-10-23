@@ -260,13 +260,13 @@
 
 ## Decisions
 
-`emacs/lib/mini-gmp.c` @ `fd7afced403`; port `femacs/lib/mini-gmp.rs` (5,277 lines).
+`emacs/lib/mini-gmp.c` @ `fd7afced403`; port `lib/mini-gmp.rs` (5,277 lines).
 All 247 checklist items are ticked: every one of the 205 functions, the 39 macros, the two
 structs and `mp_bits_per_limb` exist in the port with the reference's names and order.
 
 - **Evidence.** `xtask build-tu lib/mini-gmp.c` → `built lib/mini-gmp.rs -> build/femacs/mini-gmp.o`
   (0 errors; the unit is `--crate-type=lib --emit=obj`, so nothing is linked here);
-  `python3 tools/extract-abi.py --check emacs/lib/mini-gmp.c femacs/lib/mini-gmp.rs` → `OK`.
+  `python3 tools/extract-abi.py --check emacs/lib/mini-gmp.c lib/mini-gmp.rs` → `OK`.
   Not yet run (the batch owner runs them): `gate-fast`, `spikes/gmp-abi-probe.sh`, ERT, and any
   behavior-level differential — no link test of the object has happened either.
 - **`assert` → `assert!`.** The frozen build leaves `NDEBUG` undefined, so C's 98 assertions are
@@ -296,7 +296,7 @@ structs and `mp_bits_per_limb` exist in the port with the reference's names and 
   because the body needs one `gmp_die` message and one `fwrite`; `stderr` keeps C's name and binds
   the platform symbol (`__stderrp` on darwin). `CHAR_BIT` (11 uses) and the `UINT_MAX`/`SHRT_MAX`/
   `SHRT_MIN`/`USHRT_MAX` of the fits/compare family were added to
-  `femacs/lib/include/limits.in.rs`'s system-`<limits.h>` section.
+  `lib/include/limits.in.rs`'s system-`<limits.h>` section.
 - **Ledgers touched, all recorded with reasons** (the token check is one-directional, so a *named*
   token is the deviation and everything else stays compared):
   - `docs/ports/macro-body-notes.tsv`: the twelve `do { … } while (0)` macros need `0` (no Rust

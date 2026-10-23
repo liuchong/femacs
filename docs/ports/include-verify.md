@@ -38,7 +38,7 @@
 
 ## Decisions
 
-`emacs/lib/verify.h` @ `fd7afced403`; port `femacs/lib/include/verify.rs`.  Every checklist
+`emacs/lib/verify.h` @ `fd7afced403`; port `lib/include/verify.rs`.  Every checklist
 item is ticked and `extract-abi.py --check` reports `OK` for the pair.
 
 **The arms the frozen target takes** (clang, `-std=gnu23`; `docs/baseline/config/
@@ -74,7 +74,7 @@ rather than a pasted name; nothing expands it, because the only user is C 233-23
 **`static_assert` is defined here, not in `lisp.rs`.**  PORTING.md 2.5 says the port's
 `static_assert` (C23's keyword) is "lisp.rs 里的同名 `macro_rules!`".  `extract-abi.py` names
 the macro in this header (C 309, and again in the two C++ trick arms), and the mirror has to
-carry the name, so the *definition* is here and `femacs/src/include/lisp.rs` includes this
+carry the name, so the *definition* is here and `src/include/lisp.rs` includes this
 file at its C 44 position (`#include <verify.h>`) instead of declaring its own.  The macro is
 still in lisp.rs's scope for the ~200 units that include that mirror, which is what 2.5
 needs, and PORTING.md 0.1-3's "one name, one place" now holds: before this change
@@ -82,7 +82,7 @@ needs, and PORTING.md 0.1-3's "one name, one place" now holds: before this chang
 this mirror), so the first unit that mirrored a header including both would have hit `E0428`.
 2.5's sentence may want the pointer (integrator's file).
 
-**Convergence.**  `femacs/src/include/lisp.rs`: the local `assume` and `static_assert`
+**Convergence.**  `src/include/lisp.rs`: the local `assume` and `static_assert`
 definitions were deleted and the mirror was added to its include block at C's position.
 Nothing else in the tree defined a name this mirror adds (`check-mirror-dupes.py` stayed at
 its one ratchet row), and the four `lib/` units that keep a local `static_assert!` for the
@@ -108,11 +108,11 @@ that expands to items.
 ## Evidence
 
 ```
-$ python3 tools/extract-abi.py --check emacs/lib/verify.h femacs/lib/include/verify.rs
+$ python3 tools/extract-abi.py --check emacs/lib/verify.h lib/include/verify.rs
   (13 C macros have several definitions (configuration branches), body not compared:
    _GL_COUNTER, _GL_HAS_BUILTIN_TRAP, _GL_HAS_BUILTIN_UNREACHABLE, _GL_SA1, _GL_SA2,
    _GL_SA3 ...)
-OK emacs/lib/verify.h -> femacs/lib/include/verify.rs
+OK emacs/lib/verify.h -> lib/include/verify.rs
 
 $ cd /tmp/femacs-probe && rustc --edition 2024 --crate-type=lib --emit=obj \
     -C panic=abort verify_probe.rs -o /tmp/femacs-probe/verify_probe.o
@@ -143,8 +143,8 @@ check-globals: 283 units, 0 DEFVAR_* variables without a definition in their own
 ```
 
 The stale pointers this work leaves for the integrator (they say `<verify.h>` has no mirror,
-or that `verify_expr` is only recorded, at `femacs/src/alloc.rs` 3411, `femacs/src/
-chartab.rs` 218 and `femacs/src/include/charset.rs` 11/494-496) are *not* edited here: the
+or that `verify_expr` is only recorded, at `src/alloc.rs` 3411, `src/
+chartab.rs` 218 and `src/include/charset.rs` 11/494-496) are *not* edited here: the
 first two are other units' text and the last is `charset.rs`'s note for its
 `ENCODE_CHAR`, which `docs/ports/macro-body-notes.tsv` already carries as a row
 (`verify_expr`, a file this lane must not edit).

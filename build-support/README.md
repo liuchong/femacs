@@ -1,0 +1,7 @@
+# Owned build descriptions
+
+These text inputs describe the supported Apple Silicon macOS terminal and Cocoa configurations. They replace runtime discovery from an optional reference checkout: ordered core object names, selected library members, system libraries, configuration macros and native symbol/global metadata. No object code, installed editor or dump is included. `symbols.json` declares Cocoa Lisp names and forwarding storage types; `tools/gen-macos-runtime.py` checks forwarding names against the actual Swift source.
+
+`generator-recipes.json` stores repository-relative raw-data conversion recipes transcribed from the fixed baseline during migration. All data and generator programs are committed under `admin/`, `leim/` and `lisp/`. Recipes are executed by `tools/bootstrap-resources.py`, which supplies the newly built owned program, never a reference program. GNU awk and gzip are external tools. `doc-sections.txt` supplies only section order; documentation text is scanned from owned code.
+
+The historical baseline is fd7afced4036fc1a221567d70705d20a2bd64713. Changing target features or library membership is a source change requiring a clean build and functional verification; these descriptions do not dynamically detect unsupported CPUs or SDKs. The builder rejects non-arm64 macOS hosts. Diagnostic/differential tools may optionally use a separately obtained read-only reference, but normal build and generation do not.

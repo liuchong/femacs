@@ -36,13 +36,13 @@
 - **`unload_comp_unit`'s parameter.**  C's `#else` branch never defines the struct, only names
   it in the inline's parameter list - an incomplete type, which C allows and Rust does not
   spell.  The port writes `*mut core::ffi::c_void` (PORTING.md P-72 3) and records it here;
-  the field-carrying definition lives in `femacs/src/pdumper.rs` under the `have_native_comp`
+  the field-carrying definition lives in `src/pdumper.rs` under the `have_native_comp`
   feature, because `comp.c` (which owns it) is not ported yet.
 
 ## Evidence
 
-- `python3 tools/extract-abi.py --check emacs/src/comp.h femacs/src/include/comp.rs`
-  -> `OK emacs/src/comp.h -> femacs/src/include/comp.rs` (no `- ` problem line).
+- `python3 tools/extract-abi.py --check emacs/src/comp.h src/include/comp.rs`
+  -> `OK emacs/src/comp.h -> src/include/comp.rs` (no `- ` problem line).
 - `cd femacs && CARGO_TARGET_DIR=/tmp/... cargo run -q -p xtask -- build-tu src/emacs.c`
   -> `built src/emacs.rs -> ../build/femacs/emacs.o`; the same for `src/alloc.c`,
   `src/print.c` and `src/pdumper.c`, which reach this mirror through `lisp.h`'s 2168 include.

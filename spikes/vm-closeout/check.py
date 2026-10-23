@@ -46,7 +46,7 @@ def main():
             case=name, actual=env["verdict"], port_ran=r1, ref_ran=r2,
             port_unexpected=u1, ref_unexpected=u2, detail=detail,
             elapsed_ns=time.perf_counter_ns()-start))
-    source = (ROOT / "femacs/src/bytecode.rs").read_text()
+    source = (ROOT / "src/bytecode.rs").read_text()
     values = {int(v, 0) if v.startswith("0o") else int(v)
               for v in re.findall(r"DEFINE!\s*\(\s*\w+,\s*(0o[0-7]+|[0-9]+)\s*\)", source)}
     constant = re.search(r"DEFINE!\s*\(\s*Bconstant,\s*(0o[0-7]+|[0-9]+)", source).group(1)

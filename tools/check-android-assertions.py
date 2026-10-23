@@ -240,16 +240,16 @@ def main():
             line = line.strip()
             if not line or line.startswith("#"):
                 continue
-            # `src/keyboard.c` -> femacs/src/keyboard.rs, `lib/regex.c` -> femacs/lib/regex.rs
+            # `src/keyboard.c` -> src/keyboard.rs, `lib/regex.c` -> lib/regex.rs
             stem = line[:-2] if line.endswith(".c") else line
-            listed.add("femacs/%s.rs" % stem)
+            listed.add("%s.rs" % stem)
         unit_files = listed
 
     seen, live = {}, {}
-    for src in sorted(list((REPO / "femacs/src").rglob("*.rs"))
-                      + list((REPO / "femacs/lib").rglob("*.rs"))
+    for src in sorted(list((REPO / "src").rglob("*.rs"))
+                      + list((REPO / "lib").rglob("*.rs"))
                       + [p for d in ("lib-src", "lwlib", "oldXMenu", "exec", "nt")
-                         for p in (REPO / "femacs" / d).rglob("*.rs")]):
+                         for p in (REPO / d).rglob("*.rs")]):
         try:
             text = src.read_text()
         except (UnicodeDecodeError, FileNotFoundError):

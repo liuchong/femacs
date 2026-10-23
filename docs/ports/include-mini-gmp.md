@@ -20,7 +20,7 @@
 
 ## Decisions
 
-`emacs/lib/mini-gmp.h` @ `fd7afced403`; port `femacs/lib/include/mini-gmp.rs` (292 lines).
+`emacs/lib/mini-gmp.h` @ `fd7afced403`; port `lib/include/mini-gmp.rs` (292 lines).
 
 - **What this file is.**  `<gmp.h>` has no `emacs/lib/gmp.h` of its own: gnulib's libgmp
   module *generates* one as `#include "mini-gmp.h"` (verified in the reference build:

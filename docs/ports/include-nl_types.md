@@ -30,4 +30,4 @@ which compiles the `src/include` and `lib/include` mirrors, does not reach it; i
 `nt/inc` is on the include path instead, and `src/w32proc.c` and `lib-src/ntlib.c` are among the
 units whose `#include <nl_types.h>` resolves here.
 Evidence: `python3 tools/extract-abi.py --check emacs/nt/inc/nl_types.h
-femacs/nt/inc/include/nl_types.rs` -> `OK`.
+nt/inc/include/nl_types.rs` -> `OK`.

@@ -18,7 +18,7 @@
 
 ## Decisions
 
-`emacs/lib/faccessat.c` @ `fd7afced403`; port `femacs/lib/faccessat.rs` (121 lines).  All
+`emacs/lib/faccessat.c` @ `fd7afced403`; port `lib/faccessat.rs` (121 lines).  All
 checklist items ticked; `build-tu lib/faccessat.c` -> `built lib/faccessat.rs ->
 ../build/femacs/faccessat.o` (0 errors, 2 pre-existing warnings from the unistd mirror's
 `read`/`write` declarations), `--check` -> `OK`.

@@ -102,8 +102,8 @@
 
 ## Evidence
 
-- `python3 tools/extract-abi.py --check emacs/src/w32gui.h femacs/src/include/w32gui.rs`
-  -> `OK emacs/src/w32gui.h -> femacs/src/include/w32gui.rs` (no `- ` problem lines), with the
+- `python3 tools/extract-abi.py --check emacs/src/w32gui.h src/include/w32gui.rs`
+  -> `OK emacs/src/w32gui.h -> src/include/w32gui.rs` (no `- ` problem lines), with the
   single stderr note `missing type deferred: src/w32gui.h XImage/_XImage (the ledger has unchecked
   boxes)` - the C 39-44 deferral recorded above.  The first attempt reported one problem,
   `macro local_free does not mention lpvoid (C body: (HeapFree (local_heap, 0, ((LPVOID) (p)))))`,
@@ -132,13 +132,13 @@
 
 The 1 box(es) this sweep tentatively ticked are **real pending work, not stale bookkeeping**,
 and the tick was reverted.  Measured: while the ledger has unchecked boxes,
-`python3 tools/extract-abi.py --check emacs/src/w32gui.h femacs/src/include/w32gui.rs` prints `0` `- ` lines **because the tool
+`python3 tools/extract-abi.py --check emacs/src/w32gui.h src/include/w32gui.rs` prints `0` `- ` lines **because the tool
 defers this file's missing items to stderr** (`missing type deferred: src/w32gui.h <name> (the ledger has
 unchecked boxes)`); with the boxes ticked the deferral lifts and the same command prints
 
     - missing type XImage/_XImage
 
-i.e. the type is genuinely absent from femacs/src/include/w32gui.rs.  So: src/w32gui.h's `XImage`/`_XImage` is the Windows GDI record; dead-platform text (no `_WIN32`), P-51/3.9 shape.
+i.e. the type is genuinely absent from src/include/w32gui.rs.  So: src/w32gui.h's `XImage`/`_XImage` is the Windows GDI record; dead-platform text (no `_WIN32`), P-51/3.9 shape.
 
 ## Decisions / Evidence (the eight true gaps, 2026-10-04)
 
@@ -146,8 +146,8 @@ i.e. the type is genuinely absent from femacs/src/include/w32gui.rs.  So: src/w3
 pass (they had been left unchecked, and the earlier sweep had un-ticked some of them by
 position rather than by name - corrected here).
 
-    $ python3 tools/extract-abi.py --check emacs/src/w32gui.h femacs/src/include/w32gui.rs
-    OK emacs/src/w32gui.h -> femacs/src/include/w32gui.rs                     # `- ` lines: 0, no `missing type deferred`
+    $ python3 tools/extract-abi.py --check emacs/src/w32gui.h src/include/w32gui.rs
+    OK emacs/src/w32gui.h -> src/include/w32gui.rs                     # `- ` lines: 0, no `missing type deferred`
     $ cargo run -q -p xtask -- layout-check
     layout-check passed (see build/femacs/layout_asserts.rs)
 
@@ -165,7 +165,7 @@ stated: under the frozen configuration nothing changes (the item is still compil
 `w32_create_pixmap_from_bitmap_data` call chain is that consumer.
 
 **Evidence.** `python3 tools/extract-abi.py --check emacs/src/w32gui.h
-femacs/src/include/w32gui.rs` -> `OK emacs/src/w32gui.h -> femacs/src/include/w32gui.rs`;
+src/include/w32gui.rs` -> `OK emacs/src/w32gui.h -> src/include/w32gui.rs`;
 `python3 tools/check-mirror-dupes.py` -> `18 duplicate declaration(s), 18 ratchet row(s),
 0 failure(s)`.
 
@@ -190,6 +190,6 @@ and converts the result).  Measured before the change: six `E0308`/`E0277` sites
 `STORE_NATIVE_RECT` needed nothing (the same types on both sides).
 
 **Evidence.**  `python3 tools/extract-abi.py --check emacs/src/w32gui.h
-femacs/src/include/w32gui.rs` -> `OK` (its one stderr note, `NativeRectangle`'s recorded Rust
+src/include/w32gui.rs` -> `OK` (its one stderr note, `NativeRectangle`'s recorded Rust
 counterpart, is unchanged); `xtask layout-check` passed; `check-citations` 0 drift;
 `check-mirror-dupes` 18 ratchet rows / 0 failure for this file; `check-all-units.sh` 83/0 both legs.

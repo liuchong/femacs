@@ -4,9 +4,9 @@
 #![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code, unused_macros)]
 use core::ffi::{c_double, c_int, c_long, c_uint, c_ulong};
 
-include!("../femacs/lib/include/stdint.in.rs");
-include!("../femacs/lib/include/float.in.rs");
-include!("../femacs/lib/include/math.rs");
+include!("../lib/include/stdint.in.rs");
+include!("../lib/include/float.in.rs");
+include!("../lib/include/math.rs");
 
 fn main () {
   println! ("HUGE_VAL_is_pos_inf {}", (isinf! (HUGE_VAL) && 0.0 < HUGE_VAL) as c_int);

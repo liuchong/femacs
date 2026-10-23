@@ -17,16 +17,16 @@
   C's order.
 - **C 94's `#ifdef CHOOSE_NEWEST_EXE` is `feature = "choose_newest_exe"`.**  C 41's `#define` is
   *commented out*, so the frozen side is C 124's `#else` arm; both arms are carried (P-86 ①), and
-  the feature is registered in `femacs/xtask/Cargo.toml`.
+  the feature is registered in `xtask/Cargo.toml`.
 - **C 46's `<windows.h>` and C 48's `<malloc.h>` have no mirror** - there is no Windows SDK and no
-  MSVC CRT on this machine (`femacs/src/w32proc.rs`'s acquisition note: no `windows.h`/`winnt.h`
+  MSVC CRT on this machine (`src/w32proc.rs`'s acquisition note: no `windows.h`/`winnt.h`
   anywhere, no mingw-w64) - so the unit declares the whole surface it uses at C 46's position
   (P-88 ①, the `src/w32*.rs` practice): the type/handle typedefs, `STARTUPINFO`/
   `SECURITY_ATTRIBUTES`/`PROCESS_INFORMATION`/`OSVERSIONINFO`/`FILETIME`/`WIN32_FIND_DATA`, the
   `STARTF_*`/`SW_*`/priority-class/`MB_*`/`IDOK`/`INFINITE` constants and the fourteen entry points,
   each with its own `/// C:` line.  **Every constant value is a placeholder** and the record layouts
   are unmeasured (P-88 ②: no numbers from memory) - see Owed 2.
-- `alloca` (C 78/99) is P-05's `sa_stack_alloc` (`femacs/src/alloc.rs` 1039); C's `max` (C 82) is
+- `alloca` (C 78/99) is P-05's `sa_stack_alloc` (`src/alloc.rs` 1039); C's `max` (C 82) is
   `<windows.h>`'s `<windef.h>` macro and `ZeroMemory` (C 250) the SDK's `memset` spelling, so the
   unit defines both macros with the SDK's own `#define` quoted (the `src/w32.rs` 325-328 shape).
 - **A gap in `tools/extract-abi.py` was found here and fixed (status 3.468).**  The
@@ -58,7 +58,7 @@
   `built nt/runemacs.rs -> ../build/femacs/runemacs.o`, **exit 0**, `build/femacs/runemacs.o` =
   **336 bytes** (the empty object a file-gated unit produces; the reference has *no* object at all,
   since `nt/` is not built on this target).
-- `python3 tools/extract-abi.py --check emacs/nt/runemacs.c femacs/nt/runemacs.rs` -> two rows:
+- `python3 tools/extract-abi.py --check emacs/nt/runemacs.c nt/runemacs.rs` -> two rows:
   `- function ensure_unicows_dll does not mention case, default, switch` (owed to
   `docs/ports/macro-body-notes.tsv`, written in 3.468) and
   `- line count drifted 141.5%: C 270 vs Rust 652` (the tolerance row, 3.468).  **No `missing`
@@ -145,7 +145,7 @@ C 206 hands the Windows shell the *reference's* AppUserModelID; it is the id thi
 are grouped by, so the seventh half of PORTING.md 0.1-19 makes it this repository's own name
 (`USER_MODEL_ID`, a `[u16; 7]` of the port's name plus C's `0x0000`, where C had a `[u16; 10]`).
 C's own literal stays in `nt/runemacs.c` 206 and the deviation is item 7 of `## Deviations`.
-Readings: `extract-abi --check emacs/nt/runemacs.c femacs/nt/runemacs.rs` -> **OK**, with the
+Readings: `extract-abi --check emacs/nt/runemacs.c nt/runemacs.rs` -> **OK**, with the
 `runemacs` row in `docs/ports/line-drift-tolerance.tsv` moved `1.43 -> 1.46` (C 270 vs the port's
 659 = 144.1%; the unit grew 7 lines here, all of it prose around the constant).
 

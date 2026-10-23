@@ -16,7 +16,7 @@
 ## Decisions
 
 `emacs/lib/malloc/dynarray_resize.c` @ `fd7afced403`; port
-`femacs/lib/malloc/dynarray_resize.rs`.  The frozen build leaves `_LIBC` undefined, so only
+`lib/malloc/dynarray_resize.rs`.  The frozen build leaves `_LIBC` undefined, so only
 C 20's `<libc-config.h>` include is conditional; the body has no `#if`.
 
 - `__set_errno` is `<libc-config.h>`'s macro (the `tempname.rs`/`strtol.rs` spelling), used by

@@ -5,7 +5,7 @@
 > test (3019-3030) whose 3024 `AC_DEFINE`s `HAVE_NTGUI` — and `docs/baseline/frozen-build-sources.txt`
 > lists no `w32console.o` for this target, so `extract-abi.py`'s checklist for the file is empty
 > (P-86 ②) and this ledger is that clause's substitute: the **C line-range table**, the `## Evidence`
-> readings and the `## Deviations`.  Port: `femacs/src/w32console.rs` (**1995 lines**, md5
+> readings and the `## Deviations`.  Port: `src/w32console.rs` (**1995 lines**, md5
 > `af0c3a190a1ead655989af0cb0bfb445`), carrying **C 1-1262 with both arms of every `#if`**.  The
 > reference `emacs/src/w32console.c` is md5 `7505293a1e206bbd66090144986fb7a6` (unchanged; `emacs/`
 > is read-only).
@@ -153,7 +153,7 @@ unit's bodies and Evidence ②'s classification is a real reading of the unit.
 *is* on `docs/baseline/config/cond-eval-verified.txt` and the frozen macro table decides its arms.
 
 **⑤ `extract-abi --check`.**  `python3 tools/extract-abi.py --check emacs/src/w32console.c
-femacs/src/w32console.rs` → one finding, no others: `line count drifted 58.1%: C 1262 vs Rust
+src/w32console.rs` → one finding, no others: `line count drifted 58.1%: C 1262 vs Rust
 1995`.  The three findings the first run carried are closed: the `SSPRINTF` macro's two tokens and
 syms_of_ntterm's two are the two `docs/ports/macro-body-notes.tsv` rows this round appended
 (Deviations 10/11 record why), and `Fget_screen_color`'s docstring was a **one-character** copy

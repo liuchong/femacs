@@ -1,0 +1,1109 @@
+{
+  "charsets": [
+    {
+      "output": "etc/charsets/8859-10.map",
+      "shell": "AWK=gawk admin/charsets/mapconv admin/charsets/glibc/ISO-8859-10.gz '/^<.*[ \t]\\/x/' GLIBC-1 admin/charsets/compact.awk > etc/charsets/8859-10.map"
+    },
+    {
+      "output": "etc/charsets/8859-11.map",
+      "shell": "AWK=gawk admin/charsets/mapconv admin/charsets/glibc/ISO-8859-11.gz '/^<.*[ \t]\\/x/' GLIBC-1 admin/charsets/compact.awk > etc/charsets/8859-11.map"
+    },
+    {
+      "output": "etc/charsets/8859-13.map",
+      "shell": "AWK=gawk admin/charsets/mapconv admin/charsets/glibc/ISO-8859-13.gz '/^<.*[ \t]\\/x/' GLIBC-1 admin/charsets/compact.awk > etc/charsets/8859-13.map"
+    },
+    {
+      "output": "etc/charsets/8859-14.map",
+      "shell": "AWK=gawk admin/charsets/mapconv admin/charsets/glibc/ISO-8859-14.gz '/^<.*[ \t]\\/x/' GLIBC-1 admin/charsets/compact.awk > etc/charsets/8859-14.map"
+    },
+    {
+      "output": "etc/charsets/8859-15.map",
+      "shell": "AWK=gawk admin/charsets/mapconv admin/charsets/glibc/ISO-8859-15.gz '/^<.*[ \t]\\/x/' GLIBC-1 admin/charsets/compact.awk > etc/charsets/8859-15.map"
+    },
+    {
+      "output": "etc/charsets/8859-16.map",
+      "shell": "AWK=gawk admin/charsets/mapconv admin/charsets/glibc/ISO-8859-16.gz '/^<.*[ \t]\\/x/' GLIBC-1 admin/charsets/compact.awk > etc/charsets/8859-16.map"
+    },
+    {
+      "output": "etc/charsets/8859-2.map",
+      "shell": "AWK=gawk admin/charsets/mapconv admin/charsets/glibc/ISO-8859-2.gz '/^<.*[ \t]\\/x/' GLIBC-1 admin/charsets/compact.awk > etc/charsets/8859-2.map"
+    },
+    {
+      "output": "etc/charsets/8859-3.map",
+      "shell": "AWK=gawk admin/charsets/mapconv admin/charsets/glibc/ISO-8859-3.gz '/^<.*[ \t]\\/x/' GLIBC-1 admin/charsets/compact.awk > etc/charsets/8859-3.map"
+    },
+    {
+      "output": "etc/charsets/8859-4.map",
+      "shell": "AWK=gawk admin/charsets/mapconv admin/charsets/glibc/ISO-8859-4.gz '/^<.*[ \t]\\/x/' GLIBC-1 admin/charsets/compact.awk > etc/charsets/8859-4.map"
+    },
+    {
+      "output": "etc/charsets/8859-5.map",
+      "shell": "AWK=gawk admin/charsets/mapconv admin/charsets/glibc/ISO-8859-5.gz '/^<.*[ \t]\\/x/' GLIBC-1 admin/charsets/compact.awk > etc/charsets/8859-5.map"
+    },
+    {
+      "output": "etc/charsets/8859-6.map",
+      "shell": "AWK=gawk admin/charsets/mapconv admin/charsets/glibc/ISO-8859-6.gz '/^<.*[ \t]\\/x/' GLIBC-1 admin/charsets/compact.awk > etc/charsets/8859-6.map"
+    },
+    {
+      "output": "etc/charsets/8859-7.map",
+      "shell": "AWK=gawk admin/charsets/mapconv admin/charsets/glibc/ISO-8859-7.gz '/^<.*[ \t]\\/x/' GLIBC-1 admin/charsets/compact.awk > etc/charsets/8859-7.map"
+    },
+    {
+      "output": "etc/charsets/8859-8.map",
+      "shell": "AWK=gawk admin/charsets/mapconv admin/charsets/glibc/ISO-8859-8.gz '/^<.*[ \t]\\/x/' GLIBC-1 admin/charsets/compact.awk > etc/charsets/8859-8.map"
+    },
+    {
+      "output": "etc/charsets/8859-9.map",
+      "shell": "AWK=gawk admin/charsets/mapconv admin/charsets/glibc/ISO-8859-9.gz '/^<.*[ \t]\\/x/' GLIBC-1 admin/charsets/compact.awk > etc/charsets/8859-9.map"
+    },
+    {
+      "output": "etc/charsets/IBM866.map",
+      "shell": "AWK=gawk admin/charsets/mapconv admin/charsets/glibc/IBM866.gz '/^<.*[ \t]\\/x/' GLIBC-1 admin/charsets/compact.awk > etc/charsets/IBM866.map"
+    },
+    {
+      "output": "etc/charsets/ALTERNATIVNYJ.map",
+      "shell": "(echo \"# Modified from IBM866.map according to the chart at\" && echo \"# https://web.archive.org/web/20100131045151/http://www.cyrillic.com/ref/cyrillic/koi-8alt.html\" && echo \"# with guesses for the Unicodes of the glyphs.\" && sed -e '1 d' -e '/0xF2/ s/ .*/ 0x2019/' -e '/0xF3/ s/ .*/ 0x2018/' -e '/0xF4/ s/ .*/ 0x0301/' -e '/0xF5/ s/ .*/ 0x0300/' -e '/0xF6/ s/ .*/ 0x203A/' -e '/0xF7/ s/ .*/ 0x2039/' -e '/0xF8/ s/ .*/ 0x2191/' -e '/0xF9/ s/ .*/ 0x2193/' -e '/0xFA/ s/ .*/ 0x00B1/' -e '/0xFB/ s/ .*/ 0x00F7/' < etc/charsets/IBM866.map ) > etc/charsets/ALTERNATIVNYJ.map"
+    },
+    {
+      "output": "etc/charsets/BIG5.map",
+      "shell": "AWK=gawk admin/charsets/mapconv admin/charsets/glibc/BIG5.gz '/^<.*[ \t]\\/x[a-f]/' GLIBC-2 > etc/charsets/BIG5.map"
+    },
+    {
+      "output": "etc/charsets/BIG5-1.map",
+      "shell": "(echo \"# Generated from BIG5.map\" && sed -n -e '/0xa140/,/0xc8fe/p' < etc/charsets/BIG5.map | gawk -f admin/charsets/big5.awk ) > etc/charsets/BIG5-1.map"
+    },
+    {
+      "output": "etc/charsets/BIG5.map",
+      "shell": "AWK=gawk admin/charsets/mapconv admin/charsets/glibc/BIG5.gz '/^<.*[ \t]\\/x[a-f]/' GLIBC-2 > etc/charsets/BIG5.map"
+    },
+    {
+      "output": "etc/charsets/BIG5-2.map",
+      "shell": "(echo \"# Generated from BIG5.map\" && sed -n -e '/0xc940/,$ p' < etc/charsets/BIG5.map | gawk -f admin/charsets/big5.awk ) > etc/charsets/BIG5-2.map"
+    },
+    {
+      "output": "etc/charsets/BIG5-HKSCS.map",
+      "shell": "AWK=gawk admin/charsets/mapconv admin/charsets/glibc/BIG5-HKSCS.gz '/^<.*[ \t]\\/x[89a-f].\\//' GLIBC-2 admin/charsets/compact.awk > etc/charsets/BIG5-HKSCS.map"
+    },
+    {
+      "output": "etc/charsets/BIG5.map",
+      "shell": "AWK=gawk admin/charsets/mapconv admin/charsets/glibc/BIG5.gz '/^<.*[ \t]\\/x[a-f]/' GLIBC-2 > etc/charsets/BIG5.map"
+    },
+    {
+      "output": "etc/charsets/CNS-1.map",
+      "shell": "AWK=gawk admin/charsets/mapconv admin/charsets/glibc/EUC-TW.gz '/^<.*[ \t]\\/x[a-f]/' GLIBC-2-7 admin/charsets/compact.awk > etc/charsets/CNS-1.map"
+    },
+    {
+      "output": "etc/charsets/CNS-2.map",
+      "shell": "AWK=gawk admin/charsets/mapconv admin/charsets/mapfiles/cns2ucsdkw.txt '/^C2/' KANJI-DATABASE admin/charsets/compact.awk > etc/charsets/CNS-2.map"
+    },
+    {
+      "output": "etc/charsets/CNS-3.map",
+      "shell": "AWK=gawk admin/charsets/mapconv admin/charsets/mapfiles/cns2ucsdkw.txt '/^C3/' KANJI-DATABASE admin/charsets/compact.awk > etc/charsets/CNS-3.map"
+    },
+    {
+      "output": "etc/charsets/CNS-4.map",
+      "shell": "AWK=gawk admin/charsets/mapconv admin/charsets/mapfiles/cns2ucsdkw.txt '/^C4/' KANJI-DATABASE admin/charsets/compact.awk > etc/charsets/CNS-4.map"
+    },
+    {
+      "output": "etc/charsets/CNS-5.map",
+      "shell": "AWK=gawk admin/charsets/mapconv admin/charsets/mapfiles/cns2ucsdkw.txt '/^C5/' KANJI-DATABASE admin/charsets/compact.awk > etc/charsets/CNS-5.map"
+    },
+    {
+      "output": "etc/charsets/CNS-6.map",
+      "shell": "AWK=gawk admin/charsets/mapconv admin/charsets/mapfiles/cns2ucsdkw.txt '/^C6/' KANJI-DATABASE admin/charsets/compact.awk > etc/charsets/CNS-6.map"
+    },
+    {
+      "output": "etc/charsets/CNS-7.map",
+      "shell": "AWK=gawk admin/charsets/mapconv admin/charsets/mapfiles/cns2ucsdkw.txt '/^C7/' KANJI-DATABASE admin/charsets/compact.awk > etc/charsets/CNS-7.map"
+    },
+    {
+      "output": "etc/charsets/CNS-F.map",
+      "shell": "AWK=gawk admin/charsets/mapconv admin/charsets/glibc/EUC-TW.gz '/^<.*\\/x8e\\/xaf/ s,/x8e/xaf,,' GLIBC-2-7 admin/charsets/compact.awk > etc/charsets/CNS-F.map"
+    },
+    {
+      "output": "etc/charsets/CP10007.map",
+      "shell": "AWK=gawk admin/charsets/mapconv admin/charsets/glibc/CP10007.gz '/^<.*[ \t]\\/x/' GLIBC-1 admin/charsets/compact.awk > etc/charsets/CP10007.map"
+    },
+    {
+      "output": "etc/charsets/CP1125.map",
+      "shell": "AWK=gawk admin/charsets/mapconv admin/charsets/glibc/CP1125.gz '/^<.*[ \t]\\/x/' GLIBC-1 admin/charsets/compact.awk > etc/charsets/CP1125.map"
+    },
+    {
+      "output": "etc/charsets/CP1250.map",
+      "shell": "AWK=gawk admin/charsets/mapconv admin/charsets/glibc/CP1250.gz '/^<.*[ \t]\\/x/' GLIBC-1 admin/charsets/compact.awk > etc/charsets/CP1250.map"
+    },
+    {
+      "output": "etc/charsets/CP1251.map",
+      "shell": "AWK=gawk admin/charsets/mapconv admin/charsets/glibc/CP1251.gz '/^<.*[ \t]\\/x/' GLIBC-1 admin/charsets/compact.awk > etc/charsets/CP1251.map"
+    },
+    {
+      "output": "etc/charsets/CP1252.map",
+      "shell": "AWK=gawk admin/charsets/mapconv admin/charsets/glibc/CP1252.gz '/^<.*[ \t]\\/x/' GLIBC-1 admin/charsets/compact.awk > etc/charsets/CP1252.map"
+    },
+    {
+      "output": "etc/charsets/CP1253.map",
+      "shell": "AWK=gawk admin/charsets/mapconv admin/charsets/glibc/CP1253.gz '/^<.*[ \t]\\/x/' GLIBC-1 admin/charsets/compact.awk > etc/charsets/CP1253.map"
+    },
+    {
+      "output": "etc/charsets/CP1254.map",
+      "shell": "AWK=gawk admin/charsets/mapconv admin/charsets/glibc/CP1254.gz '/^<.*[ \t]\\/x/' GLIBC-1 admin/charsets/compact.awk > etc/charsets/CP1254.map"
+    },
+    {
+      "output": "etc/charsets/CP1255.map",
+      "shell": "AWK=gawk admin/charsets/mapconv admin/charsets/glibc/CP1255.gz '/^<.*[ \t]\\/x/' GLIBC-1 admin/charsets/compact.awk > etc/charsets/CP1255.map"
+    },
+    {
+      "output": "etc/charsets/CP1256.map",
+      "shell": "AWK=gawk admin/charsets/mapconv admin/charsets/glibc/CP1256.gz '/^<.*[ \t]\\/x/' GLIBC-1 admin/charsets/compact.awk > etc/charsets/CP1256.map"
+    },
+    {
+      "output": "etc/charsets/CP1257.map",
+      "shell": "AWK=gawk admin/charsets/mapconv admin/charsets/glibc/CP1257.gz '/^<.*[ \t]\\/x/' GLIBC-1 admin/charsets/compact.awk > etc/charsets/CP1257.map"
+    },
+    {
+      "output": "etc/charsets/CP1258.map",
+      "shell": "AWK=gawk admin/charsets/mapconv admin/charsets/glibc/CP1258.gz '/^<.*[ \t]\\/x/' GLIBC-1 admin/charsets/compact.awk > etc/charsets/CP1258.map"
+    },
+    {
+      "output": "etc/charsets/CP720.map",
+      "shell": "cp admin/charsets/mapfiles/CP720.map etc/charsets/CP720.map"
+    },
+    {
+      "output": "etc/charsets/CP737.map",
+      "shell": "AWK=gawk admin/charsets/mapconv admin/charsets/glibc/CP737.gz '/^<.*[ \t]\\/x/' GLIBC-1 admin/charsets/compact.awk > etc/charsets/CP737.map"
+    },
+    {
+      "output": "etc/charsets/CP775.map",
+      "shell": "AWK=gawk admin/charsets/mapconv admin/charsets/glibc/CP775.gz '/^<.*[ \t]\\/x/' GLIBC-1 admin/charsets/compact.awk > etc/charsets/CP775.map"
+    },
+    {
+      "output": "etc/charsets/CP858.map",
+      "shell": "cp admin/charsets/mapfiles/CP858.map etc/charsets/CP858.map"
+    },
+    {
+      "output": "etc/charsets/CP932-2BYTE.map",
+      "shell": "AWK=gawk admin/charsets/mapconv admin/charsets/mapfiles/CP932.TXT '/^0x[89A-F][0-9A-F][0-9A-F]/' UNICODE2 admin/charsets/cp932.awk > etc/charsets/CP932-2BYTE.map"
+    },
+    {
+      "output": "etc/charsets/CP949-2BYTE.map",
+      "shell": "AWK=gawk admin/charsets/mapconv admin/charsets/glibc/CP949.gz '/^<.*[ \t]\\/x[89a-f]/' GLIBC-2 admin/charsets/compact.awk > etc/charsets/CP949-2BYTE.map"
+    },
+    {
+      "output": "etc/charsets/EBCDICUK.map",
+      "shell": "AWK=gawk admin/charsets/mapconv admin/charsets/glibc/EBCDIC-UK.gz '/^<.*[ \t]\\/x/' GLIBC-1 admin/charsets/compact.awk > etc/charsets/EBCDICUK.map"
+    },
+    {
+      "output": "etc/charsets/EBCDICUS.map",
+      "shell": "AWK=gawk admin/charsets/mapconv admin/charsets/glibc/EBCDIC-US.gz '/^<.*[ \t]\\/x/' GLIBC-1 admin/charsets/compact.awk > etc/charsets/EBCDICUS.map"
+    },
+    {
+      "output": "etc/charsets/GB180302.map",
+      "shell": "AWK=gawk admin/charsets/mapconv admin/charsets/glibc/GB18030.gz '/^<.*[ \t]\\/x..\\/x..[ \t]/' GLIBC-2 admin/charsets/gb180302.awk > etc/charsets/GB180302.map"
+    },
+    {
+      "output": "etc/charsets/GB180302.map",
+      "shell": "AWK=gawk admin/charsets/mapconv admin/charsets/glibc/GB18030.gz '/^<.*[ \t]\\/x..\\/x..[ \t]/' GLIBC-2 admin/charsets/gb180302.awk > etc/charsets/GB180302.map"
+    },
+    {
+      "output": "etc/charsets/GB180304.map",
+      "shell": "gawk -f admin/charsets/gb180304.awk < etc/charsets/GB180302.map > etc/charsets/GB180304.map"
+    },
+    {
+      "output": "etc/charsets/GB2312.map",
+      "shell": "AWK=gawk admin/charsets/mapconv admin/charsets/glibc/GB2312.gz '/^<.*[ \t]\\/x[a-f]/' GLIBC-2-7 admin/charsets/compact.awk > etc/charsets/GB2312.map"
+    },
+    {
+      "output": "etc/charsets/GBK.map",
+      "shell": "AWK=gawk admin/charsets/mapconv admin/charsets/glibc/GBK.gz '/^<.*[ \t]\\/x[89a-f]/' GLIBC-2 admin/charsets/compact.awk > etc/charsets/GBK.map"
+    },
+    {
+      "output": "etc/charsets/HP-ROMAN8.map",
+      "shell": "AWK=gawk admin/charsets/mapconv admin/charsets/glibc/HP-ROMAN8.gz '/^<.*[ \t]\\/x/' GLIBC-1 admin/charsets/compact.awk > etc/charsets/HP-ROMAN8.map"
+    },
+    {
+      "output": "etc/charsets/IBM037.map",
+      "shell": "AWK=gawk admin/charsets/mapconv admin/charsets/glibc/IBM037.gz '/^<.*[ \t]\\/x/' GLIBC-1 admin/charsets/compact.awk > etc/charsets/IBM037.map"
+    },
+    {
+      "output": "etc/charsets/IBM038.map",
+      "shell": "AWK=gawk admin/charsets/mapconv admin/charsets/glibc/IBM038.gz '/^<.*[ \t]\\/x/' GLIBC-1 admin/charsets/compact.awk > etc/charsets/IBM038.map"
+    },
+    {
+      "output": "etc/charsets/IBM1004.map",
+      "shell": "AWK=gawk admin/charsets/mapconv admin/charsets/glibc/IBM1004.gz '/^<.*[ \t]\\/x/' GLIBC-1 admin/charsets/compact.awk > etc/charsets/IBM1004.map"
+    },
+    {
+      "output": "etc/charsets/IBM1026.map",
+      "shell": "AWK=gawk admin/charsets/mapconv admin/charsets/glibc/IBM1026.gz '/^<.*[ \t]\\/x/' GLIBC-1 admin/charsets/compact.awk > etc/charsets/IBM1026.map"
+    },
+    {
+      "output": "etc/charsets/IBM1047.map",
+      "shell": "AWK=gawk admin/charsets/mapconv admin/charsets/glibc/IBM1047.gz '/^<.*[ \t]\\/x/' GLIBC-1 admin/charsets/compact.awk > etc/charsets/IBM1047.map"
+    },
+    {
+      "output": "etc/charsets/IBM256.map",
+      "shell": "AWK=gawk admin/charsets/mapconv admin/charsets/glibc/IBM256.gz '/^<.*[ \t]\\/x/' GLIBC-1 admin/charsets/compact.awk > etc/charsets/IBM256.map"
+    },
+    {
+      "output": "etc/charsets/IBM273.map",
+      "shell": "AWK=gawk admin/charsets/mapconv admin/charsets/glibc/IBM273.gz '/^<.*[ \t]\\/x/' GLIBC-1 admin/charsets/compact.awk > etc/charsets/IBM273.map"
+    },
+    {
+      "output": "etc/charsets/IBM274.map",
+      "shell": "AWK=gawk admin/charsets/mapconv admin/charsets/glibc/IBM274.gz '/^<.*[ \t]\\/x/' GLIBC-1 admin/charsets/compact.awk > etc/charsets/IBM274.map"
+    },
+    {
+      "output": "etc/charsets/IBM275.map",
+      "shell": "AWK=gawk admin/charsets/mapconv admin/charsets/glibc/IBM275.gz '/^<.*[ \t]\\/x/' GLIBC-1 admin/charsets/compact.awk > etc/charsets/IBM275.map"
+    },
+    {
+      "output": "etc/charsets/IBM277.map",
+      "shell": "AWK=gawk admin/charsets/mapconv admin/charsets/glibc/IBM277.gz '/^<.*[ \t]\\/x/' GLIBC-1 admin/charsets/compact.awk > etc/charsets/IBM277.map"
+    },
+    {
+      "output": "etc/charsets/IBM278.map",
+      "shell": "AWK=gawk admin/charsets/mapconv admin/charsets/glibc/IBM278.gz '/^<.*[ \t]\\/x/' GLIBC-1 admin/charsets/compact.awk > etc/charsets/IBM278.map"
+    },
+    {
+      "output": "etc/charsets/IBM280.map",
+      "shell": "AWK=gawk admin/charsets/mapconv admin/charsets/glibc/IBM280.gz '/^<.*[ \t]\\/x/' GLIBC-1 admin/charsets/compact.awk > etc/charsets/IBM280.map"
+    },
+    {
+      "output": "etc/charsets/IBM281.map",
+      "shell": "AWK=gawk admin/charsets/mapconv admin/charsets/glibc/IBM281.gz '/^<.*[ \t]\\/x/' GLIBC-1 admin/charsets/compact.awk > etc/charsets/IBM281.map"
+    },
+    {
+      "output": "etc/charsets/IBM284.map",
+      "shell": "AWK=gawk admin/charsets/mapconv admin/charsets/glibc/IBM284.gz '/^<.*[ \t]\\/x/' GLIBC-1 admin/charsets/compact.awk > etc/charsets/IBM284.map"
+    },
+    {
+      "output": "etc/charsets/IBM285.map",
+      "shell": "AWK=gawk admin/charsets/mapconv admin/charsets/glibc/IBM285.gz '/^<.*[ \t]\\/x/' GLIBC-1 admin/charsets/compact.awk > etc/charsets/IBM285.map"
+    },
+    {
+      "output": "etc/charsets/IBM290.map",
+      "shell": "AWK=gawk admin/charsets/mapconv admin/charsets/glibc/IBM290.gz '/^<.*[ \t]\\/x/' GLIBC-1 admin/charsets/compact.awk > etc/charsets/IBM290.map"
+    },
+    {
+      "output": "etc/charsets/IBM297.map",
+      "shell": "AWK=gawk admin/charsets/mapconv admin/charsets/glibc/IBM297.gz '/^<.*[ \t]\\/x/' GLIBC-1 admin/charsets/compact.awk > etc/charsets/IBM297.map"
+    },
+    {
+      "output": "etc/charsets/IBM420.map",
+      "shell": "AWK=gawk admin/charsets/mapconv admin/charsets/glibc/IBM420.gz '/^<.*[ \t]\\/x/' GLIBC-1 admin/charsets/compact.awk > etc/charsets/IBM420.map"
+    },
+    {
+      "output": "etc/charsets/IBM423.map",
+      "shell": "AWK=gawk admin/charsets/mapconv admin/charsets/glibc/IBM423.gz '/^<.*[ \t]\\/x/' GLIBC-1 admin/charsets/compact.awk > etc/charsets/IBM423.map"
+    },
+    {
+      "output": "etc/charsets/IBM424.map",
+      "shell": "AWK=gawk admin/charsets/mapconv admin/charsets/glibc/IBM424.gz '/^<.*[ \t]\\/x/' GLIBC-1 admin/charsets/compact.awk > etc/charsets/IBM424.map"
+    },
+    {
+      "output": "etc/charsets/IBM437.map",
+      "shell": "AWK=gawk admin/charsets/mapconv admin/charsets/glibc/IBM437.gz '/^<.*[ \t]\\/x/' GLIBC-1 admin/charsets/compact.awk > etc/charsets/IBM437.map"
+    },
+    {
+      "output": "etc/charsets/IBM500.map",
+      "shell": "AWK=gawk admin/charsets/mapconv admin/charsets/glibc/IBM500.gz '/^<.*[ \t]\\/x/' GLIBC-1 admin/charsets/compact.awk > etc/charsets/IBM500.map"
+    },
+    {
+      "output": "etc/charsets/IBM850.map",
+      "shell": "AWK=gawk admin/charsets/mapconv admin/charsets/glibc/IBM850.gz '/^<.*[ \t]\\/x/' GLIBC-1 admin/charsets/compact.awk > etc/charsets/IBM850.map"
+    },
+    {
+      "output": "etc/charsets/IBM851.map",
+      "shell": "AWK=gawk admin/charsets/mapconv admin/charsets/glibc/IBM851.gz '/^<.*[ \t]\\/x/' GLIBC-1 admin/charsets/compact.awk > etc/charsets/IBM851.map"
+    },
+    {
+      "output": "etc/charsets/IBM852.map",
+      "shell": "AWK=gawk admin/charsets/mapconv admin/charsets/glibc/IBM852.gz '/^<.*[ \t]\\/x/' GLIBC-1 admin/charsets/compact.awk > etc/charsets/IBM852.map"
+    },
+    {
+      "output": "etc/charsets/IBM855.map",
+      "shell": "AWK=gawk admin/charsets/mapconv admin/charsets/glibc/IBM855.gz '/^<.*[ \t]\\/x/' GLIBC-1 admin/charsets/compact.awk > etc/charsets/IBM855.map"
+    },
+    {
+      "output": "etc/charsets/IBM856.map",
+      "shell": "AWK=gawk admin/charsets/mapconv admin/charsets/glibc/IBM856.gz '/^<.*[ \t]\\/x/' GLIBC-1 admin/charsets/compact.awk > etc/charsets/IBM856.map"
+    },
+    {
+      "output": "etc/charsets/IBM857.map",
+      "shell": "AWK=gawk admin/charsets/mapconv admin/charsets/glibc/IBM857.gz '/^<.*[ \t]\\/x/' GLIBC-1 admin/charsets/compact.awk > etc/charsets/IBM857.map"
+    },
+    {
+      "output": "etc/charsets/IBM860.map",
+      "shell": "AWK=gawk admin/charsets/mapconv admin/charsets/glibc/IBM860.gz '/^<.*[ \t]\\/x/' GLIBC-1 admin/charsets/compact.awk > etc/charsets/IBM860.map"
+    },
+    {
+      "output": "etc/charsets/IBM861.map",
+      "shell": "AWK=gawk admin/charsets/mapconv admin/charsets/glibc/IBM861.gz '/^<.*[ \t]\\/x/' GLIBC-1 admin/charsets/compact.awk > etc/charsets/IBM861.map"
+    },
+    {
+      "output": "etc/charsets/IBM862.map",
+      "shell": "AWK=gawk admin/charsets/mapconv admin/charsets/glibc/IBM862.gz '/^<.*[ \t]\\/x/' GLIBC-1 admin/charsets/compact.awk > etc/charsets/IBM862.map"
+    },
+    {
+      "output": "etc/charsets/IBM863.map",
+      "shell": "AWK=gawk admin/charsets/mapconv admin/charsets/glibc/IBM863.gz '/^<.*[ \t]\\/x/' GLIBC-1 admin/charsets/compact.awk > etc/charsets/IBM863.map"
+    },
+    {
+      "output": "etc/charsets/IBM864.map",
+      "shell": "AWK=gawk admin/charsets/mapconv admin/charsets/glibc/IBM864.gz '/^<.*[ \t]\\/x/' GLIBC-1 admin/charsets/compact.awk > etc/charsets/IBM864.map"
+    },
+    {
+      "output": "etc/charsets/IBM865.map",
+      "shell": "AWK=gawk admin/charsets/mapconv admin/charsets/glibc/IBM865.gz '/^<.*[ \t]\\/x/' GLIBC-1 admin/charsets/compact.awk > etc/charsets/IBM865.map"
+    },
+    {
+      "output": "etc/charsets/IBM866.map",
+      "shell": "AWK=gawk admin/charsets/mapconv admin/charsets/glibc/IBM866.gz '/^<.*[ \t]\\/x/' GLIBC-1 admin/charsets/compact.awk > etc/charsets/IBM866.map"
+    },
+    {
+      "output": "etc/charsets/IBM868.map",
+      "shell": "AWK=gawk admin/charsets/mapconv admin/charsets/glibc/IBM868.gz '/^<.*[ \t]\\/x/' GLIBC-1 admin/charsets/compact.awk > etc/charsets/IBM868.map"
+    },
+    {
+      "output": "etc/charsets/IBM869.map",
+      "shell": "AWK=gawk admin/charsets/mapconv admin/charsets/glibc/IBM869.gz '/^<.*[ \t]\\/x/' GLIBC-1 admin/charsets/compact.awk > etc/charsets/IBM869.map"
+    },
+    {
+      "output": "etc/charsets/IBM870.map",
+      "shell": "AWK=gawk admin/charsets/mapconv admin/charsets/glibc/IBM870.gz '/^<.*[ \t]\\/x/' GLIBC-1 admin/charsets/compact.awk > etc/charsets/IBM870.map"
+    },
+    {
+      "output": "etc/charsets/IBM871.map",
+      "shell": "AWK=gawk admin/charsets/mapconv admin/charsets/glibc/IBM871.gz '/^<.*[ \t]\\/x/' GLIBC-1 admin/charsets/compact.awk > etc/charsets/IBM871.map"
+    },
+    {
+      "output": "etc/charsets/IBM874.map",
+      "shell": "AWK=gawk admin/charsets/mapconv admin/charsets/glibc/IBM874.gz '/^<.*[ \t]\\/x/' GLIBC-1 admin/charsets/compact.awk > etc/charsets/IBM874.map"
+    },
+    {
+      "output": "etc/charsets/IBM875.map",
+      "shell": "AWK=gawk admin/charsets/mapconv admin/charsets/glibc/IBM875.gz '/^<.*[ \t]\\/x/' GLIBC-1 admin/charsets/compact.awk > etc/charsets/IBM875.map"
+    },
+    {
+      "output": "etc/charsets/IBM880.map",
+      "shell": "AWK=gawk admin/charsets/mapconv admin/charsets/glibc/IBM880.gz '/^<.*[ \t]\\/x/' GLIBC-1 admin/charsets/compact.awk > etc/charsets/IBM880.map"
+    },
+    {
+      "output": "etc/charsets/IBM891.map",
+      "shell": "AWK=gawk admin/charsets/mapconv admin/charsets/glibc/IBM891.gz '/^<.*[ \t]\\/x/' GLIBC-1 admin/charsets/compact.awk > etc/charsets/IBM891.map"
+    },
+    {
+      "output": "etc/charsets/IBM903.map",
+      "shell": "AWK=gawk admin/charsets/mapconv admin/charsets/glibc/IBM903.gz '/^<.*[ \t]\\/x/' GLIBC-1 admin/charsets/compact.awk > etc/charsets/IBM903.map"
+    },
+    {
+      "output": "etc/charsets/IBM904.map",
+      "shell": "AWK=gawk admin/charsets/mapconv admin/charsets/glibc/IBM904.gz '/^<.*[ \t]\\/x/' GLIBC-1 admin/charsets/compact.awk > etc/charsets/IBM904.map"
+    },
+    {
+      "output": "etc/charsets/IBM905.map",
+      "shell": "AWK=gawk admin/charsets/mapconv admin/charsets/glibc/IBM905.gz '/^<.*[ \t]\\/x/' GLIBC-1 admin/charsets/compact.awk > etc/charsets/IBM905.map"
+    },
+    {
+      "output": "etc/charsets/IBM918.map",
+      "shell": "AWK=gawk admin/charsets/mapconv admin/charsets/glibc/IBM918.gz '/^<.*[ \t]\\/x/' GLIBC-1 admin/charsets/compact.awk > etc/charsets/IBM918.map"
+    },
+    {
+      "output": "etc/charsets/JISC6226.map",
+      "shell": "(AWK=gawk admin/charsets/mapconv admin/charsets/mapfiles/Uni2JIS '/^[^#].*0-/' YASUOKA admin/charsets/kuten.awk | sed -e '/0x2140/s/005C/FF3C/' && echo '0x3442 0x3D4E' && echo '0x374E 0x25874' && echo '0x3764 0x28EF6' && echo '0x513D 0x2F80F' && echo '0x7045 0x9724' ) > etc/charsets/JISC6226.map"
+    },
+    {
+      "output": "etc/charsets/JISX0201.map",
+      "shell": "(AWK=gawk admin/charsets/mapconv admin/charsets/glibc/JIS_X0201.gz '/^<.*[ \t]\\/x[0-9]/' GLIBC-1 admin/charsets/compact.awk && echo \"# Generated by hand\" && echo \"0xA1-0xDF 0xFF61\" ) > etc/charsets/JISX0201.map"
+    },
+    {
+      "output": "etc/charsets/JISX0208.map",
+      "shell": "AWK=gawk admin/charsets/mapconv admin/charsets/glibc/EUC-JP.gz '/^<.*[ \t]\\/x[a-f]/' GLIBC-2-7 | sed 's/0x2015/0x2014/' > etc/charsets/JISX0208.map"
+    },
+    {
+      "output": "etc/charsets/JISX0212.map",
+      "shell": "AWK=gawk admin/charsets/mapconv admin/charsets/glibc/EUC-JP.gz '/^<.*[ \t]\\/x8f/ s,/x8f,,' GLIBC-2-7 admin/charsets/compact.awk > etc/charsets/JISX0212.map"
+    },
+    {
+      "output": "admin/charsets/jisx2131-filter",
+      "shell": "sed -n -e '/^#/d' -e 's,.*0x\\([0-9A-Z]*\\)$,/0x0*\\1$/d,p' < admin/charsets/mapfiles/JISX213A.map > admin/charsets/jisx2131-filter"
+    },
+    {
+      "output": "etc/charsets/JISX2131.map",
+      "shell": "AWK=gawk admin/charsets/mapconv admin/charsets/glibc/EUC-JISX0213.gz '/^<.*[ \t]\\/x[a-f]/' GLIBC-2-7 | sed -f admin/charsets/jisx2131-filter | sed -e 's/0x2015/0x2014/' -e 's/0x2299/0x29BF/' > etc/charsets/JISX2131.map"
+    },
+    {
+      "output": "etc/charsets/JISX2132.map",
+      "shell": "AWK=gawk admin/charsets/mapconv admin/charsets/glibc/EUC-JISX0213.gz '/^<.*[ \t]\\/x8f/ s,/x8f,,' GLIBC-2-7 > etc/charsets/JISX2132.map"
+    },
+    {
+      "output": "etc/charsets/JISX213A.map",
+      "shell": "cp admin/charsets/mapfiles/JISX213A.map etc/charsets/JISX213A.map"
+    },
+    {
+      "output": "etc/charsets/JOHAB.map",
+      "shell": "AWK=gawk admin/charsets/mapconv admin/charsets/glibc/JOHAB.gz '/^<.*[ \t]\\/x[89a-f]/' GLIBC-2 admin/charsets/compact.awk > etc/charsets/JOHAB.map"
+    },
+    {
+      "output": "etc/charsets/KA-ACADEMY.map",
+      "shell": "AWK=gawk admin/charsets/mapconv admin/charsets/glibc/GEORGIAN-ACADEMY.gz '/^<.*[ \t]\\/x/' GLIBC-1 admin/charsets/compact.awk > etc/charsets/KA-ACADEMY.map"
+    },
+    {
+      "output": "etc/charsets/KA-PS.map",
+      "shell": "AWK=gawk admin/charsets/mapconv admin/charsets/glibc/GEORGIAN-PS.gz '/^<.*[ \t]\\/x/' GLIBC-1 admin/charsets/compact.awk > etc/charsets/KA-PS.map"
+    },
+    {
+      "output": "etc/charsets/KOI-8.map",
+      "shell": "AWK=gawk admin/charsets/mapconv admin/charsets/glibc/KOI-8.gz '/^<.*[ \t]\\/x/' GLIBC-1 admin/charsets/compact.awk > etc/charsets/KOI-8.map"
+    },
+    {
+      "output": "etc/charsets/KOI8-R.map",
+      "shell": "AWK=gawk admin/charsets/mapconv admin/charsets/glibc/KOI8-R.gz '/^<.*[ \t]\\/x/' GLIBC-1 admin/charsets/compact.awk > etc/charsets/KOI8-R.map"
+    },
+    {
+      "output": "etc/charsets/KOI8-T.map",
+      "shell": "AWK=gawk admin/charsets/mapconv admin/charsets/glibc/KOI8-T.gz '/^<.*[ \t]\\/x/' GLIBC-1 admin/charsets/compact.awk > etc/charsets/KOI8-T.map"
+    },
+    {
+      "output": "etc/charsets/KOI8-U.map",
+      "shell": "AWK=gawk admin/charsets/mapconv admin/charsets/glibc/KOI8-U.gz '/^<.*[ \t]\\/x/' GLIBC-1 admin/charsets/compact.awk > etc/charsets/KOI8-U.map"
+    },
+    {
+      "output": "etc/charsets/KSC5601.map",
+      "shell": "AWK=gawk admin/charsets/mapconv admin/charsets/glibc/EUC-KR.gz '/^<.*[ \t]\\/x[a-f]/' GLIBC-2-7 admin/charsets/compact.awk > etc/charsets/KSC5601.map"
+    },
+    {
+      "output": "etc/charsets/KSC5636.map",
+      "shell": "AWK=gawk admin/charsets/mapconv admin/charsets/glibc/KSC5636.gz '/^<.*[ \t]\\/x/' GLIBC-1 admin/charsets/compact.awk > etc/charsets/KSC5636.map"
+    },
+    {
+      "output": "etc/charsets/MACINTOSH.map",
+      "shell": "AWK=gawk admin/charsets/mapconv admin/charsets/glibc/MACINTOSH.gz '/^<.*[ \t]\\/x/' GLIBC-1 admin/charsets/compact.awk > etc/charsets/MACINTOSH.map"
+    },
+    {
+      "output": "etc/charsets/MIK.map",
+      "shell": "AWK=gawk admin/charsets/mapconv admin/charsets/mapfiles/bulgarian-mik.txt '1,$' CZYBORRA admin/charsets/compact.awk > etc/charsets/MIK.map"
+    },
+    {
+      "output": "etc/charsets/MULE-ethiopic.map",
+      "shell": "cp admin/charsets/mapfiles/MULE-ethiopic.map etc/charsets/MULE-ethiopic.map"
+    },
+    {
+      "output": "etc/charsets/MULE-ipa.map",
+      "shell": "cp admin/charsets/mapfiles/MULE-ipa.map etc/charsets/MULE-ipa.map"
+    },
+    {
+      "output": "etc/charsets/MULE-is13194.map",
+      "shell": "cp admin/charsets/mapfiles/MULE-is13194.map etc/charsets/MULE-is13194.map"
+    },
+    {
+      "output": "etc/charsets/MULE-lviscii.map",
+      "shell": "cp admin/charsets/mapfiles/MULE-lviscii.map etc/charsets/MULE-lviscii.map"
+    },
+    {
+      "output": "etc/charsets/MULE-sisheng.map",
+      "shell": "cp admin/charsets/mapfiles/MULE-sisheng.map etc/charsets/MULE-sisheng.map"
+    },
+    {
+      "output": "etc/charsets/MULE-tibetan.map",
+      "shell": "cp admin/charsets/mapfiles/MULE-tibetan.map etc/charsets/MULE-tibetan.map"
+    },
+    {
+      "output": "etc/charsets/MULE-uviscii.map",
+      "shell": "cp admin/charsets/mapfiles/MULE-uviscii.map etc/charsets/MULE-uviscii.map"
+    },
+    {
+      "output": "etc/charsets/NEXTSTEP.map",
+      "shell": "AWK=gawk admin/charsets/mapconv admin/charsets/glibc/NEXTSTEP.gz '/^<.*[ \t]\\/x/' GLIBC-1 admin/charsets/compact.awk > etc/charsets/NEXTSTEP.map"
+    },
+    {
+      "output": "etc/charsets/PTCP154.map",
+      "shell": "AWK=gawk admin/charsets/mapconv admin/charsets/mapfiles/PTCP154 '/^0x/' IANA admin/charsets/compact.awk > etc/charsets/PTCP154.map"
+    },
+    {
+      "output": "etc/charsets/TIS-620.map",
+      "shell": "AWK=gawk admin/charsets/mapconv admin/charsets/glibc/TIS-620.gz '/^<.*[ \t]\\/x/' GLIBC-1 admin/charsets/compact.awk > etc/charsets/TIS-620.map"
+    },
+    {
+      "output": "etc/charsets/VISCII.map",
+      "shell": "AWK=gawk admin/charsets/mapconv admin/charsets/glibc/VISCII.gz '/^<.*[ \t]\\/x/' GLIBC-1 admin/charsets/compact.awk > etc/charsets/VISCII.map"
+    },
+    {
+      "output": "etc/charsets/VSCII-2.map",
+      "shell": "AWK=gawk admin/charsets/mapconv admin/charsets/glibc/TCVN5712-1.gz '/^<.*[ \t]\\/x[2-7a-f].[ \t]/' GLIBC-1 admin/charsets/compact.awk | sed 's/0x20-0x7F.*/0x00-0x7F 0x0000/' > etc/charsets/VSCII-2.map"
+    },
+    {
+      "output": "etc/charsets/VSCII.map",
+      "shell": "AWK=gawk admin/charsets/mapconv admin/charsets/glibc/TCVN5712-1.gz '/^<.*[ \t]\\/x[0-9a-f].[ \t]/' GLIBC-1 admin/charsets/compact.awk > etc/charsets/VSCII.map"
+    },
+    {
+      "output": "etc/charsets/CP932-2BYTE.map",
+      "shell": "AWK=gawk admin/charsets/mapconv admin/charsets/mapfiles/CP932.TXT '/^0x[89A-F][0-9A-F][0-9A-F]/' UNICODE2 admin/charsets/cp932.awk > etc/charsets/CP932-2BYTE.map"
+    },
+    {
+      "output": "lisp/international/cp51932.el",
+      "shell": "gawk -f admin/charsets/cp51932.awk < etc/charsets/CP932-2BYTE.map > lisp/international/cp51932.el"
+    },
+    {
+      "output": "lisp/international/eucjp-ms.el",
+      "shell": "gunzip -c admin/charsets/glibc/EUC-JP-MS.gz | gawk -f admin/charsets/eucjp-ms.awk > lisp/international/eucjp-ms.el"
+    },
+    {
+      "output": "etc/charsets/stdenc.map",
+      "shell": "AWK=gawk admin/charsets/mapconv admin/charsets/mapfiles/stdenc.txt '/^[0-9A-Fa-f]/' UNICODE admin/charsets/compact.awk > etc/charsets/stdenc.map"
+    },
+    {
+      "output": "etc/charsets/symbol.map",
+      "shell": "AWK=gawk admin/charsets/mapconv admin/charsets/mapfiles/symbol.txt '/^[0-9A-Fa-f]/' UNICODE admin/charsets/compact.awk > etc/charsets/symbol.map"
+    }
+  ],
+  "unicode": [
+    [
+      "-batch",
+      "--no-site-file",
+      "--no-site-lisp",
+      "-L",
+      "admin/unidata",
+      "-l",
+      "unidata-gen",
+      "-f",
+      "unidata-gen-file",
+      "lisp/international/uni-bidi.el",
+      "admin/unidata"
+    ],
+    [
+      "-batch",
+      "--no-site-file",
+      "--no-site-lisp",
+      "-L",
+      "admin/unidata",
+      "-l",
+      "unidata-gen",
+      "-f",
+      "unidata-gen-file",
+      "lisp/international/uni-brackets.el",
+      "admin/unidata"
+    ],
+    [
+      "-batch",
+      "--no-site-file",
+      "--no-site-lisp",
+      "-L",
+      "admin/unidata",
+      "-l",
+      "unidata-gen",
+      "-f",
+      "unidata-gen-file",
+      "lisp/international/uni-category.el",
+      "admin/unidata"
+    ],
+    [
+      "-batch",
+      "--no-site-file",
+      "--no-site-lisp",
+      "-L",
+      "admin/unidata",
+      "-l",
+      "unidata-gen",
+      "-f",
+      "unidata-gen-file",
+      "lisp/international/uni-combining.el",
+      "admin/unidata"
+    ],
+    [
+      "-batch",
+      "--no-site-file",
+      "--no-site-lisp",
+      "-L",
+      "admin/unidata",
+      "-l",
+      "unidata-gen",
+      "-f",
+      "unidata-gen-file",
+      "lisp/international/uni-comment.el",
+      "admin/unidata"
+    ],
+    [
+      "-batch",
+      "--no-site-file",
+      "--no-site-lisp",
+      "-L",
+      "admin/unidata",
+      "-l",
+      "unidata-gen",
+      "-f",
+      "unidata-gen-file",
+      "lisp/international/uni-decimal.el",
+      "admin/unidata"
+    ],
+    [
+      "-batch",
+      "--no-site-file",
+      "--no-site-lisp",
+      "-L",
+      "admin/unidata",
+      "-l",
+      "unidata-gen",
+      "-f",
+      "unidata-gen-file",
+      "lisp/international/uni-decomposition.el",
+      "admin/unidata"
+    ],
+    [
+      "-batch",
+      "--no-site-file",
+      "--no-site-lisp",
+      "-L",
+      "admin/unidata",
+      "-l",
+      "unidata-gen",
+      "-f",
+      "unidata-gen-file",
+      "lisp/international/uni-digit.el",
+      "admin/unidata"
+    ],
+    [
+      "-batch",
+      "--no-site-file",
+      "--no-site-lisp",
+      "-L",
+      "admin/unidata",
+      "-l",
+      "unidata-gen",
+      "-f",
+      "unidata-gen-file",
+      "lisp/international/uni-lowercase.el",
+      "admin/unidata"
+    ],
+    [
+      "-batch",
+      "--no-site-file",
+      "--no-site-lisp",
+      "-L",
+      "admin/unidata",
+      "-l",
+      "unidata-gen",
+      "-f",
+      "unidata-gen-file",
+      "lisp/international/uni-mirrored.el",
+      "admin/unidata"
+    ],
+    [
+      "-batch",
+      "--no-site-file",
+      "--no-site-lisp",
+      "-L",
+      "admin/unidata",
+      "-l",
+      "unidata-gen",
+      "-f",
+      "unidata-gen-file",
+      "lisp/international/uni-name.el",
+      "admin/unidata"
+    ],
+    [
+      "-batch",
+      "--no-site-file",
+      "--no-site-lisp",
+      "-L",
+      "admin/unidata",
+      "-l",
+      "unidata-gen",
+      "-f",
+      "unidata-gen-file",
+      "lisp/international/uni-numeric.el",
+      "admin/unidata"
+    ],
+    [
+      "-batch",
+      "--no-site-file",
+      "--no-site-lisp",
+      "-L",
+      "admin/unidata",
+      "-l",
+      "unidata-gen",
+      "-f",
+      "unidata-gen-file",
+      "lisp/international/uni-old-name.el",
+      "admin/unidata"
+    ],
+    [
+      "-batch",
+      "--no-site-file",
+      "--no-site-lisp",
+      "-L",
+      "admin/unidata",
+      "-l",
+      "unidata-gen",
+      "-f",
+      "unidata-gen-file",
+      "lisp/international/uni-special-lowercase.el",
+      "admin/unidata"
+    ],
+    [
+      "-batch",
+      "--no-site-file",
+      "--no-site-lisp",
+      "-L",
+      "admin/unidata",
+      "-l",
+      "unidata-gen",
+      "-f",
+      "unidata-gen-file",
+      "lisp/international/uni-special-titlecase.el",
+      "admin/unidata"
+    ],
+    [
+      "-batch",
+      "--no-site-file",
+      "--no-site-lisp",
+      "-L",
+      "admin/unidata",
+      "-l",
+      "unidata-gen",
+      "-f",
+      "unidata-gen-file",
+      "lisp/international/uni-special-uppercase.el",
+      "admin/unidata"
+    ],
+    [
+      "-batch",
+      "--no-site-file",
+      "--no-site-lisp",
+      "-L",
+      "admin/unidata",
+      "-l",
+      "unidata-gen",
+      "-f",
+      "unidata-gen-file",
+      "lisp/international/uni-titlecase.el",
+      "admin/unidata"
+    ],
+    [
+      "-batch",
+      "--no-site-file",
+      "--no-site-lisp",
+      "-L",
+      "admin/unidata",
+      "-l",
+      "unidata-gen",
+      "-f",
+      "unidata-gen-file",
+      "lisp/international/uni-uppercase.el",
+      "admin/unidata"
+    ],
+    [
+      "-batch",
+      "--no-site-file",
+      "--no-site-lisp",
+      "-L",
+      "admin/unidata",
+      "-l",
+      "unidata-gen",
+      "-f",
+      "unidata-gen-charprop",
+      "lisp/international/charprop.el"
+    ],
+    [
+      "-batch",
+      "--no-site-file",
+      "--no-site-lisp",
+      "-l",
+      "emoji.el",
+      "-f",
+      "emoji--generate-file",
+      "lisp/international/emoji-labels.el"
+    ],
+    [
+      "-batch",
+      "--no-site-file",
+      "--no-site-lisp",
+      "-L",
+      "admin/unidata",
+      "-l",
+      "unidata-gen.el",
+      "-f",
+      "unidata-gen-scripts",
+      "lisp/international/uni-scripts.el"
+    ],
+    [
+      "-batch",
+      "--no-site-file",
+      "--no-site-lisp",
+      "-L",
+      "admin/unidata",
+      "-l",
+      "unidata-gen.el",
+      "-f",
+      "unidata-gen-confusable",
+      "lisp/international/uni-confusable.el"
+    ],
+    [
+      "-batch",
+      "--no-site-file",
+      "--no-site-lisp",
+      "-L",
+      "admin/unidata",
+      "-l",
+      "unidata-gen.el",
+      "-f",
+      "unidata-gen-idna-mapping",
+      "lisp/international/idna-mapping.el"
+    ]
+  ],
+  "leim": [
+    [
+      "-batch",
+      "--no-site-file",
+      "--no-site-lisp",
+      "-l",
+      "titdic-cnv",
+      "-f",
+      "batch-tit-dic-convert",
+      "-dir",
+      "lisp/leim/quail",
+      "leim/CXTERM-DIC/CCDOSPY.tit"
+    ],
+    [
+      "-batch",
+      "--no-site-file",
+      "--no-site-lisp",
+      "-l",
+      "titdic-cnv",
+      "-f",
+      "batch-tit-dic-convert",
+      "-dir",
+      "lisp/leim/quail",
+      "leim/CXTERM-DIC/Punct.tit"
+    ],
+    [
+      "-batch",
+      "--no-site-file",
+      "--no-site-lisp",
+      "-l",
+      "titdic-cnv",
+      "-f",
+      "batch-tit-dic-convert",
+      "-dir",
+      "lisp/leim/quail",
+      "leim/CXTERM-DIC/QJ.tit"
+    ],
+    [
+      "-batch",
+      "--no-site-file",
+      "--no-site-lisp",
+      "-l",
+      "titdic-cnv",
+      "-f",
+      "batch-tit-dic-convert",
+      "-dir",
+      "lisp/leim/quail",
+      "leim/CXTERM-DIC/SW.tit"
+    ],
+    [
+      "-batch",
+      "--no-site-file",
+      "--no-site-lisp",
+      "-l",
+      "titdic-cnv",
+      "-f",
+      "batch-tit-dic-convert",
+      "-dir",
+      "lisp/leim/quail",
+      "leim/CXTERM-DIC/TONEPY.tit"
+    ],
+    [
+      "-batch",
+      "--no-site-file",
+      "--no-site-lisp",
+      "-l",
+      "titdic-cnv",
+      "-f",
+      "batch-tit-dic-convert",
+      "-dir",
+      "lisp/leim/quail",
+      "leim/CXTERM-DIC/4Corner.tit"
+    ],
+    [
+      "-batch",
+      "--no-site-file",
+      "--no-site-lisp",
+      "-l",
+      "titdic-cnv",
+      "-f",
+      "batch-tit-dic-convert",
+      "-dir",
+      "lisp/leim/quail",
+      "leim/CXTERM-DIC/ARRAY30.tit"
+    ],
+    [
+      "-batch",
+      "--no-site-file",
+      "--no-site-lisp",
+      "-l",
+      "titdic-cnv",
+      "-f",
+      "batch-tit-dic-convert",
+      "-dir",
+      "lisp/leim/quail",
+      "leim/CXTERM-DIC/ECDICT.tit"
+    ],
+    [
+      "-batch",
+      "--no-site-file",
+      "--no-site-lisp",
+      "-l",
+      "titdic-cnv",
+      "-f",
+      "batch-tit-dic-convert",
+      "-dir",
+      "lisp/leim/quail",
+      "leim/CXTERM-DIC/ETZY.tit"
+    ],
+    [
+      "-batch",
+      "--no-site-file",
+      "--no-site-lisp",
+      "-l",
+      "titdic-cnv",
+      "-f",
+      "batch-tit-dic-convert",
+      "-dir",
+      "lisp/leim/quail",
+      "leim/CXTERM-DIC/Punct-b5.tit"
+    ],
+    [
+      "-batch",
+      "--no-site-file",
+      "--no-site-lisp",
+      "-l",
+      "titdic-cnv",
+      "-f",
+      "batch-tit-dic-convert",
+      "-dir",
+      "lisp/leim/quail",
+      "leim/CXTERM-DIC/PY-b5.tit"
+    ],
+    [
+      "-batch",
+      "--no-site-file",
+      "--no-site-lisp",
+      "-l",
+      "titdic-cnv",
+      "-f",
+      "batch-tit-dic-convert",
+      "-dir",
+      "lisp/leim/quail",
+      "leim/CXTERM-DIC/QJ-b5.tit"
+    ],
+    [
+      "-batch",
+      "--no-site-file",
+      "--no-site-lisp",
+      "-l",
+      "titdic-cnv",
+      "-f",
+      "batch-tit-dic-convert",
+      "-dir",
+      "lisp/leim/quail",
+      "leim/CXTERM-DIC/ZOZY.tit"
+    ],
+    [
+      "-batch",
+      "--no-site-file",
+      "--no-site-lisp",
+      "-l",
+      "titdic-cnv",
+      "-f",
+      "batch-tit-miscdic-convert",
+      "-dir",
+      "lisp/leim/quail",
+      "leim/MISC-DIC/cangjie-table.b5"
+    ],
+    [
+      "-batch",
+      "--no-site-file",
+      "--no-site-lisp",
+      "-l",
+      "titdic-cnv",
+      "-f",
+      "batch-tit-miscdic-convert",
+      "-dir",
+      "lisp/leim/quail",
+      "leim/MISC-DIC/cangjie-table.cns"
+    ],
+    [
+      "-batch",
+      "--no-site-file",
+      "--no-site-lisp",
+      "-l",
+      "titdic-cnv",
+      "-f",
+      "batch-tit-miscdic-convert",
+      "-dir",
+      "lisp/leim/quail",
+      "leim/MISC-DIC/pinyin.map"
+    ],
+    [
+      "-batch",
+      "--no-site-file",
+      "--no-site-lisp",
+      "-l",
+      "titdic-cnv",
+      "-f",
+      "batch-tit-miscdic-convert",
+      "-dir",
+      "lisp/leim/quail",
+      "leim/MISC-DIC/ziranma.cin"
+    ],
+    [
+      "-batch",
+      "--no-site-file",
+      "--no-site-lisp",
+      "-l",
+      "titdic-cnv",
+      "-f",
+      "batch-tit-miscdic-convert",
+      "-dir",
+      "lisp/leim/quail",
+      "leim/MISC-DIC/CTLau.html"
+    ],
+    [
+      "-batch",
+      "--no-site-file",
+      "--no-site-lisp",
+      "-l",
+      "titdic-cnv",
+      "-f",
+      "batch-tit-miscdic-convert",
+      "-dir",
+      "lisp/leim/quail",
+      "leim/MISC-DIC/CTLau-b5.html"
+    ],
+    [
+      "-batch",
+      "--no-site-file",
+      "--no-site-lisp",
+      "-l",
+      "titdic-cnv",
+      "-f",
+      "tit-pinyin-convert",
+      "leim/MISC-DIC/pinyin.map",
+      "lisp/language/pinyin.el"
+    ]
+  ],
+  "ja-dic": [
+    "-batch",
+    "--no-site-file",
+    "--no-site-lisp",
+    "-batch",
+    "-l",
+    "ja-dic-cnv",
+    "-f",
+    "batch-skkdic-convert",
+    "-dir",
+    "lisp/leim/ja-dic",
+    "--no-reduction",
+    "leim/SKK-DIC/SKK-JISYO.L"
+  ]
+}

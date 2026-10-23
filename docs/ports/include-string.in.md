@@ -256,18 +256,18 @@ _GL_EXTERN_C void rpl_free (void *);
 
 # the negative verification (each line applied, checked, then restored; the driver was a
 # python one-liner that rewrites the mirror, runs the checker and writes the original back)
-$ python3 tools/extract-abi.py --check emacs/lib/string.in.h femacs/lib/include/string.in.rs  # 1 kept
-$ python3 tools/extract-abi.py --check emacs/lib/string.in.h femacs/lib/include/string.in.rs  # 0 -> FAIL
+$ python3 tools/extract-abi.py --check emacs/lib/string.in.h lib/include/string.in.rs  # 1 kept
+$ python3 tools/extract-abi.py --check emacs/lib/string.in.h lib/include/string.in.rs  # 0 -> FAIL
 - macro GNULIB_defined_streq does not mention 1 (C body: 1)
 - constant GNULIB_defined_streq: C 1 vs Rust 0
-$ python3 tools/extract-abi.py --check emacs/lib/string.in.h femacs/lib/include/string.in.rs  # return false -> FAIL
+$ python3 tools/extract-abi.py --check emacs/lib/string.in.h lib/include/string.in.rs  # return false -> FAIL
 - function streq does not mention __s1, __s2, strcmp
-$ python3 tools/extract-abi.py --check emacs/lib/string.in.h femacs/lib/include/string.in.rs  # rpl_nope -> FAIL
+$ python3 tools/extract-abi.py --check emacs/lib/string.in.h lib/include/string.in.rs  # rpl_nope -> FAIL
 - macro memchr does not mention rpl_memchr (C body: rpl_memchr)
 
 # the mirror and the eight units that now include the owner
-$ python3 tools/extract-abi.py --check emacs/lib/string.in.h femacs/lib/include/string.in.rs
-OK emacs/lib/string.in.h -> femacs/lib/include/string.in.rs
+$ python3 tools/extract-abi.py --check emacs/lib/string.in.h lib/include/string.in.rs
+OK emacs/lib/string.in.h -> lib/include/string.in.rs
 $ cd femacs && for u in lib/memeq.c lib/streq.c lib/time_rz.c lib/sig2str.c lib/boot-time.c \
     lib-src/ebrowse.c lib-src/etags.c lib-src/make-docfile.c; do \
     cargo run -q -p xtask -- build-tu $u; done

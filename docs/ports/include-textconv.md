@@ -48,8 +48,8 @@
 
 ## Evidence
 
-- `python3 tools/extract-abi.py --check emacs/src/textconv.h femacs/src/include/textconv.rs`
-  -> `OK emacs/src/textconv.h -> femacs/src/include/textconv.rs` (no `- ` problem lines).
+- `python3 tools/extract-abi.py --check emacs/src/textconv.h src/include/textconv.rs`
+  -> `OK emacs/src/textconv.h -> src/include/textconv.rs` (no `- ` problem lines).
 - `python3 tools/extract-abi.py emacs/src/textconv.h` -> this ledger: 0 subrs, 0 functions defined,
   1 macro, 3 types, 0 file-scope objects (the two enums' members are constants).
 - The measurements: `clang -std=gnu23 -O0 -I build/emacs-ref/lib -idirafter spikes/shim

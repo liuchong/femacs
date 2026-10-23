@@ -1,4 +1,4 @@
-# emacs/lib/stdc_bit_width.c  →  femacs/lib/stdc_bit_width.rs (19 lines)
+# emacs/lib/stdc_bit_width.c  →  lib/stdc_bit_width.rs (19 lines)
 
 # ----------------------------------------------------------------------
 ## Subrs (DEFUN) — 0

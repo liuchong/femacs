@@ -14,9 +14,9 @@
 
 ## Decisions
 
-`emacs/lib/binary-io.c` @ `fd7afced403`; port `femacs/lib/binary-io.rs` (62 lines vs C's 38);
+`emacs/lib/binary-io.c` @ `fd7afced403`; port `lib/binary-io.rs` (62 lines vs C's 38);
 the gates are `build-tu lib/binary-io.c` -> `built`,
-`python3 tools/extract-abi.py --check emacs/lib/binary-io.c femacs/lib/binary-io.rs` -> `OK`,
+`python3 tools/extract-abi.py --check emacs/lib/binary-io.c lib/binary-io.rs` -> `OK`,
 and `nm -g build/femacs/binary-io.o`, which prints the same two definitions as
 `nm -g build/emacs-ref/lib/binary-io.o` (`_gl_set_fd_mode`, `set_binary_mode` - Mach-O prints
 them with the leading underscore).

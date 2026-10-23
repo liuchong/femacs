@@ -23,7 +23,7 @@
   file's own local-variables block, carried verbatim (PORTING.md 0.3).
 - **The unit and the header have two different answers, and both are right** (the
   `src/w32select.h` reading, status 3.158).  The frozen configuration compiles no Haiku unit
-  (`docs/baseline/frozen-build-sources.txt` lists no `src/haiku*.c`), so `femacs/src/haikuselect.rs`
+  (`docs/baseline/frozen-build-sources.txt` lists no `src/haiku*.c`), so `src/haikuselect.rs`
   is the recorded empty shape; the header's own text is unconditional, so the mirror carries its
   declarations and their definitions are deferred to the Haiku target.
 - **`enum haiku_clipboard` (C 32-37) is a `pub type` plus one constant per member** - the shape
@@ -56,8 +56,8 @@
 
 ## Evidence
 
-- `python3 tools/extract-abi.py --check emacs/src/haikuselect.h femacs/src/include/haikuselect.rs`
-  -> `OK emacs/src/haikuselect.h -> femacs/src/include/haikuselect.rs` (no `- ` problem lines).
+- `python3 tools/extract-abi.py --check emacs/src/haikuselect.h src/include/haikuselect.rs`
+  -> `OK emacs/src/haikuselect.h -> src/include/haikuselect.rs` (no `- ` problem lines).
 - `python3 tools/check-cond-eval.py src/haikuselect.h` -> `4 conditions, 0 unknown to the evaluator,
   0 disagreements`.
 - `python3 tools/extract-abi.py emacs/src/haikuselect.h` -> this ledger: 0 subrs, 0 functions
@@ -76,5 +76,5 @@
   normalisation, 25 of 25, and there is no extra `/// C:` line (the `haiku_support.md` convention
   for the same blind spot).
 - `rg -n "be_clipboard_init|be_find_clipboard_data|be_display_notification|haiku_selection_disowned"
-  femacs` -> only this mirror: the port has no definer yet (`femacs/src/haikuselect.rs` is the empty
+  femacs` -> only this mirror: the port has no definer yet (`src/haikuselect.rs` is the empty
   note), so there is no use-site copy to retire (unlike 3.143/3.153).

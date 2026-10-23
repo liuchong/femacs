@@ -18,14 +18,14 @@
 
 ## Decisions
 
-`emacs/lib/boot-time.c` @ `fd7afced403`; port `femacs/lib/boot-time.rs` (378 lines vs C's
+`emacs/lib/boot-time.c` @ `fd7afced403`; port `lib/boot-time.rs` (378 lines vs C's
 306, 23.5% - the tolerance is `boot-time 0.25` on the `total` basis in
 `docs/ports/line-drift-tolerance.tsv`); the gates are `build-tu lib/boot-time.c` -> `built`,
-`python3 tools/extract-abi.py --check emacs/lib/boot-time.c femacs/lib/boot-time.rs` -> `OK`,
+`python3 tools/extract-abi.py --check emacs/lib/boot-time.c lib/boot-time.rs` -> `OK`,
 and `python3 tools/check-symbols.py --pending docs/baseline/symbol-pending.txt`, where
 `build/femacs/boot-time.o` carries exactly the reference object's interface
 (`nm -g build/emacs-ref/lib/boot-time.o`: `T _get_boot_time`, `U _endutxent`, `U _getutxent`,
-`U _setutxent`, `U _sysctl`, `U _utmpxname`).  One new mirror, `femacs/lib/include/utmpx.rs`,
+`U _setutxent`, `U _sysctl`, `U _utmpxname`).  One new mirror, `lib/include/utmpx.rs`,
 was created (a system header, so it has no reference file to pair with - the
 `sys_sysctl.rs`/`sys_time.rs` shape); `readutmp.h`, `unlocked-io.h` and `boot-time-aux.h`
 were *not* mirrored, see below.
@@ -37,7 +37,7 @@ HAVE_STRUCT_UTMPX_UT_NAME undef, HAVE_STRUCT_UTMPX_UT_TYPE 1, HAVE_UTMPXNAME 1,
 HAVE_DECL_ENDUTENT 0, HAVE_SYS_SYSCTL_H 1, HAVE_SYS_PARAM_H 1, HAVE_SYSCTL 1, CTL_KERN 1,
 KERN_BOOTTIME 21, HAVE_OS_H undef; the compiler defines none of `__linux__`, `__ANDROID__`,
 `__minix`, `__OpenBSD__`, `__HAIKU__`, `__CYGWIN__`, `_WIN32` (measured with clang -dM -E on
-the frozen configuration, the probe in `femacs/lib/include/utmpx.rs`).  The file is **not**
+the frozen configuration, the probe in `lib/include/utmpx.rs`).  The file is **not**
 in `docs/baseline/config/cond-eval-verified.txt`, so `extract-abi.py` compares the port with
 *every* branch live (P-66's conservative mode) and the dead arms are therefore kept as text
 (P-51) rather than dropped - the status 3.9 policy for `lib/*.c`.
@@ -71,7 +71,7 @@ in `docs/baseline/config/cond-eval-verified.txt`, so `extract-abi.py` compares t
 Every dead arm of this file is carried under a feature that names its non-frozen side, so
 `--check` sees C's tokens and the reader sees C's text; the status 3.9 note applies here too -
 **none of these features is in `xtask dead-arms`**, which can only flip the keys
-`femacs/src/include/config.rs` carries and these are compiler/platform predicates:
+`src/include/config.rs` carries and these are compiler/platform predicates:
 
 | feature | C lines it gates |
 | --- | --- |
@@ -101,7 +101,7 @@ binary-io.rs dead-arm note) while the macros and the code they guard are carried
   here, this unit defines it (the mirror rule 0.1-2 keeps definitions out of mirrors).
 - **C 298-306's alternative `get_boot_time`**, as above.
 - ~~**`boot-time-aux.h`'s other arms** (Linux/Android/OpenBSD/Haiku/Windows)~~ - **superseded by
-  status 3.104**: the header is now the mirror `femacs/lib/include/boot-time-aux.rs`, which the
+  status 3.104**: the header is now the mirror `lib/include/boot-time-aux.rs`, which the
   unit includes at C 61, so its arms are neither transcribed here nor merely recorded - they live
   in the mirror's ledger, `docs/ports/include-boot-time-aux.md` (and `xtask dead-arms` compiles
   the `have_haiku` one there, which is what forced the mirror into existence).

@@ -1,6 +1,6 @@
 # emacs/lwlib/xlwmenu.c (2920 lines)
 
-`emacs/lwlib/xlwmenu.c` @ `fd7afced403`; port `femacs/lwlib/xlwmenu.rs` (**4432 lines**, md5
+`emacs/lwlib/xlwmenu.c` @ `fd7afced403`; port `lwlib/xlwmenu.rs` (**4432 lines**, md5
 `9a657c6dfddcc73ad132681d6cf78522`, sha1/sha256 `e7a2011227247a1024e43eaa9c2cafdef24aa7ec`);
 the reference file is 2920 lines, md5 `07aac74641dfddc7f313cfeb9cc798e4`.
 
@@ -144,7 +144,7 @@ licence head, PORTING.md 0.1-19; `python3 tools/check-dead-file-coverage.py` rea
 4. **`lucid__menu_grab_keyboard`** (C 2891, inside `#ifdef emacs`) is not declared by any header:
    it is `make-docfile`'s `globals.h` variable for keyboard.c's `DEFVAR_BOOL`
    (`src/keyboard.c` 14103-14107).  The port reads the same global from
-   `femacs/src/include/globals.rs` 7057, which `lisp.rs` includes.
+   `src/include/globals.rs` 7057, which `lisp.rs` includes.
 5. **`xlwMenuWidgetClass`** (C 249) is the non-static object `lwlib-Xlw.c`'s `lw_lucid_widget_p`
    and `lwlib-Xaw.c` compare against; the port exports it, and `xlwMenuClassRec` beside it (C 208,
    also non-static).
@@ -165,7 +165,7 @@ clause 8's "the gate must go down to the include graph").
 Run 1, the file gate + the toolkit edge on an earlier text of this unit ->
 **exit 1, 675 errors, all in `_root.rs`**, every one `cannot find type c_void`/`c_char`/`c_int`…
 The reading is a *materialization* effect, not a defect of the body: `xtask`'s ungated-reach rule
-(`femacs/xtask/src/main.rs` `ungated_reachable`, P-89) found `src/include/lisp.rs` reachable
+(`xtask/src/main.rs` `ungated_reachable`, P-89) found `src/include/lisp.rs` reachable
 ungated because `lwlib/include/lwlib-widget.rs` 17 carries the string `include!("…/lisp.rs")`
 **inside a comment**, so this unit's `#[cfg (feature = "use_lucid")]` edge to `lisp.rs` was
 suppressed and nothing brought `c_void` into the crate root.  Repair: the module's own `include!`
@@ -205,7 +205,7 @@ arms can only be compiled in the reference when `HAVE_X_I18N` is defined beside 
 `let _mutant: c_int = c"boom".as_ptr ();` as the first statement of `ungrab_all` - compiled with
 run 4's `rustc` flags: control **exit 0, 0 errors** (`0` error lines); mutant **exit 1, exactly one
 new error**, `E0308` at `mut/_root.rs:1403` naming that line.  The output changes, so runs 2-4's
-green readings are not vacuous.  The copy was discarded; `femacs/lwlib/xlwmenu.rs`'s
+green readings are not vacuous.  The copy was discarded; `lwlib/xlwmenu.rs`'s
 `shasum` is `e7a2011227247a1024e43eaa9c2cafdef24aa7ec` before and after (the injected text was
 never in the tree).
 
@@ -241,7 +241,7 @@ XA_ATOM 4 PropModeReplace 0 XC_right_ptr 94
 C's spelling and stay **UNVERIFIED** (`## Deviations` 1).
 
 **⑥ The text gates.**
-`python3 tools/extract-abi.py --check emacs/lwlib/xlwmenu.c femacs/lwlib/xlwmenu.rs` -> the lone
+`python3 tools/extract-abi.py --check emacs/lwlib/xlwmenu.c lwlib/xlwmenu.rs` -> the lone
 row `line count drifted 51.8%: C 2920 vs Rust 4432`, whose tolerance row is the integrator's
 (`## Owed` 2).  Before the two `docs/ports/macro-body-notes.tsv` rows below, the same command also
 reported four body rows, all repaired or recorded: `draw_arrow does not mention double` and
@@ -263,7 +263,7 @@ ledger`.
 36 allowed, 0 stale`.  This unit's citations are all in the **external** bucket (they name
 `<X11/*>`, Xft, cairo and the in-tree-but-foreign `src/xterm.h` / `lwlib-utils.h`), so neither the
 drift nor the range rule applies to them; an earlier reading in this same round carried one `drift`
-and one `stale` row in `femacs/src/include/dispextern.rs` 609/617 (another lane's), and the current
+and one `stale` row in `src/include/dispextern.rs` 609/617 (another lane's), and the current
 reading has neither.
 
 **⑦ Budget as run** (the lane's limit): `build-tu` **1 of 3**, `probe` **4 of 3** (run 1 is the
@@ -374,7 +374,7 @@ before the run's own cleanup) is removed at the end.
 2. **`docs/ports/line-drift-tolerance.tsv` needs this file's row**: measured drift **51.8%**
    (C 2920 vs Rust 4432), which is the port's in-unit surface plus the transported dead arms.  The
    file is not in this lane's write whitelist.  **Owner: the integrator.**
-3. **`femacs/xtask/Cargo.toml`'s generated `[features]` table** gains the name `emacs` from this
+3. **`xtask/Cargo.toml`'s generated `[features]` table** gains the name `emacs` from this
    unit (P-86 clause 1's arm for the build's own `-Demacs`); `use_lucid`, `use_x_toolkit`,
    `have_x_i18n`, `use_cairo`, `have_xft` and `use_cairo_or_have_xft` are already registered.
    **Owner: the integrator** (the table is generated from the tree).

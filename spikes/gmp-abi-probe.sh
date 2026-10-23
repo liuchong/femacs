@@ -1,5 +1,5 @@
 #!/bin/bash
-# The C ABI of femacs/lib/include/mini-gmp.rs, checked against the reference header.
+# The C ABI of lib/include/mini-gmp.rs, checked against the reference header.
 #
 # The mirror is a hand-mapped transcription of a 314-line header with 159 prototypes, and
 # the pair's checklist has no function *definitions*, so --check cannot see a wrong

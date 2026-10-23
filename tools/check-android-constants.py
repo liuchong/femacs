@@ -75,8 +75,8 @@ def main() -> int:
             return None
 
     consts: dict[str, set[tuple[str, str]]] = {}
-    for path in (sorted(glob.glob(str(REPO / "femacs/lib/include/*.rs"))) +
-                 sorted(glob.glob(str(REPO / "femacs/src/include/*.rs")))):
+    for path in (sorted(glob.glob(str(REPO / "lib/include/*.rs"))) +
+                 sorted(glob.glob(str(REPO / "src/include/*.rs")))):
         for m in CONST.finditer(pathlib.Path(path).read_text(errors="replace")):
             consts.setdefault(m.group(1), set()).add(
                 (pathlib.Path(path).name, m.group(2).strip()))

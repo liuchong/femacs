@@ -15,7 +15,7 @@ Sources (all recomputable, nothing hand maintained)
   copied) so the map and this inventory can never disagree.
 * `docs/ports/*.md` -- the generated per-file ledgers.  A ledger with a
   remaining `- [ ]` box means the file is not finished.
-* `femacs/**` -- target existence.
+* `**` -- target existence.
 
 Status column
 -------------
@@ -252,7 +252,7 @@ def main() -> int:
         "复算：`python3 tools/gen-port-inventory.py`。数据源：`docs/baseline/inventory.tsv`"
         "（由 `tools/gen-baseline.py` 从 pin 住的参照检出 `fd7afced403` 抽取）、"
         "`tools/gen-port-map.py` 的目标路径规则（import，不复制）、`docs/ports/*.md` 的勾选状态、"
-        "`femacs/**` 的目标文件存在性。\n\n"
+        "`**` 的目标文件存在性。\n\n"
         "状态列口径：`todo` 目标不存在；`wip` 目标存在但清单还有 `- [ ]`（或尚无清单）；"
         "`done` 目标存在且清单无 `- [ ]`。**权威判定**是 "
         "`python3 tools/extract-abi.py --all`（逐 token / 函数 / 常量 / 宏体比对）："

@@ -8,10 +8,10 @@
 > that clause's substitute - the **C line-range table**, the `## Evidence` readings and the
 > `## Deviations`.
 >
-> The previous revision of `femacs/exec/exec.rs` was the three-line P-08 note ("not compiled by the
+> The previous revision of `exec/exec.rs` was the three-line P-08 note ("not compiled by the
 > frozen configuration … the port is an empty unit").  This round transcribes the whole body as it
 > stands (P-86 ①): **C 1-1185, both arms of all 22 conditions, nothing stubbed**.
-> Port: `femacs/exec/exec.rs` (**1552 lines**, md5 `a2560ed5f8694914701fb508798058d2`, sha256
+> Port: `exec/exec.rs` (**1552 lines**, md5 `a2560ed5f8694914701fb508798058d2`, sha256
 > `130ff7633c095c3abdb2937b423992fa3808d9052c5811dad8b1389abaa1ab0f`).  The reference
 > `emacs/exec/exec.c` is md5 `f9517c3c32379ecc87b991a243a52c9a` (unchanged; `emacs/` is read-only).
 >
@@ -59,7 +59,7 @@ no `#else` in C and therefore nothing to carry.
 
 Rows are contiguous, ascending and cover C 1-1185 with no gap at all; `docs/port-map.md` binds this
 ledger to `exec/exec.c` - and, through the same prefix fallback, to the `exec/exec.h` mirror
-`femacs/exec/include/exec.rs` as well (`check-dead-file-coverage.py`'s `ledger_for` tries
+`exec/include/exec.rs` as well (`check-dead-file-coverage.py`'s `ledger_for` tries
 `exec-exec.md` and then `exec.md`, so the mirror's own `docs/ports/include-exec.md` is not
 consulted; the tool prints both bindings, and a gapless table satisfies both).  The blank lines
 between blocks therefore sit inside a row rather than between two.
@@ -149,7 +149,7 @@ stopping in a mirror.
 is why `extract-abi.py`'s inventory consults the macro table for it.
 
 **⑦ `extract-abi.py --check` (P-86 ⑩).**  `python3 tools/extract-abi.py --check emacs/exec/exec.c
-femacs/exec/exec.rs` → after this round **one `- ` row**: `line count drifted 31.0%: C 1185 vs Rust
+exec/exec.rs` → after this round **one `- ` row**: `line count drifted 31.0%: C 1185 vs Rust
 1552`.  The six token rows the first run produced (`check_interpreter` → `continue,goto`;
 `process_interpreter_1` and `process_program_header` → `break,case,default,switch`;
 `process_interpreter` and `exec_0` → `goto`; `insert_args` → `goto,true`) are now **rows of
@@ -161,7 +161,7 @@ in this port.  Its tolerance row is `## Owed` 1 (that file is not this lane's to
 
 **⑧ The coverage and shape gates.**
 
-* `python3 tools/check-citations.py` → **0 findings** for `femacs/exec/exec.rs` (0 `range`, 0 `drift`,
+* `python3 tools/check-citations.py` → **0 findings** for `exec/exec.rs` (0 `range`, 0 `drift`,
   0 `external` on this unit's lines).
 * `python3 tools/check-declarations.py` → **0 findings** for this unit and this ledger (all four
   classes: no copied declaration block, no product-name version line, no product name in a comment,
@@ -169,7 +169,7 @@ in this port.  Its tolerance row is `## Owed` 1 (that file is not this lane's to
 * `python3 tools/check-dead-file-coverage.py` → the new table binds this ledger:
   **0 failure(s)** (the row count and the blank-line slack are in the tool's own `info` line).
 * `python3 tools/check-mirror-dupes.py` → this unit is **out of its scope by construction**
-  (`UNIT_DIRS = ("femacs/src", "femacs/lib")`), and this round adds no declaration to a mirror: the
+  (`UNIT_DIRS = ("src", "lib")`), and this round adds no declaration to a mirror: the
   run is recorded here only to say so.
 * `python3 tools/check-ledger-ticks.py` → nothing to tick: a P-86 ledger records a range table, not
   boxes, so this file contributes no row (the run is recorded for the same reason).
@@ -264,11 +264,11 @@ budget and prohibited), and every build artifact this lane produced was deleted 
    this lane's to write (the P-86 ⑩ precedent: the integrator wrote the same class of row for
    `exec1`/`test`/`mipsfpu` in 3.446/3.449).  Until it lands, `--check` reports the one row
    Evidence ⑦ reads.
-2. **The new feature names need registering** (`femacs/xtask/Cargo.toml`'s `[features]` table and
+2. **The new feature names need registering** (`xtask/Cargo.toml`'s `[features]` table and
    `docs/baseline/feature-coverage.tsv`, the mechanism `_timezone_defined` went through in 3.504):
    `mips`, `mips_nabi`, `lp64`, `page_mask`, `no_ndebug`.  `aarch64`, `exec_64`, `words_bigendian`,
    `have_stpcpy`, `have_decl_stpcpy` and `have_getpagesize` are registered; `mips` is used by
-   `femacs/exec/trace.rs` already and is *not* in the table either (measured 2026-10-05), so that
+   `exec/trace.rs` already and is *not* in the table either (measured 2026-10-05), so that
    row is shared.  `tools/feature-coverage.py --write` is the tool.
 3. **A per-host table for `USER_REGS_STRUCT`** (its size and its `SYSCALL_ARG1_REG` member, per
    `exec/configure.ac` 240-400): this is `docs/ports/trace.md`'s `## Owed` 1, and it is what closes
@@ -282,7 +282,7 @@ budget and prohibited), and every build artifact this lane produced was deleted 
 6. **`docs/status.md`, `docs/port-map.md` and `docs/baseline/feature-coverage.tsv`**: the
    integrator's regeneration and running-log entry for this revision.
 7. **A tool-side binding the integrator should decide**: `tools/check-dead-file-coverage.py`'s
-   `ledger_for` binds the `exec/exec.h` mirror (`femacs/exec/include/exec.rs`) to *this* ledger - its
+   `ledger_for` binds the `exec/exec.h` mirror (`exec/include/exec.rs`) to *this* ledger - its
    prefix rule tries `docs/ports/exec-exec.md` and then falls back to `docs/ports/exec.md`, so the
    mirror's own `docs/ports/include-exec.md` is never consulted, and the tool prints two `info` lines
    for one ledger (Evidence ⑧).  This table is gapless (C 1-1185, so 1-215 is covered too) and the

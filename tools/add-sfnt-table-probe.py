@@ -21,8 +21,8 @@ probe writes the name too, so the failing set can be correlated with the file ex
 import pathlib, shutil, sys
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
-SFNT = ROOT / "femacs/src/sfnt.rs"
-FONT = ROOT / "femacs/src/sfntfont.rs"
+SFNT = ROOT / "src/sfnt.rs"
+FONT = ROOT / "src/sfntfont.rs"
 BAK = pathlib.Path("/tmp/sfnt-table-probe-backups")
 
 HELPER = '''/* TEMPORARY probe (tools/add-sfnt-table-probe.py).  */

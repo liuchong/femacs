@@ -3,7 +3,7 @@
 
 `tools/extract-abi.py` has no Swift support at all, so before this gate every `.swift`
 target of batch F read as if *every* C function of its `.m` source were missing
-(`--check emacs/src/nsfont.m femacs/platform/macos/nsfont.swift` reports all 36), and the
+(`--check emacs/src/nsfont.m platform/macos/nsfont.swift` reports all 36), and the
 units' real coverage lived only in hand-written ledger boxes (status 3.160 recorded the
 gap).  This tool is the missing half, kept separate from `extract-abi.py` on purpose: it
 compares **function-name sets** - C definitions (from `tools/cinventory.py`, the same
@@ -43,7 +43,7 @@ MANIFEST = REPO / "docs" / "baseline" / "swift-units.tsv"
 
 # The Swift table of docs/port-map.md: `| `src/nsfont.m` | 1,765 | `…/nsfont.swift` | … |`
 PAIR = re.compile(r"^\|\s*`(?P<c>src/[^`]+\.m)`\s*\|\s*[\d,]+\s*\|\s*"
-                  r"`(?P<s>femacs/platform/macos/[^`]+\.swift)`\s*\|", re.M)
+                  r"`(?P<s>platform/macos/[^`]+\.swift)`\s*\|", re.M)
 
 _FUNC = re.compile(r"\bfunc\s+([A-Za-z_]\w*)\s*(?:<[^>{}]*>)?\s*\(")
 _SILGEN = re.compile(r'@_silgen_name\s*\(\s*"([^"]+)"\s*\)')

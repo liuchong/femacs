@@ -72,8 +72,8 @@
 
 ## Evidence
 
-- `python3 tools/extract-abi.py --check emacs/src/widget.h femacs/src/include/widget.rs`
-  -> `OK emacs/src/widget.h -> femacs/src/include/widget.rs` (no `- ` problem lines).
+- `python3 tools/extract-abi.py --check emacs/src/widget.h src/include/widget.rs`
+  -> `OK emacs/src/widget.h -> src/include/widget.rs` (no `- ` problem lines).
 - `python3 tools/extract-abi.py emacs/src/widget.h` -> this ledger: 0 subrs, 0 functions defined,
   36 macros (the guard and the 35 resource names), 0 types, 1 file-scope object.
 - **No unit includes this mirror** (`rg -n 'include/widget' femacs` -> no hits for `widget.rs`);

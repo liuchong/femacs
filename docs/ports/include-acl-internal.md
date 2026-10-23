@@ -58,7 +58,7 @@
 
 ### Summary
 
-`femacs/lib/include/acl-internal.rs` mirrors `emacs/lib/acl-internal.h`.  The mirror is named
+`lib/include/acl-internal.rs` mirrors `emacs/lib/acl-internal.h`.  The mirror is named
 with C's hyphen (`acl-internal.rs`, the `save-cwd`/`stat-time`/`c-ctype` convention), because
 that is what `tools/extract-abi.py`'s pairing and `xtask build-tu lib/acl-internal.h` look
 for: the round-53 request wrote it with an underscore, which would have left the mirror
@@ -125,7 +125,7 @@ shape).
 
 ### Verification
 
-* `python3 tools/extract-abi.py --check emacs/lib/acl-internal.h femacs/lib/include/acl-internal.rs`
+* `python3 tools/extract-abi.py --check emacs/lib/acl-internal.h lib/include/acl-internal.rs`
   → OK (only the informational "MODE_INSIDE_ACL has several definitions, body not compared").
 * Compilation: the mirror is not a crate root (its `c_int`/`_GL_INLINE`/`_GL_CONFIG_H_INCLUDED`
   come from the including unit, as the lib mirrors expect), so it was compiled through the same

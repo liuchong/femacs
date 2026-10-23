@@ -32,4 +32,4 @@ no probe compiles it; the text gate is the whole acceptance (docs/status.md 3.31
    `lwlib-widget.rs` mirrors the include line pulls in; this mirror names no type of its own.
 
 Evidence: `python3 tools/extract-abi.py --check emacs/lwlib/lwlib-Xaw.h
-femacs/lwlib/include/lwlib-Xaw.rs` -> `OK` (2 ledger item(s)).
+lwlib/include/lwlib-Xaw.rs` -> `OK` (2 ledger item(s)).

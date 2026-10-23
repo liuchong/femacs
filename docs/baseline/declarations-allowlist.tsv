@@ -7,27 +7,27 @@
 # <path>\t<class>\t<count>\t<line>\t<reason>.  A count that no longer matches,
 # a row nothing matches, and a finding with no row are all failures.
 path	class	count	line	reason
-femacs/lib-src/ebrowse.rs	literal	1	c"Copyright (C) 2026 Free Software Foundation, Inc.";	TODO
-femacs/lib-src/ebrowse.rs	literal	1	fputs (c"ebrowse 32.0.50\nCopyright (C) 2026 Free Software Foundation, Inc.\nThis program is distributed under the terms of the GNU General Public License, version 3 or later.\n".as_ptr (),	TODO
-femacs/lib-src/etags.rs	literal	1	fputs (c"etags (femacs 32.0.50)\nCopyright (C) 2026 Free Software Foundation, Inc.\nThis program is distributed under the terms in ETAGS.README\n".as_ptr (),	TODO
-femacs/lib-src/etags.rs	literal	1	pub const COPYRIGHT: &CStr = c"Copyright (C) 2026 Free Software Foundation, Inc.";	TODO
-femacs/nt/addpm.rs	literal	1	DdeCommand! (c"[CreateGroup (\"Gnu Emacs\")]".as_ptr (), conversation); /* C 333 */	TODO
-femacs/nt/addpm.rs	literal	1	pub const REG_ROOT: &std::ffi::CStr = c"SOFTWARE\\GNU\\Emacs";	TODO
-femacs/nt/addpm.rs	literal	1	strcat (start_folder.as_mut_ptr (), c"\\Emacs.lnk".as_ptr ()); /* C 263 */	TODO
-femacs/nt/addpm.rs	literal	1	strcat (start_folder.as_mut_ptr (), c"\\Emacs.lnk".as_ptr ()); /* C 294 */	TODO
-femacs/nt/addpm.rs	literal	1	strcat (start_folder.as_mut_ptr (), c"\\Gnu Emacs".as_ptr ()); /* C 257 */	TODO
-femacs/nt/addpm.rs	literal	1	strcat (start_folder.as_mut_ptr (), c"\\Gnu Emacs".as_ptr ()); /* C 288 */	TODO
-femacs/src/androidterm.rs	literal	1	static title: [u8; 10] = *b"GNU Emacs\0"; // C 6838	TODO
-femacs/src/callproc.rs	literal	1	" Directory containing the DOC file that comes with GNU Emacs.\nThis is usually the same as `data-directory'. ");	TODO
-femacs/src/callproc.rs	literal	1	" Directory of machine-independent files that come with GNU Emacs.\nThese are files intended for Emacs to use while it runs. ");	TODO
-femacs/src/callproc.rs	literal	1	" Directory of score files for games which come with GNU Emacs.\nIf this variable is nil, then Emacs is unable to use a shared directory. ");	TODO
-femacs/src/emacs.rs	literal	1	" Address of mailing list for GNU Emacs bugs. ");	TODO
-femacs/src/emacs.rs	literal	1	const COPYRIGHT: &CStr = c"Copyright (C) 2026 Free Software Foundation, Inc.";	TODO
-femacs/src/emacs.rs	literal	1	printf (c"%s\n%s comes with ABSOLUTELY NO WARRANTY.\nYou may redistribute copies of %s\nunder the terms of the GNU General Public License.\nFor more information about these matters, see the file named COPYING.\n".as_ptr (),	TODO
-femacs/src/pgtkfns.rs	literal	1	const SCHEMA_ID: *const c_char = c"org.gnu.emacs.defaults".as_ptr ();	TODO
-femacs/src/sound.rs	literal	1	c"open \"%s\" alias GNUEmacs_PlaySound_Device wait".as_ptr (),	TODO
-femacs/src/sound.rs	literal	1	strcpy (sz_cmd_buf_a.as_mut_ptr (), c"close GNUEmacs_PlaySound_Device wait".as_ptr ()); // C 1341	TODO
-femacs/src/sound.rs	literal	1	strcpy (sz_cmd_buf_a.as_mut_ptr (), c"play GNUEmacs_PlaySound_Device wait".as_ptr ()); // C 1328	TODO
-femacs/src/w32.rs	literal	1	pub const REG_ROOT: &core::ffi::CStr = c"SOFTWARE\\GNU\\Emacs";	TODO
-femacs/src/w32select.rs	literal	1	let CLASSNAME: &core::ffi::CStr = c"Emacs Clipboard"; // C 465: `static const char CLASSNAME[]`	TODO
+lib-src/ebrowse.rs	literal	1	c"Copyright (C) 2026 Free Software Foundation, Inc.";	TODO
+lib-src/ebrowse.rs	literal	1	fputs (c"ebrowse 32.0.50\nCopyright (C) 2026 Free Software Foundation, Inc.\nThis program is distributed under the terms of the GNU General Public License, version 3 or later.\n".as_ptr (),	TODO
+lib-src/etags.rs	literal	1	fputs (c"etags (femacs 32.0.50)\nCopyright (C) 2026 Free Software Foundation, Inc.\nThis program is distributed under the terms in ETAGS.README\n".as_ptr (),	TODO
+lib-src/etags.rs	literal	1	pub const COPYRIGHT: &CStr = c"Copyright (C) 2026 Free Software Foundation, Inc.";	TODO
+nt/addpm.rs	literal	1	DdeCommand! (c"[CreateGroup (\"Gnu Emacs\")]".as_ptr (), conversation); /* C 333 */	TODO
+nt/addpm.rs	literal	1	pub const REG_ROOT: &std::ffi::CStr = c"SOFTWARE\\GNU\\Emacs";	TODO
+nt/addpm.rs	literal	1	strcat (start_folder.as_mut_ptr (), c"\\Emacs.lnk".as_ptr ()); /* C 263 */	TODO
+nt/addpm.rs	literal	1	strcat (start_folder.as_mut_ptr (), c"\\Emacs.lnk".as_ptr ()); /* C 294 */	TODO
+nt/addpm.rs	literal	1	strcat (start_folder.as_mut_ptr (), c"\\Gnu Emacs".as_ptr ()); /* C 257 */	TODO
+nt/addpm.rs	literal	1	strcat (start_folder.as_mut_ptr (), c"\\Gnu Emacs".as_ptr ()); /* C 288 */	TODO
+src/androidterm.rs	literal	1	static title: [u8; 10] = *b"GNU Emacs\0"; // C 6838	TODO
+src/callproc.rs	literal	1	" Directory containing the DOC file that comes with GNU Emacs.\nThis is usually the same as `data-directory'. ");	TODO
+src/callproc.rs	literal	1	" Directory of machine-independent files that come with GNU Emacs.\nThese are files intended for Emacs to use while it runs. ");	TODO
+src/callproc.rs	literal	1	" Directory of score files for games which come with GNU Emacs.\nIf this variable is nil, then Emacs is unable to use a shared directory. ");	TODO
+src/emacs.rs	literal	1	" Address of mailing list for GNU Emacs bugs. ");	TODO
+src/emacs.rs	literal	1	const COPYRIGHT: &CStr = c"Copyright (C) 2026 Free Software Foundation, Inc.";	TODO
+src/emacs.rs	literal	1	printf (c"%s\n%s comes with ABSOLUTELY NO WARRANTY.\nYou may redistribute copies of %s\nunder the terms of the GNU General Public License.\nFor more information about these matters, see the file named COPYING.\n".as_ptr (),	TODO
+src/pgtkfns.rs	literal	1	const SCHEMA_ID: *const c_char = c"org.gnu.emacs.defaults".as_ptr ();	TODO
+src/sound.rs	literal	1	c"open \"%s\" alias GNUEmacs_PlaySound_Device wait".as_ptr (),	TODO
+src/sound.rs	literal	1	strcpy (sz_cmd_buf_a.as_mut_ptr (), c"close GNUEmacs_PlaySound_Device wait".as_ptr ()); // C 1341	TODO
+src/sound.rs	literal	1	strcpy (sz_cmd_buf_a.as_mut_ptr (), c"play GNUEmacs_PlaySound_Device wait".as_ptr ()); // C 1328	TODO
+src/w32.rs	literal	1	pub const REG_ROOT: &core::ffi::CStr = c"SOFTWARE\\GNU\\Emacs";	TODO
+src/w32select.rs	literal	1	let CLASSNAME: &core::ffi::CStr = c"Emacs Clipboard"; // C 465: `static const char CLASSNAME[]`	TODO
 tools/gen-finder.py	literal	1	if y == x.replace("GNU Emacs", "femacs"):	TODO

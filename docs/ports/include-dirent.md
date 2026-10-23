@@ -40,5 +40,5 @@ derivation - and no `src/` unit includes one), so `xtask layout-check`,
 which compiles the `src/include` and `lib/include` mirrors, does not reach it; in a MinGW build
 `nt/inc` is on the include path instead.
 Evidence: `python3 tools/extract-abi.py --check emacs/nt/inc/dirent.h
-femacs/nt/inc/include/dirent.rs` -> `OK` (with the expected note that C's one duplicated macro
+nt/inc/include/dirent.rs` -> `OK` (with the expected note that C's one duplicated macro
 has its body left uncompared).

@@ -13,7 +13,7 @@
 
 ## File-scope objects — 0
 
-# emacs/lib/symlink.c (57 lines) — port `femacs/lib/symlink.rs`
+# emacs/lib/symlink.c (57 lines) — port `lib/symlink.rs`
 
 ## Decisions
 

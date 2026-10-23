@@ -34,16 +34,16 @@ unsafe fn frame_probe (tag: *const core::ffi::c_char)
 '''
 
 EDITS = [
-    ("femacs/src/androidfns.rs",
+    ("src/androidfns.rs",
      "  let mut f: *mut frame;\n",
      "  let mut f: *mut frame;\n  frame_probe (c\"x-create-frame\".as_ptr ());\n",
      "DEFUN! (\"x-create-frame\", Fx_create_frame, Sx_create_frame,"),
-    ("femacs/src/sfntfont.rs",
+    ("src/sfntfont.rs",
      "  let mut metrics: sfnt_glyph_metrics = std::mem::zeroed ();\n",
      "  let mut metrics: sfnt_glyph_metrics = std::mem::zeroed ();\n"
      "  frame_probe (c\"draw\".as_ptr ());\n",
      "pub unsafe extern \"C\" fn sfntfont_draw (s: *mut glyph_string"),
-    ("femacs/src/sfntfont-android.rs",
+    ("src/sfntfont-android.rs",
      "  let s: *mut glyph_string = s as *mut glyph_string;\n",
      "  let s: *mut glyph_string = s as *mut glyph_string;\n"
      "  frame_probe (c\"put-glyphs\".as_ptr ());\n",
