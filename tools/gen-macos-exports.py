@@ -34,11 +34,18 @@ def split_args(text):
     if text[start:].strip():out.append(text[start:].strip())
     return out
 
+def validate_symbol_imports(text, source):
+    """Rust Q exports are accessors, never data slots containing Lisp objects."""
+    wrong = re.search(r'@_silgen_name\("(Q\w+)"\)\s*(?:(?:fileprivate|private|public|internal)\s+)?(?:var|let)\b', text)
+    if wrong:
+        raise ValueError(f'{source}: {wrong[1]} must be imported as a function, not data')
+
 def swift_imports():
     imports={}
     for p in sorted((ROOT/'femacs/platform/macos').glob('*.swift')):
         if p.stem not in ('macfont','nsfns','nsimage','nsmenu','nsselect','nsterm'):continue
         text=p.read_text()
+        validate_symbol_imports(text, p.name)
         for m in re.finditer(r'@_silgen_name\("([^"]+)"\)\s*(?:(?:fileprivate|private|public|internal)\s+)?func\s+(\w+)\s*\(',text):
             end=balanced(text,m.end()-1)
             tail=re.match(r'\s*->\s*([^\n{]+)',text[end+1:])

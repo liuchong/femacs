@@ -11148,8 +11148,8 @@ func frame_selected_window(_ f: UnsafeMutableRawPointer?) -> Lisp_Object
 @_silgen_name("echo_area_window") var echo_area_window: Lisp_Object
 
 /// C: `Lisp_Object Qns_in_echo_area` - this file's own `DEFSYM ("ns-in-echo-area")` at C 11799,
-/// imported as the data symbol the core exports (the `ns_working_text` shape).
-@_silgen_name("Qns_in_echo_area") var Qns_in_echo_area: Lisp_Object
+/// imported through the symbol accessor, like the other Q symbols in this target.
+@_silgen_name("Qns_in_echo_area") func Qns_in_echo_area() -> Lisp_Object
 
 /// C: `Lisp_Object internal_catch_all (Lisp_Object (*) (void *), void *,
 /// Lisp_Object (*) (enum nonlocal_exit, Lisp_Object))` (src/lisp.h) - the port defines it in
@@ -11179,8 +11179,10 @@ func safe_funcall(_ nargs: Int, _ args: UnsafeMutablePointer<Lisp_Object>?) -> L
 fileprivate func ns_in_echo_area_1(_ ptr: UnsafeMutableRawPointer?) -> Lisp_Object {
   let count = SPECPDL_INDEX()                         // C 7626
   specbind(Qinhibit_quit(), Qt())                     // C 7627
-  var args: [Lisp_Object] = [Qns_in_echo_area]        // C 7628 (C's `safe_calln`, one argument)
-  let in_echo_area = safe_funcall(1, &args)
+  var args: [Lisp_Object] = [Qns_in_echo_area()]        // C 7628 (C's `safe_calln`, one argument)
+  let in_echo_area = args.withUnsafeMutableBufferPointer {
+    safe_funcall(Int($0.count), $0.baseAddress)
+  }
   return unbind_to(count, in_echo_area)               // C 7629
 }
 

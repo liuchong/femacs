@@ -160,3 +160,46 @@ D真实操作：从File菜单打开本轮文本，C-e输入checked、C-a与Right
 - 原样复制的 Lisp/数据/测试树无 Git 改动，参照检出保持干净。系统拼音候选及完整 marked-text 输入、个人配置/插件、打印和全套辅助程序、其他平台尚未完整验证；不将 Unicode 文本插入或覆盖率当作全部兼容证明。Finder/LaunchServices 冷启动列为用户试用检查，已实测直接原生启动。
 
 最终清理按无占用精确清单删除1,641个中间/旧版本文件（逻辑711,925,903字节），加此前旧app副本逻辑194,006,334字节；不是物理释放量。保留app、终端quartet、config/生成源、日志及证据；清理后两版dump与算术/calendar smoke通过，签名复验通过。
+
+## 输入法切换崩溃修复（基线48a9b97c）
+
+用户实测切换输入法后SIGSEGV，栈为AppKit候选位置查询→`EmacsView.firstRectForCharacterRange`→`ns_in_echo_area`→`safe_funcall`→`Ffuncall`。工作区起始干净；固定只读参照仍为fd7afced403，不更新参照版本。代码图无femacs索引，本次直接读取相关实现。
+
+```text
+femacs/platform/macos/nsterm.swift [修改] Qns_in_echo_area导入与安全调用
+ tools/gen-macos-exports.py       [修改] Q符号导入种类检查
+ tools/test-macos-symbol-imports.py [新增] 合成变异及真实输入检查
+ tools/fixtures/macos-input-source.rs [新增] Carbon输入源选择/恢复，AX激活受测PID
+ tools/fixtures/macos-ime.el       [新增] 独立缓冲区与合成状态快照
+ tools/test-macos-ime.py           [新增] 原生拼音事件、取消、保存及正常退出
+```
+
+```mermaid
+flowchart LR
+  IME[系统输入法切换与拼音] --> RECT[nsterm.swift firstRectForCharacterRange]
+  RECT --> ECHO[ns_in_echo_area]
+  ECHO --> BAD[旧var读取Q函数机器码]
+  BAD --> CRASH[Ffuncall非法对象崩溃]
+  ECHO --> FIX[新函数导入 Qns_in_echo_area调用]
+  FIX --> SAFE[原safe_funcall与错误/解绑逻辑]
+```
+
+|变更|基线位置与事实|目标与验收|
+|---|---|---|
+|I1|nsterm.swift L11150-11183把Qns_in_echo_area声明成var，而目标runtime.rs明确导出同名函数|改为零参函数导入并实际调用，safe_funcall参数数组在明确的buffer-pointer生命周期内；保留catch/quit/specbind/unbind行为|
+|I2|gen-macos-exports.py L37的swift_imports只收集函数，看不到Q变量导入|验证活动Swift单元不得把Q符号导入为var/let；报明确文件和符号，不靠链接成功推断种类正确|
+|I3|旧GUI用例仅发送Unicode或直接Ctrl事件，没有真实输入源切换和拼音候选|新增真实Carbon选择输入源、物理按键拼音组合/提交/取消、minibuffer组合、重复切换、文件保存和退出；退出时恢复原输入源|
+
+A设计已完成；B先写齐变异测试和原生输入流程，C完成I1/I2，D最后集中构建与运行。原26项及文件流程按受影响范围回归。没有关闭输入法、吞掉安全调用或用默认矩形掩盖问题。
+
+施工：[x] I1接口修复；[x] I2生成器防回归；[x] I3全部夹具与流程。当前进入D集中构建/复验。
+验收：[ ] Q导入变异测试；[ ] 原生切换/拼音组合提交取消/minibuffer/保存退出；[ ] 原键与文件回归；[ ] 签名和提交推送。通过范围按最终结果逐项记录，不把未运行当通过。
+
+
+输入法补修D读数：接口变异/活动源码检查4/4，完整Cocoa构建与打包退出0（137.358秒，峰值846,495,744字节），590/590覆盖通过；GUI26项与文件/剪贴板/GC流程再次通过，均正常退出0，严格签名通过。证据在本机忽略的`build/macos-ime`。
+
+实际启用源是ABC及豆包拼音，没有启用Apple简体拼音；验收驱动已识别已安装的拼音源。首个仅识别Apple拼音的尝试在启动前失败，随后真实豆包流程的切换API8次返回成功，但组字只产生普通字母、没有进入marked状态，测试判失败并回收实例，已恢复原ABC源。原生UI工具确认Mac锁屏，因此不能据此宣称真实候选/提交/取消通过，也不从普通字母推断输入法正常；已请求解锁，待原生场景补验。
+
+另试了直接调试器调用候选矩形接口以隔离系统输入法；三次均因调试表达式的类型导入问题未实际调用到目标方法，不计产品通过或产品失败。没有继续无效重试；所有调试实例已回收。
+
+验收状态：[x] Q导入变异测试；[x] 原图形按键/文件回归及签名；[ ] 解锁后的真实豆包组字/提交/取消/minibuffer/保存/正常退出。补验前保留明确边界，不标整项完成。
