@@ -1632,3 +1632,12 @@ The user authorizes ordered modernization, with the primary developer integratin
 ## P-330: retire obsolete bring-up tools, retain measured runtime evidence (2026-10-24)
 
 Stage II removes only the six paths recorded in docs/retired-scaffolding.md, with baseline recovery through Git. Python owns measurement/data comparison; Rust xtask remains the build/link owner. Shell compatibility launchers contain no policy or nested controller. Reference comparison is opt-in and rejects equal failures; new median-based baselines cannot silently reuse historical minimum-only tables. No platform is retired without an explicit support decision; raw data, native platform bridges and licenses remain. Stage III must use real editor measurements rather than revive the rejected asm bridge or infer a GC design from another language's name.
+
+
+## P-331: reject direct shared-tail dispatch after actual A/B measurement (2026-10-24)
+
+The implemented in-frame macro experiment compiled both configurations and completed actual state/direct/C-reference checks. Eleven alternating rounds showed no reliable bytecode benefit: direct/state medians 1.028/1.088/1.020 on the three bytecode cases, with VM text 6784 -> 7196 bytes. Host load/core 0.706 limits inference; this rejects promotion of this candidate, not all interpreter/native/GC optimization. Restore VM and build configuration to the delivered baseline; do not retain the switch, macros or mode driver. Preserve useful semantic tests and compact failure evidence in docs/runtime-modernization.md. No experimental Cocoa artifact replaces the current working app.
+
+## P-332: compile release compiler libraries from owned source (2026-10-24)
+
+Clean-build bytecode selection previously followed only the dump closure, omitting byte-opt, bytecomp and cl-extra even though old working trees contained their generated outputs. Default/all generation now explicitly includes five core compiler libraries with deduplication and rejects missing mandatory input/output. Explicit user scopes remain scoped; raw Lisp is unchanged. A same-VM seven-round before/after comparison of identical source snapshots loaded the intended files and produced equal compiler/error observations in all fourteen runs; selected library-load median 69.520 -> 12.2292 ms, with busy-host limitations. This is resource delivery/precompilation, not JIT, a new Lisp bytecode format, or a new collector. Exact evidence and next architecture prerequisites are in docs/runtime-modernization.md.

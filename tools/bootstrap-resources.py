@@ -170,6 +170,14 @@ class Generator:
             p=Path(name)
             if p.suffix=='.elc':p=p.with_suffix('.el')
             if p.is_file() and p.is_relative_to(ROOT/'lisp') and p not in files:files.append(p)
+        # The compiler is not necessarily loaded into the bootstrap dump. Ship its
+        # bytecode explicitly so a clean release does not rely on old ignored .elc.
+        compiler_inputs=[ROOT/'lisp/emacs-lisp'/(name+'.el')
+                         for name in ('byte-opt','bytecomp','macroexp','cconv','cl-extra')]
+        if not BYTECODE_SCOPES:
+            for p in compiler_inputs:
+                if not p.is_file():raise RuntimeError('missing release Lisp input: '+str(p.relative_to(ROOT)))
+                if p not in files:files.append(p)
         for name in ['charscript','emoji-zwj','emoji-labels','charprop']:
             p=ROOT/'lisp/international'/(name+'.el')
             if p.is_file() and p not in files:files.append(p)
@@ -180,9 +188,17 @@ class Generator:
                 path=(ROOT/name).resolve()
                 if not path.is_relative_to(ROOT/'lisp') or not path.exists():raise RuntimeError('bytecode scope must be an existing owned Lisp path')
                 files.extend(sorted(path.rglob('*.el')) if path.is_dir() else [path])
+        if not BYTECODE_SCOPES:
+            # Batch compilation may report an error without a failing process exit.
+            # Old ignored output must not satisfy the release product check.
+            for p in compiler_inputs:p.with_suffix('.elc').unlink(missing_ok=True)
         for n in range(0,len(files),40):
             self.lisp('--eval',"(setq byte-compile-error-on-warn nil org--inhibit-version-check t)",
                       '-f','batch-byte-compile',*files[n:n+40])
+        if not BYTECODE_SCOPES:
+            for p in compiler_inputs:
+                if not p.with_suffix('.elc').is_file():
+                    raise RuntimeError('missing release compiler bytecode: '+str(p.with_suffix('.elc').relative_to(ROOT)))
 
     def doc(self):
         self.run([sys.executable,'tools/gen-doc.py','--owned','--write'])

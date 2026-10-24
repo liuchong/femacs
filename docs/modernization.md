@@ -180,7 +180,7 @@ flowchart LR
 - [x] II-A1 deterministic parser/stat/baseline/gate/argv/failure isolation cases timed and pass
 - [x] II-A2 actual candidate-only and paired measurements complete; 95-form real reference audit passes; deliberately failed fixtures fail honestly
 - [x] II-A3 no production reader of deleted asm/helpers; raw/source/data/license/platform trees preserved
-- [ ] II-A4 independent frozen review; signed skip-ci commit and immediate push
+- [x] II-A4 independent frozen review; signed skip-ci commit 2415a335 verified and pushed
 
 All workloads that start the compiled editor run under the external controlled executor once; wrappers do not nest it. A new measurement baseline does not retroactively prove a speedup or native/JIT feasibility. Stage III uses these complete samples to select a bounded real-runtime optimization, after stage II delivery.
 
@@ -199,3 +199,42 @@ D also exposed the still-broken historical unit wrapper: old nested-directory as
 D cross-target review caught a genuine output-path regression: reusing the full-unit compiler must retain target-suffixed normal/checking object names consumed by the shared linker. Both legs now use one object_path helper, the same nonempty target, Linux linker setting and Cocoa ABI cfg. Add a fourth timed component contract and verify one explicit host-target compile alongside a preserved unsuffixed sentinel; Android itself is not rerun. A first Rust component run (2/3) exposed test-CWD-dependent source resolution; parse now anchors to the manifest parent and maps exact owned unit paths, then passed 3/3 before the target-naming case was added. Original failures remain recorded.
 
 II final local results: independent light suite 14/14 (21.053s), affected gate edge case 1/1 (1.305s), retained local driver8/8, Rust unit-list/object-name cases4/4 (2.617s), actual normal/checking one-unit compile5.287s and explicit-target compile5.037s with host sentinel unchanged. Actual existing reference audit95/95 in12.484s; this is the bounded authored corpus, not full ERT or stable-version compatibility. Paired5-round110-sample measurement13.923s has binary/dump/corpus hashes and all rows retained. Baseline was explicitly forced at load/core1.00; it is development evidence, not a quiet-host speedup or release performance claim. New source/corpus schemas do not rewrite old reports. Shell inventory19→15: four completed bring-up shells removed, four retained current shells reduced to launchers, l5 wrapper retained, ten platform-related scripts held with their reader/independence gaps recorded. No operating system was silently retired.
+
+
+## Stage III bounded dispatch experiment
+
+Exact current architecture, primary-source research, differences and semantic/performance cases are in `runtime-modernization.md`, bound to 2415a335. The user-authorized first implementation explores shared-tail dispatch within the actual VM, default state vs experimental direct build. It does not enable Lisp native compilation or change GC. Larger backend/collector choices remain researched routes. Platforms are preserved while retirement scope is unspecified; that does not prevent this platform-independent VM experiment.
+
+- [x] III-C0 actual shared-tail/frame/root source and exact state/direct design written; independent design discussion in progress
+- [x] III-C1 all independent semantic/observation cases and primary mode cases written without running
+- [x] III-C2 all shared-tail macro/label/configuration implementation and documentation complete
+- [x] III-C3 frozen snapshot, isolated state/direct build recipe and baseline identity complete; enter D
+- [x] III-A1 compiler-mode tests and both VM unit configurations compile/check
+- [x] III-A2 real state/direct/reference semantic cases and deterministic observations agree; full authored differential and requested ERT cases complete
+- [x] III-A3 no VM candidate retained; original root terminal keys/files rechecked, unchanged app signature verified, stage-I GUI/IME evidence retained without a new UI claim
+- [x] III-A4 actual generated-code and alternating workload comparison, confidence/limitations stated, experimental/default decision justified
+- [x] III-A5 independent frozen code review and exact cleanup complete; signed skip-ci delivery receipt is the Git commit/signature and upstream state
+
+III B completed without execution: independent fixture has10 ERT groups with operand/dispatch observations and a strict multi-artifact driver/self-tests; primary mode parser cases are written. Phase A had zero remaining design blockers after the five explicit control-flow/cache challenges were resolved. C starts now; no test/compiler/editor has run for stage III.
+
+III all implementation is written and source/label/configuration items cross-checked against the manual. Freeze before D: both modes share handlers, call/handler arms merged, state-only immediate transfers guarded. Original delivered terminal quartet copied with hashes as an additional control. No stage-III test/editor/compiler has run in A/B/C.
+
+
+### Stage III release compiler resource gap
+
+- [x] III-RC0 exact clean/delivered missing-library evidence and generator change design written
+- [x] III-RC1 component cases written, all implementation completed before execution
+- [x] III-RA1 component cases and actual clean-export compiler resource generation pass
+- [x] III-RA2 same-VM source/compiled observations and alternating before/after loading evidence
+- [x] III-RA3 final independent code review complete; signed delivery receipt is recorded in Git
+
+
+Stage-III final D outcome: both experimental VMs and the C reference passed the
+corrected ten-group semantic/critical-observation suite; the delivered root VM also
+passed all ten with identical observations, eval/alloc 27+4 ERT, 26 terminal keys
+and the Unicode save/reopen flow. The rejected VM source/switch/build flag is fully
+removed; current source and trial products retain the original VM. No new native
+UI claim is made. Compiler generation and scoped source/bytecode load comparison
+are accepted as recorded in runtime-modernization.md; native/JIT/new GC remain
+future designs, not delivered features. Existing A5 real cross-window drag and
+unaccepted platform retirement/support decisions remain explicit gaps.

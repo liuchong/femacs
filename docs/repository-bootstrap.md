@@ -107,7 +107,7 @@ Pending integrated verification. Historical comparator tools may still require a
 | input-method dictionaries, pinyin, ja-dic | leim dictionaries; Lisp converters | --family leim / ja-dic |
 | grammar parsers | admin/grammars .by/.wy; Lisp grammar generators | --family grammars |
 | loaddefs, custom and finder indexes | Lisp autoload markers, defcustom and keyword metadata | --family indexes |
-| bytecode | same-name .el source and byte compiler | --family bytecode; --all-bytecode for optional libraries |
+| bytecode | same-name .el source and byte compiler | --family bytecode includes the dump closure and five core compiler libraries; --all-bytecode for optional libraries |
 | DOC | Rust/Swift documentation carriers and section-order manifest | --family doc |
 | version stamps | src/emacs.rs version and committed .in templates | --family versions |
 
@@ -149,3 +149,12 @@ Raw logs remain local because they contain machine paths and process metadata. T
 Standalone builders call the explicitly named `link-owned` command. The historical `gate-load` command retains its optional-reference load/coding comparison steps; ordinary builds do not silently turn that audit into a weaker passing gate. Both routes link the same owned target object set, and unresolved symbols still fail. Reference-dependent audits are never prerequisites of build-terminal/build-macos.
 
 Root trial outputs were then regenerated with the final generator/CLI wiring: build/terminal/port/src/emacs (142.699 s, peak 394.7 MiB) and dist/macos/Femacs.app. The root terminal batch Unicode edit and real PTY create/edit/save/close/reopen workflow passed. The explicit link-owned entry was compiled and linked separately after retaining the legacy comparison gate. Signed Git history and remote branch state are the authority for source delivery; no remote CI pass is inferred from local tests.
+
+
+Compiler-library delivery (modernization): default/all bytecode generation explicitly
+includes `emacs-lisp/{byte-opt,bytecomp,macroexp,cconv,cl-extra}.el`, independently
+of the dump load history. It checks all five owned sources, removes their old
+generated `.elc` outputs, compiles and verifies the five outputs; a stale ignored
+file cannot satisfy the gate after a silent compiler error. Explicit path scopes
+remain scoped. See `runtime-modernization.md` for the same-VM loading experiment
+and its limits; this does not enable a native/JIT backend.

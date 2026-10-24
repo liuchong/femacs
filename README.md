@@ -119,3 +119,9 @@ exit normally; equal crashes or an empty corpus fail. Every output directory mus
 Explicit translation-unit lists use `cargo run -p xtask -- check-units [list]`,
 with the same configured normal and checking compiler as full builds. The legacy
 `check-all-units.sh` only forwards arguments; it no longer deletes shared unit trees.
+
+Default resource generation also compiles the core Lisp compiler libraries, so a
+clean checkout does not rely on old ignored bytecode for compiler loading. Explicit
+bytecode scopes remain scoped. Runtime research, the rejected shared-tail dispatch
+experiment and bounded measurements are recorded in [the runtime report](docs/runtime-modernization.md).
+No new Lisp native compiler or collector is enabled.
