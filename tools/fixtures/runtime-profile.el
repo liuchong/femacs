@@ -1,0 +1,92 @@
+;;; runtime-profile.el --- Actual workload and collector observations -*- lexical-binding: t; -*-
+;; Measurement input only; no production bindings or collector changes.
+(require 'json)
+(require 'cl-lib)
+(require 'bytecomp)
+
+(defvar femacs-profile-pauses nil)
+(defvar femacs-profile-last-gc 0.0)
+(defun femacs-profile-gc-hook ()
+  (push (* 1000.0 (- gc-elapsed femacs-profile-last-gc)) femacs-profile-pauses)
+  (setq femacs-profile-last-gc gc-elapsed))
+
+(defun femacs-profile-heap ()
+  ;; Collector-reported inventory, potentially stale since the last collection.
+  (vconcat (mapcar (lambda (row) (vconcat (cons (symbol-name (car row)) (cdr row))))
+                   (garbage-collect-heapsize))))
+
+(defun femacs-profile-sum (n)
+  (let ((sum 0)) (dotimes (i n) (setq sum (+ sum i))) sum))
+(byte-compile 'femacs-profile-sum)
+
+(defun femacs-profile-case (name thunk expected)
+  (let* ((heap-before (femacs-profile-heap))
+         (alloc-before (memory-use-counts))
+         (gc-before gcs-done) (gc-time-before gc-elapsed)
+         (femacs-profile-pauses nil)
+         (femacs-profile-last-gc gc-elapsed)
+         (post-gc-hook (cons #'femacs-profile-gc-hook post-gc-hook))
+         (started (float-time))
+         (result (funcall thunk))
+         (wall (* 1000.0 (- (float-time) started)))
+         (gc-count (- gcs-done gc-before))
+         (gc-ms (* 1000.0 (- gc-elapsed gc-time-before)))
+         (pauses (vconcat (reverse femacs-profile-pauses)))
+         (alloc-after (memory-use-counts)))
+    (unless (equal result expected)
+      (error "Profile %s observation differs: %S != %S" name result expected))
+    `((case . ,name) (wall_ms . ,wall) (gc_count . ,gc-count) (gc_ms . ,gc-ms)
+      (pauses_ms . ,pauses)
+      (allocation_delta . ,(vconcat (cl-mapcar #'- alloc-after alloc-before)))
+      (heap_before . ,heap-before) (heap_after . ,(femacs-profile-heap))
+      (result . ,(format "%s" result)))))
+
+(let ((rows nil))
+  (push (femacs-profile-case
+         "load" (lambda ()
+                  (dolist (file '("emacs-lisp/byte-opt" "emacs-lisp/bytecomp"
+                                  "emacs-lisp/macroexp" "emacs-lisp/cconv"
+                                  "emacs-lisp/cl-extra"))
+                    (load file nil t)) 5) 5) rows)
+  (push (femacs-profile-case
+         "edit" (lambda ()
+                  (with-temp-buffer
+                    (dotimes (_ 1200) (insert "alpha beta 中文\n"))
+                    (goto-char (point-min))
+                    (let ((count 0))
+                      (while (search-forward "beta" nil t)
+                        (replace-match "BETA" t t) (setq count (1+ count)))
+                      (goto-char (point-min)) (delete-char 5) count))) 1200) rows)
+  (push (femacs-profile-case
+         "regex" (lambda ()
+                   (with-temp-buffer
+                     (dotimes (i 1000) (insert (format "row %d alpha beta\n" i)))
+                     (goto-char (point-min))
+                     (let ((count 0))
+                       (while (re-search-forward "^row \\([0-9]+\\) alpha" nil t)
+                         (replace-match "R\\1" nil nil) (setq count (1+ count)))
+                       count))) 1000) rows)
+  (push (femacs-profile-case "bytecode" (lambda () (femacs-profile-sum 50000))
+                            1249975000) rows)
+  (push (femacs-profile-case
+         "gc-churn" (lambda ()
+                      (let ((gc-cons-threshold 100000) (gc-cons-percentage 0.1)
+                            (n 0))
+                        (dotimes (i 30000)
+                          (let ((value (list i (format "transient-%d" i) (make-vector 8 i))))
+                            (unless (= (car value) i) (error "Transient root lost")))
+                          (setq n (1+ n))) n)) 30000) rows)
+  (push (femacs-profile-case
+         "gc-retained" (lambda ()
+                         (let ((gc-cons-threshold 100000) (gc-cons-percentage 0.1)
+                               (live nil))
+                           (dotimes (i 10000) (push (cons i (format "retained-%d" i)) live))
+                           (garbage-collect)
+                           (unless (and (= (length live) 10000) (= (caar live) 9999)
+                                        (equal (cdar live) "retained-9999"))
+                             (error "Retained root changed across collection"))
+                           (length live))) 10000) rows)
+  (princ "FEMACS-PROFILE ")
+  (princ (json-encode `((schema . "femacs-runtime-profile-v1")
+                        (cases . ,(vconcat (nreverse rows))))))
+  (terpri))

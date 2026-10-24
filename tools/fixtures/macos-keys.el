@@ -28,5 +28,12 @@
 (set-buffer-modified-p nil)
 (add-hook 'post-command-hook #'femacs-key-snapshot)
 (femacs-key-snapshot)
+(when-let* ((path (getenv "FEMACS_KEY_PENDING_REPORT")))
+  ;; Observe the prefix reader during the cancel test; don't infer delivery from
+  ;; a fixed inter-key sleep while native event handling may still be pending.
+  (run-with-timer 0.02 0.02
+                  (lambda ()
+                    (with-temp-file path
+                      (prin1 (key-description (this-command-keys-vector)) (current-buffer))))))
 (when-let* ((path (getenv "FEMACS_KEY_GUI")))
   (with-temp-file path (insert (format "%s" (window-system)))))

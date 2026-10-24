@@ -8723,6 +8723,12 @@ class EmacsView: NSView, NSTextInputClient, NSWindowDelegate {
   /// `mouse_highlight_set_mouse_face_mouse_frame` member entry, and C 9225's call is the
   /// `clear_mouse_face` entry round 69 added.
   @objc override func mouseExited(with theEvent: NSEvent) {
+    clearMouseFace(event: theEvent)
+  }
+
+  // External drag sessions need not supply a current window event. Preserve
+  // hover cleanup even then, with the zero timestamp of an absent native event.
+  private func clearMouseFace(event: NSEvent?) {
     let hlinfo = emacsframe != nil ? MOUSE_HL_INFO(emacsframe) : nil   // C 9213
 
     // C 9215: `NSTRACE ("[EmacsView mouseExited:]");` - empty.
@@ -8732,7 +8738,7 @@ class EmacsView: NSView, NSTextInputClient, NSWindowDelegate {
     }
 
     ns_display_info_set_last_mouse_movement_time(
-      FRAME_DISPLAY_INFO(emacsframe), UInt(EV_TIMESTAMP(theEvent)))   // C 9220-9221
+      FRAME_DISPLAY_INFO(emacsframe), UInt(event.map(EV_TIMESTAMP) ?? 0))   // C 9220-9221
 
     if emacsframe == mouse_highlight_mouse_face_mouse_frame(hlinfo) {   // C 9223
       _ = clear_mouse_face(hlinfo)                              // C 9225
@@ -9024,7 +9030,7 @@ class EmacsView: NSView, NSTextInputClient, NSWindowDelegate {
     record_unwind_protect_ptr(ns_release_autorelease_pool, ap) // C 9500
 
     /* C 9507: "Get rid of mouse face."  */
-    self.mouseExited(with: self.window!.currentEvent!)         // C 9508
+    clearMouseFace(event: self.window?.currentEvent)           // C 9508
 
     position = self.convert(sender.draggingLocation, from: nil)   // C 9510-9511
     x = Int32(lrint(Double(position.x)))                       // C 9512
@@ -9057,6 +9063,7 @@ class EmacsView: NSView, NSTextInputClient, NSWindowDelegate {
   /// entry round 34 added; and C 9643-9651's event is the `input_event` mirror with the
   /// `DRAG_N_DROP_EVENT` constant this round adds.
   @objc override func performDragOperation(_ sender: NSDraggingInfo) -> Bool {
+    ns_input_trace("performDragOperation")
     let source: AnyObject? = sender.draggingSource as AnyObject?   // C 9552
     var x: Int32 = 0, y: Int32 = 0                           // C 9541
     var type: NSPasteboard.PasteboardType?                   // C 9542

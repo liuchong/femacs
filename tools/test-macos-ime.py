@@ -29,6 +29,7 @@ def run_scenario(binary,sender,sources,work,mode,expected,pinyin_id=None):
     def source(*args):return subprocess.check_output([str(sources),*map(str,args)],text=True,timeout=8).strip()
     report=work/'snapshot.json';document=work/'ime.txt'
     env=dict(os.environ,FEMACS_IME_REPORT=str(report),FEMACS_INPUT_TRACE=str(work/'callbacks.jsonl'))
+    if mode=='multi':env['FEMACS_IME_MULTIFRAME']='1'
     with (work/'output.log').open('wb') as output:
       try:
         original=source('current');available=source('list').splitlines()
@@ -69,7 +70,18 @@ def run_scenario(binary,sender,sources,work,mode,expected,pinyin_id=None):
             # Preserve the original burst cadence. Native keyDown traces record each received
             # key; helper observations bracket the burst without refocusing between letters.
             strokes([(key,0,None) for key in keys],physical=True)
+        def focus_frame(title,label):
+            # Cycle real windows without separately mutating AXMain: main and
+            # key windows are different AppKit states. This fixture owns two.
+            if snapshot().get('selected')!=title:
+                path=work/'cycle.tsv';path.write_text('CYCLE_WINDOW\n')
+                subprocess.run([str(sender),str(process.pid),str(path)],stdout=output,
+                               stderr=subprocess.STDOUT,check=True,timeout=8)
+                rows.append({'id':'native-window-cycle','target':title,'at':time.monotonic()})
+            wait(label,lambda s:s.get('selected')==title)
         wait('native-startup',lambda s:s.get('native')=='ns')
+        if mode=='multi':
+            focus_frame('Femacs IME A','frame-a-focus')
         select(ascii_id)
         if mode=='switch':
             for _ in range(3):select(pinyin);select(ascii_id)
@@ -84,6 +96,24 @@ def run_scenario(binary,sender,sources,work,mode,expected,pinyin_id=None):
         select(pinyin);pinyin_keys([4,0,31]);wait('minibuffer-marked',lambda s:s.get('minibuffer') and s.get('marked'))
         pinyin_keys([53]);send(b'\x07');select(ascii_id)
         wait('minibuffer-cancel',lambda s:not s.get('minibuffer') and not s.get('marked') and s.get('text')==committed)
+        if mode=='multi':
+            focus_frame('Femacs IME B','frame-b-focus')
+            select(pinyin);pinyin_keys([45,34,4,0,31]);wait('frame-b-marked',lambda s:s.get('marked'))
+            pinyin_keys([49]);wait('frame-b-commit',lambda s:not s.get('marked') and s.get('second_text')==expected and s.get('text')==committed)
+            focus_frame('Femacs IME A','frame-a-return')
+            pinyin_keys([45,34]);wait('frame-a-pending',lambda s:s.get('marked'))
+            focus_frame('Femacs IME B','pending-focus-transfer')
+            # Cancel any pending native composition before a new independent commit.
+            # Preserve A's platform-defined focus-loss result as an observation;
+            # B must not receive A's pending text or modify A on its own commit.
+            pinyin_keys([53]);before=wait('pending-cleared',lambda s:not s.get('marked'))
+            a_before=before['text'];b_before=before['second_text']
+            if not a_before.startswith(committed) or b_before!=expected:raise RuntimeError('composition crossed owned buffers on focus change')
+            pinyin_keys([45,34,4,0,31]);wait('second-frame-recompose',lambda s:s.get('marked'))
+            pinyin_keys([49]);wait('second-frame-recommit',lambda s:not s.get('marked') and s.get('second_text')==expected*2 and s.get('text')==a_before)
+            result['focus_loss_observation']={'a_text':a_before,'b_text':b_before,'policy':'observed OS commit/cancel; no universal focus-loss policy claimed'}
+            focus_frame('Femacs IME A','frame-a-save-focus')
+            select(ascii_id);committed=a_before
         send(b'\x18\x17'+str(document).encode()+b'\r')
         wait('save-committed-text',lambda s:document.is_file() and document.read_text().rstrip('\n')==committed.rstrip('\n'))
         send(b'\x18\x03');process.wait(timeout=8)
@@ -108,7 +138,7 @@ def run_scenario(binary,sender,sources,work,mode,expected,pinyin_id=None):
 def main():
     ap=argparse.ArgumentParser(description=__doc__)
     for name in ['binary','sender','sources','out']:ap.add_argument('--'+name,type=Path,required=True)
-    ap.add_argument('--mode',choices=['steady','switch','all'],default='all')
+    ap.add_argument('--mode',choices=['steady','switch','multi','all'],default='all')
     ap.add_argument('--expected',default='你好');ap.add_argument('--pinyin-source')
     a=ap.parse_args();out=new_output(a.out)
     modes=['steady','switch'] if a.mode=='all' else [a.mode]

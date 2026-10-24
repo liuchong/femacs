@@ -109,6 +109,8 @@ def gui_case(binary,sender,name,sequence,initial,expected_point,expected_text,wo
     work.mkdir(parents=True,exist_ok=True);report=work/'snapshot.tsv';metadata=work/'native-frame.txt'
     if name=='end':expected_point=len(SEED)+1 # Native Home/End navigate the buffer.
     env=dict(os.environ,FEMACS_KEY_REPORT=str(report),FEMACS_KEY_POINT=str(initial),FEMACS_KEY_GUI=str(metadata),FEMACS_KEY_DIAGNOSTIC=str(work/'diagnostic.el'))
+    pending=work/'pending.json'
+    if name=='C-g-recover':env['FEMACS_KEY_PENDING_REPORT']=str(pending)
     started=time.monotonic();process=None;result={'id':name,'passed':False}
     with (work/'output.log').open('wb') as output:
         try:
@@ -122,7 +124,21 @@ def gui_case(binary,sender,name,sequence,initial,expected_point,expected_text,wo
                 path.write_text(''.join(f'{code}\t{flags}'+('' if text is None else '\t'+text)+'\n' for code,flags,text in native_strokes(data)))
                 response=subprocess.run([str(sender),str(process.pid),str(path)],stdout=output,stderr=subprocess.STDOUT,timeout=8)
                 if response.returncode:raise RuntimeError(f'native sender exit={response.returncode}')
-            if name=='C-g-recover':send(sequence[:-1]);time.sleep(.35);send(sequence[-1:])
+            if name=='C-g-recover':
+                def pending_keys():
+                    try:return json.loads(pending.read_text())
+                    except (OSError,ValueError):return None
+                def wait_pending(label,predicate):
+                    end=time.monotonic()+3
+                    while time.monotonic()<end and process.poll() is None:
+                        keys=pending_keys()
+                        if keys is not None and predicate(keys):
+                            result.setdefault('prefix_receipts',[]).append({'id':label,'keys':keys});return
+                        time.sleep(.02)
+                    raise RuntimeError(label+' native prefix receipt missing')
+                send(sequence[:1]);wait_pending('prefix-read',lambda keys:keys=='C-x')
+                send(sequence[1:2]);wait_pending('prefix-cancelled',lambda keys:keys!='C-x')
+                send(sequence[2:])
             else:send(sequence)
             deadline=time.monotonic()+4
             while time.monotonic()<deadline and process.poll() is None:
@@ -381,7 +397,7 @@ def terminal_file_workflow(binary, work):
 
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--binary',type=Path,default=ROOT/'build/port/src/emacs')
+    parser.add_argument('--binary',type=Path,default=ROOT/'build/terminal/port/src/emacs')
     parser.add_argument('--reference',type=Path,help='optional differential comparator; omitted for standalone acceptance')
     parser.add_argument('--out',type=Path,default=ROOT/'build/macos-acceptance')
     parser.add_argument('--case',action='append')

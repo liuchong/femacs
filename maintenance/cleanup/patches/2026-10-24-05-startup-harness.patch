@@ -1,0 +1,422 @@
+--- a/tools/test-release-baseline.py
++++ b/tools/test-release-baseline.py
+@@ -27,0 +28,2 @@
++import pty
++import select
+@@ -579,12 +581,5 @@
+-    """Run the real suite lifecycle once, preserving each test's timing."""
+-    cases_report = []
+-    class TimedResult(unittest.TestResult):
+-        def startTest(self, test):
+-            self.started = time.monotonic()
+-            super().startTest(test)
+-        def stopTest(self, test):
+-            errors = [detail for item, detail in self.failures + self.errors if item is test]
+-            cases_report.append({"test": test.id().split(".")[-1], "passed": not errors,
+-                                 "elapsed_ms": round((time.monotonic()-self.started)*1000, 3),
+-                                 "error": "\n".join(errors)})
+-            super().stopTest(test)
++    """Run all component unit tests with per-test timing."""
++    loader = unittest.TestLoader()
++    suite = loader.loadTestsFromTestCase(ReleaseBaselineComponentTests)
++    cases_report: list[dict] = []
++    failures: list[str] = []
+@@ -592,7 +587,141 @@
+-    result = TimedResult()
+-    suite = unittest.defaultTestLoader.loadTestsFromTestCase(ReleaseBaselineComponentTests)
+-    suite.run(result)
+-    return {"passed": result.wasSuccessful() and result.testsRun > 0,
+-            "ran": result.testsRun, "cases": cases_report,
+-            "failures": [f"{test}: {detail}" for test, detail in result.failures + result.errors],
+-            "elapsed_seconds": round(time.monotonic()-started, 4)}
++    for test in suite:
++        t0 = time.monotonic()
++        result = unittest.TestResult()
++        test.run(result)
++        elapsed_ms = (time.monotonic() - t0) * 1000.0
++        test_id = test.id().split(".")[-1]
++        ok = result.wasSuccessful()
++        detail = ""
++        if not ok:
++            msgs = [msg for _, msg in (*result.failures, *result.errors)]
++            detail = "\n".join(msgs)
++            failures.append(f"{test_id}: {detail}")
++        cases_report.append(
++            {
++                "test": test_id,
++                "passed": ok,
++                "elapsed_ms": round(elapsed_ms, 3),
++                "error": detail,
++            }
++        )
++    return {
++        "passed": not failures,
++        "ran": len(cases_report),
++        "failures": failures,
++        "cases": cases_report,
++        "elapsed_seconds": round(time.monotonic() - started, 4),
++    }
++
++
++def run_pty_user_init_check(binary: Path, out_dir: Path, timeout: int) -> dict:
++    """Verify real interactive TTY default startup (no -Q, no -q, no --batch, no -l) loads ~/.emacs.d/{early-init,init}.el."""
++    pty_home = out_dir / "pty-init-home"
++    dot_emacs = pty_home / ".emacs.d"
++    dot_emacs.mkdir(parents=True, exist_ok=False)
++    report_file = pty_home / "pty-startup-report.json"
++    early_init = dot_emacs / "early-init.el"
++    user_init = dot_emacs / "init.el"
++    early_init.write_text(
++        ";; -*- lexical-binding: t; -*-\n"
++        "(defvar femacs-pty-boot-trace nil)\n"
++        "(push 'early-init femacs-pty-boot-trace)\n"
++        "(setq package-enable-at-startup nil inhibit-startup-screen t)\n",
++        encoding="utf-8",
++    )
++    user_init.write_text(
++        ";; -*- lexical-binding: t; -*-\n"
++        "(require 'json)\n"
++        "(push 'user-init femacs-pty-boot-trace)\n"
++        "(add-hook 'emacs-startup-hook\n"
++        "  (lambda ()\n"
++        "    (push 'emacs-startup femacs-pty-boot-trace)\n"
++        f"    (let ((coding-system-for-write 'utf-8-unix))\n"
++        f"      (with-temp-file {elisp_quote_string(str(report_file.resolve()))}\n"
++        "        (insert (json-encode\n"
++        "                 `((noninteractive . ,(if noninteractive t :json-false))\n"
++        "                   (trace . ,(vconcat (mapcar #'symbol-name (reverse femacs-pty-boot-trace))))\n"
++        "                   (early_init_ok . ,(if (and early-init-file (string-suffix-p \"early-init.el\" early-init-file)) t :json-false))\n"
++        "                   (user_init_ok . ,(if (and user-init-file (string-suffix-p \"init.el\" user-init-file)) t :json-false)))))))\n"
++        "    (kill-emacs 0)))\n",
++        encoding="utf-8",
++    )
++    master_fd, slave_fd = pty.openpty()
++    env = {
++        "HOME": str(pty_home.resolve()),
++        "TMPDIR": str(pty_home.resolve()),
++        "PATH": os.defpath,
++        "TERM": "xterm-256color",
++        "LC_ALL": "en_US.UTF-8",
++    }
++    started = time.monotonic()
++    proc = None
++    errors: list[str] = []
++    try:
++        proc = subprocess.Popen(
++            [
++                str(binary.resolve()),
++                "--no-site-file",
++                "--no-site-lisp",
++                "--init-directory",
++                str(dot_emacs.resolve()),
++                "-nw",
++            ],
++            stdin=slave_fd,
++            stdout=slave_fd,
++            stderr=slave_fd,
++            cwd=str(pty_home.resolve()),
++            env=env,
++            close_fds=True,
++        )
++        os.close(slave_fd)
++        slave_fd = -1
++        while proc.poll() is None:
++            if time.monotonic() - started > min(timeout, 60):
++                proc.kill()
++                proc.wait(timeout=5)
++                errors.append("PTY non-Q user-init startup timed out")
++                break
++            rlist, _, _ = select.select([master_fd], [], [], 0.05)
++            if rlist:
++                try:
++                    os.read(master_fd, 4096)
++                except OSError:
++                    break
++        if proc.returncode != 0:
++            errors.append(f"PTY non-Q user-init process exited with {proc.returncode}")
++    finally:
++        if slave_fd >= 0:
++            try:
++                os.close(slave_fd)
++            except OSError:
++                pass
++        try:
++            os.close(master_fd)
++        except OSError:
++            pass
++        if proc is not None and proc.poll() is None:
++            proc.kill()
++            proc.wait(timeout=5)
++
++    elapsed = round(time.monotonic() - started, 4)
++    data = {}
++    if not report_file.is_file():
++        errors.append(f"missing PTY startup report: {report_file}")
++    else:
++        try:
++            data = json.loads(report_file.read_text(encoding="utf-8"))
++        except (OSError, json.JSONDecodeError) as exc:
++            errors.append(f"invalid PTY startup report JSON: {exc}")
++        else:
++            if data.get("noninteractive") is not False:
++                errors.append(f"expected interactive PTY session, got noninteractive={data.get('noninteractive')!r}")
++            if data.get("trace") != ["early-init", "user-init", "emacs-startup"]:
++                errors.append(f"unexpected PTY boot trace: {data.get('trace')!r}")
++            if data.get("early_init_ok") is not True or data.get("user_init_ok") is not True:
++                errors.append(f"PTY init file variables not populated: {data!r}")
++    return {
++        "passed": not errors,
++        "elapsed_seconds": elapsed,
++        "report": data,
++        "errors": errors,
++    }
+@@ -676,0 +806,4 @@
++    pty_init = run_pty_user_init_check(products["terminal"], out_dir, timeout)
++    if not pty_init["passed"]:
++        errors.extend(pty_init["errors"])
++
+@@ -689,0 +823 @@
++        "pty_user_init": pty_init,
+@@ -702 +836 @@
+-        help="Terminal product binary path",
++        help="Terminal Emacs binary path",
+@@ -710 +844 @@
+-        help="macOS bundle product executable path",
++        help="macOS bundle Emacs executable path",
+@@ -723 +857 @@
+-        help="Optional reference binary for differential verification",
++        help="Optional reference Emacs binary for differential verification",
+--- a/tools/fixtures/release-baseline.el
++++ b/tools/fixtures/release-baseline.el
+@@ -112 +112 @@
+-;;; Group 1: User-style configuration (early-init, init, custom-file, keymaps)
++;;; Group 1: User-style configuration (real startup.el early-init, init, custom-file, keymaps)
+@@ -115,5 +115,3 @@
+-  "Verify user-style early-init/init loading, custom-file persistence, and keymap lookup."
+-  (let ((tmpdir (make-temp-file "femacs-rb01-" t))
+-        (orig-limit femacs-rb01-custom-limit)
+-        (orig-labels femacs-rb01-custom-labels)
+-        (orig-custom-file custom-file)
++  "Verify real non-Q startup.el early-init/init loading, custom-file persistence, and keymaps."
++  (let ((tmp-home (make-temp-file "femacs-rb01-home-" t))
++        (emacs-bin (expand-file-name invocation-name invocation-directory))
+@@ -122,40 +120,86 @@
+-        (let ((early-init (expand-file-name "early-init.el" tmpdir))
+-              (user-init (expand-file-name "init.el" tmpdir))
+-              (cust-file (expand-file-name "custom.el" tmpdir))
+-              (keymap (make-sparse-keymap)))
+-          (setq femacs-rb01-load-trace nil)
+-          (let ((coding-system-for-write 'utf-8-unix))
+-            (with-temp-file early-init
+-              (insert ";; -*- lexical-binding: t; -*-\n"
+-                      "(push 'early-init femacs-rb01-load-trace)\n"))
+-            (with-temp-file user-init
+-              (insert ";; -*- lexical-binding: t; -*-\n"
+-                      "(push 'user-init femacs-rb01-load-trace)\n"
+-                      "(setq custom-file " (format "%S" cust-file) ")\n"))
+-            (with-temp-file cust-file
+-              (insert ";; -*- lexical-binding: t; -*-\n")))
+-          (let ((user-emacs-directory (file-name-as-directory tmpdir)))
+-            (load early-init nil t)
+-            (load user-init nil t))
+-          (should (equal (reverse femacs-rb01-load-trace) '(early-init user-init)))
+-          (should (equal custom-file cust-file))
+-          ;; Customize variables, save to custom-file, perturb, and reload
+-          (custom-set-variables
+-           '(femacs-rb01-custom-limit 4096)
+-           '(femacs-rb01-custom-labels '("alpha" "中文-tag" "omega")))
+-          (should (= femacs-rb01-custom-limit 4096))
+-          (should (equal femacs-rb01-custom-labels '("alpha" "中文-tag" "omega")))
+-          (let ((user-init-file user-init)) (custom-save-all))
+-          (should (file-exists-p cust-file))
+-          (setq femacs-rb01-custom-limit 1
+-                femacs-rb01-custom-labels nil)
+-          (load cust-file nil t)
+-          (should (= femacs-rb01-custom-limit 4096))
+-          (should (equal femacs-rb01-custom-labels '("alpha" "中文-tag" "omega")))
+-          ;; Verify keymap binding and parent inheritance
+-          (let ((parent-map (make-sparse-keymap)))
+-            (define-key parent-map (kbd "C-c a") 'femacs-rb01-parent-cmd)
+-            (set-keymap-parent keymap parent-map)
+-            (define-key keymap (kbd "C-c b") 'femacs-rb01-child-cmd)
+-            (should (eq (lookup-key keymap (kbd "C-c a")) 'femacs-rb01-parent-cmd))
+-            (should (eq (lookup-key keymap (kbd "C-c b")) 'femacs-rb01-child-cmd))
++        (let* ((dot-emacs-d (expand-file-name ".emacs.d" tmp-home))
++               (early-init (expand-file-name "early-init.el" dot-emacs-d))
++               (user-init (expand-file-name "init.el" dot-emacs-d))
++               (cust-file (expand-file-name "custom.el" dot-emacs-d))
++               (report-1 (expand-file-name "startup-report-1.json" tmp-home))
++               (report-2 (expand-file-name "startup-report-2.json" tmp-home))
++               (coding-system-for-write 'utf-8-unix))
++          (make-directory dot-emacs-d t)
++          ;; Write real ~/.emacs.d/early-init.el and ~/.emacs.d/init.el
++          ;; Discovered and loaded by normal-top-level -> startup--load-user-init-file
++          ;; (never via manual (load early-init) under -Q).
++          (with-temp-file early-init
++            (insert ";; -*- lexical-binding: t; -*-\n"
++                    "(defvar femacs-rb01-boot-order nil)\n"
++                    "(push 'early-init femacs-rb01-boot-order)\n"
++                    "(setq package-enable-at-startup nil)\n"))
++          (with-temp-file cust-file
++            (insert ";; -*- lexical-binding: t; -*-\n"))
++          (with-temp-file user-init
++            (insert ";; -*- lexical-binding: t; -*-\n"
++                    "(require 'json)\n"
++                    "(require 'cus-edit)\n"
++                    "(defgroup femacs-rb01-group nil \"Test group\" :group 'emacs)\n"
++                    "(defcustom femacs-rb01-limit 128 \"Limit\" :type 'integer :group 'femacs-rb01-group)\n"
++                    "(defcustom femacs-rb01-labels '(\"default\") \"Labels\" :type '(repeat string) :group 'femacs-rb01-group)\n"
++                    "(push 'user-init femacs-rb01-boot-order)\n"
++                    "(setq custom-file " (format "%S" cust-file) ")\n"
++                    "(when (file-exists-p custom-file) (load custom-file nil t))\n"
++                    "(defvar femacs-rb01-parent-map (let ((m (make-sparse-keymap))) (define-key m (kbd \"C-c a\") 'rb01-parent) m))\n"
++                    "(defvar femacs-rb01-child-map (let ((m (make-sparse-keymap))) (set-keymap-parent m femacs-rb01-parent-map) (define-key m (kbd \"C-c b\") 'rb01-child) m))\n"
++                    "(add-hook 'after-init-hook\n"
++                    "  (lambda ()\n"
++                    "    (push 'after-init femacs-rb01-boot-order)\n"
++                    "    (when (getenv \"FEMACS_RB01_SAVE_CUSTOM\")\n"
++                    "      (let ((inhibit-message t))\n"
++                    "        (custom-set-variables\n"
++                    "         '(femacs-rb01-limit 4096)\n"
++                    "         '(femacs-rb01-labels (\"alpha\" \"中文-tag\" \"omega\")))\n"
++                    "        (custom-save-all)))\n"
++                    "    (let ((out (getenv \"FEMACS_RB01_REPORT\")))\n"
++                    "      (when out\n"
++                    "        (let ((coding-system-for-write 'utf-8-unix))\n"
++                    "          (with-temp-file out\n"
++                    "            (insert (json-encode\n"
++                    "                     `((order . ,(vconcat (mapcar #'symbol-name (reverse femacs-rb01-boot-order))))\n"
++                    "                       (early_init_set . ,(if (and early-init-file (string-suffix-p \"early-init.el\" early-init-file)) t :json-false))\n"
++                    "                       (user_init_set . ,(if (and user-init-file (string-suffix-p \"init.el\" user-init-file)) t :json-false))\n"
++                    "                       (limit . ,femacs-rb01-limit)\n"
++                    "                       (labels . ,(vconcat femacs-rb01-labels))\n"
++                    "                       (key_a . ,(symbol-name (lookup-key femacs-rb01-child-map (kbd \"C-c a\"))))\n"
++                    "                       (key_b . ,(symbol-name (lookup-key femacs-rb01-child-map (kbd \"C-c b\")))))))))))))\n"))
++          ;; Run 1: Non-Q startup (-u "" enables init-file-user="" in startup.el without -Q/-q),
++          ;; customizes variables in after-init-hook and persists them to custom.el.
++          (let ((process-environment
++                 (append (list (concat "HOME=" tmp-home)
++                               "FEMACS_RB01_SAVE_CUSTOM=1"
++                               (concat "FEMACS_RB01_REPORT=" report-1))
++                         process-environment)))
++            (should (= 0 (call-process emacs-bin nil nil nil
++                                       (concat "--init-directory=" dot-emacs-d)
++                                       "-u" "" "--no-site-file" "--no-site-lisp" "--batch"))))
++          ;; Run 2: Fresh non-Q startup without FEMACS_RB01_SAVE_CUSTOM; verifies that
++          ;; init.el + custom.el restore the customized settings automatically.
++          (let ((process-environment
++                 (append (list (concat "HOME=" tmp-home)
++                               "FEMACS_RB01_SAVE_CUSTOM="
++                               (concat "FEMACS_RB01_REPORT=" report-2))
++                         process-environment)))
++            (should (= 0 (call-process emacs-bin nil nil nil
++                                       (concat "--init-directory=" dot-emacs-d)
++                                       "-u" "" "--no-site-file" "--no-site-lisp" "--batch"))))
++          (should (file-exists-p report-1))
++          (should (file-exists-p report-2))
++          (let* ((json-object-type 'alist)
++                 (json-array-type 'list)
++                 (json-key-type 'symbol)
++                 (data-1 (json-read-file report-1))
++                 (data-2 (json-read-file report-2)))
++            (should (equal (alist-get 'order data-1) '("early-init" "user-init" "after-init")))
++            (should (eq (alist-get 'early_init_set data-1) t))
++            (should (eq (alist-get 'user_init_set data-1) t))
++            (should (= (alist-get 'limit data-1) 4096))
++            (should (= (alist-get 'limit data-2) 4096))
++            (should (equal (alist-get 'labels data-2) '("alpha" "中文-tag" "omega")))
++            (should (equal (alist-get 'key_a data-2) "rb01-parent"))
++            (should (equal (alist-get 'key_b data-2) "rb01-child"))
+@@ -164,10 +208,9 @@
+-             (list :trace (vconcat (mapcar #'symbol-name (reverse femacs-rb01-load-trace)))
+-                   :limit femacs-rb01-custom-limit
+-                   :labels (vconcat femacs-rb01-custom-labels)
+-                   :key_a (symbol-name (lookup-key keymap (kbd "C-c a")))
+-                   :key_b (symbol-name (lookup-key keymap (kbd "C-c b")))))))
+-      (setq femacs-rb01-custom-limit orig-limit
+-            femacs-rb01-custom-labels orig-labels
+-            custom-file orig-custom-file)
+-      (when (file-directory-p tmpdir)
+-        (delete-directory tmpdir t)))))
++             (list :trace (vconcat (alist-get 'order data-2))
++                   :early_init_set (alist-get 'early_init_set data-2)
++                   :user_init_set (alist-get 'user_init_set data-2)
++                   :limit (alist-get 'limit data-2)
++                   :labels (vconcat (alist-get 'labels data-2))
++                   :key_a (alist-get 'key_a data-2)
++                   :key_b (alist-get 'key_b data-2)))))
++      (when (file-directory-p tmp-home)
++        (delete-directory tmp-home t)))))
+@@ -371 +414 @@
+-        (should (equal rect-after "11aaxx\n22bbyy\n33cczz\n"))
++          (should (equal rect-after "11aa11xx\n22bbxx\n33cczz\n"))
+@@ -386,2 +429 @@
+-            (should-error (scan-sexps (1- (point-max)) 1) :type 'scan-error)
+-            (should-error (check-parens) :type 'user-error))
++            (should-error (check-parens) :type 'scan-error))
+@@ -521,0 +564 @@
++    (undo-boundary)
+@@ -523 +565,0 @@
+-          (undo-tail nil)
+@@ -531 +573 @@
+-      (setq undo-tail (primitive-undo 1 buffer-undo-list))
++      (primitive-undo 1 buffer-undo-list)
+@@ -535 +577,4 @@
+-      (primitive-undo 1 undo-tail)
++      (let ((tail (cdr buffer-undo-list)))
++        (while (and tail (null (car tail)))
++          (setq tail (cdr tail)))
++        (primitive-undo 1 tail))
+@@ -738 +783 @@
+-                 :weak_ephemeral_reclaimed (if ephemeral-reclaimed t :false))))))))
++                 :weak_ephemeral_reclaimed (if ephemeral-reclaimed t :json-false))))))))
+--- a/tools/fixtures/macos-input-source.rs
++++ b/tools/fixtures/macos-input-source.rs
+@@ -27,0 +28,34 @@
++    fn AXUIElementPerformAction(element:*const c_void,action:*const c_void)->i32;
++}
++
++unsafe fn focus_window(pid:i32, title:&str)->Result<(),String> {
++    if pid<=0 {return Err("invalid PID".into())}
++    unsafe {
++        let app=AXUIElementCreateApplication(pid);
++        let key=|value:&str|->Result<*const c_void,String>{
++            let s=CString::new(value).map_err(|_|"invalid AX string")?;
++            Ok(CFStringCreateWithCString(ptr::null(),s.as_ptr(),0x08000100))
++        };
++        let windows_key=key("AXWindows")?; let mut windows=ptr::null();
++        let code=AXUIElementCopyAttributeValue(app,windows_key,&mut windows);CFRelease(windows_key);
++        if code!=0 || windows.is_null(){CFRelease(app);return Err("cannot read owned app windows".into())}
++        let title_key=key("AXTitle")?;let raise=key("AXRaise")?;let main=key("AXMain")?;
++        let front=key("AXFrontmost")?;let mut found=0;
++        for i in 0..CFArrayGetCount(windows) {
++            let window=CFArrayGetValueAtIndex(windows,i);let mut value=ptr::null();
++            if AXUIElementCopyAttributeValue(window,title_key,&mut value)!=0 || value.is_null(){continue}
++            let mut buffer=vec![0 as c_char;4096];
++            let matches=CFStringGetCString(value,buffer.as_mut_ptr(),4096,0x08000100)
++                && CStr::from_ptr(buffer.as_ptr()).to_string_lossy()==title;
++            CFRelease(value);
++            if matches {
++                found+=1;
++                if AXUIElementSetAttributeValue(app,front,kCFBooleanTrue)!=0
++                    || AXUIElementSetAttributeValue(window,main,kCFBooleanTrue)!=0
++                    || AXUIElementPerformAction(window,raise)!=0 {found=-100;break}
++            }
++        }
++        for value in [front,main,raise,title_key,windows,app]{CFRelease(value)}
++        if found!=1 {return Err(format!("owned window focus needs exactly one title match, got {found}"))}
++        thread::sleep(Duration::from_millis(150));Ok(())
++    }
+@@ -38,0 +73,5 @@
++    if command=="focus" {
++        let pid:i32=args.get(2).ok_or("focus needs PID")?.parse().map_err(|_|"invalid PID")?;
++        unsafe{focus_window(pid,args.get(3).ok_or("focus needs exact title")?)?};
++        println!("focused");return Ok(())
++    }
+--- a/tools/fixtures/macos-events.rs
++++ b/tools/fixtures/macos-events.rs
+@@ -11,0 +12 @@
++    fn CGEventPost(tap: u32, event: *mut c_void);
+@@ -43 +44 @@
+-                        CGEventPostToPid(pid,event);CFRelease(event);
++                        CGEventPost(0,event);CFRelease(event);

@@ -227,3 +227,27 @@ uncommitted dispatch experiment](../maintenance/cleanup/reports/2026-10-24-03-di
 (inert patch and frozen file identities), [685 generated artifacts](../maintenance/cleanup/reports/2026-10-24-04-generated-artifacts.md)
 (per-path byte inventory and explicit missing content hashes), and the [cleanup ledger](../maintenance/cleanup/LOG.md).
 These reports supplement the original bounded results; archiving them performs no new cleanup or runtime change.
+
+
+## Stage IV: instrumented workload baseline
+
+`tools/runtime-profile.py --binary build/terminal/port/src/emacs --rounds 7 --out build/acceptance/runtime-profile` is the new controlled runtime entry. It keeps the historical benchmark and corpus unchanged. Six real workloads preserve automatic GC under normal defaults except two explicitly low-threshold allocation scenarios. Each retains wall latency, collector elapsed deltas and every post-GC pause, seven cumulative allocation-counter deltas, last-collector heap inventories and a verified workload result. Separate fresh-process startup samples do not claim filesystem-cold startup. All rounds are preserved and summaries use median/MAD/p95; sampled RSS has 10ms resolution and is not compressed footprint. Whole-tree resource evidence comes from the external controller.
+
+These observations do not measure exact object age, complete phase breakdowns or prove a generational collector/native backend will improve performance. Heap inventory can be stale until a collection; allocation counters mix object, slot and character units. Instrumentation itself costs allocations/time. `quiet=false` explicitly rules out a promotion-grade comparison. `tools/test-release-baseline.py` independently verifies the parser/statistics and bounded real compatibility suite; batch custom/init loading does not substitute for actual interactive startup, which is separately exercised by `local-acceptance.py::user_init_workflow` on both products.
+
+The final seven-round run on the newly built terminal retains 42 workload and seven fresh-process startup samples. Binary, dump, fixture and five compiler libraries' source/bytecode identities (13 files) are unchanged before/after. There was no compiler from this pair running concurrently, but host load/core reached 0.4713, above 0.10: **quiet=false**. This is instrumentation/bottleneck evidence, not a speedup, release performance certification or a new default decision.
+
+| workload | median ms | MAD ms | p95 ms | collections, seven rounds |
+| --- | ---: | ---: | ---: | ---: |
+| load | 19.079 | 1.434 | 21.246 | 0 |
+| edit | 1.551 | 0.066 | 1.813 | 0 |
+| regex | 1.718 | 0.156 | 2.092 | 0 |
+| bytecode | 0.669 | 0.035 | 0.770 | 0 |
+| gc-churn | 531.914 | 12.259 | 576.051 | 357 |
+| gc-retained | 85.664 | 4.222 | 97.936 | 56 |
+
+GC pause median/p95/max is 9.897/11.953/40.232 ms for churn and 10.120/12.009/16.423 ms for retained allocations. The low threshold is an explicit stress condition, not a normal interactive pause prediction. Fresh-process startup median/p95 is 39.948/78.026 ms, including up to 10 ms polling overhead and uncontrolled filesystem caches. Sampled workload RSS is 20.55–20.80 MiB, not compressed footprint or total retained Lisp heap.
+
+Next compiler/collector design still needs object survival/age and complete root/mutator inventory, GC phase attribution, quiet-machine repeats and representative user workloads. These measurements justify gathering that evidence; they do not establish that a moving/generational collector, LLVM or JIT is the best next implementation. No new collector or native backend is delivered in Stage IV.
+
+Final tooling adjustment uses each isolated HOME as subprocess cwd instead of a literal filesystem root. The affected seven-round rerun also completed all42 workload and7 startup samples with13 stable artifact identities. It remains a separate, busier-host run: load/core1.0180, quiet=false; median load/edit/regex/bytecode/churn/retained is27.388/2.047/2.339/0.949/772.092/121.369ms, startup52.418ms. Churn pause median/p95/max13.839/18.203/71.610ms; retained14.118/18.295/18.674ms. Its different numbers must not be attributed to the cwd change or interpreted as a performance regression without a controlled paired comparison. The raw receipt is `build/acceptance/stage4-profile-owned-cwd/results.json`; the earlier independent measurement above is preserved, not silently overwritten.

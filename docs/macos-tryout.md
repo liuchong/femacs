@@ -1,6 +1,6 @@
 # macOS 二期试用
 
-原生图形版位于 `dist/macos/Femacs.app`，使用 Rust 核心与 Swift Cocoa 实现。本机为 Apple Silicon、macOS 26.6.2；不宣称其他系统或全部扩展包已兼容。逐项证据见[施工与验收](phase2-macos.md)。
+原生图形版位于 `dist/macos/Femacs.app`，使用 Rust 核心与 Swift Cocoa 实现。当前验收主机为 Apple Silicon、macOS 27.0.1；不宣称其他系统或全部扩展包已兼容。历史二期证据见[施工与验收](phase2-macos.md)，最新本地交付范围见[现代化手册](modernization.md)。
 
 从仓库根试用图形版：
 
@@ -13,11 +13,10 @@ open dist/macos/Femacs.app --args -Q
 从仓库根，构建由当前controlled-run的build保护执行：
 
 ```sh
-cd femacs
-python3 ~/.assistant/skills/controlled-run/scripts/run.py --profile build -- env CARGO_TARGET_DIR=../.femacs-cache/driver cargo run -q -p xtask -- build-macos
+python3 ~/.assistant/skills/controlled-run/scripts/run.py --profile build -- env CARGO_TARGET_DIR=build/cargo cargo run -q -p xtask -- build-macos
 ```
 
-构建中间文件在 `build/macos` 与 `.femacs-cache/macos`，试用交付在 `dist/macos`，均不提交。默认终端版在 `build/port/src/emacs`，以 `build/port/src/emacs -nw -Q` 启动。
+构建中间文件在 `build/macos` 与 `.femacs-cache/macos`，试用交付在 `dist/macos`，均不提交。默认终端版在 `build/terminal/port/src/emacs`，以 `build/terminal/port/src/emacs -nw -Q` 启动。
 构建失败会保留独立目标的日志和源输入，不会覆盖默认终端程序或拿旧dump配新程序。
 
 ## 键盘
@@ -53,3 +52,8 @@ python3 ~/.assistant/skills/controlled-run/scripts/run.py --profile runtime -- p
 ```
 
 事件发送器沿用上方编译步骤。真实组字测试发送物理字母键，不以Unicode直接注入替代；输入法词典可以影响候选内容，完整结果记录在所选输出目录。
+
+
+现代化后新增的本地验收入口：`tools/test-release-baseline.py` 覆盖有限的代表性功能组，`tools/runtime-profile.py` 采集真实 Lisp/GC 数据。两者不能代表所有配置或插件兼容。多窗口拼音诊断在上述输入法命令加 `--mode multi`，需重新编译当前事件发送器；该流程目前仍失败，不能作为已通过的兼容承诺。单窗口流程不因此被改写为失败或多窗口已通过。最新状态以 `docs/modernization.md` Stage IV 为准。
+
+Stage IV 新图形包已完整构建并发布至上述正常路径。搬移包且原构建目录临时不可用时的 LaunchServices 启动/文件打开通过，实际 Finder 外部拖放因锁屏未完成；多窗口输入法和异常无控制终端路径仍待修复。请先使用单窗口试用，遇到问题保留操作步骤与现象，不把代表性测试当成所有功能已经完整一致。

@@ -6,6 +6,7 @@ unsafe extern "C" {
     fn CGEventSourceCreate(state: i32) -> *mut c_void;
     fn CGEventCreateKeyboardEvent(source: *mut c_void, keycode: u16, down: bool) -> *mut c_void;
     fn CGEventSetFlags(event: *mut c_void, flags: u64);
+    fn CGEventSetType(event: *mut c_void, event_type: u32);
     fn CGEventKeyboardSetUnicodeString(event: *mut c_void, length: usize, units: *const u16);
     fn CGEventPostToPid(pid: i32, event: *mut c_void);
 }
@@ -29,6 +30,21 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         if source.is_null() { return Err("CGEventSourceCreate failed".into()); }
         let result=(|| -> Result<(),Box<dyn std::error::Error>> {
             for line in text.lines().filter(|l| !l.is_empty()) {
+                if line=="CYCLE_WINDOW" {
+                    // Represent the complete native Command-grave chord,
+                    // including modifier changes across the window transition.
+                    let events:[(u16,bool,u32,u64);4]=[
+                        (55,true,12,1<<20),(50,true,10,1<<20),
+                        (50,false,11,1<<20),(55,false,12,0)];
+                    for (key,down,kind,flags) in events {
+                        let event=CGEventCreateKeyboardEvent(source,key,down);
+                        if event.is_null(){return Err("window cycle event failed".into())}
+                        CGEventSetType(event,kind);CGEventSetFlags(event,flags);
+                        CGEventPostToPid(pid,event);CFRelease(event);
+                        thread::sleep(Duration::from_millis(35));
+                    }
+                    continue;
+                }
                 let fields: Vec<&str>=line.splitn(3,'\t').collect();
                 if fields.len()<2 { return Err("stroke needs keycode and flags".into()); }
                 let keycode: u16=fields[0].parse()?;let flags: u64=fields[1].parse()?;

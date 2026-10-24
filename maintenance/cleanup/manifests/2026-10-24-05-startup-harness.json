@@ -1,0 +1,27 @@
+{
+  "baseline": "3ab55087a57d14c5ded30938351c8dcc9983ffc3",
+  "files": [
+    {
+      "path": "tools/test-release-baseline.py",
+      "before_sha256": "a5f1061aa15ba6fc572cb649146e5a739e0ed0a519533cef499a80715226ecb7",
+      "after_sha256": "c2d480b88f9690d9e10bfd2456528f6606b0457fc7936486abc79878aeee238c"
+    },
+    {
+      "path": "tools/fixtures/release-baseline.el",
+      "before_sha256": "d4505ab9f923b57de250baef3db3caee46e76bec2942f60ab4d3cb4980d4866a",
+      "after_sha256": "18b9e94840bab58d51f1bf41ea7fd3c638536198beb4bf029264196a7bd28fce"
+    },
+    {
+      "path": "tools/fixtures/macos-input-source.rs",
+      "before_sha256": "36a248b9873d6d70a6bc2e6cd67710d5554dc73b983af4398ebab1f594dd9214",
+      "after_sha256": "95a12d29f98f4062242dcac32bc1cd23fb944f7ad2f9e6cd369bae7715c0159f"
+    },
+    {
+      "path": "tools/fixtures/macos-events.rs",
+      "before_sha256": "646902748d010f49cb4ef2571a39f4605b9c3523417917d00a2e082600020fd7",
+      "after_sha256": "0383dc0930ce774448c567f1be2782e4622b028f8be6b51bd34cbb9706e49218"
+    }
+  ],
+  "recovery_patch_sha256": "e0ab77b1e1f2fb23cbe25fe53a418421a7cf2045b84b36f20cfea00fb6b81156",
+  "apply_option": "--unidiff-zero"
+}

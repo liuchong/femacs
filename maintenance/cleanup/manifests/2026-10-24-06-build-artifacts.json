@@ -1,0 +1,1163 @@
+{
+  "baseline": "3ab55087a57d14c5ded30938351c8dcc9983ffc3",
+  "operation_date": "2026-10-24",
+  "scope": "build/acceptance/stage4-source/build",
+  "files": [
+    {
+      "path": "build/acceptance/stage4-source/build/cargo/.rustc_info.json",
+      "size": 2676,
+      "allocated": 4096,
+      "sha256": "0e67aef586618475408367e988954a3d3148dbbe8f1adbacc6f62c91d6b6af58"
+    },
+    {
+      "path": "build/acceptance/stage4-source/build/cargo/CACHEDIR.TAG",
+      "size": 177,
+      "allocated": 4096,
+      "sha256": "6d9d1d216e0f83abc5e5662ca62c92b4f23009466b54fa27321a69acdb778bb2"
+    },
+    {
+      "path": "build/acceptance/stage4-source/build/cargo/debug/.cargo-artifact-lock",
+      "size": 0,
+      "allocated": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/acceptance/stage4-source/build/cargo/debug/.cargo-build-lock",
+      "size": 0,
+      "allocated": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/acceptance/stage4-source/build/cargo/debug/.cargo-lock",
+      "size": 0,
+      "allocated": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/acceptance/stage4-source/build/cargo/debug/build/xtask/56d788f6a453ef7a/fingerprint/bin-xtask",
+      "size": 16,
+      "allocated": 4096,
+      "sha256": "2738005d619e5e54aac85a5ad963d7d6c84abd8334e6ce1c9cd5e2301209638a"
+    },
+    {
+      "path": "build/acceptance/stage4-source/build/cargo/debug/build/xtask/56d788f6a453ef7a/fingerprint/bin-xtask.json",
+      "size": 17723,
+      "allocated": 20480,
+      "sha256": "72b7952a582cd35b5fd3239402e40b1a9f28b1729ef7bcc209b3c66b3b72bce5"
+    },
+    {
+      "path": "build/acceptance/stage4-source/build/cargo/debug/build/xtask/56d788f6a453ef7a/fingerprint/dep-bin-xtask",
+      "size": 115,
+      "allocated": 4096,
+      "sha256": "03deb20e1d20274bb97d90f096696311464a0f06c7e7a13bf5e9073d0c0a9cbc"
+    },
+    {
+      "path": "build/acceptance/stage4-source/build/cargo/debug/build/xtask/56d788f6a453ef7a/fingerprint/invoked.timestamp",
+      "size": 48,
+      "allocated": 4096,
+      "sha256": "5a109e6643e8d3e88642e3f35e85d2a83e639d07523aa6e99166c48178e965c3"
+    },
+    {
+      "path": "build/acceptance/stage4-source/build/cargo/debug/build/xtask/56d788f6a453ef7a/fingerprint/output-bin-xtask",
+      "size": 2512,
+      "allocated": 4096,
+      "sha256": "8ead5df2b23a7600cb6973d549269fbe7b22d93c93ed81661e328223a0b19fdf"
+    },
+    {
+      "path": "build/acceptance/stage4-source/build/cargo/debug/build/xtask/56d788f6a453ef7a/out/xtask.d",
+      "size": 725,
+      "allocated": 4096,
+      "sha256": "b763f2fd980a25aee4bffe20818cc601c24e69a1e2045cc0cb821947c676c0f2"
+    },
+    {
+      "path": "build/acceptance/stage4-source/build/cargo/debug/incremental/xtask-1hdray1xb1dvj/s-hnigvejzpb-084cqjn.lock",
+      "size": 0,
+      "allocated": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/acceptance/stage4-source/build/cargo/debug/xtask.d",
+      "size": 623,
+      "allocated": 4096,
+      "sha256": "eb81d6298f8198c979c5857a19ff35a0fcd8347869a8f80dcd3d9ada994f1d58"
+    },
+    {
+      "path": "build/acceptance/stage4-source/build/terminal/objects/indent.checking.o",
+      "size": 52048,
+      "allocated": 53248,
+      "sha256": "2b36feaeaf0df89331c5738ceb955953f11268a78d368aba0ffe01e0d258c3ee"
+    },
+    {
+      "path": "build/acceptance/stage4-source/build/terminal/objects/insdel.checking.o",
+      "size": 39808,
+      "allocated": 40960,
+      "sha256": "175103c36815d3d3694506cd7ace2a12ded7f55493b2a474e9953e5f23525726"
+    },
+    {
+      "path": "build/acceptance/stage4-source/build/terminal/objects/insdel.o",
+      "size": 27544,
+      "allocated": 28672,
+      "sha256": "37abac8345e99cf2b1fa21715f22d8a9b954799a79194939bab7b435fc9e5fcf"
+    },
+    {
+      "path": "build/acceptance/stage4-source/build/terminal/objects/intervals.checking.o",
+      "size": 42904,
+      "allocated": 45056,
+      "sha256": "293ca2bc4c9d578b6a0452f6577af832fd3503e442938c2f0d088af006f484e5"
+    },
+    {
+      "path": "build/acceptance/stage4-source/build/terminal/objects/intervals.o",
+      "size": 23720,
+      "allocated": 24576,
+      "sha256": "569bdcac86e96916e8225644ad27d76cfdce86f0596486dc4145670ea7df30e0"
+    },
+    {
+      "path": "build/acceptance/stage4-source/build/terminal/objects/issymlink.checking.o",
+      "size": 512,
+      "allocated": 4096,
+      "sha256": "46c77cc1e7a56d659ffb9715112fc875cb3fd082c2d4aa51ae8da2ab2c0c84c8"
+    },
+    {
+      "path": "build/acceptance/stage4-source/build/terminal/objects/issymlink.o",
+      "size": 512,
+      "allocated": 4096,
+      "sha256": "46c77cc1e7a56d659ffb9715112fc875cb3fd082c2d4aa51ae8da2ab2c0c84c8"
+    },
+    {
+      "path": "build/acceptance/stage4-source/build/terminal/objects/itree.checking.o",
+      "size": 19896,
+      "allocated": 20480,
+      "sha256": "c34ac1a81c9d6c594489a60a16e003e6a3eb264f61c49a4318bfa1a81c98e09b"
+    },
+    {
+      "path": "build/acceptance/stage4-source/build/terminal/objects/itree.o",
+      "size": 9568,
+      "allocated": 12288,
+      "sha256": "38cbc8258e4ffeacd8a64816ff14e526ab93edf28540d4dfcdcd59b45720cf97"
+    },
+    {
+      "path": "build/acceptance/stage4-source/build/terminal/objects/json.checking.o",
+      "size": 44088,
+      "allocated": 45056,
+      "sha256": "ad3a046932b88ee03ebc0612dfe0ba3af7d1878beaa05efe6f1ad2f6801ca50d"
+    },
+    {
+      "path": "build/acceptance/stage4-source/build/terminal/objects/json.o",
+      "size": 35824,
+      "allocated": 36864,
+      "sha256": "86e938b37c3e8a84422a0d0dd5fade55340828f87208efd0909ccccae915d23a"
+    },
+    {
+      "path": "build/acceptance/stage4-source/build/terminal/objects/keyboard.checking.o",
+      "size": 284248,
+      "allocated": 286720,
+      "sha256": "e6acc9ee083527466fe7ade29baa16598fce3ec3eb303e75ad18a51bd4794d9c"
+    },
+    {
+      "path": "build/acceptance/stage4-source/build/terminal/objects/keyboard.o",
+      "size": 218840,
+      "allocated": 221184,
+      "sha256": "6593000453fe7a75a0ddb75cd49eed624e0e1581fe5c54ab809ab01a9840f730"
+    },
+    {
+      "path": "build/acceptance/stage4-source/build/terminal/objects/keymap.checking.o",
+      "size": 85112,
+      "allocated": 86016,
+      "sha256": "ae10ca47c2b0a5d4f7709b5e7a2dfebe9934e757fea2f68f2498efdf81ec8b0f"
+    },
+    {
+      "path": "build/acceptance/stage4-source/build/terminal/objects/keymap.o",
+      "size": 58600,
+      "allocated": 61440,
+      "sha256": "db278a79378a60e0170e1bcf9e38fc2d87a1668a03d6a160e7d3dad126cd5266"
+    },
+    {
+      "path": "build/acceptance/stage4-source/build/terminal/objects/lcms.checking.o",
+      "size": 336,
+      "allocated": 4096,
+      "sha256": "d1ea88b2fe3d960975d134e566e6593217e9ad67abdc2db5a451ea9620edd0ed"
+    },
+    {
+      "path": "build/acceptance/stage4-source/build/terminal/objects/lcms.o",
+      "size": 336,
+      "allocated": 4096,
+      "sha256": "d1ea88b2fe3d960975d134e566e6593217e9ad67abdc2db5a451ea9620edd0ed"
+    },
+    {
+      "path": "build/acceptance/stage4-source/build/terminal/objects/lread.checking.o",
+      "size": 314608,
+      "allocated": 315392,
+      "sha256": "4628bfa6cfca504cef54f3c4aedbfd1d13aa673e9ade3d103b71bf9856a52a48"
+    },
+    {
+      "path": "build/acceptance/stage4-source/build/terminal/objects/lread.o",
+      "size": 286624,
+      "allocated": 286720,
+      "sha256": "d51e46164e40c0c2311d71e50679204c2e194261ae8fc53a394456fcb26a5928"
+    },
+    {
+      "path": "build/acceptance/stage4-source/build/terminal/objects/lstat.checking.o",
+      "size": 824,
+      "allocated": 4096,
+      "sha256": "236f7f242301dbd63300b8ce5c3a490999cfe65d6931b81a4d03c8412e22da48"
+    },
+    {
+      "path": "build/acceptance/stage4-source/build/terminal/objects/lstat.o",
+      "size": 824,
+      "allocated": 4096,
+      "sha256": "236f7f242301dbd63300b8ce5c3a490999cfe65d6931b81a4d03c8412e22da48"
+    },
+    {
+      "path": "build/acceptance/stage4-source/build/terminal/objects/macros.checking.o",
+      "size": 15856,
+      "allocated": 16384,
+      "sha256": "c63cfe1247ba5427a30035c76d54bcd8ee157e2f155c013b812eb697eb9fd028"
+    },
+    {
+      "path": "build/acceptance/stage4-source/build/terminal/objects/macros.o",
+      "size": 10544,
+      "allocated": 12288,
+      "sha256": "49ef6bb31434b04403162f73cbd60dfd3575929bc96b21c7c534024642586ab2"
+    },
+    {
+      "path": "build/acceptance/stage4-source/build/terminal/objects/marker.checking.o",
+      "size": 24208,
+      "allocated": 24576,
+      "sha256": "a8423ddaa11a4d060e750d0359cf95d5840cea21067c230c9bba085ba78bae7f"
+    },
+    {
+      "path": "build/acceptance/stage4-source/build/terminal/objects/marker.o",
+      "size": 12880,
+      "allocated": 16384,
+      "sha256": "3769ea04fd08c028e441edf972e17590d2d5b30af8a2d298a1c8c78ff7d0beca"
+    },
+    {
+      "path": "build/acceptance/stage4-source/build/terminal/objects/md5-stream.checking.o",
+      "size": 952,
+      "allocated": 4096,
+      "sha256": "1a708e8d99877fbc105acf0c8b8f4fb99aa0d84a2ebc21640a14d0e2d4ef8aab"
+    },
+    {
+      "path": "build/acceptance/stage4-source/build/terminal/objects/md5-stream.o",
+      "size": 952,
+      "allocated": 4096,
+      "sha256": "1a708e8d99877fbc105acf0c8b8f4fb99aa0d84a2ebc21640a14d0e2d4ef8aab"
+    },
+    {
+      "path": "build/acceptance/stage4-source/build/terminal/objects/md5.checking.o",
+      "size": 4440,
+      "allocated": 8192,
+      "sha256": "f6751cf700139d9f0aec0e60e88556a8ae6ec22f0d7400fad4546b04f28511d5"
+    },
+    {
+      "path": "build/acceptance/stage4-source/build/terminal/objects/md5.o",
+      "size": 4440,
+      "allocated": 8192,
+      "sha256": "f6751cf700139d9f0aec0e60e88556a8ae6ec22f0d7400fad4546b04f28511d5"
+    },
+    {
+      "path": "build/acceptance/stage4-source/build/terminal/objects/memeq.checking.o",
+      "size": 424,
+      "allocated": 4096,
+      "sha256": "b877fec86d8d9e7e3136c71075ff6f409185c1d0f3899127c364e48e3bbe4fb4"
+    },
+    {
+      "path": "build/acceptance/stage4-source/build/terminal/objects/memeq.o",
+      "size": 424,
+      "allocated": 4096,
+      "sha256": "b877fec86d8d9e7e3136c71075ff6f409185c1d0f3899127c364e48e3bbe4fb4"
+    },
+    {
+      "path": "build/acceptance/stage4-source/build/terminal/objects/memmem.checking.o",
+      "size": 2128,
+      "allocated": 4096,
+      "sha256": "1f60d86fcd3f9b8cfa8988125145c2067a83291f7ce94a6a51703c9d6a96d7ca"
+    },
+    {
+      "path": "build/acceptance/stage4-source/build/terminal/objects/memmem.o",
+      "size": 2128,
+      "allocated": 4096,
+      "sha256": "1f60d86fcd3f9b8cfa8988125145c2067a83291f7ce94a6a51703c9d6a96d7ca"
+    },
+    {
+      "path": "build/acceptance/stage4-source/build/terminal/objects/mempcpy.checking.o",
+      "size": 432,
+      "allocated": 4096,
+      "sha256": "14540229a56c3ea378e820b73372ad1e6bd95524b3fa4bd97328dd4ecbd6f928"
+    },
+    {
+      "path": "build/acceptance/stage4-source/build/terminal/objects/mempcpy.o",
+      "size": 432,
+      "allocated": 4096,
+      "sha256": "14540229a56c3ea378e820b73372ad1e6bd95524b3fa4bd97328dd4ecbd6f928"
+    },
+    {
+      "path": "build/acceptance/stage4-source/build/terminal/objects/memrchr.checking.o",
+      "size": 776,
+      "allocated": 4096,
+      "sha256": "bcba3ee00ae52401b02156fa17373d912c9df4c820e14a0f39fc32a81c6e11e7"
+    },
+    {
+      "path": "build/acceptance/stage4-source/build/terminal/objects/memrchr.o",
+      "size": 776,
+      "allocated": 4096,
+      "sha256": "bcba3ee00ae52401b02156fa17373d912c9df4c820e14a0f39fc32a81c6e11e7"
+    },
+    {
+      "path": "build/acceptance/stage4-source/build/terminal/objects/memset_explicit.checking.o",
+      "size": 456,
+      "allocated": 4096,
+      "sha256": "8ff8199873cc04d82185de3e21f5d122b4617afc91aa88b4877d0b307d18a742"
+    },
+    {
+      "path": "build/acceptance/stage4-source/build/terminal/objects/memset_explicit.o",
+      "size": 456,
+      "allocated": 4096,
+      "sha256": "8ff8199873cc04d82185de3e21f5d122b4617afc91aa88b4877d0b307d18a742"
+    },
+    {
+      "path": "build/acceptance/stage4-source/build/terminal/objects/menu.checking.o",
+      "size": 28488,
+      "allocated": 28672,
+      "sha256": "bfe9a60e0dd721b4bdc8079cc6f2cdf96b4770c9be184bcacfc4a8343ae28fb8"
+    },
+    {
+      "path": "build/acceptance/stage4-source/build/terminal/objects/menu.o",
+      "size": 17384,
+      "allocated": 20480,
+      "sha256": "bc052aa2d98497d21be0325612fb505d8e9a7ac761f381a50e5353b01a49b668"
+    },
+    {
+      "path": "build/acceptance/stage4-source/build/terminal/objects/mini-gmp-gnulib.checking.o",
+      "size": 336,
+      "allocated": 4096,
+      "sha256": "d1ea88b2fe3d960975d134e566e6593217e9ad67abdc2db5a451ea9620edd0ed"
+    },
+    {
+      "path": "build/acceptance/stage4-source/build/terminal/objects/mini-gmp-gnulib.o",
+      "size": 336,
+      "allocated": 4096,
+      "sha256": "d1ea88b2fe3d960975d134e566e6593217e9ad67abdc2db5a451ea9620edd0ed"
+    },
+    {
+      "path": "build/acceptance/stage4-source/build/terminal/objects/mini-gmp.checking.o",
+      "size": 88784,
+      "allocated": 90112,
+      "sha256": "c8eedceaa91df96f767d803f14cc393f6a3e6bf2e90e5c06179dd7b02f904963"
+    },
+    {
+      "path": "build/acceptance/stage4-source/build/terminal/objects/mini-gmp.o",
+      "size": 88784,
+      "allocated": 90112,
+      "sha256": "c8eedceaa91df96f767d803f14cc393f6a3e6bf2e90e5c06179dd7b02f904963"
+    },
+    {
+      "path": "build/acceptance/stage4-source/build/terminal/objects/minibuf.checking.o",
+      "size": 68960,
+      "allocated": 69632,
+      "sha256": "cbdd94403fde8660820d400d115eebd0542d43bb8e75084b6e63859316c90cf7"
+    },
+    {
+      "path": "build/acceptance/stage4-source/build/terminal/objects/minibuf.o",
+      "size": 52720,
+      "allocated": 53248,
+      "sha256": "88d990e0bb9392170139f53f8a1be82809b6972cee8f584ee5a1984ae6ff2c06"
+    },
+    {
+      "path": "build/acceptance/stage4-source/build/terminal/objects/mktime.checking.o",
+      "size": 2928,
+      "allocated": 4096,
+      "sha256": "6fd91ca3ef2ec87fed230f1b971cb5f4d35c76b952aa3aaef513c8d19c5a41b0"
+    },
+    {
+      "path": "build/acceptance/stage4-source/build/terminal/objects/mktime.o",
+      "size": 2928,
+      "allocated": 4096,
+      "sha256": "6fd91ca3ef2ec87fed230f1b971cb5f4d35c76b952aa3aaef513c8d19c5a41b0"
+    },
+    {
+      "path": "build/acceptance/stage4-source/build/terminal/objects/nanosleep.checking.o",
+      "size": 712,
+      "allocated": 4096,
+      "sha256": "45b588a9e208c7456967c26d1dd724ef7ee050b6385d841e15c42be7f109a4bf"
+    },
+    {
+      "path": "build/acceptance/stage4-source/build/terminal/objects/nanosleep.o",
+      "size": 712,
+      "allocated": 4096,
+      "sha256": "45b588a9e208c7456967c26d1dd724ef7ee050b6385d841e15c42be7f109a4bf"
+    },
+    {
+      "path": "build/acceptance/stage4-source/build/terminal/objects/nproc.checking.o",
+      "size": 1528,
+      "allocated": 4096,
+      "sha256": "9c64c7c2ba7f7aa9c0c69c919e086b72c68a9b5f68231882999d5c89f7aa47bb"
+    },
+    {
+      "path": "build/acceptance/stage4-source/build/terminal/objects/nproc.o",
+      "size": 1528,
+      "allocated": 4096,
+      "sha256": "9c64c7c2ba7f7aa9c0c69c919e086b72c68a9b5f68231882999d5c89f7aa47bb"
+    },
+    {
+      "path": "build/acceptance/stage4-source/build/terminal/objects/nstrftime.checking.o",
+      "size": 8472,
+      "allocated": 12288,
+      "sha256": "04ca04e2abd09c91fe3b82d6cc01457503cb6cb6e8740b6facee0e17dd567e74"
+    },
+    {
+      "path": "build/acceptance/stage4-source/build/terminal/objects/nstrftime.o",
+      "size": 8472,
+      "allocated": 12288,
+      "sha256": "04ca04e2abd09c91fe3b82d6cc01457503cb6cb6e8740b6facee0e17dd567e74"
+    },
+    {
+      "path": "build/acceptance/stage4-source/build/terminal/objects/openat-die.checking.o",
+      "size": 456,
+      "allocated": 4096,
+      "sha256": "08767bccc0ab76b18bd05e90f2c68e522b0b250d7b858ffd9776623628e5f020"
+    },
+    {
+      "path": "build/acceptance/stage4-source/build/terminal/objects/openat-die.o",
+      "size": 456,
+      "allocated": 4096,
+      "sha256": "08767bccc0ab76b18bd05e90f2c68e522b0b250d7b858ffd9776623628e5f020"
+    },
+    {
+      "path": "build/acceptance/stage4-source/build/terminal/objects/openat-proc.checking.o",
+      "size": 1528,
+      "allocated": 4096,
+      "sha256": "8f18d25fcb4ec4c8eee7eea43d90ee79ef1870f6068ebedc8c7a73e40970f6a2"
+    },
+    {
+      "path": "build/acceptance/stage4-source/build/terminal/objects/openat-proc.o",
+      "size": 1528,
+      "allocated": 4096,
+      "sha256": "8f18d25fcb4ec4c8eee7eea43d90ee79ef1870f6068ebedc8c7a73e40970f6a2"
+    },
+    {
+      "path": "build/acceptance/stage4-source/build/terminal/objects/pdumper.checking.o",
+      "size": 119688,
+      "allocated": 122880,
+      "sha256": "e332c8e66f80e1b1bd58943fc8675c1747da8e4555e1acdb4e8d81bdaf99c51a"
+    },
+    {
+      "path": "build/acceptance/stage4-source/build/terminal/objects/pdumper.o",
+      "size": 59184,
+      "allocated": 61440,
+      "sha256": "1c34031ebb3ffbf6c846f64640a9a95f6443d199186f7264ffe984f9b5cfe516"
+    },
+    {
+      "path": "build/acceptance/stage4-source/build/terminal/objects/pipe2.checking.o",
+      "size": 920,
+      "allocated": 4096,
+      "sha256": "f5f42fb0ff23c6732d305353a1761565652e5a67323acb772719cf1cacb435bf"
+    },
+    {
+      "path": "build/acceptance/stage4-source/build/terminal/objects/pipe2.o",
+      "size": 920,
+      "allocated": 4096,
+      "sha256": "f5f42fb0ff23c6732d305353a1761565652e5a67323acb772719cf1cacb435bf"
+    },
+    {
+      "path": "build/acceptance/stage4-source/build/terminal/objects/print.checking.o",
+      "size": 87864,
+      "allocated": 90112,
+      "sha256": "e3047ed7efc994cab54fba5fa2590304e331337cdde41455153eb201cc5c4cfa"
+    },
+    {
+      "path": "build/acceptance/stage4-source/build/terminal/objects/print.o",
+      "size": 58696,
+      "allocated": 61440,
+      "sha256": "8405521c1453c8b2c7e1041fe2296802ce3f4a57ec8e1d796c260b66d97fceb7"
+    },
+    {
+      "path": "build/acceptance/stage4-source/build/terminal/objects/process.checking.o",
+      "size": 176960,
+      "allocated": 180224,
+      "sha256": "ed676fbc2581058d72a22494d13a804d1b7aca698a83ce8187f27f2618f90f03"
+    },
+    {
+      "path": "build/acceptance/stage4-source/build/terminal/objects/process.o",
+      "size": 136584,
+      "allocated": 139264,
+      "sha256": "c8bc17eb60ddba9fc35590c0424274866d3de8824ff72326817bbcff56bbd20b"
+    },
+    {
+      "path": "build/acceptance/stage4-source/build/terminal/objects/profiler.checking.o",
+      "size": 14176,
+      "allocated": 16384,
+      "sha256": "65bc3484285fd52815e16b1850a8d9baaccd01f3eb33eaf5a7c14c14bdc95e8c"
+    },
+    {
+      "path": "build/acceptance/stage4-source/build/terminal/objects/profiler.o",
+      "size": 11864,
+      "allocated": 12288,
+      "sha256": "e31801353fd184f15189bdb43550e97df14cceb294256668a52673083bbc08d5"
+    },
+    {
+      "path": "build/acceptance/stage4-source/build/terminal/objects/qcopy-acl.checking.o",
+      "size": 600,
+      "allocated": 4096,
+      "sha256": "8828670a298b3054e8c4ed463ced19dfccf880f29666c05d786849c9057392a8"
+    },
+    {
+      "path": "build/acceptance/stage4-source/build/terminal/objects/qcopy-acl.o",
+      "size": 600,
+      "allocated": 4096,
+      "sha256": "8828670a298b3054e8c4ed463ced19dfccf880f29666c05d786849c9057392a8"
+    },
+    {
+      "path": "build/acceptance/stage4-source/build/terminal/objects/rawmemchr.checking.o",
+      "size": 648,
+      "allocated": 4096,
+      "sha256": "1958fca47aec1f7a791361d94bee9290bf5b95fdee9bbc439958c88434e8c341"
+    },
+    {
+      "path": "build/acceptance/stage4-source/build/terminal/objects/rawmemchr.o",
+      "size": 648,
+      "allocated": 4096,
+      "sha256": "1958fca47aec1f7a791361d94bee9290bf5b95fdee9bbc439958c88434e8c341"
+    },
+    {
+      "path": "build/acceptance/stage4-source/build/terminal/objects/regex-emacs.checking.o",
+      "size": 94928,
+      "allocated": 98304,
+      "sha256": "4be6b9495e6e36a4fc318002f47f73ce04dbc8e13911d5a17131799209352fa3"
+    },
+    {
+      "path": "build/acceptance/stage4-source/build/terminal/objects/regex-emacs.o",
+      "size": 62648,
+      "allocated": 65536,
+      "sha256": "d424c2ea3c922685d7ca9dbe3f73f31e9c26c30dd47edcf0736c3bcda55b7995"
+    },
+    {
+      "path": "build/acceptance/stage4-source/build/terminal/objects/regex.checking.o",
+      "size": 336,
+      "allocated": 4096,
+      "sha256": "d1ea88b2fe3d960975d134e566e6593217e9ad67abdc2db5a451ea9620edd0ed"
+    },
+    {
+      "path": "build/acceptance/stage4-source/build/terminal/objects/regex.o",
+      "size": 336,
+      "allocated": 4096,
+      "sha256": "d1ea88b2fe3d960975d134e566e6593217e9ad67abdc2db5a451ea9620edd0ed"
+    },
+    {
+      "path": "build/acceptance/stage4-source/build/terminal/objects/region-cache.checking.o",
+      "size": 7816,
+      "allocated": 8192,
+      "sha256": "5dff7fd36f4a9b0ed9d66db6820225c4dae34862a26d3bf5106887b91bf031e9"
+    },
+    {
+      "path": "build/acceptance/stage4-source/build/terminal/objects/region-cache.o",
+      "size": 5152,
+      "allocated": 8192,
+      "sha256": "c54aa18a88496bdd293ee583416cb75f3ef60d6e1dfa8545d6d4c9e07de47b7c"
+    },
+    {
+      "path": "build/acceptance/stage4-source/build/terminal/objects/save-cwd.checking.o",
+      "size": 808,
+      "allocated": 4096,
+      "sha256": "f9ea7b676ab378caa272ca8c72bf60aa290aafcca1f1840217ecb2b1397324b2"
+    },
+    {
+      "path": "build/acceptance/stage4-source/build/terminal/objects/save-cwd.o",
+      "size": 808,
+      "allocated": 4096,
+      "sha256": "f9ea7b676ab378caa272ca8c72bf60aa290aafcca1f1840217ecb2b1397324b2"
+    },
+    {
+      "path": "build/acceptance/stage4-source/build/terminal/objects/scratch_buffer_grow.checking.o",
+      "size": 608,
+      "allocated": 4096,
+      "sha256": "3facc56900cb4989b41239169e7f37d45862db786507191c332517e6e493f053"
+    },
+    {
+      "path": "build/acceptance/stage4-source/build/terminal/objects/scratch_buffer_grow.o",
+      "size": 608,
+      "allocated": 4096,
+      "sha256": "3facc56900cb4989b41239169e7f37d45862db786507191c332517e6e493f053"
+    },
+    {
+      "path": "build/acceptance/stage4-source/build/terminal/objects/scratch_buffer_grow_preserve.checking.o",
+      "size": 712,
+      "allocated": 4096,
+      "sha256": "29384f561c5557da723d796c1f85c5c752aa2168e33a443dc05d3ef0dffa4317"
+    },
+    {
+      "path": "build/acceptance/stage4-source/build/terminal/objects/scratch_buffer_grow_preserve.o",
+      "size": 712,
+      "allocated": 4096,
+      "sha256": "29384f561c5557da723d796c1f85c5c752aa2168e33a443dc05d3ef0dffa4317"
+    },
+    {
+      "path": "build/acceptance/stage4-source/build/terminal/objects/scratch_buffer_set_array_size.checking.o",
+      "size": 688,
+      "allocated": 4096,
+      "sha256": "d399fbe238f8f6a4351a3f9dd93a062e3cfe156a71e7679a9b191481ebb9d297"
+    },
+    {
+      "path": "build/acceptance/stage4-source/build/terminal/objects/scratch_buffer_set_array_size.o",
+      "size": 688,
+      "allocated": 4096,
+      "sha256": "d399fbe238f8f6a4351a3f9dd93a062e3cfe156a71e7679a9b191481ebb9d297"
+    },
+    {
+      "path": "build/acceptance/stage4-source/build/terminal/objects/scroll.checking.o",
+      "size": 11824,
+      "allocated": 12288,
+      "sha256": "3157e3661e0428cc6e321af8e8fcdff7125ace06b61805046e55ccd5e888d34f"
+    },
+    {
+      "path": "build/acceptance/stage4-source/build/terminal/objects/scroll.o",
+      "size": 10016,
+      "allocated": 12288,
+      "sha256": "33d919b2a4113f935659af2dc8ff62c8bf4e04a148288a56eb51c6cede26921a"
+    },
+    {
+      "path": "build/acceptance/stage4-source/build/terminal/objects/search.checking.o",
+      "size": 65128,
+      "allocated": 65536,
+      "sha256": "367b5c5867f8faedca1067713e78cf659465d1d7c1e165c7de6c173348a765f5"
+    },
+    {
+      "path": "build/acceptance/stage4-source/build/terminal/objects/search.o",
+      "size": 46576,
+      "allocated": 49152,
+      "sha256": "fb8326f25ef1e6c8a8607e317615336e35fac18d1cd95d93c20272c59be979de"
+    },
+    {
+      "path": "build/acceptance/stage4-source/build/terminal/objects/set-permissions.checking.o",
+      "size": 560,
+      "allocated": 4096,
+      "sha256": "d5f9f416d1cc678901b363b348ae551659821adecc887e793c836379b2e6f616"
+    },
+    {
+      "path": "build/acceptance/stage4-source/build/terminal/objects/set-permissions.o",
+      "size": 560,
+      "allocated": 4096,
+      "sha256": "d5f9f416d1cc678901b363b348ae551659821adecc887e793c836379b2e6f616"
+    },
+    {
+      "path": "build/acceptance/stage4-source/build/terminal/objects/sha1.checking.o",
+      "size": 6096,
+      "allocated": 8192,
+      "sha256": "7b5aa60848eee628565641de6993bcab4da4207f482d20dfb55ed8affa38d7f5"
+    },
+    {
+      "path": "build/acceptance/stage4-source/build/terminal/objects/sha1.o",
+      "size": 6096,
+      "allocated": 8192,
+      "sha256": "7b5aa60848eee628565641de6993bcab4da4207f482d20dfb55ed8affa38d7f5"
+    },
+    {
+      "path": "build/acceptance/stage4-source/build/terminal/objects/sha256.checking.o",
+      "size": 10584,
+      "allocated": 12288,
+      "sha256": "dad52710f51a5e7553c0d8fb813484ab88308fcaa59b39abe08ee4c39bc28619"
+    },
+    {
+      "path": "build/acceptance/stage4-source/build/terminal/objects/sha256.o",
+      "size": 10584,
+      "allocated": 12288,
+      "sha256": "dad52710f51a5e7553c0d8fb813484ab88308fcaa59b39abe08ee4c39bc28619"
+    },
+    {
+      "path": "build/acceptance/stage4-source/build/terminal/objects/sha3.checking.o",
+      "size": 5896,
+      "allocated": 8192,
+      "sha256": "b38ca0e71f56de0879a2fef5adc2b6a92a041f23ac5ea480d40e9fb6750ffb45"
+    },
+    {
+      "path": "build/acceptance/stage4-source/build/terminal/objects/sha3.o",
+      "size": 5896,
+      "allocated": 8192,
+      "sha256": "b38ca0e71f56de0879a2fef5adc2b6a92a041f23ac5ea480d40e9fb6750ffb45"
+    },
+    {
+      "path": "build/acceptance/stage4-source/build/terminal/objects/sha512.checking.o",
+      "size": 13656,
+      "allocated": 16384,
+      "sha256": "0ba572c9ed0fa1daa9307e2d3880fe5ba1efacf87109e21593c747b09ecfbe49"
+    },
+    {
+      "path": "build/acceptance/stage4-source/build/terminal/objects/sha512.o",
+      "size": 13656,
+      "allocated": 16384,
+      "sha256": "0ba572c9ed0fa1daa9307e2d3880fe5ba1efacf87109e21593c747b09ecfbe49"
+    },
+    {
+      "path": "build/acceptance/stage4-source/build/terminal/objects/sig2str.checking.o",
+      "size": 1408,
+      "allocated": 4096,
+      "sha256": "7eafaceee8a012d308036c89b1a20c70b8d5fd77a7a17b4506eff474a00484f0"
+    },
+    {
+      "path": "build/acceptance/stage4-source/build/terminal/objects/sig2str.o",
+      "size": 1408,
+      "allocated": 4096,
+      "sha256": "7eafaceee8a012d308036c89b1a20c70b8d5fd77a7a17b4506eff474a00484f0"
+    },
+    {
+      "path": "build/acceptance/stage4-source/build/terminal/objects/sigdescr_np.checking.o",
+      "size": 3528,
+      "allocated": 4096,
+      "sha256": "24116d930095c0b9418027c35c991696cbd3fcda07119bf1fd9e638b546b8b47"
+    },
+    {
+      "path": "build/acceptance/stage4-source/build/terminal/objects/sigdescr_np.o",
+      "size": 3528,
+      "allocated": 4096,
+      "sha256": "24116d930095c0b9418027c35c991696cbd3fcda07119bf1fd9e638b546b8b47"
+    },
+    {
+      "path": "build/acceptance/stage4-source/build/terminal/objects/sort.checking.o",
+      "size": 18080,
+      "allocated": 20480,
+      "sha256": "bb4ee398bbb6e6212942094685821077a78f74aa2f062d4ba930643eb0bc9074"
+    },
+    {
+      "path": "build/acceptance/stage4-source/build/terminal/objects/sort.o",
+      "size": 10000,
+      "allocated": 12288,
+      "sha256": "04eb328aab3cc9a53164e77ef08a203de9ff4c4fb891fe81ca6718d316b6d1a0"
+    },
+    {
+      "path": "build/acceptance/stage4-source/build/terminal/objects/sound.checking.o",
+      "size": 336,
+      "allocated": 4096,
+      "sha256": "d1ea88b2fe3d960975d134e566e6593217e9ad67abdc2db5a451ea9620edd0ed"
+    },
+    {
+      "path": "build/acceptance/stage4-source/build/terminal/objects/sound.o",
+      "size": 336,
+      "allocated": 4096,
+      "sha256": "d1ea88b2fe3d960975d134e566e6593217e9ad67abdc2db5a451ea9620edd0ed"
+    },
+    {
+      "path": "build/acceptance/stage4-source/build/terminal/objects/sqlite.checking.o",
+      "size": 2216,
+      "allocated": 4096,
+      "sha256": "5215619abaf0ac77b75a86eab0242ffbd5ec0dab6a77b1e9271c2439ddc946f9"
+    },
+    {
+      "path": "build/acceptance/stage4-source/build/terminal/objects/sqlite.o",
+      "size": 2216,
+      "allocated": 4096,
+      "sha256": "5215619abaf0ac77b75a86eab0242ffbd5ec0dab6a77b1e9271c2439ddc946f9"
+    },
+    {
+      "path": "build/acceptance/stage4-source/build/terminal/objects/stat-time.checking.o",
+      "size": 1008,
+      "allocated": 4096,
+      "sha256": "a69d140081755f1f39e00ae72377a5779bb43e360251bae2513341f26adb4968"
+    },
+    {
+      "path": "build/acceptance/stage4-source/build/terminal/objects/stat-time.o",
+      "size": 1008,
+      "allocated": 4096,
+      "sha256": "a69d140081755f1f39e00ae72377a5779bb43e360251bae2513341f26adb4968"
+    },
+    {
+      "path": "build/acceptance/stage4-source/build/terminal/objects/stdc_bit_width.checking.o",
+      "size": 576,
+      "allocated": 4096,
+      "sha256": "fe7cee7a6186f079b0a25119097c212cce53ae4eafaa3ca2bac07b971412b235"
+    },
+    {
+      "path": "build/acceptance/stage4-source/build/terminal/objects/stdc_bit_width.o",
+      "size": 576,
+      "allocated": 4096,
+      "sha256": "fe7cee7a6186f079b0a25119097c212cce53ae4eafaa3ca2bac07b971412b235"
+    },
+    {
+      "path": "build/acceptance/stage4-source/build/terminal/objects/stdc_count_ones.checking.o",
+      "size": 600,
+      "allocated": 4096,
+      "sha256": "9cb17830fbf7ec6b451de1bd204a1f8abb60c40a89123b2c1af6472e49f6b927"
+    },
+    {
+      "path": "build/acceptance/stage4-source/build/terminal/objects/stdc_count_ones.o",
+      "size": 600,
+      "allocated": 4096,
+      "sha256": "9cb17830fbf7ec6b451de1bd204a1f8abb60c40a89123b2c1af6472e49f6b927"
+    },
+    {
+      "path": "build/acceptance/stage4-source/build/terminal/objects/stdc_leading_zeros.checking.o",
+      "size": 672,
+      "allocated": 4096,
+      "sha256": "4cb6ddfc9ff2853fb4ab6555f276da9ce01b0700390c1af3e8857f92e25cacae"
+    },
+    {
+      "path": "build/acceptance/stage4-source/build/terminal/objects/stdc_leading_zeros.o",
+      "size": 672,
+      "allocated": 4096,
+      "sha256": "4cb6ddfc9ff2853fb4ab6555f276da9ce01b0700390c1af3e8857f92e25cacae"
+    },
+    {
+      "path": "build/acceptance/stage4-source/build/terminal/objects/stdc_memreverse8u.checking.o",
+      "size": 520,
+      "allocated": 4096,
+      "sha256": "0d61da62227c642e9be2f9f25132fd1af8ea4e065ce4abebb6586630faf7c169"
+    },
+    {
+      "path": "build/acceptance/stage4-source/build/terminal/objects/stdc_memreverse8u.o",
+      "size": 520,
+      "allocated": 4096,
+      "sha256": "0d61da62227c642e9be2f9f25132fd1af8ea4e065ce4abebb6586630faf7c169"
+    },
+    {
+      "path": "build/acceptance/stage4-source/build/terminal/objects/stdc_trailing_zeros.checking.o",
+      "size": 696,
+      "allocated": 4096,
+      "sha256": "fff6ad22b5dfe23a2acb5095359ebf477d3133fe3eb280fea9fc62533722ef96"
+    },
+    {
+      "path": "build/acceptance/stage4-source/build/terminal/objects/stdc_trailing_zeros.o",
+      "size": 696,
+      "allocated": 4096,
+      "sha256": "fff6ad22b5dfe23a2acb5095359ebf477d3133fe3eb280fea9fc62533722ef96"
+    },
+    {
+      "path": "build/acceptance/stage4-source/build/terminal/objects/stdlib.checking.o",
+      "size": 336,
+      "allocated": 4096,
+      "sha256": "d1ea88b2fe3d960975d134e566e6593217e9ad67abdc2db5a451ea9620edd0ed"
+    },
+    {
+      "path": "build/acceptance/stage4-source/build/terminal/objects/stdlib.o",
+      "size": 336,
+      "allocated": 4096,
+      "sha256": "d1ea88b2fe3d960975d134e566e6593217e9ad67abdc2db5a451ea9620edd0ed"
+    },
+    {
+      "path": "build/acceptance/stage4-source/build/terminal/objects/streq.checking.o",
+      "size": 424,
+      "allocated": 4096,
+      "sha256": "43515408bfdb0923cbe2c856d7097dc6759918cd700a2ad33c82411f0a6ef50b"
+    },
+    {
+      "path": "build/acceptance/stage4-source/build/terminal/objects/streq.o",
+      "size": 424,
+      "allocated": 4096,
+      "sha256": "43515408bfdb0923cbe2c856d7097dc6759918cd700a2ad33c82411f0a6ef50b"
+    },
+    {
+      "path": "build/acceptance/stage4-source/build/terminal/objects/strnul.checking.o",
+      "size": 440,
+      "allocated": 4096,
+      "sha256": "bedd28840b0fd091e64c4358d841096d81c2d1a4664519eaa614fcab5765bfc3"
+    },
+    {
+      "path": "build/acceptance/stage4-source/build/terminal/objects/strnul.o",
+      "size": 440,
+      "allocated": 4096,
+      "sha256": "bedd28840b0fd091e64c4358d841096d81c2d1a4664519eaa614fcab5765bfc3"
+    },
+    {
+      "path": "build/acceptance/stage4-source/build/terminal/objects/syntax.checking.o",
+      "size": 137736,
+      "allocated": 139264,
+      "sha256": "319e5d26b80dc307935ddfc4b8bade2ec8d427a03f0430d259d8589c59f3f3f6"
+    },
+    {
+      "path": "build/acceptance/stage4-source/build/terminal/objects/syntax.o",
+      "size": 107032,
+      "allocated": 110592,
+      "sha256": "58eb5f51529df05e9042436dc36e026c2f78ba9d9339ffd3fe11a2cc00e1b947"
+    },
+    {
+      "path": "build/acceptance/stage4-source/build/terminal/objects/sysdep.checking.o",
+      "size": 40152,
+      "allocated": 40960,
+      "sha256": "91c65d7fa5336fb3681f3de0427ccc76c6d41e14f2d05ad7acd025d954fb9f68"
+    },
+    {
+      "path": "build/acceptance/stage4-source/build/terminal/objects/sysdep.o",
+      "size": 37112,
+      "allocated": 40960,
+      "sha256": "3e771e75c21a9450e0b533b920546d5040793a78b877bc5999e81fe92b7b5ba0"
+    },
+    {
+      "path": "build/acceptance/stage4-source/build/terminal/objects/systhread.checking.o",
+      "size": 1352,
+      "allocated": 4096,
+      "sha256": "8c3e125383a18ac6832cb371a6316d619e3bdc01e5653ba16803b82943b7ae7b"
+    },
+    {
+      "path": "build/acceptance/stage4-source/build/terminal/objects/systhread.o",
+      "size": 1352,
+      "allocated": 4096,
+      "sha256": "8c3e125383a18ac6832cb371a6316d619e3bdc01e5653ba16803b82943b7ae7b"
+    },
+    {
+      "path": "build/acceptance/stage4-source/build/terminal/objects/tempname.checking.o",
+      "size": 2928,
+      "allocated": 4096,
+      "sha256": "e074999a44d5aea3dd486cdf5dfbd7b9fb7717cf6809b54c4e1243e3032f5116"
+    },
+    {
+      "path": "build/acceptance/stage4-source/build/terminal/objects/tempname.o",
+      "size": 2928,
+      "allocated": 4096,
+      "sha256": "e074999a44d5aea3dd486cdf5dfbd7b9fb7717cf6809b54c4e1243e3032f5116"
+    },
+    {
+      "path": "build/acceptance/stage4-source/build/terminal/objects/term.checking.o",
+      "size": 118336,
+      "allocated": 118784,
+      "sha256": "250ddf20d1e636b9c5693d13579215544d0d379917fdf378eb019c337c7b2751"
+    },
+    {
+      "path": "build/acceptance/stage4-source/build/terminal/objects/term.o",
+      "size": 101192,
+      "allocated": 102400,
+      "sha256": "16b4874aebc61eb93f12d9f98112f86ad1e008c5627a7a2a8cd39dffd1842237"
+    },
+    {
+      "path": "build/acceptance/stage4-source/build/terminal/objects/terminal.checking.o",
+      "size": 14248,
+      "allocated": 16384,
+      "sha256": "e8df58c4891ba2981b90381c57e74775465f66c8037988df579a2a922b0abc4d"
+    },
+    {
+      "path": "build/acceptance/stage4-source/build/terminal/objects/terminal.o",
+      "size": 11824,
+      "allocated": 12288,
+      "sha256": "f4d96c1bce60ac79d690ea92dabb8ae9cb5ca5fcb8b5db665b1613b054105bc9"
+    },
+    {
+      "path": "build/acceptance/stage4-source/build/terminal/objects/terminfo.checking.o",
+      "size": 1040,
+      "allocated": 4096,
+      "sha256": "f8975bc710fbc5e154f5ab8e95dae6d1616b361e2a2d9c3875b4f0236e0293a4"
+    },
+    {
+      "path": "build/acceptance/stage4-source/build/terminal/objects/terminfo.o",
+      "size": 1040,
+      "allocated": 4096,
+      "sha256": "f8975bc710fbc5e154f5ab8e95dae6d1616b361e2a2d9c3875b4f0236e0293a4"
+    },
+    {
+      "path": "build/acceptance/stage4-source/build/terminal/objects/textprop.checking.o",
+      "size": 53000,
+      "allocated": 53248,
+      "sha256": "955197e3d80c3a329fc12b29d55c5b4f7d1e0880ea09562b19d9fbfff9d9b36c"
+    },
+    {
+      "path": "build/acceptance/stage4-source/build/terminal/objects/textprop.o",
+      "size": 35376,
+      "allocated": 36864,
+      "sha256": "77741ed1578081db98eb6bf7115201a85d632e7fc3341ac26202cf2e6fb94a74"
+    },
+    {
+      "path": "build/acceptance/stage4-source/build/terminal/objects/thread.checking.o",
+      "size": 22608,
+      "allocated": 24576,
+      "sha256": "01ad2323353511988c48263d356dbdd0e1ca9af54755f0645a28be37aa4e305a"
+    },
+    {
+      "path": "build/acceptance/stage4-source/build/terminal/objects/thread.o",
+      "size": 15016,
+      "allocated": 16384,
+      "sha256": "1ac01f40d7076b61f8e2dbf31851c568890641e55f86a01172a843b533b0b5b1"
+    },
+    {
+      "path": "build/acceptance/stage4-source/build/terminal/objects/time_rz.checking.o",
+      "size": 2792,
+      "allocated": 4096,
+      "sha256": "d70820362499f0311ba1ebf07b4b66967a7918463b9efc91c3d71e6b1010dbb5"
+    },
+    {
+      "path": "build/acceptance/stage4-source/build/terminal/objects/time_rz.o",
+      "size": 2792,
+      "allocated": 4096,
+      "sha256": "d70820362499f0311ba1ebf07b4b66967a7918463b9efc91c3d71e6b1010dbb5"
+    },
+    {
+      "path": "build/acceptance/stage4-source/build/terminal/objects/timefns.checking.o",
+      "size": 37592,
+      "allocated": 40960,
+      "sha256": "54230b0aa9f5577f63bc197a05cf8364e7fe586ccdc34a388d0ee35f1bbffab4"
+    },
+    {
+      "path": "build/acceptance/stage4-source/build/terminal/objects/timefns.o",
+      "size": 29592,
+      "allocated": 32768,
+      "sha256": "d555132c8349b95a6c679f96e38bdb86d37650a565fab09a9d2859984ddbbb47"
+    },
+    {
+      "path": "build/acceptance/stage4-source/build/terminal/objects/timegm.checking.o",
+      "size": 640,
+      "allocated": 4096,
+      "sha256": "7e1f5d5bc6ea9812ec5f416caeaa8befbaf6443e6fc56c12074f76db7d671630"
+    },
+    {
+      "path": "build/acceptance/stage4-source/build/terminal/objects/timegm.o",
+      "size": 640,
+      "allocated": 4096,
+      "sha256": "7e1f5d5bc6ea9812ec5f416caeaa8befbaf6443e6fc56c12074f76db7d671630"
+    },
+    {
+      "path": "build/acceptance/stage4-source/build/terminal/objects/timespec-add.checking.o",
+      "size": 472,
+      "allocated": 4096,
+      "sha256": "c52d09f5a32f64aa84b57fd814ddf68a703581022207a2a949f4c5fc0f6bc70e"
+    },
+    {
+      "path": "build/acceptance/stage4-source/build/terminal/objects/timespec-add.o",
+      "size": 472,
+      "allocated": 4096,
+      "sha256": "c52d09f5a32f64aa84b57fd814ddf68a703581022207a2a949f4c5fc0f6bc70e"
+    },
+    {
+      "path": "build/acceptance/stage4-source/build/terminal/objects/timespec-sub.checking.o",
+      "size": 448,
+      "allocated": 4096,
+      "sha256": "04019d72671040c78fbaa26a84874e92025abe73e3323cb8fa554bb3e1296df6"
+    },
+    {
+      "path": "build/acceptance/stage4-source/build/terminal/objects/timespec-sub.o",
+      "size": 448,
+      "allocated": 4096,
+      "sha256": "04019d72671040c78fbaa26a84874e92025abe73e3323cb8fa554bb3e1296df6"
+    },
+    {
+      "path": "build/acceptance/stage4-source/build/terminal/objects/timespec.checking.o",
+      "size": 544,
+      "allocated": 4096,
+      "sha256": "aa750a05c09387c3df200fd6c3fe774553979bf1b2a51833dff5d6a0c4466330"
+    },
+    {
+      "path": "build/acceptance/stage4-source/build/terminal/objects/timespec.o",
+      "size": 544,
+      "allocated": 4096,
+      "sha256": "aa750a05c09387c3df200fd6c3fe774553979bf1b2a51833dff5d6a0c4466330"
+    },
+    {
+      "path": "build/acceptance/stage4-source/build/terminal/objects/treesit.checking.o",
+      "size": 1440,
+      "allocated": 4096,
+      "sha256": "c8f813bee29ad2da77bfbf699dcb2882ae185d86364363a37c6e5b2b7bea1b71"
+    },
+    {
+      "path": "build/acceptance/stage4-source/build/terminal/objects/treesit.o",
+      "size": 1440,
+      "allocated": 4096,
+      "sha256": "c8f813bee29ad2da77bfbf699dcb2882ae185d86364363a37c6e5b2b7bea1b71"
+    },
+    {
+      "path": "build/acceptance/stage4-source/build/terminal/objects/u64.checking.o",
+      "size": 376,
+      "allocated": 4096,
+      "sha256": "1769baa390664e33cdb1bc0d707d6b83aae7053ee17586d31774b304382ba786"
+    },
+    {
+      "path": "build/acceptance/stage4-source/build/terminal/objects/u64.o",
+      "size": 376,
+      "allocated": 4096,
+      "sha256": "1769baa390664e33cdb1bc0d707d6b83aae7053ee17586d31774b304382ba786"
+    },
+    {
+      "path": "build/acceptance/stage4-source/build/terminal/objects/undo.checking.o",
+      "size": 14848,
+      "allocated": 16384,
+      "sha256": "ec552d7f5b3ff79f525f3a48990d02dd0a9a18043a7f5db85ec9a79071a85354"
+    },
+    {
+      "path": "build/acceptance/stage4-source/build/terminal/objects/undo.o",
+      "size": 8560,
+      "allocated": 12288,
+      "sha256": "9e973beb8e69928c44d56c2b4e8c123ea62ce0189f6a4209921452eb96e79f42"
+    },
+    {
+      "path": "build/acceptance/stage4-source/build/terminal/objects/unistd.checking.o",
+      "size": 336,
+      "allocated": 4096,
+      "sha256": "d1ea88b2fe3d960975d134e566e6593217e9ad67abdc2db5a451ea9620edd0ed"
+    },
+    {
+      "path": "build/acceptance/stage4-source/build/terminal/objects/unistd.o",
+      "size": 336,
+      "allocated": 4096,
+      "sha256": "d1ea88b2fe3d960975d134e566e6593217e9ad67abdc2db5a451ea9620edd0ed"
+    },
+    {
+      "path": "build/acceptance/stage4-source/build/terminal/objects/utimens.checking.o",
+      "size": 2872,
+      "allocated": 4096,
+      "sha256": "98891febb8ab656095b3374a65650afcf40bc2c1863514f7a75b57c81c55fb0d"
+    },
+    {
+      "path": "build/acceptance/stage4-source/build/terminal/objects/utimens.o",
+      "size": 2872,
+      "allocated": 4096,
+      "sha256": "98891febb8ab656095b3374a65650afcf40bc2c1863514f7a75b57c81c55fb0d"
+    },
+    {
+      "path": "build/acceptance/stage4-source/build/terminal/objects/utimensat.checking.o",
+      "size": 2136,
+      "allocated": 4096,
+      "sha256": "cc58b24cde3fba03a6bf4f8cab9b8aa706ad5bd8e1d4b915ca8181a81dbbceed"
+    },
+    {
+      "path": "build/acceptance/stage4-source/build/terminal/objects/utimensat.o",
+      "size": 2136,
+      "allocated": 4096,
+      "sha256": "cc58b24cde3fba03a6bf4f8cab9b8aa706ad5bd8e1d4b915ca8181a81dbbceed"
+    },
+    {
+      "path": "build/acceptance/stage4-source/build/terminal/objects/window.checking.o",
+      "size": 242104,
+      "allocated": 245760,
+      "sha256": "9611c75527ff3b77c2994e622b239916c230d25476c73c3499ac7ee3f46b9962"
+    },
+    {
+      "path": "build/acceptance/stage4-source/build/terminal/objects/window.o",
+      "size": 160512,
+      "allocated": 163840,
+      "sha256": "9b12d2cb3318d8b853fa3e6cecb847c4ddab0ed9e1cc1858f064415f04d83f78"
+    },
+    {
+      "path": "build/acceptance/stage4-source/build/terminal/objects/xdisp.checking.o",
+      "size": 473912,
+      "allocated": 475136,
+      "sha256": "20abc41e44fa532d04099080c430f538134edf32404143cdeeb9e740278753e7"
+    },
+    {
+      "path": "build/acceptance/stage4-source/build/terminal/objects/xdisp.o",
+      "size": 326400,
+      "allocated": 327680,
+      "sha256": "c8dbd2f2c1a66918251c1f0d3caf4fd7932205e7b8a7fbe16119d5b1b55f00e7"
+    },
+    {
+      "path": "build/acceptance/stage4-source/build/terminal/objects/xfaces.checking.o",
+      "size": 101552,
+      "allocated": 102400,
+      "sha256": "232828e4804663add40215b0ffe4707c519577d44405ba4ce11b1dcbf93ff72c"
+    },
+    {
+      "path": "build/acceptance/stage4-source/build/terminal/objects/xfaces.o",
+      "size": 72144,
+      "allocated": 73728,
+      "sha256": "4f8d479ee6cd30919d2cd0250fcce1a1a50d7b6ff859c9fb4a6de587e00fde33"
+    },
+    {
+      "path": "build/acceptance/stage4-source/build/terminal/objects/xml.checking.o",
+      "size": 1416,
+      "allocated": 4096,
+      "sha256": "da459ec38d3b23320f66eaa12315257e482d8a37e16f5ef82c5c6dd74d4672a3"
+    },
+    {
+      "path": "build/acceptance/stage4-source/build/terminal/objects/xml.o",
+      "size": 1416,
+      "allocated": 4096,
+      "sha256": "da459ec38d3b23320f66eaa12315257e482d8a37e16f5ef82c5c6dd74d4672a3"
+    }
+  ],
+  "count": 192,
+  "logical_bytes": 5336495,
+  "allocated_bytes": 5828608,
+  "deleted": true
+}

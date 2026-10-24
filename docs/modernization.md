@@ -1,5 +1,7 @@
 # Modernization: stable delivery, retirement, then Lisp runtime work
 
+Current continuation: **Stage IV**, below. Stages I–III and their failed attempts remain historical evidence; they are not rerun merely to refresh a date.
+
 Baseline: `3d24214a9b1f12316f7263bade8faa95651df066`, master, clean at authorization. The user explicitly authorizes implementation in this order: (I) agreed local-delivery repairs, (II) planned removal/renovation of obsolete infrastructure and device support, (III) Lisp compiler/interpreter/GC improvements and measured native/JIT exploration. Codex is primary developer and an independent fixed-model partner owns tests and final review. Private identities/logs remain outside tracked documents. No remote CI is used; delivery commits carry `[skip ci]` to prevent push-triggered runs.
 
 The previous one-to-one transcription is a baseline, not a prohibition on the newly authorized modernization. Observable Lisp evaluation/error behavior, saved data and useful editor workflows remain compatibility constraints. Swift Cocoa and Kotlin platform integration are not obsolete merely because they are not Rust. Do not mechanically rewrite dictionaries, Unicode generators or copied Lisp to satisfy a language count. The optional reference checkout remains read-only and is never a build prerequisite.
@@ -238,3 +240,107 @@ UI claim is made. Compiler generation and scoped source/bytecode load comparison
 are accepted as recorded in runtime-modernization.md; native/JIT/new GC remain
 future designs, not delivered features. Existing A5 real cross-window drag and
 unaccepted platform retirement/support decisions remain explicit gaps.
+
+## Stage IV: macOS release baseline and real Lisp profile
+
+Baseline: `3ab55087a57d14c5ded30938351c8dcc9983ffc3`, master, clean. The user approved the next plan and continued pairing. This delivery covers the proposed next-round items 1/2/3/5: native delivery gaps, independent builds, broader bounded compatibility, and runtime measurement. Remaining retirement, native compiler and collector implementation stay later in the authorized roadmap. No new goal or remote CI; no VM/compiler/collector redesign in this batch.
+
+### Current architecture and exact gaps
+
+```text
+xtask/src/{standalone,macos,bundle}.rs  target builds, generated resources, signed publication
+tools/bootstrap-resources.py          self-contained tracked-input generation
+tools/local-acceptance.py             product identity and existing native/terminal/IME checks
+tools/test-macos-delivery.py           26 real input cases and Unicode file/clipboard flow
+tools/test-macos-ime.py               marked/commit/cancel/minibuffer/source-switch acceptance
+tools/check-ert.py                    strict identities, exit semantics and per-test durations
+tools/bench.py + tools/pgo/eval.el     min-of-five throughput; not pause/heap attribution
+tools/fixtures/macos-drag.el          native motion callback; no complete drop/ready evidence yet
+platform/macos/nsterm.swift           draggingUpdated -> safe_funcall(function,frame,x,y)
+```
+
+```mermaid
+flowchart LR
+ S[tracked inputs] --> B[standalone terminal and Cocoa builds]
+ B --> P[signed app and dumps]
+ P --> K[existing keys files IME]
+ P --> D[drag callback fixture: incomplete native evidence]
+ P --> E[strict bounded ERT]
+ P --> M[min5 timing: no pause or heap samples]
+```
+
+Graph service has no femacs index; relevant sources are read directly. Existing drag code calls the configured function; do not fabricate native acceptance by directly invoking it from Lisp. Existing ERT/differential success is bounded, not all upstream versions/plugins. There is no provenance for a post-compiler-library full Cocoa build yet. Native launch and drag require an unlocked usable desktop. Do not change system privacy permissions or interfere with user editor instances. LaunchServices must identify the newly launched exact executable/PID, not reuse another same-bundle app.
+
+### Requirements and file-level changes
+
+| ID | file / baseline anchor | precise change | acceptance |
+| --- | --- | --- | --- |
+| IV-D1 | NEW `tools/runtime-profile.py` | CLI `--binary Path --rounds int(default7) --out Path --max-load-per-core float(default0.10)`. `parse_profile(text:str)->list[dict]` requires exactly one schema marker and six unique complete cases; finite nonnegative timings, GC counts, pause samples, heap/allocation observations and completed checksum required. `summarize(rows:list[dict])->list[dict]` records all samples, median/MAD/p95; never minima as headline. New-only owned output, isolated HOME, binary/dump/fixture hashes before/after, per-process RSS samples via psutil and fresh-process startup wall latency. Report busy load as non-quiet, not a speedup or trustworthy promotion baseline; do not silently force a quiet flag. Streaming logs, bounded parsing, timeout cleanup. | IV-A3 |
+| IV-D2 | NEW `tools/fixtures/runtime-profile.el` | Six cases `load/edit/regex/bytecode/gc-churn/gc-retained`. Default GC threshold remains active except explicit allocation workloads, locally bound to 100000 bytes. Each records wall_ms, gc_count, gc_ms, individual post-gc elapsed deltas, `memory-use-counts` delta, `garbage-collect-heapsize` before/after and deterministic result. Counters and heap describe this workload, not object age, precise total memory or full GC phase timing. Retained workload explicitly holds a list through a collection, checks its contents, then releases it. Emit one `FEMACS-PROFILE` JSON marker with schema `femacs-runtime-profile-v1`; errors cause nonzero process exit. | IV-A3 |
+| IV-D3 | `tools/fixtures/macos-drag.el:3–11` | Extend acceptance-only fixture with a named native target frame and an external Finder source, explicit geometry, ready JSON, native callback records and periodic drop/opened-file state. Environment `FEMACS_DRAG_REPORT`, `FEMACS_DRAG_READY`, `FEMACS_DRAG_FILE`; callback records live frame, numeric x/y and frame name. No rebinding native drag to a simulated Lisp call. | IV-A4 |
+| IV-D4 | NEW independent `tools/test-release-baseline.py`, `tools/fixtures/release-baseline.el` | Partner designs/writes bounded compatibility suite for user-style config, representative shipped packages, Unicode coding/save, search/undo/markers, errors/unwind and GC live roots. Run unchanged fixture on terminal and native batch products via strict ERT parser; require exact expected IDs, zero skips/failures, per-case timings and artifact fingerprints. Component tests cover profile schema, invalid markers/missing cases and output preservation. Final interfaces agreed in discussion before writing. | IV-A2/3 |
+| IV-D5 | `docs/current-state.md:1`, this section, `docs/runtime-modernization.md` and `docs/macos-tryout.md` | Add actual current outcomes, commands and exact scope, including open failures and resource/profile limitations. Preserve old failed evidence. No obsolete-code deletion is needed; any actual artifact cleanup gets its own maintenance report/manifest before removal. | IV-A5 |
+
+Target adds the two profile files, two independent test files and extends the acceptance fixture. Build/runtime production files stay unchanged unless final D exposes a confirmed defect; such fixes are collected into one batch and recorded here before affected revalidation.
+
+```mermaid
+flowchart LR
+ S[tracked frozen source export: no reference/cache] --> B[complete terminal and Cocoa build]
+ B --> F[hashes dumps signed trial app]
+ F --> C[new bounded ERT and existing keys files IME]
+ F --> D[actual native drag and cold launch: exact PID receipt]
+ F --> R[all seven rounds and real GC/heap/RSS observations]
+ C --> O[honest local release report]
+ D --> O
+ R --> O
+```
+
+### Sequence, ownership and acceptance
+
+- [x] IV-C0 complete source-bound design and resolve partner interface feedback (A).
+- [x] IV-C1 write all component/compatibility fixtures and native acceptance steps; no execution (B).
+- [x] IV-C2 implement all profile/drag/documentation changes; freeze the complete batch (C).
+- [x] IV-A1 build terminal and Cocoa from a fresh tracked snapshot with no ignored reference, old resources or object cache; bind export manifest, full build logs, final dump hashes and signature (D).
+- [ ] IV-A2 run exact bounded new ERT IDs on both products, existing authored differential/VM coverage as appropriate, native and terminal keys/file flows plus independently requested IME; no full-compatibility claim.
+- [x] IV-A3 strict parser/component cases pass; all profile rounds complete with every raw sample, median/MAD/p95, allocation/GC/heap/RSS data, source and artifact identity. A busy host remains a disclosed environment limitation.
+- [ ] IV-A4 actual configurable drag callback sees live target frame and numeric coordinates; file drop opens the expected owned file; cold-launch identifies the correct app and reaches a live native frame. Distinguish real event delivery from fixture assertions and document any unavailable layer.
+- [ ] IV-A5 independent frozen review, necessary consolidated fixes, user trial instructions, signed `[skip ci]` commit and immediate push; exact cleanup report if anything is removed.
+
+Primary owns profile tooling/fixture, native fixture, design/integration/docs and Git. Partner owns the two new test files once interfaces are accepted, then final read-only review and independent allowed tests. Neither runs tests or compilers before the entire batch is written. Native desktop tests are serialized. Heavy processes are controlled with the stable owning session; no cross-session budget or process cleanup. Do not auto-enable JIT, PGO, new GC, or delete platform trees.
+
+
+IV A discussion resolution: the partner explicitly agrees to the seven-item order and current 1/2/3/5 delivery. Accept its real-drop, exact-PID relocation and multi-frame IME additions. Keep the two agreed test filenames; do not create a second profile framework. Primary writes the profile implementation, partner writes independent contracts and compatibility. The `currentEvent!` concern is a real optional-unwrapping risk; `mouseExited` also clears the hover state, so simply skipping the call on nil would lose behavior. Planned production fix: `clearMouseFace(event: NSEvent?)` shares the existing body, writes timestamp zero for no event, and always clears the existing mouse face. AppKit `mouseExited(with:)` forwards its nonoptional event; `draggingUpdated` forwards `window?.currentEvent`. Add a `performDragOperation` trace to distinguish motion from actual native drop.
+
+Primary B additions (written, not run): optional two-frame mode in `tools/fixtures/macos-ime.el` adds selected frame name and second buffer text; `tools/fixtures/macos-input-source.rs::focus_window(pid,title)` binds the exact app/title through AX; `tools/test-macos-ime.py --mode multi` checks commits in A/B and pending-composition focus transfer without inter-buffer corruption. Focus-loss commit/cancel policy is observed explicitly, not invented as a universal IME rule. Existing `--mode all` retains its historical steady/switch semantics. Drag source is an external Finder window; do not create a fake source event or require an unused editor source frame. Native fixture records frame/paths and actual opened content. These are acceptance-only changes; source Lisp/data stay untouched.
+
+
+IV B receipt: independent `release-baseline.el` has rb01..rb10 groups (custom/config, shipped libraries/modes/tooling, Unicode I/O, search/narrowing, undo/atomic groups, markers/properties/registers, unwind, GC roots). Its rb01 manually loads isolated early/init/custom files in batch; it does **not** prove startup automatically discovers them. Primary `tools/local-acceptance.py::user_init_workflow(binary,work,gui=False)` additionally uses a fresh interactive PTY/native startup with `--init-directory`, no `-Q`, batch flag or fixture load: requires early-init/init/custom/startup-hook order, sentinel731, exact PID, native/terminal state and normal exit. Added before any execution. Native helper and profile runner are acceptance harnesses; no tests were run while writing them. Full new test ownership returned by the partner; production implementation is only the P-333 Swift helper/drop trace and current documentation.
+
+
+IV D first batch: existing stability components8/8. New component CLI initially failed7/7 because its custom per-test loop bypassed setUpClass; a standard-suite diagnosis passed7/7, then the repaired actual CLI passed7/7. Independent frozen review confirmed this root cause and the duplicate startup framework; one consolidated repair keeps the shared actual terminal/GUI startup workflow and the rb01 isolated custom/keymap test. Uncommitted-code recovery is archived as CLN-20261024-05. Independent bootstrap3/3 and ERT parser16/16 also passed. Original failures remain separate.
+
+The first clean export completed324 compiler legs, then failed with ENOENT before linking; the driver executable and earlier objects were no longer present while later objects remained. The actor/cause is unconfirmed, so this is a failed build, not a compiler/runtime pass or a source defect conclusion. Retry uses a new isolated persistent cache export, unchanged production sources and the same resource limits; no foreign cleanup task or process is altered.
+
+### Stage IV D delivery evidence and open native acceptance
+
+The second tracked-only export, initially without reference/build/cache inputs, completed both full terminal and Cocoa builds, generation, final dumps and app signing in 934.926 seconds. Peak accounted/RSS was 809009152 bytes, footprint 474138736 bytes; the controller exited zero and cleaned its tree. The export uses `.femacs-cache/stage4-source-2`; generated inputs are produced by the standard build, not copied from the optional reference. The app published at `dist/macos/Femacs.app` has the same executable and dump hashes as that accepted candidate. The previous root app is retained privately for rollback; no binaries enter Git. The normal root terminal remains the prior delivered executable; the new clean-export terminal is separately bound to these tests and its own resource tree, rather than moving a binary with embedded paths.
+
+Independent frozen review found no blocker in the accepted profile/startup/compatibility changes. The same corrected ten-group ERT fixture passed on new terminal, new Cocoa and the existing optional C reference: 30/30 groups, zero skips, equal deterministic observations. This is representative compatibility, not all upstream ERT, arbitrary configurations or plugin certification. The reference executable is only an audit comparator. Component results: bootstrap3/3, strict ERT parser16/16, stability8/8, new profile/release contracts7/7.
+
+The initial new-product local aggregate is **12/13**, not an all-green run: terminal26/26 keys, Unicode save/reopen, native25/26 keys, native file/clipboard/GC flow, signatures, batch checks, and real interactive terminal/Cocoa config discovery all passed. Config discovery observes early-init/init/custom/startup-hook order, sentinel731, exact PID and normal exit; the corrected PTY owns a controlling terminal. The remaining synthetic C-g recovery case exposed a prefix-cancel race. The harness now observes pending `C-x`, sends C-g and observes an empty prefix before C-a; the targeted rerun passed with point1, `move-beginning-of-line` and normal exit. Original failures remain intact. No runtime key behavior was changed to fit a test.
+
+Single-window physical-key IME steady/source-switch runs passed Chinese composition, commit, cancellation, minibuffer composition/cancellation, save and normal exit; original input source restored. Multi-frame `--mode multi` remains **unaccepted**: frame A succeeds, native window cycling selects B, but the automated B run inserts ASCII without a marked composition. A separate manual probe observed B marked composition, which is narrower than the complete required workflow. AXMain/Raise and a global-event attempt did not settle the cause and were withdrawn; do not call this a proven product defect or a proven harness-only defect. Existing `--mode all` continues to mean the established steady/switch pair, not multi-frame acceptance.
+
+The actual external Finder drag attempt was interrupted by the desktop being locked; the owned test process was closed. There is no successful motion/drop/opened-file receipt, so IV-A4 remains open. P-333 removes the nil optional unwrap in code and is present in the fully built product, but source review and build success do not prove external drag behavior.
+
+The relocated, strict-signature-verified app passed LaunchServices `open -n` with its original source export temporarily unavailable: exact new executable/PID, native frame, expected document bytes and all active resource directories inside the relocated app. The source export was restored and owned process closed. This proves that bounded startup/file-open case, **not Finder double-click or unlocked visual interaction**. LaunchServices reparents the app outside the controller tree: this already measured, bounded lightweight `-Q` invocation used exact PID/birth/path cleanup; no whole-tree footprint measurement is claimed for this one case.
+
+The seven-round Lisp/GC results and environment limits are recorded in [runtime-modernization.md](runtime-modernization.md). Busy-host data is not a speedup or quiet-host promotion baseline. No native backend, JIT, PGO default or new GC was enabled.
+
+The independent reviewer also identified an existing untested no-controlling-TTY fatal diagnostic path in `src/term.rs`: `vfatal` argument forwarding and terminal cleanup ownership require a separate source-bound fix and negative-path test. Normal PTY/native startup passed; neither that fact nor this report claims the abnormal path is fixed. Keep it in the next repair list with multi-frame input and external drag.
+
+Cleanup records: [CLN-20261024-05](../maintenance/cleanup/reports/2026-10-24-05-startup-harness.md) archives duplicate startup/test-helper withdrawals and fixture repairs, with isolated recovery4/4 hashes; [CLN-20261024-06](../maintenance/cleanup/reports/2026-10-24-06-build-artifacts.md) removes192 idle compiled/cache files from the first failed export, logical5336495 bytes, allocated5828608 bytes. Raw logs, failures, source/data, active candidate resources and trial products are preserved. Neither cleanup proves a system-wide free-space delta.
+
+Private raw evidence: `build/acceptance/stage4-final-baseline`, `stage4-profile-final`, `stage4-local-1`, `stage4-gui-cancel-2`, `stage4-ime-multi-6`, `stage4-ime-multi-7`, `stage4-drag-1`, `stage4-cold-1` and the two `stage4-*-build-2.log` files. They retain process/host details and are not committed. Stage IV's native acceptance stays open until the missing real workflows pass; the delivered tools/build/profile results must not be described as completing all Stage IV acceptance.
+
+Final path/prose review removed three CLI help wording violations and replaced a literal profiling cwd with its isolated owned HOME. Affected profile rerun retained42+7 samples, stable13 artifact identities and cleanup success; quiet=false at load/core1.0180, recorded separately in `runtime-modernization.md`. No GUI/ERT rerun was implied by those text/cwd changes. Prose gate then reports zero failures; final component CLI7/7, cleanup identities/links and recovery4/4 pass. Staged path candidates were semantically reviewed (dynamic historical placeholders, prose/API notation, relative joins and interpreter directives), with private machine/session identifiers excluded.

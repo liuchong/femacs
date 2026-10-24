@@ -4,7 +4,13 @@
 `docs/ports/*.md`（由 `tools/extract-abi.py <c>` 生成后手勾），文件/行数总账由
 `tools/gen-port-map.py`、`tools/gen-port-inventory.py` 生成，禁止手改。
 
-## 1. 当前数字（每次提交后核对）
+## 最新交付补充：2026-10-24 Stage IV
+
+本轮双产品独立完整构建成功；新终端/新Cocoa/可选参照的十组ERT为30/30、零跳过、确定性观测一致。真实配置发现、终端按键/文件、原生文件/剪贴板/单窗口输入法通过；初轮总表12/13的C-g竞争由明确前缀回执修正并定向复验通过。七轮Lisp/GC画像已留存，quiet=false，不作性能升级宣称。图形试用包已发布至正常路径；搬移后的LaunchServices启动及文件打开通过。
+
+**仍有缺口**：锁屏使实际Finder外部拖放未完成；多窗口第二窗口组字的自动化失败根因未定；无控制TTY的fatal诊断/清理路径尚待单独修复。Stage IV原生验收未全部完成，不能把下面历史6/8、覆盖数或本轮代表性用例当成全面功能等价。详细证据、环境及资源口径见[现代化手册](modernization.md#stage-iv-d-delivery-evidence-and-open-native-acceptance)。本轮清理/撤回记录[CLN-20261024-05](../maintenance/cleanup/reports/2026-10-24-05-startup-harness.md)与[CLN-20261024-06](../maintenance/cleanup/reports/2026-10-24-06-build-artifacts.md)，含恢复补丁/前后身份和192项逐文件删前哈希。旧goal不恢复，未使用远端CI。
+
+## 1. 历史数字（保留当时口径，最新状态见上方）
 
 **现状（2026-10-18，status 4.682 权威读法）**：`python3 tools/extract-abi.py --all` = **590 done / 0 failing** ✓（`gate-fast` 的 inventory 步在 4.682 同样 exit 0 ✓）；完成定义**6/8 = 75%** ✓（第 1/2/3/4/5/8 条达成 ✓、第 6 条只差模拟器冒烟 ✓、第 7 条按用户决定记未达 ✓，逐条命令见 `docs/current-state.md`）；行为面**默认选择器**见 `docs/baseline/ert-sweep-default.tsv`（**same 552 / both-fail 7 / crashed 5 / port-worse 0** ✓）、`all` 档见 `docs/baseline/ert-sweep.tsv`（**same 546 / both-fail 11 / crashed 6 / port-worse 1** = 上游 `:unstable` ✓）；已知红一项：`xtask gate-probes`（`spikes/lisp-abi-probe.sh` 的 C 侧两条 cfg 门声明，见 `docs/current-state.md`）✗。下面 2026-10-04 起的历史条目保留原读数 ✓，**不再代表现状** ✗。
 
