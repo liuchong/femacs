@@ -33,10 +33,10 @@ class Cases(unittest.TestCase):
   p=self.out/'existing';p.mkdir();(p/'evidence').write_text('retain')
   with self.assertRaises((FileExistsError,ValueError)):ime.new_output(p)
   self.assertEqual((p/'evidence').read_text(),'retain')
- def test_historical_gate_requires_explicit_opt_in(self):
-  import subprocess
-  p=subprocess.run(['bash',str(ROOT/'tools/verify-dod.sh')],cwd=self.out,capture_output=True,text=True)
-  self.assertEqual(p.returncode,2);self.assertIn('local-acceptance.py',p.stderr)
+ def test_retired_historical_gate_has_current_replacement(self):
+  self.assertFalse((ROOT/'tools/verify-dod.sh').exists())
+  self.assertTrue((ROOT/'tools/local-acceptance.py').is_file())
+  self.assertIn('verify-dod.sh',(ROOT/'docs/retired-scaffolding.md').read_text())
  def test_clipboard_boundary_forces_utf8_without_global_locale_change(self):
   from unittest import mock
   import os

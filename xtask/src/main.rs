@@ -12,6 +12,7 @@ use std::path::{Path, PathBuf};
 use std::process::{exit, Command};
 
 mod bundle;
+mod check_units;
 mod macos;
 mod standalone;
 
@@ -210,6 +211,7 @@ fn main() {
         },
         "layout-check" => layout_check(),
         "build-tu" => build_tu(args.get(1)),
+        "check-units" => check_units::run(args.get(1)),
         // Compile every finished unit without running a gate or a program: this is the
         // object half of a PGO phase, where executing temacs would add unwanted profiles.
         "build-units" => match build_finished_tus() {
@@ -244,7 +246,7 @@ fn main() {
         _ => {
             println!(
                 "usage: xtask <build-terminal|build-macos|generate-resources|link-owned|gen-config|layout-asserts|layout-check|build-tu <c-file>|\
-                 build-units|gate-fast|gate-probes|dead-arms|gate-load [--report]|\
+                 build-units|check-units [list]|gate-fast|gate-probes|dead-arms|gate-load [--report]|\
                  link-program <c-file>|dump|gate-full>"
             );
             0
@@ -3864,8 +3866,6 @@ fn buildable_units(units: Vec<String>) -> Vec<String> {
 }
 
 fn build_finished_tus() -> Result<(), String> {
-    let mut flags = unit_codegen_flags();
-    flags.extend(pgo_codegen_flags());
     let mut units = buildable_units(finished_units()?);
     if std::env::var_os("FEMACS_MACOS_GUI").is_some() || std::env::var_os("FEMACS_RELEASE_BUILD").is_some() {
         let active = macos::active_objects()?;
@@ -3881,21 +3881,34 @@ fn build_finished_tus() -> Result<(), String> {
             else { active.contains(&format!("{stem}.o")) }
         });
     }
+    build_selected_units(units, &units_dir().join("units"))
+}
+
+fn build_selected_units(units: Vec<String>, materialization: &Path) -> Result<(), String> {
+    let mut flags = unit_codegen_flags();
+    flags.extend(pgo_codegen_flags());
     let mut built = 0usize;
     let mut failed: Vec<String> = Vec::new();
+    let target = std::env::var("FEMACS_TARGET").ok().filter(|v| !v.is_empty());
     fs::create_dir_all(units_dir()).ok();
     for unit in &units {
         let stem = Path::new(unit).file_stem().unwrap_or_default().to_string_lossy().to_string();
         let cname = crate_name (&stem);
-        let out = units_dir().join(format!("{stem}.o"));
-        let dir = units_dir().join("units").join(&stem);
+        let out = check_units::object_path(&units_dir(), &stem, false, target.as_deref());
+        let dir = materialization.join(&stem);
         let root = match materialize(Path::new(unit), &dir) {
             Ok(p) => p,
             Err(e) => return Err(e),
         };
         let mut normal_cmd = rustc_cmd();
         for cfg in config_features() { normal_cmd.arg("--cfg").arg(cfg); }
-        if let Some(t) = std::env::var_os("FEMACS_TARGET") { normal_cmd.arg("--target").arg(t); }
+        if let Some(t) = &target {
+            normal_cmd.arg("--target").arg(t);
+            if t.contains("linux") { normal_cmd.arg("-C").arg(format!("linker={REPO}/tools/zig-linux-linker.sh")); }
+        }
+        if stem == "abi_shim" && std::env::var_os("FEMACS_MACOS_GUI").is_some() {
+            normal_cmd.arg("--cfg").arg("feature=\"dispextern_face_records\"");
+        }
         let status = normal_cmd
             .args(["--edition", "2024", "--crate-type", "lib", "--emit", "obj",
                    "--crate-name", &cname])
@@ -3914,7 +3927,7 @@ fn build_finished_tus() -> Result<(), String> {
         // `eassert!`/`eassume!` are `#[cfg (enable_checking)]`: without this pass their
         // bodies (die, stringify!, the conditions) are never compiled at all, so a
         // checking build is the only way to see them (review C's F4).
-        let checked = units_dir().join(format!("{stem}.checking.o"));
+        let checked = check_units::object_path(&units_dir(), &stem, true, target.as_deref());
         let mut check_cmd = rustc_cmd ();
         check_cmd
             .args(["--edition", "2024", "--crate-type", "lib", "--emit", "obj",
@@ -3929,10 +3942,10 @@ fn build_finished_tus() -> Result<(), String> {
             {
                 check_cmd.arg ("--cfg").arg (cfg);
             }
-        if let Some (t) = std::env::var ("FEMACS_TARGET").ok ().filter (|v| ! v.is_empty ())
-            {
-                check_cmd.arg ("--target").arg (t);
-            }
+        if let Some(t) = &target {
+            check_cmd.arg("--target").arg(t);
+            if t.contains("linux") { check_cmd.arg("-C").arg(format!("linker={REPO}/tools/zig-linux-linker.sh")); }
+        }
         if stem == "abi_shim" && std::env::var_os("FEMACS_MACOS_GUI").is_some() {
             check_cmd.arg("--cfg").arg("feature=\"dispextern_face_records\"");
         }

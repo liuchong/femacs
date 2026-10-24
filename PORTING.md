@@ -1627,3 +1627,8 @@ P-326 验收补充：本机 Cocoa app 与终端经典输入已实际运行交付
 ## P-329: Local delivery integrity before modernization (2026-10-24)
 
 The user authorizes ordered modernization, with the primary developer integrating independent tests and review. Stage I fixes configured Cocoa drag invocation, strict per-test ERT accounting and explicit GC mode, isolated verified app publication, and evidence-led IME diagnostics. Stages II/III follow only after this stable baseline: deliberate legacy retirement/tooling renewal, then measured Lisp runtime/compiler/GC work. The prior transcription shape is a baseline, not a permanent ban on the new authorization. Preserve observable Lisp semantics, existing user data and read-only reference inputs. No remote CI is used; source delivery carries the skip-ci marker. Plan, exact interfaces and acceptance are in docs/modernization.md. New implementation is not yet an acceptance claim.
+
+
+## P-330: retire obsolete bring-up tools, retain measured runtime evidence (2026-10-24)
+
+Stage II removes only the six paths recorded in docs/retired-scaffolding.md, with baseline recovery through Git. Python owns measurement/data comparison; Rust xtask remains the build/link owner. Shell compatibility launchers contain no policy or nested controller. Reference comparison is opt-in and rejects equal failures; new median-based baselines cannot silently reuse historical minimum-only tables. No platform is retired without an explicit support decision; raw data, native platform bridges and licenses remain. Stage III must use real editor measurements rather than revive the rejected asm bridge or infer a GC design from another language's name.

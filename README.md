@@ -72,7 +72,7 @@ source-switch composition, require exact expected text and preserve failed attem
 callback tracing is normally off; `FEMACS_INPUT_TRACE` opts one process into a bounded private
 trace file (up to 1 MiB), which may contain typed text and belongs in ignored local evidence.
 App publication builds and verifies a separate staged bundle before replacing an existing app.
-The old `verify-dod.sh` is historical and requires explicit `--historical-audit`; it is not the current delivery gate.
+Obsolete bring-up aggregators have been retired; see [the retirement ledger](docs/retired-scaffolding.md).
 Differential ERT remains an optional audit: `check-ert.py` is strict by default and
 `--collect-only` explicitly records known debt without claiming a passing gate.
 
@@ -93,3 +93,29 @@ Differential ERT remains an optional audit: `check-ert.py` is strict by default 
 
 femacs is distributed under the **GNU General Public License, version 3 or later**
 (`GPL-3.0-or-later`). The full text is in [LICENSE](LICENSE).
+
+## Runtime measurements and optional reference audits
+
+After building, run these commands under the resource controller. No reference program
+is needed to measure the current editor, and no command invokes a remote CI service.
+
+```sh
+python3 tools/bench.py --rounds 5 --out build/bench/current
+# Optional comparison against an existing reference executable:
+python3 tools/bench.py --ref build/emacs-ref/src/emacs --out build/bench/paired
+python3 tools/differential.py --out build/acceptance/differential-run
+```
+
+The measurement records all round samples, median/MAD/IQR and program/dump/corpus hashes.
+Ten in-process cases retain the explicitly named minimum-of-five metric; startup is a
+separate process-wall measurement. `--save FILE` creates a new baseline when the host is
+quiet (`--force` explicitly overrides that guard); `--gate FILE` rejects incompatible old
+minimum-only tables. It is a regression check against the candidate's own recorded
+median, not proof that it is faster than another implementation. `--ref` alternates
+program order across rounds. Existing `bench.sh`, `smoke.sh` and `differential.sh` remain
+small argument-forwarding launchers. Differential comparison requires both processes to
+exit normally; equal crashes or an empty corpus fail. Every output directory must be new.
+
+Explicit translation-unit lists use `cargo run -p xtask -- check-units [list]`,
+with the same configured normal and checking compiler as full builds. The legacy
+`check-all-units.sh` only forwards arguments; it no longer deletes shared unit trees.

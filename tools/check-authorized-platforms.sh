@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 # The acceptance surface the user authorised: macOS (real machine) and Android (structure).
 #
 # One command, fail-fast, four claims:
@@ -19,9 +19,10 @@
 # step (`tools/try-android-emulator.sh`, printed at the end with a copy-pasteable command).
 # The runtime profile holds QEMU's own footprint by itself (R38: 4 GiB start, 16 GiB hard cap),
 # so the old E1/E2/E3 budget question is closed (docs/decisions-needed.md).
-set -u
+set -uo pipefail
 REPO=$(cd "$(dirname "$0")/.." && pwd)
-APK_DIR=${FEMACS_APK_DIR:-/tmp/femacs-apk}
+APK_DIR=${FEMACS_APK_DIR:-$REPO/build/android/apk}
+mkdir -p "$REPO/build/acceptance/platform-audit"
 status=0
 
 echo "== macOS: smoke =="
@@ -31,7 +32,7 @@ if bash "$REPO/tools/smoke.sh" 2>&1 | tail -1; then :; else status=1; fi
 # build and the bytes must match.  `tools/smoke.sh` is the hand-picked 11; this is the growing
 # corpus, so it runs here rather than only by hand (status 4.893).
 echo "== macOS: differential =="
-DIFF_LOG=$(mktemp "${TMPDIR:-/tmp}/femacs-diff-gate.XXXXXX")
+DIFF_LOG=$(mktemp "$REPO/build/acceptance/platform-audit/differential.XXXXXX")
 if bash "$REPO/tools/differential.sh" > "$DIFF_LOG" 2>&1; then
   tail -1 "$DIFF_LOG"
 else
@@ -43,18 +44,18 @@ fi
 rm -f "$DIFF_LOG"
 
 echo "== Android: gate-android =="
-if (cd "$REPO" && CARGO_TARGET_DIR=${CARGO_TARGET_DIR:-/tmp/xt-cargo} \
+if (cd "$REPO" && CARGO_TARGET_DIR=${CARGO_TARGET_DIR:-$REPO/build/cargo} \
       cargo run -q -p xtask -- gate-android 2>&1 | tail -1); then :; else status=1; fi
 
 echo "== Android: native library =="
 (
   cd "$REPO" || exit 1
-  FEMACS_CONFIG=android-arm64 CARGO_TARGET_DIR=${CARGO_TARGET_DIR:-/tmp/xt-cargo} \
+  FEMACS_CONFIG=android-arm64 CARGO_TARGET_DIR=${CARGO_TARGET_DIR:-$REPO/build/cargo} \
     cargo run -q -p xtask -- gen-config >/dev/null || exit 1
   # The objects are a build product and are cleaned between rounds, so build them here rather
   # than depending on a sweep that ran earlier in the session.
   FEMACS_CONFIG=android-arm64 FEMACS_TARGET=aarch64-linux-android \
-    CARGO_TARGET_DIR=${CARGO_TARGET_DIR:-/tmp/xt-cargo} \
+    CARGO_TARGET_DIR=${CARGO_TARGET_DIR:-$REPO/build/cargo} \
     bash "$REPO/tools/check-all-units.sh" \
     "$REPO/docs/baseline/frozen-build-sources-android.txt" >/dev/null || exit 1
   # The gnulib `lib/` layer ships as `libgnu.a` in C, so it is in neither source list; the
@@ -65,17 +66,17 @@ echo "== Android: native library =="
   for list in "$REPO/docs/baseline/lib-link-sources.txt" "$REPO/docs/baseline/lib-link-sources-android.txt"; do
     [ -f "$list" ] || continue
     FEMACS_CONFIG=android-arm64 FEMACS_TARGET=aarch64-linux-android \
-      CARGO_TARGET_DIR=${CARGO_TARGET_DIR:-/tmp/xt-cargo} \
+      CARGO_TARGET_DIR=${CARGO_TARGET_DIR:-$REPO/build/cargo} \
       bash "$REPO/tools/check-all-units.sh" "$list" >/dev/null || exit 1
   done
   FEMACS_CONFIG=android-arm64 FEMACS_TARGET=aarch64-linux-android \
-    CARGO_TARGET_DIR=${CARGO_TARGET_DIR:-/tmp/xt-cargo} \
+    CARGO_TARGET_DIR=${CARGO_TARGET_DIR:-$REPO/build/cargo} \
     cargo run -q -p xtask -- link-shared aarch64-linux-android 2>&1 | tail -1 || exit 1
   # `gen-config` above rewrote the tree's mirror (`src/include/config.rs`) with the Android
   # constants.  The frozen configuration is the one that belongs in git, so put it back here and
   # fail loudly if the tree does not return to its committed state: the first scripted run of this
   # file left the Android values behind, dirty, for the next session to find (measured 4.705).
-  FEMACS_CONFIG=darwin-arm64 CARGO_TARGET_DIR=${CARGO_TARGET_DIR:-/tmp/xt-cargo} \
+  FEMACS_CONFIG=darwin-arm64 CARGO_TARGET_DIR=${CARGO_TARGET_DIR:-$REPO/build/cargo} \
     cargo run -q -p xtask -- gen-config >/dev/null || exit 1
   git -C "$REPO" diff --quiet -- src/include/config.rs || {
     echo "   config.rs did not come back to the frozen configuration" >&2; exit 1; }
@@ -119,19 +120,17 @@ if python3 "$REPO/tools/check-android-assertions.py" --check \
 if [ ! -x "$REPO/build/port/asset-directory-tool" ] && [ ! -x "$REPO/build/port/lib-src/asset-directory-tool" ]; then
   echo "   asset-directory-tool is missing: building it"
   (cd "$REPO" && FEMACS_CONFIG=darwin-arm64 FEMACS_TARGET=aarch64-apple-darwin \
-     CARGO_TARGET_DIR=${CARGO_TARGET_DIR:-/tmp/xt-cargo} \
+     CARGO_TARGET_DIR=${CARGO_TARGET_DIR:-$REPO/build/cargo} \
      cargo run -q -p xtask -- link-program asset-directory-tool >/dev/null 2>&1) || {
      echo "   could not build asset-directory-tool" >&2; status=1; }
 fi
 
 echo "== Android: signed APK with the native library and the assets tree =="
-if JAVA_HOME=${JAVA_HOME:-/opt/homebrew/opt/openjdk@25} \
-   bash "$REPO/tools/check-android-kotlin.sh" --apk "$APK_DIR" --native "$SO" --assets 2>&1 \
+if bash "$REPO/tools/check-android-kotlin.sh" --apk "$APK_DIR" --native "$SO" --assets 2>&1 \
    | grep -E 'member: lib/arm64-v8a|assets: |^apk: ' ; then :; else status=1; fi
 if [ -f "$APK_DIR/emacs.apk" ]; then
   BT=$(ls -d "$HOME"/Library/Android/sdk/build-tools/* 2>/dev/null | tail -1)
-  if JAVA_HOME=${JAVA_HOME:-/opt/homebrew/opt/openjdk@25} \
-     "$BT/apksigner" verify "$APK_DIR/emacs.apk" >/dev/null 2>&1; then
+  if "$BT/apksigner" verify "$APK_DIR/emacs.apk" >/dev/null 2>&1; then
     echo "   signature: verified ($APK_DIR/emacs.apk)"
   else
     echo "   signature: FAILED" >&2; status=1

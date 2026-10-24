@@ -58,6 +58,7 @@ cargo run -p xtask -- build-macos
 
 - 只允许两种工具语言：构建/链接/闸门 = **Rust**（`xtask`）；生成物、清单、比对、门 = **Python**（`tools/`）。**不新增第三种**。
 - **确实必需的保留**：驱动器、"与参照配方的适配器"（例 `admin/charsets/*.awk`，它们是参照配方的输入，换语言会改变生成物字节）、`test/**` 下的测试夹具。
+- **薄兼容入口**：既有 shell 入口只转发至 Python 测量/比对工具，不再承载策略、不嵌套资源执行器。按用途保留平台桥接与原始输入生成器；不因语言不是 Rust 而删除。
 - **过时的丢弃**：参照自己的构建脚手架在端口里没有读者，直接丢弃——但**必须逐条登记**到 `docs/retired-scaffolding.md`（路径 / 原用途 / 取代者 / 日期 / 提交），**不许静默删除**。
 
 ## 3 编译与资源纪律
@@ -102,9 +103,7 @@ cargo run -p xtask -- build-macos
 
 ## 7 速查
 
-- **历史一期复验（当前不用）**：`python3 ~/.assistant/skills/controlled-run/scripts/run.py --profile runtime -- bash tools/verify-dod.sh --historical-audit --full`
-  —— 按 `docs/current-state.md` 的八行逐项打印 `ok`/`FAIL`（4.981 实测全绿，1884 s / 峰值 1.12 GB），
-  缺 `libgnu.a` / `asset-directory-tool` 时自愈；第 7 行不运行且会打印"按用户决定暂挂、记未达"。
+- **当前本地验收**：`python3 tools/local-acceptance.py --out build/acceptance/local-run`，先构建，整体在资源控制器下运行；实际图形/输入法层显式启用。旧一期聚合脚手架已退役，历史记录不作为当前命令。
 - **两条长扫**：`tools/l5-sweep.sh [--gc-stress] [--start-at N] [--chunk N]` —— L5 与强制 GC 压测共用，
   分块可续跑、每块独立 TSV；跑完把分块合成一张总表后删分块（P-190）。
 - **禁止启用 Codex Fast mode**：不得 `/fast on`、不得 `service_tier = "fast"`、不得 `[features].fast_mode = true`（无例外硬规则）。

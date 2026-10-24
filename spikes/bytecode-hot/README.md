@@ -1,7 +1,10 @@
 # Bytecode hot-leaf A/B (2026-10-21, rejected)
 
-This directory keeps the aarch64 `asm` hot-loop bridge from the P-324 experiment after it
-was detached from the production build.  It is not compiled or linked.
+This directory preserves the measured rejection of the aarch64 `asm` hot-loop bridge
+from P-324. The disconnected implementation was retired during modernization; its
+last source is recoverable from commit `809d0de3` at this directory's `bytecode_hot.rs`.
+It is not compiled or linked. Historical build recipes require that historical source
+snapshot and are not current build entry points.
 
 Design: `exec_byte_code` called a leaf asm loop with `top/pc/vectorp/bytestr_data/
 const_length/Qt/Qnil/Qunbound/lispsym`; the loop consumed only opcodes whose C bodies
