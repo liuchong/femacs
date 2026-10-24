@@ -220,3 +220,10 @@ future runtime work is constrained by public ABI/opcode compatibility and the ac
 ten semantic groups, not by spelling the old implementation identically. Retired
 experimental build flags remain absent. The final driver-only contract run passes
 9/9; runtime execution/observation code and the accepted Lisp fixture are unchanged.
+
+
+Cleanup provenance is now maintained separately as engineering records: [retired
+uncommitted dispatch experiment](../maintenance/cleanup/reports/2026-10-24-03-dispatch-experiment.md)
+(inert patch and frozen file identities), [685 generated artifacts](../maintenance/cleanup/reports/2026-10-24-04-generated-artifacts.md)
+(per-path byte inventory and explicit missing content hashes), and the [cleanup ledger](../maintenance/cleanup/LOG.md).
+These reports supplement the original bounded results; archiving them performs no new cleanup or runtime change.

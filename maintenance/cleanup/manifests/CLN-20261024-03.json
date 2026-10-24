@@ -1,0 +1,36 @@
+{
+  "baseline_ref": "2415a335836d0ad81de2564a82301bdceefb8145",
+  "final_ref": "c119748bfa6cb9d5ac39bde602c22702623fa44c",
+  "patch": "../patches/CLN-20261024-03.patch",
+  "patch_sha256": "aedcdc42f655d316c9b1b2570d4d01eadb73b9048c3a047ce1b08bf40e57b073",
+  "files": [
+    {
+      "path": "src/bytecode.rs",
+      "baseline_sha256": "e16fd8813ccc59ed469ffd9af43e2e688b4fe33cc3862d5238570fbf7eee2c14",
+      "experimental_sha256": "e5bdb4cff217aee4b6e42c36678a2cf84f49e924e5ef1482d8d27f03f904231c",
+      "frozen_experimental_sha256": "e5bdb4cff217aee4b6e42c36678a2cf84f49e924e5ef1482d8d27f03f904231c",
+      "final_action": "restore baseline"
+    },
+    {
+      "path": "xtask/src/main.rs",
+      "baseline_sha256": "e7ba6fd56ba1e6adcd97f64a28c544d5726f2203d0ab9f8d873d7dbf91caedca",
+      "experimental_sha256": "55eb5065b8532498113a5818ec9e7daba6399b9e80970b3d760a4462f1969d6e",
+      "frozen_experimental_sha256": "55eb5065b8532498113a5818ec9e7daba6399b9e80970b3d760a4462f1969d6e",
+      "final_action": "restore baseline"
+    },
+    {
+      "path": "xtask/Cargo.toml",
+      "baseline_sha256": "175ae8d621ea18f1cdebc1f2374fc01175458a18421ae0fb9a57a086ca873cff",
+      "experimental_sha256": "40a6805cdaf61269d7f88922fa62a945821431618c69fd69607b3c07b9fd0905",
+      "frozen_experimental_sha256": "40a6805cdaf61269d7f88922fa62a945821431618c69fd69607b3c07b9fd0905",
+      "final_action": "restore baseline"
+    },
+    {
+      "path": "xtask/src/vm_dispatch.rs",
+      "baseline_sha256": null,
+      "experimental_sha256": "0c7c77cb54ee3d5794d9a3c0b505e3cee891e1cd0bb851a7d4516e8adf6364cb",
+      "frozen_experimental_sha256": "0c7c77cb54ee3d5794d9a3c0b505e3cee891e1cd0bb851a7d4516e8adf6364cb",
+      "final_action": "remove uncommitted file"
+    }
+  ]
+}

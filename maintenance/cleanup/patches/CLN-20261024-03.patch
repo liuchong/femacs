@@ -1,0 +1,466 @@
+diff --git a/src/bytecode.rs b/src/bytecode.rs
+--- a/src/bytecode.rs
++++ b/src/bytecode.rs
+@@ -1,7 +1,7 @@
+ // femacs: port of src/bytecode.c @ fd7afced403.
+ //
+-// One-to-one port (PORTING.md): same statements in the same order, same names (function,
+-// struct, struct field, macro, local), same control flow, same error model.  The two
++// Original transcription preserved the reference statement/error model. P-331 adds
++// a build-time direct-tail experiment with the state dispatcher retained by default. The two
+ // `DEFUN`s use `DEFUN!` (PORTING.md 5.1).  C's six non-`static` definitions
+ // (`init_bc_thread`, `free_bc_thread`, `mark_bytecode`, `exec_byte_code`,
+ // `get_byte_code_arity`, `syms_of_bytecode`) are external symbols, so they carry
+@@ -18,10 +18,11 @@
+ // `CASE (Bop):` call shape, but expand to `match` arms.  `NEXT` is C's "go to the next
+ // instruction", which in the switch-shaped arm is `break` out of the switch and round the
+ // `while (true)` loop again; the port's `NEXT` is the same back edge spelled `continue`.
+-// C's `goto L` are the switch body's shared tails; the port keeps each tail's statements
+-// once, at their C position, as the arms of a `match goto` run at the head of the dispatch
+-// loop, and each jump is `goto = L;`.  This is the "loop + state" spelling PORTING.md 2.2
+-// asks for, and the deviations are recorded in docs/ports/bytecode.md and
++// Shared tails now have one macro source body inside the native frame. The state/default
++// configuration still assigns a pending label and handles it at the next loop head;
++// vm_direct_dispatch invokes that body at its opcode arm. NEXT explicitly continues the
++// outer dispatch loop, including from a switch search. Historical deviations remain in
++// docs/ports/bytecode.md and
+ // docs/ports/macro-body-notes.tsv (the tokens C's live threaded text has that the
+ // switch-shaped port cannot spell).
+ //
+@@ -507,17 +508,26 @@
+ /* C's labels (`varref`, `varset`, `varbind`, `docall`, `dounbind`, `op_branch`,
+    `pushhandler`, `exit`) have no Rust counterpart, so the port names them with C's own
+    label text: `goto` holds the pending label and each arm that C sends to one sets it.
+-   The tail bodies live at the head of the dispatch loop, in C's order, and the jumping
+-   arms are the `match` arms that set `goto` (PORTING.md 2.2).  (`setup_frame:` is a Rust
++   Both configurations use the same in-frame tail macros; only state/default keeps
++   the label variable and top-of-loop match (P-331).  (`setup_frame:` is a Rust
+    loop label, so it needs no constant.)  */
++#[cfg(not(feature = "vm_direct_dispatch"))]
+ const NONE: c_int = 0;
++#[cfg(not(feature = "vm_direct_dispatch"))]
+ const VARREF: c_int = 1;
++#[cfg(not(feature = "vm_direct_dispatch"))]
+ const VARSET: c_int = 2;
++#[cfg(not(feature = "vm_direct_dispatch"))]
+ const VARBIND: c_int = 3;
++#[cfg(not(feature = "vm_direct_dispatch"))]
+ const DOCALL: c_int = 4;
++#[cfg(not(feature = "vm_direct_dispatch"))]
+ const DOUNBIND: c_int = 5;
++#[cfg(not(feature = "vm_direct_dispatch"))]
+ const OP_BRANCH: c_int = 6;
++#[cfg(not(feature = "vm_direct_dispatch"))]
+ const PUSHHANDLER: c_int = 7;
++#[cfg(not(feature = "vm_direct_dispatch"))]
+ const EXIT: c_int = 8;
+ 
+ #[unsafe(no_mangle)]
+@@ -539,6 +549,7 @@
+   let mut op: ptrdiff_t = 0;
+   let mut arg: ptrdiff_t = 0;
+   let mut type_: handlertype = CATCHER;
++  #[cfg(not(feature = "vm_direct_dispatch"))]
+   let mut goto: c_int = NONE;
+ 
+   /* C 271-297 defines these six macros at file scope, over the `top`/`pc` locals of
+@@ -646,25 +657,22 @@
+      (P-57).  The tokens the threaded text has and this text cannot spell are recorded in
+      docs/ports/macro-body-notes.tsv.  */
+   macro_rules! CASE { ($op:pat) => { $op } }
+-  macro_rules! NEXT { () => { continue } }
+   macro_rules! FIRST { ($op:expr, { $($body:tt)* }) => { match $op { $($body)* } } }
+   macro_rules! CASE_DEFAULT { () => { _ } }
+   macro_rules! CASE_ABORT { () => { 0 } }
+ 
+   'dispatch: loop
+     {
+-      /* C's shared tails, in C's order: `varref`, `varset`, `varbind`, `docall`,
+-	 `dounbind`, `exit`, `op_branch` and `pushhandler`.  Each is entered with `goto` set
+-	 by the arm that C's text sends there.  */
+-      if goto != NONE
+-	{
+-	  let target: c_int = goto;
+-	  goto = NONE;
+-	  match target
+-	    {
+-	      /* C: `varref:` */
+-	      VARREF =>
+-		{
++      macro_rules! NEXT { () => { continue 'dispatch } }
++      macro_rules! GOTO {
++        ($label:ident) => {{
++          #[cfg(feature = "vm_direct_dispatch")] { $label!(); }
++          #[cfg(not(feature = "vm_direct_dispatch"))] { goto = $label; }
++        }}
++      }
++
++      /* Shared varref: body; kept in this native frame. */
++      macro_rules! VARREF { () => {{
+ 		  let v1: Lisp_Object = *vectorp.offset (arg);
+ 		  let mut v2: Lisp_Object;
+ 		  if ((*XBARE_SYMBOL (v1)).u.s.bits & SYMBOL_REDIRECT_MASK) >> SYMBOL_REDIRECT_SHIFT
+@@ -673,10 +681,10 @@
+ 		    { v2 = Fsymbol_value (v1); }
+ 		  PUSH! (v2);
+ 		  NEXT! ();
+-		}
+-	      /* C: `varset:` */
+-	      VARSET =>
+-		{
++
++      }} }
++      /* Shared varset: body; kept in this native frame. */
++      macro_rules! VARSET { () => {{
+ 		  let sym: Lisp_Object = *vectorp.offset (arg);
+ 		  let val: Lisp_Object = POP! ();
+ 		  if ((*XBARE_SYMBOL (sym)).u.s.bits & SYMBOL_REDIRECT_MASK) >> SYMBOL_REDIRECT_SHIFT
+@@ -687,17 +695,17 @@
+ 		  else
+ 		    { set_internal (sym, val, Qnil (), SET_INTERNAL_SET); }
+ 		  NEXT! ();
+-		}
+-	      /* C: `varbind:` */
+-	      VARBIND =>
+-		{
++
++      }} }
++      /* Shared varbind: body; kept in this native frame. */
++      macro_rules! VARBIND { () => {{
+ 		  /* Specbind can signal and thus GC.  */
+ 		  specbind (*vectorp.offset (arg), POP! ());
+ 		  NEXT! ();
+-		}
+-	      /* C: `docall:` */
+-	      DOCALL =>
+-		{
++
++      }} }
++      /* Shared docall: body; kept in this native frame. */
++      macro_rules! DOCALL { () => {{
+ 		  DISCARD! (arg);
+ 		  maybe_quit ();
+ 
+@@ -753,21 +761,21 @@
+ 
+ 		  *top = val;
+ 		  NEXT! ();
+-		}
+-	      /* C: `dounbind:` */
+-	      DOUNBIND =>
+-		{
++
++      }} }
++      /* Shared dounbind: body; kept in this native frame. */
++      macro_rules! DOUNBIND { () => {{
+ 		  unbind_to (specpdl_ref_add (SPECPDL_INDEX (), -arg), Qnil ());
+ 		  NEXT! ();
+-		}
+-	      /* C: `exit:` (the `goto exit` in `Breturn`) */
+-	      EXIT =>
+-		{
++
++      }} }
++      /* Shared exit: body; kept in this native frame. */
++      macro_rules! EXIT { () => {{
+ 		  break 'dispatch;
+-		}
+-	      /* C: `op_branch:` */
+-	      OP_BRANCH =>
+-		{
++
++      }} }
++      /* Shared op_branch: body; kept in this native frame. */
++      macro_rules! OP_BRANCH { () => {{
+ 		  if BYTE_CODE_SAFE! () && ! (arg >= 0 && arg < bytestr_length)
+ 		    { emacs_abort (); }
+ 		  let new_pc: *const c_uchar = bytestr_data.offset (arg);
+@@ -780,10 +788,10 @@
+ 		    }
+ 		  pc = new_pc;
+ 		  NEXT! ();
+-		}
+-	      /* C: `pushhandler:` */
+-	      PUSHHANDLER =>
+-		{
++
++      }} }
++      /* Shared pushhandler: body; kept in this native frame. */
++      macro_rules! PUSHHANDLER { () => {{
+ 		  let c: *mut handler = push_handler (POP! (), type_);
+ 		  (*c).bytecode_dest = FETCH2! () as c_int;
+ 		  (*c).bytecode_top = top;
+@@ -814,16 +822,33 @@
+ 		      pc = bytestr_data;
+ 		      PUSH! ((*c).val);
+ 		      /* C: `goto op_branch` */
+-		      goto = OP_BRANCH;
++		      GOTO!(OP_BRANCH);
++		      #[cfg(not(feature = "vm_direct_dispatch"))]
+ 		      NEXT! ();
+ 		    }
+ 
+ 		  NEXT! ();
+-		}
+-	      _ => { }
+-	    }
+-	  continue 'dispatch;
+-	}
++
++      }} }
++
++      // The experimental configuration contains no state-dispatch guard/match.
++      #[cfg(not(feature = "vm_direct_dispatch"))]
++      if goto != NONE {
++        let target: c_int = goto;
++        goto = NONE;
++        match target {
++          VARREF => VARREF!(),
++          VARSET => VARSET!(),
++          VARBIND => VARBIND!(),
++          DOCALL => DOCALL!(),
++          DOUNBIND => DOUNBIND!(),
++          EXIT => EXIT!(),
++          OP_BRANCH => OP_BRANCH!(),
++          PUSHHANDLER => PUSHHANDLER!(),
++          _ => {}
++        }
++        continue 'dispatch;
++      }
+ 
+       if BYTE_CODE_SAFE! () && ! valid_sp (bc, top)
+ 	{ emacs_abort (); }
+@@ -838,22 +863,22 @@
+ 	 we allow the code to be compiled both ways.  */
+       FIRST! (op,
+ 	{
+-	CASE! (Bvarref7) => { arg = FETCH2! (); goto = VARREF; }
++	CASE! (Bvarref7) => { arg = FETCH2! (); GOTO!(VARREF); }
+ 	CASE! (Bvarref)
+ 	  | CASE! (Bvarref1)
+ 	  | CASE! (Bvarref2)
+ 	  | CASE! (Bvarref3)
+ 	  | CASE! (Bvarref4)
+-	  | CASE! (Bvarref5) => { arg = op - Bvarref; goto = VARREF; }
++	  | CASE! (Bvarref5) => { arg = op - Bvarref; GOTO!(VARREF); }
+ 	/* This seems to be the most frequently executed byte-code
+ 	   among the Bvarref's, so avoid a goto here.  */
+-	CASE! (Bvarref6) => { arg = FETCH! (); goto = VARREF; }
++	CASE! (Bvarref6) => { arg = FETCH! (); GOTO!(VARREF); }
+ 	CASE! (Bgotoifnil) =>
+ 	  {
+ 	    let v1: Lisp_Object = POP! ();
+ 	    arg = FETCH2! ();
+ 	    if NILP (v1)
+-	      { goto = OP_BRANCH; NEXT! (); }
++	      { GOTO!(OP_BRANCH); #[cfg(not(feature = "vm_direct_dispatch"))] NEXT! (); }
+ 	    NEXT! ();
+ 	  }
+ 	CASE! (Bcar) =>
+@@ -895,9 +920,9 @@
+ 	  | CASE! (Bvarset2)
+ 	  | CASE! (Bvarset3)
+ 	  | CASE! (Bvarset4)
+-	  | CASE! (Bvarset5) => { arg = op - Bvarset; goto = VARSET; }
+-	CASE! (Bvarset7) => { arg = FETCH2! (); goto = VARSET; }
+-	CASE! (Bvarset6) => { arg = FETCH! (); goto = VARSET; }
++	  | CASE! (Bvarset5) => { arg = op - Bvarset; GOTO!(VARSET); }
++	CASE! (Bvarset7) => { arg = FETCH2! (); GOTO!(VARSET); }
++	CASE! (Bvarset6) => { arg = FETCH! (); GOTO!(VARSET); }
+ 	CASE! (Bdup) =>
+ 	  {
+ 	    let v1: Lisp_Object = TOP! ();
+@@ -905,47 +930,46 @@
+ 	    NEXT! ();
+ 	  }
+ 	/* ------------------ */
+-	CASE! (Bvarbind6) => { arg = FETCH! (); goto = VARBIND; }
+-	CASE! (Bvarbind7) => { arg = FETCH2! (); goto = VARBIND; }
++	CASE! (Bvarbind6) => { arg = FETCH! (); GOTO!(VARBIND); }
++	CASE! (Bvarbind7) => { arg = FETCH2! (); GOTO!(VARBIND); }
+ 	CASE! (Bvarbind)
+ 	  | CASE! (Bvarbind1)
+ 	  | CASE! (Bvarbind2)
+ 	  | CASE! (Bvarbind3)
+ 	  | CASE! (Bvarbind4)
+-	  | CASE! (Bvarbind5) => { arg = op - Bvarbind; goto = VARBIND; }
+-	CASE! (Bcall6) => { arg = FETCH! (); goto = DOCALL; }
+-	CASE! (Bcall7) => { arg = FETCH2! (); goto = DOCALL; }
++	  | CASE! (Bvarbind5) => { arg = op - Bvarbind; GOTO!(VARBIND); }
+ 	CASE! (Bcall)
+-	  | CASE! (Bcall1)
+-	  | CASE! (Bcall2)
+-	  | CASE! (Bcall3)
+-	  | CASE! (Bcall4)
+-	  | CASE! (Bcall5) => { arg = op - Bcall; goto = DOCALL; }
+-	CASE! (Bunbind6) => { arg = FETCH! (); goto = DOUNBIND; }
+-	CASE! (Bunbind7) => { arg = FETCH2! (); goto = DOUNBIND; }
++          | CASE! (Bcall1) | CASE! (Bcall2) | CASE! (Bcall3)
++          | CASE! (Bcall4) | CASE! (Bcall5) | CASE! (Bcall6) | CASE! (Bcall7) => {
++            // Decode once, then share one native DOCALL expansion site.
++            arg = match op { Bcall6 => FETCH!(), Bcall7 => FETCH2!(), _ => op - Bcall };
++            GOTO!(DOCALL);
++          }
++	CASE! (Bunbind6) => { arg = FETCH! (); GOTO!(DOUNBIND); }
++	CASE! (Bunbind7) => { arg = FETCH2! (); GOTO!(DOUNBIND); }
+ 	CASE! (Bunbind)
+ 	  | CASE! (Bunbind1)
+ 	  | CASE! (Bunbind2)
+ 	  | CASE! (Bunbind3)
+ 	  | CASE! (Bunbind4)
+-	  | CASE! (Bunbind5) => { arg = op - Bunbind; goto = DOUNBIND; }
++	  | CASE! (Bunbind5) => { arg = op - Bunbind; GOTO!(DOUNBIND); }
+ 	CASE! (Bgoto) =>
+ 	  {
+ 	    arg = FETCH2! ();
+-	    goto = OP_BRANCH;
++	    GOTO!(OP_BRANCH);
+ 	  }
+ 	CASE! (Bgotoifnonnil) =>
+ 	  {
+ 	    arg = FETCH2! ();
+ 	    if ! NILP (POP! ())
+-	      { goto = OP_BRANCH; NEXT! (); }
++	      { GOTO!(OP_BRANCH); #[cfg(not(feature = "vm_direct_dispatch"))] NEXT! (); }
+ 	    NEXT! ();
+ 	  }
+ 	CASE! (Bgotoifnilelsepop) =>
+ 	  {
+ 	    arg = FETCH2! ();
+ 	    if NILP (TOP! ())
+-	      { goto = OP_BRANCH; NEXT! (); }
++	      { GOTO!(OP_BRANCH); #[cfg(not(feature = "vm_direct_dispatch"))] NEXT! (); }
+ 	    DISCARD! (1);
+ 	    NEXT! ();
+ 	  }
+@@ -953,7 +977,7 @@
+ 	  {
+ 	    arg = FETCH2! ();
+ 	    if ! NILP (TOP! ())
+-	      { goto = OP_BRANCH; NEXT! (); }
++	      { GOTO!(OP_BRANCH); #[cfg(not(feature = "vm_direct_dispatch"))] NEXT! (); }
+ 	    DISCARD! (1);
+ 	    NEXT! ();
+ 	  }
+@@ -987,7 +1011,8 @@
+ 	      }
+ 	    else
+ 	      { /* C: `goto exit` */
+-		goto = EXIT;
++		GOTO!(EXIT);
++		#[cfg(not(feature = "vm_direct_dispatch"))]
+ 		NEXT! (); }
+ 	  }
+ 	CASE! (Bdiscard) =>
+@@ -1032,16 +1057,11 @@
+ 	    *top = internal_catch (TOP! (), Some (eval_sub), v1);
+ 	    NEXT! ();
+ 	  }
+-	CASE! (Bpushcatch) =>	/* New in 24.4.  */
+-	  {
+-	    type_ = CATCHER;
+-	    goto = PUSHHANDLER;
+-	  }
+-	CASE! (Bpushconditioncase) => /* New in 24.4.  */
+-	  {
+-	    type_ = CONDITION_CASE;
+-	    goto = PUSHHANDLER;
+-	  }
++	CASE! (Bpushcatch) | CASE! (Bpushconditioncase) => {
++            // One setjmp site in each configuration; keep handler/frame lifetime.
++            type_ = if op == Bpushcatch { CATCHER } else { CONDITION_CASE };
++            GOTO!(PUSHHANDLER);
++          }
+ 	CASE! (Bpophandler) =>	/* New in 24.4.  */
+ 	  {
+ 	    handlerlist! () = (*handlerlist! ()).next;
+@@ -1824,7 +1844,8 @@
+ 		      {
+ 			arg = XFIXNUM (HASH_VALUE (h, i as hash_idx_t));
+ 			/* C: `goto op_branch` (leaves the search) */
+-			goto = OP_BRANCH;
++			GOTO!(OP_BRANCH);
++			#[cfg(not(feature = "vm_direct_dispatch"))]
+ 			break;
+ 		      }
+ 		    i -= 1;
+@@ -1837,7 +1858,7 @@
+ 		  {
+ 		    arg = XFIXNUM (HASH_VALUE (h, i as hash_idx_t));
+ 		    /* C: `goto op_branch` */
+-		    goto = OP_BRANCH;
++		    GOTO!(OP_BRANCH);
+ 		  }
+ 	      }
+ 	    NEXT! ();
+diff --git a/xtask/src/main.rs b/xtask/src/main.rs
+--- a/xtask/src/main.rs
++++ b/xtask/src/main.rs
+@@ -15,6 +15,7 @@
+ mod check_units;
+ mod macos;
+ mod standalone;
++mod vm_dispatch;
+ 
+ const REPO: &str = ".";
+ 
+@@ -140,6 +141,12 @@
+ fn unit_codegen_flags () -> Vec<String>
+ {
+   let mut out: Vec<String> = UNIT_CODEGEN_FLAGS.iter ().map (|f| f.to_string ()).collect ();
++  let vm_mode = std::env::var("FEMACS_VM_DISPATCH").ok();
++  match vm_dispatch::flags(vm_mode.as_deref()) {
++      Ok(flags) => out.extend(flags),
++      Err(error) => { eprintln!("{error}"); exit(2); }
++  }
++  if let Some(mode) = vm_mode { println!("unit VM dispatch: {mode}"); }
+   if let Some (v) = std::env::var ("FEMACS_OPT_LEVEL").ok ().filter (|v| ! v.is_empty ())
+     {
+       if let Some (i) = out.iter ().position (|f| f.starts_with ("opt-level="))
+diff --git a/xtask/Cargo.toml b/xtask/Cargo.toml
+--- a/xtask/Cargo.toml
++++ b/xtask/Cargo.toml
+@@ -27,6 +27,8 @@
+ # gnulib-derived names such as `cplusplus`, the `@PLACEHOLDER@` templates), the first site that
+ # uses the feature.
+ [features]
++# Owned experimental dispatcher; runtime compiler selection uses FEMACS_VM_DISPATCH.
++vm_direct_dispatch = []
+ __gnu_library__                            = []  # __gnu_library__ (src/gmalloc.c 1462 and 1872; registered by the integrator in 3.553)
+ __uclibc__                                 = []  # __uclibc__ (src/gmalloc.c 1462; registered by the integrator in 3.553)
+ _dos_ds                                    = []  # _dos_ds (src/msdos.c)
+diff --git a/xtask/src/vm_dispatch.rs b/xtask/src/vm_dispatch.rs
+new file mode 100644
+--- /dev/null
++++ b/xtask/src/vm_dispatch.rs
+@@ -0,0 +1,30 @@
++//! Build-time VM dispatch selection; state remains the default.
++
++pub(super) fn flags(mode: Option<&str>) -> Result<Vec<String>,String> {
++    match mode {
++        None | Some("") | Some("state") => Ok(Vec::new()),
++        Some("direct") => Ok(vec!["--cfg".into(),"feature=\"vm_direct_dispatch\"".into()]),
++        Some(_) => Err("FEMACS_VM_DISPATCH must be state or direct".into()),
++    }
++}
++
++#[cfg(test)]
++mod tests {
++    use super::*;
++    fn timed(name: &str, run: impl FnOnce()) {
++        let start=std::time::Instant::now(); run();
++        println!("CASE {name} seconds={:.6}",start.elapsed().as_secs_f64());
++    }
++    #[test]
++    fn default_and_state_add_no_experimental_cfg() {timed("vm_default",||{
++        for value in [None,Some(""),Some("state")] {assert!(flags(value).unwrap().is_empty());}
++    });}
++    #[test]
++    fn direct_has_exactly_the_registered_feature() {timed("vm_direct",||{
++        assert_eq!(flags(Some("direct")).unwrap(),vec!["--cfg","feature=\"vm_direct_dispatch\""]);
++    });}
++    #[test]
++    fn unknown_mode_fails_instead_of_falling_back() {timed("vm_unknown",||{
++        for value in ["DIRECT","auto","threaded","state extra"] {assert!(flags(Some(value)).is_err());}
++    });}
++}

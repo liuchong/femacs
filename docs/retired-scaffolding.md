@@ -7,6 +7,8 @@
 
 以下三节保留2026-10-16历史盘点；当时目录前缀与待办不代表展开后的现状。当前变更见第四节。
 
+逐批可追溯档案统一在 [maintenance/cleanup](../maintenance/cleanup/README.md)，具体编号见 [清理台账](../maintenance/cleanup/LOG.md)。本页继续作为丢弃日志入口，只引用详细报告，不混入用户文档或Agent规则。
+
 ## 一、语言分类（2026-10-16 清点，端口树内）
 
 | 语言 | 件数 | 位置 | 决定 | 理由 |
@@ -26,15 +28,15 @@
 
 | # | 路径 | 原本用途 | 取代者 | 日期 | 提交 |
 | --- | --- | --- | --- | --- | --- |
-| 1 | `femacs/lisp/Makefile.in` | 参照的 lisp 目录构建（autoloads/编译/生成物） | `femacs/xtask` + `tools/gen-*.py`（生成物） | 2026-10-16 | 本提交 |
-| 2 | `femacs/leim/Makefile.in` | 参照的 leim 构建（TIT 转换、`leim-list.el`） | `tools/gen-leim.py` | 2026-10-16 | 本提交 |
-| 3 | `femacs/admin/unidata/Makefile.in` | 参照的 unidata 构建（`uni-*.el`、`charprop.el`） | `tools/gen-unidata.py` | 2026-10-16 | 本提交 |
-| 4 | `femacs/admin/charsets/Makefile.in` | 参照的字符集构建（`etc/charsets/*.map`） | `tools/gen-charsets.py` | 2026-10-16 | 本提交 |
-| 5 | `femacs/admin/grammars/Makefile.in` | 参照的语法下发构建 | 端口不使用（无对应产物） | 2026-10-16 | 本提交 |
-| 6 | `femacs/doc/emacs/Makefile.in` | 参照的 Emacs 手册构建 | 端口自有的文档工具链（未定，见 P-102 ④） | 2026-10-16 | 本提交 |
-| 7 | `femacs/doc/lispintro/Makefile.in` | 同上（Lisp Intro） | 同上 | 2026-10-16 | 本提交 |
-| 8 | `femacs/doc/lispref/Makefile.in` | 同上（Lisp Reference） | 同上 | 2026-10-16 | 本提交 |
-| 9 | `femacs/doc/misc/Makefile.in` | 同上（其它手册） | 同上 | 2026-10-16 | 本提交 |
+| 1 | `femacs/lisp/Makefile.in` | 参照的 lisp 目录构建（autoloads/编译/生成物） | `femacs/xtask` + `tools/gen-*.py`（生成物） | 2026-10-16 | `245fd341f81c86b6765133b7f333720fb5a52a65` |
+| 2 | `femacs/leim/Makefile.in` | 参照的 leim 构建（TIT 转换、`leim-list.el`） | `tools/gen-leim.py` | 2026-10-16 | `245fd341f81c86b6765133b7f333720fb5a52a65` |
+| 3 | `femacs/admin/unidata/Makefile.in` | 参照的 unidata 构建（`uni-*.el`、`charprop.el`） | `tools/gen-unidata.py` | 2026-10-16 | `245fd341f81c86b6765133b7f333720fb5a52a65` |
+| 4 | `femacs/admin/charsets/Makefile.in` | 参照的字符集构建（`etc/charsets/*.map`） | `tools/gen-charsets.py` | 2026-10-16 | `245fd341f81c86b6765133b7f333720fb5a52a65` |
+| 5 | `femacs/admin/grammars/Makefile.in` | 参照的语法下发构建 | 端口不使用（无对应产物） | 2026-10-16 | `245fd341f81c86b6765133b7f333720fb5a52a65` |
+| 6 | `femacs/doc/emacs/Makefile.in` | 参照的 Emacs 手册构建 | 端口自有的文档工具链（未定，见 P-102 ④） | 2026-10-16 | `245fd341f81c86b6765133b7f333720fb5a52a65` |
+| 7 | `femacs/doc/lispintro/Makefile.in` | 同上（Lisp Intro） | 同上 | 2026-10-16 | `245fd341f81c86b6765133b7f333720fb5a52a65` |
+| 8 | `femacs/doc/lispref/Makefile.in` | 同上（Lisp Reference） | 同上 | 2026-10-16 | `245fd341f81c86b6765133b7f333720fb5a52a65` |
+| 9 | `femacs/doc/misc/Makefile.in` | 同上（其它手册） | 同上 | 2026-10-16 | `245fd341f81c86b6765133b7f333720fb5a52a65` |
 
 保留（同样是 `Makefile.in`，但不是构建脚手架）：`femacs/test/Makefile.in`、
 `femacs/test/infra/Makefile.in`、`femacs/test/lisp/emacs-lisp/package-vc-resources/Makefile.in`、
@@ -51,11 +53,11 @@
 
 ## 四、现代化工具退役（2026-10-24）
 
-基线 `809d0de3`；本节所属提交可由 Git 路径历史定位。仅移除已无生产调用者、且有明确替代的脚手架；保留历史证据、许可证、数据与所有平台实现。原始文件可从该基线恢复，不在当前工具目录留下无人维护的可执行副本。
+基线 `809d0de3`；删除提交 `2415a335836d0ad81de2564a82301bdceefb8145`；逐项旧内容身份、依据和恢复见 [CLN-20261024-01](../maintenance/cleanup/reports/2026-10-24-01-obsolete-tools.md)。仅移除已无生产调用者、且有明确替代的脚手架；保留历史证据、许可证、数据与所有平台实现。原始文件可从该基线恢复，不在当前工具目录留下无人维护的可执行副本。
 
 | 路径 | 原用途 / 退役依据 | 取代者 / 保留依据 | 日期 / 提交 |
 | --- | --- | --- | --- |
-| `tools/verify-dod.sh` | 旧路径/参照依赖的一期聚合复验，当前独立交付已有替代 | `tools/local-acceptance.py`；一期结果仍在历史收尾记录 | 2026-10-24 / 本节所属提交 |
+| `tools/verify-dod.sh` | 旧路径/参照依赖的一期聚合复验，当前独立交付已有替代 | `tools/local-acceptance.py`；一期结果仍在历史收尾记录 | 2026-10-24 / `2415a335836d0ad81de2564a82301bdceefb8145` |
 | `tools/gen-lisp-mk.py` | 仅被旧聚合脚本调用；生成当前 Cargo/xtask 不读取的 Makefile 变量并强依赖可选参照 | `xtask` 独立资源生成/loadup/dump、`test-repository-bootstrap.py` | 同上 |
 | `tools/l1-worklist.sh` | 早期单目录编译统计，失败仍退出0，无当前调用者 | 完整终端/Cocoa 自举及严格 ERT 结果 | 同上 |
 | `tools/loadup-fixture.sh` | 早期把参照生成物混入 load-path，无当前调用者 | 独立资源生成和自身 Lisp dump | 同上 |
@@ -67,3 +69,8 @@
 仍待明确：支持平台/最低设备版本的退役矩阵；Android配置再生成还依赖可选参照configure，不能称Android已独立自举；历史配置/声明警告与辅助程序打包尚有欠账。没有把这些工作误报完成，也没有删除对应平台。
 
 `check-all-units.sh` 同样收敛为 Rust `xtask check-units [list]` 入口：复用完整构建的普通/checking编译器、拒绝空/重复/越界输入，物化源目录按次隔离，保留链接消费者的对象位置，不再删除共享单元目录。平台聚合门启用pipefail并使用本仓库build scratch；此为失败传播与工具路径修复，不代表Android重新验收。
+
+
+## 五、清理报告引用（2026-10-24建档）
+
+[清理台账](../maintenance/cleanup/LOG.md) 已登记旧九项脚手架、macOS历史产物、现代化六项退役、零删除检查、未提交VM实验撤回及685项生成物清理。每批有独立报告、来源/动作提交和恢复说明；必要清单/补丁一并提交。原始记录不足之处明确列缺口，不把回填当作当时已有完整证据。
