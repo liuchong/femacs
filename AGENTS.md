@@ -5,6 +5,12 @@
 > 并在同一轮修回本文件（裁定见 `PORTING.md` P-103）。
 > 规则变更：只改本文件，并在 `PORTING.md` 记一条裁定（P-1xx）、在 `docs/status.md` 记一轮读数。
 
+## 当前授权阶段（2026-10-24）
+
+用户授权按 `docs/modernization.md` 顺序推进：稳定本地交付 → 过时基础设施/设备兼容清理与翻新 → Lisp 编译器/解释器/GC 优化探索。旧一比一转写纪律描述历史基线；本次明确现代化授权允许有证据的结构/工具改造，仍保持可观察 Lisp 行为与数据兼容。原始参照只读、不作为构建依赖；不机械删除仍必需的 Swift/Kotlin 或原始数据生成器。平台退役范围需明确，不以暂未验收推断已退役。
+
+当前工作按全设计、全用例写齐但不运行、全实现、最后集中本地测试/独立审核执行。禁止 GitHub 远端 CI；阶段交付使用 `[skip ci]` 提交标记避免推送触发自动运行。当前终端路径为 `build/terminal/port/src/emacs`，历史 `build/port` 读数不得冒充当前候选。旧 goal 不恢复。
+
 ## 0 权威文档与开工自检
 
 | 文件 | 管什么 |
@@ -57,7 +63,7 @@ cargo run -p xtask -- build-macos
 ## 3 编译与资源纪律
 
 - **不要频繁编译**：单文件用 `xtask build-tu <c-file>`；批次末才 `xtask gate-fast` / `gate-probes`；不要反复跑全量 `cargo build` / `make`。
-- 产物用独立目录（`CARGO_TARGET_DIR=/tmp/...` 或仓库内 `build/`），**及时清理**（`build/`、`target/` 是生成物，可重建）。
+- 产物用独立目录（仓库内 `CARGO_TARGET_DIR=build/cargo` 与 `build/`），**及时清理**（`build/`、`target/` 是生成物，可重建）。
 - **不要乱扫文件、不要全盘扫描**：只读与当前任务相关的目录/文件。
 - **不要起大内存任务**：统计/比对脚本必须流式、分文件、有界；历史上一个 Python 脚本吃光内存导致工作进程被中断。
 - **受控执行器是唯一入口**：一切编译、链接、测试、解释器与行为未知的程序都经
@@ -92,11 +98,11 @@ cargo run -p xtask -- build-macos
 - 验收以**测试与机器门的实际读数**为准（`gate-fast`、`gate-load`、L0–L5、ERT、逐字节比对），不以人工审查代替。
 - 剩余欠账与最近读数：读 `docs/current-state.md` 的**欠账清单**（逐条「现状 / 证据 / 复跑命令」，2026-10-20 复核过一轮）与 `docs/status.md` 末轮记录。
 
-- **用完即清（P-190）**：`xtask dump` 每轮新增一对 `build/port/src/emacs-32.0.50.N{,.pdmp}`（~16 MB），加上 `build/*.dbg*`、`build/probes`、探针目录与 `/tmp` 一次性临时树，**用完即删**；保留在用项 = `build/port/src/{temacs,emacs,emacs.pdmp,bootstrap-emacs.pdmp}`、`build/femacs/*.o` 与 `units/`、`build/emacs-ref/**`、`build/lisp-l1`。每轮收尾 `du -sh build/* | sort -h` 看一眼；删前 `grep -rl <名> tools xtask docs` 确认没人读；删后复验 dump + smoke，并把释放量记进 `docs/status.md`。
+- **用完即清（P-190）**：`xtask dump` 每轮新增一对 `build/port/src/emacs-32.0.50.N{,.pdmp}`（~16 MB），加上 `build/*.dbg*`、`build/probes`、探针目录与本轮归属明确的一次性临时树，**用完即删**；保留在用项 = `build/port/src/{temacs,emacs,emacs.pdmp,bootstrap-emacs.pdmp}`、`build/femacs/*.o` 与 `units/`、`build/emacs-ref/**`、`build/lisp-l1`。每轮收尾 `du -sh build/* | sort -h` 看一眼；删前 `grep -rl <名> tools xtask docs` 确认没人读；删后复验 dump + smoke，并把释放量记进 `docs/status.md`。
 
 ## 7 速查
 
-- **收尾复验 = 一条命令**：`python3 ~/.assistant/skills/controlled-run/scripts/run.py --profile runtime -- bash tools/verify-dod.sh --full`
+- **历史一期复验（当前不用）**：`python3 ~/.assistant/skills/controlled-run/scripts/run.py --profile runtime -- bash tools/verify-dod.sh --historical-audit --full`
   —— 按 `docs/current-state.md` 的八行逐项打印 `ok`/`FAIL`（4.981 实测全绿，1884 s / 峰值 1.12 GB），
   缺 `libgnu.a` / `asset-directory-tool` 时自愈；第 7 行不运行且会打印"按用户决定暂挂、记未达"。
 - **两条长扫**：`tools/l5-sweep.sh [--gc-stress] [--start-at N] [--chunk N]` —— L5 与强制 GC 压测共用，

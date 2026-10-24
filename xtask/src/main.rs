@@ -11,6 +11,7 @@ use std::io::{Read, Seek, SeekFrom};
 use std::path::{Path, PathBuf};
 use std::process::{exit, Command};
 
+mod bundle;
 mod macos;
 mod standalone;
 

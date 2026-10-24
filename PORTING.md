@@ -1622,3 +1622,8 @@ P-326 验收补充：本机 Cocoa app 与终端经典输入已实际运行交付
 ## P-327（2026-10-23）：输入法候选位置回调的符号接口
 
 系统输入法的候选位置查询会调用`ns_in_echo_area`。目标的Q符号是零参函数访问器，Swift必须导入函数并取值，不能声明为数据变量并读取函数机器码。保留原safe_funcall、catch与specbind/unbind逻辑；生成器在链接前拒绝活动平台单元的Q变量导入。验收必须使用系统输入源与物理拼音按键覆盖组合/提交/取消，不能用直接Unicode注入替代。具体设计和实测记录见二期手册的输入法修复段。
+
+
+## P-329: Local delivery integrity before modernization (2026-10-24)
+
+The user authorizes ordered modernization, with the primary developer integrating independent tests and review. Stage I fixes configured Cocoa drag invocation, strict per-test ERT accounting and explicit GC mode, isolated verified app publication, and evidence-led IME diagnostics. Stages II/III follow only after this stable baseline: deliberate legacy retirement/tooling renewal, then measured Lisp runtime/compiler/GC work. The prior transcription shape is a baseline, not a permanent ban on the new authorization. Preserve observable Lisp semantics, existing user data and read-only reference inputs. No remote CI is used; source delivery carries the skip-ci marker. Plan, exact interfaces and acceptance are in docs/modernization.md. New implementation is not yet an acceptance claim.

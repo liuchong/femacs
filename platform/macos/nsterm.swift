@@ -8114,6 +8114,32 @@ class EmacsWindow: NSWindow {
 /// `syms_of_nsterm` slice lands).  `ns_last_use_native_fullscreen` (C 335) is the static beside it.
 @_silgen_name("ns_use_native_fullscreen") var ns_use_native_fullscreen: Bool
 
+// Opt-in acceptance diagnostics. Default execution never creates a trace file.
+private let nsInputTracePath = ProcessInfo.processInfo.environment["FEMACS_INPUT_TRACE"]
+private var nsInputTraceBytes = 0
+private func ns_input_trace(_ event: String, _ details: @autoclosure () -> String = "") {
+  guard let path = nsInputTracePath, nsInputTraceBytes < 1_048_576 else { return }
+  let record: [String: Any] = ["uptime": ProcessInfo.processInfo.systemUptime,
+                             "event": event, "details": details(),
+                             "keyWindow": NSApp?.keyWindow != nil,
+                             "appActive": NSApp?.isActive ?? false]
+  guard var data = try? JSONSerialization.data(withJSONObject: record) else { return }
+  data.append(10)
+  guard nsInputTraceBytes + data.count <= 1_048_576 else { return }
+  if !FileManager.default.fileExists(atPath: path) {
+    guard FileManager.default.createFile(atPath: path, contents: nil,
+           attributes: [.posixPermissions: 0o600]) else { return }
+  }
+  guard let handle = FileHandle(forWritingAtPath: path) else { return }
+  defer { try? handle.close() }
+  do {
+    let position = try handle.seekToEnd()
+    guard position + UInt64(data.count) <= 1_048_576 else { return }
+    try handle.write(contentsOf: data)
+    nsInputTraceBytes += data.count
+  } catch { return } // Diagnostic I/O must not change editor semantics.
+}
+
 /// C `src/nsterm.h` 466-488: `@interface EmacsView : NSView <NSTextInput, NSTextInputClient,
 /// NSWindowDelegate>`.  **Round 25 lands the record** - the fifteen ivars of nsterm.h 470-488,
 /// `@public emacsframe` (485) included - and three of its methods.  The protocol list is the one
@@ -8364,6 +8390,7 @@ class EmacsView: NSView, NSTextInputClient, NSWindowDelegate {
   /// the same dead guard; and C 7411-7420's `keyEventWithType:…` factory is
   /// `NSEvent.keyEvent (with:…)`, whose Swift import is failable.
   @objc override func keyDown(with theEvent: NSEvent) {
+    ns_input_trace("keyDown", "key=\(theEvent.keyCode) compose=\(processingCompose) eventReady=\(emacs_event != nil)")
     var theEvent = theEvent                                     // C 7411 reassigns it
     let hlinfo = MOUSE_HL_INFO(emacsframe)                      // C 7245
     var code: Int32 = 0                                         // C 7246
@@ -8987,6 +9014,7 @@ class EmacsView: NSView, NSTextInputClient, NSWindowDelegate {
   /// which C's macro expands through `safe_funcall` (the round-34 reading of the same macro), and
   /// C 9531's `redisplay` is the round-77 entry.
   @objc override func draggingUpdated(_ sender: NSDraggingInfo) -> NSDragOperation {
+    ns_input_trace("draggingUpdated")
     var frame: Lisp_Object = Qnil()                           // C 9491
     var position: NSPoint = .zero                             // C 9493
     var x: Int32 = 0, y: Int32 = 0                            // C 9494
@@ -9006,7 +9034,7 @@ class EmacsView: NSView, NSTextInputClient, NSWindowDelegate {
        this function instead."  */
     XSETFRAME(&frame, emacsframe)                              // C 9526
 
-    var args: [Lisp_Object] = [frame, make_fixnum(Int(x)), make_fixnum(Int(y))]   // C 9528-9529
+    var args: [Lisp_Object] = [Vns_drag_motion_function, frame, make_fixnum(Int(x)), make_fixnum(Int(y))]   // C 9528-9529
     _ = args.withUnsafeMutableBufferPointer {
       safe_funcall(Int($0.count), $0.baseAddress)              // C 9528-9529 (C's `safe_calln`)
     }
@@ -9157,6 +9185,7 @@ class EmacsView: NSView, NSTextInputClient, NSWindowDelegate {
   /// `[workingText release]` + `[str copy]` is the ARC assignment, and C 7578-7579's `NS_KEYLOG`
   /// block is dead (`NS_KEYLOG` is 0 at C 7241).
   @objc func setMarkedText(_ aString: Any?, selectedRange selRange: NSRange) {
+    ns_input_trace("setMarkedText", String(describing: aString))
     let str: NSString = (aString as? NSAttributedString)?.string as NSString? ?? aString as? NSString ?? ""   // C 7540-7541
     if str.length == 0 {                              // C 7551
       deleteWorkingText()                             // C 7553
@@ -9178,6 +9207,7 @@ class EmacsView: NSView, NSTextInputClient, NSWindowDelegate {
   /// C 7571-7590: `- (void)deleteWorkingText` - "Delete display of composing characters [not in
   /// &lt;NSTextInput&gt;]."  C 7580's `[workingText release]` is the reference being dropped.
   @objc func deleteWorkingText() {
+    ns_input_trace("deleteWorkingText", "hadWorking=\(workingText != nil)")
     if workingText == nil {                           // C 7576
       return                                          // C 7577
     }
@@ -9203,6 +9233,7 @@ class EmacsView: NSView, NSTextInputClient, NSWindowDelegate {
   /// composing".  C 7515-7523's surrogate pair is the two predicates and the helper above;
   /// C 7496's and C 7525-7526's `NS_KEYLOG`/`TODO` lines are C's own comments.
   @objc override func insertText(_ aString: Any?) {
+    ns_input_trace("insertText", String(describing: aString))
     let s: NSString = (aString as? NSAttributedString)?.string as NSString? ?? aString as? NSString ?? ""   // C 7488-7491
     let len = s.length                                // C 7493
     processingCompose = false                         // C 7497
@@ -10576,6 +10607,7 @@ class EmacsView: NSView, NSTextInputClient, NSWindowDelegate {
   /// the port starts them at zero (Swift has no indeterminate value - the C 7823 reading).
   @objc(firstRectForCharacterRange:)
   func firstRectForCharacterRange(_ theRange: NSRange) -> NSRect {
+    ns_input_trace("firstRect", "location=\(theRange.location) length=\(theRange.length)")
     var rect: NSRect = .zero                          // C 7653
     var pt: NSPoint = .zero                           // C 7654
     let win: UnsafeMutableRawPointer?                 // C 7655

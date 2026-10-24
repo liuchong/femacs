@@ -24,6 +24,7 @@ unsafe extern "C" {
 unsafe extern "C" {
     fn AXUIElementCreateApplication(pid:i32)->*const c_void;
     fn AXUIElementSetAttributeValue(element:*const c_void,attribute:*const c_void,value:*const c_void)->i32;
+    fn AXUIElementCopyAttributeValue(element:*const c_void,attribute:*const c_void,value:*mut *const c_void)->i32;
 }
 unsafe fn identifier(source:*const c_void)->Result<String,String> {
     if source.is_null(){return Err("no current input source".into());}
@@ -39,7 +40,28 @@ fn main()->Result<(),String>{
         if command=="current" {
             let source=TISCopyCurrentKeyboardInputSource();let id=identifier(source);if !source.is_null(){CFRelease(source)};println!("{}",id?);return Ok(());
         }
-        if command!="list" && command!="select" {return Err("usage: macos-input-source list|current|select ID [PID]".into());}
+        if command=="status" {
+            let pid:i32=args.get(2).ok_or("status needs PID")?.parse().map_err(|_|"invalid PID")?;
+            if pid<=0{return Err("invalid PID".into())}
+            let current=TISCopyCurrentKeyboardInputSource();let id=identifier(current);if !current.is_null(){CFRelease(current)}
+            let id=id?;let app=AXUIElementCreateApplication(pid);
+            let mut values=Vec::new();
+            for attribute in ["AXFrontmost","AXFocusedWindow"] {
+                let name=CString::new(attribute).unwrap();
+                let key=CFStringCreateWithCString(ptr::null(),name.as_ptr(),0x08000100);
+                let mut value=ptr::null();let code=AXUIElementCopyAttributeValue(app,key,&mut value);CFRelease(key);
+                let present=code==0 && !value.is_null();
+                let yes=present && (attribute!="AXFrontmost" || CFBooleanGetValue(value));
+                if !value.is_null(){CFRelease(value)};values.push(yes);
+            }
+            CFRelease(app);
+            // Input-source IDs use reverse-DNS syntax; quote with JSON's escaping rules.
+            let mut quoted=String::from("\"");
+            for c in id.chars(){match c{'"'=>quoted.push_str("\\\""),'\\'=>quoted.push_str("\\\\"),c if c.is_control()=>quoted.push_str(&format!("\\u{:04x}",c as u32)),c=>quoted.push(c)}}
+            quoted.push('"');
+            println!("{{\"source\":{},\"frontmost\":{},\"focused_window\":{}}}",quoted,values[0],values[1]);return Ok(());
+        }
+        if command!="list" && command!="select" {return Err("usage: macos-input-source list|current|status PID|select ID [PID]".into());}
         let list=TISCreateInputSourceList(ptr::null(),false);
         if list.is_null(){return Err("input source list unavailable".into());}
         let result=(||->Result<(),String>{

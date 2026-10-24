@@ -1,44 +1,47 @@
 #!/bin/bash
-# L5 (the reference's own ERT suite) over every test file, in chunks.
-#
-# `check-ert.py` runs one file at a time on both programs and compares the summaries; a full
-# sweep is hours of wall clock, so it is chunked and resumable: each chunk writes its own TSV and
-# the log line after it says where to start the next run.  Chunk size and the per-side timeout are
-# arguments because a slow machine trades them off.
-#
-#   tools/l5-sweep.sh [--start-at N] [--chunk N] [--timeout N] [--out DIR] [--gc-stress]
-#
-# `--gc-stress` adds the reference's own forced-GC prelude (`(setq gc-cons-threshold 1)`), which is
-# the objective's "stress" gate; the chunking and resumption are identical.
-#
-# The first chunk already measured 30 files / 399 s (status 4.967: 28 same, 1 both-fail, 1
-# symmetric timeout, port and reference both 706 ran / 2 unexpected), so the default chunk is 30.
-set -u
+# Local, resumable differential audit. Source/test paths are owned by check-ert.py.
+set -euo pipefail
 HERE=$(cd "$(dirname "$0")/.." && pwd)
 START=0
 CHUNK=30
-STRESS=0
 TMO=120
-OUT=$HERE/docs/baseline
-while [ $# -gt 0 ]; do
+OUT="$HERE/build/acceptance/l5"
+EXTRA=()
+while [ "$#" -gt 0 ]; do
   case "$1" in
-    --start-at) START=$2; shift 2 ;;
-    --chunk)    CHUNK=$2; shift 2 ;;
-    --timeout)  TMO=$2; shift 2 ;;
-    --out)      OUT=$2; shift 2 ;;
-    --gc-stress) STRESS=1; shift ;;
-    *) echo "unknown argument: $1" >&2; exit 2 ;;
+    --start-at|--chunk|--timeout|--out)
+      [ "$#" -ge 2 ] || { echo "missing value: $1" >&2; exit 2; }
+      case "$1" in
+        --start-at) START=$2;; --chunk) CHUNK=$2;; --timeout) TMO=$2;; --out) OUT=$2;;
+      esac
+      shift 2;;
+    --gc-stress) EXTRA+=(--gc-stress); shift;;
+    --port-prog|--ref-prog)
+      [ "$#" -ge 2 ] || { echo "missing program path" >&2; exit 2; }
+      EXTRA+=("$1" "$2"); shift 2;;
+    *) echo "unknown argument: $1" >&2; exit 2;;
   esac
 done
-TOTAL=$(python3 "$HERE/tools/check-ert.py" --list | tail -n +2 | wc -l | tr -d ' ')
-echo "L5 sweep: $TOTAL file(s), from $START, chunks of $CHUNK, per-side timeout ${TMO}s"
+for n in "$START" "$CHUNK" "$TMO"; do
+  case "$n" in ''|*[!0-9]*) echo "invalid nonnegative integer: $n" >&2; exit 2;; esac
+done
+[ "$CHUNK" -gt 0 ] && [ "$TMO" -gt 0 ] || { echo "chunk/timeout must be positive" >&2; exit 2; }
+LIST=$(python3 "$HERE/tools/check-ert.py" --list)
+TOTAL=$(printf '%s\n' "$LIST" | tail -n +2 | wc -l | tr -d ' ')
+[ "$TOTAL" -gt 0 ] || { echo "no test files" >&2; exit 2; }
+mkdir -p "$OUT"
 at=$START
+failed=0
 while [ "$at" -lt "$TOTAL" ]; do
   ts=$(printf '%s/ert-l5-chunk%03d.tsv' "$OUT" "$((at / CHUNK + 1))")
   echo "== chunk from $at -> $ts =="
-  python3 "$HERE/tools/check-ert.py" --timeout "$TMO" --start-at "$at" --max-files "$CHUNK" \
-          ${STRESS:+--gc-stress} --tsv "$ts" 2>&1 | tail -3
+  if python3 "$HERE/tools/check-ert.py" --timeout "$TMO" --start-at "$at" --max-files "$CHUNK" \
+       ${EXTRA[@]+"${EXTRA[@]}"} --tsv "$ts" --results-json "${ts%.tsv}.json" 2>&1 | tail -3; then
+    :
+  else
+    failed=1
+  fi
   at=$((at + CHUNK))
-  echo "   next --start-at $at"
 done
-echo "L5 sweep: done; per-chunk TSVs in $OUT"
+echo "L5 sweep complete; failed=$failed; evidence=$OUT"
+exit "$failed"

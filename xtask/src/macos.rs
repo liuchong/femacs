@@ -174,8 +174,17 @@ fn copy_tree(from: &Path, to: &Path) -> Result<(), String> {
 }
 
 fn package(repo: &Path, root: &Path) -> Result<(), String> {
+    let app=repo.join("dist/macos/Femacs.app");
+    crate::bundle::publish(&app, |stage| populate_app(repo,root,stage), |stage| {
+        for required in ["Contents/MacOS/Femacs", "Contents/Resources/libexec/Femacs.pdmp", "Contents/Resources/etc/DOC", "Contents/Resources/lisp/loaddefs.el", "Contents/Info.plist"] {
+            if !stage.join(required).is_file() {return Err(format!("missing staged app resource: {required}"));}
+        }
+        run(Command::new("codesign").args(["--verify","--deep","--strict"]).arg(stage), "verify staged Cocoa app")
+    })
+}
+
+fn populate_app(repo: &Path, root: &Path, app: &Path) -> Result<(), String> {
     // Keep the runnable delivery separate from disposable compiler output.
-    let app = repo.join("dist/macos/Femacs.app");
     let contents = app.join("Contents");
     let macos = contents.join("MacOS");
     let resources = contents.join("Resources");
@@ -203,7 +212,7 @@ fn package(repo: &Path, root: &Path) -> Result<(), String> {
 <key>NSHighResolutionCapable</key><true/>
 </dict></plist>
 "#).map_err(|e| e.to_string())?;
-    run(Command::new("codesign").args(["--force", "--sign", "-"]).arg(&app), "sign Cocoa app")
+    run(Command::new("codesign").args(["--force", "--sign", "-"]).arg(app), "sign staged Cocoa app")
 }
 
 /// Ask make for variable expansion only; no reference compiler/linker is executed.

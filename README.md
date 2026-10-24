@@ -53,6 +53,29 @@ python3 tools/bootstrap-resources.py --program build/terminal/port/src/emacs --f
 [bootstrap design and acceptance](docs/repository-bootstrap.md) for the generation stages,
 requirements, clean-export evidence and optional reference-audit boundary.
 
+## Local acceptance
+
+Current construction and ordered modernization scope: [docs/modernization.md](docs/modernization.md).
+Build terminal and Cocoa products first, then run the runtime acceptance under your resource
+controller. This command does not build or contact a remote CI service:
+
+```sh
+python3 tools/local-acceptance.py --out build/acceptance/local-run
+```
+
+The evidence directory must be new. The report identifies the exact existing binaries,
+dumps and configuration, includes per-check results, and explicitly distinguishes artifact
+identity from build provenance. Real native key/file and IME checks are opt-in with
+`--gui --ime --sender <event-helper> --sources <input-source-helper>`; missing requested
+dependencies fail rather than silently skip. IME scenarios split steady-source and repeated
+source-switch composition, require exact expected text and preserve failed attempts. Native
+callback tracing is normally off; `FEMACS_INPUT_TRACE` opts one process into a bounded private
+trace file (up to 1 MiB), which may contain typed text and belongs in ignored local evidence.
+App publication builds and verifies a separate staged bundle before replacing an existing app.
+The old `verify-dod.sh` is historical and requires explicit `--historical-audit`; it is not the current delivery gate.
+Differential ERT remains an optional audit: `check-ert.py` is strict by default and
+`--collect-only` explicitly records known debt without claiming a passing gate.
+
 ## Source layout
 
 `src/`, `lib/`, `lib-src/`, `platform/` and `xtask/` are at the repository root.

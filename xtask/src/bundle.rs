@@ -1,0 +1,102 @@
+//! Isolated, verified application publication on the destination filesystem.
+use std::{fs, path::Path, time::{SystemTime,UNIX_EPOCH}};
+
+struct Stage(std::path::PathBuf);
+impl Drop for Stage { fn drop(&mut self) { let _=fs::remove_dir_all(&self.0); } }
+
+/// The old destination is never modified until populate and verify both succeed.
+/// On macOS RENAME_SWAP atomically exchanges two existing nonempty directories.
+pub(super) fn publish(
+    destination:&Path,
+    populate:impl FnOnce(&Path)->Result<(),String>,
+    verify:impl FnOnce(&Path)->Result<(),String>,
+)->Result<(),String> {
+    let parent=destination.parent().ok_or("application has no parent")?;
+    fs::create_dir_all(parent).map_err(|e|e.to_string())?;
+    match fs::symlink_metadata(destination) {
+        Ok(m) if m.file_type().is_symlink() || !m.is_dir()=>return Err("application destination must be an owned directory, not a symlink/file".into()),
+        Ok(_)=>(), Err(e) if e.kind()==std::io::ErrorKind::NotFound=>(), Err(e)=>return Err(e.to_string()),
+    }
+    let name=destination.file_name().ok_or("application has no name")?.to_string_lossy();
+    let nonce=SystemTime::now().duration_since(UNIX_EPOCH).map_err(|e|e.to_string())?.as_nanos();
+    let stage_path=parent.join(format!(".{name}.stage-{}-{nonce}.app",std::process::id()));
+    fs::create_dir(&stage_path).map_err(|e|e.to_string())?;
+    let stage=Stage(stage_path); // Ownership begins only after exclusive creation succeeds.
+    populate(&stage.0)?;
+    verify(&stage.0)?;
+    if destination.exists() {
+        exchange(&stage.0,destination)?;
+        // Stage now names the replaced app, no longer the published one.
+        fs::remove_dir_all(&stage.0).map_err(|e|format!("new app published; old staged app cleanup failed: {e}"))?;
+    } else {
+        fs::rename(&stage.0,destination).map_err(|e|e.to_string())?;
+    }
+    Ok(())
+}
+
+#[cfg(target_os="macos")]
+fn exchange(left:&Path,right:&Path)->Result<(),String> {
+    use std::{ffi::CString,os::unix::ffi::OsStrExt};
+    unsafe extern "C" { fn renamex_np(from:*const std::ffi::c_char,to:*const std::ffi::c_char,flags:u32)->i32; }
+    let from=CString::new(left.as_os_str().as_bytes()).map_err(|_|"NUL in staging path")?;
+    let to=CString::new(right.as_os_str().as_bytes()).map_err(|_|"NUL in destination path")?;
+    // sys/stdio.h: RENAME_SWAP, available since macOS 10.12.
+    if unsafe{renamex_np(from.as_ptr(),to.as_ptr(),0x00000002)} != 0 {
+        return Err(format!("atomic app exchange failed; old app retained: {}",std::io::Error::last_os_error()));
+    }
+    Ok(())
+}
+#[cfg(not(target_os="macos"))]
+fn exchange(_left:&Path,_right:&Path)->Result<(),String> {Err("application exchange requires macOS".into())}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::{fs, path::PathBuf, time::Instant};
+    static SERIAL: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+    struct Fixture(PathBuf);
+    impl Fixture {
+        fn new() -> Self {
+            let p=PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../build/bundle-tests")
+                .join(format!("{}-{}",std::process::id(),SERIAL.fetch_add(1,std::sync::atomic::Ordering::Relaxed)));
+            fs::create_dir_all(&p).unwrap(); Self(p)
+        }
+        fn app(&self)->PathBuf {self.0.join("Femacs.app")}
+        fn stage(&self,p:&std::path::Path)->Result<(),String> {
+            fs::create_dir_all(p.join("Contents/Resources")).map_err(|e|e.to_string())?;
+            fs::write(p.join("Contents/Resources/new"),b"new").map_err(|e|e.to_string())
+        }
+        fn leftovers(&self)->usize {fs::read_dir(&self.0).unwrap().count()}
+    }
+    impl Drop for Fixture {fn drop(&mut self){let _=fs::remove_dir_all(&self.0);}}
+    fn timed(name:&str,run:impl FnOnce()) {let t=Instant::now();run();println!("CASE {name} seconds={:.6}",t.elapsed().as_secs_f64());}
+    #[test] fn first_publication(){timed("first_publication",||{
+        let f=Fixture::new(); publish(&f.app(),|p|f.stage(p),|p|{
+            if p.join("Contents/Resources/new").is_file(){Ok(())}else{Err("missing".into())}
+        }).unwrap(); assert_eq!(fs::read(f.app().join("Contents/Resources/new")).unwrap(),b"new");assert_eq!(f.leftovers(),1);
+    });}
+    #[test] fn replacement_removes_obsolete_resource(){timed("replacement_removes_obsolete_resource",||{
+        let f=Fixture::new();fs::create_dir_all(f.app()).unwrap();fs::write(f.app().join("obsolete"),b"old").unwrap();
+        publish(&f.app(),|p|f.stage(p),|_|Ok(())).unwrap();assert!(!f.app().join("obsolete").exists());assert!(f.app().join("Contents/Resources/new").is_file());assert_eq!(f.leftovers(),1);
+    });}
+    #[test] fn population_failure_preserves_old(){timed("population_failure_preserves_old",||{
+        let f=Fixture::new();fs::create_dir_all(f.app()).unwrap();fs::write(f.app().join("old"),b"old").unwrap();
+        assert!(publish(&f.app(),|p|{f.stage(p)?;Err("populate failed".into())},|_|panic!("verify must not run")).is_err());
+        assert_eq!(fs::read(f.app().join("old")).unwrap(),b"old");assert_eq!(f.leftovers(),1);
+    });}
+    #[test] fn verification_failure_preserves_old(){timed("verification_failure_preserves_old",||{
+        let f=Fixture::new();fs::create_dir_all(f.app()).unwrap();fs::write(f.app().join("old"),b"old").unwrap();
+        assert!(publish(&f.app(),|p|f.stage(p),|_|Err("sign/verify failed".into())).is_err());
+        assert_eq!(fs::read(f.app().join("old")).unwrap(),b"old");assert_eq!(f.leftovers(),1);
+    });}
+    #[test] fn failed_first_publication_leaves_no_app(){timed("failed_first_publication_leaves_no_app",||{
+        let f=Fixture::new();assert!(publish(&f.app(),|p|f.stage(p),|_|Err("verify failed".into())).is_err());assert!(!f.app().exists());assert_eq!(f.leftovers(),0);
+    });}
+    #[cfg(unix)] #[test] fn symlink_target_is_never_followed(){timed("symlink_target_is_never_followed",||{
+        let f=Fixture::new();let outside=f.0.join("outside");fs::create_dir(&outside).unwrap();fs::write(outside.join("old"),b"untouched").unwrap();
+        std::os::unix::fs::symlink(&outside,f.app()).unwrap();assert!(publish(&f.app(),|_|panic!("populate must not run"),|_|Ok(())).is_err());assert_eq!(fs::read(outside.join("old")).unwrap(),b"untouched");
+    });}
+    #[test] fn file_target_rejected(){timed("file_target_rejected",||{
+        let f=Fixture::new();fs::write(f.app(),b"untouched").unwrap();assert!(publish(&f.app(),|_|panic!("populate must not run"),|_|Ok(())).is_err());assert_eq!(fs::read(f.app()).unwrap(),b"untouched");
+    });}
+}

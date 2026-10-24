@@ -148,6 +148,17 @@ def gui_case(binary,sender,name,sequence,initial,expected_point,expected_text,wo
 
 
 
+def clipboard_environment():
+    # The system clipboard CLI decodes stdin/stdout using locale, unlike the native
+    # pasteboard API. Keep this boundary UTF-8 even under a deterministic C test locale.
+    return dict(os.environ, LC_ALL='en_US.UTF-8', LANG='en_US.UTF-8')
+
+def clipboard_read():
+    return subprocess.run(['pbpaste'],capture_output=True,check=True,env=clipboard_environment()).stdout
+
+def clipboard_write(data):
+    subprocess.run(['pbcopy'],input=data,check=True,env=clipboard_environment())
+
 def gui_file_workflow(binary, sender, work):
     """Native Cocoa file roundtrip, Unicode, clipboard and post-GC editing."""
     work.mkdir(parents=True,exist_ok=True)
@@ -157,7 +168,7 @@ def gui_file_workflow(binary, sender, work):
              FEMACS_KEY_ALL_BUFFERS='1',FEMACS_KEY_DIAGNOSTIC=str(work/'diagnostic.el'))
     started=time.monotonic();steps=[];process=None
     result={'id':'native-file-workflow','passed':False}
-    previous_clipboard=subprocess.run(['pbpaste'],capture_output=True).stdout
+    previous_clipboard=clipboard_read()
     with (work/'output.log').open('wb') as output:
       try:
         process=subprocess.Popen([str(binary),'-Q','-l',str(FIXTURE)],env=env,stdout=output,stderr=subprocess.STDOUT)
@@ -195,8 +206,8 @@ def gui_file_workflow(binary, sender, work):
         wait_for('reopen',lambda:(snapshot(report) or {}).get('command')=='find-file' and (snapshot(report) or {}).get('text')==content)
         # Copy through the editor's actual selection backend and inspect the OS clipboard.
         send(b'\x1b<\x00\x06\x1bw')
-        wait_for('copy-to-system-clipboard',lambda:subprocess.run(['pbpaste'],capture_output=True).stdout==b'F')
-        subprocess.run(['pbcopy'],input='clipboard 中文'.encode(),check=True)
+        wait_for('copy-to-system-clipboard',lambda:clipboard_read()==b'F')
+        clipboard_write('clipboard 中文'.encode())
         send(b'\x1b>\x19')
         pasted=content+'clipboard 中文'
         wait_for('paste-from-system-clipboard',lambda:(snapshot(report) or {}).get('text')==pasted)
@@ -209,7 +220,7 @@ def gui_file_workflow(binary, sender, work):
         result.update(passed=process.returncode==0 and document.read_text()==saved,exit_code=process.returncode,native_frame='ns')
       except (OSError,RuntimeError,subprocess.SubprocessError) as error:result['reason']=str(error)
       finally:
-        subprocess.run(['pbcopy'],input=previous_clipboard,check=True)
+        clipboard_write(previous_clipboard)
         if process is not None and process.poll() is None:
             process.terminate()
             try:process.wait(timeout=2)

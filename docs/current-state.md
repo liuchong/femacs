@@ -1,3 +1,11 @@
+# 当前施工：稳定交付与现代化（2026-10-24）
+
+用户已授权主开发与独立搭档按顺序实施：先本地验收/拖拽/打包/输入法诊断修复，再清理过时基础设施与设备兼容，最后推进 Lisp 编译器、解释器和 GC 优化探索。唯一当前施工入口：[modernization.md](modernization.md)。阶段 I 已通过干净源码构建、终端/原生各 26 项按键、中文文件和独立输入法流程；真实跨窗口拖放仍待验收。完整边界见现代化手册。旧 goal 保持结案，禁止使用远端 CI。
+
+当前独立终端产物：`build/terminal/port/src/emacs`；Cocoa 产物：`dist/macos/Femacs.app`。历史路径和读数只代表对应时期，不作为当前新候选验收。
+
+---
+
 > Repository layout update: implementation sources now live at the root. Current independent build commands are in `README.md` and `docs/repository-bootstrap.md`. Historical commands and evidence below retain their original context; reference-based comparisons are optional audit tooling, not release build dependencies.
 
 # 当前状态：二期 macOS 图形版可试用（2026-10-23）
@@ -11,7 +19,7 @@ open dist/macos/Femacs.app --args -Q
 # 已实测的直接启动方式：
 dist/macos/Femacs.app/Contents/MacOS/Femacs -Q
 # 保留终端版：
-build/port/src/emacs -nw -Q
+build/terminal/port/src/emacs -nw -Q
 ```
 
 当前交付为 Apple Silicon / macOS 26.6.2 本机版，签名为本地 ad-hoc，不是公证发行版。建议先关闭其他 Femacs 实例，使用 `-Q` 排除个人配置及插件。

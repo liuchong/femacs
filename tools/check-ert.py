@@ -1,313 +1,260 @@
 #!/usr/bin/env python3
-"""Run the reference's own ERT harness against both programs and compare per file (L5).
+"""Compare complete per-test ERT outcomes. Strict by default; --collect-only records debt.
 
-The ladder's last rung is the Lisp test suite (`docs/port-plan.md` 7.1), and it is
-*differential*: `docs/acceptance.md` builds the reference program so every rung can compare the
-port with it.  The recipe is the reference test Makefile's own - `EMACSOPT`, `HOME=/nonexistent`,
-`-l ert`, the file, then `ert-run-tests-batch-and-exit t` (Makefile 62, 83, 123, 183-187) - run
-once with each program over that program's own tree, so nothing about the harness is re-invented.
-
-Each run's ERT summary is parsed; a file is reported as
-
-    same            both sides report no unexpected results
-    port-worse      the port's unexpected count is higher (the defect list)
-    port-better     the port's is lower (interesting, not a defect)
-    both-fail       equal, non-zero (a difference the *reference* also has)
-    crashed         a side produced no summary, or exited non-zero, or timed out
-
-Runs are sequential: a parallel sweep would hold dozens of programs at once, and this project
-keeps its memory bounded (AGENTS.md section 3).
-
-Usage
------
-    python3 tools/check-ert.py --glob 'lisp/emacs-lisp/*.el'          # a slice
-    python3 tools/check-ert.py                                        # every test file
-    python3 tools/check-ert.py --tsv /tmp/ert.tsv
+The editor's native reporter remains the authority. Raw logs, every retry and test timings
+are retained separately from file summaries. An optional reference is required for this
+*differential* audit, never for independently building or running the editor.
 """
-
 from __future__ import annotations
-
 import argparse
+from dataclasses import asdict, dataclass, field
+import json
+import os
+from pathlib import Path
 import re
 import resource
 import subprocess
 import sys
 import threading
 import time
-from pathlib import Path
+import uuid
 
 REPO = Path(__file__).resolve().parent.parent
-PORT_PROG = REPO / "build/port/src/emacs"
-REF_PROG = REPO / "build/emacs-ref/src/emacs"
-PORT_TEST = REPO / "test"
-REF_TEST = REPO / "emacs/test"
-SUMMARY = re.compile(r"Ran (\d+) tests?, (\d+) results? as expected, (\d+) unexpected")
+PORT_PROG = REPO / 'build/terminal/port/src/emacs'
+REF_PROG = REPO / 'build/emacs-ref/src/emacs'
+PORT_TEST = REPO / 'test'
+REF_TEST = REPO / 'emacs/test'
+SELECTOR_DEFAULT = '(not (or (tag :expensive-test) (tag :unstable)))'
+SELECTOR_PRESETS = {'default': SELECTOR_DEFAULT, 'expensive': '(not (tag :unstable))', 'all': 't'}
+PRUNE_DIRS = {'manual', 'data', 'infra'}
+SUMMARY = re.compile(r'^(Aborted: )?Ran (\d+) tests?, (\d+) results? as expected, (\d+) unexpected(?:, (\d+) skipped)?', re.M)
+DETAIL = re.compile(r'^\s*(passed|failed|skipped|unknown|aborted|quit)\s+(\d+)/(\d+)\s+(.+?)\s+\(([0-9.eE+-]+) sec\)', re.M | re.I)
+EVIDENCE_ROOT: Path | None = None
 
-# The reference's `test/Makefile.in` 139-145 spells three selectors, and `make check` runs the
-# first: `SELECTOR_DEFAULT = (not (or (tag :expensive-test) (tag :unstable)))`.  The harness
-# passed `t` (= `SELECTOR_ALL`) instead, which pulls in the files' `:unstable` tests; on
-# `lisp/emacs-lisp/ert-tests.el` that makes *both* programs climb past a gigabyte (measured
-# 2026-10-16: the reference reached 1.26 GiB in 3.4 s, the port 1.1 GiB in 20 s, either killed
-# by the cap), so the runaway read as a port defect when it is the selector.  `--selector`
-# overrides the text; `--selector-preset default|expensive|all` picks one of the three.
-SELECTOR_DEFAULT = "(not (or (tag :expensive-test) (tag :unstable)))"
-SELECTOR_PRESETS = {"default": SELECTOR_DEFAULT,
-                    "expensive": "(not (tag :unstable))",
-                    "all": "t"}
-
-
-def ensure_port_tree_is_a_project_root() -> None:
-    """`emacs/` is its own git repository (the pinned checkout), and two `project-tests`/
-    `elisp-mode-tests` cases depend on that: they compute `(file-relative-name FILE
-    (project-root ...))` and expect it to start at `test/`.  The port's tree lives inside
-    this repository, so without the same marker its project root is the repository and the
-    relative name starts at ``.  Writing the gitfile makes the two trees equivalent
-    (PORTING.md P-135); it is ignored by the outer repository, so the worktree stays clean.
-    """
-    gitfile = PORT_TEST.parent / ".git"                 # .git
-    if not gitfile.exists():
-        gitfile.write_text("gitdir: ../.git\n")
+@dataclass
+class RunResult:
+    status: str = 'incomplete'
+    ran: int = 0
+    expected: int = 0
+    unexpected: int = 0
+    results: dict[str, str] = field(default_factory=dict)
+    test_seconds: dict[str, float] = field(default_factory=dict)
+    elapsed_seconds: float = 0.0
+    note: str = ''
+    log: str = ''
+    exit_code: int | None = None
 
 
-PRUNE_DIRS = {"manual", "data", "infra"}
-PRUNE_SUFFIX = "resources"
+def parse_result(text: str, returncode: int, elapsed_seconds: float) -> RunResult:
+    r = RunResult(elapsed_seconds=elapsed_seconds, exit_code=returncode)
+    summaries = list(SUMMARY.finditer(text))
+    if len(summaries) != 1:
+        r.status = 'crashed' if returncode else 'incomplete'
+        r.note = f'expected one final summary, found {len(summaries)}; exit={returncode}'
+        return r
+    m = summaries[0]
+    r.ran, r.expected, r.unexpected = map(int, m.group(2, 3, 4))
+    skipped = int(m.group(5) or 0)
+    if m.group(1) or returncode < 0 or returncode > 1 or (returncode != 0 and r.unexpected == 0):
+        r.status, r.note = 'crashed', f'aborted or inconsistent exit={returncode}'
+        return r
+    if returncode == 0 and r.unexpected:
+        r.note = 'successful process exit contradicts unexpected results'
+        return r
+    positions: set[int] = set()
+    totals: set[int] = set()
+    for d in DETAIL.finditer(text):
+        status, position, total, name, duration = d.groups()
+        if name in r.results or int(position) in positions:
+            r.note = 'duplicate test identity or progress position'
+            return r
+        try:
+            seconds = float(duration)
+        except ValueError:
+            r.note = 'invalid per-test duration'
+            return r
+        if not (0 <= seconds < float('inf')):
+            r.note = 'non-finite or negative test duration'
+            return r
+        r.results[name] = status
+        r.test_seconds[name] = seconds
+        positions.add(int(position)); totals.add(int(total))
+    seen_skips = sum(s.lower() == 'skipped' for s in r.results.values())
+    seen_unexpected = sum(s.isupper() and s.lower() != 'skipped' for s in r.results.values())
+    seen_expected = len(r.results) - seen_skips - seen_unexpected
+    if (len(r.results) != r.ran or positions != set(range(1, r.ran + 1))
+            or (r.ran and totals != {r.ran}) or seen_skips != skipped
+            or seen_unexpected != r.unexpected or seen_expected != r.expected
+            or r.ran != r.expected + r.unexpected + skipped):
+        r.note = 'per-test details, positions or outcomes contradict the summary'
+        return r
+    if any(s.lower() in {'unknown', 'aborted', 'quit'} for s in r.results.values()):
+        r.note = 'an interrupted or unknown outcome is not a completed test'
+        return r
+    r.status = 'ok'
+    return r
+
+
+def compare_results(port: RunResult, reference: RunResult) -> tuple[str, str]:
+    if port.status == reference.status == 'out-of-memory':
+        return 'both-capped', 'both runs hit the optional per-process cap; unverified'
+    if 'crashed' in {port.status, reference.status} or 'timeout' in {port.status, reference.status}:
+        return 'crashed', f'port={port.status}; reference={reference.status}'
+    if port.status != 'ok' or reference.status != 'ok':
+        return 'incomplete', f'port={port.status}: {port.note}; reference={reference.status}: {reference.note}'
+    if not port.ran or not reference.ran:
+        return 'zero-tests', 'no executed tests on at least one side'
+    if port.ran != reference.ran or set(port.results) != set(reference.results):
+        return 'different', 'test count or identity set differs'
+    if not any(s.lower() != 'skipped' for s in port.results.values()):
+        return 'zero-tests', 'all selected tests were skipped'
+    if port.results == reference.results:
+        return ('both-fail', 'identical unexpected outcomes') if port.unexpected else ('same', '')
+    improvements = regressions = 0
+    for name, p in port.results.items():
+        q = reference.results[name]
+        if p == q:
+            continue
+        if p.lower() == 'skipped' or q.lower() == 'skipped':
+            return 'different', f'skip status differs for {name}'
+        if p.isupper() and not q.isupper():
+            regressions += 1
+        elif q.isupper() and not p.isupper():
+            improvements += 1
+        else:
+            return 'different', f'outcome differs for {name}: {p} vs {q}'
+    if regressions and not improvements:
+        return 'port-worse', f'{regressions} per-test regressions'
+    if improvements and not regressions and port.unexpected == 0:
+        return 'port-better', f'{improvements} per-test improvements, no remaining unexpected results'
+    return 'different', 'mixed per-test outcome differences'
+
+
+def gate_exit(verdicts: list[str]) -> int:
+    return 0 if verdicts and all(v in {'same', 'port-better'} for v in verdicts) else 1
 
 
 def enumerate_tests(root: Path) -> list[str]:
-    """The reference's own list of test files: `test/Makefile.in` 206-210's `find`, i.e. every
-    `*.el` under the test root except the pruned directories (`manual`, `data`, `infra`,
-    `*resources`) and dotfiles.  Using the same recipe is what makes a sweep's denominator the
-    reference's own (PORTING.md P-138), instead of a hand-written glob that can silently skip
-    a subdirectory (P-137's `textmodes/ispell-tests`) or a differently-named file."""
-    out = []
-    for path in root.rglob("*.el"):
-        if path.name.startswith("."):
-            continue
-        parts = path.relative_to(root).parts[:-1]
-        if any(part in PRUNE_DIRS or part.endswith(PRUNE_SUFFIX) for part in parts):
-            continue
-        out.append(str(path.relative_to(root)))
-    return sorted(out)
+    return sorted(str(p.relative_to(root)) for p in root.rglob('*.el')
+                  if not p.name.startswith('.') and not any(
+                      x in PRUNE_DIRS or x.endswith('resources') for x in p.relative_to(root).parts[:-1]))
 
 
 def cap_memory(mib: int):
-    """A `preexec_fn` that caps the child's address space.  Linux honours it; Darwin refuses to
-    lower `RLIMIT_AS` below the current address space ("Invalid argument"), which is why the
-    watchdog below exists as well - the two together give a bounded reading on both."""
-    def limit():
+    def apply():
         try:
             resource.setrlimit(resource.RLIMIT_AS, (mib << 20, mib << 20))
         except (ValueError, OSError):
-            pass
-    return limit
+            pass  # Darwin may reject address-space caps; RSS watch is supplementary.
+    return apply
 
 
-def watchdog(proc: subprocess.Popen, mib: int) -> bool:
-    """Kill `proc` once its RSS passes `mib`.  Returns whether it fired.  `ps` is sampled rather
-    than the limit enforced, because a *bounded* reading is all this needs: the point is that a
-    runaway file costs the executor nothing."""
-    while proc.poll() is None:
-        time.sleep(0.5)
+def watchdog(proc: subprocess.Popen, mib: int, stopped: threading.Event, fired: list[bool]):
+    while not stopped.wait(.5) and proc.poll() is None:
         try:
-            out = subprocess.run(["ps", "-o", "rss=", "-p", str(proc.pid)],
-                                 capture_output=True, text=True, timeout=5)
-            rss_kib = int(out.stdout.strip() or 0)
-        except (ValueError, subprocess.SubprocessError):
+            result = subprocess.run(['ps', '-o', 'rss=', '-p', str(proc.pid)], capture_output=True, text=True, timeout=3)
+            if int(result.stdout.strip() or 0) > (mib << 10):
+                fired[0] = True; proc.kill(); return
+        except (ValueError, OSError, subprocess.SubprocessError):
             continue
-        if rss_kib > (mib << 10):
-            proc.kill()
-            return True
-    return False
 
 
 def run(prog: Path, test_root: Path, rel: str, timeout: int,
-        selector: str = SELECTOR_DEFAULT,
-        memory_mib: int = 0,
-        prelude: str = "") -> tuple[str, int, int, int, str]:
-    """(verdict, ran, expected, unexpected, note) for one program and one test file.
-
-    `prelude` is evaluated after `-l ert` and before the test file, so a rung can put the
-    program into a different *environment* without touching the harness recipe: the GC
-    stress rung (docs/port-plan.md 7.2's "强制 GC 压测") passes `(setq gc-cons-threshold 1)`
-    here, which makes every allocation a GC decision while the test files stay byte for
-    byte the reference's own."""
-    argv = [str(prog), "--no-init-file", "--no-site-file", "--no-site-lisp", "-L", f":{test_root}",
-            "-l", "ert"]
-    if prelude:
-        argv += ["--eval", prelude]
-    argv += ["-l", str(test_root / rel), "--batch",
-             "--eval", f"(ert-run-tests-batch-and-exit (quote {selector}))"]
-    proc = subprocess.Popen(argv, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True,
-                            env={"HOME": "/nonexistent", "PATH": "/usr/bin:/bin",
-                                 "LC_ALL": "C"},
-                            cwd=str(REPO),
-                            preexec_fn=cap_memory(memory_mib) if memory_mib else None)
-    fired = threading.Thread(target=lambda: None)
-    over = {"fired": False}
-    if memory_mib:
-        def watch():
-            over["fired"] = watchdog(proc, memory_mib)
-        fired = threading.Thread(target=watch, daemon=True)
-        fired.start()
-    try:
-        out_text, _ = proc.communicate(timeout=timeout)
-    except subprocess.TimeoutExpired:
-        proc.kill()
-        proc.communicate()
-        return "timeout", 0, 0, 0, f"no summary within {timeout}s"
-    if memory_mib:
-        fired.join(timeout=5)
-    text = out_text or ""
-    m = None
-    for m2 in SUMMARY.finditer(text):
-        m = m2
-    if m is None:
-        tail = " | ".join(text.strip().splitlines()[-2:])[:160]
-        if over["fired"]:
-            return "out-of-memory", 0, 0, 0, f"no summary within a {memory_mib} MiB cap"
-        # A SIGKILL the watchdog did not fire for is not an out-of-memory reading: the port
-        # aborts with SIGKILL when libplatform catches a recursive `os_unfair_lock` abort
-        # (PORTING.md P-126 - `getenv` inside the SIGCHLD handler), and that abort used to be
-        # reported as "out-of-memory", which sent a whole round after the wrong phenomenon.
-        if proc.returncode == -9:
-            return "crashed", 0, 0, 0, f"exit -9 (SIGKILL, watchdog silent): {tail}"
-        return ("crashed" if proc.returncode != 0 else "no-summary"), 0, 0, 0, f"exit {proc.returncode}: {tail}"
-    ran, expected, unexpected = (int(m.group(1)), int(m.group(2)), int(m.group(3)))
-    if proc.returncode != 0 and unexpected == 0:
-        return "crashed", ran, expected, unexpected, f"exit {proc.returncode} after a clean summary"
-    return "ok", ran, expected, unexpected, ""
-
-
-def main() -> int:
-    ensure_port_tree_is_a_project_root()
-    ap = argparse.ArgumentParser()
-    ap.add_argument("--glob", default="**/*.el",
-                    help="test file pattern, relative to the test root; the default is the "
-                         "reference's own ELFILES list (see enumerate_tests)")
-    ap.add_argument("--list", action="store_true",
-                    help="print the file list the run would use and exit (no binary needed)")
-    ap.add_argument("--timeout", type=int, default=300)
-    ap.add_argument("--limit", type=int, default=40, help="max detail lines to print")
-    ap.add_argument("--tsv")
-    ap.add_argument("--max-files", type=int, default=0,
-                    help="stop after this many files (chunked sweeps, so one heavy file cannot "
-                         "cut a long run short); pair with --start-at to resume")
-    ap.add_argument("--start-at", type=int, default=0,
-                    help="skip this many files (resume a chunked sweep)")
-    ap.add_argument("--retries", type=int, default=1,
-                    help="re-run a crashed file this many times before calling it a defect; a "
-                         "file that passes on a retry is reported as flaky, because the port's "
-                         "crashes so far are layout-dependent (PORTING.md P-111)")
-    ap.add_argument("--selector", default=SELECTOR_DEFAULT,
-                    help="the ERT selector text both programs run; the default is the "
-                         "reference's own SELECTOR_DEFAULT (test/Makefile.in 139)")
-    ap.add_argument("--selector-preset", choices=sorted(SELECTOR_PRESETS), default=None,
-                    help="the reference's shorthand: default|expensive|all")
-    ap.add_argument("--prelude-eval", default="",
-                    help="Lisp evaluated after `-l ert` and before the test file, on both "
-                         "programs (the environment the file runs in)")
-    ap.add_argument("--gc-stress", action="store_true",
-                    help="shortcut for --prelude-eval '(setq gc-cons-threshold 1)': the "
-                         "forced-GC rung of docs/port-plan.md 7.2")
-    ap.add_argument("--memory-mib", type=int, default=0,
-                    help="cap each side's address space (RLIMIT_AS); a file that runs out of "
-                         "memory is then a bounded reading instead of an executor kill")
-    ap.add_argument("--port-prog", type=Path, default=PORT_PROG)
-    ap.add_argument("--ref-prog", type=Path, default=REF_PROG)
-    a = ap.parse_args()
-
-    if a.selector_preset:
-        a.selector = SELECTOR_PRESETS[a.selector_preset]
-    if a.gc_stress:
-        if a.prelude_eval:
-            print("--gc-stress and --prelude-eval are mutually exclusive", file=sys.stderr)
-            return 2
-        a.prelude_eval = "(setq gc-cons-threshold 1)"
-    if a.prelude_eval:
-        print(f"prelude: {a.prelude_eval}")
-    for p in (a.port_prog, a.ref_prog):
-        if not p.is_file():
-            print(f"missing program: {p}", file=sys.stderr)
-            return 2
-    if a.glob == "**/*.el":
-        files = enumerate_tests(REF_TEST)
-        print(f"enumerated {len(files)} file(s) from test/Makefile.in's ELFILES recipe")
+        selector: str = SELECTOR_DEFAULT, memory_mib: int = 0, prelude: str = '') -> RunResult:
+    base = EVIDENCE_ROOT or REPO/'build/acceptance/ert'/str(time.monotonic_ns())
+    base.mkdir(parents=True, exist_ok=True)
+    log = base/(uuid.uuid4().hex + '.log')
+    argv = [str(prog.resolve()), '--no-init-file', '--no-site-file', '--no-site-lisp', '-L', f':{test_root.resolve()}', '-l', 'ert']
+    if prelude: argv += ['--eval', prelude]
+    argv += ['-l', str((test_root/rel).resolve()), '--batch', '--eval', f'(ert-run-tests-batch-and-exit (quote {selector}))']
+    started = time.monotonic(); stopped = threading.Event(); fired = [False]
+    # A unique nonexistent HOME avoids loading user state and accidental shared test state.
+    env = {'HOME': str(base/('home-'+uuid.uuid4().hex)), 'PATH': os.defpath, 'LC_ALL': 'C'}
+    with log.open('wb') as output:
+        proc = subprocess.Popen(argv, cwd=REPO, env=env, stdout=output, stderr=subprocess.STDOUT,
+                                preexec_fn=cap_memory(memory_mib) if memory_mib else None)
+        watcher = None
+        if memory_mib:
+            watcher = threading.Thread(target=watchdog, args=(proc,memory_mib,stopped,fired), daemon=True); watcher.start()
+        timed_out = False
+        try:
+            proc.wait(timeout=timeout)
+        except subprocess.TimeoutExpired:
+            timed_out = True; proc.kill(); proc.wait()
+        finally:
+            stopped.set()
+            if watcher: watcher.join(timeout=4)
+            if proc.poll() is None: proc.kill(); proc.wait()
+    elapsed = time.monotonic()-started
+    if timed_out or fired[0]:
+        r = RunResult(status='out-of-memory' if fired[0] else 'timeout', elapsed_seconds=elapsed,
+                      note='run interrupted; see raw log')
+    elif log.stat().st_size > 16*1024*1024:
+        r = RunResult(status='incomplete', elapsed_seconds=elapsed, note='raw report exceeds bounded parser input; log retained')
     else:
-        files = sorted(str(p.relative_to(REF_TEST))
-                       for p in REF_TEST.glob(a.glob)
-                       if p.is_file() and not p.name.startswith("."))
-    if not files:
-        print(f"no test files match {a.glob}", file=sys.stderr)
-        return 2
+        r = parse_result(log.read_text(errors='replace'), proc.returncode, elapsed)
+    r.log = str(log); r.exit_code = proc.returncode
+    return r
+
+
+def main(argv: list[str] | None = None) -> int:
+    global EVIDENCE_ROOT
+    ap = argparse.ArgumentParser(description=__doc__)
+    ap.add_argument('--glob', default='**/*.el'); ap.add_argument('--list', action='store_true')
+    ap.add_argument('--timeout', type=int, default=300); ap.add_argument('--limit', type=int, default=40)
+    ap.add_argument('--tsv', type=Path); ap.add_argument('--results-json', type=Path)
+    ap.add_argument('--start-at', type=int, default=0); ap.add_argument('--max-files', type=int, default=0)
+    ap.add_argument('--retries', type=int, default=0)
+    ap.add_argument('--selector', default=SELECTOR_DEFAULT); ap.add_argument('--selector-preset', choices=SELECTOR_PRESETS)
+    ap.add_argument('--prelude-eval', default=''); ap.add_argument('--gc-stress', action='store_true')
+    ap.add_argument('--memory-mib', type=int, default=0)
+    ap.add_argument('--port-prog', type=Path, default=PORT_PROG); ap.add_argument('--ref-prog', type=Path, default=REF_PROG)
+    ap.add_argument('--collect-only', action='store_true')
+    a = ap.parse_args(argv)
+    if a.timeout <= 0 or min(a.start_at,a.max_files,a.retries,a.memory_mib) < 0:
+        ap.error('timeout must be positive; range, retries and cap must be nonnegative')
+    if a.gc_stress and a.prelude_eval: ap.error('--gc-stress and --prelude-eval are mutually exclusive')
+    if a.gc_stress: a.prelude_eval = '(setq gc-cons-threshold 1)'
+    if a.selector_preset: a.selector = SELECTOR_PRESETS[a.selector_preset]
+    if not PORT_TEST.is_dir():
+        print('missing owned test root', file=sys.stderr); return 2
+    files = enumerate_tests(PORT_TEST) if a.glob == '**/*.el' else sorted(str(p.relative_to(PORT_TEST)) for p in PORT_TEST.glob(a.glob) if p.is_file() and not p.name.startswith('.'))
+    print(f'enumerated {len(files)} file(s)')
+    if not files: print('no matching test files', file=sys.stderr); return 2
     if a.list:
-        for f in files:
-            print(f)
+        for f in files: print(f)
         return 0
-
-    rows: list[tuple[str, str, int, int, int, int, str]] = []
-    started = time.time()
-    high_water = resource.getrusage(resource.RUSAGE_CHILDREN).ru_maxrss   # KiB on Darwin
-    if a.start_at:
-        files = files[a.start_at:]
-    if a.max_files:
-        files = files[:a.max_files]
-    for i, rel in enumerate(files, 1):
-        v1, r1, e1, u1, n1 = run(a.port_prog, PORT_TEST, rel, a.timeout, a.selector,
-                                 a.memory_mib, a.prelude_eval)
-        retried = False
-        while v1 != "ok" and a.retries > 0 and not retried:
-            retried = True
-            v1, r1, e1, u1, n1 = run(a.port_prog, PORT_TEST, rel, a.timeout, a.selector,
-                                 a.memory_mib, a.prelude_eval)
-            if v1 == "ok":
-                rows.append((rel, "flaky", r1, u1, 0, 0,
-                             "the port crashed and passed on a retry"))
-        if retried and v1 == "ok":
-            continue
-        v2, r2, e2, u2, n2 = run(a.ref_prog, REF_TEST, rel, a.timeout, a.selector,
-                                 a.memory_mib, a.prelude_eval)
-        if v1 == "out-of-memory" and v2 == "out-of-memory":
-            rows.append((rel, "both-capped", r1, u1, r2, u2,
-                         "the file is too heavy for the harness's cap on both sides"))
-            continue
-        if v1 != "ok" or v2 != "ok":
-            verdict = "crashed"
-            note = f"port: {v1} {n1} | reference: {v2} {n2}"
-        elif u1 == 0 and u2 == 0:
-            verdict, note = "same", ""
-        elif u1 > u2:
-            verdict, note = "port-worse", f"{u1} unexpected vs {u2}"
-        elif u1 < u2:
-            verdict, note = "port-better", f"{u1} unexpected vs {u2}"
-        else:
-            verdict, note = "both-fail", f"both {u1} unexpected"
-        # The sweep's own memory: a run that lifts the children high-water mark is the one to
-        # look at, and the executor's budget kills the whole sweep otherwise (status 4.427).
-        now = resource.getrusage(resource.RUSAGE_CHILDREN).ru_maxrss
-        if now > high_water:
-            high_water = now
-            note = (note + " " if note else "") + f"new RSS high-water {now // (1024 * 1024)} MiB"
-        rows.append((rel, verdict, r1, u1, r2, u2, note))
-        if i % 10 == 0:
-            print(f"  … {i}/{len(files)} ({time.time() - started:.0f}s)", file=sys.stderr)
-
-    tally: dict[str, int] = {}
-    for r in rows:
-        tally[r[1]] = tally.get(r[1], 0) + 1
-    print(f"test files: {len(rows)}; " + ", ".join(f"{k}={v}" for k, v in sorted(tally.items())))
-    print(f"port tests run: {sum(r[2] for r in rows)}, unexpected: {sum(r[3] for r in rows)}; "
-          f"reference tests run: {sum(r[4] for r in rows)}, unexpected: {sum(r[5] for r in rows)}")
-    bad = [r for r in rows if r[1] in ("port-worse", "crashed")]
-    for r in bad[:a.limit]:
-        print(f"  {r[1]:11s} {r[0]}: {r[6]}")
-    if len(bad) > a.limit:
-        print(f"  … {len(bad) - a.limit} more")
+    for p in (a.port_prog, a.ref_prog):
+        if not p.is_file(): print(f'missing program: {p}', file=sys.stderr); return 2
+    if not REF_TEST.is_dir(): print('missing optional reference tests for differential audit', file=sys.stderr); return 2
+    files = files[a.start_at:]
+    if a.max_files: files = files[:a.max_files]
+    EVIDENCE_ROOT = REPO/'build/acceptance/ert'/str(time.monotonic_ns()); EVIDENCE_ROOT.mkdir(parents=True)
+    rows = []
+    for rel in files:
+        attempts = [run(a.port_prog,PORT_TEST,rel,a.timeout,a.selector,a.memory_mib,a.prelude_eval)]
+        while attempts[-1].status != 'ok' and len(attempts) <= a.retries:
+            attempts.append(run(a.port_prog,PORT_TEST,rel,a.timeout,a.selector,a.memory_mib,a.prelude_eval))
+        reference = run(a.ref_prog,REF_TEST,rel,a.timeout,a.selector,a.memory_mib,a.prelude_eval)
+        port = attempts[-1]; verdict, note = compare_results(port,reference)
+        if len(attempts) > 1 and verdict in {'same','port-better'}:
+            verdict, note = 'flaky', 'earlier incomplete/failed process attempt retained; reference still executed'
+        rows.append({'file':rel,'verdict':verdict,'note':note,'port':asdict(port),
+                     'reference':asdict(reference),'port_attempts':[asdict(r) for r in attempts]})
+        print(f'{verdict}: {rel}', flush=True)
+    payload = {'source_head':subprocess.check_output(['git','rev-parse','HEAD'],cwd=REPO,text=True).strip(),
+               'selector':a.selector,'prelude':a.prelude_eval,'port_program':str(a.port_prog.resolve()),
+               'reference_program':str(a.ref_prog.resolve()),'files':rows,'collect_only':a.collect_only}
+    json_path = a.results_json or EVIDENCE_ROOT/'results.json'; json_path.parent.mkdir(parents=True,exist_ok=True)
+    json_path.write_text(json.dumps(payload,ensure_ascii=False,indent=2)+'\n')
     if a.tsv:
-        Path(a.tsv).write_text("file\tverdict\tport_ran\tport_unexpected\tref_ran\tref_unexpected\tnote\n"
-                               + "".join("\t".join(str(x) for x in r) + "\n" for r in rows),
-                               encoding="utf-8")
-    return 0
+        a.tsv.parent.mkdir(parents=True,exist_ok=True)
+        with a.tsv.open('w') as out:
+            out.write('file\tverdict\tport_ran\tport_unexpected\tref_ran\tref_unexpected\tnote\n')
+            for r in rows:
+                fields=[r['file'],r['verdict'],r['port']['ran'],r['port']['unexpected'],r['reference']['ran'],r['reference']['unexpected'],r['note']]
+                out.write('\t'.join(str(f).replace('\t',' ').replace('\n',' ') for f in fields)+'\n')
+    print(f"test files: {len(rows)}; gate={'pass' if gate_exit([r['verdict'] for r in rows]) == 0 else 'fail'}; JSON: {json_path}")
+    return 0 if a.collect_only else gate_exit([r['verdict'] for r in rows])
 
-
-if __name__ == "__main__":
-    sys.exit(main())
+if __name__ == '__main__': sys.exit(main())

@@ -11,6 +11,12 @@
 # Row 7 (performance) is not run: it is shelved by the user's standing decision and recorded as
 # unmet, so running it would produce a number that is not a pass.  The script says so rather than
 # quietly leaving a gap.
+# Historical reference-dependent audit, intentionally opt-in after the root migration.
+if [ "${1:-}" != "--historical-audit" ]; then
+  echo "Historical audit only. Use tools/local-acceptance.py for current standalone products." >&2
+  exit 2
+fi
+shift
 set -u
 HERE=$(cd "$(dirname "$0")/.." && pwd)
 cd "$HERE" || exit 1
@@ -37,13 +43,14 @@ prepare () {
 # unexplained FAIL the first time this script ran with --full (status 4.980).
 run_row () {
   local label=$1; shift
-  local log; log=$(mktemp "${TMPDIR:-/tmp}/verify-dod.XXXXXX")
+  mkdir -p build/acceptance/historical
+  local log; log=$(mktemp "build/acceptance/historical/verify-dod.XXXXXX")
   if "$@" >"$log" 2>&1; then
-    rm -f "$log"; row "$label" ok; return 0
+    row "$label" ok; return 0
   fi
   row "$label" FAIL; fail=1
   tail -4 "$log" | sed 's/^/    /'
-  rm -f "$log"; return 1
+  echo "    evidence: $log"; return 1
 }
 
 prepare || { echo "verify-dod: the environment could not be prepared"; exit 2; }
@@ -82,7 +89,7 @@ fi
 say "row 2: layout / symbols / subr / declarations"
 if python3 tools/check-declarations.py >/dev/null 2>&1; then row "check-declarations" ok; else row "check-declarations" FAIL; fail=1; fi
 if [ "$FULL" = 1 ]; then
-  run_row "xtask gate-fast" bash -c "cd "$HERE" && CARGO_TARGET_DIR=${CARGO_TARGET_DIR:-/tmp/xt-cargo} cargo run -q -p xtask -- gate-fast"
+  run_row "xtask gate-fast" bash -c "cd "$HERE" && CARGO_TARGET_DIR=${CARGO_TARGET_DIR:-build/cargo-historical} cargo run -q -p xtask -- gate-fast"
 else
   row "xtask gate-fast" "skipped (--full)"
 fi
