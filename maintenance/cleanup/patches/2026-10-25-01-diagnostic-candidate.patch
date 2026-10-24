@@ -1,0 +1,136 @@
+--- a/platform/macos/nsterm.swift
++++ b/platform/macos/nsterm.swift
+@@ -8362 +8361,0 @@
+-    traceSettledFirstResponder()
+@@ -8369 +8367,0 @@
+-    traceSettledFirstResponder()
+@@ -8371,10 +8368,0 @@
+-  }
+-
+-  private func traceSettledFirstResponder() {
+-    guard nsInputTracePath != nil, nsInputTraceBytes < 1_048_576 else { return }
+-    // AppKit owns firstResponder assignment after the transition callback
+-    // returns. Observe the actual later state without changing focus or IME.
+-    DispatchQueue.main.async { [weak self] in
+-      guard let self = self else { return }
+-      ns_input_trace("firstResponderState", view: self)
+-    }
+--- a/tools/test-macos-ime.py
++++ b/tools/test-macos-ime.py
+@@ -70 +70 @@
+-        process=subprocess.Popen([str(binary),'-Q','-name','Femacs IME A','-l',str(ROOT/'tools/fixtures/macos-ime.el')],env=env,stdout=output,stderr=subprocess.STDOUT)
++        process=subprocess.Popen([str(binary),'-Q','-l',str(ROOT/'tools/fixtures/macos-ime.el')],env=env,stdout=output,stderr=subprocess.STDOUT)
+--- a/tools/stable-compat.py
++++ b/tools/stable-compat.py
+@@ -15 +14,0 @@
+-import plistlib
+@@ -43,16 +41,0 @@
+-
+-def resolve_product(path):
+-    """Bind a real executable, including an explicit .app's declared entry."""
+-    path=Path(path).resolve()
+-    if path.is_dir():
+-        with (path/'Contents/Info.plist').open('rb') as source:
+-            name=plistlib.load(source).get('CFBundleExecutable')
+-        if (not isinstance(name,str) or not name or name in ['.','..']
+-                or Path(name).name!=name):
+-            raise ValueError('bundle executable must be a simple declared filename')
+-        path=(path/'Contents/MacOS'/name).resolve()
+-    with path.open('rb') as source:magic=source.read(4)
+-    if magic not in [b'\xcf\xfa\xed\xfe',b'\xfe\xed\xfa\xcf',b'\xce\xfa\xed\xfe',
+-                     b'\xfe\xed\xfa\xce',b'\xca\xfe\xba\xbe',b'\xbe\xba\xfe\xca',b'\x7fELF']:
+-        raise ValueError('request the real native executable or .app, not a launcher/wrapper')
+-    return path
+@@ -158 +141,4 @@
+-    products = {}
++    products = {'terminal':args.terminal.resolve(),
++                'macos':args.macos.resolve()/'Contents/MacOS/Femacs'
++                    if args.macos.is_dir() else args.macos.resolve(),
++                'reference':args.reference.resolve()}
+@@ -161,3 +146,0 @@
+-        products = {'terminal':resolve_product(args.terminal),
+-                    'macos':resolve_product(args.macos),
+-                    'reference':resolve_product(args.reference)}
+--- a/tools/test-stable-compat.py
++++ b/tools/test-stable-compat.py
+@@ -7 +6,0 @@
+-import plistlib
+@@ -9 +7,0 @@
+-import tempfile
+@@ -21,20 +18,0 @@
+-    def test_bundle_entry_dump_and_wrapper_identity(self):
+-        base=ROOT/'build/stable-compat-unit';base.mkdir(parents=True,exist_ok=True)
+-        with tempfile.TemporaryDirectory(dir=base) as directory:
+-            root=Path(directory);app=root/'Stable.app';macos=app/'Contents/MacOS';macos.mkdir(parents=True)
+-            with (app/'Contents/Info.plist').open('wb') as out:
+-                plistlib.dump({'CFBundleExecutable':'Stable'},out)
+-            binary=macos/'Stable';binary.write_bytes(b'\xcf\xfa\xed\xfe' + b'fixture')
+-            dump=macos/'libexec/Stable.pdmp';dump.parent.mkdir();dump.write_bytes(b'owned dump')
+-            self.assertEqual(compat.resolve_product(app),binary)
+-            self.assertEqual(compat.resolve_product(binary),binary)
+-            self.assertIn(dump,compat.baseline.discover_dump_paths(binary))
+-            before=compat.baseline.artifact_fingerprint(binary)
+-            dump.write_bytes(b'changed dump')
+-            self.assertNotEqual(before,compat.baseline.artifact_fingerprint(binary))
+-            wrapper=root/'wrapper';wrapper.write_text('#!/bin/sh\nexec native\n')
+-            with self.assertRaises(ValueError):compat.resolve_product(wrapper)
+-            with (app/'Contents/Info.plist').open('wb') as out:
+-                plistlib.dump({'CFBundleExecutable':'../escape'},out)
+-            with self.assertRaises(ValueError):compat.resolve_product(app)
+-
+--- a/tools/test-release-baseline.py
++++ b/tools/test-release-baseline.py
+@@ -144,2 +144 @@
+-    # Owned bundles put the dump in Resources/libexec; some installed stable
+-    # bundles put it next to the real executable under MacOS/libexec.
++    # Also check Contents/Resources/libexec for macOS .app bundles
+@@ -147,3 +146,3 @@
+-        for libexec in [parent.parent / "Resources/libexec", parent / "libexec"]:
+-            if libexec.is_dir():
+-                candidates.extend(sorted(libexec.glob("*.pdmp")))
++        libexec = parent.parent / "Resources/libexec"
++        if libexec.is_dir():
++            candidates.extend(sorted(libexec.glob("*.pdmp")))
+@@ -190,9 +188,0 @@
+-def checked_output_path(path: Path) -> Path:
+-    """Resolve and reject writes into the optional read-only reference."""
+-    resolved = Path(path).resolve()
+-    reference = (REPO / "emacs").resolve()
+-    if resolved == reference or reference in resolved.parents:
+-        raise ValueError("output must not be inside the read-only reference tree")
+-    return resolved
+-
+-
+@@ -201 +191 @@
+-    resolved = checked_output_path(path)
++    resolved = Path(path).resolve()
+@@ -764,2 +753,0 @@
+-    if args.json_out is not None:
+-        args.json_out = checked_output_path(args.json_out)
+--- a/docs/modernization.md
++++ b/docs/modernization.md
+@@ -165 +165 @@
+-python3 tools/stable-compat.py --reference "${FEMACS_STABLE_APP:?set the stable app or real native executable path}" --out build/acceptance/goal-stable-language-1
++python3 tools/stable-compat.py --reference "$(command -v emacs)" --out build/acceptance/goal-stable-language-1
+@@ -170,16 +169,0 @@
+-D repair batch after the first independent review: set `-name Femacs IME A` before initial frame construction, rather than waiting for a `-l` fixture rename to retroactively change an earlier trace row. `EmacsView.traceSettledFirstResponder() -> Void` queues a weak-view observation on the main queue only while diagnostics are enabled and below the trace budget; its `firstResponderState` event reads the actual later state after the responder callback returns, without asserting that acceptance means IMK readiness or mutating focus/composition. The original transition event remains available. This addresses the two observed source-order risks; actual native scenarios remain required.
+-
+-The installed stable command can be a shell launcher rather than the editor binary. `stable-compat.py resolve_product(path) -> Path` therefore accepts the real native executable or an explicit app directory (resolving its simple `CFBundleExecutable` from `Info.plist`) and rejects script launchers. Executable and dump hashes must cover actual files; `test-release-baseline.py discover_dump_paths` now includes both `Contents/Resources/libexec` and `Contents/MacOS/libexec`. The reused installed stable distribution's version/configuration and actual fingerprints are recorded; reading a local release tag does not prove that this installed vendor build came from that exact commit or has no platform patches. Its bounded language observations are not pristine-upstream provenance or full package parity.
+-
+-### Current stable-delivery D evidence (2026-10-25)
+-
+-The tracked-only export completed both standard builds without old outputs or the optional reference (terminal506.029s, Cocoa439.326s). The final diagnostic and product-identity repairs then rebuilt only changed Swift units, link, dump and package79.683s, retaining unchanged Rust/config inputs. A separate normal root terminal build completed512.056s with its own resource paths. The validated native executable/dump were atomically published by the existing bundle publisher with the complete previous app retained and strict signature checks before/after publication. These results do not assert native interaction acceptance.
+-
+-The original independent reviewer executed root TTY6/6, the exact31.1 comparison48/48 (six language cases plus ten baseline groups across three products), and local acceptance9/9, including automatic interactive terminal config discovery,26 PTY keys and Unicode file workflow. The latter two runs completed after an initial quota error and before a second error; native execution receipts and immutable fingerprints establish their origin. The replacement reviewer separately checked current source, product/result identities and bounded evidence; it did not rerun or take credit for those results. Component groups are helper8/8, stable6/6, baseline7/7 and existing acceptance8/8; identical reruns add no coverage.
+-
+-The moved app also passed a batch-only relocation check while the owned source export was temporarily unavailable: five library paths and data/doc/exec directories resolved inside the moved bundle, DOC was readable, Unicode editing and exact PID assertions passed, executable/dump hashes were unchanged and the same source directory was restored. The controller exited zero in1.791s, peak accounted34537544 bytes and cleanup complete. This proves bounded bundle-resource independence, not Finder launch, native keyboard interaction or complete language compatibility. Private receipts remain in `build/acceptance/goal-peer-root-{tty,stable,local}-1` and `goal-relocation-1`.
+-
+-The actual desktop remains locked. SD-A5/A6/A9, final native interaction and therefore SD-C3/GA1–GA3 overall completion remain open. G4 has only a bounded literal reader inventory; G5–G7 have no new implementation. The seven-item Goal remains active. Candidate withdrawal/publication and final isolated source recovery are bound by [CLN-20261025-01](../maintenance/cleanup/reports/2026-10-25-01-diagnostic-candidate.md).
+-
+-Final independent review found no blocking product defect, but identified weaker-than-specified diagnostics and result binding plus missing reference-output guards. The consolidated harness repair requires complete diagnostic equality, records actual binary/dump hashes before/after TTY execution, and rejects normal or symlinked reference output paths including optional JSON output. Two new helper groups plus the existing eight and six real TTY cases passed16/16; the subsequent optional-JSON guard check passed10/10 helpers. Baseline components7/7 also passed. Existing48/48 and local9/9 remain evidence for the unchanged editor. A separate post-run inode observation supplements the immutable relocation receipt. Two final `term.rs` comment normalizations change no executable source; their exact substitution proof is retained privately. See [CLN-20261025-02](../maintenance/cleanup/reports/2026-10-25-02-acceptance-guards.md); no native GUI or complete Goal success is inferred.
+-
+@@ -189,2 +173,2 @@
+-- [x] GC1: finish the stable-delivery stage design/ownership table and all remaining native/TTY cases without running new tests; A/B completed before production C and final D.
+-- [x] GC2: complete SD1–SD6 source/harness wiring and freeze for D; a further native behavior repair, if required by actual desktop evidence, remains unresolved rather than implicitly accepted.
++- [ ] GC1: finish the stable-delivery stage design/ownership table and all remaining native/TTY cases without running new tests.
++- [ ] GC2: complete all stable-delivery repairs and harness wiring; mark implementation pending acceptance, then freeze.

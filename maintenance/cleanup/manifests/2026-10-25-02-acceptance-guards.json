@@ -1,0 +1,41 @@
+{
+  "id": "CLN-20261025-02",
+  "source_ref": "28f6bedb96c30ba535d63f2923625613e2dcc154 + pre-final-review uncommitted tools",
+  "scope": "test harness only; no product/platform/data deletion",
+  "validation": [
+    "goal-final-assertions-1:16/16 exact diagnostics and binary/dump identities",
+    "goal-final-guards-3:10/10 including actual CLI rejected-JSON ordering",
+    "goal-final-baseline-units-3:actual CLI7/7 with current tool SHA"
+  ],
+  "unrelated_deletion": false,
+  "source_files": [
+    {
+      "path": "tools/test-goal-stability.py",
+      "before_sha256": "6876ee8959d9ea4ed22dadf6b449ac87025bb744db36dac8c584e117562a9958",
+      "before_bytes": 28860,
+      "after_bytes": 33324,
+      "after_sha256": "08871147e878dae2c50854ad627aed69919fd7c1bb012430854cc58cf71f9197",
+      "isolated_recovery_matches_before": true
+    },
+    {
+      "path": "tools/test-release-baseline.py",
+      "before_sha256": "9d33ab4025799e1004321578cc63a6f0091626ae85a10d37b10d7b3e98356fb5",
+      "before_bytes": 30733,
+      "after_bytes": 31198,
+      "after_sha256": "af4b18264c59b37034887bb20fed8c33d2798bdd32f970881db5f35e153b14c9",
+      "isolated_recovery_matches_before": true
+    }
+  ],
+  "patch_sha256": "fe46e28a5f2dff8bf383a4166dd29ce55df505d745092cf2716096f9c1b2f596",
+  "final_recovery": {
+    "passed": true,
+    "files": 2,
+    "directory": "build/acceptance/goal-final-guard-recovery-2",
+    "exit_code": 0
+  },
+  "rejected_intermediate": {
+    "sha256": "097aa3286cb41498fcabc726743cfa4def0dd9ce003c3a2d324d7f154db158c5",
+    "reason": "independent review found args validation inserted into run_component_tests rather than main; not committed or adopted",
+    "path": "tools/test-release-baseline.py"
+  }
+}

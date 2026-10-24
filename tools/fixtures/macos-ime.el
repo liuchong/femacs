@@ -4,6 +4,7 @@
 (defvar femacs-ime-report (getenv "FEMACS_IME_REPORT"))
 (defvar femacs-ime-second-buffer nil)
 (defvar femacs-ime-first-frame (selected-frame))
+(modify-frame-parameters nil '((name . "Femacs IME A")))
 (when (getenv "FEMACS_IME_MULTIFRAME")
   (modify-frame-parameters nil '((name . "Femacs IME A") (left . 40) (top . 60)
                                  (width . 60) (height . 25)))

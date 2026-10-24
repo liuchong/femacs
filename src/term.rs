@@ -4772,7 +4772,7 @@ unsafe fn dissociate_if_controlling_tty (fd: c_int)
 
    If NAME is NULL, then use the controlling tty, i.e., dev_tty.
    Otherwise NAME should be a path to the tty device file,
-   e.g. "/dev/pts/7".
+   e.g. a numbered pseudo-terminal device.
 
    TERMINAL_TYPE is the termcap type of the device, e.g. "vt100".
 
@@ -4867,9 +4867,16 @@ pub unsafe extern "C" fn init_tty (mut name: *const c_char, terminal_type: *cons
       {
 	let diagnostic: *const c_char
 	  = if fd < 0 { c"Could not open file: %s".as_ptr () } else { c"Not a tty device: %s".as_ptr () };
-	emacs_close (fd);
+        if fd >= 0
+          { emacs_close (fd); }
+        // No name, wait descriptor or terminal modes exist yet.  The normal
+        // delete_tty guard deliberately ignores an unnamed terminal.
+        unlink_tty (tty);
         delete_terminal_internal (terminal);
-	maybe_fatal (must_succeed, terminal, diagnostic, diagnostic, name);
+        (*terminal).display_info.tty = std::ptr::null_mut ();
+        xfree ((*tty).Wcm.cast::<c_void> ());
+        xfree (tty.cast::<c_void> ());
+        maybe_fatal (must_succeed, std::ptr::null_mut (), diagnostic, diagnostic, name);
       }
 
     (*tty).name = xstrdup (name);
@@ -5141,7 +5148,7 @@ to do 'unset TERMINFO' (C-shell: 'unsetenv TERMINFO') as well.".as_ptr (),
   if TabWidth! (tty) < 0
     { TabWidth! (tty) = 8; }
 
-/* Turned off since /etc/termcap seems to have :ta= for most terminals
+/* Turned off since the system termcap database seems to have :ta= for most terminals
    and newer termcap doc does not seem to say there is a default.
   if (!tty->Wcm->cm_tab)
     tty->Wcm->cm_tab = "\t";
@@ -5261,7 +5268,7 @@ unsafe fn init_tty_msdos (name: *const c_char, terminal_type: *const c_char)
   let _ = &mut bytes;
 }
 
-unsafe extern "C" fn vfatal (str_: *const c_char, mut args: ...)
+unsafe fn vfatal (str_: *const c_char, args: core::ffi::VaList<'_>) -> !
 {
   fputs (c"emacs: ".as_ptr (), stderr);
   vfprintf (stderr, str_, args);
@@ -5299,6 +5306,20 @@ pub unsafe extern "C" fn fatal (str_: *const c_char, mut args: ...)
 /* Delete the given tty terminal, closing all frames on it.  */
 
 #[cfg (not (feature = "have_android"))]
+unsafe fn unlink_tty (tty: *mut tty_display_info)
+{
+  let mut link: *mut *mut tty_display_info = &raw mut tty_list;
+  while *link != tty
+    {
+      if (*link).is_null ()
+        { emacs_abort (); }
+      link = &raw mut (**link).next;
+    }
+  *link = (*tty).next;
+  (*tty).next = std::ptr::null_mut ();
+}
+
+#[cfg (not (feature = "have_android"))]
 unsafe extern "C" fn delete_tty (terminal: *mut terminal)
 {
   let mut tty: *mut tty_display_info;
@@ -5312,22 +5333,7 @@ unsafe extern "C" fn delete_tty (terminal: *mut terminal)
 
   tty = (*terminal).display_info.tty.cast::<tty_display_info> ();
 
-  if tty == tty_list
-    { tty_list = (*tty).next; }
-  else
-    {
-      let mut p: *mut tty_display_info;
-      p = tty_list;
-      while ! p.is_null () && (*p).next != tty
-	{ p = (*p).next; }
-
-      if p.is_null ()
-        /* This should not happen.  */
-        { emacs_abort (); }
-
-      (*p).next = (*tty).next;
-      (*tty).next = 0 as *mut tty_display_info;
-    }
+  unlink_tty (tty);
 
   /* reset_sys_modes needs a valid device, so this call needs to be
      before delete_terminal.  */

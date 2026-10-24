@@ -141,11 +141,12 @@ def discover_dump_paths(binary: Path) -> list[Path]:
         parent / "emacs.pdmp",
         parent / "bootstrap-emacs.pdmp",
     ]
-    # Also check Contents/Resources/libexec for macOS .app bundles
+    # Owned bundles put the dump in Resources/libexec; some installed stable
+    # bundles put it next to the real executable under MacOS/libexec.
     if parent.name == "MacOS" and parent.parent.name == "Contents":
-        libexec = parent.parent / "Resources/libexec"
-        if libexec.is_dir():
-            candidates.extend(sorted(libexec.glob("*.pdmp")))
+        for libexec in [parent.parent / "Resources/libexec", parent / "libexec"]:
+            if libexec.is_dir():
+                candidates.extend(sorted(libexec.glob("*.pdmp")))
     seen: set[Path] = set()
     found: list[Path] = []
     for p in candidates:
@@ -186,9 +187,18 @@ def git_provenance() -> dict:
     }
 
 
+def checked_output_path(path: Path) -> Path:
+    """Resolve and reject writes into the optional read-only reference."""
+    resolved = Path(path).resolve()
+    reference = (REPO / "emacs").resolve()
+    if resolved == reference or reference in resolved.parents:
+        raise ValueError("output must not be inside the read-only reference tree")
+    return resolved
+
+
 def new_output(path: Path) -> Path:
     """Create a fresh output directory; reject any pre-existing file or directory."""
-    resolved = Path(path).resolve()
+    resolved = checked_output_path(path)
     if resolved.exists() or resolved.is_symlink():
         raise FileExistsError(f"refusing to reuse existing output path: {resolved}")
     resolved.mkdir(parents=True, exist_ok=False)
@@ -751,6 +761,8 @@ def main(argv: list[str] | None = None) -> int:
     if args.timeout <= 0:
         parser.error("--timeout must be positive")
 
+    if args.json_out is not None:
+        args.json_out = checked_output_path(args.json_out)
     started = time.monotonic()
     out_dir = new_output(args.out)
     component_report = run_component_tests()

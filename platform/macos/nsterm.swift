@@ -8117,12 +8117,20 @@ class EmacsWindow: NSWindow {
 // Opt-in acceptance diagnostics. Default execution never creates a trace file.
 private let nsInputTracePath = ProcessInfo.processInfo.environment["FEMACS_INPUT_TRACE"]
 private var nsInputTraceBytes = 0
-private func ns_input_trace(_ event: String, _ details: @autoclosure () -> String = "") {
+private func ns_input_trace(_ event: String, _ details: @autoclosure () -> String = "",
+                            view: NSView? = nil) {
   guard let path = nsInputTracePath, nsInputTraceBytes < 1_048_576 else { return }
+  let ownWindow = view?.window
+  let keyWindow = NSApp?.keyWindow
   let record: [String: Any] = ["uptime": ProcessInfo.processInfo.systemUptime,
                              "event": event, "details": details(),
-                             "keyWindow": NSApp?.keyWindow != nil,
-                             "appActive": NSApp?.isActive ?? false]
+                             "keyWindow": keyWindow != nil,
+                             "appActive": NSApp?.isActive ?? false,
+                             "windowNumber": ownWindow.map { $0.windowNumber as Any } ?? NSNull(),
+                             "windowTitle": ownWindow.map { $0.title as Any } ?? NSNull(),
+                             "windowIsKey": ownWindow?.isKeyWindow ?? false,
+                             "viewIsFirstResponder": view.map { ownWindow?.firstResponder === $0 } ?? false,
+                             "keyWindowNumber": keyWindow.map { $0.windowNumber as Any } ?? NSNull()]
   guard var data = try? JSONSerialization.data(withJSONObject: record) else { return }
   data.append(10)
   guard nsInputTraceBytes + data.count <= 1_048_576 else { return }
@@ -8348,6 +8356,30 @@ class EmacsView: NSView, NSTextInputClient, NSWindowDelegate {
     true                                                        // C 7207
   }
 
+  override func becomeFirstResponder() -> Bool {
+    let accepted = super.becomeFirstResponder()
+    ns_input_trace("becomeFirstResponder", "accepted=\(accepted)", view: self)
+    traceSettledFirstResponder()
+    return accepted
+  }
+
+  override func resignFirstResponder() -> Bool {
+    let accepted = super.resignFirstResponder()
+    ns_input_trace("resignFirstResponder", "accepted=\(accepted)", view: self)
+    traceSettledFirstResponder()
+    return accepted
+  }
+
+  private func traceSettledFirstResponder() {
+    guard nsInputTracePath != nil, nsInputTraceBytes < 1_048_576 else { return }
+    // AppKit owns firstResponder assignment after the transition callback
+    // returns. Observe the actual later state without changing focus or IME.
+    DispatchQueue.main.async { [weak self] in
+      guard let self = self else { return }
+      ns_input_trace("firstResponderState", view: self)
+    }
+  }
+
   /// C 7210-7216: `- (BOOL)acceptsFirstMouse: (NSEvent *)theEvent` - "Tell NS we want to accept
   /// clicks that activate the window"; C 7213-7214's `NSTRACE_MSG` is empty and C's answer is the
   /// `ns_click_through` variable.
@@ -8390,7 +8422,7 @@ class EmacsView: NSView, NSTextInputClient, NSWindowDelegate {
   /// the same dead guard; and C 7411-7420's `keyEventWithType:…` factory is
   /// `NSEvent.keyEvent (with:…)`, whose Swift import is failable.
   @objc override func keyDown(with theEvent: NSEvent) {
-    ns_input_trace("keyDown", "key=\(theEvent.keyCode) compose=\(processingCompose) eventReady=\(emacs_event != nil)")
+    ns_input_trace("keyDown", "key=\(theEvent.keyCode) compose=\(processingCompose) eventReady=\(emacs_event != nil)", view: self)
     var theEvent = theEvent                                     // C 7411 reassigns it
     let hlinfo = MOUSE_HL_INFO(emacsframe)                      // C 7245
     var code: Int32 = 0                                         // C 7246
@@ -9020,7 +9052,7 @@ class EmacsView: NSView, NSTextInputClient, NSWindowDelegate {
   /// which C's macro expands through `safe_funcall` (the round-34 reading of the same macro), and
   /// C 9531's `redisplay` is the round-77 entry.
   @objc override func draggingUpdated(_ sender: NSDraggingInfo) -> NSDragOperation {
-    ns_input_trace("draggingUpdated")
+    ns_input_trace("draggingUpdated", view: self)
     var frame: Lisp_Object = Qnil()                           // C 9491
     var position: NSPoint = .zero                             // C 9493
     var x: Int32 = 0, y: Int32 = 0                            // C 9494
@@ -9063,7 +9095,7 @@ class EmacsView: NSView, NSTextInputClient, NSWindowDelegate {
   /// entry round 34 added; and C 9643-9651's event is the `input_event` mirror with the
   /// `DRAG_N_DROP_EVENT` constant this round adds.
   @objc override func performDragOperation(_ sender: NSDraggingInfo) -> Bool {
-    ns_input_trace("performDragOperation")
+    ns_input_trace("performDragOperation", view: self)
     let source: AnyObject? = sender.draggingSource as AnyObject?   // C 9552
     var x: Int32 = 0, y: Int32 = 0                           // C 9541
     var type: NSPasteboard.PasteboardType?                   // C 9542
@@ -9192,7 +9224,7 @@ class EmacsView: NSView, NSTextInputClient, NSWindowDelegate {
   /// `[workingText release]` + `[str copy]` is the ARC assignment, and C 7578-7579's `NS_KEYLOG`
   /// block is dead (`NS_KEYLOG` is 0 at C 7241).
   @objc func setMarkedText(_ aString: Any?, selectedRange selRange: NSRange) {
-    ns_input_trace("setMarkedText", String(describing: aString))
+    ns_input_trace("setMarkedText", String(describing: aString), view: self)
     let str: NSString = (aString as? NSAttributedString)?.string as NSString? ?? aString as? NSString ?? ""   // C 7540-7541
     if str.length == 0 {                              // C 7551
       deleteWorkingText()                             // C 7553
@@ -9214,7 +9246,7 @@ class EmacsView: NSView, NSTextInputClient, NSWindowDelegate {
   /// C 7571-7590: `- (void)deleteWorkingText` - "Delete display of composing characters [not in
   /// &lt;NSTextInput&gt;]."  C 7580's `[workingText release]` is the reference being dropped.
   @objc func deleteWorkingText() {
-    ns_input_trace("deleteWorkingText", "hadWorking=\(workingText != nil)")
+    ns_input_trace("deleteWorkingText", "hadWorking=\(workingText != nil)", view: self)
     if workingText == nil {                           // C 7576
       return                                          // C 7577
     }
@@ -9240,7 +9272,7 @@ class EmacsView: NSView, NSTextInputClient, NSWindowDelegate {
   /// composing".  C 7515-7523's surrogate pair is the two predicates and the helper above;
   /// C 7496's and C 7525-7526's `NS_KEYLOG`/`TODO` lines are C's own comments.
   @objc override func insertText(_ aString: Any?) {
-    ns_input_trace("insertText", String(describing: aString))
+    ns_input_trace("insertText", String(describing: aString), view: self)
     let s: NSString = (aString as? NSAttributedString)?.string as NSString? ?? aString as? NSString ?? ""   // C 7488-7491
     let len = s.length                                // C 7493
     processingCompose = false                         // C 7497
@@ -10345,6 +10377,7 @@ class EmacsView: NSView, NSTextInputClient, NSWindowDelegate {
   /// class's own method (C 8862) whose batch has not landed, so that call goes through the deferred
   /// entry declared below, and C 8455/8456 are the kbd-buffer pair this unit already imports.
   @objc func windowDidBecomeKey() {
+    ns_input_trace("windowDidBecomeKey", view: self)
     let old_focus = ns_display_info_ns_focus_frame(emacsframe)   // C 8414
     var event = input_event(bits: 0, code: 0, modifiers: 0, x: nil, y: nil, timestamp: 0,
                             frame_or_window: nil, arg: nil, device: nil)   // C 8415
@@ -10408,6 +10441,7 @@ class EmacsView: NSView, NSTextInputClient, NSWindowDelegate {
   /// own file-scope pointer (C 329) and C 8527's `EV_TRAILER ((id)nil)` is round 22's macro, which
   /// reaches the same `emacsframe` its other callers pass.
   @objc func windowDidResignKey(_ notification: Notification) {
+    ns_input_trace("windowDidResignKey", view: self)
     let is_focus_frame = ns_display_info_ns_focus_frame(emacsframe) == emacsframe   // C 8498
     // C 8499: `NSTRACE ("[EmacsView windowDidResignKey:]");` - empty.
 
@@ -10614,7 +10648,7 @@ class EmacsView: NSView, NSTextInputClient, NSWindowDelegate {
   /// the port starts them at zero (Swift has no indeterminate value - the C 7823 reading).
   @objc(firstRectForCharacterRange:)
   func firstRectForCharacterRange(_ theRange: NSRange) -> NSRect {
-    ns_input_trace("firstRect", "location=\(theRange.location) length=\(theRange.length)")
+    ns_input_trace("firstRect", "location=\(theRange.location) length=\(theRange.length)", view: self)
     var rect: NSRect = .zero                          // C 7653
     var pt: NSPoint = .zero                           // C 7654
     let win: UnsafeMutableRawPointer?                 // C 7655

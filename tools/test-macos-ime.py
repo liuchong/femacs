@@ -22,13 +22,42 @@ def new_output(path):
 def commit_matches(state, expected):
     return not state.get('marked',True) and unicodedata.normalize('NFC',state.get('text','')) == unicodedata.normalize('NFC',expected)
 
+def read_callbacks(path):
+    """Read bounded complete JSONL rows, leaving a final in-flight append alone."""
+    try:
+        with Path(path).open('rb') as stream:data=stream.read(1_048_577)
+    except FileNotFoundError:return []
+    if len(data)>1_048_576:raise ValueError('native callback trace exceeds 1 MiB')
+    rows=[]
+    for line in data.splitlines(keepends=True):
+        if not line.endswith(b'\n'):break
+        row=json.loads(line)
+        if not isinstance(row,dict):raise ValueError('native callback row must be an object')
+        rows.append(row)
+    return rows
+
+def native_window_ready(records,title):
+    """Require the target view and latest global native focus to agree."""
+    if not isinstance(title,str) or not title or not records or any(not isinstance(row,dict) for row in records):return False
+    target=next((row for row in reversed(records) if row.get('windowTitle')==title),None)
+    if target is None:return False
+    number=target.get('windowNumber');last=records[-1]
+    if type(number) is not int or number<=0:return False
+    if any(target.get(key) is not True for key in ['windowIsKey','viewIsFirstResponder','keyWindow','appActive']):return False
+    for row in [target,last]:
+        key_number=row.get('keyWindowNumber')
+        if type(key_number) is not int or key_number!=number:return False
+        if row.get('keyWindow') is not True or row.get('appActive') is not True:return False
+    return True
+
 def run_scenario(binary,sender,sources,work,mode,expected,pinyin_id=None):
     work=new_output(work)
     rows=[];process=None;started=time.monotonic();original=None
     result={'mode':mode,'passed':False,'steps':rows,'expected':expected}
     def source(*args):return subprocess.check_output([str(sources),*map(str,args)],text=True,timeout=8).strip()
-    report=work/'snapshot.json';document=work/'ime.txt'
-    env=dict(os.environ,FEMACS_IME_REPORT=str(report),FEMACS_INPUT_TRACE=str(work/'callbacks.jsonl'))
+    report=work/'snapshot.json';document=work/'ime.txt';trace=work/'callbacks.jsonl'
+    expected_source=None;target_title='Femacs IME A'
+    env=dict(os.environ,FEMACS_IME_REPORT=str(report),FEMACS_INPUT_TRACE=str(trace))
     if mode=='multi':env['FEMACS_IME_MULTIFRAME']='1'
     with (work/'output.log').open('wb') as output:
       try:
@@ -38,7 +67,7 @@ def run_scenario(binary,sender,sources,work,mode,expected,pinyin_id=None):
         pinyin=pinyin_id or next((s for s in available if 'SCIM' in s and ('ITABC' in s or 'Pinyin' in s)),None)
         if pinyin is None:pinyin=next((s for s in available if s.lower().endswith('.pinyin')),None)
         if not ascii_id or pinyin not in available:raise RuntimeError('requested enabled Pinyin and ABC sources are required')
-        process=subprocess.Popen([str(binary),'-Q','-l',str(ROOT/'tools/fixtures/macos-ime.el')],env=env,stdout=output,stderr=subprocess.STDOUT)
+        process=subprocess.Popen([str(binary),'-Q','-name','Femacs IME A','-l',str(ROOT/'tools/fixtures/macos-ime.el')],env=env,stdout=output,stderr=subprocess.STDOUT)
         def snapshot():
             try:return json.loads(report.read_text())
             except (OSError,ValueError):return {}
@@ -52,25 +81,42 @@ def run_scenario(binary,sender,sources,work,mode,expected,pinyin_id=None):
             raise RuntimeError(f'{label}: exit={process.poll()}, state={snapshot()}')
         def status():return json.loads(source('status',process.pid))
         def select(ident):
+            nonlocal expected_source
             t=time.monotonic();source('select',ident,process.pid)
             state=status();rows.append({'id':'source-change','requested':ident,'at':time.monotonic(),'seconds':time.monotonic()-t,'observed':state})
             if process.poll() is not None:raise RuntimeError('editor exited during source change')
             if state.get('source')!=ident or not state.get('frontmost') or not state.get('focused_window'):
                 raise RuntimeError('input source selection/focus not observed')
-        def strokes(values,physical=False):
+            expected_source=ident
+        def strokes(values,physical=False,allow_exit=False):
             p=work/'strokes.tsv'
             p.write_text(''.join(f'{key}\t{flags}'+('' if text is None else '\t'+text)+'\n' for key,flags,text in values))
             before=status()
             if not before.get('frontmost') or not before.get('focused_window'):raise RuntimeError('editor is not focused before keystrokes')
+            if before.get('source')!=expected_source:raise RuntimeError('input source changed before keystrokes')
+            callbacks_before=read_callbacks(trace)
+            if not native_window_ready(callbacks_before,target_title):raise RuntimeError('intended native window/view is not focused before keystrokes')
+            first_new=len(callbacks_before)
             t=time.monotonic()
             subprocess.run([str(sender),str(process.pid),str(p)],stdout=output,stderr=subprocess.STDOUT,check=True,timeout=8)
             rows.append({'id':'physical-keys' if physical else 'editor-keys','at':t,'keys':[x[0] for x in values],'before':before,'after':status()})
-        def send(data):strokes(delivery.native_strokes(data))
+            if physical:
+                wait('physical-native-key-receipt',lambda s:len([r for r in read_callbacks(trace)[first_new:] if r.get('event')=='keyDown'])>=len(values))
+                fresh=[r for r in read_callbacks(trace)[first_new:] if r.get('event')=='keyDown']
+                if any(not native_window_ready([row],target_title) for row in fresh):
+                    raise RuntimeError('physical key reached an unintended/inactive native window or responder')
+            if not allow_exit:
+                after=status()
+                if (after.get('source')!=expected_source or not after.get('frontmost')
+                        or not after.get('focused_window') or not native_window_ready(read_callbacks(trace),target_title)):
+                    raise RuntimeError('input source/native focus lost during keystrokes')
+        def send(data,allow_exit=False):strokes(delivery.native_strokes(data),allow_exit=allow_exit)
         def pinyin_keys(keys):
             # Preserve the original burst cadence. Native keyDown traces record each received
             # key; helper observations bracket the burst without refocusing between letters.
             strokes([(key,0,None) for key in keys],physical=True)
         def focus_frame(title,label):
+            nonlocal target_title
             # Cycle real windows without separately mutating AXMain: main and
             # key windows are different AppKit states. This fixture owns two.
             if snapshot().get('selected')!=title:
@@ -78,8 +124,10 @@ def run_scenario(binary,sender,sources,work,mode,expected,pinyin_id=None):
                 subprocess.run([str(sender),str(process.pid),str(path)],stdout=output,
                                stderr=subprocess.STDOUT,check=True,timeout=8)
                 rows.append({'id':'native-window-cycle','target':title,'at':time.monotonic()})
-            wait(label,lambda s:s.get('selected')==title)
+            wait(label,lambda s:s.get('selected')==title and native_window_ready(read_callbacks(trace),title))
+            target_title=title
         wait('native-startup',lambda s:s.get('native')=='ns')
+        wait('native-window-focus',lambda s:native_window_ready(read_callbacks(trace),target_title))
         if mode=='multi':
             focus_frame('Femacs IME A','frame-a-focus')
         select(ascii_id)
@@ -116,9 +164,8 @@ def run_scenario(binary,sender,sources,work,mode,expected,pinyin_id=None):
             select(ascii_id);committed=a_before
         send(b'\x18\x17'+str(document).encode()+b'\r')
         wait('save-committed-text',lambda s:document.is_file() and document.read_text().rstrip('\n')==committed.rstrip('\n'))
-        send(b'\x18\x03');process.wait(timeout=8)
-        trace=work/'callbacks.jsonl'
-        callbacks=[json.loads(line) for line in trace.read_text().splitlines()]
+        send(b'\x18\x03',allow_exit=True);process.wait(timeout=8)
+        callbacks=read_callbacks(trace)
         if trace.stat().st_size>1_048_576 or not {'keyDown','setMarkedText','insertText'} <= {r.get('event') for r in callbacks}:
             raise RuntimeError('missing or oversized native callback evidence')
         result.update(passed=process.returncode==0,committed=committed,callback_count=len(callbacks))

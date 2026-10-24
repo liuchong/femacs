@@ -1,0 +1,126 @@
+{
+  "id": "CLN-20261025-01",
+  "source_ref": "28f6bedb96c30ba535d63f2923625613e2dcc154 + uncommitted freeze1",
+  "source_files": [
+    {
+      "path": "platform/macos/nsterm.swift",
+      "before_sha256": "6c07c9671aac4a43c167c4c2870ffa8034837f6f6ae623db2e4e593947b0a2b9",
+      "after_sha256": "7327a76a9b3200a992f05a43170218d2e2dc7af3a71b7b77ff53cb67c37a14fb",
+      "before_bytes": 851244,
+      "after_bytes": 851747,
+      "isolated_recovery_matches_before": true,
+      "overlay_after_sha256": "7327a76a9b3200a992f05a43170218d2e2dc7af3a71b7b77ff53cb67c37a14fb",
+      "overlay_after_bytes": 851747
+    },
+    {
+      "path": "tools/test-macos-ime.py",
+      "before_sha256": "f777f3f140510c98aadc187e7d61ba58b1ca828db039fedc00c935fdee2d10bf",
+      "after_sha256": "fb7a23f9aa08c689b7851e1117c3cc85db3db4c578874004dcb9278d1b7f557e",
+      "before_bytes": 13102,
+      "after_bytes": 13125,
+      "isolated_recovery_matches_before": true,
+      "overlay_after_sha256": "fb7a23f9aa08c689b7851e1117c3cc85db3db4c578874004dcb9278d1b7f557e",
+      "overlay_after_bytes": 13125
+    },
+    {
+      "path": "tools/stable-compat.py",
+      "before_sha256": "a16a9ca0cf3c911f3349aed623c30fcf1b234c29d437ab932b2b83a65dc673ed",
+      "after_sha256": "257eb38ec2c707d4edaec07fba6e22d111c8ade054abc3176564e613ff92e8d4",
+      "before_bytes": 10183,
+      "after_bytes": 11039,
+      "isolated_recovery_matches_before": true,
+      "overlay_after_sha256": "257eb38ec2c707d4edaec07fba6e22d111c8ade054abc3176564e613ff92e8d4",
+      "overlay_after_bytes": 11039
+    },
+    {
+      "path": "tools/test-stable-compat.py",
+      "before_sha256": "b1debc78db3711ed44b5665c9a8a453ae2ca13dc06aae6466034c91991ff3ba1",
+      "after_sha256": "8e0f0396bfae356622cb6e69256e9458a27585af16063d9647734446b544a084",
+      "before_bytes": 4065,
+      "after_bytes": 5503,
+      "isolated_recovery_matches_before": true,
+      "overlay_after_sha256": "8e0f0396bfae356622cb6e69256e9458a27585af16063d9647734446b544a084",
+      "overlay_after_bytes": 5503
+    },
+    {
+      "path": "tools/test-release-baseline.py",
+      "before_sha256": "c2d480b88f9690d9e10bfd2456528f6606b0457fc7936486abc79878aeee238c",
+      "after_sha256": "af4b18264c59b37034887bb20fed8c33d2798bdd32f970881db5f35e153b14c9",
+      "before_bytes": 30617,
+      "after_bytes": 31198,
+      "isolated_recovery_matches_before": true,
+      "overlay_after_sha256": "9d33ab4025799e1004321578cc63a6f0091626ae85a10d37b10d7b3e98356fb5",
+      "overlay_after_bytes": 30733
+    },
+    {
+      "path": "docs/modernization.md",
+      "before_sha256": "a6b260195e4dbd2074fa96e50f93e27548b77ef44a3790b44427b2ca2ac04c29",
+      "after_sha256": "6e1e60ba01b8e53ee420ab9034b855ae6cafeafcde41c5b92f1644069e5dedc0",
+      "before_bytes": 86188,
+      "after_bytes": 91349,
+      "isolated_recovery_matches_before": true,
+      "overlay_after_sha256": "a04b7f60b7d448e25df53c6c32d02bcd76705389374f00b734cbebb5e4b4f166",
+      "overlay_after_bytes": 87737
+    }
+  ],
+  "patch_sha256": "b5b51e3cbecdcd36677f2ce1b7896aff137af0683c4f21ab6f22d3233d174932",
+  "products": [
+    {
+      "path": "dist/macos/Femacs.app/Contents/MacOS/Femacs",
+      "before_sha256": "ea390c789f2becce80341fe8cf317694e82f20bdd40551eb0ca20d4d50283ea9",
+      "before_bytes": 3998208,
+      "after_sha256": "a4d2bec6b4546340c4c2eb35e2b81d86f02e1b1f231b5307d45820cffc90b1e9",
+      "after_bytes": 4001232
+    },
+    {
+      "path": "dist/macos/Femacs.app/Contents/Resources/libexec/Femacs.pdmp",
+      "before_sha256": "c9d5bf86c0f0db02e6689aa871eb96d713331651d3434fee4137b4b7aae8b58f",
+      "before_bytes": 18589640,
+      "after_sha256": "b43fd9e4c0783b2b600222ae4bad1a7d9cb7e9bd463c258d8b57b8fa3118e56f",
+      "after_bytes": 18589640
+    }
+  ],
+  "export_overlay": "completed after original dual build exit0; original source-manifest and logs retained",
+  "incremental_command": {
+    "argv": [
+      "cargo",
+      "run",
+      "--locked",
+      "-p",
+      "xtask",
+      "--",
+      "link-macos"
+    ],
+    "exit_code": 0,
+    "seconds": 79.683218542,
+    "evidence": "build/acceptance/goal-stable-incremental-1/results.json"
+  },
+  "unrelated_deletion": false,
+  "generated_app_replacement": "export replacement completed by normal link-macos staging/signature verification and atomic publication; root publication is recorded separately below",
+  "root_app_publication": {
+    "published_app": "dist/macos/Femacs.app",
+    "source_app": ".femacs-cache/goal-stable-source-1/dist/macos/Femacs.app",
+    "retained_previous_app": "build/acceptance/goal-root-app-previous-1.app",
+    "products": [
+      {
+        "path": "Contents/MacOS/Femacs",
+        "source_sha256": "a4d2bec6b4546340c4c2eb35e2b81d86f02e1b1f231b5307d45820cffc90b1e9",
+        "published_sha256": "a4d2bec6b4546340c4c2eb35e2b81d86f02e1b1f231b5307d45820cffc90b1e9",
+        "retained_previous_sha256": "69e499f645f894ff935542e2e93f98b9faf632794830dcc985d5fb8cf6298b16"
+      },
+      {
+        "path": "Contents/Resources/libexec/Femacs.pdmp",
+        "source_sha256": "b43fd9e4c0783b2b600222ae4bad1a7d9cb7e9bd463c258d8b57b8fa3118e56f",
+        "published_sha256": "b43fd9e4c0783b2b600222ae4bad1a7d9cb7e9bd463c258d8b57b8fa3118e56f",
+        "retained_previous_sha256": "41100bb36c18d9cdf5b690fcca868dab5468b2b93d170126f340cce02456c157"
+      }
+    ],
+    "mechanism": "existing bundle::publish (exclusive stage, verify, RENAME_SWAP), old app copied with ditto and signature verified; target signature verified after exchange"
+  },
+  "final_recovery": {
+    "passed": true,
+    "files": 6,
+    "directory": "build/acceptance/goal-diagnostic-recovery-4",
+    "exit_code": 0
+  }
+}

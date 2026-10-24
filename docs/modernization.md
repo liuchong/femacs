@@ -74,11 +74,120 @@ This map is a design/work index, not a claim that every displayed runtime edge h
 | GD5 | G4 retention map and xtask/generator readers | Complete present-day inventory, exact reader/replacement mapping and target policy. Safe no-reader redundant scaffolding may be retired in authorized scope; a support-policy choice affecting retained platforms/devices must be surfaced with concrete options before destructive implementation. | Per-batch report before cleanup; restore/rebuild verification and affected local workflows. |
 | GD6 | `docs/runtime-modernization.md`, `src/bytecode.rs:524 exec_byte_code`, `src/eval.rs:2304 eval_sub`, `src/alloc.rs:5482 mark_memory`, `:6191 visit_static_gc_roots`, `:6394 garbage_collect` | Complete measurement and full root/store/call inventory, compare actual backend/collector contracts, then define exact candidate modules/types/ABI and failure/fallback behavior before writing cases/implementation. Source anchors above are verified at this baseline; they are not an exhaustive root/store inventory. | Real semantic/GC/unwind/redefinition/pdump and workload cases; no runtime/backend chosen merely from another language's name or a toy. |
 
+### Stable-delivery A contract (baseline `28f6bedb`, 2026-10-25)
+
+The exact remaining stage scope is GD1–GD4; this does not start the G4 retirement or G5–G7 runtime stage. The current source tree/data flow above remains the baseline. `init_tty` currently registers an unnamed TTY before opening its device. Its early failure removes the terminal from `terminal_list`, but `delete_tty` immediately returns because `terminal.name` is null: the TTY and its `Wcm` remain linked/allocated. The frozen C source has that same early-cleanup sequence; this is not described as a Rust-only use-after-free. The terminal itself is a GC pseudovector, not explicitly freed by `delete_terminal_internal`. Separately, the private `vfatal` incorrectly accepts new variadic arguments where its callers pass an existing `VaList`.
+
+```mermaid
+flowchart LR
+ T["term.rs init_tty"] --> L["terminal_list + tty_list registration"]
+ L --> F["device open fails"]
+ F --> I["delete_terminal_internal removes terminal"]
+ I --> N["maybe_fatal -> delete_tty sees null name"]
+ N --> E["error/fatal; tty_list/Wcm remain"]
+ W["nsterm.swift view callbacks"] --> J["trace: any keyWindow boolean"]
+ J --> H["IME harness sees Lisp selected frame only"]
+```
+
+#### Exact construction differences and ownership
+
+| ID | File / baseline anchor | Exact construction, fields and lifetime | Cases |
+| --- | --- | --- | --- |
+| SD1 | `src/term.rs:4866` input-null branch; `:5302 delete_tty` | Add private non-Android `unsafe fn unlink_tty(tty: *mut tty_display_info)`: walk `*mut *mut tty_display_info` from `&raw mut tty_list`, abort if missing, unlink once, clear `next`. Reuse it in normal deletion. In early failure close only `fd >= 0`, unlink, call `delete_terminal_internal` exactly once, null `terminal.display_info.tty`, free `tty.Wcm` and `tty`, then call `maybe_fatal` with a null terminal. No `reset_sys_modes`, descriptor unregister, frame deletion or name free is valid before those resources exist. Later named-terminal failures retain the existing complete `delete_tty` path. No change to terminal/TTY ABI. | SD-A1–A3 |
+| SD2 | `src/term.rs:5264 vfatal` and callers `maybe_fatal`, exported `fatal` | Replace only private signature with `unsafe fn vfatal(str_: *const c_char, args: core::ffi::VaList<'_>) -> !`. Pass that same list to `vfprintf`; callers remain C variadic and pass their list directly. Preserve prefix, exact formatted filename, one terminating newline and exit 1. `verror` already accepts this list type. | SD-A1–A3 |
+| SD3 | `platform/macos/nsterm.swift:8120 ns_input_trace`, seven existing trace call sites; `windowDidBecomeKey()`, `windowDidResignKey`, `acceptsFirstResponder` | Extend signature with `view: NSView? = nil`, pass `self` at view calls. Add JSON keys `windowNumber` (integer or null), `windowTitle` (string or null), `windowIsKey` (bool), `viewIsFirstResponder` (bool), `keyWindowNumber` (integer or null). Keep `uptime`, `event`, `details`, `keyWindow`, `appActive`, opt-in guard, lazy details, 0600 and 1 MiB cap. Add `windowDidBecomeKey`, `windowDidResignKey`, `becomeFirstResponder`, `resignFirstResponder` observations; overrides call `super` and return its unchanged result. No new focus, commit/discard or input-context mutation. | SD-A4–A6 |
+| SD4 | `tools/test-macos-ime.py focus_frame`, `strokes`, `select`; `tools/fixtures/macos-ime.el` | Add pure `native_window_ready(records, title)` over decoded trace objects. Require exact title, positive integer number (reject bool), true native key/first-responder/app-active fields and matching latest `keyWindowNumber`; reject missing/malformed/stale other-window state. Add bounded `read_callbacks(path)` tolerating only an incomplete final append. Name A in single/multi mode. `focus_frame` requires both Lisp selection and native evidence. Before every burst require expected source and target readiness; physical bursts require fresh target `keyDown` evidence with the same native state. Record errors, do not refocus/retry-to-green. Keep pending-text policy observational and restore the original source on every exit. | SD-A4–A6 |
+| SD5 | `tools/test-release-baseline.py run_ert_suite`; new `tools/stable-compat.py`, `tools/fixtures/stable-language.el` | Reuse ten release-baseline groups. New bounded comparison covers six exact language cases: lexical closure/redefinition, dynamic unwind, multibyte text/markers, bytecode error/order, weak/finalizer roots, reader/printer roundtrip. Driver accepts `--terminal`, `--macos`, required `--reference`, `--reference-version` (default 31.1), `--out`; checks the actual reference version and records it separately from candidate version. It runs each fixture through the existing strict ERT parser, exact test IDs, zero skips, equal deterministic observations, product/dump hashes before/after, per-case time and retained command logs. The same fixture/input bytes run in all three editors. Wrong/missing version, skipped/missing tests, differing observations or changed products fail. Bounded scope, not complete language/package parity. | SD-A7 |
+| SD6 | GD4 build/publication; `xtask/src/standalone.rs terminal` path generation; `docs/current-state.md`, `docs/status.md`, `PORTING.md` | After B/C completion, build both products from one fresh tracked-input export with this stage's full snapshot. Cocoa resources relocate, so its validated app can be published using existing staging. Terminal `epaths.rs` embeds its build checkout's resource paths: do not blindly copy that executable/dump to root and call it independent. Also run the standard root `build-terminal` recipe against the identical source/config snapshot, then fingerprint and test that matching root terminal/dump/resource set. Preserve prior app until its replacement validates. Never deliver a tested export while leaving the documented terminal stale. Reuse unchanged generation/relocation contracts, rerun affected startup/keys/IME/native workflows. Keep initial failed attempts, lock gaps and diagnostics explicit. | SD-A8–A9 |
+
+SD3 trace is observation, not a claim that instrumentation repairs the multi-frame IME failure. D gathers the native/source/key evidence, then corrects the demonstrated cause in the consolidated repair batch. Existing focus methods/delegate and the accessibility zoom timer are not missing IME setup. A `firstRect` count or 200 ms delay is not an IMK-ready contract. Neither a synthetic focus failure nor an old toy dispatcher failure proves an editor architecture unusable.
+
+Latest stable comparison is version **31.1**, announced 2026-08-24 in the [maintainer's release announcement](https://www.mail-archive.com/info-gnu-emacs@gnu.org/msg00343.html). The local read-only reference already contains tag object `1f9518d22ae0fe4490ea9761ea7d39fbb970a890`, peeled commit `a360712c9d272d950d8d8255ef74570f7e90b7d9`; its `configure.ac` says 31.1. Do not update or build inside that checkout. Export that exact object into an owned persistent reference source directory and build a headless comparison in an owned separate output directory under controlled-run in D, or reuse an independently fingerprinted exact 31.1 binary. Production builds never consume it. The previously tested frozen 32.0.50 reference remains a separate historical control. Version must be rechecked against current release evidence if this stage crosses a later release.
+
+#### Target tree and execution flow
+
+```text
+src/term.rs                          SD1/2: explicit early owner + va-list forwarding
+platform/macos/nsterm.swift           SD3: additive per-window observations
+tools/test-macos-ime.py               SD4: exact native/source preconditions
+tools/fixtures/macos-ime.el           SD4: uniquely named owned frames
+tools/test-goal-stability.py          NEW partner: helper contracts + TTY behavior driver
+tools/fixtures/tty-failure.el         NEW partner: repeated recoverable frame-open errors
+tools/stable-compat.py                NEW primary: strict stable-version differential driver
+tools/fixtures/stable-language.el     NEW primary: six deterministic language cases
+tools/test-stable-compat.py           NEW primary: parser/version/fingerprint failures
+docs/{modernization,current-state,status}.md + PORTING.md  SD6: design/results/trial boundaries
+```
+
+```mermaid
+flowchart LR
+ T["init_tty early open error"] --> U["unlink_tty; one terminal deregistration"]
+ U --> F["clear back-reference; free Wcm/TTY"]
+ F --> E["null-owner maybe_fatal -> true VaList diagnostic"]
+ W["actual AppKit callbacks + window identities"] --> H["source/native preconditions -> physical IME input"]
+ H --> O["exact committed bytes + cancellation + restoration"]
+ S["same owned source snapshot"] --> P["terminal + Cocoa standard products"]
+ P --> C["exact stable version + strict same-input language comparison"]
+```
+
+#### Remaining stage cases and implementation checklist
+
+All cases are prepared in B, none run until the whole stage C is complete. Partner owns only the two new SD1/SD4 test files above; primary owns production, IME harness/fixture, stable comparison and documentation. Existing valid cases are reused; no concurrent writes to one file.
+
+| Case | Boundary / Given–When–Then and retained evidence | Layer / scheduling |
+| --- | --- | --- |
+| SD-A1 | Given owned nonexistent path, regular file and directory; invoke fatal terminal startup with `-t`; require exit 1, exact filename/diagnostic, one newline, no signal/crash. Detached `-nw` with no controlling TTY must name its unavailable device. Keep each command, elapsed time and bytes. | Process integration, explicit TTY mode |
+| SD-A2 | Given a live editor, repeat recoverable `make-terminal-frame` failures for owned nonexistent/non-TTY paths; catch exact Lisp errors, terminal list unchanged, force GC, create/edit/save buffer, exit normally. Never suspend or close an unrelated TTY. The actual release/ownership argument is additionally checked in independent source review; this process test alone does not measure allocator frees. | Editor integration, explicit TTY mode |
+| SD-A3 | Given normal controlling PTY, start current terminal, perform existing key/file workflows and clean exit; verify terminal modes/owned child cleanup. Named-terminal later failure and no-terminal error retain their respective owners. | Existing terminal integration + independent ownership review |
+| SD-A4 | Synthetic trace objects: absent/wrong title/boolean ID/null IDs/wrong key number/false responder/inactive app/latest focus loss/malformed rows never become ready; exact current window is accepted. Incomplete final append may wait, completed malformed JSON fails. | Helper unit, no editor/GUI |
+| SD-A5 | Given unlocked real native window A, physical stable-source and switch-pressure IME commit/cancel/minibuffer flows retain exact text and original source; per-key evidence identifies A and actual first responder. | Existing actual desktop acceptance, explicit mode |
+| SD-A6 | Given A/B, native focus cycling must select correct Lisp and key window/responder before physical input; independent Chinese commits, pending transfer/cancel and A save do not cross buffers. Lost app/source/window focus fails with timeline, never passes on stale selection. | Actual desktop acceptance, explicit multi mode |
+| SD-A7 | Given exact 31.1 reference and current dual products, run existing ten groups plus six new language cases with equal deterministic results and zero skips; wrong version/missing case/differing observation/product mutation are rejection unit cases. | Parser units + three-editor integration; no native UI implied |
+| SD-A8 | Given changed tracked-only snapshot, normal generation/build of both products succeeds without old outputs/reference. Root trial binary/dump/resources match tested artifacts. Strict app signature and affected interactive startup/key/file checks pass. | Build + local product integration, serialized unknown heavy jobs |
+| SD-A9 | Existing external Finder drag fixture requires actual motion/drop/native target and exact file bytes. Unlocked multi-frame IME and external drop remain pending until really exercised; relocation retains matching resources with source unavailable. | Explicit actual desktop acceptance, lock blocks only these cases |
+
+- [x] SD-C0: complete GD1–GD4 source-bound contracts and full remaining case matrix (A).
+- [x] SD-C1: all remaining partner and primary test/fixture files written, not run (B).
+- [x] SD-C2: all SD1–SD6 source, harness, comparison and documentation wiring complete (C), acceptance pending. SD1/2 are implemented in `term.rs`, SD3/4 in the native trace and IME harness, SD5's complete test driver/fixture is ready. SD6 build/publication steps below execute in D; no unbuilt product is claimed updated.
+- [ ] SD-C3: consolidated SD-A1–A9, collected repairs, independent final review and signed delivery (D).
+
+D execution entries (each new output name must be unused; editor/build commands run under the current resource controller):
+
+```sh
+python3 tools/test-goal-stability.py --mode unit --out build/acceptance/goal-stability-unit-1
+python3 tools/test-stable-compat.py
+python3 tools/test-macos-stability.py
+# Build a frozen tracked-input export with both normal recipes, then rebuild
+# the root terminal for its own resource paths and publish the relocatable app.
+cargo run -p xtask -- build-terminal
+cargo run -p xtask -- build-macos
+python3 tools/test-goal-stability.py --mode tty --out build/acceptance/goal-stability-tty-1
+python3 tools/stable-compat.py --reference "${FEMACS_STABLE_APP:?set the stable app or real native executable path}" --out build/acceptance/goal-stable-language-1
+```
+
+The last command rejects an actual reference version other than 31.1; a PATH name is not version evidence. Keep component, process integration and actual desktop acceptance results separate. Existing `tools/local-acceptance.py`, `tools/test-macos-delivery.py`, `tools/test-macos-ime.py --mode multi` and the external drag fixture cover SD-A3/A5/A6/A8/A9; supply their required explicit sender/source/output arguments. A locked desktop is an unaccepted native case, never a skip-to-green.
+
+D repair batch after the first independent review: set `-name Femacs IME A` before initial frame construction, rather than waiting for a `-l` fixture rename to retroactively change an earlier trace row. `EmacsView.traceSettledFirstResponder() -> Void` queues a weak-view observation on the main queue only while diagnostics are enabled and below the trace budget; its `firstResponderState` event reads the actual later state after the responder callback returns, without asserting that acceptance means IMK readiness or mutating focus/composition. The original transition event remains available. This addresses the two observed source-order risks; actual native scenarios remain required.
+
+The installed stable command can be a shell launcher rather than the editor binary. `stable-compat.py resolve_product(path) -> Path` therefore accepts the real native executable or an explicit app directory (resolving its simple `CFBundleExecutable` from `Info.plist`) and rejects script launchers. Executable and dump hashes must cover actual files; `test-release-baseline.py discover_dump_paths` now includes both `Contents/Resources/libexec` and `Contents/MacOS/libexec`. The reused installed stable distribution's version/configuration and actual fingerprints are recorded; reading a local release tag does not prove that this installed vendor build came from that exact commit or has no platform patches. Its bounded language observations are not pristine-upstream provenance or full package parity.
+
+### Current stable-delivery D evidence (2026-10-25)
+
+The tracked-only export completed both standard builds without old outputs or the optional reference (terminal506.029s, Cocoa439.326s). The final diagnostic and product-identity repairs then rebuilt only changed Swift units, link, dump and package79.683s, retaining unchanged Rust/config inputs. A separate normal root terminal build completed512.056s with its own resource paths. The validated native executable/dump were atomically published by the existing bundle publisher with the complete previous app retained and strict signature checks before/after publication. These results do not assert native interaction acceptance.
+
+The original independent reviewer executed root TTY6/6, the exact31.1 comparison48/48 (six language cases plus ten baseline groups across three products), and local acceptance9/9, including automatic interactive terminal config discovery,26 PTY keys and Unicode file workflow. The latter two runs completed after an initial quota error and before a second error; native execution receipts and immutable fingerprints establish their origin. The replacement reviewer separately checked current source, product/result identities and bounded evidence; it did not rerun or take credit for those results. Component groups are helper8/8, stable6/6, baseline7/7 and existing acceptance8/8; identical reruns add no coverage.
+
+The moved app also passed a batch-only relocation check while the owned source export was temporarily unavailable: five library paths and data/doc/exec directories resolved inside the moved bundle, DOC was readable, Unicode editing and exact PID assertions passed, executable/dump hashes were unchanged and the same source directory was restored. The controller exited zero in1.791s, peak accounted34537544 bytes and cleanup complete. This proves bounded bundle-resource independence, not Finder launch, native keyboard interaction or complete language compatibility. Private receipts remain in `build/acceptance/goal-peer-root-{tty,stable,local}-1` and `goal-relocation-1`.
+
+The actual desktop remains locked. SD-A5/A6/A9, final native interaction and therefore SD-C3/GA1–GA3 overall completion remain open. G4 has only a bounded literal reader inventory; G5–G7 have no new implementation. The seven-item Goal remains active. Candidate withdrawal/publication and final isolated source recovery are bound by [CLN-20261025-01](../maintenance/cleanup/reports/2026-10-25-01-diagnostic-candidate.md).
+
+Final independent review found no blocking product defect, but identified weaker-than-specified diagnostics and result binding plus missing reference-output guards. The consolidated harness repair requires complete diagnostic equality, records actual binary/dump hashes before/after TTY execution, and rejects normal or symlinked reference output paths including optional JSON output. Two new helper groups plus the existing eight and six real TTY cases passed16/16; the subsequent optional-JSON guard check passed10/10 helpers. Baseline components7/7 also passed. Existing48/48 and local9/9 remain evidence for the unchanged editor. A separate post-run inode observation supplements the immutable relocation receipt. Two final `term.rs` comment normalizations change no executable source; their exact substitution proof is retained privately. See [CLN-20261025-02](../maintenance/cleanup/reports/2026-10-25-02-acceptance-guards.md); no native GUI or complete Goal success is inferred.
+
 ### Construction checklist (writing is not acceptance)
 
 - [x] GC0: persist the complete seven-item scope, baseline, stages, evidence rules and immediate source anchors; bind an active native Goal separately.
-- [ ] GC1: finish the stable-delivery stage design/ownership table and all remaining native/TTY cases without running new tests.
-- [ ] GC2: complete all stable-delivery repairs and harness wiring; mark implementation pending acceptance, then freeze.
+- [x] GC1: finish the stable-delivery stage design/ownership table and all remaining native/TTY cases without running new tests; A/B completed before production C and final D.
+- [x] GC2: complete SD1–SD6 source/harness wiring and freeze for D; a further native behavior repair, if required by actual desktop evidence, remains unresolved rather than implicitly accepted.
 - [ ] GC3: consolidate G1/G2/G3 real acceptance and independent review; fix the collected failures and deliver the stable products.
 - [ ] GC4: finish G4 full dependency/support/replacement design and all cleanup/renovation cases, then implement all approved changes.
 - [ ] GC5: consolidate G4 affected acceptance, recovery evidence, independent review and signed delivery.
