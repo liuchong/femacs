@@ -4,6 +4,10 @@
 `docs/ports/*.md`（由 `tools/extract-abi.py <c>` 生成后手勾），文件/行数总账由
 `tools/gen-port-map.py`、`tools/gen-port-inventory.py` 生成，禁止手改。
 
+## 新目标：2026-10-25 七项持续现代化
+
+用户要求以原生Goal持续推进所有既定工作，已创建并读回active。唯一计划为[modernization.md的Persistent Goal](modernization.md#persistent-goal-complete-the-seven-part-modernization-plan)，包括G1–G7、用户既定阶段依赖、当前源码锚点、施工GC0–GC9和验收GA1–GA8。基线971cf90d；复用已有独立构建/代表性兼容数据，不继承未完成原生项为通过。新目标不恢复已结案的一期CLI，未启动新开发进程；无自定token预算、远端CI或Fast mode。当前继续稳定交付阶段的GD1–GD4设计/用例，局部桌面阻塞不停止全部工作。每批清理报告和优化研究采纳/拒绝证据仍须保留并提交。
+
 ## 最新交付补充：2026-10-24 Stage IV
 
 本轮双产品独立完整构建成功；新终端/新Cocoa/可选参照的十组ERT为30/30、零跳过、确定性观测一致。真实配置发现、终端按键/文件、原生文件/剪贴板/单窗口输入法通过；初轮总表12/13的C-g竞争由明确前缀回执修正并定向复验通过。七轮Lisp/GC画像已留存，quiet=false，不作性能升级宣称。图形试用包已发布至正常路径；搬移后的LaunchServices启动及文件打开通过。

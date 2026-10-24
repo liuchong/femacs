@@ -1,6 +1,120 @@
 # Modernization: stable delivery, retirement, then Lisp runtime work
 
-Current continuation: **Stage IV**, below. Stages I–III and their failed attempts remain historical evidence; they are not rerun merely to refresh a date.
+Current continuation: the **seven-part persistent Goal (2026-10-25)** below. Its first delivery stage closes the remaining Stage IV native gaps. Stages I–IV and failed attempts remain evidence; unchanged acceptance is not rerun merely to refresh a date.
+
+## Persistent Goal: complete the seven-part modernization plan
+
+The user explicitly requests a new native Codex Goal and continuous execution of all previously agreed work. This is a new objective; the closed first-phase CLI goal stays closed. Baseline is `971cf90d7dbe2a17dcd48c78ec639c7bec9289ba`, master, clean when this goal plan was prepared. Primary development and independent paired test/review continue in the existing conversations; private tool/session identities stay outside Git. The native Goal state and this persistent plan must both be checked on continuation; a saved `/goal` paragraph alone is not proof of an active objective.
+
+### Full scope, sequence and finish conditions
+
+| ID | Required outcome | Starting evidence and remaining work | Acceptance |
+| --- | --- | --- | --- |
+| G1 | macOS terminal and native editor reliably usable | Both products build; classic keys, files and single-window IME have bounded real evidence. Remaining: actual Finder external drop, multi-frame IME and abnormal no-controlling-TTY diagnostic/ownership repair. Do not assume an IME cause from callback counts, input-source ID or Lisp selected-frame alone. | Actual unlocked native workflows, exact PID/product identity, correct file bytes/committed text, cancellation and normal exit; malformed TTY startup fails with the correct message without duplicate cleanup or a crash. |
+| G2 | Fresh tracked checkout builds and runs independently | Complete terminal/Cocoa clean-export builds already passed; retain those unchanged results. Ensure later cleanup/runtime changes preserve generated resources, root paths, ignore rules, bundle relocation and documented dependencies without optional `emacs/`, old objects or old Lisp bytecode. | Standard documented build/generation in a new tracked-only export; executable/dump/resource fingerprints, strict signature and actual terminal/native startup. Repeat only when inputs or behavior change. |
+| G3 | Explicit, repeatable compatibility baseline | Existing ten-group three-product comparison, VM semantics, selected ERT, keys/files and startup checks are reusable controls. Extend for changed behavior, common config/shipped libraries and boundary failures. Coverage counts are not complete behavioral parity. | Strict case identities, zero skipped requested cases, retained failures, per-case timings and deterministic observations; exact tested version/platform/plugin scope stated. Latest-stable language compatibility requires its own bounded source/version evidence, not a renamed frozen-reference result. |
+| G4 | Planned modernization and removal of obsolete infrastructure/device baggage | Six paths already retired and shell policy centralized; platform-support decisions, remaining legacy tools/generators/manual build and Android independent-config gap remain open. Inventory readers/replacements and supported-target obligations before removal; a non-Rust extension alone is no reason to delete or rewrite. | Exact dependency/reader map, supported/unsupported/retired matrix, implemented replacement paths and affected builds/workflows. Every deletion/withdrawal/cache cleanup has a committed `maintenance/cleanup` report, identities, reason, replacement and recovery route, linked from its ledger and progress log. |
+| G5 | Actionable real Lisp/GC performance evidence | Seven-round workload and startup data exists but both hosts were non-quiet; no speedup claim. Add attribution for actual allocation/retention/survival, root/mutator and pause/phase costs needed by compiler/collector choices. | Immutable source/config/product inputs; separate training/evaluation data where relevant; all rounds/median/MAD/p95, workload results, load and memory limits. No toy, minimum-only statistic or busy-host run promoted as a release improvement. |
+| G6 | Evidence-based interpreter/compiler and native/AOT/JIT work | The rejected shared-tail dispatcher stays rejected unless new evidence addresses its real limitation. Compare actual existing native integration and modern backend options; design runtime ABI, roots/safepoints, unwind, fallback, cache/code lifetime and redefinition before implementation. | A source-bound design and real-editor prototype/implementation with semantic and compatibility tests, startup/compile latency, steady-state speed and memory comparisons. Retain a candidate only for reliable benefit without unresolved correctness/important regression; preserve the working baseline. A rejected candidate is a documented experiment, not a shipped native/JIT feature. |
+| G7 | Evidence-based collector modernization, including a generational candidate | Inventory all roots and stores, FFI/interior pointers, conservative roots, pdump objects, weak tables/finalizers and existing string compaction. Use Java/Go designs as technical references, not proof that their collector is directly reusable. | Precise chosen root/barrier/remembered-set/ownership design, real VM candidate and differential/stress/retention/pause tests, measurable tradeoffs and safe baseline fallback. If a candidate is rejected, preserve proof and recovery; do not claim a generational/moving GC shipped. |
+
+G1/G2/G3 form the current **stable-delivery stage**. G4 is the following **cleanup/renovation stage**. G5/G6/G7 form the subsequent **Lisp runtime stage**, with prerequisite measurement/design preceding dependent implementation. These are the user's previously specified stages, not per-file test slices. Each complete stage follows A full design -> B all cases written without running -> C all implementation -> D consolidated integration, tests and independent review. Existing valid implementation/cases/evidence are reused. No new numeric speed target, backend default, platform removal or paid resource budget is invented.
+
+Research items G6/G7 require an actual source-bound prototype and measured adoption/rejection decision; a literature summary alone is incomplete. Useful verified changes are integrated, and unsuccessful candidates are removed with a traceable report. A research decision and an enabled feature are separate statuses. Required editor/build/compatibility outcomes cannot be waived because an optimization fails. Completion of one stage does not complete the entire Goal.
+
+### Current and target code/data flow
+
+```text
+current baseline -> required target change / design entry
+platform/macos/nsterm.swift        G1: keyDown, window focus and text-input callbacks; external drag
+src/term.rs                       G1: init_tty / maybe_fatal / vfatal error and cleanup path
+tools/test-macos-ime.py            G1/G3: physical composition and exact native focus evidence
+tools/fixtures/macos-{ime,drag}.el  G1/G3: owned buffer/frame/file observations
+tools/fixtures/macos-events.rs     G1/G3: exact PID-directed native key events
+tools/fixtures/macos-input-source.rs G1/G3: source/status observations, not readiness proof
+tools/test-macos-delivery.py       G1/G3: key and file workflows
+tools/local-acceptance.py          G1/G2/G3: source/product identities and interactive startup
+xtask/src/{standalone,macos,bundle}.rs G2/G4: independent build, resources and app publication
+tools/bootstrap-resources.py      G2/G4: tracked-input generation; preserve actual required recipes
+tools/test-release-baseline.py    G3: representative strict ERT/observations, not full compatibility
+tools/runtime-profile.py          G5: retained samples and isolated process input/measurement
+tools/fixtures/runtime-profile.el G5: workload/collector instrumentation
+src/{eval,bytecode,comp,alloc,lisp}.rs G6/G7: interpreter, compiler boundary, roots/stores/collector
+lisp/emacs-lisp/{bytecomp,byte-opt}.el G6: existing compiler interface; behavior preserved
+docs/runtime-modernization.md     G5/G6/G7: exact source-bound runtime designs and experiments
+docs/retired-scaffolding.md        G4: retention/replacement policy and current retirement map
+maintenance/cleanup/              G4/all: reports, manifests, inert recovery and ledger
+docs/modernization.md             all: sole live scope, dependency and progress checklist
+```
+
+```mermaid
+flowchart LR
+  S[Tracked inputs and generated resources] --> B[Terminal and Cocoa build]
+  B --> U[Existing keys files startup single-window IME]
+  U --> N[Remaining real drag multi-window and TTY acceptance]
+  N --> C[Dependency-based cleanup and renovation]
+  C --> P[Real workload and collector attribution]
+  P --> J[Interpreter compiler native prototype]
+  P --> G[Root and barrier design plus collector prototype]
+  J --> A[Consolidated semantic native and performance acceptance]
+  G --> A
+  A --> D[Signed delivery and traceable cleanup]
+```
+
+This map is a design/work index, not a claim that every displayed runtime edge has been proved by a graph. The graph service has no femacs index; exact changes use bounded current source reads. Before B/C, complete the file/symbol/variable/signature change table for the current whole stage in this document or the existing runtime design section. Future research does not fabricate an IR, collector policy or source line that has not yet been chosen and justified.
+
+### Immediate source-bound design entries
+
+| Change | Baseline file / symbol | Required work before implementation | Cases / dependency |
+| --- | --- | --- | --- |
+| GD1 | `src/term.rs:4802 init_tty`, `:5264 vfatal`, `:5277 maybe_fatal` | Trace `delete_terminal_internal` / `delete_tty` ownership and every maybe_fatal caller; replace incorrect variadic forwarding with the exact va-list interface and retain formatting/exit semantics. Specify one cleanup owner for each failure branch; do not patch by skipping cleanup. | Invalid device, unavailable controlling TTY, formatted filename, optional/fatal branch, cleanup exactly once; normal interactive startup remains valid. |
+| GD2 | `platform/macos/nsterm.swift:7538` delegate binding, `:8542 interpretKeyEvents`, `:10334/10347/10410` key-window callbacks; `tools/test-macos-ime.py focus_frame/run_scenario` | Observe actual per-window key/first-responder identity and event/source transitions; isolate real behavior from synthetic routing/focus loss. These callback methods and delegate already exist. Do not introduce unconditional discard/commit of pending composition or a firstRect-count readiness rule. Choose the minimal supported repair only after evidence; if desktop is locked, proceed with independent code/design work. | Real two-window independent Chinese commits, pending composition transfer and original input-source restoration; window trace/data must identify the actual native window. |
+| GD3 | `platform/macos/nsterm.swift draggingUpdated/performDragOperation`, `tools/fixtures/macos-drag.el femacs-drag-snapshot` | Reuse the implemented optional-event hover cleanup and native callback trace. Execute actual external Finder drag when unlocked; require motion plus drop callback and exact opened content. Source/static calls are not a substitute. | Existing IV-A4 plus file bytes and live target frame/x/y; preserve default and user-selected drag function. |
+| GD4 | G2/G3 build and compatibility entries above | Map GD1/GD2 changes to the current terminal/Cocoa products and precise affected checks; preserve prior unchanged pass evidence and failed receipts. Publish only a matching built binary/dump/resources set. | Clean affected build, strict signature, terminal/native input, source/config identities and bounded language/version comparisons. |
+| GD5 | G4 retention map and xtask/generator readers | Complete present-day inventory, exact reader/replacement mapping and target policy. Safe no-reader redundant scaffolding may be retired in authorized scope; a support-policy choice affecting retained platforms/devices must be surfaced with concrete options before destructive implementation. | Per-batch report before cleanup; restore/rebuild verification and affected local workflows. |
+| GD6 | `docs/runtime-modernization.md`, `src/bytecode.rs:524 exec_byte_code`, `src/eval.rs:2304 eval_sub`, `src/alloc.rs:5482 mark_memory`, `:6191 visit_static_gc_roots`, `:6394 garbage_collect` | Complete measurement and full root/store/call inventory, compare actual backend/collector contracts, then define exact candidate modules/types/ABI and failure/fallback behavior before writing cases/implementation. Source anchors above are verified at this baseline; they are not an exhaustive root/store inventory. | Real semantic/GC/unwind/redefinition/pdump and workload cases; no runtime/backend chosen merely from another language's name or a toy. |
+
+### Construction checklist (writing is not acceptance)
+
+- [x] GC0: persist the complete seven-item scope, baseline, stages, evidence rules and immediate source anchors; bind an active native Goal separately.
+- [ ] GC1: finish the stable-delivery stage design/ownership table and all remaining native/TTY cases without running new tests.
+- [ ] GC2: complete all stable-delivery repairs and harness wiring; mark implementation pending acceptance, then freeze.
+- [ ] GC3: consolidate G1/G2/G3 real acceptance and independent review; fix the collected failures and deliver the stable products.
+- [ ] GC4: finish G4 full dependency/support/replacement design and all cleanup/renovation cases, then implement all approved changes.
+- [ ] GC5: consolidate G4 affected acceptance, recovery evidence, independent review and signed delivery.
+- [ ] GC6: finish G5/G6/G7 source/research/measurement designs and all cases without running the new experiments; retain existing factual measurements.
+- [ ] GC7: implement complete instrumentation, chosen compiler/interpreter/native candidate and chosen collector candidate with baseline fallback.
+- [ ] GC8: run consolidated runtime-stage compatibility/stress/performance experiments, collect failures and make measured adoption/rejection decisions; integrate accepted outcomes and archive withdrawn work.
+- [ ] GC9: complete final local product acceptance, documentation, per-batch cleanup reports, independent review, signed commits and immediate push; audit all seven acceptance items before completing the Goal.
+
+### Acceptance checklist (mark only from actual evidence)
+
+- [ ] GA1 / G1: actual remaining macOS native workflows and TTY failure paths pass, without changing pending-composition semantics merely to satisfy a test.
+- [ ] GA2 / G2: final changed products build/start from tracked-only inputs, with matching resources, dumps, signatures and trial instructions.
+- [ ] GA3 / G3: exact requested compatibility cases and latest-stable scope evidence pass with preserved identities, timings, failures and explicit limits.
+- [ ] GA4 / G4: approved modernization/retirement matrix implemented; required readers/workflows work, every cleanup report and recovery identity committed.
+- [ ] GA5 / G5: real attribution/survival/phase/pause data supports the later choices; load, full samples, memory and uncertainty are explicit.
+- [ ] GA6 / G6: actual native/compiler/interpreter prototype or implementation has complete semantic and performance evidence and an honest integrate/reject outcome; no unsupported shipped-feature claim.
+- [ ] GA7 / G7: actual collector candidate has a complete root/store/barrier argument, stress/compatibility/performance evidence and integrate/reject outcome; rejected work does not become a claimed generational feature.
+- [ ] GA8 / all: independent final review, actual usable macOS package, clean tracked worktree, verified signed commits and remote branch receipt; all known failures and remaining unverified scope stated.
+
+Lock/permission/toolchain/policy questions block only dependent work. Continue independent authorized work, keep the same checklist and never call an unfinished native workflow passed. Ask a concise concrete question only when a real user decision is required; do not repeat old authorizations. Goal completion requires all required outcomes and the explicitly research-scoped outcomes above; no budget/blocked status or document-only update substitutes for evidence.
+
+### Durable Goal text
+
+```text
+/goal 持续完成 femacs 的七项现代化工作，以 docs/modernization.md 的 Persistent Goal 为唯一当前计划：G1修复并验收macOS终端/图形界面、真实外部拖放、多窗口输入法与异常TTY；G2保证干净拉取后独立生成、构建和运行；G3补齐有明确范围的兼容性与最新稳定版语言行为验证；G4完成旧工具、过时基础设施和设备兼容的规划清理翻新；G5取得真实Lisp/GC性能、分配存活和停顿画像；G6完成解释器/编译器优化及真实native/AOT/JIT候选；G7完成真实分代GC等回收优化候选的设计实现和验证。
+
+起点为971cf90d，macOS双产品已独立构建、30组代表性兼容观测一致；已完成结果复用，未完成项不继承为通过。先稳定交付，再清理翻新，最后运行时优化。每个用户已定义阶段严格执行全部设计→全用例编写但不运行→全部实现→最后集中整合、测试、独立审核与验收。按GC0–GC9施工、GA1–GA8验收维护同一清单；未来候选必须先补齐真实源码绑定的精确设计，不能只做文案或玩具测试。
+
+保留可观察Lisp语义、求值/错误/GC/异常行为、数据及兼容接口；原只读参照不是构建依赖；构建和高风险运行受当前controlled-run保护，禁止远端CI和Fast mode。继续既有结对：我主开发、搭档独立测试审核，双方验证并反驳不成立的说法，不创建子agent。每批删除/撤回/缓存清理先留逐项身份、原因、替代和恢复证据，提交maintenance/cleanup报告并更新日志。完整语义单元验证后签名提交并立即推送。
+
+优化以同机真实工作负载、不可变输入/制品、所有轮次与中位数/波动/停顿/内存证明收益；不擅定性能阈值、不换慢参照、不以busy数据宣称升级。native/GC研究项必须有实际编辑器候选与兼容/性能对照，采纳可靠收益候选；若真实证据否定候选，撤回并保留失败/恢复与结论，只能完成对应研究交付，不得虚称功能已启用或降低必须交付的功能标准。
+
+持续推进所有有权限且可独立完成的事项。锁屏或局部问题只挂起依赖项；遇真实政策/权限选择时转达具体问题、完整选项与影响，继续其他方向。不得因旧goal停止、局部blocked或报告写完而停止整个目标；只有所有必要验收和交付都有真实证据才完成Goal，否则保留准确缺口和下一项，按当前目标接口处理阻塞，不空转、不提前宣告完成。
+```
+
+The slash command above is a reusable command surface. Actual creation/status is verified through this conversation's native Goal interface; saving the text does not assert a CLI keystroke was submitted. Goal creation has no user-specified token budget, so none is invented. Official lifecycle reference: [Using Goals in Codex](https://developers.openai.com/cookbook/examples/codex/using_goals_in_codex).
 
 Baseline: `3d24214a9b1f12316f7263bade8faa95651df066`, master, clean at authorization. The user explicitly authorizes implementation in this order: (I) agreed local-delivery repairs, (II) planned removal/renovation of obsolete infrastructure and device support, (III) Lisp compiler/interpreter/GC improvements and measured native/JIT exploration. Codex is primary developer and an independent fixed-model partner owns tests and final review. Private identities/logs remain outside tracked documents. No remote CI is used; delivery commits carry `[skip ci]` to prevent push-triggered runs.
 
