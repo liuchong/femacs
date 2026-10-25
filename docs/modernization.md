@@ -2,6 +2,16 @@
 
 Current continuation: the **seven-part persistent Goal (2026-10-25)** below. Its first delivery stage closes the remaining Stage IV native gaps. Stages I–IV and failed attempts remain evidence; unchanged acceptance is not rerun merely to refresh a date.
 
+Execution-order update (2026-10-26): the user's current three-part sequence
+supersedes the older A/B/C/D test-first ordering in historical records and the
+already-running Goal text. For each existing stage, finish the full production
+implementation, then write and pass the complete integration/functional
+acceptance, then add the key protective unit tests. Reuse existing valid
+designs, code, tests and evidence; no reset, deletion, new Goal or reduced
+acceptance scope. Continue from the current stage and retain active immutable
+integration builds. The seven outcomes and independent pair review
+requirements are unchanged.
+
 ## Persistent Goal: complete the seven-part modernization plan
 
 The user explicitly requests a new native Codex Goal and continuous execution of all previously agreed work. This is a new objective; the closed first-phase CLI goal stays closed. Baseline is `971cf90d7dbe2a17dcd48c78ec639c7bec9289ba`, master, clean when this goal plan was prepared. Primary development and independent paired test/review continue in the existing conversations; private tool/session identities stay outside Git. The native Goal state and this persistent plan must both be checked on continuation; a saved `/goal` paragraph alone is not proof of an active objective.
@@ -43,7 +53,7 @@ functional-only closeout decisions do not close this current Goal.
 | G6 | Evidence-based interpreter/compiler and native/AOT/JIT work | The rejected shared-tail dispatcher stays rejected unless new evidence addresses its real limitation. Compare actual existing native integration and modern backend options; design runtime ABI, roots/safepoints, unwind, fallback, cache/code lifetime and redefinition before implementation. | A source-bound design and real-editor prototype/implementation with semantic and compatibility tests, startup/compile latency, steady-state speed and memory comparisons. Retain a candidate only for reliable benefit without unresolved correctness/important regression; preserve the working baseline. A rejected candidate is a documented experiment, not a shipped native/JIT feature. |
 | G7 | Evidence-based collector modernization, including a generational candidate | Inventory all roots and stores, FFI/interior pointers, conservative roots, pdump objects, weak tables/finalizers and existing string compaction. Use Java/Go designs as technical references, not proof that their collector is directly reusable. | Precise chosen root/barrier/remembered-set/ownership design, real VM candidate and differential/stress/retention/pause tests, measurable tradeoffs and safe baseline fallback. If a candidate is rejected, preserve proof and recovery; do not claim a generational/moving GC shipped. |
 
-G1/G2/G3 form the current **stable-delivery stage**. G4 is the following **cleanup/renovation stage**. G5/G6/G7 form the subsequent **Lisp runtime stage**, with prerequisite measurement/design preceding dependent implementation. These are the user's previously specified stages, not per-file test slices. Each complete stage follows A full design -> B all cases written without running -> C all implementation -> D consolidated integration, tests and independent review. Existing valid implementation/cases/evidence are reused. No new numeric speed target, backend default, platform removal or paid resource budget is invented.
+G1/G2/G3 form the current **stable-delivery stage**. G4 is the following **cleanup/renovation stage**. G5/G6/G7 form the subsequent **Lisp runtime stage**, with prerequisite measurement/design preceding dependent implementation. These are the user's previously specified stages, not per-file test slices. Each stage now follows complete production implementation -> complete integration/functional acceptance -> key protective unit tests, with independent review under the existing pair agreement. Earlier A/B/C/D labels below describe preserved historical construction/evidence, not a test-first prerequisite for new work. Existing valid implementation/cases/evidence are reused. No new numeric speed target, backend default, platform removal or paid resource budget is invented.
 
 Research items G6/G7 require an actual source-bound prototype and measured adoption/rejection decision; a literature summary alone is incomplete. Useful verified changes are integrated, and unsuccessful candidates are removed with a traceable report. A research decision and an enabled feature are separate statuses. Required editor/build/compatibility outcomes cannot be waived because an optimization fails. Completion of one stage does not complete the entire Goal.
 

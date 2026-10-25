@@ -23197,3 +23197,14 @@ A current verified Cocoa copy is retained in dist/candidates/g4-macos-2/Femacs.a
 D22 completed the actual frozen-source/current-receipt review and accepted the affected P-343/P-344/P-345 corrections with no new blocking production defect. It retracted the earlier Ctrl-A failure and adjacent-root claims; raw prior failures remain. Metadata corrections bind CLN03-06 to actual isolated Git recovery rather than a whole-product rollback. Recovery2/2 and inventory1/1 then pass, with production/test/config identities unchanged. The declared Mac artifact is the retained candidate; the older Root trial App remains unchanged pending native G1 acceptance.
 
 Implementation5118ed08ae3d12fa6693290f5a030499f49d6ad5 contains166 paths, verifies a good signature, and was immediately pushed to origin/master. A subsequent remote refs/heads/master query returns the same full commit. The stage uses skip-CI; no remote CI is used. The delivery audit binds source/product hashes, actual cohort limits, independent findings,26 linked cleanup batches and artifact-loss recovery. G4/GC5/GA4 are complete at that scope. G1 native cases and G2/G3 combined completion remain open; G5-G7 are still A designs without implementation or new performance claims. The seven-part Goal remains active.
+
+### Execution sequence update (2026-10-26 local)
+
+P-356 adopts the user's implementation -> integrated functional acceptance ->
+key protective unit tests order in the project entry and unique plan. Existing
+source/tests/results are preserved; the immutable D13 integration build remains
+active and is not restarted. No new test-first prerequisite or Goal reset. The
+reviewer is currently idle after the completed source review; rule adoption is
+pending its next natural source/result handoff rather than an ACK-only model
+run alongside an unknown heavy build. The running Goal's status-only interface
+cannot replace its old objective text, so that text is not claimed synchronized.
