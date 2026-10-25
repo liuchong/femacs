@@ -1,0 +1,9 @@
+# CLN-20261025-27: archive stopped runtime build intermediates
+
+Only regular generated unit sources, object/archive files and incremental compiler cache members from the stopped D6 and D8 attempts are selected. Their original frozen source exports, all JSON receipts/configuration, logs, real linked programs/dumps and resource packages stay expanded. The D9 tree, source worktree, installed tools/reference, current trial App and G4 candidates are excluded. Each old owner was confirmed stopped and its exact tree had no open files before planning.
+
+The [manifest](../manifests/2026-10-25-27-runtime-intermediates.json) records every selected member identity and the private exact-path ledger. Both persistent archives were verified member by member; representative generated Rust, object and archive files were actually restored and hashed. Public member roles are logical aliases, not extraction paths; exact original locations are in the retained private ledger. Restore regular content from those archives to the recorded owned paths. Original directory/symlink records remain. This is content recovery evidence, not a claim that a failed build is repaired or that regenerated compiler outputs will be byte-identical.
+
+Status: prepared before expanded removal. No project source or failed runtime evidence is discarded. Logical/allocated counts do not establish physical volume recovery, especially for clones and shared extents.
+
+Completed: 44626 expanded files, 1510092614 logical bytes and 1601650688 pre-removal allocated bytes; verified persistent archives occupy 388178063 bytes. All selected expanded files are absent, and all 2868 protected content hashes are unchanged. D9 was never a cleanup target. During this independent operation, its owner completed with a missing build-tool error; that separate loss is not attributed to this cleanup and is not a passing build. No full product or performance acceptance is inferred.
