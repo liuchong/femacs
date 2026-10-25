@@ -614,7 +614,7 @@ The independent partner owns new Python contracts and Rust test modules after in
 - [x] A0: complete the conservative baseline retention/replacement decisions, exact Android/device/manual publication interfaces, API21-floor source changes and source-bound file table; independent source discussion incorporated, no new invented policy questions.
 - [x] B0: write all new Rust/Python/CLI/fixture cases and complete real integration recipes; no functional execution. The separately recorded premature checks are not acceptance.
 - [x] C0: implement every D01–D13 production, route, generator, alias, preservation and report change; retain per-file ownership and mark implementation separately from acceptance.
-- [ ] D0: freeze, execute all requested component/integration/device/manual/build cases, collect failures and repair the whole affected set, independently review the final content.
+- [x] D0: frozen affected component/integration/API36-device/manual/build scope executed, collected failures repaired and final D22 source/evidence independently accepted; signed/pushed5118ed08 and the delivery audit retain narrower platform/native limits and original failed receipts.
 - [x] A01: T01–T15 inventory/probe/output coverage passes in the retained component/real-probe cohort; original inline failure stays failed, repaired inline3 passes.
 - [x] A02: T16–T22 scheduling/linker coverage passes in the retained isolated component cohort.
 - [x] A03: T23–T35 Android build/device/readiness coverage passes at the declared normal/checking-build and API36-device scope.

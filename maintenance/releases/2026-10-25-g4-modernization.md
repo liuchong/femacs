@@ -76,6 +76,13 @@ identities stayed unchanged after the final source review. Private conversations
 native session identifiers and raw collaboration logs are deliberately outside
 Git; this summary retains the technical findings and public decision anchors.
 
+The subsequent adoption reply accepts the delivered identities and closure,
+and finds no substantive source/product/device mismatch. It catches two stale
+cross-references: the CLN03-06 ledger still says recovery/delivery pending, and
+the G4 D0 stage checkbox remains unchecked. Those are now synchronized with the
+same existing evidence. This is a documentation correction, not another product
+validation pass or permission to expand the acceptance claim.
+
 Every cleanup batch is linked from the [cleanup ledger](../cleanup/LOG.md).
 CLN01-02 belong to stable-delivery candidate/guard work; CLN03-26 cover this G4
 source withdrawal, archive and owned-cache/AVD cleanup. Each report names its
