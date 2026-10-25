@@ -1,6 +1,6 @@
-## 当前施工：G4 全量实现已写齐，集中验证进行中（2026-10-25）
+## 当前施工：G4 已签名交付，继续原生验收及运行时阶段（2026-10-25）
 
-最新D22：此前丢失的Mac产物已从新鲜独立源码导出重新构建。终端537.413秒、Cocoa526.680秒，各15/15 CCL回归通过；68本Info读取、搬移后源导出不可用时的Info读取、原包/搬移包严格签名及源码保护通过。重建控制器1073.449秒、峰值871890944字节、回收完成。新候选保留于`dist/candidates/g4-macos-2/Femacs.app`，仍未替换根目录已试用App；复制保留的终端二进制需要原导出资源树。`dist/candidates/`仅新增Git忽略，不删除产物。最终独立复核和签名提交仍待完成；物理多窗口IME/Finder验收仍因锁屏未完成。
+最新交付：实现`5118ed08`已验证良好签名并立即推送，远端master实查一致。独立D22复核和清理恢复元数据已闭合，G4限定范围完成；[交付审计](../maintenance/releases/2026-10-25-g4-modernization.md)记录当前制品指纹、真实验证、旧失败及未完成范围。此前丢失的Mac产物已从新鲜独立源码导出重新构建。终端537.413秒、Cocoa526.680秒，各15/15 CCL回归通过；68本Info读取、搬移后源导出不可用时的Info读取、原包/搬移包严格签名及源码保护通过。重建控制器1073.449秒、峰值871890944字节、回收完成。新候选保留于`dist/candidates/g4-macos-2/Femacs.app`，仍未替换根目录已试用App；复制保留的终端二进制需要原导出资源树。`dist/candidates/`仅新增Git忽略，不删除产物。物理多窗口IME/Finder验收仍未完成，不由batch或构建结果替代。
 
 D21保留证据：P-345已恢复按平台选择键表偏移，20项源码编译回归及14项受影响组件检查通过。正常/checking库和签名包已重建，`dist/candidates/g4-android-10`在真实API36 ARM模拟器通过11项设备流程，包括四项快捷键/方向键、精确中文剪贴板、渲染与横竖屏、正常存活，零fatal标记，安装制品哈希相符且进程回收完成。D20及以下失败保留为历史，未改写原回执；随后Mac重建已通过，见上列D22。当前仍未把batch结果当作锁屏未完成的多窗口IME/Finder验收。
 
@@ -8,7 +8,7 @@ D21保留证据：P-345已恢复按平台选择键表偏移，20项源码编译�
 
 用户最新验收要求：以系统安装的macOS正式稳定版为对照，兼容性必须100%、性能必须实际提升，并比较稳定性、内存及GC延迟；不用从FTP下载原版。Linux需要验收时可用发行版包，本地参照可按需更新，仍不作为产品构建依赖。当前系统参照的实际程序/dump与此前核验31.1时相同；旧48/48有限用例不能冒充100%兼容，旧性能数据也不是这次统一基线的新提速结果。此要求已纳入[唯一总计划](modernization.md#full-scope-sequence-and-finish-conditions)，整个Goal继续active。
 
-[唯一总计划](modernization.md#persistent-goal-complete-the-seven-part-modernization-plan)保持 active；本阶段详见[工具翻新手册](tooling-modernization.md)。G4组件、真实构建/Info/Android设备与冻结独立复核已取得上述证据，当前补齐交付元数据后签名提交。G4明确交付候选为`dist/candidates/g4-macos-2/Femacs.app`；根目录旧试用App保留至G1原生验收完成。全部清理记录见[台账](../maintenance/cleanup/LOG.md)，CLN03–06已据逐项隔离Git恢复实际证据统一状态，不称整棵产品回滚。外部Finder拖放和多窗口IME仍未通过；G5–G7尚未完成。
+[唯一总计划](modernization.md#persistent-goal-complete-the-seven-part-modernization-plan)保持 active；本阶段详见[工具翻新手册](tooling-modernization.md)。G4组件、真实构建/Info/Android设备、冻结独立复核及签名远端交付均已取得上述证据。G4明确交付候选为`dist/candidates/g4-macos-2/Femacs.app`；根目录旧试用App保留至G1原生验收完成。全部清理记录见[台账](../maintenance/cleanup/LOG.md)，CLN03–06已据逐项隔离Git恢复实际证据统一状态，不称整棵产品回滚。外部Finder拖放和多窗口IME仍未通过；G2/G3总体兼容验收仍未闭合；G5–G7尚未实现。
 
 # 新的持续目标：七项现代化工作（2026-10-25）
 

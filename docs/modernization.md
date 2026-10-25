@@ -47,7 +47,7 @@ G1/G2/G3 form the current **stable-delivery stage**. G4 is the following **clean
 
 Research items G6/G7 require an actual source-bound prototype and measured adoption/rejection decision; a literature summary alone is incomplete. Useful verified changes are integrated, and unsuccessful candidates are removed with a traceable report. A research decision and an enabled feature are separate statuses. Required editor/build/compatibility outcomes cannot be waived because an optimization fails. Completion of one stage does not complete the entire Goal.
 
-G4 current construction: [all C01–C13 are written](tooling-modernization.md); consolidated D, independent acceptance and signed delivery remain pending. This does not close any unaccepted Goal item.
+G4 current construction: [C01–C13 and scoped D acceptance](tooling-modernization.md) are complete. Implementation `5118ed08` is signed and pushed; the [delivery audit](../maintenance/releases/2026-10-25-g4-modernization.md) binds current product identities, actual independent findings, cleanup recovery and remaining limits. This does not close any other unaccepted Goal item.
 
 ### Current and target code/data flow
 
@@ -92,7 +92,7 @@ This map is a design/work index, not a claim that every displayed runtime edge h
 
 ### Cleanup/renovation construction detail
 
-G4 source-bound design is written in [tooling-modernization.md](tooling-modernization.md), linked to this sole live scope/checklist. It covers all29 shell entrypoints,239 baseline tools/spikes and their conservative retention/replacement decisions, typed probe/build/device ownership, independent Android inputs, complete68-manual generation/publication, existing-API21-floor cleanup and per-batch recovery. The primary incorporated the independent partner's actual source findings; all B cases and C production changes are written. D has passed142 component/fixture cases, then found and repaired actual host integration defects; real fresh products/device and final review remain pending. The detailed D record is in the G4 specification. Premature Python syntax and diff-format checks by the partner are recorded as sequencing violations, with no passing evidence claimed; that CLI invocation was interrupted with files preserved and a same-session correction requested. Locked native G1 cases stay unaccepted; this does not claim that G1–G3 or G4 have completed.
+G4 source-bound design is written in [tooling-modernization.md](tooling-modernization.md), linked to this sole live scope/checklist. It covers all29 shell entrypoints,239 baseline tools/spikes and their conservative retention/replacement decisions, typed probe/build/device ownership, independent Android inputs, complete68-manual generation/publication, existing-API21-floor cleanup and per-batch recovery. All B cases and C production changes were written before consolidated D. The initial142 component/fixture passes were followed by actual integration failures and scoped repairs; current Mac recovery, Android22 acceptance, isolated recovery and final independent D22 review now support signed/pushed implementation `5118ed08`. The detailed failures and scope remain in the G4 specification and delivery audit. Premature Python syntax and diff-format checks by the partner remain recorded as sequencing violations, with no passing evidence claimed; that invocation was interrupted with files preserved and a same-session correction requested. G4 delivery does not close the unaccepted native G1 cases or G1–G3 overall acceptance; G5–G7 remain future implementation.
 
 ### Immediate source-bound design entries
 
@@ -221,7 +221,7 @@ Final independent review found no blocking product defect, but identified weaker
 - [x] GC2: complete SD1–SD6 source/harness wiring and freeze for D; a further native behavior repair, if required by actual desktop evidence, remains unresolved rather than implicitly accepted.
 - [ ] GC3: consolidate G1/G2/G3 real acceptance and independent review; fix the collected failures and deliver the stable products.
 - [x] GC4: finish G4 full dependency/support/replacement design and all cleanup/renovation cases, then implement all approved changes.
-- [ ] GC5: consolidate G4 affected acceptance, recovery evidence, independent review and signed delivery.
+- [x] GC5: consolidate G4 affected acceptance, recovery evidence, independent review and signed delivery; implementation5118ed08 and the delivery audit retain the precise product/test limits.
 - [ ] GC6: finish G5/G6/G7 source/research/measurement designs and all cases without running the new experiments; bind the installed stable comparator, complete compatibility scope and predeclared performance/uncertainty metrics; retain existing factual measurements.
 - [ ] GC7: implement complete instrumentation, chosen compiler/interpreter/native candidate and chosen collector candidate with baseline fallback.
 - [ ] GC8: run consolidated runtime-stage compatibility/stress/performance experiments, collect failures and make measured adoption/rejection decisions; integrate accepted outcomes and archive withdrawn work.
@@ -232,7 +232,7 @@ Final independent review found no blocking product defect, but identified weaker
 - [ ] GA1 / G1: actual remaining macOS native workflows and TTY failure paths pass, without changing pending-composition semantics merely to satisfy a test.
 - [ ] GA2 / G2: final changed products build/start from tracked-only inputs, with matching resources, dumps, signatures and trial instructions.
 - [ ] GA3 / G3: meet the100% compatibility requirement against the installed stable baseline, with a complete declared behavior/feature matrix, no waived known differences, preserved case identities/timings/failures and no uncovered/blocked scope relabelled as passed.
-- [ ] GA4 / G4: approved modernization/retirement matrix implemented; required readers/workflows work, every cleanup report and recovery identity committed.
+- [x] GA4 / G4: approved modernization/retirement matrix implemented; required scoped readers/workflows accepted, every cleanup report and recovery identity committed in signed/pushed5118ed08. See the G4 delivery audit; other native/platform and whole-Goal obligations remain open.
 - [ ] GA5 / G5: real attribution/survival/phase/pause data supports the later choices; load, full samples, memory and uncertainty are explicit.
 - [ ] GA6 / G6: actual native/compiler/interpreter prototype or implementation has complete semantic and performance evidence and an honest integrate/reject outcome; no unsupported shipped-feature claim.
 - [ ] GA7 / G7: actual collector candidate has a complete root/store/barrier argument, stress/compatibility/performance evidence and integrate/reject outcome; rejected work does not become a claimed generational feature.

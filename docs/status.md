@@ -1,6 +1,6 @@
 # femacs 进度与未决项（手工维护，生成物见 port-map.md / port-inventory.md）
 
-最新读数（2026-10-25，G4 D22）：Android生产包通过11项真实设备流程，Mac新终端/Cocoa各15项回归及Info/签名/搬移校验通过；产物已保留于`dist/candidates/`。独立搭档完成冻结源码/当前回执复核，未发现新的阻断代码缺陷；现收齐清理恢复元数据并准备签名交付，Git结果另据实际提交与远端核对。完整数值及旧失败在本页末轮；G1多窗口IME/Finder及G5–G7仍打开，整个Goal未完成。
+最新读数（2026-10-25，G4交付）：Android生产包通过11项真实设备流程，Mac新终端/Cocoa各15项回归及Info/签名/搬移校验通过；产物保留于`dist/candidates/`。独立D22复核未发现新的阻断代码缺陷，清理恢复元数据已校正；166路径的实现单元已签名提交并推送`5118ed08`，远端master实查一致。完整证据、产物指纹和剩余边界见[交付审计](../maintenance/releases/2026-10-25-g4-modernization.md)。G4限定范围完成；G1多窗口IME/Finder及G5–G7仍打开，整个Goal未完成。
 
 以下D17为历史失败及当时状态，不是当前进度：七个导出源副本曾缺失并按原件哈希恢复；原Android对象/产品、新Mac二进制曾缺失，删除者和精确时间未知，见[事件记录](../maintenance/incidents/2026-10-25-g4-build-artifact-loss.md)。设备13在快捷键阶段触发GC访存失败；后经P-344定位按键名越界并修复，P-345修复键表偏移，设备22已通过。旧失败回执未改写；Mac随后也完成独立重建，不把旧通过冒充现存产品。
 
@@ -23191,3 +23191,9 @@ CLN26 removes only23 reconstructible files from this stopped owned AVD,670614670
 The stopped earlier successful build remains historical; a new independent source export now completes terminal537.413s and Cocoa526.680s. Each actual product passes15/15 CCL/serializer cases. Terminal68-manual Info lookup, relocated Cocoa68-manual lookup while its source export is temporarily unavailable, original/relocated strict signatures, binary/dump preservation and full root-input preservation all pass. The controller finishes1073.449s, peak871890944 bytes, with owned cleanup complete. No remote CI or reference source is used for building.
 
 A current verified Cocoa copy is retained in dist/candidates/g4-macos-2/Femacs.app, preserving all file hashes and passing another strict signature check. Terminal executable/dump copies are retained too, with an explicit dependency on the original export resource tree, not a portability claim. The directory is now Git-ignored without deleting any candidate or evidence. Root trial app stays unchanged; locked native multiwindowIME/Finder interaction remains open. The D22 review's first admission attempt was rejected before the reviewer process started, so no native message was sent; after this build exits it can be delivered once with updated actual receipts. Final independent adoption, signed delivery and G5-G7 remain open.
+
+### G4 final signed delivery (2026-10-25)
+
+D22 completed the actual frozen-source/current-receipt review and accepted the affected P-343/P-344/P-345 corrections with no new blocking production defect. It retracted the earlier Ctrl-A failure and adjacent-root claims; raw prior failures remain. Metadata corrections bind CLN03-06 to actual isolated Git recovery rather than a whole-product rollback. Recovery2/2 and inventory1/1 then pass, with production/test/config identities unchanged. The declared Mac artifact is the retained candidate; the older Root trial App remains unchanged pending native G1 acceptance.
+
+Implementation5118ed08ae3d12fa6693290f5a030499f49d6ad5 contains166 paths, verifies a good signature, and was immediately pushed to origin/master. A subsequent remote refs/heads/master query returns the same full commit. The stage uses skip-CI; no remote CI is used. The delivery audit binds source/product hashes, actual cohort limits, independent findings,26 linked cleanup batches and artifact-loss recovery. G4/GC5/GA4 are complete at that scope. G1 native cases and G2/G3 combined completion remain open; G5-G7 are still A designs without implementation or new performance claims. The seven-part Goal remains active.

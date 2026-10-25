@@ -8,8 +8,11 @@ bind CLN03-06 to their actual isolated Git/blob/hash recovery. This stage's
 declared Mac delivery artifact is dist/candidates/g4-macos-2/Femacs.app; replacing
 the older Root trial app remains dependent on G1 native acceptance. Production,
 test and configuration hashes are unchanged after the frozen review. Signed
-commit and immediate push are the remaining G4 delivery steps; full Goal stays
-open for G1 native gaps and the subsequent G5-G7 runtime stage.
+implementation5118ed08 was pushed and verified at remote master. The
+[delivery audit](../maintenance/releases/2026-10-25-g4-modernization.md) records
+product identities, retained failures, recovery and acceptance limits. G4's
+scoped delivery is complete; full Goal stays open for G1 native gaps and the
+subsequent G5-G7 runtime stage.
 
 D22 Mac recovery result: both fresh independent products build successfully:
 terminal537.413s, Cocoa526.680s, each15/15 actual CCL cases. Terminal68-Info
@@ -21,7 +24,8 @@ and another strict-signature check. Retained terminal binary/dump copies still
 require their original export's resource tree; no terminal relocation claim.
 The new candidates directory is ignored without deleting local artifacts.
 The older Root trial app remains unchanged. This closes missing-product
-recovery, not locked native interaction or final G4 independent/Git delivery.
+recovery; final independent/Git delivery subsequently completed as recorded
+above. It does not complete locked native interaction.
 
 D21 current result: P-345 platform selection is implemented, source-extracted
 Android table/offset plus NTGUI/host selections pass20/20. The PNG/error-attempt
@@ -615,7 +619,7 @@ The independent partner owns new Python contracts and Rust test modules after in
 - [x] A02: T16–T22 scheduling/linker coverage passes in the retained isolated component cohort.
 - [x] A03: T23–T35 Android build/device/readiness coverage passes at the declared normal/checking-build and API36-device scope.
 - [x] A04: T36–T40 complete manual generation/lookup/relocation passes for the current recovered products.
-- [ ] A05: T41–T44 preservation, cleanup recovery, independent review, signature and remote delivery actually pass.
+- [x] A05: T41–T44 preservation, isolated cleanup recovery, independent D22 review, good signature and actual remote delivery pass; implementation5118ed08 and the delivery audit retain scope and artifacts.
 - [x] A06: T45–T48 seven-value source-method floor matrix, current API36 native cases and isolated source recovery pass within their declared scope; no API21-device or Windows-target claim.
 
 Do not mark GC4/GC5 or GA4 complete from the written design. C01-C13 are now written; current work is the consolidated D repair/verification/review stage. The later D records below supersede construction-time pending notes. All required production implementation follows B; independent review belongs to D. Missing real device/support/user decisions block only their dependent actions and never become passing evidence. The retained raw SDK8 notification XML differs from the partner's broader deletion suggestion by deliberate primary choice: avoiding unnecessary raw-data removal is sufficient while its unreachable production code and class are withdrawn. The source discussion confirmed the superclass, resource-qualifier, argv0, target37 and publication-backup facts; those are incorporated above.
