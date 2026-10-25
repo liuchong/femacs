@@ -1,0 +1,13 @@
+# CLN-20261025-28: archive stopped D9/D10 compiler intermediates
+
+Only regular generated translation-unit copies, object/archive files and incremental compiler cache members from the stopped D9/D10 attempts are selected. Both original frozen source exports, all JSON/configuration and logs, linked programs/dumps, packaged resources and the independently retained host tool remain expanded. The source worktree, root Mac trial App, G4 trial candidate, installed tools/reference and future D11 build are excluded. Each exact old owner tree was confirmed stopped and without open files before planning.
+
+The [manifest](../manifests/2026-10-25-28-runtime-intermediates.json) binds every selected logical member to its bytes/hash and private exact-path ledger. Every persistent archive member is verified, and representative generated Rust/object/archive content is actually restored and hashed before expanded removal. Logical role aliases are not extraction paths: restore to the exact owned original paths from the retained private ledger. Original directory/symlink records remain. This preserves the diagnostic source copies without claiming a repaired or byte-identically regenerated build.
+
+Status: prepared before expanded removal. Original D9 tool loss and D10 compiler/helper failures remain recorded. Logical and allocated quantities are not a unique physical-volume recovery claim.
+
+Preparation first stopped on a hard-linked object archive entry, before any expanded removal. That attempt metadata is retained. Corrected archives record each regular file content independently, with no symlink traversal; hard-link topology is not claimed. Every payload of the two earlier preparation archives, including hard-link targets, is verified against completed replacement identities. Those two redundant temporary archive files are separately listed for removal, with hashes and sizes; diagnostic metadata and all original compiler/runtime failures remain.
+
+Completed: 33725 expanded files, 1228855175 logical bytes and 1297944576 pre-removal allocated bytes; verified persistent archives occupy 321379789 bytes. All selected expanded files are absent, and all 2484 protected content hashes are unchanged. Current source and trial products are preserved; no product repair, compatibility or performance acceptance is inferred.
+
+The two superseded preparation archive files (315858197 bytes combined) are also absent after every old payload was checked against verified replacements. Their original hashes, member counts and the stopped-attempt diagnostic remain recorded. Allocated totals can count hard-linked names repeatedly; content recovery does not promise original link topology or unique volume recovery.
