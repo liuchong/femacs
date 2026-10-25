@@ -26,6 +26,7 @@ import re
 import subprocess
 import sys
 import tempfile
+RUN_ROOT = None
 
 REPO = pathlib.Path(__file__).resolve().parent.parent
 BASELINE = REPO / "docs/baseline/layout/android-arm64.tsv"
@@ -60,7 +61,7 @@ def measure(bindir, body, includes):
     """Compile one probe and return the object symbol's size."""
     src = "#include <stddef.h>\n" + "".join("#include <%s>\n" % h for h in includes)
     src += "char probe[%s];\n" % body
-    with tempfile.TemporaryDirectory() as tmp:
+    with tempfile.TemporaryDirectory(prefix="measurement-", dir=RUN_ROOT) as tmp:
         c = pathlib.Path(tmp) / "p.c"
         o = pathlib.Path(tmp) / "p.o"
         c.write_text(src)
@@ -98,8 +99,31 @@ def rust_assertions():
     return found
 
 
+def new_run_directory(requested):
+    # Keep roots literal: resolving a linked root could authorize its foreign
+    # target. Resolve the proposed output and check it before any mkdir.
+    roots = (REPO / "build", REPO / ".femacs-cache")
+    reference = (REPO / "emacs").resolve()
+    if requested is not None:
+        output = requested.resolve()
+        if (requested.is_symlink() or output.exists()
+                or not any(output.is_relative_to(root) for root in roots)
+                or output.is_relative_to(reference)):
+            raise SystemExit("layout output must be a fresh owned build/cache directory")
+        output.mkdir(parents=True)
+        return output
+    base = (roots[0] / "acceptance/android-layout").resolve()
+    if not base.is_relative_to(roots[0]) or base.is_relative_to(reference):
+        raise SystemExit("default layout output escapes the owned build directory")
+    base.mkdir(parents=True, exist_ok=True)
+    return pathlib.Path(tempfile.mkdtemp(prefix="run-", dir=base))
+
+
 def main():
+    global RUN_ROOT
     ap = argparse.ArgumentParser()
+    ap.add_argument("--ndk-bin", type=pathlib.Path)
+    ap.add_argument("--out", type=pathlib.Path)
     ap.add_argument("--update", action="store_true", help="rewrite the table's measured values")
     ap.add_argument("--list", action="store_true", help="print the table")
     ap.add_argument("--quiet", action="store_true")
@@ -110,7 +134,8 @@ def main():
         for stem, link, header, expr, value, note in table:
             print("%-26s %-40s %s" % (stem, expr, value))
         return 0
-    bins = toolchain()
+    bins = args.ndk_bin or toolchain()
+    RUN_ROOT = new_run_directory(args.out)
     if bins is None:
         print("check-android-layout: no NDK toolchain under %s" % sdk_root(), file=sys.stderr)
         return 2

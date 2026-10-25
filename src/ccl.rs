@@ -2507,6 +2507,8 @@ pub unsafe extern "C" fn ccl_driver (ccl: *mut ccl_program, source: *mut c_int,
 
   /* ccl_error_handler: C's forward `goto` target for `CCL_INVALID_CMD` and for the
      loop's own `break`.  The `CCL_DEBUG` arm's `goto ccl_finish` leaves the block.  */
+  if let ccl_goto::ccl_error_handler = ccl_goto
+  {
   'ccl_error_handler: {
   if !destination.is_null ()
     {
@@ -2599,6 +2601,8 @@ pub unsafe extern "C" fn ccl_driver (ccl: *mut ccl_program, source: *mut c_int,
 	  src = src_end;
 	}
     }
+  }
+
   }
 
   /* ccl_finish: */

@@ -15,6 +15,7 @@ import shutil
 import subprocess
 import sys
 import time
+from version_resources import render_versions
 
 ROOT = Path(__file__).resolve().parent.parent
 RECIPES = ROOT/'build-support/generator-recipes.json'
@@ -85,12 +86,7 @@ class Generator:
         (ROOT/'lisp/subdirs.el').write_text(text)
 
     def versions(self):
-        text=(ROOT/'src/emacs.rs').read_text()
-        version=re.search(r'PACKAGE_VERSION: &CStr = c"([^"]+)"',text)[1]
-        for source,target,token,value in [
-            ('doc/emacs/emacsver.texi.in','doc/emacs/emacsver.texi','@version@',version),
-            ('etc/refcards/emacsver.tex.in','etc/refcards/emacsver.tex','@majorversion@',version.split('.')[0])]:
-            (ROOT/target).write_text((ROOT/source).read_text().replace(token,value))
+        render_versions(ROOT)
 
     def base(self):
         self.charsets();self.subdirs();self.versions()

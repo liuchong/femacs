@@ -209,25 +209,23 @@ class EmacsDialog : DialogInterface.OnDismissListener {
          custom button to match the usual dialog buttons found on
          Android 5 and later.  */
 
-      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-        /* Obtain the Theme associated with the dialog.  */
-        theme = dialog.getContext().getTheme()
+      /* Obtain the Theme associated with the dialog.  */
+      theme = dialog.getContext().getTheme()
 
-        /* Resolve the dialog button style.  */
-        attrs = intArrayOf(android.R.attr.buttonBarNeutralButtonStyle)
+      /* Resolve the dialog button style.  */
+      attrs = intArrayOf(android.R.attr.buttonBarNeutralButtonStyle)
 
-        try {
-          attributes = theme.obtainStyledAttributes(attrs)
+      try {
+        attributes = theme.obtainStyledAttributes(attrs)
 
-          /* Look for the style ID.  Default to -1 if it could
-             not be found.  */
-          styleId = attributes.getResourceId(0, -1)
+        /* Look for the style ID.  Default to -1 if it could
+           not be found.  */
+        styleId = attributes.getResourceId(0, -1)
 
-          /* Now clean up the TypedAttributes object.  */
-          attributes.recycle()
-        } catch (e: NotFoundException) {
-          /* Nothing to do here.  */
-        }
+        /* Now clean up the TypedAttributes object.  */
+        attributes.recycle()
+      } catch (e: NotFoundException) {
+        /* Nothing to do here.  */
       }
 
       /* Create each button and add it to the layout.  Set the style

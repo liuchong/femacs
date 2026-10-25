@@ -78,3 +78,10 @@
 后续诊断候选收敛见 [CLN-20261025-01](../maintenance/cleanup/reports/2026-10-25-01-diagnostic-candidate.md)：保存六份中间源文件与生成候选身份，以主队列实际响应者观察和真实程序/dump 身份取代有时序/入口歧义的诊断；未删除平台或产品功能，不代表 G4 清理已完成。
 
 最终验收工具收敛见 [CLN-20261025-02](../maintenance/cleanup/reports/2026-10-25-02-acceptance-guards.md)：两份工具以完整诊断、制品指纹及参照输出保护替换较弱中间版本，保留原始回执和独立恢复身份；不新增平台退役。
+
+## 六、G4工具翻新施工（2026-10-25，待D验收）
+
+四份逐项档案：[探针/L5/桥接及文档策略](../maintenance/cleanup/reports/2026-10-25-03-probe-tooling.md)、[Android构建与设备策略](../maintenance/cleanup/reports/2026-10-25-04-android-tooling.md)、[既定API21以下分支/类](../maintenance/cleanup/reports/2026-10-25-05-api21-floor.md)、[两份历史raw profile](../maintenance/cleanup/reports/2026-10-25-06-raw-profiles.md)。已写明旧blob/前后哈希与替代入口；真实恢复、编译/运行及独立审核仍待集中D。没有删除其他平台、原始数据或仍被使用的SDK7/11/23实现。历史限制说明保留其日期，不代表当前候选已验收。
+
+
+G4 Android historical diagnostic stages: `back`, kernel-wchan-only `threads`, temporary-build `probes`, root/debuggerd `bt` and injected `signal` are explicitly retired; old key/rotate/tap/insert-rotate screenshot stages are superseded by strict current editing observations. Focus/log inspection and plan/dump-only/memory/tail remain through the Python owner. Exact before identities/recovery and capability mapping: [CLN-20261025-04](../maintenance/cleanup/reports/2026-10-25-04-android-tooling.md), [current CLI migration](repository-bootstrap.md#android-device-command-migration). No additional native platform is retired.

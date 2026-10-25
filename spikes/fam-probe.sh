@@ -1,14 +1,5 @@
-#!/bin/bash
-# Run the flexible-array-member guard (spikes/fam_probe.rs).  Exit status is 0 only when
-# the FAM accessors run without a bounds panic.
-set -uo pipefail
+#!/bin/sh
+# Compatibility entry; probe policy is owned by xtask.
+set -eu
 cd "$(dirname "$0")/.."
-mkdir -p build
-(cd "$HERE" && cargo run -q -p xtask -- probe ../spikes/fam_probe.rs ../build/fam-probe \
-        2> ../build/fam-probe.err) || { echo "fam-probe: FAILED to build"; cat build/fam-probe.err; exit 1; }
-if build/fam-probe > build/fam-probe.txt 2>&1; then
-  echo "fam-probe: $(wc -l < build/fam-probe.txt | tr -d ' ') lines ok"
-  cat build/fam-probe.txt
-else
-  echo "fam-probe: FAILED to run"; cat build/fam-probe.txt; exit 1
-fi
+exec cargo run -q -p xtask -- audit-probe fam "$@"

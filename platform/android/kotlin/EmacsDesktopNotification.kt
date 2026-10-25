@@ -15,7 +15,6 @@ import android.net.Uri
 
 import android.os.Build
 
-import android.widget.RemoteViews
 
 /* Structure designating a single desktop notification.
 
@@ -181,7 +180,6 @@ class EmacsDesktopNotification(title: String, content: String,
     val channel: NotificationChannel
     var notification: Notification
     val tem: Any?
-    var contentView: RemoteViews
     var intent: Intent
     var pending: PendingIntent
     var priority: Int
@@ -208,7 +206,7 @@ class EmacsDesktopNotification(title: String, content: String,
 
       insertActions(context, builder)
       notification = builder.build()
-    } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB) {
+    } else {
       /* Android 7.1 and earlier don't segregate notifications into
          distinct categories, but permit an importance to be
          assigned to each individual notification.  */
@@ -218,31 +216,15 @@ class EmacsDesktopNotification(title: String, content: String,
       builder.setContentText(content)
       builder.setSmallIcon(icon)
 
-      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN) {
-        when (importance) {
-          3 -> priority = Notification.PRIORITY_DEFAULT /* IMPORTANCE_DEFAULT */
-          4 -> priority = Notification.PRIORITY_HIGH    /* IMPORTANCE_HIGH */
-          else -> priority = Notification.PRIORITY_LOW  /* 2: IMPORTANCE_LOW */
-        }
+      when (importance) {
+        3 -> priority = Notification.PRIORITY_DEFAULT /* IMPORTANCE_DEFAULT */
+        4 -> priority = Notification.PRIORITY_HIGH    /* IMPORTANCE_HIGH */
+        else -> priority = Notification.PRIORITY_LOW  /* 2: IMPORTANCE_LOW */
+      }
 
-        builder.setPriority(priority)
-        insertActions(context, builder)
-        notification = builder.build()
-      } else
-        notification = builder.getNotification()
-    } else {
-      notification = Notification()
-      notification.icon = icon
-
-      /* This remote widget tree is defined in
-         java/res/layout/sdk8_notifications_view.xml.  */
-      contentView = RemoteViews("org.femacs",
-                                R.layout.sdk8_notifications_view)
-      notification.contentView = contentView
-      contentView.setTextViewText(R.id.sdk8_notifications_title,
-                                  title)
-      contentView.setTextViewText(R.id.sdk8_notifications_content,
-                                  content)
+      builder.setPriority(priority)
+      insertActions(context, builder)
+      notification = builder.build()
     }
 
     /* Provide a content intent which starts Emacs when the

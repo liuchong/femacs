@@ -31,7 +31,7 @@
 //     `#[cfg (not (enable_checking))]` and the second (ENABLE_CHECKING && HAVE_OPEN_MEMSTREAM,
 //     the latter 1 in the frozen table, macros.tsv 1482) on `#[cfg (enable_checking)]`.
 //     The third (`!HAVE_OPEN_MEMSTREAM`) is dead in the frozen configuration and is carried
-//     under `#[cfg (all (enable_checking, feature = "no_have_open_memstream"))]`.
+//     under `#[cfg (all (enable_checking, feature = "not_have_open_memstream"))]`.
 //
 // None of the `feature` keys above is ever set: `xtask dead-arms` can only flip the keys
 // `config.rs` carries and these are the preprocessor predicates of this file
@@ -3606,7 +3606,7 @@ DEFUN! ("re--describe-compiled", Fre__describe_compiled, Sre__describe_compiled,
 	     {
 	       error (c"Not available: rebuild with --enable-checking".as_ptr ());
 	     }
-	     #[cfg (enable_checking)]
+	     #[cfg (all (enable_checking, not (feature = "not_have_open_memstream")))]
 	     {
 	       let mut buffer: *mut c_char = std::ptr::null_mut ();
 	       let mut size: usize = 0;
@@ -3621,7 +3621,7 @@ DEFUN! ("re--describe-compiled", Fre__describe_compiled, Sre__describe_compiled,
 	       free (buffer as *mut c_void);
 	       return description;
 	     }
-	     #[cfg (all (enable_checking, feature = "no_have_open_memstream"))]
+	     #[cfg (all (enable_checking, feature = "not_have_open_memstream"))]
 	     {
 	       print_compiled_pattern (stderr, &raw mut (*cache_entry).buf);
 	       return build_string (c"Description was sent to standard error".as_ptr ());

@@ -1,0 +1,7 @@
+-llog
+-ljnigraphics
+-landroid
+-lm
+-ldl
+-lz
+-lc

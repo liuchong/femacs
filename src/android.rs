@@ -7481,9 +7481,9 @@ pub unsafe extern "C" fn android_set_wm_name (handle: android_window, name: jstr
 /* C 5830-5886: C 5830's blank, C 5831's `void` and android_get_keysym_name.  The three
    `strncpy` calls are the one `<string.h>` name `lib/include/string.rs` does not carry (the
    `androidvfs.rs` 266-272 device below).  C 5841's `switch (keysym)` with its three
-   `return`ing arms is the port's `match`; C's `size - 1` is `size_t`, so it is
-   `wrapping_sub (1)` (the `androidterm.rs` 5519 device), and C's `name_return[size]` write is
-   `*name_return.offset (size as isize)`.  The declaration carries this unit's file gate, like
+   `return`ing arms is the port's `match`. P-344 corrects the frozen source's
+   one-past-capacity terminator: capacity0 has no write, and every positive
+   capacity is terminated at size-1. The declaration carries this unit's file gate, like
    every other item of the file: its three `c_char` types come from the same `have_android`
    includes, so without the gate the **frozen** build sees three `E0425`s (P-86 ⑧'s class, the
    `src/pgtkterm.rs` record's and `src/msdos.rs`'s prototype's).  */
@@ -7497,6 +7497,9 @@ unsafe extern "C" {
 pub unsafe extern "C" fn android_get_keysym_name (keysym: c_int, name_return: *mut c_char, // C 5832
 							 size: size_t)
 {
+  if size == 0
+    { return; }
+
   let mut string: jobject;                                              // C 5834
   let mut buffer: *const c_char;                                        // C 5835
   let mut method: jmethodID;                                            // C 5836
@@ -7513,22 +7516,22 @@ pub unsafe extern "C" fn android_get_keysym_name (keysym: c_int, name_return: *m
 	{
 	  65537 =>                                                             // C 5843 (C's `65536 + 1`)
 		{
-		  strncpy (name_return, c"select-all".as_ptr (), size.wrapping_sub (1)); // C 5844
-		  *name_return.offset (size as isize) = 0;                            // C 5845 (C's `'\0'`)
+		  strncpy (name_return, c"select-all".as_ptr (), size - 1); // C 5844
+		  *name_return.add (size - 1) = 0;                      // P-344; C 5845
 		  return;                                                             // C 5846
 		}
 
 	  65538 =>                                                             // C 5848 (C's `65536 + 2`)
 		{
-		  strncpy (name_return, c"start-selecting-text".as_ptr (), size.wrapping_sub (1)); // C 5849
-		  *name_return.offset (size as isize) = 0;                            // C 5850
+		  strncpy (name_return, c"start-selecting-text".as_ptr (), size - 1); // C 5849
+		  *name_return.add (size - 1) = 0;                      // P-344; C 5850
 		  return;                                                             // C 5851
 		}
 
 	  65539 =>                                                             // C 5853 (C's `65536 + 3`)
 		{
-		  strncpy (name_return, c"stop-selecting-text".as_ptr (), size.wrapping_sub (1)); // C 5854
-		  *name_return.offset (size as isize) = 0;                            // C 5855
+		  strncpy (name_return, c"stop-selecting-text".as_ptr (), size - 1); // C 5854
+		  *name_return.add (size - 1) = 0;                      // P-344; C 5855
 		  return;                                                             // C 5856
 		}
 
@@ -7547,8 +7550,8 @@ pub unsafe extern "C" fn android_get_keysym_name (keysym: c_int, name_return: *m
 
   if string.is_null ()                                                  // C 5868
 	{
-	  strncpy (name_return, c"stop-selecting-text".as_ptr (), size.wrapping_sub (1)); // C 5870
-	  *name_return.offset (size as isize) = 0;                             // C 5871
+	  strncpy (name_return, c"stop-selecting-text".as_ptr (), size - 1); // C 5870
+	  *name_return.add (size - 1) = 0;                         // P-344; C 5871
 	  return;                                                              // C 5872
 	}
 
@@ -7556,8 +7559,8 @@ pub unsafe extern "C" fn android_get_keysym_name (keysym: c_int, name_return: *m
 							      string as jstring,                                         // C 5876
 							      std::ptr::null_mut ());                                    // C 5877
   android_exception_check_nonnull (buffer as *mut c_void, string);      // C 5878
-  strncpy (name_return, buffer, size.wrapping_sub (1));                 // C 5879
-  *name_return.offset (size as isize) = 0;                              // C 5880
+  strncpy (name_return, buffer, size - 1);                             // C 5879
+  *name_return.add (size - 1) = 0;                                    // P-344; C 5880
 
   ((*(*android_java_env)).ReleaseStringUTFChars.unwrap ())              // C 5882
 	(android_java_env,                                                     // C 5882

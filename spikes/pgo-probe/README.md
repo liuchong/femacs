@@ -1,8 +1,6 @@
 # PGO no_std feasibility probe (2026-10-21)
 
-These are the source files and the two `.profraw` files from the minimal probes.  They are kept
-in the project because they establish a build fact needed by the PGO plan; they are not part of
-the port and are not linked into the program.
+The source files and recorded results preserve the minimal feasibility probes. The two historical generated `.profraw` outputs were retired in [CLN-20261025-06](../../maintenance/cleanup/reports/2026-10-25-06-raw-profiles.md), with exact Git/blob recovery identities. Fresh training writes owned generated outputs; these probes are not linked into the program.
 
 - `femacs-pgo-nostd.rs`: `no_std`/`no_main`, ordinary `main` returning 0; linked with
   `-C panic=abort -C linker=clang -Cprofile-generate=<dir> -C link-arg=-lSystem`.

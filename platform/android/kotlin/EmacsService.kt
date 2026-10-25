@@ -27,11 +27,9 @@ import android.view.KeyEvent
 import android.view.inputmethod.CursorAnchorInfo
 import android.view.inputmethod.ExtractedText
 
-import android.app.AlarmManager
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
-import android.app.PendingIntent
 import android.app.Service
 
 import android.content.ActivityNotFoundException
@@ -116,7 +114,7 @@ import android.util.DisplayMetrics
    the reference stores a `float' in a `double' field, `duration.toLong ()' for `vibrate (long)'
    (568) and `createOneShot (long, int)' (564), `offsets[0].toFloat ()' for `postTranslate'
    (1009), `string.get (i).code' for `ch = string.charAt (i)' (1148), `getIntExtra (…).toLong ()'/
-   `getIntProperty (…).toLong ()' in `queryBattery19'/`queryBattery' (1277-1355) and `.toInt ()'
+   `getIntProperty (…).toLong ()' in `queryBattery' and `.toInt ()'
    for the `(int)' casts at 610/623.
 
    `syncRunnable' (844) is where the reference's generics meet Kotlin's: `<V> V' returns its local
@@ -192,14 +190,7 @@ class EmacsService : Service() {
 
     @JvmStatic
     fun getLibraryDirectory(context: Context): String {
-      val apiLevel: Int
-
-      apiLevel = Build.VERSION.SDK_INT
-
-      if (apiLevel >= Build.VERSION_CODES.GINGERBREAD)
-        return context.getApplicationInfo().nativeLibraryDir
-
-      return context.getApplicationInfo().dataDir + "/lib"
+      return context.getApplicationInfo().nativeLibraryDir
     }
 
     /* Return the display density, adjusted in accord with the user's
@@ -828,11 +819,7 @@ class EmacsService : Service() {
     val ids: IntArray
     var i: Int
 
-    if (Build.VERSION.SDK_INT
-        /* Android 4.0 and earlier don't support mouse input events at
-           all.  */
-        < Build.VERSION_CODES.JELLY_BEAN)
-      return false
+
 
     manager = getSystemService(Context.INPUT_SERVICE) as InputManager
     ids = manager.getInputDeviceIds()
@@ -845,17 +832,8 @@ class EmacsService : Service() {
       if (device == null)
         continue
 
-      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-        if (device.supportsSource(InputDevice.SOURCE_MOUSE))
-          return true
-      } else {
-        /* `supportsSource' is only present on API level 21 and
-           later, but earlier versions provide a bit mask
-           containing each supported source.  */
-
-        if ((device.getSources() and InputDevice.SOURCE_MOUSE) != 0)
-          return true
-      }
+      if (device.supportsSource(InputDevice.SOURCE_MOUSE))
+        return true
     }
 
     return false
@@ -869,10 +847,7 @@ class EmacsService : Service() {
   }
 
   fun nameKeysym(keysym: Int): String {
-    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB_MR1)
-      return KeyEvent.keyCodeToString(keysym)
-
-    return keysym.toString()
+    return KeyEvent.keyCodeToString(keysym)
   }
 
   /* Ask the system to open the specified URL in an application that
@@ -894,17 +869,15 @@ class EmacsService : Service() {
       if (!send) {
         uri = Uri.parse(url)
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
-          /* On Android 4.4 and later, check if URI is actually
-             a file name.  If so, rewrite it into a content
-             provider URI, so that it can be accessed by other
-             programs.  */
+        /* Check if URI is actually
+           a file name.  If so, rewrite it into a content
+           provider URI, so that it can be accessed by other
+           programs.  */
 
-          if (uri.getScheme().equals("file")
-              && uri.getPath() != null)
-            uri = DocumentsContract.buildDocumentUri("org.femacs",
-                                                     uri.getPath()!!)
-        }
+        if (uri.getScheme().equals("file")
+            && uri.getPath() != null)
+          uri = DocumentsContract.buildDocumentUri("org.femacs",
+                                                   uri.getPath()!!)
 
         intent = Intent(Intent.ACTION_VIEW, uri)
 
@@ -916,8 +889,7 @@ class EmacsService : Service() {
                         or Intent.FLAG_GRANT_READ_URI_PERMISSION
                         or Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT)
-          intent.addFlags(Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION)
+        intent.addFlags(Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION)
       } else {
         intent = Intent(Intent.ACTION_SEND)
         intent.setType("text/plain")
@@ -957,27 +929,12 @@ class EmacsService : Service() {
 
   fun restartEmacs() {
     val intent: Intent
-    val pending: PendingIntent
-    val manager: AlarmManager
 
     intent = Intent(this, EmacsActivity::class.java)
     intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK
                     or Intent.FLAG_ACTIVITY_CLEAR_TASK)
 
-    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT)
-      startActivity(intent)
-    else {
-      /* Experimentation has established that Android 4.3 and earlier
-         versions do not attempt to recreate a process when it crashes
-         immediately after requesting that an intent for itself be
-         started.  Schedule an intent to start some time after Emacs
-         exits instead.  */
-
-      pending = PendingIntent.getActivity(this, 0, intent, 0)
-      manager = getSystemService(Context.ALARM_SERVICE) as AlarmManager
-      manager.set(AlarmManager.RTC, System.currentTimeMillis() + 100,
-                  pending)
-    }
+    startActivity(intent)
 
     System.exit(0)
   }
@@ -1049,8 +1006,7 @@ class EmacsService : Service() {
     val matrix: Matrix
     val offsets: IntArray
 
-    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP)
-      return
+
 
     offsets = IntArray(2)
     builder = CursorAnchorInfo.Builder()
@@ -1161,38 +1117,7 @@ class EmacsService : Service() {
     return rc == PackageManager.PERMISSION_GRANTED
   }
 
-  private fun queryBattery19(): LongArray? {
-    val filter: IntentFilter
-    val battery: Intent?
-    val capacity: Long
-    val chargeCounter: Long
-    val currentAvg: Long
-    val currentNow: Long
-    val status: Long
-    val remaining: Long
-    val plugged: Long
-    val temp: Long
 
-    filter = IntentFilter(Intent.ACTION_BATTERY_CHANGED)
-    battery = registerReceiver(null, filter)
-
-    if (battery == null)
-      return null
-
-    capacity = battery.getIntExtra(BatteryManager.EXTRA_LEVEL, 0).toLong()
-    chargeCounter = (battery.getIntExtra(BatteryManager.EXTRA_SCALE, 0)
-                     / battery.getIntExtra(BatteryManager.EXTRA_LEVEL, 100) * 100).toLong()
-    currentAvg = 0L
-    currentNow = 0L
-    status = battery.getIntExtra(BatteryManager.EXTRA_STATUS, 0).toLong()
-    remaining = -1L
-    plugged = battery.getIntExtra(BatteryManager.EXTRA_PLUGGED, 0).toLong()
-    temp = battery.getIntExtra(BatteryManager.EXTRA_TEMPERATURE, 0).toLong()
-
-    return longArrayOf(capacity, chargeCounter, currentAvg,
-                       currentNow, status, remaining, plugged,
-                       temp)
-  }
 
   /* Return the status of the battery.  See struct
      android_battery_status for the order of the elements
@@ -1215,11 +1140,8 @@ class EmacsService : Service() {
     val filter: IntentFilter
     val battery: Intent?
 
-    /* Android 4.4 or earlier require applications to use a different
-       API to query the battery status.  */
 
-    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP)
-      return queryBattery19()
+
 
     tem = getSystemService(Context.BATTERY_SERVICE)
     manager = tem as BatteryManager
@@ -1320,10 +1242,8 @@ class EmacsService : Service() {
   fun requestDirectoryAccess(): Int {
     val task: FutureTask<Int>
 
-    /* Return 1 if Android is too old to support this feature.  */
 
-    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP)
-      return 1
+
 
     task = FutureTask<Int>(Callable<Int> {
       val activity: EmacsActivity

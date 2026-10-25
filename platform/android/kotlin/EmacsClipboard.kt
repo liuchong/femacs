@@ -3,10 +3,8 @@
 package org.femacs
 
 import android.content.res.AssetFileDescriptor
-import android.os.Build
 
-/* This class provides helper code for accessing the clipboard,
-   abstracting between the different interfaces on API 8 and 11.  */
+/* Clipboard helper for the supported Android API21+ floor. */
 
 /* `makeClipboard` is looked up by name and descriptor from C
    (`androidselect.c` 110-112, `()Lorg/gnu/emacs/EmacsClipboard;`), so the companion function carries
@@ -25,10 +23,7 @@ abstract class EmacsClipboard {
     /* Create the correct kind of clipboard for this system.  */
 
     @JvmStatic fun makeClipboard(): EmacsClipboard {
-      return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB)
-        EmacsSdk11Clipboard()
-      else
-        EmacsSdk8Clipboard()
-    }
+      return EmacsSdk11Clipboard()
+  }
   }
 }

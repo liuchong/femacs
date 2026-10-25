@@ -1,0 +1,290 @@
+{
+  "id": "CLN-20261025-23",
+  "schema": "femacs-generated-artifact-cleanup-v1",
+  "status": "complete; all planned files absent, evidence and ownership roots retained",
+  "source": "two stopped owned device runs; original receipts/logs retained",
+  "private_exact_path_ledger": "build/acceptance/g4-avd-cleanup-6/ledger.json",
+  "files": [
+    {
+      "path_role": "g4-device-13/device-accept/avd/instance.ini",
+      "sha256": "9b7233bc7b58a67199a8d2b5072c94833cfa4a7f1507b25f8d9df298538cf339",
+      "bytes": 173,
+      "allocated_bytes": 4096
+    },
+    {
+      "path_role": "g4-device-13/device-accept/avd/instance.avd/initrd",
+      "sha256": "6d089b61172b3161bc92fa6b9272d06d417a04d06968deed80d6e634b4cfa5f0",
+      "bytes": 2092304,
+      "allocated_bytes": 2093056
+    },
+    {
+      "path_role": "g4-device-13/device-accept/avd/instance.avd/bootcompleted.ini",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "allocated_bytes": 0
+    },
+    {
+      "path_role": "g4-device-13/device-accept/avd/instance.avd/version_num.cache",
+      "sha256": "c2dd0acefbf5387654d80af08bd8e10a4c00b1010ebec2a1b91041a99b0dbb41",
+      "bytes": 9,
+      "allocated_bytes": 4096
+    },
+    {
+      "path_role": "g4-device-13/device-accept/avd/instance.avd/hardware-qemu.ini",
+      "sha256": "68b982302e07e39eb35f13041f61eb376886c725c6e5e2ee0448de8dc369747c",
+      "bytes": 4517,
+      "allocated_bytes": 8192
+    },
+    {
+      "path_role": "g4-device-13/device-accept/avd/instance.avd/cache.img.qcow2",
+      "sha256": "653a5ddde6cc210b3492dc4690c696b758892d81d6a9b2d073ee85480637248f",
+      "bytes": 196616,
+      "allocated_bytes": 200704
+    },
+    {
+      "path_role": "g4-device-13/device-accept/avd/instance.avd/userdata-qemu.img",
+      "sha256": "686e872867548b54e7b12e4e161ddc1c3d16312ae51e0e3c203e5deb92ba82d5",
+      "bytes": 6356992,
+      "allocated_bytes": 6356992
+    },
+    {
+      "path_role": "g4-device-13/device-accept/avd/instance.avd/encryptionkey.img",
+      "sha256": "522bd0b6a2c92e37de465059bb9487bb9597a9aae032b469a8ebe0b38146d8c3",
+      "bytes": 18874368,
+      "allocated_bytes": 18874368
+    },
+    {
+      "path_role": "g4-device-13/device-accept/avd/instance.avd/multiinstance.lock",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "allocated_bytes": 0
+    },
+    {
+      "path_role": "g4-device-13/device-accept/avd/instance.avd/read-snapshot.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "allocated_bytes": 0
+    },
+    {
+      "path_role": "g4-device-13/device-accept/avd/instance.avd/config.ini",
+      "sha256": "38203800078795d92de9f4fb142a75f27646ab6a63a6d393c9694c2eb8135ae2",
+      "bytes": 3769,
+      "allocated_bytes": 4096
+    },
+    {
+      "path_role": "g4-device-13/device-accept/avd/instance.avd/qemu-version.txt",
+      "sha256": "d4735e3a265e16eee03f59718b9b5d03019c07d8b6c51f90da3a666eec13ab35",
+      "bytes": 1,
+      "allocated_bytes": 4096
+    },
+    {
+      "path_role": "g4-device-13/device-accept/avd/instance.avd/userdata-qemu.img.qcow2",
+      "sha256": "3197653ebc2b73bdc0bc278b6572a7c63370d5d7c5fa0b101e77a80c2ea7c089",
+      "bytes": 568590336,
+      "allocated_bytes": 570753024
+    },
+    {
+      "path_role": "g4-device-13/device-accept/avd/instance.avd/netsim.ini",
+      "sha256": "c8fd846ec31ee1d607fc06f150e841e8c5287eb803ab0b2abf23abff6f39a080",
+      "bytes": 38,
+      "allocated_bytes": 4096
+    },
+    {
+      "path_role": "g4-device-13/device-accept/avd/instance.avd/emu-launch-params.txt",
+      "sha256": "bf5beecc4037be356f9e9e2ed83a65af30ad56e541054c5c10483d33e1aa2b23",
+      "bytes": 300,
+      "allocated_bytes": 4096
+    },
+    {
+      "path_role": "g4-device-13/device-accept/avd/instance.avd/cache.img",
+      "sha256": "c39628d11159632d1d5b20a1bde5a0c96cc105ea2b4701dd80985fa6bc34d343",
+      "bytes": 69206016,
+      "allocated_bytes": 5341184
+    },
+    {
+      "path_role": "g4-device-13/device-accept/avd/instance.avd/emulator-user.ini",
+      "sha256": "553625f1ea968b33014044bc2650aee552ed0dd59714be5d12bb488d23125546",
+      "bytes": 113,
+      "allocated_bytes": 4096
+    },
+    {
+      "path_role": "g4-device-13/device-accept/avd/instance.avd/encryptionkey.img.qcow2",
+      "sha256": "37fa79e48f6fb9ae251d8a8d39f99cd16bc3f73d13a3938b6c18993924d55058",
+      "bytes": 7143424,
+      "allocated_bytes": 7405568
+    },
+    {
+      "path_role": "g4-device-13/device-accept/avd/instance.avd/modem_simulator/iccprofile_for_sim_tel_alaska.xml",
+      "sha256": "462cc26ddaa9d6c470a2d9415771c80e323b526b1863f099accb298955b14db3",
+      "bytes": 14474,
+      "allocated_bytes": 16384
+    },
+    {
+      "path_role": "g4-device-13/device-accept/avd/instance.avd/modem_simulator/iccprofile_for_sim0.xml",
+      "sha256": "7c7996b576a53d7f9be538ec417c09825433f0fdf6561d9204afcdb2f54ba98a",
+      "bytes": 14747,
+      "allocated_bytes": 16384
+    },
+    {
+      "path_role": "g4-device-13/device-accept/avd/instance.avd/modem_simulator/modem_nvram.json",
+      "sha256": "e4614cf0421c381b681d5337928ef61366688805d6a5aae211acfc4d3fead359",
+      "bytes": 164,
+      "allocated_bytes": 4096
+    },
+    {
+      "path_role": "g4-device-13/device-accept/avd/instance.avd/modem_simulator/iccprofile_for_carrierapitests.xml",
+      "sha256": "dc4b5f5344f084fc44f89250bbcf2b12e452eb98c104e4ef3ec115366eb6ce32",
+      "bytes": 16537,
+      "allocated_bytes": 20480
+    },
+    {
+      "path_role": "g4-device-13/device-accept/avd/instance.avd/modem_simulator/etc/modem_simulator/files/numeric_operator.xml",
+      "sha256": "c2557e604beea20b67642cdbb14ae7b792f804e4476b3f6cf47035690234f436",
+      "bytes": 297,
+      "allocated_bytes": 4096
+    },
+    {
+      "path_role": "g4-device-13/batch/avd/instance.ini",
+      "sha256": "1b1cb5d3a9f3129728ff8bd3578b67df3d564e6343e003c0429d601b7e34c573",
+      "bytes": 165,
+      "allocated_bytes": 4096
+    },
+    {
+      "path_role": "g4-device-13/batch/avd/instance.avd/initrd",
+      "sha256": "05a6cc469777e2c672d2e7f9e47a025cd301265bfda0b89ed3e0c765e96e60e1",
+      "bytes": 2092304,
+      "allocated_bytes": 2093056
+    },
+    {
+      "path_role": "g4-device-13/batch/avd/instance.avd/bootcompleted.ini",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "allocated_bytes": 0
+    },
+    {
+      "path_role": "g4-device-13/batch/avd/instance.avd/version_num.cache",
+      "sha256": "c2dd0acefbf5387654d80af08bd8e10a4c00b1010ebec2a1b91041a99b0dbb41",
+      "bytes": 9,
+      "allocated_bytes": 4096
+    },
+    {
+      "path_role": "g4-device-13/batch/avd/instance.avd/hardware-qemu.ini",
+      "sha256": "4df51386417c8e3b032db69c7a9f5b462f04a01e76553392eba1a94406bc8db2",
+      "bytes": 4485,
+      "allocated_bytes": 8192
+    },
+    {
+      "path_role": "g4-device-13/batch/avd/instance.avd/cache.img.qcow2",
+      "sha256": "653a5ddde6cc210b3492dc4690c696b758892d81d6a9b2d073ee85480637248f",
+      "bytes": 196616,
+      "allocated_bytes": 200704
+    },
+    {
+      "path_role": "g4-device-13/batch/avd/instance.avd/userdata-qemu.img",
+      "sha256": "686e872867548b54e7b12e4e161ddc1c3d16312ae51e0e3c203e5deb92ba82d5",
+      "bytes": 6356992,
+      "allocated_bytes": 6356992
+    },
+    {
+      "path_role": "g4-device-13/batch/avd/instance.avd/encryptionkey.img",
+      "sha256": "522bd0b6a2c92e37de465059bb9487bb9597a9aae032b469a8ebe0b38146d8c3",
+      "bytes": 18874368,
+      "allocated_bytes": 18874368
+    },
+    {
+      "path_role": "g4-device-13/batch/avd/instance.avd/multiinstance.lock",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "allocated_bytes": 0
+    },
+    {
+      "path_role": "g4-device-13/batch/avd/instance.avd/read-snapshot.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "allocated_bytes": 0
+    },
+    {
+      "path_role": "g4-device-13/batch/avd/instance.avd/config.ini",
+      "sha256": "38203800078795d92de9f4fb142a75f27646ab6a63a6d393c9694c2eb8135ae2",
+      "bytes": 3769,
+      "allocated_bytes": 4096
+    },
+    {
+      "path_role": "g4-device-13/batch/avd/instance.avd/qemu-version.txt",
+      "sha256": "d4735e3a265e16eee03f59718b9b5d03019c07d8b6c51f90da3a666eec13ab35",
+      "bytes": 1,
+      "allocated_bytes": 4096
+    },
+    {
+      "path_role": "g4-device-13/batch/avd/instance.avd/userdata-qemu.img.qcow2",
+      "sha256": "de0010f4863114a2dbc4c4d38af05c78ef96c2701659fc5539e54d5ea09511b0",
+      "bytes": 568786944,
+      "allocated_bytes": 570753024
+    },
+    {
+      "path_role": "g4-device-13/batch/avd/instance.avd/netsim.ini",
+      "sha256": "c8fd846ec31ee1d607fc06f150e841e8c5287eb803ab0b2abf23abff6f39a080",
+      "bytes": 38,
+      "allocated_bytes": 4096
+    },
+    {
+      "path_role": "g4-device-13/batch/avd/instance.avd/emu-launch-params.txt",
+      "sha256": "418008a98e6e5315594091201f7fd4f8a2f33380323d55bf8a1bf73831f3670d",
+      "bytes": 300,
+      "allocated_bytes": 4096
+    },
+    {
+      "path_role": "g4-device-13/batch/avd/instance.avd/cache.img",
+      "sha256": "c39628d11159632d1d5b20a1bde5a0c96cc105ea2b4701dd80985fa6bc34d343",
+      "bytes": 69206016,
+      "allocated_bytes": 5341184
+    },
+    {
+      "path_role": "g4-device-13/batch/avd/instance.avd/emulator-user.ini",
+      "sha256": "8586ad680c95924625bb971076a4bdf1dbf9d8a5970b96d42f0c84aa54d9cb38",
+      "bytes": 113,
+      "allocated_bytes": 4096
+    },
+    {
+      "path_role": "g4-device-13/batch/avd/instance.avd/encryptionkey.img.qcow2",
+      "sha256": "036d752a5e2fcce6deefa0f8ef8356be3bae78f7d4760a26d4204592e79a8b7e",
+      "bytes": 7077888,
+      "allocated_bytes": 7405568
+    },
+    {
+      "path_role": "g4-device-13/batch/avd/instance.avd/modem_simulator/iccprofile_for_sim_tel_alaska.xml",
+      "sha256": "462cc26ddaa9d6c470a2d9415771c80e323b526b1863f099accb298955b14db3",
+      "bytes": 14474,
+      "allocated_bytes": 16384
+    },
+    {
+      "path_role": "g4-device-13/batch/avd/instance.avd/modem_simulator/iccprofile_for_sim0.xml",
+      "sha256": "7c7996b576a53d7f9be538ec417c09825433f0fdf6561d9204afcdb2f54ba98a",
+      "bytes": 14747,
+      "allocated_bytes": 16384
+    },
+    {
+      "path_role": "g4-device-13/batch/avd/instance.avd/modem_simulator/modem_nvram.json",
+      "sha256": "e4614cf0421c381b681d5337928ef61366688805d6a5aae211acfc4d3fead359",
+      "bytes": 164,
+      "allocated_bytes": 4096
+    },
+    {
+      "path_role": "g4-device-13/batch/avd/instance.avd/modem_simulator/iccprofile_for_carrierapitests.xml",
+      "sha256": "dc4b5f5344f084fc44f89250bbcf2b12e452eb98c104e4ef3ec115366eb6ce32",
+      "bytes": 16537,
+      "allocated_bytes": 20480
+    },
+    {
+      "path_role": "g4-device-13/batch/avd/instance.avd/modem_simulator/etc/modem_simulator/files/numeric_operator.xml",
+      "sha256": "c2557e604beea20b67642cdbb14ae7b792f804e4476b3f6cf47035690234f436",
+      "bytes": 297,
+      "allocated_bytes": 4096
+    }
+  ],
+  "logical_bytes": 1345161422,
+  "allocated_bytes_before": 1222246400,
+  "recovery": "Recreate a fresh owned AVD from the recorded API36 arm64 image and test recipe; exact transient guest disk state is intentionally not recoverable. Original failures and logs remain.",
+  "physical_free_space_claim": false,
+  "removed_files": 46
+}

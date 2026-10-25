@@ -104,11 +104,7 @@ open class EmacsPreferencesActivity : PreferenceActivity() {
     var listener: Preference.OnPreferenceClickListener
     val view: View
 
-    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP)
-      setTheme(android.R.style.Theme_DeviceDefault_Settings)
-    else if (Build.VERSION.SDK_INT
-             >= Build.VERSION_CODES.ICE_CREAM_SANDWICH)
-      setTheme(android.R.style.Theme_DeviceDefault)
+    setTheme(android.R.style.Theme_DeviceDefault_Settings)
 
     /* This must come before using any preference APIs.  */
     super.onCreate(savedInstanceState)

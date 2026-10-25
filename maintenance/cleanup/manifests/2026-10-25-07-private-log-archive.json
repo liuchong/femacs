@@ -1,0 +1,27 @@
+{
+  "schema": "femacs-private-log-relocation-v1",
+  "id": "CLN-20261025-07",
+  "status": "completed; source/product inputs unchanged",
+  "artifacts": [
+    {
+      "artifact_role": "closed counterpart-read response",
+      "sha256": "942e6e01468c470c0b90c1504f73e70b128c06dd60b74cc0a3b0a7caa6796dc5",
+      "bytes": 461059,
+      "operation": "moved unchanged to project-external persistent local archive",
+      "source_tracked": false,
+      "recovery": "authorized local evidence ledger, addressed by SHA256; raw content stays outside the repository"
+    },
+    {
+      "artifact_role": "closed native fallback event transcript",
+      "sha256": "22c778f70307586034118e66225633c17c251baf1ddc64565691e943a66beb7d",
+      "bytes": 779014,
+      "operation": "moved unchanged to project-external persistent local archive",
+      "source_tracked": false,
+      "recovery": "authorized local evidence ledger, addressed by SHA256; raw content stays outside the repository"
+    }
+  ],
+  "source_files_deleted": 0,
+  "raw_bytes_deleted": 0,
+  "same_volume_bytes_freed": 0,
+  "identity_verification": "SHA256 before/after exact rename verified; repository-private boundary recheck clear"
+}

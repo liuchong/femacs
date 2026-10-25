@@ -1,5 +1,17 @@
 # Lisp runtime modernization: evidence and first bounded implementation
 
+Current acceptance amendment (2026-10-25): the user requires100% compatibility
+and measured performance improvement against the system-installed macOS stable
+editor, including stability, memory and GC latency. Its exact binary/dump,
+version, configuration and execution modes must be recorded. No FTP download or
+pristine-source rebuild is required; an optional Linux comparison may use its
+distribution package. The authoritative new requirements and open coverage are
+in [the persistent plan](modernization.md#full-scope-sequence-and-finish-conditions).
+Historical measurements and rejected candidates below retain their original
+controls and limits; none is a new stable-baseline speedup or complete
+compatibility result. Rejecting a research candidate cannot by itself close the
+current Goal's improvement requirement.
+
 Baseline: `2415a335`, after local-delivery and tooling modernization. The user authorizes interpreter/compiler performance work and investigation of native/JIT compilation and generational GC. The real shared-tail dispatcher experiment below has been rejected and its production/build changes removed. The delivered VM stays unchanged; the historical design is retained to explain the measured result. It is neither a new bytecode format nor a claim that Lisp native compilation or a new collector has shipped. Current tracking remains in `modernization.md`.
 
 ## What exists today

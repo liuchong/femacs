@@ -1,0 +1,9 @@
+# CLN-20261025-15: archive earlier owned isolated build copies
+
+Four stopped earlier isolated source/build exports and two old root generated object graphs are compressed into persistent private recovery archives; the original project source, new Android5 export, G4 terminal/Cocoa products and root trial app stay expanded. Earlier isolated copies are byte-preserved inside these archives; outer receipts, device logs and screenshots remain expanded. These are tracked-input exports and generated build copies, not the original project source. Only regular file contents are archived and removed; existing symlinks remain unchanged and are never traversed. Every archived member content hash was checked and six representative files were actually restored before any expanded file was removed. This follows CLN11/12, whose earlier preservation statements describe their own completion time. The fresh Android5 product passed before this superseded-export archive ran.
+
+The [manifest](../manifests/2026-10-25-15-prior-build-archives.json) records content identities and the private exact-path/recovery ledger. Recovery extracts regular members from the verified archive into its recorded owned root; unchanged symlinks and directory structure remain in place. No symlink target is read or removed. Public transient numeric compiler instances are normalized. No uncompressed-byte sum is claimed as actual volume recovery.
+
+Completed: 70435 expanded files, 2543612560 logical bytes and 2703159296 pre-removal allocated-byte accounting; verified archives occupy 657713426 bytes.
+
+Public role names additionally redact machine-root-encoded generated components using deterministic SHA256 names. Content identities, byte counts and operation results are unchanged. Exact original recovery paths remain in the private ledger; these logical names are not extraction paths.

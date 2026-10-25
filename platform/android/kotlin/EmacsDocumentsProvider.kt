@@ -183,8 +183,7 @@ class EmacsDocumentsProvider : DocumentsProvider() {
         flags = flags or Document.FLAG_DIR_SUPPORTS_CREATE
         flags = flags or Document.FLAG_SUPPORTS_DELETE
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP)
-          flags = flags or Document.FLAG_SUPPORTS_RENAME
+        flags = flags or Document.FLAG_SUPPORTS_RENAME
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N)
           flags = flags or Document.FLAG_SUPPORTS_MOVE
@@ -194,8 +193,7 @@ class EmacsDocumentsProvider : DocumentsProvider() {
       flags = flags or Document.FLAG_SUPPORTS_WRITE
       flags = flags or Document.FLAG_SUPPORTS_DELETE
 
-      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP)
-        flags = flags or Document.FLAG_SUPPORTS_RENAME
+      flags = flags or Document.FLAG_SUPPORTS_RENAME
 
       if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
         flags = flags or Document.FLAG_SUPPORTS_REMOVE

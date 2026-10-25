@@ -154,8 +154,7 @@ open class EmacsActivity : Activity(),
       window = null
 
       /* Reset the WM name.  */
-      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP)
-        updateWmName()
+      updateWmName()
 
       invalidateFocus(0)
     }
@@ -199,8 +198,7 @@ open class EmacsActivity : Activity(),
 
     /* Synchronize the window's window manager name with this activity's
        task in the recents list.  */
-    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP)
-      updateWmName()
+    updateWmName()
   }
 
   final override fun destroy() {
@@ -300,8 +298,7 @@ open class EmacsActivity : Activity(),
        on screen keyboard is displayed, as there is otherwise no way
        to determine when the on screen keyboard becomes visible.  */
 
-    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN
-        && Build.VERSION.SDK_INT < Build.VERSION_CODES.R) {
+    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) {
       decorView = getWindow().getDecorView()
       observer = decorView.getViewTreeObserver()
       observer.addOnGlobalLayoutListener(this)
@@ -404,8 +401,7 @@ open class EmacsActivity : Activity(),
          changed the window insets as well, and the system does not
          automatically restore visibility flags.  */
 
-      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN
-          && Build.VERSION.SDK_INT < Build.VERSION_CODES.R
+      if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R
           && isFullscreen)
         syncFullscreenWith(window)
     } else
@@ -490,33 +486,29 @@ open class EmacsActivity : Activity(),
       return
     }
 
-    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN) {
-      /* On Android 4.1 or later, use `setSystemUiVisibility'.  */
+    /* On the supported pre-R path, use `setSystemUiVisibility'. */
 
-      window = getWindow()
+    window = getWindow()
 
-      if (window == null)
-        return
+    if (window == null)
+      return
 
-      view = window.getDecorView()
+    view = window.getDecorView()
 
-      if (isFullscreen) {
-        flags = 0
-        flags = flags or View.SYSTEM_UI_FLAG_FULLSCREEN
+    if (isFullscreen) {
+      flags = 0
+      flags = flags or View.SYSTEM_UI_FLAG_FULLSCREEN
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
-          /* These flags means that Emacs will be full screen as
-             long as the state flag is set.  */
-          flags = flags or View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
-          flags = flags or View.SYSTEM_UI_FLAG_IMMERSIVE
-          flags = flags or View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
-        }
+      /* These flags mean that the editor will be full screen as
+         long as the state flag is set.  */
+      flags = flags or View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+      flags = flags or View.SYSTEM_UI_FLAG_IMMERSIVE
+      flags = flags or View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
 
-        /* Apply the given flags.  */
-        view.setSystemUiVisibility(flags)
-      } else
-        view.setSystemUiVisibility(View.SYSTEM_UI_FLAG_VISIBLE)
-    }
+      /* Apply the given flags.  */
+      view.setSystemUiVisibility(flags)
+    } else
+      view.setSystemUiVisibility(View.SYSTEM_UI_FLAG_VISIBLE)
   }
 
   /* Update the name of this activity's task description from the

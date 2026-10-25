@@ -1,0 +1,224 @@
+{
+  "id": "CLN-20261025-03",
+  "source_ref": "01bfbb7f3e1d8e6793a2dd71b81ac8ba43b29f99",
+  "status": "D current identities recorded; isolated recovery and final affected scope stated separately",
+  "source_files": [
+    {
+      "path": "spikes/inline-probe.sh",
+      "before_sha256": "2fdfaa11967873344fd934c91568b473856ca0caf318b21c7134613af69255f6",
+      "before_bytes": 1293,
+      "before_git_blob": "30ea597918728c5f11366964081a603d4f7298e8",
+      "after_sha256": "06e545693c6d1ff6e4cb523d4f5e438cde144cdba4ab6ba9b315a35bd123fd54",
+      "after_state": "present; current body SHA256 recorded; functional acceptance scope in report",
+      "after_bytes": 151
+    },
+    {
+      "path": "spikes/accessor-probe.sh",
+      "before_sha256": "f3904a8cdc766fda66e6c6532280e5be076a05ba230ffe7b63b105f52c19bb9d",
+      "before_bytes": 1077,
+      "before_git_blob": "ae4a93e644560fc601d8bf7d5401e5eb96eb8813",
+      "after_sha256": "aceebc01602bf58805be483b2cb907a2470b51ce7a29603266f14255e4755990",
+      "after_state": "present; current body SHA256 recorded; functional acceptance scope in report",
+      "after_bytes": 153
+    },
+    {
+      "path": "spikes/write-probe.sh",
+      "before_sha256": "1690f901e30bbe8e81325b7e8cba127daa1e5a992704cc6edf7f94086c766ea0",
+      "before_bytes": 1098,
+      "before_git_blob": "76e21164aa3160ac7d91180a4acc22b1582d2a75",
+      "after_sha256": "be0607142a47e4f6d1da3c7f5546016d7346ebfdb1be8fd4b154b82ed25bef1a",
+      "after_state": "present; current body SHA256 recorded; functional acceptance scope in report",
+      "after_bytes": 150
+    },
+    {
+      "path": "spikes/va-probe.sh",
+      "before_sha256": "b6ce70f394dcf9d06023bd44463a024e5313042f703a9e66bdcc11e1c7cfe447",
+      "before_bytes": 964,
+      "before_git_blob": "addd36251585b242f52d894f9b4ac5fd4de7e3d5",
+      "after_sha256": "56c1cc76740eef2c162b250d25d4a7e230b62e83030945fb9b6c3a751e3a538a",
+      "after_state": "present; current body SHA256 recorded; functional acceptance scope in report",
+      "after_bytes": 147
+    },
+    {
+      "path": "spikes/syshdrs-probe.sh",
+      "before_sha256": "97147a781c1b13e235bb96725f07cce5093eef05e1df6dceea5f5fdea5603830",
+      "before_bytes": 1039,
+      "before_git_blob": "7a55bfd8a2fed67adb42c1a102a0fd43fb345cb7",
+      "after_sha256": "3e043b855b43f426f661bdd668afa577b54dac8ff8e800403ae910b715f7cc1c",
+      "after_state": "present; current body SHA256 recorded; functional acceptance scope in report",
+      "after_bytes": 152
+    },
+    {
+      "path": "spikes/gmp-abi-probe.sh",
+      "before_sha256": "247675ddf55ced671854364410a3bccad64c9b20dd8696a10da0af1f67d6ec76",
+      "before_bytes": 1246,
+      "before_git_blob": "652c6666b6c8d3dfeaa803e355d36b9b4d84f6ac",
+      "after_sha256": "a3c31532ded68906cb59a97bef08136c548a9687c5de0ef62600e217529e1f6e",
+      "after_state": "present; current body SHA256 recorded; functional acceptance scope in report",
+      "after_bytes": 152
+    },
+    {
+      "path": "spikes/lisp-abi-probe.sh",
+      "before_sha256": "af0140754245f44bbe06676d8903b8bdc339c39ffac3da68f1b5ef33441dbb0a",
+      "before_bytes": 1804,
+      "before_git_blob": "d4eed6ff765fdbde8fe208c68a1b0c531612f776",
+      "after_sha256": "9cb382284bead7bf584eb55ecd9dca80d324b2548032fdf94ccb00a5087364fb",
+      "after_state": "present; current body SHA256 recorded; functional acceptance scope in report",
+      "after_bytes": 153
+    },
+    {
+      "path": "spikes/fam-probe.sh",
+      "before_sha256": "6813e7f4b6a464816fd07d5121ef2a4db44d66a1e396f8fe459519bb760614f7",
+      "before_bytes": 630,
+      "before_git_blob": "2b09949a2f882ab7e30d845cda6fb4ba034c76ac",
+      "after_sha256": "e1c9edec6e7a08981887e9e005390472efba820ca138439eafdd3ed4fc0df2de",
+      "after_state": "present; current body SHA256 recorded; functional acceptance scope in report",
+      "after_bytes": 148
+    },
+    {
+      "path": "spikes/shadow-probe.sh",
+      "before_sha256": "0e1bac0b2b8d391bfa09c96c2ede0bb419553fcf65ebc0050c334c582b7fb85a",
+      "before_bytes": 489,
+      "before_git_blob": "2d245a847d0ee9e13d93df3b8fce13c40b0325e8",
+      "after_sha256": "ed03b5816a2fc6da577452d7b436ce331d9ead7cc0ddfeaaee5654440c9d575f",
+      "after_state": "present; current body SHA256 recorded; functional acceptance scope in report",
+      "after_bytes": 151
+    },
+    {
+      "path": "spikes/macro-probe.sh",
+      "before_sha256": "a453ad0ae2da1671c618115ef7ab4e3d6eb69899d4185cf70fcc23f5a2c9f384",
+      "before_bytes": 542,
+      "before_git_blob": "2c59c0c2ecce325840f0dc36fa079319dffd427d",
+      "after_sha256": "866e34f506a1e2c25e5c9ca424679040c8cc128c09dbda788f0c4fe33b742b0f",
+      "after_state": "present; current body SHA256 recorded; functional acceptance scope in report",
+      "after_bytes": 150
+    },
+    {
+      "path": "spikes/jni-probe.sh",
+      "before_sha256": "eba0e2aeac69f0b85fa378a48636fd01d25907740179ae929b10c4221352109f",
+      "before_bytes": 4018,
+      "before_git_blob": "7bfe10d573e95de485a25c5ed4c8c272c41b8ca1",
+      "after_sha256": "de9d8172c5c60c5043d7ae35405bc67e4b2d07182e288e084dfbc2b016d958eb",
+      "after_state": "present; current body SHA256 recorded; functional acceptance scope in report",
+      "after_bytes": 148
+    },
+    {
+      "path": "spikes/miri-probe.sh",
+      "before_sha256": "e7a6b4bfe4ecb239e84a049665c2ba1d067f9192b5ac36909ed11cd358b2463e",
+      "before_bytes": 1275,
+      "before_git_blob": "7f4f0a64b36725990a6acdd3661a7891d95c7351",
+      "after_sha256": "0293c3df52574e3526d67ce1be4fc7e94ea26746110f0ccc92ec7e353c1b112b",
+      "after_state": "present; current body SHA256 recorded; functional acceptance scope in report",
+      "after_bytes": 149
+    },
+    {
+      "path": "spikes/kotlin-compile-probe.sh",
+      "before_sha256": "9dfdc3df4467be4c429d6fbe0da449e16c75294033f93e6192c7b4bb68053f7c",
+      "before_bytes": 4623,
+      "before_git_blob": "604b1163f0658a660f50892a3f23f9e902901a41",
+      "after_sha256": "155399d7e856287c7770e27b491196676c7365ca563b9d23781b17e28d11b105",
+      "after_state": "present; current body SHA256 recorded; functional acceptance scope in report",
+      "after_bytes": 151
+    },
+    {
+      "path": "spikes/run.sh",
+      "before_sha256": "078885c7cb8b239d01494fed8509c6ab383cb61e40ca847c01b0e85920f506cc",
+      "before_bytes": 2801,
+      "before_git_blob": "bc857e1897d17da581d05e10e8f882485f67a122",
+      "after_sha256": "d07847d066ef01b7af334476967682bd487f70c3c7128ef4620a827a813abe15",
+      "after_state": "present; current body SHA256 recorded; functional acceptance scope in report",
+      "after_bytes": 152
+    },
+    {
+      "path": "tools/l5-sweep.sh",
+      "before_sha256": "44d2ef35f4650732ca77be1aa889fecfac30b9922702d64e5b03603e39bfb9a4",
+      "before_bytes": 1638,
+      "before_git_blob": "09c381f9372dbee5242692bb1721b4336186db04",
+      "after_sha256": "cbeee815edea05d803b78f97dccd20e839137b8eb80768b9141415eff3157d04",
+      "after_state": "present; current body SHA256 recorded; functional acceptance scope in report",
+      "after_bytes": 136
+    },
+    {
+      "path": "tools/zig-linux-linker.sh",
+      "before_sha256": "e01c23397c8d84736e69ef17d0896eb97fb9f250a3c65fd814933a40caafa026",
+      "before_bytes": 1016,
+      "before_git_blob": "2fa54050548fd0c0e0609a00502297ab8e88296a",
+      "after_sha256": "d4cd7a5e388e88fb9f43c12b5b1b3f370b66acb75225c3e1924b168bccd649ba",
+      "after_state": "present; current body SHA256 recorded; functional acceptance scope in report",
+      "after_bytes": 730
+    },
+    {
+      "path": "tools/bootstrap-resources.py",
+      "before_sha256": "66f3245dccc3b908d7145003632e700e512740fb0f27b49af851f3c072e45301",
+      "before_bytes": 13483,
+      "before_git_blob": "dd728c3b33ad886b4f43220428d476799fcb3efa",
+      "after_sha256": "b9ecb318e250b29e127517d07ec98f4880e677dc74128f6b51cbe1671f176811",
+      "after_state": "present; current body SHA256 recorded; functional acceptance scope in report",
+      "after_bytes": 13106
+    },
+    {
+      "path": "xtask/src/bundle.rs",
+      "before_sha256": "7dcb72cfffeedff12b370037fbbefc44a4dd9434f55d8a0fca1ef5c423ecddbd",
+      "before_bytes": 6529,
+      "before_git_blob": "ad415b2025fd4815244203d5a62431af7eddf135",
+      "after_sha256": "64c7a73baf40d49ac18e1bc92846227389cb2abe010e02be569194d71f5a4f0c",
+      "after_state": "present; current body SHA256 recorded; functional acceptance scope in report",
+      "after_bytes": 11031
+    },
+    {
+      "path": "xtask/src/standalone.rs",
+      "before_sha256": "b18b2446e4413eda22c2c6cfe06d5b84262db4102517b724966deef08750b5c8",
+      "before_bytes": 3068,
+      "before_git_blob": "b79524e9890a5dfae9023a749a938e0fdb72e870",
+      "after_sha256": "00711c901940feb94e72773b2c2e76e0dab6f9c44768aa6ae2e46555964c29e1",
+      "after_state": "present; current body SHA256 recorded; functional acceptance scope in report",
+      "after_bytes": 4132
+    },
+    {
+      "path": "xtask/src/macos.rs",
+      "before_sha256": "d6d888dfd9add1d9c6b1a578a570ee56f18eccda223e0fb2fd5ea17fb2f1c10d",
+      "before_bytes": 14095,
+      "before_git_blob": "ef4ad3973af07bd69bc59697c0542db270905ea2",
+      "after_sha256": "e68a5cdf0fb60fe1d14b2f0a893cf35b7819996619281fac01ee34ad9cca618e",
+      "after_state": "present; current body SHA256 recorded; functional acceptance scope in report",
+      "after_bytes": 16610
+    },
+    {
+      "path": "tools/gen-lisp-abi-probe.py",
+      "before_sha256": "ca40c697c99423457d1e1fdc3ad2e3c13f6563359a9d97aaaab16255bd1c61d7",
+      "before_bytes": 22513,
+      "before_git_blob": "b49ee9c1c190071cf2d72a4a2ad438b040830887",
+      "after_sha256": "696e49221272adaf74823209c1c8e038237748edb4381c744b37664674eed18a",
+      "after_state": "present; current body SHA256 recorded; functional acceptance scope in report",
+      "after_bytes": 22665
+    },
+    {
+      "path": "spikes/inline_probe.c",
+      "before_sha256": "0122866df63ac95df25e86d6ee97aa1b991f0f8802504602dc0d3e95cc17c879",
+      "before_bytes": 1895,
+      "before_git_blob": "61960720b28b0884c1bfca41dbb7a1dc7782676c",
+      "after_sha256": "5da685221b2600a38406d6f4a1ed0268d90de6b7d72029a81045897207c98483",
+      "after_state": "present; current body SHA256 recorded; functional acceptance scope in report",
+      "after_bytes": 1984
+    }
+  ],
+  "unrelated_deletion": false,
+  "verification": {
+    "source_recovery": "passed: exact baseline Git blobs restored into isolated owned scratch and SHA256/current-body absence checked; no working-tree rollback",
+    "affected_tests": {
+      "status": "passed at the recorded bounded scope",
+      "evidence": [
+        "build/acceptance/g4-all-probes-2/receipt.json",
+        "build/acceptance/g4-inline-3/report.json"
+      ],
+      "scope": "real probe cohort retained with only the old inline failure replaced by its actual repaired differential;16 metadata roots; isolated source recovery, not whole-tree rollback"
+    },
+    "remote_ci": false
+  },
+  "isolated_recovery": {
+    "status": "passed",
+    "scope": "exact baseline Git blob/hash restored under owned scratch, current body SHA256/absence checked",
+    "recipe": "python3 tools/test-g4-workflows.py CleanupRecovery",
+    "product_acceptance": false
+  }
+}

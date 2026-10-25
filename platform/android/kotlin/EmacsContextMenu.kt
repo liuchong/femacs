@@ -334,8 +334,7 @@ class EmacsContextMenu {
          displayed immediately afterwards, ignore calls received
          within 150 milliseconds of this menu's being displayed.  */
 
-      if (rc && Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB
-          && Build.VERSION.SDK_INT < Build.VERSION_CODES.N)
+      if (rc && Build.VERSION.SDK_INT < Build.VERSION_CODES.N)
         wasSubmenuSelected = System.currentTimeMillis() - 150
 
       rc

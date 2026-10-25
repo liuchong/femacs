@@ -1,0 +1,162 @@
+{
+  "id": "CLN-20261025-04",
+  "source_ref": "01bfbb7f3e1d8e6793a2dd71b81ac8ba43b29f99",
+  "status": "D current identities recorded; isolated recovery and final affected scope stated separately",
+  "source_files": [
+    {
+      "path": "tools/check-android-kotlin.sh",
+      "before_sha256": "d4ffc59f26281b5ad8a6c4704622241f0c52b30f3b0f68b6fe65c99665e276de",
+      "before_bytes": 15368,
+      "before_git_blob": "927686e9bf1907e0afed7fbdcf9e172e61ccaa8a",
+      "after_sha256": "df793d905bea648c792b4a2f2467853f6b8396a2cf08ace52a0ffe914f2176bf",
+      "after_state": "present; current body SHA256 recorded; functional acceptance scope in report",
+      "after_bytes": 146
+    },
+    {
+      "path": "tools/check-authorized-platforms.sh",
+      "before_sha256": "ae05874c59cf2ebeb40718f01c729de28ed48c87f38af81f70e62ec9af492628",
+      "before_bytes": 9265,
+      "before_git_blob": "041d35c3a17ee1075bd5267afb271025fc77c74c",
+      "after_sha256": "9254b76acfa5408a3590d935adada50ca4029fb0fd4c7fa7a24156a5ac38c919",
+      "after_state": "present; current body SHA256 recorded; functional acceptance scope in report",
+      "after_bytes": 146
+    },
+    {
+      "path": "tools/gen-android-config.sh",
+      "before_sha256": "a84eb40f6efc140685e1cc4c5656a4e90ce99f8f99151c8bfa6cd2bf37976c5f",
+      "before_bytes": 11410,
+      "before_git_blob": "53a2934d89885eed5ec4e0dd5ddfa7ba86203d8f",
+      "after_sha256": "f6efd280a629f55eb496768f0db8f6b5c6942e3a580e57fdd7720c5735513c6d",
+      "after_state": "present; current body SHA256 recorded; functional acceptance scope in report",
+      "after_bytes": 146
+    },
+    {
+      "path": "tools/try-android-emulator.sh",
+      "before_sha256": "a49683af65ad3339f511113411d6adf376d5635fc8799eb6c1bd31e8aa698e9e",
+      "before_bytes": 15597,
+      "before_git_blob": "e0bffab33a28db1136c3655083464a8fd3d63b3c",
+      "after_sha256": "52fcefaca8fb49101c8c3af9820f09f7ff669cd2ed26a89b367c9be87cce6182",
+      "after_state": "present; current body SHA256 recorded; functional acceptance scope in report",
+      "after_bytes": 147
+    },
+    {
+      "path": "tools/device-run.sh",
+      "before_sha256": "1b9a6b2bab8fa0f5efa3f4a37326a4c42d133086a5f73216e6d3d48bf3d056bb",
+      "before_bytes": 10488,
+      "before_git_blob": "9fd10c18a066b3e1fdaa11bba2d4aa9ce4bee92c",
+      "after_sha256": "0452de39a1868fe9d4520de74d09acf7a686a57bad08d5a32f8b955bce40b416",
+      "after_state": "present; current body SHA256 recorded; functional acceptance scope in report",
+      "after_bytes": 163
+    },
+    {
+      "path": "tools/android-accept.sh",
+      "before_sha256": "8234b053443dafc851e4eef9a9560bf616b5e6de946045be8e5081dbb810d356",
+      "before_bytes": 3205,
+      "before_git_blob": "3c5bf8082106b26ec6a0b0795f2d1c7965cd3234",
+      "after_sha256": "7341e41ddd75349fab04b803a6dedf98ca0f589f7eda4577dfca9656739f26a9",
+      "after_state": "present; current body SHA256 recorded; functional acceptance scope in report",
+      "after_bytes": 148
+    },
+    {
+      "path": "tools/android-batch-eval.sh",
+      "before_sha256": "75e0482ed4701c09bf36092fe20322b9751ccff0e54bd5d3a080572d15543f6c",
+      "before_bytes": 2701,
+      "before_git_blob": "7a5e8063679e643341ebae36cfde2a80a83e1f78",
+      "after_sha256": "25d1cae7e9d8f1a0f48bea2d52d952806ff88328dbbe3df7d36a8368e2d31a6c",
+      "after_state": "present; current body SHA256 recorded; functional acceptance scope in report",
+      "after_bytes": 147
+    },
+    {
+      "path": "tools/android-gui-eval.sh",
+      "before_sha256": "bcab3c5a98f3e735fe4895d7fe6aa42b1aa1408a9d7f1971bc657f4d57f9cc1e",
+      "before_bytes": 2916,
+      "before_git_blob": "1162fe4426493cd4c79213cdc1315947090e77ac",
+      "after_sha256": "b9aec2e899d48782958a84b2c9d84b477297fb0348774ce033cb0bf8a7920027",
+      "after_state": "present; current body SHA256 recorded; functional acceptance scope in report",
+      "after_bytes": 145
+    },
+    {
+      "path": "tools/android-input-probe.sh",
+      "before_sha256": "528553c19e731c0d19ba0ed0b6336f1fbe13f6950dd092c9d601413dbf5c37c6",
+      "before_bytes": 10954,
+      "before_git_blob": "d1593ae9baa3dd5cf446453f03cfa45ed7359514",
+      "after_sha256": "4e304a9531d486b382d7ad7e54e72a259a4d4118e7d6efd89adbc0ff9465c6fa",
+      "after_state": "present; current body SHA256 recorded; functional acceptance scope in report",
+      "after_bytes": 163
+    },
+    {
+      "path": "tools/check-android-apk.py",
+      "before_sha256": "646c20c199b5178b2b932f9054855addf1074470b4e897228c85a1ec3271a345",
+      "before_bytes": 4006,
+      "before_git_blob": "e2eca034c52c50e8cda20bb0a12392d498ab401a",
+      "after_sha256": "0f59143b393f9a4223faf8f481297819445f42162a8c1611486dd9058d68c4ac",
+      "after_state": "present; current body SHA256 recorded; functional acceptance scope in report",
+      "after_bytes": 1353
+    },
+    {
+      "path": "tools/android-readiness.py",
+      "before_sha256": "f2243e8f4c7bba61e3eb61b92da634b5cf2fdb83ea7d566477c658cd84d31519",
+      "before_bytes": 4197,
+      "before_git_blob": "7567653e5800b7ab47e6ef1c4694282d2da2b278",
+      "after_sha256": "4cb9da17ab1fcdf321ea8420ee27840cb7412e5fd42041f0ef3ca6cfb666f532",
+      "after_state": "present; current body SHA256 recorded; functional acceptance scope in report",
+      "after_bytes": 1255
+    },
+    {
+      "path": "tools/gen-android-assets.py",
+      "before_sha256": "5dd8c0773855b1df49c42d8a7662e9dcb3825b671462f7e5a7ced5bc4f8bffc5",
+      "before_bytes": 7705,
+      "before_git_blob": "5632aa659973768e5c1c1f2d6f065c5a9acf30b6",
+      "after_sha256": "071b6ff104557255c13727610e98dce1b7aa1a1491fac666f80cbda37e01c362",
+      "after_state": "present; current body SHA256 recorded; functional acceptance scope in report",
+      "after_bytes": 7772
+    },
+    {
+      "path": "xtask/src/main.rs",
+      "before_sha256": "e7ba6fd56ba1e6adcd97f64a28c544d5726f2203d0ab9f8d873d7dbf91caedca",
+      "before_bytes": 204651,
+      "before_git_blob": "d75960c6de7c9657a36abd9282892ac598af85f9",
+      "after_sha256": "79342a24ee3fbb7e5ea9b7a73ddcd95988d90a03422b3ad018bdbff942b6133f",
+      "after_state": "present; current body SHA256 recorded; functional acceptance scope in report",
+      "after_bytes": 200464
+    },
+    {
+      "path": "tools/check-android-assertions.py",
+      "before_sha256": "e95527247dd7b756a4457c0bb744d0b63209a05c0544e571309b6c4295d0199b",
+      "before_bytes": 13573,
+      "before_git_blob": "d4e0e8474a516e1c7fcd0ed1cd5876cf61c58a4d",
+      "after_sha256": "9bd6fe059c802b7b8e3fd9af8213d0fbd9f412a515384f0abdc7593217192566",
+      "after_state": "present; current body SHA256 recorded; functional acceptance scope in report",
+      "after_bytes": 13779
+    },
+    {
+      "path": "tools/check-android-layout.py",
+      "before_sha256": "2b7d684871e0cf288aaff8434fb2f0210411c6e1fd4d26e4c809a2cf1a41159c",
+      "before_bytes": 7012,
+      "before_git_blob": "e825eeaf539e64799933b90cb0a60f4123f4636a",
+      "after_sha256": "5bc885e8661786cc0ad24510b8bbabdfdb6f0b879e6a6e8cf9f98babcca89d6a",
+      "after_state": "present; current body SHA256 recorded; functional acceptance scope in report",
+      "after_bytes": 8254
+    }
+  ],
+  "unrelated_deletion": false,
+  "verification": {
+    "source_recovery": "passed: exact baseline Git blobs restored into isolated owned scratch and SHA256/current-body absence checked; no working-tree rollback",
+    "affected_tests": {
+      "status": "passed at the recorded bounded scope",
+      "evidence": [
+        ".femacs-cache/g4-retained-package-8/receipt.json",
+        ".femacs-cache/g4-keyboard-product-10/receipt.json",
+        ".femacs-cache/g4-android-device-22/readiness.json"
+      ],
+      "scope": "real normal/checking native, layout/constants/JNI/package and actual API36 editing acceptance; no all-version device claim"
+    },
+    "remote_ci": false
+  },
+  "isolated_recovery": {
+    "status": "passed",
+    "scope": "exact baseline Git blob/hash restored under owned scratch, current body SHA256/absence checked",
+    "recipe": "python3 tools/test-g4-workflows.py CleanupRecovery",
+    "product_acceptance": false
+  }
+}

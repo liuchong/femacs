@@ -30,9 +30,7 @@ import time
 import sys
 
 REPO = pathlib.Path(__file__).resolve().parent.parent
-# C's four sources.  `src/bitmaps` is where this reference keeps the bitmaps; the port's copy of
-# that tree lives under `etc/images` (they are the same files, and `src/bitmaps` does not
-# exist - recorded rather than invented).
+# The four owned input trees include the tracked raw src/bitmaps inputs.
 TREES = (("lisp", REPO / "lisp"), ("etc", REPO / "etc"),
          ("info", REPO / "info"), ("bitmaps", REPO / "src/bitmaps"))
 # `info/` is a *generated* tree (makeinfo, P-102/P-223): when it is not built yet the other three
@@ -119,33 +117,37 @@ def build_metadata(out: pathlib.Path) -> None:
         encoding="utf-8")
 
 
-def directory_tree(out: pathlib.Path) -> str:
+def directory_tree(out: pathlib.Path, tool: pathlib.Path | None) -> str:
     """C 261-263: `asset-directory-tool assets assets/directory-tree` - the port's own copy."""
-    # C's programs live under `lib-src/`, so the natural home is `build/port/lib-src/`; but
-    # `xtask link-program` writes the binary straight into `build/port/` (it names the output by
-    # the unit stem).  Both are read here rather than making the caller move files around: the
-    # gate failed with "directory-tree not written" while a perfectly good binary sat one
-    # directory up (status 4.963, measured).
-    tool = REPO / "build" / "port" / "lib-src" / "asset-directory-tool"
-    if not tool.is_file():
-        tool = REPO / "build" / "port" / "asset-directory-tool"
-    if not tool.is_file():
-        return ("asset-directory-tool is not built (xtask link-program asset-directory-tool "
-                "first): directory-tree not written")
+    if tool is None or not tool.is_file():
+        raise RuntimeError("pass the independently built --asset-directory-tool executable")
     run = subprocess.run([str(tool), str(out / "assets"), str(out / "assets" / "directory-tree")],
                          capture_output=True, text=True)
     if run.returncode != 0:
-        return f"asset-directory-tool failed: {(run.stderr or run.stdout).strip()[:200]}"
+        raise RuntimeError(f"asset-directory-tool failed: {(run.stderr or run.stdout).strip()[:200]}")
+    if not (out/"assets/directory-tree").is_file():
+        raise RuntimeError("asset tool returned success without directory-tree")
     return "directory-tree written"
 
 
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap.add_argument("--asset-directory-tool", type=pathlib.Path)
+    ap.add_argument("--info", type=pathlib.Path)
     ap.add_argument("--out", type=pathlib.Path, default=None,
                     help="directory to stage assets/ into (the APK builder's working dir)")
     ap.add_argument("--report", action="store_true", help="count only, write nothing")
     a = ap.parse_args()
+    global TREES
+    if a.info:
+        TREES=tuple((name,a.info if name=="info" else path) for name,path in TREES)
+    if a.out:
+        output=a.out.resolve()
+        if not (output.is_relative_to((REPO/"build").resolve()) or output.is_relative_to((REPO/".femacs-cache").resolve())) or output.exists():
+            sys.exit("asset output must be a fresh owned build/cache directory")
+        if not a.asset_directory_tool or not a.asset_directory_tool.is_file():
+            sys.exit("explicit --asset-directory-tool is required")
     if a.out is None and not a.report:
         sys.exit("give --out DIR (to stage) or --report (to count)")
     files, total = stage(a.out or pathlib.Path("/nonexistent"), a.report or a.out is None)
@@ -154,7 +156,7 @@ def main() -> int:
         return 0 if files else 1
     gz = gzip_large_el(a.out)
     build_metadata(a.out)
-    note = directory_tree(a.out)
+    note = directory_tree(a.out, a.asset_directory_tool)
     print(f"assets: {files} file(s), {total / (1024 * 1024):.1f} MiB staged in {a.out}; "
           f"{gz} file(s) gzipped (C 236-250); {note}")
     return 0 if files else 1

@@ -12,7 +12,8 @@ static void one (unsigned char *buf, int n) {
 }
 int main (void) {
   static const int v[] = {0x00, 0x41, 0x80, 0x88, 0x9F, 0xA0, 0xBF, 0xC0, 0xFF};
-  unsigned char b[6];
+  /* Match the Rust fixture: printf/STRING_CHAR also observe unused tail bytes. */
+  unsigned char b[6] = {0};
   /* one-byte forms */
   for (int i = 0; i < 9; i++) { b[0] = (unsigned char) v[i]; one (b, 1); }
   /* two, three and four byte forms: sweep the continuation bytes */

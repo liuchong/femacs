@@ -99,24 +99,7 @@ class EmacsWindow(parent: EmacsWindow?, x: Int, y: Int, width: Int, height: Int,
     fun eventModifiers(event: KeyEvent): Int {
       var state: Int
 
-      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB_MR2)
-        state = KeyEvent.normalizeMetaState(event.getMetaState())
-      else {
-        /* Replace this with getMetaState and manual
-           normalization.  */
-        state = event.getMetaState()
-
-        /* Normalize the state by setting the generic modifier bit if
-           either a left or right modifier is pressed.  */
-
-        if ((state and KeyEvent.META_ALT_LEFT_ON) != 0
-            || (state and KeyEvent.META_ALT_RIGHT_ON) != 0)
-          state = state or KeyEvent.META_ALT_MASK
-
-        if ((state and KeyEvent.META_CTRL_LEFT_ON) != 0
-            || (state and KeyEvent.META_CTRL_RIGHT_ON) != 0)
-          state = state or KeyEvent.META_CTRL_MASK
-      }
+      state = KeyEvent.normalizeMetaState(event.getMetaState())
 
       return state
     }
@@ -652,10 +635,7 @@ class EmacsWindow(parent: EmacsWindow?, x: Int, y: Int, width: Int, height: Int,
 
     /* Meta isn't supported by systems older than Android 3.0.  */
 
-    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB)
-      extra_ignored = KeyEvent.META_META_MASK
-    else
-      extra_ignored = 0
+    extra_ignored = KeyEvent.META_META_MASK
 
     /* Ignore meta-state understood by Emacs for now, or key presses
        such as Ctrl+C and Meta+C will not be recognized as ASCII key
@@ -716,10 +696,7 @@ class EmacsWindow(parent: EmacsWindow?, x: Int, y: Int, width: Int, height: Int,
 
     /* Meta isn't supported by systems older than Android 3.0.  */
 
-    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB)
-      extra_ignored = KeyEvent.META_META_MASK
-    else
-      extra_ignored = 0
+    extra_ignored = KeyEvent.META_META_MASK
 
     /* Ignore meta-state understood by Emacs for now, or key presses
        such as Ctrl+C and Meta+C will not be recognized as ASCII key
@@ -866,9 +843,7 @@ class EmacsWindow(parent: EmacsWindow?, x: Int, y: Int, width: Int, height: Int,
     /* ICS and earlier don't support true mouse button events, so
        treat all down events as touch screen events.  */
 
-    if (Build.VERSION.SDK_INT
-        < Build.VERSION_CODES.ICE_CREAM_SANDWICH)
-      return 0
+
 
     return whatButtonWasIt(event, true)
   }
@@ -1062,9 +1037,7 @@ class EmacsWindow(parent: EmacsWindow?, x: Int, y: Int, width: Int, height: Int,
       }
     }
 
-    if (Build.VERSION.SDK_INT
-        < Build.VERSION_CODES.ICE_CREAM_SANDWICH)
-      return
+
 
     /* Now update the button state.  */
     lastButtonState = event.getButtonState()
@@ -1368,8 +1341,7 @@ class EmacsWindow(parent: EmacsWindow?, x: Int, y: Int, width: Int, height: Int,
   }
 
   fun setWmName(wmName: String) {
-    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP)
-      return
+
 
     EmacsService.SERVICE!!.runOnUiThread(Runnable {
       this@EmacsWindow.wmName = wmName
@@ -1644,8 +1616,7 @@ class EmacsWindow(parent: EmacsWindow?, x: Int, y: Int, width: Int, height: Int,
 
     attached = this.attached
 
-    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.HONEYCOMB)
-      return
+
 
     view.post(Runnable {
       if (attached is EmacsActivity)

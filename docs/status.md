@@ -1,5 +1,9 @@
 # femacs 进度与未决项（手工维护，生成物见 port-map.md / port-inventory.md）
 
+最新读数（2026-10-25，G4 D22）：Android生产包通过11项真实设备流程，Mac新终端/Cocoa各15项回归及Info/签名/搬移校验通过；产物已保留于`dist/candidates/`。独立搭档完成冻结源码/当前回执复核，未发现新的阻断代码缺陷；现收齐清理恢复元数据并准备签名交付，Git结果另据实际提交与远端核对。完整数值及旧失败在本页末轮；G1多窗口IME/Finder及G5–G7仍打开，整个Goal未完成。
+
+以下D17为历史失败及当时状态，不是当前进度：七个导出源副本曾缺失并按原件哈希恢复；原Android对象/产品、新Mac二进制曾缺失，删除者和精确时间未知，见[事件记录](../maintenance/incidents/2026-10-25-g4-build-artifact-loss.md)。设备13在快捷键阶段触发GC访存失败；后经P-344定位按键名越界并修复，P-345修复键表偏移，设备22已通过。旧失败回执未改写；Mac随后也完成独立重建，不把旧通过冒充现存产品。
+
 本文件是**唯一**手工维护的进度账：每轮开工前先读它，收尾时更新它。逐文件的勾选清单在
 `docs/ports/*.md`（由 `tools/extract-abi.py <c>` 生成后手勾），文件/行数总账由
 `tools/gen-port-map.py`、`tools/gen-port-inventory.py` 生成，禁止手改。
@@ -23099,3 +23103,91 @@ helper8/8、稳定对照组件更新后6/6、既有基线7/7及本地验收组�
 搬移包在源码导出暂不可用时通过batch验证：五库、data/doc/exec目录均包内解析，DOC可读、Unicode编辑、PID和前后制品身份相符；源码目录随后恢复。控制器1.791秒、峰34537544字节、退出0且回收完成。原生窗口/输入/Finder流程不在此证明内；锁屏使native IME/外部拖放待验，G4只有有界初盘，G5–G7未交付，Goal保持active。
 
 最终独立审核无产品阻断项，但指出诊断断言/TTY身份及输出保护缺口；集中补强完整诊断相等性、binary/dump前后指纹和普通/符号链接参照路径保护（含额外JSON输出）。helper10+真实TTY6复验16/16，随后额外JSON保护helper10/10，受影响基线组件7/7；未重复未受影响的48/48或9/9。搬移补录单独的恢复后inode观察，不改写原回执。CLN-20261025-02保存两工具中间版本、逐项哈希及隔离恢复；本轮不新增平台删除。
+
+## 2026-10-25 · G4 A/B/C施工写齐，转集中D
+
+全量工具/脚本/支持义务设计与B用例已写齐；主开发完成C01–C13：14种Rust探针、239项基线工具清单、L5 Python调度、Zig逐参数桥接、独立Android配置/正常与checking构建/打包/设备回执、68份自有文档生成与发布，以及既定API21以下死分支清理。21项依赖锁定只生成Cargo.lock，没有编译或测试；受控峰值38764544字节、退出0且回收完成。四份清理档案记录实际前后身份，D将执行隔离恢复。搭档已明确采用B0交接及接口更正，等全C冻结后独立审核。当前没有新通过读数，不能签名交付为已验收；详细入口为tooling-modernization.md。B阶段两次提前检查的顺序违例及纠正照实保留，不计验收。原生Finder/多窗IME仍未通过，G5–G7继续保留。
+
+### G4 D首次失败及组件修正
+
+全C写齐后首轮集中组件失败：Rust53/58，Python24/28，工作流11/17，原ERT包装15/16。保留失败日志；修正系统Python哈希API、错误的正向路径/配置目录夹具、JNI计划/执行依赖边界、L5夹具实际切片及成功启动时间预算，未降低严格文件/制品断言。修正后Python28/28、工作流18/18、原ERT包装16/16通过；新增的第18项验证wrap权限只改中央目录属性而不移动已对齐的数据。工作流是模拟SDK/导出器、归属/失败边界及Git恢复检查，不是真模拟器或产品构建。Rust待重跑，完整真实构建/Info/Android及独立审核仍未通过。文档误混入清单的写入已恢复，历史正文保留。
+
+随后Rust复验58/58通过，四组组件合计120/120、零跳过。完整真实构建/设备及最终独立审核继续保留未完成。固定工具链缺少rustfmt的首次格式化未执行成功；补装该固定工具链组件后继续，不切换编译器或修改模型。
+
+继续D修正：设备截图改用当前UI层级与实际frame匹配后的全局编辑区，并比较本轮空缓冲/输入后内容，三项合成图片回归通过；设备命令先流式保留日志再有界读入，补小限额失败证据用例。最新工作流22/22通过、Python组件28/28通过；这仍不是设备实测。搭档两次原生调用在SDK外部目录只读权限被非交互拒绝处结束，未返回整体最终审核；已仅为本次审核补齐该已授权SDK及规则入口的只读访问，继续原对话、原模型，不放开执行或编辑。实际产品/设备和最终审核继续待完成。
+
+
+### G4 D独立意见修复、真实主机检查与台账补齐
+
+搭档最终第一轮给出七项实际问题：未知NEEDED/符号工具失败误验证、checking库漏独立门、Org导出源码未纳入暂存哈希、Info缓存漏配方身份、设备回执缺证据/归属/清理判定弱、截图仅凭变化量误判、Info文件名未逐一绑定。全部修复后集中组件142/142通过（Rust67、Python29、工作流24、独立新增回归6、原ERT16），零跳过，53.101秒，受控整树峰值606994432字节、正常回收。新回归中stale集合含义按实际检查器纠正，未放宽产品断言。
+
+真实主机首轮：va/syshdrs/fam/shadow/macro/JNI六探针及完整68本HTML手册通过；Miri工作区归属错误和继承旧JDK21被严格拒绝使整轮失败。Miri已改成独立调用目录中的暂存图/Cargo工作区，原夹具清单不变。显式使用已安装JDK25后的受影响检查通过Rust68/68、真实Miri、完整Kotlin/资源编译、Android布局52行及常量91项零差异。受影响私有驱动曾传反目录参数，API脚本未找到且日志落在仓库根；保留失败并逐文件哈希移动归档，随后正确目录补跑七个SDK值的三实际方法前后对照通过。这是JVM API替身边界，不是API21真设备认证；其余已过且不受影响结果复用。
+
+台账原new_entries为空，补入本轮新增12个tools输入及实际调用者、哈希，新增覆盖检查后Python30/30通过。当前唯一组件覆盖144项是受影响复验与未改动结果的合并，不伪称一次新的全量聚合运行。own-voice零失败，未扫描文件种类如实列出。四份清理清单的隔离Git恢复检查已通过，尚无真实新设备验收或最终交付结论。
+
+搭档正复核修复和原先未读完的生产范围，并核查旧脚本参数/阶段迁移的能力缺口。后续仍需明确参照审计的其余六探针、干净独立终端/Cocoa/Android构建、实际逐本Info及搬移读取、当前APK对应模拟器验收、最终独立复核及签名推送。原生多窗口IME/外部Finder拖放仍未验收。G4及整个七项目标均未完成，不以组件、HTML或静态结果代替后续范围。
+
+
+G4后续D修复已集中148/148通过（Rust69、Python33、工作流24、独立回归6、原ERT16），45.157秒、受控整树峰值291831808字节、正常回收。新增真实编译实跑中，13个非Kotlin探针仅inline首次失败；16个必需元数据根/图均编译通过。inline失败27行源于C夹具尾字节未初始化而Rust为零初值，修为相同六字节初值后6081行逐字节输出一致，未删用例或放宽比较。失败和受影响复验分别保留，Kotlin采用此前不受影响的实际完整编译结果。追加的C输入修复也有前后身份，四批隔离恢复再验通过。搭档已明确撤回nm误报，并对补读的完整package/archive、12个Kotlin改动及bundle/standalone/macos改动给出限定源码认可；三个P2补强的新冻结候选仍待确认，真实产品/设备继续待验。
+
+搭档在固定独立对话完成D6精确源码复核：明确采用完整物化图/探针输入回执、实际ownership校验、旧CLI能力映射/退役、C夹具初值修正及新增12工具台账/恢复记录；未发现这些末轮范围的新源码问题。此前P1已明确撤回。此为限定源码认可，不能代替产品、SDK打包、Info搬移、签名和模拟器实测。接下来从当前冻结输入导出干净源码，连续构建终端/Cocoa/Android；原始参照不进入导出，新执行器持续保护整树，禁止远端CI。
+
+
+首个三产品干净导出未全过：终端652.782秒、Cocoa462.684秒构建成功，68本Top/Basic的Lisp检查及搬移指纹、原始源码保全均通过；Python回执断言因在临时报告buffer内读取buffer-local的Info-current-node而记录nil，修为切buffer前捕获并加强默认名称查找。Android322.504秒完成编译/链接后被ELF头门拒绝，实测是AArch64共享ELF；NDK的llvm-readelf是llvm-readobj软链，发现器全路径canonicalize改变argv0模式，现保留叶名并补真实软链模式回归，不放宽架构/类型门。整轮仍记失败，待受影响复验与新鲜Android重建；不无故重编未受影响的Mac后端。整树峰值867221504字节，执行器回收完成。两份关闭原始协作记录移出项目的身份保留及本机恢复说明已归档CLN-07，无源码或原始字节删除。
+
+Info受影响复验已通过：终端0.674秒、搬移Cocoa0.874秒，逐本默认名称查找68个Top及Basic均成功，实际文件读取身份精确匹配交付资源；搬移时原导出树不可访问且制品哈希未变。第二次检查器误把Info-current-file逻辑名当物理文件名，已按实际源码和真实读取纠正，未修改Info实现，也没有系统手册抢占的证据。Android工具别名回归在Rust70/70中通过，接着从新鲜导出重建受影响Android全链。
+
+第二次Android干净导出338.525秒仍失败：新工具别名已实际修复，normal/checking架构与JNI导出通过，normal导入门通过；checking多出open_memstream被严格拒绝。查明search.rs的checking分支漏掉可用性门，备用分支负特征拼写也未匹配实际生成的not_have_open_memstream。P-336修正互斥门与注册名，保留原先两段逻辑及API21，不扩未解析符号基线。normal和搬移Mac包的真实codesign深度严格校验均通过（0.585/0.624秒），不等于公证或界面验收。继续新鲜Android受影响构建与打包。
+
+第三轮Android干净构建1061.493秒未全过：normal/checking导入门、静态、Kotlin、DEX、主机工具/dump及资源、签名、对齐和manifest均完成；最终measurement因archive.json已由archive步骤回执占用而拒绝独占创建。现分离archive-measurement.json并补真实ZIP/回执/观察器组合回归，保留原回执及严格验收，不重编未变原生库。整树峰值1192640512字节，回收完成。接着复验组件并在新目录重做受影响打包。
+
+受影响打包4耗时369.920秒仍失败：实际测量已成功，4430个stored资源含directory-tree、1216个DEX类；新AAPT2输出minSdkVersion而解析器只认旧sdkVersion，实际值仍为21/37，五activity一致。现精确解析两个兼容字段名之一及数值，拒绝重复/歧义/伪匹配，不改API门槛或资产/签名要求。组件5的71Rust已通过含归档冲突回归，唯一工作流旧字符串假设已换为保留严格身份的行为测试并通过；完整失败回执保留。继续实际受影响打包与设备。
+
+实际受影响打包5已通过（368.947秒）：复用且重新验证未改原生输入，Kotlin/DEX、资源、签名、对齐、精确manifest21/37及五activity、库身份与4430个stored资源通过完整结构化校验。device_ready=true仅表示安装条件，device_acceptance仍false。SDK字段新回归1/1及Info受影响1/1通过，组件组合覆盖151个唯一案例，不虚构一次性151全绿。首轮自有API36设备层失败在ADB监听参数：服务器不接受-L的主机名形式；两个自有模拟器/服务均回收，尚未进入应用验收。现分开服务器tcp:PORT和客户端显式地址，补SDK替身约束并复验，再以同一APK重试。G4最终独立采用和签名Git交付待完成，Mac锁屏缺口未关闭。
+
+G4后续真实设备：修复ADB监听、模拟器通知端口及API36原生库目录识别后，设备4启动/安装/拉回APK与SO身份核对通过，独立batch得到(3 1)，图形观察仍失败。设备8保留截图确认scratch界面已打开，但验收fixture观察文件缺失；主/崩溃日志、activity/window和截图均捕获，清理完成，不将PID或截图冒充编辑/渲染通过。忙碌系统日志尾部漏掉应用早期输出，追加有界PID过滤诊断；负向诊断回归1/1通过。生命周期/诊断12/12及现代库路径新增用例使组合组件证据为153项，非一次性全绿。设备5–7磁盘不足失败保留；请求2GiB被镜像最低6GiB覆盖，未据此声称资源需求降低。CLN08清理114个已停止AVD文件，CLN09清理61个，逐项哈希/字节及私有精确路径保留，成功batch与所有失败回执不删。继续受影响GUI验证和最终独立采用。
+
+G4 P-337：设备9的PID过滤日志证实启动参数抵达native线程，随后CheckJNI报告CallVoidMethod的jmethodID为空；查到emacs.rs漏掉androidfont/select/sfntfont/sfntfont_android四个运行时初始化，已按原顺序和Android/non-stub配置恢复。缓存31.1稳定版源码也有这四项。新鲜Android4导出构建、normal/checking360单元、原生门、静态、Kotlin/DEX、主机工具/dump、完整资源及签名对齐包均通过909.632秒，源码保护通过，整树峰值1191936000字节且回收完成。源顺序新回归初次因测试漏import re报错，修正后与两项诊断、两项清理恢复合计5/5通过；显式CheckJNI错误也必须判fatal，不等到最终信号。组合唯一组件数155，未冒充一次性全绿。新的模拟器GUI验收及最终独立采用仍待完成。CLN10仅清两个已退出设备的46个可重建文件，逻辑1617987750字节、先前分配计数1490157568字节，日志/截图/回执保留。
+
+用户本轮新增验收要求已写入唯一modernization计划和runtime说明：以系统已有macOS正式稳定版为施工/兼容/性能基线，兼容100%、实际提速、稳定性/内存/GC延迟均须实测；不要求FTP下载或纯上游重建，Linux按需用发行版包。当前系统31.1程序/dump身份与既有实际查询一致，旧48/48有限范围仍不是100%兼容证明。已向既有独立搭档送达该新要求，明确采用反馈待返回；Goal保持active。
+
+既有独立搭档已明确采用上述最新要求，并实际读源码提出A设计补充：声明完整兼容范围/版本配置差异及预先确定的性能统计口径；cons块实际BLOCK_BYTES与对齐不同，代际元数据须覆盖复用/整字快路/整块释放及pdump排除，GC统计/弱引用与finalizer保留待实际验证；现存native管线缺少真实native-unit分配内联，libgccjit及非系统依赖不能只靠开关宣称可运行或可搬移。这是要求采用与未来源码级设计讨论，不是G4或新运行时验收通过，100%目标也未被缩成有限用例计数。
+
+G4 P-338实际值核对：34项Android文件控制常量经NDK C与真实Rust头编译值逐项比较通过；首轮三项ARM64与generic Linux差异保留为失败，修正后34/34，另编译核对macOS34项值保持不变。相关初始化/诊断/恢复/解析回归6/6通过，组合156项而非单次全绿。新鲜Android5完整导出构建/normal-checking门/Kotlin-DEX/资源与签名打包通过1024.753秒，6767输入保护通过且不含只读参照，整树峰值1069318144字节、回收完成。最新包仍需实际设备文件读写、剪贴板、渲染和旋转；不沿用旧包的batch或截图冒充通过。CLN11/12已逐项记录缓存/旧图归档，CLN13仅清理28个已停设备文件，逻辑665572580字节、原分配计数601669632字节，失败日志与回执保留。
+
+P-339：查到历史status4.896已将单元默认overflow-checks改为off，4.897记录了随后Mac检查；常驻入口和旧注释仍说on。此次仅将入口/矛盾注释与实际既有参数统一，不修改代码生成、不声称任意C有符号溢出有定义或算术已全面兼容。本批normal/checking均是该off默认，后者是独立源码检查开关；真正on诊断须绑定独立新制品。现行100%兼容及实际提速要求不因此降低。
+
+D16设备12已实际启动/安装Android5，拉回APK/SO身份一致且观察文件成功写出；仍失败，未作编辑/渲染/旋转通过。发现两项：fixture错误空值被编码成字符串，CCL成功转换附加Unknown error type(0)。P-340查到已有finish/error跳转枚举未用于选择诊断块；七项新ERT先写齐，再修该分支及fixture实际JSON编码绑定，不删错误处理、不放宽剪贴板相等判定。系统已有31.1实际通过原始八项CCL及新七项共15/15；新候选仍待编译和同样验证。增量诊断因原对象已不完整在编译前停下，不混合链接。磁盘曾只剩117MiB并导致写入失败，已回收自有停止设备；CLN13–20逐批记录归档/重建、内容核对及试用产品保护。生成文件名中的机器根目录编码已改为公开逻辑身份，精确路径保留私有恢复台账。新候选、独立采用和Git交付仍未完成；未把原版或旧包结果冒充修后通过。
+
+D16修后Mac实际通过：全新tracked-only导出终端构建441.774秒、Cocoa421.832秒，各自15/15原始/新增CCL及JSON组件用例通过；终端与搬移源不可用时68本Info Top/Basic物理身份、两份严格签名、搬移完整性和Root源码保护全部通过，总869.538秒。控制器峰值1063157760字节且回收完成。八项原始CCL用例与缓存31.1逐字一致，系统原版程序/dump身份重核仍一致。此为语义和独立产品证据，不将ERT毫秒耗时当提速，不宣布100%兼容；根试用包未替换。CLN21/22另归档旧缓存导出和旧工具缓存，逐项内容核对、代表成员实际恢复、根Mac/终端/Android产品保护均完成。Android同修候选及设备、最终独立采用和签名交付仍待完成。
+
+
+### G4 D18-D19: retained package and exact-root diagnostic (2026-10-25)
+
+P-342: eight output-ownership cases passed; real NDK layout/constants/JNI and fresh package8 passed in606.383s (controller610.610s, peak1142046720 bytes, cleanup complete). Original build7 aggregate stays failed; only verified unchanged native objects were reused. Products retained under dist/candidates/g4-android-8; P-341 still blocks device acceptance. Separate diagnostic17 retained97968 complete48-byte records, no truncation, mapping the exact fault to the invalid Vandroid_build_fingerprint root value. The producer is not proven wrong; native creation/assignment instructions preserve string tags. Independent D19 completed actual source reading without changes; its adjacent-root suspicion was rejected using the actual timeout-float symbol/type.
+
+Diagnostic18 failed before input because the initial576x555 observation straddled the actual320x568 client resize; no fault reproduced in that attempt. P-343 adds coherent before/after geometry snapshots with unchanged strict client validation, three finite attempts and all evidence retained. Four new cases plus four existing render cases passed0.068s; actual updated-harness device run remains pending. CLN24 removed92 files from four stopped owned AVD trees,2995327288 logical bytes /2780037120 allocated bytes before removal. Logs, screenshots, products and complete/truncated diagnostic traces remain; no precise guest-state restoration or volume-space claim. Final G4 independent approval, signed delivery, native Mac input acceptance and G5-G7 remain open.
+
+### G4 D20: key-name capacity repair and remaining input failure (2026-10-25)
+
+Diagnostic19 reproduces the exact low-byte clear before GC; actual ELF adjacency and the five capacity-index writes identify the writer. P-344 changes only termination bounds/zero-capacity handling in android.rs, preserving JNI ownership and all key names. Actual-source host11/11 passes with per-case timings after correcting the fixture's obsolete VaList API; the old source fails the same canary at the first adjacent byte. The initial fixture compile and negative-control setup failure are retained, not counted as passing tests. Inventory now records239 baseline plus15 additions, and its actual hash/reader check passes1/1.
+
+Production Android9 incrementally rebuilds the affected normal/checking pair, reuses358 verified unchanged objects, links both and passes ELF/JNI export/import ratchets, unchanged-nonnative APK member comparison and signing/alignment. Recipe10.384s, protected total13.295s, peak376586240 bytes and owned process cleanup complete. This is not a repeated clean full-source build. Candidate retained in dist/candidates/g4-android-9, with exact source/product receipts.
+
+Real normal-product device20 passes identity/install/launch/HELLO and observes the exact Chinese clipboard with null error. It no longer exhibits the old native fault during this attempt. Correction after inspecting individual commands369 and subsequent observations: Ctrl-A reaches1 and Ctrl-E reaches6; the left-arrow case stays6 instead of5, with KEYCODE_DPAD_LEFT undefined in the retained screen. Overall device acceptance stays failed; later render/rotation cases were not run. Protected runtime62.410s, peak5045829632 bytes, cleanup complete. P-345 identifies the unconditional host function-key offset bypassing the actual Android table. Design and compiled source-extraction cases are written before production editing; implementation remains pending while the existing source review runs. CLN25 removes only46 files from the two stopped owned AVDs,1402439900 logical bytes and1281687552 pre-removal allocated bytes; all receipts, APK/SO and logs remain. Inventory hash/reader1/1 and isolated cleanup recovery2/2 pass separately. Final G4 approval/Git delivery, native Mac acceptance and G5-G7 remain open.
+
+### G4 D21: actual Android editing acceptance passes (2026-10-25)
+
+Completed independent D20 review adopts P-344 and retracts the adjacent timeout-float corruption claim. Its assumption that device20 failed Ctrl-A was refuted using command369's point1, the later Ctrl-E point6 and the retained undefined-left-key screenshot; production control/Unicode code needs no speculative rewrite. P-345 selects offset0 for Android/NTGUI and retains0xff00 elsewhere, matching the original platform tables. Before implementation, the extracted-source cfg/table cases and additional evidence-helper cases were written. Then all20 compiled offset/table cases and14 geometry/key/render component cases pass, with individual timing. New inventory total is239 baseline plus16 retained additions; actual reader/hash check passes1/1.
+
+The geometry helper now fully decodes PNG data and records capture/observation/format exceptions before fail-fast propagation. This is initial geometry readiness, not an atomic UI capture claim. Each actual key request now retains expected point, exact argv, observation or failure and time without changing the aggregate acceptance assertions. Existing resize limits, clipboard equality and glyph/rotation checks are preserved.
+
+Android10 normal/checking production builds/links and strict native/package gates pass14.633s (controller17.865s, peak464076800 bytes, owned cleanup complete), with358 unchanged objects reused and all nonnative APK members unchanged. Exact retained APK is ed2ca84b00f2fc31a09c68ba32ee209b69d5024dbf4b81bd88bc61fd7bc8da73, normal SO f8cde15b4dc8010c61b07f2219b2e3b1db2051e377d642b0e896994903f08bd2. Device22 installs these exact bytes and passes11 named cases: identity/install/launch/input/keys/clipboard/battery/render/rotation/liveness/native. Four key points are1,6,5,6; exact Chinese clipboard preserved; both rotations validate current token-pattern rendering; process survives20.492s and zero fatal markers are found. Protected total72.294s, peak5031985152 bytes, all owned children reaped. This is normal-product API36 ARM acceptance, not all Android versions, all JNI error paths or100% compatibility.
+
+CLN26 removes only23 reconstructible files from this stopped owned AVD,670614670 logical bytes /611123200 allocated bytes before removal; all product/readiness/command/geometry/key/screen/log evidence remains. Mac remains locked on a fresh desktop query; missing new Mac products still require recovery. Final full G4 independent approval and signed delivery remain open; G5-G7 are not implemented.
+
+### G4 D22: fresh Mac product recovery (2026-10-25)
+
+The stopped earlier successful build remains historical; a new independent source export now completes terminal537.413s and Cocoa526.680s. Each actual product passes15/15 CCL/serializer cases. Terminal68-manual Info lookup, relocated Cocoa68-manual lookup while its source export is temporarily unavailable, original/relocated strict signatures, binary/dump preservation and full root-input preservation all pass. The controller finishes1073.449s, peak871890944 bytes, with owned cleanup complete. No remote CI or reference source is used for building.
+
+A current verified Cocoa copy is retained in dist/candidates/g4-macos-2/Femacs.app, preserving all file hashes and passing another strict signature check. Terminal executable/dump copies are retained too, with an explicit dependency on the original export resource tree, not a portability claim. The directory is now Git-ignored without deleting any candidate or evidence. Root trial app stays unchanged; locked native multiwindowIME/Finder interaction remains open. The D22 review's first admission attempt was rejected before the reviewer process started, so no native message was sent; after this build exits it can be delivered once with updated actual receipts. Final independent adoption, signed delivery and G5-G7 remain open.

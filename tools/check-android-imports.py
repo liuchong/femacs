@@ -92,8 +92,11 @@ def stub_dir(bin_dir: pathlib.Path, target: str, api: str) -> pathlib.Path:
 
 def dynamic_symbols(nm: pathlib.Path, library: pathlib.Path, *, defined: bool) -> set[str]:
     flag = "--defined-only" if defined else "--undefined-only"
-    out = subprocess.run([str(nm), "-D", flag, str(library)],
-                         capture_output=True, text=True).stdout
+    result = subprocess.run([str(nm), "-D", flag, str(library)],
+                            capture_output=True, text=True)
+    if result.returncode:
+        raise RuntimeError(f"llvm-nm failed ({result.returncode}) for {library}: {result.stderr[:2000]}")
+    out = result.stdout
     names = set()
     for line in out.splitlines():
         name = line.split()[-1] if line.split() else ""
@@ -117,7 +120,10 @@ def measure(so: pathlib.Path, api: str,
     for tool in (readelf, nm):
         if not tool.exists():
             sys.exit(f"{tool} is missing: the NDK is incomplete")
-    text = subprocess.run([str(readelf), "-d", str(so)], capture_output=True, text=True).stdout
+    result = subprocess.run([str(readelf), "-d", str(so)], capture_output=True, text=True)
+    if result.returncode:
+        raise RuntimeError(f"llvm-readelf failed ({result.returncode}) for {so}: {result.stderr[:2000]}")
+    text = result.stdout
     needed = NEEDED.findall(text)
     imports = dynamic_symbols(nm, so, defined=False)
     provided: set[str] = set()
@@ -157,8 +163,10 @@ def measure(so: pathlib.Path, api: str,
 def binds_eagerly(so: pathlib.Path) -> bool:
     """Whether the library asks for eager binding (`-z now`) - then a missing import blocks load."""
     readelf = ndk_bin() / "llvm-readelf"
-    text = subprocess.run([str(readelf), "-d", str(so)],
-                          capture_output=True, text=True).stdout
+    result = subprocess.run([str(readelf), "-d", str(so)], capture_output=True, text=True)
+    if result.returncode:
+        raise RuntimeError(f"llvm-readelf failed ({result.returncode}) for {so}: {result.stderr[:2000]}")
+    text = result.stdout
     # DF_BIND_NOW is bit 0x8 of DT_FLAGS; DT_BIND_NOW is the pre-DF_FLAGS spelling.
     if "BIND_NOW" in text:
         return True
@@ -245,11 +253,12 @@ def main() -> int:
     if args.json:
         print(json.dumps({"unresolved": sorted(unresolved), "new": new, "stale": stale,
                           "imports": len(imports), "unknown_needed": unknown}, indent=2))
-        return 1 if new else 0
+        return 1 if new or unknown else 0
     if unknown:
         what = "a provider file" if args.providers_dir else "a stub library"
         print(f"check-android-imports: DT_NEEDED without {what}, so its symbols cannot "
               f"be checked: {' '.join(unknown)}")
+        return 1
     if stale:
         print(f"check-android-imports: {len(stale)} ratchet entr"
               f"{'y' if len(stale) == 1 else 'ies'} are stale (now provided): "

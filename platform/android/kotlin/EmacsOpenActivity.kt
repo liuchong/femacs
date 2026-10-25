@@ -17,9 +17,7 @@ import android.os.ParcelFileDescriptor
 import android.os.Parcelable
 
 import java.io.File
-import java.io.FileInputStream
 import java.io.FileNotFoundException
-import java.io.FileOutputStream
 import java.io.FileReader
 import java.io.IOException
 import java.io.InputStream
@@ -181,84 +179,17 @@ class EmacsOpenActivity : Activity(),
     dialog.show()
   }
 
-  /* Check that the specified FILE is non-NULL and readable.
-
-     If it is not, then copy the file in FD to a location in the
-     system cache directory and return the name of that file.
-
-     Alternatively, return URI formatted into a `/content/' file name
-     if the system runs Android 4.4 or later.  */
+  /* Return a readable FILE or the content URI name on the API21+ floor. */
 
   @Throws(IOException::class, FileNotFoundException::class)
   private fun checkReadableOrCopy(file: String?, fd: ParcelFileDescriptor,
                                   uri: Uri): String {
-    var inFile: File
-    var outStream: FileOutputStream?
-    var stream: InputStream?
-    var buffer: ByteArray
-    var read: Int
-    var content: String?
-
     if (file != null) {
-      inFile = File(file)
-
+      val inFile = File(file)
       if (inFile.canRead())
         return file
-
-      content = inFile.getName()
-    } else
-      /* content is the name of this content file if the next branch
-         is not taken.  */
-      content = uri.getLastPathSegment()
-
-    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
-      content = EmacsService.buildContentName(uri, getContentResolver())
-      return content
     }
-
-    /* The file is unnamed if content is NULL.  Generate a unique
-       name with the current time as a reference.  */
-
-    if (content == null)
-      content = "content." + System.currentTimeMillis() / 1000
-
-    /* inFile is now the file being written to.  */
-    inFile = File(getCacheDir(), content)
-    buffer = ByteArray(4098)
-
-    /* Initialize both streams to NULL.  */
-    outStream = null
-    stream = null
-
-    try {
-      outStream = FileOutputStream(inFile)
-      stream = FileInputStream(fd.getFileDescriptor())
-
-      /* The reference writes `while ((read = stream.read (buffer)) >= 0)'; see
-         `readEmacsClientLog'.  */
-      while (true) {
-        read = stream.read(buffer)
-
-        if (read < 0)
-          break
-
-        outStream.write(buffer, 0, read)
-      }
-    } finally {
-      /* Note that this does not close FD.
-
-         Keep in mind that execution is transferred to ``finally''
-         even if an exception happens inside the while loop
-         above.  */
-
-      if (stream != null)
-        stream.close()
-
-      if (outStream != null)
-        outStream.close()
-    }
-
-    return inFile.getCanonicalPath()
+    return EmacsService.buildContentName(uri, getContentResolver())
   }
 
   /* Finish this activity in response to emacsclient having
@@ -483,8 +414,7 @@ class EmacsOpenActivity : Activity(),
           scheme = uri!!.getScheme()
 
           if (scheme != null
-              && scheme.equals("content")
-              && Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
+              && scheme.equals("content")) {
             tem1 = EmacsService.buildContentName(uri, resolver)
             attachmentString = ("'(\"" + (tem1.replace("\\", "\\\\")
                                                   .replace("\"", "\\\"")
@@ -518,8 +448,7 @@ class EmacsOpenActivity : Activity(),
               scheme = uri.getScheme()
 
               if (uri != null && scheme != null
-                  && scheme.equals("content")
-                  && Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
+                  && scheme.equals("content")) {
                 tem1 = EmacsService.buildContentName(uri, resolver)
                 builder.append("\"")
                 builder.append(tem1.replace("\\", "\\\\")
@@ -566,8 +495,7 @@ class EmacsOpenActivity : Activity(),
                ParcelFileDescriptor requires Honeycomb MR1, and
                proceeding without this capability is pointless on
                systems before KitKat, since Emacs doesn't support
-               opening content files on those.  */
-            && Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB_MR1) {
+               opening content files on those.  */) {
           /* This is one of the annoying Android ``content''
              URIs.  Most of the time, there is actually an
              underlying file, but it cannot be found without

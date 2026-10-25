@@ -34,6 +34,7 @@ from unittest import mock
 REPO = Path(__file__).resolve().parent.parent
 CHECK_ERT_PATH = REPO / "tools/check-ert.py"
 L5_SWEEP_PATH = REPO / "tools/l5-sweep.sh"
+L5_SWEEP_PY_PATH = REPO / "tools/l5_sweep.py"
 
 
 def load_check_ert():
@@ -545,6 +546,7 @@ sys.exit(0)
         tools_dir.mkdir(parents=True, exist_ok=True)
         sweep_copy = tools_dir / "l5-sweep.sh"
         shutil.copy2(L5_SWEEP_PATH, sweep_copy)
+        shutil.copy2(L5_SWEEP_PY_PATH, tools_dir / "l5_sweep.py")
         sweep_copy.chmod(sweep_copy.stat().st_mode | stat.S_IXUSR)
         write_executable(tools_dir / "check-ert.py", check_ert_script)
         write_executable(root / "build/terminal/port/src/emacs", "#!/bin/sh\nexit 0\n")
@@ -569,13 +571,14 @@ if "--tsv" in args:
     tsv.parent.mkdir(parents=True, exist_ok=True)
     tsv.write_text(
         "file\\tverdict\\tport_ran\\tport_unexpected\\tref_ran\\tref_unexpected\\tnote\\n"
-        "lisp/one-tests.el\\tsame\\t2\\t0\\t2\\t0\\t\\n",
+        "lisp/one-tests.el\\tsame\\t2\\t0\\t2\\t0\\t\\n"
+        "lisp/two-tests.el\\tsame\\t2\\t0\\t2\\t0\\t\\n",
         encoding="utf-8",
     )
 if "--results-json" in args:
     jpath = pathlib.Path(args[args.index("--results-json") + 1])
     jpath.parent.mkdir(parents=True, exist_ok=True)
-    jpath.write_text(json.dumps({"files": [{"file": "lisp/one-tests.el", "verdict": "same"}]}), encoding="utf-8")
+    jpath.write_text(json.dumps({"files": [{"file": "lisp/one-tests.el", "verdict": "same"}, {"file": "lisp/two-tests.el", "verdict": "same"}]}), encoding="utf-8")
 sys.exit(0)
 """
         with tempfile.TemporaryDirectory() as tmp:

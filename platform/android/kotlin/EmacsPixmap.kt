@@ -56,15 +56,7 @@ class EmacsPixmap(width: Int, height: Int, depth: Int) : EmacsHandleObject(), Em
           bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888, false)
     }
 
-    needCollect =
-      if (Build.VERSION.SDK_INT < Build.VERSION_CODES.HONEYCOMB_MR1)
-        /* On these old versions of Android, Bitmap.recycle frees bitmap
-           contents immediately.  */
-        false
-      else if (Build.VERSION.SDK_INT < Build.VERSION_CODES.KITKAT)
-        bitmap!!.byteCount >= 1024 * 512
-      else
-        bitmap!!.allocationByteCount >= 1024 * 512
+    needCollect = bitmap!!.allocationByteCount >= 1024 * 512
 
     bitmap!!.eraseColor(0xff000000.toInt())
 

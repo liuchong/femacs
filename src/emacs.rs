@@ -420,6 +420,14 @@ unsafe extern "C" {
 
   /// C: `void init_androidmenu (void);`
   fn init_androidmenu ();
+  #[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+  fn init_androidfont ();
+  #[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+  fn init_androidselect ();
+  #[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+  fn init_sfntfont ();
+  #[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+  fn init_sfntfont_android ();
 }
 
 
@@ -2365,6 +2373,14 @@ unsafe fn emacs_init_body (mut argc: c_int, argv: *mut *mut c_char,
   /* C 2556-2558: `#ifdef HAVE_ANDROID init_androidmenu (); #endif`.  */
   #[cfg (feature = "have_android")]
   { init_androidmenu (); }
+
+  #[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+  {
+    init_androidfont ();
+    init_androidselect ();
+    init_sfntfont ();
+    init_sfntfont_android ();
+  }
 
   if !initialized
     {

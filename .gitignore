@@ -2,6 +2,10 @@
 /build
 /.femacs-cache
 /dist/macos
+/dist/candidates/
+/info/
+/.info.stage-*
+/.info.previous-*
 /target
 /spikes/miri/target
 
@@ -103,3 +107,6 @@
 __pycache__/
 *.pyc
 /test/**/*.junit.xml
+
+# Generated profiles; source probes and documented outcomes remain tracked.
+/spikes/pgo-probe/*.profraw

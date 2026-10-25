@@ -351,7 +351,9 @@ def logical_lines(block: str) -> list:
 
 
 def main() -> int:
+    global REFERENCE_LISP_H
     ap = argparse.ArgumentParser(description=__doc__)
+    ap.add_argument("--reference-header", type=Path, default=REFERENCE_LISP_H)
     ap.add_argument("--mirror", default="src/include/lisp.rs")
     ap.add_argument("--config", default="docs/baseline/config/darwin-arm64.json",
                     help="the frozen configuration the C harness compiles against; a "
@@ -360,6 +362,7 @@ def main() -> int:
                     help="declarations whose type is known to differ from lisp.h's; "
                          "listed with a reason, so a *new* deviation still fails")
     args = ap.parse_args()
+    REFERENCE_LISP_H = args.reference_header
     text = Path(args.mirror).read_text(encoding="utf-8")
     macros = frozen_macros(args.config)
 

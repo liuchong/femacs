@@ -5556,8 +5556,7 @@ static mut lispy_accent_keys: [*const c_char; 20] = [
 
 
 /* C 5109-5207: `#ifdef HAVE_ANDROID` (carried per P-51).  C 5110's `#define
-   FUNCTION_KEY_OFFSET 0` is one of the three definitions of that macro; the single
-   definition the port keeps is the frozen configuration's (below).  */
+   FUNCTION_KEY_OFFSET 0` is selected with the target configuration below.  */
 #[cfg (feature = "have_android")]
 static mut lispy_function_keys: [*const c_char; 338] = {
   /* Rust cannot shadow the static with a same-named `let` (E0530: a `let` binding
@@ -5919,8 +5918,11 @@ static mut lispy_multimedia_keys: [*const c_char; 53] = [
    the XK_kana_A case below.  */
 /* C 5468-5503: `#if 0` around `lispy_kana_keys`; dead, nothing carried (the
    `dead_branch_map` note in docs/ports/keyboard.md).  */
-/* C 5505: `#define FUNCTION_KEY_OFFSET 0xff00` — the value the frozen configuration
-   compiles (HAVE_ANDROID's `0` and HAVE_NTGUI's `0x0` are the other two, both above).  */
+/* C 5505: the remaining target arm uses 0xff00; Android and NTGUI use zero
+   for their platform keycode-indexed tables (P-345).  */
+#[cfg (any (feature = "have_android", feature = "have_ntgui"))]
+pub const FUNCTION_KEY_OFFSET: c_int = 0;
+#[cfg (not (any (feature = "have_android", feature = "have_ntgui")))]
 pub const FUNCTION_KEY_OFFSET: c_int = 0xff00;
 
 /* You'll notice that this table is arranged to be conveniently

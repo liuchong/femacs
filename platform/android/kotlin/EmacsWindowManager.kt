@@ -217,19 +217,14 @@ class EmacsWindowManager {
 
     /* Intent.FLAG_ACTIVITY_NEW_DOCUMENT is lamentably unavailable on
        older systems than Lollipop.  */
-    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-      intent.addFlags(Intent.FLAG_ACTIVITY_NEW_DOCUMENT
-                        or Intent.FLAG_ACTIVITY_MULTIPLE_TASK)
+    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_DOCUMENT
+                      or Intent.FLAG_ACTIVITY_MULTIPLE_TASK)
 
-      /* Bind this window to the activity in advance, i.e., before its
-         creation, so that its ID will be recorded in the RecentTasks
-         list.  */
-      nextActivityToken += 1
-      token = nextActivityToken
-    } else
-      /* APIs required for linking activities to windows are not
-         available in earlier Android versions.  */
-      token = -2L
+    /* Bind this window to the activity in advance, i.e., before its
+       creation, so that its ID will be recorded in the RecentTasks
+       list.  */
+    nextActivityToken += 1
+    token = nextActivityToken
 
     window.attachmentToken = token
     intent.putExtra(ACTIVITY_TOKEN, token)
@@ -266,8 +261,7 @@ class EmacsWindowManager {
          circumstances pruneWindows will not remove frames bound to
          the system-started task.  */
       if (isFinishing
-          && (consumer !is EmacsMultitaskActivity
-              || Build.VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP))
+          && (consumer !is EmacsMultitaskActivity))
         window.onActivityDetached()
     }
 
@@ -332,8 +326,7 @@ class EmacsWindowManager {
   private fun pruneWindows() {
     val appTasks: List<AppTask>
 
-    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP
-        || EmacsService.SERVICE == null)
+    if (EmacsService.SERVICE == null)
       return
 
     if (activityManager == null)
@@ -389,8 +382,7 @@ class EmacsWindowManager {
     val appTasks: List<AppTask>
     val target: String
 
-    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP)
-      return
+
 
     if (activityManager == null)
       activityManager =

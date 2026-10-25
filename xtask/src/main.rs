@@ -15,6 +15,12 @@ mod bundle;
 mod check_units;
 mod macos;
 mod standalone;
+mod manuals;
+mod probes;
+mod android;
+pub(crate) mod tooling;
+#[cfg(test)]
+mod test_support;
 
 const REPO: &str = ".";
 
@@ -121,13 +127,11 @@ fn set_profile_env (cmd: &mut Command, role: &str)
 /// alignment/non-null preconditions on every raw-pointer dereference - a cost C's build has
 /// no counterpart for (measured: the bytecode VM was 3-4x the reference with them on, 1.4-1.7x
 /// with them off).  The port's own assertions live in the `enable_checking` configuration.
-/// The two check flags stay explicit: `overflow-checks` because P-96 forbids leaning on release
-/// arithmetic, and `debug-assertions` because a unit is built the way C's checking build is.
-/// The unit flags.  `overflow-checks=off` matches C: the reference build's own arithmetic wraps,
-/// and `emacs/src` relies on that in the matcher (`base - 32 * index`), in `sfnt`'s offsets and in
-/// `print`'s counters.  With the checks on, every such wrap became a Rust panic - the two
-/// Android start-up failures of status 4.863/4.896 were exactly that class, not memory
-/// corruption.  `FEMACS_OVERFLOW_CHECKS=on` still builds the checked variant for diagnosis.
+/// The flags stay explicit.  `overflow-checks=off` is the inherited default from status
+/// 4.896 (P-339 reconciles the stale P-96 entry); this does not establish that arbitrary
+/// signed C overflow is defined, or replace correct unsigned types, explicit wrapping and
+/// bounds handling in the port.  Checked diagnostic builds use `FEMACS_OVERFLOW_CHECKS=on`
+/// and must retain their own product identities and results.
 const UNIT_CODEGEN_FLAGS: [&str; 10] = ["-C", "opt-level=2", "-C", "overflow-checks=off",
                                        "-C", "debug-assertions=off", "-C", "panic=abort",
                                        "-C", "codegen-units=1"];
@@ -148,10 +152,9 @@ fn unit_codegen_flags () -> Vec<String>
         }
       println!("unit codegen: -C opt-level={v} (FEMACS_OPT_LEVEL)");
     }
-  // `FEMACS_OVERFLOW_CHECKS` is a *diagnostic* like `FEMACS_OPT_LEVEL` (status 4.564): P-96
-  // keeps the checks on because the port must not lean on release arithmetic, and the only
-  // reason to build without them is to measure what they cost, so the answer is a number in
-  // the performance table rather than a silent change to the frozen flags.
+  // `FEMACS_OVERFLOW_CHECKS` overrides the inherited off default for an independently
+  // identified diagnostic build (status 4.896, P-339); it is not an assertion that the
+  // ordinary `enable_checking` feature enables Rust overflow checks.
   if let Some (v) = std::env::var ("FEMACS_OVERFLOW_CHECKS").ok ().filter (|v| ! v.is_empty ())
     {
       if let Some (i) = out.iter ().position (|f| f.starts_with ("overflow-checks="))
@@ -197,6 +200,10 @@ fn main() {
     let code = match cmd {
         "build-macos" => macos::build_macos(),
         "build-terminal" => standalone::build_terminal(),
+        "build-manuals" => manuals::command(&args[1..]),
+        "audit-probe" => probes::command(&args[1..]),
+        "android" => android::command(&args[1..]),
+        "gate-platforms" => android::platforms(&args[1..]),
         "generate-resources" => run_python(&["tools/bootstrap-resources.py", "--family", "all"]),
         "link-macos" => macos::link_macos(),
         "package-macos" => macos::package_macos(),
@@ -221,12 +228,17 @@ fn main() {
         "probe" => probe_build(&args[1..]),
         "gate-fast" => gate_fast(),
         "gate-probes" => gate_probes(),
+        "gate-probe-programs" => match probe_programs(){Ok(())=>0,Err(error)=>fail(error)},
         "dead-arms" => dead_arms(),
         "gate-load" => gate_load(args.get(1).map(String::as_str)),
         "link-owned" => gate_load(Some("--owned")),
         // Android links `libemacs.so` instead of a program (src/Makefile.in 727-755), so the
         // object set needs a *shared* link: same units, no `main`.
-        "link-shared" => link_shared(args.get(1).map(String::as_str)),
+        "link-shared" => {
+            let manifest=args.iter().position(|a|a=="--units-manifest").and_then(|i|args.get(i+1));
+            if args.iter().any(|a|a=="--units-manifest") && manifest.is_none(){fail("--units-manifest needs core-units.txt")}
+            else{link_shared(args.get(1).map(String::as_str),manifest.map(Path::new))}
+        },
         "link-program" => link_program(args.get(1)),
         "dump" => dump_emacs(),
         "dump-bootstrap" => dump_emacs_mode(true),
@@ -246,7 +258,7 @@ fn main() {
         _ => {
             println!(
                 "usage: xtask <build-terminal|build-macos|generate-resources|link-owned|gen-config|layout-asserts|layout-check|build-tu <c-file>|\
-                 build-units|check-units [list]|gate-fast|gate-probes|dead-arms|gate-load [--report]|\
+                 build-units|check-units [list]|gate-fast|gate-probes|gate-probe-programs|dead-arms|gate-load [--report]|\
                  link-program <c-file>|dump|gate-full>"
             );
             0
@@ -279,55 +291,31 @@ fn sanitizer_flags () -> Vec<String>
 /// test that way (`ANDROID_STUBIFY` undef -> `not_android_stubify`, which 1,940 sites read).
 /// A missing `FEMACS_CONFIG` yields no cfgs at all, which is the darwin default and stays correct
 /// for darwin: its minimal configuration defines none of these.
-fn config_features () -> Vec<String>
+fn config_features () -> Result<Vec<String>,String>
 {
-  let Ok (stem) = std::env::var ("FEMACS_CONFIG")
-    else { return Vec::new () };
-  if stem.is_empty () { return Vec::new (); }
-  let path = frozen_config_path(&stem);
-  let Ok (text) = fs::read_to_string (&path)
-    else
-      {
-        eprintln! ("warning: FEMACS_CONFIG={stem} but {} is unreadable", path.display ());
-        return Vec::new ();
-      };
+  let Some(path)=android::config_source(None)? else{return Ok(Vec::new());};
+  let stem=path.display().to_string();
+  let text=fs::read_to_string(&path).map_err(|e|e.to_string())?;
+  let data:serde_json::Value=serde_json::from_str(&text).map_err(|e|e.to_string())?;
   let mut out: Vec<String> = Vec::new ();
   let mut numbers: std::collections::HashMap<String, u64> = std::collections::HashMap::new ();
   // The names the configuration calls true, for the conditions that combine keys (`aligned_alloc`
   // below is `HAVE_ALIGNED_ALLOC || (!SYSTEM_MALLOC && !DOUG_LEA_MALLOC)`, then
   // `HAVE_POSIX_MEMALIGN`).
   let mut truthy: std::collections::HashSet<String> = std::collections::HashSet::new ();
-  // `"features"` (header macros that are cfg gates, written by `--keys-from-header`) is the
-  // authoritative section when present; `"macros"` is the constraint set `gen-config` turns into
-  // constants, and reading it here too is what lets a configuration without the section still
-  // produce its cfgs.
-  let text = text.replacen ("\"features\": {", "\"macros\": {", 1);
-  for line in text.lines ()
-    {
-      // The JSON is one `"NAME": "value"` per line (`gen-config-json.py` writes it that way), so a
-      // line reader is enough and keeps this free of a JSON dependency.
-      let line = line.trim ();
-      let Some (rest) = line.strip_prefix ('"') else { continue };
-      let Some ((name, value)) = rest.split_once ("\": ") else { continue };
-      let value = value.trim_end_matches (',').trim_matches ('"');
-      let truthy_value = matches! (value, "1" | "true");
-      let name_lower = name.to_ascii_lowercase ();
-      if name.is_empty () || name.starts_with ("target") || name.starts_with ("source")
-        {
-          continue;
-        }
-      if let Ok (n) = value.parse::<u64> () { numbers.insert (name.to_string (), n); }
-      if truthy_value { truthy.insert (name.to_string ()); }
-      if truthy_value
-        {
-          out.push (format! ("feature=\"{name_lower}\""));
-        }
-      else
-        {
-          // A macro the port tests negatively (`#ifndef X` in C).
-          out.push (format! ("feature=\"not_{name_lower}\""));
-        }
-    }
+  let mut values=std::collections::BTreeMap::new();
+  for section in ["macros","features"] {
+    if let Some(items)=data[section].as_object(){for (name,value) in items{
+      values.insert(name.clone(),value.as_str().map(str::to_owned).unwrap_or_else(||value.to_string()));
+    }}
+  }
+  for (name,value) in values {
+    let truthy_value=matches!(value.as_str(),"1"|"true");
+    let name_lower=name.to_ascii_lowercase();
+    if let Ok(n)=value.parse::<u64>(){numbers.insert(name.clone(),n);}
+    if truthy_value {truthy.insert(name.clone());}
+    out.push(format!("feature=\"{}{}\"",if truthy_value{""}else{"not_"},name_lower));
+  }
   // C's `#if (defined HAVE_ALIGNED_ALLOC || (!defined SYSTEM_MALLOC && !defined DOUG_LEA_MALLOC))`
   // takes the platform's `aligned_alloc`; when that is false and `HAVE_POSIX_MEMALIGN` is set, C's
   // `#elif` defines its own over `posix_memalign` (`alloc.c` 969-988).  bionic at API 21 has no
@@ -427,7 +415,7 @@ fn config_features () -> Vec<String>
     {
       println! ("config: {} cfg feature(s) from {stem}", out.len ());
     }
-  out
+  Ok(out)
 }
 
 /// `rustc`, with `RUSTC_BOOTSTRAP=1` when the sanitizer is on, so the nightly flag is accepted
@@ -550,28 +538,10 @@ fn gen_config() -> i32 {
     // become the port's whole configuration, which is the same class of mistake the `.json`
     // filter above fixed.  So the choice is explicit: `FEMACS_CONFIG=<stem>` names one, and
     // more than one candidate without it is an error rather than a coin flip (P-203).
-    let chosen = std::env::var("FEMACS_CONFIG").ok().filter(|v| !v.is_empty());
-    if let Some(file) = std::env::var_os("FEMACS_CONFIG_FILE") {
-        entries = vec![PathBuf::from(file)];
-    }
-    if let Some(stem) = &chosen {
-        if std::env::var_os("FEMACS_CONFIG_FILE").is_none() { entries.retain(|p| p.file_stem().is_some_and(|s| s == stem.as_str())); }
-        if entries.is_empty() {
-            return fail(format!("FEMACS_CONFIG={stem} names no *.json in {}", dir.display()));
-        }
-    } else if entries.len() > 1 {
-        let names: Vec<String> = entries
-            .iter()
-            .filter_map(|p| p.file_stem().map(|s| s.to_string_lossy().into_owned()))
-            .collect();
-        return fail(format!(
-            "{} frozen configurations ({}): set FEMACS_CONFIG to choose one",
-            entries.len(),
-            names.join(", ")
-        ));
-    }
-    let Some(target) = entries.into_iter().next() else {
-        return fail(format!("no *.json frozen configuration in {}", dir.display()));
+    let target=match android::config_source(None) {
+        Ok(Some(path))=>path,
+        Ok(None)=>{if entries.len()!=1{return fail("select one explicit frozen configuration");}entries.remove(0)},
+        Err(e)=>return fail(e),
     };
     println!("config: {}", target.display());
     let macros = read_config(&target);
@@ -1417,18 +1387,27 @@ fn probe_build(args: &[String]) -> i32 {
     let (Some(src), Some(out)) = (args.first(), args.get(1)) else {
         return fail("probe needs <rs-file> <out> [<extra rustc args>…]");
     };
-    let src = Path::new(src);
-    let stem = src.file_stem().unwrap_or_default().to_string_lossy().to_string();
-    let dir = Path::new("build/probes").join(&stem);
-    let root = match materialize(src, &dir) {
-        Ok(root) => root,
-        Err(e) => return fail(format!("probe {}: {e}", src.display())),
-    };
+    let repo=Path::new(REPO);
+    let output=match tooling::guard_scratch(repo,Path::new(out)){Ok(p)=>p,Err(e)=>return fail(e)};
+    if output.exists(){return fail("probe output already exists");}
+    if let Some(parent)=output.parent(){if let Err(e)=fs::create_dir_all(parent){return fail(e);}}
+    let src=Path::new(src);
+    let scratch=match tooling::owned_new_output(repo,None,"probe-graph"){Ok(run)=>run,Err(e)=>return fail(e)};
+    let root=match materialize(src,&scratch.path.join("graph")){Ok(path)=>path,Err(e)=>return fail(e)};
+    let identities=output.with_extension("inputs.json");
+    if identities.exists(){return fail("probe input receipt already exists");}
+    let recorded=(|| -> Result<(),String> {
+        tooling::write_json(&identities,&serde_json::json!({"schema":"femacs-materialized-probe-inputs-v1",
+            "root_source":src,"root_source_sha256":tooling::sha256_file(src)?,
+            "rust_toolchain":probes::pin(repo)?,"graph":scratch.path.join("graph"),
+            "files":tooling::graph_input_hashes(&scratch.path.join("graph"))?}))
+    })();
+    if let Err(error)=recorded{return fail(error);}
     let status = rustc_cmd ()
         .args(["--edition", "2024", "-O"])
         .arg(&root)
         .arg("-o")
-        .arg(out)
+        .arg(&output)
         .args(&args[2..])
         .status();
     match status {
@@ -1525,7 +1504,7 @@ fn build_tu_at(rel: Option<&String>, units: &Path, pgo: bool) -> i32 {
     // `have_android` alone), so the frozen configuration has to reach rustc as cfgs.  Until this
     // existed, only darwin was ever built - where every such gate is correctly *off* - and the
     // Android units compiled to empty objects (`android.o` was 664 bytes, P-229).
-    for cfg in config_features () {
+    for cfg in match config_features(){Ok(v)=>v,Err(e)=>return fail(e)} {
         cmd.arg ("--cfg").arg (cfg);
     }
     let mut cross_out = out.clone();
@@ -1552,7 +1531,7 @@ fn build_tu_at(rel: Option<&String>, units: &Path, pgo: bool) -> i32 {
                    "--crate-name", &cname, "--cfg", "enable_checking"])
             .args(&flags)
             .args(&sanitizer_flags ());
-        for cfg in config_features () { check_cmd.arg ("--cfg").arg (cfg); }
+        for cfg in match config_features(){Ok(v)=>v,Err(e)=>return fail(e)} { check_cmd.arg ("--cfg").arg (cfg); }
         let mut check_out = units.join (format! ("{stem}.checking.o"));
         if let Some (t) = &target
             {
@@ -1986,14 +1965,9 @@ configuration (see PORTING.md 2.1's setup steps)");
         return fail(e);
     }
     println!("== layout gate ==");
-    for probe in ["spikes/fam-probe.sh", "spikes/shadow-probe.sh", "spikes/macro-probe.sh"] {
-        println!("== {probe} ==");
-        let status = Command::new("bash").arg(probe).current_dir(REPO).status();
-        match status {
-            Ok(s) if s.success() => {}
-            Ok(s) => return fail(format!("{probe} failed ({s})")),
-            Err(e) => return fail(format!("{probe}: {e}")),
-        }
+    for name in ["fam","shadow","macro"] {
+        println!("== {name} ==");
+        if let Err(e)=probes::run_probe(Path::new(REPO),name,&probes::ProbeOptions::default()){return fail(e);}
     }
     layout_check()
 }
@@ -2039,34 +2013,33 @@ fn probe_programs() -> Result<(), String> {
                                 "spikes/android_asset_probe.rs", "spikes/ns_inc_probe.rs",
                                 "spikes/x_inc_probe.rs", "spikes/sfnt_inc_probe.rs",
                                 "spikes/stdbit_family_probe.rs"];
-    fs::create_dir_all("build/probes").ok();
+    let repo=fs::canonicalize(REPO).map_err(|e|e.to_string())?;
+    let mut roots=serde_json::Map::new();
     for probe in PROBES {
-        if !Path::new(probe).is_file() {
-            continue;
-        }
-        let stem = Path::new(probe).file_stem().unwrap().to_string_lossy().to_string();
-        let out = format!("build/probes/{stem}.rmeta");
-        // The probe reaches its mirrors through its own `include!` list, so it needs the same
-        // de-duplication the units get: the graph now has a file reached by two paths
-        // (`lisp.rs` -> `thread.rs` -> `sys_select.rs` -> `time.in.rs` and `buffer.rs` ->
-        // `time.in.rs`), and `include!` has no include guard (PORTING.md 0.1-4).  Materialize
-        // it exactly as a unit is materialized, then compile that root.
-        let root = match materialize(Path::new(probe),
-                                     Path::new("build/probes").join(&stem).as_path()) {
-            Ok(root) => root,
-            Err(e) => return Err(format!("probe {probe}: {e}")),
-        };
-        let status = rustc_cmd ()
-            .args(["--edition", "2024", "--crate-type", "bin", "--emit", "metadata"])
-            .arg(&root).arg("-o").arg(&out)
-            .status();
-        match status {
-            Ok(s) if s.success() => println!("probe {stem}: the Rust side compiles"),
-            Ok(s) => return Err(format!("probe {probe} does not compile ({s})")),
-            Err(e) => return Err(format!("probe {probe}: {e}")),
-        }
+        roots.insert(probe.into(),serde_json::json!(tooling::sha256_file(&repo.join(probe))?));
     }
-    Ok(())
+    let run=tooling::owned_new_output(&repo,None,"probe-programs")?;
+    let mut graphs=serde_json::Map::new();let mut steps=Vec::new();
+    let result=(|| -> Result<(),String> {
+        for probe in PROBES {
+            let stem=Path::new(probe).file_stem().ok_or("probe stem missing")?.to_string_lossy().to_string();
+            let directory=run.path.join(format!("graph-{stem}"));
+            let root=materialize(&repo.join(probe),&directory)?;
+            graphs.insert(probe.into(),serde_json::json!(tooling::graph_input_hashes(&directory)?));
+            let plan=tooling::StepPlan{id:stem.clone(),program:"rustc".into(),
+                args:vec!["--edition".into(),"2024".into(),"--crate-type".into(),"bin".into(),"--emit".into(),"metadata".into(),root.into_os_string(),"-o".into(),run.path.join(format!("{stem}.rmeta")).into_os_string()],
+                cwd:repo.clone(),env:vec![("RUSTUP_TOOLCHAIN".into(),probes::pin(&repo)?.into())]};
+            let receipt=tooling::execute_step(&plan,&run)?;
+            let checked=tooling::require_success(&receipt);steps.push(receipt);checked?;
+            println!("probe {stem}: metadata compiler passed");
+        }
+        Ok(())
+    })();
+    tooling::write_json(&run.path.join("report.json"),&serde_json::json!({"schema":"femacs-metadata-probes-v1",
+        "status":if result.is_ok(){"passed"}else{"failed"},"root_sources":roots,"materialized":graphs,
+        "rust_toolchain":probes::pin(&repo)?,"steps":steps,"error":result.as_ref().err()}))?;
+    println!("probe metadata identities: {}",run.path.join("report.json").display());
+    result
 }
 
 /// `gate-load`: the loading ladder's first rung (docs/port-plan.md section 7.1).
@@ -2176,7 +2149,7 @@ use alloc_crate::string::String as alloc_string;\n";
 ///
 /// The linker is the NDK's cross compiler, named by `FEMACS_ANDROID_CC` or found under
 /// `$ANDROID_HOME`/`$HOME/Library/Android/sdk` the way `tools/gen-android-config.sh` finds it.
-fn link_shared (target: Option<&str>) -> i32
+fn link_shared (target: Option<&str>, manifest: Option<&Path>) -> i32
 {
   let Some(target) = target else
     {
@@ -2184,63 +2157,14 @@ fn link_shared (target: Option<&str>) -> i32
     };
   let target = target.to_string ();
   let build = units_dir ();
-  let mut objects: Vec<PathBuf> = Vec::new ();
-  match fs::read_dir (&build)
-    {
-      Ok (entries) => for entry in entries.flatten ()
-        {
-          let path = entry.path ();
-          let name = path.file_name ().map (|n| n.to_string_lossy ().into_owned ())
-            .unwrap_or_default ();
-          // `X.checking.<target>.o` is the checking pass's twin of `X.<target>.o`; linking both
-          // would define every symbol twice.  `FEMACS_LINK_CHECKING=1` swaps them in below.
-          //
-          // Two exclusions keep this the set C's own link uses (status 4.870).  The `lib-src/`
-          // programs are *separate binaries* in C (`src/Makefile.in` 461-462 builds them from
-          // `INSTALLABLES`), so linking `emacsclient.o`/`etags.o`/`hexl.o`/`make-docfile.o`/
-          // `make-fingerprint.o`/`ebrowse.o`/`movemail.o`/`pop.o` into the library defines `main`
-          // once per program and drags in their private imports (`pop.o` wants `getpass`, which
-          // bionic does not have; measured).  And Android's configuration sets `CM_OBJ=` and
-          // `TERMINFO=no` (configure.ac 2592/2599-2600, 6149-6153), so C never compiles `cm.o`,
-          // `termcap.o` or `terminfo.o` for `libemacs.so` - `cm.o` alone imports `tputs`, which
-          // Android has no termcap provider for (measured: `cannot locate symbol "tputs"`).
-          let stem = name.trim_end_matches (&format! (".{target}.o"));
-          let auxiliary = matches! (stem,
-                                    "ebrowse" | "emacsclient" | "etags" | "hexl"
-                                    | "make-docfile" | "make-fingerprint" | "movemail"
-                                    | "pop" | "asset-directory-tool" | "update-game-score"
-                                    | "android-emacs");
-          let not_in_android_link = target.contains ("android")
-            && matches! (stem, "cm" | "termcap" | "terminfo");
-          if name.ends_with (&format! (".{target}.o")) && ! name.contains (".checking.")
-              && ! auxiliary && ! not_in_android_link
-            { objects.push (path); }
-        },
-      Err (e) => return fail (format! ("reading {}: {e}", build.display ())),
-    }
-  objects.sort ();
-  if objects.is_empty ()
-    {
-      return fail (format! ("no `*.{target}.o` in {}: build the units under FEMACS_TARGET first",
-                            build.display ()));
-    }
-  // `build-tu` already compiles every unit a second time with `--cfg enable_checking` and writes
-  // `<stem>.checking.o`; those objects carry `eassert!`/`eassume!` bodies that the normal pass
-  // compiles out.  `FEMACS_LINK_CHECKING=1` swaps them in wherever the sibling exists, so a
-  // checking library can be linked without renaming anything (status 4.843).
-  if std::env::var ("FEMACS_LINK_CHECKING").map (|v| v == "1").unwrap_or (false)
-    {
-      let mut swapped = 0usize;
-      for object in objects.iter_mut ()
-        {
-          let stem = object.file_name ().unwrap_or_default ().to_string_lossy ()
-                       .trim_end_matches (&format! (".{target}.o")).to_string ();
-          let mut checked = object.with_file_name (format! ("{stem}.checking.{target}.o"));
-          if ! checked.is_file () { checked = object.with_file_name (format! ("{stem}.checking.o")); }
-          if checked.is_file () { *object = checked; swapped += 1; }
-        }
-      println! ("   checking objects: {swapped} of {} substituted", objects.len ());
-    }
+  if manifest.is_some_and(|p|p.file_name().is_none_or(|s|s!="core-units.txt") || !p.is_file()) {
+      return fail("--units-manifest must name the existing owned core-units.txt beside lib-units.txt");
+  }
+  let checking=std::env::var("FEMACS_LINK_CHECKING").is_ok_and(|v|v=="1");
+  let support=manifest.and_then(Path::parent).map(Path::to_owned)
+    .unwrap_or_else(||android::support_directory(android::BuildTarget::AndroidArm64));
+  let units=match android::load_units(&support){Ok(v)=>v,Err(e)=>return fail(e)};
+  let objects=match android::expected_objects(&units,&build,checking){Ok(v)=>v,Err(e)=>return fail(e)};
   let Some (linker) = android_linker (&target)
     else
       {
@@ -2252,6 +2176,7 @@ fn link_shared (target: Option<&str>) -> i32
     {
       return fail (format! ("creating {}: {e}", dir.display ()));
     }
+  if let Err(e)=fs::create_dir_all(load_dir()){return fail(e);}
   let mut rsp: Vec<String> = Vec::new ();
   for object in &objects
     {
@@ -2528,8 +2453,8 @@ fn android_linker (target: &str) -> Option<String>
 }
 
 fn target_manifest(name: &str) -> Result<Vec<String>, String> {
-    let kind = if std::env::var_os("FEMACS_MACOS_GUI").is_some() { "cocoa" } else { "terminal" };
-    let path = Path::new(REPO).join("build-support/macos").join(kind).join(name);
+    let target=android::build_target()?;
+    let path=android::support_directory(target).join(name);
     let text = fs::read_to_string(&path).map_err(|e| format!("{}: {e}", path.display()))?;
     Ok(text.split_whitespace().map(str::to_string).collect())
 }
@@ -3435,28 +3360,9 @@ fn copy_tree(from: &Path, to: &Path) -> std::io::Result<()> {
 /// command of its own — `gate-fast` must stay runnable in a clean checkout — but it is
 /// the tier that produced P-30's evidence and is run at every batch boundary.
 fn gate_probes() -> i32 {
-    let cfg = std::env::var("CFG").unwrap_or_else(|_| "build/emacs-ref".to_string());
-    let header = Path::new("../").join(&cfg).join("src/config.h");
-    if !header.is_file() {
-        return fail(format!(
-            "{} is missing: configure the reference tree out of tree first \
-             (docs/spikes/2026-10-02-three-spikes.md, Reproduction)", header.display()));
-    }
-    // `jni-probe.sh` is `jni.rs`'s only gate: the mirror is of a system header of another
-    // target's toolchain, so there is no reference file to pair it with - the probe compiles the
-    // NDK's own <jni.h> and the mirror side by side and diffs the 233 function-table entries and
-    // their offsets (status 3.154).
-    for probe in ["spikes/inline-probe.sh", "spikes/accessor-probe.sh",
-                  "spikes/write-probe.sh", "spikes/va-probe.sh",
-                  "spikes/syshdrs-probe.sh", "spikes/gmp-abi-probe.sh",
-                  "spikes/lisp-abi-probe.sh", "spikes/jni-probe.sh"] {
-        println!("== {probe} ==");
-        let status = Command::new("bash").arg(probe).current_dir(REPO).status();
-        match status {
-            Ok(s) if s.success() => {}
-            Ok(s) => return fail(format!("{probe} failed ({s})")),
-            Err(e) => return fail(format!("{probe}: {e}")),
-        }
+    for name in ["inline","accessor","write","va","syshdrs","gmp-abi","lisp-abi","jni"] {
+        println!("== {name} ==");
+        if let Err(e)=probes::run_probe(Path::new(REPO),name,&probes::ProbeOptions::default()){return fail(e);}
     }
     println!("== dead arms ==");
     let code = dead_arms();
@@ -3901,7 +3807,7 @@ fn build_selected_units(units: Vec<String>, materialization: &Path) -> Result<()
             Err(e) => return Err(e),
         };
         let mut normal_cmd = rustc_cmd();
-        for cfg in config_features() { normal_cmd.arg("--cfg").arg(cfg); }
+        for cfg in config_features()? { normal_cmd.arg("--cfg").arg(cfg); }
         if let Some(t) = &target {
             normal_cmd.arg("--target").arg(t);
             if t.contains("linux") { normal_cmd.arg("-C").arg(format!("linker={REPO}/tools/zig-linux-linker.sh")); }
@@ -3938,7 +3844,7 @@ fn build_selected_units(units: Vec<String>, materialization: &Path) -> Result<()
         // The same frozen configuration and the same target as the pass above: without them this
         // object is a host Mach-O with darwin's feature set, which is useless both as a link input
         // for a cross target and as a checker (status 4.843).
-        for cfg in config_features ()
+        for cfg in config_features()?
             {
                 check_cmd.arg ("--cfg").arg (cfg);
             }

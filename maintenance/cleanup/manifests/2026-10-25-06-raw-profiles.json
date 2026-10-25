@@ -1,0 +1,43 @@
+{
+  "id": "CLN-20261025-06",
+  "source_ref": "01bfbb7f3e1d8e6793a2dd71b81ac8ba43b29f99",
+  "status": "D current identities recorded; isolated recovery and final affected scope stated separately",
+  "source_files": [
+    {
+      "path": "spikes/pgo-probe/nostd-exit.profraw",
+      "before_sha256": "34db825b948916fab5cfea09f58a78eac997dcae2942a571df1c2b1443411fb6",
+      "before_bytes": 568,
+      "before_git_blob": "8340edf1e48dccb6379e661267f2a9ef0ba5a100",
+      "after_sha256": null,
+      "after_state": "absent; baseline source blob and SHA256 retained for isolated recovery",
+      "after_bytes": 0
+    },
+    {
+      "path": "spikes/pgo-probe/nostd-main.profraw",
+      "before_sha256": "d3611a809e561df5272d4926f85263a2dd97e9b8c8a3722f38ab4a2707ed1631",
+      "before_bytes": 568,
+      "before_git_blob": "e76b9416fd018b0ecb208079c72511a855740a31",
+      "after_sha256": null,
+      "after_state": "absent; baseline source blob and SHA256 retained for isolated recovery",
+      "after_bytes": 0
+    }
+  ],
+  "unrelated_deletion": false,
+  "verification": {
+    "source_recovery": "passed: exact baseline Git blobs restored into isolated owned scratch and SHA256/current-body absence checked; no working-tree rollback",
+    "affected_tests": {
+      "status": "passed at the recorded bounded scope",
+      "evidence": [
+        "tools/test-g4-workflows.py::CleanupRecovery.test_all_g4_withdrawals_have_real_git_recovery_and_final_identity"
+      ],
+      "scope": "both retired profile blobs restored/hash checked in owned scratch; retained source/probe identity checked, not performance acceptance"
+    },
+    "remote_ci": false
+  },
+  "isolated_recovery": {
+    "status": "passed",
+    "scope": "exact baseline Git blob/hash restored under owned scratch, current body SHA256/absence checked",
+    "recipe": "python3 tools/test-g4-workflows.py CleanupRecovery",
+    "product_acceptance": false
+  }
+}

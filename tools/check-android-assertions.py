@@ -217,6 +217,8 @@ def blocks(text):
 
 def main():
     ap = argparse.ArgumentParser()
+    ap.add_argument("--config-file", type=pathlib.Path)
+    ap.add_argument("--units-file", type=pathlib.Path)
     ap.add_argument("--config", default="android-arm64")
     ap.add_argument("--units", default=None,
                     help="restrict to the files that build for this configuration "
@@ -228,15 +230,16 @@ def main():
                          "baseline, and on a baseline row that has become asserted")
     ap.add_argument("--write-baseline", action="store_true")
     args = ap.parse_args()
-    path = REPO / "docs/baseline/config" / (args.config + ".json")
+    path = args.config_file or (REPO / "docs/baseline/config" / (args.config + ".json"))
     if not path.is_file():
         print("check-android-assertions: no %s" % path, file=sys.stderr)
         return 2
     feats = features(path)
     unit_files = None
-    if args.units:
+    if args.units or args.units_file:
         listed = set()
-        for line in (REPO / "docs/baseline" / args.units).read_text().split():
+        units_path=args.units_file or (REPO / "docs/baseline" / args.units)
+        for line in units_path.read_text().splitlines():
             line = line.strip()
             if not line or line.startswith("#"):
                 continue

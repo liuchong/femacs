@@ -1,3 +1,11 @@
+## G4 当前命令补充（实现待D验证）
+
+正常 `xtask build-terminal` 和 `build-macos` 在最终 dump 后用当前自有程序导出 Org、生成完整68份 Info，并验证文件集合。终端以独占暂存/原子交换发布根 `info/`，保留旧集合；Cocoa 从自己的完整集合复制到包内后签名。需要 GNU Texinfo 的 `makeinfo` 与 `install-info`。显式 `cargo run -p xtask -- build-manuals --format html --program PATH --out build/NEW` 生成可选HTML；新输出必须不存在。忽略文件始终是产物，原始文档及导出器为已提交输入。
+
+Android 独立入口为 `cargo run -p xtask -- android build --assets --package --debuggable --out build/NEW`，读取 `build-support/android/arm64/`，使用当前最新LTS JDK25、已安装SDK/NDK及Kotlin，不依赖参照configure或旧对象。构建/检查仍须在外部资源保护下运行。静态包、正常/checking共享库与设备验收分别记录；完整状态及保留平台见[support-matrix.md](support-matrix.md)。设备入口为 `tools/android-device.py accept --apk APK --so SO --out build/NEW`，仅创建本次所属的新模拟器；检查既有设备须显式 `inspect --serial SERIAL`，不隐式安装或重启。
+
+`cargo run -p xtask -- audit-probe --list` 列出14种探针；明确请求的参照/NDK/Miri依赖缺失会失败，正常产品构建不要求这些可选审计依赖。L5与旧shell名称仍转发至唯一策略所有者。以下保留早期展开施工和已交付基线的历史说明，新候选尚未通过D。
+
 # Flat repository and independent macOS bootstrap
 
 Baseline: `24f8cf64`, branch `master`, initially clean. This delivery changes repository layout and build inputs, not editor semantics or performance policy.
@@ -9,7 +17,7 @@ Q2: Generate runtime resources from committed raw data and generator sources, wi
 Q3: Build terminal and native Cocoa products from a fresh tracked-file export with no caches, reference checkout, installed editor or prior binary. Package and run the new application. External prerequisites are Xcode command-line tools/Swift, Python 3, GNU awk, gzip and the pinned Rust toolchain. Supported independent target: Apple Silicon macOS; reject other hosts explicitly.
 Q4: Anchor ignore rules to the new root. Keep raw dictionaries, Unicode data, grammar inputs, source icons and test fixtures tracked. Generated reports are distinct from XML test inputs.
 
-### Current tree and flow
+### Historical pre-expansion tree and flow
 
 ```text
 ./tools/                         generators and audit tools
@@ -158,3 +166,23 @@ generated `.elc` outputs, compiles and verifies the five outputs; a stale ignore
 file cannot satisfy the gate after a silent compiler error. Explicit path scopes
 remain scoped. See `runtime-modernization.md` for the same-VM loading experiment
 and its limits; this does not enable a native/JIT backend.
+
+
+## Android device command migration
+
+The old script names remain thin spellings for the owned Python lifecycle, not promises that historical temporary diagnostics still run unchanged. Always supply the current APK and native library to mutating modes; existing-device inspection always requires an explicit serial. There are no default historical artifact paths, shared AVD restarts, root/uninstall operations, signal injection or tombstone deletion.
+
+| Previous spelling/capability | Current route and exact boundary |
+| --- | --- |
+| `device-run.sh --plan` | Preserved: print a nonexecuting lifecycle plan; no output directory, product, AVD or SDK process is created. |
+| `device-run.sh --dump-only` | Preserved as read-only `dump`, now requiring `--serial`; it does not boot a historical AVD. Direct route: `android-device.py dump --serial SERIAL`. |
+| `--memory MIB` / `--tail N` | Preserved for the owned emulator and trailing owned logs. Guest memory is independent of the external controller's hard limit; tail is0..10000 lines per log and full streamed logs remain on disk. |
+| `android-input-probe.sh focus` | Positional stage retired. Use `android-device.py inspect --serial SERIAL` for current properties, window/input/IME focus, activity, current/crash logs and exit-info. This route is read-only. |
+| `key` | Old screenshot-difference-only experiment retired. Use `android-device.py accept --apk APK --so SO --out BUILD_CHILD` for actual typed text, Ctrl-A/Ctrl-E and arrow observations. |
+| `rotate`, `tap`, `insert-rotate` | Old focused screenshot experiments retired. The same `accept` route checks portrait/landscape/portrait, exact surviving buffer/PID, per-run glyph-cell rendering and post-tap survival. It does not certify every touch gesture. |
+| `applog` | Use `inspect/dump --serial SERIAL --tail N` for current receiver logs, or a fresh owned `gui/probe --apk APK --so SO --eval EXPR --tail N`. A diagnostic is not readiness. |
+| `threads` | Kernel-wchan-only experiment retired; current PID-bound logs/exit-info and explicit `batch --eval '(all-threads)'` cover maintained diagnostics. This is not a replacement native kernel wait-channel measurement. |
+| `back` | Three-Back screenshot/liveness experiment retired; full `accept` does not claim Back-key semantics. Add a specific current input case if that behavior is required later. |
+| `probes`, `bt`, `signal` | Temporary instrumented-build tags, root/debuggerd attachment and manual SIGIO experiments are retired. They are not silently emulated or reported as passing by a generic Lisp evaluation. Current failures use PID-bound native/crash/exit-info evidence. |
+
+For arbitrary controlled diagnostic Lisp use `batch`, `gui`, or `probe` with `--eval` or `--elisp-file`. Positional legacy stages fail visibly with the migration pointer. For full editing readiness use `accept`, followed by `android-readiness.py --require --receipt RECEIPT --apk APK --so SO`; startup `smoke` is a narrower scope. CLI withdrawal identities and recovery are in [CLN-20261025-04](../maintenance/cleanup/reports/2026-10-25-04-android-tooling.md). None of these mappings introduces old instrumentation, root access or a new platform retirement.

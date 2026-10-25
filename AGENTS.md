@@ -45,7 +45,7 @@ cargo run -p xtask -- build-macos
    目标路径规则**唯一实现在** `tools/gen-port-map.py`（不要照抄文档里的规则）。
 2. **C 是唯一的行为依据**：不许发明 C 里没有的行为，不许"更 Rust"地改设计。
 3. **`unsafe` 允许且必要；能 safe 就 safe**：safe 的地方不要滥用 `unsafe`，但安全抽象**不得**改变 ABI、布局、求值顺序或语义。
-4. **布局与内建**：一律 `#[repr(C)]`，偏移/大小/位域/tag 位与 C 完全一致；`overflow-checks` **保持开启**（P-96）；`panic = "abort"`；**禁** `#[global_allocator]`。
+4. **布局与内建**：一律 `#[repr(C)]`，偏移/大小/位域/tag 位与 C 完全一致；当前单元默认 `overflow-checks=off`（历史 status 4.896，P-339 更正入口），`FEMACS_OVERFLOW_CHECKS=on` 仅作独立诊断配置；不能用关闭检查替代正确的类型、显式回绕或边界处理；`panic = "abort"`；**禁** `#[global_allocator]`。
 5. **禁 stub / 禁吞错**：`todo!()`、`unimplemented!()`、空函数体、返回默认值、注释掉的代码；不许忽略 C 的返回码与错误路径；没有对应 C 逻辑就不许加 `unwrap()`。
 6. **参照树只读**：`git -C emacs status --short` 必须始终为空；**任何写盘工具必须先断言输出不在 `emacs/` 下**。
 7. **原样复制，一个字不改**：`lisp/`、`leim/`、`test/`、`etc/`、`doc/`、`admin/` 的数据。**不要花 token 重写 Lisp**；测试失败改实现，**不许**改测试、不许跳过或删除。

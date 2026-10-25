@@ -1,0 +1,143 @@
+{
+  "id": "CLN-20261025-05",
+  "source_ref": "01bfbb7f3e1d8e6793a2dd71b81ac8ba43b29f99",
+  "status": "D current identities recorded; isolated recovery and final affected scope stated separately",
+  "source_files": [
+    {
+      "path": "platform/android/kotlin/EmacsClipboard.kt",
+      "before_sha256": "c71df9c9c675d40ff4114972f116d93a5489f05555947f010cc26ede8914d883",
+      "before_bytes": 1200,
+      "before_git_blob": "fb03f422b8a1c22a23fdefe1db0365ffd8d569b4",
+      "after_sha256": "30e38a4845a51c63e7b59592f2a9a57f70eaf0960e28717764732dfd012959c3",
+      "after_state": "present; current body SHA256 recorded; functional acceptance scope in report",
+      "after_bytes": 996
+    },
+    {
+      "path": "platform/android/kotlin/EmacsPixmap.kt",
+      "before_sha256": "27a39aa3975c6a935b67dbf44b72a0660a69099294970a9a0099a5917af66109",
+      "before_bytes": 3670,
+      "before_git_blob": "71bcaaf7cb9a9c0669612dff634577d3505dbcd6",
+      "after_sha256": "466d8e4ed88d71bc81f52923a3240b223c9eebb915898fb28536bb03afaadaff",
+      "after_state": "present; current body SHA256 recorded; functional acceptance scope in report",
+      "after_bytes": 3350
+    },
+    {
+      "path": "platform/android/kotlin/EmacsService.kt",
+      "before_sha256": "3c95dcf27348cd2c15ac8704f93b6a41a33f9a60666305ecc0c47512f1b474e3",
+      "before_bytes": 69176,
+      "before_git_blob": "b07980b218c3b57d0ce2af82d64be79584b51d9d",
+      "after_sha256": "9a6a5a163d84655165f56270dbda9ad1eada57413ddef503ff4ed0d6f745fbed",
+      "after_state": "present; current body SHA256 recorded; functional acceptance scope in report",
+      "after_bytes": 65860
+    },
+    {
+      "path": "platform/android/kotlin/EmacsWindow.kt",
+      "before_sha256": "ed7cfc8c411d4323fb4b37b95a3c0a8e6736f0b4db833ab27680eda79a5d7cbb",
+      "before_bytes": 53551,
+      "before_git_blob": "eff3a7dd61510aa081f5fe9f943aa3bd267b2f2b",
+      "after_sha256": "41fe7acadf9d140940b006b269c51a961ed8e3f0fe41322bc81e95fed159c1d0",
+      "after_state": "present; current body SHA256 recorded; functional acceptance scope in report",
+      "after_bytes": 52340
+    },
+    {
+      "path": "platform/android/kotlin/EmacsActivity.kt",
+      "before_sha256": "b08f2297aaa7f42692471f2046811ada7685b1df3b3729fa28176cc47156fb5a",
+      "before_bytes": 19702,
+      "before_git_blob": "88d74edbc6b3cd816167f0b66ab88597a3fc9f59",
+      "after_sha256": "7ca946a2ac85cd39678267c32fff362df51146cf0caa647ba02a982bfddfc12d",
+      "after_state": "present; current body SHA256 recorded; functional acceptance scope in report",
+      "after_bytes": 19247
+    },
+    {
+      "path": "platform/android/kotlin/EmacsWindowManager.kt",
+      "before_sha256": "51066fa18a12d743ba6deae46c8a1a984378f36fc8166faf24ee2f4e2457dd21",
+      "before_bytes": 15166,
+      "before_git_blob": "8d64cbe7b67cbdb5af68735f0524e9a57aa3d14a",
+      "after_sha256": "48e2ad6f89ca29e06b07b6224eacd5d2601381fa2ca5cf2df4b5599a94ceacb9",
+      "after_state": "present; current body SHA256 recorded; functional acceptance scope in report",
+      "after_bytes": 14733
+    },
+    {
+      "path": "platform/android/kotlin/EmacsDocumentsProvider.kt",
+      "before_sha256": "5048473c2fe274bed076081740f0eaac2039a25b81ccf3aa7bba048b0d0323c7",
+      "before_bytes": 14359,
+      "before_git_blob": "89873e4263c3fa69b906db69a3255ecd72b94d5c",
+      "after_sha256": "dba3137c830bb6ef596e041f550bd01025ce93488eb799cb71b103dc39bde63c",
+      "after_state": "present; current body SHA256 recorded; functional acceptance scope in report",
+      "after_bytes": 14223
+    },
+    {
+      "path": "platform/android/kotlin/EmacsDialog.kt",
+      "before_sha256": "b0b9c267149dda400732c0bd8b0154f94cd1d2f9439ec299d7b7e6f66e2fbbf6",
+      "before_bytes": 11962,
+      "before_git_blob": "8f6d1bb07eb2e288acad345630043570b5b1fbd3",
+      "after_sha256": "c6703b359fa93b2f88f70d05ae896118601ea7c283b21933c56e3fbf92caebe8",
+      "after_state": "present; current body SHA256 recorded; functional acceptance scope in report",
+      "after_bytes": 11859
+    },
+    {
+      "path": "platform/android/kotlin/EmacsPreferencesActivity.kt",
+      "before_sha256": "aca76a03edbc7f4f9c4b5781c2bdeee0b20a8d72b3fa8f9dcb04e4935b9cf867",
+      "before_bytes": 5380,
+      "before_git_blob": "be9287c1acd8865cf90725089d69b20cc0141aeb",
+      "after_sha256": "030429106b8f1e8cbabe2bd2b9c27596909c08f8e9dd39c8b8475811bdc83557",
+      "after_state": "present; current body SHA256 recorded; functional acceptance scope in report",
+      "after_bytes": 5172
+    },
+    {
+      "path": "platform/android/kotlin/EmacsOpenActivity.kt",
+      "before_sha256": "b3a2559ea6c40888fe6ef4247e7269e3f40e34f9cc24caa95a9a8841e398d1c7",
+      "before_bytes": 23321,
+      "before_git_blob": "5d80ca0664f4149a1daefb46005f03ce56704c0e",
+      "after_sha256": "a8d7864ba1973ebe47167c3b7381036a8c73e5b780228dae99310e4d38277f08",
+      "after_state": "present; current body SHA256 recorded; functional acceptance scope in report",
+      "after_bytes": 21237
+    },
+    {
+      "path": "platform/android/kotlin/EmacsContextMenu.kt",
+      "before_sha256": "dcbcb26b218992176c6355bdf3d61272726c3eaaa0de6832a190e1ea7770adf6",
+      "before_bytes": 12834,
+      "before_git_blob": "ba3514261a93dc81b0b2e52ecdab897dcce94ed3",
+      "after_sha256": "547e4eac401fe0bb0db9d28c52c6905301fc393d51fdc44fb33644fbc6684940",
+      "after_state": "present; current body SHA256 recorded; functional acceptance scope in report",
+      "after_bytes": 12766
+    },
+    {
+      "path": "platform/android/kotlin/EmacsDesktopNotification.kt",
+      "before_sha256": "de2d6088ad0a7f79f83da7ed502442fe8dcff101e320c67889a5b9c4f56d7024",
+      "before_bytes": 12885,
+      "before_git_blob": "d4632ceeaa89548d617fd5b02b8ff1146edece40",
+      "after_sha256": "abaaae4ecad938b69edc194ebc9dbfec810c427ca252061516d6aa2f399bce1d",
+      "after_state": "present; current body SHA256 recorded; functional acceptance scope in report",
+      "after_bytes": 12052
+    },
+    {
+      "path": "platform/android/kotlin/EmacsSdk8Clipboard.kt",
+      "before_sha256": "6ad532cb95ade8d0f5b83e9ea7d7f43c663b7756e7b371866f1b9fd250f1300f",
+      "before_bytes": 2653,
+      "before_git_blob": "c6dcb292fd9acac129054b890e8a085ca371aa49",
+      "after_sha256": null,
+      "after_state": "absent; baseline source blob and SHA256 retained for isolated recovery",
+      "after_bytes": 0
+    }
+  ],
+  "unrelated_deletion": false,
+  "verification": {
+    "source_recovery": "passed: exact baseline Git blobs restored into isolated owned scratch and SHA256/current-body absence checked; no working-tree rollback",
+    "affected_tests": {
+      "status": "passed at the recorded bounded scope",
+      "evidence": [
+        "build/acceptance/g4-api-floor-3/receipt.json",
+        ".femacs-cache/g4-android-device-22/readiness.json"
+      ],
+      "scope": "seven-value extracted-method API-floor equivalence and actual current API36 integration; not API21 device certification"
+    },
+    "remote_ci": false
+  },
+  "isolated_recovery": {
+    "status": "passed",
+    "scope": "exact baseline Git blob/hash restored under owned scratch, current body SHA256/absence checked",
+    "recipe": "python3 tools/test-g4-workflows.py CleanupRecovery",
+    "product_acceptance": false
+  }
+}

@@ -8,6 +8,31 @@ The user explicitly requests a new native Codex Goal and continuous execution of
 
 ### Full scope, sequence and finish conditions
 
+User acceptance amendment (2026-10-25): construction and comparisons target the
+official stable editor's behavior. The installed system macOS application is the
+authorized acceptance/performance reference; its actual executable, dump, version,
+features and configuration are bound to each result. No FTP download or pristine
+source rebuild is required. Linux, when its acceptance is requested, may use the
+distribution package; the existing original source may be refreshed as needed.
+It remains independent of production build inputs. Preserve the old transcription
+reference and earlier bounded comparisons as historical evidence, not substitutes
+for this stable-version baseline.
+
+**100% compatibility and actual performance improvement are required outcomes.**
+Known differences cannot be waived, missing/blocked coverage cannot be labelled
+compatible, and passing a representative subset is not proof of all behavior.
+Retain an explicit supported-feature/platform and official-case matrix. Compare
+Lisp interpreted, bytecode and native modes separately, alongside startup, loading,
+editing/search, stability, allocations/survival, memory and precisely named GC
+pause/phase measurements. Use the same machine, inputs and comparable features;
+record official defaults and matched-mode controls, cold/warm costs, every round,
+median/variation and latency distributions. Report the measured gain for each
+workload; do not invent a percentage, change to a slower comparator or substitute
+another language's benchmark. Similar-language research is supporting evidence,
+not an editor compatibility/performance pass. Rejecting an individual native/GC
+candidate does not satisfy the overall improvement requirement. Older
+functional-only closeout decisions do not close this current Goal.
+
 | ID | Required outcome | Starting evidence and remaining work | Acceptance |
 | --- | --- | --- | --- |
 | G1 | macOS terminal and native editor reliably usable | Both products build; classic keys, files and single-window IME have bounded real evidence. Remaining: actual Finder external drop, multi-frame IME and abnormal no-controlling-TTY diagnostic/ownership repair. Do not assume an IME cause from callback counts, input-source ID or Lisp selected-frame alone. | Actual unlocked native workflows, exact PID/product identity, correct file bytes/committed text, cancellation and normal exit; malformed TTY startup fails with the correct message without duplicate cleanup or a crash. |
@@ -21,6 +46,8 @@ The user explicitly requests a new native Codex Goal and continuous execution of
 G1/G2/G3 form the current **stable-delivery stage**. G4 is the following **cleanup/renovation stage**. G5/G6/G7 form the subsequent **Lisp runtime stage**, with prerequisite measurement/design preceding dependent implementation. These are the user's previously specified stages, not per-file test slices. Each complete stage follows A full design -> B all cases written without running -> C all implementation -> D consolidated integration, tests and independent review. Existing valid implementation/cases/evidence are reused. No new numeric speed target, backend default, platform removal or paid resource budget is invented.
 
 Research items G6/G7 require an actual source-bound prototype and measured adoption/rejection decision; a literature summary alone is incomplete. Useful verified changes are integrated, and unsuccessful candidates are removed with a traceable report. A research decision and an enabled feature are separate statuses. Required editor/build/compatibility outcomes cannot be waived because an optimization fails. Completion of one stage does not complete the entire Goal.
+
+G4 current construction: [all C01–C13 are written](tooling-modernization.md); consolidated D, independent acceptance and signed delivery remain pending. This does not close any unaccepted Goal item.
 
 ### Current and target code/data flow
 
@@ -62,6 +89,10 @@ flowchart LR
 ```
 
 This map is a design/work index, not a claim that every displayed runtime edge has been proved by a graph. The graph service has no femacs index; exact changes use bounded current source reads. Before B/C, complete the file/symbol/variable/signature change table for the current whole stage in this document or the existing runtime design section. Future research does not fabricate an IR, collector policy or source line that has not yet been chosen and justified.
+
+### Cleanup/renovation construction detail
+
+G4 source-bound design is written in [tooling-modernization.md](tooling-modernization.md), linked to this sole live scope/checklist. It covers all29 shell entrypoints,239 baseline tools/spikes and their conservative retention/replacement decisions, typed probe/build/device ownership, independent Android inputs, complete68-manual generation/publication, existing-API21-floor cleanup and per-batch recovery. The primary incorporated the independent partner's actual source findings; all B cases and C production changes are written. D has passed142 component/fixture cases, then found and repaired actual host integration defects; real fresh products/device and final review remain pending. The detailed D record is in the G4 specification. Premature Python syntax and diff-format checks by the partner are recorded as sequencing violations, with no passing evidence claimed; that CLI invocation was interrupted with files preserved and a same-session correction requested. Locked native G1 cases stay unaccepted; this does not claim that G1–G3 or G4 have completed.
 
 ### Immediate source-bound design entries
 
@@ -189,9 +220,9 @@ Final independent review found no blocking product defect, but identified weaker
 - [x] GC1: finish the stable-delivery stage design/ownership table and all remaining native/TTY cases without running new tests; A/B completed before production C and final D.
 - [x] GC2: complete SD1–SD6 source/harness wiring and freeze for D; a further native behavior repair, if required by actual desktop evidence, remains unresolved rather than implicitly accepted.
 - [ ] GC3: consolidate G1/G2/G3 real acceptance and independent review; fix the collected failures and deliver the stable products.
-- [ ] GC4: finish G4 full dependency/support/replacement design and all cleanup/renovation cases, then implement all approved changes.
+- [x] GC4: finish G4 full dependency/support/replacement design and all cleanup/renovation cases, then implement all approved changes.
 - [ ] GC5: consolidate G4 affected acceptance, recovery evidence, independent review and signed delivery.
-- [ ] GC6: finish G5/G6/G7 source/research/measurement designs and all cases without running the new experiments; retain existing factual measurements.
+- [ ] GC6: finish G5/G6/G7 source/research/measurement designs and all cases without running the new experiments; bind the installed stable comparator, complete compatibility scope and predeclared performance/uncertainty metrics; retain existing factual measurements.
 - [ ] GC7: implement complete instrumentation, chosen compiler/interpreter/native candidate and chosen collector candidate with baseline fallback.
 - [ ] GC8: run consolidated runtime-stage compatibility/stress/performance experiments, collect failures and make measured adoption/rejection decisions; integrate accepted outcomes and archive withdrawn work.
 - [ ] GC9: complete final local product acceptance, documentation, per-batch cleanup reports, independent review, signed commits and immediate push; audit all seven acceptance items before completing the Goal.
@@ -200,12 +231,12 @@ Final independent review found no blocking product defect, but identified weaker
 
 - [ ] GA1 / G1: actual remaining macOS native workflows and TTY failure paths pass, without changing pending-composition semantics merely to satisfy a test.
 - [ ] GA2 / G2: final changed products build/start from tracked-only inputs, with matching resources, dumps, signatures and trial instructions.
-- [ ] GA3 / G3: exact requested compatibility cases and latest-stable scope evidence pass with preserved identities, timings, failures and explicit limits.
+- [ ] GA3 / G3: meet the100% compatibility requirement against the installed stable baseline, with a complete declared behavior/feature matrix, no waived known differences, preserved case identities/timings/failures and no uncovered/blocked scope relabelled as passed.
 - [ ] GA4 / G4: approved modernization/retirement matrix implemented; required readers/workflows work, every cleanup report and recovery identity committed.
 - [ ] GA5 / G5: real attribution/survival/phase/pause data supports the later choices; load, full samples, memory and uncertainty are explicit.
 - [ ] GA6 / G6: actual native/compiler/interpreter prototype or implementation has complete semantic and performance evidence and an honest integrate/reject outcome; no unsupported shipped-feature claim.
 - [ ] GA7 / G7: actual collector candidate has a complete root/store/barrier argument, stress/compatibility/performance evidence and integrate/reject outcome; rejected work does not become a claimed generational feature.
-- [ ] GA8 / all: independent final review, actual usable macOS package, clean tracked worktree, verified signed commits and remote branch receipt; all known failures and remaining unverified scope stated.
+- [ ] GA8 / all: measured actual performance improvement against the authorized installed stable baseline, with stability/memory/GC latency comparisons and no unresolved important regressions; independent final review, actual usable macOS package, clean tracked worktree, verified signed commits and remote branch receipt. Known failures/unverified scope keep their corresponding requirement open; research rejection alone does not complete the Goal.
 
 Lock/permission/toolchain/policy questions block only dependent work. Continue independent authorized work, keep the same checklist and never call an unfinished native workflow passed. Ask a concise concrete question only when a real user decision is required; do not repeat old authorizations. Goal completion requires all required outcomes and the explicitly research-scoped outcomes above; no budget/blocked status or document-only update substitutes for evidence.
 
