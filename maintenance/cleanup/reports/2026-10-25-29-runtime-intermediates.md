@@ -1,0 +1,9 @@
+# CLN-20261025-29: archive stopped D11 compiler intermediates
+
+Only regular generated translation-unit copies, object/archive files and incremental compiler cache members in the stopped D11 attempt are selected. Both actual normal/checking link failures, original frozen inputs, configuration/JSON and logs, any executable/dump/resource tree, and the separately retained build-owner executable remain expanded. The current source worktree, trial apps, installed tools/reference and live D12 build are excluded.
+
+The [manifest](../manifests/2026-10-25-29-runtime-intermediates.json) records every selected logical member and its hash/bytes. A retained private exact-path ledger maps aliases to original paths. Before removal, every archive member is read and hashed, and representative generated Rust/object/archive content is actually restored and checked. Restore only to exact owned paths using that ledger, never extract logical aliases as product paths. Original source input hashes and current source/trial identities are protected. This does not claim a repaired or regenerated product, hardlink topology preservation, or unique physical-volume recovery.
+
+Status: prepared before expanded removal. D11 compilation passed for both162-unit legs, but both real links failed with eight unresolved symbols. Original failures are preserved; D12 remains the active build. No source, original fixture, logs, receipts, linked product or other conversation artifact is deleted.
+
+Completed: 9883 expanded files, 437888198 logical bytes and 458297344 pre-removal allocated bytes; verified persistent archives occupy 116517819 bytes. All selected expanded files are absent, and all 7433 protected content hashes are unchanged. Current source and trial products are preserved; no product repair, compatibility or performance acceptance is inferred.
