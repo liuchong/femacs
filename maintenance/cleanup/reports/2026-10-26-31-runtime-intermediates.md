@@ -1,0 +1,9 @@
+# CLN-20261026-31: archive stopped D13 compiler intermediates
+
+Only regular generated translation-unit copies, object/archive members, incremental compiler cache members and GNU link archives from the stopped D13 attempt are selected. Selection is confined to the old object, Cargo and load directories. Original frozen source inputs, configuration/JSON, failure logs, executable/dump/resource trees and the separately retained driver are preserved. D14 and all current source, trial apps, installed tools/reference and other conversations are excluded.
+
+The [manifest](../manifests/2026-10-26-31-runtime-intermediates.json) binds each logical archive member to its hash/bytes; the retained private ledger maps exact original paths. Every archive member is read and hashed before expanded removal, and representative Rust/object/archive members are actually restored and checked. Restore only to exact owned paths using that ledger. Original frozen inputs and current source/trial identities are protected. File-content recovery does not promise hardlink topology or exact physical-volume recovery.
+
+Status: prepared before expanded removal. D13 compiled/linked both combined lanes but normal manual export and checked bootstrap failed independently; later baseline was interrupted. Those failures are preserved. D14 has since built its first two configurations, but that does not turn D13 into a passed run or imply whole native/GC/performance acceptance.
+
+Completed: 9433 expanded files, 333865449 logical bytes and 353431552 pre-removal allocated bytes; verified persistent archives occupy 81343310 bytes. All selected expanded files are absent, and all 7596 protected content hashes are unchanged. Current source and trial products are preserved; no product repair, compatibility or performance acceptance is inferred.
