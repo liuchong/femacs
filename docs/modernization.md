@@ -608,3 +608,8 @@ Cleanup records: [CLN-20261024-05](../maintenance/cleanup/reports/2026-10-24-05-
 Private raw evidence: `build/acceptance/stage4-final-baseline`, `stage4-profile-final`, `stage4-local-1`, `stage4-gui-cancel-2`, `stage4-ime-multi-6`, `stage4-ime-multi-7`, `stage4-drag-1`, `stage4-cold-1` and the two `stage4-*-build-2.log` files. They retain process/host details and are not committed. Stage IV's native acceptance stays open until the missing real workflows pass; the delivered tools/build/profile results must not be described as completing all Stage IV acceptance.
 
 Final path/prose review removed three CLI help wording violations and replaced a literal profiling cwd with its isolated owned HOME. Affected profile rerun retained42+7 samples, stable13 artifact identities and cleanup success; quiet=false at load/core1.0180, recorded separately in `runtime-modernization.md`. No GUI/ERT rerun was implied by those text/cwd changes. Prose gate then reports zero failures; final component CLI7/7, cleanup identities/links and recovery4/4 pass. Staged path candidates were semantically reviewed (dynamic historical placeholders, prose/API notation, relative joins and interpreter directives), with private machine/session identifiers excluded.
+
+
+### 每轮构建与验收后的清理出口（2026-10-26）
+
+本目标后续每轮运行结束后，先确认归属进程退出并提取最小日志、失败原因、输入/产品身份和回执，再立即清理已无消费者的编译缓存、生成副本及被取代候选。需要继续验收或恢复的候选保留到用途结束；独有未提交源和真实失败证据不能当作缓存。源导出仅含声明输入，不能顺带复制旧build/cache/dist树；不以压缩保存全部旧缓存替代清理。每批仍提交独立报告/逐项身份、更新台账和本地占用读数，保留当前WIP，不触发远端CI。本次执行记录见[CLN-20261026-32至35](../maintenance/cleanup/LOG.md)。

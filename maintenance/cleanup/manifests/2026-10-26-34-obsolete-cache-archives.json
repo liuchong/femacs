@@ -1,0 +1,86 @@
+{
+  "schema": "femacs-obsolete-cache-archive-cleanup-v1",
+  "id": "CLN-20261026-34",
+  "status": "complete",
+  "files": [
+    {
+      "path": ".femacs-cache/runtime-cleanup-1/D6-intermediates.tar.gz",
+      "sha256": "95f126e1e93abe6359748c0e84be2bcf1e633903629642991f695b4cf79944e8",
+      "bytes": 114018829,
+      "allocated_bytes": 114020352,
+      "mode": 420,
+      "original_members": 13083,
+      "prior_cleanup": 27
+    },
+    {
+      "path": ".femacs-cache/runtime-cleanup-1/D8-intermediates.tar.gz",
+      "sha256": "1e7f809456134025794e2488683a38216276493183e88bcc1d840497a8cbd94f",
+      "bytes": 274159234,
+      "allocated_bytes": 274161664,
+      "mode": 420,
+      "original_members": 31543,
+      "prior_cleanup": 27
+    },
+    {
+      "path": ".femacs-cache/runtime-cleanup-2/D9-intermediates.tar.gz",
+      "sha256": "aa089ce17682461cd08d497d8ff6074dd2a759e644bba585e1ba2f192ff19b55",
+      "bytes": 84288332,
+      "allocated_bytes": 84291584,
+      "mode": 420,
+      "original_members": 9717,
+      "prior_cleanup": 28
+    },
+    {
+      "path": ".femacs-cache/runtime-cleanup-2/D10-intermediates.tar.gz",
+      "sha256": "77dccf39063f45084453a07a1b54df9462acf15b0c80a9b9d7a4ea06e38b7333",
+      "bytes": 237091457,
+      "allocated_bytes": 237092864,
+      "mode": 420,
+      "original_members": 24008,
+      "prior_cleanup": 28
+    },
+    {
+      "path": ".femacs-cache/runtime-cleanup-3/D11-intermediates.tar.gz",
+      "sha256": "c69343557e8e720015d0242ef699ec0efe852df4364a49fba723689e17060294",
+      "bytes": 116517819,
+      "allocated_bytes": 116518912,
+      "mode": 420,
+      "original_members": 9883,
+      "prior_cleanup": 29
+    },
+    {
+      "path": ".femacs-cache/runtime-cleanup-4/D12-intermediates.tar.gz",
+      "sha256": "9f84b52de7820a737eab75c05fd84965faca2560cc800442b02e73991d29f9ed",
+      "bytes": 40361952,
+      "allocated_bytes": 40361984,
+      "mode": 420,
+      "original_members": 4717,
+      "prior_cleanup": 30
+    },
+    {
+      "path": ".femacs-cache/runtime-cleanup-5/D13-intermediates.tar.gz",
+      "sha256": "374b2ebfdb0eb14900725c5384536ca2354d4d7f3a22f1409c50cb84fdfa0990",
+      "bytes": 81343310,
+      "allocated_bytes": 81346560,
+      "mode": 420,
+      "original_members": 9433,
+      "prior_cleanup": 31
+    }
+  ],
+  "logical_bytes": 947780933,
+  "allocated_bytes": 947793920,
+  "protected_ledgers": {
+    ".femacs-cache/runtime-cleanup-1/ledger.json": "655ff377a8005f1aa300598ec1f011594debec4787c39eff144f3b706bd2e011",
+    ".femacs-cache/runtime-cleanup-2/ledger.json": "c269e72fa5da81d7e10af8c041b78cf8f069f656facd3a2cbf858b17db7404a1",
+    ".femacs-cache/runtime-cleanup-3/ledger.json": "de27baa1a35775e012b6f3a729c7e78166db4915a09416362e3a360a090b75a8",
+    ".femacs-cache/runtime-cleanup-4/ledger.json": "2e2871a69083bca690598678d29326984f41da681bb069dde4f30cd7b4a94980",
+    ".femacs-cache/runtime-cleanup-5/ledger.json": "87179d2f12d79bb4de6694f444bdee3e1d276cf41bfe5e0c24fa1675a96ac830"
+  },
+  "time_prepared": 1792997676.771513,
+  "source_ref": "227d1ae8bd3b1858d949dfdeedae0cdb6bf3ca1a",
+  "exact_byte_recovery_after_deletion": false,
+  "rebuild_from_retained_sources": true,
+  "all_selected_absent": true,
+  "protected_ledgers_unchanged": true,
+  "time_completed": 1792997678.089731
+}
