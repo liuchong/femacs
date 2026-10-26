@@ -1750,3 +1750,22 @@ per leg are independently verified. Its process returns0 in1875.500seconds
 with no descendants left. This is a bounded dumper repair, not acceptance
 of the full runtime worktree, all Cocoa configurations, compatibility or
 performance. The running cohort and unrelated pending changes are retained.
+
+
+## P-376: reclaim consumed build outputs at each run boundary (2026-10-26)
+
+A completed or stopped acceptance directory is not permanent storage for all
+of its generated resources, compiler intermediates or retired packages.
+After owned processes exit, record the smallest useful failure/output/input
+identities and check actual remaining consumers. Immediately reclaim consumed
+outputs while retaining unique source, active products and necessary evidence.
+Historical retention path lists are not perpetual exemptions; archive only
+specific recovery evidence, not every obsolete cache. Each batch has an exact
+identity/size/action manifest, recovery limits, retention checks and a signed
+cleanup report/ledger entry. This does not authorize other tasks' resources.
+
+CLN-20261026-36 retires generated outputs from the stopped D14/D18/D20/D21
+matrices. Original frozen source and receipts remain, including canonical
+inputs used by earlier duplicate-copy recovery maps. D20/D21 failures remain
+failures; retiring their raw generated products does not pass new runtime
+acceptance. See the batch report for verified counts and current disk usage.
