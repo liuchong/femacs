@@ -23256,3 +23256,8 @@ D22普通版编译163单元、零未解析符号、最终dump与真实v2产品�
 ### 2026-10-27: consumed pilot evidence exit, CLN49
 
 Two completed bounded-driver pilots retain their actual failures and results. The repaired bridge passed116 original ERT executions across installed control/current candidate, plus deliberate failure/skip and timeout/not-run accounting. Its successful-file exit reclaimed1 generated cache immediately. After both pilots exited,3072 duplicate materialized original inputs were retired with durable per-file manifests, while1536 canonical inputs and69 raw evidence files stayed hash-identical. Combined3073 files/42028000 logical bytes; see CLN49 in maintenance/cleanup/LOG.md. The live separately protected D24-product followup is outside this deletion scope. This checkpoint is not full-corpus/GC/performance/native-UI acceptance; whole Goal remains active.
+
+
+### 2026-10-27: per-case relocation retirement, CLN50/51
+
+The current frozen followup completed60 relocation profiles and retired179958 consumed package members (11962942294 logical bytes,12394385408 allocated bytes); these were generated and reclaimed during the run, not a further12GB reduction from an earlier disk checkpoint. All raw ledgers match, work packages are absent and original products remain. The executed ledger-close-only durability gap is explicit in CLN50. The separate P385 working-tree maintenance repair passed4 real filesystem integration and2 subsequent protective cases; its normal fixture retirement accounts for only3 members/648 logical bytes (CLN51). No power loss was simulated, no product acceptance was repeated and no runtime implementation is claimed delivered by these cleanup reports. Reports/manifests: maintenance/cleanup/LOG.md.

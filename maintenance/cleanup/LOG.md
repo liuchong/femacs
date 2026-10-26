@@ -74,6 +74,10 @@
 
 | CLN-20261027-49 | 2026-10-27 | Reclaimed3072 consumed pilot input copies and1 generated cache;42028000 logical bytes | Original1536 inputs and69 raw evidence files unchanged; live full followup untouched | [Identity/recovery/scope](reports/2026-10-27-49-consumed-pilot-inputs.md) |
 
+| CLN-20261027-50 | 2026-10-27 | Retired179958 consumed relocation members over60 profiles,11962942294 logical bytes | Every work copy absent, raw ledger SHA verified; originals retained. Executed old fsync gap disclosed; later P385 repair separate | [Identity/recovery/scope](reports/2026-10-27-50-d25-relocation.md) |
+
+| CLN-20261027-51 | 2026-10-27 | P385 filesystem integration removes3 owned fixture members,648 logical bytes | External sentinel unchanged; real sync-error/open-FD controls retained. Four integration and2 subsequent unit cases pass | [Identity/recovery/scope](reports/2026-10-27-51-p385-fixture.md) |
+
 每份报告本次归档提交通过 `git log --follow -- maintenance/cleanup/reports/文件名.md` 定位；这是报告的Git溯源，不把较早的源码/摘要提交误写为本次归档提交。未来新增批次先取得新编号并追加本表，不复用或覆盖旧编号。
 
 非计划删除另记[2026-10-25 G4产物丢失事件](../incidents/2026-10-25-g4-build-artifact-loss.md)：删除者未知，不算作已授权清理批次，也不虚构恢复或仍保有产物。
