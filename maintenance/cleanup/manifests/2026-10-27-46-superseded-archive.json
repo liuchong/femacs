@@ -1,0 +1,28 @@
+{
+  "schema": "femacs-superseded-content-archive-v1",
+  "source_ref": "a6e11ed44e8dafb8b158751ad1fbd7668c963a3d",
+  "removed": {
+    "path": "build/acceptance/runtime-d24-repaired-cohort/artifact-content.tar.gz",
+    "sha256": "bfb575d9fca4fa15f593288dcc52972414178a30f9966bd3b8c421c09caaf0a3",
+    "bytes": 590461454,
+    "allocated_bytes": 590462976,
+    "mode": 420,
+    "dev": 16777230,
+    "ino": 381717230,
+    "mtime": 1793035751261662516
+  },
+  "retained": {
+    "path": "build/acceptance/runtime-d24-prepare-1/artifact-content.tar.gz",
+    "sha256": "3db7107d6bbc16be607b7ea62fd64aa62f8d0887a3290a18471dca643be0705b",
+    "bytes": 603244378,
+    "allocated_bytes": 603246592,
+    "mode": 420,
+    "dev": 16777230,
+    "ino": 381763843,
+    "mtime": 1793037563136141901
+  },
+  "old_members": 10770,
+  "retained_members": 14015,
+  "all_content_verified": true,
+  "full_coverage": true
+}
