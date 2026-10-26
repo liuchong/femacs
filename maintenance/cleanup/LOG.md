@@ -72,6 +72,8 @@
 
 | CLN-20261027-48 | 2026-10-27 | 回收40次已消费手册导出的15240份重复源文件，逻辑999739600字节 | 对应381份冻结原输入，8744份保留内容哈希不变；Info、回执、日志及产品资源均保留 | [身份/恢复/边界](reports/2026-10-27-48-manual-input-copies.md) |
 
+| CLN-20261027-49 | 2026-10-27 | Reclaimed3072 consumed pilot input copies and1 generated cache;42028000 logical bytes | Original1536 inputs and69 raw evidence files unchanged; live full followup untouched | [Identity/recovery/scope](reports/2026-10-27-49-consumed-pilot-inputs.md) |
+
 每份报告本次归档提交通过 `git log --follow -- maintenance/cleanup/reports/文件名.md` 定位；这是报告的Git溯源，不把较早的源码/摘要提交误写为本次归档提交。未来新增批次先取得新编号并追加本表，不复用或覆盖旧编号。
 
 非计划删除另记[2026-10-25 G4产物丢失事件](../incidents/2026-10-25-g4-build-artifact-loss.md)：删除者未知，不算作已授权清理批次，也不虚构恢复或仍保有产物。
