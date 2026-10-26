@@ -23208,3 +23208,16 @@ reviewer is currently idle after the completed source review; rule adoption is
 pending its next natural source/result handoff rather than an ACK-only model
 run alongside an unknown heavy build. The running Goal's status-only interface
 cannot replace its old objective text, so that text is not claimed synchronized.
+
+P-368 checked Cocoa dumper repair (2026-10-26): actual copied Swift subr
+ordering is corrected without weakening the already-dumped invariant.
+A preserved old checking replay aborts; repaired checked dump/reload with
+primitive bindings, evaluation and fullGC passes. The first source-bound
+combined Cocoa configuration now builds both normal/checking products0
+in1875.500seconds; independent file readback verifies6 program/dump files,
+173 linked inputs/archive,4 resource groups and68 manuals per leg. The
+native relocation global read is also explicitly unsafe for compilation,
+with unchanged equality assertion. Independent source/result review finds
+no blocker. Other runtime work remains unaccepted; the ongoing complete
+cohort and original trial App are preserved. No full compatibility or
+performance claim follows from this repair.

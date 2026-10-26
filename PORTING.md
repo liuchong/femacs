@@ -1713,3 +1713,40 @@ The project entry and unique plan carry this precedence; older persisted Goal
 text cannot be edited through the current status-only API and is not claimed
 synchronized. Notify the existing reviewer at its next natural authorized
 source/result handoff and verify adoption; no extra member or ACK-only run.
+
+## P-368: order Cocoa copied builtins before referring symbols (2026-10-26)
+
+Passive replay identifies builtin symbol index2086, `x-hide-tip`,
+field24 (`function`). Its target is the genuine primitive subr still marked
+ON_COPIED_QUEUE(-5), not an unseen heap object. Actual linked symbols put
+`lispsym` in `__common` before Swift's `Sx_hide_tip` in `__bss`. Pure address
+sorting therefore emits the referring symbol before its primitive record.
+The existing checking assertion requires a positive dump offset; do not
+weaken or disable it, change queue markers, or skip the function field.
+
+For Cocoa only, sort copied primitive subrs before the remaining copied
+objects, retaining address order within both groups. This removes reliance
+on the mixed Rust/Swift section placement. Existing complete heap scans,
+all fields, fixups, copy records and strict already-dumped assertion remain;
+final copy relocation descriptors are independently sorted by destination
+and retain explicit source offsets. Other target configurations retain the
+original address comparator. Corrected actual checked bootstrap/reload and
+whole-product/native/GC validation remain required; source reasoning is not
+acceptance. Preserve the old failing replay, original frozen image and
+ordinary product. The same independent partner must examine this concrete
+cause and repair, and may reject the reasoning.
+
+The native relocation assertion also places its existing global-symbol
+read inside the unsafe expression required by checked compilation. It
+retains the same equality check and value.
+
+Validation in the source-bound runtime worktree: the preserved original
+checked replay aborts at the copied-subr reference; the repaired checked
+image dumps/reloads and verifies primitive bindings, evaluation and one
+fullGC. D18's first combined Cocoa configuration then completes both normal
+and checking products with the strict assertion unchanged: six program/dump
+identities,173 linked inputs/archive, four resource groups and68 manuals
+per leg are independently verified. Its process returns0 in1875.500seconds
+with no descendants left. This is a bounded dumper repair, not acceptance
+of the full runtime worktree, all Cocoa configurations, compatibility or
+performance. The running cohort and unrelated pending changes are retained.

@@ -3773,10 +3773,9 @@ fn dump_metadata_for_pdumper (ctx: *mut dump_context)
 fn dump_sort_copied_objects (ctx: *mut dump_context)
 {
   let queue_reversed: Lisp_Object = unsafe { Fnreverse ((*ctx).copied_queue) };
-  /* Sort the objects into the order in which they'll appear in the
-     Emacs: this way, on startup, we'll do both the IO from the dump
-     file and the copy into Emacs in-order, where prefetch will be
-     most effective.  */
+  /* Sort by address for sequential IO/copy, except that Cocoa's mixed
+     Rust/Swift section placement requires primitive subrs first (P-368).
+     Address order is retained within both groups.  */
   unsafe {
     (*ctx).copied_queue
       = CALLN! (Fsort, queue_reversed,
@@ -3822,12 +3821,11 @@ fn dump_drain_copied_objects (ctx: *mut dump_context)
        in the dump.  */
     set_flag! ((*ctx).flags.bits, DUMP_FLAGS_RECORD_OBJECT_STARTS, false);
 
-    /* Dump the objects and generate a copy relocation for each.  Don't
-       bother trying to reduce the number of copy relocations we
-       generate: we'll merge adjacent copy relocations upon output.
-       The overall result is that to the greatest extent possible while
-       maintaining strictly increasing address order, we copy into Emacs
-       in nice big chunks.  */
+    /* Dump the objects and generate a copy relocation for each.  Final
+       relocation output sorts by destination and merges only adjacent
+       source/destination ranges.  Cocoa's primitive-first exception keeps
+       address order within each group; it need not be globally monotonic.
+       Every copy retains its explicit source offset (P-368).  */
     while !NILP (copied_queue)
       {
         let copied: Lisp_Object = dump_pop (&mut copied_queue);
@@ -4918,6 +4916,18 @@ DEFUN! ("dump-emacs-portable--sort-predicate-copied",
        {
 	 eassert! (!dump_object_emacs_ptr (a).is_null ());
 	 eassert! (!dump_object_emacs_ptr (b).is_null ());
+         // Cocoa's Swift builtin records live in bss, which may follow
+         // lispsym.  Dump those referents before symbols read their function
+         // fields; address order alone would violate ASSERT_ALREADY_SEEN.
+         // Copy relocations retain explicit source offsets and are sorted
+         // separately by destination.  P-368 preserves the strict invariant.
+         #[cfg (feature = "have_ns")]
+         {
+           let a_subr = SUBRP (a) && !NATIVE_COMP_FUNCTIONP (a);
+           let b_subr = SUBRP (b) && !NATIVE_COMP_FUNCTIONP (b);
+           if a_subr != b_subr
+             { return if a_subr { Qt () } else { Qnil () }; }
+         }
 	 return if dump_object_emacs_ptr (a) < dump_object_emacs_ptr (b) { Qt () } else { Qnil () };
        });
 
@@ -6241,7 +6251,7 @@ fn dump_do_dump_relocation (dump_base: uintptr_t, reloc: dump_reloc)
 	    XSETSUBR! (tem, subr);
 	    let fixup: *mut Lisp_Object =
 	      unsafe { (*comp_u).data_relocs.offset (XFIXNUM (lambda_data_idx)) };
-	    eassert! (EQ (unsafe { *fixup }, Vcomp__hashdollar));
+        eassert! (unsafe { EQ (*fixup, Vcomp__hashdollar) });
 	    unsafe { *fixup = tem; }
 	    unsafe { Fputhash (tem, Qt (), (*comp_u).lambda_gc_guard_h); }
 	  }
