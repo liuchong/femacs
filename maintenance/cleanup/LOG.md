@@ -78,6 +78,10 @@
 
 | CLN-20261027-51 | 2026-10-27 | P385 filesystem integration removes3 owned fixture members,648 logical bytes | External sentinel unchanged; real sync-error/open-FD controls retained. Four integration and2 subsequent unit cases pass | [Identity/recovery/scope](reports/2026-10-27-51-p385-fixture.md) |
 
+| CLN-20261027-52 | 2026-10-27 | Retired6 superseded Android APK/library files,263789634 logical bytes | Current version10 and Mac programs/old identity receipts unchanged; no new product test | [Identity/recovery/scope](reports/2026-10-27-52-superseded-android.md) |
+
+| CLN-20261027-53 | 2026-10-27 | Retired11963 consumed diagnostic/relocation App files,615402920 logical bytes | Original logs/receipts and current trial/release Apps preserved; explicit rebuild/copy restoration | [Identity/recovery/scope](reports/2026-10-27-53-consumed-app-copies.md) |
+
 每份报告本次归档提交通过 `git log --follow -- maintenance/cleanup/reports/文件名.md` 定位；这是报告的Git溯源，不把较早的源码/摘要提交误写为本次归档提交。未来新增批次先取得新编号并追加本表，不复用或覆盖旧编号。
 
 非计划删除另记[2026-10-25 G4产物丢失事件](../incidents/2026-10-25-g4-build-artifact-loss.md)：删除者未知，不算作已授权清理批次，也不虚构恢复或仍保有产物。

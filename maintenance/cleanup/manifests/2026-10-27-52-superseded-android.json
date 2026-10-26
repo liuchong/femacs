@@ -1,0 +1,96 @@
+{
+  "id": "CLN-20261027-52",
+  "source_ref": "a3e1c93ca15a5ac10031f1165adf33ba6ced203c",
+  "planned_at": 1793050820.810665,
+  "reason": "Superseded unaccepted candidates; retained release uses g4-android-10",
+  "files": [
+    {
+      "path": "dist/candidates/g4-android-8/femacs.apk",
+      "kind": "regular-file",
+      "sha256": "b1e629b4785262f6196d6795d2f3ceb7ec6a002384fa85c5de9b845981ddb273",
+      "declared_sha256": "b1e629b4785262f6196d6795d2f3ceb7ec6a002384fa85c5de9b845981ddb273",
+      "declared_matches_actual": true,
+      "logical_bytes": 119969573,
+      "allocated_bytes": 119971840,
+      "mode": 420,
+      "source_inputs_sha256": "73313561ecad248febb4cc17a9c2e3ff2e11e2a407c59ef221d94c8deac4627e",
+      "replacement": "dist/candidates/g4-android-10/femacs.apk",
+      "restore": "rebuild only; no exact historical binary restoration promised"
+    },
+    {
+      "path": "dist/candidates/g4-android-8/libemacs.so",
+      "kind": "regular-file",
+      "sha256": "dc14415195b7d203a0fbc5bf03e79be623d5475f40fe00e491e42a6c41319dc4",
+      "declared_sha256": "dc14415195b7d203a0fbc5bf03e79be623d5475f40fe00e491e42a6c41319dc4",
+      "declared_matches_actual": true,
+      "logical_bytes": 5448688,
+      "allocated_bytes": 5451776,
+      "mode": 493,
+      "source_inputs_sha256": "73313561ecad248febb4cc17a9c2e3ff2e11e2a407c59ef221d94c8deac4627e",
+      "replacement": "dist/candidates/g4-android-10/libemacs.so",
+      "restore": "rebuild only; no exact historical binary restoration promised"
+    },
+    {
+      "path": "dist/candidates/g4-android-8/libemacs-checking.so",
+      "kind": "regular-file",
+      "sha256": "6337803f88708c90f336cf0b4b24c875d73c57f2be00b7d95a2ed9c4aed14068",
+      "declared_sha256": "6337803f88708c90f336cf0b4b24c875d73c57f2be00b7d95a2ed9c4aed14068",
+      "declared_matches_actual": true,
+      "logical_bytes": 6476648,
+      "allocated_bytes": 6479872,
+      "mode": 493,
+      "source_inputs_sha256": "73313561ecad248febb4cc17a9c2e3ff2e11e2a407c59ef221d94c8deac4627e",
+      "replacement": "dist/candidates/g4-android-10/libemacs-checking.so",
+      "restore": "rebuild only; no exact historical binary restoration promised"
+    },
+    {
+      "path": "dist/candidates/g4-android-9/femacs.apk",
+      "kind": "regular-file",
+      "sha256": "e2f0c93053ecf823fa43f8582de987a5294003bc80dda5df35e7848e95e1da47",
+      "declared_sha256": "e2f0c93053ecf823fa43f8582de987a5294003bc80dda5df35e7848e95e1da47",
+      "declared_matches_actual": true,
+      "logical_bytes": 119969573,
+      "allocated_bytes": 119971840,
+      "mode": 420,
+      "source_inputs_sha256": "274647bf920b5c4db7050c704de7e205ff643fec686e3e017b389b25b7b9c95b",
+      "replacement": "dist/candidates/g4-android-10/femacs.apk",
+      "restore": "rebuild only; no exact historical binary restoration promised"
+    },
+    {
+      "path": "dist/candidates/g4-android-9/libemacs.so",
+      "kind": "regular-file",
+      "sha256": "c3abe1125923698fdf28739c20f4f102a8368596ca674228c4d174e776e0e090",
+      "declared_sha256": "c3abe1125923698fdf28739c20f4f102a8368596ca674228c4d174e776e0e090",
+      "declared_matches_actual": true,
+      "logical_bytes": 5448592,
+      "allocated_bytes": 5451776,
+      "mode": 493,
+      "source_inputs_sha256": "274647bf920b5c4db7050c704de7e205ff643fec686e3e017b389b25b7b9c95b",
+      "replacement": "dist/candidates/g4-android-10/libemacs.so",
+      "restore": "rebuild only; no exact historical binary restoration promised"
+    },
+    {
+      "path": "dist/candidates/g4-android-9/libemacs-checking.so",
+      "kind": "regular-file",
+      "sha256": "c5437ea8c83972947932b8dafd1b1250a53dc3e61aa5847772bc0e942d0376bd",
+      "declared_sha256": "c5437ea8c83972947932b8dafd1b1250a53dc3e61aa5847772bc0e942d0376bd",
+      "declared_matches_actual": true,
+      "logical_bytes": 6476560,
+      "allocated_bytes": 6479872,
+      "mode": 493,
+      "source_inputs_sha256": "274647bf920b5c4db7050c704de7e205ff643fec686e3e017b389b25b7b9c95b",
+      "replacement": "dist/candidates/g4-android-10/libemacs-checking.so",
+      "restore": "rebuild only; no exact historical binary restoration promised"
+    }
+  ],
+  "protected_before": {
+    "dist/candidates/g4-android-8/identities.json": "dd325b9b4f039010e84eb1718357ace013ee637d3f33b5a1396ddb4f611498c7",
+    "dist/candidates/g4-android-9/identities.json": "66d1f337d16145c7b685e659431e7b450a19818cf32fe5b5bf9c1db474e4c8f9",
+    "dist/candidates/g4-android-10/identities.json": "f25fa4c2998addffc4059c17e151ac163fee61a0e1497c7c9d4f769b671fca25",
+    "dist/candidates/g4-android-10/femacs.apk": "ed2ca84b00f2fc31a09c68ba32ee209b69d5024dbf4b81bd88bc61fd7bc8da73",
+    "dist/candidates/g4-android-10/libemacs.so": "f8cde15b4dc8010c61b07f2219b2e3b1db2051e377d642b0e896994903f08bd2",
+    "dist/candidates/g4-android-10/libemacs-checking.so": "9f87869050c88ac69c5cb942981584a45fb245d3b169cd3ad6c8e4fefdf3a249",
+    "dist/macos/Femacs.app/Contents/MacOS/Femacs": "a4d2bec6b4546340c4c2eb35e2b81d86f02e1b1f231b5307d45820cffc90b1e9",
+    "dist/candidates/g4-macos-2/Femacs.app/Contents/MacOS/Femacs": "2caf5cf997fffb646be5558d573ae19e91ded50af7fe121356ccb62eb43f8559"
+  }
+}
