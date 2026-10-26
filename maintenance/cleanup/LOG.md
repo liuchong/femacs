@@ -82,6 +82,8 @@
 
 | CLN-20261027-53 | 2026-10-27 | Retired11963 consumed diagnostic/relocation App files,615402920 logical bytes | Original logs/receipts and current trial/release Apps preserved; explicit rebuild/copy restoration | [Identity/recovery/scope](reports/2026-10-27-53-consumed-app-copies.md) |
 
+| CLN-20261027-54 | 2026-10-27 | 回收11632份已消费dump/native镜像与负面夹具副本，1230580584逻辑字节 | 7144项保留内容哈希不变，原始准备夹具和当前候选不动；恢复须先生成独占工作制品 | [身份/恢复/边界](reports/2026-10-27-54-consumed-case-artifacts.md) |
+
 每份报告本次归档提交通过 `git log --follow -- maintenance/cleanup/reports/文件名.md` 定位；这是报告的Git溯源，不把较早的源码/摘要提交误写为本次归档提交。未来新增批次先取得新编号并追加本表，不复用或覆盖旧编号。
 
 非计划删除另记[2026-10-25 G4产物丢失事件](../incidents/2026-10-25-g4-build-artifact-loss.md)：删除者未知，不算作已授权清理批次，也不虚构恢复或仍保有产物。
