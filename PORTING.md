@@ -1940,3 +1940,34 @@ same case against the installed reference and the unchanged current candidate.
 Fix the observer's buffered-log read, bind all fixture/helper/program/dump
 inputs, and isolate HOME/XDG/temp paths. Do not patch the editor or ignore a
 configuration difference to make the test pass. Earlier failures remain.
+
+### P-403: retained evidence storage trial rejected without replacement (2026-10-28)
+
+Old D24 JSON receipts remain required historical evidence. A source-verified,
+idle-scope trial used the installed native file-copy tool's documented
+filesystem compression on one owned diagnostic copy. The command returned
+zero and ordinary reads matched the original bytes, SHA and permissions,
+but allocated blocks did not decrease and the compressed flag was absent.
+Reject this trial; do not infer that a requested option compressed a file.
+None of the166 planned original records was replaced: each retained its
+inode, bytes, SHA and permissions, and all frozen source/metadata stayed equal.
+The redundant diagnostic copy was retired with its pre-delete identity ledger.
+This changes no editor behavior or acceptance requirement and does not adopt
+a storage-compression policy. The proposed broader action was not executed.
+
+### P-404: content-addressed retention of idle historical JSON evidence (2026-10-28)
+
+After P403 produced no storage reduction, retain the exact166 already-verified
+large JSON receipts from old D24 in a local content-addressed gzip/tar evidence
+package. This selects historical metadata only, not compiler caches, source,
+current candidates, raw stdout/stderr or failure logs. Verify every unique
+member by streamed decompression, byte count and SHA, bind every original path
+through a private exact ledger and public path-hash manifest, fsync the package
+and pre-delete ledger, then retire only the same original inode identities.
+Original record paths become historical; future readers restore through the
+ledger into a new isolated directory and verify the original bytes/mode.
+Keep the evidence package and exact path map private; never publish raw local
+record bodies or machine paths. Failure before complete validation retains all
+originals. Current frozen source/products and acceptance requirements do not
+change. Do not call this full-cache archiving or a successful transparent
+filesystem compression trial: P403 remains rejected.
