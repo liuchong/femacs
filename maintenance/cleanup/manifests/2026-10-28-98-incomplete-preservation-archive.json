@@ -1,0 +1,11 @@
+{
+  "schema": 1,
+  "scope": "runtime-d29-recovery-2",
+  "role": "retire-unverified-incomplete-preservation-output",
+  "path": "artifact-content.tar.gz",
+  "sha256": "940e52837222991829ab7494a60c351a0ee2bd5bb0cafe05c80cbcef9467d3ec",
+  "bytes": 671187835,
+  "allocated_bytes": 671191040,
+  "mode": 420,
+  "verified_retained_original_files": 138291
+}
