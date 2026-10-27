@@ -156,3 +156,5 @@
 | CLN-20261028-88 | 2026-10-28 | Compact10 old source containers/2822825012 bytes into reachable Git plus77045704-byte unique-content and24089514-byte mapping stores | All13337 contents actually restored;70104 source mappings checked; identified compiler caches omitted; raw journals/results retained | [Scope and recovery](reports/2026-10-28-88-compacted-source-containers.md) |
 
 | CLN-20261028-89 | 2026-10-28 | D29后续13配置26腿已消费副本124082份、4143469900逻辑字节 | 原操作账本逐项核验；不重计CLN84，当前产品及源保留，发布器无新删除 | [范围与恢复](reports/2026-10-28-89-continuation-generated-copies.md) |
+
+| CLN-20261028-90 | 2026-10-28 | D29完成配置30腿手册暂存12530份、1081451056逻辑字节 | 实际包内Info同字节核验；终端直接引用Info、原回执/日志和当前候选保留 | [范围与恢复](reports/2026-10-28-90-consumed-manual-staging.md) |
