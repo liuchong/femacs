@@ -2,11 +2,11 @@
 
 原生图形版位于 `dist/macos/Femacs.app`，使用 Rust 核心与 Swift Cocoa 实现。当前验收主机为 Apple Silicon、macOS 27.0.1；不宣称其他系统或全部扩展包已兼容。历史二期证据见[施工与验收](phase2-macos.md)，最新本地交付范围见[现代化手册](modernization.md)。
 
-当前图形包包含已实测的多窗口输入修复和 Fe 铸铁ε图标。双窗口中文输入及
+当前图形包包含已实测的多窗口输入修复和 Fe 铸铁F/ε图标。双窗口中文输入及
 B→A→B→A切换已有用户实测确认；最终带图标版本启动、输入和快捷键退出正常。
-发行镜像位于 `dist/releases/fe-iron/Fe-macos.dmg`。本地包为ad-hoc签名，未公证。
+发行镜像位于 `dist/releases/fe-iron-f/Fe-macos.dmg`。本地包为ad-hoc签名，未公证。
 详见[输入修复](../maintenance/incidents/2026-10-27-multiframe-input.md)及
-[当前发行记录](../maintenance/releases/2026-10-27-fe-artwork-packaging.md)。
+[当前发行记录](../maintenance/releases/2026-10-27-fe-f-epsilon.md)。
 
 从仓库根试用图形版：
 

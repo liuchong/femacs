@@ -108,3 +108,5 @@
 | CLN-20261027-63 | 2026-10-27 | Retired8153 consumed receiver-build/cache and failed-copy files,357814435 logical bytes | All16015 retained input/product/evidence identities unchanged; current native/release apps preserved | [Identity/recovery/scope](reports/2026-10-27-63-consumed-multiframe-build-caches.md) |
 
 | CLN-20261027-64 | 2026-10-27 | Retired2 rejected uncommitted SVG masters plus23363 consumed generated/cache/intermediate files,1584540183 cache logical bytes | Exact backups and per-file manifest; fsync gap on initial SVG retirement disclosed; all16013 retained identities unchanged | [Identity/recovery/scope](reports/2026-10-27-64-artwork-and-consumed-release-caches.md) |
+
+| CLN-20261027-65 | 2026-10-27 | Retired6812 consumed packaging/test/cache/superseded release files, 508068131 logical bytes | Durable identity manifest; all5980 retained identities unchanged; current F/epsilon delivery preserved | [Scope and recovery](reports/2026-10-27-65-consumed-f-artwork-outputs.md) |
