@@ -23345,3 +23345,27 @@ Current trial/release products, design drafts and original failures remain;
 the exact small preview driver is retained independently from compiler caches.
 Both reports are linked in `maintenance/cleanup/LOG.md`. Full Goal remains
 active; terminal restoration and the remaining stable-stage coverage continue.
+
+### 2026-10-27: current terminal restoration and native menu evidence
+
+Current P393 terminal normal workflows are28/28:27 unchanged passing key/file
+cases are reused by exact product/fixture/helper identities, and the missing
+restoration case now runs in a persistent owning PTY supervisor. Both installed
+reference31.1 and current463a41e0/f08f0806 candidate restore every setting,
+preserve the raw PENDIN-only state difference, and then pass actual canonical
+input/echo plus exact original raw attributes after further input. Both final
+runs exit0 with complete controller cleanup. Earlier ENOTTY, raw-state and
+buffered-observer failures remain; no editor source patch was made. The existing
+independent partner read the driver/raw observations and adopted this bounded
+result. Reproduction and per-case receipts: `tools/test-terminal-modes.py` and
+`build/acceptance/g1-terminal-mode-restoration-6/results.json`.
+
+P396 menu diagnosis is also closed for its exact older signed App: actual Swift
+body -> eventkind30/code0x10000001 -> save-buffers-kill-emacs -> Fkill_emacs ->
+native/debugger0. No standalone startup thunk proof, unrecorded resource totals
+or current-App menu equivalence is invented.6 error-path TTY cases remain
+separate. See `maintenance/releases/2026-10-27-terminal-and-native-quit.md`.
+Pending-composition cross-frame/cancel/save and full stable-stage compatibility
+remain open. Goal stays active; this does not increase the seven-item completed
+count. Git push has recovered; the previous renderer/cleanup unit092742c0 is
+signed and pushed. Artwork drafts remain outside this acceptance claim.

@@ -2,11 +2,11 @@
 
 原生图形版位于 `dist/macos/Femacs.app`，使用 Rust 核心与 Swift Cocoa 实现。当前验收主机为 Apple Silicon、macOS 27.0.1；不宣称其他系统或全部扩展包已兼容。历史二期证据见[施工与验收](phase2-macos.md)，最新本地交付范围见[现代化手册](modernization.md)。
 
-当前图形包包含已实测的多窗口输入修复和 Fe 铸铁F/ε图标。双窗口中文输入及
-B→A→B→A切换已有用户实测确认；最终带图标版本启动、输入和快捷键退出正常。
-发行镜像位于 `dist/releases/fe-iron-f/Fe-macos.dmg`。本地包为ad-hoc签名，未公证。
+当前图形包包含已实测的多窗口输入修复和 Fe 中间版图标；最新 Logo 草图仍在确认。双窗口中文输入及
+B→A→B→A切换已有用户实测确认；当前带图标试用版启动、输入和快捷键退出正常。
+发行镜像位于 `dist/releases/fe-horn-shoulder/Fe-macos.dmg`。本地包为ad-hoc签名，未公证。
 详见[输入修复](../maintenance/incidents/2026-10-27-multiframe-input.md)及
-[当前发行记录](../maintenance/releases/2026-10-27-fe-f-epsilon.md)。
+[终端与菜单证据](../maintenance/releases/2026-10-27-terminal-and-native-quit.md)。
 
 从仓库根试用图形版：
 
@@ -63,3 +63,9 @@ python3 ~/.assistant/skills/controlled-run/scripts/run.py --profile runtime -- p
 现代化后新增的本地验收入口：`tools/test-release-baseline.py` 覆盖有限的代表性功能组，`tools/runtime-profile.py` 采集真实 Lisp/GC 数据。两者不能代表所有配置或插件兼容。多窗口拼音诊断在上述输入法命令加 `--mode multi`，需重新编译当前事件发送器；旧自动化失败记录保留；2026-10-27用户已在修复版手动确认双窗中文和B→A→B→A全部正常。这不替代未覆盖的候选组字跨窗、取消与所有输入法兼容验收。最新逐项边界见上述输入修复记录。
 
 Stage IV 的原始锁屏/多窗口失败保持历史证据。后续真实Finder拖放已打开正确文件，双窗中文输入已手动通过；当前P393终端候选的六项TTY异常/恢复用例也已通过，诊断和程序/dump身份均保留。原生菜单退出的最新观察及组字跨窗等剩余覆盖继续列为待确认；不能把以上局部通过当成完整G1或100%兼容。
+
+当前 P393 终端候选的26项快捷键、保存重开及退出后终端模式恢复共28项
+通过；恢复检查与本机参照使用同一持久PTY方法，保留原始状态位差异，
+并实际验证后续输入、回显和全部属性恢复。6项异常TTY入口另有独立回执。
+原生菜单退出也已观察完整事件链和自然退出；尚未包含有修改文件的保存
+提示或待组字跨窗流程。详见[当前终端与菜单证据](../maintenance/releases/2026-10-27-terminal-and-native-quit.md)。

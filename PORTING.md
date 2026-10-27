@@ -1908,6 +1908,16 @@ no image-generation service. Full normal build integration and subsequent
 bitmap-only shared-installer/release validation have separate evidence. See
 `maintenance/releases/2026-10-27-fe-artwork-packaging.md`.
 
+### P-396 — Native menu Quit diagnosis closed without a product patch
+
+A fresh actual menu action reaches the specialized Swift terminate body, queues
+NS_NONKEY_EVENT kind30/code0x10000001, dispatches save-buffers-kill-emacs and
+reaches Fkill_emacs with native/debugger exit0. The body matches the immutable
+reference. The merged thunk's startup hit is excluded. No forced focus, key
+rebinding, synthetic Lisp quit or suppression is needed. The earlier missed
+observation remains; modified-file save prompts and pending-IME window transfer
+were not covered. See `maintenance/releases/2026-10-27-terminal-and-native-quit.md`.
+
 ### P-397 — Preserve artwork proportions in square icon outputs
 
 Raster masters can have rectangular canvases. The shared packaging renderer
@@ -1918,3 +1928,15 @@ vertical and square alpha-boundary case and the existing artwork/ICNS/signature
 controls pass, four tests total. Actual signed package/DMG and native startup
 checks pass for the intermediate artwork; later visual drafts remain separate.
 This is a renderer fix, not final artwork approval or whole-G1 completion.
+
+### P-398 — Observe terminal restoration without conflating pending input state
+
+The first observer lost its controlling PTY when the editor was session leader.
+Keep an owning shell supervisor alive instead. A second raw comparison found
+only Darwin PENDIN, documented by the host SDK as pending-input state. Preserve
+all raw attributes and compare every setting, then exercise canonical input
+and echo and require exact original attributes after the next input. Run the
+same case against the installed reference and the unchanged current candidate.
+Fix the observer's buffered-log read, bind all fixture/helper/program/dump
+inputs, and isolate HOME/XDG/temp paths. Do not patch the editor or ignore a
+configuration difference to make the test pass. Earlier failures remain.
