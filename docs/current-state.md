@@ -1,4 +1,6 @@
 
+D26已完成配置的编译副本按[CLN70](../maintenance/cleanup/reports/2026-10-27-70-consumed-d26-compiler-copies.md)回收；程序/资源/链接输入保留，其他配置继续构建，当前进度以实际process回执为准。
+
 旧G1布局构建1–7的已归档展开源已按[CLN69](../maintenance/cleanup/reports/2026-10-27-69-layout-expansions.md)退役；历史日志保留，复跑须先隔离恢复，不能直接使用旧source路径。当前App、终端和D26冻结源不受影响。
 ## Fe 标志与 macOS 发行包（2026-10-27，P-395）
 

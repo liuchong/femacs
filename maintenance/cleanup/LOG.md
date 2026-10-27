@@ -116,3 +116,5 @@
 | CLN-20261027-67 | 2026-10-27 | Retired4058 consumed output files, 289754448 logical bytes | Durable identity manifest; all9002 retained identities unchanged at cleanup; current products/evidence retained | [Scope and recovery](reports/2026-10-27-67-consumed-contour-preview-cache.md) |
 
 | CLN-20261027-69 | 2026-10-27 | 净回收55470份旧布局构建展开副本，3712209331逻辑字节 | 七份既有归档逐内容验证，20874项保留身份不变；34份build配置/文字额外恢复，错误与恢复如实记录 | [范围与恢复](reports/2026-10-27-69-layout-expansions.md) |
+
+| CLN-20261027-70 | 2026-10-27 | 12个已完成配置回收112116份生成Rust副本，3737290194逻辑字节 | 88190项冻结源/产品/资源/链接证据身份不变；其他配置继续构建 | [范围与恢复](reports/2026-10-27-70-consumed-d26-compiler-copies.md) |
