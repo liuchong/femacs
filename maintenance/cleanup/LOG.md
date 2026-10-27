@@ -150,3 +150,5 @@
 | CLN-20261028-85 | 2026-10-28 | Retire59172 superseded D28 package resource copies,2641604359 logical bytes | Released ownership and original hashes verified; frozen inputs/logs/current D29 retained; no exclusive-space claim | [Scope and recovery](reports/2026-10-28-85-superseded-d28-resource-copies.md) |
 
 | CLN-20261028-86 | 2026-10-28 | Retire3 redundant old UI source archives,606773535 logical bytes | All21132 original source/metadata identities retained; incomplete old scopes skipped; current D29 untouched | [Scope and recovery](reports/2026-10-28-86-redundant-ui-source-archives.md) |
+
+| CLN-20261028-87 | 2026-10-28 | Retire208 committed manifest export copies/712090173 logical bytes, plus36 consumed restoration probes | Real Git restoration verified; business inputs preserved; old exports require metadata restoration before full source verification | [Scope and recovery](reports/2026-10-28-87-committed-manifest-export-copies.md) |
