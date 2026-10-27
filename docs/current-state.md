@@ -1,4 +1,10 @@
 
+D27首个配置normal/checking编译失败，剩余矩阵未启动，没有新产品。
+根工作区已按真实TLS头和进程实现修复；接口层99项观测一致、103项函数原型
+断言通过，完整编译与TLS功能仍待验收。用完副本按
+[CLN73](../maintenance/cleanup/reports/2026-10-27-73-failed-d27-compiler-copies.md)
+回收；保留原失败与冻结源码。下方D26和P401初始施工记录各有其版本边界。
+
 D26原构建已自然结束，20配置/61 profile构建与dump通过，尚非语义/兼容/性能通过。
 结束后按[CLN68](../maintenance/cleanup/reports/2026-10-27-68-consumed-d26-compiler-copies.md)
 回收剩余生成副本及cargo缓存；后续缺失的独立driver已按原身份归档恢复。
