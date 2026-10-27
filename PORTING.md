@@ -2022,3 +2022,26 @@ selected-root callers already follow preparation. Clear only generated numeric
 TLS header SHA keys before rebinding to avoid stale indices on a changed header
 inventory. Source-owner recovery manifests receive explicit safe regular-file
 checks. Static review remains distinct from actual integration acceptance.
+
+### P-407: continue an interrupted recovery through its exact source and producer lineage (2026-10-28)
+
+D29 recovery preserves17 complete configurations/51profiles when the monitor
+again stops on session_sample ENOSPC. No product assertion failure is inferred.
+The existing resume path assumes original/source is the frozen export and
+that every retained case lives at source/build/runtime/case-id. A recovered
+partial actually points to the unchanged earlier export and two newly finished
+cases have the previous recovery suffix. Blindly reusing the one-level path
+therefore rejects valid provenance; rebuilding the17 cases is not the remedy.
+
+Repair tools/runtime-stage.py::build_source_owner and tools/runtime-resume.py
+source selection and completed-case validation together. Follow only separate
+owned prior-build roots, checking every original_partial_sha256 and unchanged
+source_export, reject cycles/symlinks/unsafe roots and end at the actual named
+frozen export. Successful reports must still bind source_root. Accept a retained
+case root only when it is the ordinary root or the exact suffix of a verified
+producer in that lineage, with full product/config/resource/link checks and
+original process completion preserved. Capture the actual frozen source owner;
+keep every interrupted report and host identity. Do not weaken load_products,
+copy a source label, edit old partials, alter the product snapshot or count a
+partial compiler leg as a complete case. Root orchestration repair is pending;
+only after complete repair and source review may real recovery resume.

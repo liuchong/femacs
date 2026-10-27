@@ -222,3 +222,5 @@ CLN88 recovery boundary (2026-10-28): ten obsolete source containers now resolve
 D29监控中断（2026-10-28）：原运行在15/20完整配置、45/61profiles后因session_sample写入ENOSPC退出125，外层已回收。保留实际native回执；原阶段未写出fatal，新增记录明确标注为外部中断观察，并未伪造阶段异常或通过结果。核对原PID退出及原文件身份后释放保全标记，使用同一冻结源/原driver的独立恢复，完成配置须重新核验才能复用。完整功能/兼容/性能/UI尚待验收。见[中断与恢复](../maintenance/incidents/2026-10-28-runtime-d29-monitor-interruption.md)及[CLN89](../maintenance/cleanup/reports/2026-10-28-89-continuation-generated-copies.md)；Goal仍1/7。
 
 D29恢复首个新增配置完成（2026-10-28）：terminal-native-collector-observer普通与检查腿构建、dump和保存回执完成，已到16/20完整配置、49/61profiles；下一配置继续。CLN90回收原已完成15配置30腿用完的src及Cocoa Info暂存12530份/1081451056逻辑字节；终端回执直接引用的Info保留，原日志/回执/制品不变。这是构建与回收检查点，完整功能/兼容/性能/UI仍待验收，Goal1/7。
+
+D29第一次恢复再次因存储中断停止（2026-10-28）：已新增两个完整成功配置，共17/20、51/61profiles；首待补Cocoa配置期间监控session_sample再次ENOSPC，退出125/完整回收。原回执及17配置保留，不能当编译断言失败或全构建通过。旧成功日志按CLN91无损保留并逐份实际解压验证，原路径迁移后需先恢复再读。P407须修复一层来源/固定case路径假设后从17配置继续，不能绕过来源验证、盲重启或重编已完成项。剩余三个Cocoa及全功能/兼容/性能/UI待闭合，Goal1/7。
