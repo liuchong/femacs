@@ -1,3 +1,16 @@
+## Current storage boundary (2026-10-27, CLN55-57)
+
+The old D24 runtime expansion has been retired after all selected contents were
+verified against the retained prepare recovery archive. Its products.json is now
+historical identity evidence: do not execute those paths without full isolated
+restoration. Keep the 6969 frozen inputs, raw results/failures, recovery mappings
+and current Mac trial/G4 Apps. New G3 source requires a fresh build; retirement
+does not count as compatibility or performance acceptance. Exact scope and
+recovery: maintenance/cleanup/reports/2026-10-27-55-superseded-runtime-expansion.md.
+CLN56 also retires 340 archive-covered staging libraries/images/programs; CLN57
+retires 2800 consumed manual-output copies. All 20011 retained identities match.
+Historical snapshots below retain their original dates and scope.
+
 ## 当前施工：G4 已签名交付，继续原生验收及运行时阶段（2026-10-25）
 
 最新交付：实现`5118ed08`已验证良好签名并立即推送，远端master实查一致。独立D22复核和清理恢复元数据已闭合，G4限定范围完成；[交付审计](../maintenance/releases/2026-10-25-g4-modernization.md)记录当前制品指纹、真实验证、旧失败及未完成范围。此前丢失的Mac产物已从新鲜独立源码导出重新构建。终端537.413秒、Cocoa526.680秒，各15/15 CCL回归通过；68本Info读取、搬移后源导出不可用时的Info读取、原包/搬移包严格签名及源码保护通过。重建控制器1073.449秒、峰值871890944字节、回收完成。新候选保留于`dist/candidates/g4-macos-2/Femacs.app`，仍未替换根目录已试用App；复制保留的终端二进制需要原导出资源树。`dist/candidates/`仅新增Git忽略，不删除产物。物理多窗口IME/Finder验收仍未完成，不由batch或构建结果替代。
