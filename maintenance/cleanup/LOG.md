@@ -152,3 +152,5 @@
 | CLN-20261028-86 | 2026-10-28 | Retire3 redundant old UI source archives,606773535 logical bytes | All21132 original source/metadata identities retained; incomplete old scopes skipped; current D29 untouched | [Scope and recovery](reports/2026-10-28-86-redundant-ui-source-archives.md) |
 
 | CLN-20261028-87 | 2026-10-28 | Retire208 committed manifest export copies/712090173 logical bytes, plus36 consumed restoration probes | Real Git restoration verified; business inputs preserved; old exports require metadata restoration before full source verification | [Scope and recovery](reports/2026-10-28-87-committed-manifest-export-copies.md) |
+
+| CLN-20261028-88 | 2026-10-28 | Compact10 old source containers/2822825012 bytes into reachable Git plus77045704-byte unique-content and24089514-byte mapping stores | All13337 contents actually restored;70104 source mappings checked; identified compiler caches omitted; raw journals/results retained | [Scope and recovery](reports/2026-10-28-88-compacted-source-containers.md) |
