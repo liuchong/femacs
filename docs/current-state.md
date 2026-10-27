@@ -1,3 +1,7 @@
+## 当前 UI 修复（2026-10-27，P-391）
+
+按用户最新要求只修这处 Cocoa UI，其他施工及 GC 调查保持原检查点。窗口尺寸标志写错字、标签栏误走终端矩阵两个根因已修正；新App真实初始/改尺寸/原生zoom/标签栏开关及两个标签显示通过，后置标志保护16/16，独立源码复核无阻断。当前 `dist/macos/Femacs.app` 已更新，程序SHA `ec6e44e3f11818cd5c0148d050d389e93975e860b5af8f9bf3c0d7712e28260b`。这不是全部 G1/G3/快捷键或 GC 完成；原 GC 崩溃与中文输入法前缀问题仍保留。证据、确切范围及试用入口见[UI修复记录](../maintenance/incidents/2026-10-27-cocoa-layout.md)。
+
 ## Current storage boundary (2026-10-27, CLN55-57)
 
 The old D24 runtime expansion has been retired after all selected contents were

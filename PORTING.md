@@ -1769,3 +1769,40 @@ matrices. Original frozen source and receipts remain, including canonical
 inputs used by earlier duplicate-copy recovery maps. D20/D21 failures remain
 failures; retiring their raw generated products does not pass new runtime
 acceptance. See the batch report for verified counts and current disk usage.
+
+### P-391: Cocoa frame flag word and immediate UI priority (2026-10-27)
+
+The first P390 UI candidate visibly retains the reported margins. Its trace
+binds native/view bounds580x508 to core492x396 after the65x28 frame parameter
+change, with no native resize event. The initial-view/windowDidResize changes
+do not repair that cause and are withdrawn; retain bounded geometry diagnosis.
+The actual bridge frame_set_can_set_window_size writes bits1 even though the
+measured Cocoa flag is bits2:13; adjust_frame_size reads bits2 and therefore
+skips the native size hook. Use the header's UNIT/SHIFT accessors for the setter.
+The two tab-bar state readers and resized writer have the same wrong-word
+pattern and must use their measured UNIT/SHIFT too. Preserve unrelated flag bits
+and the terminal configuration's original positions. Do not fix this by forcing
+fixture sizes, hiding margins or changing Lisp frame-size behavior.
+
+Per the user's latest instruction, stop other development, compatibility and GC
+investigation at their preserved checkpoints; fix this actual UI first. Keep the
+GC abort explicitly unresolved. Validate the real initial/programmatic/native
+resize paths and visible text/mode-line/minibuffer geometry before claiming this
+repair. The whole modernization Goal is not paused or completed by this scope
+change.
+
+Cocoa resource copying must preserve source modification times: copying .el and
+.elc in arbitrary directory order must not manufacture source-newer warnings
+and open a distracting warnings window in an otherwise clean startup. Preserve
+content/permissions as before and only set the source mtime, not its preservation
+flags. This belongs to the visible GUI packaging repair, not compiler/GC work.
+
+P391 actual UI verification5 clears the original margins at65x28,85x35,50x20
+and native zoom; native/view/core dimensions agree. However enabling the tab bar
+then really crashes redisplay_window with SIGSEGV: Cocoa enters the terminal
+bar renderer and dereferences the absent frame glyph matrix. Preserve this new
+failure; it is not the earlier GC abort. Restore the original Cocoa early return
+in the terminal renderer and its real window-matrix redisplay_tab_bar dispatch,
+including original height/row/autosize/flag handling. Do not merely disable tab
+bars or ignore a missing matrix. Preserve terminal rendering. Other development
+and GC diagnosis remain held; only the UI repair proceeds.

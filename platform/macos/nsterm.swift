@@ -8122,7 +8122,7 @@ private func ns_input_trace(_ event: String, _ details: @autoclosure () -> Strin
   guard let path = nsInputTracePath, nsInputTraceBytes < 1_048_576 else { return }
   let ownWindow = view?.window
   let keyWindow = NSApp?.keyWindow
-  let record: [String: Any] = ["uptime": ProcessInfo.processInfo.systemUptime,
+  var record: [String: Any] = ["uptime": ProcessInfo.processInfo.systemUptime,
                              "event": event, "details": details(),
                              "keyWindow": keyWindow != nil,
                              "appActive": NSApp?.isActive ?? false,
@@ -8131,6 +8131,21 @@ private func ns_input_trace(_ event: String, _ details: @autoclosure () -> Strin
                              "windowIsKey": ownWindow?.isKeyWindow ?? false,
                              "viewIsFirstResponder": view.map { ownWindow?.firstResponder === $0 } ?? false,
                              "keyWindowNumber": keyWindow.map { $0.windowNumber as Any } ?? NSNull()]
+  if let view = view {
+    record["viewFrame"] = [view.frame.origin.x, view.frame.origin.y,
+                           view.frame.width, view.frame.height]
+    record["viewBounds"] = [view.bounds.origin.x, view.bounds.origin.y,
+                            view.bounds.width, view.bounds.height]
+    if let window = ownWindow, let content = window.contentView {
+      record["windowFrame"] = [window.frame.origin.x, window.frame.origin.y,
+                               window.frame.width, window.frame.height]
+      record["contentBounds"] = [content.bounds.origin.x, content.bounds.origin.y,
+                                 content.bounds.width, content.bounds.height]
+    }
+    if let f = (view as? EmacsView)?.emacsframe, FRAME_LIVE_P(f) {
+      record["coreSize"] = [FRAME_PIXEL_WIDTH(f), FRAME_PIXEL_HEIGHT(f)]
+    }
+  }
   guard var data = try? JSONSerialization.data(withJSONObject: record) else { return }
   data.append(10)
   guard nsInputTraceBytes + data.count <= 1_048_576 else { return }
@@ -9980,7 +9995,7 @@ class EmacsView: NSView, NSTextInputClient, NSWindowDelegate {
 
     super.resize(withOldSuperviewSize: oldSize)                 // C 8380
 
-    if !FRAME_LIVE_P(emacsframe) {                              // C 8382
+    if emacsframe == nil || !FRAME_LIVE_P(emacsframe) {         // C 8382
       return                                                    // C 8383
     }
 

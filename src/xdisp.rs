@@ -15899,9 +15899,10 @@ unsafe fn display_tab_bar (w: *mut window)
   let mut i: c_int;
 
   /* Don't do all this for graphical frames.  */
-  /* C 14701-14735's `#ifdef HAVE_NTGUI`, `#if defined (USE_X_TOOLKIT) || defined (USE_GTK)`,
-     `#ifdef HAVE_NS` and `#elif defined (HAVE_X_WINDOWS)` arms are all dead on this target;
-     what follows is C's trailing `else` body (the TTY case).  */
+  // Cocoa has window-owned matrices and uses redisplay_tab_bar below. The
+  // terminal frame matrix is absent there (original HAVE_NS early return).
+  #[cfg(feature = "have_ns")]
+  if FRAME_NS_P (f) { return; }
 
   /* This is a TTY frame, i.e. character hpos/vpos are used as
      pixel x/y.  */
@@ -21100,11 +21101,17 @@ redisplay_window (window: Lisp_Object, just_this_one_p: bool)
 	    { display_menu_bar (w); }
 	}
 
-/* C 21551-21581's `#ifdef HAVE_WINDOW_SYSTEM` arm (the tab-bar/tool-bar redisplay through
-   `redisplay_tab_bar`/`update_frame_tool_bar`/`gui_consider_frame_title`) is dead on this
-   target (P-08); the live `#else` arm follows.  */
-      if FRAME_TAB_BAR_LINES (f) > 0
-        { display_tab_bar (w); }
+      #[cfg(feature = "have_ns")]
+      if FRAME_NS_P (f)
+        {
+          if WINDOWP ((*f).tab_bar_window)
+              && (FRAME_TAB_BAR_LINES (f) > 0 || !NILP (Vauto_resize_tab_bars))
+              && redisplay_tab_bar (f)
+            { ignore_mouse_drag_p = true; }
+        }
+      else if FRAME_TAB_BAR_LINES (f) > 0 { display_tab_bar (w); }
+      #[cfg(not(feature = "have_ns"))]
+      if FRAME_TAB_BAR_LINES (f) > 0 { display_tab_bar (w); }
     }
 
 /* C 21584-21605's `#ifdef HAVE_WINDOW_SYSTEM` block (the `update_window_fringes` /
@@ -39991,6 +39998,113 @@ unsafe fn tab_bar_height(f: *mut frame, n_rows: *mut c_int, pixelwise: bool) -> 
    if !n_rows.is_null() { *n_rows = if it.vpos > 0 { it.vpos } else { -1 }; }
    if pixelwise { it.current_y } else { (it.current_y + FRAME_LINE_HEIGHT(f) - 1) / FRAME_LINE_HEIGHT(f) }
 }
+// Original xdisp.c 15042-15218: graphical tab bars own a window matrix,
+// unlike terminal tab bars, which share the frame's matrix.
+#[cfg(feature = "have_ns")]
+unsafe fn redisplay_tab_bar(f: *mut frame) -> bool {
+   frame_set_flag(f, FRAME_TAB_BAR_REDISPLAYED_UNIT, FRAME_TAB_BAR_REDISPLAYED_SHIFT, 1);
+   if !WINDOWP((*f).tab_bar_window)
+       || WINDOW_TOTAL_LINES(XWINDOW((*f).tab_bar_window)) == 0 {
+     frame_set_flag(f, FRAME_TAB_BAR_RESIZED_UNIT, FRAME_TAB_BAR_RESIZED_SHIFT, 1);
+     return false;
+   }
+   let w = XWINDOW((*f).tab_bar_window);
+   build_desired_tab_bar_string(f);
+   let mut new_nrows: c_int = 0;
+   let new_height = tab_bar_height(f, &raw mut new_nrows, true);
+   if (*f).n_tab_bar_rows == 0 {
+     (*f).n_tab_bar_rows = new_nrows;
+     if new_height != WINDOW_PIXEL_HEIGHT(w) { frame_default_tab_bar_height = new_height; }
+   }
+   let minimize = frame_flag(f, FRAME_MINIMIZE_TAB_BAR_WINDOW_P_UNIT,
+                              FRAME_MINIMIZE_TAB_BAR_WINDOW_P_SHIFT);
+   if new_nrows > (*f).n_tab_bar_rows
+       || (EQ(Vauto_resize_tab_bars, Qgrow_only()) && !minimize
+           && new_height > WINDOW_PIXEL_HEIGHT(w))
+       || (!EQ(Vauto_resize_tab_bars, Qgrow_only()) && new_height < WINDOW_PIXEL_HEIGHT(w)) {
+     if let Some(change_height) = (*FRAME_TERMINAL!(f)).change_tab_bar_height_hook {
+       change_height(f as *mut c_void, new_height);
+     }
+     if new_nrows != (*f).n_tab_bar_rows { (*f).n_tab_bar_rows = new_nrows; }
+     clear_glyph_matrix((*w).desired_matrix as *mut glyph_matrix);
+     frame_bits!(fonts_changed, f, true);
+     return true;
+   }
+   let mut it: it = core::mem::zeroed();
+   init_iterator(&raw mut it, w, -1, -1,
+                 (*((*w).desired_matrix as *mut glyph_matrix)).rows, TAB_BAR_FACE_ID);
+   it.first_visible_x = 0;
+   it.last_visible_x = WINDOW_PIXEL_WIDTH(w);
+   let mut row = it.glyph_row;
+   glyph_row_bits!(reversed_p, row, false);
+   reseat_to_string(&raw mut it, core::ptr::null(), (*f).desired_tab_bar_string,
+                    0, 0, 0, STRING_MULTIBYTE((*f).desired_tab_bar_string) as c_int);
+   it.paragraph_embedding = L2R;
+   if (*f).n_tab_bar_rows > 0 {
+     let mut border = if TYPE_RANGED_FIXNUMP(INT_MIN as EMACS_INT, Vtab_bar_border, INT_MAX as EMACS_INT) {
+       XFIXNUM(Vtab_bar_border) as c_int
+     } else if EQ(Vtab_bar_border, Qinternal_border_width()) {
+       FRAME_INTERNAL_BORDER_WIDTH(f)
+     } else if EQ(Vtab_bar_border, Qborder_width()) {
+       (*f).border_width
+     } else { 0 };
+     if border < 0 { border = 0; }
+     let mut rows = (*f).n_tab_bar_rows;
+     let height = max(1, (it.last_visible_y - border) / rows);
+     let mut extra = it.last_visible_y - border - height * rows;
+     while it.current_y < it.last_visible_y {
+       let mut h = 0;
+       if extra > 0 {
+         let previous_rows = rows;
+         rows -= 1;
+         if previous_rows > 0 {
+           h = (extra + rows - 1) / rows;
+           extra -= h;
+         }
+       }
+       display_tab_bar_line(&raw mut it, height + h);
+     }
+   } else {
+     while it.current_y < it.last_visible_y { display_tab_bar_line(&raw mut it, 0); }
+   }
+   glyph_matrix_bits!(no_scrolling_p, (*w).desired_matrix as *mut glyph_matrix, true);
+   window_bits!(w, must_be_updated_p, true);
+   if !NILP(Vauto_resize_tab_bars) {
+     let mut change_height_p = IT_STRING_CHARPOS!(it) < it.end_charpos;
+     row = it.glyph_row.offset(-1);
+     if !MATRIX_ROW_DISPLAYS_TEXT_P!(row) && (*row).height >= FRAME_LINE_HEIGHT(f) {
+       change_height_p = true;
+     }
+     if MATRIX_ROW_DISPLAYS_TEXT_P!(row) && MATRIX_ROW_BOTTOM_Y!(row) > it.last_visible_y {
+       change_height_p = true;
+     }
+     if change_height_p {
+       let mut nrows: c_int = 0;
+       let new_height = tab_bar_height(f, &raw mut nrows, true);
+       let minimize = frame_flag(f, FRAME_MINIMIZE_TAB_BAR_WINDOW_P_UNIT,
+                                  FRAME_MINIMIZE_TAB_BAR_WINDOW_P_SHIFT);
+       change_height_p = if EQ(Vauto_resize_tab_bars, Qgrow_only()) && !minimize {
+         new_height > WINDOW_PIXEL_HEIGHT(w)
+       } else { new_height != WINDOW_PIXEL_HEIGHT(w) };
+       frame_set_flag(f, FRAME_MINIMIZE_TAB_BAR_WINDOW_P_UNIT,
+                       FRAME_MINIMIZE_TAB_BAR_WINDOW_P_SHIFT, 0);
+       if change_height_p {
+         if let Some(change_height) = (*FRAME_TERMINAL!(f)).change_tab_bar_height_hook {
+           change_height(f as *mut c_void, new_height);
+         }
+         frame_default_tab_bar_height = new_height;
+         clear_glyph_matrix((*w).desired_matrix as *mut glyph_matrix);
+         (*f).n_tab_bar_rows = nrows;
+         frame_bits!(fonts_changed, f, true);
+         return true;
+       }
+     }
+   }
+   frame_set_flag(f, FRAME_MINIMIZE_TAB_BAR_WINDOW_P_UNIT,
+                   FRAME_MINIMIZE_TAB_BAR_WINDOW_P_SHIFT, 0);
+   false
+}
+
 #[cfg(feature = "have_ns")]
 DEFUN!("tab-bar-height", Ftab_bar_height, Stab_bar_height, 0, 2, 0,
  doc: "Return the number of lines occupied by the tab bar of FRAME. With PIXELWISE, return pixels.",

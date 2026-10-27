@@ -267,24 +267,21 @@ pub unsafe extern "C" fn frame_set_output_method (f: *mut c_void, v: c_int)
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn frame_tab_bar_redisplayed (f: *mut c_void) -> bool
 {
-  unsafe { ((*f.cast::<frame> ()).bits1 >> FRAME_TAB_BAR_REDISPLAYED_SHIFT) & 1 != 0 }
+  frame_flag (f.cast (), FRAME_TAB_BAR_REDISPLAYED_UNIT, FRAME_TAB_BAR_REDISPLAYED_SHIFT)
 }
 
 /// C: bool_bf tab_bar_resized : 1;   (frame.h 504)
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn frame_tab_bar_resized (f: *mut c_void) -> bool
 {
-  unsafe { ((*f.cast::<frame> ()).bits1 >> FRAME_TAB_BAR_RESIZED_SHIFT) & 1 != 0 }
+  frame_flag (f.cast (), FRAME_TAB_BAR_RESIZED_UNIT, FRAME_TAB_BAR_RESIZED_SHIFT)
 }
 
 /// C: bool_bf tab_bar_resized : 1;   (frame.h 504)
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn frame_set_tab_bar_resized (f: *mut c_void, v: bool)
 {
-  unsafe {
-    let bits = &mut (*f.cast::<frame> ()).bits1;
-    *bits = (*bits & !(1 << FRAME_TAB_BAR_RESIZED_SHIFT)) | ((v as u32) << FRAME_TAB_BAR_RESIZED_SHIFT);
-  }
+  frame_set_flag (f.cast (), FRAME_TAB_BAR_RESIZED_UNIT, FRAME_TAB_BAR_RESIZED_SHIFT, v as u32);
 }
 
 /// C: Lisp_Object tab_bar_window;   (frame.h 254, **inside `#ifdef HAVE_WINDOW_SYSTEM`**)
@@ -376,11 +373,8 @@ pub unsafe extern "C" fn frame_set_undecorated (f: *mut c_void, v: bool)
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn frame_set_can_set_window_size (f: *mut c_void, v: bool)
 {
-  unsafe {
-    let bits = &mut (*f.cast::<frame> ()).bits1;
-    *bits = (*bits & !(1 << FRAME_CAN_SET_WINDOW_SIZE_SHIFT))
-            | ((v as u32) << FRAME_CAN_SET_WINDOW_SIZE_SHIFT);
-  }
+  frame_set_flag (f.cast (), FRAME_CAN_SET_WINDOW_SIZE_UNIT,
+                  FRAME_CAN_SET_WINDOW_SIZE_SHIFT, v as u32);
 }
 
 /// C: bool_bf was_invisible : 1;   (frame.h 530; the second flag word, so this writer and the

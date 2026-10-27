@@ -288,7 +288,14 @@ fn copy_tree(from: &Path, to: &Path) -> Result<(), String> {
         if entry.file_type().map_err(|e| e.to_string())?.is_dir() {
             copy_tree(&entry.path(), &dest)?;
         } else {
-            fs::copy(entry.path(), dest).map_err(|e| e.to_string())?;
+            fs::copy(entry.path(), &dest).map_err(|e| e.to_string())?;
+            // Lisp compares source/bytecode modification times when loading.
+            // Packaging order must not make unchanged sources look newer.
+            let modified = entry.metadata().map_err(|e| e.to_string())?
+                .modified().map_err(|e| e.to_string())?;
+            fs::File::open(&dest).map_err(|e| e.to_string())?
+                .set_times(fs::FileTimes::new().set_modified(modified))
+                .map_err(|e| e.to_string())?;
         }
     }
     Ok(())
