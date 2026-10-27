@@ -23300,3 +23300,18 @@ both windows through B-A-B-A, all normal; ordinary line-start Backspace recovers
 Native editor/controller exit0/reaped,141.725s,171819008-byte tree peak. Generated
 accessor component protection passes4/4. Original failures remain, broad G1 and
 Goal remain open. See maintenance/incidents/2026-10-27-multiframe-input.md.
+
+### 2026-10-27: Fe artwork and independent macOS release module, P395
+
+A transparent sculptural iron/oxide epsilon master now supplies both READMEs
+and the native App icon. Independent packaging workspace module creates local
+App/DMG/checksums; Windows/Linux adapters are planned. Full normal Cocoa build
+integration passes361.239s/867926016-byte peak/reaped. Subsequent bitmap-only
+renderer/host rebuild and actual shared-installer/signature/DMG validation pass;
+no third full-core build is claimed. New protection3/3, final release20.412s,
+71270400-byte peak/reaped. Current trialApp is the new epsilon version. See
+maintenance/releases/2026-10-27-fe-artwork-packaging.md; broader Goal stays open.
+
+Final epsilon-icon executable startup/text/C-a/C-e and natural exit now bind
+the delivered signed program itself:37.369s,153616384-byte peak, native/controller0
+and complete cleanup. Earlier manually verified Chinese flow remains separate.

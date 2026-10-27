@@ -1,4 +1,6 @@
-# femacs
+<p align="center"><img src="packaging/assets/fe-logo.png" width="180" alt="Fe — iron F and vertical GNU-inspired horns"></p>
+
+# Fe
 
 **English** · [简体中文](docs/i18n/zh-CN/README.md)
 
@@ -125,3 +127,15 @@ clean checkout does not rely on old ignored bytecode for compiler loading. Expli
 bytecode scopes remain scoped. Runtime research, the rejected shared-tail dispatch
 experiment and bounded measurements are recorded in [the runtime report](docs/runtime-modernization.md).
 No new Lisp native compiler or collector is enabled.
+
+## Release packages
+
+The independent [`packaging`](packaging/README.md) workspace module owns artwork and
+platform packaging. On macOS, package an already built native app with:
+
+```sh
+cargo run -p fe-packaging -- macos --app dist/macos/Femacs.app --out dist/releases/local
+```
+
+This produces a branded `Fe.app`, a verified disk image and SHA-256 manifest. The
+local package is ad-hoc signed, not notarized. Windows and Linux packaging are planned.

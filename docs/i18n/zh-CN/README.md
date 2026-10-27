@@ -1,4 +1,6 @@
-# femacs
+<p align="center"><img src="../../../packaging/assets/fe-logo.png" width="180" alt="Fe — 铁质 F 与竖向 GNU 牛角"></p>
+
+# Fe
 
 [English](../../../README.md) · **简体中文**
 

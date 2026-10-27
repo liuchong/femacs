@@ -1888,3 +1888,22 @@ natural editor/controller exit0. Generated receiver/sentinel protection passes4/
 Independent source/evidence review adopts the actual cross-type write diagnosis,
 confirms adjacent direct-display receivers unchanged and finds no remaining
 blocker in this scope. Full G1/compatibility and the overall Goal remain open.
+
+### P-395 — Fe artwork and independent release module (2026-10-27)
+
+User requested iron/rust Fe branding, README artwork, a real macOS application
+icon and a root release-packaging module with future platform adapters. Keep
+a transparent sculptural iron/oxide epsilon master in `packaging/assets`; use one Rust
+workspace package for deterministic PNG/ICNS generation and local macOS DMG
+assembly. Cocoa packaging installs icon metadata before its existing signing
+step. Preserve the editor code payload, Lisp dump and bundle identifier; signing
+metadata is checked separately. Windows
+and Linux formats are planned only; no remote CI, notarization or public release
+is implied. New branding/release acceptance is separate from P-394 input repair.
+
+P-395 final artwork direction is a transparent three-dimensional iron epsilon
+with irregular oxide texture, used by both READMEs and the native icon. The
+master PNG is committed; deterministic Rust PNG resampling/ICNS packaging needs
+no image-generation service. Full normal build integration and subsequent
+bitmap-only shared-installer/release validation have separate evidence. See
+`maintenance/releases/2026-10-27-fe-artwork-packaging.md`.

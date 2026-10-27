@@ -1,3 +1,10 @@
+## Fe 标志与 macOS 发行包（2026-10-27，P-395）
+
+README及App统一使用立体铸铁ε与局部锈蚀图案。根目录 `packaging/` 独立
+发行模块已接通本地App、DMG、签名和校验清单；Windows/Linux为后续计划。
+当前图形试用包仍在 `dist/macos/Femacs.app`，发行包在 `dist/releases/fe-iron`。
+普通Cocoa构建接线及后续新位图打包分别验收；详见[交付记录](../maintenance/releases/2026-10-27-fe-artwork-packaging.md)。
+
 ## 多窗口中文输入修复已实测（2026-10-27，P-393/P-394）
 
 真实硬件监视定位到生成显示访问器的接收指针错误；已修正。新Cocoa候选

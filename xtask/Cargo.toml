@@ -7,6 +7,7 @@ license.workspace = true
 # Explicit small serialization/hash dependencies; all product inputs remain owned.
 # Cargo.lock fixes dependency versions for repeatable tool builds.
 [dependencies]
+fe-packaging = { path = "../packaging" }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 sha2 = "0.10"
@@ -19,8 +20,8 @@ sha2 = "0.10"
 # The section lives in *this* manifest because `Cargo.toml` is a *virtual* manifest and
 # cargo rejects a `[features]` table there - measured: `cargo metadata --no-deps` ->
 # "error: failed to parse manifest at `.../femacs/Cargo.toml` / Caused by: this virtual manifest
-# specifies a `features` section, which is not allowed".  xtask is the workspace's only package,
-# so this is the one manifest that can declare them today; the table documents the *ported tree's*
+# specifies a `features` section, which is not allowed".  xtask is the editor build driver,
+# this manifest declares the editor feature switches; the table documents the *ported tree's*
 # namespace (not xtask's) and moves with it when that tree gets a package of its own.
 #
 # Generated from the tree (`git ls-files` + every `feature = "…"` name; 545 names, plus `default`).  The comment on a

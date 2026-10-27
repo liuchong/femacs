@@ -106,3 +106,5 @@
 | CLN-20261027-62 | 2026-10-27 | 回收5177份已消费多窗口编译副本，202100121逻辑字节 | 13066项冻结源/程序/原失败/新诊断身份不变；真实输入缺口保留 | [范围与恢复](reports/2026-10-27-62-consumed-multiframe-build-caches.md) |
 
 | CLN-20261027-63 | 2026-10-27 | Retired8153 consumed receiver-build/cache and failed-copy files,357814435 logical bytes | All16015 retained input/product/evidence identities unchanged; current native/release apps preserved | [Identity/recovery/scope](reports/2026-10-27-63-consumed-multiframe-build-caches.md) |
+
+| CLN-20261027-64 | 2026-10-27 | Retired2 rejected uncommitted SVG masters plus23363 consumed generated/cache/intermediate files,1584540183 cache logical bytes | Exact backups and per-file manifest; fsync gap on initial SVG retirement disclosed; all16013 retained identities unchanged | [Identity/recovery/scope](reports/2026-10-27-64-artwork-and-consumed-release-caches.md) |

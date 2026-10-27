@@ -376,6 +376,7 @@ fn populate_app(repo: &Path, root: &Path, info: &Path, app: &Path) -> Result<(),
 <key>NSHighResolutionCapable</key><true/>
 </dict></plist>
 "#).map_err(|e| e.to_string())?;
+    fe_packaging::install_macos_icon(app)?;
     run(
         Command::new("codesign")
             .args(["--force", "--sign", "-"])
