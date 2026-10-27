@@ -23414,3 +23414,13 @@ pending Goal items remain open. Evidence and boundaries:
 1640451148逻辑字节；CLN70的文件不重复计数。120230项冻结源/产品/资源/链接证据
 哈希不变，其他配置继续构建。详见[CLN71](../maintenance/cleanup/reports/2026-10-27-71-consumed-d26-compiler-copies.md)；
 无新兼容或性能通过结论。
+
+
+### 2026-10-27 · D26构建完成与CLN68结束后回收
+
+原D26控制器自然退出0，20配置/61 profile构建及dump通过，保护released零失败；
+语义、稳定语料与性能尚未验收，ROOT随后XML/SQLite/TLS开发不在冻结源内。
+CLN68实际晚于70/71，回收29770份、1039083114逻辑字节，136269项删前后身份不变。
+后续独立暂存driver缺失，原因未知；从原身份归档恢复并核对SHA，不覆盖现存文件。
+详见[CLN68](../maintenance/cleanup/reports/2026-10-27-68-consumed-d26-compiler-copies.md)。
+Goal保持1/7交付，余6/7。

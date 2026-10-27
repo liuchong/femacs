@@ -1,4 +1,9 @@
 
+D26原构建已自然结束，20配置/61 profile构建与dump通过，尚非语义/兼容/性能通过。
+结束后按[CLN68](../maintenance/cleanup/reports/2026-10-27-68-consumed-d26-compiler-copies.md)
+回收剩余生成副本及cargo缓存；后续缺失的独立driver已按原身份归档恢复。
+下方“继续构建”等措辞保留各自历史上下文，当前ROOT的XML/SQLite/TLS不由D26作证。
+
 D26后续已完成配置的生成副本继续按[CLN71](../maintenance/cleanup/reports/2026-10-27-71-consumed-d26-compiler-copies.md)
 回收；各批不重复计数，当前产品与活动配置保留。
 
