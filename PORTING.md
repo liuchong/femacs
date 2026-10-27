@@ -1806,3 +1806,27 @@ in the terminal renderer and its real window-matrix redisplay_tab_bar dispatch,
 including original height/row/autosize/flag handling. Do not merely disable tab
 bars or ignore a missing matrix. Preserve terminal rendering. Other development
 and GC diagnosis remain held; only the UI repair proceeds.
+
+### P-392: native live-resize title crosses an invalid Swift varargs boundary (2026-10-27)
+
+The user actually drags the right edge of the published candidate and the owned
+process exits SIGSEGV. Preserve the original UI5 failure, program identity and
+system crash report. The stack enters EmacsView.windowWillResize, esprintf and
+doprnt; it is a distinct failure from the older GC abort. Earlier static review
+and programmatic/zoom tests missed the live-only window-title branch.
+
+The Swift declaration uses CVarArg... with @_silgen_name for the C/Rust variadic
+esprintf entry; this is a Swift variadic array, not a C varargs call. Replace
+only this title construction with a native Swift string from the retained UTF-8
+old title and decimal Int32 dimensions, preserving the exact title punctuation,
+old-title capture/restore, text-grid behavior and live-resize condition. Remove
+the now-unused unsafe import and temporary title buffer. Keep opt-in bounded
+live-resize traces so native entry and title updates can be distinguished from
+programmatic resizing. Do not change formatter/GC behavior or disable resizing.
+
+Complete this business correction, then build a fresh source-bound Cocoa App,
+validate the actual UI and native live branch, and add protective formatting
+checks after functional acceptance. No pass for mouse resizing without actual
+native input. The user feedback supersedes the earlier input-only hypothesis;
+notify the same independent partner, require source/evidence review and preserve
+all unrelated work. Other development remains held under the UI priority.

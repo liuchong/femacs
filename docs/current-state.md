@@ -1,6 +1,8 @@
-## 当前 UI 修复（2026-10-27，P-391）
+## 当前 UI 修复（2026-10-27，P-391/P-392）
 
-按用户最新要求只修这处 Cocoa UI，其他施工及 GC 调查保持原检查点。窗口尺寸标志写错字、标签栏误走终端矩阵两个根因已修正；新App真实初始/改尺寸/原生zoom/标签栏开关及两个标签显示通过，后置标志保护16/16，独立源码复核无阻断。当前 `dist/macos/Femacs.app` 已更新，程序SHA `ec6e44e3f11818cd5c0148d050d389e93975e860b5af8f9bf3c0d7712e28260b`。这不是全部 G1/G3/快捷键或 GC 完成；原 GC 崩溃与中文输入法前缀问题仍保留。证据、确切范围及试用入口见[UI修复记录](../maintenance/incidents/2026-10-27-cocoa-layout.md)。
+按用户最新要求继续只修这处Cocoa UI，其他施工及GC调查保持原检查点。窗口留白/标签栏修复后，用户真实拖动又触发标题格式化SIGSEGV：Swift变参数组误绑定C变参。P-392改为原生Swift标题，保留网格/live分支和旧标题恢复。新App实际记录696条live resize和696次正确标题、6条结束回调、193种内容尺寸；末态native/view/core730×564、正常退出0；随后格式保护6/6。独立源码/旧App反汇编及新证据复核无阻断，并明确采用本次真实失败与修复。
+
+`dist/macos/Femacs.app` 已更新，程序SHA `a1f6f56bad59ee4f582dd2c9c7e2daf1d4fe050be5cdf7766ff841ac7b366292`。这是本次缩放分支的实际修复证据，不是完整G1/G3/快捷键或GC完成。原GC崩溃、中文输入法前缀及其他未验收项目保留。完整原始失败、新证据、限制及试用入口见[UI修复记录](../maintenance/incidents/2026-10-27-cocoa-layout.md)。
 
 ## Current storage boundary (2026-10-27, CLN55-57)
 

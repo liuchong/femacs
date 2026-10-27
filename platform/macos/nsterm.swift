@@ -8117,6 +8117,13 @@ class EmacsWindow: NSWindow {
 // Opt-in acceptance diagnostics. Default execution never creates a trace file.
 private let nsInputTracePath = ProcessInfo.processInfo.environment["FEMACS_INPUT_TRACE"]
 private var nsInputTraceBytes = 0
+// The live-resize title is local UI text. A Swift variadic array must never
+// cross the C esprintf varargs entry; retain the original UTF-8 title verbatim.
+private func ns_window_resize_title(_ oldTitle: UnsafePointer<CChar>,
+                                    columns: Int32, rows: Int32) -> String {
+  "\(String(cString: oldTitle))  —  (\(columns) × \(rows))"
+}
+
 private func ns_input_trace(_ event: String, _ details: @autoclosure () -> String = "",
                             view: NSView? = nil) {
   guard let path = nsInputTracePath, nsInputTraceBytes < 1_048_576 else { return }
@@ -9424,6 +9431,7 @@ class EmacsView: NSView, NSTextInputClient, NSWindowDelegate {
   @objc override func mouseDown(with theEvent: NSEvent) {
     let dpyinfo = FRAME_DISPLAY_INFO(emacsframe)                     // C 7785
     let p = self.convert(theEvent.locationInWindow, from: nil)       // C 7786
+    ns_input_trace("mouseDown", "type=\(theEvent.type.rawValue) modifiers=\(theEvent.modifierFlags.rawValue) local=\(p.x),\(p.y)", view: self)
     var window: EmacsWindow?                                        // C 7787
 
     // C 7789: `NSTRACE ("[EmacsView mouseDown:]");` - empty at `NSTRACE_ENABLED` 0.
@@ -9740,6 +9748,7 @@ class EmacsView: NSView, NSTextInputClient, NSWindowDelegate {
 
   /// C 8138-8141: `- (void)mouseDragged: (NSEvent *)e` - the forward to `mouseMoved:`.
   @objc override func mouseDragged(with e: NSEvent) {
+    ns_input_trace("mouseDragged", "modifiers=\(e.modifierFlags.rawValue) window=\(e.locationInWindow.x),\(e.locationInWindow.y)", view: self)
     mouseMoved(with: e)                                             // C 8140
   }
 
@@ -9865,6 +9874,7 @@ class EmacsView: NSView, NSTextInputClient, NSWindowDelegate {
   /// string, so the test is written as the window test and named here.
   @objc func windowWillResize(_ sender: NSWindow, to frameSize: NSSize) -> NSSize {
     var frameSize = frameSize
+    ns_input_trace("windowWillResize", "live=\(sender.inLiveResize) proposed=\(frameSize.width)x\(frameSize.height)", view: self)
     var extra: Int32 = 0                                     // C 8246
     var cols: Int32 = 0, rows: Int32 = 0                     // C 8247
 
@@ -9924,7 +9934,6 @@ class EmacsView: NSView, NSTextInputClient, NSWindowDelegate {
       else if self.window!.inLiveResize && fs_state == FULLSCREEN_NONE()
                 && !maximizing_resize
                 && self.window != nil {                        // C 8299-8301
-        var size_title: UnsafeMutablePointer<CChar>?           // C 8303
         let window = self.window!                              // C 8304
         if old_title == nil {                                  // C 8305
           let t = strdup(self.window!.title)                    // C 8307
@@ -9934,12 +9943,11 @@ class EmacsView: NSView, NSTextInputClient, NSWindowDelegate {
           }
           old_title = t                                        // C 8311
         }
-        /* C 8313: `size_title = xmalloc (strlen (old_title) + 40);`  */
-        size_title = xmalloc(strlen(old_title!) + 40)!.assumingMemoryBound(to: CChar.self)
-        esprintf(size_title, "%s  —  (%d × %d)", old_title!, cols, rows)   // C 8314
-        window.title = (NSString(utf8String: size_title!) as String?) ?? ""  // C 8315
+        // C 8313-8317: ARC owns the temporary title; preserve the exact
+        // text without pretending Swift CVarArg... is the C variadic ABI.
+        window.title = ns_window_resize_title(old_title!, columns: cols, rows: rows)
+        ns_input_trace("liveResizeTitleUpdated", "columns=\(cols) rows=\(rows)", view: self)
         window.display()                                       // C 8316
-        xfree(size_title)                                      // C 8317
       }
     }
 
@@ -9974,6 +9982,7 @@ class EmacsView: NSView, NSTextInputClient, NSWindowDelegate {
     // C 8359: `NSTRACE ("[EmacsView viewDidEndLiveResize]");` - empty.
 
     super.viewDidEndLiveResize()                               // C 8361
+    ns_input_trace("viewDidEndLiveResize", view: self)
     if old_title != nil {                                      // C 8362
       /* C 8364: `[[self window] setTitle: [NSString stringWithUTF8String: old_title]];`  */
       self.window!.title = (NSString(utf8String: old_title!) as String?) ?? ""
@@ -15017,14 +15026,6 @@ func FRAME_PIXEL_HEIGHT_TO_TEXT_LINES(_ f: UnsafeMutableRawPointer?, _ height: I
 /// C: `bool frame_resize_pixelwise` (a `DEFVAR_BOOL` variable, src/frame.c 7625) - C 8330's
 /// read.  Provided: `src/frame.rs` 7445.
 @_silgen_name("frame_resize_pixelwise") var frame_resize_pixelwise: Bool
-
-/// C: `ptrdiff_t esprintf (char *buf, char const *format, ...)` (declared src/lisp.h 4717,
-/// defined src/doprnt.c 552) - C 8314's call, whose result C discards.  The variadic entry is
-/// declared the way this unit's `fprintf` is (C 728's reading).  Provided:
-/// `src/doprnt.rs` 552.
-@_silgen_name("esprintf")
-func esprintf(_ buf: UnsafeMutablePointer<CChar>?, _ format: UnsafePointer<CChar>,
-              _ args: CVarArg...)
 
 /// C: `#define SET_FRAME_GARBAGED(f) (frame_garbaged = true, fset_redisplay (f), f->garbaged =
 /// true)` (src/frame.h 1173-1174) - C 8398's call, the comma expression C discards.  **Open**:
