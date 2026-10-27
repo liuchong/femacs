@@ -200,3 +200,13 @@ P405已在工作区一次写齐早期特征绑定、prepare漂移拒绝和双产
 见[实际失败与修复边界](../maintenance/incidents/2026-10-28-runtime-tls-binding-drift.md)
 及[CLN82](../maintenance/cleanup/reports/2026-10-28-82-recovered-terminal-copies.md)。
 整个Goal保持1/7，剩余6/7。
+
+## P405/P406修正后统一构建已启动（2026-10-28，D29）
+
+两个回合的独立源码核查确认：早期TLS能力绑定、严格target存在/regular/
+无symlink及Cocoa首次准备顺序、header索引刷新、源清单检查已接齐；
+当前无新确定缺陷，但静态结论不等于实际构建或功能验收。D29从新统一
+冻结源实际启动，按variant交错terminal/cocoa，仍20配置/61profile；
+成功配置调用既有逐项账本回收units。retained状态保留为清理待办，不误报完成。
+旧D28不复用为新候选，已按[CLN83](../maintenance/cleanup/reports/2026-10-28-83-superseded-d28-runtime-products.md)
+退役无消费者制品，源/原失败/日志保留。根试用App未因此替换，整体Goal仍1/7。

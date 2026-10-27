@@ -1996,3 +1996,29 @@ configurations/61 profiles from one new corrected frozen export. Do not reuse
 the old terminal products as final acceptance candidates or edit their binding
 receipts to look current. Integrate the fix with the existing completed TLS
 functional suite; protective tests remain after full functional acceptance.
+
+### P-406: exercise both product representatives early and retire consumed copies (2026-10-28)
+
+The previous order built all ten terminal cases before reaching Cocoa, which
+hid the shared TLS binding defect until late. Keep the exact20 cases and61
+profiles, but execute both products for each variant: terminal and Cocoa
+combined diagnostic representatives first, followed by both complete ordinary
+variant/observer matrices and baseline diagnostics. This changes scheduling,
+not coverage, product behavior or acceptance thresholds. Preserve stop-on-failure.
+
+Fresh build_matrix must also use the same already-exercised retirement helper
+as recovery: after a successful reaped whole configuration and completed leg
+preservation, retire only each leg's generated objects/units with its actual
+outcome and durable identity ledger. Keep products, link inputs, frozen source
+and failures; publish every aggregate under maintenance/cleanup. Do not wait
+until all20 cases finish to release consumed compiler copies. This repairs the
+fresh-build orchestration gap without new resource limits or concurrent builds.
+
+P405 independent review follow-up: require the bound product's target copy to
+exist as a regular non-symlink file. Cocoa previously resolved object_dir before
+TLS preparation; move that lookup after target preparation so the stricter
+post-preparation invariant does not reject a legitimate fresh build. All other
+selected-root callers already follow preparation. Clear only generated numeric
+TLS header SHA keys before rebinding to avoid stale indices on a changed header
+inventory. Source-owner recovery manifests receive explicit safe regular-file
+checks. Static review remains distinct from actual integration acceptance.
