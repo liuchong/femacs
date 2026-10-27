@@ -23406,3 +23406,11 @@ pending Goal items remain open. Evidence and boundaries:
 ### 2026-10-27 · CLN70按已完成D26配置回收
 
 根据实际每配置process及两腿完成/保护交接回执，对12个已完成配置回收112116份生成Rust副本、3737290194逻辑字节；88190项保留内容身份不变，活动配置/cargo/产品/资源/链接证据不动。两次按配置核对句柄，不以整棵活跃构建根作闲置判断。详见[CLN70](../maintenance/cleanup/reports/2026-10-27-70-consumed-d26-compiler-copies.md)。构建仍在推进，不能据此认定整组语义或性能验收通过。
+
+
+### 2026-10-27 · CLN71后续已完成配置回收
+
+按实际17配置完成/交接回执核对，其中5个新增可回收配置清理48890份生成Rust副本、
+1640451148逻辑字节；CLN70的文件不重复计数。120230项冻结源/产品/资源/链接证据
+哈希不变，其他配置继续构建。详见[CLN71](../maintenance/cleanup/reports/2026-10-27-71-consumed-d26-compiler-copies.md)；
+无新兼容或性能通过结论。
