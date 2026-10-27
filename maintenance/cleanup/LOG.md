@@ -104,3 +104,5 @@
 | CLN-20261027-61 | 2026-10-27 | 缩放修复交付后回收14955份编译副本，527335335逻辑字节 | 27063项源/失败/新证据/当前与回退App身份不变；冻结链接/诊断输入保留 | [范围与恢复](reports/2026-10-27-61-live-resize-compiler-caches.md) |
 
 | CLN-20261027-62 | 2026-10-27 | 回收5177份已消费多窗口编译副本，202100121逻辑字节 | 13066项冻结源/程序/原失败/新诊断身份不变；真实输入缺口保留 | [范围与恢复](reports/2026-10-27-62-consumed-multiframe-build-caches.md) |
+
+| CLN-20261027-63 | 2026-10-27 | Retired8153 consumed receiver-build/cache and failed-copy files,357814435 logical bytes | All16015 retained input/product/evidence identities unchanged; current native/release apps preserved | [Identity/recovery/scope](reports/2026-10-27-63-consumed-multiframe-build-caches.md) |
