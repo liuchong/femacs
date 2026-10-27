@@ -1,4 +1,11 @@
 
+D28已因ENOSPC停止：首个配置两腿完成，随后基线checking写盘失败。
+控制器最终报告未保存；已独立核实全部记录身份退出、输出句柄空，并释放
+原保护。不得把下方旧running记录当当前状态。
+[中断与恢复边界](../maintenance/incidents/2026-10-27-runtime-d28-disk-interruption.md)；
+CLN75–76已回收用完副本并退役旧D26制品，源码、参照、当前试用包和原始
+证据保留。D26旧products仅作历史记录，不能再直接执行。断点续建尚未完成。
+
 TLS当前源码ABI5复验通过：268项输入绑定、233项C依赖前后不变、99项观测
 一致；旧ABI4仅对较早版本有效。D28新冻结源完整构建运行中，尚未取得完整
 编辑器/TLS功能验收。用完诊断副本按[CLN74](../maintenance/cleanup/reports/2026-10-27-74-consumed-diagnostics.md)
