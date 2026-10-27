@@ -1971,3 +1971,28 @@ record bodies or machine paths. Failure before complete validation retains all
 originals. Current frozen source/products and acceptance requirements do not
 change. Do not call this full-cache archiving or a successful transparent
 filesystem compression trial: P403 remains rejected.
+
+### P-405: bind all TLS feature settings before configuration and ABI hashing (2026-10-28)
+
+D28 recovery completed ten terminal configurations, then both first Cocoa legs
+failed their strict continuation check. Actual bound-versus-target JSON differs
+by37 TLS capability/version fields: prepare added them after prepare_leg had
+hashed the selected config and native ABI. Terminal used the expanded target
+but did not compare its target copy, so its completed builds are preserved as
+historical build evidence, not a valid final configuration/provenance matrix.
+
+Move the existing actual-header feature/version resolution into precompile
+bind_configuration, before configuration/native ABI hashes for both products.
+Preparation rebinds from current dependencies and rejects any change to a
+runtime-selected configuration before staging; ordinary builds use the same
+resolver. Keep full19-header and library identity verification. Compare both
+terminal and Cocoa copied target configs to the bound config; do not remove or
+weaken continuation checks. Source behavior and the existing feature mapping
+stay unchanged; no TLS/GC/error semantic relaxation is allowed.
+
+The fix changes hash/ABI inputs for both products. Preserve the old uniform
+snapshot, all successful builds, failure logs and receipts, then build all20
+configurations/61 profiles from one new corrected frozen export. Do not reuse
+the old terminal products as final acceptance candidates or edit their binding
+receipts to look current. Integrate the fix with the existing completed TLS
+functional suite; protective tests remain after full functional acceptance.

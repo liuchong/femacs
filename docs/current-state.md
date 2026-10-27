@@ -189,3 +189,14 @@ P402独立恢复已核实原ENOSPC停止证据，按原哈希复用驱动和首�
 已消费副本见[CLN77](../maintenance/cleanup/reports/2026-10-27-77-recovered-baseline-copies.md)，
 旧D26无消费者的手册/冗余保全包见[CLN78](../maintenance/cleanup/reports/2026-10-27-78-superseded-d26-manuals.md)。
 总目标仍只完成G4，1/7，剩余6/7；本次不改变计数。
+
+## D28恢复已因TLS配置绑定失败结束（2026-10-28）
+
+实际完成10个终端配置、31个profile含安装参照；首Cocoa两腿因37项TLS
+配置在ABI/hash绑定之后加入而被严格比较拒绝，恢复退出1且完整回收。
+终端构建成功不证明其配置绑定完整，旧产品不作为P405修复后的最终候选。
+P405已在工作区一次写齐早期特征绑定、prepare漂移拒绝和双产品target校验，
+独立核查及新统一20配置/61profile重建待执行，未编译/验收此修复。
+见[实际失败与修复边界](../maintenance/incidents/2026-10-28-runtime-tls-binding-drift.md)
+及[CLN82](../maintenance/cleanup/reports/2026-10-28-82-recovered-terminal-copies.md)。
+整个Goal保持1/7，剩余6/7。
