@@ -114,3 +114,5 @@
 | CLN-20261027-66 | 2026-10-27 | Retired6885 consumed output files, 486132014 logical bytes | Durable identity manifest; all5982 retained identities unchanged at cleanup; current products/evidence retained | [Scope and recovery](reports/2026-10-27-66-selected-horn-artwork-outputs.md) |
 
 | CLN-20261027-67 | 2026-10-27 | Retired4058 consumed output files, 289754448 logical bytes | Durable identity manifest; all9002 retained identities unchanged at cleanup; current products/evidence retained | [Scope and recovery](reports/2026-10-27-67-consumed-contour-preview-cache.md) |
+
+| CLN-20261027-69 | 2026-10-27 | 净回收55470份旧布局构建展开副本，3712209331逻辑字节 | 七份既有归档逐内容验证，20874项保留身份不变；34份build配置/文字额外恢复，错误与恢复如实记录 | [范围与恢复](reports/2026-10-27-69-layout-expansions.md) |

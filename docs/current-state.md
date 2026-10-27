@@ -1,3 +1,5 @@
+
+旧G1布局构建1–7的已归档展开源已按[CLN69](../maintenance/cleanup/reports/2026-10-27-69-layout-expansions.md)退役；历史日志保留，复跑须先隔离恢复，不能直接使用旧source路径。当前App、终端和D26冻结源不受影响。
 ## Fe 标志与 macOS 发行包（2026-10-27，P-395）
 
 README及App统一使用立体铸铁ε与局部锈蚀图案。根目录 `packaging/` 独立
