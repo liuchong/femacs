@@ -2,6 +2,7 @@
 /build
 /.femacs-cache
 /dist/macos
+/dist/releases/
 /dist/candidates/
 /info/
 /.info.stage-*

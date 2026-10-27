@@ -23315,3 +23315,16 @@ maintenance/releases/2026-10-27-fe-artwork-packaging.md; broader Goal stays open
 Final epsilon-icon executable startup/text/C-a/C-e and natural exit now bind
 the delivered signed program itself:37.369s,153616384-byte peak, native/controller0
 and complete cleanup. Earlier manually verified Chinese flow remains separate.
+
+### 2026-10-27: current P393 terminal error-path acceptance and release hygiene
+
+P393 terminal program463a41e0/dumpf08f0806 now passes the six existing real
+TTY integration cases: missing/file/directory fatal startup, detached no-TTY,
+undefined TERM on a controlling PTY, and10 recoverable terminal-frame errors followed by GC
+and exact UTF-8 save. Products unchanged,129.322ms actual suite,controller0/reaped
+0.410s,24870912-byte peak. This is the current terminal candidate, not old
+P393-free evidence or allocator-free proof. Exact results:
+`build/acceptance/g1-terminal-p393-failure-paths-1/results.json`.
+Add precise `dist/releases` ignore policy while keeping packaging/master inputs
+tracked, and update outdated tryout failure statements. Native pending-composition
+transfer/menu-exit and consolidated G1 remain open; Git push is still connection-blocked.
