@@ -23472,3 +23472,5 @@ D28当前停止，尚未完成断点续建、TLS功能或完整20配置/61 profi
 - **P405/P406两轮独立核查与D29启动（2026-10-28）**：实际核查37项早期TLS绑定、严格双target副本及Cocoa首次prepare时序、numeric header刷新、恢复清单安全；增量无新确定缺陷，仅静态结论。D29已实际统一重建20配置/61profile，两个代表优先且逐配置回收，尚无完整构建/功能/性能验收。CLN83退役旧D28已无消费者制品及生成手册22985份5864944479逻辑字节，源和原始失败/回执保留；根App与新D29不动。新版清单持续推进，整个Goal仍1/7。
 
 - **D29首对代表构建与CLN84（2026-10-28）**：两个真实配置进程均退出0/完整回收，终端及Cocoa各普通/检查腿产品生成与dump完成；4腿target副本与绑定配置JSON相等，此前37项后置漂移未再现。当前2/20配置、9/61profiles含参照，其余仍在编译；没有TLS/Lisp/stable/性能或UI通过结论。CLN84汇总4份原操作账本的19130份副本、640352977逻辑字节，源、产品、链接输入和日志保留，发布器无新删除。Goal仍1/7。
+
+- **D29 next configuration and CLN85 (2026-10-28)**: terminal-baseline also completes actual normal/checking build and dump, bringing the running new matrix to3/20 configurations and11/61 profiles including the installed reference. No functional or performance pass is claimed. CLN85 retires59172 old D28 package resource copies/2641604359 logical bytes against released artifact journals, while preserving canonical frozen inputs, metadata and original logs. APFS shared blocks mean logical bytes are not exclusive space recovery. The original D29 handle remains live; whole Goal remains1/7.

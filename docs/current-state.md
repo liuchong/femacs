@@ -212,3 +212,5 @@ P405已在工作区一次写齐早期特征绑定、prepare漂移拒绝和双产
 退役无消费者制品，源/原失败/日志保留。根试用App未因此替换，整体Goal仍1/7。
 
 D29首对代表实际完成（2026-10-28）：终端/Cocoa联合诊断配置普通和检查腿均构建、dump及保存回执成功；4腿绑定配置与准备后target JSON相等。当前2/20配置、9/61profiles含参照，其他构建仍在运行；这不是TLS功能、全稳定语料、性能或UI验收。首对已消费19130份生成副本按[CLN84](../maintenance/cleanup/reports/2026-10-28-84-new-representative-copies.md)核验汇总，后续配置不重计。
+
+D29 next checkpoint (2026-10-28): terminal-baseline completes, now3/20 configurations and11/61 profiles including the installed reference. The original matrix remains live. CLN85 retires only old D28 registered package resource copies; original frozen inputs and failure evidence remain, with no current-product change or functional/performance acceptance claim. See the [cleanup report](../maintenance/cleanup/reports/2026-10-28-85-superseded-d28-resource-copies.md).

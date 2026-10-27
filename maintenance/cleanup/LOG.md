@@ -146,3 +146,5 @@
 | CLN-20261028-83 | 2026-10-28 | 退役配置绑定失效的D28旧制品/生成手册22985份、5864944479逻辑字节 | 冻结源及原有元数据逐项不变；原失败和日志保留；新D29、根App不动 | [范围与恢复](reports/2026-10-28-83-superseded-d28-runtime-products.md) |
 
 | CLN-20261028-84 | 2026-10-28 | D29首对代表四腿已消费副本19130份、640352977逻辑字节 | 原逐项操作账本核验，制品/源/配置保留；未运行功能验收 | [范围与恢复](reports/2026-10-28-84-new-representative-copies.md) |
+
+| CLN-20261028-85 | 2026-10-28 | Retire59172 superseded D28 package resource copies,2641604359 logical bytes | Released ownership and original hashes verified; frozen inputs/logs/current D29 retained; no exclusive-space claim | [Scope and recovery](reports/2026-10-28-85-superseded-d28-resource-copies.md) |
