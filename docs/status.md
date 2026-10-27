@@ -23369,3 +23369,30 @@ Pending-composition cross-frame/cancel/save and full stable-stage compatibility
 remain open. Goal stays active; this does not increase the seven-item completed
 count. Git push has recovered; the previous renderer/cleanup unit092742c0 is
 signed and pushed. Artwork drafts remain outside this acceptance claim.
+
+
+### 2026-10-27: real pending-composition transfer, cancel and file save
+
+Current signed7727b278/1a632e06 App: real marked `ni` on A preceded the
+user's mouse transfer to B. The user confirmed spelling dismissal, repeated
+A/B switching and continuing text entry. Both frames subsequently passed
+physical-key Chinese commit, Escape cancellation without committed-buffer
+changes, normal Write file saving and UTF-8 equality. Both owned files contain
+`你你好` plus newline, SHA449e3acd. Natural C-x C-c exits0; controller0 with
+complete cleanup,985.568seconds including human waits,180633600-byte accounted
+run peak. Executable/frozen dump/keyboard/fixture/observer identities remain
+unchanged; the actual trial bundle dump also matches after exit, without a
+separate launch-time hash for that bundle copy. No product patch or new
+compilation was needed.
+
+C-g during marked ni did not cancel; the same-provider installed-reference
+comparison remains open. The256-row passive Lisp command log filled during A
+filename entry; later claims use native callbacks/AX, snapshots, file bytes and
+exit receipts rather than a fabricated complete command trace. One failed CUA
+paste was read back before direct ASCII path entry; real Chinese used physical
+keys. Input source remains unchanged. The existing partner independently read the raw callbacks/files/receipts,
+hashed the actual trial and retained packages, and explicitly adopted this
+bounded current-App result and its gaps. Full G1/compatibility and all other
+pending Goal items remain open. Evidence and boundaries:
+`maintenance/releases/2026-10-27-pending-ime-workflow.md` and
+`build/acceptance/g1-pending-ime-ui-1/results.json`.
