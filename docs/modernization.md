@@ -1,5 +1,11 @@
 # Modernization: stable delivery, retirement, then Lisp runtime work
 
+Current native acceptance update (2026-10-27): actual user Finder file drop
+passes with 124 native motion callbacks, 1 drop callback and exact 57-byte UTF-8
+opened contents. Earlier automated no-callback attempts remain preserved.
+Multi-frame IME and final G1 review remain open; no whole-outcome counter changes.
+See [the source/product-bound record](../maintenance/releases/2026-10-27-g1-finder-drop.md).
+
 Current continuation: the **seven-part persistent Goal (2026-10-25)** below. Its first delivery stage closes the remaining Stage IV native gaps. Stages I–IV and failed attempts remain evidence; unchanged acceptance is not rerun merely to refresh a date.
 
 Execution-order update (2026-10-26): the user's current three-part sequence

@@ -23283,3 +23283,8 @@ The old D24 products.json is historical identity evidence from now on, not a set
 Measured after cleanup: repository 22180420KiB (about21.15GiB), build 17689012KiB, old D24 tree 3642756KiB. The user's earlier 52G is a historical checkpoint; its cumulative difference is not attributed solely to these batches. Every completed build/acceptance round must now retire its consumed intermediates immediately, preserving only real remaining consumers and the required traceable evidence. P-376 and maintenance/cleanup/README.md remain the cleanup entry; directory names and stale retention lists are not permanent exemptions.
 
 The existing independent partner explicitly adopted CLN55-57 and the retired-path/recovery boundary after reading the reports and current-state note. This confirms collaboration adoption, not new product acceptance; its original native operation exited 0 and was fully reaped.
+
+
+### 2026-10-27: actual Finder external drop verified
+
+User manual Finder drag into the current native target opens the exact 57-byte UTF-8 text, including Chinese and emoji. Bound native trace records 124 draggingUpdated and 1 performDragOperation; 124 Lisp observations have a live target and valid integer coordinates. File/fixture/program/dump identities are unchanged. Original automated no-callback attempts remain; no product-rejection claim is inferred from them. The same controlled editor remains live for pending multi-frame IME; no normal-exit/full-G1/final-independent-review claim. No compiler or remote CI ran and no production code changed. Record: maintenance/releases/2026-10-27-g1-finder-drop.md. Whole Goal remains 1/7 delivered, 6/7 open.

@@ -1,3 +1,7 @@
+## Finder external drop verified (2026-10-27)
+
+The user-performed Finder text-file drop now has matching native and opened-file evidence: 124 motion callbacks, 1 actual drop, 124 live-frame coordinate observations and exact 57-byte UTF-8 contents. Source/fixture/program/dump identities are unchanged. The editor remains live for pending multi-frame IME, so this is not a normal-exit or whole-G1 claim. The earlier automated no-callback attempts remain failures of delivery observation. See [the bounded acceptance record](../maintenance/releases/2026-10-27-g1-finder-drop.md). Other implementation remains at its prior checkpoints.
+
 ## 当前 UI 修复（2026-10-27，P-391/P-392）
 
 按用户最新要求继续只修这处Cocoa UI，其他施工及GC调查保持原检查点。窗口留白/标签栏修复后，用户真实拖动又触发标题格式化SIGSEGV：Swift变参数组误绑定C变参。P-392改为原生Swift标题，保留网格/live分支和旧标题恢复。新App实际记录696条live resize和696次正确标题、6条结束回调、193种内容尺寸；末态native/view/core730×564、正常退出0；随后格式保护6/6。独立源码/旧App反汇编及新证据复核无阻断，并明确采用本次真实失败与修复。
