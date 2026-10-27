@@ -3607,6 +3607,7 @@ unsafe fn read_char (commandflag: c_int, map: Lisp_Object, prev_event: Lisp_Obje
       recorded = true;
     }
 
+   } /* 'reread_first (C 3348) */
    /* C 3348: `reread_first:`.  */
 
   /* Display help if not echoing.  */
@@ -3698,7 +3699,6 @@ unsafe fn read_char (commandflag: c_int, map: Lisp_Object, prev_event: Lisp_Obje
 	}
     }
 
-   } /* 'reread_first (C 3348) */
   } /* 'exit (C 3429) */
 
   /* C 3429: `exit:`.  */

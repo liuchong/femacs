@@ -1830,3 +1830,61 @@ checks after functional acceptance. No pass for mouse resizing without actual
 native input. The user feedback supersedes the earlier input-only hypothesis;
 notify the same independent partner, require source/evidence review and preserve
 all unrelated work. Other development remains held under the UI priority.
+
+
+### P-393 · Preserve reread event parameters before dispatch
+
+Actual user multi-frame Chinese input reaches native B composition and commit
+callbacks, while B text and Lisp selected-frame do not advance; later window
+clicks exit255 with `handle-switch-frame must be bound to an event with parameters`.
+The original process, logs and failed observation remain preserved. This is not
+reported as a new signal crash or an unconfirmed input-source mode anymore.
+
+Source-bound cause: `src/keyboard.rs::read_char` opens the Rust forward-jump
+block `reread_first` before the unread-event branches, but closes it after the
+entire common event tail. A break for unread post-input-method or deferred
+switch-frame input therefore skips the original C3348 label's help handling,
+`add_command_key`, `last_input_event` and input-event accounting. The immutable
+reference places that label before the common tail. Close only this labelled
+block immediately before that label; keep the outer exit/retry and input-method
+blocks, queue ordering, event/frame contents, Lisp data, error and GC semantics.
+Do not disable the parameter check or force-select a native focus window.
+
+Complete this production control-flow repair before concentrated real native
+multi-frame composition/commit/cancel/focus and parameter-event validation;
+retain failed attempts and verify affected terminal input. Only then add key
+protective regression cases and obtain final independent review. Build and
+product evidence must bind the corrected source; old native receipts cannot
+certify this repair. This item does not close the whole Goal.
+
+
+## P-394 · Live multi-frame flag corruption diagnosis (2026-10-27)
+
+A repeated human multi-frame workflow has a preserved live-state failure: both
+frame flag words lose glyph initialization and native output type while the
+native windows remain visible and key-capable. The read offset is bound to the
+actual candidate machine code; ordinary error-entry observation was previously
+normal. The first corrupting writer is not yet known. Use hardware write
+watchpoints on both live frame words to capture the first destructive store and
+its real caller before changing production code. Do not restore flags manually,
+force focus, suppress the existing error guard, infer a GC cause from timing,
+or promote a later partial pass to the earlier failed workflow. Keep P-393's
+independently verified control-flow repair and all unrelated WIP unchanged.
+
+
+P-394 actual first-write capture: the hardware watchpoint stops in generated
+`ns_display_info_set_last_mouse_scroll_bar`, called by `ns_mouse_position` at
+`nsterm.swift:2977`. Its first argument is the live frame, while the generated
+body treats it as `ns_display_info`; clearing its member at offset `0x110`
+overwrites the frame's two flag words at that same machine-code offset. Reify
+this one accessor through `FRAME_DISPLAY_INFO(frame)`, as the Swift declaration
+and original C2506/C2515 require. Preserve all other direct-display receiver
+contracts. Source repair is complete; fresh real Cocoa/mouse/multi-frame/error
+acceptance and post-functional receiver/sentinel protection remain required.
+
+P-394 final native acceptance now passes: fresh source-bound Cocoa build, ordinary
+Backspace recovery, user-confirmed Chinese in both windows through B-A-B-A and
+natural editor/controller exit0. Generated receiver/sentinel protection passes4/4.
+Independent source/evidence review adopts the actual cross-type write diagnosis,
+confirms adjacent direct-display receivers unchanged and finds no remaining
+blocker in this scope. Full G1/compatibility and the overall Goal remain open.

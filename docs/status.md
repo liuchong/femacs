@@ -23288,3 +23288,15 @@ The existing independent partner explicitly adopted CLN55-57 and the retired-pat
 ### 2026-10-27: actual Finder external drop verified
 
 User manual Finder drag into the current native target opens the exact 57-byte UTF-8 text, including Chinese and emoji. Bound native trace records 124 draggingUpdated and 1 performDragOperation; 124 Lisp observations have a live target and valid integer coordinates. File/fixture/program/dump identities are unchanged. Original automated no-callback attempts remain; no product-rejection claim is inferred from them. The same controlled editor remains live for pending multi-frame IME; no normal-exit/full-G1/final-independent-review claim. No compiler or remote CI ran and no production code changed. Record: maintenance/releases/2026-10-27-g1-finder-drop.md. Whole Goal remains 1/7 delivered, 6/7 open.
+
+### 2026-10-27: P393/P394 native multiframe input repair
+
+Hardware watchpoints identified the first corrupting write: a display setter
+received a frame and cleared both frame flag words. The generator now follows
+the actual frame-to-display accessor; adjacent display receivers are unchanged.
+The independent fresh Cocoa build passes in366.335s,841891840-byte tree peak,
+controller0/reaped. The user manually confirms Chinese input and selection in
+both windows through B-A-B-A, all normal; ordinary line-start Backspace recovers.
+Native editor/controller exit0/reaped,141.725s,171819008-byte tree peak. Generated
+accessor component protection passes4/4. Original failures remain, broad G1 and
+Goal remain open. See maintenance/incidents/2026-10-27-multiframe-input.md.

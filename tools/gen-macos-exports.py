@@ -69,7 +69,11 @@ def record_exports(imports, existing):
     record('kboard','kboard','reference_count')
     record('window','window','vertical_scroll_bar horizontal_scroll_bar')
     record('mouse_highlight','Mouse_HLInfo','mouse_face_face_id mouse_face_mouse_x mouse_face_mouse_y')
-    record('ns_display_info','ns_display_info','next name_list_element color_p n_fonts n_planes root_window resx resy smallest_char_width smallest_font_height terminal horizontal_scroll_bar_cursor vertical_scroll_bar_cursor last_mouse_scroll_bar')
+    record('ns_display_info','ns_display_info','next name_list_element color_p n_fonts n_planes root_window resx resy smallest_char_width smallest_font_height terminal horizontal_scroll_bar_cursor vertical_scroll_bar_cursor')
+    # This Swift mouse-hook family receives a frame, matching FRAME_DISPLAY_INFO(*fp).
+    # Treating it as a display pointer clears frame flags at the display member offset.
+    record('ns_display_info','ns_display_info','last_mouse_scroll_bar',
+           base='(*FRAME_DISPLAY_INFO!(a0.cast::<frame>()))')
     record('ns_output','ns_output','baseline_offset font fontset dark_relief_color light_relief_color relief_background_color',base='(*(*a0.cast::<frame>()).output_data.ns.cast::<ns_output>())')
     for field in ('dark_relief_color','light_relief_color','relief_background_color'):
         expressions['ns_output_set_'+field] = f'replace_native_object(core::ptr::addr_of_mut!((*(*a0.cast::<frame>()).output_data.ns.cast::<ns_output>()).{field}), a1);'

@@ -1,3 +1,11 @@
+## 多窗口中文输入修复已实测（2026-10-27，P-393/P-394）
+
+真实硬件监视定位到生成显示访问器的接收指针错误；已修正。新Cocoa候选
+独立构建、dump及签名通过，用户手动确认双窗中文输入、B→A→B→A切换
+全部正常；普通退格错误可恢复，原编辑器自然退出0。保护回归4/4。
+见[故障及验收记录](../maintenance/incidents/2026-10-27-multiframe-input.md)。
+这是本次输入修复，不是整个G1或Goal完成。
+
 ## Finder external drop verified (2026-10-27)
 
 The user-performed Finder text-file drop now has matching native and opened-file evidence: 124 motion callbacks, 1 actual drop, 124 live-frame coordinate observations and exact 57-byte UTF-8 contents. Source/fixture/program/dump identities are unchanged. The editor remains live for pending multi-frame IME, so this is not a normal-exit or whole-G1 claim. The earlier automated no-callback attempts remain failures of delivery observation. See [the bounded acceptance record](../maintenance/releases/2026-10-27-g1-finder-drop.md). Other implementation remains at its prior checkpoints.
