@@ -111,3 +111,5 @@ __pycache__/
 
 # Generated profiles; source probes and documented outcomes remain tracked.
 /spikes/pgo-probe/*.profraw
+
+/dist/.DS_Store

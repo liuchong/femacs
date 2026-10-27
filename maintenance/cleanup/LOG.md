@@ -110,3 +110,7 @@
 | CLN-20261027-64 | 2026-10-27 | Retired2 rejected uncommitted SVG masters plus23363 consumed generated/cache/intermediate files,1584540183 cache logical bytes | Exact backups and per-file manifest; fsync gap on initial SVG retirement disclosed; all16013 retained identities unchanged | [Identity/recovery/scope](reports/2026-10-27-64-artwork-and-consumed-release-caches.md) |
 
 | CLN-20261027-65 | 2026-10-27 | Retired6812 consumed packaging/test/cache/superseded release files, 508068131 logical bytes | Durable identity manifest; all5980 retained identities unchanged; current F/epsilon delivery preserved | [Scope and recovery](reports/2026-10-27-65-consumed-f-artwork-outputs.md) |
+
+| CLN-20261027-66 | 2026-10-27 | Retired6885 consumed output files, 486132014 logical bytes | Durable identity manifest; all5982 retained identities unchanged at cleanup; current products/evidence retained | [Scope and recovery](reports/2026-10-27-66-selected-horn-artwork-outputs.md) |
+
+| CLN-20261027-67 | 2026-10-27 | Retired4058 consumed output files, 289754448 logical bytes | Durable identity manifest; all9002 retained identities unchanged at cleanup; current products/evidence retained | [Scope and recovery](reports/2026-10-27-67-consumed-contour-preview-cache.md) |

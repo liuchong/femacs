@@ -23328,3 +23328,20 @@ P393-free evidence or allocator-free proof. Exact results:
 Add precise `dist/releases` ignore policy while keeping packaging/master inputs
 tracked, and update outdated tryout failure statements. Native pending-composition
 transfer/menu-exit and consolidated G1 remain open; Git push is still connection-blocked.
+
+### 2026-10-27: rectangular icon rendering and consumed output retirement
+
+P397 now fits rectangular masters uniformly into centered transparent square
+ICNS outputs. Actual package/signature/DMG/native startup checks and4/4
+protective tests pass; the existing independent partner read the source and
+accepted this bounded result. Later visual drafts are still previews and are
+not included in this renderer-only delivery. No whole-core rebuild or full
+G1/compatibility/performance claim.
+
+CLN-20261027-66/67 retire10943 consumed generated files,775886462 logical
+bytes, with durable per-file manifests and duplicate-source recovery. At each
+cleanup boundary,5982 and9002 retained identities respectively stayed unchanged.
+Current trial/release products, design drafts and original failures remain;
+the exact small preview driver is retained independently from compiler caches.
+Both reports are linked in `maintenance/cleanup/LOG.md`. Full Goal remains
+active; terminal restoration and the remaining stable-stage coverage continue.

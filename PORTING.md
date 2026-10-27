@@ -1907,3 +1907,14 @@ master PNG is committed; deterministic Rust PNG resampling/ICNS packaging needs
 no image-generation service. Full normal build integration and subsequent
 bitmap-only shared-installer/release validation have separate evidence. See
 `maintenance/releases/2026-10-27-fe-artwork-packaging.md`.
+
+### P-397 — Preserve artwork proportions in square icon outputs
+
+Raster masters can have rectangular canvases. The shared packaging renderer
+previously scaled width and height independently. Fit each master uniformly
+into a transparent square and center it, preserving letter/horn proportions.
+Both Cocoa builds and release copies use this same renderer. The horizontal,
+vertical and square alpha-boundary case and the existing artwork/ICNS/signature
+controls pass, four tests total. Actual signed package/DMG and native startup
+checks pass for the intermediate artwork; later visual drafts remain separate.
+This is a renderer fix, not final artwork approval or whole-G1 completion.

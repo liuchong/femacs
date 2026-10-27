@@ -15,15 +15,16 @@ pub fn render(png: &[u8], size: u32) -> Result<Vec<u8>, String> {
         quality: tiny_skia::FilterQuality::Bicubic,
         ..Default::default()
     };
+    // The artwork may be rectangular; center it without stretching its glyphs.
+    let scale = size as f32 / source.width().max(source.height()) as f32;
+    let dx = (size as f32 - source.width() as f32 * scale) * 0.5;
+    let dy = (size as f32 - source.height() as f32 * scale) * 0.5;
     pixels.draw_pixmap(
         0,
         0,
         source.as_ref(),
         &paint,
-        tiny_skia::Transform::from_scale(
-            size as f32 / source.width() as f32,
-            size as f32 / source.height() as f32,
-        ),
+        tiny_skia::Transform::from_row(scale, 0.0, 0.0, scale, dx, dy),
         None,
     );
     pixels.encode_png().map_err(|e| e.to_string())
@@ -183,6 +184,35 @@ pub fn macho_payload_sha256(path: &Path) -> Result<String, String> {
 mod tests {
     use super::*;
     use std::time::Instant;
+
+    #[test]
+    fn rectangular_artwork_keeps_proportions_and_transparent_padding() {
+        let start = Instant::now();
+        for (width, height, expected) in [
+            (80, 40, (0, 8, 31, 23)),
+            (40, 80, (8, 0, 23, 31)),
+            (80, 80, (0, 0, 31, 31)),
+        ] {
+            let mut source = tiny_skia::Pixmap::new(width, height).unwrap();
+            source.fill(tiny_skia::Color::WHITE);
+            let input = source.encode_png().unwrap();
+            let output = render(&input, 32).unwrap();
+            let result = tiny_skia::Pixmap::decode_png(&output).unwrap();
+            let mut bounds = (32, 32, 0, 0);
+            for y in 0..32 {
+                for x in 0..32 {
+                    if result.pixels()[y * 32 + x].alpha() != 0 {
+                        bounds.0 = bounds.0.min(x);
+                        bounds.1 = bounds.1.min(y);
+                        bounds.2 = bounds.2.max(x);
+                        bounds.3 = bounds.3.max(y);
+                    }
+                }
+            }
+            assert_eq!(bounds, expected, "source {width}x{height}");
+        }
+        eprintln!("rectangular_artwork seconds={}", start.elapsed().as_secs_f64());
+    }
 
     #[test]
     fn artwork_and_icns_representations() {

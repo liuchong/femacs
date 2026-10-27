@@ -10,7 +10,8 @@ and platform packaging. It packages an existing editor build; it does not replac
 beside a smaller pair of GNU-inspired horns rotated vertically. The two inward
 returns suggest e without an added middle branch or animal face. Worn gray iron
 and restrained orange-red oxidation connect the name with its material.
-The same master is used in both READMEs and the native icon.
+The same master is used in both READMEs and the native icon; each square icon
+fits the artwork uniformly with transparent padding, preserving its proportions.
 Artwork provenance and attribution are in [assets/README.md](assets/README.md).
 
 ```sh
@@ -18,7 +19,8 @@ cargo run -p fe-packaging -- artwork --out build/fe-artwork
 ```
 
 The fresh output contains 1024-pixel previews and an ICNS with normal/Retina
-representations from 16 through 1024 pixels. PNG resampling has no system-font or
+representations from 16 through 1024 pixels. Rectangular masters are uniformly fitted and centered with transparent padding,
+so square icons preserve their source proportions. PNG resampling has no system-font or
 network dependency. `Cargo.lock` pins the image renderer. Standard Cocoa builds install
 `Fe.icns` and its bundle metadata before signing, so the icon persists on rebuild.
 This is a conventional ICNS icon, not a claim of layered Tahoe appearance support.

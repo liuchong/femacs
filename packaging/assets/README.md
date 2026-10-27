@@ -5,7 +5,8 @@ native App icon. An ordinary upright F retains a light iron texture and rust
 accents. The smaller right-hand sign follows a GNU horn pair rotated clockwise
 into a vertical arrangement: two inward-facing returns, no added middle branch
 and no animal face. The rounded central shoulder strengthens the e reading at small sizes
-without an added horizontal bar. Square outputs are generated from the same rectangular master.
+without an added horizontal bar. The proportions of the rectangular master are retained in
+square icon outputs through uniform scaling and transparent padding.
 
 The committed pixels are the production input. A built-in image-generation
 edit produced the master; regenerating from text is not byte-reproducible.
