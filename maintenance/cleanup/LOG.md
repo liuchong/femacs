@@ -148,3 +148,5 @@
 | CLN-20261028-84 | 2026-10-28 | D29首对代表四腿已消费副本19130份、640352977逻辑字节 | 原逐项操作账本核验，制品/源/配置保留；未运行功能验收 | [范围与恢复](reports/2026-10-28-84-new-representative-copies.md) |
 
 | CLN-20261028-85 | 2026-10-28 | Retire59172 superseded D28 package resource copies,2641604359 logical bytes | Released ownership and original hashes verified; frozen inputs/logs/current D29 retained; no exclusive-space claim | [Scope and recovery](reports/2026-10-28-85-superseded-d28-resource-copies.md) |
+
+| CLN-20261028-86 | 2026-10-28 | Retire3 redundant old UI source archives,606773535 logical bytes | All21132 original source/metadata identities retained; incomplete old scopes skipped; current D29 untouched | [Scope and recovery](reports/2026-10-28-86-redundant-ui-source-archives.md) |
