@@ -1,3 +1,7 @@
+## 2026-10-29 · 已消费编译副本清理
+
+CLN115/116累计回收29488文件、1062931837逻辑字节；分别为已结束P417和第二轮后端失败构建的Cargo/生成单元。源码、对象、产品与失败证据保留，新后端构建独立继续。逐项清单与恢复见[CLN115](../maintenance/cleanup/reports/2026-10-29-115-consumed-batch-event-compiler-copies.md)、[CLN116](../maintenance/cleanup/reports/2026-10-29-116-failed-notify-compiler-copies.md)。非磁盘空闲差值，Goal仍active、1/7。
+
 ## 2026-10-29 · P417批处理事件修复交付
 
 恢复直接batch stdin路径原有的三特性负条件；保持EOF、事件顺序和原测试不变。四个终端/Cocoa normal/checking产品新构建、双App签名通过；参照加四产品的原键盘25与原生线程38共315例通过，五份闭合stdin计时输入成功，含旧版负控制的六腿回归通过。独立搭档接受限定修复。autorevert远程用例仍exit255、后续not-run，原聚合false与参照失败/原始skip保留；完整兼容与Goal未完成，整体仍1/7。[根因和验证边界](../maintenance/incidents/2026-10-29-batch-event-dispatch.md)。
