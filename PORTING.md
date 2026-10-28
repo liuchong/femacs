@@ -2045,3 +2045,29 @@ keep every interrupted report and host identity. Do not weaken load_products,
 copy a source label, edit old partials, alter the product snapshot or count a
 partial compiler leg as a complete case. Root orchestration repair is pending;
 only after complete repair and source review may real recovery resume.
+
+
+## P-414 — Advance the client response cursor (2026-10-28)
+
+The real client/server evaluation probe exposed a missing C-for-loop update in
+`lib-src/emacsclient.rs::main`. The original loop advances `p = end_p` after
+every complete response line. The Rust while loop omitted that update, retained
+consumed bytes and could discard the printed result while still exiting zero.
+Both the pinned stable source and the readonly port baseline retain the update.
+Restore that exact cursor advance without changing protocol or evaluation.
+
+After completing the correction, recompile/link the client for both frontends
+and compiler legs. Reuse proven unchanged editor cores/resources with explicit
+parent product identities for this bounded client integration; a composed test
+package is not a newly rebuilt whole-runtime cohort. Verify successful and
+error responses, multiple expressions, and the original alternate-editor cases
+on actual clients/editors. Preserve the earlier long-socket-path failure and
+empty-response outcomes. Only after these functional checks pass add focused
+response-boundary protection, then independent review. Full stable/clean-build
+and UI acceptance remain required separately.
+
+Independent review accepted the exact cursor update with one coverage condition:
+add a complete print response followed by an incomplete next print response.
+That boundary now passes on all four clients; final protocol protection is20/20.
+The standalone fix does not claim default frontend client delivery or a clean
+HEAD build. The existing manual helper-link command remains a separate entry.

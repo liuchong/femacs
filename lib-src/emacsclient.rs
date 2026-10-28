@@ -2378,6 +2378,7 @@ pub unsafe extern "C" fn main (argc: c_int, argv: *mut *mut c_char) -> c_int
 			  .offset (if skiplf { 1 } else { 0 }), p);
 		  skiplf = true;
 		}
+	      p = end_p;
 	    }
 
 	  nrecv -= p.offset_from (recv_buf);
