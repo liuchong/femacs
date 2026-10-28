@@ -2056,11 +2056,12 @@ consumed bytes and could discard the printed result while still exiting zero.
 Both the pinned stable source and the readonly port baseline retain the update.
 Restore that exact cursor advance without changing protocol or evaluation.
 
-After completing the correction, recompile/link the client for both frontends
-and compiler legs. Reuse proven unchanged editor cores/resources with explicit
-parent product identities for this bounded client integration; a composed test
-package is not a newly rebuilt whole-runtime cohort. Verify successful and
-error responses, multiple expressions, and the original alternate-editor cases
+After completing the correction, rebuild both baseline frontends and compiler
+legs from one fresh frozen source and bind the corresponding product receipts.
+The actual corrected cohort uses four fresh products, rather than the initially
+considered composition of old cores with new helper clients. Reuse these exact
+products for a test-harness-only correction. Verify successful and error
+responses, multiple expressions, and the original alternate-editor cases
 on actual clients/editors. Preserve the earlier long-socket-path failure and
 empty-response outcomes. Only after these functional checks pass add focused
 response-boundary protection, then independent review. Full stable/clean-build
