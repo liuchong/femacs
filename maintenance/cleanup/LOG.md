@@ -1,3 +1,7 @@
+## CLN-20261029-115 — P417已消费编译缓存
+
+回收五个已结束运行的Cargo/生成单元副本：19694文件、899目录、694904903逻辑字节；保留源码、实际对象、产品和原始失败，不把exit1冒充完整验收成功。[逐项清理与恢复](reports/2026-10-29-115-consumed-batch-event-compiler-copies.md)。
+
 - CLN-20261028-112：全量Lisp发行构建已消费Cargo/生成副本9802文件、364815946逻辑字节；冻结源、真实程序/资源、对象、日志和功能回执保留。[报告](reports/2026-10-28-112-consumed-release-bytecode-compiler-copies.md)。
 
 - CLN-20261028-111：六轮已消费字节码诊断副本11908文件、672509897逻辑字节；原始失败、脚本、编译回执、源和正式构建保留。[报告](reports/2026-10-28-111-consumed-bytecode-diagnostics.md)。
