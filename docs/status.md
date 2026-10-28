@@ -1,3 +1,7 @@
+## 2026-10-29 · 首轮后端失败缓存已回收
+
+找回首轮控制器真实回执（exit1、完整回收、166.227s），再清理9794文件/368026198逻辑字节；CLN115–117合计39282文件、1430958035逻辑字节。保留源码/对象/原始失败，当前第三轮独立构建继续；不是APFS空闲差值。[CLN117报告](../maintenance/cleanup/reports/2026-10-29-117-failed-notify-compiler-copies.md)。
+
 ## 2026-10-29 · 已消费编译副本清理
 
 CLN115/116累计回收29488文件、1062931837逻辑字节；分别为已结束P417和第二轮后端失败构建的Cargo/生成单元。源码、对象、产品与失败证据保留，新后端构建独立继续。逐项清单与恢复见[CLN115](../maintenance/cleanup/reports/2026-10-29-115-consumed-batch-event-compiler-copies.md)、[CLN116](../maintenance/cleanup/reports/2026-10-29-116-failed-notify-compiler-copies.md)。非磁盘空闲差值，Goal仍active、1/7。
