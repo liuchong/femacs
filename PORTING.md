@@ -2195,3 +2195,36 @@ The autorevert first local case emits an ERT pass, then the remote case exits255
 because file-notify special events are absent without USE_FILE_NOTIFY; the
 original aggregate remains false, with later cases not-run. The notification
 backend gap is P418 work, not permission to label the full file accepted.
+
+## P-419 — Align the stable ERT component and original tests (2026-10-29)
+
+The required stable self-test observes an actual shipped-library difference:
+the development ERT library exposes record descriptions where stable31.1 uses
+alists. This is not a VM assq defect. The only repository literal consumers of
+the new getters are that ERT library and its matching development tests.
+
+Following the official-stable behavioral baseline and independent source
+review, import the complete stable31.1 ERT library and matching original root
+test verbatim from pinned commit a360712c9d272d950d8d8255ef74570f7e90b7d9.
+Do not patch the required stable acceptance input, its assertions, the VM or
+observers. Record the retired development-only diff UI/test identities and
+restoration boundaries. This is component version alignment, not a hand-written
+compatibility shim or a waived mismatch. Other runtime/library work is kept.
+Validate original ERT and debugger files against new complete products before
+claiming stable data compatibility; prior P417 products still have the old ERT.
+
+Current fourth integration completes all four builds, signatures and five timer
+probes. Original ERT73/debugger49/C-parser2 pass on reference plus four products:
+620 cases, including all five stable alist-description cases. Notification and
+autorevert files, final product/input checks and independent final adoption are
+still pending; the whole stable corpus and Goal are not claimed complete.
+
+The legacy driver's lack of a whole-test hard deadline is addressed by stopping
+that execution and preparing bounded test-only continuation. All26099 captured
+owned files match content/size/mode after native cleanup. The complete620 case
+records remain; the incomplete remote file is not accepted or overwritten.
+
+Independent read-only verification accepts the complete stable ERT component
+alignment and paired restoration boundary after checking pinned blobs, actual
+620 case results and captured-owned-file integrity. This bounded component may
+be delivered; backend/remote/whole-corpus and GUI acceptance remain separate.

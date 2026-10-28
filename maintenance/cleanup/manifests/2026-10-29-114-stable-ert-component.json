@@ -1,0 +1,39 @@
+{
+  "scope": "stable31.1 ERT component source/test version alignment; required original stable acceptance unchanged",
+  "source_commit": "a360712c9d272d950d8d8255ef74570f7e90b7d9",
+  "source_version": "31.1",
+  "entries": [
+    {
+      "path": "lisp/emacs-lisp/ert.el",
+      "old_commit": "e41d5d52bb52b19c30ea66258b1491feee05c052",
+      "old_blob": "187d1d3da9b73de278d5cfb8fca7d49a50fb367c",
+      "before_sha256": "77d2ab43bde68cc09dc7abe6070c363c797f602e5ede0b4bbedd674f528cd21e",
+      "before_bytes": 144801,
+      "source_commit": "a360712c9d272d950d8d8255ef74570f7e90b7d9",
+      "source_blob": "9c7cef199e3c716cb4768d5896fc4cd9161785d1",
+      "after_sha256": "9ae097b693673b8d853713775d61ae4e707f95ab9271d6a43b9e6ed435d849be",
+      "after_bytes": 141735,
+      "change": "verbatim stable component version alignment",
+      "development_only_definitions": [
+        "ert--erts-file-test-diff-button-action"
+      ]
+    },
+    {
+      "path": "test/lisp/emacs-lisp/ert-tests.el",
+      "old_commit": "e41d5d52bb52b19c30ea66258b1491feee05c052",
+      "old_blob": "0e7989f661b427110ed5091b7f0c8e787afc094e",
+      "before_sha256": "8a72cc42eb5282cbf32d63f717f79f3189d88a09ba358c2f9a1b6b4b05c33c4f",
+      "before_bytes": 48303,
+      "source_commit": "a360712c9d272d950d8d8255ef74570f7e90b7d9",
+      "source_blob": "2831a93ec074320b2db62b39454d34eef8d05a51",
+      "after_sha256": "f6bf0845d9fb7cdf5f6e271182d6731a5a6da822dc2c141a9a0d51b4d321562e",
+      "after_bytes": 47434,
+      "change": "verbatim stable component version alignment",
+      "required_acceptance_sha256_unchanged": "f6bf0845d9fb7cdf5f6e271182d6731a5a6da822dc2c141a9a0d51b4d321562e",
+      "development_only_definitions": [
+        "ert-test-erts-file-test-output-mismatch"
+      ]
+    }
+  ],
+  "restore": "restore both matching development library/test blobs together from their old commit; do not patch the required stable acceptance corpus or restore only one side"
+}

@@ -1,3 +1,7 @@
+## 2026-10-29 · P419稳定ERT组件对齐交付
+
+ERT库与配套原测试原样对齐stable31.1固定提交，VM与必需稳定验收原文不改；参照和四产品的ERT73/debugger49/C-parser2共620例通过，原数据格式差异用例全部通过。独立只读核对接受此限定组件交付；旧开发版diff界面/测试的身份与成对恢复见[CLN114](../maintenance/cleanup/reports/2026-10-29-114-stable-ert-component.md)。旧测试驱动因缺整组硬截止主动结束，26099捕获源/产品/对象核验不变，未完远程分支不报通过；本地其余验收以900秒整组硬截止继续。详见[来源与验证边界](../maintenance/incidents/2026-10-29-stable-ert-component.md)。Goal active、仍1/7。
+
 ## 2026-10-29 · Cocoa文件通知接线修正与CLN118
 
 第三轮终端normal/checking完整构建通过，Cocoa因三份本地open标志与共享fcntl重复定义而失败，原回执保留。已统一共享定义；实际SDK投影加载原共享镜像，29项观测与3项函数合同一致。第四轮先构建Cocoa，再完成四产品九份原始文件验收；尚未宣称后端/ERT通过。回收第三轮已消费编译副本19662文件/697483002逻辑字节，源/终端制品/原始失败保留，见[CLN118](../maintenance/cleanup/reports/2026-10-29-118-failed-cocoa-notify-compiler-copies.md)。Goal active、仍1/7。
