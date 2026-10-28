@@ -2166,3 +2166,32 @@ The fresh source-bound production build completes normal/checking, each with
 products: 153/153, unchanged product identities and verified frozen input.
 Working and independently committable bytecode-path methods are identical;
 focused compiler-boundary protection passes nine cases on each. Independent review accepts the bounded repair; full stable/UI/whole-Goal acceptance remains open.
+
+## P-417 — Restore conditional batch input dispatch (2026-10-28)
+
+The full original corpus on the P416 products exposes an early exit in the
+first autorevert case on both terminal legs: registration and test-started
+arrive, then native exit1 leaves all later cases unexecuted. The reference
+completes the file. These are process failures, not twenty asserted failures.
+
+The original keyboard event reader only takes its direct batch `getchar` path
+when DBus, file notification and threads are all disabled. The translation
+left that formerly-live block unconditional, but the actual current product
+defines `THREADS_ENABLED=1`. Thus timed `read-event` reaches stdin EOF and the
+normal batch EOF exit rather than the event/deadline/timer path.
+
+Restore the original three-feature negative compile condition around that
+block. Preserve the legacy branch when all three features are absent; do not
+change EOF handling, stdin, original tests, event ordering or timeout semantics.
+Check the adjacent event and special-event conditionals against original source,
+then validate real timed input/timers and unchanged autorevert behavior on new
+products; no claim of runtime repair acceptance before actual execution.
+
+P417's four products build and both Cocoa signatures verify. Five closed-stdin
+probes now allow a timer to run and return from timed read-event. The standalone
+regression accepts those five products and correctly rejects the old P416
+binary with exit1. Original keyboard25/thread38 complete on every product.
+The autorevert first local case emits an ERT pass, then the remote case exits255
+because file-notify special events are absent without USE_FILE_NOTIFY; the
+original aggregate remains false, with later cases not-run. The notification
+backend gap is P418 work, not permission to label the full file accepted.

@@ -4421,8 +4421,11 @@ unsafe fn kbd_buffer_get_event (kbp: *mut *mut KBOARD,
       start_polling ();
     }
 
-  /* C 4058-4077: `#if !defined HAVE_DBUS && !defined USE_FILE_NOTIFY && !defined
-     THREADS_ENABLED` (all three `#undef` on this target, so the text is live).  */
+  /* The direct batch stdin path is only valid without asynchronous event
+     producers. Thread-enabled builds must use the deadline/timer loop below. */
+  #[cfg (not (any (feature = "have_dbus", feature = "use_file_notify",
+                  feature = "threads_enabled")))]
+  {
   if noninteractive
       /* In case we are running as a daemon, only do this before
 	 detaching from the terminal.  */
@@ -4433,6 +4436,7 @@ unsafe fn kbd_buffer_get_event (kbp: *mut *mut KBOARD,
       *kbp = current_kboard;
       return obj;
     }
+  }
 
   *kbp = current_kboard;
 

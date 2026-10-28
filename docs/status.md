@@ -1,3 +1,7 @@
+## 2026-10-29 · P417批处理事件修复交付
+
+恢复直接batch stdin路径原有的三特性负条件；保持EOF、事件顺序和原测试不变。四个终端/Cocoa normal/checking产品新构建、双App签名通过；参照加四产品的原键盘25与原生线程38共315例通过，五份闭合stdin计时输入成功，含旧版负控制的六腿回归通过。独立搭档接受限定修复。autorevert远程用例仍exit255、后续not-run，原聚合false与参照失败/原始skip保留；完整兼容与Goal未完成，整体仍1/7。[根因和验证边界](../maintenance/incidents/2026-10-29-batch-event-dispatch.md)。
+
 ## 2026-10-28 · P416全量Lisp发行编译修复
 
 终端normal/checking新鲜完整构建各处理1678源：1645字节码、33按原编译器声明不编译、零编译失败。原版与两候选的调试器各49/49、C解析各2/2，共153/153；输入/产品不变，控制器0退出并完整回收。两版后置保护各9/9，独立复核确认本次bytecode路径无依赖阻断；不改VM、原Lisp或测试、不提高深度阈值。独立提交以相同方法绑定工作版真实构建，不冒充第二次完整构建。详见[记录](../maintenance/incidents/2026-10-28-release-lisp-bytecode.md)。已消费编译副本9802文件/364815946逻辑字节见[CLN112](../maintenance/cleanup/reports/2026-10-28-112-consumed-release-bytecode-compiler-copies.md)。完整555语料、Cocoa/UI及其他必要项继续；Goal保持active、仍1/7。
