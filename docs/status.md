@@ -1,3 +1,7 @@
+## 2026-10-29 · Cocoa文件通知接线修正与CLN118
+
+第三轮终端normal/checking完整构建通过，Cocoa因三份本地open标志与共享fcntl重复定义而失败，原回执保留。已统一共享定义；实际SDK投影加载原共享镜像，29项观测与3项函数合同一致。第四轮先构建Cocoa，再完成四产品九份原始文件验收；尚未宣称后端/ERT通过。回收第三轮已消费编译副本19662文件/697483002逻辑字节，源/终端制品/原始失败保留，见[CLN118](../maintenance/cleanup/reports/2026-10-29-118-failed-cocoa-notify-compiler-copies.md)。Goal active、仍1/7。
+
 ## 2026-10-29 · 首轮后端失败缓存已回收
 
 找回首轮控制器真实回执（exit1、完整回收、166.227s），再清理9794文件/368026198逻辑字节；CLN115–117合计39282文件、1430958035逻辑字节。保留源码/对象/原始失败，当前第三轮独立构建继续；不是APFS空闲差值。[CLN117报告](../maintenance/cleanup/reports/2026-10-29-117-failed-notify-compiler-copies.md)。
