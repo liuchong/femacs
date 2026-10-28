@@ -1,3 +1,7 @@
+## 2026-10-29 · CLN119与有界本地验收
+
+回收已完成第四轮构建的Cargo/生成单元19910文件、703116947逻辑字节，保留四产品/源/对象/620例及未完远程证据；逐项见[CLN119](../maintenance/cleanup/reports/2026-10-29-119-completed-notify-compiler-copies.md)。独立搭档确认采用明确单例与整组硬截止；本地功能以900秒整体限制继续，远程慢测分开校准，不再用日志续期。新发现空标签JSON边界已修正，原发现阶段失败保留，原测试和断言不变；整个Goal仍active、1/7。
+
 ## 2026-10-29 · P419稳定ERT组件对齐交付
 
 ERT库与配套原测试原样对齐stable31.1固定提交，VM与必需稳定验收原文不改；参照和四产品的ERT73/debugger49/C-parser2共620例通过，原数据格式差异用例全部通过。独立只读核对接受此限定组件交付；旧开发版diff界面/测试的身份与成对恢复见[CLN114](../maintenance/cleanup/reports/2026-10-29-114-stable-ert-component.md)。旧测试驱动因缺整组硬截止主动结束，26099捕获源/产品/对象核验不变，未完远程分支不报通过；本地其余验收以900秒整组硬截止继续。详见[来源与验证边界](../maintenance/incidents/2026-10-29-stable-ert-component.md)。Goal active、仍1/7。
