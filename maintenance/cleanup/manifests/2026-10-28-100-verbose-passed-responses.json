@@ -1,0 +1,83 @@
+{
+  "schema": 1,
+  "scope": "cancelled-p409-TLS-attempt",
+  "entries": [
+    {
+      "path": "build/acceptance/runtime-d29-tls-p409/installed-reference/case-14-test-gnutls-005-aead-ciphers/response.json",
+      "profile": "installed-reference",
+      "case": "test-gnutls-005-aead-ciphers",
+      "sha256": "c50e993850d7da641613b7ee058509c3a6ef210b4674c5829243de60dc14e226",
+      "bytes": 266353088,
+      "allocated_bytes": 266354688,
+      "mode": 420,
+      "retained_receipt": "response-000.json",
+      "retained_receipt_sha256": "1e7ff8bc724f99ac61e36947719cfbd746a70791905af70099e0f06000c8ede5"
+    },
+    {
+      "path": "build/acceptance/runtime-d29-tls-p409/terminal-baseline-checking/case-14-test-gnutls-005-aead-ciphers/response.json",
+      "profile": "terminal-baseline-checking",
+      "case": "test-gnutls-005-aead-ciphers",
+      "sha256": "30890f0618128d0e66d406123dc4bd6ca536459c0e82002b7c3edc6b116a7e77",
+      "bytes": 266353229,
+      "allocated_bytes": 266354688,
+      "mode": 420,
+      "retained_receipt": "response-001.json",
+      "retained_receipt_sha256": "7441dcbb90b5b28839600d198ace9d9b9ba79878d3663d49cc5ced1e89a34eb6"
+    },
+    {
+      "path": "build/acceptance/runtime-d29-tls-p409/terminal-baseline-normal/case-14-test-gnutls-005-aead-ciphers/response.json",
+      "profile": "terminal-baseline-normal",
+      "case": "test-gnutls-005-aead-ciphers",
+      "sha256": "7162fa7091a6c2b85eecd5b7c0dcc21d2c27b1297a7063e93db87f0be8441ed7",
+      "bytes": 266352458,
+      "allocated_bytes": 266354688,
+      "mode": 420,
+      "retained_receipt": "response-002.json",
+      "retained_receipt_sha256": "3b2767ce815eafbddbe0876872421305d4fca227686fe77bef42793ab1bb98a0"
+    },
+    {
+      "path": "build/acceptance/runtime-d29-tls-p409/terminal-native-collector-observer-diagnostic-checking-major/case-14-test-gnutls-005-aead-ciphers/response.json",
+      "profile": "terminal-native-collector-observer-diagnostic-checking-major",
+      "case": "test-gnutls-005-aead-ciphers",
+      "sha256": "d891876d1935df9fb52710f2afb39f77527095493744b91df7372bba34567707",
+      "bytes": 266358695,
+      "allocated_bytes": 266358784,
+      "mode": 420,
+      "retained_receipt": "response-003.json",
+      "retained_receipt_sha256": "30598d1cdf13da64dffa1e03237f5fda0c7c4dd39f7b0ac7857d130c42edeec9"
+    },
+    {
+      "path": "build/acceptance/runtime-d29-tls-p409/terminal-native-collector-observer-diagnostic-checking-young/case-14-test-gnutls-005-aead-ciphers/response.json",
+      "profile": "terminal-native-collector-observer-diagnostic-checking-young",
+      "case": "test-gnutls-005-aead-ciphers",
+      "sha256": "87f83887c0902a3ee1c2e192b286a6bc03e945446add3cb289e73eb22b4af873",
+      "bytes": 266353787,
+      "allocated_bytes": 266354688,
+      "mode": 420,
+      "retained_receipt": "response-004.json",
+      "retained_receipt_sha256": "2efff49385678cd982bcacaa40d560cad9c513976ca340970750d3d253085cb5"
+    },
+    {
+      "path": "build/acceptance/runtime-d29-tls-p409/terminal-native-collector-observer-diagnostic-normal-major/case-14-test-gnutls-005-aead-ciphers/response.json",
+      "profile": "terminal-native-collector-observer-diagnostic-normal-major",
+      "case": "test-gnutls-005-aead-ciphers",
+      "sha256": "61e695c691b26d3552d08244b0c7c17b7fbb4b2efa758100052cdb717c47c818",
+      "bytes": 266352540,
+      "allocated_bytes": 266354688,
+      "mode": 420,
+      "retained_receipt": "response-005.json",
+      "retained_receipt_sha256": "a986a1edcb0ec1f04f436de3d6ee3c24cb06a3fb85d3fd9bf4c6c292b09f804c"
+    },
+    {
+      "path": "build/acceptance/runtime-d29-tls-p409/terminal-native-collector-observer-diagnostic-normal-young/case-14-test-gnutls-005-aead-ciphers/response.json",
+      "profile": "terminal-native-collector-observer-diagnostic-normal-young",
+      "case": "test-gnutls-005-aead-ciphers",
+      "sha256": "4d88dd6a1947706b69f5b0911b15a8dd6067eb3b6cb9dfddb8fcbb451a0be3b7",
+      "bytes": 266356951,
+      "allocated_bytes": 266358784,
+      "mode": 420,
+      "retained_receipt": "response-006.json",
+      "retained_receipt_sha256": "ef70c02a6b914f842604eae3fa199f639687e850bccde1d95a032c82208b3b6b"
+    }
+  ]
+}
