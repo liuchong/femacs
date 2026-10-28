@@ -2232,3 +2232,15 @@ be delivered; backend/remote/whole-corpus and GUI acceptance remain separate.
 ## P421 · 文件通知稳定组件完整对齐（2026-10-29）
 
 正式库原样对齐固定stable31.1，配套root测试仅一行路径注释规范，可执行形式/断言及必需原始语料不变。四产品/签名及原本地通知65例60通过5原跳过0失败；原八例缺接口失败已通过。旧开发流程退役与成对恢复见CLN120，独立复核已实际确认并采用此限定交付。远程13通知、全155批次/555语料、真实UI及G3仍待闭合，不把原skip/共同失败改成通过。
+
+## P424 · 稳定版符号简称接口兼容（2026-10-29）
+
+原lread/print/syntax三个完整文件在参照及四新产品1011通过4失败0跳过/超时；唯一失败是四候选的`lread-unintern`，原参照通过。实际首个断言要求`intern`在动态`read-symbol-shorthands`下将短名展开为长名；不是修改字符串或符号名称的测试。
+
+已直接核对固定stable31.1 `a360712c9d272d950d8d8255ef74570f7e90b7d9`与原转写基线`fd7afced4036fc1a221567d70705d20a2bd64713`的`src/lread.c`：后者及当前Rust的三个Lisp接口已不再调用仍存在的`oblookup_considering_shorthand`。本阶段以用户指定官方稳定版兼容为准，恢复`Fintern`及`Fintern_soft`/`Funintern`字符串分支的简称查找；符号参数仍按精确身份查找/删除，底层C字符串intern与reader路径不改，不通过改原测试隐藏版本差异。
+
+实现复用现有展开helper与原obarray/hash/collision路径，明确UTF-8字符/字节长度及展开缓冲区释放；不新增ABI、全局或新算法。三个入口业务已完整写完，同一搭档实际阅读两版C、当前三个入口/helper及原测试后接受限定设计。正常新建和已有符号命中均释放longhand；分配过程非局部退出的临时内存泄漏与稳定版同源，未宣称此处已实现unwind保护。
+
+完整工作树快照的四产品/dump已重建成功，两App严格签名通过，1067.523秒完整回收。原reader/print/syntax及alloc/data/eval/FNS七完整文件×五产品共1945通过10原条件跳过0失败/超时，四个原失败现均通过，逐项同参照且源/输入/制品不变，47.012秒完整回收；跳过不计通过，raw false/exit1保留。完整文件仍含其他既有WIP，不能将所有制品差异归因本项。
+
+其后新增两项关键保护，在参照及四新产品10通过；旧Cocoa的既有长名命中负控制真实失败如期，原记录保留。21.524秒exit0/完整回收，制品/fixture不变；重复32次只验证身份、不证明内存分配或异常退出无泄漏。限定组件最终独立复核已确认，源码交付以实际签名/推送回执为准，详见[证据与边界](maintenance/releases/2026-10-29-symbol-shorthand-compatibility.md)。原远程09间歇Base64失败及全G3仍开放。

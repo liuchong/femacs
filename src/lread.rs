@@ -5190,6 +5190,8 @@ unsafe fn define_symbol (sym: Lisp_Object, str_: *const c_char)
     }
 }
 
+/* P424: preserve stable-target shorthand expansion for Lisp string arguments.
+   C-string interning and exact symbol-argument lookup remain unchanged.  */
 DEFUN! ("intern", Fintern, Sintern, 1, 2, 0,
        doc: "Return the canonical symbol whose name is STRING.\nIf there is none, one is created by this function and returned.\nA second optional argument specifies the obarray to use;\nit defaults to the value of `obarray'.",
        (string: Lisp_Object, obarray: Lisp_Object),
@@ -5199,10 +5201,21 @@ DEFUN! ("intern", Fintern, Sintern, 1, 2, 0,
 	 let obarray: Lisp_Object = check_obarray (if NILP (obarray) { Vobarray } else { obarray });
 	 CHECK_STRING (string);
 
-	 tem = oblookup (obarray, SSDATA (string), SCHARS (string), SBYTES (string));
+	 let mut longhand: *mut c_char = std::ptr::null_mut ();
+	 let mut longhand_chars: ptrdiff_t = 0;
+	 let mut longhand_bytes: ptrdiff_t = 0;
+	 tem = oblookup_considering_shorthand (
+	   obarray, SSDATA (string), SCHARS (string), SBYTES (string),
+	   &raw mut longhand, &raw mut longhand_chars, &raw mut longhand_bytes);
 
 	 if !BARE_SYMBOL_P (tem)
-	   { tem = intern_driver (string, obarray, tem); }
+	   {
+	     let canonical: Lisp_Object = if !longhand.is_null ()
+	       { make_multibyte_string (longhand, longhand_chars, longhand_bytes) }
+	       else { string };
+	     tem = intern_driver (canonical, obarray, tem);
+	   }
+	 xfree (longhand as *mut c_void);
 	 tem
        });
 
@@ -5221,7 +5234,13 @@ DEFUN! ("intern-soft", Fintern_soft, Sintern_soft, 1, 2, 0,
 	   {
 	     CHECK_STRING (name);
 	     string = name;
-	     tem = oblookup (obarray, SSDATA (string), SCHARS (string), SBYTES (string));
+	     let mut longhand: *mut c_char = std::ptr::null_mut ();
+	     let mut longhand_chars: ptrdiff_t = 0;
+	     let mut longhand_bytes: ptrdiff_t = 0;
+	     tem = oblookup_considering_shorthand (
+	       obarray, SSDATA (string), SCHARS (string), SBYTES (string),
+	       &raw mut longhand, &raw mut longhand_chars, &raw mut longhand_bytes);
+	     xfree (longhand as *mut c_void);
 	     if FIXNUMP (tem) { Qnil () } else { tem }
 	   }
 	 else
@@ -5255,7 +5274,13 @@ DEFUN! ("unintern", Funintern, Sunintern, 2, 2, 0,
 	 else
 	   {
 	     CHECK_STRING (name);
-	     sym = oblookup (obarray, SSDATA (name), SCHARS (name), SBYTES (name));
+	     let mut longhand: *mut c_char = std::ptr::null_mut ();
+	     let mut longhand_chars: ptrdiff_t = 0;
+	     let mut longhand_bytes: ptrdiff_t = 0;
+	     sym = oblookup_considering_shorthand (
+	       obarray, SSDATA (name), SCHARS (name), SBYTES (name),
+	       &raw mut longhand, &raw mut longhand_chars, &raw mut longhand_bytes);
+	     xfree (longhand as *mut c_void);
 	     if FIXNUMP (sym)
 	       { return Qnil (); }
 	   }
