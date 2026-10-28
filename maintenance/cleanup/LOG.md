@@ -1,3 +1,5 @@
+- CLN-20261028-112：全量Lisp发行构建已消费Cargo/生成副本9802文件、364815946逻辑字节；冻结源、真实程序/资源、对象、日志和功能回执保留。[报告](reports/2026-10-28-112-consumed-release-bytecode-compiler-copies.md)。
+
 - CLN-20261028-111：六轮已消费字节码诊断副本11908文件、672509897逻辑字节；原始失败、脚本、编译回执、源和正式构建保留。[报告](reports/2026-10-28-111-consumed-bytecode-diagnostics.md)。
 
 - CLN-20261028-110：三轮语法表发行构建已消费的Cargo/生成副本39298文件、1424038924逻辑字节；源码、真实产品/对象、失败及测试证据保留。[报告](reports/2026-10-28-110-consumed-parser-compiler-copies.md)。

@@ -1,3 +1,7 @@
+## 2026-10-28 · P416全量Lisp发行编译修复
+
+终端normal/checking新鲜完整构建各处理1678源：1645字节码、33按原编译器声明不编译、零编译失败。原版与两候选的调试器各49/49、C解析各2/2，共153/153；输入/产品不变，控制器0退出并完整回收。两版后置保护各9/9，独立复核确认本次bytecode路径无依赖阻断；不改VM、原Lisp或测试、不提高深度阈值。独立提交以相同方法绑定工作版真实构建，不冒充第二次完整构建。详见[记录](../maintenance/incidents/2026-10-28-release-lisp-bytecode.md)。已消费编译副本9802文件/364815946逻辑字节见[CLN112](../maintenance/cleanup/reports/2026-10-28-112-consumed-release-bytecode-compiler-copies.md)。完整555语料、Cocoa/UI及其他必要项继续；Goal保持active、仍1/7。
+
 ## 2026-10-28 · CLN111已消费诊断副本回收
 
 六轮已退出诊断的重复源/失败编译及复制bootstrap输出已按逐项身份回收，11908文件、672509897逻辑字节；原始失败和正式构建保留，见[CLN111](../maintenance/cleanup/reports/2026-10-28-111-consumed-bytecode-diagnostics.md)。全量Lisp发行编译已接通，新的完整终端normal/checking构建与原版调试器验收仍在进行，未计通过；Goal保持active、1/7。

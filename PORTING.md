@@ -2125,3 +2125,44 @@ original aggregate remains false because skips are not passes. C parsing is
 committable generator complete actual cold generation of eight tables; five component
 protections pass on each, without treating substitutes as editor acceptance.
 The full stable corpus, remaining product work and Goal are still open.
+
+## P-416 — Diagnose debugger backtrace source navigation (2026-10-28)
+
+The unchanged original debugger file completes49/49 on the installed reference.
+The current terminal baseline completes four cases, then exits255 during
+`edebug-tests-backtrace-goto-source` with excessive Lisp nesting. Keep45
+unexecuted cases as not-run, not semantic failures. Isolating the original ID
+reproduces the native exit; the reference's actual case record passes.
+
+The owned single-case bridge also exposes two setup defects: it looks up a
+string-keyed result using a symbol, producing an outer null status, and its
+legacy process path does not forward the already-bound source-test context.
+Fix these owned boundary defects without altering original tests, preserve the
+first reports, and continue bounded diagnosis on the actual current product.
+Inspect the excessive-nesting native stack before selecting a runtime repair;
+do not raise the depth threshold, suppress errors or modify Lisp payloads to
+hide the defect. Preserve reference behavior, input identities and prior passes.
+
+The native breakpoint at the bytecode dispatch error captures repeated
+`Ffunction`, evaluator and `mapcar` calls, rather than a missing source file.
+A diagnostic loading each engine's own unchanged ERT/Edebug libraries as source
+makes the reference reproduce the same excessive-nesting exit. This supports
+investigating the release's limited bytecode coverage before changing the VM;
+it does not itself prove a complete root cause or compatibility acceptance.
+
+The release bytecode phase will compile the whole owned Lisp distribution, in
+compiler-first, main-first and remaining-source order from the stable build
+policy. Use `byte-compile-file`'s actual `no-byte-compile` return for legitimate
+file-local exclusions, preserve generated grammar isolation and require a fresh
+output for every successful compilation. Clear old bytecode before this phase;
+record every outcome, fail on compiler errors or missing outputs, and retain
+explicit-path operation. No original Lisp, evaluator or test semantics change.
+Validate on source-only inputs and then the unchanged debugger file before
+claiming this diagnosis resolved; partial compilation is not release success.
+
+The fresh source-bound production build completes normal/checking, each with
+1645 compiled sources and 33 compiler-declared exclusions. The unchanged
+49-case debugger file and two C parser cases pass on the reference and both
+products: 153/153, unchanged product identities and verified frozen input.
+Working and independently committable bytecode-path methods are identical;
+focused compiler-boundary protection passes nine cases on each. Independent review accepts the bounded repair; full stable/UI/whole-Goal acceptance remains open.

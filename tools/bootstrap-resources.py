@@ -53,11 +53,11 @@ class Generator:
             print(path.read_text(errors='replace')[-5000:],file=sys.stderr)
             raise RuntimeError(f'generator failed; see {path.relative_to(ROOT)}')
 
-    def lisp(self, *args, cwd=ROOT):
+    def lisp(self, *args, cwd=ROOT, prefer_newer=True):
         if not self.program or not self.program.is_file():
             raise RuntimeError('build the owned program first; pass --program PATH')
         self.run([str(self.program),'-Q','--batch','--no-site-file','--no-site-lisp',
-                  '--eval','(setq load-prefer-newer t)',*[str(a) for a in args if str(a) not in {'-batch','--batch','--no-site-file','--no-site-lisp'}]],cwd=cwd)
+                  '--eval','(setq load-prefer-newer '+('t' if prefer_newer else 'nil')+')',*[str(a) for a in args if str(a) not in {'-batch','--batch','--no-site-file','--no-site-lisp'}]],cwd=cwd)
 
     def charsets(self):
         if not shutil.which('gawk'):
@@ -149,74 +149,100 @@ class Generator:
                   '-f','custom-make-dependencies',*dirs,cwd=lisp)
         self.lisp('-l','finder','--eval','(setq generated-finder-keywords-file \"finder-inf.el\")','-f','finder-compile-keywords-make-dist',*[d for d in dirs if not d.startswith('leim')],cwd=lisp)
 
+    def _compile_bytecode_group(self, files, *, native=False, parsers=False,
+                                required=False, prefer_newer=True):
+        if not files:
+            return
+        receipt=self.log/f'bytecode-{self.sequence+1:04d}.tsv'
+        # Let the real compiler read file-local variables. A textual guess at
+        # no-byte-compile could silently omit a distributable library.
+        expression="""(let ((files 'FILES) (failed nil))
+          (require 'bytecomp)
+          (with-temp-file RECEIPT
+            (dolist (file files)
+              (condition-case err
+                  (let* ((result (byte-compile-file file))
+                         (status (cond ((eq result 'no-byte-compile) "skipped")
+                                       (result "compiled") (t "failed"))))
+                    (when (null result) (setq failed t))
+                    (insert status "\\t" file "\\n"))
+                (error (setq failed t)
+                       (insert "failed\\t" file "\\t" (format "%S" err) "\\n")))))
+          (when failed (kill-emacs 1)))"""
+        expression=expression.replace('FILES','('+' '.join(json.dumps(str(p)) for p in files)+')')
+        expression=expression.replace('RECEIPT',json.dumps(str(receipt)))
+        self.lisp('--eval',"(setq byte-compile-error-on-warn nil org--inhibit-version-check t native-comp-jit-compilation nil)",
+                  *(['--eval',"(require 'charprop \"international/charprop\")"]
+                    if (ROOT/'lisp/international/charprop.el').is_file() else []),
+                  *(['--eval','(setq native-comp-enable-subr-trampolines nil)',
+                     '-l','comp'] if native else []),
+                  *(['-l','cl-extra'] if parsers else []),
+                  '--eval',expression,prefer_newer=prefer_newer)
+        rows=[row.split('\t',2) for row in receipt.read_text().splitlines()]
+        if len(rows)!=len(files):
+            raise RuntimeError('incomplete release bytecode receipt')
+        for p,row in zip(files,rows):
+            if len(row)!=2 or row[1]!=str(p):
+                raise RuntimeError('invalid release bytecode receipt')
+            output=p.with_suffix('.elc')
+            if row[0]=='skipped' and not required:
+                if output.exists():raise RuntimeError('unexpected skipped bytecode: '+str(p.relative_to(ROOT)))
+            elif row[0]!='compiled' or not output.is_file():
+                raise RuntimeError('missing release bytecode: '+str(output.relative_to(ROOT)))
+
     def bytecode(self):
-        # Compile the dump/loadup closure and generated parser tables. Bovine
-        # identifies grammar actions as compiled functions or legacy lists;
-        # interpreted-function closures are not valid executable table entries.
-        # --all-bytecode additionally compiles every other Lisp source.
-        names=re.findall(r'^\s*\(load "([^"]+)"', (ROOT/'lisp/loadup.el').read_text(),re.M)
-        files=[]
-        for name in names:
-            p=ROOT/'lisp'/(name if name.endswith('.el') else name+'.el')
-            if p.is_file() and p not in files:files.append(p)
-        # Source-only bootstrap loads additional libraries through require.
-        # Their actual load history, plus generated tables, forms the dump closure.
-        history=self.log/'bootstrap-load-history.txt'
-        self.lisp('--eval','(with-temp-file '+json.dumps(str(history))+' (dolist (entry load-history) (when (stringp (car entry)) (insert (car entry) "\\n"))))')
-        for name in history.read_text().splitlines():
-            p=Path(name)
-            if p.suffix=='.elc':p=p.with_suffix('.el')
-            if p.is_file() and p.is_relative_to(ROOT/'lisp') and p not in files:files.append(p)
-        # The compiler is not necessarily loaded into the bootstrap dump. Ship its
-        # bytecode explicitly so a clean release does not rely on old ignored .elc.
-        compiler_inputs=[ROOT/'lisp/emacs-lisp'/(name+'.el')
-                         for name in ('byte-opt','bytecomp','macroexp','cconv','cl-extra')]
-        if not BYTECODE_SCOPES:
-            for p in compiler_inputs:
-                if not p.is_file():raise RuntimeError('missing release Lisp input: '+str(p.relative_to(ROOT)))
-                if p not in files:files.append(p)
-        for name in ['charscript','emoji-zwj','emoji-labels','charprop']:
-            p=ROOT/'lisp/international'/(name+'.el')
-            if p.is_file() and p not in files:files.append(p)
-        required_grammars=[]
-        if not BYTECODE_SCOPES:
-            spec=importlib.util.spec_from_file_location('program_products',ROOT/'tools/gen-program-products.py')
-            products=importlib.util.module_from_spec(spec);spec.loader.exec_module(products)
-            for maker,_source,target in products.PRODUCTS:
-                if maker=='pinyin':continue
-                p=ROOT/target
-                if not p.is_file():raise RuntimeError('missing generated parser input: '+target)
-                required_grammars.append(p)
-                if p not in files:files.append(p)
-            # A prior release must not conceal a failed compiler invocation.
-            for p in required_grammars:p.with_suffix('.elc').unlink(missing_ok=True)
-        if ALL_BYTECODE:files=sorted((ROOT/'lisp').rglob('*.el'))
+        # Release means the entire Lisp distribution, not just the dump closure.
+        # Explicit scopes remain useful for developer-only incremental work.
+        lisp=ROOT/'lisp'
         if BYTECODE_SCOPES:
             files=[]
             for name in BYTECODE_SCOPES:
                 path=(ROOT/name).resolve()
-                if not path.is_relative_to(ROOT/'lisp') or not path.exists():raise RuntimeError('bytecode scope must be an existing owned Lisp path')
+                if not path.is_relative_to(lisp) or not path.exists():
+                    raise RuntimeError('bytecode scope must be an existing owned Lisp path')
                 files.extend(sorted(path.rglob('*.el')) if path.is_dir() else [path])
-        if not BYTECODE_SCOPES:
-            # Batch compilation may report an error without a failing process exit.
-            # Old ignored output must not satisfy the release product check.
-            for p in compiler_inputs:p.with_suffix('.elc').unlink(missing_ok=True)
-        # Finish the bootstrap closure before table macros pull in the object
-        # system. A fresh process avoids earlier files' compile-time load state.
-        files=[p for p in files if p not in required_grammars]
-        for n in range(0,len(files),40):
-            self.lisp('--eval',"(setq byte-compile-error-on-warn nil org--inhibit-version-check t)",
-                      '-f','batch-byte-compile',*files[n:n+40])
-        if required_grammars:
-            self.lisp('--eval',"(setq byte-compile-error-on-warn nil org--inhibit-version-check t)",
-                      '-l','cl-extra','-f','batch-byte-compile',*required_grammars)
-        if not BYTECODE_SCOPES:
-            for p in compiler_inputs:
-                if not p.with_suffix('.elc').is_file():
-                    raise RuntimeError('missing release compiler bytecode: '+str(p.with_suffix('.elc').relative_to(ROOT)))
-            for p in required_grammars:
-                if not p.with_suffix('.elc').is_file():
-                    raise RuntimeError('missing release parser bytecode: '+str(p.with_suffix('.elc').relative_to(ROOT)))
+            files=list(dict.fromkeys(files))
+            for p in files:p.with_suffix('.elc').unlink(missing_ok=True)
+            for n in range(0,len(files),40):
+                self._compile_bytecode_group(files[n:n+40])
+            return
+        files=sorted(p for p in lisp.rglob('*.el') if not p.name.startswith('.'))
+        if any(not p.resolve().is_relative_to(lisp) for p in files):
+            raise RuntimeError('release Lisp input escapes owned tree')
+        spec=importlib.util.spec_from_file_location('program_products',ROOT/'tools/gen-program-products.py')
+        products=importlib.util.module_from_spec(spec);spec.loader.exec_module(products)
+        grammars=[ROOT/target for maker,_source,target in products.PRODUCTS if maker!='pinyin']
+        for p in grammars:
+            if not p.is_file():raise RuntimeError('missing generated parser input: '+str(p.relative_to(ROOT)))
+        native_file=self.log/'bootstrap-native.txt'
+        self.lisp('--eval','(with-temp-file '+json.dumps(str(native_file))+
+                  " (prin1 (featurep 'native-compile) (current-buffer)))")
+        native_text=native_file.read_text().strip()
+        if native_text not in {'t','nil'}:raise RuntimeError('invalid owned native capability')
+        native=native_text=='t'
+        compiler_names=['macroexp','cconv','byte-opt','bytecomp']
+        if native:compiler_names+=['comp','comp-cstr','comp-common','comp-run']
+        compiler_names+=['loaddefs-gen','radix-tree','cl-extra']
+        compiler=[lisp/'emacs-lisp'/(name+'.el') for name in compiler_names]
+        main=[lisp/(name+'.el') for name in (
+            'emacs-lisp/eieio','emacs-lisp/eieio-base','cedet/semantic/db',
+            'emacs-lisp/cconv','international/ja-dic-cnv','org/ox','org/ox-texinfo',
+            'org/org-macro','org/org-element','org/oc','org/ol','emacs-lisp/cl-lib')]
+        for p in compiler+main:
+            if not p.is_file():raise RuntimeError('missing release Lisp input: '+str(p.relative_to(ROOT)))
+        # Neither previous release outputs nor orphan bytecode may satisfy this run.
+        for p in lisp.rglob('*.elc'):p.unlink()
+        for p in compiler:
+            self._compile_bytecode_group([p],native=native,required=True,prefer_newer=False)
+        main=[p for p in main if p not in compiler]
+        for p in main:
+            self._compile_bytecode_group([p],native=native,parsers=True,required=True)
+        remaining=[p for p in files if p not in compiler+main+grammars]
+        for n in range(0,len(remaining),40):
+            self._compile_bytecode_group(remaining[n:n+40],native=native,parsers=True)
+        # Bovine table actions must be compiled, with the object-system helper
+        # explicitly loaded even with the first source-only bootstrap dump.
+        self._compile_bytecode_group(grammars,native=native,parsers=True,required=True)
 
     def doc(self):
         self.run([sys.executable,'tools/gen-doc.py','--owned','--write'])
