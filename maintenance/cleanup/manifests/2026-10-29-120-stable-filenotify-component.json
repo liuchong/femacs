@@ -1,0 +1,44 @@
+{
+  "scope": "stable31.1 complete file-notification library verbatim and matching root tests with one documentation-only path spelling normalization; original required stable corpus unchanged",
+  "source_commit": "a360712c9d272d950d8d8255ef74570f7e90b7d9",
+  "source_version": "31.1",
+  "entries": [
+    {
+      "path": "lisp/filenotify.el",
+      "old_commit": "3944eef356c3f9f15b13b3aeab273834afbf7a91",
+      "old_blob": "6699761c6bcd8b53c8ed16f6a8d265940ab00bf6",
+      "before_sha256": "c21dbec6faa2d5fe4c7b2c82a3b3851c3c5804332778ce40f6108b9905e7c213",
+      "before_bytes": 23420,
+      "source_commit": "a360712c9d272d950d8d8255ef74570f7e90b7d9",
+      "source_blob": "d69fa91aff5fdf1bde0a8be793f6ee1c4317ad00",
+      "after_sha256": "32becc6a1b5be3ff1a58450a2a9c423690d674222dd3e1cb0ab81b76c34d2f3d",
+      "after_bytes": 23102,
+      "change": "verbatim complete stable31.1 component version alignment",
+      "development_only_definitions": [
+        "file-notify--check-pending-rename"
+      ]
+    },
+    {
+      "path": "test/lisp/filenotify-tests.el",
+      "old_commit": "3944eef356c3f9f15b13b3aeab273834afbf7a91",
+      "old_blob": "75386d95f79195f6ac03946faa017fd9f35de5d0",
+      "before_sha256": "16e3a7a07fe762a8ef0eb12a19f0e66f3ea6884a40a6117e3b88c199d6349444",
+      "before_bytes": 76796,
+      "source_commit": "a360712c9d272d950d8d8255ef74570f7e90b7d9",
+      "source_blob": "798253aeb0c0646da0c816d7be1f37b955c3d4e1",
+      "after_sha256": "9d3055ff75f1259d47d4212f93675c29f3186cf7013bf9a54f7651fde503d3d2",
+      "after_bytes": 72028,
+      "change": "complete stable31.1 paired test; one documentation-only standard-device path spelling normalized; all executable forms/assertions identical to pinned source",
+      "required_acceptance_sha256_unchanged": "8d812305c5c31652164b9da8495beb4d2572df8e6d1c504e7d47408d0aadd031",
+      "source_sha256": "8d812305c5c31652164b9da8495beb4d2572df8e6d1c504e7d47408d0aadd031",
+      "source_bytes": 72013,
+      "documentation_only_adjustment": {
+        "old_comment_sha256": "47f13cb386cecaa549addeb6e0c10fc9ee7898ccffcee630e2352c9f2656a682",
+        "new_comment_sha256": "8bc83efa3bf74e5a16cf682cd7dcdece5dad203cdc86858d4ed35335ba36d204",
+        "lines": 1,
+        "original_required_corpus_unchanged": true
+      }
+    }
+  ],
+  "restore": "restore both matching development library/test blobs from old_commit together; do not patch required stable assertions or restore only one side"
+}

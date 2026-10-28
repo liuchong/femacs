@@ -2228,3 +2228,7 @@ Independent read-only verification accepts the complete stable ERT component
 alignment and paired restoration boundary after checking pinned blobs, actual
 620 case results and captured-owned-file integrity. This bounded component may
 be delivered; backend/remote/whole-corpus and GUI acceptance remain separate.
+
+## P421 · 文件通知稳定组件完整对齐（2026-10-29）
+
+正式库原样对齐固定stable31.1，配套root测试仅一行路径注释规范，可执行形式/断言及必需原始语料不变。四产品/签名及原本地通知65例60通过5原跳过0失败；原八例缺接口失败已通过。旧开发流程退役与成对恢复见CLN120，独立复核已实际确认并采用此限定交付。远程13通知、全155批次/555语料、真实UI及G3仍待闭合，不把原skip/共同失败改成通过。
