@@ -2072,3 +2072,56 @@ add a complete print response followed by an incomplete next print response.
 That boundary now passes on all four clients; final protocol protection is20/20.
 The standalone fix does not claim default frontend client delivery or a clean
 HEAD build. The existing manual helper-link command remains a separate entry.
+
+## P-415 — Isolate the CEDET zero-tag failure (2026-10-28)
+
+The real original-file run completes 80 cases: 76 pass, while the same
+preprocessor simulation fails on all four owned products and passes on the
+installed reference. Both C fixture files exist with verified pinned bytes;
+the core CEDET library files match, but the C-mode version differs. Keep these
+four as unresolved candidate-side failures, without changing original tests,
+Lisp payloads, file selection or the acceptance standard.
+
+Diagnose the actual cause with a bounded two-engine/two-C-mode-source matrix:
+load each C-mode source set (not its bytecode) into each engine in fresh
+processes, using the unchanged original two-case semantic file. Bind every
+source, engine, dump, test and result. Explicitly label crossed-library cases
+diagnostic only: they cannot establish compatibility or replace formal
+same-product library acceptance. This separates runtime behavior, source
+version and existing bytecode effects before selecting a production repair.
+Do not alter products or install an alternate payload to turn a test green.
+After the cause is established, implement its complete relevant fix, then
+functional integration and focused protection in the existing Goal.
+
+The isolation completed: changing either C-mode source set or loading the parser
+implementation as source does not repair the candidate. The generated grammar
+source is byte-identical across products, but the owned release omits its
+bytecode. Its action closures have type `interpreted-function`, recognized by
+neither branch of the original parser's compiled-function/list dispatch. Loading
+the same uncompiled grammar into the installed reference reproduces the failure;
+compiling it with the owned program restores the original two-case result.
+This is a release-generation defect, not evidence of a lexer or VM rewrite bug.
+
+Include all generated Bovine and Wisent parser outputs in the default release
+bytecode set, using the existing declared product list. Require their source
+inputs, remove stale parser bytecode before compilation, and require every new
+output; process exit alone cannot prove batch compilation succeeded. The first
+fresh normal build exposed a dependency failure (`cl-find-class`) when tables
+shared a compiler process with bootstrap libraries. Its checking leg succeeded
+only after that earlier pass had populated bytecode. Keep the failed build;
+compile tables in a fresh process after the bootstrap closure, explicitly loading
+`cl-extra` for `cl-find-class`: the first bootstrap dump predates the generated
+autoloads, so compilation alone does not make the function available. A separate
+process alone was insufficient, as a second fresh build demonstrated. Preserve explicit
+bytecode scopes and unchanged Lisp, grammar data and original tests.
+Exercise the actual generator and packaged Lisp payload before treating this
+repair as accepted. Diagnostic source/bytecode crosses remain diagnostic only.
+
+The third fresh build completes four baseline products with all eight compiled
+parser tables and both Cocoa signatures. Three unchanged original files across
+the reference and four products complete 45 passed / 15 skipped / 0 failed. The
+original aggregate remains false because skips are not passes. C parsing is
+10/10, Makefile 5/5 and getset 5/5. Both the working generator and independently
+committable generator complete actual cold generation of eight tables; five component
+protections pass on each, without treating substitutes as editor acceptance.
+The full stable corpus, remaining product work and Goal are still open.

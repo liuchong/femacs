@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Generate owned resources without a reference checkout or installed editor.
 
 Run through the build/runtime controller when this launches the owned binary.
@@ -151,8 +150,10 @@ class Generator:
         self.lisp('-l','finder','--eval','(setq generated-finder-keywords-file \"finder-inf.el\")','-f','finder-compile-keywords-make-dist',*[d for d in dirs if not d.startswith('leim')],cwd=lisp)
 
     def bytecode(self):
-        # Compile the dump/loadup closure for the release. Other libraries remain
-        # usable source; --all-bytecode explicitly compiles every Lisp source.
+        # Compile the dump/loadup closure and generated parser tables. Bovine
+        # identifies grammar actions as compiled functions or legacy lists;
+        # interpreted-function closures are not valid executable table entries.
+        # --all-bytecode additionally compiles every other Lisp source.
         names=re.findall(r'^\s*\(load "([^"]+)"', (ROOT/'lisp/loadup.el').read_text(),re.M)
         files=[]
         for name in names:
@@ -177,6 +178,18 @@ class Generator:
         for name in ['charscript','emoji-zwj','emoji-labels','charprop']:
             p=ROOT/'lisp/international'/(name+'.el')
             if p.is_file() and p not in files:files.append(p)
+        required_grammars=[]
+        if not BYTECODE_SCOPES:
+            spec=importlib.util.spec_from_file_location('program_products',ROOT/'tools/gen-program-products.py')
+            products=importlib.util.module_from_spec(spec);spec.loader.exec_module(products)
+            for maker,_source,target in products.PRODUCTS:
+                if maker=='pinyin':continue
+                p=ROOT/target
+                if not p.is_file():raise RuntimeError('missing generated parser input: '+target)
+                required_grammars.append(p)
+                if p not in files:files.append(p)
+            # A prior release must not conceal a failed compiler invocation.
+            for p in required_grammars:p.with_suffix('.elc').unlink(missing_ok=True)
         if ALL_BYTECODE:files=sorted((ROOT/'lisp').rglob('*.el'))
         if BYTECODE_SCOPES:
             files=[]
@@ -188,13 +201,22 @@ class Generator:
             # Batch compilation may report an error without a failing process exit.
             # Old ignored output must not satisfy the release product check.
             for p in compiler_inputs:p.with_suffix('.elc').unlink(missing_ok=True)
+        # Finish the bootstrap closure before table macros pull in the object
+        # system. A fresh process avoids earlier files' compile-time load state.
+        files=[p for p in files if p not in required_grammars]
         for n in range(0,len(files),40):
             self.lisp('--eval',"(setq byte-compile-error-on-warn nil org--inhibit-version-check t)",
                       '-f','batch-byte-compile',*files[n:n+40])
+        if required_grammars:
+            self.lisp('--eval',"(setq byte-compile-error-on-warn nil org--inhibit-version-check t)",
+                      '-l','cl-extra','-f','batch-byte-compile',*required_grammars)
         if not BYTECODE_SCOPES:
             for p in compiler_inputs:
                 if not p.with_suffix('.elc').is_file():
                     raise RuntimeError('missing release compiler bytecode: '+str(p.with_suffix('.elc').relative_to(ROOT)))
+            for p in required_grammars:
+                if not p.with_suffix('.elc').is_file():
+                    raise RuntimeError('missing release parser bytecode: '+str(p.with_suffix('.elc').relative_to(ROOT)))
 
     def doc(self):
         self.run([sys.executable,'tools/gen-doc.py','--owned','--write'])
