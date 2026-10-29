@@ -247,6 +247,20 @@ These reports supplement the original bounded results; archiving them performs n
 
 ## Stage IV: instrumented workload baseline
 
+Standalone input-selection repair (P433): the profiler now recognizes both supported macOS bundle
+dump locations and the terminal executable's named sibling dump. Ambiguous or
+missing images fail; `--dump` selects an explicit image. Both workload and startup
+commands receive that exact dump path, and before/after fingerprints also bind
+the profiler. This enables the installed stable reference's layout without
+changing its files. A one-round functional check passes all six workloads and
+one startup on each of the installed reference, terminal and Cocoa products;
+input identities remain unchanged. All runs report `quiet=false`. These smoke
+samples do not establish phase/survival attribution, compatibility acceptance or
+a speedup. Eleven existing and post-functional component cases pass. See the
+[evidence and retained initial test failure](../maintenance/incidents/2026-10-30-profile-runtime-image.md).
+The larger runtime-stage runner
+already selects its dump explicitly; its existing results remain unchanged.
+
 `tools/runtime-profile.py --binary build/terminal/port/src/emacs --rounds 7 --out build/acceptance/runtime-profile` is the new controlled runtime entry. It keeps the historical benchmark and corpus unchanged. Six real workloads preserve automatic GC under normal defaults except two explicitly low-threshold allocation scenarios. Each retains wall latency, collector elapsed deltas and every post-GC pause, seven cumulative allocation-counter deltas, last-collector heap inventories and a verified workload result. Separate fresh-process startup samples do not claim filesystem-cold startup. All rounds are preserved and summaries use median/MAD/p95; sampled RSS has 10ms resolution and is not compressed footprint. Whole-tree resource evidence comes from the external controller.
 
 These observations do not measure exact object age, complete phase breakdowns or prove a generational collector/native backend will improve performance. Heap inventory can be stale until a collection; allocation counters mix object, slot and character units. Instrumentation itself costs allocations/time. `quiet=false` explicitly rules out a promotion-grade comparison. `tools/test-release-baseline.py` independently verifies the parser/statistics and bounded real compatibility suite; batch custom/init loading does not substitute for actual interactive startup, which is separately exercised by `local-acceptance.py::user_init_workflow` on both products.

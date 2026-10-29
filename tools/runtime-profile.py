@@ -117,13 +117,36 @@ def fingerprint(path: Path) -> dict:
     return dict(path=str(path), sha256=h.hexdigest(), bytes=path.stat().st_size)
 
 
-def artifacts(binary: Path) -> dict:
-    dump = binary.with_suffix('.pdmp')
-    lisp = binary.parent.parent / 'lisp'
-    if not dump.is_file() and binary.parent.name == 'MacOS':
-        dump = binary.parent.parent / 'Resources/libexec/Femacs.pdmp'
-    if binary.parent.name == 'MacOS':lisp = binary.parent.parent / 'Resources/lisp'
-    paths = [('binary', binary), ('dump', dump), ('fixture', FIXTURE)]
+def profile_inputs(binary: Path, dump: Path | None = None) -> tuple[Path, Path]:
+    """Select a real product image, never an arbitrary/bootstrap dump."""
+    binary = binary.resolve(strict=True)
+    if not binary.is_file():raise ValueError('profile binary must be a file')
+    bundle = binary.parent.name == 'MacOS' and binary.parent.parent.name == 'Contents'
+    lisp = binary.parent.parent / ('Resources/lisp' if bundle else 'lisp')
+    if not lisp.is_dir():raise ValueError('missing product Lisp directory')
+    if dump is None:
+        candidates = [binary.parent / (binary.name + '.pdmp')]
+        if bundle:
+            candidates.extend(directory / (binary.name + '.pdmp') for directory in
+                              (binary.parent.parent / 'Resources/libexec',
+                               binary.parent / 'libexec'))
+        # Two aliases for the same image are one choice; two distinct images
+        # need an explicit selection even when their contents happen to match.
+        found = {path.resolve() for path in candidates if path.is_file()}
+        if len(found) != 1:
+            raise ValueError('expected one named product dump; select --dump explicitly')
+        dump = found.pop()
+    else:
+        dump = dump.resolve(strict=True)
+        if not dump.is_file():raise ValueError('profile dump must be a file')
+    return dump, lisp.resolve(strict=True)
+
+
+def artifacts(binary: Path, dump: Path | None = None) -> dict:
+    binary = binary.resolve(strict=True)
+    dump, lisp = profile_inputs(binary, dump)
+    paths = [('binary', binary), ('dump', dump), ('fixture', FIXTURE),
+             ('tool', Path(__file__).resolve())]
     # A stable executable/dump cannot prove the libraries stayed unchanged while
     # another build regenerated them. Bind both source and selected bytecode.
     for name in ('byte-opt', 'bytecomp', 'macroexp', 'cconv', 'cl-extra'):
@@ -161,6 +184,8 @@ def measure(binary: Path, argv: list[str], home: Path, log: Path, timeout=120) -
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument('--binary', type=Path, required=True)
+    ap.add_argument('--dump', type=Path,
+                    help='Explicit runtime image; otherwise require one named product dump')
     ap.add_argument('--rounds', type=int, default=7)
     ap.add_argument('--out', type=Path, required=True)
     ap.add_argument('--max-load-per-core', type=float, default=.10)
@@ -171,22 +196,26 @@ def main(argv=None) -> int:
     report = dict(passed=False, schema='femacs-runtime-profile-report-v1', samples=[],
                   processes=[], startup_samples=[], host=platform.platform())
     try:
-        binary = args.binary.resolve();identity = artifacts(binary);report['artifacts'] = identity
+        binary = args.binary.resolve(strict=True)
+        dump, _ = profile_inputs(binary, args.dump)
+        identity = artifacts(binary, dump);report['artifacts'] = identity
+        report['runtime_image'] = str(dump)
+        image_args = ['--dump-file=' + str(dump)]
         report['source_head'] = subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip()
         report['source_patch_sha256'] = hashlib.sha256(subprocess.check_output(['git','diff','HEAD','--'],cwd=ROOT)).hexdigest()
         loads = []
         for n in range(1, args.rounds+1):
             load = os.getloadavg()[0]/(os.cpu_count() or 1);loads.append(load)
             log = out/f'round-{n}.log'
-            process = measure(binary, ['-l', str(FIXTURE)], out/f'home-{n}', log)
+            process = measure(binary, [*image_args, '-l', str(FIXTURE)], out/f'home-{n}', log)
             if log.stat().st_size > 4*1024*1024:raise ValueError('oversized profile log')
             rows = parse_profile(log.read_text())
             report['samples'].extend(dict(row, round=n) for row in rows)
             report['processes'].append(dict(process, round=n, load_per_core=load))
-            startup = measure(binary, ['--eval', '(kill-emacs 0)'], out/f'startup-home-{n}', out/f'startup-{n}.log')
+            startup = measure(binary, [*image_args, '--eval', '(kill-emacs 0)'], out/f'startup-home-{n}', out/f'startup-{n}.log')
             report['startup_samples'].append(startup)
             print(json.dumps(dict(round=n, cases=len(rows), **process)), flush=True)
-        if artifacts(binary) != identity:raise ValueError('artifact changed during profiling')
+        if artifacts(binary, dump) != identity:raise ValueError('artifact changed during profiling')
         report['summary'] = summarize(report['samples'])
         wall = [r['wall_ms'] for r in report['startup_samples']]
         report['startup'] = dict(metric='fresh-process-wall-ms; filesystem cache uncontrolled',

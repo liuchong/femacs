@@ -3569,3 +3569,23 @@ Only after functional acceptance add a receiver/sentinel regression and a
 reusable real-editor background/GC regression through existing test entrypoints.
 Keep raw startup failures and private configuration details outside Git; this
 scope does not certify all configuration packages or close the entire Goal.
+
+## P433: bind standalone profiling to the selected runtime image
+
+The standalone workload profiler assumes the owned Cocoa dump layout. The
+installed stable macOS reference instead keeps its dump under `MacOS/libexec`,
+so that entry cannot profile the authorized reference as documented. It also
+hashes a dump without passing that selected path to the editor process.
+
+Resolve only the executable's named dump in its sibling directory and the two
+supported bundle libexec directories; refuse missing or ambiguous matches.
+Allow an explicit dump override, require the existing product Lisp directory,
+and pass the selected dump to both workload and startup processes. Bind that
+same selection before/after the run, including the profiling tool itself.
+Do not guess a bootstrap dump, change product/library bytes, or relabel this
+input-selection repair as a performance result. The full runtime-stage runner
+already passes its selected dump explicitly and is unaffected. Real standalone
+execution now passes six workloads and one startup per installed reference,
+terminal and Cocoa product, with unchanged input identities. All three report
+`quiet=false`; this smoke run is not a speedup measurement. Eleven existing and
+post-functional component cases pass. See the [repair and evidence limits](maintenance/incidents/2026-10-30-profile-runtime-image.md).

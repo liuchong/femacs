@@ -556,6 +556,75 @@ class ReleaseBaselineComponentTests(unittest.TestCase):
             self.assertTrue(fresh_b.is_dir())
             self._assert_rejected(new_output, fresh_b)
 
+    def test_profile_inputs_support_both_bundle_dump_locations(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            for directory in ("Resources/libexec", "MacOS/libexec"):
+                contents = Path(tmp).resolve() / directory.replace("/", "-") / "Contents"
+                binary = contents / "MacOS" / "editor"
+                binary.parent.mkdir(parents=True)
+                binary.write_bytes(b"program")
+                lisp = contents / "Resources/lisp"
+                lisp.mkdir(parents=True)
+                dump = contents / directory / "editor.pdmp"
+                dump.parent.mkdir(parents=True, exist_ok=True)
+                dump.write_bytes(b"selected image")
+                self.assertEqual(self.runtime_profile.profile_inputs(binary), (dump, lisp))
+
+    def test_profile_inputs_preserve_versioned_executable_name(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp).resolve()
+            binary = root / "src/editor-32.0.50.1"
+            binary.parent.mkdir()
+            binary.write_bytes(b"program")
+            lisp = root / "lisp"
+            lisp.mkdir()
+            wrong = binary.with_suffix(".pdmp")
+            wrong.write_bytes(b"wrong truncated image name")
+            self._assert_rejected(self.runtime_profile.profile_inputs, binary)
+            selected = binary.parent / (binary.name + ".pdmp")
+            selected.write_bytes(b"correct image")
+            self.assertEqual(self.runtime_profile.profile_inputs(binary), (selected, lisp))
+
+    def test_profile_inputs_reject_ambiguity_and_bind_explicit_image(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp).resolve()
+            binary = root / "Contents/MacOS/editor"
+            binary.parent.mkdir(parents=True)
+            binary.write_bytes(b"program")
+            (root / "Contents/Resources/lisp").mkdir(parents=True)
+            one = binary.parent / "editor.pdmp"
+            two = root / "Contents/Resources/libexec/editor.pdmp"
+            two.parent.mkdir()
+            one.write_bytes(b"image one")
+            two.write_bytes(b"image two")
+            self._assert_rejected(self.runtime_profile.profile_inputs, binary)
+            self.assertEqual(self.runtime_profile.profile_inputs(binary, two)[0], two)
+            two.unlink()
+            two.symlink_to(one)
+            self.assertEqual(self.runtime_profile.profile_inputs(binary)[0], one)
+            self._assert_rejected(self.runtime_profile.profile_inputs, binary, two.parent)
+
+    def test_profile_artifacts_bind_tool_and_detect_library_drift(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            binary = root / "src/editor"
+            binary.parent.mkdir()
+            binary.write_bytes(b"program")
+            (binary.parent / "editor.pdmp").write_bytes(b"image")
+            lisp = root / "lisp/emacs-lisp"
+            lisp.mkdir(parents=True)
+            for name in ("byte-opt", "bytecomp", "macroexp", "cconv", "cl-extra"):
+                (lisp / (name + ".el")).write_bytes(b"source")
+            before = self.runtime_profile.artifacts(binary)
+            self.assertEqual(before["tool"]["sha256"], sha256_file(RUNTIME_PROFILE_PATH))
+            generated = lisp / "bytecomp.elc"
+            generated.write_bytes(b"generated")
+            after = self.runtime_profile.artifacts(binary)
+            self.assertNotEqual(before, after)
+            self.assertIn("lisp/bytecomp.elc", after)
+            generated.unlink()
+            self.assertEqual(self.runtime_profile.artifacts(binary), before)
+
     def test_ert_and_observation_validators(self):
         ok_log = format_synthetic_ert_log()
         parsed_ok = self.check_ert.parse_result(ok_log, 0, 0.25)
