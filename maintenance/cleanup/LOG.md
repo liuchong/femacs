@@ -256,3 +256,5 @@
 | CLN-20261029-127 | 2026-10-29 | 已消费P424 Cargo/四生成unit根，19910文件、903目录、703007544逻辑字节 | 20813条完整字段审阅、双次无句柄/逐项身份核对；744保留文件及四实际程序/dump/资源身份不变，冻结源与原失败保留 | [范围与恢复](reports/2026-10-29-127-consumed-shorthand-compiler-copies.md) |
 
 | CLN-20261029-128 | 2026-10-29 | 已消费P425 Cargo/四生成unit根，19910文件、903目录、703037940逻辑字节 | 20813条完整字段及39820操作记录逐项对应；746保留文件和四实际程序/dump/资源不变，源/原失败/配方保留 | [范围与恢复](reports/2026-10-29-128-consumed-zlib-compiler-copies.md) |
+
+| CLN-20261029-129 | 2026-10-29 | Consumed3Cargo/4unit/4context roots;20612 files,120links,1373dirs,699637607logical bytes | 22105full-field manifest rows and41464paired operations;source/4products/raw failures retained | [report](reports/2026-10-29-129-consumed-lcms-compiler-context-copies.md) |

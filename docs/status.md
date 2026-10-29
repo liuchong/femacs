@@ -23634,3 +23634,7 @@ P425四个新程序/dump与两个App严格签名均通过，1068.373秒完整回
 ## 2026-10-29 · P426系统路径判断澄清
 
 按用户明确指导修正项目AGENTS的笼统绝对路径禁令：常规命令及代码必需的系统文件路径不是隐私泄露，不再逐次询问；本机个人路径、秘密和无关内容仍禁止提交，本机目录引用仍相对或动态计算。仅规则/裁定/进度三文件，不改程序或既有历史；按实际暂存diff核验，不为文字澄清重跑构建或已通过的行为测试。
+
+## 2026-10-29 CLN129: consumed LCMS compiler/context copies
+
+Retired 11 ended-run roots: 20,612 regular files, 120 links, 1,373 directories and 699,637,607 logical bytes. All 22,105 manifest rows match the private plan; 41,464 unlink intent/result records pair. Frozen sources, actual objects, four programs/dumps/Lisp/LCMS/license trees and original failures remain. No new build or test starts for cleanup. See maintenance/cleanup/reports/2026-10-29-129-consumed-lcms-compiler-context-copies.md. This is cleanup delivery; LCMS independent final source review remains pending and the seven-part Goal is not complete.
