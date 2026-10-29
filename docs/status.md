@@ -23652,3 +23652,12 @@ P429 limited module predicate fix is signed/pushed `ccb38ee4`. Retired five cons
 四当前native产品及两个严格Cocoa签名完成。原版186ID×五产品全部结束：925通过、5失败、零跳过/超时/未执行；每产品185通过，同一bootstrap cmp失败。两阶段均实际编译/加载，逐对差异仅Mach-O文件名/UUID/签名区域，其余字节相同；诊断不替换原断言，raw false/exit1保留。源/程序/dump/全部选定资源/原输入/harness身份未变。原180秒预算不足的超时、取消及保护标记恢复证据保留，不重复计数；校准后固定600秒单例/3600秒整组，1359.004秒/峰2701426688字节/完整回收。同一搭档15次实际只读核查并独立解析五对ELN后接受限定证据；其等值padding意见已收紧为准确C字符串终止边界，不重跑测试。未声称编译器全绿、性能提速或干净提交检出；G3/其余目标仍开放，Goal active1/7。见[原编译器证据](../maintenance/releases/2026-10-29-macos-original-compiler.md)。
 
 本轮CLN131已回收五个已消费Cargo/生成unit根：19910文件、903目录、705203373逻辑字节；20813清单行全字段相符、41626操作逐项配对。冻结源/实际对象/四native制品/五选定产品全部资源及原ELN/失败保持不变，不为清理重跑构建测试。见[清理报告](../maintenance/cleanup/reports/2026-10-29-131-consumed-native-compiler-copies.md)。
+
+
+## 2026-10-29 · P430限定真实组件证据及CLN133
+
+四新native产品及两个严格Cocoa签名通过；实际SDK/Lisp/buffer123布局/常量、55函数及3回调合同一致。完整原40×五产品200通过零跳过，15唯一GC/生命周期例次按不变身份复用，五组两进程query dump恢复通过；后置两配置guard通过。首轮缺jsdoc提示、dump重复加载和ABI准备/旧driver诊断误绑定失败完整保留；不改原断言。同一搭档20次实际只读核查后接受限定实现与证据，58原入口一致；旧132名称施工计数不当成Rust函数数或验收覆盖。
+
+CLN133回收11个已消费Cargo/生成unit根，30706文件/1690目录/1144859531逻辑字节；32396全字段清单行及64792逐项配对操作核对。1083保留文件、两冻结源、实际对象、四产品及五选定身份/全部资源不变，原失败及两旧driver物化根最小证据保留；未为清理重跑测试。详见maintenance/releases/2026-10-29-macos-treesit.md及maintenance/cleanup/reports/2026-10-29-133-consumed-treesit-compiler-copies.md。
+
+本提交只交付可追溯证据和清理文档，不提交未整合的源码。完整runtime/TLS/LCMS/owned-copy及核心源码依赖组交付仍待完成；冻结WIP验收不冒充干净提交检出、GUI/搬移/性能或全G3。P427、远程09、原编译器共同元数据失败及nativeGC余项仍开放，Goal active仍1/7。

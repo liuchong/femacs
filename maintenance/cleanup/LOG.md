@@ -266,3 +266,7 @@ P429 signed/pushed `ccb38ee4`; retired five ended-run Cargo/generated-unit roots
 ## CLN131 · 2026-10-29 · consumed native compiler copies
 
 Retired five ended-run Cargo/generated-unit roots: 19,910 regular files, 903 directories, 705,203,373 logical bytes. All 20,813 public rows match the private plan after machine-path aliasing; 41,626 durable operations pair. Frozen source, actual objects/four native products/all selected resources, original ELNs and raw five shared metadata failures remain unchanged. No build/test rerun for cleanup. See [report](reports/2026-10-29-131-consumed-native-compiler-copies.md) and [manifest](manifests/2026-10-29-131-consumed-native-compiler-copies.jsonl.gz). Goal remains active1/7.
+
+## CLN133 · 2026-10-29 · consumed Tree-sitter compiler copies
+
+Retired eleven ended-run Cargo/generated-unit roots: 30,706 files, 1,690 directories and 1,144,859,531 logical bytes. All 32,396 decoded manifest rows match the private plan; 64,792 operations pair. Frozen source, actual objects, four current products and complete resources, raw failures and two minimal old-driver source-binding records remain. No new build/test for cleanup. See [report](reports/2026-10-29-133-consumed-treesit-compiler-copies.md) and [manifest](manifests/2026-10-29-133-consumed-treesit-compiler-copies.jsonl.gz). Coherent implementation dependency delivery remains pending; Goal active1/7.
