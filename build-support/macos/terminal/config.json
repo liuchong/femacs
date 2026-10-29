@@ -24,8 +24,8 @@
     "HAVE_STDCOUNTOF_H": "1",
     "SYSTEM_TYPE": "\"darwin\"",
     "EMACS_CONFIGURATION": "\"aarch64-apple-darwin25.6.0\"",
-    "EMACS_CONFIG_FEATURES": "\"PDUMPER\"",
-    "EMACS_CONFIG_OPTIONS": "\"--without-all --with-ns=no\"",
+    "EMACS_CONFIG_FEATURES": "\"PDUMPER ZLIB\"",
+    "EMACS_CONFIG_OPTIONS": "\"--without-all --with-ns=no --with-zlib\"",
     "HAVE_NATIVE_COMP": "undefined",
     "HAVE_UNEXEC": "absent",
     "HAVE_TREE_SITTER": "undefined",
@@ -38,6 +38,7 @@
     "HAIKU": "undefined",
     "HAVE_SIGNBIT": "1",
     "_GL_CONFIG_H_INCLUDED": "1",
-    "NATIVE_ELISP_SUFFIX": "\".eln\""
+    "NATIVE_ELISP_SUFFIX": "\".eln\"",
+    "HAVE_ZLIB": "1"
   }
 }

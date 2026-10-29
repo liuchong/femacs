@@ -5,3 +5,8 @@ These text inputs describe the supported Apple Silicon macOS terminal and Cocoa 
 `generator-recipes.json` stores repository-relative raw-data conversion recipes transcribed from the fixed baseline during migration. All data and generator programs are committed under `admin/`, `leim/` and `lisp/`. Recipes are executed by `tools/bootstrap-resources.py`, which supplies the newly built owned program, never a reference program. GNU awk and gzip are external tools. `doc-sections.txt` supplies only section order; documentation text is scanned from owned code.
 
 The historical baseline is fd7afced4036fc1a221567d70705d20a2bd64713. Changing target features or library membership is a source change requiring a clean build and functional verification; these descriptions do not dynamically detect unsupported CPUs or SDKs. The builder rejects non-arm64 macOS hosts. Diagnostic/differential tools may optionally use a separately obtained read-only reference, but normal build and generation do not.
+
+Both macOS configurations also enable the existing gzip/zlib region
+decompressor and link the system zlib. This is a target capability, not a
+dependency on a reference checkout or on an external gzip process. A feature
+change requires fresh products and dumps; old disabled builds cannot certify it.

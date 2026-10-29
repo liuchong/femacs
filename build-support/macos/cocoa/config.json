@@ -22,8 +22,8 @@
     "HAVE_STDCOUNTOF_H": "1",
     "SYSTEM_TYPE": "\"darwin\"",
     "EMACS_CONFIGURATION": "\"aarch64-apple-darwin25.6.0\"",
-    "EMACS_CONFIG_FEATURES": "\"NS PDUMPER TOOLKIT_SCROLL_BARS\"",
-    "EMACS_CONFIG_OPTIONS": "\"--without-all --with-ns=yes\"",
+    "EMACS_CONFIG_FEATURES": "\"NS PDUMPER TOOLKIT_SCROLL_BARS ZLIB\"",
+    "EMACS_CONFIG_OPTIONS": "\"--without-all --with-ns=yes --with-zlib\"",
     "HAVE_NATIVE_COMP": "undefined",
     "HAVE_UNEXEC": "absent",
     "HAVE_TREE_SITTER": "undefined",
@@ -36,7 +36,8 @@
     "HAIKU": "undefined",
     "HAVE_SIGNBIT": "1",
     "_GL_CONFIG_H_INCLUDED": "1",
-    "NATIVE_ELISP_SUFFIX": "\".eln\""
+    "NATIVE_ELISP_SUFFIX": "\".eln\"",
+    "HAVE_ZLIB": "1"
   },
   "features": {
     "EMACS_CONFIG_H": "1",
@@ -404,7 +405,7 @@
     "GNULIB_ISSYMLINKAT": "undefined",
     "SETUP_SLAVE_PTY": "undefined",
     "HAVE_DLFUNC": "undefined",
-    "HAVE_ZLIB": "undefined",
+    "HAVE_ZLIB": "1",
     "XOS_NEEDS_TIME_H": "undefined",
     "HAVE_DECL_MAGICKMERGEIMAGELAYERS": "undefined",
     "MAIL_USE_LOCKF": "undefined",
