@@ -154,7 +154,10 @@ def main():
         check('terminal-batch',[terminal,'-Q','--batch','--eval',edit])
         check('gui-batch',[gui,'-Q','--batch','--eval',edit])
         rows.append(user_init_workflow(terminal,out/'terminal-user-init'))
-        if a.gui:rows.append(user_init_workflow(gui,out/'gui-user-init',True))
+        if a.gui:
+            rows.append(user_init_workflow(gui,out/'gui-user-init',True))
+            check('gui-background-gc',[sys.executable,'tools/test-macos-background-gc.py',
+                  '--binary',gui,'--out',out/'gui-background-gc'])
         for name,binary,opts in [('terminal',terminal,[])]+([('gui',gui,['--gui','--event-sender',a.sender.resolve()])] if a.gui else []):
             check(name+'-keys',[sys.executable,'tools/test-macos-delivery.py','--binary',binary,*opts,'--out',out/(name+'-keys')])
             check(name+'-files',[sys.executable,'tools/test-macos-delivery.py','--binary',binary,*opts,'--file-workflow','--out',out/(name+'-files')])

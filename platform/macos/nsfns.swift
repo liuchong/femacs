@@ -1472,7 +1472,7 @@ func ns_set_background_color(_ f: UnsafeMutableRawPointer?, _ arg: Lisp_Object,
       col = NSColor_colorWithUnsignedLong(NS_FACE_BACKGROUND(face!))
       /* C 324-327 assigns `face->background`; the record is the core's, so the write is a
          C-ABI entry (see the ledger's `## ABI` (3)).  */
-      face_set_background(f, unsignedLong(col!.withAlphaComponent(alpha)))
+      face_set_background(face, unsignedLong(col!.withAlphaComponent(alpha)))
 
       update_face_from_frame_parameter(f, Qbackground_color(), arg)
     }

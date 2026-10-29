@@ -1,5 +1,11 @@
 # Standard committed-checkout macOS delivery
 
+The Cocoa product and disk image measured below predate the P432 background
+receiver repair. The retained image is historical evidence, not the current
+trial build. Use the repaired `dist/macos/Femacs.app`; see the
+[defect and current startup evidence](../incidents/2026-10-29-cocoa-background-receiver.md).
+The terminal delivery evidence is unaffected.
+
 ## Outcome and scope
 
 A real remote shallow checkout of signed `cc774482` (tree

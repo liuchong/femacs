@@ -290,3 +290,8 @@ Retired four temporary source-denied relocation packages: 17,936 files, 442 dire
 ## CLN136 · 2026-10-29 · consumed standard compiler and App copies
 
 Retired six ended-use roots: 20,977 regular files, two links, 1,054 directories and 1,194,535,878 logical bytes. All 22,033 decoded manifest rows and 44,066 paired operations verified. One requested Cocoa unit root was already absent and is not counted. Clean clone/Git, actual objects, current App/DMG, clone/root terminal pairs, previous App needed for G1 rollback, resources, failures and WIP remain unchanged. No test rerun for cleanup. See [report](reports/2026-10-29-136-consumed-standard-compiler-app-copies.md), [manifest](manifests/2026-10-29-136-consumed-standard-compiler-app-copies.jsonl.gz) and [G2 delivery](../releases/2026-10-29-standard-checkout-delivery.md). Goal active; G2 and G4 delivered, 2/7.
+
+
+## CLN137 · 2026-10-29 · consumed background-repair copies
+
+Retired six ended-use roots: repair Cargo/units, identical new App copy, consumed broken App and two component executables. 15,077 files, two links, 625 directories, 811,763,529 logical bytes; all 15,704 decoded manifest rows and 31,408 paired operations verified. Source/Git/actual objects/current App/terminal/original rollback/old DMG/user packages/raw failures and successful normal-startup evidence remain unchanged. See [report](reports/2026-10-29-137-consumed-background-repair-copies.md), [manifest](manifests/2026-10-29-137-consumed-background-repair-copies.jsonl.gz) and [P432](../incidents/2026-10-29-cocoa-background-receiver.md). No test rerun for cleanup; Goal active2/7.

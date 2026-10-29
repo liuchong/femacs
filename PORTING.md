@@ -3516,3 +3516,23 @@ in that scope. All 58 original DEFUN names match; the earlier 132-name
 construction count is not a Rust function-token count or acceptance metric.
 Coherent runtime/TLS/LCMS/owned-copy prerequisite source delivery remains pending;
 do not stage all WIP or publish a half-wired feature. Goal remains active 1/7.
+
+## P432: Cocoa background setter corrupts a frame Lisp slot
+
+The user-authorized normal startup reproduces P390 before initialization ends.
+Existing GC diagnostics identify an invalid float-tagged value `0xfffeffff`,
+not a float-cell allocation error. A debugger stop binds the value to the
+current frame's `tab_bar_items` slot at offset 192. The generated
+`face_set_background` correctly writes `face.background` at that same offset;
+`ns_set_background_color` incorrectly supplies the frame instead of the
+default face it just obtained. The original source assigns `face->background`.
+
+Pass that actual default face to the existing setter. Preserve color/alpha
+conversion, frame background pixels, native ownership, face invalidation and
+GC checks. Do not clamp indices, discard objects or weaken collection.
+After the production repair, validate a fresh Cocoa product with background
+changes followed by collection, then normal configuration/package startup.
+Only after functional acceptance add a receiver/sentinel regression and a
+reusable real-editor background/GC regression through existing test entrypoints.
+Keep raw startup failures and private configuration details outside Git; this
+scope does not certify all configuration packages or close the entire Goal.
