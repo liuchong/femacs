@@ -1,10 +1,14 @@
 # Modernization: stable delivery, retirement, then Lisp runtime work
 
-Current native acceptance update (2026-10-27): actual user Finder file drop
-passes with 124 native motion callbacks, 1 drop callback and exact 57-byte UTF-8
-opened contents. Earlier automated no-callback attempts remain preserved.
-Multi-frame IME and final G1 review remain open; no whole-outcome counter changes.
-See [the source/product-bound record](../maintenance/releases/2026-10-27-g1-finder-drop.md).
+Current delivery update (2026-10-29): G1, G2 and G4 are accepted, three of seven
+outcomes. Current-product mouse/Chinese/cancellation and separate exact UTF-8
+save/normal-exit observations satisfy G1 per assertion; they are explicitly not
+one end-to-end run, and original owner-deadline failures remain false. Current
+terminal/Cocoa TTY cases pass 6/6 each; retained unchanged Finder, keys/files and
+configuration evidence keeps its original identities. See [G1 scope and receipts](../maintenance/releases/2026-10-29-current-g1-workflows.md),
+[G2 delivery](../maintenance/releases/2026-10-29-standard-checkout-delivery.md)
+and [G4 delivery](../maintenance/releases/2026-10-25-g4-modernization.md).
+G3, G5, G6 and G7 remain open; the full Goal stays active.
 
 Current continuation: the **seven-part persistent Goal (2026-10-25)** below. Its first delivery stage closes the remaining Stage IV native gaps. Stages I–IV and failed attempts remain evidence; unchanged acceptance is not rerun merely to refresh a date.
 
@@ -51,7 +55,7 @@ functional-only closeout decisions do not close this current Goal.
 
 | ID | Required outcome | Starting evidence and remaining work | Acceptance |
 | --- | --- | --- | --- |
-| G1 | macOS terminal and native editor reliably usable | Both products build; classic keys, files and single-window IME have bounded real evidence. Remaining: actual Finder external drop, multi-frame IME and abnormal no-controlling-TTY diagnostic/ownership repair. Do not assume an IME cause from callback counts, input-source ID or Lisp selected-frame alone. | Actual unlocked native workflows, exact PID/product identity, correct file bytes/committed text, cancellation and normal exit; malformed TTY startup fails with the correct message without duplicate cleanup or a crash. |
+| G1 | macOS terminal and native editor reliably usable | Accepted through actual native workflows and source-equivalent retained controls; [current G1 evidence](../maintenance/releases/2026-10-29-current-g1-workflows.md) distinguishes human mouse/composition, separate save/quit, current TTY and retained failures. No single end-to-end or broad G3 claim. | Actual unlocked native workflows, exact PID/product identity, correct file bytes/committed text, cancellation and normal exit; malformed TTY startup fails with the correct message without duplicate cleanup or a crash. |
 | G2 | Fresh tracked checkout builds and runs independently | Complete terminal/Cocoa clean-export builds already passed; retain those unchanged results. Ensure later cleanup/runtime changes preserve generated resources, root paths, ignore rules, bundle relocation and documented dependencies without optional `emacs/`, old objects or old Lisp bytecode. | Standard documented build/generation in a new tracked-only export; executable/dump/resource fingerprints, strict signature and actual terminal/native startup. Repeat only when inputs or behavior change. |
 | G3 | Explicit, repeatable compatibility baseline | Existing ten-group three-product comparison, VM semantics, selected ERT, keys/files and startup checks are reusable controls. Extend for changed behavior, common config/shipped libraries and boundary failures. Coverage counts are not complete behavioral parity. | Strict case identities, zero skipped requested cases, retained failures, per-case timings and deterministic observations; exact tested version/platform/plugin scope stated. Latest-stable language compatibility requires its own bounded source/version evidence, not a renamed frozen-reference result. |
 | G4 | Planned modernization and removal of obsolete infrastructure/device baggage | Six paths already retired and shell policy centralized; platform-support decisions, remaining legacy tools/generators/manual build and Android independent-config gap remain open. Inventory readers/replacements and supported-target obligations before removal; a non-Rust extension alone is no reason to delete or rewrite. | Exact dependency/reader map, supported/unsupported/retired matrix, implemented replacement paths and affected builds/workflows. Every deletion/withdrawal/cache cleanup has a committed `maintenance/cleanup` report, identities, reason, replacement and recovery route, linked from its ledger and progress log. |
@@ -265,8 +269,8 @@ acceptance and delivery; none changes the product/corpus acceptance scope.
 
 ### Acceptance checklist (mark only from actual evidence)
 
-- [ ] GA1 / G1: actual remaining macOS native workflows and TTY failure paths pass, without changing pending-composition semantics merely to satisfy a test.
-- [x] GA2 / G2: final changed products build/start from tracked-only inputs, with matching resources, dumps, signatures and trial instructions. Current standard committed-checkout delivery, root terminal and published App accepted; see [G2 evidence](../maintenance/releases/2026-10-29-standard-checkout-delivery.md). G1/G3 and the overall stable-delivery stage remain open.
+- [x] GA1 / G1: actual macOS mouse/Chinese/cancel, normal save/quit and TTY assertions accepted with exact product/PID evidence and independent review. Complementary processes are explicit; owner-deadline attempts remain false. See [G1 delivery](../maintenance/releases/2026-10-29-current-g1-workflows.md). Pending-composition semantics are unchanged.
+- [x] GA2 / G2: final changed products build/start from tracked-only inputs, with matching resources, dumps, signatures and trial instructions. Current standard committed-checkout delivery, root terminal and published App accepted; see [G2 evidence](../maintenance/releases/2026-10-29-standard-checkout-delivery.md). G3 and the overall stable-delivery stage remain open.
 - [ ] GA3 / G3: meet the100% compatibility requirement against the installed stable baseline, with a complete declared behavior/feature matrix, no waived known differences, preserved case identities/timings/failures and no uncovered/blocked scope relabelled as passed.
 - [x] GA4 / G4: approved modernization/retirement matrix implemented; required scoped readers/workflows accepted, every cleanup report and recovery identity committed in signed/pushed5118ed08. See the G4 delivery audit; other native/platform and whole-Goal obligations remain open.
 - [ ] GA5 / G5: real attribution/survival/phase/pause data supports the later choices; load, full samples, memory and uncertainty are explicit.
