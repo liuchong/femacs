@@ -24,6 +24,14 @@ pub(super) fn resources(repo: &Path, family: &str, program: Option<&Path>) -> Re
     }
 }
 
+pub(super) fn stage_module_api(repo: &Path, destination: &Path) -> Result<(), String> {
+    fs::create_dir_all(destination).map_err(|e| e.to_string())?;
+    crate::owned_copy::copy_file(
+        &repo.join("build/generation/module-api/emacs-module.h"),
+        &destination.join("emacs-module.h"),
+    )
+}
+
 pub(super) fn build_terminal() -> i32 {
     match terminal() {
         Ok(()) => 0,
@@ -38,12 +46,23 @@ fn terminal() -> Result<(), String> {
 }
 
 pub(super) fn terminal_in(repo: &Path, root: &Path, publish_info: bool) -> Result<(), String> {
+    terminal_configured(repo, root, publish_info, &repo.join("build-support/macos/terminal/config.json"))
+}
+
+pub(super) fn terminal_configured(repo: &Path, root: &Path, publish_info: bool, config_file: &Path) -> Result<(), String> {
     check_host()?;
     let root = crate::tooling::guard_scratch(repo, root)?;
     let config = root.join("config");
     let objects = root.join("objects");
     fs::create_dir_all(&config).map_err(|e| e.to_string())?;
+    let prepared_config = config.join("darwin-terminal.json");
+    let tls_config = config.join("darwin-terminal-tls.json");
+    crate::tls::prepare(repo, &root, config_file, &tls_config)?;
+    let lcms_config = config.join("darwin-terminal-lcms.json");
+    crate::lcms::prepare(repo, &root, &tls_config, &lcms_config)?;
+    crate::treesit::prepare(repo, &root, &lcms_config, &prepared_config)?;
     resources(&repo, "base", None)?;
+    stage_module_api(repo, &root.join("port/include"))?;
     // Generate checkout-local paths for the terminal configuration.
     let mut paths = String::new();
     for (name, rel) in [
@@ -66,11 +85,14 @@ pub(super) fn terminal_in(repo: &Path, root: &Path, publish_info: bool) -> Resul
         ));
     }
     paths.push_str("pub fn PATH_SITELOADSEARCH() -> *const c_char { c\"\".as_ptr() }\npub fn PATH_GAME() -> *const c_char { core::ptr::null() }\n");
+    if crate::runtime::verify_selected_root(repo, &root)?.is_some() {
+        paths = crate::runtime::terminal_paths_source(repo, &root);
+    }
     fs::write(config.join("epaths.rs"), paths).map_err(|e| e.to_string())?;
     let executable = std::env::current_exe().map_err(|e| e.to_string())?;
     let invoke = |args: &[&str]| -> Result<(), String> {
-        let status = Command::new(&executable)
-            .current_dir(&repo)
+        let mut command = Command::new(&executable);
+        command.current_dir(&repo)
             .args(args)
             .env_remove("FEMACS_MACOS_GUI")
             .env_remove("FEMACS_TARGET")
@@ -79,7 +101,7 @@ pub(super) fn terminal_in(repo: &Path, root: &Path, publish_info: bool) -> Resul
             .env("FEMACS_CONFIG", "darwin-arm64")
             .env(
                 "FEMACS_CONFIG_FILE",
-                repo.join("build-support/macos/terminal/config.json"),
+                &prepared_config,
             )
             .env("FEMACS_CONFIG_RS", config.join("config.rs"))
             .env("FEMACS_EPATHS_RS", config.join("epaths.rs"))
@@ -87,7 +109,8 @@ pub(super) fn terminal_in(repo: &Path, root: &Path, publish_info: bool) -> Resul
             .env("FEMACS_TOOL_UNITS", &objects)
             .env("FEMACS_BUILD_ROOT", &root)
             .env("FEMACS_PGO", "off")
-            .env("FEMACS_RELEASE_BUILD", "1")
+            .env("FEMACS_RELEASE_BUILD", "1");
+        let status = crate::runtime::configured_child(repo, &root, &mut command)?
             .status()
             .map_err(|e| e.to_string())?;
         if status.success() {
@@ -99,11 +122,15 @@ pub(super) fn terminal_in(repo: &Path, root: &Path, publish_info: bool) -> Resul
     invoke(&["gen-config"])?;
     invoke(&["build-units"])?;
     invoke(&["link-owned"])?;
+    invoke(&["link-program", "lib-src/emacsclient.c"])?;
     resources(&repo, "doc", None)?;
     invoke(&["dump-bootstrap"])?;
     resources(&repo, "all", Some(&root.join("port/src/emacs")))?;
     invoke(&["dump"])?;
     let info = crate::manuals::for_product(&repo, &root)?;
+    if crate::runtime::verify_selected_root(repo, &root)?.is_some() {
+        crate::runtime::package_terminal(repo, &root, &info)?;
+    }
     if publish_info {
         crate::manuals::publish_info(&repo, &info)?;
     }

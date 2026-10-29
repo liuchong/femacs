@@ -1,0 +1,167 @@
+;;; runtime-observer.el --- Candidate observer contracts -*- lexical-binding: t; -*-
+;; Definitions only. The final runtime acceptance driver selects and runs them.
+(require 'ert)
+(require 'cl-lib)
+
+(defun femacs-runtime-observer-mode ()
+  (or (getenv "FEMACS_GC_OBSERVATION") "off"))
+
+(defun femacs-runtime-observer-recording-p ()
+  (member (femacs-runtime-observer-mode) '("phases" "all")))
+
+(defun femacs-runtime-observer-snapshot ()
+  (should (fboundp 'femacs--gc-snapshot))
+  (let ((snapshot (femacs--gc-snapshot)))
+    (should (vectorp snapshot))
+    (should (= (length snapshot) 4))
+    (should (= (aref snapshot 0) 1))
+    (let ((totals (aref snapshot 1)) (records (aref snapshot 2))
+          (ages (aref snapshot 3)))
+      (should (and (vectorp totals) (= (length totals) 21)))
+      (dotimes (i 21)
+        (should (and (integerp (aref totals i)) (>= (aref totals i) 0))))
+      (should (= (aref totals 1) 4096))
+      (should (vectorp records))
+      (should (= (aref totals 2) (length records)))
+      (should (<= (length records) 4096))
+      (should (and (vectorp ages) (= (length ages) 2)))
+      (dotimes (i 2)
+        (should (and (vectorp (aref ages i)) (= (length (aref ages i)) 5))))
+      (mapc (lambda (record)
+              (should (and (vectorp record) (= (length record) 6)))
+              (dotimes (i 6)
+                (should (and (integerp (aref record i)) (>= (aref record i) 0)))))
+            records))
+    snapshot))
+
+(ert-deftest femacs-runtime-observer/wire-is-complete ()
+  (femacs-runtime-observer-snapshot))
+
+(ert-deftest femacs-runtime-observer/control-matches-process-mode ()
+  (should (fboundp 'femacs--gc-observer-control))
+  (if (femacs-runtime-observer-recording-p)
+      (unwind-protect
+          (progn
+            (femacs--gc-observer-control nil)
+            (should-not (femacs--gc-observer-control t))
+            (should (eq t (femacs--gc-observer-control nil)))
+            (should (= (aref (aref (femacs-runtime-observer-snapshot) 1) 19) 0)))
+        (femacs--gc-observer-control nil))
+    (should-error (femacs--gc-observer-control t))))
+
+(ert-deftest femacs-runtime-observer/window-reset-keeps-process-identities ()
+  (let* ((before (femacs-runtime-observer-snapshot))
+         (totals (aref before 1)))
+    (should (eq t (femacs--gc-reset)))
+    (garbage-collect)
+    (let ((after (aref (femacs-runtime-observer-snapshot) 1)))
+      (should (> (aref after 0) (aref totals 0)))
+      (should (>= (aref after 10) (aref totals 10)))
+      (should (>= (aref after 11) (aref totals 11))))))
+
+(ert-deftest femacs-runtime-observer/detached-snapshot-is-not-reused ()
+  (let* ((saved (femacs-runtime-observer-snapshot))
+         (text (prin1-to-string saved)))
+    (dotimes (_ 5)
+      (let ((values (make-list 2000 "中文")))
+        (should (= (length values) 2000)))
+      (garbage-collect)
+      (femacs-runtime-observer-snapshot))
+    (should (equal (prin1-to-string saved) text))))
+
+(ert-deftest femacs-runtime-observer/active-outer-cycle-rejects-control-and-export ()
+  (if (femacs-runtime-observer-recording-p)
+      (let ((gc-cons-threshold most-positive-fixnum)
+            (busy-errors 0))
+        (unwind-protect
+            (progn
+              (femacs--gc-observer-control t)
+              (let ((post-gc-hook
+                     (list (lambda ()
+                             (should-error (femacs--gc-reset))
+                             (setq busy-errors (1+ busy-errors))
+                             (should-error (femacs--gc-observer-control nil))
+                             (setq busy-errors (1+ busy-errors))
+                             (should-error (femacs--gc-snapshot))
+                             (setq busy-errors (1+ busy-errors))))))
+                (garbage-collect))
+              (should (= busy-errors 3)))
+          (femacs--gc-observer-control nil)))
+    (should-error (femacs--gc-observer-control t))))
+
+(ert-deftest femacs-runtime-observer/actual-full-cycle-has-classification ()
+  (if (femacs-runtime-observer-recording-p)
+      (unwind-protect
+          (progn
+            (femacs--gc-observer-control nil)
+            (femacs--gc-reset)
+            (femacs--gc-observer-control t)
+            (garbage-collect)
+            (femacs--gc-observer-control nil)
+            (let* ((snapshot (femacs-runtime-observer-snapshot))
+                   (events (cl-remove-if-not
+                            (lambda (row) (= (aref row 2) 21))
+                            (append (aref snapshot 2) nil))))
+              (should events)
+              (should (cl-some
+                       (lambda (row)
+                         (and (/= (logand (aref row 3) 512) 0)
+                              (= (logand (aref row 3) 127) 1)
+                              (= (logand (aref row 3) 256) 0)
+                              (= (aref row 4) (aref row 5)))) events))))
+        (femacs--gc-observer-control nil))
+    ;; This is an expected unavailable capability, not an omitted test.
+    (should-error (femacs--gc-observer-control t))))
+
+(ert-deftest femacs-runtime-observer/ages-are-a-cons-sample ()
+  (let ((keep (make-list 3000 'retained)))
+    (garbage-collect)
+    (let* ((snapshot (femacs-runtime-observer-snapshot))
+           (totals (aref snapshot 1)))
+      (should (= (length keep) 3000))
+      (if (member (femacs-runtime-observer-mode) '("survival" "all"))
+          (progn
+            (should (> (aref totals 12) 0))
+            (should (> (aref totals 15) 0))
+            (should (memq (aref totals 20) '(0 1))))
+        (should (= (aref totals 12) 0))))))
+
+(ert-deftest femacs-runtime-observer/overflow-retains-capacity-and-drops () :tags '(slow)
+  (if (femacs-runtime-observer-recording-p)
+      (unwind-protect
+          (progn
+            (femacs--gc-observer-control nil)
+            (femacs--gc-reset)
+            (femacs--gc-observer-control t)
+            (dotimes (_ 1024) (garbage-collect))
+            (femacs--gc-observer-control nil)
+            (let* ((snapshot (femacs-runtime-observer-snapshot))
+                   (totals (aref snapshot 1)))
+              (should (> (aref totals 3) 0))
+              (should (<= (length (aref snapshot 2)) 4096))))
+        (femacs--gc-observer-control nil))
+    (should-error (femacs--gc-observer-control t))))
+
+;; Select these only in the separately identified --observer --test-hooks
+;; product. Missing support in a requested fault profile is never a skip.
+(ert-deftest femacs-runtime-observer-fault/unwind-releases-exact-export-owner ()
+  (should (fboundp 'femacs--gc-test-export))
+  (dolist (fault '(1 3))
+    (should-error (femacs--gc-test-export fault) :type 'error)
+    (femacs-runtime-observer-snapshot)
+    (should (eq t (femacs--gc-reset)))))
+
+(ert-deftest femacs-runtime-observer-fault/real-gc-marks-export-intermediates ()
+  (should (fboundp 'femacs--gc-test-export))
+  (let* ((before gcs-done)
+         (snapshot (femacs--gc-test-export 2))
+         (saved (prin1-to-string snapshot)))
+    (should (> gcs-done before))
+    (should (and (vectorp snapshot) (= (length snapshot) 4)))
+    (should (= (aref snapshot 0) 1))
+    (dotimes (_ 4) (garbage-collect))
+    (should (equal (prin1-to-string snapshot) saved))
+    (femacs-runtime-observer-snapshot)))
+
+(provide 'runtime-observer)
+;;; runtime-observer.el ends here

@@ -2534,29 +2534,7 @@ fn dump_finalizer (ctx: *mut dump_context, finalizer: *const Lisp_Finalizer) -> 
   }
 }
 
-/* C 2238-2248's `#ifdef HAVE_TREE_SITTER` arm is dead (`HAVE_TREE_SITTER` is undef in the
-   frozen configuration); carried as text (P-51, docs/status.md 3.49).  That record lives in
-   treesit.h's dead arm (its mirror carries only the one live declaration outside the guard),
-   so `struct Lisp_TS_Query` and its two members are named here for the dead arm.  */
-#[cfg (feature = "have_tree_sitter")]
-#[repr(C)]
-#[derive(Clone, Copy)]
-pub struct Lisp_TS_Query
-{
-  pub header: vectorlike_header,
-  pub language: Lisp_Object,
-  pub source: Lisp_Object,
-  pub query: *mut c_void,
-  pub cursor: *mut c_void,
-}
-#[cfg (feature = "have_tree_sitter")]
-#[inline(always)]
-pub fn XTS_COMPILED_QUERY (a: Lisp_Object) -> *mut Lisp_TS_Query
-{
-  eassert! (PSEUDOVECTORP (a, pvec_type::PVEC_TS_COMPILED_QUERY));
-  return XUNTAG! (a, Lisp_Type::Lisp_Vectorlike, Lisp_TS_Query);
-}
-
+// P430 uses the shared query record; portable dumps retain only Lisp roots.
 #[cfg (feature = "have_tree_sitter")]
 fn dump_treesit_compiled_query (ctx: *mut dump_context, query: *mut Lisp_TS_Query) -> dump_off
 {

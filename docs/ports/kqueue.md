@@ -1,3 +1,30 @@
+The updated SDK projection includes the actual shared fcntl/type/errno mirrors: shared flags plus local declarations match29 observations and three function contracts; no backend/GUI acceptance is implied.
+
+The third integration builds both terminal legs, then Cocoa exposes local
+O_RDONLY/O_NONBLOCK/O_NOFOLLOW duplicates. Both frontends now use their shared
+fcntl mirror; only Darwin-specific flags absent from it remain local. The
+terminal success and Cocoa failure are preserved; backend acceptance is pending.
+
+## Current integration (P-418, 2026-10-28)
+
+The first enabled terminal build fails before linking: optional GUI include
+deduplication hides the required buffer/type closure. The unit now materializes
+that closure after Lisp macros and before optional keyboard edges; new
+production verification is pending. The pre-Lisp placement failed macro
+resolution and is retained as a second build failure.
+
+Both macOS recipes now wire HAVE_KQUEUE/USE_FILE_NOTIFY and the owned object;
+full editor/backend acceptance is pending. The main initializer now invokes
+globals_of_kqueue at the original pre-environment initialization point on each
+process start, as well as registering its subrs during Lisp initialization. The unit reads the shared conditional
+event number, instead of its old frozen local28. Current SDK comparison finds
+kevent alignment4 under pragma pack(4), despite size32 and offsets matching the
+old measurement; the owned type now uses repr(C, packed(4)) and an align assertion.
+The corrected exact declaration projection matches29 SDK observations and three
+function contracts. This is ABI evidence, not filesystem callback or UI proof.
+The first alignment failure is retained; the historical frozen/arm-flip evidence
+below does not establish today's enabled backend behavior.
+
 # emacs/src/kqueue.c (550 lines)
 
 # ----------------------------------------------------------------------
@@ -108,13 +135,13 @@ reference's final line; `docs/port-map.md` 479 binds this ledger to `src/kqueue.
 
 ## Evidence
 
-1. **frozen arm**: `cd femacs && CARGO_TARGET_DIR=/tmp/kq-lane cargo run -q -p xtask -- build-tu
+1. **frozen arm**: `cd femacs && CARGO_TARGET_DIR=${LANE} cargo run -q -p xtask -- build-tu
    src/kqueue.c` -> exit 0, `built src/kqueue.rs -> ../build/femacs/kqueue.o`,
    `../build/femacs/kqueue.o` **336 bytes** (the empty object the file gate leaves).  Run twice
    (before and after the fixes below) with the same reading - P-86 ⑨.
 2. **arm flip** (a real compile, the kqueue API is on this machine; the exact command):
-   `CARGO_TARGET_DIR=/tmp/kq-lane cargo run -q -p xtask -- probe src/kqueue.rs
-   /tmp/kq-lane/kq.rlib --crate-type=lib -C panic=abort --cfg 'feature="have_kqueue"'`
+   `CARGO_TARGET_DIR=${LANE} cargo run -q -p xtask -- probe src/kqueue.rs
+   ${LANE}/kq.rlib --crate-type=lib -C panic=abort --cfg 'feature="have_kqueue"'`
    -> **exit 0, 0 errors, 14 warnings, a 13,154,752-byte rlib**.  All 14 warning spans are in
    mirror copies (composite.rs 11, lisp.rs 1, coding.rs 1, lib/include/stdbit.in.rs 1) and
    **0 are in the unit's own text**.
@@ -181,10 +208,11 @@ reference's final line; `docs/port-map.md` 479 binds this ledger to `src/kqueue.
 5. **C 95's `event.kind = FILE_NOTIFY_EVENT;` is a bitfield write**: `include/termhooks.rs` packs
    `kind : 16` into `input_event.bits`, so the port writes it with the per-unit `input_event_bits!`
    macro (the `src/gtkutil.rs` 1757-1770 shape, body-identical).
-6. **`FILE_NOTIFY_EVENT`'s value (28) is declared in-unit** (C 95): `keyboard.h` declares it inside
-   `#ifdef USE_FILE_NOTIFY`, and the frozen `include/termhooks.rs` carries the frozen
-   configuration's members, so this file's gate implies it and the value is the `src/gfilenotify.rs`
-   reading - owed to the mirror round (`## Owed` 4).
+6. **Historical local event number, resolved by P418:** the initial frozen arm
+   declared `FILE_NOTIFY_EVENT=28` in-unit. That declaration is retired; the
+   backend now reads the shared `include/termhooks.rs` conditional member,
+   including thread and native-window members. The earlier frozen measurement
+   is not the current enabled configuration's event-number contract.
 7. **C 283's `static const struct timespec nullts = { 0, 0 };` is a function-local static**, and
    the port spells it as a plain `let nullts: timespec = timespec { tv_sec: 0, tv_nsec: 0 };`
    (PORTING.md 1.5's rule for a constant the callee reads); C's static storage is not observable
@@ -213,9 +241,10 @@ reference's final line; `docs/port-map.md` 479 binds this ledger to `src/kqueue.
    `no_o_symlink` 2, `no_ev_enable` 1 are unchanged and still correct).  **DONE (status 3.489,
    integrator):** regenerated - the `have_kqueue` row now reads **49 sites in 1 file** (the
    generator's own count; the four `no_*` rows match the tree).
-4. **`FILE_NOTIFY_EVENT`'s value per configuration** (`include/termhooks.rs`): the frozen mirror
-   carries the frozen members; in a `USE_FILE_NOTIFY` build the member sits before `SLEEP_EVENT`
-   and shifts the members after it (`## Deviations` 6).
+4. **`FILE_NOTIFY_EVENT` per configuration: resolved by P418.** The shared
+   mirror now derives optional member numbering from the actual feature set;
+   kqueue consumes that member without a unit-local duplicate. Full event and
+   callback acceptance remains pending, separately from this source correction.
 5. **The in-unit external-header section's mirror round** (P-90 ②/P-88 ⑤): if
    `<sys/event.h>`/`<sys/resource.h>`/`<fcntl.h>` acquire a second consumer, this section moves
    into a mirror of its own in the same commit.
@@ -232,9 +261,9 @@ reference's final line; `docs/port-map.md` 479 binds this ledger to `src/kqueue.
   through `xtask probe`; only `have_kqueue` was flipped through the tool.
 - The `O_EVTONLY`/`O_SYMLINK`/`NOTE_*`/`EV_*` values are **this machine's SDK**; a different SDK may
   differ, and the in-unit declarations are this round's transcription of that measurement.
-- The `have_kqueue` gate has never been enabled in a repository-wide build: the frozen
-  configuration leaves the whole file out, so this unit's participation in that configuration is
-  the 336-byte empty object.
+- At the historical measurement, `have_kqueue` had not been enabled in a
+  repository-wide build and its frozen object was empty. P418 enables the current
+  recipes; no new backend build or callback result is claimed by that old object.
 - The in-unit `/// C:` lines quote each declaration's header text **without a line number**
   (the `src/gfilenotify.rs` GIO section shape), so `check-citations.py`'s external-citation
   list does not carry them (the `CITE` pattern needs `<path> <line>`); no gate requires a
@@ -243,3 +272,9 @@ reference's final line; `docs/port-map.md` 479 binds this ledger to `src/kqueue.
 - The three `docs/ports/macro-body-notes.tsv` rows are **records of why a token cannot appear**,
   not evidence that the surrounding body is otherwise identical (that is the flip's job, and the
   token gate keeps reporting every *other* missing token).
+
+
+Historical command transcripts above use `${LANE}` for their old disposable
+artifact root. This is a documentation path normalization, not a new execution
+or a change to the retained measurements. Current product builds use the owned
+entrypoints and dependency instructions in `build-support/README.md`.

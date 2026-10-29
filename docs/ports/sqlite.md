@@ -153,7 +153,7 @@ one row for this pair, so the table covers the one reference it has.
 ## Evidence
 
 ① **The frozen reading (P-86 ⑧).**
-`cd femacs && CARGO_TARGET_DIR=/tmp/sqlite-lane/cargo cargo run -q -p xtask -- build-tu src/sqlite.c`
+`cd femacs && CARGO_TARGET_DIR=${LANE}/cargo cargo run -q -p xtask -- build-tu src/sqlite.c`
 -> `built src/sqlite.rs -> ../build/femacs/sqlite.o`, exit 0, and `build/femacs/sqlite.o` is
 **3640 bytes**, sha256 `f7a85883d822bccb0a49c204dab499e08b06c583303daedd12df6559ba042ee8` - **the
 same size and the same sha256 as the object the 76-line P-08 unit produced**, i.e. the whole dead
@@ -172,8 +172,8 @@ are the same class every ported unit carries (`nm build/femacs/xml.o` shows the 
 `__RNv…` text symbols too).  The two warnings are mirror-side (`include/lisp.rs` 3934,
 `lib/include/stdbit.in.rs` 644) `unused doc comment`s, named rather than silenced.
 
-② **The `<sqlite3.h>` measurement (P-88 ②).**  `clang -o /tmp/sqlite-lane/probe
-/tmp/sqlite-lane/probe.c -I/opt/homebrew/opt/sqlite/include -lsqlite3 && /tmp/sqlite-lane/probe`,
+② **The `<sqlite3.h>` measurement (P-88 ②).**  `clang -o ${LANE}/probe
+${LANE}/probe.c -I/opt/homebrew/opt/sqlite/include -lsqlite3 && ${LANE}/probe`,
 against `/opt/homebrew/opt/sqlite/include/sqlite3.h` (SQLite 3.53.4):
 
     ptr sqlite3*=8 sqlite3_stmt*=8 int64=8
@@ -187,14 +187,14 @@ names the SDK path it used; `$(xcrun --show-sdk-path)/usr/include/sqlite3.h` is 
 this host.  Every constant in the unit carries the value measured here, not a remembered one.
 
 ③ **The `Lisp_Sqlite` layout measurement.**  `clang -std=gnu23 -I build/emacs-ref/src -I emacs/src
--I emacs/lib -I build/emacs-ref/lib -o /tmp/sqlite-lane/lay /tmp/sqlite-lane/lay.c`, which prints
+-I emacs/lib -I build/emacs-ref/lib -o ${LANE}/lay ${LANE}/lay.c`, which prints
 
     Lisp_Sqlite sizeof=48 align=8 off db=8 stmt=16 name=24 finalizer=32 eof=40 is_statement=41
 
 and the port asserts all seven numbers (`std::mem::size_of`/`offset_of!`, on the mirror's record).
 
 ④ **The arm flip (P-86 ③⑴ ⑥), the name-and-type reading.**
-`cargo run -q -p xtask -- probe src/sqlite.rs /tmp/sqlite-lane/sqlite.rlib --crate-type=lib
+`cargo run -q -p xtask -- probe src/sqlite.rs ${LANE}/sqlite.rlib --crate-type=lib
 -C panic=abort --cfg 'feature="have_sqlite3"' --cfg 'feature="have_sqlite3_load_extension"'
 --cfg 'feature="sqlite3_dbconfig_enable_load_extension"'
 --cfg 'feature="sqlite_version_number_ge_3007015"'
@@ -394,3 +394,22 @@ shape `src/sound.rs` 60 uses, and the class is what the gate exists to find.
   live checklist, the four `#else`-only live bodies); it withdraws its *conclusion* (that the text
   need not be written), and it corrects one thing the brief expected of it: the frozen object of
   this file is **not** 336 bytes (Evidence ①), because C 858-933 is live.
+
+
+## Owned Darwin connection (P-400, 2026-10-27)
+
+The preceding frozen-disabled measurements remain historical. Both owned
+Darwin targets now select the existing complete implementation and system
+SQLite library, the actual SDK's modern error APIs and FULLMUTEX/URI/MEMORY
+flags. System extension-loading exports are absent and that sub-feature stays
+disabled. A newly enabled Windows target fails explicitly until its real
+loader exists. This source/config connection is not yet compiled or accepted;
+D26 is an older immutable source cohort and cannot certify it. The original
+stable SQLite tests and actual database/statement/resource lifetimes still
+require execution on the new source products.
+
+
+Historical command transcripts above use `${LANE}` for their old disposable
+artifact root. This is a documentation path normalization, not a new execution
+or a change to the retained measurements. Current product builds use the owned
+entrypoints and dependency instructions in `build-support/README.md`.

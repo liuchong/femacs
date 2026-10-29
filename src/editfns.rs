@@ -55,6 +55,8 @@ include!("../lib/include/sys_utsname.rs");   // C: `#include <sys/utsname.h>`
 include!("include/character.rs");              // C 53: `#include "character.h"`
 include!("include/itree.rs");                  // buffer.h 27: `#include "itree.h"`
 include!("include/buffer.rs");                 // C 54: `#include "buffer.h"`
+#[cfg(feature = "have_tree_sitter")]
+include!("include/treesit.rs"); // P430 shared parser/edit/GC ABI.
 include!("include/window.rs");                 // C 55: `#include "window.h"`
 include!("include/dispextern.rs");            // window.h 23: `#include "dispextern.h"`,
                                                // for window.rs 159 `text_cursor_kinds`
@@ -2677,8 +2679,18 @@ DEFUN! ("subst-char-in-region", Fsubst_char_in_region,
   let mut fromc: c_int;
   let mut toc: c_int;
 
-  /* C 2316-2326's `#ifdef HAVE_TREE_SITTER` block is dead for the frozen configuration
-     (HAVE_TREE_SITTER is undef) and has no Rust counterpart (docs/ports/editfns.md).  */
+  #[cfg(feature = "have_tree_sitter")]
+  let start_char = fix_position(start);
+  #[cfg(feature = "have_tree_sitter")]
+  let old_end_char = fix_position(end);
+  #[cfg(feature = "have_tree_sitter")]
+  let start_byte = CHAR_TO_BYTE(start_char);
+  #[cfg(feature = "have_tree_sitter")]
+  let old_end_byte = CHAR_TO_BYTE(old_end_char);
+  #[cfg(feature = "have_tree_sitter")]
+  let start_linecol = treesit_linecol_maybe(start_char, start_byte, BUF_TS_LINECOL_POINT(current_buffer!()));
+  #[cfg(feature = "have_tree_sitter")]
+  let old_end_linecol = treesit_linecol_maybe(old_end_char, old_end_byte, BUF_TS_LINECOL_POINT(current_buffer!()));
 
   'restart: loop
     {
@@ -2786,7 +2798,8 @@ DEFUN! ("subst-char-in-region", Fsubst_char_in_region,
 
       if changed > 0
         {
-          /* C 2429-2430's `#ifdef HAVE_TREE_SITTER` block is dead (docs/ports/editfns.md).  */
+          #[cfg(feature = "have_tree_sitter")]
+          treesit_record_change(start_byte, old_end_byte, old_end_byte, start_linecol, old_end_linecol, old_end_char);
           signal_after_change (changed,
                                last_changed - changed, last_changed - changed);
           update_compositions (changed, last_changed, CHECK_ALL);
@@ -2976,8 +2989,12 @@ DEFUN! ("translate-region-internal", Ftranslate_region_internal,
                 }
               else
                 {
-                  /* C 2617-2624's `#ifdef HAVE_TREE_SITTER` block is dead
-                     (docs/ports/editfns.md).  */
+                  #[cfg(feature = "have_tree_sitter")]
+                  let linecol_cache = BUF_TS_LINECOL_POINT(current_buffer!());
+                  #[cfg(feature = "have_tree_sitter")]
+                  let start_linecol = treesit_linecol_maybe(pos, pos_byte, linecol_cache);
+                  #[cfg(feature = "have_tree_sitter")]
+                  let old_end_linecol = treesit_linecol_maybe(pos+1, pos_byte+len as ptrdiff_t, start_linecol);
                   record_change (pos, 1);
                   while str_len > 0
                     {
@@ -2989,8 +3006,9 @@ DEFUN! ("translate-region-internal", Ftranslate_region_internal,
                   signal_after_change (pos, 1, 1);
                   update_compositions (pos, pos + 1, CHECK_BORDER);
 
-                  /* C 2632-2639's `#ifdef HAVE_TREE_SITTER` block is dead
-                     (docs/ports/editfns.md).  */
+                  #[cfg(feature = "have_tree_sitter")]
+                  treesit_record_change(pos_byte, pos_byte+len as ptrdiff_t, pos_byte+len as ptrdiff_t,
+                                        start_linecol, old_end_linecol, pos+1);
                 }
               characters_changed += 1;
             }
@@ -4888,7 +4906,10 @@ DEFUN! ("transpose-regions", Ftranspose_regions, Stranspose_regions, 4, 5,
   start1_byte = CHAR_TO_BYTE (start1);
   end2_byte = CHAR_TO_BYTE (end2);
 
-  /* C 4615-4622's `#ifdef HAVE_TREE_SITTER` block is dead (docs/ports/editfns.md).  */
+  #[cfg(feature = "have_tree_sitter")]
+  let start_linecol = treesit_linecol_maybe(start1, start1_byte, BUF_TS_LINECOL_POINT(current_buffer!()));
+  #[cfg(feature = "have_tree_sitter")]
+  let old_end_linecol = treesit_linecol_maybe(end2, end2_byte, BUF_TS_LINECOL_POINT(current_buffer!()));
 
   /* Run the before-change-functions *before* we move the gap.  */
   modify_text (start1, end2);
@@ -5033,7 +5054,8 @@ DEFUN! ("transpose-regions", Ftranspose_regions, Stranspose_regions, 4, 5,
       adjust_markers_bytepos (start1, start1_byte, end2, end2_byte, 0);
     }
 
-  /* C 4814-4817's `#ifdef HAVE_TREE_SITTER` block is dead (docs/ports/editfns.md).  */
+  #[cfg(feature = "have_tree_sitter")]
+  treesit_record_change(start1_byte, end2_byte, end2_byte, start_linecol, old_end_linecol, end2);
 
   signal_after_change (start1, end2 - start1, end2 - start1);
   return Qnil ();

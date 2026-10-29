@@ -83,7 +83,13 @@ macro_rules! TYPE_MINIMUM { ($t:ty) => { <$t>::MIN }; }
 
 /// C: <config.h> 810-811: `DYNAMIC_LIB_SUFFIX` / `DYNAMIC_LIB_SECONDARY_SUFFIX` (the frozen
 /// table's measured values, `docs/baseline/config/darwin-arm64.macros.tsv`).
+#[cfg (target_os = "macos")]
 const DYNAMIC_LIB_SUFFIX: *const c_char = c".dylib".as_ptr ();
+#[cfg (target_os = "windows")]
+const DYNAMIC_LIB_SUFFIX: *const c_char = c".dll".as_ptr ();
+#[cfg (not (any (target_os = "macos", target_os = "windows")))]
+const DYNAMIC_LIB_SUFFIX: *const c_char = c".so".as_ptr ();
+#[cfg (target_os = "macos")]
 const DYNAMIC_LIB_SECONDARY_SUFFIX: *const c_char = c".so".as_ptr ();
 
 /* C 22: `#define DEFINE_SYMBOLS` tells globals.h to define the tables `init_obarray` needs;
@@ -110,12 +116,16 @@ macro_rules! lread_read_quit { ($fd:expr, $buf:expr, $n:expr) => { emacs_read_qu
 #[cfg (not (feature = "have_android"))]
 macro_rules! lread_lseek { ($fd:expr, $off:expr, $whence:expr) => { lseek ($fd, $off, $whence) }; }
 
-/* `config.h`'s `MODULES_SUFFIX` (C 977/1181/1284/5589 read it): the frozen target defines no
-   modules, the Android configuration defines this one as ".so"
-   (`docs/baseline/config/android-arm64.json`).  It sits above the file's `not (have_android)`
-   block on purpose - an attribute there would have attached to this constant (measured).  */
+/* P-389: configure's module suffix follows the actual dynamic-library target;
+   Darwin also accepts its secondary .so spelling. */
 #[cfg (feature = "have_modules")]
-pub const MODULES_SUFFIX: &core::ffi::CStr = c".so";
+pub const MODULES_SUFFIX: &core::ffi::CStr = unsafe {
+  core::ffi::CStr::from_ptr (DYNAMIC_LIB_SUFFIX)
+};
+#[cfg (feature = "modules_secondary_suffix")]
+pub const MODULES_SECONDARY_SUFFIX: &core::ffi::CStr = unsafe {
+  core::ffi::CStr::from_ptr (DYNAMIC_LIB_SECONDARY_SUFFIX)
+};
 #[cfg (not (feature = "have_android"))]
 /// C: sysstdio.h's `FILE *` (the stdio.rs mirror's `FILE`); C 70's `#define file_stream FILE *`
 /// is the arm `!HAVE_ANDROID || ANDROID_STUBIFY || __ANDROID_API__ < 9`, and C 126's
@@ -6051,7 +6061,11 @@ static mut defsym_name: [*const c_char; 2118] =
   c"special-uppercase".as_ptr (), c"sqlite".as_ptr (), c"sqlite3".as_ptr (), c"sqlite-error".as_ptr (),
   c"sqlite-locked-error".as_ptr (), c"sqlitep".as_ptr (), c"ssize_t".as_ptr (), c"standard".as_ptr (),
   c"standard-input".as_ptr (), c"standard-output".as_ptr (), c"start".as_ptr (), c"start-process".as_ptr (),
-  c"state".as_ptr (), c"static-color".as_ptr (), c"static-color".as_ptr (), c"stderr".as_ptr (),
+  c"state".as_ptr (), c"static-color".as_ptr (),
+  // P-347: the shared metadata takes this name from Android. Other targets
+  // use the original non-Android spelling; the Q indices stay unchanged.
+  if cfg!(feature = "have_android") { c"static-color".as_ptr () }
+    else { c"static-gray".as_ptr () }, c"stderr".as_ptr (),
   c"stdin".as_ptr (), c"stdout".as_ptr (), c"sticky".as_ptr (), c"stime".as_ptr (),
   c"stop".as_ptr (), c"straight".as_ptr (), c"string".as_ptr (), c"string-bytes".as_ptr (),
   c"string-lessp".as_ptr (), c"string-replace".as_ptr (), c"stringp".as_ptr (), c"strings".as_ptr (),
@@ -6168,8 +6182,9 @@ pub unsafe extern "C" fn init_obarray_once ()
     {
       /* The port's symbol set is a superset across platforms (P-29), and two platform units can
          give one Lisp name to two different C symbols - `Qstatic_color` in `haikufns.c` and
-         `Qstatic_gray` in `androidfns.c` are both "static-color" (`docs/baseline/globals/
-         symbols.tsv` 1729 and 1730).  C never sees the pair, because only one of those units is
+         `Qstatic_gray` in `androidfns.c` are both "static-color" in the Android name selection
+         (`docs/baseline/globals/symbols.tsv`1729 and1730). Other non-Cocoa targets select
+         the original "static-gray" spelling above (P-347). C never sees the pair, because only one of those units is
          built; interning both here makes the second `defsym` find the first symbol and trips
          `eassert (FIXNUMP (bucket))` (measured on the device, status 4.844).  Skip the entry whose
          unit this configuration does not build, so the surviving index interns the name.  */
@@ -6693,10 +6708,14 @@ pub unsafe extern "C" fn syms_of_lread ()
 	       "A list of suffixes for loadable dynamic libraries.");
 // C: `#ifndef MSDOS`
     #[cfg (not (feature = "msdos"))]
-  { Vdynamic_library_suffixes = Fcons (build_string (DYNAMIC_LIB_SECONDARY_SUFFIX), Qnil ()); }
-    #[cfg (not (feature = "msdos"))]
-  { Vdynamic_library_suffixes = Fcons (build_string (DYNAMIC_LIB_SUFFIX),
-				     Vdynamic_library_suffixes); }
+  {
+    Vdynamic_library_suffixes = Qnil ();
+    #[cfg (target_os = "macos")]
+    { Vdynamic_library_suffixes = Fcons (build_string (DYNAMIC_LIB_SECONDARY_SUFFIX),
+                                       Vdynamic_library_suffixes); }
+    Vdynamic_library_suffixes = Fcons (build_string (DYNAMIC_LIB_SUFFIX),
+                                     Vdynamic_library_suffixes);
+  }
 // C: `#else`
     #[cfg (feature = "msdos")]
   { Vdynamic_library_suffixes = Qnil (); }

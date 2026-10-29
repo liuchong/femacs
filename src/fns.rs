@@ -74,6 +74,8 @@ include!("include/intervals.rs");               // C 38: `#include "intervals.h"
 include!("include/coding.rs");                  // C 35: `#include "coding.h"`
 include!("include/composite.rs");               // coding.h 284's `#include "composite.h"`
 include!("include/buffer.rs");                  // C 37: `#include "buffer.h"`
+#[cfg(feature = "have_tree_sitter")]
+include!("include/treesit.rs"); // P430 shared parser/edit/GC ABI.
 include!("include/systime.rs");                 // frame.h 24's `#include "systime.h"`
 include!("include/font.rs");                    // dispextern.h's font names
 include!("include/dispextern.rs");              // frame.h 25's `#include "dispextern.h"`

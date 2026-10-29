@@ -1,0 +1,53 @@
+{
+  "schema": "femacs-module-api-inputs-v1",
+  "source_ref": "fd7afced4036fc1a221567d70705d20a2bd64713",
+  "api_major": 32,
+  "license": "GPL-3.0-or-later; retain original header notice",
+  "files": {
+    "emacs-module.in.h": {
+      "source_path": "src/emacs-module.in.h",
+      "sha256": "1f89910ba1c3e1703d697f97a7a9dad34415f74b2ecc753117c76945109c7fa7",
+      "bytes": 5773
+    },
+    "module-env-25.h": {
+      "source_path": "src/module-env-25.h",
+      "sha256": "7e41538ecf2739b3950ac10b11f546f83946d69c9e92b6c316470be576d68f4e",
+      "bytes": 4340
+    },
+    "module-env-26.h": {
+      "source_path": "src/module-env-26.h",
+      "sha256": "ecdfd903c68917d79f411a384c52a48c519c8498cd3c8e1cb1f293a311fe900f",
+      "bytes": 115
+    },
+    "module-env-27.h": {
+      "source_path": "src/module-env-27.h",
+      "sha256": "dd0f4006e83663a8c51271d349e35210a7b0a984d89b6ccd61bf7ec6244a335a",
+      "bytes": 762
+    },
+    "module-env-28.h": {
+      "source_path": "src/module-env-28.h",
+      "sha256": "73ea665787aef4d3f2d68d260f4dc9de7a04200b1b8a618c778f118858e87b04",
+      "bytes": 774
+    },
+    "module-env-29.h": {
+      "source_path": "src/module-env-29.h",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    "module-env-30.h": {
+      "source_path": "src/module-env-30.h",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    "module-env-31.h": {
+      "source_path": "src/module-env-31.h",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    "module-env-32.h": {
+      "source_path": "src/module-env-32.h",
+      "sha256": "de6d3f799221b324d2d1bc744010dc48d5c9b9e2745ac09a9f88d352480c54da",
+      "bytes": 622
+    }
+  }
+}

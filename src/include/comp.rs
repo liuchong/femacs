@@ -53,6 +53,8 @@ pub mod comp_h_decls {
   use super::*;
 
   unsafe extern "C" {
+    pub fn hash_native_abi ();
+    pub fn eln_load_path_final_clean_up ();
     pub fn maybe_defer_native_compilation (function_name: Lisp_Object,
                                            definition: Lisp_Object);
     pub fn unload_comp_unit (cu: *mut Lisp_Native_Comp_Unit);

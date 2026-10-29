@@ -86,7 +86,7 @@ unsafe extern "C" {
   /// C: stdlib.h: `void abort (void) __attribute__ ((__noreturn__));`
   pub fn abort () -> !;
   /// C: lisp.h 4392: `extern void message3 (Lisp_Object);`
-  pub fn message3 (m: Lisp_Object) -> Lisp_Object;
+  pub fn message3 (m: Lisp_Object);
 
   /// C: emacs.c: `void fatal (const char *, ...) ATTRIBUTE_NORETURN;` (lisp.h's EXFUN group)
   pub fn fatal (format: *const c_char, ...) -> !;
@@ -4222,7 +4222,7 @@ pub unsafe extern "C" fn mark_specpdl (first: *mut specbinding, ptr: *mut specbi
 	    }
 	    if kind == SPECPDL_MODULE_ENVIRONMENT as u8
 	      { mark_module_environment ((*pdl).unwind_ptr.arg); }
-	    else
+	    else if kind != SPECPDL_MODULE_RUNTIME as u8
 	      { emacs_abort (); }
 	  }
 	  #[cfg (not (feature = "have_modules"))]

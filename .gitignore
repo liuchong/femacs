@@ -1,6 +1,8 @@
 /emacs
 /build
 /.femacs-cache
+# Unchanged version-bound test payloads; identities remain in sources.json.
+/compatibility/stable-31.1/test/
 /dist/macos
 /dist/releases/
 /dist/candidates/

@@ -86,6 +86,12 @@ struct Lisp_Subr {
   var intspec: UnsafePointer<CChar>?
   var command_modes: Lisp_Object
   var doc: Int
+  #if HAVE_NATIVE_COMP
+  var native_comp_u: Lisp_Object = Qnil()
+  var native_c_name: UnsafeMutablePointer<CChar>? = nil
+  var lambda_list: Lisp_Object = Qnil()
+  var type: Lisp_Object = Qnil()
+  #endif
 }
 
 /// C: `union Aligned_Lisp_Subr { struct Lisp_Subr s; }` (src/lisp.h 2208-2212), `GCALIGNED`.

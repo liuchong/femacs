@@ -1,0 +1,230 @@
+{
+  "schema": 1,
+  "purpose": "Unexecuted B inputs for actual-source component adapters; these are assertions, never measured observations.",
+  "cases": [
+    {
+      "id": "observer/process-reset-before-thread-ready",
+      "component": "observer",
+      "steps": [{"op": "reset_unready", "mode": "all"}, {"op": "cons_birth", "identity": "early"}, {"op": "activate_owner"}, {"op": "cons_birth", "identity": "owned"}],
+      "expect": {"early_is_unknown": true, "owned_births": 1, "atomic_owner_errors": 0}
+    },
+    {
+      "id": "observer/nested-cycle-identity",
+      "component": "observer",
+      "steps": [
+        {"op": "reset", "mode": "all"},
+        {"op": "begin", "as": "outer"},
+        {"op": "phase", "cycle": "outer", "phase": 2, "start_ns": 100, "end_ns": 500},
+        {"op": "begin", "as": "inner"},
+        {"op": "phase", "cycle": "inner", "phase": 3, "start_ns": 200, "end_ns": 300},
+        {"op": "end", "cycle": "inner"},
+        {"op": "end", "cycle": "outer"}
+      ],
+      "expect": {"distinct_positive_ids": true, "inner_parent_is_outer": true, "open_cycles": 0, "invalid": 0, "nested_durations_are_not_summed": true}
+    },
+    {
+      "id": "observer/owner-specific-abort",
+      "component": "observer",
+      "steps": [
+        {"op": "reset", "mode": "all"}, {"op": "begin", "as": "outer"},
+        {"op": "begin", "as": "inner"}, {"op": "abort", "cycle": "inner"},
+        {"op": "phase", "cycle": "outer", "phase": 2, "start_ns": 100, "end_ns": 200},
+        {"op": "end", "cycle": "outer"}, {"op": "abort", "cycle": "inner"}
+      ],
+      "expect": {"outer_completed": true, "inner_incomplete": true, "open_cycles": 0, "repeat_abort_is_noop": true}
+    },
+    {
+      "id": "observer/record-capacity-does-not-overwrite",
+      "component": "observer",
+      "steps": [{"op": "reset", "mode": "all"}, {"op": "complete_phase_records", "count": 4097}],
+      "expect": {"records": 4096, "dropped": 1, "first_record_preserved": true}
+    },
+    {
+      "id": "observer/clock-failures-are-not-durations",
+      "component": "observer",
+      "inputs": [
+        {"rc": -1, "sec": 0, "nsec": 0},
+        {"rc": 0, "sec": -1, "nsec": 0},
+        {"rc": 0, "sec": 1, "nsec": -1},
+        {"rc": 0, "sec": 1, "nsec": 1000000000},
+        {"rc": 0, "sec": 9223372036854775807, "nsec": 0}
+      ],
+      "expect": {"all_invalid": true, "no_usable_duration": true}
+    },
+    {
+      "id": "observer/backwards-clock",
+      "component": "observer",
+      "steps": [{"op": "reset", "mode": "phases"}, {"op": "phase", "phase": 2, "start_ns": 200, "end_ns": 100}],
+      "expect": {"invalid_clock": true, "no_usable_duration": true}
+    },
+    {
+      "id": "observer/foreign-owner-does-not-touch-ring",
+      "component": "observer",
+      "steps": [{"op": "reset", "mode": "all"}, {"op": "owner", "current": false}, {"op": "begin", "as": "rejected"}],
+      "expect": {"rejected_id": 0, "records": 0, "nonatomic_storage_unchanged": true, "atomic_owner_error": true}
+    },
+    {
+      "id": "observer/report-reset-keeps-allocation-epoch",
+      "component": "observer",
+      "steps": [
+        {"op": "reset", "mode": "all"}, {"op": "cons_birth", "identity": "cell-a"},
+        {"op": "completed_sweep", "survivors": ["cell-a"]},
+        {"op": "reset_window"}, {"op": "completed_sweep", "survivors": ["cell-a"]}
+      ],
+      "expect": {"sweep_epoch": 2, "cell_a_age": 2, "live_histogram": [0, 0, 1, 0, 0]}
+    },
+    {
+      "id": "observer/address-reuse-has-new-birth",
+      "component": "observer",
+      "steps": [
+        {"op": "reset", "mode": "survival"}, {"op": "cons_birth", "identity": "cell-a"},
+        {"op": "completed_sweep", "survivors": ["cell-a"]}, {"op": "cons_free", "identity": "cell-a"},
+        {"op": "cons_birth", "identity": "cell-a"}
+      ],
+      "expect": {"new_birth_sequence": true, "cell_a_age": 0, "occupancy": 1}
+    },
+    {
+      "id": "observer/identity-overflow-is-visible",
+      "component": "observer",
+      "steps": [{"op": "reset", "mode": "survival"}, {"op": "distinct_cons_births", "count": 262145}, {"op": "reset_window"}],
+      "expect": {"occupancy_at_most": 262144, "overflow_latched": true, "complete_cons_sample": false, "no_live_eviction": true}
+    },
+    {
+      "id": "observer/disabled-mode-has-no-array-writes",
+      "component": "observer",
+      "steps": [{"op": "reset", "mode": "off"}, {"op": "distinct_cons_births", "count": 100}, {"op": "begin", "as": "disabled"}],
+      "expect": {"disabled_id": 0, "occupancy": 0, "records": 0, "array_storage_unchanged": true}
+    },
+    {
+      "id": "observer/depth-overflow-is-bounded",
+      "component": "observer",
+      "steps": [{"op": "reset", "mode": "all"}, {"op": "nested_begins", "count": 17}, {"op": "unwind_all"}],
+      "expect": {"maximum_active": 16, "depth_overflow": true, "open_cycles": 0}
+    },
+    {
+      "id": "observer/cycle-id-exhaustion-never-wraps",
+      "component": "observer",
+      "steps": [{"op": "reset", "mode": "all"}, {"op": "set_last_sequence", "value": 9223372036854775807}, {"op": "begin", "as": "exhausted"}],
+      "expect": {"exhausted_id": 0, "counter_exhaustion": true, "no_reused_id": true}
+    },
+    {
+      "id": "observer/detached-export-is-not-the-live-ring",
+      "component": "observer",
+      "steps": [
+        {"op": "reset", "mode": "all"}, {"op": "complete_phase_records", "count": 3},
+        {"op": "detach_snapshot"}, {"op": "export_gc", "phase_records": 2}, {"op": "release_snapshot"}
+      ],
+      "expect": {"snapshot_records": 3, "snapshot_unchanged": true, "export_records_have_flag8": true, "export_owner_released": true}
+    },
+    {
+      "id": "collector/layout-and-last-word",
+      "component": "collector",
+      "steps": [{"op": "new_block"}, {"op": "mark_indices", "indices": [0, 63, 64, 1983, 1984, 1997]}, {"op": "promote_marked"}],
+      "expect": {"size": 32752, "capacity": 1998, "bitmap_words": 32, "old_indices": [0, 63, 64, 1983, 1984, 1997], "padding_bits_clear": true}
+    },
+    {
+      "id": "collector/new-block-is-unmarked-young-and-untainted",
+      "component": "collector",
+      "steps": [{"op": "new_block"}],
+      "expect": {"marked": 0, "old": 0, "dirty": 0, "raw_tainted": false}
+    },
+    {
+      "id": "collector/typed-old-write-is-value-type-independent",
+      "component": "collector",
+      "steps": [{"op": "new_block"}, {"op": "promote_indices", "indices": [4]}, {"op": "write", "index": 4, "value_kind": "vector"}],
+      "expect": {"old_indices": [4], "dirty_indices": [4], "raw_tainted": false}
+    },
+    {
+      "id": "collector/raw-escape-before-promotion-and-reuse",
+      "component": "collector",
+      "steps": [
+        {"op": "new_block"}, {"op": "escape", "index": 2}, {"op": "promote_indices", "indices": [2]},
+        {"op": "free", "index": 2}, {"op": "allocate_reused", "index": 2}
+      ],
+      "expect": {"old": 0, "dirty": 0, "raw_tainted": true, "reused_cell_is_young": true}
+    },
+    {
+      "id": "collector/free-cell-is-not-premarked",
+      "component": "collector",
+      "steps": [
+        {"op": "new_block"}, {"op": "promote_indices", "indices": [7]}, {"op": "write", "index": 7, "value_kind": "cons"},
+        {"op": "free", "index": 7}, {"op": "premark_old"}
+      ],
+      "expect": {"marked": 0, "old": 0, "dirty": 0, "free_index": 7}
+    },
+    {
+      "id": "collector/dump-child-needs-future-tracing",
+      "component": "collector",
+      "steps": [
+        {"op": "new_block"}, {"op": "mark_cons", "index": 3, "car_kind": "dump-cons", "cdr_kind": "nil"},
+        {"op": "promote_marked"}
+      ],
+      "expect": {"old_indices": [3], "dirty_indices": [3]}
+    },
+    {
+      "id": "collector/nil-terminator-does-not-dirty-every-list",
+      "component": "collector",
+      "steps": [{"op": "new_block"}, {"op": "mark_cons", "index": 3, "car_kind": "fixnum", "cdr_kind": "nil"}, {"op": "promote_marked"}],
+      "expect": {"old_indices": [3], "dirty": 0}
+    },
+    {
+      "id": "collector/registry-dedup-and-frozen-prefix",
+      "component": "collector",
+      "steps": [
+        {"op": "new_registry"}, {"op": "note_noncons", "identity": "old-vector", "kind": "vector"},
+        {"op": "freeze_registry"}, {"op": "note_noncons", "identity": "old-vector", "kind": "vector"},
+        {"op": "note_noncons", "identity": "new-symbol", "kind": "symbol"}
+      ],
+      "expect": {"len": 2, "frozen_len": 1, "current_roots": ["old-vector"], "newly_appended_is_not_current_root": true}
+    },
+    {
+      "id": "collector/major-rebuild-does-not-root-old-registry",
+      "component": "collector",
+      "steps": [
+        {"op": "new_registry"}, {"op": "note_noncons", "identity": "unreachable-old", "kind": "vector"},
+        {"op": "prepare_full"}, {"op": "note_noncons", "identity": "actual-root", "kind": "symbol"}, {"op": "commit_full"}
+      ],
+      "expect": {"len": 1, "entries": ["actual-root"], "old_registry_used_as_root": false}
+    },
+    {
+      "id": "collector/registry-overflow-forces-next-full",
+      "component": "collector",
+      "steps": [{"op": "new_registry"}, {"op": "distinct_noncons_marks", "count": 262145}, {"op": "choose", "request": "automatic"}],
+      "expect": {"len_at_most": 262144, "valid": false, "next_kind": "full", "original_mark_work_preserved": true}
+    },
+    {
+      "id": "collector/storage-lifetime-invalidation-precedes-free",
+      "component": "collector",
+      "steps": [
+        {"op": "new_registry"}, {"op": "note_noncons", "identity": "moving-owner", "kind": "vector"},
+        {"op": "storage_change", "identity": "moving-owner", "phase": "idle"}, {"op": "choose", "request": "automatic"}
+      ],
+      "expect": {"invalidated_before_release": true, "next_kind": "full", "old_registry_dereferences": 0}
+    },
+    {
+      "id": "collector/cap-explicit-and-pending-doomed-full-selection",
+      "component": "collector",
+      "inputs": [
+        {"request": "full", "valid": true, "consecutive_minors": 0, "expected_kind": "full", "reason": 2},
+        {"request": "automatic", "valid": true, "consecutive_minors": 3, "expected_kind": "full", "reason": 4},
+        {"request": "automatic", "valid": true, "consecutive_minors": 0, "pending_doomed": true, "expected_kind": "full", "reason": 12},
+        {"request": "automatic", "valid": true, "consecutive_minors": 0, "allocation_cap_exceeded": true, "expected_kind": "full", "reason": 5},
+        {"request": "automatic", "valid": true, "consecutive_minors": 0, "unknown_producer": true, "expected_kind": "full", "reason": 8},
+        {"request": "automatic", "valid": true, "consecutive_minors": 0, "expected_kind": "young", "reason": 0}
+      ],
+      "expect": {"all_inputs_match": true}
+    },
+    {
+      "id": "collector/abort-invalidates-only-active-owner",
+      "component": "collector",
+      "steps": [{"op": "prepare_young", "as": "first"}, {"op": "abort", "cycle": "first"}, {"op": "prepare_full", "as": "second"}, {"op": "commit_full"}, {"op": "abort", "cycle": "first"}],
+      "expect": {"valid": true, "stale_abort_did_not_invalidate_second": true, "active": false}
+    },
+    {
+      "id": "collector/commit-precedes-post-gc-nested-cycle",
+      "component": "collector",
+      "steps": [{"op": "prepare_full", "as": "outer"}, {"op": "commit_full"}, {"op": "prepare_young", "as": "nested"}, {"op": "commit_young"}, {"op": "outer_cleanup", "cycle": "outer"}],
+      "expect": {"completed_full": 1, "completed_young": 1, "valid": true, "active": false, "nested_state_preserved": true}
+    }
+  ]
+}

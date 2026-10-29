@@ -1,16 +1,6 @@
-// femacs: port of src/xml.c @ fd7afced403.
-//
-// One-to-one port (PORTING.md): same statements, same names.  The file is dominated by
-// `#ifdef HAVE_LIBXML2` (C 24-317's parser, the two `libxml-parse-*-region` subrs and their
-// helpers, plus the `#ifdef WINDOWSNT` splits inside them); the frozen configuration leaves
-// HAVE_LIBXML2 undefined (docs/baseline/config/darwin-arm64.macros.tsv), so C compiles only
-// `libxml-available-p`'s `#else` arm and `syms_of_xml`'s trailing part.  The dead arms stay as
-// P-51 text under `#[cfg (feature = "libxml2")]`, where they are not resolved — the same
-// disposition the file's own `<libxml/*.h>` includes get (they are recorded in
-// docs/ports/excluded-macros.txt, since the headers have no counterpart on this target).
-//
-// C 20-23's includes are config.h, lisp.h and buffer.h; C's `Qt`/`Qlibxml2`/`Vlibrary_cache`
-// are only named inside the dead arm and come from the mirrors when it is enabled.
+// System XML/HTML parser connection. Reference xml.c is identical at stable
+// a360712c9d272d950d8d8255ef74570f7e90b7d9 and pinned fd7afced403.
+// Parser options, DOM construction and error/nil behavior follow that source.
 
 #![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code,
          unused_imports, unused_macros, unused_variables, unused_unsafe, static_mut_refs,
@@ -29,62 +19,150 @@ include!("include/composite.rs");
 include!("include/coding.rs");
 include!("include/buffer.rs");
 
-/* C 24-317's `#ifdef HAVE_LIBXML2` block.  On this target the C preprocessor drops it whole:
-   the libxml2 tree/parser/HTMLparser headers (C 27-29) are not on the target, the
-   `init_libxml2_functions`/`libxml_parse_region` helpers and the two DEFUNs are never
-   compiled, and nothing links against them.  The C text is kept, per P-51, as text that only
-   a build with the feature on would read; the tokens the ledger compares are the live ones
-   below.  */
-#[cfg (feature = "libxml2")]
-mod libxml2_arm
-{
-  use super::*;
+include!("include/libxml2.rs");
+#[cfg(feature = "have_libxml2")]
+use libxml2_ffi::*;
 
-  /* C 31-88's `#ifdef WINDOWSNT` split (the `xml_parse_region` wrapper that loads the DLL)
-     and C 90-317's parser are inside this arm in C as well.  */
+// No Windows DLL loader has been connected yet. A new target must implement
+// its actual loader before claiming this capability; Darwin uses the system ABI.
+#[cfg(all(feature = "have_libxml2", feature = "windowsnt"))]
+compile_error!("libxml2 delayed loading is not connected for this target");
+
+// The non-Windows reference branch is directly linked and returns true;
+// the actual parser entry points below are resolved from the system library.
+#[cfg(feature = "have_libxml2")]
+unsafe fn init_libxml2_functions() -> bool { true }
+
+#[cfg(feature = "have_libxml2")]
+unsafe fn make_dom(node: *mut xmlNode) -> Lisp_Object {
+    if (*node).r#type == XML_ELEMENT_NODE {
+        let mut result = list1(intern((*node).name as *const c_char));
+        let mut plist = Qnil();
+        let mut property = (*node).properties;
+        while !property.is_null() {
+            let child = (*property).children;
+            if !child.is_null() && !(*child).content.is_null() {
+                plist = Fcons(Fcons(intern((*property).name as *const c_char),
+                                    build_string((*child).content as *const c_char)), plist);
+            }
+            property = (*property).next;
+        }
+        result = Fcons(Fnreverse(plist), result);
+        let mut child = (*node).children;
+        while !child.is_null() {
+            result = Fcons(make_dom(child), result);
+            child = (*child).next;
+        }
+        Fnreverse(result)
+    } else if (*node).r#type == XML_TEXT_NODE || (*node).r#type == XML_CDATA_SECTION_NODE {
+        if !(*node).content.is_null() {
+            build_string((*node).content as *const c_char)
+        } else { Qnil() }
+    } else if (*node).r#type == XML_COMMENT_NODE {
+        if !(*node).content.is_null() {
+            list3(Qcomment(), Qnil(), build_string((*node).content as *const c_char))
+        } else { Qnil() }
+    } else { Qnil() }
 }
 
-DEFUN! ("libxml-available-p", Flibxml_available_p, Slibxml_available_p, 0, 0, 0,
-       doc: "Return t if libxml2 support is available in this instance of Emacs.",
-       (),
-       {
-  /* C 325-342: the `HAVE_LIBXML2` arm (and within it the `WINDOWSNT` one, which caches the
-     DLL probe in `Vlibrary_cache`) is dead here, so the surviving statement is the `#else`
-     arm's `return Qnil;`.  */
-  #[cfg (feature = "libxml2")]
-  {
-    #[cfg (feature = "windows_nt")]
-    {
-      let found: Lisp_Object = Fassq (Qlibxml2 (), Vlibrary_cache);
-      if CONSP (found)
-        { return XCDR (found); }
-      else
-        {
-          let status: Lisp_Object
-            = if init_libxml2_functions () { Qt () } else { Qnil () };
-          Vlibrary_cache = Fcons (Fcons (Qlibxml2 (), status), Vlibrary_cache);
-          return status;
-        }
+#[cfg(all(feature = "have_libxml2", feature = "rel_alloc"))]
+unsafe extern "C" {
+    fn r_alloc_inhibit_buffer_relocation(inhibit: c_int);
+}
+
+#[cfg(feature = "have_libxml2")]
+unsafe fn parse_region(start: Lisp_Object, end: Lisp_Object, base_url: Lisp_Object,
+                       discard_comments: Lisp_Object, htmlp: bool) -> Lisp_Object {
+    let mut start = start;
+    let mut end = end;
+    let mut result = Qnil();
+    let mut burl = c"".as_ptr();
+    xmlCheckVersion(LIBXML_VERSION);
+    if NILP(start) { start = Fpoint_min(); }
+    if NILP(end) { end = Fpoint_max(); }
+    validate_region(&raw mut start, &raw mut end);
+    let istart = XFIXNUM(start) as ptrdiff_t;
+    let iend = XFIXNUM(end) as ptrdiff_t;
+    let istart_byte = CHAR_TO_BYTE(istart);
+    let iend_byte = CHAR_TO_BYTE(iend);
+    if istart < GPT!() && GPT!() < iend { move_gap_both(iend, iend_byte); }
+    if !NILP(base_url) {
+        CHECK_STRING(base_url);
+        burl = SSDATA(base_url);
     }
-    #[cfg (not (feature = "windows_nt"))]
-    { return Qt (); }
-  }
-  return Qnil ();
+    let buftext = BYTE_POS_ADDR(istart_byte);
+    #[cfg(feature = "rel_alloc")]
+    r_alloc_inhibit_buffer_relocation(1);
+    let doc = if htmlp {
+        htmlReadMemory(buftext as *const c_char, (iend_byte - istart_byte) as c_int,
+                       burl, c"utf-8".as_ptr(), HTML_PARSE_RECOVER | HTML_PARSE_NONET |
+                       HTML_PARSE_NOWARNING | HTML_PARSE_NOERROR | HTML_PARSE_NOBLANKS)
+    } else {
+        xmlReadMemory(buftext as *const c_char, (iend_byte - istart_byte) as c_int,
+                      burl, c"utf-8".as_ptr(), XML_PARSE_NONET | XML_PARSE_NOWARNING |
+                      XML_PARSE_NOBLANKS | XML_PARSE_NOERROR)
+    };
+    #[cfg(feature = "rel_alloc")]
+    r_alloc_inhibit_buffer_relocation(0);
+    eassert!(buftext == BYTE_POS_ADDR(istart_byte));
+    if !doc.is_null() {
+        let mut r = Qnil();
+        if NILP(discard_comments) {
+            let mut n = (*doc).children;
+            while !n.is_null() {
+                if !NILP(r) { result = Fcons(r, result); }
+                r = make_dom(n);
+                n = (*n).next;
+            }
+        }
+        if NILP(result) {
+            let node = xmlDocGetRootElement(doc);
+            if !node.is_null() { result = make_dom(node); }
+        } else {
+            result = Fcons(Qtop(), Fcons(Qnil(), Fnreverse(Fcons(r, result))));
+        }
+        xmlFreeDoc(doc);
+    }
+    result
+}
+
+#[cfg(feature = "have_libxml2")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn xml_cleanup_parser() { xmlCleanupParser(); }
+
+#[cfg(feature = "have_libxml2")]
+DEFUN! ("libxml-parse-html-region", Flibxml_parse_html_region, Slibxml_parse_html_region,
+       0, 4, 0,
+       doc: "Parse the region as an HTML document and return the parse tree.\nIf START is nil, it defaults to `point-min'.  If END is nil, it\ndefaults to `point-max'.\n\nIf BASE-URL is non-nil, it is used if and when reporting errors and\nwarnings from the underlying libxml2 library.  Currently, errors and\nwarnings from the library are suppressed, so this argument is largely\nignored.\n\nIf you want comments to be stripped, use the `xml-remove-comments'\nfunction to strip comments before calling this function.",
+       (start: Lisp_Object, end: Lisp_Object, base_url: Lisp_Object, discard_comments: Lisp_Object), {
+    if init_libxml2_functions() { parse_region(start, end, base_url, discard_comments, true) }
+    else { Qnil() }
 });
 
-/***********************************************************************
-			    Initialization
- ***********************************************************************/
-#[unsafe(no_mangle)]
-pub unsafe extern "C" fn syms_of_xml ()
-{
-  /* C 351-354's `#ifdef HAVE_LIBXML2` pair — `defsubr (&Slibxml_parse_html_region);` and
-     `defsubr (&Slibxml_parse_xml_region);` — is dead here, and writing the calls as text would
-     make `extract-abi.py` read them as live registrations (P-76's data.c finding: the Rust-side
-     `defsubr` scan does not consult the condition table).  The two names are recorded here and
-     in docs/ports/xml.md instead; a build with the feature on registers them after the two
-     DEFUNs of the `libxml2_arm` module.  */
-  defsubr (&raw mut Slibxml_available_p);
+#[cfg(feature = "have_libxml2")]
+DEFUN! ("libxml-parse-xml-region", Flibxml_parse_xml_region, Slibxml_parse_xml_region,
+       0, 4, 0,
+       doc: "Parse the region as an XML document and return the parse tree.\nIf START is nil, it defaults to `point-min'.  If END is nil, it\ndefaults to `point-max'.\n\nIf BASE-URL is non-nil, it is used if and when reporting errors and\nwarnings from the underlying libxml2 library.  Currently, errors and\nwarnings from the library are suppressed, so this argument is largely\nignored.\n\nIf you want comments to be stripped, use the `xml-remove-comments'\nfunction to strip comments before calling this function.",
+       (start: Lisp_Object, end: Lisp_Object, base_url: Lisp_Object, discard_comments: Lisp_Object), {
+    if init_libxml2_functions() { parse_region(start, end, base_url, discard_comments, false) }
+    else { Qnil() }
+});
 
-  DEFSYM! (Qcomment, "comment");
+DEFUN! ("libxml-available-p", Flibxml_available_p, Slibxml_available_p, 0, 0, 0,
+       doc: "Return t if libxml2 support is available in this instance of Emacs.", (), {
+    #[cfg(feature = "have_libxml2")]
+    { return Qt(); }
+    #[cfg(not(feature = "have_libxml2"))]
+    { Qnil() }
+});
+
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn syms_of_xml() {
+    #[cfg(feature = "have_libxml2")]
+    {
+        defsubr(&raw mut Slibxml_parse_html_region);
+        defsubr(&raw mut Slibxml_parse_xml_region);
+    }
+    defsubr(&raw mut Slibxml_available_p);
+    DEFSYM! (Qcomment, "comment");
 }

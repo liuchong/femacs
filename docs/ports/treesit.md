@@ -167,7 +167,7 @@ the line-count ratchet only (see `## Evidence` ③, which names the row that has
 ## Evidence
 
 **① The frozen configuration (`build-tu`), unchanged by this round.**
-`cd femacs && CARGO_TARGET_DIR=/tmp/treesit1-lane/cargo cargo run -q -p xtask -- build-tu src/treesit.c`
+`cd femacs && CARGO_TARGET_DIR=${LANE}/cargo cargo run -q -p xtask -- build-tu src/treesit.c`
 -> `warning: 2 warnings emitted` (both in mirror copies: `include/lisp.rs` 3934 and
 `lib/include/stdbit.in.rs` 644, "unused doc comment" - the same two the empty-unit revision
 printed), then `built src/treesit.rs -> ../build/femacs/treesit.o`, **exit 0**.
@@ -200,7 +200,7 @@ reference tree and none is installed on this host, but the two records this unit
 pointers and words, so their ABI is measurable with stand-ins:
 
 ```
-$ clang -o /tmp/treesit1-lane/layout-probe /tmp/treesit1-lane/layout-probe.c && /tmp/treesit1-lane/layout-probe
+$ clang -o ${LANE}/layout-probe ${LANE}/layout-probe.c && ${LANE}/layout-probe
 sizeof(Lisp_Object)=8 alignof=8
 sizeof(treesit_loaded_lang)=16 alignof=8 lang=0 filename=8
 sizeof(treesit_lang_cache_entry)=24 alignof=8 symbol=0 lang=8
@@ -245,7 +245,7 @@ int main (void)
 So **the missing toolchain is libtree-sitter itself, headers and library**: no `TS*` declaration and
 no `ts_*` symbol can be had, and no clang reading of `<tree_sitter/api.h>` is possible (④'s
 stand-ins are the most that can be measured).
-`cargo run -q -p xtask -- probe src/treesit.rs /tmp/treesit1-lane/flip2.o --crate-type lib --emit obj
+`cargo run -q -p xtask -- probe src/treesit.rs ${LANE}/flip2.o --crate-type lib --emit obj
 -C panic=abort --cfg 'feature="have_tree_sitter"'` -> **exit 1, 34 errors, 2 warnings**, and the
 errors by primary location are: **25 in this unit's own text** (`build/probes/treesit/_root.rs`) and
 **9 in the `include/buffer.rs` copy** (`_Users_…_include_buffer_rs.rs`).
@@ -281,3 +281,81 @@ pre-existing behaviour for every `.c`/`.h` pair (`w32term.c` and `w32term.h` bot
 **⑦ The host's C side, for the record.**  The reference's own text was not compiled this round:
 `clang` was used only for ④'s stand-in probe.  Nothing in this ledger is a reading of a
 tree-sitter-enabled build, on this host or any other.
+
+## P430 complete macOS feature construction
+
+Current baseline: `src/treesit.rs:1-1216` ends the gated body after original
+C946; `src/include/treesit.rs:1-32` omits the gated layouts/accessors. The
+existing fallback `treesit-available-p` always returns nil. Original line/column
+tests therefore skip three more cases than the installed stable comparator.
+
+Target flow: buffer edit/case/transpose -> line/column caches and per-parser
+TSInputEdit/timestamp -> lazy ensure-parsed -> TS parser/tree -> rooted Lisp
+node/query -> predicate/navigation API. Nodes retain parsers; parsers retain
+associated buffers. Query source/language remain Lisp roots; external query and
+cursor handles are nullable and reset for dumping, then rebuilt lazily. Parser
+input payloads/callbacks must always belong to the exact live parser/buffer.
+
+- [x] Mirror 0.27.1 SDK ABI and original header parser/node/query layouts,
+  predicates, accessors and external functions; one shared owner for all callers.
+- [x] Port C948-1044 language/grammar entrypoints; C1045-2057 line/column, edit
+  recording, visible-region synchronization, input callback and lazy parsing.
+- [x] Port C2058-3487 object allocation/destruction, parser/node APIs and errors.
+- [x] Port C3488-5292 query construction, predicates/capture and full navigation.
+- [x] Port gated syms initialization, variables and error hierarchy; availability
+  reports the real selected feature/library. Preserve feature-disabled behavior.
+- [x] Restore every original editor/GC/printing/dumping hook; remove shadow
+  stand-in layouts only with a traceable declaration-consolidation record.
+- [x] Capture SDK header/version/library/license before linking; enable both
+  macOS frontends and package relative runtime dependencies, with complete
+  product receipts and source identities. Preserve unrelated runtime work.
+
+After all business work: measured SDK/Lisp layout/function contracts, fresh
+normal/checking Cocoa/terminal builds and strict app signatures; unchanged
+stable original Tree-sitter file plus real owned grammar inputs on reference
+and candidates, actual edit/narrow/indirect-buffer/node/query/GC/dump checks,
+original IDs/timings/skips/failures retained. Then critical protection cases,
+independent review, coherent source delivery and consumed-artifact cleanup.
+No build, test or acceptance has yet been performed for P430 as of the business-writing checkpoint; later measured results must be recorded separately.
+
+P430 source selection refinement: use pinned stable 31.1 by symbol, whose
+missing public group starts at C898, not fd7 C948. The two header versions are
+byte-identical. The inactive fd7 language cache is excluded: stable grammar
+lookup must observe changes to configured paths/overrides; stable calloc wrapper
+is restored. See CLN132 source rebase/consolidation record. No test was run.
+
+P430 business-writing update: all 132 stable definition names, including all
+58 original Lisp entrypoints, now have source bodies. The shared header owns
+SDK/parser/node/query declarations; buffer lifecycle, insertion/deletion,
+substitution/translation/transposition, case conversion, GC, print and dump
+consumers are connected. Both target configurations and independent SDK
+capture/link/license packaging have been written. These are construction
+facts only: no compiler, ABI, original test or product acceptance result has
+yet been obtained for this new component. The old disabled-feature readings
+above are historical, not measurements of this new enabled candidate.
+
+
+P430 measured integration update: four fresh complete-workspace native products
+and two strict Cocoa signatures passed; 123 actual SDK/Lisp/buffer observations,
+55 function contracts and three callback contracts agree. All unchanged original
+40 cases pass on five products (200, no skips); 15 unique lifecycle/GC cases and
+five two-process query image restores pass. Two later configuration guards pass.
+First failures remain recorded; no original assertion was modified. The earlier
+construction-only statements are historical checkpoints. Independent review,
+coherent prerequisite source delivery and consumed-copy cleanup remain pending;
+this is not whole G3 or clean committed-checkout acceptance. See
+`maintenance/releases/2026-10-29-macos-treesit.md`.
+
+
+P430 independent review: 20 actual read-only source/evidence checks accepted
+the limited implementation and measured products, no concrete failure found
+in that scope. All 58 original DEFUN names match; the earlier 132-name
+construction count is not a Rust function-token count or acceptance metric.
+Coherent runtime/TLS/LCMS/owned-copy prerequisite source delivery remains pending;
+do not stage all WIP or publish a half-wired feature. Goal remains active 1/7.
+
+
+Historical command transcripts above use `${LANE}` for their old disposable
+artifact root. This is a documentation path normalization, not a new execution
+or a change to the retained measurements. Current product builds use the owned
+entrypoints and dependency instructions in `build-support/README.md`.

@@ -941,14 +941,32 @@ DEFUN! ("subr-type", Fsubr_type,
   }
 });
 
-// data.c 1104-1134: `subr-native-comp-unit`, `native-comp-unit-file` and
-// `native-comp-unit-set-file` sit inside `#ifdef HAVE_NATIVE_COMP`, undefined in the
-// frozen configuration, so the reference has no such subrs and the port has none either
-// (the `user-ptrp` rule, docs/ports/data.md Decisions).  Their `defsubr` calls are
-// guarded by the same `#ifdef`, but `tools/extract-abi.py`'s defsubr extraction does not
-// consult the condition table yet (PORTING.md P-76), so `syms_of_data` must record those
-// three lines as a ledger deviation instead of writing calls the frozen build never
-// compiles.
+// P-346: selected native products carry the original native-only interfaces.
+// Feature-off products retain no definitions or registrations for this group.
+#[cfg(feature = "have_native_comp")]
+DEFUN! ("subr-native-comp-unit", Fsubr_native_comp_unit, Ssubr_native_comp_unit, 1, 1, 0,
+       doc: "Return the native compilation unit of SUBR.",
+       (subr: Lisp_Object), {
+  CHECK_SUBR(subr);
+  return (*XSUBR(subr)).native_comp_u;
+});
+
+#[cfg(feature = "have_native_comp")]
+DEFUN! ("native-comp-unit-file", Fnative_comp_unit_file, Snative_comp_unit_file, 1, 1, 0,
+       doc: "Return the filename of native compilation UNIT.",
+       (unit: Lisp_Object), {
+  CHECK_TYPE(NATIVE_COMP_UNITP(unit), Qnative_comp_unit(), unit);
+  return (*XNATIVE_COMP_UNIT(unit)).file;
+});
+
+#[cfg(feature = "have_native_comp")]
+DEFUN! ("native-comp-unit-set-file", Fnative_comp_unit_set_file, Snative_comp_unit_set_file, 2, 2, 0,
+       doc: "Set native compilation UNIT's filename to NEW-FILE and return UNIT.",
+       (unit: Lisp_Object, new_file: Lisp_Object), {
+  CHECK_TYPE(NATIVE_COMP_UNITP(unit), Qnative_comp_unit(), unit);
+  (*XNATIVE_COMP_UNIT(unit)).file = new_file;
+  return unit;
+});
 
 DEFUN! ("interactive-form", Finteractive_form, Sinteractive_form, 1, 1, 0,
        doc: "Return the interactive form of CMD or nil if none.\nIf CMD is not a command, the return value is nil.\nValue, if non-nil, is a list (interactive SPEC).",
@@ -1004,9 +1022,14 @@ DEFUN! ("interactive-form", Finteractive_form, Sinteractive_form, 1, 1, 0,
           genfun = ! (NILP (doc) || VALID_DOCSTRING_P (doc));
         }
     }
-  // C's `#ifdef HAVE_MODULES` arm (`module_function_interactive_form`) is dead in the
-  // frozen configuration and the port does not carry it: the declaration lives in
-  // emacs-module.h, which is not mirrored (the `user-ptrp` rule; see the ledger).
+  else if cfg! (feature = "have_modules") && MODULE_FUNCTIONP (fun)
+    {
+      #[cfg (feature = "have_modules")]
+      {
+        let form = module_function_interactive_form (XMODULE_FUNCTION (fun) as *const c_void);
+        if !NILP (form) { return form; }
+      }
+    }
   else if AUTOLOADP (fun)
     { return Finteractive_form (Fautoload_do_load (fun, cmd, Qnil ())); }
   else if CONSP (fun)
@@ -1067,7 +1090,14 @@ DEFUN! ("command-modes", Fcommand_modes, Scommand_modes, 1, 1, 0,
         /* Old .elc file -- no command modes. */
         { return Qnil (); }
     }
-  // `#ifdef HAVE_MODULES` arm omitted, as in interactive-form above.
+  else if cfg! (feature = "have_modules") && MODULE_FUNCTIONP (fun)
+    {
+      #[cfg (feature = "have_modules")]
+      {
+        let form = module_function_command_modes (XMODULE_FUNCTION (fun) as *const c_void);
+        if !NILP (form) { return form; }
+      }
+    }
   else if AUTOLOADP (fun)
     {
       let modes = Fnth (make_int (3), fun);
@@ -4270,6 +4300,12 @@ pub unsafe extern "C" fn syms_of_data ()
   defsubr (&raw mut Snative_comp_function_p);
   defsubr (&raw mut Ssubr_native_lambda_list);
   defsubr (&raw mut Ssubr_type);
+  #[cfg(feature = "have_native_comp")]
+  {
+    defsubr (&raw mut Ssubr_native_comp_unit);
+    defsubr (&raw mut Snative_comp_unit_file);
+    defsubr (&raw mut Snative_comp_unit_set_file);
+  }
   #[cfg(feature = "have_modules")]
   defsubr (&raw mut Suser_ptrp);
   defsubr (&raw mut Sbool_vector_exclusive_or);

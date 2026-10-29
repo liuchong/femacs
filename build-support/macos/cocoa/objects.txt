@@ -51,6 +51,8 @@ lread.o
 syntax.o
 bytecode.o
 comp.o
+dynlib.o
+emacs-module.o
 process.o
 gnutls.o
 callproc.o
@@ -82,3 +84,4 @@ nsselect.o
 nsimage.o
 macfont.o
 terminfo.o
+kqueue.o

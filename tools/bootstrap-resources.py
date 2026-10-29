@@ -15,11 +15,12 @@ import subprocess
 import sys
 import time
 from version_resources import render_versions
+from module_api import render_module_api
 
 ROOT = Path(__file__).resolve().parent.parent
 RECIPES = ROOT/'build-support/generator-recipes.json'
 FAMILIES = ('all','base','charsets','subdirs','versions','unicode','leim',
-            'grammars','indexes','bytecode','doc','ja-dic')
+            'grammars','indexes','bytecode','doc','ja-dic','module-api')
 
 
 class Generator:
@@ -88,7 +89,10 @@ class Generator:
         render_versions(ROOT)
 
     def base(self):
-        self.charsets();self.subdirs();self.versions()
+        self.charsets();self.subdirs();self.versions();self.module_api()
+
+    def module_api(self):
+        render_module_api(ROOT)
 
     def unicode(self):
         source=ROOT/'admin/unidata/UnicodeData.txt'
@@ -249,6 +253,7 @@ class Generator:
 
     def all(self):
         # base is also run before first bootstrap dump by each build entry.
+        self.module_api()
         self.unicode();self.leim();self.ja_dic();self.grammars()
         self.indexes();self.bytecode();self.doc()
 
@@ -271,7 +276,7 @@ def main():
     if args.scopes and args.family!="bytecode":ap.error("positional paths apply only to --family bytecode")
     if args.list:
         recipes=json.loads(RECIPES.read_text())
-        selected=FAMILIES[2:] if args.family=='all' else (('charsets','subdirs','versions') if args.family=='base' else (args.family,))
+        selected=FAMILIES[2:] if args.family=='all' else (('charsets','subdirs','versions','module-api') if args.family=='base' else (args.family,))
         for family in selected:
             print(family)
             if family=='charsets':
@@ -285,7 +290,7 @@ def main():
         program=next((p for p in candidates if p.is_file()),candidates[0])
     try:
         getattr(Generator(program),args.family.replace('-','_'))()
-    except (OSError,RuntimeError,subprocess.SubprocessError) as e:
+    except (OSError,RuntimeError,ValueError,subprocess.SubprocessError) as e:
         print(f'bootstrap {args.family}: {e}',file=sys.stderr)
         return 1
     return 0

@@ -27,6 +27,8 @@ include!("include/lisp.rs");
 include!("include/character.rs");
 include!("include/itree.rs");
 include!("include/buffer.rs");
+#[cfg(feature = "have_tree_sitter")]
+include!("include/treesit.rs"); // P430 shared parser/edit/GC ABI.
 include!("include/commands.rs");
 include!("include/syntax.rs");
 include!("include/composite.rs");
@@ -557,27 +559,14 @@ unsafe fn casify_region (flag: case_action, mut b: Lisp_Object, mut e: Lisp_Obje
   // the C side never had (the buffer.rs precedent, P-08/P-34).
   const _: () = core::assert! (!cfg! (feature = "have_tree_sitter") || HAVE_TREE_SITTER);
 
-  #[cfg (feature = "have_tree_sitter")]
-  {
-    // C's `#ifdef HAVE_TREE_SITTER` arm (casefiddle.c 543-552): gated text (P-51) that the
-    // frozen configuration never compiles.  The two entries it calls live in treesit.h's
-    // dead `#ifdef HAVE_TREE_SITTER` arm (that header's mirror carries only the one live
-    // declaration outside the guard), so they are declared here, as vm-limit.c's dead arms are.
-    /// C: struct ts_linecol treesit_linecol_maybe (ptrdiff_t, ptrdiff_t, struct ts_linecol)
-    unsafe extern "C" {
-      pub fn treesit_linecol_maybe (charpos: ptrdiff_t, bytepos: ptrdiff_t,
-				    linecol: ts_linecol) -> ts_linecol;
-    }
-    let start_byte: ptrdiff_t = CHAR_TO_BYTE (start);
-    let old_end_byte: ptrdiff_t = CHAR_TO_BYTE (end);
-    let start_linecol: ts_linecol
-      = treesit_linecol_maybe (start, start_byte,
-			       BUF_TS_LINECOL_POINT ((current_buffer! ())));
-    let old_end_linecol: ts_linecol
-      = treesit_linecol_maybe (end, old_end_byte,
-			       BUF_TS_LINECOL_POINT ((current_buffer! ())));
-    let _ = (start_linecol, old_end_linecol);
-  }
+  #[cfg(feature = "have_tree_sitter")]
+  let start_byte = CHAR_TO_BYTE(start);
+  #[cfg(feature = "have_tree_sitter")]
+  let old_end_byte = CHAR_TO_BYTE(end);
+  #[cfg(feature = "have_tree_sitter")]
+  let start_linecol = treesit_linecol_maybe(start, start_byte, BUF_TS_LINECOL_POINT(current_buffer!()));
+  #[cfg(feature = "have_tree_sitter")]
+  let old_end_linecol = treesit_linecol_maybe(end, old_end_byte, BUF_TS_LINECOL_POINT(current_buffer!()));
 
   let orig_end: ptrdiff_t = end;
   record_delete (start, make_buffer_string (start, end, true), false);
@@ -599,15 +588,12 @@ unsafe fn casify_region (flag: case_action, mut b: Lisp_Object, mut e: Lisp_Obje
       signal_after_change (start, end - start - added, end - start);
       update_compositions (start, end, CHECK_ALL);
     }
-  #[cfg (feature = "have_tree_sitter")]
+  #[cfg(feature = "have_tree_sitter")]
   {
-    // C's second `#ifdef HAVE_TREE_SITTER` arm (casefiddle.c 572-579).
-    unsafe extern "C" {
-      /// C: void treesit_record_change (ptrdiff_t, ptrdiff_t, ptrdiff_t, struct ts_linecol, struct ts_linecol, ptrdiff_t)
-      pub fn treesit_record_change (start: ptrdiff_t, old_end: ptrdiff_t, new_end: ptrdiff_t,
-				    start_linecol: ts_linecol, old_end_linecol: ts_linecol,
-				    new_end_pos: ptrdiff_t);
-    }
+    let new_end = orig_end + added;
+    let new_end_byte = CHAR_TO_BYTE(new_end);
+    treesit_record_change(start_byte, old_end_byte, new_end_byte,
+                          start_linecol, old_end_linecol, new_end);
   }
 
   return orig_end + added;

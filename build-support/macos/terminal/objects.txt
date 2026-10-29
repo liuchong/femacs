@@ -51,6 +51,8 @@ lread.o
 syntax.o
 bytecode.o
 comp.o
+dynlib.o
+emacs-module.o
 process.o
 gnutls.o
 callproc.o
@@ -73,3 +75,4 @@ treesit.o
 itree.o
 json.o
 terminfo.o
+kqueue.o

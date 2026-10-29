@@ -31,3 +31,25 @@
   are not installed and the code that uses them is dead — so they are not mirrored; the unit's
   include list is C 20-23's (`config.h`, `lisp.h`, `buffer.h`) plus the closure those mirrors
   pull in (`character`, `itree`, `systime`, `dispextern`, `composite`, `coding`).
+
+
+## Owned macOS capability restoration (P-399, 2026-10-27)
+
+The table above records the historical feature-disabled port, not full XML
+coverage. The owned macOS source now contains both parser subrs, the DOM
+conversion and gap-aware region implementation, public system-library ABI,
+registration and shutdown cleanup. The HAVE_LIBXML2 switch uses its actual
+normalized cfg name, and both target library manifests select system xml2.
+Stable31.1 xml.c at a360712c9d272d950d8d8255ef74570f7e90b7d9 matches
+the pinned source; neither read-only checkout nor an installed header is a
+production input. Library ABI/layout and original stable plus boundary behavior
+acceptance remain pending. D26 is an older frozen snapshot without this change
+and cannot certify it. Windows delayed loading is still not implemented.
+
+P-399 integration is now wired through `tools/xml-acceptance.py`: actual arm64
+SDK C layouts/constants and parser-owned DOM traversal are compared to the
+owned Rust types; functional execution requires both normal/checking baseline
+products and the installed stable comparator, checks actual ERT discovery,
+and runs all13 boundary cases plus the unchanged original XML files with
+per-case native outcomes. Complete product/resource identities are checked at
+both boundaries. These are authored checks, not execution results.

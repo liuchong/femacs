@@ -16,17 +16,9 @@
 // `invoke_thread_function`, `record_thread_error`, `run_thread`, `thread_signal_callback`
 // and `thread_join_callback`.
 //
-// The dead regions are recorded in docs/ports/thread.md rather than transcribed (P-08;
-// thread.c is a `src/` file compiled by the frozen build, so no dead text is kept as
-// `#[cfg (feature = …)]`): C 31-33 (`HAVE_NS`'s `"nsterm.h"`), C 35-39 (the `HAVE_GLIB`
-// arm - `release_select_lock` is C's `#else` no-op), C 111-113, 135-139, 656-658, 774-778,
-// 789-797, 845-851 and 1252-1254 (`HAVE_ANDROID`/`ANDROID_STUBIFY`, all undefined),
-// C 780-787 and 841-843 (`HAVE_NS`'s autorelease pool) and C 1010-1024 / 1309-1310
-// (`THREADS_ENABLED`; C 937-940's live arm is the "Concurrency is not supported" error).
-// Every `#if` is decided by docs/baseline/config/darwin-arm64.macros.tsv and
-// `python3 tools/check-cond-eval.py src/thread.c` reports `18 conditions, 0 unknown, 0
-// disagreements [VERIFIED]`, so the extractor's branch selection is the clang-verified one;
-// no source-header-macros.tsv row was needed.
+// The original frozen-disabled regions remain documented in docs/ports/thread.md.
+// P-387 restores their real target conditions for registration, main-thread
+// signaling and NS/JNI/select lifecycle. Source restoration is not acceptance.
 //
 // The `#include` list is C 20-29's through the mirrors those pull in; `<setjmp.h>` (C 21)
 // comes through lisp.rs (`jmp_buf`/`sys_setjmp`), and C 25-29's `process.h`/`coding.h`/
@@ -93,8 +85,31 @@ unsafe extern "C" {
 
 }
 
-/* thread.c 35-39: `#if defined HAVE_GLIB && ! defined (HAVE_NS)` is dead (HAVE_GLIB is
-   undefined), so C 38's `#else` no-op is the live definition of this macro.  */
+#[cfg (feature = "have_ns")]
+mod thread_ns_api {
+  use super::*;
+  unsafe extern "C" {
+    pub fn ns_alloc_autorelease_pool () -> *mut c_void;
+    pub fn ns_release_autorelease_pool (pool: *mut c_void);
+  }
+}
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+mod thread_android_api {
+  use super::*;
+  unsafe extern "C" {
+    pub static mut android_jvm: *mut JavaVM;
+    pub static mut android_java_env: *mut JNIEnv;
+    pub fn android_check_query ();
+    pub fn android_before_select ();
+  }
+}
+#[cfg (all (feature = "have_glib", not (feature = "have_ns")))]
+mod thread_select_api {
+  unsafe extern "C" { pub fn release_select_lock (); }
+}
+#[cfg (all (feature = "have_glib", not (feature = "have_ns")))]
+macro_rules! release_select_lock { () => { thread_select_api::release_select_lock (); } }
+#[cfg (not (all (feature = "have_glib", not (feature = "have_ns"))))]
 macro_rules! release_select_lock { () => { } }
 
 /* thread.c 41-49.  `GCALIGNED_UNION_MEMBER` is `char alignas (GCALIGNMENT) gcaligned;`
@@ -151,7 +166,7 @@ static mut main_thread: aligned_thread_state
       m_waiting_for_user_input_p: 0,
       m_waiting_for_input: false,
       m_getcjmp: unsafe { core::mem::zeroed () },   // C's static is zero-initialized (192 or 256 bytes)
-      thread_id: 0,
+      thread_id: unsafe { core::mem::zeroed () },
       thread_condvar: unsafe { core::mem::zeroed () },
       wait_condvar: std::ptr::null_mut (),
       thread_name: std::ptr::null_mut (),
@@ -209,7 +224,8 @@ unsafe fn post_acquire_global_lock (self_: *mut thread_state)
 {
   let prev_thread: *mut thread_state = current_thread;
 
-  /* C 109-113's `HAVE_ANDROID` arm (`android_java_env = self->java_env;`) is dead.  */
+  #[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+  { thread_android_api::android_java_env = (*self_).java_env; }
 
   current_thread = self_;
 
@@ -223,7 +239,8 @@ unsafe fn post_acquire_global_lock (self_: *mut thread_state)
       set_buffer_internal_2 (current_buffer! () as *mut buffer);
     }
 
-  /* C 133-138's `HAVE_ANDROID` arm (`android_check_query ()`) is dead.  */
+  #[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+  { thread_android_api::android_check_query (); }
 
    /* We could have been signaled while waiting to grab the global lock
       for the first time since this thread was created.  */
@@ -675,7 +692,8 @@ pub unsafe extern "C" fn thread_select (func: Option<select_func>, max_fds: c_in
   sa.efds = efds;
   sa.timeout = timeout;
   sa.sigmask = sigmask;
-  /* C 656-658's `HAVE_ANDROID` arm (`android_before_select ()`) is dead.  */
+  #[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+  { thread_android_api::android_before_select (); }
   flush_stack_call_func (Some (really_call_select), &raw mut sa as *mut c_void);
   return sa.result;
 }
@@ -796,10 +814,15 @@ unsafe extern "C" fn run_thread (state: *mut c_void) -> *mut c_void
 
   let self_: *mut thread_state = state as *mut thread_state;
   let mut iter: *mut *mut thread_state;
-  /* C 774-778 and 789-797's `THREADS_ENABLED`/`HAVE_ANDROID` arms (`jint rc` and the JNI
-     attach) are dead.  */
-
-  /* C 780-787's `HAVE_NS` arm (`ns_alloc_autorelease_pool ()`) is dead.  */
+  #[cfg (feature = "have_ns")]
+  let pool = thread_ns_api::ns_alloc_autorelease_pool ();
+  #[cfg (all (feature = "threads_enabled", feature = "have_android", feature = "not_android_stubify"))]
+  {
+    let vm = thread_android_api::android_jvm;
+    let rc = ((*(*vm)).AttachCurrentThread.unwrap ())
+      (vm, &raw mut (*self_).java_env, std::ptr::null_mut ());
+    if rc != JNI_OK { emacs_abort (); }
+  }
 
   (*self_).stack_top = std::ptr::addr_of! (stack_pos.c) as *const c_void;
   (*self_).m_stack_bottom = std::ptr::addr_of! (stack_pos.c) as *const c_char;
@@ -846,7 +869,14 @@ unsafe extern "C" fn run_thread (state: *mut c_void) -> *mut c_void
   current_thread = std::ptr::null_mut ();
   sys_cond_broadcast (&raw mut (*self_).thread_condvar);
 
-  /* C 841-843's `HAVE_NS` arm and 845-851's `THREADS_ENABLED`/`HAVE_ANDROID` arm are dead.  */
+  #[cfg (feature = "have_ns")]
+  { thread_ns_api::ns_release_autorelease_pool (pool); }
+  #[cfg (all (feature = "threads_enabled", feature = "have_android", feature = "not_android_stubify"))]
+  {
+    let vm = thread_android_api::android_jvm;
+    let rc = ((*(*vm)).DetachCurrentThread.unwrap ()) (vm);
+    if rc != JNI_OK { emacs_abort (); }
+  }
 
   /* Unlink this thread from the list of all threads.  Note that we
      have to do this very late, after broadcasting our death.  */
@@ -920,13 +950,14 @@ DEFUN! ("make-thread", Fmake_thread, Smake_thread, 1, 3, 0,
     { (*new_thread).thread_name = xstrdup (c_name); }
   else
     { (*new_thread).thread_name = std::ptr::null_mut (); }
-  let mut thr: sys_thread_t = 0;
+  let mut thr: sys_thread_t = core::mem::zeroed ();
   if !sys_thread_create (&raw mut thr, Some (run_thread), new_thread as *mut c_void)
     {
       /* Restore the previous situation.  */
       all_threads = (*all_threads).next_thread;
-      /* C 937-941's `#ifdef THREADS_ENABLED` arm (`error ("Could not start a new
-	 thread");`) is dead; the `#else` arm is the live text.  */
+      #[cfg (feature = "threads_enabled")]
+      error (c"Could not start a new thread".as_ptr ());
+      #[cfg (not (feature = "threads_enabled"))]
       error (c"Concurrency is not supported in this configuration".as_ptr ());
     }
 
@@ -994,8 +1025,18 @@ DEFUN! ("thread-signal", Fthread_signal, Sthread_signal, 3, 3, 0,
   if tstate == current_thread
     { Fsignal (error_symbol, data); }
 
-  /* C 1010-1024's `#ifdef THREADS_ENABLED` arm (the `main_thread_p`/`THREAD_EVENT` block
-     feeding `kbd_buffer_store_event`) is dead; the live text is that arm's `else`.  */
+  #[cfg (feature = "threads_enabled")]
+  if main_thread_p (tstate.cast ())
+    {
+      let mut event: input_event = core::mem::zeroed ();
+      EVENT_INIT (&raw mut event);
+      event.bits = (event.bits & !INPUT_EVENT_KIND_MASK)
+        | (THREAD_EVENT as u32 & INPUT_EVENT_KIND_MASK);
+      event.frame_or_window = Qnil ();
+      event.arg = list3 (Fcurrent_thread (), error_symbol, data);
+      kbd_buffer_store_event (&raw mut event as *mut c_void);
+      return Qnil ();
+    }
     {
       thread_set_error (tstate, error_symbol, data);
 
@@ -1227,8 +1268,8 @@ pub unsafe extern "C" fn init_threads ()
   sys_mutex_init (&raw mut global_lock);
   sys_mutex_lock (&raw mut global_lock);
   current_thread = std::ptr::addr_of_mut! (main_thread.s);
-  /* C 1252-1254's `HAVE_ANDROID` arm (`current_thread->java_env = android_java_env;`) is
-     dead.  */
+  #[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+  { (*current_thread).java_env = thread_android_api::android_java_env; }
 
   main_thread.s.thread_id = sys_thread_self ();
   main_thread.s.buffer_disposition = Qnil ();
@@ -1239,11 +1280,7 @@ pub unsafe extern "C" fn init_threads ()
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn syms_of_threads ()
 {
-  /* C 1264-1266's `#ifndef THREADS_ENABLED if (0) #endif`: the macro is undefined, so the
-     `if (0)` is live text and the twenty-one `defsubr`s below are not registered for this
-     configuration.  The port keeps C's `if false`; the token is in
-     docs/ports/macro-body-notes.tsv.  */
-  if false
+  #[cfg (feature = "threads_enabled")]
     {
       defsubr (&raw mut Sthread_yield);
       defsubr (&raw mut Smake_thread);
@@ -1286,9 +1323,10 @@ pub unsafe extern "C" fn syms_of_threads ()
 
   DEFVAR_LISP! (c"main-thread", Vmain_thread,
     "The main thread of Emacs.");
-  /* C 1309-1313's `#ifdef THREADS_ENABLED` arm (`XSETTHREAD (Vmain_thread,
-     &main_thread.s);`) is dead; the live text is the `#else` assignment.  */
-  Vmain_thread = Qnil ();
+  #[cfg (feature = "threads_enabled")]
+  { XSETTHREAD! (Vmain_thread, std::ptr::addr_of_mut! (main_thread.s)); }
+  #[cfg (not (feature = "threads_enabled"))]
+  { Vmain_thread = Qnil (); }
 }
 
 /* C's `DEFVAR_LISP` both declares and defines `Vmain_thread` (lisp.h 3280-3300's variable

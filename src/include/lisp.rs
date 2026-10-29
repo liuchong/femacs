@@ -874,9 +874,28 @@ pub fn CHECK_CONS (x: Lisp_Object) {
 }
 
 #[inline(always)]
-pub fn XCONS (a: Lisp_Object) -> *mut Lisp_Cons {
+pub fn lisp_h_XCONS_untracked (a: Lisp_Object) -> *mut Lisp_Cons {
     eassert! (CONSP (a));
     XUNTAG! (a, Lisp_Type::Lisp_Cons, Lisp_Cons)
+}
+
+#[cfg(feature = "femacs_gc_generational")]
+pub mod cons_generation_decls {
+    use super::*;
+    unsafe extern "C" {
+        pub fn femacs_gc_cons_written(cell: Lisp_Object);
+        pub fn femacs_gc_cons_escaped(cell: Lisp_Object);
+    }
+}
+#[cfg(feature = "femacs_gc_generational")]
+use cons_generation_decls::*;
+
+#[inline(always)]
+pub fn XCONS (a: Lisp_Object) -> *mut Lisp_Cons {
+    let pointer = lisp_h_XCONS_untracked(a);
+    #[cfg(feature = "femacs_gc_generational")]
+    unsafe { femacs_gc_cons_escaped(a); }
+    pointer
 }
 
 #[inline(always)]
@@ -890,10 +909,10 @@ pub fn xcdr_addr (c: Lisp_Object) -> *mut Lisp_Object {
 }
 
 #[inline(always)]
-pub fn lisp_h_XCAR (c: Lisp_Object) -> Lisp_Object { unsafe { (*XCONS (c)).u.s.car } }
+pub fn lisp_h_XCAR (c: Lisp_Object) -> Lisp_Object { unsafe { (*lisp_h_XCONS_untracked (c)).u.s.car } }
 
 #[inline(always)]
-pub fn lisp_h_XCDR (c: Lisp_Object) -> Lisp_Object { unsafe { (*XCONS (c)).u.s.u.cdr } }
+pub fn lisp_h_XCDR (c: Lisp_Object) -> Lisp_Object { unsafe { (*lisp_h_XCONS_untracked (c)).u.s.u.cdr } }
 
 #[inline(always)]
 pub fn XCAR (c: Lisp_Object) -> Lisp_Object { lisp_h_XCAR (c) }
@@ -902,10 +921,22 @@ pub fn XCAR (c: Lisp_Object) -> Lisp_Object { lisp_h_XCAR (c) }
 pub fn XCDR (c: Lisp_Object) -> Lisp_Object { lisp_h_XCDR (c) }
 
 #[inline(always)]
-pub fn XSETCAR (c: Lisp_Object, n: Lisp_Object) { unsafe { *xcar_addr (c) = n } }
+pub fn XSETCAR (c: Lisp_Object, n: Lisp_Object) {
+    unsafe {
+        (*lisp_h_XCONS_untracked(c)).u.s.car = n;
+        #[cfg(feature = "femacs_gc_generational")]
+        femacs_gc_cons_written(c);
+    }
+}
 
 #[inline(always)]
-pub fn XSETCDR (c: Lisp_Object, n: Lisp_Object) { unsafe { *xcdr_addr (c) = n } }
+pub fn XSETCDR (c: Lisp_Object, n: Lisp_Object) {
+    unsafe {
+        (*lisp_h_XCONS_untracked(c)).u.s.u.cdr = n;
+        #[cfg(feature = "femacs_gc_generational")]
+        femacs_gc_cons_written(c);
+    }
+}
 
 #[inline(always)]
 pub fn CAR (c: Lisp_Object) -> Lisp_Object {
@@ -3153,7 +3184,7 @@ macro_rules! SAFE_NALLOCA {
             $buf = AVAIL_ALLOCA! ($sa_avail, nbytes) as *mut _;
         } else {
             $buf = unsafe { xnmalloc (nitems_, pointee_size ($buf) as isize * mult) } as *mut _;
-            unsafe { record_unwind_protect_ptr (Some (xfree_wrapper), $buf as *mut c_void) };
+            unsafe { record_unwind_protect_ptr (Some (xfree), $buf as *mut c_void) };
         }
     }};
 }
@@ -3897,7 +3928,7 @@ pub mod other_units {
     #[cfg (feature = "have_window_system")]
     unsafe extern "C" { pub fn mark_fringe_data (); }
     /* C lisp.h 4906: `extern void module_finalize_function (const struct Lisp_Module_Function *);`  */
-    #[cfg (all (feature = "have_window_system", feature = "have_android"))]
+    #[cfg (feature = "have_modules")]
     unsafe extern "C" { pub fn module_finalize_function (function: *const c_void); }
 
     /* C 4889-4906 (`#ifdef HAVE_MODULES`): the opaque module-function pointer type and the six
@@ -4047,6 +4078,7 @@ pub mod other_units {
     unsafe extern "C" {
         pub fn error (format: *const c_char, ...) -> !;
         pub fn verror (format: *const c_char, ap: core::ffi::VaList<'_>) -> !;
+        pub fn vformat_string (format: *const c_char, ap: core::ffi::VaList<'_>) -> Lisp_Object;
     }
 
     unsafe extern "C" {

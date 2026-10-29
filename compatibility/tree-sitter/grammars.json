@@ -1,0 +1,499 @@
+{
+  "schema": 1,
+  "scope": "fixed real grammar inputs for unchanged stable source tests; not production editor dependencies",
+  "sdk_version": "0.27.1",
+  "grammar_abi_supported": [
+    13,
+    15
+  ],
+  "grammars": [
+    {
+      "language": "json",
+      "repository": "https://github.com/tree-sitter/tree-sitter-json",
+      "tag": "v0.24.8",
+      "commit": "ee35a6ebefcef0c5c416c0d1ccec7370cfca5a24",
+      "url": "https://codeload.github.com/tree-sitter/tree-sitter-json/tar.gz/ee35a6ebefcef0c5c416c0d1ccec7370cfca5a24",
+      "archive_sha256": "9e4a7391cc3a9f4b87b382956dd01bc1f99fb1afcdc86b2c152c8a1bd14444d5",
+      "archive_size": 39858,
+      "files": [
+        {
+          "path": "LICENSE",
+          "size": 1080,
+          "sha256": "2e0110e07abef7c2548b26ec9d6969775617ca539a0dc8dbeeb14d6452c711d1"
+        },
+        {
+          "path": "package.json",
+          "size": 1259,
+          "sha256": "843df6f8d6a40ab7f12b91b5e688a1a603e65c27f797671240ecf87e1af14644"
+        },
+        {
+          "path": "src/grammar.json",
+          "size": 12913,
+          "sha256": "6a823bbabc1bbf85f4d7bedfff359e1751011294ac670bd51788c9aff0d68637"
+        },
+        {
+          "path": "src/node-types.json",
+          "size": 2698,
+          "sha256": "620b6f5d38676a97526e9d128972d4b156ddbdf6e130cd7e6b9c35e6823e943f"
+        },
+        {
+          "path": "src/parser.c",
+          "size": 27668,
+          "sha256": "e8e1ff5df0d73e3b82574129724e68ef4fa0faf1b8c43dd3f5c1a84839f830ab"
+        },
+        {
+          "path": "src/tree_sitter/alloc.h",
+          "size": 985,
+          "sha256": "b29c1c9fb7cc82f58c84b376df1297d6e2737a1d655fd356db0859e3c29c2fea"
+        },
+        {
+          "path": "src/tree_sitter/array.h",
+          "size": 10420,
+          "sha256": "4ff743903dc46f5db6aa54f31c6b4d160a8a9779e5b2ab1ee59ae7ebcd850ea1"
+        },
+        {
+          "path": "src/tree_sitter/parser.h",
+          "size": 7039,
+          "sha256": "a1f6ef161fbaf48a0e10fca90ef5290a062462b307b3898aa562993853b9f80a"
+        },
+        {
+          "path": "tree-sitter.json",
+          "size": 676,
+          "sha256": "30d71de6bbd5c46237ff53746661b97ac31b426b263cf9baeb65e6d01f9f361d"
+        }
+      ]
+    },
+    {
+      "language": "css",
+      "repository": "https://github.com/tree-sitter/tree-sitter-css",
+      "tag": "v0.23.2",
+      "commit": "c0d581e32d183a536731ed6c3a72758b27e20411",
+      "url": "https://codeload.github.com/tree-sitter/tree-sitter-css/tar.gz/c0d581e32d183a536731ed6c3a72758b27e20411",
+      "archive_sha256": "1c0806226b445b89e2a880408a007178622bcdae846e340d566bcd97ea4ff7ca",
+      "archive_size": 123659,
+      "files": [
+        {
+          "path": "LICENSE",
+          "size": 1080,
+          "sha256": "c5cfb43042b6b72045f4ba997834d0a7786d2793d91680868b5815b39f14fc78"
+        },
+        {
+          "path": "package.json",
+          "size": 1393,
+          "sha256": "ec7c98c0d92c35c89722bdea8c7a751b8d26fc11c365fc5bb46a034aaf8e75ac"
+        },
+        {
+          "path": "src/grammar.json",
+          "size": 51706,
+          "sha256": "1d9a6c98a0c3a7382966e85ad3d9f5718d258a82602e903d91a1cc5441b105a1"
+        },
+        {
+          "path": "src/node-types.json",
+          "size": 41748,
+          "sha256": "7509ba4fff678e9ffdef67b504fb70837aa1d80424bb00b92f74b822c84c1768"
+        },
+        {
+          "path": "src/parser.c",
+          "size": 448747,
+          "sha256": "098ef020df9c8a2ff3d1fbf0cefa9eb7dd8ef8fc135743c58f838ead498a696a"
+        },
+        {
+          "path": "src/scanner.c",
+          "size": 2891,
+          "sha256": "a34f3852b345cdefce5912dbfe227318656703509b03cb990f889c05644cee7f"
+        },
+        {
+          "path": "src/tree_sitter/alloc.h",
+          "size": 985,
+          "sha256": "b29c1c9fb7cc82f58c84b376df1297d6e2737a1d655fd356db0859e3c29c2fea"
+        },
+        {
+          "path": "src/tree_sitter/array.h",
+          "size": 10431,
+          "sha256": "5bdf6ed1a78e3409fd443e085ca967a64c188a5d082aaf7f819bccd53a471c94"
+        },
+        {
+          "path": "src/tree_sitter/parser.h",
+          "size": 7039,
+          "sha256": "a1f6ef161fbaf48a0e10fca90ef5290a062462b307b3898aa562993853b9f80a"
+        },
+        {
+          "path": "tree-sitter.json",
+          "size": 792,
+          "sha256": "346b27512c5f5fb108e8edee92f48af88857e319ba63b21b76c06c7d41c78430"
+        }
+      ]
+    },
+    {
+      "language": "html",
+      "repository": "https://github.com/tree-sitter/tree-sitter-html",
+      "tag": "v0.23.2",
+      "commit": "5a5ca8551a179998360b4a4ca2c0f366a35acc03",
+      "url": "https://codeload.github.com/tree-sitter/tree-sitter-html/tar.gz/5a5ca8551a179998360b4a4ca2c0f366a35acc03",
+      "archive_sha256": "5a198c1bb13ad848ccf2b91dca3d8ac39af63f4da98ad4814b8e27107889eb94",
+      "archive_size": 49928,
+      "files": [
+        {
+          "path": "LICENSE",
+          "size": 1080,
+          "sha256": "2e0110e07abef7c2548b26ec9d6969775617ca539a0dc8dbeeb14d6452c711d1"
+        },
+        {
+          "path": "package.json",
+          "size": 1480,
+          "sha256": "888318a5ddb9303c7dfa83ed130d47c93c9f579eb78dcc31f40e58b7cf4e3997"
+        },
+        {
+          "path": "src/grammar.json",
+          "size": 10208,
+          "sha256": "242c55ee874835b2d47288859878a0cf5dba50ffaae861a81d19fef6d010e227"
+        },
+        {
+          "path": "src/node-types.json",
+          "size": 5195,
+          "sha256": "e04d0a6e667ee3773ceeb0751466ce314f29bafc9b1c7d2466414c39c3eda178"
+        },
+        {
+          "path": "src/parser.c",
+          "size": 66466,
+          "sha256": "65768172733b3bbe461cbdc14ea928f00fbfcc51d8ac68f0a5c72071c6a0bbf1"
+        },
+        {
+          "path": "src/scanner.c",
+          "size": 10796,
+          "sha256": "5c0a0567e010277b81fe63be0acd04f6b44c3ef3063ac01429b910c1d22f0dca"
+        },
+        {
+          "path": "src/tag.h",
+          "size": 8388,
+          "sha256": "aaf1a10c8a2f685ef51a4aa6c01a2cbe166bff67eeccf6b9501a625b71f9ab70"
+        },
+        {
+          "path": "src/tree_sitter/alloc.h",
+          "size": 985,
+          "sha256": "b29c1c9fb7cc82f58c84b376df1297d6e2737a1d655fd356db0859e3c29c2fea"
+        },
+        {
+          "path": "src/tree_sitter/array.h",
+          "size": 10420,
+          "sha256": "4ff743903dc46f5db6aa54f31c6b4d160a8a9779e5b2ab1ee59ae7ebcd850ea1"
+        },
+        {
+          "path": "src/tree_sitter/parser.h",
+          "size": 7039,
+          "sha256": "a1f6ef161fbaf48a0e10fca90ef5290a062462b307b3898aa562993853b9f80a"
+        },
+        {
+          "path": "tree-sitter.json",
+          "size": 898,
+          "sha256": "ca1f39442fecd2135b8bc8bf664615cc4b967d8e4780587b299cdf227010e1b5"
+        }
+      ]
+    },
+    {
+      "language": "javascript",
+      "repository": "https://github.com/tree-sitter/tree-sitter-javascript",
+      "tag": "v0.25.0",
+      "commit": "44c892e0be055ac465d5eeddae6d3e194424e7de",
+      "url": "https://codeload.github.com/tree-sitter/tree-sitter-javascript/tar.gz/44c892e0be055ac465d5eeddae6d3e194424e7de",
+      "archive_sha256": "a13fa28148e41bb939b2c2b8cd73c4b4295273b70cbac55a7a589020f52b9611",
+      "archive_size": 310032,
+      "files": [
+        {
+          "path": "LICENSE",
+          "size": 1080,
+          "sha256": "2e0110e07abef7c2548b26ec9d6969775617ca539a0dc8dbeeb14d6452c711d1"
+        },
+        {
+          "path": "package.json",
+          "size": 1316,
+          "sha256": "6a1b9e54d5b3a44b88d849e3799dc25682da7bcd26a70a425971277e0bc32462"
+        },
+        {
+          "path": "src/grammar.json",
+          "size": 174998,
+          "sha256": "7d9364b824be9250ba023065784550475d277b9dc9a7d20f9bebe9e471c908c3"
+        },
+        {
+          "path": "src/node-types.json",
+          "size": 64022,
+          "sha256": "188a8baa97018edaf63bf7ece372c07bc0d74d1301004bc8f211eb7dee5a6e70"
+        },
+        {
+          "path": "src/parser.c",
+          "size": 2855934,
+          "sha256": "67209ca7ef6e1a4f74e29e48b5928455f892fe1821a3960fbcd62f4e972f7384"
+        },
+        {
+          "path": "src/scanner.c",
+          "size": 10576,
+          "sha256": "b3d3f64284d97bf80749c026862427782cf7ecc0b7dc094e6698ab311c9a42c7"
+        },
+        {
+          "path": "src/tree_sitter/alloc.h",
+          "size": 985,
+          "sha256": "b29c1c9fb7cc82f58c84b376df1297d6e2737a1d655fd356db0859e3c29c2fea"
+        },
+        {
+          "path": "src/tree_sitter/array.h",
+          "size": 10431,
+          "sha256": "5bdf6ed1a78e3409fd443e085ca967a64c188a5d082aaf7f819bccd53a471c94"
+        },
+        {
+          "path": "src/tree_sitter/parser.h",
+          "size": 7624,
+          "sha256": "180b893c8734778fd32f372dfbc27bd6ad1cd2221f26150b31256ff6716320d2"
+        },
+        {
+          "path": "tree-sitter.json",
+          "size": 1024,
+          "sha256": "43f1abe79d69601f9699d292ccbdcf04c8c836911984bd6e466c8368711a1d65"
+        }
+      ]
+    },
+    {
+      "language": "python",
+      "repository": "https://github.com/tree-sitter/tree-sitter-python",
+      "tag": "v0.25.0",
+      "commit": "293fdc02038ee2bf0e2e206711b69c90ac0d413f",
+      "url": "https://codeload.github.com/tree-sitter/tree-sitter-python/tar.gz/293fdc02038ee2bf0e2e206711b69c90ac0d413f",
+      "archive_sha256": "b74d8ba6730535354175436208fe1452fd464f235263959ca40b8bf32cb23dc6",
+      "archive_size": 266292,
+      "files": [
+        {
+          "path": "LICENSE",
+          "size": 1080,
+          "sha256": "d724405ce238a22c0d35769c5a36b386ad5958192efe8bbb304fb2896254575f"
+        },
+        {
+          "path": "package.json",
+          "size": 1301,
+          "sha256": "cc682da95140c947fa0d67f9307e2017def0b4584c15b60386344ac78853d1a8"
+        },
+        {
+          "path": "src/grammar.json",
+          "size": 145051,
+          "sha256": "2adc15e78f4dae293e85de1517c45bcee2f8b075fa30a083c658925b944afec4"
+        },
+        {
+          "path": "src/node-types.json",
+          "size": 64995,
+          "sha256": "a2456847bea3adff5b2222b2f7b03a870159470d8908622204e6eb29ee2fe45e"
+        },
+        {
+          "path": "src/parser.c",
+          "size": 3439646,
+          "sha256": "a895f10b3cf7b2608f3283b43cd5cfed70971c7ee4a0136abbaaccbc4a7a25e0"
+        },
+        {
+          "path": "src/scanner.c",
+          "size": 15470,
+          "sha256": "6db82134ac2d4c90a1a1475487a625cface02662ebda9b7478cad9c7147e9afe"
+        },
+        {
+          "path": "src/tree_sitter/alloc.h",
+          "size": 985,
+          "sha256": "b29c1c9fb7cc82f58c84b376df1297d6e2737a1d655fd356db0859e3c29c2fea"
+        },
+        {
+          "path": "src/tree_sitter/array.h",
+          "size": 10431,
+          "sha256": "5bdf6ed1a78e3409fd443e085ca967a64c188a5d082aaf7f819bccd53a471c94"
+        },
+        {
+          "path": "src/tree_sitter/parser.h",
+          "size": 7624,
+          "sha256": "180b893c8734778fd32f372dfbc27bd6ad1cd2221f26150b31256ff6716320d2"
+        },
+        {
+          "path": "tree-sitter.json",
+          "size": 837,
+          "sha256": "0682bc3796601f623928259e244fa45c113f286cac7606719db792911cf051f9"
+        }
+      ]
+    },
+    {
+      "language": "bash",
+      "repository": "https://github.com/tree-sitter/tree-sitter-bash",
+      "tag": "v0.25.1",
+      "commit": "a06c2e4415e9bc0346c6b86d401879ffb44058f7",
+      "url": "https://codeload.github.com/tree-sitter/tree-sitter-bash/tar.gz/a06c2e4415e9bc0346c6b86d401879ffb44058f7",
+      "archive_sha256": "879e8951ea2cc82455407e3eda0293319657ec53e83191e0fb5a67430d10d804",
+      "archive_size": 543183,
+      "files": [
+        {
+          "path": "LICENSE",
+          "size": 1080,
+          "sha256": "49bf33cf78ef5897e4e161ce1517df7de1ae5042a65b6bcfd44401e0fc606559"
+        },
+        {
+          "path": "package.json",
+          "size": 1292,
+          "sha256": "757d74350c9a8cf2635010326ef3b28b59c392e705906af4d98e5a45fcaff32d"
+        },
+        {
+          "path": "src/grammar.json",
+          "size": 179629,
+          "sha256": "6c14f325170826cbc6c523ff5c2aeaa46f24bbff3a6e5eadb4533d9838fe3d81"
+        },
+        {
+          "path": "src/node-types.json",
+          "size": 51167,
+          "sha256": "b644629f7f9460cb0af080cb88f3bef898e6c47b6f8a76ed512b67ae16ef5ac5"
+        },
+        {
+          "path": "src/parser.c",
+          "size": 9912254,
+          "sha256": "5ad30bb1a260c76df5397490b8bd97e272e62ed9c99be36fa53da959d7667e7f"
+        },
+        {
+          "path": "src/scanner.c",
+          "size": 45602,
+          "sha256": "7cc25d70626f8939b35ecd504bf724e2001b817412aa29bceb4c4955a91558a9"
+        },
+        {
+          "path": "src/tree_sitter/alloc.h",
+          "size": 985,
+          "sha256": "b29c1c9fb7cc82f58c84b376df1297d6e2737a1d655fd356db0859e3c29c2fea"
+        },
+        {
+          "path": "src/tree_sitter/array.h",
+          "size": 10431,
+          "sha256": "5bdf6ed1a78e3409fd443e085ca967a64c188a5d082aaf7f819bccd53a471c94"
+        },
+        {
+          "path": "src/tree_sitter/parser.h",
+          "size": 7624,
+          "sha256": "180b893c8734778fd32f372dfbc27bd6ad1cd2221f26150b31256ff6716320d2"
+        },
+        {
+          "path": "tree-sitter.json",
+          "size": 916,
+          "sha256": "d58a0b1c3a697323c10303a4f7a81782d5bdcfc74c3ed78e2bab4575f531ea3b"
+        }
+      ]
+    },
+    {
+      "language": "elixir",
+      "repository": "https://github.com/elixir-lang/tree-sitter-elixir",
+      "tag": "v0.3.4",
+      "commit": "86ec2ed45d6d9433b4e0b88cd3d96796bd45625f",
+      "url": "https://codeload.github.com/elixir-lang/tree-sitter-elixir/tar.gz/86ec2ed45d6d9433b4e0b88cd3d96796bd45625f",
+      "archive_sha256": "14ec0d52aa1b7fc18b136c75b0abebeeaa740b78f5787736d5a7be4c75b05d37",
+      "archive_size": 561243,
+      "files": [
+        {
+          "path": "LICENSE",
+          "size": 10173,
+          "sha256": "a6cba85bc92e0cff7a450b1d873c0eaa2e9fc96bf472df0247a26bec77bf3ff9"
+        },
+        {
+          "path": "package.json",
+          "size": 1225,
+          "sha256": "93433faa76656cf7621a3d4642136b2529562ba426994ed524c0d69306d79640"
+        },
+        {
+          "path": "src/grammar.json",
+          "size": 170077,
+          "sha256": "320c4af03d6d34085c744ac9923d9b963848bd639a97c5f04401472931b059c4"
+        },
+        {
+          "path": "src/node-types.json",
+          "size": 63223,
+          "sha256": "34d6d28dba5c089e3cf9c760a0f6d94026b4e25b74ec936d58d6767a9daf061a"
+        },
+        {
+          "path": "src/parser.c",
+          "size": 12847341,
+          "sha256": "d1c2000b477e873e44e485f55809e3af7e2bfce83fa4d58cfa3a9f83660e7d79"
+        },
+        {
+          "path": "src/scanner.c",
+          "size": 18627,
+          "sha256": "2d49d8974f7fdf0d38bdb7ed792f7a60aa87dd087b0c0bb469cd5b138b08ba57"
+        },
+        {
+          "path": "src/tree_sitter/alloc.h",
+          "size": 985,
+          "sha256": "b29c1c9fb7cc82f58c84b376df1297d6e2737a1d655fd356db0859e3c29c2fea"
+        },
+        {
+          "path": "src/tree_sitter/array.h",
+          "size": 10420,
+          "sha256": "4ff743903dc46f5db6aa54f31c6b4d160a8a9779e5b2ab1ee59ae7ebcd850ea1"
+        },
+        {
+          "path": "src/tree_sitter/parser.h",
+          "size": 7039,
+          "sha256": "a1f6ef161fbaf48a0e10fca90ef5290a062462b307b3898aa562993853b9f80a"
+        },
+        {
+          "path": "tree-sitter.json",
+          "size": 872,
+          "sha256": "cee60db559cafaa09eddaa0caeb8bc927000b8d8ea151fafa82899b56e2f40bb"
+        }
+      ]
+    },
+    {
+      "language": "jsdoc",
+      "repository": "https://github.com/tree-sitter/tree-sitter-jsdoc",
+      "tag": "v0.25.0",
+      "commit": "658d18dcdddb75c760363faa4963427a7c6b52db",
+      "url": "https://codeload.github.com/tree-sitter/tree-sitter-jsdoc/tar.gz/658d18dcdddb75c760363faa4963427a7c6b52db",
+      "archive_sha256": "070614b15e8333744c886db18ef63a3cfce7bfd0c4c4678c43d8be3457cbc070",
+      "archive_size": 52394,
+      "files": [
+        {
+          "path": "LICENSE",
+          "size": 1105,
+          "sha256": "ffaefecad68467134f8c701120a2410a2384ffff7a605b63638cf0b51e7d16cc"
+        },
+        {
+          "path": "package.json",
+          "size": 1297,
+          "sha256": "e51733e53e3a9ded66eac15d2aa93c115b0f0df9c1cbba6be63b9556700a8d0a"
+        },
+        {
+          "path": "src/grammar.json",
+          "size": 32036,
+          "sha256": "9470c08833c165764d4f60b34ff702bfc7622f908c20ec755507a6edbaa183c2"
+        },
+        {
+          "path": "src/node-types.json",
+          "size": 4748,
+          "sha256": "ac93a7f30e9a684fbe160fc945af265ca0c4a42b4cc430dd9031613fa32f4e51"
+        },
+        {
+          "path": "src/parser.c",
+          "size": 122147,
+          "sha256": "97429822f412e07fbaf66fd489e22e7a25954fcee553f7611eda37e337a12353"
+        },
+        {
+          "path": "src/scanner.c",
+          "size": 1365,
+          "sha256": "4e8e9fdbfbdc306998afee3848227499a4c668534d5e5d5e7a858bff9e99071e"
+        },
+        {
+          "path": "src/tree_sitter/alloc.h",
+          "size": 985,
+          "sha256": "b29c1c9fb7cc82f58c84b376df1297d6e2737a1d655fd356db0859e3c29c2fea"
+        },
+        {
+          "path": "src/tree_sitter/array.h",
+          "size": 10431,
+          "sha256": "5bdf6ed1a78e3409fd443e085ca967a64c188a5d082aaf7f819bccd53a471c94"
+        },
+        {
+          "path": "src/tree_sitter/parser.h",
+          "size": 7624,
+          "sha256": "180b893c8734778fd32f372dfbc27bd6ad1cd2221f26150b31256ff6716320d2"
+        },
+        {
+          "path": "tree-sitter.json",
+          "size": 799,
+          "sha256": "c3579d510ac52b97c819a8ab5e65ee98b4cfefbbc66b75b555626816755e66f1"
+        }
+      ]
+    }
+  ]
+}

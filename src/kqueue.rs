@@ -1,5 +1,9 @@
 // femacs: port of src/kqueue.c @ fd7afced403.
 //
+// P418: the current macOS recipes enable this backend. The frozen-config
+// discussion below is historical; events now use the shared target enum and
+// the SDK kevent declaration retains its four-byte packing.
+//
 // One-to-one port (PORTING.md): the same statements in the same order, the same names, the same
 // control flow.  The *build-level* file gate is `feature = "have_kqueue"` (P-86 ⑧), on every
 // item *and on the include graph*: the frozen configuration leaves `HAVE_KQUEUE` undefined
@@ -24,25 +28,15 @@
 
 include!("include/config.rs");                  // C 20: `#include <config.h>`
 
-/* C 22-25 and C 30-32: `<sys/types.h>`, `<sys/event.h>`, `<sys/time.h>`, `<fcntl.h>` and (under
-   `HAVE_SYS_RESOURCE_H`, which this configuration defines) `<sys/resource.h>`.  None of them has
-   a mirror in this tree and this file is their only consumer, so their declarations stand at
-   their C positions (P-88 ①); every value below is a clang measurement.  */
-/// C: fcntl.h: `#define O_NONBLOCK 0x00000004` - measured 4.
-#[cfg (feature = "have_kqueue")]
-pub const O_NONBLOCK: c_int = 4;
-/// C: fcntl.h: `#define O_RDONLY 0x0000` - measured 0.
-#[cfg (feature = "have_kqueue")]
-pub const O_RDONLY: c_int = 0;
+/* Local SDK declarations cover sys/event.h, sys/resource.h and the two
+   Darwin-only open flags absent from the shared mirror. Common open flags use
+   the existing fcntl mirror below on both terminal and Cocoa include graphs. */
 /// C: fcntl.h: `#define O_EVTONLY 0x8000` - measured 32768.
 #[cfg (feature = "have_kqueue")]
 pub const O_EVTONLY: c_int = 32768;
 /// C: fcntl.h: `#define O_SYMLINK 0x200000` - measured 2097152.
 #[cfg (feature = "have_kqueue")]
 pub const O_SYMLINK: c_int = 2097152;
-/// C: fcntl.h: `#define O_NOFOLLOW 0x00000100` - measured 256.
-#[cfg (feature = "have_kqueue")]
-pub const O_NOFOLLOW: c_int = 256;
 /// C: sys/event.h: `#define NOTE_DELETE 0x00000001` … `NOTE_REVOKE 0x00000040` - measured
 /// 1/2/4/8/16/32/64.
 #[cfg (feature = "have_kqueue")]
@@ -73,7 +67,7 @@ pub const EV_CLEAR: c_ushort = 32;
 /// fflags; intptr_t data; void *udata; };` - measured `sizeof` 32 with ident@0, filter@8,
 /// flags@10, fflags@12, data@16, udata@24.
 #[cfg (feature = "have_kqueue")]
-#[repr (C)]
+#[repr (C, packed(4))]
 #[derive (Clone, Copy)]
 pub struct kevent
 {
@@ -86,6 +80,8 @@ pub struct kevent
 }
 #[cfg (feature = "have_kqueue")]
 const _: () = core::assert! (core::mem::size_of::<kevent> () == 32);
+#[cfg (feature = "have_kqueue")]
+const _: () = core::assert! (core::mem::align_of::<kevent> () == 4);
 #[cfg (feature = "have_kqueue")]
 const _: () = core::assert! (core::mem::offset_of! (kevent, ident) == 0);
 #[cfg (feature = "have_kqueue")]
@@ -127,6 +123,13 @@ include!("include/globals.rs");                 // C 26's chain: lisp.h's `F*` d
 #[cfg (feature = "have_kqueue")]
 include!("include/lisp.rs");                    // C 26: `#include "lisp.h"`
 #[cfg (feature = "have_kqueue")]
+include!("../lib/include/fcntl.in.rs");           // shared open flags on both frontends
+
+// Materialize the required buffer/type closure before optional GUI edges can
+// reserve it during first-include deduplication in a terminal build.
+#[cfg (feature = "have_kqueue")]
+include!("include/buffer.rs");
+#[cfg (feature = "have_kqueue")]
 include!("include/keyboard.rs");                // C 27: `#include "keyboard.h"`
 #[cfg (feature = "have_kqueue")]
 include!("include/process.rs");                 // C 28: `#include "process.h"` (`add_read_fd`,
@@ -145,12 +148,8 @@ include!("include/character.rs");              // buffer.rs's five character.h h
 #[cfg (feature = "have_kqueue")]
 include!("../lib/include/string.rs");           // C 26's chain: lisp.h 30's `<string.h>` (strcmp)
 
-/// C: keyboard.h's `FILE_NOTIFY_EVENT` (the `enum input_event_kind` member inside C's
-/// `#ifdef USE_FILE_NOTIFY`); the frozen `include/termhooks.rs` carries the frozen
-/// configuration's members, so it is declared here with the value this configuration gives it -
-/// the `src/gfilenotify.rs` reading (28), owed to the mirror round.
-#[cfg (feature = "have_kqueue")]
-pub const FILE_NOTIFY_EVENT: c_int = 28;
+// FILE_NOTIFY_EVENT comes from the shared termhooks include. Its value follows
+// the enabled thread, window-system and notification members on this target.
 /// termhooks.h's `enum event_kind kind : 16` shares `include/termhooks.rs`'s `input_event::bits`;
 /// C 95 writes `event.kind = …`, so the port keeps C's field name in a per-unit macro (the
 /// `src/gtkutil.rs` 1757-1770 shape, body-identical).

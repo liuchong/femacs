@@ -5,6 +5,9 @@
 // model.  The twenty-nine `DEFUN`s use `DEFUN!` (PORTING.md 5.1); C's non-`static` definitions
 // carry `#[unsafe(no_mangle)]` (PORTING.md 0.2) and the C `static` helpers stay plain `unsafe fn`.
 //
+// The following transcription notes describe the historical baseline. P-346/P-352
+// supply the candidate native interfaces and restored loaders; actual acceptance
+// remains separately recorded in docs/runtime-modernization.md.
 // **This is a P-86 unit, ported by transcription.**  `HAVE_NATIVE_COMP` is `undef`
 // (`docs/baseline/config/darwin-arm64.macros.tsv` 1473), so C 25-5578 and C 5596-5854 are the body
 // of a false `#ifdef` and `tools/extract-abi.py`'s live-line filter (P-73) leaves this file with an
@@ -66,6 +69,8 @@ include!("include/lisp.rs");
    `EPATHS` finds only the include), and C 31's `<libgccjit.h>` is the gap recorded above.  */
 #[cfg (feature = "have_native_comp")]
 include!("include/window.rs");                  // C 34: `#include "window.h"`
+#[cfg (all (feature = "have_native_comp", feature = "have_window_system"))]
+include!("include/dispextern.rs");              // window.h's display dependency for cursor fields
 #[cfg (feature = "have_native_comp")]
 include!("include/dynlib.rs");                  // C 35: `#include "dynlib.h"`
 /* `character.h` reaches C through `buffer.h`, whose `CHAR_STRING`/`UNIBYTE_TO_CHAR` family lives
@@ -113,7 +118,7 @@ unsafe extern "C" {
    gcc_jit_type gcc_jit_type;`, libgccjit.h 100), so C holds one only through a pointer and there
    is no layout to measure: the reading is that `sizeof` is rejected for all ten, and
 
-       clang -std=gnu23 -I/opt/homebrew/include -fsyntax-only <probe>   # probe: ## Evidence in
+       clang -std=gnu23 -I<installed-include-dir> -fsyntax-only <probe>   # probe: ## Evidence in
                                                                        # docs/ports/comp.md
 
    reports ten `invalid application of 'sizeof' to an incomplete type` errors, while
@@ -775,8 +780,8 @@ pub struct reloc_array_t
 /// (`lisp.h` 590's `#define` sits inside a condition this target leaves closed) and its two fields
 /// are the `lisp_object_is_struct` feature's text - carried, as the other arms are.
 ///
-/// **Layout: measured, not remembered.**  `clang` against this machine's header
-/// (`/opt/homebrew/include/libgccjit.h` -> `Cellar/libgccjit/16.2.0/include/libgccjit.h`) reads
+/// **Layout: measured, not remembered.** `clang` against the installed
+/// libgccjit header used by the recorded layout probe reads
 /// `sizeof (comp_t)` **2680**, `_Alignof` **8** with the cast fields present, and **736**/8 with
 /// them absent - the two numbers the two `const _` asserts below pin.  The probe, its command and
 /// its output are in `docs/ports/comp.md`'s `## Evidence`.
@@ -942,6 +947,15 @@ static mut comp: comp_t = unsafe { std::mem::zeroed () };
 #[cfg (feature = "have_native_comp")]
 static mut logfile: *mut FILE = std::ptr::null_mut ();
 
+#[cfg(feature = "have_native_comp")]
+include!("runtime_native_context.rs");
+
+#[cfg(feature = "have_native_comp")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn femacs_native_reset_process() {
+  native_context::reset_process();
+}
+
 /// C 664-668: `static_obj_t` - a length and a flexible `char data[]` array (PORTING.md 1.3's
 /// zero-length spelling, the `Lisp_Vector` family's in `lisp.rs`).
 #[cfg (feature = "have_native_comp")]
@@ -1046,8 +1060,9 @@ use comp_helpers::*;
    `declare_runtime_imported_funcs'.  */
 /// C 689-707: `static void *helper_link_table[]` - the fifteen addresses, in C's order.
 #[cfg (feature = "have_native_comp")]
-static mut helper_link_table: [*mut c_void; 15] =
-  [ wrong_type_argument as *mut c_void,
+static mut helper_link_table: [*mut c_void; 15 + cfg!(feature = "femacs_gc_generational") as usize] =
+{
+  let base = [ wrong_type_argument as *mut c_void,
     helper_PSEUDOVECTOR_TYPEP_XUNTAG as *mut c_void,
     push_handler as *mut c_void,
     record_unwind_protect_excursion as *mut c_void,
@@ -1062,6 +1077,13 @@ static mut helper_link_table: [*mut c_void; 15] =
     specbind as *mut c_void,
     maybe_gc as *mut c_void,
     maybe_quit as *mut c_void ];
+  let mut entries = [std::ptr::null_mut(); 15 + cfg!(feature = "femacs_gc_generational") as usize];
+  let mut index = 0;
+  while index < base.len() { entries[index] = base[index]; index += 1; }
+  #[cfg(feature = "femacs_gc_generational")]
+  { entries[15] = femacs_gc_cons_written as *mut c_void; }
+  entries
+};
 
 /* C 29's `<stdio.h>`: `lib/include/stdio.rs` is the frozen target's *system* header mirror and
    carries `FILE`/`fclose`/the md5-stream entries but not `vsnprintf`; the gnulib *template* mirror
@@ -1186,7 +1208,8 @@ pub unsafe extern "C" fn hash_native_abi ()
 
   Vcomp_abi_hash =
     comp_hash_string (
-      concat3 (build_string (ABI_VERSION),
+      concat3 (concat3(build_string(ABI_VERSION), build_string(FEMACS_RUNTIME_ABI_ID.as_ptr()),
+                       build_string(c"".as_ptr())),
 	       concat3 (Vemacs_version, Vsystem_configuration,
 			Vsystem_configuration_options),
 	       Fmapconcat (intern_c_string (c"comp--subr-signature".as_ptr ()),
@@ -1204,7 +1227,7 @@ pub unsafe extern "C" fn hash_native_abi ()
       else
       { make_uninit_string (SBYTES (Vemacs_version)) };
 
-    let from: *const c_uchar = SDATA (Vemacs_version);
+    let mut from: *const c_uchar = SDATA (Vemacs_version);
     let mut to: *mut c_uchar = SDATA (version);
 
     while from < SDATA (Vemacs_version).offset (SBYTES (Vemacs_version))
@@ -1250,6 +1273,41 @@ DEFUN! ("native-comp-available-p", Fnative_comp_available_p,
 #[unsafe(no_mangle)]
 pub static mut Vcomp_eln_to_el_h: Lisp_Object = lisp_h_Qnil ();
 
+// P-346: private allocation belongs after the shared allocation macros and
+// actual unit layout are in scope; no unresolved external allocator symbol.
+#[cfg(feature = "have_native_comp")]
+unsafe fn allocate_native_comp_unit() -> *mut Lisp_Native_Comp_Unit {
+  ALLOCATE_ZEROED_PSEUDOVECTOR!(Lisp_Native_Comp_Unit, data_vec, pvec_type::PVEC_NATIVE_COMP_UNIT)
+}
+
+#[cfg(feature = "have_native_comp")]
+struct NativeLoadRoots {
+  request: Lisp_Object,
+  active: Lisp_Object,
+  ephemeral: Lisp_Object,
+  filename: Lisp_Object,
+  encoded: Lisp_Object,
+  result: Lisp_Object,
+}
+#[cfg(feature = "have_native_comp")]
+impl NativeLoadRoots {
+  unsafe fn new() -> Self {
+    Self { request: Qnil(), active: Qnil(), ephemeral: Qnil(),
+      filename: Qnil(), encoded: Qnil(), result: Qnil() }
+  }
+}
+#[cfg(feature = "have_native_comp")]
+unsafe extern "C" fn native_load_roots_cleanup(_data: *mut c_void) {
+  // The compilation unit/installed subrs own the image. A Lisp load error
+  // does not authorize closing code that a live installed function can call.
+}
+#[cfg(feature = "have_native_comp")]
+unsafe extern "C" fn native_load_roots_mark(data: *mut c_void) {
+  let roots = &*(data as *const NativeLoadRoots);
+  mark_object(roots.request); mark_object(roots.active); mark_object(roots.ephemeral);
+  mark_object(roots.filename); mark_object(roots.encoded); mark_object(roots.result);
+}
+
 /// C 5533-5576: `DEFUN ("native-elisp-load", Fnative_elisp_load, …)`.
 #[cfg (feature = "have_native_comp")]
 DEFUN! ("native-elisp-load", Fnative_elisp_load, Snative_elisp_load, 1, 2, 0,
@@ -1260,8 +1318,15 @@ DEFUN! ("native-elisp-load", Fnative_elisp_load, Snative_elisp_load, 1, 2, 0,
   if NILP (Ffile_exists_p (filename))
     { xsignal2 (Qnative_lisp_load_failed (), build_string (c"file does not exists".as_ptr ()),
 	      filename); }
+  let load_count = SPECPDL_INDEX();
+  let mut load_roots = NativeLoadRoots::new();
+  load_roots.filename = filename;
+  record_unwind_protect_ptr_mark(Some(native_load_roots_cleanup),
+    (&raw mut load_roots).cast(), Some(native_load_roots_mark));
   let comp_u: *mut Lisp_Native_Comp_Unit = allocate_native_comp_unit ();
+  XSETPSEUDOVECTOR!(load_roots.request, comp_u, pvec_type::PVEC_NATIVE_COMP_UNIT);
   let encoded_filename: Lisp_Object = ENCODE_FILE (filename);
+  load_roots.encoded = encoded_filename;
 
   if ! NILP (Fgethash (filename, Vcomp_loaded_comp_units_h, Qnil ()))
       && ! file_in_eln_sys_dir (filename)
@@ -1292,7 +1357,8 @@ DEFUN! ("native-elisp-load", Fnative_elisp_load, Snative_elisp_load, 1, 2, 0,
   (*comp_u).data_vec = Qnil ();
   (*comp_u).lambda_gc_guard_h = CALLN! (Fmake_hash_table, QCtest (), Qeq ());
   (*comp_u).lambda_c_name_idx_h = CALLN! (Fmake_hash_table, QCtest (), Qequal ());
-  return load_comp_unit (comp_u, false, ! NILP (late_load));
+  load_roots.result = load_comp_unit (comp_u, false, ! NILP (late_load));
+  return unbind_to(load_count, load_roots.result);
 });
 
 /* C 5578: `#endif /* HAVE_NATIVE_COMP */` - the file gate's end.  */
@@ -1305,13 +1371,16 @@ pub unsafe extern "C" fn unload_comp_unit (cu: *mut Lisp_Native_Comp_Unit)
   if (*cu).handle.is_null ()
     { return; }
 
+  let handle = (*cu).handle;
+  (*cu).handle = std::ptr::null_mut();
   let saved_cu: *mut Lisp_Object =
-    dynlib_sym ((*cu).handle, COMP_UNIT_SYM) as *mut Lisp_Object;
+    dynlib_sym (handle, COMP_UNIT_SYM) as *mut Lisp_Object;
   let mut this_cu: Lisp_Object = Qnil ();
   XSETPSEUDOVECTOR! (this_cu, cu, pvec_type::PVEC_NATIVE_COMP_UNIT);
-  if EQ (this_cu, *saved_cu)
+  if !saved_cu.is_null() && EQ (this_cu, *saved_cu)
     { *saved_cu = Qnil (); }
-  dynlib_close ((*cu).handle);
+  if saved_cu.is_null() { native_context::note_cleanup_failure(8); }
+  if dynlib_close(handle) == 0 { native_context::note_cleanup_failure(16); }
 }
 
 /// C 5383-5398: `Lisp_Object native_function_doc (Lisp_Object function)`.
@@ -1482,164 +1551,98 @@ pub type LLtop_level_fn = Option<unsafe extern "C" fn (Lisp_Object) -> Lisp_Obje
 #[cfg (feature = "have_native_comp")]
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn load_comp_unit (comp_u_in: *mut Lisp_Native_Comp_Unit,
-					 loading_dump: bool,
-					 late_load: bool) -> Lisp_Object
+                                         loading_dump: bool,
+                                         late_load: bool) -> Lisp_Object
 {
-  let mut res: Lisp_Object = Qnil ();
-  let handle: dynlib_handle_ptr = (*comp_u_in).handle;
-  let mut comp_u: *mut Lisp_Native_Comp_Unit = comp_u_in;
-  let mut comp_u_lisp_obj: Lisp_Object = Qnil ();
-  XSETPSEUDOVECTOR! (comp_u_lisp_obj, comp_u, pvec_type::PVEC_NATIVE_COMP_UNIT);
+  let roots_count = SPECPDL_INDEX();
+  let mut roots = NativeLoadRoots::new();
+  XSETPSEUDOVECTOR!(roots.request, comp_u_in, pvec_type::PVEC_NATIVE_COMP_UNIT);
+  roots.active = roots.request;
+  roots.filename = (*comp_u_in).file;
+  record_unwind_protect_ptr_mark(Some(native_load_roots_cleanup),
+    (&raw mut roots).cast(), Some(native_load_roots_mark));
+  let handle = (*comp_u_in).handle;
+  if handle.is_null() { xsignal1(Qnative_lisp_file_inconsistent(), roots.filename); }
+  let saved_cu = dynlib_sym(handle, COMP_UNIT_SYM) as *mut Lisp_Object;
+  let top_level_run: LLtop_level_fn = std::mem::transmute(dynlib_sym(handle,
+    if late_load { c"late_top_level_run".as_ptr() } else { c"top_level_run".as_ptr() }));
+  let data_relocs = find_relocs(handle, DATA_RELOC_ADDR_SYM);
+  let data_eph_relocs = find_relocs(handle, DATA_RELOC_EPHEMERAL_ADDR_SYM);
+  let current_thread_reloc = dynlib_sym(handle, CURRENT_THREAD_RELOC_SYM) as *mut *mut c_void;
+  let symbols_reloc = dynlib_sym(handle, F_SYMBOLS_WITH_POS_ENABLED_RELOC_SYM) as *mut *mut c_void;
+  let function_reloc = dynlib_sym(handle, FUNC_LINK_TABLE_SYM) as *mut *mut c_void;
+  if saved_cu.is_null() || top_level_run.is_none() || data_relocs.is_null()
+    || data_eph_relocs.is_null() || current_thread_reloc.is_null()
+    || symbols_reloc.is_null() || function_reloc.is_null() {
+    xsignal1(Qnative_lisp_file_inconsistent(), roots.filename);
+  }
+  let data_count = find_reloc_count(handle, c"d_reloc_count".as_ptr(), comp_u_in);
+  let ephemeral_count = find_reloc_count(handle, c"d_reloc_eph_count".as_ptr(), comp_u_in);
+  if NILP(Fstring_equal(load_static_obj(comp_u_in, LINK_TABLE_HASH_SYM), Vcomp_abi_hash)) {
+    xsignal1(Qnative_lisp_file_inconsistent(), roots.filename);
+  }
 
-  let saved_cu: *mut Lisp_Object =
-    dynlib_sym (handle, COMP_UNIT_SYM) as *mut Lisp_Object;
-  if saved_cu.is_null ()
-    { xsignal1 (Qnative_lisp_file_inconsistent (), (*comp_u).file); }
-  (*comp_u).loaded_once = ! NILP (*saved_cu);
-  let data_eph_relocs: *mut Lisp_Object
-    = find_relocs (handle, DATA_RELOC_EPHEMERAL_ADDR_SYM);
-  eassume! (! data_eph_relocs.is_null ());
-
-  /* While resurrecting from an image dump loading more than once the
-     same compilation unit does not make any sense.  */
-  eassert! (! (loading_dump && (*comp_u).loaded_once));
-
-  if (*comp_u).loaded_once
-    /* 'dlopen' returns the same handle when trying to load two times
-       the same shared.  In this case touching 'd_reloc' etc leads to
-       fails in case a frame with a reference to it in a live reg is
-       active (native-comp-speed > 0).
-
-       We must *never* mess with static pointers in an already loaded
-       eln.  */
-    {
-      comp_u_lisp_obj = *saved_cu;
-      comp_u = XNATIVE_COMP_UNIT (comp_u_lisp_obj);
-      (*comp_u).loaded_once = true;
+  let already_loaded = !NILP(*saved_cu);
+  if loading_dump && already_loaded {
+    xsignal1(Qnative_lisp_file_inconsistent(), roots.filename);
+  }
+  let mut comp_u = comp_u_in;
+  if already_loaded {
+    if !NATIVE_COMP_UNITP(*saved_cu) {
+      xsignal1(Qnative_lisp_file_inconsistent(), roots.filename);
     }
-  else
-    { *saved_cu = comp_u_lisp_obj; }
-
-  /* Once we are sure to have the right compilation unit we want to
-     identify is we have at least another load active on it.  */
-  let recursive_load: bool = (*comp_u).load_ongoing;
-  (*comp_u).load_ongoing = true;
-  let count: specpdl_ref = SPECPDL_INDEX ();
-  if ! recursive_load
-    { record_unwind_protect (Some (std::mem::transmute (unset_cu_load_ongoing as *const c_void)), comp_u_lisp_obj); }
-
-  freloc_check_fill ();
-
-  let top_level_run: LLtop_level_fn =
-    std::mem::transmute (dynlib_sym (handle,
-		  if late_load { c"late_top_level_run".as_ptr () }
-		  else { c"top_level_run".as_ptr () }));
-
-  /* Always set data_imp_relocs pointer in the compilation unit (in can be
-     used in 'dump_do_dump_relocation').  */
-  (*comp_u).data_relocs = find_relocs (handle, DATA_RELOC_ADDR_SYM);
-  eassert! (! (*comp_u).data_relocs.is_null ());
-
-  if ! (*comp_u).loaded_once
-    {
-      let current_thread_reloc: *mut *mut c_void =
-	dynlib_sym (handle, CURRENT_THREAD_RELOC_SYM) as *mut *mut c_void;
-      let f_symbols_with_pos_enabled_reloc: *mut *mut c_void =
-	dynlib_sym (handle, F_SYMBOLS_WITH_POS_ENABLED_RELOC_SYM) as *mut *mut c_void;
-      let data_relocs: *mut Lisp_Object = (*comp_u).data_relocs;
-      let freloc_link_table: *mut *mut c_void =
-	dynlib_sym (handle, FUNC_LINK_TABLE_SYM) as *mut *mut c_void;
-
-      if ! (! current_thread_reloc.is_null ()
-	    && ! f_symbols_with_pos_enabled_reloc.is_null ()
-	    && ! data_relocs.is_null ()
-	    && ! data_eph_relocs.is_null ()
-	    && ! freloc_link_table.is_null ()
-	    && top_level_run.is_some ())
-	  || NILP (Fstring_equal (load_static_obj (comp_u, LINK_TABLE_HASH_SYM),
-				  Vcomp_abi_hash))
-	{ xsignal1 (Qnative_lisp_file_inconsistent (), (*comp_u).file); }
-
-      *current_thread_reloc = &raw mut current_thread as *mut c_void;
-      *f_symbols_with_pos_enabled_reloc = &raw mut symbols_with_pos_enabled as *mut c_void;
-
-      /* Imported functions.  */
-      *freloc_link_table = freloc.link_table.as_mut_ptr () as *mut c_void;
-
-      /* Imported data.  */
-      if ! loading_dump
-	{
-	  (*comp_u).optimize_qualities =
-	    load_static_obj (comp_u, TEXT_OPTIM_QLY_SYM);
-	  (*comp_u).data_vec = load_static_obj (comp_u, TEXT_DATA_RELOC_SYM);
-	}
-
-      let d_vec_len: EMACS_INT = XFIXNUM (Flength ((*comp_u).data_vec));
-      let mut i: EMACS_INT = 0;
-      while i < d_vec_len
-	{
-	  *data_relocs.offset (i as isize) = AREF ((*comp_u).data_vec, i);
-	  i += 1;
-	}
+    roots.active = *saved_cu;
+    comp_u = XNATIVE_COMP_UNIT(roots.active);
+  }
+  (*comp_u).loaded_once = already_loaded;
+  let recursive_load = (*comp_u).load_ongoing;
+  let ongoing_count = SPECPDL_INDEX();
+  if !recursive_load {
+    // Install before mutating the flag: guard registration is fallible.
+    record_unwind_protect(Some(unset_cu_load_ongoing), roots.active);
+    (*comp_u).load_ongoing = true;
+  }
+  freloc_check_fill();
+  if !already_loaded && !loading_dump {
+    (*comp_u).optimize_qualities = load_static_obj(comp_u, TEXT_OPTIM_QLY_SYM);
+    (*comp_u).data_vec = load_static_obj(comp_u, TEXT_DATA_RELOC_SYM);
+  }
+  if !VECTORP((*comp_u).data_vec) || ASIZE((*comp_u).data_vec) != data_count {
+    xsignal1(Qnative_lisp_file_inconsistent(), roots.filename);
+  }
+  if !loading_dump && !recursive_load {
+    roots.ephemeral = load_static_obj(comp_u, TEXT_DATA_RELOC_EPHEMERAL_SYM);
+    if !VECTORP(roots.ephemeral) || ASIZE(roots.ephemeral) != ephemeral_count {
+      xsignal1(Qnative_lisp_file_inconsistent(), roots.filename);
     }
-
-  if ! loading_dump
-    {
-      /* Note: data_ephemeral_vec is not GC protected except than by
-	 this function frame.  After this functions will be
-	 deactivated GC will be free to collect it, but it MUST
-	 survive till 'top_level_run' has finished his job.  We store
-	 into the ephemeral allocation class only objects that we know
-	 are necessary exclusively during the first load.  Once these
-	 are collected we don't have to maintain them in the heap
-	 forever.  */
-      let mut data_ephemeral_vec: Lisp_Object = Qnil ();
-      /* In case another load of the same CU is active on the stack
-	 all ephemeral data is hold by that frame.  Re-writing
-	 'data_ephemeral_vec' would be not only a waste of cycles but
-	 more importantly would lead to crashes if the contained data
-	 is not cons hashed.  */
-      if ! recursive_load
-	{
-	  data_ephemeral_vec =
-	    load_static_obj (comp_u, TEXT_DATA_RELOC_EPHEMERAL_SYM);
-
-	  let d_vec_len: EMACS_INT = XFIXNUM (Flength (data_ephemeral_vec));
-	  let mut i: EMACS_INT = 0;
-	  while i < d_vec_len
-	    {
-	      *data_eph_relocs.offset (i as isize) = AREF (data_ephemeral_vec, i);
-	      i += 1;
-	    }
-	}
-      /* Executing this will perform all the expected environment
-	 modifications.  */
-      res = top_level_run.unwrap () (comp_u_lisp_obj);
-      /* Make sure data_ephemeral_vec still exists after top_level_run has run.
-	 Guard against sibling call optimization (or any other).  */
-      data_ephemeral_vec = data_ephemeral_vec;
-      eassert! (check_comp_unit_relocs (comp_u));
+  }
+  // All required exports, ABI and vector/count checks precede relocation
+  // writes or image publication. Reused live image relocations stay untouched.
+  (*comp_u).data_relocs = data_relocs;
+  if !already_loaded {
+    *current_thread_reloc = &raw mut current_thread as *mut c_void;
+    *symbols_reloc = &raw mut symbols_with_pos_enabled as *mut c_void;
+    *function_reloc = freloc.link_table.as_mut_ptr() as *mut c_void;
+    for index in 0..data_count {
+      *data_relocs.offset(index) = AREF((*comp_u).data_vec, index);
     }
-
-  if ! recursive_load
-    /* Clean-up the load ongoing flag in case.  */
-    { unbind_to (count, Qnil ()); }
-
-  register_native_comp_unit (comp_u_lisp_obj);
-
-  return res;
+    *saved_cu = roots.active;
+  }
+  if !loading_dump {
+    if !recursive_load {
+      for index in 0..ephemeral_count {
+        *data_eph_relocs.offset(index) = AREF(roots.ephemeral, index);
+      }
+    }
+    roots.result = top_level_run.unwrap()(roots.active);
+    // Explicitly marked ephemeral/request/active roots survive this call.
+    eassert!(check_comp_unit_relocs(comp_u));
+  }
+  if !recursive_load { unbind_to(ongoing_count, Qnil()); }
+  register_native_comp_unit(roots.active);
+  return unbind_to(roots_count, roots.result);
 }
 
-/* Queue an asynchronous compilation for the source file defining
-   FUNCTION_NAME and perform a late load.
-
-   NOTE: ideally would be nice to move its call simply into Fload but
-   we need DEFINITION to guard against function redefinition while
-   async compilation happen.  */
-
-/// C 5076-5128: `void maybe_defer_native_compilation (Lisp_Object function_name,
-/// Lisp_Object definition)`.  C 5080-5100 is an `#if 0` block of logging code: text the compiler
-/// never sees, carried here as a comment so the file's shape stays readable.
 #[cfg (feature = "have_native_comp")]
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn maybe_defer_native_compilation (function_name: Lisp_Object,
@@ -1672,7 +1675,7 @@ pub unsafe extern "C" fn maybe_defer_native_compilation (function_name: Lisp_Obj
   Fputhash (function_name, definition, Vcomp_deferred_pending_h);
 
   pending_funcalls
-    = Fcons (list (Qnative__compile_async (), src, Qnil (), Qlate ()),
+    = Fcons (list! (Qnative__compile_async (), src, Qnil (), Qlate ()),
              pending_funcalls);
 }
 
@@ -1713,56 +1716,50 @@ pub unsafe extern "C" fn fixup_eln_load_path (eln_filename: Lisp_Object)
   Fsetcar (last_cell, eln_cache_sys);
 }
 
-/// C 5179's `static_obj_t *(*f) (void)` and C 5191's `Lisp_Object *(*fun) (void)` - the two
-/// function-pointer types `dynlib_sym` hands back as `void *`.
-#[cfg (feature = "have_native_comp")]
-pub type LLstatic_obj_fn = Option<unsafe extern "C" fn () -> *mut static_obj_t>;
-#[cfg (feature = "have_native_comp")]
-pub type LLreloc_fn = Option<unsafe extern "C" fn () -> *mut Lisp_Object>;
+/// Native-unit callable exports. Count exports use the same ptrdiff_t return
+/// type as declare_imported_data_relocs and the bound negative-unit fixtures.
+#[cfg(feature = "have_native_comp")]
+pub type LLstatic_obj_fn = Option<unsafe extern "C" fn() -> *mut static_obj_t>;
+#[cfg(feature = "have_native_comp")]
+pub type LLreloc_fn = Option<unsafe extern "C" fn() -> *mut Lisp_Object>;
+#[cfg(feature = "have_native_comp")]
+pub type LLreloc_count_fn = Option<unsafe extern "C" fn() -> ptrdiff_t>;
+#[cfg(feature = "have_native_comp")]
+pub type comp_lit_str_func = unsafe extern "C" fn() -> *mut c_char;
 
-/// C 5160: `typedef char *(*comp_lit_str_func) (void);` - the type C names and never uses beyond
-/// the typedef itself.
-#[cfg (feature = "have_native_comp")]
-pub type comp_lit_str_func = unsafe extern "C" fn () -> *mut c_char;
-
-/* Deserialize read and return static object.  */
-/// C 5162-5186: `static Lisp_Object load_static_obj (struct Lisp_Native_Comp_Unit *comp_u,
-/// const char *name)`.
-#[cfg (feature = "have_native_comp")]
-unsafe fn load_static_obj (comp_u: *mut Lisp_Native_Comp_Unit, name: *const c_char)
-  -> Lisp_Object
-{
-  let count: specpdl_ref = SPECPDL_INDEX ();
-  let mut blob: *mut static_obj_t =
-    dynlib_sym ((*comp_u).handle, format_string (c"%s_blob".as_ptr (), name))
-      as *mut static_obj_t;
-  /* Special value so we can recognize #$, which is used for entries in
-     the static vector that must be overwritten at load time.  This is a
-     specific string that contains "#$", which is not EQ to any
-     legitimate object returned by Fread.  */
-  specbind (intern_c_string (c"load-file-name".as_ptr ()),
-	    Vcomp__hashdollar);
-  if ! blob.is_null ()
-    /* New blob format.  */
-    { return unbind_to (count, Fread (make_string ((*blob).data.as_ptr (), (*blob).len))); }
-
-  let f: LLstatic_obj_fn = std::mem::transmute (dynlib_sym ((*comp_u).handle, name));
-  if f.is_none ()
-    { xsignal1 (Qnative_lisp_file_inconsistent (), (*comp_u).file); }
-
-  blob = f.unwrap () ();
-  return unbind_to (count, Fread (make_string ((*blob).data.as_ptr (), (*blob).len)));
-
+/// C 5162-5186: deserialize the stored native object through the original
+/// reader binding. P-346/P-352 reject malformed blob metadata before reading.
+#[cfg(feature = "have_native_comp")]
+unsafe fn load_static_obj(comp_u: *mut Lisp_Native_Comp_Unit, name: *const c_char) -> Lisp_Object {
+  let count = SPECPDL_INDEX();
+  let mut blob = dynlib_sym((*comp_u).handle, format_string(c"%s_blob".as_ptr(), name)) as *mut static_obj_t;
+  specbind(intern_c_string(c"load-file-name".as_ptr()), Vcomp__hashdollar);
+  if blob.is_null() {
+    let function: LLstatic_obj_fn = std::mem::transmute(dynlib_sym((*comp_u).handle, name));
+    let Some(function) = function else { xsignal1(Qnative_lisp_file_inconsistent(), (*comp_u).file); };
+    blob = function();
+  }
+  if blob.is_null() || (*blob).len < 0 || (*blob).len > STRING_BYTES_BOUND as ptrdiff_t {
+    xsignal1(Qnative_lisp_file_inconsistent(), (*comp_u).file);
+  }
+  unbind_to(count, Fread(make_string((*blob).data.as_ptr(), (*blob).len)))
 }
 
-/// C 5188-5195: `static Lisp_Object *find_relocs (dynlib_handle_ptr handle, const char *fun_sym)`.
-#[cfg (feature = "have_native_comp")]
-unsafe fn find_relocs (handle: dynlib_handle_ptr, fun_sym: *const c_char) -> *mut Lisp_Object
-{
-  let fun: LLreloc_fn = std::mem::transmute (dynlib_sym (handle, fun_sym));
-  if fun.is_none ()
-    { return std::ptr::null_mut (); }
-  return fun.unwrap () ();
+/// C 5188-5195: a missing address export remains a null relocation pointer.
+#[cfg(feature = "have_native_comp")]
+unsafe fn find_relocs(handle: dynlib_handle_ptr, name: *const c_char) -> *mut Lisp_Object {
+  let function: LLreloc_fn = std::mem::transmute(dynlib_sym(handle, name));
+  match function { Some(function) => function(), None => std::ptr::null_mut() }
+}
+
+#[cfg(feature = "have_native_comp")]
+unsafe fn find_reloc_count(handle: dynlib_handle_ptr, name: *const c_char,
+                         comp_u: *mut Lisp_Native_Comp_Unit) -> ptrdiff_t {
+  let function: LLreloc_count_fn = std::mem::transmute(dynlib_sym(handle, name));
+  let Some(function) = function else { xsignal1(Qnative_lisp_file_inconsistent(), (*comp_u).file); };
+  let count = function();
+  if count < 0 { xsignal1(Qnative_lisp_file_inconsistent(), (*comp_u).file); }
+  count
 }
 
 /* Return false when something is wrong or true otherwise.  */
@@ -1777,7 +1774,10 @@ unsafe fn check_comp_unit_relocs (comp_u: *mut Lisp_Native_Comp_Unit) -> bool
   if data_relocs.is_null ()
     { return false; }
 
-  let d_vec_len: EMACS_INT = XFIXNUM (Flength ((*comp_u).data_vec));
+  if !VECTORP((*comp_u).data_vec) { return false; }
+  let d_vec_len: EMACS_INT = ASIZE((*comp_u).data_vec) as EMACS_INT;
+  let bound = find_reloc_count(handle, c"d_reloc_count".as_ptr(), comp_u);
+  if bound != d_vec_len as ptrdiff_t { return false; }
 
   let mut i: ptrdiff_t = 0;
   while i < d_vec_len
@@ -1799,7 +1799,7 @@ unsafe fn check_comp_unit_relocs (comp_u: *mut Lisp_Native_Comp_Unit) -> bool
 
 /// C 5226-5230: `static void unset_cu_load_ongoing (Lisp_Object comp_u)`.
 #[cfg (feature = "have_native_comp")]
-unsafe fn unset_cu_load_ongoing (comp_u: Lisp_Object)
+unsafe extern "C" fn unset_cu_load_ongoing (comp_u: Lisp_Object)
 {
   (*XNATIVE_COMP_UNIT (comp_u)).load_ongoing = false;
 }
@@ -2102,6 +2102,17 @@ DEFUN! ("comp--compile-ctxt-to-file0", Fcomp__compile_ctxt_to_file0,
 #[cfg (feature = "have_native_comp")]
 unsafe fn add_driver_options ()
 {
+  #[cfg(feature = "libgccjit_have_gcc_jit_context_add_driver_option")]
+  {
+    if !FEMACS_NATIVE_ASSEMBLER_DIR.to_bytes().is_empty() {
+      gcc_jit_context_add_driver_option(comp.ctxt,
+        format_string(c"-B%s/".as_ptr(), FEMACS_NATIVE_ASSEMBLER_DIR.as_ptr()));
+    }
+    if !FEMACS_NATIVE_SDKROOT.to_bytes().is_empty() {
+      gcc_jit_context_add_driver_option(comp.ctxt,
+        format_string(c"-Wl,-syslibroot,%s".as_ptr(), FEMACS_NATIVE_SDKROOT.as_ptr()));
+    }
+  }
   let mut options: Lisp_Object = Fsymbol_value (Qnative_comp_driver_options ());
 
   #[cfg (feature = "libgccjit_have_gcc_jit_context_add_driver_option")]
@@ -2109,7 +2120,6 @@ unsafe fn add_driver_options ()
     load_gccjit_if_necessary (true);
     if ! NILP (Fcomp_native_driver_options_effective_p ())
       {
-	let mut options: Lisp_Object = options;
 	FOR_EACH_TAIL! (options, {
 	    gcc_jit_context_add_driver_option (comp.ctxt,
 					 /* FIXME: Need to encode
@@ -2130,7 +2140,6 @@ unsafe fn add_driver_options ()
     options = comp.driver_options;
     if ! NILP (Fcomp_native_driver_options_effective_p ())
       {
-	let mut options: Lisp_Object = options;
 	FOR_EACH_TAIL! (options, {
 	    gcc_jit_context_add_driver_option (comp.ctxt,
 					 /* FIXME: Need to encode
@@ -2155,7 +2164,6 @@ unsafe fn add_compiler_options ()
     load_gccjit_if_necessary (true);
     if ! NILP (Fcomp_native_compiler_options_effective_p ())
       {
-	let mut options: Lisp_Object = options;
 	FOR_EACH_TAIL! (options, {
 	    gcc_jit_context_add_command_line_option (comp.ctxt,
                                                  /* FIXME: Need to encode
@@ -2176,7 +2184,6 @@ unsafe fn add_compiler_options ()
     options = comp.compiler_options;
     if ! NILP (Fcomp_native_compiler_options_effective_p ())
       {
-	let mut options: Lisp_Object = options;
 	FOR_EACH_TAIL! (options, {
 	    gcc_jit_context_add_command_line_option (comp.ctxt,
                                                /* FIXME: Need to encode
@@ -2242,6 +2249,10 @@ DEFUN! ("comp--init-ctxt", Fcomp__init_ctxt, Scomp__init_ctxt,
       return Qnil ();
     }
 
+  let context_count = SPECPDL_INDEX();
+  let mut context_guard = native_context::CompInitGuard::empty();
+  native_context::begin_init(&mut context_guard);
+
   if NILP (comp.emitter_dispatcher)
     {
       /* Move this into syms_of_comp the day will be dumpable.  */
@@ -2273,7 +2284,8 @@ DEFUN! ("comp--init-ctxt", Fcomp__init_ctxt, Scomp__init_ctxt,
       register_emitter (Qcomp_maybe_gc_or_quit (), emit_maybe_gc_or_quit as *mut c_void);
     }
 
-  comp.ctxt = gcc_jit_context_acquire ();
+  native_context::emitters_ready(&mut context_guard);
+  native_context::acquire(&mut context_guard);
 
   comp.void_type = gcc_jit_context_get_type (comp.ctxt, GCC_JIT_TYPE_VOID);
   comp.void_ptr_type =
@@ -2377,7 +2389,8 @@ DEFUN! ("comp--init-ctxt", Fcomp__init_ctxt, Scomp__init_ctxt,
     define_cast_functions ();
   }
 
-  return Qt ();
+  native_context::finish_init(&mut context_guard);
+  return unbind_to(context_count, Qt());
 });
 
 /// C 4653-4668: `DEFUN ("comp--release-ctxt", Fcomp__release_ctxt, …)`.
@@ -2389,14 +2402,24 @@ DEFUN! ("comp--release-ctxt", Fcomp__release_ctxt, Scomp__release_ctxt,
        {
   load_gccjit_if_necessary (true);
 
-  if ! comp.ctxt.is_null ()
-    { gcc_jit_context_release (comp.ctxt); }
-
-  if ! logfile.is_null ()
-    { emacs_fclose (logfile); }
-  comp.ctxt = std::ptr::null_mut ();
+  native_context::release_public();
 
   return Qt ();
+});
+
+#[cfg(feature = "have_native_comp")]
+DEFUN! ("comp--call-with-ctxt", Fcomp__call_with_ctxt, Scomp__call_with_ctxt, 1, 1, 0,
+       doc: "Invoke CALLBACK with an unwind-owned native compiler context.",
+       (callback: Lisp_Object), {
+  let count = SPECPDL_INDEX();
+  let mut scope = native_context::CompScopeGuard::empty(callback);
+  native_context::begin_scope(&mut scope);
+  // Existing symbols preserve init/release advice. Scope fallback owns only
+  // resources actually created for this admission, including failed advice.
+  call0(intern_c_string(c"comp--init-ctxt".as_ptr()));
+  native_context::verify_scope(&scope);
+  scope.result = call0(scope.callback);
+  return unbind_to(count, scope.result);
 });
 
 /// C 4672-4684: `DEFUN ("comp-native-driver-options-effective-p", …)`.  C's
@@ -2411,6 +2434,9 @@ DEFUN! ("comp-native-driver-options-effective-p",
        {
   #[cfg (feature = "libgccjit_have_gcc_jit_context_add_driver_option")]
   {
+    #[cfg(not(feature = "windowsnt"))]
+    { return Qt(); }
+    #[cfg(feature = "windowsnt")]
     if ! fn_gcc_jit_context_add_driver_option.is_none ()
       { return Qt (); }
   }
@@ -2428,6 +2454,9 @@ DEFUN! ("comp-native-compiler-options-effective-p",
        {
   #[cfg (feature = "libgccjit_have_gcc_jit_context_add_command_line_option")]
   {
+    #[cfg(not(feature = "windowsnt"))]
+    { return Qt(); }
+    #[cfg(feature = "windowsnt")]
     if ! fn_gcc_jit_context_add_command_line_option.is_none ()
       { return Qt (); }
   }
@@ -2438,10 +2467,6 @@ DEFUN! ("comp-native-compiler-options-effective-p",
    shape): C 4367/4369 read `PATH_REL_LOADSEARCH` and `PATH_DUMPLOADSEARCH` from it, and the two
    values below are the frozen build's own (`build/emacs-ref/src/epaths.h` 34 and 51, read
    together with the frozen `configure` that produced them).  */
-/// `emacs_fclose` is `sysdep.c`'s non-`static` definition; C 4664 declares it where it is used
-/// and the units that call it carry the declaration themselves (`charset.rs` 117).
-#[cfg (feature = "have_native_comp")]
-unsafe extern "C" { pub fn emacs_fclose (stream: *mut FILE) -> c_int; }
 
 #[cfg (feature = "have_native_comp")]
 const PATH_REL_LOADSEARCH: *const c_char = c"32.0.50/lisp".as_ptr ();
@@ -2507,7 +2532,7 @@ DEFUN! ("comp-el-to-eln-rel-filename", Fcomp_el_to_eln_rel_filename,
   /* We create eln filenames with an hash in order to look-up these
      starting from the source filename, IOW have a relation
 
-     /absolute/path/filename.el + content ->
+     canonical-source-filename.el + content ->
      eln-cache/filename-path_hash-content_hash.eln.
 
      'dlopen' can return the same handle if two shared with the same
@@ -2853,6 +2878,16 @@ unsafe extern "C" {
   pub fn gcc_jit_context_acquire () -> *mut gcc_jit_context;
   /// C: libgccjit.h 171-172: `void gcc_jit_context_release (gcc_jit_context *ctxt);`
   pub fn gcc_jit_context_release (ctxt: *mut gcc_jit_context);
+  #[cfg(feature = "libgccjit_have_gcc_jit_context_add_command_line_option")]
+  pub fn gcc_jit_context_add_command_line_option (ctxt: *mut gcc_jit_context, option: *const c_char);
+  #[cfg(feature = "libgccjit_have_gcc_jit_context_add_driver_option")]
+  pub fn gcc_jit_context_add_driver_option (ctxt: *mut gcc_jit_context, option: *const c_char);
+  #[cfg(feature = "libgccjit_have_gcc_jit_version")]
+  pub fn gcc_jit_version_major () -> c_int;
+  #[cfg(feature = "libgccjit_have_gcc_jit_version")]
+  pub fn gcc_jit_version_minor () -> c_int;
+  #[cfg(feature = "libgccjit_have_gcc_jit_version")]
+  pub fn gcc_jit_version_patchlevel () -> c_int;
   /// C: libgccjit.h 628-630: `gcc_jit_type *gcc_jit_context_get_type (gcc_jit_context *ctxt,
   /// enum gcc_jit_types type_);`
   pub fn gcc_jit_context_get_type (ctxt: *mut gcc_jit_context, type_: gcc_jit_types)
@@ -3066,21 +3101,14 @@ pub const GCC_JIT_COMPARISON_NE: gcc_jit_comparison = 1;
 #[cfg (feature = "have_native_comp")]
 pub const GCC_JIT_COMPARISON_LE: gcc_jit_comparison = 3;
 
-/// Names the reference's own headers declare and no mirror carries: `list` and `prog_ignore` are
+/// Names the reference's own headers declare and no mirror carries: `prog_ignore` is
 /// `lisp.h`'s, `realpath` and `allocate_native_comp_unit` are `<stdlib.h>`/`comp.c`'s, and
 /// `internal_condition_case_1`/`file_name_absolute_p` are declared where they are used elsewhere
 /// in the tree (`eval.rs` 1687, `fileio.rs` 2161).  Each is the P-55 use-site shape.
 #[cfg (feature = "have_native_comp")]
 unsafe extern "C" {
-  /// C: lisp.h's `extern Lisp_Object list (Lisp_Object, ...)` - variadic from the first object,
-  /// not from a count.  `check-mirror-dupes.py` reports this as a duplicate of a mirror
-  /// declaration; the ratchet row in `docs/baseline/mirror-dupes.tsv` records why it stays: with
-  /// `have_native_comp` flipped on (the `dead-arms` configuration) that mirror declaration is not
-  /// in scope, and the unit does not compile without its own copy (status 4.733).
-  pub fn list (arg: Lisp_Object, ...) -> Lisp_Object;
 
   pub fn realpath (file_name: *const c_char, resolved_name: *mut c_char) -> *mut c_char;
-  pub fn allocate_native_comp_unit () -> *mut Lisp_Native_Comp_Unit;
   pub fn internal_condition_case_1 (
     bfun: Option<unsafe extern "C" fn (Lisp_Object) -> Lisp_Object>, arg: Lisp_Object,
     handlers: Lisp_Object,
@@ -3827,6 +3855,13 @@ unsafe fn emit_XSETCAR (c: *mut gcc_jit_rvalue, n: *mut gcc_jit_rvalue)
       emit_car_addr (c),
       std::ptr::null_mut ()),
     n);
+  #[cfg(feature = "femacs_gc_generational")]
+  {
+    let mut args = [c];
+    let call = emit_call(intern_c_string(c"femacs_gc_cons_written".as_ptr()),
+      comp.void_type, 1, args.as_mut_ptr(), false);
+    gcc_jit_block_add_eval(comp.block, std::ptr::null_mut(), call);
+  }
 }
 
 /// C 1937-1949: `static void emit_XSETCDR (gcc_jit_rvalue *c, gcc_jit_rvalue *n)`.
@@ -3842,6 +3877,13 @@ unsafe fn emit_XSETCDR (c: *mut gcc_jit_rvalue, n: *mut gcc_jit_rvalue)
       emit_cdr_addr (c),
       std::ptr::null_mut ()),
     n);
+  #[cfg(feature = "femacs_gc_generational")]
+  {
+    let mut args = [c];
+    let call = emit_call(intern_c_string(c"femacs_gc_cons_written".as_ptr()),
+      comp.void_type, 1, args.as_mut_ptr(), false);
+    gcc_jit_block_add_eval(comp.block, std::ptr::null_mut(), call);
+  }
 }
 
 /* ==============================================================================================
@@ -5865,7 +5907,11 @@ unsafe fn emit_static_object (name: *const c_char, obj: Lisp_Object)
 
   #[cfg (feature = "libgccjit_have_gcc_jit_global_set_initializer")]
   {
-    if fn_gcc_jit_global_set_initializer.is_some () || ! cfg! (feature = "windowsnt")
+    #[cfg(feature = "windowsnt")]
+    let initializer_available = fn_gcc_jit_global_set_initializer.is_some();
+    #[cfg(not(feature = "windowsnt"))]
+    let initializer_available = true;
+    if initializer_available
       {
 	let str_size: ptrdiff_t = len + 1;
 	let size: ptrdiff_t = core::mem::size_of::<static_obj_t> () as ptrdiff_t + str_size;
@@ -6043,12 +6089,12 @@ unsafe fn declare_imported_data ()
     declare_imported_data_relocs (CALLNI! ("comp-ctxt-d-default", Vcomp_ctxt),
 				  DATA_RELOC_SYM,
 				  DATA_RELOC_ADDR_SYM,
-				  TEXT_DATA_RELOC_SYM);
+				  TEXT_DATA_RELOC_SYM, c"d_reloc_count".as_ptr());
   comp.data_relocs_ephemeral =
     declare_imported_data_relocs (CALLNI! ("comp-ctxt-d-ephemeral", Vcomp_ctxt),
 				  DATA_RELOC_EPHEMERAL_SYM,
 				  DATA_RELOC_EPHEMERAL_ADDR_SYM,
-				  TEXT_DATA_RELOC_EPHEMERAL_SYM);
+				  TEXT_DATA_RELOC_EPHEMERAL_SYM, c"d_reloc_eph_count".as_ptr());
 }
 
 /*
@@ -6132,6 +6178,11 @@ unsafe fn declare_runtime_imported_funcs () -> Lisp_Object
   ADD_IMPORTED! (field_list, c"maybe_gc".as_ptr (), comp.void_type, 0, std::ptr::null_mut ());
 
   ADD_IMPORTED! (field_list, c"maybe_quit".as_ptr (), comp.void_type, 0, std::ptr::null_mut ());
+  #[cfg(feature = "femacs_gc_generational")]
+  {
+    args[0] = comp.lisp_obj_type;
+    ADD_IMPORTED!(field_list, c"femacs_gc_cons_written".as_ptr(), comp.void_type, 1, args.as_mut_ptr());
+  }
 
   return Freverse (field_list);
 }
@@ -6239,7 +6290,8 @@ unsafe fn emit_ctxt_code ()
 unsafe fn declare_imported_data_relocs (container: Lisp_Object,
 					code_symbol: *const c_char,
 					addr_fun_symbol: *const c_char,
-					text_symbol: *const c_char) -> reloc_array_t
+					text_symbol: *const c_char,
+                                        count_fun_symbol: *const c_char) -> reloc_array_t
 {
   /* Imported objects.  */
   let len: EMACS_INT =
@@ -6270,6 +6322,16 @@ unsafe fn declare_imported_data_relocs (container: Lisp_Object,
   let block: *mut gcc_jit_block
     = gcc_jit_function_new_block (get_addr_fun, std::ptr::null_mut ());
   gcc_jit_block_end_with_return (block, std::ptr::null_mut (), addr_rval);
+
+  // P-346: count exports are coupled to the exact candidate ABI. The loader
+  // checks them against serialized vector lengths before writing any slot.
+  let count_fun = gcc_jit_context_new_function(comp.ctxt, std::ptr::null_mut(),
+    GCC_JIT_FUNCTION_EXPORTED, comp.ptrdiff_type,
+    count_fun_symbol,
+    0, std::ptr::null_mut(), 0);
+  let count_block = gcc_jit_function_new_block(count_fun, std::ptr::null_mut());
+  let count_value = gcc_jit_context_new_rvalue_from_long(comp.ctxt, comp.ptrdiff_type, len as c_long);
+  gcc_jit_block_end_with_return(count_block, std::ptr::null_mut(), count_value);
 
   let res: reloc_array_t = reloc_array_t { len: len, r_val: d_reloc_rval };
   return res;
@@ -6400,12 +6462,12 @@ DEFUN! ("comp-libgccjit-version", Fcomp_libgccjit_version,
   {
     load_gccjit_if_necessary (true);
 
-    return if *gcc_jit_version_major.as_ref ().unwrap () != std::ptr::null_mut ()
-      { list3 (make_fixnum (gcc_jit_version_major () as EMACS_INT),
+    #[cfg(feature = "windowsnt")]
+    if fn_gcc_jit_version_major.is_none() || fn_gcc_jit_version_minor.is_none()
+        || fn_gcc_jit_version_patchlevel.is_none() { return Qnil(); }
+    return list3 (make_fixnum (gcc_jit_version_major () as EMACS_INT),
 	       make_fixnum (gcc_jit_version_minor () as EMACS_INT),
-	       make_fixnum (gcc_jit_version_patchlevel () as EMACS_INT)) }
-      else
-      { Qnil () };
+	       make_fixnum (gcc_jit_version_patchlevel () as EMACS_INT));
   }
   #[cfg (not (feature = "libgccjit_have_gcc_jit_version"))]
   {
@@ -7059,44 +7121,44 @@ pub unsafe extern "C" fn syms_of_comp ()
   /* To be signaled by the compiler.  */
   DEFSYM! (Qnative_compiler_error, c"native-compiler-error");
   Fput (Qnative_compiler_error (), Qerror_conditions (),
-	list (Qnative_compiler_error (), Qerror ()));
+	list! (Qnative_compiler_error (), Qerror ()));
   Fput (Qnative_compiler_error (), Qerror_message (),
         build_string (c"Native compiler error".as_ptr ()));
 
   DEFSYM! (Qnative_ice, c"native-ice");
   Fput (Qnative_ice (), Qerror_conditions (),
-	list (Qnative_ice (), Qnative_compiler_error (), Qerror ()));
+	list! (Qnative_ice (), Qnative_compiler_error (), Qerror ()));
   Fput (Qnative_ice (), Qerror_message (),
         build_string (c"Internal native compiler error".as_ptr ()));
 
   /* By the load machinery.  */
   DEFSYM! (Qnative_lisp_load_failed, c"native-lisp-load-failed");
   Fput (Qnative_lisp_load_failed (), Qerror_conditions (),
-	list (Qnative_lisp_load_failed (), Qerror ()));
+	list! (Qnative_lisp_load_failed (), Qerror ()));
   Fput (Qnative_lisp_load_failed (), Qerror_message (),
         build_string (c"Native elisp load failed".as_ptr ()));
 
   DEFSYM! (Qnative_lisp_wrong_reloc, c"native-lisp-wrong-reloc");
   Fput (Qnative_lisp_wrong_reloc (), Qerror_conditions (),
-	list (Qnative_lisp_wrong_reloc (), Qnative_lisp_load_failed (), Qerror ()));
+	list! (Qnative_lisp_wrong_reloc (), Qnative_lisp_load_failed (), Qerror ()));
   Fput (Qnative_lisp_wrong_reloc (), Qerror_message (),
         build_string (c"Primitive redefined or wrong relocation".as_ptr ()));
 
   DEFSYM! (Qwrong_register_subr_call, c"wrong-register-subr-call");
   Fput (Qwrong_register_subr_call (), Qerror_conditions (),
-	list (Qwrong_register_subr_call (), Qnative_lisp_load_failed (), Qerror ()));
+	list! (Qwrong_register_subr_call (), Qnative_lisp_load_failed (), Qerror ()));
   Fput (Qwrong_register_subr_call (), Qerror_message (),
         build_string (c"comp--register-subr can only be called during native lisp load phase.".as_ptr ()));
 
   DEFSYM! (Qnative_lisp_file_inconsistent, c"native-lisp-file-inconsistent");
   Fput (Qnative_lisp_file_inconsistent (), Qerror_conditions (),
-	list (Qnative_lisp_file_inconsistent (), Qnative_lisp_load_failed (), Qerror ()));
+	list! (Qnative_lisp_file_inconsistent (), Qnative_lisp_load_failed (), Qerror ()));
   Fput (Qnative_lisp_file_inconsistent (), Qerror_message (),
         build_string (c"eln file inconsistent with current runtime configuration, please recompile".as_ptr ()));
 
   DEFSYM! (Qcomp_sanitizer_error, c"comp-sanitizer-error");
   Fput (Qcomp_sanitizer_error (), Qerror_conditions (),
-	list (Qcomp_sanitizer_error (), Qerror ()));
+	list! (Qcomp_sanitizer_error (), Qerror ()));
   Fput (Qcomp_sanitizer_error (), Qerror_message (),
         build_string (c"Native code sanitizer runtime error".as_ptr ()));
 
@@ -7110,6 +7172,7 @@ pub unsafe extern "C" fn syms_of_comp ()
   defsubr (&raw mut Scomp__install_trampoline);
   defsubr (&raw mut Scomp__init_ctxt);
   defsubr (&raw mut Scomp__release_ctxt);
+  defsubr (&raw mut Scomp__call_with_ctxt);
   defsubr (&raw mut Scomp__compile_ctxt_to_file0);
   defsubr (&raw mut Scomp_libgccjit_version);
   defsubr (&raw mut Scomp__register_lambda);

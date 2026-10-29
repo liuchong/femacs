@@ -1,0 +1,42 @@
+;;; runtime-performance-runner.el --- Explicit workload execution modes -*- lexical-binding: t; -*-
+;; Native preparation is outside workload timers. Each process has a fresh
+;; native cache; warmup/measured processes never share mutable compilation state.
+(require 'json)
+;; These packages are loaded later, inside the owned cache environment.  Mark
+;; their controls special before let, without initializing or loading comp.
+(defvar comp-running-batch-compilation)
+(defvar native-comp-async-report-warnings-errors)
+(let* ((root (file-name-as-directory (getenv "FEMACS_RUNTIME_TEST_ROOT")))
+       (default-directory root)
+       (temporary-file-directory (expand-file-name "tmp/" root))
+       (native-comp-eln-load-path (list (expand-file-name "eln/" root)))
+       (comp-running-batch-compilation t)
+       (native-comp-async-report-warnings-errors 'silent)
+       (fixture (getenv "FEMACS_RUNTIME_PROFILE_FIXTURE")))
+  (make-directory temporary-file-directory t)
+  (make-directory (car native-comp-eln-load-path) t)
+  (when (and (fboundp 'femacs--gc-observer-control)
+             (member (getenv "FEMACS_GC_OBSERVATION") '("phases" "all")))
+    (femacs--gc-reset)
+    (femacs--gc-observer-control t))
+  (unwind-protect (load fixture nil t t)
+    (when (and (fboundp 'femacs--gc-observer-control)
+               (member (getenv "FEMACS_GC_OBSERVATION") '("phases" "all")))
+      (femacs--gc-observer-control nil)))
+  (let ((report
+         `((schema . "femacs-runtime-performance-observation-v1")
+           (mode . ,(getenv "FEMACS_RUNTIME_EXECUTION_MODE"))
+           (sum_setup_ms . ,femacs-profile-sum-setup-ms)
+           (version . ,emacs-version)
+           (native_available . ,(if (and (fboundp 'native-comp-available-p)
+                                        (native-comp-available-p)) t :json-false))
+           (backend_version . ,(when (and (fboundp 'native-comp-available-p)
+                                          (native-comp-available-p))
+                                  (vconcat (comp-libgccjit-version))))
+           (collector . ,(when (fboundp 'femacs--gc-collector-status)
+                           (femacs--gc-collector-status)))
+           (observer . ,(when (fboundp 'femacs--gc-snapshot)
+                          (femacs--gc-snapshot))))))
+    (with-temp-file (expand-file-name "profile-observations.json" root)
+      (insert (json-encode report)) (insert "\n"))))
+;;; runtime-performance-runner.el ends here

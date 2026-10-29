@@ -114,6 +114,8 @@ include!("../lib/include/stddef.in.rs");              // C 81: `#include <stddef
 #[cfg (feature = "have_modules")]
 include!("../lib/include/stdint.in.rs");              // C 82: `#include <stdint.h>`
 #[cfg (feature = "have_modules")]
+include!("../lib/include/sys_types.in.rs");           // process.h's system pid_t
+#[cfg (feature = "have_modules")]
 include!("../lib/include/stdlib.rs");                 // C 83: `#include <stdlib.h>`
 #[cfg (feature = "have_modules")]
 include!("../lib/include/time.in.rs");                // C 84: `#include <time.h>`
@@ -129,6 +131,10 @@ include!("include/dynlib.rs");                        // C 88: `#include "dynlib
 include!("include/coding.rs");                        // C 89: `#include "coding.h"`
 #[cfg (feature = "have_modules")]
 include!("include/keyboard.rs");                      // C 90: `#include "keyboard.h"`
+// The terminal include graph uses only keyboard.h's two opaque buffer pointers.
+// Window-system headers already provide the complete record.
+#[cfg (all (feature = "have_modules", not (feature = "have_window_system")))]
+type buffer = c_void;
 #[cfg (feature = "have_modules")]
 include!("include/process.rs");                       // C 91: `#include "process.h"`
 #[cfg (feature = "have_modules")]

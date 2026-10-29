@@ -121,6 +121,8 @@ include!("include/buffer.rs");                 // C 107: `#include "buffer.h"`
 include!("include/composite.rs");              // coding.h 284's `#include "composite.h"`
 include!("include/coding.rs");                 // C 108: `#include "coding.h"`
 include!("include/process.rs");                // C 109: `#include "process.h"`
+#[cfg(feature = "have_gnutls")]
+include!("include/gnutls.rs");
 include!("include/commands.rs");               // keyboard.h's `#include "commands.h"`
 include!("include/dispextern.rs");             // frame.h 25's `#include "dispextern.h"`
 include!("include/font.rs");                   // dispextern.h's font names
@@ -330,9 +332,8 @@ pub struct gaicb {
 
 /* ------------------------------------------------------------------------------------------
    C 138-141: this file's own `#define ASYNC_RETRY_NSEC` lives inside
-   `#if defined HAVE_GETADDRINFO_A || defined HAVE_GNUTLS` (both undefined in the frozen
-   `config.h`), so it is carried text (P-51).  */
-#[cfg (feature = "have_getaddrinfo_a")]
+   `#if defined HAVE_GETADDRINFO_A || defined HAVE_GNUTLS`. P-401 enables the TLS arm.  */
+#[cfg (any (feature = "have_getaddrinfo_a", feature = "have_gnutls"))]
 pub const ASYNC_RETRY_NSEC: c_long = 100000000;
 
 /* C 143-146's `WINDOWSNT` `extern int sys_select (...)` is the same prototype the unit
@@ -751,6 +752,11 @@ unsafe extern "C" {
 /// in the port's text and dispatch to the two mask words the mirror declares
 /// (`Lisp_Process.bits1`/`bits2` and the `PROCESS_*_SHIFT`/`MASK` constants).
 macro_rules! process_bits {
+  (gnutls_p, $p:expr) => { (*($p)).gnutls_p() };
+  (gnutls_p, $p:expr, $value:expr) => { (*($p)).set_gnutls_p(($value) as c_int != 0) };
+  (gnutls_complete_negotiation_p, $p:expr) => { (*($p)).gnutls_complete_negotiation_p() };
+  (gnutls_complete_negotiation_p, $p:expr, $value:expr) =>
+    { (*($p)).set_gnutls_complete_negotiation_p(($value) as c_int != 0) };
   (adaptive_read_buffering, $p:expr) =>
     { ((*($p)).bits1 & PROCESS_ADAPTIVE_READ_BUFFERING_MASK) as c_int };
   (adaptive_read_buffering, $p:expr, $value:expr) =>
@@ -5488,7 +5494,8 @@ pub unsafe fn wait_reading_process_output (time_limit: i64, nsecs: c_int, read_k
   let mut got_some_output: c_int = -1;
   let prev_wait_proc_nbytes_read: uintmax_t
     = if !wait_proc.is_null () { (*wait_proc).nbytes_read } else { 0 };
-  /* `#if defined HAVE_GETADDRINFO_A || defined HAVE_GNUTLS` is dead: `bool retry_for_async;`  */
+  #[cfg (any (feature = "have_getaddrinfo_a", feature = "have_gnutls"))]
+  let mut retry_for_async: bool;
   let count: specpdl_ref = SPECPDL_INDEX ();
   let mut time_limit: i64 = time_limit;
 
@@ -5542,15 +5549,12 @@ pub unsafe fn wait_reading_process_output (time_limit: i64, nsecs: c_int, read_k
 
       eassert! (max_desc < FD_SETSIZE);
 
-      /* C 5432-5486's `#if defined HAVE_GETADDRINFO_A || defined HAVE_GNUTLS` arm, carried
-	 under `have_gnutls` (neither macro is defined on this target).  */
-      #[cfg (feature = "have_gnutls")]
+      /* C 5432-5486: asynchronous DNS and TLS have independent guards. */
+      #[cfg (any (feature = "have_getaddrinfo_a", feature = "have_gnutls"))]
       {
 	let mut process_list_head: Lisp_Object;
 	let mut aproc: Lisp_Object;
 	let mut p: *mut Lisp_Process;
-	let mut retry_for_async: bool = false;
-
 	retry_for_async = false;
 	FOR_EACH_PROCESS! (process_list_head, aproc, {
 	  p = XPROCESS (aproc);
@@ -5558,6 +5562,7 @@ pub unsafe fn wait_reading_process_output (time_limit: i64, nsecs: c_int, read_k
 	  if (wait_proc.is_null () || p == wait_proc)
 	    {
 	      /* `#ifdef HAVE_GETADDRINFO_A`: check for pending DNS requests.  */
+	      #[cfg (feature = "have_getaddrinfo_a")]
 	      if (!(*p).dns_request.is_null ())
 		{
 		  let addrinfos: Lisp_Object = check_for_dns (aproc);
@@ -5567,6 +5572,7 @@ pub unsafe fn wait_reading_process_output (time_limit: i64, nsecs: c_int, read_k
 		    { retry_for_async = true; }
 		}
 	      /* `#ifdef HAVE_GNUTLS`: continue TLS negotiation.  */
+	      #[cfg (feature = "have_gnutls")]
 	      if ((*p).gnutls_initstage == GNUTLS_STAGE_HANDSHAKE_TRIED
 		  && process_bits! (is_non_blocking_client, p)
 		  /* Don't proceed until we have established a connection.  */
@@ -5819,8 +5825,10 @@ pub unsafe fn wait_reading_process_output (time_limit: i64, nsecs: c_int, read_k
 	}
       else
 	{
-	  /* C 5697-5699 (`#ifdef HAVE_GNUTLS`'s `int tls_nfds; fd_set
-	     tls_available;`) is carried text.  */
+	  #[cfg (feature = "have_gnutls")]
+	  let mut tls_nfds: c_int;
+	  #[cfg (feature = "have_gnutls")]
+	  let mut tls_available: fd_set = std::mem::zeroed ();
 	  /* Set the timeout for adaptive read buffering if any process has non-zero
 	     read_output_skip and non-zero read_output_delay, and we are not reading output
 	     for a specific process.  It is not executed if
@@ -5876,8 +5884,8 @@ pub unsafe fn wait_reading_process_output (time_limit: i64, nsecs: c_int, read_k
 	  else
 	    { got_output_end_time = invalid_timespec (); }
 
-	  /* C 5756-5763: the `retry_for_async` timeout, carried under `have_gnutls`.  */
-	  #[cfg (feature = "have_gnutls")]
+	  /* C 5756-5763: bound the next asynchronous DNS/TLS retry. */
+	  #[cfg (any (feature = "have_getaddrinfo_a", feature = "have_gnutls"))]
 	  {
 	    if (retry_for_async
 		&& (timeout.tv_sec > 0 || timeout.tv_nsec > ASYNC_RETRY_NSEC))
@@ -5891,9 +5899,6 @@ pub unsafe fn wait_reading_process_output (time_limit: i64, nsecs: c_int, read_k
 	     probe checks its buffers before the select.  */
 	  #[cfg (feature = "have_gnutls")]
 	  {
-	    let mut tls_available: fd_set = std::mem::zeroed ();
-	    let mut tls_nfds: c_int;
-
 	    FD_ZERO (&raw mut tls_available);
 	    tls_nfds = 0;
 	    channel = 0;
@@ -5966,12 +5971,10 @@ pub unsafe fn wait_reading_process_output (time_limit: i64, nsecs: c_int, read_k
 				  std::ptr::null_mut (), &raw mut timeout,
 				  std::ptr::null_mut ());
 	  }
-	}
 
       /* C 5837-5853's `#ifdef HAVE_GNUTLS` arm: merge `tls_available` into `Available`.  */
       #[cfg (feature = "have_gnutls")]
       {
-	let tls_nfds: c_int = 0;
 	if (tls_nfds > 0)
 	  {
 	    if (nfds == 0 || (nfds < 0 && *errno () == EINTR))
@@ -5994,6 +5997,7 @@ pub unsafe fn wait_reading_process_output (time_limit: i64, nsecs: c_int, read_k
 	      }
 	  }
       }
+	}
 
       xerrno = *errno ();
 
@@ -6298,7 +6302,7 @@ pub unsafe fn wait_reading_process_output (time_limit: i64, nsecs: c_int, read_k
 		  let mut run_sentinel: bool = true;
 		  #[cfg (feature = "have_gnutls")]
 		  {
-		    run_sentinel = NILP ((*p).gnutls_boot_parameters) && !(*p).gnutls_p;
+		    run_sentinel = NILP ((*p).gnutls_boot_parameters) && !(*p).gnutls_p();
 		  }
 		  if run_sentinel
 		  {
@@ -6585,9 +6589,6 @@ unsafe extern "C" {
   ///                      socklen_t *restrict)   (<sys/socket.h>)
   fn recvfrom (socket: c_int, buffer: *mut c_void, length: usize, flags: c_int,
 	       address: *mut sockaddr, address_len: *mut socklen_t) -> ssize_t;
-  /// C: ssize_t emacs_gnutls_read (struct Lisp_Process *, char *, ptrdiff_t)
-  ///    (gnutls.c, the `HAVE_GNUTLS` arm)
-  fn emacs_gnutls_read (p: *mut Lisp_Process, buf: *mut c_char, nbyte: ptrdiff_t) -> ssize_t;
 }
 
 /* C 6371-6399: `read_process_output_before_insert`.  */
@@ -7220,9 +7221,6 @@ unsafe extern "C" {
 	     address: *const sockaddr, address_len: socklen_t) -> ssize_t;
   /// C: ptrdiff_t emacs_write_sig (int, const void *, ptrdiff_t)   (lisp.h 5324, sysdep.c)
   fn emacs_write_sig (fd: c_int, buf: *const c_void, nbyte: ptrdiff_t) -> ptrdiff_t;
-  /// C: ssize_t emacs_gnutls_write (struct Lisp_Process *, const char *, ptrdiff_t)
-  ///    (gnutls.c, the `HAVE_GNUTLS` arm)
-  fn emacs_gnutls_write (p: *mut Lisp_Process, buf: *const c_char, nbyte: ptrdiff_t) -> ssize_t;
 
 }
 

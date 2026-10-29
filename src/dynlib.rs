@@ -22,6 +22,21 @@ unsafe extern "C" {
   pub fn dlerror () -> *mut c_char;
 }
 
+#[cfg(feature = "have_dladdr")]
+#[repr(C)]
+struct Dl_info {
+  dli_fname: *const c_char,
+  dli_fbase: *mut c_void,
+  dli_sname: *const c_char,
+  dli_saddr: *mut c_void,
+}
+#[cfg(feature = "have_dladdr")]
+unsafe extern "C" {
+  fn dladdr (address: *const c_void, info: *mut Dl_info) -> c_int;
+}
+#[cfg(all(feature = "have_dladdr", target_pointer_width = "64"))]
+const _: () = assert!(core::mem::size_of::<Dl_info>() == 32);
+
 /* <dlfcn.h>'s RTLD_* values (measured on the frozen target: RTLD_LAZY = 1, RTLD_NOW = 2,
    RTLD_GLOBAL = 8, RTLD_LOCAL = 4).  */
 pub const RTLD_LAZY: c_int = 1;
@@ -29,16 +44,30 @@ pub const RTLD_NOW: c_int = 2;
 pub const RTLD_LOCAL: c_int = 4;
 pub const RTLD_GLOBAL: c_int = 8;
 
+#[cfg(feature = "femacs_gc_generational")]
+unsafe extern "C" { fn femacs_gc_unknown_producer_loaded(); }
+
 /* POSIX systems.  */
 
 /* C 277-280's `dynlib_handle_ptr dynlib_open (const char *path)`.  */
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn dynlib_open (path: *const c_char) -> dynlib_handle_ptr
 {
+  // Module constructors may run inside dlopen, before module_init. They are
+  // not compiled with the candidate's cons write barrier. Latch before entry,
+  // including a failed load; returning cannot prove all aliases were released.
+  #[cfg(feature = "femacs_gc_generational")]
+  femacs_gc_unknown_producer_loaded();
   return dlopen (path, RTLD_LAZY | RTLD_GLOBAL);
 }
 
-/* C 282-288's `dynlib_open_for_eln` is behind HAVE_NATIVE_COMP, which is undefined here.  */
+/* P-346: carry the original native-only POSIX arm when actually selected. */
+#[cfg(feature = "have_native_comp")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn dynlib_open_for_eln (path: *const c_char) -> dynlib_handle_ptr
+{
+  dlopen(path, RTLD_LAZY)
+}
 
 /* C 290-294's `void *dynlib_sym (dynlib_handle_ptr h, const char *sym)`.  */
 #[unsafe(no_mangle)]
@@ -55,8 +84,19 @@ pub unsafe extern "C" fn dynlib_addr (funcptr: Option<unsafe extern "C" fn ()>,
 {
   *path = std::ptr::null ();
   *sym = std::ptr::null ();
-  /* C 301-311's `#ifdef HAVE_DLADDR` arm is dead on this target (the macro the frozen
-     configuration decides is undefined), so the `Dl_info`/`dladdr` text is not carried.  */
+  #[cfg(feature = "have_dladdr")]
+  {
+    let address = match funcptr {
+      Some(function) => function as *const () as *const c_void,
+      None => core::ptr::null(),
+    };
+    let mut info: Dl_info = core::mem::zeroed();
+    if dladdr(address, &raw mut info) != 0 && !info.dli_fname.is_null() && !info.dli_sname.is_null() {
+      *path = info.dli_fname;
+      *sym = info.dli_sname;
+    }
+  }
+  #[cfg(not(feature = "have_dladdr"))]
   let _ = funcptr;
 }
 
@@ -67,7 +107,13 @@ pub unsafe extern "C" fn dynlib_error () -> *const c_char
   return dlerror ();
 }
 
-/* C 319-326's `dynlib_close` is behind HAVE_NATIVE_COMP, which is undefined here.  */
+#[cfg(feature = "have_native_comp")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn dynlib_close (handle: dynlib_handle_ptr) -> c_int
+{
+  // Original wrapper returns boolean success, unlike raw dlclose.
+  (dlclose(handle) == 0) as c_int
+}
 
 /* C 333-335's `#if !HAVE_DLFUNC / # define dlfunc dynlib_sym / #endif`, the live arm.  */
 macro_rules! dlfunc { ($h:expr, $sym:expr) => { dynlib_sym ($h, $sym) }; }

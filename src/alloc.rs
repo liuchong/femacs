@@ -83,6 +83,8 @@ include!("include/composite.rs");         // C 42: `coding.h` 284 pulls `composi
 include!("include/font.rs");               // C 38: `dispextern.h` pulls `font.h` (indices + predicates)
 include!("include/character.rs");           // C 42: `#include "character.h"`
 include!("include/buffer.rs");              // C 43: `#include "buffer.h"`
+#[cfg(feature = "have_tree_sitter")]
+include!("include/treesit.rs"); // P430 shared parser/edit/GC ABI.
 include!("include/window.rs");              // C 44: `#include "window.h"`
 include!("include/keyboard.rs");            // C 45: `#include "keyboard.h"`
 include!("include/frame.rs");               // C 46: `#include "frame.h"`
@@ -637,6 +639,8 @@ unsafe fn XFLOAT_INIT (f: Lisp_Object, n: f64)
    from unsigned to signed types.  */
 unsafe fn tally_consing (nbytes: ptrdiff_t)
 {
+  #[cfg(feature = "femacs_gc_generational")]
+  if nbytes > 0 { gc_collector::note_allocation(nbytes as usize, false); }
   consing_until_gc -= nbytes;
 }
 
@@ -820,6 +824,8 @@ pub unsafe extern "C" fn xcalloc (n: size_t, s: size_t) -> *mut c_void
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn xrealloc (block: *mut c_void, size: size_t) -> *mut c_void
 {
+  #[cfg(feature = "femacs_gc_generational")]
+  { gc_collector::before_pointer_change(block); }
   let mut val = realloc (block, size);
   if val.is_null ()
     { memory_full (size); }
@@ -837,6 +843,8 @@ pub unsafe extern "C" fn xfree (block: *mut c_void)
     { return; }
   if pdumper_object_p (block)
     { return; }
+  #[cfg(feature = "femacs_gc_generational")]
+  { gc_collector::before_pointer_change(block); }
   rpl_free (block);
   /* We don't call refill_memory_reserve here
      because in practice the call in r_alloc_free seems to suffice.  */
@@ -1174,7 +1182,7 @@ unsafe fn lisp_malloc (nbytes: ptrdiff_t, clearit: bool, r#type: mem_type) -> *m
       {
 	let mut tem: Lisp_Object;
 	XSETCONS! (tem, (val as *mut c_char).offset (nbytes as isize - 1));
-	if XCONS (tem) as *mut c_char != (val as *mut c_char).offset (nbytes as isize - 1)
+	if lisp_h_XCONS_untracked (tem) as *mut c_char != (val as *mut c_char).offset (nbytes as isize - 1)
 	  {
 	    lisp_malloc_loser = val;
 	    rpl_free (val);
@@ -1203,6 +1211,8 @@ unsafe fn lisp_free (block: *mut c_void)
 
   /* C 948-950 (`#ifndef GC_MALLOC_CHECK`) is live.  */
   let mut m: *mut mem_node = mem_find (block);
+  #[cfg(feature = "femacs_gc_generational")]
+  { gc_collector::before_pointer_change(block); }
   rpl_free (block);
   /* C 953-955 (`#ifndef GC_MALLOC_CHECK`) is live.  */
   mem_delete (m);
@@ -1415,7 +1425,7 @@ unsafe fn lisp_align_malloc (nbytes: ptrdiff_t, r#type: mem_type) -> *mut c_void
 	    let mut tem: Lisp_Object;
 	    let end = (base as *mut c_char).offset (ABLOCKS_BYTES as isize - 1);
 	    XSETCONS! (tem, end);
-	    if XCONS (tem) as *mut c_char != end
+	    if lisp_h_XCONS_untracked (tem) as *mut c_char != end
 	      {
 		lisp_malloc_loser = base;
 		rpl_free (base);
@@ -1464,6 +1474,8 @@ unsafe fn lisp_align_malloc (nbytes: ptrdiff_t, r#type: mem_type) -> *mut c_void
 
 unsafe fn lisp_align_free (block: *mut c_void)
 {
+  #[cfg(feature = "femacs_gc_generational")]
+  { gc_collector::before_pointer_change(block); }
   let ablock = block as *mut ablock;
   let abase = ABLOCK_ABASE! (ablock);
 
@@ -1607,13 +1619,31 @@ pub unsafe extern "C" fn make_interval () -> INTERVAL
 
 /* Mark Lisp objects in interval I.  */
 
+// Opt-in GC diagnostics retain only raw identities, never Lisp objects or new
+// roots. Invalid-object reporting must not call the Lisp printer during GC.
+static mut gc_mark_trace_enabled: bool = false;
+static mut gc_mark_trace_interval: INTERVAL = std::ptr::null_mut ();
+static mut gc_mark_trace_plist: uintptr_t = 0;
+
 unsafe extern "C" fn mark_interval_tree_1 (i: INTERVAL, dummy: *mut c_void)
 {
   /* Intervals should never be shared.  So, if extra internal checking is
      enabled, GC aborts if it seems to have visited an interval twice.  */
   eassert! (!interval_marked_p (i));
   set_interval_marked (i);
+  let previous_interval = gc_mark_trace_interval;
+  let previous_plist = gc_mark_trace_plist;
+  if gc_mark_trace_enabled
+    {
+      gc_mark_trace_interval = i;
+      gc_mark_trace_plist = (*(i as *mut interval)).plist as uintptr_t;
+    }
   mark_object ((*(i as *mut interval)).plist);
+  if gc_mark_trace_enabled
+    {
+      gc_mark_trace_interval = previous_interval;
+      gc_mark_trace_plist = previous_plist;
+    }
 }
 
 /* Mark the interval tree rooted in I.  */
@@ -2909,13 +2939,17 @@ pub unsafe extern "C" fn make_float (float_value: f64) -> Lisp_Object
    GC are put on a free list to be reallocated before allocating
    any new cons cells from the latest cons_block.  */
 
+#[cfg(not(feature = "femacs_gc_generational"))]
 pub const CONS_BLOCK_SIZE: usize =
   (((BLOCK_BYTES - std::mem::size_of::<*mut cons_block> ()
      /* The compiler might add padding at the end.  */
      - (std::mem::size_of::<Lisp_Cons> () - std::mem::size_of::<bits_word> ()))
     * CHAR_BIT as usize)
    / (std::mem::size_of::<Lisp_Cons> () * CHAR_BIT as usize + 1));
+#[cfg(not(feature = "femacs_gc_generational"))]
 const _: () = core::assert! (CONS_BLOCK_SIZE == 2030);
+#[cfg(feature = "femacs_gc_generational")]
+pub const CONS_BLOCK_SIZE: usize = 1998;
 
 macro_rules! CONS_BLOCK {
   ($fptr:expr) => {
@@ -2937,10 +2971,28 @@ pub struct cons_block
   /* Place `conses' at the beginning, to ease up CONS_INDEX's job.  */
   pub conses: [Lisp_Cons; CONS_BLOCK_SIZE],
   pub gcmarkbits: [bits_word; 1 + CONS_BLOCK_SIZE / BITS_PER_BITS_WORD as usize],
+  #[cfg(feature = "femacs_gc_generational")]
+  pub oldbits: [bits_word; 32],
+  #[cfg(feature = "femacs_gc_generational")]
+  pub dirtybits: [bits_word; 32],
+  #[cfg(feature = "femacs_gc_generational")]
+  pub raw_tainted: u64,
   pub next: *mut cons_block,
 }
+#[cfg(not(feature = "femacs_gc_generational"))]
 const _: () = core::assert! (std::mem::size_of::<cons_block> () == 32744);
+#[cfg(not(feature = "femacs_gc_generational"))]
 const _: () = core::assert! (std::mem::offset_of! (cons_block, gcmarkbits) == 32480);
+#[cfg(feature = "femacs_gc_generational")]
+const _: () = {
+  core::assert!(core::mem::size_of::<cons_block>() == 32752);
+  core::assert!(core::mem::offset_of!(cons_block, gcmarkbits) == 31968);
+  core::assert!(core::mem::offset_of!(cons_block, oldbits) == 32224);
+  core::assert!(core::mem::offset_of!(cons_block, dirtybits) == 32480);
+  core::assert!(core::mem::offset_of!(cons_block, raw_tainted) == 32736);
+  core::assert!(core::mem::offset_of!(cons_block, next) == 32744);
+  core::assert!(core::mem::size_of::<cons_block>() <= BLOCK_BYTES);
+};
 
 macro_rules! XCONS_MARKED_P {
   ($fptr:expr) => { GETMARKBIT! (CONS_BLOCK! ($fptr), CONS_INDEX! ($fptr)) };
@@ -2958,7 +3010,10 @@ macro_rules! XUNMARK_CONS {
    when memory is full.  */
 
 pub const memory_full_cons_threshold: usize = std::mem::size_of::<cons_block> ();
+#[cfg(not(feature = "femacs_gc_generational"))]
 const _: () = core::assert! (memory_full_cons_threshold == 32744);
+#[cfg(feature = "femacs_gc_generational")]
+const _: () = core::assert! (memory_full_cons_threshold == 32752);
 
 /* Current cons_block.  */
 
@@ -2984,11 +3039,51 @@ macro_rules! ASAN_UNPOISON_CONS {
   ($p:expr) => { };
 }
 
+// P-346: candidate-only numeric observation. All ordinary products erase the
+// hooks at cfg expansion; this is not a replacement allocator or collector.
+#[cfg(feature = "femacs_gc_observer")]
+include!("runtime_gc_observation.rs");
+#[cfg(feature = "femacs_gc_generational")]
+include!("runtime_gc_collector.rs");
+
+#[derive(Clone, Copy)]
+enum GcRequest { Full, Automatic }
+
+#[cfg(any(feature = "femacs_gc_observer", feature = "femacs_gc_generational"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn femacs_gc_runtime_ready() {
+  #[cfg(feature = "femacs_gc_observer")]
+  { gc_observation::activate_owner(); }
+  #[cfg(feature = "femacs_gc_generational")]
+  { gc_collector::activate_owner(); }
+}
+#[cfg(all(feature = "femacs_gc_observer", not(all(target_os = "macos", target_pointer_width = "64"))))]
+compile_error!("The GC observer clock contract is currently macOS64 only");
+#[cfg(all(feature = "femacs_gc_generational", not(all(target_os = "macos", target_pointer_width = "64"))))]
+compile_error!("The selected cons collector layout is currently macOS64 only");
+
+macro_rules! gc_observe_begin {
+  ($token:expr, $phase:expr) => {{
+    #[cfg(feature = "femacs_gc_observer")]
+    { gc_observation::phase_begin($token, $phase); }
+  }};
+}
+macro_rules! gc_observe_end {
+  ($token:expr, $phase:expr) => {{
+    #[cfg(feature = "femacs_gc_observer")]
+    { gc_observation::phase_end($token, $phase); }
+  }};
+}
+
 /* Explicitly free a cons cell by putting it on the free-list.  */
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn free_cons (ptr: *mut Lisp_Cons)
 {
+  #[cfg(feature = "femacs_gc_generational")]
+  { gc_collector::clear_cell(ptr); }
+  #[cfg(feature = "femacs_gc_observer")]
+  { gc_observation::cons_retire(ptr, true); }
   (*ptr).u.s.u.chain = cons_free_list;
   (*ptr).u.s.car = dead_object ();
   cons_free_list = ptr;
@@ -3017,6 +3112,11 @@ DEFUN! ("cons", Fcons, Scons, 2, 2, 0,
 				       mem_type::MEM_TYPE_CONS) as *mut cons_block;
 	  memset ((*new).gcmarkbits.as_mut_ptr () as *mut c_void, 0,
 		  std::mem::size_of_val (&(*new).gcmarkbits));
+          #[cfg(feature = "femacs_gc_generational")]
+          {
+            (*new).oldbits.fill(0); (*new).dirtybits.fill(0);
+            (*new).raw_tainted = 0;
+          }
 	  ASAN_POISON_CONS_BLOCK! (new);
 	  (*new).next = cons_block;
 	  cons_block = new;
@@ -3027,11 +3127,18 @@ DEFUN! ("cons", Fcons, Scons, 2, 2, 0,
       cons_block_index += 1;
     }
 
-  XSETCAR (val, car);
-  XSETCDR (val, cdr);
-  eassert! (!XCONS_MARKED_P! (XCONS (val)));
+  let cell = lisp_h_XCONS_untracked(val);
+  #[cfg(feature = "femacs_gc_generational")]
+  { gc_collector::clear_cell(cell); }
+  (*cell).u.s.car = car;
+  (*cell).u.s.u.cdr = cdr;
+  eassert! (!XCONS_MARKED_P! (cell));
   consing_until_gc -= std::mem::size_of::<Lisp_Cons> () as EMACS_INT;
   cons_cells_consed += 1;
+  #[cfg(feature = "femacs_gc_generational")]
+  { gc_collector::note_allocation(core::mem::size_of::<Lisp_Cons>(), true); }
+  #[cfg(feature = "femacs_gc_observer")]
+  { gc_observation::cons_birth(lisp_h_XCONS_untracked(val)); }
   return val;
 });
 
@@ -4480,6 +4587,8 @@ unsafe fn set_vector_marked (v: *mut Lisp_Vector)
     }
   else
     { XMARK_VECTOR! (v); }
+  #[cfg(feature = "femacs_gc_generational")]
+  { gc_collector::note_marked_noncons(make_lisp_ptr(v.cast(), Lisp_Type::Lisp_Vectorlike)); }
 }
 
 unsafe fn vectorlike_marked_p (header: *const vectorlike_header) -> bool
@@ -4504,7 +4613,11 @@ unsafe fn set_cons_marked (c: *mut Lisp_Cons)
   if pdumper_object_p (c as *mut c_void)
     { pdumper_set_marked (c as *mut c_void); }
   else
-    { XMARK_CONS! (c); }
+    {
+      XMARK_CONS! (c);
+      #[cfg(feature = "femacs_gc_generational")]
+      { gc_collector::note_cons_marked(c); }
+    }
 }
 
 unsafe fn string_marked_p (s: *const Lisp_String) -> bool
@@ -4520,6 +4633,8 @@ unsafe fn set_string_marked (s: *mut Lisp_String)
     { pdumper_set_marked (s as *mut c_void); }
   else
     { XMARK_STRING! (s); }
+  #[cfg(feature = "femacs_gc_generational")]
+  { gc_collector::note_marked_noncons(make_lisp_ptr(s.cast(), Lisp_Type::Lisp_String)); }
 }
 
 unsafe fn symbol_marked_p (s: *const Lisp_Symbol) -> bool
@@ -4535,6 +4650,8 @@ unsafe fn set_symbol_marked (s: *mut Lisp_Symbol)
     { pdumper_set_marked (s as *mut c_void); }
   else
     { (*s).u.s.bits = (*s).u.s.bits | SYMBOL_GC_MARK_BIT; }
+  #[cfg(feature = "femacs_gc_generational")]
+  { gc_collector::note_marked_noncons(make_lisp_symbol(s)); }
 }
 
 unsafe fn interval_marked_p (i: INTERVAL) -> bool
@@ -4929,6 +5046,8 @@ unsafe fn mem_delete (z: *mut mem_node)
 
   if z.is_null () || z == MEM_NIL! ()
     { return; }
+  #[cfg(feature = "femacs_gc_generational")]
+  { gc_collector::before_storage_change((*z).start as usize, (*z).end as usize); }
 
   if (*z).left == MEM_NIL! () || (*z).right == MEM_NIL! ()
     { y = z; }
@@ -6331,7 +6450,7 @@ unsafe extern "C" fn watch_gc_cons_percentage (symbol: Lisp_Object, newval: Lisp
 pub unsafe extern "C" fn maybe_garbage_collect ()
 {
   if bump_consing_until_gc (gc_cons_threshold as intmax_t, Vgc_cons_percentage) < 0
-    { garbage_collect (); }
+    { garbage_collect_impl(GcRequest::Automatic); }
 }
 
 /* Use-site declarations (PORTING.md P-72 ③): the mirrors this unit includes do not carry the
@@ -6393,11 +6512,18 @@ unsafe extern "C" {
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn garbage_collect ()
 {
+  garbage_collect_impl(GcRequest::Full);
+}
+
+unsafe fn garbage_collect_impl(request: GcRequest)
+{
   let mut tail: Lisp_Object; let mut buffer: Lisp_Object;
   let mut stack_top_variable: c_char = 0;
   let mut message_p: bool;
   let count: specpdl_ref = SPECPDL_INDEX ();
   let mut start: timespec;
+
+  gc_mark_trace_enabled = !getenv (c"FEMACS_GC_TRACE".as_ptr ()).is_null ();
 
   /* P-115's shape: which root set is growing.  The GC runs but retains one discarded object per
      iteration in `spikes/gc-retention-probe.el`, and the specpdl is the prime suspect (status
@@ -6405,8 +6531,8 @@ pub unsafe extern "C" fn garbage_collect ()
   if ! unsafe { getenv (c"FEMACS_GC_TRACE".as_ptr ()).is_null () }
     {
       fprintf (stderr, c"gc: n=%d specpdl_bytes=%ld mark_sp=%ld mark_size=%ld\n".as_ptr (),
-	       gcs_done as c_int, unwrap_specpdl_ref (count) as c_int,
-	       unsafe { mark_stk.sp } as c_int, unsafe { mark_stk.size } as c_int);
+	       gcs_done as c_int, unwrap_specpdl_ref (count) as c_long,
+	       unsafe { mark_stk.sp } as c_long, unsafe { mark_stk.size } as c_long);
       let mut handlers: c_int = 0;
       let mut h: *mut handler = unsafe { handlerlist! () };
       while ! h.is_null () && handlers < 1000000
@@ -6432,6 +6558,20 @@ pub unsafe extern "C" fn garbage_collect ()
   if garbage_collection_inhibited != 0
     { return; }
 
+  #[cfg(feature = "femacs_gc_generational")]
+  let mut collector_guard = gc_collector::CollectorCycleGuard::empty();
+
+  // The outer observer cleanup must survive the original body's unbind,
+  // finalizers and post-GC hook, including their actual nonlocal exits.
+  #[cfg(feature = "femacs_gc_observer")]
+  let observation_outer_count = count;
+  #[cfg(feature = "femacs_gc_observer")]
+  let observation_cycle = gc_observation::begin_cycle();
+  #[cfg(feature = "femacs_gc_observer")]
+  let count: specpdl_ref = SPECPDL_INDEX();
+  gc_observe_begin!(observation_cycle, 0);
+  gc_observe_begin!(observation_cycle, 1);
+
   eassert! (mark_stack_empty_p ());
 
   /* Record this function, so it appears on the profiler's backtraces.  */
@@ -6454,6 +6594,8 @@ pub unsafe extern "C" fn garbage_collect ()
     { total_bytes_of_live_objects () }
     else { (-1 as isize) as byte_ct };
 
+  gc_observe_end!(observation_cycle, 1);
+  gc_observe_begin!(observation_cycle, 2);
   start = current_timespec ();
 
   /* In case user calls debug_print during GC,
@@ -6503,18 +6645,38 @@ pub unsafe extern "C" fn garbage_collect ()
   if garbage_collection_messages
     { message1_nolog (c"Garbage collecting...".as_ptr ()); }
 
+  gc_observe_end!(observation_cycle, 2);
   block_input ();
+  gc_observe_begin!(observation_cycle, 3);
 
   shrink_regexp_cache ();
 
   gc_in_progress = true;
+  #[cfg(feature = "femacs_gc_generational")]
+  let (collector_kind, collector_reason) = gc_collector::choose_cycle(request);
+  #[cfg(feature = "femacs_gc_generational")]
+  { gc_collector::prepare_cycle(collector_kind, collector_reason, &mut collector_guard); }
+  #[cfg(feature = "femacs_gc_observer")]
+  {
+    #[cfg(feature = "femacs_gc_generational")]
+    let (young, reason) = (collector_kind == gc_collector::GcKind::Young, collector_reason);
+    #[cfg(not(feature = "femacs_gc_generational"))]
+    let (young, reason) = (false, 0);
+    gc_observation::classification(observation_cycle, young, reason);
+  }
+
+  #[cfg(feature = "femacs_gc_generational")]
+  { gc_collector::trace_remembered_owners(collector_kind); }
 
   /* Mark all the special slots that serve as the roots of accessibility.  */
 
   let visitor: gc_root_visitor = gc_root_visitor { visit: Some (mark_object_root_visitor),
 						    data: std::ptr::null_mut () };
+  gc_observe_begin!(observation_cycle, 4);
   visit_static_gc_roots (visitor);
+  gc_observe_end!(observation_cycle, 4);
 
+  gc_observe_begin!(observation_cycle, 5);
   mark_lread ();
   mark_terminals ();
   mark_kboards ();
@@ -6594,11 +6756,13 @@ pub unsafe extern "C" fn garbage_collect ()
   #[cfg (feature = "have_ns")]
   { mark_nsterm (); }
   mark_fns ();
+  gc_observe_end!(observation_cycle, 5);
 
   /* Everything is now marked, except for the data in font caches,
      undo lists, and finalizers.  The first two are compacted by
      removing any items which aren't reachable otherwise.  */
 
+  gc_observe_begin!(observation_cycle, 6);
   compact_font_caches! ();
 
   /* C: `FOR_EACH_LIVE_BUFFER (tail, buffer)` (P-22 expansion, see above).  */
@@ -6621,18 +6785,35 @@ pub unsafe extern "C" fn garbage_collect ()
      unreachable except for references from their associated functions
      and from other finalizers.  */
 
+  gc_observe_end!(observation_cycle, 6);
+  gc_observe_begin!(observation_cycle, 7);
+  #[cfg(feature = "femacs_gc_generational")]
+  if collector_kind == gc_collector::GcKind::Young {
+    mark_finalizer_list(&raw mut finalizers);
+  }
   queue_doomed_finalizers (&raw mut doomed_finalizers, &raw mut finalizers);
   mark_finalizer_list (&raw mut doomed_finalizers);
+  gc_observe_end!(observation_cycle, 7);
 
   /* Must happen after all other marking and before gc_sweep.  */
+  gc_observe_begin!(observation_cycle, 8);
   mark_and_sweep_weak_table_contents ();
+  gc_observe_end!(observation_cycle, 8);
   eassert! (weak_hash_tables.is_null ());
 
   eassert! (mark_stack_empty_p ());
 
+  #[cfg(feature = "femacs_gc_observer")]
+  { gc_observation::sweep_begin(); }
+  #[cfg(feature = "femacs_gc_generational")]
+  { gc_collector::start_sweep(); }
   gc_sweep ();
+  #[cfg(feature = "femacs_gc_observer")]
+  { gc_observation::completed_sweep(); }
 
   unmark_main_thread ();
+  #[cfg(feature = "femacs_gc_generational")]
+  { gc_collector::commit_cycle(collector_kind, &mut collector_guard); }
 
   gc_in_progress = false;
 
@@ -6642,6 +6823,7 @@ pub unsafe extern "C" fn garbage_collect ()
   /* Unblock *after* re-setting `consing_until_gc` in case `unblock_input`
      signals an error (see bug#43389).  */
   unblock_input ();
+  gc_observe_end!(observation_cycle, 3);
 
   if garbage_collection_messages && NILP (Vmemory_full)
     {
@@ -6654,7 +6836,12 @@ pub unsafe extern "C" fn garbage_collect ()
   unbind_to (count, Qnil ());
 
   /* GC is complete: now we can run our finalizer callbacks.  */
-  run_finalizers (&raw mut doomed_finalizers);
+  gc_observe_begin!(observation_cycle, 17);
+  #[cfg(feature = "femacs_gc_generational")]
+  if collector_kind == gc_collector::GcKind::Full { run_finalizers(&raw mut doomed_finalizers); }
+  #[cfg(not(feature = "femacs_gc_generational"))]
+  { run_finalizers (&raw mut doomed_finalizers); }
+  gc_observe_end!(observation_cycle, 17);
 
   /* C 5998-6001 (`#ifdef HAVE_WINDOW_SYSTEM`) is dead.  */
   #[cfg (feature = "have_window_system")]
@@ -6684,11 +6871,54 @@ pub unsafe extern "C" fn garbage_collect ()
 
   if !NILP (Vpost_gc_hook)
     {
+      gc_observe_begin!(observation_cycle, 18);
       let gc_count: specpdl_ref = inhibit_garbage_collection ();
       safe_run_hooks (Qpost_gc_hook ());
       unbind_to (gc_count, Qnil ());
+      gc_observe_end!(observation_cycle, 18);
     }
+  gc_observe_end!(observation_cycle, 0);
+  #[cfg(feature = "femacs_gc_observer")]
+  {
+    gc_observation::end_cycle(observation_cycle);
+    unbind_to(observation_outer_count, Qnil());
+  }
 }
+
+#[cfg(feature = "femacs_gc_generational")]
+DEFUN! ("femacs--gc-collector-status", Ffemacs__gc_collector_status,
+       Sfemacs__gc_collector_status, 0, 0, 0,
+       doc: "Return detached private collector modes, counters and fallback reasons.",
+       (), { return gc_collector::status(); });
+
+#[cfg(feature = "femacs_gc_observer")]
+DEFUN! ("femacs--gc-snapshot", Ffemacs__gc_snapshot, Sfemacs__gc_snapshot, 0, 0, 0,
+       doc: "Return a detached private GC observation snapshot.",
+       (), { return gc_observation::snapshot_idle(); });
+
+#[cfg(feature = "femacs_gc_observer")]
+DEFUN! ("femacs--gc-reset", Ffemacs__gc_reset, Sfemacs__gc_reset, 0, 0, 0,
+       doc: "Reset the private GC report window, preserving process identities.",
+       (), {
+  if !gc_observation::reset_window_idle() { error(c"GC observer is busy or exhausted".as_ptr()); }
+  return Qt();
+});
+
+#[cfg(feature = "femacs_gc_observer")]
+DEFUN! ("femacs--gc-observer-control", Ffemacs__gc_observer_control,
+       Sfemacs__gc_observer_control, 1, 1, 0,
+       doc: "Set private phase recording to ENABLED and return its previous state.",
+       (enabled: Lisp_Object), { return gc_observation::control(!NILP(enabled)); });
+
+#[cfg(all(feature = "femacs_gc_observer", feature = "femacs_gc_observer_test_hooks"))]
+DEFUN! ("femacs--gc-test-export", Ffemacs__gc_test_export, Sfemacs__gc_test_export, 1, 1, 0,
+       doc: "Exercise a diagnostic export fault, only in the test-hook product.",
+       (fault: Lisp_Object), {
+  CHECK_FIXNAT(fault);
+  let kind = XFIXNAT(fault);
+  if kind < 1 || kind > 3 { error(c"Unknown GC observer test fault".as_ptr()); }
+  return gc_observation::snapshot_with_fault(kind as u32);
+});
 
 DEFUN! ("garbage-collect", Fgarbage_collect, Sgarbage_collect, 0, 0, "",
        doc: "Reclaim storage for Lisp objects no longer needed.\nGarbage collection happens automatically if you cons more than\n`gc-cons-threshold' bytes of Lisp data since previous garbage collection.\nIt returns the same info as `garbage-collect-heapsize'.\n\nNote that calling this function does not guarantee that absolutely all\nunreachable objects will be garbage-collected.  Emacs uses a\nmark-and-sweep garbage collector, but is conservative when it comes to\ncollecting objects in some circumstances.\n\nFor further details, see Info node `(elisp)Garbage Collection'.",
@@ -6844,9 +7074,9 @@ static mut last_marked_index: c_int = 0;
 /* Whether to enable the mark_object_loop_halt debugging feature.  */
 pub const GC_CDR_COUNT: c_int = 0;
 
-/* C 117-127: `GC_CHECK_MARKED_OBJECTS` is 0 on this target (`ENABLE_CHECKING` is undefined);
-   the constant is read by `check_live` and friends.  */
-pub const GC_CHECK_MARKED_OBJECTS: c_int = 0;
+/* C 117-127: checking builds enable allocated-object sanity checks by default.
+   Ordinary builds retain the original zero-cost disabled branch. */
+pub const GC_CHECK_MARKED_OBJECTS: c_int = if cfg! (enable_checking) { 1 } else { 0 };
 
 /* C 6173-6179 (`#if GC_CDR_COUNT`) is dead.  */
 #[cfg (feature = "gc_cdr_count")]
@@ -7153,7 +7383,16 @@ unsafe fn check_live (livep: Option<unsafe extern "C" fn (*mut mem_node, *mut c_
       if pdumper_object_p (po)
 	{ return; }
       if !((*m).r#type == mtype && (livep.unwrap ()) (m, po))
-	{ emacs_abort (); }
+	{
+          if gc_mark_trace_enabled
+            {
+              fprintf (stderr,
+                c"gc-invalid-live ptr=%p expected=%d actual=%d start=%p end=%p interval=%p plist=%p\n".as_ptr (),
+                po, mtype as c_int, (*m).r#type as c_int, (*m).start, (*m).end,
+                gc_mark_trace_interval, gc_mark_trace_plist as *mut c_void);
+            }
+          emacs_abort ();
+        }
     }
 }
 
@@ -7175,7 +7414,16 @@ unsafe fn check_allocated_and_live (livep: Option<unsafe extern "C" fn (*mut mem
 	}
       let m: *mut mem_node = mem_find (po);
       if m == MEM_NIL! ()
-	{ emacs_abort (); }
+	{
+          if gc_mark_trace_enabled
+            {
+              fprintf (stderr,
+                c"gc-unallocated ptr=%p expected=%d interval=%p plist=%p\n".as_ptr (),
+                po, mtype as c_int, gc_mark_trace_interval,
+                gc_mark_trace_plist as *mut c_void);
+            }
+          emacs_abort ();
+        }
       check_live (livep, mtype, po, m);
     }
 }
@@ -7399,7 +7647,7 @@ unsafe fn process_mark_stack (base_sp: ptrdiff_t)
 
 	Lisp_Type::Lisp_Cons =>
 	  {
-	    let ptr: *mut Lisp_Cons = XCONS (obj);
+	    let ptr: *mut Lisp_Cons = lisp_h_XCONS_untracked (obj);
 	    if cons_marked_p (ptr)
 	      { break 'mark_obj; }
 	    check_allocated_and_live (Some (live_cons_p), mem_type::MEM_TYPE_CONS, po);
@@ -7426,8 +7674,35 @@ unsafe fn process_mark_stack (base_sp: ptrdiff_t)
 	       "cold" and do not have mark bits.  */
 	    if pdumper_object_p (f as *mut c_void)
 	      { eassert! (pdumper_cold_object_p (f as *const c_void)); }
-	    else if !XFLOAT_MARKED_P! (f)
-	      { XFLOAT_MARK! (f); }
+    else if gc_mark_trace_enabled
+        && FLOAT_INDEX! (f) / BITS_PER_BITS_WORD as usize
+           >= 1 + FLOAT_BLOCK_SIZE / BITS_PER_BITS_WORD as usize
+      {
+        // Keep the original failure after emitting the producer context. Never
+        // clamp the bitmap index or silently discard an invalid Lisp object.
+        let node = mem_find (f as *mut c_void);
+        let node_type = if node == MEM_NIL! () { -1 } else { (*node).r#type as c_int };
+        fprintf (stderr,
+          c"gc-invalid-float obj=%p f=%p index=%zu block=%p current=%p used=%d mem_type=%d interval=%p plist=%p\n".as_ptr (),
+          obj as *mut c_void, f as *mut c_void, FLOAT_INDEX! (f),
+          FLOAT_BLOCK! (f) as *mut c_void, float_block as *mut c_void,
+          float_block_index, node_type, gc_mark_trace_interval,
+          gc_mark_trace_plist as *mut c_void);
+        for back in 0..16usize
+          {
+            let index = (last_marked_index as usize + LAST_MARKED_SIZE - 1 - back)
+              & (LAST_MARKED_SIZE - 1);
+            fprintf (stderr, c"gc-recent back=%zu obj=%p\n".as_ptr (),
+                     back, last_marked[index] as *mut c_void);
+          }
+        emacs_abort ();
+      }
+    else if !XFLOAT_MARKED_P! (f)
+      {
+        XFLOAT_MARK! (f);
+        #[cfg(feature = "femacs_gc_generational")]
+        { gc_collector::note_marked_noncons(obj); }
+      }
 	  break 'mark_obj;
 	  }
 
@@ -7501,7 +7776,7 @@ pub unsafe extern "C" fn survives_gc_p (obj: Lisp_Object) -> bool
       }
 
     Lisp_Type::Lisp_Cons =>
-      { survives_p = cons_marked_p (XCONS (obj)); }
+      { survives_p = cons_marked_p (lisp_h_XCONS_untracked (obj)); }
 
     Lisp_Type::Lisp_Float =>
       {
@@ -7543,6 +7818,16 @@ unsafe fn sweep_conses ()
           if (*cblk).gcmarkbits[i as usize] == BITS_WORD_MAX
             {
               /* Fast path - all cons cells for this int are marked.  */
+              #[cfg(feature = "femacs_gc_generational")]
+              { gc_collector::survivor_word(cblk, i as usize, lim as usize); }
+              #[cfg(feature = "femacs_gc_observer")]
+              {
+                let start = i * BITS_PER_BITS_WORD as c_int;
+                let stop = (start + BITS_PER_BITS_WORD as c_int).min(lim);
+                for pos in start..stop {
+                  gc_observation::cons_survivor(&raw mut (*cblk).conses[pos as usize]);
+                }
+              }
               (*cblk).gcmarkbits[i as usize] = 0;
               num_used += BITS_PER_BITS_WORD as object_ct;
             }
@@ -7564,6 +7849,10 @@ unsafe fn sweep_conses ()
 		  let acons: *mut Lisp_Cons = &raw mut (*cblk).conses[pos as usize];
 		  if !XCONS_MARKED_P! (acons)
                     {
+                      #[cfg(feature = "femacs_gc_generational")]
+                      { gc_collector::swept_dead(acons); }
+                      #[cfg(feature = "femacs_gc_observer")]
+                      { gc_observation::cons_retire(acons, false); }
 		      ASAN_UNPOISON_CONS! (&raw mut (*cblk).conses[pos as usize]);
                       this_free += 1;
                       (*cblk).conses[pos as usize].u.s.u.chain = cons_free_list;
@@ -7573,6 +7862,10 @@ unsafe fn sweep_conses ()
 		    }
                   else
                     {
+                      #[cfg(feature = "femacs_gc_generational")]
+                      { gc_collector::survivor(acons); }
+                      #[cfg(feature = "femacs_gc_observer")]
+                      { gc_observation::cons_survivor(acons); }
                       num_used += 1;
 		      XUNMARK_CONS! (acons);
                     }
@@ -7839,16 +8132,38 @@ unsafe fn sweep_buffers ()
 /* Sweep: find all structures not marked, and free them.  */
 unsafe fn gc_sweep ()
 {
+  #[cfg(feature = "femacs_gc_observer")]
+  let observation_cycle = gc_observation::current_cycle();
+  gc_observe_begin!(observation_cycle, 9);
   sweep_strings ();
+  gc_observe_end!(observation_cycle, 9);
+  gc_observe_begin!(observation_cycle, 19);
   check_string_bytes! (!noninteractive);
+  gc_observe_end!(observation_cycle, 19);
+  gc_observe_begin!(observation_cycle, 10);
   sweep_conses ();
+  gc_observe_end!(observation_cycle, 10);
+  gc_observe_begin!(observation_cycle, 11);
   sweep_floats ();
+  gc_observe_end!(observation_cycle, 11);
+  gc_observe_begin!(observation_cycle, 12);
   sweep_intervals ();
+  gc_observe_end!(observation_cycle, 12);
+  gc_observe_begin!(observation_cycle, 13);
   sweep_symbols ();
+  gc_observe_end!(observation_cycle, 13);
+  gc_observe_begin!(observation_cycle, 14);
   sweep_buffers ();
+  gc_observe_end!(observation_cycle, 14);
+  gc_observe_begin!(observation_cycle, 15);
   sweep_vectors ();
+  gc_observe_end!(observation_cycle, 15);
+  gc_observe_begin!(observation_cycle, 16);
   pdumper_clear_marks ();
+  gc_observe_end!(observation_cycle, 16);
+  gc_observe_begin!(observation_cycle, 20);
   check_string_bytes! (!noninteractive);
+  gc_observe_end!(observation_cycle, 20);
 }
 
 DEFUN! ("memory-info", Fmemory_info, Smemory_info, 0, 0, 0,
@@ -8154,6 +8469,15 @@ unsafe extern "C" fn init_alloc_once_for_pdumper ()
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn init_alloc ()
 {
+  #[cfg(feature = "femacs_gc_generational")]
+  { gc_collector::reset_process(); }
+  #[cfg(feature = "have_native_comp")]
+  {
+    unsafe extern "C" { fn femacs_native_reset_process(); }
+    femacs_native_reset_process();
+  }
+  #[cfg(feature = "femacs_gc_observer")]
+  { gc_observation::reset_process(); }
   Vgc_elapsed = make_float (0.0);
   gcs_done = 0;
 }
@@ -8305,6 +8629,16 @@ pub unsafe extern "C" fn syms_of_alloc ()
   defsubr (&raw mut Sgarbage_collect_heapsize);
   defsubr (&raw mut Smemory_info);
   defsubr (&raw mut Smemory_use_counts);
+  #[cfg(feature = "femacs_gc_generational")]
+  { defsubr (&raw mut Sfemacs__gc_collector_status); }
+  #[cfg(feature = "femacs_gc_observer")]
+  {
+    defsubr (&raw mut Sfemacs__gc_snapshot);
+    defsubr (&raw mut Sfemacs__gc_reset);
+    defsubr (&raw mut Sfemacs__gc_observer_control);
+  }
+  #[cfg(all(feature = "femacs_gc_observer", feature = "femacs_gc_observer_test_hooks"))]
+  { defsubr (&raw mut Sfemacs__gc_test_export); }
   /* C 7567-7574: `#if defined GNU_LINUX && defined __GLIBC__ && (__GLIBC__ > 2 ||
      __GLIBC_MINOR__ >= 10)` registers `Smalloc_info` and `#ifdef HAVE_MALLOC_TRIM` registers
      `Smalloc_trim`; both arms are dead on this target, and `extract-abi.py` decides `defsubr`

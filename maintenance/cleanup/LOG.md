@@ -270,3 +270,8 @@ Retired five ended-run Cargo/generated-unit roots: 19,910 regular files, 903 dir
 ## CLN133 · 2026-10-29 · consumed Tree-sitter compiler copies
 
 Retired eleven ended-run Cargo/generated-unit roots: 30,706 files, 1,690 directories and 1,144,859,531 logical bytes. All 32,396 decoded manifest rows match the private plan; 64,792 operations pair. Frozen source, actual objects, four current products and complete resources, raw failures and two minimal old-driver source-binding records remain. No new build/test for cleanup. See [report](reports/2026-10-29-133-consumed-treesit-compiler-copies.md) and [manifest](manifests/2026-10-29-133-consumed-treesit-compiler-copies.jsonl.gz). Coherent implementation dependency delivery remains pending; Goal active1/7.
+
+
+## Source consolidation delivery update · CLN72 / CLN113 / CLN132
+
+The complete experimental foundation source group includes the TLS shared-declaration move (CLN72), notification event/open-flag consolidation (CLN113), and stable Tree-sitter loader/shared-layout rebase (CLN132). These are source changes with exact original blocks and restoration identities, not physical file/cache deletions. Historical construction checkpoints remain historical; current limited build/integration evidence and remaining Goal boundaries are in the [foundation report](../releases/2026-10-29-runtime-foundation.md). Reports: [CLN72](reports/2026-10-27-72-tls-declaration-consolidation.md), [CLN113](reports/2026-10-28-113-event-kind-declaration.md), [CLN132](reports/2026-10-29-132-treesit-declaration-rebase.md).

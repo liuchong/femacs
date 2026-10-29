@@ -10951,6 +10951,7 @@ func ns_select(_ nfds: Int32, _ readfds: UnsafeMutablePointer<fd_set>?,
 
 /// C 5374-5385: `void ns_run_loop_break (void)` (the `HAVE_PTHREAD` arm) - "Break out of the NS
 /// run loop in ns_select or ns_read_socket."
+@_cdecl("ns_run_loop_break")
 func ns_run_loop_break() {
   /* C 5381-5383: "If we don't have a GUI, don't send the event."  */
   if NSApp != nil {                                   // C 5382

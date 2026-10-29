@@ -52,6 +52,8 @@ include!("include/window.rs");                 // C 33: `#include "window.h"`
 include!("include/commands.rs");               // C 34: `#include "commands.h"`
 include!("include/character.rs");              // C 35: `#include "character.h"`
 include!("include/buffer.rs");                 // C 36: `#include "buffer.h"`
+#[cfg(feature = "have_tree_sitter")]
+include!("include/treesit.rs"); // P430 shared parser/edit/GC ABI.
 // C 37's `#include "region-cache.h"` has **no mirror** (`src/include/region-cache.rs`
 // does not exist; the file of that name is the *unit* for src/region-cache.c).  The names
 // this file takes from that header are declared at their use site below, each with C's own
@@ -316,6 +318,8 @@ unsafe fn bset_extra_line_spacing (b: *mut buffer, val: Lisp_Object)
 {
   (*b).extra_line_spacing_ = val;
 }
+#[cfg(feature = "have_tree_sitter")]
+unsafe fn bset_ts_parser_list(b: *mut buffer, val: Lisp_Object) { (*b).ts_parser_list_ = val; }
 unsafe fn bset_file_format (b: *mut buffer, val: Lisp_Object)
 {
   (*b).file_format_ = val;
@@ -684,8 +688,12 @@ DEFUN! ("get-buffer-create", Fget_buffer_create, Sget_buffer_create, 1, 2, 0,
   // C: `b->prevent_redisplay_optimizations_p = 1;` (buffer.h's 1-bit member).
   (*b).bits |= BUFFER_PREVENT_REDISPLAY_OPTIMIZATIONS_P;
 
-  // C 648-653 is `#ifdef HAVE_TREE_SITTER` (undef): the three `SET_BUF_TS_LINECOL_*`
-  // assignments of `TREESIT_EMPTY_LINECOL`.  Recorded in docs/ports/buffer.md.
+  #[cfg(feature = "have_tree_sitter")]
+  {
+    SET_BUF_TS_LINECOL_BEGV(b, TREESIT_EMPTY_LINECOL);
+    SET_BUF_TS_LINECOL_POINT(b, TREESIT_EMPTY_LINECOL);
+    SET_BUF_TS_LINECOL_ZV(b, TREESIT_EMPTY_LINECOL);
+  }
 
   /* An ordinary buffer normally doesn't need markers
      to handle BEGV and ZV.  */
@@ -927,7 +935,12 @@ DEFUN! ("make-indirect-buffer", Fmake_indirect_buffer, Smake_indirect_buffer,
   (*b).bidi_paragraph_cache = std::ptr::null_mut ();
   bset_width_table (b, Qnil ());
 
-  // C 881-886 is `#ifdef HAVE_TREE_SITTER` (undef).  Recorded in docs/ports/buffer.md.
+  #[cfg(feature = "have_tree_sitter")]
+  {
+    SET_BUF_TS_LINECOL_BEGV(b, TREESIT_EMPTY_LINECOL);
+    SET_BUF_TS_LINECOL_POINT(b, TREESIT_EMPTY_LINECOL);
+    SET_BUF_TS_LINECOL_ZV(b, TREESIT_EMPTY_LINECOL);
+  }
 
   name = Fcopy_sequence (name);
   set_string_intervals (name, std::ptr::null_mut ());
@@ -1187,8 +1200,8 @@ pub unsafe extern "C" fn reset_buffer (b: *mut buffer)
     (b, BVAR! (&raw mut buffer_defaults, enable_multibyte_characters_));
   bset_cursor_type (b, BVAR! (&raw mut buffer_defaults, cursor_type_));
   bset_extra_line_spacing (b, BVAR! (&raw mut buffer_defaults, extra_line_spacing_));
-  // C 1120-1122 is `#ifdef HAVE_TREE_SITTER` (undef): `bset_ts_parser_list (b, Qnil);`
-  // (the setter itself is dead too, C 239-245).
+  #[cfg(feature = "have_tree_sitter")]
+  bset_ts_parser_list(b, Qnil());
 
   (*b).display_error_modiff = 0;
 }
@@ -2731,8 +2744,13 @@ DEFUN! ("buffer-swap-text", Fbuffer_swap_text, Sbuffer_swap_text,
   bset_point_before_scroll ((current_buffer! ()), Qnil ());
   bset_point_before_scroll (other_buffer, Qnil ());
 
-  // C 2648-2653 is `#ifdef HAVE_TREE_SITTER` (undef): `ts_parser_list` and the three
-  // `ts_linecol_*` swaps.
+  #[cfg(feature = "have_tree_sitter")]
+  {
+    swapfield_!(tmp_ts_parser_list, other_buffer, current_buffer!(), bset_ts_parser_list, ts_parser_list_, Lisp_Object);
+    swapfield!(tmp_ts_linecol_begv, other_buffer, current_buffer!(), ts_linecol_begv, ts_linecol);
+    swapfield!(tmp_ts_linecol_point, other_buffer, current_buffer!(), ts_linecol_point, ts_linecol);
+    swapfield!(tmp_ts_linecol_zv, other_buffer, current_buffer!(), ts_linecol_zv, ts_linecol);
+  }
 
   modiff_incr (&raw mut (*(*(current_buffer! ())).text).modiff, 1);
   modiff_incr (&raw mut (*(*other_buffer).text).modiff, 1);
@@ -4650,8 +4668,8 @@ pub unsafe extern "C" fn init_buffer_once ()
   XSETFASTINT! (BVAR! (&raw mut buffer_local_flags, tab_line_format_), idx as EMACS_INT); idx += 1;
   XSETFASTINT! (BVAR! (&raw mut buffer_local_flags, cursor_type_), idx as EMACS_INT); idx += 1;
   XSETFASTINT! (BVAR! (&raw mut buffer_local_flags, extra_line_spacing_), idx as EMACS_INT); idx += 1;
-  // C 4819-4821 is `#ifdef HAVE_TREE_SITTER` (undef): `XSETFASTINT (BVAR
-  // (&buffer_local_flags, ts_parser_list), idx); ++idx;`
+  #[cfg(feature = "have_tree_sitter")]
+  { XSETFASTINT!(BVAR!(&raw mut buffer_local_flags, ts_parser_list_), idx as EMACS_INT); idx += 1; }
   XSETFASTINT! (BVAR! (&raw mut buffer_local_flags, text_conversion_style_), idx as EMACS_INT); idx += 1;
   XSETFASTINT! (BVAR! (&raw mut buffer_local_flags, cursor_in_non_selected_windows_), idx as EMACS_INT); idx += 1;
 
@@ -4720,7 +4738,8 @@ pub unsafe extern "C" fn init_buffer_once ()
   bset_bidi_paragraph_separate_re (&raw mut buffer_defaults, Qnil ());
   bset_cursor_type (&raw mut buffer_defaults, Qt ());
   bset_extra_line_spacing (&raw mut buffer_defaults, Qnil ());
-  // C 4890-4892 is `#ifdef HAVE_TREE_SITTER` (undef): `bset_ts_parser_list (...)`.
+  #[cfg(feature = "have_tree_sitter")]
+  bset_ts_parser_list(&raw mut buffer_defaults, Qnil());
   bset_text_conversion_style (&raw mut buffer_defaults, Qnil ());
   bset_cursor_in_non_selected_windows (&raw mut buffer_defaults, Qt ());
 

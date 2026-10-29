@@ -1,12 +1,22 @@
 //! Isolated native Cocoa target. No reference object enters the product link.
 use super::*;
 
-fn object_dir(repo: &Path, root: &Path) -> PathBuf {
+fn object_dir(repo: &Path, root: &Path) -> Result<PathBuf, String> {
+    if let Some(binding) = crate::runtime::verify_selected_root(repo, root)? {
+        if binding["product"] != "cocoa" {
+            return Err("Cocoa object root has a different product binding".into());
+        }
+        let objects = root.join("objects");
+        if objects.is_symlink() {
+            return Err("Cocoa object root is a symlink".into());
+        }
+        return Ok(objects);
+    }
     use std::hash::{Hash, Hasher};
     let mut key = std::collections::hash_map::DefaultHasher::new();
     root.hash(&mut key);
-    repo.join(".femacs-cache/macos")
-        .join(format!("{:016x}", key.finish()))
+    Ok(repo.join(".femacs-cache/macos")
+        .join(format!("{:016x}", key.finish())))
 }
 
 fn generate_paths(repo: &Path, config: &Path) -> Result<(), String> {
@@ -47,7 +57,7 @@ fn run(cmd: &mut Command, description: &str) -> Result<(), String> {
     }
 }
 
-fn deployment_target() -> Result<String, String> {
+pub(super) fn deployment_target() -> Result<String, String> {
     if let Ok(value) = std::env::var("FEMACS_MACOS_DEPLOYMENT_TARGET") {
         return Ok(value);
     }
@@ -111,6 +121,14 @@ fn build() -> Result<(), String> {
     let root = std::env::var_os("FEMACS_MACOS_ROOT")
         .map(PathBuf::from)
         .unwrap_or_else(|| repo.join("build/macos"));
+    build_configured(&repo, &root, &repo.join("build-support/macos/cocoa/config.json"),
+        &repo.join("dist/macos/Femacs.app"))
+}
+
+pub(super) fn build_configured(repo: &Path, root: &Path, selected_config: &Path,
+                                destination: &Path) -> Result<(), String> {
+    standalone::check_host()?;
+    let repo = canonical(repo);
     fs::create_dir_all(&root).map_err(|e| e.to_string())?;
     let root = canonical(&root);
     if root.starts_with(repo.join("emacs")) || root == repo {
@@ -119,14 +137,17 @@ fn build() -> Result<(), String> {
     standalone::check_host()?;
     let reference = root.join("reference"); // legacy environment slot, never read by standalone build
     let config = root.join("config");
-    let objects = object_dir(&repo, &root);
-    for dir in [&config, &objects] {
-        fs::create_dir_all(dir).map_err(|e| e.to_string())?;
-    }
+    fs::create_dir_all(&config).map_err(|e| e.to_string())?;
     standalone::resources(&repo, "base", None)?;
     let frozen = config.join("darwin-cocoa.json");
-    fs::copy(repo.join("build-support/macos/cocoa/config.json"), &frozen)
-        .map_err(|e| e.to_string())?;
+    let tls_config = config.join("darwin-cocoa-tls.json");
+    crate::tls::prepare(&repo, &root, selected_config, &tls_config)?;
+    let lcms_config = config.join("darwin-cocoa-lcms.json");
+    crate::lcms::prepare(&repo, &root, &tls_config, &lcms_config)?;
+    crate::treesit::prepare(&repo, &root, &lcms_config, &frozen)?;
+    // A selected object root requires the prepared target copy to be present.
+    let objects = object_dir(&repo, &root)?;
+    fs::create_dir_all(&objects).map_err(|e| e.to_string())?;
     run(
         Command::new("python3")
             .current_dir(&repo)
@@ -151,7 +172,7 @@ fn build() -> Result<(), String> {
     let config_rs = config.join("config.rs");
     let invoke = |name: &str, arguments: &[&str]| -> Result<(), String> {
         run(
-            Command::new(&executable)
+            crate::runtime::configured_child(&repo, &root, Command::new(&executable)
                 .args(arguments)
                 .env("MACOSX_DEPLOYMENT_TARGET", &deployment)
                 .env("FEMACS_CONFIG", "darwin-cocoa")
@@ -167,14 +188,14 @@ fn build() -> Result<(), String> {
                 .env("FEMACS_REFERENCE_BUILD", &reference)
                 .env("FEMACS_BUILD_ROOT", &root)
                 .env("FEMACS_PGO", "off")
-                .env("FEMACS_RELEASE_BUILD", "1"),
+                .env("FEMACS_RELEASE_BUILD", "1"))?,
             name,
         )
     };
     invoke("generate target-local config", &["gen-config"])?;
     invoke("build Cocoa Rust core", &["build-units"])?;
     invoke("build Cocoa ABI providers", &["build-tu", "src/abi_shim.c"])?;
-    finish(&repo, &root)
+    finish_configured(&repo, &root, destination)
 }
 
 /// Continue platform integration using the already-built target core and ABI objects.
@@ -211,10 +232,16 @@ pub(super) fn package_macos() -> i32 {
 }
 
 fn finish(repo: &Path, root: &Path) -> Result<(), String> {
+    let destination = crate::runtime::continuation_destination(repo, root)?
+        .unwrap_or_else(|| repo.join("dist/macos/Femacs.app"));
+    finish_configured(repo, root, &destination)
+}
+
+fn finish_configured(repo: &Path, root: &Path, destination: &Path) -> Result<(), String> {
     if root == repo || root.starts_with(repo.join("emacs")) {
         return Err("unsafe Cocoa output root".into());
     }
-    let objects = object_dir(repo, root);
+    let objects = object_dir(repo, root)?;
     if !objects.join("abi_shim.o").is_file() {
         return Err("missing Cocoa ABI object; run build-macos".into());
     }
@@ -229,7 +256,7 @@ fn finish(repo: &Path, root: &Path) -> Result<(), String> {
     let deployment = deployment_target()?;
     let invoke = |name: &str, arguments: &[&str]| -> Result<(), String> {
         run(
-            Command::new(&executable)
+            crate::runtime::configured_child(repo, root, Command::new(&executable)
                 .args(arguments)
                 .env("MACOSX_DEPLOYMENT_TARGET", &deployment)
                 .env("FEMACS_CONFIG", "darwin-cocoa")
@@ -244,14 +271,27 @@ fn finish(repo: &Path, root: &Path) -> Result<(), String> {
                 .env("FEMACS_GUI_RUNTIME", root.join("config/runtime.rs"))
                 .env("FEMACS_EPATHS_RS", root.join("config/epaths.rs"))
                 .env("FEMACS_UNITS_DIR", &objects)
+                .env("FEMACS_TOOL_UNITS", &objects)
                 .env("FEMACS_MACOS_GUI", "1")
                 .env("FEMACS_REFERENCE_BUILD", root.join("reference"))
                 .env("FEMACS_BUILD_TARGET", "macos-cocoa")
                 .env("FEMACS_BUILD_ROOT", root)
                 .env("FEMACS_PGO", "off")
-                .env("FEMACS_RELEASE_BUILD", "1"),
+                .env("FEMACS_RELEASE_BUILD", "1"))?,
             name,
         )
+    };
+    // Swift builtin records must select the same native ABI as the Rust core.
+    let target_config: serde_json::Value = serde_json::from_slice(
+        &fs::read(root.join("config/darwin-cocoa.json")).map_err(|e| e.to_string())?,
+    ).map_err(|e| e.to_string())?;
+    let native_comp = match target_config["features"].get("have_native_comp") {
+        Some(value) => match (value.as_str(), value.as_i64()) {
+            (Some("1"), _) | (_, Some(1)) => true,
+            (Some("0" | "undefined"), _) | (_, Some(0)) => false,
+            _ => return Err("invalid Cocoa native feature value".into()),
+        },
+        None => false,
     };
     for name in [
         "macfont", "nsfns", "nsimage", "nsmenu", "nsselect", "nsterm",
@@ -259,7 +299,9 @@ fn finish(repo: &Path, root: &Path) -> Result<(), String> {
         run(
             Command::new("xcrun")
                 .env("MACOSX_DEPLOYMENT_TARGET", &deployment)
-                .args(["swiftc", "-parse-as-library", "-O", "-g", "-module-name"])
+                .args(["swiftc", "-parse-as-library", "-O", "-g"])
+                .args(if native_comp { &["-D", "HAVE_NATIVE_COMP"][..] } else { &[][..] })
+                .arg("-module-name")
                 .arg(format!("femacs_{name}"))
                 .arg("-c")
                 .arg(repo.join(format!("platform/macos/{name}.swift")))
@@ -271,16 +313,17 @@ fn finish(repo: &Path, root: &Path) -> Result<(), String> {
     // make -n must be able to enumerate its generated inputs; only the archive member table
     // comes from the existing fixed host build, never its C object code in our link.
     invoke("link complete Cocoa program", &["link-owned"])?;
+    invoke("link Cocoa companion client", &["link-program", "lib-src/emacsclient.c"])?;
     standalone::resources(repo, "doc", None)?;
     invoke("bootstrap Cocoa Lisp image", &["dump-bootstrap"])?;
     standalone::resources(repo, "all", Some(&root.join("port/src/emacs")))?;
     invoke("dump final Cocoa Lisp image", &["dump"])?;
-    package(&repo, &root)?;
-    println!("GUI app: {}", repo.join("dist/macos/Femacs.app").display());
+    package_configured(&repo, &root, destination)?;
+    println!("GUI app: {}", destination.display());
     Ok(())
 }
 
-fn copy_tree(from: &Path, to: &Path) -> Result<(), String> {
+pub(super) fn copy_tree(from: &Path, to: &Path) -> Result<(), String> {
     fs::create_dir_all(to).map_err(|e| e.to_string())?;
     for entry in fs::read_dir(from).map_err(|e| e.to_string())? {
         let entry = entry.map_err(|e| e.to_string())?;
@@ -288,7 +331,7 @@ fn copy_tree(from: &Path, to: &Path) -> Result<(), String> {
         if entry.file_type().map_err(|e| e.to_string())?.is_dir() {
             copy_tree(&entry.path(), &dest)?;
         } else {
-            fs::copy(entry.path(), &dest).map_err(|e| e.to_string())?;
+            crate::owned_copy::copy_file(&entry.path(), &dest)?;
             // Lisp compares source/bytecode modification times when loading.
             // Packaging order must not make unchanged sources look newer.
             let modified = entry.metadata().map_err(|e| e.to_string())?
@@ -302,14 +345,22 @@ fn copy_tree(from: &Path, to: &Path) -> Result<(), String> {
 }
 
 fn package(repo: &Path, root: &Path) -> Result<(), String> {
+    let destination = crate::runtime::continuation_destination(repo, root)?
+        .unwrap_or_else(|| repo.join("dist/macos/Femacs.app"));
+    package_configured(repo, root, &destination)
+}
+
+fn package_configured(repo: &Path, root: &Path, destination: &Path) -> Result<(), String> {
+    crate::runtime::verify_selected_root(repo, root)?;
     let info = crate::manuals::for_product(repo, root)?;
-    let app = repo.join("dist/macos/Femacs.app");
     crate::bundle::publish(
-        &app,
+        destination,
         |stage| populate_app(repo, root, &info, stage),
         |stage| {
             for required in [
                 "Contents/MacOS/Femacs",
+                "Contents/MacOS/bin/emacsclient",
+                "Contents/Resources/libexec/emacsclient",
                 "Contents/Resources/libexec/Femacs.pdmp",
                 "Contents/Resources/etc/DOC",
                 "Contents/Resources/lisp/loaddefs.el",
@@ -345,7 +396,7 @@ fn populate_app(repo: &Path, root: &Path, info: &Path, app: &Path) -> Result<(),
     let resources = contents.join("Resources");
     fs::create_dir_all(&macos).map_err(|e| e.to_string())?;
     fs::create_dir_all(&resources).map_err(|e| e.to_string())?;
-    fs::copy(root.join("port/src/emacs"), macos.join("Femacs")).map_err(|e| e.to_string())?;
+    crate::owned_copy::copy_file(&root.join("port/src/emacs"), &macos.join("Femacs"))?;
     // MacOS contains code only. Data belong in Resources so bundle signing is valid.
     let old_dump = macos.join("Femacs.pdmp");
     if old_dump.exists() {
@@ -353,15 +404,38 @@ fn populate_app(repo: &Path, root: &Path, info: &Path, app: &Path) -> Result<(),
     }
     let libexec = resources.join("libexec");
     fs::create_dir_all(&libexec).map_err(|e| e.to_string())?;
-    fs::copy(
-        root.join("port/src/emacs.pdmp"),
-        libexec.join("Femacs.pdmp"),
-    )
-    .map_err(|e| e.to_string())?;
+    crate::owned_copy::copy_file(&root.join("port/src/emacs.pdmp"), &libexec.join("Femacs.pdmp"))?;
+    let client = macos.join("bin/emacsclient");
+    fs::create_dir_all(client.parent().ok_or("missing client parent")?)
+        .map_err(|e| e.to_string())?;
+    crate::owned_copy::copy_file(&root.join("port/lib-src/emacsclient"), &client)?;
+    #[cfg(unix)]
+    std::os::unix::fs::symlink("../../MacOS/bin/emacsclient", libexec.join("emacsclient"))
+        .map_err(|e| e.to_string())?;
+    #[cfg(not(unix))]
+    return Err("Cocoa client packaging requires Unix symbolic links".into());
+    run(
+        Command::new("codesign")
+            .args(["--force", "--sign", "-"])
+            .arg(&client),
+        "sign Cocoa companion client",
+    )?;
     for tree in ["lisp", "etc"] {
         copy_tree(&repo.join(tree), &resources.join(tree))?;
     }
     crate::manuals::copy_set(info, &resources.join("info"))?;
+    standalone::stage_module_api(repo, &resources.join("include"))?;
+    if root.join("runtime-native").is_dir() {
+        crate::runtime::verify_selected_root(repo, root)?;
+        copy_tree(&root.join("runtime-native"), &contents.join("Frameworks/runtime-native"))?;
+        copy_tree(&root.join("licenses"), &resources.join("licenses"))?;
+    }
+    crate::tls::copy_product_runtime(root, &contents.join("Frameworks/runtime-tls"),
+                                     &resources.join("licenses/tls"))?;
+    crate::lcms::copy_product_runtime(root, &contents.join("Frameworks/runtime-lcms"),
+                                     &resources.join("licenses/lcms"))?;
+    crate::treesit::copy_product_runtime(root, &contents.join("Frameworks/runtime-treesit"),
+                                        &resources.join("licenses/treesit"))?;
     // Data are genuine owned inputs; the GUI binary remains the Rust/Swift Cocoa link.
     fs::write(contents.join("Info.plist"), r#"<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">

@@ -166,8 +166,11 @@ pub struct thread_state
    472).  `docs/baseline/android-layout-probe.md`.  */
 #[cfg (feature = "have_android")]
 const _: () = core::assert! (std::mem::size_of::<thread_state> () == 592);
-#[cfg (not (feature = "have_android"))]
+#[cfg (all (not (feature = "have_android"), not (feature = "threads_enabled")))]
 const _: () = core::assert! (std::mem::size_of::<thread_state> () == 472);
+// Expected Darwin pthread layout; target C ABI verification is required by P-387.
+#[cfg (all (target_os = "macos", feature = "threads_enabled", feature = "have_pthread"))]
+const _: () = core::assert! (std::mem::size_of::<thread_state> () == 520);
 const _: () = core::assert! (std::mem::offset_of! (thread_state, event_object) == 72);
 #[cfg (feature = "have_android")]
 const _: () = core::assert! (std::mem::offset_of! (thread_state, m_specpdl) == 128);
@@ -186,15 +189,19 @@ const _: () = core::assert! (std::mem::offset_of! (thread_state, thread_id) == 4
    432).  `docs/baseline/android-layout-probe.md`.  */
 #[cfg (feature = "have_android")]
 const _: () = core::assert! (std::mem::offset_of! (thread_state, not_holding_lock) == 552);
-#[cfg (not (feature = "have_android"))]
+#[cfg (all (not (feature = "have_android"), not (feature = "threads_enabled")))]
 const _: () = core::assert! (std::mem::offset_of! (thread_state, not_holding_lock) == 432);
+#[cfg (all (target_os = "macos", feature = "threads_enabled", feature = "have_pthread"))]
+const _: () = core::assert! (std::mem::offset_of! (thread_state, not_holding_lock) == 480);
 /* The Android arm has a different shape: measured with `_Static_assert` against C's own
    headers under NDK 29 / aarch64, which reads 568 for this one (darwin reads
    448).  `docs/baseline/android-layout-probe.md`.  */
 #[cfg (feature = "have_android")]
 const _: () = core::assert! (std::mem::offset_of! (thread_state, bc) == 568);
-#[cfg (not (feature = "have_android"))]
+#[cfg (all (not (feature = "have_android"), not (feature = "threads_enabled")))]
 const _: () = core::assert! (std::mem::offset_of! (thread_state, bc) == 448);
+#[cfg (all (target_os = "macos", feature = "threads_enabled", feature = "have_pthread"))]
+const _: () = core::assert! (std::mem::offset_of! (thread_state, bc) == 496);
 
 /* thread.h 116-192: the checkpoint machinery.  Each macro is C's own body (PORTING.md
    0.1-18: a mirror defines its macros before their uses).  */
@@ -275,8 +282,10 @@ pub struct lisp_mutex_t
    16).  `docs/baseline/android-layout-probe.md`.  */
 #[cfg (feature = "have_android")]
 const _: () = core::assert! (std::mem::size_of::<lisp_mutex_t> () == 64);
-#[cfg (not (feature = "have_android"))]
+#[cfg (all (not (feature = "have_android"), not (feature = "threads_enabled")))]
 const _: () = core::assert! (std::mem::size_of::<lisp_mutex_t> () == 16);
+#[cfg (all (target_os = "macos", feature = "threads_enabled", feature = "have_pthread"))]
+const _: () = core::assert! (std::mem::size_of::<lisp_mutex_t> () == 64);
 
 // thread.h 260-268: `struct Lisp_Mutex`.  Measured 32 bytes, alignment 8.
 #[repr(C, align(8))]
@@ -292,8 +301,10 @@ pub struct Lisp_Mutex
    32).  `docs/baseline/android-layout-probe.md`.  */
 #[cfg (feature = "have_android")]
 const _: () = core::assert! (std::mem::size_of::<Lisp_Mutex> () == 80);
-#[cfg (not (feature = "have_android"))]
+#[cfg (all (not (feature = "have_android"), not (feature = "threads_enabled")))]
 const _: () = core::assert! (std::mem::size_of::<Lisp_Mutex> () == 32);
+#[cfg (all (target_os = "macos", feature = "threads_enabled", feature = "have_pthread"))]
+const _: () = core::assert! (std::mem::size_of::<Lisp_Mutex> () == 80);
 
 // thread.h 269-273: `MUTEXP`.
 #[inline(always)]
@@ -330,8 +341,10 @@ pub struct Lisp_CondVar
    probe against C's headers (P-236).  */
 #[cfg (feature = "have_android")]
 const _: () = core::assert! (std::mem::size_of::<Lisp_CondVar> () == 72);
-#[cfg (not (feature = "have_android"))]
+#[cfg (all (not (feature = "have_android"), not (feature = "threads_enabled")))]
 const _: () = core::assert! (std::mem::size_of::<Lisp_CondVar> () == 32);
+#[cfg (all (target_os = "macos", feature = "threads_enabled", feature = "have_pthread"))]
+const _: () = core::assert! (std::mem::size_of::<Lisp_CondVar> () == 72);
 
 // thread.h 303-307: `CONDVARP`.
 #[inline(always)]

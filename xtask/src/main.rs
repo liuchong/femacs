@@ -12,11 +12,16 @@ use std::path::{Path, PathBuf};
 use std::process::{exit, Command};
 
 mod bundle;
+mod tls;
+mod lcms;
+mod treesit;
 mod check_units;
 mod macos;
+mod owned_copy;
 mod standalone;
 mod manuals;
 mod probes;
+mod runtime;
 mod android;
 pub(crate) mod tooling;
 #[cfg(test)]
@@ -200,6 +205,7 @@ fn main() {
     let code = match cmd {
         "build-macos" => macos::build_macos(),
         "build-terminal" => standalone::build_terminal(),
+        "runtime-build" => runtime::command(&args[1..]),
         "build-manuals" => manuals::command(&args[1..]),
         "audit-probe" => probes::command(&args[1..]),
         "android" => android::command(&args[1..]),
@@ -257,7 +263,7 @@ fn main() {
         }
         _ => {
             println!(
-                "usage: xtask <build-terminal|build-macos|generate-resources|link-owned|gen-config|layout-asserts|layout-check|build-tu <c-file>|\
+                "usage: xtask <build-terminal|build-macos|runtime-build --product terminal|cocoa --variant baseline|native|collector|native-collector --out build/runtime/<name> [--observer] [--test-hooks] [--backend-prefix <prefix>]|generate-resources|link-owned|gen-config|layout-asserts|layout-check|build-tu <c-file>|\
                  build-units|check-units [list]|gate-fast|gate-probes|gate-probe-programs|dead-arms|gate-load [--report]|\
                  link-program <c-file>|dump|gate-full>"
             );
@@ -303,18 +309,43 @@ fn config_features () -> Result<Vec<String>,String>
   // below is `HAVE_ALIGNED_ALLOC || (!SYSTEM_MALLOC && !DOUG_LEA_MALLOC)`, then
   // `HAVE_POSIX_MEMALIGN`).
   let mut truthy: std::collections::HashSet<String> = std::collections::HashSet::new ();
-  let mut values=std::collections::BTreeMap::new();
+  let mut values=std::collections::BTreeMap::<String,String>::new();
+  fn equivalent_setting(value: &str) -> &str {
+    match value {
+      "1" | "true" => "1",
+      "0" | "false" | "undefined" | "absent" => "0",
+      other => other,
+    }
+  }
   for section in ["macros","features"] {
-    if let Some(items)=data[section].as_object(){for (name,value) in items{
-      values.insert(name.clone(),value.as_str().map(str::to_owned).unwrap_or_else(||value.to_string()));
-    }}
+    if let Some(input)=data.get(section) {
+      let items=input.as_object().ok_or_else(||format!("configuration {section} must be an object"))?;
+      for (name,value) in items {
+        let name=name.to_ascii_uppercase();
+        let value=value.as_str().map(str::to_owned).unwrap_or_else(||value.to_string());
+        if let Some(previous)=values.insert(name.clone(),value.clone()) {
+          if equivalent_setting(&previous)!=equivalent_setting(&value) {
+            return Err(format!("conflicting configuration setting: {name}"));
+          }
+        }
+      }
+    }
   }
   for (name,value) in values {
-    let truthy_value=matches!(value.as_str(),"1"|"true");
+    // This optional C string is tested with #ifdef, not #if on its value.
+    let truthy_value=matches!(value.as_str(),"1"|"true")
+      || (name == "MODULES_SECONDARY_SUFFIX" && c_string_value(&value).is_some());
     let name_lower=name.to_ascii_lowercase();
     if let Ok(n)=value.parse::<u64>(){numbers.insert(name.clone(),n);}
     if truthy_value {truthy.insert(name.clone());}
     out.push(format!("feature=\"{}{}\"",if truthy_value{""}else{"not_"},name_lower));
+  }
+  // The selected SDK binding supplies the grammar ABI; a generic truthy
+  // macro cannot express this comparison from the source dispatch shim.
+  if truthy.contains("HAVE_TREE_SITTER") {
+    let version = numbers.get("FEMACS_TREE_SITTER_LANGUAGE_VERSION")
+      .ok_or("Tree-sitter configuration lacks a bound SDK grammar ABI")?;
+    if *version >= 15 { out.push("feature=\"treesit_language_version_ge_15\"".into()); }
   }
   // C's `#if (defined HAVE_ALIGNED_ALLOC || (!defined SYSTEM_MALLOC && !defined DOUG_LEA_MALLOC))`
   // takes the platform's `aligned_alloc`; when that is false and `HAVE_POSIX_MEMALIGN` is set, C's
@@ -544,7 +575,13 @@ fn gen_config() -> i32 {
         Err(e)=>return fail(e),
     };
     println!("config: {}", target.display());
-    let macros = read_config(&target);
+    let mut macros = read_config(&target);
+    // P-346: native products bind source/config/backend identity into their
+    // cache ABI; old non-runtime configurations retain a named legacy value.
+    macros.entry("FEMACS_RUNTIME_ABI_ID".into()).or_insert_with(|| "\"legacy\"".into());
+    for key in ["FEMACS_NATIVE_SDKROOT", "FEMACS_NATIVE_ASSEMBLER_DIR"] {
+        macros.entry(key.into()).or_insert_with(|| "\"\"".into());
+    }
     // No inner attributes: this file is textually included by every translation
     // unit, and inner attributes are only legal at the top of a module.
     let mut rs = String::from(
@@ -2456,7 +2493,9 @@ fn target_manifest(name: &str) -> Result<Vec<String>, String> {
     let target=android::build_target()?;
     let path=android::support_directory(target).join(name);
     let text = fs::read_to_string(&path).map_err(|e| format!("{}: {e}", path.display()))?;
-    Ok(text.split_whitespace().map(str::to_string).collect())
+    let objects = text.split_whitespace().map(str::to_string).collect();
+    if name == "objects.txt" { runtime::product_objects(Path::new(REPO), objects) }
+    else { Ok(objects) }
 }
 
 fn reference_members() -> Vec<String> {
@@ -2556,6 +2595,30 @@ fn ar_cmd () -> Command
   } else { Command::new ("ar") }
 }
 
+fn helper_link_inputs(tools: &Path, stem: &str, members: &[String], checking: bool)
+    -> Result<(PathBuf, Vec<String>), String>
+{
+    let unit_obj = tools.join(runtime::selected_object_name(stem, checking, false));
+    if !unit_obj.is_file() { return Err("missing selected helper tool object".into()); }
+    let mut libs = Vec::new();
+    for member in members {
+        let mstem = Path::new(member).file_stem().unwrap_or_default().to_string_lossy().to_string();
+        let cands = if let Some(base) = mstem.strip_suffix("-gnulib") {
+            vec![mstem.clone(), base.to_string()]
+        } else { vec![mstem] };
+        for candidate in cands {
+            let path = tools.join(runtime::selected_object_name(&candidate, checking, false));
+            if path.is_file() {
+                libs.push(fs::canonicalize(&path).unwrap_or(path).display().to_string());
+            }
+        }
+    }
+    if libs.is_empty() {
+        return Err("no port objects for the frozen libgnu.a members: run gate-fast first".into());
+    }
+    Ok((unit_obj, libs))
+}
+
 fn link_program(rel: Option<&String>) -> i32 {
     let Some(rel) = rel else {
         return fail("link-program needs a reference C file, e.g. lib-src/make-docfile.c");
@@ -2566,33 +2629,28 @@ fn link_program(rel: Option<&String>) -> i32 {
     // Tools are always built from the plain-O2 object root, never from the phase root:
     // an instrumented make-fingerprint would add its own run to the training profiles.
     let tools = tool_units_dir();
-    let unit_obj = tools.join(format!("{stem}.o"));
+    let (normal, checked) = match runtime::unit_compile_legs(Path::new(REPO)) {
+        Ok(selection) => selection,
+        Err(error) => return fail(error),
+    };
+    // A checked-only runtime root has no ordinary library objects. Its helper
+    // stays O2, but must use the same checked unit/library lane as that root.
+    let checking = !normal && checked;
+    let unit_obj = tools.join(runtime::selected_object_name(&stem, checking, false));
     if !unit_obj.is_file() {
         let code = build_tu_at(Some(rel), &tools, false);
         if code != 0 {
             return code;
         }
     }
-    let mut libs: Vec<String> = Vec::new();
-    for member in reference_members() {
-        let mstem = Path::new(&member).file_stem().unwrap_or_default().to_string_lossy().to_string();
-        let cands: Vec<String> = if let Some(base) = mstem.strip_suffix("-gnulib") {
-            vec![mstem.clone(), base.to_string()]
-        } else {
-            vec![mstem.clone()]
-        };
-        for cand in cands {
-            let p = tools.join(format!("{cand}.o"));
-            if p.is_file() {
-                libs.push(fs::canonicalize(&p).unwrap_or(p).display().to_string());
-            }
-        }
+    let (unit_obj, libs) = match helper_link_inputs(&tools, &stem, &reference_members(), checking) {
+        Ok(inputs) => inputs,
+        Err(error) => return fail(error),
+    };
+    let load = load_dir().join("programs").join(&stem);
+    if let Err(error) = fs::create_dir_all(&load) {
+        return fail(format!("creating helper link directory: {error}"));
     }
-    if libs.is_empty() {
-        return fail("no port objects for the frozen libgnu.a members: run gate-fast first");
-    }
-    let load = load_dir();
-    let _ = fs::create_dir_all(&load);
     let archive = load.join("libgnu-program.a");
     let archive = archive.display().to_string();
     let _ = fs::remove_file(&archive);
@@ -2902,6 +2960,7 @@ fn write_pair_manifest(src: &Path) -> Result<(), String> {
 
 fn gate_load(arg: Option<&str>) -> i32 {
     let report = arg == Some("--report");
+    let checking = std::env::var("FEMACS_LINK_CHECKING").is_ok_and(|value| value == "1");
     // The selected object set is a maintained, committed target description.
     let mut tokens = match target_manifest("objects.txt") { Ok(v) => v, Err(e) => return fail(e) };
     tokens.push("../lib/libgnu.a".to_string());
@@ -2919,7 +2978,10 @@ fn gate_load(arg: Option<&str>) -> i32 {
         let is_obj = tok.len() > 2 && tok.ends_with(".o")
             && tok[..tok.len() - 2].chars().all(|c| c.is_ascii_alphanumeric() || c == '_' || c == '-');
         if is_obj {
-            let p = units_dir().join(tok);
+            let stem = &tok[..tok.len() - 2];
+            let swift = std::env::var_os("FEMACS_MACOS_GUI").is_some()
+                && ["macfont", "nsfns", "nsimage", "nsmenu", "nsselect", "nsterm"].contains(&stem);
+            let p = units_dir().join(runtime::selected_object_name(stem, checking, swift));
             if p.is_file() {
                 objs.push(fs::canonicalize(&p).unwrap_or(p).display().to_string());
             } else {
@@ -2956,7 +3018,7 @@ fn gate_load(arg: Option<&str>) -> i32 {
                 };
                 let mut hit = false;
                 for cand in cands {
-                    let p = units_dir().join(format!("{cand}.o"));
+                    let p = units_dir().join(runtime::selected_object_name(&cand, checking, false));
                     if p.is_file() {
                         libs.push(fs::canonicalize(&p).unwrap_or(p).display().to_string());
                         hit = true;
@@ -2983,7 +3045,9 @@ fn gate_load(arg: Option<&str>) -> i32 {
         }
     }
     if std::env::var_os("FEMACS_MACOS_GUI").is_some() {
-        objs.push(units_dir().join("abi_shim.o").canonicalize().map_err(|e| e.to_string()).unwrap_or_else(|_| units_dir().join("abi_shim.o")).display().to_string());
+        let shim = units_dir().join(runtime::selected_object_name("abi_shim", checking, false));
+        if !shim.is_file() { return fail("missing selected Cocoa ABI object"); }
+        objs.push(shim.canonicalize().map_err(|e| e.to_string()).unwrap_or(shim).display().to_string());
         extra_libs.extend(macos::link_flags());
     }
     // The driver lives at module scope (`LINK_DRIVER`), because `link-program` uses it too.
@@ -3032,12 +3096,31 @@ fn gate_load(arg: Option<&str>) -> i32 {
     }
     let archive_abs = fs::canonicalize(&archive).map(|p| p.display().to_string())
         .unwrap_or_else(|_| archive.display().to_string());
+    if let Err(error) = runtime::record_link_inputs(Path::new(REPO), &objs, &libs, &archive) {
+        return fail(error);
+    }
     let out_path = port_root.join("src").join("temacs");
     let mut rsp: Vec<String> = vec![format!("-o\n{}", out_path.display())];
     rsp.extend(objs.iter().cloned());
     rsp.push(archive_abs);
     rsp.extend(search.iter().cloned());
     rsp.extend(extra_libs.iter().cloned());
+    match tls::link_flags(Path::new(REPO)) {
+        Ok(flags) => rsp.extend(flags),
+        Err(error) => return fail(error),
+    }
+    match lcms::link_flags(Path::new(REPO)) {
+        Ok(flags) => rsp.extend(flags),
+        Err(error) => return fail(error),
+    }
+    match treesit::link_flags(Path::new(REPO)) {
+        Ok(flags) => rsp.extend(flags),
+        Err(error) => return fail(error),
+    }
+    match runtime::link_flags(Path::new(REPO)) {
+        Ok(flags) => rsp.extend(flags),
+        Err(error) => return fail(error),
+    }
     rsp.push("-lSystem".to_string());
     if let Err(e) = fs::write(load.join("link-args.rsp"), rsp.join("\n") + "\n") {
         return fail(format!("writing the link response file: {e}"));
@@ -3786,11 +3869,28 @@ fn build_finished_tus() -> Result<(), String> {
             if u.starts_with("lib/") { library.contains(stem.as_ref()) }
             else { active.contains(&format!("{stem}.o")) }
         });
+        // A release target's explicit link manifest selects its production
+        // units. Appending a new, still-unaccepted modernization checklist to
+        // a historical port ledger must not silently omit a required object.
+        // Keep the checklist-based fast gate separate from product selection.
+        for object in &active {
+            let Some(stem) = Path::new(object).file_stem().and_then(|name| name.to_str()) else {
+                return Err("invalid active product object name".into());
+            };
+            let source = format!("src/{stem}.rs");
+            if Path::new(&source).is_file() && !units.contains(&source) {
+                units.push(source);
+            }
+        }
+        units.sort();
     }
     build_selected_units(units, &units_dir().join("units"))
 }
 
 fn build_selected_units(units: Vec<String>, materialization: &Path) -> Result<(), String> {
+    // Runtime normal/checking roots carry distinct source/config/ABI bindings.
+    // Compile each selected leg once; ordinary builds retain their dual pass.
+    let (compile_normal, compile_checking) = runtime::unit_compile_legs(Path::new(REPO))?;
     let mut flags = unit_codegen_flags();
     flags.extend(pgo_codegen_flags());
     let mut built = 0usize;
@@ -3806,29 +3906,32 @@ fn build_selected_units(units: Vec<String>, materialization: &Path) -> Result<()
             Ok(p) => p,
             Err(e) => return Err(e),
         };
-        let mut normal_cmd = rustc_cmd();
-        for cfg in config_features()? { normal_cmd.arg("--cfg").arg(cfg); }
-        if let Some(t) = &target {
-            normal_cmd.arg("--target").arg(t);
-            if t.contains("linux") { normal_cmd.arg("-C").arg(format!("linker={REPO}/tools/zig-linux-linker.sh")); }
+        if compile_normal {
+            let mut normal_cmd = rustc_cmd();
+            for cfg in config_features()? { normal_cmd.arg("--cfg").arg(cfg); }
+            if let Some(t) = &target {
+                normal_cmd.arg("--target").arg(t);
+                if t.contains("linux") { normal_cmd.arg("-C").arg(format!("linker={REPO}/tools/zig-linux-linker.sh")); }
+            }
+            if stem == "abi_shim" && std::env::var_os("FEMACS_MACOS_GUI").is_some() {
+                normal_cmd.arg("--cfg").arg("feature=\"dispextern_face_records\"");
+            }
+            let status = normal_cmd
+                .args(["--edition", "2024", "--crate-type", "lib", "--emit", "obj",
+                       "--crate-name", &cname])
+                .args(&flags)
+                .args(&sanitizer_flags ())
+                .arg(&root)
+                .arg("-o")
+                .arg(&out)
+                .status();
+            match status {
+                Ok(s) if s.success() => { println!("built {unit}"); built += 1; }
+                Ok(s) => { failed.push(format!("{unit}: {s}")); continue; },
+                Err(e) => return Err(e.to_string()),
+            }
         }
-        if stem == "abi_shim" && std::env::var_os("FEMACS_MACOS_GUI").is_some() {
-            normal_cmd.arg("--cfg").arg("feature=\"dispextern_face_records\"");
-        }
-        let status = normal_cmd
-            .args(["--edition", "2024", "--crate-type", "lib", "--emit", "obj",
-                   "--crate-name", &cname])
-            .args(&flags)
-            .args(&sanitizer_flags ())
-            .arg(&root)
-            .arg("-o")
-            .arg(&out)
-            .status();
-        match status {
-            Ok(s) if s.success() => { println!("built {unit}"); built += 1; }
-            Ok(s) => { failed.push(format!("{unit}: {s}")); continue; },
-            Err(e) => return Err(e.to_string()),
-        }
+        if !compile_checking { continue; }
         // The reference is built with --enable-checking by default, and the port's
         // `eassert!`/`eassume!` are `#[cfg (enable_checking)]`: without this pass their
         // bodies (die, stringify!, the conditions) are never compiled at all, so a

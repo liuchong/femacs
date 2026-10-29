@@ -1,0 +1,164 @@
+{
+  "schema": "femacs-runtime-acceptance-plan-v1",
+  "stage": "B definitions only; execute after all production C is complete",
+  "controls": {
+    "reference": "fingerprinted installed stable 31.1 native executable and matching dump",
+    "products": ["terminal", "cocoa"],
+    "variants": ["baseline", "native", "collector", "native-collector"],
+    "compiler_legs": ["normal", "checking"],
+    "collector_modes": ["major", "young"],
+    "observer_modes": ["off", "phases", "survival", "all"],
+    "warmups": 2,
+    "measured_rounds": 7,
+    "order": "balanced rotating product/mode order",
+    "bootstrap_seed": 0,
+    "bootstrap_resamples": 10000,
+    "max_load_per_core": 0.1,
+    "no_remote_ci": true
+  },
+  "cases": [
+    {
+      "id": "configuration-and-ownership",
+      "kind": "unit",
+      "sources": ["xtask/src/runtime_tests.rs"],
+      "requires": ["exact-config-digest", "conflict-rejection", "private-abi-key", "variant-isolation"],
+      "expected": "All declared cases, zero skips/errors; no source/environment mutation"
+    },
+    {
+      "id": "stable-manifest-and-result-accounting",
+      "kind": "unit",
+      "sources": ["tools/test-stable-suite.py"],
+      "requires": ["no-ignored-reference-fallback", "original-blob-size-sha-mode", "exact-generated-case-ids", "isolation"],
+      "expected": "Missing/extra/duplicate/skipped/load-error/resource-error cannot become success"
+    },
+    {
+      "id": "native-result-and-performance-accounting",
+      "kind": "unit",
+      "sources": ["tools/test-runtime-acceptance.py"],
+      "requires": ["actual-execution-identity", "all-samples-retained", "quiet-and-uncertainty", "native-and-minor-exercise"],
+      "expected": "No unchanged-hash, zero-exercise, busy-host or incomplete-scope false completion"
+    },
+    {
+      "id": "actual-source-numeric-components",
+      "kind": "native-component",
+      "sources": ["tools/fixtures/runtime-core-cases.json", "tools/test-runtime-contracts.py"],
+      "requires": ["source-bound-native-adapter", "exact-input-consumption", "declared-clock-foreign-stubs", "no-expected-answers-in-adapter-input"],
+      "expected": "Every vector produces actual-source observations; component isolation is disclosed"
+    },
+    {
+      "id": "fresh-whole-products",
+      "kind": "build",
+      "products": ["terminal", "cocoa"],
+      "variants": ["baseline", "native", "collector", "native-collector"],
+      "requires": ["complete-tracked-snapshot-including-new-files", "same-selected-config-all-units", "normal-and-checking", "independent-resources-link-dump", "source-preservation"],
+      "expected": "Actual executable/dump/resources/backend hashes bound to each exact variant, no old cross-variant reuse"
+    },
+    {
+      "id": "shared-public-language",
+      "kind": "ert",
+      "fixture": "tools/fixtures/runtime-language.el",
+      "selector": "^rtl",
+      "profiles": ["reference", "baseline", "native", "collector-major", "collector-young", "native-collector-major", "native-collector-young"],
+      "expected": "Exact registered IDs and deterministic observations match; unresolved weak/finalizer observation is not a claimed complete compatibility result"
+    },
+    {
+      "id": "full-stable-corpus",
+      "kind": "versioned-corpus",
+      "manifest": "compatibility/stable-31.1/sources.json",
+      "profiles": ["reference", "baseline", "native", "collector-major", "collector-young", "native-collector-major", "native-collector-young"],
+      "requires": ["actual-reference-registration", "applicable-platform-features", "per-case-isolation-timing", "slow-timeout-raw-results", "candidate-feature-gaps-remain-failures"],
+      "expected": "All applicable actual identities accounted for; no file-count or unavailable-feature denominator substitution"
+    },
+    {
+      "id": "observer-process-modes-and-export",
+      "kind": "ert",
+      "fixture": "tools/fixtures/runtime-observer.el",
+      "selector": "^femacs-runtime-observer/",
+      "profiles": ["baseline-observer", "native-observer", "collector-observer"],
+      "requires": ["off", "phases", "survival", "all", "actual-outer-cycle-busy-errors", "detached-numeric-snapshot"],
+      "expected": "Wire/roots/owner/counter validity is explicit, unavailable mode is not silently skipped"
+    },
+    {
+      "id": "observer-fault-product-real-unwind-and-export-gc",
+      "kind": "ert",
+      "fixture": "tools/fixtures/runtime-observer.el",
+      "selector": "^femacs-runtime-observer-fault/",
+      "profiles": ["baseline-observer-test-hooks", "native-collector-observer-test-hooks"],
+      "requires": ["separately-fingerprinted-test-only-build", "actual-lisp-error-unwind", "actual-gc-during-export", "marked-intermediates", "owner-released"],
+      "expected": "Real error/GC paths work in the diagnostic product; not an uninstrumented performance control"
+    },
+    {
+      "id": "actual-generational-runtime",
+      "kind": "ert",
+      "fixture": "tools/fixtures/runtime-gc.el",
+      "selector": "^rtg",
+      "profiles": ["collector-major", "collector-young", "native-collector-major", "native-collector-young"],
+      "requires": ["actual-young-completions", "full-control", "old-owner-to-young", "original-weak-fixpoint-and-noncons-sweep", "new-finalizer-roots", "full-caps-and-callbacks"],
+      "expected": "Young mode actually exercises minors; explicit full, pending-doomed and caps resolve to actual Full"
+    },
+    {
+      "id": "actual-native-lisp",
+      "kind": "ert",
+      "fixture": "tools/fixtures/runtime-native.el",
+      "selector": "^rtn",
+      "profiles": ["native", "native-collector-major", "native-collector-young"],
+      "requires": ["real-native-function-identity", "original-public-init-release-api", "advice-redefinition", "unwind-gc", "native-post-write-barriers", "owned-debug-cwd"],
+      "expected": "Real Lisp compiler/backend/loader execution, not a toy machine-code speed result"
+    },
+    {
+      "id": "native-format-controls",
+      "kind": "negative-native-units",
+      "plan": "tools/fixtures/runtime-native-negative-cases.json",
+      "source": "tools/fixtures/runtime-native-unit.rs",
+      "profiles": ["native", "native-collector"],
+      "requires": ["actual-product-serialized-abi", "signed-owned-cdylibs", "positive-same-format-control", "all-negative-identities-and-errors"],
+      "expected": "Control loads; each single fault produces its expected Lisp error before unsafe access"
+    },
+    {
+      "id": "native-recursion-and-live-code",
+      "kind": "ert",
+      "fixture": "tools/fixtures/runtime-native-lifecycle.el",
+      "selector": "^rtn1[2-5]-",
+      "profiles": ["native", "native-collector-major", "native-collector-young"],
+      "requires": ["native-unit-original-accessors", "actual-native-dlopen-and-close-symbols", "close-wrapper-one-means-success", "actual-recursive-load", "held-function-survives-full-gc", "unreachable-unit-is-not-cache-rooted"],
+      "expected": "Correct native code/relocations/weak unit lifetime; unresolved collection is not silently passed"
+    },
+    {
+      "id": "new-image-native-and-dumped-owners",
+      "kind": "two-process-dump",
+      "fixture": "tools/fixtures/runtime-dump.el",
+      "prepare": "femacs-runtime-dump-prepare",
+      "assert": "femacs-runtime-dump-assert",
+      "profiles": ["native", "collector-major", "collector-young", "native-collector-major", "native-collector-young"],
+      "requires": ["new-image-actually-selected", "native-function-resurrected", "dump-vector-and-cons-to-young", "post-load-initial-major-and-real-minors"],
+      "expected": "Fresh second process confirms pdumper-stats image identity and actual profile observations"
+    },
+    {
+      "id": "native-package-relocation",
+      "kind": "owned-relocation",
+      "products": ["terminal", "cocoa"],
+      "profiles": ["native", "native-collector"],
+      "requires": ["copied-backend-dependency-dag", "relative-loader-ids", "licenses", "strict-signatures", "actual-compile-and-load-with-original-build-backend-cache-unavailable"],
+      "expected": "Editing/load and on-device compilation prerequisites are reported separately; missing resources remain failures"
+    },
+    {
+      "id": "stable-product-workflows",
+      "kind": "reused-affected-workflows",
+      "requires": ["terminal-keys-files-tty", "cocoa-keys-files-ime", "manuals-resources", "external-finder-drop", "multiwindow-ime"],
+      "expected": "Reuse only unaffected current identities; locked/unexecuted native workflows stay open"
+    },
+    {
+      "id": "seven-workload-paired-performance",
+      "kind": "performance",
+      "fixture": "tools/fixtures/runtime-profile.el",
+      "requires": ["stable-reference", "same-execution-mode", "same-layout-major-young", "observer-off-on-separation", "all-raw-rounds", "memory-pause-latency", "quiet-host", "uncertainty"],
+      "expected": "Reliable positive gain with no unresolved correctness/important regression; no arbitrary percent threshold"
+    },
+    {
+      "id": "final-source-product-and-delivery",
+      "kind": "closeout",
+      "requires": ["all-required-case-identities", "no-unresolved-failure", "independent-frozen-review", "current-usable-macos-app", "owned-cleanup-reports", "signed-commit-and-remote-receipt"],
+      "expected": "Whole Goal remains active until every actual required outcome is proven"
+    }
+  ]
+}

@@ -61,6 +61,8 @@ include!("include/intervals.rs");              // C 26: `#include "intervals.h"`
 include!("include/character.rs");              // C 27: `#include "character.h"`
 include!("include/itree.rs");                 // buffer.h 35: `#include "itree.h"`
 include!("include/buffer.rs");                 // C 28: `#include "buffer.h"`
+#[cfg(feature = "have_tree_sitter")]
+include!("include/treesit.rs"); // P430 shared parser/edit/GC ABI.
 include!("include/window.rs");                 // C 29: `#include "window.h"`
 include!("include/dispextern.rs");            // window.h 23: `#include "dispextern.h"`,
                                                // for window.rs 159 `text_cursor_kinds`
@@ -806,8 +808,8 @@ pub unsafe extern "C" fn insert_1_both (string: *const c_char,
   if NILP (BVAR! ((current_buffer! ()), enable_multibyte_characters_))
     { nchars = nbytes; }
 
-  /* C 901-904's `#ifdef HAVE_TREE_SITTER` arm is dead in the frozen configuration and is
-     recorded in docs/ports/insdel.md rather than transcribed (P-08).  */
+  #[cfg(feature = "have_tree_sitter")]
+  let start_linecol = treesit_linecol_maybe(PT!(), PT_BYTE!(), BUF_TS_LINECOL_POINT(current_buffer!()));
 
   if prepare
     /* Do this before moving and increasing the gap,
@@ -857,8 +859,9 @@ pub unsafe extern "C" fn insert_1_both (string: *const c_char,
     { set_text_properties (make_fixnum (PT! ()), make_fixnum (PT! () + nchars),
 			   Qnil (), Qnil (), Qnil ()); }
 
-  /* C 958-963's `#ifdef HAVE_TREE_SITTER` arm is dead in the frozen configuration and is
-     recorded in docs/ports/insdel.md rather than transcribed (P-08).  */
+  #[cfg(feature = "have_tree_sitter")]
+  { eassert!(nbytes >= 0); eassert!(PT_BYTE!() >= 0);
+    treesit_record_change(PT_BYTE!(), PT_BYTE!(), PT_BYTE!()+nbytes, start_linecol, start_linecol, PT!()+nchars); }
 
   adjust_point (nchars, nbytes);
 
@@ -929,8 +932,8 @@ unsafe fn insert_from_string_1 (string: Lisp_Object, pos: ptrdiff_t, pos_byte: p
   else if ! STRING_MULTIBYTE (string)
     { outgoing_nbytes = count_size_as_multibyte (SDATA (string).offset (pos_byte), nbytes); }
 
-  /* C 1035-1038's `#ifdef HAVE_TREE_SITTER` arm is dead in the frozen configuration and is
-     recorded in docs/ports/insdel.md rather than transcribed (P-08).  */
+  #[cfg(feature = "have_tree_sitter")]
+  let start_linecol = treesit_linecol_maybe(PT!(), PT_BYTE!(), BUF_TS_LINECOL_POINT(current_buffer!()));
 
   /* Do this before moving and increasing the gap,
      because the before-change hooks might move the gap
@@ -985,8 +988,9 @@ unsafe fn insert_from_string_1 (string: Lisp_Object, pos: ptrdiff_t, pos_byte: p
   graft_intervals_into_buffer (intervals, PT! (), nchars,
 			       (current_buffer! ()), inherit);
 
-  /* C 1102-1107's `#ifdef HAVE_TREE_SITTER` arm is dead in the frozen configuration and is
-     recorded in docs/ports/insdel.md rather than transcribed (P-08).  */
+  #[cfg(feature = "have_tree_sitter")]
+  { eassert!(nbytes >= 0); eassert!(PT_BYTE!() >= 0);
+    treesit_record_change(PT_BYTE!(), PT_BYTE!(), PT_BYTE!()+nbytes, start_linecol, start_linecol, PT!()+nchars); }
 
   adjust_point (nchars, outgoing_nbytes);
 
@@ -1008,8 +1012,10 @@ pub unsafe extern "C" fn insert_from_gap_1 (nchars: ptrdiff_t, nbytes: ptrdiff_t
   eassert! (if NILP (BVAR! ((current_buffer! ()), enable_multibyte_characters_))
             { nchars == nbytes } else { nchars <= nbytes });
 
-  /* C 1128-1132's `#ifdef HAVE_TREE_SITTER` arm is dead in the frozen configuration and is
-     recorded in docs/ports/insdel.md rather than transcribed (P-08).  */
+  #[cfg(feature = "have_tree_sitter")]
+  let ins_bytepos = GPT_BYTE!();
+  #[cfg(feature = "have_tree_sitter")]
+  let start_linecol = treesit_linecol_maybe(GPT!(), GPT_BYTE!(), BUF_TS_LINECOL_POINT(current_buffer!()));
 
   GAP_SIZE! () -= nbytes;
   if ! text_at_gap_tail
@@ -1026,8 +1032,9 @@ pub unsafe extern "C" fn insert_from_gap_1 (nchars: ptrdiff_t, nbytes: ptrdiff_t
   if GAP_SIZE! () > 0 { *GPT_ADDR! () = 0; }
   eassert! (GPT! () <= GPT_BYTE! ());
 
-  /* C 1150-1155's `#ifdef HAVE_TREE_SITTER` arm is dead in the frozen configuration and is
-     recorded in docs/ports/insdel.md rather than transcribed (P-08).  */
+  #[cfg(feature = "have_tree_sitter")]
+  { eassert!(nbytes >= 0); eassert!(ins_bytepos >= 0);
+    treesit_record_change(ins_bytepos, ins_bytepos, ins_bytepos+nbytes, start_linecol, start_linecol, ins_bytepos+nbytes); }
 }
 
 /* Insert a sequence of NCHARS chars which occupy NBYTES bytes
@@ -1090,15 +1097,18 @@ pub unsafe extern "C" fn insert_from_buffer (buf: *mut buffer,
 {
   let opoint: ptrdiff_t = PT! ();
 
-  /* C 1216-1220's `#ifdef HAVE_TREE_SITTER` arm is dead in the frozen configuration and is
-     recorded in docs/ports/insdel.md rather than transcribed (P-08).  */
+  #[cfg(feature = "have_tree_sitter")]
+  let obyte = PT_BYTE!();
+  #[cfg(feature = "have_tree_sitter")]
+  let start_linecol = treesit_linecol_maybe(opoint, obyte, BUF_TS_LINECOL_POINT(current_buffer!()));
 
   insert_from_buffer_1 (buf, charpos, nchars, inherit);
   signal_after_change (opoint, 0, PT! () - opoint);
   update_compositions (opoint, PT! (), CHECK_BORDER);
 
-  /* C 1227-1233's `#ifdef HAVE_TREE_SITTER` arm is dead in the frozen configuration and is
-     recorded in docs/ports/insdel.md rather than transcribed (P-08).  */
+  #[cfg(feature = "have_tree_sitter")]
+  { eassert!(PT_BYTE!() >= BEG_BYTE as ptrdiff_t); eassert!(obyte >= BEG_BYTE as ptrdiff_t); eassert!(PT_BYTE!() >= obyte);
+    treesit_record_change(obyte, obyte, PT_BYTE!(), start_linecol, start_linecol, PT!()); }
 }
 
 /* NOTE: If we ever make insert_from_buffer_1 public, make sure to
@@ -1382,8 +1392,10 @@ pub unsafe extern "C" fn replace_range (from: ptrdiff_t, to: ptrdiff_t, new: Lis
   if nbytes_del <= 0 && inschars == 0
     { return; }
 
-  /* C 1524-1530's `#ifdef HAVE_TREE_SITTER` arm is dead in the frozen configuration and is
-     recorded in docs/ports/insdel.md rather than transcribed (P-08).  */
+  #[cfg(feature = "have_tree_sitter")]
+  let start_linecol = treesit_linecol_maybe(from, from_byte, BUF_TS_LINECOL_POINT(current_buffer!()));
+  #[cfg(feature = "have_tree_sitter")]
+  let old_end_linecol = treesit_linecol_maybe(to, to_byte, BUF_TS_LINECOL_POINT(current_buffer!()));
 
   let mut insbeg_bytes: ptrdiff_t; let mut insend_bytes: ptrdiff_t;
   let mut insbytes: ptrdiff_t;
@@ -1511,8 +1523,9 @@ pub unsafe extern "C" fn replace_range (from: ptrdiff_t, to: ptrdiff_t, new: Lis
   graft_intervals_into_buffer (intervals, from, inschars,
 			       (current_buffer! ()), inherit);
 
-  /* C 1669-1675's `#ifdef HAVE_TREE_SITTER` arm is dead in the frozen configuration and is
-     recorded in docs/ports/insdel.md rather than transcribed (P-08).  */
+  #[cfg(feature = "have_tree_sitter")]
+  { eassert!(to_byte >= from_byte); eassert!(outgoing_insbytes >= 0); eassert!(from_byte >= 0);
+    treesit_record_change(from_byte, to_byte, from_byte+outgoing_insbytes, start_linecol, old_end_linecol, from+inschars); }
 
   /* Relocate point as if it were a marker.  */
   if from < PT! ()
@@ -1843,8 +1856,10 @@ pub unsafe extern "C" fn del_range_2 (from: ptrdiff_t, from_byte: ptrdiff_t,
   nchars_del = to - from;
   nbytes_del = to_byte - from_byte;
 
-  /* C 2002-2008's `#ifdef HAVE_TREE_SITTER` arm is dead in the frozen configuration and is
-     recorded in docs/ports/insdel.md rather than transcribed (P-08).  */
+  #[cfg(feature = "have_tree_sitter")]
+  let start_linecol = treesit_linecol_maybe(from, from_byte, BUF_TS_LINECOL_POINT(current_buffer!()));
+  #[cfg(feature = "have_tree_sitter")]
+  let old_end_linecol = treesit_linecol_maybe(to, to_byte, BUF_TS_LINECOL_POINT(current_buffer!()));
 
   /* Make sure the gap is somewhere in or next to what we are deleting.  */
   if from > GPT! ()
@@ -1899,8 +1914,9 @@ pub unsafe extern "C" fn del_range_2 (from: ptrdiff_t, from_byte: ptrdiff_t,
 
   check_markers! ();
 
-  /* C 2067-2071's `#ifdef HAVE_TREE_SITTER` arm is dead in the frozen configuration and is
-     recorded in docs/ports/insdel.md rather than transcribed (P-08).  */
+  #[cfg(feature = "have_tree_sitter")]
+  { eassert!(from_byte <= to_byte); eassert!(from_byte >= 0);
+    treesit_record_change(from_byte, to_byte, from_byte, start_linecol, old_end_linecol, from); }
 
   return deletion;
 }

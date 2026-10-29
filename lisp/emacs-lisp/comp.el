@@ -47,6 +47,7 @@
 (declare-function comp--compile-ctxt-to-file0 "comp.c")
 (declare-function comp--init-ctxt "comp.c")
 (declare-function comp--release-ctxt "comp.c")
+(declare-function comp--call-with-ctxt "comp.c" (callback))
 (declare-function comp-el-to-eln-filename "comp.c")
 (declare-function comp-el-to-eln-rel-filename "comp.c")
 (declare-function native-elisp-load "comp.c")
@@ -3328,10 +3329,11 @@ Prepare every function for final compilation and drive the C back-end."
     (comp--compile-ctxt-to-file0 name)))
 
 (defun comp--final1 ()
-  (comp--init-ctxt)
-  (unwind-protect
-      (comp--compile-ctxt-to-file (comp-ctxt-output comp-ctxt))
-    (comp--release-ctxt)))
+  (comp--call-with-ctxt
+   (lambda ()
+     (unwind-protect
+         (comp--compile-ctxt-to-file (comp-ctxt-output comp-ctxt))
+       (comp--release-ctxt)))))
 
 (defvar comp-async-compilation nil
   "Non-nil while executing an asynchronous native compilation.")

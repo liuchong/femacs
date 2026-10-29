@@ -15,6 +15,15 @@
 // process.h 20: the include guard has no Rust counterpart (PORTING.md 0.1).
 pub const EMACS_PROCESS_H: bool = true;
 
+// The historical offsets below describe the disabled-TLS layout. Enabling TLS
+// inserts its traced fields and native tail in the original positions.
+#[cfg(feature = "have_gnutls")]
+pub mod process_gnutls_types {
+  include!("gnutls-types.rs");
+}
+#[cfg(feature = "have_gnutls")]
+use process_gnutls_types::*;
+
 // process.h 37: C spells it as an anonymous enum, so the port declares the same constant.
 pub const PROCESS_OPEN_FDS: c_int = 6;
 
@@ -63,6 +72,10 @@ pub struct Lisp_Process
   pub encoding_buf: Lisp_Object,
   /* Queue for storing waiting writes.  */
   pub write_queue: Lisp_Object,
+  #[cfg(feature = "have_gnutls")]
+  pub gnutls_cred_type: Lisp_Object,
+  #[cfg(feature = "have_gnutls")]
+  pub gnutls_boot_parameters: Lisp_Object,
   /* Pipe process attached to the standard error of this process.  */
   pub stderrproc: Lisp_Object,
   /* The thread a process is linked to, or nil for any thread.  */
@@ -101,6 +114,48 @@ pub struct Lisp_Process
   pub backlog: c_int,                                   // 187
   pub port: c_int,                                      // 188
   pub socktype: c_int,                                  // 189
+  #[cfg(feature = "have_gnutls")]
+  pub gnutls_initstage: gnutls_initstage_t,
+  #[cfg(feature = "have_gnutls")]
+  pub gnutls_state: gnutls_session_t,
+  #[cfg(feature = "have_gnutls")]
+  pub gnutls_x509_cred: gnutls_certificate_client_credentials,
+  #[cfg(feature = "have_gnutls")]
+  pub gnutls_anon_cred: gnutls_anon_client_credentials_t,
+  #[cfg(feature = "have_gnutls")]
+  pub gnutls_certificates: *mut gnutls_x509_crt_t,
+  #[cfg(feature = "have_gnutls")]
+  pub gnutls_certificates_length: c_int,
+  #[cfg(feature = "have_gnutls")]
+  pub gnutls_peer_verification: c_uint,
+  #[cfg(feature = "have_gnutls")]
+  pub gnutls_extra_peer_verification: c_uint,
+  #[cfg(feature = "have_gnutls")]
+  pub gnutls_log_level: c_int,
+  #[cfg(feature = "have_gnutls")]
+  pub gnutls_handshakes_tried: c_int,
+  #[cfg(feature = "have_gnutls")]
+  pub gnutls_bits: u32,
+}
+
+#[cfg(feature = "have_gnutls")]
+impl Lisp_Process {
+  #[inline(always)]
+  pub fn is_non_blocking_client(&self) -> bool {
+    self.bits2 & (1 << PROCESS_IS_NON_BLOCKING_CLIENT_SHIFT) != 0
+  }
+  #[inline(always)]
+  pub fn gnutls_p(&self) -> bool { self.gnutls_bits & 1 != 0 }
+  #[inline(always)]
+  pub fn set_gnutls_p(&mut self, value: bool) {
+    self.gnutls_bits = (self.gnutls_bits & !1) | u32::from(value);
+  }
+  #[inline(always)]
+  pub fn gnutls_complete_negotiation_p(&self) -> bool { self.gnutls_bits & 2 != 0 }
+  #[inline(always)]
+  pub fn set_gnutls_complete_negotiation_p(&mut self, value: bool) {
+    self.gnutls_bits = (self.gnutls_bits & !2) | (u32::from(value) << 1);
+  }
 }
 
 // The two bitfield units' members, named the way `glyph_slice`'s are (PORTING.md 1.3).  C
@@ -137,6 +192,12 @@ pub fn pset_childp (p: *mut Lisp_Process, val: Lisp_Object) { unsafe { (*p).chil
 
 #[inline(always)]
 pub fn pset_status (p: *mut Lisp_Process, val: Lisp_Object) { unsafe { (*p).status = val; } }
+
+#[cfg(feature = "have_gnutls")]
+#[inline(always)]
+pub fn pset_gnutls_cred_type(p: *mut Lisp_Process, val: Lisp_Object) {
+  unsafe { (*p).gnutls_cred_type = val; }
+}
 
 /* process.h 263-268: the two objects C's `src/process.c` defines (C 161 and C 7674).  They
    sit in `pub mod process_objs` + glob import so the unit's definitions shadow the

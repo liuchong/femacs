@@ -15,9 +15,8 @@ The restored flow connects edits, narrowing and indirect buffers to line/column
 caches, incremental parse edits and timestamps; actual native trees are exposed
 through rooted parser/node/query objects. Query native handles are nulled in
 portable images and reconstructed lazily. GC, printing, node equality and
-buffer lifecycle consumers share the same object declarations. The working-source
-CLN132 draft records the removed development-only cache and duplicate
-declarations; it remains pending with the prerequisite source group.
+buffer lifecycle consumers share the same object declarations. CLN132 records the removed development-only cache and duplicate
+declarations, with exact original block identities and restoration bounds.
 
 Both macOS configurations enable the feature. The independently installed
 Tree-sitter 0.27.1 SDK is pinned by exact API header and package version, with
@@ -109,10 +108,11 @@ checks and accepted this limited implementation and observed product evidence,
 with no concrete source failure found in that scope. The review took 301.815
 seconds, peaked at 2506342400 accounted bytes and fully reclaimed its processes.
 One trailing-whitespace-only source cleanup followed the review; no behavior,
-assertion or bound product changed. Coherent prerequisite source delivery remains
-pending. The tested workspace includes native/runtime, TLS, LCMS and
-owned-copy work not yet independently committed. Do not publish a half-wired
-feature commit omitting those modules. No clean-checkout, relocation, standalone
+assertion or bound product changed. The component and complete prerequisite runtime/TLS/LCMS/owned-copy sources
+form the experimental foundation group documented in
+[the foundation report](2026-10-29-runtime-foundation.md). It also has a separate
+exact proposed-tree baseline build and limited acceptance; no half-wired
+Tree-sitter-only implementation is published. No clean-checkout, relocation, standalone
 SDK absence, physical GUI, other platform, performance or full G3 claim is made.
 P427 terminal checking EBADF, the remote Base64 issue, the original compiler
 metadata comparison failures, G1/G2 completion and native/GC work remain open.
@@ -120,4 +120,5 @@ The seven-part Goal remains active at 1/7.
 
 Consumed compiler copies were retired with source/product identities preserved;
 see [CLN133](../cleanup/reports/2026-10-29-133-consumed-treesit-compiler-copies.md).
-Coherent prerequisite implementation delivery remains pending.
+The complete experimental source-group boundary is recorded in the foundation
+report; full Goal acceptance remains open.

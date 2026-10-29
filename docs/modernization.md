@@ -59,6 +59,15 @@ functional-only closeout decisions do not close this current Goal.
 | G6 | Evidence-based interpreter/compiler and native/AOT/JIT work | The rejected shared-tail dispatcher stays rejected unless new evidence addresses its real limitation. Compare actual existing native integration and modern backend options; design runtime ABI, roots/safepoints, unwind, fallback, cache/code lifetime and redefinition before implementation. | A source-bound design and real-editor prototype/implementation with semantic and compatibility tests, startup/compile latency, steady-state speed and memory comparisons. Retain a candidate only for reliable benefit without unresolved correctness/important regression; preserve the working baseline. A rejected candidate is a documented experiment, not a shipped native/JIT feature. |
 | G7 | Evidence-based collector modernization, including a generational candidate | Inventory all roots and stores, FFI/interior pointers, conservative roots, pdump objects, weak tables/finalizers and existing string compaction. Use Java/Go designs as technical references, not proof that their collector is directly reusable. | Precise chosen root/barrier/remembered-set/ownership design, real VM candidate and differential/stress/retention/pause tests, measurable tradeoffs and safe baseline fallback. If a candidate is rejected, preserve proof and recovery; do not claim a generational/moving GC shipped. |
 
+Current G3 source connection (2026-10-27, P-387/P-389): module/thread target
+configuration, startup and NS/JNI lifecycle, module GC/interactive forms and
+independently generated public ABI/package headers are written in ROOT. The
+paired design discussion found a real stale-feature override, now corrected;
+actual target ABI and original stable module/thread integration are the next
+required acceptance. This is uncompiled implementation, not a G3 delivery or a
+reduction of other feature obligations. The existing D24 cohort lacks these
+changes and cannot certify them. Keep GC3/GA3 open.
+
 G1/G2/G3 form the current **stable-delivery stage**. G4 is the following **cleanup/renovation stage**. G5/G6/G7 form the subsequent **Lisp runtime stage**, with prerequisite measurement/design preceding dependent implementation. These are the user's previously specified stages, not per-file test slices. Each stage now follows complete production implementation -> complete integration/functional acceptance -> key protective unit tests, with independent review under the existing pair agreement. Earlier A/B/C/D labels below describe preserved historical construction/evidence, not a test-first prerequisite for new work. Existing valid implementation/cases/evidence are reused. No new numeric speed target, backend default, platform removal or paid resource budget is invented.
 
 Research items G6/G7 require an actual source-bound prototype and measured adoption/rejection decision; a literature summary alone is incomplete. Useful verified changes are integrated, and unsuccessful candidates are removed with a traceable report. A research decision and an enabled feature are separate statuses. Required editor/build/compatibility outcomes cannot be waived because an optimization fails. Completion of one stage does not complete the entire Goal.
@@ -238,10 +247,21 @@ Final independent review found no blocking product defect, but identified weaker
 - [ ] GC3: consolidate G1/G2/G3 real acceptance and independent review; fix the collected failures and deliver the stable products.
 - [x] GC4: finish G4 full dependency/support/replacement design and all cleanup/renovation cases, then implement all approved changes.
 - [x] GC5: consolidate G4 affected acceptance, recovery evidence, independent review and signed delivery; implementation5118ed08 and the delivery audit retain the precise product/test limits.
-- [ ] GC6: finish G5/G6/G7 source/research/measurement designs and all cases without running the new experiments; bind the installed stable comparator, complete compatibility scope and predeclared performance/uncertainty metrics; retain existing factual measurements.
-- [ ] GC7: implement complete instrumentation, chosen compiler/interpreter/native candidate and chosen collector candidate with baseline fallback.
+- [x] GC6: finish G5/G6/G7 source/research/measurement designs and all cases without running the new experiments; bind the installed stable comparator, complete compatibility scope and predeclared performance/uncertainty metrics. A source contract and B case sources are written, including the original stable corpus, real native lifetime/dump/negative controls, observer error/GC paths, collector vectors and whole-product accounting. This is writing completion only: no runtime-stage compiler, test or performance result. Proceed to complete C; retain existing factual measurements.
+- [x] GC7: complete source implementation of instrumentation, chosen compiler/interpreter/native candidate and chosen collector candidate with baseline fallback. Runtime C source is complete; full-product build, correctness, compatibility, performance and adoption remain GC8/D acceptance.
 - [ ] GC8: run consolidated runtime-stage compatibility/stress/performance experiments, collect failures and make measured adoption/rejection decisions; integrate accepted outcomes and archive withdrawn work.
 - [ ] GC9: complete final local product acceptance, documentation, per-batch cleanup reports, independent review, signed commits and immediate push; audit all seven acceptance items before completing the Goal.
+
+### Current integration repairs after the frozen build
+
+Preserve completed and failed immutable product/orchestration snapshots. The following collected
+repairs belong to the existing Goal and must be complete before their affected
+acceptance and delivery; none changes the product/corpus acceptance scope.
+
+- [ ] Accept ordinary fresh-build profile creation with the same complete resource layout used by explicit recovery, including native libraries and licenses. The production mapping is implemented; full new Cocoa product/loader acceptance remains pending.
+- [ ] Capture complete product/resource identities around the whole execution, including the subsequent stable corpus, and reject mutations. Whole-loop root snapshots and final canonical complete receipt/resource revalidation are implemented, including generated config and Cocoa outer-bundle metadata at both boundaries. Actual full-product execution and finalizer validation remain pending. Failures and receipt hashes must remain visible; this metadata-only correction does not require product recompilation.
+- [ ] After the first Cocoa configuration's confirmed two-leg failure, complete P-362 and P-363: restore the missing native/window-system display dependency, certify any reuse of unaffected terminal products without changing their source identities, and build the Cocoa cohort from the repaired immutable source. P-362 has four actual source-bound compiler successes; P-363/P-364 acquisition and reuse integration passes9/9. D15 then crosses Rust/Swift compilation but fails both legs before linking because Cocoa objects escape the selected output. P-365 fixes the private Cocoa object directory and two callers; six affected real source/reuse/rejection checks pass. D16 then actually links both Cocoa legs but bootstrap GC aborts during native ABI hashing. P-366 supplies the selected native Swift define and missing frame-functions builtin-record tail; eight affected real source/export/reuse/rejection cases pass. The three actual old Swift record size/stride values are56, while selected native Rust requires the four trailing fields. D17 ordinary full product and three actual88-byte layouts pass, but checking bootstrap reveals the copied-object ordering failure. P-367 identifies the exact builtin function field/Swift subr; P-368 changes only Cocoa sorting to put primitive referents first, retaining the strict dump assertion. Actual repaired checked bootstrap dump/reload passes the affected primitive bindings, evaluation and one fullGC; exact terminal-inactive source/reuse integration is5/5 and independent source/result adoption is closed. D18 first combined Cocoa ordinary/checking products and both68-manual sets now pass; the matrix is11/20 configurations with35/61 profiles. Bounded dumper repair227d1ae8 is signed/pushed. D18 then collects a real non-native baseline parser failure on the canonical string "undefined" in both legs. P-369 accepts this exact disabled token and preserves other errors, with an exact positive-native source/product reuse certificate. Source/reuse integration is8/8 across6 unchanged passes and2 corrected fixture reruns; independent review and actual disabled-parser/Swift/product acceptance remain. Remaining Cocoa configurations and full runtime semantic/native/GC/compatibility/performance acceptance remain. Preserve all actual failures and reject unrelated source changes.
+- [ ] Complete P-361 source-cache acquisition/materializer/export integration and ignore policy. Acquisition, materializer/CLI consumption, export-input binding/caller and exact raw-overlay ignore rule are written. The old frozen product source remains unchanged; root orchestration changes followed its controller's terminal exit and complete process cleanup. Actual functional2 acquisition/materialization/export integration passes9/9, including a new working tree missing96overlays and using the fixed public archive without the reference checkout. A committed fresh-clone/fullbuild pass is still pending. Keep all1536 original inputs/693 Lisp files and identities; perform independent review and a documented recoverable cleanup before removing any current overlay payload. Do not infer an exception to the absolute-path submission rule.
 
 ### Acceptance checklist (mark only from actual evidence)
 
@@ -261,7 +281,7 @@ Lock/permission/toolchain/policy questions block only dependent work. Continue i
 ```text
 /goal 持续完成 femacs 的七项现代化工作，以 docs/modernization.md 的 Persistent Goal 为唯一当前计划：G1修复并验收macOS终端/图形界面、真实外部拖放、多窗口输入法与异常TTY；G2保证干净拉取后独立生成、构建和运行；G3补齐有明确范围的兼容性与最新稳定版语言行为验证；G4完成旧工具、过时基础设施和设备兼容的规划清理翻新；G5取得真实Lisp/GC性能、分配存活和停顿画像；G6完成解释器/编译器优化及真实native/AOT/JIT候选；G7完成真实分代GC等回收优化候选的设计实现和验证。
 
-起点为971cf90d，macOS双产品已独立构建、30组代表性兼容观测一致；已完成结果复用，未完成项不继承为通过。先稳定交付，再清理翻新，最后运行时优化。每个用户已定义阶段严格执行全部设计→全用例编写但不运行→全部实现→最后集中整合、测试、独立审核与验收。按GC0–GC9施工、GA1–GA8验收维护同一清单；未来候选必须先补齐真实源码绑定的精确设计，不能只做文案或玩具测试。
+起点为971cf90d，macOS双产品已独立构建、30组代表性兼容观测一致；已完成结果复用，未完成项不继承为通过。先稳定交付，再清理翻新，最后运行时优化。按用户现行R39，每个完整阶段先写齐业务实现，再完整编写集成/功能验收并集中运行通过，最后补关键保护性单测；真实源码绑定的设计先准备。历史A/B/C/D记录保留原执行事实，不再要求测试源码先于业务实现。按GC0–GC9施工、GA1–GA8验收维护同一清单；未来候选必须有真实源码绑定的精确设计，不能只做文案或玩具测试。
 
 保留可观察Lisp语义、求值/错误/GC/异常行为、数据及兼容接口；原只读参照不是构建依赖；构建和高风险运行受当前controlled-run保护，禁止远端CI和Fast mode。继续既有结对：我主开发、搭档独立测试审核，双方验证并反驳不成立的说法，不创建子agent。每批删除/撤回/缓存清理先留逐项身份、原因、替代和恢复证据，提交maintenance/cleanup报告并更新日志。完整语义单元验证后签名提交并立即推送。
 
@@ -616,9 +636,31 @@ Private raw evidence: `build/acceptance/stage4-final-baseline`, `stage4-profile-
 Final path/prose review removed three CLI help wording violations and replaced a literal profiling cwd with its isolated owned HOME. Affected profile rerun retained42+7 samples, stable13 artifact identities and cleanup success; quiet=false at load/core1.0180, recorded separately in `runtime-modernization.md`. No GUI/ERT rerun was implied by those text/cwd changes. Prose gate then reports zero failures; final component CLI7/7, cleanup identities/links and recovery4/4 pass. Staged path candidates were semantically reviewed (dynamic historical placeholders, prose/API notation, relative joins and interpreter directives), with private machine/session identifiers excluded.
 
 
+Current R39 runtime acceptance order (P-372): complete all declared business
+implementation, then use the completed frozen matrix for `runtime-stage.py`
+`prepare` (native functional fixtures only), `execute` (all actual functional/
+compatibility/native/GC/performance gates), and finally `components`
+(protective component/accounting/xtask cases). Build/prepare/components use
+build protection; execute uses runtime protection. Do not run the former
+components action merely to obtain native fixtures or rebuild those fixtures
+after functional acceptance. Existing valid results and failures stay bound
+to their actual source/product/coordinator identities. The active D20 frozen
+product source is not edited by this orchestration correction.
+
+
 ### 每轮构建与验收后的清理出口（2026-10-26）
 
 本目标后续每轮运行结束后，先确认归属进程退出并提取最小日志、失败原因、输入/产品身份和回执，再立即清理已无消费者的编译缓存、生成副本及被取代候选。需要继续验收或恢复的候选保留到用途结束；独有未提交源和真实失败证据不能当作缓存。源导出仅含声明输入，不能顺带复制旧build/cache/dist树；不以压缩保存全部旧缓存替代清理。每批仍提交独立报告/逐项身份、更新台账和本地占用读数，保留当前WIP，不触发远端CI。本次执行记录见[CLN-20261026-32至35](../maintenance/cleanup/LOG.md)。
+
+
+Runtime next action (P-374): preserve original D20 failure and recovered old
+identities, finish exact source checks at every action boundary and the
+per-run completed-leg preservation handshake, then freeze a new corrected
+source for all20 configurations/61 profiles. Reuse installed reference and
+unchanged toolchain inputs; do not carry old products across P-373. Functional
+fixture preparation follows the passed new build, then full functional/
+stable/native/GC/performance execution, then protective components. Current
+source changes are not accepted by old-source reconstruction.
 
 
 ### P405/P406 当前接续（2026-10-28）

@@ -151,6 +151,7 @@ pub type sys_mutex_t = pthread_mutex_t;
 #[cfg (all (feature = "threads_enabled", feature = "have_pthread",
             not (feature = "alignof_pthread_mutex_t_le_alignof_max_align_t")))]
 #[repr (C)]
+#[derive (Copy, Clone)]
 pub union Systhread_align_room_mutex_t {
   pub i: f64,
   pub room: [c_char; core::mem::size_of::<pthread_mutex_t> ()
@@ -166,6 +167,7 @@ pub type sys_cond_t = pthread_cond_t;
 #[cfg (all (feature = "threads_enabled", feature = "have_pthread",
             not (feature = "alignof_pthread_cond_t_le_alignof_max_align_t")))]
 #[repr (C)]
+#[derive (Copy, Clone)]
 pub union Systhread_align_room_cond_t {
   pub i: f64,
   pub room: [c_char; core::mem::size_of::<pthread_cond_t> ()

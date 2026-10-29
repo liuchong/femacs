@@ -1,0 +1,206 @@
+{
+  "id": "CLN-20261027-72",
+  "source_ref": "1af56bb8d778ee1588d5d43c9270ae2e6d43892d",
+  "role": "declaration-move; no file or cache deletion",
+  "original_files": {
+    "src/gnutls.rs": {
+      "sha256": "5284af8fafe7725025fd742ddde5d1bfb0bb8c6bb4a0919c2d5ac17bee62ed85",
+      "bytes": 106462,
+      "git_blob": "e6b36af4a93aa80770ab8a281d2680748cc2aeb4"
+    },
+    "src/include/gnutls.rs": {
+      "sha256": "b947e1ec9ef6a6c5268306ae1b19e1beae60de7607dc830d111e02d0c3160f2d",
+      "bytes": 1352,
+      "git_blob": "cf1be6170862cb4b5c2c147e55b0d67de558b0a7"
+    },
+    "src/process.rs": {
+      "sha256": "1e3f38144af1f33068efe0612d1b3e04de7c814924d7f38042466ef098509bf1",
+      "bytes": 371939,
+      "git_blob": "eaed766b73043f253c3954f450643dee8270a0a1"
+    },
+    "src/include/process.rs": {
+      "sha256": "4c221eb925fde649eeb3e507df93d875d2c7c4bd39d4d6231c30b56974448537",
+      "bytes": 11789,
+      "git_blob": "f0968841ca23393522fa508c368c0e315867f2d7"
+    }
+  },
+  "moved_definitions": [
+    {
+      "name": "gnutls_session_int",
+      "source": "src/gnutls.rs",
+      "destination": "src/include/gnutls-types.rs",
+      "removed_sha256": "a31016a5caafe299ea1a27664cc1b2a381090616367739d9fa06f991ddf84fea"
+    },
+    {
+      "name": "gnutls_session_t",
+      "source": "src/gnutls.rs",
+      "destination": "src/include/gnutls-types.rs",
+      "removed_sha256": "e2cc06a8bdb24b8269b2562fa4b5ff8c9ce0bc10cb84c9c909b4f8eea1b36e37"
+    },
+    {
+      "name": "gnutls_x509_crt_int",
+      "source": "src/gnutls.rs",
+      "destination": "src/include/gnutls-types.rs",
+      "removed_sha256": "4125ffe317957504d11409ee023ae4b219b4f7d3160336b691ad601fbe47e467"
+    },
+    {
+      "name": "gnutls_x509_crt_t",
+      "source": "src/gnutls.rs",
+      "destination": "src/include/gnutls-types.rs",
+      "removed_sha256": "fd99f95a741939540c12c5fd9aa9bd8043c134829f6416eccdc168ce6e80f5a1"
+    },
+    {
+      "name": "gnutls_certificate_credentials_st",
+      "source": "src/gnutls.rs",
+      "destination": "src/include/gnutls-types.rs",
+      "removed_sha256": "ba3429de3aef0a673a860a7132a220360a2bc1971e83b7139c3d1decea94de30"
+    },
+    {
+      "name": "gnutls_certificate_credentials_t",
+      "source": "src/gnutls.rs",
+      "destination": "src/include/gnutls-types.rs",
+      "removed_sha256": "d452a48f0307cd137f841e88343fef7e2b6afca37bc7b36ebb22734cd5ffe548"
+    },
+    {
+      "name": "gnutls_certificate_client_credentials",
+      "source": "src/gnutls.rs",
+      "destination": "src/include/gnutls-types.rs",
+      "removed_sha256": "460b65ad9f0ab15741b17f9f7e2e1cf359eac8d514c7bb8da0e1e8f8c806c044"
+    },
+    {
+      "name": "gnutls_anon_client_credentials_st",
+      "source": "src/gnutls.rs",
+      "destination": "src/include/gnutls-types.rs",
+      "removed_sha256": "86c61fe91850951dc6b21090f568dbb9033c652c25c9236b1a56e4ce4cc44e89"
+    },
+    {
+      "name": "gnutls_anon_client_credentials_t",
+      "source": "src/gnutls.rs",
+      "destination": "src/include/gnutls-types.rs",
+      "removed_sha256": "d2cf8bb64591344793177fd8fa5de5d500f8f33cc42d6742b5149df366f65bc8"
+    },
+    {
+      "name": "gnutls_initstage_t",
+      "source": "src/gnutls.rs",
+      "destination": "src/include/gnutls-types.rs",
+      "removed_sha256": "328ae21e6bb2782443cad7186cb3c9f06bef54b5d84a526d6cf06d08d5f6715f"
+    },
+    {
+      "name": "GNUTLS_STAGE_EMPTY",
+      "source": "src/gnutls.rs",
+      "destination": "src/include/gnutls-types.rs",
+      "removed_sha256": "e7c56294fbc373ebef6192a80b8f81bc6c9253d5e6709cc262de207094ebd474"
+    },
+    {
+      "name": "GNUTLS_STAGE_CRED_ALLOC",
+      "source": "src/gnutls.rs",
+      "destination": "src/include/gnutls-types.rs",
+      "removed_sha256": "c1a954bd3e046efebcb5ad261e8bc88f22aca62f80b774828f22a5871a396a06"
+    },
+    {
+      "name": "GNUTLS_STAGE_FILES",
+      "source": "src/gnutls.rs",
+      "destination": "src/include/gnutls-types.rs",
+      "removed_sha256": "8a4c71c53f5c5c371d2496b02f7dd7b0f5f5b5c8a1a635b0a590886760727926"
+    },
+    {
+      "name": "GNUTLS_STAGE_CALLBACKS",
+      "source": "src/gnutls.rs",
+      "destination": "src/include/gnutls-types.rs",
+      "removed_sha256": "247770989d63af98b37aeeda4da84c744d33dc7f23d3fb813cc777ac3bd34fdf"
+    },
+    {
+      "name": "GNUTLS_STAGE_INIT",
+      "source": "src/gnutls.rs",
+      "destination": "src/include/gnutls-types.rs",
+      "removed_sha256": "f16dba6df33172a49e0b87651b49609245bfd0f13587df2e4cd2afb80b1b15a6"
+    },
+    {
+      "name": "GNUTLS_STAGE_PRIORITY",
+      "source": "src/gnutls.rs",
+      "destination": "src/include/gnutls-types.rs",
+      "removed_sha256": "c9085b835ef3ca33b0f8f76a58b3c96dab64872bba04d7b85905e26668c6f165"
+    },
+    {
+      "name": "GNUTLS_STAGE_CRED_SET",
+      "source": "src/gnutls.rs",
+      "destination": "src/include/gnutls-types.rs",
+      "removed_sha256": "5ed0018ad6df7e5d860ade45edff8a694242de99d2f265dae1eca05064b88093"
+    },
+    {
+      "name": "GNUTLS_STAGE_HANDSHAKE_CANDO",
+      "source": "src/gnutls.rs",
+      "destination": "src/include/gnutls-types.rs",
+      "removed_sha256": "a146c64ead93664f5095137a7e03d06e32b552d6ede80399fe20f59abd93123a"
+    },
+    {
+      "name": "GNUTLS_STAGE_TRANSPORT_POINTERS_SET",
+      "source": "src/gnutls.rs",
+      "destination": "src/include/gnutls-types.rs",
+      "removed_sha256": "2dfef1a6b00618780ba523edaf82c874ef47ef9b89618e2973e0cc4645bd4a31"
+    },
+    {
+      "name": "GNUTLS_STAGE_HANDSHAKE_TRIED",
+      "source": "src/gnutls.rs",
+      "destination": "src/include/gnutls-types.rs",
+      "removed_sha256": "02f4733cb0fba94f535b836b1dad911855d6471b762f50d17fa25a8071fb4150"
+    },
+    {
+      "name": "GNUTLS_STAGE_READY",
+      "source": "src/gnutls.rs",
+      "destination": "src/include/gnutls-types.rs",
+      "removed_sha256": "75cc71e3292280be803cb4d9390126681097f455c4e58d45a142e7e26c2db2aa"
+    },
+    {
+      "name": "GNUTLS_EMACS_HANDSHAKES_LIMIT",
+      "source": "src/gnutls.rs",
+      "destination": "src/include/gnutls-types.rs",
+      "removed_sha256": "1102c2bd0013891cf03fa04f2464b66771e96d079568ee2baa6f3d267a00e706"
+    },
+    {
+      "name": "GNUTLS_EMACS_ERROR_NOT_LOADED",
+      "source": "src/gnutls.rs",
+      "destination": "src/include/gnutls-types.rs",
+      "removed_sha256": "ddc22ea1778cd8492a185a40c9108d2eb314bfc179b0fcd4ec7774b27dfba15f"
+    },
+    {
+      "name": "GNUTLS_EMACS_ERROR_INVALID_TYPE",
+      "source": "src/gnutls.rs",
+      "destination": "src/include/gnutls-types.rs",
+      "removed_sha256": "6c8556f4353d14a51dda22ce26595c9208e0483decc98497224f3c3c59f4fff2"
+    },
+    {
+      "name": "GNUTLS_INITSTAGE",
+      "source": "src/gnutls.rs",
+      "destination": "src/include/gnutls.rs",
+      "removed_sha256": "031183d9143d93c3cb461f9de268c6d830e5b9a54cb28dbe03db03c663d90719"
+    }
+  ],
+  "acceptance": "pending with complete TLS implementation",
+  "retired_duplicate_prototypes": [
+    {
+      "name": "emacs_gnutls_read",
+      "source": "src/process.rs",
+      "source_file_sha256": "ff5d07045c3616077ad28e8c23797e90da967f95a30b04d607b842d949a5ebf2",
+      "removed_sha256": "7f694f06a476c9d4f483dd44eb6c2ca361de32d87e6deb26685218fb160ef521",
+      "provider": "src/include/gnutls.rs",
+      "reason": "existing canonical prototype; incorrect local ssize_t declaration shadows ptrdiff_t API"
+    },
+    {
+      "name": "emacs_gnutls_write",
+      "source": "src/process.rs",
+      "source_file_sha256": "ff5d07045c3616077ad28e8c23797e90da967f95a30b04d607b842d949a5ebf2",
+      "removed_sha256": "3d50d61b561e89f3582419e9e5d0fab9f67ad9f0aebdc7cf2e0af4943a45262e",
+      "provider": "src/include/gnutls.rs",
+      "reason": "existing canonical prototype; incorrect local ssize_t declaration shadows ptrdiff_t API"
+    },
+    {
+      "name": "Fgnutls_boot",
+      "source": "src/include/gnutls.rs",
+      "source_file_sha256": "60cbd6a288e43cfa2f6f9ce9ef5c7135346619f24e7022b8ed2d7cffcdd005af",
+      "removed_sha256": "7be0ae7401412c63beba86f947580aabeaac6c812d21291daf8fc6a0873beedb",
+      "provider": "src/include/globals.rs",
+      "reason": "already declared by the generated subr declarations"
+    }
+  ]
+}

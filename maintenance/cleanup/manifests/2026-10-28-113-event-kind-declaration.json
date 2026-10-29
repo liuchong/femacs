@@ -1,0 +1,31 @@
+{
+  "path": "src/kqueue.rs",
+  "change": "replace frozen unit-local event-kind declaration with shared configuration-dependent member",
+  "old_commit": "e41d5d52bb52b19c30ea66258b1491feee05c052",
+  "old_blob": "14a9048163b309d53a6e67f8f02dc73ff59ad862",
+  "before_sha256": "e3b81b8ba9fc7057ace20450ba6e053b58e3063d2bfa5e01f28428b29a51e4ea",
+  "after_sha256": "0aeabde2577dd68e471cf3d89a721f05038536dc82efcb8ad84f5b186a915335",
+  "removed_symbol": "unit-local FILE_NOTIFY_EVENT",
+  "removed_value": 28,
+  "replacement": "src/include/termhooks.rs FILE_NOTIFY_EVENT",
+  "removed_block_sha256": "e65e9a9152e861d43979f798c11bee35e0d57d507081ec1b775304535e3d304b",
+  "restore": "recover only the old declaration block from the Git blob with matching configuration; do not overwrite unrelated changes",
+  "additional_same_file_change": "P418 SDK alignment, required type closure and shared fcntl include corrections recorded in PORTING",
+  "additional_removed_declarations": [
+    {
+      "symbol": "O_NONBLOCK",
+      "block_sha256": "07168fa42980bdd416a043190857a5debb069d212d129684cf11be59c231fc80",
+      "replacement": "lib/include/fcntl.in.rs O_NONBLOCK"
+    },
+    {
+      "symbol": "O_RDONLY",
+      "block_sha256": "12ea6d44125a3fcd628c266a6f68c983cc7b17887c96aa8df15257bbb2a3fac2",
+      "replacement": "lib/include/fcntl.in.rs O_RDONLY"
+    },
+    {
+      "symbol": "O_NOFOLLOW",
+      "block_sha256": "a61a62be1e24e9279eb2ac6f9b8471bcc236c87907014f89f4647bd542189291",
+      "replacement": "lib/include/fcntl.in.rs O_NOFOLLOW"
+    }
+  ]
+}

@@ -1,4 +1,7 @@
 // femacs: port of src/sqlite.c @ fd7afced403.
+// P-400 connects this existing implementation to Darwin system SQLite. The
+// historical disabled-configuration measurements below retain their scope;
+// the newly enabled path still requires actual compilation and acceptance.
 //
 // One-to-one port (PORTING.md P-86 ①): the reference is transcribed line by line in C's order,
 // both arms of every `#if` are carried, and each arm's gate is the lower-case feature of the
@@ -38,7 +41,7 @@
 //
 // `<sqlite3.h>` has no file in the reference tree, so its surface is declared **in this unit** at
 // C 33's `#include` line (P-88 ①) with every item marked by the header line it comes from.  The
-// header **is** on this machine (`/opt/homebrew/opt/sqlite/include/sqlite3.h`, SQLite 3.53.4; the
+// header **is** on this machine (`$(brew --prefix sqlite)/include/sqlite3.h`, SQLite 3.53.4; the
 // Xcode SDK's copy is at `$(xcrun --show-sdk-path)/usr/include/sqlite3.h`), so the opaque pointers
 // and every constant were measured with clang rather than guessed (Evidence ②).
 //
@@ -63,6 +66,12 @@
    ledger's `## C line ranges` records what became of it.  */
 
 include!("include/config.rs");                 // C 25: `#include <config.h>`
+
+// The recorded Windows loader block below is historical text, not an active
+// loader. A future enabled Windows target must connect it before advertising
+// this capability. Darwin resolves the actual system library directly.
+#[cfg(all(feature = "have_sqlite3", feature = "windowsnt"))]
+compile_error!("SQLite delayed loading is not connected for this target");
 
 /* C 27-29: the body's three headers.  C 25's `<config.h>` and C 28's `"lisp.h"` are the two that
    are *outside* C 31's `#ifdef` in C as well, and they are the two this unit's live tail

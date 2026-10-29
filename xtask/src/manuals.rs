@@ -169,7 +169,7 @@ pub(super) fn copy_set(from: &Path, to: &Path) -> Result<(), String> {
         if !entry.file_type().map_err(|e| e.to_string())?.is_file() {
             return Err("manual set contains a non-file".into());
         }
-        fs::copy(entry.path(), to.join(entry.file_name())).map_err(|e| e.to_string())?;
+        crate::owned_copy::copy_file(&entry.path(), &to.join(entry.file_name()))?;
     }
     Ok(())
 }

@@ -1,0 +1,53 @@
+{
+  "id": "CLN132",
+  "status": "source rebased/consolidated; limited macOS component accepted; experimental foundation source group, full Goal acceptance open",
+  "items": [
+    {
+      "path": "src/treesit.rs",
+      "kind": "source-rebase",
+      "before_working_sha256": "9e5ef048ee935863597d5b0ee72ff7bc57897070834678089721724ba18b4b14",
+      "removed_block_sha256": "34d8ff1e1f5e4a6edeb6d4f487ca13a2edc3d127b15e820134fd4c907b989a16",
+      "removed_block_lines": 63,
+      "restore_commit": "8a8fb5db1f203efbec80267911a2b2f229a3b019",
+      "replacement": "stable31.1 loader without development languagecache; stable allocatorcallback",
+      "reason": "Pinned stable source re-resolves configured grammar paths/override on each lookup. Exclude unaccepted development-only cache while restoring missing complete feature.",
+      "additional_removed_sites": [
+        {
+          "kind": "cache-fast-path",
+          "sha256": "cd3635313f2bd5527a959d4a3ffb8b8682427dd71ced641c7aa83c71a2c10474"
+        },
+        {
+          "kind": "cache-insert",
+          "sha256": "c86859bcb3f54b9655d3737962be09e117a4f3ec0bab477c23a883d421f19747"
+        }
+      ]
+    },
+    {
+      "path": "src/pdumper.rs",
+      "kind": "declaration-consolidation",
+      "removed_block_sha256": "f888ff3c994a695995066937b1245e3b0bc6f85c6e4846753cb7598eed295aae",
+      "removed_block_lines": 23,
+      "restore_commit": "8a8fb5db1f203efbec80267911a2b2f229a3b019",
+      "replacement": "src/include/treesit.rs actual query record/accessor",
+      "reason": "Single shared concrete SDK pointer types for GC and dump consumers"
+    },
+    {
+      "path": "src/casefiddle.rs",
+      "kind": "declaration-consolidation",
+      "removed_block_sha256": "460b9db2e6c60a7c2c4af73aa45757e2e1ad97255fe2020ad7b6fe31847bbac8",
+      "removed_block_lines": 21,
+      "restore_commit": "8a8fb5db1f203efbec80267911a2b2f229a3b019",
+      "replacement": "shared treesit header and function-scoped pre-edit linecols",
+      "reason": "Old block discarded linecols before post-edit hook"
+    },
+    {
+      "path": "src/casefiddle.rs",
+      "kind": "declaration-consolidation",
+      "removed_block_sha256": "7902daa87742d2380e60508910834163e1d04b299a8bd7a9da65bc2ba3056d75",
+      "removed_block_lines": 10,
+      "restore_commit": "8a8fb5db1f203efbec80267911a2b2f229a3b019",
+      "replacement": "real treesit_record_change call with preserved pre-edit cache values",
+      "reason": "Old post-edit branch only declared function and never notified parser"
+    }
+  ]
+}

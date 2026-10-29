@@ -195,7 +195,7 @@ owe.  The one slice this revision lands is C 30-1130 (rows 5-35 below).
 
 ## Evidence
 
-**① The frozen configuration (`build-tu`).**  `cd femacs && CARGO_TARGET_DIR=/tmp/gnutls-lane/cargo
+**① The frozen configuration (`build-tu`).**  `cd femacs && CARGO_TARGET_DIR=${LANE}/cargo
 cargo run -q -p xtask -- build-tu src/gnutls.c` -> `built src/gnutls.rs -> ../build/femacs/gnutls.o`,
 **exit 0**, **2 warnings** (both `unused doc comment` in `include/stdbit.in.rs` and
 `include/lisp.rs` — mirror-side and pre-existing), and the object is **4272 bytes**
@@ -209,8 +209,8 @@ measurement that refutes the task's "336-byte empty object" expectation**: the f
 this machine's header is `/opt/homebrew/include/gnutls/gnutls.h`, `GNUTLS_VERSION_NUMBER`
 **0x03080d**):
 
-    cd femacs && CARGO_TARGET_DIR=/tmp/gnutls-lane/cargo cargo run -q -p xtask -- probe \
-      src/gnutls.rs /tmp/gnutls-lane/gnutls.rlib --crate-type=lib -C panic=abort \
+    cd femacs && CARGO_TARGET_DIR=${LANE}/cargo cargo run -q -p xtask -- probe \
+      src/gnutls.rs ${LANE}/gnutls.rlib --crate-type=lib -C panic=abort \
       --cfg 'feature="have_gnutls"' --cfg 'feature="have_gnutls3"' \
       --cfg 'feature="have_gnutls_certificate_set_x509_key_file2"' \
       --cfg 'feature="have_gnutls_x509_system_trust"' --cfg 'feature="have_gnutls_cipher_get_iv_size"' \
@@ -277,7 +277,7 @@ codes plus `GNUTLS_X509_FMT_PEM`:
     GNUTLS_X509_FMT_PEM 1   GNUTLS_X509_FMT_DER 0
 
 The probe source is `#include <gnutls/gnutls.h>` + `printf` of those `sizeof`/values, compiled
-`clang -I/opt/homebrew/include -o /tmp/gnutls-lane/probe /tmp/gnutls-lane/probe.c` and run.  The
+`clang -I/opt/homebrew/include -o ${LANE}/probe ${LANE}/probe.c` and run.  The
 values are the *host header's*; a build against a different GnuTLS release is **UNVERIFIED**
 (these are `#define`s and enums the header owns, and the port carries them as its own constants).
 
@@ -407,3 +407,31 @@ values are the *host header's*; a build against a different GnuTLS release is **
   336-byte criterion of P-86 ⑧ stays inapplicable (the file has live text — Evidence ①).
 - **Not the whole file.**  C 1131-3196 is not ported; `extract-abi --check` FAILs on the
   line-count baseline until Owed 1 lands; the ratchet files are owed (2, 3).
+
+
+## P-401 current restoration (2026-10-27)
+
+The original slice/range ledger above records the disabled historical baseline.
+The actual remaining trust/hostname verification, boot, connection close, cipher
+listing, symmetric/AEAD, MAC and digest bodies are now present, with actual subr
+registration and capabilities under the enabled target. Shared process fields
+and packed flags replace the omitted header branch. The Windows enabled path
+explicitly rejects its still-incomplete loader integration.
+
+Owned macOS target configuration now selects TLS and derives version predicates
+from the installed public header. The build wiring reuses actual dependency and
+license capture, stages signed relocatable copies, and places them in terminal
+and Cocoa deliveries. It does not copy the installed reference frameworks.
+Actual primary/public-header and dependency closure identities are now bound
+into the precompile/native ABI input and checked again before staging. The
+remaining public interfaces have their actual installed-header source locators;
+that is source correspondence, not callable ABI proof. The complete integration
+set is being authored, with process/flag/enum/datum comparison separate from
+original crypto and actual loopback editor workflows. No TLS compilation or
+functional acceptance is claimed; D26 cannot certify these new sources.
+
+
+Historical command transcripts above use `${LANE}` for their old disposable
+artifact root. This is a documentation path normalization, not a new execution
+or a change to the retained measurements. Current product builds use the owned
+entrypoints and dependency instructions in `build-support/README.md`.

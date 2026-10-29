@@ -304,6 +304,8 @@ unsafe extern "C" {
 unsafe extern "C" {
   /// C: `void syms_of_module (void);`
   fn syms_of_module ();
+  #[cfg (feature = "have_modules")]
+  fn init_module_assertions (enable: bool);
 
   /// C: `void syms_of_ntproc (void);`
   fn syms_of_ntproc ();
@@ -399,6 +401,8 @@ unsafe extern "C" {
   fn syms_of_inotify ();
   /// C: `void syms_of_kqueue (void);`
   fn syms_of_kqueue ();
+  /// C: `void globals_of_kqueue (void);`
+  fn globals_of_kqueue ();
   /// C: `void syms_of_gfilenotify (void);`
   fn syms_of_gfilenotify ();
   /// C: `void syms_of_dbusbind (void);`
@@ -590,7 +594,7 @@ pub static mut emacs_wd: *const c_char = std::ptr::null ();
 /// C 270-407: `static char const *const usage_message[]`.  The array's two `#if` elements
 /// (HAVE_MODULES at C 293-296, SECCOMP_USABLE at C 304-307) are dead here, so it holds C's
 /// twelve live entries; `PACKAGE_BUGREPORT` in the last one is the frozen value.
-static usage_message: [&CStr; 13] = [
+static usage_message: [&CStr; 13 + cfg! (feature = "have_modules") as usize] = [
   c"
 Run Emacs, the extensible, customizable, self-documenting real-time
 display editor.  The recommended way to start Emacs for normal editing
@@ -609,6 +613,8 @@ Initialization options:
 --debug-init                enable Emacs Lisp debugger for init file
 --display, -d DISPLAY       use X server DISPLAY
 ",
+  #[cfg (feature = "have_modules")]
+  c"--module-assertions         assert behavior of dynamic modules\n",
   c"--dump-file FILE            read dumped state from FILE
 --fingerprint               output fingerprint and exit
 ",
@@ -1967,6 +1973,11 @@ unsafe fn emacs_init_body (mut argc: c_int, argv: *mut *mut c_char,
   init_alloc ();
   init_bignum ();
   init_threads ();
+  #[cfg(any(feature = "femacs_gc_observer", feature = "femacs_gc_generational"))]
+  {
+    unsafe extern "C" { fn femacs_gc_runtime_ready(); }
+    femacs_gc_runtime_ready();
+  }
   init_eval ();
   running_asynch_code = false;
   init_random ();
@@ -1991,6 +2002,19 @@ unsafe fn emacs_init_body (mut argc: c_int, argv: *mut *mut c_char,
   build_details = ! argmatch (argv, argc, c"-no-build-details".as_ptr (),
 			      c"--no-build-details".as_ptr (), 7, std::ptr::null_mut (),
 			      &raw mut skip_args);
+
+  #[cfg (feature = "have_modules")]
+  {
+    let module_assertions = argmatch (argv, argc, c"-module-assertions".as_ptr (),
+                                     c"--module-assertions".as_ptr (), 15,
+                                     std::ptr::null_mut (), &raw mut skip_args);
+    if will_dump_p () && module_assertions && !only_version
+      {
+        fputs (c"Module assertions are not supported during dumping\n".as_ptr (), stderr);
+        exit (1);
+      }
+    init_module_assertions (module_assertions);
+  }
 
   #[cfg(all(feature = "have_ns", feature = "ns_impl_cocoa"))]
   if !noninteractive {
@@ -2048,6 +2072,9 @@ unsafe fn emacs_init_body (mut argc: c_int, argv: *mut *mut c_char,
   /* argmatch must not be used after here,
      except when building temacs
      because the -d argument has not been skipped in skip_args.  */
+
+  #[cfg (feature = "have_kqueue")]
+  { globals_of_kqueue (); }
 
   /* Initialize and GC-protect Vinitial_environment and
      Vprocess_environment before set_initial_environment fills them
@@ -2329,6 +2356,9 @@ unsafe fn emacs_init_body (mut argc: c_int, argv: *mut *mut c_char,
 
 
       keys_of_keyboard ();
+      // Original native initialization runs after the last defsubr, once.
+      #[cfg (feature = "have_native_comp")]
+      { hash_native_abi (); }
     }
   else
     {
@@ -2394,6 +2424,13 @@ unsafe fn emacs_init_body (mut argc: c_int, argv: *mut *mut c_char,
       /* Unless next switch is -nl, load "loadup.el" first thing.  */
       if ! no_loadup
 	{ Vtop_level = list2 (Qload (), build_string (c"loadup.el".as_ptr ())); }
+      #[cfg (feature = "have_native_comp")]
+      if !NILP (Vtop_level) && temacs.is_null ()
+        {
+          Vnative_comp_eln_load_path =
+            Fcons (Fexpand_file_name (XCAR (Vnative_comp_eln_load_path),
+                                     Vinvocation_directory), Qnil ());
+        }
     }
 
   /* Set up for profiling.  (C 2599-2602's commentary; `#ifdef PROFILING` is dead.)  */
@@ -2439,7 +2476,7 @@ const _: () = core::assert! (std::mem::offset_of! (standard_args, nargs) == 20);
 /* C's array is `static const struct standard_args standard_args[]`; Rust's `static` demands
    `Sync` and a raw pointer is not `Sync`, so the port keeps it `static mut` (the
    callint.rs `callint_argfuns` shape: same object, the reads are the only access).  */
-static mut standard_args: [standard_args; 80] = [
+static mut standard_args: [standard_args; 80 + cfg! (feature = "have_modules") as usize] = [
   standard_args { name: c"-version".as_ptr (), longname: c"--version".as_ptr (), priority: 150, nargs: 0 },
   standard_args { name: c"-fingerprint".as_ptr (), longname: c"--fingerprint".as_ptr (), priority: 140, nargs: 0 },
   standard_args { name: c"-chdir".as_ptr (), longname: c"--chdir".as_ptr (), priority: 130, nargs: 1 },
@@ -2455,6 +2492,8 @@ static mut standard_args: [standard_args; 80] = [
   standard_args { name: c"-nl".as_ptr (), longname: c"--no-loadup".as_ptr (), priority: 70, nargs: 0 },
   standard_args { name: c"-nsl".as_ptr (), longname: c"--no-site-lisp".as_ptr (), priority: 65, nargs: 0 },
   standard_args { name: c"-no-build-details".as_ptr (), longname: c"--no-build-details".as_ptr (), priority: 63, nargs: 0 },
+  #[cfg (feature = "have_modules")]
+  standard_args { name: c"-module-assertions".as_ptr (), longname: c"--module-assertions".as_ptr (), priority: 62, nargs: 0 },
   standard_args { name: c"-d".as_ptr (), longname: c"--display".as_ptr (), priority: 60, nargs: 1 },
   standard_args { name: c"-display".as_ptr (), longname: std::ptr::null (), priority: 60, nargs: 1 },
   standard_args { name: c"-Q".as_ptr (), longname: c"--quick".as_ptr (), priority: 55, nargs: 0 },
@@ -2785,6 +2824,9 @@ DEFUN! ("kill-emacs", Fkill_emacs, Skill_emacs, 0, 2, "P",
       emacs_unlink (SSDATA (listfile));
     }
 
+  #[cfg (feature = "have_native_comp")]
+  { eln_load_path_final_clean_up (); }
+
   if !NILP (restart)
     {
       turn_on_atimers (false);
@@ -2804,7 +2846,7 @@ DEFUN! ("kill-emacs", Fkill_emacs, Skill_emacs, 0, 2, "P",
 });
 
 /* -----------------------------------------------------------------------------------------
-   C 3091-3187.  `shut_down_emacs`.  The MSDOS/HAIKU/NS/LIBXML2/WINDOWSNT blocks are dead;
+   C 3091-3187.  `shut_down_emacs`.  The historical disabled target omitted MSDOS/HAIKU/NS/LIBXML2/WINDOWSNT;
    what is live is the POSIX terminal reset, the "Fatal error %d: " diagnostic (whose VLA
    becomes a const-sized array, see `buf_size`), and the shutdown sequence.
    -------------------------------------------------------------------------------------- */
@@ -2887,6 +2929,12 @@ pub unsafe extern "C" fn shut_down_emacs (sig: c_int, stuff: Lisp_Object)
       check_glyph_memory ();
       check_message_stack ();
     }
+  #[cfg(feature = "have_libxml2")]
+  {
+    unsafe extern "C" { fn xml_cleanup_parser(); }
+    xml_cleanup_parser();
+  }
+
 }
 
 /* -----------------------------------------------------------------------------------------

@@ -1698,6 +1698,73 @@ Diagnostic19 records the fingerprint changing from a correctly tagged string to 
 
 Actual device20 command observations show Ctrl-A and Ctrl-E succeeding before left-arrow fails. The screen reports KEYCODE_DPAD_LEFT undefined. keyboard.rs retains Android table21=left/22=right, but the unconditional frozen-host offset0xff00 bypasses those entries and uses the platform-name fallback. The original source defines offset0 for Android,0 for NTGUI and0xff00 for the remaining arm. Restore that compile-time selection, keeping actual tables, modifiers, event conversion, fallback and Lisp bindings unchanged. Add source-extracted compiled constant/table cases before implementation, including retained host and both zero-offset configurations. Real affected normal/checking build, package and complete device acceptance remain necessary; a host table test is not physical event acceptance.
 
+
+## P-346: isolated runtime observation, native activation and young-cons candidate (2026-10-25)
+
+The existing runtime modernization manual is the exact source-bound A contract. Complete B sources now cover the original stable corpus, full product/config identities, real observer unwind/mark roots, native context/loading/unloading/dump, negative-format controls and collector roots/barriers/weak/finalizers. None has run. Enter all C before any new compiler, test, lint, benchmark or review. G4 delivered products and root trial App remain controls.
+
+Add separately selected, default-off femacs_gc_observer and diagnostic observer test-hook features without changing Lisp object layouts or the normal Q/V table. The observer uses bounded fixed numeric storage, process/window identity, actual owner/monotonic clock checks and guard-first marked Lisp export; it is not a GC replacement or an all-object survival claim. The native candidate activates the existing libgccjit AOT/ELN path, repairs actual selected-arm/lifetime/export defects and isolates ABI/cache/dependencies; it is not a new tracing JIT. Restore native-only public unit accessors through normal DEFUN generation. The separately selected generational candidate preserves Lisp_Cons16 and implements the manual's old/dirty/raw-tainted cons metadata, actual marked-noncons frozen-prefix registry, ordinary weak fixpoint and noncons sweep on every cycle, exact unwind ownership and bounded full fallback. Explicit GC stays full. Normal O2 remains available.
+
+All implementation items stay unaccepted until consolidated D proves real products, source-bound components, complete applicable stable identities, native compilation/load/relocation/dump, actual minor collections, stress and honest same-mode performance against the installed stable baseline. Unknowns, resource stops, locked desktop and rejected candidates are not passes. Do not replace a real candidate with a toy, waive a feature gap, suppress weak/finalizer behavior or claim performance before measurements. This decision authorizes the already requested isolated runtime work, not an expanded platform retirement or another Goal.
+
+## P-347: select the original platform spelling of the built-in gray symbol (2026-10-25)
+
+D8 terminal-baseline normal completes, while its independent checking executable aborts in define_symbol during bootstrap: FIXNUMP(bucket) is false. The shared symbol metadata takes Qstatic_gray from androidfns, where the original spells it static-color, while Qstatic_color is independently static-color. The original haikufns defines Qstatic_gray as static-gray; Cocoa already selects that spelling through its target metadata. The non-Cocoa static name array incorrectly uses the Android spelling for every platform. This is an actual checking startup failure before the observer/collector/native candidates run, not a GC performance result.
+
+Before the production correction, retain the failing immutable D8 checking executable/log and bind the existing real terminal-checking bootstrap/dump build case as the regression: after correction it must complete actual symbol initialization, bootstrap/final dump and resource packaging with checking enabled; normal and all other requested compiler/product legs remain required. Do not replace that assertion by a mirrored host implementation, suppress checking, skip the symbol, renumber the Q table or edit the reference metadata. At the Qstatic_gray entry in lread's non-Cocoa defsym_name array, select static-color only for have_android and static-gray otherwise. Preserve the existing Android-only exclusion of the other duplicate entry and its name initialization, and leave Cocoa's generated metadata unchanged. The current running D8 snapshot stays immutable; this correction belongs to the next bound repair snapshot and is unaccepted until actual affected checking builds/behavior and final independent review succeed.
+
+## P-348: bind collector bit operations and component types to the production bitmap word (2026-10-25)
+
+D8 terminal-collector normal and checking fail compilation in the actual alloc unit: the production bits_word is usize, while the candidate masks are u64. The isolated adapter incorrectly declares its own bits_word as u64, so its earlier 28 passing cases do not establish this interface. Preserve those receipts and both real compiler failures; they are not collector behavior or performance failures.
+
+Before repair, bind the existing actual collector normal/checking build, bitmap boundary/reuse and promotion cases as regressions. Extract bits_word, BITS_PER_BITS_WORD and BITS_WORD_MAX directly from the production Lisp header into the component support source; only its target SIZE_WIDTH remains an explicitly identified host primitive. Use bits_word and BITS_PER_BITS_WORD for collector masks/indices, retaining u64 for observation counters and identity tokens. Do not change the production ABI/layout, disable checking or cast entire bitmap storage. Rebuild the adapter and rerun all affected components, then complete actual collector builds and the unchanged behavior/stress/compatibility/performance matrix. Source correction alone is not acceptance.
+
+## P-349: compile only the selected runtime compiler leg, retaining the legacy dual pass (2026-10-25)
+
+Actual D9 output and build_selected_units show that each separately bound normal/checking runtime build compiles both object variants. The two roots have distinct configuration/ABI identities, so reusing the sibling's objects would violate the existing isolation contract. Instead, a validated runtime binding selects only its own compiler invocation. An ordinary unbound build keeps both passes; unknown or missing bound leg values fail before compiling. Both runtime roots, their separate checking flags, receipts and full acceptance remain required. The running D9 snapshot stays immutable.
+
+Before changing the owner, write selection cases for legacy dual, normal-only, checking-only, missing and invalid bound values. Resolve and verify the current owned runtime binding once before the unit loop; conditionally invoke the existing unchanged normal/checking command builders. Never infer selection from a bare ambient linker flag, suppress required checking, reuse mixed-identity objects, weaken source fingerprints or alter optimization/overflow flags. The next affected real product's link inputs must contain only its selected object variant and both independent products must still complete. Auxiliary tools such as make-fingerprint retain their separate legacy builder; their unused sidecars are not product link inputs. This is build-work reduction, not a Lisp performance claim.
+
+## P-350: retain and verify the runtime build owner outside compiler caches (2026-10-25)
+
+D9 completes the normal terminal package. Its checking alloc/other units compile, but the next owned child cannot start: the host xtask executable in the Cargo debug cache is missing. The subsequent nineteen configuration owners report spawn-error without executing, not nineteen compiler failures. The cache deps directory also disappeared; deletion cause is unknown. This was observed before CLN-27 began exact-file deletion, and D9 is excluded from that operation. Do not attribute an actor or reinterpret the missing file as a checking assertion, collector failure, performance result or completed matrix.
+
+Before repair, write file-boundary cases for a retained executable surviving original-cache removal, changed/missing owners, reused destinations, symlinks/nonexecutable inputs and source change during capture. After compiling the host tool, copy it once into a new owned build-owner directory, verify source/copy identities, retain the receipt and check the retained owner's identity before each product configuration. Use that same captured executable for all recursive child commands. A lost/changed retained owner must fail explicitly with existing partial evidence, without automatic recompilation or repeated nonexistent launches. Preserve both prior snapshots and all real product/build obligations. This prevents reliance on a disposable cache locator; it does not prove the unknown deletion cause is fixed.
+
+## P-351: auxiliary tools use the selected bound compiler leg's library objects (2026-10-25)
+
+D10 normal completes with all six product file hashes and162 linked object hashes matching. The checking root compiles its checked-only product units and links temacs, but make-fingerprint then fails: link_program still searches ordinary library object names, which that root correctly did not compile. The previous source-only selection review did not prove this auxiliary dependency. Checking startup and P-347's assertion are not yet exercised in D10. Preserve this actual failure and the interrupted observer configuration; do not call the remaining matrix passed or failed.
+
+Before repair, write real file-selection cases for checked-only libraries/tool, preservation of plain legacy names and gnulib aliases, and rejection when only the opposite leg exists. Extract the actual helper/tool library selection into helper_link_inputs; use the existing selected_object_name mapping for both its own unit and library members. A verified runtime binding chooses checked inputs only for a checked-only root; unbound/default and normal builds preserve their ordinary helper lane. Helpers remain plain O2 without PGO instrumentation, and separate configuration/ABI roots are not mixed. Reuse the existing gnulib alias behavior without weakening product link identity checks. The next actual checking fingerprint/bootstrap/dump plus full product matrix remains required. Collect independent native/collector failures from the unchanged D10 snapshot before the grouped new repair snapshot.
+
+## P-352: restore the omitted native load helpers and compile the actual combined feature path (2026-10-25)
+
+The independent D10 native/collector/observer/diagnostic build prepares six backend dependencies and thirteen resources, then actual native comp compilation fails with13 errors. The guarded extra array element requires an unnecessary expression-attribute feature; a Windows-only optional function-pointer name is referenced on macOS; load_static_obj/find_relocs and their pointer typedefs present in the pre-runtime source were accidentally omitted when the load section was replaced, while the planned new count resolver was not implemented. These are source omissions, not evidence that the VM or native approach is infeasible. The other161 product units, including real alloc/observer/collector paths, compile in the normal combined feature leg; whole native products still fail.
+
+The independent checking leg additionally diagnoses a mutable-static read outside an unsafe block in pdumper's existing native-relocation assertion. Bind the existing real checking native build and two-process native dump/resurrection cases before enclosing that same pointer/static equality in one unsafe expression. Preserve the assertion and original value/order; do not disable checking, change relocation contents or infer an actual dump pass from compilation.
+
+Before repair, bind the existing actual native normal/checking build and the already-written native load/negative-unit cases (missing count, negative count, null/negative/malformed blob, valid format and lifecycle) as regressions; do not substitute synthetic-only loader tests. Reuse the verified read-only original transcription source and pre-runtime helpers for the two original functions/types. Implement the planned LLreloc_count_fn and find_reloc_count with ptrdiff_t signature, explicit missing/negative-count error and the existing candidate ABI contract. load_static_obj retains both blob representations, reader binding and unbind behavior, and adds the already-planned null result and string-length bounds before constructing its Lisp string. Build the unchanged ordered helper table through a const block with a statement-gated extra barrier slot, and use cfg-separated availability bindings for the optional initializer on Windows versus non-Windows. No ABI/object layout or valid Lisp behavior changes, no new unstable compiler feature, no stub and no reference-tree write is authorized. All actual product and behavior checks remain required.
+
+## P-353: restore actual native link dependencies and original runtime entry points (2026-10-25)
+
+D11's combined terminal native/collector/observer/diagnostic normal leg compiles all162 selected units, including the P-352 corrections, but gate-load reports eight new unresolved symbols: dynlib_close/error/open_for_eln/sym, emacs_fclose, list, fixup_eln_load_path and maybe_defer_native_compilation. The frozen non-native object manifest omitted dynlib even though the candidate enables its callers. The original deferred-compilation and cache-fixup functions were also omitted in the C-stage load-section replacement. Two historical native-only call sites incorrectly treat source macros as external functions. Preserve the failed frozen snapshot and collect the independent checking outcome; no undefined-symbol ratchet widening or stub is permitted.
+
+Before correction, add manifest-selection cases for exact native-only inclusion, unchanged unbound/baseline/collector sets and rejection of unknown bound variants; bind the existing full native build, native ERT/lifecycle, relocation and dump cases. Add native behavioral regressions for the actual error hierarchy and noninteractive deferred-compilation suppression. The shared target_manifest objects.txt path must select the same validated runtime-dependent dynlib object for compilation and linking; preserve all original objects, order, normal/checking separation and the six Swift providers. Restore the original maybe_defer_native_compilation and fixup_eln_load_path bodies from the verified pre-runtime source, using the existing list! macro. Replace native error-parent list calls and scoped logfile closure with their existing source macros, removing the fictitious imports. Preserve queue guards, original callbacks, cache fixup, public ABI and error conditions. Actual normal/checking link, bootstrap, native loading and full declared behavior remain acceptance requirements.
+
+## P-354: preserve the original native ABI initialization point (2026-10-25)
+
+D12 normal compiles163 selected units, links with zero undefined symbols and writes its first dump, then actual resource generation fails loading unidata-gen with wrong-type-argument/stringp/nil. Source inspection finds a concrete omitted native-only startup arm: the original calls hash_native_abi after keys_of_keyboard and the last defsubr, inside the first-initialization branch; src/emacs.rs has no call and the comp.h mirror omits its declaration. syms_of_comp initializes comp-abi-hash and comp-native-version-dir to nil, and hash_native_abi is the only producer of their strings. Native bytecode lookup consumes that version directory. Preserve the frozen failure and independently verify actual dumped values; this source chain identifies an initialization defect without claiming every later native path is correct.
+
+Before repair, bind actual normal/checking bootstrap/resource generation and native two-process dump cases, and add a real native case for nonempty ABI/version metadata plus successful bytecode loading with an empty owned native cache. Add the original native-only hash_native_abi declaration to comp_h_decls and invoke it at the original emacs initialization point, after keys_of_keyboard and all defsubr registrations, only on first initialization. Do not synthesize an arbitrary version/hash, recompute after dump resurrection, remove native lookup, change its error policy or bypass the failed generator. Existing scoped resource reset and all compiler/collector acceptance obligations remain.
+
+## P-355: retain the active build driver outside generic build/cache output (2026-10-25)
+
+D12 loses both its separately captured build-owner/xtask and Cargo debug executable/dependency directory. Normal163-unit compilation, zero-undefined link and first dump remain; normal resource generation fails independently with stringp/nil, while checking cannot start its compiler. Previously retained D10/D11 owner executables are also now absent. The owner identity guard correctly stops the matrix with partial/fatal evidence. The protected controller exits1 and reaps its tree in663.937seconds at572866560bytes peak accounted memory. The removal actor is unknown; do not attribute it to another conversation or label checking/unrun configurations as compiler failures. CLN-29's exact records contain neither a build-owner path nor any D12 path.
+
+Before changing capture, add real filesystem cases for surviving removal of generic cache/legacy owner paths, isolation of two captures, rejection of an output outside the owned build subtree and a symlinked retained-owner parent. Capture into a unique persistent ignored .femacs-cache/runtime-build-owners entry keyed by the owned output's relative identity, with executable name runtime-build-driver. Preserve independent input/copy hashes, executable and safe-parent checks, fresh-directory refusal, per-configuration checks and the original partial/fatal semantics; write a receipt both beside the retained driver and in the owning output. Do not automatically rebuild/retry a missing or changed driver, run unprotected, manage another conversation or claim the unknown deletion cause fixed. New real products must verify this locator under the same full matrix and resource controller.
+
+P-354 follow-through: the same bounded original startup/shutdown comparison finds two more omitted HAVE_NATIVE_COMP arms in emacs.c: normalize the initial native load path against invocation-directory when starting uninitialized with a non-nil top level and no temacs mode; call the existing eln_load_path_final_clean_up after deliberate auto-save-list removal. Restore both guards/order and the real cleanup declaration, rather than omitting the remaining arms after fixing only the immediate nil-version failure. The existing actual cold bootstrap, process/dump and normal-exit cases remain the behavioral boundaries; no new Windows implementation or platform acceptance is claimed.
+
 ## P-356: adopt the current implementation-first execution sequence (2026-10-26)
 
 The user replaces the earlier test-first construction order. Each existing
@@ -1713,6 +1780,134 @@ The project entry and unique plan carry this precedence; older persisted Goal
 text cannot be edited through the current status-only API and is not claimed
 synchronized. Notify the existing reviewer at its next natural authorized
 source/result handoff and verify adoption; no extra member or ACK-only run.
+
+
+## P-357: restore compiler bootstrap ordering and safe-allocation callback identity (2026-10-26)
+
+The D13 combined native/collector build compiles and links all163 translation units in both ordinary/checking lanes. Ordinary resource generation crosses the earlier nil ABI failure but two actual manual exporters fail while eagerly expanding interpreted comp.el; all four native compiler bytecode files are absent. Checking reaches its actual helper link and then aborts in safe_free during hash_native_abi: SAFE_NALLOCA records xfree_wrapper while the preserved assertion requires xfree. The local read-only original at fd7afced403 records xfree directly and compiles its ordered compiler-first closure one file per process, preferring bytecode during that early bootstrap.
+
+Restore the exact callback in SAFE_NALLOCA without weakening safe_free or deleting the wrapper used by other callers. The owned resource generator must detect the actual owned program's native capability, build the compiler-first closure in its original order with bytecode preference, include the four native compiler libraries only when native is available, reject missing outputs, and then compile the remaining release closure. Preserve explicit scoped bytecode requests, original Lisp/data, all manual exporters and the independent normal/checking lanes. D13 is stopped after collecting both independent failures and retains its immutable original inputs/logs/products; later tests bind fresh owned outputs. These are source repairs, not product, compatibility or performance acceptance.
+
+P-357 diagnostic follow-through: a standalone generator probe used D13's already finalized pdump, where loadup intentionally enabled native trampolines. Loading interpreted comp during compiler-first then re-entered comp through cl-symbol-macrolet's temporary advice of macroexpand; the actual debugger trace identifies comp-subr-trampoline-install -> comp-trampoline-compile, rather than an inferred VM algorithm defect. The early compiler-only processes explicitly use the original pbootstrap trampoline setting (nil), including when invoked with a finalized program. Later compilation and the final dump retain ordinary settings. This is a bootstrap-phase prerequisite, not a global native/trampoline disable or a product acceptance claim.
+
+
+## P-358: preserve the native option-list cursor through backend submission (2026-10-26)
+
+After P357 actually generates the four native compiler bytecode files, the two previously failing manual exports cross the eager compiler reload and reach real trampoline compilation. Both now fail with the version-9 driver-option error although the captured16.2 backend header/config explicitly enables its option API. In add_driver_options and add_compiler_options, each enabled traversal shadows the outer options cursor with a fresh local. FOR_EACH_TAIL updates only that shadow, so the following preserved CONSP check wrongly sees the original nonempty list and signals unsupported options after submitting them. The original C functions consume the same cursor inspected afterward. Remove the four shadow bindings, retaining ordinary/global and captured/file-local option order, availability guards and the genuine unsupported-option error. Do not suppress the error or disable native compilation/trampolines. The two actual failures/logs remain; new product execution is still necessary.
+
+
+## P-359: preserve active owners and resume verified matrix checkpoints (2026-10-26)
+
+D14 completes two configurations and the third ordinary product, but its persistent driver and Cargo executable/dependency directory disappear. The third checking lane compiles162 units and then cannot start the next owner command; the identity guard correctly stops the matrix. Controller1/reaped3634.730seconds at552239104bytes peak, not a compiler rejection. CLN-31 selected only stopped D13 intermediates: no D14 or owner path, including resolved parents. No custom executable local Git hook or configured hooks directory was found. The removal actor remains unknown; changing the file name/location again is insufficient. Preserve the fatal result and all original product/source identities.
+
+Add per-run macOS preservation of the captured executable and its immediate private directory, using reversible user file flags, a verified compressed owner copy, a journal and signal/finally release. Protect no shared parent, other session, global budget or command. Missing/changed owners still fail closed; never silently retry the failed run. A separate explicit recovery invocation may rebuild only the frozen host tool and must reproduce its exact captured hash before execution. Resume under a fresh report/owner identity from unchanged original source and verified complete configurations; retain failed history and rebuild only pending/failed configurations in fresh case roots. Completed configurations and unchanged product inputs are not rebuilt or relabelled. Preserve the complete20-configuration/61-profile requirements and all later functional/performance/native UI gates. Recovery changes orchestration, not the immutable D14 product source.
+
+Independent review finds two real gaps: a signal between flags and bookkeeping can leave protection active, and a truncated receipt can omit unverified files/resources. Fix the complete batch with native descriptor-based flag operations, masked acquire/release and deferred repeat signals; restore only the captured descriptor identity, never a replacement pathname. Require the exact six-file/resource set by product and native variant, verify actual resource trees and bind selected execution roots. Eight functional cases pass, including both signal windows, actual pathname replacement, six real profile loads and three truncated/foreign-resource rejections. Controller0/reaped15.571seconds at73269248bytes peak. This validates recovery boundaries, not the remaining product matrix or runtime semantics.
+
+## P-360: explicit source-bound recovery with a distinct host (2026-10-26)
+
+The first actual recovery compiles the frozen host but cannot reproduce its missing original byte hash. Both files have the same length; the difference is unexplained. The guard stops correctly, with no candidate launch. The original executable/archive is unavailable in the bounded known locations. Do not attribute the difference to signing, UUID or debug data without evidence.
+
+Independent discussion accepts a fresh explicit recovery with a separately supplied current-host SHA, rather than a silent hash fallback. Keep exact-original-hash behavior as the default. Record the original receipt/identity and availability, current artifact identity, frozen inventory/manifest/lock hashes, exact command/environment and before/after toolchain metadata, process outcome and log identities in a new provenance receipt. Recheck frozen inputs around compilation. Each reused/new product and build row must identify its actual original/recovered host; never claim a mixed-host matrix is homogeneous or prove runtime equivalence from source alone. Complete20/61 and all semantic/performance gates remain required. Include native resources in execution identity snapshots, including when frozen execution drivers consume the new product list. Preserve both failed invocations unchanged and protect only the fresh active owner. This changes orchestration provenance, not product source or the acceptance definition.
+
+## P-361: acquire unchanged stable-test inputs without committing their paths (2026-10-26)
+
+The current submission rule covers absolute filesystem paths in test data as well as code. The original stable corpus contains such inputs, while compatibility evidence requires unchanged upstream bytes. Do not rewrite cases, encode them to evade the rule, waive their coverage, assume a policy exception or rely on the optional reference checkout. Track the release/commit and complete per-file identity selection; acquire the original payload into an ignored persistent cache, verify every file's mode/size/Git blob/SHA256, and copy verified inputs into owned acceptance outputs. Reuse the existing verified corpus when available; a fresh checkout must also support a pinned public archive. Keep a failed acquisition unpublished with its evidence; never overwrite or delete an existing cache implicitly.
+
+Implementation starts with the independent acquisition tool. The unbound root materializer/CLI and exact raw-overlay ignore policy may be connected while the build uses its unchanged frozen copy; exporter caller changes follow after the active frozen build. Complete functional validation and independent review precede any source-payload cleanup. Existing payloads and the active original snapshot remain unchanged. This is a storage/provenance change, not a relaxation of the source corpus, acceptance gates or the submission rule; no acquisition or clean-checkout success is claimed before it is exercised.
+
+## P-362: restore the native compiler's window-display include dependency (2026-10-26)
+
+The first D14 Cocoa/native/collector/observer diagnostic ordinary build fails in the native compiler unit: the window mirror's window-system field names `text_cursor_kinds`, but that unit does not import its display declaration. The actual reference chain is compiler unit to window header to display header; the Rust window mirror deliberately delegates the last edge to its users. Existing callers such as the file and editing units import the display mirror explicitly. The terminal matrix passes because this window-system field is inactive there.
+
+Collect the independent checking build's errors before the repair batch. Restore the missing display-mirror dependency in `src/comp.rs` for the native/window-system configuration; preserve the existing cursor type, layout and compiler/window semantics rather than inventing a replacement type or suppressing the error. Keep the running original snapshot unchanged, retain its failed outcomes and completed terminal products, and verify the affected real Cocoa compilation and product before accepting the repair. Further errors, product reuse and their exact source/configuration provenance must be reported from actual evidence; no repaired Cocoa build or unchanged full-matrix source identity is claimed yet.
+
+## P-363: retain only source-proven unaffected terminal products (2026-10-26)
+
+The stopped recovery retains ten complete terminal configurations and a failed Cocoa/native diagnostic configuration. P-362 adds a display include under the native/window-system condition; the terminal configurations do not select that window-system branch. Avoid silently substituting a new source identity into old receipts or rebuilding unaffected products merely to change their bookkeeping.
+
+Before carrying any terminal product forward, certify the old/new source inventories: production inputs must be identical except the exact P-362 conditional include, selected terminal configurations must exclude that condition, and no unrelated runtime/generator/build change may be waived. Revalidate every retained product's actual binding, configuration, program/dumps, link inputs and resources. Keep its original source/host identity and failed history. Build all Cocoa configurations from the new immutable source cohort and retain explicit cohort provenance; never claim one uniform source snapshot across the retained terminal and new Cocoa products. A failed certificate must reject reuse, not weaken the gate. This is a pending implementation/verification plan, not an accepted reuse result.
+
+## P-364: preserve Git executable mode without changing working-tree permissions (2026-10-26)
+
+Actual P-361 integration rejects an unchanged tracked executable fixture whose Git mode is100755 and whose physical working-tree permission is0770. Bytes, size and Git blob match. Git records the executable distinction, not group/other permission bits; requiring exactly0755 on local seed inputs invents a stricter source requirement. Validate the declared Git executable mode for existing inputs, preserve their physical permissions/source identities in snapshots, and continue canonical0644/0755 permissions for newly acquired cache/materialized files. Do not chmod the original fixture, waive content hashes or relax cache publication identity checks. Retain the failed integration and revalidate the affected complete acquisition/export/reuse flow.
+
+
+P-362/P-363/P-364 actual integration checkpoint: all nine acquisition/export/reuse
+cases pass, including per-profile host mapping and rejection of unrelated source
+changes. Four actual compiler invocations on a new source-bound host compile the
+repaired unit; the failed original comment-based observer is preserved and
+corrected by actual rewritten-input/object identity evidence without compiler
+rerun. No complete repaired Cocoa product or runtime acceptance is implied.
+
+## P-365: keep bound Cocoa link inputs inside their selected output (2026-10-26)
+
+D15 compiles all166 Cocoa Rust units, the ABI unit and Swift providers in both compiler legs, then rejects linking with `link input escaped selected output`. The actual objects are in the ordinary macOS cache selected by `macos::object_dir`, while the bound runtime receipt requires objects/archive inside its own output tree. This is an ownership-path defect before the actual linker, not a new missing-type or undefined-symbol failure.
+
+For a verified Cocoa runtime binding, select its own physical `objects` child; reject wrong-product bindings and symlinked object roots. Preserve the existing cache path for unbound ordinary macOS builds and keep the strict link-containment/checking-object gates. The two callers propagate validation errors. Extend terminal reuse only for this exact Cocoa-private helper/call-site repair, with unchanged terminal dispatch and all other production inputs still required; do not permit arbitrary build-source changes. Validate the affected owned-output/link flow before accepting any full Cocoa product.
+
+
+## P-366: match Cocoa builtin records to the selected native ABI (2026-10-26)
+
+D16 ordinary Cocoa now passes Rust/Swift compilation, actual linking and
+fingerprinting, then aborts during bootstrap GC while hashing the native
+ABI. The retained normal stack returns from `process_mark_stack`'s unused
+type-tag rejection while visiting builtin-symbol roots. This is a new
+runtime failure after the P-365 ownership rejection was crossed.
+
+The actual selected config enables native compilation, but the Cocoa Swift
+command does not pass `HAVE_NATIVE_COMP`. The menu/selection builtin records
+have inactive native-field gates and the frame-functions record omits those
+four fields entirely. All three compiled object value-witness tables retain
+56 in their size/stride slots; the selected Rust/reference record requires
+the four native trailing fields after the56-byte base. Source disagreement
+is established; the exact invalid runtime object's identity remains to be
+observed, and a fixed full-product bootstrap/GC pass is still required.
+
+Pass the native Swift define from the actual selected target config, add
+the identical conditional four-field tail/defaults to frame-functions, and
+keep ordinary non-native layout unchanged. Do not delay hashing, disable GC,
+suppress invalid-tag checks or classify builtin functions as native to hide
+the discrepancy. Preserve both compiler-leg failures and immutable inputs.
+Any retained terminal reuse must certify only the exact Cocoa-private
+compile-option/Swift-record repair; unrelated production changes remain
+forbidden. Validate the actual rebuilt Swift layouts, full link/dump/package
+and builtin/GC behavior before any native product or ABI acceptance.
+
+ABI metadata interpretation uses the [official value-witness definition](https://github.com/swiftlang/swift/blob/main/include/swift/ABI/ValueWitness.def): eight required function entries precede size/stride. This supports decoding the retained object metadata; it does not replace the pending full-editor GC/bootstrap proof.
+
+P-366 paired correction before the next full build: actual selected feature
+values are JSON strings, not integers. The first parser would reject the
+real `"1"` value before invoking Swift; prior eight source/carry passes did
+not execute that compiler path. Accept explicit string/numeric1 and0, keep
+absence false and reject unknown values. Update the exact source-certificate
+expectation in lockstep and retain the old source/result boundary. No new
+full Cocoa success is inferred.
+
+
+## P-367: diagnose the checked Cocoa dump scan invariant (2026-10-26)
+
+D17 ordinary Cocoa completes and its files/resources/manuals are verified.
+Checking has the corrected88-byte Swift records and actually links, but
+bootstrap dumping aborts at `dump_enqueue_object`'s `already_dumped_object`
+assertion. The old native ABI-hash/GC crash is crossed; an existing partial
+dump file is not a successful dump. Preserve ordinary products and the new
+failure. The in-flight baseline is interrupted/unaccepted, not labelled as
+a tested failure. D17 controller exits143/reaped2042.332seconds with
+918847488bytes run peak and released owner flags.
+
+A bounded native-debugger replay captures no relevant assertion state; it
+times out and all owned processes are reaped. Do not change host security
+settings. Instead compile one separately identified diagnostic copy of the
+actual materialized dumper unit, adding stderr observation only when the
+existing already-seen invariant is about to fail. Preserve the assertion,
+queue/relocation logic, real selected cfg flags and all other original
+objects/archive; retain original source and program hashes. Link only into
+a fresh owned diagnostic tree and run with isolated home/cache/output.
+This diagnostic is not a release product, source-reuse waiver or successful
+functional test. Identify the actual missing object/field before changing
+production; compare with the pinned original source and keep all required
+full-product/native/GC/compatibility checks.
 
 ## P-368: order Cocoa copied builtins before referring symbols (2026-10-26)
 
@@ -1751,6 +1946,223 @@ with no descendants left. This is a bounded dumper repair, not acceptance
 of the full runtime worktree, all Cocoa configurations, compatibility or
 performance. The running cohort and unrelated pending changes are retained.
 
+## P-369: accept the actual disabled Cocoa native feature token (2026-10-26)
+
+D18's complete combined-native Cocoa configuration passes both legs, but
+both baseline legs later reject `features.have_native_comp = "undefined"`
+before Swift compilation. The canonical runtime target generator deliberately
+writes "1" for enabled and "undefined" for disabled in both feature/macro
+tables; its Rust cfg reader already excludes the disabled token. Preserve
+these failed outcomes and completed original products. The subsequent
+in-flight case is interrupted/unaccepted, not another completed failure.
+D18 controller exits143 and reaps its tree in2872.279seconds at910213120bytes
+peak; only this owned run is stopped.
+
+The Cocoa Swift-define parser must accept this exact disabled string as
+false, retaining string/integer1/0, absence=false and invalid-value errors.
+Do not turn all unknown values into false. Update the exact inactive-terminal
+source certificate accordingly. Preserve verified complete native Cocoa
+products across this host-only disabled-branch repair only when the old/new
+source delta is exact, every actual selected config takes the unchanged
+positive branch, and all original source/host/product/resource identities
+are revalidated. Record a distinct source cohort, never relabel old products
+as new-source builds or accept incomplete/negative-native cases. Fresh
+remaining Cocoa builds still need real parser/Swift/layout/dump/product
+acceptance; prior native success does not approve this disabled branch.
+
+## P-370: restore missing retained link inputs only by exact identity (2026-10-26)
+
+D19 stops before any new compiler launch: strict terminal reuse finds an
+old object absent. The bounded twenty-leg receipt inventory finds3250
+missing object files and20 missing static archives; all recorded program/
+dump files remain. The corresponding D18 Cocoa objects/archives remain.
+No cleanup ledger entry explains this new disappearance; attribution is
+unknown, not assigned to another process or agent. Previous build passes
+remain historical evidence, not current intermediate-retention proof.
+
+Initially keep strict reuse verification unchanged while trying exact recovery.
+Preserve frozen source, programs, dumps, original receipts and failed D19 evidence. The old materialized Rust
+units and target configs still exist. First try rebuilding a bounded pair
+in a separate owned output with the recorded toolchain/cfg/codegen recipe;
+compare actual bytes with the original receipt hashes before restoring any
+missing original-path input. Do not substitute different bytes, relabel
+new-source builds as old, change expected hashes, or claim restoration from
+mere compilation success. Archive recovery likewise requires exact recorded
+identity. This is an owned generated-input recovery, not source/product
+editing or an acceptance waiver. No files are removed by this operation.
+
+
+Bounded recovery compiles two original materialized units to byte-identical
+objects, without restoring original paths. This does not prove recovery of
+all3250 objects or any archive container metadata. Following actual paired
+source/evidence discussion, distinguish strict new-build verification from
+reuse of already strictly sealed completed terminal products. Require two
+explicitly hash-pinned existing strict seals for exactly the original twenty
+receipts/thirty profiles, matching old source, stopped controller and host
+provenance. The seals are two historical checks of the same source/receipts,
+not independent original sources. Rehash all current final programs, dumps,
+config and complete resources; reject changed receipts, surviving wrong
+objects/archives, unsealed profiles and any Cocoa product. Only expected
+missing link intermediates may be recorded as historical-missing; never
+call them restored or currently retained. The new certificate records this
+mode and cannot be reused as a historical strict seal. New builds and native
+Cocoa reuse still require every current link input. No generic skip-missing
+switch, changed expected hash, source relabel or behavioral gate waiver is
+introduced. The original complete runtime/corpus/native/GC/performance
+acceptance remains required. No deletion occurs in this recovery.
+
+
+## P-371: exact completed-terminal resource recovery (2026-10-26)
+
+P-370 integration correctly rejects a newly discovered final-resource loss:
+twenty packaged fingerprint helpers and sixty root native-library copies
+are missing, beyond the previously inventoried link intermediates. This is
+not covered by historical-missing acceptance. Restore only missing files
+whose complete bytes/mode identity matches the unchanged original receipt.
+Use matching existing packaged native-library copies; for the helper, first
+rebuild original materialized units and link recipe in separate owned output
+and require the original full binary hash before copying to original missing
+paths. Do not replace existing different files, alter expected identities,
+weaken resource validation or delete failed attempts. If exact helper
+recovery fails, rebuild affected terminal products instead. No performance
+or functional acceptance follows from merely restoring files.
+
+
+P-371 recovery result: all sixty missing native-library files are copied
+from each unchanged package's exact matching copies. All87 original helper
+library objects rebuild to their recorded hashes; the helper object and
+original link recipe produce the exact missing helper binary. The first
+trial stops only at an incorrect manifest locator after compilation; its
+successful objects are reused for the corrected link, without recompiling.
+The twenty packaged helpers are restored only after the full expected binary
+hash and mode match. Exclusive destination creation prevents replacement;
+per-file intent and exact readback are journaled. Original receipts, sources,
+programs, dumps and failure evidence remain unchanged. No link-intermediate
+restoration or whole runtime acceptance is claimed.
+
+
+P-371 retention follow-up: after the fresh non-native Cocoa baseline completes
+both compiler legs,366 exact entries (linked objects, original archive bytes,
+six program/dump files per leg and four receipt/config files per leg) are
+archived and every member's bytes/mode/hash independently checked against
+the unchanged originals. Logical157609306bytes compresses to46870500bytes.
+This preserves existing static archive container metadata instead of trying
+to regenerate it later. No existing input is deleted or replaced; this is
+an exact linked-input/program recovery bundle, not a complete App/resource
+backup or relocation/functional acceptance. The active observer build is
+excluded from this operation.
+
+## P-372: separate native fixture construction from protective components (2026-10-26)
+
+The current coordinator places signed native negative-format fixture builds
+inside the protective components action, although full functional execution
+needs those fixtures first. Under current R39 this couples functional setup
+to premature unit execution, then attempts duplicate fixture construction
+when components run afterward. Add a distinct prepare action using the
+existing actual prepare-negative child and its unchanged product/ABI-bound
+fixtures. Run build, prepare under build protection, full execute under
+runtime protection, then protective components under build protection.
+Components must not rebuild negative fixtures. Preparation succeeds only
+for a completed product matrix, successful child/receipt and the exact
+selected native profile set. Retain fixture receipts, product-list hash and
+source identity; distinguish the coordinator's own version from the frozen
+product source. Keep every functional/native/corpus/performance gate and
+existing failed output. This changes orchestration only, not any compiled
+product, fixture behavior, active frozen build or acceptance standard.
+Actual fixture preparation remains pending until the live build completes.
+
+
+## P-373: correct unused message declaration return type (2026-10-26)
+
+The completed non-native Cocoa compiler log reports five distinct clashing
+foreign declaration names. Four are raw-pointer pointee/const spellings:
+decode_live_frame, bset_redisplay, is_tty_child_frame and emacs_strerror;
+these warnings alone do not establish a changed calling convention or a
+runtime defect. Do not mechanically rewrite opaque-header boundaries.
+The remaining message3 mismatch is real: the reference public declaration,
+reference definition, Rust public header and Rust definition all return
+void, while eval's duplicate declaration returns a Lisp object. Its one
+actual eval call is a statement and does not consume a return value.
+
+Correct only eval's declaration to void, retaining the call, arguments,
+control flow and all other code. The active D20 frozen source remains
+unchanged and must retain its original source identity. The root correction
+is not validated by old D20 product passes. After the live cohort completes,
+perform the required source-bound compile/equivalence check or rebuild
+before accepting corrected-source behavior; do not relabel old products as
+new-source builds, ignore changed bytes or waive runtime gates. No new
+compiler is started alongside the live protected build. Record the other
+four warning classes as pointer-spelling evidence, not four alleged ABI
+width faults or four verified functional failures.
+
+
+P-373 verification boundary: prepare_leg deliberately hashes source_digest
+into the generated native ABI identity. Therefore a single eval object
+comparison under an old config cannot alone certify a new-source product.
+Any equivalence argument must cover actual generated ABI/config/path inputs;
+otherwise rebuild the affected products. Do not alter ABI hashing, expected
+identity accounting or source labels merely to avoid rebuilding.
+
+
+## P-374: preserve selected runtime artifacts and verify frozen action inputs (2026-10-26)
+
+The D20 final matrix fails resource verification after earlier strict builds:
+219 required program/helper/library paths are missing and all but the final
+checking Cocoa link-input sets are absent. Attribution is unknown; comparison
+with this task's explicit CLN-32 through35 deletions finds zero overlapping
+resource paths. Exact program/resource recovery matches original receipts,
+including three deterministically reconstructed ad-hoc signed programs; it
+does not turn old-source D20 into a passed corrected-source build. Retain its
+original failure. Do not rebuild old missing intermediates just to postpone
+the required corrected-source cohort.
+
+Verify each action's source_export against its named build before and after
+prepare/execute/components, including exceptional exits. Match the explicit
+source_root; refuse a changed snapshot rather than use old products to build
+new fixtures. Retain product-list and full resource checks.
+
+For the fresh corrected-source cohort, a per-run artifact journal records
+exact selected source/config/receipt, final program/dump/resource and linked
+object/archive identities. On macOS protect regular files with inode-bound
+user-immutable flags, using only this owned run's build inputs/outputs.
+Capture each completed compiler leg before beginning the next leg; acquire
+intent is durable before flags change. Do not lock product root directories:
+normal and checking lanes still need to create their own result/child paths.
+Source/resource symlinks remain explicitly identity-checked without following
+them. Restore only flags introduced by this run on the same inode, preserving
+other flags; failures retain a private recovery journal. SIGINT/SIGTERM unwind
+the owned child before release; uncatchable death leaves an explicit journal
+that can be released only after verifying the original owner is gone. No
+shared lock, budget change, foreign process management or permanent immutable
+policy is introduced. Actual guard integration and corrected-source 20/61
+acceptance remain pending. Only inputs needed for current acceptance/recovery
+are retained; consumed caches follow the cleanup-after-run policy.
+
+
+## P-375: do not propagate preservation flags into owned copies (2026-10-26)
+
+The actual D21 product callback rejects preexisting immutable outputs after
+successful link/dump. Three completed cases reproduce the same failure; stop
+the owned cohort rather than repeat it across all20. The original controller
+exits143 with complete process recovery; source guard release succeeds. A
+bounded inventory finds17584 immutable output files, all byte/mode-identical
+to selected source inputs whose flags this run introduced. The Rust platform
+copy primitive propagated those flags into the new resource files; the tiny
+P-374 metadata fixtures did not exercise that actual copy path.
+
+Keep strict refusal of unknown preexisting immutable files. Instead copy bytes
+and permissions through the new Rust owned_copy module, without copying file
+flags or xattrs. Use it at selected-config, package-tree/program/dump and manual
+copy sites; runtime Python relocation/fixture copies likewise copy bytes/mode
+only. Original selected files stay immutable and unchanged. The output's own
+protection is acquired only through its explicit receipt/journal. Validate the
+actual Rust module and Python copy paths against a real immutable input, plus
+source-byte/mode invariants and refusal to truncate the source inode; then
+repeat only affected preservation integration. Retain the original D21 failure
+and source identity. It is not a passed corrected-source cohort, and no frozen
+source or original expected receipt is edited. Fresh final acceptance still
+requires all20/61 products from the fixed source.
+
 
 ## P-376: reclaim consumed build outputs at each run boundary (2026-10-26)
 
@@ -1769,6 +2181,420 @@ matrices. Original frozen source and receipts remain, including canonical
 inputs used by earlier duplicate-copy recovery maps. D20/D21 failures remain
 failures; retiring their raw generated products does not pass new runtime
 acceptance. See the batch report for verified counts and current disk usage.
+
+
+## P-377: optimize the build driver without weakening artifact verification (2026-10-26)
+
+The first corrected-source D22 normal product compiles163 units, links with
+zero undefined symbols, generates its final dump and passes actual Rust
+product capture (v2 receipt, all six final files and163 link objects). The
+checking leg starts; the whole configuration is not yet accepted. A bounded
+live sample of its debug build driver shows the record_product path spending
+its samples in SHA-256 work through verify_selected_root/source_digest and
+native resource verification, rather than waiting on a compiler or copy error.
+
+Keep every source/config/backend/resource/link content check. Build only the
+xtask orchestration executable with Cargo's release profile and bind its new
+actual executable identity; editor optimization, selected configs, runtime
+ABI derivation and acceptance criteria remain unchanged. Do not hot-swap a
+captured live driver. Stop/reap the original D22 owner, preserve its actual
+partial proof and original source, then run a new uniform-source cohort with
+no old product carry. Validate the actual optimized host and product callbacks
+through that fresh build, followed by prepare, execute and protective cases.
+No editor performance improvement or whole-cohort pass follows from this
+infrastructure optimization.
+
+### P-378: interrupted artifact journal writes must not block unwind
+
+After the complete D23 build passed, a tool interruption removed the prepare
+controller while its original child remained alive. The exact child was stopped
+before native fixture compilation. SIGTERM during an atomic journal write left
+the process-named temporary file behind; unwind then reused that same name and
+failed with FileExistsError. The original failure, partial write and journal are
+retained. Dead-owner recovery restores only that run's recorded inode flags.
+
+Give each artifact journal write a unique temporary name while preserving the
+exclusive creation, flush/fsync and atomic replace order. An interrupted write
+must leave the last committed journal usable and permit the same process to
+record release. Verify an actual SIGTERM during a partial write, preserved
+partial evidence and complete flag release before retrying preparation in a
+fresh output. This coordinator-only correction does not change the frozen
+editor sources, accepted build products, semantics or performance criteria.
+
+### P-379: repair actual runtime failures without rewriting frozen evidence
+
+The first D23 execution records real failures on the installed reference and
+candidate. Language cases reach their observations but the process protocol
+passes dotted observation pairs to JSON as array elements, causing listp errors
+after ERT returns. Two owned observer/native fixtures also have unclosed forms;
+their actual discovery fails with end-of-file. Encode explicit two-element JSON
+arrays and close the intended forms, retaining every existing case/assertion.
+Format multi-argument ERT failure diagnostics into the single data argument.
+
+The automatic-GC fixtures must bind both the absolute threshold and relative
+heap threshold: bounded churn below the default relative floor does not exercise
+an actual collection. Set the relative percentage to zero only inside these
+forced-collection fixture scopes; do not fake a minor with an explicit full,
+raise an allocation limit or relax required collector observations. Finalizer
+cases must prove actual once-only execution rather than accepting zero runs.
+
+The actual collector chooses explicit/control reasons before checking its
+pending doomed list, contradicting the recorded reason12 priority. After owner
+validation, prioritize the nonempty original doomed list before explicit/full
+control selection. Keep the original tracing/finalization order and Full kind.
+This corrects real selection telemetry; it does not claim measured improvement.
+
+Fix ROOT inputs only. The running D23 source/products and original failures stay
+unchanged while independent results are collected. Any repaired-harness
+investigation must identify its separate immutable fixture inputs; old products
+cannot certify the corrected collector. Gather affected defects, then rebuild
+and perform the necessary consolidated acceptance before delivery. No skipped
+cases, waived input hashes or rewritten failure receipts.
+
+### P-380: repair persistent dump-fixture dependencies and retire consumed relocation copies
+
+The D23 dump fixture compiles an anonymous native function without an explicit
+output. The actual compiler intentionally unlinks that temporary ELN after
+loading it; restoring the generated dump therefore cannot load its recorded
+native unit. Preserve the same actual compiled lambda and observations, but
+request an explicit owned persistent ELN. Bind its bytes before/after the fresh
+restore process and keep the original failed dump receipts unchanged. Forced
+minor churn must bind the relative threshold as well as the absolute threshold,
+matching P-379; explicit full GC is not a minor substitute.
+
+The relocation runner retains one full copied package per profile and exhausted
+disk during D23. Once each case has collected actual child completion and
+signature/denial/functional evidence, record the owned copy's per-member
+identity outside that package and remove only that consumed package before the
+next case. Apply the same finally path on failure or cancellation. Refuse
+cleanup on unknown ownership, changed root identity or open handles; preserve
+logs and report cleanup failures rather than silently deleting inputs. Never
+relax the original source-denied sandbox, signature, semantic or identity gates.
+
+Only ROOT coordinator/fixture inputs change. The old frozen source and products
+remain unchanged. Terminal relocation SIGABRT remains undiagnosed until actual
+source/crash or execution evidence identifies it; neither cleanup nor a repaired
+fixture is proof that the editor or collector passes. A fixture-only diagnostic
+binds its own immutable driver/fixtures and original products; the changed ROOT
+collector still requires a later affected rebuild and full acceptance.
+
+P-380 source-bound relocation decision: actual crash stacks identify terminal
+live_path abort before the fixture. Keep the sandbox predicates unchanged.
+Place each temporary package in a uniquely owned relocation-work sibling of the
+frozen source export, outside every denied input root. Keep harness/receipts in
+the original case output. This tests source-denied executable relocation without
+requiring forbidden source-ancestor traversal for its realpath; the exact errno
+of the historical abort is still not claimed. Retire that exact work package
+per case and retain its manifest/cleanup receipt outside the removed subtree.
+
+### P-381: bind each actual child cwd and its PWD environment consistently
+
+The pinned seven-product ERT diagnosis collects278 cases. Four native
+ordinary/checking terminal/Cocoa debug-file cases fail before compilation:
+their process cwd is the owned case directory, but Popen retains the parent's
+PWD environment string. The fixture correctly refuses debug3 file emission
+outside its declared root based on that stale locator.
+
+The process launcher must copy the supplied environment and set PWD to the
+canonical actual cwd passed to Popen, recording that cwd in its process receipt.
+Do not weaken the fixture's ownership precondition or debug-file assertions.
+Keep the278-case original result and repair ROOT only; re-run the four actual
+affected debug-file cases with a separately pinned driver/fixture snapshot.
+The other unchanged cases are reused. This is process launch bookkeeping, not
+a native compiler or collector correctness claim.
+
+
+### P-382: capture an actual completed young cycle without sampling overrun
+
+D24 actual ERT has four retained failures of
+`rtg03-automatic-churn-young-or-major-control` in Cocoa collector/observer
+checking-young, across off/phases/survival/all observation modes. Its detached
+snapshot proves completed minors increased from0 to2, followed by a cap-selected
+Full (last kind0, reason5). The helper allocates4000 conses before checking and
+returns solely on the minor counter; it can overshoot the very Young snapshot
+which the caller correctly requires. Collector commit increments the minor
+counter only for a committed Young cycle; detached export snapshots the fields
+before Lisp allocation. Do not change collector caps or count the failed run as
+passed.
+
+Repair the owned fixture's bounded sampling window: retain the original maximum
+cons-allocation budget, use small chunks and require both a new completed minor
+and last-kind Young before returning. Preserve the caller's original last-kind,
+minor-count, sequence, survival and finalizer assertions. Absence of a captured
+Young cycle remains failure with accurate diagnostics. Revalidate every affected
+GC fixture caller with a separately pinned fixture/driver against the same
+products; do not modify the frozen D24 source or replace original failures.
+This is a source-bound fixture repair decision, not a validated result.
+
+### P-383: stable corpus resources are inputs, not independent test entrypoints
+
+The pinned31.1 test recipe's ELFILES rule prunes manual/data/infra and directories
+whose names end in resources, while retaining other non-hidden Lisp files.
+The tracked corpus has693 Lisp inputs:555 unconditional entrypoints and138
+resource-only inputs under that exact rule, before explicit module-feature
+applicability. Keep all1536 manifest inputs available; do not misload deliberate
+error fixtures or platform controllers as independent test entrypoints. Do not
+filter only names ending in -tests.el, which would wrongly omit actual upstream
+entrypoints.
+
+The current driver loads every .el and restarts both products for every ID.
+Correct entrypoint selection against the retained original recipe and retain all
+actual discovered IDs, missing/extra/duplicate detection, per-case timings and
+all failures. Follow original per-file ERT execution with isolated per-file
+state; retain per-case deadline/progress evidence and report unexecuted cases on
+termination. Do not silently adopt upstream default expensive/unstable tag
+exclusions, omit missing candidate features, or label resource files as passed.
+Bind the corrected harness separately from immutable product/source receipts;
+reuse unaffected actual runtime results only with explicit identity proofs.
+Design and implementation/revalidation remain pending; this decision alone is
+not corpus compatibility acceptance.
+
+
+### P-384: bounded completion receipts for large detailed execution evidence
+
+The original D24 ERT worker actually completes6110 processes:565 discoveries and
+5545 exact cases,5541 passed/four retained failures. Independent bounded case
+reads account for all61 profiles/565 groups and compare1521 language observations
+with the installed control. Full product/resource identities before/after and
+complete product receipts match; all136061 selected artifacts release cleanly.
+The detailed result is457520072 bytes, and the parent rejects its own completed
+child evidence at the256MiB bounded_json gate. It exits1 naturally; no operator
+signal was sent and no later action ran. This is an orchestration failure, not
+new editor failure, an incomplete ERT matrix, or permission to erase failures.
+
+Retain detailed/individual evidence and add a bounded completion receipt after
+its successful write, binding schema/action, actual counts/outcome, source and
+fixture/product identities, detailed bytes and streamed SHA. The coordinator
+must validate this receipt and the detailed identity without deserializing the
+whole repeated array. Do not raise the memory hard limit or treat nonzero child
+exit/failing cases as passed. Design/implementation and actual revalidation are
+pending; the original failed coordinator and four ERT failures remain intact.
+
+P-382/383/384 implementation continuation: the bound followup path snapshots the
+corrected Python/fixture harness separately, verifies every original per-case
+identity, complete product boundary, discovered ID and language observation,
+and writes an explicitly post-hoc original checkpoint. It replays the entire
+collector group and requires the identical file/profile/mode/ID set before
+merging; the original failed attempts stay intact. Unaffected results are reused,
+not rerun or relabelled. Remaining native negative/dump/relocation/performance
+and original-file stable execution continue even when an independent group
+fails. Every new action produces bounded, SHA-bound completion metadata; original
+detailed evidence remains authoritative. Stable summaries bind the original
+manifest, all-file entrypoints, per-file ID scope, actual products/environments
+and detailed output, never exit-zero alone.
+
+P-376's runtime exit is now implemented for successful reaped owned case state:
+raw evidence and failures stay, while a per-case pre-delete identity ledger is
+file/directory-fsynced before exact unlink and post-delete evidence verification.
+Stable per-file state is reclaimed before the next original file; runtime state
+is reclaimed after its whole consuming action. Input/product/harness snapshots
+and their distinct identities remain available; followup does not duplicate the
+unchanged full recovery archive. These are implementation changes, not actual
+functional validation or final cleanup-report results.
+
+Actual P-382/384 followup evidence: the unchanged D24 products now pass all112
+collector discoveries and1120 ERT cases. The new bounded receipt is consumed
+by the real coordinator, and the affected merge requires all1232 original
+process identities exactly. It reuses4878 unaffected actual records, retains
+the original4 failed attempts, and has zero effective remaining failures. The
+source/product/resource boundaries and fixture identities for this action match.
+This validates the owned fixture sampling repair and runtime completion path,
+not whole stable compatibility, native UI, performance or the complete Goal.
+P-383's actual reference/candidate two-file pilot passes116 original ERT
+executions with real failure/skip/timeout/not-run controls; full original-file
+stable execution and positive complete-corpus summary validation remain pending.
+
+### P-385: durable relocation retirement evidence before unlink (2026-10-27)
+
+The D25 executed relocation exit closes its gzip ledger before deleting the
+owned copy, but does not fsync the file or its parent directory. All60 actual
+copies have normal retirement/identity evidence and no observed loss; that
+post-run evidence does not retroactively prove power-loss durability. Keep the
+frozen running harness and original receipts unchanged, and disclose this
+boundary in its cleanup report.
+
+For subsequent executions, finish/flush/fsync the complete member ledger and
+its directory, then durably write the identity-recorded lifecycle receipt
+before removing only the verified owned package. Sync the removed package's
+parent and durably publish the final lifecycle record. A pre-delete sync error
+must retain the package; do not turn that error into successful reclamation.
+This changes the maintenance exit only, not product semantics or sandbox scope.
+Revalidate real filesystem ordering/error/occupancy paths with small owned
+payloads; do not repeat unchanged product relocation or rebuild the VM.
+
+
+### P-386: declare delayed native compiler controls before lexical binding (2026-10-27)
+
+The actual D25 first warmup has61 native process failures, all exit255 without
+timeout or surviving descendants. Its backtraces enter the performance runner's
+lexical let before runtime-profile loads comp: comp-running-batch-compilation
+is not yet declared special, and the later comp.el defvar correctly rejects the
+active lexical binding. The production evaluator explicitly diagnoses this
+situation. The neighboring native-comp-async-report-warnings-errors is likewise
+a delayed comp-run option; declare both local special variables before binding
+them in the owned runner. Do not weaken production variable semantics, load the
+compiler before the owned cache environment, or alter workload/timer/collector
+assertions. Existing native ERT already requires comp before binding controls.
+
+Apply the narrow fixture repair only to ROOT for a separately frozen replay.
+The active D25 harness, product cohort, original failed attempts and unaffected
+results stay unchanged. Validate against the real installed native control and
+actual candidate profiles under fresh owned state after the current controlled
+workload yields; a syntax check alone is not native/performance acceptance.
+Full stable compatibility, quiet paired performance and final independent
+review remain required. Do not rebuild the unchanged VM for this fixture fix.
+
+
+### P-387: restore configuration-dependent Lisp thread lifecycle (2026-10-27)
+
+Actual closed control metadata and40 bound runtime configs confirm that G3
+module/thread compatibility remains open. thread.rs kept frozen-disabled-target
+behavior even when later targets request threads: subr registration false,
+main-thread nil, unsupported start error and missing main-thread signal/NS/JNI
+lifecycle. Restore the original conditional paths from the preserved source
+fd7afced4036fc1a221567d70705d20a2bd64713, with the stable31.1 public behavior
+remaining the compatibility obligation. The source cache is read-only and clean.
+
+Whole thread connection set: thread.rs registration/main-thread/start-error/
+signal event, existing NS pool functions, JNI attach/detach/environment/query/
+select hooks and GLib select-lock release; include/jni.rs invocation table and
+JNI_OK; include/thread.rs Darwin threaded POD layouts; include/systhread.rs
+copyable alignment-room records. Keep disabled-target behavior under its real
+configuration, not a hard-coded false branch. Existing keyboard THREAD_EVENT
+paths and Swift event-value exports already follow the target enum; do not
+replace them with hard-coded numeric values. Module and other requested feature
+closure remains separate and must be real code/build integration, not labels.
+
+Do not enable or advertise threads merely because these paths are written. The
+expected Darwin threaded thread_state size520 and related mutex/condition
+layouts must be independently checked against actual target C types and the
+source contract, followed by current original thread cases, NS/JNI lifecycle,
+native/GC roots, error/unwind and independence checks. Existing Android ABI
+assertions and disabled-target paths stay covered; no unsupported feature is
+called compatible. Compile/test serially after the current unknown workload,
+then collect/fix the affected failures and obtain independent review. No active
+frozen source, running product or existing receipt is edited; ROOT remains WIP.
+
+
+### P-388: bounded performance progress checkpoint (2026-10-27)
+
+The live D25 performance child rewrites its full accumulated processes,
+samples and errors after every process. A current checkpoint already occupies
+252604518 bytes; the driver had consumed69:37.53 CPU during1:19:22 elapsed at
+the recorded observation, independently of actual VM execution. This is an
+observed instrument cost, not a measured disk-I/O byte total. Combined with
+P-386's61 actual first-warmup native failures, this run cannot establish quiet
+performance acceptance. Preserve completed individual results and successful
+ERT/negative/dump/relocation phases, deliberately stop this flawed action
+through its owned lifecycle and retain interruption/release evidence. This is
+not a Goal pause or a failed VM performance verdict.
+
+Subsequent drivers write only counts and the projected latest profile/mode/
+observer/round/status to partial.json. Keep complete per-process files and the
+final detailed result unchanged; bounded completion receipts retain their
+existing full-evidence hashes. No workload, timer, number of warmups/rounds,
+quietness policy or acceptance condition is relaxed. Validate the actual
+progress writer with small real filesystem calls, then the repaired native
+entry and full required continuation, preserving failed/interrupted attempts.
+
+### P-389: owned macOS module/thread capability connection (2026-10-27)
+
+G3's actual current source and configs still omit the installed stable control's
+module/thread capabilities. P-387 restores the conditional thread lifecycle;
+this connection also reaches the pthread target macros/alignment, both owned
+object lists, module assertion startup/help/option sorting, and the public
+module API required to compile external modules from a fresh checkout.
+
+Actual source comparison also identifies previously inactive connection
+defects: eval.rs::mark_specpdl must accept SPECPDL_MODULE_RUNTIME without tracing
+its native handle (the original C case breaks), while tracing the environment
+case; Cocoa ns_run_loop_break needs its real C export for systhread.rs's NS
+condition broadcast; data.rs::interactive-form/command-modes must inspect the
+module function's original forms between closure and autoload cases. Restore those
+exact paths, not a new collector policy or
+an empty placeholder. Both require original module-GC and threaded Cocoa
+behavioral acceptance after the complete implementation.
+
+Preserve the original ABI template and version25–32 fragments at the fixed
+read-only source fd7afced4036fc1a221567d70705d20a2bd64713 as small tracked
+build-support inputs with content identities and licenses. Generate the public
+header from those owned inputs and the actual owned version, without reading
+an installed program, generated historical header or optional source cache.
+Ship the generated header with both terminal and Cocoa packages. This is the
+public C ABI for existing external modules, not a C implementation/shim linked
+into the Rust editor. Do not rename its compatibility identifiers.
+
+Enable actual macOS modules/pthreads only as the complete source connection,
+retaining the original disabled-target arms and Android target ABI. Changing
+these flags invalidates old layouts/dumps; rebuild all affected units and dump
+the new product. Never reuse old D24 products as proof for this new source.
+On a failed compiler configuration, retain both legs, original diagnostics and
+selected artifact recovery, then stop the remaining matrix for a source repair.
+This is an explicit failed/incomplete result, not reduced acceptance: the final
+required20 configurations/61 profiles and real functional gates are unchanged.
+Before acceptance, finish the whole applicable implementation and source-bound
+design discussion. Then validate real target ABI, original stable module/thread
+cases (including assertions/errors/GC/unwind), independent generation/build,
+normal/checking terminal/Cocoa and native/collector combinations affected by
+the new roots/lifetimes. A header render or advertised feature alone proves
+neither module loading nor thread correctness; G3 stays open until actual
+behavior and independent review pass. Other requested capabilities remain
+explicit obligations, not silently excluded by this bounded connection.
+
+Keep cfg-only pthread/alignment settings in the features section, not duplicated
+as generated Rust constants or contradicted by old undefined feature aliases.
+The normal target cfg reader, like the runtime canonicalizer, must reject
+contradictory case-insensitive aliases rather than let section order silently
+disable a requested feature; equivalent boolean spellings remain accepted.
+The source configure contract selects .dylib primary/.so secondary on Darwin;
+lread.rs must use those actual suffixes while retaining .so on Android. The
+optional secondary string uses C's presence test, not integer truthiness; derive
+that exact cfg in config_features. Both load-path probing and module-file-suffix
+must agree with the selected target, not retain the old Android-only literal.
+
+The module print/describe path also reaches dynlib_addr: its frozen body still
+discarded addresses even on targets enabling HAVE_DLADDR. Carry the actual
+Darwin/Android Dl_info system ABI and original dladdr branch, requiring both
+non-null file and symbol before publishing either. Enable the real Darwin
+capability, retain the no-dladdr fallback, and independently verify its C type
+and symbol lookup before new-product module introspection acceptance.
+Never hot-edit the active frozen harness or silently overwrite its raw data.
+
+### P-390: actual Cocoa layout drift and GC abort (2026-10-27)
+
+The unlocked user workflow exposes a genuine layout defect: the editor text,
+scrollbar and mode line occupy only part of the native window, leaving large
+right/bottom margins. A temporary drag fixture makes it visible; it does not
+make that layout acceptable. Stop drag/IME acceptance until the native content
+view, editor view and core frame dimensions agree after initial creation,
+programmatic frame-parameter changes and actual user resizing/tiling. Preserve
+normal sizing, focus and redisplay semantics; do not hide the margins by
+changing the acceptance dimensions or by cropping screenshots.
+
+The original controlled fixture process exited0. A subsequent ordinarily
+configured instance really aborted with SIGABRT: its binary UUID matches the
+existing G4 candidate, and its original system report contains a Rust bounds
+panic from process_mark_stack. Binary/source-location inspection binds the
+failure to the float mark-bit path, index63 for63 words. That is a separate
+correctness failure, not a successful shutdown, and does not justify disabling
+GC, removing bounds checks, ignoring invalid objects or clamping mark indices.
+Find and correct the actual object/layout producer against the original source;
+retain the original crash and validate the repaired real editor under allocation
+and collection. Do not read or modify personal configuration as a test fixture.
+
+During native UI work use only the exact owned process and candidate. Do not
+query a closed app through an interface that can silently relaunch it with
+personal configuration. Verify exit through its original process handle.
+New source must be compiled, visibly inspected and independently reviewed before
+claiming either layout or crash fixed. A changed window or a test exit0 is not
+that acceptance.
+
+The selected checking product must actually enable the original allocated-object
+sanity checks. The historical frozen-zero GC_CHECK_MARKED_OBJECTS constant must
+follow the existing enable_checking build cfg. This helps locate invalid object
+producers; it is not a repair of the ordinary product's invalid pointer. Keep
+ordinary behavior unchanged. Cocoa/terminal module links also require dynlib.o
+with emacs-module.o; native-only membership is insufficient for baseline modules.
 
 ### P-391: Cocoa frame flag word and immediate UI priority (2026-10-27)
 
@@ -1806,6 +2632,7 @@ in the terminal renderer and its real window-matrix redisplay_tab_bar dispatch,
 including original height/row/autosize/flag handling. Do not merely disable tab
 bars or ignore a missing matrix. Preserve terminal rendering. Other development
 and GC diagnosis remain held; only the UI repair proceeds.
+
 
 ### P-392: native live-resize title crosses an invalid Swift varargs boundary (2026-10-27)
 
@@ -1941,6 +2768,123 @@ Fix the observer's buffered-log read, bind all fixture/helper/program/dump
 inputs, and isolate HOME/XDG/temp paths. Do not patch the editor or ignore a
 configuration difference to make the test pass. Earlier failures remain.
 
+
+### P-399: restore the actual system XML/HTML parser path (2026-10-27)
+
+The installed stable control links the macOS system libxml2. The existing
+xml.rs only implements availability for the old disabled configuration: its
+parser module is empty and its cfg alias does not match HAVE_LIBXML2. The
+read-only stable31.1 source at a360712c9d272d950d8d8255ef74570f7e90b7d9
+and the pinned frozen source have identical xml.c implementations. Reuse the
+actual system library, preserving its public DOM ABI, parser option bits,
+region validation/gap handling, attribute and child order, text/CDATA/comments,
+top-level comment wrapper, failed-parse nil result and explicit document free.
+Restore both subrs and parser cleanup at the original shutdown point; do not
+replace parsing with a different XML implementation or add behavior filters.
+
+Owned Darwin target configuration and library manifests must enable and link
+the real path for terminal and Cocoa. Disabled configurations retain nil
+availability. Windows delayed loading remains an unimplemented target and must
+not acquire a false availability claim from this change. Source and behavior
+validation must bind the actual system library/SDK layouts and original stable
+XML cases, plus region/comment/HTML/error/Unicode/GC/save/quit behavior. Write
+all business code first, then integration/functional acceptance, then focused
+layout/protection cases. The running D26 snapshot is unchanged and does not
+contain or certify P-399; new source requires its own applicable build.
+
+
+### P-400: connect the existing full SQLite path to owned macOS products (2026-10-27)
+
+The installed stable program links the system SQLite library. The owned
+SQLite unit contains the actual open/close, bind/execute/select, statement
+iteration/finalization, transaction, pragma, type predicate, version and
+registration implementations, but the Darwin targets disable HAVE_SQLITE3
+and omit the library. The stable31.1 and pinned sqlite.c sources are identical.
+Use the system library for both terminal and Cocoa, with the public pointer/
+integer/result-code ABI already declared by sqlite.rs and Lisp_Sqlite's
+existing C layout. Preserve source semantics, errors, data/blob/text handling,
+query results, statement lifetime and explicit close behavior; do not substitute
+a different database engine or silently reduce the stable corpus.
+
+The actual selected SDK header supplies the two version thresholds and the
+FULLMUTEX/URI/MEMORY flags. These are cfg-presence predicates, while the actual
+flag values remain in the existing unit declarations. Keep extension loading
+disabled: the selected system SDK does not export sqlite3_load_extension.
+This is an actual external ABI constraint, not permission to count skips as
+passed or assume the installed comparator's optional API without checking it.
+Windows delayed loading remains unconnected and must reject a newly enabled
+Windows target rather than falsely advertising availability.
+
+Complete business target/config/library wiring first, then run the original
+stable SQLite corpus with real normal/checking products and owned database
+files, covering transaction rollback, UTF-8/blob/int64 values, statements,
+errors, close/reopen and GC retention. Record the installed reference's actual
+capabilities and every skip/failure. The live D26 frozen source is unchanged;
+its old products cannot certify the restored SQLite or XML paths. New source
+requires applicable compilation and product/resource identities.
+
+
+### P-401: restore the actual TLS process and cryptographic path (2026-10-27)
+
+The existing TLS unit carries only its first source slice; availability and
+registrations still omit the disabled body. The process header also omits the
+two traced Lisp fields and actual session/certificate/state fields, and its
+bitfield dispatcher has no TLS flags. Merely defining HAVE_GNUTLS is invalid.
+Use the existing linked library API and stable public language behavior, not a
+replacement TLS engine or invented success/default values. Reuse the pinned
+source; stable31.1 differs only in the AEAD overflow path's memory-full helper,
+which must preserve actual overflow/error behavior. Neither reference tree is
+a production build dependency and neither is modified.
+
+First consolidate the opaque process/library pointer types and init stages,
+restore both traced fields in their original position before stderrproc and
+thread, and append the original native session/credential/certificate/status
+fields plus a masked flag word. Reads and writes of both TLS bitfields must
+use masks, preserving adjacent bits and the original C layout; no independent
+Rust bool fields stand in for packed bits. Connect header prototypes and the
+existing process call sites to the actual implementation. Preserve handshake
+limits, synchronous/asynchronous behavior, retries, hostname/trust validation,
+certificate details/status, record I/O, errors, close and crypto APIs.
+
+Do not enable or advertise this capability until the remaining real body,
+foreign API/version gates, registrations and actual dependency packaging are
+complete. Existing disabled-target behavior remains unchanged. Complete the
+whole business path before writing/running its new integration cases. Then
+measure actual enabled C/Rust process layouts and flag words, original stable
+crypto/TLS cases and owned loopback verified/untrusted/hostname/error/async/
+cleanup behavior, including GC and normal/checking products. No public-network
+success, skip or declaration count substitutes for that acceptance. Retain all
+original failures, and do not call this stage compiled or accepted while those
+steps are missing. The running D26 source cohort remains immutable.
+
+### P-402: recover a matrix after loss of its final controller report (2026-10-27)
+
+D28 stopped on ENOSPC after one complete configuration. Its last controller
+state and launcher remain, but neither a final controller report nor fatal.json
+was persisted. Do not fabricate either. Accept a separately labelled stop
+observation only after validating its hashed original state/launcher, matching
+the exact output and process identities, independently proving every recorded
+identity dead and the output idle, and retaining the actual ENOSPC log.
+Missing original controller metrics remain unknown.
+
+Keep the original frozen source and all twenty configurations/61 profiles.
+Strictly verify completed products and link inputs before reuse. Reuse an
+intact original host by its exact receipt hash; do not rebuild a debug host and
+compare it with a retained release executable. A genuinely rebuilt host keeps
+its explicit identity/provenance path. Fresh pending outputs use the existing
+artifact source/product preservation and child handoff. Stop on a failed case,
+preserve its failures, and retire consumed generated compiler source copies
+after each successfully reaped configuration through the existing durable
+retirement helper. Product/link inputs, original source and evidence remain.
+This recovery changes neither editor behavior nor acceptance requirements.
+
+Recovery results live separately from their immutable source export. Subsequent
+prepare/execute/components actions must resolve that export through the pinned
+original partial receipt, not assume the recovery report owns a new source
+copy. Require the original partial hash and exact source-export equality; keep
+the selected recovery product list and report identities separate. This repairs
+the action handoff without copying or modifying the original frozen inputs.
+
 ### P-403: retained evidence storage trial rejected without replacement (2026-10-28)
 
 Old D24 JSON receipts remain required historical evidence. A source-verified,
@@ -2046,6 +2990,181 @@ copy a source label, edit old partials, alter the product snapshot or count a
 partial compiler leg as a complete case. Root orchestration repair is pending;
 only after complete repair and source review may real recovery resume.
 
+### P-408: preserve verified files without duplicating complete product archives (2026-10-28)
+
+D29 actually finished20 configurations/61profiles, then finalization again lost
+the native report to write_report ENOSPC while producing its content archive.
+The incomplete archive is not a valid recovery package. CLN98 independently
+verified all138291 registered original files and retired only that incomplete
+duplicate; original outcomes, source, products and link inputs remain. Do not
+invent native peaks or cleanup_complete when the final report is unavailable.
+
+Complete the root orchestration repair together: runtime-owner ArtifactRun gains
+an explicit verified-files retention mode that checks every original inode,
+content, size, permission and symlink and records that physical originals must
+remain, without another binary archive. Keep archive mode available. Expose the
+choice in runtime-stage and runtime-resume, preserving all source/product and
+functional assertions; failed phases remain failed. Followups retain their new
+harness and original files explicitly. This changes storage representation,
+not the controlled-run implementation, memory accounting, limits or workload.
+
+Extend external stop observation only for a complete20-case/61-profile matrix
+whose native final report was lost: bind adjacent last-state/launch/native-error/
+partial/products snapshots by SHA; recheck every guard/owned PID creation time,
+original output identity, exact case set and actual product list. No fabricated
+failed compiler case or final metrics. A fresh protected recovery must strictly
+verify and reuse all20 cases, preserve the old interrupted outcome, then produce
+its own real completion receipt. Preparation and functional acceptance remain
+required; no archive failure is relabelled as original success. Selected physical
+files become explicit recovery dependencies until a verified replacement is
+recorded, and still obey per-batch cleanup/consumer rules.
+
+### P-409: correct the owned TLS peer shutdown before candidate acceptance (2026-10-28)
+
+The first real TLS run reached13 installed-reference cases, with two failures,
+then the monitor lost its final report to ENOSPC. No candidate TLS acceptance
+was reached. Original outcomes remain. The synchronous echo buffer includes
+the default process sentinel's connection-closed message; the asynchronous
+case crashes inside the installed reference's Fgnutls_bye after the test
+server has already initiated TLS shutdown. Cached stable31.1 source confirms
+that primitive reads the process session directly and permits the documented
+nonblocking again/interrupted statuses. This is not proof of a candidate bug.
+
+Repair only the owned fixture/server, preserving all original stable cases,
+the same15 registered cases, real handshake/certificate/crypto/GC assertions,
+and the frozen product/source cohort. Give synchronous connections a quiet
+sentinel so control messages cannot contaminate application payload. The echo
+server must wait for client close_notify after pong, then send its close reply;
+require both shutdown observations and reject extra payload, ragged EOF and
+shutdown errors. Track the actual wrapped socket for bounded worker cleanup,
+and allow its existing bounded join to finish a valid close before forcing
+socket shutdown. The client calls bye once and validates its documented return
+set, still deinitializes and checks cleanup; do not retry against a session the
+event loop may already have retired. Require server-side close evidence rather
+than treating again as completion. No TLS or VM production change, skipped
+case, lowered protocol assertion or new performance claim follows from this.
+
+Complete the repair together, then revalidate the installed reference and the
+unchanged candidate matrix with newly bound harness evidence once storage is
+usable. The old interrupted TLS attempt is never rewritten as passing.
+
+### P-410: bound process diagnostics without changing test outcomes (2026-10-28)
+
+P409's original reference shutdown cases pass in the real rerun. The unchanged
+stable AEAD case then emits a roughly266MB successful ERT object per profile:
+the process bridge prints every successful assertion and its data. The bounded
+JSON reader rejects it despite child exit0. After seven such responses, the
+owned controller was explicitly cancelled with real exit143/complete cleanup
+to prevent another disk exhaustion. This is not an algorithm assertion failure
+or a completed TLS acceptance. Preserve the original cancelled evidence.
+
+The bridge must report actual status, ID, result type, timing, registration and
+critical observations unchanged, with no assertion history for passed cases.
+For failed/skipped cases print only the actual condition, with bounded depth,
+length and a4096-character streaming output limit; apply the same bounded
+renderer to other error paths. Do not first allocate an unlimited diagnostic
+and truncate it afterwards. The TLS output limit must include response.json.
+Original tests, registration, assertions and product sources remain unchanged.
+
+Full runtime actions need the corrected bridge while retaining the original
+compiled source cohort. Reuse the existing per-product _harness mechanism,
+through an explicit execution-products selection under that source's build
+directory. Its sidecar binds the original build result/product-list hashes,
+selected list hash, original bridge hash and corrected bridge hash. Require
+all original product fields, ordering and identities unchanged except for the
+single common bridge locator. Prepare/execute/components may select it; build
+and original-ERT reuse may not. Capture the selection, sidecar and bridge in
+the existing artifact journal; record the actual selection in action results.
+Native fixture preparation and execution use the same selected-list hash.
+No new build result or compiled-source identity is invented for a harness fix.
+
+After complete implementation and independent source review, repeat affected
+TLS and required runtime acceptance against these actual immutable products.
+Oversized successful assertion histories may be retired only after complete
+JSON parsing, exact hashing and durable extraction of the actual small status,
+timing/observations/identity evidence, with per-file public/private cleanup
+records. This does not convert the original rejected responses or cancelled
+run into a pass, and does not promise recovery of discarded verbose history.
+
+## P-411 Owned retirement and interrupted-owner revalidation
+
+Independent review found missing executable safeguards in one-off remount
+recovery and deferred relocation cleanup. Preserve all original outcomes;
+a later audit or repair must not imply that a new guard ran historically.
+
+Before any remount flag restoration, independently match the complete captured
+file list to the original journal and finalized build plus its explicitly bound
+reporting inputs, then recheck original guard/owned and artifact-owner birth
+identities. Save a read-only post-review proof for the completed recovery.
+
+Relocation retirement must bind the caller's expected tree, persist its
+manifest and intent, recheck holders and the whole tree after persistence,
+and validate each member before unlink. Never recursively delete unlisted
+new members. Retain a typed partial outcome if a later member changes.
+Use the same guard for normal relocation and deferred cleanup.
+
+Save the actual final-receipt repair command/output and source identity;
+verify the repaired receipt from retained evidence without repeating deletion.
+Complete the implementation first, then actual filesystem integration and
+only then necessary protective sync-failure tests. Do not rebuild or rerun
+unaffected editor/TLS/dump/performance acceptance for this tooling correction.
+
+
+## P-412 — Deliver the owned client with both macOS frontends (2026-10-28)
+
+The stable client tests exposed a real build omission: the Rust client exists,
+but neither independent frontend links it. The terminal package already copies
+`port/lib-src`; the Cocoa bundle currently carries no companion client.
+
+Build the owned client with `link-program lib-src/emacsclient.c` after each
+frontend's main link, using that frontend's configured tool-object lane. Give
+all helper links separate `load/programs/<stem>` scratch directories so linking
+one helper cannot overwrite another helper's archive, driver or response file.
+The terminal package must require and carry `lib-src/emacsclient`. Cocoa places
+executable code in `Contents/MacOS/bin/emacsclient`, signs it before the enclosing
+bundle, and exposes it through the relative `Resources/libexec/emacsclient`
+alias. Keep `PATH_EXEC` and the existing dump location unchanged.
+
+Implementation: terminal/Cocoa build wiring, helper linker isolation, explicit
+package requirements and Cocoa signing. Functional acceptance: actual owned
+client links and runs for both frontends, original alternate-editor cases pass,
+and packaged Cocoa signature plus relative client alias validate. Then add
+protective coverage for these delivery boundaries. Do not substitute the system
+client, alter original tests, or count these client checks as full stable-suite,
+server/GUI compatibility or overall Goal completion. The separate source-test
+context and remaining candidate-specific failures remain open. New product
+receipts use identity version 3 and require both built and packaged clients;
+the verifier/owner keep version 1/2 historical layouts distinct and never
+upgrade old outcomes by implication. The first normal terminal build succeeded
+but preservation correctly rejected its unexpected version-2 client file set;
+retain that failure and retry the corrected contract in a fresh output.
+
+
+## P-413 — Bind a source-test context for installed products (2026-10-28)
+
+Original stable tests use both `source-directory` and paths relative to
+`locate-library`. Installed products do not carry the original test/source tree;
+setting only `EMACS_TEST_DIRECTORY` gives an invalid comparison environment.
+
+Bind both products to the same unchanged, fully materialized original test tree
+and a manifest-pinned source-text context. `source-context.json` declares stable
+source texts, README, customization/Unicode inputs and the native image fixture;
+these are test data, never C objects or an editor build dependency. Acquire them
+from the pinned public archive into a verified cache without reading the optional
+reference checkout. Materialize context data once per run and create separate
+product contexts with `lisp` pointing to that product's own library tree and
+`test` to the unchanged materialized corpus. Translate that product's existing
+library search entries through its context, and set `source-directory` plus the
+C-source lookup directory there. Do not clear `installation-directory`, change
+original tests, substitute another product's Lisp, or package test data.
+
+Implement the pinned provider and batch/runner wiring together. Functional
+acceptance must exercise source-relative resources, library-relative CEDET
+lookup, source navigation and both real products before resuming the complete
+555-entrypoint/48-candidate matrix. Preserve remaining semantic failures,
+missing optional dependencies, skips, timeouts and incomplete outcomes. Add
+critical provider/path/isolation protection only after functional acceptance.
+
 
 ## P-414 — Advance the client response cursor (2026-10-28)
 
@@ -2072,6 +3191,7 @@ add a complete print response followed by an incomplete next print response.
 That boundary now passes on all four clients; final protocol protection is20/20.
 The standalone fix does not claim default frontend client delivery or a clean
 HEAD build. The existing manual helper-link command remains a separate entry.
+
 
 ## P-415 — Isolate the CEDET zero-tag failure (2026-10-28)
 
@@ -2125,6 +3245,7 @@ original aggregate remains false because skips are not passes. C parsing is
 committable generator complete actual cold generation of eight tables; five component
 protections pass on each, without treating substitutes as editor acceptance.
 The full stable corpus, remaining product work and Goal are still open.
+
 
 ## P-416 — Diagnose debugger backtrace source navigation (2026-10-28)
 
@@ -2196,6 +3317,55 @@ because file-notify special events are absent without USE_FILE_NOTIFY; the
 original aggregate remains false, with later cases not-run. The notification
 backend gap is P418 work, not permission to label the full file accepted.
 
+## P-418 — Connect the macOS file notification backend (2026-10-28)
+
+The installed stable macOS product exposes NOTIFY/KQUEUE. Both owned macOS
+recipes omit the backend, so baseline file-notify exclusions cannot prove this
+capability. The existing complete kqueue translation already has SDK layout
+assertions, descriptor callbacks, watch lifecycle and subr registration, but it
+is absent from the link object sets and default feature maps.
+
+Connect HAVE_KQUEUE and USE_FILE_NOTIFY consistently in both recipes and link
+its owned object. Replace the unit-local frozen FILE_NOTIFY_EVENT=28 with the
+shared configuration-dependent event kind; thread and Cocoa event members shift
+this number. Keep existing kernel descriptor/GC/error/control flow unchanged.
+Use the actual system SDK for ABI verification and real create/write/rename/
+delete/cancellation/error behavior plus original file-notify/autorevert tests.
+A feature flag or prior gate-flip compile alone is not acceptance. P417's current
+frozen products do not contain this later backend change; validate new products.
+
+The current SDK probe finds an additional real ABI gap: Darwin's kevent is
+under pragma pack(4). Size32 and every field offset match, but the old Rust
+alignment8 differs from SDK alignment4. Use repr(C, packed(4)) plus an explicit
+alignment assertion; preserve the first failing 29-observation report and
+recheck the exact declaration projection before new editor integration.
+
+Independent source review also finds the missing globals_of_kqueue lifecycle
+call. Restore it at the original pre-environment initialization point on every
+process start, alongside the existing conditional subr registration. Clarify
+historical frozen/28-number notes rather than presenting them as current
+configuration evidence. This completes the identified production wiring before
+backend integration; actual callbacks and original cases remain unverified.
+
+The first enabled terminal build exposes missing buffer/pid_t names: a prior
+optional GUI include reserves their mirror closure before the live keyboard
+include. Materialize the required buffer closure after Lisp macros and before keyboard
+optional GUI edges, under the same backend feature; do not introduce duplicate
+types. An earlier pre-Lisp placement fails macro resolution, preserved in the
+second build report.
+Both original build failures are retained for the next production integration.
+
+The first Cocoa integration then exposes three local open-flag declarations
+colliding with its shared fcntl mirror. Remove only those duplicate declarations
+and explicitly use that mirror on both frontend paths; keep the two Darwin-only
+flags absent there. Preserve terminal success and Cocoa failures; recheck the
+SDK projection and necessary new products before claiming backend acceptance.
+
+The new SDK probe includes the actual shared fcntl mirror and its dependencies
+for these three flags, rather than retyping values. All29 observations and
+three function contracts match, with input identities unchanged. This is still
+ABI evidence; the next complete frontend integration must verify callbacks.
+
 ## P-419 — Align the stable ERT component and original tests (2026-10-29)
 
 The required stable self-test observes an actual shipped-library difference:
@@ -2229,9 +3399,24 @@ alignment and paired restoration boundary after checking pinned blobs, actual
 620 case results and captured-owned-file integrity. This bounded component may
 be delivered; backend/remote/whole-corpus and GUI acceptance remain separate.
 
+## P-420 — Preserve array shape in discovery metadata (2026-10-29)
+
+The bounded original local-notification run stops before executing any case:
+its real discovery contains untagged tests, emitted as JSON null instead of
+the required tags array. This is an owned observer protocol error, not an
+original assertion or editor failure. Emit vectors for discovery tags and ID/
+test collections so empty lists retain their declared array shape. Do not
+relax the receiver, change original tests or alter batch/run execution. Retain
+the first discovery failure; verify the real producer on unchanged inputs
+under the same bounded continuation before accepting this metadata repair.
+
 ## P421 · 文件通知稳定组件完整对齐（2026-10-29）
 
 正式库原样对齐固定stable31.1，配套root测试仅一行路径注释规范，可执行形式/断言及必需原始语料不变。四产品/签名及原本地通知65例60通过5原跳过0失败；原八例缺接口失败已通过。旧开发流程退役与成对恢复见CLN120，独立复核已实际确认并采用此限定交付。远程13通知、全155批次/555语料、真实UI及G3仍待闭合，不把原skip/共同失败改成通过。
+
+## P422 · macOS mock shell作业控制污染（2026-10-29）
+
+官方参照也捕获shell setpgid权限错误混入Base64文件传输。相同脏/净字节在C/Rust string/region API严格拒绝/正确解码一致，仅证明此输入；不改decoder或生产Tramp。两个Darwin原mock夹具的本地及Tramp显式ENV统一使用case-owned、shell-quoted初始化，关闭monitor，原语料/断言不改。新155例有界复验中；不能排除共同错误后算通过。见[调查与边界](maintenance/incidents/2026-10-29-macos-mock-shell-job-control.md)。
 
 ## P423 · GIO启动说明跨块识别（2026-10-29）
 
@@ -2270,3 +3455,64 @@ be delivered; backend/remote/whole-corpus and GUI acceptance remain separate.
 ## P429 · 模块启用配置恢复用户指针谓词（2026-10-29）
 
 初始冻结目标禁用HAVE_MODULES，data.rs省略user-ptrp；现代macOS配置已启用模块，该遗漏使cl-preloaded无法建立user-ptr内建类，官方模块文件加载即报Unknown specializer user-ptr。按官方data.c原条件恢复Fuser_ptrp和Suser_ptrp注册，使用已有USER_PTRP，不改ABI/表示/生命周期；未启用模块仍不暴露该接口。首次四候选加载失败和C参照39通过保留；重建四制品/两个严格签名后，新候选完整原39各通过，复用身份未变的C39，共195唯一例次，随后五产品10项非崩溃保护通过。同一搭档18次实际只读核查后接受本次限定组件；完整冻结WIP测试不是孤立提交的干净检出验收。原断言测试有意中止子进程，不当成真实GUI稳定性证明；全G3与其他已知问题仍开放。详见maintenance/releases/2026-10-29-macos-module-user-pointer.md。
+
+## P430 — Complete macOS Tree-sitter behavior (implementation in progress)
+
+The feature-disabled initial port omitted the parser/node/query/navigation core,
+its shared object layouts and editor mutation hooks. This is a real G3 feature
+gap, not just three missing line/column subrs. Restore the original current
+source control flow and stable observable behavior, including incremental edits,
+indirect buffers/narrowing, stale/deleted-node errors, query predicates, Lisp
+roots, nonlocal cleanup, GC destruction and lazy-query dumping. No fake feature
+availability or replacement/filtered original assertions.
+
+Primary behavior basis: pinned stable 31.1 source at
+`a360712c9d272d950d8d8255ef74570f7e90b7d9` (`treesit.c` missing group begins at
+898 and ends before available-p at 5248). Historical fd7 line mappings describe
+the prior inactive slice, not the stable source line numbers. Headers are byte
+identical between these versions. P430 explicitly rebases the loader/core to
+the stable implementation, excluding the development-only language cache and
+restoring its allocator wrapper; grammar path/override changes remain observable.
+Consumer blocks are matched by symbol in the pinned stable counterparts of
+alloc/buffer/insdel/editfns/casefiddle/data/fns/print/pdumper. SDK basis is the
+independently installed Tree-sitter 0.27.1 API, language ABI 13-15; its real
+shared library/license must travel with the product. The installed C reference
+uses its own bundled 0.27 library; neither that bundle nor ignored sources is a
+build input. Implementation and acceptance cover macOS; old Windows gated
+loader text remains distinct from verified platform support.
+
+Detailed construction/acceptance ownership remains in the existing
+`docs/ports/treesit.md` and Persistent Goal, not a second project plan. Main
+developer owns the production changes; existing peer is discussing actual
+source dependencies, then will independently review the completed integration.
+Business implementation comes first, full original integration next, then
+necessary postintegration guards. This entry does not claim tests or completion.
+
+P430 first concentrated build found an additional production-selection defect:
+adding an unchecked modernization checklist to a historical port ledger made
+`finished_units` omit a required release object. Product builds now include
+existing core Rust units explicitly required by their selected link manifest;
+the historical fast-gate checklist rule remains separate. This does not mark
+unfinished checklists accepted. The first normal link failure and two checking
+integer-width errors remain retained. The two assertions now use the pointer
+width of buffer positions explicitly; no Lisp assertion was changed.
+
+
+P430 concentrated integration now passes for the limited component: four fresh
+native products and two strict app signatures; actual SDK/Lisp/buffer 123 ABI
+observations with 55 function and three callback contracts; unchanged original
+40 cases on five products (200 passes, zero skips), 15 unique lifecycle/GC cases
+and five two-process lazy-query dump restores. Two postintegration configuration
+guards pass. Missing jsdoc and duplicate fixture loading caused common first
+failures; their raw results remain, with no original assertion change. Independent
+review and coherent prerequisite source delivery remain pending; see
+`maintenance/releases/2026-10-29-macos-treesit.md`. No whole G3/GUI/performance
+or clean committed-checkout claim is made.
+
+
+P430 independent review: 20 actual read-only source/evidence checks accepted
+the limited implementation and measured products, no concrete failure found
+in that scope. All 58 original DEFUN names match; the earlier 132-name
+construction count is not a Rust function-token count or acceptance metric.
+Coherent runtime/TLS/LCMS/owned-copy prerequisite source delivery remains pending;
+do not stage all WIP or publish a half-wired feature. Goal remains active 1/7.

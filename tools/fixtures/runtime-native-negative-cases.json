@@ -1,0 +1,26 @@
+{
+  "schema": "femacs-runtime-native-negative-plan-v1",
+  "source": "tools/fixtures/runtime-native-unit.rs",
+  "scope": "Format-only positive/negative controls. Real native Lisp compilation is required separately.",
+  "control": {"kind": "valid-format", "expect_load": true},
+  "units": [
+    {"kind": "missing-comp-unit", "expect_error": "native-lisp-file-inconsistent"},
+    {"kind": "missing-top-level", "expect_error": "native-lisp-file-inconsistent"},
+    {"kind": "null-reloc", "expect_error": "native-lisp-file-inconsistent"},
+    {"kind": "null-eph-reloc", "expect_error": "native-lisp-file-inconsistent"},
+    {"kind": "missing-reloc-count", "expect_error": "native-lisp-file-inconsistent"},
+    {"kind": "missing-eph-count", "expect_error": "native-lisp-file-inconsistent"},
+    {"kind": "bad-reloc-count", "expect_error": "native-lisp-file-inconsistent"},
+    {"kind": "bad-eph-count", "expect_error": "native-lisp-file-inconsistent"},
+    {"kind": "negative-reloc-count", "expect_error": "native-lisp-file-inconsistent"},
+    {"kind": "wrong-abi", "expect_error": "native-lisp-file-inconsistent"},
+    {"kind": "null-blob", "expect_error": "native-lisp-file-inconsistent"},
+    {"kind": "negative-blob-length", "expect_error": "native-lisp-file-inconsistent"},
+    {"kind": "malformed-blob", "expect_error": "end-of-file"},
+    {"kind": "data-not-vector", "expect_error": "native-lisp-file-inconsistent"},
+    {"kind": "eph-not-vector", "expect_error": "native-lisp-file-inconsistent"},
+    {"kind": "missing-thread-reloc", "expect_error": "native-lisp-file-inconsistent"},
+    {"kind": "missing-symbols-reloc", "expect_error": "native-lisp-file-inconsistent"},
+    {"kind": "missing-function-table", "expect_error": "native-lisp-file-inconsistent"}
+  ]
+}
