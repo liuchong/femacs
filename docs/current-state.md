@@ -1,3 +1,9 @@
+## Current continuation: input checks and clean standard build (2026-10-29)
+
+Current product input checks passed 56 cases: two normal products' 26 classic keys each and four normal/checking file workflows. Multi-frame IME is still unaccepted: real A/B Chinese commits were observed, but pending-window transfer, a tool coordinate failure and controller deadline remain unresolved; the reference probe had a different marked-state precondition. No production fix or crash claim. [Evidence and limits](../maintenance/releases/2026-10-29-current-macos-input.md).
+
+A real remote shallow clone of signed cc774482 is clean, with no ignored reference or old outputs. Standard terminal/Cocoa builds are running in that independent checkout; do not confuse launch with success. The same seven-part Goal remains active, only G4 delivered.
+
 ## Current continuation: foundation package relocation (2026-10-29)
 
 Coherent source d9a41b0a and CLN134 aeceb12f are signed/pushed and independently adopted. Four moved baseline packages passed 48 strict signatures, source/build/cache denial and lexical closure checks, with source/product/resources unchanged. Raw failure records Spotlight holding one copy during cleanup; separate followup retired that unchanged copy without rerunning tests. CLN135 retired 931,372,817 logical bytes across four copied packages; original products remain. [Limited evidence](../maintenance/releases/2026-10-29-foundation-relocation.md).
