@@ -3609,3 +3609,47 @@ condition. Keep the existing file rows and public path privacy compatible.
 Bound the occupancy query; uncertainty retains state. Validate real consumed
 case environments and ledger contents before adding focused race protections.
 This changes cleanup ownership only, not editor, collector or performance policy.
+
+## P427: exact ownership of unlocked process waits
+
+Concurrent unlocked-process waits must not steal another active waiter's input
+or close its descriptor. Preserve `accept-process-output` with a nil
+`JUST-THIS-ONE`: unrelated unlocked processes without another active waiter
+still deliver output and sentinels. An earlier broad exclusion failed this
+public contract and is rejected. A fixed-capacity registration table is also
+rejected: it introduces a public error absent from the reference.
+
+Track exact active waits using stack nodes whose cleanup and process-root
+marker are recorded before publication. Unwind removes the exact node before
+restoring the remaining outer waits and prior input state. Nodes remain alive
+until ordinary or nonlocal `unbind_to`; mutation/traversal uses the existing
+thread lock. Do not add an arbitrary wait-depth limit or change exported ABI.
+Coherent normal/checking products pass the original concurrent-wait case,
+public nil/true output contract and four protections, including 140 nested
+waits. The prior reference stress timeout and overwritten second probe receipt
+remain explicit limitations; neither proves a general root cause or full parity.
+See [the bounded delivery evidence](maintenance/releases/2026-10-30-process-wait-base64.md).
+
+## P435: cover the complete Base64 byte-index domain
+
+The inherited decoder lookup arrays contain `UCHAR_MAX` entries, but the helper
+indexes them with every `u8` value. With the selected eight-bit byte definition,
+this allocates 255 slots for 256 possible indices. Raw-pointer lookup at byte
+255 therefore reads beyond its alphabet table. The pinned C source has the same
+undersized declaration; undefined memory access is not a compatibility contract.
+
+Allocate `UCHAR_MAX + 1` entries and explicitly make the final byte invalid in
+both standard and URL alphabets. Preserve valid mappings, whitespace, padding,
+strict rejection, ignore-invalid behavior and region mutation rules. This is a
+bounded memory-safety correction, not an explanation or waiver of the retained
+intermittent remote09 failure. Complete actual primitive/region integration on
+the coherent rebuilt candidate, compare the installed reference, then add the
+key all-byte/boundary protection. Do not rebuild from a half-written peer source
+or overwrite earlier failed products/results.
+
+The installed reference and coherent normal/checking products each pass four
+string/buffer integration cases plus five unchanged original Base64 cases.
+Two subsequent protections pass on all three products, covering the complete
+first-byte domain and byte 255 in each quartet slot. Original failed startup
+evidence remains separate from the corrected snapshot dependency preparation.
+This does not establish the intermittent remote09 payload or its root cause.

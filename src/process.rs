@@ -863,8 +863,142 @@ pub unsafe fn delete_write_fd (fd: c_int)
     }
 }
 
+#[repr(C)]
+struct ActiveProcessWaiter
+{
+  thread: *mut thread_state,
+  proc: *mut Lisp_Process,
+  linked: bool,
+  next: *mut ActiveProcessWaiter,
+}
+
+static mut active_process_waiters_head: *mut ActiveProcessWaiter = std::ptr::null_mut ();
+
+unsafe fn thread_is_live (target: *mut thread_state) -> bool
+{
+  if target.is_null ()
+    { return false; }
+  let mut iter: *mut thread_state = all_threads;
+  while !iter.is_null ()
+    {
+      if iter == target
+	{ return true; }
+      iter = (*iter).next_thread;
+    }
+  return false;
+}
+
+unsafe fn link_active_process_waiter (node: *mut ActiveProcessWaiter)
+{
+  if node.is_null () || (*node).linked
+    { return; }
+  (*node).next = active_process_waiters_head;
+  (*node).linked = true;
+  active_process_waiters_head = node;
+}
+
+unsafe fn unlink_active_process_waiter (node: *mut ActiveProcessWaiter)
+{
+  if node.is_null () || !(*node).linked
+    { return; }
+  let mut prev: *mut ActiveProcessWaiter = std::ptr::null_mut ();
+  let mut curr: *mut ActiveProcessWaiter = active_process_waiters_head;
+  while !curr.is_null ()
+    {
+      if curr == node
+	{
+	  if prev.is_null ()
+	    { active_process_waiters_head = (*curr).next; }
+	  else
+	    { (*prev).next = (*curr).next; }
+	  (*curr).next = std::ptr::null_mut ();
+	  (*curr).linked = false;
+	  return;
+	}
+      prev = curr;
+      curr = (*curr).next;
+    }
+  (*node).next = std::ptr::null_mut ();
+  (*node).linked = false;
+}
+
+unsafe extern "C" fn mark_active_process_waiter (ptr: *mut c_void)
+{
+  let node: *mut ActiveProcessWaiter = ptr as *mut ActiveProcessWaiter;
+  if !node.is_null () && !(*node).proc.is_null ()
+    {
+      mark_object (make_lisp_proc ((*node).proc));
+    }
+}
+
+unsafe fn restore_thread_active_wait_procs (thread: *mut thread_state)
+{
+  if thread.is_null () || !thread_is_live (thread)
+    { return; }
+  let mut curr: *mut ActiveProcessWaiter = active_process_waiters_head;
+  while !curr.is_null ()
+    {
+      let wp: *mut Lisp_Process = (*curr).proc;
+      if (*curr).thread == thread && !wp.is_null ()
+	{
+	  let infd: c_int = (*wp).infd;
+	  if (0 <= infd && infd < FD_SETSIZE
+	      && (fd_callback_info[infd as usize].flags & FOR_READ) != 0
+	      && fd_callback_info[infd as usize].waiting_thread.is_null ())
+	    {
+	      fd_callback_info[infd as usize].waiting_thread = thread;
+	    }
+	}
+      curr = (*curr).next;
+    }
+}
+
+unsafe fn other_thread_waiting_for_process (p: *mut Lisp_Process) -> bool
+{
+  if p.is_null ()
+    { return false; }
+  let mut curr: *mut ActiveProcessWaiter = active_process_waiters_head;
+  while !curr.is_null ()
+    {
+      let thread: *mut thread_state = (*curr).thread;
+      let wp: *mut Lisp_Process = (*curr).proc;
+      curr = (*curr).next;
+      if wp.is_null () || thread == current_thread || !thread_is_live (thread)
+	{ continue; }
+      if wp == p
+	{ return true; }
+      if (!NILP ((*wp).stderrproc) && PROCESSP ((*wp).stderrproc)
+	  && XPROCESS ((*wp).stderrproc) == p)
+	{ return true; }
+    }
+  return false;
+}
+
+/* True when FD may be monitored while waiting specifically for WAIT_PROC.  */
+unsafe fn fd_usable_for_wait_proc (fd: c_int, wait_proc: *mut Lisp_Process) -> bool
+{
+  if (!fd_callback_info[fd as usize].thread.is_null ())
+    { return true; }
+  if (!wait_proc.is_null ())
+    {
+      if (fd == (*wait_proc).infd || fd == (*wait_proc).outfd)
+	{ return true; }
+      if (!NILP ((*wait_proc).stderrproc) && PROCESSP ((*wait_proc).stderrproc))
+	{
+	  let errp: *mut Lisp_Process = XPROCESS ((*wait_proc).stderrproc);
+	  if (fd == (*errp).infd || fd == (*errp).outfd)
+	    { return true; }
+	}
+    }
+  let proc: Lisp_Object = chan_process[fd as usize];
+  if (!NILP (proc) && PROCESSP (proc)
+      && other_thread_waiting_for_process (XPROCESS (proc)))
+    { return false; }
+  return true;
+}
+
 /* C 622-643: `compute_input_wait_mask`.  */
-unsafe fn compute_input_wait_mask (mask: *mut fd_set)
+unsafe fn compute_input_wait_mask (mask: *mut fd_set, wait_proc: *mut Lisp_Process)
 {
   let mut fd: c_int;
 
@@ -879,10 +1013,13 @@ unsafe fn compute_input_wait_mask (mask: *mut fd_set)
       if (fd_callback_info[fd as usize].waiting_thread != std::ptr::null_mut ()
 	  && fd_callback_info[fd as usize].waiting_thread != current_thread)
 	{ fd += 1; continue; }
+      if (!fd_usable_for_wait_proc (fd, wait_proc))
+	{ fd += 1; continue; }
       if ((fd_callback_info[fd as usize].flags & FOR_READ) != 0)
 	{
 	  FD_SET (fd, mask);
-	  fd_callback_info[fd as usize].waiting_thread = current_thread;
+	  if (fd != child_signal_read_fd)
+	    { fd_callback_info[fd as usize].waiting_thread = current_thread; }
 	}
       fd += 1;
     }
@@ -908,14 +1045,15 @@ unsafe fn compute_non_process_wait_mask (mask: *mut fd_set)
 	  && (fd_callback_info[fd as usize].flags & PROCESS_FD) == 0)
 	{
 	  FD_SET (fd, mask);
-	  fd_callback_info[fd as usize].waiting_thread = current_thread;
+	  if (fd != child_signal_read_fd)
+	    { fd_callback_info[fd as usize].waiting_thread = current_thread; }
 	}
       fd += 1;
     }
 }
 
 /* C 669-691: `compute_non_keyboard_wait_mask`.  */
-unsafe fn compute_non_keyboard_wait_mask (mask: *mut fd_set)
+unsafe fn compute_non_keyboard_wait_mask (mask: *mut fd_set, wait_proc: *mut Lisp_Process)
 {
   let mut fd: c_int;
 
@@ -930,18 +1068,21 @@ unsafe fn compute_non_keyboard_wait_mask (mask: *mut fd_set)
       if (fd_callback_info[fd as usize].waiting_thread != std::ptr::null_mut ()
 	  && fd_callback_info[fd as usize].waiting_thread != current_thread)
 	{ fd += 1; continue; }
+      if (!fd_usable_for_wait_proc (fd, wait_proc))
+	{ fd += 1; continue; }
       if ((fd_callback_info[fd as usize].flags & FOR_READ) != 0
 	  && (fd_callback_info[fd as usize].flags & KEYBOARD_FD) == 0)
 	{
 	  FD_SET (fd, mask);
-	  fd_callback_info[fd as usize].waiting_thread = current_thread;
+	  if (fd != child_signal_read_fd)
+	    { fd_callback_info[fd as usize].waiting_thread = current_thread; }
 	}
       fd += 1;
     }
 }
 
 /* C 693-714: `compute_write_mask`.  */
-unsafe fn compute_write_mask (mask: *mut fd_set)
+unsafe fn compute_write_mask (mask: *mut fd_set, wait_proc: *mut Lisp_Process)
 {
   let mut fd: c_int;
 
@@ -955,6 +1096,8 @@ unsafe fn compute_write_mask (mask: *mut fd_set)
 	{ fd += 1; continue; }
       if (fd_callback_info[fd as usize].waiting_thread != std::ptr::null_mut ()
 	  && fd_callback_info[fd as usize].waiting_thread != current_thread)
+	{ fd += 1; continue; }
+      if (!fd_usable_for_wait_proc (fd, wait_proc))
 	{ fd += 1; continue; }
       if ((fd_callback_info[fd as usize].flags & FOR_WRITE) != 0)
 	{
@@ -972,7 +1115,7 @@ unsafe fn clear_waiting_thread_info ()
 
   eassert! (max_desc < FD_SETSIZE);
   fd = 0;
-  while fd <= max_desc
+  while fd < FD_SETSIZE
     {
       if (fd_callback_info[fd as usize].waiting_thread == current_thread)
 	{ fd_callback_info[fd as usize].waiting_thread = std::ptr::null_mut (); }
@@ -5406,7 +5549,13 @@ unsafe fn wait_for_tls_negotiation (process: Lisp_Object)
 unsafe extern "C" fn wait_reading_process_output_unwind (data: c_int)
 {
   clear_waiting_thread_info ();
+  restore_thread_active_wait_procs (current_thread);
   waiting_for_user_input_p! () = data;
+}
+
+unsafe extern "C" fn active_process_waiter_unwind (ptr: *mut c_void)
+{
+  unlink_active_process_waiter (ptr as *mut ActiveProcessWaiter);
 }
 
 /* This is here so breakpoints can be put on it.  */
@@ -5511,9 +5660,28 @@ pub unsafe fn wait_reading_process_output (time_limit: i64, nsecs: c_int, read_k
 	   && EQ (XCAR ((*wait_proc).status), Qexit ())))
     { message1 (c"Blocking call to accept-process-output with quit inhibited!!".as_ptr ()); }
 
+  let mut waiter_node: ActiveProcessWaiter
+    = ActiveProcessWaiter {
+	thread: current_thread,
+	proc: wait_proc,
+	linked: false,
+	next: std::ptr::null_mut (),
+      };
   record_unwind_protect_int (Some (wait_reading_process_output_unwind),
 			     waiting_for_user_input_p! ());
+  record_unwind_protect_ptr_mark (Some (active_process_waiter_unwind),
+				  (&raw mut waiter_node) as *mut c_void,
+				  Some (mark_active_process_waiter));
+  link_active_process_waiter (&raw mut waiter_node);
   waiting_for_user_input_p! () = read_kbd;
+  if (!wait_proc.is_null () && (*wait_proc).infd >= 0)
+    {
+      let wt: *mut thread_state = fd_callback_info[(*wait_proc).infd as usize].waiting_thread;
+      if wt.is_null ()
+	{ fd_callback_info[(*wait_proc).infd as usize].waiting_thread = current_thread; }
+      else if wt != current_thread
+	{ child_signal_notify (); }
+    }
 
   /* C 5388: `if (TYPE_MAXIMUM (time_t) < time_limit) time_limit = TYPE_MAXIMUM (time_t);`  */
   if (TYPE_MAXIMUM_TIME_T < time_limit)
@@ -5664,8 +5832,8 @@ pub unsafe fn wait_reading_process_output (time_limit: i64, nsecs: c_int, read_k
 	  if (kbd_on_hold_p ())
 	    { FD_ZERO (&raw mut Atemp); }
 	  else
-	    { compute_input_wait_mask (&raw mut Atemp); }
-	  compute_write_mask (&raw mut Ctemp);
+	    { compute_input_wait_mask (&raw mut Atemp, wait_proc); }
+	  compute_write_mask (&raw mut Ctemp, wait_proc);
 
 	  /* If a process status has changed, the child signal pipe will likely be
 	     readable.  We want to ignore it for now, because otherwise we wouldn't run
@@ -5692,11 +5860,21 @@ pub unsafe fn wait_reading_process_output (time_limit: i64, nsecs: c_int, read_k
 	    }
 	}
 
+      let wait_proc_busy_other_thread: bool
+	= !wait_proc.is_null ()
+	  && (((*wait_proc).infd >= 0
+	       && !fd_callback_info[(*wait_proc).infd as usize].waiting_thread.is_null ()
+	       && fd_callback_info[(*wait_proc).infd as usize].waiting_thread != current_thread)
+	      || ((*wait_proc).outfd >= 0
+		  && !fd_callback_info[(*wait_proc).outfd as usize].waiting_thread.is_null ()
+		  && fd_callback_info[(*wait_proc).outfd as usize].waiting_thread != current_thread));
+
       /* Don't wait for output from a non-running process.  Just read whatever data has
 	 already been received.  */
-      if !wait_proc.is_null () && process_bits! (raw_status_new, wait_proc)
+      if !wait_proc.is_null () && !wait_proc_busy_other_thread && process_bits! (raw_status_new, wait_proc)
 	{ update_status (wait_proc); }
       if (!wait_proc.is_null ()
+	  && !wait_proc_busy_other_thread
 	  && ! EQ ((*wait_proc).status, Qrun ())
 	  && ! connecting_status ((*wait_proc).status))
 	{
@@ -5725,11 +5903,18 @@ pub unsafe fn wait_reading_process_output (time_limit: i64, nsecs: c_int, read_k
 		      if (got_some_output < nread)
 			{ got_some_output = nread; }
 		      if (nread == 0)
-			{ break; }
+			{
+			  if ((*wait_proc).infd >= 0)
+			    { delete_read_fd ((*wait_proc).infd); }
+			  break;
+			}
 		      read_some_bytes = true;
 		    }
 		}
 	    }
+
+	  if (!read_some_bytes && (*wait_proc).tick != (*wait_proc).update_tick)
+	    { status_notify (std::ptr::null_mut (), wait_proc); }
 
 	  if (read_some_bytes && do_display != 0)
 	    { redisplay_preserve_echo_area (10); }
@@ -5743,7 +5928,13 @@ pub unsafe fn wait_reading_process_output (time_limit: i64, nsecs: c_int, read_k
 	{
 	  if ((*wait_proc).infd < 0)  /* Terminated.  */
 	    { break; }
-	  FD_SET ((*wait_proc).infd, &raw mut Available);
+	  if (!wait_proc_busy_other_thread)
+	    {
+	      FD_SET ((*wait_proc).infd, &raw mut Available);
+	      fd_callback_info[(*wait_proc).infd as usize].waiting_thread = current_thread;
+	    }
+	  else
+	    { child_signal_notify (); }
 	  check_delay = 0;
 	  check_write = false;
 	}
@@ -5756,12 +5947,35 @@ pub unsafe fn wait_reading_process_output (time_limit: i64, nsecs: c_int, read_k
       else
 	{
 	  if (read_kbd == 0)
-	    { compute_non_keyboard_wait_mask (&raw mut Available); }
+	    { compute_non_keyboard_wait_mask (&raw mut Available, wait_proc); }
 	  else
-	    { compute_input_wait_mask (&raw mut Available); }
-	  compute_write_mask (&raw mut Writeok);
+	    { compute_input_wait_mask (&raw mut Available, wait_proc); }
+	  compute_write_mask (&raw mut Writeok, wait_proc);
 	  check_delay = if !wait_proc.is_null () { 0 } else { process_output_delay_count };
 	  check_write = true;
+	}
+
+      if (!wait_proc.is_null ())
+	{
+	  let busy_now: bool
+	    = ((*wait_proc).infd >= 0
+	       && !fd_callback_info[(*wait_proc).infd as usize].waiting_thread.is_null ()
+	       && fd_callback_info[(*wait_proc).infd as usize].waiting_thread != current_thread)
+	      || ((*wait_proc).outfd >= 0
+		  && !fd_callback_info[(*wait_proc).outfd as usize].waiting_thread.is_null ()
+		  && fd_callback_info[(*wait_proc).outfd as usize].waiting_thread != current_thread);
+	  if busy_now
+	    { child_signal_notify (); }
+	  else
+	    {
+	      if ((*wait_proc).infd >= 0)
+		{ fd_callback_info[(*wait_proc).infd as usize].waiting_thread = current_thread; }
+	      if process_bits! (raw_status_new, wait_proc)
+		{ update_status (wait_proc); }
+	      if (! EQ ((*wait_proc).status, Qrun ())
+		  && ! connecting_status ((*wait_proc).status))
+		{ continue; }
+	    }
 	}
 
       /* PORTING.md P-122 ⑷'s instrument (FEMACS_CHILD_TRACE, P-115's shape): once per run, is
@@ -5935,6 +6149,24 @@ pub unsafe fn wait_reading_process_output (time_limit: i64, nsecs: c_int, read_k
 	    if ((read_kbd != 0 || !NILP (wait_for_cell))
 		&& timespec_cmp (short_timeout, timeout) < 0)
 	      { timeout = short_timeout; }
+	    if (!wait_proc.is_null ())
+	      {
+		if (!wait_proc_busy_other_thread
+		    && (process_bits! (raw_status_new, wait_proc)
+			|| (! EQ ((*wait_proc).status, Qrun ())
+			    && ! connecting_status ((*wait_proc).status))))
+		  { timeout = make_timespec (0, 0); }
+		else if (wait_proc_busy_other_thread
+			 || ((*wait_proc).infd >= 0
+			     && !FD_ISSET ((*wait_proc).infd, &raw mut Available)
+			     && ! EQ ((*wait_proc).filter, Qt ())
+			     && ! EQ ((*wait_proc).command, Qt ())))
+		  {
+		    let eof_timeout: timespec = make_timespec (0, 10000000);
+		    if (timespec_cmp (eof_timeout, timeout) < 0)
+		      { timeout = eof_timeout; }
+		  }
+	      }
 	  }
 
 	  /* Android requires using a replacement for pselect in android.c to poll for events
@@ -6162,6 +6394,13 @@ pub unsafe fn wait_reading_process_output (time_limit: i64, nsecs: c_int, read_k
 	      proc = chan_process[channel as usize];
 	      if (NILP (proc))
 		{ channel += 1; continue; }
+	      if (XPROCESS (proc) != wait_proc
+		  && other_thread_waiting_for_process (XPROCESS (proc)))
+		{
+		  child_signal_notify ();
+		  channel += 1;
+		  continue;
+		}
 
 	      /* If this is a server stream socket, accept connection.  */
 	      if (EQ ((*XPROCESS (proc)).status, Qlisten ()))
@@ -7877,6 +8116,8 @@ unsafe extern "C" fn handle_child_signal (sig: c_int)
 	&& child_status_changed ((*p).pid, &raw mut status, WUNTRACED | WCONTINUED) != 0)
       {
 	/* Change the status of the process that was found.  */
+	if (changed)
+	  { child_signal_notify (); }
 	changed = true;
 	/* PORTING.md P-122's instrument (FEMACS_CHILD_TRACE, P-115's shape): which child the
 	   signal handler reaped, and how.  Off unless the variable is set.  */
@@ -8031,6 +8272,9 @@ unsafe fn status_notify (deleting_process: *mut Lisp_Process,
   tail = Qnil ();
   msg = Qnil ();
 
+  let prev_update_tick: EMACS_INT = update_tick;
+  let mut skipped_other_thread: bool = false;
+
   /* Set this now, so that if new processes are created by sentinels that we run, we get
      called again to handle their status changes.  */
   update_tick = process_tick;
@@ -8041,55 +8285,77 @@ unsafe fn status_notify (deleting_process: *mut Lisp_Process,
 
     if ((*p).tick != (*p).update_tick)
       {
-	(*p).update_tick = (*p).tick;
-
-	/* If process is still active, read any output that remains.  */
-	while (! EQ ((*p).filter, Qt ())
-	       && ! connecting_status ((*p).status)
-	       && ! EQ ((*p).status, Qlisten ())
-	       /* Network or serial process not stopped:  */
-	       && ! EQ ((*p).command, Qt ())
-	       && (*p).infd >= 0
-	       && p != deleting_process)
+	if (p != deleting_process
+	    && ((!NILP ((*p).thread) && XTHREAD ((*p).thread) != current_thread)
+		|| ((*p).infd >= 0
+		    && !fd_callback_info[(*p).infd as usize].waiting_thread.is_null ()
+		    && fd_callback_info[(*p).infd as usize].waiting_thread != current_thread)
+		|| ((*p).outfd >= 0
+		    && !fd_callback_info[(*p).outfd as usize].waiting_thread.is_null ()
+		    && fd_callback_info[(*p).outfd as usize].waiting_thread != current_thread)
+		|| (p != wait_proc && other_thread_waiting_for_process (p))))
 	  {
-	    let nread: c_int = read_process_output (proc_, (*p).infd);
-	    if ((wait_proc.is_null () || wait_proc == XPROCESS (proc_))
-		&& got_some_output < nread)
-	      { got_some_output = nread; }
-	    if (nread <= 0)
-	      { break; }
+	    skipped_other_thread = true;
 	  }
-
-	/* Get the text to use for the message.  */
-	if (process_bits! (raw_status_new, p))
-	  { update_status (p); }
-	msg = status_message (p);
-
-	/* If process is terminated, deactivate it or delete it.  */
-	symbol = (*p).status;
-	if (CONSP ((*p).status))
-	  { symbol = XCAR ((*p).status); }
-
-	if (EQ (symbol, Qsignal ()) || EQ (symbol, Qexit ())
-	    || EQ (symbol, Qclosed ()))
+	else
 	  {
-	    if (delete_exited_processes)
-	      { remove_process (proc_); }
-	    else
-	      { deactivate_process (proc_); }
-	  }
+	    (*p).update_tick = (*p).tick;
 
-	/* The actions above may have further incremented p->tick.  So set p->update_tick
-	   again so that an error in the sentinel will not cause this code to be run
-	   again.  */
-	(*p).update_tick = (*p).tick;
-	/* Now output the message suitably.  */
-	exec_sentinel (proc_, msg);
-	if (BUFFERP ((*p).buffer))
-	  /* In case it uses %s in mode-line-format.  */
-	  { bset_update_mode_line (XBUFFER ((*p).buffer) as *mut c_void); }
+	    /* If process is still active, read any output that remains.  */
+	    while (! EQ ((*p).filter, Qt ())
+		   && ! connecting_status ((*p).status)
+		   && ! EQ ((*p).status, Qlisten ())
+		   /* Network or serial process not stopped:  */
+		   && ! EQ ((*p).command, Qt ())
+		   && (*p).infd >= 0
+		   && p != deleting_process)
+	      {
+		let nread: c_int = read_process_output (proc_, (*p).infd);
+		if ((wait_proc.is_null () || wait_proc == XPROCESS (proc_))
+		    && got_some_output < nread)
+		  { got_some_output = nread; }
+		if (nread <= 0)
+		  { break; }
+	      }
+
+	    /* Get the text to use for the message.  */
+	    if (process_bits! (raw_status_new, p))
+	      { update_status (p); }
+	    msg = status_message (p);
+
+	    /* If process is terminated, deactivate it or delete it.  */
+	    symbol = (*p).status;
+	    if (CONSP ((*p).status))
+	      { symbol = XCAR ((*p).status); }
+
+	    if (EQ (symbol, Qsignal ()) || EQ (symbol, Qexit ())
+		|| EQ (symbol, Qclosed ()))
+	      {
+		if (delete_exited_processes)
+		  { remove_process (proc_); }
+		else
+		  { deactivate_process (proc_); }
+	      }
+
+	    /* The actions above may have further incremented p->tick.  So set p->update_tick
+	       again so that an error in the sentinel will not cause this code to be run
+	       again.  */
+	    (*p).update_tick = (*p).tick;
+	    /* Now output the message suitably.  */
+	    exec_sentinel (proc_, msg);
+	    if (BUFFERP ((*p).buffer))
+	      /* In case it uses %s in mode-line-format.  */
+	      { bset_update_mode_line (XBUFFER ((*p).buffer) as *mut c_void); }
+	  }
       }
   }); /* end for */
+
+  if (skipped_other_thread && update_tick == process_tick)
+    {
+      update_tick = prev_update_tick;
+      if (update_tick == process_tick)
+	{ update_tick = process_tick - 1; }
+    }
 
   return got_some_output;
 }
@@ -8496,7 +8762,20 @@ pub unsafe fn delete_keyboard_wait_descriptor (desc: c_int)
   /* `#ifdef subprocesses` is live.  */
   eassert! (desc >= 0 && desc < FD_SETSIZE);
 
+  let saved_thread: *mut thread_state = fd_callback_info[desc as usize].thread;
+  let saved_waiting: *mut thread_state = fd_callback_info[desc as usize].waiting_thread;
+  let saved_flags: c_int
+    = (fd_callback_info[desc as usize].flags & (FOR_WRITE | NON_BLOCKING_CONNECT_FD)) | PROCESS_FD;
+  let keep_proc_fd: bool = !NILP (chan_process[desc as usize]);
+
   clear_fd_callback_data (&raw mut fd_callback_info[desc as usize]);
+
+  if keep_proc_fd
+    {
+      fd_callback_info[desc as usize].flags = saved_flags;
+      fd_callback_info[desc as usize].thread = saved_thread;
+      fd_callback_info[desc as usize].waiting_thread = saved_waiting;
+    }
 
   if (desc == max_desc)
     { recompute_max_desc (); }

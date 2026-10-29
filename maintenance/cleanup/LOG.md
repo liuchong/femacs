@@ -331,3 +331,7 @@ Retired only three complete test copies/five environments/three context links af
 ## CLN146 · 2026-10-30 · consumed GC Cargo and generated-unit copies
 
 After actual build/functional/selected measurement completion, retired only five ignored untracked compiler/generated roots:19,456files895directories684,712,192logical/723,292,160allocatedfilebytes;20,351hash-onlyrows match durable predelete plans. Program/dump/fullresource identities, actualobjects/archives, source/export/driver, rawresults and HEAD/index unchanged. No product/userdata/peer core selection or test replay; regenerate removed compiler/generated inputs before reuse. See [report](reports/2026-10-30-146-consumed-gc-build-copies.md), [manifest](manifests/2026-10-30-146-consumed-gc-build-copies.jsonl.gz) and [attribution](../releases/2026-10-30-current-gc-attribution.md). FullGoal active.
+
+## CLN147 · 2026-10-30 · consumed core build copies and isolated environments
+
+Two consumed fns/process generated-unit directories and fourteen successful process environments: 138 files/100 directories, 4,868,938 logical/5,144,576 allocated bytes; 238 hash-only rows, SHA 821ee7af8425f3f1405f67a52bb775c46c0582681bbd2d568a44d9ebfe2d1994. Durable production identities and all decoded fields match; program/dump/full resources and HEAD/index remain unchanged. Objects, raw records and failures remain. [Report](reports/2026-10-30-147-consumed-core-build-copies.md).
