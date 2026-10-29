@@ -23,6 +23,10 @@ SPEC = importlib.util.spec_from_file_location("stable_suite", REPO / "tools/stab
 SUITE = importlib.util.module_from_spec(SPEC)
 sys.modules[SPEC.name] = SUITE
 SPEC.loader.exec_module(SUITE)
+BATCH_SPEC = importlib.util.spec_from_file_location("stable_suite_batch", REPO / "tools/stable-suite-batch.py")
+BATCH = importlib.util.module_from_spec(BATCH_SPEC)
+sys.modules[BATCH_SPEC.name] = BATCH
+BATCH_SPEC.loader.exec_module(BATCH)
 
 
 def sha256(data):
@@ -304,6 +308,125 @@ class MockShellEnvironmentContracts(unittest.TestCase):
             script.symlink_to(outside)
             with self.assertRaises(SUITE.SuiteError):
                 SUITE.case_environment(case, self.root)
+
+
+class StableBatchEnvironmentContracts(unittest.TestCase):
+    def setUp(self):
+        parent = Path(os.environ.get("FEMACS_RUNTIME_TEST_ROOT", REPO / "build/acceptance/runtime-contracts"))
+        parent.mkdir(parents=True, exist_ok=True)
+        self.temporary = tempfile.TemporaryDirectory(prefix="p431-", dir=parent)
+        self.root = Path(self.temporary.name)
+        self.addCleanup(self.temporary.cleanup)
+
+    def test_long_logical_ids_keep_isolated_bounded_environment_names(self):
+        logical = "test/" + "long-name-" * 40 + ".el|original-case"
+        first = SUITE.case_environment(logical, self.root)
+        second = SUITE.case_environment(logical + "-other", self.root)
+        one = Path(first["FEMACS_RUNTIME_CASE_ROOT"])
+        two = Path(second["FEMACS_RUNTIME_CASE_ROOT"])
+        self.assertNotEqual(one, two)
+        self.assertLess(len(os.fsencode(one.name)), 32)
+        self.assertTrue(one.is_relative_to(self.root))
+
+    def test_replaced_empty_parent_is_preserved(self):
+        container = self.root / "container"
+        case = container / "case"
+        case.mkdir(parents=True)
+        nodes = ((case, case.lstat()), (container, container.lstat()))
+        original = container / "original"
+        case.rename(original)
+        case.mkdir()
+        with self.assertRaisesRegex(ValueError, "parent changed"):
+            BATCH._retire_empty_parents(nodes)
+        self.assertTrue(case.is_dir())
+        self.assertTrue(original.is_dir())
+
+    def test_unexpected_state_is_never_recursively_removed(self):
+        container = self.root / "container"
+        case = container / "case"
+        case.mkdir(parents=True)
+        retained = case / "unexpected"
+        retained.write_bytes(b"preserve this state")
+        with self.assertRaises(OSError):
+            BATCH._retire_empty_parents(((case, case.lstat()), (container, container.lstat())))
+        self.assertEqual(retained.read_bytes(), b"preserve this state")
+        self.assertTrue(container.is_dir())
+
+    def _owner_receipt_fixture(self, status):
+        import json
+        final = self.root / 'original.json'
+        final.write_text(json.dumps(dict(complete=True, passed=status == 'complete')))
+        result = dict(file_result=dict(path=final.name,
+                          sha256=SUITE._sha256_path(final), bytes=final.stat().st_size),
+                      state_retirement_path='original.owner-retirement.json',
+                      state_retirement=dict(status=status))
+        return final, result
+
+    def test_completed_retirement_receipt_keeps_original_evidence_hash(self):
+        import json
+        final, result = self._owner_receipt_fixture('complete')
+        result['state_retirement']['empty_parents_retired'] = True
+        before = final.read_bytes()
+        BATCH._record_retirement(SUITE, final, result)
+        receipt = self.root / result['state_retirement_receipt']['path']
+        record = json.loads(receipt.read_text())
+        self.assertEqual(final.read_bytes(), before)
+        self.assertEqual(record['file_result'], result['file_result'])
+        self.assertTrue(record['state_retirement']['empty_parents_retired'])
+        self.assertEqual(SUITE._sha256_path(receipt), result['state_retirement_receipt']['sha256'])
+
+    def test_retained_failure_reason_is_in_owner_receipt(self):
+        import json
+        final, result = self._owner_receipt_fixture('retained')
+        result['state_retirement']['reason'] = 'original assertion failed'
+        BATCH._record_retirement(SUITE, final, result)
+        record = json.loads((self.root / result['state_retirement_receipt']['path']).read_text())
+        self.assertFalse(json.loads(final.read_text())['passed'])
+        self.assertEqual(record['state_retirement'], result['state_retirement'])
+        self.assertEqual(record['file_result']['sha256'], SUITE._sha256_path(final))
+
+    def test_changed_evidence_cannot_get_owner_receipt(self):
+        final, result = self._owner_receipt_fixture('complete')
+        final.write_bytes(b'changed evidence')
+        with self.assertRaisesRegex(ValueError, 'file result changed'):
+            BATCH._record_retirement(SUITE, final, result)
+        self.assertFalse((self.root / result['state_retirement_path']).exists())
+
+    def test_existing_owner_receipt_is_preserved(self):
+        final, result = self._owner_receipt_fixture('complete')
+        receipt = self.root / result['state_retirement_path']
+        receipt.write_bytes(b'original receipt')
+        with self.assertRaises(FileExistsError):
+            BATCH._record_retirement(SUITE, final, result)
+        self.assertEqual(receipt.read_bytes(), b'original receipt')
+
+    def test_setup_failure_records_its_partial_state_before_spawning(self):
+        out = self.root / ("deep-" + "x" * 80)
+        real_mkdtemp = tempfile.mkdtemp
+        created = []
+        def allocate(**unused):
+            path = Path(real_mkdtemp(prefix="setup-", dir=self.root))
+            created.append(path)
+            return str(path)
+        def fail_setup(logical, container):
+            (container / "partial").write_bytes(b"failed preparation")
+            raise SUITE.SuiteError("injected preparation failure")
+        with mock.patch.object(BATCH.tempfile, "mkdtemp", side_effect=allocate), \
+                mock.patch.object(SUITE, "case_environment", side_effect=fail_setup), \
+                mock.patch.object(BATCH.subprocess, "Popen") as spawn:
+            with self.assertRaisesRegex(SUITE.SuiteError, "injected preparation failure"):
+                BATCH._run_file(SUITE, out, {}, out / "runner.el", out / "test",
+                                "test/src/process-tests.el", 1, "candidate")
+            spawn.assert_not_called()
+        receipts = list((out / "results/candidate").glob("*.environment.json"))
+        self.assertEqual(len(receipts), 1)
+        import json
+        record = json.loads(receipts[0].read_text())
+        self.assertEqual(record["state"], "failed")
+        self.assertTrue(record["retained"])
+        self.assertEqual(record["container"], str(created[0]))
+        self.assertEqual(record["inode"], created[0].lstat().st_ino)
+        self.assertEqual((created[0] / "partial").read_bytes(), b"failed preparation")
 
 
 if __name__ == "__main__":

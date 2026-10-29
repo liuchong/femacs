@@ -8,6 +8,7 @@ import os
 from pathlib import Path
 import signal
 import subprocess
+import tempfile
 import time
 import uuid
 
@@ -30,14 +31,40 @@ def select_entrypoints(manifest):
     return sorted(result, key=lambda entry: entry['path'])
 
 
+def _process_socket_path_bytes(directory):
+    # Pinned ert-x.el: prefix, six random bytes, source-derived suffix, socket.
+    return len(os.fsencode(Path(directory) / 'emacs-test-XXXXXX-process' / 'socket'))
+
+
+def _retire_empty_parents(parents):
+    """Remove only empty directories still owned by this completed case."""
+    for directory, node in parents:
+        current = directory.lstat()
+        if (directory.is_symlink() or
+                (current.st_dev, current.st_ino) != (node.st_dev, node.st_ino)):
+            raise ValueError('owned environment parent changed before retirement')
+        directory.rmdir()
+
+
+def _record_retirement(api, final_path, result):
+    """Bind the final owner outcome without changing pre-retirement evidence."""
+    if api._sha256_path(final_path) != result['file_result']['sha256']:
+        raise ValueError('file result changed before owner-retirement receipt')
+    receipt = final_path.with_name(final_path.stem + '.owner-retirement.json')
+    with receipt.open('x', encoding='utf-8') as stream:
+        json.dump(dict(schema='femacs-stable-owner-retirement-v1',
+                       file_result=result['file_result'],
+                       state_retirement=result['state_retirement']), stream, indent=2)
+        stream.write('\n')
+        stream.flush()
+        os.fsync(stream.fileno())
+    result['state_retirement_receipt'] = dict(
+        path=result['state_retirement_path'], sha256=api._sha256_path(receipt),
+        bytes=receipt.stat().st_size)
+
+
 def _run_file(api, out, paths, runner, test_root, logical, timeout, label):
     safe = api._safe_component(logical)
-    container = out / 'environments' / label / (safe + '-' + uuid.uuid4().hex)
-    container.mkdir(parents=True, exist_ok=False)
-    environment = api.case_environment(logical, container)
-    case_root = Path(environment['FEMACS_RUNTIME_CASE_ROOT'])
-    cwd = case_root / 'cwd'
-    cwd.mkdir()
     logs = out / 'logs' / label
     results = out / 'results' / label
     logs.mkdir(parents=True, exist_ok=True)
@@ -46,6 +73,41 @@ def _run_file(api, out, paths, runner, test_root, logical, timeout, label):
     stderr_path = logs / (safe + '.stderr.log')
     progress_path = results / (safe + '.events.jsonl')
     final_path = results / (safe + '.json')
+    preparation_path = results / (safe + '.environment.json')
+    container = out / 'environments' / label / (safe + '-' + uuid.uuid4().hex)
+    planned_tmp = container / api._safe_case_component(logical) / 'tmp'
+    socket_case = os.name == 'posix' and logical == 'test/src/process-tests.el'
+    short_container = socket_case and _process_socket_path_bytes(planned_tmp) + 8 >= 104
+    if short_container:
+        cache = Path.home() / 'AI' / 'caches'
+        cache.mkdir(parents=True, exist_ok=True)
+        container = Path(tempfile.mkdtemp(prefix='fe-', dir=cache))
+    else:
+        container.mkdir(parents=True, exist_ok=False)
+    container_node = container.lstat()
+    preparation = dict(state='created', file=logical, product=label,
+        container=str(container), device=container_node.st_dev,
+        inode=container_node.st_ino, short_container=short_container,
+        planned_socket_bytes=_process_socket_path_bytes(planned_tmp) if socket_case else None)
+    preparation_path.write_text(json.dumps(preparation, indent=2)+'\n', encoding='utf-8')
+    try:
+        environment = api.case_environment(logical, container)
+        case_root = Path(environment['FEMACS_RUNTIME_CASE_ROOT'])
+        case_node = case_root.lstat()
+        if socket_case and _process_socket_path_bytes(environment['TMPDIR']) + 8 >= 104:
+            raise api.SuiteError('owned temporary path cannot fit the original local socket')
+        cwd = case_root / 'cwd'
+        cwd.mkdir()
+        preparation.update(state='ready', case_root=str(case_root),
+            temporary_directory=environment['TMPDIR'],
+            socket_bytes=_process_socket_path_bytes(environment['TMPDIR']) if socket_case else None)
+    except BaseException as error:
+        # Keep partial state for diagnosis and record its actual owner/path.
+        preparation.update(state='failed', retained=True,
+                           error_type=type(error).__name__, error=str(error)[:1024])
+        preparation_path.write_text(json.dumps(preparation, indent=2)+'\n', encoding='utf-8')
+        raise
+    preparation_path.write_text(json.dumps(preparation, indent=2)+'\n', encoding='utf-8')
     environment.update(PATH=os.environ.get('PATH', os.defpath), LC_ALL='C', LANG='C',
         TERM='dumb', PWD=str(cwd), EMACS_TEST_DIRECTORY=str(test_root),
         FEMACS_RUNTIME_TEST_ROOT=str(case_root), STABLE_SUITE_MODE='batch',
@@ -196,7 +258,10 @@ def _run_file(api, out, paths, runner, test_root, logical, timeout, label):
         stdout_log=str(stdout_path.relative_to(out)), stderr_log=str(stderr_path.relative_to(out)),
         progress=(dict(path=str(progress_path.relative_to(out)), bytes=progress_path.stat().st_size,
                        sha256=api._sha256_path(progress_path)) if progress_path.is_file() else None),
-        owned_state_root=str(case_root), owned_container=str(container))
+        owned_state_root=str(case_root), owned_container=str(container),
+        environment_preparation=str(preparation_path.relative_to(out)),
+        state_retirement_path=str(final_path.with_name(
+            final_path.stem + '.owner-retirement.json').relative_to(out)))
     final_path.write_text(json.dumps(result, indent=2)+'\n', encoding='utf-8')
     result['file_result'] = dict(path=str(final_path.relative_to(out)),
                                sha256=api._sha256_path(final_path), bytes=final_path.stat().st_size)
@@ -204,10 +269,16 @@ def _run_file(api, out, paths, runner, test_root, logical, timeout, label):
         try:
             result['state_retirement'] = api._retire_state(case_root,
                 ('home','cache','config','state','tmp','native-cache','out','cwd'), final_path, result)
+            if result['state_retirement'].get('status') == 'complete':
+                _retire_empty_parents(((case_root, case_node), (container, container_node)))
+                result['state_retirement']['empty_parents_retired'] = True
         except (OSError, ValueError) as error:
-            result['state_retirement'] = dict(status='retained', error=f'{type(error).__name__}: {error}')
+            result['state_retirement'] = dict(status='retained',
+                member_retirement=result.get('state_retirement'),
+                error=f'{type(error).__name__}: {error}')
     else:
         result['state_retirement'] = dict(status='retained', reason='file failed/incomplete; preserve original state')
+    _record_retirement(api, final_path, result)
     return result
 
 

@@ -478,11 +478,10 @@ def classify_applicability(platform, required_platform, feature,
 def _safe_case_component(case_id):
     if not isinstance(case_id, str) or not case_id:
         raise SuiteError('case_id must be a non-empty string')
-    safe = re.sub(r'[^A-Za-z0-9._-]+', '-', case_id).strip('.-')
-    if not safe:
-        safe = 'case'
-    digest = hashlib.sha256(case_id.encode('utf-8')).hexdigest()[:12]
-    return '{0}-{1}'.format(safe, digest)
+    # Logical IDs remain in the result protocol.  Repeating them in temporary
+    # paths can exceed sockaddr_un limits before a socket test reaches its body.
+    digest = hashlib.sha256(case_id.encode('utf-8')).hexdigest()[:16]
+    return 'case-' + digest
 
 
 def case_environment(case_id, out):

@@ -3517,6 +3517,39 @@ construction count is not a Rust function-token count or acceptance metric.
 Coherent runtime/TLS/LCMS/owned-copy prerequisite source delivery remains pending;
 do not stage all WIP or publish a half-wired feature. Goal remains active 1/7.
 
+
+## P431: bounded original-test environment paths
+
+The original local-socket descriptor case fails before its intended FD boundary
+when the test owner embeds full file IDs in a deep temporary pathname. The
+Darwin socket address has 104 bytes; the unchanged fixture calls ERT's normal
+temporary-directory helper and expands a socket within it. A short owned
+environment makes the same original assertion reachable, without changing
+product behavior, case IDs, fixture bytes or file-descriptor scope.
+
+Construction: make environment directory components fixed `case-<16hexSHA>`;
+keep the full logical ID in all existing result/event fields and mock-shell
+selection. For the original POSIX process-test entrypoint, compare its final
+TMPDIR plus ERT's actual default socket leaf and eight bytes of headroom with
+the 104-byte address limit; when needed create an exclusive short persistent
+container under the runtime user's AI cache root. Other entrypoints and already short/non-POSIX locations stay unchanged.
+Record actual owned paths; retain original logs/results under the chosen output.
+Passing and reaped cases keep existing member-identity retirement, then remove
+only their empty case/container parents with their original node identity.
+Preparation has an owner/path receipt before case setup; setup failures record
+the error and retain partial state. Failures or unknown state remain retained. No old state migration, shared
+executor change, original assertion change or whole-compatibility claim.
+
+This entry precedes implementation and concentrated integration. P427 remains
+open; the earlier three-product short-path diagnostic is not its resolution.
+
+Final review found that the immutable per-file result predates cleanup. Keep its
+identity stable for the existing member-retirement ledger, but name a separate
+owner-retirement receipt in that result. Persist the final member/empty-parent
+outcome, including retained failures, in that exclusive receipt and bind it to
+the original file result hash. Do not rewrite old observations or change their
+false whole-file results; scope acceptance and suite-green are separate fields.
+
 ## P432: Cocoa background setter corrupts a frame Lisp slot
 
 The user-authorized normal startup reproduces P390 before initialization ends.
