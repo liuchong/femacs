@@ -23638,3 +23638,7 @@ P425四个新程序/dump与两个App严格签名均通过，1068.373秒完整回
 ## 2026-10-29 CLN129: consumed LCMS compiler/context copies
 
 Retired 11 ended-run roots: 20,612 regular files, 120 links, 1,373 directories and 699,637,607 logical bytes. All 22,105 manifest rows match the private plan; 41,464 unlink intent/result records pair. Frozen sources, actual objects, four programs/dumps/Lisp/LCMS/license trees and original failures remain. No new build or test starts for cleanup. See maintenance/cleanup/reports/2026-10-29-129-consumed-lcms-compiler-context-copies.md. This is cleanup delivery; LCMS independent final source review remains pending and the seven-part Goal is not complete.
+
+## 2026-10-29 · P429模块用户指针谓词
+
+已按官方条件恢复user-ptrp定义和注册，修复模块启用后cl-preloaded缺失user-ptr类导致的原模块文件加载错误。新四产品及两个Cocoa严格签名成功；四候选原39各通过，C参照39按不变身份复用，总195唯一例次零跳过/失败/超时；之后非崩溃保护10通过，源/程序/dump/资源/输入不变、进程完整回收。原39中的四项安全断言有意中止所属子进程并触发系统报告；不是手动GUI退出的证据，不重跑。独立最终复核已接受限定组件，签名交付待回执；其他native/runtime WIP保留，整个Goal仍1/7。见maintenance/releases/2026-10-29-macos-module-user-pointer.md。

@@ -1,5 +1,21 @@
 # emacs/src/data.c (4400 lines)
 
+## Current module-enabled products (P429)
+
+The original frozen target disabled `HAVE_MODULES`; current macOS products enable
+it. P429 restores the original `user-ptrp` definition and registration under the
+same `have_modules` condition, using the existing `USER_PTRP` representation
+check. Feature-off products still expose no such subr. Without it, preloaded
+`cl-preloaded.el` cannot define the `user-ptr` built-in class, and the complete
+original module test file fails to load with `Unknown specializer user-ptr`.
+The first current-product run retained all four load failures and the installed
+C reference's 39 passing cases. The conditional fix passed the complete original
+module file on four rebuilt products (156 cases), with the unchanged reference's
+39 cases reused, then ten non-aborting protection checks. Independent final review
+accepted this limited component; see
+[the bounded acceptance report](../../maintenance/releases/2026-10-29-macos-module-user-pointer.md).
+Historical frozen-target counts and decisions below describe that earlier scope.
+
 # ----------------------------------------------------------------------
 ## Subrs (DEFUN) — 120
 - [x] eq  (Feq, 2/2, doc 1028c63ff39b, line 168)
@@ -25,7 +41,7 @@
 - [x] sequencep  (Fsequencep, 1/1, doc ce198ddb21d0, line 472)
 - [x] bufferp  (Fbufferp, 1/1, doc fb2b8014f592, line 481)
 - [x] markerp  (Fmarkerp, 1/1, doc 6dd1f0f02285, line 490)
-- [x] user-ptrp  (Fuser_ptrp, 1/1, doc f13a66271ac6, line 500)  — dead in the frozen configuration: `#ifdef HAVE_MODULES` is untaken
+- [x] user-ptrp  (Fuser_ptrp, 1/1, doc f13a66271ac6, line 500) — initially dead in the frozen configuration; P429 restores the conditional definition/registration for module-enabled products, rebuilt original module and protection acceptance passed; limited independent final review accepted
 - [x] subrp  (Fsubrp, 1/1, doc ca4b4c3a8f44, line 510)
 - [x] closurep  (Fclosurep, 1/1, doc 18e39b08748d, line 521)
 - [x] byte-code-function-p  (Fbyte_code_function_p, 1/1, doc 8417d08f8119, line 531)
@@ -554,7 +570,7 @@
   PORTING.md P-69/P-70 let a mirror name only what it defines, so an inline predicate of an
   unmirrored header has no stand-in.  Those five boxes stay unchecked until `thread.rs` and
   `font.rs` land; everything around them is ported, so the file keeps C's order.
-- **`user-ptrp` (data.c 499-508) is not ported: it is dead in this configuration.**
+- **Historical frozen-target decision: `user-ptrp` (data.c 499-508) was not ported because it was dead in that configuration.**
   `HAVE_MODULES` is `undef` in the frozen table (`config.rs`'s `HAVE_MODULES = false`), so C
   compiles neither the `DEFUN` nor its `defsubr` (data.c 4360-4362).  Keeping the text as
   `#[cfg(feature = "have_modules")]` was tried in this round and reverted: with `src/data.c` now

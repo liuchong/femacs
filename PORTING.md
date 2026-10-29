@@ -2266,3 +2266,7 @@ be delivered; backend/remote/whole-corpus and GUI acceptance remain separate.
 ## P426 · 区分系统路径与本机隐私路径（2026-10-29）
 
 项目Git纪律原先笼统禁止全部绝对路径，会把常规命令和系统文件路径也当作隐私问题，阻碍保留既有兼容默认值。按用户明确指导，常规命令及代码必需的系统文件路径不属于隐私泄露，不再逐次请求许可；本机个人路径、秘密和无关变更仍不得进入提交，本机目录引用仍使用相对或动态形式。仅澄清项目AGENTS的提交判断，不改变运行行为、签名要求、既有历史或其他工作。
+
+## P429 · 模块启用配置恢复用户指针谓词（2026-10-29）
+
+初始冻结目标禁用HAVE_MODULES，data.rs省略user-ptrp；现代macOS配置已启用模块，该遗漏使cl-preloaded无法建立user-ptr内建类，官方模块文件加载即报Unknown specializer user-ptr。按官方data.c原条件恢复Fuser_ptrp和Suser_ptrp注册，使用已有USER_PTRP，不改ABI/表示/生命周期；未启用模块仍不暴露该接口。首次四候选加载失败和C参照39通过保留；重建四制品/两个严格签名后，新候选完整原39各通过，复用身份未变的C39，共195唯一例次，随后五产品10项非崩溃保护通过。同一搭档18次实际只读核查后接受本次限定组件；完整冻结WIP测试不是孤立提交的干净检出验收。原断言测试有意中止子进程，不当成真实GUI稳定性证明；全G3与其他已知问题仍开放。详见maintenance/releases/2026-10-29-macos-module-user-pointer.md。

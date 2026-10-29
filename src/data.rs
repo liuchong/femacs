@@ -467,13 +467,17 @@ DEFUN! ("markerp", Fmarkerp, Smarkerp, 1, 1, 0,
   return Qnil ();
 });
 
-// data.c 499-508: `user-ptrp` lives inside `#ifdef HAVE_MODULES`, and HAVE_MODULES is
-// undefined in the frozen configuration, so C defines neither `Fuser_ptrp` nor its
-// `defsubr` (data.c 4360-4362).  Porting the text as `#[cfg(feature = "have_modules")]` was
-// tried and reverted: with `src/data.c` now in the condition table the gate reads the
-// frozen text, and an arm C does not compile is an invented item (D3) -- so the subr is
-// simply not part of this target.  See docs/ports/data.md Decisions (and PORTING.md P-76
-// for the `defsubr` half, which the tool still expects).
+// data.c 499-508: the initial frozen target disabled modules; modern macOS
+// products enable them. Keep the original conditional and predicate unchanged.
+#[cfg(feature = "have_modules")]
+DEFUN! ("user-ptrp", Fuser_ptrp, Suser_ptrp, 1, 1, 0,
+       doc: "Return t if OBJECT is a module user pointer.",
+       (object: Lisp_Object),
+       {
+  if USER_PTRP (object)
+    { return Qt (); }
+  return Qnil ();
+});
 
 DEFUN! ("subrp", Fsubrp, Ssubrp, 1, 1, 0,
        doc: "Return t if OBJECT is a built-in or native-compiled Lisp function.\n\nSee also `primitive-function-p' and `native-comp-function-p'.",
@@ -4266,6 +4270,8 @@ pub unsafe extern "C" fn syms_of_data ()
   defsubr (&raw mut Snative_comp_function_p);
   defsubr (&raw mut Ssubr_native_lambda_list);
   defsubr (&raw mut Ssubr_type);
+  #[cfg(feature = "have_modules")]
+  defsubr (&raw mut Suser_ptrp);
   defsubr (&raw mut Sbool_vector_exclusive_or);
   defsubr (&raw mut Sbool_vector_union);
   defsubr (&raw mut Sbool_vector_intersection);
