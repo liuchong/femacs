@@ -33,7 +33,10 @@ def retire(root, names, evidence, process):
             or any(not isinstance(name, str) or Path(name).name != name
                    or name in ('', '.', '..') for name in names)):
         raise ValueError('unsafe owned-state retirement scope')
-    check = subprocess.run(['lsof', '+D', str(root)], capture_output=True)
+    try:
+        check = subprocess.run(['lsof', '+D', str(root)], capture_output=True, timeout=10)
+    except subprocess.TimeoutExpired:
+        return dict(status='retained', reason='case occupancy query timed out')
     if check.returncode != 1 or check.stdout.strip() or check.stderr.strip():
         return dict(status='retained', reason='case handles present or occupancy unknown')
     report = evidence.with_name(evidence.stem+'.state-retirement.json')
@@ -60,11 +63,20 @@ def retire(root, names, evidence, process):
                     sha256=digest(path), bytes=metadata.st_size, allocated_bytes=metadata.st_blocks*512,
                     mode=stat.S_IMODE(metadata.st_mode), device=metadata.st_dev,
                     inode=metadata.st_ino, mtime_ns=metadata.st_mtime_ns))
-            directories.append(Path(parent))
+            directory = Path(parent)
+            metadata = directory.lstat()
+            if (not stat.S_ISDIR(metadata.st_mode)
+                    or getattr(metadata, 'st_flags', 0)):
+                raise ValueError('unclassified or protected directory retained')
+            relative = directory.relative_to(root).as_posix()
+            directories.append(dict(path=relative, kind='directory',
+                path_id_sha256=hashlib.sha256(relative.encode()).hexdigest(),
+                mode=stat.S_IMODE(metadata.st_mode), device=metadata.st_dev,
+                inode=metadata.st_ino, mtime_ns=metadata.st_mtime_ns))
     original_evidence = digest(evidence)
     with ledger.open('xb') as raw:
         with gzip.GzipFile(filename='', mode='wb', fileobj=raw, mtime=0) as stream:
-            for row in rows:
+            for row in [*rows, *directories]:
                 # Never publish machine-encoded compiler/cache leaf names.
                 public = {key: value for key, value in row.items()
                           if key not in ('path', 'device', 'inode', 'mtime_ns')}
@@ -73,7 +85,8 @@ def retire(root, names, evidence, process):
         os.fsync(raw.fileno())
     private = report.with_suffix('.private.json')
     with private.open('x') as stream:
-        json.dump(dict(root=str(root), files=rows, evidence_sha256=original_evidence), stream)
+        json.dump(dict(schema=2, root=str(root), files=rows, directories=directories,
+                       evidence_sha256=original_evidence), stream)
         stream.flush()
         os.fsync(stream.fileno())
     fd = os.open(report.parent, os.O_RDONLY)
@@ -92,11 +105,19 @@ def retire(root, names, evidence, process):
                 or path.is_symlink() or digest(path) != row['sha256']):
             raise ValueError('owned state changed before deletion')
         path.unlink()
-    for directory in directories:
+    for row in directories:
+        directory = root/row['path']
+        metadata = directory.lstat()
+        if (not stat.S_ISDIR(metadata.st_mode)
+                or (metadata.st_dev, metadata.st_ino, stat.S_IMODE(metadata.st_mode)) !=
+                (row['device'], row['inode'], row['mode'])
+                or getattr(metadata, 'st_flags', 0)):
+            raise ValueError('owned directory changed before deletion')
         directory.rmdir()
     if digest(evidence) != original_evidence:
         raise ValueError('case evidence changed during retirement')
-    result = dict(status='complete', files=len(rows),
+    result = dict(status='complete', files=len(rows), directories=len(directories),
+        ledger_schema=2,
         logical_bytes=sum(row['bytes'] for row in rows),
         allocated_bytes=sum(row['allocated_bytes'] for row in rows),
         evidence_sha256=original_evidence, ledger=ledger.name,

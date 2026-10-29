@@ -3589,3 +3589,23 @@ execution now passes six workloads and one startup per installed reference,
 terminal and Cocoa product, with unchanged input identities. All three report
 `quiet=false`; this smoke run is not a speedup measurement. Eleven existing and
 post-functional component cases pass. See the [repair and evidence limits](maintenance/incidents/2026-10-30-profile-runtime-image.md).
+
+## P434: trace and recheck consumed directory identities
+
+The case-state retirement owner already records file identities before removal,
+but its automatic path omits directory identities and removes directories by
+name without checking their original inode. Empty-state cleanup consequently
+has no per-directory record. Preserve historical receipts as written; do not
+invent their missing pre-removal metadata.
+
+Record directory path hashes, device/inode, mode and original modification time
+in the durable private plan before removing any selected state. Include typed
+directory rows in the public hash-only ledger and count directories separately
+from file bytes. Before each bottom-up removal, require the same directory
+device/inode/mode, reject symlinks and protected state, and let nonempty-directory
+errors preserve unexpected entries. Modification times naturally change when
+children are removed, so they are evidence rather than a post-removal equality
+condition. Keep the existing file rows and public path privacy compatible.
+Bound the occupancy query; uncertainty retains state. Validate real consumed
+case environments and ledger contents before adding focused race protections.
+This changes cleanup ownership only, not editor, collector or performance policy.
