@@ -1,3 +1,9 @@
+## Current continuation: standard macOS delivery accepted (2026-10-29)
+
+A real signed remote checkout completed both documented standard builds without the ignored reference or old artifacts. Its 84 unique owned functional cases and two file workflows passed; the App/DMG passed signature, complete copy identity, three source/program/dump denial probes and four moved-app cases. Root terminal was rebuilt for root resource paths; validated Cocoa App is now at the normal trial path, with the previous App retained for G1 rollback. Current terminal/Cocoa keys and file workflows passed 54 cases. Initial four harness-directory failures and one prebuild mode guard remain recorded; no assertion changed.
+
+Independent limited G2 review accepted the evidence. CLN136 retired 1,194,535,878 logical bytes, preserving source, actual objects/products/resources and failures. [Delivery, fingerprints and trial commands](../maintenance/releases/2026-10-29-standard-checkout-delivery.md). G2 and G4 are delivered (2/7); G1 pending composition/focus/mouse, full G3, P427, remote Base64, common compiler metadata and native/GC work remain open. Goal stays active.
+
 ## Current continuation: input checks and clean standard build (2026-10-29)
 
 Current product input checks passed 56 cases: two normal products' 26 classic keys each and four normal/checking file workflows. Multi-frame IME is still unaccepted: real A/B Chinese commits were observed, but pending-window transfer, a tool coordinate failure and controller deadline remain unresolved; the reference probe had a different marked-state precondition. No production fix or crash claim. [Evidence and limits](../maintenance/releases/2026-10-29-current-macos-input.md).

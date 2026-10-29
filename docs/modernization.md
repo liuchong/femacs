@@ -266,7 +266,7 @@ acceptance and delivery; none changes the product/corpus acceptance scope.
 ### Acceptance checklist (mark only from actual evidence)
 
 - [ ] GA1 / G1: actual remaining macOS native workflows and TTY failure paths pass, without changing pending-composition semantics merely to satisfy a test.
-- [ ] GA2 / G2: final changed products build/start from tracked-only inputs, with matching resources, dumps, signatures and trial instructions.
+- [x] GA2 / G2: final changed products build/start from tracked-only inputs, with matching resources, dumps, signatures and trial instructions. Current standard committed-checkout delivery, root terminal and published App accepted; see [G2 evidence](../maintenance/releases/2026-10-29-standard-checkout-delivery.md). G1/G3 and the overall stable-delivery stage remain open.
 - [ ] GA3 / G3: meet the100% compatibility requirement against the installed stable baseline, with a complete declared behavior/feature matrix, no waived known differences, preserved case identities/timings/failures and no uncovered/blocked scope relabelled as passed.
 - [x] GA4 / G4: approved modernization/retirement matrix implemented; required scoped readers/workflows accepted, every cleanup report and recovery identity committed in signed/pushed5118ed08. See the G4 delivery audit; other native/platform and whole-Goal obligations remain open.
 - [ ] GA5 / G5: real attribution/survival/phase/pause data supports the later choices; load, full samples, memory and uncertainty are explicit.

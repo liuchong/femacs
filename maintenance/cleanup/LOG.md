@@ -285,3 +285,8 @@ After signed source delivery `d9a41b0a`, retired nine ended-run compiler/synthet
 ## CLN135 · 2026-10-29 · consumed foundation relocation copies
 
 Retired four temporary source-denied relocation packages: 17,936 files, 442 directories and 931,372,817 logical bytes. All 17,936 manifest rows and 36,756 paired operations verified. Original source/products/resources remain unchanged. Spotlight initially held the ordinary terminal copy; raw failure retained, exact copy retired after zero occupancy without rerunning tests. See [report](reports/2026-10-29-135-consumed-foundation-relocation.md), [manifest](manifests/2026-10-29-135-consumed-foundation-relocation.jsonl.gz) and [limited relocation evidence](../releases/2026-10-29-foundation-relocation.md). Goal remains active, only G4 delivered.
+
+
+## CLN136 · 2026-10-29 · consumed standard compiler and App copies
+
+Retired six ended-use roots: 20,977 regular files, two links, 1,054 directories and 1,194,535,878 logical bytes. All 22,033 decoded manifest rows and 44,066 paired operations verified. One requested Cocoa unit root was already absent and is not counted. Clean clone/Git, actual objects, current App/DMG, clone/root terminal pairs, previous App needed for G1 rollback, resources, failures and WIP remain unchanged. No test rerun for cleanup. See [report](reports/2026-10-29-136-consumed-standard-compiler-app-copies.md), [manifest](manifests/2026-10-29-136-consumed-standard-compiler-app-copies.jsonl.gz) and [G2 delivery](../releases/2026-10-29-standard-checkout-delivery.md). Goal active; G2 and G4 delivered, 2/7.
