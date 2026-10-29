@@ -347,3 +347,7 @@ Retired 4,248 empty directories across 24 successful protection and 684 successf
 ## CLN150 · 2026-10-30 · unaccepted remembered-owner batch withdrawal
 
 Restored only the P436 production change to the exact prior source (SHA 0f18ba7d761d3fcf4e99bacd8bd188289e816cdca933d4c22b83d37393a1b74e); no reliable eligible performance comparison supported adoption. The never-committed candidate is recoverable from an inert 1,123-byte patch, verified by exact isolated reconstruction. Useful protection cases and raw measurements remain; no new compilation, workload replay or space-recovery claim. [Report](reports/2026-10-30-150-owner-batch-withdrawal.md) and [patch](patches/2026-10-30-150-owner-batch.patch).
+
+## CLN151 · 2026-10-30 · retired unaccepted owner-batch expansion
+
+Removed only the completed batch/source expansion: 20,697 files, 943 directories and12 links;1,500,543,266logical/1,546,506,240allocated regular bytes. All7298 exact source identities remain recoverable via7296 retained-prior mappings plus2 unique copies, verified again after removal;24 metadata files retained. Prior products/raw results/HEAD/index unchanged; historical batch paths now require source restore and rebuild, not direct replay. [Report](reports/2026-10-30-151-retired-batch-expansion.md) and [manifest](manifests/2026-10-30-151-retired-batch-expansion.jsonl.gz).
