@@ -30,6 +30,35 @@ by 76, and each remaining candidate by 78. This diagnosis does not rewrite the
 files, remove cases, alter assertions, or turn a failure into a pass. It is not
 a comparison of code bytes between different product versions.
 
+### Follow-up: why the file identities differ (2026-10-30)
+
+The original bootstrap test deliberately creates different stage-one and
+stage-two source names before comparing their generated ELNs with raw `cmp`.
+Both the pinned stable C compiler and `src/comp.rs` explicitly pass
+`-install_name` with `Ffile_name_nondirectory(filename)` on macOS, under the
+driver-option feature guard. Basename-only identity is already implemented.
+
+A read-only follow-up checks all ten retained ELNs against their recorded raw
+hashes and parses their actual Mach-O load commands. Every `LC_ID_DYLIB` name
+equals its artifact basename, and the two names differ in each of the five
+profiles. Each file also passes `codesign --verify --strict`, with all ten raw
+hashes unchanged afterwards. No compiler, editor or original test is rerun.
+
+Distinct embedded identity strings alone make whole-file equality impossible
+for these actual pairs, independently of the observed UUID/signature differences.
+This establishes the source of one necessary `cmp` difference; it does not
+prove how UUID/signature bytes would behave after a hypothetical compiler change.
+Giving independent units one common identity would contradict the compiler's
+explicit identity contract, so no such producer change is made for this test.
+
+Independent source/artifact discussion confirms this bounded finding. A
+macOS-specific structural comparison could separately validate expected image
+identity, UUID and strict signatures while comparing every other byte and
+structure exactly. It would be an additional platform-specific audit, not an
+original-test pass or full compiler compatibility proof. The original `cmp`
+failure remains blocking under the existing contract; no acceptance exception
+or test modification has been adopted.
+
 The other 185 original cases pass in every profile, including native execution,
 type inference, nonlocal exits, buffers, the original 1000-element sort and
 100000-allocation loop. No additional candidate failure was observed in this
