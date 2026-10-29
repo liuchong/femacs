@@ -1,0 +1,21 @@
+diff --git a/src/runtime_gc_collector.rs b/src/runtime_gc_collector.rs
+index acc02f1b..2a65119a 100644
+--- a/src/runtime_gc_collector.rs
++++ b/src/runtime_gc_collector.rs
+@@ -241,10 +241,12 @@ mod gc_collector {
+         // Freeze is a prefix boundary, not a work queue: newly marked owners
+         // append to the registry but are never made additional roots now.
+         let frozen = state().registry.frozen_len;
+-        for index in 0..frozen {
+-            let object = state().registry.entries[index];
+-            mark_object(object);
+-        }
++        // The fixed prefix stays at a stable address while marking appends
++        // only to its suffix. Array marking retains left-to-right root order
++        // and completes each root's children before visiting the next root.
++        // Do not carry a mutable State reference across marking callbacks.
++        let entries = (&raw mut STATE.registry.entries).cast::<Lisp_Object>();
++        mark_objects(entries, frozen as ptrdiff_t);
+         let mut block = cons_block;
+         let mut limit = cons_block_index as usize;
+         while !block.is_null() {

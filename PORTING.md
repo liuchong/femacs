@@ -3653,3 +3653,26 @@ Two subsequent protections pass on all three products, covering the complete
 first-byte domain and byte 255 in each quartet slot. Original failed startup
 evidence remains separate from the corrected snapshot dependency preparation.
 This does not establish the intermittent remote09 payload or its root cause.
+
+## P436: remembered-owner batching evaluated and withdrawn
+
+The experimental Young collector submitted the unchanged frozen registry prefix
+once through `mark_objects`, replacing one `mark_object` call per owner. The
+fixed prefix address, left-to-right depth-first traversal and append-only suffix
+were preserved with a direct raw projection. A pending batch can add one 16-byte
+mark-stack entry; no recovery from active-GC allocation failure was promised.
+
+Separate source-bound prior/batch normal/checking builds, complete affected
+integration and two deep/suffix protections passed. The 603 workload processes
+and 81 startups completed two warmups and seven measured rounds. All 402 groups
+exceeded the original quiet-host threshold; none of 48 direct prior/batch pairs
+was promotion eligible. Small inclusive phase differences do not establish
+exclusive function CPU cost or reliable whole-editor improvement.
+
+The batch production change is withdrawn to the exact prior implementation;
+its inert patch reconstructs the candidate by hash. Useful actual-editor
+protections remain. This is insufficient qualified benefit, not proof that
+batching cannot help. Root selection, barriers, weak/finalizer handling, caps,
+ABI and default products were not promoted or relaxed. See the
+[evaluation](maintenance/releases/2026-10-30-gc-owner-batch-evaluation.md) and
+[CLN150 recovery](maintenance/cleanup/reports/2026-10-30-150-owner-batch-withdrawal.md).

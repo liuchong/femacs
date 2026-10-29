@@ -368,3 +368,9 @@ CLN101（2026-10-28）：已回收211个退出0且无遗留子进程用例的隔
 CLN102（2026-10-28）：实际dump保存/恢复48/48通过后，回收80份无后续消费者的试验图像/836810968逻辑字节，原结果SHA及完成回执不变，产品原dump和原始夹具保留。搬移与性能继续使用原产品，整体Goal仍1/7。
 
 CLN103（2026-10-28）：搬移60项功能断言均成功，首轮4项因Spotlight占用回收失败，原报告保持56/60。其后4份副本经全树和无句柄核验退役，回收968654987逻辑字节；收尾字段错误从已存清单修复，未重复删除，原元数据不变。正式测量2727次调用/441次启动及12726样本采集通过，但1818组全为busy-host、960对照无合格项，暂不能判断提速；完整功能/稳定语料/UI仍待闭合，Goal1/7。
+
+## P436 remembered-owner batch evaluation (not adopted)
+
+Both source-bound prior/batch normal/checking builds completed. Complete affected integration passed 576 ERT tests +64 discoveries; subsequent deep/suffix protections passed 16 tests +8 discoveries. Complete two-warmup/seven-round measurement passed603 workload processes +81 startups and retained2814samples. All402groups exceeded the unchanged quiet-host policy;48 direct prior/batch pairs had zero eligible comparisons. Busy diagnostic differences do not prove reliable gain or exclusive function cost.
+
+The production collector is restored byte-for-byte to the measured prior (SHA0f18ba7d761d3fcf4e99bacd8bd188289e816cdca933d4c22b83d37393a1b74e). Two useful protections and full original evidence remain; no default/trial App was changed. CLN148/149 retire consumed cache/state; CLN150 preserves the never-committed candidate as a hash-verified inert patch. See [evaluation](../maintenance/releases/2026-10-30-gc-owner-batch-evaluation.md). G1/G2/G4 remain3/7; fullG3, G5/G6/G7 acceptance, qualified performance improvement and final current product delivery remain open.

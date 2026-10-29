@@ -339,3 +339,11 @@ Two consumed fns/process generated-unit directories and fourteen successful proc
 ## CLN148 · 2026-10-30 · consumed GC owner-batch build and case copies
 
 Six consumed Cargo/generated-unit scopes plus the integration runner's 640 successful process-state scopes: 19,892 files and 4,958 directories, 739,702,832 logical / 779,845,632 allocated bytes. All 24,850 decoded ledger rows match durable pre-delete plans. Program/dump/full resources and HEAD/index remain unchanged; actual objects, archives, frozen source and raw results remain for the remaining consumers. No workload replay. [Report](reports/2026-10-30-148-consumed-owner-batch-copies.md) and [manifest](manifests/2026-10-30-148-consumed-owner-batch-copies.jsonl.gz). Optimization acceptance and the full Goal remain open.
+
+## CLN149 · 2026-10-30 · consumed GC owner-batch case state
+
+Retired 4,248 empty directories across 24 successful protection and 684 successful performance scopes, zero files/bytes; all decoded hash-only rows match original pre-delete plans. Program/dump/resources and HEAD/index remain unchanged, raw measurements and native-control output remain. No workload replay or space-recovery claim. [Report](reports/2026-10-30-149-consumed-owner-batch-case-state.md) and [manifest](manifests/2026-10-30-149-consumed-owner-batch-case-state.jsonl.gz).
+
+## CLN150 · 2026-10-30 · unaccepted remembered-owner batch withdrawal
+
+Restored only the P436 production change to the exact prior source (SHA 0f18ba7d761d3fcf4e99bacd8bd188289e816cdca933d4c22b83d37393a1b74e); no reliable eligible performance comparison supported adoption. The never-committed candidate is recoverable from an inert 1,123-byte patch, verified by exact isolated reconstruction. Useful protection cases and raw measurements remain; no new compilation, workload replay or space-recovery claim. [Report](reports/2026-10-30-150-owner-batch-withdrawal.md) and [patch](patches/2026-10-30-150-owner-batch.patch).
