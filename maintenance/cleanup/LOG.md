@@ -275,3 +275,8 @@ Retired eleven ended-run Cargo/generated-unit roots: 30,706 files, 1,690 directo
 ## Source consolidation delivery update · CLN72 / CLN113 / CLN132
 
 The complete experimental foundation source group includes the TLS shared-declaration move (CLN72), notification event/open-flag consolidation (CLN113), and stable Tree-sitter loader/shared-layout rebase (CLN132). These are source changes with exact original blocks and restoration identities, not physical file/cache deletions. Historical construction checkpoints remain historical; current limited build/integration evidence and remaining Goal boundaries are in the [foundation report](../releases/2026-10-29-runtime-foundation.md). Reports: [CLN72](reports/2026-10-27-72-tls-declaration-consolidation.md), [CLN113](reports/2026-10-28-113-event-kind-declaration.md), [CLN132](reports/2026-10-29-132-treesit-declaration-rebase.md).
+
+
+## CLN134 · 2026-10-29 · consumed foundation compiler copies and fixtures
+
+After signed source delivery `d9a41b0a`, retired nine ended-run compiler/synthetic-fixture roots: 20,021 regular files, two links, 1,032 directories and 706,887,372 logical bytes. All 21,055 decoded manifest rows match the private plan; 42,110 intent/result operations pair. The frozen source, 739 retained hashes, five selected product identities and full resource groups, actual objects and original failures remain unchanged. No build/test rerun for cleanup. See [report](reports/2026-10-29-134-consumed-foundation-compiler-fixtures.md) and [manifest](manifests/2026-10-29-134-consumed-foundation-compiler-fixtures.jsonl.gz). Goal active, only G4 delivered.
