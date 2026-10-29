@@ -88,3 +88,50 @@ builds, native/compiler/collector profile matrix or a performance comparison.
 Existing P427, remote Base64, DNS and compiler metadata failures keep their
 own evidence and scope. G3/G5/G6/G7 and the full Goal remain open; G1/G2/G4
 remain three of seven accepted outcomes.
+
+## Macro, closure and byte-compiler continuation
+
+Five further unchanged files were executed on the same three normal products.
+Each product gets its own complete, manifest-verified corpus copy: original
+compiler tests create bytecode beside their resource sources, so a shared
+writable test tree would contaminate later comparisons. Each copy contains
+1,536 original files and 20,996,952 source bytes. The existing materializer and
+per-file ERT runner are reused; no original guard, test body or assertion changes.
+The macro-expansion subprocesses use the original same-product invocation path.
+They do not pass an explicit dump argument; these observations do not prove
+that a child loaded the parent's explicitly selected image.
+
+| Original file, relative to the same directory | Passed per product | Skipped per product |
+| --- | ---: | ---: |
+| `backquote-tests.el` | 2 | 0 |
+| `cconv-tests.el` | 18 | 0 |
+| `macroexp-tests.el` | 6 | 0 |
+| `oclosure-tests.el` | 5 | 0 |
+| `bytecomp-tests.el` | 105 | 1 |
+| Total per product | 136 | 1 |
+
+These are 137 distinct original IDs per product, **408 passed and three skipped
+observations**, with no failed assertion, timeout or registration difference.
+All three per-case status maps match. The original
+`bytecomp-tests--dest-mountpoint` skips at `skip-unless bwrap`: that Linux
+sandbox executable is absent on this macOS host. It is not installed or
+emulated for this comparison, and the skipped requirement is not waived.
+The aggregate remains `passed=false` and the resource owner exits 1.
+
+The run takes 12.541 seconds; its owner takes 14.483 seconds, peaks at
+190,693,376 accounted bytes and completes process cleanup. All manifest source
+files, runner inputs, programs, dumps and complete selected product resources
+remain unchanged. Each isolated copy contains 59 generated resource files,
+recorded separately from the original inputs. Per-case timings, actual command
+arguments, registration and environment/retirement receipts are retained in
+`build/acceptance/g3-compiler-libraries-1`.
+
+Combined with the earlier twelve files, this covers 680 distinct original IDs
+per product across seventeen files: **2,034 batch passes and six batch skips**.
+The three interactive EIEIO failures above remain separate mode observations
+of already counted IDs. No existing failure is closed, no performance gain is
+claimed, and G3 remains open.
+
+Independent review accepted this limited continuation after four actual
+read-only checks, including the unchanged sandbox guard and isolated resource
+copies. Its child-image scope clarification above is adopted.
