@@ -81,7 +81,7 @@ cargo run -p xtask -- build-macos
 - **每个文件一次提交**（`port(NAME): …` / `tools: …` / `docs(status): …`），并**及时推送** `origin/master`。
 - **禁止破坏性 git**：`stash`、`reset`、`checkout --`、`rebase`、`push --force`、`amend`。
 - **还原文件的唯一姿势**：`git show HEAD:<路径> > <路径>`；`git checkout --` 在禁止列表里（历史上犯过一次）。
-- 提交内容里**不许出现绝对路径**、不许提交 secrets；保留无关 WIP 与真实作者。
+- 提交内容**不得泄露本机个人路径或 secrets**；常规命令及代码必需的系统文件路径不属于隐私泄露，不为它们逐次请求许可（P426）。本机目录引用仍用仓库相对路径或运行时计算；保留无关 WIP 与真实作者。
 
 ## 5 汇报纪律
 
