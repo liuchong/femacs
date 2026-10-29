@@ -1,0 +1,50 @@
+{
+  "schema": 1,
+  "scope": "one unchanged original remote09 test per product with the existing error-only observer; isolated diagnostic only",
+  "test_id": "file-notify-test09-watched-file-in-watched-dir-remote",
+  "test_sha256": "8d812305c5c31652164b9da8495beb4d2572df8e6d1c504e7d47408d0aadd031",
+  "observer_sha256": "6f1057097a5d0b7be4ad0846c007195abe933c83f52993ac7df894fbbcdc050b",
+  "core_commit": "9ec24e4799c29688e9997b967e853065cf5c0aae",
+  "passed": true,
+  "inputs_unchanged": true,
+  "products_unchanged": true,
+  "source_owner_seconds": 383.540742625,
+  "controller": {
+    "exit_code": 0,
+    "cleanup_complete": true,
+    "elapsed_seconds": 385.136,
+    "peak_accounted_bytes": 141869056
+  },
+  "cases": [
+    {
+      "product": "reference",
+      "passed": true,
+      "seconds": 126.892866125,
+      "actual_mock_adopted": true,
+      "capture_count": 0
+    },
+    {
+      "product": "normal",
+      "passed": true,
+      "seconds": 126.52479987499999,
+      "actual_mock_adopted": true,
+      "capture_count": 0
+    },
+    {
+      "product": "checking",
+      "passed": true,
+      "seconds": 126.78565791699998,
+      "actual_mock_adopted": true,
+      "capture_count": 0
+    }
+  ],
+  "original_failure": {
+    "retained": true,
+    "status": "failed",
+    "error": "Invalid base64 data",
+    "seconds": 28.670672,
+    "raw_input_retained": false
+  },
+  "conclusion": "No new bad input captured. Original intermittent failure remains unresolved; neither root cause nor repair proved. Not full-file acceptance.",
+  "raw_result_sha256": "76a7dbe77461dbc8e81ada3db87430a754dc591498607362c5321cfc90d1461b"
+}

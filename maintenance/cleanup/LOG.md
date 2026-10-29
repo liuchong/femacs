@@ -351,3 +351,13 @@ Restored only the P436 production change to the exact prior source (SHA 0f18ba7d
 ## CLN151 · 2026-10-30 · retired unaccepted owner-batch expansion
 
 Removed only the completed batch/source expansion: 20,697 files, 943 directories and12 links;1,500,543,266logical/1,546,506,240allocated regular bytes. All7298 exact source identities remain recoverable via7296 retained-prior mappings plus2 unique copies, verified again after removal;24 metadata files retained. Prior products/raw results/HEAD/index unchanged; historical batch paths now require source restore and rebuild, not direct replay. [Report](reports/2026-10-30-151-retired-batch-expansion.md) and [manifest](manifests/2026-10-30-151-retired-batch-expansion.jsonl.gz).
+
+## CLN152 — consumed current-core remote09 state (2026-10-30)
+
+[Report](reports/2026-10-30-152-current-remote09.md) and
+[manifest](manifests/2026-10-30-152-current-remote09.jsonl.gz): removed only 1,841
+regular files, 298 directories and 19 context links after three reaped diagnostic
+processes; 48,912,321 logical / 53,641,216 allocated regular bytes. Raw failure,
+results, real products and canonical pinned caches remain. Source copies can be
+regenerated from pinned manifests; temporary names are not guaranteed. No repair
+claim or test replay.
