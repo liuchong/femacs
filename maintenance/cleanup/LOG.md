@@ -335,3 +335,7 @@ After actual build/functional/selected measurement completion, retired only five
 ## CLN147 · 2026-10-30 · consumed core build copies and isolated environments
 
 Two consumed fns/process generated-unit directories and fourteen successful process environments: 138 files/100 directories, 4,868,938 logical/5,144,576 allocated bytes; 238 hash-only rows, SHA 821ee7af8425f3f1405f67a52bb775c46c0582681bbd2d568a44d9ebfe2d1994. Durable production identities and all decoded fields match; program/dump/full resources and HEAD/index remain unchanged. Objects, raw records and failures remain. [Report](reports/2026-10-30-147-consumed-core-build-copies.md).
+
+## CLN148 · 2026-10-30 · consumed GC owner-batch build and case copies
+
+Six consumed Cargo/generated-unit scopes plus the integration runner's 640 successful process-state scopes: 19,892 files and 4,958 directories, 739,702,832 logical / 779,845,632 allocated bytes. All 24,850 decoded ledger rows match durable pre-delete plans. Program/dump/full resources and HEAD/index remain unchanged; actual objects, archives, frozen source and raw results remain for the remaining consumers. No workload replay. [Report](reports/2026-10-30-148-consumed-owner-batch-copies.md) and [manifest](manifests/2026-10-30-148-consumed-owner-batch-copies.jsonl.gz). Optimization acceptance and the full Goal remain open.
