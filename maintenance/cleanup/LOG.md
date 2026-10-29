@@ -258,3 +258,7 @@
 | CLN-20261029-128 | 2026-10-29 | 已消费P425 Cargo/四生成unit根，19910文件、903目录、703037940逻辑字节 | 20813条完整字段及39820操作记录逐项对应；746保留文件和四实际程序/dump/资源不变，源/原失败/配方保留 | [范围与恢复](reports/2026-10-29-128-consumed-zlib-compiler-copies.md) |
 
 | CLN-20261029-129 | 2026-10-29 | Consumed3Cargo/4unit/4context roots;20612 files,120links,1373dirs,699637607logical bytes | 22105full-field manifest rows and41464paired operations;source/4products/raw failures retained | [report](reports/2026-10-29-129-consumed-lcms-compiler-context-copies.md) |
+
+## CLN130 · 2026-10-29 · consumed module compiler copies
+
+P429 signed/pushed `ccb38ee4`; retired five ended-run Cargo/generated-unit roots: 19,910 regular files, 903 directories, 703,344,044 logical bytes. Also withdrew one unused AI-cache proposal (692 bytes), never applied. The 20,814-row manifest fully matches the private plan after machine-path aliasing; 41,628 durable operations pair. Frozen source, actual objects/four programs/dumps/resources, compiled C module and all failures/recipes remain; no new build/test for cleanup. See [report](reports/2026-10-29-130-consumed-module-compiler-copies.md) and [manifest](manifests/2026-10-29-130-consumed-module-compiler-copies.jsonl.gz). Goal remains active1/7.

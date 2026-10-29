@@ -23642,3 +23642,7 @@ Retired 11 ended-run roots: 20,612 regular files, 120 links, 1,373 directories a
 ## 2026-10-29 · P429模块用户指针谓词
 
 已按官方条件恢复user-ptrp定义和注册，修复模块启用后cl-preloaded缺失user-ptr类导致的原模块文件加载错误。新四产品及两个Cocoa严格签名成功；四候选原39各通过，C参照39按不变身份复用，总195唯一例次零跳过/失败/超时；之后非崩溃保护10通过，源/程序/dump/资源/输入不变、进程完整回收。原39中的四项安全断言有意中止所属子进程并触发系统报告；不是手动GUI退出的证据，不重跑。独立最终复核已接受限定组件，签名交付待回执；其他native/runtime WIP保留，整个Goal仍1/7。见maintenance/releases/2026-10-29-macos-module-user-pointer.md。
+
+## 2026-10-29 CLN130: consumed module compiler copies
+
+P429 limited module predicate fix is signed/pushed `ccb38ee4`. Retired five consumed Cargo/units roots, 19,910 regular files, 903 directories and 703,344,044 logical bytes; one unused 692-byte auxiliary proposal was separately withdrawn without application. All 20,814 manifest rows were decoded and checked, 41,628 operations pair, source/real objects/four programs/dumps/Lisp/LCMS/license and failures remain; no tests/builds rerun for cleanup. See maintenance/cleanup/reports/2026-10-29-130-consumed-module-compiler-copies.md. Remaining G3/G1/G2/native-GC scope stays open; Goal1/7.
