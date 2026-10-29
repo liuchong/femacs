@@ -3874,6 +3874,19 @@ Fall back to normal file name handler if no Tramp handler exists."
 	   (setq pos (match-end 0))
            (intern
 	    (format "G%sFileMonitor" (capitalize (match-string 1 string)))))
+          ;; A process filter receives arbitrary chunks, not whole startup
+          ;; records.  Keep a partial line, or the supported-monitor heading
+          ;; without a complete following line, for the next invocation.
+          ;; Throw before the setter caches nil; the existing rest-string
+          ;; path below retains STRING.  Complete unknown responses still
+          ;; take the original fallback without waiting for a file event.
+          ((or (not (string-match-p "\n" string))
+               (and (string-match
+                     (rx "Supported arguments for "
+                         "GIO_USE_FILE_MONITOR environment variable:\n")
+                     string)
+                    (not (string-match-p "\n" string (match-end 0)))))
+           (throw 'doesnt-work nil))
           (t (setq pos (length string)) nil)))
 	(setq string (substring string pos)))
 
