@@ -1,3 +1,9 @@
+## Current continuation: foundation package relocation (2026-10-29)
+
+Coherent source d9a41b0a and CLN134 aeceb12f are signed/pushed and independently adopted. Four moved baseline packages passed 48 strict signatures, source/build/cache denial and lexical closure checks, with source/product/resources unchanged. Raw failure records Spotlight holding one copy during cleanup; separate followup retired that unchanged copy without rerunning tests. CLN135 retired 931,372,817 logical bytes across four copied packages; original products remain. [Limited evidence](../maintenance/releases/2026-10-29-foundation-relocation.md).
+
+P427 is not fixed: self-checked descriptor observation of the unchanged original process file yielded 35 passes, two skips and two known environment failures and no EBADF; retained-context preparation failure is separate. Physical GUI, actual committed-checkout build, full stable compatibility and native/GC performance remain open. The Goal remains active; only G4 is delivered.
+
 ## 当前接续：完整实验运行时源码组整合（2026-10-29）
 
 已把构建/依赖/共享头/模块生成器/真实消费者及native、GC候选整合为完整源码组，默认native/分代GC/观察器/测试钩子仍关闭。138路径拟提交树b05e632f导出7137文件，不含参照、旧产物或无关WIP；四基线产品及两个严格Cocoa签名成功，1218.312秒/883113984字节/完整回收。新160原Tree-sitter例次加身份未变C40复用共200通过，12新生命周期加C3复用共15，4新dump加C1复用共5；源/制品/资源不变。后置62相关构建保护通过，同一搭档8次实际只读核查接受完整实验源码组；只是源码依赖闭合及限定验收，不是G2实际提交检出、全G3、GUI/搬移或nativeGC性能通过。见[源码组边界与证据](../maintenance/releases/2026-10-29-runtime-foundation.md)。旧P427、远程09、五共同编译元数据失败及后续nativeGC仍开放，Goal active仍1/7。

@@ -280,3 +280,8 @@ The complete experimental foundation source group includes the TLS shared-declar
 ## CLN134 · 2026-10-29 · consumed foundation compiler copies and fixtures
 
 After signed source delivery `d9a41b0a`, retired nine ended-run compiler/synthetic-fixture roots: 20,021 regular files, two links, 1,032 directories and 706,887,372 logical bytes. All 21,055 decoded manifest rows match the private plan; 42,110 intent/result operations pair. The frozen source, 739 retained hashes, five selected product identities and full resource groups, actual objects and original failures remain unchanged. No build/test rerun for cleanup. See [report](reports/2026-10-29-134-consumed-foundation-compiler-fixtures.md) and [manifest](manifests/2026-10-29-134-consumed-foundation-compiler-fixtures.jsonl.gz). Goal active, only G4 delivered.
+
+
+## CLN135 · 2026-10-29 · consumed foundation relocation copies
+
+Retired four temporary source-denied relocation packages: 17,936 files, 442 directories and 931,372,817 logical bytes. All 17,936 manifest rows and 36,756 paired operations verified. Original source/products/resources remain unchanged. Spotlight initially held the ordinary terminal copy; raw failure retained, exact copy retired after zero occupancy without rerunning tests. See [report](reports/2026-10-29-135-consumed-foundation-relocation.md), [manifest](manifests/2026-10-29-135-consumed-foundation-relocation.jsonl.gz) and [limited relocation evidence](../releases/2026-10-29-foundation-relocation.md). Goal remains active, only G4 delivered.
