@@ -6655,7 +6655,11 @@ unsafe fn garbage_collect_impl(request: GcRequest)
   #[cfg(feature = "femacs_gc_generational")]
   let (collector_kind, collector_reason) = gc_collector::choose_cycle(request);
   #[cfg(feature = "femacs_gc_generational")]
-  { gc_collector::prepare_cycle(collector_kind, collector_reason, &mut collector_guard); }
+  {
+    gc_observe_begin!(observation_cycle, 22);
+    gc_collector::prepare_cycle(collector_kind, collector_reason, &mut collector_guard);
+    gc_observe_end!(observation_cycle, 22);
+  }
   #[cfg(feature = "femacs_gc_observer")]
   {
     #[cfg(feature = "femacs_gc_generational")]

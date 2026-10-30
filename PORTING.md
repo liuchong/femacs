@@ -3800,3 +3800,28 @@ complete implementation, run the affected language/observer/collector and
 fallback integration, then protect partial-word live/dead/reuse boundaries.
 Retain original outcomes and only claim performance from eligible real workload
 comparisons; no default or trial App promotion follows from source equivalence.
+
+## P442: distinguish collector preparation and remembered-root intervals
+
+The current phase3-to-phase4 gap includes collector preparation and two
+different remembered-root traversals. Existing inclusive timing cannot assign
+its cost to any one of them. Add observer phase22 around prepare_cycle, phase23
+around the frozen noncons registry traversal, and phase24 around dirty/tainted
+old-cons traversal. These remain nested in input-blocked phase3; phase23/24
+exist only for actual Young traversal. Phase22 precedes classification21, so
+analysis must join by cycle identity rather than assume classification order.
+
+Use the existing current_cycle token inside collector code, guarded by the
+observer feature. Do not change root membership/order, mark stack processing,
+registry capture, barriers, collection policy, layout or defaults. Observer-off
+builds erase the calls; compiled-in but disabled observation is not assumed
+free. Retain the existing fixed record/depth limits and visible overflow/abort
+flags. Inclusive intervals include recursive tracing and instrumentation, not
+exclusive CPU work, hardware stop-the-world or input-response latency.
+
+After the complete instrumentation implementation, build independent real
+normal/checking products, pass affected existing integration and actual phase
+nesting/classification observations, then add key recorder protections. Collect
+bounded actual workload observations for attribution, without presenting busy
+host samples or fewer operations as a certified speedup. Preserve all original
+results and the current/prior products; do not replace the trial App.

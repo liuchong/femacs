@@ -1,0 +1,291 @@
+{
+  "schema": 1,
+  "decision": "P442",
+  "scope": "Opt-in preparation and remembered-root inclusive intervals, bounded actual-workload attribution",
+  "implementation_delivered": true,
+  "full_compatibility_accepted": false,
+  "performance_accepted": false,
+  "trial_app_promoted": false,
+  "source_sha256": {
+    "src/alloc.rs": "564e9377279426cf6ca2ba70e89b797a98a5a5737d677df1e4fedd09eb41fa55",
+    "src/runtime_gc_collector.rs": "bff433a05116fd4ef6a6d2702aedc1f7922a5a90e45f244ba97a8ddd69940026",
+    "src/runtime_gc_observation.rs": "267ec5d707cde576be2860bca32192744e7804d7bb305dc05c7791e83f5a082d",
+    "tools/test-gc-root-phases.py": "d0b2fff71f2142ea710f3f25d40a670b0bc3def38aac41cbd871220a880ab753",
+    "tools/fixtures/runtime-gc-root-phases.el": "3151a7dcf12ce862126af58eede26798c7804fc8fd30aebb46ab06647ade2bb1"
+  },
+  "frozen_inputs": 7360,
+  "frozen_source_is_clean_head": false,
+  "production_input_differences": [
+    "src/alloc.rs",
+    "src/runtime_gc_collector.rs"
+  ],
+  "build": {
+    "finalized_products_passed": true,
+    "original_controller_passed": false,
+    "compiler_seconds": {
+      "build-driver": 14.574270125,
+      "build-collector": 685.202827459
+    },
+    "file_only_finalization_seconds": 19.066264125,
+    "original_captured_files_verified": 16902,
+    "profiles": "Normal/checking terminal collector+observer, major/young; native disabled, no test hooks",
+    "historical_functional_acceptance_pending_at_build_finalization": true
+  },
+  "integration": {
+    "passed": true,
+    "seconds": 196.15499925,
+    "fresh_processes": 530,
+    "reused_prior_fallback_processes": 8,
+    "total_receipts": 538,
+    "existing_processes": 490,
+    "new_candidate_existing_processes": 480,
+    "new_reference_processes": 10,
+    "new_fallback_processes": 8,
+    "new_phase_contract_processes": 32,
+    "phase_contracts_passed": true,
+    "raw_existing_passed": true,
+    "raw_existing_sha256": "85e5f51424d5cf021bb9c6dc77063eeab90e99e0a1adc572d61003887fbd1587",
+    "ordered_registration_comparisons": 48,
+    "reference_language_id_comparisons": 16,
+    "language_observations": 153,
+    "shared_registration": 17,
+    "language_registration": 17,
+    "fallback_pairs": 4,
+    "driver_sha256": "fbf98503c3b93da7f53411818c0265b0077f134add57087fbe03248df3153ce2",
+    "full_inputs_unchanged": true,
+    "trial_app_unchanged": true
+  },
+  "attribution": {
+    "passed": true,
+    "seconds": 5.662880416,
+    "processes": 12,
+    "workload_executions": 72,
+    "observed_cycles": 756,
+    "interval_aggregate_rows": 136,
+    "driver_sha256": "5b9475eb17e63d7d1ba88e7f5674ccf192860cb2854a8e172cd5f465bfa17dff",
+    "sampled_young_cycles": [
+      {
+        "mode": "interpreted",
+        "workload": "gc-churn",
+        "cycles": 141,
+        "medians_ms": {
+          "0": 4.008,
+          "22": 0.0,
+          "23": 3.49,
+          "24": 0.249,
+          "4": 0.039,
+          "classification_to_static": 3.744,
+          "unattributed_classification_to_static": 0.0
+        },
+        "registry_share_of_whole": 0.872580375398079,
+        "registry_share_of_classification_to_static": 0.9343889293997021
+      },
+      {
+        "mode": "interpreted",
+        "workload": "gc-retained",
+        "cycles": 18,
+        "medians_ms": {
+          "0": 4.08,
+          "22": 0.0,
+          "23": 3.482,
+          "24": 0.337,
+          "4": 0.0375,
+          "classification_to_static": 3.827,
+          "unattributed_classification_to_static": 0.0
+        },
+        "registry_share_of_whole": 0.8530331541825174,
+        "registry_share_of_classification_to_static": 0.9106162205907856
+      },
+      {
+        "mode": "bytecode",
+        "workload": "gc-churn",
+        "cycles": 99,
+        "medians_ms": {
+          "0": 4.049,
+          "22": 0.0,
+          "23": 3.512,
+          "24": 0.246,
+          "4": 0.039,
+          "classification_to_static": 3.752,
+          "unattributed_classification_to_static": 0.0
+        },
+        "registry_share_of_whole": 0.8709926189633006,
+        "registry_share_of_classification_to_static": 0.9366554837028559
+      },
+      {
+        "mode": "bytecode",
+        "workload": "gc-retained",
+        "cycles": 15,
+        "medians_ms": {
+          "0": 4.087,
+          "22": 0.0,
+          "23": 3.506,
+          "24": 0.28,
+          "4": 0.038,
+          "classification_to_static": 3.789,
+          "unattributed_classification_to_static": 0.0
+        },
+        "registry_share_of_whole": 0.858420828835901,
+        "registry_share_of_classification_to_static": 0.9243136633384401
+      }
+    ],
+    "load_per_core_range": [
+      0.18126085069444445,
+      0.19222005208333334
+    ],
+    "existing_quiet_limit": 0.1,
+    "qualified_performance": false,
+    "fixture_sources": {
+      "tools/fixtures/runtime-profile.el": "8e58aa04e5be90309e2a2cb739c206bd7477b89eac4460cd4bd11aaeb922b6b0",
+      "tools/fixtures/runtime-performance-runner.el": "3b19b7df46172a37b50b54e1d4dcf534c0f0328b46e01cb605ffcbc72eaa5251"
+    },
+    "scope": "Descriptive opt-in observer intervals, not exclusive CPU, hardware pause or speedup",
+    "share_method": "Sum of phase23 durations divided by sum of matched whole/gap durations within each sampled group; not ratio of medians",
+    "limits": [
+      "Busy host; descriptive attribution only",
+      "Inclusive elapsed intervals and recursive tracing, not exclusive CPU or hardware pause",
+      "Zero intervals mean measured clock resolution, not zero overhead",
+      "Cycle counts pooled across three rounds, not three observations",
+      "No object-level marking equivalence or permission to omit registry roots",
+      "No instrumented versus uninstrumented overhead comparison"
+    ],
+    "full_cycles": 483,
+    "young_cycles": 273,
+    "young_positive_residual_cycles": 48,
+    "preparation_equal_timestamp_cycles": 503
+  },
+  "protection": {
+    "passed": true,
+    "seconds": 3.9766577919999997,
+    "cases": [
+      {
+        "id": "abort_keeps_open_root_intervals_incomplete_and_recorder_reusable",
+        "seconds": 2.5e-07
+      },
+      {
+        "id": "fixed_capacity_preserves_records_and_disabled_modes_emit_nothing",
+        "seconds": 4.3042e-05
+      },
+      {
+        "id": "invalid_clock_never_becomes_complete",
+        "seconds": 2.08e-07
+      },
+      {
+        "id": "prepare_before_classification_and_sibling_roots_preserve_cycle",
+        "seconds": 0.000127167
+      }
+    ],
+    "generated_sha256": "980ebc866a9f26e60df150a52c2967bb9d3b7d52e68810e0406d3f381c53a5ff",
+    "boundary": "Unmodified numeric recorder body; injected call sequence and synthetic timestamps. Not VM, clock, owner-thread, cfg-off binary or GC-root acceptance."
+  },
+  "independent_review": {
+    "tool": "Cursor Desktop",
+    "model": "grok-4.7",
+    "functional_original_receipts_reviewed": true,
+    "rerun": false,
+    "attribution_original_intervals_reviewed": true,
+    "protection_actual_extraction_and_receipts_reviewed": true,
+    "confirmed_defects": 0,
+    "attribution_scope": "Only Young cycles of gc-churn/gc-retained; original stdout hashes and all756 cycle relationships rechecked, not speedup or object coverage"
+  },
+  "raw_results": [
+    {
+      "path": "build/acceptance/gc-root-phases-current-1/results.json",
+      "sha256": "84bf11649fe30f565fb0514a807deb3ca0fb26e35ae03fada0ee9e9c1a310870"
+    },
+    {
+      "path": "build/acceptance/gc-root-phases-current-1/finalization-1/results.json",
+      "sha256": "b778d6b412569293fa8e455333e02c77871e9a8716cb3d4e0975f1ebc489b6f6"
+    },
+    {
+      "path": "build/acceptance/gc-root-phases-current-1/finalization-1/original-incomplete-results.json",
+      "sha256": "e8bfa424d3126d5fe69f69041df97a7e63a148215e5609e5d535f214e4a8fbc7"
+    },
+    {
+      "path": "build/acceptance/gc-root-phases-functional-1/results.json",
+      "sha256": "ea50bd30a4cba189dd3b5f404582120a28cc70dc070bc2449e6040f7de841c77"
+    },
+    {
+      "path": "build/acceptance/gc-root-phases-functional-1/raw-existing-results.json",
+      "sha256": "85e5f51424d5cf021bb9c6dc77063eeab90e99e0a1adc572d61003887fbd1587"
+    },
+    {
+      "path": "build/acceptance/gc-root-phases-attribution-1/results.json",
+      "sha256": "d3dc2d4e435e88c5016791ebc7d84f88291859f604b04233ef9ec5fffe978bf7"
+    },
+    {
+      "path": "build/acceptance/gc-root-phases-protection-1/results.json",
+      "sha256": "527691590f04932d5ef9d96f6988cc08bfe826b58d86e1fd06dc392c7a0f5dde"
+    }
+  ],
+  "controlled_runs": [
+    {
+      "stage": "original_build",
+      "verification": "Primary read the local original controller receipt; peer review of functional output does not independently cover these metrics",
+      "reason": "monitor_error",
+      "exit_code": 125,
+      "cleanup_complete": true,
+      "elapsed_seconds": 712.101,
+      "peak_accounted_bytes": 533921792,
+      "peak_rss_bytes": 533921792,
+      "peak_footprint_bytes": 419891480
+    },
+    {
+      "stage": "functional",
+      "verification": "Primary read the local original controller receipt; peer review of functional output does not independently cover these metrics",
+      "reason": "exited",
+      "exit_code": 0,
+      "cleanup_complete": true,
+      "elapsed_seconds": 207.074,
+      "peak_accounted_bytes": 198950912,
+      "peak_rss_bytes": 198950912,
+      "peak_footprint_bytes": 169903112
+    },
+    {
+      "stage": "attribution",
+      "verification": "Primary read the local original controller receipt; peer review of functional output does not independently cover these metrics",
+      "reason": "exited",
+      "exit_code": 0,
+      "cleanup_complete": true,
+      "elapsed_seconds": 9.415,
+      "peak_accounted_bytes": 77971456,
+      "peak_rss_bytes": 77971456,
+      "peak_footprint_bytes": 61899688
+    },
+    {
+      "stage": "protection",
+      "verification": "Primary read the local original controller receipt; peer review of functional output does not independently cover these metrics",
+      "reason": "exited",
+      "exit_code": 0,
+      "cleanup_complete": true,
+      "elapsed_seconds": 4.14,
+      "peak_accounted_bytes": 158793728,
+      "peak_rss_bytes": 158793728,
+      "peak_footprint_bytes": 79955072
+    }
+  ],
+  "remaining": [
+    "Full G3/G5/G6/G7 acceptance",
+    "Qualified real-workload performance comparison",
+    "Safe root-tracing optimization that preserves coverage",
+    "Unexplained live-object differences, no object-level census"
+  ],
+  "cleanup": {
+    "report": "maintenance/cleanup/reports/2026-10-30-160-consumed-root-phase-state.md",
+    "manifest": "maintenance/cleanup/manifests/2026-10-30-160-consumed-root-phase-state.jsonl.gz",
+    "status": "complete",
+    "files": 9948,
+    "directories": 3811,
+    "logical_bytes": 377516592,
+    "allocated_bytes": 397533184,
+    "selected_groups": 546,
+    "rows": 13759,
+    "manifest_sha256": "fa3040d6115a41160691761b7a27c9713b5ad6fdfd9d081fd9edbd187b5d0ac3",
+    "retained_files_verified": 3631,
+    "frozen_source_inputs": 7360,
+    "candidate_prior_and_trial_products_unchanged": true,
+    "head_index_unchanged": true,
+    "original_raw_results_and_observations_retained": true,
+    "protection_generated_retired": true
+  }
+}

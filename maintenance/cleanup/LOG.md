@@ -427,3 +427,13 @@ reclaim claim.
 original results/observations and trialApp preserved. The first controller
 measurement failure occurred before deletion; one checked retry completed.
 Generated protection source/executable retired after independent review.
+
+## CLN160 — consumed collector-root-phase state (2026-10-30)
+
+P442: retire only consumed compiler/generated-unit copies,530 fresh integration
+and12 attribution case environments, plus two reviewed protection files.
+9,948files/3,811dirs;377,516,592logical/397,533,184allocated bytes;13,759 decoded
+identity rows. Frozen7,360 inputs, raw receipts, prior/current products and trial
+App retained and verified. Original build controller failure preserved, separate
+file-only finalization verified; no source deletion or performance adoption.
+[Report](reports/2026-10-30-160-consumed-root-phase-state.md).

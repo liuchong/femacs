@@ -2283,6 +2283,36 @@ is changed. Current host load remains above the declared quiet policy, so no
 unchanged full performance replay or speedup promotion follows from this repair.
 The shipped baseline App remains the separately accepted nonexperimental build.
 
+### P442: split the pre-static-root observation interval
+
+The measured phase3-to-phase4 gap contains preparation plus both remembered-root
+traversals. Instrument these existing paths without changing their behavior:
+
+| Phase | Inclusive interval | When present |
+| --- | --- | --- |
+| 22 | Collector `prepare_cycle`, including its existing registry and bitmap work | Every collector cycle while phase recording is enabled |
+| 23 | Frozen non-cons registry roots, including recursive child marking | Actual Young traversal |
+| 24 | Dirty/raw-tainted old-cons children, including recursive child marking | Actual Young traversal |
+
+All three are contained in input-blocked phase3 before static-root phase4.
+Phase22 ends before instant classification21; join records by cycle identity,
+not emission order. Phases23/24 are siblings, not exclusive root-enumeration
+CPU measurements. Their sum does not include all work in the larger gap.
+Whole-cycle, input-blocked and static-root intervals overlap these records;
+do not add nested intervals as independent time or call them hardware pauses.
+
+The observer feature gates the new calls; disabled recording produces no new
+phase records but is not assumed free in an observer-enabled binary. Root
+membership/order, recursive mark processing, barriers, collection policy,
+layout, defaults and fixed recorder capacity/depth remain unchanged. Preserve
+abort, overflow and invalid flags; incomplete records are not valid attribution.
+
+Build actual normal/checking collector-observer products, run the existing
+language/observer/collector and fallback integration plus a separate actual
+phase-contract fixture, then add key recorder protections. A bounded descriptive
+sample of unchanged workloads can locate costs on the current host, but is not
+a qualified reference comparison, performance adoption or trial-App replacement.
+
 P437 actual functional delivery (2026-10-30): normal/checking builds succeeded;
 490 existing new processes + eight new fallback + eight verified prior receipts
 passed. Four paired public graphs/errors agree; young-mode permanent Full

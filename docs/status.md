@@ -23927,3 +23927,41 @@ CLN159 retires9,948files/3,547directories,370,962,164logical/391,000,064allocate
 bytes; original results, frozen inputs, products and App remain unchanged.
 [Delivery](../maintenance/releases/2026-10-30-known-cons-locations.md),
 [cleanup](../maintenance/cleanup/reports/2026-10-30-159-consumed-known-cons-state.md).
+
+### 2026-10-30 P442 — distinguish preparation and remembered-root time
+
+- Implemented opt-in observer22 around existing preparation,23 around frozen
+  non-cons roots and24 around dirty/raw-tainted cons children. No root/order,
+  recursive marking, barriers, GC policy, layout or default changes.
+- Normal/checking actual builds from7,360 frozen inputs: compiler children exit0
+  (14.574s/685.203s). Original outer controller exit125/monitor_error on footprint
+  sampling remains failed. Separate file-only finalization19.066s verified16,902
+  identities and released preservation flags; no compiler/product rerun.
+- Full affected integration196.155s:490 fresh existing +8 fresh fallback +32 fresh
+  phase-contract processes, plus8 verified prior fallback =538 receipts,
+  **530 fresh processes**. Ordered maps48/48, reference-ID16/16, language153/153,
+  shared17/17, language registration17/17 and fallback pairs4/4 pass. Raw existing
+  aggregate stays true. Current/prior products, full frozen inputs and trial App
+  unchanged. Peer reviewed original receipts, not separate controller metrics.
+- Bounded attribution5.663s:12 real processes,72 workload executions,756 cycles
+  (483Full/273Young). In gc-churn/gc-retained Young cycles only, inclusive registry
+  tracing23 medians3.482–3.512ms versus dirty-cons24 .246–.337ms. Matched-duration
+  sums put23 at91.1–93.7% of classification-to-static elapsed time. This includes
+  recursive child marking, not exclusive CPU or proof of root coverage. Other
+  workloads/major cannot inherit this conclusion. Busy load/core .181–.192 exceeds
+  existing .10 policy; no performance acceptance or overhead/gain comparison.
+- Four actual numeric-recorder component protections passed after integration,
+  total3.977s including compilation. Synthetic time/sequence, abort/reuse,
+  invalid clocks, fixed capacity/drop and disabled modes; not VM/ABI/owner/real
+  clock or cfg-off-binary acceptance. Peer independently checked source, actual
+  extraction, original cycle relationships and results; no confirmed defects.
+- CLN160:9,948files/3,811dirs;377,516,592logical/397,533,184allocated bytes;
+  13,759 public identity rows. Consumed copies and542 new case environments only,
+  products/objects/raw failures/results and7,360 inputs retained. Main cleanup
+  163.587s/169,000,960B peak, exit0/reaped. Original successful results not replayed.
+- Bound source/result hashes, per-test times and limits:
+  [P442 release](../maintenance/releases/2026-10-30-gc-root-phases.md),
+  [CLN160](../maintenance/cleanup/reports/2026-10-30-160-consumed-root-phase-state.md).
+  G1/G2/G4 remain3/7 (42.9%); G3/G5/G6/G7 remain4/7 (57.1%). Next: source-bound safe
+  root-tracing optimization and outstanding compatibility, preserving marking
+  coverage and original Goal; no unchanged busy-host matrix replay or App update.

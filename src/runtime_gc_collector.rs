@@ -249,12 +249,21 @@ mod gc_collector {
     }
     pub(super) unsafe fn trace_remembered_owners(kind: GcKind) {
         if kind != GcKind::Young || !young_owner() { return; }
+        #[cfg(feature = "femacs_gc_observer")]
+        let observation_cycle = gc_observation::current_cycle();
+        #[cfg(feature = "femacs_gc_observer")]
+        { gc_observation::phase_begin(observation_cycle, 23); }
         // Freeze is a prefix boundary, not a work queue: newly marked owners
         // append to the registry but are never made additional roots now.
         let frozen = state().registry.frozen_len;
         for index in 0..frozen {
             let object = state().registry.entries[index];
             mark_object(object);
+        }
+        #[cfg(feature = "femacs_gc_observer")]
+        {
+            gc_observation::phase_end(observation_cycle, 23);
+            gc_observation::phase_begin(observation_cycle, 24);
         }
         let mut block = cons_block;
         let mut limit = cons_block_index as usize;
@@ -277,6 +286,8 @@ mod gc_collector {
             }
             block = (*block).next; limit = CONS_BLOCK_SIZE;
         }
+        #[cfg(feature = "femacs_gc_observer")]
+        { gc_observation::phase_end(observation_cycle, 24); }
     }
     pub(super) unsafe fn start_sweep() {
         if owner() && state().active_token != 0 {
