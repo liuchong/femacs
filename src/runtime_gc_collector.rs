@@ -39,7 +39,9 @@ mod gc_collector {
             pub fn clear(&mut self) {
                 // Unused entry slots are never traversed as roots; clearing
                 // index/length does not allocate a large temporary on stack.
-                self.index.fill(0);
+                // Every nonzero index slot comes from an insertion that also
+                // increments len; an empty registry already has a zero index.
+                if self.len != 0 { self.index.fill(0); }
                 self.len = 0;
                 self.frozen_len = 0;
                 self.valid = false;

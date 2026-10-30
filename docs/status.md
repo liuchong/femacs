@@ -23884,3 +23884,16 @@ unchanged. [Local evidence](../maintenance/releases/2026-10-30-empty-registry-in
 CLN157 retires9,946 regular files and6,187directories:369,937,618logical /
 389,951,488allocated regular bytes;5,611retainedfiles and7,348sourceinputs verified.
 G1/G2/G4 remain3/7; overallGoal active, G3/G5/G6/G7 remain open.
+
+
+## P440 independent review and implementation delivery (2026-10-30)
+
+The empty-registry index change and actual-source protection driver are delivered
+after independent source/result review: 506 functional receipts, 48 ordered
+registration comparisons, 153 language observations and five component protections
+pass. Original candidate-only false aggregate remains intact. All 120 performance
+pairs are ineligible on the busy host; no speedup or full G5/G7 completion claim.
+Young pre-latch lengths differ between products (41 entries at pre-latch in each
+compiler leg); cause remains unexplained. Post-latch zero lengths, public graphs,
+errors and collection deltas agree under unchanged predicates. No trial App or
+default change. [Scope and evidence](../maintenance/releases/2026-10-30-empty-registry-index.md).

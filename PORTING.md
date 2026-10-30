@@ -3752,3 +3752,27 @@ sample. For this post-startup state, use matched interpreted/bytecode modes and
 observer off; do not rerun unaffected native-only or startup configurations.
 Two warmups plus seven measured rounds follow the existing policy. Busy-host
 results stay inconclusive and cannot adopt the candidate or close G5/G7.
+
+## P440: avoid clearing an already empty collector registry index
+
+In the current numeric Registry, new initializes every index slot to zero.
+Only successful insert writes a nonzero slot and immediately increments len;
+duplicates, probe/capacity failure, freeze, abort and validity changes do not
+change that relationship. Clear is the only length-resetting operation and
+clears the index first. At method boundaries, len zero therefore implies an
+already zero index. Ownership and the existing nonallocating insertion sequence
+remain unchanged; no new thread, signal or reentrancy contract is introduced.
+
+Condition only index.fill(0) on nonzero len; always reset len, frozen_len, valid
+and overflowed. This avoids 2,097,152 bytes of redundant writes per empty clear,
+including repeated Full fallback. It does not skip the first populated clear,
+change roots/marking/sweep/flags, suppress status counters or change defaults.
+The current heap-cell lookup uses mem_find and block/index arithmetic, not a
+linear block-list search; no timing estimate is inferred from the byte count.
+
+Retain the exact P437 prior and build a separate real normal/checking candidate.
+After complete implementation, verify the complete affected runtime/collector
+integration and original fallback object/error observations, then add key
+populated-clear/repeated-empty-clear/reinsert and reset-state protections.
+Actual workload comparisons retain all rounds and quiet-host eligibility; source
+equivalence and fewer writes alone do not establish a qualified speedup.

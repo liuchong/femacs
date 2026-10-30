@@ -1,8 +1,8 @@
 {
   "schema": "fe-empty-registry-local-evidence-v1",
-  "status": "local-validation-complete-independent-review-pending",
-  "production_change_committed": false,
-  "independent_review_complete": false,
+  "status": "implementation-and-affected-tests-independently-reviewed",
+  "production_change_committed": true,
+  "independent_review_complete": true,
   "collector_sha256": "78993653cb17c4f0f55f4e2b2ed38ac5af6845d780245c7f65afb5bbfbf5ce29",
   "build": {
     "passed": true,
@@ -9000,5 +9000,41 @@
       "elapsed_seconds": 1.795,
       "peak_accounted_bytes": 29425664
     }
-  ]
+  ],
+  "independent_review": {
+    "confirmed_defects": 0,
+    "source_and_protection_hashes_verified": true,
+    "raw_result_bindings_verified": 8,
+    "registration_comparisons_verified": 48,
+    "functional_receipts_verified": 506,
+    "language_observations_verified": 153,
+    "eligible_performance_pairs": 0,
+    "performance_pairs": 120,
+    "whole_driver_line_by_line_reviewed": false,
+    "full_compatibility_accepted": false,
+    "default_product_adopted": false,
+    "protection_boundary": "Reachable clear postconditions, not a performance assertion; unconditional fill also passes",
+    "unresolved_observation": {
+      "status": "unexplained, non-failing under recorded predicates",
+      "young_normal_initial_prior_candidate": [
+        93113,
+        92800
+      ],
+      "young_checking_initial_prior_candidate": [
+        93055,
+        92651
+      ],
+      "young_normal_pre_latch_prior_candidate": [
+        93982,
+        94023
+      ],
+      "young_checking_pre_latch_prior_candidate": [
+        94000,
+        94041
+      ],
+      "own_immediate_latch_preserves_pre_latch": true,
+      "post_latch_collection_registry_zero_both": true,
+      "not_proof_of_marking_equivalence": true
+    }
+  }
 }

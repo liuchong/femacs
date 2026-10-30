@@ -1,7 +1,8 @@
 # Empty registry index: local candidate evidence
 
-Status: locally validated, independent result review pending. The P440 production
-change remains uncommitted; it has not been promoted into the trial App.
+Status: implementation, affected integration and protection reviewed independently.
+This delivery commits the P440 source and protection driver. It does not promote
+the measured candidate into the trial App or accept its performance.
 
 The candidate skips the 2,097,152-byte index fill only when Registry length is
 already zero. Successful insertion establishes a nonzero length immediately
@@ -51,10 +52,28 @@ zero direct pairs qualify for an improvement claim. Source proof and fewer write
 do not establish throughput, pause-latency or memory improvement. No threshold,
 default, ABI or compatibility requirement changes; G5/G7 remain open.
 
-The partner supplied and corrected the integration driver, which the primary
-reviewed and ran. The partner's next result review was blocked by a provider access
-error, so independent review of these executed results and the new protection
-driver remains pending. This report records local evidence, not final adoption.
+The initial partner supplied and corrected the integration driver, which the
+primary reviewed and ran. After a provider access failure, the temporary reviewer
+independently checked the current production change, protection driver, observation
+checks and acceptance predicates, registrations and original result hashes.
+No confirmed defect was found in the clear invariant or recorded predicates.
+The review did not cover every integration-driver line or the entire compatibility
+corpus; passing this review is not full candidate or performance adoption.
+
+The review also identified unequal pre-latch registry lengths in young mode:
+normal prior/candidate initial 93,113/92,800 and pre-latch 93,982/94,023;
+checking initial 93,055/92,651 and pre-latch 94,000/94,041. The immediate latched
+length equals each product's own pre-latch length; post-latch collection stages
+are zero on both sides and public observations/deltas agree. Cross-process
+pre-latch lengths are not an equality predicate in this fixture. The repeated
+41-entry difference is not explained by the current evidence; it is retained as
+an unresolved observation, not dismissed as noise or proof of marking equivalence.
+
+The protection tests lock the reachable clear postconditions, not reduced writes:
+restoring unconditional fill would still pass. They do not manufacture unreachable
+empty-length/dirty-index states or assert timing. The source invariant and real
+functional results support this bounded implementation delivery; the unresolved
+observation and unqualified performance still prohibit broader acceptance claims.
 
 [Portable results](2026-10-30-empty-registry-index-results.json) bind exact hashes,
 summary statistics and original raw outputs. [CLN157](../cleanup/reports/2026-10-30-157-consumed-empty-index-state.md)
