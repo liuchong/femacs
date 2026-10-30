@@ -1323,12 +1323,14 @@ def write_performance_progress(out, processes, samples, errors, latest):
         final=False))
 
 
-def run_performance(products, out, timeout):
+def run_performance(products, out, timeout, *, permanent_full_fallback=False):
     profile_tool = load_tool("runtime-profile.py")
     accounting = load_tool("runtime-acceptance.py")
-    fixture = FIXTURES / "runtime-profile.el"
+    base_fixture = FIXTURES / "runtime-profile.el"
+    fixture = FIXTURES / "runtime-profile-fallback.el" if permanent_full_fallback else base_fixture
     runner = FIXTURES / "runtime-performance-runner.el"
-    sources = {str(path.relative_to(TOOL_ROOT.parent)): digest(path) for path in (fixture, runner)}
+    sources = {str(path.relative_to(TOOL_ROOT.parent)): digest(path)
+               for path in (base_fixture, fixture, runner)}
     # A hook-enabled diagnostic build is not a performance control. Keep the
     # explicit omission with reason rather than relabelling it uninstrumented.
     excluded = [dict(profile=p["id"], reason="diagnostic test-hooks product") for p in products if p["test_hooks"]]
@@ -1336,8 +1338,12 @@ def run_performance(products, out, timeout):
     for product in products:
         if product["test_hooks"]:
             continue
-        for mode in (["interpreted", "bytecode", "native"] if product["native"] else ["interpreted", "bytecode"]):
-            for observer in (["off", "phases", "survival", "all"] if product["observer"] else ["off"]):
+        modes = (["interpreted", "bytecode", "native"] if product["native"]
+                 and not permanent_full_fallback else ["interpreted", "bytecode"])
+        observations = (["off", "phases", "survival", "all"] if product["observer"]
+                        and not permanent_full_fallback else ["off"])
+        for mode in modes:
+            for observer in observations:
                 controls.append((product, mode, observer))
     processes, samples, startup_samples, errors = [], [], [], []
     for round_index in range(-2, 7):
@@ -1373,6 +1379,20 @@ def run_performance(products, out, timeout):
                 if metadata.get("schema") != "femacs-runtime-performance-observation-v1" or metadata.get("mode") != mode:
                     raise ValueError("missing/wrong actual execution-mode observations")
                 row["runtime_observations"] = metadata
+                if permanent_full_fallback:
+                    context = bounded_json(root / "fallback-context.json", 128 * 1024)
+                    if (context.get("schema") != "femacs-runtime-performance-fallback-v1"
+                            or context.get("module_error", {}).get("symbol") != "module-open-failed"
+                            or context.get("module_error", {}).get("path_matched") is not True
+                            or context.get("module_error", {}).get("message_nonempty") is not True):
+                        raise ValueError("actual permanent-fallback input/error was not verified")
+                    status = context.get("after")
+                    if product["collector"] != "off" and (not isinstance(status, list)
+                            or len(status) != 3 or len(status[1]) != 24
+                            or status[1][14] != 1 or status[1][1] != 0
+                            or status[1][4] != context["latched"][1][4]):
+                        raise ValueError("collector did not retain permanent Full fallback")
+                    row["fallback_context"] = context
                 row["workloads"] = observed
                 for measured in observed:
                     if measured.get("execution_mode") != mode or measured.get("actual_function_kind") != mode:
@@ -1394,7 +1414,9 @@ def run_performance(products, out, timeout):
             write_performance_progress(out, processes, samples, errors, row)
         # Startup is its own fresh-process endpoint, not the compiler/setup
         # duration hidden inside a workload. Retain two warmups + seven rounds.
-        startup_products = [p for p in products if not p["test_hooks"]]
+        # Permanent fallback is a post-startup condition. Do not replay
+        # unchanged startup or native-only controls in that explicit mode.
+        startup_products = [] if permanent_full_fallback else [p for p in products if not p["test_hooks"]]
         rotate = (round_index + 2) % max(1, len(startup_products))
         for product in startup_products[rotate:] + startup_products[:rotate]:
             root = out / product["id"] / "startup" / label
@@ -1458,6 +1480,8 @@ def run_performance(products, out, timeout):
     unchanged = sources == {name: digest(TOOL_ROOT.parent / name) for name in sources}
     return dict(processes=processes, samples=samples, startups=startup_samples, summary=summary,
                 comparisons=comparisons, errors=errors, excluded=excluded, fixture_sources=sources,
+                permanent_full_fallback=permanent_full_fallback,
+                startup_measured=not permanent_full_fallback,
                 fixtures_unchanged=unchanged,
                 passed=bool(samples) and not errors and unchanged and not summary["failures"]
                 and len(processes) == len(controls) * 9 and all(row["passed"] for row in startup_samples),
@@ -1476,7 +1500,11 @@ def main(argv=None):
     parser.add_argument('--repository', type=Path,
                         help='Owned product repository for a separately bound harness snapshot')
     parser.add_argument('--groups', type=str, help='Explicit affected ERT groups; not full acceptance')
+    parser.add_argument('--permanent-full-fallback', action='store_true',
+                        help='Performance-only real failed-module-load prelude; matched interpreted/bytecode, observer off, no startup replay')
     options = parser.parse_args(argv)
+    if options.permanent_full_fallback and options.action != 'performance':
+        parser.error('permanent Full fallback applies only to performance measurement')
     if options.repository is not None:
         REPO = safe_path(options.repository)
         if not (REPO/'.git').exists():
@@ -1499,7 +1527,8 @@ def main(argv=None):
                                          product_list_sha256=digest(options.products) if options.products else None,
                                          driver_sha256=digest(__file__), harness_sha256=digest(HARNESS),
                                          fixture_sources=fixtures, driver_sources=driver_sources,
-                                         requested_groups=groups))
+                                         requested_groups=groups,
+                                         permanent_full_fallback=options.permanent_full_fallback))
     try:
         before = {product["id"]: product_identity(product, resources=True) for product in products}
         write_json(out / "product-identities-before.json", before)
@@ -1510,7 +1539,8 @@ def main(argv=None):
         elif options.action == "dump":
             report = run_dump(products, out, options.timeout)
         elif options.action == "performance":
-            report = run_performance(products, out, options.timeout)
+            report = run_performance(products, out, options.timeout,
+                                     permanent_full_fallback=options.permanent_full_fallback)
         elif options.action == "relocation":
             report = run_relocation(products, out, options.timeout)
         else:

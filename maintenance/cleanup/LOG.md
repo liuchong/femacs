@@ -388,3 +388,11 @@ All7,318failed-build source inputs recoverable (7,291prior mappings+27unique cop
 370,202,575 logical / 390,307,840 allocated regular-file bytes. Frozen source,
 actual objects/configuration/products, prior controls, original results and
 observations and trial App are unchanged. No physical-volume reclaim claim.
+
+## CLN156 — consumed permanent-fallback workloads (2026-10-30)
+
+[Report](reports/2026-10-30-156-consumed-permanent-fallback-workloads.md) and
+[manifest](manifests/2026-10-30-156-consumed-permanent-fallback-workloads.jsonl.gz):
+90successfulgroups retired540emptydirectories,0regularfiles and0logical/allocated
+regularbytes.550retainedfiles, actualproducts/resources, originalmeasurements and
+trialApp unchanged; not a disk-space recovery or physical-volume reclaim claim.

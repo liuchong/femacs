@@ -23842,3 +23842,15 @@ Independent partner source review confirmed adoption. No generated JS or remote
 CI. Site source is complete and locally verified, not online: private-repository
 Pages creation is rejected by the current GitHub plan. Keep private visibility;
 DNS/CNAME configuration alone does not publish a website. [Preview](pages/README.md).
+
+### 2026-10-30 P439: real workloads after permanent Full fallback
+
+Explicit failed-module-load measurement completes90processes,420samples,60groups
+and24direct prior/current pairs, preserving public errors/graphs, actual function
+representations, products and all rounds. Every group is busy; eligible pairs=0,
+qualified speedup=false. Final five protective processes pass after correcting
+the first stdout assumption and intermediate marker check; originals retained.
+Independent review accepted final source/result identities. TrialApp unchanged.
+[Evidence](../maintenance/releases/2026-10-30-permanent-fallback-measurement.md).
+CLN156 retires540emptydirectories,0regularbytes;550retainedfiles verified.
+SameGoal active: G1/G2/G4 accepted3/7; G3/G5/G6/G7 and qualified gains remain open.

@@ -3735,3 +3735,20 @@ passes; the ten byte copies also match the raw inputs and retained control.
 Two subsequent macOS protections pass for immutable-input regeneration and
 missing-input errors. Original build and wrapper-count failures remain false.
 This accepts the resource-copy repair, not an unbuilt collector product.
+
+## P439: measure real workloads after permanent collector fallback
+
+P437 removes an index that has no future consumer after a permanent flag, but
+normal startup measurement does not necessarily enter this state. Add an
+explicit performance-only mode using an actual failed module load before the
+unchanged real load/edit/search/allocation/GC workloads. No production collector,
+VM, algorithm, object graph or acceptance threshold changes in this decision.
+
+Bind the new wrapper, original workload, runner and actual old/new/reference
+products. Verify the original module-open error, candidate unknown-producer
+flag and unchanged minor count across all workloads. Preserve every round,
+correctness result, observed function representation, pause and process-memory
+sample. For this post-startup state, use matched interpreted/bytecode modes and
+observer off; do not rerun unaffected native-only or startup configurations.
+Two warmups plus seven measured rounds follow the existing policy. Busy-host
+results stay inconclusive and cannot adopt the candidate or close G5/G7.
