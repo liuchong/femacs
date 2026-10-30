@@ -1,0 +1,481 @@
+{
+  "schema": 1,
+  "scope": "current core baseline Cocoa normal/checking, frozen tracked/new source with WIP; not cleancheckout, wholeGoal or performance acceptance",
+  "source_manifest_sha256": "1c5ba08bee0a2877e64b5880568865a9c79c1f915f6e30e4766c526b69b9171b",
+  "source_count": 7313,
+  "core_sha256": {
+    "src/fns.rs": "760dd249a67eb75249c98a12c29ad3f9b53d08286175a0adea395f3f916f8cc3",
+    "src/process.rs": "fb62743ebe2a8b9ff3cd879656a137299557d9f9d8b502002762f7b1f10242e7",
+    "src/thread.rs": "b4def7a4ae2a7adf9891d2198bfbfc738c63a31a43c647c2d4165cd92be45d25",
+    "src/runtime_gc_collector.rs": "0f18ba7d761d3fcf4e99bacd8bd188289e816cdca933d4c22b83d37393a1b74e",
+    "platform/macos/nsterm.swift": "9535a31cf116d04a6d7d05e16727eae8e83cdc3bd235dae80b7c46fe623639e2"
+  },
+  "programs": [
+    {
+      "id": "normal",
+      "program": {
+        "kind": "file",
+        "bytes": 4230368,
+        "mode": 493,
+        "sha256": "d796f4c52e2a32ec6176e02efca33d922da18252aaddd0885e59993f108ba385"
+      },
+      "dump": {
+        "kind": "file",
+        "bytes": 18602200,
+        "mode": 420,
+        "sha256": "2b87c3436eaa33e551b024c6be01ea702b9c586c4535993258b63aa95a618b92"
+      }
+    },
+    {
+      "id": "checking",
+      "program": {
+        "kind": "file",
+        "bytes": 5062688,
+        "mode": 493,
+        "sha256": "7a0eae3fcfcd047a0ff344176fcfabd6b7cb8e108b006e046a8aa45fde0375d0"
+      },
+      "dump": {
+        "kind": "file",
+        "bytes": 18602160,
+        "mode": 420,
+        "sha256": "20c543ec1f08db5172c2f3a80d2ca3a4b1331981dc3d170ba37227e2ac92cfa7"
+      }
+    }
+  ],
+  "build": {
+    "passed": true,
+    "strict_app_signatures": 2,
+    "seconds": 673.464,
+    "peak_accounted_bytes": 880214472,
+    "cleanup_complete": true
+  },
+  "functional": {
+    "passed": true,
+    "raw_result_sha256": "3460c7c5df757374411773b1627796662782bcec37c8a86bd09b3fb9b0cd2c29",
+    "seconds": 5.250319333,
+    "cases": [
+      {
+        "product": "normal",
+        "case": "base64",
+        "passed": true,
+        "seconds": 1.383991125,
+        "tests": [
+          {
+            "status": "passed",
+            "name": "fe-base64-functional/invalid-input-is-atomic",
+            "seconds": 0.000215
+          },
+          {
+            "status": "passed",
+            "name": "fe-base64-functional/explicit-ignore-invalid",
+            "seconds": 2.3e-05
+          },
+          {
+            "status": "passed",
+            "name": "fe-base64-functional/binary-roundtrip",
+            "seconds": 7.9e-05
+          },
+          {
+            "status": "passed",
+            "name": "fe-base64-functional/alphabet-padding-and-whitespace",
+            "seconds": 2.2e-05
+          },
+          {
+            "status": "passed",
+            "name": "fns-tests-base64-encode-region",
+            "seconds": 2.5e-05
+          },
+          {
+            "status": "passed",
+            "name": "fns-tests-base64-encode-string",
+            "seconds": 1.9e-05
+          },
+          {
+            "status": "passed",
+            "name": "fns-test-base64url-encode-region",
+            "seconds": 7.7e-05
+          },
+          {
+            "status": "passed",
+            "name": "fns-test-base64url-encode-string",
+            "seconds": 3.7e-05
+          },
+          {
+            "status": "passed",
+            "name": "fns-tests-base64-decode-string",
+            "seconds": 4.3e-05
+          }
+        ],
+        "public_observations": null
+      },
+      {
+        "product": "normal",
+        "case": "original-process",
+        "passed": true,
+        "seconds": 0.13882204100000006,
+        "tests": [
+          {
+            "status": "passed",
+            "name": "process-tests/multiple-threads-waiting",
+            "seconds": 0.013699
+          }
+        ],
+        "public_observations": null
+      },
+      {
+        "product": "normal",
+        "case": "public-contract",
+        "passed": true,
+        "seconds": 0.5825743750000001,
+        "tests": [],
+        "public_observations": {
+          "version": "32.0.50",
+          "rows": [
+            {
+              "just_this_one": false,
+              "other_output": "other-ready\n",
+              "answer": false,
+              "seconds": 0.25353217124938965
+            },
+            {
+              "just_this_one": true,
+              "other_output": "",
+              "answer": false,
+              "seconds": 0.26006388664245605
+            }
+          ]
+        }
+      },
+      {
+        "product": "checking",
+        "case": "base64",
+        "passed": true,
+        "seconds": 0.8762072500000002,
+        "tests": [
+          {
+            "status": "passed",
+            "name": "fe-base64-functional/invalid-input-is-atomic",
+            "seconds": 0.000227
+          },
+          {
+            "status": "passed",
+            "name": "fe-base64-functional/explicit-ignore-invalid",
+            "seconds": 2.6e-05
+          },
+          {
+            "status": "passed",
+            "name": "fe-base64-functional/binary-roundtrip",
+            "seconds": 8.9e-05
+          },
+          {
+            "status": "passed",
+            "name": "fe-base64-functional/alphabet-padding-and-whitespace",
+            "seconds": 2.5e-05
+          },
+          {
+            "status": "passed",
+            "name": "fns-tests-base64-encode-region",
+            "seconds": 3.2e-05
+          },
+          {
+            "status": "passed",
+            "name": "fns-tests-base64-encode-string",
+            "seconds": 2.5e-05
+          },
+          {
+            "status": "passed",
+            "name": "fns-test-base64url-encode-region",
+            "seconds": 9e-05
+          },
+          {
+            "status": "passed",
+            "name": "fns-test-base64url-encode-string",
+            "seconds": 4e-05
+          },
+          {
+            "status": "passed",
+            "name": "fns-tests-base64-decode-string",
+            "seconds": 5e-05
+          }
+        ],
+        "public_observations": null
+      },
+      {
+        "product": "checking",
+        "case": "original-process",
+        "passed": true,
+        "seconds": 0.1955924170000003,
+        "tests": [
+          {
+            "status": "passed",
+            "name": "process-tests/multiple-threads-waiting",
+            "seconds": 0.006103
+          }
+        ],
+        "public_observations": null
+      },
+      {
+        "product": "checking",
+        "case": "public-contract",
+        "passed": true,
+        "seconds": 0.6387280000000004,
+        "tests": [],
+        "public_observations": {
+          "version": "32.0.50",
+          "rows": [
+            {
+              "just_this_one": false,
+              "other_output": "other-ready\n",
+              "answer": false,
+              "seconds": 0.2561190128326416
+            },
+            {
+              "just_this_one": true,
+              "other_output": "",
+              "answer": false,
+              "seconds": 0.2600891590118408
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "startup": {
+    "passed": true,
+    "raw_result_sha256": "1034061bf3194d3823fba9321c52372372bbca234f889ae92a2abade04e75fb8",
+    "seconds": 22.067419459,
+    "cases": [
+      {
+        "product": "normal",
+        "passed": true,
+        "seconds": 11.979455375,
+        "startup": {
+          "after_init": true,
+          "init_error": false,
+          "graphic": true,
+          "window_system": "ns",
+          "frames": 1,
+          "gc_count": 5,
+          "package_count": 443
+        }
+      },
+      {
+        "product": "checking",
+        "passed": true,
+        "seconds": 8.537672917,
+        "startup": {
+          "after_init": true,
+          "init_error": false,
+          "graphic": true,
+          "window_system": "ns",
+          "frames": 1,
+          "gc_count": 5,
+          "package_count": 0
+        }
+      }
+    ],
+    "configurations_unchanged": true
+  },
+  "keys": {
+    "passed": true,
+    "raw_result_sha256": "97974649b66631e3a7976ef55b0a3d7baa7ac6cf9a4c34dbff34a74fbba60d6c",
+    "seconds": 6.673034167,
+    "cases": [
+      {
+        "id": "C-a",
+        "passed": true,
+        "seconds": 1.079,
+        "exit_code": 0
+      },
+      {
+        "id": "C-e",
+        "passed": true,
+        "seconds": 1.274,
+        "exit_code": 0
+      },
+      {
+        "id": "left",
+        "passed": true,
+        "seconds": 1.037,
+        "exit_code": 0
+      },
+      {
+        "id": "C-k-C-y",
+        "passed": true,
+        "seconds": 1.058,
+        "exit_code": 0
+      },
+      {
+        "id": "C-g-recover",
+        "passed": true,
+        "seconds": 1.321,
+        "exit_code": 0
+      }
+    ],
+    "input_source_restored": true
+  },
+  "protection": {
+    "passed": true,
+    "raw_result_sha256": "0153ecaa9d876070bb48fe1f7c98219623f1450095ae421115e931a80016b518",
+    "seconds": 3.8434053749999997,
+    "cases": [
+      {
+        "product": "normal",
+        "case": "base64",
+        "passed": true,
+        "seconds": 0.07375187499999969,
+        "tests": [
+          {
+            "status": "passed",
+            "name": "fe-base64-protection/entire-single-byte-domain",
+            "seconds": 0.007593
+          },
+          {
+            "status": "passed",
+            "name": "fe-base64-protection/final-byte-in-each-quartet-slot",
+            "seconds": 9.5e-05
+          }
+        ],
+        "public_observations": null
+      },
+      {
+        "product": "normal",
+        "case": "process",
+        "passed": true,
+        "seconds": 0.9176516669999999,
+        "tests": [
+          {
+            "status": "passed",
+            "name": "fe-process-thread-wait/deep-nested-unwind-and-outer-ownership",
+            "seconds": 0.004
+          },
+          {
+            "status": "passed",
+            "name": "fe-process-thread-wait/idle-thread-preserves-just-this-one-nil",
+            "seconds": 0.764154
+          },
+          {
+            "status": "passed",
+            "name": "fe-process-thread-wait/payload-and-staggered-eof",
+            "seconds": 0.009081
+          },
+          {
+            "status": "passed",
+            "name": "fe-process-thread-wait/unlocked-eof-round-isolation",
+            "seconds": 0.061841
+          }
+        ],
+        "public_observations": null
+      },
+      {
+        "product": "normal",
+        "case": "suspended-wait-gc",
+        "passed": true,
+        "seconds": 0.12481950000000008,
+        "tests": [
+          {
+            "status": "passed",
+            "name": "fe-process-thread-wait/gc-during-suspended-wait-and-filter",
+            "seconds": 0.051399
+          }
+        ],
+        "public_observations": null
+      },
+      {
+        "product": "checking",
+        "case": "base64",
+        "passed": true,
+        "seconds": 0.17713991699999987,
+        "tests": [
+          {
+            "status": "passed",
+            "name": "fe-base64-protection/entire-single-byte-domain",
+            "seconds": 0.031911
+          },
+          {
+            "status": "passed",
+            "name": "fe-base64-protection/final-byte-in-each-quartet-slot",
+            "seconds": 9.9e-05
+          }
+        ],
+        "public_observations": null
+      },
+      {
+        "product": "checking",
+        "case": "process",
+        "passed": true,
+        "seconds": 0.9760528329999998,
+        "tests": [
+          {
+            "status": "passed",
+            "name": "fe-process-thread-wait/deep-nested-unwind-and-outer-ownership",
+            "seconds": 0.00416
+          },
+          {
+            "status": "passed",
+            "name": "fe-process-thread-wait/idle-thread-preserves-just-this-one-nil",
+            "seconds": 0.763862
+          },
+          {
+            "status": "passed",
+            "name": "fe-process-thread-wait/payload-and-staggered-eof",
+            "seconds": 0.007935
+          },
+          {
+            "status": "passed",
+            "name": "fe-process-thread-wait/unlocked-eof-round-isolation",
+            "seconds": 0.092731
+          }
+        ],
+        "public_observations": null
+      },
+      {
+        "product": "checking",
+        "case": "suspended-wait-gc",
+        "passed": true,
+        "seconds": 0.2294388750000005,
+        "tests": [
+          {
+            "status": "passed",
+            "name": "fe-process-thread-wait/gc-during-suspended-wait-and-filter",
+            "seconds": 0.113904
+          }
+        ],
+        "public_observations": null
+      }
+    ]
+  },
+  "publication": {
+    "passed": true,
+    "raw_result_sha256": "cff5cbc634eb0c4f715890856b4fbcb72ff21e370e25e341e73f8f621f0443d9",
+    "controller_seconds": 6.644,
+    "peak_accounted_bytes": 37814272,
+    "cleanup_complete": true,
+    "destination": "dist/macos/Femacs.app",
+    "previous_app": "dist/macos/.Femacs.before-current-core-1.app",
+    "strict_stage_and_published_signatures": true,
+    "source_and_published_identity_equal": true,
+    "previous_bundle_preserved": true,
+    "smoke": {
+      "relocated": true,
+      "base64_boundary": true,
+      "process_output": true
+    }
+  },
+  "cleanup": {
+    "status": "complete",
+    "files": 10472,
+    "directories": 659,
+    "logical_bytes": 390090877,
+    "allocated_bytes": 410865664,
+    "rows": 11131,
+    "manifest_sha256": "8ec99711e2c6f648ff691a5a837fa0cf07f4b0688191ea737cc1103a7a5c923e",
+    "selected_groups": 16,
+    "retained_files_verified": 418,
+    "source_inputs_verified": 7313,
+    "products_raw_receipts_and_head_index_unchanged": true,
+    "controller_seconds": 15.53,
+    "peak_accounted_bytes": 79397584,
+    "cleanup_complete": true
+  }
+}

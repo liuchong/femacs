@@ -361,3 +361,14 @@ processes; 48,912,321 logical / 53,641,216 allocated regular bytes. Raw failure,
 results, real products and canonical pinned caches remain. Source copies can be
 regenerated from pinned manifests; temporary names are not guaranteed. No repair
 claim or test replay.
+
+## CLN153 — consumed current Cocoa compiler state (2026-10-30)
+
+[Report](reports/2026-10-30-153-consumed-cocoa-core-state.md) and
+[manifest](manifests/2026-10-30-153-consumed-cocoa-core-state.jsonl.gz): 16 owned
+Cargo/generated-unit/core/checking-startup groups removed 10,472 regular files
+and 659 directories; 390,090,877 logical / 410,865,664 allocated regular bytes.
+Exact source, actual objects/configuration/receipts, current/previous/candidate
+Apps, native-key event environment and raw results remain unchanged. Generated
+copies are rebuilt from retained inputs; no workload replay or physical-volume
+reclaim claim.
