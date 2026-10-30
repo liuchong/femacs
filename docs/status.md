@@ -23897,3 +23897,14 @@ Young pre-latch lengths differ between products (41 entries at pre-latch in each
 compiler leg); cause remains unexplained. Post-latch zero lengths, public graphs,
 errors and collection deltas agree under unchanged predicates. No trial App or
 default change. [Scope and evidence](../maintenance/releases/2026-10-30-empty-registry-index.md).
+
+
+## Final-source remote notification diagnostic: actual case (2026-10-30)
+
+The unchanged pinned remote09 case passes on the unchanged trial App with the
+final diagnostic: ERT126.201362s, driver127.776397s, controller128.038s/exit0/reaped,
+peak93,634,560B, zero captures. A preceding bad dump-location preflight exited1
+before editor/output creation; preserved separately. One pass closes the final
+version's real-run gap, not the intermittent Base64 defect or G3. CLN158 retires
+two consumed files/15directories; original raw results/logs retained.
+[Report](../maintenance/releases/2026-10-30-remote-notification-diagnostic.md).

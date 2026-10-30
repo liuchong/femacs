@@ -1,3 +1,20 @@
+## Current continuation: reviewed empty-index source and final remote diagnostic (2026-10-30)
+
+P440 source and its five actual-source protection tests are signed and delivered
+in `38113206`; `ee06b488` corrects prior/candidate observation labels and preserves
+the causal limits. Independent review accepts the clear invariant and recorded
+506 functional receipts/48 registrations/153 language observations. The same
+41-cons difference exists in major controls; its object-level cause and marking
+equivalence remain unproven. All 120 performance pairs remain ineligible; no
+speedup, default change or trial-App promotion. [Scope](../maintenance/releases/2026-10-30-empty-registry-index.md).
+
+The final remote diagnostic also passes one actual unchanged stable remote09
+case on the unchanged trial App: ERT126.201362s, zero captures, controller exit0
+and fully reaped. A rejected dump-path preflight is preserved separately. CLN158
+retires only the consumed isolated environment and test copy, keeping original
+receipts/logs. The intermittent failure and G3 remain open. [Evidence](../maintenance/releases/2026-10-30-remote-notification-diagnostic.md).
+G1/G2/G4 remain accepted3/7; G3/G5/G6/G7 and the same Goal remain active.
+
 ## Current continuation: current-core Cocoa published (2026-10-30)
 
 Fresh normal/checking Cocoa baseline products contain the accepted process-wait and Base64 corrections. Both signatures pass; 20 functional ERT, four public process-output observations, two actual NS startups, five PID-directed native key workflows and 14 subsequent protections pass on these new products. Normal startup loads the existing configuration in 11.979s with 443 installed package entries and no initialization error. The normal App is now published at `dist/macos/Femacs.app`, with strict signature, full-bundle equality and actual published resource/process/Base64 checks; the complete previous App is retained. [Delivery and limits](../maintenance/releases/2026-10-30-current-macos-core.md). CLN153 retires only consumed compiler/unit/core environments: 390,090,877 logical bytes, preserving exact source, objects, products and raw results. The source snapshot includes existing WIP and is not a clean checkout. G1/G2/G4 remain 3/7; full G3/G5-G7, performance improvement, compiler policy and intermittent remote09 remain open. Goal active.

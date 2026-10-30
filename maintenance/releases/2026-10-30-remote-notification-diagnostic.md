@@ -55,3 +55,31 @@ Both source hashes and original result hashes are bound separately; product
 and resource identities match before/after. Independent paired review read and
 adopted the final changes. The historical intermittent failure has no captured
 bad input yet and remains a G3 compatibility gap under the unchanged Goal.
+
+
+## Final fixture on the actual remote case
+
+A separate single run now exercises the final six source bindings against the
+unchanged trial Cocoa program, dump and resources. The pinned original case
+passes: ERT 126.201362 seconds, child process 126.560347 seconds, full driver
+127.776397 seconds. The enclosing runtime controller exits zero and is fully
+reaped in 128.038 seconds, peak accounted memory 93,634,560 bytes. No bad Base64
+input was captured. This closes the final-version real-run evidence gap only;
+it does not fix or disprove the intermittent failure or close G3.
+
+The first launch attempt specified a nonexistent dump location. Preflight
+rejected it before creating the output directory or starting the editor; the
+controller exited one and was fully reaped. The corrected run used the actual
+resource dump. Both outcomes are preserved, without counting the rejection as
+an executed test. No unchanged remote case is repeatedly rerun.
+
+[CLN158](../cleanup/reports/2026-10-30-158-consumed-final-remote-diagnostic-state.md)
+records the consumed isolated environment and materialized test copy. Original
+results, process logs and source/product bindings remain unchanged. The earlier
+retention checks describe their original verification-time state; this separate
+cleanup does not rewrite those receipts.
+
+Independent read-only review confirmed the final six-source/product/test bindings,
+four retained process/result hashes, original failed aggregate, preflight scope
+and all 17 cleanup-ledger rows. No archive defect was found; no editor/matrix was
+rerun. This review accepts the bounded evidence, not a fix or full compatibility.

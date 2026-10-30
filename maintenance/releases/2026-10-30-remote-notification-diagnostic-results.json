@@ -256,6 +256,51 @@
         }
       ],
       "actual_remote_cases": []
+    },
+    {
+      "output": "remote09-diagnostic-final-single-1",
+      "raw_result_sha256": "63376eb9415028eeaf46d4e24c52f8a5b353c1dd5fc3d9a0d5776478430a145d",
+      "aggregate_passed": true,
+      "inputs_unchanged": true,
+      "source_sha256": {
+        "tools/remote-notification-diagnostic.py": "d75f5ca8f69d07055179c4f9b125dea77190a898800c96c46b2d1e3d8bb2c497",
+        "tools/stable-suite.py": "9702d159598c51637a281567c38e41e889a4733976264451edc9dff757f3c38e",
+        "tools/runtime-execution.py": "26b379c3d4a24adf2a306e1c751c654ca1b6b1c6cd43f0888398c3560e455fb4",
+        "compatibility/stable-31.1/sources.json": "a5ef144a203b8b2a74e346ac47173c5d4122f751d8d950347ae75ff67eef0efe",
+        "tools/fixtures/file-notify-remote-diagnostic.el": "1e7f460544b9d5d5d0db97cff31b0bccb532d6ec73726eed008966e1715a3663",
+        "tools/fixtures/stable-suite-runner.el": "d5bcd0c18f15995e50adefe8472d12ef82f71114be10ce307202b4ce0f11150e"
+      },
+      "fixture": {
+        "name": "file-notify-remote-diagnostic.el",
+        "sha256": "1e7f460544b9d5d5d0db97cff31b0bccb532d6ec73726eed008966e1715a3663",
+        "bytes": 22000,
+        "mode": 420
+      },
+      "seconds": 127.776397334,
+      "iterations_executed": 1,
+      "capture_assertions": null,
+      "verification_cases": [],
+      "actual_remote_cases": [
+        {
+          "test_id": "file-notify-test09-watched-file-in-watched-dir-remote",
+          "passed": true,
+          "status": "passed",
+          "complete": true,
+          "exit_code": 0,
+          "timed_out": false,
+          "remaining_group_terminated": false,
+          "seconds": 126.560347417,
+          "base64_error_capture_count": 0
+        }
+      ],
+      "ert_seconds": 126.201362,
+      "ert_diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\"",
+      "retained_raw_files": {
+        "results/current-cocoa/iter-001.result.json": "10cffbb27b24acc228edc9ef5bb0df872d069bb30b34a8389cf89b63fd79106d",
+        "processes/current-cocoa/iter-001/process.json": "453ac6fb6212af10bb643a1f9ed19bfc53d52344bb4c5956d00e2f5251112185",
+        "processes/current-cocoa/iter-001/stderr.txt": "2987a15703eed01a593775d443fc1e19a74c7d24a2cac406e60eedade1d4ef6f",
+        "processes/current-cocoa/iter-001/stdout.txt": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
     }
   ],
   "final_retention_checks": [
@@ -317,13 +362,47 @@
       "cleanup_complete": true,
       "elapsed_seconds": 1.29,
       "peak_accounted_bytes": 39190528
+    },
+    "final_actual_remote_case": {
+      "exit_code": 0,
+      "cleanup_complete": true,
+      "elapsed_seconds": 128.038,
+      "peak_accounted_bytes": 93634560
+    },
+    "final_actual_preflight_rejected": {
+      "exit_code": 1,
+      "cleanup_complete": true,
+      "elapsed_seconds": 0.268,
+      "peak_accounted_bytes": 4587520,
+      "reason": "incorrect dump location rejected before editor launch or output creation",
+      "actual_test_executed": false
     }
   },
-  "latest_full_remote_run_uses_final_fixture": false,
+  "latest_full_remote_run_uses_final_fixture": true,
   "no_default_product_change": true,
   "limitations": [
     "Diagnostic wrapper changes timing and stack",
     "No captured bad input from the historical intermittent failure",
     "Retained text limits do not bound full input copying/scanning memory"
-  ]
+  ],
+  "final_actual_consumed_state_cleanup": {
+    "report": "maintenance/cleanup/reports/2026-10-30-158-consumed-final-remote-diagnostic-state.md",
+    "files": 2,
+    "directories": 15,
+    "logical_bytes": 72046,
+    "allocated_bytes": 77824,
+    "ledger_sha256": "c3d5bf8f83b668c3351adaebd83c6fe0f3e981859a577580d0d94beab438054b",
+    "raw_results_unchanged": true
+  },
+  "final_actual_independent_review": {
+    "complete": true,
+    "confirmed_archive_defects": 0,
+    "source_bindings_checked": 6,
+    "retained_process_result_files_checked": 4,
+    "cleanup_ledger_rows_checked": 17,
+    "preflight_not_counted_as_test": true,
+    "historical_failure_still_open": true,
+    "full_compatibility_accepted": false,
+    "product_or_matrix_rerun": false
+  }
 }

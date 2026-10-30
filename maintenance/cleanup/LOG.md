@@ -406,3 +406,13 @@ trialApp unchanged; not a disk-space recovery or physical-volume reclaim claim.
 7,348frozeninputs, candidate/priorproducts and trialApp unchanged. Raw false and
 passing aggregates retained. Two pre-deletion reader-bound failures preserved;
 final bounded per-process cleanup complete. No physical-volume recovery claim.
+
+
+## CLN158 — consumed final remote diagnostic state (2026-10-30)
+
+[Report](reports/2026-10-30-158-consumed-final-remote-diagnostic-state.md) and
+[manifest](manifests/2026-10-30-158-consumed-final-remote-diagnostic-state.jsonl.gz):
+2 regular files and 15 directories retired after the final-source actual case
+passed; 72,046 logical /77,824 allocated regular bytes. Original results/process
+logs and product/source identities retained. No intermittent-fix or disk-volume
+reclaim claim.
