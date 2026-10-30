@@ -24111,3 +24111,27 @@ bytes; original results, frozen inputs, products and App remain unchanged.
   [CLN166](../maintenance/cleanup/reports/2026-10-30-166-consumed-buffer-marker-state.md).
   G1/G2/G4 stay3/7(42.9%);4/7(57.1%)remain, originalGoal active. No fullG3,
   checking, GUI, native or performance adoption inferred.
+
+
+### P443: durable automatic environment-parent identities (2026-10-30)
+
+- Complete tooling implementation moves the two parent rmdir operations into
+  the existing ledger transaction. Exact original owner/scope and evidence
+  boundaries precede a container occupancy check and durable pre-delete plans.
+  Schema 3 counts parents once; child-only callers remain schema 2. Original
+  results stay sealed; partial/unknown cleanup never claims completion.
+- Actual filesystem integration passes v2/v3 and failed-producer retention;
+  actual original marker runner passes six cases on reference/terminal. Full
+  inputs/products/App unchanged. Driver 3.309251792 s; primary controller
+  5.103 s, 104,333,312 accounted peak bytes, exit 0 fully reaped.
+  Then 14 retirement and eight affected stable contracts pass. Independent
+  source/raw-result review finds no confirmed defect, with primary-only
+  controller/live-product identity limits preserved.
+- CLN167: 3,072 files/528 directories/twelve links, 41,993,904 logical and
+  50,176,000 allocated bytes, 3,612 rows. Twenty automatic directory records
+  include both case roots and containers with full private pre-delete identity;
+  historical manifests are unchanged. No full G3, VM/GC correctness or
+  performance claim; G1/G2/G4 remain 3/7, four outcomes/57.1% remain.
+- [Report](../maintenance/releases/2026-10-30-owned-parent-ledger.md),
+  [receipt](../maintenance/releases/2026-10-30-owned-parent-ledger-results.json),
+  [CLN167](../maintenance/cleanup/reports/2026-10-30-167-consumed-parent-ledger-state.md).

@@ -1,0 +1,292 @@
+{
+  "real_runner": {
+    "passed": true,
+    "raw_result": {
+      "path": "build/acceptance/empty-parent-original-file-1/results.json",
+      "sha256": "30153c1dd9084db93b956d40fe10a6f14702041f6bb209f8953cc7423a892d3d"
+    },
+    "counts": {
+      "passed": 6
+    },
+    "seconds": 3.3092517920000004,
+    "budget": {
+      "whole_seconds": 120,
+      "per_case_seconds": 20,
+      "expected_seconds": [
+        2,
+        20
+      ],
+      "expected_peak_bytes": 536870912,
+      "copied_source_bytes": 41993904,
+      "scale": "Two serial file processes, all3original Help marker cases, complete pinned test copies; linear manifest/hash and tiny buffer work, no network or compiler"
+    },
+    "products_unchanged": true,
+    "inputs_unchanged": true,
+    "generated_resources": {
+      "reference": {},
+      "terminal": {}
+    },
+    "cases": [
+      {
+        "product": "reference",
+        "file": "test/src/marker-tests.el",
+        "cases": {
+          "marker-goto-char-from-other-buffer": {
+            "status": "passed",
+            "seconds": 0.099894,
+            "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"Type C-x 1 to delete the help window, C-M-v to scroll help.\n\n\""
+          },
+          "marker-set-window-point-from-other-buffer": {
+            "status": "passed",
+            "seconds": 0.035458,
+            "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"Type C-x 1 to delete the help window, C-M-v to scroll help.\n\""
+          },
+          "marker-set-window-start-from-other-buffer": {
+            "status": "passed",
+            "seconds": 0.031473,
+            "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"Type C-x 1 to delete the help window, C-M-v to scroll help. [2 times]\n\""
+          }
+        },
+        "file_result": {
+          "path": "results/reference/test-src-marker-tests.el-4685088fa541.json",
+          "sha256": "2b2156431678d7a9b4cad509107190dfbc27895bdd5b9ea19e1de7c7d2497c7d",
+          "bytes": 7837
+        },
+        "retirement": {
+          "status": "complete",
+          "files": 0,
+          "directories": 10,
+          "ledger_schema": 3,
+          "logical_bytes": 0,
+          "allocated_bytes": 0,
+          "evidence_sha256": "2b2156431678d7a9b4cad509107190dfbc27895bdd5b9ea19e1de7c7d2497c7d",
+          "ledger": "test-src-marker-tests.el-4685088fa541.state-retirement.jsonl.gz",
+          "ledger_sha256": "c73dda08f61db7d8771a9dc94b9e758d666b8de857e014381d621f1e9321d5a4",
+          "all_selected_absent": true,
+          "restore": "regenerate consumed cache from retained inputs; original random names not promised",
+          "empty_parents_retired": true,
+          "parent_directories": 2
+        }
+      },
+      {
+        "product": "terminal",
+        "file": "test/src/marker-tests.el",
+        "cases": {
+          "marker-goto-char-from-other-buffer": {
+            "status": "passed",
+            "seconds": 0.058737,
+            "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"Type C-x 1 to delete the help window, C-M-v to scroll help.\n\n\""
+          },
+          "marker-set-window-point-from-other-buffer": {
+            "status": "passed",
+            "seconds": 0.023003,
+            "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"Type C-x 1 to delete the help window, C-M-v to scroll help.\n\""
+          },
+          "marker-set-window-start-from-other-buffer": {
+            "status": "passed",
+            "seconds": 0.022469,
+            "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"Type C-x 1 to delete the help window, C-M-v to scroll help. [jd times]\n\""
+          }
+        },
+        "file_result": {
+          "path": "results/terminal/test-src-marker-tests.el-4685088fa541.json",
+          "sha256": "4e705623bb476ba14d97e396506ca53c36ede4c1dd61c0bdcea29aab28676167",
+          "bytes": 7564
+        },
+        "retirement": {
+          "status": "complete",
+          "files": 0,
+          "directories": 10,
+          "ledger_schema": 3,
+          "logical_bytes": 0,
+          "allocated_bytes": 0,
+          "evidence_sha256": "4e705623bb476ba14d97e396506ca53c36ede4c1dd61c0bdcea29aab28676167",
+          "ledger": "test-src-marker-tests.el-4685088fa541.state-retirement.jsonl.gz",
+          "ledger_sha256": "c73dda08f61db7d8771a9dc94b9e758d666b8de857e014381d621f1e9321d5a4",
+          "all_selected_absent": true,
+          "restore": "regenerate consumed cache from retained inputs; original random names not promised",
+          "empty_parents_retired": true,
+          "parent_directories": 2
+        }
+      }
+    ]
+  },
+  "filesystem": {
+    "passed": true,
+    "raw_result": {
+      "path": "build/acceptance/empty-parent-filesystem-1/results.json",
+      "sha256": "a2c0f65fd5d61f20267c7d4f0af09f02378bc562359ead7790ef8afb821a7af4"
+    },
+    "files": 3,
+    "directories": 5,
+    "ledger_rows": 8,
+    "parent_inclusive": {
+      "files": 3,
+      "directories": 7,
+      "parent_directories": 2,
+      "ledger_rows": 10,
+      "ledger_schema": 3,
+      "full_predelete_identities": true,
+      "evidence_unchanged": true,
+      "parents_absent": true,
+      "seconds": 0.17370808299999999
+    },
+    "failed_producer": {
+      "exit_code": 1,
+      "retained": true,
+      "seconds": 0.017181250000000037
+    },
+    "seconds": 0.369769833
+  },
+  "retirement_protection": {
+    "passed": true,
+    "raw_result": {
+      "path": "build/acceptance/empty-parent-protection-1/results.json",
+      "sha256": "2a2464deaeb9c7142c8bd5782e309f83665628b09b7870e5678150a2ab3b519b"
+    },
+    "tests": 14,
+    "cases": [
+      {
+        "id": "__main__.OwnershipTests.test_directory_mode_change_is_retained",
+        "seconds": 0.164036708
+      },
+      {
+        "id": "__main__.OwnershipTests.test_failed_process_never_removes_state",
+        "seconds": 0.00029958299999999216
+      },
+      {
+        "id": "__main__.OwnershipTests.test_new_unplanned_entry_is_retained",
+        "seconds": 0.15823399999999999
+      },
+      {
+        "id": "__main__.OwnershipTests.test_occupancy_timeout_retains_without_retry",
+        "seconds": 0.00039804199999998735
+      },
+      {
+        "id": "__main__.OwnershipTests.test_open_handles_retain_state",
+        "seconds": 0.0002482080000000275
+      },
+      {
+        "id": "__main__.OwnershipTests.test_replaced_empty_directory_is_retained",
+        "seconds": 0.15773750000000003
+      },
+      {
+        "id": "__main__.OwnershipTests.test_symlink_replacement_preserves_target",
+        "seconds": 0.15562804099999994
+      },
+      {
+        "id": "__main__.ParentLedgerTests.test_evidence_cannot_be_inside_selected_container",
+        "seconds": 0.000645625000000094
+      },
+      {
+        "id": "__main__.ParentLedgerTests.test_failed_durable_write_never_deletes_payload",
+        "seconds": 0.15625425000000004
+      },
+      {
+        "id": "__main__.ParentLedgerTests.test_parent_identities_are_durable_before_first_unlink",
+        "seconds": 0.15682429100000006
+      },
+      {
+        "id": "__main__.ParentLedgerTests.test_parent_occupancy_checks_entire_owned_container",
+        "seconds": 0.0006752500000000161
+      },
+      {
+        "id": "__main__.ParentLedgerTests.test_partial_parent_removal_keeps_plan_without_completion_claim",
+        "seconds": 0.15698854099999993
+      },
+      {
+        "id": "__main__.ParentLedgerTests.test_replaced_container_preserves_both_owners",
+        "seconds": 0.0007630829999998312
+      },
+      {
+        "id": "__main__.ParentLedgerTests.test_unselected_sibling_preserves_all_state",
+        "seconds": 0.0005095830000001467
+      }
+    ],
+    "failures": [],
+    "errors": []
+  },
+  "stable_protection": {
+    "passed": true,
+    "raw_result": {
+      "path": "build/acceptance/empty-parent-stable-protection-1/stable-contract-receipt-1x38l0gq/results.json",
+      "sha256": "6555f719241feb4aa015438d7dc6da42a224366ffbeacd9f608599c63f51aaeb"
+    },
+    "tests": 8,
+    "case_seconds": [
+      {
+        "test": "__main__.StableBatchEnvironmentContracts.test_changed_evidence_cannot_get_owner_receipt",
+        "seconds": 0.0005020830000000004
+      },
+      {
+        "test": "__main__.StableBatchEnvironmentContracts.test_completed_retirement_receipt_keeps_original_evidence_hash",
+        "seconds": 0.0006505409999999975
+      },
+      {
+        "test": "__main__.StableBatchEnvironmentContracts.test_existing_owner_receipt_is_preserved",
+        "seconds": 0.0005152079999999962
+      },
+      {
+        "test": "__main__.StableBatchEnvironmentContracts.test_long_logical_ids_keep_isolated_bounded_environment_names",
+        "seconds": 0.002383375
+      },
+      {
+        "test": "__main__.StableBatchEnvironmentContracts.test_replaced_empty_parent_is_preserved",
+        "seconds": 0.0020527919999999977
+      },
+      {
+        "test": "__main__.StableBatchEnvironmentContracts.test_retained_failure_reason_is_in_owner_receipt",
+        "seconds": 0.0006373749999999956
+      },
+      {
+        "test": "__main__.StableBatchEnvironmentContracts.test_setup_failure_records_its_partial_state_before_spawning",
+        "seconds": 0.0021793329999999986
+      },
+      {
+        "test": "__main__.StableBatchEnvironmentContracts.test_unexpected_state_is_never_recursively_removed",
+        "seconds": 0.0015681249999999966
+      }
+    ],
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "scope": "P443 owned-parent cleanup tooling; not VM compatibility, performance or App promotion",
+  "sources": {
+    "tools/runtime-retire.py": "84ad68bbb26ffb73e129406b430393c0eaeab2f6b818c5916a950b6514eb6932",
+    "tools/stable-suite.py": "75e913813f585425ce3673c5db9c71b2054d875c50540ccee3dd06cb4eabc51c",
+    "tools/stable-suite-batch.py": "5473bee19634e589dbbaa091f2fb8dc5c78e67be5399c3db4497753e1ea64b6e",
+    "tools/test-runtime-retire-functional.py": "2bf4a5d1f8098a64e6d5a30f90ecc53476c3f5d6e34fa7fcc22cfc9ebbc31fdb",
+    "tools/test-runtime-retire.py": "b7965f468f6ebc54f0765234b2d3b16581c4c728d1d9779fd02a258802f0d9fd",
+    "tools/test-stable-suite.py": "97ce30ac1a95a3df22610640efc58c4873420b32abfdd8ea1218d93b1240e081"
+  },
+  "independent_review": {
+    "accepted": true,
+    "confirmed_defects": 0,
+    "scope": "P443 and six tools, original integration and22component contracts. No rerun, live App/corpus hashes not independently recomputed; controller primary-only; partial-removal test directly targets retire, not batch exception path; no historical rewrite or editor/performance adoption."
+  },
+  "cleanup": {
+    "status": "complete",
+    "files": 3072,
+    "directories": 528,
+    "links": 12,
+    "rows": 3612,
+    "logical_bytes": 41993904,
+    "allocated_bytes": 50176000,
+    "manifest_sha256": "8d5ff642333a2a6b5df0da25d7b578bafb00eb91d3e0e231cbbcd3805ab68877",
+    "automatic_directories": 20,
+    "products_inputs_git_evidence_unchanged": true,
+    "manifest": "maintenance/cleanup/manifests/2026-10-30-167-consumed-parent-ledger-state.jsonl.gz"
+  },
+  "controller": {
+    "run_id": "62d4bd08c2714cbeb90bae2c06e37739",
+    "exit_code": 0,
+    "cleanup_complete": true,
+    "elapsed_seconds": 5.103,
+    "peak_rss_bytes": 104333312,
+    "peak_footprint_bytes": 69747768,
+    "peak_accounted_bytes": 104333312,
+    "metrics_independently_reviewed": false
+  },
+  "integration_driver_sha256": "35e7c58d3308311cfb909cab41c70402156cf18edc14f2812d63e0bddd2997ae"
+}

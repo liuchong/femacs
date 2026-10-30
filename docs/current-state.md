@@ -1,3 +1,18 @@
+## Current continuation: durable automatic parent identities (2026-10-30)
+
+P443 now records both owned environment parents before removal in the existing
+retirement ledger. Exact owner/scope/evidence/occupancy checks remain; child-only
+callers stay schema 2, parent-inclusive counts use schema 3. Real filesystem
+integration and the actual original marker runner pass (six original cases),
+followed by 22 component protections and independent review with no confirmed
+defect. [Report](../maintenance/releases/2026-10-30-owned-parent-ledger.md).
+CLN167 retires 3,072 files/528 directories/twelve links, 50,176,000 allocated
+bytes; all four automatically removed parents have durable private identities.
+Historical gaps remain disclosed and old manifests stay unchanged.
+G1/G2/G4 remain 3/7; four outcomes and 57.1% remain. Original Goal continues
+with remaining G3 coverage and evidence-led runtime work; no editor/performance
+acceptance or App replacement follows from this tooling fix.
+
 ## Current continuation: original buffer and marker coverage (2026-10-30)
 
 Three complete original files register 442 IDs per normal reference/terminal/

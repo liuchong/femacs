@@ -21,7 +21,7 @@ def digest(path):
     return value.hexdigest()
 
 
-def retire(root, names, evidence, process):
+def retire(root, names, evidence, process, *, empty_parents=()):
     """Require a successful reaped process; preserve failures and unknown scope."""
     root = Path(root).absolute()
     evidence = Path(evidence).absolute()
@@ -33,8 +33,32 @@ def retire(root, names, evidence, process):
             or any(not isinstance(name, str) or Path(name).name != name
                    or name in ('', '.', '..') for name in names)):
         raise ValueError('unsafe owned-state retirement scope')
+    parent_rows = []
+    if empty_parents:
+        # Only the two directories created by the per-file runner qualify.
+        # Their original nodes prove ownership; fresh metadata records the
+        # actual state after the completed process, before any deletion.
+        if (len(empty_parents) != 2
+                or tuple(Path(path) for path, _ in empty_parents) != (root, root.parent)
+                or evidence.resolve().is_relative_to(root.parent)):
+            raise ValueError('unsafe owned environment parents or evidence location')
+        for (directory, original), relative in zip(empty_parents, ('.', '..')):
+            directory = Path(directory)
+            node = directory.lstat()
+            if (directory.resolve() != directory or not stat.S_ISDIR(node.st_mode)
+                    or getattr(node, 'st_flags', 0)
+                    or (node.st_dev, node.st_ino) != (original.st_dev, original.st_ino)):
+                raise ValueError('owned environment parent changed before retirement')
+            parent_rows.append(dict(path=relative, kind='directory', empty_parent=True,
+                path_id_sha256=hashlib.sha256(relative.encode()).hexdigest(),
+                mode=stat.S_IMODE(node.st_mode), device=node.st_dev,
+                inode=node.st_ino, mtime_ns=node.st_mtime_ns))
+        if (any(child.name not in names for child in root.iterdir())
+                or set(root.parent.iterdir()) != {root}):
+            raise ValueError('unselected environment state retained')
     try:
-        check = subprocess.run(['lsof', '+D', str(root)], capture_output=True, timeout=10)
+        check = subprocess.run(['lsof', '+D', str(root.parent if parent_rows else root)],
+                               capture_output=True, timeout=10)
     except subprocess.TimeoutExpired:
         return dict(status='retained', reason='case occupancy query timed out')
     if check.returncode != 1 or check.stdout.strip() or check.stderr.strip():
@@ -73,6 +97,8 @@ def retire(root, names, evidence, process):
                 path_id_sha256=hashlib.sha256(relative.encode()).hexdigest(),
                 mode=stat.S_IMODE(metadata.st_mode), device=metadata.st_dev,
                 inode=metadata.st_ino, mtime_ns=metadata.st_mtime_ns))
+    directories.extend(parent_rows)
+    schema = 3 if parent_rows else 2
     original_evidence = digest(evidence)
     with ledger.open('xb') as raw:
         with gzip.GzipFile(filename='', mode='wb', fileobj=raw, mtime=0) as stream:
@@ -85,7 +111,7 @@ def retire(root, names, evidence, process):
         os.fsync(raw.fileno())
     private = report.with_suffix('.private.json')
     with private.open('x') as stream:
-        json.dump(dict(schema=2, root=str(root), files=rows, directories=directories,
+        json.dump(dict(schema=schema, root=str(root), files=rows, directories=directories,
                        evidence_sha256=original_evidence), stream)
         stream.flush()
         os.fsync(stream.fileno())
@@ -106,7 +132,8 @@ def retire(root, names, evidence, process):
             raise ValueError('owned state changed before deletion')
         path.unlink()
     for row in directories:
-        directory = root/row['path']
+        # root/'..' no longer resolves after root itself has been removed.
+        directory = root.parent if row.get('empty_parent') and row['path'] == '..' else root/row['path']
         metadata = directory.lstat()
         if (not stat.S_ISDIR(metadata.st_mode)
                 or (metadata.st_dev, metadata.st_ino, stat.S_IMODE(metadata.st_mode)) !=
@@ -117,12 +144,14 @@ def retire(root, names, evidence, process):
     if digest(evidence) != original_evidence:
         raise ValueError('case evidence changed during retirement')
     result = dict(status='complete', files=len(rows), directories=len(directories),
-        ledger_schema=2,
+        ledger_schema=schema,
         logical_bytes=sum(row['bytes'] for row in rows),
         allocated_bytes=sum(row['allocated_bytes'] for row in rows),
         evidence_sha256=original_evidence, ledger=ledger.name,
         ledger_sha256=digest(ledger), all_selected_absent=True,
         restore='regenerate consumed cache from retained inputs; original random names not promised')
+    if parent_rows:
+        result.update(empty_parents_retired=True, parent_directories=len(parent_rows))
     with report.open('x') as stream:
         json.dump(result, stream, indent=2)
         stream.flush()

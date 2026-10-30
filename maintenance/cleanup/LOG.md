@@ -507,3 +507,16 @@ extra emptyparents beyond its original783ledgered directory total; manifest
 unchanged. Next fix records existing runner parent identities before deletion.
 [Report](reports/2026-10-30-166-consumed-buffer-marker-state.md) and
 [manifest](manifests/2026-10-30-166-consumed-buffer-marker-state.jsonl.gz).
+
+
+## CLN167 — consumed parent-ledger integration state (2026-10-30)
+
+3,072 files/528 directories/twelve links; 41,993,904 logical/50,176,000
+allocated bytes, 3,612 rows. Includes twenty already-retired directories under
+schema 3, including all four parents with complete private pre-delete identities.
+Post-review deletion removes the two consumed test copies, empty label trees
+and context links. Original receipts, inputs, products and unrelated WIP remain.
+Former unledgered parent removal moves into existing ledger-bound cleanup; old
+manifests and disclosed historical metadata gaps remain unchanged.
+[Report](reports/2026-10-30-167-consumed-parent-ledger-state.md) and
+[manifest](manifests/2026-10-30-167-consumed-parent-ledger-state.jsonl.gz).

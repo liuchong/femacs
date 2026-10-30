@@ -1043,13 +1043,13 @@ def _load_batch():
     return batch
 
 
-def _retire_state(*args):
+def _retire_state(*args, **kwargs):
     import importlib.util
     path = Path(__file__).with_name('runtime-retire.py')
     spec = importlib.util.spec_from_file_location('femacs_stable_retirement', path)
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
-    return module.retire(*args)
+    return module.retire(*args, **kwargs)
 
 
 def _execute(manifest, repo, out, reference, candidate,

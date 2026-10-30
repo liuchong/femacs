@@ -336,8 +336,10 @@ class StableBatchEnvironmentContracts(unittest.TestCase):
         original = container / "original"
         case.rename(original)
         case.mkdir()
+        final, result = self._owner_receipt_fixture('complete')
+        result.update(complete=True, exit_code=0, remaining_group_terminated=False)
         with self.assertRaisesRegex(ValueError, "parent changed"):
-            BATCH._retire_empty_parents(nodes)
+            SUITE._retire_state(case, (), final, result, empty_parents=nodes)
         self.assertTrue(case.is_dir())
         self.assertTrue(original.is_dir())
 
@@ -347,8 +349,11 @@ class StableBatchEnvironmentContracts(unittest.TestCase):
         case.mkdir(parents=True)
         retained = case / "unexpected"
         retained.write_bytes(b"preserve this state")
-        with self.assertRaises(OSError):
-            BATCH._retire_empty_parents(((case, case.lstat()), (container, container.lstat())))
+        final, result = self._owner_receipt_fixture('complete')
+        result.update(complete=True, exit_code=0, remaining_group_terminated=False)
+        with self.assertRaisesRegex(ValueError, 'unselected'):
+            SUITE._retire_state(case, (), final, result,
+                empty_parents=((case, case.lstat()), (container, container.lstat())))
         self.assertEqual(retained.read_bytes(), b"preserve this state")
         self.assertTrue(container.is_dir())
 

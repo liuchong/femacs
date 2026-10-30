@@ -3825,3 +3825,27 @@ nesting/classification observations, then add key recorder protections. Collect
 bounded actual workload observations for attribution, without presenting busy
 host samples or fewer operations as a certified speedup. Preserve all original
 results and the current/prior products; do not replace the trial App.
+
+
+## P443: durably account for owned empty environment parents
+
+The original per-file runner records eight selected case-state subtrees, then
+removes its empty case root and container outside that ledger. A successful
+owner receipt proves removal but does not recover their full pre-delete
+identities. Historical manifests stay unchanged and disclose this limitation.
+
+Move those two removals into the existing runtime retirement transaction.
+Require the caller's original device/inode ownership, exact root/container
+relationship, no unselected children or evidence inside the removed scope,
+and a targeted container occupancy check. Record both parents alongside the
+selected children in the same durable public/private pre-delete ledger before
+any removal. Keep original results immutable and preserve unknown/failed state;
+no recursive deletion of unexpected members or invented historical identities.
+Child-only callers retain their current schema and scope. Parent-inclusive
+receipts use a new schema and count both parents, without counting them twice.
+
+After complete tooling implementation, exercise the actual original-file
+runner and real filesystem retirement, then protect ownership replacement,
+unknown children, durable-write failure and parent-count/evidence boundaries.
+No editor behavior, original assertions, products, collection policy or
+performance acceptance changes.

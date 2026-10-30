@@ -36,16 +36,6 @@ def _process_socket_path_bytes(directory):
     return len(os.fsencode(Path(directory) / 'emacs-test-XXXXXX-process' / 'socket'))
 
 
-def _retire_empty_parents(parents):
-    """Remove only empty directories still owned by this completed case."""
-    for directory, node in parents:
-        current = directory.lstat()
-        if (directory.is_symlink() or
-                (current.st_dev, current.st_ino) != (node.st_dev, node.st_ino)):
-            raise ValueError('owned environment parent changed before retirement')
-        directory.rmdir()
-
-
 def _record_retirement(api, final_path, result):
     """Bind the final owner outcome without changing pre-retirement evidence."""
     if api._sha256_path(final_path) != result['file_result']['sha256']:
@@ -268,13 +258,12 @@ def _run_file(api, out, paths, runner, test_root, logical, timeout, label):
     if result['passed']:
         try:
             result['state_retirement'] = api._retire_state(case_root,
-                ('home','cache','config','state','tmp','native-cache','out','cwd'), final_path, result)
-            if result['state_retirement'].get('status') == 'complete':
-                _retire_empty_parents(((case_root, case_node), (container, container_node)))
-                result['state_retirement']['empty_parents_retired'] = True
+                ('home','cache','config','state','tmp','native-cache','out','cwd'), final_path, result,
+                empty_parents=((case_root, case_node), (container, container_node)))
         except (OSError, ValueError) as error:
             result['state_retirement'] = dict(status='retained',
                 member_retirement=result.get('state_retirement'),
+                completion_unverified=True,
                 error=f'{type(error).__name__}: {error}')
     else:
         result['state_retirement'] = dict(status='retained', reason='file failed/incomplete; preserve original state')
