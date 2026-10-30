@@ -81,6 +81,7 @@ mod gc_collector {
     struct State {
         registry: numeric::Registry,
         phase: CollectorPhase,
+        capture_registry: bool,
         active_token: u64,
         next_token: u64,
         totals: [u64; 24],
@@ -94,7 +95,7 @@ mod gc_collector {
     impl State {
         const fn new() -> Self {
             Self { registry: numeric::Registry::new(), phase: CollectorPhase::Idle,
-                active_token: 0, next_token: 0, totals: [0; 24], reasons: [0; 13],
+                capture_registry: false, active_token: 0, next_token: 0, totals: [0; 24], reasons: [0; 13],
                 invalid_reason: 1, counters_exhausted: false,
                 cycle_valid: false,
                 export_owner: 0, next_export_owner: 0 }
@@ -135,6 +136,7 @@ mod gc_collector {
         };
         let s = state();
         s.registry.clear(); s.phase = CollectorPhase::Idle;
+        s.capture_registry = false;
         s.active_token = 0; s.next_token = 0;
         s.totals.fill(0); s.reasons.fill(0);
         s.totals[0] = u64::from(mode == 2); s.totals[2] = 2;
@@ -165,7 +167,7 @@ mod gc_collector {
         if is_cons { state().count(15, 1); }
     }
     pub(super) unsafe fn note_marked_noncons(object: Lisp_Object) {
-        if !young_owner() || state().phase != CollectorPhase::Marking { return; }
+        if !young_owner() || !state().capture_registry { return; }
         if !state().registry.insert(object) {
             state().count(12, 1);
             state().cycle_valid = false;
@@ -212,6 +214,13 @@ mod gc_collector {
         guard.token = token; guard.armed = true;
         state().next_token = token; state().active_token = token;
         state().phase = CollectorPhase::Marking;
+        // Persistent foreign/unknown producers force every later cycle Full.
+        // Keep all marking, but do not rebuild an unusable remembered registry.
+        // Latch once: a flag raised during this cycle takes effect next cycle,
+        // without truncating the current Young frozen-prefix traversal.
+        state().capture_registry = MODE.load(Ordering::Relaxed) == 2
+            && !FOREIGN.load(Ordering::Relaxed)
+            && !UNKNOWN_PRODUCER.load(Ordering::Relaxed);
         state().cycle_valid = true;
         state().totals[7] = 0; state().totals[9] = 0; state().totals[10] = 0;
         state().totals[18] = reason as u64;
@@ -268,7 +277,10 @@ mod gc_collector {
         }
     }
     pub(super) unsafe fn start_sweep() {
-        if owner() && state().active_token != 0 { state().phase = CollectorPhase::Sweeping; }
+        if owner() && state().active_token != 0 {
+            state().capture_registry = false;
+            state().phase = CollectorPhase::Sweeping;
+        }
     }
     pub(super) unsafe fn commit_cycle(kind: GcKind, guard: &mut CollectorCycleGuard) {
         if !guard.armed || !owner() || state().active_token != guard.token { return; }
@@ -284,6 +296,7 @@ mod gc_collector {
             && !FOREIGN.load(Ordering::Relaxed) && !UNKNOWN_PRODUCER.load(Ordering::Relaxed);
         state().totals[11] = state().registry.len as u64;
         state().totals[22] = guard.token;
+        state().capture_registry = false;
         state().phase = CollectorPhase::Idle;
         state().active_token = 0;
         guard.armed = false;
@@ -294,6 +307,7 @@ mod gc_collector {
             state().registry.valid = false;
             state().cycle_valid = false;
             state().invalid_reason = 10;
+            state().capture_registry = false;
             state().phase = CollectorPhase::Idle;
             state().active_token = 0;
         }

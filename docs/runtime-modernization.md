@@ -2245,3 +2245,50 @@ its partial results are not a final action receipt. Bound source identities:
 - `src/alloc.rs`: `77bb671c95761500d8e742462c0b47e770cb460d0da6d26f2f11ed8b9174dd07`.
 - `src/runtime_gc_collector.rs`: `0f18ba7d761d3fcf4e99bacd8bd188289e816cdca933d4c22b83d37393a1b74e`.
 - `src/runtime_gc_observation.rs`: `267ec5d707cde576be2860bca32192744e7804d7bb305dc05c7791e83f5a082d`.
+
+### P437 persistent Full fallback registry capture
+
+Current `gc_collector::owner` latches FOREIGN for a non-current Lisp OS-thread
+callback; `dynlib_open` latches UNKNOWN_PRODUCER before entering dlopen, even
+when loading later fails. Both flags reset only through process initialization.
+`choose_cycle` forces Full thereafter and `commit_cycle` cannot make the
+remembered registry valid. The original marking hooks still populate it for
+all marked strings, symbols, vectors and floats on every such Full collection.
+This is unnecessary registry construction, not evidence that those objects
+can be skipped by the original marker or sweeper.
+
+`State.capture_registry` now records whether to construct the registry for the
+current marking interval. `prepare_cycle` initializes it once under the existing
+unwind/token guard from selected young mode and both persistent flags. The
+per-object hook reads this latch instead of rechecking the phase, so the healthy
+path does not acquire two additional per-object atomic reads. `start_sweep`
+clears it after weak/deferred marking; successful commit, abort and process
+reset also clear it. All original mark-bit writes/child traversal and the
+frozen-prefix/suffix lifetime remain. A persistent flag set mid-cycle leaves the
+current capture/traversal intact and disables capture only next cycle, which
+the existing selection already forces Full. Overflow/temporary invalidation
+policy and counters are unchanged. The private State layout is not a public
+ABI or status-wire change; matched new products/dumps are still required.
+
+Required actual integration reuses the complete observer/collector/language
+cases on separate normal/checking candidates and retained source-bound prior
+controls. A new process can exercise permanent fallback through a failed load
+of an owned nonexistent module: `Fmodule_load` calls `dynlib_open` directly,
+which latches before its error. Validate retained live object graphs across
+explicit/automatic Full collections and original public error behavior; test
+the new index omission only after Full clearing, not immediately at latch time.
+Do not use ordinary make-thread as proof of a foreign callback. Protections
+follow successful integration; no original assertion or numerical threshold
+is changed. Current host load remains above the declared quiet policy, so no
+unchanged full performance replay or speedup promotion follows from this repair.
+The shipped baseline App remains the separately accepted nonexperimental build.
+
+P437 actual functional delivery (2026-10-30): normal/checking builds succeeded;
+490 existing new processes + eight new fallback + eight verified prior receipts
+passed. Four paired public graphs/errors agree; young-mode permanent Full
+registry construction is eliminated after latch, with major controls unchanged.
+Four subsequent finalizer/nested-Full protection processes pass. Read the
+[bound results](../maintenance/releases/2026-10-30-persistent-fallback.md) for
+source/product identities, exact counts, measured operation times and uncovered
+boundaries. CLN155 retires only consumed compiler/case state. Qualified runtime
+performance and full G5/G7 acceptance remain pending; the trial App is unchanged.

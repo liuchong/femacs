@@ -23814,3 +23814,17 @@ The verified normal bundle is published to `dist/macos/Femacs.app` by native ato
 P438 replaces ten charset metadata-copy recipes with byte streams. Actual immutable-input integration completes two full139-recipe passes/136unique outputs, all bytes equal and ten maps equal retained prior;23.705s/53,264,384peakbytes/exit0/reaped. Subsequent two macOS protections pass with zero skips;1.283s/18,874,368peakbytes/exit0/reaped. Original dual-leg build failure and mistaken wrapper-output-count failure remain false. [Delivery](../maintenance/releases/2026-10-30-charset-bytecopy.md).
 
 P437 new actual fallback inputs pass four retained prior ERT cases+four discoveries; young controls rebuild about94k registry entries perFull, major controls zero, with the tested public graph/error preserved. New candidate is still unbuilt/unaccepted; disk space defers it, no performance gain claimed. CLN154 removes9,139files/954dirs,678,892,963logical/699,428,864allocated regularbytes, with exact7,318-input recovery and229raw diagnostic/config files retained. TrialApp/prior products/HEAD/index unchanged; original failures preserved. [Cleanup](../maintenance/cleanup/reports/2026-10-30-154-consumed-fallback-build-state.md). SameGoal active;G1/G2/G4 remain3/7, all other outcomes and qualified performance remain open.
+
+### 2026-10-30 P437: permanent Full fallback registry capture
+
+Real normal/checking candidate builds passed. Functional receipts: 490 existing
+new processes (441 ERT + 49 discovery), 8 new fallback + 8 verified reused prior = 506;
+post-integration finalizer/nested-Full protections add 4 new processes. Public
+object graphs/errors match four paired controls; healthy young registry counts
+94,023 / 94,041 stay, later permanent Full counts fall from roughly 94k to zero. No
+qualified elapsed-time gain is claimed on the busy host; the trial App is
+unchanged, full Goal remains 3/7 accepted with G3/G5/G6/G7 open.
+See [P437 delivery](../maintenance/releases/2026-10-30-persistent-fallback.md).
+CLN155 retires 505 consumed successful compiler/case groups: 9,946 regular files,
+3,571 directories, 370,202,575 logical / 390,307,840 allocated bytes. Frozen inputs,
+actual products/resources and original raw receipts/observations are preserved.

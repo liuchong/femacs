@@ -379,3 +379,12 @@ reclaim claim.
 [manifest](manifests/2026-10-30-154-consumed-fallback-build-state.jsonl.gz):
 9,139 regular files and954 directories retired;678,892,963logical /699,428,864allocated regularbytes.
 All7,318failed-build source inputs recoverable (7,291prior mappings+27unique copies),229generated raw diagnostic/config files and all original failures retained. Prior products/resources and trialApp unchanged. Original failed source is retired, not a usable candidate; no physical-volume reclaim or GC speedup claim.
+
+## CLN155 — consumed fallback-candidate compiler and case state (2026-10-30)
+
+[Report](reports/2026-10-30-155-consumed-fallback-candidate-state.md) and
+[manifest](manifests/2026-10-30-155-consumed-fallback-candidate-state.jsonl.gz):
+505 successful owned groups retired 9,946 regular files and 3,571 directories;
+370,202,575 logical / 390,307,840 allocated regular-file bytes. Frozen source,
+actual objects/configuration/products, prior controls, original results and
+observations and trial App are unchanged. No physical-volume reclaim claim.

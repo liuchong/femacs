@@ -1,0 +1,148 @@
+{
+  "schema": "fe-persistent-fallback-delivery-v1",
+  "status": "functional-and-protection-accepted-performance-pending",
+  "collector_sha256": "da4e45f8c65beafba4a52c4d7a5c5b082c0e6b2d8cdfab987eb3917277389017",
+  "build": {
+    "passed": true,
+    "seconds": 974.98603125,
+    "frozen_source_inputs": 7323,
+    "source_manifest_sha256": "2ceed973aced367adb64b3167b0e3024a9277623b4f13092301871470ac82353",
+    "production_input_differences": [
+      "build-support/generator-recipes.json",
+      "src/runtime_gc_collector.rs"
+    ]
+  },
+  "functional": {
+    "passed": true,
+    "execution_complete": true,
+    "seconds": 257.276658709,
+    "existing_processes": 490,
+    "existing_ert_processes": 441,
+    "new_fallback_processes": 8,
+    "reused_prior_processes": 8,
+    "comparisons": [
+      {
+        "compiler_leg": "normal",
+        "collector": "major",
+        "passed": true,
+        "public_graph_equal": true,
+        "old_registry_len": {
+          "initial": 0,
+          "pre_latch_full": 0,
+          "latched_immediate": 0,
+          "post_explicit_full": 0,
+          "post_auto_full_1": 0,
+          "post_auto_full_2": 0
+        },
+        "new_registry_len": {
+          "initial": 0,
+          "pre_latch_full": 0,
+          "latched_immediate": 0,
+          "post_explicit_full": 0,
+          "post_auto_full_1": 0,
+          "post_auto_full_2": 0
+        }
+      },
+      {
+        "compiler_leg": "normal",
+        "collector": "young",
+        "passed": true,
+        "public_graph_equal": true,
+        "old_registry_len": {
+          "initial": 93104,
+          "pre_latch_full": 94023,
+          "latched_immediate": 94023,
+          "post_explicit_full": 94044,
+          "post_auto_full_1": 94056,
+          "post_auto_full_2": 94067
+        },
+        "new_registry_len": {
+          "initial": 92800,
+          "pre_latch_full": 94023,
+          "latched_immediate": 94023,
+          "post_explicit_full": 0,
+          "post_auto_full_1": 0,
+          "post_auto_full_2": 0
+        }
+      },
+      {
+        "compiler_leg": "checking",
+        "collector": "major",
+        "passed": true,
+        "public_graph_equal": true,
+        "old_registry_len": {
+          "initial": 0,
+          "pre_latch_full": 0,
+          "latched_immediate": 0,
+          "post_explicit_full": 0,
+          "post_auto_full_1": 0,
+          "post_auto_full_2": 0
+        },
+        "new_registry_len": {
+          "initial": 0,
+          "pre_latch_full": 0,
+          "latched_immediate": 0,
+          "post_explicit_full": 0,
+          "post_auto_full_1": 0,
+          "post_auto_full_2": 0
+        }
+      },
+      {
+        "compiler_leg": "checking",
+        "collector": "young",
+        "passed": true,
+        "public_graph_equal": true,
+        "old_registry_len": {
+          "initial": 93021,
+          "pre_latch_full": 94041,
+          "latched_immediate": 94041,
+          "post_explicit_full": 94062,
+          "post_auto_full_1": 94074,
+          "post_auto_full_2": 94085
+        },
+        "new_registry_len": {
+          "initial": 92651,
+          "pre_latch_full": 94041,
+          "latched_immediate": 94041,
+          "post_explicit_full": 0,
+          "post_auto_full_1": 0,
+          "post_auto_full_2": 0
+        }
+      }
+    ]
+  },
+  "protection": {
+    "passed": true,
+    "execution_complete": true,
+    "seconds": 2.6360142500000006,
+    "new_processes": 4
+  },
+  "raw_results": {
+    "build/acceptance/gc-persistent-fallback-current-2/results.json": "5950f04b342ec8abc83f71c2ddb3f45c5683fd24766ca351c9be6d0959d41394",
+    "build/acceptance/gc-persistent-fallback-functional-1/results.json": "1ca6c4116d3ee600b1a3977d403660d9047bcd209e23f1393e520ac544121b4f",
+    "build/acceptance/gc-persistent-fallback-functional-1/existing-results.json": "89605c2a3a7f51f3bf309f75efc7b29dfbf6df4b4795e8b2fc16a5cfdb1a8ba4",
+    "build/acceptance/gc-persistent-fallback-protection-1/results.json": "4dc291009ea45ffff018f52444abf5d25f8611e607c50e20223e603400b8cf15"
+  },
+  "fixtures": {
+    "tools/fixtures/runtime-gc-fallback.el": "6f44b9ecb3c9a48ad9d2f5973e282e28195ccf55dd4e6e4d0ce0206c576e0f6f",
+    "tools/fixtures/runtime-gc-fallback-protection.el": "5983110a992470d250988b43686728a49aa803042af9124cfc2fed34699d7404"
+  },
+  "cleanup": {
+    "status": "complete",
+    "files": 9946,
+    "directories": 3571,
+    "logical_bytes": 370202575,
+    "allocated_bytes": 390307840,
+    "selected_groups": 505,
+    "rows": 13517,
+    "manifest_sha256": "506734bb49ef0063ce035207d5426e465248cd2ad0e5ba4f2b26550f625f6977",
+    "retained_files_verified": 3393,
+    "frozen_source_inputs": 7323,
+    "candidate_prior_and_trial_products_unchanged": true,
+    "head_index_unchanged": true,
+    "original_raw_results_and_observations_retained": true
+  },
+  "qualified_speedup": false,
+  "default_app_changed": false,
+  "g5_g7_complete": false
+}

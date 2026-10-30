@@ -3677,6 +3677,37 @@ ABI and default products were not promoted or relaxed. See the
 [evaluation](maintenance/releases/2026-10-30-gc-owner-batch-evaluation.md) and
 [CLN150 recovery](maintenance/cleanup/reports/2026-10-30-150-owner-batch-withdrawal.md).
 
+## P437: stop rebuilding an unusable collector registry after permanent fallback
+
+The opt-in collector's foreign-thread and unknown-producer flags are only reset
+at process initialization. After either flag, cycle selection forces Full and
+commit cannot validate the remembered registry, yet the old marking hook still
+rehashes every marked non-cons owner into that table. Full tracing/sweeping
+already preserves all object reachability without this unusable index.
+
+Add a private per-cycle capture latch, prepared under the existing unwind/token
+owner. Its marking-time read replaces the prior phase read, avoiding two new
+atomic loads per object on the healthy path. Capture remains unchanged during
+a cycle if a permanent flag arrives after its start, and is disabled next
+cycle. Sweep/commit/abort/reset clear the latch. Existing phases, mark bits,
+child traversal, frozen prefix, allocation counters, fallback ordering/reasons,
+barriers/caps, public ABI/status wire and default products remain unchanged.
+Do not omit leaf-object marking: the minor path relies on owner retention even
+for non-cons objects with no Lisp children. Ordinary Lisp make-thread does not
+by itself prove a foreign OS-thread callback.
+
+Real normal/checking collector/observer builds and full affected functional
+integration passed: 490 existing new processes plus eight new fallback and eight
+verified reused prior processes. Four paired public graphs/errors match; later
+Full registry counts drop from roughly 94k to zero in young profiles, while major
+controls remain zero. Post-integration finalizer/nested-Full protections pass in
+four additional processes. See the [source-bound delivery](maintenance/releases/2026-10-30-persistent-fallback.md).
+Actual failed module load exercises the pre-dlopen unknown-producer latch; it
+does not prove foreign callbacks or a flag injected during marking. No reliable
+elapsed-time gain or G5–G7 acceptance is claimed from work counts or busy-host
+diagnostics. Keep the prior candidate for qualified comparison; the experimental
+candidate is not published to the separately accepted baseline trial App.
+
 ## P438: generate copied charset resources without inheriting source file flags
 
 A guarded dual-leg runtime build failed during base-resource generation: the
