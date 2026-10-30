@@ -1,0 +1,1991 @@
+{
+  "scope": "Three complete pinned stable startup, regex and tree-sitter files; installed reference and current normal terminal/Cocoa; all IDs and original assertions unchanged, no full G3, physical UI, native/collector or performance claim",
+  "passed": false,
+  "source_commit": "a360712c9d272d950d8d8255ef74570f7e90b7d9",
+  "counts": {
+    "skipped": 117,
+    "passed": 126
+  },
+  "seconds": 6.319405167,
+  "status_maps_equal_reference": true,
+  "identities_unchanged": true,
+  "original_inputs_unchanged": true,
+  "generated_resources": {
+    "reference": {},
+    "terminal": {},
+    "cocoa": {}
+  },
+  "budget": {
+    "whole_seconds": 300,
+    "per_case_seconds": 30,
+    "expected_seconds": [
+      10,
+      90
+    ],
+    "expected_peak_bytes": 1073741824,
+    "copied_source_bytes": 62990856,
+    "scale": "9 serial original file processes; full pinned unmodified files and resources, no ID filtering or guard edits. Startup7static IDs behind SECCOMP/bwrap guards; potential1MiB filter and external child processes ifguards pass. Regex includes17direct plus17load-generated character-class IDs, four full fixed resource datasets,65535repeat limit and1million-character backtracking regression; datasets BOOST829/PCRE2386/PTESTS344/TESTS167lines, longest162bytes, original internal whitelists retained; snapshot failure terminates the full original ID, not a filtered line. Treesit has40direct IDs and uses small fixed JSON/other source programs, guarded grammar loading, fixed range/query/navigation tables, no network/install/compiler or deliberate crash. Perload/case30s and300s protectedowner include hangs; dynamic registration authoritative; no module assertion subprocess tests in this run"
+  },
+  "schema": 1,
+  "ids_per_product": 81,
+  "processes": 9,
+  "raw_result": {
+    "path": "build/acceptance/g3-startup-regex-treesit-1/results.json",
+    "sha256": "0bcf77f830daf4d7327a6297f5e62219faaa494ece21065d8df797ab6236f0dc"
+  },
+  "driver_sha256": "a33436712febea71f1eb5eab06b36108d3e6774bce54cbf11e0ed926d323f632",
+  "files": [
+    {
+      "path": "test/src/emacs-tests.el",
+      "size": 10662,
+      "blob": "66b914f62ea1a328f0b25601b573602809295919",
+      "sha256": "23ee797edfb029ec791653ca09644514bbbd6e1a6dd7305b865a92bf8fdfa021"
+    },
+    {
+      "path": "test/src/regex-emacs-tests.el",
+      "size": 39603,
+      "blob": "061fb73ba8f144cea51c1d3ebc29247fe0241451",
+      "sha256": "4a2b736d4005f8ba33bdb11714620b51267e2c3802eb0278a78eb204ff667fc6"
+    },
+    {
+      "path": "test/src/treesit-tests.el",
+      "size": 59880,
+      "blob": "db00496cda8b7c5e8a67a4054f5f13cf5da41b95",
+      "sha256": "ab4ef4aadbca31b18e2496ddca524769f3cdeea4ed876073dc0cd624059a4d15"
+    }
+  ],
+  "registered_ids_per_file": {
+    "test/src/emacs-tests.el": 7,
+    "test/src/regex-emacs-tests.el": 34,
+    "test/src/treesit-tests.el": 40
+  },
+  "inputs": [
+    {
+      "path": "compatibility/stable-31.1/sources.json",
+      "identity": {
+        "kind": "file",
+        "bytes": 562572,
+        "mode": 420,
+        "sha256": "a5ef144a203b8b2a74e346ac47173c5d4122f751d8d950347ae75ff67eef0efe"
+      }
+    },
+    {
+      "path": "tools/fixtures/stable-suite-runner.el",
+      "identity": {
+        "kind": "file",
+        "bytes": 12592,
+        "mode": 420,
+        "sha256": "d5bcd0c18f15995e50adefe8472d12ef82f71114be10ce307202b4ce0f11150e"
+      }
+    },
+    {
+      "path": "tools/stable-suite.py",
+      "identity": {
+        "kind": "file",
+        "bytes": 54108,
+        "mode": 420,
+        "sha256": "75e913813f585425ce3673c5db9c71b2054d875c50540ccee3dd06cb4eabc51c"
+      }
+    },
+    {
+      "path": "tools/stable-suite-batch.py",
+      "identity": {
+        "kind": "file",
+        "bytes": 22008,
+        "mode": 420,
+        "sha256": "5473bee19634e589dbbaa091f2fb8dc5c78e67be5399c3db4497753e1ea64b6e"
+      }
+    },
+    {
+      "path": "tools/runtime-execution.py",
+      "identity": {
+        "kind": "file",
+        "bytes": 93220,
+        "mode": 420,
+        "sha256": "26b379c3d4a24adf2a306e1c751c654ca1b6b1c6cd43f0888398c3560e455fb4"
+      }
+    },
+    {
+      "path": "tools/runtime-retire.py",
+      "identity": {
+        "kind": "file",
+        "bytes": 8538,
+        "mode": 420,
+        "sha256": "84ad68bbb26ffb73e129406b430393c0eaeab2f6b818c5916a950b6514eb6932"
+      }
+    },
+    {
+      "path": "private-driver/g3-startup-regex-treesit-1.py",
+      "identity": {
+        "kind": "file",
+        "bytes": 8064,
+        "mode": 420,
+        "sha256": "a33436712febea71f1eb5eab06b36108d3e6774bce54cbf11e0ed926d323f632"
+      }
+    },
+    {
+      "path": "build/acceptance/p435-p427-products-1/products-with-runtime.json",
+      "identity": {
+        "kind": "file",
+        "bytes": 1578004,
+        "mode": 420,
+        "sha256": "aa4d2cadb59089c231c43d2827de479f35a1825514916a3573ad936b4e9ac162"
+      }
+    },
+    {
+      "path": "build/acceptance/p435-functional-normal-1/results.json",
+      "identity": {
+        "kind": "file",
+        "bytes": 695326,
+        "mode": 420,
+        "sha256": "fdd7cce538a6fa60329793d762db627cc94ca98f8b726614f65dd3c12af15849"
+      }
+    }
+  ],
+  "process_results": [
+    {
+      "product": "reference",
+      "file": "test/src/emacs-tests.el",
+      "ids": [
+        "emacs-tests/bwrap/allows-stdout",
+        "emacs-tests/seccomp/absent-file",
+        "emacs-tests/seccomp/allows-stdout",
+        "emacs-tests/seccomp/empty-file",
+        "emacs-tests/seccomp/file-too-large",
+        "emacs-tests/seccomp/forbids-subprocess",
+        "emacs-tests/seccomp/invalid-file-size"
+      ],
+      "counts": {
+        "skipped": 7
+      },
+      "complete": true,
+      "exit_code": 0,
+      "remaining_group_terminated": false,
+      "seconds": 0.3818332500000001,
+      "timed_out": false,
+      "protocol_error": null,
+      "runner_error": null,
+      "result": {
+        "path": "build/acceptance/g3-startup-regex-treesit-1/reference/results/reference/test-src-emacs-tests.el-abea317eddf7.json",
+        "sha256": "7b24539416a111db553e9f28e8c7b92203b2da6a4728e82c3e8cbded2e198005"
+      },
+      "events": {
+        "path": "build/acceptance/g3-startup-regex-treesit-1/reference/results/reference/test-src-emacs-tests.el-abea317eddf7.events.jsonl",
+        "sha256": "e3e266e6dbccb63d31dc717ee18869a40bf3aa97f3f20c8aa574c6ddf7d9db19"
+      },
+      "cases": {
+        "emacs-tests/bwrap/allows-stdout": {
+          "status": "skipped",
+          "seconds": 0.032317,
+          "diagnostic": "result=ert-test-skipped expected=t condition=(ert-test-skipped ((skip-unless bwrap) :form bwrap :value nil)) messages=\"\""
+        },
+        "emacs-tests/seccomp/absent-file": {
+          "status": "skipped",
+          "seconds": 3.7e-05,
+          "diagnostic": "result=ert-test-skipped expected=t condition=(ert-test-skipped ((skip-unless (string-match-p (rx bow \"SECCOMP\" eow) system-configuration-features)) :form (string-match-p \"\\\\<SECCOMP\\\\>\" \"ACL GLIB GNUTLS JPEG LCMS2 LIBXML2 MODULES NATIVE_COMP NOTIFY KQUEUE NS PDUMPER PNG RSVG SQLITE3 THREADS TIFF TOOLKIT_SCROLL_BARS TREE_SITTER WEBP XIM XWIDGETS ZLIB\") :value nil)) messages=\"\""
+        },
+        "emacs-tests/seccomp/allows-stdout": {
+          "status": "skipped",
+          "seconds": 2.4e-05,
+          "diagnostic": "result=ert-test-skipped expected=t condition=(ert-test-skipped ((skip-unless (string-match-p (rx bow \"SECCOMP\" eow) system-configuration-features)) :form (string-match-p \"\\\\<SECCOMP\\\\>\" \"ACL GLIB GNUTLS JPEG LCMS2 LIBXML2 MODULES NATIVE_COMP NOTIFY KQUEUE NS PDUMPER PNG RSVG SQLITE3 THREADS TIFF TOOLKIT_SCROLL_BARS TREE_SITTER WEBP XIM XWIDGETS ZLIB\") :value nil)) messages=\"\""
+        },
+        "emacs-tests/seccomp/empty-file": {
+          "status": "skipped",
+          "seconds": 2.1e-05,
+          "diagnostic": "result=ert-test-skipped expected=t condition=(ert-test-skipped ((skip-unless (string-match-p (rx bow \"SECCOMP\" eow) system-configuration-features)) :form (string-match-p \"\\\\<SECCOMP\\\\>\" \"ACL GLIB GNUTLS JPEG LCMS2 LIBXML2 MODULES NATIVE_COMP NOTIFY KQUEUE NS PDUMPER PNG RSVG SQLITE3 THREADS TIFF TOOLKIT_SCROLL_BARS TREE_SITTER WEBP XIM XWIDGETS ZLIB\") :value nil)) messages=\"\""
+        },
+        "emacs-tests/seccomp/file-too-large": {
+          "status": "skipped",
+          "seconds": 1.9e-05,
+          "diagnostic": "result=ert-test-skipped expected=t condition=(ert-test-skipped ((skip-unless (string-match-p (rx bow \"SECCOMP\" eow) system-configuration-features)) :form (string-match-p \"\\\\<SECCOMP\\\\>\" \"ACL GLIB GNUTLS JPEG LCMS2 LIBXML2 MODULES NATIVE_COMP NOTIFY KQUEUE NS PDUMPER PNG RSVG SQLITE3 THREADS TIFF TOOLKIT_SCROLL_BARS TREE_SITTER WEBP XIM XWIDGETS ZLIB\") :value nil)) messages=\"\""
+        },
+        "emacs-tests/seccomp/forbids-subprocess": {
+          "status": "skipped",
+          "seconds": 2e-05,
+          "diagnostic": "result=ert-test-skipped expected=t condition=(ert-test-skipped ((skip-unless (string-match-p (rx bow \"SECCOMP\" eow) system-configuration-features)) :form (string-match-p \"\\\\<SECCOMP\\\\>\" \"ACL GLIB GNUTLS JPEG LCMS2 LIBXML2 MODULES NATIVE_COMP NOTIFY KQUEUE NS PDUMPER PNG RSVG SQLITE3 THREADS TIFF TOOLKIT_SCROLL_BARS TREE_SITTER WEBP XIM XWIDGETS ZLIB\") :value nil)) messages=\"\""
+        },
+        "emacs-tests/seccomp/invalid-file-size": {
+          "status": "skipped",
+          "seconds": 1.8e-05,
+          "diagnostic": "result=ert-test-skipped expected=t condition=(ert-test-skipped ((skip-unless (string-match-p (rx bow \"SECCOMP\" eow) system-configuration-features)) :form (string-match-p \"\\\\<SECCOMP\\\\>\" \"ACL GLIB GNUTLS JPEG LCMS2 LIBXML2 MODULES NATIVE_COMP NOTIFY KQUEUE NS PDUMPER PNG RSVG SQLITE3 THREADS TIFF TOOLKIT_SCROLL_BARS TREE_SITTER WEBP XIM XWIDGETS ZLIB\") :value nil)) messages=\"\""
+        }
+      }
+    },
+    {
+      "product": "reference",
+      "file": "test/src/regex-emacs-tests.el",
+      "ids": [
+        "regex-emacs-syntax-properties",
+        "regex-repeat-limit",
+        "regex-tests-BOOST",
+        "regex-tests-PCRE",
+        "regex-tests-PTESTS",
+        "regex-tests-TESTS",
+        "regex-tests-alnum-character-class",
+        "regex-tests-alpha-character-class",
+        "regex-tests-ascii-character-class",
+        "regex-tests-blank-character-class",
+        "regex-tests-cntrl-character-class",
+        "regex-tests-digit-character-class",
+        "regex-tests-graph-character-class",
+        "regex-tests-lower-character-class",
+        "regex-tests-multibyte-character-class",
+        "regex-tests-mutual-exclusive-inf-rec",
+        "regex-tests-nonascii-character-class",
+        "regex-tests-print-character-class",
+        "regex-tests-punct-character-class",
+        "regex-tests-space-character-class",
+        "regex-tests-unibyte-character-class",
+        "regex-tests-upper-character-class",
+        "regex-tests-word-character-class",
+        "regex-tests-xdigit-character-class",
+        "regex-word-cc-fallback-test",
+        "regexp-atomic-failure",
+        "regexp-case-fold",
+        "regexp-eszett",
+        "regexp-multibyte-multibyte",
+        "regexp-multibyte-unibyte",
+        "regexp-tests-backtrack-optimization",
+        "regexp-tests-zero-width-assertion-repetition",
+        "regexp-unibyte-multibyte",
+        "regexp-unibyte-unibyte"
+      ],
+      "counts": {
+        "passed": 34
+      },
+      "complete": true,
+      "exit_code": 0,
+      "remaining_group_terminated": false,
+      "seconds": 0.3075376249999997,
+      "timed_out": false,
+      "protocol_error": null,
+      "runner_error": null,
+      "result": {
+        "path": "build/acceptance/g3-startup-regex-treesit-1/reference/results/reference/test-src-regex-emacs-tests.el-d217b9c6a015.json",
+        "sha256": "a6456de0adf34802323e131c3324fc899364aea948dcee41a46be2e20f2cacb4"
+      },
+      "events": {
+        "path": "build/acceptance/g3-startup-regex-treesit-1/reference/results/reference/test-src-regex-emacs-tests.el-d217b9c6a015.events.jsonl",
+        "sha256": "a56d556f34ccad72c4c7a74c4f5647bf0135f457547ce31270fe36d70ade7144"
+      },
+      "cases": {
+        "regex-emacs-syntax-properties": {
+          "status": "passed",
+          "seconds": 0.000164,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "regex-repeat-limit": {
+          "status": "passed",
+          "seconds": 0.001121,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "regex-tests-BOOST": {
+          "status": "passed",
+          "seconds": 0.027724,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "regex-tests-PCRE": {
+          "status": "passed",
+          "seconds": 0.006052,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "regex-tests-PTESTS": {
+          "status": "passed",
+          "seconds": 0.007206,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "regex-tests-TESTS": {
+          "status": "passed",
+          "seconds": 0.001961,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "regex-tests-alnum-character-class": {
+          "status": "passed",
+          "seconds": 2.6e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "regex-tests-alpha-character-class": {
+          "status": "passed",
+          "seconds": 1.8e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "regex-tests-ascii-character-class": {
+          "status": "passed",
+          "seconds": 1.8e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "regex-tests-blank-character-class": {
+          "status": "passed",
+          "seconds": 1.7e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "regex-tests-cntrl-character-class": {
+          "status": "passed",
+          "seconds": 1.5e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "regex-tests-digit-character-class": {
+          "status": "passed",
+          "seconds": 1.8e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "regex-tests-graph-character-class": {
+          "status": "passed",
+          "seconds": 1.9e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "regex-tests-lower-character-class": {
+          "status": "passed",
+          "seconds": 1.8e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "regex-tests-multibyte-character-class": {
+          "status": "passed",
+          "seconds": 1.8e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "regex-tests-mutual-exclusive-inf-rec": {
+          "status": "passed",
+          "seconds": 7e-06,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "regex-tests-nonascii-character-class": {
+          "status": "passed",
+          "seconds": 1.5e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "regex-tests-print-character-class": {
+          "status": "passed",
+          "seconds": 1.6e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "regex-tests-punct-character-class": {
+          "status": "passed",
+          "seconds": 1.7e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "regex-tests-space-character-class": {
+          "status": "passed",
+          "seconds": 2.2e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "regex-tests-unibyte-character-class": {
+          "status": "passed",
+          "seconds": 1.9e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "regex-tests-upper-character-class": {
+          "status": "passed",
+          "seconds": 1.6e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "regex-tests-word-character-class": {
+          "status": "passed",
+          "seconds": 1.9e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "regex-tests-xdigit-character-class": {
+          "status": "passed",
+          "seconds": 1.6e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "regex-word-cc-fallback-test": {
+          "status": "passed",
+          "seconds": 3.9e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "regexp-atomic-failure": {
+          "status": "passed",
+          "seconds": 1.7e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "regexp-case-fold": {
+          "status": "passed",
+          "seconds": 3.7e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "regexp-eszett": {
+          "status": "passed",
+          "seconds": 3.2e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "regexp-multibyte-multibyte": {
+          "status": "passed",
+          "seconds": 2.8e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "regexp-multibyte-unibyte": {
+          "status": "passed",
+          "seconds": 1.7e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "regexp-tests-backtrack-optimization": {
+          "status": "passed",
+          "seconds": 0.062019,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "regexp-tests-zero-width-assertion-repetition": {
+          "status": "passed",
+          "seconds": 5.8e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "regexp-unibyte-multibyte": {
+          "status": "passed",
+          "seconds": 2.2e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "regexp-unibyte-unibyte": {
+          "status": "passed",
+          "seconds": 2.1e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        }
+      }
+    },
+    {
+      "product": "reference",
+      "file": "test/src/treesit-tests.el",
+      "ids": [
+        "treesit-basic-parsing",
+        "treesit-cross-boundary",
+        "treesit-cursor-helper-with-missing-node",
+        "treesit-defun-navigation-nested-1",
+        "treesit-defun-navigation-nested-2",
+        "treesit-defun-navigation-nested-3",
+        "treesit-defun-navigation-nested-4",
+        "treesit-defun-navigation-top-level",
+        "treesit-imenu",
+        "treesit-indirect-buffer",
+        "treesit-intersect-ranges",
+        "treesit-linecol-basic",
+        "treesit-linecol-col-same-line",
+        "treesit-linecol-enable-disable",
+        "treesit-linecol-search-back-across-newline",
+        "treesit-multi-lang",
+        "treesit-narrow",
+        "treesit-node-api",
+        "treesit-node-at",
+        "treesit-node-check",
+        "treesit-node-supplemental",
+        "treesit-parser-supplemental",
+        "treesit-query-api",
+        "treesit-query-marker-position",
+        "treesit-query-node-only-and-grouped",
+        "treesit-range",
+        "treesit-range-fixup-after-edit",
+        "treesit-range-helper",
+        "treesit-range-merge",
+        "treesit-range-offset",
+        "treesit-search-backward",
+        "treesit-search-backward-named-only",
+        "treesit-search-forward",
+        "treesit-search-forward-named-only",
+        "treesit-search-forward-predicate",
+        "treesit-search-forward-predicate-invalid-predicate",
+        "treesit-search-subtree",
+        "treesit-search-subtree-backward-1",
+        "treesit-search-subtree-forward-1",
+        "treesit-test-simple-indent-add-rules"
+      ],
+      "counts": {
+        "skipped": 32,
+        "passed": 8
+      },
+      "complete": true,
+      "exit_code": 0,
+      "remaining_group_terminated": false,
+      "seconds": 0.3668308750000002,
+      "timed_out": false,
+      "protocol_error": null,
+      "runner_error": null,
+      "result": {
+        "path": "build/acceptance/g3-startup-regex-treesit-1/reference/results/reference/test-src-treesit-tests.el-362e0f25c0da.json",
+        "sha256": "cd4c1ffdd6388ea4189ad57e7c4aa10073ef591ac79bbc5bca385383e0bd193a"
+      },
+      "events": {
+        "path": "build/acceptance/g3-startup-regex-treesit-1/reference/results/reference/test-src-treesit-tests.el-362e0f25c0da.events.jsonl",
+        "sha256": "a999e1a9df0a68c91a852590424d0ccae86ab422b0bc52e1f416c8ac5dca5d8a"
+      },
+      "cases": {
+        "treesit-basic-parsing": {
+          "status": "skipped",
+          "seconds": 0.005129,
+          "diagnostic": "result=ert-test-skipped expected=t condition=(ert-test-skipped ((skip-unless (treesit-language-available-p 'json)) :form (treesit-language-available-p json) :value nil)) messages=\"\""
+        },
+        "treesit-cross-boundary": {
+          "status": "skipped",
+          "seconds": 0.004247,
+          "diagnostic": "result=ert-test-skipped expected=t condition=(ert-test-skipped ((skip-unless (treesit-language-available-p 'json)) :form (treesit-language-available-p json) :value nil)) messages=\"\""
+        },
+        "treesit-cursor-helper-with-missing-node": {
+          "status": "skipped",
+          "seconds": 0.004238,
+          "diagnostic": "result=ert-test-skipped expected=t condition=(ert-test-skipped ((skip-unless (treesit-language-available-p 'json)) :form (treesit-language-available-p json) :value nil)) messages=\"\""
+        },
+        "treesit-defun-navigation-nested-1": {
+          "status": "skipped",
+          "seconds": 0.004409,
+          "diagnostic": "result=ert-test-skipped expected=t condition=(ert-test-skipped ((skip-unless (treesit-language-available-p 'python)) :form (treesit-language-available-p python) :value nil)) messages=\"\""
+        },
+        "treesit-defun-navigation-nested-2": {
+          "status": "skipped",
+          "seconds": 0.004383,
+          "diagnostic": "result=ert-test-skipped expected=t condition=(ert-test-skipped ((skip-unless (treesit-language-available-p 'javascript)) :form (treesit-language-available-p javascript) :value nil)) messages=\"\""
+        },
+        "treesit-defun-navigation-nested-3": {
+          "status": "skipped",
+          "seconds": 0.004444,
+          "diagnostic": "result=ert-test-skipped expected=t condition=(ert-test-skipped ((skip-unless (treesit-language-available-p 'bash)) :form (treesit-language-available-p bash) :value nil)) messages=\"\""
+        },
+        "treesit-defun-navigation-nested-4": {
+          "status": "skipped",
+          "seconds": 0.004617,
+          "diagnostic": "result=ert-test-skipped expected=t condition=(ert-test-skipped ((skip-unless (treesit-language-available-p 'elixir)) :form (treesit-language-available-p elixir) :value nil)) messages=\"\""
+        },
+        "treesit-defun-navigation-top-level": {
+          "status": "skipped",
+          "seconds": 0.00451,
+          "diagnostic": "result=ert-test-skipped expected=t condition=(ert-test-skipped ((skip-unless (treesit-language-available-p 'python)) :form (treesit-language-available-p python) :value nil)) messages=\"\""
+        },
+        "treesit-imenu": {
+          "status": "passed",
+          "seconds": 0.000145,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "treesit-indirect-buffer": {
+          "status": "skipped",
+          "seconds": 0.004079,
+          "diagnostic": "result=ert-test-skipped expected=t condition=(ert-test-skipped ((skip-unless (treesit-language-available-p 'json)) :form (treesit-language-available-p json) :value nil)) messages=\"\""
+        },
+        "treesit-intersect-ranges": {
+          "status": "passed",
+          "seconds": 1.6e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "treesit-linecol-basic": {
+          "status": "passed",
+          "seconds": 2.9e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "treesit-linecol-col-same-line": {
+          "status": "passed",
+          "seconds": 1.2e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "treesit-linecol-enable-disable": {
+          "status": "skipped",
+          "seconds": 0.004372,
+          "diagnostic": "result=ert-test-skipped expected=t condition=(ert-test-skipped ((skip-unless (treesit-language-available-p 'json)) :form (treesit-language-available-p json) :value nil)) messages=\"\""
+        },
+        "treesit-linecol-search-back-across-newline": {
+          "status": "passed",
+          "seconds": 1.3e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "treesit-multi-lang": {
+          "status": "skipped",
+          "seconds": 0.004596,
+          "diagnostic": "result=ert-test-skipped expected=t condition=(ert-test-skipped ((skip-unless (and (treesit-language-available-p 'html) (treesit-language-available-p 'css) (treesit-language-available-p 'javascript))) :form (and (treesit-language-available-p 'html) (treesit-language-available-p 'css) (treesit-language-available-p 'javascript)) :value nil)) messages=\"\""
+        },
+        "treesit-narrow": {
+          "status": "skipped",
+          "seconds": 0.004178,
+          "diagnostic": "result=ert-test-skipped expected=t condition=(ert-test-skipped ((skip-unless (treesit-language-available-p 'json)) :form (treesit-language-available-p json) :value nil)) messages=\"\""
+        },
+        "treesit-node-api": {
+          "status": "skipped",
+          "seconds": 0.004295,
+          "diagnostic": "result=ert-test-skipped expected=t condition=(ert-test-skipped ((skip-unless (treesit-language-available-p 'json)) :form (treesit-language-available-p json) :value nil)) messages=\"\""
+        },
+        "treesit-node-at": {
+          "status": "skipped",
+          "seconds": 0.004388,
+          "diagnostic": "result=ert-test-skipped expected=t condition=(ert-test-skipped ((skip-unless (treesit-language-available-p 'json)) :form (treesit-language-available-p json) :value nil)) messages=\"\""
+        },
+        "treesit-node-check": {
+          "status": "skipped",
+          "seconds": 0.004194,
+          "diagnostic": "result=ert-test-skipped expected=t condition=(ert-test-skipped ((skip-unless (treesit-language-available-p 'json)) :form (treesit-language-available-p json) :value nil)) messages=\"\""
+        },
+        "treesit-node-supplemental": {
+          "status": "skipped",
+          "seconds": 0.004221,
+          "diagnostic": "result=ert-test-skipped expected=t condition=(ert-test-skipped ((skip-unless (treesit-language-available-p 'json)) :form (treesit-language-available-p json) :value nil)) messages=\"\""
+        },
+        "treesit-parser-supplemental": {
+          "status": "skipped",
+          "seconds": 0.004182,
+          "diagnostic": "result=ert-test-skipped expected=t condition=(ert-test-skipped ((skip-unless (treesit-language-available-p 'json)) :form (treesit-language-available-p json) :value nil)) messages=\"\""
+        },
+        "treesit-query-api": {
+          "status": "skipped",
+          "seconds": 0.004148,
+          "diagnostic": "result=ert-test-skipped expected=t condition=(ert-test-skipped ((skip-unless (treesit-language-available-p 'json)) :form (treesit-language-available-p json) :value nil)) messages=\"\""
+        },
+        "treesit-query-marker-position": {
+          "status": "skipped",
+          "seconds": 0.004217,
+          "diagnostic": "result=ert-test-skipped expected=t condition=(ert-test-skipped ((skip-unless (treesit-language-available-p 'json)) :form (treesit-language-available-p json) :value nil)) messages=\"\""
+        },
+        "treesit-query-node-only-and-grouped": {
+          "status": "skipped",
+          "seconds": 0.004306,
+          "diagnostic": "result=ert-test-skipped expected=t condition=(ert-test-skipped ((skip-unless (treesit-language-available-p 'json)) :form (treesit-language-available-p json) :value nil)) messages=\"\""
+        },
+        "treesit-range": {
+          "status": "skipped",
+          "seconds": 0.004455,
+          "diagnostic": "result=ert-test-skipped expected=t condition=(ert-test-skipped ((skip-unless (treesit-language-available-p 'json)) :form (treesit-language-available-p json) :value nil)) messages=\"\""
+        },
+        "treesit-range-fixup-after-edit": {
+          "status": "skipped",
+          "seconds": 0.004417,
+          "diagnostic": "result=ert-test-skipped expected=t condition=(ert-test-skipped ((skip-unless (treesit-language-available-p 'json)) :form (treesit-language-available-p json) :value nil)) messages=\"\""
+        },
+        "treesit-range-helper": {
+          "status": "passed",
+          "seconds": 2.2e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "treesit-range-merge": {
+          "status": "passed",
+          "seconds": 1e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "treesit-range-offset": {
+          "status": "skipped",
+          "seconds": 0.004488,
+          "diagnostic": "result=ert-test-skipped expected=t condition=(ert-test-skipped ((skip-unless (treesit-language-available-p 'javascript)) :form (treesit-language-available-p javascript) :value nil)) messages=\"\""
+        },
+        "treesit-search-backward": {
+          "status": "skipped",
+          "seconds": 0.004323,
+          "diagnostic": "result=ert-test-skipped expected=t condition=(ert-test-skipped ((skip-unless (treesit-language-available-p 'json)) :form (treesit-language-available-p json) :value nil)) messages=\"\""
+        },
+        "treesit-search-backward-named-only": {
+          "status": "skipped",
+          "seconds": 0.004357,
+          "diagnostic": "result=ert-test-skipped expected=t condition=(ert-test-skipped ((skip-unless (treesit-language-available-p 'json)) :form (treesit-language-available-p json) :value nil)) messages=\"\""
+        },
+        "treesit-search-forward": {
+          "status": "skipped",
+          "seconds": 0.004165,
+          "diagnostic": "result=ert-test-skipped expected=t condition=(ert-test-skipped ((skip-unless (treesit-language-available-p 'json)) :form (treesit-language-available-p json) :value nil)) messages=\"\""
+        },
+        "treesit-search-forward-named-only": {
+          "status": "skipped",
+          "seconds": 0.00513,
+          "diagnostic": "result=ert-test-skipped expected=t condition=(ert-test-skipped ((skip-unless (treesit-language-available-p 'json)) :form (treesit-language-available-p json) :value nil)) messages=\"\""
+        },
+        "treesit-search-forward-predicate": {
+          "status": "skipped",
+          "seconds": 0.005705,
+          "diagnostic": "result=ert-test-skipped expected=t condition=(ert-test-skipped ((skip-unless (treesit-language-available-p 'json)) :form (treesit-language-available-p json) :value nil)) messages=\"\""
+        },
+        "treesit-search-forward-predicate-invalid-predicate": {
+          "status": "skipped",
+          "seconds": 0.004249,
+          "diagnostic": "result=ert-test-skipped expected=t condition=(ert-test-skipped ((skip-unless (treesit-language-available-p 'json)) :form (treesit-language-available-p json) :value nil)) messages=\"\""
+        },
+        "treesit-search-subtree": {
+          "status": "skipped",
+          "seconds": 0.004253,
+          "diagnostic": "result=ert-test-skipped expected=t condition=(ert-test-skipped ((skip-unless (treesit-language-available-p 'json)) :form (treesit-language-available-p json) :value nil)) messages=\"\""
+        },
+        "treesit-search-subtree-backward-1": {
+          "status": "skipped",
+          "seconds": 0.00417,
+          "diagnostic": "result=ert-test-skipped expected=t condition=(ert-test-skipped ((skip-unless (treesit-language-available-p 'python)) :form (treesit-language-available-p python) :value nil)) messages=\"\""
+        },
+        "treesit-search-subtree-forward-1": {
+          "status": "skipped",
+          "seconds": 0.004254,
+          "diagnostic": "result=ert-test-skipped expected=t condition=(ert-test-skipped ((skip-unless (treesit-language-available-p 'python)) :form (treesit-language-available-p python) :value nil)) messages=\"\""
+        },
+        "treesit-test-simple-indent-add-rules": {
+          "status": "passed",
+          "seconds": 0.00017,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        }
+      }
+    },
+    {
+      "product": "terminal",
+      "file": "test/src/emacs-tests.el",
+      "ids": [
+        "emacs-tests/bwrap/allows-stdout",
+        "emacs-tests/seccomp/absent-file",
+        "emacs-tests/seccomp/allows-stdout",
+        "emacs-tests/seccomp/empty-file",
+        "emacs-tests/seccomp/file-too-large",
+        "emacs-tests/seccomp/forbids-subprocess",
+        "emacs-tests/seccomp/invalid-file-size"
+      ],
+      "counts": {
+        "skipped": 7
+      },
+      "complete": true,
+      "exit_code": 0,
+      "remaining_group_terminated": false,
+      "seconds": 0.09972645900000021,
+      "timed_out": false,
+      "protocol_error": null,
+      "runner_error": null,
+      "result": {
+        "path": "build/acceptance/g3-startup-regex-treesit-1/terminal/results/terminal/test-src-emacs-tests.el-abea317eddf7.json",
+        "sha256": "1098cd5bc5b0c64638eb7abfba5937277aba52cc8b0e510cddd1edb005425eef"
+      },
+      "events": {
+        "path": "build/acceptance/g3-startup-regex-treesit-1/terminal/results/terminal/test-src-emacs-tests.el-abea317eddf7.events.jsonl",
+        "sha256": "4b988714943ca54d9be7acbc9bd6f1888d7fa5f21d27887be3d83eb6a76a8cb0"
+      },
+      "cases": {
+        "emacs-tests/bwrap/allows-stdout": {
+          "status": "skipped",
+          "seconds": 0.032821,
+          "diagnostic": "result=ert-test-skipped expected=t condition=(ert-test-skipped ((skip-unless bwrap) :form bwrap :value nil)) messages=\"\""
+        },
+        "emacs-tests/seccomp/absent-file": {
+          "status": "skipped",
+          "seconds": 3.7e-05,
+          "diagnostic": "result=ert-test-skipped expected=t condition=(ert-test-skipped ((skip-unless (string-match-p (rx bow \"SECCOMP\" eow) system-configuration-features)) :form (string-match-p \"\\\\<SECCOMP\\\\>\" \"PDUMPER MODULES THREADS LIBXML2 SQLITE3 GNUTLS NOTIFY KQUEUE ZLIB LCMS2 TREE_SITTER\") :value nil)) messages=\"\""
+        },
+        "emacs-tests/seccomp/allows-stdout": {
+          "status": "skipped",
+          "seconds": 2.7e-05,
+          "diagnostic": "result=ert-test-skipped expected=t condition=(ert-test-skipped ((skip-unless (string-match-p (rx bow \"SECCOMP\" eow) system-configuration-features)) :form (string-match-p \"\\\\<SECCOMP\\\\>\" \"PDUMPER MODULES THREADS LIBXML2 SQLITE3 GNUTLS NOTIFY KQUEUE ZLIB LCMS2 TREE_SITTER\") :value nil)) messages=\"\""
+        },
+        "emacs-tests/seccomp/empty-file": {
+          "status": "skipped",
+          "seconds": 2.4e-05,
+          "diagnostic": "result=ert-test-skipped expected=t condition=(ert-test-skipped ((skip-unless (string-match-p (rx bow \"SECCOMP\" eow) system-configuration-features)) :form (string-match-p \"\\\\<SECCOMP\\\\>\" \"PDUMPER MODULES THREADS LIBXML2 SQLITE3 GNUTLS NOTIFY KQUEUE ZLIB LCMS2 TREE_SITTER\") :value nil)) messages=\"\""
+        },
+        "emacs-tests/seccomp/file-too-large": {
+          "status": "skipped",
+          "seconds": 2.5e-05,
+          "diagnostic": "result=ert-test-skipped expected=t condition=(ert-test-skipped ((skip-unless (string-match-p (rx bow \"SECCOMP\" eow) system-configuration-features)) :form (string-match-p \"\\\\<SECCOMP\\\\>\" \"PDUMPER MODULES THREADS LIBXML2 SQLITE3 GNUTLS NOTIFY KQUEUE ZLIB LCMS2 TREE_SITTER\") :value nil)) messages=\"\""
+        },
+        "emacs-tests/seccomp/forbids-subprocess": {
+          "status": "skipped",
+          "seconds": 2.4e-05,
+          "diagnostic": "result=ert-test-skipped expected=t condition=(ert-test-skipped ((skip-unless (string-match-p (rx bow \"SECCOMP\" eow) system-configuration-features)) :form (string-match-p \"\\\\<SECCOMP\\\\>\" \"PDUMPER MODULES THREADS LIBXML2 SQLITE3 GNUTLS NOTIFY KQUEUE ZLIB LCMS2 TREE_SITTER\") :value nil)) messages=\"\""
+        },
+        "emacs-tests/seccomp/invalid-file-size": {
+          "status": "skipped",
+          "seconds": 2.3e-05,
+          "diagnostic": "result=ert-test-skipped expected=t condition=(ert-test-skipped ((skip-unless (string-match-p (rx bow \"SECCOMP\" eow) system-configuration-features)) :form (string-match-p \"\\\\<SECCOMP\\\\>\" \"PDUMPER MODULES THREADS LIBXML2 SQLITE3 GNUTLS NOTIFY KQUEUE ZLIB LCMS2 TREE_SITTER\") :value nil)) messages=\"\""
+        }
+      }
+    },
+    {
+      "product": "terminal",
+      "file": "test/src/regex-emacs-tests.el",
+      "ids": [
+        "regex-emacs-syntax-properties",
+        "regex-repeat-limit",
+        "regex-tests-BOOST",
+        "regex-tests-PCRE",
+        "regex-tests-PTESTS",
+        "regex-tests-TESTS",
+        "regex-tests-alnum-character-class",
+        "regex-tests-alpha-character-class",
+        "regex-tests-ascii-character-class",
+        "regex-tests-blank-character-class",
+        "regex-tests-cntrl-character-class",
+        "regex-tests-digit-character-class",
+        "regex-tests-graph-character-class",
+        "regex-tests-lower-character-class",
+        "regex-tests-multibyte-character-class",
+        "regex-tests-mutual-exclusive-inf-rec",
+        "regex-tests-nonascii-character-class",
+        "regex-tests-print-character-class",
+        "regex-tests-punct-character-class",
+        "regex-tests-space-character-class",
+        "regex-tests-unibyte-character-class",
+        "regex-tests-upper-character-class",
+        "regex-tests-word-character-class",
+        "regex-tests-xdigit-character-class",
+        "regex-word-cc-fallback-test",
+        "regexp-atomic-failure",
+        "regexp-case-fold",
+        "regexp-eszett",
+        "regexp-multibyte-multibyte",
+        "regexp-multibyte-unibyte",
+        "regexp-tests-backtrack-optimization",
+        "regexp-tests-zero-width-assertion-repetition",
+        "regexp-unibyte-multibyte",
+        "regexp-unibyte-unibyte"
+      ],
+      "counts": {
+        "passed": 34
+      },
+      "complete": true,
+      "exit_code": 0,
+      "remaining_group_terminated": false,
+      "seconds": 0.20430795799999935,
+      "timed_out": false,
+      "protocol_error": null,
+      "runner_error": null,
+      "result": {
+        "path": "build/acceptance/g3-startup-regex-treesit-1/terminal/results/terminal/test-src-regex-emacs-tests.el-d217b9c6a015.json",
+        "sha256": "35e86c85843e9e5d8c25cb6e99d9d387056dda75ba4f07c79ccd290efe5d90e4"
+      },
+      "events": {
+        "path": "build/acceptance/g3-startup-regex-treesit-1/terminal/results/terminal/test-src-regex-emacs-tests.el-d217b9c6a015.events.jsonl",
+        "sha256": "0f817b947ee3051663f6660dce7e07abbc55a71c81c3b9bd843c9d6d46a02ac5"
+      },
+      "cases": {
+        "regex-emacs-syntax-properties": {
+          "status": "passed",
+          "seconds": 5e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "regex-repeat-limit": {
+          "status": "passed",
+          "seconds": 0.001384,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "regex-tests-BOOST": {
+          "status": "passed",
+          "seconds": 0.036245,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "regex-tests-PCRE": {
+          "status": "passed",
+          "seconds": 0.005814,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "regex-tests-PTESTS": {
+          "status": "passed",
+          "seconds": 0.009762,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "regex-tests-TESTS": {
+          "status": "passed",
+          "seconds": 0.002997,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "regex-tests-alnum-character-class": {
+          "status": "passed",
+          "seconds": 2.9e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "regex-tests-alpha-character-class": {
+          "status": "passed",
+          "seconds": 2.1e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "regex-tests-ascii-character-class": {
+          "status": "passed",
+          "seconds": 2.4e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "regex-tests-blank-character-class": {
+          "status": "passed",
+          "seconds": 3.2e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "regex-tests-cntrl-character-class": {
+          "status": "passed",
+          "seconds": 2.2e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "regex-tests-digit-character-class": {
+          "status": "passed",
+          "seconds": 2.2e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "regex-tests-graph-character-class": {
+          "status": "passed",
+          "seconds": 3e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "regex-tests-lower-character-class": {
+          "status": "passed",
+          "seconds": 2.3e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "regex-tests-multibyte-character-class": {
+          "status": "passed",
+          "seconds": 2e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "regex-tests-mutual-exclusive-inf-rec": {
+          "status": "passed",
+          "seconds": 1.1e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "regex-tests-nonascii-character-class": {
+          "status": "passed",
+          "seconds": 1.8e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "regex-tests-print-character-class": {
+          "status": "passed",
+          "seconds": 1.9e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "regex-tests-punct-character-class": {
+          "status": "passed",
+          "seconds": 1.9e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "regex-tests-space-character-class": {
+          "status": "passed",
+          "seconds": 1.9e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "regex-tests-unibyte-character-class": {
+          "status": "passed",
+          "seconds": 1.9e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "regex-tests-upper-character-class": {
+          "status": "passed",
+          "seconds": 1.9e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "regex-tests-word-character-class": {
+          "status": "passed",
+          "seconds": 1.8e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "regex-tests-xdigit-character-class": {
+          "status": "passed",
+          "seconds": 1.8e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "regex-word-cc-fallback-test": {
+          "status": "passed",
+          "seconds": 4.7e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "regexp-atomic-failure": {
+          "status": "passed",
+          "seconds": 2e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "regexp-case-fold": {
+          "status": "passed",
+          "seconds": 4.4e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "regexp-eszett": {
+          "status": "passed",
+          "seconds": 0.000392,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "regexp-multibyte-multibyte": {
+          "status": "passed",
+          "seconds": 3.7e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "regexp-multibyte-unibyte": {
+          "status": "passed",
+          "seconds": 2.5e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "regexp-tests-backtrack-optimization": {
+          "status": "passed",
+          "seconds": 0.062879,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "regexp-tests-zero-width-assertion-repetition": {
+          "status": "passed",
+          "seconds": 7.9e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "regexp-unibyte-multibyte": {
+          "status": "passed",
+          "seconds": 3.4e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "regexp-unibyte-unibyte": {
+          "status": "passed",
+          "seconds": 2.6e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        }
+      }
+    },
+    {
+      "product": "terminal",
+      "file": "test/src/treesit-tests.el",
+      "ids": [
+        "treesit-basic-parsing",
+        "treesit-cross-boundary",
+        "treesit-cursor-helper-with-missing-node",
+        "treesit-defun-navigation-nested-1",
+        "treesit-defun-navigation-nested-2",
+        "treesit-defun-navigation-nested-3",
+        "treesit-defun-navigation-nested-4",
+        "treesit-defun-navigation-top-level",
+        "treesit-imenu",
+        "treesit-indirect-buffer",
+        "treesit-intersect-ranges",
+        "treesit-linecol-basic",
+        "treesit-linecol-col-same-line",
+        "treesit-linecol-enable-disable",
+        "treesit-linecol-search-back-across-newline",
+        "treesit-multi-lang",
+        "treesit-narrow",
+        "treesit-node-api",
+        "treesit-node-at",
+        "treesit-node-check",
+        "treesit-node-supplemental",
+        "treesit-parser-supplemental",
+        "treesit-query-api",
+        "treesit-query-marker-position",
+        "treesit-query-node-only-and-grouped",
+        "treesit-range",
+        "treesit-range-fixup-after-edit",
+        "treesit-range-helper",
+        "treesit-range-merge",
+        "treesit-range-offset",
+        "treesit-search-backward",
+        "treesit-search-backward-named-only",
+        "treesit-search-forward",
+        "treesit-search-forward-named-only",
+        "treesit-search-forward-predicate",
+        "treesit-search-forward-predicate-invalid-predicate",
+        "treesit-search-subtree",
+        "treesit-search-subtree-backward-1",
+        "treesit-search-subtree-forward-1",
+        "treesit-test-simple-indent-add-rules"
+      ],
+      "counts": {
+        "skipped": 32,
+        "passed": 8
+      },
+      "complete": true,
+      "exit_code": 0,
+      "remaining_group_terminated": false,
+      "seconds": 0.1403016250000002,
+      "timed_out": false,
+      "protocol_error": null,
+      "runner_error": null,
+      "result": {
+        "path": "build/acceptance/g3-startup-regex-treesit-1/terminal/results/terminal/test-src-treesit-tests.el-362e0f25c0da.json",
+        "sha256": "8298ccef5c1d5e8b64cf6f51910ce2a1957aae0b8063b236389e18af7ee296d0"
+      },
+      "events": {
+        "path": "build/acceptance/g3-startup-regex-treesit-1/terminal/results/terminal/test-src-treesit-tests.el-362e0f25c0da.events.jsonl",
+        "sha256": "c07d8d2bc3d018b49b4c4cf4a87a6bfa5f48c10d6a64f2cd4cab19bee65759ca"
+      },
+      "cases": {
+        "treesit-basic-parsing": {
+          "status": "skipped",
+          "seconds": 0.001629,
+          "diagnostic": "result=ert-test-skipped expected=t condition=(ert-test-skipped ((skip-unless (treesit-language-available-p 'json)) :form (treesit-language-available-p json) :value nil)) messages=\"\""
+        },
+        "treesit-cross-boundary": {
+          "status": "skipped",
+          "seconds": 0.001451,
+          "diagnostic": "result=ert-test-skipped expected=t condition=(ert-test-skipped ((skip-unless (treesit-language-available-p 'json)) :form (treesit-language-available-p json) :value nil)) messages=\"\""
+        },
+        "treesit-cursor-helper-with-missing-node": {
+          "status": "skipped",
+          "seconds": 0.001473,
+          "diagnostic": "result=ert-test-skipped expected=t condition=(ert-test-skipped ((skip-unless (treesit-language-available-p 'json)) :form (treesit-language-available-p json) :value nil)) messages=\"\""
+        },
+        "treesit-defun-navigation-nested-1": {
+          "status": "skipped",
+          "seconds": 0.001682,
+          "diagnostic": "result=ert-test-skipped expected=t condition=(ert-test-skipped ((skip-unless (treesit-language-available-p 'python)) :form (treesit-language-available-p python) :value nil)) messages=\"\""
+        },
+        "treesit-defun-navigation-nested-2": {
+          "status": "skipped",
+          "seconds": 0.001655,
+          "diagnostic": "result=ert-test-skipped expected=t condition=(ert-test-skipped ((skip-unless (treesit-language-available-p 'javascript)) :form (treesit-language-available-p javascript) :value nil)) messages=\"\""
+        },
+        "treesit-defun-navigation-nested-3": {
+          "status": "skipped",
+          "seconds": 0.001564,
+          "diagnostic": "result=ert-test-skipped expected=t condition=(ert-test-skipped ((skip-unless (treesit-language-available-p 'bash)) :form (treesit-language-available-p bash) :value nil)) messages=\"\""
+        },
+        "treesit-defun-navigation-nested-4": {
+          "status": "skipped",
+          "seconds": 0.001454,
+          "diagnostic": "result=ert-test-skipped expected=t condition=(ert-test-skipped ((skip-unless (treesit-language-available-p 'elixir)) :form (treesit-language-available-p elixir) :value nil)) messages=\"\""
+        },
+        "treesit-defun-navigation-top-level": {
+          "status": "skipped",
+          "seconds": 0.001518,
+          "diagnostic": "result=ert-test-skipped expected=t condition=(ert-test-skipped ((skip-unless (treesit-language-available-p 'python)) :form (treesit-language-available-p python) :value nil)) messages=\"\""
+        },
+        "treesit-imenu": {
+          "status": "passed",
+          "seconds": 1.5e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "treesit-indirect-buffer": {
+          "status": "skipped",
+          "seconds": 0.001533,
+          "diagnostic": "result=ert-test-skipped expected=t condition=(ert-test-skipped ((skip-unless (treesit-language-available-p 'json)) :form (treesit-language-available-p json) :value nil)) messages=\"\""
+        },
+        "treesit-intersect-ranges": {
+          "status": "passed",
+          "seconds": 3e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "treesit-linecol-basic": {
+          "status": "passed",
+          "seconds": 2.8e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "treesit-linecol-col-same-line": {
+          "status": "passed",
+          "seconds": 1.8e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "treesit-linecol-enable-disable": {
+          "status": "skipped",
+          "seconds": 0.001509,
+          "diagnostic": "result=ert-test-skipped expected=t condition=(ert-test-skipped ((skip-unless (treesit-language-available-p 'json)) :form (treesit-language-available-p json) :value nil)) messages=\"\""
+        },
+        "treesit-linecol-search-back-across-newline": {
+          "status": "passed",
+          "seconds": 2.2e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "treesit-multi-lang": {
+          "status": "skipped",
+          "seconds": 0.005899,
+          "diagnostic": "result=ert-test-skipped expected=t condition=(ert-test-skipped ((skip-unless (and (treesit-language-available-p 'html) (treesit-language-available-p 'css) (treesit-language-available-p 'javascript))) :form (and (treesit-language-available-p 'html) (treesit-language-available-p 'css) (treesit-language-available-p 'javascript)) :value nil)) messages=\"\""
+        },
+        "treesit-narrow": {
+          "status": "skipped",
+          "seconds": 0.001535,
+          "diagnostic": "result=ert-test-skipped expected=t condition=(ert-test-skipped ((skip-unless (treesit-language-available-p 'json)) :form (treesit-language-available-p json) :value nil)) messages=\"\""
+        },
+        "treesit-node-api": {
+          "status": "skipped",
+          "seconds": 0.001506,
+          "diagnostic": "result=ert-test-skipped expected=t condition=(ert-test-skipped ((skip-unless (treesit-language-available-p 'json)) :form (treesit-language-available-p json) :value nil)) messages=\"\""
+        },
+        "treesit-node-at": {
+          "status": "skipped",
+          "seconds": 0.001379,
+          "diagnostic": "result=ert-test-skipped expected=t condition=(ert-test-skipped ((skip-unless (treesit-language-available-p 'json)) :form (treesit-language-available-p json) :value nil)) messages=\"\""
+        },
+        "treesit-node-check": {
+          "status": "skipped",
+          "seconds": 0.001458,
+          "diagnostic": "result=ert-test-skipped expected=t condition=(ert-test-skipped ((skip-unless (treesit-language-available-p 'json)) :form (treesit-language-available-p json) :value nil)) messages=\"\""
+        },
+        "treesit-node-supplemental": {
+          "status": "skipped",
+          "seconds": 0.001418,
+          "diagnostic": "result=ert-test-skipped expected=t condition=(ert-test-skipped ((skip-unless (treesit-language-available-p 'json)) :form (treesit-language-available-p json) :value nil)) messages=\"\""
+        },
+        "treesit-parser-supplemental": {
+          "status": "skipped",
+          "seconds": 0.001416,
+          "diagnostic": "result=ert-test-skipped expected=t condition=(ert-test-skipped ((skip-unless (treesit-language-available-p 'json)) :form (treesit-language-available-p json) :value nil)) messages=\"\""
+        },
+        "treesit-query-api": {
+          "status": "skipped",
+          "seconds": 0.001575,
+          "diagnostic": "result=ert-test-skipped expected=t condition=(ert-test-skipped ((skip-unless (treesit-language-available-p 'json)) :form (treesit-language-available-p json) :value nil)) messages=\"\""
+        },
+        "treesit-query-marker-position": {
+          "status": "skipped",
+          "seconds": 0.001551,
+          "diagnostic": "result=ert-test-skipped expected=t condition=(ert-test-skipped ((skip-unless (treesit-language-available-p 'json)) :form (treesit-language-available-p json) :value nil)) messages=\"\""
+        },
+        "treesit-query-node-only-and-grouped": {
+          "status": "skipped",
+          "seconds": 0.001725,
+          "diagnostic": "result=ert-test-skipped expected=t condition=(ert-test-skipped ((skip-unless (treesit-language-available-p 'json)) :form (treesit-language-available-p json) :value nil)) messages=\"\""
+        },
+        "treesit-range": {
+          "status": "skipped",
+          "seconds": 0.001474,
+          "diagnostic": "result=ert-test-skipped expected=t condition=(ert-test-skipped ((skip-unless (treesit-language-available-p 'json)) :form (treesit-language-available-p json) :value nil)) messages=\"\""
+        },
+        "treesit-range-fixup-after-edit": {
+          "status": "skipped",
+          "seconds": 0.001387,
+          "diagnostic": "result=ert-test-skipped expected=t condition=(ert-test-skipped ((skip-unless (treesit-language-available-p 'json)) :form (treesit-language-available-p json) :value nil)) messages=\"\""
+        },
+        "treesit-range-helper": {
+          "status": "passed",
+          "seconds": 2.2e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "treesit-range-merge": {
+          "status": "passed",
+          "seconds": 1e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "treesit-range-offset": {
+          "status": "skipped",
+          "seconds": 0.001513,
+          "diagnostic": "result=ert-test-skipped expected=t condition=(ert-test-skipped ((skip-unless (treesit-language-available-p 'javascript)) :form (treesit-language-available-p javascript) :value nil)) messages=\"\""
+        },
+        "treesit-search-backward": {
+          "status": "skipped",
+          "seconds": 0.001503,
+          "diagnostic": "result=ert-test-skipped expected=t condition=(ert-test-skipped ((skip-unless (treesit-language-available-p 'json)) :form (treesit-language-available-p json) :value nil)) messages=\"\""
+        },
+        "treesit-search-backward-named-only": {
+          "status": "skipped",
+          "seconds": 0.001588,
+          "diagnostic": "result=ert-test-skipped expected=t condition=(ert-test-skipped ((skip-unless (treesit-language-available-p 'json)) :form (treesit-language-available-p json) :value nil)) messages=\"\""
+        },
+        "treesit-search-forward": {
+          "status": "skipped",
+          "seconds": 0.001491,
+          "diagnostic": "result=ert-test-skipped expected=t condition=(ert-test-skipped ((skip-unless (treesit-language-available-p 'json)) :form (treesit-language-available-p json) :value nil)) messages=\"\""
+        },
+        "treesit-search-forward-named-only": {
+          "status": "skipped",
+          "seconds": 0.001457,
+          "diagnostic": "result=ert-test-skipped expected=t condition=(ert-test-skipped ((skip-unless (treesit-language-available-p 'json)) :form (treesit-language-available-p json) :value nil)) messages=\"\""
+        },
+        "treesit-search-forward-predicate": {
+          "status": "skipped",
+          "seconds": 0.00155,
+          "diagnostic": "result=ert-test-skipped expected=t condition=(ert-test-skipped ((skip-unless (treesit-language-available-p 'json)) :form (treesit-language-available-p json) :value nil)) messages=\"\""
+        },
+        "treesit-search-forward-predicate-invalid-predicate": {
+          "status": "skipped",
+          "seconds": 0.001505,
+          "diagnostic": "result=ert-test-skipped expected=t condition=(ert-test-skipped ((skip-unless (treesit-language-available-p 'json)) :form (treesit-language-available-p json) :value nil)) messages=\"\""
+        },
+        "treesit-search-subtree": {
+          "status": "skipped",
+          "seconds": 0.001387,
+          "diagnostic": "result=ert-test-skipped expected=t condition=(ert-test-skipped ((skip-unless (treesit-language-available-p 'json)) :form (treesit-language-available-p json) :value nil)) messages=\"\""
+        },
+        "treesit-search-subtree-backward-1": {
+          "status": "skipped",
+          "seconds": 0.001427,
+          "diagnostic": "result=ert-test-skipped expected=t condition=(ert-test-skipped ((skip-unless (treesit-language-available-p 'python)) :form (treesit-language-available-p python) :value nil)) messages=\"\""
+        },
+        "treesit-search-subtree-forward-1": {
+          "status": "skipped",
+          "seconds": 0.001438,
+          "diagnostic": "result=ert-test-skipped expected=t condition=(ert-test-skipped ((skip-unless (treesit-language-available-p 'python)) :form (treesit-language-available-p python) :value nil)) messages=\"\""
+        },
+        "treesit-test-simple-indent-add-rules": {
+          "status": "passed",
+          "seconds": 2.5e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        }
+      }
+    },
+    {
+      "product": "cocoa",
+      "file": "test/src/emacs-tests.el",
+      "ids": [
+        "emacs-tests/bwrap/allows-stdout",
+        "emacs-tests/seccomp/absent-file",
+        "emacs-tests/seccomp/allows-stdout",
+        "emacs-tests/seccomp/empty-file",
+        "emacs-tests/seccomp/file-too-large",
+        "emacs-tests/seccomp/forbids-subprocess",
+        "emacs-tests/seccomp/invalid-file-size"
+      ],
+      "counts": {
+        "skipped": 7
+      },
+      "complete": true,
+      "exit_code": 0,
+      "remaining_group_terminated": false,
+      "seconds": 0.09556725000000021,
+      "timed_out": false,
+      "protocol_error": null,
+      "runner_error": null,
+      "result": {
+        "path": "build/acceptance/g3-startup-regex-treesit-1/cocoa/results/cocoa/test-src-emacs-tests.el-abea317eddf7.json",
+        "sha256": "1d24f950810561c5cebcd1f02035e5f4bbf8c7653a09c6b9d9a6b8d4589aa1a7"
+      },
+      "events": {
+        "path": "build/acceptance/g3-startup-regex-treesit-1/cocoa/results/cocoa/test-src-emacs-tests.el-abea317eddf7.events.jsonl",
+        "sha256": "7872c93ea24f9142dafe91e59b99ec2bc9bf43b88540ac81a651b7090ebb1e6d"
+      },
+      "cases": {
+        "emacs-tests/bwrap/allows-stdout": {
+          "status": "skipped",
+          "seconds": 0.027531,
+          "diagnostic": "result=ert-test-skipped expected=t condition=(ert-test-skipped ((skip-unless bwrap) :form bwrap :value nil)) messages=\"\""
+        },
+        "emacs-tests/seccomp/absent-file": {
+          "status": "skipped",
+          "seconds": 4.1e-05,
+          "diagnostic": "result=ert-test-skipped expected=t condition=(ert-test-skipped ((skip-unless (string-match-p (rx bow \"SECCOMP\" eow) system-configuration-features)) :form (string-match-p \"\\\\<SECCOMP\\\\>\" \"NS PDUMPER TOOLKIT_SCROLL_BARS MODULES THREADS LIBXML2 SQLITE3 GNUTLS NOTIFY KQUEUE ZLIB LCMS2 TREE_SITTER\") :value nil)) messages=\"\""
+        },
+        "emacs-tests/seccomp/allows-stdout": {
+          "status": "skipped",
+          "seconds": 3e-05,
+          "diagnostic": "result=ert-test-skipped expected=t condition=(ert-test-skipped ((skip-unless (string-match-p (rx bow \"SECCOMP\" eow) system-configuration-features)) :form (string-match-p \"\\\\<SECCOMP\\\\>\" \"NS PDUMPER TOOLKIT_SCROLL_BARS MODULES THREADS LIBXML2 SQLITE3 GNUTLS NOTIFY KQUEUE ZLIB LCMS2 TREE_SITTER\") :value nil)) messages=\"\""
+        },
+        "emacs-tests/seccomp/empty-file": {
+          "status": "skipped",
+          "seconds": 2.6e-05,
+          "diagnostic": "result=ert-test-skipped expected=t condition=(ert-test-skipped ((skip-unless (string-match-p (rx bow \"SECCOMP\" eow) system-configuration-features)) :form (string-match-p \"\\\\<SECCOMP\\\\>\" \"NS PDUMPER TOOLKIT_SCROLL_BARS MODULES THREADS LIBXML2 SQLITE3 GNUTLS NOTIFY KQUEUE ZLIB LCMS2 TREE_SITTER\") :value nil)) messages=\"\""
+        },
+        "emacs-tests/seccomp/file-too-large": {
+          "status": "skipped",
+          "seconds": 2.6e-05,
+          "diagnostic": "result=ert-test-skipped expected=t condition=(ert-test-skipped ((skip-unless (string-match-p (rx bow \"SECCOMP\" eow) system-configuration-features)) :form (string-match-p \"\\\\<SECCOMP\\\\>\" \"NS PDUMPER TOOLKIT_SCROLL_BARS MODULES THREADS LIBXML2 SQLITE3 GNUTLS NOTIFY KQUEUE ZLIB LCMS2 TREE_SITTER\") :value nil)) messages=\"\""
+        },
+        "emacs-tests/seccomp/forbids-subprocess": {
+          "status": "skipped",
+          "seconds": 2.5e-05,
+          "diagnostic": "result=ert-test-skipped expected=t condition=(ert-test-skipped ((skip-unless (string-match-p (rx bow \"SECCOMP\" eow) system-configuration-features)) :form (string-match-p \"\\\\<SECCOMP\\\\>\" \"NS PDUMPER TOOLKIT_SCROLL_BARS MODULES THREADS LIBXML2 SQLITE3 GNUTLS NOTIFY KQUEUE ZLIB LCMS2 TREE_SITTER\") :value nil)) messages=\"\""
+        },
+        "emacs-tests/seccomp/invalid-file-size": {
+          "status": "skipped",
+          "seconds": 2.3e-05,
+          "diagnostic": "result=ert-test-skipped expected=t condition=(ert-test-skipped ((skip-unless (string-match-p (rx bow \"SECCOMP\" eow) system-configuration-features)) :form (string-match-p \"\\\\<SECCOMP\\\\>\" \"NS PDUMPER TOOLKIT_SCROLL_BARS MODULES THREADS LIBXML2 SQLITE3 GNUTLS NOTIFY KQUEUE ZLIB LCMS2 TREE_SITTER\") :value nil)) messages=\"\""
+        }
+      }
+    },
+    {
+      "product": "cocoa",
+      "file": "test/src/regex-emacs-tests.el",
+      "ids": [
+        "regex-emacs-syntax-properties",
+        "regex-repeat-limit",
+        "regex-tests-BOOST",
+        "regex-tests-PCRE",
+        "regex-tests-PTESTS",
+        "regex-tests-TESTS",
+        "regex-tests-alnum-character-class",
+        "regex-tests-alpha-character-class",
+        "regex-tests-ascii-character-class",
+        "regex-tests-blank-character-class",
+        "regex-tests-cntrl-character-class",
+        "regex-tests-digit-character-class",
+        "regex-tests-graph-character-class",
+        "regex-tests-lower-character-class",
+        "regex-tests-multibyte-character-class",
+        "regex-tests-mutual-exclusive-inf-rec",
+        "regex-tests-nonascii-character-class",
+        "regex-tests-print-character-class",
+        "regex-tests-punct-character-class",
+        "regex-tests-space-character-class",
+        "regex-tests-unibyte-character-class",
+        "regex-tests-upper-character-class",
+        "regex-tests-word-character-class",
+        "regex-tests-xdigit-character-class",
+        "regex-word-cc-fallback-test",
+        "regexp-atomic-failure",
+        "regexp-case-fold",
+        "regexp-eszett",
+        "regexp-multibyte-multibyte",
+        "regexp-multibyte-unibyte",
+        "regexp-tests-backtrack-optimization",
+        "regexp-tests-zero-width-assertion-repetition",
+        "regexp-unibyte-multibyte",
+        "regexp-unibyte-unibyte"
+      ],
+      "counts": {
+        "passed": 34
+      },
+      "complete": true,
+      "exit_code": 0,
+      "remaining_group_terminated": false,
+      "seconds": 0.21776250000000008,
+      "timed_out": false,
+      "protocol_error": null,
+      "runner_error": null,
+      "result": {
+        "path": "build/acceptance/g3-startup-regex-treesit-1/cocoa/results/cocoa/test-src-regex-emacs-tests.el-d217b9c6a015.json",
+        "sha256": "bfbf4acb5ab868edfe09570e41371a3a4ee8891c450f6902ab96fc84f6165618"
+      },
+      "events": {
+        "path": "build/acceptance/g3-startup-regex-treesit-1/cocoa/results/cocoa/test-src-regex-emacs-tests.el-d217b9c6a015.events.jsonl",
+        "sha256": "902bfd55d48c6ba580b163614e8a5ac3e245b205e6474fe6611735a846d8a318"
+      },
+      "cases": {
+        "regex-emacs-syntax-properties": {
+          "status": "passed",
+          "seconds": 7.2e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "regex-repeat-limit": {
+          "status": "passed",
+          "seconds": 0.002086,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "regex-tests-BOOST": {
+          "status": "passed",
+          "seconds": 0.043104,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "regex-tests-PCRE": {
+          "status": "passed",
+          "seconds": 0.013135,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "regex-tests-PTESTS": {
+          "status": "passed",
+          "seconds": 0.003559,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "regex-tests-TESTS": {
+          "status": "passed",
+          "seconds": 0.010828,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "regex-tests-alnum-character-class": {
+          "status": "passed",
+          "seconds": 3.2e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "regex-tests-alpha-character-class": {
+          "status": "passed",
+          "seconds": 2.7e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "regex-tests-ascii-character-class": {
+          "status": "passed",
+          "seconds": 1.9e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "regex-tests-blank-character-class": {
+          "status": "passed",
+          "seconds": 2.2e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "regex-tests-cntrl-character-class": {
+          "status": "passed",
+          "seconds": 1.9e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "regex-tests-digit-character-class": {
+          "status": "passed",
+          "seconds": 1.7e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "regex-tests-graph-character-class": {
+          "status": "passed",
+          "seconds": 1.9e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "regex-tests-lower-character-class": {
+          "status": "passed",
+          "seconds": 1.9e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "regex-tests-multibyte-character-class": {
+          "status": "passed",
+          "seconds": 1.7e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "regex-tests-mutual-exclusive-inf-rec": {
+          "status": "passed",
+          "seconds": 1.1e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "regex-tests-nonascii-character-class": {
+          "status": "passed",
+          "seconds": 1.9e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "regex-tests-print-character-class": {
+          "status": "passed",
+          "seconds": 1.9e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "regex-tests-punct-character-class": {
+          "status": "passed",
+          "seconds": 1.8e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "regex-tests-space-character-class": {
+          "status": "passed",
+          "seconds": 1.8e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "regex-tests-unibyte-character-class": {
+          "status": "passed",
+          "seconds": 1.7e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "regex-tests-upper-character-class": {
+          "status": "passed",
+          "seconds": 1.9e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "regex-tests-word-character-class": {
+          "status": "passed",
+          "seconds": 1.9e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "regex-tests-xdigit-character-class": {
+          "status": "passed",
+          "seconds": 1.9e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "regex-word-cc-fallback-test": {
+          "status": "passed",
+          "seconds": 4.4e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "regexp-atomic-failure": {
+          "status": "passed",
+          "seconds": 1.2e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "regexp-case-fold": {
+          "status": "passed",
+          "seconds": 4.4e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "regexp-eszett": {
+          "status": "passed",
+          "seconds": 4e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "regexp-multibyte-multibyte": {
+          "status": "passed",
+          "seconds": 3.4e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "regexp-multibyte-unibyte": {
+          "status": "passed",
+          "seconds": 2.3e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "regexp-tests-backtrack-optimization": {
+          "status": "passed",
+          "seconds": 0.060855,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "regexp-tests-zero-width-assertion-repetition": {
+          "status": "passed",
+          "seconds": 8.5e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "regexp-unibyte-multibyte": {
+          "status": "passed",
+          "seconds": 2.8e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "regexp-unibyte-unibyte": {
+          "status": "passed",
+          "seconds": 2.3e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        }
+      }
+    },
+    {
+      "product": "cocoa",
+      "file": "test/src/treesit-tests.el",
+      "ids": [
+        "treesit-basic-parsing",
+        "treesit-cross-boundary",
+        "treesit-cursor-helper-with-missing-node",
+        "treesit-defun-navigation-nested-1",
+        "treesit-defun-navigation-nested-2",
+        "treesit-defun-navigation-nested-3",
+        "treesit-defun-navigation-nested-4",
+        "treesit-defun-navigation-top-level",
+        "treesit-imenu",
+        "treesit-indirect-buffer",
+        "treesit-intersect-ranges",
+        "treesit-linecol-basic",
+        "treesit-linecol-col-same-line",
+        "treesit-linecol-enable-disable",
+        "treesit-linecol-search-back-across-newline",
+        "treesit-multi-lang",
+        "treesit-narrow",
+        "treesit-node-api",
+        "treesit-node-at",
+        "treesit-node-check",
+        "treesit-node-supplemental",
+        "treesit-parser-supplemental",
+        "treesit-query-api",
+        "treesit-query-marker-position",
+        "treesit-query-node-only-and-grouped",
+        "treesit-range",
+        "treesit-range-fixup-after-edit",
+        "treesit-range-helper",
+        "treesit-range-merge",
+        "treesit-range-offset",
+        "treesit-search-backward",
+        "treesit-search-backward-named-only",
+        "treesit-search-forward",
+        "treesit-search-forward-named-only",
+        "treesit-search-forward-predicate",
+        "treesit-search-forward-predicate-invalid-predicate",
+        "treesit-search-subtree",
+        "treesit-search-subtree-backward-1",
+        "treesit-search-subtree-forward-1",
+        "treesit-test-simple-indent-add-rules"
+      ],
+      "counts": {
+        "skipped": 32,
+        "passed": 8
+      },
+      "complete": true,
+      "exit_code": 0,
+      "remaining_group_terminated": false,
+      "seconds": 0.15999745799999943,
+      "timed_out": false,
+      "protocol_error": null,
+      "runner_error": null,
+      "result": {
+        "path": "build/acceptance/g3-startup-regex-treesit-1/cocoa/results/cocoa/test-src-treesit-tests.el-362e0f25c0da.json",
+        "sha256": "561d71c433119a1f69add0b3f3b17d6ab9c4b05303f69df41a088cdf87f939d4"
+      },
+      "events": {
+        "path": "build/acceptance/g3-startup-regex-treesit-1/cocoa/results/cocoa/test-src-treesit-tests.el-362e0f25c0da.events.jsonl",
+        "sha256": "a7c2ef0a98599498133b20ee4283082cb0f583b44132ba4dc1f31a588169f604"
+      },
+      "cases": {
+        "treesit-basic-parsing": {
+          "status": "skipped",
+          "seconds": 0.002267,
+          "diagnostic": "result=ert-test-skipped expected=t condition=(ert-test-skipped ((skip-unless (treesit-language-available-p 'json)) :form (treesit-language-available-p json) :value nil)) messages=\"\""
+        },
+        "treesit-cross-boundary": {
+          "status": "skipped",
+          "seconds": 0.001949,
+          "diagnostic": "result=ert-test-skipped expected=t condition=(ert-test-skipped ((skip-unless (treesit-language-available-p 'json)) :form (treesit-language-available-p json) :value nil)) messages=\"\""
+        },
+        "treesit-cursor-helper-with-missing-node": {
+          "status": "skipped",
+          "seconds": 0.001811,
+          "diagnostic": "result=ert-test-skipped expected=t condition=(ert-test-skipped ((skip-unless (treesit-language-available-p 'json)) :form (treesit-language-available-p json) :value nil)) messages=\"\""
+        },
+        "treesit-defun-navigation-nested-1": {
+          "status": "skipped",
+          "seconds": 0.002026,
+          "diagnostic": "result=ert-test-skipped expected=t condition=(ert-test-skipped ((skip-unless (treesit-language-available-p 'python)) :form (treesit-language-available-p python) :value nil)) messages=\"\""
+        },
+        "treesit-defun-navigation-nested-2": {
+          "status": "skipped",
+          "seconds": 0.002083,
+          "diagnostic": "result=ert-test-skipped expected=t condition=(ert-test-skipped ((skip-unless (treesit-language-available-p 'javascript)) :form (treesit-language-available-p javascript) :value nil)) messages=\"\""
+        },
+        "treesit-defun-navigation-nested-3": {
+          "status": "skipped",
+          "seconds": 0.004117,
+          "diagnostic": "result=ert-test-skipped expected=t condition=(ert-test-skipped ((skip-unless (treesit-language-available-p 'bash)) :form (treesit-language-available-p bash) :value nil)) messages=\"\""
+        },
+        "treesit-defun-navigation-nested-4": {
+          "status": "skipped",
+          "seconds": 0.003258,
+          "diagnostic": "result=ert-test-skipped expected=t condition=(ert-test-skipped ((skip-unless (treesit-language-available-p 'elixir)) :form (treesit-language-available-p elixir) :value nil)) messages=\"\""
+        },
+        "treesit-defun-navigation-top-level": {
+          "status": "skipped",
+          "seconds": 0.002265,
+          "diagnostic": "result=ert-test-skipped expected=t condition=(ert-test-skipped ((skip-unless (treesit-language-available-p 'python)) :form (treesit-language-available-p python) :value nil)) messages=\"\""
+        },
+        "treesit-imenu": {
+          "status": "passed",
+          "seconds": 1.7e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "treesit-indirect-buffer": {
+          "status": "skipped",
+          "seconds": 0.001838,
+          "diagnostic": "result=ert-test-skipped expected=t condition=(ert-test-skipped ((skip-unless (treesit-language-available-p 'json)) :form (treesit-language-available-p json) :value nil)) messages=\"\""
+        },
+        "treesit-intersect-ranges": {
+          "status": "passed",
+          "seconds": 2.2e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "treesit-linecol-basic": {
+          "status": "passed",
+          "seconds": 2.5e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "treesit-linecol-col-same-line": {
+          "status": "passed",
+          "seconds": 1.6e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "treesit-linecol-enable-disable": {
+          "status": "skipped",
+          "seconds": 0.001828,
+          "diagnostic": "result=ert-test-skipped expected=t condition=(ert-test-skipped ((skip-unless (treesit-language-available-p 'json)) :form (treesit-language-available-p json) :value nil)) messages=\"\""
+        },
+        "treesit-linecol-search-back-across-newline": {
+          "status": "passed",
+          "seconds": 1.5e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "treesit-multi-lang": {
+          "status": "skipped",
+          "seconds": 0.001994,
+          "diagnostic": "result=ert-test-skipped expected=t condition=(ert-test-skipped ((skip-unless (and (treesit-language-available-p 'html) (treesit-language-available-p 'css) (treesit-language-available-p 'javascript))) :form (and (treesit-language-available-p 'html) (treesit-language-available-p 'css) (treesit-language-available-p 'javascript)) :value nil)) messages=\"\""
+        },
+        "treesit-narrow": {
+          "status": "skipped",
+          "seconds": 0.00709,
+          "diagnostic": "result=ert-test-skipped expected=t condition=(ert-test-skipped ((skip-unless (treesit-language-available-p 'json)) :form (treesit-language-available-p json) :value nil)) messages=\"\""
+        },
+        "treesit-node-api": {
+          "status": "skipped",
+          "seconds": 0.002011,
+          "diagnostic": "result=ert-test-skipped expected=t condition=(ert-test-skipped ((skip-unless (treesit-language-available-p 'json)) :form (treesit-language-available-p json) :value nil)) messages=\"\""
+        },
+        "treesit-node-at": {
+          "status": "skipped",
+          "seconds": 0.00228,
+          "diagnostic": "result=ert-test-skipped expected=t condition=(ert-test-skipped ((skip-unless (treesit-language-available-p 'json)) :form (treesit-language-available-p json) :value nil)) messages=\"\""
+        },
+        "treesit-node-check": {
+          "status": "skipped",
+          "seconds": 0.003171,
+          "diagnostic": "result=ert-test-skipped expected=t condition=(ert-test-skipped ((skip-unless (treesit-language-available-p 'json)) :form (treesit-language-available-p json) :value nil)) messages=\"\""
+        },
+        "treesit-node-supplemental": {
+          "status": "skipped",
+          "seconds": 0.003427,
+          "diagnostic": "result=ert-test-skipped expected=t condition=(ert-test-skipped ((skip-unless (treesit-language-available-p 'json)) :form (treesit-language-available-p json) :value nil)) messages=\"\""
+        },
+        "treesit-parser-supplemental": {
+          "status": "skipped",
+          "seconds": 0.003028,
+          "diagnostic": "result=ert-test-skipped expected=t condition=(ert-test-skipped ((skip-unless (treesit-language-available-p 'json)) :form (treesit-language-available-p json) :value nil)) messages=\"\""
+        },
+        "treesit-query-api": {
+          "status": "skipped",
+          "seconds": 0.00287,
+          "diagnostic": "result=ert-test-skipped expected=t condition=(ert-test-skipped ((skip-unless (treesit-language-available-p 'json)) :form (treesit-language-available-p json) :value nil)) messages=\"\""
+        },
+        "treesit-query-marker-position": {
+          "status": "skipped",
+          "seconds": 0.002866,
+          "diagnostic": "result=ert-test-skipped expected=t condition=(ert-test-skipped ((skip-unless (treesit-language-available-p 'json)) :form (treesit-language-available-p json) :value nil)) messages=\"\""
+        },
+        "treesit-query-node-only-and-grouped": {
+          "status": "skipped",
+          "seconds": 0.002005,
+          "diagnostic": "result=ert-test-skipped expected=t condition=(ert-test-skipped ((skip-unless (treesit-language-available-p 'json)) :form (treesit-language-available-p json) :value nil)) messages=\"\""
+        },
+        "treesit-range": {
+          "status": "skipped",
+          "seconds": 0.002275,
+          "diagnostic": "result=ert-test-skipped expected=t condition=(ert-test-skipped ((skip-unless (treesit-language-available-p 'json)) :form (treesit-language-available-p json) :value nil)) messages=\"\""
+        },
+        "treesit-range-fixup-after-edit": {
+          "status": "skipped",
+          "seconds": 0.001795,
+          "diagnostic": "result=ert-test-skipped expected=t condition=(ert-test-skipped ((skip-unless (treesit-language-available-p 'json)) :form (treesit-language-available-p json) :value nil)) messages=\"\""
+        },
+        "treesit-range-helper": {
+          "status": "passed",
+          "seconds": 2.7e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "treesit-range-merge": {
+          "status": "passed",
+          "seconds": 1.1e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "treesit-range-offset": {
+          "status": "skipped",
+          "seconds": 0.001932,
+          "diagnostic": "result=ert-test-skipped expected=t condition=(ert-test-skipped ((skip-unless (treesit-language-available-p 'javascript)) :form (treesit-language-available-p javascript) :value nil)) messages=\"\""
+        },
+        "treesit-search-backward": {
+          "status": "skipped",
+          "seconds": 0.001928,
+          "diagnostic": "result=ert-test-skipped expected=t condition=(ert-test-skipped ((skip-unless (treesit-language-available-p 'json)) :form (treesit-language-available-p json) :value nil)) messages=\"\""
+        },
+        "treesit-search-backward-named-only": {
+          "status": "skipped",
+          "seconds": 0.001892,
+          "diagnostic": "result=ert-test-skipped expected=t condition=(ert-test-skipped ((skip-unless (treesit-language-available-p 'json)) :form (treesit-language-available-p json) :value nil)) messages=\"\""
+        },
+        "treesit-search-forward": {
+          "status": "skipped",
+          "seconds": 0.001898,
+          "diagnostic": "result=ert-test-skipped expected=t condition=(ert-test-skipped ((skip-unless (treesit-language-available-p 'json)) :form (treesit-language-available-p json) :value nil)) messages=\"\""
+        },
+        "treesit-search-forward-named-only": {
+          "status": "skipped",
+          "seconds": 0.001796,
+          "diagnostic": "result=ert-test-skipped expected=t condition=(ert-test-skipped ((skip-unless (treesit-language-available-p 'json)) :form (treesit-language-available-p json) :value nil)) messages=\"\""
+        },
+        "treesit-search-forward-predicate": {
+          "status": "skipped",
+          "seconds": 0.001845,
+          "diagnostic": "result=ert-test-skipped expected=t condition=(ert-test-skipped ((skip-unless (treesit-language-available-p 'json)) :form (treesit-language-available-p json) :value nil)) messages=\"\""
+        },
+        "treesit-search-forward-predicate-invalid-predicate": {
+          "status": "skipped",
+          "seconds": 0.001911,
+          "diagnostic": "result=ert-test-skipped expected=t condition=(ert-test-skipped ((skip-unless (treesit-language-available-p 'json)) :form (treesit-language-available-p json) :value nil)) messages=\"\""
+        },
+        "treesit-search-subtree": {
+          "status": "skipped",
+          "seconds": 0.001994,
+          "diagnostic": "result=ert-test-skipped expected=t condition=(ert-test-skipped ((skip-unless (treesit-language-available-p 'json)) :form (treesit-language-available-p json) :value nil)) messages=\"\""
+        },
+        "treesit-search-subtree-backward-1": {
+          "status": "skipped",
+          "seconds": 0.001998,
+          "diagnostic": "result=ert-test-skipped expected=t condition=(ert-test-skipped ((skip-unless (treesit-language-available-p 'python)) :form (treesit-language-available-p python) :value nil)) messages=\"\""
+        },
+        "treesit-search-subtree-forward-1": {
+          "status": "skipped",
+          "seconds": 0.002088,
+          "diagnostic": "result=ert-test-skipped expected=t condition=(ert-test-skipped ((skip-unless (treesit-language-available-p 'python)) :form (treesit-language-available-p python) :value nil)) messages=\"\""
+        },
+        "treesit-test-simple-indent-add-rules": {
+          "status": "passed",
+          "seconds": 3e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        }
+      }
+    }
+  ],
+  "products": {
+    "reference": {
+      "program": {
+        "kind": "file",
+        "bytes": 3691504,
+        "mode": 493,
+        "sha256": "5b55e93c8304368ee37cc5c537ca3e1370e3b9b3fef049bdce76834a9db75e65"
+      },
+      "dump": {
+        "kind": "file",
+        "bytes": 23084632,
+        "mode": 420,
+        "sha256": "6ac1214186022574a70e84a04bb7f2dc44e1ea1d4c90f0d9ce421ddd0f4b4536"
+      },
+      "resources": {
+        "lisp": {
+          "identity_canonical_json_sha256": "564df364c803f4d0b64d7bc2ba986d775e8985529481ac2684b739666e131323",
+          "top_level_entries": 3316
+        }
+      }
+    },
+    "terminal": {
+      "program": {
+        "kind": "file",
+        "bytes": 2698016,
+        "mode": 493,
+        "sha256": "fb0b822273e79bb5b008725771473f5d510b9f712488242d615fb3a5fefbcde6"
+      },
+      "dump": {
+        "kind": "file",
+        "bytes": 13101600,
+        "mode": 420,
+        "sha256": "5d1913c39d5c348c711d24e16b25d9e63d09e082ee6dbe3b3a54ac4680862f82"
+      },
+      "resources": {
+        "lisp": {
+          "identity_canonical_json_sha256": "79dc09151f2f61152496f3587dc54cb580fb45a9c92301bfe3e75ab027a02146",
+          "top_level_entries": 3363
+        },
+        "runtime-tls": {
+          "identity_canonical_json_sha256": "9b34100e73d1f4bbd3157cd1535a25f8fdc6d4e094f2e6a1e9dc79b1a63fd73d",
+          "top_level_entries": 9
+        },
+        "runtime-lcms": {
+          "identity_canonical_json_sha256": "819844d74d5d4f3ee5a75aaf2b0d9a23b07fdda8bfa71c65cdbda63f6eb213cb",
+          "top_level_entries": 1
+        },
+        "runtime-treesit": {
+          "identity_canonical_json_sha256": "05b5f47a14a19b3f04511fa292f0976e2cab06437b9e4323edbce72a9767f0f9",
+          "top_level_entries": 1
+        }
+      }
+    },
+    "cocoa": {
+      "program": {
+        "kind": "file",
+        "bytes": 4230368,
+        "mode": 493,
+        "sha256": "d796f4c52e2a32ec6176e02efca33d922da18252aaddd0885e59993f108ba385"
+      },
+      "dump": {
+        "kind": "file",
+        "bytes": 18602200,
+        "mode": 420,
+        "sha256": "2b87c3436eaa33e551b024c6be01ea702b9c586c4535993258b63aa95a618b92"
+      },
+      "resources": {
+        "lisp": {
+          "identity_canonical_json_sha256": "e4108125e078022ebe91c3ccc5095c46c8fcbe48180ed02668f315d4e4c910b5",
+          "top_level_entries": 3353
+        },
+        "bundle": {
+          "identity_canonical_json_sha256": "e1212d5ae114aec885c8d2d467c9c39b4feb1f693b0d685dc28901fd34bb5342",
+          "top_level_entries": 4477
+        }
+      }
+    }
+  },
+  "controller": {
+    "run_id": "2bcd77316c454a4f96916224837025be",
+    "exit_code": 1,
+    "cleanup_complete": true,
+    "elapsed_seconds": 8.68,
+    "peak_rss_bytes": 121061376,
+    "peak_footprint_bytes": 87098424,
+    "peak_accounted_bytes": 121061376,
+    "metrics_independently_reviewed": false
+  },
+  "original_aggregate_reason": "117 common skips, not failed assertions; false aggregate/owner exit1 retained despite equal status maps. Startup guards precede all7bodies;32treesit grammar guards prevent parser bodies. No full G3 or grammar completeness claim.",
+  "guard_classification": {
+    "per_product_startup": {
+      "SECCOMP_absent": 6,
+      "bwrap_absent": 1
+    },
+    "per_product_treesit": {
+      "json": 23,
+      "python": 4,
+      "javascript": 2,
+      "bash": 1,
+      "elixir": 1,
+      "html_css_javascript": 1
+    },
+    "treesit_executed_ids": [
+      "treesit-imenu",
+      "treesit-intersect-ranges",
+      "treesit-linecol-basic",
+      "treesit-linecol-col-same-line",
+      "treesit-linecol-search-back-across-newline",
+      "treesit-range-helper",
+      "treesit-range-merge",
+      "treesit-test-simple-indent-add-rules"
+    ],
+    "regex_direct_ids": 17,
+    "regex_load_generated_ids": 17,
+    "regex_resource_lines": {
+      "BOOST.tests": 829,
+      "PCRE.tests": 2386,
+      "PTESTS": 344,
+      "TESTS": 167
+    },
+    "regex_original_line_whitelists_retained": true
+  },
+  "independent_review": {
+    "accepted": true,
+    "state": "Actual raw/source handback received; no confirmed execution defect",
+    "limits": [
+      "Not full G3 or tree-sitter grammar acceptance",
+      "All grammar-dependent bodies skipped before parser creation; no grammar exercised",
+      "Original regex line whitelists retained; no skipped regex ID",
+      "Controller metrics remain primary-side receipts; reviewer did not rehash live App",
+      "Signed-delivery adoption and cleanup-manifest review follow separately"
+    ]
+  },
+  "cleanup": {
+    "status": "complete",
+    "files": 4608,
+    "directories": 852,
+    "links": 18,
+    "rows": 5478,
+    "logical_bytes": 62990856,
+    "allocated_bytes": 75264000,
+    "manifest_sha256": "dcf32add98b2ba954c12d008e6c9fd2bbe49dad07757ac4985c73ac17cf1c31b",
+    "automatic_directories": 30,
+    "products_inputs_git_evidence_unchanged": true,
+    "manifest": "maintenance/cleanup/manifests/2026-10-30-169-consumed-startup-regex-state.jsonl.gz",
+    "post_review_directories": 822,
+    "automatic_parent_directories": 6,
+    "raw_results_retained": true
+  }
+}

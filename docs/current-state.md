@@ -1,3 +1,21 @@
+## Current continuation: original startup, regex and tree-sitter coverage (2026-10-30)
+
+Nine unchanged original-file processes complete with exit 0: **126 passes,
+117 skips**, 81 IDs/product, equal reference/terminal/Cocoa status maps.
+Original aggregate false and owner exit 1 remain. All 34 regex IDs pass;
+seven startup platform/tool guards and 32 grammar guards skip per product.
+Eight tree-sitter helper/line-column cases pass, but no grammar-dependent body
+is exercised. This is not grammar, full G3 or performance acceptance.
+
+Independent source/raw review finds no execution defect. CLN169 records 4,608
+files, 852 directories (thirty automatic, six parents) and eighteen links,
+62,990,856 / 75,264,000 logical/allocated bytes. Evidence and live products
+remain unchanged, no production change or App replacement. G1/G2/G4 stay
+**3/7**, original Goal active; four outcomes remain. Next: uncovered G3 inputs,
+explicit missing grammar/module scope and evidence-led runtime implementation.
+See [coverage](../maintenance/releases/2026-10-30-original-startup-regex.md)
+and [CLN169](../maintenance/cleanup/reports/2026-10-30-169-consumed-startup-regex-state.md).
+
 ## Current continuation: original thread and image coverage (2026-10-30)
 
 Four unchanged pinned original files register 48 IDs per product on the

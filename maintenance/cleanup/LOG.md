@@ -534,3 +534,17 @@ manifests and disclosed historical metadata gaps remain unchanged.
 - [Report](reports/2026-10-30-168-consumed-thread-image-state.md) ·
   [manifest](manifests/2026-10-30-168-consumed-thread-image-state.jsonl.gz)
   (`ebebfe9e3069cc00cf2d307348d9aa4d7d9d96afb333863d37701e33592de7df`).
+
+## CLN169 — consumed startup/regex coverage state (2026-10-30)
+
+- Three consumed test copies/contexts/environments after nine completed
+  processes and independent review; original 126 passes/117 skips, equal maps,
+  aggregate false and owner exit 1 retained. No grammar acceptance claim.
+- 4,608 files, 852 directories, eighteen links; 62,990,856 logical /
+  75,264,000 allocated bytes, 5,478 rows. Thirty automatic schema-3 directories
+  include six parents counted once; post-review directories 822.
+- Full pre-delete private identities retained, public context targets hashed;
+  raw evidence, pinned sources, live products and trial App unchanged.
+- [Report](reports/2026-10-30-169-consumed-startup-regex-state.md) ·
+  [manifest](manifests/2026-10-30-169-consumed-startup-regex-state.jsonl.gz)
+  (`dcf32add98b2ba954c12d008e6c9fd2bbe49dad07757ac4985c73ac17cf1c31b`).

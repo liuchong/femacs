@@ -24156,3 +24156,21 @@ No source change, new component test or performance adoption. G1/G2/G4 **3/7**;
 four outcomes remain open, original Goal active. Next: uncovered G3 files.
 Reports: [coverage](../maintenance/releases/2026-10-30-original-thread-image.md),
 [CLN168](../maintenance/cleanup/reports/2026-10-30-168-consumed-thread-image-state.md).
+
+## 2026-10-30: original startup/regex/tree-sitter coverage and CLN169
+
+Nine complete normal file processes: 243 case rows, **126 passed / 117 skipped**,
+81 IDs/product, all three status maps equal. Original aggregate false/owner exit
+1 retained. Regex 34/34 each (17 direct plus 17 generated, correcting 35);
+startup seven guards and tree-sitter 32 grammar guards skip per product. Eight
+helper/line-column cases pass; no grammar exercised. No source/guard edit,
+new protection, full G3, native or performance acceptance. Independent review
+finds no execution defect. Driver 6.319405167 s; implemented 30 s load/case,
+300 s owner. Controller 8.680 s / 121,061,376 peak bytes remain primary-only.
+
+CLN169: 4,608 files, 852 directories, eighteen links; 62,990,856 logical /
+75,264,000 allocated bytes, 5,478 rows. Thirty automatic directories include
+six parents, counted once; post-review directories 822. Evidence, inputs,
+products and trial App retained. G1/G2/G4 **3/7**, four outcomes remain open.
+[Coverage](../maintenance/releases/2026-10-30-original-startup-regex.md),
+[CLN169](../maintenance/cleanup/reports/2026-10-30-169-consumed-startup-regex-state.md).
