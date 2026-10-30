@@ -34,3 +34,11 @@ acceptance policy or Goal changes. Replay rematerializes test copies and fresh
 isolated environments/context links with original products, dumps, assertions
 and deadlines; exact random names, inode numbers and timestamps are not promised.
 See the [comparison and replay recipe](../../releases/2026-10-30-original-json.md).
+
+Accounting correction: the automatic runner also removed two empty parent
+directories per successful file, six here. Thus the original 783-directory
+ledger total excludes six receipt-recorded empty parents: 789 total removed.
+Those parents lack individual durable full pre-delete identities; this gap is
+not repaired by inventing data or changing the original manifest/hash. See
+[CLN166](2026-10-30-166-consumed-buffer-marker-state.md) and the planned narrow
+runner correction. Regular-file byte totals and all product results are unchanged.

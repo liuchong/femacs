@@ -699,7 +699,14 @@
         "logical_bytes": 0,
         "allocated_bytes": 0
       }
-    ]
+    ],
+    "empty_parent_accounting_correction": {
+      "original_ledger_directories": 783,
+      "additional_receipt_recorded_empty_parents": 6,
+      "total_removed_directories": 789,
+      "full_predelete_parent_identities_available": false,
+      "original_manifest_unchanged": true
+    }
   },
   "budget_correction": {
     "original_raw_per_case_seconds": 20,

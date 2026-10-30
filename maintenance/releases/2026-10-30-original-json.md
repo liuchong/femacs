@@ -57,3 +57,8 @@ native/checking/collector/physical UI acceptance or performance adoption.
 G1/G2/G4 remain 3/7; G3/G5/G6/G7 and the original Goal stay active. Continue
 uncovered original compatibility and evidence-led runtime implementation;
 do not rerun unchanged busy-host performance matrices or rejected root hints.
+
+Cleanup accounting correction: CLN164's original directory identity total of
+783 excludes six empty parents removed by the automatic runner (789 total).
+The original manifest/hash stays unchanged; the parent identity limitation is
+explicit in the [updated cleanup report](../cleanup/reports/2026-10-30-164-consumed-json-state.md).

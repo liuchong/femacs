@@ -24085,3 +24085,29 @@ bytes; original results, frozen inputs, products and App remain unchanged.
   [CLN165](../maintenance/cleanup/reports/2026-10-30-165-consumed-process-state.md).
   G1/G2/G4 remain 3/7 (42.9%); four outcomes/57.1% remain. No GUI/native or
   performance adoption, no production patch or App replacement.
+
+
+### Original stable buffer, marker and editing facilities (2026-10-30)
+
+- Three full original files, 442 actual IDs/product: buffer407, marker3, editfns32.
+  Buffer407 comprises61direct and346macro-invoked definitions;65original whennil
+  cases do not register. Total1,323passes/3common graphical line-spacing skips,
+  no failures/timeouts. Nine file processes exit0complete; aggregatefalse and
+  ownerexit1 retained. Full maps/inputs/products/resources/App unchanged.
+- Original100000randomiterations,100overlays,small buffers retained. Normal
+  passes do not prove checking assertions. Help/scratch markers and autosave
+  cases pass; getent unavailable. Actual90scase/450sowner; driver8.757980084s,
+  primary controller10.446s/218,071,040B accounted peak, fully reaped. Independent
+  review finds no confirmed defect; no production patch or App replacement.
+- CLN166:4,612files/852dirs/3links,63,024,972logical/75,313,152allocated bytes,
+  5,467rows. Includes840fully listed dirs and12 earlier autoemptyparents whose
+  full original identities are unavailable; no identities invented. Three4B
+  fixture autosaves and reference34,104Btrampoline consumed. Raw records retained.
+- CLN164 correction:783ledgered dirs plus6receipt-recorded emptyparents=789;
+  originalmanifest/hash unchanged. Existing runner must durably record those
+  parent identities before removal; this is cleanup accounting, not a product bug.
+- [Comparison](../maintenance/releases/2026-10-30-original-buffer-markers.md),
+  [receipt](../maintenance/releases/2026-10-30-original-buffer-markers-results.json),
+  [CLN166](../maintenance/cleanup/reports/2026-10-30-166-consumed-buffer-marker-state.md).
+  G1/G2/G4 stay3/7(42.9%);4/7(57.1%)remain, originalGoal active. No fullG3,
+  checking, GUI, native or performance adoption inferred.

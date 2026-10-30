@@ -494,3 +494,16 @@ After complete execution and independent review: 4,608 regular files,
 No auto-retired state counted again and no broader cache root selected.
 [Report](reports/2026-10-30-165-consumed-process-state.md) and
 [manifest](manifests/2026-10-30-165-consumed-process-state.jsonl.gz).
+
+
+## CLN166 — consumed original buffer and marker state (2026-10-30)
+
+4,612files/852directories/3links;63,024,972logical/75,313,152allocated bytes,
+5,467rows. Postreview4,612files/792dirs/3links plus48ledgered automatic childdirs
+and12receipt-recorded emptyparents withoutfull predelete identities.840dirs
+fully listed; missing metadata explicitly marked. Original1323passes/3skips,
+false aggregate, raw records/corpus/products retained. CLN164 likewise has six
+extra emptyparents beyond its original783ledgered directory total; manifest
+unchanged. Next fix records existing runner parent identities before deletion.
+[Report](reports/2026-10-30-166-consumed-buffer-marker-state.md) and
+[manifest](manifests/2026-10-30-166-consumed-buffer-marker-state.jsonl.gz).

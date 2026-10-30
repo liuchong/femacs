@@ -1,3 +1,18 @@
+## Current continuation: original buffer and marker coverage (2026-10-30)
+
+Three complete original files register 442 IDs per normal reference/terminal/
+Cocoa: 1,323 passes and three common graphical-mode skips, no failed assertions
+or timeouts. Nine file processes exit 0 complete; original aggregate false and
+owner exit 1 remain. IDs/maps, full inputs/products/resources and App unchanged.
+Independent review finds no confirmed defect. [Evidence](../maintenance/releases/2026-10-30-original-buffer-markers.md).
+CLN166 retires 4,612 files/852 directories/three links; twelve earlier automatic
+empty parents lack full durable identities, explicitly recorded as a limitation.
+CLN164 is corrected to 783 ledgered directories plus six receipt-recorded parents,
+original manifest/hash unchanged. Next narrow business fix: record parent identities
+before the existing runner removes them. G1/G2/G4 remain 3/7; four outcomes and
+57.1% remain, original Goal active. Normal batch coverage is not GUI/checking/
+native or performance acceptance.
+
 ## Current continuation: original process coverage (2026-10-30)
 
 The complete pinned process file registers 39 IDs per normal reference/terminal/
