@@ -7850,7 +7850,7 @@ unsafe fn sweep_conses ()
 		  if !XCONS_MARKED_P! (acons)
                     {
                       #[cfg(feature = "femacs_gc_generational")]
-                      { gc_collector::swept_dead(acons); }
+                      { gc_collector::swept_dead(cblk, pos as usize); }
                       #[cfg(feature = "femacs_gc_observer")]
                       { gc_observation::cons_retire(acons, false); }
 		      ASAN_UNPOISON_CONS! (&raw mut (*cblk).conses[pos as usize]);
@@ -7863,7 +7863,7 @@ unsafe fn sweep_conses ()
                   else
                     {
                       #[cfg(feature = "femacs_gc_generational")]
-                      { gc_collector::survivor(acons); }
+                      { gc_collector::survivor(cblk, pos as usize); }
                       #[cfg(feature = "femacs_gc_observer")]
                       { gc_observation::cons_survivor(acons); }
                       num_used += 1;

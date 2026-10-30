@@ -23908,3 +23908,22 @@ before editor/output creation; preserved separately. One pass closes the final
 version's real-run gap, not the intermittent Base64 defect or G3. CLN158 retires
 two consumed files/15directories; original raw results/logs retained.
 [Report](../maintenance/releases/2026-10-30-remote-notification-diagnostic.md).
+
+
+### P441 — known cons locations retained through sweep (2026-10-30)
+
+The two partial-word collector hooks now use the sweep-owned block/index instead
+of rediscovering it through heap_cell/mem_find. Owner/counter/bitmap/cell order
+remains; allocation, marking and external object validation are unchanged.
+Separate normal/checking real products built from 7,355 frozen WIP inputs; only
+alloc.rs and runtime_gc_collector.rs differ from the retained P440 production.
+Affected integration passes 498 new +8 verified reused =506 receipts, 48 ordered
+registration maps,16 reference language ID comparisons,153 observations and four
+fallback pairs. Four actual-source component protections passed afterward.
+Cursor independently reviewed source, original results and protections without
+confirmed defects. No performance rerun on the busy host, no qualified speedup,
+no full compatibility or trial-App promotion; G1/G2/G4 remain3/7.
+CLN159 retires9,948files/3,547directories,370,962,164logical/391,000,064allocated
+bytes; original results, frozen inputs, products and App remain unchanged.
+[Delivery](../maintenance/releases/2026-10-30-known-cons-locations.md),
+[cleanup](../maintenance/cleanup/reports/2026-10-30-159-consumed-known-cons-state.md).

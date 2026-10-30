@@ -3776,3 +3776,27 @@ integration and original fallback object/error observations, then add key
 populated-clear/repeated-empty-clear/reinsert and reset-state protections.
 Actual workload comparisons retain all rounds and quiet-host eligibility; source
 equivalence and fewer writes alone do not establish a qualified speedup.
+
+## P441: retain known cons locations through collector sweep bookkeeping
+
+The partial-word branch of sweep_conses already owns the live cons_block and
+an index below its allocated limit. It tests that exact cell's mark bit before
+calling collector survivor or swept_dead. Both hooks currently rediscover the
+same location through heap_cell/mem_find; swept_dead repeats that lookup via
+clear_cell. No Lisp callback, allocation or block removal occurs between the
+caller's location calculation and these hooks. Block release occurs only after
+the block's cell scan finishes.
+
+Pass the existing block/index to these two internal hooks. Preserve the owner
+gate, promoted/dead counters, old/dirty bitmap updates and cell/free-list order.
+Keep heap_cell validation on allocation/free and escaped/written object paths;
+do not change remembered-root traversal, marking, collection policy or layouts.
+The all-marked-word path is unchanged. This removes redundant tree lookups in
+sweep bookkeeping; it does not explain the measured pre-static-root interval
+or resolve unequal live-object counts.
+
+Build separate normal/checking real products against the P440 prior. After
+complete implementation, run the affected language/observer/collector and
+fallback integration, then protect partial-word live/dead/reuse boundaries.
+Retain original outcomes and only claim performance from eligible real workload
+comparisons; no default or trial App promotion follows from source equivalence.

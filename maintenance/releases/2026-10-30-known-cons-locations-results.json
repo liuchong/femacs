@@ -1,0 +1,129 @@
+{
+  "schema": 1,
+  "decision": "P441",
+  "scope": "Known cons block/index only in sweep survivor and swept_dead hooks",
+  "implementation_delivered": true,
+  "full_compatibility_accepted": false,
+  "performance_accepted": false,
+  "trial_app_promoted": false,
+  "source_sha256": {
+    "src/alloc.rs": "15d2e090a33e40dddea83649a2ec7cf08fe7fd0b88a9c99cfdccfa5fccb58b7a",
+    "src/runtime_gc_collector.rs": "22847445425465230cec2728b3c6619ab16e0fef62d2bbaab9c896f21a16f575",
+    "tools/test-gc-known-cons.py": "1fd46d4396ed62f078c6f1a46fc8e06285331774449c17bbd20d0eac6efdac82"
+  },
+  "frozen_inputs": 7355,
+  "frozen_source_is_clean_head": false,
+  "production_input_differences": [
+    "src/alloc.rs",
+    "src/runtime_gc_collector.rs"
+  ],
+  "build": {
+    "passed": true,
+    "seconds": 716.019625667,
+    "profiles": "Normal/checking terminal collector+observer, major/young; native disabled, no test hooks"
+  },
+  "integration": {
+    "passed": true,
+    "seconds": 179.598999292,
+    "existing_processes": 490,
+    "new_existing_processes": 480,
+    "new_reference_processes": 10,
+    "new_fallback_processes": 8,
+    "reused_prior_fallback_processes": 8,
+    "total_receipts": 506,
+    "raw_existing_passed": true,
+    "raw_existing_sha256": "fd89e74d65fcf07e9d111158fa35d21250ed69c89d1c4b6af4dd1c25a4445372",
+    "ordered_registration_comparisons": 48,
+    "reference_language_id_comparisons": 16,
+    "language_observations": 153,
+    "shared_registration": 17,
+    "language_registration": 17,
+    "fallback_pairs": 4,
+    "driver_sha256": "4f93ff4b6607bd853fc9695cc0756a6099c36142e318823dc3d11f867bf68f2c",
+    "full_inputs_unchanged": true,
+    "trial_app_unchanged": true
+  },
+  "protection": {
+    "passed": true,
+    "seconds": 0.544862459,
+    "cases": [
+      {
+        "id": "dead_cells_clear_only_their_age_and_count_only_newly_dead_young",
+        "seconds": 5.208e-06
+      },
+      {
+        "id": "disabled_owner_preserves_metadata_and_counters",
+        "seconds": 4.209e-06
+      },
+      {
+        "id": "exhausted_counter_still_updates_age_and_invalidates_cycle",
+        "seconds": 1.958e-06
+      },
+      {
+        "id": "partial_word_survivors_promote_once_without_clearing_dirty_bits",
+        "seconds": 3.75e-06
+      }
+    ],
+    "generated_sha256": "d723628db703a527b12c4f81976f537b3dcf477f41b31606028b7f6898c73c12",
+    "boundary": "Unmodified source hooks/counter/helper/block with explicit u64 object, cons-field and owner/state substitutes; isolated component, not ABI or real GC acceptance"
+  },
+  "independent_review": {
+    "tool": "Cursor Desktop",
+    "model": "grok-4.7",
+    "confirmed_defects": 0,
+    "rerun": false,
+    "source_and_original_receipts_reviewed": true
+  },
+  "performance": {
+    "rerun": false,
+    "observed_load_per_core": 0.25928,
+    "existing_quiet_limit": 0.1,
+    "reason": "Existing quiet-host conditions not met; fewer lookups are not a measured speedup"
+  },
+  "remaining": [
+    "Full G3/G5/G6/G7 acceptance",
+    "Unexplained pre-latch live-object differences; no object-level census",
+    "Pre-static-root cost attribution",
+    "Eligible real-workload performance comparison"
+  ],
+  "raw_results": [
+    {
+      "path": "build/acceptance/gc-known-cons-current-1/results.json",
+      "sha256": "e865436d59f3d58026277c99fdc96db1e1ed6ed493beec47d997e73b40c55877"
+    },
+    {
+      "path": "build/acceptance/gc-known-cons-functional-1/results.json",
+      "sha256": "12c9a8874a023368475e27e66f3b594aa18627e8f4809f715a8649874f6ebba6"
+    },
+    {
+      "path": "build/acceptance/gc-known-cons-protection-1/results.json",
+      "sha256": "0eb4ede6875ea2144c7ef4685247ecd390f58960d94fb170b8f9c4d3dd43b9d6"
+    }
+  ],
+  "controlled_runs": [
+    {
+      "exit_code": 0,
+      "cleanup_complete": true,
+      "elapsed_seconds": 723.849,
+      "peak_accounted_bytes": 582467584,
+      "peak_rss_bytes": 582467584,
+      "peak_footprint_bytes": 404670648
+    },
+    {
+      "exit_code": 0,
+      "cleanup_complete": true,
+      "elapsed_seconds": 189.165,
+      "peak_accounted_bytes": 197459968,
+      "peak_rss_bytes": 197459968,
+      "peak_footprint_bytes": 175342600
+    },
+    {
+      "exit_code": 0,
+      "cleanup_complete": true,
+      "elapsed_seconds": 0.776,
+      "peak_accounted_bytes": 96894976,
+      "peak_rss_bytes": 96894976,
+      "peak_footprint_bytes": 31884392
+    }
+  ]
+}

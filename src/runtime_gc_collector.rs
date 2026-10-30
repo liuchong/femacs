@@ -355,13 +355,13 @@ mod gc_collector {
         };
         if nonheap_child(car) || nonheap_child(cdr) { (*block).dirtybits[index / BITS_PER_BITS_WORD] |= (1 as bits_word) << (index % BITS_PER_BITS_WORD); }
     }
-    pub(super) unsafe fn survivor(cell: *mut Lisp_Cons) {
+    // sweep_conses owns this block and an allocated index until its cell scan
+    // finishes. Preserve that location instead of looking it up in mem_find.
+    pub(super) unsafe fn survivor(block: *mut cons_block, index: usize) {
         if !young_owner() { return; }
-        if let Some((block, index)) = heap_cell(cell) {
-            let bit = (1 as bits_word) << (index % BITS_PER_BITS_WORD);
-            if (*block).oldbits[index / BITS_PER_BITS_WORD] & bit == 0 { state().count(7, 1); }
-            (*block).oldbits[index / BITS_PER_BITS_WORD] |= bit;
-        }
+        let bit = (1 as bits_word) << (index % BITS_PER_BITS_WORD);
+        if (*block).oldbits[index / BITS_PER_BITS_WORD] & bit == 0 { state().count(7, 1); }
+        (*block).oldbits[index / BITS_PER_BITS_WORD] |= bit;
     }
     pub(super) unsafe fn survivor_word(block: *mut cons_block, word: usize, limit: usize) {
         if !young_owner() { return; }
@@ -370,15 +370,15 @@ mod gc_collector {
         state().count(7, promoted.count_ones() as u64);
         (*block).oldbits[word] |= live;
     }
-    pub(super) unsafe fn swept_dead(cell: *mut Lisp_Cons) {
-        if young_owner() {
-            if let Some((block, index)) = heap_cell(cell) {
-                if (*cell).u.s.car != dead_object() && (*block).oldbits[index / BITS_PER_BITS_WORD] & ((1 as bits_word) << (index % BITS_PER_BITS_WORD)) == 0 {
-                    state().count(8, 1);
-                }
-            }
+    pub(super) unsafe fn swept_dead(block: *mut cons_block, index: usize) {
+        if !young_owner() { return; }
+        let word = index / BITS_PER_BITS_WORD;
+        let bit = index % BITS_PER_BITS_WORD;
+        let cell = &raw mut (*block).conses[index];
+        if (*cell).u.s.car != dead_object() && (*block).oldbits[word] & ((1 as bits_word) << bit) == 0 {
+            state().count(8, 1);
         }
-        clear_cell(cell);
+        numeric::clear_age(&mut (*block).oldbits[word], &mut (*block).dirtybits[word], bit);
     }
     pub(super) unsafe fn before_storage_change(start: usize, end: usize) {
         if !young_owner() || start >= end || state().registry.len == 0 { return; }

@@ -416,3 +416,14 @@ final bounded per-process cleanup complete. No physical-volume recovery claim.
 passed; 72,046 logical /77,824 allocated regular bytes. Original results/process
 logs and product/source identities retained. No intermittent-fix or disk-volume
 reclaim claim.
+
+
+## CLN159 — consumed known-cons build/case state (2026-10-30)
+
+[Report](reports/2026-10-30-159-consumed-known-cons-state.md) and
+[manifest](manifests/2026-10-30-159-consumed-known-cons-state.jsonl.gz):
+502selectedgroups,9,948regularfiles/3,547directories;370,962,164logical and
+391,000,064allocated regularbytes. Candidate/prior products,7,355frozeninputs,
+original results/observations and trialApp preserved. The first controller
+measurement failure occurred before deletion; one checked retry completed.
+Generated protection source/executable retired after independent review.
