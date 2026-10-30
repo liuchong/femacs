@@ -3676,3 +3676,31 @@ batching cannot help. Root selection, barriers, weak/finalizer handling, caps,
 ABI and default products were not promoted or relaxed. See the
 [evaluation](maintenance/releases/2026-10-30-gc-owner-batch-evaluation.md) and
 [CLN150 recovery](maintenance/cleanup/reports/2026-10-30-150-owner-batch-withdrawal.md).
+
+## P438: generate copied charset resources without inheriting source file flags
+
+A guarded dual-leg runtime build failed during base-resource generation: the
+plain copy recipe propagated the frozen input's immutable file flag to the
+new charset output. The first copy then failed to set output timestamps, and
+the subsequent pass failed to overwrite the output. The output was not a
+frozen source input. Preserve the original failed build and its protected
+inputs; do not disable the artifact guard or resource controller.
+
+The ten charset recipes that only copy an owned raw map now stream its bytes
+to their existing generated destination. Input/output names and map contents
+stay identical; source permissions, timestamps and immutable flags are not
+part of the generated resource contract. Other generator recipes are unchanged.
+Required integration is actual repeated base generation under protected inputs,
+with all ten generated maps byte-identical to their raw inputs and retained
+control resources. Complete the normal/checking build and affected runtime
+integration before accepting the GC candidate; add focused protections only
+after integration succeeds. This tooling repair is an explicit second source
+difference in the candidate/control inventory, not a hidden GC optimization.
+
+The resource integration now passes two real complete charset-generation
+passes under immutable input protection: 139 ordered recipes, 134 distinct
+recipe outputs plus two Unicode outputs. All 136 resulting files match across
+passes; the ten byte copies also match the raw inputs and retained control.
+Two subsequent macOS protections pass for immutable-input regeneration and
+missing-input errors. Original build and wrapper-count failures remain false.
+This accepts the resource-copy repair, not an unbuilt collector product.

@@ -166,7 +166,7 @@
     },
     {
       "output": "etc/charsets/CP720.map",
-      "shell": "cp admin/charsets/mapfiles/CP720.map etc/charsets/CP720.map"
+      "shell": "cat admin/charsets/mapfiles/CP720.map > etc/charsets/CP720.map"
     },
     {
       "output": "etc/charsets/CP737.map",
@@ -178,7 +178,7 @@
     },
     {
       "output": "etc/charsets/CP858.map",
-      "shell": "cp admin/charsets/mapfiles/CP858.map etc/charsets/CP858.map"
+      "shell": "cat admin/charsets/mapfiles/CP858.map > etc/charsets/CP858.map"
     },
     {
       "output": "etc/charsets/CP932-2BYTE.map",
@@ -438,7 +438,7 @@
     },
     {
       "output": "etc/charsets/JISX213A.map",
-      "shell": "cp admin/charsets/mapfiles/JISX213A.map etc/charsets/JISX213A.map"
+      "shell": "cat admin/charsets/mapfiles/JISX213A.map > etc/charsets/JISX213A.map"
     },
     {
       "output": "etc/charsets/JOHAB.map",
@@ -486,31 +486,31 @@
     },
     {
       "output": "etc/charsets/MULE-ethiopic.map",
-      "shell": "cp admin/charsets/mapfiles/MULE-ethiopic.map etc/charsets/MULE-ethiopic.map"
+      "shell": "cat admin/charsets/mapfiles/MULE-ethiopic.map > etc/charsets/MULE-ethiopic.map"
     },
     {
       "output": "etc/charsets/MULE-ipa.map",
-      "shell": "cp admin/charsets/mapfiles/MULE-ipa.map etc/charsets/MULE-ipa.map"
+      "shell": "cat admin/charsets/mapfiles/MULE-ipa.map > etc/charsets/MULE-ipa.map"
     },
     {
       "output": "etc/charsets/MULE-is13194.map",
-      "shell": "cp admin/charsets/mapfiles/MULE-is13194.map etc/charsets/MULE-is13194.map"
+      "shell": "cat admin/charsets/mapfiles/MULE-is13194.map > etc/charsets/MULE-is13194.map"
     },
     {
       "output": "etc/charsets/MULE-lviscii.map",
-      "shell": "cp admin/charsets/mapfiles/MULE-lviscii.map etc/charsets/MULE-lviscii.map"
+      "shell": "cat admin/charsets/mapfiles/MULE-lviscii.map > etc/charsets/MULE-lviscii.map"
     },
     {
       "output": "etc/charsets/MULE-sisheng.map",
-      "shell": "cp admin/charsets/mapfiles/MULE-sisheng.map etc/charsets/MULE-sisheng.map"
+      "shell": "cat admin/charsets/mapfiles/MULE-sisheng.map > etc/charsets/MULE-sisheng.map"
     },
     {
       "output": "etc/charsets/MULE-tibetan.map",
-      "shell": "cp admin/charsets/mapfiles/MULE-tibetan.map etc/charsets/MULE-tibetan.map"
+      "shell": "cat admin/charsets/mapfiles/MULE-tibetan.map > etc/charsets/MULE-tibetan.map"
     },
     {
       "output": "etc/charsets/MULE-uviscii.map",
-      "shell": "cp admin/charsets/mapfiles/MULE-uviscii.map etc/charsets/MULE-uviscii.map"
+      "shell": "cat admin/charsets/mapfiles/MULE-uviscii.map > etc/charsets/MULE-uviscii.map"
     },
     {
       "output": "etc/charsets/NEXTSTEP.map",
