@@ -1,0 +1,329 @@
+{
+  "schema": "femacs-remote-notification-diagnostic-evidence-v1",
+  "diagnostic_accepted": true,
+  "historical_intermittent_failure_fixed": false,
+  "full_compatibility_accepted": false,
+  "final_source_sha256": {
+    "tools/remote-notification-diagnostic.py": "d75f5ca8f69d07055179c4f9b125dea77190a898800c96c46b2d1e3d8bb2c497",
+    "tools/stable-suite.py": "9702d159598c51637a281567c38e41e889a4733976264451edc9dff757f3c38e",
+    "tools/runtime-execution.py": "26b379c3d4a24adf2a306e1c751c654ca1b6b1c6cd43f0888398c3560e455fb4",
+    "compatibility/stable-31.1/sources.json": "a5ef144a203b8b2a74e346ac47173c5d4122f751d8d950347ae75ff67eef0efe",
+    "tools/fixtures/file-notify-remote-diagnostic.el": "1e7f460544b9d5d5d0db97cff31b0bccb532d6ec73726eed008966e1715a3663",
+    "tools/fixtures/stable-suite-runner.el": "d5bcd0c18f15995e50adefe8472d12ef82f71114be10ce307202b4ce0f11150e"
+  },
+  "product": {
+    "program": {
+      "name": "Femacs",
+      "sha256": "d796f4c52e2a32ec6176e02efca33d922da18252aaddd0885e59993f108ba385",
+      "bytes": 4230368,
+      "mode": 493
+    },
+    "dump": {
+      "name": "Femacs.pdmp",
+      "sha256": "2b87c3436eaa33e551b024c6be01ea702b9c586c4535993258b63aa95a618b92",
+      "bytes": 18602200,
+      "mode": 420
+    },
+    "lisp": {
+      "name": "lisp",
+      "sha256": "044a9e20ed19a4610979351b88ea055b8bdc3c3bfdf33f4b2102536bc7437721",
+      "file_count": 3353,
+      "bytes": 161054205
+    },
+    "lcms_runtime": {
+      "name": "runtime-lcms",
+      "sha256": "2d32dd67fc43360a36d3625a795bcedbe90f16229095e57033f1cc045a68a3d1",
+      "file_count": 1,
+      "bytes": 338320
+    },
+    "lcms_licenses": {
+      "name": "lcms",
+      "sha256": "9a91fa8f8734413b7b7d6eb84062f9d5b4d2ce704b6daa345f1c9e078f4dfb8b",
+      "file_count": 1,
+      "bytes": 1080
+    },
+    "treesit_runtime": {
+      "name": "runtime-treesit",
+      "sha256": "3801763da75130cd8ee713b7aedc7b6a2f143482c1385dcf9ccabe8b76a47a78",
+      "file_count": 1,
+      "bytes": 213744
+    },
+    "treesit_licenses": {
+      "name": "treesit",
+      "sha256": "3a4b53da4988db9aa63a6dfe654aaf7e083e2df18e6b72da365f1c9eb99caa8f",
+      "file_count": 1,
+      "bytes": 1080
+    }
+  },
+  "original_remote_input": {
+    "logical_path": "test/lisp/filenotify-tests.el",
+    "source_path": "compatibility/stable-31.1/test/lisp/filenotify-tests.el",
+    "sha256": "8d812305c5c31652164b9da8495beb4d2572df8e6d1c504e7d47408d0aadd031",
+    "blob": "798253aeb0c0646da0c816d7be1f37b955c3d4e1",
+    "bytes": 72013
+  },
+  "executions": [
+    {
+      "output": "remote09-diagnostic-verify-and-single-1",
+      "raw_result_sha256": "d825bacce437132164af2328519b4f1f693ea9b83cb124206f5d9220a72e1c54",
+      "aggregate_passed": false,
+      "inputs_unchanged": true,
+      "fixture": {
+        "name": "file-notify-remote-diagnostic.el",
+        "sha256": "38b5a0f99fd1fa80b89414a61493a0fcb5ee1954d0b221cfb922437307b694c3",
+        "bytes": 21455,
+        "mode": 420
+      },
+      "seconds": 130.097161416,
+      "capture_assertions": {
+        "region_byte255_and_state_preservation": false,
+        "string_base64url_and_multibyte_byte255": false,
+        "success_path_does_not_fabricate_failure": false,
+        "post_exit_forensic_state_retained": false
+      },
+      "verification_cases": [
+        {
+          "test_id": "femacs-remote09-diag-self-test-region-byte255-failure",
+          "passed": false,
+          "status": "load-error",
+          "complete": true,
+          "exit_code": 0,
+          "base64_error_capture_count": 0
+        },
+        {
+          "test_id": "femacs-remote09-diag-self-test-string-and-multibyte-failure",
+          "passed": false,
+          "status": "load-error",
+          "complete": true,
+          "exit_code": 0,
+          "base64_error_capture_count": 0
+        },
+        {
+          "test_id": "femacs-remote09-diag-self-test-success-path",
+          "passed": false,
+          "status": "load-error",
+          "complete": true,
+          "exit_code": 0,
+          "base64_error_capture_count": 0
+        }
+      ],
+      "actual_remote_cases": [
+        {
+          "test_id": "file-notify-test09-watched-file-in-watched-dir-remote",
+          "passed": true,
+          "status": "passed",
+          "complete": true,
+          "exit_code": 0,
+          "seconds": 128.87418316699998,
+          "base64_error_capture_count": 0
+        }
+      ]
+    },
+    {
+      "output": "remote09-diagnostic-capture-verify-1",
+      "raw_result_sha256": "0da9005b6446139da983af92f635eecd77f8b4c2d8057e06ca18ac11a951badc",
+      "aggregate_passed": true,
+      "inputs_unchanged": true,
+      "fixture": {
+        "name": "file-notify-remote-diagnostic.el",
+        "sha256": "6a65932eff1448385b51184b5a93bc1de8ece52e44eef6806ea210e30223e93a",
+        "bytes": 21568,
+        "mode": 420
+      },
+      "seconds": 1.147522833,
+      "capture_assertions": {
+        "region_byte255_and_state_preservation": true,
+        "string_base64url_and_multibyte_byte255": true,
+        "success_path_does_not_fabricate_failure": true,
+        "post_exit_forensic_state_retained": true
+      },
+      "verification_cases": [
+        {
+          "test_id": "femacs-remote09-diag-self-test-region-byte255-failure",
+          "passed": false,
+          "status": "failed",
+          "complete": true,
+          "exit_code": 0,
+          "base64_error_capture_count": 1
+        },
+        {
+          "test_id": "femacs-remote09-diag-self-test-string-and-multibyte-failure",
+          "passed": false,
+          "status": "failed",
+          "complete": true,
+          "exit_code": 0,
+          "base64_error_capture_count": 2
+        },
+        {
+          "test_id": "femacs-remote09-diag-self-test-success-path",
+          "passed": true,
+          "status": "passed",
+          "complete": true,
+          "exit_code": 0,
+          "base64_error_capture_count": 0
+        }
+      ],
+      "actual_remote_cases": []
+    },
+    {
+      "output": "remote09-diagnostic-capture-verify-2",
+      "raw_result_sha256": "456850bc3fde78c64832101b69270f8927f548a59fd461d4bf93edc6a6974429",
+      "aggregate_passed": true,
+      "inputs_unchanged": true,
+      "fixture": {
+        "name": "file-notify-remote-diagnostic.el",
+        "sha256": "98184e4d0a07810eacbb9261afb37b175c9029d2e7170b5b0731c187cad44c06",
+        "bytes": 21764,
+        "mode": 420
+      },
+      "seconds": 1.2235848329999999,
+      "capture_assertions": {
+        "region_byte255_and_state_preservation": true,
+        "string_base64url_and_multibyte_byte255": true,
+        "success_path_does_not_fabricate_failure": true,
+        "post_exit_forensic_state_retained": true
+      },
+      "verification_cases": [
+        {
+          "test_id": "femacs-remote09-diag-self-test-region-byte255-failure",
+          "passed": false,
+          "status": "failed",
+          "complete": true,
+          "exit_code": 0,
+          "base64_error_capture_count": 1
+        },
+        {
+          "test_id": "femacs-remote09-diag-self-test-string-and-multibyte-failure",
+          "passed": false,
+          "status": "failed",
+          "complete": true,
+          "exit_code": 0,
+          "base64_error_capture_count": 2
+        },
+        {
+          "test_id": "femacs-remote09-diag-self-test-success-path",
+          "passed": true,
+          "status": "passed",
+          "complete": true,
+          "exit_code": 0,
+          "base64_error_capture_count": 0
+        }
+      ],
+      "actual_remote_cases": []
+    },
+    {
+      "output": "remote09-diagnostic-capture-verify-3",
+      "raw_result_sha256": "3a4e3fc1a8cbb3cf9e18d978ddca16e2be210202195077a4f8d714d96ca17533",
+      "aggregate_passed": true,
+      "inputs_unchanged": true,
+      "fixture": {
+        "name": "file-notify-remote-diagnostic.el",
+        "sha256": "1e7f460544b9d5d5d0db97cff31b0bccb532d6ec73726eed008966e1715a3663",
+        "bytes": 22000,
+        "mode": 420
+      },
+      "seconds": 1.156365708,
+      "capture_assertions": {
+        "region_byte255_and_state_preservation": true,
+        "string_base64url_and_multibyte_byte255": true,
+        "success_path_does_not_fabricate_failure": true,
+        "post_exit_forensic_state_retained": true
+      },
+      "verification_cases": [
+        {
+          "test_id": "femacs-remote09-diag-self-test-region-byte255-failure",
+          "passed": false,
+          "status": "failed",
+          "complete": true,
+          "exit_code": 0,
+          "base64_error_capture_count": 1
+        },
+        {
+          "test_id": "femacs-remote09-diag-self-test-string-and-multibyte-failure",
+          "passed": false,
+          "status": "failed",
+          "complete": true,
+          "exit_code": 0,
+          "base64_error_capture_count": 2
+        },
+        {
+          "test_id": "femacs-remote09-diag-self-test-success-path",
+          "passed": true,
+          "status": "passed",
+          "complete": true,
+          "exit_code": 0,
+          "base64_error_capture_count": 0
+        }
+      ],
+      "actual_remote_cases": []
+    }
+  ],
+  "final_retention_checks": [
+    {
+      "passed": true,
+      "environment_dir_exists": true,
+      "case_dir_count": 1,
+      "process_json_exists": true,
+      "stdout_exists": true,
+      "stderr_exists": true,
+      "result_file_exists": true,
+      "diagnostic_file_matches_expectation": true,
+      "retirement_status": "retained"
+    },
+    {
+      "passed": true,
+      "environment_dir_exists": true,
+      "case_dir_count": 1,
+      "process_json_exists": true,
+      "stdout_exists": true,
+      "stderr_exists": true,
+      "result_file_exists": true,
+      "diagnostic_file_matches_expectation": true,
+      "retirement_status": "retained"
+    },
+    {
+      "passed": true,
+      "environment_dir_exists": true,
+      "case_dir_count": 1,
+      "process_json_exists": true,
+      "stdout_exists": true,
+      "stderr_exists": true,
+      "result_file_exists": true,
+      "diagnostic_file_matches_expectation": true,
+      "retirement_status": "retained"
+    }
+  ],
+  "controllers": {
+    "initial_combined": {
+      "exit_code": 1,
+      "cleanup_complete": true,
+      "elapsed_seconds": 130.369,
+      "peak_accounted_bytes": 108527616
+    },
+    "registration_repair_verify": {
+      "exit_code": 0,
+      "cleanup_complete": true,
+      "elapsed_seconds": 1.299,
+      "peak_accounted_bytes": 28901376
+    },
+    "literal_percent_verify": {
+      "exit_code": 0,
+      "cleanup_complete": true,
+      "elapsed_seconds": 1.285,
+      "peak_accounted_bytes": 55771136
+    },
+    "final_source_binding_verify": {
+      "exit_code": 0,
+      "cleanup_complete": true,
+      "elapsed_seconds": 1.29,
+      "peak_accounted_bytes": 39190528
+    }
+  },
+  "latest_full_remote_run_uses_final_fixture": false,
+  "no_default_product_change": true,
+  "limitations": [
+    "Diagnostic wrapper changes timing and stack",
+    "No captured bad input from the historical intermittent failure",
+    "Retained text limits do not bound full input copying/scanning memory"
+  ]
+}

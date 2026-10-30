@@ -23854,3 +23854,15 @@ Independent review accepted final source/result identities. TrialApp unchanged.
 [Evidence](../maintenance/releases/2026-10-30-permanent-fallback-measurement.md).
 CLN156 retires540emptydirectories,0regularbytes;550retainedfiles verified.
 SameGoal active: G1/G2/G4 accepted3/7; G3/G5/G6/G7 and qualified gains remain open.
+
+### 2026-10-30 remote notification diagnostic delivery
+
+Error-only decoder wrappers and the pinned stable31.1 remote09 driver preserve
+original error records, exact unibyte input and isolated forensic state. Primary
+review fixed literal-percent process arguments and bound six source identities.
+Final focused verification passes four assertions across three cases; controller
+exit0/reaped,1.290s,39,190,528peakbytes. Earlier combined result remainsfalse
+(load errors/controllerexit1); only its separate real128.874s remote case passed
+with the older fixture. No final-version remote rerun or root-cause fix is claimed.
+Independent final adoption confirmed. [Report](../maintenance/releases/2026-10-30-remote-notification-diagnostic.md).
+Historical intermittent InvalidBase64 and fullG3 remainopen; no defaultApp change.
