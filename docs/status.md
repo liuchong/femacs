@@ -24058,3 +24058,30 @@ bytes; original results, frozen inputs, products and App remain unchanged.
   G1/G2/G4 remain 3/7 (42.9%); G3/G5/G6/G7 remain 4/7 (57.1%), original Goal active.
   Next uncovered compatibility and source-bound runtime work; no full G3/native/
   performance acceptance inferred from this batch.
+
+
+### Original stable process facilities (2026-10-30)
+
+- Complete original process file: 39 registered IDs per normal product, 37 pass
+  and two Windows-only skips each; combined 111 passes/six skips, no failed
+  assertions/timeouts. Static 40 includes one Windows-only unregistered case.
+  All three file processes exit 0 complete, original aggregate false/owner exit
+  1 preserved. Maps, full inputs/resources and trial App unchanged.
+- DNS and four FD-pressure cases pass with original assertions. Actual FD count
+  is not recorded, child dumps lack separate fingerprints. Original guards and
+  scale retained. Actual 65-second case/600-second owner deadlines; driver
+  17.259801708s, primary owner 18.611s, 209,453,056B accounted peak and complete
+  cleanup. Independent raw-result review finds no confirmed defect; controller
+  metrics remain primary-side receipts, not independent performance acceptance.
+- CLN165: 4,608 files/783 directories/three links, 62,990,856 logical /
+  75,264,000 allocated bytes, 5,394 identity rows. Includes exactly three owned
+  short socket environments with 30 empty directories; no earlier auto deletion.
+  Original outcomes, corpus, products and unrelated work retained.
+- JSON report correction: implemented per-load/case deadline 60 seconds, not
+  descriptive 20 seconds; raw result/driver and 180-second owner deadline retained,
+  no rerun or change to 75 passes.
+- [Comparison](../maintenance/releases/2026-10-30-original-process.md),
+  [receipt](../maintenance/releases/2026-10-30-original-process-results.json),
+  [CLN165](../maintenance/cleanup/reports/2026-10-30-165-consumed-process-state.md).
+  G1/G2/G4 remain 3/7 (42.9%); four outcomes/57.1% remain. No GUI/native or
+  performance adoption, no production patch or App replacement.

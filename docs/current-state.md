@@ -1,3 +1,17 @@
+## Current continuation: original process coverage (2026-10-30)
+
+The complete pinned process file registers 39 IDs per normal reference/terminal/
+Cocoa: 111 passes and six shared Windows skips, no failures/timeouts. Three file
+processes exit 0 complete; original aggregate false and owner exit 1 remain.
+Original maps/inputs/full products and trial App are unchanged. Independent
+review finds no confirmed defect; FD passes do not prove 1025 descriptors and
+child dumps lack separate fingerprints. [Evidence](../maintenance/releases/2026-10-30-original-process.md).
+CLN165 retires 4,608 files/783 directories/three links, retaining raw outcomes
+and products. JSON deadline prose is corrected from planned 20 to implemented
+60 seconds per case; raw results and 180-second owner deadline stay unchanged.
+G1/G2/G4 remain 3/7; G3/G5/G6/G7 and original Goal remain active. Continue the
+uncovered original compatibility files and evidence-led runtime implementation.
+
 ## Current continuation: original JSON coverage (2026-10-30)
 
 Complete pinned stable JSON parser/serializer tests pass on installed reference,

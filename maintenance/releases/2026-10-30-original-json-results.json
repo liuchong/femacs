@@ -32,14 +32,14 @@
   "driver_sha256": "eb3f2d8990c23a91cdd381856a0db1e32b442b5ed827b75b79b40ff9239bd477",
   "budget": {
     "whole_seconds": 180,
-    "per_case_seconds": 20,
+    "per_case_seconds": 60,
     "expected_seconds": [
       5,
       30
     ],
     "expected_peak_bytes": 536870912,
     "copied_source_bytes": 62990856,
-    "scale": "3 serial original JSON file processes, all discovered IDs. Fixed small JSON strings, scalars, invalid Unicode and error-position fixtures; duplicate-key objects for sizes1/5/20/100 (at most200 alist pairs or400 plist cells);17 gap positions times3 narrowing ranges on a17-character string. Constant-size circular lists must signal original circular-list/wrong-type errors; per-case20s guards nontermination. Hook signal/throw fixtures use tiny objects and exactly one hook call. Bignums only adjacent fixnum bounds. No network/UI/externalcompiler/intentionalcrash; expected under512MiB. Original bodies, assertions, inputs and guards unchanged; whole180s hard deadline"
+    "scale": "3 serial original JSON file processes, all discovered IDs. Fixed small JSON strings, scalars, invalid Unicode and error-position fixtures; duplicate-key objects for sizes1/5/20/100 (at most200 alist pairs or400 plist cells);17 gap positions times3 narrowing ranges on a17-character string. Constant-size circular lists must signal original circular-list/wrong-type errors; per-case60s guards nontermination. Hook signal/throw fixtures use tiny objects and exactly one hook call. Bignums only adjacent fixnum bounds. No network/UI/externalcompiler/intentionalcrash; expected under512MiB. Original bodies, assertions, inputs and guards unchanged; whole180s hard deadline"
   },
   "controller": {
     "run_id": "90bc2f91eb6941149a2478ba3054d313",
@@ -700,5 +700,11 @@
         "allocated_bytes": 0
       }
     ]
+  },
+  "budget_correction": {
+    "original_raw_per_case_seconds": 20,
+    "implemented_per_load_and_case_seconds": 60,
+    "whole_seconds": 180,
+    "reason": "The driver passed60 to _run_file; raw descriptive20 was incorrect. Original raw result and driver hashes retained; no rerun or outcome changes."
   }
 }

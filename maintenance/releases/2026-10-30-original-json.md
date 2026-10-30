@@ -21,8 +21,12 @@ objects, circular-list errors and insertion hooks that signal or throw.
 Both hook cases require exactly one callback. The original hash-table
 duplicate-key check is commented out and **is not covered** by this run.
 
-R42 bounds three serial file processes, 20 seconds per case and 180 seconds
-for the protected owner; estimate 5–30 seconds and below 512 MiB. Strings
+The implemented bounds were three serial file processes, **60 seconds per
+load/case** and 180 seconds for the protected owner. The original descriptive
+budget incorrectly stated 20 seconds per case; it was not the enforced value.
+This documentation correction preserves the raw result and driver unchanged;
+all 75 observations completed in 4.751422 seconds, without rerunning them.
+The estimate was 5–30 seconds and below 512 MiB. Strings
 and invalid encodings are short fixed inputs. Duplicate-key sizes are
 1/5/20/100, at most 200 alist pairs or 400 plist cells; the restricted-buffer
 case checks 17 gap positions with three narrowed ranges. Circular objects

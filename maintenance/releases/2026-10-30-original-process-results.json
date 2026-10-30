@@ -1,0 +1,932 @@
+{
+  "schema": 1,
+  "scope": "One complete pinned stable process and network facilities file; installed reference and current normal terminal/Cocoa; all IDs and original assertions unchanged, no full G3, physical UI, native/collector or performance claim",
+  "passed": false,
+  "source_commit": "a360712c9d272d950d8d8255ef74570f7e90b7d9",
+  "files": [
+    {
+      "path": "test/src/process-tests.el",
+      "size": 48133,
+      "blob": "025fba97becda959c98c58f1f5b6243c0765d8f5",
+      "sha256": "6f6825b6a5470f04bcc794ffdd19301c661d0a98d904c5584d94e9db47f4dfd8"
+    }
+  ],
+  "counts": {
+    "passed": 111,
+    "skipped": 6
+  },
+  "ids_per_product": 39,
+  "processes": 3,
+  "seconds": 17.259801708,
+  "status_maps_equal_reference": true,
+  "identities_unchanged": true,
+  "original_inputs_unchanged": true,
+  "generated_resources": {
+    "reference": {},
+    "terminal": {},
+    "cocoa": {}
+  },
+  "raw_result": {
+    "path": "build/acceptance/g3-process-1/results.json",
+    "sha256": "fd503d03e8a79fa446cd8befbc501644f7bd02d039e57cb27356df11efb9a2fc"
+  },
+  "driver_sha256": "62bad0aba645da603267fe5b7f6fa5b2ddff3b2ce505daa5a87f1cb6179ced9e",
+  "budget": {
+    "whole_seconds": 600,
+    "per_case_seconds": 65,
+    "expected_seconds": [
+      20,
+      180
+    ],
+    "expected_peak_bytes": 1073741824,
+    "copied_source_bytes": 62990856,
+    "scale": "3 serial original process file processes, all registered IDs and unchanged guards. File load performs external DNS google.com; five guarded DNS cases may also query external names; no mocking or disabling Internet guard. Fixed numeric address lists. Four FD pressure cases allocate up to1025 pipe objects per pass, process case tests pipe andPTY legs; at most10 cat,10 local-socket clients,10 PTY sleep60 hosts or10 threads. No global limit change; original prlimit acts only on owneditor if available. Current binary and dump reinvocation retained. Original60s Lisp waits plus65s external per-load/case deadline and600s outer deadline. PTY descendants may form new sessions; owned controller tree tracking and final cleanup required. Expected20-180s under1GiB; external DNS failures or platform skips retained, no intentionalcrash orUI operation; independent review before consumed-state cleanup"
+  },
+  "controller": {
+    "run_id": "72472985fc05492eaf715b82d00af530",
+    "exit_code": 1,
+    "cleanup_complete": true,
+    "elapsed_seconds": 18.611,
+    "peak_rss_bytes": 209453056,
+    "peak_footprint_bytes": 135465240,
+    "peak_accounted_bytes": 209453056,
+    "metrics_independently_reviewed": false
+  },
+  "process_results": [
+    {
+      "product": "reference",
+      "file": "test/src/process-tests.el",
+      "ids": [
+        "lookup-family-specification",
+        "lookup-google",
+        "lookup-hints-specification",
+        "lookup-hints-values",
+        "lookup-unicode-domains",
+        "make-process-w32-debug-spawn-error",
+        "make-process/connection-type/in-pty",
+        "make-process/connection-type/out-pty",
+        "make-process/connection-type/out-pty-with-stderr-buffer",
+        "make-process/connection-type/pipe",
+        "make-process/connection-type/pipe-2",
+        "make-process/connection-type/pty",
+        "make-process/connection-type/pty-2",
+        "make-process/connection-type/pty-with-stderr-buffer",
+        "make-process/file-handler/disable",
+        "make-process/file-handler/found",
+        "make-process/file-handler/not-found",
+        "make-process/mix-stderr",
+        "make-process/noquery-stderr",
+        "make-process/stop",
+        "non-existent-lookup-failure",
+        "process-num-processors",
+        "process-sentinel-interrupt-event",
+        "process-test-make-pipe-process-no-buffer",
+        "process-test-sentinel-accept-process-output",
+        "process-test-sentinel-sit-for",
+        "process-test-stderr-buffer",
+        "process-test-stderr-filter",
+        "process-tests-check-bug-74907",
+        "process-tests/fd-setsize-no-crash/make-network-process",
+        "process-tests/fd-setsize-no-crash/make-pipe-process",
+        "process-tests/fd-setsize-no-crash/make-process",
+        "process-tests/fd-setsize-no-crash/make-serial-process",
+        "process-tests/multiple-threads-waiting",
+        "process-tests/sentinel-called",
+        "process-tests/sentinel-with-multiple-processes",
+        "set-process-filter-t",
+        "start-process-should-not-modify-arguments",
+        "unibyte-domain-name"
+      ],
+      "counts": {
+        "passed": 37,
+        "skipped": 2
+      },
+      "complete": true,
+      "exit_code": 0,
+      "remaining_group_terminated": false,
+      "seconds": 5.9417567920000005,
+      "result": {
+        "path": "build/acceptance/g3-process-1/reference/results/reference/test-src-process-tests.el-1790a472076a.json",
+        "sha256": "a9e884f97a22758c026d1469de148d79fa587b4b5835a2f94780b565024f28f7"
+      },
+      "events": {
+        "path": "build/acceptance/g3-process-1/reference/results/reference/test-src-process-tests.el-1790a472076a.events.jsonl",
+        "sha256": "1d77bd5870d304f36293d72524269291e8269de6a8f587bf57c632154cb26578"
+      },
+      "cases": {
+        "lookup-family-specification": {
+          "status": "passed",
+          "seconds": 0.00077,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "lookup-google": {
+          "status": "passed",
+          "seconds": 1.329287,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "lookup-hints-specification": {
+          "status": "passed",
+          "seconds": 0.000116,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "lookup-hints-values": {
+          "status": "passed",
+          "seconds": 0.000325,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "lookup-unicode-domains": {
+          "status": "passed",
+          "seconds": 0.807754,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "make-process-w32-debug-spawn-error": {
+          "status": "skipped",
+          "seconds": 3.2e-05,
+          "diagnostic": "result=ert-test-skipped expected=t condition=(ert-test-skipped ((skip-unless (eq system-type 'windows-nt)) :form (eq darwin windows-nt) :value nil)) messages=\"\""
+        },
+        "make-process/connection-type/in-pty": {
+          "status": "passed",
+          "seconds": 0.007642,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "make-process/connection-type/out-pty": {
+          "status": "passed",
+          "seconds": 0.005456,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "make-process/connection-type/out-pty-with-stderr-buffer": {
+          "status": "passed",
+          "seconds": 0.005038,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "make-process/connection-type/pipe": {
+          "status": "passed",
+          "seconds": 0.003193,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "make-process/connection-type/pipe-2": {
+          "status": "passed",
+          "seconds": 0.003176,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "make-process/connection-type/pty": {
+          "status": "passed",
+          "seconds": 0.005351,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "make-process/connection-type/pty-2": {
+          "status": "passed",
+          "seconds": 0.005028,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "make-process/connection-type/pty-with-stderr-buffer": {
+          "status": "passed",
+          "seconds": 0.005169,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "make-process/file-handler/disable": {
+          "status": "passed",
+          "seconds": 0.001979,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "make-process/file-handler/found": {
+          "status": "passed",
+          "seconds": 6e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "make-process/file-handler/not-found": {
+          "status": "passed",
+          "seconds": 0.001828,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "make-process/mix-stderr": {
+          "status": "passed",
+          "seconds": 0.0023,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "make-process/noquery-stderr": {
+          "status": "passed",
+          "seconds": 0.000637,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "make-process/stop": {
+          "status": "passed",
+          "seconds": 3.2e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "non-existent-lookup-failure": {
+          "status": "passed",
+          "seconds": 0.6066,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "process-num-processors": {
+          "status": "passed",
+          "seconds": 2.4e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "process-sentinel-interrupt-event": {
+          "status": "skipped",
+          "seconds": 3.2e-05,
+          "diagnostic": "result=ert-test-skipped expected=t condition=(ert-test-skipped ((skip-unless (eq system-type 'windows-nt)) :form (eq darwin windows-nt) :value nil)) messages=\"\""
+        },
+        "process-test-make-pipe-process-no-buffer": {
+          "status": "passed",
+          "seconds": 2.7e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "process-test-sentinel-accept-process-output": {
+          "status": "passed",
+          "seconds": 0.004945,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "process-test-sentinel-sit-for": {
+          "status": "passed",
+          "seconds": 0.013971,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "process-test-stderr-buffer": {
+          "status": "passed",
+          "seconds": 0.005297,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "process-test-stderr-filter": {
+          "status": "passed",
+          "seconds": 0.010043,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "process-tests-check-bug-74907": {
+          "status": "passed",
+          "seconds": 0.000189,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "process-tests/fd-setsize-no-crash/make-network-process": {
+          "status": "passed",
+          "seconds": 0.100562,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "process-tests/fd-setsize-no-crash/make-pipe-process": {
+          "status": "passed",
+          "seconds": 0.060305,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "process-tests/fd-setsize-no-crash/make-process": {
+          "status": "passed",
+          "seconds": 0.156059,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "process-tests/fd-setsize-no-crash/make-serial-process": {
+          "status": "passed",
+          "seconds": 0.083991,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "process-tests/multiple-threads-waiting": {
+          "status": "passed",
+          "seconds": 0.003131,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "process-tests/sentinel-called": {
+          "status": "passed",
+          "seconds": 0.295151,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "process-tests/sentinel-with-multiple-processes": {
+          "status": "passed",
+          "seconds": 0.271636,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "set-process-filter-t": {
+          "status": "passed",
+          "seconds": 1.134686,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "start-process-should-not-modify-arguments": {
+          "status": "passed",
+          "seconds": 0.003122,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "unibyte-domain-name": {
+          "status": "passed",
+          "seconds": 0.001534,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        }
+      }
+    },
+    {
+      "product": "terminal",
+      "file": "test/src/process-tests.el",
+      "ids": [
+        "lookup-family-specification",
+        "lookup-google",
+        "lookup-hints-specification",
+        "lookup-hints-values",
+        "lookup-unicode-domains",
+        "make-process-w32-debug-spawn-error",
+        "make-process/connection-type/in-pty",
+        "make-process/connection-type/out-pty",
+        "make-process/connection-type/out-pty-with-stderr-buffer",
+        "make-process/connection-type/pipe",
+        "make-process/connection-type/pipe-2",
+        "make-process/connection-type/pty",
+        "make-process/connection-type/pty-2",
+        "make-process/connection-type/pty-with-stderr-buffer",
+        "make-process/file-handler/disable",
+        "make-process/file-handler/found",
+        "make-process/file-handler/not-found",
+        "make-process/mix-stderr",
+        "make-process/noquery-stderr",
+        "make-process/stop",
+        "non-existent-lookup-failure",
+        "process-num-processors",
+        "process-sentinel-interrupt-event",
+        "process-test-make-pipe-process-no-buffer",
+        "process-test-sentinel-accept-process-output",
+        "process-test-sentinel-sit-for",
+        "process-test-stderr-buffer",
+        "process-test-stderr-filter",
+        "process-tests-check-bug-74907",
+        "process-tests/fd-setsize-no-crash/make-network-process",
+        "process-tests/fd-setsize-no-crash/make-pipe-process",
+        "process-tests/fd-setsize-no-crash/make-process",
+        "process-tests/fd-setsize-no-crash/make-serial-process",
+        "process-tests/multiple-threads-waiting",
+        "process-tests/sentinel-called",
+        "process-tests/sentinel-with-multiple-processes",
+        "set-process-filter-t",
+        "start-process-should-not-modify-arguments",
+        "unibyte-domain-name"
+      ],
+      "counts": {
+        "passed": 37,
+        "skipped": 2
+      },
+      "complete": true,
+      "exit_code": 0,
+      "remaining_group_terminated": false,
+      "seconds": 3.0967910840000012,
+      "result": {
+        "path": "build/acceptance/g3-process-1/terminal/results/terminal/test-src-process-tests.el-1790a472076a.json",
+        "sha256": "dd6ac49ac0c4101466cb749aac1c54f3887349b08262f5d6d78b2168b2901fcb"
+      },
+      "events": {
+        "path": "build/acceptance/g3-process-1/terminal/results/terminal/test-src-process-tests.el-1790a472076a.events.jsonl",
+        "sha256": "221d39209e0f27c44a27649fc363e041b52ed6aac85ece242f513a05b559b910"
+      },
+      "cases": {
+        "lookup-family-specification": {
+          "status": "passed",
+          "seconds": 0.000507,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "lookup-google": {
+          "status": "passed",
+          "seconds": 0.618982,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "lookup-hints-specification": {
+          "status": "passed",
+          "seconds": 9.8e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "lookup-hints-values": {
+          "status": "passed",
+          "seconds": 0.000304,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "lookup-unicode-domains": {
+          "status": "passed",
+          "seconds": 0.026159,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "make-process-w32-debug-spawn-error": {
+          "status": "skipped",
+          "seconds": 4.4e-05,
+          "diagnostic": "result=ert-test-skipped expected=t condition=(ert-test-skipped ((skip-unless (eq system-type 'windows-nt)) :form (eq darwin windows-nt) :value nil)) messages=\"\""
+        },
+        "make-process/connection-type/in-pty": {
+          "status": "passed",
+          "seconds": 0.007407,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "make-process/connection-type/out-pty": {
+          "status": "passed",
+          "seconds": 0.007602,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "make-process/connection-type/out-pty-with-stderr-buffer": {
+          "status": "passed",
+          "seconds": 0.006833,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "make-process/connection-type/pipe": {
+          "status": "passed",
+          "seconds": 0.005846,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "make-process/connection-type/pipe-2": {
+          "status": "passed",
+          "seconds": 0.005321,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "make-process/connection-type/pty": {
+          "status": "passed",
+          "seconds": 0.006287,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "make-process/connection-type/pty-2": {
+          "status": "passed",
+          "seconds": 0.006665,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "make-process/connection-type/pty-with-stderr-buffer": {
+          "status": "passed",
+          "seconds": 0.006083,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "make-process/file-handler/disable": {
+          "status": "passed",
+          "seconds": 0.002211,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "make-process/file-handler/found": {
+          "status": "passed",
+          "seconds": 9.3e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "make-process/file-handler/not-found": {
+          "status": "passed",
+          "seconds": 0.002132,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "make-process/mix-stderr": {
+          "status": "passed",
+          "seconds": 0.004143,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "make-process/noquery-stderr": {
+          "status": "passed",
+          "seconds": 0.00158,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "make-process/stop": {
+          "status": "passed",
+          "seconds": 5.5e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "non-existent-lookup-failure": {
+          "status": "passed",
+          "seconds": 0.001173,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "process-num-processors": {
+          "status": "passed",
+          "seconds": 2e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "process-sentinel-interrupt-event": {
+          "status": "skipped",
+          "seconds": 4.1e-05,
+          "diagnostic": "result=ert-test-skipped expected=t condition=(ert-test-skipped ((skip-unless (eq system-type 'windows-nt)) :form (eq darwin windows-nt) :value nil)) messages=\"\""
+        },
+        "process-test-make-pipe-process-no-buffer": {
+          "status": "passed",
+          "seconds": 3.8e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "process-test-sentinel-accept-process-output": {
+          "status": "passed",
+          "seconds": 0.003934,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "process-test-sentinel-sit-for": {
+          "status": "passed",
+          "seconds": 0.013743,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "process-test-stderr-buffer": {
+          "status": "passed",
+          "seconds": 0.004623,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "process-test-stderr-filter": {
+          "status": "passed",
+          "seconds": 0.004908,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "process-tests-check-bug-74907": {
+          "status": "passed",
+          "seconds": 0.000198,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "process-tests/fd-setsize-no-crash/make-network-process": {
+          "status": "passed",
+          "seconds": 0.07259,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "process-tests/fd-setsize-no-crash/make-pipe-process": {
+          "status": "passed",
+          "seconds": 0.029978,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "process-tests/fd-setsize-no-crash/make-process": {
+          "status": "passed",
+          "seconds": 0.156143,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "process-tests/fd-setsize-no-crash/make-serial-process": {
+          "status": "passed",
+          "seconds": 0.055367,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "process-tests/multiple-threads-waiting": {
+          "status": "passed",
+          "seconds": 0.015403,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "process-tests/sentinel-called": {
+          "status": "passed",
+          "seconds": 0.030998,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "process-tests/sentinel-with-multiple-processes": {
+          "status": "passed",
+          "seconds": 0.029468,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "set-process-filter-t": {
+          "status": "passed",
+          "seconds": 1.016496,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "start-process-should-not-modify-arguments": {
+          "status": "passed",
+          "seconds": 0.002106,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "unibyte-domain-name": {
+          "status": "passed",
+          "seconds": 0.235153,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        }
+      }
+    },
+    {
+      "product": "cocoa",
+      "file": "test/src/process-tests.el",
+      "ids": [
+        "lookup-family-specification",
+        "lookup-google",
+        "lookup-hints-specification",
+        "lookup-hints-values",
+        "lookup-unicode-domains",
+        "make-process-w32-debug-spawn-error",
+        "make-process/connection-type/in-pty",
+        "make-process/connection-type/out-pty",
+        "make-process/connection-type/out-pty-with-stderr-buffer",
+        "make-process/connection-type/pipe",
+        "make-process/connection-type/pipe-2",
+        "make-process/connection-type/pty",
+        "make-process/connection-type/pty-2",
+        "make-process/connection-type/pty-with-stderr-buffer",
+        "make-process/file-handler/disable",
+        "make-process/file-handler/found",
+        "make-process/file-handler/not-found",
+        "make-process/mix-stderr",
+        "make-process/noquery-stderr",
+        "make-process/stop",
+        "non-existent-lookup-failure",
+        "process-num-processors",
+        "process-sentinel-interrupt-event",
+        "process-test-make-pipe-process-no-buffer",
+        "process-test-sentinel-accept-process-output",
+        "process-test-sentinel-sit-for",
+        "process-test-stderr-buffer",
+        "process-test-stderr-filter",
+        "process-tests-check-bug-74907",
+        "process-tests/fd-setsize-no-crash/make-network-process",
+        "process-tests/fd-setsize-no-crash/make-pipe-process",
+        "process-tests/fd-setsize-no-crash/make-process",
+        "process-tests/fd-setsize-no-crash/make-serial-process",
+        "process-tests/multiple-threads-waiting",
+        "process-tests/sentinel-called",
+        "process-tests/sentinel-with-multiple-processes",
+        "set-process-filter-t",
+        "start-process-should-not-modify-arguments",
+        "unibyte-domain-name"
+      ],
+      "counts": {
+        "passed": 37,
+        "skipped": 2
+      },
+      "complete": true,
+      "exit_code": 0,
+      "remaining_group_terminated": false,
+      "seconds": 4.479027458000001,
+      "result": {
+        "path": "build/acceptance/g3-process-1/cocoa/results/cocoa/test-src-process-tests.el-1790a472076a.json",
+        "sha256": "71f26137debe4b0ab36eceb8e81ee12cb4791be6ae4b0f087226bf167d13e732"
+      },
+      "events": {
+        "path": "build/acceptance/g3-process-1/cocoa/results/cocoa/test-src-process-tests.el-1790a472076a.events.jsonl",
+        "sha256": "03fa6712dd59002edb4805abaa52dc958d686be776397d259051c264a562d164"
+      },
+      "cases": {
+        "lookup-family-specification": {
+          "status": "passed",
+          "seconds": 0.000626,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "lookup-google": {
+          "status": "passed",
+          "seconds": 1.192171,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "lookup-hints-specification": {
+          "status": "passed",
+          "seconds": 0.000141,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "lookup-hints-values": {
+          "status": "passed",
+          "seconds": 0.000354,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "lookup-unicode-domains": {
+          "status": "passed",
+          "seconds": 0.547193,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "make-process-w32-debug-spawn-error": {
+          "status": "skipped",
+          "seconds": 7.8e-05,
+          "diagnostic": "result=ert-test-skipped expected=t condition=(ert-test-skipped ((skip-unless (eq system-type 'windows-nt)) :form (eq darwin windows-nt) :value nil)) messages=\"\""
+        },
+        "make-process/connection-type/in-pty": {
+          "status": "passed",
+          "seconds": 0.008905,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "make-process/connection-type/out-pty": {
+          "status": "passed",
+          "seconds": 0.00707,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "make-process/connection-type/out-pty-with-stderr-buffer": {
+          "status": "passed",
+          "seconds": 0.006612,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "make-process/connection-type/pipe": {
+          "status": "passed",
+          "seconds": 0.003937,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "make-process/connection-type/pipe-2": {
+          "status": "passed",
+          "seconds": 0.003775,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "make-process/connection-type/pty": {
+          "status": "passed",
+          "seconds": 0.005439,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "make-process/connection-type/pty-2": {
+          "status": "passed",
+          "seconds": 0.005464,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "make-process/connection-type/pty-with-stderr-buffer": {
+          "status": "passed",
+          "seconds": 0.009279,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "make-process/file-handler/disable": {
+          "status": "passed",
+          "seconds": 0.002018,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "make-process/file-handler/found": {
+          "status": "passed",
+          "seconds": 0.000108,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "make-process/file-handler/not-found": {
+          "status": "passed",
+          "seconds": 0.001847,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "make-process/mix-stderr": {
+          "status": "passed",
+          "seconds": 0.002447,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "make-process/noquery-stderr": {
+          "status": "passed",
+          "seconds": 0.000246,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "make-process/stop": {
+          "status": "passed",
+          "seconds": 4.1e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "non-existent-lookup-failure": {
+          "status": "passed",
+          "seconds": 0.610838,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "process-num-processors": {
+          "status": "passed",
+          "seconds": 2.9e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "process-sentinel-interrupt-event": {
+          "status": "skipped",
+          "seconds": 4.5e-05,
+          "diagnostic": "result=ert-test-skipped expected=t condition=(ert-test-skipped ((skip-unless (eq system-type 'windows-nt)) :form (eq darwin windows-nt) :value nil)) messages=\"\""
+        },
+        "process-test-make-pipe-process-no-buffer": {
+          "status": "passed",
+          "seconds": 3.4e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "process-test-sentinel-accept-process-output": {
+          "status": "passed",
+          "seconds": 0.004733,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "process-test-sentinel-sit-for": {
+          "status": "passed",
+          "seconds": 0.01404,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "process-test-stderr-buffer": {
+          "status": "passed",
+          "seconds": 0.004262,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "process-test-stderr-filter": {
+          "status": "passed",
+          "seconds": 0.004256,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "process-tests-check-bug-74907": {
+          "status": "passed",
+          "seconds": 0.000243,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "process-tests/fd-setsize-no-crash/make-network-process": {
+          "status": "passed",
+          "seconds": 0.063461,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "process-tests/fd-setsize-no-crash/make-pipe-process": {
+          "status": "passed",
+          "seconds": 0.029757,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "process-tests/fd-setsize-no-crash/make-process": {
+          "status": "passed",
+          "seconds": 0.059407,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "process-tests/fd-setsize-no-crash/make-serial-process": {
+          "status": "passed",
+          "seconds": 0.04922,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "process-tests/multiple-threads-waiting": {
+          "status": "passed",
+          "seconds": 0.002807,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "process-tests/sentinel-called": {
+          "status": "passed",
+          "seconds": 0.033539,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "process-tests/sentinel-with-multiple-processes": {
+          "status": "passed",
+          "seconds": 0.034484,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "set-process-filter-t": {
+          "status": "passed",
+          "seconds": 1.017225,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "start-process-should-not-modify-arguments": {
+          "status": "passed",
+          "seconds": 0.00248,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "unibyte-domain-name": {
+          "status": "passed",
+          "seconds": 0.001323,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        }
+      }
+    }
+  ],
+  "full_G3_accepted": false,
+  "performance_accepted": false,
+  "physical_UI_tested": false,
+  "products": {
+    "reference": {
+      "program": {
+        "kind": "file",
+        "bytes": 3691504,
+        "mode": 493,
+        "sha256": "5b55e93c8304368ee37cc5c537ca3e1370e3b9b3fef049bdce76834a9db75e65"
+      },
+      "dump": {
+        "kind": "file",
+        "bytes": 23084632,
+        "mode": 420,
+        "sha256": "6ac1214186022574a70e84a04bb7f2dc44e1ea1d4c90f0d9ce421ddd0f4b4536"
+      },
+      "resources": {
+        "lisp": {
+          "identity_canonical_json_sha256": "564df364c803f4d0b64d7bc2ba986d775e8985529481ac2684b739666e131323",
+          "top_level_entries": 3316
+        }
+      }
+    },
+    "terminal": {
+      "program": {
+        "kind": "file",
+        "bytes": 2698016,
+        "mode": 493,
+        "sha256": "fb0b822273e79bb5b008725771473f5d510b9f712488242d615fb3a5fefbcde6"
+      },
+      "dump": {
+        "kind": "file",
+        "bytes": 13101600,
+        "mode": 420,
+        "sha256": "5d1913c39d5c348c711d24e16b25d9e63d09e082ee6dbe3b3a54ac4680862f82"
+      },
+      "resources": {
+        "lisp": {
+          "identity_canonical_json_sha256": "79dc09151f2f61152496f3587dc54cb580fb45a9c92301bfe3e75ab027a02146",
+          "top_level_entries": 3363
+        },
+        "runtime-tls": {
+          "identity_canonical_json_sha256": "9b34100e73d1f4bbd3157cd1535a25f8fdc6d4e094f2e6a1e9dc79b1a63fd73d",
+          "top_level_entries": 9
+        },
+        "runtime-lcms": {
+          "identity_canonical_json_sha256": "819844d74d5d4f3ee5a75aaf2b0d9a23b07fdda8bfa71c65cdbda63f6eb213cb",
+          "top_level_entries": 1
+        },
+        "runtime-treesit": {
+          "identity_canonical_json_sha256": "05b5f47a14a19b3f04511fa292f0976e2cab06437b9e4323edbce72a9767f0f9",
+          "top_level_entries": 1
+        }
+      }
+    },
+    "cocoa": {
+      "program": {
+        "kind": "file",
+        "bytes": 4230368,
+        "mode": 493,
+        "sha256": "d796f4c52e2a32ec6176e02efca33d922da18252aaddd0885e59993f108ba385"
+      },
+      "dump": {
+        "kind": "file",
+        "bytes": 18602200,
+        "mode": 420,
+        "sha256": "2b87c3436eaa33e551b024c6be01ea702b9c586c4535993258b63aa95a618b92"
+      },
+      "resources": {
+        "lisp": {
+          "identity_canonical_json_sha256": "e4108125e078022ebe91c3ccc5095c46c8fcbe48180ed02668f315d4e4c910b5",
+          "top_level_entries": 3353
+        },
+        "bundle": {
+          "identity_canonical_json_sha256": "e1212d5ae114aec885c8d2d467c9c39b4feb1f693b0d685dc28901fd34bb5342",
+          "top_level_entries": 4477
+        }
+      }
+    }
+  },
+  "independent_review": {
+    "accepted": true,
+    "confirmed_defects": 0,
+    "scope": "Independent raw review verifies39registeredIDs,111passes6originalWindowsguardskips,equal maps,65scase actual driver,unchanged fullnormalidentities. Static40 includes one Windows-only unregistered definition. FD assertion pass does not prove1025descriptors; subprocess dump has no separate identity receipt; outer controller metrics primary only."
+  },
+  "original_aggregate_reason": "All3fileprocesses exited0 complete; sharedWindows skips keep original aggregatefalse and ownerexit1, no assertionfailure.",
+  "cleanup": {
+    "manifest": "maintenance/cleanup/manifests/2026-10-30-165-consumed-process-state.jsonl.gz",
+    "manifest_sha256": "b7920b3fcb3e995ce152beccc5bafc765f7355b5f257d7cdaad0a9f3d8bb7ec9",
+    "files": 4608,
+    "directories": 783,
+    "links": 3,
+    "logical_bytes": 62990856,
+    "allocated_bytes": 75264000,
+    "rows": 5394,
+    "runner_cleanup": [],
+    "external_empty_environments": 3,
+    "external_directory_rows": 30,
+    "original_false_preserved": true
+  }
+}

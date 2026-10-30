@@ -482,3 +482,15 @@ automatic ledgers, corpus and live products retained; no product execution for
 cleanup or acceptance-policy change.
 [Report](reports/2026-10-30-164-consumed-json-state.md) and
 [manifest](manifests/2026-10-30-164-consumed-json-state.jsonl.gz).
+
+
+## CLN165 — consumed original process state (2026-10-30)
+
+After complete execution and independent review: 4,608 regular files,
+783 directories, three links, 62,990,856 logical / 75,264,000 allocated bytes,
+5,394 identity rows. Includes three exact owned short socket environments,
+30 empty directories; external paths are hashed. Original false aggregate,
+111 passes/six platform skips, raw records, products and corpus retained.
+No auto-retired state counted again and no broader cache root selected.
+[Report](reports/2026-10-30-165-consumed-process-state.md) and
+[manifest](manifests/2026-10-30-165-consumed-process-state.jsonl.gz).
