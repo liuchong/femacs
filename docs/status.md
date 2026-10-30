@@ -24174,3 +24174,22 @@ six parents, counted once; post-review directories 822. Evidence, inputs,
 products and trial App retained. G1/G2/G4 **3/7**, four outcomes remain open.
 [Coverage](../maintenance/releases/2026-10-30-original-startup-regex.md),
 [CLN169](../maintenance/cleanup/reports/2026-10-30-169-consumed-startup-regex-state.md).
+
+## 2026-10-30: current original grammar coverage and CLN170
+
+Complete original treesit file: 40 IDs/product, **120 passes, zero skips/failures**,
+three file processes exit 0, no timeout/protocol/residual group; maps match.
+Eight newly rebuilt fixed grammar inputs bound by new hashes and ABI 14/15;
+source/commit/tag and all selected products/resources unchanged. First missing
+old-library preflight remains false with no editor/compiler; cause unknown.
+Previous 32 grammar skips/product remain unchanged. Actual independent source,
+raw/events and eight-library identity review accepted; controllers remain primary-only.
+Driver 8.774089209 s; 30 s load/case and 180 s owner. No source/App/protection change,
+physical GUI, native, collector, whole G3 or speedup claim.
+
+CLN170: 4,608 files, 792 directories, eighteen links; 62,990,856 logical / 75,264,000 allocated
+bytes, 5,418 rows. Thirty automatic schema 3 directories include six parents counted
+once; post-review 762 directories. Evidence, fixed inputs, new grammar libraries and
+live products retained. G1/G2/G4 **3/7**, four outcomes remain.
+[Coverage](../maintenance/releases/2026-10-30-original-grammars.md),
+[CLN170](../maintenance/cleanup/reports/2026-10-30-170-consumed-grammar-state.md).

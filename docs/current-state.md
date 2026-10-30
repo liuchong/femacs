@@ -1,3 +1,22 @@
+## Current continuation: original grammar coverage (2026-10-30)
+
+All forty unchanged original Tree-sitter IDs pass on reference and current
+normal terminal/Cocoa: **120 passes, zero skips/failures/timeouts**, matching
+status maps. Eight real fixed grammar inputs are available; previously guarded
+parser/node/query/range/navigation bodies run. Earlier 32 skips/product and the
+first missing-library preflight remain unchanged. Missing-library cause unknown;
+fixtures are rebuilt from verified pinned inputs as a new binary cohort.
+
+Independent source/raw/library review accepts this bounded coverage. CLN170
+retires 4,608 files, 792 directories (thirty automatic, six parents), eighteen links,
+62,990,856 / 75,264,000 logical/allocated bytes; evidence/live products/new grammar
+inputs retained. No product edit, new protection or App replacement. Not
+physical GUI, native, collector, full G3 or speedup. G1/G2/G4 stay **3/7**, Goal active;
+four outcomes remain. Next: remaining G3 and evidence-led runtime implementation,
+reuse accepted module safety evidence without repeating deliberate aborts.
+See [coverage](../maintenance/releases/2026-10-30-original-grammars.md) and
+[CLN170](../maintenance/cleanup/reports/2026-10-30-170-consumed-grammar-state.md).
+
 ## Current continuation: original startup, regex and tree-sitter coverage (2026-10-30)
 
 Nine unchanged original-file processes complete with exit 0: **126 passes,

@@ -548,3 +548,16 @@ manifests and disclosed historical metadata gaps remain unchanged.
 - [Report](reports/2026-10-30-169-consumed-startup-regex-state.md) ·
   [manifest](manifests/2026-10-30-169-consumed-startup-regex-state.jsonl.gz)
   (`dcf32add98b2ba954c12d008e6c9fd2bbe49dad07757ac4985c73ac17cf1c31b`).
+
+## CLN170 - consumed current grammar coverage state (2026-10-30)
+
+- Three consumed full test copies/contexts/environments after original 120 passes
+  and independent review. Previous skips/first preflight failure remain unchanged.
+- 4,608 files, 792 directories, eighteen links; 62,990,856 logical / 75,264,000 allocated
+  bytes, 5,418 rows. Thirty automatic schema 3 directories include six parents;
+  post-review 762 directories. Count each once.
+- Public manifest matches private pre-delete plans; link targets hashed. Raw
+  evidence, new grammar inputs/libraries, live products and App retained unchanged.
+- [Report](reports/2026-10-30-170-consumed-grammar-state.md) /
+  [manifest](manifests/2026-10-30-170-consumed-grammar-state.jsonl.gz)
+  (`49526b3c1bc07b45d541f8f78ebfa5d199f19b02a4ac450f575b5c21d1a48460`).

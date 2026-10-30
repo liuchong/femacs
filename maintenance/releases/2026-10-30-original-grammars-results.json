@@ -1,0 +1,1489 @@
+{
+  "scope": "Complete unchanged pinned stable treesit file with eight existing real grammar libraries; installed reference and current normal terminal/Cocoa. No installation, assertion edit, ID filter, original-skip overwrite, full G3, GUI, native/collector or performance claim",
+  "passed": true,
+  "source_commit": "a360712c9d272d950d8d8255ef74570f7e90b7d9",
+  "counts": {
+    "passed": 120
+  },
+  "seconds": 8.774089209000001,
+  "status_maps_equal_reference": true,
+  "identities_unchanged": true,
+  "original_inputs_unchanged": true,
+  "generated_resources": {
+    "reference": {},
+    "terminal": {},
+    "cocoa": {}
+  },
+  "budget": {
+    "whole_seconds": 180,
+    "per_case_seconds": 30,
+    "expected_seconds": [
+      5,
+      30
+    ],
+    "expected_peak_bytes": 536870912,
+    "copied_source_bytes": 62990856,
+    "scale": "3 serial original file processes,40 discovered IDs/product. Original59880byte file: small fixed JSON/Python/JS/Bash/Elixir/HTML/CSS snippets, bounded literal query tables, finite cursor/search loops over these buffers. Eight newly rebuilt signed fixture dylibs from unchanged pinned sources are bound by exact hash; no compiler, download, network or deliberate assertion-abort subprocess. Startup preflight requires backend,all8 grammar ABIs and uses existing30s load deadline;180s protected owner deadline includes preparation/cleanup"
+  },
+  "schema": 1,
+  "ids_per_product": 40,
+  "processes": 3,
+  "raw_result": {
+    "path": "build/acceptance/g3-treesit-grammars-current-2/results.json",
+    "sha256": "a1de39541b59753c81c804ed0a0adba43b63a8976fd2aaaaa14eee6259b69eb3"
+  },
+  "driver_sha256": "457add3094dc88644da324854d867a4cc43a91dcb4c88a2234660c75b8c576ac",
+  "files": [
+    {
+      "path": "test/src/treesit-tests.el",
+      "size": 59880,
+      "blob": "db00496cda8b7c5e8a67a4054f5f13cf5da41b95",
+      "sha256": "ab4ef4aadbca31b18e2496ddca524769f3cdeea4ed876073dc0cd624059a4d15"
+    }
+  ],
+  "registered_ids_per_file": {
+    "test/src/treesit-tests.el": 40
+  },
+  "inputs": [
+    {
+      "path": "compatibility/stable-31.1/sources.json",
+      "identity": {
+        "kind": "file",
+        "bytes": 562572,
+        "mode": 420,
+        "sha256": "a5ef144a203b8b2a74e346ac47173c5d4122f751d8d950347ae75ff67eef0efe"
+      }
+    },
+    {
+      "path": "tools/fixtures/stable-suite-runner.el",
+      "identity": {
+        "kind": "file",
+        "bytes": 12592,
+        "mode": 420,
+        "sha256": "d5bcd0c18f15995e50adefe8472d12ef82f71114be10ce307202b4ce0f11150e"
+      }
+    },
+    {
+      "path": "tools/stable-suite.py",
+      "identity": {
+        "kind": "file",
+        "bytes": 54108,
+        "mode": 420,
+        "sha256": "75e913813f585425ce3673c5db9c71b2054d875c50540ccee3dd06cb4eabc51c"
+      }
+    },
+    {
+      "path": "tools/stable-suite-batch.py",
+      "identity": {
+        "kind": "file",
+        "bytes": 22008,
+        "mode": 420,
+        "sha256": "5473bee19634e589dbbaa091f2fb8dc5c78e67be5399c3db4497753e1ea64b6e"
+      }
+    },
+    {
+      "path": "tools/runtime-execution.py",
+      "identity": {
+        "kind": "file",
+        "bytes": 93220,
+        "mode": 420,
+        "sha256": "26b379c3d4a24adf2a306e1c751c654ca1b6b1c6cd43f0888398c3560e455fb4"
+      }
+    },
+    {
+      "path": "tools/runtime-retire.py",
+      "identity": {
+        "kind": "file",
+        "bytes": 8538,
+        "mode": 420,
+        "sha256": "84ad68bbb26ffb73e129406b430393c0eaeab2f6b818c5916a950b6514eb6932"
+      }
+    },
+    {
+      "path": "private-driver/g3-treesit-grammars-current-2.py",
+      "identity": {
+        "kind": "file",
+        "bytes": 10731,
+        "mode": 420,
+        "sha256": "457add3094dc88644da324854d867a4cc43a91dcb4c88a2234660c75b8c576ac"
+      }
+    },
+    {
+      "path": "build/acceptance/p435-p427-products-1/products-with-runtime.json",
+      "identity": {
+        "kind": "file",
+        "bytes": 1578004,
+        "mode": 420,
+        "sha256": "aa4d2cadb59089c231c43d2827de479f35a1825514916a3573ad936b4e9ac162"
+      }
+    },
+    {
+      "path": "build/acceptance/p435-functional-normal-1/results.json",
+      "identity": {
+        "kind": "file",
+        "bytes": 695326,
+        "mode": 420,
+        "sha256": "fdd7cce538a6fa60329793d762db627cc94ca98f8b726614f65dd3c12af15849"
+      }
+    },
+    {
+      "path": "compatibility/tree-sitter/grammars.json",
+      "identity": {
+        "kind": "file",
+        "bytes": 17609,
+        "mode": 420,
+        "sha256": "d896f5533a4a44880c64a5316404201fc7e99a70252fc796ffc0f79dcdb8c4ae"
+      }
+    },
+    {
+      "path": "build/acceptance/g3-treesit-fixture-current-1/results.json",
+      "identity": {
+        "kind": "file",
+        "bytes": 20387,
+        "mode": 420,
+        "sha256": "1e460776e8106bcfc629a4ed161918d8e5caa4351fc70fc1e068f885d3985d83"
+      }
+    }
+  ],
+  "process_results": [
+    {
+      "product": "reference",
+      "file": "test/src/treesit-tests.el",
+      "ids": [
+        "treesit-basic-parsing",
+        "treesit-cross-boundary",
+        "treesit-cursor-helper-with-missing-node",
+        "treesit-defun-navigation-nested-1",
+        "treesit-defun-navigation-nested-2",
+        "treesit-defun-navigation-nested-3",
+        "treesit-defun-navigation-nested-4",
+        "treesit-defun-navigation-top-level",
+        "treesit-imenu",
+        "treesit-indirect-buffer",
+        "treesit-intersect-ranges",
+        "treesit-linecol-basic",
+        "treesit-linecol-col-same-line",
+        "treesit-linecol-enable-disable",
+        "treesit-linecol-search-back-across-newline",
+        "treesit-multi-lang",
+        "treesit-narrow",
+        "treesit-node-api",
+        "treesit-node-at",
+        "treesit-node-check",
+        "treesit-node-supplemental",
+        "treesit-parser-supplemental",
+        "treesit-query-api",
+        "treesit-query-marker-position",
+        "treesit-query-node-only-and-grouped",
+        "treesit-range",
+        "treesit-range-fixup-after-edit",
+        "treesit-range-helper",
+        "treesit-range-merge",
+        "treesit-range-offset",
+        "treesit-search-backward",
+        "treesit-search-backward-named-only",
+        "treesit-search-forward",
+        "treesit-search-forward-named-only",
+        "treesit-search-forward-predicate",
+        "treesit-search-forward-predicate-invalid-predicate",
+        "treesit-search-subtree",
+        "treesit-search-subtree-backward-1",
+        "treesit-search-subtree-forward-1",
+        "treesit-test-simple-indent-add-rules"
+      ],
+      "counts": {
+        "passed": 40
+      },
+      "complete": true,
+      "exit_code": 0,
+      "remaining_group_terminated": false,
+      "seconds": 4.009618667,
+      "timed_out": false,
+      "protocol_error": null,
+      "runner_error": null,
+      "result": {
+        "path": "build/acceptance/g3-treesit-grammars-current-2/reference/results/reference/test-src-treesit-tests.el-362e0f25c0da.json",
+        "sha256": "89e823a4a7d29978a4cfe2bc78cc31f8ecbeeca036f42e19e5ceb1e61d1e8b52"
+      },
+      "events": {
+        "path": "build/acceptance/g3-treesit-grammars-current-2/reference/results/reference/test-src-treesit-tests.el-362e0f25c0da.events.jsonl",
+        "sha256": "42e5559365005e7bec0cc61529df15c09aebee7fb146d588f0b40b782f3a32da"
+      },
+      "cases": {
+        "treesit-basic-parsing": {
+          "status": "passed",
+          "seconds": 0.0024,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "treesit-cross-boundary": {
+          "status": "passed",
+          "seconds": 0.001629,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "treesit-cursor-helper-with-missing-node": {
+          "status": "passed",
+          "seconds": 0.001658,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "treesit-defun-navigation-nested-1": {
+          "status": "passed",
+          "seconds": 0.213303,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"Can't guess python-indent-offset, using defaults: 4\n\""
+        },
+        "treesit-defun-navigation-nested-2": {
+          "status": "passed",
+          "seconds": 0.113413,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "treesit-defun-navigation-nested-3": {
+          "status": "passed",
+          "seconds": 0.002487,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "treesit-defun-navigation-nested-4": {
+          "status": "passed",
+          "seconds": 0.003051,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "treesit-defun-navigation-top-level": {
+          "status": "passed",
+          "seconds": 0.004504,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"Can't guess python-indent-offset, using defaults: 4 [2 times]\n\""
+        },
+        "treesit-imenu": {
+          "status": "passed",
+          "seconds": 1.3e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "treesit-indirect-buffer": {
+          "status": "passed",
+          "seconds": 0.002368,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "treesit-intersect-ranges": {
+          "status": "passed",
+          "seconds": 1.6e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "treesit-linecol-basic": {
+          "status": "passed",
+          "seconds": 3.4e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "treesit-linecol-col-same-line": {
+          "status": "passed",
+          "seconds": 1.2e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "treesit-linecol-enable-disable": {
+          "status": "passed",
+          "seconds": 0.002338,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "treesit-linecol-search-back-across-newline": {
+          "status": "passed",
+          "seconds": 1.3e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "treesit-multi-lang": {
+          "status": "passed",
+          "seconds": 0.005197,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "treesit-narrow": {
+          "status": "passed",
+          "seconds": 0.001698,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "treesit-node-api": {
+          "status": "passed",
+          "seconds": 0.002528,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "treesit-node-at": {
+          "status": "passed",
+          "seconds": 0.00174,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "treesit-node-check": {
+          "status": "passed",
+          "seconds": 0.001659,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "treesit-node-supplemental": {
+          "status": "passed",
+          "seconds": 0.001668,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "treesit-parser-supplemental": {
+          "status": "passed",
+          "seconds": 0.002378,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "treesit-query-api": {
+          "status": "passed",
+          "seconds": 0.003266,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "treesit-query-marker-position": {
+          "status": "passed",
+          "seconds": 0.001612,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "treesit-query-node-only-and-grouped": {
+          "status": "passed",
+          "seconds": 0.001604,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "treesit-range": {
+          "status": "passed",
+          "seconds": 0.001637,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "treesit-range-fixup-after-edit": {
+          "status": "passed",
+          "seconds": 0.001661,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "treesit-range-helper": {
+          "status": "passed",
+          "seconds": 2e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "treesit-range-merge": {
+          "status": "passed",
+          "seconds": 8e-06,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "treesit-range-offset": {
+          "status": "passed",
+          "seconds": 0.0037,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "treesit-search-backward": {
+          "status": "passed",
+          "seconds": 0.001694,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "treesit-search-backward-named-only": {
+          "status": "passed",
+          "seconds": 0.001675,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "treesit-search-forward": {
+          "status": "passed",
+          "seconds": 0.001685,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "treesit-search-forward-named-only": {
+          "status": "passed",
+          "seconds": 0.001669,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "treesit-search-forward-predicate": {
+          "status": "passed",
+          "seconds": 0.001751,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "treesit-search-forward-predicate-invalid-predicate": {
+          "status": "passed",
+          "seconds": 0.001682,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "treesit-search-subtree": {
+          "status": "passed",
+          "seconds": 0.001943,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "treesit-search-subtree-backward-1": {
+          "status": "passed",
+          "seconds": 0.005394,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"Can't guess python-indent-offset, using defaults: 4 [3 times]\n\""
+        },
+        "treesit-search-subtree-forward-1": {
+          "status": "passed",
+          "seconds": 0.004429,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"Can't guess python-indent-offset, using defaults: 4 [4 times]\n\""
+        },
+        "treesit-test-simple-indent-add-rules": {
+          "status": "passed",
+          "seconds": 2.6e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        }
+      }
+    },
+    {
+      "product": "terminal",
+      "file": "test/src/treesit-tests.el",
+      "ids": [
+        "treesit-basic-parsing",
+        "treesit-cross-boundary",
+        "treesit-cursor-helper-with-missing-node",
+        "treesit-defun-navigation-nested-1",
+        "treesit-defun-navigation-nested-2",
+        "treesit-defun-navigation-nested-3",
+        "treesit-defun-navigation-nested-4",
+        "treesit-defun-navigation-top-level",
+        "treesit-imenu",
+        "treesit-indirect-buffer",
+        "treesit-intersect-ranges",
+        "treesit-linecol-basic",
+        "treesit-linecol-col-same-line",
+        "treesit-linecol-enable-disable",
+        "treesit-linecol-search-back-across-newline",
+        "treesit-multi-lang",
+        "treesit-narrow",
+        "treesit-node-api",
+        "treesit-node-at",
+        "treesit-node-check",
+        "treesit-node-supplemental",
+        "treesit-parser-supplemental",
+        "treesit-query-api",
+        "treesit-query-marker-position",
+        "treesit-query-node-only-and-grouped",
+        "treesit-range",
+        "treesit-range-fixup-after-edit",
+        "treesit-range-helper",
+        "treesit-range-merge",
+        "treesit-range-offset",
+        "treesit-search-backward",
+        "treesit-search-backward-named-only",
+        "treesit-search-forward",
+        "treesit-search-forward-named-only",
+        "treesit-search-forward-predicate",
+        "treesit-search-forward-predicate-invalid-predicate",
+        "treesit-search-subtree",
+        "treesit-search-subtree-backward-1",
+        "treesit-search-subtree-forward-1",
+        "treesit-test-simple-indent-add-rules"
+      ],
+      "counts": {
+        "passed": 40
+      },
+      "complete": true,
+      "exit_code": 0,
+      "remaining_group_terminated": false,
+      "seconds": 0.3864660829999993,
+      "timed_out": false,
+      "protocol_error": null,
+      "runner_error": null,
+      "result": {
+        "path": "build/acceptance/g3-treesit-grammars-current-2/terminal/results/terminal/test-src-treesit-tests.el-362e0f25c0da.json",
+        "sha256": "0775bb20a3a494bccdd0a8b771b4d4fd4b2a040087b44ba43ff56368ae7da686"
+      },
+      "events": {
+        "path": "build/acceptance/g3-treesit-grammars-current-2/terminal/results/terminal/test-src-treesit-tests.el-362e0f25c0da.events.jsonl",
+        "sha256": "707e94d57513d5cb04793fa87b5dc8eab07c78ab9a8c4e73b2b1cf8892486f2b"
+      },
+      "cases": {
+        "treesit-basic-parsing": {
+          "status": "passed",
+          "seconds": 0.000845,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "treesit-cross-boundary": {
+          "status": "passed",
+          "seconds": 0.004974,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "treesit-cursor-helper-with-missing-node": {
+          "status": "passed",
+          "seconds": 0.000773,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "treesit-defun-navigation-nested-1": {
+          "status": "passed",
+          "seconds": 0.166355,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"Can't guess python-indent-offset, using defaults: 4\n\""
+        },
+        "treesit-defun-navigation-nested-2": {
+          "status": "passed",
+          "seconds": 0.03962,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "treesit-defun-navigation-nested-3": {
+          "status": "passed",
+          "seconds": 0.001598,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "treesit-defun-navigation-nested-4": {
+          "status": "passed",
+          "seconds": 0.001795,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "treesit-defun-navigation-top-level": {
+          "status": "passed",
+          "seconds": 0.002847,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"Can't guess python-indent-offset, using defaults: 4 [jd times]\n\""
+        },
+        "treesit-imenu": {
+          "status": "passed",
+          "seconds": 1.7e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "treesit-indirect-buffer": {
+          "status": "passed",
+          "seconds": 0.000969,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "treesit-intersect-ranges": {
+          "status": "passed",
+          "seconds": 2e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "treesit-linecol-basic": {
+          "status": "passed",
+          "seconds": 2.3e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "treesit-linecol-col-same-line": {
+          "status": "passed",
+          "seconds": 1.5e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "treesit-linecol-enable-disable": {
+          "status": "passed",
+          "seconds": 0.00099,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "treesit-linecol-search-back-across-newline": {
+          "status": "passed",
+          "seconds": 1.5e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "treesit-multi-lang": {
+          "status": "passed",
+          "seconds": 0.001922,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "treesit-narrow": {
+          "status": "passed",
+          "seconds": 0.000659,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "treesit-node-api": {
+          "status": "passed",
+          "seconds": 0.001025,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "treesit-node-at": {
+          "status": "passed",
+          "seconds": 0.000594,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "treesit-node-check": {
+          "status": "passed",
+          "seconds": 0.000663,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "treesit-node-supplemental": {
+          "status": "passed",
+          "seconds": 0.00064,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "treesit-parser-supplemental": {
+          "status": "passed",
+          "seconds": 0.000916,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "treesit-query-api": {
+          "status": "passed",
+          "seconds": 0.001353,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "treesit-query-marker-position": {
+          "status": "passed",
+          "seconds": 0.000638,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "treesit-query-node-only-and-grouped": {
+          "status": "passed",
+          "seconds": 0.000749,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "treesit-range": {
+          "status": "passed",
+          "seconds": 0.000681,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "treesit-range-fixup-after-edit": {
+          "status": "passed",
+          "seconds": 0.000758,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "treesit-range-helper": {
+          "status": "passed",
+          "seconds": 2.7e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "treesit-range-merge": {
+          "status": "passed",
+          "seconds": 1.1e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "treesit-range-offset": {
+          "status": "passed",
+          "seconds": 0.002592,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "treesit-search-backward": {
+          "status": "passed",
+          "seconds": 0.000714,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "treesit-search-backward-named-only": {
+          "status": "passed",
+          "seconds": 0.000675,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "treesit-search-forward": {
+          "status": "passed",
+          "seconds": 0.000688,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "treesit-search-forward-named-only": {
+          "status": "passed",
+          "seconds": 0.000741,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "treesit-search-forward-predicate": {
+          "status": "passed",
+          "seconds": 0.000717,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "treesit-search-forward-predicate-invalid-predicate": {
+          "status": "passed",
+          "seconds": 0.000747,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "treesit-search-subtree": {
+          "status": "passed",
+          "seconds": 0.000661,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "treesit-search-subtree-backward-1": {
+          "status": "passed",
+          "seconds": 0.002426,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"Can't guess python-indent-offset, using defaults: 4\n\""
+        },
+        "treesit-search-subtree-forward-1": {
+          "status": "passed",
+          "seconds": 0.002174,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"Can't guess python-indent-offset, using defaults: 4 [jd times]\n\""
+        },
+        "treesit-test-simple-indent-add-rules": {
+          "status": "passed",
+          "seconds": 3e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        }
+      }
+    },
+    {
+      "product": "cocoa",
+      "file": "test/src/treesit-tests.el",
+      "ids": [
+        "treesit-basic-parsing",
+        "treesit-cross-boundary",
+        "treesit-cursor-helper-with-missing-node",
+        "treesit-defun-navigation-nested-1",
+        "treesit-defun-navigation-nested-2",
+        "treesit-defun-navigation-nested-3",
+        "treesit-defun-navigation-nested-4",
+        "treesit-defun-navigation-top-level",
+        "treesit-imenu",
+        "treesit-indirect-buffer",
+        "treesit-intersect-ranges",
+        "treesit-linecol-basic",
+        "treesit-linecol-col-same-line",
+        "treesit-linecol-enable-disable",
+        "treesit-linecol-search-back-across-newline",
+        "treesit-multi-lang",
+        "treesit-narrow",
+        "treesit-node-api",
+        "treesit-node-at",
+        "treesit-node-check",
+        "treesit-node-supplemental",
+        "treesit-parser-supplemental",
+        "treesit-query-api",
+        "treesit-query-marker-position",
+        "treesit-query-node-only-and-grouped",
+        "treesit-range",
+        "treesit-range-fixup-after-edit",
+        "treesit-range-helper",
+        "treesit-range-merge",
+        "treesit-range-offset",
+        "treesit-search-backward",
+        "treesit-search-backward-named-only",
+        "treesit-search-forward",
+        "treesit-search-forward-named-only",
+        "treesit-search-forward-predicate",
+        "treesit-search-forward-predicate-invalid-predicate",
+        "treesit-search-subtree",
+        "treesit-search-subtree-backward-1",
+        "treesit-search-subtree-forward-1",
+        "treesit-test-simple-indent-add-rules"
+      ],
+      "counts": {
+        "passed": 40
+      },
+      "complete": true,
+      "exit_code": 0,
+      "remaining_group_terminated": false,
+      "seconds": 0.36846725000000013,
+      "timed_out": false,
+      "protocol_error": null,
+      "runner_error": null,
+      "result": {
+        "path": "build/acceptance/g3-treesit-grammars-current-2/cocoa/results/cocoa/test-src-treesit-tests.el-362e0f25c0da.json",
+        "sha256": "0aa21ccf3296eecc2f940fafa10ba8dd68c6398903b30ec2aaa4af545d3b7add"
+      },
+      "events": {
+        "path": "build/acceptance/g3-treesit-grammars-current-2/cocoa/results/cocoa/test-src-treesit-tests.el-362e0f25c0da.events.jsonl",
+        "sha256": "3ae4b973c4dde413c8ec4f5aa267ea1f488056ccb6f58e3500b053ea1f978c2d"
+      },
+      "cases": {
+        "treesit-basic-parsing": {
+          "status": "passed",
+          "seconds": 0.000912,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "treesit-cross-boundary": {
+          "status": "passed",
+          "seconds": 0.000959,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "treesit-cursor-helper-with-missing-node": {
+          "status": "passed",
+          "seconds": 0.000661,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "treesit-defun-navigation-nested-1": {
+          "status": "passed",
+          "seconds": 0.181794,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"Can't guess python-indent-offset, using defaults: 4\n\""
+        },
+        "treesit-defun-navigation-nested-2": {
+          "status": "passed",
+          "seconds": 0.042839,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "treesit-defun-navigation-nested-3": {
+          "status": "passed",
+          "seconds": 0.001654,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "treesit-defun-navigation-nested-4": {
+          "status": "passed",
+          "seconds": 0.001912,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "treesit-defun-navigation-top-level": {
+          "status": "passed",
+          "seconds": 0.00295,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"Can't guess python-indent-offset, using defaults: 4 [jd times]\n\""
+        },
+        "treesit-imenu": {
+          "status": "passed",
+          "seconds": 1.6e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "treesit-indirect-buffer": {
+          "status": "passed",
+          "seconds": 0.000998,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "treesit-intersect-ranges": {
+          "status": "passed",
+          "seconds": 1.8e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "treesit-linecol-basic": {
+          "status": "passed",
+          "seconds": 2.5e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "treesit-linecol-col-same-line": {
+          "status": "passed",
+          "seconds": 1.5e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "treesit-linecol-enable-disable": {
+          "status": "passed",
+          "seconds": 0.000945,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "treesit-linecol-search-back-across-newline": {
+          "status": "passed",
+          "seconds": 1.4e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "treesit-multi-lang": {
+          "status": "passed",
+          "seconds": 0.00185,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "treesit-narrow": {
+          "status": "passed",
+          "seconds": 0.000624,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "treesit-node-api": {
+          "status": "passed",
+          "seconds": 0.000984,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "treesit-node-at": {
+          "status": "passed",
+          "seconds": 0.000706,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "treesit-node-check": {
+          "status": "passed",
+          "seconds": 0.000656,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "treesit-node-supplemental": {
+          "status": "passed",
+          "seconds": 0.000729,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "treesit-parser-supplemental": {
+          "status": "passed",
+          "seconds": 0.000985,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "treesit-query-api": {
+          "status": "passed",
+          "seconds": 0.001387,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "treesit-query-marker-position": {
+          "status": "passed",
+          "seconds": 0.000636,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "treesit-query-node-only-and-grouped": {
+          "status": "passed",
+          "seconds": 0.000616,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "treesit-range": {
+          "status": "passed",
+          "seconds": 0.000704,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "treesit-range-fixup-after-edit": {
+          "status": "passed",
+          "seconds": 0.000706,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "treesit-range-helper": {
+          "status": "passed",
+          "seconds": 2.3e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "treesit-range-merge": {
+          "status": "passed",
+          "seconds": 1.2e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "treesit-range-offset": {
+          "status": "passed",
+          "seconds": 0.002523,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "treesit-search-backward": {
+          "status": "passed",
+          "seconds": 0.000759,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "treesit-search-backward-named-only": {
+          "status": "passed",
+          "seconds": 0.000667,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "treesit-search-forward": {
+          "status": "passed",
+          "seconds": 0.000661,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "treesit-search-forward-named-only": {
+          "status": "passed",
+          "seconds": 0.000635,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "treesit-search-forward-predicate": {
+          "status": "passed",
+          "seconds": 0.000694,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "treesit-search-forward-predicate-invalid-predicate": {
+          "status": "passed",
+          "seconds": 0.000727,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "treesit-search-subtree": {
+          "status": "passed",
+          "seconds": 0.000681,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "treesit-search-subtree-backward-1": {
+          "status": "passed",
+          "seconds": 0.002233,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"Can't guess python-indent-offset, using defaults: 4\n\""
+        },
+        "treesit-search-subtree-forward-1": {
+          "status": "passed",
+          "seconds": 0.001993,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"Can't guess python-indent-offset, using defaults: 4 [jd times]\n\""
+        },
+        "treesit-test-simple-indent-add-rules": {
+          "status": "passed",
+          "seconds": 2.7e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        }
+      }
+    }
+  ],
+  "products": {
+    "reference": {
+      "program": {
+        "kind": "file",
+        "bytes": 3691504,
+        "mode": 493,
+        "sha256": "5b55e93c8304368ee37cc5c537ca3e1370e3b9b3fef049bdce76834a9db75e65"
+      },
+      "dump": {
+        "kind": "file",
+        "bytes": 23084632,
+        "mode": 420,
+        "sha256": "6ac1214186022574a70e84a04bb7f2dc44e1ea1d4c90f0d9ce421ddd0f4b4536"
+      },
+      "resources": {
+        "lisp": {
+          "identity_canonical_json_sha256": "564df364c803f4d0b64d7bc2ba986d775e8985529481ac2684b739666e131323",
+          "top_level_entries": 3316
+        }
+      }
+    },
+    "terminal": {
+      "program": {
+        "kind": "file",
+        "bytes": 2698016,
+        "mode": 493,
+        "sha256": "fb0b822273e79bb5b008725771473f5d510b9f712488242d615fb3a5fefbcde6"
+      },
+      "dump": {
+        "kind": "file",
+        "bytes": 13101600,
+        "mode": 420,
+        "sha256": "5d1913c39d5c348c711d24e16b25d9e63d09e082ee6dbe3b3a54ac4680862f82"
+      },
+      "resources": {
+        "lisp": {
+          "identity_canonical_json_sha256": "79dc09151f2f61152496f3587dc54cb580fb45a9c92301bfe3e75ab027a02146",
+          "top_level_entries": 3363
+        },
+        "runtime-tls": {
+          "identity_canonical_json_sha256": "9b34100e73d1f4bbd3157cd1535a25f8fdc6d4e094f2e6a1e9dc79b1a63fd73d",
+          "top_level_entries": 9
+        },
+        "runtime-lcms": {
+          "identity_canonical_json_sha256": "819844d74d5d4f3ee5a75aaf2b0d9a23b07fdda8bfa71c65cdbda63f6eb213cb",
+          "top_level_entries": 1
+        },
+        "runtime-treesit": {
+          "identity_canonical_json_sha256": "05b5f47a14a19b3f04511fa292f0976e2cab06437b9e4323edbce72a9767f0f9",
+          "top_level_entries": 1
+        }
+      }
+    },
+    "cocoa": {
+      "program": {
+        "kind": "file",
+        "bytes": 4230368,
+        "mode": 493,
+        "sha256": "d796f4c52e2a32ec6176e02efca33d922da18252aaddd0885e59993f108ba385"
+      },
+      "dump": {
+        "kind": "file",
+        "bytes": 18602200,
+        "mode": 420,
+        "sha256": "2b87c3436eaa33e551b024c6be01ea702b9c586c4535993258b63aa95a618b92"
+      },
+      "resources": {
+        "lisp": {
+          "identity_canonical_json_sha256": "e4108125e078022ebe91c3ccc5095c46c8fcbe48180ed02668f315d4e4c910b5",
+          "top_level_entries": 3353
+        },
+        "bundle": {
+          "identity_canonical_json_sha256": "e1212d5ae114aec885c8d2d467c9c39b4feb1f693b0d685dc28901fd34bb5342",
+          "top_level_entries": 4477
+        }
+      }
+    }
+  },
+  "controller": {
+    "run_id": "8123ceb0d1514c4fb3441be71a8aa73b",
+    "exit_code": 0,
+    "cleanup_complete": true,
+    "elapsed_seconds": 11.23,
+    "peak_rss_bytes": 119963648,
+    "peak_footprint_bytes": 82461752,
+    "peak_accounted_bytes": 119963648,
+    "metrics_independently_reviewed": false
+  },
+  "grammar_libraries_unchanged": true,
+  "grammar_libraries": {
+    "json": {
+      "path": "build/acceptance/g3-treesit-fixture-current-1/libraries/libtree-sitter-json.dylib",
+      "identity": {
+        "kind": "file",
+        "bytes": 33968,
+        "mode": 493,
+        "sha256": "73ccb93a3d943281ac1866510f5904bd4a321ba5ded8a3fcd05711545558a1ba"
+      },
+      "commit": "ee35a6ebefcef0c5c416c0d1ccec7370cfca5a24",
+      "tag": "v0.24.8",
+      "grammar_abi": 14
+    },
+    "css": {
+      "path": "build/acceptance/g3-treesit-fixture-current-1/libraries/libtree-sitter-css.dylib",
+      "identity": {
+        "kind": "file",
+        "bytes": 166656,
+        "mode": 493,
+        "sha256": "976f772b085d3c4ef217aac3ba415ad45fd35f921b484448f8e7dac988221606"
+      },
+      "commit": "c0d581e32d183a536731ed6c3a72758b27e20411",
+      "tag": "v0.23.2",
+      "grammar_abi": 14
+    },
+    "html": {
+      "path": "build/acceptance/g3-treesit-fixture-current-1/libraries/libtree-sitter-html.dylib",
+      "identity": {
+        "kind": "file",
+        "bytes": 51584,
+        "mode": 493,
+        "sha256": "e55cbf089ccaa8fef7e4d78f3b65ca2d8191ed2fbe96f0513474504a3fbc66ee"
+      },
+      "commit": "5a5ca8551a179998360b4a4ca2c0f366a35acc03",
+      "tag": "v0.23.2",
+      "grammar_abi": 14
+    },
+    "javascript": {
+      "path": "build/acceptance/g3-treesit-fixture-current-1/libraries/libtree-sitter-javascript.dylib",
+      "identity": {
+        "kind": "file",
+        "bytes": 445744,
+        "mode": 493,
+        "sha256": "b65e4b00a76e0b4d221c904653dfb69bbcd614842269ea7dca62f012ad21db25"
+      },
+      "commit": "44c892e0be055ac465d5eeddae6d3e194424e7de",
+      "tag": "v0.25.0",
+      "grammar_abi": 15
+    },
+    "python": {
+      "path": "build/acceptance/g3-treesit-fixture-current-1/libraries/libtree-sitter-python.dylib",
+      "identity": {
+        "kind": "file",
+        "bytes": 478288,
+        "mode": 493,
+        "sha256": "9f221da0f90410320bc5a3a8596cea93595e40f625f5ea631be3b33a02e1efce"
+      },
+      "commit": "293fdc02038ee2bf0e2e206711b69c90ac0d413f",
+      "tag": "v0.25.0",
+      "grammar_abi": 15
+    },
+    "bash": {
+      "path": "build/acceptance/g3-treesit-fixture-current-1/libraries/libtree-sitter-bash.dylib",
+      "identity": {
+        "kind": "file",
+        "bytes": 1403920,
+        "mode": 493,
+        "sha256": "6cb4f3a0bc3683645fd4723f0b1accb179669c3b5f8f80f484ad95ae1511ca07"
+      },
+      "commit": "a06c2e4415e9bc0346c6b86d401879ffb44058f7",
+      "tag": "v0.25.1",
+      "grammar_abi": 15
+    },
+    "elixir": {
+      "path": "build/acceptance/g3-treesit-fixture-current-1/libraries/libtree-sitter-elixir.dylib",
+      "identity": {
+        "kind": "file",
+        "bytes": 1448512,
+        "mode": 493,
+        "sha256": "3110ee2cb9948220314683487d984c6fd8922b83c1ccdd255acee7fa8d81b359"
+      },
+      "commit": "86ec2ed45d6d9433b4e0b88cd3d96796bd45625f",
+      "tag": "v0.3.4",
+      "grammar_abi": 14
+    },
+    "jsdoc": {
+      "path": "build/acceptance/g3-treesit-fixture-current-1/libraries/libtree-sitter-jsdoc.dylib",
+      "identity": {
+        "kind": "file",
+        "bytes": 51024,
+        "mode": 493,
+        "sha256": "284288410e44c9d9bedaf939bf5f1601a3b32a07d734954aa3a96461ebe60e51"
+      },
+      "commit": "658d18dcdddb75c760363faa4963427a7c6b52db",
+      "tag": "v0.25.0",
+      "grammar_abi": 15
+    }
+  },
+  "grammar_setups": {
+    "reference": {
+      "backend": true,
+      "grammar_abis": {
+        "json": 14,
+        "css": 14,
+        "html": 14,
+        "javascript": 15,
+        "python": 15,
+        "bash": 15,
+        "elixir": 14,
+        "jsdoc": 15
+      },
+      "grammar_paths": [
+        "build/acceptance/g3-treesit-fixture-current-1/libraries"
+      ],
+      "identity": {
+        "kind": "file",
+        "bytes": 249,
+        "mode": 420,
+        "sha256": "973c9bc3e85964e732feae286a52012fef3bbc3e3b643311d4a25566eb94057a"
+      }
+    },
+    "terminal": {
+      "backend": true,
+      "grammar_abis": {
+        "json": 14,
+        "css": 14,
+        "html": 14,
+        "javascript": 15,
+        "python": 15,
+        "bash": 15,
+        "elixir": 14,
+        "jsdoc": 15
+      },
+      "grammar_paths": [
+        "build/acceptance/g3-treesit-fixture-current-1/libraries"
+      ],
+      "identity": {
+        "kind": "file",
+        "bytes": 249,
+        "mode": 420,
+        "sha256": "973c9bc3e85964e732feae286a52012fef3bbc3e3b643311d4a25566eb94057a"
+      }
+    },
+    "cocoa": {
+      "backend": true,
+      "grammar_abis": {
+        "json": 14,
+        "css": 14,
+        "html": 14,
+        "javascript": 15,
+        "python": 15,
+        "bash": 15,
+        "elixir": 14,
+        "jsdoc": 15
+      },
+      "grammar_paths": [
+        "build/acceptance/g3-treesit-fixture-current-1/libraries"
+      ],
+      "identity": {
+        "kind": "file",
+        "bytes": 249,
+        "mode": 420,
+        "sha256": "973c9bc3e85964e732feae286a52012fef3bbc3e3b643311d4a25566eb94057a"
+      }
+    }
+  },
+  "fixture_build": {
+    "path": "build/acceptance/g3-treesit-fixture-current-1/results.json",
+    "sha256": "1e460776e8106bcfc629a4ed161918d8e5caa4351fc70fc1e068f885d3985d83",
+    "passed": true,
+    "phase": "built",
+    "driver_sha256": "f339ff86f2a980f90c41c859ab24d82470138ae0228a9c78a14b001e498c94c8",
+    "budget": {
+      "expected_seconds": [
+        5,
+        60
+      ],
+      "whole_seconds": 180,
+      "per_compile_seconds": 30,
+      "per_signature_seconds": 30,
+      "expected_peak_bytes": 536870912,
+      "scale": "eight sequential generatedparser compilations, fixed parser/scanner sourcefiles; no generator or dependency install, no parallel compiler."
+    },
+    "inputs": [
+      {
+        "path": "private-source/p430-grammar-inputs-1/receipt.json",
+        "sha256": "8ea0a9e0135e35e7bade479b66def9bdf6a9b46d2380f5a562ac3b6d765f251f"
+      },
+      {
+        "path": "private-source/p430-grammar-inputs-jsdoc-1/receipt.json",
+        "sha256": "9f5ef118f065478d6951c5ed1a10614d6d0f391e6d87479543185a1126f965a3"
+      },
+      {
+        "path": "compatibility/tree-sitter/grammars.json",
+        "sha256": "d896f5533a4a44880c64a5316404201fc7e99a70252fc796ffc0f79dcdb8c4ae"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "json",
+        "commit": "ee35a6ebefcef0c5c416c0d1ccec7370cfca5a24",
+        "tag": "v0.24.8",
+        "grammar_abi": 14,
+        "passed": true,
+        "inputs_unchanged": true,
+        "compile": {
+          "complete": true,
+          "exit_code": 0,
+          "seconds": 0.316276,
+          "timed_out": false,
+          "remaining_group_terminated": false
+        },
+        "signature": {
+          "complete": true,
+          "exit_code": 0,
+          "seconds": 0.024697374999999966,
+          "timed_out": false,
+          "remaining_group_terminated": false
+        },
+        "library_sha256": "73ccb93a3d943281ac1866510f5904bd4a321ba5ded8a3fcd05711545558a1ba"
+      },
+      {
+        "language": "css",
+        "commit": "c0d581e32d183a536731ed6c3a72758b27e20411",
+        "tag": "v0.23.2",
+        "grammar_abi": 14,
+        "passed": true,
+        "inputs_unchanged": true,
+        "compile": {
+          "complete": true,
+          "exit_code": 0,
+          "seconds": 0.20054820800000006,
+          "timed_out": false,
+          "remaining_group_terminated": false
+        },
+        "signature": {
+          "complete": true,
+          "exit_code": 0,
+          "seconds": 0.021116417,
+          "timed_out": false,
+          "remaining_group_terminated": false
+        },
+        "library_sha256": "976f772b085d3c4ef217aac3ba415ad45fd35f921b484448f8e7dac988221606"
+      },
+      {
+        "language": "html",
+        "commit": "5a5ca8551a179998360b4a4ca2c0f366a35acc03",
+        "tag": "v0.23.2",
+        "grammar_abi": 14,
+        "passed": true,
+        "inputs_unchanged": true,
+        "compile": {
+          "complete": true,
+          "exit_code": 0,
+          "seconds": 0.19219320800000006,
+          "timed_out": false,
+          "remaining_group_terminated": false
+        },
+        "signature": {
+          "complete": true,
+          "exit_code": 0,
+          "seconds": 0.012780375000000066,
+          "timed_out": false,
+          "remaining_group_terminated": false
+        },
+        "library_sha256": "e55cbf089ccaa8fef7e4d78f3b65ca2d8191ed2fbe96f0513474504a3fbc66ee"
+      },
+      {
+        "language": "javascript",
+        "commit": "44c892e0be055ac465d5eeddae6d3e194424e7de",
+        "tag": "v0.25.0",
+        "grammar_abi": 15,
+        "passed": true,
+        "inputs_unchanged": true,
+        "compile": {
+          "complete": true,
+          "exit_code": 0,
+          "seconds": 0.36403387500000006,
+          "timed_out": false,
+          "remaining_group_terminated": false
+        },
+        "signature": {
+          "complete": true,
+          "exit_code": 0,
+          "seconds": 0.012649708000000093,
+          "timed_out": false,
+          "remaining_group_terminated": false
+        },
+        "library_sha256": "b65e4b00a76e0b4d221c904653dfb69bbcd614842269ea7dca62f012ad21db25"
+      },
+      {
+        "language": "python",
+        "commit": "293fdc02038ee2bf0e2e206711b69c90ac0d413f",
+        "tag": "v0.25.0",
+        "grammar_abi": 15,
+        "passed": true,
+        "inputs_unchanged": true,
+        "compile": {
+          "complete": true,
+          "exit_code": 0,
+          "seconds": 0.289367084,
+          "timed_out": false,
+          "remaining_group_terminated": false
+        },
+        "signature": {
+          "complete": true,
+          "exit_code": 0,
+          "seconds": 0.012436624999999868,
+          "timed_out": false,
+          "remaining_group_terminated": false
+        },
+        "library_sha256": "9f221da0f90410320bc5a3a8596cea93595e40f625f5ea631be3b33a02e1efce"
+      },
+      {
+        "language": "bash",
+        "commit": "a06c2e4415e9bc0346c6b86d401879ffb44058f7",
+        "tag": "v0.25.1",
+        "grammar_abi": 15,
+        "passed": true,
+        "inputs_unchanged": true,
+        "compile": {
+          "complete": true,
+          "exit_code": 0,
+          "seconds": 0.5803954170000001,
+          "timed_out": false,
+          "remaining_group_terminated": false
+        },
+        "signature": {
+          "complete": true,
+          "exit_code": 0,
+          "seconds": 0.023554666000000335,
+          "timed_out": false,
+          "remaining_group_terminated": false
+        },
+        "library_sha256": "6cb4f3a0bc3683645fd4723f0b1accb179669c3b5f8f80f484ad95ae1511ca07"
+      },
+      {
+        "language": "elixir",
+        "commit": "86ec2ed45d6d9433b4e0b88cd3d96796bd45625f",
+        "tag": "v0.3.4",
+        "grammar_abi": 14,
+        "passed": true,
+        "inputs_unchanged": true,
+        "compile": {
+          "complete": true,
+          "exit_code": 0,
+          "seconds": 0.4782762909999998,
+          "timed_out": false,
+          "remaining_group_terminated": false
+        },
+        "signature": {
+          "complete": true,
+          "exit_code": 0,
+          "seconds": 0.022710750000000335,
+          "timed_out": false,
+          "remaining_group_terminated": false
+        },
+        "library_sha256": "3110ee2cb9948220314683487d984c6fd8922b83c1ccdd255acee7fa8d81b359"
+      },
+      {
+        "language": "jsdoc",
+        "commit": "658d18dcdddb75c760363faa4963427a7c6b52db",
+        "tag": "v0.25.0",
+        "grammar_abi": 15,
+        "passed": true,
+        "inputs_unchanged": true,
+        "compile": {
+          "complete": true,
+          "exit_code": 0,
+          "seconds": 0.24428795899999978,
+          "timed_out": false,
+          "remaining_group_terminated": false
+        },
+        "signature": {
+          "complete": true,
+          "exit_code": 0,
+          "seconds": 0.012183666999999954,
+          "timed_out": false,
+          "remaining_group_terminated": false
+        },
+        "library_sha256": "284288410e44c9d9bedaf939bf5f1601a3b32a07d734954aa3a96461ebe60e51"
+      }
+    ],
+    "controller": {
+      "run_id": "e631c419d8bd4469b3b09cd5434a2bab",
+      "exit_code": 0,
+      "cleanup_complete": true,
+      "elapsed_seconds": 3.071,
+      "peak_rss_bytes": 258539520,
+      "peak_footprint_bytes": 206652832,
+      "peak_accounted_bytes": 258539520,
+      "metrics_independently_reviewed": false
+    }
+  },
+  "initial_preflight": {
+    "path": "build/acceptance/g3-treesit-grammars-current-1/preflight-failure.json",
+    "sha256": "15c116b19b298a1eba0ab9d946c03f1c8580bb43ce5166b76e9c657e30cd12e1",
+    "phase": "preflight-failed",
+    "passed": false,
+    "editor_started": false,
+    "compiler_started": false,
+    "error_code": "missing_grammar_library",
+    "missing_path": "build/acceptance/runtime-g3-treesit-grammars-1/libraries/libtree-sitter-json.dylib",
+    "driver_sha256": "7f1682865fda9338dab81f39490fe2cdd4a3243ad3c419cbdaaf7cd146b3c58c",
+    "controller": {
+      "run_id": "c2c36660b2df4bc0963f3461acf5be79",
+      "exit_code": 1,
+      "elapsed_seconds": 0.286,
+      "peak_accounted_bytes": 6029312,
+      "cleanup_complete": true
+    },
+    "cause": "unknown; prior receipt does not prove current availability"
+  },
+  "previous_no_grammar_result": {
+    "path": "build/acceptance/g3-startup-regex-treesit-1/results.json",
+    "sha256": "0bcf77f830daf4d7327a6297f5e62219faaa494ece21065d8df797ab6236f0dc",
+    "unchanged": true,
+    "skips_per_product": 32
+  },
+  "scope_limits": [
+    "Current normal three-product original40-ID grammar integration only; not checking,native,collector,physicalGUI,fullG3 or performance acceptance.",
+    "Eight fixtures rebuilt from same pinned source in a new owned output; new binary hashes,not old artifact reuse.",
+    "First preflight and previous32grammar skips perproduct remain immutable; missing-library cause unknown.",
+    "No module assertion subprocess suite repeated,no source/App change."
+  ],
+  "independent_review": {
+    "accepted": true,
+    "state": "Actual original source, cases/events and eight new library rehash handback received; no confirmed execution defect",
+    "limits": [
+      "Current normal original40-ID grammar coverage, not checking/native/collector/physicalGUI/fullG3 or speedup.",
+      "jsdoc availability is preflighted; no original ID explicitly names or loads jsdoc.",
+      "Reviewer rehashed new libraries, not live App; controllers remain primary-side receipts.",
+      "No deletion cause inferred; prior skips and failed preflight remain immutable.",
+      "Signed delivery and cleanup adoption follow separately."
+    ]
+  },
+  "cleanup": {
+    "status": "complete",
+    "files": 4608,
+    "directories": 792,
+    "links": 18,
+    "rows": 5418,
+    "logical_bytes": 62990856,
+    "allocated_bytes": 75264000,
+    "manifest_sha256": "49526b3c1bc07b45d541f8f78ebfa5d199f19b02a4ac450f575b5c21d1a48460",
+    "automatic_directories": 30,
+    "products_inputs_git_evidence_unchanged": true,
+    "manifest": "maintenance/cleanup/manifests/2026-10-30-170-consumed-grammar-state.jsonl.gz",
+    "post_review_directories": 762,
+    "automatic_parent_directories": 6,
+    "raw_results_retained": true
+  }
+}
