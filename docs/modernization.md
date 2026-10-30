@@ -53,6 +53,57 @@ not an editor compatibility/performance pass. Rejecting an individual native/GC
 candidate does not satisfy the overall improvement requirement. Older
 functional-only closeout decisions do not close this current Goal.
 
+### GC tradeoffs and tuning direction (2026-10-30)
+
+The user's clarification makes latency, throughput and memory separate design
+axes. Interactive editing should prioritize responsive input and short tail
+stalls; batch compilation/loading also needs throughput comparisons. Keep both
+results visible, including tradeoffs, rather than selecting a collector from
+one mean runtime. This does not waive compatibility or the existing requirement
+for demonstrated performance improvement, and introduces no numerical target.
+Horizontal scaling can add capacity for partitionable work and reduce queuing;
+it does not remove a pause within one editor process or one serial operation.
+
+Technical references checked on 2026-10-30:
+
+- [Go GC guide](https://go.dev/doc/gc-guide): concurrent collection reduces
+  global pauses, but scheduling, allocation assists and barriers also affect
+  application latency. GOGC trades GC CPU against heap growth; GOMEMLIMIT is a
+  soft runtime-memory limit, with anti-thrashing behavior, not a process RSS
+  hard cap. A smaller heap target is not automatically a lower-latency choice.
+- [Green Tea design](https://go.dev/blog/greenteagc) and
+  [Go 1.26 release notes](https://go.dev/doc/go1.26): improve marking/scanning
+  locality through page-oriented work and local metadata. Green Tea moved from
+  a Go 1.25 experiment to the Go 1.26 default; the transitional build opt-out
+  is not evidence of a Java-style permanent menu of tunable collectors.
+- [Java collector choices](https://docs.oracle.com/en/java/javase/26/gctuning/available-collectors.html)
+  and [G1 tuning](https://docs.oracle.com/en/java/javase/26/gctuning/garbage-first-garbage-collector-tuning.html):
+  Parallel targets throughput, G1 balances pause goals and throughput, and ZGC
+  emphasizes low pauses. These are workload-dependent choices; a pause goal
+  is not an application response-time guarantee.
+
+For G5/G7, apply the lessons to the actual runtime: attribute root, marking,
+remembered-owner and sweep costs; remove proven redundant work; then evaluate
+locality and collection pacing against the existing pointer/root/barrier,
+weak-reference, finalizer, dump and foreign-code contracts. Concurrent or
+incremental collection needs its own complete correctness design before it
+can replace the current collector. Published Java/Go results are not Fe gains.
+
+Evaluate existing GC thresholds before adding controls. A future explicit
+latency/throughput/heap-growth policy should expose a small, validated set of
+parameters with documented effects and safe fallback, while preserving current
+Lisp settings and explicit-collection behavior. This is a design direction,
+not a claim that new modes, a soft memory controller or concurrent GC ship.
+Product tuning never changes the execution controller's hard resource limits.
+
+Use the existing real-workload and observer evidence: application input-to-update
+latency and GC pause/phase duration are different measurements. Retain sample
+counts, maximum, p95/p99 only when supported by the existing sample policy,
+total work/CPU, collection frequency, live heap and process memory. Compare
+interactive and batch workloads at comparable memory budgets, alongside the
+official defaults. Keep busy-host measurements inconclusive for promotion;
+do not rerun unchanged matrices merely for this documentation clarification.
+
 | ID | Required outcome | Starting evidence and remaining work | Acceptance |
 | --- | --- | --- | --- |
 | G1 | macOS terminal and native editor reliably usable | Accepted through actual native workflows and source-equivalent retained controls; [current G1 evidence](../maintenance/releases/2026-10-29-current-g1-workflows.md) distinguishes human mouse/composition, separate save/quit, current TTY and retained failures. No single end-to-end or broad G3 claim. | Actual unlocked native workflows, exact PID/product identity, correct file bytes/committed text, cancellation and normal exit; malformed TTY startup fails with the correct message without duplicate cleanup or a crash. |
