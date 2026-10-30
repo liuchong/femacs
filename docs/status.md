@@ -23991,3 +23991,25 @@ bytes; original results, frozen inputs, products and App remain unchanged.
   G1/G2/G4 remain3/7(42.9%); G3/G5/G6/G7 remain4/7(57.1%). Original Goal active;
   next uncovered original files and evidence-led runtime work, no unchanged
   busy-host replay or invented defect from shared failures/skips.
+
+
+### Original stable undo and file workflows: four complete files (2026-10-30)
+
+- Current normal reference/terminal/Cocoa:47IDs each,41pass6Windows/DOSskips;
+  combined123pass18skip, equal original maps and no failed assertions/timeouts.
+  All12file processes exit0/reaped. Original false aggregate and outerexit1
+  retained; no guards/assertions or million-insert undo input weakened.
+- Full inputs/products/resources/trial App unchanged, no generated resources.
+  Driver10.774973708s; owner13.764s/239,763,456B accounted peak, exit1/reaped.
+  Independent review accepts original guards/maps/scale; controller metrics are
+  primary-side receipts. Process case checks version, not child dump loading.
+- CLN162:runner previously retired5files/51dirs,170,464logical/184,320allocated;
+  post-review4,608files/819dirs/3links,62,990,856logical/75,264,000allocated.
+  Combined4,613files/870dirs/3links and5,486public identity rows. Raw skip/result
+  evidence, corpus, actual products and live terminal libraries retained.
+- [Comparison](../maintenance/releases/2026-10-30-original-file-workflows.md),
+  [bounded receipt](../maintenance/releases/2026-10-30-original-file-workflows-results.json),
+  [CLN162](../maintenance/cleanup/reports/2026-10-30-162-consumed-file-workflow-state.md).
+  G1/G2/G4 remain3/7(42.9%); G3/G5/G6/G7 remain4/7(57.1%), original Goal active.
+  Continue uncovered original data/time/resource files, no patch for shared
+  platform skips, no unchanged busy-host matrix or rejected root-hint replay.

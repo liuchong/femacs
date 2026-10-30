@@ -1,0 +1,1368 @@
+{
+  "schema": 1,
+  "scope": "Four complete pinned stable undo/file-I-O/file-lock/process-call files; installed reference and current normal terminal/Cocoa; all IDs and original assertions unchanged, no full G3, physical UI, native/collector or performance claim",
+  "passed": false,
+  "source_commit": "a360712c9d272d950d8d8255ef74570f7e90b7d9",
+  "files": [
+    {
+      "path": "test/src/callproc-tests.el",
+      "size": 3350,
+      "blob": "8e0cf6eb6fdbec2eab687240d8cd4b4b370f1dd5",
+      "sha256": "e281c5521b0f8aa026d625fac3a45ebf6bf1e6df4b7177737b16af44debe00da"
+    },
+    {
+      "path": "test/src/fileio-tests.el",
+      "size": 12456,
+      "blob": "2c27ef357016d8fcda5a29f140e21e4d49799cef",
+      "sha256": "2682aeac0e23f95525b8055c0e2c4de0a08e919467e43f17501b10aaa6c07999"
+    },
+    {
+      "path": "test/src/filelock-tests.el",
+      "size": 8899,
+      "blob": "9284edd8b26e2d06d9cf3d6be9349b42888cd545",
+      "sha256": "c904e269918d80c2b51f772bd1ee3147be9ac9f5a07ee26502a63045edce3acc"
+    },
+    {
+      "path": "test/src/undo-tests.el",
+      "size": 16032,
+      "blob": "24fd47b88a75265e19e0c4b3937ae9662586fca3",
+      "sha256": "124bea9bebb18333a8299f62fb024d8cd2211039c568a069745bed3310249579"
+    }
+  ],
+  "counts": {
+    "passed": 123,
+    "skipped": 18
+  },
+  "ids_per_product": 47,
+  "processes": 12,
+  "seconds": 10.774973708000001,
+  "status_maps_equal_reference": true,
+  "identities_unchanged": true,
+  "original_inputs_unchanged": true,
+  "generated_resources": {
+    "reference": {},
+    "terminal": {},
+    "cocoa": {}
+  },
+  "raw_result": {
+    "path": "build/acceptance/g3-file-workflows-1/results.json",
+    "sha256": "7c3e4a4d50ae7a7f2367ca1e912ddc963a492e893e762a48433fe49b94598076"
+  },
+  "driver_sha256": "3d3cc8b28615e6e5ae80c68a70506f6d73cf7fb31c9f415260da279c117cc4b8",
+  "budget": {
+    "whole_seconds": 360,
+    "per_case_seconds": 60,
+    "expected_seconds": [
+      20,
+      150
+    ],
+    "expected_peak_bytes": 1073741824,
+    "copied_source_bytes": 62990856,
+    "scale": "12 serial file processes and bounded owned shell/version children. Undo-test4 performs1048576 sequential6/7-byte inserts (6815744 text bytes), full-buffer flush and undo/compare; other undo fixtures are short edits/markers/properties. File-I-O loops127 non-NUL ASCII symlink targets, bounded10bytes urandom and small owned files/directory errors. File-lock uses six owned lock fixtures including two lock-settings with local touch/echo shells and simulated interaction. Process-call has two original Windows-only guards and one --version child. No network/UI/intentional crash/external compiler. Per-case60s and whole360s hard deadlines. Expected under1GiB; no input-size reduction or original assertion/guard change."
+  },
+  "controller": {
+    "run_id": "e925f38b0c2e4f6cbd9562468b9f735d",
+    "exit_code": 1,
+    "cleanup_complete": true,
+    "elapsed_seconds": 13.764,
+    "peak_rss_bytes": 239763456,
+    "peak_footprint_bytes": 138824200,
+    "peak_accounted_bytes": 239763456,
+    "metrics_independently_reviewed": false
+  },
+  "process_results": [
+    {
+      "product": "reference",
+      "file": "test/src/undo-tests.el",
+      "ids": [
+        "undo-test-buffer-modified",
+        "undo-test-combine-change-calls-1",
+        "undo-test-combine-change-calls-2",
+        "undo-test-combine-change-calls-3",
+        "undo-test-file-modified",
+        "undo-test-marker-adjustment-moved",
+        "undo-test-marker-adjustment-nominal",
+        "undo-test-region-deletion",
+        "undo-test-region-eob",
+        "undo-test-region-example",
+        "undo-test-region-mark-adjustment",
+        "undo-test-region-not-most-recent",
+        "undo-test-region-t-marker",
+        "undo-test-skip-invalidated-markers",
+        "undo-test0",
+        "undo-test1",
+        "undo-test2",
+        "undo-test4",
+        "undo-test5"
+      ],
+      "counts": {
+        "passed": 19
+      },
+      "complete": true,
+      "exit_code": 0,
+      "remaining_group_terminated": false,
+      "seconds": 0.9837105829999997,
+      "result": {
+        "path": "build/acceptance/g3-file-workflows-1/reference/results/reference/test-src-undo-tests.el-42cd9969357d.json",
+        "sha256": "1be46a5c5e5748cb3dd6eabe666f2b3f4bf868829bfb5aceb67c603f3b31ba8c"
+      },
+      "events": {
+        "path": "build/acceptance/g3-file-workflows-1/reference/results/reference/test-src-undo-tests.el-42cd9969357d.events.jsonl",
+        "sha256": "4f24052ea819a9acbd1f81643d38cbcb48264d8666cf710119e26e3e5c6d800b"
+      },
+      "cases": {
+        "undo-test-buffer-modified": {
+          "status": "passed",
+          "seconds": 0.000579,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"Undo\n\""
+        },
+        "undo-test-combine-change-calls-1": {
+          "status": "passed",
+          "seconds": 0.16296,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "undo-test-combine-change-calls-2": {
+          "status": "passed",
+          "seconds": 0.027648,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "undo-test-combine-change-calls-3": {
+          "status": "passed",
+          "seconds": 0.04304,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "undo-test-file-modified": {
+          "status": "passed",
+          "seconds": 0.021971,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"Undo [2 times]\n\""
+        },
+        "undo-test-marker-adjustment-moved": {
+          "status": "passed",
+          "seconds": 0.000185,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"Undo [3 times]\n\""
+        },
+        "undo-test-marker-adjustment-nominal": {
+          "status": "passed",
+          "seconds": 2.7e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"Undo [4 times]\n\""
+        },
+        "undo-test-region-deletion": {
+          "status": "passed",
+          "seconds": 0.00107,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"Undo in region\n\""
+        },
+        "undo-test-region-eob": {
+          "status": "passed",
+          "seconds": 3.9e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"Undo\nUndo in region\n\""
+        },
+        "undo-test-region-example": {
+          "status": "passed",
+          "seconds": 3.8e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"Undo in region [3 times]\n\""
+        },
+        "undo-test-region-mark-adjustment": {
+          "status": "passed",
+          "seconds": 3.4e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"Undo\nUndo in region\n\""
+        },
+        "undo-test-region-not-most-recent": {
+          "status": "passed",
+          "seconds": 1.9e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"Undo in region [2 times]\n\""
+        },
+        "undo-test-region-t-marker": {
+          "status": "passed",
+          "seconds": 2.2e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"Undo in region [3 times]\n\""
+        },
+        "undo-test-skip-invalidated-markers": {
+          "status": "passed",
+          "seconds": 0.000313,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"Undo\n\""
+        },
+        "undo-test0": {
+          "status": "passed",
+          "seconds": 0.00017,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"Undo [2 times]\n\""
+        },
+        "undo-test1": {
+          "status": "passed",
+          "seconds": 3.7e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"Undo [4 times]\n\""
+        },
+        "undo-test2": {
+          "status": "passed",
+          "seconds": 2.6e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"Undo [6 times]\n\""
+        },
+        "undo-test4": {
+          "status": "passed",
+          "seconds": 0.33579,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"Undo [8 times]\n\""
+        },
+        "undo-test5": {
+          "status": "passed",
+          "seconds": 5.9e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"Undo [9 times]\n\""
+        }
+      }
+    },
+    {
+      "product": "reference",
+      "file": "test/src/fileio-tests.el",
+      "ids": [
+        "fileio--file-name-case-insensitive-p",
+        "fileio-tests--circular-after-insert-file-functions",
+        "fileio-tests--directory-file-name",
+        "fileio-tests--directory-file-name-dos-nt",
+        "fileio-tests--expand-file-name-null-bytes",
+        "fileio-tests--file-name-absolute-p",
+        "fileio-tests--file-name-as-directory",
+        "fileio-tests--file-name-as-directory-dos-nt",
+        "fileio-tests--insert-file-contents-supersession",
+        "fileio-tests--insert-file-interrupt",
+        "fileio-tests--non-regular-insert",
+        "fileio-tests--odd-symlink-chars",
+        "fileio-tests--read-directory",
+        "fileio-tests--relative-HOME",
+        "fileio-tests--relative-default-directory",
+        "fileio-tests-invalid-UNC",
+        "fileio-tests-w32-time-stamp-granularity",
+        "fileio-tests/file-name-concat",
+        "fileio-tests/null-character"
+      ],
+      "counts": {
+        "passed": 15,
+        "skipped": 4
+      },
+      "complete": true,
+      "exit_code": 0,
+      "remaining_group_terminated": false,
+      "seconds": 0.3175612499999998,
+      "result": {
+        "path": "build/acceptance/g3-file-workflows-1/reference/results/reference/test-src-fileio-tests.el-99f64c642212.json",
+        "sha256": "1bd38b5d25d2b93bc0c38e593f2c9340450bbea9992627386157b3f10626c4ba"
+      },
+      "events": {
+        "path": "build/acceptance/g3-file-workflows-1/reference/results/reference/test-src-fileio-tests.el-99f64c642212.events.jsonl",
+        "sha256": "05b855eb3912f2e4ec69f3ef0efbe579dafa5b4024c8b77593b725087019ca0d"
+      },
+      "cases": {
+        "fileio--file-name-case-insensitive-p": {
+          "status": "passed",
+          "seconds": 4.5e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "fileio-tests--circular-after-insert-file-functions": {
+          "status": "passed",
+          "seconds": 0.000348,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "fileio-tests--directory-file-name": {
+          "status": "passed",
+          "seconds": 1.7e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "fileio-tests--directory-file-name-dos-nt": {
+          "status": "skipped",
+          "seconds": 2.5e-05,
+          "diagnostic": "result=ert-test-skipped expected=t condition=(ert-test-skipped ((skip-unless (memq system-type '(ms-dos windows-nt))) :form (memq darwin (ms-dos windows-nt)) :value nil)) messages=\"\""
+        },
+        "fileio-tests--expand-file-name-null-bytes": {
+          "status": "passed",
+          "seconds": 1.9e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "fileio-tests--file-name-absolute-p": {
+          "status": "passed",
+          "seconds": 0.003077,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "fileio-tests--file-name-as-directory": {
+          "status": "passed",
+          "seconds": 1.7e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "fileio-tests--file-name-as-directory-dos-nt": {
+          "status": "skipped",
+          "seconds": 2.2e-05,
+          "diagnostic": "result=ert-test-skipped expected=t condition=(ert-test-skipped ((skip-unless (memq system-type '(ms-dos windows-nt))) :form (memq darwin (ms-dos windows-nt)) :value nil)) messages=\"\""
+        },
+        "fileio-tests--insert-file-contents-supersession": {
+          "status": "passed",
+          "seconds": 0.087989,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "fileio-tests--insert-file-interrupt": {
+          "status": "passed",
+          "seconds": 0.000211,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "fileio-tests--non-regular-insert": {
+          "status": "passed",
+          "seconds": 7.1e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "fileio-tests--odd-symlink-chars": {
+          "status": "passed",
+          "seconds": 0.008787,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "fileio-tests--read-directory": {
+          "status": "passed",
+          "seconds": 0.000168,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "fileio-tests--relative-HOME": {
+          "status": "passed",
+          "seconds": 3e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "fileio-tests--relative-default-directory": {
+          "status": "passed",
+          "seconds": 0.000877,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "fileio-tests-invalid-UNC": {
+          "status": "skipped",
+          "seconds": 2.4e-05,
+          "diagnostic": "result=ert-test-skipped expected=t condition=(ert-test-skipped ((skip-unless (eq system-type 'windows-nt)) :form (eq darwin windows-nt) :value nil)) messages=\"\""
+        },
+        "fileio-tests-w32-time-stamp-granularity": {
+          "status": "skipped",
+          "seconds": 1.8e-05,
+          "diagnostic": "result=ert-test-skipped expected=t condition=(ert-test-skipped ((skip-unless (eq system-type 'windows-nt)) :form (eq darwin windows-nt) :value nil)) messages=\"\""
+        },
+        "fileio-tests/file-name-concat": {
+          "status": "passed",
+          "seconds": 2.6e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "fileio-tests/null-character": {
+          "status": "passed",
+          "seconds": 1.2e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        }
+      }
+    },
+    {
+      "product": "reference",
+      "file": "test/src/filelock-tests.el",
+      "ids": [
+        "filelock-tests-detect-external-change",
+        "filelock-tests-file-locked-p-spoiled",
+        "filelock-tests-kill-buffer-spoiled",
+        "filelock-tests-lock-spoiled",
+        "filelock-tests-lock-unlock-no-errors",
+        "filelock-tests-unlock-spoiled"
+      ],
+      "counts": {
+        "passed": 6
+      },
+      "complete": true,
+      "exit_code": 0,
+      "remaining_group_terminated": false,
+      "seconds": 2.040283208,
+      "result": {
+        "path": "build/acceptance/g3-file-workflows-1/reference/results/reference/test-src-filelock-tests.el-41fc7dc534b6.json",
+        "sha256": "5be579755b5245784dc2ff6fc78ca1874c1cae51ea4c2276c87293e84f5d71c7"
+      },
+      "events": {
+        "path": "build/acceptance/g3-file-workflows-1/reference/results/reference/test-src-filelock-tests.el-41fc7dc534b6.events.jsonl",
+        "sha256": "20fde7a5805e9b10c919dd999b74cf0cc004db47a247623a4457b59210148bc4"
+      },
+      "cases": {
+        "filelock-tests-detect-external-change": {
+          "status": "passed",
+          "seconds": 1.828877,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"(Shell command succeeded with no output) [2 times]\nuserfile changed on disk; really edit the buffer? (y, n, r or C-h) \nFile on disk now will become a backup file if you save these changes.\n(Shell command succeeded with no output) [2 times]\nuserfile changed on disk; really edit the buffer? (y, n, r or C-h) \nFile on disk now will become a backup file if you save these changes.\n\""
+        },
+        "filelock-tests-file-locked-p-spoiled": {
+          "status": "passed",
+          "seconds": 0.000425,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "filelock-tests-kill-buffer-spoiled": {
+          "status": "passed",
+          "seconds": 0.000366,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "filelock-tests-lock-spoiled": {
+          "status": "passed",
+          "seconds": 0.000389,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "filelock-tests-lock-unlock-no-errors": {
+          "status": "passed",
+          "seconds": 0.000381,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "filelock-tests-unlock-spoiled": {
+          "status": "passed",
+          "seconds": 0.000457,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        }
+      }
+    },
+    {
+      "product": "reference",
+      "file": "test/src/callproc-tests.el",
+      "ids": [
+        "call-process-region-entire-buffer-with-delete",
+        "call-process-w32-debug-spawn-error",
+        "initial-environment-preserved"
+      ],
+      "counts": {
+        "passed": 1,
+        "skipped": 2
+      },
+      "complete": true,
+      "exit_code": 0,
+      "remaining_group_terminated": false,
+      "seconds": 0.2975498329999997,
+      "result": {
+        "path": "build/acceptance/g3-file-workflows-1/reference/results/reference/test-src-callproc-tests.el-a1c79a26522a.json",
+        "sha256": "876e0d5b7613dac3b12fa5852a95a789ba17721d47cf4304373f160e09d3aaf1"
+      },
+      "events": {
+        "path": "build/acceptance/g3-file-workflows-1/reference/results/reference/test-src-callproc-tests.el-a1c79a26522a.events.jsonl",
+        "sha256": "6b87b75f18794733218a3b324da8fbf8f993427f9c936b55c4af6d133d070ab1"
+      },
+      "cases": {
+        "call-process-region-entire-buffer-with-delete": {
+          "status": "passed",
+          "seconds": 0.116506,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "call-process-w32-debug-spawn-error": {
+          "status": "skipped",
+          "seconds": 3.5e-05,
+          "diagnostic": "result=ert-test-skipped expected=t condition=(ert-test-skipped ((skip-unless (eq system-type 'windows-nt)) :form (eq darwin windows-nt) :value nil)) messages=\"\""
+        },
+        "initial-environment-preserved": {
+          "status": "skipped",
+          "seconds": 2.2e-05,
+          "diagnostic": "result=ert-test-skipped expected=t condition=(ert-test-skipped ((skip-unless (eq system-type 'windows-nt)) :form (eq darwin windows-nt) :value nil)) messages=\"\""
+        }
+      }
+    },
+    {
+      "product": "terminal",
+      "file": "test/src/undo-tests.el",
+      "ids": [
+        "undo-test-buffer-modified",
+        "undo-test-combine-change-calls-1",
+        "undo-test-combine-change-calls-2",
+        "undo-test-combine-change-calls-3",
+        "undo-test-file-modified",
+        "undo-test-marker-adjustment-moved",
+        "undo-test-marker-adjustment-nominal",
+        "undo-test-region-deletion",
+        "undo-test-region-eob",
+        "undo-test-region-example",
+        "undo-test-region-mark-adjustment",
+        "undo-test-region-not-most-recent",
+        "undo-test-region-t-marker",
+        "undo-test-skip-invalidated-markers",
+        "undo-test0",
+        "undo-test1",
+        "undo-test2",
+        "undo-test4",
+        "undo-test5"
+      ],
+      "counts": {
+        "passed": 19
+      },
+      "complete": true,
+      "exit_code": 0,
+      "remaining_group_terminated": false,
+      "seconds": 0.5750611250000013,
+      "result": {
+        "path": "build/acceptance/g3-file-workflows-1/terminal/results/terminal/test-src-undo-tests.el-42cd9969357d.json",
+        "sha256": "e28040eb81fe8322e82a03cd6be333434d524a4e9f5df6b765540f6c910bb0e2"
+      },
+      "events": {
+        "path": "build/acceptance/g3-file-workflows-1/terminal/results/terminal/test-src-undo-tests.el-42cd9969357d.events.jsonl",
+        "sha256": "466d371c1b95a844461a7a1be6238f14ecb6e0405fbf413d63cf1b3a9a68e421"
+      },
+      "cases": {
+        "undo-test-buffer-modified": {
+          "status": "passed",
+          "seconds": 7.1e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"Undo\n\""
+        },
+        "undo-test-combine-change-calls-1": {
+          "status": "passed",
+          "seconds": 0.078628,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "undo-test-combine-change-calls-2": {
+          "status": "passed",
+          "seconds": 0.025064,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "undo-test-combine-change-calls-3": {
+          "status": "passed",
+          "seconds": 0.057147,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "undo-test-file-modified": {
+          "status": "passed",
+          "seconds": 0.025351,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"Undo [jd times]\n\""
+        },
+        "undo-test-marker-adjustment-moved": {
+          "status": "passed",
+          "seconds": 4.8e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"Undo\n\""
+        },
+        "undo-test-marker-adjustment-nominal": {
+          "status": "passed",
+          "seconds": 3e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"Undo [jd times]\n\""
+        },
+        "undo-test-region-deletion": {
+          "status": "passed",
+          "seconds": 4.5e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"Undo in region\n\""
+        },
+        "undo-test-region-eob": {
+          "status": "passed",
+          "seconds": 3.7e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"Undo\nUndo in region\n\""
+        },
+        "undo-test-region-example": {
+          "status": "passed",
+          "seconds": 5.2e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"Undo in region [jd times]\nUndo in region\n\""
+        },
+        "undo-test-region-mark-adjustment": {
+          "status": "passed",
+          "seconds": 4.1e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"Undo\nUndo in region\n\""
+        },
+        "undo-test-region-not-most-recent": {
+          "status": "passed",
+          "seconds": 2.7e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"Undo in region [jd times]\n\""
+        },
+        "undo-test-region-t-marker": {
+          "status": "passed",
+          "seconds": 2.7e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"Undo in region\n\""
+        },
+        "undo-test-skip-invalidated-markers": {
+          "status": "passed",
+          "seconds": 6.6e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"Undo\n\""
+        },
+        "undo-test0": {
+          "status": "passed",
+          "seconds": 6.5e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"Undo [jd times]\n\""
+        },
+        "undo-test1": {
+          "status": "passed",
+          "seconds": 4e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"Undo [jd times]\n\""
+        },
+        "undo-test2": {
+          "status": "passed",
+          "seconds": 2.9e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"Undo [jd times]\n\""
+        },
+        "undo-test4": {
+          "status": "passed",
+          "seconds": 0.315537,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"Undo [jd times]\n\""
+        },
+        "undo-test5": {
+          "status": "passed",
+          "seconds": 7.9e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"Undo\n\""
+        }
+      }
+    },
+    {
+      "product": "terminal",
+      "file": "test/src/fileio-tests.el",
+      "ids": [
+        "fileio--file-name-case-insensitive-p",
+        "fileio-tests--circular-after-insert-file-functions",
+        "fileio-tests--directory-file-name",
+        "fileio-tests--directory-file-name-dos-nt",
+        "fileio-tests--expand-file-name-null-bytes",
+        "fileio-tests--file-name-absolute-p",
+        "fileio-tests--file-name-as-directory",
+        "fileio-tests--file-name-as-directory-dos-nt",
+        "fileio-tests--insert-file-contents-supersession",
+        "fileio-tests--insert-file-interrupt",
+        "fileio-tests--non-regular-insert",
+        "fileio-tests--odd-symlink-chars",
+        "fileio-tests--read-directory",
+        "fileio-tests--relative-HOME",
+        "fileio-tests--relative-default-directory",
+        "fileio-tests-invalid-UNC",
+        "fileio-tests-w32-time-stamp-granularity",
+        "fileio-tests/file-name-concat",
+        "fileio-tests/null-character"
+      ],
+      "counts": {
+        "passed": 15,
+        "skipped": 4
+      },
+      "complete": true,
+      "exit_code": 0,
+      "remaining_group_terminated": false,
+      "seconds": 0.1595502910000004,
+      "result": {
+        "path": "build/acceptance/g3-file-workflows-1/terminal/results/terminal/test-src-fileio-tests.el-99f64c642212.json",
+        "sha256": "d27b71ec5a5adb85d0f6432173358ee14eb7f10056476c8007ab6621798b047a"
+      },
+      "events": {
+        "path": "build/acceptance/g3-file-workflows-1/terminal/results/terminal/test-src-fileio-tests.el-99f64c642212.events.jsonl",
+        "sha256": "4f5d43fd16b1987fdd7675af1021380565fc45d00679c7b307daaf4500165408"
+      },
+      "cases": {
+        "fileio--file-name-case-insensitive-p": {
+          "status": "passed",
+          "seconds": 4.3e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "fileio-tests--circular-after-insert-file-functions": {
+          "status": "passed",
+          "seconds": 0.000309,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "fileio-tests--directory-file-name": {
+          "status": "passed",
+          "seconds": 2.5e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "fileio-tests--directory-file-name-dos-nt": {
+          "status": "skipped",
+          "seconds": 3e-05,
+          "diagnostic": "result=ert-test-skipped expected=t condition=(ert-test-skipped ((skip-unless (memq system-type '(ms-dos windows-nt))) :form (memq darwin (ms-dos windows-nt)) :value nil)) messages=\"\""
+        },
+        "fileio-tests--expand-file-name-null-bytes": {
+          "status": "passed",
+          "seconds": 2.8e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "fileio-tests--file-name-absolute-p": {
+          "status": "passed",
+          "seconds": 0.002299,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "fileio-tests--file-name-as-directory": {
+          "status": "passed",
+          "seconds": 2.5e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "fileio-tests--file-name-as-directory-dos-nt": {
+          "status": "skipped",
+          "seconds": 3.2e-05,
+          "diagnostic": "result=ert-test-skipped expected=t condition=(ert-test-skipped ((skip-unless (memq system-type '(ms-dos windows-nt))) :form (memq darwin (ms-dos windows-nt)) :value nil)) messages=\"\""
+        },
+        "fileio-tests--insert-file-contents-supersession": {
+          "status": "passed",
+          "seconds": 0.084162,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "fileio-tests--insert-file-interrupt": {
+          "status": "passed",
+          "seconds": 0.000288,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "fileio-tests--non-regular-insert": {
+          "status": "passed",
+          "seconds": 9.1e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "fileio-tests--odd-symlink-chars": {
+          "status": "passed",
+          "seconds": 0.009741,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "fileio-tests--read-directory": {
+          "status": "passed",
+          "seconds": 0.000182,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "fileio-tests--relative-HOME": {
+          "status": "passed",
+          "seconds": 2.3e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "fileio-tests--relative-default-directory": {
+          "status": "passed",
+          "seconds": 0.000318,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "fileio-tests-invalid-UNC": {
+          "status": "skipped",
+          "seconds": 4.3e-05,
+          "diagnostic": "result=ert-test-skipped expected=t condition=(ert-test-skipped ((skip-unless (eq system-type 'windows-nt)) :form (eq darwin windows-nt) :value nil)) messages=\"\""
+        },
+        "fileio-tests-w32-time-stamp-granularity": {
+          "status": "skipped",
+          "seconds": 4.2e-05,
+          "diagnostic": "result=ert-test-skipped expected=t condition=(ert-test-skipped ((skip-unless (eq system-type 'windows-nt)) :form (eq darwin windows-nt) :value nil)) messages=\"\""
+        },
+        "fileio-tests/file-name-concat": {
+          "status": "passed",
+          "seconds": 3.7e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "fileio-tests/null-character": {
+          "status": "passed",
+          "seconds": 2e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        }
+      }
+    },
+    {
+      "product": "terminal",
+      "file": "test/src/filelock-tests.el",
+      "ids": [
+        "filelock-tests-detect-external-change",
+        "filelock-tests-file-locked-p-spoiled",
+        "filelock-tests-kill-buffer-spoiled",
+        "filelock-tests-lock-spoiled",
+        "filelock-tests-lock-unlock-no-errors",
+        "filelock-tests-unlock-spoiled"
+      ],
+      "counts": {
+        "passed": 6
+      },
+      "complete": true,
+      "exit_code": 0,
+      "remaining_group_terminated": false,
+      "seconds": 0.19157645800000012,
+      "result": {
+        "path": "build/acceptance/g3-file-workflows-1/terminal/results/terminal/test-src-filelock-tests.el-41fc7dc534b6.json",
+        "sha256": "f95734cba2a6c8bfa2e738391c8b0ba1070baf5fd9cf2dc461036ad88fcedccf"
+      },
+      "events": {
+        "path": "build/acceptance/g3-file-workflows-1/terminal/results/terminal/test-src-filelock-tests.el-41fc7dc534b6.events.jsonl",
+        "sha256": "0eb1f8eb786dfadc03c26270aacd32265a63b2462c133e7461b7ab9115e7cebc"
+      },
+      "cases": {
+        "filelock-tests-detect-external-change": {
+          "status": "passed",
+          "seconds": 0.126413,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"(Shell command succeeded with no output) [jd times]\nuserfile changed on disk; really edit the buffer? (y, n, r or C-h) \nFile on disk now will become a backup file if you save these changes.\n(Shell command succeeded with no output) [jd times]\nuserfile changed on disk; really edit the buffer? (y, n, r or C-h) \nFile on disk now will become a backup file if you save these changes.\n\""
+        },
+        "filelock-tests-file-locked-p-spoiled": {
+          "status": "passed",
+          "seconds": 0.000401,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "filelock-tests-kill-buffer-spoiled": {
+          "status": "passed",
+          "seconds": 0.000394,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "filelock-tests-lock-spoiled": {
+          "status": "passed",
+          "seconds": 0.000424,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "filelock-tests-lock-unlock-no-errors": {
+          "status": "passed",
+          "seconds": 0.000426,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "filelock-tests-unlock-spoiled": {
+          "status": "passed",
+          "seconds": 0.000402,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        }
+      }
+    },
+    {
+      "product": "terminal",
+      "file": "test/src/callproc-tests.el",
+      "ids": [
+        "call-process-region-entire-buffer-with-delete",
+        "call-process-w32-debug-spawn-error",
+        "initial-environment-preserved"
+      ],
+      "counts": {
+        "passed": 1,
+        "skipped": 2
+      },
+      "complete": true,
+      "exit_code": 0,
+      "remaining_group_terminated": false,
+      "seconds": 0.05548595899999853,
+      "result": {
+        "path": "build/acceptance/g3-file-workflows-1/terminal/results/terminal/test-src-callproc-tests.el-a1c79a26522a.json",
+        "sha256": "69d7eed8b7e7ddd69060d6a07271f39f9e6c844c68a075d5caa09c8381fed4a2"
+      },
+      "events": {
+        "path": "build/acceptance/g3-file-workflows-1/terminal/results/terminal/test-src-callproc-tests.el-a1c79a26522a.events.jsonl",
+        "sha256": "9b72f232010764c7521c991d41c05c2434b1b3209cebe93377fcd7e22ca98b02"
+      },
+      "cases": {
+        "call-process-region-entire-buffer-with-delete": {
+          "status": "passed",
+          "seconds": 0.01108,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "call-process-w32-debug-spawn-error": {
+          "status": "skipped",
+          "seconds": 4.5e-05,
+          "diagnostic": "result=ert-test-skipped expected=t condition=(ert-test-skipped ((skip-unless (eq system-type 'windows-nt)) :form (eq darwin windows-nt) :value nil)) messages=\"\""
+        },
+        "initial-environment-preserved": {
+          "status": "skipped",
+          "seconds": 2.8e-05,
+          "diagnostic": "result=ert-test-skipped expected=t condition=(ert-test-skipped ((skip-unless (eq system-type 'windows-nt)) :form (eq darwin windows-nt) :value nil)) messages=\"\""
+        }
+      }
+    },
+    {
+      "product": "cocoa",
+      "file": "test/src/undo-tests.el",
+      "ids": [
+        "undo-test-buffer-modified",
+        "undo-test-combine-change-calls-1",
+        "undo-test-combine-change-calls-2",
+        "undo-test-combine-change-calls-3",
+        "undo-test-file-modified",
+        "undo-test-marker-adjustment-moved",
+        "undo-test-marker-adjustment-nominal",
+        "undo-test-region-deletion",
+        "undo-test-region-eob",
+        "undo-test-region-example",
+        "undo-test-region-mark-adjustment",
+        "undo-test-region-not-most-recent",
+        "undo-test-region-t-marker",
+        "undo-test-skip-invalidated-markers",
+        "undo-test0",
+        "undo-test1",
+        "undo-test2",
+        "undo-test4",
+        "undo-test5"
+      ],
+      "counts": {
+        "passed": 19
+      },
+      "complete": true,
+      "exit_code": 0,
+      "remaining_group_terminated": false,
+      "seconds": 0.5821945419999999,
+      "result": {
+        "path": "build/acceptance/g3-file-workflows-1/cocoa/results/cocoa/test-src-undo-tests.el-42cd9969357d.json",
+        "sha256": "8063093028e5748e7e5b989677109f96c8cae495911bcb473b12a1bb646b274e"
+      },
+      "events": {
+        "path": "build/acceptance/g3-file-workflows-1/cocoa/results/cocoa/test-src-undo-tests.el-42cd9969357d.events.jsonl",
+        "sha256": "35c592660c393bda17e443de951df21179b1f881446105d85dee2d1572880a21"
+      },
+      "cases": {
+        "undo-test-buffer-modified": {
+          "status": "passed",
+          "seconds": 7.8e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"Undo\n\""
+        },
+        "undo-test-combine-change-calls-1": {
+          "status": "passed",
+          "seconds": 0.080795,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "undo-test-combine-change-calls-2": {
+          "status": "passed",
+          "seconds": 0.023013,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "undo-test-combine-change-calls-3": {
+          "status": "passed",
+          "seconds": 0.041806,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "undo-test-file-modified": {
+          "status": "passed",
+          "seconds": 0.028698,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"Undo [jd times]\n\""
+        },
+        "undo-test-marker-adjustment-moved": {
+          "status": "passed",
+          "seconds": 3.3e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"Undo\n\""
+        },
+        "undo-test-marker-adjustment-nominal": {
+          "status": "passed",
+          "seconds": 2.5e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"Undo [jd times]\n\""
+        },
+        "undo-test-region-deletion": {
+          "status": "passed",
+          "seconds": 3.9e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"Undo in region\n\""
+        },
+        "undo-test-region-eob": {
+          "status": "passed",
+          "seconds": 3e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"Undo\nUndo in region\n\""
+        },
+        "undo-test-region-example": {
+          "status": "passed",
+          "seconds": 3.8e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"Undo in region [jd times]\nUndo in region\n\""
+        },
+        "undo-test-region-mark-adjustment": {
+          "status": "passed",
+          "seconds": 3.9e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"Undo\nUndo in region\n\""
+        },
+        "undo-test-region-not-most-recent": {
+          "status": "passed",
+          "seconds": 2.8e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"Undo in region [jd times]\n\""
+        },
+        "undo-test-region-t-marker": {
+          "status": "passed",
+          "seconds": 2.5e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"Undo in region\n\""
+        },
+        "undo-test-skip-invalidated-markers": {
+          "status": "passed",
+          "seconds": 5.6e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"Undo\n\""
+        },
+        "undo-test0": {
+          "status": "passed",
+          "seconds": 6.5e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"Undo [jd times]\n\""
+        },
+        "undo-test1": {
+          "status": "passed",
+          "seconds": 3.9e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"Undo [jd times]\n\""
+        },
+        "undo-test2": {
+          "status": "passed",
+          "seconds": 2.9e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"Undo [jd times]\n\""
+        },
+        "undo-test4": {
+          "status": "passed",
+          "seconds": 0.339218,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"Undo [jd times]\n\""
+        },
+        "undo-test5": {
+          "status": "passed",
+          "seconds": 7e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"Undo\n\""
+        }
+      }
+    },
+    {
+      "product": "cocoa",
+      "file": "test/src/fileio-tests.el",
+      "ids": [
+        "fileio--file-name-case-insensitive-p",
+        "fileio-tests--circular-after-insert-file-functions",
+        "fileio-tests--directory-file-name",
+        "fileio-tests--directory-file-name-dos-nt",
+        "fileio-tests--expand-file-name-null-bytes",
+        "fileio-tests--file-name-absolute-p",
+        "fileio-tests--file-name-as-directory",
+        "fileio-tests--file-name-as-directory-dos-nt",
+        "fileio-tests--insert-file-contents-supersession",
+        "fileio-tests--insert-file-interrupt",
+        "fileio-tests--non-regular-insert",
+        "fileio-tests--odd-symlink-chars",
+        "fileio-tests--read-directory",
+        "fileio-tests--relative-HOME",
+        "fileio-tests--relative-default-directory",
+        "fileio-tests-invalid-UNC",
+        "fileio-tests-w32-time-stamp-granularity",
+        "fileio-tests/file-name-concat",
+        "fileio-tests/null-character"
+      ],
+      "counts": {
+        "passed": 15,
+        "skipped": 4
+      },
+      "complete": true,
+      "exit_code": 0,
+      "remaining_group_terminated": false,
+      "seconds": 0.15920508399999989,
+      "result": {
+        "path": "build/acceptance/g3-file-workflows-1/cocoa/results/cocoa/test-src-fileio-tests.el-99f64c642212.json",
+        "sha256": "bff346af8c2f1786045cfc6e7a0ce789f726e403ece7b65e14d64a95c6de1883"
+      },
+      "events": {
+        "path": "build/acceptance/g3-file-workflows-1/cocoa/results/cocoa/test-src-fileio-tests.el-99f64c642212.events.jsonl",
+        "sha256": "4fcdd80c426da6cf8df4cc331451ceabd34e8cde715ffd9fa38ba74a787fb51e"
+      },
+      "cases": {
+        "fileio--file-name-case-insensitive-p": {
+          "status": "passed",
+          "seconds": 4.8e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "fileio-tests--circular-after-insert-file-functions": {
+          "status": "passed",
+          "seconds": 0.000316,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "fileio-tests--directory-file-name": {
+          "status": "passed",
+          "seconds": 1.9e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "fileio-tests--directory-file-name-dos-nt": {
+          "status": "skipped",
+          "seconds": 3.1e-05,
+          "diagnostic": "result=ert-test-skipped expected=t condition=(ert-test-skipped ((skip-unless (memq system-type '(ms-dos windows-nt))) :form (memq darwin (ms-dos windows-nt)) :value nil)) messages=\"\""
+        },
+        "fileio-tests--expand-file-name-null-bytes": {
+          "status": "passed",
+          "seconds": 2.6e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "fileio-tests--file-name-absolute-p": {
+          "status": "passed",
+          "seconds": 0.002137,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "fileio-tests--file-name-as-directory": {
+          "status": "passed",
+          "seconds": 2.5e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "fileio-tests--file-name-as-directory-dos-nt": {
+          "status": "skipped",
+          "seconds": 3.2e-05,
+          "diagnostic": "result=ert-test-skipped expected=t condition=(ert-test-skipped ((skip-unless (memq system-type '(ms-dos windows-nt))) :form (memq darwin (ms-dos windows-nt)) :value nil)) messages=\"\""
+        },
+        "fileio-tests--insert-file-contents-supersession": {
+          "status": "passed",
+          "seconds": 0.073269,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "fileio-tests--insert-file-interrupt": {
+          "status": "passed",
+          "seconds": 0.000225,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "fileio-tests--non-regular-insert": {
+          "status": "passed",
+          "seconds": 8.2e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "fileio-tests--odd-symlink-chars": {
+          "status": "passed",
+          "seconds": 0.009855,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "fileio-tests--read-directory": {
+          "status": "passed",
+          "seconds": 0.000171,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "fileio-tests--relative-HOME": {
+          "status": "passed",
+          "seconds": 2.1e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "fileio-tests--relative-default-directory": {
+          "status": "passed",
+          "seconds": 0.000243,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "fileio-tests-invalid-UNC": {
+          "status": "skipped",
+          "seconds": 3.4e-05,
+          "diagnostic": "result=ert-test-skipped expected=t condition=(ert-test-skipped ((skip-unless (eq system-type 'windows-nt)) :form (eq darwin windows-nt) :value nil)) messages=\"\""
+        },
+        "fileio-tests-w32-time-stamp-granularity": {
+          "status": "skipped",
+          "seconds": 2.6e-05,
+          "diagnostic": "result=ert-test-skipped expected=t condition=(ert-test-skipped ((skip-unless (eq system-type 'windows-nt)) :form (eq darwin windows-nt) :value nil)) messages=\"\""
+        },
+        "fileio-tests/file-name-concat": {
+          "status": "passed",
+          "seconds": 3.6e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "fileio-tests/null-character": {
+          "status": "passed",
+          "seconds": 1.9e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        }
+      }
+    },
+    {
+      "product": "cocoa",
+      "file": "test/src/filelock-tests.el",
+      "ids": [
+        "filelock-tests-detect-external-change",
+        "filelock-tests-file-locked-p-spoiled",
+        "filelock-tests-kill-buffer-spoiled",
+        "filelock-tests-lock-spoiled",
+        "filelock-tests-lock-unlock-no-errors",
+        "filelock-tests-unlock-spoiled"
+      ],
+      "counts": {
+        "passed": 6
+      },
+      "complete": true,
+      "exit_code": 0,
+      "remaining_group_terminated": false,
+      "seconds": 0.19776504200000034,
+      "result": {
+        "path": "build/acceptance/g3-file-workflows-1/cocoa/results/cocoa/test-src-filelock-tests.el-41fc7dc534b6.json",
+        "sha256": "3d8634bcd6cb73eb91d63b21d7348de258c5e4801b516415a2ede45febc04cc0"
+      },
+      "events": {
+        "path": "build/acceptance/g3-file-workflows-1/cocoa/results/cocoa/test-src-filelock-tests.el-41fc7dc534b6.events.jsonl",
+        "sha256": "614224e0427d86f37db749bd1a6e80ffdfc5178bd8040fa53b812246d48f926b"
+      },
+      "cases": {
+        "filelock-tests-detect-external-change": {
+          "status": "passed",
+          "seconds": 0.125918,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"(Shell command succeeded with no output) [jd times]\nuserfile changed on disk; really edit the buffer? (y, n, r or C-h) \nFile on disk now will become a backup file if you save these changes.\n(Shell command succeeded with no output) [jd times]\nuserfile changed on disk; really edit the buffer? (y, n, r or C-h) \nFile on disk now will become a backup file if you save these changes.\n\""
+        },
+        "filelock-tests-file-locked-p-spoiled": {
+          "status": "passed",
+          "seconds": 0.000414,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "filelock-tests-kill-buffer-spoiled": {
+          "status": "passed",
+          "seconds": 0.000482,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "filelock-tests-lock-spoiled": {
+          "status": "passed",
+          "seconds": 0.000472,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "filelock-tests-lock-unlock-no-errors": {
+          "status": "passed",
+          "seconds": 0.000578,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "filelock-tests-unlock-spoiled": {
+          "status": "passed",
+          "seconds": 0.000436,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        }
+      }
+    },
+    {
+      "product": "cocoa",
+      "file": "test/src/callproc-tests.el",
+      "ids": [
+        "call-process-region-entire-buffer-with-delete",
+        "call-process-w32-debug-spawn-error",
+        "initial-environment-preserved"
+      ],
+      "counts": {
+        "passed": 1,
+        "skipped": 2
+      },
+      "complete": true,
+      "exit_code": 0,
+      "remaining_group_terminated": false,
+      "seconds": 0.09322733299999975,
+      "result": {
+        "path": "build/acceptance/g3-file-workflows-1/cocoa/results/cocoa/test-src-callproc-tests.el-a1c79a26522a.json",
+        "sha256": "48cb7ed5934942f353b09f6b47d6461d387a8c4c0db788e70830c3ad6732aeef"
+      },
+      "events": {
+        "path": "build/acceptance/g3-file-workflows-1/cocoa/results/cocoa/test-src-callproc-tests.el-a1c79a26522a.events.jsonl",
+        "sha256": "0aa2e217617e4e2a40562a9dca1b2dcbfee02705e73ec1629498bd6a25ede39c"
+      },
+      "cases": {
+        "call-process-region-entire-buffer-with-delete": {
+          "status": "passed",
+          "seconds": 0.033127,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "call-process-w32-debug-spawn-error": {
+          "status": "skipped",
+          "seconds": 3.7e-05,
+          "diagnostic": "result=ert-test-skipped expected=t condition=(ert-test-skipped ((skip-unless (eq system-type 'windows-nt)) :form (eq darwin windows-nt) :value nil)) messages=\"\""
+        },
+        "initial-environment-preserved": {
+          "status": "skipped",
+          "seconds": 2.8e-05,
+          "diagnostic": "result=ert-test-skipped expected=t condition=(ert-test-skipped ((skip-unless (eq system-type 'windows-nt)) :form (eq darwin windows-nt) :value nil)) messages=\"\""
+        }
+      }
+    }
+  ],
+  "full_G3_accepted": false,
+  "performance_accepted": false,
+  "physical_UI_tested": false,
+  "products": {
+    "reference": {
+      "program": {
+        "kind": "file",
+        "bytes": 3691504,
+        "mode": 493,
+        "sha256": "5b55e93c8304368ee37cc5c537ca3e1370e3b9b3fef049bdce76834a9db75e65"
+      },
+      "dump": {
+        "kind": "file",
+        "bytes": 23084632,
+        "mode": 420,
+        "sha256": "6ac1214186022574a70e84a04bb7f2dc44e1ea1d4c90f0d9ce421ddd0f4b4536"
+      },
+      "resources": {
+        "lisp": {
+          "identity_canonical_json_sha256": "564df364c803f4d0b64d7bc2ba986d775e8985529481ac2684b739666e131323",
+          "top_level_entries": 3316
+        }
+      }
+    },
+    "terminal": {
+      "program": {
+        "kind": "file",
+        "bytes": 2698016,
+        "mode": 493,
+        "sha256": "fb0b822273e79bb5b008725771473f5d510b9f712488242d615fb3a5fefbcde6"
+      },
+      "dump": {
+        "kind": "file",
+        "bytes": 13101600,
+        "mode": 420,
+        "sha256": "5d1913c39d5c348c711d24e16b25d9e63d09e082ee6dbe3b3a54ac4680862f82"
+      },
+      "resources": {
+        "lisp": {
+          "identity_canonical_json_sha256": "79dc09151f2f61152496f3587dc54cb580fb45a9c92301bfe3e75ab027a02146",
+          "top_level_entries": 3363
+        },
+        "runtime-tls": {
+          "identity_canonical_json_sha256": "9b34100e73d1f4bbd3157cd1535a25f8fdc6d4e094f2e6a1e9dc79b1a63fd73d",
+          "top_level_entries": 9
+        },
+        "runtime-lcms": {
+          "identity_canonical_json_sha256": "819844d74d5d4f3ee5a75aaf2b0d9a23b07fdda8bfa71c65cdbda63f6eb213cb",
+          "top_level_entries": 1
+        },
+        "runtime-treesit": {
+          "identity_canonical_json_sha256": "05b5f47a14a19b3f04511fa292f0976e2cab06437b9e4323edbce72a9767f0f9",
+          "top_level_entries": 1
+        }
+      }
+    },
+    "cocoa": {
+      "program": {
+        "kind": "file",
+        "bytes": 4230368,
+        "mode": 493,
+        "sha256": "d796f4c52e2a32ec6176e02efca33d922da18252aaddd0885e59993f108ba385"
+      },
+      "dump": {
+        "kind": "file",
+        "bytes": 18602200,
+        "mode": 420,
+        "sha256": "2b87c3436eaa33e551b024c6be01ea702b9c586c4535993258b63aa95a618b92"
+      },
+      "resources": {
+        "lisp": {
+          "identity_canonical_json_sha256": "e4108125e078022ebe91c3ccc5095c46c8fcbe48180ed02668f315d4e4c910b5",
+          "top_level_entries": 3353
+        },
+        "bundle": {
+          "identity_canonical_json_sha256": "e1212d5ae114aec885c8d2d467c9c39b4feb1f693b0d685dc28901fd34bb5342",
+          "top_level_entries": 4477
+        }
+      }
+    }
+  },
+  "independent_review": {
+    "accepted": true,
+    "confirmed_defects": 0,
+    "scope": "Actual independent handback recomputes three raw maps,47 IDs each,123 passes18original WindowsDOS skips,fullundo input retained; no whole G3, performance or GUI claim"
+  },
+  "original_aggregate_false_reason": "Original platform skips are not counted as passed; all twelve file processes exit0 complete, original cases retain statuses.",
+  "cleanup": {
+    "manifest": "maintenance/cleanup/manifests/2026-10-30-162-consumed-file-workflow-state.jsonl.gz",
+    "manifest_sha256": "20e5e252e6d211f079051fea910dd082f84684849b75dd35e25b4c13d56b3f7c",
+    "runner_cleanup": [
+      {
+        "product": "reference",
+        "file": "test/src/undo-tests.el",
+        "receipt": "build/acceptance/g3-file-workflows-1/reference/results/reference/test-src-undo-tests.el-42cd9969357d.owner-retirement.json",
+        "receipt_sha256": "f13ffe06112ba9f053c043051bcb01cec45b386db9c6930c747347d0e0d333a6",
+        "ledger": "build/acceptance/g3-file-workflows-1/reference/results/reference/test-src-undo-tests.el-42cd9969357d.state-retirement.jsonl.gz",
+        "ledger_sha256": "639eeb6987f6d124d98b8dda7039a7f5dc8cad2bd7ff6ae8a4bef06754b68f3c",
+        "files": 0,
+        "directories": 8,
+        "logical_bytes": 0,
+        "allocated_bytes": 0
+      },
+      {
+        "product": "reference",
+        "file": "test/src/filelock-tests.el",
+        "receipt": "build/acceptance/g3-file-workflows-1/reference/results/reference/test-src-filelock-tests.el-41fc7dc534b6.owner-retirement.json",
+        "receipt_sha256": "f71ca49f48c9bff657b45f55c3f33c907a2cefa171ec77ab3c7a625a93c32416",
+        "ledger": "build/acceptance/g3-file-workflows-1/reference/results/reference/test-src-filelock-tests.el-41fc7dc534b6.state-retirement.jsonl.gz",
+        "ledger_sha256": "d7d0ccda367d68f3eeda95c1f3e5ec639498761ee67ceee3d926ad2e98ea6e16",
+        "files": 5,
+        "directories": 11,
+        "logical_bytes": 170464,
+        "allocated_bytes": 184320
+      },
+      {
+        "product": "terminal",
+        "file": "test/src/undo-tests.el",
+        "receipt": "build/acceptance/g3-file-workflows-1/terminal/results/terminal/test-src-undo-tests.el-42cd9969357d.owner-retirement.json",
+        "receipt_sha256": "acf2c26b3d4dc10aa650048103253579eff89828b7f309672876eff2dec78ff8",
+        "ledger": "build/acceptance/g3-file-workflows-1/terminal/results/terminal/test-src-undo-tests.el-42cd9969357d.state-retirement.jsonl.gz",
+        "ledger_sha256": "639eeb6987f6d124d98b8dda7039a7f5dc8cad2bd7ff6ae8a4bef06754b68f3c",
+        "files": 0,
+        "directories": 8,
+        "logical_bytes": 0,
+        "allocated_bytes": 0
+      },
+      {
+        "product": "terminal",
+        "file": "test/src/filelock-tests.el",
+        "receipt": "build/acceptance/g3-file-workflows-1/terminal/results/terminal/test-src-filelock-tests.el-41fc7dc534b6.owner-retirement.json",
+        "receipt_sha256": "3380caf17e2eafe56971f9adaf057288c1431750b70e6da2a96a651dbd783632",
+        "ledger": "build/acceptance/g3-file-workflows-1/terminal/results/terminal/test-src-filelock-tests.el-41fc7dc534b6.state-retirement.jsonl.gz",
+        "ledger_sha256": "639eeb6987f6d124d98b8dda7039a7f5dc8cad2bd7ff6ae8a4bef06754b68f3c",
+        "files": 0,
+        "directories": 8,
+        "logical_bytes": 0,
+        "allocated_bytes": 0
+      },
+      {
+        "product": "cocoa",
+        "file": "test/src/undo-tests.el",
+        "receipt": "build/acceptance/g3-file-workflows-1/cocoa/results/cocoa/test-src-undo-tests.el-42cd9969357d.owner-retirement.json",
+        "receipt_sha256": "be863a9df4e9805063a1f0aac70ab7340afd08a326afe7c67fdab8801a93e753",
+        "ledger": "build/acceptance/g3-file-workflows-1/cocoa/results/cocoa/test-src-undo-tests.el-42cd9969357d.state-retirement.jsonl.gz",
+        "ledger_sha256": "639eeb6987f6d124d98b8dda7039a7f5dc8cad2bd7ff6ae8a4bef06754b68f3c",
+        "files": 0,
+        "directories": 8,
+        "logical_bytes": 0,
+        "allocated_bytes": 0
+      },
+      {
+        "product": "cocoa",
+        "file": "test/src/filelock-tests.el",
+        "receipt": "build/acceptance/g3-file-workflows-1/cocoa/results/cocoa/test-src-filelock-tests.el-41fc7dc534b6.owner-retirement.json",
+        "receipt_sha256": "ba7c2edd1b1b0bf6a78f78187d32b0bf2d546880dd3ddc18fd8be4163c315471",
+        "ledger": "build/acceptance/g3-file-workflows-1/cocoa/results/cocoa/test-src-filelock-tests.el-41fc7dc534b6.state-retirement.jsonl.gz",
+        "ledger_sha256": "639eeb6987f6d124d98b8dda7039a7f5dc8cad2bd7ff6ae8a4bef06754b68f3c",
+        "files": 0,
+        "directories": 8,
+        "logical_bytes": 0,
+        "allocated_bytes": 0
+      }
+    ]
+  }
+}

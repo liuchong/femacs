@@ -448,3 +448,14 @@ results/events, source corpus and eleven restored live terminal libraries
 retained. Two failed preflights preserved; no cause assigned to missing libraries.
 [Report](reports/2026-10-30-161-consumed-text-processing-test-copies.md) and
 [manifest](manifests/2026-10-30-161-consumed-text-processing-test-copies.jsonl.gz).
+
+
+## CLN162 — consumed undo and file-workflow state (2026-10-30)
+
+Original123pass18platformskips/aggregatefalse retained after independent review.
+Runner earlier5files/51dirs plus post-review4,608files/819dirs/3links:
+combined4,613files/870dirs,63,161,320logical/75,448,320allocated bytes,
+5,486identity rows. Retained raw outcomes, original automatic ledgers, corpus,
+actual products and live libraries; no product or acceptance-policy change.
+[Report](reports/2026-10-30-162-consumed-file-workflow-state.md) and
+[manifest](manifests/2026-10-30-162-consumed-file-workflow-state.jsonl.gz).

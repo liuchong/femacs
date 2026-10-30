@@ -1,3 +1,17 @@
+## Current continuation: original undo and file workflows (2026-10-30)
+
+Four complete pinned stable undo/file-I-O/file-lock/process-call files finish
+on the installed reference/current normal terminal/Cocoa:47IDs each,123passed
+and18original Windows/DOS skips, equal maps and no failed assertions/timeouts.
+All12file processes exit0/reaped; aggregate false and outerexit1 retained.
+Independent review accepts this bounded classification, not full G3 or speedup.
+[Evidence](../maintenance/releases/2026-10-30-original-file-workflows.md).
+CLN162 records earlier runner retirement5files/51dirs plus post-review
+4,608files/819dirs/3links, preserving raw skips/results, corpus and live products.
+No production change or trial-App replacement. G1/G2/G4 remain3/7; original
+Goal and G3/G5/G6/G7 remain active. Continue uncovered original data/time/resource
+files; common platform skips do not justify product changes.
+
 ## Current continuation: original text-processing coverage (2026-10-30)
 
 Four complete pinned stable coding/search/syntax/text-property files pass on
