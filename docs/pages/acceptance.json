@@ -1,0 +1,465 @@
+{
+  "schema": "fe-pages-browser-v1",
+  "source_sha256": {
+    "index.html": "6b282a5e69359d8b1a186771a586c7b391f60a2262d5dbece1372e1eef762807",
+    "pages/start.html": "9528beb6c6f416209a92bac24068147d4756ca5e2dbe2e14354a34d9611e7e50",
+    "pages/architecture.html": "98105f2073f7a2b57f7e051d44d3b92327b8e69eaefa7a8ddad8064eed813aed",
+    "pages/docs-hub.html": "0618f34702110a99f5f661dd65b9ec6075149a66a1cc12f2410a3a6d7c037cca",
+    "pages/site.eli": "7d59cbb7c48f58cc7353daff5b80cf1ae80474c9b6b38ade90a327110c5e0510",
+    "pages/assets/site.css": "6744285f1c1cc272c9a2ddfea0c24d8e248aa19158149cfc8ed9652b996ae7ed",
+    "pages/assets/fe-logo.png": "f1f9a253f61f8490c252bcf764481c98047f8d427a6e1abdf101141fa38ebf2c"
+  },
+  "compiler": "eliscript@0.1.1",
+  "routes": [
+    {
+      "path": "/index.html",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "geometry": {
+        "width": 1440,
+        "scroll": 1440,
+        "logo": true
+      },
+      "tests": [
+        "live-compile",
+        "no-browser-errors",
+        "no-http-errors",
+        "responsive-width",
+        "logo",
+        "language-metadata",
+        "tabs-keyboard-and-pointer",
+        "clipboard-success",
+        "clipboard-denied-no-false-success",
+        "outcome-filter"
+      ],
+      "errors": [],
+      "failures": []
+    },
+    {
+      "path": "/pages/start.html",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "geometry": {
+        "width": 1440,
+        "scroll": 1440,
+        "logo": true
+      },
+      "tests": [
+        "live-compile",
+        "no-browser-errors",
+        "no-http-errors",
+        "responsive-width",
+        "logo",
+        "language-metadata",
+        "tabs-keyboard-and-pointer",
+        "clipboard-success",
+        "clipboard-denied-no-false-success"
+      ],
+      "errors": [],
+      "failures": []
+    },
+    {
+      "path": "/pages/architecture.html",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "geometry": {
+        "width": 1440,
+        "scroll": 1440,
+        "logo": true
+      },
+      "tests": [
+        "live-compile",
+        "no-browser-errors",
+        "no-http-errors",
+        "responsive-width",
+        "logo",
+        "language-metadata",
+        "tabs-keyboard-and-pointer",
+        "clipboard-success",
+        "clipboard-denied-no-false-success"
+      ],
+      "errors": [],
+      "failures": []
+    },
+    {
+      "path": "/pages/docs-hub.html",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "geometry": {
+        "width": 1440,
+        "scroll": 1440,
+        "logo": true
+      },
+      "tests": [
+        "live-compile",
+        "no-browser-errors",
+        "no-http-errors",
+        "responsive-width",
+        "logo",
+        "language-metadata",
+        "search-and-empty"
+      ],
+      "errors": [],
+      "failures": []
+    },
+    {
+      "path": "/index.html",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "geometry": {
+        "width": 390,
+        "scroll": 390,
+        "logo": true
+      },
+      "tests": [
+        "live-compile",
+        "no-browser-errors",
+        "no-http-errors",
+        "responsive-width",
+        "logo",
+        "language-metadata",
+        "tabs-keyboard-and-pointer",
+        "clipboard-success",
+        "clipboard-denied-no-false-success",
+        "outcome-filter"
+      ],
+      "errors": [],
+      "failures": []
+    },
+    {
+      "path": "/pages/start.html",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "geometry": {
+        "width": 390,
+        "scroll": 390,
+        "logo": true
+      },
+      "tests": [
+        "live-compile",
+        "no-browser-errors",
+        "no-http-errors",
+        "responsive-width",
+        "logo",
+        "language-metadata",
+        "tabs-keyboard-and-pointer",
+        "clipboard-success",
+        "clipboard-denied-no-false-success"
+      ],
+      "errors": [],
+      "failures": []
+    },
+    {
+      "path": "/pages/architecture.html",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "geometry": {
+        "width": 390,
+        "scroll": 390,
+        "logo": true
+      },
+      "tests": [
+        "live-compile",
+        "no-browser-errors",
+        "no-http-errors",
+        "responsive-width",
+        "logo",
+        "language-metadata",
+        "tabs-keyboard-and-pointer",
+        "clipboard-success",
+        "clipboard-denied-no-false-success"
+      ],
+      "errors": [],
+      "failures": []
+    },
+    {
+      "path": "/pages/docs-hub.html",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "geometry": {
+        "width": 390,
+        "scroll": 390,
+        "logo": true
+      },
+      "tests": [
+        "live-compile",
+        "no-browser-errors",
+        "no-http-errors",
+        "responsive-width",
+        "logo",
+        "language-metadata",
+        "search-and-empty"
+      ],
+      "errors": [],
+      "failures": []
+    },
+    {
+      "path": "/femacs/index.html",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "geometry": {
+        "width": 1440,
+        "scroll": 1440,
+        "logo": true
+      },
+      "tests": [
+        "live-compile",
+        "no-browser-errors",
+        "no-http-errors",
+        "responsive-width",
+        "logo",
+        "language-metadata",
+        "tabs-keyboard-and-pointer",
+        "clipboard-success",
+        "clipboard-denied-no-false-success",
+        "outcome-filter"
+      ],
+      "errors": [],
+      "failures": []
+    },
+    {
+      "path": "/femacs/pages/start.html",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "geometry": {
+        "width": 1440,
+        "scroll": 1440,
+        "logo": true
+      },
+      "tests": [
+        "live-compile",
+        "no-browser-errors",
+        "no-http-errors",
+        "responsive-width",
+        "logo",
+        "language-metadata",
+        "tabs-keyboard-and-pointer",
+        "clipboard-success",
+        "clipboard-denied-no-false-success"
+      ],
+      "errors": [],
+      "failures": []
+    },
+    {
+      "path": "/femacs/pages/architecture.html",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "geometry": {
+        "width": 1440,
+        "scroll": 1440,
+        "logo": true
+      },
+      "tests": [
+        "live-compile",
+        "no-browser-errors",
+        "no-http-errors",
+        "responsive-width",
+        "logo",
+        "language-metadata",
+        "tabs-keyboard-and-pointer",
+        "clipboard-success",
+        "clipboard-denied-no-false-success"
+      ],
+      "errors": [],
+      "failures": []
+    },
+    {
+      "path": "/femacs/pages/docs-hub.html",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "geometry": {
+        "width": 1440,
+        "scroll": 1440,
+        "logo": true
+      },
+      "tests": [
+        "live-compile",
+        "no-browser-errors",
+        "no-http-errors",
+        "responsive-width",
+        "logo",
+        "language-metadata",
+        "search-and-empty"
+      ],
+      "errors": [],
+      "failures": []
+    },
+    {
+      "path": "/femacs/index.html",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "geometry": {
+        "width": 390,
+        "scroll": 390,
+        "logo": true
+      },
+      "tests": [
+        "live-compile",
+        "no-browser-errors",
+        "no-http-errors",
+        "responsive-width",
+        "logo",
+        "language-metadata",
+        "tabs-keyboard-and-pointer",
+        "clipboard-success",
+        "clipboard-denied-no-false-success",
+        "outcome-filter"
+      ],
+      "errors": [],
+      "failures": []
+    },
+    {
+      "path": "/femacs/pages/start.html",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "geometry": {
+        "width": 390,
+        "scroll": 390,
+        "logo": true
+      },
+      "tests": [
+        "live-compile",
+        "no-browser-errors",
+        "no-http-errors",
+        "responsive-width",
+        "logo",
+        "language-metadata",
+        "tabs-keyboard-and-pointer",
+        "clipboard-success",
+        "clipboard-denied-no-false-success"
+      ],
+      "errors": [],
+      "failures": []
+    },
+    {
+      "path": "/femacs/pages/architecture.html",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "geometry": {
+        "width": 390,
+        "scroll": 390,
+        "logo": true
+      },
+      "tests": [
+        "live-compile",
+        "no-browser-errors",
+        "no-http-errors",
+        "responsive-width",
+        "logo",
+        "language-metadata",
+        "tabs-keyboard-and-pointer",
+        "clipboard-success",
+        "clipboard-denied-no-false-success"
+      ],
+      "errors": [],
+      "failures": []
+    },
+    {
+      "path": "/femacs/pages/docs-hub.html",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "geometry": {
+        "width": 390,
+        "scroll": 390,
+        "logo": true
+      },
+      "tests": [
+        "live-compile",
+        "no-browser-errors",
+        "no-http-errors",
+        "responsive-width",
+        "logo",
+        "language-metadata",
+        "search-and-empty"
+      ],
+      "errors": [],
+      "failures": []
+    }
+  ],
+  "passed": true,
+  "compiler_failure": {
+    "static_content_available": true,
+    "all_commands_visible": true,
+    "controls_disabled": true
+  },
+  "seconds": 32.887,
+  "current_source_sha256": {
+    "index.html": "7549bf9625c0e62034b1e59338ed513d0bb825f4309e1a12629c4476cb199752",
+    "pages/start.html": "4fe2f2c9c25c58a8888061c38e38cacd6c435b3e41aca8c93ffb08c1084cf43d",
+    "pages/architecture.html": "d390d768684ddce7d180e38497e26ffeee31ccafdcb36e1e03c2911f544a72fe",
+    "pages/docs-hub.html": "74bb9f6a5191d76874e1e3d0b35268ad08536a787648502dc38bdbf8124aa890",
+    "pages/site.eli": "7d59cbb7c48f58cc7353daff5b80cf1ae80474c9b6b38ade90a327110c5e0510",
+    "pages/assets/site.css": "6744285f1c1cc272c9a2ddfea0c24d8e248aa19158149cfc8ed9652b996ae7ed",
+    "pages/assets/fe-logo.png": "f1f9a253f61f8490c252bcf764481c98047f8d427a6e1abdf101141fa38ebf2c"
+  },
+  "post_browser_text_only_edits": {
+    "index.html": {
+      "before_sha256": "6b282a5e69359d8b1a186771a586c7b391f60a2262d5dbece1372e1eef762807",
+      "after_sha256": "4d2bf9dbebdd62346f2cd64005ba6a5ca9438362dd9637302a772f47e76a8d0f",
+      "scope": "literal text/command guidance only; HTML attributes, Eliscript and CSS unchanged; reverse patch exactly reconstructs browser-tested bytes"
+    },
+    "pages/architecture.html": {
+      "before_sha256": "98105f2073f7a2b57f7e051d44d3b92327b8e69eaefa7a8ddad8064eed813aed",
+      "after_sha256": "96ae6e85715a86d47e9bf5801f718fd117b0fe951878ac57c21ba692f367b11d",
+      "scope": "literal text/command guidance only; HTML attributes, Eliscript and CSS unchanged; reverse patch exactly reconstructs browser-tested bytes"
+    }
+  },
+  "content_only_revision_chain": [
+    {
+      "path": "index.html",
+      "before_sha256": "4d2bf9dbebdd62346f2cd64005ba6a5ca9438362dd9637302a772f47e76a8d0f",
+      "after_sha256": "7549bf9625c0e62034b1e59338ed513d0bb825f4309e1a12629c4476cb199752",
+      "scope": "literal visible text and command guidance only; no DOM attributes, scripts or CSS changed"
+    },
+    {
+      "path": "pages/start.html",
+      "before_sha256": "9528beb6c6f416209a92bac24068147d4756ca5e2dbe2e14354a34d9611e7e50",
+      "after_sha256": "4fe2f2c9c25c58a8888061c38e38cacd6c435b3e41aca8c93ffb08c1084cf43d",
+      "scope": "literal visible text and command guidance only; no DOM attributes, scripts or CSS changed"
+    },
+    {
+      "path": "pages/docs-hub.html",
+      "before_sha256": "0618f34702110a99f5f661dd65b9ec6075149a66a1cc12f2410a3a6d7c037cca",
+      "after_sha256": "74bb9f6a5191d76874e1e3d0b35268ad08536a787648502dc38bdbf8124aa890",
+      "scope": "literal visible text and command guidance only; no DOM attributes, scripts or CSS changed"
+    },
+    {
+      "path": "pages/architecture.html",
+      "before_sha256": "96ae6e85715a86d47e9bf5801f718fd117b0fe951878ac57c21ba692f367b11d",
+      "after_sha256": "d390d768684ddce7d180e38497e26ffeee31ccafdcb36e1e03c2911f544a72fe",
+      "scope": "literal visible text and command guidance only; no DOM attributes, scripts or CSS changed"
+    }
+  ]
+}

@@ -88,6 +88,8 @@ Differential ERT remains an optional audit: `check-ert.py` is strict by default 
 
 ## Documentation
 
+- [Project website](docs/index.html) — overview, macOS build guide, runtime architecture and documentation index.
+
 - [docs/i18n](docs/i18n/README.md) — language index. Translated documents live under
   `docs/i18n/<locale>/`, mirroring the paths of their English originals.
 

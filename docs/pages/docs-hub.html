@@ -1,0 +1,346 @@
+<!doctype html>
+<html lang="en" data-site-lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Documentation Hub — Fe (femacs)</title>
+  <meta name="description" content="Searchable documentation index for Fe (femacs): overview, build &amp; bootstrap guides, runtime architecture &amp; GC specifications, acceptance ledgers, and bilingual READMEs.">
+  <link rel="icon" type="image/png" href="assets/fe-logo.png">
+  <link rel="stylesheet" href="assets/site.css">
+  <script type="importmap">
+    {
+      "imports": {
+        "eliscript/platform/browser": "https://unpkg.com/eliscript@0.1.1/platform/browser.mjs",
+        "eliscript/": "https://unpkg.com/eliscript@0.1.1/"
+      }
+    }
+  </script>
+</head>
+<body>
+  <a class="skip-link" href="#main-content">Skip to main content</a>
+
+  <header class="site-header">
+    <div class="header-inner">
+      <a class="brand-link" href="../index.html">
+        <img class="brand-logo" src="assets/fe-logo.png" alt="Fe forged iron logo" width="36" height="36">
+        <div class="brand-title">
+          <span class="brand-symbol">Fe<span>26 · femacs</span></span>
+          <span class="brand-sub">Rust Core &amp; Swift Cocoa · Lisp Extensibility</span>
+        </div>
+      </a>
+
+      <nav class="site-nav" aria-label="Primary Navigation">
+        <a class="nav-link" href="../index.html">Overview</a>
+        <a class="nav-link" href="start.html">Build &amp; Try</a>
+        <a class="nav-link" href="architecture.html">Architecture &amp; GC</a>
+        <a class="nav-link" href="docs-hub.html" aria-current="page">Docs Hub</a>
+      </nav>
+
+      <div class="header-controls">
+        <button type="button" class="lang-btn" data-lang-switch lang="zh-CN">中文摘要 / EN</button>
+        <span class="eli-runtime-pill" data-eli-status data-eli-ready="false" title="Interactive behavior compiled in-browser from docs/pages/site.eli">
+          <span class="eli-dot"></span>
+          <span data-eli-status-text role="status">Eliscript · loading</span>
+        </span>
+      </div>
+    </div>
+  </header>
+
+  <main id="main-content" class="page-shell">
+    <section class="hero-panel" aria-labelledby="hub-hero-heading">
+      <div class="eyebrow">
+        <span data-lang-en lang="en">Interactive Documentation Index · Powered by Eliscript</span>
+        <span data-lang-zh lang="zh-CN">交互式文档总索引 · 由 Eliscript 浏览器端实时编译驱动</span>
+      </div>
+      <h1 id="hub-hero-heading" class="hero-title">
+        <span data-lang-en lang="en">Fe Documentation &amp; Engineering Hub</span>
+        <span data-lang-zh lang="zh-CN">Fe 工程文档与双语资料中心</span>
+      </h1>
+      <p class="hero-lead" data-lang-en lang="en">
+        Filter by topic or press <kbd>/</kbd> to search twelve selected architecture, build, acceptance, packaging and bilingual overview documents.
+      </p>
+      <p class="hero-lead" data-lang-zh lang="zh-CN">
+        按分类筛选或按 <kbd>/</kbd> 键即时检索仓库内的架构规范、独立构建指南、验收标准、打包说明与中英双语文档。
+      </p>
+    </section>
+
+    <!-- Search and Filter Controls -->
+    <section class="section-block" aria-labelledby="hub-filter-heading">
+      <div class="section-header">
+        <div>
+          <h2 id="hub-filter-heading" class="section-title">
+            <span data-lang-en lang="en">Selected Project Documents</span>
+            <span data-lang-zh lang="zh-CN">仓库核心文档检索</span>
+          </h2>
+        </div>
+        <span class="badge badge-guard" data-doc-count aria-live="polite">12 / 12 documents</span>
+      </div>
+
+      <div class="filter-bar">
+        <div class="filter-group" role="group" aria-label="Filter documents by category">
+          <button type="button" class="filter-pill" aria-pressed="true" data-doc-category="all">All (12)</button>
+          <button type="button" class="filter-pill" aria-pressed="false" data-doc-category="overview">Overview &amp; Bilingual (3)</button>
+          <button type="button" class="filter-pill" aria-pressed="false" data-doc-category="architecture">Architecture &amp; Runtime (4)</button>
+          <button type="button" class="filter-pill" aria-pressed="false" data-doc-category="operations">Build, Try &amp; Acceptance (5)</button>
+        </div>
+
+        <div class="search-input-wrap">
+          <input
+            type="search"
+            class="search-input"
+            placeholder="Search docs (press / to focus, e.g. gc, bootstrap, macos)…"
+            aria-label="Search documentation"
+            data-doc-search>
+        </div>
+      </div>
+
+      <div class="callout-box" data-doc-empty hidden>
+        <strong>No matching documents found.</strong> Try clearing the search box or switching the category pill back to <em>All</em>.
+      </div>
+
+      <div class="card-grid-2">
+        <!-- 1. Root README -->
+        <article class="surface-card doc-card" data-doc-item data-doc-category-tag="overview" data-doc-keywords="readme overview iron rust naming build quick start architecture">
+          <div>
+            <h3>
+              <a href="https://github.com/liuchong/femacs/blob/master/README.md"><code>README.md</code></a>
+              <span class="badge badge-ok">Overview</span>
+            </h3>
+            <p>
+              Primary English introduction to Fe (<code>femacs</code>): why the project exists, the chemical connection between <code>Fe</code> (iron) and <code>Rust</code> (iron oxide), quick build/run commands, and repository layout.
+            </p>
+          </div>
+          <div class="doc-card-meta">
+            <span>Path: <code>README.md</code></span>
+            <span>Language: English</span>
+          </div>
+        </article>
+
+        <!-- 2. Simplified Chinese README -->
+        <article class="surface-card doc-card" data-doc-item data-doc-category-tag="overview" data-doc-keywords="zh-cn chinese readme 中文 介绍 构建 铁 铁锈 架构">
+          <div>
+            <h3>
+              <a href="../i18n/zh-CN/README.md"><code>docs/i18n/zh-CN/README.md</code></a>
+              <span class="badge badge-ok">简体中文</span>
+            </h3>
+            <p>
+              Full Simplified Chinese project overview covering the Fe/Rust naming origin, Apple Silicon macOS terminal and Swift Cocoa GUI builds, local acceptance, and documentation links.
+            </p>
+          </div>
+          <div class="doc-card-meta">
+            <span>Path: <code>docs/i18n/zh-CN/README.md</code></span>
+            <span>Language: 简体中文</span>
+          </div>
+        </article>
+
+        <!-- 3. i18n Directory Index -->
+        <article class="surface-card doc-card" data-doc-item data-doc-category-tag="overview" data-doc-keywords="i18n translations language index bilingual">
+          <div>
+            <h3>
+              <a href="../i18n/README.md"><code>docs/i18n/README.md</code></a>
+              <span class="badge badge-guard">i18n</span>
+            </h3>
+            <p>
+              Internationalization index mapping localized project introductions and keeping translated entry points synchronized with the root documentation.
+            </p>
+          </div>
+          <div class="doc-card-meta">
+            <span>Path: <code>docs/i18n/README.md</code></span>
+            <span>Scope: Localization Index</span>
+          </div>
+        </article>
+
+        <!-- 4. Modernization Roadmap -->
+        <article class="surface-card doc-card" data-doc-item data-doc-category-tag="architecture" data-doc-keywords="modernization roadmap gc tradeoffs green tea g1 throughput latency pause memory tuning">
+          <div>
+            <h3>
+              <a href="../modernization.md"><code>docs/modernization.md</code></a>
+              <span class="badge badge-active">Roadmap &amp; GC</span>
+            </h3>
+            <p>
+              Master modernization blueprint: stable local delivery, infrastructure cleanup, bytecode/native/GC exploration, and the 2026-10-30 GC throughput/pause/memory tradeoffs analysis.
+            </p>
+          </div>
+          <div class="doc-card-meta">
+            <span>Path: <code>docs/modernization.md</code></span>
+            <span>Scope: Strategy &amp; GC Tradeoffs</span>
+          </div>
+        </article>
+
+        <!-- 5. Current State -->
+        <article class="surface-card doc-card" data-doc-item data-doc-category-tag="architecture" data-doc-keywords="current-state g1 g2 g3 g4 g5 g6 g7 status snapshot remote09 acceptance">
+          <div>
+            <h3>
+              <a href="../current-state.md"><code>docs/current-state.md</code></a>
+              <span class="badge badge-active">Live Snapshot</span>
+            </h3>
+            <p>
+              Single-page engineering snapshot of the 7-outcome Persistent Goal (G1, G2, G4 accepted; G3, G5, G6, G7 active), exact verification commands, and remaining open items.
+            </p>
+          </div>
+          <div class="doc-card-meta">
+            <span>Path: <code>docs/current-state.md</code></span>
+            <span>Scope: 7-Outcome Status</span>
+          </div>
+        </article>
+
+        <!-- 6. Runtime Modernization -->
+        <article class="surface-card doc-card" data-doc-item data-doc-category-tag="architecture" data-doc-keywords="runtime-modernization bytecode vm exec_byte_code native comp alloc gc collector p437 fallback">
+          <div>
+            <h3>
+              <a href="../runtime-modernization.md"><code>docs/runtime-modernization.md</code></a>
+              <span class="badge badge-guard">Runtime Spec</span>
+            </h3>
+            <p>
+              Detailed runtime design covering <code>src/bytecode.rs</code> stack frames, <code>src/comp.rs</code> native ABI verification, and <code>src/runtime_gc_collector.rs</code> cycle selection &amp; P-437 fallback registry elision.
+            </p>
+          </div>
+          <div class="doc-card-meta">
+            <span>Path: <code>docs/runtime-modernization.md</code></span>
+            <span>Scope: VM, Native ABI &amp; GC</span>
+          </div>
+        </article>
+
+        <!-- 7. Support Matrix -->
+        <article class="surface-card doc-card" data-doc-item data-doc-category-tag="architecture" data-doc-keywords="support-matrix platforms macos arm64 aarch64 linux bsd haiku android tiers">
+          <div>
+            <h3>
+              <a href="../support-matrix.md"><code>docs/support-matrix.md</code></a>
+              <span class="badge badge-ok">Platforms</span>
+            </h3>
+            <p>
+              Records retained platform obligations, actual macOS/Android evidence and explicitly deferred validation. Source retention is not device certification.
+            </p>
+          </div>
+          <div class="doc-card-meta">
+            <span>Path: <code>docs/support-matrix.md</code></span>
+            <span>Scope: Platform Tiers</span>
+          </div>
+        </article>
+
+        <!-- 8. Repository Bootstrap -->
+        <article class="surface-card doc-card" data-doc-item data-doc-category-tag="operations" data-doc-keywords="repository-bootstrap charsets unidata loaddefs gawk generator-recipes standalone build">
+          <div>
+            <h3>
+              <a href="../repository-bootstrap.md"><code>docs/repository-bootstrap.md</code></a>
+              <span class="badge badge-ok">Bootstrap</span>
+            </h3>
+            <p>
+              Explains how Fe generates all charsets, Unicode tables, headers, and bootstrap autoloads from committed repository sources without needing an external reference checkout.
+            </p>
+          </div>
+          <div class="doc-card-meta">
+            <span>Path: <code>docs/repository-bootstrap.md</code></span>
+            <span>Scope: Standalone Build Inputs</span>
+          </div>
+        </article>
+
+        <!-- 9. macOS Tryout Guide -->
+        <article class="surface-card doc-card" data-doc-item data-doc-category-tag="operations" data-doc-keywords="macos-tryout keybindings chords ime cjk cocoa femacs.app terminal">
+          <div>
+            <h3>
+              <a href="../macos-tryout.md"><code>docs/macos-tryout.md</code></a>
+              <span class="badge badge-ok">User Guide</span>
+            </h3>
+            <p>
+              Practical guide for building and trying Fe on macOS: terminal vs. Cocoa app launch, essential key chords, modifier customization, and CJK input method verification.
+            </p>
+          </div>
+          <div class="doc-card-meta">
+            <span>Path: <code>docs/macos-tryout.md</code></span>
+            <span>Scope: macOS Tryout &amp; IME</span>
+          </div>
+        </article>
+
+        <!-- 10. Packaging Manual -->
+        <article class="surface-card doc-card" data-doc-item data-doc-category-tag="operations" data-doc-keywords="packaging dmg app bundle codesign sha256sums fe-packaging icon">
+          <div>
+            <h3>
+              <a href="https://github.com/liuchong/femacs/blob/master/packaging/README.md"><code>packaging/README.md</code></a>
+              <span class="badge badge-ok">Packaging</span>
+            </h3>
+            <p>
+              Documents <code>cargo run -p fe-packaging -- macos --app dist/macos/Femacs.app --out dist/releases/local</code>, bundle layout inside <code>dist/macos/Femacs.app</code>, <code>.dmg</code> creation, and <code>packaging/assets/fe-logo.png</code> icon generation.
+            </p>
+          </div>
+          <div class="doc-card-meta">
+            <span>Path: <code>packaging/README.md</code></span>
+            <span>Scope: Release Artifacts</span>
+          </div>
+        </article>
+
+        <!-- 11. Local Acceptance -->
+        <article class="surface-card doc-card" data-doc-item data-doc-category-tag="operations" data-doc-keywords="acceptance local-acceptance pty batch ert gui ime verification ladder">
+          <div>
+            <h3>
+              <a href="../acceptance.md"><code>docs/acceptance.md</code></a>
+              <span class="badge badge-guard">Acceptance</span>
+            </h3>
+            <p>
+              Acceptance ladder specification and verification gates covering batch evaluation, terminal PTY rendering, ERT suites, and live macOS GUI/IME validation.
+            </p>
+          </div>
+          <div class="doc-card-meta">
+            <span>Path: <code>docs/acceptance.md</code></span>
+            <span>Scope: Verification Gates</span>
+          </div>
+        </article>
+
+        <!-- 12. Retired Scaffolding Log -->
+        <article class="surface-card doc-card" data-doc-item data-doc-category-tag="operations" data-doc-keywords="retired-scaffolding cleanup audit phase-1 legacy scripts ledger">
+          <div>
+            <h3>
+              <a href="../retired-scaffolding.md"><code>docs/retired-scaffolding.md</code></a>
+              <span class="badge badge-guard">Ledger</span>
+            </h3>
+            <p>
+              Complete audit ledger of retired historical C-porting scaffolding, one-off probe runners, and obsolete platform files with their replacements and commit hashes.
+            </p>
+          </div>
+          <div class="doc-card-meta">
+            <span>Path: <code>docs/retired-scaffolding.md</code></span>
+            <span>Scope: Retirement Ledger (G4)</span>
+          </div>
+        </article>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div>
+        <strong>Fe (<code>femacs</code>)</strong> — Searchable Documentation Hub.
+      </div>
+      <div class="footer-links">
+        <a href="../index.html">Overview</a>
+        <a href="start.html">Build &amp; Try</a>
+        <a href="architecture.html">Architecture</a>
+        <a href="docs-hub.html">Docs Hub</a>
+        <a href="../i18n/zh-CN/README.md">简体中文 README</a>
+        <a href="https://github.com/liuchong/femacs/blob/master/README.md">Repository README</a>
+      </div>
+    </div>
+  </footer>
+
+  <script type="text/eliscript" src="site.eli"></script>
+  <script type="module">
+    try {
+    const base = "https://unpkg.com/eliscript@0.1.1";
+    const { mountEliscriptScripts } = await import(`${base}/dist/browser/host.mjs`);
+    await mountEliscriptScripts(document, {
+      fetch: (url, init) => fetch(url, init),
+      resolveExternal(specifier) {
+        if (!specifier.startsWith("eliscript/")) return specifier;
+        const sub = specifier.slice(10);
+        return `${base}/${sub.endsWith(".mjs") ? sub : `${sub}.mjs`}`;
+      }
+    });
+    } catch (error) {
+      console.error("Eliscript site initialization failed", error);
+      for (const status of document.querySelectorAll("[data-eli-status-text]")) status.textContent = "Interactive tools unavailable";
+      for (const control of document.querySelectorAll("[data-lang-switch], [data-workflow-tab], [data-copy-target], [data-goal-filter], [data-doc-category], [data-doc-search]")) control.disabled = true;
+      for (const panel of document.querySelectorAll("[data-workflow-panel]")) panel.hidden = false;
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,501 @@
+<!doctype html>
+<html lang="en" data-site-lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Fe (femacs) — Forging a Trusted Lisp-Extensible Editor Core in Rust</title>
+  <meta name="description" content="Fe (femacs) rebuilds the C core of the classic Lisp-extensible editor in Rust and native Swift Cocoa on Apple Silicon macOS, preserving Lisp compatibility and full source-tree bootstrap.">
+  <link rel="icon" type="image/png" href="pages/assets/fe-logo.png">
+  <link rel="stylesheet" href="pages/assets/site.css">
+  <script type="importmap">
+    {
+      "imports": {
+        "eliscript/platform/browser": "https://unpkg.com/eliscript@0.1.1/platform/browser.mjs",
+        "eliscript/": "https://unpkg.com/eliscript@0.1.1/"
+      }
+    }
+  </script>
+</head>
+<body>
+  <a class="skip-link" href="#main-content">Skip to main content</a>
+
+  <header class="site-header">
+    <div class="header-inner">
+      <a class="brand-link" href="index.html">
+        <img class="brand-logo" src="pages/assets/fe-logo.png" alt="Fe forged iron logo" width="36" height="36">
+        <div class="brand-title">
+          <span class="brand-symbol">Fe<span>26 · femacs</span></span>
+          <span class="brand-sub">Rust Core &amp; Swift Cocoa · Lisp Extensibility</span>
+        </div>
+      </a>
+
+      <nav class="site-nav" aria-label="Primary Navigation">
+        <a class="nav-link" href="index.html" aria-current="page">Overview</a>
+        <a class="nav-link" href="pages/start.html">Build &amp; Try</a>
+        <a class="nav-link" href="pages/architecture.html">Architecture &amp; GC</a>
+        <a class="nav-link" href="pages/docs-hub.html">Docs Hub</a>
+      </nav>
+
+      <div class="header-controls">
+        <button type="button" class="lang-btn" data-lang-switch lang="zh-CN">中文摘要 / EN</button>
+        <span class="eli-runtime-pill" data-eli-status data-eli-ready="false" title="Interactive behavior compiled in-browser from docs/pages/site.eli">
+          <span class="eli-dot"></span>
+          <span data-eli-status-text role="status">Eliscript · loading</span>
+        </span>
+      </div>
+    </div>
+  </header>
+
+  <main id="main-content" class="page-shell">
+    <!-- Hero Section -->
+    <section class="hero-panel" aria-labelledby="hero-heading">
+      <div class="hero-grid">
+        <div>
+          <div class="eyebrow">
+            <span data-lang-en lang="en">Atomic No. 26 · Fe (Iron) + O₂ → Rust</span>
+            <span data-lang-zh lang="zh-CN">原子序数 26 · Fe（铁）+ O₂ → Rust（铁锈）</span>
+          </div>
+          <h1 id="hero-heading" class="hero-title">
+            <span data-lang-en lang="en">Forging a Trusted Lisp-Extensible Editor Core in Rust.</span>
+            <span data-lang-zh lang="zh-CN">以 Rust 锻造可信、可演进的 Lisp 可扩展编辑器内核。</span>
+          </h1>
+          <p class="hero-lead" data-lang-en lang="en">
+            <strong>Fe</strong> (repository and command name <code>femacs</code>) rebuilds the C runtime, evaluator, bytecode virtual machine, garbage collector, and display engine in Rust — paired with a native Swift Cocoa frontend on Apple Silicon macOS — while retaining existing Lisp libraries, package workflows and the portable dump pipeline.
+          </p>
+          <p class="hero-lead" data-lang-zh lang="zh-CN">
+            <strong>Fe</strong>（仓库与命令名 <code>femacs</code>）用 Rust 重建经典 Lisp 可扩展编辑器的 C 运行时、求值器、字节码虚拟机、垃圾回收器与显示引擎，在 Apple Silicon macOS 上配合原生 Swift Cocoa 前端，保留既有 Lisp 库、扩展包工作流与便携式 dump 管线。
+          </p>
+
+          <div class="hero-actions">
+            <a class="btn btn-primary" href="pages/start.html">Build &amp; Try on macOS →</a>
+            <a class="btn btn-secondary" href="pages/architecture.html">Runtime &amp; GC Architecture</a>
+            <a class="btn btn-secondary" href="pages/docs-hub.html">Browse Documentation Hub</a>
+          </div>
+
+          <div class="hero-meta-strip">
+            <span>Primary Target: <strong>aarch64-apple-darwin</strong></span>
+            <span>Core: <strong>Rust + Swift Cocoa</strong></span>
+            <span>Standalone Bootstrap: <strong>No reference checkout required</strong></span>
+          </div>
+        </div>
+
+        <aside class="hero-art-card" aria-label="Fe chemical symbol and identity">
+          <img src="pages/assets/fe-logo.png" alt="Fe emblem — forged iron core with rust oxide accent" width="240" height="240">
+          <div class="chemical-caption">
+            <div><strong>Fe</strong> · Ferrum (Iron)</div>
+            <div><span>Fe₂O₃</span> · Rust Oxide</div>
+            <div><strong>Elisp</strong> · Living Environment</div>
+          </div>
+        </aside>
+      </div>
+    </section>
+
+    <!-- Honest Status Callout -->
+    <section class="callout-box" aria-label="Current engineering status and verification boundaries">
+      <div data-lang-en lang="en">
+        <strong>Current Engineering Snapshot (Honest Status Boundary):</strong>
+        Fe builds and boots standalone on Apple Silicon macOS in both terminal (<code>build/terminal/port/src/emacs -Q -nw</code>) and native Cocoa GUI (<code>dist/macos/Femacs.app</code>) modes, with recorded acceptance for specific products and workflows. Local checks inspect existing builds; GUI/IME coverage is explicitly requested.
+        Within the active 7-outcome modernization program (<a href="current-state.md"><code>docs/current-state.md</code></a>), <strong>3 / 7 outcomes are accepted</strong> (<strong>G1</strong> usable macOS terminal and GUI workflows, <strong>G2</strong> independent resource bootstrap, <strong>G4</strong> retired historical scaffolding), while <strong>4 / 7 remain under active development and verification</strong> (<strong>G3</strong> full compatibility closure including intermittent remote file-notification edge cases, <strong>G5</strong> runtime measurements and pause attribution, <strong>G6</strong> native compilation integration, and <strong>G7</strong> generational GC &amp; pause/throughput tuning). Experimental collector and native-runtime candidates are <em>not</em> promoted as defaults; complete compatibility and a qualified speedup remain open requirements.
+      </div>
+      <div data-lang-zh lang="zh-CN">
+        <strong>当前工程状态（真实边界声明）：</strong>
+        Fe 已可在 Apple Silicon macOS 上独立完成终端版（<code>build/terminal/port/src/emacs -Q -nw</code>）与原生 Swift Cocoa 图形版（<code>dist/macos/Femacs.app</code>）的源码自举构建，并保留限定产品和操作的验收记录；本地检查读取已构建产物，图形与输入法验收需显式启用。
+        在当前 7 项现代化目标（见 <a href="current-state.md"><code>docs/current-state.md</code></a>）中，<strong>已完成验收 3 / 7 项</strong>（<strong>G1</strong> macOS 终端与图形工作流可用、<strong>G2</strong> 独立资源生成管线、<strong>G4</strong> 历史过渡脚手架退役），其余 <strong>4 / 7 项仍在推进与验证中</strong>（<strong>G3</strong> 全量兼容闭环含远程文件通知边界、<strong>G5</strong> 运行时测量与停顿归因、<strong>G6</strong> 原生编译集成、<strong>G7</strong> 分代 GC 与吞吐/延迟调优）。实验性回收器与原生运行时候选不提升为默认；完整兼容及可靠提速仍待完成。
+      </div>
+    </section>
+
+    <!-- Why Fe & Naming -->
+    <section class="section-block" aria-labelledby="why-fe-heading">
+      <div class="section-header">
+        <div>
+          <h2 id="why-fe-heading" class="section-title">
+            <span data-lang-en lang="en">Why Fe? Iron, Rust, and the Living Lisp Machine</span>
+            <span data-lang-zh lang="zh-CN">为什么叫 Fe？铁、铁锈（Rust）与活的 Lisp 机器</span>
+          </h2>
+          <p class="section-subtitle">
+            <span data-lang-en lang="en">Preserving decades of Lisp user workflows while replacing fragile C runtime internals with explicit, auditable Rust boundaries.</span>
+            <span data-lang-zh lang="zh-CN">以保留数十年沉淀的 Lisp 生态与交互习惯为目标，将底层 C 运行时替换为边界清晰、可审计的 Rust 实现。</span>
+          </p>
+        </div>
+      </div>
+
+      <div class="card-grid-3">
+        <article class="surface-card">
+          <h3>
+            <span>The Name: Fe &amp; Rust</span>
+            <span class="badge badge-guard">Fe · 26</span>
+          </h3>
+          <p>
+            <strong>Fe</strong> is the chemical symbol for iron (Latin <em>ferrum</em>); <strong>rust</strong> is iron oxide formed when iron reacts with oxygen. The name connects the editor directly to the language its core is forged in: a durable iron substrate engineered in Rust.
+          </p>
+          <p>
+            The repository and command-line driver remain <code>femacs</code> so build scripts, packages, and developer muscle memory stay immediate and recognizable.
+          </p>
+        </article>
+
+        <article class="surface-card">
+          <h3>
+            <span>Existing Lisp Workflows</span>
+            <span class="badge badge-ok">Compatibility First</span>
+          </h3>
+          <p>
+            An extensible editor is defined by the Lisp code that lives inside it: Org, Magit, Eglot, TRAMP, Dired, Eshell, and personal init files. Rewriting the editor from scratch with a different extension language would leave that world behind.
+          </p>
+          <p>
+            Fe retains owned Lisp, input-method, data and test trees with their generation inputs. It executes real <code>.el</code> / <code>.elc</code> files and creates a <code>.pdmp</code> portable dump. Compatibility repairs are tracked explicitly.
+          </p>
+        </article>
+
+        <article class="surface-card">
+          <h3>
+            <span>Modern Native Stack</span>
+            <span class="badge badge-ok">Rust + Swift</span>
+          </h3>
+          <p>
+            Where the C reference relies on preprocessor-heavy C, Objective-C, and Autotools/Makefile build glue, Fe uses a Rust core (<code>src/</code>), a Swift Cocoa backend (<code>platform/macos/</code>), Cargo workspace orchestration (<code>xtask/</code>), and standalone Python resource generators (<code>tools/</code>).
+          </p>
+          <p>
+            Every runtime invariant — tagged <code>Lisp_Object</code> layout, bytecode stack frames, and GC root registration — is explicit in Rust code.
+          </p>
+        </article>
+      </div>
+    </section>
+
+    <!-- Interactive Build & Try Workflow Lab -->
+    <section class="section-block" aria-labelledby="workflow-lab-heading">
+      <div class="section-header">
+        <div>
+          <h2 id="workflow-lab-heading" class="section-title">
+            <span data-lang-en lang="en">Interactive Build, Run &amp; Verification Lab</span>
+            <span data-lang-zh lang="zh-CN">交互式构建、试用与验收命令台</span>
+          </h2>
+          <p class="section-subtitle">
+            <span data-lang-en lang="en">Select a workflow below to inspect and copy the exact commands used on Apple Silicon macOS.</span>
+            <span data-lang-zh lang="zh-CN">切换下方标签页，查看并复制在 Apple Silicon macOS 上独立构建、启动、打包与验收的精确命令。</span>
+          </p>
+        </div>
+        <a href="pages/start.html">Full Build &amp; Try Guide →</a>
+      </div>
+
+      <div class="workflow-lab" data-workflow-group>
+        <div class="workflow-tabs" role="tablist" aria-label="Build and verification workflows">
+          <button type="button" class="workflow-tab" role="tab" id="tab-terminal" aria-controls="panel-terminal" tabindex="0" aria-selected="true" data-workflow-tab="terminal">1. Terminal Build</button>
+          <button type="button" class="workflow-tab" role="tab" id="tab-macos" aria-controls="panel-macos" tabindex="-1" aria-selected="false" data-workflow-tab="macos">2. macOS Cocoa App</button>
+          <button type="button" class="workflow-tab" role="tab" id="tab-bootstrap" aria-controls="panel-bootstrap" tabindex="-1" aria-selected="false" data-workflow-tab="bootstrap">3. Resource Bootstrap</button>
+          <button type="button" class="workflow-tab" role="tab" id="tab-acceptance" aria-controls="panel-acceptance" tabindex="-1" aria-selected="false" data-workflow-tab="acceptance">4. Local Acceptance</button>
+          <button type="button" class="workflow-tab" role="tab" id="tab-packaging" aria-controls="panel-packaging" tabindex="-1" aria-selected="false" data-workflow-tab="packaging">5. Release &amp; Bench</button>
+        </div>
+
+        <div class="workflow-panel" role="tabpanel" id="panel-terminal" aria-labelledby="tab-terminal" data-workflow-panel="terminal">
+          <div class="workflow-panel-head">
+            <div>
+              <h3 class="workflow-panel-title">Build &amp; Launch the Standalone Terminal Binary</h3>
+              <p class="workflow-panel-desc">Generates build inputs, compiles the Rust core, dumps <code>emacs.pdmp</code>, and launches in terminal mode.</p>
+            </div>
+            <button type="button" class="copy-btn" data-copy-target="#cmd-terminal">Copy Commands</button>
+          </div>
+          <pre id="cmd-terminal"><code># Prerequisites: Xcode Command Line Tools, Python 3.9+, rustup, and gawk (brew install gawk)
+cargo run -p xtask -- build-terminal
+
+# Verify version and launch interactive terminal session without user init
+build/terminal/port/src/emacs --version
+build/terminal/port/src/emacs -Q -nw
+
+# Evaluate a batch Lisp expression directly
+build/terminal/port/src/emacs -Q --batch --eval '(princ (emacs-version))'</code></pre>
+        </div>
+
+        <div class="workflow-panel" role="tabpanel" id="panel-macos" aria-labelledby="tab-macos" data-workflow-panel="macos" hidden>
+          <div class="workflow-panel-head">
+            <div>
+              <h3 class="workflow-panel-title">Build &amp; Launch the Native Swift Cocoa App Bundle</h3>
+              <p class="workflow-panel-desc">Compiles the Rust core + Swift Cocoa bridge and assembles <code>dist/macos/Femacs.app</code>.</p>
+            </div>
+            <button type="button" class="copy-btn" data-copy-target="#cmd-macos">Copy Commands</button>
+          </div>
+          <pre id="cmd-macos"><code># Build the standalone macOS GUI application bundle
+cargo run -p xtask -- build-macos
+
+# Launch via macOS LaunchServices or run the executable with a clean environment
+open dist/macos/Femacs.app --args -Q
+dist/macos/Femacs.app/Contents/MacOS/Femacs -Q</code></pre>
+        </div>
+
+        <div class="workflow-panel" role="tabpanel" id="panel-bootstrap" aria-labelledby="tab-bootstrap" data-workflow-panel="bootstrap" hidden>
+          <div class="workflow-panel-head">
+            <div>
+              <h3 class="workflow-panel-title">Verify Repository Layout &amp; Independent Resource Generation</h3>
+              <p class="workflow-panel-desc">Generates charsets, Unicode tables, <code>globals.h</code>, and <code>ldefs-boot.el</code> from committed repo inputs without a reference checkout.</p>
+            </div>
+            <button type="button" class="copy-btn" data-copy-target="#cmd-bootstrap">Copy Commands</button>
+          </div>
+          <pre id="cmd-bootstrap"><code># Verify root repository layout and committed bootstrap inputs
+python3 tools/test-repository-bootstrap.py
+
+# After building the terminal product, regenerate resources from owned inputs
+python3 tools/bootstrap-resources.py --program build/terminal/port/src/emacs --family all</code></pre>
+        </div>
+
+        <div class="workflow-panel" role="tabpanel" id="panel-acceptance" aria-labelledby="tab-acceptance" data-workflow-panel="acceptance" hidden>
+          <div class="workflow-panel-head">
+            <div>
+              <h3 class="workflow-panel-title">Run Local Functional Acceptance (Batch + Opt-In GUI/IME)</h3>
+              <p class="workflow-panel-desc">Runs batch smoke, terminal PTY lifecycle, core ERT suites, and optional live Cocoa window + CJK IME composition checks.</p>
+            </div>
+            <button type="button" class="copy-btn" data-copy-target="#cmd-acceptance">Copy Commands</button>
+          </div>
+          <pre id="cmd-acceptance"><code># After building both products: inspect existing products and run local workflows
+python3 tools/local-acceptance.py --out build/acceptance/local-run
+
+# Optional live GUI/IME checks require the two compiled event helpers; see the macOS guide
+python3 tools/local-acceptance.py --gui --ime --sender build/macos-acceptance/macos-events --sources build/macos-acceptance/input-source --out build/acceptance/local-gui-ime</code></pre>
+        </div>
+
+        <div class="workflow-panel" role="tabpanel" id="panel-packaging" aria-labelledby="tab-packaging" data-workflow-panel="packaging" hidden>
+          <div class="workflow-panel-head">
+            <div>
+              <h3 class="workflow-panel-title">Package macOS DMG &amp; Run Runtime Benchmarks</h3>
+              <p class="workflow-panel-desc">Produces a signed/checksummed <code>.dmg</code> disk image and measures workload latency/throughput.</p>
+            </div>
+            <button type="button" class="copy-btn" data-copy-target="#cmd-packaging">Copy Commands</button>
+          </div>
+          <pre id="cmd-packaging"><code># Package the existing app into a fresh release directory
+cargo run -p fe-packaging -- macos --app dist/macos/Femacs.app --out dist/releases/local
+
+# Run runtime workload benchmark suite against the terminal build
+python3 tools/bench.py --prog build/terminal/port/src/emacs --rounds 5 --out build/bench/local</code></pre>
+        </div>
+      </div>
+    </section>
+
+    <!-- Modernization Program Status (Interactive Filter Table) -->
+    <section class="section-block" aria-labelledby="modernization-heading">
+      <div class="section-header">
+        <div>
+          <h2 id="modernization-heading" class="section-title">
+            <span data-lang-en lang="en">Modernization Roadmap &amp; 7-Outcome Status</span>
+            <span data-lang-zh lang="zh-CN">现代化路线图与 7 项交付状态</span>
+          </h2>
+          <p class="section-subtitle">
+            <span data-lang-en lang="en">Tracked in <code>docs/modernization.md</code> and <code>docs/current-state.md</code>. Filter by delivery state below.</span>
+            <span data-lang-zh lang="zh-CN">权威进度记录于 <code>docs/modernization.md</code> 与 <code>docs/current-state.md</code>，可按状态筛选。</span>
+          </p>
+        </div>
+        <a href="current-state.md">Read <code>docs/current-state.md</code> →</a>
+      </div>
+
+      <div class="filter-bar">
+        <div class="filter-group" role="group" aria-label="Filter modernization outcomes">
+          <button type="button" class="filter-pill" aria-pressed="true" data-goal-filter="all">All Outcomes (7)</button>
+          <button type="button" class="filter-pill" aria-pressed="false" data-goal-filter="delivered">Accepted (3)</button>
+          <button type="button" class="filter-pill" aria-pressed="false" data-goal-filter="active">Active / Open (4)</button>
+        </div>
+        <span class="badge badge-guard" data-goal-count aria-live="polite">7 / 7 outcomes shown</span>
+      </div>
+
+      <div class="table-wrap">
+        <table class="data-table" aria-label="7-outcome modernization status">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Outcome &amp; Technical Scope</th>
+              <th>Status</th>
+              <th>Verification &amp; Key Evidence</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr data-goal-row data-goal-state="delivered">
+              <td><strong>G1</strong></td>
+              <td>
+                <strong>Usable macOS Terminal &amp; Native GUI</strong><br>
+                Native terminal/GUI keys, files, Finder drag, Chinese composition, multi-window focus and abnormal TTY behavior have scoped acceptance records.
+              </td>
+              <td><span class="badge badge-ok">Accepted</span></td>
+              <td>See the dated G1 workflow delivery linked from <a href="modernization.md">the modernization plan</a>; individual assertions retain their original products and limits.</td>
+            </tr>
+            <tr data-goal-row data-goal-state="delivered">
+              <td><strong>G2</strong></td>
+              <td>
+                <strong>Independent Resource Generation Pipeline</strong><br>
+                Charsets, Unicode tables, <code>globals.h</code>, and bootstrap loaddefs generated from committed inputs under <code>admin/</code>, <code>src/</code>, and <code>lisp/</code> without a reference checkout.
+              </td>
+              <td><span class="badge badge-ok">Accepted</span></td>
+              <td>Tracked-only terminal/Cocoa build and relocation evidence is linked from the modernization plan. Resource recipe and immutable-input protections supplement that evidence.</td>
+            </tr>
+            <tr data-goal-row data-goal-state="active">
+              <td><strong>G3</strong></td>
+              <td>
+                <strong>Full Compatibility &amp; Local Acceptance Closure</strong><br>
+                Compatibility is tracked by exact test, product and platform. An intermittent <code>remote09</code> Base64 failure and the original native bootstrap comparison remain open; passing subsets do not certify all extensions.
+              </td>
+              <td><span class="badge badge-active">Active (Open)</span></td>
+              <td>Retain original failures. The bad decoder input was not captured, so an asynchronous framing race is a hypothesis, not an established root cause.</td>
+            </tr>
+            <tr data-goal-row data-goal-state="delivered">
+              <td><strong>G4</strong></td>
+              <td>
+                <strong>Retirement of Historical Phase-1 Scaffolding</strong><br>
+                Legacy C-translation audit gates and one-off probe wrappers retired and logged in <a href="retired-scaffolding.md"><code>docs/retired-scaffolding.md</code></a>.
+              </td>
+              <td><span class="badge badge-ok">Accepted</span></td>
+              <td>Every retired script is recorded with replacement and commit hash in <code>docs/retired-scaffolding.md</code>.</td>
+            </tr>
+            <tr data-goal-row data-goal-state="active">
+              <td><strong>G5</strong></td>
+              <td>
+                <strong>Runtime Measurements &amp; Pause Attribution</strong><br>
+                Measure interpreted, bytecode and native workloads separately, with allocations, survival, collector phases and application latency. Keep all rounds and busy-host limits visible.
+              </td>
+              <td><span class="badge badge-active">Active (Open)</span></td>
+              <td>Existing source-bound measurements are retained; a qualifying speedup and complete measurement coverage are still required.</td>
+            </tr>
+            <tr data-goal-row data-goal-state="active">
+              <td><strong>G6</strong></td>
+              <td>
+                <strong>Native Compilation Runtime &amp; ABI Boundary</strong><br>
+                <code>src/comp.rs</code> ABI version, helper link table, relocation validation, and safe fallback to interpreted/bytecode execution.
+              </td>
+              <td><span class="badge badge-active">Active (Open)</span></td>
+              <td>Guarded by <code>tools/fixtures/runtime-native-abi.el</code>; existing native support is configuration-dependent; an improved candidate is not promoted by this page.</td>
+            </tr>
+            <tr data-goal-row data-goal-state="active">
+              <td><strong>G7</strong></td>
+              <td>
+                <strong>Garbage Collector Architecture &amp; Latency/Throughput Tuning</strong><br>
+                <code>src/alloc.rs</code> &amp; <code>src/runtime_gc_collector.rs</code> root tracking, write barriers, fallback registry elision (P-437), and pause/throughput/memory tradeoffs.
+              </td>
+              <td><span class="badge badge-active">Active (Open)</span></td>
+              <td>Default mode remains conservative full collection; young/checking profiles and persistent fallback optimizations are verified against full observer/collector suites.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Repository Architecture Map -->
+    <section class="section-block" aria-labelledby="repo-layout-heading">
+      <div class="section-header">
+        <div>
+          <h2 id="repo-layout-heading" class="section-title">
+            <span data-lang-en lang="en">Repository Structure at a Glance</span>
+            <span data-lang-zh lang="zh-CN">仓库顶层目录结构速览</span>
+          </h2>
+          <p class="section-subtitle">
+            <span data-lang-en lang="en">A clean, self-contained workspace at the repository root.</span>
+            <span data-lang-zh lang="zh-CN">顶层扁平化 Cargo 工作区与完整 Lisp 运行时资源树。</span>
+          </p>
+        </div>
+        <a href="pages/architecture.html">Deep-Dive Architecture →</a>
+      </div>
+
+      <ul class="tree-list">
+        <li class="tree-item">
+          <span class="tree-path">src/ &amp; Cargo.toml</span>
+          <span class="tree-desc">Root Rust crate implementing the evaluator, tagged object allocator/GC, bytecode VM, buffer/display engine, and platform system layer.</span>
+        </li>
+        <li class="tree-item">
+          <span class="tree-path">platform/macos/</span>
+          <span class="tree-desc">Native Swift Cocoa backend for macOS windows, events, menus, pasteboard, and NSTextInputClient CJK IME composition.</span>
+        </li>
+        <li class="tree-item">
+          <span class="tree-path">lisp/ · leim/ · etc/</span>
+          <span class="tree-desc">Complete Lisp standard library, input methods, themes, documentation data, and generated charsets/uni-* tables.</span>
+        </li>
+        <li class="tree-item">
+          <span class="tree-path">xtask/ &amp; packaging/</span>
+          <span class="tree-desc">Rust build orchestrator (<code>build-terminal</code>, <code>build-macos</code>, <code>dump</code>) and macOS <code>.app</code> / <code>.dmg</code> release packager.</span>
+        </li>
+        <li class="tree-item">
+          <span class="tree-path">tools/ &amp; build-support/</span>
+          <span class="tree-desc">Standalone Python resource bootstrap, local acceptance runner, benchmark harness, and committed bootstrap recipes.</span>
+        </li>
+        <li class="tree-item">
+          <span class="tree-path">docs/ &amp; docs/pages/</span>
+          <span class="tree-desc">Engineering specifications, status ledgers, bilingual guides, and this Eliscript-powered Pages documentation site.</span>
+        </li>
+      </ul>
+    </section>
+
+    <!-- Quick Entry Cards to Subpages & Docs -->
+    <section class="section-block" aria-labelledby="explore-heading">
+      <div class="section-header">
+        <div>
+          <h2 id="explore-heading" class="section-title">
+            <span data-lang-en lang="en">Explore Fe Documentation</span>
+            <span data-lang-zh lang="zh-CN">浏览 Fe 专题文档</span>
+          </h2>
+        </div>
+      </div>
+
+      <div class="card-grid-3">
+        <article class="surface-card">
+          <h3>
+            <a href="pages/start.html">Build, Try &amp; Acceptance</a>
+            <span class="badge badge-ok">Guide</span>
+          </h3>
+          <p>
+            Step-by-step prerequisites, terminal &amp; macOS Cocoa build commands, keyboard &amp; IME notes from <code>docs/macos-tryout.md</code>, and local acceptance flags.
+          </p>
+        </article>
+
+        <article class="surface-card">
+          <h3>
+            <a href="pages/architecture.html">Architecture, VM &amp; GC</a>
+            <span class="badge badge-guard">Deep Dive</span>
+          </h3>
+          <p>
+            How Fe bootstraps without a reference tree, how <code>exec_byte_code</code> and GC root/mark/sweep work, and the 2026-10-30 GC latency/throughput/memory design direction.
+          </p>
+        </article>
+
+        <article class="surface-card">
+          <h3>
+            <a href="pages/docs-hub.html">Searchable Docs Hub</a>
+            <span class="badge badge-ok">Index</span>
+          </h3>
+          <p>
+            Search and category filters for twelve selected English and Simplified Chinese project guides.
+          </p>
+        </article>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div>
+        <strong>Fe (<code>femacs</code>)</strong> — Rust Core &amp; Swift Cocoa Editor Project · Licensed under GPL-3.0-or-later.
+      </div>
+      <div class="footer-links">
+        <a href="index.html">Overview</a>
+        <a href="pages/start.html">Build &amp; Try</a>
+        <a href="pages/architecture.html">Architecture</a>
+        <a href="pages/docs-hub.html">Docs Hub</a>
+        <a href="i18n/zh-CN/README.md">简体中文 README</a>
+        <a href="https://github.com/liuchong/femacs/blob/master/README.md">Repository README</a>
+      </div>
+    </div>
+  </footer>
+
+  <script type="text/eliscript" src="pages/site.eli"></script>
+  <script type="module">
+    try {
+    const base = "https://unpkg.com/eliscript@0.1.1";
+    const { mountEliscriptScripts } = await import(`${base}/dist/browser/host.mjs`);
+    await mountEliscriptScripts(document, {
+      fetch: (url, init) => fetch(url, init),
+      resolveExternal(specifier) {
+        if (!specifier.startsWith("eliscript/")) return specifier;
+        const sub = specifier.slice(10);
+        return `${base}/${sub.endsWith(".mjs") ? sub : `${sub}.mjs`}`;
+      }
+    });
+    } catch (error) {
+      console.error("Eliscript site initialization failed", error);
+      for (const status of document.querySelectorAll("[data-eli-status-text]")) status.textContent = "Interactive tools unavailable";
+      for (const control of document.querySelectorAll("[data-lang-switch], [data-workflow-tab], [data-copy-target], [data-goal-filter], [data-doc-category], [data-doc-search]")) control.disabled = true;
+      for (const panel of document.querySelectorAll("[data-workflow-panel]")) panel.hidden = false;
+    }
+  </script>
+</body>
+</html>

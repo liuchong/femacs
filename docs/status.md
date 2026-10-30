@@ -23828,3 +23828,17 @@ See [P437 delivery](../maintenance/releases/2026-10-30-persistent-fallback.md).
 CLN155 retires 505 consumed successful compiler/case groups: 9,946 regular files,
 3,571 directories, 370,202,575 logical / 390,307,840 allocated bytes. Frozen inputs,
 actual products/resources and original raw receipts/observations are preserved.
+
+### 2026-10-30 Fe Pages website
+
+Four static pages under docs with real Eliscript0.1.1 browser compilation:
+overview, macOS build/try, runtime architecture and searchable docs hub.
+Primary corrected unsupported commands, actual G1/G5 meanings, docs-root links,
+clipboard failures, keyboard tabs and summary-language metadata. Actual Chrome
+passed16route/viewports (four pages, docs root/project subpath, desktop/mobile),
+plus blocked-SDK static fallback; original logo is byte-identical. Final content
+corrections and exact tested/current hashes are in [site acceptance](pages/acceptance.json).
+Independent partner source review confirmed adoption. No generated JS or remote
+CI. Site source is complete and locally verified, not online: private-repository
+Pages creation is rejected by the current GitHub plan. Keep private visibility;
+DNS/CNAME configuration alone does not publish a website. [Preview](pages/README.md).

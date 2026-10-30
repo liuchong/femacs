@@ -1,0 +1,303 @@
+;; Interactive documentation site script for Fe (femacs).
+;;
+;; Maintained as Eliscript source in `docs/pages/site.eli` and compiled in the
+;; browser at runtime by the published `eliscript@0.1.1` browser SDK.
+
+(module fe.docs.site
+  (import "eliscript/platform/browser"
+          browserCapabilities
+          browserDocument
+          browserSetTimeout)
+
+  (defconst capabilities
+    (browserCapabilities globalThis.globalThis (js-array "document" "timers")))
+  (defconst page (browserDocument capabilities))
+
+  ;; ------------------------------------------------------------- host helpers
+
+  (defun field (object name)
+    (get object name))
+
+  (defun set-field (object name value)
+    (Reflect/set object name value))
+
+  (defun present? (value)
+    (not (nil? value)))
+
+  (defun same? (left right)
+    (Object/is left right))
+
+  (defun text-of (element)
+    (if (present? element)
+        (str (field element "textContent"))
+      ""))
+
+  (defun set-text (element value)
+    (set-field element "textContent" (str value)))
+
+  (defun attr (element name)
+    (let ((value (js-call element :getAttribute name)))
+      (if (present? value) (str value) "")))
+
+  (defun set-attr (element name value)
+    (js-call element :setAttribute name (str value)))
+
+  (defun array-from (values)
+    (Array/from values))
+
+  (defun node (selector)
+    (js-call page :querySelector selector))
+
+  (defun nodes (selector)
+    (array-from (js-call page :querySelectorAll selector)))
+
+  (defun nodes-in (root selector)
+    (array-from (js-call root :querySelectorAll selector)))
+
+  (defun each (values handler)
+    (let ((index 0)
+          (total (js-length values)))
+      (while (< index total)
+        (funcall handler (js-nth index values))
+        (setq index (1+ index)))))
+
+  (defun watch (element event handler)
+    (js-call element :addEventListener event handler))
+
+  (defun set-selected (element selected)
+    (set-attr element "aria-selected" (if selected "true" "false")))
+
+  (defun set-pressed (element pressed)
+    (set-attr element "aria-pressed" (if pressed "true" "false")))
+
+  (defun set-hidden (element hidden)
+    (set-field element "hidden" (if hidden t false)))
+
+  (defun lowered (value)
+    (js-call (js-call (str value) :trim) :toLowerCase))
+
+  ;; --------------------------------------------------- workflow command tabs
+
+  (defun choose-workflow (button tabs panels)
+    (let ((target (attr button "data-workflow-tab")))
+      (each tabs
+            (lambda (candidate)
+              (let ((selected (same? candidate button)))
+                (set-selected candidate selected)
+                (set-attr candidate "tabindex" (if selected "0" "-1")))))
+      (each panels
+            (lambda (panel)
+              (set-hidden panel
+                          (not (same? (attr panel "data-workflow-panel") target)))))))
+
+  (defun bind-workflow-tabs ()
+    (each (nodes "[data-workflow-group]")
+          (lambda (group)
+            (let ((tabs (nodes-in group "[data-workflow-tab]"))
+                  (panels (nodes-in group "[data-workflow-panel]")))
+              (each tabs
+                    (lambda (button)
+                      (watch button "click"
+                             (lambda (event) (choose-workflow button tabs panels)))
+                      (watch button "keydown"
+                             (lambda (event)
+                               (let ((key (field event "key"))
+                                     (index (js-call tabs :indexOf button))
+                                     (total (js-length tabs)))
+                                 (when (or (same? key "ArrowRight") (same? key "ArrowLeft")
+                                           (same? key "Home") (same? key "End"))
+                                   (js-call event :preventDefault)
+                                   (let ((next (cond
+                                                ((same? key "Home") 0)
+                                                ((same? key "End") (1- total))
+                                                ((same? key "ArrowRight") (if (= (1+ index) total) 0 (1+ index)))
+                                                (t (if (= index 0) (1- total) (1- index))))))
+                                     (let ((target (js-nth next tabs)))
+                                       (choose-workflow target tabs panels)
+                                       (js-call target :focus)))))))))))))
+
+  ;; --------------------------------------------------- command copy buttons
+
+  (defun copy-to-clipboard (text)
+    ;; A promise preserves unavailable, denied and synchronous browser failures.
+    (js-call (Promise/resolve nil) :then
+             (lambda (unused)
+               (let ((nav (field globalThis.globalThis "navigator")))
+                 (if (and (present? nav) (present? (field nav "clipboard")))
+                     (js-call (field nav "clipboard") :writeText (str text))
+                   (Promise/reject "Clipboard unavailable"))))))
+
+  (defun restore-copy-label (button label)
+    (browserSetTimeout capabilities
+                       (lambda () (set-text button label)) 1500))
+
+  (defun bind-copy-buttons ()
+    (each (nodes "[data-copy-target]")
+          (lambda (button)
+            (let ((initial-label (text-of button)))
+              (watch button "click"
+                     (lambda (event)
+                       (let ((source (node (attr button "data-copy-target"))))
+                         (when (present? source)
+                           (js-call (copy-to-clipboard (text-of source)) :then
+                                    (lambda (unused)
+                                      (set-attr button "data-copied" "true")
+                                      (set-text button "Copied")
+                                      (restore-copy-label button initial-label))
+                                    (lambda (error)
+                                      (set-attr button "data-copied" "false")
+                                      (set-text button "Select text to copy")
+                                      (restore-copy-label button initial-label)))))))))))
+
+  ;; ----------------------------------------- persistent goal 7-item filter
+
+  (defun filter-goal-rows (rows mode)
+    (let ((visible 0))
+      (each rows
+            (lambda (row)
+              (let ((state (attr row "data-goal-state")))
+                (let ((matches (or (same? mode "all")
+                                   (same? state mode))))
+                  (set-hidden row (not matches))
+                  (when matches
+                    (setq visible (1+ visible)))))))
+      visible))
+
+  (defun bind-goal-filter ()
+    (let ((buttons (nodes "[data-goal-filter]"))
+          (rows (nodes "[data-goal-row]"))
+          (counter (node "[data-goal-count]")))
+      (when (> (js-length buttons) 0)
+        (each buttons
+              (lambda (button)
+                (watch button "click"
+                       (lambda (event)
+                         (let ((mode (attr button "data-goal-filter")))
+                           (each buttons
+                                 (lambda (candidate)
+                                   (set-pressed candidate (same? candidate button))))
+                           (let ((shown (filter-goal-rows rows mode)))
+                             (when (present? counter)
+                               (set-text counter
+                                         (str shown " / " (js-length rows)
+                                              " outcomes shown"))))))))))))
+
+  ;; --------------------------------------------- documentation hub filter
+
+  (defun card-matches-doc-filter (card category query)
+    (let ((cat-tag (attr card "data-doc-category-tag"))
+          (haystack (lowered (str (attr card "data-doc-keywords") " "
+                                  (text-of card)))))
+      (and (or (same? category "all")
+               (same? cat-tag category))
+           (or (same? query "")
+               (js-call haystack :includes query)))))
+
+  (defun apply-doc-filter (cards category query counter empty)
+    (let ((visible 0)
+          (total (js-length cards)))
+      (each cards
+            (lambda (card)
+              (let ((matches (card-matches-doc-filter card category query)))
+                (set-hidden card (not matches))
+                (when matches
+                  (setq visible (1+ visible))))))
+      (when (present? counter)
+        (set-text counter (str visible " / " total " documents")))
+      (when (present? empty)
+        (set-hidden empty (not (= visible 0))))))
+
+  (defun active-doc-category ()
+    (let ((selected (node "[data-doc-category][aria-pressed='true']")))
+      (if (present? selected)
+          (attr selected "data-doc-category")
+        "all")))
+
+  (defun current-doc-query (search-input)
+    (if (present? search-input)
+        (lowered (field search-input "value"))
+      ""))
+
+  (defun bind-doc-hub ()
+    (let ((cards (nodes "[data-doc-item]"))
+          (cat-buttons (nodes "[data-doc-category]"))
+          (search-input (node "[data-doc-search]"))
+          (counter (node "[data-doc-count]"))
+          (empty (node "[data-doc-empty]")))
+      (when (> (js-length cards) 0)
+        (each cat-buttons
+              (lambda (button)
+                (watch button "click"
+                       (lambda (event)
+                         (each cat-buttons
+                               (lambda (candidate)
+                                 (set-pressed candidate (same? candidate button))))
+                         (apply-doc-filter
+                           cards
+                           (attr button "data-doc-category")
+                           (current-doc-query search-input)
+                           counter
+                           empty)))))
+        (when (present? search-input)
+          (watch search-input "input"
+                 (lambda (event)
+                   (apply-doc-filter
+                     cards
+                     (active-doc-category)
+                     (current-doc-query search-input)
+                     counter
+                     empty)))
+          (watch page "keydown"
+                 (lambda (event)
+                   (when (and (same? (field event "key") "/")
+                              (not (same? (field page "activeElement") search-input))
+                              (not (same? (field (field event "target") "tagName") "INPUT"))
+                              (not (same? (field (field event "target") "tagName") "TEXTAREA"))
+                              (not (same? (field (field event "target") "tagName") "SELECT"))
+                              (not (same? (field (field event "target") "isContentEditable") t)))
+                     (js-call event :preventDefault)
+                     (js-call search-input :focus))))))))
+
+  ;; ------------------------------------------------ bilingual summary switch
+
+  (defun bind-language-switch ()
+    (let ((root (field page "documentElement"))
+          (buttons (nodes "[data-lang-switch]")))
+      (each buttons
+            (lambda (button)
+              (watch button "click"
+                     (lambda (event)
+                       (let ((current (attr root "data-site-lang")))
+                         (let ((next (if (same? current "zh") "en" "zh")))
+                           (set-attr root "data-site-lang" next)
+                           (set-attr root "lang" "en")
+                           (each buttons
+                                 (lambda (candidate)
+                                   (set-attr candidate "lang" (if (same? next "zh") "en" "zh-CN"))
+                                   (set-text candidate
+                                             (if (same? next "zh")
+                                                 "English summaries"
+                                               "中文摘要 / EN"))))))))))))
+
+  ;; ----------------------------------------------------- runtime readiness
+
+  (defun bind-eli-status ()
+    (each (nodes "[data-eli-status]")
+          (lambda (pill)
+            (set-attr pill "data-eli-ready" "true")))
+    (each (nodes "[data-eli-status-text]")
+          (lambda (label)
+            (set-text label "Eliscript 0.1.1 · live"))))
+
+  (defun start ()
+    (bind-workflow-tabs)
+    (bind-copy-buttons)
+    (bind-goal-filter)
+    (bind-doc-hub)
+    (bind-language-switch)
+    (bind-eli-status))
+
+  (if (same? (field page "readyState") "loading")
+      (js-call page :addEventListener
+               "DOMContentLoaded" (lambda (event) (start)))
+    (start)))

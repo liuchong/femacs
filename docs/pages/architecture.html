@@ -1,0 +1,342 @@
+<!doctype html>
+<html lang="en" data-site-lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Architecture, VM &amp; GC Tradeoffs — Fe (femacs)</title>
+  <meta name="description" content="Technical architecture of Fe (femacs): standalone resource bootstrap, Rust evaluator and bytecode VM, native compilation ABI boundary, and garbage collection latency/throughput/memory tradeoffs.">
+  <link rel="icon" type="image/png" href="assets/fe-logo.png">
+  <link rel="stylesheet" href="assets/site.css">
+  <script type="importmap">
+    {
+      "imports": {
+        "eliscript/platform/browser": "https://unpkg.com/eliscript@0.1.1/platform/browser.mjs",
+        "eliscript/": "https://unpkg.com/eliscript@0.1.1/"
+      }
+    }
+  </script>
+</head>
+<body>
+  <a class="skip-link" href="#main-content">Skip to main content</a>
+
+  <header class="site-header">
+    <div class="header-inner">
+      <a class="brand-link" href="../index.html">
+        <img class="brand-logo" src="assets/fe-logo.png" alt="Fe forged iron logo" width="36" height="36">
+        <div class="brand-title">
+          <span class="brand-symbol">Fe<span>26 · femacs</span></span>
+          <span class="brand-sub">Rust Core &amp; Swift Cocoa · Lisp Extensibility</span>
+        </div>
+      </a>
+
+      <nav class="site-nav" aria-label="Primary Navigation">
+        <a class="nav-link" href="../index.html">Overview</a>
+        <a class="nav-link" href="start.html">Build &amp; Try</a>
+        <a class="nav-link" href="architecture.html" aria-current="page">Architecture &amp; GC</a>
+        <a class="nav-link" href="docs-hub.html">Docs Hub</a>
+      </nav>
+
+      <div class="header-controls">
+        <button type="button" class="lang-btn" data-lang-switch lang="zh-CN">中文摘要 / EN</button>
+        <span class="eli-runtime-pill" data-eli-status data-eli-ready="false" title="Interactive behavior compiled in-browser from docs/pages/site.eli">
+          <span class="eli-dot"></span>
+          <span data-eli-status-text role="status">Eliscript · loading</span>
+        </span>
+      </div>
+    </div>
+  </header>
+
+  <main id="main-content" class="page-shell">
+    <section class="hero-panel" aria-labelledby="arch-hero-heading">
+      <div class="eyebrow">
+        <span data-lang-en lang="en">Runtime Subsystems · Bootstrap · Bytecode · Garbage Collection</span>
+        <span data-lang-zh lang="zh-CN">运行时子系统 · 独立自举 · 字节码虚拟机 · 垃圾回收权衡</span>
+      </div>
+      <h1 id="arch-hero-heading" class="hero-title">
+        <span data-lang-en lang="en">Core Architecture &amp; Runtime Modernization</span>
+        <span data-lang-zh lang="zh-CN">核心架构与运行时演进</span>
+      </h1>
+      <p class="hero-lead" data-lang-en lang="en">
+        Fe aims to preserve tagged-object representation and observable Lisp semantics while structuring the build pipeline, evaluator, bytecode interpreter, native-compilation boundary, and garbage collector in auditable Rust modules.
+      </p>
+      <p class="hero-lead" data-lang-zh lang="zh-CN">
+        Fe 以保持标记对象布局与 Lisp 可观察语义为约束，将自举构建管线、求值器、字节码解释器、原生编译边界与垃圾回收器组织为可独立验证的 Rust 模块。
+      </p>
+    </section>
+
+    <!-- 1. Standalone Bootstrap Pipeline -->
+    <section class="section-block" aria-labelledby="bootstrap-arch-heading">
+      <div class="section-header">
+        <div>
+          <h2 id="bootstrap-arch-heading" class="section-title">
+            <span data-lang-en lang="en">1. Standalone Resource Bootstrap &amp; Portable Dump Pipeline</span>
+            <span data-lang-zh lang="zh-CN">1. 独立资源生成与便携式 Dump 自举管线</span>
+          </h2>
+          <p class="section-subtitle">
+            <span data-lang-en lang="en">Specified in <a href="../repository-bootstrap.md"><code>docs/repository-bootstrap.md</code></a> (Outcome G2, accepted).</span>
+            <span data-lang-zh lang="zh-CN">规范详见 <a href="../repository-bootstrap.md"><code>docs/repository-bootstrap.md</code></a>（G2 已完成验收）。</span>
+          </p>
+        </div>
+        <a href="../repository-bootstrap.md">Read <code>docs/repository-bootstrap.md</code> →</a>
+      </div>
+
+      <div class="card-grid-3">
+        <article class="surface-card">
+          <h3>
+            <span>Stage 1: Resource Materialization</span>
+            <span class="badge badge-ok">Python + gawk</span>
+          </h3>
+          <p>
+            <code>tools/bootstrap-resources.py</code> reads committed inputs under <code>admin/charsets/</code>, <code>admin/unidata/</code>, <code>src/</code>, and <code>lisp/</code> along with <code>build-support/generator-recipes.json</code>.
+          </p>
+          <p>
+            The charset family has 136 distinct outputs in the current recipe set. Other families produce Lisp property tables, generated headers and bootstrap autoloads without touching any external reference directory.
+          </p>
+        </article>
+
+        <article class="surface-card">
+          <h3>
+            <span>Stage 2: Rust Core &amp; <code>temacs</code></span>
+            <span class="badge badge-ok">Cargo + xtask</span>
+          </h3>
+          <p>
+            <code>cargo run -p xtask -- build-terminal</code> (or <code>build-macos</code>) compiles the root Rust crate (<code>src/</code>) and links the raw undumped binary <code>temacs</code>.
+          </p>
+          <p>
+            For the macOS GUI target, <code>xtask</code> also compiles the Swift Cocoa sources in <code>platform/macos/</code> and links against Cocoa, QuartzCore, and UniformTypeIdentifiers.
+          </p>
+        </article>
+
+        <article class="surface-card">
+          <h3>
+            <span>Stage 3: <code>pdumper</code> Snapshot</span>
+            <span class="badge badge-ok">emacs.pdmp</span>
+          </h3>
+          <p>
+            <code>temacs --batch -l loadup --temacs=pdump</code> loads the standard Lisp world and serializes the heap into <code>emacs.pdmp</code> (and <code>bootstrap-emacs.pdmp</code>).
+          </p>
+          <p>
+            The resulting <code>emacs</code> binary (or <code>Femacs.app</code>) maps <code>emacs.pdmp</code> at startup to restore the preloaded Lisp environment.
+          </p>
+        </article>
+      </div>
+    </section>
+
+    <!-- 2. Runtime Subsystems: Evaluator, Bytecode VM & Native Comp -->
+    <section class="section-block" aria-labelledby="vm-arch-heading">
+      <div class="section-header">
+        <div>
+          <h2 id="vm-arch-heading" class="section-title">
+            <span data-lang-en lang="en">2. Evaluator, Bytecode VM &amp; Native Compilation Boundary</span>
+            <span data-lang-zh lang="zh-CN">2. 求值器、字节码虚拟机与原生编译边界</span>
+          </h2>
+          <p class="section-subtitle">
+            <span data-lang-en lang="en">Documented in <a href="../runtime-modernization.md"><code>docs/runtime-modernization.md</code></a> (Outcomes G5 &amp; G6).</span>
+            <span data-lang-zh lang="zh-CN">详见 <a href="../runtime-modernization.md"><code>docs/runtime-modernization.md</code></a>（对应 G5 与 G6）。</span>
+          </p>
+        </div>
+        <a href="../runtime-modernization.md">Read <code>docs/runtime-modernization.md</code> →</a>
+      </div>
+
+      <div class="card-grid-2">
+        <article class="surface-card">
+          <h3>
+            <span>Bytecode VM (<code>src/bytecode.rs</code>)</span>
+            <span class="badge badge-active">G5 / G6 · Active</span>
+          </h3>
+          <p>
+            <code>exec_byte_code</code> executes compiled <code>.elc</code> bytecode objects using an explicit stack-frame chain anchored in thread-local GC roots (<code>bc.fp</code>).
+          </p>
+          <ul>
+            <li>Active stack values must remain visible through calls, quits and collection; the runtime plan records the exact root and unwind contracts.</li>
+            <li>Dispatch candidates require source-bound semantics and real workload comparisons. Rejected candidates and their evidence are retained; a small benchmark is not full compatibility proof.</li>
+          </ul>
+        </article>
+
+        <article class="surface-card">
+          <h3>
+            <span>Native Compilation Boundary (<code>src/comp.rs</code>)</span>
+            <span class="badge badge-active">G6 · Active</span>
+          </h3>
+          <p>
+            <code>src/comp.rs</code> manages native <code>.eln</code> compilation units, ABI hash verification, helper link tables, and symbol/immediate relocations.
+          </p>
+          <ul>
+            <li>Before registering any native subr, the runtime validates the ABI version, helper table layout, and relocation bounds.</li>
+            <li>Availability depends on the build configuration, compiler library and artifact ABI. Original native bootstrap comparison failures remain open; missing support is not silently counted as compatible.</li>
+          </ul>
+        </article>
+      </div>
+    </section>
+
+    <!-- 3. Garbage Collector Architecture & Tradeoffs (2026-10-30) -->
+    <section class="section-block" aria-labelledby="gc-arch-heading">
+      <div class="section-header">
+        <div>
+          <h2 id="gc-arch-heading" class="section-title">
+            <span data-lang-en lang="en">3. Garbage Collector Architecture, Tradeoffs &amp; Tuning Direction</span>
+            <span data-lang-zh lang="zh-CN">3. 垃圾回收器架构、三维权衡与调优方向</span>
+          </h2>
+          <p class="section-subtitle">
+            <span data-lang-en lang="en">Grounded in <a href="../modernization.md"><code>docs/modernization.md</code></a> (GC Tradeoffs &amp; Tuning Direction, 2026-10-30) and <a href="../runtime-modernization.md"><code>docs/runtime-modernization.md</code></a>.</span>
+            <span data-lang-zh lang="zh-CN">依据 <a href="../modernization.md"><code>docs/modernization.md</code></a>（2026-10-30 GC 权衡与调优章节）与 <a href="../runtime-modernization.md"><code>docs/runtime-modernization.md</code></a>。</span>
+          </p>
+        </div>
+        <a href="../modernization.md">Read <code>docs/modernization.md</code> →</a>
+      </div>
+
+      <div class="callout-box">
+        <div data-lang-en lang="en">
+          <strong>Interactive Editor Constraint vs. Server Fleets:</strong>
+          Every garbage collector balances three coupled axes: <strong>throughput</strong> (total CPU spent in allocation + barriers + collection), <strong>pause latency</strong> (tail stop-the-world interruptions on the UI thread), and <strong>memory footprint</strong> (live heap + metadata + headroom before next collection). Horizontal scaling can increase capacity for partitionable server workloads; it does not eliminate an in-process pause. Here, an interactive editor runs as a single local process where typing, scrolling, IME preedit, and subprocess filters share the main thread with batch Lisp compilation and indexing.
+        </div>
+        <div data-lang-zh lang="zh-CN">
+          <strong>交互式编辑器与服务端集群的本质差异：</strong>
+          任何垃圾回收器都必须在<strong>吞吐量</strong>（分配、写屏障与回收总 CPU 开销）、<strong>停顿延迟</strong>（主线程最大停顿时间）和<strong>内存占用</strong>（存活堆、元数据与触发阈值空间）三者间权衡。横向扩展能增加可分割服务的容量，但不能消除单次进程内停顿。本地交互式编辑器通常是单实例进程：按键上屏、滚屏渲染、输入法预编辑与子进程输出都直面主线程停顿。
+        </div>
+      </div>
+
+      <div class="card-grid-3">
+        <article class="surface-card">
+          <h3>
+            <span>Lessons from Go &amp; Java Collectors</span>
+            <span class="badge badge-guard">Cross-Runtime</span>
+          </h3>
+          <p>
+            <strong>Go GC &amp; Green Tea (Go 1.25 exp / 1.26 default):</strong> Go exposes a unified concurrent collector tuned via <code>GOGC</code> and <code>GOMEMLIMIT</code> (a soft target, not a hard OS RSS cap), while Green Tea reduces mark/scan cost via page-level spatial locality rather than multiplying collector modes.
+          </p>
+          <p>
+            <strong>Java 26 (Serial, Parallel, G1, ZGC):</strong> Different collectors prioritize throughput, pause goals and memory differently. A pause target is not a latency guarantee. See the linked modernization plan for primary sources and the limits of applying those lessons here.
+          </p>
+        </article>
+
+        <article class="surface-card">
+          <h3>
+            <span>Fe Collector Phases &amp; Safety</span>
+            <span class="badge badge-active">G7 · Active</span>
+          </h3>
+          <p>
+            <code>src/alloc.rs</code> and <code>src/runtime_gc_collector.rs</code> coordinate root discovery (C stack conservative scan, specpdl, bytecode frames, staticpros, pdumper roots), marking, and sweep reclamation.
+          </p>
+          <p>
+            When foreign OS threads or dynamic module loads (<code>dynlib_open</code>) introduce unverified root producers, the collector permanently falls back to conservative <code>Full</code> collection for safety.
+          </p>
+        </article>
+
+        <article class="surface-card">
+          <h3>
+            <span>P-437 Fallback Registry Elision</span>
+            <span class="badge badge-ok">Verified Mechanism</span>
+          </h3>
+          <p>
+            Once a process enters permanent <code>Full</code> fallback (foreign thread or dynamic module load), young-cycle candidate registries have no future consumer.
+          </p>
+          <p>
+            P-437 latches registry capture only when young mode is enabled and permanent fallback is absent. Sweep/commit/abort close the latch; the next Full cycle clears the unusable registry. Paired real-process checks removed roughly 94k entries per later Full cycle while preserving the observed Lisp graph. Elapsed-time improvement is not yet qualified.
+          </p>
+        </article>
+      </div>
+    </section>
+
+    <!-- 4. Interactive Architecture Code & Invariant Inspector -->
+    <section class="section-block" aria-labelledby="invariant-lab-heading">
+      <div class="section-header">
+        <div>
+          <h2 id="invariant-lab-heading" class="section-title">
+            <span data-lang-en lang="en">4. Runtime Verification &amp; Diagnostic Entry Points</span>
+            <span data-lang-zh lang="zh-CN">4. 运行时验证与诊断入口</span>
+          </h2>
+          <p class="section-subtitle">
+            <span data-lang-en lang="en">Inspect the exact commands used to verify runtime invariants, GC fallback behavior, and differential parity.</span>
+            <span data-lang-zh lang="zh-CN">切换查看运行时契约、GC 回退行为与差分对拍的验证命令。</span>
+          </p>
+        </div>
+      </div>
+
+      <div class="workflow-lab" data-workflow-group>
+        <div class="workflow-tabs" role="tablist" aria-label="Architecture verification commands">
+          <button type="button" class="workflow-tab" role="tab" id="tab-arch-gc" aria-controls="panel-arch-gc" tabindex="0" aria-selected="true" data-workflow-tab="arch-gc">GC Fallback &amp; Observer</button>
+          <button type="button" class="workflow-tab" role="tab" id="tab-arch-vm" aria-controls="panel-arch-vm" tabindex="-1" aria-selected="false" data-workflow-tab="arch-vm">Bytecode &amp; Native ABI</button>
+          <button type="button" class="workflow-tab" role="tab" id="tab-arch-gates" aria-controls="panel-arch-gates" tabindex="-1" aria-selected="false" data-workflow-tab="arch-gates">Declaration &amp; Voice Gates</button>
+        </div>
+
+        <div class="workflow-panel" role="tabpanel" id="panel-arch-gc" aria-labelledby="tab-arch-gc" data-workflow-panel="arch-gc">
+          <div class="workflow-panel-head">
+            <div>
+              <h3 class="workflow-panel-title">Run GC Collector, Observer &amp; Persistent Fallback Fixtures</h3>
+              <p class="workflow-panel-desc">Executes ERT fixtures verifying mark/sweep reachability, finalizers, weak hashes, and permanent Full fallback.</p>
+            </div>
+            <button type="button" class="copy-btn" data-copy-target="#code-arch-gc">Copy</button>
+          </div>
+          <pre id="code-arch-gc"><code># Experimental collector and observer fixtures need matching source-bound builds.
+# See docs/runtime-modernization.md for configuration, cases and retained results.
+# Default app trials do not enable these experimental modes.</code></pre>
+        </div>
+
+        <div class="workflow-panel" role="tabpanel" id="panel-arch-vm" aria-labelledby="tab-arch-vm" data-workflow-panel="arch-vm" hidden>
+          <div class="workflow-panel-head">
+            <div>
+              <h3 class="workflow-panel-title">Run Bytecode VM &amp; Native Compilation ABI Fixtures</h3>
+              <p class="workflow-panel-desc">Verifies bytecode stack-frame roots, closures, condition-case unwinds, and native ABI guards.</p>
+            </div>
+            <button type="button" class="copy-btn" data-copy-target="#code-arch-vm">Copy</button>
+          </div>
+          <pre id="code-arch-vm"><code>build/terminal/port/src/emacs -Q --batch -l ert -l tools/fixtures/runtime-language.el -f ert-run-tests-batch-and-exit
+# Native ABI fixtures additionally require their documented matching build configuration.
+# See docs/runtime-modernization.md; do not substitute a default binary.</code></pre>
+        </div>
+
+        <div class="workflow-panel" role="tabpanel" id="panel-arch-gates" aria-labelledby="tab-arch-gates" data-workflow-panel="arch-gates" hidden>
+          <div class="workflow-panel-head">
+            <div>
+              <h3 class="workflow-panel-title">Run Repository Declaration, Bootstrap &amp; Voice Checks</h3>
+              <p class="workflow-panel-desc">Verifies clean product voice and standalone repository invariants.</p>
+            </div>
+            <button type="button" class="copy-btn" data-copy-target="#code-arch-gates">Copy</button>
+          </div>
+          <pre id="code-arch-gates"><code>python3 tools/check-own-voice.py
+python3 tools/check-declarations.py
+python3 tools/test-repository-bootstrap.py</code></pre>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div>
+        <strong>Fe (<code>femacs</code>)</strong> — Core Architecture, Bytecode VM &amp; GC Engineering.
+      </div>
+      <div class="footer-links">
+        <a href="../index.html">Overview</a>
+        <a href="start.html">Build &amp; Try</a>
+        <a href="architecture.html">Architecture</a>
+        <a href="docs-hub.html">Docs Hub</a>
+        <a href="../modernization.md">Modernization Plan</a>
+        <a href="../runtime-modernization.md">Runtime Modernization</a>
+      </div>
+    </div>
+  </footer>
+
+  <script type="text/eliscript" src="site.eli"></script>
+  <script type="module">
+    try {
+    const base = "https://unpkg.com/eliscript@0.1.1";
+    const { mountEliscriptScripts } = await import(`${base}/dist/browser/host.mjs`);
+    await mountEliscriptScripts(document, {
+      fetch: (url, init) => fetch(url, init),
+      resolveExternal(specifier) {
+        if (!specifier.startsWith("eliscript/")) return specifier;
+        const sub = specifier.slice(10);
+        return `${base}/${sub.endsWith(".mjs") ? sub : `${sub}.mjs`}`;
+      }
+    });
+    } catch (error) {
+      console.error("Eliscript site initialization failed", error);
+      for (const status of document.querySelectorAll("[data-eli-status-text]")) status.textContent = "Interactive tools unavailable";
+      for (const control of document.querySelectorAll("[data-lang-switch], [data-workflow-tab], [data-copy-target], [data-goal-filter], [data-doc-category], [data-doc-search]")) control.disabled = true;
+      for (const panel of document.querySelectorAll("[data-workflow-panel]")) panel.hidden = false;
+    }
+  </script>
+</body>
+</html>
