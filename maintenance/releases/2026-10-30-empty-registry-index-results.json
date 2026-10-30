@@ -9017,24 +9017,103 @@
     "unresolved_observation": {
       "status": "unexplained, non-failing under recorded predicates",
       "young_normal_initial_prior_candidate": [
-        93113,
-        92800
+        92800,
+        93113
       ],
       "young_checking_initial_prior_candidate": [
-        93055,
-        92651
+        92651,
+        93055
       ],
       "young_normal_pre_latch_prior_candidate": [
-        93982,
-        94023
+        94023,
+        93982
       ],
       "young_checking_pre_latch_prior_candidate": [
-        94000,
-        94041
+        94041,
+        94000
       ],
       "own_immediate_latch_preserves_pre_latch": true,
       "post_latch_collection_registry_zero_both": true,
-      "not_proof_of_marking_equivalence": true
+      "not_proof_of_marking_equivalence": true,
+      "independent_cons_observations": [
+        {
+          "compiler_leg": "normal",
+          "collector": "major",
+          "pre_latch_last_major_cons_prior_candidate": [
+            38782,
+            38741
+          ],
+          "raw_bindings": [
+            {
+              "path": "build/acceptance/gc-persistent-fallback-functional-1/fallback/persistent-fallback-terminal-normal-major/case/out/gc-fallback.json",
+              "sha256": "957eac04950d9a371eddcea30c01a4cd6860b855dcccfc224a9f8f4d051b0dd0"
+            },
+            {
+              "path": "build/acceptance/gc-empty-index-functional-1/fallback/empty-index-terminal-normal-major/case/out/gc-fallback.json",
+              "sha256": "a56d54e491d1df577a9e04bf9f83f2152f70bf9121789a92ec65aa89d915f3d4"
+            }
+          ]
+        },
+        {
+          "compiler_leg": "normal",
+          "collector": "young",
+          "pre_latch_last_major_cons_prior_candidate": [
+            38782,
+            38741
+          ],
+          "raw_bindings": [
+            {
+              "path": "build/acceptance/gc-persistent-fallback-functional-1/fallback/persistent-fallback-terminal-normal-young/case/out/gc-fallback.json",
+              "sha256": "385dfe48a6d69c35c0d5293f96762f4ed77e19da2afe938d4d361011075af3e4"
+            },
+            {
+              "path": "build/acceptance/gc-empty-index-functional-1/fallback/empty-index-terminal-normal-young/case/out/gc-fallback.json",
+              "sha256": "ea44b1fd3831305316cb88fe440b14fa4e763a3d3235f95c4b7c66ae18a20f4d"
+            }
+          ]
+        },
+        {
+          "compiler_leg": "checking",
+          "collector": "major",
+          "pre_latch_last_major_cons_prior_candidate": [
+            38788,
+            38747
+          ],
+          "raw_bindings": [
+            {
+              "path": "build/acceptance/gc-persistent-fallback-functional-1/fallback/persistent-fallback-terminal-checking-major/case/out/gc-fallback.json",
+              "sha256": "7258e0cfd3b8353b7a81777371c803c95dabc39c5c8e6dac11dece6a51455bdc"
+            },
+            {
+              "path": "build/acceptance/gc-empty-index-functional-1/fallback/empty-index-terminal-checking-major/case/out/gc-fallback.json",
+              "sha256": "41f514a79341420f8b7c370266c131fa3903fd70422503cd2bab70a6ccb25981"
+            }
+          ]
+        },
+        {
+          "compiler_leg": "checking",
+          "collector": "young",
+          "pre_latch_last_major_cons_prior_candidate": [
+            38788,
+            38747
+          ],
+          "raw_bindings": [
+            {
+              "path": "build/acceptance/gc-persistent-fallback-functional-1/fallback/persistent-fallback-terminal-checking-young/case/out/gc-fallback.json",
+              "sha256": "08ad5d25cb376af534f1d3caa57b7230e074bb3dca74b303a197bcabfab4b383"
+            },
+            {
+              "path": "build/acceptance/gc-empty-index-functional-1/fallback/empty-index-terminal-checking-young/case/out/gc-fallback.json",
+              "sha256": "bd8d4e5b10db6fc90a74fc0db38cfbcf5d3bdab8ed81583425b529d169daab27"
+            }
+          ]
+        }
+      ],
+      "counter_locations": {
+        "last_major_cons": "snapshots.<stage>[1][6] = gcstat.total_conses",
+        "registry_len": "snapshots.<stage>[1][11] = registry.len"
+      },
+      "causal_boundary": "Same cons count difference exists in major mode where registry remains empty. Different dump bytes do not prove cause; no object-level census, so marking equivalence or absence of missed marking is not established."
     }
   }
 }

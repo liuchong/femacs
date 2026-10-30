@@ -61,13 +61,26 @@ The review did not cover every integration-driver line or the entire compatibili
 corpus; passing this review is not full candidate or performance adoption.
 
 The review also identified unequal pre-latch registry lengths in young mode:
-normal prior/candidate initial 93,113/92,800 and pre-latch 93,982/94,023;
-checking initial 93,055/92,651 and pre-latch 94,000/94,041. The immediate latched
+normal prior/candidate initial 92,800/93,113 and pre-latch 94,023/93,982;
+checking initial 92,651/93,055 and pre-latch 94,041/94,000. The immediate latched
 length equals each product's own pre-latch length; post-latch collection stages
 are zero on both sides and public observations/deltas agree. Cross-process
 pre-latch lengths are not an equality predicate in this fixture. The repeated
 41-entry difference is not explained by the current evidence; it is retained as
 an unresolved observation, not dismissed as noise or proof of marking equivalence.
+The initial review and implementation-delivery report reversed the two product
+labels; these values are corrected directly against old/new raw comparisons.
+
+Follow-up source and receipt review finds the same pre-latch live-cons difference
+in both major and young mode: normal prior/candidate 38,782/38,741; checking
+38,788/38,747. This counter is `snapshots.<stage>[1][6]`, copied from
+`gcstat.total_conses`; the registry counter is `[1][11]`. Major does not register
+non-cons owners and its registry stays zero. Thus the live-cons difference is
+not solely an artifact of young registry counting. Different dump hashes/sizes
+prove unequal input bytes, not the cause of this difference. There is no retained
+object-level census; smaller live heaps and missed marking are not separated by
+these aggregates. The empty-clear invariant remains supported independently by
+the source proof, not proved or disproved by the equal count differences.
 
 The protection tests lock the reachable clear postconditions, not reduced writes:
 restoring unconditional fill would still pass. They do not manufacture unreachable
