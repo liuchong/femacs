@@ -24036,3 +24036,25 @@ bytes; original results, frozen inputs, products and App remain unchanged.
   G1/G2/G4 remain3/7(42.9%); G3/G5/G6/G7 remain4/7(57.1%), original Goal active.
   Continue uncovered compatibility and evidence-led runtime work; do not patch
   shared capability skips or replay unchanged busy-host performance matrices.
+
+
+### Original stable JSON parser and serializer (2026-10-30)
+
+- Complete original JSON file, 25 IDs on each normal reference/terminal/Cocoa,
+  75 passes, no skips/failed assertions/timeouts. Three file processes and owner
+  exit 0 and fully reap; original maps agree. All inputs, full resources and App
+  unchanged; no generated resources. Fixed Unicode/errors/circular lists, gap
+  positions and signal/throw hooks retain original inputs and assertions.
+- Driver 4.751422s; owner 7.130s, 99,188,736B accounted peak. Independent review
+  accepts original definitions/maps/scale and identities; controller metrics
+  remain primary-side receipts. Original commented hash-table duplicate-key
+  check not covered. No production change, new protection or App replacement.
+- CLN164: earlier 0 files/24 dirs, post-review 4,608 files/759 dirs/3 links;
+  combined 4,608 files/783 dirs/3 links, 62,990,856 logical/75,264,000 allocated
+  bytes and 5,394 identity rows. Raw outcomes/ledgers/corpus/live products retained.
+- [Comparison](../maintenance/releases/2026-10-30-original-json.md),
+  [bounded receipt](../maintenance/releases/2026-10-30-original-json-results.json),
+  [CLN164](../maintenance/cleanup/reports/2026-10-30-164-consumed-json-state.md).
+  G1/G2/G4 remain 3/7 (42.9%); G3/G5/G6/G7 remain 4/7 (57.1%), original Goal active.
+  Next uncovered compatibility and source-bound runtime work; no full G3/native/
+  performance acceptance inferred from this batch.

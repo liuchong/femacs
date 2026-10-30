@@ -1,0 +1,704 @@
+{
+  "schema": 1,
+  "scope": "One complete pinned stable JSON parser and serializer file; installed reference and current normal terminal/Cocoa; all IDs and original assertions unchanged, no full G3, physical UI, native/collector or performance claim",
+  "passed": true,
+  "source_commit": "a360712c9d272d950d8d8255ef74570f7e90b7d9",
+  "files": [
+    {
+      "path": "test/src/json-tests.el",
+      "size": 19105,
+      "blob": "ec079f020bda3383bcc09394a43b8f816b40a53f",
+      "sha256": "5895ed455f91766a64d256d4708a7460a6bb02def2d5b87da46a39335e6981b4"
+    }
+  ],
+  "counts": {
+    "passed": 75
+  },
+  "ids_per_product": 25,
+  "processes": 3,
+  "seconds": 4.751422,
+  "status_maps_equal_reference": true,
+  "identities_unchanged": true,
+  "original_inputs_unchanged": true,
+  "generated_resources": {
+    "reference": {},
+    "terminal": {},
+    "cocoa": {}
+  },
+  "raw_result": {
+    "path": "build/acceptance/g3-json-1/results.json",
+    "sha256": "bee0a4b747d08c0d1aa6218f9e0919d93abb622cf9dc2c7dc916387a019de690"
+  },
+  "driver_sha256": "eb3f2d8990c23a91cdd381856a0db1e32b442b5ed827b75b79b40ff9239bd477",
+  "budget": {
+    "whole_seconds": 180,
+    "per_case_seconds": 20,
+    "expected_seconds": [
+      5,
+      30
+    ],
+    "expected_peak_bytes": 536870912,
+    "copied_source_bytes": 62990856,
+    "scale": "3 serial original JSON file processes, all discovered IDs. Fixed small JSON strings, scalars, invalid Unicode and error-position fixtures; duplicate-key objects for sizes1/5/20/100 (at most200 alist pairs or400 plist cells);17 gap positions times3 narrowing ranges on a17-character string. Constant-size circular lists must signal original circular-list/wrong-type errors; per-case20s guards nontermination. Hook signal/throw fixtures use tiny objects and exactly one hook call. Bignums only adjacent fixnum bounds. No network/UI/externalcompiler/intentionalcrash; expected under512MiB. Original bodies, assertions, inputs and guards unchanged; whole180s hard deadline"
+  },
+  "controller": {
+    "run_id": "90bc2f91eb6941149a2478ba3054d313",
+    "exit_code": 0,
+    "cleanup_complete": true,
+    "elapsed_seconds": 7.13,
+    "peak_rss_bytes": 99188736,
+    "peak_footprint_bytes": 66323488,
+    "peak_accounted_bytes": 99188736,
+    "metrics_independently_reviewed": false
+  },
+  "process_results": [
+    {
+      "product": "reference",
+      "file": "test/src/json-tests.el",
+      "ids": [
+        "json-insert/signal",
+        "json-insert/throw",
+        "json-parse-buffer/incomplete",
+        "json-parse-buffer/restricted",
+        "json-parse-buffer/trailing",
+        "json-parse-error-position",
+        "json-parse-string/array",
+        "json-parse-string/incomplete",
+        "json-parse-string/invalid-unicode",
+        "json-parse-string/null",
+        "json-parse-string/object",
+        "json-parse-string/object-unicode-keys",
+        "json-parse-string/short",
+        "json-parse-string/string",
+        "json-parse-string/trailing",
+        "json-parse-string/wrong-type",
+        "json-parse-with-custom-null-and-false-objects",
+        "json-serialize/bignum",
+        "json-serialize/invalid-unicode",
+        "json-serialize/object",
+        "json-serialize/object-with-duplicate-keys",
+        "json-serialize/roundtrip",
+        "json-serialize/roundtrip-scalars",
+        "json-serialize/string",
+        "json-serialize/wrong-hash-key-type"
+      ],
+      "counts": {
+        "passed": 25
+      },
+      "complete": true,
+      "exit_code": 0,
+      "remaining_group_terminated": false,
+      "seconds": 0.3504733329999996,
+      "result": {
+        "path": "build/acceptance/g3-json-1/reference/results/reference/test-src-json-tests.el-c08cf0f76934.json",
+        "sha256": "5aa3f80ea28047cb43a693d8a538483eb146a2301a1a793b0e1d564f5499e172"
+      },
+      "events": {
+        "path": "build/acceptance/g3-json-1/reference/results/reference/test-src-json-tests.el-c08cf0f76934.events.jsonl",
+        "sha256": "a52de333c1b46dbc868b0398deffa10632594332bcbd5509e12d95221ddb00e8"
+      },
+      "cases": {
+        "json-insert/signal": {
+          "status": "passed",
+          "seconds": 0.000358,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "json-insert/throw": {
+          "status": "passed",
+          "seconds": 2.5e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "json-parse-buffer/incomplete": {
+          "status": "passed",
+          "seconds": 5.1e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "json-parse-buffer/restricted": {
+          "status": "passed",
+          "seconds": 0.000294,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "json-parse-buffer/trailing": {
+          "status": "passed",
+          "seconds": 1.7e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "json-parse-error-position": {
+          "status": "passed",
+          "seconds": 2.4e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "json-parse-string/array": {
+          "status": "passed",
+          "seconds": 1.1e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "json-parse-string/incomplete": {
+          "status": "passed",
+          "seconds": 1.4e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "json-parse-string/invalid-unicode": {
+          "status": "passed",
+          "seconds": 5.5e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "json-parse-string/null": {
+          "status": "passed",
+          "seconds": 5e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "json-parse-string/object": {
+          "status": "passed",
+          "seconds": 0.000351,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "json-parse-string/object-unicode-keys": {
+          "status": "passed",
+          "seconds": 2.3e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "json-parse-string/short": {
+          "status": "passed",
+          "seconds": 4.2e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "json-parse-string/string": {
+          "status": "passed",
+          "seconds": 3.8e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "json-parse-string/trailing": {
+          "status": "passed",
+          "seconds": 1.7e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "json-parse-string/wrong-type": {
+          "status": "passed",
+          "seconds": 1.6e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "json-parse-with-custom-null-and-false-objects": {
+          "status": "passed",
+          "seconds": 3.1e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "json-serialize/bignum": {
+          "status": "passed",
+          "seconds": 1.3e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "json-serialize/invalid-unicode": {
+          "status": "passed",
+          "seconds": 1.9e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "json-serialize/object": {
+          "status": "passed",
+          "seconds": 5.8e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "json-serialize/object-with-duplicate-keys": {
+          "status": "passed",
+          "seconds": 0.00709,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "json-serialize/roundtrip": {
+          "status": "passed",
+          "seconds": 4.4e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "json-serialize/roundtrip-scalars": {
+          "status": "passed",
+          "seconds": 0.00013,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "json-serialize/string": {
+          "status": "passed",
+          "seconds": 2.3e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "json-serialize/wrong-hash-key-type": {
+          "status": "passed",
+          "seconds": 1.1e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        }
+      }
+    },
+    {
+      "product": "terminal",
+      "file": "test/src/json-tests.el",
+      "ids": [
+        "json-insert/signal",
+        "json-insert/throw",
+        "json-parse-buffer/incomplete",
+        "json-parse-buffer/restricted",
+        "json-parse-buffer/trailing",
+        "json-parse-error-position",
+        "json-parse-string/array",
+        "json-parse-string/incomplete",
+        "json-parse-string/invalid-unicode",
+        "json-parse-string/null",
+        "json-parse-string/object",
+        "json-parse-string/object-unicode-keys",
+        "json-parse-string/short",
+        "json-parse-string/string",
+        "json-parse-string/trailing",
+        "json-parse-string/wrong-type",
+        "json-parse-with-custom-null-and-false-objects",
+        "json-serialize/bignum",
+        "json-serialize/invalid-unicode",
+        "json-serialize/object",
+        "json-serialize/object-with-duplicate-keys",
+        "json-serialize/roundtrip",
+        "json-serialize/roundtrip-scalars",
+        "json-serialize/string",
+        "json-serialize/wrong-hash-key-type"
+      ],
+      "counts": {
+        "passed": 25
+      },
+      "complete": true,
+      "exit_code": 0,
+      "remaining_group_terminated": false,
+      "seconds": 0.09285595800000035,
+      "result": {
+        "path": "build/acceptance/g3-json-1/terminal/results/terminal/test-src-json-tests.el-c08cf0f76934.json",
+        "sha256": "09d2c74e5fd7d21827a55593da285d80a6c6e9d082f1f26e5c412b0fdc465139"
+      },
+      "events": {
+        "path": "build/acceptance/g3-json-1/terminal/results/terminal/test-src-json-tests.el-c08cf0f76934.events.jsonl",
+        "sha256": "71f7544a49108cada7c35e948eac871d00f46e7a4db7e1e324a5248f1fc4b239"
+      },
+      "cases": {
+        "json-insert/signal": {
+          "status": "passed",
+          "seconds": 9.1e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "json-insert/throw": {
+          "status": "passed",
+          "seconds": 2.9e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "json-parse-buffer/incomplete": {
+          "status": "passed",
+          "seconds": 2.3e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "json-parse-buffer/restricted": {
+          "status": "passed",
+          "seconds": 0.000354,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "json-parse-buffer/trailing": {
+          "status": "passed",
+          "seconds": 2e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "json-parse-error-position": {
+          "status": "passed",
+          "seconds": 2.1e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "json-parse-string/array": {
+          "status": "passed",
+          "seconds": 1.3e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "json-parse-string/incomplete": {
+          "status": "passed",
+          "seconds": 1.6e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "json-parse-string/invalid-unicode": {
+          "status": "passed",
+          "seconds": 7.3e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "json-parse-string/null": {
+          "status": "passed",
+          "seconds": 2e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "json-parse-string/object": {
+          "status": "passed",
+          "seconds": 3.3e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "json-parse-string/object-unicode-keys": {
+          "status": "passed",
+          "seconds": 1.5e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "json-parse-string/short": {
+          "status": "passed",
+          "seconds": 7.5e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "json-parse-string/string": {
+          "status": "passed",
+          "seconds": 2.5e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "json-parse-string/trailing": {
+          "status": "passed",
+          "seconds": 2.9e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "json-parse-string/wrong-type": {
+          "status": "passed",
+          "seconds": 1.8e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "json-parse-with-custom-null-and-false-objects": {
+          "status": "passed",
+          "seconds": 3.9e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "json-serialize/bignum": {
+          "status": "passed",
+          "seconds": 1.5e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "json-serialize/invalid-unicode": {
+          "status": "passed",
+          "seconds": 8.3e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "json-serialize/object": {
+          "status": "passed",
+          "seconds": 7e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "json-serialize/object-with-duplicate-keys": {
+          "status": "passed",
+          "seconds": 0.000126,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "json-serialize/roundtrip": {
+          "status": "passed",
+          "seconds": 0.000159,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "json-serialize/roundtrip-scalars": {
+          "status": "passed",
+          "seconds": 0.000224,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "json-serialize/string": {
+          "status": "passed",
+          "seconds": 0.000449,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "json-serialize/wrong-hash-key-type": {
+          "status": "passed",
+          "seconds": 6.5e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        }
+      }
+    },
+    {
+      "product": "cocoa",
+      "file": "test/src/json-tests.el",
+      "ids": [
+        "json-insert/signal",
+        "json-insert/throw",
+        "json-parse-buffer/incomplete",
+        "json-parse-buffer/restricted",
+        "json-parse-buffer/trailing",
+        "json-parse-error-position",
+        "json-parse-string/array",
+        "json-parse-string/incomplete",
+        "json-parse-string/invalid-unicode",
+        "json-parse-string/null",
+        "json-parse-string/object",
+        "json-parse-string/object-unicode-keys",
+        "json-parse-string/short",
+        "json-parse-string/string",
+        "json-parse-string/trailing",
+        "json-parse-string/wrong-type",
+        "json-parse-with-custom-null-and-false-objects",
+        "json-serialize/bignum",
+        "json-serialize/invalid-unicode",
+        "json-serialize/object",
+        "json-serialize/object-with-duplicate-keys",
+        "json-serialize/roundtrip",
+        "json-serialize/roundtrip-scalars",
+        "json-serialize/string",
+        "json-serialize/wrong-hash-key-type"
+      ],
+      "counts": {
+        "passed": 25
+      },
+      "complete": true,
+      "exit_code": 0,
+      "remaining_group_terminated": false,
+      "seconds": 0.09127062499999994,
+      "result": {
+        "path": "build/acceptance/g3-json-1/cocoa/results/cocoa/test-src-json-tests.el-c08cf0f76934.json",
+        "sha256": "c642dd8e32eb01ccb6577a6401686e15119564c750e4c4d1c43913c15fbd8e3d"
+      },
+      "events": {
+        "path": "build/acceptance/g3-json-1/cocoa/results/cocoa/test-src-json-tests.el-c08cf0f76934.events.jsonl",
+        "sha256": "404130279f2d7140d3692f021c2be6f67753dd5f6a9f43ea86b12be49b34a616"
+      },
+      "cases": {
+        "json-insert/signal": {
+          "status": "passed",
+          "seconds": 8.4e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "json-insert/throw": {
+          "status": "passed",
+          "seconds": 2.9e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "json-parse-buffer/incomplete": {
+          "status": "passed",
+          "seconds": 2.1e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "json-parse-buffer/restricted": {
+          "status": "passed",
+          "seconds": 0.000346,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "json-parse-buffer/trailing": {
+          "status": "passed",
+          "seconds": 2.8e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "json-parse-error-position": {
+          "status": "passed",
+          "seconds": 2.9e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "json-parse-string/array": {
+          "status": "passed",
+          "seconds": 1.2e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "json-parse-string/incomplete": {
+          "status": "passed",
+          "seconds": 2e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "json-parse-string/invalid-unicode": {
+          "status": "passed",
+          "seconds": 6e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "json-parse-string/null": {
+          "status": "passed",
+          "seconds": 1.5e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "json-parse-string/object": {
+          "status": "passed",
+          "seconds": 3e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "json-parse-string/object-unicode-keys": {
+          "status": "passed",
+          "seconds": 1.4e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "json-parse-string/short": {
+          "status": "passed",
+          "seconds": 3.8e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "json-parse-string/string": {
+          "status": "passed",
+          "seconds": 2.6e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "json-parse-string/trailing": {
+          "status": "passed",
+          "seconds": 1.5e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "json-parse-string/wrong-type": {
+          "status": "passed",
+          "seconds": 1.3e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "json-parse-with-custom-null-and-false-objects": {
+          "status": "passed",
+          "seconds": 2.9e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "json-serialize/bignum": {
+          "status": "passed",
+          "seconds": 1.8e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "json-serialize/invalid-unicode": {
+          "status": "passed",
+          "seconds": 2.8e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "json-serialize/object": {
+          "status": "passed",
+          "seconds": 6.1e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "json-serialize/object-with-duplicate-keys": {
+          "status": "passed",
+          "seconds": 0.000121,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "json-serialize/roundtrip": {
+          "status": "passed",
+          "seconds": 3.4e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "json-serialize/roundtrip-scalars": {
+          "status": "passed",
+          "seconds": 0.000131,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "json-serialize/string": {
+          "status": "passed",
+          "seconds": 2.4e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "json-serialize/wrong-hash-key-type": {
+          "status": "passed",
+          "seconds": 1.6e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        }
+      }
+    }
+  ],
+  "full_G3_accepted": false,
+  "performance_accepted": false,
+  "physical_UI_tested": false,
+  "products": {
+    "reference": {
+      "program": {
+        "kind": "file",
+        "bytes": 3691504,
+        "mode": 493,
+        "sha256": "5b55e93c8304368ee37cc5c537ca3e1370e3b9b3fef049bdce76834a9db75e65"
+      },
+      "dump": {
+        "kind": "file",
+        "bytes": 23084632,
+        "mode": 420,
+        "sha256": "6ac1214186022574a70e84a04bb7f2dc44e1ea1d4c90f0d9ce421ddd0f4b4536"
+      },
+      "resources": {
+        "lisp": {
+          "identity_canonical_json_sha256": "564df364c803f4d0b64d7bc2ba986d775e8985529481ac2684b739666e131323",
+          "top_level_entries": 3316
+        }
+      }
+    },
+    "terminal": {
+      "program": {
+        "kind": "file",
+        "bytes": 2698016,
+        "mode": 493,
+        "sha256": "fb0b822273e79bb5b008725771473f5d510b9f712488242d615fb3a5fefbcde6"
+      },
+      "dump": {
+        "kind": "file",
+        "bytes": 13101600,
+        "mode": 420,
+        "sha256": "5d1913c39d5c348c711d24e16b25d9e63d09e082ee6dbe3b3a54ac4680862f82"
+      },
+      "resources": {
+        "lisp": {
+          "identity_canonical_json_sha256": "79dc09151f2f61152496f3587dc54cb580fb45a9c92301bfe3e75ab027a02146",
+          "top_level_entries": 3363
+        },
+        "runtime-tls": {
+          "identity_canonical_json_sha256": "9b34100e73d1f4bbd3157cd1535a25f8fdc6d4e094f2e6a1e9dc79b1a63fd73d",
+          "top_level_entries": 9
+        },
+        "runtime-lcms": {
+          "identity_canonical_json_sha256": "819844d74d5d4f3ee5a75aaf2b0d9a23b07fdda8bfa71c65cdbda63f6eb213cb",
+          "top_level_entries": 1
+        },
+        "runtime-treesit": {
+          "identity_canonical_json_sha256": "05b5f47a14a19b3f04511fa292f0976e2cab06437b9e4323edbce72a9767f0f9",
+          "top_level_entries": 1
+        }
+      }
+    },
+    "cocoa": {
+      "program": {
+        "kind": "file",
+        "bytes": 4230368,
+        "mode": 493,
+        "sha256": "d796f4c52e2a32ec6176e02efca33d922da18252aaddd0885e59993f108ba385"
+      },
+      "dump": {
+        "kind": "file",
+        "bytes": 18602200,
+        "mode": 420,
+        "sha256": "2b87c3436eaa33e551b024c6be01ea702b9c586c4535993258b63aa95a618b92"
+      },
+      "resources": {
+        "lisp": {
+          "identity_canonical_json_sha256": "e4108125e078022ebe91c3ccc5095c46c8fcbe48180ed02668f315d4e4c910b5",
+          "top_level_entries": 3353
+        },
+        "bundle": {
+          "identity_canonical_json_sha256": "e1212d5ae114aec885c8d2d467c9c39b4feb1f693b0d685dc28901fd34bb5342",
+          "top_level_entries": 4477
+        }
+      }
+    }
+  },
+  "independent_review": {
+    "accepted": true,
+    "confirmed_defects": 0,
+    "scope": "Actual independent handback recomputes three raw maps,25 IDs each,75 passes,no skips,original inputs retained; commented hash-table duplicate-key check not covered; no whole G3, performance or GUI claim"
+  },
+  "original_aggregate_reason": "All75originalobservations passed; all3fileprocesses exit0 complete and original states retained.",
+  "cleanup": {
+    "manifest": "maintenance/cleanup/manifests/2026-10-30-164-consumed-json-state.jsonl.gz",
+    "manifest_sha256": "ef0d0313c9fba94eaae729b932fb73240e9cfcdba6cab46742e01a56e2a43c79",
+    "runner_cleanup": [
+      {
+        "product": "reference",
+        "file": "test/src/json-tests.el",
+        "receipt": "build/acceptance/g3-json-1/reference/results/reference/test-src-json-tests.el-c08cf0f76934.owner-retirement.json",
+        "receipt_sha256": "2ac0a9f5eb14b44209b1096c7f3b4217e64a528c42bbf7ed7c4c079e5b2d144e",
+        "ledger": "build/acceptance/g3-json-1/reference/results/reference/test-src-json-tests.el-c08cf0f76934.state-retirement.jsonl.gz",
+        "ledger_sha256": "639eeb6987f6d124d98b8dda7039a7f5dc8cad2bd7ff6ae8a4bef06754b68f3c",
+        "files": 0,
+        "directories": 8,
+        "logical_bytes": 0,
+        "allocated_bytes": 0
+      },
+      {
+        "product": "terminal",
+        "file": "test/src/json-tests.el",
+        "receipt": "build/acceptance/g3-json-1/terminal/results/terminal/test-src-json-tests.el-c08cf0f76934.owner-retirement.json",
+        "receipt_sha256": "af639b484d4d607db1e864495c0b3235a3ab5ed5b79a4877b7a491b28a7178a9",
+        "ledger": "build/acceptance/g3-json-1/terminal/results/terminal/test-src-json-tests.el-c08cf0f76934.state-retirement.jsonl.gz",
+        "ledger_sha256": "639eeb6987f6d124d98b8dda7039a7f5dc8cad2bd7ff6ae8a4bef06754b68f3c",
+        "files": 0,
+        "directories": 8,
+        "logical_bytes": 0,
+        "allocated_bytes": 0
+      },
+      {
+        "product": "cocoa",
+        "file": "test/src/json-tests.el",
+        "receipt": "build/acceptance/g3-json-1/cocoa/results/cocoa/test-src-json-tests.el-c08cf0f76934.owner-retirement.json",
+        "receipt_sha256": "9f82b0df72ccc46061d70fca532c018940d8ceb8c46fc83dee7280399d596906",
+        "ledger": "build/acceptance/g3-json-1/cocoa/results/cocoa/test-src-json-tests.el-c08cf0f76934.state-retirement.jsonl.gz",
+        "ledger_sha256": "639eeb6987f6d124d98b8dda7039a7f5dc8cad2bd7ff6ae8a4bef06754b68f3c",
+        "files": 0,
+        "directories": 8,
+        "logical_bytes": 0,
+        "allocated_bytes": 0
+      }
+    ]
+  }
+}

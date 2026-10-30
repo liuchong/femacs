@@ -470,3 +470,15 @@ combined4,608files/861dirs/3links,62,990,856logical/75,264,000allocated bytes,
 retained; no compiler/product executed for cleanup or acceptance-policy change.
 [Report](reports/2026-10-30-163-consumed-time-resource-state.md) and
 [manifest](manifests/2026-10-30-163-consumed-time-resource-state.jsonl.gz).
+
+
+## CLN164 — consumed original JSON state (2026-10-30)
+
+After 75 original passes and independent review, account for runner retirement
+of 24 directories plus post-review 4,608 files/759 directories/three links:
+combined 4,608 files/783 directories/three links, 62,990,856 logical and
+75,264,000 allocated regular-file bytes, 5,394 identity rows. Raw outcomes,
+automatic ledgers, corpus and live products retained; no product execution for
+cleanup or acceptance-policy change.
+[Report](reports/2026-10-30-164-consumed-json-state.md) and
+[manifest](manifests/2026-10-30-164-consumed-json-state.jsonl.gz).

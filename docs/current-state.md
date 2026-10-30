@@ -1,3 +1,16 @@
+## Current continuation: original JSON coverage (2026-10-30)
+
+Complete pinned stable JSON parser/serializer tests pass on installed reference,
+current normal terminal and Cocoa: 25 IDs each, 75 passes, no skips or failed
+assertions/timeouts. All three file processes and owner exit 0/reaped, original
+maps agree, full inputs/products/resources and trial App remain unchanged.
+Independent review finds no confirmed defect; the original commented hash-table
+duplicate-key check remains outside coverage. [Evidence](../maintenance/releases/2026-10-30-original-json.md).
+CLN164 accounts for 4,608 consumed files, 783 directories and three links,
+including 24 directories already retired by the runner. Raw evidence and live
+products remain. No production/App change or performance claim. G1/G2/G4 remain
+3/7; original Goal and G3/G5/G6/G7 remain active. Continue uncovered compatibility.
+
 ## Current continuation: original time and resource coverage (2026-10-30)
 
 Four complete pinned stable time/SQLite/LCMS/XML files finish on installed
