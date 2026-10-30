@@ -396,3 +396,13 @@ observations and trial App are unchanged. No physical-volume reclaim claim.
 90successfulgroups retired540emptydirectories,0regularfiles and0logical/allocated
 regularbytes.550retainedfiles, actualproducts/resources, originalmeasurements and
 trialApp unchanged; not a disk-space recovery or physical-volume reclaim claim.
+
+## CLN157 — consumed empty-index compiler and case state (2026-10-30)
+
+[Report](reports/2026-10-30-157-consumed-empty-index-state.md) and
+[manifest](manifests/2026-10-30-157-consumed-empty-index-state.jsonl.gz):
+941successfulgroups retired9,946regularfiles and6,187directories;
+369,937,618logical /389,951,488allocated regularbytes. 5,611retainedfiles,
+7,348frozeninputs, candidate/priorproducts and trialApp unchanged. Raw false and
+passing aggregates retained. Two pre-deletion reader-bound failures preserved;
+final bounded per-process cleanup complete. No physical-volume recovery claim.

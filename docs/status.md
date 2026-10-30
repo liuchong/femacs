@@ -23866,3 +23866,21 @@ exit0/reaped,1.290s,39,190,528peakbytes. Earlier combined result remainsfalse
 with the older fixture. No final-version remote rerun or root-cause fix is claimed.
 Independent final adoption confirmed. [Report](../maintenance/releases/2026-10-30-remote-notification-diagnostic.md).
 Historical intermittent InvalidBase64 and fullG3 remainopen; no defaultApp change.
+
+### 2026-10-30 P440: local empty-index candidate evidence, review pending
+
+Actual normal/checking builds and affected integration pass: 488 new plus18
+verified reused processes;48 prior-registration comparisons,153 language
+observations and4 fallback pairs agree. Original candidate-only aggregate false
+is retained separately from the combined passing result. Five actual numeric
+source component protections pass after integration. The primary completed the
+protections because partner provider access failed; independent result/protection
+review remains pending, and collector/PORTING/protection-driver WIP is uncommitted.
+
+Performance collection completes405 workload processes,45 startups and1,890
+measured samples. All270 groups are busy; none of120 direct pairs is eligible
+for a qualified gain. No speedup, default promotion or G5/G7 closure. TrialApp
+unchanged. [Local evidence](../maintenance/releases/2026-10-30-empty-registry-index.md).
+CLN157 retires9,946 regular files and6,187directories:369,937,618logical /
+389,951,488allocated regular bytes;5,611retainedfiles and7,348sourceinputs verified.
+G1/G2/G4 remain3/7; overallGoal active, G3/G5/G6/G7 remain open.
