@@ -1,0 +1,864 @@
+{
+  "schema": 1,
+  "scope": "Four complete pinned stable coding/search/syntax/text-property files; installed reference and current normal terminal/Cocoa; all IDs and original assertions unchanged, no full G3, physical UI, native/collector or performance claim",
+  "passed": true,
+  "source_commit": "a360712c9d272d950d8d8255ef74570f7e90b7d9",
+  "files": [
+    {
+      "path": "test/src/coding-tests.el",
+      "size": 17165,
+      "blob": "dc1abec2d589d310dd5e7b4921098a0aacd3dcb8",
+      "sha256": "3d7c8763655d503f8825a5a71a5291b53525a2e170ea2af0a293825457bfbec4"
+    },
+    {
+      "path": "test/src/search-tests.el",
+      "size": 3271,
+      "blob": "74d36204e3a6716d6a6b16d1dca0fef4b12c74c5",
+      "sha256": "30f33fc5b235f6c6314cdb44150d91b7d4dcebfa6b63929889a85aa2d1765404"
+    },
+    {
+      "path": "test/src/syntax-tests.el",
+      "size": 19738,
+      "blob": "9e0246f533832549b3a42e5612a820034252ada6",
+      "sha256": "6275e9536cb1c81cdd584b15fce523c56af37cae6d97ee17e6fa526b4f3b3456"
+    },
+    {
+      "path": "test/src/textprop-tests.el",
+      "size": 5273,
+      "blob": "ee7959149056208d7b357ae75c092f97002b3480",
+      "sha256": "53538e73d2852f5096a6e16c13d5e285e36225835bb3f0d75a8677167d97a086"
+    }
+  ],
+  "counts": {
+    "passed": 339
+  },
+  "ids_per_product": 113,
+  "processes": 12,
+  "seconds": 12.052301417,
+  "status_maps_equal_reference": true,
+  "identities_unchanged": true,
+  "original_inputs_unchanged": true,
+  "generated_resources": {
+    "reference": {},
+    "terminal": {},
+    "cocoa": {}
+  },
+  "raw_result": {
+    "path": "build/acceptance/g3-text-processing-2/results.json",
+    "sha256": "b9ee86cb5c070b13cf431e91c85acf9e5e54a980b912e501fd7e0af62201f770"
+  },
+  "driver_sha256": "1cdf023c9ff78f302b0fb36904fee86b9de9ad41c20451b89177c86171cdf580",
+  "budget": {
+    "whole_seconds": 300,
+    "per_case_seconds": 30,
+    "expected_seconds": [
+      10,
+      90
+    ],
+    "expected_peak_bytes": 1073741824,
+    "copied_source_bytes": 62990856,
+    "scale": "12 serial real file processes. Coding uses fixed ASCII/Latin/binary strings and unix/dos/mac variants with owned small files; benchmark generators of100000lines are definitions only and not called by ERT. Search has four fixed prefix/suffix forms. Syntax uses fixed syntax-comments resource and finite generated comment-position cases, small interpreted/bytecompiled char-syntax lambda. Text-property tests use six-character/fixed36-character buffers and three face layers. No external compiler/network/intentional crash; entire300s and per-case30s deadlines."
+  },
+  "controller": {
+    "run_id": "3372dc3250af4ffbb6d5eae00741f5f3",
+    "exit_code": 0,
+    "cleanup_complete": true,
+    "elapsed_seconds": 13.742,
+    "peak_rss_bytes": 116916224,
+    "peak_footprint_bytes": 79529424,
+    "peak_accounted_bytes": 116949136
+  },
+  "process_results": [
+    {
+      "product": "reference",
+      "file": "test/src/coding-tests.el",
+      "ids": [
+        "coding-check-coding-systems-region",
+        "coding-nocopy-ascii",
+        "coding-nocopy-trivial",
+        "ert-test-coding-ascii",
+        "ert-test-coding-binary",
+        "ert-test-coding-bogus-coding-systems",
+        "ert-test-coding-latin",
+        "ert-test-coding-prefer-utf-8",
+        "ert-test-unibyte-buffer-dos-eol-decode"
+      ],
+      "counts": {
+        "passed": 9
+      },
+      "complete": true,
+      "exit_code": 0,
+      "remaining_group_terminated": false,
+      "seconds": 0.6688431660000003,
+      "result": {
+        "path": "build/acceptance/g3-text-processing-2/reference/results/reference/test-src-coding-tests.el-e1e6270b6afb.json",
+        "sha256": "84790c9206f9e082a3e0414953dd3e4619cbfdef280d26d1066d61a8f4c263a3"
+      },
+      "events": {
+        "path": "build/acceptance/g3-text-processing-2/reference/results/reference/test-src-coding-tests.el-e1e6270b6afb.events.jsonl",
+        "sha256": "70c366a70076ef91cbe9f19ef1bdc2f4168c1e1c2aa88faa2be0ed2fadeee854"
+      }
+    },
+    {
+      "product": "reference",
+      "file": "test/src/search-tests.el",
+      "ids": [
+        "search-test--replace-match-update-data"
+      ],
+      "counts": {
+        "passed": 1
+      },
+      "complete": true,
+      "exit_code": 0,
+      "remaining_group_terminated": false,
+      "seconds": 0.20862533300000008,
+      "result": {
+        "path": "build/acceptance/g3-text-processing-2/reference/results/reference/test-src-search-tests.el-8c14d7a4434d.json",
+        "sha256": "c036be5c323554d537a124511e8d9e0b7fa38b6a2b0d2766b5c25d17f83325b7"
+      },
+      "events": {
+        "path": "build/acceptance/g3-text-processing-2/reference/results/reference/test-src-search-tests.el-8c14d7a4434d.events.jsonl",
+        "sha256": "e4b7da3953c79f74c7d72bd659be05294f9fcca1d4ddb31ed0d737abcf6d5b6b"
+      }
+    },
+    {
+      "product": "reference",
+      "file": "test/src/syntax-tests.el",
+      "ids": [
+        "parse-partial-sexp-continue-over-comment-marker",
+        "parse-partial-sexp-paren-comments",
+        "syntax-br-comments-c-b50",
+        "syntax-br-comments-c-b51",
+        "syntax-br-comments-c-b52",
+        "syntax-br-comments-c-b53",
+        "syntax-br-comments-c-b54",
+        "syntax-br-comments-c-b55",
+        "syntax-br-comments-c-b58",
+        "syntax-br-comments-c-b59",
+        "syntax-br-comments-c-b60",
+        "syntax-br-comments-c-f50",
+        "syntax-br-comments-c-f51",
+        "syntax-br-comments-c-f52",
+        "syntax-br-comments-c-f53",
+        "syntax-br-comments-c-f54",
+        "syntax-br-comments-c-f55",
+        "syntax-br-comments-c-f56",
+        "syntax-br-comments-c-f60",
+        "syntax-br-comments-lisp-b40",
+        "syntax-br-comments-lisp-b41",
+        "syntax-br-comments-lisp-b42",
+        "syntax-br-comments-lisp-f41",
+        "syntax-br-comments-lisp-f42",
+        "syntax-br-comments-lisp-f43",
+        "syntax-char-syntax",
+        "syntax-class-character-test",
+        "syntax-comments-c-b1",
+        "syntax-comments-c-b10",
+        "syntax-comments-c-b11",
+        "syntax-comments-c-b13",
+        "syntax-comments-c-b15",
+        "syntax-comments-c-b2",
+        "syntax-comments-c-b3",
+        "syntax-comments-c-b4",
+        "syntax-comments-c-b5",
+        "syntax-comments-c-b6",
+        "syntax-comments-c-b7",
+        "syntax-comments-c-b8",
+        "syntax-comments-c-b9",
+        "syntax-comments-c-f1",
+        "syntax-comments-c-f10",
+        "syntax-comments-c-f11",
+        "syntax-comments-c-f13",
+        "syntax-comments-c-f15",
+        "syntax-comments-c-f2",
+        "syntax-comments-c-f3",
+        "syntax-comments-c-f4",
+        "syntax-comments-c-f5",
+        "syntax-comments-c-f6",
+        "syntax-comments-c-f7",
+        "syntax-comments-c-f8",
+        "syntax-comments-c-f9",
+        "syntax-comments-lisp-b30",
+        "syntax-comments-lisp-b31",
+        "syntax-comments-lisp-b32",
+        "syntax-comments-lisp-b33",
+        "syntax-comments-lisp-f31",
+        "syntax-comments-lisp-f32",
+        "syntax-comments-lisp-f33",
+        "syntax-comments-lisp-n-b100",
+        "syntax-comments-lisp-n-b102",
+        "syntax-comments-lisp-n-b103",
+        "syntax-comments-lisp-n-b104",
+        "syntax-comments-lisp-n-b105",
+        "syntax-comments-lisp-n-b106",
+        "syntax-comments-lisp-n-b107",
+        "syntax-comments-lisp-n-b110",
+        "syntax-comments-lisp-n-b111",
+        "syntax-comments-lisp-n-f100",
+        "syntax-comments-lisp-n-f101",
+        "syntax-comments-lisp-n-f102",
+        "syntax-comments-lisp-n-f103",
+        "syntax-comments-lisp-n-f104",
+        "syntax-comments-lisp-n-f105",
+        "syntax-comments-lisp-n-f106",
+        "syntax-comments-lisp-n-f107",
+        "syntax-comments-lisp-n-f110",
+        "syntax-comments-lisp-n-f111",
+        "syntax-comments-pascal-b20",
+        "syntax-comments-pascal-b21",
+        "syntax-comments-pascal-b22",
+        "syntax-comments-pascal-b23",
+        "syntax-comments-pascal-b24",
+        "syntax-comments-pascal-b26",
+        "syntax-comments-pascal-f20",
+        "syntax-comments-pascal-f21",
+        "syntax-comments-pascal-f22",
+        "syntax-comments-pascal-f23",
+        "syntax-comments-pascal-f24",
+        "syntax-comments-pascal-f26",
+        "syntax-pps-comments-c-50",
+        "syntax-pps-comments-c-52",
+        "syntax-pps-comments-c-54",
+        "syntax-pps-comments-c-56",
+        "syntax-pps-comments-c-60",
+        "syntax-pps-comments-lisp-41",
+        "syntax-pps-comments-lisp-42",
+        "syntax-pps-comments-lisp-43",
+        "test-from-to-parse-partial-sexp"
+      ],
+      "counts": {
+        "passed": 100
+      },
+      "complete": true,
+      "exit_code": 0,
+      "remaining_group_terminated": false,
+      "seconds": 0.3885299999999998,
+      "result": {
+        "path": "build/acceptance/g3-text-processing-2/reference/results/reference/test-src-syntax-tests.el-3afa5f29c3e8.json",
+        "sha256": "82ba2d5314bec739cff51360d63d17daa1096010470a32fd9c9b5b02b617295c"
+      },
+      "events": {
+        "path": "build/acceptance/g3-text-processing-2/reference/results/reference/test-src-syntax-tests.el-3afa5f29c3e8.events.jsonl",
+        "sha256": "d495dfcf3ccc52db8113e3082040f92775992d902ca0ed2757c8351ccef20051"
+      }
+    },
+    {
+      "product": "reference",
+      "file": "test/src/textprop-tests.el",
+      "ids": [
+        "textprop-interval-immutability",
+        "textprop-tests-font-lock--remove-face-from-text-property",
+        "textprop-tests-format"
+      ],
+      "counts": {
+        "passed": 3
+      },
+      "complete": true,
+      "exit_code": 0,
+      "remaining_group_terminated": false,
+      "seconds": 0.19431979100000074,
+      "result": {
+        "path": "build/acceptance/g3-text-processing-2/reference/results/reference/test-src-textprop-tests.el-d947fe42a5ef.json",
+        "sha256": "589b8c30d878c6b78082470f01e65e45e312d9fd12140e8660830292b26515d3"
+      },
+      "events": {
+        "path": "build/acceptance/g3-text-processing-2/reference/results/reference/test-src-textprop-tests.el-d947fe42a5ef.events.jsonl",
+        "sha256": "968d64a744f50d191d3fc30cb88e40fa113ae95227c78d84e4f20b41188d56c4"
+      }
+    },
+    {
+      "product": "terminal",
+      "file": "test/src/coding-tests.el",
+      "ids": [
+        "coding-check-coding-systems-region",
+        "coding-nocopy-ascii",
+        "coding-nocopy-trivial",
+        "ert-test-coding-ascii",
+        "ert-test-coding-binary",
+        "ert-test-coding-bogus-coding-systems",
+        "ert-test-coding-latin",
+        "ert-test-coding-prefer-utf-8",
+        "ert-test-unibyte-buffer-dos-eol-decode"
+      ],
+      "counts": {
+        "passed": 9
+      },
+      "complete": true,
+      "exit_code": 0,
+      "remaining_group_terminated": false,
+      "seconds": 3.4182416250000003,
+      "result": {
+        "path": "build/acceptance/g3-text-processing-2/terminal/results/terminal/test-src-coding-tests.el-e1e6270b6afb.json",
+        "sha256": "391ebe37a6a927e0da534ea5d61ad1dc7a4692bcfc8ad9ffb7164222c6d2eb99"
+      },
+      "events": {
+        "path": "build/acceptance/g3-text-processing-2/terminal/results/terminal/test-src-coding-tests.el-e1e6270b6afb.events.jsonl",
+        "sha256": "08a8b1845579824ab809f9b8727c81cfec33906f94a3051a1a22b4393d4d2fcb"
+      }
+    },
+    {
+      "product": "terminal",
+      "file": "test/src/search-tests.el",
+      "ids": [
+        "search-test--replace-match-update-data"
+      ],
+      "counts": {
+        "passed": 1
+      },
+      "complete": true,
+      "exit_code": 0,
+      "remaining_group_terminated": false,
+      "seconds": 0.056059249999998784,
+      "result": {
+        "path": "build/acceptance/g3-text-processing-2/terminal/results/terminal/test-src-search-tests.el-8c14d7a4434d.json",
+        "sha256": "cdb88e7a7d896969ca4390d3b71817d67e2d462c4b2018f1bc55a4df4a37c884"
+      },
+      "events": {
+        "path": "build/acceptance/g3-text-processing-2/terminal/results/terminal/test-src-search-tests.el-8c14d7a4434d.events.jsonl",
+        "sha256": "77b4c9e6d285dbf000b4daf801a8b8d2a7585eaac509f7ee1dbbfd6e00c023da"
+      }
+    },
+    {
+      "product": "terminal",
+      "file": "test/src/syntax-tests.el",
+      "ids": [
+        "parse-partial-sexp-continue-over-comment-marker",
+        "parse-partial-sexp-paren-comments",
+        "syntax-br-comments-c-b50",
+        "syntax-br-comments-c-b51",
+        "syntax-br-comments-c-b52",
+        "syntax-br-comments-c-b53",
+        "syntax-br-comments-c-b54",
+        "syntax-br-comments-c-b55",
+        "syntax-br-comments-c-b58",
+        "syntax-br-comments-c-b59",
+        "syntax-br-comments-c-b60",
+        "syntax-br-comments-c-f50",
+        "syntax-br-comments-c-f51",
+        "syntax-br-comments-c-f52",
+        "syntax-br-comments-c-f53",
+        "syntax-br-comments-c-f54",
+        "syntax-br-comments-c-f55",
+        "syntax-br-comments-c-f56",
+        "syntax-br-comments-c-f60",
+        "syntax-br-comments-lisp-b40",
+        "syntax-br-comments-lisp-b41",
+        "syntax-br-comments-lisp-b42",
+        "syntax-br-comments-lisp-f41",
+        "syntax-br-comments-lisp-f42",
+        "syntax-br-comments-lisp-f43",
+        "syntax-char-syntax",
+        "syntax-class-character-test",
+        "syntax-comments-c-b1",
+        "syntax-comments-c-b10",
+        "syntax-comments-c-b11",
+        "syntax-comments-c-b13",
+        "syntax-comments-c-b15",
+        "syntax-comments-c-b2",
+        "syntax-comments-c-b3",
+        "syntax-comments-c-b4",
+        "syntax-comments-c-b5",
+        "syntax-comments-c-b6",
+        "syntax-comments-c-b7",
+        "syntax-comments-c-b8",
+        "syntax-comments-c-b9",
+        "syntax-comments-c-f1",
+        "syntax-comments-c-f10",
+        "syntax-comments-c-f11",
+        "syntax-comments-c-f13",
+        "syntax-comments-c-f15",
+        "syntax-comments-c-f2",
+        "syntax-comments-c-f3",
+        "syntax-comments-c-f4",
+        "syntax-comments-c-f5",
+        "syntax-comments-c-f6",
+        "syntax-comments-c-f7",
+        "syntax-comments-c-f8",
+        "syntax-comments-c-f9",
+        "syntax-comments-lisp-b30",
+        "syntax-comments-lisp-b31",
+        "syntax-comments-lisp-b32",
+        "syntax-comments-lisp-b33",
+        "syntax-comments-lisp-f31",
+        "syntax-comments-lisp-f32",
+        "syntax-comments-lisp-f33",
+        "syntax-comments-lisp-n-b100",
+        "syntax-comments-lisp-n-b102",
+        "syntax-comments-lisp-n-b103",
+        "syntax-comments-lisp-n-b104",
+        "syntax-comments-lisp-n-b105",
+        "syntax-comments-lisp-n-b106",
+        "syntax-comments-lisp-n-b107",
+        "syntax-comments-lisp-n-b110",
+        "syntax-comments-lisp-n-b111",
+        "syntax-comments-lisp-n-f100",
+        "syntax-comments-lisp-n-f101",
+        "syntax-comments-lisp-n-f102",
+        "syntax-comments-lisp-n-f103",
+        "syntax-comments-lisp-n-f104",
+        "syntax-comments-lisp-n-f105",
+        "syntax-comments-lisp-n-f106",
+        "syntax-comments-lisp-n-f107",
+        "syntax-comments-lisp-n-f110",
+        "syntax-comments-lisp-n-f111",
+        "syntax-comments-pascal-b20",
+        "syntax-comments-pascal-b21",
+        "syntax-comments-pascal-b22",
+        "syntax-comments-pascal-b23",
+        "syntax-comments-pascal-b24",
+        "syntax-comments-pascal-b26",
+        "syntax-comments-pascal-f20",
+        "syntax-comments-pascal-f21",
+        "syntax-comments-pascal-f22",
+        "syntax-comments-pascal-f23",
+        "syntax-comments-pascal-f24",
+        "syntax-comments-pascal-f26",
+        "syntax-pps-comments-c-50",
+        "syntax-pps-comments-c-52",
+        "syntax-pps-comments-c-54",
+        "syntax-pps-comments-c-56",
+        "syntax-pps-comments-c-60",
+        "syntax-pps-comments-lisp-41",
+        "syntax-pps-comments-lisp-42",
+        "syntax-pps-comments-lisp-43",
+        "test-from-to-parse-partial-sexp"
+      ],
+      "counts": {
+        "passed": 100
+      },
+      "complete": true,
+      "exit_code": 0,
+      "remaining_group_terminated": false,
+      "seconds": 0.268093833,
+      "result": {
+        "path": "build/acceptance/g3-text-processing-2/terminal/results/terminal/test-src-syntax-tests.el-3afa5f29c3e8.json",
+        "sha256": "2737053e781a41411fa3fdfcf3a086dac06835c64c1c72452974c7d83779f1d7"
+      },
+      "events": {
+        "path": "build/acceptance/g3-text-processing-2/terminal/results/terminal/test-src-syntax-tests.el-3afa5f29c3e8.events.jsonl",
+        "sha256": "506e196a8a65360a7d5b1fcd67586c335eb43e55f432f21e9a99a4b903729a31"
+      }
+    },
+    {
+      "product": "terminal",
+      "file": "test/src/textprop-tests.el",
+      "ids": [
+        "textprop-interval-immutability",
+        "textprop-tests-font-lock--remove-face-from-text-property",
+        "textprop-tests-format"
+      ],
+      "counts": {
+        "passed": 3
+      },
+      "complete": true,
+      "exit_code": 0,
+      "remaining_group_terminated": false,
+      "seconds": 0.055411749999999316,
+      "result": {
+        "path": "build/acceptance/g3-text-processing-2/terminal/results/terminal/test-src-textprop-tests.el-d947fe42a5ef.json",
+        "sha256": "b765089c50cee70151e5d3e2a1f1b7e75b2761282c9203fd903419c0ae2da0d6"
+      },
+      "events": {
+        "path": "build/acceptance/g3-text-processing-2/terminal/results/terminal/test-src-textprop-tests.el-d947fe42a5ef.events.jsonl",
+        "sha256": "93b88fe7e1c629ed5289bef0e8e2f1c8f2de64581fdfd4d7c853e479ddaeb9f7"
+      }
+    },
+    {
+      "product": "cocoa",
+      "file": "test/src/coding-tests.el",
+      "ids": [
+        "coding-check-coding-systems-region",
+        "coding-nocopy-ascii",
+        "coding-nocopy-trivial",
+        "ert-test-coding-ascii",
+        "ert-test-coding-binary",
+        "ert-test-coding-bogus-coding-systems",
+        "ert-test-coding-latin",
+        "ert-test-coding-prefer-utf-8",
+        "ert-test-unibyte-buffer-dos-eol-decode"
+      ],
+      "counts": {
+        "passed": 9
+      },
+      "complete": true,
+      "exit_code": 0,
+      "remaining_group_terminated": false,
+      "seconds": 0.2682523750000012,
+      "result": {
+        "path": "build/acceptance/g3-text-processing-2/cocoa/results/cocoa/test-src-coding-tests.el-e1e6270b6afb.json",
+        "sha256": "eec92fcabfd89406b180ac38331d0d2393ba1a8c975aecab1546c44652b4158f"
+      },
+      "events": {
+        "path": "build/acceptance/g3-text-processing-2/cocoa/results/cocoa/test-src-coding-tests.el-e1e6270b6afb.events.jsonl",
+        "sha256": "c4a8785a4be78d4cdb0ba44ad248a92be57550d113404e70ca93fabf163db6ed"
+      }
+    },
+    {
+      "product": "cocoa",
+      "file": "test/src/search-tests.el",
+      "ids": [
+        "search-test--replace-match-update-data"
+      ],
+      "counts": {
+        "passed": 1
+      },
+      "complete": true,
+      "exit_code": 0,
+      "remaining_group_terminated": false,
+      "seconds": 0.0555210000000006,
+      "result": {
+        "path": "build/acceptance/g3-text-processing-2/cocoa/results/cocoa/test-src-search-tests.el-8c14d7a4434d.json",
+        "sha256": "20fa3442d4d8ddd7b47db5d04f147de267e09b413672b12a3e9d59c4730b63c1"
+      },
+      "events": {
+        "path": "build/acceptance/g3-text-processing-2/cocoa/results/cocoa/test-src-search-tests.el-8c14d7a4434d.events.jsonl",
+        "sha256": "2cf0a5abfc9955204c6eda16b3ae6f1c5ee574407a69c6ab6b0d1fabffb9828a"
+      }
+    },
+    {
+      "product": "cocoa",
+      "file": "test/src/syntax-tests.el",
+      "ids": [
+        "parse-partial-sexp-continue-over-comment-marker",
+        "parse-partial-sexp-paren-comments",
+        "syntax-br-comments-c-b50",
+        "syntax-br-comments-c-b51",
+        "syntax-br-comments-c-b52",
+        "syntax-br-comments-c-b53",
+        "syntax-br-comments-c-b54",
+        "syntax-br-comments-c-b55",
+        "syntax-br-comments-c-b58",
+        "syntax-br-comments-c-b59",
+        "syntax-br-comments-c-b60",
+        "syntax-br-comments-c-f50",
+        "syntax-br-comments-c-f51",
+        "syntax-br-comments-c-f52",
+        "syntax-br-comments-c-f53",
+        "syntax-br-comments-c-f54",
+        "syntax-br-comments-c-f55",
+        "syntax-br-comments-c-f56",
+        "syntax-br-comments-c-f60",
+        "syntax-br-comments-lisp-b40",
+        "syntax-br-comments-lisp-b41",
+        "syntax-br-comments-lisp-b42",
+        "syntax-br-comments-lisp-f41",
+        "syntax-br-comments-lisp-f42",
+        "syntax-br-comments-lisp-f43",
+        "syntax-char-syntax",
+        "syntax-class-character-test",
+        "syntax-comments-c-b1",
+        "syntax-comments-c-b10",
+        "syntax-comments-c-b11",
+        "syntax-comments-c-b13",
+        "syntax-comments-c-b15",
+        "syntax-comments-c-b2",
+        "syntax-comments-c-b3",
+        "syntax-comments-c-b4",
+        "syntax-comments-c-b5",
+        "syntax-comments-c-b6",
+        "syntax-comments-c-b7",
+        "syntax-comments-c-b8",
+        "syntax-comments-c-b9",
+        "syntax-comments-c-f1",
+        "syntax-comments-c-f10",
+        "syntax-comments-c-f11",
+        "syntax-comments-c-f13",
+        "syntax-comments-c-f15",
+        "syntax-comments-c-f2",
+        "syntax-comments-c-f3",
+        "syntax-comments-c-f4",
+        "syntax-comments-c-f5",
+        "syntax-comments-c-f6",
+        "syntax-comments-c-f7",
+        "syntax-comments-c-f8",
+        "syntax-comments-c-f9",
+        "syntax-comments-lisp-b30",
+        "syntax-comments-lisp-b31",
+        "syntax-comments-lisp-b32",
+        "syntax-comments-lisp-b33",
+        "syntax-comments-lisp-f31",
+        "syntax-comments-lisp-f32",
+        "syntax-comments-lisp-f33",
+        "syntax-comments-lisp-n-b100",
+        "syntax-comments-lisp-n-b102",
+        "syntax-comments-lisp-n-b103",
+        "syntax-comments-lisp-n-b104",
+        "syntax-comments-lisp-n-b105",
+        "syntax-comments-lisp-n-b106",
+        "syntax-comments-lisp-n-b107",
+        "syntax-comments-lisp-n-b110",
+        "syntax-comments-lisp-n-b111",
+        "syntax-comments-lisp-n-f100",
+        "syntax-comments-lisp-n-f101",
+        "syntax-comments-lisp-n-f102",
+        "syntax-comments-lisp-n-f103",
+        "syntax-comments-lisp-n-f104",
+        "syntax-comments-lisp-n-f105",
+        "syntax-comments-lisp-n-f106",
+        "syntax-comments-lisp-n-f107",
+        "syntax-comments-lisp-n-f110",
+        "syntax-comments-lisp-n-f111",
+        "syntax-comments-pascal-b20",
+        "syntax-comments-pascal-b21",
+        "syntax-comments-pascal-b22",
+        "syntax-comments-pascal-b23",
+        "syntax-comments-pascal-b24",
+        "syntax-comments-pascal-b26",
+        "syntax-comments-pascal-f20",
+        "syntax-comments-pascal-f21",
+        "syntax-comments-pascal-f22",
+        "syntax-comments-pascal-f23",
+        "syntax-comments-pascal-f24",
+        "syntax-comments-pascal-f26",
+        "syntax-pps-comments-c-50",
+        "syntax-pps-comments-c-52",
+        "syntax-pps-comments-c-54",
+        "syntax-pps-comments-c-56",
+        "syntax-pps-comments-c-60",
+        "syntax-pps-comments-lisp-41",
+        "syntax-pps-comments-lisp-42",
+        "syntax-pps-comments-lisp-43",
+        "test-from-to-parse-partial-sexp"
+      ],
+      "counts": {
+        "passed": 100
+      },
+      "complete": true,
+      "exit_code": 0,
+      "remaining_group_terminated": false,
+      "seconds": 0.2107881660000004,
+      "result": {
+        "path": "build/acceptance/g3-text-processing-2/cocoa/results/cocoa/test-src-syntax-tests.el-3afa5f29c3e8.json",
+        "sha256": "b8d907c8261993c879590ad58c703f5534718d040f790832970b6ca1ee618e2d"
+      },
+      "events": {
+        "path": "build/acceptance/g3-text-processing-2/cocoa/results/cocoa/test-src-syntax-tests.el-3afa5f29c3e8.events.jsonl",
+        "sha256": "afbf330de65addf84f77fdad27370864fdd8e3669f1245afc1538f9ab9bbd732"
+      }
+    },
+    {
+      "product": "cocoa",
+      "file": "test/src/textprop-tests.el",
+      "ids": [
+        "textprop-interval-immutability",
+        "textprop-tests-font-lock--remove-face-from-text-property",
+        "textprop-tests-format"
+      ],
+      "counts": {
+        "passed": 3
+      },
+      "complete": true,
+      "exit_code": 0,
+      "remaining_group_terminated": false,
+      "seconds": 0.053665834000000245,
+      "result": {
+        "path": "build/acceptance/g3-text-processing-2/cocoa/results/cocoa/test-src-textprop-tests.el-d947fe42a5ef.json",
+        "sha256": "c3d0d3b60a4429267a6512c444609bd02e57c174646a92def377cda698fcf0ba"
+      },
+      "events": {
+        "path": "build/acceptance/g3-text-processing-2/cocoa/results/cocoa/test-src-textprop-tests.el-d947fe42a5ef.events.jsonl",
+        "sha256": "ab345a1920c8e0271314655ac6b71a4ccda617b5057d8ddc04767e1fababc6cf"
+      }
+    }
+  ],
+  "terminal_runtime_restoration": {
+    "passed": true,
+    "scope": "Restore missing selected terminal dynamic libraries from byte-identical accepted current App; no program/dump/source or App changes",
+    "copies": [
+      {
+        "source": "dist/macos/Femacs.app/Contents/Frameworks/runtime-tls/libgmp.10.dylib",
+        "destination": "build/terminal/port/runtime-tls/libgmp.10.dylib",
+        "identity": {
+          "kind": "file",
+          "bytes": 434368,
+          "mode": 292,
+          "sha256": "71a283463eb2fac6614d077b0fb24fc723f2386d9a75985b58b76777e4500c38"
+        }
+      },
+      {
+        "source": "dist/macos/Femacs.app/Contents/Frameworks/runtime-tls/libgnutls.30.dylib",
+        "destination": "build/terminal/port/runtime-tls/libgnutls.30.dylib",
+        "identity": {
+          "kind": "file",
+          "bytes": 2324784,
+          "mode": 292,
+          "sha256": "5ea227cb887789d2ec9333be7403a078ba8de6d1aae3f4edd538bdb6546f7d29"
+        }
+      },
+      {
+        "source": "dist/macos/Femacs.app/Contents/Frameworks/runtime-tls/libhogweed.7.0.dylib",
+        "destination": "build/terminal/port/runtime-tls/libhogweed.7.0.dylib",
+        "identity": {
+          "kind": "file",
+          "bytes": 277520,
+          "mode": 292,
+          "sha256": "9f5b6a153ad04eec6152ace3dbb4b80037d9669f5699f9afe224b15cdf175763"
+        }
+      },
+      {
+        "source": "dist/macos/Femacs.app/Contents/Frameworks/runtime-tls/libidn2.0.dylib",
+        "destination": "build/terminal/port/runtime-tls/libidn2.0.dylib",
+        "identity": {
+          "kind": "file",
+          "bytes": 238896,
+          "mode": 292,
+          "sha256": "7cb939926b902b40ebb8134f05b7148cc0b10a85a0bb7a672b29c3039339d432"
+        }
+      },
+      {
+        "source": "dist/macos/Femacs.app/Contents/Frameworks/runtime-tls/libintl.8.dylib",
+        "destination": "build/terminal/port/runtime-tls/libintl.8.dylib",
+        "identity": {
+          "kind": "file",
+          "bytes": 210848,
+          "mode": 292,
+          "sha256": "a2254210b65f33f77d72a1652cc23a7858fadbcd037c5d4403962404654ab359"
+        }
+      },
+      {
+        "source": "dist/macos/Femacs.app/Contents/Frameworks/runtime-tls/libnettle.9.0.dylib",
+        "destination": "build/terminal/port/runtime-tls/libnettle.9.0.dylib",
+        "identity": {
+          "kind": "file",
+          "bytes": 314624,
+          "mode": 292,
+          "sha256": "70936ae7e9263a0019da5a4ec4cc8d4118bc906bf87e48cf31a6df947a6a2cbe"
+        }
+      },
+      {
+        "source": "dist/macos/Femacs.app/Contents/Frameworks/runtime-tls/libp11-kit.0.dylib",
+        "destination": "build/terminal/port/runtime-tls/libp11-kit.0.dylib",
+        "identity": {
+          "kind": "file",
+          "bytes": 1593536,
+          "mode": 292,
+          "sha256": "17d4309ada6f5a739a091681c0980a931599c324e1fffc77c28845aa9b7428d5"
+        }
+      },
+      {
+        "source": "dist/macos/Femacs.app/Contents/Frameworks/runtime-tls/libtasn1.6.dylib",
+        "destination": "build/terminal/port/runtime-tls/libtasn1.6.dylib",
+        "identity": {
+          "kind": "file",
+          "bytes": 89728,
+          "mode": 292,
+          "sha256": "b5bab46aca18b9d167ae832b9eb92f836dcf0091e3f9188b86edcc171e235461"
+        }
+      },
+      {
+        "source": "dist/macos/Femacs.app/Contents/Frameworks/runtime-tls/libunistring.5.dylib",
+        "destination": "build/terminal/port/runtime-tls/libunistring.5.dylib",
+        "identity": {
+          "kind": "file",
+          "bytes": 2038720,
+          "mode": 292,
+          "sha256": "982d457ba80bf7e87d22c5d9e2af2b3bfaeed5f1b5667ddba3ce52773556876b"
+        }
+      },
+      {
+        "source": "dist/macos/Femacs.app/Contents/Frameworks/runtime-lcms/liblcms2.2.dylib",
+        "destination": "build/terminal/port/runtime-lcms/liblcms2.2.dylib",
+        "identity": {
+          "kind": "file",
+          "bytes": 338320,
+          "mode": 292,
+          "sha256": "012d220f787f1beb3d60f0e54e5459eb4232094215d4bf29b97905e119d17dbb"
+        }
+      },
+      {
+        "source": "dist/macos/Femacs.app/Contents/Frameworks/runtime-treesit/libtree-sitter.0.27.dylib",
+        "destination": "build/terminal/port/runtime-treesit/libtree-sitter.0.27.dylib",
+        "identity": {
+          "kind": "file",
+          "bytes": 213744,
+          "mode": 292,
+          "sha256": "15df44074e98cb0fc2db2b79561d66c7d9c1b931f3b139ade3656cfa3c51fd6f"
+        }
+      }
+    ],
+    "files": 11,
+    "logical_bytes": 8075088
+  },
+  "full_G3_accepted": false,
+  "performance_accepted": false,
+  "physical_UI_tested": false,
+  "products": {
+    "reference": {
+      "program": {
+        "kind": "file",
+        "bytes": 3691504,
+        "mode": 493,
+        "sha256": "5b55e93c8304368ee37cc5c537ca3e1370e3b9b3fef049bdce76834a9db75e65"
+      },
+      "dump": {
+        "kind": "file",
+        "bytes": 23084632,
+        "mode": 420,
+        "sha256": "6ac1214186022574a70e84a04bb7f2dc44e1ea1d4c90f0d9ce421ddd0f4b4536"
+      },
+      "resources": {
+        "lisp": {
+          "identity_canonical_json_sha256": "564df364c803f4d0b64d7bc2ba986d775e8985529481ac2684b739666e131323",
+          "top_level_entries": 3316
+        }
+      }
+    },
+    "terminal": {
+      "program": {
+        "kind": "file",
+        "bytes": 2698016,
+        "mode": 493,
+        "sha256": "fb0b822273e79bb5b008725771473f5d510b9f712488242d615fb3a5fefbcde6"
+      },
+      "dump": {
+        "kind": "file",
+        "bytes": 13101600,
+        "mode": 420,
+        "sha256": "5d1913c39d5c348c711d24e16b25d9e63d09e082ee6dbe3b3a54ac4680862f82"
+      },
+      "resources": {
+        "lisp": {
+          "identity_canonical_json_sha256": "79dc09151f2f61152496f3587dc54cb580fb45a9c92301bfe3e75ab027a02146",
+          "top_level_entries": 3363
+        },
+        "runtime-tls": {
+          "identity_canonical_json_sha256": "9b34100e73d1f4bbd3157cd1535a25f8fdc6d4e094f2e6a1e9dc79b1a63fd73d",
+          "top_level_entries": 9
+        },
+        "runtime-lcms": {
+          "identity_canonical_json_sha256": "819844d74d5d4f3ee5a75aaf2b0d9a23b07fdda8bfa71c65cdbda63f6eb213cb",
+          "top_level_entries": 1
+        },
+        "runtime-treesit": {
+          "identity_canonical_json_sha256": "05b5f47a14a19b3f04511fa292f0976e2cab06437b9e4323edbce72a9767f0f9",
+          "top_level_entries": 1
+        }
+      }
+    },
+    "cocoa": {
+      "program": {
+        "kind": "file",
+        "bytes": 4230368,
+        "mode": 493,
+        "sha256": "d796f4c52e2a32ec6176e02efca33d922da18252aaddd0885e59993f108ba385"
+      },
+      "dump": {
+        "kind": "file",
+        "bytes": 18602200,
+        "mode": 420,
+        "sha256": "2b87c3436eaa33e551b024c6be01ea702b9c586c4535993258b63aa95a618b92"
+      },
+      "resources": {
+        "lisp": {
+          "identity_canonical_json_sha256": "e4108125e078022ebe91c3ccc5095c46c8fcbe48180ed02668f315d4e4c910b5",
+          "top_level_entries": 3353
+        },
+        "bundle": {
+          "identity_canonical_json_sha256": "e1212d5ae114aec885c8d2d467c9c39b4feb1f693b0d685dc28901fd34bb5342",
+          "top_level_entries": 4477
+        }
+      }
+    }
+  },
+  "independent_review": "Original helper, case/status maps and restored library identities independently checked; no confirmed defects. Controller timing/peak remain primary-side receipts, not independently checked in the functional result."
+}

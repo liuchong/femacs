@@ -1,3 +1,16 @@
+## Current continuation: original text-processing coverage (2026-10-30)
+
+Four complete pinned stable coding/search/syntax/text-property files pass on
+installed reference/current normal terminal/Cocoa:113IDs each,339 observations,
+zero skips/failures/timeouts and equal original maps. Twelve actual file
+processes pass after exact-identity restoration of eleven missing terminal
+runtime libraries; program/dump/App unchanged. Missing-library cause remains
+unknown; two preflight failures retained. Independent review accepts this
+normal batch scope, not full G3 or performance. [Evidence](../maintenance/releases/2026-10-30-original-text-processing.md).
+CLN161 retires only three consumed test trees/testlinks; live libraries and
+raw records retained. P436 batching and current-root hint are not production
+changes. G1/G2/G4 remain3/7; original Goal and G3/G5/G6/G7 remain active.
+
 ## Current continuation: reviewed empty-index source and final remote diagnostic (2026-10-30)
 
 P440 source and its five actual-source protection tests are signed and delivered

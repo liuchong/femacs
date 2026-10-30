@@ -23965,3 +23965,29 @@ bytes; original results, frozen inputs, products and App remain unchanged.
   G1/G2/G4 remain3/7 (42.9%); G3/G5/G6/G7 remain4/7 (57.1%). Next: source-bound safe
   root-tracing optimization and outstanding compatibility, preserving marking
   coverage and original Goal; no unchanged busy-host matrix replay or App update.
+
+
+### Original stable text processing: four complete files (2026-10-30)
+
+- Current normal reference/terminal/Cocoa:113IDs each (coding9/search1/syntax100/
+  textprop3),339/339 passed, zero skips/failures/timeouts; twelve serial file
+  processes exit0/reaped. Original guards/assertions/maps unchanged. Full inputs,
+  products/resources and trial App unchanged during execution; no generated
+  resources. Driver12.052s, controller13.742s/116,949,136B accounted peak.
+- Two preflights failed before any editor: retired snapshot path, then empty
+  terminal runtime groups. Restored11 libraries/8,075,088B from exact accepted
+  App resource copies; program/dump unchanged. Actual terminal processes pass.
+  Empty-directory cause unknown; no cleanup attribution. Both failures retained.
+- Independent review accepts original maps and restored-library identities;
+  controller metrics remain separate primary-side receipts. No production
+  change, extra protections, App replacement or performance adoption. P436
+  batching and current-root hint remain out of production after source discussion.
+- CLN161 retires only4,608files/753dirs/3testlinks:62,990,856logical and
+  75,264,000allocated regular bytes;5,364identity rows. Raw evidence, corpus,
+  actual products and restored live libraries retained.
+- [Comparison](../maintenance/releases/2026-10-30-original-text-processing.md),
+  [bounded receipt](../maintenance/releases/2026-10-30-original-text-processing-results.json),
+  [CLN161](../maintenance/cleanup/reports/2026-10-30-161-consumed-text-processing-test-copies.md).
+  G1/G2/G4 remain3/7(42.9%); G3/G5/G6/G7 remain4/7(57.1%). Original Goal active;
+  next uncovered original files and evidence-led runtime work, no unchanged
+  busy-host replay or invented defect from shared failures/skips.

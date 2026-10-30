@@ -437,3 +437,14 @@ identity rows. Frozen7,360 inputs, raw receipts, prior/current products and tria
 App retained and verified. Original build controller failure preserved, separate
 file-only finalization verified; no source deletion or performance adoption.
 [Report](reports/2026-10-30-160-consumed-root-phase-state.md).
+
+
+## CLN161 — consumed original text-processing test copies (2026-10-30)
+
+After339/339 original observations and independent review, retire three test
+roots/three testlinks only:4,608files/753dirs,62,990,856logical and75,264,000
+allocated regularbytes,5,364identity rows. Actual products/resources, raw
+results/events, source corpus and eleven restored live terminal libraries
+retained. Two failed preflights preserved; no cause assigned to missing libraries.
+[Report](reports/2026-10-30-161-consumed-text-processing-test-copies.md) and
+[manifest](manifests/2026-10-30-161-consumed-text-processing-test-copies.jsonl.gz).
