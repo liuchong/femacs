@@ -1,3 +1,24 @@
+## Current continuation: original thread and image coverage (2026-10-30)
+
+Four unchanged pinned original files register 48 IDs per product on the
+reference and current normal terminal/Cocoa products. All twelve file processes
+finish with exit 0: 131 passes, thirteen skips, no assertion failure or timeout.
+Original aggregate `passed=false`, owner exit 1 and unequal reference/terminal
+status maps remain. Twelve skips are shared; terminal `init-image-library`
+has one additional window-system capability guard. Three shared nongraphical
+image error passes do not prove terminal image-primitive parity. No product
+change, new protection, build or trial App replacement.
+
+Independent raw/source review finds no confirmed execution defect. CLN168
+records 4,608 consumed files, 882 directories (sixty automatic, twelve parents)
+and eighteen links, 62,990,856 / 75,264,000 logical/allocated bytes. Original
+evidence, live products and pinned inputs remain. G1/G2/G4 stay **3/7**;
+G3/G5/G6/G7 and the original Goal continue. Next: uncovered original G3 files
+and evidence-led runtime work, without replaying unchanged coverage.
+
+See [coverage](../maintenance/releases/2026-10-30-original-thread-image.md)
+and [CLN168](../maintenance/cleanup/reports/2026-10-30-168-consumed-thread-image-state.md).
+
 ## Current continuation: durable automatic parent identities (2026-10-30)
 
 P443 now records both owned environment parents before removal in the existing

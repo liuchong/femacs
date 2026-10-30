@@ -520,3 +520,17 @@ Former unledgered parent removal moves into existing ledger-bound cleanup; old
 manifests and disclosed historical metadata gaps remain unchanged.
 [Report](reports/2026-10-30-167-consumed-parent-ledger-state.md) and
 [manifest](manifests/2026-10-30-167-consumed-parent-ledger-state.jsonl.gz).
+
+## CLN168 — consumed original thread/image coverage state (2026-10-30)
+
+- Scope: three consumed full test copies and owned contexts/environments after
+  twelve completed processes and independent raw/source review; original
+  131 passes/thirteen skips, false aggregate and unequal status maps retained.
+- Combined 4,608 files, 882 directories, eighteen links; 62,990,856 logical /
+  75,264,000 allocated bytes, 5,508 rows. Sixty schema-3 automatic directories
+  include twelve parents and are counted once; post-review directories 822.
+- Full private pre-delete identities retained; public context targets hashed.
+  Original evidence, source corpus, live products and trial App unchanged.
+- [Report](reports/2026-10-30-168-consumed-thread-image-state.md) ·
+  [manifest](manifests/2026-10-30-168-consumed-thread-image-state.jsonl.gz)
+  (`ebebfe9e3069cc00cf2d307348d9aa4d7d9d96afb333863d37701e33592de7df`).

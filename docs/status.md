@@ -24135,3 +24135,24 @@ bytes; original results, frozen inputs, products and App remain unchanged.
 - [Report](../maintenance/releases/2026-10-30-owned-parent-ledger.md),
   [receipt](../maintenance/releases/2026-10-30-owned-parent-ledger-results.json),
   [CLN167](../maintenance/cleanup/reports/2026-10-30-167-consumed-parent-ledger-state.md).
+
+## 2026-10-30: original thread/font/image/inotify coverage and CLN168
+
+Twelve complete original-file processes, 48 IDs per product: **131 passed,
+13 skipped, 0 failed**, driver 32.701476709 s, implemented load/case 30 s and
+owner 300 s. Original `passed=false`, owner exit 1 and
+`status_maps_equal_reference=false` remain. Twelve shared skips are platform
+or missing-symbol guards; terminal alone skips `init-image-library` because
+the headless build lacks its window-system registration. Three nongraphical
+`should-error` passes do not establish terminal image-primitive parity.
+Reference/Cocoa maps match. Independent review finds no execution defect.
+Controller 35.027 s / 106,446,848 accounted peak bytes are primary-only receipts.
+
+CLN168: 4,608 files, 882 directories and eighteen links; 62,990,856 logical /
+75,264,000 allocated bytes, 5,508 rows. Sixty directories (including twelve
+parents) were automatically retired and counted once; 822 directories were
+removed after review. Raw evidence, inputs, products and trial App retained.
+No source change, new component test or performance adoption. G1/G2/G4 **3/7**;
+four outcomes remain open, original Goal active. Next: uncovered G3 files.
+Reports: [coverage](../maintenance/releases/2026-10-30-original-thread-image.md),
+[CLN168](../maintenance/cleanup/reports/2026-10-30-168-consumed-thread-image-state.md).

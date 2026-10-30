@@ -1,0 +1,1471 @@
+{
+  "schema": 1,
+  "scope": "Four complete pinned stable thread, font, image and inotify files; installed reference and current normal terminal/Cocoa; all IDs and original assertions unchanged, no full G3, physical UI, native/collector or performance claim",
+  "passed": false,
+  "source_commit": "a360712c9d272d950d8d8255ef74570f7e90b7d9",
+  "counts": {
+    "passed": 131,
+    "skipped": 13
+  },
+  "seconds": 32.701476709000005,
+  "status_maps_equal_reference": false,
+  "identities_unchanged": true,
+  "original_inputs_unchanged": true,
+  "generated_resources": {
+    "reference": {},
+    "terminal": {},
+    "cocoa": {}
+  },
+  "budget": {
+    "whole_seconds": 300,
+    "per_case_seconds": 30,
+    "expected_seconds": [
+      10,
+      45
+    ],
+    "expected_peak_bytes": 1073741824,
+    "copied_source_bytes": 62990856,
+    "scale": "12 serial original file processes, no ID filtering or guard changes. Thread has38static definitions, small buffers, a few native threads/mutex/condition objects, two1s sit-for waits,0.1s waits and a sleeping thread signaled before join. Yield/condition loops can hang without a correct implementation, hence30s external perload/case and300s protectedowner. Font parses49 fixed short names times5properties plus5XLFD checks, interactive helper is not invoked. Image has5small API/error checks and9load-time local image lookups; batch nongraphical behavior is preserved. Inotify3tests retain feature guard, including original recursive-edit and5s wait ifavailable. No network/compiler/subprocess workload in these original files, no deliberate crash. Dynamic registration authoritative, static estimate48IDs/product is not acceptance"
+  },
+  "ids_per_product": 48,
+  "processes": 12,
+  "raw_result": {
+    "path": "build/acceptance/g3-thread-font-image-1/results.json",
+    "sha256": "4855a3142957ebb30840ad05eb146660a5246ea9d8912b288c298ef03cbd54bd"
+  },
+  "driver_sha256": "5f1f291401ba5e9196e2295e39103e22abe7fbb394c91c300a569d2f131a3883",
+  "files": [
+    {
+      "path": "test/src/font-tests.el",
+      "size": 7579,
+      "blob": "532b04c66a7708ca0bfe855fb1d03f07c85c2a05",
+      "sha256": "885bd8c406425696707acd78edbe5f7cd22a237a0ad62ed3136c8a3f0a52b4a0"
+    },
+    {
+      "path": "test/src/image-tests.el",
+      "size": 2833,
+      "blob": "8527b2b2fa40cc40f30e049e4fb6e884aedb9d67",
+      "sha256": "63a0953d59382cd81fc0b34a71143f5eaff104e592340ef4f0d600801c3a3d44"
+    },
+    {
+      "path": "test/src/inotify-tests.el",
+      "size": 3035,
+      "blob": "da186aab72ff8ccd457c90650e38781b6956499c",
+      "sha256": "4e18d2ded390269d578dd3372f10fa189a4578ebd1967b2074688b21e4b134c8"
+    },
+    {
+      "path": "test/src/thread-tests.el",
+      "size": 16039,
+      "blob": "c575f13b488c1d2712f706084a252f1abe463a06",
+      "sha256": "2917176f963f7f33b987e4a773b54d18ce770bc457fa15f22894004595a81050"
+    }
+  ],
+  "registered_ids_per_file": {
+    "test/src/font-tests.el": 2,
+    "test/src/image-tests.el": 5,
+    "test/src/inotify-tests.el": 3,
+    "test/src/thread-tests.el": 38
+  },
+  "inputs": [
+    {
+      "path": "compatibility/stable-31.1/sources.json",
+      "identity": {
+        "kind": "file",
+        "bytes": 562572,
+        "mode": 420,
+        "sha256": "a5ef144a203b8b2a74e346ac47173c5d4122f751d8d950347ae75ff67eef0efe"
+      }
+    },
+    {
+      "path": "tools/fixtures/stable-suite-runner.el",
+      "identity": {
+        "kind": "file",
+        "bytes": 12592,
+        "mode": 420,
+        "sha256": "d5bcd0c18f15995e50adefe8472d12ef82f71114be10ce307202b4ce0f11150e"
+      }
+    },
+    {
+      "path": "tools/stable-suite.py",
+      "identity": {
+        "kind": "file",
+        "bytes": 54108,
+        "mode": 420,
+        "sha256": "75e913813f585425ce3673c5db9c71b2054d875c50540ccee3dd06cb4eabc51c"
+      }
+    },
+    {
+      "path": "tools/stable-suite-batch.py",
+      "identity": {
+        "kind": "file",
+        "bytes": 22008,
+        "mode": 420,
+        "sha256": "5473bee19634e589dbbaa091f2fb8dc5c78e67be5399c3db4497753e1ea64b6e"
+      }
+    },
+    {
+      "path": "tools/runtime-execution.py",
+      "identity": {
+        "kind": "file",
+        "bytes": 93220,
+        "mode": 420,
+        "sha256": "26b379c3d4a24adf2a306e1c751c654ca1b6b1c6cd43f0888398c3560e455fb4"
+      }
+    },
+    {
+      "path": "tools/runtime-retire.py",
+      "identity": {
+        "kind": "file",
+        "bytes": 8538,
+        "mode": 420,
+        "sha256": "84ad68bbb26ffb73e129406b430393c0eaeab2f6b818c5916a950b6514eb6932"
+      }
+    },
+    {
+      "path": "private-driver/g3-thread-font-image-1.py",
+      "identity": {
+        "kind": "file",
+        "bytes": 8006,
+        "mode": 420,
+        "sha256": "5f1f291401ba5e9196e2295e39103e22abe7fbb394c91c300a569d2f131a3883"
+      }
+    },
+    {
+      "path": "build/acceptance/p435-p427-products-1/products-with-runtime.json",
+      "identity": {
+        "kind": "file",
+        "bytes": 1578004,
+        "mode": 420,
+        "sha256": "aa4d2cadb59089c231c43d2827de479f35a1825514916a3573ad936b4e9ac162"
+      }
+    },
+    {
+      "path": "build/acceptance/p435-functional-normal-1/results.json",
+      "identity": {
+        "kind": "file",
+        "bytes": 695326,
+        "mode": 420,
+        "sha256": "fdd7cce538a6fa60329793d762db627cc94ca98f8b726614f65dd3c12af15849"
+      }
+    }
+  ],
+  "process_results": [
+    {
+      "product": "reference",
+      "file": "test/src/thread-tests.el",
+      "ids": [
+        "thread-buffer-disposition-nil",
+        "thread-buffer-disposition-silently",
+        "thread-buffer-disposition-t",
+        "thread-set-buffer-disposition",
+        "thread-set-buffer-disposition-main-thread",
+        "threads-all-threads",
+        "threads-basic",
+        "threads-condvar-mutex",
+        "threads-condvar-name",
+        "threads-condvar-name-2",
+        "threads-condvar-type",
+        "threads-condvar-wait",
+        "threads-condvarp",
+        "threads-condvarp-2",
+        "threads-errors",
+        "threads-io-switch",
+        "threads-is-one",
+        "threads-join",
+        "threads-join-error",
+        "threads-join-self",
+        "threads-let-binding",
+        "threads-live",
+        "threads-main-thread",
+        "threads-mutex-contention",
+        "threads-mutex-lock-unlock",
+        "threads-mutex-recursive",
+        "threads-mutex-signal",
+        "threads-mutex-type",
+        "threads-mutexp",
+        "threads-mutexp-2",
+        "threads-name",
+        "threads-signal-early",
+        "threads-signal-main-thread",
+        "threads-sticky-point",
+        "threads-test-bug33073",
+        "threads-test-bug48990",
+        "threads-threadp",
+        "threads-type"
+      ],
+      "counts": {
+        "passed": 38
+      },
+      "complete": true,
+      "exit_code": 0,
+      "remaining_group_terminated": false,
+      "seconds": 9.10832925,
+      "timed_out": false,
+      "protocol_error": null,
+      "runner_error": null,
+      "result": {
+        "path": "build/acceptance/g3-thread-font-image-1/reference/results/reference/test-src-thread-tests.el-b61d9d0e315b.json",
+        "sha256": "6853d7a9ebc350ad7ecd3e27b7ad2abda0138a6c1d50b88ece6fb9eab07d4e0e"
+      },
+      "events": {
+        "path": "build/acceptance/g3-thread-font-image-1/reference/results/reference/test-src-thread-tests.el-b61d9d0e315b.events.jsonl",
+        "sha256": "93a119cea8e0395556c6e790f138c02a606e946c8dd952a0d179a21703828cdc"
+      },
+      "cases": {
+        "thread-buffer-disposition-nil": {
+          "status": "passed",
+          "seconds": 0.105834,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "thread-buffer-disposition-silently": {
+          "status": "passed",
+          "seconds": 0.100944,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "thread-buffer-disposition-t": {
+          "status": "passed",
+          "seconds": 0.10084,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "thread-set-buffer-disposition": {
+          "status": "passed",
+          "seconds": 0.000226,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "thread-set-buffer-disposition-main-thread": {
+          "status": "passed",
+          "seconds": 9.5e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "threads-all-threads": {
+          "status": "passed",
+          "seconds": 6.6e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "threads-basic": {
+          "status": "passed",
+          "seconds": 0.000128,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "threads-condvar-mutex": {
+          "status": "passed",
+          "seconds": 5.5e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "threads-condvar-name": {
+          "status": "passed",
+          "seconds": 3.8e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "threads-condvar-name-2": {
+          "status": "passed",
+          "seconds": 6.1e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "threads-condvar-type": {
+          "status": "passed",
+          "seconds": 4.4e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "threads-condvar-wait": {
+          "status": "passed",
+          "seconds": 0.207636,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "threads-condvarp": {
+          "status": "passed",
+          "seconds": 3.1e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "threads-condvarp-2": {
+          "status": "passed",
+          "seconds": 2.4e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "threads-errors": {
+          "status": "passed",
+          "seconds": 0.000122,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "threads-io-switch": {
+          "status": "passed",
+          "seconds": 1.005223,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "threads-is-one": {
+          "status": "passed",
+          "seconds": 8.6e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "threads-join": {
+          "status": "passed",
+          "seconds": 0.000228,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "threads-join-error": {
+          "status": "passed",
+          "seconds": 5.003047,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "threads-join-self": {
+          "status": "passed",
+          "seconds": 0.000144,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "threads-let-binding": {
+          "status": "passed",
+          "seconds": 0.020249,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "threads-live": {
+          "status": "passed",
+          "seconds": 0.000145,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "threads-main-thread": {
+          "status": "passed",
+          "seconds": 5.7e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "threads-mutex-contention": {
+          "status": "passed",
+          "seconds": 0.010193,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "threads-mutex-lock-unlock": {
+          "status": "passed",
+          "seconds": 7.9e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "threads-mutex-recursive": {
+          "status": "passed",
+          "seconds": 4.5e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "threads-mutex-signal": {
+          "status": "passed",
+          "seconds": 0.004382,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "threads-mutex-type": {
+          "status": "passed",
+          "seconds": 5.8e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "threads-mutexp": {
+          "status": "passed",
+          "seconds": 3.5e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "threads-mutexp-2": {
+          "status": "passed",
+          "seconds": 2.9e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "threads-name": {
+          "status": "passed",
+          "seconds": 7.5e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "threads-signal-early": {
+          "status": "passed",
+          "seconds": 1.004576,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "threads-signal-main-thread": {
+          "status": "passed",
+          "seconds": 0.103912,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"Error #<thread 0x7c8583b000>: (error nil)\n\""
+        },
+        "threads-sticky-point": {
+          "status": "passed",
+          "seconds": 1.0052,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "threads-test-bug33073": {
+          "status": "passed",
+          "seconds": 6.3e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "threads-test-bug48990": {
+          "status": "passed",
+          "seconds": 7.3e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "threads-threadp": {
+          "status": "passed",
+          "seconds": 1.6e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "threads-type": {
+          "status": "passed",
+          "seconds": 1e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        }
+      }
+    },
+    {
+      "product": "reference",
+      "file": "test/src/font-tests.el",
+      "ids": [
+        "font-parse-tests",
+        "font-parse-xlfd-test"
+      ],
+      "counts": {
+        "passed": 2
+      },
+      "complete": true,
+      "exit_code": 0,
+      "remaining_group_terminated": false,
+      "seconds": 0.17952487500000025,
+      "timed_out": false,
+      "protocol_error": null,
+      "runner_error": null,
+      "result": {
+        "path": "build/acceptance/g3-thread-font-image-1/reference/results/reference/test-src-font-tests.el-79bce97a43ff.json",
+        "sha256": "7942f915aed5b8b56030a91338455d3bfd624ba7cd4cda5114f5e0d994408890"
+      },
+      "events": {
+        "path": "build/acceptance/g3-thread-font-image-1/reference/results/reference/test-src-font-tests.el-79bce97a43ff.events.jsonl",
+        "sha256": "1821de4d8db396dbddd070409b922485b88afbd3ce17719a5c95f32b4e3d095a"
+      },
+      "cases": {
+        "font-parse-tests": {
+          "status": "passed",
+          "seconds": 0.000433,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "font-parse-xlfd-test": {
+          "status": "passed",
+          "seconds": 1.7e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        }
+      }
+    },
+    {
+      "product": "reference",
+      "file": "test/src/image-tests.el",
+      "ids": [
+        "image-tests-image-mask-p/error-on-nongraphical-display",
+        "image-tests-image-metadata/error-on-nongraphical-display",
+        "image-tests-image-size/error-on-nongraphical-display",
+        "image-tests-imagemagick-types",
+        "image-tests-init-image-library"
+      ],
+      "counts": {
+        "passed": 4,
+        "skipped": 1
+      },
+      "complete": true,
+      "exit_code": 0,
+      "remaining_group_terminated": false,
+      "seconds": 0.20964137500000035,
+      "timed_out": false,
+      "protocol_error": null,
+      "runner_error": null,
+      "result": {
+        "path": "build/acceptance/g3-thread-font-image-1/reference/results/reference/test-src-image-tests.el-ab49b1531a7a.json",
+        "sha256": "a663136bf5f76b7754592f7424eef9ef0b3b41405ead643edc58e255d958a905"
+      },
+      "events": {
+        "path": "build/acceptance/g3-thread-font-image-1/reference/results/reference/test-src-image-tests.el-ab49b1531a7a.events.jsonl",
+        "sha256": "4a816bbd931964736203106ca8d65039776d6901ab73d6449fbfe3966b88b264"
+      },
+      "cases": {
+        "image-tests-image-mask-p/error-on-nongraphical-display": {
+          "status": "passed",
+          "seconds": 6.1e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "image-tests-image-metadata/error-on-nongraphical-display": {
+          "status": "passed",
+          "seconds": 1.5e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "image-tests-image-size/error-on-nongraphical-display": {
+          "status": "passed",
+          "seconds": 2.3e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "image-tests-imagemagick-types": {
+          "status": "skipped",
+          "seconds": 2.3e-05,
+          "diagnostic": "result=ert-test-skipped expected=t condition=(ert-test-skipped ((skip-unless (fboundp 'imagemagick-types)) :form (fboundp imagemagick-types) :value nil)) messages=\"\""
+        },
+        "image-tests-init-image-library": {
+          "status": "passed",
+          "seconds": 1.3e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        }
+      }
+    },
+    {
+      "product": "reference",
+      "file": "test/src/inotify-tests.el",
+      "ids": [
+        "inotify-file-watch-simple",
+        "inotify-file-watch-stop-delivery",
+        "inotify-valid-p-simple"
+      ],
+      "counts": {
+        "skipped": 3
+      },
+      "complete": true,
+      "exit_code": 0,
+      "remaining_group_terminated": false,
+      "seconds": 0.1939443340000011,
+      "timed_out": false,
+      "protocol_error": null,
+      "runner_error": null,
+      "result": {
+        "path": "build/acceptance/g3-thread-font-image-1/reference/results/reference/test-src-inotify-tests.el-9c3624fb13c5.json",
+        "sha256": "8923a4673d7b8176986ee43a0dd2b1e4cb28306c8231c062f136913f09832e23"
+      },
+      "events": {
+        "path": "build/acceptance/g3-thread-font-image-1/reference/results/reference/test-src-inotify-tests.el-9c3624fb13c5.events.jsonl",
+        "sha256": "c407ed32df8b8d3d72fa4bdca32340defb84ca08f9c572837e2f32cf825e7eaa"
+      },
+      "cases": {
+        "inotify-file-watch-simple": {
+          "status": "skipped",
+          "seconds": 5.6e-05,
+          "diagnostic": "result=ert-test-skipped expected=t condition=(ert-test-skipped ((skip-unless (featurep 'inotify)) :form (featurep inotify) :value nil)) messages=\"\""
+        },
+        "inotify-file-watch-stop-delivery": {
+          "status": "skipped",
+          "seconds": 2.1e-05,
+          "diagnostic": "result=ert-test-skipped expected=t condition=(ert-test-skipped ((skip-unless (featurep 'inotify)) :form (featurep inotify) :value nil)) messages=\"\""
+        },
+        "inotify-valid-p-simple": {
+          "status": "skipped",
+          "seconds": 1.9e-05,
+          "diagnostic": "result=ert-test-skipped expected=t condition=(ert-test-skipped ((skip-unless (featurep 'inotify)) :form (featurep inotify) :value nil)) messages=\"\""
+        }
+      }
+    },
+    {
+      "product": "terminal",
+      "file": "test/src/thread-tests.el",
+      "ids": [
+        "thread-buffer-disposition-nil",
+        "thread-buffer-disposition-silently",
+        "thread-buffer-disposition-t",
+        "thread-set-buffer-disposition",
+        "thread-set-buffer-disposition-main-thread",
+        "threads-all-threads",
+        "threads-basic",
+        "threads-condvar-mutex",
+        "threads-condvar-name",
+        "threads-condvar-name-2",
+        "threads-condvar-type",
+        "threads-condvar-wait",
+        "threads-condvarp",
+        "threads-condvarp-2",
+        "threads-errors",
+        "threads-io-switch",
+        "threads-is-one",
+        "threads-join",
+        "threads-join-error",
+        "threads-join-self",
+        "threads-let-binding",
+        "threads-live",
+        "threads-main-thread",
+        "threads-mutex-contention",
+        "threads-mutex-lock-unlock",
+        "threads-mutex-recursive",
+        "threads-mutex-signal",
+        "threads-mutex-type",
+        "threads-mutexp",
+        "threads-mutexp-2",
+        "threads-name",
+        "threads-signal-early",
+        "threads-signal-main-thread",
+        "threads-sticky-point",
+        "threads-test-bug33073",
+        "threads-test-bug48990",
+        "threads-threadp",
+        "threads-type"
+      ],
+      "counts": {
+        "passed": 38
+      },
+      "complete": true,
+      "exit_code": 0,
+      "remaining_group_terminated": false,
+      "seconds": 8.830416417,
+      "timed_out": false,
+      "protocol_error": null,
+      "runner_error": null,
+      "result": {
+        "path": "build/acceptance/g3-thread-font-image-1/terminal/results/terminal/test-src-thread-tests.el-b61d9d0e315b.json",
+        "sha256": "6029bf3ab9e0b632eca594b9eda4ba1b7f1b277d6a61b139ace80cb39ac05485"
+      },
+      "events": {
+        "path": "build/acceptance/g3-thread-font-image-1/terminal/results/terminal/test-src-thread-tests.el-b61d9d0e315b.events.jsonl",
+        "sha256": "5163997351dc68192bba0542d3cbb5dfde02455071c9380c8cd4d49175a5a056"
+      },
+      "cases": {
+        "thread-buffer-disposition-nil": {
+          "status": "passed",
+          "seconds": 0.105241,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "thread-buffer-disposition-silently": {
+          "status": "passed",
+          "seconds": 0.100968,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "thread-buffer-disposition-t": {
+          "status": "passed",
+          "seconds": 0.105769,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "thread-set-buffer-disposition": {
+          "status": "passed",
+          "seconds": 0.00014,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "thread-set-buffer-disposition-main-thread": {
+          "status": "passed",
+          "seconds": 9.5e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "threads-all-threads": {
+          "status": "passed",
+          "seconds": 7.4e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "threads-basic": {
+          "status": "passed",
+          "seconds": 0.000113,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "threads-condvar-mutex": {
+          "status": "passed",
+          "seconds": 3.4e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "threads-condvar-name": {
+          "status": "passed",
+          "seconds": 5e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "threads-condvar-name-2": {
+          "status": "passed",
+          "seconds": 3.2e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "threads-condvar-type": {
+          "status": "passed",
+          "seconds": 2.9e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "threads-condvar-wait": {
+          "status": "passed",
+          "seconds": 0.209567,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "threads-condvarp": {
+          "status": "passed",
+          "seconds": 4.7e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "threads-condvarp-2": {
+          "status": "passed",
+          "seconds": 4.3e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "threads-errors": {
+          "status": "passed",
+          "seconds": 0.010206,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "threads-io-switch": {
+          "status": "passed",
+          "seconds": 1.00098,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "threads-is-one": {
+          "status": "passed",
+          "seconds": 7.3e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "threads-join": {
+          "status": "passed",
+          "seconds": 0.000141,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "threads-join-error": {
+          "status": "passed",
+          "seconds": 5.003923,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "threads-join-self": {
+          "status": "passed",
+          "seconds": 0.000116,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "threads-let-binding": {
+          "status": "passed",
+          "seconds": 0.000174,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "threads-live": {
+          "status": "passed",
+          "seconds": 0.000113,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "threads-main-thread": {
+          "status": "passed",
+          "seconds": 4.3e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "threads-mutex-contention": {
+          "status": "passed",
+          "seconds": 0.000148,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "threads-mutex-lock-unlock": {
+          "status": "passed",
+          "seconds": 4e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "threads-mutex-recursive": {
+          "status": "passed",
+          "seconds": 4.3e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "threads-mutex-signal": {
+          "status": "passed",
+          "seconds": 0.000169,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "threads-mutex-type": {
+          "status": "passed",
+          "seconds": 4.3e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "threads-mutexp": {
+          "status": "passed",
+          "seconds": 3.4e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "threads-mutexp-2": {
+          "status": "passed",
+          "seconds": 3.2e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "threads-name": {
+          "status": "passed",
+          "seconds": 8.1e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "threads-signal-early": {
+          "status": "passed",
+          "seconds": 1.005454,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "threads-signal-main-thread": {
+          "status": "passed",
+          "seconds": 0.112574,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"Error #<thread 0x75ce83a0a0>: (error nil)\n\""
+        },
+        "threads-sticky-point": {
+          "status": "passed",
+          "seconds": 1.005285,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "threads-test-bug33073": {
+          "status": "passed",
+          "seconds": 0.000238,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "threads-test-bug48990": {
+          "status": "passed",
+          "seconds": 0.000299,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "threads-threadp": {
+          "status": "passed",
+          "seconds": 8.9e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "threads-type": {
+          "status": "passed",
+          "seconds": 4.3e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        }
+      }
+    },
+    {
+      "product": "terminal",
+      "file": "test/src/font-tests.el",
+      "ids": [
+        "font-parse-tests",
+        "font-parse-xlfd-test"
+      ],
+      "counts": {
+        "passed": 2
+      },
+      "complete": true,
+      "exit_code": 0,
+      "remaining_group_terminated": false,
+      "seconds": 0.055777166999998684,
+      "timed_out": false,
+      "protocol_error": null,
+      "runner_error": null,
+      "result": {
+        "path": "build/acceptance/g3-thread-font-image-1/terminal/results/terminal/test-src-font-tests.el-79bce97a43ff.json",
+        "sha256": "ca04dd372306f668907e8f772ddbb096207b30606811d5a2f2a680d009c036fc"
+      },
+      "events": {
+        "path": "build/acceptance/g3-thread-font-image-1/terminal/results/terminal/test-src-font-tests.el-79bce97a43ff.events.jsonl",
+        "sha256": "fdadda1bf7623cd6d394d179628b42a894ef46a1a913c72792f67238e9433807"
+      },
+      "cases": {
+        "font-parse-tests": {
+          "status": "passed",
+          "seconds": 0.000425,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "font-parse-xlfd-test": {
+          "status": "passed",
+          "seconds": 1.8e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        }
+      }
+    },
+    {
+      "product": "terminal",
+      "file": "test/src/image-tests.el",
+      "ids": [
+        "image-tests-image-mask-p/error-on-nongraphical-display",
+        "image-tests-image-metadata/error-on-nongraphical-display",
+        "image-tests-image-size/error-on-nongraphical-display",
+        "image-tests-imagemagick-types",
+        "image-tests-init-image-library"
+      ],
+      "counts": {
+        "passed": 3,
+        "skipped": 2
+      },
+      "complete": true,
+      "exit_code": 0,
+      "remaining_group_terminated": false,
+      "seconds": 0.05532208400000016,
+      "timed_out": false,
+      "protocol_error": null,
+      "runner_error": null,
+      "result": {
+        "path": "build/acceptance/g3-thread-font-image-1/terminal/results/terminal/test-src-image-tests.el-ab49b1531a7a.json",
+        "sha256": "6ebd5f5b10e5c18847fa86ef6220cbcd72b8271898686f9ca1138e8867c9f07a"
+      },
+      "events": {
+        "path": "build/acceptance/g3-thread-font-image-1/terminal/results/terminal/test-src-image-tests.el-ab49b1531a7a.events.jsonl",
+        "sha256": "1a055f6d3ed52456b86d2c808fdcc5ad5d0fdc1e01064b526aeb0ea98a66b4df"
+      },
+      "cases": {
+        "image-tests-image-mask-p/error-on-nongraphical-display": {
+          "status": "passed",
+          "seconds": 4.4e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "image-tests-image-metadata/error-on-nongraphical-display": {
+          "status": "passed",
+          "seconds": 1.9e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "image-tests-image-size/error-on-nongraphical-display": {
+          "status": "passed",
+          "seconds": 1.6e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "image-tests-imagemagick-types": {
+          "status": "skipped",
+          "seconds": 2.9e-05,
+          "diagnostic": "result=ert-test-skipped expected=t condition=(ert-test-skipped ((skip-unless (fboundp 'imagemagick-types)) :form (fboundp imagemagick-types) :value nil)) messages=\"\""
+        },
+        "image-tests-init-image-library": {
+          "status": "skipped",
+          "seconds": 2.4e-05,
+          "diagnostic": "result=ert-test-skipped expected=t condition=(ert-test-skipped ((skip-unless (fboundp 'init-image-library)) :form (fboundp init-image-library) :value nil)) messages=\"\""
+        }
+      }
+    },
+    {
+      "product": "terminal",
+      "file": "test/src/inotify-tests.el",
+      "ids": [
+        "inotify-file-watch-simple",
+        "inotify-file-watch-stop-delivery",
+        "inotify-valid-p-simple"
+      ],
+      "counts": {
+        "skipped": 3
+      },
+      "complete": true,
+      "exit_code": 0,
+      "remaining_group_terminated": false,
+      "seconds": 0.053942416999998244,
+      "timed_out": false,
+      "protocol_error": null,
+      "runner_error": null,
+      "result": {
+        "path": "build/acceptance/g3-thread-font-image-1/terminal/results/terminal/test-src-inotify-tests.el-9c3624fb13c5.json",
+        "sha256": "c913b23e26f3ec510bd8881d5f8912e32da824c289065d8efa6e8a0cfd9ecf98"
+      },
+      "events": {
+        "path": "build/acceptance/g3-thread-font-image-1/terminal/results/terminal/test-src-inotify-tests.el-9c3624fb13c5.events.jsonl",
+        "sha256": "a5f9374cbd53ce0af42470b609375ce05c0228299bcc0a38f7bbdf507d17b390"
+      },
+      "cases": {
+        "inotify-file-watch-simple": {
+          "status": "skipped",
+          "seconds": 4.8e-05,
+          "diagnostic": "result=ert-test-skipped expected=t condition=(ert-test-skipped ((skip-unless (featurep 'inotify)) :form (featurep inotify) :value nil)) messages=\"\""
+        },
+        "inotify-file-watch-stop-delivery": {
+          "status": "skipped",
+          "seconds": 2.7e-05,
+          "diagnostic": "result=ert-test-skipped expected=t condition=(ert-test-skipped ((skip-unless (featurep 'inotify)) :form (featurep inotify) :value nil)) messages=\"\""
+        },
+        "inotify-valid-p-simple": {
+          "status": "skipped",
+          "seconds": 2.4e-05,
+          "diagnostic": "result=ert-test-skipped expected=t condition=(ert-test-skipped ((skip-unless (featurep 'inotify)) :form (featurep inotify) :value nil)) messages=\"\""
+        }
+      }
+    },
+    {
+      "product": "cocoa",
+      "file": "test/src/thread-tests.el",
+      "ids": [
+        "thread-buffer-disposition-nil",
+        "thread-buffer-disposition-silently",
+        "thread-buffer-disposition-t",
+        "thread-set-buffer-disposition",
+        "thread-set-buffer-disposition-main-thread",
+        "threads-all-threads",
+        "threads-basic",
+        "threads-condvar-mutex",
+        "threads-condvar-name",
+        "threads-condvar-name-2",
+        "threads-condvar-type",
+        "threads-condvar-wait",
+        "threads-condvarp",
+        "threads-condvarp-2",
+        "threads-errors",
+        "threads-io-switch",
+        "threads-is-one",
+        "threads-join",
+        "threads-join-error",
+        "threads-join-self",
+        "threads-let-binding",
+        "threads-live",
+        "threads-main-thread",
+        "threads-mutex-contention",
+        "threads-mutex-lock-unlock",
+        "threads-mutex-recursive",
+        "threads-mutex-signal",
+        "threads-mutex-type",
+        "threads-mutexp",
+        "threads-mutexp-2",
+        "threads-name",
+        "threads-signal-early",
+        "threads-signal-main-thread",
+        "threads-sticky-point",
+        "threads-test-bug33073",
+        "threads-test-bug48990",
+        "threads-threadp",
+        "threads-type"
+      ],
+      "counts": {
+        "passed": 38
+      },
+      "complete": true,
+      "exit_code": 0,
+      "remaining_group_terminated": false,
+      "seconds": 8.791063916000002,
+      "timed_out": false,
+      "protocol_error": null,
+      "runner_error": null,
+      "result": {
+        "path": "build/acceptance/g3-thread-font-image-1/cocoa/results/cocoa/test-src-thread-tests.el-b61d9d0e315b.json",
+        "sha256": "253a67ad0f2348ac884f1a07290243d6b969aff87f8f46180a399efabbd444f0"
+      },
+      "events": {
+        "path": "build/acceptance/g3-thread-font-image-1/cocoa/results/cocoa/test-src-thread-tests.el-b61d9d0e315b.events.jsonl",
+        "sha256": "959a334687d994bf51a5dd341a2049a95961574efe64e9f1f7b3d4c0cccf7606"
+      },
+      "cases": {
+        "thread-buffer-disposition-nil": {
+          "status": "passed",
+          "seconds": 0.10526,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "thread-buffer-disposition-silently": {
+          "status": "passed",
+          "seconds": 0.104145,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "thread-buffer-disposition-t": {
+          "status": "passed",
+          "seconds": 0.104013,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "thread-set-buffer-disposition": {
+          "status": "passed",
+          "seconds": 0.000143,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "thread-set-buffer-disposition-main-thread": {
+          "status": "passed",
+          "seconds": 7.9e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "threads-all-threads": {
+          "status": "passed",
+          "seconds": 3.8e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "threads-basic": {
+          "status": "passed",
+          "seconds": 0.000146,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "threads-condvar-mutex": {
+          "status": "passed",
+          "seconds": 5.9e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "threads-condvar-name": {
+          "status": "passed",
+          "seconds": 3.2e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "threads-condvar-name-2": {
+          "status": "passed",
+          "seconds": 3.3e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "threads-condvar-type": {
+          "status": "passed",
+          "seconds": 6.3e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "threads-condvar-wait": {
+          "status": "passed",
+          "seconds": 0.206027,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "threads-condvarp": {
+          "status": "passed",
+          "seconds": 7.8e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "threads-condvarp-2": {
+          "status": "passed",
+          "seconds": 7.4e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "threads-errors": {
+          "status": "passed",
+          "seconds": 0.010251,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "threads-io-switch": {
+          "status": "passed",
+          "seconds": 1.001347,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "threads-is-one": {
+          "status": "passed",
+          "seconds": 0.000116,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "threads-join": {
+          "status": "passed",
+          "seconds": 0.000223,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "threads-join-error": {
+          "status": "passed",
+          "seconds": 5.003477,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "threads-join-self": {
+          "status": "passed",
+          "seconds": 0.000121,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "threads-let-binding": {
+          "status": "passed",
+          "seconds": 0.020328,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "threads-live": {
+          "status": "passed",
+          "seconds": 0.000187,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "threads-main-thread": {
+          "status": "passed",
+          "seconds": 5.4e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "threads-mutex-contention": {
+          "status": "passed",
+          "seconds": 0.010206,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "threads-mutex-lock-unlock": {
+          "status": "passed",
+          "seconds": 7.1e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "threads-mutex-recursive": {
+          "status": "passed",
+          "seconds": 7.5e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "threads-mutex-signal": {
+          "status": "passed",
+          "seconds": 0.004372,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "threads-mutex-type": {
+          "status": "passed",
+          "seconds": 4.7e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "threads-mutexp": {
+          "status": "passed",
+          "seconds": 4e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "threads-mutexp-2": {
+          "status": "passed",
+          "seconds": 3.2e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "threads-name": {
+          "status": "passed",
+          "seconds": 8.4e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "threads-signal-early": {
+          "status": "passed",
+          "seconds": 1.003995,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "threads-signal-main-thread": {
+          "status": "passed",
+          "seconds": 0.102921,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"Error #<thread 0x7c2585ca00>: (error nil)\n\""
+        },
+        "threads-sticky-point": {
+          "status": "passed",
+          "seconds": 1.005197,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "threads-test-bug33073": {
+          "status": "passed",
+          "seconds": 0.000123,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "threads-test-bug48990": {
+          "status": "passed",
+          "seconds": 0.000148,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "threads-threadp": {
+          "status": "passed",
+          "seconds": 2.4e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "threads-type": {
+          "status": "passed",
+          "seconds": 2.8e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        }
+      }
+    },
+    {
+      "product": "cocoa",
+      "file": "test/src/font-tests.el",
+      "ids": [
+        "font-parse-tests",
+        "font-parse-xlfd-test"
+      ],
+      "counts": {
+        "passed": 2
+      },
+      "complete": true,
+      "exit_code": 0,
+      "remaining_group_terminated": false,
+      "seconds": 0.05442712499999658,
+      "timed_out": false,
+      "protocol_error": null,
+      "runner_error": null,
+      "result": {
+        "path": "build/acceptance/g3-thread-font-image-1/cocoa/results/cocoa/test-src-font-tests.el-79bce97a43ff.json",
+        "sha256": "0018d98d6719faa5e036a4f71541fb4dbd6f8e39632f95c91e5ad4a82d167bfc"
+      },
+      "events": {
+        "path": "build/acceptance/g3-thread-font-image-1/cocoa/results/cocoa/test-src-font-tests.el-79bce97a43ff.events.jsonl",
+        "sha256": "3c9f4f1ef0fd155db0655a110c513941989de6afd2869977b090e10ce83b9c68"
+      },
+      "cases": {
+        "font-parse-tests": {
+          "status": "passed",
+          "seconds": 0.000506,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "font-parse-xlfd-test": {
+          "status": "passed",
+          "seconds": 2.2e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        }
+      }
+    },
+    {
+      "product": "cocoa",
+      "file": "test/src/image-tests.el",
+      "ids": [
+        "image-tests-image-mask-p/error-on-nongraphical-display",
+        "image-tests-image-metadata/error-on-nongraphical-display",
+        "image-tests-image-size/error-on-nongraphical-display",
+        "image-tests-imagemagick-types",
+        "image-tests-init-image-library"
+      ],
+      "counts": {
+        "passed": 4,
+        "skipped": 1
+      },
+      "complete": true,
+      "exit_code": 0,
+      "remaining_group_terminated": false,
+      "seconds": 0.056080416000000355,
+      "timed_out": false,
+      "protocol_error": null,
+      "runner_error": null,
+      "result": {
+        "path": "build/acceptance/g3-thread-font-image-1/cocoa/results/cocoa/test-src-image-tests.el-ab49b1531a7a.json",
+        "sha256": "e89c030f4ae2f0c10b5046284f74fa7fe011d17541f2fb79a0e5418a70c08846"
+      },
+      "events": {
+        "path": "build/acceptance/g3-thread-font-image-1/cocoa/results/cocoa/test-src-image-tests.el-ab49b1531a7a.events.jsonl",
+        "sha256": "7682f102f5bb29cdfb6fbfbb019ea00684d83274a5e6c6b102bda740ee8e0f35"
+      },
+      "cases": {
+        "image-tests-image-mask-p/error-on-nongraphical-display": {
+          "status": "passed",
+          "seconds": 5.8e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "image-tests-image-metadata/error-on-nongraphical-display": {
+          "status": "passed",
+          "seconds": 2e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "image-tests-image-size/error-on-nongraphical-display": {
+          "status": "passed",
+          "seconds": 1.7e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "image-tests-imagemagick-types": {
+          "status": "skipped",
+          "seconds": 3.7e-05,
+          "diagnostic": "result=ert-test-skipped expected=t condition=(ert-test-skipped ((skip-unless (fboundp 'imagemagick-types)) :form (fboundp imagemagick-types) :value nil)) messages=\"\""
+        },
+        "image-tests-init-image-library": {
+          "status": "passed",
+          "seconds": 1.6e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        }
+      }
+    },
+    {
+      "product": "cocoa",
+      "file": "test/src/inotify-tests.el",
+      "ids": [
+        "inotify-file-watch-simple",
+        "inotify-file-watch-stop-delivery",
+        "inotify-valid-p-simple"
+      ],
+      "counts": {
+        "skipped": 3
+      },
+      "complete": true,
+      "exit_code": 0,
+      "remaining_group_terminated": false,
+      "seconds": 0.0540942080000022,
+      "timed_out": false,
+      "protocol_error": null,
+      "runner_error": null,
+      "result": {
+        "path": "build/acceptance/g3-thread-font-image-1/cocoa/results/cocoa/test-src-inotify-tests.el-9c3624fb13c5.json",
+        "sha256": "c2d773b3b72342e8b874be3cb440778e0e1be0e46aab9508ae023dc1dbe38f75"
+      },
+      "events": {
+        "path": "build/acceptance/g3-thread-font-image-1/cocoa/results/cocoa/test-src-inotify-tests.el-9c3624fb13c5.events.jsonl",
+        "sha256": "5cefa2fc055249cd831967903fe080d839a270f1c2476e2e4a3f75fb4fe2731d"
+      },
+      "cases": {
+        "inotify-file-watch-simple": {
+          "status": "skipped",
+          "seconds": 4.7e-05,
+          "diagnostic": "result=ert-test-skipped expected=t condition=(ert-test-skipped ((skip-unless (featurep 'inotify)) :form (featurep inotify) :value nil)) messages=\"\""
+        },
+        "inotify-file-watch-stop-delivery": {
+          "status": "skipped",
+          "seconds": 2.8e-05,
+          "diagnostic": "result=ert-test-skipped expected=t condition=(ert-test-skipped ((skip-unless (featurep 'inotify)) :form (featurep inotify) :value nil)) messages=\"\""
+        },
+        "inotify-valid-p-simple": {
+          "status": "skipped",
+          "seconds": 3.4e-05,
+          "diagnostic": "result=ert-test-skipped expected=t condition=(ert-test-skipped ((skip-unless (featurep 'inotify)) :form (featurep inotify) :value nil)) messages=\"\""
+        }
+      }
+    }
+  ],
+  "products": {
+    "reference": {
+      "program": {
+        "kind": "file",
+        "bytes": 3691504,
+        "mode": 493,
+        "sha256": "5b55e93c8304368ee37cc5c537ca3e1370e3b9b3fef049bdce76834a9db75e65"
+      },
+      "dump": {
+        "kind": "file",
+        "bytes": 23084632,
+        "mode": 420,
+        "sha256": "6ac1214186022574a70e84a04bb7f2dc44e1ea1d4c90f0d9ce421ddd0f4b4536"
+      },
+      "resources": {
+        "lisp": {
+          "identity_canonical_json_sha256": "564df364c803f4d0b64d7bc2ba986d775e8985529481ac2684b739666e131323",
+          "top_level_entries": 3316
+        }
+      }
+    },
+    "terminal": {
+      "program": {
+        "kind": "file",
+        "bytes": 2698016,
+        "mode": 493,
+        "sha256": "fb0b822273e79bb5b008725771473f5d510b9f712488242d615fb3a5fefbcde6"
+      },
+      "dump": {
+        "kind": "file",
+        "bytes": 13101600,
+        "mode": 420,
+        "sha256": "5d1913c39d5c348c711d24e16b25d9e63d09e082ee6dbe3b3a54ac4680862f82"
+      },
+      "resources": {
+        "lisp": {
+          "identity_canonical_json_sha256": "79dc09151f2f61152496f3587dc54cb580fb45a9c92301bfe3e75ab027a02146",
+          "top_level_entries": 3363
+        },
+        "runtime-tls": {
+          "identity_canonical_json_sha256": "9b34100e73d1f4bbd3157cd1535a25f8fdc6d4e094f2e6a1e9dc79b1a63fd73d",
+          "top_level_entries": 9
+        },
+        "runtime-lcms": {
+          "identity_canonical_json_sha256": "819844d74d5d4f3ee5a75aaf2b0d9a23b07fdda8bfa71c65cdbda63f6eb213cb",
+          "top_level_entries": 1
+        },
+        "runtime-treesit": {
+          "identity_canonical_json_sha256": "05b5f47a14a19b3f04511fa292f0976e2cab06437b9e4323edbce72a9767f0f9",
+          "top_level_entries": 1
+        }
+      }
+    },
+    "cocoa": {
+      "program": {
+        "kind": "file",
+        "bytes": 4230368,
+        "mode": 493,
+        "sha256": "d796f4c52e2a32ec6176e02efca33d922da18252aaddd0885e59993f108ba385"
+      },
+      "dump": {
+        "kind": "file",
+        "bytes": 18602200,
+        "mode": 420,
+        "sha256": "2b87c3436eaa33e551b024c6be01ea702b9c586c4535993258b63aa95a618b92"
+      },
+      "resources": {
+        "lisp": {
+          "identity_canonical_json_sha256": "e4108125e078022ebe91c3ccc5095c46c8fcbe48180ed02668f315d4e4c910b5",
+          "top_level_entries": 3353
+        },
+        "bundle": {
+          "identity_canonical_json_sha256": "e1212d5ae114aec885c8d2d467c9c39b4feb1f693b0d685dc28901fd34bb5342",
+          "top_level_entries": 4477
+        }
+      }
+    }
+  },
+  "controller": {
+    "run_id": "a259f8efccd64b75bd116c147f9110d8",
+    "exit_code": 1,
+    "cleanup_complete": true,
+    "elapsed_seconds": 35.027,
+    "peak_rss_bytes": 106446848,
+    "peak_footprint_bytes": 72516712,
+    "peak_accounted_bytes": 106446848,
+    "metrics_independently_reviewed": false
+  },
+  "original_aggregate_reason": "12processes complete exit0;12common platform/capability skips plus1additional terminal window-system API skip. Original aggregatefalse,ownerexit1 and unequal status maps preserved; no failed assertions.",
+  "capability_difference": {
+    "id": "image-tests-init-image-library",
+    "reference": "passed",
+    "terminal": "skipped",
+    "cocoa": "passed",
+    "guard": "fboundp init-image-library",
+    "source_definition": "src/image.rs:11773",
+    "source_registration": "src/image.rs:12223",
+    "condition": "have_window_system",
+    "classification": "Frontend configuration difference; not a common skip, not accepted as complete compatibility",
+    "source_sha256": "f4e567314151cec81042711fa0dad8bb23485e6fb9e5e6cad239ea326d006f6c",
+    "configurations": {
+      "terminal": {
+        "path": "build-support/macos/terminal/config.json",
+        "sha256": "c3311f5451857e6c5391463b35dfc5fcfccc45324e8e4cf684f2d8f646476809"
+      },
+      "cocoa": {
+        "path": "build-support/macos/cocoa/config.json",
+        "sha256": "637fa9975d88b44207a86855352583aa4fc08661c469f8c4030c3c61a85d7c33"
+      }
+    }
+  },
+  "independent_review": {
+    "accepted": true,
+    "state": "Actual source and raw-result handback received; no confirmed execution defect",
+    "limits": [
+      "Normal batch coverage only; not full G3, GUI, native, collector or performance acceptance",
+      "Terminal image library guard differs from reference/Cocoa; status maps remain unequal",
+      "Three should-error passes do not prove terminal image primitive parity",
+      "Controller metrics remain primary-side receipts; live App and corpus were not rehashed by reviewer",
+      "CLN168 manifest review and signed-delivery adoption follow separately"
+    ]
+  },
+  "cleanup": {
+    "status": "complete",
+    "files": 4608,
+    "directories": 882,
+    "links": 18,
+    "rows": 5508,
+    "logical_bytes": 62990856,
+    "allocated_bytes": 75264000,
+    "manifest_sha256": "ebebfe9e3069cc00cf2d307348d9aa4d7d9d96afb333863d37701e33592de7df",
+    "automatic_directories": 60,
+    "products_inputs_git_evidence_unchanged": true,
+    "manifest": "maintenance/cleanup/manifests/2026-10-30-168-consumed-thread-image-state.jsonl.gz",
+    "post_review_directories": 822,
+    "automatic_parent_directories": 12,
+    "raw_results_retained": true
+  }
+}
