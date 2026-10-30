@@ -1,0 +1,1203 @@
+{
+  "schema": 1,
+  "scope": "Four complete pinned stable time/SQLite/color/XML files; installed reference and current normal terminal/Cocoa; all IDs and original assertions unchanged, no full G3, physical UI, native/collector or performance claim",
+  "passed": false,
+  "source_commit": "a360712c9d272d950d8d8255ef74570f7e90b7d9",
+  "files": [
+    {
+      "path": "test/src/lcms-tests.el",
+      "size": 5695,
+      "blob": "74de139f0a1026e4830d4c4af301b82b0e042733",
+      "sha256": "35daf8502a732914f32f0e2765c569f83b00a11cd4c881ed1233bbafdf33fab0"
+    },
+    {
+      "path": "test/src/sqlite-tests.el",
+      "size": 10122,
+      "blob": "bcd80124dfd09b7429d6dc2f13f33652434747e4",
+      "sha256": "fa57775d0f72db02fd0bde31227acd30387daf67dbaa9eb3fa9c1567c05c1344"
+    },
+    {
+      "path": "test/src/timefns-tests.el",
+      "size": 11731,
+      "blob": "20c18f989e259c853671a68c1b5334773b5d6d7d",
+      "sha256": "72b73b86ffddc34e3a5d4677fae90f8c311511e58bd75d4c87d96db111501c82"
+    },
+    {
+      "path": "test/src/xml-tests.el",
+      "size": 2143,
+      "blob": "d8729e9cfd086717f394e3e81620a963cc521e75",
+      "sha256": "b1514a1c79a11537d57433c8029435489763094bdb0f0c4e50beb00e147d8e00"
+    }
+  ],
+  "counts": {
+    "passed": 105,
+    "skipped": 3
+  },
+  "ids_per_product": 36,
+  "processes": 12,
+  "seconds": 7.187232667000001,
+  "status_maps_equal_reference": true,
+  "identities_unchanged": true,
+  "original_inputs_unchanged": true,
+  "generated_resources": {
+    "reference": {},
+    "terminal": {},
+    "cocoa": {}
+  },
+  "raw_result": {
+    "path": "build/acceptance/g3-time-resources-1/results.json",
+    "sha256": "65483b2dc5cfa56f87c30e225f64470233a709b6c558a7c405818594a36c25a0"
+  },
+  "driver_sha256": "bc0e385108c22b282e075f5053baa6a4a80b112e7408e0ac71c27ca4f71f2352",
+  "budget": {
+    "whole_seconds": 300,
+    "per_case_seconds": 30,
+    "expected_seconds": [
+      10,
+      90
+    ],
+    "expected_peak_bytes": 1073741824,
+    "copied_source_bytes": 62990856,
+    "scale": "12 serial file processes. Time arithmetic uses about50 fixed values in bounded pair combinations; float precision halves finite binary64 to zero and doubles until conversion rejects (about1075+1025 iterations,8 constants each), bounded bignums around1e37 and2048-byte zone string. SQLite13 cases use in-memory tables with a few rows, fixed strings/blobs and extension errors/availability on original system paths, no downloads/install. LCMS6 cases use fixed color triples and original tolerances. XML1 case parses3 short fixed documents. Original capability guards remain. No network/physicalUI/externalcompiler/intentionalcrash. Per-case30s and whole300s hard limits, estimated under1GiB; no input or assertion change"
+  },
+  "controller": {
+    "run_id": "1d00503ab8164f1abfe24880ded23ea2",
+    "exit_code": 1,
+    "cleanup_complete": true,
+    "elapsed_seconds": 8.406,
+    "peak_rss_bytes": 82280448,
+    "peak_footprint_bytes": 58917896,
+    "peak_accounted_bytes": 82280448,
+    "metrics_independently_reviewed": false
+  },
+  "process_results": [
+    {
+      "product": "reference",
+      "file": "test/src/timefns-tests.el",
+      "ids": [
+        "current-time-zone",
+        "decode-then-encode-time",
+        "encode-time-alternate-apis",
+        "encode-time-dst-numeric-zone",
+        "float-time-precision",
+        "format-time-string-padding-minimal-deletes-unneeded-zeros",
+        "format-time-string-padding-minimal-retains-needed-zeros",
+        "format-time-string-padding-spaces",
+        "format-time-string-padding-zeros-adds-on-insignificant-side",
+        "format-time-string-with-bignum-on-32-bit",
+        "format-time-string-with-outlandish-zone",
+        "format-time-string-with-zone",
+        "time-arith-tests",
+        "time-convert-forms",
+        "time-equal-p-nil-nil",
+        "time-rounding-tests"
+      ],
+      "counts": {
+        "passed": 16
+      },
+      "complete": true,
+      "exit_code": 0,
+      "remaining_group_terminated": false,
+      "seconds": 0.36726941700000015,
+      "result": {
+        "path": "build/acceptance/g3-time-resources-1/reference/results/reference/test-src-timefns-tests.el-ba3b91a2cb2e.json",
+        "sha256": "8c138d98cd200ecfb2fb851cdb4611f9f20180b451770f1cc919d86c52c34c9c"
+      },
+      "events": {
+        "path": "build/acceptance/g3-time-resources-1/reference/results/reference/test-src-timefns-tests.el-ba3b91a2cb2e.events.jsonl",
+        "sha256": "c156c1a85158058ea6564200fad8899cbe519429e34d6014ebbe29c91b4fc235"
+      },
+      "cases": {
+        "current-time-zone": {
+          "status": "passed",
+          "seconds": 0.000414,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "decode-then-encode-time": {
+          "status": "passed",
+          "seconds": 0.000161,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "encode-time-alternate-apis": {
+          "status": "passed",
+          "seconds": 1.7e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "encode-time-dst-numeric-zone": {
+          "status": "passed",
+          "seconds": 0.000223,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "float-time-precision": {
+          "status": "passed",
+          "seconds": 0.02852,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "format-time-string-padding-minimal-deletes-unneeded-zeros": {
+          "status": "passed",
+          "seconds": 0.000425,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "format-time-string-padding-minimal-retains-needed-zeros": {
+          "status": "passed",
+          "seconds": 0.000415,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "format-time-string-padding-spaces": {
+          "status": "passed",
+          "seconds": 0.00014,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "format-time-string-padding-zeros-adds-on-insignificant-side": {
+          "status": "passed",
+          "seconds": 0.000122,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "format-time-string-with-bignum-on-32-bit": {
+          "status": "passed",
+          "seconds": 1e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "format-time-string-with-outlandish-zone": {
+          "status": "passed",
+          "seconds": 0.000432,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "format-time-string-with-zone": {
+          "status": "passed",
+          "seconds": 0.003286,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "time-arith-tests": {
+          "status": "passed",
+          "seconds": 0.009697,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "time-convert-forms": {
+          "status": "passed",
+          "seconds": 0.000511,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "time-equal-p-nil-nil": {
+          "status": "passed",
+          "seconds": 1.2e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "time-rounding-tests": {
+          "status": "passed",
+          "seconds": 1e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        }
+      }
+    },
+    {
+      "product": "reference",
+      "file": "test/src/sqlite-tests.el",
+      "ids": [
+        "sqlite-binary",
+        "sqlite-blob",
+        "sqlite-chars",
+        "sqlite-close-dbs",
+        "sqlite-closed-db",
+        "sqlite-different-dbs",
+        "sqlite-load-extension",
+        "sqlite-multiple-statements",
+        "sqlite-numbers",
+        "sqlite-param",
+        "sqlite-returning",
+        "sqlite-select",
+        "sqlite-set"
+      ],
+      "counts": {
+        "passed": 12,
+        "skipped": 1
+      },
+      "complete": true,
+      "exit_code": 0,
+      "remaining_group_terminated": false,
+      "seconds": 0.2273703330000001,
+      "result": {
+        "path": "build/acceptance/g3-time-resources-1/reference/results/reference/test-src-sqlite-tests.el-037cde699e56.json",
+        "sha256": "6257e63c13ce960a05440dc2f6443c5ffb899aec5a8fd6a1a076f665cba6f736"
+      },
+      "events": {
+        "path": "build/acceptance/g3-time-resources-1/reference/results/reference/test-src-sqlite-tests.el-037cde699e56.events.jsonl",
+        "sha256": "212f9c88938733c6fd23be7217eeca283e116d4bc8a8220e4f03869b0b51d624"
+      },
+      "cases": {
+        "sqlite-binary": {
+          "status": "passed",
+          "seconds": 0.001138,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "sqlite-blob": {
+          "status": "passed",
+          "seconds": 9.2e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "sqlite-chars": {
+          "status": "passed",
+          "seconds": 0.000156,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "sqlite-close-dbs": {
+          "status": "passed",
+          "seconds": 0.000112,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "sqlite-closed-db": {
+          "status": "passed",
+          "seconds": 4.6e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "sqlite-different-dbs": {
+          "status": "passed",
+          "seconds": 0.000168,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "sqlite-load-extension": {
+          "status": "skipped",
+          "seconds": 3e-05,
+          "diagnostic": "result=ert-test-skipped expected=t condition=(ert-test-skipped ((skip-unless (fboundp 'sqlite-load-extension)) :form (fboundp sqlite-load-extension) :value nil)) messages=\"\""
+        },
+        "sqlite-multiple-statements": {
+          "status": "passed",
+          "seconds": 0.000109,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "sqlite-numbers": {
+          "status": "passed",
+          "seconds": 7.3e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "sqlite-param": {
+          "status": "passed",
+          "seconds": 5.4e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "sqlite-returning": {
+          "status": "passed",
+          "seconds": 7.8e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "sqlite-select": {
+          "status": "passed",
+          "seconds": 7.3e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "sqlite-set": {
+          "status": "passed",
+          "seconds": 6e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        }
+      }
+    },
+    {
+      "product": "reference",
+      "file": "test/src/lcms-tests.el",
+      "ids": [
+        "lcms-ciecam02-gold",
+        "lcms-cri-cam02-ucs",
+        "lcms-dE-cam02-ucs-silver",
+        "lcms-jmh->cam02-ucs-silver",
+        "lcms-roundtrip",
+        "lcms-whitepoint"
+      ],
+      "counts": {
+        "passed": 6
+      },
+      "complete": true,
+      "exit_code": 0,
+      "remaining_group_terminated": false,
+      "seconds": 0.2517110419999997,
+      "result": {
+        "path": "build/acceptance/g3-time-resources-1/reference/results/reference/test-src-lcms-tests.el-73cb1e3c3b65.json",
+        "sha256": "86bc8cf3d57ca8da152e1544bf3f6cd840b5e5106075d7a9bb1a1b3bff31ecb5"
+      },
+      "events": {
+        "path": "build/acceptance/g3-time-resources-1/reference/results/reference/test-src-lcms-tests.el-73cb1e3c3b65.events.jsonl",
+        "sha256": "15535efd28b31e9ea973362fcaeb306b4fe77582b6d69c85ded7f60dc52ff3c9"
+      },
+      "cases": {
+        "lcms-ciecam02-gold": {
+          "status": "passed",
+          "seconds": 0.000616,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "lcms-cri-cam02-ucs": {
+          "status": "passed",
+          "seconds": 3.1e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "lcms-dE-cam02-ucs-silver": {
+          "status": "passed",
+          "seconds": 2.4e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "lcms-jmh->cam02-ucs-silver": {
+          "status": "passed",
+          "seconds": 1.7e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "lcms-roundtrip": {
+          "status": "passed",
+          "seconds": 1.6e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "lcms-whitepoint": {
+          "status": "passed",
+          "seconds": 0.000345,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        }
+      }
+    },
+    {
+      "product": "reference",
+      "file": "test/src/xml-tests.el",
+      "ids": [
+        "libxml-tests"
+      ],
+      "counts": {
+        "passed": 1
+      },
+      "complete": true,
+      "exit_code": 0,
+      "remaining_group_terminated": false,
+      "seconds": 0.20066366600000007,
+      "result": {
+        "path": "build/acceptance/g3-time-resources-1/reference/results/reference/test-src-xml-tests.el-32a0347fdce5.json",
+        "sha256": "f7b37c39642b5d27f84b2c6d11dba17d74c0adf67413fa67562a1f5e4fad5d6e"
+      },
+      "events": {
+        "path": "build/acceptance/g3-time-resources-1/reference/results/reference/test-src-xml-tests.el-32a0347fdce5.events.jsonl",
+        "sha256": "36b0abcd53fe5bb6a3365a16a08d3d5382672e989693d7232b3683fccd22fb1e"
+      },
+      "cases": {
+        "libxml-tests": {
+          "status": "passed",
+          "seconds": 0.000761,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        }
+      }
+    },
+    {
+      "product": "terminal",
+      "file": "test/src/timefns-tests.el",
+      "ids": [
+        "current-time-zone",
+        "decode-then-encode-time",
+        "encode-time-alternate-apis",
+        "encode-time-dst-numeric-zone",
+        "float-time-precision",
+        "format-time-string-padding-minimal-deletes-unneeded-zeros",
+        "format-time-string-padding-minimal-retains-needed-zeros",
+        "format-time-string-padding-spaces",
+        "format-time-string-padding-zeros-adds-on-insignificant-side",
+        "format-time-string-with-bignum-on-32-bit",
+        "format-time-string-with-outlandish-zone",
+        "format-time-string-with-zone",
+        "time-arith-tests",
+        "time-convert-forms",
+        "time-equal-p-nil-nil",
+        "time-rounding-tests"
+      ],
+      "counts": {
+        "passed": 16
+      },
+      "complete": true,
+      "exit_code": 0,
+      "remaining_group_terminated": false,
+      "seconds": 0.10972308299999955,
+      "result": {
+        "path": "build/acceptance/g3-time-resources-1/terminal/results/terminal/test-src-timefns-tests.el-ba3b91a2cb2e.json",
+        "sha256": "bad73ca9a23178ca0b29405d912a4ecfeb4b75950eb267d3b3aad0be8200cc5d"
+      },
+      "events": {
+        "path": "build/acceptance/g3-time-resources-1/terminal/results/terminal/test-src-timefns-tests.el-ba3b91a2cb2e.events.jsonl",
+        "sha256": "c8000dc7a9a1b2718aedd21cc8a76947269d34c22008241472f552007009b388"
+      },
+      "cases": {
+        "current-time-zone": {
+          "status": "passed",
+          "seconds": 4e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "decode-then-encode-time": {
+          "status": "passed",
+          "seconds": 0.000236,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "encode-time-alternate-apis": {
+          "status": "passed",
+          "seconds": 2.2e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "encode-time-dst-numeric-zone": {
+          "status": "passed",
+          "seconds": 0.00016,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "float-time-precision": {
+          "status": "passed",
+          "seconds": 0.025839,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "format-time-string-padding-minimal-deletes-unneeded-zeros": {
+          "status": "passed",
+          "seconds": 0.000246,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "format-time-string-padding-minimal-retains-needed-zeros": {
+          "status": "passed",
+          "seconds": 0.0004,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "format-time-string-padding-spaces": {
+          "status": "passed",
+          "seconds": 0.000132,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "format-time-string-padding-zeros-adds-on-insignificant-side": {
+          "status": "passed",
+          "seconds": 0.000152,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "format-time-string-with-bignum-on-32-bit": {
+          "status": "passed",
+          "seconds": 1.5e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "format-time-string-with-outlandish-zone": {
+          "status": "passed",
+          "seconds": 0.000645,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "format-time-string-with-zone": {
+          "status": "passed",
+          "seconds": 0.003495,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "time-arith-tests": {
+          "status": "passed",
+          "seconds": 0.009916,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "time-convert-forms": {
+          "status": "passed",
+          "seconds": 0.0005,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "time-equal-p-nil-nil": {
+          "status": "passed",
+          "seconds": 1.1e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "time-rounding-tests": {
+          "status": "passed",
+          "seconds": 1.2e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        }
+      }
+    },
+    {
+      "product": "terminal",
+      "file": "test/src/sqlite-tests.el",
+      "ids": [
+        "sqlite-binary",
+        "sqlite-blob",
+        "sqlite-chars",
+        "sqlite-close-dbs",
+        "sqlite-closed-db",
+        "sqlite-different-dbs",
+        "sqlite-load-extension",
+        "sqlite-multiple-statements",
+        "sqlite-numbers",
+        "sqlite-param",
+        "sqlite-returning",
+        "sqlite-select",
+        "sqlite-set"
+      ],
+      "counts": {
+        "passed": 12,
+        "skipped": 1
+      },
+      "complete": true,
+      "exit_code": 0,
+      "remaining_group_terminated": false,
+      "seconds": 0.06251304099999988,
+      "result": {
+        "path": "build/acceptance/g3-time-resources-1/terminal/results/terminal/test-src-sqlite-tests.el-037cde699e56.json",
+        "sha256": "7183a43c2e3b3be98d7984d858b42fe658b61334f00f95161987b9f82e722cd2"
+      },
+      "events": {
+        "path": "build/acceptance/g3-time-resources-1/terminal/results/terminal/test-src-sqlite-tests.el-037cde699e56.events.jsonl",
+        "sha256": "11b31776f867111b2227267b05711feec7d90a0c14601a86e1453f0403374025"
+      },
+      "cases": {
+        "sqlite-binary": {
+          "status": "passed",
+          "seconds": 0.000682,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "sqlite-blob": {
+          "status": "passed",
+          "seconds": 0.000132,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "sqlite-chars": {
+          "status": "passed",
+          "seconds": 8.1e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "sqlite-close-dbs": {
+          "status": "passed",
+          "seconds": 8.2e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "sqlite-closed-db": {
+          "status": "passed",
+          "seconds": 2.5e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "sqlite-different-dbs": {
+          "status": "passed",
+          "seconds": 8.5e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "sqlite-load-extension": {
+          "status": "skipped",
+          "seconds": 3e-05,
+          "diagnostic": "result=ert-test-skipped expected=t condition=(ert-test-skipped ((skip-unless (fboundp 'sqlite-load-extension)) :form (fboundp sqlite-load-extension) :value nil)) messages=\"\""
+        },
+        "sqlite-multiple-statements": {
+          "status": "passed",
+          "seconds": 9.3e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "sqlite-numbers": {
+          "status": "passed",
+          "seconds": 6e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "sqlite-param": {
+          "status": "passed",
+          "seconds": 5.2e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "sqlite-returning": {
+          "status": "passed",
+          "seconds": 8.3e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "sqlite-select": {
+          "status": "passed",
+          "seconds": 6.7e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "sqlite-set": {
+          "status": "passed",
+          "seconds": 6.5e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        }
+      }
+    },
+    {
+      "product": "terminal",
+      "file": "test/src/lcms-tests.el",
+      "ids": [
+        "lcms-ciecam02-gold",
+        "lcms-cri-cam02-ucs",
+        "lcms-dE-cam02-ucs-silver",
+        "lcms-jmh->cam02-ucs-silver",
+        "lcms-roundtrip",
+        "lcms-whitepoint"
+      ],
+      "counts": {
+        "passed": 6
+      },
+      "complete": true,
+      "exit_code": 0,
+      "remaining_group_terminated": false,
+      "seconds": 0.05653141699999953,
+      "result": {
+        "path": "build/acceptance/g3-time-resources-1/terminal/results/terminal/test-src-lcms-tests.el-73cb1e3c3b65.json",
+        "sha256": "f9b36ecd70557ec68ac70e9292544163fa6db87a5add353a19f0f3b7f85f0bcd"
+      },
+      "events": {
+        "path": "build/acceptance/g3-time-resources-1/terminal/results/terminal/test-src-lcms-tests.el-73cb1e3c3b65.events.jsonl",
+        "sha256": "45776c3e933ebbad562ee445f9cb6e4569b1f6763fd013cbfc018d12bd406367"
+      },
+      "cases": {
+        "lcms-ciecam02-gold": {
+          "status": "passed",
+          "seconds": 0.000109,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "lcms-cri-cam02-ucs": {
+          "status": "passed",
+          "seconds": 3.9e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "lcms-dE-cam02-ucs-silver": {
+          "status": "passed",
+          "seconds": 3.9e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "lcms-jmh->cam02-ucs-silver": {
+          "status": "passed",
+          "seconds": 2.2e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "lcms-roundtrip": {
+          "status": "passed",
+          "seconds": 1.9e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "lcms-whitepoint": {
+          "status": "passed",
+          "seconds": 5.9e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        }
+      }
+    },
+    {
+      "product": "terminal",
+      "file": "test/src/xml-tests.el",
+      "ids": [
+        "libxml-tests"
+      ],
+      "counts": {
+        "passed": 1
+      },
+      "complete": true,
+      "exit_code": 0,
+      "remaining_group_terminated": false,
+      "seconds": 0.05415437500000042,
+      "result": {
+        "path": "build/acceptance/g3-time-resources-1/terminal/results/terminal/test-src-xml-tests.el-32a0347fdce5.json",
+        "sha256": "d1cffe1af3313877038856bf2e211da7a0e901d312019e7293c6c864153c0bb6"
+      },
+      "events": {
+        "path": "build/acceptance/g3-time-resources-1/terminal/results/terminal/test-src-xml-tests.el-32a0347fdce5.events.jsonl",
+        "sha256": "667e4ef2924dd8fb1a1dda69058c7dc45475de8eb7979630b4db68deab35c074"
+      },
+      "cases": {
+        "libxml-tests": {
+          "status": "passed",
+          "seconds": 0.000159,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        }
+      }
+    },
+    {
+      "product": "cocoa",
+      "file": "test/src/timefns-tests.el",
+      "ids": [
+        "current-time-zone",
+        "decode-then-encode-time",
+        "encode-time-alternate-apis",
+        "encode-time-dst-numeric-zone",
+        "float-time-precision",
+        "format-time-string-padding-minimal-deletes-unneeded-zeros",
+        "format-time-string-padding-minimal-retains-needed-zeros",
+        "format-time-string-padding-spaces",
+        "format-time-string-padding-zeros-adds-on-insignificant-side",
+        "format-time-string-with-bignum-on-32-bit",
+        "format-time-string-with-outlandish-zone",
+        "format-time-string-with-zone",
+        "time-arith-tests",
+        "time-convert-forms",
+        "time-equal-p-nil-nil",
+        "time-rounding-tests"
+      ],
+      "counts": {
+        "passed": 16
+      },
+      "complete": true,
+      "exit_code": 0,
+      "remaining_group_terminated": false,
+      "seconds": 0.14635837500000015,
+      "result": {
+        "path": "build/acceptance/g3-time-resources-1/cocoa/results/cocoa/test-src-timefns-tests.el-ba3b91a2cb2e.json",
+        "sha256": "a8db4842fab5e9762d1018e9022d24fa1e065e6e359db23e5198904f2e59692f"
+      },
+      "events": {
+        "path": "build/acceptance/g3-time-resources-1/cocoa/results/cocoa/test-src-timefns-tests.el-ba3b91a2cb2e.events.jsonl",
+        "sha256": "2bb1179748c6c639ee1457a8575ffaa979c14ceaf69afa25af10e98db53364a7"
+      },
+      "cases": {
+        "current-time-zone": {
+          "status": "passed",
+          "seconds": 6.2e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "decode-then-encode-time": {
+          "status": "passed",
+          "seconds": 0.00045,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "encode-time-alternate-apis": {
+          "status": "passed",
+          "seconds": 4.5e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "encode-time-dst-numeric-zone": {
+          "status": "passed",
+          "seconds": 0.000217,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "float-time-precision": {
+          "status": "passed",
+          "seconds": 0.031604,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "format-time-string-padding-minimal-deletes-unneeded-zeros": {
+          "status": "passed",
+          "seconds": 0.000318,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "format-time-string-padding-minimal-retains-needed-zeros": {
+          "status": "passed",
+          "seconds": 0.000396,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "format-time-string-padding-spaces": {
+          "status": "passed",
+          "seconds": 0.000687,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "format-time-string-padding-zeros-adds-on-insignificant-side": {
+          "status": "passed",
+          "seconds": 0.000173,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "format-time-string-with-bignum-on-32-bit": {
+          "status": "passed",
+          "seconds": 2.2e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "format-time-string-with-outlandish-zone": {
+          "status": "passed",
+          "seconds": 0.000872,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "format-time-string-with-zone": {
+          "status": "passed",
+          "seconds": 0.0041,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "time-arith-tests": {
+          "status": "passed",
+          "seconds": 0.017258,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "time-convert-forms": {
+          "status": "passed",
+          "seconds": 0.000514,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "time-equal-p-nil-nil": {
+          "status": "passed",
+          "seconds": 1.3e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "time-rounding-tests": {
+          "status": "passed",
+          "seconds": 1.2e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        }
+      }
+    },
+    {
+      "product": "cocoa",
+      "file": "test/src/sqlite-tests.el",
+      "ids": [
+        "sqlite-binary",
+        "sqlite-blob",
+        "sqlite-chars",
+        "sqlite-close-dbs",
+        "sqlite-closed-db",
+        "sqlite-different-dbs",
+        "sqlite-load-extension",
+        "sqlite-multiple-statements",
+        "sqlite-numbers",
+        "sqlite-param",
+        "sqlite-returning",
+        "sqlite-select",
+        "sqlite-set"
+      ],
+      "counts": {
+        "passed": 12,
+        "skipped": 1
+      },
+      "complete": true,
+      "exit_code": 0,
+      "remaining_group_terminated": false,
+      "seconds": 0.06281520799999996,
+      "result": {
+        "path": "build/acceptance/g3-time-resources-1/cocoa/results/cocoa/test-src-sqlite-tests.el-037cde699e56.json",
+        "sha256": "dc2a78aad068d486f7819f96b8a7a0faa6ca405339bd5e105efdb93054e19c88"
+      },
+      "events": {
+        "path": "build/acceptance/g3-time-resources-1/cocoa/results/cocoa/test-src-sqlite-tests.el-037cde699e56.events.jsonl",
+        "sha256": "5f80ef26bc5f84a5a3b61852aff7c2a6b6b4a88a2cf04e515bdba700f3be737d"
+      },
+      "cases": {
+        "sqlite-binary": {
+          "status": "passed",
+          "seconds": 0.000877,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "sqlite-blob": {
+          "status": "passed",
+          "seconds": 0.000106,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "sqlite-chars": {
+          "status": "passed",
+          "seconds": 7.9e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "sqlite-close-dbs": {
+          "status": "passed",
+          "seconds": 7.5e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "sqlite-closed-db": {
+          "status": "passed",
+          "seconds": 3e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "sqlite-different-dbs": {
+          "status": "passed",
+          "seconds": 7.7e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "sqlite-load-extension": {
+          "status": "skipped",
+          "seconds": 3.9e-05,
+          "diagnostic": "result=ert-test-skipped expected=t condition=(ert-test-skipped ((skip-unless (fboundp 'sqlite-load-extension)) :form (fboundp sqlite-load-extension) :value nil)) messages=\"\""
+        },
+        "sqlite-multiple-statements": {
+          "status": "passed",
+          "seconds": 8.6e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "sqlite-numbers": {
+          "status": "passed",
+          "seconds": 9.5e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "sqlite-param": {
+          "status": "passed",
+          "seconds": 6.2e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "sqlite-returning": {
+          "status": "passed",
+          "seconds": 8.3e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "sqlite-select": {
+          "status": "passed",
+          "seconds": 7.1e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "sqlite-set": {
+          "status": "passed",
+          "seconds": 6.8e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        }
+      }
+    },
+    {
+      "product": "cocoa",
+      "file": "test/src/lcms-tests.el",
+      "ids": [
+        "lcms-ciecam02-gold",
+        "lcms-cri-cam02-ucs",
+        "lcms-dE-cam02-ucs-silver",
+        "lcms-jmh->cam02-ucs-silver",
+        "lcms-roundtrip",
+        "lcms-whitepoint"
+      ],
+      "counts": {
+        "passed": 6
+      },
+      "complete": true,
+      "exit_code": 0,
+      "remaining_group_terminated": false,
+      "seconds": 0.05559791700000005,
+      "result": {
+        "path": "build/acceptance/g3-time-resources-1/cocoa/results/cocoa/test-src-lcms-tests.el-73cb1e3c3b65.json",
+        "sha256": "389af63228b87f77377c3ad1c23abcc94854886339c0b04fbdb1f302663b1a47"
+      },
+      "events": {
+        "path": "build/acceptance/g3-time-resources-1/cocoa/results/cocoa/test-src-lcms-tests.el-73cb1e3c3b65.events.jsonl",
+        "sha256": "7184f8f33fb7802c65072373a72dc294964731df9b465a0664c024982426881e"
+      },
+      "cases": {
+        "lcms-ciecam02-gold": {
+          "status": "passed",
+          "seconds": 9.5e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "lcms-cri-cam02-ucs": {
+          "status": "passed",
+          "seconds": 3.6e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "lcms-dE-cam02-ucs-silver": {
+          "status": "passed",
+          "seconds": 3.2e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "lcms-jmh->cam02-ucs-silver": {
+          "status": "passed",
+          "seconds": 3.1e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "lcms-roundtrip": {
+          "status": "passed",
+          "seconds": 2.1e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        },
+        "lcms-whitepoint": {
+          "status": "passed",
+          "seconds": 6.1e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        }
+      }
+    },
+    {
+      "product": "cocoa",
+      "file": "test/src/xml-tests.el",
+      "ids": [
+        "libxml-tests"
+      ],
+      "counts": {
+        "passed": 1
+      },
+      "complete": true,
+      "exit_code": 0,
+      "remaining_group_terminated": false,
+      "seconds": 0.05493691599999995,
+      "result": {
+        "path": "build/acceptance/g3-time-resources-1/cocoa/results/cocoa/test-src-xml-tests.el-32a0347fdce5.json",
+        "sha256": "cd2576db26b259b3e628ada0a74a5785429f58e481c2c5fa121c46188441193a"
+      },
+      "events": {
+        "path": "build/acceptance/g3-time-resources-1/cocoa/results/cocoa/test-src-xml-tests.el-32a0347fdce5.events.jsonl",
+        "sha256": "c77e7cff8febaf057626801f6eed590c0d95146926860ddd456112b5b0dc85a0"
+      },
+      "cases": {
+        "libxml-tests": {
+          "status": "passed",
+          "seconds": 8.8e-05,
+          "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+        }
+      }
+    }
+  ],
+  "full_G3_accepted": false,
+  "performance_accepted": false,
+  "physical_UI_tested": false,
+  "products": {
+    "reference": {
+      "program": {
+        "kind": "file",
+        "bytes": 3691504,
+        "mode": 493,
+        "sha256": "5b55e93c8304368ee37cc5c537ca3e1370e3b9b3fef049bdce76834a9db75e65"
+      },
+      "dump": {
+        "kind": "file",
+        "bytes": 23084632,
+        "mode": 420,
+        "sha256": "6ac1214186022574a70e84a04bb7f2dc44e1ea1d4c90f0d9ce421ddd0f4b4536"
+      },
+      "resources": {
+        "lisp": {
+          "identity_canonical_json_sha256": "564df364c803f4d0b64d7bc2ba986d775e8985529481ac2684b739666e131323",
+          "top_level_entries": 3316
+        }
+      }
+    },
+    "terminal": {
+      "program": {
+        "kind": "file",
+        "bytes": 2698016,
+        "mode": 493,
+        "sha256": "fb0b822273e79bb5b008725771473f5d510b9f712488242d615fb3a5fefbcde6"
+      },
+      "dump": {
+        "kind": "file",
+        "bytes": 13101600,
+        "mode": 420,
+        "sha256": "5d1913c39d5c348c711d24e16b25d9e63d09e082ee6dbe3b3a54ac4680862f82"
+      },
+      "resources": {
+        "lisp": {
+          "identity_canonical_json_sha256": "79dc09151f2f61152496f3587dc54cb580fb45a9c92301bfe3e75ab027a02146",
+          "top_level_entries": 3363
+        },
+        "runtime-tls": {
+          "identity_canonical_json_sha256": "9b34100e73d1f4bbd3157cd1535a25f8fdc6d4e094f2e6a1e9dc79b1a63fd73d",
+          "top_level_entries": 9
+        },
+        "runtime-lcms": {
+          "identity_canonical_json_sha256": "819844d74d5d4f3ee5a75aaf2b0d9a23b07fdda8bfa71c65cdbda63f6eb213cb",
+          "top_level_entries": 1
+        },
+        "runtime-treesit": {
+          "identity_canonical_json_sha256": "05b5f47a14a19b3f04511fa292f0976e2cab06437b9e4323edbce72a9767f0f9",
+          "top_level_entries": 1
+        }
+      }
+    },
+    "cocoa": {
+      "program": {
+        "kind": "file",
+        "bytes": 4230368,
+        "mode": 493,
+        "sha256": "d796f4c52e2a32ec6176e02efca33d922da18252aaddd0885e59993f108ba385"
+      },
+      "dump": {
+        "kind": "file",
+        "bytes": 18602200,
+        "mode": 420,
+        "sha256": "2b87c3436eaa33e551b024c6be01ea702b9c586c4535993258b63aa95a618b92"
+      },
+      "resources": {
+        "lisp": {
+          "identity_canonical_json_sha256": "e4108125e078022ebe91c3ccc5095c46c8fcbe48180ed02668f315d4e4c910b5",
+          "top_level_entries": 3353
+        },
+        "bundle": {
+          "identity_canonical_json_sha256": "e1212d5ae114aec885c8d2d467c9c39b4feb1f693b0d685dc28901fd34bb5342",
+          "top_level_entries": 4477
+        }
+      }
+    }
+  },
+  "independent_review": {
+    "accepted": true,
+    "confirmed_defects": 0,
+    "scope": "Actual independent handback recomputes three raw maps,36 IDs each,105 passes3original SQLiteextensionfunction skips,original fixed inputs retained; no whole G3, performance or GUI claim"
+  },
+  "original_aggregate_false_reason": "Original capability skips are not counted as passed; all twelve file processes exit0 complete, original cases retain statuses.",
+  "cleanup": {
+    "manifest": "maintenance/cleanup/manifests/2026-10-30-163-consumed-time-resource-state.jsonl.gz",
+    "manifest_sha256": "733a1d2d2721a077997d83d35d0efde12bdbb125689c5a7d40faa61e3d619474",
+    "runner_cleanup": [
+      {
+        "product": "reference",
+        "file": "test/src/timefns-tests.el",
+        "receipt": "build/acceptance/g3-time-resources-1/reference/results/reference/test-src-timefns-tests.el-ba3b91a2cb2e.owner-retirement.json",
+        "receipt_sha256": "fe95523b2becd5f553968d85a980f69de2dd74104b9dd03cc09aac3d4d114396",
+        "ledger": "build/acceptance/g3-time-resources-1/reference/results/reference/test-src-timefns-tests.el-ba3b91a2cb2e.state-retirement.jsonl.gz",
+        "ledger_sha256": "639eeb6987f6d124d98b8dda7039a7f5dc8cad2bd7ff6ae8a4bef06754b68f3c",
+        "files": 0,
+        "directories": 8,
+        "logical_bytes": 0,
+        "allocated_bytes": 0
+      },
+      {
+        "product": "reference",
+        "file": "test/src/lcms-tests.el",
+        "receipt": "build/acceptance/g3-time-resources-1/reference/results/reference/test-src-lcms-tests.el-73cb1e3c3b65.owner-retirement.json",
+        "receipt_sha256": "8ac158405d9df126fa828a98ba7f9f32c535201206e9bfff8e06e66797a8e135",
+        "ledger": "build/acceptance/g3-time-resources-1/reference/results/reference/test-src-lcms-tests.el-73cb1e3c3b65.state-retirement.jsonl.gz",
+        "ledger_sha256": "639eeb6987f6d124d98b8dda7039a7f5dc8cad2bd7ff6ae8a4bef06754b68f3c",
+        "files": 0,
+        "directories": 8,
+        "logical_bytes": 0,
+        "allocated_bytes": 0
+      },
+      {
+        "product": "reference",
+        "file": "test/src/xml-tests.el",
+        "receipt": "build/acceptance/g3-time-resources-1/reference/results/reference/test-src-xml-tests.el-32a0347fdce5.owner-retirement.json",
+        "receipt_sha256": "feecca5bc1f704793266e4cbfe19b32e013c6c189c0f21d2ff47fcee1fbba9d4",
+        "ledger": "build/acceptance/g3-time-resources-1/reference/results/reference/test-src-xml-tests.el-32a0347fdce5.state-retirement.jsonl.gz",
+        "ledger_sha256": "639eeb6987f6d124d98b8dda7039a7f5dc8cad2bd7ff6ae8a4bef06754b68f3c",
+        "files": 0,
+        "directories": 8,
+        "logical_bytes": 0,
+        "allocated_bytes": 0
+      },
+      {
+        "product": "terminal",
+        "file": "test/src/timefns-tests.el",
+        "receipt": "build/acceptance/g3-time-resources-1/terminal/results/terminal/test-src-timefns-tests.el-ba3b91a2cb2e.owner-retirement.json",
+        "receipt_sha256": "6bab0352b6ea3b6d58a65b2e033a2dd382328caba73db605ce4dfe5c2fa7ffbf",
+        "ledger": "build/acceptance/g3-time-resources-1/terminal/results/terminal/test-src-timefns-tests.el-ba3b91a2cb2e.state-retirement.jsonl.gz",
+        "ledger_sha256": "639eeb6987f6d124d98b8dda7039a7f5dc8cad2bd7ff6ae8a4bef06754b68f3c",
+        "files": 0,
+        "directories": 8,
+        "logical_bytes": 0,
+        "allocated_bytes": 0
+      },
+      {
+        "product": "terminal",
+        "file": "test/src/lcms-tests.el",
+        "receipt": "build/acceptance/g3-time-resources-1/terminal/results/terminal/test-src-lcms-tests.el-73cb1e3c3b65.owner-retirement.json",
+        "receipt_sha256": "196febf6bea3e1b9daea3c0eca2f05dc65d247a130025e1d3b547fb5d20fd9ee",
+        "ledger": "build/acceptance/g3-time-resources-1/terminal/results/terminal/test-src-lcms-tests.el-73cb1e3c3b65.state-retirement.jsonl.gz",
+        "ledger_sha256": "639eeb6987f6d124d98b8dda7039a7f5dc8cad2bd7ff6ae8a4bef06754b68f3c",
+        "files": 0,
+        "directories": 8,
+        "logical_bytes": 0,
+        "allocated_bytes": 0
+      },
+      {
+        "product": "terminal",
+        "file": "test/src/xml-tests.el",
+        "receipt": "build/acceptance/g3-time-resources-1/terminal/results/terminal/test-src-xml-tests.el-32a0347fdce5.owner-retirement.json",
+        "receipt_sha256": "80172fb470ceb877febdc6ea41140ed9f69a12b3fc815260a591b563e0637633",
+        "ledger": "build/acceptance/g3-time-resources-1/terminal/results/terminal/test-src-xml-tests.el-32a0347fdce5.state-retirement.jsonl.gz",
+        "ledger_sha256": "639eeb6987f6d124d98b8dda7039a7f5dc8cad2bd7ff6ae8a4bef06754b68f3c",
+        "files": 0,
+        "directories": 8,
+        "logical_bytes": 0,
+        "allocated_bytes": 0
+      },
+      {
+        "product": "cocoa",
+        "file": "test/src/timefns-tests.el",
+        "receipt": "build/acceptance/g3-time-resources-1/cocoa/results/cocoa/test-src-timefns-tests.el-ba3b91a2cb2e.owner-retirement.json",
+        "receipt_sha256": "357889fb65826bf7eabef20c8d10966b290702d7ef52cccbd6712f098dab3b22",
+        "ledger": "build/acceptance/g3-time-resources-1/cocoa/results/cocoa/test-src-timefns-tests.el-ba3b91a2cb2e.state-retirement.jsonl.gz",
+        "ledger_sha256": "639eeb6987f6d124d98b8dda7039a7f5dc8cad2bd7ff6ae8a4bef06754b68f3c",
+        "files": 0,
+        "directories": 8,
+        "logical_bytes": 0,
+        "allocated_bytes": 0
+      },
+      {
+        "product": "cocoa",
+        "file": "test/src/lcms-tests.el",
+        "receipt": "build/acceptance/g3-time-resources-1/cocoa/results/cocoa/test-src-lcms-tests.el-73cb1e3c3b65.owner-retirement.json",
+        "receipt_sha256": "c0aa3bdc5990d46795a239f3ac9342b67b9d946014569f789fce2265c4bcdbbe",
+        "ledger": "build/acceptance/g3-time-resources-1/cocoa/results/cocoa/test-src-lcms-tests.el-73cb1e3c3b65.state-retirement.jsonl.gz",
+        "ledger_sha256": "639eeb6987f6d124d98b8dda7039a7f5dc8cad2bd7ff6ae8a4bef06754b68f3c",
+        "files": 0,
+        "directories": 8,
+        "logical_bytes": 0,
+        "allocated_bytes": 0
+      },
+      {
+        "product": "cocoa",
+        "file": "test/src/xml-tests.el",
+        "receipt": "build/acceptance/g3-time-resources-1/cocoa/results/cocoa/test-src-xml-tests.el-32a0347fdce5.owner-retirement.json",
+        "receipt_sha256": "be49d0e6da6660d71baf519daec04e6f640837bceb10881a8dfc82d07ad562af",
+        "ledger": "build/acceptance/g3-time-resources-1/cocoa/results/cocoa/test-src-xml-tests.el-32a0347fdce5.state-retirement.jsonl.gz",
+        "ledger_sha256": "639eeb6987f6d124d98b8dda7039a7f5dc8cad2bd7ff6ae8a4bef06754b68f3c",
+        "files": 0,
+        "directories": 8,
+        "logical_bytes": 0,
+        "allocated_bytes": 0
+      }
+    ]
+  }
+}

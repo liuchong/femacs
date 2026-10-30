@@ -459,3 +459,14 @@ combined4,613files/870dirs,63,161,320logical/75,448,320allocated bytes,
 actual products and live libraries; no product or acceptance-policy change.
 [Report](reports/2026-10-30-162-consumed-file-workflow-state.md) and
 [manifest](manifests/2026-10-30-162-consumed-file-workflow-state.jsonl.gz).
+
+
+## CLN163 — consumed original time and resource state (2026-10-30)
+
+Original105passes3sharedSQLiteextensionfunction skips, aggregatefalse retained.
+Runner earlier0files/72dirs plus post-review4,608files/789dirs/3links:
+combined4,608files/861dirs/3links,62,990,856logical/75,264,000allocated bytes,
+5,472identity rows. Raw skips/results/automatic ledgers/corpus/live products
+retained; no compiler/product executed for cleanup or acceptance-policy change.
+[Report](reports/2026-10-30-163-consumed-time-resource-state.md) and
+[manifest](manifests/2026-10-30-163-consumed-time-resource-state.jsonl.gz).

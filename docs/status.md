@@ -24013,3 +24013,26 @@ bytes; original results, frozen inputs, products and App remain unchanged.
   G1/G2/G4 remain3/7(42.9%); G3/G5/G6/G7 remain4/7(57.1%), original Goal active.
   Continue uncovered original data/time/resource files, no patch for shared
   platform skips, no unchanged busy-host matrix or rejected root-hint replay.
+
+
+### Original stable time and resource coverage: four complete files (2026-10-30)
+
+- Current normal reference/terminal/Cocoa:36IDs each(time16/sqlite13/lcms6/xml1),
+  combined105passed3skipped, equal maps and no failed assertion/timeout. Only
+  original sqlite-load-extension fboundp guard skips, after SQLite availability
+  succeeds; no extension loading attempted. All12file processes exit0/reaped;
+  original aggregatefalse and outerexit1 remain, no assertion/guard weakened.
+- Original inputs, full product/resources and trial App unchanged; generated
+  resources0. Driver7.187232667s, owner8.406s/82,280,448B accounted peak,
+  exit1/reaped. Independent review recomputes original maps; controller metrics
+  remain primary-side receipts. No native/childdump/UI/performance claim.
+- CLN163:earlier automatic0files/72dirs plus post-review4,608files/789dirs/3links;
+  combined4,608files/861dirs/3links,62,990,856logical/75,264,000allocated bytes,
+  5,472identity rows. Raw outcomes/automatic ledgers/corpus/products/live terminal
+  libraries retained. No production change or component-protection requirement.
+- [Comparison](../maintenance/releases/2026-10-30-original-time-resources.md),
+  [bounded receipt](../maintenance/releases/2026-10-30-original-time-resources-results.json),
+  [CLN163](../maintenance/cleanup/reports/2026-10-30-163-consumed-time-resource-state.md).
+  G1/G2/G4 remain3/7(42.9%); G3/G5/G6/G7 remain4/7(57.1%), original Goal active.
+  Continue uncovered compatibility and evidence-led runtime work; do not patch
+  shared capability skips or replay unchanged busy-host performance matrices.

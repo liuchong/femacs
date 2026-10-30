@@ -1,3 +1,16 @@
+## Current continuation: original time and resource coverage (2026-10-30)
+
+Four complete pinned stable time/SQLite/LCMS/XML files finish on installed
+reference/current normal terminal/Cocoa:36IDs each,105passes3common original
+SQLite extension-function skips, equal maps and no failed assertion/timeout.
+Twelve file processes exit0/reaped; original aggregatefalse and ownerexit1
+retained. Independent review finds no confirmed defect. No extension load,
+full G3 or performance acceptance is inferred. [Evidence](../maintenance/releases/2026-10-30-original-time-resources.md).
+CLN163 records earlier72automatic directory retirements plus post-review
+4,608files/789dirs/3links. Raw skips/results/corpus/live products remain.
+No production change or App replacement. G1/G2/G4 remain3/7; original Goal
+and G3/G5/G6/G7 remain active, continuing uncovered compatibility work.
+
 ## Current continuation: original undo and file workflows (2026-10-30)
 
 Four complete pinned stable undo/file-I-O/file-lock/process-call files finish
