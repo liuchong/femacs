@@ -1,3 +1,25 @@
+## G3 original package-vc coverage (2026-10-31)
+
+Complete unchanged pinned overlay108 IDs/product, accepted P435 normal
+reference/terminal/Cocoa:324 observations =300 ordinary+24 original skips,
+zero expected/unexpected. All3 processes exit0/complete, equal ID/tag/status
+maps; raw passed=false and owner exit1 remain. All63 expensive IDs/product selected;
+four checkout-only packages skip make/shell and info guards, eight/product.
+Eleven bound input maps/product identities match before/after; default keyring
+import ran, but reference/terminal key bytes/path were not captured in raw.
+Post-run three candidate key hashes match; this is not runtime input closure.
+Generated resources empty. Local Git/package/documentation builds are real, not physical UI;
+child identities remain unverified independently. No production/harness change
+or new protection. Driver239.089s exceeds30–180s estimate but not300s cap;
+case30s/1GiB no-growth remain. Controller metrics primary-only:240.184s,
+193871872B accounted. No crypto residue. Three owner receipts remain retained.
+CLN183:4612files/792dirs/18links,63025336/75309056B;
+all postreview, no automatic rows. Raw false/events/logs/private plan/replay,
+products/WIP retained. Whole ERT/checking/fullG3/G5/G6/G7 remain open;
+G1/G2/G4 stay3/7, Goal active; no performance/App promotion.
+[Coverage](../maintenance/releases/2026-10-31-original-package-vc.md) ·
+[CLN183](../maintenance/cleanup/reports/2026-10-31-183-consumed-package-vc-state.md).
+
 ## P446: original package coverage and short GPG paths (2026-10-31)
 
 Complete unchanged pinned package-tests.el:123 ordinary passes,41 IDs on each

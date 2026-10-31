@@ -1,3 +1,33 @@
+## G3 original package-vc / CLN183 (2026-10-31)
+
+One unchanged pinned overlay, accepted P435 normal reference/terminal/Cocoa:
+108 generated IDs each,324 events:300 ordinary passes+24 original guard skips,
+zero expected/unexpected. Twelve original macros×nine packages include all63
+expensive IDs/product selected. Four checkout-only packages three/four/six/eight skip
+each make/shell and info guard; install-info exists, five info bodies execute.
+ID/tag/status maps equal; all3 file processes exit0/complete, no timeout,
+protocol/runner error or residual group. Raw false/file false/owner exit1 stay.
+Driver239.089s, file walls70.649/80.976/83.515s; longest19.263/19.875/19.377s.
+Estimate30–180s was low;30s load/case,300s owner,1GiB hard/no-growth unchanged.
+Original5s async waits are upper bounds. Controller primary-only240.184s,
+193871872B accounted/145294920B footprint,exit1/cleanuptrue,growth0.
+Eleven bound inputs and full products match before/after; terminal/Cocoa explicitly
+bind P435 normal, not P445/current collector/checking. All1536 manifest inputs
+per product remain unchanged, generated test resources empty. Local Git and
+in-process package/documentation builds run in owned HOME/TMPDIR; no external
+repository/UI claim. No requested product build, no production/harness change,
+no invented protection. Default keyring imports ran; reference/terminal key/path binding is missing
+from raw. Post-run three candidate2343B/63c60d8d… keys match, but input binding
+remains incomplete; no before evidence is fabricated. Ten exact crypto checks
+find no daemons. Three file owner receipts stay retained because of skips, no automatic retirement rows.
+CLN183:5422rows=4612files+792dirs+18links,
+63025336/75309056B; nine roots/four adopted P446 helpers absent.
+All pre-delete identities/public gzip fsynced, every row plan-matched, evidence/
+products/inputs/HEAD/index/old WIP unchanged. No historical manifest rewrite.
+Whole ERT/checking/fullG3/G5/G6/G7 stay open; G1/G2/G4 remain3/7, Goal active.
+[Coverage](../maintenance/releases/2026-10-31-original-package-vc.md) ·
+[CLN183](../maintenance/cleanup/reports/2026-10-31-183-consumed-package-vc-state.md).
+
 ## P446 / G3 original package file (2026-10-31)
 
 Accepted P435 normal reference/terminal/Cocoa, unchanged pinned package41 IDs

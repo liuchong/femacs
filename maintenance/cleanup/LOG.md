@@ -1,3 +1,18 @@
+## CLN183 - consumed original package-vc state (2026-10-31)
+
+After324 observed normal cases (300 ordinary+24 skips), retire nine exact
+fixture/state/context roots and four consumed adopted P446 helpers only.
+5422rows: 4612files/792directories/18links;
+63,025,336logical/75,309,056allocatedB. No automatic rows;
+three original owner receipts stay retained, not rewritten. Full pre-delete
+identities/public gzip fsynced; occupancy/identity checked, no duplicates.
+Raw false/events/logs/replay/private plan/products/HEAD/index/WIP retained,
+20 evidence files unchanged; selected roots/helpers absent.
+1.334829s is post-sealing deletion/verification, not whole cleanup time.
+No editor/compiler rerun, performance/fullG3/App acceptance.
+[Report](reports/2026-10-31-183-consumed-package-vc-state.md) ·
+[Manifest](manifests/2026-10-31-183-consumed-package-vc-state.jsonl.gz).
+
 ## CLN182 - consumed original-package and GPG state (2026-10-31)
 
 After scoped123-pass normal P435 integration and10 component protections,

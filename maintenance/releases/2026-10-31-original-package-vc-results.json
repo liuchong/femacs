@@ -1,0 +1,594 @@
+{
+  "schema": 1,
+  "scope": "Complete unchanged pinned package-vc file, accepted P435 normal reference/terminal/Cocoa, all discovered IDs",
+  "passed": false,
+  "execution_complete": true,
+  "scoped_execution_verified": true,
+  "whole_file_aggregate_passed": false,
+  "full_compatibility_accepted": false,
+  "checking_accepted": false,
+  "whole_ert_accepted": false,
+  "performance_accepted": false,
+  "editor_accepted": false,
+  "trial_app_promoted": false,
+  "production_changed": false,
+  "original_test_or_guard_changed": false,
+  "source_commit": "a360712c9d272d950d8d8255ef74570f7e90b7d9",
+  "test_inputs": [
+    {
+      "path": "test/lisp/emacs-lisp/package-vc-tests.el",
+      "source_path": "compatibility/stable-31.1/test/lisp/emacs-lisp/package-vc-tests.el",
+      "input": "overlay",
+      "mode": "100644",
+      "size": 49138,
+      "blob": "aa25d0a2c32969bf89e4b2f42e34420915eb9458",
+      "sha256": "9f6b29bace02030d6f1a81183a849d262c36335af34139600003b44591b924b6"
+    }
+  ],
+  "resource_inputs": [
+    {
+      "path": "test/lisp/emacs-lisp/package-vc-resources/Makefile.in",
+      "source_path": "test/lisp/emacs-lisp/package-vc-resources/Makefile.in",
+      "input": "tracked",
+      "mode": "100644",
+      "size": 101,
+      "blob": "8618ae8f2f4077dc1e3f28ce8b60ec5f116d9edf",
+      "sha256": "74ae3b43d17bdcfae4f235c4a888dbb0e2d9708359083b6fc0867146ac04fc4b"
+    },
+    {
+      "path": "test/lisp/emacs-lisp/package-vc-resources/test-package-SUFFIX-inc.texi.in",
+      "source_path": "test/lisp/emacs-lisp/package-vc-resources/test-package-SUFFIX-inc.texi.in",
+      "input": "tracked",
+      "mode": "100644",
+      "size": 87,
+      "blob": "9e4e38b74a41c8fe8079a65aaa849e1d2ebab048",
+      "sha256": "68b49ee85f909e716e83a511b024de3fc1c8e8860142f2484fbd1afcd528d7ec"
+    },
+    {
+      "path": "test/lisp/emacs-lisp/package-vc-resources/test-package-SUFFIX-lib-v0.1.el.in",
+      "source_path": "test/lisp/emacs-lisp/package-vc-resources/test-package-SUFFIX-lib-v0.1.el.in",
+      "input": "tracked",
+      "mode": "100644",
+      "size": 368,
+      "blob": "c8bfce3e8ab6122622df70b6c95185983b7c7dec",
+      "sha256": "aa628a7c52c2e3c5a25a4a1951997247085c467c4b987ab5fc10e0c2f4103df6"
+    },
+    {
+      "path": "test/lisp/emacs-lisp/package-vc-resources/test-package-SUFFIX-lib-v0.2.el.in",
+      "source_path": "test/lisp/emacs-lisp/package-vc-resources/test-package-SUFFIX-lib-v0.2.el.in",
+      "input": "tracked",
+      "mode": "100644",
+      "size": 364,
+      "blob": "bfa4c35f014fc6286517f61a479b42b74c8fb976",
+      "sha256": "0e968ebacd273ef182aa6f14b4e5cd5d4144d0c8e746e7512aa2a330b2820e21"
+    },
+    {
+      "path": "test/lisp/emacs-lisp/package-vc-resources/test-package-SUFFIX-v0.1.el.in",
+      "source_path": "test/lisp/emacs-lisp/package-vc-resources/test-package-SUFFIX-v0.1.el.in",
+      "input": "tracked",
+      "mode": "100644",
+      "size": 646,
+      "blob": "4b71c1026b4a950a9e55ebfa0f6fb55c9d628e80",
+      "sha256": "761dae1280115593c73c4721060af863f31bae9e315212b95577e017a75b668b"
+    },
+    {
+      "path": "test/lisp/emacs-lisp/package-vc-resources/test-package-SUFFIX-v0.2.el.in",
+      "source_path": "test/lisp/emacs-lisp/package-vc-resources/test-package-SUFFIX-v0.2.el.in",
+      "input": "tracked",
+      "mode": "100644",
+      "size": 541,
+      "blob": "9f2bd7461b628ae67b3810328011107a7eaf7808",
+      "sha256": "85d2802a33fab7364d525727adf99c1425da1c02249cb5b2f414394f4963f89b"
+    },
+    {
+      "path": "test/lisp/emacs-lisp/package-vc-resources/test-package-SUFFIX.texi.in",
+      "source_path": "test/lisp/emacs-lisp/package-vc-resources/test-package-SUFFIX.texi.in",
+      "input": "tracked",
+      "mode": "100644",
+      "size": 278,
+      "blob": "0fc4fc3653dca9bb9d1bbfbc969595fc35451f93",
+      "sha256": "e3452cfc37d107c706b6e38245c2e417e18fc625b741fb26b59e5db32c4690c7"
+    }
+  ],
+  "resource_files": 7,
+  "resource_bytes": 2385,
+  "all_discovered_ids": true,
+  "observations": 324,
+  "ordinary_passes": 300,
+  "skipped": 24,
+  "expected_failures": 0,
+  "unexpected": 0,
+  "files": [
+    {
+      "product": "reference",
+      "discovered": 108,
+      "ordinary_passes": 100,
+      "skipped": 8,
+      "expected_failures": 0,
+      "unexpected": 0,
+      "exit_code": 0,
+      "complete": true,
+      "timed_out": false,
+      "remaining_group_terminated": false,
+      "protocol_error": null,
+      "runner_error": null,
+      "seconds": 70.648624834,
+      "longest_case_seconds": 19.263414,
+      "ids_sha256": "6ff3b9501e3b92cbbbf3d194604aeeeb0274535042882a9e2335980d5b0db39d",
+      "tags_sha256": "488c840030e38615a96d9de53fe902ce39bf13f6666b8c5d9b33e3f83a819df9",
+      "expensive_ids": 63,
+      "skipped_ids": [
+        "package-vc-tests-pkg-spec-info-manual/test-package-eight",
+        "package-vc-tests-pkg-spec-info-manual/test-package-four",
+        "package-vc-tests-pkg-spec-info-manual/test-package-six",
+        "package-vc-tests-pkg-spec-info-manual/test-package-three",
+        "package-vc-tests-pkg-spec-make-shell-command/test-package-eight",
+        "package-vc-tests-pkg-spec-make-shell-command/test-package-four",
+        "package-vc-tests-pkg-spec-make-shell-command/test-package-six",
+        "package-vc-tests-pkg-spec-make-shell-command/test-package-three"
+      ],
+      "file_result": {
+        "path": "build/acceptance/g3-package-vc-original-1/reference/results/reference/test-lisp-emacs-lisp-package-vc-tests.el-db132d7fbb9f.json",
+        "bytes": 727196,
+        "sha256": "a88ba18d8d963fe14255c1016101aa856b60da99cc8980a84ba3f06e332f75b0"
+      },
+      "events": {
+        "path": "build/acceptance/g3-package-vc-original-1/reference/results/reference/test-lisp-emacs-lisp-package-vc-tests.el-db132d7fbb9f.events.jsonl",
+        "bytes": 690633,
+        "sha256": "f1ccc6ad4e162fc13f81f6cf4dac3de72c9b00cd3fb65a16d395ca86efad73b3"
+      },
+      "stdout": {
+        "path": "build/acceptance/g3-package-vc-original-1/reference/logs/reference/test-lisp-emacs-lisp-package-vc-tests.el-db132d7fbb9f.stdout.log",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "stderr": {
+        "path": "build/acceptance/g3-package-vc-original-1/reference/logs/reference/test-lisp-emacs-lisp-package-vc-tests.el-db132d7fbb9f.stderr.log",
+        "bytes": 311418,
+        "sha256": "a506b86ad403c3aebdbba1d5a6aa8763a66036efb541fd6529b1319e3098bea9"
+      },
+      "environment": {
+        "path": "build/acceptance/g3-package-vc-original-1/reference/results/reference/test-lisp-emacs-lisp-package-vc-tests.el-db132d7fbb9f.environment.json",
+        "bytes": 982,
+        "sha256": "9428d7f42813742f595333b8c1a1d6cf174dff2122c3e0109fd32b818f8bd7f6"
+      },
+      "owner_receipt": {
+        "path": "build/acceptance/g3-package-vc-original-1/reference/results/reference/test-lisp-emacs-lisp-package-vc-tests.el-db132d7fbb9f.owner-retirement.json",
+        "bytes": 389,
+        "sha256": "13270e25c404ec92fa9e9cbdcae7c7bf3f8744c4ce2277b3c5c706881f61c37b"
+      },
+      "state_retirement": {
+        "status": "retained",
+        "reason": "file failed/incomplete; preserve original state"
+      }
+    },
+    {
+      "product": "terminal",
+      "discovered": 108,
+      "ordinary_passes": 100,
+      "skipped": 8,
+      "expected_failures": 0,
+      "unexpected": 0,
+      "exit_code": 0,
+      "complete": true,
+      "timed_out": false,
+      "remaining_group_terminated": false,
+      "protocol_error": null,
+      "runner_error": null,
+      "seconds": 80.976166833,
+      "longest_case_seconds": 19.875458,
+      "ids_sha256": "6ff3b9501e3b92cbbbf3d194604aeeeb0274535042882a9e2335980d5b0db39d",
+      "tags_sha256": "488c840030e38615a96d9de53fe902ce39bf13f6666b8c5d9b33e3f83a819df9",
+      "expensive_ids": 63,
+      "skipped_ids": [
+        "package-vc-tests-pkg-spec-info-manual/test-package-eight",
+        "package-vc-tests-pkg-spec-info-manual/test-package-four",
+        "package-vc-tests-pkg-spec-info-manual/test-package-six",
+        "package-vc-tests-pkg-spec-info-manual/test-package-three",
+        "package-vc-tests-pkg-spec-make-shell-command/test-package-eight",
+        "package-vc-tests-pkg-spec-make-shell-command/test-package-four",
+        "package-vc-tests-pkg-spec-make-shell-command/test-package-six",
+        "package-vc-tests-pkg-spec-make-shell-command/test-package-three"
+      ],
+      "file_result": {
+        "path": "build/acceptance/g3-package-vc-original-1/terminal/results/terminal/test-lisp-emacs-lisp-package-vc-tests.el-db132d7fbb9f.json",
+        "bytes": 723696,
+        "sha256": "4c8e46c5eb1e5de03031fc92cf94d5cad109ac8292b656d10d4893e408606daf"
+      },
+      "events": {
+        "path": "build/acceptance/g3-package-vc-original-1/terminal/results/terminal/test-lisp-emacs-lisp-package-vc-tests.el-db132d7fbb9f.events.jsonl",
+        "bytes": 687223,
+        "sha256": "0ed8f87d7209c183d06df180a05e21c32ef4c22754090d09c331cc877920e820"
+      },
+      "stdout": {
+        "path": "build/acceptance/g3-package-vc-original-1/terminal/logs/terminal/test-lisp-emacs-lisp-package-vc-tests.el-db132d7fbb9f.stdout.log",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "stderr": {
+        "path": "build/acceptance/g3-package-vc-original-1/terminal/logs/terminal/test-lisp-emacs-lisp-package-vc-tests.el-db132d7fbb9f.stderr.log",
+        "bytes": 309877,
+        "sha256": "ee02b8c0c36934e47c3ed4d044cd9726d0e35fa700ecfcd9e221260dfe44896d"
+      },
+      "environment": {
+        "path": "build/acceptance/g3-package-vc-original-1/terminal/results/terminal/test-lisp-emacs-lisp-package-vc-tests.el-db132d7fbb9f.environment.json",
+        "bytes": 975,
+        "sha256": "535d64889c93f1183074f9f6f26edb746a529f45ef928fe627d22bd2718d5ce8"
+      },
+      "owner_receipt": {
+        "path": "build/acceptance/g3-package-vc-original-1/terminal/results/terminal/test-lisp-emacs-lisp-package-vc-tests.el-db132d7fbb9f.owner-retirement.json",
+        "bytes": 388,
+        "sha256": "ba0966c1afb186a233c384c0a5c33b799a9886bedcfa69e938efbfcd58dd3b9a"
+      },
+      "state_retirement": {
+        "status": "retained",
+        "reason": "file failed/incomplete; preserve original state"
+      }
+    },
+    {
+      "product": "cocoa",
+      "discovered": 108,
+      "ordinary_passes": 100,
+      "skipped": 8,
+      "expected_failures": 0,
+      "unexpected": 0,
+      "exit_code": 0,
+      "complete": true,
+      "timed_out": false,
+      "remaining_group_terminated": false,
+      "protocol_error": null,
+      "runner_error": null,
+      "seconds": 83.51496225000002,
+      "longest_case_seconds": 19.377316,
+      "ids_sha256": "6ff3b9501e3b92cbbbf3d194604aeeeb0274535042882a9e2335980d5b0db39d",
+      "tags_sha256": "488c840030e38615a96d9de53fe902ce39bf13f6666b8c5d9b33e3f83a819df9",
+      "expensive_ids": 63,
+      "skipped_ids": [
+        "package-vc-tests-pkg-spec-info-manual/test-package-eight",
+        "package-vc-tests-pkg-spec-info-manual/test-package-four",
+        "package-vc-tests-pkg-spec-info-manual/test-package-six",
+        "package-vc-tests-pkg-spec-info-manual/test-package-three",
+        "package-vc-tests-pkg-spec-make-shell-command/test-package-eight",
+        "package-vc-tests-pkg-spec-make-shell-command/test-package-four",
+        "package-vc-tests-pkg-spec-make-shell-command/test-package-six",
+        "package-vc-tests-pkg-spec-make-shell-command/test-package-three"
+      ],
+      "file_result": {
+        "path": "build/acceptance/g3-package-vc-original-1/cocoa/results/cocoa/test-lisp-emacs-lisp-package-vc-tests.el-db132d7fbb9f.json",
+        "bytes": 714383,
+        "sha256": "90839e500b44d1f11ecac02444b1e16f13805cd06ff5893b1c8bbc20e1449b3c"
+      },
+      "events": {
+        "path": "build/acceptance/g3-package-vc-original-1/cocoa/results/cocoa/test-lisp-emacs-lisp-package-vc-tests.el-db132d7fbb9f.events.jsonl",
+        "bytes": 678176,
+        "sha256": "c9390949a5f346d6c2cda4c40d8baa6180dba994f67779e8f7c2e9f4591fa1fb"
+      },
+      "stdout": {
+        "path": "build/acceptance/g3-package-vc-original-1/cocoa/logs/cocoa/test-lisp-emacs-lisp-package-vc-tests.el-db132d7fbb9f.stdout.log",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "stderr": {
+        "path": "build/acceptance/g3-package-vc-original-1/cocoa/logs/cocoa/test-lisp-emacs-lisp-package-vc-tests.el-db132d7fbb9f.stderr.log",
+        "bytes": 305254,
+        "sha256": "44c8a86bdbe06efd5b669006df1be576c94abd36fead6e60e14554a7a3e98ea1"
+      },
+      "environment": {
+        "path": "build/acceptance/g3-package-vc-original-1/cocoa/results/cocoa/test-lisp-emacs-lisp-package-vc-tests.el-db132d7fbb9f.environment.json",
+        "bytes": 954,
+        "sha256": "db8ee6184c7a71e288136736714a9c91e507f7779bc528d68b177f5676f9f5bc"
+      },
+      "owner_receipt": {
+        "path": "build/acceptance/g3-package-vc-original-1/cocoa/results/cocoa/test-lisp-emacs-lisp-package-vc-tests.el-db132d7fbb9f.owner-retirement.json",
+        "bytes": 385,
+        "sha256": "6d18b18e25d7679ef419361cf1f48c9afcf0c5af22243adfcb5c84ec86162244"
+      },
+      "state_retirement": {
+        "status": "retained",
+        "reason": "file failed/incomplete; preserve original state"
+      }
+    }
+  ],
+  "events_checked": 324,
+  "status_maps_equal_reference": true,
+  "tag_maps_equal_reference": true,
+  "product_binding": {
+    "scope": "Accepted P435 normal reused, not new P445 or checking products",
+    "terminal_receipt": "build/acceptance/p435-functional-normal-1/results.json",
+    "cocoa_receipt": "build/acceptance/current-macos-core-products-1/products.json",
+    "cocoa_asserted": true,
+    "terminal_asserted": true
+  },
+  "products": {
+    "reference": {
+      "program": {
+        "kind": "file",
+        "bytes": 3691504,
+        "mode": 493,
+        "sha256": "5b55e93c8304368ee37cc5c537ca3e1370e3b9b3fef049bdce76834a9db75e65"
+      },
+      "dump": {
+        "kind": "file",
+        "bytes": 23084632,
+        "mode": 420,
+        "sha256": "6ac1214186022574a70e84a04bb7f2dc44e1ea1d4c90f0d9ce421ddd0f4b4536"
+      }
+    },
+    "terminal": {
+      "program": {
+        "kind": "file",
+        "bytes": 2698016,
+        "mode": 493,
+        "sha256": "fb0b822273e79bb5b008725771473f5d510b9f712488242d615fb3a5fefbcde6"
+      },
+      "dump": {
+        "kind": "file",
+        "bytes": 13101600,
+        "mode": 420,
+        "sha256": "5d1913c39d5c348c711d24e16b25d9e63d09e082ee6dbe3b3a54ac4680862f82"
+      }
+    },
+    "cocoa": {
+      "program": {
+        "kind": "file",
+        "bytes": 4230368,
+        "mode": 493,
+        "sha256": "d796f4c52e2a32ec6176e02efca33d922da18252aaddd0885e59993f108ba385"
+      },
+      "dump": {
+        "kind": "file",
+        "bytes": 18602200,
+        "mode": 420,
+        "sha256": "2b87c3436eaa33e551b024c6be01ea702b9c586c4535993258b63aa95a618b92"
+      }
+    }
+  },
+  "product_resources": {
+    "reference": {
+      "lisp": {
+        "entries": 3316,
+        "sha256": "564df364c803f4d0b64d7bc2ba986d775e8985529481ac2684b739666e131323"
+      }
+    },
+    "terminal": {
+      "lisp": {
+        "entries": 3363,
+        "sha256": "79dc09151f2f61152496f3587dc54cb580fb45a9c92301bfe3e75ab027a02146"
+      },
+      "runtime-tls": {
+        "entries": 9,
+        "sha256": "9b34100e73d1f4bbd3157cd1535a25f8fdc6d4e094f2e6a1e9dc79b1a63fd73d"
+      },
+      "runtime-lcms": {
+        "entries": 1,
+        "sha256": "819844d74d5d4f3ee5a75aaf2b0d9a23b07fdda8bfa71c65cdbda63f6eb213cb"
+      },
+      "runtime-treesit": {
+        "entries": 1,
+        "sha256": "05b5f47a14a19b3f04511fa292f0976e2cab06437b9e4323edbce72a9767f0f9"
+      }
+    },
+    "cocoa": {
+      "lisp": {
+        "entries": 3353,
+        "sha256": "e4108125e078022ebe91c3ccc5095c46c8fcbe48180ed02668f315d4e4c910b5"
+      },
+      "bundle": {
+        "entries": 4477,
+        "sha256": "e1212d5ae114aec885c8d2d467c9c39b4feb1f693b0d685dc28901fd34bb5342"
+      }
+    }
+  },
+  "products_before_after_equal": true,
+  "inputs_before_after_equal": true,
+  "bound_inputs": {
+    "compatibility/stable-31.1/sources.json": {
+      "kind": "file",
+      "bytes": 562572,
+      "mode": 420,
+      "sha256": "a5ef144a203b8b2a74e346ac47173c5d4122f751d8d950347ae75ff67eef0efe"
+    },
+    "tools/fixtures/stable-suite-runner.el": {
+      "kind": "file",
+      "bytes": 12592,
+      "mode": 420,
+      "sha256": "d5bcd0c18f15995e50adefe8472d12ef82f71114be10ce307202b4ce0f11150e"
+    },
+    "tools/stable-suite.py": {
+      "kind": "file",
+      "bytes": 54152,
+      "mode": 420,
+      "sha256": "7ef72db2b50adce3edbeef6ec59eef40df2455868fd8e7ae373b5ceab58fb11a"
+    },
+    "tools/stable-suite-batch.py": {
+      "kind": "file",
+      "bytes": 23205,
+      "mode": 420,
+      "sha256": "47957a2676f5e71e4c4addf4c219aa1d824ee5581ef810a917d0e92db69a89be"
+    },
+    "tools/runtime-execution.py": {
+      "kind": "file",
+      "bytes": 93220,
+      "mode": 420,
+      "sha256": "26b379c3d4a24adf2a306e1c751c654ca1b6b1c6cd43f0888398c3560e455fb4"
+    },
+    "tools/runtime-retire.py": {
+      "kind": "file",
+      "bytes": 8538,
+      "mode": 420,
+      "sha256": "84ad68bbb26ffb73e129406b430393c0eaeab2f6b818c5916a950b6514eb6932"
+    },
+    "owned-task-helper/g3-package-vc-original-1.py": {
+      "kind": "file",
+      "bytes": 14334,
+      "mode": 420,
+      "sha256": "729cca3e28a58e0334c79ca110bbfd9dd7a54c291636d87cd3ef51dbbe714552"
+    },
+    "build/acceptance/p435-p427-products-1/products-with-runtime.json": {
+      "kind": "file",
+      "bytes": 1578004,
+      "mode": 420,
+      "sha256": "aa4d2cadb59089c231c43d2827de479f35a1825514916a3573ad936b4e9ac162"
+    },
+    "build/acceptance/p435-functional-normal-1/results.json": {
+      "kind": "file",
+      "bytes": 695326,
+      "mode": 420,
+      "sha256": "fdd7cce538a6fa60329793d762db627cc94ca98f8b726614f65dd3c12af15849"
+    },
+    "build/acceptance/current-macos-core-products-1/products.json": {
+      "kind": "file",
+      "bytes": 2278690,
+      "mode": 420,
+      "sha256": "a29fc611bd359e598074a00aebc0ca7dfb420806c315c6c151872ec1d01a4ac8"
+    },
+    "maintenance/releases/2026-10-31-original-package-results.json": {
+      "kind": "file",
+      "bytes": 24448,
+      "mode": 420,
+      "sha256": "d5f5335f64bbcd86ffac0966381047a6e698f450ff3277a33c543c695dd55a90"
+    }
+  },
+  "original_inputs_unchanged": true,
+  "materializations": {
+    "reference": {
+      "files": 1536,
+      "bytes": 20996952
+    },
+    "terminal": {
+      "files": 1536,
+      "bytes": 20996952
+    },
+    "cocoa": {
+      "files": 1536,
+      "bytes": 20996952
+    }
+  },
+  "generated_resources": {
+    "reference": {},
+    "terminal": {},
+    "cocoa": {}
+  },
+  "raw": {
+    "path": "build/acceptance/g3-package-vc-original-1/results.json",
+    "bytes": 8762154,
+    "sha256": "5aa7270caaa00c65ae4594ee71ff678bf378e95cc5b5e578904297ca44f94fa4"
+  },
+  "driver": {
+    "path": "owned-task-helper/g3-package-vc-original-1.py",
+    "bytes": 14334,
+    "sha256": "729cca3e28a58e0334c79ca110bbfd9dd7a54c291636d87cd3ef51dbbe714552"
+  },
+  "seconds": 239.089353625,
+  "budget": {
+    "whole_seconds": 300,
+    "per_case_seconds": 30,
+    "expected_seconds": [
+      30,
+      180
+    ],
+    "expected_peak_bytes": 536870912,
+    "copied_source_bytes": 62990856,
+    "scale": "3 serial whole-file runs;12 original macros generate108IDs/product, including63 expensive-tagged IDs.9 cached local Git repositories per product, each with7 sed writes and2 local commits; about100 isolated installs with small in-process byte compilation, local Git clone/pull/format-patch, make/makeinfo/install-info/shell touch.45 asynchronous operations per product have5s internal maxima, not mandatory sleeps; per-case external30s and owner300s deadlines remain hard. No external remote/network is required by source. Minimal HOME/TMPDIR isolates writes and Git config; no active product build requested, automatic compilation may occur. Expected30-180s/<512MiB is an estimate only; executor strict1GiB initial/hard no growth."
+  },
+  "budget_interpretation": "30-180s/<512MiB were estimates; actual driver239.089s exceeded the time estimate. Hard load/case30s, owner300s,1GiB/no-growth limits remained in force and were not reached. Five-second original async waits are maxima, not mandatory sleeps or evidence of a minimum total runtime.",
+  "controller": {
+    "run_id": "4b64a7e2c5754f66bc203f209fb933d3",
+    "reason": "exited",
+    "exit_code": 1,
+    "cleanup_complete": true,
+    "elapsed_seconds": 240.184,
+    "peak_rss_bytes": 193871872,
+    "peak_footprint_bytes": 145294920,
+    "peak_accounted_bytes": 193871872,
+    "initial_limit_bytes": 1073741824,
+    "hard_limit_bytes": 1073741824,
+    "growth_count": 0,
+    "log": {
+      "path": "owned-task-helper/g3-package-vc-original-1.stderr.log",
+      "bytes": 676,
+      "sha256": "0db46b974866521b315be251da0a4e712ac8e646ac172a8806c802434bac4f02"
+    },
+    "metrics_independently_reviewed": false
+  },
+  "crypto_cleanup": {
+    "checks": 10,
+    "retired_processes": 0,
+    "remaining_processes": 0,
+    "all_complete": true
+  },
+  "cleanup": {
+    "status": "complete",
+    "files": 4612,
+    "directories": 792,
+    "links": 18,
+    "rows": 5422,
+    "logical_bytes": 63025336,
+    "allocated_bytes": 75309056,
+    "automatic": {
+      "files": 0,
+      "directories": 0,
+      "links": 0,
+      "rows": 0,
+      "logical_bytes": 0,
+      "allocated_bytes": 0
+    },
+    "post_review": {
+      "files": 4612,
+      "directories": 792,
+      "links": 18,
+      "rows": 5422,
+      "logical_bytes": 63025336,
+      "allocated_bytes": 75309056
+    },
+    "automatic_parents": 0,
+    "manifest_sha256": "0c89a784a134d02e1f2cbe955156ede17ced7ed4258b5a8c258210afea7b416d",
+    "retained_evidence_files": 20,
+    "products_inputs_git_and_wip_unchanged": true,
+    "postrun_key_files_unchanged": true,
+    "selected_roots": 9,
+    "consumed_p446_helpers": 4,
+    "raw_false_and_skips_retained": true,
+    "seconds": 1.3348287920000006,
+    "manifest": "maintenance/cleanup/manifests/2026-10-31-183-consumed-package-vc-state.jsonl.gz"
+  },
+  "skip_classification": "Four checkout-only packages (three,four,six,eight) skip each original make/shell and info-manual guard. install-info is present; other five info-manual bodies run. Eight skips/product are retained; no filtering or assertion changes.",
+  "input_binding_complete": false,
+  "post_run_keyring_observation": {
+    "evidence": {
+      "path": "build/acceptance/g3-package-vc-original-1/post-run-keyring-observation.json",
+      "bytes": 1472,
+      "sha256": "bd8a93d1eb4e4c90b705535ea54d9d54e6f1e912911e7feda0d54036a8fa89a8"
+    },
+    "raw_before_captured": false,
+    "data_directory_captured": false,
+    "candidate_files": {
+      "reference": {
+        "bytes": 2343,
+        "mode": 420,
+        "sha256": "63c60d8dd3b7f0f9f0be012245f911505b1ab0efe6906892a306725f94c0b580"
+      },
+      "terminal": {
+        "bytes": 2343,
+        "mode": 420,
+        "sha256": "63c60d8dd3b7f0f9f0be012245f911505b1ab0efe6906892a306725f94c0b580"
+      },
+      "cocoa": {
+        "bytes": 2343,
+        "mode": 420,
+        "sha256": "63c60d8dd3b7f0f9f0be012245f911505b1ab0efe6906892a306725f94c0b580"
+      }
+    },
+    "limits": "Post-run identity only; reference/terminal default keyring not bound during raw run; Cocoa bundle covers its etc. No runtime path/byte proof is retroactively claimed."
+  },
+  "protection": "No production or harness implementation change in this slice; no new protection test invented or run.",
+  "limits": [
+    "P435 normal cohort, not P445/current collector or checking coverage",
+    "Full original ID selection/observation, not full file pass because original guards skip",
+    "Local temporary Git repositories, shell/make/documentation commands and in-process package compilation; no external repository or physical GUI claim",
+    "Child executables and dumps have no independent fingerprint acceptance",
+    "Old all108/default45 width sweeps are not counted as new coverage",
+    "No product build requested; automatic or in-process compilation is distinct from a product build",
+    "No whole ERT, full G3, performance or App promotion"
+  ]
+}
