@@ -24294,3 +24294,32 @@ four outcomes open and the original Goal continues.
 
 [Coverage](../maintenance/releases/2026-10-31-original-generator-advice-closures.md),
 [CLN174](../maintenance/cleanup/reports/2026-10-31-174-consumed-generator-advice-state.md).
+
+## 2026-10-31: original macro expansion, variables, patterns and generic functions
+
+- Pinned four-file all-ID run on accepted P435 normal reference/terminal/Cocoa:
+  macroexp 6, variables 10, overlay pcase 14, cl-generic 19 IDs per product.
+  Twelve complete exit-0 processes; **147 expected = 141 ordinary passes + six
+  declared expected failures**; zero skips/unexpected failures, equal maps.
+  The two variable expected-failure IDs each signal `ert-test-failed`, expected
+  true, status passed; this is not 147 successful assertion bodies.
+- Ten explicit before/after input maps and all product/resource identities
+  match, with terminal and Cocoa separately bound to accepted P435 receipts.
+  The pinned pcase overlay is used; the tracked fifteen-ID variant is not.
+- Real synchronous child-editor calls and byte compilation occur. Each copy
+  starts at 1,536 manifest inputs and gains `m1.elc`/`vk.elc`; six generated
+  files total 5,623 bytes. Cross-product bytecode/condition text is not equal.
+  Parent/group cleanup completes; child dump identity is not separately proven.
+- Deadline 30s/load-case, owner 300s; estimate 10--90s / 512 MiB is not a limit.
+  Stricter 1 GiB hard tree limit, zero growth. Driver 9.447262s; controller
+  10.720s, 213,336,064 accounted peak bytes, exit 0, cleanup complete. Independent
+  source/raw/controller review accepts only this normal coverage.
+- CLN175: 4,618 files, 885 directories, eighteen links, 5,521 manifest rows;
+  63,086,871 logical / 75,390,976 allocated bytes. Includes 4,614 copied/generated
+  files, one auto trampoline, three consumed helpers and 123 automatic dirs
+  (24 parents) counted once. All selected scopes are absent; evidence and WIP
+  unchanged. Context had eighteen live links, not empty directories.
+- No production/protection/App change, full ERT/checking/G3/performance claim.
+  G1/G2/G4 remain **3/7**, original Goal active; continue remaining work.
+- [Coverage](../maintenance/releases/2026-10-31-original-macroexp-variables.md),
+  [CLN175](../maintenance/cleanup/reports/2026-10-31-175-consumed-macroexp-variable-state.md).

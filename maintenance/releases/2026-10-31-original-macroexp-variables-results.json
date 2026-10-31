@@ -1,0 +1,801 @@
+{
+  "schema": 1,
+  "scope": "Four unchanged pinned macroexp/generalized-variable/pattern/generic-function files, all discovered IDs, accepted P435 normal reference/terminal/Cocoa. Not a new P444 cohort, checking, whole ERT, full G3, native/collector/UI or performance acceptance.",
+  "passed": true,
+  "source_commit": "a360712c9d272d950d8d8255ef74570f7e90b7d9",
+  "raw_result": {
+    "path": "build/acceptance/g3-macroexp-generalized-vars-1/results.json",
+    "bytes": 6793405,
+    "sha256": "4ea4681b9a52905b812a234b8cedec73db13b505f10cc12175eff9ab66204c10"
+  },
+  "driver_sha256": "d01f450f37dcabf2301bc3d38a998432d5133736d997ff98b43ead9287801740",
+  "counts": {
+    "expected_results": 147,
+    "ordinary_passes": 141,
+    "declared_expected_failures": 6,
+    "skipped": 0,
+    "unexpected_failures": 0
+  },
+  "files": [
+    {
+      "path": "test/lisp/emacs-lisp/cl-generic-tests.el",
+      "source_path": "test/lisp/emacs-lisp/cl-generic-tests.el",
+      "input": "tracked",
+      "mode": "100644",
+      "size": 14768,
+      "blob": "8c4ce36a6e00084f92e126d6a82c0cc0ceb02d30",
+      "sha256": "60f380c7857b55de6852d76105f0db510fa798768ba492c7f1a1dfb426458180"
+    },
+    {
+      "path": "test/lisp/emacs-lisp/gv-tests.el",
+      "source_path": "test/lisp/emacs-lisp/gv-tests.el",
+      "input": "tracked",
+      "mode": "100644",
+      "size": 9622,
+      "blob": "c2ae871cb350518a70a7c02fb7d46f9453594d96",
+      "sha256": "220e4bd0d4b239b85a94aced94c313874f9a3d4ff6aa533c74143a366b8d6e50"
+    },
+    {
+      "path": "test/lisp/emacs-lisp/macroexp-tests.el",
+      "source_path": "test/lisp/emacs-lisp/macroexp-tests.el",
+      "input": "tracked",
+      "mode": "100644",
+      "size": 8377,
+      "blob": "cad3ed84a07154bb62faace513bf90d8700b3128",
+      "sha256": "54d0862bd0387babe795924c29a7bfc6bce8180393b9ce4507e806ccf2f4e0ef"
+    },
+    {
+      "path": "test/lisp/emacs-lisp/pcase-tests.el",
+      "source_path": "compatibility/stable-31.1/test/lisp/emacs-lisp/pcase-tests.el",
+      "input": "overlay",
+      "mode": "100644",
+      "size": 7696,
+      "blob": "9b8a643c7319708b8e46f2910971e439907f5add",
+      "sha256": "c1467ce772e9be76c2ce2fa13b757010fbd3ec1e855ed925016cc61d459ae609"
+    }
+  ],
+  "registered_ids": {
+    "test/lisp/emacs-lisp/macroexp-tests.el": [
+      "macroexp--dynbound-eval-and-compile",
+      "macroexp--test-macroexp-enable-preserve-posification",
+      "macroexp--test-obsolete-macro",
+      "macroexp--tests-dynamic-variable-p",
+      "macroexp--tests-fgrep",
+      "macroexp--tests-file-name"
+    ],
+    "test/lisp/emacs-lisp/gv-tests.el": [
+      "gv-decf",
+      "gv-define-expander-in-file",
+      "gv-define-expander-in-file-twice",
+      "gv-define-expander-in-function",
+      "gv-define-expander-out-of-file",
+      "gv-dont-define-expander-in-file",
+      "gv-dont-define-expander-other-file",
+      "gv-incf",
+      "gv-plist-get",
+      "gv-setter-edebug"
+    ],
+    "test/lisp/emacs-lisp/pcase-tests.el": [
+      "pcase-pred-equiv",
+      "pcase-tests-base",
+      "pcase-tests-bug14773",
+      "pcase-tests-bug46786",
+      "pcase-tests-bugs",
+      "pcase-tests-cl-type",
+      "pcase-tests-macro",
+      "pcase-tests-member",
+      "pcase-tests-mutually-exclusive",
+      "pcase-tests-or-vars",
+      "pcase-tests-quote-optimization",
+      "pcase-tests-setq",
+      "pcase-tests-tests",
+      "pcase-tests-vectors"
+    ],
+    "test/lisp/emacs-lisp/cl-generic-tests.el": [
+      "cl-defgeneric/edebug/method",
+      "cl-generic-test-00",
+      "cl-generic-test-01-eql",
+      "cl-generic-test-02-struct",
+      "cl-generic-test-03-setf",
+      "cl-generic-test-04-overlapping-tagcodes",
+      "cl-generic-test-05-alias",
+      "cl-generic-test-06-multiple-dispatch",
+      "cl-generic-test-07-apo",
+      "cl-generic-test-08-after/before",
+      "cl-generic-test-09-advice",
+      "cl-generic-test-10-weird",
+      "cl-generic-test-11-next-method-p",
+      "cl-generic-test-12-context",
+      "cl-generic-test-13-head",
+      "cl-generic-tests--advertised-calling-convention-bug58563",
+      "cl-generic-tests--method-files--finds-methods",
+      "cl-generic-tests--method-files--nonexistent-methods",
+      "cl-generic-tests--print-quoted"
+    ]
+  },
+  "processes": [
+    {
+      "complete": true,
+      "exit_code": 0,
+      "timed_out": false,
+      "remaining_group_terminated": false,
+      "protocol_error": null,
+      "runner_error": null,
+      "seconds": 1.077835667,
+      "product": "reference",
+      "file": "test/lisp/emacs-lisp/macroexp-tests.el",
+      "ids": 6,
+      "ids_sha256": "cbd9a37223deeeb7204010e5422a7d2e4d061211eddf20e8ccf2dbbe268241c1",
+      "tags_sha256": "a91a0a4874ccda6afc16fce780ad76aba4ebcc7dbe958ab287bc27cd4e47c5ff",
+      "status_map_sha256": "e301759bcca0d808a8c4d31d686252bf4655d707c21f05febe576b1f37d73b61",
+      "result": {
+        "path": "build/acceptance/g3-macroexp-generalized-vars-1/reference/results/reference/test-lisp-emacs-lisp-macroexp-tests.el-81792ecac493.json",
+        "bytes": 10018,
+        "sha256": "a55ed5b28f499f0ff971ab42e456bee2741430f54c9ccba03801801ed4784070"
+      },
+      "events": {
+        "path": "build/acceptance/g3-macroexp-generalized-vars-1/reference/results/reference/test-lisp-emacs-lisp-macroexp-tests.el-81792ecac493.events.jsonl",
+        "bytes": 5470,
+        "sha256": "3b4030f3c48986b70c04a483d13c8da090107c3505a1ce1181d8dc424f3a5447"
+      }
+    },
+    {
+      "complete": true,
+      "exit_code": 0,
+      "timed_out": false,
+      "remaining_group_terminated": false,
+      "protocol_error": null,
+      "runner_error": null,
+      "seconds": 1.0897774999999998,
+      "product": "reference",
+      "file": "test/lisp/emacs-lisp/gv-tests.el",
+      "ids": 10,
+      "ids_sha256": "5c04455649cf0e29705e1be54ae9d258434002bb8791fbbaf5ed1fd826042b9c",
+      "tags_sha256": "bcbdd965d1dec4e152768344cf11602d16686d5caea56937f8c11bdc31ffc714",
+      "status_map_sha256": "2ee1020b390c14e31449f9676e6496213b3642c825a1524cf77d88aa6cf9330b",
+      "result": {
+        "path": "build/acceptance/g3-macroexp-generalized-vars-1/reference/results/reference/test-lisp-emacs-lisp-gv-tests.el-366f4f939edd.json",
+        "bytes": 20112,
+        "sha256": "811bbdbdbc14170072218b5a1a745bb584f7b9c6a4ab3d778950bdf65e670065"
+      },
+      "events": {
+        "path": "build/acceptance/g3-macroexp-generalized-vars-1/reference/results/reference/test-lisp-emacs-lisp-gv-tests.el-366f4f939edd.events.jsonl",
+        "bytes": 14392,
+        "sha256": "1c2b45a2dcca1b5fe8c3bf7d6d32ed8950cd0996ed3b1dc26dd4aef89f6e3c97"
+      }
+    },
+    {
+      "complete": true,
+      "exit_code": 0,
+      "timed_out": false,
+      "remaining_group_terminated": false,
+      "protocol_error": null,
+      "runner_error": null,
+      "seconds": 0.1988209999999997,
+      "product": "reference",
+      "file": "test/lisp/emacs-lisp/pcase-tests.el",
+      "ids": 14,
+      "ids_sha256": "bf5ad53132e2a97deb937c7237fe6cf8f66e56a5ae38a0e738f7d3884938a1b7",
+      "tags_sha256": "32a92059274558d67b44ed63c5106051ee93a215836224b0d4095f61608f88fe",
+      "status_map_sha256": "952a1050b28a1137cef8cc7c626eaec7f2e8a5e6aa885e89f488823f9a89d9b1",
+      "result": {
+        "path": "build/acceptance/g3-macroexp-generalized-vars-1/reference/results/reference/test-lisp-emacs-lisp-pcase-tests.el-c80dce750b61.json",
+        "bytes": 15866,
+        "sha256": "81fdfc5423314b2efa494ce1b057ddc2333d4047e4d1cdc0933edc9458fd9f62"
+      },
+      "events": {
+        "path": "build/acceptance/g3-macroexp-generalized-vars-1/reference/results/reference/test-lisp-emacs-lisp-pcase-tests.el-c80dce750b61.events.jsonl",
+        "bytes": 9021,
+        "sha256": "04f2c04c39ca00c33c6159dd434d006a9fd4d980127969ce9647e1ac1271d237"
+      }
+    },
+    {
+      "complete": true,
+      "exit_code": 0,
+      "timed_out": false,
+      "remaining_group_terminated": false,
+      "protocol_error": null,
+      "runner_error": null,
+      "seconds": 0.22198787499999995,
+      "product": "reference",
+      "file": "test/lisp/emacs-lisp/cl-generic-tests.el",
+      "ids": 19,
+      "ids_sha256": "b632f91fa6aaabe9475801f68c9c5413c5df0f448269fe862f81382d48894202",
+      "tags_sha256": "9bdf48ae3fdaa6afe141021d2278438e05c2d5d3ee781690c11f11f088ff366a",
+      "status_map_sha256": "921cf054a8c9680226845f1746af8c58c1f18b10f5583febb64a0ac3ada35e7d",
+      "result": {
+        "path": "build/acceptance/g3-macroexp-generalized-vars-1/reference/results/reference/test-lisp-emacs-lisp-cl-generic-tests.el-f9b2adbb15ae.json",
+        "bytes": 21638,
+        "sha256": "8ffeee9f0f906156e5e20db8a930ae2026bc958b269f787a6595cc85839a683c"
+      },
+      "events": {
+        "path": "build/acceptance/g3-macroexp-generalized-vars-1/reference/results/reference/test-lisp-emacs-lisp-cl-generic-tests.el-f9b2adbb15ae.events.jsonl",
+        "bytes": 13380,
+        "sha256": "68d87574cc0fbb61559b7311d182af976732b096b3ac0aa65a7fc540512e1489"
+      }
+    },
+    {
+      "complete": true,
+      "exit_code": 0,
+      "timed_out": false,
+      "remaining_group_terminated": false,
+      "protocol_error": null,
+      "runner_error": null,
+      "seconds": 0.21226820900000032,
+      "product": "terminal",
+      "file": "test/lisp/emacs-lisp/macroexp-tests.el",
+      "ids": 6,
+      "ids_sha256": "cbd9a37223deeeb7204010e5422a7d2e4d061211eddf20e8ccf2dbbe268241c1",
+      "tags_sha256": "a91a0a4874ccda6afc16fce780ad76aba4ebcc7dbe958ab287bc27cd4e47c5ff",
+      "status_map_sha256": "e301759bcca0d808a8c4d31d686252bf4655d707c21f05febe576b1f37d73b61",
+      "result": {
+        "path": "build/acceptance/g3-macroexp-generalized-vars-1/terminal/results/terminal/test-lisp-emacs-lisp-macroexp-tests.el-81792ecac493.json",
+        "bytes": 9745,
+        "sha256": "594b3f198c39e46489347e9a5eba3ae18f2c8506bd7c9e117fc8e2f52bbf3d82"
+      },
+      "events": {
+        "path": "build/acceptance/g3-macroexp-generalized-vars-1/terminal/results/terminal/test-lisp-emacs-lisp-macroexp-tests.el-81792ecac493.events.jsonl",
+        "bytes": 5169,
+        "sha256": "5fa712450ca3d70ad8dc66bab4bc0c98b6bfcd5b6b437e904aac45817fa782f7"
+      }
+    },
+    {
+      "complete": true,
+      "exit_code": 0,
+      "timed_out": false,
+      "remaining_group_terminated": false,
+      "protocol_error": null,
+      "runner_error": null,
+      "seconds": 0.30905654100000035,
+      "product": "terminal",
+      "file": "test/lisp/emacs-lisp/gv-tests.el",
+      "ids": 10,
+      "ids_sha256": "5c04455649cf0e29705e1be54ae9d258434002bb8791fbbaf5ed1fd826042b9c",
+      "tags_sha256": "bcbdd965d1dec4e152768344cf11602d16686d5caea56937f8c11bdc31ffc714",
+      "status_map_sha256": "2ee1020b390c14e31449f9676e6496213b3642c825a1524cf77d88aa6cf9330b",
+      "result": {
+        "path": "build/acceptance/g3-macroexp-generalized-vars-1/terminal/results/terminal/test-lisp-emacs-lisp-gv-tests.el-366f4f939edd.json",
+        "bytes": 22212,
+        "sha256": "df1befb19bcbc5ae6eb44153d762219c1062266182a4749f1771ba4d6f8af5ab"
+      },
+      "events": {
+        "path": "build/acceptance/g3-macroexp-generalized-vars-1/terminal/results/terminal/test-lisp-emacs-lisp-gv-tests.el-366f4f939edd.events.jsonl",
+        "bytes": 16475,
+        "sha256": "693de562a46a999958a95638213df3113cb8c9b53f046a7ec799963d21c09779"
+      }
+    },
+    {
+      "complete": true,
+      "exit_code": 0,
+      "timed_out": false,
+      "remaining_group_terminated": false,
+      "protocol_error": null,
+      "runner_error": null,
+      "seconds": 0.06429141699999974,
+      "product": "terminal",
+      "file": "test/lisp/emacs-lisp/pcase-tests.el",
+      "ids": 14,
+      "ids_sha256": "bf5ad53132e2a97deb937c7237fe6cf8f66e56a5ae38a0e738f7d3884938a1b7",
+      "tags_sha256": "32a92059274558d67b44ed63c5106051ee93a215836224b0d4095f61608f88fe",
+      "status_map_sha256": "952a1050b28a1137cef8cc7c626eaec7f2e8a5e6aa885e89f488823f9a89d9b1",
+      "result": {
+        "path": "build/acceptance/g3-macroexp-generalized-vars-1/terminal/results/terminal/test-lisp-emacs-lisp-pcase-tests.el-c80dce750b61.json",
+        "bytes": 15588,
+        "sha256": "3cdad1656a1bf069cd7858f9c96109f8ae347cf81cac5728d16d24aa1a81fa82"
+      },
+      "events": {
+        "path": "build/acceptance/g3-macroexp-generalized-vars-1/terminal/results/terminal/test-lisp-emacs-lisp-pcase-tests.el-c80dce750b61.events.jsonl",
+        "bytes": 8725,
+        "sha256": "4e8990341965a4ecf9c2833db2e0f7bb2378e2feda464b21b2c1638a70fbbab6"
+      }
+    },
+    {
+      "complete": true,
+      "exit_code": 0,
+      "timed_out": false,
+      "remaining_group_terminated": false,
+      "protocol_error": null,
+      "runner_error": null,
+      "seconds": 0.06848149999999986,
+      "product": "terminal",
+      "file": "test/lisp/emacs-lisp/cl-generic-tests.el",
+      "ids": 19,
+      "ids_sha256": "b632f91fa6aaabe9475801f68c9c5413c5df0f448269fe862f81382d48894202",
+      "tags_sha256": "9bdf48ae3fdaa6afe141021d2278438e05c2d5d3ee781690c11f11f088ff366a",
+      "status_map_sha256": "921cf054a8c9680226845f1746af8c58c1f18b10f5583febb64a0ac3ada35e7d",
+      "result": {
+        "path": "build/acceptance/g3-macroexp-generalized-vars-1/terminal/results/terminal/test-lisp-emacs-lisp-cl-generic-tests.el-f9b2adbb15ae.json",
+        "bytes": 21344,
+        "sha256": "7cc84c70b138c964ee692437808c9fb9f4779e99addbcaf1f1cfebae4b4237c1"
+      },
+      "events": {
+        "path": "build/acceptance/g3-macroexp-generalized-vars-1/terminal/results/terminal/test-lisp-emacs-lisp-cl-generic-tests.el-f9b2adbb15ae.events.jsonl",
+        "bytes": 13078,
+        "sha256": "52a11ec860ff7d39c18e45502975da0aa68f4d66226e09db1807d075a395f053"
+      }
+    },
+    {
+      "complete": true,
+      "exit_code": 0,
+      "timed_out": false,
+      "remaining_group_terminated": false,
+      "protocol_error": null,
+      "runner_error": null,
+      "seconds": 0.21822254100000027,
+      "product": "cocoa",
+      "file": "test/lisp/emacs-lisp/macroexp-tests.el",
+      "ids": 6,
+      "ids_sha256": "cbd9a37223deeeb7204010e5422a7d2e4d061211eddf20e8ccf2dbbe268241c1",
+      "tags_sha256": "a91a0a4874ccda6afc16fce780ad76aba4ebcc7dbe958ab287bc27cd4e47c5ff",
+      "status_map_sha256": "e301759bcca0d808a8c4d31d686252bf4655d707c21f05febe576b1f37d73b61",
+      "result": {
+        "path": "build/acceptance/g3-macroexp-generalized-vars-1/cocoa/results/cocoa/test-lisp-emacs-lisp-macroexp-tests.el-81792ecac493.json",
+        "bytes": 10004,
+        "sha256": "3f578b82822c13923d2c97c85989eb5c0e44af73e99a9455b307251732a89611"
+      },
+      "events": {
+        "path": "build/acceptance/g3-macroexp-generalized-vars-1/cocoa/results/cocoa/test-lisp-emacs-lisp-macroexp-tests.el-81792ecac493.events.jsonl",
+        "bytes": 5377,
+        "sha256": "94cd09a26de6dbc2b117db0dfef066b334968673eef692e4543950d63fd73fc6"
+      }
+    },
+    {
+      "complete": true,
+      "exit_code": 0,
+      "timed_out": false,
+      "remaining_group_terminated": false,
+      "protocol_error": null,
+      "runner_error": null,
+      "seconds": 0.3119579580000007,
+      "product": "cocoa",
+      "file": "test/lisp/emacs-lisp/gv-tests.el",
+      "ids": 10,
+      "ids_sha256": "5c04455649cf0e29705e1be54ae9d258434002bb8791fbbaf5ed1fd826042b9c",
+      "tags_sha256": "bcbdd965d1dec4e152768344cf11602d16686d5caea56937f8c11bdc31ffc714",
+      "status_map_sha256": "2ee1020b390c14e31449f9676e6496213b3642c825a1524cf77d88aa6cf9330b",
+      "result": {
+        "path": "build/acceptance/g3-macroexp-generalized-vars-1/cocoa/results/cocoa/test-lisp-emacs-lisp-gv-tests.el-366f4f939edd.json",
+        "bytes": 22406,
+        "sha256": "863a451ef7844537b1b6e542555afba6accada4558144bfb16cde3e2d96be225"
+      },
+      "events": {
+        "path": "build/acceptance/g3-macroexp-generalized-vars-1/cocoa/results/cocoa/test-lisp-emacs-lisp-gv-tests.el-366f4f939edd.events.jsonl",
+        "bytes": 16633,
+        "sha256": "8d16e490d6be304312985824d629b5c8fbda265952be0292a25932bd9a5a2caf"
+      }
+    },
+    {
+      "complete": true,
+      "exit_code": 0,
+      "timed_out": false,
+      "remaining_group_terminated": false,
+      "protocol_error": null,
+      "runner_error": null,
+      "seconds": 0.07709008399999995,
+      "product": "cocoa",
+      "file": "test/lisp/emacs-lisp/pcase-tests.el",
+      "ids": 14,
+      "ids_sha256": "bf5ad53132e2a97deb937c7237fe6cf8f66e56a5ae38a0e738f7d3884938a1b7",
+      "tags_sha256": "32a92059274558d67b44ed63c5106051ee93a215836224b0d4095f61608f88fe",
+      "status_map_sha256": "952a1050b28a1137cef8cc7c626eaec7f2e8a5e6aa885e89f488823f9a89d9b1",
+      "result": {
+        "path": "build/acceptance/g3-macroexp-generalized-vars-1/cocoa/results/cocoa/test-lisp-emacs-lisp-pcase-tests.el-c80dce750b61.json",
+        "bytes": 15833,
+        "sha256": "e298e750586883fdfbd90e5903a523450273180e1633e836b6fcac5474e0c4a9"
+      },
+      "events": {
+        "path": "build/acceptance/g3-macroexp-generalized-vars-1/cocoa/results/cocoa/test-lisp-emacs-lisp-pcase-tests.el-c80dce750b61.events.jsonl",
+        "bytes": 8938,
+        "sha256": "f619d2acc1c896eac3427737a26d0105848d0801f3e171ff28bfb63eb31091bf"
+      }
+    },
+    {
+      "complete": true,
+      "exit_code": 0,
+      "timed_out": false,
+      "remaining_group_terminated": false,
+      "protocol_error": null,
+      "runner_error": null,
+      "seconds": 0.0804364169999996,
+      "product": "cocoa",
+      "file": "test/lisp/emacs-lisp/cl-generic-tests.el",
+      "ids": 19,
+      "ids_sha256": "b632f91fa6aaabe9475801f68c9c5413c5df0f448269fe862f81382d48894202",
+      "tags_sha256": "9bdf48ae3fdaa6afe141021d2278438e05c2d5d3ee781690c11f11f088ff366a",
+      "status_map_sha256": "921cf054a8c9680226845f1746af8c58c1f18b10f5583febb64a0ac3ada35e7d",
+      "result": {
+        "path": "build/acceptance/g3-macroexp-generalized-vars-1/cocoa/results/cocoa/test-lisp-emacs-lisp-cl-generic-tests.el-f9b2adbb15ae.json",
+        "bytes": 21567,
+        "sha256": "23e17980f303caeb9cc28e55b8798e4907e3ce03e5205855e6f27a3b8d191032"
+      },
+      "events": {
+        "path": "build/acceptance/g3-macroexp-generalized-vars-1/cocoa/results/cocoa/test-lisp-emacs-lisp-cl-generic-tests.el-f9b2adbb15ae.events.jsonl",
+        "bytes": 13289,
+        "sha256": "cfafc3b1e78296fca7043c14e8a02bba174a83ff948429c5a677fdeba034b338"
+      }
+    }
+  ],
+  "expected_failures": [
+    {
+      "product": "reference",
+      "id": "gv-define-expander-in-function",
+      "result_type": "ert-test-failed",
+      "expected": true,
+      "status": "passed",
+      "event_sha256": "6dd889af58b06d9ee20256e5e00b7f9f32737c66eb30c791b96e2ba6709b7254"
+    },
+    {
+      "product": "reference",
+      "id": "gv-dont-define-expander-in-file",
+      "result_type": "ert-test-failed",
+      "expected": true,
+      "status": "passed",
+      "event_sha256": "66a85051e11ed1a22245027ef6580fd21312ffaa8a01207bfdb283aa3577880e"
+    },
+    {
+      "product": "terminal",
+      "id": "gv-define-expander-in-function",
+      "result_type": "ert-test-failed",
+      "expected": true,
+      "status": "passed",
+      "event_sha256": "e08bf861ae73d7e63824489ed59bd28eab7a5d963c6e456407902835f9ec3f4f"
+    },
+    {
+      "product": "terminal",
+      "id": "gv-dont-define-expander-in-file",
+      "result_type": "ert-test-failed",
+      "expected": true,
+      "status": "passed",
+      "event_sha256": "6b1cf5093e394da03db234384a9b39d2b47caa406731a51001f705f97fe1f3c9"
+    },
+    {
+      "product": "cocoa",
+      "id": "gv-define-expander-in-function",
+      "result_type": "ert-test-failed",
+      "expected": true,
+      "status": "passed",
+      "event_sha256": "b422d4fdd7ec249d3fcf7cf608fb3099811a65fc880ff89736b902f949f393f1"
+    },
+    {
+      "product": "cocoa",
+      "id": "gv-dont-define-expander-in-file",
+      "result_type": "ert-test-failed",
+      "expected": true,
+      "status": "passed",
+      "event_sha256": "9d06ebbdcdd98d5c498edbc3a9ddd569a2bfb70de890be662a5a77bbae661b59"
+    }
+  ],
+  "inputs": [
+    {
+      "path": "compatibility/stable-31.1/sources.json",
+      "identity": {
+        "kind": "file",
+        "bytes": 562572,
+        "mode": 420,
+        "sha256": "a5ef144a203b8b2a74e346ac47173c5d4122f751d8d950347ae75ff67eef0efe"
+      }
+    },
+    {
+      "path": "tools/fixtures/stable-suite-runner.el",
+      "identity": {
+        "kind": "file",
+        "bytes": 12592,
+        "mode": 420,
+        "sha256": "d5bcd0c18f15995e50adefe8472d12ef82f71114be10ce307202b4ce0f11150e"
+      }
+    },
+    {
+      "path": "tools/stable-suite.py",
+      "identity": {
+        "kind": "file",
+        "bytes": 54108,
+        "mode": 420,
+        "sha256": "75e913813f585425ce3673c5db9c71b2054d875c50540ccee3dd06cb4eabc51c"
+      }
+    },
+    {
+      "path": "tools/stable-suite-batch.py",
+      "identity": {
+        "kind": "file",
+        "bytes": 22008,
+        "mode": 420,
+        "sha256": "5473bee19634e589dbbaa091f2fb8dc5c78e67be5399c3db4497753e1ea64b6e"
+      }
+    },
+    {
+      "path": "tools/runtime-execution.py",
+      "identity": {
+        "kind": "file",
+        "bytes": 93220,
+        "mode": 420,
+        "sha256": "26b379c3d4a24adf2a306e1c751c654ca1b6b1c6cd43f0888398c3560e455fb4"
+      }
+    },
+    {
+      "path": "tools/runtime-retire.py",
+      "identity": {
+        "kind": "file",
+        "bytes": 8538,
+        "mode": 420,
+        "sha256": "84ad68bbb26ffb73e129406b430393c0eaeab2f6b818c5916a950b6514eb6932"
+      }
+    },
+    {
+      "path": "owned-task-cache/g3-macroexp-generalized-vars-1.py",
+      "identity": {
+        "kind": "file",
+        "bytes": 10017,
+        "mode": 420,
+        "sha256": "d01f450f37dcabf2301bc3d38a998432d5133736d997ff98b43ead9287801740"
+      }
+    },
+    {
+      "path": "build/acceptance/p435-p427-products-1/products-with-runtime.json",
+      "identity": {
+        "kind": "file",
+        "bytes": 1578004,
+        "mode": 420,
+        "sha256": "aa4d2cadb59089c231c43d2827de479f35a1825514916a3573ad936b4e9ac162"
+      }
+    },
+    {
+      "path": "build/acceptance/p435-functional-normal-1/results.json",
+      "identity": {
+        "kind": "file",
+        "bytes": 695326,
+        "mode": 420,
+        "sha256": "fdd7cce538a6fa60329793d762db627cc94ca98f8b726614f65dd3c12af15849"
+      }
+    },
+    {
+      "path": "build/acceptance/current-macos-core-products-1/products.json",
+      "identity": {
+        "kind": "file",
+        "bytes": 2278690,
+        "mode": 420,
+        "sha256": "a29fc611bd359e598074a00aebc0ca7dfb420806c315c6c151872ec1d01a4ac8"
+      }
+    }
+  ],
+  "input_maps_before_after_equal": true,
+  "products": {
+    "reference": {
+      "program": {
+        "kind": "file",
+        "bytes": 3691504,
+        "mode": 493,
+        "sha256": "5b55e93c8304368ee37cc5c537ca3e1370e3b9b3fef049bdce76834a9db75e65"
+      },
+      "dump": {
+        "kind": "file",
+        "bytes": 23084632,
+        "mode": 420,
+        "sha256": "6ac1214186022574a70e84a04bb7f2dc44e1ea1d4c90f0d9ce421ddd0f4b4536"
+      },
+      "resources": {
+        "lisp": {
+          "entries": 3316,
+          "canonical_json_sha256": "564df364c803f4d0b64d7bc2ba986d775e8985529481ac2684b739666e131323"
+        }
+      }
+    },
+    "terminal": {
+      "program": {
+        "kind": "file",
+        "bytes": 2698016,
+        "mode": 493,
+        "sha256": "fb0b822273e79bb5b008725771473f5d510b9f712488242d615fb3a5fefbcde6"
+      },
+      "dump": {
+        "kind": "file",
+        "bytes": 13101600,
+        "mode": 420,
+        "sha256": "5d1913c39d5c348c711d24e16b25d9e63d09e082ee6dbe3b3a54ac4680862f82"
+      },
+      "resources": {
+        "lisp": {
+          "entries": 3363,
+          "canonical_json_sha256": "79dc09151f2f61152496f3587dc54cb580fb45a9c92301bfe3e75ab027a02146"
+        },
+        "runtime-tls": {
+          "entries": 9,
+          "canonical_json_sha256": "9b34100e73d1f4bbd3157cd1535a25f8fdc6d4e094f2e6a1e9dc79b1a63fd73d"
+        },
+        "runtime-lcms": {
+          "entries": 1,
+          "canonical_json_sha256": "819844d74d5d4f3ee5a75aaf2b0d9a23b07fdda8bfa71c65cdbda63f6eb213cb"
+        },
+        "runtime-treesit": {
+          "entries": 1,
+          "canonical_json_sha256": "05b5f47a14a19b3f04511fa292f0976e2cab06437b9e4323edbce72a9767f0f9"
+        }
+      }
+    },
+    "cocoa": {
+      "program": {
+        "kind": "file",
+        "bytes": 4230368,
+        "mode": 493,
+        "sha256": "d796f4c52e2a32ec6176e02efca33d922da18252aaddd0885e59993f108ba385"
+      },
+      "dump": {
+        "kind": "file",
+        "bytes": 18602200,
+        "mode": 420,
+        "sha256": "2b87c3436eaa33e551b024c6be01ea702b9c586c4535993258b63aa95a618b92"
+      },
+      "resources": {
+        "lisp": {
+          "entries": 3353,
+          "canonical_json_sha256": "e4108125e078022ebe91c3ccc5095c46c8fcbe48180ed02668f315d4e4c910b5"
+        },
+        "bundle": {
+          "entries": 4477,
+          "canonical_json_sha256": "e1212d5ae114aec885c8d2d467c9c39b4feb1f693b0d685dc28901fd34bb5342"
+        }
+      }
+    }
+  },
+  "product_before_after_equal": true,
+  "product_binding": {
+    "scope": "Accepted P435 normal reused, not new P444 or checking products",
+    "terminal_receipt": "build/acceptance/p435-functional-normal-1/results.json",
+    "cocoa_receipt": "build/acceptance/current-macos-core-products-1/products.json",
+    "cocoa_asserted": true,
+    "terminal_asserted": true
+  },
+  "runtime_metadata": {
+    "reference": {
+      "reported_version_number": "31.1",
+      "reported_version_text_sha256": "7af5627c835474ff1fb248949f8ce3f4b955ea99fa0e40ba2c452a717e34fe3a",
+      "system_configuration": "aarch64-apple-darwin25.6.0",
+      "system_type": "darwin",
+      "window_system": null
+    },
+    "terminal": {
+      "reported_version_number": "32.0.50",
+      "reported_version_text_sha256": "775636f5ebd0648228fb2b1caf1358dca82d535700c9e6832e68f36dd29adad2",
+      "system_configuration": "aarch64-apple-darwin25.6.0",
+      "system_type": "darwin",
+      "window_system": null
+    },
+    "cocoa": {
+      "reported_version_number": "32.0.50",
+      "reported_version_text_sha256": "d8efc9bf7e94801c2268c9ade30c979b9b948406f082ec87e6e2d06e50cada4d",
+      "system_configuration": "aarch64-apple-darwin25.6.0",
+      "system_type": "darwin",
+      "window_system": null
+    }
+  },
+  "materializations": {
+    "reference": {
+      "file_count": 1536,
+      "bytes": 20996952
+    },
+    "terminal": {
+      "file_count": 1536,
+      "bytes": 20996952
+    },
+    "cocoa": {
+      "file_count": 1536,
+      "bytes": 20996952
+    }
+  },
+  "generated_resources": {
+    "reference": {
+      "test/lisp/emacs-lisp/macroexp-resources/m1.elc": {
+        "kind": "file",
+        "bytes": 371,
+        "mode": 420,
+        "sha256": "da2540a836a7c85d02562b1948e0329289acb76331d5650832e365d231e7e0dc"
+      },
+      "test/lisp/emacs-lisp/macroexp-resources/vk.elc": {
+        "kind": "file",
+        "bytes": 1501,
+        "mode": 420,
+        "sha256": "c3e3ac5f6155df7b240a1ac9228b5864e3d6820f27a3ec53f93a2ea3b3435340"
+      }
+    },
+    "terminal": {
+      "test/lisp/emacs-lisp/macroexp-resources/m1.elc": {
+        "kind": "file",
+        "bytes": 373,
+        "mode": 420,
+        "sha256": "916567079769b36522a99089e6e49d00ac883d8c59cca1677c3014c61d568776"
+      },
+      "test/lisp/emacs-lisp/macroexp-resources/vk.elc": {
+        "kind": "file",
+        "bytes": 1504,
+        "mode": 420,
+        "sha256": "c5a7164e2d51e799a517b49c51ee665d4dda29300226ecb3efe9130cb83143d7"
+      }
+    },
+    "cocoa": {
+      "test/lisp/emacs-lisp/macroexp-resources/m1.elc": {
+        "kind": "file",
+        "bytes": 370,
+        "mode": 420,
+        "sha256": "7333f64a4f6910c61ddd94d9855b3548373c91750e5989e6018b259eb7578c97"
+      },
+      "test/lisp/emacs-lisp/macroexp-resources/vk.elc": {
+        "kind": "file",
+        "bytes": 1504,
+        "mode": 420,
+        "sha256": "c5a7164e2d51e799a517b49c51ee665d4dda29300226ecb3efe9130cb83143d7"
+      }
+    }
+  },
+  "status_maps_equal_reference": true,
+  "tag_maps_equal_reference": true,
+  "budget": {
+    "whole_seconds": 300,
+    "per_case_seconds": 30,
+    "expected_seconds": [
+      10,
+      90
+    ],
+    "expected_peak_bytes": 536870912,
+    "copied_source_bytes": 62990856,
+    "scale": "12 serial original-file processes, 49 discovered IDs per product (macroexp6/gv10/pinned overlay pcase14/cl-generic19). Fixed shallow expression graphs; macroexp has 3 synchronous child editor calls (one batch-byte-compile, two evals), m2 loads in-process byte-compile-file of m1 and three in-process byte-compile forms; gv has 6 synchronous child calls compiling tiny temporary files; generic has one in-process byte compilation and edebug Go-nonstop forms. Maximum 27 explicit child calls across all products, bounded by existing per-load/case30s and owner300s tree deadline. No network or positive sleep. Two original gv expected failures per product retained. Manifest-only copies exclude preexisting ignored .elc; expect and record exactly m1.elc/vk.elc newly generated per product. Automatic reference native trampolines may occur. No original source/guard/tag/ID change or product build. 512 MiB estimate is not a limit; stricter sampled 1 GiB tree hard limit/growth disabled, no automatic cap increase. No separate child dump fingerprint or performance claim."
+  },
+  "driver_seconds": 9.447261959,
+  "controller": {
+    "run_id": "579d9a4d58eb4cfcb0baf3e0b9cfe4d1",
+    "profile": "runtime",
+    "reason": "exited",
+    "exit_code": 0,
+    "cleanup_complete": true,
+    "elapsed_seconds": 10.72,
+    "peak_rss_bytes": 213336064,
+    "peak_footprint_bytes": 128141376,
+    "peak_accounted_bytes": 213336064,
+    "initial_limit_bytes": 1073741824,
+    "hard_limit_bytes": 1073741824,
+    "growth_count": 0
+  },
+  "controller_log_sha256": "8eae13a4a80120dd24c962de8eb70f0f49552eefab331263f3c5ccbe5f336b08",
+  "controller_independently_reviewed": true,
+  "independent_review": {
+    "accepted": true,
+    "scope": "Read-only source and all 147 original test-ended event hashes/ordinals, ID/tag/status maps, declared expectations, input/product/P435 bindings, six generated bytecodes and controller log; no rerun.",
+    "boundary_correction": "Each consumed test copy has 1536 pinned inputs plus two generated bytecodes. Eighteen live context symlinks and empty environment labels were recorded for cleanup."
+  },
+  "whole_ert_accepted": false,
+  "checking_accepted": false,
+  "full_g3_accepted": false,
+  "performance_accepted": false,
+  "trial_app_replaced": false,
+  "native_note": "No active product build request; original tests invoke child editors and byte compilation, and the reference automatically creates one native trampoline. Six generated elcs and expected-failure condition text are not byte-identical across products.",
+  "cleanup": {
+    "status": "complete",
+    "files": 4618,
+    "directories": 885,
+    "links": 18,
+    "rows": 5521,
+    "logical_bytes": 63086871,
+    "allocated_bytes": 75390976,
+    "manifest_sha256": "a8bc1b862ffbb6b5ec788264ee231c227b7ebc70a42377e93e199833c747ec4e",
+    "automatic_files": 1,
+    "automatic_directories": 123,
+    "automatic_parent_directories": 24,
+    "automatic_logical_bytes": 34096,
+    "automatic_allocated_bytes": 36864,
+    "consumed_cache_files": 3,
+    "consumed_cache_logical_bytes": 56296,
+    "consumed_cache_allocated_bytes": 65536,
+    "products_inputs_git_evidence_unchanged": true
+  },
+  "automatic_trampoline_identity": {
+    "path_id_sha256": "9e1cb22c38005420c49a93ee5357a4c151eacfb0c51f0205533e317555099441",
+    "sha256": "6a2de2f81809f9f78a0aa5396222c6e207139ff0f695f5766358c7164ea4ee1b",
+    "bytes": 34096,
+    "allocated_bytes": 36864,
+    "mode": 493,
+    "device": 16777234,
+    "inode": 401843822,
+    "mtime_ns": 1793420732328528615
+  },
+  "generated_resources_match_expected": true,
+  "generated_bytecode_equal_across_products": false,
+  "child_dump_fingerprints_accepted": false
+}

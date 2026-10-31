@@ -1,3 +1,23 @@
+## Current continuation: macro expansion, variables, patterns and generics (2026-10-31)
+
+Four unchanged pinned files on accepted P435 normal reference/terminal/Cocoa:
+**147 expected results = 141 ordinary passes + six declared expected failures**,
+zero skips/unexpected failures, twelve complete processes, equal ID/tag/status
+maps. Discovery is macroexp 6, variables 10, overlay patterns 14, generics 19.
+Ten explicit input maps and full product/resource identities stay equal
+before/after. Independent source/raw/controller review accepts this scope.
+
+Actual child-editor/byte compilation creates six recorded bytecodes; their
+hashes differ across products. A reference native trampoline is also recorded.
+CLN175 retires 4,618 files, 885 directories and eighteen links,
+63,086,871 / 75,390,976 logical/allocated bytes, including automatic state once
+and three consumed helpers. The three test/environment/context roots are gone;
+original evidence, replay driver, inputs, products and unrelated WIP remain.
+Whole ERT, checking, full G3 and performance stay open; no App replacement.
+G1/G2/G4 remain **3/7**, original Goal active. Continue compatibility/runtime work.
+See [coverage](../maintenance/releases/2026-10-31-original-macroexp-variables.md)
+and [CLN175](../maintenance/cleanup/reports/2026-10-31-175-consumed-macroexp-variable-state.md).
+
 ## Current continuation: generator, advice and closure coverage (2026-10-31)
 
 Three unchanged pinned files on accepted P435 normal reference/terminal/Cocoa:
