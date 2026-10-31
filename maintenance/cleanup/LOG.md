@@ -1,3 +1,17 @@
+## CLN-20261031-180 — consumed Lisp structures and motion state
+
+Independent review accepts354 ordinary observations from18 unique normal P435
+file processes:4 original/107 reused plus14 resumed/247 new, without replay.
+Original count-assertion false and resume-preflight false remain unchanged.
+Retire4,610 files/942 directories/18 links;63,002,646 logical/75,280,384 allocatedB.
+Post-review4608/762/18; automatic0 files/180 directories including36 parents,
+counted once; two consumed helpers11,790/16,384B. No generated/trampoline file.
+All selected roots/helpers absent;5,570 manifest rows fully match private plans.
+Original raw/preflight/resume/events/logs, products, inputs, HEAD/index and WIP
+remain unchanged. No shared purge, whole-volume claim, production or App change.
+[Report](reports/2026-10-31-180-consumed-lisp-structures-state.md) ·
+[Manifest](manifests/2026-10-31-180-consumed-lisp-structures-state.jsonl.gz).
+
 ## CLN-20261029-126 — 已消费GIO诊断上下文
 
 三轮已结束诊断的六个重复上下文根已回收：930文件/链接、34目录、83745810逻辑字节。原09失败、原输入、真实产品及全部原始记录保留；当前51项回归上下文独立，保留文件哈希不变。旧上下文重放须先再生。[逐项身份与恢复](reports/2026-10-29-126-consumed-gio-diagnostic-contexts.md)。

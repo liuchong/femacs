@@ -1,3 +1,24 @@
+## G3 original Lisp structures and motion (2026-10-31)
+
+Six unchanged pinned files, accepted P435 normal reference/terminal/Cocoa:
+**354 ordinary passes**, zero skips/expected/unexpected failures; 118 IDs/product
+(hierarchy68/benchmark1/map-ynp2/Lisp36/tabulated-list4/vtable7), equal maps.
+Lisp36 includes six original macro-generated IDs omitted by the first driver.
+Original raw stays false after its wrong30 count assertion; first resume preflight
+also stays false before editor/compiler startup. Corrected resume verifies four
+completed reference processes/107 events, then runs only fourteen remaining
+processes/247 observations. Eighteen unique processes complete without replay.
+Eleven resume input maps and full products match before/after; generated resources
+and native trampolines are absent. Benchmark compilation/relative assertions are
+functional coverage; keyboard macros/window operations are simulated Lisp paths.
+CLN180: 4,610 files, 942 directories, eighteen links; 63,002,646 logical /
+75,280,384 allocated bytes. Automatic 180 directories/36 parents count once.
+Original failures/evidence, inputs, live products and unrelated WIP remain.
+No production/protection/App change; ERT/checking/full G3/performance remain open.
+G1/G2/G4 stay **3/7**, original Goal active; continue remaining work.
+[Coverage](../maintenance/releases/2026-10-31-original-lisp-structures.md) ·
+[CLN180](../maintenance/cleanup/reports/2026-10-31-180-consumed-lisp-structures-state.md).
+
 ## G3 original Lisp debugging and storage (2026-10-31)
 
 Three unchanged pinned files on accepted P435 normal reference/terminal/Cocoa:

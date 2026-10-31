@@ -1,0 +1,1477 @@
+{
+  "schema": 1,
+  "scope": "Six complete unchanged pinned hierarchy, benchmark, map-ynp, Lisp motion and table files; accepted P435 normal reference/terminal/Cocoa products; all discovered IDs without filtering; not checking, P444 products, full G3, physical UI or performance",
+  "passed": true,
+  "original_driver_passed": false,
+  "resumed_aggregate_passed": true,
+  "source_commit": "a360712c9d272d950d8d8255ef74570f7e90b7d9",
+  "original_result": {
+    "path": "build/acceptance/g3-lisp-structures-1/results.json",
+    "bytes": 3366056,
+    "sha256": "f417bdbe63c249cd1ad2339ef044cf887d1bc8d51d0c08db8f7de97a49b7c29c"
+  },
+  "resume_preflight": {
+    "path": "build/acceptance/g3-lisp-structures-1/resume-1/preflight-failure.json",
+    "bytes": 667,
+    "sha256": "7569351e783a80bef07886679959006d0c180bf022786bff9f48a3dafed29bb9"
+  },
+  "resumed_result": {
+    "path": "build/acceptance/g3-lisp-structures-1/resume-2/results.json",
+    "bytes": 7026768,
+    "sha256": "ef5bbc659dfd18f1a86c32cd265e70ac34f94383d32d9edcb5c82cf623a857b1"
+  },
+  "drivers": [
+    {
+      "path": "owned-task-cache/g3-lisp-structures-1.py",
+      "bytes": 10464,
+      "sha256": "10e13ea8779656424eb14c1c94392b2d49ad8d0be51bd66cb78a08cc7aac747f"
+    },
+    {
+      "path": "owned-task-cache/g3-lisp-structures-resume-1.py",
+      "bytes": 13175,
+      "sha256": "847600709920c0e8139f7a7048a33eafa36ee5309d50c4b97b1f1c551099d088"
+    },
+    {
+      "path": "owned-task-cache/g3-lisp-structures-resume-2.py",
+      "bytes": 13189,
+      "sha256": "9430f535d8211ecc7b197e8ad9bb4bbac4ab555054e56983ab86d3e31cf2ede1"
+    }
+  ],
+  "product_execution_complete": true,
+  "counts": {
+    "selected_observations": 354,
+    "ordinary_passes": 354,
+    "declared_expected_failures": 0,
+    "skipped": 0,
+    "unexpected_failures": 0
+  },
+  "unique_processes": 18,
+  "original_processes_reused": 4,
+  "reused_observations": 107,
+  "resume_new_processes": 14,
+  "resume_new_observations": 247,
+  "files": [
+    {
+      "path": "test/lisp/emacs-lisp/benchmark-tests.el",
+      "source_path": "compatibility/stable-31.1/test/lisp/emacs-lisp/benchmark-tests.el",
+      "input": "overlay",
+      "mode": "100644",
+      "size": 2670,
+      "blob": "f39c5dc54ac93ab7659c4962011b8109803cf713",
+      "sha256": "1cb01cfdb023d91ed53ef3a12eeeec7bc79eff6e2a570eda4e2205008b89ff27"
+    },
+    {
+      "path": "test/lisp/emacs-lisp/hierarchy-tests.el",
+      "source_path": "test/lisp/emacs-lisp/hierarchy-tests.el",
+      "input": "tracked",
+      "mode": "100644",
+      "size": 30754,
+      "blob": "947a3854233c33d4420cce9a000ef2c1f95e0dd0",
+      "sha256": "747586c5ce049def7bd675118f2dd8d3f5d1deed106d8d488fca308ee48fe3c9"
+    },
+    {
+      "path": "test/lisp/emacs-lisp/lisp-tests.el",
+      "source_path": "compatibility/stable-31.1/test/lisp/emacs-lisp/lisp-tests.el",
+      "input": "overlay",
+      "mode": "100644",
+      "size": 19777,
+      "blob": "560fd43601506268ea96b8e2848f1616674fdf97",
+      "sha256": "2337be2749a081d15775f1bd8702b37ef718b2d811101ed567c8502ed7cbae8a"
+    },
+    {
+      "path": "test/lisp/emacs-lisp/map-ynp-tests.el",
+      "source_path": "compatibility/stable-31.1/test/lisp/emacs-lisp/map-ynp-tests.el",
+      "input": "overlay",
+      "mode": "100644",
+      "size": 4045,
+      "blob": "6f4f1cd2d75418520dea3e71f7a47683b54585b9",
+      "sha256": "e4c6c7b1a300e7af8c64f8b91246279ba90b6ad9cc8419243ffe7324a8e2878a"
+    },
+    {
+      "path": "test/lisp/emacs-lisp/tabulated-list-tests.el",
+      "source_path": "test/lisp/emacs-lisp/tabulated-list-tests.el",
+      "input": "tracked",
+      "mode": "100644",
+      "size": 8371,
+      "blob": "9dd132e4b059ec8e3f510794eef5858fa780456f",
+      "sha256": "80e6ea0d71f37d03f729ccea6f25c9f4655bdb45fca5668fef1d99087355283d"
+    },
+    {
+      "path": "test/lisp/emacs-lisp/vtable-tests.el",
+      "source_path": "test/lisp/emacs-lisp/vtable-tests.el",
+      "input": "tracked",
+      "mode": "100644",
+      "size": 5211,
+      "blob": "e3bcfe9dc78c18f725c2cc7518a473039a06354e",
+      "sha256": "747654a56002e6de4160fdebc195f80b86e6d0d4c1e709af491401ccdf6bb8d5"
+    }
+  ],
+  "registered_ids": {
+    "test/lisp/emacs-lisp/hierarchy-tests.el": [
+      "hierarchy--set-equal",
+      "hierarchy-add-item-and-its-child",
+      "hierarchy-add-item-and-its-parent",
+      "hierarchy-add-one-item-with-parent",
+      "hierarchy-add-one-item-with-parent-and-grand-parent",
+      "hierarchy-add-one-root",
+      "hierarchy-add-relation-check-error-when-different-parent",
+      "hierarchy-add-same-child-twice",
+      "hierarchy-add-same-root-twice",
+      "hierarchy-add-trees",
+      "hierarchy-add-twice-with-parentfn-and-childrenfn",
+      "hierarchy-add-two-hierarchies",
+      "hierarchy-add-two-items-sharing-parent",
+      "hierarchy-add-with-childrenfn",
+      "hierarchy-add-with-parentfn-and-childrenfn",
+      "hierarchy-child-p",
+      "hierarchy-delayed-add-item-and-its-child",
+      "hierarchy-delayed-add-item-and-its-parent",
+      "hierarchy-delayed-add-one-item-with-parent",
+      "hierarchy-delayed-add-one-item-with-parent-and-grand-parent",
+      "hierarchy-delayed-add-one-root",
+      "hierarchy-delayed-add-same-child-twice",
+      "hierarchy-delayed-add-same-root-twice",
+      "hierarchy-delayed-add-trees",
+      "hierarchy-delayed-add-two-hierarchies",
+      "hierarchy-delayed-add-two-items-sharing-parent",
+      "hierarchy-descendant",
+      "hierarchy-descendant-if-not-same",
+      "hierarchy-empty-p-return-nil-for-non-empty",
+      "hierarchy-empty-p-return-non-nil-for-empty",
+      "hierarchy-equal-returns-true-for-hierarchy-copies",
+      "hierarchy-equal-returns-true-for-same-hierarchy",
+      "hierarchy-extract-tree",
+      "hierarchy-extract-tree-nil-if-not-in-hierarchy",
+      "hierarchy-from-list",
+      "hierarchy-from-list-with-childrenfn",
+      "hierarchy-from-list-with-duplicates",
+      "hierarchy-has-root",
+      "hierarchy-items-of-empty-hierarchy-is-empty",
+      "hierarchy-items-return-all-elements-of-hierarchy",
+      "hierarchy-items-returns-sequence-of-same-length",
+      "hierarchy-labelfn-button-execute-labelfn",
+      "hierarchy-labelfn-button-if-does-button-when-condition",
+      "hierarchy-labelfn-button-if-does-not-button-unless-condition",
+      "hierarchy-labelfn-button-propertize",
+      "hierarchy-labelfn-indent-custom-indent-string",
+      "hierarchy-labelfn-indent-default-indent-string",
+      "hierarchy-labelfn-indent-no-indent-if-0",
+      "hierarchy-labelfn-indent-three-times-if-3",
+      "hierarchy-labelfn-to-string",
+      "hierarchy-leafs",
+      "hierarchy-leafs-includes-lonely-roots",
+      "hierarchy-leafs-of-node",
+      "hierarchy-length-of-empty-is-0",
+      "hierarchy-length-of-non-empty-counts-items",
+      "hierarchy-map-applies-function",
+      "hierarchy-map-conses",
+      "hierarchy-map-hierarchy-keeps-hierarchy",
+      "hierarchy-map-item-on-grand-parent",
+      "hierarchy-map-item-on-leaf",
+      "hierarchy-map-item-on-leaf-with-indent",
+      "hierarchy-map-item-on-parent",
+      "hierarchy-map-tree",
+      "hierarchy-print",
+      "hierarchy-sort-non-root-nodes",
+      "hierarchy-sort-roots",
+      "hierarchy-tabulated-display",
+      "hierarchy-to-string"
+    ],
+    "test/lisp/emacs-lisp/benchmark-tests.el": [
+      "benchmark-tests"
+    ],
+    "test/lisp/emacs-lisp/map-ynp-tests.el": [
+      "test-map-ynp-keys",
+      "test-map-ynp-kmacro"
+    ],
+    "test/lisp/emacs-lisp/lisp-tests.el": [
+      "backward-up-list-basic",
+      "core-elisp-tests-1-window-configurations",
+      "core-elisp-tests-2-backquote",
+      "end-of-defun-twice",
+      "lisp-backward-sexp-1-empty-parens",
+      "lisp-backward-sexp-1-eobp",
+      "lisp-backward-sexp-1-error-mismatch",
+      "lisp-backward-sexp-2-bobp",
+      "lisp-backward-sexp-2-bobp-and-subsequent",
+      "lisp-delete-pair-parens",
+      "lisp-delete-pair-quotation-marks",
+      "lisp-delete-pair-quotes-in-text-mode",
+      "lisp-delete-pair-quotes-text-mode-syntax-table",
+      "lisp-fill-paragraph-colon",
+      "lisp-forward-sexp-1-empty-parens",
+      "lisp-forward-sexp-1-eobp",
+      "lisp-forward-sexp-1-error-mismatch",
+      "lisp-forward-sexp-2-eobp",
+      "lisp-forward-sexp-2-eobp-and-subsequent",
+      "lisp-forward-sexp-elisp-inside-symbol",
+      "lisp-forward-sexp-elisp-quoted-symbol",
+      "lisp-forward-sexp-emacs-lisp-quote-char",
+      "lisp-forward-sexp-emacs-lisp-semi-char-error",
+      "lisp-forward-sexp-python-triple-quoted-string",
+      "lisp-forward-sexp-python-triple-quotes-string",
+      "mark-defun-arg-region-active",
+      "mark-defun-bob",
+      "mark-defun-neg-arg-region-inactive",
+      "mark-defun-no-arg-region-active",
+      "mark-defun-no-arg-region-inactive",
+      "mark-defun-pos-arg-region-inactive",
+      "up-list-basic",
+      "up-list-cross-string",
+      "up-list-no-cross-string",
+      "up-list-out-of-string",
+      "up-list-with-forward-sexp-function"
+    ],
+    "test/lisp/emacs-lisp/tabulated-list-tests.el": [
+      "tabulated-list-groups",
+      "tabulated-list-groups-with-path",
+      "tabulated-list-print",
+      "tabulated-list-sort"
+    ],
+    "test/lisp/emacs-lisp/vtable-tests.el": [
+      "test-vtable-compute-columns",
+      "test-vtable-insert-object",
+      "test-vtable-non-current-buffer-insert-object",
+      "test-vtable-non-current-buffer-remove-object",
+      "test-vtable-non-current-buffer-update-object",
+      "test-vtable-read-only-buffer",
+      "test-vtable-unique-buffer"
+    ]
+  },
+  "lisp_ids": {
+    "literal": 30,
+    "macro_generated": 6,
+    "total": 36
+  },
+  "status_maps_equal_reference": true,
+  "tag_maps_equal_reference": true,
+  "events_independently_checked": 354,
+  "file_processes": [
+    {
+      "product": "reference",
+      "file": "test/lisp/emacs-lisp/hierarchy-tests.el",
+      "reused_process": true,
+      "ids": 68,
+      "passed": true,
+      "complete": true,
+      "exit_code": 0,
+      "timed_out": false,
+      "remaining_group_terminated": false,
+      "protocol_error": null,
+      "runner_error": null,
+      "seconds": 0.4198207919999999,
+      "result": {
+        "path": "build/acceptance/g3-lisp-structures-1/reference/results/reference/test-lisp-emacs-lisp-hierarchy-tests.el-fedde9783c9d.json",
+        "bytes": 61294,
+        "sha256": "99ce331d2088a3859bc3d33bd65aaddee18641f514a44b5b5939c419589d6e76"
+      },
+      "events": {
+        "path": "build/acceptance/g3-lisp-structures-1/reference/results/reference/test-lisp-emacs-lisp-hierarchy-tests.el-fedde9783c9d.events.jsonl",
+        "bytes": 39133,
+        "sha256": "66208e66d6c43d22e87dcc71e0052df9c11c522eb9fcf791821f246c22fb9445"
+      },
+      "stderr": {
+        "path": "build/acceptance/g3-lisp-structures-1/reference/logs/reference/test-lisp-emacs-lisp-hierarchy-tests.el-fedde9783c9d.stderr.log",
+        "bytes": 159,
+        "sha256": "c3d40ac1a4dee623dc8195f48dd72b8d2d1832e17b12c0294543482c8674b179"
+      },
+      "owner_receipt": {
+        "path": "build/acceptance/g3-lisp-structures-1/reference/results/reference/test-lisp-emacs-lisp-hierarchy-tests.el-fedde9783c9d.owner-retirement.json",
+        "bytes": 909,
+        "sha256": "d858d89aeea7bcd45519c06a3d2c46de5865013cd30518728da833c55909ebff"
+      },
+      "retirement": {
+        "status": "complete",
+        "files": 0,
+        "directories": 10,
+        "ledger_schema": 3,
+        "logical_bytes": 0,
+        "allocated_bytes": 0,
+        "evidence_sha256": "99ce331d2088a3859bc3d33bd65aaddee18641f514a44b5b5939c419589d6e76",
+        "ledger": "test-lisp-emacs-lisp-hierarchy-tests.el-fedde9783c9d.state-retirement.jsonl.gz",
+        "ledger_sha256": "c73dda08f61db7d8771a9dc94b9e758d666b8de857e014381d621f1e9321d5a4",
+        "all_selected_absent": true,
+        "restore": "regenerate consumed cache from retained inputs; original random names not promised",
+        "empty_parents_retired": true,
+        "parent_directories": 2
+      }
+    },
+    {
+      "product": "reference",
+      "file": "test/lisp/emacs-lisp/benchmark-tests.el",
+      "reused_process": true,
+      "ids": 1,
+      "passed": true,
+      "complete": true,
+      "exit_code": 0,
+      "timed_out": false,
+      "remaining_group_terminated": false,
+      "protocol_error": null,
+      "runner_error": null,
+      "seconds": 1.8125935829999995,
+      "result": {
+        "path": "build/acceptance/g3-lisp-structures-1/reference/results/reference/test-lisp-emacs-lisp-benchmark-tests.el-e9a31054008e.json",
+        "bytes": 6030,
+        "sha256": "bb6ec1331c1b0c3c197aaa54acf95e5da74baeb0ab336698a8bd40f2d9873e14"
+      },
+      "events": {
+        "path": "build/acceptance/g3-lisp-structures-1/reference/results/reference/test-lisp-emacs-lisp-benchmark-tests.el-e9a31054008e.events.jsonl",
+        "bytes": 2937,
+        "sha256": "46656a699caad340006df4e1a1a501be18b69b9a9624b19555494af75a17c43b"
+      },
+      "stderr": {
+        "path": "build/acceptance/g3-lisp-structures-1/reference/logs/reference/test-lisp-emacs-lisp-benchmark-tests.el-e9a31054008e.stderr.log",
+        "bytes": 255,
+        "sha256": "b7db9b7ff65e4d97c762b281b3ebda8439a447bedb6d26b2a25379b02af38e06"
+      },
+      "owner_receipt": {
+        "path": "build/acceptance/g3-lisp-structures-1/reference/results/reference/test-lisp-emacs-lisp-benchmark-tests.el-e9a31054008e.owner-retirement.json",
+        "bytes": 908,
+        "sha256": "366b8dcc667233f18f77f651a53488b2388d10f810a4901dc1f7b35587545893"
+      },
+      "retirement": {
+        "status": "complete",
+        "files": 0,
+        "directories": 10,
+        "ledger_schema": 3,
+        "logical_bytes": 0,
+        "allocated_bytes": 0,
+        "evidence_sha256": "bb6ec1331c1b0c3c197aaa54acf95e5da74baeb0ab336698a8bd40f2d9873e14",
+        "ledger": "test-lisp-emacs-lisp-benchmark-tests.el-e9a31054008e.state-retirement.jsonl.gz",
+        "ledger_sha256": "c73dda08f61db7d8771a9dc94b9e758d666b8de857e014381d621f1e9321d5a4",
+        "all_selected_absent": true,
+        "restore": "regenerate consumed cache from retained inputs; original random names not promised",
+        "empty_parents_retired": true,
+        "parent_directories": 2
+      }
+    },
+    {
+      "product": "reference",
+      "file": "test/lisp/emacs-lisp/map-ynp-tests.el",
+      "reused_process": true,
+      "ids": 2,
+      "passed": true,
+      "complete": true,
+      "exit_code": 0,
+      "timed_out": false,
+      "remaining_group_terminated": false,
+      "protocol_error": null,
+      "runner_error": null,
+      "seconds": 1.2131676660000004,
+      "result": {
+        "path": "build/acceptance/g3-lisp-structures-1/reference/results/reference/test-lisp-emacs-lisp-map-ynp-tests.el-bb143c149685.json",
+        "bytes": 10856,
+        "sha256": "76f6cb1f5cc6d3dfc43c55e29c9dfde204848185c65fee714e2caf3a2b87f377"
+      },
+      "events": {
+        "path": "build/acceptance/g3-lisp-structures-1/reference/results/reference/test-lisp-emacs-lisp-map-ynp-tests.el-bb143c149685.events.jsonl",
+        "bytes": 7489,
+        "sha256": "fb43f08a952e90fc854742fc76a0759c30118c4e2d1bf809a14c535f560fda7f"
+      },
+      "stderr": {
+        "path": "build/acceptance/g3-lisp-structures-1/reference/logs/reference/test-lisp-emacs-lisp-map-ynp-tests.el-bb143c149685.stderr.log",
+        "bytes": 2561,
+        "sha256": "e37fced535c9e3c44610b299ea0e165d169417752cc358740faac2bb27c807b3"
+      },
+      "owner_receipt": {
+        "path": "build/acceptance/g3-lisp-structures-1/reference/results/reference/test-lisp-emacs-lisp-map-ynp-tests.el-bb143c149685.owner-retirement.json",
+        "bytes": 905,
+        "sha256": "a202ec7de9ace9c349d399a0f93f961f7c9d41ab01b5ba8d9c79b92b24470f51"
+      },
+      "retirement": {
+        "status": "complete",
+        "files": 0,
+        "directories": 10,
+        "ledger_schema": 3,
+        "logical_bytes": 0,
+        "allocated_bytes": 0,
+        "evidence_sha256": "76f6cb1f5cc6d3dfc43c55e29c9dfde204848185c65fee714e2caf3a2b87f377",
+        "ledger": "test-lisp-emacs-lisp-map-ynp-tests.el-bb143c149685.state-retirement.jsonl.gz",
+        "ledger_sha256": "c73dda08f61db7d8771a9dc94b9e758d666b8de857e014381d621f1e9321d5a4",
+        "all_selected_absent": true,
+        "restore": "regenerate consumed cache from retained inputs; original random names not promised",
+        "empty_parents_retired": true,
+        "parent_directories": 2
+      }
+    },
+    {
+      "product": "reference",
+      "file": "test/lisp/emacs-lisp/lisp-tests.el",
+      "reused_process": true,
+      "ids": 36,
+      "passed": true,
+      "complete": true,
+      "exit_code": 0,
+      "timed_out": false,
+      "remaining_group_terminated": false,
+      "protocol_error": null,
+      "runner_error": null,
+      "seconds": 3.4281936249999996,
+      "result": {
+        "path": "build/acceptance/g3-lisp-structures-1/reference/results/reference/test-lisp-emacs-lisp-lisp-tests.el-f7f6a1f3c29c.json",
+        "bytes": 34466,
+        "sha256": "09d684dd52cce6d419b359004665d514325bd7365f7aedcd26c084eae9c3c2fd"
+      },
+      "events": {
+        "path": "build/acceptance/g3-lisp-structures-1/reference/results/reference/test-lisp-emacs-lisp-lisp-tests.el-f7f6a1f3c29c.events.jsonl",
+        "bytes": 21186,
+        "sha256": "9dd5173286d15d71f0a76216c2b7a67be684bd238ba517096a1943022324328e"
+      },
+      "stderr": {
+        "path": "build/acceptance/g3-lisp-structures-1/reference/logs/reference/test-lisp-emacs-lisp-lisp-tests.el-f7f6a1f3c29c.stderr.log",
+        "bytes": 523,
+        "sha256": "ce395cce477562439e70863f536956af842901c967d2cfed04431b6c7a9337e4"
+      },
+      "owner_receipt": {
+        "path": "build/acceptance/g3-lisp-structures-1/reference/results/reference/test-lisp-emacs-lisp-lisp-tests.el-f7f6a1f3c29c.owner-retirement.json",
+        "bytes": 899,
+        "sha256": "2cb270a71db267f72c57aca68a07bef6dd29eb145efe459e69e2e679109e6674"
+      },
+      "retirement": {
+        "status": "complete",
+        "files": 0,
+        "directories": 10,
+        "ledger_schema": 3,
+        "logical_bytes": 0,
+        "allocated_bytes": 0,
+        "evidence_sha256": "09d684dd52cce6d419b359004665d514325bd7365f7aedcd26c084eae9c3c2fd",
+        "ledger": "test-lisp-emacs-lisp-lisp-tests.el-f7f6a1f3c29c.state-retirement.jsonl.gz",
+        "ledger_sha256": "c73dda08f61db7d8771a9dc94b9e758d666b8de857e014381d621f1e9321d5a4",
+        "all_selected_absent": true,
+        "restore": "regenerate consumed cache from retained inputs; original random names not promised",
+        "empty_parents_retired": true,
+        "parent_directories": 2
+      }
+    },
+    {
+      "product": "reference",
+      "file": "test/lisp/emacs-lisp/tabulated-list-tests.el",
+      "reused_process": false,
+      "ids": 4,
+      "passed": true,
+      "complete": true,
+      "exit_code": 0,
+      "timed_out": false,
+      "remaining_group_terminated": false,
+      "protocol_error": null,
+      "runner_error": null,
+      "seconds": 0.36293829199999994,
+      "result": {
+        "path": "build/acceptance/g3-lisp-structures-1/reference/results/reference/test-lisp-emacs-lisp-tabulated-list-tests.el-a84b98f2eb97.json",
+        "bytes": 8250,
+        "sha256": "84d089d28608ffb8f6e52fda760bdcdc755d0cae92e5d8a3f13d7fda3440c228"
+      },
+      "events": {
+        "path": "build/acceptance/g3-lisp-structures-1/reference/results/reference/test-lisp-emacs-lisp-tabulated-list-tests.el-a84b98f2eb97.events.jsonl",
+        "bytes": 4294,
+        "sha256": "0d65374c9bb212512de35aa2d473692515a8d3ccf48eba266b6a33fd96062116"
+      },
+      "stderr": {
+        "path": "build/acceptance/g3-lisp-structures-1/reference/logs/reference/test-lisp-emacs-lisp-tabulated-list-tests.el-a84b98f2eb97.stderr.log",
+        "bytes": 164,
+        "sha256": "2306c3d73394c9dc875d5ec14125231368cf4e3376ef55467f06e8bb9863cadf"
+      },
+      "owner_receipt": {
+        "path": "build/acceptance/g3-lisp-structures-1/reference/results/reference/test-lisp-emacs-lisp-tabulated-list-tests.el-a84b98f2eb97.owner-retirement.json",
+        "bytes": 918,
+        "sha256": "c2cc5c111580af086c4e3677eed50375d105d38c8890756fe341927cd02dfe92"
+      },
+      "retirement": {
+        "status": "complete",
+        "files": 0,
+        "directories": 10,
+        "ledger_schema": 3,
+        "logical_bytes": 0,
+        "allocated_bytes": 0,
+        "evidence_sha256": "84d089d28608ffb8f6e52fda760bdcdc755d0cae92e5d8a3f13d7fda3440c228",
+        "ledger": "test-lisp-emacs-lisp-tabulated-list-tests.el-a84b98f2eb97.state-retirement.jsonl.gz",
+        "ledger_sha256": "c73dda08f61db7d8771a9dc94b9e758d666b8de857e014381d621f1e9321d5a4",
+        "all_selected_absent": true,
+        "restore": "regenerate consumed cache from retained inputs; original random names not promised",
+        "empty_parents_retired": true,
+        "parent_directories": 2
+      }
+    },
+    {
+      "product": "reference",
+      "file": "test/lisp/emacs-lisp/vtable-tests.el",
+      "reused_process": false,
+      "ids": 7,
+      "passed": true,
+      "complete": true,
+      "exit_code": 0,
+      "timed_out": false,
+      "remaining_group_terminated": false,
+      "protocol_error": null,
+      "runner_error": null,
+      "seconds": 0.26331916700000013,
+      "result": {
+        "path": "build/acceptance/g3-lisp-structures-1/reference/results/reference/test-lisp-emacs-lisp-vtable-tests.el-b07c1cfd01ea.json",
+        "bytes": 10902,
+        "sha256": "e12c6e13e4817e30583b78b0ab7e63eaf7f053f4a729df08bb0fdcf09f9d514d"
+      },
+      "events": {
+        "path": "build/acceptance/g3-lisp-structures-1/reference/results/reference/test-lisp-emacs-lisp-vtable-tests.el-b07c1cfd01ea.events.jsonl",
+        "bytes": 6064,
+        "sha256": "306e61bd68b65b22d22c8ab842c289670261796868de055a31a5e8d3f188a06f"
+      },
+      "stderr": {
+        "path": "build/acceptance/g3-lisp-structures-1/reference/logs/reference/test-lisp-emacs-lisp-vtable-tests.el-b07c1cfd01ea.stderr.log",
+        "bytes": 156,
+        "sha256": "1a1f86ae80666c8d60bbbe0fa61559efca0e9fcc9311d3bf86368525bf13c1be"
+      },
+      "owner_receipt": {
+        "path": "build/acceptance/g3-lisp-structures-1/reference/results/reference/test-lisp-emacs-lisp-vtable-tests.el-b07c1cfd01ea.owner-retirement.json",
+        "bytes": 903,
+        "sha256": "08847abf7225b1c913b22a908feaf34461657ff21fff789bb9127d463fce52e8"
+      },
+      "retirement": {
+        "status": "complete",
+        "files": 0,
+        "directories": 10,
+        "ledger_schema": 3,
+        "logical_bytes": 0,
+        "allocated_bytes": 0,
+        "evidence_sha256": "e12c6e13e4817e30583b78b0ab7e63eaf7f053f4a729df08bb0fdcf09f9d514d",
+        "ledger": "test-lisp-emacs-lisp-vtable-tests.el-b07c1cfd01ea.state-retirement.jsonl.gz",
+        "ledger_sha256": "c73dda08f61db7d8771a9dc94b9e758d666b8de857e014381d621f1e9321d5a4",
+        "all_selected_absent": true,
+        "restore": "regenerate consumed cache from retained inputs; original random names not promised",
+        "empty_parents_retired": true,
+        "parent_directories": 2
+      }
+    },
+    {
+      "product": "terminal",
+      "file": "test/lisp/emacs-lisp/hierarchy-tests.el",
+      "reused_process": false,
+      "ids": 68,
+      "passed": true,
+      "complete": true,
+      "exit_code": 0,
+      "timed_out": false,
+      "remaining_group_terminated": false,
+      "protocol_error": null,
+      "runner_error": null,
+      "seconds": 0.11039016600000018,
+      "result": {
+        "path": "build/acceptance/g3-lisp-structures-1/terminal/results/terminal/test-lisp-emacs-lisp-hierarchy-tests.el-fedde9783c9d.json",
+        "bytes": 60977,
+        "sha256": "7c492bdf2ebe68fe8ab0eb688fa56f967726a55388c51b3807a2c2631820f315"
+      },
+      "events": {
+        "path": "build/acceptance/g3-lisp-structures-1/terminal/results/terminal/test-lisp-emacs-lisp-hierarchy-tests.el-fedde9783c9d.events.jsonl",
+        "bytes": 38845,
+        "sha256": "7e5b380c58a8b057838b08436aefaa9315aefa4fc979882a38c30dae1fbdf020"
+      },
+      "stderr": {
+        "path": "build/acceptance/g3-lisp-structures-1/terminal/logs/terminal/test-lisp-emacs-lisp-hierarchy-tests.el-fedde9783c9d.stderr.log",
+        "bytes": 158,
+        "sha256": "9e01f7723aa4d53082d80160cacdc573b00ff9edfd2cccfc37e2ef4d7cefce62"
+      },
+      "owner_receipt": {
+        "path": "build/acceptance/g3-lisp-structures-1/terminal/results/terminal/test-lisp-emacs-lisp-hierarchy-tests.el-fedde9783c9d.owner-retirement.json",
+        "bytes": 908,
+        "sha256": "9f6a07cd98a3b8f828eaf2bc1d0109277ec0d685a602bf523655d74ee9bd0966"
+      },
+      "retirement": {
+        "status": "complete",
+        "files": 0,
+        "directories": 10,
+        "ledger_schema": 3,
+        "logical_bytes": 0,
+        "allocated_bytes": 0,
+        "evidence_sha256": "7c492bdf2ebe68fe8ab0eb688fa56f967726a55388c51b3807a2c2631820f315",
+        "ledger": "test-lisp-emacs-lisp-hierarchy-tests.el-fedde9783c9d.state-retirement.jsonl.gz",
+        "ledger_sha256": "c73dda08f61db7d8771a9dc94b9e758d666b8de857e014381d621f1e9321d5a4",
+        "all_selected_absent": true,
+        "restore": "regenerate consumed cache from retained inputs; original random names not promised",
+        "empty_parents_retired": true,
+        "parent_directories": 2
+      }
+    },
+    {
+      "product": "terminal",
+      "file": "test/lisp/emacs-lisp/benchmark-tests.el",
+      "reused_process": false,
+      "ids": 1,
+      "passed": true,
+      "complete": true,
+      "exit_code": 0,
+      "timed_out": false,
+      "remaining_group_terminated": false,
+      "protocol_error": null,
+      "runner_error": null,
+      "seconds": 0.0876591659999999,
+      "result": {
+        "path": "build/acceptance/g3-lisp-structures-1/terminal/results/terminal/test-lisp-emacs-lisp-benchmark-tests.el-e9a31054008e.json",
+        "bytes": 5755,
+        "sha256": "e7d2fcaaa57d178a6db773f38d54d851365434a6ce107d67f442d2988e167a54"
+      },
+      "events": {
+        "path": "build/acceptance/g3-lisp-structures-1/terminal/results/terminal/test-lisp-emacs-lisp-benchmark-tests.el-e9a31054008e.events.jsonl",
+        "bytes": 2638,
+        "sha256": "a47b265fcc1f385e31c5458babec5ad8091ffbd2bf7bcaa49f5d77d27383194b"
+      },
+      "stderr": {
+        "path": "build/acceptance/g3-lisp-structures-1/terminal/logs/terminal/test-lisp-emacs-lisp-benchmark-tests.el-e9a31054008e.stderr.log",
+        "bytes": 255,
+        "sha256": "2ab53b2955f9516eeca399a42941f8c5c23d6d9649b91f53ca9817c302d18555"
+      },
+      "owner_receipt": {
+        "path": "build/acceptance/g3-lisp-structures-1/terminal/results/terminal/test-lisp-emacs-lisp-benchmark-tests.el-e9a31054008e.owner-retirement.json",
+        "bytes": 907,
+        "sha256": "bd0d8b04c75de9e33c977ebd313297f4c226c1915a271ba373e23d9ab00de99c"
+      },
+      "retirement": {
+        "status": "complete",
+        "files": 0,
+        "directories": 10,
+        "ledger_schema": 3,
+        "logical_bytes": 0,
+        "allocated_bytes": 0,
+        "evidence_sha256": "e7d2fcaaa57d178a6db773f38d54d851365434a6ce107d67f442d2988e167a54",
+        "ledger": "test-lisp-emacs-lisp-benchmark-tests.el-e9a31054008e.state-retirement.jsonl.gz",
+        "ledger_sha256": "c73dda08f61db7d8771a9dc94b9e758d666b8de857e014381d621f1e9321d5a4",
+        "all_selected_absent": true,
+        "restore": "regenerate consumed cache from retained inputs; original random names not promised",
+        "empty_parents_retired": true,
+        "parent_directories": 2
+      }
+    },
+    {
+      "product": "terminal",
+      "file": "test/lisp/emacs-lisp/map-ynp-tests.el",
+      "reused_process": false,
+      "ids": 2,
+      "passed": true,
+      "complete": true,
+      "exit_code": 0,
+      "timed_out": false,
+      "remaining_group_terminated": false,
+      "protocol_error": null,
+      "runner_error": null,
+      "seconds": 1.0735477079999995,
+      "result": {
+        "path": "build/acceptance/g3-lisp-structures-1/terminal/results/terminal/test-lisp-emacs-lisp-map-ynp-tests.el-bb143c149685.json",
+        "bytes": 10588,
+        "sha256": "92dc9b2cd52feea80cc31f38d741df6b49984804b13a511759c1226f06903351"
+      },
+      "events": {
+        "path": "build/acceptance/g3-lisp-structures-1/terminal/results/terminal/test-lisp-emacs-lisp-map-ynp-tests.el-bb143c149685.events.jsonl",
+        "bytes": 7197,
+        "sha256": "a629487b23975a60bc471dff006566aeaa602fc430bbd1f2c771e406a15c1db1"
+      },
+      "stderr": {
+        "path": "build/acceptance/g3-lisp-structures-1/terminal/logs/terminal/test-lisp-emacs-lisp-map-ynp-tests.el-bb143c149685.stderr.log",
+        "bytes": 2396,
+        "sha256": "133bb0acf0011b8a613d85d9be7bb4fe06350791a09039eda051263c51e2dba0"
+      },
+      "owner_receipt": {
+        "path": "build/acceptance/g3-lisp-structures-1/terminal/results/terminal/test-lisp-emacs-lisp-map-ynp-tests.el-bb143c149685.owner-retirement.json",
+        "bytes": 904,
+        "sha256": "a21a39a9a08fce6e35e1468f965197774a9b25443e45324cc99420e2448f5244"
+      },
+      "retirement": {
+        "status": "complete",
+        "files": 0,
+        "directories": 10,
+        "ledger_schema": 3,
+        "logical_bytes": 0,
+        "allocated_bytes": 0,
+        "evidence_sha256": "92dc9b2cd52feea80cc31f38d741df6b49984804b13a511759c1226f06903351",
+        "ledger": "test-lisp-emacs-lisp-map-ynp-tests.el-bb143c149685.state-retirement.jsonl.gz",
+        "ledger_sha256": "c73dda08f61db7d8771a9dc94b9e758d666b8de857e014381d621f1e9321d5a4",
+        "all_selected_absent": true,
+        "restore": "regenerate consumed cache from retained inputs; original random names not promised",
+        "empty_parents_retired": true,
+        "parent_directories": 2
+      }
+    },
+    {
+      "product": "terminal",
+      "file": "test/lisp/emacs-lisp/lisp-tests.el",
+      "reused_process": false,
+      "ids": 36,
+      "passed": true,
+      "complete": true,
+      "exit_code": 0,
+      "timed_out": false,
+      "remaining_group_terminated": false,
+      "protocol_error": null,
+      "runner_error": null,
+      "seconds": 3.3472268749999987,
+      "result": {
+        "path": "build/acceptance/g3-lisp-structures-1/terminal/results/terminal/test-lisp-emacs-lisp-lisp-tests.el-f7f6a1f3c29c.json",
+        "bytes": 34938,
+        "sha256": "1840c720bc5110fae88b8bb40123d20e3a4ea06571ac0d607dbfe2a5155634d6"
+      },
+      "events": {
+        "path": "build/acceptance/g3-lisp-structures-1/terminal/results/terminal/test-lisp-emacs-lisp-lisp-tests.el-f7f6a1f3c29c.events.jsonl",
+        "bytes": 21657,
+        "sha256": "4a0e29044fd7d4d50a55c88165f5a5631afc3d27ebef7a1c0bdd20277a64877c"
+      },
+      "stderr": {
+        "path": "build/acceptance/g3-lisp-structures-1/terminal/logs/terminal/test-lisp-emacs-lisp-lisp-tests.el-f7f6a1f3c29c.stderr.log",
+        "bytes": 522,
+        "sha256": "344fd52641d5d369cdf72646aea5a6c179ec45dfd8f1b2a3814662c89981fe55"
+      },
+      "owner_receipt": {
+        "path": "build/acceptance/g3-lisp-structures-1/terminal/results/terminal/test-lisp-emacs-lisp-lisp-tests.el-f7f6a1f3c29c.owner-retirement.json",
+        "bytes": 898,
+        "sha256": "4502345161918fc122fda3168b92b7b8ce33231344235e77e40d9fc20308609a"
+      },
+      "retirement": {
+        "status": "complete",
+        "files": 0,
+        "directories": 10,
+        "ledger_schema": 3,
+        "logical_bytes": 0,
+        "allocated_bytes": 0,
+        "evidence_sha256": "1840c720bc5110fae88b8bb40123d20e3a4ea06571ac0d607dbfe2a5155634d6",
+        "ledger": "test-lisp-emacs-lisp-lisp-tests.el-f7f6a1f3c29c.state-retirement.jsonl.gz",
+        "ledger_sha256": "c73dda08f61db7d8771a9dc94b9e758d666b8de857e014381d621f1e9321d5a4",
+        "all_selected_absent": true,
+        "restore": "regenerate consumed cache from retained inputs; original random names not promised",
+        "empty_parents_retired": true,
+        "parent_directories": 2
+      }
+    },
+    {
+      "product": "terminal",
+      "file": "test/lisp/emacs-lisp/tabulated-list-tests.el",
+      "reused_process": false,
+      "ids": 4,
+      "passed": true,
+      "complete": true,
+      "exit_code": 0,
+      "timed_out": false,
+      "remaining_group_terminated": false,
+      "protocol_error": null,
+      "runner_error": null,
+      "seconds": 0.0919645830000011,
+      "result": {
+        "path": "build/acceptance/g3-lisp-structures-1/terminal/results/terminal/test-lisp-emacs-lisp-tabulated-list-tests.el-a84b98f2eb97.json",
+        "bytes": 7972,
+        "sha256": "14d6cc8a3cfc7186bb8390aade2a8a2dae2c9d9f32a924091119c5315d05d584"
+      },
+      "events": {
+        "path": "build/acceptance/g3-lisp-structures-1/terminal/results/terminal/test-lisp-emacs-lisp-tabulated-list-tests.el-a84b98f2eb97.events.jsonl",
+        "bytes": 3994,
+        "sha256": "a577f1f7f959d994e12549f4b28e800c3aa8996d514e96f28b352e03badda7d0"
+      },
+      "stderr": {
+        "path": "build/acceptance/g3-lisp-structures-1/terminal/logs/terminal/test-lisp-emacs-lisp-tabulated-list-tests.el-a84b98f2eb97.stderr.log",
+        "bytes": 163,
+        "sha256": "0bf5cfc7dd9598be3e1d20169ec8a82b6e815075fabd3aff911fc4307b8c4d77"
+      },
+      "owner_receipt": {
+        "path": "build/acceptance/g3-lisp-structures-1/terminal/results/terminal/test-lisp-emacs-lisp-tabulated-list-tests.el-a84b98f2eb97.owner-retirement.json",
+        "bytes": 917,
+        "sha256": "33cc1d3c4dadb2db8b00845b563c03f873cc98987279df1e0d4efaaceb118256"
+      },
+      "retirement": {
+        "status": "complete",
+        "files": 0,
+        "directories": 10,
+        "ledger_schema": 3,
+        "logical_bytes": 0,
+        "allocated_bytes": 0,
+        "evidence_sha256": "14d6cc8a3cfc7186bb8390aade2a8a2dae2c9d9f32a924091119c5315d05d584",
+        "ledger": "test-lisp-emacs-lisp-tabulated-list-tests.el-a84b98f2eb97.state-retirement.jsonl.gz",
+        "ledger_sha256": "c73dda08f61db7d8771a9dc94b9e758d666b8de857e014381d621f1e9321d5a4",
+        "all_selected_absent": true,
+        "restore": "regenerate consumed cache from retained inputs; original random names not promised",
+        "empty_parents_retired": true,
+        "parent_directories": 2
+      }
+    },
+    {
+      "product": "terminal",
+      "file": "test/lisp/emacs-lisp/vtable-tests.el",
+      "reused_process": false,
+      "ids": 7,
+      "passed": true,
+      "complete": true,
+      "exit_code": 0,
+      "timed_out": false,
+      "remaining_group_terminated": false,
+      "protocol_error": null,
+      "runner_error": null,
+      "seconds": 0.10857016699999988,
+      "result": {
+        "path": "build/acceptance/g3-lisp-structures-1/terminal/results/terminal/test-lisp-emacs-lisp-vtable-tests.el-b07c1cfd01ea.json",
+        "bytes": 10622,
+        "sha256": "e0bebd99d759b4c4522c1ceb56c331cab4bb9708785b66d48416ad1f3f228e7c"
+      },
+      "events": {
+        "path": "build/acceptance/g3-lisp-structures-1/terminal/results/terminal/test-lisp-emacs-lisp-vtable-tests.el-b07c1cfd01ea.events.jsonl",
+        "bytes": 5764,
+        "sha256": "8f7a5c3f04cf08d739fb7c30b8cb29abce94799eea73ba5c8a07dfffd1b68a1b"
+      },
+      "stderr": {
+        "path": "build/acceptance/g3-lisp-structures-1/terminal/logs/terminal/test-lisp-emacs-lisp-vtable-tests.el-b07c1cfd01ea.stderr.log",
+        "bytes": 155,
+        "sha256": "8a949b3e326621083fb94cba97cd2efb971b1fabe07878aa403239e91791023b"
+      },
+      "owner_receipt": {
+        "path": "build/acceptance/g3-lisp-structures-1/terminal/results/terminal/test-lisp-emacs-lisp-vtable-tests.el-b07c1cfd01ea.owner-retirement.json",
+        "bytes": 902,
+        "sha256": "46e8b1b569cf11e7887d242de4cf1c71be4444be588c1c747cf3e46f22b0ff69"
+      },
+      "retirement": {
+        "status": "complete",
+        "files": 0,
+        "directories": 10,
+        "ledger_schema": 3,
+        "logical_bytes": 0,
+        "allocated_bytes": 0,
+        "evidence_sha256": "e0bebd99d759b4c4522c1ceb56c331cab4bb9708785b66d48416ad1f3f228e7c",
+        "ledger": "test-lisp-emacs-lisp-vtable-tests.el-b07c1cfd01ea.state-retirement.jsonl.gz",
+        "ledger_sha256": "c73dda08f61db7d8771a9dc94b9e758d666b8de857e014381d621f1e9321d5a4",
+        "all_selected_absent": true,
+        "restore": "regenerate consumed cache from retained inputs; original random names not promised",
+        "empty_parents_retired": true,
+        "parent_directories": 2
+      }
+    },
+    {
+      "product": "cocoa",
+      "file": "test/lisp/emacs-lisp/hierarchy-tests.el",
+      "reused_process": false,
+      "ids": 68,
+      "passed": true,
+      "complete": true,
+      "exit_code": 0,
+      "timed_out": false,
+      "remaining_group_terminated": false,
+      "protocol_error": null,
+      "runner_error": null,
+      "seconds": 0.12914616700000003,
+      "result": {
+        "path": "build/acceptance/g3-lisp-structures-1/cocoa/results/cocoa/test-lisp-emacs-lisp-hierarchy-tests.el-fedde9783c9d.json",
+        "bytes": 61028,
+        "sha256": "6e1d5995527b4b397efa6b52543cffc00bc16b3daaf8f580815ea1a52f8960e7"
+      },
+      "events": {
+        "path": "build/acceptance/g3-lisp-structures-1/cocoa/results/cocoa/test-lisp-emacs-lisp-hierarchy-tests.el-fedde9783c9d.events.jsonl",
+        "bytes": 39042,
+        "sha256": "f0d64971f958c0b64c61a69743dcb123b7e15b18ba9da4aecd5c2498db296499"
+      },
+      "stderr": {
+        "path": "build/acceptance/g3-lisp-structures-1/cocoa/logs/cocoa/test-lisp-emacs-lisp-hierarchy-tests.el-fedde9783c9d.stderr.log",
+        "bytes": 155,
+        "sha256": "f61124b4c2d36a5357874e8e76dbccbc43f55806e2f2f0a9d775edbf0150e438"
+      },
+      "owner_receipt": {
+        "path": "build/acceptance/g3-lisp-structures-1/cocoa/results/cocoa/test-lisp-emacs-lisp-hierarchy-tests.el-fedde9783c9d.owner-retirement.json",
+        "bytes": 905,
+        "sha256": "b2e293994d31f164bb8820df92521205c8648b56716d9ff4efe9366914f4ded6"
+      },
+      "retirement": {
+        "status": "complete",
+        "files": 0,
+        "directories": 10,
+        "ledger_schema": 3,
+        "logical_bytes": 0,
+        "allocated_bytes": 0,
+        "evidence_sha256": "6e1d5995527b4b397efa6b52543cffc00bc16b3daaf8f580815ea1a52f8960e7",
+        "ledger": "test-lisp-emacs-lisp-hierarchy-tests.el-fedde9783c9d.state-retirement.jsonl.gz",
+        "ledger_sha256": "c73dda08f61db7d8771a9dc94b9e758d666b8de857e014381d621f1e9321d5a4",
+        "all_selected_absent": true,
+        "restore": "regenerate consumed cache from retained inputs; original random names not promised",
+        "empty_parents_retired": true,
+        "parent_directories": 2
+      }
+    },
+    {
+      "product": "cocoa",
+      "file": "test/lisp/emacs-lisp/benchmark-tests.el",
+      "reused_process": false,
+      "ids": 1,
+      "passed": true,
+      "complete": true,
+      "exit_code": 0,
+      "timed_out": false,
+      "remaining_group_terminated": false,
+      "protocol_error": null,
+      "runner_error": null,
+      "seconds": 0.10734487499999901,
+      "result": {
+        "path": "build/acceptance/g3-lisp-structures-1/cocoa/results/cocoa/test-lisp-emacs-lisp-benchmark-tests.el-e9a31054008e.json",
+        "bytes": 6030,
+        "sha256": "2d67ee956d272c7d1ea220da10088ffe32522b09c2cdb0a5f89756cc59843b71"
+      },
+      "events": {
+        "path": "build/acceptance/g3-lisp-structures-1/cocoa/results/cocoa/test-lisp-emacs-lisp-benchmark-tests.el-e9a31054008e.events.jsonl",
+        "bytes": 2845,
+        "sha256": "2cfb5d8fdc7d6e197b755bc0445eb425dfa7c0a09d521505aac788cab7d5b72a"
+      },
+      "stderr": {
+        "path": "build/acceptance/g3-lisp-structures-1/cocoa/logs/cocoa/test-lisp-emacs-lisp-benchmark-tests.el-e9a31054008e.stderr.log",
+        "bytes": 251,
+        "sha256": "04ad6efae11fbe7aab81bc3c3d117cb9aaa8cb56437fc280c85f2d79544d95fc"
+      },
+      "owner_receipt": {
+        "path": "build/acceptance/g3-lisp-structures-1/cocoa/results/cocoa/test-lisp-emacs-lisp-benchmark-tests.el-e9a31054008e.owner-retirement.json",
+        "bytes": 904,
+        "sha256": "5cd2cdf26dda816693847bdc69782762b0847ba0bee7fdff1079625fe7d07306"
+      },
+      "retirement": {
+        "status": "complete",
+        "files": 0,
+        "directories": 10,
+        "ledger_schema": 3,
+        "logical_bytes": 0,
+        "allocated_bytes": 0,
+        "evidence_sha256": "2d67ee956d272c7d1ea220da10088ffe32522b09c2cdb0a5f89756cc59843b71",
+        "ledger": "test-lisp-emacs-lisp-benchmark-tests.el-e9a31054008e.state-retirement.jsonl.gz",
+        "ledger_sha256": "c73dda08f61db7d8771a9dc94b9e758d666b8de857e014381d621f1e9321d5a4",
+        "all_selected_absent": true,
+        "restore": "regenerate consumed cache from retained inputs; original random names not promised",
+        "empty_parents_retired": true,
+        "parent_directories": 2
+      }
+    },
+    {
+      "product": "cocoa",
+      "file": "test/lisp/emacs-lisp/map-ynp-tests.el",
+      "reused_process": false,
+      "ids": 2,
+      "passed": true,
+      "complete": true,
+      "exit_code": 0,
+      "timed_out": false,
+      "remaining_group_terminated": false,
+      "protocol_error": null,
+      "runner_error": null,
+      "seconds": 1.1191611249999998,
+      "result": {
+        "path": "build/acceptance/g3-lisp-structures-1/cocoa/results/cocoa/test-lisp-emacs-lisp-map-ynp-tests.el-bb143c149685.json",
+        "bytes": 10861,
+        "sha256": "0ed68998b164aa58973400cb170052440f2533e02e7a465da03dd03e984dc857"
+      },
+      "events": {
+        "path": "build/acceptance/g3-lisp-structures-1/cocoa/results/cocoa/test-lisp-emacs-lisp-map-ynp-tests.el-bb143c149685.events.jsonl",
+        "bytes": 7406,
+        "sha256": "32f38bbaeabd77bf297f7150863c7309492cee9b17147f88b7f6dde401731cc8"
+      },
+      "stderr": {
+        "path": "build/acceptance/g3-lisp-structures-1/cocoa/logs/cocoa/test-lisp-emacs-lisp-map-ynp-tests.el-bb143c149685.stderr.log",
+        "bytes": 2557,
+        "sha256": "cd36e72f94de18340e0f757913126534134661fc8e2823d2dcd4b0f967f785b8"
+      },
+      "owner_receipt": {
+        "path": "build/acceptance/g3-lisp-structures-1/cocoa/results/cocoa/test-lisp-emacs-lisp-map-ynp-tests.el-bb143c149685.owner-retirement.json",
+        "bytes": 901,
+        "sha256": "f0da86e44d5040e05520d0eeb1202025491317ccbe97cf7dd3be4e8379ba4794"
+      },
+      "retirement": {
+        "status": "complete",
+        "files": 0,
+        "directories": 10,
+        "ledger_schema": 3,
+        "logical_bytes": 0,
+        "allocated_bytes": 0,
+        "evidence_sha256": "0ed68998b164aa58973400cb170052440f2533e02e7a465da03dd03e984dc857",
+        "ledger": "test-lisp-emacs-lisp-map-ynp-tests.el-bb143c149685.state-retirement.jsonl.gz",
+        "ledger_sha256": "c73dda08f61db7d8771a9dc94b9e758d666b8de857e014381d621f1e9321d5a4",
+        "all_selected_absent": true,
+        "restore": "regenerate consumed cache from retained inputs; original random names not promised",
+        "empty_parents_retired": true,
+        "parent_directories": 2
+      }
+    },
+    {
+      "product": "cocoa",
+      "file": "test/lisp/emacs-lisp/lisp-tests.el",
+      "reused_process": false,
+      "ids": 36,
+      "passed": true,
+      "complete": true,
+      "exit_code": 0,
+      "timed_out": false,
+      "remaining_group_terminated": false,
+      "protocol_error": null,
+      "runner_error": null,
+      "seconds": 3.3200129169999997,
+      "result": {
+        "path": "build/acceptance/g3-lisp-structures-1/cocoa/results/cocoa/test-lisp-emacs-lisp-lisp-tests.el-f7f6a1f3c29c.json",
+        "bytes": 35079,
+        "sha256": "7cb9ecb1dfa550ec59fec6c52bf6ca2503f86badf4bda4762925117baa1eecd6"
+      },
+      "events": {
+        "path": "build/acceptance/g3-lisp-structures-1/cocoa/results/cocoa/test-lisp-emacs-lisp-lisp-tests.el-f7f6a1f3c29c.events.jsonl",
+        "bytes": 21848,
+        "sha256": "eb0de455fe1cee6d8bb15e17635c0fe7e457cfcde43e6d43769357de6fd2eb59"
+      },
+      "stderr": {
+        "path": "build/acceptance/g3-lisp-structures-1/cocoa/logs/cocoa/test-lisp-emacs-lisp-lisp-tests.el-f7f6a1f3c29c.stderr.log",
+        "bytes": 519,
+        "sha256": "c68da0bce9859e92fce7a3fee2be1ed57dfcc6aef849b785053cb7ecce159e67"
+      },
+      "owner_receipt": {
+        "path": "build/acceptance/g3-lisp-structures-1/cocoa/results/cocoa/test-lisp-emacs-lisp-lisp-tests.el-f7f6a1f3c29c.owner-retirement.json",
+        "bytes": 895,
+        "sha256": "6b55052a48fafd9cf47dc1f0077a5ad0653d25b213cb96e7cb5b3ad4ed3b8399"
+      },
+      "retirement": {
+        "status": "complete",
+        "files": 0,
+        "directories": 10,
+        "ledger_schema": 3,
+        "logical_bytes": 0,
+        "allocated_bytes": 0,
+        "evidence_sha256": "7cb9ecb1dfa550ec59fec6c52bf6ca2503f86badf4bda4762925117baa1eecd6",
+        "ledger": "test-lisp-emacs-lisp-lisp-tests.el-f7f6a1f3c29c.state-retirement.jsonl.gz",
+        "ledger_sha256": "c73dda08f61db7d8771a9dc94b9e758d666b8de857e014381d621f1e9321d5a4",
+        "all_selected_absent": true,
+        "restore": "regenerate consumed cache from retained inputs; original random names not promised",
+        "empty_parents_retired": true,
+        "parent_directories": 2
+      }
+    },
+    {
+      "product": "cocoa",
+      "file": "test/lisp/emacs-lisp/tabulated-list-tests.el",
+      "reused_process": false,
+      "ids": 4,
+      "passed": true,
+      "complete": true,
+      "exit_code": 0,
+      "timed_out": false,
+      "remaining_group_terminated": false,
+      "protocol_error": null,
+      "runner_error": null,
+      "seconds": 0.06408241699999806,
+      "result": {
+        "path": "build/acceptance/g3-lisp-structures-1/cocoa/results/cocoa/test-lisp-emacs-lisp-tabulated-list-tests.el-a84b98f2eb97.json",
+        "bytes": 8237,
+        "sha256": "94bc24e6da8efe2bbd3eebe63f24a1d925ee05678c291ed7ca60aa4d11a1a20c"
+      },
+      "events": {
+        "path": "build/acceptance/g3-lisp-structures-1/cocoa/results/cocoa/test-lisp-emacs-lisp-tabulated-list-tests.el-a84b98f2eb97.events.jsonl",
+        "bytes": 4201,
+        "sha256": "6339aee5b6d3fd91366902ed12c034afa5bfc2835deaa3772eb9015044b3e9c7"
+      },
+      "stderr": {
+        "path": "build/acceptance/g3-lisp-structures-1/cocoa/logs/cocoa/test-lisp-emacs-lisp-tabulated-list-tests.el-a84b98f2eb97.stderr.log",
+        "bytes": 160,
+        "sha256": "02a11e8ff490e24b382282d1bf0d5fcf6777dc2d2f4b490621fc12d8e7ec2358"
+      },
+      "owner_receipt": {
+        "path": "build/acceptance/g3-lisp-structures-1/cocoa/results/cocoa/test-lisp-emacs-lisp-tabulated-list-tests.el-a84b98f2eb97.owner-retirement.json",
+        "bytes": 914,
+        "sha256": "02f52b4bc1fcb5fa550522bbb3ecfe9e23bcf54c2b00505c61bc427191258209"
+      },
+      "retirement": {
+        "status": "complete",
+        "files": 0,
+        "directories": 10,
+        "ledger_schema": 3,
+        "logical_bytes": 0,
+        "allocated_bytes": 0,
+        "evidence_sha256": "94bc24e6da8efe2bbd3eebe63f24a1d925ee05678c291ed7ca60aa4d11a1a20c",
+        "ledger": "test-lisp-emacs-lisp-tabulated-list-tests.el-a84b98f2eb97.state-retirement.jsonl.gz",
+        "ledger_sha256": "c73dda08f61db7d8771a9dc94b9e758d666b8de857e014381d621f1e9321d5a4",
+        "all_selected_absent": true,
+        "restore": "regenerate consumed cache from retained inputs; original random names not promised",
+        "empty_parents_retired": true,
+        "parent_directories": 2
+      }
+    },
+    {
+      "product": "cocoa",
+      "file": "test/lisp/emacs-lisp/vtable-tests.el",
+      "reused_process": false,
+      "ids": 7,
+      "passed": true,
+      "complete": true,
+      "exit_code": 0,
+      "timed_out": false,
+      "remaining_group_terminated": false,
+      "protocol_error": null,
+      "runner_error": null,
+      "seconds": 0.09916966700000174,
+      "result": {
+        "path": "build/acceptance/g3-lisp-structures-1/cocoa/results/cocoa/test-lisp-emacs-lisp-vtable-tests.el-b07c1cfd01ea.json",
+        "bytes": 10879,
+        "sha256": "038e811bcf78a5a50f52f0ba2d30a664122160fcd883b6ac3b7b14b80e1e73ac"
+      },
+      "events": {
+        "path": "build/acceptance/g3-lisp-structures-1/cocoa/results/cocoa/test-lisp-emacs-lisp-vtable-tests.el-b07c1cfd01ea.events.jsonl",
+        "bytes": 5972,
+        "sha256": "ea4c73c92ddc4f4061c1df93f5738c9d018b19746bea35ec749fc43c1c5f936d"
+      },
+      "stderr": {
+        "path": "build/acceptance/g3-lisp-structures-1/cocoa/logs/cocoa/test-lisp-emacs-lisp-vtable-tests.el-b07c1cfd01ea.stderr.log",
+        "bytes": 152,
+        "sha256": "1e7748a28e255d50641cd43b252777ed0b231714762411fe8335e83927aa48d1"
+      },
+      "owner_receipt": {
+        "path": "build/acceptance/g3-lisp-structures-1/cocoa/results/cocoa/test-lisp-emacs-lisp-vtable-tests.el-b07c1cfd01ea.owner-retirement.json",
+        "bytes": 899,
+        "sha256": "99ba5277f06fcbccc37312c69bc9787d2513a90cea48882858a17cd0f7514b41"
+      },
+      "retirement": {
+        "status": "complete",
+        "files": 0,
+        "directories": 10,
+        "ledger_schema": 3,
+        "logical_bytes": 0,
+        "allocated_bytes": 0,
+        "evidence_sha256": "038e811bcf78a5a50f52f0ba2d30a664122160fcd883b6ac3b7b14b80e1e73ac",
+        "ledger": "test-lisp-emacs-lisp-vtable-tests.el-b07c1cfd01ea.state-retirement.jsonl.gz",
+        "ledger_sha256": "c73dda08f61db7d8771a9dc94b9e758d666b8de857e014381d621f1e9321d5a4",
+        "all_selected_absent": true,
+        "restore": "regenerate consumed cache from retained inputs; original random names not promised",
+        "empty_parents_retired": true,
+        "parent_directories": 2
+      }
+    }
+  ],
+  "inputs_before": {
+    "compatibility/stable-31.1/sources.json": {
+      "kind": "file",
+      "bytes": 562572,
+      "mode": 420,
+      "sha256": "a5ef144a203b8b2a74e346ac47173c5d4122f751d8d950347ae75ff67eef0efe"
+    },
+    "tools/fixtures/stable-suite-runner.el": {
+      "kind": "file",
+      "bytes": 12592,
+      "mode": 420,
+      "sha256": "d5bcd0c18f15995e50adefe8472d12ef82f71114be10ce307202b4ce0f11150e"
+    },
+    "tools/stable-suite.py": {
+      "kind": "file",
+      "bytes": 54108,
+      "mode": 420,
+      "sha256": "75e913813f585425ce3673c5db9c71b2054d875c50540ccee3dd06cb4eabc51c"
+    },
+    "tools/stable-suite-batch.py": {
+      "kind": "file",
+      "bytes": 22008,
+      "mode": 420,
+      "sha256": "5473bee19634e589dbbaa091f2fb8dc5c78e67be5399c3db4497753e1ea64b6e"
+    },
+    "tools/runtime-execution.py": {
+      "kind": "file",
+      "bytes": 93220,
+      "mode": 420,
+      "sha256": "26b379c3d4a24adf2a306e1c751c654ca1b6b1c6cd43f0888398c3560e455fb4"
+    },
+    "tools/runtime-retire.py": {
+      "kind": "file",
+      "bytes": 8538,
+      "mode": 420,
+      "sha256": "84ad68bbb26ffb73e129406b430393c0eaeab2f6b818c5916a950b6514eb6932"
+    },
+    "owned-task-cache/g3-lisp-structures-1.py": {
+      "kind": "file",
+      "bytes": 10464,
+      "mode": 420,
+      "sha256": "10e13ea8779656424eb14c1c94392b2d49ad8d0be51bd66cb78a08cc7aac747f"
+    },
+    "build/acceptance/p435-p427-products-1/products-with-runtime.json": {
+      "kind": "file",
+      "bytes": 1578004,
+      "mode": 420,
+      "sha256": "aa4d2cadb59089c231c43d2827de479f35a1825514916a3573ad936b4e9ac162"
+    },
+    "build/acceptance/p435-functional-normal-1/results.json": {
+      "kind": "file",
+      "bytes": 695326,
+      "mode": 420,
+      "sha256": "fdd7cce538a6fa60329793d762db627cc94ca98f8b726614f65dd3c12af15849"
+    },
+    "build/acceptance/current-macos-core-products-1/products.json": {
+      "kind": "file",
+      "bytes": 2278690,
+      "mode": 420,
+      "sha256": "a29fc611bd359e598074a00aebc0ca7dfb420806c315c6c151872ec1d01a4ac8"
+    },
+    "owned-task-cache/g3-lisp-structures-resume-2.py": {
+      "kind": "file",
+      "bytes": 13189,
+      "mode": 420,
+      "sha256": "9430f535d8211ecc7b197e8ad9bb4bbac4ab555054e56983ab86d3e31cf2ede1"
+    }
+  },
+  "inputs_after": {
+    "compatibility/stable-31.1/sources.json": {
+      "kind": "file",
+      "bytes": 562572,
+      "mode": 420,
+      "sha256": "a5ef144a203b8b2a74e346ac47173c5d4122f751d8d950347ae75ff67eef0efe"
+    },
+    "tools/fixtures/stable-suite-runner.el": {
+      "kind": "file",
+      "bytes": 12592,
+      "mode": 420,
+      "sha256": "d5bcd0c18f15995e50adefe8472d12ef82f71114be10ce307202b4ce0f11150e"
+    },
+    "tools/stable-suite.py": {
+      "kind": "file",
+      "bytes": 54108,
+      "mode": 420,
+      "sha256": "75e913813f585425ce3673c5db9c71b2054d875c50540ccee3dd06cb4eabc51c"
+    },
+    "tools/stable-suite-batch.py": {
+      "kind": "file",
+      "bytes": 22008,
+      "mode": 420,
+      "sha256": "5473bee19634e589dbbaa091f2fb8dc5c78e67be5399c3db4497753e1ea64b6e"
+    },
+    "tools/runtime-execution.py": {
+      "kind": "file",
+      "bytes": 93220,
+      "mode": 420,
+      "sha256": "26b379c3d4a24adf2a306e1c751c654ca1b6b1c6cd43f0888398c3560e455fb4"
+    },
+    "tools/runtime-retire.py": {
+      "kind": "file",
+      "bytes": 8538,
+      "mode": 420,
+      "sha256": "84ad68bbb26ffb73e129406b430393c0eaeab2f6b818c5916a950b6514eb6932"
+    },
+    "owned-task-cache/g3-lisp-structures-1.py": {
+      "kind": "file",
+      "bytes": 10464,
+      "mode": 420,
+      "sha256": "10e13ea8779656424eb14c1c94392b2d49ad8d0be51bd66cb78a08cc7aac747f"
+    },
+    "build/acceptance/p435-p427-products-1/products-with-runtime.json": {
+      "kind": "file",
+      "bytes": 1578004,
+      "mode": 420,
+      "sha256": "aa4d2cadb59089c231c43d2827de479f35a1825514916a3573ad936b4e9ac162"
+    },
+    "build/acceptance/p435-functional-normal-1/results.json": {
+      "kind": "file",
+      "bytes": 695326,
+      "mode": 420,
+      "sha256": "fdd7cce538a6fa60329793d762db627cc94ca98f8b726614f65dd3c12af15849"
+    },
+    "build/acceptance/current-macos-core-products-1/products.json": {
+      "kind": "file",
+      "bytes": 2278690,
+      "mode": 420,
+      "sha256": "a29fc611bd359e598074a00aebc0ca7dfb420806c315c6c151872ec1d01a4ac8"
+    },
+    "owned-task-cache/g3-lisp-structures-resume-2.py": {
+      "kind": "file",
+      "bytes": 13189,
+      "mode": 420,
+      "sha256": "9430f535d8211ecc7b197e8ad9bb4bbac4ab555054e56983ab86d3e31cf2ede1"
+    }
+  },
+  "products": {
+    "reference": {
+      "program": {
+        "kind": "file",
+        "bytes": 3691504,
+        "mode": 493,
+        "sha256": "5b55e93c8304368ee37cc5c537ca3e1370e3b9b3fef049bdce76834a9db75e65"
+      },
+      "dump": {
+        "kind": "file",
+        "bytes": 23084632,
+        "mode": 420,
+        "sha256": "6ac1214186022574a70e84a04bb7f2dc44e1ea1d4c90f0d9ce421ddd0f4b4536"
+      },
+      "resources": {
+        "lisp": {
+          "entries": 3316,
+          "canonical_sha256": "564df364c803f4d0b64d7bc2ba986d775e8985529481ac2684b739666e131323"
+        }
+      }
+    },
+    "terminal": {
+      "program": {
+        "kind": "file",
+        "bytes": 2698016,
+        "mode": 493,
+        "sha256": "fb0b822273e79bb5b008725771473f5d510b9f712488242d615fb3a5fefbcde6"
+      },
+      "dump": {
+        "kind": "file",
+        "bytes": 13101600,
+        "mode": 420,
+        "sha256": "5d1913c39d5c348c711d24e16b25d9e63d09e082ee6dbe3b3a54ac4680862f82"
+      },
+      "resources": {
+        "lisp": {
+          "entries": 3363,
+          "canonical_sha256": "79dc09151f2f61152496f3587dc54cb580fb45a9c92301bfe3e75ab027a02146"
+        },
+        "runtime-tls": {
+          "entries": 9,
+          "canonical_sha256": "9b34100e73d1f4bbd3157cd1535a25f8fdc6d4e094f2e6a1e9dc79b1a63fd73d"
+        },
+        "runtime-lcms": {
+          "entries": 1,
+          "canonical_sha256": "819844d74d5d4f3ee5a75aaf2b0d9a23b07fdda8bfa71c65cdbda63f6eb213cb"
+        },
+        "runtime-treesit": {
+          "entries": 1,
+          "canonical_sha256": "05b5f47a14a19b3f04511fa292f0976e2cab06437b9e4323edbce72a9767f0f9"
+        }
+      }
+    },
+    "cocoa": {
+      "program": {
+        "kind": "file",
+        "bytes": 4230368,
+        "mode": 493,
+        "sha256": "d796f4c52e2a32ec6176e02efca33d922da18252aaddd0885e59993f108ba385"
+      },
+      "dump": {
+        "kind": "file",
+        "bytes": 18602200,
+        "mode": 420,
+        "sha256": "2b87c3436eaa33e551b024c6be01ea702b9c586c4535993258b63aa95a618b92"
+      },
+      "resources": {
+        "lisp": {
+          "entries": 3353,
+          "canonical_sha256": "e4108125e078022ebe91c3ccc5095c46c8fcbe48180ed02668f315d4e4c910b5"
+        },
+        "bundle": {
+          "entries": 4477,
+          "canonical_sha256": "e1212d5ae114aec885c8d2d467c9c39b4feb1f693b0d685dc28901fd34bb5342"
+        }
+      }
+    }
+  },
+  "product_resource_digest_encoding": "SHA256 of UTF8 sorted-key compact JSON of each complete raw resource map; full before/after maps remain in immutable resume result",
+  "products_before_equal_after": true,
+  "product_binding": {
+    "scope": "Accepted P435 normal reused, not new P444 or checking products",
+    "terminal_receipt": "build/acceptance/p435-functional-normal-1/results.json",
+    "cocoa_receipt": "build/acceptance/current-macos-core-products-1/products.json",
+    "cocoa_asserted": true,
+    "terminal_asserted": true
+  },
+  "original_inputs_unchanged": true,
+  "generated_resources": {
+    "reference": {},
+    "terminal": {},
+    "cocoa": {}
+  },
+  "budget": {
+    "original_whole_seconds": 300,
+    "remaining_whole_seconds": 288,
+    "per_case_seconds": 30,
+    "initial_hard_bytes": 1073741824,
+    "growth": false,
+    "expected_seconds": [
+      10,
+      90
+    ],
+    "expected_peak_bytes": 536870912,
+    "scale": "Four verified reference processes reused,14 remaining serial file processes,247 new observations; combined18 distinct processes and354 observations. Lisp36 is30 literal plus6 original macro-generated IDs. No replay of completed processes, no test/guard/tag/filter change. Original count-assertion failure and raw budget remain unchanged."
+  },
+  "execution": {
+    "resume_driver_seconds": 17.706955666000002,
+    "controllers": [
+      {
+        "stage": "original",
+        "run_id": "bcd45b42f19b403ca1e9458a1f3e4e21",
+        "exit_code": 1,
+        "cleanup_complete": true,
+        "elapsed_seconds": 10.976,
+        "peak_accounted_bytes": 226721792,
+        "peak_footprint_bytes": 133073344,
+        "initial_limit_bytes": 1073741824,
+        "hard_limit_bytes": 1073741824,
+        "growth_count": 0,
+        "stderr_sha256": "ae3db0fcf9c5e368d6a33127f26c9941d8020ee1c2183030ec93b8e8e50494b4",
+        "metrics_independently_reviewed": true
+      },
+      {
+        "stage": "resume-preflight",
+        "run_id": "215f6b3f852d425999ace2372a751151",
+        "exit_code": 1,
+        "cleanup_complete": true,
+        "elapsed_seconds": 0.278,
+        "peak_accounted_bytes": 6111232,
+        "peak_footprint_bytes": 3408160,
+        "initial_limit_bytes": 1073741824,
+        "hard_limit_bytes": 1073741824,
+        "growth_count": 0,
+        "stderr_sha256": "9b78f8c1df61ca1f10417fe2d774e6928ad8ec9357b7df2a7e24c51aad93bc5a",
+        "metrics_independently_reviewed": true
+      },
+      {
+        "stage": "resume",
+        "run_id": "6487017d64584a8d9211e4c5d535cc6a",
+        "exit_code": 0,
+        "cleanup_complete": true,
+        "elapsed_seconds": 20.496,
+        "peak_accounted_bytes": 115523584,
+        "peak_footprint_bytes": 94913544,
+        "initial_limit_bytes": 1073741824,
+        "hard_limit_bytes": 1073741824,
+        "growth_count": 0,
+        "stderr_sha256": "baf220d1f2bca0851d65333ae44e8ef03289794c95ca8b52dfa2ebadd953e138",
+        "metrics_independently_reviewed": true
+      }
+    ]
+  },
+  "automatic_compilation": {
+    "native_trampolines": 0,
+    "note": "Benchmark executes in-process compiled forms; no new product build requested."
+  },
+  "cleanup": {
+    "status": "complete",
+    "files": 4610,
+    "directories": 942,
+    "links": 18,
+    "rows": 5570,
+    "logical_bytes": 63002646,
+    "allocated_bytes": 75280384,
+    "manifest_sha256": "361a9f8740e269d0b8f245a26d25a88541888fe8def9740b56db67d0f225ce48",
+    "automatic_files": 0,
+    "automatic_directories": 180,
+    "automatic_parent_directories": 36,
+    "automatic_logical_bytes": 0,
+    "automatic_allocated_bytes": 0,
+    "consumed_cache_files": 2,
+    "consumed_cache_logical_bytes": 11790,
+    "consumed_cache_allocated_bytes": 16384,
+    "products_inputs_git_evidence_unchanged": true
+  },
+  "review": {
+    "independent_raw_accepted": true,
+    "original_files_or_guards_changed": false,
+    "completed_processes_replayed": false,
+    "subagents_used": false
+  },
+  "reused_prior_coverage": {
+    "report": "maintenance/releases/2026-10-30-original-runtime-support.md",
+    "not_counted_as_new": true,
+    "files": [
+      "check-declare",
+      "cl-preloaded",
+      "float-sup",
+      "pp",
+      "regexp-opt",
+      "backtrace",
+      "bindat",
+      "cl-print",
+      "comp-cstr",
+      "byte-run"
+    ]
+  },
+  "limits": [
+    "Original raw remains false after the wrong Lisp count assertion; resume-preflight remains false after its SHA-helper lookup error.",
+    "18 unique file processes comprise4 original and14 new;354 observations comprise107 reused and247 new.",
+    "Benchmark relative-time assertions are original functional coverage, not qualified performance.",
+    "Keyboard macros/window/buffer operations are simulated Lisp paths, not physical UI.",
+    "No checking, whole ERT, full G3, native/collector, qualified performance or trial App acceptance."
+  ],
+  "compatibility_accepted": false,
+  "performance_accepted": false,
+  "editor_accepted": false
+}

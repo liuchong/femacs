@@ -1,3 +1,34 @@
+## 2026-10-31 · Original Lisp structures and CLN180
+
+Six unchanged pinned files use all-discovered-ids on accepted P435 normal
+reference/terminal/Cocoa, without a new product build or test/guard/tag edit.
+Hierarchy68, benchmark1, map-ynp2, Lisp36, tabulated-list4 and vtable7 give
+118 IDs/product: **354 ordinary passes**, zero skips/expected/unexpected failures.
+IDs/tags/status maps agree; eighteen file processes exit0/complete without timeout,
+protocol/runner error or residual group. Earlier runtime-support files are reused,
+not counted as new coverage or rerun merely for changed product hashes.
+Original driver expected Lisp30 but the original macro generates six more IDs.
+Its false raw has three aggregate rows; the fourth sealed result passed too.
+First resume preflight failed on a SHA-helper module lookup before any editor.
+Corrected resume verifies four sealed+owner receipts/107 events and executes only
+fourteen remaining processes/247 observations; both original failures stay false.
+All 354 event hashes/ordinals and outcome classifications were independently checked.
+Eleven before/after input identities and full products match; P435 terminal/Cocoa
+bindings hold. Each copy has1536 pinned files/20,996,952B; no generated resource
+or automatic native trampoline. Benchmark compiles fixed loops in-process; its
+relative-time assertion is functional coverage, not qualified performance.
+30s/load-case and1GiB initial/hard/growth0 remain; original300s budget subtracts
+10.976s original and0.278s preflight, leaving288s for resume. Resume owner20.496s,
+115,523,584B accounted/94,913,544B footprint, exit0/cleanup true; driver17.706956s.
+Original controller exit1/cleanup true/226,721,792B stays; metrics reviewed separately.
+CLN180:4,610 files/942 directories/18 links,63,002,646 logical/75,280,384 allocatedB;
+180 automatic directories including36 parents count once. All selected roots and
+two consumed helpers are absent; original evidence/products/inputs/WIP remain.
+No new production/protection/App adoption; ERT/checking/fullG3/performance stay open.
+G1/G2/G4 **3/7**, original Goal active.
+[Coverage](../maintenance/releases/2026-10-31-original-lisp-structures.md) ·
+[CLN180](../maintenance/cleanup/reports/2026-10-31-180-consumed-lisp-structures-state.md).
+
 ## 2026-10-29 · CLN119与有界本地验收
 
 回收已完成第四轮构建的Cargo/生成单元19910文件、703116947逻辑字节，保留四产品/源/对象/620例及未完远程证据；逐项见[CLN119](../maintenance/cleanup/reports/2026-10-29-119-completed-notify-compiler-copies.md)。独立搭档确认采用明确单例与整组硬截止；本地功能以900秒整体限制继续，远程慢测分开校准，不再用日志续期。新发现空标签JSON边界已修正，原发现阶段失败保留，原测试和断言不变；整个Goal仍active、1/7。
