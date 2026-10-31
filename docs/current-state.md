@@ -1,3 +1,19 @@
+## Current original syntax/faceup/EIEIO coverage (2026-10-31)
+
+Five unchanged complete files on installed reference +eight current native,
+observer,major/young normal/checking profiles:45 complete exit0 processes,
+324 expected results =306 ordinary+18 original expected failures,zero skips
+or unexpected; ID/tag/status/outcome maps equal. Original unstable ID selected.
+Four actual products reused;7,459 frozen inputs include WIP,not clean HEAD.
+Full product/App/input sidecars match; separate411-source check has0mismatch.
+No GC-cycle occurrence or physicalUI/fullG3/wholeERT/performance/App claim.
+Functional31.838774959s,30s cases/600s owner/1GiB fixed;controller primary-only.
+CLN186:13830files/2736dirs/18links,16584rows,188993126/225824768B.
+Automatic450dirs/90parents count once. Original cleanup post-removal zip error
+stays exit1; separate file-only finalization verifies manifest/outcomes/products,
+no repeated deletion/tests. Raw/evidence/inputs/products/WIP remain;Goal3/7active.
+[Delivery](../maintenance/releases/2026-10-31-current-eieio-faceup.md).
+
 ## P448: complete own-voice diagnostics (2026-10-31)
 
 The report path no longer re-parses a normalized180-character prefix that may

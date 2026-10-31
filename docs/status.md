@@ -1,3 +1,28 @@
+## 2026-10-31: current syntax/faceup/EIEIO; CLN186
+
+Five complete unchanged pinned files,all-discovered-ids,45 serial file processes:
+syntax1,faceup basics15,faceup files1overlay,methodinvoke9,persist10=36/context.
+Reference+8current terminal/Cocoa normal/checking major/young profiles=324events,
+306ordinary+18original expected failures,zero skips/unexpected; all exit0,
+complete,no timeout/residual group; ID/tag/status/outcome maps equal reference.
+Two persistence expected failures/context stay expected; unstable method-order
+ID selected. Fixed small strings/graphs and12persistence save/read cycles;
+faceup is buffer fontification,not physicalUI. No test subprocess/network/wait.
+Four actual native+observer+collector products reused,test hooks off,not P435.
+7459frozen inputs containWIP;full product/App/input sidecars unchanged before/after.
+Separate post-run411runtime/build input SHA comparison has0mismatch,not raw field.
+No collector cycle occurrence/fullG3/ERT/native/performance/App acceptance.
+Driver31.838774959s;30s load/case,600s owner,1GiB fixed/no growth.
+Controller primary-only32.048s/109232128B. No generated test/native files observed.
+CLN186:13830files/2736dirs/18links,16584rows,188993126/225824768B;
+auto450dirs/90parents counted once. Postreview13830/2286/18 includes9test copies
+and6adopted helper/handoff copies. Original cleanup exit1 after deletion:
+unsupported zip(strict=True). Separate6.114807208s file-only finalization verifies
+all16584rows/32268operations/410evidence/30inputs/9products,no deletion/tests.
+Original failure/raw/replay/inputs/current-prior products/oldWIP retained.
+No production/protection/App change;G1/G2/G4 stay3/7,Goal active.
+[Delivery](../maintenance/releases/2026-10-31-current-eieio-faceup.md).
+
 ## 2026-10-31: P448 diagnostic clipping repair; CLN185
 
 Actual runtime-resume line321 has410chars, match at372; stored prefix180

@@ -1,3 +1,17 @@
+## CLN186 — consumed current syntax/faceup/EIEIO copies
+
+13830files/2736directories/18links,16584rows,188993126logical/225824768allocatedB.
+Postreview13830/2286/18 includes9pinned copies,18context links and6adopted
+helpers/handoff copies;automatic450dirs/90parents count once,never deleted again.
+Exact consumer exclusions include all receipt files;27selected roots absent.
+Original cleanup exits1 at post-removal zip(strict=True) verifier;not rewritten.
+Separate file-only finalization checks all rows/32268intent-outcomes/410evidence/
+30inputs/9products,6.114807208s,no deletion/editor/compiler/tests. Raw,original
+failure,private plans,replay,products,App and unrelatedWIP retained.
+Reconstruction from pinned/native/signed sources;no original inode/df claim.
+[Report](reports/2026-10-31-186-consumed-current-eieio-faceup-state.md) ·
+[Manifest](manifests/2026-10-31-186-consumed-current-eieio-faceup-state.jsonl.gz).
+
 ## CLN185 — reporting duplicate copies and adopted handoffs
 
 16files/1directory/17rows,179869logical/217088allocated bytes.9adopted
