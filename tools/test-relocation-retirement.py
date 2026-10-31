@@ -2,6 +2,7 @@
 from pathlib import Path
 import errno
 import importlib.util
+import json
 import os
 import time
 import unittest
@@ -58,6 +59,86 @@ class RetirementSyncFailures(unittest.TestCase):
 
     def test_unlink_intent_sync_failure_preserves_copy(self):
         self.reject_sync('package-copy-operations.jsonl')
+
+    def test_private_identity_sync_failure_preserves_copy(self):
+        self.reject_sync('package-copy-node-identities.private.json')
+
+    def test_member_and_directory_times_are_durable_before_first_unlink(self):
+        nested = self.package/'nested'
+        nested.mkdir()
+        (nested/'alias').symlink_to('../payload.bin')
+        members = {'payload.bin': self.payload.lstat().st_mtime_ns,
+                   'nested/alias': (nested/'alias').lstat().st_mtime_ns}
+        directories = {'.': self.package.lstat().st_mtime_ns,
+                       'nested': nested.lstat().st_mtime_ns}
+        synced, removed = [], []
+        actual_sync, actual_unlink = EXECUTION.sync_case_record, Path.unlink
+
+        def sync(path):
+            actual_sync(path)
+            synced.append(Path(path).name)
+
+        def unlink(path, *args, **kwargs):
+            if path.is_relative_to(self.package):
+                self.assertIn('package-copy-node-identities.private.json', synced)
+                plan = json.loads((self.evidence/'package-copy-node-identities.private.json').read_text())
+                self.assertEqual(plan['member_mtime_ns'], members)
+                self.assertEqual(plan['directory_mtime_ns'], directories)
+                removed.append(path)
+            return actual_unlink(path, *args, **kwargs)
+
+        with patch.object(EXECUTION, 'sync_case_record', side_effect=sync), \
+                patch.object(Path, 'unlink', unlink):
+            result = EXECUTION.retire_relocation_copy(self.package, self.root, self.owner,
+                                                       evidence_root=self.evidence)
+        self.assertTrue(result['complete'])
+        self.assertEqual(len(removed), 2)
+        self.assertFalse(self.package.exists())
+        self.assertTrue(self.root.is_dir())
+
+    def reject_time_change(self, directory=False, at_unlink=False):
+        target = self.package if directory else self.payload
+        original = target.lstat()
+        injected = []
+        actual_sync, actual_fsync = EXECUTION.sync_case_record, os.fsync
+
+        def change():
+            if not injected:
+                os.utime(target, ns=(original.st_atime_ns, original.st_mtime_ns+1_000_000_000))
+                injected.append(True)
+
+        def sync(path):
+            actual_sync(path)
+            if Path(path).name == 'package-copy-lifecycle.json':
+                change()
+
+        def fsync(descriptor):
+            actual_fsync(descriptor)
+            operations = self.evidence/'package-copy-operations.jsonl'
+            if operations.exists():
+                current, expected = os.fstat(descriptor), operations.stat()
+                if (current.st_dev, current.st_ino) == (expected.st_dev, expected.st_ino):
+                    change()
+
+        with patch.object(EXECUTION, 'sync_case_record', side_effect=actual_sync if at_unlink else sync), \
+                patch.object(EXECUTION.os, 'fsync', side_effect=fsync if at_unlink else actual_fsync):
+            with self.assertRaisesRegex(ValueError, 'before unlink' if at_unlink else 'after its durable manifest'):
+                EXECUTION.retire_relocation_copy(self.package, self.root, self.owner,
+                                                  evidence_root=self.evidence)
+        self.assertEqual(injected, [True])
+        self.assertEqual(self.payload.read_bytes(), b'keep this owned payload on pre-delete failure')
+        lifecycle = json.loads((self.evidence/'package-copy-lifecycle.json').read_text())
+        self.assertFalse(lifecycle['complete'])
+        self.assertEqual(lifecycle['deleted_files'], 0)
+
+    def test_unchanged_bytes_with_new_member_time_are_retained(self):
+        self.reject_time_change()
+
+    def test_changed_directory_time_before_deletion_is_retained(self):
+        self.reject_time_change(directory=True)
+
+    def test_member_time_change_at_unlink_intent_is_retained(self):
+        self.reject_time_change(at_unlink=True)
 
 
 class TimedResult(unittest.TextTestResult):

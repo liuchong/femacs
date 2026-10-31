@@ -1,3 +1,22 @@
+## CLN184 — consumed combined runtime and P447 relocation state
+
+113190files/19923directories/49links,133162rows;
+6859645810logical/7102935040allocated file bytes.
+Post-review 41105/16116/38;
+automatic 72085/3807/11,counted once.
+Eight old case-parent rows lack identities;16ancestor attempts lack success;
+old package mtime unavailable.New P447 parents have fresh pre-delete identities.
+Retained raw/failures/private plans,7,459inputs,actual products and old WIP;
+only consumed owned state/build copies/test payloads/fourhelpers selected.
+Two preflights stopped before deletion.Original cleanup postcheck exit1 retained:
+20receipt files/12dirs recreated exact bytes,new inodes;245682448/245719040B
+restored.Full receipts now pass;gross counts include recreated paths.No rewrite
+of history/App/performance claim.Recovery byte copies retired separately;minimal evidence/recipes retained.
+[Report](reports/2026-10-31-184-consumed-combined-runtime-state.md) ·
+[Manifest](manifests/2026-10-31-184-consumed-combined-runtime-state.jsonl.gz).
+Supplemental14files/2dirs/16rows,153343584/153391104B;combined gross
+113204/19925/49,133178rows,7012989394/7256326144B.
+
 ## CLN183 - consumed original package-vc state (2026-10-31)
 
 After324 observed normal cases (300 ordinary+24 skips), retire nine exact

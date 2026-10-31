@@ -1,0 +1,1274 @@
+{
+  "schema": "femacs-current-native-collector-delivery-v1",
+  "scope": "Four current actual products; eight native/collector/observer execution profiles and installed reference. Scoped functional evidence plus P447 relocation retirement fix.",
+  "scoped_delivery_complete": true,
+  "whole_matrix_accepted": false,
+  "whole_g3_accepted": false,
+  "whole_ert_accepted": false,
+  "compatibility_accepted": false,
+  "performance_accepted": false,
+  "physical_ui_accepted": false,
+  "trial_app_promoted": false,
+  "goal_complete": false,
+  "accepted_goals": [
+    "G1",
+    "G2",
+    "G4"
+  ],
+  "remaining_goals": [
+    "G3",
+    "G5",
+    "G6",
+    "G7"
+  ],
+  "source_hashes": {
+    "src/alloc.rs": "564e9377279426cf6ca2ba70e89b797a98a5a5737d677df1e4fedd09eb41fa55",
+    "src/runtime_gc_collector.rs": "aa1ca1ef6d2e79388674ea9c879ca7ed2388bca5d2482b6dcfc2b9fe502a5020"
+  },
+  "frozen_inputs": 7459,
+  "frozen_source_includes_uncommitted_wip": true,
+  "clean_committed_source": false,
+  "source_manifest_sha256": "b43b779a93e6670a5b4f9b1b1e5f89dbe95bdc6a7e90208e1d9e8d208e0f67ae",
+  "product_profiles": [
+    {
+      "id": "reference",
+      "kind": "reference",
+      "compiler_leg": "normal",
+      "collector": "off",
+      "native": true,
+      "observer": false,
+      "test_hooks": false,
+      "program": {
+        "kind": "file",
+        "bytes": 3691504,
+        "mode": 493,
+        "sha256": "5b55e93c8304368ee37cc5c537ca3e1370e3b9b3fef049bdce76834a9db75e65"
+      },
+      "dump": {
+        "kind": "file",
+        "bytes": 23084632,
+        "mode": 420,
+        "sha256": "6ac1214186022574a70e84a04bb7f2dc44e1ea1d4c90f0d9ce421ddd0f4b4536"
+      },
+      "resource_roots": {
+        "lisp": {
+          "entries": 3316,
+          "tree_sha256": "564df364c803f4d0b64d7bc2ba986d775e8985529481ac2684b739666e131323"
+        }
+      }
+    },
+    {
+      "id": "combined-current-terminal-normal-major",
+      "kind": "terminal",
+      "compiler_leg": "normal",
+      "collector": "major",
+      "native": true,
+      "observer": true,
+      "test_hooks": false,
+      "program": {
+        "kind": "file",
+        "bytes": 13520960,
+        "mode": 493,
+        "sha256": "ac16f4dcf8991eccfc5b7bfa5debabd503f8c5d27ca1ae499101a34a8e140e06"
+      },
+      "dump": {
+        "kind": "file",
+        "bytes": 13204960,
+        "mode": 420,
+        "sha256": "4403206612235bdfc4fb549adb307d6fcbf232bf43c33494f0c2f7761db02f50"
+      },
+      "resource_roots": {
+        "lisp": {
+          "entries": 3363,
+          "tree_sha256": "6842b8c0c52ee506a030199f7405312d6466633850496c62a69a41aea54b56aa"
+        },
+        "etc": {
+          "entries": 1019,
+          "tree_sha256": "6d0b1893b0497a34ae0d799f9e9315d2cab135e0ef6472cfeddb8e1e38c78ace"
+        },
+        "info": {
+          "entries": 70,
+          "tree_sha256": "e6997136cdf21eafe89279c9f3e25ac239a81e1365e82a6dad3672c13bd32a81"
+        },
+        "runtime-native": {
+          "entries": 6,
+          "tree_sha256": "47d5a284f2622d07710aae8a3cda6b3aaa39f8ef02d544692f2672ce70308cc3"
+        },
+        "licenses": {
+          "entries": 13,
+          "tree_sha256": "87d95d80e5efbfd9617412bc72391db1f0c0cd0f3c887130dbddf68c887ddaf0"
+        },
+        "tls-runtime": {
+          "entries": 9,
+          "tree_sha256": "9b34100e73d1f4bbd3157cd1535a25f8fdc6d4e094f2e6a1e9dc79b1a63fd73d"
+        },
+        "tls-licenses": {
+          "entries": 14,
+          "tree_sha256": "73f46a8351f88ab1d10b069728f5079fdef118fbfb323296cc257d16dcec74c2"
+        },
+        "lcms-runtime": {
+          "entries": 1,
+          "tree_sha256": "819844d74d5d4f3ee5a75aaf2b0d9a23b07fdda8bfa71c65cdbda63f6eb213cb"
+        },
+        "lcms-licenses": {
+          "entries": 1,
+          "tree_sha256": "abe468dfa57be006c058e461d993e3fc3e5c0fe8bbfbec6a70247908ae75bd5d"
+        },
+        "treesit-runtime": {
+          "entries": 1,
+          "tree_sha256": "05b5f47a14a19b3f04511fa292f0976e2cab06437b9e4323edbce72a9767f0f9"
+        },
+        "treesit-licenses": {
+          "entries": 1,
+          "tree_sha256": "421d95420dc36d9656db1d883de7c7c7fdd125861ce0139a3d8518c77a1ff370"
+        }
+      }
+    },
+    {
+      "id": "combined-current-terminal-normal-young",
+      "kind": "terminal",
+      "compiler_leg": "normal",
+      "collector": "young",
+      "native": true,
+      "observer": true,
+      "test_hooks": false,
+      "program": {
+        "kind": "file",
+        "bytes": 13520960,
+        "mode": 493,
+        "sha256": "ac16f4dcf8991eccfc5b7bfa5debabd503f8c5d27ca1ae499101a34a8e140e06"
+      },
+      "dump": {
+        "kind": "file",
+        "bytes": 13204960,
+        "mode": 420,
+        "sha256": "4403206612235bdfc4fb549adb307d6fcbf232bf43c33494f0c2f7761db02f50"
+      },
+      "resource_roots": {
+        "lisp": {
+          "entries": 3363,
+          "tree_sha256": "6842b8c0c52ee506a030199f7405312d6466633850496c62a69a41aea54b56aa"
+        },
+        "etc": {
+          "entries": 1019,
+          "tree_sha256": "6d0b1893b0497a34ae0d799f9e9315d2cab135e0ef6472cfeddb8e1e38c78ace"
+        },
+        "info": {
+          "entries": 70,
+          "tree_sha256": "e6997136cdf21eafe89279c9f3e25ac239a81e1365e82a6dad3672c13bd32a81"
+        },
+        "runtime-native": {
+          "entries": 6,
+          "tree_sha256": "47d5a284f2622d07710aae8a3cda6b3aaa39f8ef02d544692f2672ce70308cc3"
+        },
+        "licenses": {
+          "entries": 13,
+          "tree_sha256": "87d95d80e5efbfd9617412bc72391db1f0c0cd0f3c887130dbddf68c887ddaf0"
+        },
+        "tls-runtime": {
+          "entries": 9,
+          "tree_sha256": "9b34100e73d1f4bbd3157cd1535a25f8fdc6d4e094f2e6a1e9dc79b1a63fd73d"
+        },
+        "tls-licenses": {
+          "entries": 14,
+          "tree_sha256": "73f46a8351f88ab1d10b069728f5079fdef118fbfb323296cc257d16dcec74c2"
+        },
+        "lcms-runtime": {
+          "entries": 1,
+          "tree_sha256": "819844d74d5d4f3ee5a75aaf2b0d9a23b07fdda8bfa71c65cdbda63f6eb213cb"
+        },
+        "lcms-licenses": {
+          "entries": 1,
+          "tree_sha256": "abe468dfa57be006c058e461d993e3fc3e5c0fe8bbfbec6a70247908ae75bd5d"
+        },
+        "treesit-runtime": {
+          "entries": 1,
+          "tree_sha256": "05b5f47a14a19b3f04511fa292f0976e2cab06437b9e4323edbce72a9767f0f9"
+        },
+        "treesit-licenses": {
+          "entries": 1,
+          "tree_sha256": "421d95420dc36d9656db1d883de7c7c7fdd125861ce0139a3d8518c77a1ff370"
+        }
+      }
+    },
+    {
+      "id": "combined-current-terminal-checking-major",
+      "kind": "terminal",
+      "compiler_leg": "checking",
+      "collector": "major",
+      "native": true,
+      "observer": true,
+      "test_hooks": false,
+      "program": {
+        "kind": "file",
+        "bytes": 14253952,
+        "mode": 493,
+        "sha256": "43013750321dba239028089a38d2f899f8b2ca407c62402670ad789454bd34c2"
+      },
+      "dump": {
+        "kind": "file",
+        "bytes": 13204928,
+        "mode": 420,
+        "sha256": "19d544ed9a5022a7ecfe90ac2d9d6fc94a91ae2f03ab60ccd9f55176b70e6c14"
+      },
+      "resource_roots": {
+        "lisp": {
+          "entries": 3363,
+          "tree_sha256": "a21177f054031a3c503355fe0bb0359f950ec7cfe8da350cb9f814248e351da8"
+        },
+        "etc": {
+          "entries": 1019,
+          "tree_sha256": "6d0b1893b0497a34ae0d799f9e9315d2cab135e0ef6472cfeddb8e1e38c78ace"
+        },
+        "info": {
+          "entries": 70,
+          "tree_sha256": "c50790f3bd198e107c71db3f431ac04c11e0dce49b6a9072167d3a5dba4fee7d"
+        },
+        "runtime-native": {
+          "entries": 6,
+          "tree_sha256": "47d5a284f2622d07710aae8a3cda6b3aaa39f8ef02d544692f2672ce70308cc3"
+        },
+        "licenses": {
+          "entries": 13,
+          "tree_sha256": "87d95d80e5efbfd9617412bc72391db1f0c0cd0f3c887130dbddf68c887ddaf0"
+        },
+        "tls-runtime": {
+          "entries": 9,
+          "tree_sha256": "9b34100e73d1f4bbd3157cd1535a25f8fdc6d4e094f2e6a1e9dc79b1a63fd73d"
+        },
+        "tls-licenses": {
+          "entries": 14,
+          "tree_sha256": "73f46a8351f88ab1d10b069728f5079fdef118fbfb323296cc257d16dcec74c2"
+        },
+        "lcms-runtime": {
+          "entries": 1,
+          "tree_sha256": "819844d74d5d4f3ee5a75aaf2b0d9a23b07fdda8bfa71c65cdbda63f6eb213cb"
+        },
+        "lcms-licenses": {
+          "entries": 1,
+          "tree_sha256": "abe468dfa57be006c058e461d993e3fc3e5c0fe8bbfbec6a70247908ae75bd5d"
+        },
+        "treesit-runtime": {
+          "entries": 1,
+          "tree_sha256": "05b5f47a14a19b3f04511fa292f0976e2cab06437b9e4323edbce72a9767f0f9"
+        },
+        "treesit-licenses": {
+          "entries": 1,
+          "tree_sha256": "421d95420dc36d9656db1d883de7c7c7fdd125861ce0139a3d8518c77a1ff370"
+        }
+      }
+    },
+    {
+      "id": "combined-current-terminal-checking-young",
+      "kind": "terminal",
+      "compiler_leg": "checking",
+      "collector": "young",
+      "native": true,
+      "observer": true,
+      "test_hooks": false,
+      "program": {
+        "kind": "file",
+        "bytes": 14253952,
+        "mode": 493,
+        "sha256": "43013750321dba239028089a38d2f899f8b2ca407c62402670ad789454bd34c2"
+      },
+      "dump": {
+        "kind": "file",
+        "bytes": 13204928,
+        "mode": 420,
+        "sha256": "19d544ed9a5022a7ecfe90ac2d9d6fc94a91ae2f03ab60ccd9f55176b70e6c14"
+      },
+      "resource_roots": {
+        "lisp": {
+          "entries": 3363,
+          "tree_sha256": "a21177f054031a3c503355fe0bb0359f950ec7cfe8da350cb9f814248e351da8"
+        },
+        "etc": {
+          "entries": 1019,
+          "tree_sha256": "6d0b1893b0497a34ae0d799f9e9315d2cab135e0ef6472cfeddb8e1e38c78ace"
+        },
+        "info": {
+          "entries": 70,
+          "tree_sha256": "c50790f3bd198e107c71db3f431ac04c11e0dce49b6a9072167d3a5dba4fee7d"
+        },
+        "runtime-native": {
+          "entries": 6,
+          "tree_sha256": "47d5a284f2622d07710aae8a3cda6b3aaa39f8ef02d544692f2672ce70308cc3"
+        },
+        "licenses": {
+          "entries": 13,
+          "tree_sha256": "87d95d80e5efbfd9617412bc72391db1f0c0cd0f3c887130dbddf68c887ddaf0"
+        },
+        "tls-runtime": {
+          "entries": 9,
+          "tree_sha256": "9b34100e73d1f4bbd3157cd1535a25f8fdc6d4e094f2e6a1e9dc79b1a63fd73d"
+        },
+        "tls-licenses": {
+          "entries": 14,
+          "tree_sha256": "73f46a8351f88ab1d10b069728f5079fdef118fbfb323296cc257d16dcec74c2"
+        },
+        "lcms-runtime": {
+          "entries": 1,
+          "tree_sha256": "819844d74d5d4f3ee5a75aaf2b0d9a23b07fdda8bfa71c65cdbda63f6eb213cb"
+        },
+        "lcms-licenses": {
+          "entries": 1,
+          "tree_sha256": "abe468dfa57be006c058e461d993e3fc3e5c0fe8bbfbec6a70247908ae75bd5d"
+        },
+        "treesit-runtime": {
+          "entries": 1,
+          "tree_sha256": "05b5f47a14a19b3f04511fa292f0976e2cab06437b9e4323edbce72a9767f0f9"
+        },
+        "treesit-licenses": {
+          "entries": 1,
+          "tree_sha256": "421d95420dc36d9656db1d883de7c7c7fdd125861ce0139a3d8518c77a1ff370"
+        }
+      }
+    },
+    {
+      "id": "combined-current-cocoa-normal-major",
+      "kind": "cocoa",
+      "compiler_leg": "normal",
+      "collector": "major",
+      "native": true,
+      "observer": true,
+      "test_hooks": false,
+      "program": {
+        "kind": "file",
+        "bytes": 15053152,
+        "mode": 493,
+        "sha256": "3c08ed5f4d25bea228bad8b7b8a2d1d10e10b965859dc86cb587084deae5768b"
+      },
+      "dump": {
+        "kind": "file",
+        "bytes": 18771768,
+        "mode": 420,
+        "sha256": "1bc5559764ad2389eb714acde69ee09ac45170af143bcd48a021000b0800f95c"
+      },
+      "resource_roots": {
+        "bundle": {
+          "entries": 4485,
+          "tree_sha256": "e11850e49b24ca9758deb0fc2f6d4c87d87c8470701538e86b242b5e1ffcdf75"
+        },
+        "runtime-native": {
+          "entries": 6,
+          "tree_sha256": "47d5a284f2622d07710aae8a3cda6b3aaa39f8ef02d544692f2672ce70308cc3"
+        },
+        "licenses": {
+          "entries": 13,
+          "tree_sha256": "87d95d80e5efbfd9617412bc72391db1f0c0cd0f3c887130dbddf68c887ddaf0"
+        },
+        "tls-runtime": {
+          "entries": 9,
+          "tree_sha256": "9b34100e73d1f4bbd3157cd1535a25f8fdc6d4e094f2e6a1e9dc79b1a63fd73d"
+        },
+        "tls-licenses": {
+          "entries": 14,
+          "tree_sha256": "73f46a8351f88ab1d10b069728f5079fdef118fbfb323296cc257d16dcec74c2"
+        },
+        "lcms-runtime": {
+          "entries": 1,
+          "tree_sha256": "819844d74d5d4f3ee5a75aaf2b0d9a23b07fdda8bfa71c65cdbda63f6eb213cb"
+        },
+        "lcms-licenses": {
+          "entries": 1,
+          "tree_sha256": "abe468dfa57be006c058e461d993e3fc3e5c0fe8bbfbec6a70247908ae75bd5d"
+        },
+        "treesit-runtime": {
+          "entries": 1,
+          "tree_sha256": "05b5f47a14a19b3f04511fa292f0976e2cab06437b9e4323edbce72a9767f0f9"
+        },
+        "treesit-licenses": {
+          "entries": 1,
+          "tree_sha256": "421d95420dc36d9656db1d883de7c7c7fdd125861ce0139a3d8518c77a1ff370"
+        }
+      }
+    },
+    {
+      "id": "combined-current-cocoa-normal-young",
+      "kind": "cocoa",
+      "compiler_leg": "normal",
+      "collector": "young",
+      "native": true,
+      "observer": true,
+      "test_hooks": false,
+      "program": {
+        "kind": "file",
+        "bytes": 15053152,
+        "mode": 493,
+        "sha256": "3c08ed5f4d25bea228bad8b7b8a2d1d10e10b965859dc86cb587084deae5768b"
+      },
+      "dump": {
+        "kind": "file",
+        "bytes": 18771768,
+        "mode": 420,
+        "sha256": "1bc5559764ad2389eb714acde69ee09ac45170af143bcd48a021000b0800f95c"
+      },
+      "resource_roots": {
+        "bundle": {
+          "entries": 4485,
+          "tree_sha256": "e11850e49b24ca9758deb0fc2f6d4c87d87c8470701538e86b242b5e1ffcdf75"
+        },
+        "runtime-native": {
+          "entries": 6,
+          "tree_sha256": "47d5a284f2622d07710aae8a3cda6b3aaa39f8ef02d544692f2672ce70308cc3"
+        },
+        "licenses": {
+          "entries": 13,
+          "tree_sha256": "87d95d80e5efbfd9617412bc72391db1f0c0cd0f3c887130dbddf68c887ddaf0"
+        },
+        "tls-runtime": {
+          "entries": 9,
+          "tree_sha256": "9b34100e73d1f4bbd3157cd1535a25f8fdc6d4e094f2e6a1e9dc79b1a63fd73d"
+        },
+        "tls-licenses": {
+          "entries": 14,
+          "tree_sha256": "73f46a8351f88ab1d10b069728f5079fdef118fbfb323296cc257d16dcec74c2"
+        },
+        "lcms-runtime": {
+          "entries": 1,
+          "tree_sha256": "819844d74d5d4f3ee5a75aaf2b0d9a23b07fdda8bfa71c65cdbda63f6eb213cb"
+        },
+        "lcms-licenses": {
+          "entries": 1,
+          "tree_sha256": "abe468dfa57be006c058e461d993e3fc3e5c0fe8bbfbec6a70247908ae75bd5d"
+        },
+        "treesit-runtime": {
+          "entries": 1,
+          "tree_sha256": "05b5f47a14a19b3f04511fa292f0976e2cab06437b9e4323edbce72a9767f0f9"
+        },
+        "treesit-licenses": {
+          "entries": 1,
+          "tree_sha256": "421d95420dc36d9656db1d883de7c7c7fdd125861ce0139a3d8518c77a1ff370"
+        }
+      }
+    },
+    {
+      "id": "combined-current-cocoa-checking-major",
+      "kind": "cocoa",
+      "compiler_leg": "checking",
+      "collector": "major",
+      "native": true,
+      "observer": true,
+      "test_hooks": false,
+      "program": {
+        "kind": "file",
+        "bytes": 15885632,
+        "mode": 493,
+        "sha256": "2e422709234454dc710cddef6aaedcb3513d0ea564237fc55539590f58b9e351"
+      },
+      "dump": {
+        "kind": "file",
+        "bytes": 18771808,
+        "mode": 420,
+        "sha256": "2d320d1b00e6bd2d081127c56ffb7aaaabccbbe29b686e71ce86751c1e14b998"
+      },
+      "resource_roots": {
+        "bundle": {
+          "entries": 4485,
+          "tree_sha256": "3a3b451af8d6a21e3d05bd6dfa06e88417073b278ad6d48b4b333db3dc40d97e"
+        },
+        "runtime-native": {
+          "entries": 6,
+          "tree_sha256": "47d5a284f2622d07710aae8a3cda6b3aaa39f8ef02d544692f2672ce70308cc3"
+        },
+        "licenses": {
+          "entries": 13,
+          "tree_sha256": "87d95d80e5efbfd9617412bc72391db1f0c0cd0f3c887130dbddf68c887ddaf0"
+        },
+        "tls-runtime": {
+          "entries": 9,
+          "tree_sha256": "9b34100e73d1f4bbd3157cd1535a25f8fdc6d4e094f2e6a1e9dc79b1a63fd73d"
+        },
+        "tls-licenses": {
+          "entries": 14,
+          "tree_sha256": "73f46a8351f88ab1d10b069728f5079fdef118fbfb323296cc257d16dcec74c2"
+        },
+        "lcms-runtime": {
+          "entries": 1,
+          "tree_sha256": "819844d74d5d4f3ee5a75aaf2b0d9a23b07fdda8bfa71c65cdbda63f6eb213cb"
+        },
+        "lcms-licenses": {
+          "entries": 1,
+          "tree_sha256": "abe468dfa57be006c058e461d993e3fc3e5c0fe8bbfbec6a70247908ae75bd5d"
+        },
+        "treesit-runtime": {
+          "entries": 1,
+          "tree_sha256": "05b5f47a14a19b3f04511fa292f0976e2cab06437b9e4323edbce72a9767f0f9"
+        },
+        "treesit-licenses": {
+          "entries": 1,
+          "tree_sha256": "421d95420dc36d9656db1d883de7c7c7fdd125861ce0139a3d8518c77a1ff370"
+        }
+      }
+    },
+    {
+      "id": "combined-current-cocoa-checking-young",
+      "kind": "cocoa",
+      "compiler_leg": "checking",
+      "collector": "young",
+      "native": true,
+      "observer": true,
+      "test_hooks": false,
+      "program": {
+        "kind": "file",
+        "bytes": 15885632,
+        "mode": 493,
+        "sha256": "2e422709234454dc710cddef6aaedcb3513d0ea564237fc55539590f58b9e351"
+      },
+      "dump": {
+        "kind": "file",
+        "bytes": 18771808,
+        "mode": 420,
+        "sha256": "2d320d1b00e6bd2d081127c56ffb7aaaabccbbe29b686e71ce86751c1e14b998"
+      },
+      "resource_roots": {
+        "bundle": {
+          "entries": 4485,
+          "tree_sha256": "3a3b451af8d6a21e3d05bd6dfa06e88417073b278ad6d48b4b333db3dc40d97e"
+        },
+        "runtime-native": {
+          "entries": 6,
+          "tree_sha256": "47d5a284f2622d07710aae8a3cda6b3aaa39f8ef02d544692f2672ce70308cc3"
+        },
+        "licenses": {
+          "entries": 13,
+          "tree_sha256": "87d95d80e5efbfd9617412bc72391db1f0c0cd0f3c887130dbddf68c887ddaf0"
+        },
+        "tls-runtime": {
+          "entries": 9,
+          "tree_sha256": "9b34100e73d1f4bbd3157cd1535a25f8fdc6d4e094f2e6a1e9dc79b1a63fd73d"
+        },
+        "tls-licenses": {
+          "entries": 14,
+          "tree_sha256": "73f46a8351f88ab1d10b069728f5079fdef118fbfb323296cc257d16dcec74c2"
+        },
+        "lcms-runtime": {
+          "entries": 1,
+          "tree_sha256": "819844d74d5d4f3ee5a75aaf2b0d9a23b07fdda8bfa71c65cdbda63f6eb213cb"
+        },
+        "lcms-licenses": {
+          "entries": 1,
+          "tree_sha256": "abe468dfa57be006c058e461d993e3fc3e5c0fe8bbfbec6a70247908ae75bd5d"
+        },
+        "treesit-runtime": {
+          "entries": 1,
+          "tree_sha256": "05b5f47a14a19b3f04511fa292f0976e2cab06437b9e4323edbce72a9767f0f9"
+        },
+        "treesit-licenses": {
+          "entries": 1,
+          "tree_sha256": "421d95420dc36d9656db1d883de7c7c7fdd125861ce0139a3d8518c77a1ff370"
+        }
+      }
+    }
+  ],
+  "original_results": [
+    {
+      "path": "build/acceptance/runtime-combined-current-1/results.json",
+      "sha256": "b812ff850b6ba20628aef345e0535406cf6ce1057953d330c19a05fe3ff56c06",
+      "bytes": 5613
+    },
+    {
+      "path": "build/acceptance/runtime-combined-current-recovery-1/results.json",
+      "sha256": "e2316b2309a7ffe476f73e7c7d2a5ed95749eaf25407edcd027b69c03eddf901",
+      "bytes": 32695
+    },
+    {
+      "path": "build/acceptance/runtime-combined-current-recovery-1/products.json",
+      "sha256": "588226c00827507e2663957fa413fc6de451d7e5fd353a5a01a46f7f99598d8a",
+      "bytes": 24443
+    },
+    {
+      "path": "build/acceptance/runtime-combined-current-negative-1/results.json",
+      "sha256": "299ef20e926de98e65cd1050cc43d3a026b395ae4bc7082a36567b11ec22c103",
+      "bytes": 681290
+    },
+    {
+      "path": "build/acceptance/runtime-combined-current-functional-1/results.json",
+      "sha256": "0921ddccaf47181d9edf0ea9971bb7b1ba8bb5264319967213c9d4c3fc4abf8f",
+      "bytes": 26844047
+    },
+    {
+      "path": "build/acceptance/runtime-combined-current-ert-recovery-1/progress.json",
+      "sha256": "c913e25734531f16a523bc6d041b495165b0df7e5f467cfe29aa41cfa2ad2072",
+      "bytes": 9715631
+    },
+    {
+      "path": "build/acceptance/runtime-combined-current-ert-recovery-2/progress.json",
+      "sha256": "bf2d8b39f2cbddc6139d2372db43220d6178e445e19a63dbd65ddf23e1c8ab68",
+      "bytes": 9858080
+    },
+    {
+      "path": "build/acceptance/runtime-combined-current-ert-recovery-3/preflight-failure.json",
+      "sha256": "a2b2894207dffd7da5eb04a59317b225d7db4984492064a921f6db3a34feda91",
+      "bytes": 470
+    },
+    {
+      "path": "build/acceptance/runtime-combined-current-ert-recovery-4/results.json",
+      "sha256": "a97d1156f4c8ce98f1103bbde0ffa3520ea9929b63a7ba402517b035518f2245",
+      "bytes": 18649607
+    },
+    {
+      "path": "build/acceptance/runtime-combined-current-ert-recovery-4/ert-results.json",
+      "sha256": "f48d758df43873255355bf0e0605aeb9c01d14fd9ddd77a1a5c24166d23a8826",
+      "bytes": 47718570
+    },
+    {
+      "path": "build/acceptance/runtime-combined-current-ert-recovery-4/scoped-summary.json",
+      "sha256": "a24286e7e6fe17f1146cc4c2646e3969a19edef7d221a0f8d8610fb57cb351ae",
+      "bytes": 5070
+    },
+    {
+      "path": "build/acceptance/runtime-relocation-parent-functional-1/results.json",
+      "sha256": "1403f9393daf94945e48c72cd655a828f8b2d0737b69e1203bd45cfba8ea4268",
+      "bytes": 17390216
+    },
+    {
+      "path": "build/acceptance/runtime-relocation-parent-functional-1/action/results.json",
+      "sha256": "6a213e0a34fdbc7f8616fbde167b86071e7d4063ce1a4041e96a07f05494f491",
+      "bytes": 791453
+    },
+    {
+      "path": "build/acceptance/runtime-relocation-parent-protection-1/results.json",
+      "sha256": "71630742896e9c4a399d02541e65f1dd3eb905f75447eb5170cf27188d74e179",
+      "bytes": 6355
+    },
+    {
+      "path": "build/acceptance/runtime-relocation-parent-protection-1/unit/stderr.txt",
+      "sha256": "93094f17dd069f18626a0350768484eaf4587d1cd2881771c04bfe2c895f9237",
+      "bytes": 1558
+    },
+    {
+      "path": "build/acceptance/runtime-relocation-parent-protection-1/unit/stdout.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "build/acceptance/runtime-relocation-parent-protection-1/filesystem/results.json",
+      "sha256": "b9344191e431a8af54eba5d7db1cb7fbdea97a6bb37953a0a3e6c76549e55f9a",
+      "bytes": 1880
+    }
+  ],
+  "build": {
+    "passed": true,
+    "seconds": 1163.358277083,
+    "actual_products": 4,
+    "execution_profiles": 8,
+    "source_production_differences_from_p445": [],
+    "original_build_passed": false,
+    "original_build_failure": "spawn-error/EPERM and exit143; original false retained; no deletion cause inferred",
+    "functional_acceptance_pending_in_historical_build_receipt": true
+  },
+  "ert": {
+    "unique_completed": 2403,
+    "discovery": 195,
+    "tests": 2208,
+    "all_expected_results_passed": true,
+    "ordered_registrations": 195,
+    "language_observation_comparisons": 297,
+    "sealed_pool_counts": [
+      1951,
+      271,
+      174,
+      7
+    ],
+    "actual_request_directories": 2405,
+    "unsealed_attempts": 2,
+    "unsealed_pid_identity_available": false,
+    "original_driver_passed": false,
+    "original_ert_action_passed": false,
+    "original_action_timeout_seconds": 1200,
+    "original_whole_budget_seconds": 1800,
+    "original_whole_budget_met": false,
+    "functional_controller_active_seconds": 2053.519,
+    "continuations_replay_completed_invocations": false,
+    "old_timeouts_and_preflight_false_preserved": true
+  },
+  "other_functional": {
+    "negative_format_loads": 152,
+    "dump_profiles": 8,
+    "original_relocation_profiles": 8,
+    "fresh_fallback_invocations": 16,
+    "fallback_comparisons": 8,
+    "phase_invocations": 64,
+    "phase_contracts": 32,
+    "reference_comparison_scope": "language/xml/sqlite registration and language observations; reference lacks collector/observer APIs",
+    "native_limit": "Format controls do not establish complete Lisp native lowering. Pure ELN does not latch UNKNOWN_PRODUCER; fallback explicitly exercises failed module-load and persistent Full."
+  },
+  "p447": {
+    "integration_passed": true,
+    "execution_profiles": 8,
+    "real_cases": 24,
+    "source_denial_invocations": 8,
+    "seconds": 115.482409917,
+    "parent_observations": 24,
+    "retained_physical_parent_nodes": 10,
+    "private_parent_fields": [
+      "device",
+      "inode",
+      "mode",
+      "mtime_ns",
+      "birthtime"
+    ],
+    "integration_parent_live_comparison": [
+      "device",
+      "inode",
+      "mode"
+    ],
+    "parent_mtime_equality_claimed": false,
+    "integration_parent_birthtime_equality_claimed": false,
+    "component_cases": 8,
+    "component_seconds": 1.844,
+    "filesystem_cases": 8,
+    "filesystem_seconds": 2.084390333,
+    "protection_seconds": 4.035593082999999,
+    "unit_logs_hashed_in_original_protection_result": false,
+    "unit_log_identities_explicitly_bound_here": true,
+    "old_case_parent_identity_gaps": 8,
+    "old_ancestor_removal_attempts_success_unverified": 16,
+    "old_package_mtimes_unavailable": true
+  },
+  "cleanup": {
+    "status": "complete-with-exact-recovery",
+    "files": 113190,
+    "directories": 19923,
+    "links": 49,
+    "rows": 133162,
+    "logical_bytes": 6859645810,
+    "allocated_bytes": 7102935040,
+    "automatic": {
+      "files": 72085,
+      "directories": 3807,
+      "links": 11,
+      "rows": 75903,
+      "logical_bytes": 4794318501,
+      "allocated_bytes": 4959195136
+    },
+    "post_review": {
+      "files": 41105,
+      "directories": 16116,
+      "links": 38,
+      "rows": 57259,
+      "logical_bytes": 2065327309,
+      "allocated_bytes": 2143739904
+    },
+    "manifest_sha256": "d12b3fba1c6bbc0f9ac30129a97898a2722dd7a3a43667d4b61af026ff0d9784",
+    "targets": 14441,
+    "consumed_helpers": 4,
+    "kept_files_verified": 30379,
+    "frozen_inputs_verified": 7459,
+    "products_app_wip_head_index_unchanged_after_recovery": true,
+    "actual_delivery_packages_continuously_unchanged": true,
+    "receipt_paths_continuously_preserved": false,
+    "historical_case_removals_identity_unavailable": 8,
+    "historical_ancestor_attempts_success_unverified": 16,
+    "old_package_mtimes_unavailable": true,
+    "original_cleanup_execution_passed": false,
+    "restoration": {
+      "files": 20,
+      "directories": 12,
+      "logical_bytes": 245682448,
+      "allocated_bytes": 245719040,
+      "all_original_receipt_sha256_matched": true,
+      "original_inodes_preserved": false,
+      "actual_delivery_packages_changed": false
+    },
+    "restoration_results_sha256": "9a588f2b31e962a2a6fccecd29ac39200ac820127404a483a853a992ccd8e9c9",
+    "seconds": 13.371648333,
+    "primary_totals_are_gross_deletion_events": true,
+    "current_freed_space_measured": false,
+    "restoration_log_has_creation_intent_pairs": false,
+    "restoration_directories_recorded_in_final_results": true,
+    "recovery_payload_retirement": {
+      "status": "complete",
+      "files": 14,
+      "directories": 2,
+      "links": 0,
+      "rows": 16,
+      "logical_bytes": 153343584,
+      "allocated_bytes": 153391104,
+      "manifest_sha256": "65551770455a84a7cc104cb8662d2e5e0ba3f34ec1e0ce1b9e05a5f0a6fae439",
+      "restoration_evidence_sha256": "9a588f2b31e962a2a6fccecd29ac39200ac820127404a483a853a992ccd8e9c9",
+      "restored_actual_receipt_files_selected": false
+    }
+  },
+  "manifest": {
+    "path": "maintenance/cleanup/manifests/2026-10-31-184-consumed-combined-runtime-state.jsonl.gz",
+    "sha256": "d12b3fba1c6bbc0f9ac30129a97898a2722dd7a3a43667d4b61af026ff0d9784",
+    "bytes": 9128347
+  },
+  "verification": {
+    "independent_source_and_scoped_raw_review_accepted": true,
+    "independent_p447_raw_and_protections_accepted": true,
+    "controller_metrics_independently_reviewed": false,
+    "app_and_full_product_tree_comparisons_are_primary_driver_evidence": true,
+    "retained_inputs_products_git_wip_verified_before_and_after_cleanup": true,
+    "old_wip_body_excludes_only_current_document_prefixes": true,
+    "independent_exact_port_restoration_review_accepted": true
+  },
+  "controllers": [
+    {
+      "run_id": "296f26169c18472d8cd03e2c4fa2a36a",
+      "exit_code": 0,
+      "reason": "exited",
+      "cleanup_complete": true,
+      "elapsed_seconds": 1172.471,
+      "peak_accounted_bytes": 944750592,
+      "initial_limit_bytes": 2147483648,
+      "hard_limit_bytes": 2147483648,
+      "growth_count": 0
+    },
+    {
+      "run_id": "ce4699a1b07d4260a66864eaa7edb9b4",
+      "exit_code": 0,
+      "reason": "exited",
+      "cleanup_complete": true,
+      "elapsed_seconds": 56.44,
+      "peak_accounted_bytes": 216973312,
+      "initial_limit_bytes": 1073741824,
+      "hard_limit_bytes": 1073741824,
+      "growth_count": 0
+    },
+    {
+      "run_id": "8383b24d71314ca8b3fe66a1fe8fb24a",
+      "exit_code": 0,
+      "reason": "exited",
+      "cleanup_complete": true,
+      "elapsed_seconds": 123.845,
+      "peak_accounted_bytes": 216399872,
+      "initial_limit_bytes": 1073741824,
+      "hard_limit_bytes": 1073741824,
+      "growth_count": 0
+    },
+    {
+      "run_id": "de5d53cb7a3e43599ad89830bfbfa375",
+      "exit_code": 0,
+      "reason": "exited",
+      "cleanup_complete": true,
+      "elapsed_seconds": 4.093,
+      "peak_accounted_bytes": 54182152,
+      "initial_limit_bytes": 536870912,
+      "hard_limit_bytes": 536870912,
+      "growth_count": 0
+    },
+    {
+      "run_id": "6db20b0276e647808583923018187009",
+      "reason": "exited",
+      "exit_code": 1,
+      "cleanup_complete": true,
+      "elapsed_seconds": 1521.916,
+      "peak_accounted_bytes": 356155392,
+      "peak_footprint_bytes": 303367728,
+      "initial_limit_bytes": 1073741824,
+      "hard_limit_bytes": 1073741824,
+      "growth_count": 0,
+      "metrics_independently_reviewed": false
+    },
+    {
+      "run_id": "2ed301b86af54773ab21b2113c073d75",
+      "reason": "timeout",
+      "exit_code": 124,
+      "cleanup_complete": true,
+      "elapsed_seconds": 260.158,
+      "peak_accounted_bytes": 463421440,
+      "peak_footprint_bytes": 391154208,
+      "initial_limit_bytes": 1073741824,
+      "hard_limit_bytes": 1073741824,
+      "growth_count": 0,
+      "metrics_independently_reviewed": false
+    },
+    {
+      "run_id": "fe056662b1c549788a7cb12a9b8fb1e3",
+      "reason": "timeout",
+      "exit_code": 124,
+      "cleanup_complete": true,
+      "elapsed_seconds": 240.133,
+      "peak_accounted_bytes": 500269056,
+      "peak_footprint_bytes": 428312256,
+      "initial_limit_bytes": 1073741824,
+      "hard_limit_bytes": 1073741824,
+      "growth_count": 0,
+      "metrics_independently_reviewed": false
+    },
+    {
+      "run_id": "4050e1c6203a45c2b79038f942495619",
+      "reason": "exited",
+      "exit_code": 1,
+      "cleanup_complete": true,
+      "elapsed_seconds": 7.901,
+      "peak_accounted_bytes": 237436928,
+      "peak_footprint_bytes": 232849984,
+      "initial_limit_bytes": 1073741824,
+      "hard_limit_bytes": 1073741824,
+      "growth_count": 0,
+      "metrics_independently_reviewed": false
+    },
+    {
+      "run_id": "c2fcc6f01a07407a96ba9d0f04186e29",
+      "reason": "exited",
+      "exit_code": 0,
+      "cleanup_complete": true,
+      "elapsed_seconds": 23.411,
+      "peak_accounted_bytes": 453705728,
+      "peak_footprint_bytes": 396789776,
+      "initial_limit_bytes": 1073741824,
+      "hard_limit_bytes": 1073741824,
+      "growth_count": 0,
+      "metrics_independently_reviewed": false
+    }
+  ],
+  "limits": [
+    "Scoped profiles do not close the existing20-build/61-product matrix.",
+    "No quiet-host performance or complete compatibility adoption.",
+    "Two unsealed attempts lack process/result identities; request directories are not verified completed processes.",
+    "Historical build pending and failed controllers remain unchanged.",
+    "No historical deletion inode/mtime reconstruction or manifest rewrite.",
+    "Selected bytes are ledger totals, not whole-volume free-space or guaranteed physical reclamation."
+  ],
+  "cleanup_recovery": {
+    "original_cleanup_execution_passed": false,
+    "actual_delivered_packages_continuously_unchanged": true,
+    "receipt_paths_continuously_preserved": false,
+    "restoration": {
+      "files": 20,
+      "directories": 12,
+      "logical_bytes": 245682448,
+      "allocated_bytes": 245719040,
+      "all_original_receipt_sha256_matched": true,
+      "original_inodes_preserved": false,
+      "actual_delivery_packages_changed": false
+    },
+    "all_full_product_receipts_accepted": true,
+    "original_inode_preservation_claimed": false,
+    "scope_error": "Private deletion selection checked runtime program/dump/resource roots but missed identity_version3 port file dependencies.",
+    "method": "Fourteen paths copied from retained deliveries; six Cocoa paths restored from exact pre-bundle signature bytes against original SHA commitments, including two erased padding bytes. No compiler/editor replay; no receipt rewrite.",
+    "restoration_results": {
+      "name": "restoration-results.json",
+      "sha256": "9a588f2b31e962a2a6fccecd29ac39200ac820127404a483a853a992ccd8e9c9",
+      "bytes": 8724486
+    },
+    "controller": {
+      "run_id": "03edb13bcfe742d3a4f268bf02cea61b",
+      "exit_code": 0,
+      "reason": "exited",
+      "cleanup_complete": true,
+      "elapsed_seconds": 14.041,
+      "peak_accounted_bytes": 602865664,
+      "initial_limit_bytes": 1073741824,
+      "hard_limit_bytes": 1073741824,
+      "growth_count": 0
+    },
+    "original_cleanup_controller": {
+      "run_id": "1e19afb81c914046a337c470efd47e91",
+      "exit_code": 1,
+      "reason": "exited",
+      "cleanup_complete": true,
+      "elapsed_seconds": 33.401,
+      "peak_accounted_bytes": 681197568,
+      "initial_limit_bytes": 1073741824,
+      "hard_limit_bytes": 1073741824,
+      "growth_count": 0
+    },
+    "failed_signing_and_template_attempts_preserved": true,
+    "files": [
+      {
+        "profile": "combined-current-recovered-terminal",
+        "checking": false,
+        "role": "lib-src/emacsclient",
+        "expected": {
+          "bytes": 95384,
+          "kind": "file",
+          "mode": 493,
+          "sha256": "2f408b094f1c987b529432e02cc79c1e210132158ecea67271ad21c170bc9f8c"
+        },
+        "actual_sha256": "2f408b094f1c987b529432e02cc79c1e210132158ecea67271ad21c170bc9f8c"
+      },
+      {
+        "profile": "combined-current-recovered-terminal",
+        "checking": false,
+        "role": "src/bootstrap-emacs.pdmp",
+        "expected": {
+          "bytes": 13204960,
+          "kind": "file",
+          "mode": 420,
+          "sha256": "4403206612235bdfc4fb549adb307d6fcbf232bf43c33494f0c2f7761db02f50"
+        },
+        "actual_sha256": "4403206612235bdfc4fb549adb307d6fcbf232bf43c33494f0c2f7761db02f50"
+      },
+      {
+        "profile": "combined-current-recovered-terminal",
+        "checking": false,
+        "role": "src/emacs",
+        "expected": {
+          "bytes": 13520960,
+          "kind": "file",
+          "mode": 493,
+          "sha256": "ac16f4dcf8991eccfc5b7bfa5debabd503f8c5d27ca1ae499101a34a8e140e06"
+        },
+        "actual_sha256": "ac16f4dcf8991eccfc5b7bfa5debabd503f8c5d27ca1ae499101a34a8e140e06"
+      },
+      {
+        "profile": "combined-current-recovered-terminal",
+        "checking": false,
+        "role": "src/emacs.pdmp",
+        "expected": {
+          "bytes": 13204960,
+          "kind": "file",
+          "mode": 420,
+          "sha256": "4403206612235bdfc4fb549adb307d6fcbf232bf43c33494f0c2f7761db02f50"
+        },
+        "actual_sha256": "4403206612235bdfc4fb549adb307d6fcbf232bf43c33494f0c2f7761db02f50"
+      },
+      {
+        "profile": "combined-current-recovered-terminal",
+        "checking": false,
+        "role": "src/temacs",
+        "expected": {
+          "bytes": 13520960,
+          "kind": "file",
+          "mode": 493,
+          "sha256": "ac16f4dcf8991eccfc5b7bfa5debabd503f8c5d27ca1ae499101a34a8e140e06"
+        },
+        "actual_sha256": "ac16f4dcf8991eccfc5b7bfa5debabd503f8c5d27ca1ae499101a34a8e140e06"
+      },
+      {
+        "profile": "combined-current-recovered-terminal",
+        "checking": true,
+        "role": "lib-src/emacsclient",
+        "expected": {
+          "bytes": 95384,
+          "kind": "file",
+          "mode": 493,
+          "sha256": "b68be38320bb9293dcce155bbef64d7f0d32c371ef27495b21be9ebec46f805c"
+        },
+        "actual_sha256": "b68be38320bb9293dcce155bbef64d7f0d32c371ef27495b21be9ebec46f805c"
+      },
+      {
+        "profile": "combined-current-recovered-terminal",
+        "checking": true,
+        "role": "src/bootstrap-emacs.pdmp",
+        "expected": {
+          "bytes": 13204928,
+          "kind": "file",
+          "mode": 420,
+          "sha256": "19d544ed9a5022a7ecfe90ac2d9d6fc94a91ae2f03ab60ccd9f55176b70e6c14"
+        },
+        "actual_sha256": "19d544ed9a5022a7ecfe90ac2d9d6fc94a91ae2f03ab60ccd9f55176b70e6c14"
+      },
+      {
+        "profile": "combined-current-recovered-terminal",
+        "checking": true,
+        "role": "src/emacs",
+        "expected": {
+          "bytes": 14253952,
+          "kind": "file",
+          "mode": 493,
+          "sha256": "43013750321dba239028089a38d2f899f8b2ca407c62402670ad789454bd34c2"
+        },
+        "actual_sha256": "43013750321dba239028089a38d2f899f8b2ca407c62402670ad789454bd34c2"
+      },
+      {
+        "profile": "combined-current-recovered-terminal",
+        "checking": true,
+        "role": "src/emacs.pdmp",
+        "expected": {
+          "bytes": 13204928,
+          "kind": "file",
+          "mode": 420,
+          "sha256": "19d544ed9a5022a7ecfe90ac2d9d6fc94a91ae2f03ab60ccd9f55176b70e6c14"
+        },
+        "actual_sha256": "19d544ed9a5022a7ecfe90ac2d9d6fc94a91ae2f03ab60ccd9f55176b70e6c14"
+      },
+      {
+        "profile": "combined-current-recovered-terminal",
+        "checking": true,
+        "role": "src/temacs",
+        "expected": {
+          "bytes": 14253952,
+          "kind": "file",
+          "mode": 493,
+          "sha256": "43013750321dba239028089a38d2f899f8b2ca407c62402670ad789454bd34c2"
+        },
+        "actual_sha256": "43013750321dba239028089a38d2f899f8b2ca407c62402670ad789454bd34c2"
+      },
+      {
+        "profile": "combined-current-recovered-cocoa",
+        "checking": false,
+        "role": "lib-src/emacsclient",
+        "expected": {
+          "bytes": 78680,
+          "kind": "file",
+          "mode": 493,
+          "sha256": "64480c6fed54246aaa53b643df1a8bd0fd1f4123806c48e3e839b78e1c12ecfc"
+        },
+        "actual_sha256": "64480c6fed54246aaa53b643df1a8bd0fd1f4123806c48e3e839b78e1c12ecfc"
+      },
+      {
+        "profile": "combined-current-recovered-cocoa",
+        "checking": false,
+        "role": "src/bootstrap-emacs.pdmp",
+        "expected": {
+          "bytes": 18771768,
+          "kind": "file",
+          "mode": 420,
+          "sha256": "1bc5559764ad2389eb714acde69ee09ac45170af143bcd48a021000b0800f95c"
+        },
+        "actual_sha256": "1bc5559764ad2389eb714acde69ee09ac45170af143bcd48a021000b0800f95c"
+      },
+      {
+        "profile": "combined-current-recovered-cocoa",
+        "checking": false,
+        "role": "src/emacs",
+        "expected": {
+          "bytes": 15053152,
+          "kind": "file",
+          "mode": 493,
+          "sha256": "3093e0833a360bd0aa1f4b944b383799052598bb1b452eb54c6c75a9fbe3a0ec"
+        },
+        "actual_sha256": "3093e0833a360bd0aa1f4b944b383799052598bb1b452eb54c6c75a9fbe3a0ec"
+      },
+      {
+        "profile": "combined-current-recovered-cocoa",
+        "checking": false,
+        "role": "src/emacs.pdmp",
+        "expected": {
+          "bytes": 18771768,
+          "kind": "file",
+          "mode": 420,
+          "sha256": "1bc5559764ad2389eb714acde69ee09ac45170af143bcd48a021000b0800f95c"
+        },
+        "actual_sha256": "1bc5559764ad2389eb714acde69ee09ac45170af143bcd48a021000b0800f95c"
+      },
+      {
+        "profile": "combined-current-recovered-cocoa",
+        "checking": false,
+        "role": "src/temacs",
+        "expected": {
+          "bytes": 15053152,
+          "kind": "file",
+          "mode": 493,
+          "sha256": "3093e0833a360bd0aa1f4b944b383799052598bb1b452eb54c6c75a9fbe3a0ec"
+        },
+        "actual_sha256": "3093e0833a360bd0aa1f4b944b383799052598bb1b452eb54c6c75a9fbe3a0ec"
+      },
+      {
+        "profile": "combined-current-recovered-cocoa",
+        "checking": true,
+        "role": "lib-src/emacsclient",
+        "expected": {
+          "bytes": 78680,
+          "kind": "file",
+          "mode": 493,
+          "sha256": "61bf1a4cbff02312d9accb0ef2caf9ac7c5bacc07072c65ba98b39be7a7c9925"
+        },
+        "actual_sha256": "61bf1a4cbff02312d9accb0ef2caf9ac7c5bacc07072c65ba98b39be7a7c9925"
+      },
+      {
+        "profile": "combined-current-recovered-cocoa",
+        "checking": true,
+        "role": "src/bootstrap-emacs.pdmp",
+        "expected": {
+          "bytes": 18771808,
+          "kind": "file",
+          "mode": 420,
+          "sha256": "2d320d1b00e6bd2d081127c56ffb7aaaabccbbe29b686e71ce86751c1e14b998"
+        },
+        "actual_sha256": "2d320d1b00e6bd2d081127c56ffb7aaaabccbbe29b686e71ce86751c1e14b998"
+      },
+      {
+        "profile": "combined-current-recovered-cocoa",
+        "checking": true,
+        "role": "src/emacs",
+        "expected": {
+          "bytes": 15885632,
+          "kind": "file",
+          "mode": 493,
+          "sha256": "44eb2be14dd880bcf0ee39412c8e14ddb5560fd96d7b4a7fc2464a85925674ba"
+        },
+        "actual_sha256": "44eb2be14dd880bcf0ee39412c8e14ddb5560fd96d7b4a7fc2464a85925674ba"
+      },
+      {
+        "profile": "combined-current-recovered-cocoa",
+        "checking": true,
+        "role": "src/emacs.pdmp",
+        "expected": {
+          "bytes": 18771808,
+          "kind": "file",
+          "mode": 420,
+          "sha256": "2d320d1b00e6bd2d081127c56ffb7aaaabccbbe29b686e71ce86751c1e14b998"
+        },
+        "actual_sha256": "2d320d1b00e6bd2d081127c56ffb7aaaabccbbe29b686e71ce86751c1e14b998"
+      },
+      {
+        "profile": "combined-current-recovered-cocoa",
+        "checking": true,
+        "role": "src/temacs",
+        "expected": {
+          "bytes": 15885632,
+          "kind": "file",
+          "mode": 493,
+          "sha256": "44eb2be14dd880bcf0ee39412c8e14ddb5560fd96d7b4a7fc2464a85925674ba"
+        },
+        "actual_sha256": "44eb2be14dd880bcf0ee39412c8e14ddb5560fd96d7b4a7fc2464a85925674ba"
+      }
+    ],
+    "gross_totals_include_restored_paths": true,
+    "restoration_operations_contain_final_file_rows_only": true,
+    "directory_creation_intents_recorded": false,
+    "directory_creation_identities_recorded_in_final_results": true,
+    "temporary_recovery_payloads_retired": true,
+    "failed_attempt_logs_hashes_and_recipes_retained": true,
+    "recovery_helpers_retention": "Minimal logs/results, exact recovery recipes and deletion plans remain; byte payloads retired. Consumed delivery helpers retire after adoption at the next natural owned cleanup."
+  },
+  "sources": {
+    "PORTING.md": "e23d9b94597ab89897a72c0b0cd19c26086adc8e3551dcace548b643d60d061c",
+    "tools/runtime-execution.py": "79b5e54f71bec3f71c5d4bc7493cf36fe953d488dba02be19d7dc7194af990fe",
+    "tools/test-relocation-retirement.py": "588cc25cd436ae7952a79c753ff051a9a00c93e42b8493a1b02b9cfa3f76690f"
+  },
+  "drivers": {
+    "runtime-combined-current-recovery-1.py": "39679d27c168d9674de1d4d687cc230d39a876283d2ef86709fd8b48ddfeb9fd",
+    "runtime-combined-current-functional-1.py": "bb560bccfcc8aac8d722871f750968e4aac70d11556e8f51119ec0fdfa97d8ed",
+    "runtime-combined-current-ert-recovery-4.py": "52c27409e4d66bf6b47f03cae3157ae2231ac94825b4a3f99f19693ecca6c03b",
+    "runtime-relocation-parent-ledger-1.py": "68565031343b24c61b3355754759f322b83365373d907a23850b075a8756af3e",
+    "runtime-relocation-parent-protection-1.py": "66267c10978e2a020cb20bb2596f89e2e92b984c57dd5d76cb7512e81b433ca9",
+    "cleanup-184-combined.py": "454c256c8fc0784c68e08a9cd57548accdd1e05d134bc87fd13bc48f3846e2e3"
+  },
+  "cleanup_preflight_interruptions": {
+    "attempts": 2,
+    "deletions": 0,
+    "original_receipts_preserved": true,
+    "reason": "Stopped repeated per-leaf occupancy checks, then quadratic target-prefix scans; final plan uses finite covering occupancy roots and ancestor-set checks."
+  },
+  "recovery_payload_retirement": {
+    "status": "complete",
+    "files": 14,
+    "directories": 2,
+    "links": 0,
+    "rows": 16,
+    "logical_bytes": 153343584,
+    "allocated_bytes": 153391104,
+    "manifest_sha256": "65551770455a84a7cc104cb8662d2e5e0ba3f34ec1e0ce1b9e05a5f0a6fae439",
+    "restoration_evidence_sha256": "9a588f2b31e962a2a6fccecd29ac39200ac820127404a483a853a992ccd8e9c9",
+    "restored_actual_receipt_files_selected": false,
+    "manifest": {
+      "path": "maintenance/cleanup/manifests/2026-10-31-184-consumed-recovery-payloads.jsonl.gz",
+      "sha256": "65551770455a84a7cc104cb8662d2e5e0ba3f34ec1e0ce1b9e05a5f0a6fae439",
+      "bytes": 1149
+    }
+  },
+  "combined_gross_retirement_totals": {
+    "files": 113204,
+    "directories": 19925,
+    "links": 49,
+    "rows": 133178,
+    "logical_bytes": 7012989394,
+    "allocated_bytes": 7256326144
+  },
+  "validation_limits": {
+    "whole_tree_own_voice_passed": false,
+    "whole_tree_own_voice": "Existing unchanged treesit/runtime-resume prose warnings followed by checker AttributeError; no whole-tree pass claimed.",
+    "new_text_own_voice_manual_check_passed": true,
+    "staged_path_checker": "410 retained-history context candidates plus primary gzip decode-size limit; both public ledgers133178rows fully streamed and all fields compared with private plans; no whole-checker pass claimed.",
+    "public_ledger_absolute_values": false
+  }
+}

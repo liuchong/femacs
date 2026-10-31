@@ -986,12 +986,14 @@ def retire_relocation_copy(package, case_root, expected_root, *, evidence_root=N
 
     def inventory():
         files, nodes, directories = {}, {}, {'.': node(package)}
+        member_mtimes, directory_mtimes = {}, {'.': package.lstat().st_mtime_ns}
         for parent, dirs, names in os.walk(package, followlinks=False):
             links = [name for name in dirs if (Path(parent)/name).is_symlink()]
             dirs[:] = [name for name in dirs if name not in links]
             for name in dirs:
                 path = Path(parent)/name
                 directories[path.relative_to(package).as_posix()] = node(path)
+                directory_mtimes[path.relative_to(package).as_posix()] = path.lstat().st_mtime_ns
             for name in sorted(names+links):
                 path = Path(parent)/name
                 relative = path.relative_to(package).as_posix()
@@ -999,10 +1001,11 @@ def retire_relocation_copy(package, case_root, expected_root, *, evidence_root=N
                 if current[5] & stat.UF_IMMUTABLE:
                     raise ValueError("immutable input unexpectedly appears in owned copy")
                 files[relative], nodes[relative] = file_identity(path), current
-        return files, nodes, directories
+                member_mtimes[relative] = path.lstat().st_mtime_ns
+        return files, nodes, directories, member_mtimes, directory_mtimes
 
     occupancy('package-copy-occupancy.json')
-    observed, member_nodes, directories = inventory()
+    observed, member_nodes, directories, member_mtimes, directory_mtimes = inventory()
     expected = {name: dict(value) for name, value in
                 (observed if expected_tree is None else expected_tree).items()}
     if observed != expected:
@@ -1026,7 +1029,8 @@ def retire_relocation_copy(package, case_root, expected_root, *, evidence_root=N
         os.fsync(raw.fileno())
     sync_record_directory(manifest.parent)
     private = evidence_root/'package-copy-node-identities.private.json'
-    write_json(private, dict(members=member_nodes, directories=directories))
+    write_json(private, dict(members=member_nodes, directories=directories,
+                            member_mtime_ns=member_mtimes, directory_mtime_ns=directory_mtimes))
     sync_case_record(private)
     receipt = dict(state='identity-recorded', complete=False, files=len(expected), logical_bytes=logical,
                    allocated_bytes=allocated, manifest=manifest.name, manifest_sha256=digest(manifest),
@@ -1037,8 +1041,9 @@ def retire_relocation_copy(package, case_root, expected_root, *, evidence_root=N
     sync_case_record(lifecycle)
     try:
         occupancy('package-copy-occupancy-after-manifest.json')
-        current_files, current_nodes, current_dirs = inventory()
-        if current_files != expected or current_nodes != member_nodes or current_dirs != directories:
+        current_files, current_nodes, current_dirs, current_mtimes, current_dir_mtimes = inventory()
+        if (current_files != expected or current_nodes != member_nodes or current_dirs != directories
+                or current_mtimes != member_mtimes or current_dir_mtimes != directory_mtimes):
             raise ValueError('relocation tree changed after its durable manifest')
         with (evidence_root/'package-copy-operations.jsonl').open('x') as operations:
             for name, identity in sorted(expected.items()):
@@ -1046,7 +1051,8 @@ def retire_relocation_copy(package, case_root, expected_root, *, evidence_root=N
                 operations.write(json.dumps(dict(action='unlink-intent', path=name, identity=identity))+'\n')
                 operations.flush()
                 os.fsync(operations.fileno())
-                if node(path) != member_nodes[name] or file_identity(path) != identity:
+                if (node(path) != member_nodes[name] or file_identity(path) != identity
+                        or path.lstat().st_mtime_ns != member_mtimes[name]):
                     raise ValueError('planned relocation member changed before unlink')
                 parent = path.parent.relative_to(package).as_posix()
                 if (node(path.parent) != directories[parent] or node(package) != root_node
@@ -1144,6 +1150,20 @@ def run_relocation(products, out, timeout):
                 raise ValueError("owned relocation package would still be inside a denied input root")
             work_case.mkdir(parents=True)
             row["relocation_work_root"] = str(work_case)
+            parent_nodes = []
+            for directory in (work_case, work_case.parent, work_case.parent.parent):
+                metadata = directory.lstat()
+                if (directory.resolve() != directory or not stat.S_ISDIR(metadata.st_mode)
+                        or getattr(metadata, 'st_flags', 0)):
+                    raise ValueError("relocation parent is not an unprotected owned directory")
+                parent_nodes.append(dict(path=str(directory), device=metadata.st_dev,
+                    inode=metadata.st_ino, mode=stat.S_IMODE(metadata.st_mode),
+                    mtime_ns=metadata.st_mtime_ns, birthtime=getattr(metadata, 'st_birthtime', None)))
+            parent_record = root/'relocation-parent-identities.private.json'
+            write_json(parent_record, dict(schema='femacs-relocation-parents-v1', directories=parent_nodes))
+            sync_case_record(parent_record)
+            row['parent_directory_retention'] = dict(state='retained-for-owned-cleanup',
+                identity_record=parent_record.name, sha256=digest(parent_record))
             relocated = work_case / ("Femacs.app" if product["kind"] == "cocoa" else "terminal")
             relocated.mkdir()
             ownership = relocated.lstat()
@@ -1249,13 +1269,6 @@ def run_relocation(products, out, timeout):
                 try:
                     row["package_cleanup"] = retire_relocation_copy(relocated, work_case, owned_root,
                                                                               evidence_root=root, expected_tree=copied)
-                    work_case.rmdir()
-                    # rmdir only empty directories from this run; never sweep.
-                    for empty in (work_case.parent, work_case.parent.parent):
-                        try:
-                            empty.rmdir()
-                        except OSError:
-                            pass
                 except (OSError, ValueError) as error:
                     row.update(passed=False, package_cleanup=dict(state="retained-error", complete=False,
                                                                  error=str(error)))

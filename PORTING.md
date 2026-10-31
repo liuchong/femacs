@@ -3926,3 +3926,24 @@ timeout and separate external diagnostic. Protect compact/default isolation
 and rejection before spawn only after the affected real integration succeeds.
 This is a harness repair and scoped coverage, not a product, checking, full
 G3, performance or trial-App adoption.
+
+## P447: bind relocation-copy parents and complete deletion identities
+
+The current source-denied relocation cases verify and retire the copied
+package, but then remove its case and empty ancestors outside that ledger.
+Past receipts cannot supply the missing parent identities or establish every
+opportunistic ancestor removal. Preserve those receipts and state the gaps;
+do not reconstruct inode or modification-time evidence after deletion.
+
+Record the three owned parent identities durably before copying the package.
+Keep them for the ordinary owned cleanup ledger instead of issuing unledgered
+parent rmdir calls. Record copied-member and directory modification times
+alongside the existing stable node identities; keep directory lifetime checks
+independent of the child removals that legitimately change directory times.
+No root, Lisp, native, collector, product-layout or timeout policy changes.
+
+After the complete bookkeeping fix, rerun only the affected source-denied
+relocation on the eight current native/observer/collector execution profiles.
+Reuse the completed unchanged ERT, format, dump, fallback and phase evidence.
+Add the critical filesystem protections after that integration passes, then
+retire the consumed owned state with explicit historical identity gaps.

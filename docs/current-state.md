@@ -1,3 +1,27 @@
+## Current native/collector scope and P447 retirement (2026-10-31)
+
+Four current terminal/Cocoa normal/checking products provide eight native,
+observer,major/young profiles.7,459 frozen inputs include WIP,not clean HEAD.
+Scoped union2,403 completed invocations/195registrations/297language comparisons
+passes;1951+271+174+7 reused without replay.Two unsealed attempts are excluded.
+Original1200s ERT timeout and continuation/preflight failures remain;functional
+controllers2053.519s exceed1800s,not a one-run budget pass.Format152,dump8,
+relocation8,fallback16/8comparisons,phase64/32contracts pass.Pure ELN differs
+from module fallback,which deliberately latches Full.P447 retains parent
+identities and copied-node mtimes before ledgered deletion.Affected8profiles,
+24real cases plus8denial probes pass;8component+8filesystem protections pass.
+Historical8parent identities and16ancestor outcomes remain unavailable/unverified.
+CLN184:113190files/19923dirs/49links,
+6859645810/7102935040B;automatic removals count once.
+Cleanup postcheck exit1 is retained:20 receipt-required port files were selected
+incorrectly,then restored exact SHA/bytes/mode with12new directories/inodes.
+Delivery packages stayed intact;separate full receipt/source/evidence checks
+pass.Gross deletion counts include those recreated paths.Raw/WIP/App unchanged;
+standard20/61,wholeERT/fullG3/G5/G6/G7/performance remain open.Goal3/7 active.
+[Delivery](../maintenance/releases/2026-10-31-current-native-collector.md).
+Supplemental14files/2dirs/16rows,153343584/153391104B;combined gross
+113204/19925/49,133178rows,7012989394/7256326144B.
+
 ## G3 original package-vc coverage (2026-10-31)
 
 Complete unchanged pinned overlay108 IDs/product, accepted P435 normal

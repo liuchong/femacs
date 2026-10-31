@@ -1,3 +1,41 @@
+## 2026-10-31: current native/collector combination; P447; CLN184
+
+Four new actual normal/checking terminal/Cocoa products bind current production
+P445 hashes,native+observer,test hooks off;8major/young profiles plus reference.
+Frozen7,459 inputs contain WIP.The original build failure stays false;recovery
+built4products in1163.358s.Historical functional-pending flag remains.
+ERT2403=195discovery+2208tests;195ordered registrations/297language comparisons
+pass.1951+271+174+7 sealed unique invocations;2405request dirs include2unsealed
+attempts with no process/result identity.Original1200s ERT timeout,2continuation
+timeouts and one preflight count failure remain.5functional controllers total
+2053.519s,above1800s;no claim of a single budget pass.Per-case45s/1GiB unchanged.
+Format152,dump8,relocation8,fallback16processes/8comparisons and phase64/32 pass.
+Reference covers common language/xml/sqlite,not unavailable private APIs.
+Pure ELN does not latch UNKNOWN;fresh module fallback does and verifies Full.
+P447 fixes unledgered relocation-parent deletion and missing copied-node mtimes.
+Eight affected profiles pass24actual cases+8denials in115.482s,without repeating
+2403or other unchanged actions.24parent observations deduplicate to10nodes;
+integration compares dev/inode/mode,not original mtime/birthtime equality.
+Eight component protections pass1.844s;8actual filesystem controls also pass.
+Protection raw lacks unit-log hashes;this delivery separately binds real logs.
+Old8case parent identities unavailable;16ancestor success outcomes unverified;
+old package mtimes unavailable.No history rewritten.No production/App change.
+CLN184:113190files/19923dirs/49links,133162rows,
+6859645810/7102935040B;automatic removals count once.
+Cleanup postcheck failed after20receipt-required port files were selected;
+all20now restored exact SHA/bytes/mode,12directory nodes recreated,new inodes.
+245682448/245719040B restored;actual delivery packages continuously unchanged.
+Original cleanup exit1/recovery failures remain;separate file-only finalization
+passes all9full receipts,7459inputs/30379evidence files.Gross deletion totals
+include recreated paths.Recovery byte payloads retired separately;minimal evidence/recipes retained.
+Two cleanup preflights stopped before any deletion;fixed covering-root checks
+and ancestor-set scans then completed.All raw failures,inputs,products and WIP
+remain.Controller metrics primary-only.Standard20build/61profile,wholeERT,
+fullG3/G5/G6/G7/performance/UI remain open;G1/G2/G4 stay3/7,Goal active.
+[Scoped delivery](../maintenance/releases/2026-10-31-current-native-collector.md).
+Supplemental14files/2dirs/16rows,153343584/153391104B;combined gross
+113204/19925/49,133178rows,7012989394/7256326144B.
+
 ## G3 original package-vc / CLN183 (2026-10-31)
 
 One unchanged pinned overlay, accepted P435 normal reference/terminal/Cocoa:
