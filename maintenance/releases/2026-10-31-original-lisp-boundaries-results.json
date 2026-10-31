@@ -1,0 +1,1342 @@
+{
+  "scope": "Four complete pinned stable ERT utilities, warning, thunk and timer files; ERT self-tests remain separate and unaccepted; installed reference and current normal terminal/Cocoa; all IDs and original assertions unchanged, no full G3, physical UI, native/collector or performance claim",
+  "passed": false,
+  "source_commit": "a360712c9d272d950d8d8255ef74570f7e90b7d9",
+  "counts": {
+    "passed": 111,
+    "skipped": 3
+  },
+  "seconds": 8.242030583,
+  "status_maps_equal_reference": true,
+  "identities_unchanged": true,
+  "original_inputs_unchanged": true,
+  "generated_resources": {
+    "reference": {},
+    "terminal": {},
+    "cocoa": {}
+  },
+  "budget": {
+    "whole_seconds": 300,
+    "per_case_seconds": 30,
+    "expected_seconds": [
+      10,
+      90
+    ],
+    "expected_peak_bytes": 1073741824,
+    "copied_source_bytes": 62990856,
+    "scale": "12 serial original-file processes, all dynamically discovered IDs; nested ERT self-tests, tiny warning/thunk data and timer arithmetic/event delivery. No guard edits or tag filtering; expected failures remain ERT expected results, checking-only timer guard remains. ERT self-test file is not part of this group; ERT-x uses tiny temp files,4messages and finite key sequences, with minibuffer/macro calls externally bounded; warning 3levels and 9 thunk cases; timer6 small arithmetic/event cases, no positive sleep loop. All resource files stay from complete pinned materialization. Whole300s and per-load/case30s hard deadlines; no compiler/network/physical UI or deliberate abort workload"
+  },
+  "schema": 1,
+  "ids_per_product": 38,
+  "processes": 12,
+  "raw_result": {
+    "path": "build/acceptance/g3-lisp-boundaries-1/results.json",
+    "sha256": "2e1f655d9d08af6591e7a6a8e61093a2f92334b82fe9822253ed1e0f2ef06fe5"
+  },
+  "driver_sha256": "70a2d25c1e445d1c2eae872368bc00fadf9d9f59644a74ac16bfd3d87227ca73",
+  "files": [
+    {
+      "path": "test/lisp/emacs-lisp/ert-x-tests.el",
+      "size": 15669,
+      "blob": "2823fdba3d7331b311226bb0754b65a50efa01e7",
+      "sha256": "c0d6abb025bd27c8df07fe1c8ae84d0894de1708e4de0fe7ebc25908a09fffb1"
+    },
+    {
+      "path": "test/lisp/emacs-lisp/thunk-tests.el",
+      "size": 3345,
+      "blob": "c853bda266e3f9358162970ed4698faa2327c502",
+      "sha256": "3fc0961c6632dee7296b72082583876cab354d64043672c833a19cbb455d4f64"
+    },
+    {
+      "path": "test/lisp/emacs-lisp/timer-tests.el",
+      "size": 3457,
+      "blob": "50e17e425f45700ad0d4bb8eb27d396d015b7ad6",
+      "sha256": "6a72acc1b33f55cf2e9ecd0650cb8bf09289ca159fd0d0e759079ee061bd8dff"
+    },
+    {
+      "path": "test/lisp/emacs-lisp/warnings-tests.el",
+      "size": 2273,
+      "blob": "cfb2aa3d5c77660713b8ca107cd90a2e7e995dbf",
+      "sha256": "dc454934c56f6bfd254ce0e6b3ed4e3aa57c5d45470a10213af85c4e6c71e597"
+    }
+  ],
+  "registered_ids_per_file": {
+    "test/lisp/emacs-lisp/ert-x-tests.el": 19,
+    "test/lisp/emacs-lisp/warnings-tests.el": 4,
+    "test/lisp/emacs-lisp/thunk-tests.el": 9,
+    "test/lisp/emacs-lisp/timer-tests.el": 6
+  },
+  "inputs": [
+    {
+      "path": "compatibility/stable-31.1/sources.json",
+      "identity": {
+        "kind": "file",
+        "bytes": 562572,
+        "mode": 420,
+        "sha256": "a5ef144a203b8b2a74e346ac47173c5d4122f751d8d950347ae75ff67eef0efe"
+      }
+    },
+    {
+      "path": "tools/fixtures/stable-suite-runner.el",
+      "identity": {
+        "kind": "file",
+        "bytes": 12592,
+        "mode": 420,
+        "sha256": "d5bcd0c18f15995e50adefe8472d12ef82f71114be10ce307202b4ce0f11150e"
+      }
+    },
+    {
+      "path": "tools/stable-suite.py",
+      "identity": {
+        "kind": "file",
+        "bytes": 54108,
+        "mode": 420,
+        "sha256": "75e913813f585425ce3673c5db9c71b2054d875c50540ccee3dd06cb4eabc51c"
+      }
+    },
+    {
+      "path": "tools/stable-suite-batch.py",
+      "identity": {
+        "kind": "file",
+        "bytes": 22008,
+        "mode": 420,
+        "sha256": "5473bee19634e589dbbaa091f2fb8dc5c78e67be5399c3db4497753e1ea64b6e"
+      }
+    },
+    {
+      "path": "tools/runtime-execution.py",
+      "identity": {
+        "kind": "file",
+        "bytes": 93220,
+        "mode": 420,
+        "sha256": "26b379c3d4a24adf2a306e1c751c654ca1b6b1c6cd43f0888398c3560e455fb4"
+      }
+    },
+    {
+      "path": "tools/runtime-retire.py",
+      "identity": {
+        "kind": "file",
+        "bytes": 8538,
+        "mode": 420,
+        "sha256": "84ad68bbb26ffb73e129406b430393c0eaeab2f6b818c5916a950b6514eb6932"
+      }
+    },
+    {
+      "path": "private-driver/g3-lisp-boundaries-1.py",
+      "identity": {
+        "kind": "file",
+        "bytes": 8004,
+        "mode": 420,
+        "sha256": "70a2d25c1e445d1c2eae872368bc00fadf9d9f59644a74ac16bfd3d87227ca73"
+      }
+    },
+    {
+      "path": "build/acceptance/p435-p427-products-1/products-with-runtime.json",
+      "identity": {
+        "kind": "file",
+        "bytes": 1578004,
+        "mode": 420,
+        "sha256": "aa4d2cadb59089c231c43d2827de479f35a1825514916a3573ad936b4e9ac162"
+      }
+    },
+    {
+      "path": "build/acceptance/p435-functional-normal-1/results.json",
+      "identity": {
+        "kind": "file",
+        "bytes": 695326,
+        "mode": 420,
+        "sha256": "fdd7cce538a6fa60329793d762db627cc94ca98f8b726614f65dd3c12af15849"
+      }
+    }
+  ],
+  "process_results": [
+    {
+      "product": "reference",
+      "file": "test/lisp/emacs-lisp/ert-x-tests.el",
+      "ids": [
+        "ert-filter-string",
+        "ert-propertized-string",
+        "ert-test-buffer-string-reindented",
+        "ert-test-builtin-message-log-flushing",
+        "ert-test-describe-test",
+        "ert-test-force-message-log-buffer-truncation",
+        "ert-test-message-log-truncation",
+        "ert-test-run-tests-interactively-2",
+        "ert-x-tests--with-temp-file-generate-suffix",
+        "ert-x-tests-play-keys",
+        "ert-x-tests-simulate-command",
+        "ert-x-tests-simulate-keys",
+        "ert-x-tests-with-temp-directory",
+        "ert-x-tests-with-temp-directory/text-signals-error",
+        "ert-x-tests-with-temp-file",
+        "ert-x-tests-with-temp-file/handle-error",
+        "ert-x-tests-with-temp-file/prefix-and-suffix-kwarg",
+        "ert-x-tests-with-temp-file/text-kwarg",
+        "ert-x-tests-with-temp-file/unknown-kwarg-signals-error"
+      ],
+      "counts": {
+        "passed": 19
+      },
+      "complete": true,
+      "exit_code": 0,
+      "remaining_group_terminated": false,
+      "seconds": 1.21611175,
+      "timed_out": false,
+      "protocol_error": null,
+      "runner_error": null,
+      "result": {
+        "path": "build/acceptance/g3-lisp-boundaries-1/reference/results/reference/test-lisp-emacs-lisp-ert-x-tests.el-5f646ccfadec.json",
+        "sha256": "b4786ed040c1c662f105a4ba4d7bbfaf9fc7e809f1b7b54fbf5f51ae9368b3ec"
+      },
+      "events": {
+        "path": "build/acceptance/g3-lisp-boundaries-1/reference/results/reference/test-lisp-emacs-lisp-ert-x-tests.el-5f646ccfadec.events.jsonl",
+        "sha256": "34bb8fa8214a0bfdf83b74d3cc3c9ef4fe6eee9ab525c0fa161f61d78bd5f4cd"
+      },
+      "cases": {
+        "ert-filter-string": {
+          "status": "passed",
+          "seconds": 0.000382,
+          "diagnostic_sha256": "5bead695f30d3d8c112d71d064dab6139dcc3da61533d2f30c44a80d1c098b0f"
+        },
+        "ert-propertized-string": {
+          "status": "passed",
+          "seconds": 2.5e-05,
+          "diagnostic_sha256": "5bead695f30d3d8c112d71d064dab6139dcc3da61533d2f30c44a80d1c098b0f"
+        },
+        "ert-test-buffer-string-reindented": {
+          "status": "passed",
+          "seconds": 0.001181,
+          "diagnostic_sha256": "1b1006dce96463c55ce6cf065883a879a5ca21041c7a6eaf91644dcb815323b9"
+        },
+        "ert-test-builtin-message-log-flushing": {
+          "status": "passed",
+          "seconds": 5.2e-05,
+          "diagnostic_sha256": "5bead695f30d3d8c112d71d064dab6139dcc3da61533d2f30c44a80d1c098b0f"
+        },
+        "ert-test-describe-test": {
+          "status": "passed",
+          "seconds": 0.001824,
+          "diagnostic_sha256": "4f218b1bd61fe12a435735aedc3c31aeddc994d7e4a26d196ae0342b490ecf6c"
+        },
+        "ert-test-force-message-log-buffer-truncation": {
+          "status": "passed",
+          "seconds": 0.000221,
+          "diagnostic_sha256": "5bead695f30d3d8c112d71d064dab6139dcc3da61533d2f30c44a80d1c098b0f"
+        },
+        "ert-test-message-log-truncation": {
+          "status": "passed",
+          "seconds": 4.8e-05,
+          "diagnostic_sha256": "5bead695f30d3d8c112d71d064dab6139dcc3da61533d2f30c44a80d1c098b0f"
+        },
+        "ert-test-run-tests-interactively-2": {
+          "status": "passed",
+          "seconds": 0.649194,
+          "diagnostic_sha256": "5bead695f30d3d8c112d71d064dab6139dcc3da61533d2f30c44a80d1c098b0f"
+        },
+        "ert-x-tests--with-temp-file-generate-suffix": {
+          "status": "passed",
+          "seconds": 3.6e-05,
+          "diagnostic_sha256": "5bead695f30d3d8c112d71d064dab6139dcc3da61533d2f30c44a80d1c098b0f"
+        },
+        "ert-x-tests-play-keys": {
+          "status": "passed",
+          "seconds": 0.006894,
+          "diagnostic_sha256": "5bead695f30d3d8c112d71d064dab6139dcc3da61533d2f30c44a80d1c098b0f"
+        },
+        "ert-x-tests-simulate-command": {
+          "status": "passed",
+          "seconds": 5.8e-05,
+          "diagnostic_sha256": "5bead695f30d3d8c112d71d064dab6139dcc3da61533d2f30c44a80d1c098b0f"
+        },
+        "ert-x-tests-simulate-keys": {
+          "status": "passed",
+          "seconds": 0.001269,
+          "diagnostic_sha256": "5bead695f30d3d8c112d71d064dab6139dcc3da61533d2f30c44a80d1c098b0f"
+        },
+        "ert-x-tests-with-temp-directory": {
+          "status": "passed",
+          "seconds": 0.000175,
+          "diagnostic_sha256": "5bead695f30d3d8c112d71d064dab6139dcc3da61533d2f30c44a80d1c098b0f"
+        },
+        "ert-x-tests-with-temp-directory/text-signals-error": {
+          "status": "passed",
+          "seconds": 2.1e-05,
+          "diagnostic_sha256": "5bead695f30d3d8c112d71d064dab6139dcc3da61533d2f30c44a80d1c098b0f"
+        },
+        "ert-x-tests-with-temp-file": {
+          "status": "passed",
+          "seconds": 9.6e-05,
+          "diagnostic_sha256": "5bead695f30d3d8c112d71d064dab6139dcc3da61533d2f30c44a80d1c098b0f"
+        },
+        "ert-x-tests-with-temp-file/handle-error": {
+          "status": "passed",
+          "seconds": 7.7e-05,
+          "diagnostic_sha256": "5bead695f30d3d8c112d71d064dab6139dcc3da61533d2f30c44a80d1c098b0f"
+        },
+        "ert-x-tests-with-temp-file/prefix-and-suffix-kwarg": {
+          "status": "passed",
+          "seconds": 8.2e-05,
+          "diagnostic_sha256": "5bead695f30d3d8c112d71d064dab6139dcc3da61533d2f30c44a80d1c098b0f"
+        },
+        "ert-x-tests-with-temp-file/text-kwarg": {
+          "status": "passed",
+          "seconds": 0.057102,
+          "diagnostic_sha256": "5bead695f30d3d8c112d71d064dab6139dcc3da61533d2f30c44a80d1c098b0f"
+        },
+        "ert-x-tests-with-temp-file/unknown-kwarg-signals-error": {
+          "status": "passed",
+          "seconds": 2.3e-05,
+          "diagnostic_sha256": "5bead695f30d3d8c112d71d064dab6139dcc3da61533d2f30c44a80d1c098b0f"
+        }
+      }
+    },
+    {
+      "product": "reference",
+      "file": "test/lisp/emacs-lisp/warnings-tests.el",
+      "ids": [
+        "test-display-warning",
+        "test-display-warning/warning-minimum-level",
+        "test-display-warning/warning-minimum-log-level",
+        "test-warning-suppress-p"
+      ],
+      "counts": {
+        "passed": 4
+      },
+      "complete": true,
+      "exit_code": 0,
+      "remaining_group_terminated": false,
+      "seconds": 0.21725987499999988,
+      "timed_out": false,
+      "protocol_error": null,
+      "runner_error": null,
+      "result": {
+        "path": "build/acceptance/g3-lisp-boundaries-1/reference/results/reference/test-lisp-emacs-lisp-warnings-tests.el-04185270e019.json",
+        "sha256": "068af1a54baf4839eb73630c09e40195e8e59ac2e06f7fbb99aa6274a9cc6370"
+      },
+      "events": {
+        "path": "build/acceptance/g3-lisp-boundaries-1/reference/results/reference/test-lisp-emacs-lisp-warnings-tests.el-04185270e019.events.jsonl",
+        "sha256": "0c1f07c7b7944096e225afd030f079640ceff1ae383a9360689cc505ee1a82e1"
+      },
+      "cases": {
+        "test-display-warning": {
+          "status": "passed",
+          "seconds": 0.000105,
+          "diagnostic_sha256": "fb6e5c4694eac3b9c132fbd00a6c0af9d2ec451b78462cd028548a46b11467c0"
+        },
+        "test-display-warning/warning-minimum-level": {
+          "status": "passed",
+          "seconds": 4.2e-05,
+          "diagnostic_sha256": "eca8bb00b57dd891947dd3bb574dd90ea4af5bc5e8ff60d179a7542104738394"
+        },
+        "test-display-warning/warning-minimum-log-level": {
+          "status": "passed",
+          "seconds": 1.2e-05,
+          "diagnostic_sha256": "5bead695f30d3d8c112d71d064dab6139dcc3da61533d2f30c44a80d1c098b0f"
+        },
+        "test-warning-suppress-p": {
+          "status": "passed",
+          "seconds": 1.3e-05,
+          "diagnostic_sha256": "5bead695f30d3d8c112d71d064dab6139dcc3da61533d2f30c44a80d1c098b0f"
+        }
+      }
+    },
+    {
+      "product": "reference",
+      "file": "test/lisp/emacs-lisp/thunk-tests.el",
+      "ids": [
+        "thunk-can-be-evaluated",
+        "thunk-evaluation-is-cached",
+        "thunk-let*-basic-test",
+        "thunk-let*-laziness-test",
+        "thunk-let-bad-binding-test",
+        "thunk-let-basic-test",
+        "thunk-let-bound-vars-cant-be-set-test",
+        "thunk-let-laziness-test",
+        "thunk-should-be-lazy"
+      ],
+      "counts": {
+        "passed": 9
+      },
+      "complete": true,
+      "exit_code": 0,
+      "remaining_group_terminated": false,
+      "seconds": 0.2668237920000003,
+      "timed_out": false,
+      "protocol_error": null,
+      "runner_error": null,
+      "result": {
+        "path": "build/acceptance/g3-lisp-boundaries-1/reference/results/reference/test-lisp-emacs-lisp-thunk-tests.el-fa85b3ad89f5.json",
+        "sha256": "0ed269706e99cf20d228c364c984b00fe4534d862cb067d5c868229af7148085"
+      },
+      "events": {
+        "path": "build/acceptance/g3-lisp-boundaries-1/reference/results/reference/test-lisp-emacs-lisp-thunk-tests.el-fa85b3ad89f5.events.jsonl",
+        "sha256": "2c851893b63d8e33702bdcff0805b892ded8d537f47ab4dafa837bd7456c2f85"
+      },
+      "cases": {
+        "thunk-can-be-evaluated": {
+          "status": "passed",
+          "seconds": 5.1e-05,
+          "diagnostic_sha256": "5bead695f30d3d8c112d71d064dab6139dcc3da61533d2f30c44a80d1c098b0f"
+        },
+        "thunk-evaluation-is-cached": {
+          "status": "passed",
+          "seconds": 1.8e-05,
+          "diagnostic_sha256": "5bead695f30d3d8c112d71d064dab6139dcc3da61533d2f30c44a80d1c098b0f"
+        },
+        "thunk-let*-basic-test": {
+          "status": "passed",
+          "seconds": 1.8e-05,
+          "diagnostic_sha256": "5bead695f30d3d8c112d71d064dab6139dcc3da61533d2f30c44a80d1c098b0f"
+        },
+        "thunk-let*-laziness-test": {
+          "status": "passed",
+          "seconds": 2.9e-05,
+          "diagnostic_sha256": "5bead695f30d3d8c112d71d064dab6139dcc3da61533d2f30c44a80d1c098b0f"
+        },
+        "thunk-let-bad-binding-test": {
+          "status": "passed",
+          "seconds": 1.8e-05,
+          "diagnostic_sha256": "5bead695f30d3d8c112d71d064dab6139dcc3da61533d2f30c44a80d1c098b0f"
+        },
+        "thunk-let-basic-test": {
+          "status": "passed",
+          "seconds": 1.5e-05,
+          "diagnostic_sha256": "5bead695f30d3d8c112d71d064dab6139dcc3da61533d2f30c44a80d1c098b0f"
+        },
+        "thunk-let-bound-vars-cant-be-set-test": {
+          "status": "passed",
+          "seconds": 3.6e-05,
+          "diagnostic_sha256": "5bead695f30d3d8c112d71d064dab6139dcc3da61533d2f30c44a80d1c098b0f"
+        },
+        "thunk-let-laziness-test": {
+          "status": "passed",
+          "seconds": 1.9e-05,
+          "diagnostic_sha256": "5bead695f30d3d8c112d71d064dab6139dcc3da61533d2f30c44a80d1c098b0f"
+        },
+        "thunk-should-be-lazy": {
+          "status": "passed",
+          "seconds": 1.4e-05,
+          "diagnostic_sha256": "5bead695f30d3d8c112d71d064dab6139dcc3da61533d2f30c44a80d1c098b0f"
+        }
+      }
+    },
+    {
+      "product": "reference",
+      "file": "test/lisp/emacs-lisp/timer-tests.el",
+      "ids": [
+        "timer-next-integral-multiple-of-time-2",
+        "timer-next-integral-multiple-of-time-3",
+        "timer-test-multiple-of-time",
+        "timer-test-repeat-arg",
+        "timer-tests-debug-timer-check",
+        "timer-tests-sit-for"
+      ],
+      "counts": {
+        "passed": 5,
+        "skipped": 1
+      },
+      "complete": true,
+      "exit_code": 0,
+      "remaining_group_terminated": false,
+      "seconds": 0.21441870800000018,
+      "timed_out": false,
+      "protocol_error": null,
+      "runner_error": null,
+      "result": {
+        "path": "build/acceptance/g3-lisp-boundaries-1/reference/results/reference/test-lisp-emacs-lisp-timer-tests.el-927ce6aa121f.json",
+        "sha256": "e4704e447ea53d8946019a2a9ac8578f3a08fd2d38d7f9619bcdc1fd52435faa"
+      },
+      "events": {
+        "path": "build/acceptance/g3-lisp-boundaries-1/reference/results/reference/test-lisp-emacs-lisp-timer-tests.el-927ce6aa121f.events.jsonl",
+        "sha256": "320639cb4f600f8ea9a619c4dc76462482dbe88e3c0c38726b38965588a5d22e"
+      },
+      "cases": {
+        "timer-next-integral-multiple-of-time-2": {
+          "status": "passed",
+          "seconds": 7.2e-05,
+          "diagnostic_sha256": "5bead695f30d3d8c112d71d064dab6139dcc3da61533d2f30c44a80d1c098b0f"
+        },
+        "timer-next-integral-multiple-of-time-3": {
+          "status": "passed",
+          "seconds": 3.5e-05,
+          "diagnostic_sha256": "5bead695f30d3d8c112d71d064dab6139dcc3da61533d2f30c44a80d1c098b0f"
+        },
+        "timer-test-multiple-of-time": {
+          "status": "passed",
+          "seconds": 2.4e-05,
+          "diagnostic_sha256": "5bead695f30d3d8c112d71d064dab6139dcc3da61533d2f30c44a80d1c098b0f"
+        },
+        "timer-test-repeat-arg": {
+          "status": "passed",
+          "seconds": 0.00023,
+          "diagnostic_sha256": "5bead695f30d3d8c112d71d064dab6139dcc3da61533d2f30c44a80d1c098b0f"
+        },
+        "timer-tests-debug-timer-check": {
+          "status": "skipped",
+          "seconds": 7.8e-05,
+          "diagnostic_sha256": "77c8085e3265eccb8838a2bf11d81cf1824930e3071521f0ded2945ed9ede0a5"
+        },
+        "timer-tests-sit-for": {
+          "status": "passed",
+          "seconds": 0.00011,
+          "diagnostic_sha256": "5bead695f30d3d8c112d71d064dab6139dcc3da61533d2f30c44a80d1c098b0f"
+        }
+      }
+    },
+    {
+      "product": "terminal",
+      "file": "test/lisp/emacs-lisp/ert-x-tests.el",
+      "ids": [
+        "ert-filter-string",
+        "ert-propertized-string",
+        "ert-test-buffer-string-reindented",
+        "ert-test-builtin-message-log-flushing",
+        "ert-test-describe-test",
+        "ert-test-force-message-log-buffer-truncation",
+        "ert-test-message-log-truncation",
+        "ert-test-run-tests-interactively-2",
+        "ert-x-tests--with-temp-file-generate-suffix",
+        "ert-x-tests-play-keys",
+        "ert-x-tests-simulate-command",
+        "ert-x-tests-simulate-keys",
+        "ert-x-tests-with-temp-directory",
+        "ert-x-tests-with-temp-directory/text-signals-error",
+        "ert-x-tests-with-temp-file",
+        "ert-x-tests-with-temp-file/handle-error",
+        "ert-x-tests-with-temp-file/prefix-and-suffix-kwarg",
+        "ert-x-tests-with-temp-file/text-kwarg",
+        "ert-x-tests-with-temp-file/unknown-kwarg-signals-error"
+      ],
+      "counts": {
+        "passed": 19
+      },
+      "complete": true,
+      "exit_code": 0,
+      "remaining_group_terminated": false,
+      "seconds": 0.2119383749999999,
+      "timed_out": false,
+      "protocol_error": null,
+      "runner_error": null,
+      "result": {
+        "path": "build/acceptance/g3-lisp-boundaries-1/terminal/results/terminal/test-lisp-emacs-lisp-ert-x-tests.el-5f646ccfadec.json",
+        "sha256": "94bf742a0ff9bb7f27141c7439f00b6cf23f85d6e7743dd7855f1b761230e8eb"
+      },
+      "events": {
+        "path": "build/acceptance/g3-lisp-boundaries-1/terminal/results/terminal/test-lisp-emacs-lisp-ert-x-tests.el-5f646ccfadec.events.jsonl",
+        "sha256": "3032c77e2f77a618eb7803a100cb57b980a2a89da8ffaafee844623ab31ff8bc"
+      },
+      "cases": {
+        "ert-filter-string": {
+          "status": "passed",
+          "seconds": 6.1e-05,
+          "diagnostic_sha256": "5bead695f30d3d8c112d71d064dab6139dcc3da61533d2f30c44a80d1c098b0f"
+        },
+        "ert-propertized-string": {
+          "status": "passed",
+          "seconds": 2.6e-05,
+          "diagnostic_sha256": "5bead695f30d3d8c112d71d064dab6139dcc3da61533d2f30c44a80d1c098b0f"
+        },
+        "ert-test-buffer-string-reindented": {
+          "status": "passed",
+          "seconds": 0.000273,
+          "diagnostic_sha256": "1b1006dce96463c55ce6cf065883a879a5ca21041c7a6eaf91644dcb815323b9"
+        },
+        "ert-test-builtin-message-log-flushing": {
+          "status": "passed",
+          "seconds": 4.6e-05,
+          "diagnostic_sha256": "5bead695f30d3d8c112d71d064dab6139dcc3da61533d2f30c44a80d1c098b0f"
+        },
+        "ert-test-describe-test": {
+          "status": "passed",
+          "seconds": 0.000321,
+          "diagnostic_sha256": "4f218b1bd61fe12a435735aedc3c31aeddc994d7e4a26d196ae0342b490ecf6c"
+        },
+        "ert-test-force-message-log-buffer-truncation": {
+          "status": "passed",
+          "seconds": 0.000241,
+          "diagnostic_sha256": "5bead695f30d3d8c112d71d064dab6139dcc3da61533d2f30c44a80d1c098b0f"
+        },
+        "ert-test-message-log-truncation": {
+          "status": "passed",
+          "seconds": 7.2e-05,
+          "diagnostic_sha256": "5bead695f30d3d8c112d71d064dab6139dcc3da61533d2f30c44a80d1c098b0f"
+        },
+        "ert-test-run-tests-interactively-2": {
+          "status": "passed",
+          "seconds": 0.000444,
+          "diagnostic_sha256": "5bead695f30d3d8c112d71d064dab6139dcc3da61533d2f30c44a80d1c098b0f"
+        },
+        "ert-x-tests--with-temp-file-generate-suffix": {
+          "status": "passed",
+          "seconds": 3.5e-05,
+          "diagnostic_sha256": "5bead695f30d3d8c112d71d064dab6139dcc3da61533d2f30c44a80d1c098b0f"
+        },
+        "ert-x-tests-play-keys": {
+          "status": "passed",
+          "seconds": 0.001203,
+          "diagnostic_sha256": "5bead695f30d3d8c112d71d064dab6139dcc3da61533d2f30c44a80d1c098b0f"
+        },
+        "ert-x-tests-simulate-command": {
+          "status": "passed",
+          "seconds": 4.5e-05,
+          "diagnostic_sha256": "5bead695f30d3d8c112d71d064dab6139dcc3da61533d2f30c44a80d1c098b0f"
+        },
+        "ert-x-tests-simulate-keys": {
+          "status": "passed",
+          "seconds": 0.000178,
+          "diagnostic_sha256": "5bead695f30d3d8c112d71d064dab6139dcc3da61533d2f30c44a80d1c098b0f"
+        },
+        "ert-x-tests-with-temp-directory": {
+          "status": "passed",
+          "seconds": 0.000192,
+          "diagnostic_sha256": "5bead695f30d3d8c112d71d064dab6139dcc3da61533d2f30c44a80d1c098b0f"
+        },
+        "ert-x-tests-with-temp-directory/text-signals-error": {
+          "status": "passed",
+          "seconds": 2.4e-05,
+          "diagnostic_sha256": "5bead695f30d3d8c112d71d064dab6139dcc3da61533d2f30c44a80d1c098b0f"
+        },
+        "ert-x-tests-with-temp-file": {
+          "status": "passed",
+          "seconds": 9.5e-05,
+          "diagnostic_sha256": "5bead695f30d3d8c112d71d064dab6139dcc3da61533d2f30c44a80d1c098b0f"
+        },
+        "ert-x-tests-with-temp-file/handle-error": {
+          "status": "passed",
+          "seconds": 8.4e-05,
+          "diagnostic_sha256": "5bead695f30d3d8c112d71d064dab6139dcc3da61533d2f30c44a80d1c098b0f"
+        },
+        "ert-x-tests-with-temp-file/prefix-and-suffix-kwarg": {
+          "status": "passed",
+          "seconds": 7.1e-05,
+          "diagnostic_sha256": "5bead695f30d3d8c112d71d064dab6139dcc3da61533d2f30c44a80d1c098b0f"
+        },
+        "ert-x-tests-with-temp-file/text-kwarg": {
+          "status": "passed",
+          "seconds": 0.088063,
+          "diagnostic_sha256": "5bead695f30d3d8c112d71d064dab6139dcc3da61533d2f30c44a80d1c098b0f"
+        },
+        "ert-x-tests-with-temp-file/unknown-kwarg-signals-error": {
+          "status": "passed",
+          "seconds": 4.1e-05,
+          "diagnostic_sha256": "5bead695f30d3d8c112d71d064dab6139dcc3da61533d2f30c44a80d1c098b0f"
+        }
+      }
+    },
+    {
+      "product": "terminal",
+      "file": "test/lisp/emacs-lisp/warnings-tests.el",
+      "ids": [
+        "test-display-warning",
+        "test-display-warning/warning-minimum-level",
+        "test-display-warning/warning-minimum-log-level",
+        "test-warning-suppress-p"
+      ],
+      "counts": {
+        "passed": 4
+      },
+      "complete": true,
+      "exit_code": 0,
+      "remaining_group_terminated": false,
+      "seconds": 0.05258475000000029,
+      "timed_out": false,
+      "protocol_error": null,
+      "runner_error": null,
+      "result": {
+        "path": "build/acceptance/g3-lisp-boundaries-1/terminal/results/terminal/test-lisp-emacs-lisp-warnings-tests.el-04185270e019.json",
+        "sha256": "695b4b529d59fce650a05da07f6538b99b18e3162242dd8e59b9b695695c0eb8"
+      },
+      "events": {
+        "path": "build/acceptance/g3-lisp-boundaries-1/terminal/results/terminal/test-lisp-emacs-lisp-warnings-tests.el-04185270e019.events.jsonl",
+        "sha256": "9f38852251ac108e99ef023f576302a4ec60eb713e4328ec01bbbcc31cb906c4"
+      },
+      "cases": {
+        "test-display-warning": {
+          "status": "passed",
+          "seconds": 9.6e-05,
+          "diagnostic_sha256": "fb6e5c4694eac3b9c132fbd00a6c0af9d2ec451b78462cd028548a46b11467c0"
+        },
+        "test-display-warning/warning-minimum-level": {
+          "status": "passed",
+          "seconds": 5e-05,
+          "diagnostic_sha256": "1c1a0a86e49ee4b47d85bd31433ad4b3b0b0d0584c7a7b6abfc7f7fb6129957a"
+        },
+        "test-display-warning/warning-minimum-log-level": {
+          "status": "passed",
+          "seconds": 1.3e-05,
+          "diagnostic_sha256": "5bead695f30d3d8c112d71d064dab6139dcc3da61533d2f30c44a80d1c098b0f"
+        },
+        "test-warning-suppress-p": {
+          "status": "passed",
+          "seconds": 1.6e-05,
+          "diagnostic_sha256": "5bead695f30d3d8c112d71d064dab6139dcc3da61533d2f30c44a80d1c098b0f"
+        }
+      }
+    },
+    {
+      "product": "terminal",
+      "file": "test/lisp/emacs-lisp/thunk-tests.el",
+      "ids": [
+        "thunk-can-be-evaluated",
+        "thunk-evaluation-is-cached",
+        "thunk-let*-basic-test",
+        "thunk-let*-laziness-test",
+        "thunk-let-bad-binding-test",
+        "thunk-let-basic-test",
+        "thunk-let-bound-vars-cant-be-set-test",
+        "thunk-let-laziness-test",
+        "thunk-should-be-lazy"
+      ],
+      "counts": {
+        "passed": 9
+      },
+      "complete": true,
+      "exit_code": 0,
+      "remaining_group_terminated": false,
+      "seconds": 0.056862999999999886,
+      "timed_out": false,
+      "protocol_error": null,
+      "runner_error": null,
+      "result": {
+        "path": "build/acceptance/g3-lisp-boundaries-1/terminal/results/terminal/test-lisp-emacs-lisp-thunk-tests.el-fa85b3ad89f5.json",
+        "sha256": "979416184c3336e03aa16f8fb37a70db3045f5a440173eb5805940499dc48b64"
+      },
+      "events": {
+        "path": "build/acceptance/g3-lisp-boundaries-1/terminal/results/terminal/test-lisp-emacs-lisp-thunk-tests.el-fa85b3ad89f5.events.jsonl",
+        "sha256": "73086f5b214979e62f1470a7db38e668067a645ce47ba274f477bc2639698bd0"
+      },
+      "cases": {
+        "thunk-can-be-evaluated": {
+          "status": "passed",
+          "seconds": 5.5e-05,
+          "diagnostic_sha256": "5bead695f30d3d8c112d71d064dab6139dcc3da61533d2f30c44a80d1c098b0f"
+        },
+        "thunk-evaluation-is-cached": {
+          "status": "passed",
+          "seconds": 4e-05,
+          "diagnostic_sha256": "5bead695f30d3d8c112d71d064dab6139dcc3da61533d2f30c44a80d1c098b0f"
+        },
+        "thunk-let*-basic-test": {
+          "status": "passed",
+          "seconds": 5e-05,
+          "diagnostic_sha256": "5bead695f30d3d8c112d71d064dab6139dcc3da61533d2f30c44a80d1c098b0f"
+        },
+        "thunk-let*-laziness-test": {
+          "status": "passed",
+          "seconds": 6.6e-05,
+          "diagnostic_sha256": "5bead695f30d3d8c112d71d064dab6139dcc3da61533d2f30c44a80d1c098b0f"
+        },
+        "thunk-let-bad-binding-test": {
+          "status": "passed",
+          "seconds": 2.9e-05,
+          "diagnostic_sha256": "5bead695f30d3d8c112d71d064dab6139dcc3da61533d2f30c44a80d1c098b0f"
+        },
+        "thunk-let-basic-test": {
+          "status": "passed",
+          "seconds": 3.2e-05,
+          "diagnostic_sha256": "5bead695f30d3d8c112d71d064dab6139dcc3da61533d2f30c44a80d1c098b0f"
+        },
+        "thunk-let-bound-vars-cant-be-set-test": {
+          "status": "passed",
+          "seconds": 5.1e-05,
+          "diagnostic_sha256": "5bead695f30d3d8c112d71d064dab6139dcc3da61533d2f30c44a80d1c098b0f"
+        },
+        "thunk-let-laziness-test": {
+          "status": "passed",
+          "seconds": 3.6e-05,
+          "diagnostic_sha256": "5bead695f30d3d8c112d71d064dab6139dcc3da61533d2f30c44a80d1c098b0f"
+        },
+        "thunk-should-be-lazy": {
+          "status": "passed",
+          "seconds": 2.2e-05,
+          "diagnostic_sha256": "5bead695f30d3d8c112d71d064dab6139dcc3da61533d2f30c44a80d1c098b0f"
+        }
+      }
+    },
+    {
+      "product": "terminal",
+      "file": "test/lisp/emacs-lisp/timer-tests.el",
+      "ids": [
+        "timer-next-integral-multiple-of-time-2",
+        "timer-next-integral-multiple-of-time-3",
+        "timer-test-multiple-of-time",
+        "timer-test-repeat-arg",
+        "timer-tests-debug-timer-check",
+        "timer-tests-sit-for"
+      ],
+      "counts": {
+        "passed": 5,
+        "skipped": 1
+      },
+      "complete": true,
+      "exit_code": 0,
+      "remaining_group_terminated": false,
+      "seconds": 0.05653020799999986,
+      "timed_out": false,
+      "protocol_error": null,
+      "runner_error": null,
+      "result": {
+        "path": "build/acceptance/g3-lisp-boundaries-1/terminal/results/terminal/test-lisp-emacs-lisp-timer-tests.el-927ce6aa121f.json",
+        "sha256": "fec5ace3c2874e03e8f3d59891fcfb432a07d3bd155090b62631df4a41193ea7"
+      },
+      "events": {
+        "path": "build/acceptance/g3-lisp-boundaries-1/terminal/results/terminal/test-lisp-emacs-lisp-timer-tests.el-927ce6aa121f.events.jsonl",
+        "sha256": "b4b125e8e5d915d4b7a5e8e061ceba3e2b28918f6beb1f1dc9dcbc8b576da6ff"
+      },
+      "cases": {
+        "timer-next-integral-multiple-of-time-2": {
+          "status": "passed",
+          "seconds": 3.9e-05,
+          "diagnostic_sha256": "5bead695f30d3d8c112d71d064dab6139dcc3da61533d2f30c44a80d1c098b0f"
+        },
+        "timer-next-integral-multiple-of-time-3": {
+          "status": "passed",
+          "seconds": 1.6e-05,
+          "diagnostic_sha256": "5bead695f30d3d8c112d71d064dab6139dcc3da61533d2f30c44a80d1c098b0f"
+        },
+        "timer-test-multiple-of-time": {
+          "status": "passed",
+          "seconds": 1.3e-05,
+          "diagnostic_sha256": "5bead695f30d3d8c112d71d064dab6139dcc3da61533d2f30c44a80d1c098b0f"
+        },
+        "timer-test-repeat-arg": {
+          "status": "passed",
+          "seconds": 6.6e-05,
+          "diagnostic_sha256": "5bead695f30d3d8c112d71d064dab6139dcc3da61533d2f30c44a80d1c098b0f"
+        },
+        "timer-tests-debug-timer-check": {
+          "status": "skipped",
+          "seconds": 3.2e-05,
+          "diagnostic_sha256": "77c8085e3265eccb8838a2bf11d81cf1824930e3071521f0ded2945ed9ede0a5"
+        },
+        "timer-tests-sit-for": {
+          "status": "passed",
+          "seconds": 3e-05,
+          "diagnostic_sha256": "5bead695f30d3d8c112d71d064dab6139dcc3da61533d2f30c44a80d1c098b0f"
+        }
+      }
+    },
+    {
+      "product": "cocoa",
+      "file": "test/lisp/emacs-lisp/ert-x-tests.el",
+      "ids": [
+        "ert-filter-string",
+        "ert-propertized-string",
+        "ert-test-buffer-string-reindented",
+        "ert-test-builtin-message-log-flushing",
+        "ert-test-describe-test",
+        "ert-test-force-message-log-buffer-truncation",
+        "ert-test-message-log-truncation",
+        "ert-test-run-tests-interactively-2",
+        "ert-x-tests--with-temp-file-generate-suffix",
+        "ert-x-tests-play-keys",
+        "ert-x-tests-simulate-command",
+        "ert-x-tests-simulate-keys",
+        "ert-x-tests-with-temp-directory",
+        "ert-x-tests-with-temp-directory/text-signals-error",
+        "ert-x-tests-with-temp-file",
+        "ert-x-tests-with-temp-file/handle-error",
+        "ert-x-tests-with-temp-file/prefix-and-suffix-kwarg",
+        "ert-x-tests-with-temp-file/text-kwarg",
+        "ert-x-tests-with-temp-file/unknown-kwarg-signals-error"
+      ],
+      "counts": {
+        "passed": 19
+      },
+      "complete": true,
+      "exit_code": 0,
+      "remaining_group_terminated": false,
+      "seconds": 0.16705333300000014,
+      "timed_out": false,
+      "protocol_error": null,
+      "runner_error": null,
+      "result": {
+        "path": "build/acceptance/g3-lisp-boundaries-1/cocoa/results/cocoa/test-lisp-emacs-lisp-ert-x-tests.el-5f646ccfadec.json",
+        "sha256": "2ce7921dbbb21a1238da01b873429eb99fae10106829bebeede64debce0bd7d0"
+      },
+      "events": {
+        "path": "build/acceptance/g3-lisp-boundaries-1/cocoa/results/cocoa/test-lisp-emacs-lisp-ert-x-tests.el-5f646ccfadec.events.jsonl",
+        "sha256": "da67d5417bd2a33622198fa492e39b6c0464f550e4b9786e8093db10aa1b9bd5"
+      },
+      "cases": {
+        "ert-filter-string": {
+          "status": "passed",
+          "seconds": 6.1e-05,
+          "diagnostic_sha256": "5bead695f30d3d8c112d71d064dab6139dcc3da61533d2f30c44a80d1c098b0f"
+        },
+        "ert-propertized-string": {
+          "status": "passed",
+          "seconds": 2.5e-05,
+          "diagnostic_sha256": "5bead695f30d3d8c112d71d064dab6139dcc3da61533d2f30c44a80d1c098b0f"
+        },
+        "ert-test-buffer-string-reindented": {
+          "status": "passed",
+          "seconds": 0.000245,
+          "diagnostic_sha256": "1b1006dce96463c55ce6cf065883a879a5ca21041c7a6eaf91644dcb815323b9"
+        },
+        "ert-test-builtin-message-log-flushing": {
+          "status": "passed",
+          "seconds": 7.8e-05,
+          "diagnostic_sha256": "5bead695f30d3d8c112d71d064dab6139dcc3da61533d2f30c44a80d1c098b0f"
+        },
+        "ert-test-describe-test": {
+          "status": "passed",
+          "seconds": 0.005962,
+          "diagnostic_sha256": "4f218b1bd61fe12a435735aedc3c31aeddc994d7e4a26d196ae0342b490ecf6c"
+        },
+        "ert-test-force-message-log-buffer-truncation": {
+          "status": "passed",
+          "seconds": 0.000262,
+          "diagnostic_sha256": "5bead695f30d3d8c112d71d064dab6139dcc3da61533d2f30c44a80d1c098b0f"
+        },
+        "ert-test-message-log-truncation": {
+          "status": "passed",
+          "seconds": 7e-05,
+          "diagnostic_sha256": "5bead695f30d3d8c112d71d064dab6139dcc3da61533d2f30c44a80d1c098b0f"
+        },
+        "ert-test-run-tests-interactively-2": {
+          "status": "passed",
+          "seconds": 0.000489,
+          "diagnostic_sha256": "5bead695f30d3d8c112d71d064dab6139dcc3da61533d2f30c44a80d1c098b0f"
+        },
+        "ert-x-tests--with-temp-file-generate-suffix": {
+          "status": "passed",
+          "seconds": 3.5e-05,
+          "diagnostic_sha256": "5bead695f30d3d8c112d71d064dab6139dcc3da61533d2f30c44a80d1c098b0f"
+        },
+        "ert-x-tests-play-keys": {
+          "status": "passed",
+          "seconds": 0.001249,
+          "diagnostic_sha256": "5bead695f30d3d8c112d71d064dab6139dcc3da61533d2f30c44a80d1c098b0f"
+        },
+        "ert-x-tests-simulate-command": {
+          "status": "passed",
+          "seconds": 4.7e-05,
+          "diagnostic_sha256": "5bead695f30d3d8c112d71d064dab6139dcc3da61533d2f30c44a80d1c098b0f"
+        },
+        "ert-x-tests-simulate-keys": {
+          "status": "passed",
+          "seconds": 0.000181,
+          "diagnostic_sha256": "5bead695f30d3d8c112d71d064dab6139dcc3da61533d2f30c44a80d1c098b0f"
+        },
+        "ert-x-tests-with-temp-directory": {
+          "status": "passed",
+          "seconds": 0.000171,
+          "diagnostic_sha256": "5bead695f30d3d8c112d71d064dab6139dcc3da61533d2f30c44a80d1c098b0f"
+        },
+        "ert-x-tests-with-temp-directory/text-signals-error": {
+          "status": "passed",
+          "seconds": 1.7e-05,
+          "diagnostic_sha256": "5bead695f30d3d8c112d71d064dab6139dcc3da61533d2f30c44a80d1c098b0f"
+        },
+        "ert-x-tests-with-temp-file": {
+          "status": "passed",
+          "seconds": 8.7e-05,
+          "diagnostic_sha256": "5bead695f30d3d8c112d71d064dab6139dcc3da61533d2f30c44a80d1c098b0f"
+        },
+        "ert-x-tests-with-temp-file/handle-error": {
+          "status": "passed",
+          "seconds": 7.3e-05,
+          "diagnostic_sha256": "5bead695f30d3d8c112d71d064dab6139dcc3da61533d2f30c44a80d1c098b0f"
+        },
+        "ert-x-tests-with-temp-file/prefix-and-suffix-kwarg": {
+          "status": "passed",
+          "seconds": 7.4e-05,
+          "diagnostic_sha256": "5bead695f30d3d8c112d71d064dab6139dcc3da61533d2f30c44a80d1c098b0f"
+        },
+        "ert-x-tests-with-temp-file/text-kwarg": {
+          "status": "passed",
+          "seconds": 0.083243,
+          "diagnostic_sha256": "5bead695f30d3d8c112d71d064dab6139dcc3da61533d2f30c44a80d1c098b0f"
+        },
+        "ert-x-tests-with-temp-file/unknown-kwarg-signals-error": {
+          "status": "passed",
+          "seconds": 3.4e-05,
+          "diagnostic_sha256": "5bead695f30d3d8c112d71d064dab6139dcc3da61533d2f30c44a80d1c098b0f"
+        }
+      }
+    },
+    {
+      "product": "cocoa",
+      "file": "test/lisp/emacs-lisp/warnings-tests.el",
+      "ids": [
+        "test-display-warning",
+        "test-display-warning/warning-minimum-level",
+        "test-display-warning/warning-minimum-log-level",
+        "test-warning-suppress-p"
+      ],
+      "counts": {
+        "passed": 4
+      },
+      "complete": true,
+      "exit_code": 0,
+      "remaining_group_terminated": false,
+      "seconds": 0.05605191599999948,
+      "timed_out": false,
+      "protocol_error": null,
+      "runner_error": null,
+      "result": {
+        "path": "build/acceptance/g3-lisp-boundaries-1/cocoa/results/cocoa/test-lisp-emacs-lisp-warnings-tests.el-04185270e019.json",
+        "sha256": "058d80a20ef6d82da9b27a7d549ae4c64ef2a06749c9062f37805a980891fb7c"
+      },
+      "events": {
+        "path": "build/acceptance/g3-lisp-boundaries-1/cocoa/results/cocoa/test-lisp-emacs-lisp-warnings-tests.el-04185270e019.events.jsonl",
+        "sha256": "d47e5c40083e5db727504ee3e1c0a6e9ab8fc0d6f6807e4de2680a97fd7650c7"
+      },
+      "cases": {
+        "test-display-warning": {
+          "status": "passed",
+          "seconds": 9.4e-05,
+          "diagnostic_sha256": "fb6e5c4694eac3b9c132fbd00a6c0af9d2ec451b78462cd028548a46b11467c0"
+        },
+        "test-display-warning/warning-minimum-level": {
+          "status": "passed",
+          "seconds": 4.7e-05,
+          "diagnostic_sha256": "e39e70ca35ee186e0f9aae4e7ed0a83e8d0f95b500260b3ce184c1434e66f6b7"
+        },
+        "test-display-warning/warning-minimum-log-level": {
+          "status": "passed",
+          "seconds": 1.4e-05,
+          "diagnostic_sha256": "5bead695f30d3d8c112d71d064dab6139dcc3da61533d2f30c44a80d1c098b0f"
+        },
+        "test-warning-suppress-p": {
+          "status": "passed",
+          "seconds": 1.4e-05,
+          "diagnostic_sha256": "5bead695f30d3d8c112d71d064dab6139dcc3da61533d2f30c44a80d1c098b0f"
+        }
+      }
+    },
+    {
+      "product": "cocoa",
+      "file": "test/lisp/emacs-lisp/thunk-tests.el",
+      "ids": [
+        "thunk-can-be-evaluated",
+        "thunk-evaluation-is-cached",
+        "thunk-let*-basic-test",
+        "thunk-let*-laziness-test",
+        "thunk-let-bad-binding-test",
+        "thunk-let-basic-test",
+        "thunk-let-bound-vars-cant-be-set-test",
+        "thunk-let-laziness-test",
+        "thunk-should-be-lazy"
+      ],
+      "counts": {
+        "passed": 9
+      },
+      "complete": true,
+      "exit_code": 0,
+      "remaining_group_terminated": false,
+      "seconds": 0.05501829199999975,
+      "timed_out": false,
+      "protocol_error": null,
+      "runner_error": null,
+      "result": {
+        "path": "build/acceptance/g3-lisp-boundaries-1/cocoa/results/cocoa/test-lisp-emacs-lisp-thunk-tests.el-fa85b3ad89f5.json",
+        "sha256": "fff9135ac3f6d2fbd1201231c22e73dc2ae80fcbb09c1b8adc4492aa51b50726"
+      },
+      "events": {
+        "path": "build/acceptance/g3-lisp-boundaries-1/cocoa/results/cocoa/test-lisp-emacs-lisp-thunk-tests.el-fa85b3ad89f5.events.jsonl",
+        "sha256": "521264a65c28994fdaeeb88300a397c223b61beb6b1a83019106e5f8a1444a41"
+      },
+      "cases": {
+        "thunk-can-be-evaluated": {
+          "status": "passed",
+          "seconds": 5.5e-05,
+          "diagnostic_sha256": "5bead695f30d3d8c112d71d064dab6139dcc3da61533d2f30c44a80d1c098b0f"
+        },
+        "thunk-evaluation-is-cached": {
+          "status": "passed",
+          "seconds": 2.8e-05,
+          "diagnostic_sha256": "5bead695f30d3d8c112d71d064dab6139dcc3da61533d2f30c44a80d1c098b0f"
+        },
+        "thunk-let*-basic-test": {
+          "status": "passed",
+          "seconds": 3.2e-05,
+          "diagnostic_sha256": "5bead695f30d3d8c112d71d064dab6139dcc3da61533d2f30c44a80d1c098b0f"
+        },
+        "thunk-let*-laziness-test": {
+          "status": "passed",
+          "seconds": 5.7e-05,
+          "diagnostic_sha256": "5bead695f30d3d8c112d71d064dab6139dcc3da61533d2f30c44a80d1c098b0f"
+        },
+        "thunk-let-bad-binding-test": {
+          "status": "passed",
+          "seconds": 2.5e-05,
+          "diagnostic_sha256": "5bead695f30d3d8c112d71d064dab6139dcc3da61533d2f30c44a80d1c098b0f"
+        },
+        "thunk-let-basic-test": {
+          "status": "passed",
+          "seconds": 3.2e-05,
+          "diagnostic_sha256": "5bead695f30d3d8c112d71d064dab6139dcc3da61533d2f30c44a80d1c098b0f"
+        },
+        "thunk-let-bound-vars-cant-be-set-test": {
+          "status": "passed",
+          "seconds": 5.1e-05,
+          "diagnostic_sha256": "5bead695f30d3d8c112d71d064dab6139dcc3da61533d2f30c44a80d1c098b0f"
+        },
+        "thunk-let-laziness-test": {
+          "status": "passed",
+          "seconds": 3.5e-05,
+          "diagnostic_sha256": "5bead695f30d3d8c112d71d064dab6139dcc3da61533d2f30c44a80d1c098b0f"
+        },
+        "thunk-should-be-lazy": {
+          "status": "passed",
+          "seconds": 2.3e-05,
+          "diagnostic_sha256": "5bead695f30d3d8c112d71d064dab6139dcc3da61533d2f30c44a80d1c098b0f"
+        }
+      }
+    },
+    {
+      "product": "cocoa",
+      "file": "test/lisp/emacs-lisp/timer-tests.el",
+      "ids": [
+        "timer-next-integral-multiple-of-time-2",
+        "timer-next-integral-multiple-of-time-3",
+        "timer-test-multiple-of-time",
+        "timer-test-repeat-arg",
+        "timer-tests-debug-timer-check",
+        "timer-tests-sit-for"
+      ],
+      "counts": {
+        "passed": 5,
+        "skipped": 1
+      },
+      "complete": true,
+      "exit_code": 0,
+      "remaining_group_terminated": false,
+      "seconds": 0.05703245800000012,
+      "timed_out": false,
+      "protocol_error": null,
+      "runner_error": null,
+      "result": {
+        "path": "build/acceptance/g3-lisp-boundaries-1/cocoa/results/cocoa/test-lisp-emacs-lisp-timer-tests.el-927ce6aa121f.json",
+        "sha256": "24f9d09f9f753ac86a387529fc7317e960400ed54170b981248e6a198a6df8b4"
+      },
+      "events": {
+        "path": "build/acceptance/g3-lisp-boundaries-1/cocoa/results/cocoa/test-lisp-emacs-lisp-timer-tests.el-927ce6aa121f.events.jsonl",
+        "sha256": "cb1de3d2594cf2897f7b80c413324c2c412c2c1e80eac03e3cad6b721370633c"
+      },
+      "cases": {
+        "timer-next-integral-multiple-of-time-2": {
+          "status": "passed",
+          "seconds": 4e-05,
+          "diagnostic_sha256": "5bead695f30d3d8c112d71d064dab6139dcc3da61533d2f30c44a80d1c098b0f"
+        },
+        "timer-next-integral-multiple-of-time-3": {
+          "status": "passed",
+          "seconds": 1.6e-05,
+          "diagnostic_sha256": "5bead695f30d3d8c112d71d064dab6139dcc3da61533d2f30c44a80d1c098b0f"
+        },
+        "timer-test-multiple-of-time": {
+          "status": "passed",
+          "seconds": 1.3e-05,
+          "diagnostic_sha256": "5bead695f30d3d8c112d71d064dab6139dcc3da61533d2f30c44a80d1c098b0f"
+        },
+        "timer-test-repeat-arg": {
+          "status": "passed",
+          "seconds": 6.9e-05,
+          "diagnostic_sha256": "5bead695f30d3d8c112d71d064dab6139dcc3da61533d2f30c44a80d1c098b0f"
+        },
+        "timer-tests-debug-timer-check": {
+          "status": "skipped",
+          "seconds": 3.1e-05,
+          "diagnostic_sha256": "77c8085e3265eccb8838a2bf11d81cf1824930e3071521f0ded2945ed9ede0a5"
+        },
+        "timer-tests-sit-for": {
+          "status": "passed",
+          "seconds": 4.9e-05,
+          "diagnostic_sha256": "5bead695f30d3d8c112d71d064dab6139dcc3da61533d2f30c44a80d1c098b0f"
+        }
+      }
+    }
+  ],
+  "products": {
+    "reference": {
+      "program": {
+        "kind": "file",
+        "bytes": 3691504,
+        "mode": 493,
+        "sha256": "5b55e93c8304368ee37cc5c537ca3e1370e3b9b3fef049bdce76834a9db75e65"
+      },
+      "dump": {
+        "kind": "file",
+        "bytes": 23084632,
+        "mode": 420,
+        "sha256": "6ac1214186022574a70e84a04bb7f2dc44e1ea1d4c90f0d9ce421ddd0f4b4536"
+      },
+      "resources": {
+        "lisp": {
+          "identity_canonical_json_sha256": "564df364c803f4d0b64d7bc2ba986d775e8985529481ac2684b739666e131323",
+          "top_level_entries": 3316
+        }
+      }
+    },
+    "terminal": {
+      "program": {
+        "kind": "file",
+        "bytes": 2698016,
+        "mode": 493,
+        "sha256": "fb0b822273e79bb5b008725771473f5d510b9f712488242d615fb3a5fefbcde6"
+      },
+      "dump": {
+        "kind": "file",
+        "bytes": 13101600,
+        "mode": 420,
+        "sha256": "5d1913c39d5c348c711d24e16b25d9e63d09e082ee6dbe3b3a54ac4680862f82"
+      },
+      "resources": {
+        "lisp": {
+          "identity_canonical_json_sha256": "79dc09151f2f61152496f3587dc54cb580fb45a9c92301bfe3e75ab027a02146",
+          "top_level_entries": 3363
+        },
+        "runtime-tls": {
+          "identity_canonical_json_sha256": "9b34100e73d1f4bbd3157cd1535a25f8fdc6d4e094f2e6a1e9dc79b1a63fd73d",
+          "top_level_entries": 9
+        },
+        "runtime-lcms": {
+          "identity_canonical_json_sha256": "819844d74d5d4f3ee5a75aaf2b0d9a23b07fdda8bfa71c65cdbda63f6eb213cb",
+          "top_level_entries": 1
+        },
+        "runtime-treesit": {
+          "identity_canonical_json_sha256": "05b5f47a14a19b3f04511fa292f0976e2cab06437b9e4323edbce72a9767f0f9",
+          "top_level_entries": 1
+        }
+      }
+    },
+    "cocoa": {
+      "program": {
+        "kind": "file",
+        "bytes": 4230368,
+        "mode": 493,
+        "sha256": "d796f4c52e2a32ec6176e02efca33d922da18252aaddd0885e59993f108ba385"
+      },
+      "dump": {
+        "kind": "file",
+        "bytes": 18602200,
+        "mode": 420,
+        "sha256": "2b87c3436eaa33e551b024c6be01ea702b9c586c4535993258b63aa95a618b92"
+      },
+      "resources": {
+        "lisp": {
+          "identity_canonical_json_sha256": "e4108125e078022ebe91c3ccc5095c46c8fcbe48180ed02668f315d4e4c910b5",
+          "top_level_entries": 3353
+        },
+        "bundle": {
+          "identity_canonical_json_sha256": "e1212d5ae114aec885c8d2d467c9c39b4feb1f693b0d685dc28901fd34bb5342",
+          "top_level_entries": 4477
+        }
+      }
+    }
+  },
+  "controller": {
+    "run_id": "6360098b55b54ea88d793b3436159804",
+    "exit_code": 1,
+    "cleanup_complete": true,
+    "elapsed_seconds": 10.691,
+    "peak_rss_bytes": 216825856,
+    "peak_footprint_bytes": 123046288,
+    "peak_accounted_bytes": 216825856,
+    "metrics_independently_reviewed": false
+  },
+  "original_aggregate_reason": "Three shared checking-only debug-timer-check skips, not failed assertions. False aggregate/owner exit1 retained. Three warnings expected-failure results are original expectations, not unexpected passes or ignored failures.",
+  "expected_failure": {
+    "id": "test-display-warning/warning-minimum-level",
+    "products": [
+      "reference",
+      "terminal",
+      "cocoa"
+    ],
+    "result_type": "ert-test-failed",
+    "expected": true,
+    "status": "passed",
+    "note": "Original :expected-result :failed; raw diagnostics retained privately, public diagnostic hashes bind them"
+  },
+  "independent_review": {
+    "accepted": true,
+    "scope": "Original 114 event identities/statuses/ordinals, expected failures, guard skips, current 9 input and 6 program/dump hashes; no rerun",
+    "limits": [
+      "No explicit inputs_after snapshot in raw; identities_unchanged assertion plus review-time rehash",
+      "Cocoa P435 comparison was external to original driver input list; no claim of original persisted assertion",
+      "Controller metrics remain primary-only"
+    ]
+  },
+  "runtime_metadata": {
+    "reference": {
+      "reported_version_number": "31.1",
+      "reported_version_text_sha256": "7af5627c835474ff1fb248949f8ce3f4b955ea99fa0e40ba2c452a717e34fe3a",
+      "system_configuration": "aarch64-apple-darwin25.6.0",
+      "system_type": "darwin",
+      "window_system": null,
+      "source": "original per-file result.metadata; reported version/configuration identical across four files"
+    },
+    "terminal": {
+      "reported_version_number": "32.0.50",
+      "reported_version_text_sha256": "775636f5ebd0648228fb2b1caf1358dca82d535700c9e6832e68f36dd29adad2",
+      "system_configuration": "aarch64-apple-darwin25.6.0",
+      "system_type": "darwin",
+      "window_system": null,
+      "source": "original per-file result.metadata; reported version/configuration identical across four files"
+    },
+    "cocoa": {
+      "reported_version_number": "32.0.50",
+      "reported_version_text_sha256": "d8efc9bf7e94801c2268c9ade30c979b9b948406f082ec87e6e2d06e50cada4d",
+      "system_configuration": "aarch64-apple-darwin25.6.0",
+      "system_type": "darwin",
+      "window_system": null,
+      "source": "original per-file result.metadata; reported version/configuration identical across four files"
+    }
+  },
+  "cleanup": {
+    "status": "complete",
+    "files": 4609,
+    "directories": 885,
+    "links": 18,
+    "rows": 5512,
+    "logical_bytes": 63024952,
+    "allocated_bytes": 75300864,
+    "manifest_sha256": "7669e105d4091c3a130ea43a507c3d20e42126ded11e8fdde180eec366e34537",
+    "automatic_directories": 93,
+    "automatic_files": 1,
+    "automatic_logical_bytes": 34096,
+    "automatic_allocated_bytes": 36864,
+    "first_failure_preserved": true,
+    "products_inputs_git_evidence_unchanged": true,
+    "post_review_summaries": {
+      "reference": {
+        "status": "complete",
+        "files": 1536,
+        "directories": 263,
+        "logical_bytes": 20996952,
+        "allocated_bytes": 25088000,
+        "resumed_from_verified_private_plan": true
+      },
+      "terminal": {
+        "status": "complete",
+        "files": 1536,
+        "directories": 263,
+        "ledger_schema": 2,
+        "logical_bytes": 20996952,
+        "allocated_bytes": 25088000,
+        "evidence_sha256": "6807f047d14ffca7f3aad897e1439202585c67da4fa28d260c6149af342492d8",
+        "ledger": "consumed-fixture-evidence.state-retirement.jsonl.gz",
+        "ledger_sha256": "e0a962b015412544df385d018d5b8fedb67a358b8bdfdfe8e90ce11c6c6a5fd6",
+        "all_selected_absent": true,
+        "restore": "regenerate consumed cache from retained inputs; original random names not promised"
+      },
+      "cocoa": {
+        "status": "complete",
+        "files": 1536,
+        "directories": 263,
+        "ledger_schema": 2,
+        "logical_bytes": 20996952,
+        "allocated_bytes": 25088000,
+        "evidence_sha256": "c5c682671ee94afc046a0d06fbe5608b3d30f6e289ebd12ad975ac36a6715e98",
+        "ledger": "consumed-fixture-evidence.state-retirement.jsonl.gz",
+        "ledger_sha256": "6bcd7b94f4487d0b9ebe15cc3ff094733d70037b30fdfe630785ba6e83b48e74",
+        "all_selected_absent": true,
+        "restore": "regenerate consumed cache from retained inputs; original random names not promised"
+      }
+    }
+  },
+  "budget_interpretation": "The earlier task estimate was below 512 MiB; the executed raw driver records expected_peak_bytes=1073741824 (1 GiB), an estimate, not a separate process limit. The installed runtime controller retained its standard dynamic policy. Original budget is preserved; actual accounted peak is 216825856 bytes. The no-compiler workload description did not predict the reference automatic native trampoline; no product build was requested."
+}

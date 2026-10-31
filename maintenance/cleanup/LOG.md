@@ -573,3 +573,15 @@ verified and limited peer totals remain separate. Initial monitor exit125 before
 deletion retained. Current/prior products, App, raw results and required inputs
 unchanged. [Report](reports/2026-10-31-171-consumed-local-child-state.md),
 [manifest](manifests/2026-10-31-171-consumed-local-child-state.jsonl.gz).
+
+## CLN172 - Consumed original Lisp boundary state (2026-10-31)
+
+After four-file independent raw review, retire 4,609 files, 885 directories and
+eighteen links: 63,024,952 logical / 75,300,864 allocated bytes. This includes
+one already-retired reference native trampoline and 93 automatic directories
+(eighteen parents), counted once. Three test copies and empty timer state gone.
+First cleanup assertion failure and partial-operation resume preserved; actual
+pre-delete plans replace the invalid empty-environment assumption. Products,
+inputs, raw evidence and tracked working changes unchanged. No test rerun.
+[Report](reports/2026-10-31-172-consumed-lisp-boundary-state.md),
+[manifest](manifests/2026-10-31-172-consumed-lisp-boundary-state.jsonl.gz).

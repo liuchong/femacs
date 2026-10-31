@@ -1,3 +1,22 @@
+## Current continuation: original Lisp utility and timer coverage (2026-10-31)
+
+Four unchanged pinned files (`ert-x`, warnings, thunk, timer) run on accepted
+P435 normal reference/terminal/Cocoa products, all discovered IDs, no filter.
+Twelve complete file processes: **111 expected results, three guard skips**,
+38 IDs per product, equal status maps, no unexpected failure or timeout.
+The 111 include three declared expected failures; 108 bodies pass. Raw aggregate
+`passed=false` and owner exit 1 remain. Independent raw review accepts this scope.
+
+CLN172 retires 4,609 files, 885 directories and eighteen links,
+63,024,952 / 75,300,864 logical/allocated bytes, including the already-retired
+reference trampoline. The first cleanup assertion failure and verified resume
+remain recorded. Inputs, products, original results and trial App are unchanged.
+Whole `ert-tests.el`, checking and full G3 stay open; no performance or product
+adoption. G1/G2/G4 remain **3/7**, original Goal active. Next: bound the ERT
+backtrace self-test's resource path and continue uncovered compatibility.
+See [coverage](../maintenance/releases/2026-10-31-original-lisp-boundaries.md)
+and [CLN172](../maintenance/cleanup/reports/2026-10-31-172-consumed-lisp-boundary-state.md).
+
 ## Current continuation: validated same-block cons children (2026-10-31)
 
 P444 reuses the validated parent cons allocation for aligned child locations

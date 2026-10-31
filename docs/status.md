@@ -24216,3 +24216,29 @@ Initial cleanup monitor failure remains 125; deletion had not started; ordinary
 bounded file operation then completes. Current/prior products, raw results and
 required inputs retained. [Delivery](../maintenance/releases/2026-10-31-gc-local-child.md).
 G1/G2/G4 **3/7**, four outcomes open; original Goal continues.
+
+## 2026-10-31 - Original Lisp utility and timer boundaries
+
+Four complete stable files, unchanged, all discovered IDs; accepted P435 normal
+reference/terminal/Cocoa, not P444 or checking. Twelve processes finish exit 0,
+complete, no timeout/protocol error/residual group. Each has 38 IDs;
+**111 expected results + three checking-hook skips**, equal maps. Three expected
+results are original expected failures, not passing assertions or extra IDs;
+108 bodies pass. Raw aggregate false/owner exit 1 retained. Independent review
+checks all 114 event identities, classifications, input and product hashes.
+
+30 seconds per load/case, 300 seconds owner; earlier estimate 10--90 seconds/<512 MiB; raw driver estimate 1 GiB.
+Neither memory estimate is an independently enforced process cap.
+Actual driver 8.242 seconds. Controller 10.691 seconds/216,825,856 accounted bytes
+stays primary-side, not a speed comparison. Raw inputs_after is not separately
+stored; review-time hashes agree. Cocoa P435 comparison is external to the raw
+driver input list; raw per-file version/configuration metadata is retained.
+
+CLN172: 4,609 files, 885 dirs, eighteen links, 63,024,952 logical /
+75,300,864 allocated bytes; includes one reference native trampoline and 93
+automatic directories once. First cleanup assumption failed after reference
+removal; verified saved plans resume only remaining selections, without replay.
+Raw evidence/products/inputs retained, no App change or new protection.
+[Delivery](../maintenance/releases/2026-10-31-original-lisp-boundaries.md).
+ERT whole-file high-memory path and checking remain unaccepted. G1/G2/G4 **3/7**;
+four outcomes open and the original Goal continues.
