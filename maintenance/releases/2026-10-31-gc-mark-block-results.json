@@ -1,0 +1,1198 @@
+{
+  "schema": 1,
+  "decision": "P445",
+  "implementation_delivered": true,
+  "performance_accepted": false,
+  "full_compatibility_accepted": false,
+  "trial_app_promoted": false,
+  "scope": "One validated cons-parent block proof, eligible only on the owner in one nonzero Marking token; original helper on misses; no root/mark/order/layout/policy change",
+  "source_sha256": {
+    "src/alloc.rs": "564e9377279426cf6ca2ba70e89b797a98a5a5737d677df1e4fedd09eb41fa55",
+    "src/runtime_gc_collector.rs": "aa1ca1ef6d2e79388674ea9c879ca7ed2388bca5d2482b6dcfc2b9fe502a5020"
+  },
+  "protection_driver_sha256": "cfa9f24819b1a82bb36fe5a3ee8f95626683ddc47298d9851c1ad5a923f13fa6",
+  "frozen_source_is_clean_head": false,
+  "frozen_source_inputs": 7447,
+  "production_input_differences": [
+    "src/runtime_gc_collector.rs"
+  ],
+  "build_tool_input_differences": [
+    "tools/test-gc-local-child.py"
+  ],
+  "build": {
+    "passed": true,
+    "seconds": 720.675771042,
+    "compiler_seconds": {
+      "build-driver": 14.935824042,
+      "build-collector": 690.938216667
+    },
+    "driver_sha256": "b153ea20165e33e9c8ef784457223b1cbb19f41b68fe934ada3044a0356e5d80",
+    "historical_functional_acceptance_pending_at_build": true,
+    "profiles": [
+      {
+        "id": "reference",
+        "compiler_leg": "normal",
+        "collector": "off",
+        "observer": false,
+        "native": true,
+        "test_hooks": false,
+        "program": {
+          "bytes": 3691504,
+          "sha256": "5b55e93c8304368ee37cc5c537ca3e1370e3b9b3fef049bdce76834a9db75e65"
+        },
+        "dump": {
+          "bytes": 23084632,
+          "sha256": "6ac1214186022574a70e84a04bb7f2dc44e1ea1d4c90f0d9ce421ddd0f4b4536"
+        }
+      },
+      {
+        "id": "mark-block-terminal-normal-major",
+        "compiler_leg": "normal",
+        "collector": "major",
+        "observer": true,
+        "native": false,
+        "test_hooks": false,
+        "program": {
+          "bytes": 13405392,
+          "sha256": "d85744c2b3986cdba7f2467de23d12762b4f63276f46752b372b4cc32b060f0f"
+        },
+        "dump": {
+          "bytes": 13103136,
+          "sha256": "f264ac623011c150c3608ce58272ef057d497abf9976765d9e1834dc40d9a2f9"
+        }
+      },
+      {
+        "id": "mark-block-terminal-normal-young",
+        "compiler_leg": "normal",
+        "collector": "young",
+        "observer": true,
+        "native": false,
+        "test_hooks": false,
+        "program": {
+          "bytes": 13405392,
+          "sha256": "d85744c2b3986cdba7f2467de23d12762b4f63276f46752b372b4cc32b060f0f"
+        },
+        "dump": {
+          "bytes": 13103136,
+          "sha256": "f264ac623011c150c3608ce58272ef057d497abf9976765d9e1834dc40d9a2f9"
+        }
+      },
+      {
+        "id": "mark-block-terminal-checking-major",
+        "compiler_leg": "checking",
+        "collector": "major",
+        "observer": true,
+        "native": false,
+        "test_hooks": false,
+        "program": {
+          "bytes": 14121760,
+          "sha256": "5d37b9cb7aa5dace6b5ee2ef1bc5689254dffc4db7f82bfdd85588346d9247ea"
+        },
+        "dump": {
+          "bytes": 13103096,
+          "sha256": "c53098b3b7e08123212f280f42734e8965f5d601bc802f4817d916ed73d0dada"
+        }
+      },
+      {
+        "id": "mark-block-terminal-checking-young",
+        "compiler_leg": "checking",
+        "collector": "young",
+        "observer": true,
+        "native": false,
+        "test_hooks": false,
+        "program": {
+          "bytes": 14121760,
+          "sha256": "5d37b9cb7aa5dace6b5ee2ef1bc5689254dffc4db7f82bfdd85588346d9247ea"
+        },
+        "dump": {
+          "bytes": 13103096,
+          "sha256": "c53098b3b7e08123212f280f42734e8965f5d601bc802f4817d916ed73d0dada"
+        }
+      }
+    ]
+  },
+  "integration": {
+    "passed": true,
+    "seconds": 192.552803666,
+    "fresh_processes": 530,
+    "reused_fallback_receipts": 8,
+    "total_receipts": 538,
+    "existing_processes": 490,
+    "candidate_existing_processes": 480,
+    "reference_existing_processes": 10,
+    "new_fallback_processes": 8,
+    "new_phase_contract_processes": 32,
+    "ordered_registration_comparisons": 48,
+    "reference_language_comparisons": 16,
+    "language_observations": 153,
+    "shared_registration": 17,
+    "language_registration": 17,
+    "fallback_pairs": 4,
+    "raw_existing_passed": true,
+    "raw_existing_sha256": "4ac5e78c45ec74ba0795b0a61902e168ba68dfc8698f6f61a2942e2187b9ff1b",
+    "full_inputs_unchanged": true,
+    "trial_app_unchanged": true,
+    "driver_sha256": "1fca9402806274e48ab74e5e185505c47f61dc78f44d75b2dfde0630e558f21d"
+  },
+  "protection": {
+    "passed": true,
+    "seconds": 0.6484942090000001,
+    "cases": [
+      {
+        "id": "invalid_parent_misses_remove_the_previous_proof",
+        "seconds": 8.083e-06
+      },
+      {
+        "id": "lifecycle_boundaries_clear_and_mismatched_abort_keeps_current_proof",
+        "seconds": 5.25e-06
+      },
+      {
+        "id": "marking_reuses_parent_proof_without_changing_child_order",
+        "seconds": 5.75e-06
+      },
+      {
+        "id": "other_block_dump_null_and_misalignment_keep_checks",
+        "seconds": 1.833e-06
+      },
+      {
+        "id": "parent_validation_and_owner_gate_are_preserved",
+        "seconds": 1.708e-06
+      },
+      {
+        "id": "partial_head_and_metadata_keep_original_fallback",
+        "seconds": 1.25e-06
+      },
+      {
+        "id": "reset_and_exhausted_prepare_discard_old_proofs",
+        "seconds": 9.58e-07
+      },
+      {
+        "id": "retirement_clears_before_cons_empty_registry_idle_and_sweep_exclusions",
+        "seconds": 1.459e-06
+      },
+      {
+        "id": "same_address_retirement_and_foreign_latch_force_tree_revalidation",
+        "seconds": 1.5e-06
+      },
+      {
+        "id": "same_block_prefix_omits_only_child_lookups",
+        "seconds": 1.625e-06
+      },
+      {
+        "id": "saved_prefix_expands_only_after_a_fresh_tree_validation",
+        "seconds": 1.583e-06
+      },
+      {
+        "id": "token_phase_and_zero_token_revalidate_without_unearned_hits",
+        "seconds": 1.291e-06
+      }
+    ],
+    "original_cases": 4,
+    "additional_cases": 8,
+    "generated_sha256": "7723ff8ad3db91b6ddf4230dcb03d82abecf925159b39a7146550b924abea8aa",
+    "binary_sha256": "03cb9d88c1ce84199ff2abbce220f105ab2c96d8b9306b5b181ec8e63777e91c",
+    "binary_retained": false,
+    "compile_stderr_sha256": "f059e8242b071cf8fc827cb0546c0db5e79afabf39b92f622f4f1cf825724e92",
+    "boundary": "Unmodified state/cache/lifecycle/retirement and parent-child hooks with production cons block/macros; reduced registry capacity and explicit tree, tags, owner predicate, environment, live totals and unwind-registration substitutes. Same-address reuse is simulated in tree metadata. Not VM, allocator, threading or ABI acceptance",
+    "reduced_registry_capacity": 8,
+    "reduced_index_capacity": 16,
+    "reduced_max_probes": 8,
+    "source_and_driver_unchanged": true,
+    "unwind_registration_is_a_substitute": true,
+    "serial_test_threads": 1
+  },
+  "attribution": {
+    "passed": true,
+    "seconds": 11.624370833,
+    "driver_sha256": "843be51ac10cb490f72a18f3aea7a26668b7e4c0e5f0fe545aa4912b1a371749",
+    "processes": 24,
+    "workload_executions": 144,
+    "cycles": 1512,
+    "full_cycles": 966,
+    "young_cycles": 546,
+    "interval_rows": 272,
+    "workload_rounds": [
+      {
+        "cohort": "candidate",
+        "collector": "major",
+        "mode": "bytecode",
+        "case": "bytecode",
+        "rounds_ms": [
+          0.3230571746826172,
+          0.27489662170410156,
+          0.26798248291015625
+        ],
+        "median_ms": 0.27489662170410156,
+        "mad_ms": 0.0069141387939453125
+      },
+      {
+        "cohort": "candidate",
+        "collector": "major",
+        "mode": "bytecode",
+        "case": "edit",
+        "rounds_ms": [
+          0.5278587341308594,
+          0.5509853363037109,
+          0.5381107330322266
+        ],
+        "median_ms": 0.5381107330322266,
+        "mad_ms": 0.010251998901367188
+      },
+      {
+        "cohort": "candidate",
+        "collector": "major",
+        "mode": "bytecode",
+        "case": "gc-churn",
+        "rounds_ms": [
+          149.7330665588379,
+          148.0269432067871,
+          148.67782592773438
+        ],
+        "median_ms": 148.67782592773438,
+        "mad_ms": 0.6508827209472656
+      },
+      {
+        "cohort": "candidate",
+        "collector": "major",
+        "mode": "bytecode",
+        "case": "gc-retained",
+        "rounds_ms": [
+          23.133039474487305,
+          22.830963134765625,
+          23.855209350585938
+        ],
+        "median_ms": 23.133039474487305,
+        "mad_ms": 0.3020763397216797
+      },
+      {
+        "cohort": "candidate",
+        "collector": "major",
+        "mode": "bytecode",
+        "case": "load",
+        "rounds_ms": [
+          5.993127822875977,
+          6.059169769287109,
+          5.747079849243164
+        ],
+        "median_ms": 5.993127822875977,
+        "mad_ms": 0.06604194641113281
+      },
+      {
+        "cohort": "candidate",
+        "collector": "major",
+        "mode": "bytecode",
+        "case": "regex",
+        "rounds_ms": [
+          0.6489753723144531,
+          0.6110668182373047,
+          0.61798095703125
+        ],
+        "median_ms": 0.61798095703125,
+        "mad_ms": 0.0069141387939453125
+      },
+      {
+        "cohort": "candidate",
+        "collector": "major",
+        "mode": "interpreted",
+        "case": "bytecode",
+        "rounds_ms": [
+          8.807897567749023,
+          8.687973022460938,
+          8.598089218139648
+        ],
+        "median_ms": 8.687973022460938,
+        "mad_ms": 0.08988380432128906
+      },
+      {
+        "cohort": "candidate",
+        "collector": "major",
+        "mode": "interpreted",
+        "case": "edit",
+        "rounds_ms": [
+          0.7259845733642578,
+          0.6959438323974609,
+          0.7338523864746094
+        ],
+        "median_ms": 0.7259845733642578,
+        "mad_ms": 0.007867813110351562
+      },
+      {
+        "cohort": "candidate",
+        "collector": "major",
+        "mode": "interpreted",
+        "case": "gc-churn",
+        "rounds_ms": [
+          213.11187744140625,
+          208.01305770874023,
+          213.72413635253906
+        ],
+        "median_ms": 213.11187744140625,
+        "mad_ms": 0.6122589111328125
+      },
+      {
+        "cohort": "candidate",
+        "collector": "major",
+        "mode": "interpreted",
+        "case": "gc-retained",
+        "rounds_ms": [
+          31.261205673217773,
+          31.0361385345459,
+          31.89706802368164
+        ],
+        "median_ms": 31.261205673217773,
+        "mad_ms": 0.225067138671875
+      },
+      {
+        "cohort": "candidate",
+        "collector": "major",
+        "mode": "interpreted",
+        "case": "load",
+        "rounds_ms": [
+          9.326934814453125,
+          9.57489013671875,
+          9.67097282409668
+        ],
+        "median_ms": 9.57489013671875,
+        "mad_ms": 0.09608268737792969
+      },
+      {
+        "cohort": "candidate",
+        "collector": "major",
+        "mode": "interpreted",
+        "case": "regex",
+        "rounds_ms": [
+          0.762939453125,
+          0.7510185241699219,
+          0.7660388946533203
+        ],
+        "median_ms": 0.762939453125,
+        "mad_ms": 0.0030994415283203125
+      },
+      {
+        "cohort": "candidate",
+        "collector": "young",
+        "mode": "bytecode",
+        "case": "bytecode",
+        "rounds_ms": [
+          0.2930164337158203,
+          0.28014183044433594,
+          0.26488304138183594
+        ],
+        "median_ms": 0.28014183044433594,
+        "mad_ms": 0.012874603271484375
+      },
+      {
+        "cohort": "candidate",
+        "collector": "young",
+        "mode": "bytecode",
+        "case": "edit",
+        "rounds_ms": [
+          0.6928443908691406,
+          0.6580352783203125,
+          0.7059574127197266
+        ],
+        "median_ms": 0.6928443908691406,
+        "mad_ms": 0.013113021850585938
+      },
+      {
+        "cohort": "candidate",
+        "collector": "young",
+        "mode": "bytecode",
+        "case": "gc-churn",
+        "rounds_ms": [
+          202.8038501739502,
+          198.84419441223145,
+          200.87599754333496
+        ],
+        "median_ms": 200.87599754333496,
+        "mad_ms": 1.9278526306152344
+      },
+      {
+        "cohort": "candidate",
+        "collector": "young",
+        "mode": "bytecode",
+        "case": "gc-retained",
+        "rounds_ms": [
+          31.928062438964844,
+          31.189918518066406,
+          31.293869018554688
+        ],
+        "median_ms": 31.293869018554688,
+        "mad_ms": 0.10395050048828125
+      },
+      {
+        "cohort": "candidate",
+        "collector": "young",
+        "mode": "bytecode",
+        "case": "load",
+        "rounds_ms": [
+          6.318092346191406,
+          6.5250396728515625,
+          6.35981559753418
+        ],
+        "median_ms": 6.35981559753418,
+        "mad_ms": 0.04172325134277344
+      },
+      {
+        "cohort": "candidate",
+        "collector": "young",
+        "mode": "bytecode",
+        "case": "regex",
+        "rounds_ms": [
+          0.759124755859375,
+          0.7510185241699219,
+          0.8461475372314453
+        ],
+        "median_ms": 0.759124755859375,
+        "mad_ms": 0.008106231689453125
+      },
+      {
+        "cohort": "candidate",
+        "collector": "young",
+        "mode": "interpreted",
+        "case": "bytecode",
+        "rounds_ms": [
+          10.632991790771484,
+          11.316061019897461,
+          11.731147766113281
+        ],
+        "median_ms": 11.316061019897461,
+        "mad_ms": 0.4150867462158203
+      },
+      {
+        "cohort": "candidate",
+        "collector": "young",
+        "mode": "interpreted",
+        "case": "edit",
+        "rounds_ms": [
+          0.8859634399414062,
+          0.9250640869140625,
+          0.9071826934814453
+        ],
+        "median_ms": 0.9071826934814453,
+        "mad_ms": 0.017881393432617188
+      },
+      {
+        "cohort": "candidate",
+        "collector": "young",
+        "mode": "interpreted",
+        "case": "gc-churn",
+        "rounds_ms": [
+          275.38013458251953,
+          280.53903579711914,
+          277.2860527038574
+        ],
+        "median_ms": 277.2860527038574,
+        "mad_ms": 1.9059181213378906
+      },
+      {
+        "cohort": "candidate",
+        "collector": "young",
+        "mode": "interpreted",
+        "case": "gc-retained",
+        "rounds_ms": [
+          41.52107238769531,
+          43.61104965209961,
+          47.688961029052734
+        ],
+        "median_ms": 43.61104965209961,
+        "mad_ms": 2.089977264404297
+      },
+      {
+        "cohort": "candidate",
+        "collector": "young",
+        "mode": "interpreted",
+        "case": "load",
+        "rounds_ms": [
+          10.443925857543945,
+          10.306119918823242,
+          10.298967361450195
+        ],
+        "median_ms": 10.306119918823242,
+        "mad_ms": 0.007152557373046875
+      },
+      {
+        "cohort": "candidate",
+        "collector": "young",
+        "mode": "interpreted",
+        "case": "regex",
+        "rounds_ms": [
+          0.9260177612304688,
+          0.9319782257080078,
+          0.9291172027587891
+        ],
+        "median_ms": 0.9291172027587891,
+        "mad_ms": 0.00286102294921875
+      },
+      {
+        "cohort": "prior",
+        "collector": "major",
+        "mode": "bytecode",
+        "case": "bytecode",
+        "rounds_ms": [
+          0.26988983154296875,
+          0.2849102020263672,
+          0.29587745666503906
+        ],
+        "median_ms": 0.2849102020263672,
+        "mad_ms": 0.010967254638671875
+      },
+      {
+        "cohort": "prior",
+        "collector": "major",
+        "mode": "bytecode",
+        "case": "edit",
+        "rounds_ms": [
+          0.5238056182861328,
+          0.5209445953369141,
+          0.5550384521484375
+        ],
+        "median_ms": 0.5238056182861328,
+        "mad_ms": 0.00286102294921875
+      },
+      {
+        "cohort": "prior",
+        "collector": "major",
+        "mode": "bytecode",
+        "case": "gc-churn",
+        "rounds_ms": [
+          149.0161418914795,
+          152.724027633667,
+          147.61900901794434
+        ],
+        "median_ms": 149.0161418914795,
+        "mad_ms": 1.3971328735351562
+      },
+      {
+        "cohort": "prior",
+        "collector": "major",
+        "mode": "bytecode",
+        "case": "gc-retained",
+        "rounds_ms": [
+          23.38385581970215,
+          24.533987045288086,
+          23.387908935546875
+        ],
+        "median_ms": 23.387908935546875,
+        "mad_ms": 0.0040531158447265625
+      },
+      {
+        "cohort": "prior",
+        "collector": "major",
+        "mode": "bytecode",
+        "case": "load",
+        "rounds_ms": [
+          5.774974822998047,
+          6.045818328857422,
+          6.0558319091796875
+        ],
+        "median_ms": 6.045818328857422,
+        "mad_ms": 0.010013580322265625
+      },
+      {
+        "cohort": "prior",
+        "collector": "major",
+        "mode": "bytecode",
+        "case": "regex",
+        "rounds_ms": [
+          0.6160736083984375,
+          0.5958080291748047,
+          0.6079673767089844
+        ],
+        "median_ms": 0.6079673767089844,
+        "mad_ms": 0.008106231689453125
+      },
+      {
+        "cohort": "prior",
+        "collector": "major",
+        "mode": "interpreted",
+        "case": "bytecode",
+        "rounds_ms": [
+          8.40902328491211,
+          8.606910705566406,
+          8.806943893432617
+        ],
+        "median_ms": 8.606910705566406,
+        "mad_ms": 0.19788742065429688
+      },
+      {
+        "cohort": "prior",
+        "collector": "major",
+        "mode": "interpreted",
+        "case": "edit",
+        "rounds_ms": [
+          0.7271766662597656,
+          0.7100105285644531,
+          0.7100105285644531
+        ],
+        "median_ms": 0.7100105285644531,
+        "mad_ms": 0.0
+      },
+      {
+        "cohort": "prior",
+        "collector": "major",
+        "mode": "interpreted",
+        "case": "gc-churn",
+        "rounds_ms": [
+          209.34796333312988,
+          217.96298027038574,
+          229.6769618988037
+        ],
+        "median_ms": 217.96298027038574,
+        "mad_ms": 8.61501693725586
+      },
+      {
+        "cohort": "prior",
+        "collector": "major",
+        "mode": "interpreted",
+        "case": "gc-retained",
+        "rounds_ms": [
+          30.61389923095703,
+          35.36200523376465,
+          32.644033432006836
+        ],
+        "median_ms": 32.644033432006836,
+        "mad_ms": 2.0301342010498047
+      },
+      {
+        "cohort": "prior",
+        "collector": "major",
+        "mode": "interpreted",
+        "case": "load",
+        "rounds_ms": [
+          9.23299789428711,
+          9.25588607788086,
+          9.487152099609375
+        ],
+        "median_ms": 9.25588607788086,
+        "mad_ms": 0.02288818359375
+      },
+      {
+        "cohort": "prior",
+        "collector": "major",
+        "mode": "interpreted",
+        "case": "regex",
+        "rounds_ms": [
+          0.7600784301757812,
+          0.7457733154296875,
+          0.7510185241699219
+        ],
+        "median_ms": 0.7510185241699219,
+        "mad_ms": 0.005245208740234375
+      },
+      {
+        "cohort": "prior",
+        "collector": "young",
+        "mode": "bytecode",
+        "case": "bytecode",
+        "rounds_ms": [
+          0.308990478515625,
+          0.3228187561035156,
+          0.27179718017578125
+        ],
+        "median_ms": 0.308990478515625,
+        "mad_ms": 0.013828277587890625
+      },
+      {
+        "cohort": "prior",
+        "collector": "young",
+        "mode": "bytecode",
+        "case": "edit",
+        "rounds_ms": [
+          0.6978511810302734,
+          0.6749629974365234,
+          0.7021427154541016
+        ],
+        "median_ms": 0.6978511810302734,
+        "mad_ms": 0.004291534423828125
+      },
+      {
+        "cohort": "prior",
+        "collector": "young",
+        "mode": "bytecode",
+        "case": "gc-churn",
+        "rounds_ms": [
+          197.10683822631836,
+          197.9238986968994,
+          198.19998741149902
+        ],
+        "median_ms": 197.9238986968994,
+        "mad_ms": 0.2760887145996094
+      },
+      {
+        "cohort": "prior",
+        "collector": "young",
+        "mode": "bytecode",
+        "case": "gc-retained",
+        "rounds_ms": [
+          31.312942504882812,
+          33.42914581298828,
+          33.94603729248047
+        ],
+        "median_ms": 33.42914581298828,
+        "mad_ms": 0.5168914794921875
+      },
+      {
+        "cohort": "prior",
+        "collector": "young",
+        "mode": "bytecode",
+        "case": "load",
+        "rounds_ms": [
+          6.358861923217773,
+          6.224155426025391,
+          6.3800811767578125
+        ],
+        "median_ms": 6.358861923217773,
+        "mad_ms": 0.021219253540039062
+      },
+      {
+        "cohort": "prior",
+        "collector": "young",
+        "mode": "bytecode",
+        "case": "regex",
+        "rounds_ms": [
+          0.7648468017578125,
+          0.7529258728027344,
+          0.762939453125
+        ],
+        "median_ms": 0.762939453125,
+        "mad_ms": 0.0019073486328125
+      },
+      {
+        "cohort": "prior",
+        "collector": "young",
+        "mode": "interpreted",
+        "case": "bytecode",
+        "rounds_ms": [
+          10.650873184204102,
+          11.111021041870117,
+          11.281967163085938
+        ],
+        "median_ms": 11.111021041870117,
+        "mad_ms": 0.1709461212158203
+      },
+      {
+        "cohort": "prior",
+        "collector": "young",
+        "mode": "interpreted",
+        "case": "edit",
+        "rounds_ms": [
+          0.8749961853027344,
+          0.8881092071533203,
+          0.9410381317138672
+        ],
+        "median_ms": 0.8881092071533203,
+        "mad_ms": 0.013113021850585938
+      },
+      {
+        "cohort": "prior",
+        "collector": "young",
+        "mode": "interpreted",
+        "case": "gc-churn",
+        "rounds_ms": [
+          276.7200469970703,
+          276.2291431427002,
+          311.4910125732422
+        ],
+        "median_ms": 276.7200469970703,
+        "mad_ms": 0.4909038543701172
+      },
+      {
+        "cohort": "prior",
+        "collector": "young",
+        "mode": "interpreted",
+        "case": "gc-retained",
+        "rounds_ms": [
+          42.74320602416992,
+          41.41497611999512,
+          44.6629524230957
+        ],
+        "median_ms": 42.74320602416992,
+        "mad_ms": 1.3282299041748047
+      },
+      {
+        "cohort": "prior",
+        "collector": "young",
+        "mode": "interpreted",
+        "case": "load",
+        "rounds_ms": [
+          10.63084602355957,
+          10.710000991821289,
+          10.677814483642578
+        ],
+        "median_ms": 10.677814483642578,
+        "mad_ms": 0.03218650817871094
+      },
+      {
+        "cohort": "prior",
+        "collector": "young",
+        "mode": "interpreted",
+        "case": "regex",
+        "rounds_ms": [
+          0.9019374847412109,
+          0.90789794921875,
+          0.9272098541259766
+        ],
+        "median_ms": 0.90789794921875,
+        "mad_ms": 0.0059604644775390625
+      }
+    ],
+    "selected_young_root_intervals": [
+      {
+        "cohort": "candidate",
+        "collector": "young",
+        "mode": "bytecode",
+        "case": "gc-churn",
+        "cycle_kind": "young",
+        "phase": "23",
+        "n": 99,
+        "median_ms": 3.809,
+        "min_ms": 3.599,
+        "max_ms": 4.916
+      },
+      {
+        "cohort": "candidate",
+        "collector": "young",
+        "mode": "bytecode",
+        "case": "gc-churn",
+        "cycle_kind": "young",
+        "phase": "24",
+        "n": 99,
+        "median_ms": 0.255,
+        "min_ms": 0.238,
+        "max_ms": 0.303
+      },
+      {
+        "cohort": "candidate",
+        "collector": "young",
+        "mode": "bytecode",
+        "case": "gc-retained",
+        "cycle_kind": "young",
+        "phase": "23",
+        "n": 15,
+        "median_ms": 3.795,
+        "min_ms": 3.633,
+        "max_ms": 3.883
+      },
+      {
+        "cohort": "candidate",
+        "collector": "young",
+        "mode": "bytecode",
+        "case": "gc-retained",
+        "cycle_kind": "young",
+        "phase": "24",
+        "n": 15,
+        "median_ms": 0.297,
+        "min_ms": 0.25,
+        "max_ms": 0.354
+      },
+      {
+        "cohort": "candidate",
+        "collector": "young",
+        "mode": "interpreted",
+        "case": "gc-churn",
+        "cycle_kind": "young",
+        "phase": "23",
+        "n": 141,
+        "median_ms": 3.721,
+        "min_ms": 3.526,
+        "max_ms": 4.179
+      },
+      {
+        "cohort": "candidate",
+        "collector": "young",
+        "mode": "interpreted",
+        "case": "gc-churn",
+        "cycle_kind": "young",
+        "phase": "24",
+        "n": 141,
+        "median_ms": 0.257,
+        "min_ms": 0.236,
+        "max_ms": 0.302
+      },
+      {
+        "cohort": "candidate",
+        "collector": "young",
+        "mode": "interpreted",
+        "case": "gc-retained",
+        "cycle_kind": "young",
+        "phase": "23",
+        "n": 18,
+        "median_ms": 3.8875,
+        "min_ms": 3.643,
+        "max_ms": 6.7
+      },
+      {
+        "cohort": "candidate",
+        "collector": "young",
+        "mode": "interpreted",
+        "case": "gc-retained",
+        "cycle_kind": "young",
+        "phase": "24",
+        "n": 18,
+        "median_ms": 0.3535,
+        "min_ms": 0.296,
+        "max_ms": 0.59
+      },
+      {
+        "cohort": "prior",
+        "collector": "young",
+        "mode": "bytecode",
+        "case": "gc-churn",
+        "cycle_kind": "young",
+        "phase": "23",
+        "n": 99,
+        "median_ms": 3.762,
+        "min_ms": 3.552,
+        "max_ms": 4.396
+      },
+      {
+        "cohort": "prior",
+        "collector": "young",
+        "mode": "bytecode",
+        "case": "gc-churn",
+        "cycle_kind": "young",
+        "phase": "24",
+        "n": 99,
+        "median_ms": 0.252,
+        "min_ms": 0.233,
+        "max_ms": 0.285
+      },
+      {
+        "cohort": "prior",
+        "collector": "young",
+        "mode": "bytecode",
+        "case": "gc-retained",
+        "cycle_kind": "young",
+        "phase": "23",
+        "n": 15,
+        "median_ms": 3.764,
+        "min_ms": 3.579,
+        "max_ms": 4.302
+      },
+      {
+        "cohort": "prior",
+        "collector": "young",
+        "mode": "bytecode",
+        "case": "gc-retained",
+        "cycle_kind": "young",
+        "phase": "24",
+        "n": 15,
+        "median_ms": 0.286,
+        "min_ms": 0.244,
+        "max_ms": 0.403
+      },
+      {
+        "cohort": "prior",
+        "collector": "young",
+        "mode": "interpreted",
+        "case": "gc-churn",
+        "cycle_kind": "young",
+        "phase": "23",
+        "n": 141,
+        "median_ms": 3.782,
+        "min_ms": 3.507,
+        "max_ms": 6.294
+      },
+      {
+        "cohort": "prior",
+        "collector": "young",
+        "mode": "interpreted",
+        "case": "gc-churn",
+        "cycle_kind": "young",
+        "phase": "24",
+        "n": 141,
+        "median_ms": 0.259,
+        "min_ms": 0.235,
+        "max_ms": 0.356
+      },
+      {
+        "cohort": "prior",
+        "collector": "young",
+        "mode": "interpreted",
+        "case": "gc-retained",
+        "cycle_kind": "young",
+        "phase": "23",
+        "n": 18,
+        "median_ms": 3.9130000000000003,
+        "min_ms": 3.68,
+        "max_ms": 4.775
+      },
+      {
+        "cohort": "prior",
+        "collector": "young",
+        "mode": "interpreted",
+        "case": "gc-retained",
+        "cycle_kind": "young",
+        "phase": "24",
+        "n": 18,
+        "median_ms": 0.3635,
+        "min_ms": 0.29,
+        "max_ms": 0.415
+      }
+    ],
+    "full_inputs_unchanged": true,
+    "trial_app_unchanged": true,
+    "quiet_policy_satisfied": false,
+    "load_per_core_min": 0.62548828125,
+    "load_per_core_max": 0.6509331597222222,
+    "performance_accepted": false,
+    "compatibility_accepted": false,
+    "boundary": "Inclusive wall intervals; busy host; no official reference comparison, causal speedup, exclusive CPU, hardware pause or object coverage claim"
+  },
+  "controllers": {
+    "build": {
+      "run_id": "72fce2871ed5458b8554bca988215b29",
+      "profile": "build",
+      "reason": "exited",
+      "exit_code": 0,
+      "cleanup_complete": true,
+      "elapsed_seconds": 728.618,
+      "peak_accounted_bytes": 540704768,
+      "peak_rss_bytes": 540704768,
+      "peak_footprint_bytes": 434964760,
+      "initial_limit_bytes": 2147483648,
+      "hard_limit_bytes": 2147483648,
+      "growth_count": 0,
+      "log_sha256": "0b7932ea467799bb7ac73f9fe81dd57d481a5bae2effcf619013a4fb939b2134",
+      "metrics_independently_reviewed": false
+    },
+    "functional": {
+      "run_id": "b7e21ab6ada942ca8332c73b022f2aba",
+      "profile": "runtime",
+      "reason": "exited",
+      "exit_code": 0,
+      "cleanup_complete": true,
+      "elapsed_seconds": 202.494,
+      "peak_accounted_bytes": 192430080,
+      "peak_rss_bytes": 192430080,
+      "peak_footprint_bytes": 159712456,
+      "initial_limit_bytes": 1073741824,
+      "hard_limit_bytes": 1073741824,
+      "growth_count": 0,
+      "log_sha256": "73eba6782e8b92ac40ff97e6a68ce5448e055142042bc92869200d310e862625",
+      "metrics_independently_reviewed": false
+    },
+    "protection": {
+      "run_id": "bb0f43136b7345c28323a32d5c6a48fa",
+      "profile": "build",
+      "reason": "exited",
+      "exit_code": 0,
+      "cleanup_complete": true,
+      "elapsed_seconds": 0.782,
+      "peak_accounted_bytes": 139132928,
+      "peak_rss_bytes": 139132928,
+      "peak_footprint_bytes": 60310632,
+      "initial_limit_bytes": 536870912,
+      "hard_limit_bytes": 536870912,
+      "growth_count": 0,
+      "log_sha256": "70336688e65bd26d3382c776f55ad13c0c5a188bac4d1a7d01f56f685aa890a6",
+      "metrics_independently_reviewed": false
+    },
+    "attribution": {
+      "run_id": "fcd8a065354d4f738cea76bf7f24b0c9",
+      "profile": "runtime",
+      "reason": "exited",
+      "exit_code": 0,
+      "cleanup_complete": true,
+      "elapsed_seconds": 16.848,
+      "peak_accounted_bytes": 78643200,
+      "peak_rss_bytes": 78643200,
+      "peak_footprint_bytes": 62571432,
+      "initial_limit_bytes": 1073741824,
+      "hard_limit_bytes": 1073741824,
+      "growth_count": 0,
+      "log_sha256": "4470be30702deab88ac6b3d606f3a6eaea34ebf68a7223e4ee4d71f635a799d9",
+      "metrics_independently_reviewed": false
+    }
+  },
+  "original_result_identities": [
+    {
+      "path": "build/acceptance/gc-mark-block-current-1/results.json",
+      "sha256": "458a7d0a6657b860273742787bdb8b3c7c0289ad16191c265291f735c7537d9e",
+      "bytes": 14787
+    },
+    {
+      "path": "build/acceptance/gc-mark-block-functional-1/results.json",
+      "sha256": "9ede1e0db12831dd69a6502e63993742bc0d2ff4ad33b6464c49751b4ebec012",
+      "bytes": 848715
+    },
+    {
+      "path": "build/acceptance/gc-mark-block-protection-1/results.json",
+      "sha256": "bf15f16ea7d96852f1bc3fce0a991a8d290eb487e6a5e6b885f52ca9f1bb7b58",
+      "bytes": 2574
+    },
+    {
+      "path": "build/acceptance/gc-mark-block-attribution-1/results.json",
+      "sha256": "501625f7bd586916f0634c521db386026ae384db22d28abc41b007d894cc8ffd",
+      "bytes": 916883
+    },
+    {
+      "path": "build/acceptance/gc-mark-block-functional-1/raw-existing-results.json",
+      "sha256": "4ac5e78c45ec74ba0795b0a61902e168ba68dfc8698f6f61a2942e2187b9ff1b",
+      "bytes": 12718059
+    },
+    {
+      "path": "build/acceptance/gc-mark-block-functional-1/existing-results.json",
+      "sha256": "7265fd77cd8de093712f9c903b4ed098905072872bb6fdd0747547a47593376a",
+      "bytes": 12750259
+    },
+    {
+      "path": "build/acceptance/gc-mark-block-functional-1/phase-contract-results.json",
+      "sha256": "72a8d0a05321840c475dfe97bd1f13f3e4d39cc250757d375595a23342ea3f07",
+      "bytes": 540393
+    }
+  ],
+  "cleanup": {
+    "status": "complete",
+    "files": 10290,
+    "directories": 3885,
+    "logical_bytes": 404732539,
+    "allocated_bytes": 425656320,
+    "selected_groups": 557,
+    "rows": 14175,
+    "manifest_sha256": "d53989cbbb98e072d074bd7d6074c5321117ff8ab387dca8e430ad6d93eeadaa",
+    "retained_files_verified": 3349,
+    "frozen_source_inputs": 7447,
+    "candidate_prior_and_trial_products_unchanged": true,
+    "head_index_unchanged": true,
+    "original_raw_results_and_observations_retained": true,
+    "extra_verified_files": 6,
+    "extra_logical_bytes": 3343357,
+    "extra_allocated_bytes": 3358720,
+    "protection_generated_retired": true,
+    "build_owner_archive_retired": true,
+    "consumed_prior_helpers": 3,
+    "manifest": "maintenance/cleanup/manifests/2026-10-31-181-consumed-mark-block-state.jsonl.gz",
+    "links": 0,
+    "seconds": 169.365497,
+    "execution": "Bounded ordinary file/hash operation, not a compiler/editor or performance run",
+    "unrelated_wip_files_verified_against_frozen_before_document_prefixes": 9,
+    "current_whole_wip_files_matching_frozen": 6,
+    "current_preexisting_wip_contents_matching_frozen": 9,
+    "documents_compared_after_excluding_only_current_prefixes": [
+      "docs/current-state.md",
+      "docs/status.md",
+      "maintenance/cleanup/LOG.md"
+    ]
+  },
+  "independent_review": {
+    "source": true,
+    "integration": true,
+    "component_protections": true,
+    "descriptive_attribution": true,
+    "reran_products": false,
+    "controllers": false,
+    "live_app_before_after_independently_recomputed": false
+  },
+  "limits": [
+    "Successful hits retain the proof-time limit; a fresh successful original heap_cell lookup may establish a new larger proof.",
+    "Lifecycle invalidation remains under existing owner/token/guard eligibility. Foreign retirement latches FOREIGN and disables subsequent owner cache use; concurrent foreign Lisp mutation is unsupported.",
+    "A block/prefix location proof does not prove that a cell is live or absent from the free list.",
+    "Component tests use reduced registry capacities, substitute tree/tag/dump/owner/environment/live totals/unwind registration and simulated same-address metadata reuse; no actual allocator, VM, threading or ABI proof.",
+    "App unchanged is a driver assertion; raw functional/attribution JSON does not embed both App identities for independent recomputation.",
+    "Attribution omits independent records<=4096 and totals incomplete/clock/depth assertions, parent checks and per-case GC requirements; existing dropped/invalid/record-flag and cycle predicates remain. External controller enforces the 600-second whole deadline.",
+    "Earlier P444 extractor/preflight failures remain unchanged. No current/prior product, frozen input or historical manifest is rewritten.",
+    "G1/G2/G4 remain 3/7; G3/G5/G6/G7, checking original-file coverage and whole ERT remain open."
+  ]
+}

@@ -1,3 +1,33 @@
+## P445: owner/Marking-token cons location reuse (2026-10-31)
+
+Only the collector changes from P444: retain a successful parent block proof in
+one owner Marking token; saved prefix/dump/alignment/current-head checks gate
+hits. A miss retains original validation and can establish a fresh proof.
+Reset/eligible prepare/start-sweep/commit/abort and pointer/storage retirement
+clear it before registry/cons/sweep exclusions. FOREIGN disables reuse; this
+does not support concurrent foreign Lisp mutation or prove free-list liveness.
+Roots/order, real marking, children/dirty decisions, layout and policy unchanged.
+
+Build 720.676s, normal/checking terminal collector+observer, native/test hooks off.
+Only collector differs in production; 7,447 frozen inputs include unrelated WIP.
+Integration 192.553s: 530 new (490 existing=480 candidate+10 reference, eight
+fallback, 32 phase contract) plus eight verified P444 receipts. Raw aggregate
+true; 48 ordered registration, sixteen reference lists, 153 observations, four
+fallback pairs pass. Twelve component protections pass in 0.648s (old4+new8),
+with extracted state/hooks, reduced registry and explicit runtime substitutes.
+Same-address reuse is simulated, not a VM/allocator/thread/ABI proof.
+Descriptive 24 processes/144 workloads/1,512 cycles/272 intervals complete in
+11.624s; load/core0.6255-0.6509, quiet false, performance/compatibility false.
+App unchanged is a driver assertion; before/after App maps are not in raw JSON.
+Controller measurements remain primary-only. No speedup or App promotion.
+
+CLN181: 10,290 files, 3,885 directories, no links; 404,732,539 logical /
+425,656,320 allocated bytes, 14,175 rows, 557 scopes plus six exact files.
+Original evidence, frozen source, actual products and unrelated WIP remain;
+P444 failures unchanged. G1/G2/G4 **3/7**, Goal active; G3/G5/G6/G7 remain open.
+[Delivery](../maintenance/releases/2026-10-31-gc-mark-block.md) ·
+[CLN181](../maintenance/cleanup/reports/2026-10-31-181-consumed-mark-block-state.md).
+
 ## 2026-10-31 · Original Lisp structures and CLN180
 
 Six unchanged pinned files use all-discovered-ids on accepted P435 normal

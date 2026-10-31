@@ -3875,3 +3875,31 @@ integration. Then protect same-block boundaries, cross-block/dump fallback,
 invalid parent and exact lookup omission with the production helper. A bounded
 descriptive workload may locate costs; removed lookups alone are not a speedup
 claim, and the trial App stays unchanged pending full acceptance.
+
+## P445: retain a cons location proof only during its marking cycle
+
+P444 still resolves every marked parent through the memory tree. A successful
+`heap_cell` result proves the allocation type, complete block extent and an
+allocated cons prefix. Reuse the most recent such proof only for an exactly
+aligned parent within that proven prefix, on the owning Lisp thread in the
+same nonzero active token and Marking phase. Store the proof's original limit;
+never widen it when the head changes, and recheck a current head's smaller
+limit. Keep the dump predicate and use the original helper on every miss or
+failed eligibility check. Failed lookups do not establish a proof.
+
+Clear this private proof at reset, prepare, sweep entry, commit and abort.
+Change the existing pointer/storage retirement hooks to clear it before their
+cons-type, empty-registry and Sweeping exclusions. Thus aligned release and
+memory-tree deletion invalidate independently of registry capture. A foreign
+owner latch disables subsequent cache use; this does not support concurrent
+foreign Lisp mutation. Original validation remains necessary outside this
+strict lifetime. Cell free-list reuse does not prove liveness and is not
+described as a new liveness check.
+
+Do not alter actual marking, roots/order, child checks, dirty-bit decisions,
+public layouts, collection policy or the trial App. Complete the implementation
+before building separate normal/checking collector products and running the
+affected marker, fallback and phase integration. Only then protect proof
+boundaries, lifecycle/retirement invalidation, foreign-owner bypass and exact
+lookup reuse. Any timing is descriptive until qualified comparisons establish
+a benefit; reduced tree work alone does not close G5/G7 or accept performance.

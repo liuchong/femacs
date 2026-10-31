@@ -1,3 +1,18 @@
+## CLN181 - consumed marking-proof state (2026-10-31)
+
+After P445 source/integration/component/descriptive review: **10,290 files,
+3,885 directories, no links**, **404,732,539 / 425,656,320** logical/allocated
+bytes; 14,175 rows, 557 directory scopes plus six exact files. Retire own cargo,
+objects/generated units, 554 process state groups, protection source/binary,
+consumed owner archive and three CLN180 helpers. No shared cache deletion.
+Retain 3,349 verified evidence files, 7,447 frozen inputs, current/prior products,
+raw logs/observations and original P444 failures. HEAD/index/products/App stay.
+Nine old WIP contents match frozen originals: six whole files and three document
+bodies after excluding only this round's prefixes. Ordinary bounded file operation
+exit0 in169.365s, no editor/compiler; no speedup/App/G5/G7 acceptance.
+[Report](reports/2026-10-31-181-consumed-mark-block-state.md) ·
+[Manifest](manifests/2026-10-31-181-consumed-mark-block-state.jsonl.gz).
+
 ## CLN-20261031-180 — consumed Lisp structures and motion state
 
 Independent review accepts354 ordinary observations from18 unique normal P435

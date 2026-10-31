@@ -1,3 +1,24 @@
+## Current runtime continuation: marking-cycle cons proof (2026-10-31)
+
+P445 retains one freshly validated parent block/prefix only on the owner in the
+same nonzero Marking token. Hits keep the saved limit, clamp a current head,
+check dump/alignment and never widen after a head change. Misses use the
+original helper; only a fresh validation can establish a larger proof.
+Lifecycle and pointer/storage retirement invalidate before registry/type/sweep
+exclusions; FOREIGN disables subsequent reuse. No concurrent foreign mutation
+or cell-liveness proof is claimed. Marking, roots/order, policy and layout stay.
+Separate normal/checking terminal collector+observer builds pass, native/test
+hooks off; 7,447 frozen inputs include WIP. Integration: 530 new processes plus
+eight verified P444 fallback receipts, raw 490/490, ordered IDs and phases pass.
+Twelve extracted protections pass; reduced registry and owner/tree/unwind stubs
+make these components, not VM/allocator/threading/ABI proof. Descriptive 24-process
+run is busy-host; performance/compatibility acceptance remain false, App unchanged.
+CLN181: 10,290 files/3,885 directories, 404,732,539 / 425,656,320 bytes; original
+evidence, frozen inputs, actual current/prior products and unrelated WIP remain.
+G1/G2/G4 remain **3/7**, Goal active; full G3/G5/G6/G7 and whole ERT stay open.
+[Delivery](../maintenance/releases/2026-10-31-gc-mark-block.md) ·
+[CLN181](../maintenance/cleanup/reports/2026-10-31-181-consumed-mark-block-state.md).
+
 ## G3 original Lisp structures and motion (2026-10-31)
 
 Six unchanged pinned files, accepted P435 normal reference/terminal/Cocoa:

@@ -2336,3 +2336,19 @@ integration processes plus eight verified prior receipts, and four extracted
 component protections pass. The descriptive 24-process comparison is on a busy
 host and does not establish a speedup. No App promotion or full G5/G7 acceptance
 is inferred. See the [bounded delivery](../maintenance/releases/2026-10-31-gc-local-child.md).
+
+### P445: a marking-token-scoped parent proof
+
+`note_cons_marked` may reuse the most recent parent allocation proof only on
+the owner in one nonzero Marking token. Hits retain the proof-time prefix and
+clamp a current head; a larger proof requires another successful original tree
+validation. Retirement invalidates before registry/type/sweep exclusions and
+FOREIGN disables later reuse. Existing lifecycle/guard gates remain; this is
+not concurrent foreign mutation or free-list liveness support. Actual roots,
+marking/order, child/dirty decisions, layout and collection policy do not change.
+Separate normal/checking products, 530 fresh integration processes plus eight
+verified P444 receipts and twelve extracted component protections pass. Reduced
+registry/runtime substitutes limit components to their stated contracts.
+The 24-process descriptive run remains busy-host, with performance and full
+compatibility false, no App promotion and no G5/G7 closure. See the
+[bounded delivery](../maintenance/releases/2026-10-31-gc-mark-block.md).

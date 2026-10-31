@@ -80,9 +80,12 @@ mod gc_collector {
             *old &= mask; *dirty &= mask;
         }
     }
+    #[derive(Clone, Copy)]
+    struct MarkedConsBlockProof { block: *mut cons_block, limit: usize, token: u64 }
     struct State {
         registry: numeric::Registry,
         phase: CollectorPhase,
+        marked_cons_block: Option<MarkedConsBlockProof>,
         capture_registry: bool,
         active_token: u64,
         next_token: u64,
@@ -97,6 +100,7 @@ mod gc_collector {
     impl State {
         const fn new() -> Self {
             Self { registry: numeric::Registry::new(), phase: CollectorPhase::Idle,
+                marked_cons_block: None,
                 capture_registry: false, active_token: 0, next_token: 0, totals: [0; 24], reasons: [0; 13],
                 invalid_reason: 1, counters_exhausted: false,
                 cycle_valid: false,
@@ -138,6 +142,7 @@ mod gc_collector {
         };
         let s = state();
         s.registry.clear(); s.phase = CollectorPhase::Idle;
+        s.marked_cons_block = None;
         s.capture_registry = false;
         s.active_token = 0; s.next_token = 0;
         s.totals.fill(0); s.reasons.fill(0);
@@ -207,6 +212,7 @@ mod gc_collector {
 
     pub(super) unsafe fn prepare_cycle(kind: GcKind, reason: u32, guard: &mut CollectorCycleGuard) {
         if !owner() { return; }
+        state().marked_cons_block = None;
         // Guard points into the caller's stack and is registered before any
         // active token, registry or bitmap mutation.
         record_unwind_protect_ptr(Some(abort_cycle), (guard as *mut CollectorCycleGuard).cast());
@@ -291,12 +297,14 @@ mod gc_collector {
     }
     pub(super) unsafe fn start_sweep() {
         if owner() && state().active_token != 0 {
+            state().marked_cons_block = None;
             state().capture_registry = false;
             state().phase = CollectorPhase::Sweeping;
         }
     }
     pub(super) unsafe fn commit_cycle(kind: GcKind, guard: &mut CollectorCycleGuard) {
         if !guard.armed || !owner() || state().active_token != guard.token { return; }
+        state().marked_cons_block = None;
         state().totals[2] = u64::from(kind == GcKind::Young);
         if kind == GcKind::Full {
             state().count(3, 1); state().totals[5] = 0;
@@ -317,6 +325,7 @@ mod gc_collector {
     pub(super) unsafe extern "C" fn abort_cycle(data: *mut c_void) {
         let guard = &mut *(data as *mut CollectorCycleGuard);
         if guard.armed && owner() && state().active_token == guard.token {
+            state().marked_cons_block = None;
             state().registry.valid = false;
             state().cycle_valid = false;
             state().invalid_reason = 10;
@@ -337,6 +346,31 @@ mod gc_collector {
             || ((*node).end as usize).saturating_sub(block as usize) < core::mem::size_of::<cons_block>()
             || cell as usize % core::mem::size_of::<Lisp_Cons>() != 0 { return None; }
         Some((block, index))
+    }
+    unsafe fn marked_heap_cell(cell: *mut Lisp_Cons) -> Option<(*mut cons_block, usize)> {
+        // note_cons_marked has already checked young_owner. Retain a location
+        // proof only in this marking token, never across storage retirement.
+        let token = state().active_token;
+        if token == 0 || state().phase != CollectorPhase::Marking
+            || FOREIGN.load(Ordering::Relaxed) { return heap_cell(cell); }
+        if let Some(proof) = state().marked_cons_block {
+            if proof.token == token && !cell.is_null() && !pdumper_object_p(cell.cast()) {
+                let limit = if proof.block == cons_block {
+                    proof.limit.min(cons_block_index as usize)
+                } else { proof.limit };
+                if let Some(offset) = (cell as usize).checked_sub(proof.block as usize) {
+                    let size = core::mem::size_of::<Lisp_Cons>();
+                    if offset < limit * size && offset % size == 0 {
+                        return Some((proof.block, offset / size));
+                    }
+                }
+            }
+        }
+        let location = heap_cell(cell);
+        state().marked_cons_block = location.map(|(block, _)| MarkedConsBlockProof {
+            block, limit: if block == cons_block { cons_block_index as usize } else { CONS_BLOCK_SIZE }, token,
+        });
+        location
     }
     pub(super) unsafe fn written(object: Lisp_Object) {
         if !young_owner() || !CONSP(object) { return; }
@@ -359,7 +393,7 @@ mod gc_collector {
     }
     pub(super) unsafe fn note_cons_marked(cell: *mut Lisp_Cons) {
         if !young_owner() { return; }
-        let Some((block, index)) = heap_cell(cell) else { return; };
+        let Some((block, index)) = marked_heap_cell(cell) else { return; };
         let car = (*cell).u.s.car; let cdr = (*cell).u.s.u.cdr;
         let limit = if block == cons_block { cons_block_index as usize } else { CONS_BLOCK_SIZE };
         let nonheap_child = |object: Lisp_Object| -> bool {
@@ -402,7 +436,11 @@ mod gc_collector {
         numeric::clear_age(&mut (*block).oldbits[word], &mut (*block).dirtybits[word], bit);
     }
     pub(super) unsafe fn before_storage_change(start: usize, end: usize) {
-        if !young_owner() || start >= end || state().registry.len == 0 { return; }
+        if !young_owner() || start >= end { return; }
+        // mem_delete also calls here for cons allocations and during sweep.
+        // Location proofs must expire even when no registry work is needed.
+        state().marked_cons_block = None;
+        if state().registry.len == 0 { return; }
         // Owned Sweeping is narrower than gc_in_progress: original sweep
         // destroys only unmarked objects, absent from this cycle's registry.
         if state().phase == CollectorPhase::Sweeping { return; }
@@ -421,6 +459,9 @@ mod gc_collector {
     }
     pub(super) unsafe fn before_pointer_change(pointer: *mut c_void) {
         if MODE.load(Ordering::Relaxed) != 2 || pointer.is_null() || !owner() { return; }
+        // Invalidate before the registry's cons-type exclusion, including the
+        // lisp_align_free path, and before the allocator can reuse the block.
+        state().marked_cons_block = None;
         let node = mem_find(pointer);
         if !node.is_null() && node != MEM_NIL!()
             && (*node).r#type != mem_type::MEM_TYPE_NON_LISP
