@@ -1,0 +1,154 @@
+{
+  "schema": "femacs-own-voice-reporting-delivery-v1",
+  "diagnostic_fix_accepted": true,
+  "whole_tree_policy_passed": false,
+  "compatibility_accepted": false,
+  "performance_accepted": false,
+  "editor_accepted": false,
+  "trial_app_promoted": false,
+  "goal_complete": false,
+  "source_sha256": "8c3742db642adbac3b5986b624e6cbf13ad03c73bfa8b7fd548de339d9d57a91",
+  "integration_source_before_protection_sha256": "2fa453c1bde9b7a8d7d8bd941cda9f970ec2b4eaa3d0490bb86ec77f855e3892",
+  "production_ast_sha256": "9e3258384b597b9777ff789f1aec2657fc3a130e3f6708ca6b14a9032a0032c0",
+  "production_ast_equal_to_integrated": true,
+  "postintegration_change": "Only selftest body; no new walked files, policy, exemptions or production AST change.",
+  "baseline": {
+    "commit": "0ad01b696461fe341bf8f0817310ccc3e0e0642c",
+    "path": "tools/check-own-voice.py",
+    "sha256": "3bbbedb8c9cdb0b451c24ee8c91c0c94397836b721b9c76aa74ae2c66df9ccd3"
+  },
+  "repository_cli": {
+    "exit_code": 1,
+    "complete": true,
+    "traceback": false,
+    "findings": 10,
+    "finding_multiset_equal_to_old_head_detector": true,
+    "seconds": 6.9076400829999995
+  },
+  "fixtures": [
+    {
+      "id": "clean",
+      "passed": true,
+      "expected_findings": 0,
+      "input_sha256": "675264e040a5da3e1c895e00ccf7107fb3ff1890dd10e336926b2c8d78c0bfe0"
+    },
+    {
+      "id": "long-tool",
+      "passed": true,
+      "expected_findings": 1,
+      "input_sha256": "7a3f21bad8da44819806e7e1e4055bc9bef5c0b04279fc1e22e378fb5ccd1529"
+    },
+    {
+      "id": "long-ported",
+      "passed": true,
+      "expected_findings": 1,
+      "input_sha256": "f4b9ef86aba10109bac344dd95ac93f8db2f29537a8e7c8a3a18a09d2327b00c"
+    },
+    {
+      "id": "normalized-context",
+      "passed": true,
+      "expected_findings": 1,
+      "input_sha256": "9db4cc295a38ecfffcaf0d1220c73e52fe847d418f0290643a41c3d843f63824"
+    },
+    {
+      "id": "multiple",
+      "passed": true,
+      "expected_findings": 2,
+      "input_sha256": "43217a1a19ab843287420f4e3b865b08acf844545c646c0c5861011b69baeee8"
+    }
+  ],
+  "functional_seconds": 11.0225575,
+  "protection": {
+    "cases": 19,
+    "existing": 16,
+    "new": 3,
+    "passed": true,
+    "production_ast_unchanged": true,
+    "limitation": "Reporting component substitutes detection/file walking;16 existing cases exercise real small files. No VM or original Lisp behavior acceptance."
+  },
+  "original_results": [
+    {
+      "path": "build/acceptance/own-voice-reporting-functional-1/results.json",
+      "sha256": "4cfc447d5582343a7383f4d56e225aa30a4d6506d263723e775f7df691755466",
+      "bytes": 8424
+    },
+    {
+      "path": "build/acceptance/own-voice-reporting-protection-1/results.json",
+      "sha256": "776e112e29e83c759a048acd00c236b5f8367f429094b5ade73e1b3d4eb159cc",
+      "bytes": 1210
+    },
+    {
+      "path": "build/acceptance/own-voice-reporting-functional-1/baseline-findings.json",
+      "sha256": "dde65449d5e4c9613b48c3ad0ab7a9f6962e2a196831fe5baa2a0afcbf3a0c17",
+      "bytes": 681
+    },
+    {
+      "path": "build/acceptance/own-voice-reporting-functional-1/repository-cli/stdout.txt",
+      "sha256": "3091db38864cd9dd802455c1edadf8de95b16244969047dae6cfd5a67fe563ff",
+      "bytes": 3975
+    },
+    {
+      "path": "build/acceptance/own-voice-reporting-functional-1/repository-cli/stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    }
+  ],
+  "stdout_selftest": {
+    "sha256": "44c989e5b76610dc80f60066d09cf2dc405e05fd3f31664700e49f75788e4233",
+    "original_retained": true
+  },
+  "controllers": [
+    {
+      "run_id": "f1df7c048dab4cada3c44271a11ef7f7",
+      "exit_code": 0,
+      "cleanup_complete": true,
+      "elapsed_seconds": 11.214,
+      "peak_accounted_bytes": 69222400,
+      "initial_limit_bytes": 1073741824,
+      "hard_limit_bytes": 1073741824,
+      "growth_count": 0
+    },
+    {
+      "run_id": "be57783d5063452d873ff5584725564f",
+      "exit_code": 0,
+      "cleanup_complete": true,
+      "elapsed_seconds": 0.271,
+      "peak_accounted_bytes": 4816896,
+      "initial_limit_bytes": 536870912,
+      "hard_limit_bytes": 536870912,
+      "growth_count": 0
+    }
+  ],
+  "controller_metrics_independently_reviewed": false,
+  "cleanup": {
+    "status": "complete",
+    "files": 16,
+    "directories": 1,
+    "links": 0,
+    "rows": 17,
+    "logical_bytes": 179869,
+    "allocated_bytes": 217088,
+    "manifest_sha256": "006f2f7461af67ef0c7fb961e3b2f82b8e0e5cb65dd29ed5339822cd1554dc25",
+    "retained_evidence_files_verified": 32,
+    "native_handoff_copies": 9,
+    "delivery_helpers": 3,
+    "duplicate_readers": 4,
+    "all_inputs_and_old_wip_unchanged": true,
+    "products_not_selected": true,
+    "unique_baseline_and_preprotection_sources_retained": true,
+    "seconds": 0.028730707999999883
+  },
+  "manifest": {
+    "path": "maintenance/cleanup/manifests/2026-10-31-185-consumed-own-voice-state.jsonl.gz",
+    "sha256": "006f2f7461af67ef0c7fb961e3b2f82b8e0e5cb65dd29ed5339822cd1554dc25",
+    "bytes": 1459
+  },
+  "independent_source_raw_protection_review_accepted": true,
+  "limits": [
+    "Ten existing findings remain; no suppression or whole-tree policy pass.",
+    "Prior warning/AttributeError logs remain; no product/compiler/editor/test-matrix replay.",
+    "The integration full source precedes added selftests; production AST equality is explicit.",
+    "Nine duplicate handoffs retain native originals and private locators; source/session identities are not public.",
+    "Fixture output timings are coverage observations, not performance measurements."
+  ]
+}

@@ -3947,3 +3947,17 @@ relocation on the eight current native/observer/collector execution profiles.
 Reuse the completed unchanged ERT, format, dump, fallback and phase evidence.
 Add the critical filesystem protections after that integration passes, then
 retire the consumed owned state with explicit historical identity gaps.
+
+## P448: report findings without re-parsing clipped diagnostic text
+
+The own-voice reader detects a name in complete prose, then retains only a
+normalized 180-character line prefix for its diagnostic. A match outside that
+prefix, or normalization that changes the immediate context, can make the
+reporter's second regex lookup empty and raise instead of reporting failure.
+
+Use the same explicit bare-name constant for detection and display. Keep the
+regex, quotation/reference rules, walks, finding counts and failure exit
+policy unchanged. Do not suppress existing findings or turn a completed scan
+with findings into a pass. Verify actual CLI reporting on the repository and
+complete small clean/violating inputs, then add the key reporter protections.
+This is a diagnostic repair, not Lisp, compiler, product or compatibility work.

@@ -1,3 +1,14 @@
+## CLN185 — reporting duplicate copies and adopted handoffs
+
+16files/1directory/17rows,179869logical/217088allocated bytes.9adopted
+handoff copies retain exact native originals;3delivery helpers and4duplicate
+readers consumed;one emptytools directory retired. No automatic rows/products.
+Complete pre-delete plan,occupancy,fsynced ledger and operation outcomes;
+32evidence files/source/oldWIP/HEAD/index unchanged. Unique baseline and
+pre-protection source remain. Original inode/helper-byte recovery not promised.
+[Report](reports/2026-10-31-185-consumed-own-voice-state.md) ·
+[Manifest](manifests/2026-10-31-185-consumed-own-voice-state.jsonl.gz).
+
 ## CLN184 — consumed combined runtime and P447 relocation state
 
 113190files/19923directories/49links,133162rows;

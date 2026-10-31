@@ -1,3 +1,17 @@
+## P448: complete own-voice diagnostics (2026-10-31)
+
+The report path no longer re-parses a normalized180-character prefix that may
+omit a detected name. Detector and display share one constant; policy, walks,
+quotations/references, counts and failure exits stay unchanged. Real repository
+CLI reports the old detector's same10findings and exits1 without traceback;
+the whole policy gate remains false. Five complete CLI inputs pass. Integration
+11.023s;19selftests pass afterward,16old+3reporter protections. Only selftest
+body changed after integration; production AST is identical. No product/VM,
+compiler or original Lisp acceptance follows. CLN185:16files/1dir,17rows,
+179869/217088B;raw failures/provenance/private plans/old WIP retained.
+G1/G2/G4 stay3/7;Goal active,fullG3/G5/G6/G7/performance open.
+[Delivery](../maintenance/releases/2026-10-31-own-voice-reporting.md).
+
 ## Current native/collector scope and P447 retirement (2026-10-31)
 
 Four current terminal/Cocoa normal/checking products provide eight native,

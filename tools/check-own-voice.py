@@ -80,7 +80,8 @@ C_PROSE = (".c", ".h", ".rs")
 # files out of every gate's reading while their first line did name a reference.
 FIRST_LINE = re.compile(r"^// femacs: (?:port|mirror) of (\S+) @ (\S+)\.")
 INCLUDE = re.compile(r'include!\s*\(\s*"([^"]+)"\s*\)')
-BARE_NAME = re.compile(r"(?<!GNU )\bEmacs\b")
+BARE_PRODUCT_NAME = "Emacs"
+BARE_NAME = re.compile(r"(?<!GNU )\b" + re.escape(BARE_PRODUCT_NAME) + r"\b")
 WHITESPACE = re.compile(r"\s+")
 
 WINDOW = 6
@@ -487,7 +488,7 @@ def main(argv: list[str]) -> int:
         for number, text in hits:
             relative = path.relative_to(REPO)
             print(f"FAIL {relative}:{number}: this repository's own comment names the reference "
-                  f"`{BARE_NAME.search(text).group(0)}` - call it C or the reference")
+                  f"`{BARE_PRODUCT_NAME}` - call it C or the reference")
             failures += 1
     print(f"read {read} bare-name occurrence(s) in ported comment(s): {read - quoted - own} "
           f"copied from the reference, {quoted} inside a citation, {own} this repository's own "
@@ -508,7 +509,7 @@ def main(argv: list[str]) -> int:
         own_voice += counts[2]
         for number, text in findings:
             print(f"FAIL {relative}:{number}: this repository's own tool names the reference "
-                  f"`{BARE_NAME.search(text).group(0)}` - call it C or the reference")
+                  f"`{BARE_PRODUCT_NAME}` - call it C or the reference")
             failures += 1
     print(f"read {own_read} bare-name occurrence(s) in this repository's own tool, probe and CI "
           f"prose: {own_quoted} inside a citation, {own_voice} this repository's own voice; "
@@ -656,6 +657,51 @@ def selftest() -> int:
               "/* probe of doprnt.c; not about the Emacs mirrors.  */\n", 1)
     check_own("a multi-line string is one message", "demo.rs",
               "    eprintln!(\"needs Emacs configured, \\\n                 built\");\n", 1)
+
+    def check_reporting(label: str, snippet: str, ported: bool = False) -> None:
+        """The reporter consumes a finding; clipped prose is not a second detector."""
+        from contextlib import redirect_stdout
+        from io import StringIO
+        from unittest.mock import patch
+
+        nonlocal cases, failed
+        cases += 1
+        relative = Path("src/demo.rs" if ported else "tools/demo.py")
+
+        class Source:
+            def relative_to(self, _root):
+                return relative
+
+            def read_text(self, **_options):
+                return "// " + BARE_PRODUCT_NAME
+
+        target = Source() if ported else REPO / relative
+        replacements = {
+            "files": lambda: [target] if ported else [],
+            "own_files": lambda: [] if ported else [target],
+            "unscanned_own": lambda: [],
+            "read_own": lambda _path: ((1, 0, 1), [(1, snippet)]),
+            "reference_of": lambda _path: None,
+            "reference_set": lambda _path: [],
+            "scan_file": lambda _path, _references: [(1, snippet)],
+        }
+        output = StringIO()
+        with patch.dict(globals(), replacements), redirect_stdout(output):
+            status = main([])
+        text = output.getvalue()
+        if (BARE_NAME.search(snippet) is not None or status != 1
+                or f"FAIL {relative}:1:" not in text
+                or f"`{BARE_PRODUCT_NAME}`" not in text
+                or not text.endswith("1 failure(s)\n")):
+            failed += 1
+            print(f"FAIL selftest {label}: reporting lost or re-parsed a finding")
+        else:
+            print(f"ok   selftest {label}")
+
+    check_reporting("a tool finding beyond the clipped prefix", "x" * 180)
+    check_reporting("normalized context is not a second detector",
+                    normalize("GNU   " + BARE_PRODUCT_NAME))
+    check_reporting("a ported finding beyond the clipped prefix", "x" * 180, ported=True)
 
     cases += 1
     with tempfile.TemporaryDirectory() as tmp:

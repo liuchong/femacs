@@ -1,3 +1,23 @@
+## 2026-10-31: P448 diagnostic clipping repair; CLN185
+
+Actual runtime-resume line321 has410chars, match at372; stored prefix180
+could omit it, so reporter group(None) raised. Shared display/detector constant
+removes the re-parse. Regex, quotations/reference matching, walks, findings,
+exemptions and failure-exit policy remain. Actual full CLI completes with the
+same10findings as oldHEAD detector,exit1/no traceback; global gate remains false.
+Five CLI fixture inputs yield0/1/1/1/2 as expected. Integration11.0225575s,
+120s owner/30s process(10s fixtures),1GiB no-growth; no editor/compiler started.
+Post-integration selftests19/19=16existing+3reporter contracts. Full source moves
+from2fa453c1 to8c3742db only through selftest body; production AST9e325838 same.
+Reporter components substitute detection/file walking, not VM acceptance.
+Controller metrics primary-only. Prior warnings/AttributeError logs unchanged.
+CLN185:16files/1dir/17rows,179869logical/217088allocated bytes:9handoffcopies
+with retained native originals,3adopted helpers,4duplicated readers. Unique
+baseline/pre-protection inputs,fixture bodies/raw outputs/32evidence files,
+private plans,products and oldWIP remain. Source/session locators stay private.
+No whole-tree policy/G3/native/GC/performance/App claim;Goal3/7active.
+[Delivery](../maintenance/releases/2026-10-31-own-voice-reporting.md).
+
 ## 2026-10-31: current native/collector combination; P447; CLN184
 
 Four new actual normal/checking terminal/Cocoa products bind current production
