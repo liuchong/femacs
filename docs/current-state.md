@@ -1,3 +1,20 @@
+## Current continuation: ERT unlimited-backtrace diagnostic (2026-10-31)
+
+The unchanged expensive ERT ID completes alone on the installed reference:
+one expected pass, 2.168 s driver time, controlled tree peak 221,118,464 bytes
+under a stricter 1 GiB hard limit. Independent source/raw review accepts only
+this diagnostic. A nil backtrace line limit also removes printer depth/length
+limits; the test's 6/11 settings do not bound that layer. Per-ID execution
+reduces outer ERT state and cannot replace one-process all-ID file acceptance.
+
+CLN173 retires 1,537 files, 267 directories and six links,
+21,031,048 / 25,124,864 logical/allocated bytes, including one automatic native
+message trampoline. Inputs, products and original evidence remain unchanged.
+Whole ERT, checking and full G3 remain open; no causal, compatibility, performance
+or trial-App acceptance. G1/G2/G4 stay **3/7**, original Goal active.
+See [diagnostic](../maintenance/releases/2026-10-31-ert-backtrace-diagnostic.md)
+and [CLN173](../maintenance/cleanup/reports/2026-10-31-173-consumed-ert-diagnostic-state.md).
+
 ## Current continuation: original Lisp utility and timer coverage (2026-10-31)
 
 Four unchanged pinned files (`ert-x`, warnings, thunk, timer) run on accepted

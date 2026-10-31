@@ -1,0 +1,247 @@
+{
+  "schema": 1,
+  "scope": "One unchanged expensive ID on the installed reference; attribution only",
+  "diagnostic_passed": true,
+  "whole_file_accepted": false,
+  "compatibility_accepted": false,
+  "performance_accepted": false,
+  "strict_whole_file_still_open": true,
+  "source_commit": "a360712c9d272d950d8d8255ef74570f7e90b7d9",
+  "file": "test/lisp/emacs-lisp/ert-tests.el",
+  "test_id": "ert-test-run-tests-batch-expensive",
+  "original_test": {
+    "path": "test/lisp/emacs-lisp/ert-tests.el",
+    "source_path": "compatibility/stable-31.1/test/lisp/emacs-lisp/ert-tests.el",
+    "input": "overlay",
+    "mode": "100644",
+    "size": 47434,
+    "blob": "2831a93ec074320b2db62b39454d34eef8d05a51",
+    "sha256": "f6bf0845d9fb7cdf5f6e271182d6731a5a6da822dc2c141a9a0d51b4d321562e"
+  },
+  "raw_result": {
+    "path": "build/acceptance/g3-ert-expensive-diagnostic-1/results.json",
+    "bytes": 1374370,
+    "sha256": "599ad592e92f996bb009dff45e24ff794bbf53b152ae113b28e2348fbe14b18f"
+  },
+  "driver_sha256": "283676a838cb0f60d06bf26b426fc24d2b4c08e635661baf7a777b520053e14b",
+  "inputs": [
+    {
+      "path": "compatibility/stable-31.1/sources.json",
+      "identity": {
+        "kind": "file",
+        "bytes": 562572,
+        "mode": 420,
+        "sha256": "a5ef144a203b8b2a74e346ac47173c5d4122f751d8d950347ae75ff67eef0efe"
+      }
+    },
+    {
+      "path": "tools/fixtures/stable-suite-runner.el",
+      "identity": {
+        "kind": "file",
+        "bytes": 12592,
+        "mode": 420,
+        "sha256": "d5bcd0c18f15995e50adefe8472d12ef82f71114be10ce307202b4ce0f11150e"
+      }
+    },
+    {
+      "path": "tools/stable-suite.py",
+      "identity": {
+        "kind": "file",
+        "bytes": 54108,
+        "mode": 420,
+        "sha256": "75e913813f585425ce3673c5db9c71b2054d875c50540ccee3dd06cb4eabc51c"
+      }
+    },
+    {
+      "path": "tools/runtime-execution.py",
+      "identity": {
+        "kind": "file",
+        "bytes": 93220,
+        "mode": 420,
+        "sha256": "26b379c3d4a24adf2a306e1c751c654ca1b6b1c6cd43f0888398c3560e455fb4"
+      }
+    },
+    {
+      "path": "private-driver/g3-ert-expensive-diagnostic-1.py",
+      "identity": {
+        "kind": "file",
+        "bytes": 5523,
+        "mode": 420,
+        "sha256": "283676a838cb0f60d06bf26b426fc24d2b4c08e635661baf7a777b520053e14b"
+      }
+    },
+    {
+      "path": "build/acceptance/g3-lisp-boundaries-1/results.json",
+      "identity": {
+        "kind": "file",
+        "bytes": 6732392,
+        "mode": 420,
+        "sha256": "2e1f655d9d08af6591e7a6a8e61093a2f92334b82fe9822253ed1e0f2ef06fe5"
+      }
+    },
+    {
+      "path": "installed-reference/lisp/emacs-lisp/ert.el",
+      "identity": {
+        "kind": "file",
+        "bytes": 141735,
+        "mode": 420,
+        "sha256": "9ae097b693673b8d853713775d61ae4e707f95ab9271d6a43b9e6ed435d849be"
+      }
+    },
+    {
+      "path": "installed-reference/lisp/emacs-lisp/ert.elc",
+      "identity": {
+        "kind": "file",
+        "bytes": 218841,
+        "mode": 420,
+        "sha256": "438ee4b7905b8f5e9082ccea838fbc58545783ddfb099852c6c7d8bfd6707ec8"
+      }
+    },
+    {
+      "path": "installed-reference/lisp/emacs-lisp/backtrace.el",
+      "identity": {
+        "kind": "file",
+        "bytes": 37776,
+        "mode": 420,
+        "sha256": "fc4195c13eba6b8548ae83313b77e54016baa42cf6d3590e24834a7e6de9a4d4"
+      }
+    },
+    {
+      "path": "installed-reference/lisp/emacs-lisp/backtrace.elc",
+      "identity": {
+        "kind": "file",
+        "bytes": 41193,
+        "mode": 420,
+        "sha256": "99ef61519c83b17002c26234b24cc70b775e3ba6341a833af9f9351e501b4274"
+      }
+    },
+    {
+      "path": "installed-reference/lisp/emacs-lisp/cl-print.el",
+      "identity": {
+        "kind": "file",
+        "bytes": 27196,
+        "mode": 420,
+        "sha256": "a68d42138ed12555e8618ab12b725daa47a20e89bcb32c6df963c0d2c3e240d6"
+      }
+    },
+    {
+      "path": "installed-reference/lisp/emacs-lisp/cl-print.elc",
+      "identity": {
+        "kind": "file",
+        "bytes": 17639,
+        "mode": 420,
+        "sha256": "9e14db77fc6bc6ed688c222e271773d7d7d4c1a58b81c0f87d953afc8e7b0469"
+      }
+    }
+  ],
+  "input_maps_before_after_equal": true,
+  "reference_product": {
+    "program": {
+      "kind": "file",
+      "bytes": 3691504,
+      "mode": 493,
+      "sha256": "5b55e93c8304368ee37cc5c537ca3e1370e3b9b3fef049bdce76834a9db75e65"
+    },
+    "dump": {
+      "kind": "file",
+      "bytes": 23084632,
+      "mode": 420,
+      "sha256": "6ac1214186022574a70e84a04bb7f2dc44e1ea1d4c90f0d9ce421ddd0f4b4536"
+    }
+  },
+  "reference_lisp_resources": {
+    "entries": 3316,
+    "canonical_json_sha256": "564df364c803f4d0b64d7bc2ba986d775e8985529481ac2684b739666e131323"
+  },
+  "metadata": {
+    "reference_version": "31.1 build 1",
+    "system_configuration": "aarch64-apple-darwin25.6.0",
+    "configuration_features": "ACL GLIB GNUTLS JPEG LCMS2 LIBXML2 MODULES NATIVE_COMP NOTIFY KQUEUE NS PDUMPER PNG RSVG SQLITE3 THREADS TIFF TOOLKIT_SCROLL_BARS TREE_SITTER WEBP XIM XWIDGETS ZLIB"
+  },
+  "original_inputs_unchanged": true,
+  "product_before_after_equal": true,
+  "materialization": {
+    "file_count": 1536,
+    "bytes": 20996952
+  },
+  "budget": {
+    "owner_seconds": 60,
+    "child_seconds": 45,
+    "max_memory_mib": 1024,
+    "expected_seconds": [
+      1,
+      45
+    ],
+    "expected_peak_bytes": 536870912,
+    "input_bytes": 47434,
+    "serial_processes": 1,
+    "scale": "One constant six-level list, one intentionally failing nested ERT test. Unlimited backtrace args can traverse shared outer stats/closures; no finite output-size bound is proven. Existing mode=run reduces only outer selection to one test. The 512 MiB estimate is uncertain, not a hard limit. Controlled owner has an explicitly stricter 1 GiB sampled hard limit and 60 s deadline; child wait has 45 s deadline. No all-ID run, tag edit, assertion edit, or native build."
+  },
+  "case": {
+    "status": "passed",
+    "complete": true,
+    "exit_code": 0,
+    "timed_out": false,
+    "seconds": 1.2461878750000002,
+    "test_status": "passed",
+    "duration": 0.799237
+  },
+  "original_record": {
+    "test_id": "ert-test-run-tests-batch-expensive",
+    "status": "passed",
+    "duration": 0.799237,
+    "result_type": "ert-test-passed",
+    "expected": true,
+    "skipped": false,
+    "condition": null,
+    "messages": "",
+    "diagnostic": "result=ert-test-passed expected=t condition=nil messages=\"\""
+  },
+  "driver_seconds": 2.1683248749999997,
+  "max_child_rss_bytes": 203522048,
+  "output_identities": {
+    "stdout_log": {
+      "path": "build/acceptance/g3-ert-expensive-diagnostic-1/reference/logs/reference/run/test-lisp-emacs-lisp-ert-tests.el-ert-test-run-tests-batch-expensive-3597d720bf67.stdout.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "stderr_log": {
+      "path": "build/acceptance/g3-ert-expensive-diagnostic-1/reference/logs/reference/run/test-lisp-emacs-lisp-ert-tests.el-ert-test-run-tests-batch-expensive-3597d720bf67.stderr.log",
+      "bytes": 162,
+      "sha256": "fdbba109c2d9f59545bfca8724f6226cae753e0cd4dbc30ecc2c88ac60ee3d70"
+    },
+    "result_file": {
+      "path": "build/acceptance/g3-ert-expensive-diagnostic-1/reference/results/reference/run/test-lisp-emacs-lisp-ert-tests.el-ert-test-run-tests-batch-expensive-3597d720bf67.json",
+      "bytes": 2663,
+      "sha256": "0d3f22000b9ab5a91d3452f38ffd504827e0e5359e18d7dc905044968bcc3138"
+    }
+  },
+  "controller": {
+    "run_id": "c7e1ee81ae8b4752936f2cf74f550357",
+    "profile": "runtime",
+    "reason": "exited",
+    "exit_code": 0,
+    "cleanup_complete": true,
+    "elapsed_seconds": 2.816,
+    "peak_rss_bytes": 221118464,
+    "peak_footprint_bytes": 134547400,
+    "peak_accounted_bytes": 221118464,
+    "initial_limit_bytes": 1073741824,
+    "hard_limit_bytes": 1073741824,
+    "growth_count": 0
+  },
+  "controller_log_sha256": "df27442e46a9f32ce962ab1596570a29a8f61adf13b4c685a928fc58baf249be",
+  "controller_independently_reviewed": true,
+  "independent_review": "Original diagnostic, twelve current inputs, reference program/dump and 3316 Lisp resource bindings, and controller log reviewed without rerun; accepted only as a single-ID diagnostic",
+  "native_build_note": "No active native build was requested; the reference automatically generated a message trampoline in its isolated environment. The original budget wording is retained, not proof of no automatic compilation.",
+  "cleanup": {
+    "id": "CLN173",
+    "files": 1537,
+    "directories": 267,
+    "links": 6,
+    "rows": 1810,
+    "logical_bytes": 21031048,
+    "allocated_bytes": 25124864,
+    "manifest_sha256": "0b140a9a0fe6f446a51742c9f40909626212fd1c126c23ec90ac325b85d4460a"
+  }
+}

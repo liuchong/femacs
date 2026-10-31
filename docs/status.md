@@ -24242,3 +24242,28 @@ Raw evidence/products/inputs retained, no App change or new protection.
 [Delivery](../maintenance/releases/2026-10-31-original-lisp-boundaries.md).
 ERT whole-file high-memory path and checking remain unaccepted. G1/G2/G4 **3/7**;
 four outcomes open and the original Goal continues.
+
+## 2026-10-31 — ERT unlimited-backtrace diagnostic and CLN173
+
+- Read the original expensive self-test, ERT statistics/backtrace path and printer;
+  installed 31.1 source bytes match current `ert.el`, `backtrace.el`, `cl-print.el`.
+  Nil backtrace limit rebinds print depth/length/string length to nil; the test's
+  6/11 values do not bound that layer. Earlier bounded-print inference is corrected.
+- One unchanged exact ID on the installed reference: expected pass, no skip or
+  timeout, child exit 0; body 0.799237 s, child 1.246188 s, driver 2.168325 s.
+  Controlled owner 2.816 s, tree peak 221,118,464 bytes, complete cleanup;
+  actual stricter hard limit 1 GiB, owner 60 s and child 45 s deadlines.
+  The 512 MiB estimate is uncertain, not enforced. Child maximum RSS is separately
+  203,522,048 bytes. Automatic reference native trampoline generation occurred.
+- Twelve input maps and reference program/dump/3,316 Lisp resources stay identical.
+  Independent review accepts diagnostic only: outer state changes under per-ID;
+  no root-cause, all-ID, compatibility, speedup or App claim. Old caps remain.
+- CLN173: 1,537 files, 267 directories, six links, 1,810 rows;
+  21,031,048 logical / 25,124,864 allocated bytes. Includes one 34,096-byte
+  trampoline, no repeated automatic removal. Plans/results and live inputs retained.
+- Whole ERT, checking and full G3 remain open; G1/G2/G4 stay 3/7, Goal active.
+  Continue remaining compatibility/runtime business; do not turn isolated passes
+  or unchanged capped reruns into whole-file completion.
+
+[Diagnostic](../maintenance/releases/2026-10-31-ert-backtrace-diagnostic.md),
+[CLN173](../maintenance/cleanup/reports/2026-10-31-173-consumed-ert-diagnostic-state.md).

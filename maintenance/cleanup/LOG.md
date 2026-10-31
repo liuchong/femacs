@@ -585,3 +585,16 @@ pre-delete plans replace the invalid empty-environment assumption. Products,
 inputs, raw evidence and tracked working changes unchanged. No test rerun.
 [Report](reports/2026-10-31-172-consumed-lisp-boundary-state.md),
 [manifest](manifests/2026-10-31-172-consumed-lisp-boundary-state.jsonl.gz).
+
+## CLN173 — 2026-10-31 — Consumed ERT diagnostic state
+
+- Remove one reviewed reference test copy, isolated state and six context links:
+  1,537 files, 267 directories, six links, 1,810 rows;
+  21,031,048 logical / 25,124,864 allocated bytes.
+- Includes the 34,096-byte automatic native message trampoline, counted once;
+  no earlier automatic removal. Raw results/logs, private plans, pinned inputs,
+  live products, index and unrelated WIP remain unchanged.
+- Single-ID attribution only; no whole-file, compatibility or speedup acceptance.
+- [Report](reports/2026-10-31-173-consumed-ert-diagnostic-state.md),
+  [manifest](manifests/2026-10-31-173-consumed-ert-diagnostic-state.jsonl.gz)
+  SHA-256 `0b140a9a0fe6f446a51742c9f40909626212fd1c126c23ec90ac325b85d4460a`.
