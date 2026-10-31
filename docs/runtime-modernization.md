@@ -2322,3 +2322,17 @@ Four subsequent finalizer/nested-Full protection processes pass. Read the
 source/product identities, exact counts, measured operation times and uncovered
 boundaries. CLN155 retires only consumed compiler/case state. Qualified runtime
 performance and full G5/G7 acceptance remain pending; the trial App is unchanged.
+
+### P444: validated same-block cons children
+
+`note_cons_marked` keeps the validated parent block and allocated limit. For
+each cons child, checked address subtraction plus exact cell alignment proves
+membership in that same allocation's cons prefix. Only that child's redundant
+`heap_cell` lookup is omitted. Other-block, dump, metadata, unallocated or
+invalid addresses retain the original helper; parent validation and actual
+marking are unchanged. See PORTING.md P444. The complete production change is
+written and independently reviewed. Separate normal/checking builds, 530 new
+integration processes plus eight verified prior receipts, and four extracted
+component protections pass. The descriptive 24-process comparison is on a busy
+host and does not establish a speedup. No App promotion or full G5/G7 acceptance
+is inferred. See the [bounded delivery](../maintenance/releases/2026-10-31-gc-local-child.md).

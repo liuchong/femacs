@@ -1,3 +1,21 @@
+## Current continuation: validated same-block cons children (2026-10-31)
+
+P444 reuses the validated parent cons allocation for aligned child locations
+inside its allocated prefix; all other children retain the original check.
+Parent validation, actual marking, roots/order, layouts and policy are unchanged.
+Separate normal/checking builds, **530 new integration processes + eight verified
+prior receipts**, and four component protections pass with independent review.
+Twenty-four descriptive prior/candidate processes finish on a busy host; no
+qualified speedup or App replacement. First driver/extractor failures remain.
+
+CLN171 removes 10,288 verified files and 3,885 directories,
+405,732,494 / 426,631,168 logical/allocated bytes. Three already-consumed partner
+notes add 13,089 reported bytes with unavailable content identities, separately
+recorded. Raw evidence, current/prior products and required frozen inputs remain.
+G1/G2/G4 stay **3/7**; G3/G5/G6/G7 remain, original Goal active.
+See [delivery](../maintenance/releases/2026-10-31-gc-local-child.md) and
+[CLN171](../maintenance/cleanup/reports/2026-10-31-171-consumed-local-child-state.md).
+
 ## Current continuation: original grammar coverage (2026-10-30)
 
 All forty unchanged original Tree-sitter IDs pass on reference and current

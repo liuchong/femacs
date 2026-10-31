@@ -3849,3 +3849,29 @@ runner and real filesystem retirement, then protect ownership replacement,
 unknown children, durable-write failure and parent-count/evidence boundaries.
 No editor behavior, original assertions, products, collection policy or
 performance acceptance changes.
+
+## P444: reuse the validated cons block for child location checks
+
+The opt-in collector's `note_cons_marked` first validates its parent with
+`heap_cell`, then repeats a memory-tree lookup for each cons child solely to
+decide whether the parent needs a dirty bit for a nonheap child. A successful
+parent lookup proves the whole aligned block belongs to one cons allocation.
+An aligned child within that block's allocated cons prefix has the same
+location proof; no second tree lookup is needed. The current head block uses
+`cons_block_index`; other blocks use `CONS_BLOCK_SIZE`. Metadata, padding and
+unallocated head slots are outside that prefix.
+
+Use checked address subtraction and exact cell alignment for this narrow
+case. All other cons children retain the original `heap_cell` path, including
+dump, other-block, null, unallocated and invalid addresses. Keep parent
+validation, car-before-cdr short circuit, dirty-bit writes, original marker
+entry/checks, root membership/order, collection policy and layouts unchanged.
+Do not extend this proof to arbitrary `set_cons_marked` input or skip marking.
+No new persistent cache or current-root hint is introduced.
+
+After the complete implementation, build separate normal/checking actual
+collector products and run affected language/observer/collector and fallback
+integration. Then protect same-block boundaries, cross-block/dump fallback,
+invalid parent and exact lookup omission with the production helper. A bounded
+descriptive workload may locate costs; removed lookups alone are not a speedup
+claim, and the trial App stays unchanged pending full acceptance.

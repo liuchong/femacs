@@ -561,3 +561,15 @@ manifests and disclosed historical metadata gaps remain unchanged.
 - [Report](reports/2026-10-30-170-consumed-grammar-state.md) /
   [manifest](manifests/2026-10-30-170-consumed-grammar-state.jsonl.gz)
   (`49526b3c1bc07b45d541f8f78ebfa5d199f19b02a4ac450f575b5c21d1a48460`).
+
+## CLN171 — 2026-10-31 consumed local-child state
+
+P444 consumed cargo, objects/units, 554 new-process state groups, generated
+component files and build-owner archive: 10,288 verified files, 3,885 directories,
+405,732,494 logical / 426,631,168 allocated bytes. Three partner notes previously
+removed: 13,089 reported bytes, content identities and allocated sizes unavailable;
+absence/path hashes checked, no invented recovery. Combined manifest 14,176 rows;
+verified and limited peer totals remain separate. Initial monitor exit125 before
+deletion retained. Current/prior products, App, raw results and required inputs
+unchanged. [Report](reports/2026-10-31-171-consumed-local-child-state.md),
+[manifest](manifests/2026-10-31-171-consumed-local-child-state.jsonl.gz).

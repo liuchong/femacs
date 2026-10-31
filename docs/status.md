@@ -24193,3 +24193,26 @@ once; post-review 762 directories. Evidence, fixed inputs, new grammar libraries
 live products retained. G1/G2/G4 **3/7**, four outcomes remain.
 [Coverage](../maintenance/releases/2026-10-30-original-grammars.md),
 [CLN170](../maintenance/cleanup/reports/2026-10-30-170-consumed-grammar-state.md).
+
+## 2026-10-31: P444 validated same-block cons-child locations
+
+Complete opt-in implementation keeps parent validation and original child
+fallback, actual marker/root/order/layout/policy unchanged. Normal/checking
+builds pass (736.848 s); integration passes (182.443 s), 530 new processes plus
+eight verified prior receipts. Independent source/raw review accepts 48 ordered
+registrations, 16 reference-language comparisons, 153 observations, four fallback
+pairs and 32 phase-contract processes. Four extracted component protections
+pass (0.628 s), with tree/tag/dump/owner substitutes explicitly limited.
+
+24 descriptive prior/candidate processes, 144 workload executions, 1,512 cycles
+and 48 three-round groups finish (10.937 s); host not quiet, no performance
+acceptance. First attribution preflight and first layout-extractor failure stay
+false; production unchanged by those harness fixes. No App promotion.
+
+CLN171: 10,288 verified files / 3,885 dirs, 405,732,494 / 426,631,168
+logical/allocated bytes. Separate partner receipt: three consumed notes,
+13,089 reported bytes, content hashes/node identities/allocated bytes unavailable.
+Initial cleanup monitor failure remains 125; deletion had not started; ordinary
+bounded file operation then completes. Current/prior products, raw results and
+required inputs retained. [Delivery](../maintenance/releases/2026-10-31-gc-local-child.md).
+G1/G2/G4 **3/7**, four outcomes open; original Goal continues.

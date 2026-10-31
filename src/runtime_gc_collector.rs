@@ -361,8 +361,18 @@ mod gc_collector {
         if !young_owner() { return; }
         let Some((block, index)) = heap_cell(cell) else { return; };
         let car = (*cell).u.s.car; let cdr = (*cell).u.s.u.cdr;
+        let limit = if block == cons_block { cons_block_index as usize } else { CONS_BLOCK_SIZE };
         let nonheap_child = |object: Lisp_Object| -> bool {
-            CONSP(object) && heap_cell(lisp_h_XCONS_untracked(object)).is_none()
+            if !CONSP(object) { return false; }
+            let child = lisp_h_XCONS_untracked(object);
+            // heap_cell(cell) validated this entire cons allocation. Reuse
+            // that proof only within its allocated, exactly aligned prefix.
+            // Other blocks and dump/invalid addresses keep the original check.
+            if let Some(offset) = (child as usize).checked_sub(block as usize) {
+                let size = core::mem::size_of::<Lisp_Cons>();
+                if offset < limit * size && offset % size == 0 { return false; }
+            }
+            heap_cell(child).is_none()
         };
         if nonheap_child(car) || nonheap_child(cdr) { (*block).dirtybits[index / BITS_PER_BITS_WORD] |= (1 as bits_word) << (index % BITS_PER_BITS_WORD); }
     }
