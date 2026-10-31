@@ -1,3 +1,31 @@
+## 2026-11-01: repeated-message format restoration
+
+P450 restores one missing percent in the repeated-message intmax_t format;
+count/parser/buffer/order unchanged. 4 new physical normal/checking terminal/Cocoa
+products expose 8 profiles plus reference 31.1;7,481 frozen inputs include WIP.
+Functional slice 17 new processes/468 new observations +1 prior reference 54 =
+18 unique/522 events:513 ordinary+9 original skips,0 unexpected. Final resume 16 new+
+2 reused(reference 4 current+54 prior); raw false/controller exit 1 remain.
+All 9 contexts pass 4 real message-log sequences; complete simple 54 runs unfiltered.
+Source/products/App before/after agree.3 post-integration format/buffer protections
+pass; small suffix 10+NUL 11,INTMAX_MAX 28+NUL 29 within 30. No general ABI proof.
+Original workspace-owner rejection, inspect_owned/EPERM monitor 125 and first
+materialization error remain; no failed record rewritten or process replay.
+CLN189:33159 files/3276 dirs/18 links,36453 rows,955443458/1031352320 B.
+Automatic 90 dirs/18 parents count once. New objects/link archives/Cargo retired;
+named products/resources/full frozen source/old controls/evidence preserved.
+Relink/capture_product requires cache rebuild. Original P449 undo/concurrency,
+whole ERT/full G3/native-stage/collector/performance/physical UI/App remain open.
+G1/G2/G4 remain 3/7; Goal active. Next: remaining compatibility/runtime work.
+
+Functional resume 113.878382583 s; primary controller 114.132 s/388104192 B.
+Protection 1.8656665 s; primary controller 2.078 s/85393408 B,1 GiB/no growth.
+New Cocoa pair built 554.992990417 s after carrying exact completed terminal 2.
+Both Cocoa signatures verified; no trial App replacement.
+
+[Report](../maintenance/releases/2026-11-01-message-count.md) ·
+[CLN189](../maintenance/cleanup/reports/2026-11-01-189-consumed-message-count-state.md).
+
 ## 2026-11-01: P449 terminal context and event-state protection
 
 P449 owned controlling-terminal execution and shared progress-state isolation

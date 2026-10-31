@@ -1,0 +1,3381 @@
+{
+  "schema": "femacs-message-count-delivery-v1",
+  "passed": false,
+  "outcome_contract_passed": true,
+  "execution_complete": true,
+  "production_fix_accepted": true,
+  "full_g3_accepted": false,
+  "whole_ert_accepted": false,
+  "compatibility_accepted": false,
+  "performance_accepted": false,
+  "editor_accepted": false,
+  "trial_app_promoted": false,
+  "collector_cycle_coverage_claimed": false,
+  "first_p449_undo_resolved": false,
+  "original_concurrency_accepted": false,
+  "goal_complete": false,
+  "production_difference": {
+    "file": "src/xdisp.rs",
+    "only_src_difference": true,
+    "before_sha256": "26a8a1aff2ae84cb120bd7f1a29b25158431eef923dc0cfea362ed92a5177f58",
+    "after": {
+      "sha256": "8b6c4b6f9c4263a780092fd57f07aa8efd1a9708ed193cb451bdd231444f362d",
+      "bytes": 1528675
+    },
+    "change": "Restore missing percent in intmax_t printf conversion; count/parser/buffer/order unchanged"
+  },
+  "sources": {
+    "PORTING.md": {
+      "sha256": "d5d6947bff6fe11c3c14a746ef8a00029abe63166dbaba188940922c71ddf1fc",
+      "bytes": 826064
+    },
+    "src/xdisp.rs": {
+      "sha256": "8b6c4b6f9c4263a780092fd57f07aa8efd1a9708ed193cb451bdd231444f362d",
+      "bytes": 1528675
+    },
+    "tools/fixtures/message-count-functional.el": {
+      "sha256": "2beb2783761c2ea3d070c93ce6bc8de30802f06f47ad436b0cf602bd7c96908b",
+      "bytes": 1913
+    },
+    "tools/test-message-count.py": {
+      "sha256": "11befbe0122e9a01a843bdb80f538b4601115a41ae9d7c6bc693e432a8efe5b1",
+      "bytes": 6564
+    }
+  },
+  "source_export": {
+    "files": 7481,
+    "source_manifest_sha256": "daf8772f4c954585bb1d386b7887ebaa0dbc2db84cfb67f611235bb8b8318093",
+    "includes_wip": true,
+    "clean_head": false,
+    "all_frozen_files_retained": true
+  },
+  "runtime_source_sha256": {
+    "src/alloc.rs": "564e9377279426cf6ca2ba70e89b797a98a5a5737d677df1e4fedd09eb41fa55",
+    "src/runtime_gc_collector.rs": "aa1ca1ef6d2e79388674ea9c879ca7ed2388bca5d2482b6dcfc2b9fe502a5020",
+    "src/xdisp.rs": "8b6c4b6f9c4263a780092fd57f07aa8efd1a9708ed193cb451bdd231444f362d"
+  },
+  "runtime_build_inputs_before": {
+    "passed": true,
+    "files": 411,
+    "canonical_identity_sha256": "80961780d5eb789c73156ede1c8edc3ed9aba67b10aab8136507a13d5a0ff93a"
+  },
+  "runtime_build_inputs_after": {
+    "passed": true,
+    "files": 411,
+    "canonical_identity_sha256": "80961780d5eb789c73156ede1c8edc3ed9aba67b10aab8136507a13d5a0ff93a"
+  },
+  "candidate_build": {
+    "raw": {
+      "path": "build/acceptance/message-count-current-recovery-2/results.json",
+      "sha256": "10a950ec10536a2c931b46da6086f4ba6c0b5ca8d87157627073b6784858c1f9",
+      "bytes": 33827
+    },
+    "passed": true,
+    "physical_products": 4,
+    "execution_profiles": 8,
+    "reference_profiles": 1,
+    "completed_current_terminal_products_carried": 2,
+    "new_cocoa_products_in_final_attempt": 2,
+    "old_pre_fix_products_reused_as_candidates": 0,
+    "correct_same_workspace_owner_reused": true,
+    "original_failures_preserved": true,
+    "cocoa_signature_verified": true,
+    "objects_available_after_cleanup": false,
+    "source_and_named_products_retained": true
+  },
+  "driver": {
+    "sha256": "e6536728a3e30fb3bf8be8f305a5d5d298a67b79e0b6bea015188306daaee803",
+    "bytes": 16195,
+    "retained_privately": true
+  },
+  "raw": {
+    "path": "build/acceptance/message-count-functional-recovery-1/results.json",
+    "sha256": "b7435b1bd8e7462568529ef1ff42781c15fe1914b93674dbc5a1f3957dcc4499",
+    "bytes": 877547
+  },
+  "budget": {
+    "whole_seconds": 589,
+    "per_load_or_case_seconds": 30,
+    "expected_seconds": [
+      60,
+      180
+    ],
+    "expected_peak_bytes": 536870912,
+    "requested_hard_memory_bytes": 1073741824,
+    "requested_memory_growth": false,
+    "new_file_processes": 16,
+    "unique_file_results": 18,
+    "observations": 522,
+    "scale": "8candidates*(4message log+54complete original simple cases)=16newprocesses,464observations. Reuse completed reference message4 from failed attempt plus unchanged prior reference simple54;17newprocesses/468newobservations across both attempts,18unique522total. Real simple bodies retain finite shell/child waits,648source shell invocations across9 unique contexts;576 freshly requested. PTY jobs1/OMP1,30s/load/case. Prior18process P44998.45s/353MB informs estimate."
+  },
+  "seconds": 113.878382583,
+  "slice_new_processes": 17,
+  "slice_new_observations": 468,
+  "older_reference_processes_reused": 1,
+  "older_reference_observations": 54,
+  "unique_file_results": 18,
+  "observations": 522,
+  "ordinary_passes": 513,
+  "original_skips": 9,
+  "expected_failures": 0,
+  "unexpected": 0,
+  "final_attempt_new_processes": 16,
+  "final_attempt_new_observations": 464,
+  "final_attempt_reused_processes": 2,
+  "final_attempt_reused_observations": 58,
+  "current_reference_processes_reused": 1,
+  "current_reference_observations": 4,
+  "expected_id_sets": {
+    "tools/fixtures/message-count-functional.el": [
+      "message-count-functional-distinct-message-breaks-run",
+      "message-count-functional-literal-count-in-payload",
+      "message-count-functional-multibyte-repeated",
+      "message-count-functional-undo-repeated"
+    ],
+    "test/lisp/simple-tests.el": [
+      "auto-fill-mode-no-break-before-length-of-fill-prefix",
+      "command-execute-prune-command-history",
+      "eval-expression-print-format-large-int",
+      "eval-expression-print-format-large-int-echo",
+      "eval-expression-print-format-small-int",
+      "eval-expression-print-format-small-int-echo",
+      "eval-expression-print-format-sym",
+      "eval-expression-print-format-sym-echo",
+      "kill-whole-line-after-other-kill",
+      "kill-whole-line-buffer-boundaries",
+      "kill-whole-line-invisible",
+      "kill-whole-line-line-boundaries",
+      "kill-whole-line-read-only",
+      "line-number-at-pos-in-narrow-buffer",
+      "line-number-at-pos-in-widen-buffer",
+      "line-number-at-pos-keeps-point",
+      "line-number-at-pos-keeps-restriction",
+      "line-number-at-pos-when-passing-point",
+      "missing-record-point-in-undo",
+      "newline",
+      "newline-indent",
+      "open-line",
+      "open-line-hook",
+      "open-line-indent",
+      "open-line-margin-and-prefix",
+      "simple-delete-indentation-blank-line",
+      "simple-delete-indentation-boundaries",
+      "simple-delete-indentation-inactive-region",
+      "simple-delete-indentation-no-region",
+      "simple-delete-indentation-prefix",
+      "simple-delete-indentation-region",
+      "simple-delete-trailing-whitespace--bug-21766",
+      "simple-delete-trailing-whitespace--formfeeds",
+      "simple-execute-extended-command--describe-binding-msg",
+      "simple-execute-extended-command--shorter",
+      "simple-test-count-lines",
+      "simple-test-count-lines/ignore-invisible-lines",
+      "simple-test-count-words-bug-41761",
+      "simple-test-undo-extra-boundary-in-tex",
+      "simple-tests--undo",
+      "simple-tests--undo-apply",
+      "simple-tests--undo-equiv-table",
+      "simple-tests--undo-in-region",
+      "simple-tests-async-shell-command-30280",
+      "simple-tests-shell-command-39067",
+      "simple-tests-shell-command-dont-erase-buffer",
+      "simple-tests-zap-to-char",
+      "simple-text-count-lines-non-ascii",
+      "simple-transpose-subr",
+      "test-undo-region",
+      "test-yank-in-context",
+      "undo-auto--boundaries-added",
+      "undo-auto-boundary-timer",
+      "undo-point-in-wrong-place"
+    ]
+  },
+  "pinned_test_inputs": [
+    {
+      "path": "test/lisp/simple-tests.el",
+      "source_path": "compatibility/stable-31.1/test/lisp/simple-tests.el",
+      "input": "overlay",
+      "mode": "100644",
+      "size": 51015,
+      "blob": "464cc51c1520ec0f65784941752a7add9ce935a9",
+      "sha256": "39b5f838b4213d8e4041de0ca9b6627cdf652c6a869ea01a3d3c2d5b1d15cf99"
+    }
+  ],
+  "source_commit": "a360712c9d272d950d8d8255ef74570f7e90b7d9",
+  "status_and_outcome_maps_equal_reference": true,
+  "tag_maps_equal_reference": true,
+  "events_checked": 522,
+  "products": [
+    {
+      "id": "reference",
+      "kind": "reference",
+      "compiler_leg": "normal",
+      "native": true,
+      "observer": false,
+      "test_hooks": false,
+      "collector": "off",
+      "program": {
+        "kind": "file",
+        "bytes": 3691504,
+        "mode": 493,
+        "sha256": "5b55e93c8304368ee37cc5c537ca3e1370e3b9b3fef049bdce76834a9db75e65"
+      },
+      "dump": {
+        "kind": "file",
+        "bytes": 23084632,
+        "mode": 420,
+        "sha256": "6ac1214186022574a70e84a04bb7f2dc44e1ea1d4c90f0d9ce421ddd0f4b4536"
+      },
+      "metadata": {
+        "version": "31.1",
+        "system_configuration": "aarch64-apple-darwin25.6.0",
+        "system_type": "darwin",
+        "loaded_features_sha256": "603ec86c2e2df8f683f5bf582f13285ff51d92d97d40db7cb05503f15f502a1f"
+      },
+      "resources": {
+        "lisp": {
+          "entries": 3316,
+          "canonical_json_sha256": "564df364c803f4d0b64d7bc2ba986d775e8985529481ac2684b739666e131323"
+        }
+      }
+    },
+    {
+      "id": "message-count-terminal-normal-major",
+      "kind": "terminal",
+      "compiler_leg": "normal",
+      "native": true,
+      "observer": true,
+      "test_hooks": false,
+      "collector": "major",
+      "program": {
+        "kind": "file",
+        "bytes": 13520960,
+        "mode": 493,
+        "sha256": "eb94533b34f97d195d9f4110494b88cedfd734d26cba621680cbf277fdb006a7"
+      },
+      "dump": {
+        "kind": "file",
+        "bytes": 13204912,
+        "mode": 420,
+        "sha256": "4b90715e5995933d8c62cd18323227f6bf7081acacac7f1bcda3f61bfa40a2d1"
+      },
+      "metadata": {
+        "version": "32.0.50",
+        "system_configuration": "aarch64-apple-darwin25.6.0",
+        "system_type": "darwin",
+        "loaded_features_sha256": "d68aa10b201861e905de2fbc90d47f1a5c35c622c1233f1884d8a6ba39192b92"
+      },
+      "resources": {
+        "lisp": {
+          "entries": 3353,
+          "canonical_json_sha256": "c6e387253436eb12ec6eb91ae5c1de144752a395ffc66f10b41d574d454c5930"
+        },
+        "etc": {
+          "entries": 1019,
+          "canonical_json_sha256": "6d0b1893b0497a34ae0d799f9e9315d2cab135e0ef6472cfeddb8e1e38c78ace"
+        },
+        "info": {
+          "entries": 70,
+          "canonical_json_sha256": "6c39dbe73e6716a38dd919fce0f014426657ef2d35a24005f3cb0fee05f99ba4"
+        },
+        "runtime-native": {
+          "entries": 6,
+          "canonical_json_sha256": "47d5a284f2622d07710aae8a3cda6b3aaa39f8ef02d544692f2672ce70308cc3"
+        },
+        "licenses": {
+          "entries": 13,
+          "canonical_json_sha256": "87d95d80e5efbfd9617412bc72391db1f0c0cd0f3c887130dbddf68c887ddaf0"
+        },
+        "tls-runtime": {
+          "entries": 9,
+          "canonical_json_sha256": "9b34100e73d1f4bbd3157cd1535a25f8fdc6d4e094f2e6a1e9dc79b1a63fd73d"
+        },
+        "tls-licenses": {
+          "entries": 14,
+          "canonical_json_sha256": "73f46a8351f88ab1d10b069728f5079fdef118fbfb323296cc257d16dcec74c2"
+        },
+        "lcms-runtime": {
+          "entries": 1,
+          "canonical_json_sha256": "819844d74d5d4f3ee5a75aaf2b0d9a23b07fdda8bfa71c65cdbda63f6eb213cb"
+        },
+        "lcms-licenses": {
+          "entries": 1,
+          "canonical_json_sha256": "abe468dfa57be006c058e461d993e3fc3e5c0fe8bbfbec6a70247908ae75bd5d"
+        },
+        "treesit-runtime": {
+          "entries": 1,
+          "canonical_json_sha256": "05b5f47a14a19b3f04511fa292f0976e2cab06437b9e4323edbce72a9767f0f9"
+        },
+        "treesit-licenses": {
+          "entries": 1,
+          "canonical_json_sha256": "421d95420dc36d9656db1d883de7c7c7fdd125861ce0139a3d8518c77a1ff370"
+        }
+      }
+    },
+    {
+      "id": "message-count-terminal-normal-young",
+      "kind": "terminal",
+      "compiler_leg": "normal",
+      "native": true,
+      "observer": true,
+      "test_hooks": false,
+      "collector": "young",
+      "program": {
+        "kind": "file",
+        "bytes": 13520960,
+        "mode": 493,
+        "sha256": "eb94533b34f97d195d9f4110494b88cedfd734d26cba621680cbf277fdb006a7"
+      },
+      "dump": {
+        "kind": "file",
+        "bytes": 13204912,
+        "mode": 420,
+        "sha256": "4b90715e5995933d8c62cd18323227f6bf7081acacac7f1bcda3f61bfa40a2d1"
+      },
+      "metadata": {
+        "version": "32.0.50",
+        "system_configuration": "aarch64-apple-darwin25.6.0",
+        "system_type": "darwin",
+        "loaded_features_sha256": "d68aa10b201861e905de2fbc90d47f1a5c35c622c1233f1884d8a6ba39192b92"
+      },
+      "resources": {
+        "lisp": {
+          "entries": 3353,
+          "canonical_json_sha256": "c6e387253436eb12ec6eb91ae5c1de144752a395ffc66f10b41d574d454c5930"
+        },
+        "etc": {
+          "entries": 1019,
+          "canonical_json_sha256": "6d0b1893b0497a34ae0d799f9e9315d2cab135e0ef6472cfeddb8e1e38c78ace"
+        },
+        "info": {
+          "entries": 70,
+          "canonical_json_sha256": "6c39dbe73e6716a38dd919fce0f014426657ef2d35a24005f3cb0fee05f99ba4"
+        },
+        "runtime-native": {
+          "entries": 6,
+          "canonical_json_sha256": "47d5a284f2622d07710aae8a3cda6b3aaa39f8ef02d544692f2672ce70308cc3"
+        },
+        "licenses": {
+          "entries": 13,
+          "canonical_json_sha256": "87d95d80e5efbfd9617412bc72391db1f0c0cd0f3c887130dbddf68c887ddaf0"
+        },
+        "tls-runtime": {
+          "entries": 9,
+          "canonical_json_sha256": "9b34100e73d1f4bbd3157cd1535a25f8fdc6d4e094f2e6a1e9dc79b1a63fd73d"
+        },
+        "tls-licenses": {
+          "entries": 14,
+          "canonical_json_sha256": "73f46a8351f88ab1d10b069728f5079fdef118fbfb323296cc257d16dcec74c2"
+        },
+        "lcms-runtime": {
+          "entries": 1,
+          "canonical_json_sha256": "819844d74d5d4f3ee5a75aaf2b0d9a23b07fdda8bfa71c65cdbda63f6eb213cb"
+        },
+        "lcms-licenses": {
+          "entries": 1,
+          "canonical_json_sha256": "abe468dfa57be006c058e461d993e3fc3e5c0fe8bbfbec6a70247908ae75bd5d"
+        },
+        "treesit-runtime": {
+          "entries": 1,
+          "canonical_json_sha256": "05b5f47a14a19b3f04511fa292f0976e2cab06437b9e4323edbce72a9767f0f9"
+        },
+        "treesit-licenses": {
+          "entries": 1,
+          "canonical_json_sha256": "421d95420dc36d9656db1d883de7c7c7fdd125861ce0139a3d8518c77a1ff370"
+        }
+      }
+    },
+    {
+      "id": "message-count-terminal-checking-major",
+      "kind": "terminal",
+      "compiler_leg": "checking",
+      "native": true,
+      "observer": true,
+      "test_hooks": false,
+      "collector": "major",
+      "program": {
+        "kind": "file",
+        "bytes": 14253952,
+        "mode": 493,
+        "sha256": "463cf118a9faf6acee6b7983189f37a9ea55555e8617013f2133ea1f91a45d0f"
+      },
+      "dump": {
+        "kind": "file",
+        "bytes": 13204848,
+        "mode": 420,
+        "sha256": "2775dfeb665c458ef26027ded023631dd2c254c778cdac6d799bd793de3e252e"
+      },
+      "metadata": {
+        "version": "32.0.50",
+        "system_configuration": "aarch64-apple-darwin25.6.0",
+        "system_type": "darwin",
+        "loaded_features_sha256": "d68aa10b201861e905de2fbc90d47f1a5c35c622c1233f1884d8a6ba39192b92"
+      },
+      "resources": {
+        "lisp": {
+          "entries": 3363,
+          "canonical_json_sha256": "38f4d6b1c43195102b990e568b2ec7288a896163de319f92016b4ec97324f531"
+        },
+        "etc": {
+          "entries": 1019,
+          "canonical_json_sha256": "6d0b1893b0497a34ae0d799f9e9315d2cab135e0ef6472cfeddb8e1e38c78ace"
+        },
+        "info": {
+          "entries": 70,
+          "canonical_json_sha256": "b6e3cc406c20d7e2cdfd8009afa736d90a63f44d2faf0263eba541621ad1bd83"
+        },
+        "runtime-native": {
+          "entries": 6,
+          "canonical_json_sha256": "47d5a284f2622d07710aae8a3cda6b3aaa39f8ef02d544692f2672ce70308cc3"
+        },
+        "licenses": {
+          "entries": 13,
+          "canonical_json_sha256": "87d95d80e5efbfd9617412bc72391db1f0c0cd0f3c887130dbddf68c887ddaf0"
+        },
+        "tls-runtime": {
+          "entries": 9,
+          "canonical_json_sha256": "9b34100e73d1f4bbd3157cd1535a25f8fdc6d4e094f2e6a1e9dc79b1a63fd73d"
+        },
+        "tls-licenses": {
+          "entries": 14,
+          "canonical_json_sha256": "73f46a8351f88ab1d10b069728f5079fdef118fbfb323296cc257d16dcec74c2"
+        },
+        "lcms-runtime": {
+          "entries": 1,
+          "canonical_json_sha256": "819844d74d5d4f3ee5a75aaf2b0d9a23b07fdda8bfa71c65cdbda63f6eb213cb"
+        },
+        "lcms-licenses": {
+          "entries": 1,
+          "canonical_json_sha256": "abe468dfa57be006c058e461d993e3fc3e5c0fe8bbfbec6a70247908ae75bd5d"
+        },
+        "treesit-runtime": {
+          "entries": 1,
+          "canonical_json_sha256": "05b5f47a14a19b3f04511fa292f0976e2cab06437b9e4323edbce72a9767f0f9"
+        },
+        "treesit-licenses": {
+          "entries": 1,
+          "canonical_json_sha256": "421d95420dc36d9656db1d883de7c7c7fdd125861ce0139a3d8518c77a1ff370"
+        }
+      }
+    },
+    {
+      "id": "message-count-terminal-checking-young",
+      "kind": "terminal",
+      "compiler_leg": "checking",
+      "native": true,
+      "observer": true,
+      "test_hooks": false,
+      "collector": "young",
+      "program": {
+        "kind": "file",
+        "bytes": 14253952,
+        "mode": 493,
+        "sha256": "463cf118a9faf6acee6b7983189f37a9ea55555e8617013f2133ea1f91a45d0f"
+      },
+      "dump": {
+        "kind": "file",
+        "bytes": 13204848,
+        "mode": 420,
+        "sha256": "2775dfeb665c458ef26027ded023631dd2c254c778cdac6d799bd793de3e252e"
+      },
+      "metadata": {
+        "version": "32.0.50",
+        "system_configuration": "aarch64-apple-darwin25.6.0",
+        "system_type": "darwin",
+        "loaded_features_sha256": "d68aa10b201861e905de2fbc90d47f1a5c35c622c1233f1884d8a6ba39192b92"
+      },
+      "resources": {
+        "lisp": {
+          "entries": 3363,
+          "canonical_json_sha256": "38f4d6b1c43195102b990e568b2ec7288a896163de319f92016b4ec97324f531"
+        },
+        "etc": {
+          "entries": 1019,
+          "canonical_json_sha256": "6d0b1893b0497a34ae0d799f9e9315d2cab135e0ef6472cfeddb8e1e38c78ace"
+        },
+        "info": {
+          "entries": 70,
+          "canonical_json_sha256": "b6e3cc406c20d7e2cdfd8009afa736d90a63f44d2faf0263eba541621ad1bd83"
+        },
+        "runtime-native": {
+          "entries": 6,
+          "canonical_json_sha256": "47d5a284f2622d07710aae8a3cda6b3aaa39f8ef02d544692f2672ce70308cc3"
+        },
+        "licenses": {
+          "entries": 13,
+          "canonical_json_sha256": "87d95d80e5efbfd9617412bc72391db1f0c0cd0f3c887130dbddf68c887ddaf0"
+        },
+        "tls-runtime": {
+          "entries": 9,
+          "canonical_json_sha256": "9b34100e73d1f4bbd3157cd1535a25f8fdc6d4e094f2e6a1e9dc79b1a63fd73d"
+        },
+        "tls-licenses": {
+          "entries": 14,
+          "canonical_json_sha256": "73f46a8351f88ab1d10b069728f5079fdef118fbfb323296cc257d16dcec74c2"
+        },
+        "lcms-runtime": {
+          "entries": 1,
+          "canonical_json_sha256": "819844d74d5d4f3ee5a75aaf2b0d9a23b07fdda8bfa71c65cdbda63f6eb213cb"
+        },
+        "lcms-licenses": {
+          "entries": 1,
+          "canonical_json_sha256": "abe468dfa57be006c058e461d993e3fc3e5c0fe8bbfbec6a70247908ae75bd5d"
+        },
+        "treesit-runtime": {
+          "entries": 1,
+          "canonical_json_sha256": "05b5f47a14a19b3f04511fa292f0976e2cab06437b9e4323edbce72a9767f0f9"
+        },
+        "treesit-licenses": {
+          "entries": 1,
+          "canonical_json_sha256": "421d95420dc36d9656db1d883de7c7c7fdd125861ce0139a3d8518c77a1ff370"
+        }
+      }
+    },
+    {
+      "id": "message-count-cocoa-normal-major",
+      "kind": "cocoa",
+      "compiler_leg": "normal",
+      "native": true,
+      "observer": true,
+      "test_hooks": false,
+      "collector": "major",
+      "program": {
+        "kind": "file",
+        "bytes": 15053088,
+        "mode": 493,
+        "sha256": "99ac00076bf4b1597930526f128803dfa4c47ac67d3b76283213d5058feedfeb"
+      },
+      "dump": {
+        "kind": "file",
+        "bytes": 18771672,
+        "mode": 420,
+        "sha256": "07c285e6d436905ad158e86bde66fcb20b6c65d5df68a04c3a5752d82d0a359f"
+      },
+      "metadata": {
+        "version": "32.0.50",
+        "system_configuration": "aarch64-apple-darwin25.6.0",
+        "system_type": "darwin",
+        "loaded_features_sha256": "571021e1797b5f3729f0f39b07e9e03695cdad26351f680a6321fe3a9ceb4553"
+      },
+      "resources": {
+        "bundle": {
+          "entries": 4485,
+          "canonical_json_sha256": "d5972da1fc0124405ba4c51e270b19597518aeea8242ad4e8408885f56ad448d"
+        },
+        "runtime-native": {
+          "entries": 6,
+          "canonical_json_sha256": "47d5a284f2622d07710aae8a3cda6b3aaa39f8ef02d544692f2672ce70308cc3"
+        },
+        "licenses": {
+          "entries": 13,
+          "canonical_json_sha256": "87d95d80e5efbfd9617412bc72391db1f0c0cd0f3c887130dbddf68c887ddaf0"
+        },
+        "tls-runtime": {
+          "entries": 9,
+          "canonical_json_sha256": "9b34100e73d1f4bbd3157cd1535a25f8fdc6d4e094f2e6a1e9dc79b1a63fd73d"
+        },
+        "tls-licenses": {
+          "entries": 14,
+          "canonical_json_sha256": "73f46a8351f88ab1d10b069728f5079fdef118fbfb323296cc257d16dcec74c2"
+        },
+        "lcms-runtime": {
+          "entries": 1,
+          "canonical_json_sha256": "819844d74d5d4f3ee5a75aaf2b0d9a23b07fdda8bfa71c65cdbda63f6eb213cb"
+        },
+        "lcms-licenses": {
+          "entries": 1,
+          "canonical_json_sha256": "abe468dfa57be006c058e461d993e3fc3e5c0fe8bbfbec6a70247908ae75bd5d"
+        },
+        "treesit-runtime": {
+          "entries": 1,
+          "canonical_json_sha256": "05b5f47a14a19b3f04511fa292f0976e2cab06437b9e4323edbce72a9767f0f9"
+        },
+        "treesit-licenses": {
+          "entries": 1,
+          "canonical_json_sha256": "421d95420dc36d9656db1d883de7c7c7fdd125861ce0139a3d8518c77a1ff370"
+        }
+      }
+    },
+    {
+      "id": "message-count-cocoa-normal-young",
+      "kind": "cocoa",
+      "compiler_leg": "normal",
+      "native": true,
+      "observer": true,
+      "test_hooks": false,
+      "collector": "young",
+      "program": {
+        "kind": "file",
+        "bytes": 15053088,
+        "mode": 493,
+        "sha256": "99ac00076bf4b1597930526f128803dfa4c47ac67d3b76283213d5058feedfeb"
+      },
+      "dump": {
+        "kind": "file",
+        "bytes": 18771672,
+        "mode": 420,
+        "sha256": "07c285e6d436905ad158e86bde66fcb20b6c65d5df68a04c3a5752d82d0a359f"
+      },
+      "metadata": {
+        "version": "32.0.50",
+        "system_configuration": "aarch64-apple-darwin25.6.0",
+        "system_type": "darwin",
+        "loaded_features_sha256": "571021e1797b5f3729f0f39b07e9e03695cdad26351f680a6321fe3a9ceb4553"
+      },
+      "resources": {
+        "bundle": {
+          "entries": 4485,
+          "canonical_json_sha256": "d5972da1fc0124405ba4c51e270b19597518aeea8242ad4e8408885f56ad448d"
+        },
+        "runtime-native": {
+          "entries": 6,
+          "canonical_json_sha256": "47d5a284f2622d07710aae8a3cda6b3aaa39f8ef02d544692f2672ce70308cc3"
+        },
+        "licenses": {
+          "entries": 13,
+          "canonical_json_sha256": "87d95d80e5efbfd9617412bc72391db1f0c0cd0f3c887130dbddf68c887ddaf0"
+        },
+        "tls-runtime": {
+          "entries": 9,
+          "canonical_json_sha256": "9b34100e73d1f4bbd3157cd1535a25f8fdc6d4e094f2e6a1e9dc79b1a63fd73d"
+        },
+        "tls-licenses": {
+          "entries": 14,
+          "canonical_json_sha256": "73f46a8351f88ab1d10b069728f5079fdef118fbfb323296cc257d16dcec74c2"
+        },
+        "lcms-runtime": {
+          "entries": 1,
+          "canonical_json_sha256": "819844d74d5d4f3ee5a75aaf2b0d9a23b07fdda8bfa71c65cdbda63f6eb213cb"
+        },
+        "lcms-licenses": {
+          "entries": 1,
+          "canonical_json_sha256": "abe468dfa57be006c058e461d993e3fc3e5c0fe8bbfbec6a70247908ae75bd5d"
+        },
+        "treesit-runtime": {
+          "entries": 1,
+          "canonical_json_sha256": "05b5f47a14a19b3f04511fa292f0976e2cab06437b9e4323edbce72a9767f0f9"
+        },
+        "treesit-licenses": {
+          "entries": 1,
+          "canonical_json_sha256": "421d95420dc36d9656db1d883de7c7c7fdd125861ce0139a3d8518c77a1ff370"
+        }
+      }
+    },
+    {
+      "id": "message-count-cocoa-checking-major",
+      "kind": "cocoa",
+      "compiler_leg": "checking",
+      "native": true,
+      "observer": true,
+      "test_hooks": false,
+      "collector": "major",
+      "program": {
+        "kind": "file",
+        "bytes": 15885584,
+        "mode": 493,
+        "sha256": "b3f0b2385648338eefaeed8585f498d1c921175ca200b927560d4be8a76d72b8"
+      },
+      "dump": {
+        "kind": "file",
+        "bytes": 18771720,
+        "mode": 420,
+        "sha256": "9901f556b0af75121c009ac67c0c61da414aba0d07cc4d9630bd51ed0b2d64d2"
+      },
+      "metadata": {
+        "version": "32.0.50",
+        "system_configuration": "aarch64-apple-darwin25.6.0",
+        "system_type": "darwin",
+        "loaded_features_sha256": "571021e1797b5f3729f0f39b07e9e03695cdad26351f680a6321fe3a9ceb4553"
+      },
+      "resources": {
+        "bundle": {
+          "entries": 4485,
+          "canonical_json_sha256": "3b81e3b138a47210b1d34c2d94047aafbc4c2cc4bbbe9b037cd95f953845b8b8"
+        },
+        "runtime-native": {
+          "entries": 6,
+          "canonical_json_sha256": "47d5a284f2622d07710aae8a3cda6b3aaa39f8ef02d544692f2672ce70308cc3"
+        },
+        "licenses": {
+          "entries": 13,
+          "canonical_json_sha256": "87d95d80e5efbfd9617412bc72391db1f0c0cd0f3c887130dbddf68c887ddaf0"
+        },
+        "tls-runtime": {
+          "entries": 9,
+          "canonical_json_sha256": "9b34100e73d1f4bbd3157cd1535a25f8fdc6d4e094f2e6a1e9dc79b1a63fd73d"
+        },
+        "tls-licenses": {
+          "entries": 14,
+          "canonical_json_sha256": "73f46a8351f88ab1d10b069728f5079fdef118fbfb323296cc257d16dcec74c2"
+        },
+        "lcms-runtime": {
+          "entries": 1,
+          "canonical_json_sha256": "819844d74d5d4f3ee5a75aaf2b0d9a23b07fdda8bfa71c65cdbda63f6eb213cb"
+        },
+        "lcms-licenses": {
+          "entries": 1,
+          "canonical_json_sha256": "abe468dfa57be006c058e461d993e3fc3e5c0fe8bbfbec6a70247908ae75bd5d"
+        },
+        "treesit-runtime": {
+          "entries": 1,
+          "canonical_json_sha256": "05b5f47a14a19b3f04511fa292f0976e2cab06437b9e4323edbce72a9767f0f9"
+        },
+        "treesit-licenses": {
+          "entries": 1,
+          "canonical_json_sha256": "421d95420dc36d9656db1d883de7c7c7fdd125861ce0139a3d8518c77a1ff370"
+        }
+      }
+    },
+    {
+      "id": "message-count-cocoa-checking-young",
+      "kind": "cocoa",
+      "compiler_leg": "checking",
+      "native": true,
+      "observer": true,
+      "test_hooks": false,
+      "collector": "young",
+      "program": {
+        "kind": "file",
+        "bytes": 15885584,
+        "mode": 493,
+        "sha256": "b3f0b2385648338eefaeed8585f498d1c921175ca200b927560d4be8a76d72b8"
+      },
+      "dump": {
+        "kind": "file",
+        "bytes": 18771720,
+        "mode": 420,
+        "sha256": "9901f556b0af75121c009ac67c0c61da414aba0d07cc4d9630bd51ed0b2d64d2"
+      },
+      "metadata": {
+        "version": "32.0.50",
+        "system_configuration": "aarch64-apple-darwin25.6.0",
+        "system_type": "darwin",
+        "loaded_features_sha256": "571021e1797b5f3729f0f39b07e9e03695cdad26351f680a6321fe3a9ceb4553"
+      },
+      "resources": {
+        "bundle": {
+          "entries": 4485,
+          "canonical_json_sha256": "3b81e3b138a47210b1d34c2d94047aafbc4c2cc4bbbe9b037cd95f953845b8b8"
+        },
+        "runtime-native": {
+          "entries": 6,
+          "canonical_json_sha256": "47d5a284f2622d07710aae8a3cda6b3aaa39f8ef02d544692f2672ce70308cc3"
+        },
+        "licenses": {
+          "entries": 13,
+          "canonical_json_sha256": "87d95d80e5efbfd9617412bc72391db1f0c0cd0f3c887130dbddf68c887ddaf0"
+        },
+        "tls-runtime": {
+          "entries": 9,
+          "canonical_json_sha256": "9b34100e73d1f4bbd3157cd1535a25f8fdc6d4e094f2e6a1e9dc79b1a63fd73d"
+        },
+        "tls-licenses": {
+          "entries": 14,
+          "canonical_json_sha256": "73f46a8351f88ab1d10b069728f5079fdef118fbfb323296cc257d16dcec74c2"
+        },
+        "lcms-runtime": {
+          "entries": 1,
+          "canonical_json_sha256": "819844d74d5d4f3ee5a75aaf2b0d9a23b07fdda8bfa71c65cdbda63f6eb213cb"
+        },
+        "lcms-licenses": {
+          "entries": 1,
+          "canonical_json_sha256": "abe468dfa57be006c058e461d993e3fc3e5c0fe8bbfbec6a70247908ae75bd5d"
+        },
+        "treesit-runtime": {
+          "entries": 1,
+          "canonical_json_sha256": "05b5f47a14a19b3f04511fa292f0976e2cab06437b9e4323edbce72a9767f0f9"
+        },
+        "treesit-licenses": {
+          "entries": 1,
+          "canonical_json_sha256": "421d95420dc36d9656db1d883de7c7c7fdd125861ce0139a3d8518c77a1ff370"
+        }
+      }
+    }
+  ],
+  "products_before_after_equal": true,
+  "inputs_before_after_equal": true,
+  "bound_inputs": [
+    {
+      "path": "private-driver/message-count-integration-recovery-1.py",
+      "kind": "file",
+      "bytes": 16195,
+      "mode": 420,
+      "sha256": "e6536728a3e30fb3bf8be8f305a5d5d298a67b79e0b6bea015188306daaee803"
+    },
+    {
+      "path": "compatibility/stable-31.1/sources.json",
+      "kind": "file",
+      "bytes": 562572,
+      "mode": 420,
+      "sha256": "a5ef144a203b8b2a74e346ac47173c5d4122f751d8d950347ae75ff67eef0efe"
+    },
+    {
+      "path": "tools/fixtures/stable-suite-runner.el",
+      "kind": "file",
+      "bytes": 13436,
+      "mode": 420,
+      "sha256": "151a47683f6ac6e036b72fcbd2d6204bd5260e82817b9c6ef7f121b26448825f"
+    },
+    {
+      "path": "tools/fixtures/message-count-functional.el",
+      "kind": "file",
+      "bytes": 1913,
+      "mode": 420,
+      "sha256": "2beb2783761c2ea3d070c93ce6bc8de30802f06f47ad436b0cf602bd7c96908b"
+    },
+    {
+      "path": "build/acceptance/message-count-current-recovery-2/results.json",
+      "kind": "file",
+      "bytes": 33827,
+      "mode": 420,
+      "sha256": "10a950ec10536a2c931b46da6086f4ba6c0b5ca8d87157627073b6784858c1f9"
+    },
+    {
+      "path": "build/acceptance/message-count-current-recovery-2/products.json",
+      "kind": "file",
+      "bytes": 23795,
+      "mode": 420,
+      "sha256": "54f1a560574aeaa1b3426de97629deb2f54ba8cf8d41dd3c843e234e5083f3df"
+    },
+    {
+      "path": "build/acceptance/message-count-current-1/source-inputs.json",
+      "kind": "file",
+      "bytes": 1470312,
+      "mode": 420,
+      "sha256": "daf8772f4c954585bb1d386b7887ebaa0dbc2db84cfb67f611235bb8b8318093"
+    },
+    {
+      "path": "build/acceptance/owned-pty-functional-3/results.json",
+      "kind": "file",
+      "bytes": 893905,
+      "mode": 420,
+      "sha256": "c7dfd8c8330b8c3e16f8cc047a873b89b8a188f8744f9a9e260bcd00729eda76"
+    },
+    {
+      "path": "maintenance/releases/2026-11-01-owned-pty-execution-results.json",
+      "kind": "file",
+      "bytes": 128733,
+      "mode": 420,
+      "sha256": "aaa861b867e28bc627dc9300df128f6b2a490713eabd4c4cf29b5554243e9793"
+    },
+    {
+      "path": "build/acceptance/message-count-functional-1/results.json",
+      "kind": "file",
+      "bytes": 126426,
+      "mode": 420,
+      "sha256": "c25c1f58ac3e36ba1e31cf3fc6228b257786a343cd474e31587d3b0f63d31ab7"
+    },
+    {
+      "path": "build/acceptance/message-count-functional-1/products-before.json",
+      "kind": "file",
+      "bytes": 8210288,
+      "mode": 420,
+      "sha256": "1124b6c2159dfb66dc3ec9da11b4ff0842f449e3b0fd5ec9cd57b4ef7d035b8b"
+    },
+    {
+      "path": "private-driver/message-count-integration-1.py",
+      "kind": "file",
+      "bytes": 14546,
+      "mode": 420,
+      "sha256": "978d3a372608aa3cf47086f10de4576e662a0c74f700ae8c21d8f2cff0c12a42"
+    },
+    {
+      "path": "tools/stable-suite.py",
+      "kind": "file",
+      "bytes": 54152,
+      "mode": 420,
+      "sha256": "7ef72db2b50adce3edbeef6ec59eef40df2455868fd8e7ae373b5ceab58fb11a"
+    },
+    {
+      "path": "tools/stable-suite-batch.py",
+      "kind": "file",
+      "bytes": 29746,
+      "mode": 420,
+      "sha256": "3caaf136d6332d3a04d863f6534e949b4e390c7dd075a9fdf7477cd4bc7ad2b1"
+    },
+    {
+      "path": "tools/runtime-execution.py",
+      "kind": "file",
+      "bytes": 94576,
+      "mode": 420,
+      "sha256": "79b5e54f71bec3f71c5d4bc7493cf36fe953d488dba02be19d7dc7194af990fe"
+    },
+    {
+      "path": "tools/runtime-retire.py",
+      "kind": "file",
+      "bytes": 8538,
+      "mode": 420,
+      "sha256": "84ad68bbb26ffb73e129406b430393c0eaeab2f6b818c5916a950b6514eb6932"
+    },
+    {
+      "path": "compatibility/stable-31.1/test/lisp/simple-tests.el",
+      "kind": "file",
+      "bytes": 51015,
+      "mode": 420,
+      "sha256": "39b5f838b4213d8e4041de0ca9b6627cdf652c6a869ea01a3d3c2d5b1d15cf99"
+    },
+    {
+      "path": "src/alloc.rs",
+      "kind": "file",
+      "bytes": 321170,
+      "mode": 420,
+      "sha256": "564e9377279426cf6ca2ba70e89b797a98a5a5737d677df1e4fedd09eb41fa55"
+    },
+    {
+      "path": "src/runtime_gc_collector.rs",
+      "kind": "file",
+      "bytes": 26379,
+      "mode": 420,
+      "sha256": "aa1ca1ef6d2e79388674ea9c879ca7ed2388bca5d2482b6dcfc2b9fe502a5020"
+    },
+    {
+      "path": "src/xdisp.rs",
+      "kind": "file",
+      "bytes": 1528675,
+      "mode": 420,
+      "sha256": "8b6c4b6f9c4263a780092fd57f07aa8efd1a9708ed193cb451bdd231444f362d"
+    },
+    {
+      "path": "PORTING.md",
+      "kind": "file",
+      "bytes": 826064,
+      "mode": 420,
+      "sha256": "d5d6947bff6fe11c3c14a746ef8a00029abe63166dbaba188940922c71ddf1fc"
+    },
+    {
+      "path": "docs/current-state.md",
+      "kind": "file",
+      "bytes": 168016,
+      "mode": 420,
+      "sha256": "f4e1d479c4db917486f1897a6503aa8a43b5aa607bd98e131bd2dd59d28a80b4"
+    },
+    {
+      "path": "docs/status.md",
+      "kind": "file",
+      "bytes": 6384161,
+      "mode": 420,
+      "sha256": "a4779f09ce364c90660615173d70e6ff7d242671b4d3a9ba79a8344b33f063f4"
+    },
+    {
+      "path": "maintenance/cleanup/LOG.md",
+      "kind": "file",
+      "bytes": 87972,
+      "mode": 420,
+      "sha256": "6a7223fc80a08fb5333427b499e4f94459557b334947f03447471b56844d7362"
+    },
+    {
+      "path": "src/include/jni.rs",
+      "kind": "file",
+      "bytes": 55853,
+      "mode": 420,
+      "sha256": "9d82a327b726904920387e879ae4511d8ee8a79a296ec8cd7cc78640aa746716"
+    },
+    {
+      "path": ".DS_Store",
+      "kind": "file",
+      "bytes": 8196,
+      "mode": 420,
+      "sha256": "1cbe4410746c2c219e00288a9fa442a4596a63e72895e6c0026485c7dce36a8a"
+    },
+    {
+      "path": "tools/test-client-receipt.py",
+      "kind": "file",
+      "bytes": 4981,
+      "mode": 420,
+      "sha256": "1ce579c6413a6742c5f44aed981a73aa506378dc771a4b69e8ec7a0978c2a6cb"
+    },
+    {
+      "path": "maintenance/incidents/2026-10-25-runtime-build-owner-loss.md",
+      "kind": "file",
+      "bytes": 6064,
+      "mode": 420,
+      "sha256": "0872212d0085d24d99a90b3069b8a558515b3b309023f2ad5cf7d41974d9119b"
+    },
+    {
+      "path": "maintenance/incidents/2026-10-26-prepare-controller-interruption.md",
+      "kind": "file",
+      "bytes": 2564,
+      "mode": 420,
+      "sha256": "57f3b61a7067cfe85d215121cb12734957fb050a8a0af92d06bfeeb39d4ef350"
+    },
+    {
+      "path": "maintenance/incidents/2026-10-29-macos-mock-shell-job-control.md",
+      "kind": "file",
+      "bytes": 4033,
+      "mode": 420,
+      "sha256": "7533b97f5fa402843e61b0d68842558fbb02a525fad3b222a3141c47328ea3bf"
+    }
+  ],
+  "trial_app_unchanged": true,
+  "original_inputs_unchanged": true,
+  "generated_resources": {
+    "message-count-terminal-normal-major": {},
+    "message-count-terminal-normal-young": {},
+    "message-count-terminal-checking-major": {},
+    "message-count-terminal-checking-young": {},
+    "message-count-cocoa-normal-major": {},
+    "message-count-cocoa-normal-young": {},
+    "message-count-cocoa-checking-major": {},
+    "message-count-cocoa-checking-young": {}
+  },
+  "materialization": {
+    "actual_pinned_copies": 8,
+    "files_per_copy": 1536,
+    "logical_bytes_per_copy": 20996952,
+    "authored_fixture_copies": 9,
+    "reference_original_simple_copy_not_recreated": true
+  },
+  "files": [
+    {
+      "product": "reference",
+      "file": "test/lisp/simple-tests.el",
+      "reused_in_final_attempt": true,
+      "evidence_base": "build/acceptance/owned-pty-functional-3/reference",
+      "ids": [
+        "auto-fill-mode-no-break-before-length-of-fill-prefix",
+        "command-execute-prune-command-history",
+        "eval-expression-print-format-large-int",
+        "eval-expression-print-format-large-int-echo",
+        "eval-expression-print-format-small-int",
+        "eval-expression-print-format-small-int-echo",
+        "eval-expression-print-format-sym",
+        "eval-expression-print-format-sym-echo",
+        "kill-whole-line-after-other-kill",
+        "kill-whole-line-buffer-boundaries",
+        "kill-whole-line-invisible",
+        "kill-whole-line-line-boundaries",
+        "kill-whole-line-read-only",
+        "line-number-at-pos-in-narrow-buffer",
+        "line-number-at-pos-in-widen-buffer",
+        "line-number-at-pos-keeps-point",
+        "line-number-at-pos-keeps-restriction",
+        "line-number-at-pos-when-passing-point",
+        "missing-record-point-in-undo",
+        "newline",
+        "newline-indent",
+        "open-line",
+        "open-line-hook",
+        "open-line-indent",
+        "open-line-margin-and-prefix",
+        "simple-delete-indentation-blank-line",
+        "simple-delete-indentation-boundaries",
+        "simple-delete-indentation-inactive-region",
+        "simple-delete-indentation-no-region",
+        "simple-delete-indentation-prefix",
+        "simple-delete-indentation-region",
+        "simple-delete-trailing-whitespace--bug-21766",
+        "simple-delete-trailing-whitespace--formfeeds",
+        "simple-execute-extended-command--describe-binding-msg",
+        "simple-execute-extended-command--shorter",
+        "simple-test-count-lines",
+        "simple-test-count-lines/ignore-invisible-lines",
+        "simple-test-count-words-bug-41761",
+        "simple-test-undo-extra-boundary-in-tex",
+        "simple-tests--undo",
+        "simple-tests--undo-apply",
+        "simple-tests--undo-equiv-table",
+        "simple-tests--undo-in-region",
+        "simple-tests-async-shell-command-30280",
+        "simple-tests-shell-command-39067",
+        "simple-tests-shell-command-dont-erase-buffer",
+        "simple-tests-zap-to-char",
+        "simple-text-count-lines-non-ascii",
+        "simple-transpose-subr",
+        "test-undo-region",
+        "test-yank-in-context",
+        "undo-auto--boundaries-added",
+        "undo-auto-boundary-timer",
+        "undo-point-in-wrong-place"
+      ],
+      "tags": {
+        "auto-fill-mode-no-break-before-length-of-fill-prefix": [],
+        "command-execute-prune-command-history": [],
+        "eval-expression-print-format-large-int": [],
+        "eval-expression-print-format-large-int-echo": [],
+        "eval-expression-print-format-small-int": [],
+        "eval-expression-print-format-small-int-echo": [],
+        "eval-expression-print-format-sym": [],
+        "eval-expression-print-format-sym-echo": [],
+        "kill-whole-line-after-other-kill": [],
+        "kill-whole-line-buffer-boundaries": [],
+        "kill-whole-line-invisible": [],
+        "kill-whole-line-line-boundaries": [],
+        "kill-whole-line-read-only": [],
+        "line-number-at-pos-in-narrow-buffer": [],
+        "line-number-at-pos-in-widen-buffer": [],
+        "line-number-at-pos-keeps-point": [],
+        "line-number-at-pos-keeps-restriction": [],
+        "line-number-at-pos-when-passing-point": [],
+        "missing-record-point-in-undo": [],
+        "newline": [],
+        "newline-indent": [],
+        "open-line": [],
+        "open-line-hook": [],
+        "open-line-indent": [],
+        "open-line-margin-and-prefix": [],
+        "simple-delete-indentation-blank-line": [],
+        "simple-delete-indentation-boundaries": [],
+        "simple-delete-indentation-inactive-region": [],
+        "simple-delete-indentation-no-region": [],
+        "simple-delete-indentation-prefix": [],
+        "simple-delete-indentation-region": [],
+        "simple-delete-trailing-whitespace--bug-21766": [],
+        "simple-delete-trailing-whitespace--formfeeds": [],
+        "simple-execute-extended-command--describe-binding-msg": [],
+        "simple-execute-extended-command--shorter": [],
+        "simple-test-count-lines": [],
+        "simple-test-count-lines/ignore-invisible-lines": [],
+        "simple-test-count-words-bug-41761": [],
+        "simple-test-undo-extra-boundary-in-tex": [],
+        "simple-tests--undo": [],
+        "simple-tests--undo-apply": [],
+        "simple-tests--undo-equiv-table": [],
+        "simple-tests--undo-in-region": [],
+        "simple-tests-async-shell-command-30280": [],
+        "simple-tests-shell-command-39067": [],
+        "simple-tests-shell-command-dont-erase-buffer": [],
+        "simple-tests-zap-to-char": [],
+        "simple-text-count-lines-non-ascii": [],
+        "simple-transpose-subr": [],
+        "test-undo-region": [],
+        "test-yank-in-context": [],
+        "undo-auto--boundaries-added": [],
+        "undo-auto-boundary-timer": [],
+        "undo-point-in-wrong-place": []
+      },
+      "passed": false,
+      "complete": true,
+      "exit_code": 0,
+      "timed_out": false,
+      "remaining_group_terminated": false,
+      "result_types": {
+        "ert-test-passed": 53,
+        "ert-test-skipped": 1
+      },
+      "result_file": {
+        "path": "results/reference/test-lisp-simple-tests.el-b65c7c4e5f4d.json",
+        "sha256": "35591bde82c56728127dc5b26001cec5c9b869514bbbc3fd4667a402eedeb0c2",
+        "bytes": 51835
+      },
+      "events_file": {
+        "path": "results/reference/test-lisp-simple-tests.el-b65c7c4e5f4d.events.jsonl",
+        "bytes": 32377,
+        "sha256": "2016cced306155e212c3ff0cd1f863bc3abc9d90b380ec6b1b16f348514e2834"
+      },
+      "owner_receipt": {
+        "path": "results/reference/test-lisp-simple-tests.el-b65c7c4e5f4d.owner-retirement.json",
+        "sha256": "1cc7c12398398f3af7a47bc65a9dc9ef2469df8aba184d83cd78dd7ecacd68b2",
+        "bytes": 373
+      },
+      "retirement": {
+        "status": "retained",
+        "reason": "file failed/incomplete; preserve original state"
+      },
+      "seconds": 15.348436542,
+      "display": "owned-pty",
+      "context": {
+        "noninteractive": false,
+        "window_system": null,
+        "io_layout": "combined-pty",
+        "native_comp_async_jobs": 1,
+        "native_comp_thread_limit": "1",
+        "available_processors": 1
+      },
+      "owned_same_tty": true
+    },
+    {
+      "product": "reference",
+      "file": "tools/fixtures/message-count-functional.el",
+      "reused_in_final_attempt": true,
+      "evidence_base": "build/acceptance/message-count-functional-1/reference",
+      "ids": [
+        "message-count-functional-distinct-message-breaks-run",
+        "message-count-functional-literal-count-in-payload",
+        "message-count-functional-multibyte-repeated",
+        "message-count-functional-undo-repeated"
+      ],
+      "tags": {
+        "message-count-functional-distinct-message-breaks-run": [],
+        "message-count-functional-literal-count-in-payload": [],
+        "message-count-functional-multibyte-repeated": [],
+        "message-count-functional-undo-repeated": []
+      },
+      "passed": true,
+      "complete": true,
+      "exit_code": 0,
+      "timed_out": false,
+      "remaining_group_terminated": false,
+      "result_types": {
+        "ert-test-passed": 4
+      },
+      "result_file": {
+        "path": "results/reference/tools-fixtures-message-count-functional.el-1d6c62f179d3.json",
+        "sha256": "929c780985714c680dc41201dfa62cfa07c790f822956d08d9db139538fc4458",
+        "bytes": 8680
+      },
+      "events_file": {
+        "path": "results/reference/tools-fixtures-message-count-functional.el-1d6c62f179d3.events.jsonl",
+        "bytes": 4639,
+        "sha256": "49337aef968f058ae981373ea2ef45279d8da67dcbc4438d9eeea50a27bb7b78"
+      },
+      "owner_receipt": {
+        "path": "results/reference/tools-fixtures-message-count-functional.el-1d6c62f179d3.owner-retirement.json",
+        "sha256": "2a25281e8359510e6d4dea165cec9d7225d8c650781d78112b465bfce540a68e",
+        "bytes": 914
+      },
+      "retirement": {
+        "status": "complete",
+        "files": 0,
+        "directories": 10,
+        "ledger_schema": 3,
+        "logical_bytes": 0,
+        "allocated_bytes": 0,
+        "evidence_sha256": "929c780985714c680dc41201dfa62cfa07c790f822956d08d9db139538fc4458",
+        "ledger": "tools-fixtures-message-count-functional.el-1d6c62f179d3.state-retirement.jsonl.gz",
+        "ledger_sha256": "c73dda08f61db7d8771a9dc94b9e758d666b8de857e014381d621f1e9321d5a4",
+        "all_selected_absent": true,
+        "restore": "regenerate consumed cache from retained inputs; original random names not promised",
+        "empty_parents_retired": true,
+        "parent_directories": 2
+      },
+      "seconds": 0.4644450839999994,
+      "display": "default-batch",
+      "context": null,
+      "owned_same_tty": null
+    },
+    {
+      "product": "message-count-terminal-normal-major",
+      "file": "tools/fixtures/message-count-functional.el",
+      "reused_in_final_attempt": false,
+      "evidence_base": "build/acceptance/message-count-functional-recovery-1/message-count-terminal-normal-major",
+      "ids": [
+        "message-count-functional-distinct-message-breaks-run",
+        "message-count-functional-literal-count-in-payload",
+        "message-count-functional-multibyte-repeated",
+        "message-count-functional-undo-repeated"
+      ],
+      "tags": {
+        "message-count-functional-distinct-message-breaks-run": [],
+        "message-count-functional-literal-count-in-payload": [],
+        "message-count-functional-multibyte-repeated": [],
+        "message-count-functional-undo-repeated": []
+      },
+      "passed": true,
+      "complete": true,
+      "exit_code": 0,
+      "timed_out": false,
+      "remaining_group_terminated": false,
+      "result_types": {
+        "ert-test-passed": 4
+      },
+      "result_file": {
+        "path": "results/message-count-terminal-normal-major/tools-fixtures-message-count-functional.el-1d6c62f179d3.json",
+        "sha256": "f32f301a5234fb6e5329ee2084104ca214274182cc8cf00f1639bd6fbf7fe5ff",
+        "bytes": 9091
+      },
+      "events_file": {
+        "path": "results/message-count-terminal-normal-major/tools-fixtures-message-count-functional.el-1d6c62f179d3.events.jsonl",
+        "bytes": 4355,
+        "sha256": "a29aef3178b30b4c9ceb2e0ead5cb77c9e20d74859614740d2786de2e5da42b9"
+      },
+      "owner_receipt": {
+        "path": "results/message-count-terminal-normal-major/tools-fixtures-message-count-functional.el-1d6c62f179d3.owner-retirement.json",
+        "sha256": "46a0fcb49deb5ddf90512d1b905c4acb6e89b445ca2c77ec93464e27301f4ce6",
+        "bytes": 940
+      },
+      "retirement": {
+        "status": "complete",
+        "files": 0,
+        "directories": 10,
+        "ledger_schema": 3,
+        "logical_bytes": 0,
+        "allocated_bytes": 0,
+        "evidence_sha256": "f32f301a5234fb6e5329ee2084104ca214274182cc8cf00f1639bd6fbf7fe5ff",
+        "ledger": "tools-fixtures-message-count-functional.el-1d6c62f179d3.state-retirement.jsonl.gz",
+        "ledger_sha256": "c73dda08f61db7d8771a9dc94b9e758d666b8de857e014381d621f1e9321d5a4",
+        "all_selected_absent": true,
+        "restore": "regenerate consumed cache from retained inputs; original random names not promised",
+        "empty_parents_retired": true,
+        "parent_directories": 2
+      },
+      "seconds": 7.357522583,
+      "display": "default-batch",
+      "context": null,
+      "owned_same_tty": null
+    },
+    {
+      "product": "message-count-terminal-normal-major",
+      "file": "test/lisp/simple-tests.el",
+      "reused_in_final_attempt": false,
+      "evidence_base": "build/acceptance/message-count-functional-recovery-1/message-count-terminal-normal-major",
+      "ids": [
+        "auto-fill-mode-no-break-before-length-of-fill-prefix",
+        "command-execute-prune-command-history",
+        "eval-expression-print-format-large-int",
+        "eval-expression-print-format-large-int-echo",
+        "eval-expression-print-format-small-int",
+        "eval-expression-print-format-small-int-echo",
+        "eval-expression-print-format-sym",
+        "eval-expression-print-format-sym-echo",
+        "kill-whole-line-after-other-kill",
+        "kill-whole-line-buffer-boundaries",
+        "kill-whole-line-invisible",
+        "kill-whole-line-line-boundaries",
+        "kill-whole-line-read-only",
+        "line-number-at-pos-in-narrow-buffer",
+        "line-number-at-pos-in-widen-buffer",
+        "line-number-at-pos-keeps-point",
+        "line-number-at-pos-keeps-restriction",
+        "line-number-at-pos-when-passing-point",
+        "missing-record-point-in-undo",
+        "newline",
+        "newline-indent",
+        "open-line",
+        "open-line-hook",
+        "open-line-indent",
+        "open-line-margin-and-prefix",
+        "simple-delete-indentation-blank-line",
+        "simple-delete-indentation-boundaries",
+        "simple-delete-indentation-inactive-region",
+        "simple-delete-indentation-no-region",
+        "simple-delete-indentation-prefix",
+        "simple-delete-indentation-region",
+        "simple-delete-trailing-whitespace--bug-21766",
+        "simple-delete-trailing-whitespace--formfeeds",
+        "simple-execute-extended-command--describe-binding-msg",
+        "simple-execute-extended-command--shorter",
+        "simple-test-count-lines",
+        "simple-test-count-lines/ignore-invisible-lines",
+        "simple-test-count-words-bug-41761",
+        "simple-test-undo-extra-boundary-in-tex",
+        "simple-tests--undo",
+        "simple-tests--undo-apply",
+        "simple-tests--undo-equiv-table",
+        "simple-tests--undo-in-region",
+        "simple-tests-async-shell-command-30280",
+        "simple-tests-shell-command-39067",
+        "simple-tests-shell-command-dont-erase-buffer",
+        "simple-tests-zap-to-char",
+        "simple-text-count-lines-non-ascii",
+        "simple-transpose-subr",
+        "test-undo-region",
+        "test-yank-in-context",
+        "undo-auto--boundaries-added",
+        "undo-auto-boundary-timer",
+        "undo-point-in-wrong-place"
+      ],
+      "tags": {
+        "auto-fill-mode-no-break-before-length-of-fill-prefix": [],
+        "command-execute-prune-command-history": [],
+        "eval-expression-print-format-large-int": [],
+        "eval-expression-print-format-large-int-echo": [],
+        "eval-expression-print-format-small-int": [],
+        "eval-expression-print-format-small-int-echo": [],
+        "eval-expression-print-format-sym": [],
+        "eval-expression-print-format-sym-echo": [],
+        "kill-whole-line-after-other-kill": [],
+        "kill-whole-line-buffer-boundaries": [],
+        "kill-whole-line-invisible": [],
+        "kill-whole-line-line-boundaries": [],
+        "kill-whole-line-read-only": [],
+        "line-number-at-pos-in-narrow-buffer": [],
+        "line-number-at-pos-in-widen-buffer": [],
+        "line-number-at-pos-keeps-point": [],
+        "line-number-at-pos-keeps-restriction": [],
+        "line-number-at-pos-when-passing-point": [],
+        "missing-record-point-in-undo": [],
+        "newline": [],
+        "newline-indent": [],
+        "open-line": [],
+        "open-line-hook": [],
+        "open-line-indent": [],
+        "open-line-margin-and-prefix": [],
+        "simple-delete-indentation-blank-line": [],
+        "simple-delete-indentation-boundaries": [],
+        "simple-delete-indentation-inactive-region": [],
+        "simple-delete-indentation-no-region": [],
+        "simple-delete-indentation-prefix": [],
+        "simple-delete-indentation-region": [],
+        "simple-delete-trailing-whitespace--bug-21766": [],
+        "simple-delete-trailing-whitespace--formfeeds": [],
+        "simple-execute-extended-command--describe-binding-msg": [],
+        "simple-execute-extended-command--shorter": [],
+        "simple-test-count-lines": [],
+        "simple-test-count-lines/ignore-invisible-lines": [],
+        "simple-test-count-words-bug-41761": [],
+        "simple-test-undo-extra-boundary-in-tex": [],
+        "simple-tests--undo": [],
+        "simple-tests--undo-apply": [],
+        "simple-tests--undo-equiv-table": [],
+        "simple-tests--undo-in-region": [],
+        "simple-tests-async-shell-command-30280": [],
+        "simple-tests-shell-command-39067": [],
+        "simple-tests-shell-command-dont-erase-buffer": [],
+        "simple-tests-zap-to-char": [],
+        "simple-text-count-lines-non-ascii": [],
+        "simple-transpose-subr": [],
+        "test-undo-region": [],
+        "test-yank-in-context": [],
+        "undo-auto--boundaries-added": [],
+        "undo-auto-boundary-timer": [],
+        "undo-point-in-wrong-place": []
+      },
+      "passed": false,
+      "complete": true,
+      "exit_code": 0,
+      "timed_out": false,
+      "remaining_group_terminated": false,
+      "result_types": {
+        "ert-test-passed": 53,
+        "ert-test-skipped": 1
+      },
+      "result_file": {
+        "path": "results/message-count-terminal-normal-major/test-lisp-simple-tests.el-b65c7c4e5f4d.json",
+        "sha256": "2adf24a2f26fc4b9c3f95064c1a73709ab0c810e6cd2df132eb17d7214348b42",
+        "bytes": 54213
+      },
+      "events_file": {
+        "path": "results/message-count-terminal-normal-major/test-lisp-simple-tests.el-b65c7c4e5f4d.events.jsonl",
+        "bytes": 32683,
+        "sha256": "010b3c1ef2440729df095ff4c1d6e51c5aba917b42922342b5a167a3aec7434e"
+      },
+      "owner_receipt": {
+        "path": "results/message-count-terminal-normal-major/test-lisp-simple-tests.el-b65c7c4e5f4d.owner-retirement.json",
+        "sha256": "944734fb23685c4c9c81b85e83bb8ac6c312cf2151e05587d47dd35ff87e595c",
+        "bytes": 399
+      },
+      "retirement": {
+        "status": "retained",
+        "reason": "file failed/incomplete; preserve original state"
+      },
+      "seconds": 7.415072042,
+      "display": "owned-pty",
+      "context": {
+        "noninteractive": false,
+        "window_system": null,
+        "io_layout": "combined-pty",
+        "native_comp_async_jobs": 1,
+        "native_comp_thread_limit": "1",
+        "available_processors": 1
+      },
+      "owned_same_tty": true
+    },
+    {
+      "product": "message-count-terminal-normal-young",
+      "file": "tools/fixtures/message-count-functional.el",
+      "reused_in_final_attempt": false,
+      "evidence_base": "build/acceptance/message-count-functional-recovery-1/message-count-terminal-normal-young",
+      "ids": [
+        "message-count-functional-distinct-message-breaks-run",
+        "message-count-functional-literal-count-in-payload",
+        "message-count-functional-multibyte-repeated",
+        "message-count-functional-undo-repeated"
+      ],
+      "tags": {
+        "message-count-functional-distinct-message-breaks-run": [],
+        "message-count-functional-literal-count-in-payload": [],
+        "message-count-functional-multibyte-repeated": [],
+        "message-count-functional-undo-repeated": []
+      },
+      "passed": true,
+      "complete": true,
+      "exit_code": 0,
+      "timed_out": false,
+      "remaining_group_terminated": false,
+      "result_types": {
+        "ert-test-passed": 4
+      },
+      "result_file": {
+        "path": "results/message-count-terminal-normal-young/tools-fixtures-message-count-functional.el-1d6c62f179d3.json",
+        "sha256": "59ea1058bb48d63059f9aa431705f3946c45c66e4a20194674ffbf9e08cef975",
+        "bytes": 9099
+      },
+      "events_file": {
+        "path": "results/message-count-terminal-normal-young/tools-fixtures-message-count-functional.el-1d6c62f179d3.events.jsonl",
+        "bytes": 4355,
+        "sha256": "73f246a2b4b224f355677ca6279a21f49e7221fa8aa74f26483e181aef69ea45"
+      },
+      "owner_receipt": {
+        "path": "results/message-count-terminal-normal-young/tools-fixtures-message-count-functional.el-1d6c62f179d3.owner-retirement.json",
+        "sha256": "86696693d8bcbdb632b46eb7376324d1d4598270551c12e8c66570b55259cf26",
+        "bytes": 940
+      },
+      "retirement": {
+        "status": "complete",
+        "files": 0,
+        "directories": 10,
+        "ledger_schema": 3,
+        "logical_bytes": 0,
+        "allocated_bytes": 0,
+        "evidence_sha256": "59ea1058bb48d63059f9aa431705f3946c45c66e4a20194674ffbf9e08cef975",
+        "ledger": "tools-fixtures-message-count-functional.el-1d6c62f179d3.state-retirement.jsonl.gz",
+        "ledger_sha256": "c73dda08f61db7d8771a9dc94b9e758d666b8de857e014381d621f1e9321d5a4",
+        "all_selected_absent": true,
+        "restore": "regenerate consumed cache from retained inputs; original random names not promised",
+        "empty_parents_retired": true,
+        "parent_directories": 2
+      },
+      "seconds": 0.06302266700000203,
+      "display": "default-batch",
+      "context": null,
+      "owned_same_tty": null
+    },
+    {
+      "product": "message-count-terminal-normal-young",
+      "file": "test/lisp/simple-tests.el",
+      "reused_in_final_attempt": false,
+      "evidence_base": "build/acceptance/message-count-functional-recovery-1/message-count-terminal-normal-young",
+      "ids": [
+        "auto-fill-mode-no-break-before-length-of-fill-prefix",
+        "command-execute-prune-command-history",
+        "eval-expression-print-format-large-int",
+        "eval-expression-print-format-large-int-echo",
+        "eval-expression-print-format-small-int",
+        "eval-expression-print-format-small-int-echo",
+        "eval-expression-print-format-sym",
+        "eval-expression-print-format-sym-echo",
+        "kill-whole-line-after-other-kill",
+        "kill-whole-line-buffer-boundaries",
+        "kill-whole-line-invisible",
+        "kill-whole-line-line-boundaries",
+        "kill-whole-line-read-only",
+        "line-number-at-pos-in-narrow-buffer",
+        "line-number-at-pos-in-widen-buffer",
+        "line-number-at-pos-keeps-point",
+        "line-number-at-pos-keeps-restriction",
+        "line-number-at-pos-when-passing-point",
+        "missing-record-point-in-undo",
+        "newline",
+        "newline-indent",
+        "open-line",
+        "open-line-hook",
+        "open-line-indent",
+        "open-line-margin-and-prefix",
+        "simple-delete-indentation-blank-line",
+        "simple-delete-indentation-boundaries",
+        "simple-delete-indentation-inactive-region",
+        "simple-delete-indentation-no-region",
+        "simple-delete-indentation-prefix",
+        "simple-delete-indentation-region",
+        "simple-delete-trailing-whitespace--bug-21766",
+        "simple-delete-trailing-whitespace--formfeeds",
+        "simple-execute-extended-command--describe-binding-msg",
+        "simple-execute-extended-command--shorter",
+        "simple-test-count-lines",
+        "simple-test-count-lines/ignore-invisible-lines",
+        "simple-test-count-words-bug-41761",
+        "simple-test-undo-extra-boundary-in-tex",
+        "simple-tests--undo",
+        "simple-tests--undo-apply",
+        "simple-tests--undo-equiv-table",
+        "simple-tests--undo-in-region",
+        "simple-tests-async-shell-command-30280",
+        "simple-tests-shell-command-39067",
+        "simple-tests-shell-command-dont-erase-buffer",
+        "simple-tests-zap-to-char",
+        "simple-text-count-lines-non-ascii",
+        "simple-transpose-subr",
+        "test-undo-region",
+        "test-yank-in-context",
+        "undo-auto--boundaries-added",
+        "undo-auto-boundary-timer",
+        "undo-point-in-wrong-place"
+      ],
+      "tags": {
+        "auto-fill-mode-no-break-before-length-of-fill-prefix": [],
+        "command-execute-prune-command-history": [],
+        "eval-expression-print-format-large-int": [],
+        "eval-expression-print-format-large-int-echo": [],
+        "eval-expression-print-format-small-int": [],
+        "eval-expression-print-format-small-int-echo": [],
+        "eval-expression-print-format-sym": [],
+        "eval-expression-print-format-sym-echo": [],
+        "kill-whole-line-after-other-kill": [],
+        "kill-whole-line-buffer-boundaries": [],
+        "kill-whole-line-invisible": [],
+        "kill-whole-line-line-boundaries": [],
+        "kill-whole-line-read-only": [],
+        "line-number-at-pos-in-narrow-buffer": [],
+        "line-number-at-pos-in-widen-buffer": [],
+        "line-number-at-pos-keeps-point": [],
+        "line-number-at-pos-keeps-restriction": [],
+        "line-number-at-pos-when-passing-point": [],
+        "missing-record-point-in-undo": [],
+        "newline": [],
+        "newline-indent": [],
+        "open-line": [],
+        "open-line-hook": [],
+        "open-line-indent": [],
+        "open-line-margin-and-prefix": [],
+        "simple-delete-indentation-blank-line": [],
+        "simple-delete-indentation-boundaries": [],
+        "simple-delete-indentation-inactive-region": [],
+        "simple-delete-indentation-no-region": [],
+        "simple-delete-indentation-prefix": [],
+        "simple-delete-indentation-region": [],
+        "simple-delete-trailing-whitespace--bug-21766": [],
+        "simple-delete-trailing-whitespace--formfeeds": [],
+        "simple-execute-extended-command--describe-binding-msg": [],
+        "simple-execute-extended-command--shorter": [],
+        "simple-test-count-lines": [],
+        "simple-test-count-lines/ignore-invisible-lines": [],
+        "simple-test-count-words-bug-41761": [],
+        "simple-test-undo-extra-boundary-in-tex": [],
+        "simple-tests--undo": [],
+        "simple-tests--undo-apply": [],
+        "simple-tests--undo-equiv-table": [],
+        "simple-tests--undo-in-region": [],
+        "simple-tests-async-shell-command-30280": [],
+        "simple-tests-shell-command-39067": [],
+        "simple-tests-shell-command-dont-erase-buffer": [],
+        "simple-tests-zap-to-char": [],
+        "simple-text-count-lines-non-ascii": [],
+        "simple-transpose-subr": [],
+        "test-undo-region": [],
+        "test-yank-in-context": [],
+        "undo-auto--boundaries-added": [],
+        "undo-auto-boundary-timer": [],
+        "undo-point-in-wrong-place": []
+      },
+      "passed": false,
+      "complete": true,
+      "exit_code": 0,
+      "timed_out": false,
+      "remaining_group_terminated": false,
+      "result_types": {
+        "ert-test-passed": 53,
+        "ert-test-skipped": 1
+      },
+      "result_file": {
+        "path": "results/message-count-terminal-normal-young/test-lisp-simple-tests.el-b65c7c4e5f4d.json",
+        "sha256": "519cfcc71ace3f08c5710c3b01d791b26a722eb83504b1cccf66d601b4e1deb7",
+        "bytes": 54205
+      },
+      "events_file": {
+        "path": "results/message-count-terminal-normal-young/test-lisp-simple-tests.el-b65c7c4e5f4d.events.jsonl",
+        "bytes": 32679,
+        "sha256": "eb51e6915af614bd49b1bdf2a7222d72594374db261dada1f974cb3fc39a4a7c"
+      },
+      "owner_receipt": {
+        "path": "results/message-count-terminal-normal-young/test-lisp-simple-tests.el-b65c7c4e5f4d.owner-retirement.json",
+        "sha256": "ed0110691a89f6c8779f13eef8ea9fbcccf2c1b355712a0a00e0ae8faa18ffcc",
+        "bytes": 399
+      },
+      "retirement": {
+        "status": "retained",
+        "reason": "file failed/incomplete; preserve original state"
+      },
+      "seconds": 7.704527833,
+      "display": "owned-pty",
+      "context": {
+        "noninteractive": false,
+        "window_system": null,
+        "io_layout": "combined-pty",
+        "native_comp_async_jobs": 1,
+        "native_comp_thread_limit": "1",
+        "available_processors": 1
+      },
+      "owned_same_tty": true
+    },
+    {
+      "product": "message-count-terminal-checking-major",
+      "file": "tools/fixtures/message-count-functional.el",
+      "reused_in_final_attempt": false,
+      "evidence_base": "build/acceptance/message-count-functional-recovery-1/message-count-terminal-checking-major",
+      "ids": [
+        "message-count-functional-distinct-message-breaks-run",
+        "message-count-functional-literal-count-in-payload",
+        "message-count-functional-multibyte-repeated",
+        "message-count-functional-undo-repeated"
+      ],
+      "tags": {
+        "message-count-functional-distinct-message-breaks-run": [],
+        "message-count-functional-literal-count-in-payload": [],
+        "message-count-functional-multibyte-repeated": [],
+        "message-count-functional-undo-repeated": []
+      },
+      "passed": true,
+      "complete": true,
+      "exit_code": 0,
+      "timed_out": false,
+      "remaining_group_terminated": false,
+      "result_types": {
+        "ert-test-passed": 4
+      },
+      "result_file": {
+        "path": "results/message-count-terminal-checking-major/tools-fixtures-message-count-functional.el-1d6c62f179d3.json",
+        "sha256": "b0a0893a18ff72624529fbbf8c421b4dc86edefb74009b956c7d86e4e6b86590",
+        "bytes": 9147
+      },
+      "events_file": {
+        "path": "results/message-count-terminal-checking-major/tools-fixtures-message-count-functional.el-1d6c62f179d3.events.jsonl",
+        "bytes": 4354,
+        "sha256": "a022075d0b56766b1a100c08bf9adca02e3c8a03b7bedd51adfa3c07136fb0be"
+      },
+      "owner_receipt": {
+        "path": "results/message-count-terminal-checking-major/tools-fixtures-message-count-functional.el-1d6c62f179d3.owner-retirement.json",
+        "sha256": "f18b1fe5f7f6a222acd6127b4d8915b88971a86c51766e5553d27e40a2c2eab4",
+        "bytes": 942
+      },
+      "retirement": {
+        "status": "complete",
+        "files": 0,
+        "directories": 10,
+        "ledger_schema": 3,
+        "logical_bytes": 0,
+        "allocated_bytes": 0,
+        "evidence_sha256": "b0a0893a18ff72624529fbbf8c421b4dc86edefb74009b956c7d86e4e6b86590",
+        "ledger": "tools-fixtures-message-count-functional.el-1d6c62f179d3.state-retirement.jsonl.gz",
+        "ledger_sha256": "c73dda08f61db7d8771a9dc94b9e758d666b8de857e014381d621f1e9321d5a4",
+        "all_selected_absent": true,
+        "restore": "regenerate consumed cache from retained inputs; original random names not promised",
+        "empty_parents_retired": true,
+        "parent_directories": 2
+      },
+      "seconds": 5.103343540999997,
+      "display": "default-batch",
+      "context": null,
+      "owned_same_tty": null
+    },
+    {
+      "product": "message-count-terminal-checking-major",
+      "file": "test/lisp/simple-tests.el",
+      "reused_in_final_attempt": false,
+      "evidence_base": "build/acceptance/message-count-functional-recovery-1/message-count-terminal-checking-major",
+      "ids": [
+        "auto-fill-mode-no-break-before-length-of-fill-prefix",
+        "command-execute-prune-command-history",
+        "eval-expression-print-format-large-int",
+        "eval-expression-print-format-large-int-echo",
+        "eval-expression-print-format-small-int",
+        "eval-expression-print-format-small-int-echo",
+        "eval-expression-print-format-sym",
+        "eval-expression-print-format-sym-echo",
+        "kill-whole-line-after-other-kill",
+        "kill-whole-line-buffer-boundaries",
+        "kill-whole-line-invisible",
+        "kill-whole-line-line-boundaries",
+        "kill-whole-line-read-only",
+        "line-number-at-pos-in-narrow-buffer",
+        "line-number-at-pos-in-widen-buffer",
+        "line-number-at-pos-keeps-point",
+        "line-number-at-pos-keeps-restriction",
+        "line-number-at-pos-when-passing-point",
+        "missing-record-point-in-undo",
+        "newline",
+        "newline-indent",
+        "open-line",
+        "open-line-hook",
+        "open-line-indent",
+        "open-line-margin-and-prefix",
+        "simple-delete-indentation-blank-line",
+        "simple-delete-indentation-boundaries",
+        "simple-delete-indentation-inactive-region",
+        "simple-delete-indentation-no-region",
+        "simple-delete-indentation-prefix",
+        "simple-delete-indentation-region",
+        "simple-delete-trailing-whitespace--bug-21766",
+        "simple-delete-trailing-whitespace--formfeeds",
+        "simple-execute-extended-command--describe-binding-msg",
+        "simple-execute-extended-command--shorter",
+        "simple-test-count-lines",
+        "simple-test-count-lines/ignore-invisible-lines",
+        "simple-test-count-words-bug-41761",
+        "simple-test-undo-extra-boundary-in-tex",
+        "simple-tests--undo",
+        "simple-tests--undo-apply",
+        "simple-tests--undo-equiv-table",
+        "simple-tests--undo-in-region",
+        "simple-tests-async-shell-command-30280",
+        "simple-tests-shell-command-39067",
+        "simple-tests-shell-command-dont-erase-buffer",
+        "simple-tests-zap-to-char",
+        "simple-text-count-lines-non-ascii",
+        "simple-transpose-subr",
+        "test-undo-region",
+        "test-yank-in-context",
+        "undo-auto--boundaries-added",
+        "undo-auto-boundary-timer",
+        "undo-point-in-wrong-place"
+      ],
+      "tags": {
+        "auto-fill-mode-no-break-before-length-of-fill-prefix": [],
+        "command-execute-prune-command-history": [],
+        "eval-expression-print-format-large-int": [],
+        "eval-expression-print-format-large-int-echo": [],
+        "eval-expression-print-format-small-int": [],
+        "eval-expression-print-format-small-int-echo": [],
+        "eval-expression-print-format-sym": [],
+        "eval-expression-print-format-sym-echo": [],
+        "kill-whole-line-after-other-kill": [],
+        "kill-whole-line-buffer-boundaries": [],
+        "kill-whole-line-invisible": [],
+        "kill-whole-line-line-boundaries": [],
+        "kill-whole-line-read-only": [],
+        "line-number-at-pos-in-narrow-buffer": [],
+        "line-number-at-pos-in-widen-buffer": [],
+        "line-number-at-pos-keeps-point": [],
+        "line-number-at-pos-keeps-restriction": [],
+        "line-number-at-pos-when-passing-point": [],
+        "missing-record-point-in-undo": [],
+        "newline": [],
+        "newline-indent": [],
+        "open-line": [],
+        "open-line-hook": [],
+        "open-line-indent": [],
+        "open-line-margin-and-prefix": [],
+        "simple-delete-indentation-blank-line": [],
+        "simple-delete-indentation-boundaries": [],
+        "simple-delete-indentation-inactive-region": [],
+        "simple-delete-indentation-no-region": [],
+        "simple-delete-indentation-prefix": [],
+        "simple-delete-indentation-region": [],
+        "simple-delete-trailing-whitespace--bug-21766": [],
+        "simple-delete-trailing-whitespace--formfeeds": [],
+        "simple-execute-extended-command--describe-binding-msg": [],
+        "simple-execute-extended-command--shorter": [],
+        "simple-test-count-lines": [],
+        "simple-test-count-lines/ignore-invisible-lines": [],
+        "simple-test-count-words-bug-41761": [],
+        "simple-test-undo-extra-boundary-in-tex": [],
+        "simple-tests--undo": [],
+        "simple-tests--undo-apply": [],
+        "simple-tests--undo-equiv-table": [],
+        "simple-tests--undo-in-region": [],
+        "simple-tests-async-shell-command-30280": [],
+        "simple-tests-shell-command-39067": [],
+        "simple-tests-shell-command-dont-erase-buffer": [],
+        "simple-tests-zap-to-char": [],
+        "simple-text-count-lines-non-ascii": [],
+        "simple-transpose-subr": [],
+        "test-undo-region": [],
+        "test-yank-in-context": [],
+        "undo-auto--boundaries-added": [],
+        "undo-auto-boundary-timer": [],
+        "undo-point-in-wrong-place": []
+      },
+      "passed": false,
+      "complete": true,
+      "exit_code": 0,
+      "timed_out": false,
+      "remaining_group_terminated": false,
+      "result_types": {
+        "ert-test-passed": 53,
+        "ert-test-skipped": 1
+      },
+      "result_file": {
+        "path": "results/message-count-terminal-checking-major/test-lisp-simple-tests.el-b65c7c4e5f4d.json",
+        "sha256": "f696bd43f8f0373f4939f1c589e58a408c40172fbef316f9435ded4ec5ca8d7c",
+        "bytes": 54393
+      },
+      "events_file": {
+        "path": "results/message-count-terminal-checking-major/test-lisp-simple-tests.el-b65c7c4e5f4d.events.jsonl",
+        "bytes": 32712,
+        "sha256": "2a33a05682a23b358c4bc330a828230b83637cad067b29c6211f5b560b7bc546"
+      },
+      "owner_receipt": {
+        "path": "results/message-count-terminal-checking-major/test-lisp-simple-tests.el-b65c7c4e5f4d.owner-retirement.json",
+        "sha256": "2d30ae115faf48c692a2233c419183d212cc8d5c246dfe75829a1e6e5ab5e398",
+        "bytes": 401
+      },
+      "retirement": {
+        "status": "retained",
+        "reason": "file failed/incomplete; preserve original state"
+      },
+      "seconds": 8.929606874999998,
+      "display": "owned-pty",
+      "context": {
+        "noninteractive": false,
+        "window_system": null,
+        "io_layout": "combined-pty",
+        "native_comp_async_jobs": 1,
+        "native_comp_thread_limit": "1",
+        "available_processors": 1
+      },
+      "owned_same_tty": true
+    },
+    {
+      "product": "message-count-terminal-checking-young",
+      "file": "tools/fixtures/message-count-functional.el",
+      "reused_in_final_attempt": false,
+      "evidence_base": "build/acceptance/message-count-functional-recovery-1/message-count-terminal-checking-young",
+      "ids": [
+        "message-count-functional-distinct-message-breaks-run",
+        "message-count-functional-literal-count-in-payload",
+        "message-count-functional-multibyte-repeated",
+        "message-count-functional-undo-repeated"
+      ],
+      "tags": {
+        "message-count-functional-distinct-message-breaks-run": [],
+        "message-count-functional-literal-count-in-payload": [],
+        "message-count-functional-multibyte-repeated": [],
+        "message-count-functional-undo-repeated": []
+      },
+      "passed": true,
+      "complete": true,
+      "exit_code": 0,
+      "timed_out": false,
+      "remaining_group_terminated": false,
+      "result_types": {
+        "ert-test-passed": 4
+      },
+      "result_file": {
+        "path": "results/message-count-terminal-checking-young/tools-fixtures-message-count-functional.el-1d6c62f179d3.json",
+        "sha256": "5562f139f81a05f09106d9a39bc6cc4e52177fad49f15969fe24840f5f84df6a",
+        "bytes": 9151
+      },
+      "events_file": {
+        "path": "results/message-count-terminal-checking-young/tools-fixtures-message-count-functional.el-1d6c62f179d3.events.jsonl",
+        "bytes": 4355,
+        "sha256": "f055dd95b56b94971e2e92d1eefd04b8bfe5e56e1409f72750a84d576fc1a6b0"
+      },
+      "owner_receipt": {
+        "path": "results/message-count-terminal-checking-young/tools-fixtures-message-count-functional.el-1d6c62f179d3.owner-retirement.json",
+        "sha256": "1de624c02d626619e302a01b0370da1de7be14f0e0d6087e19e93c2339ff553c",
+        "bytes": 942
+      },
+      "retirement": {
+        "status": "complete",
+        "files": 0,
+        "directories": 10,
+        "ledger_schema": 3,
+        "logical_bytes": 0,
+        "allocated_bytes": 0,
+        "evidence_sha256": "5562f139f81a05f09106d9a39bc6cc4e52177fad49f15969fe24840f5f84df6a",
+        "ledger": "tools-fixtures-message-count-functional.el-1d6c62f179d3.state-retirement.jsonl.gz",
+        "ledger_sha256": "c73dda08f61db7d8771a9dc94b9e758d666b8de857e014381d621f1e9321d5a4",
+        "all_selected_absent": true,
+        "restore": "regenerate consumed cache from retained inputs; original random names not promised",
+        "empty_parents_retired": true,
+        "parent_directories": 2
+      },
+      "seconds": 0.09259358300000287,
+      "display": "default-batch",
+      "context": null,
+      "owned_same_tty": null
+    },
+    {
+      "product": "message-count-terminal-checking-young",
+      "file": "test/lisp/simple-tests.el",
+      "reused_in_final_attempt": false,
+      "evidence_base": "build/acceptance/message-count-functional-recovery-1/message-count-terminal-checking-young",
+      "ids": [
+        "auto-fill-mode-no-break-before-length-of-fill-prefix",
+        "command-execute-prune-command-history",
+        "eval-expression-print-format-large-int",
+        "eval-expression-print-format-large-int-echo",
+        "eval-expression-print-format-small-int",
+        "eval-expression-print-format-small-int-echo",
+        "eval-expression-print-format-sym",
+        "eval-expression-print-format-sym-echo",
+        "kill-whole-line-after-other-kill",
+        "kill-whole-line-buffer-boundaries",
+        "kill-whole-line-invisible",
+        "kill-whole-line-line-boundaries",
+        "kill-whole-line-read-only",
+        "line-number-at-pos-in-narrow-buffer",
+        "line-number-at-pos-in-widen-buffer",
+        "line-number-at-pos-keeps-point",
+        "line-number-at-pos-keeps-restriction",
+        "line-number-at-pos-when-passing-point",
+        "missing-record-point-in-undo",
+        "newline",
+        "newline-indent",
+        "open-line",
+        "open-line-hook",
+        "open-line-indent",
+        "open-line-margin-and-prefix",
+        "simple-delete-indentation-blank-line",
+        "simple-delete-indentation-boundaries",
+        "simple-delete-indentation-inactive-region",
+        "simple-delete-indentation-no-region",
+        "simple-delete-indentation-prefix",
+        "simple-delete-indentation-region",
+        "simple-delete-trailing-whitespace--bug-21766",
+        "simple-delete-trailing-whitespace--formfeeds",
+        "simple-execute-extended-command--describe-binding-msg",
+        "simple-execute-extended-command--shorter",
+        "simple-test-count-lines",
+        "simple-test-count-lines/ignore-invisible-lines",
+        "simple-test-count-words-bug-41761",
+        "simple-test-undo-extra-boundary-in-tex",
+        "simple-tests--undo",
+        "simple-tests--undo-apply",
+        "simple-tests--undo-equiv-table",
+        "simple-tests--undo-in-region",
+        "simple-tests-async-shell-command-30280",
+        "simple-tests-shell-command-39067",
+        "simple-tests-shell-command-dont-erase-buffer",
+        "simple-tests-zap-to-char",
+        "simple-text-count-lines-non-ascii",
+        "simple-transpose-subr",
+        "test-undo-region",
+        "test-yank-in-context",
+        "undo-auto--boundaries-added",
+        "undo-auto-boundary-timer",
+        "undo-point-in-wrong-place"
+      ],
+      "tags": {
+        "auto-fill-mode-no-break-before-length-of-fill-prefix": [],
+        "command-execute-prune-command-history": [],
+        "eval-expression-print-format-large-int": [],
+        "eval-expression-print-format-large-int-echo": [],
+        "eval-expression-print-format-small-int": [],
+        "eval-expression-print-format-small-int-echo": [],
+        "eval-expression-print-format-sym": [],
+        "eval-expression-print-format-sym-echo": [],
+        "kill-whole-line-after-other-kill": [],
+        "kill-whole-line-buffer-boundaries": [],
+        "kill-whole-line-invisible": [],
+        "kill-whole-line-line-boundaries": [],
+        "kill-whole-line-read-only": [],
+        "line-number-at-pos-in-narrow-buffer": [],
+        "line-number-at-pos-in-widen-buffer": [],
+        "line-number-at-pos-keeps-point": [],
+        "line-number-at-pos-keeps-restriction": [],
+        "line-number-at-pos-when-passing-point": [],
+        "missing-record-point-in-undo": [],
+        "newline": [],
+        "newline-indent": [],
+        "open-line": [],
+        "open-line-hook": [],
+        "open-line-indent": [],
+        "open-line-margin-and-prefix": [],
+        "simple-delete-indentation-blank-line": [],
+        "simple-delete-indentation-boundaries": [],
+        "simple-delete-indentation-inactive-region": [],
+        "simple-delete-indentation-no-region": [],
+        "simple-delete-indentation-prefix": [],
+        "simple-delete-indentation-region": [],
+        "simple-delete-trailing-whitespace--bug-21766": [],
+        "simple-delete-trailing-whitespace--formfeeds": [],
+        "simple-execute-extended-command--describe-binding-msg": [],
+        "simple-execute-extended-command--shorter": [],
+        "simple-test-count-lines": [],
+        "simple-test-count-lines/ignore-invisible-lines": [],
+        "simple-test-count-words-bug-41761": [],
+        "simple-test-undo-extra-boundary-in-tex": [],
+        "simple-tests--undo": [],
+        "simple-tests--undo-apply": [],
+        "simple-tests--undo-equiv-table": [],
+        "simple-tests--undo-in-region": [],
+        "simple-tests-async-shell-command-30280": [],
+        "simple-tests-shell-command-39067": [],
+        "simple-tests-shell-command-dont-erase-buffer": [],
+        "simple-tests-zap-to-char": [],
+        "simple-text-count-lines-non-ascii": [],
+        "simple-transpose-subr": [],
+        "test-undo-region": [],
+        "test-yank-in-context": [],
+        "undo-auto--boundaries-added": [],
+        "undo-auto-boundary-timer": [],
+        "undo-point-in-wrong-place": []
+      },
+      "passed": false,
+      "complete": true,
+      "exit_code": 0,
+      "timed_out": false,
+      "remaining_group_terminated": false,
+      "result_types": {
+        "ert-test-passed": 53,
+        "ert-test-skipped": 1
+      },
+      "result_file": {
+        "path": "results/message-count-terminal-checking-young/test-lisp-simple-tests.el-b65c7c4e5f4d.json",
+        "sha256": "14193347cf12840f757d9c6ef322c949dab5722a93880cd3056b2cbeeb3acd1b",
+        "bytes": 54399
+      },
+      "events_file": {
+        "path": "results/message-count-terminal-checking-young/test-lisp-simple-tests.el-b65c7c4e5f4d.events.jsonl",
+        "bytes": 32718,
+        "sha256": "92ac9dc27d4e988c1919bb8c63b078cd7e72c1681429d3ddd75973b7bd212045"
+      },
+      "owner_receipt": {
+        "path": "results/message-count-terminal-checking-young/test-lisp-simple-tests.el-b65c7c4e5f4d.owner-retirement.json",
+        "sha256": "0e843f9251c1d0e4730ad2e02e3b78890630d7cb55ae8dc500853c7dc31a7a15",
+        "bytes": 401
+      },
+      "retirement": {
+        "status": "retained",
+        "reason": "file failed/incomplete; preserve original state"
+      },
+      "seconds": 8.513739375,
+      "display": "owned-pty",
+      "context": {
+        "noninteractive": false,
+        "window_system": null,
+        "io_layout": "combined-pty",
+        "native_comp_async_jobs": 1,
+        "native_comp_thread_limit": "1",
+        "available_processors": 1
+      },
+      "owned_same_tty": true
+    },
+    {
+      "product": "message-count-cocoa-normal-major",
+      "file": "tools/fixtures/message-count-functional.el",
+      "reused_in_final_attempt": false,
+      "evidence_base": "build/acceptance/message-count-functional-recovery-1/message-count-cocoa-normal-major",
+      "ids": [
+        "message-count-functional-distinct-message-breaks-run",
+        "message-count-functional-literal-count-in-payload",
+        "message-count-functional-multibyte-repeated",
+        "message-count-functional-undo-repeated"
+      ],
+      "tags": {
+        "message-count-functional-distinct-message-breaks-run": [],
+        "message-count-functional-literal-count-in-payload": [],
+        "message-count-functional-multibyte-repeated": [],
+        "message-count-functional-undo-repeated": []
+      },
+      "passed": true,
+      "complete": true,
+      "exit_code": 0,
+      "timed_out": false,
+      "remaining_group_terminated": false,
+      "result_types": {
+        "ert-test-passed": 4
+      },
+      "result_file": {
+        "path": "results/message-count-cocoa-normal-major/tools-fixtures-message-count-functional.el-1d6c62f179d3.json",
+        "sha256": "0a32b60c627f1cb0e25d0ba9683fe3e83c10fc101b3af517d363ec0d46069b6c",
+        "bytes": 9357
+      },
+      "events_file": {
+        "path": "results/message-count-cocoa-normal-major/tools-fixtures-message-count-functional.el-1d6c62f179d3.events.jsonl",
+        "bytes": 4563,
+        "sha256": "a7b39e06a068f210859167b043d1f9d62f455a1919cb75c08d4f9a8bd4c6aab0"
+      },
+      "owner_receipt": {
+        "path": "results/message-count-cocoa-normal-major/tools-fixtures-message-count-functional.el-1d6c62f179d3.owner-retirement.json",
+        "sha256": "95917a65acd4f8926310012195864d21f146c9318e0a4201afb4a02e75a7478b",
+        "bytes": 937
+      },
+      "retirement": {
+        "status": "complete",
+        "files": 0,
+        "directories": 10,
+        "ledger_schema": 3,
+        "logical_bytes": 0,
+        "allocated_bytes": 0,
+        "evidence_sha256": "0a32b60c627f1cb0e25d0ba9683fe3e83c10fc101b3af517d363ec0d46069b6c",
+        "ledger": "tools-fixtures-message-count-functional.el-1d6c62f179d3.state-retirement.jsonl.gz",
+        "ledger_sha256": "c73dda08f61db7d8771a9dc94b9e758d666b8de857e014381d621f1e9321d5a4",
+        "all_selected_absent": true,
+        "restore": "regenerate consumed cache from retained inputs; original random names not promised",
+        "empty_parents_retired": true,
+        "parent_directories": 2
+      },
+      "seconds": 0.9043480409999987,
+      "display": "default-batch",
+      "context": null,
+      "owned_same_tty": null
+    },
+    {
+      "product": "message-count-cocoa-normal-major",
+      "file": "test/lisp/simple-tests.el",
+      "reused_in_final_attempt": false,
+      "evidence_base": "build/acceptance/message-count-functional-recovery-1/message-count-cocoa-normal-major",
+      "ids": [
+        "auto-fill-mode-no-break-before-length-of-fill-prefix",
+        "command-execute-prune-command-history",
+        "eval-expression-print-format-large-int",
+        "eval-expression-print-format-large-int-echo",
+        "eval-expression-print-format-small-int",
+        "eval-expression-print-format-small-int-echo",
+        "eval-expression-print-format-sym",
+        "eval-expression-print-format-sym-echo",
+        "kill-whole-line-after-other-kill",
+        "kill-whole-line-buffer-boundaries",
+        "kill-whole-line-invisible",
+        "kill-whole-line-line-boundaries",
+        "kill-whole-line-read-only",
+        "line-number-at-pos-in-narrow-buffer",
+        "line-number-at-pos-in-widen-buffer",
+        "line-number-at-pos-keeps-point",
+        "line-number-at-pos-keeps-restriction",
+        "line-number-at-pos-when-passing-point",
+        "missing-record-point-in-undo",
+        "newline",
+        "newline-indent",
+        "open-line",
+        "open-line-hook",
+        "open-line-indent",
+        "open-line-margin-and-prefix",
+        "simple-delete-indentation-blank-line",
+        "simple-delete-indentation-boundaries",
+        "simple-delete-indentation-inactive-region",
+        "simple-delete-indentation-no-region",
+        "simple-delete-indentation-prefix",
+        "simple-delete-indentation-region",
+        "simple-delete-trailing-whitespace--bug-21766",
+        "simple-delete-trailing-whitespace--formfeeds",
+        "simple-execute-extended-command--describe-binding-msg",
+        "simple-execute-extended-command--shorter",
+        "simple-test-count-lines",
+        "simple-test-count-lines/ignore-invisible-lines",
+        "simple-test-count-words-bug-41761",
+        "simple-test-undo-extra-boundary-in-tex",
+        "simple-tests--undo",
+        "simple-tests--undo-apply",
+        "simple-tests--undo-equiv-table",
+        "simple-tests--undo-in-region",
+        "simple-tests-async-shell-command-30280",
+        "simple-tests-shell-command-39067",
+        "simple-tests-shell-command-dont-erase-buffer",
+        "simple-tests-zap-to-char",
+        "simple-text-count-lines-non-ascii",
+        "simple-transpose-subr",
+        "test-undo-region",
+        "test-yank-in-context",
+        "undo-auto--boundaries-added",
+        "undo-auto-boundary-timer",
+        "undo-point-in-wrong-place"
+      ],
+      "tags": {
+        "auto-fill-mode-no-break-before-length-of-fill-prefix": [],
+        "command-execute-prune-command-history": [],
+        "eval-expression-print-format-large-int": [],
+        "eval-expression-print-format-large-int-echo": [],
+        "eval-expression-print-format-small-int": [],
+        "eval-expression-print-format-small-int-echo": [],
+        "eval-expression-print-format-sym": [],
+        "eval-expression-print-format-sym-echo": [],
+        "kill-whole-line-after-other-kill": [],
+        "kill-whole-line-buffer-boundaries": [],
+        "kill-whole-line-invisible": [],
+        "kill-whole-line-line-boundaries": [],
+        "kill-whole-line-read-only": [],
+        "line-number-at-pos-in-narrow-buffer": [],
+        "line-number-at-pos-in-widen-buffer": [],
+        "line-number-at-pos-keeps-point": [],
+        "line-number-at-pos-keeps-restriction": [],
+        "line-number-at-pos-when-passing-point": [],
+        "missing-record-point-in-undo": [],
+        "newline": [],
+        "newline-indent": [],
+        "open-line": [],
+        "open-line-hook": [],
+        "open-line-indent": [],
+        "open-line-margin-and-prefix": [],
+        "simple-delete-indentation-blank-line": [],
+        "simple-delete-indentation-boundaries": [],
+        "simple-delete-indentation-inactive-region": [],
+        "simple-delete-indentation-no-region": [],
+        "simple-delete-indentation-prefix": [],
+        "simple-delete-indentation-region": [],
+        "simple-delete-trailing-whitespace--bug-21766": [],
+        "simple-delete-trailing-whitespace--formfeeds": [],
+        "simple-execute-extended-command--describe-binding-msg": [],
+        "simple-execute-extended-command--shorter": [],
+        "simple-test-count-lines": [],
+        "simple-test-count-lines/ignore-invisible-lines": [],
+        "simple-test-count-words-bug-41761": [],
+        "simple-test-undo-extra-boundary-in-tex": [],
+        "simple-tests--undo": [],
+        "simple-tests--undo-apply": [],
+        "simple-tests--undo-equiv-table": [],
+        "simple-tests--undo-in-region": [],
+        "simple-tests-async-shell-command-30280": [],
+        "simple-tests-shell-command-39067": [],
+        "simple-tests-shell-command-dont-erase-buffer": [],
+        "simple-tests-zap-to-char": [],
+        "simple-text-count-lines-non-ascii": [],
+        "simple-transpose-subr": [],
+        "test-undo-region": [],
+        "test-yank-in-context": [],
+        "undo-auto--boundaries-added": [],
+        "undo-auto-boundary-timer": [],
+        "undo-point-in-wrong-place": []
+      },
+      "passed": false,
+      "complete": true,
+      "exit_code": 0,
+      "timed_out": false,
+      "remaining_group_terminated": false,
+      "result_types": {
+        "ert-test-passed": 53,
+        "ert-test-skipped": 1
+      },
+      "result_file": {
+        "path": "results/message-count-cocoa-normal-major/test-lisp-simple-tests.el-b65c7c4e5f4d.json",
+        "sha256": "1626110b076587b38426a525bb0afad887af06bb982d493cbaf06add1541dc16",
+        "bytes": 54350
+      },
+      "events_file": {
+        "path": "results/message-count-cocoa-normal-major/test-lisp-simple-tests.el-b65c7c4e5f4d.events.jsonl",
+        "bytes": 32921,
+        "sha256": "cf854e8203981962d0c8c6b753dc2ee91b3628da820d96ebbcde8edb132f5813"
+      },
+      "owner_receipt": {
+        "path": "results/message-count-cocoa-normal-major/test-lisp-simple-tests.el-b65c7c4e5f4d.owner-retirement.json",
+        "sha256": "c522b6af183cb25cf2118e9b2bbba46aa39c16ba7772ddb890698278f0032b98",
+        "bytes": 396
+      },
+      "retirement": {
+        "status": "retained",
+        "reason": "file failed/incomplete; preserve original state"
+      },
+      "seconds": 8.592854832999997,
+      "display": "owned-pty",
+      "context": {
+        "noninteractive": false,
+        "window_system": null,
+        "io_layout": "combined-pty",
+        "native_comp_async_jobs": 1,
+        "native_comp_thread_limit": "1",
+        "available_processors": 1
+      },
+      "owned_same_tty": true
+    },
+    {
+      "product": "message-count-cocoa-normal-young",
+      "file": "tools/fixtures/message-count-functional.el",
+      "reused_in_final_attempt": false,
+      "evidence_base": "build/acceptance/message-count-functional-recovery-1/message-count-cocoa-normal-young",
+      "ids": [
+        "message-count-functional-distinct-message-breaks-run",
+        "message-count-functional-literal-count-in-payload",
+        "message-count-functional-multibyte-repeated",
+        "message-count-functional-undo-repeated"
+      ],
+      "tags": {
+        "message-count-functional-distinct-message-breaks-run": [],
+        "message-count-functional-literal-count-in-payload": [],
+        "message-count-functional-multibyte-repeated": [],
+        "message-count-functional-undo-repeated": []
+      },
+      "passed": true,
+      "complete": true,
+      "exit_code": 0,
+      "timed_out": false,
+      "remaining_group_terminated": false,
+      "result_types": {
+        "ert-test-passed": 4
+      },
+      "result_file": {
+        "path": "results/message-count-cocoa-normal-young/tools-fixtures-message-count-functional.el-1d6c62f179d3.json",
+        "sha256": "892eec89e2742416f54d158636a60d012061299b1152980f52228760ba99e60b",
+        "bytes": 9356
+      },
+      "events_file": {
+        "path": "results/message-count-cocoa-normal-young/tools-fixtures-message-count-functional.el-1d6c62f179d3.events.jsonl",
+        "bytes": 4562,
+        "sha256": "e27696be731c3c19a976af4fc2fc098ea25290a10577d5f855567cf96e9fdc6d"
+      },
+      "owner_receipt": {
+        "path": "results/message-count-cocoa-normal-young/tools-fixtures-message-count-functional.el-1d6c62f179d3.owner-retirement.json",
+        "sha256": "370720e3e0f9fd0516cb640e2afb8b292e94dc52b236befa3b338ac45a2f31d9",
+        "bytes": 937
+      },
+      "retirement": {
+        "status": "complete",
+        "files": 0,
+        "directories": 10,
+        "ledger_schema": 3,
+        "logical_bytes": 0,
+        "allocated_bytes": 0,
+        "evidence_sha256": "892eec89e2742416f54d158636a60d012061299b1152980f52228760ba99e60b",
+        "ledger": "tools-fixtures-message-count-functional.el-1d6c62f179d3.state-retirement.jsonl.gz",
+        "ledger_sha256": "c73dda08f61db7d8771a9dc94b9e758d666b8de857e014381d621f1e9321d5a4",
+        "all_selected_absent": true,
+        "restore": "regenerate consumed cache from retained inputs; original random names not promised",
+        "empty_parents_retired": true,
+        "parent_directories": 2
+      },
+      "seconds": 0.10418495899999414,
+      "display": "default-batch",
+      "context": null,
+      "owned_same_tty": null
+    },
+    {
+      "product": "message-count-cocoa-normal-young",
+      "file": "test/lisp/simple-tests.el",
+      "reused_in_final_attempt": false,
+      "evidence_base": "build/acceptance/message-count-functional-recovery-1/message-count-cocoa-normal-young",
+      "ids": [
+        "auto-fill-mode-no-break-before-length-of-fill-prefix",
+        "command-execute-prune-command-history",
+        "eval-expression-print-format-large-int",
+        "eval-expression-print-format-large-int-echo",
+        "eval-expression-print-format-small-int",
+        "eval-expression-print-format-small-int-echo",
+        "eval-expression-print-format-sym",
+        "eval-expression-print-format-sym-echo",
+        "kill-whole-line-after-other-kill",
+        "kill-whole-line-buffer-boundaries",
+        "kill-whole-line-invisible",
+        "kill-whole-line-line-boundaries",
+        "kill-whole-line-read-only",
+        "line-number-at-pos-in-narrow-buffer",
+        "line-number-at-pos-in-widen-buffer",
+        "line-number-at-pos-keeps-point",
+        "line-number-at-pos-keeps-restriction",
+        "line-number-at-pos-when-passing-point",
+        "missing-record-point-in-undo",
+        "newline",
+        "newline-indent",
+        "open-line",
+        "open-line-hook",
+        "open-line-indent",
+        "open-line-margin-and-prefix",
+        "simple-delete-indentation-blank-line",
+        "simple-delete-indentation-boundaries",
+        "simple-delete-indentation-inactive-region",
+        "simple-delete-indentation-no-region",
+        "simple-delete-indentation-prefix",
+        "simple-delete-indentation-region",
+        "simple-delete-trailing-whitespace--bug-21766",
+        "simple-delete-trailing-whitespace--formfeeds",
+        "simple-execute-extended-command--describe-binding-msg",
+        "simple-execute-extended-command--shorter",
+        "simple-test-count-lines",
+        "simple-test-count-lines/ignore-invisible-lines",
+        "simple-test-count-words-bug-41761",
+        "simple-test-undo-extra-boundary-in-tex",
+        "simple-tests--undo",
+        "simple-tests--undo-apply",
+        "simple-tests--undo-equiv-table",
+        "simple-tests--undo-in-region",
+        "simple-tests-async-shell-command-30280",
+        "simple-tests-shell-command-39067",
+        "simple-tests-shell-command-dont-erase-buffer",
+        "simple-tests-zap-to-char",
+        "simple-text-count-lines-non-ascii",
+        "simple-transpose-subr",
+        "test-undo-region",
+        "test-yank-in-context",
+        "undo-auto--boundaries-added",
+        "undo-auto-boundary-timer",
+        "undo-point-in-wrong-place"
+      ],
+      "tags": {
+        "auto-fill-mode-no-break-before-length-of-fill-prefix": [],
+        "command-execute-prune-command-history": [],
+        "eval-expression-print-format-large-int": [],
+        "eval-expression-print-format-large-int-echo": [],
+        "eval-expression-print-format-small-int": [],
+        "eval-expression-print-format-small-int-echo": [],
+        "eval-expression-print-format-sym": [],
+        "eval-expression-print-format-sym-echo": [],
+        "kill-whole-line-after-other-kill": [],
+        "kill-whole-line-buffer-boundaries": [],
+        "kill-whole-line-invisible": [],
+        "kill-whole-line-line-boundaries": [],
+        "kill-whole-line-read-only": [],
+        "line-number-at-pos-in-narrow-buffer": [],
+        "line-number-at-pos-in-widen-buffer": [],
+        "line-number-at-pos-keeps-point": [],
+        "line-number-at-pos-keeps-restriction": [],
+        "line-number-at-pos-when-passing-point": [],
+        "missing-record-point-in-undo": [],
+        "newline": [],
+        "newline-indent": [],
+        "open-line": [],
+        "open-line-hook": [],
+        "open-line-indent": [],
+        "open-line-margin-and-prefix": [],
+        "simple-delete-indentation-blank-line": [],
+        "simple-delete-indentation-boundaries": [],
+        "simple-delete-indentation-inactive-region": [],
+        "simple-delete-indentation-no-region": [],
+        "simple-delete-indentation-prefix": [],
+        "simple-delete-indentation-region": [],
+        "simple-delete-trailing-whitespace--bug-21766": [],
+        "simple-delete-trailing-whitespace--formfeeds": [],
+        "simple-execute-extended-command--describe-binding-msg": [],
+        "simple-execute-extended-command--shorter": [],
+        "simple-test-count-lines": [],
+        "simple-test-count-lines/ignore-invisible-lines": [],
+        "simple-test-count-words-bug-41761": [],
+        "simple-test-undo-extra-boundary-in-tex": [],
+        "simple-tests--undo": [],
+        "simple-tests--undo-apply": [],
+        "simple-tests--undo-equiv-table": [],
+        "simple-tests--undo-in-region": [],
+        "simple-tests-async-shell-command-30280": [],
+        "simple-tests-shell-command-39067": [],
+        "simple-tests-shell-command-dont-erase-buffer": [],
+        "simple-tests-zap-to-char": [],
+        "simple-text-count-lines-non-ascii": [],
+        "simple-transpose-subr": [],
+        "test-undo-region": [],
+        "test-yank-in-context": [],
+        "undo-auto--boundaries-added": [],
+        "undo-auto-boundary-timer": [],
+        "undo-point-in-wrong-place": []
+      },
+      "passed": false,
+      "complete": true,
+      "exit_code": 0,
+      "timed_out": false,
+      "remaining_group_terminated": false,
+      "result_types": {
+        "ert-test-passed": 53,
+        "ert-test-skipped": 1
+      },
+      "result_file": {
+        "path": "results/message-count-cocoa-normal-young/test-lisp-simple-tests.el-b65c7c4e5f4d.json",
+        "sha256": "deb0e971c21d7d289a997aca155d26bb05b720cdfe68cf10ea1fa9b386aa1c52",
+        "bytes": 54351
+      },
+      "events_file": {
+        "path": "results/message-count-cocoa-normal-young/test-lisp-simple-tests.el-b65c7c4e5f4d.events.jsonl",
+        "bytes": 32921,
+        "sha256": "8c4676acbdf2d0851991d71e015985febf49fdcfa3a4492273959328b9e0097f"
+      },
+      "owner_receipt": {
+        "path": "results/message-count-cocoa-normal-young/test-lisp-simple-tests.el-b65c7c4e5f4d.owner-retirement.json",
+        "sha256": "58d2d0dde27d383578511a2ae3532a945309e4ac79c555fc6cab2a31041b48fb",
+        "bytes": 396
+      },
+      "retirement": {
+        "status": "retained",
+        "reason": "file failed/incomplete; preserve original state"
+      },
+      "seconds": 11.269469500000014,
+      "display": "owned-pty",
+      "context": {
+        "noninteractive": false,
+        "window_system": null,
+        "io_layout": "combined-pty",
+        "native_comp_async_jobs": 1,
+        "native_comp_thread_limit": "1",
+        "available_processors": 1
+      },
+      "owned_same_tty": true
+    },
+    {
+      "product": "message-count-cocoa-checking-major",
+      "file": "tools/fixtures/message-count-functional.el",
+      "reused_in_final_attempt": false,
+      "evidence_base": "build/acceptance/message-count-functional-recovery-1/message-count-cocoa-checking-major",
+      "ids": [
+        "message-count-functional-distinct-message-breaks-run",
+        "message-count-functional-literal-count-in-payload",
+        "message-count-functional-multibyte-repeated",
+        "message-count-functional-undo-repeated"
+      ],
+      "tags": {
+        "message-count-functional-distinct-message-breaks-run": [],
+        "message-count-functional-literal-count-in-payload": [],
+        "message-count-functional-multibyte-repeated": [],
+        "message-count-functional-undo-repeated": []
+      },
+      "passed": true,
+      "complete": true,
+      "exit_code": 0,
+      "timed_out": false,
+      "remaining_group_terminated": false,
+      "result_types": {
+        "ert-test-passed": 4
+      },
+      "result_file": {
+        "path": "results/message-count-cocoa-checking-major/tools-fixtures-message-count-functional.el-1d6c62f179d3.json",
+        "sha256": "603590dca65d35951a9996b6d0737b60cfbb074e32a1e600c851b4a6ceb05ba9",
+        "bytes": 9408
+      },
+      "events_file": {
+        "path": "results/message-count-cocoa-checking-major/tools-fixtures-message-count-functional.el-1d6c62f179d3.events.jsonl",
+        "bytes": 4566,
+        "sha256": "3f6892fb8604a52cbff237db9332335b580f48a36e3407ee34b80d0cca4b13ca"
+      },
+      "owner_receipt": {
+        "path": "results/message-count-cocoa-checking-major/tools-fixtures-message-count-functional.el-1d6c62f179d3.owner-retirement.json",
+        "sha256": "742670082b3f924dbe67bfc29b8b396532729dbee506e046eb3e982df911b90f",
+        "bytes": 939
+      },
+      "retirement": {
+        "status": "complete",
+        "files": 0,
+        "directories": 10,
+        "ledger_schema": 3,
+        "logical_bytes": 0,
+        "allocated_bytes": 0,
+        "evidence_sha256": "603590dca65d35951a9996b6d0737b60cfbb074e32a1e600c851b4a6ceb05ba9",
+        "ledger": "tools-fixtures-message-count-functional.el-1d6c62f179d3.state-retirement.jsonl.gz",
+        "ledger_sha256": "c73dda08f61db7d8771a9dc94b9e758d666b8de857e014381d621f1e9321d5a4",
+        "all_selected_absent": true,
+        "restore": "regenerate consumed cache from retained inputs; original random names not promised",
+        "empty_parents_retired": true,
+        "parent_directories": 2
+      },
+      "seconds": 1.404438958,
+      "display": "default-batch",
+      "context": null,
+      "owned_same_tty": null
+    },
+    {
+      "product": "message-count-cocoa-checking-major",
+      "file": "test/lisp/simple-tests.el",
+      "reused_in_final_attempt": false,
+      "evidence_base": "build/acceptance/message-count-functional-recovery-1/message-count-cocoa-checking-major",
+      "ids": [
+        "auto-fill-mode-no-break-before-length-of-fill-prefix",
+        "command-execute-prune-command-history",
+        "eval-expression-print-format-large-int",
+        "eval-expression-print-format-large-int-echo",
+        "eval-expression-print-format-small-int",
+        "eval-expression-print-format-small-int-echo",
+        "eval-expression-print-format-sym",
+        "eval-expression-print-format-sym-echo",
+        "kill-whole-line-after-other-kill",
+        "kill-whole-line-buffer-boundaries",
+        "kill-whole-line-invisible",
+        "kill-whole-line-line-boundaries",
+        "kill-whole-line-read-only",
+        "line-number-at-pos-in-narrow-buffer",
+        "line-number-at-pos-in-widen-buffer",
+        "line-number-at-pos-keeps-point",
+        "line-number-at-pos-keeps-restriction",
+        "line-number-at-pos-when-passing-point",
+        "missing-record-point-in-undo",
+        "newline",
+        "newline-indent",
+        "open-line",
+        "open-line-hook",
+        "open-line-indent",
+        "open-line-margin-and-prefix",
+        "simple-delete-indentation-blank-line",
+        "simple-delete-indentation-boundaries",
+        "simple-delete-indentation-inactive-region",
+        "simple-delete-indentation-no-region",
+        "simple-delete-indentation-prefix",
+        "simple-delete-indentation-region",
+        "simple-delete-trailing-whitespace--bug-21766",
+        "simple-delete-trailing-whitespace--formfeeds",
+        "simple-execute-extended-command--describe-binding-msg",
+        "simple-execute-extended-command--shorter",
+        "simple-test-count-lines",
+        "simple-test-count-lines/ignore-invisible-lines",
+        "simple-test-count-words-bug-41761",
+        "simple-test-undo-extra-boundary-in-tex",
+        "simple-tests--undo",
+        "simple-tests--undo-apply",
+        "simple-tests--undo-equiv-table",
+        "simple-tests--undo-in-region",
+        "simple-tests-async-shell-command-30280",
+        "simple-tests-shell-command-39067",
+        "simple-tests-shell-command-dont-erase-buffer",
+        "simple-tests-zap-to-char",
+        "simple-text-count-lines-non-ascii",
+        "simple-transpose-subr",
+        "test-undo-region",
+        "test-yank-in-context",
+        "undo-auto--boundaries-added",
+        "undo-auto-boundary-timer",
+        "undo-point-in-wrong-place"
+      ],
+      "tags": {
+        "auto-fill-mode-no-break-before-length-of-fill-prefix": [],
+        "command-execute-prune-command-history": [],
+        "eval-expression-print-format-large-int": [],
+        "eval-expression-print-format-large-int-echo": [],
+        "eval-expression-print-format-small-int": [],
+        "eval-expression-print-format-small-int-echo": [],
+        "eval-expression-print-format-sym": [],
+        "eval-expression-print-format-sym-echo": [],
+        "kill-whole-line-after-other-kill": [],
+        "kill-whole-line-buffer-boundaries": [],
+        "kill-whole-line-invisible": [],
+        "kill-whole-line-line-boundaries": [],
+        "kill-whole-line-read-only": [],
+        "line-number-at-pos-in-narrow-buffer": [],
+        "line-number-at-pos-in-widen-buffer": [],
+        "line-number-at-pos-keeps-point": [],
+        "line-number-at-pos-keeps-restriction": [],
+        "line-number-at-pos-when-passing-point": [],
+        "missing-record-point-in-undo": [],
+        "newline": [],
+        "newline-indent": [],
+        "open-line": [],
+        "open-line-hook": [],
+        "open-line-indent": [],
+        "open-line-margin-and-prefix": [],
+        "simple-delete-indentation-blank-line": [],
+        "simple-delete-indentation-boundaries": [],
+        "simple-delete-indentation-inactive-region": [],
+        "simple-delete-indentation-no-region": [],
+        "simple-delete-indentation-prefix": [],
+        "simple-delete-indentation-region": [],
+        "simple-delete-trailing-whitespace--bug-21766": [],
+        "simple-delete-trailing-whitespace--formfeeds": [],
+        "simple-execute-extended-command--describe-binding-msg": [],
+        "simple-execute-extended-command--shorter": [],
+        "simple-test-count-lines": [],
+        "simple-test-count-lines/ignore-invisible-lines": [],
+        "simple-test-count-words-bug-41761": [],
+        "simple-test-undo-extra-boundary-in-tex": [],
+        "simple-tests--undo": [],
+        "simple-tests--undo-apply": [],
+        "simple-tests--undo-equiv-table": [],
+        "simple-tests--undo-in-region": [],
+        "simple-tests-async-shell-command-30280": [],
+        "simple-tests-shell-command-39067": [],
+        "simple-tests-shell-command-dont-erase-buffer": [],
+        "simple-tests-zap-to-char": [],
+        "simple-text-count-lines-non-ascii": [],
+        "simple-transpose-subr": [],
+        "test-undo-region": [],
+        "test-yank-in-context": [],
+        "undo-auto--boundaries-added": [],
+        "undo-auto-boundary-timer": [],
+        "undo-point-in-wrong-place": []
+      },
+      "passed": false,
+      "complete": true,
+      "exit_code": 0,
+      "timed_out": false,
+      "remaining_group_terminated": false,
+      "result_types": {
+        "ert-test-passed": 53,
+        "ert-test-skipped": 1
+      },
+      "result_file": {
+        "path": "results/message-count-cocoa-checking-major/test-lisp-simple-tests.el-b65c7c4e5f4d.json",
+        "sha256": "d776040827eefa6110493b69391b430ca5eace2829a18b255b02956f2b30d699",
+        "bytes": 54555
+      },
+      "events_file": {
+        "path": "results/message-count-cocoa-checking-major/test-lisp-simple-tests.el-b65c7c4e5f4d.events.jsonl",
+        "bytes": 32965,
+        "sha256": "7a1d8c615817e26edc3e88faeb04dfb08a3f9605ac2eb27e7b9af853b8878b79"
+      },
+      "owner_receipt": {
+        "path": "results/message-count-cocoa-checking-major/test-lisp-simple-tests.el-b65c7c4e5f4d.owner-retirement.json",
+        "sha256": "c615e46748a762801cd99b7179ca3018c1b830927b12989c695f241cdcb544e0",
+        "bytes": 398
+      },
+      "retirement": {
+        "status": "retained",
+        "reason": "file failed/incomplete; preserve original state"
+      },
+      "seconds": 12.925607709000005,
+      "display": "owned-pty",
+      "context": {
+        "noninteractive": false,
+        "window_system": null,
+        "io_layout": "combined-pty",
+        "native_comp_async_jobs": 1,
+        "native_comp_thread_limit": "1",
+        "available_processors": 1
+      },
+      "owned_same_tty": true
+    },
+    {
+      "product": "message-count-cocoa-checking-young",
+      "file": "tools/fixtures/message-count-functional.el",
+      "reused_in_final_attempt": false,
+      "evidence_base": "build/acceptance/message-count-functional-recovery-1/message-count-cocoa-checking-young",
+      "ids": [
+        "message-count-functional-distinct-message-breaks-run",
+        "message-count-functional-literal-count-in-payload",
+        "message-count-functional-multibyte-repeated",
+        "message-count-functional-undo-repeated"
+      ],
+      "tags": {
+        "message-count-functional-distinct-message-breaks-run": [],
+        "message-count-functional-literal-count-in-payload": [],
+        "message-count-functional-multibyte-repeated": [],
+        "message-count-functional-undo-repeated": []
+      },
+      "passed": true,
+      "complete": true,
+      "exit_code": 0,
+      "timed_out": false,
+      "remaining_group_terminated": false,
+      "result_types": {
+        "ert-test-passed": 4
+      },
+      "result_file": {
+        "path": "results/message-count-cocoa-checking-young/tools-fixtures-message-count-functional.el-1d6c62f179d3.json",
+        "sha256": "cafe96a0a907c4b8372685dbef0e4642874ba58a48b72ffd54525647fb5af902",
+        "bytes": 9411
+      },
+      "events_file": {
+        "path": "results/message-count-cocoa-checking-young/tools-fixtures-message-count-functional.el-1d6c62f179d3.events.jsonl",
+        "bytes": 4564,
+        "sha256": "d72e919ac70b7b88e2e564832bfd1072f5d27220a5c2667cff10ed0a37f232d2"
+      },
+      "owner_receipt": {
+        "path": "results/message-count-cocoa-checking-young/tools-fixtures-message-count-functional.el-1d6c62f179d3.owner-retirement.json",
+        "sha256": "07e6f5bfebf83e8d0ace9aa3bf9514f288e5de3a677a3ecd81aadca2ad19376e",
+        "bytes": 939
+      },
+      "retirement": {
+        "status": "complete",
+        "files": 0,
+        "directories": 10,
+        "ledger_schema": 3,
+        "logical_bytes": 0,
+        "allocated_bytes": 0,
+        "evidence_sha256": "cafe96a0a907c4b8372685dbef0e4642874ba58a48b72ffd54525647fb5af902",
+        "ledger": "tools-fixtures-message-count-functional.el-1d6c62f179d3.state-retirement.jsonl.gz",
+        "ledger_sha256": "c73dda08f61db7d8771a9dc94b9e758d666b8de857e014381d621f1e9321d5a4",
+        "all_selected_absent": true,
+        "restore": "regenerate consumed cache from retained inputs; original random names not promised",
+        "empty_parents_retired": true,
+        "parent_directories": 2
+      },
+      "seconds": 0.2256068330000005,
+      "display": "default-batch",
+      "context": null,
+      "owned_same_tty": null
+    },
+    {
+      "product": "message-count-cocoa-checking-young",
+      "file": "test/lisp/simple-tests.el",
+      "reused_in_final_attempt": false,
+      "evidence_base": "build/acceptance/message-count-functional-recovery-1/message-count-cocoa-checking-young",
+      "ids": [
+        "auto-fill-mode-no-break-before-length-of-fill-prefix",
+        "command-execute-prune-command-history",
+        "eval-expression-print-format-large-int",
+        "eval-expression-print-format-large-int-echo",
+        "eval-expression-print-format-small-int",
+        "eval-expression-print-format-small-int-echo",
+        "eval-expression-print-format-sym",
+        "eval-expression-print-format-sym-echo",
+        "kill-whole-line-after-other-kill",
+        "kill-whole-line-buffer-boundaries",
+        "kill-whole-line-invisible",
+        "kill-whole-line-line-boundaries",
+        "kill-whole-line-read-only",
+        "line-number-at-pos-in-narrow-buffer",
+        "line-number-at-pos-in-widen-buffer",
+        "line-number-at-pos-keeps-point",
+        "line-number-at-pos-keeps-restriction",
+        "line-number-at-pos-when-passing-point",
+        "missing-record-point-in-undo",
+        "newline",
+        "newline-indent",
+        "open-line",
+        "open-line-hook",
+        "open-line-indent",
+        "open-line-margin-and-prefix",
+        "simple-delete-indentation-blank-line",
+        "simple-delete-indentation-boundaries",
+        "simple-delete-indentation-inactive-region",
+        "simple-delete-indentation-no-region",
+        "simple-delete-indentation-prefix",
+        "simple-delete-indentation-region",
+        "simple-delete-trailing-whitespace--bug-21766",
+        "simple-delete-trailing-whitespace--formfeeds",
+        "simple-execute-extended-command--describe-binding-msg",
+        "simple-execute-extended-command--shorter",
+        "simple-test-count-lines",
+        "simple-test-count-lines/ignore-invisible-lines",
+        "simple-test-count-words-bug-41761",
+        "simple-test-undo-extra-boundary-in-tex",
+        "simple-tests--undo",
+        "simple-tests--undo-apply",
+        "simple-tests--undo-equiv-table",
+        "simple-tests--undo-in-region",
+        "simple-tests-async-shell-command-30280",
+        "simple-tests-shell-command-39067",
+        "simple-tests-shell-command-dont-erase-buffer",
+        "simple-tests-zap-to-char",
+        "simple-text-count-lines-non-ascii",
+        "simple-transpose-subr",
+        "test-undo-region",
+        "test-yank-in-context",
+        "undo-auto--boundaries-added",
+        "undo-auto-boundary-timer",
+        "undo-point-in-wrong-place"
+      ],
+      "tags": {
+        "auto-fill-mode-no-break-before-length-of-fill-prefix": [],
+        "command-execute-prune-command-history": [],
+        "eval-expression-print-format-large-int": [],
+        "eval-expression-print-format-large-int-echo": [],
+        "eval-expression-print-format-small-int": [],
+        "eval-expression-print-format-small-int-echo": [],
+        "eval-expression-print-format-sym": [],
+        "eval-expression-print-format-sym-echo": [],
+        "kill-whole-line-after-other-kill": [],
+        "kill-whole-line-buffer-boundaries": [],
+        "kill-whole-line-invisible": [],
+        "kill-whole-line-line-boundaries": [],
+        "kill-whole-line-read-only": [],
+        "line-number-at-pos-in-narrow-buffer": [],
+        "line-number-at-pos-in-widen-buffer": [],
+        "line-number-at-pos-keeps-point": [],
+        "line-number-at-pos-keeps-restriction": [],
+        "line-number-at-pos-when-passing-point": [],
+        "missing-record-point-in-undo": [],
+        "newline": [],
+        "newline-indent": [],
+        "open-line": [],
+        "open-line-hook": [],
+        "open-line-indent": [],
+        "open-line-margin-and-prefix": [],
+        "simple-delete-indentation-blank-line": [],
+        "simple-delete-indentation-boundaries": [],
+        "simple-delete-indentation-inactive-region": [],
+        "simple-delete-indentation-no-region": [],
+        "simple-delete-indentation-prefix": [],
+        "simple-delete-indentation-region": [],
+        "simple-delete-trailing-whitespace--bug-21766": [],
+        "simple-delete-trailing-whitespace--formfeeds": [],
+        "simple-execute-extended-command--describe-binding-msg": [],
+        "simple-execute-extended-command--shorter": [],
+        "simple-test-count-lines": [],
+        "simple-test-count-lines/ignore-invisible-lines": [],
+        "simple-test-count-words-bug-41761": [],
+        "simple-test-undo-extra-boundary-in-tex": [],
+        "simple-tests--undo": [],
+        "simple-tests--undo-apply": [],
+        "simple-tests--undo-equiv-table": [],
+        "simple-tests--undo-in-region": [],
+        "simple-tests-async-shell-command-30280": [],
+        "simple-tests-shell-command-39067": [],
+        "simple-tests-shell-command-dont-erase-buffer": [],
+        "simple-tests-zap-to-char": [],
+        "simple-text-count-lines-non-ascii": [],
+        "simple-transpose-subr": [],
+        "test-undo-region": [],
+        "test-yank-in-context": [],
+        "undo-auto--boundaries-added": [],
+        "undo-auto-boundary-timer": [],
+        "undo-point-in-wrong-place": []
+      },
+      "passed": false,
+      "complete": true,
+      "exit_code": 0,
+      "timed_out": false,
+      "remaining_group_terminated": false,
+      "result_types": {
+        "ert-test-passed": 53,
+        "ert-test-skipped": 1
+      },
+      "result_file": {
+        "path": "results/message-count-cocoa-checking-young/test-lisp-simple-tests.el-b65c7c4e5f4d.json",
+        "sha256": "58cba265b9993019578b10a3f54f1a38e625e6b008bdec1a5d5e31a9d070d6f6",
+        "bytes": 54545
+      },
+      "events_file": {
+        "path": "results/message-count-cocoa-checking-young/test-lisp-simple-tests.el-b65c7c4e5f4d.events.jsonl",
+        "bytes": 32960,
+        "sha256": "7bb2e964d9296c4059637a607b4c249489bd968e88903ccf672b693d8b697d6c"
+      },
+      "owner_receipt": {
+        "path": "results/message-count-cocoa-checking-young/test-lisp-simple-tests.el-b65c7c4e5f4d.owner-retirement.json",
+        "sha256": "24ace7eb80ea29e47f9619199f11bf35fef7d4aab2f5c441e3adce359c99f46f",
+        "bytes": 398
+      },
+      "retirement": {
+        "status": "retained",
+        "reason": "file failed/incomplete; preserve original state"
+      },
+      "seconds": 10.704719791999992,
+      "display": "owned-pty",
+      "context": {
+        "noninteractive": false,
+        "window_system": null,
+        "io_layout": "combined-pty",
+        "native_comp_async_jobs": 1,
+        "native_comp_thread_limit": "1",
+        "available_processors": 1
+      },
+      "owned_same_tty": true
+    }
+  ],
+  "component": {
+    "raw": {
+      "path": "build/acceptance/message-count-protection-1/results.json",
+      "sha256": "59f154ff87d7c5f0573edfbb0e3cb6f812a14a483944938cca72ec9be3233d92",
+      "bytes": 5758
+    },
+    "passed": true,
+    "execution_complete": true,
+    "cases": [
+      {
+        "id": "contract::two_messages",
+        "passed": true,
+        "seconds": 1.404474042,
+        "complete": true,
+        "exit_code": 0,
+        "remaining_group_terminated": false,
+        "stdout": {
+          "path": "build/acceptance/message-count-protection-1/two_messages/stdout.txt",
+          "sha256": "0cd610d8186a40dcc3f0470ba144d257ea9ba37ce8b7bffabb3ab9e19518d006",
+          "bytes": 147
+        },
+        "stderr": {
+          "path": "build/acceptance/message-count-protection-1/two_messages/stderr.txt",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        }
+      },
+      {
+        "id": "contract::three_messages",
+        "passed": true,
+        "seconds": 0.005833624999999953,
+        "complete": true,
+        "exit_code": 0,
+        "remaining_group_terminated": false,
+        "stdout": {
+          "path": "build/acceptance/message-count-protection-1/three_messages/stdout.txt",
+          "sha256": "bdd66d30f66693f5c8432d6c7ed404cf2640bde940e886ef8f6237d46b991336",
+          "bytes": 149
+        },
+        "stderr": {
+          "path": "build/acceptance/message-count-protection-1/three_messages/stderr.txt",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        }
+      },
+      {
+        "id": "contract::maximum_count_fits",
+        "passed": true,
+        "seconds": 0.005451333000000114,
+        "complete": true,
+        "exit_code": 0,
+        "remaining_group_terminated": false,
+        "stdout": {
+          "path": "build/acceptance/message-count-protection-1/maximum_count_fits/stdout.txt",
+          "sha256": "e46f3cdf13d514bcd06ef8b330b21345c038c985b7f59de284dddb851e1dae86",
+          "bytes": 153
+        },
+        "stderr": {
+          "path": "build/acceptance/message-count-protection-1/maximum_count_fits/stderr.txt",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        }
+      }
+    ],
+    "seconds": 1.8656665000000001,
+    "compile_seconds": 0.444802167,
+    "inputs_unchanged": true,
+    "extraction": {
+      "buffer_declaration": "let mut dupstr: [c_char; 30] = [0; 30];",
+      "capacity": 30,
+      "statement": "let duplen: c_int = sprintf (dupstr.as_mut_ptr (),\n\t\t\t\t\t\t   c\" [%jd times]\".as_ptr (), dups);",
+      "integer_alias": "pub type intmax_t = i64;"
+    },
+    "generated_source_identity": {
+      "kind": "file",
+      "bytes": 1418,
+      "mode": 420,
+      "sha256": "05bd439614925935a45b6d5bb7efa3ed7052009ab25f60828ed62f6373db345c"
+    },
+    "generated_outputs_retired": true,
+    "maximum_output_bytes": 28,
+    "maximum_with_nul_bytes": 29,
+    "small_output_bytes": 10,
+    "small_with_nul_bytes": 11,
+    "capacity": 30,
+    "limit": "Production format call/alias/width; canaries/local FFI declaration substitute the outer buffer and editor. No VM, general ABI or performance acceptance."
+  },
+  "history": [
+    {
+      "label": "build-original",
+      "controller": {
+        "run_id": "be504e18c80a4ad085d9de2dc96db5e4",
+        "profile": "build",
+        "exit_code": 1,
+        "reason": "exited",
+        "elapsed_seconds": 13.521,
+        "peak_accounted_bytes": 77217792,
+        "peak_footprint_bytes": 71975416,
+        "initial_limit_bytes": 8589934592,
+        "hard_limit_bytes": 25769803776,
+        "growth_count": 0,
+        "cleanup_complete": true,
+        "stderr_log": {
+          "sha256": "98b659c503e3d077d3c64e890cb875f1fa9133c45af7e02eb64fe962b5b8c5be",
+          "bytes": 987
+        },
+        "metrics_independently_reviewed": false
+      },
+      "raw": {
+        "path": "build/acceptance/message-count-current-1/results.json",
+        "sha256": "abbbf8fcf79cce83e373774ed9eee82581142fd491b45904e93dd92194d4bb82",
+        "bytes": 5879
+      },
+      "passed": false,
+      "phase": "incomplete",
+      "seconds": 7.9408864999999995
+    },
+    {
+      "label": "build-interrupted",
+      "controller": {
+        "run_id": "61bc5011137e4c64a80eba6f2801fdb2",
+        "profile": "build",
+        "exit_code": 125,
+        "reason": "monitor_error",
+        "elapsed_seconds": 713.606,
+        "peak_accounted_bytes": 555286528,
+        "peak_footprint_bytes": 418646224,
+        "initial_limit_bytes": 8589934592,
+        "hard_limit_bytes": 25769803776,
+        "growth_count": 0,
+        "cleanup_complete": true,
+        "error_code": "inspect_owned",
+        "error_errno": 1,
+        "stderr_log": {
+          "sha256": "e4294da91139def3e7d38a03e0d2b45c221a24bc00a1af3d7a5cc2dec83867cb",
+          "bytes": 779
+        },
+        "metrics_independently_reviewed": false
+      },
+      "raw": {
+        "path": "build/acceptance/message-count-current-recovery-1/results.json",
+        "sha256": "8b971a5758b44b48f8729b3bed8ea5b1083427fc17bd98002052b6e149d32232",
+        "bytes": 6994
+      },
+      "passed": false,
+      "phase": "building-terminal",
+      "seconds": 708.6393417080001
+    },
+    {
+      "label": "monitor-probe",
+      "controller": {
+        "run_id": "51cff30a4a9649b1a58b3e1c873e587f",
+        "profile": "build",
+        "exit_code": 0,
+        "reason": "exited",
+        "elapsed_seconds": 1.042,
+        "peak_accounted_bytes": 8847360,
+        "peak_footprint_bytes": 5063040,
+        "initial_limit_bytes": 8589934592,
+        "hard_limit_bytes": 25769803776,
+        "growth_count": 0,
+        "cleanup_complete": true,
+        "stderr_log": {
+          "sha256": "adda9e0a9f3104e3430bd620aaecaeda0998a1cc35b963caf2a7716986f1e49f",
+          "bytes": 667
+        },
+        "metrics_independently_reviewed": false
+      }
+    },
+    {
+      "label": "build-final",
+      "controller": {
+        "run_id": "cf50fc0f632d4ad990edbc572960c1ca",
+        "profile": "build",
+        "exit_code": 0,
+        "reason": "exited",
+        "elapsed_seconds": 585.922,
+        "peak_accounted_bytes": 964149248,
+        "peak_footprint_bytes": 593627416,
+        "initial_limit_bytes": 8589934592,
+        "hard_limit_bytes": 25769803776,
+        "growth_count": 0,
+        "cleanup_complete": true,
+        "stderr_log": {
+          "sha256": "bb1f52955805f36f76e527ae21a5da31201ee6a915af88c856da5185a22539b5",
+          "bytes": 675
+        },
+        "metrics_independently_reviewed": false
+      },
+      "raw": {
+        "path": "build/acceptance/message-count-current-recovery-2/results.json",
+        "sha256": "10a950ec10536a2c931b46da6086f4ba6c0b5ca8d87157627073b6784858c1f9",
+        "bytes": 33827
+      },
+      "passed": true,
+      "phase": "built",
+      "seconds": 574.591270791
+    },
+    {
+      "label": "functional-original",
+      "controller": {
+        "run_id": "3b95d17a70a84ad5a8b479e23e0ac093",
+        "profile": "runtime",
+        "exit_code": 1,
+        "reason": "exited",
+        "elapsed_seconds": 10.201,
+        "peak_accounted_bytes": 134709248,
+        "peak_footprint_bytes": 104023120,
+        "initial_limit_bytes": 1073741824,
+        "hard_limit_bytes": 1073741824,
+        "growth_count": 0,
+        "cleanup_complete": true,
+        "stderr_log": {
+          "sha256": "3de9f99285e3039ace8293a0cc46fea39c5a429b01e026216294536f3b011de6",
+          "bytes": 675
+        },
+        "metrics_independently_reviewed": false
+      },
+      "raw": {
+        "path": "build/acceptance/message-count-functional-1/results.json",
+        "sha256": "c25c1f58ac3e36ba1e31cf3fc6228b257786a343cd474e31587d3b0f63d31ab7",
+        "bytes": 126426
+      },
+      "passed": false,
+      "phase": "executing",
+      "seconds": 10.016605375
+    },
+    {
+      "label": "functional-resume",
+      "controller": {
+        "run_id": "4806ae8bd12b42f48bb6475119f4f940",
+        "profile": "runtime",
+        "exit_code": 1,
+        "reason": "exited",
+        "elapsed_seconds": 114.132,
+        "peak_accounted_bytes": 388104192,
+        "peak_footprint_bytes": 295275496,
+        "initial_limit_bytes": 1073741824,
+        "hard_limit_bytes": 1073741824,
+        "growth_count": 0,
+        "cleanup_complete": true,
+        "stderr_log": {
+          "sha256": "dbacc0fe3af0da0497d64a9e9e8a33ef21c2a43bc31a038d1a8e955e4748cb5f",
+          "bytes": 676
+        },
+        "metrics_independently_reviewed": false
+      },
+      "raw": {
+        "path": "build/acceptance/message-count-functional-recovery-1/results.json",
+        "sha256": "b7435b1bd8e7462568529ef1ff42781c15fe1914b93674dbc5a1f3957dcc4499",
+        "bytes": 877547
+      },
+      "passed": false,
+      "phase": "finished",
+      "seconds": 113.878382583
+    },
+    {
+      "label": "component",
+      "controller": {
+        "run_id": "b72491cdb8e54191a7df90f59eb32b36",
+        "profile": "runtime",
+        "exit_code": 0,
+        "reason": "exited",
+        "elapsed_seconds": 2.078,
+        "peak_accounted_bytes": 85393408,
+        "peak_footprint_bytes": 31179904,
+        "initial_limit_bytes": 1073741824,
+        "hard_limit_bytes": 1073741824,
+        "growth_count": 0,
+        "cleanup_complete": true,
+        "stderr_log": {
+          "sha256": "ffea3492a6aa33adc047616d68d7b37737cf2c5a921ad755d672efe1f4683fa1",
+          "bytes": 671
+        },
+        "metrics_independently_reviewed": false
+      },
+      "raw": {
+        "path": "build/acceptance/message-count-protection-1/results.json",
+        "sha256": "59f154ff87d7c5f0573edfbb0e3cb6f812a14a483944938cca72ec9be3233d92",
+        "bytes": 5758
+      },
+      "passed": true,
+      "phase": null,
+      "seconds": 1.8656665000000001
+    }
+  ],
+  "cleanup": {
+    "manifest": {
+      "path": "maintenance/cleanup/manifests/2026-11-01-189-consumed-message-count-state.jsonl.gz",
+      "sha256": "deed5cdd4e5e98d2f54cf7fdf863c54afc787a7dea6bfa103a99dc68f980eb52",
+      "bytes": 3307545
+    },
+    "totals": {
+      "files": 33159,
+      "directories": 3276,
+      "links": 18,
+      "rows": 36453,
+      "logical_bytes": 955443458,
+      "allocated_bytes": 1031352320
+    },
+    "post_review": {
+      "files": 33159,
+      "directories": 3186,
+      "links": 18,
+      "rows": 36363,
+      "logical_bytes": 955443458,
+      "allocated_bytes": 1031352320
+    },
+    "automatic": {
+      "files": 0,
+      "directories": 90,
+      "links": 0,
+      "rows": 90,
+      "logical_bytes": 0,
+      "allocated_bytes": 0
+    },
+    "automatic_plans": 9,
+    "automatic_parent_directories": 18,
+    "role_totals": {
+      "test-state": {
+        "files": 12469,
+        "directories": 2279,
+        "links": 18,
+        "rows": 14766,
+        "logical_bytes": 174606141,
+        "allocated_bytes": 207785984
+      },
+      "component-generated": {
+        "files": 2,
+        "directories": 0,
+        "links": 0,
+        "rows": 2,
+        "logical_bytes": 1055370,
+        "allocated_bytes": 1060864
+      },
+      "current-objects": {
+        "files": 20244,
+        "directories": 684,
+        "links": 0,
+        "rows": 20928,
+        "logical_bytes": 723492551,
+        "allocated_bytes": 764784640
+      },
+      "current-link-archives": {
+        "files": 4,
+        "directories": 0,
+        "links": 0,
+        "rows": 4,
+        "logical_bytes": 926864,
+        "allocated_bytes": 933888
+      },
+      "current-Cargo": {
+        "files": 436,
+        "directories": 223,
+        "links": 0,
+        "rows": 659,
+        "logical_bytes": 55286195,
+        "allocated_bytes": 56696832
+      },
+      "adopted-helper": {
+        "files": 4,
+        "directories": 0,
+        "links": 0,
+        "rows": 4,
+        "logical_bytes": 76337,
+        "allocated_bytes": 90112
+      }
+    },
+    "private_plan_sha256": "81de902714b46b541a418fce19d3d84658ad480e3d95904067bf8f29cab08e86",
+    "operations_sha256": "51da6b78ac30e2448d144cab528472f3effa2d3dbd4a1dc6bfdd563974f4b3dc",
+    "summary": {
+      "sha256": "c79b7338156477aa89bb0aedc18e2c24eba07ac5207a0a6c1605ef6f4bd45163",
+      "bytes": 1125
+    },
+    "retained_evidence_files": 190,
+    "protected_input_files": 46,
+    "protected_product_profiles": 18,
+    "frozen_input_files": 7481,
+    "selected_roots": 52,
+    "operation_rows": 72726,
+    "completed": true,
+    "object_rebuild_required_for_capture_product": true,
+    "prior_objects_untouched": true
+  },
+  "independent_functional_review_accepted": true,
+  "independent_protection_review_reconciled_and_accepted": true,
+  "consumer_release_received": true,
+  "limits": [
+    "All candidate process results are new to P450; one current reference message file is reused only after its successful first-attempt execution, plus one older unchanged reference simple file. Neither failed aggregate is rewritten.",
+    "Nine original noninteractive-only skips keep functional raw passed false and controller exit1; no original ID/tag/guard filter or expected-failure reclassification.",
+    "The message fixture uses the real primitive with dedicated message-log buffers; simple uses simulated Lisp keyboard macros on owned PTYs, not physical UI.",
+    "The older workspace-bound build owner failed before compiler/editor startup. The later monitor_error125 is an inspection failure after terminal products completed, not memory pressure or a product assertion. Its exact cause remains unproven; a healthy monitor probe does not prove that cause.",
+    "The source export includes WIP; it is not clean HEAD. Four current normal/checking products expose8 execution profiles, not the complete20-build/61-profile runtime stage.",
+    "No App replacement, first P449 timer/undo resolution, original startup concurrency acceptance, child dump fingerprint, native-stage/collector completeness, whole ERT/fullG3 or performance acceptance.",
+    "Build guard used its ordinary8GiB initial/24GiB hard policy; functional and component guards stayed fixed1GiB/no growth. Task peak estimates are not hard limits.",
+    "Component statements/alias/width are production inputs; canary container/local FFI declaration substitute the outer buffer/editor. No general ABI proof.",
+    "Cleanup keeps all raw/seals/events/logs/interruption and release receipts, current/prior programs/dumps/resources and the full source export. Link objects/archives and Cargo caches require rebuilding for capture_product or relinking.",
+    "Logical/allocated bytes sum regular-file pathname metadata; no measured whole-volume or unique physical free-space claim. Random native bytes/names/inodes/times are not guaranteed reproducible."
+  ]
+}

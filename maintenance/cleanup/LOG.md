@@ -1,3 +1,18 @@
+## CLN189 — consumed message-count state and build caches
+
+33159 files/3276 directories/18 links,36453 rows;
+955443458 logical/1031352320 allocated bytes.
+Post-review 33159 files/3186 dirs/18 links; automatic 90 dirs/18 parents count once.
+20244 new object/unit files, 4 receipt-selected load/libgnu-port.a archives,
+436 Cargo files,8 pinned copies/9 fixtures,case/native state and 2 component outputs,
+4 prior-delivery helpers retired.52 roots absent,72726 operation rows.
+190 evidence/46 inputs/18 profiles/7481 frozen inputs reverified.
+Products/ports/resources/old object holds and all original failures remain.
+Relink/capture_product needs rebuilding objects; no whole-volume free-space claim.
+
+[Report](reports/2026-11-01-189-consumed-message-count-state.md) ·
+[Manifest](manifests/2026-11-01-189-consumed-message-count-state.jsonl.gz).
+
 ## CLN188 — consumed owned-terminal state
 
 14904files/3694directories/87links,18685rows;

@@ -13778,7 +13778,7 @@ pub unsafe extern "C" fn message_dolog (m: *const c_char, nbytes: ptrdiff_t,
 		      /* If you change this format, don't forget to also
 			 change message_log_check_duplicate.  */
 		      let duplen: c_int = sprintf (dupstr.as_mut_ptr (),
-						   c" [jd times]".as_ptr (), dups);
+						   c" [%jd times]".as_ptr (), dups);
 		      TEMP_SET_PT_BOTH (Z! () - 1, Z_BYTE! () - 1);
 		      insert_1_both (dupstr.as_ptr (), duplen as ptrdiff_t,
 				     duplen as ptrdiff_t, true, false, true);

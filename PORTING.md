@@ -4025,3 +4025,19 @@ or persistent permission failures fatal. This exception-only repair leaves
 successful file execution unchanged. Retain the first protection failure and
 verify the affected rejection/timeout probes; the timeout fixture must reach
 its child-publication step before testing the finite body deadline.
+
+## P450: repeated-message count formatting
+
+The repeated-message log suffix lost the percent marker in the integer
+conversion: the port writes a literal `[jd times]` where the reference uses
+`[%jd times]` for the existing intmax_t count. Restore that conversion only.
+Keep the buffer bound, counter type, duplicate detection, parsing, mutation
+order and surrounding error/undo/redisplay behavior unchanged. A third equal
+message must parse the previous numeric suffix and increment the same count.
+
+Build separately bound current normal/checking terminal and Cocoa products;
+retain prior products and the trial App. Verify actual repeated-message logs,
+including the original Undo repetition and multibyte messages, plus affected
+original-file behavior under the accepted execution configuration. After
+functional acceptance, protect the format/count boundary. Do not modify the
+original tests or claim this fixes the separate first P449 undo/timer failure.
