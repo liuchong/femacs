@@ -1,0 +1,655 @@
+{
+  "schema": 1,
+  "decision": "P446",
+  "scope": "Complete unchanged pinned package-tests.el on accepted P435 normal reference/terminal/Cocoa; harness path repair",
+  "passed": true,
+  "scoped_whole_file_accepted": true,
+  "full_compatibility_accepted": false,
+  "checking_accepted": false,
+  "whole_ert_accepted": false,
+  "performance_accepted": false,
+  "editor_accepted": false,
+  "trial_app_promoted": false,
+  "source_commit": "a360712c9d272d950d8d8255ef74570f7e90b7d9",
+  "test_inputs": [
+    {
+      "path": "test/lisp/emacs-lisp/package-tests.el",
+      "source_path": "test/lisp/emacs-lisp/package-tests.el",
+      "input": "tracked",
+      "mode": "100644",
+      "size": 45541,
+      "blob": "eac92290349a8153209d80cdc8c34df7b3c63a11",
+      "sha256": "8d2aa6d8df595d60983629f6f6c753126566581681c8b6da09de24ee651fc571"
+    }
+  ],
+  "resources": {
+    "files": 36,
+    "bytes": 54687
+  },
+  "source_sha256": {
+    "tools/stable-suite.py": "7ef72db2b50adce3edbeef6ec59eef40df2455868fd8e7ae373b5ceab58fb11a",
+    "tools/stable-suite-batch.py": "47957a2676f5e71e4c4addf4c219aa1d824ee5581ef810a917d0e92db69a89be",
+    "tools/test-stable-suite.py": "3e077c983999d6ab4b795fdc253c004a9c61c1d7e550474279e8c0cd58032e1b"
+  },
+  "production_changed": false,
+  "original_test_or_guard_changed": false,
+  "product_binding": {
+    "scope": "Accepted P435 normal reused, not new P445 or checking products",
+    "terminal_receipt": "build/acceptance/p435-functional-normal-1/results.json",
+    "cocoa_receipt": "build/acceptance/current-macos-core-products-1/products.json",
+    "cocoa_asserted": true,
+    "terminal_asserted": true
+  },
+  "products": {
+    "reference": {
+      "program": {
+        "kind": "file",
+        "bytes": 3691504,
+        "mode": 493,
+        "sha256": "5b55e93c8304368ee37cc5c537ca3e1370e3b9b3fef049bdce76834a9db75e65"
+      },
+      "dump": {
+        "kind": "file",
+        "bytes": 23084632,
+        "mode": 420,
+        "sha256": "6ac1214186022574a70e84a04bb7f2dc44e1ea1d4c90f0d9ce421ddd0f4b4536"
+      }
+    },
+    "terminal": {
+      "program": {
+        "kind": "file",
+        "bytes": 2698016,
+        "mode": 493,
+        "sha256": "fb0b822273e79bb5b008725771473f5d510b9f712488242d615fb3a5fefbcde6"
+      },
+      "dump": {
+        "kind": "file",
+        "bytes": 13101600,
+        "mode": 420,
+        "sha256": "5d1913c39d5c348c711d24e16b25d9e63d09e082ee6dbe3b3a54ac4680862f82"
+      }
+    },
+    "cocoa": {
+      "program": {
+        "kind": "file",
+        "bytes": 4230368,
+        "mode": 493,
+        "sha256": "d796f4c52e2a32ec6176e02efca33d922da18252aaddd0885e59993f108ba385"
+      },
+      "dump": {
+        "kind": "file",
+        "bytes": 18602200,
+        "mode": 420,
+        "sha256": "2b87c3436eaa33e551b024c6be01ea702b9c586c4535993258b63aa95a618b92"
+      }
+    }
+  },
+  "product_resources": {
+    "reference": {
+      "lisp": {
+        "entries": 3316,
+        "sha256": "564df364c803f4d0b64d7bc2ba986d775e8985529481ac2684b739666e131323"
+      }
+    },
+    "terminal": {
+      "lisp": {
+        "entries": 3363,
+        "sha256": "79dc09151f2f61152496f3587dc54cb580fb45a9c92301bfe3e75ab027a02146"
+      },
+      "runtime-tls": {
+        "entries": 9,
+        "sha256": "9b34100e73d1f4bbd3157cd1535a25f8fdc6d4e094f2e6a1e9dc79b1a63fd73d"
+      },
+      "runtime-lcms": {
+        "entries": 1,
+        "sha256": "819844d74d5d4f3ee5a75aaf2b0d9a23b07fdda8bfa71c65cdbda63f6eb213cb"
+      },
+      "runtime-treesit": {
+        "entries": 1,
+        "sha256": "05b5f47a14a19b3f04511fa292f0976e2cab06437b9e4323edbce72a9767f0f9"
+      }
+    },
+    "cocoa": {
+      "lisp": {
+        "entries": 3353,
+        "sha256": "e4108125e078022ebe91c3ccc5095c46c8fcbe48180ed02668f315d4e4c910b5"
+      },
+      "bundle": {
+        "entries": 4477,
+        "sha256": "e1212d5ae114aec885c8d2d467c9c39b4feb1f693b0d685dc28901fd34bb5342"
+      }
+    }
+  },
+  "products_before_after_equal": true,
+  "inputs_before_after_equal": true,
+  "bound_inputs": {
+    "compatibility/stable-31.1/sources.json": {
+      "kind": "file",
+      "bytes": 562572,
+      "mode": 420,
+      "sha256": "a5ef144a203b8b2a74e346ac47173c5d4122f751d8d950347ae75ff67eef0efe"
+    },
+    "tools/fixtures/stable-suite-runner.el": {
+      "kind": "file",
+      "bytes": 12592,
+      "mode": 420,
+      "sha256": "d5bcd0c18f15995e50adefe8472d12ef82f71114be10ce307202b4ce0f11150e"
+    },
+    "tools/stable-suite.py": {
+      "kind": "file",
+      "bytes": 54152,
+      "mode": 420,
+      "sha256": "7ef72db2b50adce3edbeef6ec59eef40df2455868fd8e7ae373b5ceab58fb11a"
+    },
+    "tools/stable-suite-batch.py": {
+      "kind": "file",
+      "bytes": 23205,
+      "mode": 420,
+      "sha256": "47957a2676f5e71e4c4addf4c219aa1d824ee5581ef810a917d0e92db69a89be"
+    },
+    "tools/runtime-execution.py": {
+      "kind": "file",
+      "bytes": 93220,
+      "mode": 420,
+      "sha256": "26b379c3d4a24adf2a306e1c751c654ca1b6b1c6cd43f0888398c3560e455fb4"
+    },
+    "tools/runtime-retire.py": {
+      "kind": "file",
+      "bytes": 8538,
+      "mode": 420,
+      "sha256": "84ad68bbb26ffb73e129406b430393c0eaeab2f6b818c5916a950b6514eb6932"
+    },
+    "owned-task-helper/g3-package-original-2.py": {
+      "kind": "file",
+      "bytes": 13344,
+      "mode": 420,
+      "sha256": "c695e2db41a51f41e485f97e6f3a9dbe82dd1aa1a4622371f217edc1e21ca5f7"
+    },
+    "build/acceptance/p435-p427-products-1/products-with-runtime.json": {
+      "kind": "file",
+      "bytes": 1578004,
+      "mode": 420,
+      "sha256": "aa4d2cadb59089c231c43d2827de479f35a1825514916a3573ad936b4e9ac162"
+    },
+    "build/acceptance/p435-functional-normal-1/results.json": {
+      "kind": "file",
+      "bytes": 695326,
+      "mode": 420,
+      "sha256": "fdd7cce538a6fa60329793d762db627cc94ca98f8b726614f65dd3c12af15849"
+    },
+    "build/acceptance/current-macos-core-products-1/products.json": {
+      "kind": "file",
+      "bytes": 2278690,
+      "mode": 420,
+      "sha256": "a29fc611bd359e598074a00aebc0ca7dfb420806c315c6c151872ec1d01a4ac8"
+    },
+    "build/acceptance/g3-package-gpg-path-diagnostic-1/results.json": {
+      "kind": "file",
+      "bytes": 2533,
+      "mode": 420,
+      "sha256": "a5719f770b6e00b5158e0f920ad0c15e5337712f4bbc94d827e76cdd204d8c40"
+    },
+    "build/acceptance/g3-package-original-1/interruption.json": {
+      "kind": "file",
+      "bytes": 3268038,
+      "mode": 420,
+      "sha256": "dc4d468f1ba6c17c25adb0992b6e2e5c3c9579c9d10cf3cd29e62115bf553a40"
+    }
+  },
+  "raw": {
+    "path": "build/acceptance/g3-package-original-2/results.json",
+    "bytes": 6865529,
+    "sha256": "a13fcad78e72a46bbe27d3d0594634e9faf677b9fc0a47459582dc84948e0b31"
+  },
+  "driver": {
+    "path": "owned-task-helper/g3-package-original-2.py",
+    "bytes": 13344,
+    "sha256": "c695e2db41a51f41e485f97e6f3a9dbe82dd1aa1a4622371f217edc1e21ca5f7"
+  },
+  "seconds": 38.781205083,
+  "all_discovered_ids": true,
+  "ordinary_passes": 123,
+  "skipped": 0,
+  "expected_failures": 0,
+  "unexpected": 0,
+  "files": [
+    {
+      "product": "reference",
+      "discovered": 41,
+      "ordinary_passes": 41,
+      "skipped": 0,
+      "expected_failures": 0,
+      "unexpected": 0,
+      "exit_code": 0,
+      "complete": true,
+      "timed_out": false,
+      "remaining_group_terminated": false,
+      "seconds": 8.509409833000001,
+      "longest_case_seconds": 1.480469,
+      "ids_sha256": "c14b60a5237bd1f2184f6f3eb31847aebf42d73f9c49c5fa9f79b566d95e809a",
+      "tags_sha256": "276f901ae0bc7dd58616fe564a1369f49c4ec769599c23564dc24e4b708bc8da",
+      "expensive_ids": [
+        "package-test-update-archives-async"
+      ],
+      "file_result": {
+        "path": "build/acceptance/g3-package-original-2/reference/results/reference/test-lisp-emacs-lisp-package-tests.el-dc2a0558eafe.json",
+        "bytes": 93081,
+        "sha256": "e488e9b0f02bbf8b65a1f4c379506f63b7fe9f9f0bbaebf6a7995f9e441cbcb0"
+      },
+      "events": {
+        "path": "build/acceptance/g3-package-original-2/reference/results/reference/test-lisp-emacs-lisp-package-tests.el-dc2a0558eafe.events.jsonl",
+        "bytes": 78745,
+        "sha256": "1f5a67bea87ed606d5d9112d4d02f1e34448740f7c7a4a24421a2b51c62048be"
+      },
+      "stdout": {
+        "path": "build/acceptance/g3-package-original-2/reference/logs/reference/test-lisp-emacs-lisp-package-tests.el-dc2a0558eafe.stdout.log",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "stderr": {
+        "path": "build/acceptance/g3-package-original-2/reference/logs/reference/test-lisp-emacs-lisp-package-tests.el-dc2a0558eafe.stderr.log",
+        "bytes": 31605,
+        "sha256": "182314f810eeabd7ceb7262e71c39268fe1a9a2bfc1f17d4fc4c79c78a12e237"
+      },
+      "environment": {
+        "path": "build/acceptance/g3-package-original-2/reference/results/reference/test-lisp-emacs-lisp-package-tests.el-dc2a0558eafe.environment.json",
+        "bytes": 401,
+        "sha256": "de391bca300a3af7ed1e1ca1b3577fb4f64dbb37e8630bd8e2942d4752f40882"
+      },
+      "planned_socket_bytes": 284,
+      "actual_socket_bytes": 93,
+      "owner_receipt": {
+        "path": "build/acceptance/g3-package-original-2/reference/results/reference/test-lisp-emacs-lisp-package-tests.el-dc2a0558eafe.owner-retirement.json",
+        "bytes": 918,
+        "sha256": "aba72bce3751058775ab24da4748748f502055ecf5f3bb105878aca22ba715c1"
+      },
+      "automatic_retirement": {
+        "status": "complete",
+        "files": 80,
+        "directories": 32,
+        "ledger_schema": 3,
+        "logical_bytes": 1202616,
+        "allocated_bytes": 1368064,
+        "evidence_sha256": "e488e9b0f02bbf8b65a1f4c379506f63b7fe9f9f0bbaebf6a7995f9e441cbcb0",
+        "ledger": "test-lisp-emacs-lisp-package-tests.el-dc2a0558eafe.state-retirement.jsonl.gz",
+        "ledger_sha256": "aedf1fa9d244327185acabf24a83c28fcc3bc2c071a804cf9218325a2a19689e",
+        "all_selected_absent": true,
+        "restore": "regenerate consumed cache from retained inputs; original random names not promised",
+        "empty_parents_retired": true,
+        "parent_directories": 2
+      }
+    },
+    {
+      "product": "terminal",
+      "discovered": 41,
+      "ordinary_passes": 41,
+      "skipped": 0,
+      "expected_failures": 0,
+      "unexpected": 0,
+      "exit_code": 0,
+      "complete": true,
+      "timed_out": false,
+      "remaining_group_terminated": false,
+      "seconds": 17.214872291,
+      "longest_case_seconds": 1.85629,
+      "ids_sha256": "c14b60a5237bd1f2184f6f3eb31847aebf42d73f9c49c5fa9f79b566d95e809a",
+      "tags_sha256": "276f901ae0bc7dd58616fe564a1369f49c4ec769599c23564dc24e4b708bc8da",
+      "expensive_ids": [
+        "package-test-update-archives-async"
+      ],
+      "file_result": {
+        "path": "build/acceptance/g3-package-original-2/terminal/results/terminal/test-lisp-emacs-lisp-package-tests.el-dc2a0558eafe.json",
+        "bytes": 92805,
+        "sha256": "920942a8bb4fd2b92e0f9f31e2c63ff6a882bcc360491ad7670029f6d3faeae4"
+      },
+      "events": {
+        "path": "build/acceptance/g3-package-original-2/terminal/results/terminal/test-lisp-emacs-lisp-package-tests.el-dc2a0558eafe.events.jsonl",
+        "bytes": 78481,
+        "sha256": "be728a3b216265f32f147f4845b6a005a24563043ae857b0567e89f637e00312"
+      },
+      "stdout": {
+        "path": "build/acceptance/g3-package-original-2/terminal/logs/terminal/test-lisp-emacs-lisp-package-tests.el-dc2a0558eafe.stdout.log",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "stderr": {
+        "path": "build/acceptance/g3-package-original-2/terminal/logs/terminal/test-lisp-emacs-lisp-package-tests.el-dc2a0558eafe.stderr.log",
+        "bytes": 31701,
+        "sha256": "7c98a616c6b6c98f92798bbeeecd7fbb9996f6e8ef9acaa629194dd63d8ec20c"
+      },
+      "environment": {
+        "path": "build/acceptance/g3-package-original-2/terminal/results/terminal/test-lisp-emacs-lisp-package-tests.el-dc2a0558eafe.environment.json",
+        "bytes": 400,
+        "sha256": "416ec7e75756effc702b6bf180b093477c37dfb8882e193905399d9ca0886c28"
+      },
+      "planned_socket_bytes": 282,
+      "actual_socket_bytes": 93,
+      "owner_receipt": {
+        "path": "build/acceptance/g3-package-original-2/terminal/results/terminal/test-lisp-emacs-lisp-package-tests.el-dc2a0558eafe.owner-retirement.json",
+        "bytes": 917,
+        "sha256": "bcc90e9754342daa3eb4b9f25fdceec4ffa3edb3f07c2ca07bb738e55fd8a7ab"
+      },
+      "automatic_retirement": {
+        "status": "complete",
+        "files": 80,
+        "directories": 30,
+        "ledger_schema": 3,
+        "logical_bytes": 1202616,
+        "allocated_bytes": 1368064,
+        "evidence_sha256": "920942a8bb4fd2b92e0f9f31e2c63ff6a882bcc360491ad7670029f6d3faeae4",
+        "ledger": "test-lisp-emacs-lisp-package-tests.el-dc2a0558eafe.state-retirement.jsonl.gz",
+        "ledger_sha256": "f89cc021ad026eec49104b14eda6aa7e7c46e1db67b8247b38c31c82144686c8",
+        "all_selected_absent": true,
+        "restore": "regenerate consumed cache from retained inputs; original random names not promised",
+        "empty_parents_retired": true,
+        "parent_directories": 2
+      }
+    },
+    {
+      "product": "cocoa",
+      "discovered": 41,
+      "ordinary_passes": 41,
+      "skipped": 0,
+      "expected_failures": 0,
+      "unexpected": 0,
+      "exit_code": 0,
+      "complete": true,
+      "timed_out": false,
+      "remaining_group_terminated": false,
+      "seconds": 8.443361250000002,
+      "longest_case_seconds": 1.557535,
+      "ids_sha256": "c14b60a5237bd1f2184f6f3eb31847aebf42d73f9c49c5fa9f79b566d95e809a",
+      "tags_sha256": "276f901ae0bc7dd58616fe564a1369f49c4ec769599c23564dc24e4b708bc8da",
+      "expensive_ids": [
+        "package-test-update-archives-async"
+      ],
+      "file_result": {
+        "path": "build/acceptance/g3-package-original-2/cocoa/results/cocoa/test-lisp-emacs-lisp-package-tests.el-dc2a0558eafe.json",
+        "bytes": 93022,
+        "sha256": "38facd0eb1a69d4cfa70be9dd6f7bc3015721ffab906443e263c6f4918968834"
+      },
+      "events": {
+        "path": "build/acceptance/g3-package-original-2/cocoa/results/cocoa/test-lisp-emacs-lisp-package-tests.el-dc2a0558eafe.events.jsonl",
+        "bytes": 78725,
+        "sha256": "f455140faf677148d9dc33425e4fe8ff9e6f64fac27641163efb8f2dcdeedeb4"
+      },
+      "stdout": {
+        "path": "build/acceptance/g3-package-original-2/cocoa/logs/cocoa/test-lisp-emacs-lisp-package-tests.el-dc2a0558eafe.stdout.log",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "stderr": {
+        "path": "build/acceptance/g3-package-original-2/cocoa/logs/cocoa/test-lisp-emacs-lisp-package-tests.el-dc2a0558eafe.stderr.log",
+        "bytes": 31392,
+        "sha256": "5cbb7839c784ddf6349b23f635fed1cf3ec4bbabb112d7729084c29e241b4d56"
+      },
+      "environment": {
+        "path": "build/acceptance/g3-package-original-2/cocoa/results/cocoa/test-lisp-emacs-lisp-package-tests.el-dc2a0558eafe.environment.json",
+        "bytes": 397,
+        "sha256": "0de2e389cdfca63813eefe80234d02dfc7f583e9d9fa52befe6cc3deab1b25c8"
+      },
+      "planned_socket_bytes": 276,
+      "actual_socket_bytes": 93,
+      "owner_receipt": {
+        "path": "build/acceptance/g3-package-original-2/cocoa/results/cocoa/test-lisp-emacs-lisp-package-tests.el-dc2a0558eafe.owner-retirement.json",
+        "bytes": 914,
+        "sha256": "04f3a687c44702b3c4ede531c5ecff20840e0ed7184dc276768dd6e10576033b"
+      },
+      "automatic_retirement": {
+        "status": "complete",
+        "files": 80,
+        "directories": 30,
+        "ledger_schema": 3,
+        "logical_bytes": 1202616,
+        "allocated_bytes": 1368064,
+        "evidence_sha256": "38facd0eb1a69d4cfa70be9dd6f7bc3015721ffab906443e263c6f4918968834",
+        "ledger": "test-lisp-emacs-lisp-package-tests.el-dc2a0558eafe.state-retirement.jsonl.gz",
+        "ledger_sha256": "35243c13bc8b180a732c5dac70e38c9f2b40af2a494842cf0de46458630257c8",
+        "all_selected_absent": true,
+        "restore": "regenerate consumed cache from retained inputs; original random names not promised",
+        "empty_parents_retired": true,
+        "parent_directories": 2
+      }
+    }
+  ],
+  "status_maps_equal_reference": true,
+  "tag_maps_equal_reference": true,
+  "materializations": {
+    "reference": {
+      "files": 1536,
+      "bytes": 20996952
+    },
+    "terminal": {
+      "files": 1536,
+      "bytes": 20996952
+    },
+    "cocoa": {
+      "files": 1536,
+      "bytes": 20996952
+    }
+  },
+  "original_inputs_unchanged": true,
+  "generated_resources": {
+    "reference": {},
+    "terminal": {},
+    "cocoa": {}
+  },
+  "crypto_cleanup": {
+    "rows": 10,
+    "retired_processes": 38,
+    "kinds": {
+      "gpg-agent": 19,
+      "scdaemon": 19
+    },
+    "all_complete": true,
+    "scope": "Each actual short owned container and product output; exact UID, birth, command path and PID revalidation; no global kill"
+  },
+  "controller": {
+    "run_id": "d6f3843f1c614dba9d23cc41ec4ae380",
+    "reason": "exited",
+    "exit_code": 0,
+    "cleanup_complete": true,
+    "elapsed_seconds": 40.067,
+    "peak_rss_bytes": 175652864,
+    "peak_footprint_bytes": 131073584,
+    "peak_accounted_bytes": 175652864,
+    "initial_limit_bytes": 1073741824,
+    "hard_limit_bytes": 1073741824,
+    "growth_count": 0,
+    "log": {
+      "path": "owned-task-helper/g3-package-original-2.stderr.log",
+      "bytes": 673,
+      "sha256": "d921e759d153f8e4c4b044c47c844458d1cc0be46caded4897476341239bec83"
+    },
+    "metrics_independently_reviewed": false
+  },
+  "original_timeout": {
+    "raw": {
+      "path": "build/acceptance/g3-package-original-1/results.json",
+      "bytes": 3283000,
+      "sha256": "aa738f292bf9b7b5e2819d399a8fcdd51fe8e50f126a56d1534e307b9d028fe5"
+    },
+    "interruption": {
+      "path": "build/acceptance/g3-package-original-1/interruption.json",
+      "bytes": 3268038,
+      "sha256": "dc4d468f1ba6c17c25adb0992b6e2e5c3c9579c9d10cf3cd29e62115bf553a40"
+    },
+    "driver": {
+      "path": "owned-task-helper/g3-package-original-1.py",
+      "bytes": 12730,
+      "sha256": "6846f667acce4fdfdf1ceb70ddc9c99f114e02a8b40123b7ebc42ddb2a16ab81"
+    },
+    "passed": false,
+    "registered": 41,
+    "ended": 23,
+    "ended_status_counts": {
+      "passed": 23
+    },
+    "interrupted_test_id": "package-test-list-filter-by-status",
+    "terminal_started": false,
+    "cocoa_started": false,
+    "sealed_file_result_available": false,
+    "reused_case_results": 0,
+    "controller": {
+      "run_id": "f2a81cc04e194972a7b4c892752ab39e",
+      "reason": "timeout",
+      "exit_code": 124,
+      "cleanup_complete": true,
+      "elapsed_seconds": 300.109,
+      "peak_rss_bytes": 151666688,
+      "peak_footprint_bytes": 102221432,
+      "peak_accounted_bytes": 151666688,
+      "initial_limit_bytes": 1073741824,
+      "hard_limit_bytes": 1073741824,
+      "growth_count": 0,
+      "log": {
+        "path": "owned-task-helper/g3-package-original-1.stderr.log",
+        "bytes": 679,
+        "sha256": "f515ee8aa204607603334cdad0a46c3c316f6f35afb8e996be105165a78ede96"
+      },
+      "metrics_independently_reviewed": false
+    }
+  },
+  "external_diagnostic": {
+    "raw": {
+      "path": "build/acceptance/g3-package-gpg-path-diagnostic-1/results.json",
+      "bytes": 2533,
+      "sha256": "a5719f770b6e00b5158e0f920ad0c15e5337712f4bbc94d827e76cdd204d8c40"
+    },
+    "driver": {
+      "path": "owned-task-helper/package-gpg-path-diagnostic.py",
+      "bytes": 4929,
+      "sha256": "fbc3a5dc1f690551d221d275076cd98f38a6df99dff37b55b909f185fd753e14"
+    },
+    "scope": "External GPG home-path diagnostic only; no editor or original test",
+    "execution_complete": true,
+    "gpg_sha256": "5bf580b7f4ce240557148e98a70c2d425db6c3952a99f3f0a5b3c3e12f009eca",
+    "key_sha256": "63c60d8dd3b7f0f9f0be012245f911505b1ab0efe6906892a306725f94c0b580",
+    "gpg_unchanged": true,
+    "key_unchanged": true,
+    "rows": [
+      {
+        "label": "long",
+        "main_socket_bytes": 264,
+        "argv_sha256": "85ec76043055dd80451176cd3194cfdce3a085b7f1d20db2301c04ea5d01dff7",
+        "exit_code": 2,
+        "timed_out": false,
+        "seconds": 18.717442583,
+        "stdout": {
+          "bytes": 521,
+          "sha256": "2d9fb24e94182ece5ed2684e5fe378adaee35e92ed66a258da8fd147e26ad7fd"
+        },
+        "stderr": {
+          "bytes": 1136,
+          "sha256": "373ff10f9f620c8e22fa0547e1cb1d106180b23ed19deae29bae880180f36856"
+        }
+      },
+      {
+        "label": "short",
+        "main_socket_bytes": 50,
+        "argv_sha256": "4e61ddf553ec3182c65d81d5ec3d3c14cc393f518077128b80b2bcb173815904",
+        "exit_code": 0,
+        "timed_out": false,
+        "seconds": 0.3577257500000002,
+        "stdout": {
+          "bytes": 486,
+          "sha256": "48ef0879ccc14105d995d599e3097c574601ac8255f01c56e190698c36acaa65"
+        },
+        "stderr": {
+          "bytes": 596,
+          "sha256": "4ce4ed560c7e765857f7d0eac45e0abfc80e4d442139ed5fa75a4af4a11510f1"
+        }
+      }
+    ],
+    "remaining_owned_daemons": 0,
+    "retired_processes": 2,
+    "editor_started": false,
+    "compiler_started": false,
+    "controller": {
+      "run_id": "047e1af2d157426fb1b292fed80acab1",
+      "reason": "exited",
+      "exit_code": 0,
+      "cleanup_complete": true,
+      "elapsed_seconds": 19.505,
+      "peak_rss_bytes": 33193984,
+      "peak_footprint_bytes": 18154816,
+      "peak_accounted_bytes": 33193984,
+      "initial_limit_bytes": 268435456,
+      "hard_limit_bytes": 268435456,
+      "growth_count": 0,
+      "log": {
+        "path": "owned-task-helper/package-gpg-path-diagnostic.stderr.log",
+        "bytes": 669,
+        "sha256": "5b7b46a26ef13f88d048f675a9cf52bf4640f24dcab4c1aa952ba926c6c03167"
+      },
+      "metrics_independently_reviewed": false
+    },
+    "limits": "Separate 264B/50B import comparison, not an exact replay of the old 276B path or a verify comparison; no whole-file acceptance"
+  },
+  "protection": {
+    "raw": {
+      "path": "build/acceptance/g3-package-path-protection-1/results.json",
+      "bytes": 3267,
+      "sha256": "5c09463685caacc511f0fc36bf02d8145b4e549c18b0c44bd9c9aec7988a65b3"
+    },
+    "stderr": {
+      "path": "build/acceptance/g3-package-path-protection-1/stderr.log",
+      "bytes": 1197,
+      "sha256": "68439cf063539cb7ecf9880c3b2515e788754df8fee9ff673fb335957b60b0bb"
+    },
+    "driver": {
+      "path": "owned-task-helper/p446-contracts.py",
+      "bytes": 1515,
+      "sha256": "372126c4d5a27afe0992b1159cacb93516f25f79c222b47c76e0caac589ac741"
+    },
+    "passed": true,
+    "tests": 10,
+    "failures": 0,
+    "errors": 0,
+    "seconds": 0.014679792000000004,
+    "source_unchanged": true,
+    "scope": "Two new compact-path and fail-before-spawn contracts plus eight existing stable-batch/parent-ledger contracts; no editor"
+  },
+  "cleanup": {
+    "status": "complete",
+    "files": 6401,
+    "directories": 1125,
+    "links": 24,
+    "rows": 7550,
+    "logical_bytes": 87646066,
+    "allocated_bytes": 104558592,
+    "automatic": {
+      "files": 240,
+      "directories": 92,
+      "links": 0,
+      "rows": 332,
+      "logical_bytes": 3607848,
+      "allocated_bytes": 4104192
+    },
+    "post_review": {
+      "files": 6161,
+      "directories": 1033,
+      "links": 24,
+      "rows": 7218,
+      "logical_bytes": 84038218,
+      "allocated_bytes": 100454400
+    },
+    "automatic_parents": 6,
+    "manifest_sha256": "26d7e5dcb717ba3b31b3d8baa070ef4faafcbba68f53aabc61e87e8b2b42e973",
+    "retained_evidence_files": 41,
+    "products_inputs_git_and_wip_unchanged": true,
+    "selected_roots": 12,
+    "consumed_p445_helpers": 4,
+    "original_timeout_and_gpg_diagnostic_retained": true,
+    "seconds": 1.4836874590000004,
+    "manifest": "maintenance/cleanup/manifests/2026-10-31-182-consumed-package-state.jsonl.gz"
+  },
+  "limits": [
+    "Normal P435 products reused, not current P445 collector products or checking acceptance",
+    "Local Python loopback server, gzip and real GPG signed-package bodies ran; no external package service claim",
+    "In-process package byte/native compilation may occur; no requested product build",
+    "Child processes and dumps have no separate fingerprint acceptance",
+    "Package-vc 108 and complete ERT remain open; no old width-sweep reuse counted",
+    "Current runtime source and installed App are not changed or promoted"
+  ]
+}

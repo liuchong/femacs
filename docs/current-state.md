@@ -1,3 +1,23 @@
+## P446: original package coverage and short GPG paths (2026-10-31)
+
+Complete unchanged pinned package-tests.el:123 ordinary passes,41 IDs on each
+accepted P435 normal reference/terminal/Cocoa, including the expensive archive
+ID; equal ID/tag/status maps, zero skip/expected/unexpected. Whole ERT,
+package-vc108, checking/current-P445/fullG3/performance/App remain open.
+Original300s run stays false:reference23 ended, no sealed file result, candidates
+not started. Independent264B/50B GPG import exposes a long-socket error; it is
+separate from the old276B path and verify. Existing runner now uses a compact
+unique owned package container, checks longest agent socket before spawn;
+actual93B. Tests/guards/order and30/300s/1GiB no-growth limits stay unchanged.
+Full integration38.781s,123/123; product/input identities unchanged, no generated
+test resources;38 exact owned crypto daemons reaped, no residue.10 component
+protections pass after integration. Controller metrics remain primary-only.
+CLN182:6401files/1125directories/24links,87,646,066 /104,558,592bytes;
+240files/92automatic directories including6parents count once. Raw timeout,
+diagnostic,success/events/private plans/products/WIP remain. G1/G2/G4 stay3/7.
+[Delivery](../maintenance/releases/2026-10-31-original-package.md) ·
+[CLN182](../maintenance/cleanup/reports/2026-10-31-182-consumed-package-state.md).
+
 ## Current runtime continuation: marking-cycle cons proof (2026-10-31)
 
 P445 retains one freshly validated parent block/prefix only on the owner in the

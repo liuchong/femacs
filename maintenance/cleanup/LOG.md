@@ -1,3 +1,19 @@
+## CLN182 - consumed original-package and GPG state (2026-10-31)
+
+After scoped123-pass normal P435 integration and10 component protections,
+retire6401files/1125directories/24links;7550rows;
+87,646,066logical/104,558,592allocatedB. Three automatic plans include240files/
+92dirs/6parents once; postreview6161files/1033dirs/24links,84038218/100454400B.
+Four test copies,contexts,interrupted state,diagnostic homes,empty protection
+state and four adopted P445 helpers only. Full pre-delete identities/manifest
+fsynced; exact occupancy/identity checks. Twelve roots/four helpers absent.
+Preserve41 evidence files,timeout/diagnostic/success/events,private plans,
+drivers,products/App,HEAD/index/WIP. Ordinary bounded file op exit0;
+1.484s measured deletion/verification after sealing,not whole cleanup duration.
+No editor/compiler rerun; no performance/fullG3/App acceptance.
+[Report](reports/2026-10-31-182-consumed-package-state.md) ·
+[Manifest](manifests/2026-10-31-182-consumed-package-state.jsonl.gz).
+
 ## CLN181 - consumed marking-proof state (2026-10-31)
 
 After P445 source/integration/component/descriptive review: **10,290 files,

@@ -484,8 +484,8 @@ def _safe_case_component(case_id):
     return 'case-' + digest
 
 
-def case_environment(case_id, out):
-    """Create isolated HOME, cache, native-cache and runtime-owned paths."""
+def case_environment(case_id, out, *, compact=False):
+    """Create owned paths; compact callers must supply a unique container."""
     try:
         base = Path(os.path.abspath(os.fspath(out)))
     except (TypeError, OSError) as exc:
@@ -494,7 +494,7 @@ def case_environment(case_id, out):
         raise SuiteError('case environment output is not a directory')
     try:
         base.mkdir(parents=True, exist_ok=True)
-        root = base / _safe_case_component(case_id)
+        root = base / ('case' if compact else _safe_case_component(case_id))
         root.mkdir(parents=True, exist_ok=True)
         paths = {
             'HOME': root / 'home',

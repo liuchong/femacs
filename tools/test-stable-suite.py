@@ -328,6 +328,41 @@ class StableBatchEnvironmentContracts(unittest.TestCase):
         self.assertLess(len(os.fsencode(one.name)), 32)
         self.assertTrue(one.is_relative_to(self.root))
 
+    def test_compact_cases_are_isolated_by_their_unique_containers(self):
+        one = SUITE.case_environment('test/lisp/emacs-lisp/package-tests.el',
+                                     self.root / 'one', compact=True)
+        two = SUITE.case_environment('test/lisp/emacs-lisp/package-tests.el',
+                                     self.root / 'two', compact=True)
+        self.assertEqual(Path(one['FEMACS_RUNTIME_CASE_ROOT']), self.root / 'one/case')
+        for key in ('HOME', 'TMPDIR', 'FEMACS_RUNTIME_NATIVE_CACHE', 'FEMACS_RUNTIME_OUT'):
+            self.assertNotEqual(one[key], two[key])
+            self.assertTrue(Path(one[key]).is_relative_to(self.root / 'one/case'))
+            self.assertTrue(Path(two[key]).is_relative_to(self.root / 'two/case'))
+        self.assertNotIn('GNUPGHOME', one)
+        self.assertNotIn('GNUPGHOME', two)
+
+    def test_package_path_still_too_long_is_retained_before_editor_spawn(self):
+        # A long user cache can defeat the short-container attempt too.
+        # Keep the real environment builder and prove the fail-closed boundary.
+        out = self.root / 'output'
+        container = self.root / ('long-user-cache-' + 'x' * 80)
+        container.mkdir()
+        with mock.patch.object(BATCH.tempfile, 'mkdtemp', return_value=str(container)), \
+                mock.patch.object(BATCH.subprocess, 'Popen') as spawn:
+            with self.assertRaisesRegex(SUITE.SuiteError, 'original GPG agent sockets'):
+                BATCH._run_file(SUITE, out, {}, out / 'runner.el', out / 'test',
+                                'test/lisp/emacs-lisp/package-tests.el', 1, 'candidate')
+            spawn.assert_not_called()
+        import json
+        receipts = list((out / 'results/candidate').glob('*.environment.json'))
+        self.assertEqual(len(receipts), 1)
+        record = json.loads(receipts[0].read_text())
+        self.assertEqual(record['state'], 'failed')
+        self.assertTrue(record['retained'])
+        self.assertTrue(record['short_container'])
+        self.assertEqual(record['inode'], container.lstat().st_ino)
+        self.assertTrue((container / 'case/tmp').is_dir())
+
     def test_replaced_empty_parent_is_preserved(self):
         container = self.root / "container"
         case = container / "case"

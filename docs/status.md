@@ -1,3 +1,33 @@
+## P446 / G3 original package file (2026-10-31)
+
+Accepted P435 normal reference/terminal/Cocoa, unchanged pinned package41 IDs
+each:123 ordinary passes,0 skip/expected/unexpected, matching ID/tag/status maps.
+All3 file processes exit0/complete, no timeout/protocol/runner error/residual
+group; entire expensive-tagged archive body is included. Driver38.781s.
+Original attempt remains false:300.109s owner timeout, reference23 ended,
+no sealed file result, terminal/Cocoa not started; reused observations0.
+Separate GPG import:264B socket path18.717s/exit2/File name too long;
+50B path0.358s/exit0; same binary/key bytes, exact two-daemon cleanup.
+This is not the exact old276B or verify diagnostic. Existing runner allocates
+unique short package containers with compact case roots and checks the longest
+agent suffix; actual93B. Defaults/process sockets, original tests/guards/order,
+30s load/case,300s owner and1GiB hard/no-growth strategy remain unchanged.
+All1536 pinned files/product remain unchanged; generated test resources empty.
+12 bound inputs/product identities match before/after; P435 cohort assertions
+persist. Real package byte/native compilation may occur despite no active build
+request.19 GPG agents+19 scdaemons reaped by path/UID/birth identity, none remain.
+10/10 components pass after integration:2 new path contracts+8 prior batch/parent
+contracts,0.014680s. Independent review does not rerun products. Controller
+metrics primary-only:success40.067s/175652864B;timeout300.109s/151666688B;
+diagnostic19.505s/33193984B. No product performance comparison or App promotion.
+CLN182:6401files/1125dirs/24links,7550rows,87646066/104558592bytes;
+automatic240files/92dirs/6parents once; postreview6161/1033/24.
+All selected roots/helpers absent; raw failure/diagnostic/success/events,
+private plans/products/old WIP preserved. Package-vc108/whole ERT/checking/fullG3
+and G5/G6/G7 remain open. G1/G2/G4 remain3/7; Goal active.
+[Delivery](../maintenance/releases/2026-10-31-original-package.md) ·
+[CLN182](../maintenance/cleanup/reports/2026-10-31-182-consumed-package-state.md).
+
 ## P445: owner/Marking-token cons location reuse (2026-10-31)
 
 Only the collector changes from P444: retain a successful parent block proof in

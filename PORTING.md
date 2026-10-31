@@ -3903,3 +3903,26 @@ affected marker, fallback and phase integration. Only then protect proof
 boundaries, lifecycle/retirement invalidation, foreign-owner bypass and exact
 lookup reuse. Any timing is descriptive until qualified comparisons establish
 a benefit; reduced tree work alone does not close G5/G7 or accept performance.
+
+## P446: keep original package tests inside the local socket path limit
+
+The unchanged package fixture creates a GnuPG home below its ert-x temporary
+directory. The original long-path batch timed out during repeated key imports.
+A separate long-home import reported `File name too long`; the same program
+and key bytes completed in a short home. This bounds the external path diagnosis;
+the interrupted original run remains incomplete, not accepted as a whole file.
+
+Extend the existing per-file short-container path to this package fixture.
+Count the longest agent socket suffix, including the original temporary-name
+prefix and `gnupg` component. Inside a fresh unique container, use a compact
+case directory; reject a still-overlong path before starting the editor.
+Keep the default hashed case directories for other callers, the original
+test bytes, all discovered IDs, guards, GPG flags and process deadlines.
+Keep the existing ownership and parent-ledger retirement checks.
+
+After this complete harness fix, execute the entire original package file on
+the accepted normal reference, terminal and Cocoa products. Preserve the old
+timeout and separate external diagnostic. Protect compact/default isolation
+and rejection before spawn only after the affected real integration succeeds.
+This is a harness repair and scoped coverage, not a product, checking, full
+G3, performance or trial-App adoption.

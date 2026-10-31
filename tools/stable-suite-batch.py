@@ -36,6 +36,13 @@ def _process_socket_path_bytes(directory):
     return len(os.fsencode(Path(directory) / 'emacs-test-XXXXXX-process' / 'socket'))
 
 
+def _package_socket_path_bytes(directory):
+    # Original with-package-test uses ert-x's six-byte temp name and gnupg.
+    # Include the longest gpg-agent socket suffix, not only S.gpg-agent.
+    return len(os.fsencode(Path(directory) / 'emacs-test-XXXXXX-package'
+                           / 'gnupg' / 'S.gpg-agent.browser'))
+
+
 def _record_retirement(api, final_path, result):
     """Bind the final owner outcome without changing pre-retirement evidence."""
     if api._sha256_path(final_path) != result['file_result']['sha256']:
@@ -67,7 +74,9 @@ def _run_file(api, out, paths, runner, test_root, logical, timeout, label):
     container = out / 'environments' / label / (safe + '-' + uuid.uuid4().hex)
     planned_tmp = container / api._safe_case_component(logical) / 'tmp'
     socket_case = os.name == 'posix' and logical == 'test/src/process-tests.el'
-    short_container = socket_case and _process_socket_path_bytes(planned_tmp) + 8 >= 104
+    package_case = os.name == 'posix' and logical == 'test/lisp/emacs-lisp/package-tests.el'
+    short_container = ((socket_case and _process_socket_path_bytes(planned_tmp) + 8 >= 104)
+                       or (package_case and _package_socket_path_bytes(planned_tmp) >= 104))
     if short_container:
         cache = Path.home() / 'AI' / 'caches'
         cache.mkdir(parents=True, exist_ok=True)
@@ -78,19 +87,28 @@ def _run_file(api, out, paths, runner, test_root, logical, timeout, label):
     preparation = dict(state='created', file=logical, product=label,
         container=str(container), device=container_node.st_dev,
         inode=container_node.st_ino, short_container=short_container,
-        planned_socket_bytes=_process_socket_path_bytes(planned_tmp) if socket_case else None)
+        planned_socket_bytes=(_process_socket_path_bytes(planned_tmp) if socket_case
+                              else _package_socket_path_bytes(planned_tmp) if package_case else None))
     preparation_path.write_text(json.dumps(preparation, indent=2)+'\n', encoding='utf-8')
     try:
-        environment = api.case_environment(logical, container)
+        if package_case and short_container:
+            # This container belongs to exactly one file execution.  Keeping
+            # another 21-byte case hash would still overflow auxiliary sockets.
+            environment = api.case_environment(logical, container, compact=True)
+        else:
+            environment = api.case_environment(logical, container)
         case_root = Path(environment['FEMACS_RUNTIME_CASE_ROOT'])
         case_node = case_root.lstat()
         if socket_case and _process_socket_path_bytes(environment['TMPDIR']) + 8 >= 104:
             raise api.SuiteError('owned temporary path cannot fit the original local socket')
+        if package_case and _package_socket_path_bytes(environment['TMPDIR']) >= 104:
+            raise api.SuiteError('owned temporary path cannot fit the original GPG agent sockets')
         cwd = case_root / 'cwd'
         cwd.mkdir()
         preparation.update(state='ready', case_root=str(case_root),
             temporary_directory=environment['TMPDIR'],
-            socket_bytes=_process_socket_path_bytes(environment['TMPDIR']) if socket_case else None)
+            socket_bytes=(_process_socket_path_bytes(environment['TMPDIR']) if socket_case
+                          else _package_socket_path_bytes(environment['TMPDIR']) if package_case else None))
     except BaseException as error:
         # Keep partial state for diagnosis and record its actual owner/path.
         preparation.update(state='failed', retained=True,
