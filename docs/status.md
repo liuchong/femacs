@@ -24409,3 +24409,34 @@ four outcomes open and the original Goal continues.
   performance stay open; G1/G2/G4 remain **3/7**, Goal active.
 - [Coverage](../maintenance/releases/2026-10-31-original-lisp-inspection.md),
   [CLN178](../maintenance/cleanup/reports/2026-10-31-178-consumed-lisp-inspection-state.md).
+
+### 2026-10-31 — G3 original Edebug, Testcover and multisession
+
+- Accepted P435 normal reference/terminal/Cocoa, three unchanged pinned files,
+  all discovered IDs: 49/30/5 per product, nine complete exit-0 file processes.
+- **252 expected results = 249 ordinary successes + three original forced
+  expected failures**, zero skips/unexpected failures; ID/tag/status maps agree.
+- The forced Edebug macro-error test never enters that body. The other 48 cases
+  use simulated keyboard macros/recursive-edit, not physical keyboard or GUI.
+- Testcover generates thirty IDs from 16,276 bytes of resource and runs each
+  sample with/without in-process byte compilation. Multisession runs five IDs,
+  SQLite guards true, two synchronous plus two async child editors per product.
+  Each busy child increments 100 times; 0.1-second parent waits are case-bounded.
+  Actual child-editor completion does not establish separate dump fingerprints.
+- Ten input maps and full product/resource identities match before/after;
+  terminal/Cocoa P435 assertions match. No test-tree generated resource.
+- Five automatic reference Edebug native trampolines: 170,488 / 184,320 bytes;
+  no product build was requested. All 252 event hashes/ordinals independently
+  match; raw/controller review accepts only this normal three-file scope.
+- Driver 20.708307 seconds; controlled owner exit 0/cleanup true, 23.128 seconds,
+  217,432,064 accounted bytes, 131,156,032 footprint bytes; 1 GiB initial/hard,
+  zero growth. 30-second load/case and 300-second owner limits remain unchanged.
+  These are coverage times, not performance comparisons.
+- CLN179: 4,615 files, 855 directories, eighteen links; 63,173,350 logical /
+  75,464,704 allocated bytes, 5,488 manifest rows. Five automatic files and 93
+  directories (eighteen parents) count once; two consumed helpers also retire.
+  Original evidence/private plans/driver/products/inputs and WIP remain.
+- No production/protection/App change. Whole ERT/checking/full G3/native/collector/
+  performance stay open; G1/G2/G4 remain **3/7**, original Goal active.
+- [Coverage](../maintenance/releases/2026-10-31-original-lisp-debug-storage.md),
+  [CLN179](../maintenance/cleanup/reports/2026-10-31-179-consumed-lisp-debug-storage-state.md).

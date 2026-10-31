@@ -1,0 +1,888 @@
+{
+  "schema": 1,
+  "scope": "Three complete unchanged pinned Edebug, Testcover and multisession files; accepted P435 normal reference/terminal/Cocoa products; all discovered IDs without filtering; not checking, P444 products, full G3, physical UI or performance",
+  "passed": true,
+  "source_commit": "a360712c9d272d950d8d8255ef74570f7e90b7d9",
+  "raw_result": {
+    "path": "build/acceptance/g3-lisp-debug-storage-1/results.json",
+    "bytes": 7023696,
+    "sha256": "2a71b5a788f5e03b4d449d003d58286561d22fbc7c052b24ea42e34abf77e214"
+  },
+  "driver": {
+    "path": "owned-task-cache/g3-lisp-debug-storage-1.py",
+    "sha256": "dfa063574ccddcd4c6b7a60860babe580d9be7fddf1b0cd665524bcd06011fdc"
+  },
+  "product_execution_complete": true,
+  "counts": {
+    "selected_observations": 252,
+    "expected_results": 252,
+    "ordinary_passes": 249,
+    "declared_expected_failures": 3,
+    "skipped": 0,
+    "unexpected_failures": 0
+  },
+  "files": [
+    {
+      "path": "test/lisp/emacs-lisp/edebug-tests.el",
+      "source_path": "test/lisp/emacs-lisp/edebug-tests.el",
+      "input": "tracked",
+      "mode": "100644",
+      "size": 54602,
+      "blob": "61e909437c73b9bebeeb633c2fe3da627401dea3",
+      "sha256": "5e935e06ba3cf3662d75bd820a77f03c885f3027c6161f2d17eacb0bcf77c555"
+    },
+    {
+      "path": "test/lisp/emacs-lisp/multisession-tests.el",
+      "source_path": "test/lisp/emacs-lisp/multisession-tests.el",
+      "input": "tracked",
+      "mode": "100644",
+      "size": 8762,
+      "blob": "e898015be06a76bc2e62f9233a7e63d38020e969",
+      "sha256": "46e5deb5e1e01f32a350c0be6c5dec48f686533d85f7d001b7b0ce79d492276b"
+    },
+    {
+      "path": "test/lisp/emacs-lisp/testcover-tests.el",
+      "source_path": "test/lisp/emacs-lisp/testcover-tests.el",
+      "input": "tracked",
+      "mode": "100644",
+      "size": 6634,
+      "blob": "ee35e0eeb9e95029ac4e8c73bf9cd8a76af53636",
+      "sha256": "7c3e70788f5d7df011fe9a2ecc53731d06d2fafdddf325fccd6e120aa86823cb"
+    }
+  ],
+  "registered_ids": {
+    "test/lisp/emacs-lisp/edebug-tests.el": [
+      "edebug-cl-defmethod-qualifier",
+      "edebug-test-dot-reader",
+      "edebug-tests--&rest-behavior",
+      "edebug-tests--conflicting-internal-names",
+      "edebug-tests-backtrace-goto-source",
+      "edebug-tests-bounce-point",
+      "edebug-tests-bounce-to-previous-non-position",
+      "edebug-tests-bounce-to-previous-value",
+      "edebug-tests-break-in-lambda-out-of-defining-context",
+      "edebug-tests-check-keymap",
+      "edebug-tests-circular-read-syntax",
+      "edebug-tests-cl-flet",
+      "edebug-tests-cl-macrolet",
+      "edebug-tests-clear-breakpoint",
+      "edebug-tests-conditional-breakpoints-can-use-lexical-variables",
+      "edebug-tests-dotted-forms",
+      "edebug-tests-duplicate-&define",
+      "edebug-tests-duplicate-symbol-backtrack",
+      "edebug-tests-error-stepping-into-subr",
+      "edebug-tests-error-trying-to-set-breakpoint-in-uninstrumented-code",
+      "edebug-tests-evaluate-expressions",
+      "edebug-tests-evaluation-of-current-buffer-bug-19611",
+      "edebug-tests-gv-expander",
+      "edebug-tests-hash-read-syntax",
+      "edebug-tests-inline",
+      "edebug-tests-jump-forward-one-sexp",
+      "edebug-tests-jump-to-point",
+      "edebug-tests-list-containing-empty-string-result-printing",
+      "edebug-tests-move-point-back-to-stop-point",
+      "edebug-tests-move-point-to-next-breakpoint",
+      "edebug-tests-observe-breakpoint-in-source",
+      "edebug-tests-respects-initial-mode",
+      "edebug-tests-run-out-of-containing-sexp",
+      "edebug-tests-set-and-break-on-global-condition",
+      "edebug-tests-set-breakpoint-at-point",
+      "edebug-tests-set-conditional-breakpoint",
+      "edebug-tests-set-temporary-breakpoint-at-point",
+      "edebug-tests-step-into-function",
+      "edebug-tests-step-into-generic-method",
+      "edebug-tests-step-into-macro-error",
+      "edebug-tests-step-showing-evaluation-results",
+      "edebug-tests-step-through-non-definition",
+      "edebug-tests-stop-point-at-start-of-first-instrumented-function",
+      "edebug-tests-trace-function-call-and-return",
+      "edebug-tests-trace-showing-results-at-breakpoints",
+      "edebug-tests-trace-showing-results-at-stop-points",
+      "edebug-tests-trivial-backquote",
+      "edebug-tests-trivial-comma",
+      "edebug-tests-writable-buffer-state-is-preserved"
+    ],
+    "test/lisp/emacs-lisp/testcover-tests.el": [
+      "testcover-tests-1-value-symbol-bug-25316",
+      "testcover-tests-1value-error-test",
+      "testcover-tests-apply-quoted-symbol",
+      "testcover-tests-backquote-1value-bug-24509",
+      "testcover-tests-backquoted-dotted-alist",
+      "testcover-tests-backquoted-vector-bug-25316",
+      "testcover-tests-by-value-vs-by-reference-bug-25351",
+      "testcover-tests-closure-1value-bug",
+      "testcover-tests-compose-functions",
+      "testcover-tests-cond-with-1value-clauses",
+      "testcover-tests-condition-case-with-1value-components",
+      "testcover-tests-constants-bug-25316",
+      "testcover-tests-coverage-of-the-unknown-symbol-bug-25471",
+      "testcover-tests-customize-defcustom-bug-25326",
+      "testcover-tests-defun-in-backquote-bug-11307-and-24743",
+      "testcover-tests-dotimes-dolist",
+      "testcover-tests-dotted-backquote",
+      "testcover-tests-dotted-list-in-vector-bug-30909",
+      "testcover-tests-function-with-edebug-spec-bug-25316",
+      "testcover-tests-if-with-1value-clauses",
+      "testcover-tests-let-last-form",
+      "testcover-tests-mapcar-is-not-compose",
+      "testcover-tests-no-returns",
+      "testcover-tests-noreturn-symbol",
+      "testcover-tests-pcase-bug-24688",
+      "testcover-tests-prog1-functions",
+      "testcover-tests-progn-functions",
+      "testcover-tests-quoted-backquote",
+      "testcover-tests-quotes-within-backquotes-bug-25316",
+      "testcover-tests-vector-in-macro-spec-bug-25316"
+    ],
+    "test/lisp/emacs-lisp/multisession-tests.el": [
+      "multi-test-files-busy",
+      "multi-test-files-simple",
+      "multi-test-files-some-values",
+      "multi-test-sqlite-busy",
+      "multi-test-sqlite-simple"
+    ]
+  },
+  "declared_expected_failures": [
+    {
+      "product": "reference",
+      "test_id": "edebug-tests-step-into-macro-error",
+      "result_type": "ert-test-failed",
+      "expected": true,
+      "status": "passed",
+      "body_limit": "Original immediate ert-fail prevents the macro-error body from running"
+    },
+    {
+      "product": "terminal",
+      "test_id": "edebug-tests-step-into-macro-error",
+      "result_type": "ert-test-failed",
+      "expected": true,
+      "status": "passed",
+      "body_limit": "Original immediate ert-fail prevents the macro-error body from running"
+    },
+    {
+      "product": "cocoa",
+      "test_id": "edebug-tests-step-into-macro-error",
+      "result_type": "ert-test-failed",
+      "expected": true,
+      "status": "passed",
+      "body_limit": "Original immediate ert-fail prevents the macro-error body from running"
+    }
+  ],
+  "status_maps_equal_reference": true,
+  "tag_maps_equal_reference": true,
+  "events_independently_checked": 252,
+  "file_processes": [
+    {
+      "product": "reference",
+      "file": "test/lisp/emacs-lisp/edebug-tests.el",
+      "ids": 49,
+      "passed": true,
+      "complete": true,
+      "exit_code": 0,
+      "timed_out": false,
+      "remaining_group_terminated": false,
+      "protocol_error": null,
+      "runner_error": null,
+      "seconds": 3.6107851250000005,
+      "result": {
+        "path": "build/acceptance/g3-lisp-debug-storage-1/reference/results/reference/test-lisp-emacs-lisp-edebug-tests.el-333624c038f5.json",
+        "bytes": 60509,
+        "sha256": "297b76bb29efb27c17a49cdf746c2c2be76eefd798bedf560430f48bd027f158"
+      },
+      "events": {
+        "path": "build/acceptance/g3-lisp-debug-storage-1/reference/results/reference/test-lisp-emacs-lisp-edebug-tests.el-333624c038f5.events.jsonl",
+        "bytes": 43458,
+        "sha256": "b804d5eab73fcc79c9cda45ad42b9b832e6e9c651380f786c30d8d570bd14cfe"
+      },
+      "stderr": {
+        "path": "build/acceptance/g3-lisp-debug-storage-1/reference/logs/reference/test-lisp-emacs-lisp-edebug-tests.el-333624c038f5.stderr.log",
+        "bytes": 7174,
+        "sha256": "1d350cfad92e7b72d30813d5f6d5e872bf7de4727e33b14a7f9c00b8cb6f1276"
+      },
+      "retirement": {
+        "status": "complete",
+        "files": 5,
+        "directories": 13,
+        "ledger_schema": 3,
+        "logical_bytes": 170488,
+        "allocated_bytes": 184320,
+        "evidence_sha256": "297b76bb29efb27c17a49cdf746c2c2be76eefd798bedf560430f48bd027f158",
+        "ledger": "test-lisp-emacs-lisp-edebug-tests.el-333624c038f5.state-retirement.jsonl.gz",
+        "ledger_sha256": "c1f93047a5bd34a2bde4fc4bc8869dfcf2ffd34e19759b83e2a5c5c547663234",
+        "all_selected_absent": true,
+        "restore": "regenerate consumed cache from retained inputs; original random names not promised",
+        "empty_parents_retired": true,
+        "parent_directories": 2
+      }
+    },
+    {
+      "product": "reference",
+      "file": "test/lisp/emacs-lisp/testcover-tests.el",
+      "ids": 30,
+      "passed": true,
+      "complete": true,
+      "exit_code": 0,
+      "timed_out": false,
+      "remaining_group_terminated": false,
+      "protocol_error": null,
+      "runner_error": null,
+      "seconds": 2.3918722079999997,
+      "result": {
+        "path": "build/acceptance/g3-lisp-debug-storage-1/reference/results/reference/test-lisp-emacs-lisp-testcover-tests.el-6242300c60d7.json",
+        "bytes": 74501,
+        "sha256": "c61ae75eedde59c28f896b75030b20b5992fdea0a608f028a61ac9e7aa91deb0"
+      },
+      "events": {
+        "path": "build/acceptance/g3-lisp-debug-storage-1/reference/results/reference/test-lisp-emacs-lisp-testcover-tests.el-6242300c60d7.events.jsonl",
+        "bytes": 63087,
+        "sha256": "a685807fa3932fcb9fce63e1a98ca040ab83d32c9a3f1a9fa65a6540170fca4d"
+      },
+      "stderr": {
+        "path": "build/acceptance/g3-lisp-debug-storage-1/reference/logs/reference/test-lisp-emacs-lisp-testcover-tests.el-6242300c60d7.stderr.log",
+        "bytes": 21709,
+        "sha256": "519e13f86ff1fc816595c128eb620113dc4425553399584264047da664487161"
+      },
+      "retirement": {
+        "status": "complete",
+        "files": 0,
+        "directories": 10,
+        "ledger_schema": 3,
+        "logical_bytes": 0,
+        "allocated_bytes": 0,
+        "evidence_sha256": "c61ae75eedde59c28f896b75030b20b5992fdea0a608f028a61ac9e7aa91deb0",
+        "ledger": "test-lisp-emacs-lisp-testcover-tests.el-6242300c60d7.state-retirement.jsonl.gz",
+        "ledger_sha256": "c73dda08f61db7d8771a9dc94b9e758d666b8de857e014381d621f1e9321d5a4",
+        "all_selected_absent": true,
+        "restore": "regenerate consumed cache from retained inputs; original random names not promised",
+        "empty_parents_retired": true,
+        "parent_directories": 2
+      }
+    },
+    {
+      "product": "reference",
+      "file": "test/lisp/emacs-lisp/multisession-tests.el",
+      "ids": 5,
+      "passed": true,
+      "complete": true,
+      "exit_code": 0,
+      "timed_out": false,
+      "remaining_group_terminated": false,
+      "protocol_error": null,
+      "runner_error": null,
+      "seconds": 1.0049794579999993,
+      "result": {
+        "path": "build/acceptance/g3-lisp-debug-storage-1/reference/results/reference/test-lisp-emacs-lisp-multisession-tests.el-9793e29fde9f.json",
+        "bytes": 9387,
+        "sha256": "383bb85afa7fa4e07589dacb2af7869cabc9be1bf1a557692bcc952012cfe7f4"
+      },
+      "events": {
+        "path": "build/acceptance/g3-lisp-debug-storage-1/reference/results/reference/test-lisp-emacs-lisp-multisession-tests.el-9793e29fde9f.events.jsonl",
+        "bytes": 5109,
+        "sha256": "537734d64157c987b1a3629f74a886d04cda46245fce3bf9a0458c322f3b9c8d"
+      },
+      "stderr": {
+        "path": "build/acceptance/g3-lisp-debug-storage-1/reference/logs/reference/test-lisp-emacs-lisp-multisession-tests.el-9793e29fde9f.stderr.log",
+        "bytes": 314,
+        "sha256": "342ea94d4b1ab52d34d13f3119b6edfa15a585e7c2b38daf3d7d4d8c4f9f2b24"
+      },
+      "retirement": {
+        "status": "complete",
+        "files": 0,
+        "directories": 10,
+        "ledger_schema": 3,
+        "logical_bytes": 0,
+        "allocated_bytes": 0,
+        "evidence_sha256": "383bb85afa7fa4e07589dacb2af7869cabc9be1bf1a557692bcc952012cfe7f4",
+        "ledger": "test-lisp-emacs-lisp-multisession-tests.el-9793e29fde9f.state-retirement.jsonl.gz",
+        "ledger_sha256": "c73dda08f61db7d8771a9dc94b9e758d666b8de857e014381d621f1e9321d5a4",
+        "all_selected_absent": true,
+        "restore": "regenerate consumed cache from retained inputs; original random names not promised",
+        "empty_parents_retired": true,
+        "parent_directories": 2
+      }
+    },
+    {
+      "product": "terminal",
+      "file": "test/lisp/emacs-lisp/edebug-tests.el",
+      "ids": 49,
+      "passed": true,
+      "complete": true,
+      "exit_code": 0,
+      "timed_out": false,
+      "remaining_group_terminated": false,
+      "protocol_error": null,
+      "runner_error": null,
+      "seconds": 1.5526938329999993,
+      "result": {
+        "path": "build/acceptance/g3-lisp-debug-storage-1/terminal/results/terminal/test-lisp-emacs-lisp-edebug-tests.el-333624c038f5.json",
+        "bytes": 60253,
+        "sha256": "32f1302922649267a638d7c99082bb877d831dac3044a3e999a428a49f034dcb"
+      },
+      "events": {
+        "path": "build/acceptance/g3-lisp-debug-storage-1/terminal/results/terminal/test-lisp-emacs-lisp-edebug-tests.el-333624c038f5.events.jsonl",
+        "bytes": 43222,
+        "sha256": "b4a21c6d4b8ab13636b4bebe5c185cc8d6c1899cd240eec4f7914a479d2a6d91"
+      },
+      "stderr": {
+        "path": "build/acceptance/g3-lisp-debug-storage-1/terminal/logs/terminal/test-lisp-emacs-lisp-edebug-tests.el-333624c038f5.stderr.log",
+        "bytes": 6845,
+        "sha256": "ae9250ed27fa828905015c04fe20aee2962cf31974fe4d0568f340acd7af459e"
+      },
+      "retirement": {
+        "status": "complete",
+        "files": 0,
+        "directories": 10,
+        "ledger_schema": 3,
+        "logical_bytes": 0,
+        "allocated_bytes": 0,
+        "evidence_sha256": "32f1302922649267a638d7c99082bb877d831dac3044a3e999a428a49f034dcb",
+        "ledger": "test-lisp-emacs-lisp-edebug-tests.el-333624c038f5.state-retirement.jsonl.gz",
+        "ledger_sha256": "c73dda08f61db7d8771a9dc94b9e758d666b8de857e014381d621f1e9321d5a4",
+        "all_selected_absent": true,
+        "restore": "regenerate consumed cache from retained inputs; original random names not promised",
+        "empty_parents_retired": true,
+        "parent_directories": 2
+      }
+    },
+    {
+      "product": "terminal",
+      "file": "test/lisp/emacs-lisp/testcover-tests.el",
+      "ids": 30,
+      "passed": true,
+      "complete": true,
+      "exit_code": 0,
+      "timed_out": false,
+      "remaining_group_terminated": false,
+      "protocol_error": null,
+      "runner_error": null,
+      "seconds": 2.535839000000001,
+      "result": {
+        "path": "build/acceptance/g3-lisp-debug-storage-1/terminal/results/terminal/test-lisp-emacs-lisp-testcover-tests.el-6242300c60d7.json",
+        "bytes": 74197,
+        "sha256": "d91f1971f2f5aca361d07a0a6c7a913027a03e395cc3b418f040811d20c57cae"
+      },
+      "events": {
+        "path": "build/acceptance/g3-lisp-debug-storage-1/terminal/results/terminal/test-lisp-emacs-lisp-testcover-tests.el-6242300c60d7.events.jsonl",
+        "bytes": 62787,
+        "sha256": "eb1725411ae60aea2b6a940f4fd095adaf28f5968e06e2822ed862eba8091e08"
+      },
+      "stderr": {
+        "path": "build/acceptance/g3-lisp-debug-storage-1/terminal/logs/terminal/test-lisp-emacs-lisp-testcover-tests.el-6242300c60d7.stderr.log",
+        "bytes": 21708,
+        "sha256": "6be5a5a629161a0c135a5798665eae1d10a704008c5bb4dfab83ef8a1aa61eff"
+      },
+      "retirement": {
+        "status": "complete",
+        "files": 0,
+        "directories": 10,
+        "ledger_schema": 3,
+        "logical_bytes": 0,
+        "allocated_bytes": 0,
+        "evidence_sha256": "d91f1971f2f5aca361d07a0a6c7a913027a03e395cc3b418f040811d20c57cae",
+        "ledger": "test-lisp-emacs-lisp-testcover-tests.el-6242300c60d7.state-retirement.jsonl.gz",
+        "ledger_sha256": "c73dda08f61db7d8771a9dc94b9e758d666b8de857e014381d621f1e9321d5a4",
+        "all_selected_absent": true,
+        "restore": "regenerate consumed cache from retained inputs; original random names not promised",
+        "empty_parents_retired": true,
+        "parent_directories": 2
+      }
+    },
+    {
+      "product": "terminal",
+      "file": "test/lisp/emacs-lisp/multisession-tests.el",
+      "ids": 5,
+      "passed": true,
+      "complete": true,
+      "exit_code": 0,
+      "timed_out": false,
+      "remaining_group_terminated": false,
+      "protocol_error": null,
+      "runner_error": null,
+      "seconds": 0.345650667000001,
+      "result": {
+        "path": "build/acceptance/g3-lisp-debug-storage-1/terminal/results/terminal/test-lisp-emacs-lisp-multisession-tests.el-9793e29fde9f.json",
+        "bytes": 9070,
+        "sha256": "fe47db939252d25501974a9c8ecf6f22624878a7c4d61895e9ddeaf649aae50b"
+      },
+      "events": {
+        "path": "build/acceptance/g3-lisp-debug-storage-1/terminal/results/terminal/test-lisp-emacs-lisp-multisession-tests.el-9793e29fde9f.events.jsonl",
+        "bytes": 4770,
+        "sha256": "b5010c05fc3bf446679e040bdc1d9e0ed177477dda12af31006689c83ba2e019"
+      },
+      "stderr": {
+        "path": "build/acceptance/g3-lisp-debug-storage-1/terminal/logs/terminal/test-lisp-emacs-lisp-multisession-tests.el-9793e29fde9f.stderr.log",
+        "bytes": 272,
+        "sha256": "444fff06b92af181d872a3184c7b86623801f09885593a990881fda14f59852e"
+      },
+      "retirement": {
+        "status": "complete",
+        "files": 0,
+        "directories": 10,
+        "ledger_schema": 3,
+        "logical_bytes": 0,
+        "allocated_bytes": 0,
+        "evidence_sha256": "fe47db939252d25501974a9c8ecf6f22624878a7c4d61895e9ddeaf649aae50b",
+        "ledger": "test-lisp-emacs-lisp-multisession-tests.el-9793e29fde9f.state-retirement.jsonl.gz",
+        "ledger_sha256": "c73dda08f61db7d8771a9dc94b9e758d666b8de857e014381d621f1e9321d5a4",
+        "all_selected_absent": true,
+        "restore": "regenerate consumed cache from retained inputs; original random names not promised",
+        "empty_parents_retired": true,
+        "parent_directories": 2
+      }
+    },
+    {
+      "product": "cocoa",
+      "file": "test/lisp/emacs-lisp/edebug-tests.el",
+      "ids": 49,
+      "passed": true,
+      "complete": true,
+      "exit_code": 0,
+      "timed_out": false,
+      "remaining_group_terminated": false,
+      "protocol_error": null,
+      "runner_error": null,
+      "seconds": 1.3569362919999968,
+      "result": {
+        "path": "build/acceptance/g3-lisp-debug-storage-1/cocoa/results/cocoa/test-lisp-emacs-lisp-edebug-tests.el-333624c038f5.json",
+        "bytes": 60375,
+        "sha256": "277315a7ce0e460c47c01dc77ef5372eddff9508a519632c9e36ffe5178b628f"
+      },
+      "events": {
+        "path": "build/acceptance/g3-lisp-debug-storage-1/cocoa/results/cocoa/test-lisp-emacs-lisp-edebug-tests.el-333624c038f5.events.jsonl",
+        "bytes": 43426,
+        "sha256": "c7cfe0b355922825f570ac693f962241cbf382f0d843a0bde7994e7514c73cb4"
+      },
+      "stderr": {
+        "path": "build/acceptance/g3-lisp-debug-storage-1/cocoa/logs/cocoa/test-lisp-emacs-lisp-edebug-tests.el-333624c038f5.stderr.log",
+        "bytes": 7172,
+        "sha256": "c60d61fd20cdb819565c1b2cb94ce36aae3c8ae9d443e80feea0d3fcdd1ac29b"
+      },
+      "retirement": {
+        "status": "complete",
+        "files": 0,
+        "directories": 10,
+        "ledger_schema": 3,
+        "logical_bytes": 0,
+        "allocated_bytes": 0,
+        "evidence_sha256": "277315a7ce0e460c47c01dc77ef5372eddff9508a519632c9e36ffe5178b628f",
+        "ledger": "test-lisp-emacs-lisp-edebug-tests.el-333624c038f5.state-retirement.jsonl.gz",
+        "ledger_sha256": "c73dda08f61db7d8771a9dc94b9e758d666b8de857e014381d621f1e9321d5a4",
+        "all_selected_absent": true,
+        "restore": "regenerate consumed cache from retained inputs; original random names not promised",
+        "empty_parents_retired": true,
+        "parent_directories": 2
+      }
+    },
+    {
+      "product": "cocoa",
+      "file": "test/lisp/emacs-lisp/testcover-tests.el",
+      "ids": 30,
+      "passed": true,
+      "complete": true,
+      "exit_code": 0,
+      "timed_out": false,
+      "remaining_group_terminated": false,
+      "protocol_error": null,
+      "runner_error": null,
+      "seconds": 2.2610011660000033,
+      "result": {
+        "path": "build/acceptance/g3-lisp-debug-storage-1/cocoa/results/cocoa/test-lisp-emacs-lisp-testcover-tests.el-6242300c60d7.json",
+        "bytes": 74385,
+        "sha256": "4af3fd7dd1eb0f68cfbdb41364051859d0884e58dfef70324f17ed7a987c1c6d"
+      },
+      "events": {
+        "path": "build/acceptance/g3-lisp-debug-storage-1/cocoa/results/cocoa/test-lisp-emacs-lisp-testcover-tests.el-6242300c60d7.events.jsonl",
+        "bytes": 62995,
+        "sha256": "06a64a99723de94cbb16d6172d30de233c8b8b46ee87fdfddabea9ee5ff1323e"
+      },
+      "stderr": {
+        "path": "build/acceptance/g3-lisp-debug-storage-1/cocoa/logs/cocoa/test-lisp-emacs-lisp-testcover-tests.el-6242300c60d7.stderr.log",
+        "bytes": 21705,
+        "sha256": "a4b5876a30be3f49d05b8ae817ee36c8dd2e97379e038c6272cab99de31adb77"
+      },
+      "retirement": {
+        "status": "complete",
+        "files": 0,
+        "directories": 10,
+        "ledger_schema": 3,
+        "logical_bytes": 0,
+        "allocated_bytes": 0,
+        "evidence_sha256": "4af3fd7dd1eb0f68cfbdb41364051859d0884e58dfef70324f17ed7a987c1c6d",
+        "ledger": "test-lisp-emacs-lisp-testcover-tests.el-6242300c60d7.state-retirement.jsonl.gz",
+        "ledger_sha256": "c73dda08f61db7d8771a9dc94b9e758d666b8de857e014381d621f1e9321d5a4",
+        "all_selected_absent": true,
+        "restore": "regenerate consumed cache from retained inputs; original random names not promised",
+        "empty_parents_retired": true,
+        "parent_directories": 2
+      }
+    },
+    {
+      "product": "cocoa",
+      "file": "test/lisp/emacs-lisp/multisession-tests.el",
+      "ids": 5,
+      "passed": true,
+      "complete": true,
+      "exit_code": 0,
+      "timed_out": false,
+      "remaining_group_terminated": false,
+      "protocol_error": null,
+      "runner_error": null,
+      "seconds": 0.35455149999999946,
+      "result": {
+        "path": "build/acceptance/g3-lisp-debug-storage-1/cocoa/results/cocoa/test-lisp-emacs-lisp-multisession-tests.el-9793e29fde9f.json",
+        "bytes": 9332,
+        "sha256": "873d42ce1fe338ffe371f37cba353ee8732d76049f56fc104e5ea496ed7092e3"
+      },
+      "events": {
+        "path": "build/acceptance/g3-lisp-debug-storage-1/cocoa/results/cocoa/test-lisp-emacs-lisp-multisession-tests.el-9793e29fde9f.events.jsonl",
+        "bytes": 4977,
+        "sha256": "728cf86007f32cf865a87629a4107205372a5db58f1e53cfae5e37fde3aa9291"
+      },
+      "stderr": {
+        "path": "build/acceptance/g3-lisp-debug-storage-1/cocoa/logs/cocoa/test-lisp-emacs-lisp-multisession-tests.el-9793e29fde9f.stderr.log",
+        "bytes": 269,
+        "sha256": "0f3777577e6479baca9a474870d065a7e9ec7f7773504e2eb413f1216708da1b"
+      },
+      "retirement": {
+        "status": "complete",
+        "files": 0,
+        "directories": 10,
+        "ledger_schema": 3,
+        "logical_bytes": 0,
+        "allocated_bytes": 0,
+        "evidence_sha256": "873d42ce1fe338ffe371f37cba353ee8732d76049f56fc104e5ea496ed7092e3",
+        "ledger": "test-lisp-emacs-lisp-multisession-tests.el-9793e29fde9f.state-retirement.jsonl.gz",
+        "ledger_sha256": "c73dda08f61db7d8771a9dc94b9e758d666b8de857e014381d621f1e9321d5a4",
+        "all_selected_absent": true,
+        "restore": "regenerate consumed cache from retained inputs; original random names not promised",
+        "empty_parents_retired": true,
+        "parent_directories": 2
+      }
+    }
+  ],
+  "inputs_before": {
+    "compatibility/stable-31.1/sources.json": {
+      "kind": "file",
+      "bytes": 562572,
+      "mode": 420,
+      "sha256": "a5ef144a203b8b2a74e346ac47173c5d4122f751d8d950347ae75ff67eef0efe"
+    },
+    "tools/fixtures/stable-suite-runner.el": {
+      "kind": "file",
+      "bytes": 12592,
+      "mode": 420,
+      "sha256": "d5bcd0c18f15995e50adefe8472d12ef82f71114be10ce307202b4ce0f11150e"
+    },
+    "tools/stable-suite.py": {
+      "kind": "file",
+      "bytes": 54108,
+      "mode": 420,
+      "sha256": "75e913813f585425ce3673c5db9c71b2054d875c50540ccee3dd06cb4eabc51c"
+    },
+    "tools/stable-suite-batch.py": {
+      "kind": "file",
+      "bytes": 22008,
+      "mode": 420,
+      "sha256": "5473bee19634e589dbbaa091f2fb8dc5c78e67be5399c3db4497753e1ea64b6e"
+    },
+    "tools/runtime-execution.py": {
+      "kind": "file",
+      "bytes": 93220,
+      "mode": 420,
+      "sha256": "26b379c3d4a24adf2a306e1c751c654ca1b6b1c6cd43f0888398c3560e455fb4"
+    },
+    "tools/runtime-retire.py": {
+      "kind": "file",
+      "bytes": 8538,
+      "mode": 420,
+      "sha256": "84ad68bbb26ffb73e129406b430393c0eaeab2f6b818c5916a950b6514eb6932"
+    },
+    "owned-task-cache/g3-lisp-debug-storage-1.py": {
+      "kind": "file",
+      "bytes": 10531,
+      "mode": 420,
+      "sha256": "dfa063574ccddcd4c6b7a60860babe580d9be7fddf1b0cd665524bcd06011fdc"
+    },
+    "build/acceptance/p435-p427-products-1/products-with-runtime.json": {
+      "kind": "file",
+      "bytes": 1578004,
+      "mode": 420,
+      "sha256": "aa4d2cadb59089c231c43d2827de479f35a1825514916a3573ad936b4e9ac162"
+    },
+    "build/acceptance/p435-functional-normal-1/results.json": {
+      "kind": "file",
+      "bytes": 695326,
+      "mode": 420,
+      "sha256": "fdd7cce538a6fa60329793d762db627cc94ca98f8b726614f65dd3c12af15849"
+    },
+    "build/acceptance/current-macos-core-products-1/products.json": {
+      "kind": "file",
+      "bytes": 2278690,
+      "mode": 420,
+      "sha256": "a29fc611bd359e598074a00aebc0ca7dfb420806c315c6c151872ec1d01a4ac8"
+    }
+  },
+  "inputs_after": {
+    "compatibility/stable-31.1/sources.json": {
+      "kind": "file",
+      "bytes": 562572,
+      "mode": 420,
+      "sha256": "a5ef144a203b8b2a74e346ac47173c5d4122f751d8d950347ae75ff67eef0efe"
+    },
+    "tools/fixtures/stable-suite-runner.el": {
+      "kind": "file",
+      "bytes": 12592,
+      "mode": 420,
+      "sha256": "d5bcd0c18f15995e50adefe8472d12ef82f71114be10ce307202b4ce0f11150e"
+    },
+    "tools/stable-suite.py": {
+      "kind": "file",
+      "bytes": 54108,
+      "mode": 420,
+      "sha256": "75e913813f585425ce3673c5db9c71b2054d875c50540ccee3dd06cb4eabc51c"
+    },
+    "tools/stable-suite-batch.py": {
+      "kind": "file",
+      "bytes": 22008,
+      "mode": 420,
+      "sha256": "5473bee19634e589dbbaa091f2fb8dc5c78e67be5399c3db4497753e1ea64b6e"
+    },
+    "tools/runtime-execution.py": {
+      "kind": "file",
+      "bytes": 93220,
+      "mode": 420,
+      "sha256": "26b379c3d4a24adf2a306e1c751c654ca1b6b1c6cd43f0888398c3560e455fb4"
+    },
+    "tools/runtime-retire.py": {
+      "kind": "file",
+      "bytes": 8538,
+      "mode": 420,
+      "sha256": "84ad68bbb26ffb73e129406b430393c0eaeab2f6b818c5916a950b6514eb6932"
+    },
+    "owned-task-cache/g3-lisp-debug-storage-1.py": {
+      "kind": "file",
+      "bytes": 10531,
+      "mode": 420,
+      "sha256": "dfa063574ccddcd4c6b7a60860babe580d9be7fddf1b0cd665524bcd06011fdc"
+    },
+    "build/acceptance/p435-p427-products-1/products-with-runtime.json": {
+      "kind": "file",
+      "bytes": 1578004,
+      "mode": 420,
+      "sha256": "aa4d2cadb59089c231c43d2827de479f35a1825514916a3573ad936b4e9ac162"
+    },
+    "build/acceptance/p435-functional-normal-1/results.json": {
+      "kind": "file",
+      "bytes": 695326,
+      "mode": 420,
+      "sha256": "fdd7cce538a6fa60329793d762db627cc94ca98f8b726614f65dd3c12af15849"
+    },
+    "build/acceptance/current-macos-core-products-1/products.json": {
+      "kind": "file",
+      "bytes": 2278690,
+      "mode": 420,
+      "sha256": "a29fc611bd359e598074a00aebc0ca7dfb420806c315c6c151872ec1d01a4ac8"
+    }
+  },
+  "products": {
+    "reference": {
+      "program": {
+        "kind": "file",
+        "bytes": 3691504,
+        "mode": 493,
+        "sha256": "5b55e93c8304368ee37cc5c537ca3e1370e3b9b3fef049bdce76834a9db75e65"
+      },
+      "dump": {
+        "kind": "file",
+        "bytes": 23084632,
+        "mode": 420,
+        "sha256": "6ac1214186022574a70e84a04bb7f2dc44e1ea1d4c90f0d9ce421ddd0f4b4536"
+      },
+      "resources": {
+        "lisp": {
+          "entries": 3316,
+          "canonical_sha256": "564df364c803f4d0b64d7bc2ba986d775e8985529481ac2684b739666e131323"
+        }
+      }
+    },
+    "terminal": {
+      "program": {
+        "kind": "file",
+        "bytes": 2698016,
+        "mode": 493,
+        "sha256": "fb0b822273e79bb5b008725771473f5d510b9f712488242d615fb3a5fefbcde6"
+      },
+      "dump": {
+        "kind": "file",
+        "bytes": 13101600,
+        "mode": 420,
+        "sha256": "5d1913c39d5c348c711d24e16b25d9e63d09e082ee6dbe3b3a54ac4680862f82"
+      },
+      "resources": {
+        "lisp": {
+          "entries": 3363,
+          "canonical_sha256": "79dc09151f2f61152496f3587dc54cb580fb45a9c92301bfe3e75ab027a02146"
+        },
+        "runtime-tls": {
+          "entries": 9,
+          "canonical_sha256": "9b34100e73d1f4bbd3157cd1535a25f8fdc6d4e094f2e6a1e9dc79b1a63fd73d"
+        },
+        "runtime-lcms": {
+          "entries": 1,
+          "canonical_sha256": "819844d74d5d4f3ee5a75aaf2b0d9a23b07fdda8bfa71c65cdbda63f6eb213cb"
+        },
+        "runtime-treesit": {
+          "entries": 1,
+          "canonical_sha256": "05b5f47a14a19b3f04511fa292f0976e2cab06437b9e4323edbce72a9767f0f9"
+        }
+      }
+    },
+    "cocoa": {
+      "program": {
+        "kind": "file",
+        "bytes": 4230368,
+        "mode": 493,
+        "sha256": "d796f4c52e2a32ec6176e02efca33d922da18252aaddd0885e59993f108ba385"
+      },
+      "dump": {
+        "kind": "file",
+        "bytes": 18602200,
+        "mode": 420,
+        "sha256": "2b87c3436eaa33e551b024c6be01ea702b9c586c4535993258b63aa95a618b92"
+      },
+      "resources": {
+        "lisp": {
+          "entries": 3353,
+          "canonical_sha256": "e4108125e078022ebe91c3ccc5095c46c8fcbe48180ed02668f315d4e4c910b5"
+        },
+        "bundle": {
+          "entries": 4477,
+          "canonical_sha256": "e1212d5ae114aec885c8d2d467c9c39b4feb1f693b0d685dc28901fd34bb5342"
+        }
+      }
+    }
+  },
+  "product_resource_digest_encoding": "SHA256 of UTF8 sorted-key compact JSON of each complete raw resource map; full before/after maps remain in immutable raw",
+  "products_before_equal_after": true,
+  "product_binding": {
+    "scope": "Accepted P435 normal reused, not new P444 or checking products",
+    "terminal_receipt": "build/acceptance/p435-functional-normal-1/results.json",
+    "cocoa_receipt": "build/acceptance/current-macos-core-products-1/products.json",
+    "cocoa_asserted": true,
+    "terminal_asserted": true
+  },
+  "original_inputs_unchanged": true,
+  "generated_resources": {
+    "reference": {},
+    "terminal": {},
+    "cocoa": {}
+  },
+  "budget": {
+    "whole_seconds": 300,
+    "per_case_seconds": 30,
+    "expected_seconds": [
+      10,
+      90
+    ],
+    "expected_peak_bytes": 536870912,
+    "copied_source_bytes": 62990856,
+    "scale": "9 serial original-file processes,84 IDs per product: edebug49/testcover30/multisession5,252 selected observations. One original Edebug expected-failure per product immediately forces failure before the macro-error path, so it does not cover that body. Other48 Edebug cases use fixed small source and simulated keyboard macros/recursive-edit; not physical input or GUI. Testcover generates30 IDs from its bound16276B resource and instruments each small sample twice, with and without in-process byte compilation. No requested external compiler or network. Multisession creates isolated temporary SQLite/file storage:2 synchronous child editors and2 asynchronous child editors; each busy child increments100 times while parent waits with0.1s sleeps. These parent waits lack an internal deadline, bounded by the existing30s case process-group deadline; descendants are inside the same controlled tree. SQLite guards are retained. Child dump is not separately fingerprinted. Entire-file state/order stays original. No generated test-tree resource expected; automatic native trampolines may occur. Estimated10-90s/<512MiB,30s/load-case,300s owner,strict1GiB initial/hard no growth; expectations are estimates, not separate memory limits."
+  },
+  "execution": {
+    "driver_seconds": 20.708307,
+    "controller": {
+      "run_id": "9b2367c4a0eb492f9791c2ecf5ef9286",
+      "exit_code": 0,
+      "cleanup_complete": true,
+      "seconds": 23.128,
+      "peak_accounted_bytes": 217432064,
+      "peak_footprint_bytes": 131156032,
+      "initial_limit_bytes": 1073741824,
+      "hard_limit_bytes": 1073741824,
+      "growth_count": 0,
+      "stderr_sha256": "8c58fddf029f1533f1fef29cbcc2378fbe2681d0501de72c78d07b0f8bd91fbe",
+      "metrics_independently_reviewed": true
+    }
+  },
+  "automatic_compilation": {
+    "requested_build": false,
+    "trampolines": [
+      {
+        "product": "reference",
+        "file": "test/lisp/emacs-lisp/edebug-tests.el",
+        "name": "subr--trampoline-657869742d7265637572736976652d65646974_exit_recursive_edit_0.eln",
+        "bytes": 34128,
+        "allocated_bytes": 36864,
+        "sha256": "1df19df6a43cb58a3cb2973f3601e3410b729d59e3b24264fc86a35572695c40"
+      },
+      {
+        "product": "reference",
+        "file": "test/lisp/emacs-lisp/edebug-tests.el",
+        "name": "subr--trampoline-7072696e31_prin1_0.eln",
+        "bytes": 34088,
+        "allocated_bytes": 36864,
+        "sha256": "866de230e23596c44408bc5d3677541e17aaf32742cb649cbb43d53600b1a582"
+      },
+      {
+        "product": "reference",
+        "file": "test/lisp/emacs-lisp/edebug-tests.el",
+        "name": "subr--trampoline-6d657373616765_message_0.eln",
+        "bytes": 34096,
+        "allocated_bytes": 36864,
+        "sha256": "deda02d6b83627eef4a52c39eba704e3ab1f9a6c9f310717d948ed1045be85bd"
+      },
+      {
+        "product": "reference",
+        "file": "test/lisp/emacs-lisp/edebug-tests.el",
+        "name": "subr--trampoline-7072696e74_print_0.eln",
+        "bytes": 34088,
+        "allocated_bytes": 36864,
+        "sha256": "2c71d17f9de52ccfe186eb9926ad85a8991b44a6388155838d49bc86defd9f12"
+      },
+      {
+        "product": "reference",
+        "file": "test/lisp/emacs-lisp/edebug-tests.el",
+        "name": "subr--trampoline-7072696e63_princ_0.eln",
+        "bytes": 34088,
+        "allocated_bytes": 36864,
+        "sha256": "3bbea84e575af8af5a09d4bd28c981e6143e38400b5fcf085d3a11d8eafc6162"
+      }
+    ],
+    "logical_bytes": 170488,
+    "allocated_bytes": 184320
+  },
+  "cleanup": {
+    "status": "complete",
+    "files": 4615,
+    "directories": 855,
+    "links": 18,
+    "rows": 5488,
+    "logical_bytes": 63173350,
+    "allocated_bytes": 75464704,
+    "manifest_sha256": "2c7c8e99ea2217242aa7815bed3b112521b221c712848c9e89e2029f64f540c7",
+    "automatic_files": 5,
+    "automatic_directories": 93,
+    "automatic_parent_directories": 18,
+    "automatic_logical_bytes": 170488,
+    "automatic_allocated_bytes": 184320,
+    "consumed_cache_files": 2,
+    "consumed_cache_logical_bytes": 12006,
+    "consumed_cache_allocated_bytes": 16384,
+    "products_inputs_git_evidence_unchanged": true
+  },
+  "review": {
+    "independent_raw_accepted": true,
+    "original_files_or_guards_changed": false,
+    "product_rerun": false,
+    "subagents_used": false
+  },
+  "limits": [
+    "The three forced Edebug expected failures do not execute the macro-error body.",
+    "Keyboard macros and recursive editing are Lisp integration, not physical keyboard or GUI evidence.",
+    "Original multisession child editors complete; their dumps are not separately fingerprinted.",
+    "No checking, whole ERT, full G3, native/collector, qualified performance or trial App adoption."
+  ],
+  "compatibility_accepted": false,
+  "performance_accepted": false,
+  "editor_accepted": false
+}

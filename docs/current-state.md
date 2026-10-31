@@ -1,3 +1,23 @@
+## G3 original Lisp debugging and storage (2026-10-31)
+
+Three unchanged pinned files on accepted P435 normal reference/terminal/Cocoa:
+**252 expected results = 249 ordinary successes + three forced expected failures**,
+zero skips/unexpected failures, nine complete exit-0 processes; ID/tag/status maps
+agree. Edebug 49, generated Testcover 30 and multisession 5 IDs/product run without
+filtering. The Edebug macro-error body remains unexecuted behind its original
+forced failure. Keyboard macros are simulated Lisp input, not physical UI.
+Testcover instruments/compiles temporary samples; multisession exercises actual
+SQLite/file storage and child editors. Child dumps lack independent fingerprints.
+Ten before/after inputs and full products match; no generated test-tree resource.
+Five automatic reference native trampolines are recorded, with no requested build.
+CLN179: 4,615 files, 855 directories, eighteen links; 63,173,350 logical /
+75,464,704 allocated bytes, including five automatic files and 93 directories
+(eighteen parents) once. Original evidence, products, inputs and WIP remain.
+No production/protection/App change. Whole ERT/checking/full G3/performance remain
+open; G1/G2/G4 stay **3/7**, original Goal active. Continue remaining work.
+[Coverage](../maintenance/releases/2026-10-31-original-lisp-debug-storage.md) ·
+[CLN179](../maintenance/cleanup/reports/2026-10-31-179-consumed-lisp-debug-storage-state.md).
+
 ## G3 original Lisp inspection and tracking (2026-10-31)
 
 Eight unchanged pinned files, all 119 IDs/product on accepted P435 normal

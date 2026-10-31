@@ -663,3 +663,16 @@ Manifest has 5,630 rows; identity plans and targeted handle checks precede remov
 No source or App replacement; no aggregate/editor/compatibility/performance pass.
 [Report](reports/2026-10-31-178-consumed-lisp-inspection-state.md) ·
 [Manifest](manifests/2026-10-31-178-consumed-lisp-inspection-state.jsonl.gz).
+
+### CLN179 — consumed Lisp debugging and storage state (2026-10-31)
+
+Retired 4,615 files, 855 directories and eighteen links; 63,173,350 logical /
+75,464,704 allocated bytes. Post-review: 4,608 pinned files, 762 directories,
+eighteen links; automatic: five native trampolines, 93 directories including
+eighteen parents, counted once; two consumed helpers: 12,006 / 16,384 bytes.
+All selected roots/helpers are absent. Original results/events/logs, sealed
+private plans, inputs, live products, HEAD/index and unrelated WIP are preserved.
+The complete 5,488-row public manifest matches every private identity.
+No production/protection/App change; no whole ERT/checking/full G3/performance pass.
+[Report](reports/2026-10-31-179-consumed-lisp-debug-storage-state.md) ·
+[Manifest](manifests/2026-10-31-179-consumed-lisp-debug-storage-state.jsonl.gz).
