@@ -624,3 +624,16 @@ inputs, raw evidence and tracked working changes unchanged. No test rerun.
   free-space, compiler-artifact equality, product or performance claim.
 - [Report](reports/2026-10-31-175-consumed-macroexp-variable-state.md) and
   [manifest](manifests/2026-10-31-175-consumed-macroexp-variable-state.jsonl.gz).
+
+## CLN176 - consumed small Lisp utility state (2026-10-31)
+
+- After independent 102-case review, retire three pinned test copies, empty
+  environment labels, eighteen context links and two consumed operational helpers.
+- 4,611 files, 885 directories, eighteen links; 63,036,399 logical /
+  75,317,248 allocated bytes; 5,514 manifest rows. Includes automatic reference
+  trampoline and 123 directories (24 parents) exactly once; no automatic replay.
+- Original evidence/private plans/replay driver/inputs/products and unrelated WIP
+  remain unchanged. Selected roots and consumed helpers are absent.
+- [Report](reports/2026-10-31-176-consumed-small-utility-state.md),
+  [manifest](manifests/2026-10-31-176-consumed-small-utility-state.jsonl.gz),
+  [coverage](../releases/2026-10-31-original-small-utilities.md).

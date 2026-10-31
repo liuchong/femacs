@@ -1,3 +1,22 @@
+## Current continuation: conditional, alist, range and ring coverage (2026-10-31)
+
+Four unchanged pinned files on accepted P435 normal reference/terminal/Cocoa:
+**102 ordinary passes**, zero skips/expected failures/unexpected failures,
+twelve complete file processes, equal ID/tag/status maps. Discovery is
+conditional 1, alist 8, range 1 and ring 24 per product. Ten input maps and full
+product/resource identities stay equal before/after; independent review accepts
+this bounded coverage. No generated test-tree resource; one automatic reference
+make-symbol native trampoline is separately recorded.
+
+CLN176 retires 4,611 files, 885 directories and eighteen links,
+63,036,399 / 75,317,248 logical/allocated bytes. Automatic retirement counts once;
+two consumed helpers are included. Selected roots are gone; original evidence,
+private plans, replay driver, inputs, products and unrelated WIP remain.
+Whole ERT, checking, full G3 and performance stay open; no App replacement.
+G1/G2/G4 remain **3/7**, original Goal active. Continue compatibility/runtime work.
+See [coverage](../maintenance/releases/2026-10-31-original-small-utilities.md)
+and [CLN176](../maintenance/cleanup/reports/2026-10-31-176-consumed-small-utility-state.md).
+
 ## Current continuation: macro expansion, variables, patterns and generics (2026-10-31)
 
 Four unchanged pinned files on accepted P435 normal reference/terminal/Cocoa:

@@ -24323,3 +24323,29 @@ four outcomes open and the original Goal continues.
   G1/G2/G4 remain **3/7**, original Goal active; continue remaining work.
 - [Coverage](../maintenance/releases/2026-10-31-original-macroexp-variables.md),
   [CLN175](../maintenance/cleanup/reports/2026-10-31-175-consumed-macroexp-variable-state.md).
+
+### 2026-10-31: original small Lisp utilities and CLN176
+
+- Four unchanged pinned tracked files, accepted P435 normal reference/terminal/Cocoa,
+  all discovered IDs without filtering: cond-star 1, let-alist 8, range 1, ring 24
+  per product. **102 ordinary passes**, no skip, expected failure or unexpected failure.
+- Twelve file processes complete/exit 0, no timeout/protocol/runner error or residual
+  group; equal ID/tag/status maps. All 102 original event hashes/ordinals reviewed.
+- Ten input maps and complete product/resource identities equal before/after;
+  explicit terminal/Cocoa P435 bindings. No P444 product rebuild/checking acceptance.
+  Original version/configuration metadata is bound. Test copies add no new resource.
+- 30 s/load-case, 300 s owner; estimate 10--60 s/512 MiB is not a hard limit.
+  Stricter 1 GiB initial/hard, growth zero. Driver 10.149638 s; controller
+  11.297 s, 181,583,872 accounted peak bytes, exit 0/cleanup complete.
+  Source, raw events, identities and controller independently reviewed, no rerun.
+- Reference let-alist automatically builds a make-symbol trampoline, 34,104 /
+  36,864 bytes; no active product build does not imply no automatic compilation.
+- CLN176: 4,611 files, 885 directories, eighteen links; 63,036,399 / 75,317,248
+  logical/allocated bytes, 5,514 rows. Three 1,536-file test copies and context links
+  retired. Automatic 1 file/123 directories (24 parents) counted once, plus two
+  consumed helpers. Original evidence/plans/driver/products/inputs/WIP unchanged.
+- Whole ERT, checking, full G3 and performance stay open; no App replacement or new
+  production/protection change. G1/G2/G4 **3/7**, Goal active. Continue remaining work.
+- [Coverage](../maintenance/releases/2026-10-31-original-small-utilities.md),
+  [receipt](../maintenance/releases/2026-10-31-original-small-utilities-results.json),
+  [CLN176](../maintenance/cleanup/reports/2026-10-31-176-consumed-small-utility-state.md).
