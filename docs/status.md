@@ -1,3 +1,28 @@
+## 2026-11-01: seven original calendar/custom files
+
+Seven unchanged calendar/custom files pass on the installed reference plus
+eight retained P450 normal/checking terminal/Cocoa native/observer major/young
+profiles: 63 complete exit-0 processes, 73 IDs/context, 657 ordinary passes.
+No skips, expected failures or unexpected outcomes; all ID/tag/status/outcome
+maps agree. Time-date uses the pinned overlay; Imenu includes its sh macro ID.
+The 337-byte theme resource is bound. All events/seals, 30 before/after inputs,
+product resources, 411 runtime inputs and 7,481 frozen inputs verify unchanged.
+Custom/widget paths are real Lisp buffers/temp files, not physical UI.
+Raw 35.423s; primary controller 35.679s/108,937,216 B, 1 GiB fixed/no growth.
+CLN190: 13,826 files/2,916 dirs/18 links, 16,760 rows;
+189,001,431 logical/225,824,768 allocated bytes. Automatic 630 dirs/126 parents
+count once; 27 test/context/environment roots and two adopted helpers retired.
+An auxiliary read-only audit compatibility error preceded cleanup; its own
+identity guards passed and corrected full comparison passes, no deletion replay.
+Evidence/products/source/WIP remain. Full G3/ERT/checking/native/collector,
+performance/UI/App remain open; G1/G2/G4 stay 3/7 and Goal active.
+
+The 63 private plans retire 0 files and 630 directories; no retained ELN.
+All seven files use all-discovered-ids with 30s load/case and 600s owner caps.
+
+[Report](../maintenance/releases/2026-11-01-current-calendar-custom.md) ·
+[CLN190](../maintenance/cleanup/reports/2026-11-01-190-consumed-calendar-custom-state.md).
+
 ## 2026-11-01: repeated-message format restoration
 
 P450 restores one missing percent in the repeated-message intmax_t format;

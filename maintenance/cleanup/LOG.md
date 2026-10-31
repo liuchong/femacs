@@ -1,3 +1,16 @@
+## CLN190 — consumed calendar/custom state
+
+13,826 files/2,916 directories/18 links, 16,760 rows;
+189,001,431 logical/225,824,768 allocated bytes.
+Post-review 13,826/2,286/18; automatic 630 dirs/126 parents count once.
+Nine test/context/environment groups and two adopted P450 helpers retired.
+29 roots absent; 32,260 intent/completion rows. Evidence/inputs/products/source
+preserved. Extra read-only audit compatibility error and corrected comparison
+are recorded; cleanup's own checks pass and deletion is not repeated.
+
+[Report](reports/2026-11-01-190-consumed-calendar-custom-state.md) ·
+[Manifest](manifests/2026-11-01-190-consumed-calendar-custom-state.jsonl.gz).
+
 ## CLN189 — consumed message-count state and build caches
 
 33159 files/3276 directories/18 links,36453 rows;
