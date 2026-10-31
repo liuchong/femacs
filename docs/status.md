@@ -24378,3 +24378,34 @@ four outcomes open and the original Goal continues.
 - [Coverage](../maintenance/releases/2026-10-31-original-editor-helpers.md),
   [receipt](../maintenance/releases/2026-10-31-original-editor-helpers-results.json),
   [CLN177](../maintenance/cleanup/reports/2026-10-31-177-consumed-editor-helper-state.md).
+
+### 2026-10-31 — G3 original Lisp inspection and change tracking
+
+- P435 normal reference/terminal/Cocoa, eight unchanged pinned files, one
+  all-ID process per file: 119 IDs/product, 24 complete exit-0 file processes.
+- **357 observations: 342 ordinary successes + 12 original expected failures
+  + three common PHP skips**, zero unexpected failures. IDs/tags/status agree.
+- Source-location, checkdoc, icons, object-size, property-search, randomized
+  change tracking and Lisp indentation/fontification run without filtering.
+  PHP guard is retained; expected failures are not ordinary successful assertions.
+- Original raw remains false after the driver's relative seed-log-path error;
+  its seed map is empty. File-only finalization verifies 357 original events,
+  24 sealed results + 24 event files, fourteen explicit after-input identities
+  and full after-product identities. It runs no product and rewrites no raw.
+- Seeds 9086110 / 11434048 / 13899245 are recovered only in finalization from
+  retained original stderr. Equal statuses are not equal random streams.
+- P435 terminal/Cocoa bindings match; faceup source and C context are bound.
+  Three 1,536-file copies have no generated resource or native trampoline.
+- Controller: exit 1 after post-run script error, cleanup true, 15.255 seconds,
+  126,255,104 accounted bytes, 1 GiB initial/hard, growth zero. Driver 13.486921
+  seconds; file-only finalization 1.303765 seconds. These are not performance gains.
+- Finalization true is only file verification; original-driver and whole-file
+  aggregate remain false, independently of the three PHP skips.
+- CLN178 removes 4,610 files, 1,002 directories, eighteen links;
+  63,002,214 logical / 75,280,384 allocated bytes. The 210 automatic directories
+  (42 parents) count once. Three retained empty environments are now retired;
+  their original receipts, raw error/seed map, finalization and logs stay.
+- No production/protection/App change. ERT/checking/full G3/native/collector/UI/
+  performance stay open; G1/G2/G4 remain **3/7**, Goal active.
+- [Coverage](../maintenance/releases/2026-10-31-original-lisp-inspection.md),
+  [CLN178](../maintenance/cleanup/reports/2026-10-31-178-consumed-lisp-inspection-state.md).

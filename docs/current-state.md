@@ -1,3 +1,23 @@
+## G3 original Lisp inspection and tracking (2026-10-31)
+
+Eight unchanged pinned files, all 119 IDs/product on accepted P435 normal
+reference/terminal/Cocoa: **357 observations = 342 ordinary successes,
+12 declared expected failures, three common PHP skips**. All 24 file processes
+exit 0, complete without timeout or residual group; ID/tag/status maps agree.
+Original raw stays false after its post-run relative-log-path error and keeps
+an empty seed map. Separate file-only finalization verifies 357 events and
+48 sealed result/event files, fourteen after-input identities and full after
+products, and recovers the three original independent seeds. Its true result
+is file verification, not aggregate/editor/compatibility acceptance. No rerun.
+Three common PHP skips also keep an all-passing aggregate false.
+CLN178: 4,610 files, 1,002 directories, eighteen links; 63,002,214 logical /
+75,280,384 allocated bytes, including 210 automatic directories counted once.
+Original failures, logs, products, inputs and unrelated WIP remain.
+No source/protection/App change; ERT/checking/full G3/performance stay open.
+G1/G2/G4 remain **3/7**; original Goal active.
+[Coverage](../maintenance/releases/2026-10-31-original-lisp-inspection.md) ·
+[CLN178](../maintenance/cleanup/reports/2026-10-31-178-consumed-lisp-inspection-state.md).
+
 ## Current continuation: editor helper coverage (2026-10-31)
 
 Eight unchanged pinned files on accepted P435 normal reference/terminal/Cocoa:

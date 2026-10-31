@@ -650,3 +650,16 @@ inputs, raw evidence and tracked working changes unchanged. No test rerun.
 - [Report](reports/2026-10-31-177-consumed-editor-helper-state.md),
   [manifest](manifests/2026-10-31-177-consumed-editor-helper-state.jsonl.gz),
   [coverage](../releases/2026-10-31-original-editor-helpers.md).
+
+### CLN178 — consumed Lisp inspection state (2026-10-31)
+
+Retired 4,610 files, 1,002 directories and eighteen links, 63,002,214 logical /
+75,280,384 allocated bytes. Post-review scope: 4,608 pinned files, 792 directories,
+eighteen links; automatic scope: zero files, 210 directories including 42 parents,
+counted once; two consumed helpers: 11,358 / 16,384 bytes. All selected roots and
+helpers are absent. Original raw false/path error/empty seed map, separate file
+finalization, skipped-case retained receipts, products, inputs and WIP remain.
+Manifest has 5,630 rows; identity plans and targeted handle checks precede removal.
+No source or App replacement; no aggregate/editor/compatibility/performance pass.
+[Report](reports/2026-10-31-178-consumed-lisp-inspection-state.md) ·
+[Manifest](manifests/2026-10-31-178-consumed-lisp-inspection-state.jsonl.gz).
