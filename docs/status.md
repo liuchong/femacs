@@ -1,3 +1,30 @@
+## 2026-11-01: P449 terminal context and event-state protection
+
+P449 owned controlling-terminal execution and shared progress-state isolation
+are independently reviewed.18new/0reused file processes:513observations,
+504ordinary+9original skips,0unexpected; raw false/controller exit1 remain.
+Nine batch marker and nine PTY simple files bind installed31.1 plus eight
+current normal/checking major/young profiles; four actual candidate products.
+Terminal-only OMP_THREAD_LIMIT=1,async jobs1; default batch available.
+Final serializer isolates undo command flag/boundary cause, including unwind.
+7OS+27VM protections form a four-run union; first EPERM/timeout and second
+missing-psutil failures retained. AST-only exception-handler reuse is explicit.
+Original undo failure/two memory interruptions and context-changing diagnostics
+remain; first_unexpected_undo_resolved=false, original_concurrency_accepted=false.
+CLN188:14904files/3694dirs/87links,18685rows,239143513/278228992B;
+automatic147files/354dirs/60parents counted once. First timestamp anchor retained.
+No VM/build/App change, fullG3/ERT/native/collector/performance/UI adoption.
+G1/G2/G4 remain3/7; Goal active. Next: separate repeated-message format fix.
+
+Functional3 98.450369292s; controller98.532s/353320960B,1GiB/no growth.
+Controller figures are primary receipts. Source export7459includes WIP;
+411runtime/build inputs bound.27VM event checks cover nil/t/error unwind.
+First cleanup plan failed before deletion; corrected scopes and retained failure.
+All original failures/logs/seals/snapshots and product identities remain.
+
+[Report](../maintenance/releases/2026-11-01-owned-pty-execution.md) ·
+[CLN188](../maintenance/cleanup/reports/2026-11-01-188-consumed-owned-pty-state.md).
+
 ## 2026-10-31: current original editing operations; CLN187
 
 Seven unchanged files,all-discovered-ids,63serial completeexit0 processes;

@@ -3961,3 +3961,67 @@ policy unchanged. Do not suppress existing findings or turn a completed scan
 with findings into a pass. Verify actual CLI reporting on the repository and
 complete small clean/violating inputs, then add the key reporter protections.
 This is a diagnostic repair, not Lisp, compiler, product or compatibility work.
+
+## P449: original-file execution on an owned controlling terminal
+
+The existing per-file runner always supplies `--batch`. Three original echo
+tests consequently skip on `noninteractive`, while a different original case
+requires that variable to be true. Keep those original guards and the retained
+batch results; neither context can be described as a zero-skip whole-file run.
+
+Add an explicit terminal display option to the same runner, retaining batch as
+the default. A fresh owned PTY, session and controlling terminal provide actual
+interactive startup with `-nw`; never bind `noninteractive` in Lisp. Preserve
+the actual slave name through the explicit `--terminal` option: the default
+controlling-device alias is not the unique name of this owned slave. Preserve
+one all-discovered-ID ERT invocation, event identities, per-case deadlines,
+process-group cleanup and sealed result/retirement receipts. Drain combined
+terminal output without blocking progress and close both PTY descriptors on
+every outcome. Bind actual noninteractive/window/terminal-name observations to
+the owned slave device; mismatches are protocol failures, not accepted skips.
+
+Use the unchanged complete simple-file overlay in this new context, plus an
+actual default-batch control. Retain both runs' original skips and avoid a
+whole-file equivalence or full compatibility claim from their union. Verify
+real normal/checking products under the existing fixed resource limits, then
+add the critical descriptor, deadline, context and default-mode protections.
+This extends the existing harness, not the editor, GUI or collector policy.
+
+The first terminal attempt retains a checking-profile undo assertion and a
+separate fixed-memory interruption before another file loaded. Avoid Python
+callbacks in a fork of the acceptance driver: a fresh small interpreter takes
+the session/controlling-terminal role and execs the editor in the same PID.
+Close inherited descriptors before exec, handle cancellation before session
+creation, and wait on readable PTY output rather than blocking its reader in a
+process wait. These changes do not establish the cause of either first-run
+failure; original evidence remains and affected terminal work needs acceptance.
+The interrupted environment contains completed native files and concurrent
+compiler work directories, so zero buffered output does not mean no editor
+execution. Keep deferred native compilation enabled but set its async job
+count to one before loading the terminal fixture, and bind the observed count
+to terminal-only metadata. The batch startup and metadata remain unchanged.
+Retain the first resource interruption separately from the undo assertion;
+serial compilation is a bounded execution configuration, not a speed claim.
+The observed diagnostic still exceeded that limit with several live compiler
+workers before the loaded event, although the completed context reported one
+configured job. Apply `OMP_THREAD_LIMIT=1` to the owned terminal environment as
+well: the documented `num-processors` override bounds the default worker count
+from startup, before command-line Lisp executes. Record the environment limit
+and observed available-processor count. Keep the original hardware and native
+capabilities; this explicit resource configuration is not a performance run.
+
+Independent review also found that the existing progress serializer calls
+`delete-char` through `json-encode`, setting the command's undo-amalgamation
+flag before the next original test. Isolate that flag and the buffer-local
+boundary cause inside the serializer's undo-disabled temporary buffer, with
+normal dynamic unwinding on encoding errors. Keep the JSON payload unchanged.
+This shared event-path correction affects batch as well as terminal execution;
+the next acceptance cohort must execute all affected files anew instead of
+reusing the earlier batch controls. Keep all prior results under their actual
+serializer/configuration identity; the observer's own JSON has the same caveat.
+The later OS contracts exposed a group-signal permission error after a probe
+exited. Reap-confirm the owned child before one group-signal retry; keep live
+or persistent permission failures fatal. This exception-only repair leaves
+successful file execution unchanged. Retain the first protection failure and
+verify the affected rejection/timeout probes; the timeout fixture must reach
+its child-publication step before testing the finite body deadline.

@@ -1,3 +1,17 @@
+## CLN188 — consumed owned-terminal state
+
+14904files/3694directories/87links,18685rows;
+239143513logical/278228992allocated bytes.
+Post-review14757files/3340dirs/87links,237159052/275931136B;
+automatic147files/354dirs/60parents,1984461/2297856B counted once.
+Nine actual pinned test copies; later links counted separately.
+All raw failures/events/logs/undo traces/source snapshots/controller receipts
+and first-failure timestamp/content anchor remain; no product/App/WIP change.
+First plan scope collision stopped before deletion; failure retained.
+
+[Report](reports/2026-11-01-188-consumed-owned-pty-state.md) ·
+[Manifest](manifests/2026-11-01-188-consumed-owned-pty-state.jsonl.gz).
+
 ## CLN187 — consumed editing-operation copies
 
 13848files/2943dirs/18links,16809rows,189664650logical/226545664allocatedB.

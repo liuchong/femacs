@@ -469,6 +469,518 @@ class StableBatchEnvironmentContracts(unittest.TestCase):
         self.assertEqual((created[0] / "partial").read_bytes(), b"failed preparation")
 
 
+class OwnedTerminalContracts(unittest.TestCase):
+    """Python control-plane probes for the owned PTY launcher/reader cleanup.
+
+    These are not editor, Lisp, native, GC, physical-UI or performance claims.
+    Every case creates retained evidence under FEMACS_RUNTIME_TEST_ROOT (or the
+    repository's build/acceptance/runtime-contracts) and uses the real
+    SUITE.case_environment/BATCH._run_file path.  The executable is only a
+    lightweight probe; it declares the protocol fields the runner checks.
+    """
+
+    _LOGICAL = "test/lisp/p449-owned-terminal-probe.el"
+    _TEST_ID = "p449-owned-terminal-probe"
+    _PAYLOAD = b"A" * (512 * 1024)
+
+    _PROBE_BODY = r'''import errno
+import json
+import os
+from pathlib import Path
+import subprocess
+import sys
+import time
+
+PROGRESS = os.environ["STABLE_SUITE_PROGRESS"]
+FILE_ID = os.environ["STABLE_SUITE_FILE_ID"]
+MODE = os.environ.get("P449_PROBE_MODE", "normal")
+INHERITED_FD = int(os.environ.get("P449_INHERITED_FD", "200"))
+TEST_ID = "p449-owned-terminal-probe"
+
+def tty_name(fd):
+    try:
+        return os.ttyname(fd)
+    except OSError:
+        return None
+
+def evidence(loaded, child=None):
+    try:
+        os.fstat(INHERITED_FD)
+        inherited_error = None
+    except OSError as exc:
+        inherited_error = errno.errorcode.get(exc.errno, str(exc.errno))
+    payload = {
+        "mode": MODE,
+        "pid": os.getpid(),
+        "sid": os.getsid(0),
+        "pgrp": os.getpgrp(),
+        "argv": sys.argv,
+        "isatty": [bool(os.isatty(i)) for i in (0, 1, 2)],
+        "ttynames": [tty_name(i) for i in (0, 1, 2)],
+        "terminal_name": tty_name(0),
+        "inherited_fd": INHERITED_FD,
+        "inherited_fd_error": inherited_error,
+        "env": {
+            "STABLE_SUITE_DISPLAY": os.environ.get("STABLE_SUITE_DISPLAY"),
+            "OMP_THREAD_LIMIT": os.environ.get("OMP_THREAD_LIMIT"),
+            "P449_PROBE_MODE": MODE,
+        },
+        "loaded": loaded,
+    }
+    if child is not None:
+        payload["child"] = child
+    Path(PROGRESS + ".probe.json").write_text(
+        json.dumps(payload, sort_keys=True), encoding="utf-8")
+
+def emit(value):
+    with open(PROGRESS, "ab", buffering=0) as stream:
+        stream.write(json.dumps(value, separators=(",", ":")).encode("utf-8") + b"\n")
+
+terminal = os.environ.get("STABLE_SUITE_DISPLAY") == "terminal"
+loaded = {
+    "event": "loaded",
+    "file": FILE_ID,
+    "selector": "all-discovered-ids",
+    "ids": [TEST_ID],
+    "tests": [{"id": TEST_ID, "tags": []}],
+}
+if terminal:
+    loaded.update({
+        "noninteractive": False,
+        "window_system": None,
+        "terminal_name": tty_name(0),
+        "native_comp_async_jobs": 1,
+        "native_comp_thread_limit": os.environ.get("OMP_THREAD_LIMIT"),
+        "available_processors": 1,
+    })
+if MODE == "mismatch":
+    loaded["terminal_name"] = "not-this-owned-tty"
+
+started = {"event": "test-started", "file": FILE_ID, "test_id": TEST_ID}
+ended = {
+    "event": "test-ended",
+    "file": FILE_ID,
+    "test_id": TEST_ID,
+    "duration": 0.001,
+    "status": "passed",
+    "expected": True,
+    "skipped": False,
+    "result_type": "ert-test-passed",
+    "diagnostic": "probe control-plane completion",
+}
+finished = {
+    "event": "finished",
+    "file": FILE_ID,
+    "status": "complete",
+    "requested_count": 1,
+    "ended_count": 1,
+}
+
+if MODE == "drain":
+    view = 0
+    data = b"A" * (512 * 1024)
+    while view < len(data):
+        view += os.write(1, data[view:view + 65536])
+
+if MODE == "timeout":
+    # Resolve the identity dependency before any sleeping child is created.
+    import psutil
+    emit(loaded)
+    emit(started)
+    child = subprocess.Popen([sys.executable, "-c", "import time; time.sleep(30)"])
+    birth = psutil.Process(child.pid).create_time()
+    evidence(loaded, {"pid": child.pid, "birth": birth})
+    time.sleep(30)
+    sys.exit(0)
+
+if MODE == "mismatch":
+    evidence(loaded)
+    emit(loaded)
+    sys.exit(0)
+
+evidence(loaded)
+emit(loaded)
+emit(started)
+emit(ended)
+emit(finished)
+sys.exit(0)
+'''
+
+    def setUp(self):
+        parent = Path(os.environ.get(
+            "FEMACS_RUNTIME_TEST_ROOT",
+            REPO / "build/acceptance/runtime-contracts"))
+        parent.mkdir(parents=True, exist_ok=True)
+        # Deliberately retained; do not use TemporaryDirectory/addCleanup/rmtree.
+        self.root = Path(tempfile.mkdtemp(prefix="owned-terminal-", dir=parent))
+        self.probe = self.root / "probe.py"
+        self.probe.write_text(
+            "#!" + sys.executable + "\n" + self._PROBE_BODY,
+            encoding="utf-8")
+        self.probe.chmod(0o755)
+
+    def _layout(self, name, mode, *, inherited_fd=200):
+        base = self.root / name
+        out = base / "out"
+        out.mkdir(parents=True)
+        test = base / "test"
+        test.mkdir()
+        context = base / "context"
+        context.mkdir()
+        lisp = base / "lisp"
+        lisp.mkdir()
+        runner = base / "runner.el"
+        runner.write_bytes(b"")
+        paths = dict(
+            program=self.probe,
+            dump_args=[],
+            runtime_env=dict(
+                P449_PROBE_MODE=mode,
+                P449_INHERITED_FD=str(inherited_fd)),
+            test_context=context,
+            lisp_root=lisp)
+        if mode == "timeout":
+            # case_environment deliberately does not inherit PYTHONPATH.
+            # Supply only the already loaded identity dependency's package
+            # root to this Python probe, never to an editor invocation.
+            import psutil
+            paths["runtime_env"]["PYTHONPATH"] = str(
+                Path(psutil.__file__).resolve().parent.parent)
+        return out, paths, test, runner
+
+    def _run(self, name, mode, *, display="terminal", timeout=3,
+             inherited_fd=200):
+        out, paths, test, runner = self._layout(
+            name, mode, inherited_fd=inherited_fd)
+        if display == "default":
+            result = BATCH._run_file(
+                SUITE, out, paths, runner, test, self._LOGICAL,
+                timeout, "probe")
+        else:
+            result = BATCH._run_file(
+                SUITE, out, paths, runner, test, self._LOGICAL,
+                timeout, "probe", display=display)
+        return result, out
+
+    def _evidence(self, out):
+        import json
+        matches = list((out / "results" / "probe").glob("*.probe.json"))
+        if len(matches) != 1:
+            self.fail("expected one probe evidence file, got %r" % (matches,))
+        return json.loads(matches[0].read_text(encoding="utf-8"))
+
+    def _read_log(self, out, result, key):
+        return (out / result[key]).read_bytes()
+
+    def _assert_owner(self, out, result):
+        receipt = out / result["state_retirement_receipt"]["path"]
+        self.assertTrue(receipt.is_file())
+        self.assertEqual(sha256(receipt.read_bytes()),
+                         result["state_retirement_receipt"]["sha256"])
+        sealed = out / result["file_result"]["path"]
+        self.assertEqual(sha256(sealed.read_bytes()), result["file_result"]["sha256"])
+        self.assertEqual(
+            receipt.stat().st_size,
+            result["state_retirement_receipt"]["bytes"])
+
+    def _high_fd(self):
+        import errno
+        limit = os.sysconf("SC_OPEN_MAX")
+        for fd in range(200, min(int(limit), 400)):
+            try:
+                os.fstat(fd)
+            except OSError as error:
+                if error.errno != errno.EBADF:
+                    raise
+                return fd
+        self.fail("no free high descriptor for inherited-FD probe")
+
+    def _child_is_alive(self, pid, birth):
+        import psutil
+        try:
+            process = psutil.Process(pid)
+            return (process.create_time() == birth
+                    and process.status() != psutil.STATUS_ZOMBIE)
+        except psutil.NoSuchProcess:
+            return False
+
+    def _child_alive(self, pid, birth, timeout=2.0):
+        end = time.monotonic() + timeout
+        while time.monotonic() < end:
+            if not self._child_is_alive(pid, birth):
+                return False
+            time.sleep(0.02)
+        return True
+
+    def test_terminal_has_owned_tty_session_and_no_inherited_fd(self):
+        source = os.open(os.devnull, os.O_RDONLY)
+        try:
+            fd = self._high_fd()
+            os.dup2(source, fd, inheritable=True)
+            self.assertTrue(os.get_inheritable(fd))
+        finally:
+            os.close(source)
+        try:
+            result, out = self._run(
+                "owned-tty", "normal", inherited_fd=fd)
+            evidence = self._evidence(out)
+            self.assertTrue(result["complete"])
+            self.assertTrue(result["passed"])
+            self.assertEqual(result["exit_code"], 0)
+            self.assertEqual(result["pid"], evidence["pid"])
+            self.assertEqual(evidence["sid"], evidence["pid"])
+            self.assertEqual(evidence["pgrp"], evidence["pid"])
+            self.assertEqual(evidence["isatty"], [True, True, True])
+            self.assertEqual(
+                len(set(evidence["ttynames"])), 1)
+            self.assertEqual(
+                evidence["ttynames"][0], evidence["terminal_name"])
+            self.assertEqual(
+                evidence["terminal_name"],
+                evidence["loaded"]["terminal_name"])
+            self.assertEqual(
+                result["execution_context"]["owned_terminal_name"],
+                evidence["terminal_name"])
+            self.assertEqual(
+                result["execution_context"]["terminal_name"],
+                evidence["terminal_name"])
+            self.assertEqual(
+                result["execution_context"]["native_comp_async_jobs"], 1)
+            self.assertEqual(
+                result["execution_context"]["native_comp_thread_limit"], "1")
+            self.assertEqual(
+                result["execution_context"]["available_processors"], 1)
+            self.assertEqual(evidence["env"]["OMP_THREAD_LIMIT"], "1")
+            self.assertEqual(evidence["inherited_fd"], fd)
+            self.assertEqual(evidence["inherited_fd_error"], "EBADF")
+            self.assertEqual(
+                result["state_retirement"]["status"], "complete")
+            self._assert_owner(out, result)
+        finally:
+            try:
+                os.close(fd)
+            except OSError:
+                pass
+
+    def test_default_batch_keeps_original_context(self):
+        before = os.environ.get("STABLE_SUITE_DISPLAY")
+        out, paths, test, runner = self._layout("default-batch", "batch")
+        paths["runtime_env"]["OMP_THREAD_LIMIT"] = "7"
+        with mock.patch.dict(
+                os.environ, {"STABLE_SUITE_DISPLAY": "terminal"}, clear=False):
+            result = BATCH._run_file(
+                SUITE, out, paths, runner, test, self._LOGICAL, 3, "probe")
+        self.assertEqual(os.environ.get("STABLE_SUITE_DISPLAY"), before)
+        evidence = self._evidence(out)
+        self.assertTrue(result["complete"])
+        self.assertTrue(result["passed"])
+        self.assertNotIn("execution_context", result)
+        self.assertNotIn("noninteractive", evidence["loaded"])
+        self.assertNotIn("terminal_name", evidence["loaded"])
+        self.assertNotIn("native_comp_async_jobs", evidence["loaded"])
+        self.assertIsNone(evidence["env"]["STABLE_SUITE_DISPLAY"])
+        self.assertEqual(evidence["env"]["OMP_THREAD_LIMIT"], "7")
+        self.assertEqual(evidence["isatty"], [False, False, False])
+        self.assertIn("--batch", result["argv"])
+        self.assertIn("-Q", result["argv"])
+        self.assertNotIn("-nw", result["argv"])
+        self.assertNotIn("--terminal", result["argv"])
+        self.assertNotIn("--eval", result["argv"])
+        self.assertEqual(result["state_retirement"]["status"], "complete")
+        self._assert_owner(out, result)
+
+    def test_terminal_drains_more_than_pty_buffer(self):
+        result, out = self._run("drained-pty", "drain")
+        evidence = self._evidence(out)
+        stdout = self._read_log(out, result, "stdout_log")
+        stderr = self._read_log(out, result, "stderr_log")
+        self.assertTrue(result["complete"])
+        self.assertTrue(result["passed"])
+        self.assertEqual(result["exit_code"], 0)
+        self.assertEqual(stdout, self._PAYLOAD)
+        self.assertEqual(stderr, b"")
+        self.assertGreaterEqual(
+            result["execution_context"]["terminal_output_bytes"],
+            len(self._PAYLOAD))
+        self.assertEqual(
+            result["execution_context"]["terminal_output_bytes"],
+            len(stdout))
+        self.assertEqual(evidence["isatty"], [True, True, True])
+        self.assertEqual(result["state_retirement"]["status"], "complete")
+        self._assert_owner(out, result)
+
+    def test_terminal_timeout_reaps_owned_child(self):
+        # Allow the fresh interpreter to load and publish the child identity.
+        # The same finite limit is reset at test-started; the body sleeps 30s.
+        result, out = self._run("timeout-reap", "timeout", timeout=3)
+        evidence = self._evidence(out)
+        child = evidence.get("child")
+        self.assertIsNotNone(child)
+        self.assertTrue(result["timed_out"])
+        self.assertFalse(result["complete"])
+        self.assertFalse(result["passed"])
+        self.assertIsNone(result["protocol_error"])
+        self.assertIsNotNone(result["exit_code"])
+        self.assertEqual(
+            result["state_retirement"]["status"], "retained")
+        self._assert_owner(out, result)
+        pid = child["pid"]
+        birth = child["birth"]
+        try:
+            self.assertFalse(
+                self._child_alive(pid, birth),
+                "owned sleeping child survived timeout cleanup")
+        finally:
+            if self._child_is_alive(pid, birth):
+                os.kill(pid, 9)
+
+    def test_terminal_context_mismatch_is_retained(self):
+        result, out = self._run("context-mismatch", "mismatch")
+        evidence = self._evidence(out)
+        self.assertFalse(result["complete"])
+        self.assertFalse(result["passed"])
+        self.assertIsNotNone(result["protocol_error"])
+        self.assertIsNotNone(result["exit_code"])
+        self.assertEqual(
+            result["state_retirement"]["status"], "retained")
+        self.assertFalse(result["cases"].get(self._TEST_ID, {}).get(
+            "assessment", {}).get("passed", False))
+        self.assertEqual(
+            evidence["loaded"]["terminal_name"], "not-this-owned-tty")
+        self._assert_owner(out, result)
+
+        out, paths, test, runner = self._layout(
+            "unsupported-display", "normal")
+        bad = out.parent / "unsupported-out"
+        with self.assertRaises(SUITE.SuiteError):
+            BATCH._run_file(
+                SUITE, bad, paths, runner, test, self._LOGICAL,
+                0.1, "probe", display="unsupported")
+        self.assertFalse((bad / "logs").exists())
+        self.assertFalse((bad / "results").exists())
+
+    def test_cancel_before_launcher_setsid_kills_pid(self):
+        import errno
+        import pty
+
+        class FakeProcess:
+            pid = 999999
+
+            def __init__(self):
+                self.returncode = None
+                self.kills = 0
+                self.waits = 0
+
+            def poll(self):
+                return None
+
+            def kill(self):
+                self.kills += 1
+
+            def wait(self):
+                self.waits += 1
+                self.returncode = -9
+                return -9
+
+        fake = FakeProcess()
+        fds = []
+        real_openpty = pty.openpty
+
+        def openpty():
+            master, slave = real_openpty()
+            fds.extend([master, slave])
+            return master, slave
+
+        out, paths, test, runner = self._layout("cancel-before-setsid", "normal")
+        with mock.patch.object(pty, "openpty", side_effect=openpty), \
+                mock.patch.object(
+                    BATCH.subprocess, "Popen", return_value=fake) as popen, \
+                mock.patch.object(
+                    BATCH.os, "killpg",
+                    side_effect=ProcessLookupError) as killpg, \
+                mock.patch.object(
+                    BATCH.time, "monotonic",
+                    side_effect=iter((0.0, 10.0, 10.1, 10.2))):
+            result = BATCH._run_file(
+                SUITE, out, paths, runner, test, self._LOGICAL,
+                0.25, "probe", display="terminal")
+        popen.assert_called_once()
+        killpg.assert_called_once()
+        self.assertEqual(fake.kills, 1)
+        self.assertEqual(fake.waits, 1)
+        self.assertEqual(result["pid"], fake.pid)
+        self.assertTrue(result["timed_out"])
+        self.assertFalse(result["complete"])
+        self.assertFalse(result["passed"])
+        self.assertEqual(
+            result["state_retirement"]["status"], "retained")
+        self._assert_owner(out, result)
+        self.assertEqual(len(fds), 2)
+        for descriptor in fds:
+            with self.assertRaises(OSError) as raised:
+                os.fstat(descriptor)
+            self.assertEqual(raised.exception.errno, errno.EBADF)
+
+    def test_permission_retry_requires_reaped_child_and_stays_bounded(self):
+        import errno
+        import itertools
+        import pty
+
+        class Process:
+            pid = 999997
+
+            def __init__(self, code):
+                self.returncode = code
+                self.kills = self.waits = 0
+
+            def poll(self):
+                return self.returncode
+
+            def kill(self):
+                self.kills += 1
+
+            def wait(self):
+                self.waits += 1
+                return self.returncode
+
+        real_openpty = pty.openpty
+        scenarios = (("exited", 0, [PermissionError, ProcessLookupError], False),
+                     ("live", None, [PermissionError], True),
+                     ("persistent", 0, [PermissionError, PermissionError], True))
+        for name, code, signals, rejected in scenarios:
+            with self.subTest(name=name):
+                process = Process(code)
+                descriptors = []
+
+                def allocate():
+                    pair = real_openpty()
+                    descriptors.extend(pair)
+                    return pair
+
+                out, paths, test, runner = self._layout(name, "normal")
+                with mock.patch.object(pty, "openpty", side_effect=allocate), \
+                        mock.patch.object(BATCH.subprocess, "Popen", return_value=process), \
+                        mock.patch.object(BATCH.os, "killpg", side_effect=signals) as group, \
+                        mock.patch.object(BATCH.time, "monotonic", side_effect=itertools.count()):
+                    if rejected:
+                        with self.assertRaises(PermissionError):
+                            BATCH._run_file(SUITE, out, paths, runner, test,
+                                            self._LOGICAL, .25, "probe", display="terminal")
+                    else:
+                        result = BATCH._run_file(SUITE, out, paths, runner, test,
+                                                 self._LOGICAL, .25, "probe", display="terminal")
+                        self.assertFalse(result["complete"])
+                        self.assertFalse(result["passed"])
+                        self.assertEqual(process.waits, 1)
+                    self.assertEqual(group.call_count, len(signals))
+                    self.assertEqual(process.kills, 0)
+                self.assertEqual(len(descriptors), 2)
+                for descriptor in descriptors:
+                    with self.assertRaises(OSError) as error:
+                        os.fstat(descriptor)
+                    self.assertEqual(error.exception.errno, errno.EBADF)
+
+
 if __name__ == "__main__":
     import json
     parent = Path(os.environ.get("FEMACS_RUNTIME_TEST_ROOT", REPO / "build/acceptance/runtime-contracts"))

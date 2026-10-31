@@ -71,7 +71,8 @@
       (error "missing environment variable %s" name)))
 
 (defun stable-suite--environment ()
-  (list
+  (append
+   (list
    (cons "emacs_version" (emacs-version))
    (cons "system_configuration" system-configuration)
    (cons "configuration_features" system-configuration-features)
@@ -83,7 +84,15 @@
                               window-system
                               (format "%s" window-system)))
    (cons "features"
-         (sort (mapcar #'symbol-name features) #'string<))))
+         (sort (mapcar #'symbol-name features) #'string<)))
+   (when (equal (getenv "STABLE_SUITE_DISPLAY") "terminal")
+     (list (cons "noninteractive" (if noninteractive t :json-false))
+           (cons "terminal_name" (unless noninteractive (terminal-name)))
+           (cons "native_comp_async_jobs"
+                 (and (boundp 'native-comp-async-jobs-number)
+                      native-comp-async-jobs-number))
+           (cons "native_comp_thread_limit" (getenv "OMP_THREAD_LIMIT"))
+           (cons "available_processors" (num-processors))))))
 
 (defun stable-suite--registered-ids ()
   (let (ids)
@@ -226,9 +235,14 @@
   (let ((coding-system-for-write 'utf-8-unix)
         (json-encoding-pretty-print nil))
     (with-temp-buffer
-      (insert (json-encode payload) "\n")
-      (write-region (point-min) (point-max)
-                    (stable-suite--env "STABLE_SUITE_PROGRESS") t 'silent))))
+      ;; json-encode uses delete-char, which calls undo-auto-amalgamate even
+      ;; in this undo-disabled buffer. Do not leak its command flag into
+      ;; the next original test or let it amalgamate another buffer's undo.
+      (let ((undo-auto--this-command-amalgamating nil)
+            (undo-auto--last-boundary-cause nil))
+        (insert (json-encode payload) "\n")
+        (write-region (point-min) (point-max)
+                      (stable-suite--env "STABLE_SUITE_PROGRESS") t 'silent)))))
 
 (defun stable-suite--batch ()
   "Use original per-file ERT execution, selecting every discovered ID."

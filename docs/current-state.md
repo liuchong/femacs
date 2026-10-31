@@ -1,3 +1,23 @@
+## 2026-11-01: P449 owned terminal and CLN188
+
+P449 owned controlling-terminal execution and shared progress-state isolation
+are independently reviewed.18new/0reused file processes:513observations,
+504ordinary+9original skips,0unexpected; raw false/controller exit1 remain.
+Nine batch marker and nine PTY simple files bind installed31.1 plus eight
+current normal/checking major/young profiles; four actual candidate products.
+Terminal-only OMP_THREAD_LIMIT=1,async jobs1; default batch available.
+Final serializer isolates undo command flag/boundary cause, including unwind.
+7OS+27VM protections form a four-run union; first EPERM/timeout and second
+missing-psutil failures retained. AST-only exception-handler reuse is explicit.
+Original undo failure/two memory interruptions and context-changing diagnostics
+remain; first_unexpected_undo_resolved=false, original_concurrency_accepted=false.
+CLN188:14904files/3694dirs/87links,18685rows,239143513/278228992B;
+automatic147files/354dirs/60parents counted once. First timestamp anchor retained.
+No VM/build/App change, fullG3/ERT/native/collector/performance/UI adoption.
+G1/G2/G4 remain3/7; Goal active. Next: separate repeated-message format fix.
+
+[Report](../maintenance/releases/2026-11-01-owned-pty-execution.md).
+
 ## Current original editing operations (2026-10-31)
 
 Seven complete unchanged pinned files,reference31.1 +8current native/observer/

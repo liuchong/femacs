@@ -2,15 +2,31 @@
 from __future__ import annotations
 
 import hashlib
+import errno
 import json
 import math
 import os
 from pathlib import Path
 import signal
+import select
 import subprocess
+import sys
 import tempfile
 import time
 import uuid
+
+
+# Keep Python out of the forked, potentially large acceptance-driver image.
+# These Popen arguments permit the standard library's posix_spawn path.  The
+# fresh interpreter becomes the session leader, attaches the slave and execs
+# the editor in the same PID; it never starts a second persistent process.
+_PTY_EXEC = """import fcntl, os, sys, termios
+os.setsid()
+fcntl.ioctl(0, termios.TIOCSCTTY, 0)
+os.chdir(sys.argv[1])
+os.closerange(3, os.sysconf('SC_OPEN_MAX'))
+os.execv(sys.argv[2], sys.argv[2:])
+"""
 
 
 def select_entrypoints(manifest):
@@ -60,7 +76,12 @@ def _record_retirement(api, final_path, result):
         bytes=receipt.stat().st_size)
 
 
-def _run_file(api, out, paths, runner, test_root, logical, timeout, label):
+def _run_file(api, out, paths, runner, test_root, logical, timeout, label,
+              *, display='batch'):
+    if not isinstance(display, str) or display not in {'batch', 'terminal'}:
+        raise api.SuiteError('unsupported original-file execution display')
+    if display == 'terminal' and os.name != 'posix':
+        raise api.SuiteError('controlling terminal execution requires POSIX')
     safe = api._safe_component(logical)
     logs = out / 'logs' / label
     results = out / 'results' / label
@@ -117,15 +138,32 @@ def _run_file(api, out, paths, runner, test_root, logical, timeout, label):
         raise
     preparation_path.write_text(json.dumps(preparation, indent=2)+'\n', encoding='utf-8')
     environment.update(PATH=os.environ.get('PATH', os.defpath), LC_ALL='C', LANG='C',
-        TERM='dumb', PWD=str(cwd), EMACS_TEST_DIRECTORY=str(test_root),
+        TERM='xterm-256color' if display == 'terminal' else 'dumb',
+        PWD=str(cwd), EMACS_TEST_DIRECTORY=str(test_root),
         FEMACS_RUNTIME_TEST_ROOT=str(case_root), STABLE_SUITE_MODE='batch',
         STABLE_SUITE_FILE=str(out / logical), STABLE_SUITE_FILE_ID=logical,
         STABLE_SUITE_PROGRESS=str(progress_path), STABLE_SUITE_RESULT=str(final_path))
     environment.update(paths.get('runtime_env', {}))
+    if display == 'terminal':
+        environment['STABLE_SUITE_DISPLAY'] = 'terminal'
+        # num-processors honors this limit before command-line Lisp runs.
+        # Its default native-worker policy uses half that available count.
+        environment['OMP_THREAD_LIMIT'] = '1'
+    else:
+        environment.pop('STABLE_SUITE_DISPLAY', None)
     environment.update(STABLE_SUITE_SOURCE_CONTEXT=str(paths['test_context']),
                        STABLE_SUITE_PRODUCT_LISP=str(paths['lisp_root']))
-    argv = [str(paths['program']), *paths['dump_args'], '--batch', '-Q',
+    display_args = ['--batch', '-Q'] if display == 'batch' else ['-nw', '-Q', '--no-splash']
+    if display == 'terminal':
+        # Interactive startup enables deferred native compilation. Keep it
+        # real but serial within this runner's bounded process tree; zero
+        # otherwise selects half the host's CPUs before loading the fixture.
+        display_args.extend(['--eval', '(setq native-comp-async-jobs-number 1)'])
+    argv = [str(paths['program']), *paths['dump_args'], *display_args,
             '-L', str(test_root), '-l', str(runner), '-f', 'stable-suite-main']
+    if display == 'terminal':
+        # Unlike batch startup, interactive startup does not exit after -f.
+        argv.extend(['--eval', '(kill-emacs 0)'])
     loaded = None
     finished = None
     active = None
@@ -136,6 +174,10 @@ def _run_file(api, out, paths, runner, test_root, logical, timeout, label):
     timed_out = False
     remaining_group_terminated = False
     process = None
+    terminal_master = None
+    terminal_slave = None
+    terminal_name = None
+    terminal_output_bytes = 0
     started = time.monotonic()
     deadline = started + timeout
     pending = b''
@@ -159,6 +201,14 @@ def _run_file(api, out, paths, runner, test_root, logical, timeout, label):
                     or [test.get('id') for test in tests] != ids):
                 raise api.SuiteError('invalid/duplicate per-file registration')
             loaded = value
+            if display == 'terminal' and (
+                    value.get('noninteractive') is not False
+                    or value.get('window_system') is not None
+                    or value.get('terminal_name') != terminal_name
+                    or value.get('native_comp_async_jobs') != 1
+                    or value.get('native_comp_thread_limit') != '1'
+                    or value.get('available_processors') != 1):
+                raise api.SuiteError('original-file context is not the owned interactive terminal')
         elif event == 'test-started':
             identity = value.get('test_id')
             if (loaded is None or active is not None or identity not in loaded['ids']
@@ -191,13 +241,56 @@ def _run_file(api, out, paths, runner, test_root, logical, timeout, label):
         # A new case gets its own original timeout, not a whole-file extension.
         deadline = time.monotonic() + timeout
 
+    def drain_terminal(output):
+        nonlocal terminal_output_bytes
+        # Bound each drain so continuous human output cannot starve the
+        # machine progress/deadline checks.  No terminal input is injected.
+        for _ in range(4):
+            if not select.select([terminal_master], [], [], 0)[0]:
+                break
+            try:
+                block = os.read(terminal_master, 65536)
+            except BlockingIOError:
+                break
+            except OSError as error:
+                if error.errno == errno.EIO:  # The last slave has closed.
+                    break
+                raise
+            if not block:
+                break
+            output.write(block)
+            terminal_output_bytes += len(block)
+
     try:
         with progress_path.open('xb'):
             pass
         with progress_path.open('rb') as progress, stdout_path.open('xb') as stdout, stderr_path.open('xb') as stderr:
-            process = subprocess.Popen(argv, cwd=cwd, env=environment,
-                stdin=subprocess.DEVNULL, stdout=stdout, stderr=stderr, start_new_session=True)
+            if display == 'terminal':
+                import fcntl
+                import pty
+                import struct
+                import termios
+                terminal_master, terminal_slave = pty.openpty()
+                terminal_name = os.ttyname(terminal_slave)
+                # With no explicit device the editor names its terminal by
+                # the controlling-device alias, not by this slave's name.
+                argv[1:1] = ['--terminal', terminal_name]
+                fcntl.ioctl(terminal_slave, termios.TIOCSWINSZ, struct.pack('HHHH', 24, 80, 0, 0))
+                os.set_blocking(terminal_master, False)
+
+                process = subprocess.Popen(
+                    [sys.executable, '-c', _PTY_EXEC, str(cwd), *argv],
+                    env=environment, close_fds=False,
+                    stdin=terminal_slave, stdout=terminal_slave, stderr=terminal_slave,
+                )
+                os.close(terminal_slave)
+                terminal_slave = None
+            else:
+                process = subprocess.Popen(argv, cwd=cwd, env=environment,
+                    stdin=subprocess.DEVNULL, stdout=stdout, stderr=stderr, start_new_session=True)
             while True:
+                if terminal_master is not None:
+                    drain_terminal(stdout)
                 block = progress.read(262144)
                 if block:
                     pending += block
@@ -219,22 +312,48 @@ def _run_file(api, out, paths, runner, test_root, logical, timeout, label):
                     timed_out = True
                     timed_out_id = active
                     break
-                try:
-                    process.wait(timeout=.05)
-                except subprocess.TimeoutExpired:
-                    pass
-    except (OSError, ValueError, api.SuiteError) as error:
+                if terminal_master is not None:
+                    # Wake on output instead of blocking its reader for the
+                    # whole process-wait interval during interactive redisplay.
+                    select.select([terminal_master], [], [], .05)
+                else:
+                    try:
+                        process.wait(timeout=.05)
+                    except subprocess.TimeoutExpired:
+                        pass
+            if terminal_master is not None:
+                drain_terminal(stdout)
+    except (OSError, ValueError, subprocess.SubprocessError, api.SuiteError) as error:
         protocol_error = str(error)
     finally:
-        if process is not None:
-            try:
-                os.killpg(process.pid, signal.SIGKILL)
-                # A deliberately timed-out/protocol-error process is not a
-                # successful parent with unexplained surviving descendants.
-                remaining_group_terminated = not timed_out and protocol_error is None
-            except ProcessLookupError:
-                pass
-            process.wait()
+        try:
+            if process is not None:
+                try:
+                    os.killpg(process.pid, signal.SIGKILL)
+                    # A deliberately timed-out/protocol-error process is not a
+                    # successful parent with unexplained surviving descendants.
+                    remaining_group_terminated = not timed_out and protocol_error is None
+                except ProcessLookupError:
+                    # Cancellation can precede the fresh launcher's setsid.
+                    # It has no children before exec, so also reap that PID.
+                    if process.poll() is None:
+                        process.kill()
+                except PermissionError:
+                    # A terminating group leader may not yet have been reaped.
+                    # Retry only after waitpid confirms that our child exited;
+                    # a live-child or persistent permission error stays fatal.
+                    if process.poll() is None:
+                        raise
+                    try:
+                        os.killpg(process.pid, signal.SIGKILL)
+                        remaining_group_terminated = not timed_out and protocol_error is None
+                    except ProcessLookupError:
+                        pass
+                process.wait()
+        finally:
+            for descriptor in (terminal_slave, terminal_master):
+                if descriptor is not None:
+                    os.close(descriptor)
     complete = (process is not None and process.returncode == 0 and not timed_out
         and protocol_error is None and not remaining_group_terminated
         and loaded is not None and finished is not None
@@ -270,6 +389,16 @@ def _run_file(api, out, paths, runner, test_root, logical, timeout, label):
         environment_preparation=str(preparation_path.relative_to(out)),
         state_retirement_path=str(final_path.with_name(
             final_path.stem + '.owner-retirement.json').relative_to(out)))
+    if display == 'terminal':
+        result['execution_context'] = dict(display=display,
+            noninteractive=loaded.get('noninteractive') if loaded else None,
+            window_system=loaded.get('window_system') if loaded else None,
+            terminal_name=loaded.get('terminal_name') if loaded else None,
+            owned_terminal_name=terminal_name, io_layout='combined-pty',
+            terminal_output_bytes=terminal_output_bytes,
+            native_comp_async_jobs=loaded.get('native_comp_async_jobs') if loaded else None,
+            native_comp_thread_limit=loaded.get('native_comp_thread_limit') if loaded else None,
+            available_processors=loaded.get('available_processors') if loaded else None)
     final_path.write_text(json.dumps(result, indent=2)+'\n', encoding='utf-8')
     result['file_result'] = dict(path=str(final_path.relative_to(out)),
                                sha256=api._sha256_path(final_path), bytes=final_path.stat().st_size)
