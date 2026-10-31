@@ -1,3 +1,21 @@
+## Current original editing operations (2026-10-31)
+
+Seven complete unchanged pinned files,reference31.1 +8current native/observer/
+collector normal/checking profiles:63completeexit0 processes,1,017observations
+=990ordinary+27original batch echo skips,zero expected/unexpected failures.
+IDs/tags/status/outcome maps match;raw passed=false/ownerexit1 remain.
+Replace29=15literal+14generated;simple54 includes3unexecuted echo bodies/context.
+Four actual products reused;411runtime/build and full source/product/App/input
+before-after checks match. Frozen7,459inputs includeWIP,not cleanHEAD.
+Simple72shell calls/context648total;child dump not independently fingerprinted.
+Simulated input is not physicalUI;18automatic native files occurred in replace.
+Driver88.436s,30s cases/600s owner/1GiB fixed;controller primary-only.
+CLN187:13848files/2943dirs/18links,16809rows,189664650/226545664B;
+auto18files/567dirs/108parents count once. Empty retained simple dirs retired
+after release;original retained receipts unchanged. Evidence/products/WIP remain.
+WholeERT/fullG3/G5/G6/G7/performance/App open;G1/G2/G4 stay3/7,Goalactive.
+[Delivery](../maintenance/releases/2026-10-31-current-editing-operations.md).
+
 ## Current original syntax/faceup/EIEIO coverage (2026-10-31)
 
 Five unchanged complete files on installed reference +eight current native,

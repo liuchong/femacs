@@ -1,3 +1,17 @@
+## CLN187 — consumed editing-operation copies
+
+13848files/2943dirs/18links,16809rows,189664650logical/226545664allocatedB.
+Postreview13830/2376/18;auto18files/567dirs/108parents,616544/663552B count once.
+Nine pinned copies,nine confirmed-empty retained simple trees,18context links,
+four adopted helpers/two exact native handoff duplicates retired after review.
+Original container dev/inode and occupancy checked,all pre-delete identities
+sealed,32448intent/outcome rows. Original retained receipts/raw/evidence stay.
+545kept files/34inputs/9fullproducts/HEAD/index/WIP unchanged;no build paths selected.
+Postseal7.532473s excludes preflight;no inode/identical-helper-byte/df claim.
+Reconstruct from pinned/native/signed sources;retain unique replay/failures/products.
+[Report](reports/2026-10-31-187-consumed-current-editing-operations-state.md) ·
+[Manifest](manifests/2026-10-31-187-consumed-current-editing-operations-state.jsonl.gz).
+
 ## CLN186 — consumed current syntax/faceup/EIEIO copies
 
 13830files/2736directories/18links,16584rows,188993126logical/225824768allocatedB.

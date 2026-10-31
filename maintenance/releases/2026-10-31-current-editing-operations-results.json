@@ -1,0 +1,3938 @@
+{
+  "schema": "femacs-current-editing-operations-delivery-v1",
+  "passed": false,
+  "original_functional_passed": false,
+  "outcome_contract_passed": true,
+  "execution_complete": true,
+  "limited_observations_accepted": true,
+  "full_g3_accepted": false,
+  "whole_ert_accepted": false,
+  "compatibility_accepted": false,
+  "performance_accepted": false,
+  "editor_accepted": false,
+  "trial_app_promoted": false,
+  "collector_cycle_coverage_claimed": false,
+  "goal_complete": false,
+  "source_commit": "a360712c9d272d950d8d8255ef74570f7e90b7d9",
+  "runtime_source_sha256": {
+    "src/alloc.rs": "564e9377279426cf6ca2ba70e89b797a98a5a5737d677df1e4fedd09eb41fa55",
+    "src/runtime_gc_collector.rs": "aa1ca1ef6d2e79388674ea9c879ca7ed2388bca5d2482b6dcfc2b9fe502a5020"
+  },
+  "source_export": {
+    "files": 7459,
+    "source_manifest_sha256": "b43b779a93e6670a5b4f9b1b1e5f89dbe95bdc6a7e90208e1d9e8d208e0f67ae",
+    "verified_before": true,
+    "verified_after": true,
+    "includes_wip": true,
+    "clean_head": false
+  },
+  "runtime_build_inputs_before": {
+    "passed": true,
+    "files": 411,
+    "canonical_identity_sha256": "a4eacac1418c388213fbcc7ad18a3c3aa87aa4b242962c96c12a08e8f7502e31"
+  },
+  "runtime_build_inputs_after": {
+    "passed": true,
+    "files": 411,
+    "canonical_identity_sha256": "a4eacac1418c388213fbcc7ad18a3c3aa87aa4b242962c96c12a08e8f7502e31"
+  },
+  "driver": {
+    "sha256": "85736560c7f4aec9f9ae5e76b5de1e0b66ef5af3fcda48bfe3f8b1cdf31dc780",
+    "bytes": 16381,
+    "retained_privately": true
+  },
+  "raw": {
+    "path": "build/acceptance/g3-current-editing-operations-1/results.json",
+    "sha256": "b6428bd9e6f6682d3f3825f699bc18c4be76e5a180d971aa56bfa0f347946183",
+    "bytes": 1879925
+  },
+  "budget": {
+    "whole_seconds": 600,
+    "per_load_or_case_seconds": 30,
+    "expected_seconds": [
+      60,
+      300
+    ],
+    "expected_peak_bytes": 536870912,
+    "requested_hard_memory_bytes": 1073741824,
+    "requested_memory_growth": false,
+    "file_processes": 63,
+    "selected_case_product_observations": 1017,
+    "scale": "9contexts x7complete files,113IDs/context:buff-menu1/register2/subword2/thingatpt17/replace29/repeat8/simple54. replace15literal+14occur-generated. Small fixed strings/buffers,finite simulated input. Simple has72child product starts/context (50+20sync,2async),648total; async child sleep8s and wait4s, original unwind deletes it. Three original noninteractive skips/context,27total. Buff-menu creates one isolated temp file/context. No network/requested build; automatic native trampolines may compile privately. Child dump bytes are not separately fingerprinted."
+  },
+  "seconds": 88.436087417,
+  "file_processes": 63,
+  "observations": 1017,
+  "ordinary_passes": 990,
+  "original_skips": 27,
+  "expected_failures": 0,
+  "unexpected": 0,
+  "ids_per_context": 113,
+  "contexts": 9,
+  "physical_candidate_products": 4,
+  "candidate_execution_profiles": 8,
+  "original_skip_ids": [
+    "eval-expression-print-format-large-int-echo",
+    "eval-expression-print-format-small-int-echo",
+    "eval-expression-print-format-sym-echo"
+  ],
+  "expected_id_sets": {
+    "test/lisp/buff-menu-tests.el": [
+      "buff-menu-24962"
+    ],
+    "test/lisp/register-tests.el": [
+      "register--jumpable-p",
+      "register-test-bug27634"
+    ],
+    "test/lisp/progmodes/subword-tests.el": [
+      "subword-tests",
+      "subword-tests2"
+    ],
+    "test/lisp/thingatpt-tests.el": [
+      "bounds-of-thing-at-point-providers",
+      "consecutive-things-at-point",
+      "forward-thing-providers",
+      "test-numbers-decimal",
+      "test-numbers-hex-c",
+      "test-numbers-hex-lisp",
+      "test-numbers-none",
+      "test-symbol-thing-1",
+      "test-symbol-thing-2",
+      "test-symbol-thing-3",
+      "test-symbol-thing-4",
+      "thing-at-point-bounds-of-list-at-point",
+      "thing-at-point-looking-at",
+      "thing-at-point-looking-at-overlapping-matches",
+      "thing-at-point-providers",
+      "thing-at-point-tests",
+      "thing-at-point-url-in-comment"
+    ],
+    "test/lisp/replace-tests.el": [
+      "occur-highlight-occurrence",
+      "occur-test-00",
+      "occur-test-01",
+      "occur-test-02",
+      "occur-test-03",
+      "occur-test-04",
+      "occur-test-05",
+      "occur-test-06",
+      "occur-test-07",
+      "occur-test-08",
+      "occur-test-09",
+      "occur-test-10",
+      "occur-test-11",
+      "occur-test-12",
+      "occur-test-13",
+      "perform-replace-tests",
+      "query-replace--split-string-tests",
+      "query-replace--undo",
+      "query-replace-search-function-tests",
+      "query-replace-tests",
+      "query-replace-undo-bug31073",
+      "query-replace-undo-bug31492",
+      "query-replace-undo-bug31538",
+      "query-replace-undo-bug37073",
+      "query-replace-undo-bug37287",
+      "replace-occur-revert-bug32543",
+      "replace-occur-revert-bug32987",
+      "replace-regexp-bug45973",
+      "test-count-matches"
+    ],
+    "test/lisp/repeat-tests.el": [
+      "repeat-tests-bind-keys",
+      "repeat-tests-check-key",
+      "repeat-tests-continue",
+      "repeat-tests-continue-another",
+      "repeat-tests-exit-command",
+      "repeat-tests-exit-key",
+      "repeat-tests-hints",
+      "repeat-tests-keep-prefix"
+    ],
+    "test/lisp/simple-tests.el": [
+      "auto-fill-mode-no-break-before-length-of-fill-prefix",
+      "command-execute-prune-command-history",
+      "eval-expression-print-format-large-int",
+      "eval-expression-print-format-large-int-echo",
+      "eval-expression-print-format-small-int",
+      "eval-expression-print-format-small-int-echo",
+      "eval-expression-print-format-sym",
+      "eval-expression-print-format-sym-echo",
+      "kill-whole-line-after-other-kill",
+      "kill-whole-line-buffer-boundaries",
+      "kill-whole-line-invisible",
+      "kill-whole-line-line-boundaries",
+      "kill-whole-line-read-only",
+      "line-number-at-pos-in-narrow-buffer",
+      "line-number-at-pos-in-widen-buffer",
+      "line-number-at-pos-keeps-point",
+      "line-number-at-pos-keeps-restriction",
+      "line-number-at-pos-when-passing-point",
+      "missing-record-point-in-undo",
+      "newline",
+      "newline-indent",
+      "open-line",
+      "open-line-hook",
+      "open-line-indent",
+      "open-line-margin-and-prefix",
+      "simple-delete-indentation-blank-line",
+      "simple-delete-indentation-boundaries",
+      "simple-delete-indentation-inactive-region",
+      "simple-delete-indentation-no-region",
+      "simple-delete-indentation-prefix",
+      "simple-delete-indentation-region",
+      "simple-delete-trailing-whitespace--bug-21766",
+      "simple-delete-trailing-whitespace--formfeeds",
+      "simple-execute-extended-command--describe-binding-msg",
+      "simple-execute-extended-command--shorter",
+      "simple-test-count-lines",
+      "simple-test-count-lines/ignore-invisible-lines",
+      "simple-test-count-words-bug-41761",
+      "simple-test-undo-extra-boundary-in-tex",
+      "simple-tests--undo",
+      "simple-tests--undo-apply",
+      "simple-tests--undo-equiv-table",
+      "simple-tests--undo-in-region",
+      "simple-tests-async-shell-command-30280",
+      "simple-tests-shell-command-39067",
+      "simple-tests-shell-command-dont-erase-buffer",
+      "simple-tests-zap-to-char",
+      "simple-text-count-lines-non-ascii",
+      "simple-transpose-subr",
+      "test-undo-region",
+      "test-yank-in-context",
+      "undo-auto--boundaries-added",
+      "undo-auto-boundary-timer",
+      "undo-point-in-wrong-place"
+    ]
+  },
+  "pinned_tests": [
+    {
+      "path": "test/lisp/buff-menu-tests.el",
+      "source_path": "test/lisp/buff-menu-tests.el",
+      "input": "tracked",
+      "mode": "100644",
+      "size": 1447,
+      "blob": "9f7b62a6dcc43ef2834ffbf896d3b4e04d3cb0a3",
+      "sha256": "b1eb022dfebab045ffb974912af7a0e1fe9cb8c9f980427dfbb160fb9fd31851"
+    },
+    {
+      "path": "test/lisp/register-tests.el",
+      "source_path": "test/lisp/register-tests.el",
+      "input": "tracked",
+      "mode": "100644",
+      "size": 2783,
+      "blob": "fbf67a96d3d63b905ab9ce8413d70e3f0513e1fe",
+      "sha256": "32da2a1140d18de9d5f26890aa6c0d5d00af8784f95035e58bd71579b1425aa1"
+    },
+    {
+      "path": "test/lisp/progmodes/subword-tests.el",
+      "source_path": "test/lisp/progmodes/subword-tests.el",
+      "input": "tracked",
+      "mode": "100644",
+      "size": 2430,
+      "blob": "9ea923caeb806c69a5a6b5a9f327bdf5df4bd378",
+      "sha256": "ce18801b9093576a4ec35bfff1f5059fb4365486009ec01312fb6cd01fda4274"
+    },
+    {
+      "path": "test/lisp/thingatpt-tests.el",
+      "source_path": "test/lisp/thingatpt-tests.el",
+      "input": "tracked",
+      "mode": "100644",
+      "size": 14675,
+      "blob": "6cc5405e6740b582b98b2a2d58d5d55bb18e665c",
+      "sha256": "a1758f7f7e4148e4bdf3ba0756ac5a19112c133ef26253ad426c43ac9bba1e6a"
+    },
+    {
+      "path": "test/lisp/replace-tests.el",
+      "source_path": "compatibility/stable-31.1/test/lisp/replace-tests.el",
+      "input": "overlay",
+      "mode": "100644",
+      "size": 20107,
+      "blob": "15140ca46c57ca6dc225b4ac162ff22a7637e04e",
+      "sha256": "0b02c32945d97621e7a80422f5f05ac41bb41eb68e6c6454d73b5d9235f6e2f5"
+    },
+    {
+      "path": "test/lisp/repeat-tests.el",
+      "source_path": "test/lisp/repeat-tests.el",
+      "input": "tracked",
+      "mode": "100644",
+      "size": 11186,
+      "blob": "1aa101265fee0acfc14a846eae1d6e5114e460f9",
+      "sha256": "170df74d3ae7321aaab4468e33b97fdb351da881781d45676c5d0be3a3daf81c"
+    },
+    {
+      "path": "test/lisp/simple-tests.el",
+      "source_path": "compatibility/stable-31.1/test/lisp/simple-tests.el",
+      "input": "overlay",
+      "mode": "100644",
+      "size": 51015,
+      "blob": "464cc51c1520ec0f65784941752a7add9ce935a9",
+      "sha256": "39b5f838b4213d8e4041de0ca9b6627cdf652c6a869ea01a3d3c2d5b1d15cf99"
+    }
+  ],
+  "status_maps_equal_reference": true,
+  "tag_maps_equal_reference": true,
+  "outcome_maps_equal_reference": true,
+  "events_checked": 1017,
+  "inputs_before_after_equal": true,
+  "bound_inputs": [
+    {
+      "path": "compatibility/stable-31.1/sources.json",
+      "kind": "file",
+      "bytes": 562572,
+      "mode": 420,
+      "sha256": "a5ef144a203b8b2a74e346ac47173c5d4122f751d8d950347ae75ff67eef0efe"
+    },
+    {
+      "path": "tools/fixtures/stable-suite-runner.el",
+      "kind": "file",
+      "bytes": 12592,
+      "mode": 420,
+      "sha256": "d5bcd0c18f15995e50adefe8472d12ef82f71114be10ce307202b4ce0f11150e"
+    },
+    {
+      "path": "private-driver",
+      "kind": "file",
+      "bytes": 16381,
+      "mode": 420,
+      "sha256": "85736560c7f4aec9f9ae5e76b5de1e0b66ef5af3fcda48bfe3f8b1cdf31dc780"
+    },
+    {
+      "path": "build/acceptance/runtime-combined-current-recovery-1/results.json",
+      "kind": "file",
+      "bytes": 32695,
+      "mode": 420,
+      "sha256": "e2316b2309a7ffe476f73e7c7d2a5ed95749eaf25407edcd027b69c03eddf901"
+    },
+    {
+      "path": "build/acceptance/runtime-combined-current-recovery-1/products.json",
+      "kind": "file",
+      "bytes": 24443,
+      "mode": 420,
+      "sha256": "588226c00827507e2663957fa413fc6de451d7e5fd353a5a01a46f7f99598d8a"
+    },
+    {
+      "path": "build/acceptance/runtime-combined-current-1/source-inputs.json",
+      "kind": "file",
+      "bytes": 1465178,
+      "mode": 420,
+      "sha256": "b43b779a93e6670a5b4f9b1b1e5f89dbe95bdc6a7e90208e1d9e8d208e0f67ae"
+    },
+    {
+      "path": "tools/stable-suite.py",
+      "kind": "file",
+      "bytes": 54152,
+      "mode": 420,
+      "sha256": "7ef72db2b50adce3edbeef6ec59eef40df2455868fd8e7ae373b5ceab58fb11a"
+    },
+    {
+      "path": "tools/stable-suite-batch.py",
+      "kind": "file",
+      "bytes": 23205,
+      "mode": 420,
+      "sha256": "47957a2676f5e71e4c4addf4c219aa1d824ee5581ef810a917d0e92db69a89be"
+    },
+    {
+      "path": "tools/runtime-execution.py",
+      "kind": "file",
+      "bytes": 94576,
+      "mode": 420,
+      "sha256": "79b5e54f71bec3f71c5d4bc7493cf36fe953d488dba02be19d7dc7194af990fe"
+    },
+    {
+      "path": "tools/runtime-retire.py",
+      "kind": "file",
+      "bytes": 8538,
+      "mode": 420,
+      "sha256": "84ad68bbb26ffb73e129406b430393c0eaeab2f6b818c5916a950b6514eb6932"
+    },
+    {
+      "path": "src/alloc.rs",
+      "kind": "file",
+      "bytes": 321170,
+      "mode": 420,
+      "sha256": "564e9377279426cf6ca2ba70e89b797a98a5a5737d677df1e4fedd09eb41fa55"
+    },
+    {
+      "path": "src/runtime_gc_collector.rs",
+      "kind": "file",
+      "bytes": 26379,
+      "mode": 420,
+      "sha256": "aa1ca1ef6d2e79388674ea9c879ca7ed2388bca5d2482b6dcfc2b9fe502a5020"
+    },
+    {
+      "path": "docs/current-state.md",
+      "kind": "file",
+      "bytes": 165546,
+      "mode": 420,
+      "sha256": "ab8d843812bf71fb62e4434a0dcec8e0bac3717166c49dc5e7eda246ec9ae256"
+    },
+    {
+      "path": "docs/status.md",
+      "kind": "file",
+      "bytes": 6380492,
+      "mode": 420,
+      "sha256": "7617849994d5f72806c74a1b4965236c7d20818cf360e23f92ad528017b57bb0"
+    },
+    {
+      "path": "maintenance/cleanup/LOG.md",
+      "kind": "file",
+      "bytes": 86339,
+      "mode": 420,
+      "sha256": "183220c7ba77fd57173afdedc4efe350f5633204e8da3b8ba0786b8d2a6f4fc4"
+    },
+    {
+      "path": "src/include/jni.rs",
+      "kind": "file",
+      "bytes": 55853,
+      "mode": 420,
+      "sha256": "9d82a327b726904920387e879ae4511d8ee8a79a296ec8cd7cc78640aa746716"
+    },
+    {
+      "path": ".DS_Store",
+      "kind": "file",
+      "bytes": 8196,
+      "mode": 420,
+      "sha256": "1cbe4410746c2c219e00288a9fa442a4596a63e72895e6c0026485c7dce36a8a"
+    },
+    {
+      "path": "tools/test-client-receipt.py",
+      "kind": "file",
+      "bytes": 4981,
+      "mode": 420,
+      "sha256": "1ce579c6413a6742c5f44aed981a73aa506378dc771a4b69e8ec7a0978c2a6cb"
+    },
+    {
+      "path": "maintenance/incidents/2026-10-25-runtime-build-owner-loss.md",
+      "kind": "file",
+      "bytes": 6064,
+      "mode": 420,
+      "sha256": "0872212d0085d24d99a90b3069b8a558515b3b309023f2ad5cf7d41974d9119b"
+    },
+    {
+      "path": "maintenance/incidents/2026-10-26-prepare-controller-interruption.md",
+      "kind": "file",
+      "bytes": 2564,
+      "mode": 420,
+      "sha256": "57f3b61a7067cfe85d215121cb12734957fb050a8a0af92d06bfeeb39d4ef350"
+    },
+    {
+      "path": "maintenance/incidents/2026-10-29-macos-mock-shell-job-control.md",
+      "kind": "file",
+      "bytes": 4033,
+      "mode": 420,
+      "sha256": "7533b97f5fa402843e61b0d68842558fbb02a525fad3b222a3141c47328ea3bf"
+    },
+    {
+      "path": "test/lisp/buff-menu-tests.el",
+      "kind": "file",
+      "bytes": 1447,
+      "mode": 420,
+      "sha256": "b1eb022dfebab045ffb974912af7a0e1fe9cb8c9f980427dfbb160fb9fd31851"
+    },
+    {
+      "path": "test/lisp/register-tests.el",
+      "kind": "file",
+      "bytes": 2783,
+      "mode": 420,
+      "sha256": "32da2a1140d18de9d5f26890aa6c0d5d00af8784f95035e58bd71579b1425aa1"
+    },
+    {
+      "path": "test/lisp/progmodes/subword-tests.el",
+      "kind": "file",
+      "bytes": 2430,
+      "mode": 420,
+      "sha256": "ce18801b9093576a4ec35bfff1f5059fb4365486009ec01312fb6cd01fda4274"
+    },
+    {
+      "path": "test/lisp/thingatpt-tests.el",
+      "kind": "file",
+      "bytes": 14675,
+      "mode": 420,
+      "sha256": "a1758f7f7e4148e4bdf3ba0756ac5a19112c133ef26253ad426c43ac9bba1e6a"
+    },
+    {
+      "path": "compatibility/stable-31.1/test/lisp/replace-tests.el",
+      "kind": "file",
+      "bytes": 20107,
+      "mode": 420,
+      "sha256": "0b02c32945d97621e7a80422f5f05ac41bb41eb68e6c6454d73b5d9235f6e2f5"
+    },
+    {
+      "path": "test/lisp/repeat-tests.el",
+      "kind": "file",
+      "bytes": 11186,
+      "mode": 420,
+      "sha256": "170df74d3ae7321aaab4468e33b97fdb351da881781d45676c5d0be3a3daf81c"
+    },
+    {
+      "path": "compatibility/stable-31.1/test/lisp/simple-tests.el",
+      "kind": "file",
+      "bytes": 51015,
+      "mode": 420,
+      "sha256": "39b5f838b4213d8e4041de0ca9b6627cdf652c6a869ea01a3d3c2d5b1d15cf99"
+    }
+  ],
+  "products_before_after_equal": true,
+  "products": [
+    {
+      "id": "reference",
+      "kind": "reference",
+      "compiler_leg": "normal",
+      "collector": "off",
+      "native": true,
+      "observer": false,
+      "test_hooks": false,
+      "program": {
+        "kind": "file",
+        "bytes": 3691504,
+        "mode": 493,
+        "sha256": "5b55e93c8304368ee37cc5c537ca3e1370e3b9b3fef049bdce76834a9db75e65"
+      },
+      "dump": {
+        "kind": "file",
+        "bytes": 23084632,
+        "mode": 420,
+        "sha256": "6ac1214186022574a70e84a04bb7f2dc44e1ea1d4c90f0d9ce421ddd0f4b4536"
+      },
+      "metadata": {
+        "version": "31.1",
+        "system_configuration": "aarch64-apple-darwin25.6.0",
+        "system_type": "darwin",
+        "window_system": null,
+        "loaded_features_sha256": "4fd48b150d3ff1690804447c143ea7ebe8bbc9038e3b914779b0b57bc1f9451d"
+      },
+      "resources": {
+        "lisp": {
+          "entries": 3316,
+          "canonical_json_sha256": "564df364c803f4d0b64d7bc2ba986d775e8985529481ac2684b739666e131323"
+        }
+      }
+    },
+    {
+      "id": "combined-current-terminal-normal-major",
+      "kind": "terminal",
+      "compiler_leg": "normal",
+      "collector": "major",
+      "native": true,
+      "observer": true,
+      "test_hooks": false,
+      "program": {
+        "kind": "file",
+        "bytes": 13520960,
+        "mode": 493,
+        "sha256": "ac16f4dcf8991eccfc5b7bfa5debabd503f8c5d27ca1ae499101a34a8e140e06"
+      },
+      "dump": {
+        "kind": "file",
+        "bytes": 13204960,
+        "mode": 420,
+        "sha256": "4403206612235bdfc4fb549adb307d6fcbf232bf43c33494f0c2f7761db02f50"
+      },
+      "metadata": {
+        "version": "32.0.50",
+        "system_configuration": "aarch64-apple-darwin25.6.0",
+        "system_type": "darwin",
+        "window_system": null,
+        "loaded_features_sha256": "071a24cef4bdcf618f07b9042edbebeb1bb156d0534978dd6457eb3626d9a6dd"
+      },
+      "resources": {
+        "lisp": {
+          "entries": 3363,
+          "canonical_json_sha256": "6842b8c0c52ee506a030199f7405312d6466633850496c62a69a41aea54b56aa"
+        },
+        "etc": {
+          "entries": 1019,
+          "canonical_json_sha256": "6d0b1893b0497a34ae0d799f9e9315d2cab135e0ef6472cfeddb8e1e38c78ace"
+        },
+        "info": {
+          "entries": 70,
+          "canonical_json_sha256": "e6997136cdf21eafe89279c9f3e25ac239a81e1365e82a6dad3672c13bd32a81"
+        },
+        "runtime-native": {
+          "entries": 6,
+          "canonical_json_sha256": "47d5a284f2622d07710aae8a3cda6b3aaa39f8ef02d544692f2672ce70308cc3"
+        },
+        "licenses": {
+          "entries": 13,
+          "canonical_json_sha256": "87d95d80e5efbfd9617412bc72391db1f0c0cd0f3c887130dbddf68c887ddaf0"
+        },
+        "tls-runtime": {
+          "entries": 9,
+          "canonical_json_sha256": "9b34100e73d1f4bbd3157cd1535a25f8fdc6d4e094f2e6a1e9dc79b1a63fd73d"
+        },
+        "tls-licenses": {
+          "entries": 14,
+          "canonical_json_sha256": "73f46a8351f88ab1d10b069728f5079fdef118fbfb323296cc257d16dcec74c2"
+        },
+        "lcms-runtime": {
+          "entries": 1,
+          "canonical_json_sha256": "819844d74d5d4f3ee5a75aaf2b0d9a23b07fdda8bfa71c65cdbda63f6eb213cb"
+        },
+        "lcms-licenses": {
+          "entries": 1,
+          "canonical_json_sha256": "abe468dfa57be006c058e461d993e3fc3e5c0fe8bbfbec6a70247908ae75bd5d"
+        },
+        "treesit-runtime": {
+          "entries": 1,
+          "canonical_json_sha256": "05b5f47a14a19b3f04511fa292f0976e2cab06437b9e4323edbce72a9767f0f9"
+        },
+        "treesit-licenses": {
+          "entries": 1,
+          "canonical_json_sha256": "421d95420dc36d9656db1d883de7c7c7fdd125861ce0139a3d8518c77a1ff370"
+        }
+      }
+    },
+    {
+      "id": "combined-current-terminal-normal-young",
+      "kind": "terminal",
+      "compiler_leg": "normal",
+      "collector": "young",
+      "native": true,
+      "observer": true,
+      "test_hooks": false,
+      "program": {
+        "kind": "file",
+        "bytes": 13520960,
+        "mode": 493,
+        "sha256": "ac16f4dcf8991eccfc5b7bfa5debabd503f8c5d27ca1ae499101a34a8e140e06"
+      },
+      "dump": {
+        "kind": "file",
+        "bytes": 13204960,
+        "mode": 420,
+        "sha256": "4403206612235bdfc4fb549adb307d6fcbf232bf43c33494f0c2f7761db02f50"
+      },
+      "metadata": {
+        "version": "32.0.50",
+        "system_configuration": "aarch64-apple-darwin25.6.0",
+        "system_type": "darwin",
+        "window_system": null,
+        "loaded_features_sha256": "071a24cef4bdcf618f07b9042edbebeb1bb156d0534978dd6457eb3626d9a6dd"
+      },
+      "resources": {
+        "lisp": {
+          "entries": 3363,
+          "canonical_json_sha256": "6842b8c0c52ee506a030199f7405312d6466633850496c62a69a41aea54b56aa"
+        },
+        "etc": {
+          "entries": 1019,
+          "canonical_json_sha256": "6d0b1893b0497a34ae0d799f9e9315d2cab135e0ef6472cfeddb8e1e38c78ace"
+        },
+        "info": {
+          "entries": 70,
+          "canonical_json_sha256": "e6997136cdf21eafe89279c9f3e25ac239a81e1365e82a6dad3672c13bd32a81"
+        },
+        "runtime-native": {
+          "entries": 6,
+          "canonical_json_sha256": "47d5a284f2622d07710aae8a3cda6b3aaa39f8ef02d544692f2672ce70308cc3"
+        },
+        "licenses": {
+          "entries": 13,
+          "canonical_json_sha256": "87d95d80e5efbfd9617412bc72391db1f0c0cd0f3c887130dbddf68c887ddaf0"
+        },
+        "tls-runtime": {
+          "entries": 9,
+          "canonical_json_sha256": "9b34100e73d1f4bbd3157cd1535a25f8fdc6d4e094f2e6a1e9dc79b1a63fd73d"
+        },
+        "tls-licenses": {
+          "entries": 14,
+          "canonical_json_sha256": "73f46a8351f88ab1d10b069728f5079fdef118fbfb323296cc257d16dcec74c2"
+        },
+        "lcms-runtime": {
+          "entries": 1,
+          "canonical_json_sha256": "819844d74d5d4f3ee5a75aaf2b0d9a23b07fdda8bfa71c65cdbda63f6eb213cb"
+        },
+        "lcms-licenses": {
+          "entries": 1,
+          "canonical_json_sha256": "abe468dfa57be006c058e461d993e3fc3e5c0fe8bbfbec6a70247908ae75bd5d"
+        },
+        "treesit-runtime": {
+          "entries": 1,
+          "canonical_json_sha256": "05b5f47a14a19b3f04511fa292f0976e2cab06437b9e4323edbce72a9767f0f9"
+        },
+        "treesit-licenses": {
+          "entries": 1,
+          "canonical_json_sha256": "421d95420dc36d9656db1d883de7c7c7fdd125861ce0139a3d8518c77a1ff370"
+        }
+      }
+    },
+    {
+      "id": "combined-current-terminal-checking-major",
+      "kind": "terminal",
+      "compiler_leg": "checking",
+      "collector": "major",
+      "native": true,
+      "observer": true,
+      "test_hooks": false,
+      "program": {
+        "kind": "file",
+        "bytes": 14253952,
+        "mode": 493,
+        "sha256": "43013750321dba239028089a38d2f899f8b2ca407c62402670ad789454bd34c2"
+      },
+      "dump": {
+        "kind": "file",
+        "bytes": 13204928,
+        "mode": 420,
+        "sha256": "19d544ed9a5022a7ecfe90ac2d9d6fc94a91ae2f03ab60ccd9f55176b70e6c14"
+      },
+      "metadata": {
+        "version": "32.0.50",
+        "system_configuration": "aarch64-apple-darwin25.6.0",
+        "system_type": "darwin",
+        "window_system": null,
+        "loaded_features_sha256": "071a24cef4bdcf618f07b9042edbebeb1bb156d0534978dd6457eb3626d9a6dd"
+      },
+      "resources": {
+        "lisp": {
+          "entries": 3363,
+          "canonical_json_sha256": "a21177f054031a3c503355fe0bb0359f950ec7cfe8da350cb9f814248e351da8"
+        },
+        "etc": {
+          "entries": 1019,
+          "canonical_json_sha256": "6d0b1893b0497a34ae0d799f9e9315d2cab135e0ef6472cfeddb8e1e38c78ace"
+        },
+        "info": {
+          "entries": 70,
+          "canonical_json_sha256": "c50790f3bd198e107c71db3f431ac04c11e0dce49b6a9072167d3a5dba4fee7d"
+        },
+        "runtime-native": {
+          "entries": 6,
+          "canonical_json_sha256": "47d5a284f2622d07710aae8a3cda6b3aaa39f8ef02d544692f2672ce70308cc3"
+        },
+        "licenses": {
+          "entries": 13,
+          "canonical_json_sha256": "87d95d80e5efbfd9617412bc72391db1f0c0cd0f3c887130dbddf68c887ddaf0"
+        },
+        "tls-runtime": {
+          "entries": 9,
+          "canonical_json_sha256": "9b34100e73d1f4bbd3157cd1535a25f8fdc6d4e094f2e6a1e9dc79b1a63fd73d"
+        },
+        "tls-licenses": {
+          "entries": 14,
+          "canonical_json_sha256": "73f46a8351f88ab1d10b069728f5079fdef118fbfb323296cc257d16dcec74c2"
+        },
+        "lcms-runtime": {
+          "entries": 1,
+          "canonical_json_sha256": "819844d74d5d4f3ee5a75aaf2b0d9a23b07fdda8bfa71c65cdbda63f6eb213cb"
+        },
+        "lcms-licenses": {
+          "entries": 1,
+          "canonical_json_sha256": "abe468dfa57be006c058e461d993e3fc3e5c0fe8bbfbec6a70247908ae75bd5d"
+        },
+        "treesit-runtime": {
+          "entries": 1,
+          "canonical_json_sha256": "05b5f47a14a19b3f04511fa292f0976e2cab06437b9e4323edbce72a9767f0f9"
+        },
+        "treesit-licenses": {
+          "entries": 1,
+          "canonical_json_sha256": "421d95420dc36d9656db1d883de7c7c7fdd125861ce0139a3d8518c77a1ff370"
+        }
+      }
+    },
+    {
+      "id": "combined-current-terminal-checking-young",
+      "kind": "terminal",
+      "compiler_leg": "checking",
+      "collector": "young",
+      "native": true,
+      "observer": true,
+      "test_hooks": false,
+      "program": {
+        "kind": "file",
+        "bytes": 14253952,
+        "mode": 493,
+        "sha256": "43013750321dba239028089a38d2f899f8b2ca407c62402670ad789454bd34c2"
+      },
+      "dump": {
+        "kind": "file",
+        "bytes": 13204928,
+        "mode": 420,
+        "sha256": "19d544ed9a5022a7ecfe90ac2d9d6fc94a91ae2f03ab60ccd9f55176b70e6c14"
+      },
+      "metadata": {
+        "version": "32.0.50",
+        "system_configuration": "aarch64-apple-darwin25.6.0",
+        "system_type": "darwin",
+        "window_system": null,
+        "loaded_features_sha256": "071a24cef4bdcf618f07b9042edbebeb1bb156d0534978dd6457eb3626d9a6dd"
+      },
+      "resources": {
+        "lisp": {
+          "entries": 3363,
+          "canonical_json_sha256": "a21177f054031a3c503355fe0bb0359f950ec7cfe8da350cb9f814248e351da8"
+        },
+        "etc": {
+          "entries": 1019,
+          "canonical_json_sha256": "6d0b1893b0497a34ae0d799f9e9315d2cab135e0ef6472cfeddb8e1e38c78ace"
+        },
+        "info": {
+          "entries": 70,
+          "canonical_json_sha256": "c50790f3bd198e107c71db3f431ac04c11e0dce49b6a9072167d3a5dba4fee7d"
+        },
+        "runtime-native": {
+          "entries": 6,
+          "canonical_json_sha256": "47d5a284f2622d07710aae8a3cda6b3aaa39f8ef02d544692f2672ce70308cc3"
+        },
+        "licenses": {
+          "entries": 13,
+          "canonical_json_sha256": "87d95d80e5efbfd9617412bc72391db1f0c0cd0f3c887130dbddf68c887ddaf0"
+        },
+        "tls-runtime": {
+          "entries": 9,
+          "canonical_json_sha256": "9b34100e73d1f4bbd3157cd1535a25f8fdc6d4e094f2e6a1e9dc79b1a63fd73d"
+        },
+        "tls-licenses": {
+          "entries": 14,
+          "canonical_json_sha256": "73f46a8351f88ab1d10b069728f5079fdef118fbfb323296cc257d16dcec74c2"
+        },
+        "lcms-runtime": {
+          "entries": 1,
+          "canonical_json_sha256": "819844d74d5d4f3ee5a75aaf2b0d9a23b07fdda8bfa71c65cdbda63f6eb213cb"
+        },
+        "lcms-licenses": {
+          "entries": 1,
+          "canonical_json_sha256": "abe468dfa57be006c058e461d993e3fc3e5c0fe8bbfbec6a70247908ae75bd5d"
+        },
+        "treesit-runtime": {
+          "entries": 1,
+          "canonical_json_sha256": "05b5f47a14a19b3f04511fa292f0976e2cab06437b9e4323edbce72a9767f0f9"
+        },
+        "treesit-licenses": {
+          "entries": 1,
+          "canonical_json_sha256": "421d95420dc36d9656db1d883de7c7c7fdd125861ce0139a3d8518c77a1ff370"
+        }
+      }
+    },
+    {
+      "id": "combined-current-cocoa-normal-major",
+      "kind": "cocoa",
+      "compiler_leg": "normal",
+      "collector": "major",
+      "native": true,
+      "observer": true,
+      "test_hooks": false,
+      "program": {
+        "kind": "file",
+        "bytes": 15053152,
+        "mode": 493,
+        "sha256": "3c08ed5f4d25bea228bad8b7b8a2d1d10e10b965859dc86cb587084deae5768b"
+      },
+      "dump": {
+        "kind": "file",
+        "bytes": 18771768,
+        "mode": 420,
+        "sha256": "1bc5559764ad2389eb714acde69ee09ac45170af143bcd48a021000b0800f95c"
+      },
+      "metadata": {
+        "version": "32.0.50",
+        "system_configuration": "aarch64-apple-darwin25.6.0",
+        "system_type": "darwin",
+        "window_system": null,
+        "loaded_features_sha256": "fd0c2ae670321aeff80de252d3946f64b1abb25a6c3caa695e159d4a2d9a7e23"
+      },
+      "resources": {
+        "bundle": {
+          "entries": 4485,
+          "canonical_json_sha256": "e11850e49b24ca9758deb0fc2f6d4c87d87c8470701538e86b242b5e1ffcdf75"
+        },
+        "runtime-native": {
+          "entries": 6,
+          "canonical_json_sha256": "47d5a284f2622d07710aae8a3cda6b3aaa39f8ef02d544692f2672ce70308cc3"
+        },
+        "licenses": {
+          "entries": 13,
+          "canonical_json_sha256": "87d95d80e5efbfd9617412bc72391db1f0c0cd0f3c887130dbddf68c887ddaf0"
+        },
+        "tls-runtime": {
+          "entries": 9,
+          "canonical_json_sha256": "9b34100e73d1f4bbd3157cd1535a25f8fdc6d4e094f2e6a1e9dc79b1a63fd73d"
+        },
+        "tls-licenses": {
+          "entries": 14,
+          "canonical_json_sha256": "73f46a8351f88ab1d10b069728f5079fdef118fbfb323296cc257d16dcec74c2"
+        },
+        "lcms-runtime": {
+          "entries": 1,
+          "canonical_json_sha256": "819844d74d5d4f3ee5a75aaf2b0d9a23b07fdda8bfa71c65cdbda63f6eb213cb"
+        },
+        "lcms-licenses": {
+          "entries": 1,
+          "canonical_json_sha256": "abe468dfa57be006c058e461d993e3fc3e5c0fe8bbfbec6a70247908ae75bd5d"
+        },
+        "treesit-runtime": {
+          "entries": 1,
+          "canonical_json_sha256": "05b5f47a14a19b3f04511fa292f0976e2cab06437b9e4323edbce72a9767f0f9"
+        },
+        "treesit-licenses": {
+          "entries": 1,
+          "canonical_json_sha256": "421d95420dc36d9656db1d883de7c7c7fdd125861ce0139a3d8518c77a1ff370"
+        }
+      }
+    },
+    {
+      "id": "combined-current-cocoa-normal-young",
+      "kind": "cocoa",
+      "compiler_leg": "normal",
+      "collector": "young",
+      "native": true,
+      "observer": true,
+      "test_hooks": false,
+      "program": {
+        "kind": "file",
+        "bytes": 15053152,
+        "mode": 493,
+        "sha256": "3c08ed5f4d25bea228bad8b7b8a2d1d10e10b965859dc86cb587084deae5768b"
+      },
+      "dump": {
+        "kind": "file",
+        "bytes": 18771768,
+        "mode": 420,
+        "sha256": "1bc5559764ad2389eb714acde69ee09ac45170af143bcd48a021000b0800f95c"
+      },
+      "metadata": {
+        "version": "32.0.50",
+        "system_configuration": "aarch64-apple-darwin25.6.0",
+        "system_type": "darwin",
+        "window_system": null,
+        "loaded_features_sha256": "fd0c2ae670321aeff80de252d3946f64b1abb25a6c3caa695e159d4a2d9a7e23"
+      },
+      "resources": {
+        "bundle": {
+          "entries": 4485,
+          "canonical_json_sha256": "e11850e49b24ca9758deb0fc2f6d4c87d87c8470701538e86b242b5e1ffcdf75"
+        },
+        "runtime-native": {
+          "entries": 6,
+          "canonical_json_sha256": "47d5a284f2622d07710aae8a3cda6b3aaa39f8ef02d544692f2672ce70308cc3"
+        },
+        "licenses": {
+          "entries": 13,
+          "canonical_json_sha256": "87d95d80e5efbfd9617412bc72391db1f0c0cd0f3c887130dbddf68c887ddaf0"
+        },
+        "tls-runtime": {
+          "entries": 9,
+          "canonical_json_sha256": "9b34100e73d1f4bbd3157cd1535a25f8fdc6d4e094f2e6a1e9dc79b1a63fd73d"
+        },
+        "tls-licenses": {
+          "entries": 14,
+          "canonical_json_sha256": "73f46a8351f88ab1d10b069728f5079fdef118fbfb323296cc257d16dcec74c2"
+        },
+        "lcms-runtime": {
+          "entries": 1,
+          "canonical_json_sha256": "819844d74d5d4f3ee5a75aaf2b0d9a23b07fdda8bfa71c65cdbda63f6eb213cb"
+        },
+        "lcms-licenses": {
+          "entries": 1,
+          "canonical_json_sha256": "abe468dfa57be006c058e461d993e3fc3e5c0fe8bbfbec6a70247908ae75bd5d"
+        },
+        "treesit-runtime": {
+          "entries": 1,
+          "canonical_json_sha256": "05b5f47a14a19b3f04511fa292f0976e2cab06437b9e4323edbce72a9767f0f9"
+        },
+        "treesit-licenses": {
+          "entries": 1,
+          "canonical_json_sha256": "421d95420dc36d9656db1d883de7c7c7fdd125861ce0139a3d8518c77a1ff370"
+        }
+      }
+    },
+    {
+      "id": "combined-current-cocoa-checking-major",
+      "kind": "cocoa",
+      "compiler_leg": "checking",
+      "collector": "major",
+      "native": true,
+      "observer": true,
+      "test_hooks": false,
+      "program": {
+        "kind": "file",
+        "bytes": 15885632,
+        "mode": 493,
+        "sha256": "2e422709234454dc710cddef6aaedcb3513d0ea564237fc55539590f58b9e351"
+      },
+      "dump": {
+        "kind": "file",
+        "bytes": 18771808,
+        "mode": 420,
+        "sha256": "2d320d1b00e6bd2d081127c56ffb7aaaabccbbe29b686e71ce86751c1e14b998"
+      },
+      "metadata": {
+        "version": "32.0.50",
+        "system_configuration": "aarch64-apple-darwin25.6.0",
+        "system_type": "darwin",
+        "window_system": null,
+        "loaded_features_sha256": "fd0c2ae670321aeff80de252d3946f64b1abb25a6c3caa695e159d4a2d9a7e23"
+      },
+      "resources": {
+        "bundle": {
+          "entries": 4485,
+          "canonical_json_sha256": "3a3b451af8d6a21e3d05bd6dfa06e88417073b278ad6d48b4b333db3dc40d97e"
+        },
+        "runtime-native": {
+          "entries": 6,
+          "canonical_json_sha256": "47d5a284f2622d07710aae8a3cda6b3aaa39f8ef02d544692f2672ce70308cc3"
+        },
+        "licenses": {
+          "entries": 13,
+          "canonical_json_sha256": "87d95d80e5efbfd9617412bc72391db1f0c0cd0f3c887130dbddf68c887ddaf0"
+        },
+        "tls-runtime": {
+          "entries": 9,
+          "canonical_json_sha256": "9b34100e73d1f4bbd3157cd1535a25f8fdc6d4e094f2e6a1e9dc79b1a63fd73d"
+        },
+        "tls-licenses": {
+          "entries": 14,
+          "canonical_json_sha256": "73f46a8351f88ab1d10b069728f5079fdef118fbfb323296cc257d16dcec74c2"
+        },
+        "lcms-runtime": {
+          "entries": 1,
+          "canonical_json_sha256": "819844d74d5d4f3ee5a75aaf2b0d9a23b07fdda8bfa71c65cdbda63f6eb213cb"
+        },
+        "lcms-licenses": {
+          "entries": 1,
+          "canonical_json_sha256": "abe468dfa57be006c058e461d993e3fc3e5c0fe8bbfbec6a70247908ae75bd5d"
+        },
+        "treesit-runtime": {
+          "entries": 1,
+          "canonical_json_sha256": "05b5f47a14a19b3f04511fa292f0976e2cab06437b9e4323edbce72a9767f0f9"
+        },
+        "treesit-licenses": {
+          "entries": 1,
+          "canonical_json_sha256": "421d95420dc36d9656db1d883de7c7c7fdd125861ce0139a3d8518c77a1ff370"
+        }
+      }
+    },
+    {
+      "id": "combined-current-cocoa-checking-young",
+      "kind": "cocoa",
+      "compiler_leg": "checking",
+      "collector": "young",
+      "native": true,
+      "observer": true,
+      "test_hooks": false,
+      "program": {
+        "kind": "file",
+        "bytes": 15885632,
+        "mode": 493,
+        "sha256": "2e422709234454dc710cddef6aaedcb3513d0ea564237fc55539590f58b9e351"
+      },
+      "dump": {
+        "kind": "file",
+        "bytes": 18771808,
+        "mode": 420,
+        "sha256": "2d320d1b00e6bd2d081127c56ffb7aaaabccbbe29b686e71ce86751c1e14b998"
+      },
+      "metadata": {
+        "version": "32.0.50",
+        "system_configuration": "aarch64-apple-darwin25.6.0",
+        "system_type": "darwin",
+        "window_system": null,
+        "loaded_features_sha256": "fd0c2ae670321aeff80de252d3946f64b1abb25a6c3caa695e159d4a2d9a7e23"
+      },
+      "resources": {
+        "bundle": {
+          "entries": 4485,
+          "canonical_json_sha256": "3a3b451af8d6a21e3d05bd6dfa06e88417073b278ad6d48b4b333db3dc40d97e"
+        },
+        "runtime-native": {
+          "entries": 6,
+          "canonical_json_sha256": "47d5a284f2622d07710aae8a3cda6b3aaa39f8ef02d544692f2672ce70308cc3"
+        },
+        "licenses": {
+          "entries": 13,
+          "canonical_json_sha256": "87d95d80e5efbfd9617412bc72391db1f0c0cd0f3c887130dbddf68c887ddaf0"
+        },
+        "tls-runtime": {
+          "entries": 9,
+          "canonical_json_sha256": "9b34100e73d1f4bbd3157cd1535a25f8fdc6d4e094f2e6a1e9dc79b1a63fd73d"
+        },
+        "tls-licenses": {
+          "entries": 14,
+          "canonical_json_sha256": "73f46a8351f88ab1d10b069728f5079fdef118fbfb323296cc257d16dcec74c2"
+        },
+        "lcms-runtime": {
+          "entries": 1,
+          "canonical_json_sha256": "819844d74d5d4f3ee5a75aaf2b0d9a23b07fdda8bfa71c65cdbda63f6eb213cb"
+        },
+        "lcms-licenses": {
+          "entries": 1,
+          "canonical_json_sha256": "abe468dfa57be006c058e461d993e3fc3e5c0fe8bbfbec6a70247908ae75bd5d"
+        },
+        "treesit-runtime": {
+          "entries": 1,
+          "canonical_json_sha256": "05b5f47a14a19b3f04511fa292f0976e2cab06437b9e4323edbce72a9767f0f9"
+        },
+        "treesit-licenses": {
+          "entries": 1,
+          "canonical_json_sha256": "421d95420dc36d9656db1d883de7c7c7fdd125861ce0139a3d8518c77a1ff370"
+        }
+      }
+    }
+  ],
+  "trial_app_unchanged": true,
+  "full_identity_sidecars": {
+    "products_before": {
+      "path": "build/acceptance/g3-current-editing-operations-1/products-before.json",
+      "sha256": "d2f87ab62fbd26a8bc122a812c5fe34e74037a6b2b8beff41ee052bd2fa3126d",
+      "bytes": 8214596
+    },
+    "products_after": {
+      "path": "build/acceptance/g3-current-editing-operations-1/products-after.json",
+      "sha256": "d2f87ab62fbd26a8bc122a812c5fe34e74037a6b2b8beff41ee052bd2fa3126d",
+      "bytes": 8214596
+    },
+    "trial_app_before": {
+      "path": "build/acceptance/g3-current-editing-operations-1/trial-app-before.json",
+      "sha256": "a440620de1b190f297ac7d1bcbad4fd93e6c2c86a07ae7d6b16f1bc1311cb3d3",
+      "bytes": 867680
+    },
+    "trial_app_after": {
+      "path": "build/acceptance/g3-current-editing-operations-1/trial-app-after.json",
+      "sha256": "a440620de1b190f297ac7d1bcbad4fd93e6c2c86a07ae7d6b16f1bc1311cb3d3",
+      "bytes": 867680
+    }
+  },
+  "generated_resources": {
+    "reference": {},
+    "combined-current-terminal-normal-major": {},
+    "combined-current-terminal-normal-young": {},
+    "combined-current-terminal-checking-major": {},
+    "combined-current-terminal-checking-young": {},
+    "combined-current-cocoa-normal-major": {},
+    "combined-current-cocoa-normal-young": {},
+    "combined-current-cocoa-checking-major": {},
+    "combined-current-cocoa-checking-young": {}
+  },
+  "materialization": {
+    "copies": 9,
+    "files_per_copy": 1536,
+    "logical_bytes_per_copy": 20996952
+  },
+  "files": [
+    {
+      "product": "reference",
+      "file": "test/lisp/buff-menu-tests.el",
+      "ids": 1,
+      "sorted_ids_sha256": "66b1d796151627b2c70089368ea5a2712c96dd23d4d335bba1499d1b885d42f6",
+      "tags_sha256": "87e15c2cf104266393d94e82b23f0371af251f22f307a8964e3dfbabc55975d6",
+      "passed": true,
+      "complete": true,
+      "exit_code": 0,
+      "timed_out": false,
+      "remaining_group_terminated": false,
+      "result_types": {
+        "ert-test-passed": 1
+      },
+      "result_file": {
+        "path": "results/reference/test-lisp-buff-menu-tests.el-b888a39c0569.json",
+        "sha256": "7cf03d0c9d60ed2846d1183a59a3c9e7cf66a2ef6ea8c114b760fb5bfada887e",
+        "bytes": 5859
+      },
+      "events_file": {
+        "path": "results/reference/test-lisp-buff-menu-tests.el-b888a39c0569.events.jsonl",
+        "bytes": 2711,
+        "sha256": "eeaa247424904e72a47ae4554072d931782f2afd837165b7e65239fd7c47604a"
+      },
+      "retirement": {
+        "status": "complete",
+        "files": 0,
+        "directories": 10,
+        "ledger_schema": 3,
+        "logical_bytes": 0,
+        "allocated_bytes": 0,
+        "evidence_sha256": "7cf03d0c9d60ed2846d1183a59a3c9e7cf66a2ef6ea8c114b760fb5bfada887e",
+        "ledger": "test-lisp-buff-menu-tests.el-b888a39c0569.state-retirement.jsonl.gz",
+        "ledger_sha256": "c73dda08f61db7d8771a9dc94b9e758d666b8de857e014381d621f1e9321d5a4",
+        "all_selected_absent": true,
+        "restore": "regenerate consumed cache from retained inputs; original random names not promised",
+        "empty_parents_retired": true,
+        "parent_directories": 2
+      },
+      "owner_receipt": {
+        "path": "results/reference/test-lisp-buff-menu-tests.el-b888a39c0569.owner-retirement.json",
+        "sha256": "4be39d68cb2a8659470a8a75814bc0b7f006f48a3b11d5b05db9d06081026948",
+        "bytes": 886
+      }
+    },
+    {
+      "product": "reference",
+      "file": "test/lisp/register-tests.el",
+      "ids": 2,
+      "sorted_ids_sha256": "a79d8ba473d3ae432c9312110e1dcf7b1a4c31810c6593a685f42c0448a70ffe",
+      "tags_sha256": "daa7ef3f1cab4df381c5637fee07e04e6308af90bcd039bec92f8a89cf8fb62a",
+      "passed": true,
+      "complete": true,
+      "exit_code": 0,
+      "timed_out": false,
+      "remaining_group_terminated": false,
+      "result_types": {
+        "ert-test-passed": 2
+      },
+      "result_file": {
+        "path": "results/reference/test-lisp-register-tests.el-e7bf243fa959.json",
+        "sha256": "87927d1ed6d801e56ab073b25c58d75216b802dfb4590e3dc92e6c8f18162e20",
+        "bytes": 7364
+      },
+      "events_file": {
+        "path": "results/reference/test-lisp-register-tests.el-e7bf243fa959.events.jsonl",
+        "bytes": 3680,
+        "sha256": "bdb0558bd761d5b139ec7ca93e9c6973e15533b2c3bdf8d12f4ed8b4d9b095fa"
+      },
+      "retirement": {
+        "status": "complete",
+        "files": 0,
+        "directories": 10,
+        "ledger_schema": 3,
+        "logical_bytes": 0,
+        "allocated_bytes": 0,
+        "evidence_sha256": "87927d1ed6d801e56ab073b25c58d75216b802dfb4590e3dc92e6c8f18162e20",
+        "ledger": "test-lisp-register-tests.el-e7bf243fa959.state-retirement.jsonl.gz",
+        "ledger_sha256": "c73dda08f61db7d8771a9dc94b9e758d666b8de857e014381d621f1e9321d5a4",
+        "all_selected_absent": true,
+        "restore": "regenerate consumed cache from retained inputs; original random names not promised",
+        "empty_parents_retired": true,
+        "parent_directories": 2
+      },
+      "owner_receipt": {
+        "path": "results/reference/test-lisp-register-tests.el-e7bf243fa959.owner-retirement.json",
+        "sha256": "f21be630bc98074113354ad3ddb970b9409b4eefa0e823f4651e105fca96e3db",
+        "bytes": 884
+      }
+    },
+    {
+      "product": "reference",
+      "file": "test/lisp/progmodes/subword-tests.el",
+      "ids": 2,
+      "sorted_ids_sha256": "d76a3b85137cddc9493c418593a26bc9b9911ec25b00a2b5073448f9d2225d2b",
+      "tags_sha256": "3a0d1a58c331a23a0396ed697db1eb50264aa4bbb56f87b16eb5a820b2ef794c",
+      "passed": true,
+      "complete": true,
+      "exit_code": 0,
+      "timed_out": false,
+      "remaining_group_terminated": false,
+      "result_types": {
+        "ert-test-passed": 2
+      },
+      "result_file": {
+        "path": "results/reference/test-lisp-progmodes-subword-tests.el-a8589f09ddfb.json",
+        "sha256": "fa883d59ed5d3201022af9122933bbdd0eca9210b11584bc162621a7b082f1c2",
+        "bytes": 6710
+      },
+      "events_file": {
+        "path": "results/reference/test-lisp-progmodes-subword-tests.el-a8589f09ddfb.events.jsonl",
+        "bytes": 3213,
+        "sha256": "28cdda3631dcf6720f2733829874a04644c1334cb6e8d0d1890af44139fc52fc"
+      },
+      "retirement": {
+        "status": "complete",
+        "files": 0,
+        "directories": 10,
+        "ledger_schema": 3,
+        "logical_bytes": 0,
+        "allocated_bytes": 0,
+        "evidence_sha256": "fa883d59ed5d3201022af9122933bbdd0eca9210b11584bc162621a7b082f1c2",
+        "ledger": "test-lisp-progmodes-subword-tests.el-a8589f09ddfb.state-retirement.jsonl.gz",
+        "ledger_sha256": "c73dda08f61db7d8771a9dc94b9e758d666b8de857e014381d621f1e9321d5a4",
+        "all_selected_absent": true,
+        "restore": "regenerate consumed cache from retained inputs; original random names not promised",
+        "empty_parents_retired": true,
+        "parent_directories": 2
+      },
+      "owner_receipt": {
+        "path": "results/reference/test-lisp-progmodes-subword-tests.el-a8589f09ddfb.owner-retirement.json",
+        "sha256": "27cfb764c546d555c0c139a299b0303779ed6228da1359b9792f71d9d555c933",
+        "bytes": 902
+      }
+    },
+    {
+      "product": "reference",
+      "file": "test/lisp/thingatpt-tests.el",
+      "ids": 17,
+      "sorted_ids_sha256": "516ebdc671918de39090f31aca79cc6de7edd818273ce4acc61488eee30fa0d8",
+      "tags_sha256": "3510bb8b88abbebb64fe92f43a63d78ee7be2b22fa5b3a527da36bac54e5e956",
+      "passed": true,
+      "complete": true,
+      "exit_code": 0,
+      "timed_out": false,
+      "remaining_group_terminated": false,
+      "result_types": {
+        "ert-test-passed": 17
+      },
+      "result_file": {
+        "path": "results/reference/test-lisp-thingatpt-tests.el-11c64bee3dfd.json",
+        "sha256": "07f13907f17c897704422ee50686fd5f3b606691b561dcd2c4089539cf0f54da",
+        "bytes": 18287
+      },
+      "events_file": {
+        "path": "results/reference/test-lisp-thingatpt-tests.el-11c64bee3dfd.events.jsonl",
+        "bytes": 10419,
+        "sha256": "bc2267fcd45f0cc9f6fb07b554c0ec0909eaa339f572bacfff27d07b908c6c0a"
+      },
+      "retirement": {
+        "status": "complete",
+        "files": 0,
+        "directories": 10,
+        "ledger_schema": 3,
+        "logical_bytes": 0,
+        "allocated_bytes": 0,
+        "evidence_sha256": "07f13907f17c897704422ee50686fd5f3b606691b561dcd2c4089539cf0f54da",
+        "ledger": "test-lisp-thingatpt-tests.el-11c64bee3dfd.state-retirement.jsonl.gz",
+        "ledger_sha256": "c73dda08f61db7d8771a9dc94b9e758d666b8de857e014381d621f1e9321d5a4",
+        "all_selected_absent": true,
+        "restore": "regenerate consumed cache from retained inputs; original random names not promised",
+        "empty_parents_retired": true,
+        "parent_directories": 2
+      },
+      "owner_receipt": {
+        "path": "results/reference/test-lisp-thingatpt-tests.el-11c64bee3dfd.owner-retirement.json",
+        "sha256": "221fb4f7796bffd33a41e3045d2583ea717ad3b7ada63dff1d08779d17c0f38a",
+        "bytes": 887
+      }
+    },
+    {
+      "product": "reference",
+      "file": "test/lisp/replace-tests.el",
+      "ids": 29,
+      "sorted_ids_sha256": "6bd87ce59300710d7006e835261b507b7a0b9e2e97851c3a478203b039af36db",
+      "tags_sha256": "7a5dafa6faad6b2c599464416539e83d6d3ca9c538842db33132d479eb1102ce",
+      "passed": true,
+      "complete": true,
+      "exit_code": 0,
+      "timed_out": false,
+      "remaining_group_terminated": false,
+      "result_types": {
+        "ert-test-passed": 29
+      },
+      "result_file": {
+        "path": "results/reference/test-lisp-replace-tests.el-01c1aaedca02.json",
+        "sha256": "f0cfe72567386f05825c6e17b1d20bc5468432d42cde8c62fb0ef0a19cfbcc8d",
+        "bytes": 30775
+      },
+      "events_file": {
+        "path": "results/reference/test-lisp-replace-tests.el-01c1aaedca02.events.jsonl",
+        "bytes": 19243,
+        "sha256": "98b673cf413de696c0b1dacab16bd863da10bc19e66668c03fb5d35effd796e9"
+      },
+      "retirement": {
+        "status": "complete",
+        "files": 2,
+        "directories": 13,
+        "ledger_schema": 3,
+        "logical_bytes": 68192,
+        "allocated_bytes": 73728,
+        "evidence_sha256": "f0cfe72567386f05825c6e17b1d20bc5468432d42cde8c62fb0ef0a19cfbcc8d",
+        "ledger": "test-lisp-replace-tests.el-01c1aaedca02.state-retirement.jsonl.gz",
+        "ledger_sha256": "510297ccd2c3c3177ef2cefeccb6e1d7656044df144076b71863033a12a4235b",
+        "all_selected_absent": true,
+        "restore": "regenerate consumed cache from retained inputs; original random names not promised",
+        "empty_parents_retired": true,
+        "parent_directories": 2
+      },
+      "owner_receipt": {
+        "path": "results/reference/test-lisp-replace-tests.el-01c1aaedca02.owner-retirement.json",
+        "sha256": "fc3f9d101814f9fca001455a3feb8d6428aa80ef1966dd597f2d7177c92307c4",
+        "bytes": 891
+      }
+    },
+    {
+      "product": "reference",
+      "file": "test/lisp/repeat-tests.el",
+      "ids": 8,
+      "sorted_ids_sha256": "8afd76873053c4e05cf748d89504978b657d00cd75f72e2c98704685f5e9ddc5",
+      "tags_sha256": "fee84f38117d1960b37e40a21e8a1503ff9172ae8d8d8d4c63e311221896c511",
+      "passed": true,
+      "complete": true,
+      "exit_code": 0,
+      "timed_out": false,
+      "remaining_group_terminated": false,
+      "result_types": {
+        "ert-test-passed": 8
+      },
+      "result_file": {
+        "path": "results/reference/test-lisp-repeat-tests.el-de55a70cefa0.json",
+        "sha256": "43882ce31ad19291960031341294c61843efc479a9bcc83e6f8be8036ba61572",
+        "bytes": 11517
+      },
+      "events_file": {
+        "path": "results/reference/test-lisp-repeat-tests.el-de55a70cefa0.events.jsonl",
+        "bytes": 6204,
+        "sha256": "3b9694d9997903950647000601edc9dc5d76cab52f6f9083dc9859c3db368d5a"
+      },
+      "retirement": {
+        "status": "complete",
+        "files": 0,
+        "directories": 10,
+        "ledger_schema": 3,
+        "logical_bytes": 0,
+        "allocated_bytes": 0,
+        "evidence_sha256": "43882ce31ad19291960031341294c61843efc479a9bcc83e6f8be8036ba61572",
+        "ledger": "test-lisp-repeat-tests.el-de55a70cefa0.state-retirement.jsonl.gz",
+        "ledger_sha256": "c73dda08f61db7d8771a9dc94b9e758d666b8de857e014381d621f1e9321d5a4",
+        "all_selected_absent": true,
+        "restore": "regenerate consumed cache from retained inputs; original random names not promised",
+        "empty_parents_retired": true,
+        "parent_directories": 2
+      },
+      "owner_receipt": {
+        "path": "results/reference/test-lisp-repeat-tests.el-de55a70cefa0.owner-retirement.json",
+        "sha256": "fd8cee65c7278bdba678f311be09d68b8235d0a7aaf8e2cecbf96cb4f8573339",
+        "bytes": 881
+      }
+    },
+    {
+      "product": "reference",
+      "file": "test/lisp/simple-tests.el",
+      "ids": 54,
+      "sorted_ids_sha256": "563d7111f93d80667e3773b26d50e9a6109fca933fc8a7642b76e2784c267f18",
+      "tags_sha256": "0679fb7b3a51f1348fc10a5bd6a5e792e76d2dc26cb9a982a237490fca53317e",
+      "passed": false,
+      "complete": true,
+      "exit_code": 0,
+      "timed_out": false,
+      "remaining_group_terminated": false,
+      "result_types": {
+        "ert-test-passed": 51,
+        "ert-test-skipped": 3
+      },
+      "result_file": {
+        "path": "results/reference/test-lisp-simple-tests.el-b65c7c4e5f4d.json",
+        "sha256": "f82274557aaaeff09cc93b2f56e1a8f73f65dc2b785f1af8be44b2dfa0a4ba9e",
+        "bytes": 51362
+      },
+      "events_file": {
+        "path": "results/reference/test-lisp-simple-tests.el-b65c7c4e5f4d.events.jsonl",
+        "bytes": 32293,
+        "sha256": "ad2d2405f08524e1674bcfda3e27884418e11a26ad9a75986a4246397cd2270f"
+      },
+      "retirement": {
+        "status": "retained",
+        "reason": "file failed/incomplete; preserve original state"
+      },
+      "owner_receipt": {
+        "path": "results/reference/test-lisp-simple-tests.el-b65c7c4e5f4d.owner-retirement.json",
+        "sha256": "7a0cdebc0a9b779731f591eee6df937e75ad1eabaca6fc695be595578f995364",
+        "bytes": 373
+      }
+    },
+    {
+      "product": "combined-current-terminal-normal-major",
+      "file": "test/lisp/buff-menu-tests.el",
+      "ids": 1,
+      "sorted_ids_sha256": "66b1d796151627b2c70089368ea5a2712c96dd23d4d335bba1499d1b885d42f6",
+      "tags_sha256": "87e15c2cf104266393d94e82b23f0371af251f22f307a8964e3dfbabc55975d6",
+      "passed": true,
+      "complete": true,
+      "exit_code": 0,
+      "timed_out": false,
+      "remaining_group_terminated": false,
+      "result_types": {
+        "ert-test-passed": 1
+      },
+      "result_file": {
+        "path": "results/combined-current-terminal-normal-major/test-lisp-buff-menu-tests.el-b888a39c0569.json",
+        "sha256": "f75e43fdc81a91cc54569489b1bf176961bead5b78d50a66f03f376f8430ea7a",
+        "bytes": 6217
+      },
+      "events_file": {
+        "path": "results/combined-current-terminal-normal-major/test-lisp-buff-menu-tests.el-b888a39c0569.events.jsonl",
+        "bytes": 2427,
+        "sha256": "916bc4c8873ac0055f60b8cf9273df8ec7310739bcf613ed234f03cc00043c39"
+      },
+      "retirement": {
+        "status": "complete",
+        "files": 0,
+        "directories": 10,
+        "ledger_schema": 3,
+        "logical_bytes": 0,
+        "allocated_bytes": 0,
+        "evidence_sha256": "f75e43fdc81a91cc54569489b1bf176961bead5b78d50a66f03f376f8430ea7a",
+        "ledger": "test-lisp-buff-menu-tests.el-b888a39c0569.state-retirement.jsonl.gz",
+        "ledger_sha256": "c73dda08f61db7d8771a9dc94b9e758d666b8de857e014381d621f1e9321d5a4",
+        "all_selected_absent": true,
+        "restore": "regenerate consumed cache from retained inputs; original random names not promised",
+        "empty_parents_retired": true,
+        "parent_directories": 2
+      },
+      "owner_receipt": {
+        "path": "results/combined-current-terminal-normal-major/test-lisp-buff-menu-tests.el-b888a39c0569.owner-retirement.json",
+        "sha256": "e14d01f48c90098e450f736278a6c88a94940775d57812ccf57a5079790c912d",
+        "bytes": 915
+      }
+    },
+    {
+      "product": "combined-current-terminal-normal-major",
+      "file": "test/lisp/register-tests.el",
+      "ids": 2,
+      "sorted_ids_sha256": "a79d8ba473d3ae432c9312110e1dcf7b1a4c31810c6593a685f42c0448a70ffe",
+      "tags_sha256": "daa7ef3f1cab4df381c5637fee07e04e6308af90bcd039bec92f8a89cf8fb62a",
+      "passed": true,
+      "complete": true,
+      "exit_code": 0,
+      "timed_out": false,
+      "remaining_group_terminated": false,
+      "result_types": {
+        "ert-test-passed": 2
+      },
+      "result_file": {
+        "path": "results/combined-current-terminal-normal-major/test-lisp-register-tests.el-e7bf243fa959.json",
+        "sha256": "23c0a4b8d65f1b974a5b96c3fd00ac5aad69b406f8d319f7af3f25843bdd11fa",
+        "bytes": 7779
+      },
+      "events_file": {
+        "path": "results/combined-current-terminal-normal-major/test-lisp-register-tests.el-e7bf243fa959.events.jsonl",
+        "bytes": 3410,
+        "sha256": "b20e5b069b09b6cc5849ed557b71ee2b58bb0cc589f4402792e4d65ae7bfba39"
+      },
+      "retirement": {
+        "status": "complete",
+        "files": 0,
+        "directories": 10,
+        "ledger_schema": 3,
+        "logical_bytes": 0,
+        "allocated_bytes": 0,
+        "evidence_sha256": "23c0a4b8d65f1b974a5b96c3fd00ac5aad69b406f8d319f7af3f25843bdd11fa",
+        "ledger": "test-lisp-register-tests.el-e7bf243fa959.state-retirement.jsonl.gz",
+        "ledger_sha256": "c73dda08f61db7d8771a9dc94b9e758d666b8de857e014381d621f1e9321d5a4",
+        "all_selected_absent": true,
+        "restore": "regenerate consumed cache from retained inputs; original random names not promised",
+        "empty_parents_retired": true,
+        "parent_directories": 2
+      },
+      "owner_receipt": {
+        "path": "results/combined-current-terminal-normal-major/test-lisp-register-tests.el-e7bf243fa959.owner-retirement.json",
+        "sha256": "cc25631dfcaa3977b2b951967a97da96a07e295d89661b8c3bfce9b0a4a1f494",
+        "bytes": 913
+      }
+    },
+    {
+      "product": "combined-current-terminal-normal-major",
+      "file": "test/lisp/progmodes/subword-tests.el",
+      "ids": 2,
+      "sorted_ids_sha256": "d76a3b85137cddc9493c418593a26bc9b9911ec25b00a2b5073448f9d2225d2b",
+      "tags_sha256": "3a0d1a58c331a23a0396ed697db1eb50264aa4bbb56f87b16eb5a820b2ef794c",
+      "passed": true,
+      "complete": true,
+      "exit_code": 0,
+      "timed_out": false,
+      "remaining_group_terminated": false,
+      "result_types": {
+        "ert-test-passed": 2
+      },
+      "result_file": {
+        "path": "results/combined-current-terminal-normal-major/test-lisp-progmodes-subword-tests.el-a8589f09ddfb.json",
+        "sha256": "0f999ddd19da7a4465dd67229a6e1d7fac40dc62e6c98f4f07a1888c9f5e9d68",
+        "bytes": 7098
+      },
+      "events_file": {
+        "path": "results/combined-current-terminal-normal-major/test-lisp-progmodes-subword-tests.el-a8589f09ddfb.events.jsonl",
+        "bytes": 2929,
+        "sha256": "63a07e13f4c1dffc0c1b89617b2475a6dfde3cb2742e9e93b853db5491e55a27"
+      },
+      "retirement": {
+        "status": "complete",
+        "files": 0,
+        "directories": 10,
+        "ledger_schema": 3,
+        "logical_bytes": 0,
+        "allocated_bytes": 0,
+        "evidence_sha256": "0f999ddd19da7a4465dd67229a6e1d7fac40dc62e6c98f4f07a1888c9f5e9d68",
+        "ledger": "test-lisp-progmodes-subword-tests.el-a8589f09ddfb.state-retirement.jsonl.gz",
+        "ledger_sha256": "c73dda08f61db7d8771a9dc94b9e758d666b8de857e014381d621f1e9321d5a4",
+        "all_selected_absent": true,
+        "restore": "regenerate consumed cache from retained inputs; original random names not promised",
+        "empty_parents_retired": true,
+        "parent_directories": 2
+      },
+      "owner_receipt": {
+        "path": "results/combined-current-terminal-normal-major/test-lisp-progmodes-subword-tests.el-a8589f09ddfb.owner-retirement.json",
+        "sha256": "fa24565dec98d4f93342529e2b4c055d0eecc3fe05aae2a9deb874194f5b8bff",
+        "bytes": 931
+      }
+    },
+    {
+      "product": "combined-current-terminal-normal-major",
+      "file": "test/lisp/thingatpt-tests.el",
+      "ids": 17,
+      "sorted_ids_sha256": "516ebdc671918de39090f31aca79cc6de7edd818273ce4acc61488eee30fa0d8",
+      "tags_sha256": "3510bb8b88abbebb64fe92f43a63d78ee7be2b22fa5b3a527da36bac54e5e956",
+      "passed": true,
+      "complete": true,
+      "exit_code": 0,
+      "timed_out": false,
+      "remaining_group_terminated": false,
+      "result_types": {
+        "ert-test-passed": 17
+      },
+      "result_file": {
+        "path": "results/combined-current-terminal-normal-major/test-lisp-thingatpt-tests.el-11c64bee3dfd.json",
+        "sha256": "a7d0a0177b30535b2b856db2b16d6ebeb4a612ee60ae4e323ffa38bca4f05026",
+        "bytes": 19117
+      },
+      "events_file": {
+        "path": "results/combined-current-terminal-normal-major/test-lisp-thingatpt-tests.el-11c64bee3dfd.events.jsonl",
+        "bytes": 10139,
+        "sha256": "87697d62ddb11bf680b898b407db882ccf5e3ff5fd762b0e169f0a2430e08437"
+      },
+      "retirement": {
+        "status": "complete",
+        "files": 0,
+        "directories": 10,
+        "ledger_schema": 3,
+        "logical_bytes": 0,
+        "allocated_bytes": 0,
+        "evidence_sha256": "a7d0a0177b30535b2b856db2b16d6ebeb4a612ee60ae4e323ffa38bca4f05026",
+        "ledger": "test-lisp-thingatpt-tests.el-11c64bee3dfd.state-retirement.jsonl.gz",
+        "ledger_sha256": "c73dda08f61db7d8771a9dc94b9e758d666b8de857e014381d621f1e9321d5a4",
+        "all_selected_absent": true,
+        "restore": "regenerate consumed cache from retained inputs; original random names not promised",
+        "empty_parents_retired": true,
+        "parent_directories": 2
+      },
+      "owner_receipt": {
+        "path": "results/combined-current-terminal-normal-major/test-lisp-thingatpt-tests.el-11c64bee3dfd.owner-retirement.json",
+        "sha256": "af2e68800ecd20b53a722d3783ce6cbb52a70e10ddd168aefde0c1f78d1b3ebd",
+        "bytes": 916
+      }
+    },
+    {
+      "product": "combined-current-terminal-normal-major",
+      "file": "test/lisp/replace-tests.el",
+      "ids": 29,
+      "sorted_ids_sha256": "6bd87ce59300710d7006e835261b507b7a0b9e2e97851c3a478203b039af36db",
+      "tags_sha256": "7a5dafa6faad6b2c599464416539e83d6d3ca9c538842db33132d479eb1102ce",
+      "passed": true,
+      "complete": true,
+      "exit_code": 0,
+      "timed_out": false,
+      "remaining_group_terminated": false,
+      "result_types": {
+        "ert-test-passed": 29
+      },
+      "result_file": {
+        "path": "results/combined-current-terminal-normal-major/test-lisp-replace-tests.el-01c1aaedca02.json",
+        "sha256": "235b53cdac92ecb09ab678334c534916905727470d04cdc9ee7d334b777e6ab3",
+        "bytes": 32626
+      },
+      "events_file": {
+        "path": "results/combined-current-terminal-normal-major/test-lisp-replace-tests.el-01c1aaedca02.events.jsonl",
+        "bytes": 19624,
+        "sha256": "4ee4e82e27ab4e95128679b62cc49d3f54e334fbbc0a35abcf3123beb3799f2c"
+      },
+      "retirement": {
+        "status": "complete",
+        "files": 2,
+        "directories": 13,
+        "ledger_schema": 3,
+        "logical_bytes": 68544,
+        "allocated_bytes": 73728,
+        "evidence_sha256": "235b53cdac92ecb09ab678334c534916905727470d04cdc9ee7d334b777e6ab3",
+        "ledger": "test-lisp-replace-tests.el-01c1aaedca02.state-retirement.jsonl.gz",
+        "ledger_sha256": "136c3916ef3c9144ca01c9fcfaf73e5774a1439d8ca12097ae0999a0d77c8e8b",
+        "all_selected_absent": true,
+        "restore": "regenerate consumed cache from retained inputs; original random names not promised",
+        "empty_parents_retired": true,
+        "parent_directories": 2
+      },
+      "owner_receipt": {
+        "path": "results/combined-current-terminal-normal-major/test-lisp-replace-tests.el-01c1aaedca02.owner-retirement.json",
+        "sha256": "1a4c5d83efcd4be0cfb06b4d8a58ad84bf77ee65bf54aed4141e53344f009926",
+        "bytes": 920
+      }
+    },
+    {
+      "product": "combined-current-terminal-normal-major",
+      "file": "test/lisp/repeat-tests.el",
+      "ids": 8,
+      "sorted_ids_sha256": "8afd76873053c4e05cf748d89504978b657d00cd75f72e2c98704685f5e9ddc5",
+      "tags_sha256": "fee84f38117d1960b37e40a21e8a1503ff9172ae8d8d8d4c63e311221896c511",
+      "passed": true,
+      "complete": true,
+      "exit_code": 0,
+      "timed_out": false,
+      "remaining_group_terminated": false,
+      "result_types": {
+        "ert-test-passed": 8
+      },
+      "result_file": {
+        "path": "results/combined-current-terminal-normal-major/test-lisp-repeat-tests.el-de55a70cefa0.json",
+        "sha256": "17ccf84bc6aca8b56f33fd75c18159541ee7ee959d27dc6bbfd89bed7a712294",
+        "bytes": 12080
+      },
+      "events_file": {
+        "path": "results/combined-current-terminal-normal-major/test-lisp-repeat-tests.el-de55a70cefa0.events.jsonl",
+        "bytes": 5921,
+        "sha256": "af91948561bea201f66a514cfcedf12477d09591f06f340280353cf073f839de"
+      },
+      "retirement": {
+        "status": "complete",
+        "files": 0,
+        "directories": 10,
+        "ledger_schema": 3,
+        "logical_bytes": 0,
+        "allocated_bytes": 0,
+        "evidence_sha256": "17ccf84bc6aca8b56f33fd75c18159541ee7ee959d27dc6bbfd89bed7a712294",
+        "ledger": "test-lisp-repeat-tests.el-de55a70cefa0.state-retirement.jsonl.gz",
+        "ledger_sha256": "c73dda08f61db7d8771a9dc94b9e758d666b8de857e014381d621f1e9321d5a4",
+        "all_selected_absent": true,
+        "restore": "regenerate consumed cache from retained inputs; original random names not promised",
+        "empty_parents_retired": true,
+        "parent_directories": 2
+      },
+      "owner_receipt": {
+        "path": "results/combined-current-terminal-normal-major/test-lisp-repeat-tests.el-de55a70cefa0.owner-retirement.json",
+        "sha256": "e12dcc5042451213bffad61436ed7217ecb2e91ee22b4ed59af89902fe3842ca",
+        "bytes": 910
+      }
+    },
+    {
+      "product": "combined-current-terminal-normal-major",
+      "file": "test/lisp/simple-tests.el",
+      "ids": 54,
+      "sorted_ids_sha256": "563d7111f93d80667e3773b26d50e9a6109fca933fc8a7642b76e2784c267f18",
+      "tags_sha256": "0679fb7b3a51f1348fc10a5bd6a5e792e76d2dc26cb9a982a237490fca53317e",
+      "passed": false,
+      "complete": true,
+      "exit_code": 0,
+      "timed_out": false,
+      "remaining_group_terminated": false,
+      "result_types": {
+        "ert-test-passed": 51,
+        "ert-test-skipped": 3
+      },
+      "result_file": {
+        "path": "results/combined-current-terminal-normal-major/test-lisp-simple-tests.el-b65c7c4e5f4d.json",
+        "sha256": "b6670c86b5175d1600a287cf2c359249bc22d2d633453c3aec181c39c8073b9c",
+        "bytes": 54657
+      },
+      "events_file": {
+        "path": "results/combined-current-terminal-normal-major/test-lisp-simple-tests.el-b65c7c4e5f4d.events.jsonl",
+        "bytes": 33395,
+        "sha256": "6e8d5bdf368f14438141406cc65b612f5c50ee5c03cd9071b0fb2e74673c8247"
+      },
+      "retirement": {
+        "status": "retained",
+        "reason": "file failed/incomplete; preserve original state"
+      },
+      "owner_receipt": {
+        "path": "results/combined-current-terminal-normal-major/test-lisp-simple-tests.el-b65c7c4e5f4d.owner-retirement.json",
+        "sha256": "a9e5c8d1cf0705b79d22a4ddbd422e2026bb0d38ae1ab7e01c3f50cfdf701c5f",
+        "bytes": 402
+      }
+    },
+    {
+      "product": "combined-current-terminal-normal-young",
+      "file": "test/lisp/buff-menu-tests.el",
+      "ids": 1,
+      "sorted_ids_sha256": "66b1d796151627b2c70089368ea5a2712c96dd23d4d335bba1499d1b885d42f6",
+      "tags_sha256": "87e15c2cf104266393d94e82b23f0371af251f22f307a8964e3dfbabc55975d6",
+      "passed": true,
+      "complete": true,
+      "exit_code": 0,
+      "timed_out": false,
+      "remaining_group_terminated": false,
+      "result_types": {
+        "ert-test-passed": 1
+      },
+      "result_file": {
+        "path": "results/combined-current-terminal-normal-young/test-lisp-buff-menu-tests.el-b888a39c0569.json",
+        "sha256": "cfbebacfb453498bb58b2c5c5c6ffaef823f193947b921f6bea787b9e0404d16",
+        "bytes": 6220
+      },
+      "events_file": {
+        "path": "results/combined-current-terminal-normal-young/test-lisp-buff-menu-tests.el-b888a39c0569.events.jsonl",
+        "bytes": 2428,
+        "sha256": "05d0ed1b27eec23ca4242333391428e8737eaa2e24d3c6ee843efdaaa07d4004"
+      },
+      "retirement": {
+        "status": "complete",
+        "files": 0,
+        "directories": 10,
+        "ledger_schema": 3,
+        "logical_bytes": 0,
+        "allocated_bytes": 0,
+        "evidence_sha256": "cfbebacfb453498bb58b2c5c5c6ffaef823f193947b921f6bea787b9e0404d16",
+        "ledger": "test-lisp-buff-menu-tests.el-b888a39c0569.state-retirement.jsonl.gz",
+        "ledger_sha256": "c73dda08f61db7d8771a9dc94b9e758d666b8de857e014381d621f1e9321d5a4",
+        "all_selected_absent": true,
+        "restore": "regenerate consumed cache from retained inputs; original random names not promised",
+        "empty_parents_retired": true,
+        "parent_directories": 2
+      },
+      "owner_receipt": {
+        "path": "results/combined-current-terminal-normal-young/test-lisp-buff-menu-tests.el-b888a39c0569.owner-retirement.json",
+        "sha256": "c43604090fa80b4cd8eeb96bff0ac8b0e849174f2f023f92f68d06c29c608aef",
+        "bytes": 915
+      }
+    },
+    {
+      "product": "combined-current-terminal-normal-young",
+      "file": "test/lisp/register-tests.el",
+      "ids": 2,
+      "sorted_ids_sha256": "a79d8ba473d3ae432c9312110e1dcf7b1a4c31810c6593a685f42c0448a70ffe",
+      "tags_sha256": "daa7ef3f1cab4df381c5637fee07e04e6308af90bcd039bec92f8a89cf8fb62a",
+      "passed": true,
+      "complete": true,
+      "exit_code": 0,
+      "timed_out": false,
+      "remaining_group_terminated": false,
+      "result_types": {
+        "ert-test-passed": 2
+      },
+      "result_file": {
+        "path": "results/combined-current-terminal-normal-young/test-lisp-register-tests.el-e7bf243fa959.json",
+        "sha256": "331415d6d7c7218b3640309329315a0554bc871351371e56a2eee053afd3ea96",
+        "bytes": 7777
+      },
+      "events_file": {
+        "path": "results/combined-current-terminal-normal-young/test-lisp-register-tests.el-e7bf243fa959.events.jsonl",
+        "bytes": 3409,
+        "sha256": "95c2cd3205aa4b3531268d500eac928fe06f12053b0530c634863309c662682f"
+      },
+      "retirement": {
+        "status": "complete",
+        "files": 0,
+        "directories": 10,
+        "ledger_schema": 3,
+        "logical_bytes": 0,
+        "allocated_bytes": 0,
+        "evidence_sha256": "331415d6d7c7218b3640309329315a0554bc871351371e56a2eee053afd3ea96",
+        "ledger": "test-lisp-register-tests.el-e7bf243fa959.state-retirement.jsonl.gz",
+        "ledger_sha256": "c73dda08f61db7d8771a9dc94b9e758d666b8de857e014381d621f1e9321d5a4",
+        "all_selected_absent": true,
+        "restore": "regenerate consumed cache from retained inputs; original random names not promised",
+        "empty_parents_retired": true,
+        "parent_directories": 2
+      },
+      "owner_receipt": {
+        "path": "results/combined-current-terminal-normal-young/test-lisp-register-tests.el-e7bf243fa959.owner-retirement.json",
+        "sha256": "fc482c2843383b4b49df90407bc4eebb0159e8425dc7e72390b6815a417f7593",
+        "bytes": 913
+      }
+    },
+    {
+      "product": "combined-current-terminal-normal-young",
+      "file": "test/lisp/progmodes/subword-tests.el",
+      "ids": 2,
+      "sorted_ids_sha256": "d76a3b85137cddc9493c418593a26bc9b9911ec25b00a2b5073448f9d2225d2b",
+      "tags_sha256": "3a0d1a58c331a23a0396ed697db1eb50264aa4bbb56f87b16eb5a820b2ef794c",
+      "passed": true,
+      "complete": true,
+      "exit_code": 0,
+      "timed_out": false,
+      "remaining_group_terminated": false,
+      "result_types": {
+        "ert-test-passed": 2
+      },
+      "result_file": {
+        "path": "results/combined-current-terminal-normal-young/test-lisp-progmodes-subword-tests.el-a8589f09ddfb.json",
+        "sha256": "d7ebe551d7a361a58eaedbde6a6fcc69eda826522f2d4cb6cf8c28893fba154f",
+        "bytes": 7098
+      },
+      "events_file": {
+        "path": "results/combined-current-terminal-normal-young/test-lisp-progmodes-subword-tests.el-a8589f09ddfb.events.jsonl",
+        "bytes": 2929,
+        "sha256": "f5075ae8bc8e867046ec57754feee7e4c6019a43764475d4a0989f5478445c8a"
+      },
+      "retirement": {
+        "status": "complete",
+        "files": 0,
+        "directories": 10,
+        "ledger_schema": 3,
+        "logical_bytes": 0,
+        "allocated_bytes": 0,
+        "evidence_sha256": "d7ebe551d7a361a58eaedbde6a6fcc69eda826522f2d4cb6cf8c28893fba154f",
+        "ledger": "test-lisp-progmodes-subword-tests.el-a8589f09ddfb.state-retirement.jsonl.gz",
+        "ledger_sha256": "c73dda08f61db7d8771a9dc94b9e758d666b8de857e014381d621f1e9321d5a4",
+        "all_selected_absent": true,
+        "restore": "regenerate consumed cache from retained inputs; original random names not promised",
+        "empty_parents_retired": true,
+        "parent_directories": 2
+      },
+      "owner_receipt": {
+        "path": "results/combined-current-terminal-normal-young/test-lisp-progmodes-subword-tests.el-a8589f09ddfb.owner-retirement.json",
+        "sha256": "7359997c512578af73ac4443db8f2caeb98006c7863aaabfca671ebf67b15eab",
+        "bytes": 931
+      }
+    },
+    {
+      "product": "combined-current-terminal-normal-young",
+      "file": "test/lisp/thingatpt-tests.el",
+      "ids": 17,
+      "sorted_ids_sha256": "516ebdc671918de39090f31aca79cc6de7edd818273ce4acc61488eee30fa0d8",
+      "tags_sha256": "3510bb8b88abbebb64fe92f43a63d78ee7be2b22fa5b3a527da36bac54e5e956",
+      "passed": true,
+      "complete": true,
+      "exit_code": 0,
+      "timed_out": false,
+      "remaining_group_terminated": false,
+      "result_types": {
+        "ert-test-passed": 17
+      },
+      "result_file": {
+        "path": "results/combined-current-terminal-normal-young/test-lisp-thingatpt-tests.el-11c64bee3dfd.json",
+        "sha256": "61bd7b66a66705cc4cc68549ddbca63708639f3271ea364e288498ed34467019",
+        "bytes": 19107
+      },
+      "events_file": {
+        "path": "results/combined-current-terminal-normal-young/test-lisp-thingatpt-tests.el-11c64bee3dfd.events.jsonl",
+        "bytes": 10134,
+        "sha256": "a5580f02224414d706dc833cc4215678eb6af8d9a685443fa2e314054698a94c"
+      },
+      "retirement": {
+        "status": "complete",
+        "files": 0,
+        "directories": 10,
+        "ledger_schema": 3,
+        "logical_bytes": 0,
+        "allocated_bytes": 0,
+        "evidence_sha256": "61bd7b66a66705cc4cc68549ddbca63708639f3271ea364e288498ed34467019",
+        "ledger": "test-lisp-thingatpt-tests.el-11c64bee3dfd.state-retirement.jsonl.gz",
+        "ledger_sha256": "c73dda08f61db7d8771a9dc94b9e758d666b8de857e014381d621f1e9321d5a4",
+        "all_selected_absent": true,
+        "restore": "regenerate consumed cache from retained inputs; original random names not promised",
+        "empty_parents_retired": true,
+        "parent_directories": 2
+      },
+      "owner_receipt": {
+        "path": "results/combined-current-terminal-normal-young/test-lisp-thingatpt-tests.el-11c64bee3dfd.owner-retirement.json",
+        "sha256": "4926ec92e84b6bd9a257a06b441ef82c1aee00b2699c6c560dfdd2a83716f353",
+        "bytes": 916
+      }
+    },
+    {
+      "product": "combined-current-terminal-normal-young",
+      "file": "test/lisp/replace-tests.el",
+      "ids": 29,
+      "sorted_ids_sha256": "6bd87ce59300710d7006e835261b507b7a0b9e2e97851c3a478203b039af36db",
+      "tags_sha256": "7a5dafa6faad6b2c599464416539e83d6d3ca9c538842db33132d479eb1102ce",
+      "passed": true,
+      "complete": true,
+      "exit_code": 0,
+      "timed_out": false,
+      "remaining_group_terminated": false,
+      "result_types": {
+        "ert-test-passed": 29
+      },
+      "result_file": {
+        "path": "results/combined-current-terminal-normal-young/test-lisp-replace-tests.el-01c1aaedca02.json",
+        "sha256": "3341e8014f04980e57fa638dca654039b4ede7fe7948224cc642a058b19326cf",
+        "bytes": 32646
+      },
+      "events_file": {
+        "path": "results/combined-current-terminal-normal-young/test-lisp-replace-tests.el-01c1aaedca02.events.jsonl",
+        "bytes": 19634,
+        "sha256": "8ef7e03192e4919d1f0d1c275b07e7ad65b0ac2d40013c98f8dc8606871c10db"
+      },
+      "retirement": {
+        "status": "complete",
+        "files": 2,
+        "directories": 13,
+        "ledger_schema": 3,
+        "logical_bytes": 68544,
+        "allocated_bytes": 73728,
+        "evidence_sha256": "3341e8014f04980e57fa638dca654039b4ede7fe7948224cc642a058b19326cf",
+        "ledger": "test-lisp-replace-tests.el-01c1aaedca02.state-retirement.jsonl.gz",
+        "ledger_sha256": "136c3916ef3c9144ca01c9fcfaf73e5774a1439d8ca12097ae0999a0d77c8e8b",
+        "all_selected_absent": true,
+        "restore": "regenerate consumed cache from retained inputs; original random names not promised",
+        "empty_parents_retired": true,
+        "parent_directories": 2
+      },
+      "owner_receipt": {
+        "path": "results/combined-current-terminal-normal-young/test-lisp-replace-tests.el-01c1aaedca02.owner-retirement.json",
+        "sha256": "abe23c48623f46a04f0ea374a45446d6311056ae11d68ae5eb87e87fab059afd",
+        "bytes": 920
+      }
+    },
+    {
+      "product": "combined-current-terminal-normal-young",
+      "file": "test/lisp/repeat-tests.el",
+      "ids": 8,
+      "sorted_ids_sha256": "8afd76873053c4e05cf748d89504978b657d00cd75f72e2c98704685f5e9ddc5",
+      "tags_sha256": "fee84f38117d1960b37e40a21e8a1503ff9172ae8d8d8d4c63e311221896c511",
+      "passed": true,
+      "complete": true,
+      "exit_code": 0,
+      "timed_out": false,
+      "remaining_group_terminated": false,
+      "result_types": {
+        "ert-test-passed": 8
+      },
+      "result_file": {
+        "path": "results/combined-current-terminal-normal-young/test-lisp-repeat-tests.el-de55a70cefa0.json",
+        "sha256": "012f1956a34a971c3e89877a540aa656827692e66cf7f12f957b51dafba9195f",
+        "bytes": 12080
+      },
+      "events_file": {
+        "path": "results/combined-current-terminal-normal-young/test-lisp-repeat-tests.el-de55a70cefa0.events.jsonl",
+        "bytes": 5921,
+        "sha256": "beda1737158fa789274cd0961d2b51bbdee62f84dd6744e5131c2b32325203f4"
+      },
+      "retirement": {
+        "status": "complete",
+        "files": 0,
+        "directories": 10,
+        "ledger_schema": 3,
+        "logical_bytes": 0,
+        "allocated_bytes": 0,
+        "evidence_sha256": "012f1956a34a971c3e89877a540aa656827692e66cf7f12f957b51dafba9195f",
+        "ledger": "test-lisp-repeat-tests.el-de55a70cefa0.state-retirement.jsonl.gz",
+        "ledger_sha256": "c73dda08f61db7d8771a9dc94b9e758d666b8de857e014381d621f1e9321d5a4",
+        "all_selected_absent": true,
+        "restore": "regenerate consumed cache from retained inputs; original random names not promised",
+        "empty_parents_retired": true,
+        "parent_directories": 2
+      },
+      "owner_receipt": {
+        "path": "results/combined-current-terminal-normal-young/test-lisp-repeat-tests.el-de55a70cefa0.owner-retirement.json",
+        "sha256": "abd8694d60a9d827e02120bdb9f065edc5cb982f33d94fb2d900494fe165cd32",
+        "bytes": 910
+      }
+    },
+    {
+      "product": "combined-current-terminal-normal-young",
+      "file": "test/lisp/simple-tests.el",
+      "ids": 54,
+      "sorted_ids_sha256": "563d7111f93d80667e3773b26d50e9a6109fca933fc8a7642b76e2784c267f18",
+      "tags_sha256": "0679fb7b3a51f1348fc10a5bd6a5e792e76d2dc26cb9a982a237490fca53317e",
+      "passed": false,
+      "complete": true,
+      "exit_code": 0,
+      "timed_out": false,
+      "remaining_group_terminated": false,
+      "result_types": {
+        "ert-test-passed": 51,
+        "ert-test-skipped": 3
+      },
+      "result_file": {
+        "path": "results/combined-current-terminal-normal-young/test-lisp-simple-tests.el-b65c7c4e5f4d.json",
+        "sha256": "db48412f89138b0ee57c45fe73920a51be05bde5fea456231b49e24b3470135c",
+        "bytes": 54642
+      },
+      "events_file": {
+        "path": "results/combined-current-terminal-normal-young/test-lisp-simple-tests.el-b65c7c4e5f4d.events.jsonl",
+        "bytes": 33388,
+        "sha256": "3dc8d3015226bff3f80ad95f071e2842241bf33255398288364fd6e767013045"
+      },
+      "retirement": {
+        "status": "retained",
+        "reason": "file failed/incomplete; preserve original state"
+      },
+      "owner_receipt": {
+        "path": "results/combined-current-terminal-normal-young/test-lisp-simple-tests.el-b65c7c4e5f4d.owner-retirement.json",
+        "sha256": "ce5da95b1b443e51b99228a8a23f001ca251329e6e75fafb776ac994684cf6d1",
+        "bytes": 402
+      }
+    },
+    {
+      "product": "combined-current-terminal-checking-major",
+      "file": "test/lisp/buff-menu-tests.el",
+      "ids": 1,
+      "sorted_ids_sha256": "66b1d796151627b2c70089368ea5a2712c96dd23d4d335bba1499d1b885d42f6",
+      "tags_sha256": "87e15c2cf104266393d94e82b23f0371af251f22f307a8964e3dfbabc55975d6",
+      "passed": true,
+      "complete": true,
+      "exit_code": 0,
+      "timed_out": false,
+      "remaining_group_terminated": false,
+      "result_types": {
+        "ert-test-passed": 1
+      },
+      "result_file": {
+        "path": "results/combined-current-terminal-checking-major/test-lisp-buff-menu-tests.el-b888a39c0569.json",
+        "sha256": "1488405578114bc14281d5f1dc4049f000e48a5e5fcfcc164fc761534c8205f5",
+        "bytes": 6266
+      },
+      "events_file": {
+        "path": "results/combined-current-terminal-checking-major/test-lisp-buff-menu-tests.el-b888a39c0569.events.jsonl",
+        "bytes": 2428,
+        "sha256": "e3f4ef78813a8dde8fd50df35b202073abf96dcdc0f8c1515fdee70cc300d336"
+      },
+      "retirement": {
+        "status": "complete",
+        "files": 0,
+        "directories": 10,
+        "ledger_schema": 3,
+        "logical_bytes": 0,
+        "allocated_bytes": 0,
+        "evidence_sha256": "1488405578114bc14281d5f1dc4049f000e48a5e5fcfcc164fc761534c8205f5",
+        "ledger": "test-lisp-buff-menu-tests.el-b888a39c0569.state-retirement.jsonl.gz",
+        "ledger_sha256": "c73dda08f61db7d8771a9dc94b9e758d666b8de857e014381d621f1e9321d5a4",
+        "all_selected_absent": true,
+        "restore": "regenerate consumed cache from retained inputs; original random names not promised",
+        "empty_parents_retired": true,
+        "parent_directories": 2
+      },
+      "owner_receipt": {
+        "path": "results/combined-current-terminal-checking-major/test-lisp-buff-menu-tests.el-b888a39c0569.owner-retirement.json",
+        "sha256": "e263fe7ddab4fbf11cada68e67347822767bd48a9fd528c459f6235c124b2c56",
+        "bytes": 917
+      }
+    },
+    {
+      "product": "combined-current-terminal-checking-major",
+      "file": "test/lisp/register-tests.el",
+      "ids": 2,
+      "sorted_ids_sha256": "a79d8ba473d3ae432c9312110e1dcf7b1a4c31810c6593a685f42c0448a70ffe",
+      "tags_sha256": "daa7ef3f1cab4df381c5637fee07e04e6308af90bcd039bec92f8a89cf8fb62a",
+      "passed": true,
+      "complete": true,
+      "exit_code": 0,
+      "timed_out": false,
+      "remaining_group_terminated": false,
+      "result_types": {
+        "ert-test-passed": 2
+      },
+      "result_file": {
+        "path": "results/combined-current-terminal-checking-major/test-lisp-register-tests.el-e7bf243fa959.json",
+        "sha256": "39481c5b6c1b4d5996a51db1b1f66fc993419dcfb50463b08d8bd5f46ce28675",
+        "bytes": 7828
+      },
+      "events_file": {
+        "path": "results/combined-current-terminal-checking-major/test-lisp-register-tests.el-e7bf243fa959.events.jsonl",
+        "bytes": 3410,
+        "sha256": "8a0e7756c70cb95771d380016e5173550f428d7ac117237ca01bae13c108b240"
+      },
+      "retirement": {
+        "status": "complete",
+        "files": 0,
+        "directories": 10,
+        "ledger_schema": 3,
+        "logical_bytes": 0,
+        "allocated_bytes": 0,
+        "evidence_sha256": "39481c5b6c1b4d5996a51db1b1f66fc993419dcfb50463b08d8bd5f46ce28675",
+        "ledger": "test-lisp-register-tests.el-e7bf243fa959.state-retirement.jsonl.gz",
+        "ledger_sha256": "c73dda08f61db7d8771a9dc94b9e758d666b8de857e014381d621f1e9321d5a4",
+        "all_selected_absent": true,
+        "restore": "regenerate consumed cache from retained inputs; original random names not promised",
+        "empty_parents_retired": true,
+        "parent_directories": 2
+      },
+      "owner_receipt": {
+        "path": "results/combined-current-terminal-checking-major/test-lisp-register-tests.el-e7bf243fa959.owner-retirement.json",
+        "sha256": "94647d44b4f98c1f64fa8a971949a5a5a73200107f901fe2ec9a8dc82bfd3790",
+        "bytes": 915
+      }
+    },
+    {
+      "product": "combined-current-terminal-checking-major",
+      "file": "test/lisp/progmodes/subword-tests.el",
+      "ids": 2,
+      "sorted_ids_sha256": "d76a3b85137cddc9493c418593a26bc9b9911ec25b00a2b5073448f9d2225d2b",
+      "tags_sha256": "3a0d1a58c331a23a0396ed697db1eb50264aa4bbb56f87b16eb5a820b2ef794c",
+      "passed": true,
+      "complete": true,
+      "exit_code": 0,
+      "timed_out": false,
+      "remaining_group_terminated": false,
+      "result_types": {
+        "ert-test-passed": 2
+      },
+      "result_file": {
+        "path": "results/combined-current-terminal-checking-major/test-lisp-progmodes-subword-tests.el-a8589f09ddfb.json",
+        "sha256": "dcd176f27da3d5a0454851dd44683e08edced2e204e6ddf0d3695ce9b8bfb1cc",
+        "bytes": 7145
+      },
+      "events_file": {
+        "path": "results/combined-current-terminal-checking-major/test-lisp-progmodes-subword-tests.el-a8589f09ddfb.events.jsonl",
+        "bytes": 2929,
+        "sha256": "47dadfaaaf282dd8d70e890c1e142cc2f587fd61acec38cf1e8299576582fb54"
+      },
+      "retirement": {
+        "status": "complete",
+        "files": 0,
+        "directories": 10,
+        "ledger_schema": 3,
+        "logical_bytes": 0,
+        "allocated_bytes": 0,
+        "evidence_sha256": "dcd176f27da3d5a0454851dd44683e08edced2e204e6ddf0d3695ce9b8bfb1cc",
+        "ledger": "test-lisp-progmodes-subword-tests.el-a8589f09ddfb.state-retirement.jsonl.gz",
+        "ledger_sha256": "c73dda08f61db7d8771a9dc94b9e758d666b8de857e014381d621f1e9321d5a4",
+        "all_selected_absent": true,
+        "restore": "regenerate consumed cache from retained inputs; original random names not promised",
+        "empty_parents_retired": true,
+        "parent_directories": 2
+      },
+      "owner_receipt": {
+        "path": "results/combined-current-terminal-checking-major/test-lisp-progmodes-subword-tests.el-a8589f09ddfb.owner-retirement.json",
+        "sha256": "bf258cb5a70688bc9e50818f5c9dba285a46c94266674aa5f015b4bc3f9f27d5",
+        "bytes": 933
+      }
+    },
+    {
+      "product": "combined-current-terminal-checking-major",
+      "file": "test/lisp/thingatpt-tests.el",
+      "ids": 17,
+      "sorted_ids_sha256": "516ebdc671918de39090f31aca79cc6de7edd818273ce4acc61488eee30fa0d8",
+      "tags_sha256": "3510bb8b88abbebb64fe92f43a63d78ee7be2b22fa5b3a527da36bac54e5e956",
+      "passed": true,
+      "complete": true,
+      "exit_code": 0,
+      "timed_out": false,
+      "remaining_group_terminated": false,
+      "result_types": {
+        "ert-test-passed": 17
+      },
+      "result_file": {
+        "path": "results/combined-current-terminal-checking-major/test-lisp-thingatpt-tests.el-11c64bee3dfd.json",
+        "sha256": "063fb7e8122b87c1b9c81e1b1ffb58499ea74c26f4eb804740c97e6f2d8b9e14",
+        "bytes": 19189
+      },
+      "events_file": {
+        "path": "results/combined-current-terminal-checking-major/test-lisp-thingatpt-tests.el-11c64bee3dfd.events.jsonl",
+        "bytes": 10136,
+        "sha256": "dbaff34c3682ced559692be9f2a5ea3ec731b0ec6ef1c153c9f117646b263189"
+      },
+      "retirement": {
+        "status": "complete",
+        "files": 0,
+        "directories": 10,
+        "ledger_schema": 3,
+        "logical_bytes": 0,
+        "allocated_bytes": 0,
+        "evidence_sha256": "063fb7e8122b87c1b9c81e1b1ffb58499ea74c26f4eb804740c97e6f2d8b9e14",
+        "ledger": "test-lisp-thingatpt-tests.el-11c64bee3dfd.state-retirement.jsonl.gz",
+        "ledger_sha256": "c73dda08f61db7d8771a9dc94b9e758d666b8de857e014381d621f1e9321d5a4",
+        "all_selected_absent": true,
+        "restore": "regenerate consumed cache from retained inputs; original random names not promised",
+        "empty_parents_retired": true,
+        "parent_directories": 2
+      },
+      "owner_receipt": {
+        "path": "results/combined-current-terminal-checking-major/test-lisp-thingatpt-tests.el-11c64bee3dfd.owner-retirement.json",
+        "sha256": "c8af6948098410d34eba3808577d05ffed88c0403de478cb341cdc45a09cedf9",
+        "bytes": 918
+      }
+    },
+    {
+      "product": "combined-current-terminal-checking-major",
+      "file": "test/lisp/replace-tests.el",
+      "ids": 29,
+      "sorted_ids_sha256": "6bd87ce59300710d7006e835261b507b7a0b9e2e97851c3a478203b039af36db",
+      "tags_sha256": "7a5dafa6faad6b2c599464416539e83d6d3ca9c538842db33132d479eb1102ce",
+      "passed": true,
+      "complete": true,
+      "exit_code": 0,
+      "timed_out": false,
+      "remaining_group_terminated": false,
+      "result_types": {
+        "ert-test-passed": 29
+      },
+      "result_file": {
+        "path": "results/combined-current-terminal-checking-major/test-lisp-replace-tests.el-01c1aaedca02.json",
+        "sha256": "d544d875a99d8e0d9c0c066da6964e73f6d26c21efb0d4e02b4942fd6a33f12d",
+        "bytes": 32744
+      },
+      "events_file": {
+        "path": "results/combined-current-terminal-checking-major/test-lisp-replace-tests.el-01c1aaedca02.events.jsonl",
+        "bytes": 19632,
+        "sha256": "1989669c3f30480fde68dee0f923506bff3a69b070406752b315b976338eec03"
+      },
+      "retirement": {
+        "status": "complete",
+        "files": 2,
+        "directories": 13,
+        "ledger_schema": 3,
+        "logical_bytes": 68544,
+        "allocated_bytes": 73728,
+        "evidence_sha256": "d544d875a99d8e0d9c0c066da6964e73f6d26c21efb0d4e02b4942fd6a33f12d",
+        "ledger": "test-lisp-replace-tests.el-01c1aaedca02.state-retirement.jsonl.gz",
+        "ledger_sha256": "45f676a32422e9aaf9f40299415ad02d32b7841b51393b7f80c2f7a27e838c28",
+        "all_selected_absent": true,
+        "restore": "regenerate consumed cache from retained inputs; original random names not promised",
+        "empty_parents_retired": true,
+        "parent_directories": 2
+      },
+      "owner_receipt": {
+        "path": "results/combined-current-terminal-checking-major/test-lisp-replace-tests.el-01c1aaedca02.owner-retirement.json",
+        "sha256": "72e113728e479972d98670698a02cb2656a04c3c5a1a08f332718954cf827270",
+        "bytes": 922
+      }
+    },
+    {
+      "product": "combined-current-terminal-checking-major",
+      "file": "test/lisp/repeat-tests.el",
+      "ids": 8,
+      "sorted_ids_sha256": "8afd76873053c4e05cf748d89504978b657d00cd75f72e2c98704685f5e9ddc5",
+      "tags_sha256": "fee84f38117d1960b37e40a21e8a1503ff9172ae8d8d8d4c63e311221896c511",
+      "passed": true,
+      "complete": true,
+      "exit_code": 0,
+      "timed_out": false,
+      "remaining_group_terminated": false,
+      "result_types": {
+        "ert-test-passed": 8
+      },
+      "result_file": {
+        "path": "results/combined-current-terminal-checking-major/test-lisp-repeat-tests.el-de55a70cefa0.json",
+        "sha256": "eb6136e9ce902d2d9fc5347f09e9adcfda2474a6f43fcbf8cfe3289536ca2ea8",
+        "bytes": 12140
+      },
+      "events_file": {
+        "path": "results/combined-current-terminal-checking-major/test-lisp-repeat-tests.el-de55a70cefa0.events.jsonl",
+        "bytes": 5921,
+        "sha256": "1a9fb7b183d7c6e9c392395ef38811b2175f640e5d07b15e7e020d5fc637ce52"
+      },
+      "retirement": {
+        "status": "complete",
+        "files": 0,
+        "directories": 10,
+        "ledger_schema": 3,
+        "logical_bytes": 0,
+        "allocated_bytes": 0,
+        "evidence_sha256": "eb6136e9ce902d2d9fc5347f09e9adcfda2474a6f43fcbf8cfe3289536ca2ea8",
+        "ledger": "test-lisp-repeat-tests.el-de55a70cefa0.state-retirement.jsonl.gz",
+        "ledger_sha256": "c73dda08f61db7d8771a9dc94b9e758d666b8de857e014381d621f1e9321d5a4",
+        "all_selected_absent": true,
+        "restore": "regenerate consumed cache from retained inputs; original random names not promised",
+        "empty_parents_retired": true,
+        "parent_directories": 2
+      },
+      "owner_receipt": {
+        "path": "results/combined-current-terminal-checking-major/test-lisp-repeat-tests.el-de55a70cefa0.owner-retirement.json",
+        "sha256": "b34cf63c1c3f2915fc311824cf0c9d60a597bdcab3dc7994a19ac6c6099a4891",
+        "bytes": 912
+      }
+    },
+    {
+      "product": "combined-current-terminal-checking-major",
+      "file": "test/lisp/simple-tests.el",
+      "ids": 54,
+      "sorted_ids_sha256": "563d7111f93d80667e3773b26d50e9a6109fca933fc8a7642b76e2784c267f18",
+      "tags_sha256": "0679fb7b3a51f1348fc10a5bd6a5e792e76d2dc26cb9a982a237490fca53317e",
+      "passed": false,
+      "complete": true,
+      "exit_code": 0,
+      "timed_out": false,
+      "remaining_group_terminated": false,
+      "result_types": {
+        "ert-test-passed": 51,
+        "ert-test-skipped": 3
+      },
+      "result_file": {
+        "path": "results/combined-current-terminal-checking-major/test-lisp-simple-tests.el-b65c7c4e5f4d.json",
+        "sha256": "5030b12821b0d77e95890a49d65a6421b85d762483ff26e1b706c2628306df05",
+        "bytes": 54821
+      },
+      "events_file": {
+        "path": "results/combined-current-terminal-checking-major/test-lisp-simple-tests.el-b65c7c4e5f4d.events.jsonl",
+        "bytes": 33419,
+        "sha256": "1e222fe50c9fb4fda1125943a0d7b31054c91ed0467498c3ef16f242bc7bc7a4"
+      },
+      "retirement": {
+        "status": "retained",
+        "reason": "file failed/incomplete; preserve original state"
+      },
+      "owner_receipt": {
+        "path": "results/combined-current-terminal-checking-major/test-lisp-simple-tests.el-b65c7c4e5f4d.owner-retirement.json",
+        "sha256": "226d60fe7685dc21387d88a43a193271cc7749c3e55b7101fefd7ee236117468",
+        "bytes": 404
+      }
+    },
+    {
+      "product": "combined-current-terminal-checking-young",
+      "file": "test/lisp/buff-menu-tests.el",
+      "ids": 1,
+      "sorted_ids_sha256": "66b1d796151627b2c70089368ea5a2712c96dd23d4d335bba1499d1b885d42f6",
+      "tags_sha256": "87e15c2cf104266393d94e82b23f0371af251f22f307a8964e3dfbabc55975d6",
+      "passed": true,
+      "complete": true,
+      "exit_code": 0,
+      "timed_out": false,
+      "remaining_group_terminated": false,
+      "result_types": {
+        "ert-test-passed": 1
+      },
+      "result_file": {
+        "path": "results/combined-current-terminal-checking-young/test-lisp-buff-menu-tests.el-b888a39c0569.json",
+        "sha256": "ef9b1e4cd7ceb4a3c28eedb25206410fce3669aebb66cfda0ea63552c512b148",
+        "bytes": 6266
+      },
+      "events_file": {
+        "path": "results/combined-current-terminal-checking-young/test-lisp-buff-menu-tests.el-b888a39c0569.events.jsonl",
+        "bytes": 2428,
+        "sha256": "c83e17bb758cea4aaa1659efa6a30bcbf06404f0e841f73b93486b19a44d3600"
+      },
+      "retirement": {
+        "status": "complete",
+        "files": 0,
+        "directories": 10,
+        "ledger_schema": 3,
+        "logical_bytes": 0,
+        "allocated_bytes": 0,
+        "evidence_sha256": "ef9b1e4cd7ceb4a3c28eedb25206410fce3669aebb66cfda0ea63552c512b148",
+        "ledger": "test-lisp-buff-menu-tests.el-b888a39c0569.state-retirement.jsonl.gz",
+        "ledger_sha256": "c73dda08f61db7d8771a9dc94b9e758d666b8de857e014381d621f1e9321d5a4",
+        "all_selected_absent": true,
+        "restore": "regenerate consumed cache from retained inputs; original random names not promised",
+        "empty_parents_retired": true,
+        "parent_directories": 2
+      },
+      "owner_receipt": {
+        "path": "results/combined-current-terminal-checking-young/test-lisp-buff-menu-tests.el-b888a39c0569.owner-retirement.json",
+        "sha256": "d1a3a250c8e7b900dcd521acf6613efc7a5d07b364d6673abfdc186ea32e8482",
+        "bytes": 917
+      }
+    },
+    {
+      "product": "combined-current-terminal-checking-young",
+      "file": "test/lisp/register-tests.el",
+      "ids": 2,
+      "sorted_ids_sha256": "a79d8ba473d3ae432c9312110e1dcf7b1a4c31810c6593a685f42c0448a70ffe",
+      "tags_sha256": "daa7ef3f1cab4df381c5637fee07e04e6308af90bcd039bec92f8a89cf8fb62a",
+      "passed": true,
+      "complete": true,
+      "exit_code": 0,
+      "timed_out": false,
+      "remaining_group_terminated": false,
+      "result_types": {
+        "ert-test-passed": 2
+      },
+      "result_file": {
+        "path": "results/combined-current-terminal-checking-young/test-lisp-register-tests.el-e7bf243fa959.json",
+        "sha256": "bb47dd6108c37f4327e17d3343d8ca255aeff305dce9051e4f4a348cc593adc4",
+        "bytes": 7828
+      },
+      "events_file": {
+        "path": "results/combined-current-terminal-checking-young/test-lisp-register-tests.el-e7bf243fa959.events.jsonl",
+        "bytes": 3410,
+        "sha256": "eb25c122550169edf1b306e7ede9e0d840553cff06158d80be09dcb8a10546b4"
+      },
+      "retirement": {
+        "status": "complete",
+        "files": 0,
+        "directories": 10,
+        "ledger_schema": 3,
+        "logical_bytes": 0,
+        "allocated_bytes": 0,
+        "evidence_sha256": "bb47dd6108c37f4327e17d3343d8ca255aeff305dce9051e4f4a348cc593adc4",
+        "ledger": "test-lisp-register-tests.el-e7bf243fa959.state-retirement.jsonl.gz",
+        "ledger_sha256": "c73dda08f61db7d8771a9dc94b9e758d666b8de857e014381d621f1e9321d5a4",
+        "all_selected_absent": true,
+        "restore": "regenerate consumed cache from retained inputs; original random names not promised",
+        "empty_parents_retired": true,
+        "parent_directories": 2
+      },
+      "owner_receipt": {
+        "path": "results/combined-current-terminal-checking-young/test-lisp-register-tests.el-e7bf243fa959.owner-retirement.json",
+        "sha256": "dd38186ce9b09a6af702e943ecf3754b2311137524937fdacad03912d6119079",
+        "bytes": 915
+      }
+    },
+    {
+      "product": "combined-current-terminal-checking-young",
+      "file": "test/lisp/progmodes/subword-tests.el",
+      "ids": 2,
+      "sorted_ids_sha256": "d76a3b85137cddc9493c418593a26bc9b9911ec25b00a2b5073448f9d2225d2b",
+      "tags_sha256": "3a0d1a58c331a23a0396ed697db1eb50264aa4bbb56f87b16eb5a820b2ef794c",
+      "passed": true,
+      "complete": true,
+      "exit_code": 0,
+      "timed_out": false,
+      "remaining_group_terminated": false,
+      "result_types": {
+        "ert-test-passed": 2
+      },
+      "result_file": {
+        "path": "results/combined-current-terminal-checking-young/test-lisp-progmodes-subword-tests.el-a8589f09ddfb.json",
+        "sha256": "319bacb33a418dc61678c3c9228aed4d5ee145cf3d87fb067d3aa655ab5bd0ff",
+        "bytes": 7146
+      },
+      "events_file": {
+        "path": "results/combined-current-terminal-checking-young/test-lisp-progmodes-subword-tests.el-a8589f09ddfb.events.jsonl",
+        "bytes": 2929,
+        "sha256": "ab0d865b9ec57d654555c9aa00fe66687c6ed6702e503f07ce89684f7fe84531"
+      },
+      "retirement": {
+        "status": "complete",
+        "files": 0,
+        "directories": 10,
+        "ledger_schema": 3,
+        "logical_bytes": 0,
+        "allocated_bytes": 0,
+        "evidence_sha256": "319bacb33a418dc61678c3c9228aed4d5ee145cf3d87fb067d3aa655ab5bd0ff",
+        "ledger": "test-lisp-progmodes-subword-tests.el-a8589f09ddfb.state-retirement.jsonl.gz",
+        "ledger_sha256": "c73dda08f61db7d8771a9dc94b9e758d666b8de857e014381d621f1e9321d5a4",
+        "all_selected_absent": true,
+        "restore": "regenerate consumed cache from retained inputs; original random names not promised",
+        "empty_parents_retired": true,
+        "parent_directories": 2
+      },
+      "owner_receipt": {
+        "path": "results/combined-current-terminal-checking-young/test-lisp-progmodes-subword-tests.el-a8589f09ddfb.owner-retirement.json",
+        "sha256": "58de16d04b442fed9853cf27a60f1ee8d414b19038ff4025b38131d31d626571",
+        "bytes": 933
+      }
+    },
+    {
+      "product": "combined-current-terminal-checking-young",
+      "file": "test/lisp/thingatpt-tests.el",
+      "ids": 17,
+      "sorted_ids_sha256": "516ebdc671918de39090f31aca79cc6de7edd818273ce4acc61488eee30fa0d8",
+      "tags_sha256": "3510bb8b88abbebb64fe92f43a63d78ee7be2b22fa5b3a527da36bac54e5e956",
+      "passed": true,
+      "complete": true,
+      "exit_code": 0,
+      "timed_out": false,
+      "remaining_group_terminated": false,
+      "result_types": {
+        "ert-test-passed": 17
+      },
+      "result_file": {
+        "path": "results/combined-current-terminal-checking-young/test-lisp-thingatpt-tests.el-11c64bee3dfd.json",
+        "sha256": "b127d51768c876f1ca26b6dc9c2377897ad83963e7dde498d6807d22e1e48d36",
+        "bytes": 19189
+      },
+      "events_file": {
+        "path": "results/combined-current-terminal-checking-young/test-lisp-thingatpt-tests.el-11c64bee3dfd.events.jsonl",
+        "bytes": 10136,
+        "sha256": "73fbc3928dfdb4f860ce33e0026ab1851f98c746bac42c7983b372ab0e029e59"
+      },
+      "retirement": {
+        "status": "complete",
+        "files": 0,
+        "directories": 10,
+        "ledger_schema": 3,
+        "logical_bytes": 0,
+        "allocated_bytes": 0,
+        "evidence_sha256": "b127d51768c876f1ca26b6dc9c2377897ad83963e7dde498d6807d22e1e48d36",
+        "ledger": "test-lisp-thingatpt-tests.el-11c64bee3dfd.state-retirement.jsonl.gz",
+        "ledger_sha256": "c73dda08f61db7d8771a9dc94b9e758d666b8de857e014381d621f1e9321d5a4",
+        "all_selected_absent": true,
+        "restore": "regenerate consumed cache from retained inputs; original random names not promised",
+        "empty_parents_retired": true,
+        "parent_directories": 2
+      },
+      "owner_receipt": {
+        "path": "results/combined-current-terminal-checking-young/test-lisp-thingatpt-tests.el-11c64bee3dfd.owner-retirement.json",
+        "sha256": "57b632de823951b2245c3da455303d6e6d67b103f640e2f503d47d468086e133",
+        "bytes": 918
+      }
+    },
+    {
+      "product": "combined-current-terminal-checking-young",
+      "file": "test/lisp/replace-tests.el",
+      "ids": 29,
+      "sorted_ids_sha256": "6bd87ce59300710d7006e835261b507b7a0b9e2e97851c3a478203b039af36db",
+      "tags_sha256": "7a5dafa6faad6b2c599464416539e83d6d3ca9c538842db33132d479eb1102ce",
+      "passed": true,
+      "complete": true,
+      "exit_code": 0,
+      "timed_out": false,
+      "remaining_group_terminated": false,
+      "result_types": {
+        "ert-test-passed": 29
+      },
+      "result_file": {
+        "path": "results/combined-current-terminal-checking-young/test-lisp-replace-tests.el-01c1aaedca02.json",
+        "sha256": "6ada243a62e37353fdef01dee84444a39963e4819a89be87578ecef9e3df7da7",
+        "bytes": 32757
+      },
+      "events_file": {
+        "path": "results/combined-current-terminal-checking-young/test-lisp-replace-tests.el-01c1aaedca02.events.jsonl",
+        "bytes": 19639,
+        "sha256": "d34e6581d2eca80ea83519a946e79823d78fdd63574d8c4cfefce7714b0f4eab"
+      },
+      "retirement": {
+        "status": "complete",
+        "files": 2,
+        "directories": 13,
+        "ledger_schema": 3,
+        "logical_bytes": 68544,
+        "allocated_bytes": 73728,
+        "evidence_sha256": "6ada243a62e37353fdef01dee84444a39963e4819a89be87578ecef9e3df7da7",
+        "ledger": "test-lisp-replace-tests.el-01c1aaedca02.state-retirement.jsonl.gz",
+        "ledger_sha256": "45f676a32422e9aaf9f40299415ad02d32b7841b51393b7f80c2f7a27e838c28",
+        "all_selected_absent": true,
+        "restore": "regenerate consumed cache from retained inputs; original random names not promised",
+        "empty_parents_retired": true,
+        "parent_directories": 2
+      },
+      "owner_receipt": {
+        "path": "results/combined-current-terminal-checking-young/test-lisp-replace-tests.el-01c1aaedca02.owner-retirement.json",
+        "sha256": "87c3c0b8dd6a0b2a205fb2807a0d78d6566129fac91b4c16ed6d703fd5385d67",
+        "bytes": 922
+      }
+    },
+    {
+      "product": "combined-current-terminal-checking-young",
+      "file": "test/lisp/repeat-tests.el",
+      "ids": 8,
+      "sorted_ids_sha256": "8afd76873053c4e05cf748d89504978b657d00cd75f72e2c98704685f5e9ddc5",
+      "tags_sha256": "fee84f38117d1960b37e40a21e8a1503ff9172ae8d8d8d4c63e311221896c511",
+      "passed": true,
+      "complete": true,
+      "exit_code": 0,
+      "timed_out": false,
+      "remaining_group_terminated": false,
+      "result_types": {
+        "ert-test-passed": 8
+      },
+      "result_file": {
+        "path": "results/combined-current-terminal-checking-young/test-lisp-repeat-tests.el-de55a70cefa0.json",
+        "sha256": "bef46033968c3fc4b3a61dde0fe71ee0167acabcfa4301372362102e82ff8c01",
+        "bytes": 12140
+      },
+      "events_file": {
+        "path": "results/combined-current-terminal-checking-young/test-lisp-repeat-tests.el-de55a70cefa0.events.jsonl",
+        "bytes": 5921,
+        "sha256": "9c527715e2a2ff16a0af18da8ff494504a64e99a73c58ee69cf339bf10d49d6b"
+      },
+      "retirement": {
+        "status": "complete",
+        "files": 0,
+        "directories": 10,
+        "ledger_schema": 3,
+        "logical_bytes": 0,
+        "allocated_bytes": 0,
+        "evidence_sha256": "bef46033968c3fc4b3a61dde0fe71ee0167acabcfa4301372362102e82ff8c01",
+        "ledger": "test-lisp-repeat-tests.el-de55a70cefa0.state-retirement.jsonl.gz",
+        "ledger_sha256": "c73dda08f61db7d8771a9dc94b9e758d666b8de857e014381d621f1e9321d5a4",
+        "all_selected_absent": true,
+        "restore": "regenerate consumed cache from retained inputs; original random names not promised",
+        "empty_parents_retired": true,
+        "parent_directories": 2
+      },
+      "owner_receipt": {
+        "path": "results/combined-current-terminal-checking-young/test-lisp-repeat-tests.el-de55a70cefa0.owner-retirement.json",
+        "sha256": "c517e29b4aca82b508d52251ff3c78f8c8293412126a0cae9a88d97baaec067c",
+        "bytes": 912
+      }
+    },
+    {
+      "product": "combined-current-terminal-checking-young",
+      "file": "test/lisp/simple-tests.el",
+      "ids": 54,
+      "sorted_ids_sha256": "563d7111f93d80667e3773b26d50e9a6109fca933fc8a7642b76e2784c267f18",
+      "tags_sha256": "0679fb7b3a51f1348fc10a5bd6a5e792e76d2dc26cb9a982a237490fca53317e",
+      "passed": false,
+      "complete": true,
+      "exit_code": 0,
+      "timed_out": false,
+      "remaining_group_terminated": false,
+      "result_types": {
+        "ert-test-passed": 51,
+        "ert-test-skipped": 3
+      },
+      "result_file": {
+        "path": "results/combined-current-terminal-checking-young/test-lisp-simple-tests.el-b65c7c4e5f4d.json",
+        "sha256": "226d6d8e6de731b12f578851dd75adfed1931895aa74beeafe9f9d8e106a08a6",
+        "bytes": 54826
+      },
+      "events_file": {
+        "path": "results/combined-current-terminal-checking-young/test-lisp-simple-tests.el-b65c7c4e5f4d.events.jsonl",
+        "bytes": 33422,
+        "sha256": "01254b242b571bc1acd14f3087ef2e3db5bd73a7eb4898cb52cb2618660c2a14"
+      },
+      "retirement": {
+        "status": "retained",
+        "reason": "file failed/incomplete; preserve original state"
+      },
+      "owner_receipt": {
+        "path": "results/combined-current-terminal-checking-young/test-lisp-simple-tests.el-b65c7c4e5f4d.owner-retirement.json",
+        "sha256": "50be0343ac8df7236eaaa7ff64bf2cd3695c571de347179a39ed536dcfe6a12d",
+        "bytes": 404
+      }
+    },
+    {
+      "product": "combined-current-cocoa-normal-major",
+      "file": "test/lisp/buff-menu-tests.el",
+      "ids": 1,
+      "sorted_ids_sha256": "66b1d796151627b2c70089368ea5a2712c96dd23d4d335bba1499d1b885d42f6",
+      "tags_sha256": "87e15c2cf104266393d94e82b23f0371af251f22f307a8964e3dfbabc55975d6",
+      "passed": true,
+      "complete": true,
+      "exit_code": 0,
+      "timed_out": false,
+      "remaining_group_terminated": false,
+      "result_types": {
+        "ert-test-passed": 1
+      },
+      "result_file": {
+        "path": "results/combined-current-cocoa-normal-major/test-lisp-buff-menu-tests.el-b888a39c0569.json",
+        "sha256": "2bae6c8a642fc69eb0e203e8af7f988d204b6ff6adc548c653ce4368260356d6",
+        "bytes": 6488
+      },
+      "events_file": {
+        "path": "results/combined-current-cocoa-normal-major/test-lisp-buff-menu-tests.el-b888a39c0569.events.jsonl",
+        "bytes": 2636,
+        "sha256": "5365ff98c230fcfc337d5321bb61a8d59593ce7a4790c2be444e275aef0030ea"
+      },
+      "retirement": {
+        "status": "complete",
+        "files": 0,
+        "directories": 10,
+        "ledger_schema": 3,
+        "logical_bytes": 0,
+        "allocated_bytes": 0,
+        "evidence_sha256": "2bae6c8a642fc69eb0e203e8af7f988d204b6ff6adc548c653ce4368260356d6",
+        "ledger": "test-lisp-buff-menu-tests.el-b888a39c0569.state-retirement.jsonl.gz",
+        "ledger_sha256": "c73dda08f61db7d8771a9dc94b9e758d666b8de857e014381d621f1e9321d5a4",
+        "all_selected_absent": true,
+        "restore": "regenerate consumed cache from retained inputs; original random names not promised",
+        "empty_parents_retired": true,
+        "parent_directories": 2
+      },
+      "owner_receipt": {
+        "path": "results/combined-current-cocoa-normal-major/test-lisp-buff-menu-tests.el-b888a39c0569.owner-retirement.json",
+        "sha256": "4113caa1ca70ebfa329dd13b5ddebbebe41d8bc091f437d53f06126967ecd46d",
+        "bytes": 912
+      }
+    },
+    {
+      "product": "combined-current-cocoa-normal-major",
+      "file": "test/lisp/register-tests.el",
+      "ids": 2,
+      "sorted_ids_sha256": "a79d8ba473d3ae432c9312110e1dcf7b1a4c31810c6593a685f42c0448a70ffe",
+      "tags_sha256": "daa7ef3f1cab4df381c5637fee07e04e6308af90bcd039bec92f8a89cf8fb62a",
+      "passed": true,
+      "complete": true,
+      "exit_code": 0,
+      "timed_out": false,
+      "remaining_group_terminated": false,
+      "result_types": {
+        "ert-test-passed": 2
+      },
+      "result_file": {
+        "path": "results/combined-current-cocoa-normal-major/test-lisp-register-tests.el-e7bf243fa959.json",
+        "sha256": "7ed17e1fbe598c7e94a330a7193e382597fe5169b182c1fff5ee285dc223b30f",
+        "bytes": 8016
+      },
+      "events_file": {
+        "path": "results/combined-current-cocoa-normal-major/test-lisp-register-tests.el-e7bf243fa959.events.jsonl",
+        "bytes": 3604,
+        "sha256": "25b8e616eec6a0741c762d7369ad1d6e4da22293352d03e666fe1b6860ed9571"
+      },
+      "retirement": {
+        "status": "complete",
+        "files": 0,
+        "directories": 10,
+        "ledger_schema": 3,
+        "logical_bytes": 0,
+        "allocated_bytes": 0,
+        "evidence_sha256": "7ed17e1fbe598c7e94a330a7193e382597fe5169b182c1fff5ee285dc223b30f",
+        "ledger": "test-lisp-register-tests.el-e7bf243fa959.state-retirement.jsonl.gz",
+        "ledger_sha256": "c73dda08f61db7d8771a9dc94b9e758d666b8de857e014381d621f1e9321d5a4",
+        "all_selected_absent": true,
+        "restore": "regenerate consumed cache from retained inputs; original random names not promised",
+        "empty_parents_retired": true,
+        "parent_directories": 2
+      },
+      "owner_receipt": {
+        "path": "results/combined-current-cocoa-normal-major/test-lisp-register-tests.el-e7bf243fa959.owner-retirement.json",
+        "sha256": "420436ace8a3d48dcf802890812a1debccadad1ccc376e1c06758234dc7e3ee7",
+        "bytes": 910
+      }
+    },
+    {
+      "product": "combined-current-cocoa-normal-major",
+      "file": "test/lisp/progmodes/subword-tests.el",
+      "ids": 2,
+      "sorted_ids_sha256": "d76a3b85137cddc9493c418593a26bc9b9911ec25b00a2b5073448f9d2225d2b",
+      "tags_sha256": "3a0d1a58c331a23a0396ed697db1eb50264aa4bbb56f87b16eb5a820b2ef794c",
+      "passed": true,
+      "complete": true,
+      "exit_code": 0,
+      "timed_out": false,
+      "remaining_group_terminated": false,
+      "result_types": {
+        "ert-test-passed": 2
+      },
+      "result_file": {
+        "path": "results/combined-current-cocoa-normal-major/test-lisp-progmodes-subword-tests.el-a8589f09ddfb.json",
+        "sha256": "cf894c3dc262ffdf4560285016542f7d8bf7468bf8250dd4ef48effa185c6b5e",
+        "bytes": 7362
+      },
+      "events_file": {
+        "path": "results/combined-current-cocoa-normal-major/test-lisp-progmodes-subword-tests.el-a8589f09ddfb.events.jsonl",
+        "bytes": 3137,
+        "sha256": "74a8c3fdaf1bb928a075c67003fc46b510c3ef36d9f99ee2db2e751ea83ca119"
+      },
+      "retirement": {
+        "status": "complete",
+        "files": 0,
+        "directories": 10,
+        "ledger_schema": 3,
+        "logical_bytes": 0,
+        "allocated_bytes": 0,
+        "evidence_sha256": "cf894c3dc262ffdf4560285016542f7d8bf7468bf8250dd4ef48effa185c6b5e",
+        "ledger": "test-lisp-progmodes-subword-tests.el-a8589f09ddfb.state-retirement.jsonl.gz",
+        "ledger_sha256": "c73dda08f61db7d8771a9dc94b9e758d666b8de857e014381d621f1e9321d5a4",
+        "all_selected_absent": true,
+        "restore": "regenerate consumed cache from retained inputs; original random names not promised",
+        "empty_parents_retired": true,
+        "parent_directories": 2
+      },
+      "owner_receipt": {
+        "path": "results/combined-current-cocoa-normal-major/test-lisp-progmodes-subword-tests.el-a8589f09ddfb.owner-retirement.json",
+        "sha256": "dc3e9b2e40b9e6bad46be4409cbfe7a02d39fe989fc35cf6097beb04d63293e1",
+        "bytes": 928
+      }
+    },
+    {
+      "product": "combined-current-cocoa-normal-major",
+      "file": "test/lisp/thingatpt-tests.el",
+      "ids": 17,
+      "sorted_ids_sha256": "516ebdc671918de39090f31aca79cc6de7edd818273ce4acc61488eee30fa0d8",
+      "tags_sha256": "3510bb8b88abbebb64fe92f43a63d78ee7be2b22fa5b3a527da36bac54e5e956",
+      "passed": true,
+      "complete": true,
+      "exit_code": 0,
+      "timed_out": false,
+      "remaining_group_terminated": false,
+      "result_types": {
+        "ert-test-passed": 17
+      },
+      "result_file": {
+        "path": "results/combined-current-cocoa-normal-major/test-lisp-thingatpt-tests.el-11c64bee3dfd.json",
+        "sha256": "830dd46e923001a9cb4a2966eb5d506cd67c117a9dfee18573d9caa1536aa630",
+        "bytes": 19331
+      },
+      "events_file": {
+        "path": "results/combined-current-cocoa-normal-major/test-lisp-thingatpt-tests.el-11c64bee3dfd.events.jsonl",
+        "bytes": 10344,
+        "sha256": "e6f01b35556a4a2b24df3291d8635873664162b694ad6fa070b0d777d5a537e2"
+      },
+      "retirement": {
+        "status": "complete",
+        "files": 0,
+        "directories": 10,
+        "ledger_schema": 3,
+        "logical_bytes": 0,
+        "allocated_bytes": 0,
+        "evidence_sha256": "830dd46e923001a9cb4a2966eb5d506cd67c117a9dfee18573d9caa1536aa630",
+        "ledger": "test-lisp-thingatpt-tests.el-11c64bee3dfd.state-retirement.jsonl.gz",
+        "ledger_sha256": "c73dda08f61db7d8771a9dc94b9e758d666b8de857e014381d621f1e9321d5a4",
+        "all_selected_absent": true,
+        "restore": "regenerate consumed cache from retained inputs; original random names not promised",
+        "empty_parents_retired": true,
+        "parent_directories": 2
+      },
+      "owner_receipt": {
+        "path": "results/combined-current-cocoa-normal-major/test-lisp-thingatpt-tests.el-11c64bee3dfd.owner-retirement.json",
+        "sha256": "e6c58e0aec3a4a8b1c3283f5a2516e65c13b63984e74f81eccfcfec67d0b686a",
+        "bytes": 913
+      }
+    },
+    {
+      "product": "combined-current-cocoa-normal-major",
+      "file": "test/lisp/replace-tests.el",
+      "ids": 29,
+      "sorted_ids_sha256": "6bd87ce59300710d7006e835261b507b7a0b9e2e97851c3a478203b039af36db",
+      "tags_sha256": "7a5dafa6faad6b2c599464416539e83d6d3ca9c538842db33132d479eb1102ce",
+      "passed": true,
+      "complete": true,
+      "exit_code": 0,
+      "timed_out": false,
+      "remaining_group_terminated": false,
+      "result_types": {
+        "ert-test-passed": 29
+      },
+      "result_file": {
+        "path": "results/combined-current-cocoa-normal-major/test-lisp-replace-tests.el-01c1aaedca02.json",
+        "sha256": "0a25335bedebfd1f76ef18d0159d93487865a1a7bda8fb40213fb59eea6cbcba",
+        "bytes": 32800
+      },
+      "events_file": {
+        "path": "results/combined-current-cocoa-normal-major/test-lisp-replace-tests.el-01c1aaedca02.events.jsonl",
+        "bytes": 19827,
+        "sha256": "5b553f1bf9a8411b94625865ad913256a264045d7ce4e55b1abaaf80e19707f2"
+      },
+      "retirement": {
+        "status": "complete",
+        "files": 2,
+        "directories": 13,
+        "ledger_schema": 3,
+        "logical_bytes": 68544,
+        "allocated_bytes": 73728,
+        "evidence_sha256": "0a25335bedebfd1f76ef18d0159d93487865a1a7bda8fb40213fb59eea6cbcba",
+        "ledger": "test-lisp-replace-tests.el-01c1aaedca02.state-retirement.jsonl.gz",
+        "ledger_sha256": "90e59abbdd198e027e1bd2bcb5f02f506b9836bfde7a5a42fa630b3b9c33ea32",
+        "all_selected_absent": true,
+        "restore": "regenerate consumed cache from retained inputs; original random names not promised",
+        "empty_parents_retired": true,
+        "parent_directories": 2
+      },
+      "owner_receipt": {
+        "path": "results/combined-current-cocoa-normal-major/test-lisp-replace-tests.el-01c1aaedca02.owner-retirement.json",
+        "sha256": "e454a99798a322b5b4be44a42bcee3855a9c45ccb3d6b61fdcb00877d7796666",
+        "bytes": 917
+      }
+    },
+    {
+      "product": "combined-current-cocoa-normal-major",
+      "file": "test/lisp/repeat-tests.el",
+      "ids": 8,
+      "sorted_ids_sha256": "8afd76873053c4e05cf748d89504978b657d00cd75f72e2c98704685f5e9ddc5",
+      "tags_sha256": "fee84f38117d1960b37e40a21e8a1503ff9172ae8d8d8d4c63e311221896c511",
+      "passed": true,
+      "complete": true,
+      "exit_code": 0,
+      "timed_out": false,
+      "remaining_group_terminated": false,
+      "result_types": {
+        "ert-test-passed": 8
+      },
+      "result_file": {
+        "path": "results/combined-current-cocoa-normal-major/test-lisp-repeat-tests.el-de55a70cefa0.json",
+        "sha256": "2d53761a5f57d6c37d92969ebe9af67a3b5cd6f9de9e1c5e7d29d896f7cba1c9",
+        "bytes": 12325
+      },
+      "events_file": {
+        "path": "results/combined-current-cocoa-normal-major/test-lisp-repeat-tests.el-de55a70cefa0.events.jsonl",
+        "bytes": 6128,
+        "sha256": "a74c34f310722327034e4cfe59f11211ef20dfc62665553cd3c7c6bb292c623d"
+      },
+      "retirement": {
+        "status": "complete",
+        "files": 0,
+        "directories": 10,
+        "ledger_schema": 3,
+        "logical_bytes": 0,
+        "allocated_bytes": 0,
+        "evidence_sha256": "2d53761a5f57d6c37d92969ebe9af67a3b5cd6f9de9e1c5e7d29d896f7cba1c9",
+        "ledger": "test-lisp-repeat-tests.el-de55a70cefa0.state-retirement.jsonl.gz",
+        "ledger_sha256": "c73dda08f61db7d8771a9dc94b9e758d666b8de857e014381d621f1e9321d5a4",
+        "all_selected_absent": true,
+        "restore": "regenerate consumed cache from retained inputs; original random names not promised",
+        "empty_parents_retired": true,
+        "parent_directories": 2
+      },
+      "owner_receipt": {
+        "path": "results/combined-current-cocoa-normal-major/test-lisp-repeat-tests.el-de55a70cefa0.owner-retirement.json",
+        "sha256": "6a709178b85b0370e55c65a5c71d85f69c5662079c74ef7542a42abb5c3ae420",
+        "bytes": 907
+      }
+    },
+    {
+      "product": "combined-current-cocoa-normal-major",
+      "file": "test/lisp/simple-tests.el",
+      "ids": 54,
+      "sorted_ids_sha256": "563d7111f93d80667e3773b26d50e9a6109fca933fc8a7642b76e2784c267f18",
+      "tags_sha256": "0679fb7b3a51f1348fc10a5bd6a5e792e76d2dc26cb9a982a237490fca53317e",
+      "passed": false,
+      "complete": true,
+      "exit_code": 0,
+      "timed_out": false,
+      "remaining_group_terminated": false,
+      "result_types": {
+        "ert-test-passed": 51,
+        "ert-test-skipped": 3
+      },
+      "result_file": {
+        "path": "results/combined-current-cocoa-normal-major/test-lisp-simple-tests.el-b65c7c4e5f4d.json",
+        "sha256": "0fe6863cf4100cb77192c3053009ee54963cb70528fb63cdc2cbd7c9513e7641",
+        "bytes": 54797
+      },
+      "events_file": {
+        "path": "results/combined-current-cocoa-normal-major/test-lisp-simple-tests.el-b65c7c4e5f4d.events.jsonl",
+        "bytes": 33641,
+        "sha256": "8d65e754cdccaba658a1bd3f07e36bcd59cbe3f788ffb44c92c0bf50f3d06009"
+      },
+      "retirement": {
+        "status": "retained",
+        "reason": "file failed/incomplete; preserve original state"
+      },
+      "owner_receipt": {
+        "path": "results/combined-current-cocoa-normal-major/test-lisp-simple-tests.el-b65c7c4e5f4d.owner-retirement.json",
+        "sha256": "efb58b0379f4e5933e65c890448d8d03210fb6feddb6829f8382bfe34f9a7a13",
+        "bytes": 399
+      }
+    },
+    {
+      "product": "combined-current-cocoa-normal-young",
+      "file": "test/lisp/buff-menu-tests.el",
+      "ids": 1,
+      "sorted_ids_sha256": "66b1d796151627b2c70089368ea5a2712c96dd23d4d335bba1499d1b885d42f6",
+      "tags_sha256": "87e15c2cf104266393d94e82b23f0371af251f22f307a8964e3dfbabc55975d6",
+      "passed": true,
+      "complete": true,
+      "exit_code": 0,
+      "timed_out": false,
+      "remaining_group_terminated": false,
+      "result_types": {
+        "ert-test-passed": 1
+      },
+      "result_file": {
+        "path": "results/combined-current-cocoa-normal-young/test-lisp-buff-menu-tests.el-b888a39c0569.json",
+        "sha256": "4fc95306f9f2dcd6619fcf4bd29638fe2f39b31c779d48de5dec4fc5c20bc40b",
+        "bytes": 6488
+      },
+      "events_file": {
+        "path": "results/combined-current-cocoa-normal-young/test-lisp-buff-menu-tests.el-b888a39c0569.events.jsonl",
+        "bytes": 2636,
+        "sha256": "ab3841eb025e5f34d3acea284bc95dbf0abe2846de26866e8ab38428e3142b9b"
+      },
+      "retirement": {
+        "status": "complete",
+        "files": 0,
+        "directories": 10,
+        "ledger_schema": 3,
+        "logical_bytes": 0,
+        "allocated_bytes": 0,
+        "evidence_sha256": "4fc95306f9f2dcd6619fcf4bd29638fe2f39b31c779d48de5dec4fc5c20bc40b",
+        "ledger": "test-lisp-buff-menu-tests.el-b888a39c0569.state-retirement.jsonl.gz",
+        "ledger_sha256": "c73dda08f61db7d8771a9dc94b9e758d666b8de857e014381d621f1e9321d5a4",
+        "all_selected_absent": true,
+        "restore": "regenerate consumed cache from retained inputs; original random names not promised",
+        "empty_parents_retired": true,
+        "parent_directories": 2
+      },
+      "owner_receipt": {
+        "path": "results/combined-current-cocoa-normal-young/test-lisp-buff-menu-tests.el-b888a39c0569.owner-retirement.json",
+        "sha256": "776763cc4cad5ec012f2f569ea0781a0cfff43943ee73b718e9173c8cd4c01a5",
+        "bytes": 912
+      }
+    },
+    {
+      "product": "combined-current-cocoa-normal-young",
+      "file": "test/lisp/register-tests.el",
+      "ids": 2,
+      "sorted_ids_sha256": "a79d8ba473d3ae432c9312110e1dcf7b1a4c31810c6593a685f42c0448a70ffe",
+      "tags_sha256": "daa7ef3f1cab4df381c5637fee07e04e6308af90bcd039bec92f8a89cf8fb62a",
+      "passed": true,
+      "complete": true,
+      "exit_code": 0,
+      "timed_out": false,
+      "remaining_group_terminated": false,
+      "result_types": {
+        "ert-test-passed": 2
+      },
+      "result_file": {
+        "path": "results/combined-current-cocoa-normal-young/test-lisp-register-tests.el-e7bf243fa959.json",
+        "sha256": "c20b71b7ee35d6c7b244d88b695eef31e7db582559e736251ce94c93af094d88",
+        "bytes": 8017
+      },
+      "events_file": {
+        "path": "results/combined-current-cocoa-normal-young/test-lisp-register-tests.el-e7bf243fa959.events.jsonl",
+        "bytes": 3604,
+        "sha256": "2f27a1dd0c29693e8907be921b8751d5f0a5c9adf8ef216c5fca47ff575f4695"
+      },
+      "retirement": {
+        "status": "complete",
+        "files": 0,
+        "directories": 10,
+        "ledger_schema": 3,
+        "logical_bytes": 0,
+        "allocated_bytes": 0,
+        "evidence_sha256": "c20b71b7ee35d6c7b244d88b695eef31e7db582559e736251ce94c93af094d88",
+        "ledger": "test-lisp-register-tests.el-e7bf243fa959.state-retirement.jsonl.gz",
+        "ledger_sha256": "c73dda08f61db7d8771a9dc94b9e758d666b8de857e014381d621f1e9321d5a4",
+        "all_selected_absent": true,
+        "restore": "regenerate consumed cache from retained inputs; original random names not promised",
+        "empty_parents_retired": true,
+        "parent_directories": 2
+      },
+      "owner_receipt": {
+        "path": "results/combined-current-cocoa-normal-young/test-lisp-register-tests.el-e7bf243fa959.owner-retirement.json",
+        "sha256": "d626d391d02cf59d8e34695bea26784766e45c277a8cea8b6bf51e0738252026",
+        "bytes": 910
+      }
+    },
+    {
+      "product": "combined-current-cocoa-normal-young",
+      "file": "test/lisp/progmodes/subword-tests.el",
+      "ids": 2,
+      "sorted_ids_sha256": "d76a3b85137cddc9493c418593a26bc9b9911ec25b00a2b5073448f9d2225d2b",
+      "tags_sha256": "3a0d1a58c331a23a0396ed697db1eb50264aa4bbb56f87b16eb5a820b2ef794c",
+      "passed": true,
+      "complete": true,
+      "exit_code": 0,
+      "timed_out": false,
+      "remaining_group_terminated": false,
+      "result_types": {
+        "ert-test-passed": 2
+      },
+      "result_file": {
+        "path": "results/combined-current-cocoa-normal-young/test-lisp-progmodes-subword-tests.el-a8589f09ddfb.json",
+        "sha256": "805eb48db7f3a045c9f928de0623105f5b58abe7d23e7b13072f94a06e5d80cc",
+        "bytes": 7360
+      },
+      "events_file": {
+        "path": "results/combined-current-cocoa-normal-young/test-lisp-progmodes-subword-tests.el-a8589f09ddfb.events.jsonl",
+        "bytes": 3135,
+        "sha256": "3f66394035b655391c860efa58bfab15b244db0b86c2382b2b839860947177f2"
+      },
+      "retirement": {
+        "status": "complete",
+        "files": 0,
+        "directories": 10,
+        "ledger_schema": 3,
+        "logical_bytes": 0,
+        "allocated_bytes": 0,
+        "evidence_sha256": "805eb48db7f3a045c9f928de0623105f5b58abe7d23e7b13072f94a06e5d80cc",
+        "ledger": "test-lisp-progmodes-subword-tests.el-a8589f09ddfb.state-retirement.jsonl.gz",
+        "ledger_sha256": "c73dda08f61db7d8771a9dc94b9e758d666b8de857e014381d621f1e9321d5a4",
+        "all_selected_absent": true,
+        "restore": "regenerate consumed cache from retained inputs; original random names not promised",
+        "empty_parents_retired": true,
+        "parent_directories": 2
+      },
+      "owner_receipt": {
+        "path": "results/combined-current-cocoa-normal-young/test-lisp-progmodes-subword-tests.el-a8589f09ddfb.owner-retirement.json",
+        "sha256": "5fc7cec90e584bc2c0d0f9c492bf7497846f798c28c1136abd3c409bd1852f28",
+        "bytes": 928
+      }
+    },
+    {
+      "product": "combined-current-cocoa-normal-young",
+      "file": "test/lisp/thingatpt-tests.el",
+      "ids": 17,
+      "sorted_ids_sha256": "516ebdc671918de39090f31aca79cc6de7edd818273ce4acc61488eee30fa0d8",
+      "tags_sha256": "3510bb8b88abbebb64fe92f43a63d78ee7be2b22fa5b3a527da36bac54e5e956",
+      "passed": true,
+      "complete": true,
+      "exit_code": 0,
+      "timed_out": false,
+      "remaining_group_terminated": false,
+      "result_types": {
+        "ert-test-passed": 17
+      },
+      "result_file": {
+        "path": "results/combined-current-cocoa-normal-young/test-lisp-thingatpt-tests.el-11c64bee3dfd.json",
+        "sha256": "f633606b842bf05331c332f923ed4f2f773a697285a499f1e5f3fb9fe7dd3fa9",
+        "bytes": 19320
+      },
+      "events_file": {
+        "path": "results/combined-current-cocoa-normal-young/test-lisp-thingatpt-tests.el-11c64bee3dfd.events.jsonl",
+        "bytes": 10340,
+        "sha256": "5ab8ce9cbb623ab892c44deafc61b35363c1f63bdc7e0847cc8a35ee97cb0966"
+      },
+      "retirement": {
+        "status": "complete",
+        "files": 0,
+        "directories": 10,
+        "ledger_schema": 3,
+        "logical_bytes": 0,
+        "allocated_bytes": 0,
+        "evidence_sha256": "f633606b842bf05331c332f923ed4f2f773a697285a499f1e5f3fb9fe7dd3fa9",
+        "ledger": "test-lisp-thingatpt-tests.el-11c64bee3dfd.state-retirement.jsonl.gz",
+        "ledger_sha256": "c73dda08f61db7d8771a9dc94b9e758d666b8de857e014381d621f1e9321d5a4",
+        "all_selected_absent": true,
+        "restore": "regenerate consumed cache from retained inputs; original random names not promised",
+        "empty_parents_retired": true,
+        "parent_directories": 2
+      },
+      "owner_receipt": {
+        "path": "results/combined-current-cocoa-normal-young/test-lisp-thingatpt-tests.el-11c64bee3dfd.owner-retirement.json",
+        "sha256": "5a578447ac50ef2243552f1e116ed7e856741a8bdbd45bf22c3f114cdaf2e320",
+        "bytes": 913
+      }
+    },
+    {
+      "product": "combined-current-cocoa-normal-young",
+      "file": "test/lisp/replace-tests.el",
+      "ids": 29,
+      "sorted_ids_sha256": "6bd87ce59300710d7006e835261b507b7a0b9e2e97851c3a478203b039af36db",
+      "tags_sha256": "7a5dafa6faad6b2c599464416539e83d6d3ca9c538842db33132d479eb1102ce",
+      "passed": true,
+      "complete": true,
+      "exit_code": 0,
+      "timed_out": false,
+      "remaining_group_terminated": false,
+      "result_types": {
+        "ert-test-passed": 29
+      },
+      "result_file": {
+        "path": "results/combined-current-cocoa-normal-young/test-lisp-replace-tests.el-01c1aaedca02.json",
+        "sha256": "7c131699f9cc870bcc50c53800fc9cd1c480093e92b1c9d1e97dbfab9aa9d73f",
+        "bytes": 32833
+      },
+      "events_file": {
+        "path": "results/combined-current-cocoa-normal-young/test-lisp-replace-tests.el-01c1aaedca02.events.jsonl",
+        "bytes": 19844,
+        "sha256": "24ff35f2bd106ff8739a605fffc479bea75d63185a22c5e5c7bde669e6d98703"
+      },
+      "retirement": {
+        "status": "complete",
+        "files": 2,
+        "directories": 13,
+        "ledger_schema": 3,
+        "logical_bytes": 68544,
+        "allocated_bytes": 73728,
+        "evidence_sha256": "7c131699f9cc870bcc50c53800fc9cd1c480093e92b1c9d1e97dbfab9aa9d73f",
+        "ledger": "test-lisp-replace-tests.el-01c1aaedca02.state-retirement.jsonl.gz",
+        "ledger_sha256": "90e59abbdd198e027e1bd2bcb5f02f506b9836bfde7a5a42fa630b3b9c33ea32",
+        "all_selected_absent": true,
+        "restore": "regenerate consumed cache from retained inputs; original random names not promised",
+        "empty_parents_retired": true,
+        "parent_directories": 2
+      },
+      "owner_receipt": {
+        "path": "results/combined-current-cocoa-normal-young/test-lisp-replace-tests.el-01c1aaedca02.owner-retirement.json",
+        "sha256": "2421502658c3c744511e89e594ea84a994bc8879b47190fe6742fddc5f510726",
+        "bytes": 917
+      }
+    },
+    {
+      "product": "combined-current-cocoa-normal-young",
+      "file": "test/lisp/repeat-tests.el",
+      "ids": 8,
+      "sorted_ids_sha256": "8afd76873053c4e05cf748d89504978b657d00cd75f72e2c98704685f5e9ddc5",
+      "tags_sha256": "fee84f38117d1960b37e40a21e8a1503ff9172ae8d8d8d4c63e311221896c511",
+      "passed": true,
+      "complete": true,
+      "exit_code": 0,
+      "timed_out": false,
+      "remaining_group_terminated": false,
+      "result_types": {
+        "ert-test-passed": 8
+      },
+      "result_file": {
+        "path": "results/combined-current-cocoa-normal-young/test-lisp-repeat-tests.el-de55a70cefa0.json",
+        "sha256": "f547defc7f9809327b89df9eae84b3ce5464034d12a7672ac88cfe1d8b027fa7",
+        "bytes": 12325
+      },
+      "events_file": {
+        "path": "results/combined-current-cocoa-normal-young/test-lisp-repeat-tests.el-de55a70cefa0.events.jsonl",
+        "bytes": 6128,
+        "sha256": "0fd24a1490fbd16122562b7578df276baeba5634748e3e130d64bf8ae3da9866"
+      },
+      "retirement": {
+        "status": "complete",
+        "files": 0,
+        "directories": 10,
+        "ledger_schema": 3,
+        "logical_bytes": 0,
+        "allocated_bytes": 0,
+        "evidence_sha256": "f547defc7f9809327b89df9eae84b3ce5464034d12a7672ac88cfe1d8b027fa7",
+        "ledger": "test-lisp-repeat-tests.el-de55a70cefa0.state-retirement.jsonl.gz",
+        "ledger_sha256": "c73dda08f61db7d8771a9dc94b9e758d666b8de857e014381d621f1e9321d5a4",
+        "all_selected_absent": true,
+        "restore": "regenerate consumed cache from retained inputs; original random names not promised",
+        "empty_parents_retired": true,
+        "parent_directories": 2
+      },
+      "owner_receipt": {
+        "path": "results/combined-current-cocoa-normal-young/test-lisp-repeat-tests.el-de55a70cefa0.owner-retirement.json",
+        "sha256": "1bbdf0ba94254f8c65a1939f360de650c8439206f66ceeaf81d8726a008358d9",
+        "bytes": 907
+      }
+    },
+    {
+      "product": "combined-current-cocoa-normal-young",
+      "file": "test/lisp/simple-tests.el",
+      "ids": 54,
+      "sorted_ids_sha256": "563d7111f93d80667e3773b26d50e9a6109fca933fc8a7642b76e2784c267f18",
+      "tags_sha256": "0679fb7b3a51f1348fc10a5bd6a5e792e76d2dc26cb9a982a237490fca53317e",
+      "passed": false,
+      "complete": true,
+      "exit_code": 0,
+      "timed_out": false,
+      "remaining_group_terminated": false,
+      "result_types": {
+        "ert-test-passed": 51,
+        "ert-test-skipped": 3
+      },
+      "result_file": {
+        "path": "results/combined-current-cocoa-normal-young/test-lisp-simple-tests.el-b65c7c4e5f4d.json",
+        "sha256": "b79935c943a0a2272f5d4979cd1aad8b2cb4fc234f90b7b31927624af91c18a5",
+        "bytes": 54803
+      },
+      "events_file": {
+        "path": "results/combined-current-cocoa-normal-young/test-lisp-simple-tests.el-b65c7c4e5f4d.events.jsonl",
+        "bytes": 33644,
+        "sha256": "97e2eca7eb87e87bf41c66f315e67846c050b9fb4f0d19283a98528e5107bf07"
+      },
+      "retirement": {
+        "status": "retained",
+        "reason": "file failed/incomplete; preserve original state"
+      },
+      "owner_receipt": {
+        "path": "results/combined-current-cocoa-normal-young/test-lisp-simple-tests.el-b65c7c4e5f4d.owner-retirement.json",
+        "sha256": "5d49cdb153e6ca3e7726e518910daeb22d414bbd70c4c4182bd38838ea147f71",
+        "bytes": 399
+      }
+    },
+    {
+      "product": "combined-current-cocoa-checking-major",
+      "file": "test/lisp/buff-menu-tests.el",
+      "ids": 1,
+      "sorted_ids_sha256": "66b1d796151627b2c70089368ea5a2712c96dd23d4d335bba1499d1b885d42f6",
+      "tags_sha256": "87e15c2cf104266393d94e82b23f0371af251f22f307a8964e3dfbabc55975d6",
+      "passed": true,
+      "complete": true,
+      "exit_code": 0,
+      "timed_out": false,
+      "remaining_group_terminated": false,
+      "result_types": {
+        "ert-test-passed": 1
+      },
+      "result_file": {
+        "path": "results/combined-current-cocoa-checking-major/test-lisp-buff-menu-tests.el-b888a39c0569.json",
+        "sha256": "345eb0476d92a34d2126a2c507a9f7be0c8477e955a562c3d36395517af54ad5",
+        "bytes": 6533
+      },
+      "events_file": {
+        "path": "results/combined-current-cocoa-checking-major/test-lisp-buff-menu-tests.el-b888a39c0569.events.jsonl",
+        "bytes": 2636,
+        "sha256": "6a61d24abd37c55bf93908e1832c87a44fc6363413eb32b7658db71efcad84b0"
+      },
+      "retirement": {
+        "status": "complete",
+        "files": 0,
+        "directories": 10,
+        "ledger_schema": 3,
+        "logical_bytes": 0,
+        "allocated_bytes": 0,
+        "evidence_sha256": "345eb0476d92a34d2126a2c507a9f7be0c8477e955a562c3d36395517af54ad5",
+        "ledger": "test-lisp-buff-menu-tests.el-b888a39c0569.state-retirement.jsonl.gz",
+        "ledger_sha256": "c73dda08f61db7d8771a9dc94b9e758d666b8de857e014381d621f1e9321d5a4",
+        "all_selected_absent": true,
+        "restore": "regenerate consumed cache from retained inputs; original random names not promised",
+        "empty_parents_retired": true,
+        "parent_directories": 2
+      },
+      "owner_receipt": {
+        "path": "results/combined-current-cocoa-checking-major/test-lisp-buff-menu-tests.el-b888a39c0569.owner-retirement.json",
+        "sha256": "42bb4bd040e8b7d9d741a24490191a74ecbb46992b245403d82ceef5dc40f3a4",
+        "bytes": 914
+      }
+    },
+    {
+      "product": "combined-current-cocoa-checking-major",
+      "file": "test/lisp/register-tests.el",
+      "ids": 2,
+      "sorted_ids_sha256": "a79d8ba473d3ae432c9312110e1dcf7b1a4c31810c6593a685f42c0448a70ffe",
+      "tags_sha256": "daa7ef3f1cab4df381c5637fee07e04e6308af90bcd039bec92f8a89cf8fb62a",
+      "passed": true,
+      "complete": true,
+      "exit_code": 0,
+      "timed_out": false,
+      "remaining_group_terminated": false,
+      "result_types": {
+        "ert-test-passed": 2
+      },
+      "result_file": {
+        "path": "results/combined-current-cocoa-checking-major/test-lisp-register-tests.el-e7bf243fa959.json",
+        "sha256": "b0d4b1d4ad901f55d837faf5e4d6c8271c5a73f7ab822549953dd667729d2c93",
+        "bytes": 8064
+      },
+      "events_file": {
+        "path": "results/combined-current-cocoa-checking-major/test-lisp-register-tests.el-e7bf243fa959.events.jsonl",
+        "bytes": 3604,
+        "sha256": "61190ac554601b21ca02fb4f5bf48423488502a41860051cb620a8d22b09f8eb"
+      },
+      "retirement": {
+        "status": "complete",
+        "files": 0,
+        "directories": 10,
+        "ledger_schema": 3,
+        "logical_bytes": 0,
+        "allocated_bytes": 0,
+        "evidence_sha256": "b0d4b1d4ad901f55d837faf5e4d6c8271c5a73f7ab822549953dd667729d2c93",
+        "ledger": "test-lisp-register-tests.el-e7bf243fa959.state-retirement.jsonl.gz",
+        "ledger_sha256": "c73dda08f61db7d8771a9dc94b9e758d666b8de857e014381d621f1e9321d5a4",
+        "all_selected_absent": true,
+        "restore": "regenerate consumed cache from retained inputs; original random names not promised",
+        "empty_parents_retired": true,
+        "parent_directories": 2
+      },
+      "owner_receipt": {
+        "path": "results/combined-current-cocoa-checking-major/test-lisp-register-tests.el-e7bf243fa959.owner-retirement.json",
+        "sha256": "7faf749ae1cd7d9a3b56bfd03e1ff91d76ace7ed65a04c1872f2959d8b953fc7",
+        "bytes": 912
+      }
+    },
+    {
+      "product": "combined-current-cocoa-checking-major",
+      "file": "test/lisp/progmodes/subword-tests.el",
+      "ids": 2,
+      "sorted_ids_sha256": "d76a3b85137cddc9493c418593a26bc9b9911ec25b00a2b5073448f9d2225d2b",
+      "tags_sha256": "3a0d1a58c331a23a0396ed697db1eb50264aa4bbb56f87b16eb5a820b2ef794c",
+      "passed": true,
+      "complete": true,
+      "exit_code": 0,
+      "timed_out": false,
+      "remaining_group_terminated": false,
+      "result_types": {
+        "ert-test-passed": 2
+      },
+      "result_file": {
+        "path": "results/combined-current-cocoa-checking-major/test-lisp-progmodes-subword-tests.el-a8589f09ddfb.json",
+        "sha256": "3d156b4a91cd82555d03826e87b408c2a1b646613799dab52cf296cd9447ff1f",
+        "bytes": 7411
+      },
+      "events_file": {
+        "path": "results/combined-current-cocoa-checking-major/test-lisp-progmodes-subword-tests.el-a8589f09ddfb.events.jsonl",
+        "bytes": 3137,
+        "sha256": "da9f8e966c6bfbf198edd81cde9c022d352804b4541bf8acbc44a9f2f3cdee53"
+      },
+      "retirement": {
+        "status": "complete",
+        "files": 0,
+        "directories": 10,
+        "ledger_schema": 3,
+        "logical_bytes": 0,
+        "allocated_bytes": 0,
+        "evidence_sha256": "3d156b4a91cd82555d03826e87b408c2a1b646613799dab52cf296cd9447ff1f",
+        "ledger": "test-lisp-progmodes-subword-tests.el-a8589f09ddfb.state-retirement.jsonl.gz",
+        "ledger_sha256": "c73dda08f61db7d8771a9dc94b9e758d666b8de857e014381d621f1e9321d5a4",
+        "all_selected_absent": true,
+        "restore": "regenerate consumed cache from retained inputs; original random names not promised",
+        "empty_parents_retired": true,
+        "parent_directories": 2
+      },
+      "owner_receipt": {
+        "path": "results/combined-current-cocoa-checking-major/test-lisp-progmodes-subword-tests.el-a8589f09ddfb.owner-retirement.json",
+        "sha256": "62eee54a238d8177defc84e07f6361ff553d538b4f545b7cd29c2537fc0a163b",
+        "bytes": 930
+      }
+    },
+    {
+      "product": "combined-current-cocoa-checking-major",
+      "file": "test/lisp/thingatpt-tests.el",
+      "ids": 17,
+      "sorted_ids_sha256": "516ebdc671918de39090f31aca79cc6de7edd818273ce4acc61488eee30fa0d8",
+      "tags_sha256": "3510bb8b88abbebb64fe92f43a63d78ee7be2b22fa5b3a527da36bac54e5e956",
+      "passed": true,
+      "complete": true,
+      "exit_code": 0,
+      "timed_out": false,
+      "remaining_group_terminated": false,
+      "result_types": {
+        "ert-test-passed": 17
+      },
+      "result_file": {
+        "path": "results/combined-current-cocoa-checking-major/test-lisp-thingatpt-tests.el-11c64bee3dfd.json",
+        "sha256": "2e8974c6131f28e3af6cb56c595056ad1099bae1f1a34eabc10e7c0f243cccff",
+        "bytes": 19409
+      },
+      "events_file": {
+        "path": "results/combined-current-cocoa-checking-major/test-lisp-thingatpt-tests.el-11c64bee3dfd.events.jsonl",
+        "bytes": 10344,
+        "sha256": "e7153f6459d8b48d852fde66f6ba63727a13358f84ef8d4f6fabc39c28d771f2"
+      },
+      "retirement": {
+        "status": "complete",
+        "files": 0,
+        "directories": 10,
+        "ledger_schema": 3,
+        "logical_bytes": 0,
+        "allocated_bytes": 0,
+        "evidence_sha256": "2e8974c6131f28e3af6cb56c595056ad1099bae1f1a34eabc10e7c0f243cccff",
+        "ledger": "test-lisp-thingatpt-tests.el-11c64bee3dfd.state-retirement.jsonl.gz",
+        "ledger_sha256": "c73dda08f61db7d8771a9dc94b9e758d666b8de857e014381d621f1e9321d5a4",
+        "all_selected_absent": true,
+        "restore": "regenerate consumed cache from retained inputs; original random names not promised",
+        "empty_parents_retired": true,
+        "parent_directories": 2
+      },
+      "owner_receipt": {
+        "path": "results/combined-current-cocoa-checking-major/test-lisp-thingatpt-tests.el-11c64bee3dfd.owner-retirement.json",
+        "sha256": "167163aef35f829dc8a21afe60f6824315deddf9de53324a3440aad52fcd121f",
+        "bytes": 915
+      }
+    },
+    {
+      "product": "combined-current-cocoa-checking-major",
+      "file": "test/lisp/replace-tests.el",
+      "ids": 29,
+      "sorted_ids_sha256": "6bd87ce59300710d7006e835261b507b7a0b9e2e97851c3a478203b039af36db",
+      "tags_sha256": "7a5dafa6faad6b2c599464416539e83d6d3ca9c538842db33132d479eb1102ce",
+      "passed": true,
+      "complete": true,
+      "exit_code": 0,
+      "timed_out": false,
+      "remaining_group_terminated": false,
+      "result_types": {
+        "ert-test-passed": 29
+      },
+      "result_file": {
+        "path": "results/combined-current-cocoa-checking-major/test-lisp-replace-tests.el-01c1aaedca02.json",
+        "sha256": "2f74ba86db3055cee50e328b724aa68fe65e2434eea6f4dc030722521a2c9f30",
+        "bytes": 32921
+      },
+      "events_file": {
+        "path": "results/combined-current-cocoa-checking-major/test-lisp-replace-tests.el-01c1aaedca02.events.jsonl",
+        "bytes": 19840,
+        "sha256": "6e93e64b00aca9dbaf4d98ece1028bd07af5fd5e50c5c8ae600030f40e5ef119"
+      },
+      "retirement": {
+        "status": "complete",
+        "files": 2,
+        "directories": 13,
+        "ledger_schema": 3,
+        "logical_bytes": 68544,
+        "allocated_bytes": 73728,
+        "evidence_sha256": "2f74ba86db3055cee50e328b724aa68fe65e2434eea6f4dc030722521a2c9f30",
+        "ledger": "test-lisp-replace-tests.el-01c1aaedca02.state-retirement.jsonl.gz",
+        "ledger_sha256": "5e1bc1095cad41aa5ab7e46cf1f0ef0f7c20c1ed4bd5e4bb55d094cbcd33f79a",
+        "all_selected_absent": true,
+        "restore": "regenerate consumed cache from retained inputs; original random names not promised",
+        "empty_parents_retired": true,
+        "parent_directories": 2
+      },
+      "owner_receipt": {
+        "path": "results/combined-current-cocoa-checking-major/test-lisp-replace-tests.el-01c1aaedca02.owner-retirement.json",
+        "sha256": "fc21ee5e90351f23c67b01c304f30318acd738541d28c6b5485e8314c98b3d7c",
+        "bytes": 919
+      }
+    },
+    {
+      "product": "combined-current-cocoa-checking-major",
+      "file": "test/lisp/repeat-tests.el",
+      "ids": 8,
+      "sorted_ids_sha256": "8afd76873053c4e05cf748d89504978b657d00cd75f72e2c98704685f5e9ddc5",
+      "tags_sha256": "fee84f38117d1960b37e40a21e8a1503ff9172ae8d8d8d4c63e311221896c511",
+      "passed": true,
+      "complete": true,
+      "exit_code": 0,
+      "timed_out": false,
+      "remaining_group_terminated": false,
+      "result_types": {
+        "ert-test-passed": 8
+      },
+      "result_file": {
+        "path": "results/combined-current-cocoa-checking-major/test-lisp-repeat-tests.el-de55a70cefa0.json",
+        "sha256": "ead348e88eddab16d4defec61c1738c48bb51ccd83eda0fc7fd6f8abba545e88",
+        "bytes": 12385
+      },
+      "events_file": {
+        "path": "results/combined-current-cocoa-checking-major/test-lisp-repeat-tests.el-de55a70cefa0.events.jsonl",
+        "bytes": 6129,
+        "sha256": "2aa1ae65c767761e0b38e6bebc1cab7126038552e078d5bf167f936e532b7e47"
+      },
+      "retirement": {
+        "status": "complete",
+        "files": 0,
+        "directories": 10,
+        "ledger_schema": 3,
+        "logical_bytes": 0,
+        "allocated_bytes": 0,
+        "evidence_sha256": "ead348e88eddab16d4defec61c1738c48bb51ccd83eda0fc7fd6f8abba545e88",
+        "ledger": "test-lisp-repeat-tests.el-de55a70cefa0.state-retirement.jsonl.gz",
+        "ledger_sha256": "c73dda08f61db7d8771a9dc94b9e758d666b8de857e014381d621f1e9321d5a4",
+        "all_selected_absent": true,
+        "restore": "regenerate consumed cache from retained inputs; original random names not promised",
+        "empty_parents_retired": true,
+        "parent_directories": 2
+      },
+      "owner_receipt": {
+        "path": "results/combined-current-cocoa-checking-major/test-lisp-repeat-tests.el-de55a70cefa0.owner-retirement.json",
+        "sha256": "d74d7c8e69dac2d14a528d4741b40946392516d39352da870060025645722e36",
+        "bytes": 909
+      }
+    },
+    {
+      "product": "combined-current-cocoa-checking-major",
+      "file": "test/lisp/simple-tests.el",
+      "ids": 54,
+      "sorted_ids_sha256": "563d7111f93d80667e3773b26d50e9a6109fca933fc8a7642b76e2784c267f18",
+      "tags_sha256": "0679fb7b3a51f1348fc10a5bd6a5e792e76d2dc26cb9a982a237490fca53317e",
+      "passed": false,
+      "complete": true,
+      "exit_code": 0,
+      "timed_out": false,
+      "remaining_group_terminated": false,
+      "result_types": {
+        "ert-test-passed": 51,
+        "ert-test-skipped": 3
+      },
+      "result_file": {
+        "path": "results/combined-current-cocoa-checking-major/test-lisp-simple-tests.el-b65c7c4e5f4d.json",
+        "sha256": "2a71a79b26e2b6c701513dcaabee64da7168ba6132d7d140b0dbf6bff38fd2ea",
+        "bytes": 54991
+      },
+      "events_file": {
+        "path": "results/combined-current-cocoa-checking-major/test-lisp-simple-tests.el-b65c7c4e5f4d.events.jsonl",
+        "bytes": 33680,
+        "sha256": "5eb247a82fb1fb4bc5426a4799e466637eb9fd8844ae1273653616b228a23fbc"
+      },
+      "retirement": {
+        "status": "retained",
+        "reason": "file failed/incomplete; preserve original state"
+      },
+      "owner_receipt": {
+        "path": "results/combined-current-cocoa-checking-major/test-lisp-simple-tests.el-b65c7c4e5f4d.owner-retirement.json",
+        "sha256": "b18178ae874b3277b70984a2c90e10486660bf68527114007b2a5b8091580038",
+        "bytes": 401
+      }
+    },
+    {
+      "product": "combined-current-cocoa-checking-young",
+      "file": "test/lisp/buff-menu-tests.el",
+      "ids": 1,
+      "sorted_ids_sha256": "66b1d796151627b2c70089368ea5a2712c96dd23d4d335bba1499d1b885d42f6",
+      "tags_sha256": "87e15c2cf104266393d94e82b23f0371af251f22f307a8964e3dfbabc55975d6",
+      "passed": true,
+      "complete": true,
+      "exit_code": 0,
+      "timed_out": false,
+      "remaining_group_terminated": false,
+      "result_types": {
+        "ert-test-passed": 1
+      },
+      "result_file": {
+        "path": "results/combined-current-cocoa-checking-young/test-lisp-buff-menu-tests.el-b888a39c0569.json",
+        "sha256": "6d91d52c77820d383f29361c1ee867da4aaa3c5b2b50ee7140008b1e2129c7df",
+        "bytes": 6534
+      },
+      "events_file": {
+        "path": "results/combined-current-cocoa-checking-young/test-lisp-buff-menu-tests.el-b888a39c0569.events.jsonl",
+        "bytes": 2636,
+        "sha256": "f7317f23f801505f052ada8034ef613273192298d8e057444a38683cb7bfce23"
+      },
+      "retirement": {
+        "status": "complete",
+        "files": 0,
+        "directories": 10,
+        "ledger_schema": 3,
+        "logical_bytes": 0,
+        "allocated_bytes": 0,
+        "evidence_sha256": "6d91d52c77820d383f29361c1ee867da4aaa3c5b2b50ee7140008b1e2129c7df",
+        "ledger": "test-lisp-buff-menu-tests.el-b888a39c0569.state-retirement.jsonl.gz",
+        "ledger_sha256": "c73dda08f61db7d8771a9dc94b9e758d666b8de857e014381d621f1e9321d5a4",
+        "all_selected_absent": true,
+        "restore": "regenerate consumed cache from retained inputs; original random names not promised",
+        "empty_parents_retired": true,
+        "parent_directories": 2
+      },
+      "owner_receipt": {
+        "path": "results/combined-current-cocoa-checking-young/test-lisp-buff-menu-tests.el-b888a39c0569.owner-retirement.json",
+        "sha256": "4c1bb79cca3bcc4e8bf91a919f24496df9f832a268d3f5111129dfceb5e94ee7",
+        "bytes": 914
+      }
+    },
+    {
+      "product": "combined-current-cocoa-checking-young",
+      "file": "test/lisp/register-tests.el",
+      "ids": 2,
+      "sorted_ids_sha256": "a79d8ba473d3ae432c9312110e1dcf7b1a4c31810c6593a685f42c0448a70ffe",
+      "tags_sha256": "daa7ef3f1cab4df381c5637fee07e04e6308af90bcd039bec92f8a89cf8fb62a",
+      "passed": true,
+      "complete": true,
+      "exit_code": 0,
+      "timed_out": false,
+      "remaining_group_terminated": false,
+      "result_types": {
+        "ert-test-passed": 2
+      },
+      "result_file": {
+        "path": "results/combined-current-cocoa-checking-young/test-lisp-register-tests.el-e7bf243fa959.json",
+        "sha256": "144e688907c9c807ff2bb7259497933a39722ca6f4990bccced778fb97d6b856",
+        "bytes": 8064
+      },
+      "events_file": {
+        "path": "results/combined-current-cocoa-checking-young/test-lisp-register-tests.el-e7bf243fa959.events.jsonl",
+        "bytes": 3604,
+        "sha256": "a4a973a361599e078b24e034021416711806046c40ab1453f6a8d87ef6d94a88"
+      },
+      "retirement": {
+        "status": "complete",
+        "files": 0,
+        "directories": 10,
+        "ledger_schema": 3,
+        "logical_bytes": 0,
+        "allocated_bytes": 0,
+        "evidence_sha256": "144e688907c9c807ff2bb7259497933a39722ca6f4990bccced778fb97d6b856",
+        "ledger": "test-lisp-register-tests.el-e7bf243fa959.state-retirement.jsonl.gz",
+        "ledger_sha256": "c73dda08f61db7d8771a9dc94b9e758d666b8de857e014381d621f1e9321d5a4",
+        "all_selected_absent": true,
+        "restore": "regenerate consumed cache from retained inputs; original random names not promised",
+        "empty_parents_retired": true,
+        "parent_directories": 2
+      },
+      "owner_receipt": {
+        "path": "results/combined-current-cocoa-checking-young/test-lisp-register-tests.el-e7bf243fa959.owner-retirement.json",
+        "sha256": "b17bec1c36a211560d524636b34ea1ba00ea690b0dac9ba5efab4410616be52a",
+        "bytes": 912
+      }
+    },
+    {
+      "product": "combined-current-cocoa-checking-young",
+      "file": "test/lisp/progmodes/subword-tests.el",
+      "ids": 2,
+      "sorted_ids_sha256": "d76a3b85137cddc9493c418593a26bc9b9911ec25b00a2b5073448f9d2225d2b",
+      "tags_sha256": "3a0d1a58c331a23a0396ed697db1eb50264aa4bbb56f87b16eb5a820b2ef794c",
+      "passed": true,
+      "complete": true,
+      "exit_code": 0,
+      "timed_out": false,
+      "remaining_group_terminated": false,
+      "result_types": {
+        "ert-test-passed": 2
+      },
+      "result_file": {
+        "path": "results/combined-current-cocoa-checking-young/test-lisp-progmodes-subword-tests.el-a8589f09ddfb.json",
+        "sha256": "5a33baad09fc995e8226df32918ae63556c3dc8dd9b1758f38d3a3f7a6bf9e9c",
+        "bytes": 7411
+      },
+      "events_file": {
+        "path": "results/combined-current-cocoa-checking-young/test-lisp-progmodes-subword-tests.el-a8589f09ddfb.events.jsonl",
+        "bytes": 3137,
+        "sha256": "d8f2e0888c54eea33ebd104ea495d769b220e5eae35692171e71659db18f3c10"
+      },
+      "retirement": {
+        "status": "complete",
+        "files": 0,
+        "directories": 10,
+        "ledger_schema": 3,
+        "logical_bytes": 0,
+        "allocated_bytes": 0,
+        "evidence_sha256": "5a33baad09fc995e8226df32918ae63556c3dc8dd9b1758f38d3a3f7a6bf9e9c",
+        "ledger": "test-lisp-progmodes-subword-tests.el-a8589f09ddfb.state-retirement.jsonl.gz",
+        "ledger_sha256": "c73dda08f61db7d8771a9dc94b9e758d666b8de857e014381d621f1e9321d5a4",
+        "all_selected_absent": true,
+        "restore": "regenerate consumed cache from retained inputs; original random names not promised",
+        "empty_parents_retired": true,
+        "parent_directories": 2
+      },
+      "owner_receipt": {
+        "path": "results/combined-current-cocoa-checking-young/test-lisp-progmodes-subword-tests.el-a8589f09ddfb.owner-retirement.json",
+        "sha256": "483701104e98e660a53f615d233fbd72f7da95722aba983c4c2af39a88886b67",
+        "bytes": 930
+      }
+    },
+    {
+      "product": "combined-current-cocoa-checking-young",
+      "file": "test/lisp/thingatpt-tests.el",
+      "ids": 17,
+      "sorted_ids_sha256": "516ebdc671918de39090f31aca79cc6de7edd818273ce4acc61488eee30fa0d8",
+      "tags_sha256": "3510bb8b88abbebb64fe92f43a63d78ee7be2b22fa5b3a527da36bac54e5e956",
+      "passed": true,
+      "complete": true,
+      "exit_code": 0,
+      "timed_out": false,
+      "remaining_group_terminated": false,
+      "result_types": {
+        "ert-test-passed": 17
+      },
+      "result_file": {
+        "path": "results/combined-current-cocoa-checking-young/test-lisp-thingatpt-tests.el-11c64bee3dfd.json",
+        "sha256": "f43b80bba0f1f097ac41c0a165eabd2dc17539ce0b44fff6fca55285b0f72d1b",
+        "bytes": 19409
+      },
+      "events_file": {
+        "path": "results/combined-current-cocoa-checking-young/test-lisp-thingatpt-tests.el-11c64bee3dfd.events.jsonl",
+        "bytes": 10344,
+        "sha256": "07b60341510b3e736d027ebc16af2d96afc7e9044d9df8cbf2b201a4d92925dc"
+      },
+      "retirement": {
+        "status": "complete",
+        "files": 0,
+        "directories": 10,
+        "ledger_schema": 3,
+        "logical_bytes": 0,
+        "allocated_bytes": 0,
+        "evidence_sha256": "f43b80bba0f1f097ac41c0a165eabd2dc17539ce0b44fff6fca55285b0f72d1b",
+        "ledger": "test-lisp-thingatpt-tests.el-11c64bee3dfd.state-retirement.jsonl.gz",
+        "ledger_sha256": "c73dda08f61db7d8771a9dc94b9e758d666b8de857e014381d621f1e9321d5a4",
+        "all_selected_absent": true,
+        "restore": "regenerate consumed cache from retained inputs; original random names not promised",
+        "empty_parents_retired": true,
+        "parent_directories": 2
+      },
+      "owner_receipt": {
+        "path": "results/combined-current-cocoa-checking-young/test-lisp-thingatpt-tests.el-11c64bee3dfd.owner-retirement.json",
+        "sha256": "8e08dca4903d134d3722297c305a7f430922df18e358e1282c00f1ca7e11a8f0",
+        "bytes": 915
+      }
+    },
+    {
+      "product": "combined-current-cocoa-checking-young",
+      "file": "test/lisp/replace-tests.el",
+      "ids": 29,
+      "sorted_ids_sha256": "6bd87ce59300710d7006e835261b507b7a0b9e2e97851c3a478203b039af36db",
+      "tags_sha256": "7a5dafa6faad6b2c599464416539e83d6d3ca9c538842db33132d479eb1102ce",
+      "passed": true,
+      "complete": true,
+      "exit_code": 0,
+      "timed_out": false,
+      "remaining_group_terminated": false,
+      "result_types": {
+        "ert-test-passed": 29
+      },
+      "result_file": {
+        "path": "results/combined-current-cocoa-checking-young/test-lisp-replace-tests.el-01c1aaedca02.json",
+        "sha256": "cc34725b52169ff68c077eb6dd44c2ab578e9854006d467d45ef2d0dfd783cc0",
+        "bytes": 32937
+      },
+      "events_file": {
+        "path": "results/combined-current-cocoa-checking-young/test-lisp-replace-tests.el-01c1aaedca02.events.jsonl",
+        "bytes": 19845,
+        "sha256": "2ea1c288193d907f793d185d6149100ac65c89b69d0b5bd0278704e5c9bd651d"
+      },
+      "retirement": {
+        "status": "complete",
+        "files": 2,
+        "directories": 13,
+        "ledger_schema": 3,
+        "logical_bytes": 68544,
+        "allocated_bytes": 73728,
+        "evidence_sha256": "cc34725b52169ff68c077eb6dd44c2ab578e9854006d467d45ef2d0dfd783cc0",
+        "ledger": "test-lisp-replace-tests.el-01c1aaedca02.state-retirement.jsonl.gz",
+        "ledger_sha256": "5e1bc1095cad41aa5ab7e46cf1f0ef0f7c20c1ed4bd5e4bb55d094cbcd33f79a",
+        "all_selected_absent": true,
+        "restore": "regenerate consumed cache from retained inputs; original random names not promised",
+        "empty_parents_retired": true,
+        "parent_directories": 2
+      },
+      "owner_receipt": {
+        "path": "results/combined-current-cocoa-checking-young/test-lisp-replace-tests.el-01c1aaedca02.owner-retirement.json",
+        "sha256": "ca9a249fc28e3e9b758c7ecc43afd5949267204486347229c251764d89e718fd",
+        "bytes": 919
+      }
+    },
+    {
+      "product": "combined-current-cocoa-checking-young",
+      "file": "test/lisp/repeat-tests.el",
+      "ids": 8,
+      "sorted_ids_sha256": "8afd76873053c4e05cf748d89504978b657d00cd75f72e2c98704685f5e9ddc5",
+      "tags_sha256": "fee84f38117d1960b37e40a21e8a1503ff9172ae8d8d8d4c63e311221896c511",
+      "passed": true,
+      "complete": true,
+      "exit_code": 0,
+      "timed_out": false,
+      "remaining_group_terminated": false,
+      "result_types": {
+        "ert-test-passed": 8
+      },
+      "result_file": {
+        "path": "results/combined-current-cocoa-checking-young/test-lisp-repeat-tests.el-de55a70cefa0.json",
+        "sha256": "221dcbb708521f34ec4990bc36d1b804734c5840f25c6885ca98b3b90576d906",
+        "bytes": 12385
+      },
+      "events_file": {
+        "path": "results/combined-current-cocoa-checking-young/test-lisp-repeat-tests.el-de55a70cefa0.events.jsonl",
+        "bytes": 6128,
+        "sha256": "467a0d8c068d48452ab6cf5949b83ff2ede2a8b7e3db704170c612b2cfc544ff"
+      },
+      "retirement": {
+        "status": "complete",
+        "files": 0,
+        "directories": 10,
+        "ledger_schema": 3,
+        "logical_bytes": 0,
+        "allocated_bytes": 0,
+        "evidence_sha256": "221dcbb708521f34ec4990bc36d1b804734c5840f25c6885ca98b3b90576d906",
+        "ledger": "test-lisp-repeat-tests.el-de55a70cefa0.state-retirement.jsonl.gz",
+        "ledger_sha256": "c73dda08f61db7d8771a9dc94b9e758d666b8de857e014381d621f1e9321d5a4",
+        "all_selected_absent": true,
+        "restore": "regenerate consumed cache from retained inputs; original random names not promised",
+        "empty_parents_retired": true,
+        "parent_directories": 2
+      },
+      "owner_receipt": {
+        "path": "results/combined-current-cocoa-checking-young/test-lisp-repeat-tests.el-de55a70cefa0.owner-retirement.json",
+        "sha256": "5435757b3830c4ec3236c43366a4c86e528815a1d8fe0655a1dbdd9bc0eaa1d9",
+        "bytes": 909
+      }
+    },
+    {
+      "product": "combined-current-cocoa-checking-young",
+      "file": "test/lisp/simple-tests.el",
+      "ids": 54,
+      "sorted_ids_sha256": "563d7111f93d80667e3773b26d50e9a6109fca933fc8a7642b76e2784c267f18",
+      "tags_sha256": "0679fb7b3a51f1348fc10a5bd6a5e792e76d2dc26cb9a982a237490fca53317e",
+      "passed": false,
+      "complete": true,
+      "exit_code": 0,
+      "timed_out": false,
+      "remaining_group_terminated": false,
+      "result_types": {
+        "ert-test-passed": 51,
+        "ert-test-skipped": 3
+      },
+      "result_file": {
+        "path": "results/combined-current-cocoa-checking-young/test-lisp-simple-tests.el-b65c7c4e5f4d.json",
+        "sha256": "e7497496ecc2fe903360b3531809fda75e802c73de67470dff9920d7dc789a12",
+        "bytes": 54996
+      },
+      "events_file": {
+        "path": "results/combined-current-cocoa-checking-young/test-lisp-simple-tests.el-b65c7c4e5f4d.events.jsonl",
+        "bytes": 33682,
+        "sha256": "010494b80595d0c773428919378b7172b2105234c7f803201cd31dbb6be3c61d"
+      },
+      "retirement": {
+        "status": "retained",
+        "reason": "file failed/incomplete; preserve original state"
+      },
+      "owner_receipt": {
+        "path": "results/combined-current-cocoa-checking-young/test-lisp-simple-tests.el-b65c7c4e5f4d.owner-retirement.json",
+        "sha256": "1a1efd8c60f45ca593fdc25baf9a8c4a99be9af5d56530f0873bef3c0dfcb5f8",
+        "bytes": 401
+      }
+    }
+  ],
+  "controller": {
+    "run_id": "90b68ef05b554c769cb0b8ad4bb9e23b",
+    "exit_code": 1,
+    "cleanup_complete": true,
+    "elapsed_seconds": 88.649,
+    "peak_accounted_bytes": 283836416,
+    "peak_footprint_bytes": 179882432,
+    "initial_limit_bytes": 1073741824,
+    "hard_limit_bytes": 1073741824,
+    "growth_count": 0,
+    "metrics_independently_reviewed": false,
+    "stderr_log": {
+      "sha256": "f8532384adc68e32c1cca7c48a1cd291a57a59848abe2fb1697167e66ef25598",
+      "bytes": 675
+    }
+  },
+  "cleanup": {
+    "manifest": {
+      "path": "maintenance/cleanup/manifests/2026-10-31-187-consumed-current-editing-operations-state.jsonl.gz",
+      "sha256": "db2fc55bef7cfa2824eb4f27a6f3de7fbca9938002364b7bdf4bc0fd391c531d",
+      "bytes": 1456982
+    },
+    "totals": {
+      "files": 13848,
+      "directories": 2943,
+      "links": 18,
+      "rows": 16809,
+      "logical_bytes": 189664650,
+      "allocated_bytes": 226545664
+    },
+    "post_review": {
+      "files": 13830,
+      "directories": 2376,
+      "links": 18,
+      "rows": 16224,
+      "logical_bytes": 189048106,
+      "allocated_bytes": 225882112
+    },
+    "automatic": {
+      "files": 18,
+      "directories": 567,
+      "links": 0,
+      "rows": 585,
+      "logical_bytes": 616544,
+      "allocated_bytes": 663552
+    },
+    "automatic_parent_directories": 108,
+    "completed": true,
+    "deletion_replayed": false,
+    "private_plan_sha256": "59ea2610b4f3e1f67edb3fbec5ce17680ce59d85d52b95b4af00e473f24ba94b",
+    "operations_sha256": "78c6eed1be107ab228d0fbebd104edfc4fd4971789e90de61b06fc182a20cfd6",
+    "summary": {
+      "sha256": "8d9187166f7e8b7ca16e76ebc185afde1f2dbac13b61506720cbb2a5f0b385f8",
+      "bytes": 1451,
+      "retained_privately": true
+    },
+    "retained_evidence_files_verified": 545,
+    "protected_input_files_verified": 34,
+    "products_verified": 9,
+    "operation_rows": 32448,
+    "removed_roots": 27,
+    "retained_simple_directory_trees_removed_after_review": 9,
+    "original_retained_receipts_unchanged": true,
+    "seconds_after_seal": 7.5324729999999995,
+    "adopted_helpers": 4,
+    "native_handoff_duplicates": 2
+  },
+  "independent_raw_review_accepted": true,
+  "limits": [
+    "63 original-file processes select every discovered ID. The 27 batch echo skips stay unexecuted and keep file/whole aggregate false and owner exit1.",
+    "990 ordinary results plus27 original skips; no expected failures, no change to original files/guards/tags. replace uses pinned29-ID overlay, not tracked37-ID version.",
+    "72 source shell-command invocations/context,648 total; synchronous50+20 and async2. These are source-path counts, not independent child PID or dump fingerprints.",
+    "Keyboard macros and window/buffer operations are simulated Lisp input, not physical keyboard/GUI acceptance; URLs in thingatpt are parsed strings, not network requests.",
+    "No requested product build;18 automatic native cache files occurred in replace case retirements, two/context. Test-tree generated resources are empty.",
+    "Four retained actual current normal/checking products expose8 major/young profiles plus installed reference31.1; no rebuild or P435 binding claim.",
+    "Collector environment selection does not prove cycle occurrence, remembered-root completeness, native-stage/performance/fullG3/wholeERT acceptance or App promotion.",
+    "Original raw, sealed results/events/owner receipts/private plans, frozen inputs, current/prior products and unrelated WIP remain. Cleanup changes no retained receipt.",
+    "Regular-file logical/allocated byte totals are not measured whole-volume free space; original inode identities are not restorable."
+  ]
+}

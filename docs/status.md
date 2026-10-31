@@ -1,3 +1,30 @@
+## 2026-10-31: current original editing operations; CLN187
+
+Seven unchanged files,all-discovered-ids,63serial completeexit0 processes;
+buff-menu1/register2/subword2/thingatpt17/replace29/repeat8/simple54=113/context.
+Ninecontexts=1017events,990ordinary+27original batch skips,no expected/unexpected.
+Three simple echo bodies/context remain unexecuted;file/whole passed=false and
+ownerexit1 retained,outcome_contract_passed=true. Full ID/tag/status/type maps
+match reference;replace29=15literal+14generated,not tracked37-ID broad sweep.
+Simple source72shell calls/context648total,50+20sync/2async;8s child/4s wait;
+no independent child dump fingerprint. Simulated keyboard/window paths,not UI.
+Buff-menu temp file/context cleaned;thingatpt URLs are strings,no network.
+No build requested,18automatic native cache files in replace,two/context;
+test-tree generated resources empty. Four actual current normal/checking
+native+observer+collector products,8major/youngprofiles+reference31.1,reused.
+411runtime/build identities and full7459source export verified before/after;
+28input/full product/App sidecars unchanged. Frozeninputs includeWIP,not HEAD.
+No GC-cycle/root/native-stage/performance/fullG3/wholeERT/App acceptance.
+Driver88.436087417s,within60–300s estimate,30s cases/600s owner/1GiB fixed.
+Controller primary-only88.649s/283836416B accounted,179882432B footprint,growth0.
+CLN187:13848files/2943dirs/18links,16809rows,189664650/226545664B;
+auto18files/567dirs/108parents counted once. Postreview13830/2376/18 includes
+9pinned copies,9empty retained simple trees,18links,6adopted helper/handoff copies.
+Original retained receipts remain byte-identical. All545kept evidence/34inputs/
+9products/HEAD/index/WIP verified;27selected roots/copies gone,32448operation rows.
+No test replay or production/protection/App change;Goal3/7active.
+[Delivery](../maintenance/releases/2026-10-31-current-editing-operations.md).
+
 ## 2026-10-31: current syntax/faceup/EIEIO; CLN186
 
 Five complete unchanged pinned files,all-discovered-ids,45 serial file processes:
