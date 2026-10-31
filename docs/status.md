@@ -24267,3 +24267,30 @@ four outcomes open and the original Goal continues.
 
 [Diagnostic](../maintenance/releases/2026-10-31-ert-backtrace-diagnostic.md),
 [CLN173](../maintenance/cleanup/reports/2026-10-31-173-consumed-ert-diagnostic-state.md).
+
+## 2026-10-31 — Original generator/advice/closure coverage and CLN174
+
+- Three unchanged tracked files, normal reference/terminal/Cocoa, all discovered
+  IDs: generator 92 (12 direct + 40 normal/noopt pairs), advice 13, closures 18.
+  Nine complete exit-0 file processes, no timeout/protocol/runner error or residual
+  group; ID, tag and status maps equal. No selector, assertion or guard change.
+- **369 expected results: 363 ordinary passes + six original expected failures**,
+  zero skips/unexpected failures. The two advice interactive-p IDs per product
+  return ert-test-failed with expected true; they are not successful assertions.
+- Ten explicit input maps before/after and all product/resource identities equal.
+  Terminal and Cocoa P435 bindings are asserted in the driver. Reused accepted
+  normal products, not a P444 rebuild or checking acceptance. Independent review
+  verifies all 369 event hashes/ordinals/classifications and controller log.
+- Deadlines 30 s/load-case, 300 s owner; estimate 10--90 s/512 MiB, not a limit.
+  Actual stricter tree hard limit 1 GiB/growth 0; driver 10.158424 s, controller
+  11.823 s/229,277,696 accounted bytes, exit 0/cleanup complete. No speed claim.
+- CLN174: 4,609 files, 855 dirs, eighteen links, 5,482 rows;
+  63,024,984 logical / 75,300,864 allocated bytes. Includes one automatic
+  34,128-byte native trampoline and 93 earlier automatic dirs (eighteen parents)
+  once. Post-review copies/context/environment scopes gone; raw evidence,
+  products, inputs and unrelated WIP unchanged. No product build/App replacement.
+- Whole ERT, checking, full G3 and performance remain open; G1/G2/G4 stay **3/7**,
+  original Goal active. Continue remaining compatibility and runtime business.
+
+[Coverage](../maintenance/releases/2026-10-31-original-generator-advice-closures.md),
+[CLN174](../maintenance/cleanup/reports/2026-10-31-174-consumed-generator-advice-state.md).

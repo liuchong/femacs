@@ -1,3 +1,21 @@
+## Current continuation: generator, advice and closure coverage (2026-10-31)
+
+Three unchanged pinned files on accepted P435 normal reference/terminal/Cocoa:
+**369 expected results = 363 ordinary passes + six declared expected failures**,
+zero skips/unexpected failures, nine complete file processes, equal ID/tag/status
+maps. Generator discovery is 92 (12 direct + 40 pairs), advice 13, closures 18.
+Ten explicit before/after inputs and product/resource bindings stay identical;
+independent source/raw/controller review accepts only this bounded coverage.
+
+CLN174 retires 4,609 files, 855 directories and eighteen links,
+63,024,984 / 75,300,864 logical/allocated bytes, including one automatic reference
+native trampoline and 93 already-retired directories counted once. Raw evidence,
+pinned inputs, current products and unrelated WIP remain; no App replacement.
+Whole ERT, checking, full G3 and performance remain open. G1/G2/G4 stay **3/7**,
+original Goal active. Continue remaining compatibility and runtime work.
+See [coverage](../maintenance/releases/2026-10-31-original-generator-advice-closures.md)
+and [CLN174](../maintenance/cleanup/reports/2026-10-31-174-consumed-generator-advice-state.md).
+
 ## Current continuation: ERT unlimited-backtrace diagnostic (2026-10-31)
 
 The unchanged expensive ERT ID completes alone on the installed reference:

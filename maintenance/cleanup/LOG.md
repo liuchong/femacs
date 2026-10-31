@@ -598,3 +598,15 @@ inputs, raw evidence and tracked working changes unchanged. No test rerun.
 - [Report](reports/2026-10-31-173-consumed-ert-diagnostic-state.md),
   [manifest](manifests/2026-10-31-173-consumed-ert-diagnostic-state.jsonl.gz)
   SHA-256 `0b140a9a0fe6f446a51742c9f40909626212fd1c126c23ec90ac325b85d4460a`.
+
+## CLN174 — 2026-10-31 — Consumed generator/advice/closure state
+
+- Reviewed three-file normal coverage; retire 4,609 files, 855 directories and
+  eighteen links, 5,482 rows; 63,024,984 logical / 75,300,864 allocated bytes.
+- Includes one automatic native trampoline and 93 earlier runner directories
+  (eighteen parents), counted once. Post-review 4,608 files/762 dirs/18 links.
+- Three consumed test/environment/context scopes gone; original evidence,
+  product/input identities, HEAD/index and unrelated WIP preserved. No rerun.
+- [Report](reports/2026-10-31-174-consumed-generator-advice-state.md),
+  [manifest](manifests/2026-10-31-174-consumed-generator-advice-state.jsonl.gz)
+  SHA-256 `afee269c89aeb96d37fde3fe715ba42c39b3001dcf6b6a4360d094ab086ff5c6`.
