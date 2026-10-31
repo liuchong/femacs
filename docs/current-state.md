@@ -1,3 +1,23 @@
+## Current continuation: editor helper coverage (2026-10-31)
+
+Eight unchanged pinned files on accepted P435 normal reference/terminal/Cocoa:
+**96 ordinary passes**, zero skips/expected failures/unexpected failures,
+24 complete file processes, equal ID/tag/status maps. Ten input maps and full
+product/resource identities stay equal before/after; independent raw/controller
+review accepts this bounded coverage. No generated test-tree resource.
+Rmc uses simulated Lisp input, not physical keyboard/UI; shadow forces the
+case predicate, not actual filesystem behavior. Shortdoc's eighteen groups and
+bounded evaluable examples run. Four automatic native trampolines are recorded.
+
+CLN177 retires 4,614 files, 1,011 directories and eighteen links,
+63,138,697 / 75,427,840 logical/allocated bytes. Automatic retirement counts once;
+two consumed helpers are included. Selected roots are gone; original evidence,
+private plans, replay driver, inputs, products and unrelated WIP remain.
+Whole ERT, checking, full G3 and performance stay open; no App replacement.
+G1/G2/G4 remain **3/7**, original Goal active. Continue compatibility/runtime work.
+See [coverage](../maintenance/releases/2026-10-31-original-editor-helpers.md)
+and [CLN177](../maintenance/cleanup/reports/2026-10-31-177-consumed-editor-helper-state.md).
+
 ## Current continuation: conditional, alist, range and ring coverage (2026-10-31)
 
 Four unchanged pinned files on accepted P435 normal reference/terminal/Cocoa:

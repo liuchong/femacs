@@ -637,3 +637,16 @@ inputs, raw evidence and tracked working changes unchanged. No test rerun.
 - [Report](reports/2026-10-31-176-consumed-small-utility-state.md),
   [manifest](manifests/2026-10-31-176-consumed-small-utility-state.jsonl.gz),
   [coverage](../releases/2026-10-31-original-small-utilities.md).
+
+## CLN177 - consumed editor helper state (2026-10-31)
+
+- After independent 96-case review, retire three pinned test copies, empty
+  environment labels, eighteen context links and two consumed operational helpers.
+- 4,614 files, 1,011 directories, eighteen links; 63,138,697 logical /
+  75,427,840 allocated bytes; 5,643 manifest rows. Includes four automatic reference
+  trampolines and 249 directories (48 parents) once, without deletion replay.
+- Original evidence/private plans/replay driver/inputs/products and unrelated WIP
+  remain unchanged. Selected roots and consumed helpers are absent.
+- [Report](reports/2026-10-31-177-consumed-editor-helper-state.md),
+  [manifest](manifests/2026-10-31-177-consumed-editor-helper-state.jsonl.gz),
+  [coverage](../releases/2026-10-31-original-editor-helpers.md).

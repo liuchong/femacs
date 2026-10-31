@@ -24349,3 +24349,32 @@ four outcomes open and the original Goal continues.
 - [Coverage](../maintenance/releases/2026-10-31-original-small-utilities.md),
   [receipt](../maintenance/releases/2026-10-31-original-small-utilities-results.json),
   [CLN176](../maintenance/cleanup/reports/2026-10-31-176-consumed-small-utility-state.md).
+
+### 2026-10-31: original editor helpers and CLN177
+
+- Eight unchanged tracked pinned files, accepted P435 normal reference/terminal/Cocoa,
+  all discovered IDs: copyright 4, derived 2, easy-mmode 4, lisp-mnt 6, rmc 5,
+  shadow 1, shortdoc 5, unsafep 5; **96 ordinary passes**, no skip/expected/unexpected
+  failure. All 24 file processes complete/exit 0 without timeout or residual group.
+- ID/tag/status maps equal; all 96 original event hashes/ordinals reviewed.
+  Ten explicit input maps and complete program/dump/resource identities equal
+  before/after; terminal/Cocoa P435 bindings match. No P444 rebuild/checking claim.
+- Rmc actually executes mocked Lisp input/help, not physical keyboard/UI; shadow
+  forces the case predicate, not filesystem behavior. Shortdoc's eighteen groups
+  and evaluable examples run; easy-mmode's two temporary files are cleaned.
+  Three test trees add no generated resource. Four automatic reference native
+  trampolines total 136,552 / 147,456 logical/allocated bytes; no active build
+  request does not imply no automatic compilation.
+- 30 s/load-case, 300 s owner; estimate 10--90 s/512 MiB is not a cap.
+  Stricter 1 GiB initial/hard, growth zero. Driver 15.938410 s; controller
+  17.151 s, 242,352,128 accounted peak bytes, exit 0/cleanup complete.
+  Source/raw/controller independently reviewed, no rerun.
+- CLN177: 4,614 files, 1,011 directories, eighteen links; 63,138,697 / 75,427,840
+  logical/allocated bytes, 5,643 rows. Automatic 4 files/249 directories including
+  48 parents counted once; three pinned copies/context links and two consumed
+  helpers retired. Original evidence/plans/driver/products/inputs/WIP preserved.
+- Whole ERT/checking/full G3/performance stay open; no production/protection/App
+  change. G1/G2/G4 remain **3/7**, original Goal active; continue remaining work.
+- [Coverage](../maintenance/releases/2026-10-31-original-editor-helpers.md),
+  [receipt](../maintenance/releases/2026-10-31-original-editor-helpers-results.json),
+  [CLN177](../maintenance/cleanup/reports/2026-10-31-177-consumed-editor-helper-state.md).
