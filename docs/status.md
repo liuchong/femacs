@@ -1,3 +1,23 @@
+## 2026-11-01: interrupted runtime cohort unavailable; CLN191
+
+The historical current matrix build closed at 20 rows/40 physical candidates/
+61 profiles. A stale historical-reviewer cleanup later removed its frozen
+source/product root and the running ERT leaf evidence; old build receipts remain
+unchanged. The ERT controller had exited 125 on measure_rss/errno 3 with cleanup
+complete, 701,267,968 B peak at fixed 1 GiB; no completed ERT result is claimed.
+Only one of 203,961 preservation entries survives. Its original inode/hash was
+verified and the dead-owner flag released; the old active journal is preserved,
+not relabeled released. Root sources and three WIP bodies survive; 7,480 frozen
+input contents are recoverable, plus one missing desktop metadata input.
+Reconstitution must use a fresh identity and preserve the lost-evidence boundary.
+CLN191 independently removed 2 idle FD diagnostic binaries, 912,000 logical /
+917,504 allocated bytes; Rust sources/recipe, raw diagnostic logs and WIP remain.
+No compiler/editor/test process ran for this cleanup. Full G3/G5 and Goal open;
+G1/G2/G4 remain 3/7. Installed App unchanged by these recovery actions.
+
+[Incident](../maintenance/incidents/2026-11-01-current-runtime-source-removal.md).
+[Cleanup](../maintenance/cleanup/reports/2026-11-01-191-consumed-fd-diagnostics.md).
+
 ## 2026-11-01: seven original calendar/custom files
 
 Seven unchanged calendar/custom files pass on the installed reference plus

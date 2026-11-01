@@ -1,3 +1,20 @@
+## 2026-11-01: current runtime source loss; CLN191
+
+A historical reviewer using an obsolete cohort allowlist removed the current
+frozen source and 40 candidate products. The 20/61 build receipt remains valid
+as historical evidence; current products and interrupted ERT leaf records are
+absent. ERT stopped earlier with monitor error/125; no completion was created.
+Only the surviving source manifest's dead-owner flag was released. The original
+journal remains unchanged and active, with 203,960 missing entries explicitly
+recorded. Root source, installed App, Git and document WIP bodies remain.
+Recovery needs a newly identified product cohort; full G3/G5 remain open.
+CLN191 separately retired 2 consumed FD diagnostic binaries: 912,000 logical /
+917,504 allocated bytes, retaining Rust sources and recipe; no build/test run.
+G1/G2/G4 stay 3/7; Goal active.
+
+[Incident](../maintenance/incidents/2026-11-01-current-runtime-source-removal.md).
+[Cleanup](../maintenance/cleanup/reports/2026-11-01-191-consumed-fd-diagnostics.md).
+
 ## 2026-11-01: current calendar/custom coverage; CLN190
 
 Seven unchanged calendar/custom files pass on the installed reference plus

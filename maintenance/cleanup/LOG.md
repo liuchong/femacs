@@ -1,3 +1,15 @@
+## CLN191 — 2026-11-01 — consumed FD diagnostic binaries
+
+Removed 2 idle historical diagnostic binaries after exact identity/ownership,
+no-open-handle and protection checks: 912,000 logical /917,504 allocated bytes;
+0 directories or links. Retained Rust source, build recipe and diagnostic logs.
+All selected paths absent; Git HEAD/index and unrelated WIP unchanged by cleanup.
+No build/test launched. Separate stale-reviewer source/product deletion is not
+counted or certified here; see the current-runtime source-removal incident.
+
+[Report](reports/2026-11-01-191-consumed-fd-diagnostics.md) ·
+[Manifest](manifests/2026-11-01-191-consumed-fd-diagnostics.jsonl.gz).
+
 ## CLN190 — consumed calendar/custom state
 
 13,826 files/2,916 directories/18 links, 16,760 rows;
