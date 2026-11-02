@@ -1,3 +1,10 @@
+## CLN205 — 2026-11-03: explicit interrupted-product finalization
+
+- Preserve the interrupted failed result and missing original receipts; strictly verify both complete product receipts without claiming the original compiler exit status.
+- Retire only consumed duplicate units: 10,036 files / 344 directories, 335,691,785 logical bytes and 355,475,456 prior per-path allocated bytes; preserve 9,520 product witnesses.
+- Explicitly bind the 18-configuration / 55-profile checkpoint in a successful pure-file successor plan. Five subsequent rejection protections pass with no negative fixtures or product changes.
+- [Report](reports/2026-11-03-205-explicit-interrupted-product-finalization.md); [retired units](manifests/2026-11-03-205-retired-finalization-units.jsonl.gz).
+
 ## CLN204 — 2026-11-02: exact captured-input recovery
 
 - Restore 19 paths / 4,881,808 original logical bytes: seven tracked data inputs and twelve byte-exact link archives; preserve 13 parent witnesses.
