@@ -1,3 +1,10 @@
+## CLN196 — 2026-11-02: ended manual source and next product extent transition
+
+- Retired 25,680 files / 1,050 dirs: 1,416,519,418 logical / 1,470,062,592 per-path allocated bytes; canonical ledgers retain identities and recovery bounds.
+- Chained 6,489-file product transition preserves 721,133,920 logical bytes; all previous transition witnesses remain unchanged.
+- Two private streams preserve 41,689,706 bytes in 2,075,502 gzip bytes; logical evidence deletion zero. Numbered hardlink aliases and port dependencies remain unselected.
+- [Report](reports/2026-11-02-196-ended-manual-source-and-product-extents.md); [retired state](manifests/2026-11-02-196-retired-build-state.jsonl.gz), [product extents](manifests/2026-11-02-196-product-extents.jsonl.gz), [evidence encoding](manifests/2026-11-02-196-evidence-encoding.jsonl.gz).
+
 ## CLN195 — 2026-11-02: ended build state and product extent transfer
 
 - Canonical retirement: 17,958 files / 1,636 directories; 697,747,701 logical / 737,787,904 per-path allocated bytes.
