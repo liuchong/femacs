@@ -1,3 +1,10 @@
+## CLN206 — 2026-11-03: continued units and finalized native inputs
+
+- Publish closed duplicate-unit retirements: 26 legs, 127,838 files / 4,432 directories, 4,257,275,318 logical bytes and 4,507,582,464 prior per-path allocated bytes. Exclude CLN205's separately published scope.
+- Preserve the failed preparation and missing completion; independently finalize 32 profiles / 608 signed inputs, retaining all 6,368 input witnesses. Canonically retire only 192 empty ABI environment directories, zero files or logical bytes.
+- Real supplied-cohort integration and six memory-only rejection protections pass. Runtime actions, full stable-corpus compatibility and performance require their own evidence.
+- [Report](reports/2026-11-03-206-continued-units-and-native-input-finalization.md); [compiler units](manifests/2026-11-03-206-retired-continued-compiler-units.jsonl.gz); [empty ABI state](manifests/2026-11-03-206-retired-native-input-state.jsonl.gz).
+
 ## CLN205 — 2026-11-03: explicit interrupted-product finalization
 
 - Preserve the interrupted failed result and missing original receipts; strictly verify both complete product receipts without claiming the original compiler exit status.
