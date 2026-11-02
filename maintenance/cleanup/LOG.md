@@ -1,3 +1,10 @@
+## CLN198 — 2026-11-02: completed baseline state and next product extent transition
+
+- Retired 10,280 files / 370 directories: 367,106,186 logical / 387,309,568 per-path allocated bytes; canonical recovery evidence retained.
+- Chained 6,471-file product transition preserves 481,384,731 logical bytes. Explicit inherited preparation proof passes integration and two subsequent rejection protections.
+- Two private streams preserve 39,773,418 raw bytes in 2,049,359 gzip bytes; logical evidence deletion zero. Full new build remains pending at 4/20 configurations and 11/61 profiles.
+- [Report](reports/2026-11-02-198-baseline-state-and-product-extents.md); [retired state](manifests/2026-11-02-198-retired-build-state.jsonl.gz), [product extents](manifests/2026-11-02-198-product-extents.jsonl.gz), [evidence encoding](manifests/2026-11-02-198-evidence-encoding.jsonl.gz).
+
 ## CLN197 — 2026-11-02: consumed preparation copy extent transition
 
 - Preserved 805,406,600 logical bytes across 1,695 files; logical deletion zero. Prior allocation 809,152,512 bytes is not exclusive reclaimed space.
