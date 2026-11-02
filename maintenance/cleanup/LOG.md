@@ -1,3 +1,11 @@
+## CLN195 — 2026-11-02: ended build state and product extent transfer
+
+- Canonical retirement: 17,958 files / 1,636 directories; 697,747,701 logical / 737,787,904 per-path allocated bytes.
+- APFS transfer: 13,032 new-product files; 1,336,308,816 logical bytes preserved, explicit physical identity receipt and required next-consumer binding.
+- Two private evidence streams: 80,999,973 original bytes preserved in 4,135,024 gzip bytes; logical evidence deletion zero.
+- Old products, source inputs, raw semantic evidence, manuals info and sealed old matrix materializations remain; free-space changes are not exclusive reclaim measurements.
+- [Report](reports/2026-11-02-195-build-state-and-product-extents.md); [retired state](manifests/2026-11-02-195-retired-build-state.jsonl.gz), [extent transitions](manifests/2026-11-02-195-product-extents.jsonl.gz), [evidence encoding](manifests/2026-11-02-195-evidence-encoding.jsonl.gz).
+
 ## CLN194 — identical historical staged source copies (2026-11-02)
 
 Retired 17,992 regular files; zero directories or links. Every selected file
