@@ -1,3 +1,11 @@
+## CLN199 — 2026-11-02: retained suite input and stable cache extent sharing
+
+- Preserve 43,452 files / 1,145,978,058 logical bytes through explicit APFS identity transitions; old 21 suite trees and all input paths remain.
+- Preserve 358 zero files, four receipts, 252 links and 6,316 directory identities/times. Prior allocation 1,258,553,344 bytes is not exclusive reclaimed space.
+- Remove only one owned 6,407-byte failed temporary replica; retain false failures and recovery evidence. Four subsequent proof rejection protections pass.
+- Preserve all 49,775,586 raw operation bytes in 7,909,112 gzip bytes; logical evidence deletion zero.
+- [Report](reports/2026-11-02-199-retained-suite-input-extents.md); [input extents](manifests/2026-11-02-199-retained-input-extents.jsonl.gz), [temporary clone](manifests/2026-11-02-199-failed-temporary-clone.jsonl.gz), [evidence encoding](manifests/2026-11-02-199-evidence-encoding.jsonl.gz).
+
 ## CLN198 — 2026-11-02: completed baseline state and next product extent transition
 
 - Retired 10,280 files / 370 directories: 367,106,186 logical / 387,309,568 per-path allocated bytes; canonical recovery evidence retained.
