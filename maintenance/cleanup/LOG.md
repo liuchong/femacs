@@ -1,3 +1,10 @@
+## CLN200 — 2026-11-02: completed observer state and next product extent transition
+
+- Retired 10,280 files / 370 directories: 367,182,152 logical / 387,403,776 per-path allocated bytes; canonical recovery evidence retained.
+- Chained 6,471-file product transition preserves 507,330,411 logical bytes. The next consumer retains the accepted preparation ancestry functions unchanged.
+- Two private streams preserve 40,355,388 raw bytes in 2,060,249 gzip bytes; logical evidence deletion zero. New build checkpoint remains 5/20 configurations and 13/61 profiles.
+- [Report](reports/2026-11-02-200-observer-state-and-product-extents.md); [retired state](manifests/2026-11-02-200-retired-build-state.jsonl.gz), [product extents](manifests/2026-11-02-200-product-extents.jsonl.gz), [evidence encoding](manifests/2026-11-02-200-evidence-encoding.jsonl.gz).
+
 ## CLN199 — 2026-11-02: retained suite input and stable cache extent sharing
 
 - Preserve 43,452 files / 1,145,978,058 logical bytes through explicit APFS identity transitions; old 21 suite trees and all input paths remain.
