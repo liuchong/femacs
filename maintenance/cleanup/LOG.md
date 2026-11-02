@@ -1,3 +1,10 @@
+## CLN197 — 2026-11-02: consumed preparation copy extent transition
+
+- Preserved 805,406,600 logical bytes across 1,695 files; logical deletion zero. Prior allocation 809,152,512 bytes is not exclusive reclaimed space.
+- Explicitly resolved 1,518 prior kept witnesses; 8,192 other witnesses, 43 donors/index files and all captured product resources remain unchanged.
+- Four subsequent physical-proof rejection protections pass; private negative copies are removed. Full new build and G3 acceptance remain pending.
+- [Report](reports/2026-11-02-197-consumed-preparation-extents.md); [manifest](manifests/2026-11-02-197-preparation-extents.jsonl.gz).
+
 ## CLN196 — 2026-11-02: ended manual source and next product extent transition
 
 - Retired 25,680 files / 1,050 dirs: 1,416,519,418 logical / 1,470,062,592 per-path allocated bytes; canonical ledgers retain identities and recovery bounds.
