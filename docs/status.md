@@ -24771,3 +24771,20 @@ four outcomes open and the original Goal continues.
   performance stay open; G1/G2/G4 remain **3/7**, original Goal active.
 - [Coverage](../maintenance/releases/2026-10-31-original-lisp-debug-storage.md),
   [CLN179](../maintenance/cleanup/reports/2026-10-31-179-consumed-lisp-debug-storage-state.md).
+
+### 2026-11-02 — P451 unsigned reader checking component
+
+One-line unsigned upper-bound correction in `make_biguint`; signed constructor
+and original stable tests unchanged. New 7,500-input source epoch builds one
+terminal-native normal/checking configuration, 660.377 seconds, exit 0 and full
+owner cleanup. Four original DBus files complete (26 IDs each, 2 passed +24
+original skips per file, zero failed/timeout); raw false/skip states remain.
+Reference/new normal/checking pass 24 unsigned boundary observations and three
+carry checks. Post-functional reader/printer protection passes three ERT cases
+(nine high unsigned observations); exact known fixture arity diagnostics remain.
+Original harness/storage/monitor failures are preserved; no prior raw result
+is promoted. CLN193 records 9,516 files /408 directories /316,018,906 logical /
+335,040,512 allocated bytes, 9,924 fully verified public identity rows.
+G1/G2/G4 remain 3/7; Cocoa, full new 20-config/61-profile baseline, full G3/G5
+and remaining Goal work stay pending. No trial App replacement or speed claim.
+See [component evidence](../maintenance/releases/2026-11-02-unsigned-bignum-checking.md).

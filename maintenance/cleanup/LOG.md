@@ -1,3 +1,13 @@
+## CLN193 — consumed unsigned-reader build and verification state (2026-11-02)
+
+Canonical retirement: 9,516 files, 408 directories, zero links; 316,018,906 logical /
+335,040,512 allocated bytes, 9,924 fully verified identity rows. Two generated unit
+copies and six successful verification containers count once, including a reused
+reference container retired through separate proxy evidence. Source/products/link
+inputs, original raw outcomes, skipped/failed state and WIP remain; no volume gain
+or full G3/performance claim.
+[Report](reports/2026-11-02-193-unsigned-bignum-build-state.md).
+
 ## CLN192 — consumed runtime copies and successful scratch state (2026-11-02)
 
 Five independently closed retirements: 190,723 files, 292 links, 27,430 directories;

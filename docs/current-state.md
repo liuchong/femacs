@@ -957,3 +957,16 @@ CLN103（2026-10-28）：搬移60项功能断言均成功，首轮4项因Spotlig
 Both source-bound prior/batch normal/checking builds completed. Complete affected integration passed 576 ERT tests +64 discoveries; subsequent deep/suffix protections passed 16 tests +8 discoveries. Complete two-warmup/seven-round measurement passed603 workload processes +81 startups and retained2814samples. All402groups exceeded the unchanged quiet-host policy;48 direct prior/batch pairs had zero eligible comparisons. Busy diagnostic differences do not prove reliable gain or exclusive function cost.
 
 The production collector is restored byte-for-byte to the measured prior (SHA0f18ba7d761d3fcf4e99bacd8bd188289e816cdca933d4c22b83d37393a1b74e). Two useful protections and full original evidence remain; no default/trial App was changed. CLN148/149 retire consumed cache/state; CLN150 preserves the never-committed candidate as a hash-verified inert patch. See [evaluation](../maintenance/releases/2026-10-30-gc-owner-batch-evaluation.md). G1/G2/G4 remain3/7; fullG3, G5/G6/G7 acceptance, qualified performance improvement and final current product delivery remain open.
+
+## P451 terminal-native unsigned reader component (2026-11-02)
+
+The unsigned bignum checking assertion now retains the unsigned upper bound.
+A fresh source epoch builds both terminal-native compiler legs. Four unchanged
+original DBus files finish with 2 passed +24 original skips each; the checking
+pre-load abort is absent in this observed configuration. Reference/new normal/
+checking pass 24 numeric boundaries, three carry checks and three subsequent
+reader/printer ERT protections. Prior raw false results and known warnings remain.
+Only this component is accepted: Cocoa, all new 20 configurations/61 profiles,
+full G3 and qualified performance remain pending. G1/G2/G4 stay 3/7, Goal active.
+See [evidence and limitations](../maintenance/releases/2026-11-02-unsigned-bignum-checking.md)
+and [CLN193](../maintenance/cleanup/reports/2026-11-02-193-unsigned-bignum-build-state.md).

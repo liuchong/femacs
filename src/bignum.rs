@@ -118,7 +118,7 @@ pub unsafe extern "C" fn make_bigint (n: intmax_t) -> Lisp_Object
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn make_biguint (n: uintmax_t) -> Lisp_Object
 {
-  eassert! (FIXNUM_OVERFLOW_P (n as EMACS_INT));
+  eassert! (FIXNUM_OVERFLOW_P (n as EMACS_INT) || (MOST_POSITIVE_FIXNUM as uintmax_t) < n);
   mpz_set_uintmax (mpz[0].as_mut_ptr (), n);
   return make_bignum ();
 }

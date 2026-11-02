@@ -4041,3 +4041,25 @@ including the original Undo repetition and multibyte messages, plus affected
 original-file behavior under the accepted execution configuration. After
 functional acceptance, protect the format/count boundary. Do not modify the
 original tests or claim this fixes the separate first P449 undo/timer failure.
+
+## P451: preserve the unsigned range in bignum checking assertions (2026-11-02)
+
+The unsigned constructor narrowed a high uintmax_t word before checking fixnum
+range. The E000-to-FFFF high-word interval then looks like a valid negative
+fixnum, causing checking to abort while loading an original stable test file.
+Retain the signed overflow predicate and add the unsigned upper-bound branch,
+as already used by make_uint and required by the C unsigned comparison. Do not
+change the signed constructor, conversion/allocation logic or original tests.
+
+An independent fresh source epoch builds terminal-native normal/checking. Four
+original DBus files complete with identical 26 IDs, each 2 passed and 24 original
+skips; raw false remains false. Three products pass 24 unsigned numeric boundary
+observations and three carry checks. After functional acceptance, the existing
+reader/printer protection gains three high unsigned inputs and passes on the
+reference and both new candidates; exact known shared-fixture arity diagnostics
+remain separately recorded. Prior harness/storage/controller failures are kept.
+
+This accepts only the observed terminal-native component. Cocoa, the complete
+20-configuration/61-profile epoch and full G3/G5 remain pending; do not relabel
+old products or claim Goal completion. See [source-bound evidence](maintenance/releases/2026-11-02-unsigned-bignum-checking.md)
+and [CLN193](maintenance/cleanup/reports/2026-11-02-193-unsigned-bignum-build-state.md).

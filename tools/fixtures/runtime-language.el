@@ -172,6 +172,15 @@
         (set-marker mark nil)))))
 
 (ert-deftest rtl07-reader-printer-roundtrip ()
+  ;; High unsigned words must stay positive even when their signed machine
+  ;; representation would fit a negative fixnum during reader construction.
+  (dolist (pair '(("#xdfffffffffffffff" . "16140901064495857663")
+                  ("#xe000000000000000" . "16140901064495857664")
+                  ("#xffffffffffffffff" . "18446744073709551615")))
+    (let ((number (read (car pair))))
+      (should (bignump number))
+      (should (equal (number-to-string number) (cdr pair)))
+      (should (= (read (prin1-to-string number)) number))))
   (let* ((value (list :utf8 "hé🙂" [1 nil t] '(a . b)))
          (print-circle t)
          (read-circle t)
