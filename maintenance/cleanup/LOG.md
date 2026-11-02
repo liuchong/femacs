@@ -1,3 +1,14 @@
+## CLN192 — consumed runtime copies and successful scratch state (2026-11-02)
+
+Five independently closed retirements: 190,723 files, 292 links, 27,430 directories;
+6,600,904,230 logical / 7,015,309,312 per-path allocated bytes, not an additive
+whole-volume free-space claim. All 218,445 decoded identity rows match retained
+private evidence. Failed/skipped/incomplete calls and original retained receipts
+remain unchanged; 1,101 successful scratch containers retired through separate
+canonical proxy evidence. Original source/products, staged build evidence and
+unrelated WIP remain. No new editor/compiler/test execution or compatibility pass.
+[Report](reports/2026-11-02-192-consumed-runtime-state.md).
+
 ## CLN191 — 2026-11-01 — consumed FD diagnostic binaries
 
 Removed 2 idle historical diagnostic binaries after exact identity/ownership,
