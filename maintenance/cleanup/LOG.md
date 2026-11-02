@@ -1,3 +1,13 @@
+## CLN203 — 2026-11-02: explicit successor evidence storage and ownership
+
+- Preserve 32 paths / 1,330,083,289 logical bytes; per-path allocation 1,330,151,424 -> 301,666,304 bytes, not exclusive volume reclamation. Logical evidence deletion zero.
+- Verify original controller ownership and complete physical ancestry; preserve original content, private plans, historical receipts, parent witnesses and all runtime products.
+- Separate verification, the existing preparation consumer, three inheritance rejections and three ownership rejections pass; retire 9 reconstructed metadata copies with private recovery recipes.
+- Separately remove 1,772 ended build scratch files / 909 directories: 18,282,273 logical / 22,970,368 per-path allocated bytes, without crediting other volume changes.
+- New-source checkpoint remains 6/20 configurations and 15/61 profiles; unchanged 2 GiB build admission.
+- [Report](reports/2026-11-02-203-owned-successor-evidence-storage.md); [storage](manifests/2026-11-02-203-transparent-evidence-storage.jsonl.gz); [test metadata](manifests/2026-11-02-203-retired-test-metadata.jsonl.gz).
+- [Ended build scratch](manifests/2026-11-02-203-retired-owned-build-scratch.jsonl.gz).
+
 ## CLN202 — 2026-11-02: transparent storage preserves ended evidence
 
 - Preserve 24 original JSON paths and 1,582,003,973 logical bytes; explicit new physical/compression identities, unchanged content bindings and parent witnesses.
