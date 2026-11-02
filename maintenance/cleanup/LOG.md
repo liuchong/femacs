@@ -1,3 +1,14 @@
+## CLN194 — identical historical staged source copies (2026-11-02)
+
+Retired 17,992 regular files; zero directories or links. Every selected file
+matches a retained frozen recovery file by relative path, mode, size and SHA-256:
+1,226,005,702 logical / 1,267,666,944 per-path allocated bytes. Unique historical
+versions, 29 special generated files, all build metadata and original evidence
+remain. All 21 indexed materialization trees stay intact. No editor/compiler or
+semantic test started; observed volume free-space changes are not attributed to
+this cleanup alone.
+[Report](reports/2026-11-02-194-redundant-staged-source.md).
+
 ## CLN193 — consumed unsigned-reader build and verification state (2026-11-02)
 
 Canonical retirement: 9,516 files, 408 directories, zero links; 316,018,906 logical /
