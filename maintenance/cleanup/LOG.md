@@ -1,3 +1,11 @@
+## CLN202 — 2026-11-02: transparent storage preserves ended evidence
+
+- Preserve 24 original JSON paths and 1,582,003,973 logical bytes; explicit new physical/compression identities, unchanged content bindings and parent witnesses.
+- Per-path allocation 1,582,059,520 -> 296,955,904 bytes; volume observations are not exclusive reclamation. Logical evidence deletion zero.
+- Independent full verification and six later rejection protections pass. Retire 19 owned test/control files with exact identities and private recovery recipes; preserve real results and failures.
+- New-source checkpoint remains 6/20 configurations, 15/61 profiles; future build admission remains 2 GiB.
+- [Report](reports/2026-11-02-202-transparent-evidence-storage.md); [storage](manifests/2026-11-02-202-transparent-evidence-storage.jsonl.gz); [test metadata](manifests/2026-11-02-202-retired-test-metadata.jsonl.gz).
+
 ## CLN201 — 2026-11-02: native observer state and unbound port extent transition
 
 - Retired 10,280 files / 370 directories: 367,926,110 logical / 388,587,520 per-path allocated bytes; original manual info, logs, receipts and recovery inputs remain.
