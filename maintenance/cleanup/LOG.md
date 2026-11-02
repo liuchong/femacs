@@ -1,3 +1,10 @@
+## CLN204 — 2026-11-02: exact captured-input recovery
+
+- Restore 19 paths / 4,881,808 original logical bytes: seven tracked data inputs and twelve byte-exact link archives; preserve 13 parent witnesses.
+- Record new physical identities explicitly. Deleted historical inodes were not retained; original journals and strict readers remain unchanged, with required scoped recovery resolution in the successor consumer.
+- Complete pure-file integration and five later rejection protections pass; negative metadata mutations create no fixtures. Compiler progress remains separately reported.
+- [Report](reports/2026-11-02-204-explicit-captured-input-recovery.md); [recovered inputs](manifests/2026-11-02-204-restored-captured-inputs.jsonl.gz).
+
 ## CLN203 — 2026-11-02: explicit successor evidence storage and ownership
 
 - Preserve 32 paths / 1,330,083,289 logical bytes; per-path allocation 1,330,151,424 -> 301,666,304 bytes, not exclusive volume reclamation. Logical evidence deletion zero.
