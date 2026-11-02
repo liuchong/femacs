@@ -1,3 +1,11 @@
+## CLN201 — 2026-11-02: native observer state and unbound port extent transition
+
+- Retired 10,280 files / 370 directories: 367,926,110 logical / 388,587,520 per-path allocated bytes; original manual info, logs, receipts and recovery inputs remain.
+- Product sharing preserves 709,392,619 logical bytes across 6,537 files; separate port sharing preserves 174 paths / 150,461,978 bytes and 104 directory identities/times.
+- Preserve 40,636,590 raw operation bytes in 2,077,393 gzip bytes; logical evidence deletion zero. Five later rejection protections pass; four reconstructed test metadata copies retired with private recovery recipes.
+- Full new build remains 6/20 configurations and 15/61 profiles. Per-path allocation is not exclusive reclaimed volume space.
+- [Report](reports/2026-11-02-201-native-observer-state-and-port-extents.md); [retired state](manifests/2026-11-02-201-retired-build-state.jsonl.gz), [product extents](manifests/2026-11-02-201-product-extents.jsonl.gz), [port extents](manifests/2026-11-02-201-port-extents.jsonl.gz), [evidence encoding](manifests/2026-11-02-201-evidence-encoding.jsonl.gz), [test metadata](manifests/2026-11-02-201-retired-test-metadata.jsonl.gz).
+
 ## CLN200 — 2026-11-02: completed observer state and next product extent transition
 
 - Retired 10,280 files / 370 directories: 367,182,152 logical / 387,403,776 per-path allocated bytes; canonical recovery evidence retained.
