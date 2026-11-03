@@ -987,3 +987,11 @@ No production/protection/App change; no whole ERT/checking/full G3/performance p
 - Preserve raw observations, fixed inputs and product identities. Remaining actions, stable-file compatibility and performance have separate acceptance requirements.
 - [Report](reports/2026-11-03-208-continued-runtime-state.md); [manifest](manifests/2026-11-03-208-retired-continued-ert-state.jsonl.gz).
 
+
+## CLN210 — 2026-11-03: native format consumed state
+
+- Project canonical consumed-state retirement for 608 sealed format cases: 0 files / 3,648 directories, 0 logical bytes and 0 prior per-path allocated bytes.
+- Preserve 323 inherited + 285 fresh observations, original failed evidence, 15 excluded completed observations and the incomplete original case. Keep separate per-window budgets and explicit post_hoc provenance.
+- Retain raw observations and signed fixed inputs; format controls do not imply complete compatibility, native lowering, performance or Goal acceptance.
+- [Report](reports/2026-11-03-210-native-format-state.md); [manifest](manifests/2026-11-03-210-retired-native-format-state.jsonl.gz).
+
