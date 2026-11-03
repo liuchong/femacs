@@ -971,3 +971,19 @@ The complete 5,488-row public manifest matches every private identity.
 No production/protection/App change; no whole ERT/checking/full G3/performance pass.
 [Report](reports/2026-10-31-179-consumed-lisp-debug-storage-state.md) ·
 [Manifest](manifests/2026-10-31-179-consumed-lisp-debug-storage-state.jsonl.gz).
+
+## CLN207 — 2026-11-03: sealed runtime state
+
+- Canonically retire consumed state from 7,171 sealed successful leaves: 30,016 files / 43,629 directories, 761,576,592 logical bytes and 812,306,432 prior per-path allocated bytes; preserve raw observations and fixed inputs.
+- Preserve the failed monitor attempt. A read-only census verifies 1,680 completed and 5,491 untouched scopes; the successor completes only the pending work, and independent receipt verification passes.
+- Exclude the unsealed group and its incomplete case; preserve the original action's failure and missing completion. No editor, compiler or semantic case is started and no runtime or full compatibility acceptance is claimed.
+- [Report](reports/2026-11-03-207-sealed-runtime-state.md); [manifest](manifests/2026-11-03-207-retired-sealed-ert-state.jsonl.gz).
+
+
+## CLN208 — 2026-11-03: continued runtime state
+
+- Publish the closed retirement of new runtime state: 11,200 files / 19,209 directories, 287,967,599 logical bytes and 306,872,320 prior per-path allocated bytes. Exclude CLN207's inherited scope.
+- The explicit runtime union completes 903 groups / 61 profiles, with 7,171 inherited + 3,164 new processes. Preserve the original failed wrapper, absent completion and unsealed suffix; retain post_hoc provenance.
+- Preserve raw observations, fixed inputs and product identities. Remaining actions, stable-file compatibility and performance have separate acceptance requirements.
+- [Report](reports/2026-11-03-208-continued-runtime-state.md); [manifest](manifests/2026-11-03-208-retired-continued-ert-state.jsonl.gz).
+
