@@ -1010,3 +1010,11 @@ No production/protection/App change; no whole ERT/checking/full G3/performance p
 - Preserve the unselected source-owner parent timestamp, original products, source, raw evidence and typed union. Do not count these parents again as package-copy retirement or claim exclusive physical reclamation.
 - [Report](reports/2026-11-03-212-empty-relocation-work-parents.md); [manifest](manifests/2026-11-03-212-retired-empty-relocation-parents.jsonl.gz).
 
+
+
+## 2026-11-03-213: private archive file controls
+
+- Preserved the interrupted matrix; explicit dead-owner recovery and independent file verification passed.
+- Retired 827 owned files / 140 directories and 12 control links; 10,045,093 logical / 11,784,192 per-path allocated bytes, with link allocation unknown.
+- Four file-only sandbox controls passed; source/products and original failed observations remain.
+- Original Lisp/full compatibility, performance and Goal acceptance remain open.
