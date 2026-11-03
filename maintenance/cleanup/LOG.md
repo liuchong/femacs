@@ -995,3 +995,18 @@ No production/protection/App change; no whole ERT/checking/full G3/performance p
 - Retain raw observations and signed fixed inputs; format controls do not imply complete compatibility, native lowering, performance or Goal acceptance.
 - [Report](reports/2026-11-03-210-native-format-state.md); [manifest](manifests/2026-11-03-210-retired-native-format-state.jsonl.gz).
 
+
+## CLN211 — 2026-11-03: consumed source-denied relocation copies
+
+- Preserve a typed union of 60 fresh profiles in two bounded windows; do not claim a single whole-action invocation.
+- Project canonical package retirement: 269,758 files / 30 links / 6,950 dirs, 16,199,717,574 logical and 16,816,988,160 prior per-path allocated bytes.
+- Project 0 files / 1,104 case-state dirs; retain original packages, raw observations, owner records and receipts. No new deletion or whole compatibility/performance/Goal acceptance.
+- [Report](reports/2026-11-03-211-source-denied-relocation-state.md); [packages](manifests/2026-11-03-211-retired-relocation-packages.jsonl.gz); [state](manifests/2026-11-03-211-retired-relocation-case-state.jsonl.gz).
+
+
+## CLN212 — 2026-11-03: empty relocation work parents
+
+- Retire exactly 63 closed, identity-bound empty work directories; select and remove no files.
+- Preserve the unselected source-owner parent timestamp, original products, source, raw evidence and typed union. Do not count these parents again as package-copy retirement or claim exclusive physical reclamation.
+- [Report](reports/2026-11-03-212-empty-relocation-work-parents.md); [manifest](manifests/2026-11-03-212-retired-empty-relocation-parents.jsonl.gz).
+
