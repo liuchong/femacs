@@ -1037,3 +1037,4 @@ No production/protection/App change; no whole ERT/checking/full G3/performance p
 - Shared extents for 127,540 fixture copies while preserving 3,423,407,050 logical bytes and separate inodes; README, directories and context links remain unchanged.
 - Real file integration, full transition verification and 11 subsequent scope protections passed. Original tests and failures remain; whole compatibility and performance acceptance are open.
 - [Report](reports/2026-11-04-216-fixture-physical-storage.md); [manifest](manifests/2026-11-04-216-shared-stable-fixtures.jsonl.gz).
+- CLN217: retired 429 consumed private native-tool cache files and 219 directories; retained frozen inputs and executable.
