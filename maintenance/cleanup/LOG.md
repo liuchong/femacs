@@ -1018,3 +1018,22 @@ No production/protection/App change; no whole ERT/checking/full G3/performance p
 - Retired 827 owned files / 140 directories and 12 control links; 10,045,093 logical / 11,784,192 per-path allocated bytes, with link allocation unknown.
 - Four file-only sandbox controls passed; source/products and original failed observations remain.
 - Original Lisp/full compatibility, performance and Goal acceptance remain open.
+
+
+## CLN214 — 2026-11-04: redundant matrix copies
+
+- Retired 74,850 exact duplicate files and 48 directories; retained their same-pair originals and all original failed observations.
+- Recorded 1,292,812,683 logical and 1,458,839,552 prior per-path allocated bytes; no causal volume-reclamation or compatibility claim.
+- [Report](reports/2026-11-04-214-matrix-duplicate-copies.md); [manifest](manifests/2026-11-04-214-retired-matrix-duplicate-copies.jsonl.gz).
+
+## CLN215 — 2026-11-04: same-pair observation storage
+
+- Shared extents for 128,218 inherited observation copies while preserving 4,737,742,271 logical bytes, independent inodes and every original outcome.
+- File metadata and explicit inode transitions are bound; zero logical bytes deleted and no semantic cases replayed.
+- [Report](reports/2026-11-04-215-same-pair-physical-storage.md); [manifest](manifests/2026-11-04-215-shared-same-pair-observations.jsonl.gz).
+
+## CLN216 — 2026-11-04: immutable fixture storage
+
+- Shared extents for 127,540 fixture copies while preserving 3,423,407,050 logical bytes and separate inodes; README, directories and context links remain unchanged.
+- Real file integration, full transition verification and 11 subsequent scope protections passed. Original tests and failures remain; whole compatibility and performance acceptance are open.
+- [Report](reports/2026-11-04-216-fixture-physical-storage.md); [manifest](manifests/2026-11-04-216-shared-stable-fixtures.jsonl.gz).
