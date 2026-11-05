@@ -1038,3 +1038,4 @@ No production/protection/App change; no whole ERT/checking/full G3/performance p
 - Real file integration, full transition verification and 11 subsequent scope protections passed. Original tests and failures remain; whole compatibility and performance acceptance are open.
 - [Report](reports/2026-11-04-216-fixture-physical-storage.md); [manifest](manifests/2026-11-04-216-shared-stable-fixtures.jsonl.gz).
 - CLN217: retired 429 consumed private native-tool cache files and 219 directories; retained frozen inputs and executable.
+Recorded exact COW sharing of retained test inputs with explicit inode transitions and all original failures preserved.
