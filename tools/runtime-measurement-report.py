@@ -55,6 +55,7 @@ TOP_KEYS = {
     "full_product_inputs_unchanged", "driver_sources_unchanged",
     "goal_complete", "compatibility_accepted", "state_retirement_complete",
 }
+FALLBACK_KEYS = {"permanent_full_fallback", "startup_measured"}
 SUMMARY_KEYS = {"samples", "cases", "failures", "inconclusive"}
 CASE_FIELDS = (
     "case", "mode", "execution_identity", "n", "median_ms", "mad_ms",
@@ -438,18 +439,30 @@ def guard_report(report):
 
 
 def build_report(document):
-    if type(document) is not dict or set(document) != TOP_KEYS:
+    if type(document) is not dict or set(document) not in (TOP_KEYS, TOP_KEYS | FALLBACK_KEYS):
         malformed("top")
     if document.get("schema") != SCHEMA:
         raise ReportError("schema-mismatch")
     if document.get("action") != ACTION:
         raise ReportError("action-mismatch")
     flags = {key: require_bool(document[key], key) for key in BOOL_FIELDS}
+    if FALLBACK_KEYS <= set(document):
+        permanent_full_fallback = require_bool(
+            document["permanent_full_fallback"], "permanent_full_fallback")
+        startup_measured = require_bool(
+            document["startup_measured"], "startup_measured")
+        if startup_measured is not (not permanent_full_fallback):
+            malformed("startup_measured")
+    else:
+        permanent_full_fallback = False
+        startup_measured = True
     if document.get("limitation") != LIMITATION:
         malformed("limitation")
     processes = bounded_object_list(document["processes"], "processes", MAX_PROCESSES)
     samples = bounded_object_list(document["samples"], "samples", MAX_SAMPLES)
     startups = bounded_object_list(document["startups"], "startups", MAX_STARTUPS)
+    if permanent_full_fallback and startups:
+        malformed("startups")
     comparisons = document["comparisons"]
     errors = document["errors"]
     excluded = document["excluded"]
@@ -500,6 +513,10 @@ def build_report(document):
     inconclusive_count = 0
     for index, row in enumerate(case_rows):
         copied, identity = validate_case(row, "summary.cases[{0}]".format(index))
+        if permanent_full_fallback and (
+                copied["mode"] == "native"
+                or not copied["execution_identity"].endswith(":off")):
+            malformed("summary.cases[{0}]".format(index))
         if identity in groups:
             malformed("summary.cases[{0}]".format(index))
         groups[identity] = copied
@@ -536,6 +553,8 @@ def build_report(document):
         "performance_accepted": flags["performance_accepted"],
         "goal_complete": flags["goal_complete"],
         "compatibility_accepted": flags["compatibility_accepted"],
+        "permanent_full_fallback": permanent_full_fallback,
+        "startup_measured": startup_measured,
         "scope": SCOPE,
         "limitation": LIMITATION,
         "counts": {
@@ -592,7 +611,8 @@ def render_json(report):
 
 def render_markdown(report):
     lines = ["# Runtime measurement report", ""]
-    for key in ("passed", "performance_accepted", "goal_complete", "compatibility_accepted"):
+    for key in ("passed", "performance_accepted", "goal_complete", "compatibility_accepted",
+                "permanent_full_fallback", "startup_measured"):
         lines.append("`{0}`: {1}".format(key, "true" if report[key] else "false"))
     lines.extend(["", "Scope: " + escape_text(report["scope"]), "",
                   "Limitation: " + escape_text(report["limitation"]), "",

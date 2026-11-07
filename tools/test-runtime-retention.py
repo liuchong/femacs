@@ -26,13 +26,14 @@ class RetentionTests(unittest.TestCase):
         self.root = OUT/self._testMethodName
         self.root.mkdir()
         root = self.root
-        for name in ('runtime-config.json', 'info/manual', 'config/config.rs',
+        for name in ('info/manual', 'config/config.rs',
                      'port/src/temacs', 'port/src/emacs', 'port/src/emacs.pdmp',
                      'port/src/bootstrap-emacs.pdmp', 'dist/terminal/src/emacs',
                      'dist/terminal/src/emacs.pdmp', 'objects/unit.o', 'load/library.a'):
             path = root/name
             path.parent.mkdir(parents=True, exist_ok=True)
             path.write_bytes(('synthetic fixture '+name).encode())
+        ex.write_json(root/'runtime-config.json', dict(schema=1, macros={}, features={}))
         ex.write_json(root/'config/manual-set.json', dict(info=str(root/'info')))
         binding = dict(product='terminal', variant='baseline', compiler_leg='normal',
                        config_relative='runtime-config.json', config_digest=ex.digest(root/'runtime-config.json'))
@@ -69,6 +70,8 @@ class RetentionTests(unittest.TestCase):
         row=self.sealed.inventory[str(self.receipt)]
         self.assertEqual(row['historical_missing_objects'],['objects/unit.o'])
         self.assertEqual(row['archive']['status'],'historical-missing')
+        verified = recovery.verify_product_files(self.receipt)
+        self.assertEqual(verified['binding']['product'], 'terminal')
         with self.assertRaisesRegex(ValueError,'missing input'):
             recovery.verify_product(self.receipt)
 

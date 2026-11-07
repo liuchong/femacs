@@ -243,7 +243,8 @@ def build_source_lineage(root, report):
         if any(root.name == prior.name for prior in lineage):
             raise ValueError('recovery producer names must be unique within their source lineage')
         if (report.get('source_export') != exported
-                or ('source_root' in report and report['source_root'] != str(source))):
+                or ((lineage or 'original_build' in report)
+                    and 'source_root' in report and report['source_root'] != str(source))):
             raise ValueError('recovery source export differs from its pinned original')
         lineage.append(root)
         if 'original_build' not in report:
@@ -571,6 +572,50 @@ def execute_matrix(options, out, artifacts=None):
                            "required scope and performance judgment", "signed delivery and cleanup evidence"])
 
 
+def select_execution_inputs(artifacts, original, source, products_path, products, build, options):
+    """Preserve finished products, source cohorts and top-level build metadata for execution."""
+    cohorts = list(build.get('source_cohorts') or [build['source_export']])
+    if build['source_export'] not in cohorts:
+        cohorts.append(build['source_export'])
+    source_roots = []
+    seen_sources = set()
+    for cohort in cohorts:
+        cohort_source = execution.safe_path(cohort['source'])
+        if str(cohort_source) in seen_sources:
+            continue
+        seen_sources.add(str(cohort_source))
+        cohort_owner = (build_source_owner(original, build)
+                        if cohort == build['source_export']
+                        else execution.safe_path(cohort_source.parent))
+        artifacts.select_source(cohort_owner, cohort)
+        source_roots.append(cohort_source)
+    top_metadata = [execution.safe_path(original / 'results.json'),
+                    execution.safe_path(build['product_list'])]
+    value = owner.artifact_read(artifacts.journal)
+    for path in top_metadata:
+        if str(path) not in value['allowed_roots']:
+            value['allowed_roots'].append(str(path))
+    owner.artifact_write(artifacts.journal, value)
+    owner.capture_artifacts(artifacts.journal, {
+        str(path): execution.file_identity(path) for path in top_metadata})
+    if getattr(options, 'execution_products', None) is not None:
+        # Preserve the initially verified content, not fresh hashes
+        # that could silently adopt a pre-capture replacement.
+        owner.capture_artifacts(artifacts.journal, options._execution_input_identities)
+        for path, identity in options._execution_input_identities.items():
+            if execution.file_identity(execution.safe_path(path)) != identity:
+                raise ValueError('execution inputs changed before preservation completed')
+    seen = set()
+    for product in products:
+        if product['kind'] != 'reference' and product['product_receipt'] not in seen:
+            receipt_path = execution.safe_path(product['product_receipt'])
+            product_source = next(
+                (root for root in source_roots if receipt_path.is_relative_to(root / 'build/runtime')),
+                source)
+            owner.capture_product_files(artifacts.journal, receipt_path, product_source)
+            seen.add(product['product_receipt'])
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--action", choices=("build", "prepare", "execute", "followup", "components"), required=True)
@@ -629,19 +674,7 @@ def main(argv=None):
                 result = build_matrix(options, out, artifacts)
             else:
                 original, source, products_path, products, build = read_action_build(options)
-                artifacts.select_source(build_source_owner(original, build), build['source_export'])
-                if options.execution_products is not None:
-                    # Preserve the initially verified content, not fresh hashes
-                    # that could silently adopt a pre-capture replacement.
-                    owner.capture_artifacts(artifacts.journal, options._execution_input_identities)
-                    for path, identity in options._execution_input_identities.items():
-                        if execution.file_identity(execution.safe_path(path)) != identity:
-                            raise ValueError('execution inputs changed before preservation completed')
-                seen = set()
-                for product in products:
-                    if product['kind'] != 'reference' and product['product_receipt'] not in seen:
-                        owner.capture_product(artifacts.journal, product['product_receipt'], source)
-                        seen.add(product['product_receipt'])
+                select_execution_inputs(artifacts, original, source, products_path, products, build, options)
                 if options.action == 'followup':
                     prepared = source/'build/acceptance/runtime-negative-units'
                     owner.capture_artifacts(artifacts.journal, {

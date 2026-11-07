@@ -368,6 +368,50 @@ def replaced_inode(out):
                 original_fixture_inode_retained=True)
 
 
+def finished_product_execution(out):
+    original, source, root, export = fixture(out)
+    # Retire link intermediates (.o and .a) as in post-build intermediate cleanup;
+    # strict build-leg capture must reject, while finished-product execution
+    # preservation verifies and locks all runtime artifacts and top-level metadata.
+    (root / 'objects/fixture.o').unlink()
+    (root / 'load/fixture.a').unlink()
+    strict_rejected = False
+    (out / 'strict-check').mkdir()
+    with owner.ArtifactRun(REPO, out / 'strict-check') as strict_guard:
+        strict_guard.select_source(original, export)
+        try:
+            owner.capture_product(strict_guard.journal, root / 'runtime-product.json', source)
+        except OSError:
+            strict_rejected = True
+    assert strict_rejected, 'strict capture_product accepted retired link intermediates'
+    flags_released(out / 'strict-check/artifact-preservation.json')
+    action_out = out / 'execution-stage'
+    action_out.mkdir()
+    with owner.ArtifactRun(REPO, action_out) as guard:
+        read_original, read_source, products_path, products, build = stage.read_action_build(
+            SimpleNamespace(build=original, execution_products=None))
+        stage.select_execution_inputs(guard, read_original, read_source, products_path,
+                                      products, build, SimpleNamespace(execution_products=None))
+        for protected in (root / 'dist/terminal/src/emacs',
+                          original / 'results.json',
+                          original / 'products.json'):
+            assert protected.stat().st_flags & stat.UF_IMMUTABLE
+            try:
+                protected.write_bytes(b'mutation-blocked')
+            except PermissionError:
+                pass
+            else:
+                raise AssertionError('immutable execution input mutation was accepted: ' + str(protected))
+        retention = guard.retain_current_files()
+        assert retention['all_original_files_verified'] is True
+        assert retention['duplicate_content_archive_created'] is False
+    released = flags_released(action_out / 'artifact-preservation.json')
+    return dict(strict_capture_rejected_missing_intermediates=True,
+                finished_product_and_top_metadata_protected=True,
+                retained_files_verified=retention['files'],
+                released=released)
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--out', type=Path, required=True)
@@ -388,7 +432,8 @@ def main():
                        ('sigterm-during-journal-write', interrupted_journal),
                        ('frozen-source-action-boundaries', source_binding),
                        ('mode-and-symlink-archive-invariants', metadata_refusal),
-                       ('replaced-inode-release-boundary', replaced_inode)]:
+                       ('replaced-inode-release-boundary', replaced_inode),
+                       ('finished-product-execution-preservation', finished_product_execution)]:
         case = out / name
         case.mkdir()
         started = time.monotonic()
@@ -399,7 +444,7 @@ def main():
         row['seconds'] = time.monotonic() - started
         rows.append(row)
         execution.write_json(out / 'results.json', dict(passed=all(r['passed'] for r in rows),
-                             complete=len(rows) == 8, cases=rows, scope='actual owner/OS integration with nonexecuted format fixtures',
+                             complete=len(rows) == 9, cases=rows, scope='actual owner/OS integration with nonexecuted format fixtures',
                              whole_editor_native_gc_compatibility_performance_accepted=False))
         print(json.dumps({key: row[key] for key in ('id', 'passed', 'seconds')}), flush=True)
     return 0 if all(row['passed'] for row in rows) else 1

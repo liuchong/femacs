@@ -138,6 +138,8 @@ class Protections(unittest.TestCase):
         path.write_text(json.dumps(minimal_document()), encoding="utf-8")
         report = REPORT.build_report(REPORT.load_document(path))
         self.assertIs(report["performance_accepted"], False)
+        self.assertIs(report["permanent_full_fallback"], False)
+        self.assertIs(report["startup_measured"], True)
         self.assertEqual(report["counts"]["process_count"], 1)
         self.assertEqual(report["counts"]["process_warmup_count"], 0)
         self.assertEqual(report["counts"]["sample_count"], 1)
@@ -147,6 +149,78 @@ class Protections(unittest.TestCase):
         self.assertEqual(report["eligibility"]["busy_count"], 2)
         self.assertEqual(report["eligibility"]["eligible_count"], 0)
         self.assertEqual(report["cases"][0]["median_ms"], 1.0)
+
+    def test_current_schema_ordinary_and_fallback_documents(self):
+        ordinary = minimal_document()
+        ordinary["permanent_full_fallback"] = False
+        ordinary["startup_measured"] = True
+        ordinary_report = REPORT.build_report(ordinary)
+        self.assertIs(ordinary_report["permanent_full_fallback"], False)
+        self.assertIs(ordinary_report["startup_measured"], True)
+        self.assertIn("`permanent_full_fallback`: false", REPORT.render_markdown(ordinary_report))
+        self.assertIn("`startup_measured`: true", REPORT.render_markdown(ordinary_report))
+
+        fallback = minimal_document()
+        fallback["permanent_full_fallback"] = True
+        fallback["startup_measured"] = False
+        fallback["startups"] = []
+        for item in fallback["summary"]["cases"]:
+            item["mode"] = "bytecode"
+        fallback["summary"]["inconclusive"] = [
+            "load/bytecode: busy-host",
+            "load/bytecode: busy-host",
+        ]
+        fallback["comparisons"][0]["mode"] = "bytecode"
+        fallback_report = REPORT.build_report(fallback)
+        self.assertIs(fallback_report["permanent_full_fallback"], True)
+        self.assertIs(fallback_report["startup_measured"], False)
+        self.assertEqual(fallback_report["counts"]["startup_count"], 0)
+        self.assertIn("`permanent_full_fallback`: true", REPORT.render_markdown(fallback_report))
+        self.assertIn("`startup_measured`: false", REPORT.render_markdown(fallback_report))
+
+    def test_fallback_contract_violations_are_rejected(self):
+        partial = minimal_document()
+        partial["permanent_full_fallback"] = False
+        with self.assertRaises(REPORT.ReportError) as caught:
+            REPORT.build_report(partial)
+        self.assertEqual(caught.exception.code, "malformed-report: top")
+
+        mismatch = minimal_document()
+        mismatch["permanent_full_fallback"] = True
+        mismatch["startup_measured"] = True
+        with self.assertRaises(REPORT.ReportError) as caught:
+            REPORT.build_report(mismatch)
+        self.assertEqual(caught.exception.code, "malformed-report: startup_measured")
+
+        with_startups = minimal_document()
+        with_startups["permanent_full_fallback"] = True
+        with_startups["startup_measured"] = False
+        with self.assertRaises(REPORT.ReportError) as caught:
+            REPORT.build_report(with_startups)
+        self.assertEqual(caught.exception.code, "malformed-report: startups")
+
+        native_fallback = minimal_document()
+        native_fallback["permanent_full_fallback"] = True
+        native_fallback["startup_measured"] = False
+        native_fallback["startups"] = []
+        with self.assertRaises(REPORT.ReportError) as caught:
+            REPORT.build_report(native_fallback)
+        self.assertEqual(caught.exception.code, "malformed-report: summary.cases[0]")
+
+        observer_fallback = minimal_document()
+        observer_fallback["permanent_full_fallback"] = True
+        observer_fallback["startup_measured"] = False
+        observer_fallback["startups"] = []
+        for item in observer_fallback["summary"]["cases"]:
+            item["mode"] = "bytecode"
+        observer_fallback["summary"]["cases"][0]["execution_identity"] = "cand:phases"
+        observer_fallback["comparisons"][0]["mode"] = "bytecode"
+        with self.assertRaises(REPORT.ReportError) as caught:
+            REPORT.build_report(observer_fallback)
+        self.assertEqual(
+            caught.exception.code,
+            "malformed-report: summary.cases[0]",
+        )
 
     def test_existing_oversize_file_is_not_read_whole(self):
         path = self.root / "large.json"

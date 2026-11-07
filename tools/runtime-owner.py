@@ -326,8 +326,7 @@ def capture_artifacts(journal, expected):
             os.close(descriptor)
 
 
-def capture_product(journal, receipt_path, source):
-    """The serial build driver calls this at each completed compiler leg."""
+def _capture_product_impl(journal, receipt_path, source, *, require_link_inputs):
     import importlib.util
     journal, receipt_path, source = Path(journal), Path(receipt_path), Path(source)
     value = artifact_read(journal)
@@ -341,11 +340,29 @@ def capture_product(journal, receipt_path, source):
     spec.loader.exec_module(execution)
     receipt = execution.bounded_json(receipt_path, 64 * 1024 * 1024)
     root = receipt_path.parent
+    binding = receipt.get('binding')
     if (receipt.get('build_complete') is not True
-            or receipt.get('binding') != execution.bounded_json(root / 'runtime-binding.json')
+            or not isinstance(binding, dict)
+            or binding != execution.bounded_json(root / 'runtime-binding.json')
             or receipt.get('link_inputs', {}).get('link_complete') is not True):
         raise ValueError('cannot preserve an incomplete runtime product')
+    if 'config_relative' in binding or 'config_digest' in binding:
+        config_rel = Path(binding.get('config_relative', ''))
+        if (not binding.get('config_relative') or config_rel.is_absolute() or '..' in config_rel.parts
+                or execution.digest(execution.safe_path(root / config_rel)) != binding.get('config_digest')):
+            raise ValueError('completed product configuration changed')
     _, _, resources, _ = execution.product_receipt_layout(receipt, root)
+    repository_build = Path(value['repository']) / 'build'
+    roots_updated = False
+    for path in resources.values():
+        path = execution.safe_path(path)
+        if not path.is_relative_to(repository_build) or path == repository_build:
+            raise ValueError('product resource is outside the owned build tree')
+        if not any(path.is_relative_to(Path(allowed)) for allowed in value['allowed_roots']):
+            value['allowed_roots'].append(str(path))
+            roots_updated = True
+    if roots_updated:
+        artifact_write(journal, value)
     metadata = receipt.get('file_identities', {})
     if receipt.get('identity_version') not in (2, 3) or set(metadata) != set(receipt['files']):
         raise ValueError('new artifact capture requires complete bound file metadata')
@@ -362,20 +379,56 @@ def capture_product(journal, receipt_path, source):
         if execution.tree_identity(path) != receipt['resources'][name]:
             raise ValueError('completed product resource tree changed')
     for relative, identity in receipt['link_inputs']['objects'].items():
-        if type(identity.get('mode')) is not int:
+        rel_path = Path(relative)
+        if rel_path.is_absolute() or '..' in rel_path.parts:
+            raise ValueError('unsafe product link object path')
+        target = root / rel_path
+        if not require_link_inputs:
+            if target.is_symlink():
+                raise ValueError('product link input is a symlink')
+            execution.safe_path(target.parent)
+            if not target.exists():
+                continue
+        if type(identity.get('mode')) is not int or type(identity.get('bytes')) is not int:
             raise ValueError('new artifact capture requires link object permission identity')
-        expected[str(root / relative)] = dict(kind='file', sha256=identity['sha256'],
-                                             bytes=identity['bytes'], mode=identity['mode'])
+        expected[str(target)] = dict(kind='file', sha256=identity['sha256'],
+                                     bytes=identity['bytes'], mode=identity['mode'])
     archive = receipt['link_inputs']['archive']
-    if type(archive.get('mode')) is not int or type(archive.get('bytes')) is not int:
-        raise ValueError('new artifact capture requires archive permission identity')
-    expected[str(root / archive['path'])] = dict(kind='file', sha256=archive['sha256'],
-                                               bytes=archive['bytes'], mode=archive['mode'])
-    for relative in ('runtime-product.json', 'runtime-binding.json', 'runtime-config.json',
-                     'runtime-inputs.json', 'runtime-link-inputs.json'):
-        path = root / relative
+    archive_rel = Path(archive.get('path', ''))
+    if not archive.get('path') or archive_rel.is_absolute() or '..' in archive_rel.parts:
+        raise ValueError('unsafe product link archive path')
+    archive_target = root / archive_rel
+    include_archive = True
+    if not require_link_inputs:
+        if archive_target.is_symlink():
+            raise ValueError('product link archive is a symlink')
+        execution.safe_path(archive_target.parent)
+        include_archive = archive_target.exists()
+    if include_archive:
+        if type(archive.get('mode')) is not int or type(archive.get('bytes')) is not int:
+            raise ValueError('new artifact capture requires archive permission identity')
+        expected[str(archive_target)] = dict(kind='file', sha256=archive['sha256'],
+                                             bytes=archive['bytes'], mode=archive['mode'])
+    metadata_names = ['runtime-product.json', 'runtime-binding.json', 'runtime-config.json',
+                      'runtime-inputs.json', 'runtime-link-inputs.json']
+    if 'native' in binding.get('variant', ''):
+        backend_sources = root / 'backend-sources.json'
+        if not require_link_inputs or backend_sources.exists() or backend_sources.is_symlink():
+            metadata_names.append('backend-sources.json')
+    for relative in metadata_names:
+        path = execution.safe_path(root / relative)
         expected[str(path)] = execution.file_identity(path)
     capture_artifacts(journal, expected)
+
+
+def capture_product(journal, receipt_path, source):
+    """The serial build driver calls this at each completed compiler leg."""
+    _capture_product_impl(journal, receipt_path, source, require_link_inputs=True)
+
+
+def capture_product_files(journal, receipt_path, source):
+    """Execution stages preserve complete finished products and surviving link inputs."""
+    _capture_product_impl(journal, receipt_path, source, require_link_inputs=False)
 
 
 def verify_artifact_link(row):
@@ -581,9 +634,11 @@ if __name__ == '__main__':
     parser.add_argument('--release-journal', type=Path)
     parser.add_argument('--product-receipt', type=Path)
     parser.add_argument('--source', type=Path)
+    parser.add_argument('--files-only', action='store_true')
     options = parser.parse_args()
     if options.release_journal is not None:
-        if options.journal is not None or options.product_receipt is not None or options.source is not None:
+        if (options.journal is not None or options.product_receipt is not None
+                or options.source is not None or options.files_only):
             parser.error('release accepts only its exact journal')
         failures = release_artifacts(options.release_journal, require_dead=True)
         if failures:
@@ -591,4 +646,7 @@ if __name__ == '__main__':
     else:
         if options.journal is None or options.product_receipt is None or options.source is None:
             parser.error('capture requires journal, product receipt and frozen source')
-        capture_product(options.journal, options.product_receipt, options.source)
+        if options.files_only:
+            capture_product_files(options.journal, options.product_receipt, options.source)
+        else:
+            capture_product(options.journal, options.product_receipt, options.source)
