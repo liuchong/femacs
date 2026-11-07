@@ -4063,3 +4063,23 @@ This accepts only the observed terminal-native component. Cocoa, the complete
 20-configuration/61-profile epoch and full G3/G5 remain pending; do not relabel
 old products or claim Goal completion. See [source-bound evidence](maintenance/releases/2026-11-02-unsigned-bignum-checking.md)
 and [CLN193](maintenance/cleanup/reports/2026-11-02-193-unsigned-bignum-build-state.md).
+
+## P452: preserve the discovered executable path during PATH_EXEC dump lookup (2026-11-08)
+
+When `load_pdump` falls through from the adjacent dump check to the `PATH_EXEC`
+search (for example in the macOS application bundle, where the executable lives
+in `Contents/MacOS/Femacs` and the portable dump lives in
+`Contents/Resources/libexec/Femacs.pdmp`), the reference only synthesizes a
+`../../../../bin/` sibling executable path when `find_emacs_executable` did not
+find the binary (`! (emacs_executable != NULL && *emacs_executable != '\0')`).
+In `src/emacs.rs`, the second guard omitted the inner negation before
+`emacs_executable.is_null ()`, making `! (emacs_executable.is_null () && ...)`
+unconditionally true and overwriting the discovered `emacs_executable` with a
+nonexistent `../../../../bin/` path. Consequently, `initial_emacs_executable`
+became invalid whenever the bundle launched without an explicit `--dump-file`
+argument, causing `(kill-emacs 0 t)` restart checks to fail.
+
+Restore the inner negation in `src/emacs.rs` so the `PATH_EXEC` fallback matches
+the earlier guard and the reference condition. Rebuild the terminal and macOS
+products, verify bundle startup, `PATH_EXEC` dump loading and restart-executable
+resolution before adding the protective contract.

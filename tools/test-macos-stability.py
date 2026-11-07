@@ -48,6 +48,10 @@ class Cases(unittest.TestCase):
     for call in run.call_args_list:
      self.assertEqual(call.kwargs['env']['LC_ALL'],'en_US.UTF-8')
     self.assertEqual(os.environ['LC_ALL'],'C')
+ def test_load_pdump_preserves_discovered_executable_on_path_exec_lookup(self):
+  source=(ROOT/'src/emacs.rs').read_text(encoding='utf-8')
+  self.assertNotIn('if ! (emacs_executable.is_null () && *emacs_executable != 0)',source)
+  self.assertGreaterEqual(source.count('if ! (! emacs_executable.is_null () && *emacs_executable != 0)'),2)
 class Timing(unittest.TextTestResult):
  def startTest(self,test):self.started=time.monotonic();super().startTest(test)
  def stopTest(self,test):

@@ -1439,7 +1439,7 @@ unsafe fn load_pdump (argc: c_int, argv: *mut *mut c_char,
     }
   sprintf (dump_file, c"%s%c%s-%s%s".as_ptr (),
            path_exec, DIRECTORY_SEP as c_int, argv0_base, hexbuf, suffix.as_ptr ());
-  if ! (emacs_executable.is_null () && *emacs_executable != 0)
+  if ! (! emacs_executable.is_null () && *emacs_executable != 0)
     {
       /* If we didn't find the Emacs binary, assume that it lives in a
 	 sibling directory as set up by the default installation
