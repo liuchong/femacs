@@ -298,6 +298,13 @@ class BuildOwnerContracts(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "selected source does not match the completed build export"):
                 stage.read_build(original)
 
+    def test_runtime_components_adapter_matches_collector_survivor_and_registry_contracts(self):
+        source = (REPO / "tools/runtime-components.py").read_text(encoding="utf-8")
+        self.assertIn("survivor(super::cons_block, index);", source)
+        self.assertNotIn("survivor(super::test_cell(index));", source)
+        self.assertIn("state().capture_registry = true;", source)
+        self.assertIn("femacs_gc_observer = []", source)
+
 
 class TimedResult(unittest.TextTestResult):
     def startTest(self, test):
@@ -327,6 +334,6 @@ if __name__ == "__main__":
     suite = unittest.defaultTestLoader.loadTestsFromTestCase(BuildOwnerContracts)
     result = unittest.TextTestRunner(verbosity=2, resultclass=TimedResult).run(suite)
     OUT.mkdir(parents=True, exist_ok=True)
-    passed = result.wasSuccessful() and len(ROWS) == 14 and all(row["status"] == "passed" for row in ROWS)
+    passed = result.wasSuccessful() and len(ROWS) == 15 and all(row["status"] == "passed" for row in ROWS)
     (OUT / "results.json").write_text(json.dumps(dict(cases=ROWS, passed=passed), indent=2) + "\n")
     raise SystemExit(0 if passed else 1)

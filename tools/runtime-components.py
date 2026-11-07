@@ -364,6 +364,7 @@ pub(super) fn component_run(steps: &[Value], inputs: &[Value]) -> Result<Value, 
             "new_registry" => unsafe {
                 state().registry.clear();
                 state().phase = CollectorPhase::Marking;
+                state().capture_registry = true;
                 state().cycle_valid = true;
                 state().registry.valid = true;
             },
@@ -421,7 +422,7 @@ pub(super) fn component_run(steps: &[Value], inputs: &[Value]) -> Result<Value, 
                 if let Some(array) = step.get("indices").and_then(Value::as_array) {
                     for item in array {
                         let index = item.as_u64().unwrap_or(0) as usize;
-                        if index < CONS_BLOCK_SIZE { unsafe { survivor(super::test_cell(index)); } }
+                        if index < CONS_BLOCK_SIZE { unsafe { survivor(super::cons_block, index); } }
                     }
                 }
             }
@@ -672,7 +673,7 @@ def main(argv=None):
     col_hash = digest(col)
     try:
         out.mkdir(parents=True)
-        write(out / 'Cargo.toml', '''[package]\nname = "runtime-component-adapter"\nversion = "0.1.0"\nedition = "2021"\n\n[workspace]\n\n[features]\ndefault = ["femacs_gc_generational"]\nfemacs_gc_generational = []\nfemacs_gc_observer_test_hooks = []\n\n[dependencies]\nserde_json = "1"\n''')
+        write(out / 'Cargo.toml', '''[package]\nname = "runtime-component-adapter"\nversion = "0.1.0"\nedition = "2021"\n\n[workspace]\n\n[features]\ndefault = ["femacs_gc_generational"]\nfemacs_gc_generational = []\nfemacs_gc_observer = []\nfemacs_gc_observer_test_hooks = []\n\n[dependencies]\nserde_json = "1"\n''')
         write(out / 'src/actual_observation.rs', insert_wrapper(obs.read_text(encoding='utf-8'), OBSERVER))
         write(out / 'src/actual_collector.rs', insert_collector_wrapper(col.read_text(encoding='utf-8'), COLLECTOR))
         host, support = supporting_source(repo, fixture.read_text(encoding='utf-8'))
