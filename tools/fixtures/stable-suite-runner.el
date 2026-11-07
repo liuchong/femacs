@@ -6,27 +6,60 @@
 ;; filter platform/features, or claim compatibility.
 
 (defvar find-function-C-source-directory)
-(let ((context (getenv "STABLE_SUITE_SOURCE_CONTEXT"))
-      (product-lisp (getenv "STABLE_SUITE_PRODUCT_LISP")))
+(let* ((context (getenv "STABLE_SUITE_SOURCE_CONTEXT"))
+       (product-lisp (getenv "STABLE_SUITE_PRODUCT_LISP"))
+       (archive-profile (getenv "STABLE_SUITE_ARCHIVE_SOURCE_PROFILE"))
+       (shared-context (getenv "STABLE_SUITE_ARCHIVE_SHARED_CONTEXT")))
+  (when (or archive-profile shared-context)
+    (let ((case-root (getenv "FEMACS_RUNTIME_CASE_ROOT"))
+          (logical (getenv "STABLE_SUITE_FILE_ID"))
+          (physical (getenv "STABLE_SUITE_FILE")))
+      (unless (and (equal archive-profile "owned-original-archive-source-context-v1")
+                   shared-context context case-root physical
+                   (member logical '("test/lisp/arc-mode-tests.el"
+                                     "test/lisp/tar-mode-tests.el"))
+                   (not (file-symlink-p context))
+                   (equal (file-truename context)
+                          (expand-file-name "out" (file-truename case-root)))
+                   (equal (file-truename physical)
+                          (expand-file-name logical (file-truename context)))
+                   (not (equal (file-truename shared-context)
+                               (file-truename context))))
+        (error "invalid owned archive source-test context"))))
   (when context
-    (unless (and product-lisp (file-directory-p context)
-                 (file-directory-p (expand-file-name "lisp" context)))
-      (error "missing bound source-test context"))
-    (let ((original (file-name-as-directory product-lisp))
-          (overlay (file-name-as-directory (expand-file-name "lisp" context))))
-      (setq load-path
-            (cons overlay
-                  (mapcar (lambda (path)
-                            (if (and (stringp path)
-                                     (string-prefix-p original
-                                       (file-name-as-directory path)))
-                                (concat overlay
-                                  (substring (file-name-as-directory path)
-                                             (length original)))
-                              path))
-                          load-path))))
-    (setq source-directory (file-name-as-directory context)
-          find-function-C-source-directory (expand-file-name "src/" context))))
+    (let ((library-context (or shared-context context)))
+      (unless (and product-lisp (file-directory-p context)
+                   (file-directory-p (expand-file-name "test" context))
+                   (file-directory-p (expand-file-name "lisp" library-context)))
+        (error "missing bound source-test context"))
+      (let ((original (file-name-as-directory product-lisp))
+            (overlay (file-name-as-directory (expand-file-name "lisp" library-context))))
+        (setq load-path
+              (cons overlay
+                    (mapcar (lambda (path)
+                              (if (and (stringp path)
+                                       (string-prefix-p original
+                                         (file-name-as-directory path)))
+                                  (concat overlay
+                                    (substring (file-name-as-directory path)
+                                               (length original)))
+                                path))
+                            load-path))))
+      (setq source-directory (file-name-as-directory context)
+            find-function-C-source-directory
+            (expand-file-name "src/" library-context)))))
+(let ((invocation-dir (getenv "STABLE_SUITE_INVOCATION_DIRECTORY"))
+      (invocation-prog (getenv "STABLE_SUITE_INVOCATION_NAME")))
+  (when (or invocation-dir invocation-prog)
+    (unless (and invocation-dir invocation-prog
+                 (equal (getenv "STABLE_SUITE_FILE_ID")
+                        "test/src/emacs-module-tests.el")
+                 (file-directory-p invocation-dir)
+                 (file-executable-p
+                  (expand-file-name invocation-prog invocation-dir)))
+      (error "invalid owned module invocation context"))
+    (setq invocation-directory (file-name-as-directory invocation-dir)
+          invocation-name invocation-prog)))
 
 (require 'ert)
 (require 'json)
@@ -41,7 +74,18 @@
     (unless (and (eq system-type 'darwin)
                  (member (getenv "STABLE_SUITE_FILE_ID")
                          '("test/lisp/autorevert-tests.el"
-                           "test/lisp/filenotify-tests.el"))
+                           "test/lisp/filenotify-tests.el"
+                           "test/lisp/dnd-tests.el"
+                           "test/lisp/ffap-tests.el"
+                           "test/lisp/shadowfile-tests.el"
+                           "test/lisp/vc/emerge-tests.el"
+                           "test/lisp/progmodes/eglot-tests.el"
+                           "test/lisp/net/tramp-tests.el"
+                           "test/lisp/eshell/em-glob-tests.el"
+                           "test/lisp/eshell/esh-ext-tests.el"
+                           "test/lisp/eshell/esh-proc-tests.el"
+                           "test/lisp/eshell/esh-util-tests.el"
+                           "test/lisp/eshell/esh-var-tests.el"))
                  (equal (getenv "ENV") script)
                  (file-regular-p script)
                  (not (file-symlink-p script))
@@ -52,7 +96,9 @@
       (let ((content (with-temp-buffer
                        (insert-file-contents-literally script)
                        (buffer-string))))
-        (unless (equal content "case $- in\n  *m*) set +m ;;\nesac\n")
+        (unless (member content
+                        '("case $- in\n  *i*)\n    set +m\n    set +o vi +o emacs\n    if [ -t 0 ]; then\n      stty -icanon icrnl -inlcr -igncr -echo min 1 time 0 || exit 70\n    fi\n    ;;\nesac\n"
+                          "case $- in\n  *m*) set +m ;;\nesac\n"))
           (error "mock shell initialization content differs"))
         (setq tramp-remote-process-environment
               (cons (concat "ENV=" (shell-quote-argument script))
@@ -60,7 +106,8 @@
                                     (string-prefix-p "ENV=" value))
                                   tramp-remote-process-environment)))
         (setq stable-suite--mock-shell-environment
-              (list (cons "content_sha256" (secure-hash 'sha256 content))
+              (list (cons "profile" "owned-darwin-mock-noncanonical-icrnl-v1")
+                    (cons "content_sha256" (secure-hash 'sha256 content))
                     (cons "file" script)
                     (cons "process_env" (getenv "ENV"))
                     (cons "remote_env"
@@ -69,6 +116,43 @@
 (defun stable-suite--env (name)
   (or (getenv name)
       (error "missing environment variable %s" name)))
+
+(defvar stable-suite--compiler-output-context nil)
+
+(defun stable-suite--prepare-compiler-output ()
+  "Give the original compiler bootstrap an owned last output directory."
+  (when (equal (getenv "STABLE_SUITE_FILE_ID") "test/src/comp-tests.el")
+    (let* ((enabled (and (fboundp 'native-comp-available-p)
+                         (native-comp-available-p)))
+           (before (and (boundp 'native-comp-eln-load-path)
+                        (copy-sequence native-comp-eln-load-path)))
+           target)
+      (when enabled
+        (unless (and (listp before) (cl-every #'stringp before))
+          (error "invalid original native compiler search path"))
+        (let ((root (file-name-as-directory
+                     (stable-suite--env "FEMACS_RUNTIME_CASE_ROOT"))))
+          (setq target (file-name-as-directory
+                        (expand-file-name "native-cache/compiler-output" root)))
+          (make-directory target t)
+          (unless (and (file-in-directory-p target root)
+                       (not (member target before)))
+            (error "compiler output is not a fresh owned target")))
+        (setq native-comp-eln-load-path (append before (list target))))
+      (setq stable-suite--compiler-output-context
+            (list (cons "profile" "owned-original-compiler-output-v1")
+                  (cons "scope" "test/src/comp-tests.el-only")
+                  (cons "enabled" (if enabled t :json-false))
+                  (cons "before" (vconcat before))
+                  (cons "after" (vconcat (if enabled native-comp-eln-load-path before)))
+                  (cons "target" target))))))
+
+(defun stable-suite--compiler-output-snapshot ()
+  (when stable-suite--compiler-output-context
+    (append stable-suite--compiler-output-context
+            (list (cons "actual_paths"
+                        (vconcat (and (boundp 'native-comp-eln-load-path)
+                                      native-comp-eln-load-path)))))))
 
 (defun stable-suite--environment ()
   (append
@@ -79,6 +163,7 @@
    (cons "collector_mode" (getenv "FEMACS_GC_COLLECTOR"))
    (cons "observer_mode" (getenv "FEMACS_GC_OBSERVATION"))
    (cons "mock_shell_environment" stable-suite--mock-shell-environment)
+   (cons "compiler_output_context" (stable-suite--compiler-output-snapshot))
    (cons "system_type" (symbol-name system-type))
    (cons "window_system" (and (boundp 'window-system)
                               window-system
@@ -255,6 +340,7 @@
          error-text)
     (condition-case error
         (progn
+          (stable-suite--prepare-compiler-output)
           (load file nil nil t)
           (setq ids (sort (cl-set-difference
                            (stable-suite--registered-ids) before :test #'equal)
@@ -294,6 +380,7 @@
     (unless (= ended (length ids)) (setq status "incomplete"))
     (stable-suite--event
      (list (cons "event" "finished") (cons "file" file-id)
+           (cons "compiler_output_context" (stable-suite--compiler-output-snapshot))
            (cons "status" status) (cons "error" error-text)
            (cons "requested_count" (length ids)) (cons "ended_count" ended)))))
 

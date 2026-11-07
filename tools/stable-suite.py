@@ -484,6 +484,36 @@ def _safe_case_component(case_id):
     return 'case-' + digest
 
 
+MOCK_SHELL_PROFILE = 'owned-darwin-mock-noncanonical-icrnl-v1'
+MOCK_SHELL_FILES = (
+    'test/lisp/autorevert-tests.el',
+    'test/lisp/filenotify-tests.el',
+    'test/lisp/dnd-tests.el',
+    'test/lisp/ffap-tests.el',
+    'test/lisp/shadowfile-tests.el',
+    'test/lisp/vc/emerge-tests.el',
+    'test/lisp/progmodes/eglot-tests.el',
+    'test/lisp/net/tramp-tests.el',
+    'test/lisp/eshell/em-glob-tests.el',
+    'test/lisp/eshell/esh-ext-tests.el',
+    'test/lisp/eshell/esh-proc-tests.el',
+    'test/lisp/eshell/esh-util-tests.el',
+    'test/lisp/eshell/esh-var-tests.el',
+)
+MOCK_SHELL_CONTENT = (
+    b'case $- in\n'
+    b'  *i*)\n'
+    b'    set +m\n'
+    b'    set +o vi +o emacs\n'
+    b'    if [ -t 0 ]; then\n'
+    b'      stty -icanon icrnl -inlcr -igncr -echo min 1 time 0 || exit 70\n'
+    b'    fi\n'
+    b'    ;;\n'
+    b'esac\n'
+)
+MOCK_SHELL_CONTENT_SHA256 = hashlib.sha256(MOCK_SHELL_CONTENT).hexdigest()
+
+
 def case_environment(case_id, out, *, compact=False):
     """Create owned paths; compact callers must supply a unique container."""
     try:
@@ -514,13 +544,12 @@ def case_environment(case_id, out, *, compact=False):
     paths['TMP'] = paths['TMPDIR']
     environment = {key: str(value) for key, value in paths.items()}
     logical_file = case_id.split('|', 1)[0]
-    if sys.platform == 'darwin' and logical_file in (
-            'test/lisp/autorevert-tests.el', 'test/lisp/filenotify-tests.el'):
-        # The original mock transport uses an interactive sh.  Its monitor
-        # diagnostics must not become file-transfer bytes.  Keep this local
-        # to these owned mock fixtures, identical on reference and candidates.
+    if sys.platform == 'darwin' and logical_file in MOCK_SHELL_FILES:
+        # The original mock transport uses an interactive sh on a Darwin PTY.
+        # Disable monitor diagnostics, shell line editing, and canonical input
+        # truncation while preserving ICRNL only on real PTY descriptors.
         script = paths['HOME'] / 'mock-shell-env'
-        content = b'case $- in\n  *m*) set +m ;;\nesac\n'
+        content = MOCK_SHELL_CONTENT
         if script.is_symlink() or not script.resolve().is_relative_to(root.resolve()):
             raise SuiteError('mock shell startup file escapes its owned case')
         if script.exists():
@@ -529,9 +558,13 @@ def case_environment(case_id, out, *, compact=False):
         else:
             with script.open('xb') as stream:
                 stream.write(content)
+                stream.flush()
+                os.fsync(stream.fileno())
             script.chmod(0o600)
         environment['ENV'] = str(script)
         environment['FEMACS_STABLE_MOCK_SHELL_ENV'] = str(script)
+        environment['FEMACS_STABLE_MOCK_TRANSPORT_PROFILE'] = MOCK_SHELL_PROFILE
+        environment['FEMACS_STABLE_MOCK_TRANSPORT_SHA256'] = MOCK_SHELL_CONTENT_SHA256
     return environment
 
 

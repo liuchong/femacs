@@ -277,12 +277,26 @@ class MockShellEnvironmentContracts(unittest.TestCase):
         self.root = Path(tempfile.mkdtemp(prefix="mock shell's ", dir=parent))
 
     def test_only_named_darwin_mock_files_receive_identical_owned_initialization(self):
-        expected = b"case $- in\n  *m*) set +m ;;\nesac\n"
+        expected = SUITE.MOCK_SHELL_CONTENT
         with mock.patch.object(SUITE.sys, "platform", "darwin"):
-            for case in ("test/lisp/autorevert-tests.el|one|1", "test/lisp/filenotify-tests.el"):
+            for case in (
+                "test/lisp/autorevert-tests.el|one|1",
+                "test/lisp/filenotify-tests.el",
+                "test/lisp/dnd-tests.el",
+                "test/lisp/net/tramp-tests.el",
+                "test/lisp/eshell/esh-var-tests.el",
+            ):
                 environment = SUITE.case_environment(case, self.root)
                 script = Path(environment["FEMACS_STABLE_MOCK_SHELL_ENV"])
                 self.assertEqual(environment["ENV"], str(script))
+                self.assertEqual(
+                    environment["FEMACS_STABLE_MOCK_TRANSPORT_PROFILE"],
+                    SUITE.MOCK_SHELL_PROFILE,
+                )
+                self.assertEqual(
+                    environment["FEMACS_STABLE_MOCK_TRANSPORT_SHA256"],
+                    SUITE.MOCK_SHELL_CONTENT_SHA256,
+                )
                 self.assertEqual(script.read_bytes(), expected)
                 self.assertEqual(stat.S_IMODE(script.stat().st_mode), 0o600)
                 self.assertTrue(script.is_relative_to(self.root))
@@ -304,7 +318,7 @@ class MockShellEnvironmentContracts(unittest.TestCase):
                 SUITE.case_environment(case, self.root)
             script.unlink()
             outside = self.root / "other-script"
-            outside.write_bytes(b"case $- in\n  *m*) set +m ;;\nesac\n")
+            outside.write_bytes(SUITE.MOCK_SHELL_CONTENT)
             script.symlink_to(outside)
             with self.assertRaises(SUITE.SuiteError):
                 SUITE.case_environment(case, self.root)
@@ -467,6 +481,128 @@ class StableBatchEnvironmentContracts(unittest.TestCase):
         self.assertEqual(record["container"], str(created[0]))
         self.assertEqual(record["inode"], created[0].lstat().st_ino)
         self.assertEqual((created[0] / "partial").read_bytes(), b"failed preparation")
+
+    def test_fixture_entries_case_deadline_and_compiler_output_contracts(self):
+        manifest = {
+            "entries": [
+                {"path": "test/src/data-tests.el"},
+                {"path": "test/src/comp-tests.el"},
+                {"path": "test/src/comp-resources/helper.el"},
+                {"path": "test/lisp/arc-mode-tests.el"},
+                {"path": "test/data/decompress/foo.gz"},
+                {"path": "test/lisp/eshell/esh-var-tests.el"},
+                {"path": "test/lisp/eshell/em-glob-tests.el"},
+                {"path": "test/lisp/eshell/resources/eshell-Resource.txt"},
+            ]
+        }
+        src_paths = [e["path"] for e in BATCH._fixture_entries(manifest, "test/src/comp-tests.el")]
+        self.assertIn("test/src/data-tests.el", src_paths)
+        self.assertIn("test/src/comp-tests.el", src_paths)
+        self.assertIn("test/src/comp-resources/helper.el", src_paths)
+        self.assertNotIn("test/lisp/arc-mode-tests.el", src_paths)
+
+        arc_paths = [e["path"] for e in BATCH._fixture_entries(manifest, "test/lisp/arc-mode-tests.el")]
+        self.assertIn("test/lisp/arc-mode-tests.el", arc_paths)
+        self.assertIn("test/data/decompress/foo.gz", arc_paths)
+
+        sub_paths = [e["path"] for e in BATCH._fixture_entries(manifest, "test/lisp/eshell/esh-var-tests.el")]
+        self.assertIn("test/lisp/eshell/esh-var-tests.el", sub_paths)
+        self.assertIn("test/lisp/eshell/em-glob-tests.el", sub_paths)
+        self.assertIn("test/lisp/eshell/resources/eshell-Resource.txt", sub_paths)
+        self.assertNotIn("test/lisp/arc-mode-tests.el", sub_paths)
+
+        with mock.patch.object(BATCH.sys, "platform", "darwin"):
+            self.assertEqual(
+                BATCH._progress_timeout(BATCH.CASE_BUDGET_FILE, BATCH.CASE_BUDGET_ID, 60.0),
+                BATCH.CASE_BUDGET_SECONDS,
+            )
+            self.assertEqual(
+                BATCH._progress_timeout(BATCH.CASE_BUDGET_FILE, "other-test", 60.0),
+                60.0,
+            )
+            ctx = BATCH._case_deadline_context(BATCH.CASE_BUDGET_FILE, 60.0)
+            self.assertIsNotNone(ctx)
+            self.assertEqual(ctx["profile"], BATCH.CASE_BUDGET_PROFILE)
+            self.assertEqual(ctx["selected_case_seconds"], BATCH.CASE_BUDGET_SECONDS)
+            self.assertIsNone(BATCH._case_deadline_context("test/lisp/arc-mode-tests.el", 60.0))
+
+        case_root = self.root / "comp-case"
+        base_eln = str(case_root / "eln-a") + "/"
+        target = str(case_root / "native-cache/compiler-output") + "/"
+        enabled_ctx = {
+            "profile": BATCH.COMPILER_OUTPUT_PROFILE,
+            "scope": "test/src/comp-tests.el-only",
+            "enabled": True,
+            "before": [base_eln],
+            "after": [base_eln, target],
+            "target": target,
+            "actual_paths": [base_eln, target],
+        }
+        self.assertEqual(BATCH._verify_compiler_output_context(enabled_ctx, case_root), enabled_ctx)
+        disabled_ctx = {
+            "profile": BATCH.COMPILER_OUTPUT_PROFILE,
+            "scope": "test/src/comp-tests.el-only",
+            "enabled": False,
+            "before": [],
+            "after": [],
+            "target": None,
+            "actual_paths": [],
+        }
+        self.assertEqual(BATCH._verify_compiler_output_context(disabled_ctx, case_root), disabled_ctx)
+        with self.assertRaises(AssertionError):
+            bad_ctx = dict(enabled_ctx, actual_paths=[base_eln])
+            BATCH._verify_compiler_output_context(bad_ctx, case_root)
+
+    def test_archive_and_product_library_fixtures_accept_symlinked_product_lisp(self):
+        out = self.root / "archive-out"
+        (out / "test/lisp").mkdir(parents=True)
+        for name in ("src", "admin", "nextstep"):
+            (out / "source-context-data" / name).mkdir(parents=True)
+        (out / "source-context-data/README").write_bytes(b"readme\n")
+        real_lisp = self.root / "real-lisp"
+        (real_lisp / "emacs-lisp").mkdir(parents=True)
+        (real_lisp / "emacs-lisp/comp.el").write_bytes(b";;; comp.el\n")
+        (real_lisp / "emacs-lisp/comp.elc").write_bytes(b";;; comp.elc\n")
+        symlink_lisp = self.root / "symlink-lisp"
+        symlink_lisp.symlink_to(real_lisp)
+
+        shared = out / "source-contexts/terminal"
+        shared.mkdir(parents=True)
+        (shared / "test").symlink_to(out / "test")
+        (shared / "lisp").symlink_to(real_lisp)
+        for name in ("src", "admin", "nextstep", "README"):
+            (shared / name).symlink_to(out / "source-context-data" / name)
+        paths = {"test_context": shared, "lisp_root": symlink_lisp}
+
+        arc_case = self.root / "arc-case"
+        (arc_case / "out/test/lisp").mkdir(parents=True)
+        (arc_case / "out/test/lisp/arc-mode-tests.el").write_bytes(b";;; arc\n")
+        arc_layout = BATCH._prepare_source_context_fixture(
+            SUITE, out, paths, arc_case, "test/lisp/arc-mode-tests.el",
+            {
+                "root": str(arc_case / "out"),
+                "files": [
+                    {"path": "test/lisp/arc-mode-tests.el"},
+                    {"path": "test/data/decompress/foo.gz"},
+                ],
+            },
+        )
+        self.assertIsNotNone(arc_layout)
+        self.assertEqual(
+            BATCH._finish_source_context_fixture(SUITE, arc_layout)["shared_context_and_targets_unchanged"],
+            True,
+        )
+
+        comp_case = self.root / "comp-lib-case"
+        (comp_case / "out").mkdir(parents=True)
+        lib_layout = BATCH._prepare_product_library_fixture(
+            SUITE, paths, comp_case, "test/src/comp-tests.el",
+        )
+        self.assertIsNotNone(lib_layout)
+        self.assertEqual(
+            BATCH._finish_product_library_fixture(SUITE, lib_layout)["product_sources_unchanged"],
+            True,
+        )
 
 
 class OwnedTerminalContracts(unittest.TestCase):
