@@ -81,6 +81,24 @@ def _record_retirement(api, final_path, result):
 PRIVATE_SOURCE_CONTEXT_FILES = ('test/lisp/arc-mode-tests.el',
                                 'test/lisp/tar-mode-tests.el')
 PRIVATE_SOURCE_CONTEXT_PROFILE = 'owned-original-archive-source-context-v1'
+EXTRA_FIXTURE_PREFIXES = {
+    'test/lisp/arc-mode-tests.el': ('test/data/decompress/',),
+    'test/lisp/tar-mode-tests.el': ('test/data/decompress/',),
+    'test/src/decompress-tests.el': ('test/data/decompress/',),
+    'test/lisp/image-file-tests.el': ('test/data/image/',),
+    'test/lisp/image/exif-tests.el': ('test/data/image/',),
+    'test/lisp/image/image-dired-tests.el': ('test/data/image/',),
+    'test/lisp/net/shr-tests.el': ('test/data/image/',),
+    'test/src/regex-emacs-tests.el': ('test/src/regex-resources/',),
+    'test/src/fileio-tests.el': ('test/src/lread-resources/',),
+    'test/lisp/international/mule-tests.el': ('test/lisp/international/mule-util-resources/',),
+    'test/lisp/progmodes/project-tests.el': (
+        'test/lisp/progmodes/autoconf-resources/',
+        'test/lisp/progmodes/elisp-mode-resources/',
+    ),
+    'test/lisp/progmodes/ruby-ts-mode-tests.el': ('test/lisp/progmodes/ruby-mode-resources/',),
+    'test/lisp/progmodes/etags-tests.el': ('test/manual/etags/',),
+}
 MODULE_TEST_FILE = 'test/src/emacs-module-tests.el'
 MODULE_TEST_PROFILE = 'owned-original-module-fixture-v1'
 CASE_BUDGET_FILE = 'test/lisp/filenotify-tests.el'
@@ -183,10 +201,10 @@ def _fixture_entries(manifest, logical):
                 stem = stem[:-len(suffix)]
                 break
         prefixes = (parent / (stem + '-resources'), parent / 'resources')
+    extra_prefixes = EXTRA_FIXTURE_PREFIXES.get(logical, ())
     entries = [e for e in manifest['entries'] if Path(e['path']).parent == parent
         or any(e['path'].startswith(prefix.as_posix() + '/') for prefix in prefixes)
-        or (logical in PRIVATE_SOURCE_CONTEXT_FILES
-            and e['path'].startswith('test/data/decompress/'))]
+        or any(e['path'].startswith(extra) for extra in extra_prefixes)]
     if logical not in {e['path'] for e in entries}:
         raise ValueError('unbound original fixture entrypoint')
     return sorted(entries, key=lambda e: e['path'])

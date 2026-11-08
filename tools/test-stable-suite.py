@@ -493,6 +493,25 @@ class StableBatchEnvironmentContracts(unittest.TestCase):
                 {"path": "test/lisp/eshell/esh-var-tests.el"},
                 {"path": "test/lisp/eshell/em-glob-tests.el"},
                 {"path": "test/lisp/eshell/resources/eshell-Resource.txt"},
+                {"path": "test/src/decompress-tests.el"},
+                {"path": "test/src/regex-emacs-tests.el"},
+                {"path": "test/src/regex-resources/Perl_Tests.txt"},
+                {"path": "test/src/fileio-tests.el"},
+                {"path": "test/src/lread-resources/somelib.el"},
+                {"path": "test/lisp/image/exif-tests.el"},
+                {"path": "test/lisp/image/image-dired-tests.el"},
+                {"path": "test/lisp/image-file-tests.el"},
+                {"path": "test/lisp/net/shr-tests.el"},
+                {"path": "test/data/image/black.jpg"},
+                {"path": "test/lisp/international/mule-tests.el"},
+                {"path": "test/lisp/international/mule-util-resources/test.utf-16le"},
+                {"path": "test/lisp/progmodes/project-tests.el"},
+                {"path": "test/lisp/progmodes/autoconf-resources/configure.ac"},
+                {"path": "test/lisp/progmodes/elisp-mode-resources/simple-shorthand-test.el"},
+                {"path": "test/lisp/progmodes/ruby-ts-mode-tests.el"},
+                {"path": "test/lisp/progmodes/ruby-mode-resources/ruby.rb"},
+                {"path": "test/lisp/progmodes/etags-tests.el"},
+                {"path": "test/manual/etags/ETAGS.good_1"},
             ]
         }
         src_paths = [e["path"] for e in BATCH._fixture_entries(manifest, "test/src/comp-tests.el")]
@@ -500,10 +519,45 @@ class StableBatchEnvironmentContracts(unittest.TestCase):
         self.assertIn("test/src/comp-tests.el", src_paths)
         self.assertIn("test/src/comp-resources/helper.el", src_paths)
         self.assertNotIn("test/lisp/arc-mode-tests.el", src_paths)
+        self.assertNotIn("test/src/regex-resources/Perl_Tests.txt", src_paths)
 
         arc_paths = [e["path"] for e in BATCH._fixture_entries(manifest, "test/lisp/arc-mode-tests.el")]
         self.assertIn("test/lisp/arc-mode-tests.el", arc_paths)
         self.assertIn("test/data/decompress/foo.gz", arc_paths)
+        self.assertNotIn("test/data/image/black.jpg", arc_paths)
+
+        decompress_paths = [e["path"] for e in BATCH._fixture_entries(manifest, "test/src/decompress-tests.el")]
+        self.assertIn("test/src/decompress-tests.el", decompress_paths)
+        self.assertIn("test/data/decompress/foo.gz", decompress_paths)
+
+        for image_entry in (
+            "test/lisp/image/exif-tests.el",
+            "test/lisp/image/image-dired-tests.el",
+            "test/lisp/image-file-tests.el",
+            "test/lisp/net/shr-tests.el",
+        ):
+            img_paths = [e["path"] for e in BATCH._fixture_entries(manifest, image_entry)]
+            self.assertIn(image_entry, img_paths)
+            self.assertIn("test/data/image/black.jpg", img_paths)
+
+        regex_paths = [e["path"] for e in BATCH._fixture_entries(manifest, "test/src/regex-emacs-tests.el")]
+        self.assertIn("test/src/regex-resources/Perl_Tests.txt", regex_paths)
+
+        fileio_paths = [e["path"] for e in BATCH._fixture_entries(manifest, "test/src/fileio-tests.el")]
+        self.assertIn("test/src/lread-resources/somelib.el", fileio_paths)
+
+        mule_paths = [e["path"] for e in BATCH._fixture_entries(manifest, "test/lisp/international/mule-tests.el")]
+        self.assertIn("test/lisp/international/mule-util-resources/test.utf-16le", mule_paths)
+
+        project_paths = [e["path"] for e in BATCH._fixture_entries(manifest, "test/lisp/progmodes/project-tests.el")]
+        self.assertIn("test/lisp/progmodes/autoconf-resources/configure.ac", project_paths)
+        self.assertIn("test/lisp/progmodes/elisp-mode-resources/simple-shorthand-test.el", project_paths)
+
+        ruby_paths = [e["path"] for e in BATCH._fixture_entries(manifest, "test/lisp/progmodes/ruby-ts-mode-tests.el")]
+        self.assertIn("test/lisp/progmodes/ruby-mode-resources/ruby.rb", ruby_paths)
+
+        etags_paths = [e["path"] for e in BATCH._fixture_entries(manifest, "test/lisp/progmodes/etags-tests.el")]
+        self.assertIn("test/manual/etags/ETAGS.good_1", etags_paths)
 
         sub_paths = [e["path"] for e in BATCH._fixture_entries(manifest, "test/lisp/eshell/esh-var-tests.el")]
         self.assertIn("test/lisp/eshell/esh-var-tests.el", sub_paths)
