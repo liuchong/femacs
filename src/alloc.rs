@@ -1648,6 +1648,7 @@ unsafe extern "C" fn mark_interval_tree_1 (i: INTERVAL, dummy: *mut c_void)
 
 /* Mark the interval tree rooted in I.  */
 
+#[inline(always)]
 unsafe fn mark_interval_tree (i: INTERVAL)
 {
   if !i.is_null () && !interval_marked_p (i)
@@ -2236,7 +2237,8 @@ unsafe fn sweep_strings ()
 		  XUNMARK_STRING! (s);
 
 		  /* Do not use string_(set|get)_intervals here.  */
-		  (*s).u.s.intervals = balance_intervals ((*s).u.s.intervals);
+		  if !(*s).u.s.intervals.is_null ()
+		    { (*s).u.s.intervals = balance_intervals ((*s).u.s.intervals); }
 
 		  gcstat.total_strings += 1;
 		  gcstat.total_string_bytes += STRING_BYTES (s) as uintptr_t;
@@ -4562,6 +4564,7 @@ DEFUN! ("make-finalizer", Fmake_finalizer, Smake_finalizer, 1, 1, 0,
    regions (e.g., a dump image) and might store their mark bits
    elsewhere.  */
 
+#[inline(always)]
 unsafe fn vector_marked_p (v: *const Lisp_Vector) -> bool
 {
   if pdumper_object_p (v as *mut c_void)
@@ -4578,6 +4581,7 @@ unsafe fn vector_marked_p (v: *const Lisp_Vector) -> bool
   return XVECTOR_MARKED_P! (v);
 }
 
+#[inline(always)]
 unsafe fn set_vector_marked (v: *mut Lisp_Vector)
 {
   if pdumper_object_p (v as *mut c_void)
@@ -4591,16 +4595,19 @@ unsafe fn set_vector_marked (v: *mut Lisp_Vector)
   { gc_collector::note_marked_noncons(make_lisp_ptr(v.cast(), Lisp_Type::Lisp_Vectorlike)); }
 }
 
+#[inline(always)]
 unsafe fn vectorlike_marked_p (header: *const vectorlike_header) -> bool
 {
   return vector_marked_p (header as *const Lisp_Vector);
 }
 
+#[inline(always)]
 unsafe fn set_vectorlike_marked (header: *mut vectorlike_header)
 {
   set_vector_marked (header as *mut Lisp_Vector);
 }
 
+#[inline(always)]
 unsafe fn cons_marked_p (c: *const Lisp_Cons) -> bool
 {
   return if pdumper_object_p (c as *mut c_void)
@@ -4608,6 +4615,7 @@ unsafe fn cons_marked_p (c: *const Lisp_Cons) -> bool
     else { XCONS_MARKED_P! (c) };
 }
 
+#[inline(always)]
 unsafe fn set_cons_marked (c: *mut Lisp_Cons)
 {
   if pdumper_object_p (c as *mut c_void)
@@ -4620,6 +4628,7 @@ unsafe fn set_cons_marked (c: *mut Lisp_Cons)
     }
 }
 
+#[inline(always)]
 unsafe fn string_marked_p (s: *const Lisp_String) -> bool
 {
   return if pdumper_object_p (s as *mut c_void)
@@ -4627,6 +4636,7 @@ unsafe fn string_marked_p (s: *const Lisp_String) -> bool
     else { XSTRING_MARKED_P! (s) };
 }
 
+#[inline(always)]
 unsafe fn set_string_marked (s: *mut Lisp_String)
 {
   if pdumper_object_p (s as *mut c_void)
@@ -4637,6 +4647,7 @@ unsafe fn set_string_marked (s: *mut Lisp_String)
   { gc_collector::note_marked_noncons(make_lisp_ptr(s.cast(), Lisp_Type::Lisp_String)); }
 }
 
+#[inline(always)]
 unsafe fn symbol_marked_p (s: *const Lisp_Symbol) -> bool
 {
   return if pdumper_object_p (s as *mut c_void)
@@ -4644,6 +4655,7 @@ unsafe fn symbol_marked_p (s: *const Lisp_Symbol) -> bool
     else { (*s).u.s.bits & SYMBOL_GC_MARK_BIT != 0 };
 }
 
+#[inline(always)]
 unsafe fn set_symbol_marked (s: *mut Lisp_Symbol)
 {
   if pdumper_object_p (s as *mut c_void)
@@ -4654,6 +4666,7 @@ unsafe fn set_symbol_marked (s: *mut Lisp_Symbol)
   { gc_collector::note_marked_noncons(make_lisp_symbol(s)); }
 }
 
+#[inline(always)]
 unsafe fn interval_marked_p (i: INTERVAL) -> bool
 {
   return if pdumper_object_p (i)
@@ -4661,6 +4674,7 @@ unsafe fn interval_marked_p (i: INTERVAL) -> bool
     else { interval_bits! (gcmarkbit, i) };
 }
 
+#[inline(always)]
 unsafe fn set_interval_marked (i: INTERVAL)
 {
   if pdumper_object_p (i)
@@ -4815,6 +4829,7 @@ unsafe fn mem_init ()
 /* Value is a pointer to the mem_node containing START.  Value is
    MEM_NIL if there is no node in the tree containing START.  */
 
+#[inline(always)]
 unsafe fn mem_find (start: *mut c_void) -> *mut mem_node
 {
   let mut p: *mut mem_node;
@@ -5636,27 +5651,33 @@ pub unsafe extern "C" fn mark_memory (start: *const c_void, end: *const c_void)
   while (pp as *const c_void) < end
     {
       let p: *mut c_void = *(pp as *const *const c_void) as *mut c_void;
-      let mut ip: intptr_t;
+      if !p.is_null ()
+	{
+	  let mut ip: intptr_t;
 
-      /* C 5066-5071: `#if !USE_LSB_TAG && !defined WIDE_EMACS_INT` is dead (`USE_LSB_TAG`
-	 is 1); the live `#else` arm is transcribed, and the dead one is carried below.  */
-      #[cfg (feature = "no_use_lsb_tag")]
-      {
-	ip = p as intptr_t;
-	mark_maybe_pointer ((ip & VALMASK) as *mut c_void, false);
-      }
-      #[cfg (not (feature = "no_use_lsb_tag"))]
-      { mark_maybe_pointer (p, false); }
+	  /* C 5066-5071: `#if !USE_LSB_TAG && !defined WIDE_EMACS_INT` is dead (`USE_LSB_TAG`
+	     is 1); the live `#else` arm is transcribed, and the dead one is carried below.  */
+	  #[cfg (feature = "no_use_lsb_tag")]
+	  {
+	    ip = p as intptr_t;
+	    mark_maybe_pointer ((ip & VALMASK) as *mut c_void, false);
+	  }
+	  #[cfg (not (feature = "no_use_lsb_tag"))]
+	  { mark_maybe_pointer (p, false); }
 
-      /* Unmask any struct Lisp_Symbol pointer that make_lisp_symbol
-	 previously disguised by adding the address of 'lispsym'.
-	 On a host with 32-bit pointers and 64-bit Lisp_Objects,
-	 a Lisp_Object might be split into registers saved into
-	 non-adjacent words and P might be the low-order word's value.  */
-      let (ip_, add_overflow) = (p as intptr_t).overflowing_add (std::ptr::addr_of_mut! (lispsym) as intptr_t);
-      ip = ip_;
-      let _ = add_overflow;
-      mark_maybe_pointer (ip as *mut c_void, true);
+	  /* Unmask any struct Lisp_Symbol pointer that make_lisp_symbol
+	     previously disguised by adding the address of 'lispsym'.
+	     On a host with 32-bit pointers and 64-bit Lisp_Objects,
+	     a Lisp_Object might be split into registers saved into
+	     non-adjacent words and P might be the low-order word's value.  */
+	  if (p as usize & (!VALMASK as usize)) == (Lisp_Type::Lisp_Symbol as usize)
+	    {
+	      let (ip_, add_overflow) = (p as intptr_t).overflowing_add (std::ptr::addr_of_mut! (lispsym) as intptr_t);
+	      ip = ip_;
+	      let _ = add_overflow;
+	      mark_maybe_pointer (ip as *mut c_void, true);
+	    }
+	}
       pp = pp.offset (GC_POINTER_ALIGNMENT as isize);
     }
 }
@@ -6316,6 +6337,23 @@ pub unsafe extern "C" fn visit_static_gc_roots (visitor: gc_root_visitor)
 		     &raw mut buffer_local_symbols,
 		     GC_ROOT_BUFFER_LOCAL_NAME);
 
+  if visitor.visit == Some (mark_object_root_visitor)
+    {
+      let mut i: c_int = 0;
+      while i < countof! (lispsym) as c_int
+	{
+	  mark_object (builtin_lisp_symbol (i as usize));
+	  i += 1;
+	}
+      i = 0;
+      while i < staticidx
+	{
+	  mark_object (*staticvec[i as usize]);
+	  i += 1;
+	}
+      return;
+    }
+
   let mut i: c_int = 0;
   while i < countof! (lispsym) as c_int
     {
@@ -6528,7 +6566,7 @@ unsafe fn garbage_collect_impl(request: GcRequest)
   /* P-115's shape: which root set is growing.  The GC runs but retains one discarded object per
      iteration in `spikes/gc-retention-probe.el`, and the specpdl is the prime suspect (status
      4.430).  Off unless the variable is set.  */
-  if ! unsafe { getenv (c"FEMACS_GC_TRACE".as_ptr ()).is_null () }
+  if gc_mark_trace_enabled
     {
       fprintf (stderr, c"gc: n=%d specpdl_bytes=%ld mark_sp=%ld mark_size=%ld\n".as_ptr (),
 	       gcs_done as c_int, unwrap_specpdl_ref (count) as c_long,
@@ -7088,6 +7126,7 @@ pub const GC_CHECK_MARKED_OBJECTS: c_int = if cfg! (enable_checking) { 1 } else 
 #[used]
 pub static mut mark_object_loop_halt: ptrdiff_t = 0;
 
+#[inline(always)]
 unsafe fn mark_vectorlike (header: *mut vectorlike_header)
 {
   let ptr = header as *mut Lisp_Vector;
@@ -7129,6 +7168,7 @@ unsafe fn mark_char_table (ptr: *mut Lisp_Vector, pvectype: pvec_type)
       let val: Lisp_Object = FAM_ELEM! ((*ptr).contents, i);
 
       if FIXNUMP (val)
+          || (NILP (val) && (lispsym[0].u.s.bits & SYMBOL_GC_MARK_BIT) != 0)
           || (BARE_SYMBOL_P (val) && symbol_marked_p (XBARE_SYMBOL (val)))
 	{ i += 1; continue; }
       if SUB_CHAR_TABLE_P (val)
@@ -7137,7 +7177,7 @@ unsafe fn mark_char_table (ptr: *mut Lisp_Vector, pvectype: pvec_type)
 	    { mark_char_table (XVECTOR (val), pvec_type::PVEC_SUB_CHAR_TABLE); }
 	}
       else
-	{ mark_object (val); }
+	{ mark_stack_push_value (val); }
       i += 1;
     }
 }
@@ -7312,12 +7352,14 @@ const _: () = core::assert! (std::mem::size_of::<mark_stack> () == 24);
 
 static mut mark_stk: mark_stack = mark_stack { stack: std::ptr::null_mut (), size: 0, sp: 0 };
 
+#[inline(always)]
 unsafe fn mark_stack_empty_p () -> bool
 {
   return mark_stk.sp <= 0;
 }
 
 /* Pop and return a value from the mark stack (which must be nonempty).  */
+#[inline(always)]
 unsafe fn mark_stack_pop () -> Lisp_Object
 {
   eassume! (!mark_stack_empty_p ());
@@ -7329,12 +7371,29 @@ unsafe fn mark_stack_pop () -> Lisp_Object
     }
   /* Array of values: pop them left to right, which seems to be slightly
      faster than right to left.  */
-  (*e).n -= 1;
-  if (*e).n == 0
-    { mark_stk.sp -= 1; }	/* last value consumed */
-  let v = (*e).u.values;
-  (*e).u.values = v.offset (1);
-  return *(*e).u.values.offset (-1);
+  let mut n: ptrdiff_t = (*e).n;
+  let mut p: *mut Lisp_Object = (*e).u.values;
+  let nil_marked: bool = (lispsym[0].u.s.bits & SYMBOL_GC_MARK_BIT) != 0;
+  loop
+    {
+      let v: Lisp_Object = *p;
+      p = p.offset (1);
+      n -= 1;
+      if !(FIXNUMP (v) || BASE_EQ (v, HASH_UNUSED_ENTRY_KEY ()) || (nil_marked && NILP (v)))
+	{
+	  (*e).n = n;
+	  if n == 0
+	    { mark_stk.sp -= 1; }
+	  else
+	    { (*e).u.values = p; }
+	  return v;
+	}
+      if n == 0
+	{
+	  mark_stk.sp -= 1;
+	  return v;
+	}
+    }
 }
 
 /* `NO_INLINE` has no Rust counterpart (PORTING.md P-13).  */
@@ -7349,8 +7408,13 @@ unsafe fn grow_mark_stack ()
 }
 
 /* Push VALUE onto the mark stack.  */
+#[inline(always)]
 unsafe fn mark_stack_push_value (value: Lisp_Object)
 {
+  if FIXNUMP (value)
+      || BASE_EQ (value, HASH_UNUSED_ENTRY_KEY ())
+      || (NILP (value) && (lispsym[0].u.s.bits & SYMBOL_GC_MARK_BIT) != 0)
+    { return; }
   if mark_stk.sp >= mark_stk.size
     { grow_mark_stack (); }
   *mark_stk.stack.offset (mark_stk.sp as isize) =
@@ -7359,6 +7423,7 @@ unsafe fn mark_stack_push_value (value: Lisp_Object)
 }
 
 /* Push the N values at VALUES onto the mark stack.  */
+#[inline(always)]
 unsafe fn mark_stack_push_values (values: *mut Lisp_Object, n: ptrdiff_t)
 {
   eassume! (n >= 0);
@@ -7487,11 +7552,31 @@ unsafe fn process_mark_stack (base_sp: ptrdiff_t)
 	Lisp_Type::Lisp_String =>
 	  {
 	    let ptr: *mut Lisp_String = XSTRING (obj);
-	    if string_marked_p (ptr)
-	      { break 'mark_obj; }
-	    check_allocated_and_live (Some (live_string_p), mem_type::MEM_TYPE_STRING, po);
-	    set_string_marked (ptr);
-	    mark_interval_tree ((*ptr).u.s.intervals);
+	    if GC_CHECK_MARKED_OBJECTS == 0
+	      {
+		if pdumper_object_p (ptr as *mut c_void)
+		  {
+		    if pdumper_test_and_set_marked (ptr as *const c_void)
+		      { break 'mark_obj; }
+		  }
+		else
+		  {
+		    if XSTRING_MARKED_P! (ptr)
+		      { break 'mark_obj; }
+		    XMARK_STRING! (ptr);
+		  }
+		#[cfg(feature = "femacs_gc_generational")]
+		{ gc_collector::note_marked_noncons(make_lisp_ptr(ptr.cast(), Lisp_Type::Lisp_String)); }
+	      }
+	    else
+	      {
+		if string_marked_p (ptr)
+		  { break 'mark_obj; }
+		check_allocated_and_live (Some (live_string_p), mem_type::MEM_TYPE_STRING, po);
+		set_string_marked (ptr);
+	      }
+	    if !(*ptr).u.s.intervals.is_null ()
+	      { mark_interval_tree ((*ptr).u.s.intervals); }
 	    /* C 6547-6552 (`#ifdef GC_CHECK_STRING_BYTES`) is dead.  */
 	    #[cfg (feature = "gc_check_string_bytes")]
 	    {
@@ -7505,6 +7590,25 @@ unsafe fn process_mark_stack (base_sp: ptrdiff_t)
 	Lisp_Type::Lisp_Vectorlike =>
 	  {
 	    let ptr: *mut Lisp_Vector = XVECTOR (obj);
+	    let vec_header_size: ptrdiff_t = (*ptr).header.size;
+	    if GC_CHECK_MARKED_OBJECTS == 0 && (vec_header_size & PSEUDOVECTOR_FLAG) == 0
+	      {
+		if pdumper_object_p (ptr as *mut c_void)
+		  {
+		    if pdumper_test_and_set_marked (ptr as *const c_void)
+		      { break 'mark_obj; }
+		  }
+		else
+		  {
+		    if (vec_header_size & ARRAY_MARK_FLAG) != 0
+		      { break 'mark_obj; }
+		    (*ptr).header.size = vec_header_size | ARRAY_MARK_FLAG;
+		  }
+		#[cfg(feature = "femacs_gc_generational")]
+		{ gc_collector::note_marked_noncons(make_lisp_ptr(ptr.cast(), Lisp_Type::Lisp_Vectorlike)); }
+		mark_stack_push_values ((*ptr).contents.as_mut_ptr (), vec_header_size);
+		break 'mark_obj;
+	      }
 
 	    if vector_marked_p (ptr)
 	      { break 'mark_obj; }
@@ -7598,10 +7702,29 @@ unsafe fn process_mark_stack (base_sp: ptrdiff_t)
 	    let mut ptr: *mut Lisp_Symbol = XBARE_SYMBOL (obj);
 	  'nextsym: loop
 	    {
-	    if symbol_marked_p (ptr)
-	      { break 'mark_obj; }
-	    check_allocated_and_live_symbol (po, ptr);
-	    set_symbol_marked (ptr);
+	    if GC_CHECK_MARKED_OBJECTS == 0
+	      {
+		if pdumper_object_p (ptr as *mut c_void)
+		  {
+		    if pdumper_test_and_set_marked (ptr as *const c_void)
+		      { break 'mark_obj; }
+		  }
+		else
+		  {
+		    if ((*ptr).u.s.bits & SYMBOL_GC_MARK_BIT) != 0
+		      { break 'mark_obj; }
+		    (*ptr).u.s.bits |= SYMBOL_GC_MARK_BIT;
+		  }
+		#[cfg(feature = "femacs_gc_generational")]
+		{ gc_collector::note_marked_noncons(make_lisp_symbol(ptr)); }
+	      }
+	    else
+	      {
+		if symbol_marked_p (ptr)
+		  { break 'mark_obj; }
+		check_allocated_and_live_symbol (po, ptr);
+		set_symbol_marked (ptr);
+	      }
 	    /* Attempt to catch bogus objects.  */
 	    eassert! (valid_lisp_object_p ((*ptr).u.s.function) != 0);
 	    mark_stack_push_value ((*ptr).u.s.function);
@@ -7638,8 +7761,10 @@ unsafe fn process_mark_stack (base_sp: ptrdiff_t)
 		{ }
 	      _ => { emacs_abort (); }
 	      }
-	    set_string_marked (XSTRING ((*ptr).u.s.name));
-	    mark_interval_tree (string_intervals ((*ptr).u.s.name));
+	    let name_str: *mut Lisp_String = XSTRING ((*ptr).u.s.name);
+	    set_string_marked (name_str);
+	    if !(*name_str).u.s.intervals.is_null ()
+	      { mark_interval_tree ((*name_str).u.s.intervals); }
 	    /* Inner loop to mark next symbol in this bucket, if any.  */
 	    ptr = (*ptr).u.s.next;
 	    if GC_CHECK_MARKED_OBJECTS != 0
@@ -7652,19 +7777,53 @@ unsafe fn process_mark_stack (base_sp: ptrdiff_t)
 	Lisp_Type::Lisp_Cons =>
 	  {
 	    let ptr: *mut Lisp_Cons = lisp_h_XCONS_untracked (obj);
-	    if cons_marked_p (ptr)
-	      { break 'mark_obj; }
-	    check_allocated_and_live (Some (live_cons_p), mem_type::MEM_TYPE_CONS, po);
-	    set_cons_marked (ptr);
+	    if pdumper_object_p (ptr as *mut c_void)
+	      {
+		if GC_CHECK_MARKED_OBJECTS == 0
+		  {
+		    if pdumper_test_and_set_marked (ptr as *const c_void)
+		      { break 'mark_obj; }
+		  }
+		else
+		  {
+		    if pdumper_marked_p (ptr as *const c_void)
+		      { break 'mark_obj; }
+		    check_allocated_and_live (Some (live_cons_p), mem_type::MEM_TYPE_CONS, po);
+		    pdumper_set_marked (ptr as *mut c_void);
+		  }
+	      }
+	    else
+	      {
+		let b = CONS_BLOCK! (ptr);
+		let idx = CONS_INDEX! (ptr);
+		let word = idx / BITS_PER_BITS_WORD as usize;
+		let mask: bits_word = (1 as bits_word) << (idx % BITS_PER_BITS_WORD as usize);
+		if ((*b).gcmarkbits[word] & mask) != 0
+		  { break 'mark_obj; }
+		check_allocated_and_live (Some (live_cons_p), mem_type::MEM_TYPE_CONS, po);
+		(*b).gcmarkbits[word] |= mask;
+		#[cfg(feature = "femacs_gc_generational")]
+		{ gc_collector::note_cons_marked(ptr); }
+	      }
 	    /* Avoid growing the stack if the cdr is nil.
 	       In any case, make sure the car is expanded first.  */
-	    if !NILP ((*ptr).u.s.u.cdr)
+	    let car: Lisp_Object = (*ptr).u.s.car;
+	    let cdr: Lisp_Object = (*ptr).u.s.u.cdr;
+	    let nil_marked: bool = (lispsym[0].u.s.bits & SYMBOL_GC_MARK_BIT) != 0;
+	    if FIXNUMP (car) || (nil_marked && NILP (car))
 	      {
-		mark_stack_push_value ((*ptr).u.s.u.cdr);
+		if FIXNUMP (cdr) || (nil_marked && NILP (cdr))
+		  { break 'mark_obj; }
+		obj = cdr;
+		continue 'mark_obj;
+	      }
+	    if !(FIXNUMP (cdr) || (nil_marked && NILP (cdr)))
+	      {
+		mark_stack_push_value (cdr);
 		/* C 6732-6737 (`#if GC_CDR_COUNT`) is dead.  */
 	      }
 	    /* Speedup hack for the common case (successive list elements).  */
-	    obj = (*ptr).u.s.car;
+	    obj = car;
 	    continue 'mark_obj;
 	  }
 
@@ -7815,11 +7974,34 @@ unsafe fn sweep_conses ()
       let mut this_free: c_int = 0;
       let ilim: c_int = (lim + BITS_PER_BITS_WORD as c_int - 1) / BITS_PER_BITS_WORD as c_int;
 
+      #[cfg(not(any(feature = "femacs_gc_generational", feature = "femacs_gc_observer", feature = "gc_asan_poison_objects")))]
+      if lim == CONS_BLOCK_SIZE as c_int && num_free > CONS_BLOCK_SIZE as object_ct
+        {
+          let mut all_dead: bool = true;
+          let mut w: c_int = 0;
+          while w < ilim
+            {
+              if (*cblk).gcmarkbits[w as usize] != 0
+                {
+                  all_dead = false;
+                  break;
+                }
+              w += 1;
+            }
+          if all_dead
+            {
+              *cprev = (*cblk).next;
+              lisp_align_free (cblk as *mut c_void);
+              continue;
+            }
+        }
+
       /* Scan the mark bits an int at a time.  */
       i = 0;
       while i < ilim
         {
-          if (*cblk).gcmarkbits[i as usize] == BITS_WORD_MAX
+          let markword: bits_word = (*cblk).gcmarkbits[i as usize];
+          if markword == BITS_WORD_MAX
             {
               /* Fast path - all cons cells for this int are marked.  */
               #[cfg(feature = "femacs_gc_generational")]
@@ -7851,7 +8033,7 @@ unsafe fn sweep_conses ()
               while pos < stop
                 {
 		  let acons: *mut Lisp_Cons = &raw mut (*cblk).conses[pos as usize];
-		  if !XCONS_MARKED_P! (acons)
+		  if (markword & ((1 as bits_word) << (pos - start) as usize)) == 0
                     {
                       #[cfg(feature = "femacs_gc_generational")]
                       { gc_collector::swept_dead(cblk, pos as usize); }
@@ -7871,10 +8053,10 @@ unsafe fn sweep_conses ()
                       #[cfg(feature = "femacs_gc_observer")]
                       { gc_observation::cons_survivor(acons); }
                       num_used += 1;
-		      XUNMARK_CONS! (acons);
                     }
                   pos += 1;
                 }
+              (*cblk).gcmarkbits[i as usize] = 0;
             }
           i += 1;
         }
@@ -8126,7 +8308,8 @@ unsafe fn sweep_buffers ()
     {
       let buffer = XBUFFER (buf);
       /* Do not use buffer_(set|get)_intervals here.  */
-      (*(*buffer).text).intervals = balance_intervals ((*(*buffer).text).intervals);
+      if !(*(*buffer).text).intervals.is_null ()
+	{ (*(*buffer).text).intervals = balance_intervals ((*(*buffer).text).intervals); }
       unchain_dead_markers (buffer);
       gcstat.total_buffers += 1;
       tail = XCDR (tail);

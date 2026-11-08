@@ -3646,6 +3646,80 @@ DEFUN! ("format-message", Fformat_message, Sformat_message, 1, MANY, 0,
 unsafe fn styled_format (nargs: ptrdiff_t, args: *mut Lisp_Object, message: bool)
     -> Lisp_Object
 {
+  if !message && nargs == 2
+    {
+      let fmt: Lisp_Object = *args.offset (0);
+      let arg1: Lisp_Object = *args.offset (1);
+      if STRINGP (fmt) && FIXNUMP (arg1) && string_intervals (fmt).is_null ()
+        {
+          let flen: ptrdiff_t = SBYTES (fmt);
+          if flen >= 2 && flen <= 200 && SCHARS (fmt) == flen
+            {
+              let fptr: *const u8 = SDATA (fmt);
+              let mut pct: ptrdiff_t = -1;
+              let mut valid_single_d: bool = true;
+              let mut idx: ptrdiff_t = 0;
+              while idx < flen
+                {
+                  if *fptr.offset (idx) == b'%'
+                    {
+                      if pct < 0 && idx + 1 < flen
+                         && (*fptr.offset (idx + 1) == b'd' || *fptr.offset (idx + 1) == b'i')
+                        {
+                          pct = idx;
+                          idx += 2;
+                          continue;
+                        }
+                      valid_single_d = false;
+                      break;
+                    }
+                  idx += 1;
+                }
+              if valid_single_d && pct >= 0
+                {
+                  let mut out_buf: core::mem::MaybeUninit<[u8; 256]> = core::mem::MaybeUninit::uninit ();
+                  let out_ptr: *mut u8 = out_buf.as_mut_ptr () as *mut u8;
+                  if pct > 0
+                    {
+                      std::ptr::copy_nonoverlapping (fptr, out_ptr, pct as usize);
+                    }
+                  let mut out_len: ptrdiff_t = pct;
+                  let v_int: EMACS_INT = XFIXNUM (arg1);
+                  let mut u_val: u64 = if v_int < 0
+                    {
+                      *out_ptr.offset (out_len) = b'-';
+                      out_len += 1;
+                      v_int.wrapping_neg () as u64
+                    }
+                  else
+                    { v_int as u64 };
+                  let mut digits: [u8; 24] = [0; 24];
+                  let mut d_idx: usize = 24;
+                  loop
+                    {
+                      d_idx -= 1;
+                      digits[d_idx] = b'0' + (u_val % 10) as u8;
+                      u_val /= 10;
+                      if u_val == 0 { break; }
+                    }
+                  let d_len: usize = 24 - d_idx;
+                  std::ptr::copy_nonoverlapping (digits.as_ptr ().add (d_idx),
+                                                 out_ptr.offset (out_len), d_len);
+                  out_len += d_len as ptrdiff_t;
+                  let tail_len: ptrdiff_t = flen - (pct + 2);
+                  if tail_len > 0
+                    {
+                      std::ptr::copy_nonoverlapping (fptr.offset (pct + 2),
+                                                     out_ptr.offset (out_len), tail_len as usize);
+                      out_len += tail_len;
+                    }
+                  return make_specified_string (out_ptr as *const c_char, out_len, out_len,
+                                                STRING_MULTIBYTE (fmt));
+                }
+            }
+        }
+    }
+
   /* C 3441-3457's local `enum { USEFUL_PRECISION_MAX, SPRINTF_BUFSIZE }`.  */
   const USEFUL_PRECISION_MAX: c_int
     = (DBL_MANT_DIG - DBL_MIN_EXP)
@@ -3658,9 +3732,10 @@ unsafe fn styled_format (nargs: ptrdiff_t, args: *mut Lisp_Object, message: bool
   static_assert! (USEFUL_PRECISION_MAX > 0);
 
   let mut n: ptrdiff_t;		/* The number of the next arg to substitute.  */
-  let mut initial_buffer: [c_char; (1000 + SPRINTF_BUFSIZE) as usize] = std::mem::zeroed ();
-  let mut buf: *mut c_char = initial_buffer.as_mut_ptr ();
-  let mut bufsize: ptrdiff_t = std::mem::size_of_val (&initial_buffer) as ptrdiff_t;
+  let mut initial_buffer: core::mem::MaybeUninit<[c_char; (1000 + SPRINTF_BUFSIZE) as usize]>
+    = core::mem::MaybeUninit::uninit ();
+  let mut buf: *mut c_char = initial_buffer.as_mut_ptr () as *mut c_char;
+  let mut bufsize: ptrdiff_t = ((1000 + SPRINTF_BUFSIZE) as usize) as ptrdiff_t;
   let mut max_bufsize: ptrdiff_t = STRING_BYTES_BOUND + 1;
   let mut p: *mut c_char;
   let mut buf_save_value_index: specpdl_ref = std::mem::zeroed ();
@@ -4556,7 +4631,7 @@ unsafe fn styled_format (nargs: ptrdiff_t, args: *mut Lisp_Object, message: bool
               bufsize = if buflen_needed <= max_bufsize / 2
                 { buflen_needed * 2 } else { max_bufsize };
 
-              if std::ptr::eq (buf, initial_buffer.as_mut_ptr ())
+              if std::ptr::eq (buf, initial_buffer.as_mut_ptr () as *mut c_char)
                 {
                   buf = xmalloc (bufsize as usize) as *mut c_char;
                   buf_save_value_index = SPECPDL_INDEX ();

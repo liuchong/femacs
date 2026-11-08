@@ -542,6 +542,27 @@ unsafe extern "C" fn source_string_unget (src: *mut source, c: c_int)
 /* C 437-444: `readbyte_from_file`'s and `read_emacs_mule_char`'s forward declarations are
    dropped (PORTING.md 0.1-12).  */
 
+#[cfg (target_os = "macos")]
+unsafe extern "C" {
+  fn __srget (stream: *mut FILE) -> c_int;
+}
+
+#[cfg (target_os = "macos")]
+#[inline(always)]
+unsafe fn darwin_sgetc (stream: *mut FILE) -> c_int
+{
+  (*stream)._r -= 1;
+  if (*stream)._r < 0
+    { __srget (stream) }
+  else
+    {
+      let b: c_uchar = *(*stream)._p;
+      (*stream)._p = (*stream)._p.add (1);
+      b as c_int
+    }
+}
+
+#[inline(always)]
 unsafe extern "C" fn source_file_get (src: *mut source) -> c_int
 {
   if unread_char >= 0
@@ -579,6 +600,7 @@ unsafe extern "C" fn source_file_get (src: *mut source) -> c_int
   STRING_CHAR (buf.as_ptr ())
 }
 
+#[inline(always)]
 unsafe extern "C" fn source_file_unget (src: *mut source, c: c_int)
 {
   unread_char = c;
@@ -600,7 +622,10 @@ unsafe extern "C" fn source_function_unget (src: *mut source, c: c_int)
 unsafe fn readchar (src: *mut source) -> c_int
 {
   readchar_offset += 1;
-  ((*src).get.unwrap ()) (src)
+  let get_fn = (*src).get.unwrap ();
+  if get_fn as usize == source_file_get as *const () as usize
+    { return source_file_get (src); }
+  get_fn (src)
 }
 
 /* Unread C from (to?) SRC.  Only a single char can be unread at a time.  */
@@ -612,7 +637,10 @@ unsafe fn unreadchar (src: *mut source, c: c_int)
      since readchar didn't advance it when we read it.  */
   if c == -1
     { return; }
-  ((*src).unget.unwrap ()) (src, c);
+  let unget_fn = (*src).unget.unwrap ();
+  if unget_fn as usize == source_file_unget as *const () as usize
+    { unread_char = c; return; }
+  unget_fn (src, c);
 }
 
 unsafe fn from_file_p (source: *mut source) -> bool
@@ -667,6 +695,7 @@ unsafe fn skip_dyn_eof (source: *mut source)
 /* C 559-566: `#if !defined USE_ANDROID_ASSETS` selects the live body; the `#else` (C
    591-617) is the Android one, carried under `#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]   // C 69: `#define USE_ANDROID_ASSETS`` (the
    `USE_ANDROID_ASSETS` spelling of the arm, PORTING.md P-51).  */
+#[inline(always)]
 unsafe fn readbyte_from_file () -> c_int
 {
   if (*infile).lookahead != 0
@@ -687,7 +716,9 @@ unsafe fn readbyte_from_file () -> c_int
     /* Interrupted reads have been observed while reading over the network.  */
     loop
       {
-	#[cfg (not (all (feature = "have_android", feature = "not_android_stubify")))]
+	#[cfg (all (target_os = "macos", not (all (feature = "have_android", feature = "not_android_stubify"))))]
+	{ c = darwin_sgetc (instream); }
+	#[cfg (all (not (target_os = "macos"), not (all (feature = "have_android", feature = "not_android_stubify"))))]
 	{ c = getc (instream); }                             /* C 331/76: `file_get_char` is `getc` */
 	#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
 	{ c = file_get_char! (instream); }                   /* C 331/132: the asset arm's function */
@@ -3092,13 +3123,13 @@ unsafe fn add_char_to_buffer (rb: *mut readbuf_t, c: c_int, multibyte: bool)
   /* Make room for a multibyte char and a terminating NUL.  */
   if (*rb).end.offset_from ((*rb).cur) < (MAX_MULTIBYTE_LENGTH + 1) as ptrdiff_t
     { readbuf_grow (rb); }
-  if multibyte
-    { (*rb).cur = (*rb).cur.offset (CHAR_STRING (c, (*rb).cur as *mut u8) as isize); }
-  else
+  if !multibyte || (c as u32) <= 0x7f
     {
       *(*rb).cur = c as c_char;
       (*rb).cur = (*rb).cur.add (1);
     }
+  else
+    { (*rb).cur = (*rb).cur.offset (CHAR_STRING (c, (*rb).cur as *mut u8) as isize); }
 }
 
 /* Read an integer in radix RADIX using READCHARFUN to read characters.  RADIX must be in
@@ -3710,7 +3741,10 @@ unsafe fn skip_lazy_string (source: *mut source) -> bool
       block_input ();
       while i < nskip && c >= 0
 	{
-	  c = file_get_char! (instream);
+	  #[cfg (all (target_os = "macos", not (feature = "have_android")))]
+	  { c = darwin_sgetc (instream); }
+	  #[cfg (not (all (target_os = "macos", not (feature = "have_android"))))]
+	  { c = file_get_char! (instream); }
 	  *(*ss).string.offset (i) = c as c_char;
 	  i += 1;
 	}
@@ -4585,6 +4619,7 @@ unsafe fn read0 (source: *mut source, locate_syms: bool) -> Lisp_Object
 
 		  let found: Lisp_Object;
 		  if skip_shorthand
+		      || NILP (Vread_symbol_shorthands)
 		      /* We exempt characters used in the "core" Emacs Lisp
 			 symbols that are comprised entirely of characters
 			 that have the 'symbol constituent' syntax from

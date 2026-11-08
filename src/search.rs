@@ -582,7 +582,7 @@ unsafe fn string_match_1 (regexp: Lisp_Object, string: Lisp_Object,   // C 369-4
 	{ pos = len + pos; }
       else if 0 > pos || pos > len
 	{ args_out_of_range (string, start); }
-      pos_byte = string_char_to_byte (string, pos);
+      pos_byte = if len == SBYTES (string) { pos } else { string_char_to_byte (string, pos) };
     }
 
   /* This is so set_image_of_range_1 in regex-emacs.c can find the EQV
@@ -614,23 +614,28 @@ unsafe fn string_match_1 (regexp: Lisp_Object, string: Lisp_Object,   // C 369-4
   if val < 0
     { return Qnil (); }
 
-  if modify_match_data
+  if SCHARS (string) != SBYTES (string)
     {
-      i = 0;
-      while i < search_regs! ().num_regs
+      if modify_match_data
 	{
-	  if *search_regs! ().start.offset (i as isize) >= 0
+	  i = 0;
+	  while i < search_regs! ().num_regs
 	    {
-	      *search_regs! ().start.offset (i as isize)
-		= string_byte_to_char (string, *search_regs! ().start.offset (i as isize));
-	      *search_regs! ().end.offset (i as isize)
-		= string_byte_to_char (string, *search_regs! ().end.offset (i as isize));
+	      if *search_regs! ().start.offset (i as isize) >= 0
+		{
+		  *search_regs! ().start.offset (i as isize)
+		    = string_byte_to_char (string, *search_regs! ().start.offset (i as isize));
+		  *search_regs! ().end.offset (i as isize)
+		    = string_byte_to_char (string, *search_regs! ().end.offset (i as isize));
+		}
+	      i += 1;
 	    }
-	  i += 1;
 	}
+
+      return make_fixnum (string_byte_to_char (string, val));
     }
 
-  return make_fixnum (string_byte_to_char (string, val));
+  return make_fixnum (val);
 }
 
 DEFUN! ("string-match", Fstring_match, Sstring_match, 2, 4, 0,     // C 442-460
@@ -2688,9 +2693,14 @@ DEFUN! ("replace-match", Freplace_match, Sreplace_match, 1, 5, 0,        // C 23
 	   {
 	     let before: Lisp_Object;
 	     let mut after: Lisp_Object;
+	     let no_str_props: bool = string_intervals (string).is_null ();
 
-	     before = Fsubstring (string, make_fixnum (0), make_fixnum (sub_start));
-	     after = Fsubstring (string, make_fixnum (sub_end), Qnil ());
+	     before = if sub_start == 0 && no_str_props
+	       { Qnil () }
+	       else { Fsubstring (string, make_fixnum (0), make_fixnum (sub_start)) };
+	     after = if sub_end == SCHARS (string) && no_str_props
+	       { Qnil () }
+	       else { Fsubstring (string, make_fixnum (sub_end), Qnil ()) };
 
 	     /* Substitute parts of the match into NEWTEXT
 		if desired.  */
@@ -2779,7 +2789,7 @@ DEFUN! ("replace-match", Freplace_match, Sreplace_match, 1, 5, 0,        // C 23
 		 else
 		   { middle = Qnil (); }
 
-		 newtext = concat2 (accum, middle);
+		 newtext = if NILP (middle) && !NILP (accum) { accum } else { concat2 (accum, middle) };
 	       }
 
 	     /* Do case substitution in NEWTEXT if desired.  */

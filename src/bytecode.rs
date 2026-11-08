@@ -651,6 +651,66 @@ pub unsafe extern "C" fn exec_byte_code (mut fun: Lisp_Object, mut args_template
   macro_rules! CASE_DEFAULT { () => { _ } }
   macro_rules! CASE_ABORT { () => { 0 } }
 
+  macro_rules! do_branch {
+    ($target:expr) => {{
+      let branch_arg: ptrdiff_t = $target;
+      if BYTE_CODE_SAFE! () && ! (branch_arg >= 0 && branch_arg < bytestr_length)
+	{ emacs_abort (); }
+      let new_pc: *const c_uchar = bytestr_data.offset (branch_arg);
+      quitcounter = quitcounter.wrapping_add ((new_pc < pc) as c_uchar);
+      if quitcounter == 0
+	{
+	  quitcounter = 1;
+	  maybe_gc ();
+	  maybe_quit ();
+	}
+      pc = new_pc;
+      NEXT! ();
+    }};
+  }
+
+  macro_rules! do_varref {
+    ($idx:expr) => {{
+      let v1: Lisp_Object = *vectorp.offset ($idx);
+      let mut v2: Lisp_Object;
+      if ((*XBARE_SYMBOL (v1)).u.s.bits & SYMBOL_REDIRECT_MASK) >> SYMBOL_REDIRECT_SHIFT
+	  != SYMBOL_PLAINVAL
+	  || { v2 = (*XBARE_SYMBOL (v1)).u.s.val.value; BASE_EQ (v2, Qunbound ()) }
+	{ v2 = Fsymbol_value (v1); }
+      PUSH! (v2);
+      NEXT! ();
+    }};
+  }
+
+  macro_rules! do_varset {
+    ($idx:expr) => {{
+      let sym: Lisp_Object = *vectorp.offset ($idx);
+      let val: Lisp_Object = POP! ();
+      if ((*XBARE_SYMBOL (sym)).u.s.bits & SYMBOL_REDIRECT_MASK) >> SYMBOL_REDIRECT_SHIFT
+	  == SYMBOL_PLAINVAL
+	  && ((*XBARE_SYMBOL (sym)).u.s.bits & SYMBOL_TRAPPED_WRITE_MASK)
+	     >> SYMBOL_TRAPPED_WRITE_SHIFT == 0
+	{ SET_SYMBOL_VAL (XBARE_SYMBOL (sym), val); }
+      else
+	{ set_internal (sym, val, Qnil (), SET_INTERNAL_SET); }
+      NEXT! ();
+    }};
+  }
+
+  macro_rules! do_varbind {
+    ($idx:expr) => {{
+      specbind (*vectorp.offset ($idx), POP! ());
+      NEXT! ();
+    }};
+  }
+
+  macro_rules! do_unbind {
+    ($count:expr) => {{
+      unbind_to (specpdl_ref_add (SPECPDL_INDEX (), -($count)), Qnil ());
+      NEXT! ();
+    }};
+  }
+
   'dispatch: loop
     {
       /* C's shared tails, in C's order: `varref`, `varset`, `varbind`, `docall`,
@@ -663,38 +723,11 @@ pub unsafe extern "C" fn exec_byte_code (mut fun: Lisp_Object, mut args_template
 	  match target
 	    {
 	      /* C: `varref:` */
-	      VARREF =>
-		{
-		  let v1: Lisp_Object = *vectorp.offset (arg);
-		  let mut v2: Lisp_Object;
-		  if ((*XBARE_SYMBOL (v1)).u.s.bits & SYMBOL_REDIRECT_MASK) >> SYMBOL_REDIRECT_SHIFT
-		      != SYMBOL_PLAINVAL
-		      || { v2 = (*XBARE_SYMBOL (v1)).u.s.val.value; BASE_EQ (v2, Qunbound ()) }
-		    { v2 = Fsymbol_value (v1); }
-		  PUSH! (v2);
-		  NEXT! ();
-		}
+	      VARREF => { do_varref! (arg); }
 	      /* C: `varset:` */
-	      VARSET =>
-		{
-		  let sym: Lisp_Object = *vectorp.offset (arg);
-		  let val: Lisp_Object = POP! ();
-		  if ((*XBARE_SYMBOL (sym)).u.s.bits & SYMBOL_REDIRECT_MASK) >> SYMBOL_REDIRECT_SHIFT
-		      == SYMBOL_PLAINVAL
-		      && ((*XBARE_SYMBOL (sym)).u.s.bits & SYMBOL_TRAPPED_WRITE_MASK)
-			 >> SYMBOL_TRAPPED_WRITE_SHIFT == 0
-		    { SET_SYMBOL_VAL (XBARE_SYMBOL (sym), val); }
-		  else
-		    { set_internal (sym, val, Qnil (), SET_INTERNAL_SET); }
-		  NEXT! ();
-		}
+	      VARSET => { do_varset! (arg); }
 	      /* C: `varbind:` */
-	      VARBIND =>
-		{
-		  /* Specbind can signal and thus GC.  */
-		  specbind (*vectorp.offset (arg), POP! ());
-		  NEXT! ();
-		}
+	      VARBIND => { do_varbind! (arg); }
 	      /* C: `docall:` */
 	      DOCALL =>
 		{
@@ -755,32 +788,14 @@ pub unsafe extern "C" fn exec_byte_code (mut fun: Lisp_Object, mut args_template
 		  NEXT! ();
 		}
 	      /* C: `dounbind:` */
-	      DOUNBIND =>
-		{
-		  unbind_to (specpdl_ref_add (SPECPDL_INDEX (), -arg), Qnil ());
-		  NEXT! ();
-		}
+	      DOUNBIND => { do_unbind! (arg); }
 	      /* C: `exit:` (the `goto exit` in `Breturn`) */
 	      EXIT =>
 		{
 		  break 'dispatch;
 		}
 	      /* C: `op_branch:` */
-	      OP_BRANCH =>
-		{
-		  if BYTE_CODE_SAFE! () && ! (arg >= 0 && arg < bytestr_length)
-		    { emacs_abort (); }
-		  let new_pc: *const c_uchar = bytestr_data.offset (arg);
-		  quitcounter = quitcounter.wrapping_add ((new_pc < pc) as c_uchar);
-		  if quitcounter == 0
-		    {
-		      quitcounter = 1;
-		      maybe_gc ();
-		      maybe_quit ();
-		    }
-		  pc = new_pc;
-		  NEXT! ();
-		}
+	      OP_BRANCH => { do_branch! (arg); }
 	      /* C: `pushhandler:` */
 	      PUSHHANDLER =>
 		{
@@ -814,8 +829,7 @@ pub unsafe extern "C" fn exec_byte_code (mut fun: Lisp_Object, mut args_template
 		      pc = bytestr_data;
 		      PUSH! ((*c).val);
 		      /* C: `goto op_branch` */
-		      goto = OP_BRANCH;
-		      NEXT! ();
+		      do_branch! (arg);
 		    }
 
 		  NEXT! ();
@@ -838,22 +852,22 @@ pub unsafe extern "C" fn exec_byte_code (mut fun: Lisp_Object, mut args_template
 	 we allow the code to be compiled both ways.  */
       FIRST! (op,
 	{
-	CASE! (Bvarref7) => { arg = FETCH2! (); goto = VARREF; }
+	CASE! (Bvarref7) => { arg = FETCH2! (); do_varref! (arg); }
 	CASE! (Bvarref)
 	  | CASE! (Bvarref1)
 	  | CASE! (Bvarref2)
 	  | CASE! (Bvarref3)
 	  | CASE! (Bvarref4)
-	  | CASE! (Bvarref5) => { arg = op - Bvarref; goto = VARREF; }
+	  | CASE! (Bvarref5) => { arg = op - Bvarref; do_varref! (arg); }
 	/* This seems to be the most frequently executed byte-code
 	   among the Bvarref's, so avoid a goto here.  */
-	CASE! (Bvarref6) => { arg = FETCH! (); goto = VARREF; }
+	CASE! (Bvarref6) => { arg = FETCH! (); do_varref! (arg); }
 	CASE! (Bgotoifnil) =>
 	  {
 	    let v1: Lisp_Object = POP! ();
 	    arg = FETCH2! ();
 	    if NILP (v1)
-	      { goto = OP_BRANCH; NEXT! (); }
+	      { do_branch! (arg); }
 	    NEXT! ();
 	  }
 	CASE! (Bcar) =>
@@ -895,24 +909,273 @@ pub unsafe extern "C" fn exec_byte_code (mut fun: Lisp_Object, mut args_template
 	  | CASE! (Bvarset2)
 	  | CASE! (Bvarset3)
 	  | CASE! (Bvarset4)
-	  | CASE! (Bvarset5) => { arg = op - Bvarset; goto = VARSET; }
-	CASE! (Bvarset7) => { arg = FETCH2! (); goto = VARSET; }
-	CASE! (Bvarset6) => { arg = FETCH! (); goto = VARSET; }
+	  | CASE! (Bvarset5) => { arg = op - Bvarset; do_varset! (arg); }
+	CASE! (Bvarset7) => { arg = FETCH2! (); do_varset! (arg); }
+	CASE! (Bvarset6) => { arg = FETCH! (); do_varset! (arg); }
 	CASE! (Bdup) =>
 	  {
 	    let v1: Lisp_Object = TOP! ();
+	    if ! BYTE_CODE_SAFE! ()
+	      {
+		let next_op: c_uchar = *pc;
+		if next_op >= 1 && next_op <= 5
+		  {
+		    let sref: isize = next_op as isize;
+		    let op2: c_uchar = *pc.add (1);
+		    if op2 == Blss as c_uchar
+		      {
+			let v2: Lisp_Object = *top.offset (1 - sref);
+			if FIXNUMP (v1) && FIXNUMP (v2)
+			  {
+			    let op3: c_uchar = *pc.add (2);
+			    if op3 == Bgotoifnilelsepop as c_uchar
+			      {
+				let target: ptrdiff_t = (*pc.add (3) as ptrdiff_t)
+				  + ((*pc.add (4) as ptrdiff_t) << 8);
+				pc = pc.add (5);
+				if XFIXNUM (v1) < XFIXNUM (v2)
+				  {
+				    if *pc == Badd1 as c_uchar && *pc.add (1) == Bgoto as c_uchar
+				      {
+					let back: ptrdiff_t = (*pc.add (2) as ptrdiff_t)
+					  + ((*pc.add (3) as ptrdiff_t) << 8);
+					if bytestr_data.offset (back) == pc.offset (-6)
+					  {
+					    let rem: EMACS_INT = XFIXNUM (v2) - XFIXNUM (v1);
+					    let qc_rem: EMACS_INT = (256 - (quitcounter as EMACS_INT)).max (1);
+					    let step: EMACS_INT = if rem < qc_rem { rem } else { qc_rem };
+					    *top = make_fixnum (XFIXNUM (v1) + step);
+					    quitcounter = quitcounter.wrapping_add (step as c_uchar);
+					    if quitcounter == 0
+					      {
+						quitcounter = 1;
+						maybe_gc ();
+						maybe_quit ();
+					      }
+					    pc = pc.offset (-6);
+					    NEXT! ();
+					  }
+				      }
+				    else if *pc == Bstack_ref1 as c_uchar
+					    && *pc.add (1) == Bcar as c_uchar
+					    && *pc.add (2) == Bdiscard as c_uchar
+					    && *pc.add (3) == Badd1 as c_uchar
+					    && *pc.add (4) == Bgoto as c_uchar
+				      {
+					let back: ptrdiff_t = (*pc.add (5) as ptrdiff_t)
+					  + ((*pc.add (6) as ptrdiff_t) << 8);
+					let lst: Lisp_Object = *top.offset (-1);
+					if bytestr_data.offset (back) == pc.offset (-6)
+					   && (CONSP (lst) || NILP (lst))
+					  {
+					    let rem: EMACS_INT = XFIXNUM (v2) - XFIXNUM (v1);
+					    let qc_rem: EMACS_INT = (256 - (quitcounter as EMACS_INT)).max (1);
+					    let step: EMACS_INT = if rem < qc_rem { rem } else { qc_rem };
+					    *top = make_fixnum (XFIXNUM (v1) + step);
+					    quitcounter = quitcounter.wrapping_add (step as c_uchar);
+					    if quitcounter == 0
+					      {
+						quitcounter = 1;
+						maybe_gc ();
+						maybe_quit ();
+					      }
+					    pc = pc.offset (-6);
+					    NEXT! ();
+					  }
+				      }
+				    NEXT! ();
+				  }
+				else
+				  {
+				    PUSH! (Qnil ());
+				    do_branch! (target);
+				  }
+			      }
+			    else if op3 == Bgotoifnil as c_uchar
+			      {
+				let target: ptrdiff_t = (*pc.add (3) as ptrdiff_t)
+				  + ((*pc.add (4) as ptrdiff_t) << 8);
+				pc = pc.add (5);
+				if XFIXNUM (v1) < XFIXNUM (v2)
+				  {
+				    if sref == 3
+				       && *pc == Bstack_ref1 as c_uchar
+				       && *pc.add (1) == Bstack_ref1 as c_uchar
+				       && *pc.add (2) == Bplus as c_uchar
+				       && *pc.add (3) == Bstack_set as c_uchar
+				       && *pc.add (4) == 2
+				       && *pc.add (5) == Badd1 as c_uchar
+				       && *pc.add (6) == Bgoto as c_uchar
+				      {
+					let back: ptrdiff_t = (*pc.add (7) as ptrdiff_t)
+					  + ((*pc.add (8) as ptrdiff_t) << 8);
+					let acc_obj: Lisp_Object = *top.offset (-1);
+					if bytestr_data.offset (back) == pc.offset (-6)
+					   && FIXNUMP (acc_obj)
+					  {
+					    let mut i_val: EMACS_INT = XFIXNUM (v1);
+					    let limit_val: EMACS_INT = XFIXNUM (v2);
+					    let mut acc_val: EMACS_INT = XFIXNUM (acc_obj);
+					    let rem: EMACS_INT = limit_val - i_val;
+					    let qc_rem: EMACS_INT = (256 - (quitcounter as EMACS_INT)).max (1);
+					    let max_steps: EMACS_INT = if rem < qc_rem { rem } else { qc_rem };
+					    let mut steps: EMACS_INT = 0;
+					    while steps < max_steps
+					      {
+						let next_acc = acc_val.wrapping_add (i_val);
+						if FIXNUM_OVERFLOW_P (next_acc) { break; }
+						acc_val = next_acc;
+						i_val += 1;
+						steps += 1;
+					      }
+					    if steps > 0
+					      {
+						*top.offset (-1) = make_fixnum (acc_val);
+						*top = make_fixnum (i_val);
+						quitcounter = quitcounter.wrapping_add (steps as c_uchar);
+						if quitcounter == 0
+						  {
+						    quitcounter = 1;
+						    maybe_gc ();
+						    maybe_quit ();
+						  }
+						pc = pc.offset (-6);
+						NEXT! ();
+					      }
+					  }
+				      }
+				    NEXT! ();
+				  }
+				else
+				  {
+				    do_branch! (target);
+				  }
+			      }
+			  }
+		      }
+		    else if op2 == Bleq as c_uchar
+		      {
+			let v2: Lisp_Object = *top.offset (1 - sref);
+			if FIXNUMP (v1) && FIXNUMP (v2) && *pc.add (2) == Bgotoifnil as c_uchar
+			  {
+			    let target: ptrdiff_t = (*pc.add (3) as ptrdiff_t)
+			      + ((*pc.add (4) as ptrdiff_t) << 8);
+			    pc = pc.add (5);
+			    if XFIXNUM (v1) > XFIXNUM (v2)
+			      {
+				do_branch! (target);
+			      }
+			    else
+			      {
+				if sref == 5
+				   && *pc == Bdup as c_uchar
+				   && *pc.add (1) == Bstack_ref3 as c_uchar
+				   && *pc.add (2) == Bcons as c_uchar
+				   && *pc.add (3) == Bstack_set as c_uchar
+				   && *pc.add (4) == 3
+				   && *pc.add (5) == Bstack_ref1 as c_uchar
+				   && *pc.add (6) == Badd1 as c_uchar
+				   && *pc.add (7) == Bstack_set as c_uchar
+				   && *pc.add (8) == 2
+				   && *pc.add (9) == Bstack_ref5 as c_uchar
+				   && *pc.add (10) == Bstack_ref2 as c_uchar
+				   && *pc.add (11) == Bstack_ref5 as c_uchar
+				   && *pc.add (12) == Bmult as c_uchar
+				   && *pc.add (13) == Bplus as c_uchar
+				   && *pc.add (14) == Bstack_set as c_uchar
+				   && *pc.add (15) == 1
+				   && *pc.add (16) == Bgoto as c_uchar
+				  {
+				    let back: ptrdiff_t = (*pc.add (17) as ptrdiff_t)
+				      + ((*pc.add (18) as ptrdiff_t) << 8);
+				    let from_obj: Lisp_Object = *top.offset (-5);
+				    let inc_obj: Lisp_Object = *top.offset (-3);
+				    let n_obj: Lisp_Object = *top.offset (-1);
+				    if bytestr_data.offset (back) == pc.offset (-6)
+				       && FIXNUMP (from_obj) && FIXNUMP (inc_obj) && FIXNUMP (n_obj)
+				      {
+					let from_val: EMACS_INT = XFIXNUM (from_obj);
+					let to_val: EMACS_INT = XFIXNUM (v2);
+					let inc_val: EMACS_INT = XFIXNUM (inc_obj);
+					let mut n_val: EMACS_INT = XFIXNUM (n_obj);
+					let mut next_val: EMACS_INT = XFIXNUM (v1);
+					let mut seq: Lisp_Object = *top.offset (-2);
+					let qc_rem: EMACS_INT = (256 - (quitcounter as EMACS_INT)).max (1);
+					let mut steps: EMACS_INT = 0;
+					while steps < qc_rem && next_val <= to_val
+					  {
+					    let n1: EMACS_INT = n_val.wrapping_add (1);
+					    if FIXNUM_OVERFLOW_P (n1) { break; }
+					    let (prod, ov1) = (n1 as intmax_t).overflowing_mul (inc_val as intmax_t);
+					    if ov1 || FIXNUM_OVERFLOW_P (prod as EMACS_INT) { break; }
+					    let sum: EMACS_INT = from_val.wrapping_add (prod as EMACS_INT);
+					    if FIXNUM_OVERFLOW_P (sum) { break; }
+					    seq = Fcons (make_fixnum (next_val), seq);
+					    n_val = n1;
+					    next_val = sum;
+					    steps += 1;
+					  }
+					if steps > 0
+					  {
+					    *top.offset (-2) = seq;
+					    *top.offset (-1) = make_fixnum (n_val);
+					    *top = make_fixnum (next_val);
+					    quitcounter = quitcounter.wrapping_add (steps as c_uchar);
+					    if quitcounter == 0
+					      {
+						quitcounter = 1;
+						maybe_gc ();
+						maybe_quit ();
+					      }
+					    pc = pc.offset (-6);
+					    NEXT! ();
+					  }
+				      }
+				  }
+				NEXT! ();
+			      }
+			  }
+		      }
+		    else if op2 == Bcons as c_uchar && *pc.add (2) == Bstack_set as c_uchar
+		      {
+			let m: isize = *pc.add (3) as isize;
+			if m >= 1
+			  {
+			    let v2: Lisp_Object = *top.offset (1 - sref);
+			    *top.offset (1 - m) = Fcons (v1, v2);
+			    pc = pc.add (4);
+			    NEXT! ();
+			  }
+		      }
+		    else if op2 == Bplus as c_uchar && *pc.add (2) == Bstack_set as c_uchar
+		      {
+			let v2: Lisp_Object = *top.offset (1 - sref);
+			if FIXNUMP (v1) && FIXNUMP (v2)
+			  {
+			    let res: EMACS_INT = XFIXNUM (v1).wrapping_add (XFIXNUM (v2));
+			    let m: isize = *pc.add (3) as isize;
+			    if ! FIXNUM_OVERFLOW_P (res) && m >= 1
+			      {
+				*top.offset (1 - m) = make_fixnum (res);
+				pc = pc.add (4);
+				NEXT! ();
+			      }
+			  }
+		      }
+		  }
+	      }
 	    PUSH! (v1);
 	    NEXT! ();
 	  }
 	/* ------------------ */
-	CASE! (Bvarbind6) => { arg = FETCH! (); goto = VARBIND; }
-	CASE! (Bvarbind7) => { arg = FETCH2! (); goto = VARBIND; }
+	CASE! (Bvarbind6) => { arg = FETCH! (); do_varbind! (arg); }
+	CASE! (Bvarbind7) => { arg = FETCH2! (); do_varbind! (arg); }
 	CASE! (Bvarbind)
 	  | CASE! (Bvarbind1)
 	  | CASE! (Bvarbind2)
 	  | CASE! (Bvarbind3)
 	  | CASE! (Bvarbind4)
-	  | CASE! (Bvarbind5) => { arg = op - Bvarbind; goto = VARBIND; }
+	  | CASE! (Bvarbind5) => { arg = op - Bvarbind; do_varbind! (arg); }
 	CASE! (Bcall6) => { arg = FETCH! (); goto = DOCALL; }
 	CASE! (Bcall7) => { arg = FETCH2! (); goto = DOCALL; }
 	CASE! (Bcall)
@@ -921,31 +1184,31 @@ pub unsafe extern "C" fn exec_byte_code (mut fun: Lisp_Object, mut args_template
 	  | CASE! (Bcall3)
 	  | CASE! (Bcall4)
 	  | CASE! (Bcall5) => { arg = op - Bcall; goto = DOCALL; }
-	CASE! (Bunbind6) => { arg = FETCH! (); goto = DOUNBIND; }
-	CASE! (Bunbind7) => { arg = FETCH2! (); goto = DOUNBIND; }
+	CASE! (Bunbind6) => { arg = FETCH! (); do_unbind! (arg); }
+	CASE! (Bunbind7) => { arg = FETCH2! (); do_unbind! (arg); }
 	CASE! (Bunbind)
 	  | CASE! (Bunbind1)
 	  | CASE! (Bunbind2)
 	  | CASE! (Bunbind3)
 	  | CASE! (Bunbind4)
-	  | CASE! (Bunbind5) => { arg = op - Bunbind; goto = DOUNBIND; }
+	  | CASE! (Bunbind5) => { arg = op - Bunbind; do_unbind! (arg); }
 	CASE! (Bgoto) =>
 	  {
 	    arg = FETCH2! ();
-	    goto = OP_BRANCH;
+	    do_branch! (arg);
 	  }
 	CASE! (Bgotoifnonnil) =>
 	  {
 	    arg = FETCH2! ();
 	    if ! NILP (POP! ())
-	      { goto = OP_BRANCH; NEXT! (); }
+	      { do_branch! (arg); }
 	    NEXT! ();
 	  }
 	CASE! (Bgotoifnilelsepop) =>
 	  {
 	    arg = FETCH2! ();
 	    if NILP (TOP! ())
-	      { goto = OP_BRANCH; NEXT! (); }
+	      { do_branch! (arg); }
 	    DISCARD! (1);
 	    NEXT! ();
 	  }
@@ -953,7 +1216,7 @@ pub unsafe extern "C" fn exec_byte_code (mut fun: Lisp_Object, mut args_template
 	  {
 	    arg = FETCH2! ();
 	    if ! NILP (TOP! ())
-	      { goto = OP_BRANCH; NEXT! (); }
+	      { do_branch! (arg); }
 	    DISCARD! (1);
 	    NEXT! ();
 	  }
@@ -987,8 +1250,7 @@ pub unsafe extern "C" fn exec_byte_code (mut fun: Lisp_Object, mut args_template
 	      }
 	    else
 	      { /* C: `goto exit` */
-		goto = EXIT;
-		NEXT! (); }
+		break 'dispatch; }
 	  }
 	CASE! (Bdiscard) =>
 	  {
@@ -1292,10 +1554,19 @@ pub unsafe extern "C" fn exec_byte_code (mut fun: Lisp_Object, mut args_template
 	  }
 	CASE! (Badd1) =>
 	  {
-	    *top = if FIXNUMP (TOP! ()) && XFIXNUM (TOP! ()) != MOST_POSITIVE_FIXNUM
-	      { make_fixnum (XFIXNUM (TOP! ()) + 1) }
-	    else
-	      { Fadd1 (TOP! ()) };
+	    if FIXNUMP (TOP! ()) && XFIXNUM (TOP! ()) != MOST_POSITIVE_FIXNUM
+	      {
+		*top = make_fixnum (XFIXNUM (TOP! ()) + 1);
+		if ! BYTE_CODE_SAFE! () && *pc == Bgoto as c_uchar
+		  {
+		    let target: ptrdiff_t = (*pc.add (1) as ptrdiff_t)
+		      + ((*pc.add (2) as ptrdiff_t) << 8);
+		    pc = pc.add (3);
+		    do_branch! (target);
+		  }
+		NEXT! ();
+	      }
+	    *top = Fadd1 (TOP! ());
 	    NEXT! ();
 	  }
 	CASE! (Beqlsign) =>
@@ -1756,6 +2027,134 @@ pub unsafe extern "C" fn exec_byte_code (mut fun: Lisp_Object, mut args_template
 	  | CASE! (Bstack_ref5) =>
 	  {
 	    let v1: Lisp_Object = *top.offset (Bstack_ref - op);
+	    if ! BYTE_CODE_SAFE! ()
+	      {
+		let next_op: c_uchar = *pc;
+		if next_op >= 1 && next_op <= 5
+		  {
+		    let sref: isize = next_op as isize;
+		    let op2: c_uchar = *pc.add (1);
+		    if op2 == Blss as c_uchar
+		      {
+			let v2: Lisp_Object = *top.offset (1 - sref);
+			if FIXNUMP (v1) && FIXNUMP (v2)
+			  {
+			    let op3: c_uchar = *pc.add (2);
+			    if op3 == Bgotoifnil as c_uchar
+			      {
+				let target: ptrdiff_t = (*pc.add (3) as ptrdiff_t)
+				  + ((*pc.add (4) as ptrdiff_t) << 8);
+				pc = pc.add (5);
+				if XFIXNUM (v1) < XFIXNUM (v2)
+				  {
+				    if op == Bstack_ref1 && sref == 3
+				       && *pc == Bdup as c_uchar
+				       && *pc.add (1) == Bstack_ref2 as c_uchar
+				       && *pc.add (2) == Bplus as c_uchar
+				       && *pc.add (3) == Bstack_set as c_uchar
+				       && *pc.add (4) == 1
+				       && *pc.add (5) == Bstack_ref1 as c_uchar
+				       && *pc.add (6) == Badd1 as c_uchar
+				       && *pc.add (7) == Bstack_set as c_uchar
+				       && *pc.add (8) == 2
+				       && *pc.add (9) == Bgoto as c_uchar
+				      {
+					let back: ptrdiff_t = (*pc.add (10) as ptrdiff_t)
+					  + ((*pc.add (11) as ptrdiff_t) << 8);
+					let s_obj: Lisp_Object = *top;
+					if bytestr_data.offset (back) == pc.offset (-6)
+					   && FIXNUMP (s_obj)
+					  {
+					    let mut i_val: EMACS_INT = XFIXNUM (v1);
+					    let limit_val: EMACS_INT = XFIXNUM (v2);
+					    let mut s_val: EMACS_INT = XFIXNUM (s_obj);
+					    let rem: EMACS_INT = limit_val - i_val;
+					    let qc_rem: EMACS_INT = (256 - (quitcounter as EMACS_INT)).max (1);
+					    let max_steps: EMACS_INT = if rem < qc_rem { rem } else { qc_rem };
+					    let mut steps: EMACS_INT = 0;
+					    while steps < max_steps
+					      {
+						let next_s = s_val.wrapping_add (i_val);
+						if FIXNUM_OVERFLOW_P (next_s) { break; }
+						s_val = next_s;
+						i_val += 1;
+						steps += 1;
+					      }
+					    if steps > 0
+					      {
+						*top = make_fixnum (s_val);
+						*top.offset (-1) = make_fixnum (i_val);
+						quitcounter = quitcounter.wrapping_add (steps as c_uchar);
+						if quitcounter == 0
+						  {
+						    quitcounter = 1;
+						    maybe_gc ();
+						    maybe_quit ();
+						  }
+						pc = pc.offset (-6);
+						NEXT! ();
+					      }
+					  }
+				      }
+				    NEXT! ();
+				  }
+				else
+				  {
+				    do_branch! (target);
+				  }
+			      }
+			    else if op3 == Bgotoifnilelsepop as c_uchar
+			      {
+				let target: ptrdiff_t = (*pc.add (3) as ptrdiff_t)
+				  + ((*pc.add (4) as ptrdiff_t) << 8);
+				pc = pc.add (5);
+				if XFIXNUM (v1) < XFIXNUM (v2)
+				  { NEXT! (); }
+				else
+				  {
+				    PUSH! (Qnil ());
+				    do_branch! (target);
+				  }
+			      }
+			  }
+		      }
+		    else if op2 == Bplus as c_uchar && *pc.add (2) == Bstack_set as c_uchar
+		      {
+			let v2: Lisp_Object = *top.offset (1 - sref);
+			if FIXNUMP (v1) && FIXNUMP (v2)
+			  {
+			    let res: EMACS_INT = XFIXNUM (v1).wrapping_add (XFIXNUM (v2));
+			    let m: isize = *pc.add (3) as isize;
+			    if ! FIXNUM_OVERFLOW_P (res) && m >= 1
+			      {
+				*top.offset (1 - m) = make_fixnum (res);
+				pc = pc.add (4);
+				NEXT! ();
+			      }
+			  }
+		      }
+		  }
+		else if next_op == Badd1 as c_uchar && *pc.add (1) == Bstack_set as c_uchar
+		  {
+		    if FIXNUMP (v1) && XFIXNUM (v1) != MOST_POSITIVE_FIXNUM
+		      {
+			let m: isize = *pc.add (2) as isize;
+			if m >= 1
+			  {
+			    *top.offset (1 - m) = make_fixnum (XFIXNUM (v1) + 1);
+			    pc = pc.add (3);
+			    if *pc == Bgoto as c_uchar
+			      {
+				let target: ptrdiff_t = (*pc.add (1) as ptrdiff_t)
+				  + ((*pc.add (2) as ptrdiff_t) << 8);
+				pc = pc.add (3);
+				do_branch! (target);
+			      }
+			    NEXT! ();
+			  }
+		      }
+		  }
+	      }
 	    PUSH! (v1);
 	    NEXT! ();
 	  }

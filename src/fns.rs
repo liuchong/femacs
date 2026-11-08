@@ -206,15 +206,21 @@ DEFUN! ("random", Frandom, Srandom, 0, 1, 0,
 pub unsafe extern "C" fn list_length (mut list: Lisp_Object) -> ptrdiff_t
 {
   let mut i: ptrdiff_t = 0;
-  /* The port's FOR_EACH_TAIL! cannot hand C's terminating non-cons back to the caller (the
-     macro re-binds the loop variable inside its own block; docs/ports/fns.md, Decisions), so
-     the body records it — C leaves it in the loop variable.  */
-  let mut list_end: Lisp_Object = list;
-  FOR_EACH_TAIL! (list, {
-    i += 1;
-    list_end = XCDR (list);
-  });
-  CHECK_LIST_END (list_end, list_end);
+  let mut tortoise: Lisp_Object = list;
+  while CONSP (list)
+    {
+      i += 1;
+      list = XCDR (list);
+      if BASE_EQ (list, tortoise)
+	{ circular_list (list); }
+      else if (i & (FOR_EACH_TAIL_THRESHOLD as ptrdiff_t - 1)) == 0
+	{
+	  maybe_quit ();
+	  if (i & (i - 1)) == 0
+	    { tortoise = list; }
+	}
+    }
+  CHECK_LIST_END (list, list);
   return i;
 }
 
@@ -865,8 +871,6 @@ pub struct textprop_rec
 /* C 835-1029: `concat_to_string`.  */
 unsafe fn concat_to_string (nargs: ptrdiff_t, args: *mut Lisp_Object) -> Lisp_Object
 {
-  USE_SAFE_ALLOCA! (sa_avail, sa_count, sa_mark);
-
   /* Check types and compute total length in chars of arguments in RESULT_LEN,
      length in bytes in RESULT_LEN_BYTE, and determine in DEST_MULTIBYTE
      whether the result should be a multibyte string.  */
@@ -874,6 +878,7 @@ unsafe fn concat_to_string (nargs: ptrdiff_t, args: *mut Lisp_Object) -> Lisp_Ob
   let mut result_len_byte: EMACS_INT = 0;
   let mut dest_multibyte: bool = false;
   let mut some_unibyte: bool = false;
+  let mut num_with_textprops: ptrdiff_t = 0;
   let mut i: ptrdiff_t = 0;
   while i < nargs
     {
@@ -887,6 +892,8 @@ unsafe fn concat_to_string (nargs: ptrdiff_t, args: *mut Lisp_Object) -> Lisp_Ob
 	{
 	  let arg_len_byte: ptrdiff_t = SBYTES (arg);
 	  len = SCHARS (arg);
+	  if !string_intervals (arg).is_null ()
+	    { num_with_textprops += 1; }
 	  if STRING_MULTIBYTE (arg)
 	    { dest_multibyte = true; }
 	  else
@@ -992,7 +999,15 @@ unsafe fn concat_to_string (nargs: ptrdiff_t, args: *mut Lisp_Object) -> Lisp_Ob
   let mut textprops: *mut textprop_rec = std::ptr::null_mut ();
   /* Number of elements in textprops.  */
   let mut num_textprops: ptrdiff_t = 0;
-  SAFE_NALLOCA! (sa_avail, textprops, 1, nargs);
+  let mut sa_avail: isize = MAX_ALLOCA;
+  let mut sa_count: specpdl_ref = specpdl_ref { bytes: 0 };
+  let mut sa_mark: usize = 0;
+  if num_with_textprops > 0
+    {
+      sa_count = SPECPDL_INDEX ();
+      sa_mark = sa_stack_mark ();
+      SAFE_NALLOCA! (sa_avail, textprops, 1, num_with_textprops);
+    }
 
   let mut i: ptrdiff_t = 0;
   while i < nargs
@@ -1000,7 +1015,7 @@ unsafe fn concat_to_string (nargs: ptrdiff_t, args: *mut Lisp_Object) -> Lisp_Ob
       let arg: Lisp_Object = *args.offset (i as isize);
       if STRINGP (arg)
 	{
-	  if !string_intervals (arg).is_null ()
+	  if num_with_textprops > 0 && !string_intervals (arg).is_null ()
 	    {
 	      (*textprops.offset (num_textprops as isize)).argnum = i;
 	      (*textprops.offset (num_textprops as isize)).to = toindex;
@@ -1084,7 +1099,8 @@ unsafe fn concat_to_string (nargs: ptrdiff_t, args: *mut Lisp_Object) -> Lisp_Ob
 	}
     }
 
-  SAFE_FREE! (sa_count, sa_mark);
+  if num_with_textprops > 0
+    { SAFE_FREE! (sa_count, sa_mark); }
   return result;
 }
 
@@ -1671,15 +1687,19 @@ DEFUN! ("substring", Fsubstring, Ssubstring, 1, 3, 0,
 
   if STRINGP (string)
     {
+      let same_len: bool = size == SBYTES (string);
       let from_byte: ptrdiff_t
-	= if ifrom == 0 { 0 } else { string_char_to_byte (string, ifrom) };
+	= if same_len || ifrom == 0 { ifrom } else { string_char_to_byte (string, ifrom) };
       let to_byte: ptrdiff_t
-	= if ito == size { SBYTES (string) } else { string_char_to_byte (string, ito) };
+	= if same_len { ito } else if ito == size { SBYTES (string) } else { string_char_to_byte (string, ito) };
       res = make_specified_string (SSDATA (string).offset (from_byte) as *const c_char,
 				   ito - ifrom, to_byte - from_byte,
 				   STRING_MULTIBYTE (string));
-      copy_text_properties (make_fixnum (ifrom), make_fixnum (ito),
-			    string, make_fixnum (0), res, Qnil ());
+      if !string_intervals (string).is_null ()
+	{
+	  copy_text_properties (make_fixnum (ifrom), make_fixnum (ito),
+				string, make_fixnum (0), res, Qnil ());
+	}
     }
   else
     { res = Fvector (ito - ifrom, aref_addr (string, ifrom)); }
@@ -1703,9 +1723,10 @@ DEFUN! ("substring-no-properties", Fsubstring_no_properties, Ssubstring_no_prope
   size = SCHARS (string);
   validate_subarray (string, from, to, size, &raw mut from_char, &raw mut to_char);
 
-  from_byte = if from_char == 0 { 0 } else { string_char_to_byte (string, from_char) };
+  let same_len: bool = size == SBYTES (string);
+  from_byte = if same_len || from_char == 0 { from_char } else { string_char_to_byte (string, from_char) };
   to_byte =
-    if to_char == size { SBYTES (string) } else { string_char_to_byte (string, to_char) };
+    if same_len { to_char } else if to_char == size { SBYTES (string) } else { string_char_to_byte (string, to_char) };
   return make_specified_string (SSDATA (string).offset (from_byte) as *const c_char,
 				to_char - from_char, to_byte - from_byte,
 				STRING_MULTIBYTE (string));
@@ -1730,8 +1751,11 @@ pub unsafe extern "C" fn substring_both (string: Lisp_Object, from: ptrdiff_t, f
       res = make_specified_string (SSDATA (string).offset (from_byte) as *const c_char,
 				   to - from, to_byte - from_byte,
 				   STRING_MULTIBYTE (string));
-      copy_text_properties (make_fixnum (from), make_fixnum (to),
-			    string, make_fixnum (0), res, Qnil ());
+      if !string_intervals (string).is_null ()
+	{
+	  copy_text_properties (make_fixnum (from), make_fixnum (to),
+				string, make_fixnum (0), res, Qnil ());
+	}
     }
   else
     { res = Fvector (to - from, aref_addr (string, from)); }
@@ -2399,7 +2423,7 @@ DEFUN! ("nreverse", Fnreverse, Snreverse, 1, 1, 0,
 	     in-place will inevitably come back to SEQ.  */
 	  if BASE_EQ (next, seq)
 	    { circular_list (seq); }
-	  Fsetcdr (tail, prev);
+	  XSETCDR (tail, prev);
 	  prev = tail;
 	  tail = next;
 	}
@@ -2536,7 +2560,57 @@ unsafe fn sort_list (list: Lisp_Object, predicate: Lisp_Object, keyfunc: Lisp_Ob
 		     reverse: bool, inplace: bool) -> Lisp_Object
 {
   let mut list: Lisp_Object = list;
-  let length: ptrdiff_t = list_length (list);
+  let mut length: ptrdiff_t = 0;
+  let pred_resolved: Lisp_Object = if SYMBOLP (predicate)
+    { (*XSYMBOL (predicate)).u.s.function }
+    else { predicate };
+  if inplace && !reverse && !debug_on_next_call
+     && (NILP (keyfunc) || EQ (keyfunc, Qidentity ()))
+     && (NILP (predicate) || EQ (predicate, Qvaluelt ())
+	 || (SUBRP (pred_resolved) && (*XSUBR (pred_resolved)).function.aMANY == Some (Flss)))
+    {
+      let mut cur: Lisp_Object = list;
+      let mut tortoise: Lisp_Object = list;
+      let mut sorted_fixnums: bool = true;
+      let mut prev_val: EMACS_INT = MOST_NEGATIVE_FIXNUM;
+      while CONSP (cur)
+	{
+	  if sorted_fixnums
+	    {
+	      let elt: Lisp_Object = XCAR (cur);
+	      if FIXNUMP (elt)
+		{
+		  let v: EMACS_INT = XFIXNUM (elt);
+		  if v < prev_val
+		    { sorted_fixnums = false; }
+		  else
+		    { prev_val = v; }
+		}
+	      else
+		{ sorted_fixnums = false; }
+	    }
+	  length += 1;
+	  cur = XCDR (cur);
+	  if BASE_EQ (cur, tortoise)
+	    { circular_list (cur); }
+	  else if (length & (FOR_EACH_TAIL_THRESHOLD as ptrdiff_t - 1)) == 0
+	    {
+	      maybe_quit ();
+	      if (length & (length - 1)) == 0
+		{ tortoise = cur; }
+	    }
+	}
+      CHECK_LIST_END (cur, cur);
+      if sorted_fixnums
+	{
+	  maybe_quit ();
+	  return list;
+	}
+    }
+  else
+    {
+      length = list_length (list);
+    }
   if length < 2
     { return if inplace { list } else { list1 (XCAR (list)) }; }
   else
@@ -2548,7 +2622,7 @@ unsafe fn sort_list (list: Lisp_Object, predicate: Lisp_Object, keyfunc: Lisp_Ob
       let mut i: ptrdiff_t = 0;
       while i < length
 	{
-	  *result.offset (i) = Fcar (tail);
+	  *result.offset (i) = XCAR (tail);
 	  tail = XCDR (tail);
 	  i += 1;
 	}

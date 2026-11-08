@@ -520,6 +520,56 @@ DEFUN! ("prog1", Fprog1, Sprog1, 1, UNEVALLED, 0,
   return val;
 });
 
+#[inline(always)]
+unsafe fn assq_lexenv (key: Lisp_Object, alist: Lisp_Object) -> Lisp_Object
+{
+  let mut tail: Lisp_Object = alist;
+  let mut steps: ptrdiff_t = 0;
+  while CONSP (tail) && steps < 64
+    {
+      let elt: Lisp_Object = XCAR (tail);
+      if CONSP (elt) && EQ (XCAR (elt), key)
+	{ return elt; }
+      tail = XCDR (tail);
+      steps += 1;
+    }
+  if NILP (tail)
+    { return Qnil (); }
+  return Fassq (key, alist);
+}
+
+#[inline(always)]
+unsafe fn memq_lexenv (elt: Lisp_Object, list: Lisp_Object) -> Lisp_Object
+{
+  let mut tail: Lisp_Object = list;
+  let mut steps: ptrdiff_t = 0;
+  while CONSP (tail) && steps < 64
+    {
+      if EQ (XCAR (tail), elt)
+	{ return tail; }
+      tail = XCDR (tail);
+      steps += 1;
+    }
+  if NILP (tail)
+    { return Qnil (); }
+  return Fmemq (elt, list);
+}
+
+#[inline(always)]
+unsafe fn fast_list_length (list: Lisp_Object) -> ptrdiff_t
+{
+  let mut tail: Lisp_Object = list;
+  let mut i: ptrdiff_t = 0;
+  while CONSP (tail) && i < 64
+    {
+      tail = XCDR (tail);
+      i += 1;
+    }
+  if NILP (tail)
+    { return i; }
+  return list_length (list);
+}
+
 DEFUN! ("setq", Fsetq, Ssetq, 0, UNEVALLED, 0,
        doc: "Set each SYM to the value of its VAL.\nThe symbols SYM are variables; they are literal (not evaluated).\nThe values VAL are expressions; they are evaluated.\nThus, (setq x (1+ y)) sets `x' to the value of `(1+ y)'.\nThe second VAL is not computed until after the first SYM is set, and so on;\neach VAL can use the new value of variables set earlier in the `setq'.\nThe return value of the `setq' form is the value of the last VAL.\nusage: (setq [SYM VAL]...)",
        (args: Lisp_Object),
@@ -542,7 +592,7 @@ DEFUN! ("setq", Fsetq, Ssetq, 0, UNEVALLED, 0,
 	 it's been done when let-binding.  */
       let lex_binding: Lisp_Object
 	= if SYMBOLP (sym)
-	    { Fassq (sym, Vinternal_interpreter_environment) }
+	    { assq_lexenv (sym, Vinternal_interpreter_environment) }
 	  else
 	    { Qnil () };
       if !NILP (lex_binding)
@@ -1069,7 +1119,7 @@ DEFUN! ("let*", FletX, SletX, 1, UNEVALLED, 0,
       CHECK_TYPE (BARE_SYMBOL_P (var), Qsymbolp (), var);
       if !NILP (lexenv)
 	  && (*XBARE_SYMBOL (var)).u.s.bits & SYMBOL_DECLARED_SPECIAL_BIT == 0
-	  && NILP (Fmemq (var, Vinternal_interpreter_environment))
+	  && NILP (memq_lexenv (var, Vinternal_interpreter_environment))
 	/* Lexically bind VAR by adding it to the interpreter's binding
 	   alist.  */
 	{
@@ -1102,12 +1152,63 @@ DEFUN! ("let", Flet, Slet, 1, UNEVALLED, 0,
   let mut elt: Lisp_Object;
   let count: specpdl_ref = SPECPDL_INDEX ();
   let mut argnum: ptrdiff_t;
-  USE_SAFE_ALLOCA! (sa_avail, sa_count, sa_mark);
 
   let mut varlist: Lisp_Object = XCAR (args);
 
   /* Make space to hold the values to give the bound variables.  */
-  let varlist_len: EMACS_INT = list_length (varlist);
+  let varlist_len: EMACS_INT = fast_list_length (varlist);
+  if varlist_len <= 8
+    {
+      let mut temps_buf: [Lisp_Object; 8] = [lisp_h_Qnil (); 8];
+      temps = temps_buf.as_mut_ptr ();
+      let mut nvars: ptrdiff_t = varlist_len;
+      argnum = 0;
+      while argnum < nvars && CONSP (varlist)
+	{
+	  maybe_quit ();
+	  elt = XCAR (varlist);
+	  varlist = XCDR (varlist);
+	  if SYMBOLP (elt)
+	    { *temps.offset (argnum) = Qnil (); }
+	  else if ! NILP (Fcdr (Fcdr (elt)))
+	    { signal_error (c"`let' bindings can have only one value-form".as_ptr (), elt); }
+	  else
+	    { *temps.offset (argnum) = eval_sub (Fcar (Fcdr (elt))); }
+	  argnum += 1;
+	}
+      nvars = argnum;
+      lexenv = Vinternal_interpreter_environment;
+      varlist = XCAR (args);
+      argnum = 0;
+      while argnum < nvars && CONSP (varlist)
+	{
+	  elt = XCAR (varlist);
+	  varlist = XCDR (varlist);
+	  let var: Lisp_Object = maybe_remove_pos_from_symbol (if SYMBOLP (elt) { elt }
+							       else if CONSP (elt) { XCAR (elt) }
+							       else { Fcar (elt) });
+	  CHECK_TYPE (BARE_SYMBOL_P (var), Qsymbolp (), var);
+	  tem = *temps.offset (argnum);
+
+	  if !NILP (lexenv)
+	      && (*XBARE_SYMBOL (var)).u.s.bits & SYMBOL_DECLARED_SPECIAL_BIT == 0
+	      && NILP (memq_lexenv (var, Vinternal_interpreter_environment))
+	    /* Lexically bind VAR by adding it to the lexenv alist.  */
+	    { lexenv = Fcons (Fcons (var, tem), lexenv); }
+	  else
+	    /* Dynamically bind VAR.  */
+	    { specbind (var, tem); }
+	  argnum += 1;
+	}
+      if !BASE_EQ (lexenv, Vinternal_interpreter_environment)
+	/* Instantiate a new lexical environment.  */
+	{ specbind (Qinternal_interpreter_environment (), lexenv); }
+
+      elt = Fprogn (XCDR (args));
+      return unbind_to (count, elt);
+    }
+
+  USE_SAFE_ALLOCA! (sa_avail, sa_count, sa_mark);
   temps = std::ptr::null_mut ();
   SAFE_ALLOCA_LISP! (sa_avail, temps, varlist_len);
   let mut nvars: ptrdiff_t = varlist_len;
@@ -1145,7 +1246,7 @@ DEFUN! ("let", Flet, Slet, 1, UNEVALLED, 0,
 
       if !NILP (lexenv)
 	  && (*XBARE_SYMBOL (var)).u.s.bits & SYMBOL_DECLARED_SPECIAL_BIT == 0
-	  && NILP (Fmemq (var, Vinternal_interpreter_environment))
+	  && NILP (memq_lexenv (var, Vinternal_interpreter_environment))
 	/* Lexically bind VAR by adding it to the lexenv alist.  */
 	{ lexenv = Fcons (Fcons (var, tem), lexenv); }
       else
@@ -2310,7 +2411,7 @@ pub unsafe extern "C" fn eval_sub (form: Lisp_Object) -> Lisp_Object
 	 We do not pay attention to the declared_special flag here, since we
 	 already did that when let-binding the variable.  */
       let lex_binding: Lisp_Object
-	= Fassq (form, Vinternal_interpreter_environment);
+	= assq_lexenv (form, Vinternal_interpreter_environment);
       return if !NILP (lex_binding) { XCDR (lex_binding) } else { Fsymbol_value (form) };
     }
 
@@ -2367,7 +2468,7 @@ pub unsafe extern "C" fn eval_sub (form: Lisp_Object) -> Lisp_Object
       if SUBRP (fun) && !NATIVE_COMP_FUNCTION_DYNP (fun)
 	{
 	  let mut args_left: Lisp_Object = original_args;
-	  let numargs: ptrdiff_t = list_length (args_left);
+	  let numargs: ptrdiff_t = fast_list_length (args_left);
 
 	  if numargs < (*XSUBR (fun)).min_args as ptrdiff_t
 	      || ((*XSUBR (fun)).max_args >= 0
@@ -2382,32 +2483,48 @@ pub unsafe extern "C" fn eval_sub (form: Lisp_Object) -> Lisp_Object
 
 	    {
 	      /* Pass a vector of evaluated arguments.  */
-	      let mut vals: *mut Lisp_Object;
-	      let mut argnum: ptrdiff_t = 0;
-	      USE_SAFE_ALLOCA! (sa_avail, sa_count, sa_mark);
-
-	      vals = std::ptr::null_mut ();
-	      SAFE_ALLOCA_LISP! (sa_avail, vals, numargs);
-
-	      while CONSP (args_left) && argnum < numargs
+	      if numargs <= 8
 		{
-		  let arg: Lisp_Object = XCAR (args_left);
-		  args_left = XCDR (args_left);
-		  *vals.offset (argnum) = eval_sub (arg);
-		  argnum += 1;
+		  let mut argnum: ptrdiff_t = 0;
+		  while CONSP (args_left) && argnum < numargs
+		    {
+		      let arg: Lisp_Object = XCAR (args_left);
+		      args_left = XCDR (args_left);
+		      argvals[argnum as usize] = eval_sub (arg);
+		      argnum += 1;
+		    }
+		  set_backtrace_args (specpdl_ref_to_ptr (count), argvals.as_mut_ptr (), argnum);
+		  val = (((*XSUBR (fun)).function.aMANY).unwrap ()) (argnum, argvals.as_mut_ptr ());
 		}
+	      else
+		{
+		  let mut vals: *mut Lisp_Object;
+		  let mut argnum: ptrdiff_t = 0;
+		  USE_SAFE_ALLOCA! (sa_avail, sa_count, sa_mark);
 
-	      set_backtrace_args (specpdl_ref_to_ptr (count), vals, argnum);
+		  vals = std::ptr::null_mut ();
+		  SAFE_ALLOCA_LISP! (sa_avail, vals, numargs);
 
-	      val = (((*XSUBR (fun)).function.aMANY).unwrap ()) (argnum, vals);
+		  while CONSP (args_left) && argnum < numargs
+		    {
+		      let arg: Lisp_Object = XCAR (args_left);
+		      args_left = XCDR (args_left);
+		      *vals.offset (argnum) = eval_sub (arg);
+		      argnum += 1;
+		    }
 
-	      lisp_eval_depth! () -= 1;
-	      /* Do the debug-on-exit now, while VALS still exists.  */
-	      if backtrace_debug_on_exit (specpdl_ref_to_ptr (count))
-		{ val = call_debugger (list2 (Qexit (), val)); }
-	      SAFE_FREE! (sa_count, sa_mark);
-	      specpdl_ptr! () = (specpdl_ptr! ()).offset (-1);
-	      return val;
+		  set_backtrace_args (specpdl_ref_to_ptr (count), vals, argnum);
+
+		  val = (((*XSUBR (fun)).function.aMANY).unwrap ()) (argnum, vals);
+
+		  lisp_eval_depth! () -= 1;
+		  /* Do the debug-on-exit now, while VALS still exists.  */
+		  if backtrace_debug_on_exit (specpdl_ref_to_ptr (count))
+		    { val = call_debugger (list2 (Qexit (), val)); }
+		  SAFE_FREE! (sa_count, sa_mark);
+		  specpdl_ptr! () = (specpdl_ptr! ()).offset (-1);
+		  return val;
+		}
 	    }
 	  else
 	    {
@@ -2417,8 +2534,13 @@ pub unsafe extern "C" fn eval_sub (form: Lisp_Object) -> Lisp_Object
 	      i = 0;
 	      while i < maxargs
 		{
-		  argvals[i as usize] = eval_sub (Fcar (args_left));
-		  args_left = Fcdr (args_left);
+		  if CONSP (args_left)
+		    {
+		      argvals[i as usize] = eval_sub (XCAR (args_left));
+		      args_left = XCDR (args_left);
+		    }
+		  else
+		    { argvals[i as usize] = Qnil (); }
 		  i += 1;
 		}
 
@@ -2987,10 +3109,17 @@ pub unsafe extern "C" fn funcall_subr (subr: *mut Lisp_Subr, numargs: ptrdiff_t,
 	    {
 	      eassume! (maxargs <= 8);
 	      a = argbuf.as_mut_ptr () as *mut Lisp_Object;
-	      memcpy (a as *mut c_void, args as *const c_void,
-	              numargs as usize * word_size as usize);
-	      memclear (a.offset (numargs) as *mut c_void,
-	                (maxargs - numargs) * word_size);
+	      let mut i: ptrdiff_t = 0;
+	      while i < numargs
+		{
+		  *a.offset (i) = *args.offset (i);
+		  i += 1;
+		}
+	      while i < maxargs
+		{
+		  *a.offset (i) = Qnil ();
+		  i += 1;
+		}
 	    }
 	  else
 	    { a = args; }
@@ -3066,9 +3195,32 @@ unsafe fn apply_lambda (fun: Lisp_Object, args: Lisp_Object, count: specpdl_ref)
 {
   let mut arg_vector: *mut Lisp_Object;
   let mut tem: Lisp_Object;
-  USE_SAFE_ALLOCA! (sa_avail, sa_count, sa_mark);
+  let numargs: ptrdiff_t = fast_list_length (args);
+  if numargs <= 8
+    {
+      let mut arg_buf: [Lisp_Object; 8] = [lisp_h_Qnil (); 8];
+      arg_vector = arg_buf.as_mut_ptr ();
+      let mut args_left: Lisp_Object = args;
+      let mut i: ptrdiff_t = 0;
+      while i < numargs
+	{
+	  tem = XCAR (args_left);
+	  args_left = XCDR (args_left);
+	  tem = eval_sub (tem);
+	  *arg_vector.offset (i) = tem;
+	  i += 1;
+	}
+      set_backtrace_args (specpdl_ref_to_ptr (count), arg_vector, numargs);
+      tem = funcall_lambda (fun, numargs, arg_vector);
+      lisp_eval_depth! () -= 1;
+      /* Do the debug-on-exit now, while arg_vector still exists.  */
+      if backtrace_debug_on_exit (specpdl_ref_to_ptr (count))
+	{ tem = call_debugger (list2 (Qexit (), tem)); }
+      specpdl_ptr! () = (specpdl_ptr! ()).offset (-1);
+      return tem;
+    }
 
-  let numargs: ptrdiff_t = list_length (args);
+  USE_SAFE_ALLOCA! (sa_avail, sa_count, sa_mark);
   arg_vector = std::ptr::null_mut ();
   SAFE_ALLOCA_LISP! (sa_avail, arg_vector, numargs);
   let mut args_left: Lisp_Object = args;

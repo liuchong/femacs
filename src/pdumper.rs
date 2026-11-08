@@ -5765,7 +5765,8 @@ pub struct pdumper_loaded_dump_private
 #[unsafe(no_mangle)]
 pub static mut dump_public: pdumper_loaded_dump =
   pdumper_loaded_dump { start: 0, end: 0 };
-static mut dump_private: pdumper_loaded_dump_private =
+#[unsafe(no_mangle)]
+pub static mut dump_private: pdumper_loaded_dump_private =
   pdumper_loaded_dump_private {
     header: dump_header {
       magic: [0; 16],

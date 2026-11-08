@@ -202,18 +202,47 @@ unsafe extern "C" fn order_pred_lisp (ms: *mut merge_state, a: Lisp_Object, b: L
   return !NILP (calln! ((*ms).predicate, a, b));
 }
 
+unsafe extern "C" fn order_pred_lss (ms: *mut merge_state, a: Lisp_Object, b: Lisp_Object) -> bool
+{
+  if FIXNUMP (a) && FIXNUMP (b) && !debug_on_next_call
+    {
+      maybe_quit ();
+      return XFIXNUM (a) < XFIXNUM (b);
+    }
+  return !NILP (calln! ((*ms).predicate, a, b));
+}
+
+unsafe extern "C" fn order_pred_gtr (ms: *mut merge_state, a: Lisp_Object, b: Lisp_Object) -> bool
+{
+  if FIXNUMP (a) && FIXNUMP (b) && !debug_on_next_call
+    {
+      maybe_quit ();
+      return XFIXNUM (a) > XFIXNUM (b);
+    }
+  return !NILP (calln! ((*ms).predicate, a, b));
+}
+
 unsafe extern "C" fn order_pred_valuelt (ms: *mut merge_state, a: Lisp_Object, b: Lisp_Object) -> bool
 {
+  if FIXNUMP (a) && FIXNUMP (b)
+    { return XFIXNUM (a) < XFIXNUM (b); }
   return !NILP (Fvaluelt (a, b));
 }
 
 /* Return true iff A < B according to the order predicate.  */
-#[inline]
+#[inline(always)]
 unsafe fn inorder (ms: *mut merge_state, a: Lisp_Object, b: Lisp_Object) -> bool
 {
   /* C calls through the pointer directly, so a NULL pointer would crash; the
      port's `unwrap_unchecked` has exactly that precondition.  */
-  return ((*ms).pred_fun.unwrap_unchecked ()) (ms, a, b);
+  let pred_fn = (*ms).pred_fun.unwrap_unchecked ();
+  if pred_fn as usize == order_pred_lss as *const () as usize
+     && FIXNUMP (a) && FIXNUMP (b) && !debug_on_next_call
+    {
+      maybe_quit ();
+      return XFIXNUM (a) < XFIXNUM (b);
+    }
+  return pred_fn (ms, a, b);
 }
 
 /* Sort the list starting at LO and ending at HI using a stable binary
@@ -513,7 +542,14 @@ unsafe fn merge_init (ms: *mut merge_state, list_size: ptrdiff_t,
   (*ms).listlen = list_size;
   (*ms).basekeys = (*lo).keys;
   (*ms).allocated_keys = allocated_keys;
-  (*ms).pred_fun = if NILP (predicate) { Some (order_pred_valuelt) } else { Some (order_pred_lisp) };
+  (*ms).pred_fun = if NILP (predicate)
+    { Some (order_pred_valuelt) }
+  else if SUBRP (predicate) && (*XSUBR (predicate)).function.aMANY == Some (Flss)
+    { Some (order_pred_lss) }
+  else if SUBRP (predicate) && (*XSUBR (predicate)).function.aMANY == Some (Fgtr)
+    { Some (order_pred_gtr) }
+  else
+    { Some (order_pred_lisp) };
   (*ms).predicate = predicate;
   (*ms).reloc = reloc { src: ptr::null_mut (), dst: ptr::null_mut (),
 			size: ptr::null_mut (), order: 0 };

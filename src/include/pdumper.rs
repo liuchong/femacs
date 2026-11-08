@@ -180,7 +180,17 @@ pub fn pdumper_object_p (obj: *const c_void) -> bool {
    returned true for OBJ before calling this function.  */
 #[inline(always)]
 pub fn pdumper_cold_object_p (obj: *const c_void) -> bool {
-  unsafe { pdumper_cold_object_p_impl (obj) }
+  #[cfg(enable_checking)]
+  { unsafe { pdumper_cold_object_p_impl (obj) } }
+  #[cfg(not(enable_checking))]
+  {
+    unsafe extern "C" { static dump_private: [u8; 152]; }
+    unsafe {
+      let offset = (obj as uintptr_t).wrapping_sub (dump_public.start) as i32;
+      let cold_start = *(&raw const dump_private as *const u8).add (92).cast::<i32> ();
+      offset >= cold_start
+    }
+  }
 }
 
 /* Return the type of the dumped object that starts at OBJ.  It is a
@@ -212,7 +222,17 @@ pub fn pdumper_object_p_precise (obj: *const c_void) -> bool {
    pdumper_object_p_precise would return false.  */
 #[inline(always)]
 pub fn pdumper_marked_p (obj: *const c_void) -> bool {
-  unsafe { pdumper_marked_p_impl (obj) }
+  #[cfg(enable_checking)]
+  { unsafe { pdumper_marked_p_impl (obj) } }
+  #[cfg(not(enable_checking))]
+  {
+    unsafe extern "C" { static dump_private: [u8; 152]; }
+    unsafe {
+      let bitno: usize = (obj as uintptr_t).wrapping_sub (dump_public.start) >> 3;
+      let bits = *(&raw const dump_private as *const u8).add (104).cast::<*const u32> ();
+      (*bits.add (bitno >> 5) & (1u32 << (bitno & 31))) != 0
+    }
+  }
 }
 
 /* Set the pdumper mark bit for OBJ.  It is a programming error to
@@ -220,7 +240,41 @@ pub fn pdumper_marked_p (obj: *const c_void) -> bool {
    would return false.  */
 #[inline(always)]
 pub fn pdumper_set_marked (obj: *const c_void) {
-  unsafe { pdumper_set_marked_impl (obj) }
+  #[cfg(enable_checking)]
+  { unsafe { pdumper_set_marked_impl (obj) } }
+  #[cfg(not(enable_checking))]
+  {
+    unsafe extern "C" { static mut dump_private: [u8; 152]; }
+    unsafe {
+      let bitno: usize = (obj as uintptr_t).wrapping_sub (dump_public.start) >> 3;
+      let bits = *(&raw mut dump_private as *mut u8).add (104).cast::<*mut u32> ();
+      *bits.add (bitno >> 5) |= 1u32 << (bitno & 31);
+    }
+  }
+}
+
+#[inline(always)]
+pub fn pdumper_test_and_set_marked (obj: *const c_void) -> bool {
+  #[cfg(enable_checking)]
+  {
+    if pdumper_marked_p (obj) { return true; }
+    pdumper_set_marked (obj);
+    false
+  }
+  #[cfg(not(enable_checking))]
+  {
+    unsafe extern "C" { static mut dump_private: [u8; 152]; }
+    unsafe {
+      let bitno: usize = (obj as uintptr_t).wrapping_sub (dump_public.start) >> 3;
+      let bits = *(&raw mut dump_private as *mut u8).add (104).cast::<*mut u32> ();
+      let slot = bits.add (bitno >> 5);
+      let mask = 1u32 << (bitno & 31);
+      let w = *slot;
+      if (w & mask) != 0 { return true; }
+      *slot = w | mask;
+      false
+    }
+  }
 }
 
 /* Clear all the mark bits for pdumper objects.  */
