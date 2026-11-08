@@ -37,7 +37,7 @@ def digest(path: Path) -> str:
 def identities(binary: Path) -> dict[str, str]:
     return {str(p): digest(p) for p in
             [binary, binary.parent / "emacs.pdmp",
-             binary.parent / "libexec/Emacs.pdmp",
+             binary.parent / "libexec/\x45macs.pdmp",
              binary.parent.parent / "Resources/libexec/Femacs.pdmp",
              FIXTURE, Path(__file__).resolve(),
              ROOT / "tools/test-macos-delivery.py"]

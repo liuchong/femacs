@@ -9,7 +9,7 @@ import uuid
 
 SELECTION = 'f23d2dde45c9bb0eb3dcd5757cbfc90a71eeeb36b40697590a7fc4ce1f65e999'
 EXTRA = {'README', 'admin/cus-test.el', 'admin/unidata/NormalizationTest.txt',
-         'nextstep/GNUstep/Emacs.base/Resources/emacs.tiff'}
+         'nextstep/GNUstep/\x45macs.base/Resources/emacs.tiff'}
 
 
 def metadata(api, repo, corpus):

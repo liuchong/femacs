@@ -78,7 +78,7 @@ C_PROSE = (".c", ".h", ".rs")
 # half, status 3.886): `// femacs: port of lib/c-strcasecmp.c @ fd7afced403.  The file is` names
 # the reference and carries on - the strict `\s*$` form this regex used to require left those
 # files out of every gate's reading while their first line did name a reference.
-FIRST_LINE = re.compile(r"^// femacs: (?:port|mirror) of (\S+) @ (\S+)\.")
+FIRST_LINE = re.compile(r"^// femacs: (?:port|mirror) of ([^\s;]+)(?: @ (\S+)\.|;)")
 INCLUDE = re.compile(r'include!\s*\(\s*"([^"]+)"\s*\)')
 BARE_PRODUCT_NAME = "Emacs"
 BARE_NAME = re.compile(r"(?<!GNU )\b" + re.escape(BARE_PRODUCT_NAME) + r"\b")
@@ -616,6 +616,9 @@ def selftest() -> int:
 
     check_pair("a first line that names a reference and carries on",
                "// femacs: port of src/demo.c @ deadbeef.  The file is a demo.",
+               "/* Demo does a thing.  */", 0)
+    check_pair("a first line that names a reference and rebases to stable",
+               "// femacs: port of src/demo.c; P430 rebases behavior to stable a360712c.",
                "/* Demo does a thing.  */", 0)
     check_pair("no reference declared: C's comment is not C's here",
                "/* Demo does a thing.  */",
