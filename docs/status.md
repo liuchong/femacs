@@ -26185,3 +26185,16 @@ Whole-Goal and final installation remain open.
   Goal remains active3/7; no requested failure waived or old matrix promoted.
 - [Build identities](../maintenance/releases/2026-11-10-current-runtime-matrix-build.md),
   [CLN220](../maintenance/cleanup/reports/2026-11-10-220-consumed-runtime-compiler-copies.md).
+
+## 2026-11-10 — P455: complete runtime execution phases
+
+The coordinator supports complete semantics/stable/performance phases alongside
+the unchanged default all. Frozen test bodies and product fields stay fixed;
+phase completion cannot claim full-matrix coverage or Goal acceptance. Actual
+Python child-process integration passes12 dispatches and strict receipt checks,
+then14 scope protections pass. Both owned synthetic trees are retired,
+controllers exit0/cleanup complete. Independent review accepts the implementation
+and bounded evidence. Next: execute all61 profiles' applicable semantic groups,
+negative controls, dump and relocation with one whole-phase deadline; full
+stable-corpus and quiet-host performance remain separate required work.
+See [P455 scope and evidence](runtime-modernization.md#current-execution-phases-p455).

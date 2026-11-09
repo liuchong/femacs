@@ -27,6 +27,28 @@ owner_spec = importlib.util.spec_from_file_location("femacs_runtime_owner", REPO
 owner = importlib.util.module_from_spec(owner_spec)
 owner_spec.loader.exec_module(owner)
 
+EXECUTION_PHASES = {
+    'all': ('ert', 'negative', 'dump', 'relocation', 'performance'),
+    'semantics': ('ert', 'negative', 'dump', 'relocation'),
+    'stable': (),
+    'performance': ('performance',),
+}
+
+
+def execution_plan(phase, products):
+    """Partition orchestration only; every selected phase keeps all profiles."""
+    if phase not in EXECUTION_PHASES:
+        raise ValueError('unknown execution phase')
+    pairs = []
+    if phase in ('all', 'stable'):
+        pairs = [(reference, candidate) for reference in products if reference['kind'] == 'reference'
+                 for candidate in products if candidate['kind'] != 'reference' and not candidate['test_hooks']]
+    actions = EXECUTION_PHASES[phase]
+    ids = [*actions, *('stable-' + candidate['id'] for _, candidate in pairs)]
+    if not ids or len(ids) != len(set(ids)):
+        raise ValueError('empty or duplicate execution scope')
+    return actions, pairs, ids
+
 
 def clean_environment():
     return {key:value for key,value in os.environ.items()
@@ -415,8 +437,9 @@ def component_matrix(options, out):
 def _execute_profiles(options, out, source, products_path, products, base, env,
                       *, harness=None, original_rows=None):
     harness = harness or source
+    actions, pairs, _ = execution_plan(getattr(options, 'execution_phase', 'all'), products)
     rows = []
-    for action in ("ert", "negative", "dump", "relocation", "performance"):
+    for action in actions:
         command = [sys.executable, harness / "tools/runtime-acceptance.py", "--action", action,
                    "--repository", REPO, "--products", products_path,
                    "--out", base / action, "--timeout", str(options.timeout)]
@@ -446,44 +469,42 @@ def _execute_profiles(options, out, source, products_path, products, base, env,
                 row['receipt_validation_error'] = f'{type(error).__name__}: {error}'
         rows.append(row)
         execution.write_json(out / "partial.json", dict(cases=rows, final=False))
-    references = [product for product in products if product["kind"] == "reference"]
-    candidates = [product for product in products if product["kind"] != "reference" and not product["test_hooks"]]
-    for reference in references:
-        for candidate in candidates:
-            name = "stable-" + candidate["id"]
-            receipt_root = base / name
-            command = [sys.executable, harness / "tools/stable-suite.py", "--repo", source,
-                       "--manifest", source / "compatibility/stable-31.1/sources.json", "--out", receipt_root,
-                       "--reference", reference["program"], "--candidate", candidate["program"],
-                       "--reference-dump-args", json.dumps(["--dump-file=" + reference["dump"]]),
-                       "--candidate-dump-args", json.dumps(["--dump-file=" + candidate["dump"]]),
-                       "--reference-env", json.dumps({"FEMACS_GC_OBSERVATION":"off"}),
-                       "--candidate-env", json.dumps({"FEMACS_GC_OBSERVATION":"off",
-                                                       "FEMACS_GC_COLLECTOR":"major" if candidate["collector"] == "off" else candidate["collector"]}),
-                       "--timeout", str(options.timeout),
-                       '--runner', harness/'tools/fixtures/stable-suite-runner.el']
-            case_env = dict(env)
-            result = execution.run_process(command, out / name, case_env, None, cwd=source)
-            receipt = receipt_root / "stable-suite-run.json"
-            row = dict(id=name, process=result, receipt=str(receipt),
-                             receipt_sha256=execution.digest(receipt) if receipt.is_file() else None,
-                             passed=False)
-            try:
-                suite = execution.load_tool('stable-suite.py')
-                summary = suite.read_completion(receipt_root,
-                    source/'compatibility/stable-31.1/sources.json', reference['program'], candidate['program'],
-                    ['--dump-file='+reference['dump']], ['--dump-file='+candidate['dump']],
-                    {'FEMACS_GC_OBSERVATION': 'off'}, {'FEMACS_GC_OBSERVATION': 'off',
-                        'FEMACS_GC_COLLECTOR': 'major' if candidate['collector'] == 'off' else candidate['collector']})
-                row['completion_sha256'] = execution.digest(receipt_root/'stable-suite-completion.json')
-                row['case_count'] = summary['case_count']
-                row['failure_count'] = summary['failure_count']
-                row['passed'] = (result['exit_code'] == 0 and result['complete']
-                    and not result['remaining_group_terminated'] and summary['corpus_complete'])
-            except Exception as error:
-                row['receipt_validation_error'] = f'{type(error).__name__}: {error}'
-            rows.append(row)
-            execution.write_json(out / "partial.json", dict(cases=rows, final=False))
+    for reference, candidate in pairs:
+        name = "stable-" + candidate["id"]
+        receipt_root = base / name
+        command = [sys.executable, harness / "tools/stable-suite.py", "--repo", source,
+                   "--manifest", source / "compatibility/stable-31.1/sources.json", "--out", receipt_root,
+                   "--reference", reference["program"], "--candidate", candidate["program"],
+                   "--reference-dump-args", json.dumps(["--dump-file=" + reference["dump"]]),
+                   "--candidate-dump-args", json.dumps(["--dump-file=" + candidate["dump"]]),
+                   "--reference-env", json.dumps({"FEMACS_GC_OBSERVATION":"off"}),
+                   "--candidate-env", json.dumps({"FEMACS_GC_OBSERVATION":"off",
+                                                   "FEMACS_GC_COLLECTOR":"major" if candidate["collector"] == "off" else candidate["collector"]}),
+                   "--timeout", str(options.timeout),
+                   '--runner', harness/'tools/fixtures/stable-suite-runner.el']
+        case_env = dict(env)
+        result = execution.run_process(command, out / name, case_env, None, cwd=source)
+        receipt = receipt_root / "stable-suite-run.json"
+        row = dict(id=name, process=result, receipt=str(receipt),
+                         receipt_sha256=execution.digest(receipt) if receipt.is_file() else None,
+                         passed=False)
+        try:
+            suite = execution.load_tool('stable-suite.py')
+            summary = suite.read_completion(receipt_root,
+                source/'compatibility/stable-31.1/sources.json', reference['program'], candidate['program'],
+                ['--dump-file='+reference['dump']], ['--dump-file='+candidate['dump']],
+                {'FEMACS_GC_OBSERVATION': 'off'}, {'FEMACS_GC_OBSERVATION': 'off',
+                    'FEMACS_GC_COLLECTOR': 'major' if candidate['collector'] == 'off' else candidate['collector']})
+            row['completion_sha256'] = execution.digest(receipt_root/'stable-suite-completion.json')
+            row['execution_complete'] = summary['execution_complete']
+            row['case_count'] = summary['case_count']
+            row['failure_count'] = summary['failure_count']
+            row['passed'] = (result['exit_code'] == 0 and result['complete']
+                and not result['remaining_group_terminated'] and summary['corpus_complete'])
+        except Exception as error:
+            row['receipt_validation_error'] = f'{type(error).__name__}: {error}'
+        rows.append(row)
+        execution.write_json(out / "partial.json", dict(cases=rows, final=False))
     return rows
 
 
@@ -509,6 +530,8 @@ def snapshot_harness(out):
 
 def execute_matrix(options, out, artifacts=None):
     original, source, products_path, products, build = read_action_build(options)
+    phase = getattr(options, 'execution_phase', 'all')
+    actions, pairs, expected_ids = execution_plan(phase, products)
     # Include the complete stable-corpus loop in the same immutable-product boundary.
     before = {product["id"]: execution.product_identity(product, resources=True) for product in products}
     identity_path = out / "product-identities.json"
@@ -562,9 +585,17 @@ def execute_matrix(options, out, artifacts=None):
         execution.write_json(identity_path, dict(before=before, after=after,
                                                 identity_errors=errors, unchanged=unchanged,
                                                 complete_receipts_valid=complete_receipts_valid))
+    scope_complete = ([row['id'] for row in rows] == expected_ids
+                      and all(row.get('execution_complete') is True for row in rows)
+                      and unchanged and complete_receipts_valid)
     return dict(cases=rows, build_receipt=str(original), build_complete=build.get("passed") is True,
                 harness_root=str(harness), original_ert_reused=original_rows is not None,
-                passed=bool(rows) and all(row["passed"] for row in rows) and unchanged,
+                execution_phase=phase, requested_actions=list(actions), requested_stable_pairs=len(pairs),
+                execution_complete=scope_complete,
+                full_matrix_execution_complete=phase == 'all' and scope_complete,
+                remaining_execution_phases=([name for name in ('semantics', 'stable', 'performance')
+                                             if name != phase] if phase != 'all' else []),
+                passed=scope_complete and all(row["passed"] for row in rows),
                 product_identity_unchanged=unchanged, complete_receipts_valid=complete_receipts_valid,
                 identity_receipt=str(identity_path),
                 goal_complete=False, compatibility_accepted=False, performance_accepted=False,
@@ -637,10 +668,14 @@ def main(argv=None):
     parser.add_argument("--carry-native-cocoa-from", type=Path)
     parser.add_argument("--carry-native-cocoa-controller-result", type=Path)
     parser.add_argument("--timeout", type=float, default=300)
+    parser.add_argument('--execution-phase', choices=tuple(EXECUTION_PHASES), default='all',
+                        help='execute one complete phase without claiming the complete matrix')
     parser.add_argument('--original-ert', type=Path)
     parser.add_argument('--original-index', type=Path)
     parser.add_argument('--original-audit', type=Path)
     options = parser.parse_args(argv)
+    if options.action != 'execute' and options.execution_phase != 'all':
+        parser.error('execution-phase applies only to execute')
     if options.execution_products is not None and options.action not in ('prepare', 'execute', 'components'):
         parser.error('execution-products applies only to prepare/execute/components')
     if not math.isfinite(options.timeout) or options.timeout <= 0:

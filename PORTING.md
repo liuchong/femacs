@@ -4110,3 +4110,17 @@ spelling the required input literal with an ASCII escape, as for other protocol
 inputs. This closes the declaration-prose gate without changing the mapping.
 Retain the seven client-receipt layout protections for the already implemented
 version-3 file set; do not upgrade a historical version-2 receipt implicitly.
+
+## P455: separate complete runtime execution phases (2026-11-10)
+
+The current matrix requires 53,280 stable-corpus file calls, while performance
+promotion requires an otherwise quiet host. Allow `runtime-stage.py execute`
+to select the complete `semantics`, `stable` or `performance` phase, retaining
+`all` as the default. Semantics includes ERT, negative controls, dump and
+relocation for every declared applicable profile. Stable keeps every original
+reference/candidate pair and performance keeps its existing modes and rounds.
+The same frozen source, test bodies, products, retention and final identity
+checks apply. A phase result names its scope and outstanding phases; only an
+`all` invocation may report complete matrix coverage. No phase success grants
+compatibility, performance or whole-Goal acceptance. Verify real child-process
+dispatch and receipt validation before adding scope-protection contracts.

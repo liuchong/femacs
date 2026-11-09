@@ -1,5 +1,55 @@
 # Lisp runtime modernization: evidence and first bounded implementation
 
+## Current execution phases (P455)
+
+The current signed-source build and negative preparation are recorded in the
+[matrix build report](../maintenance/releases/2026-11-10-current-runtime-matrix-build.md).
+The outer coordinator may now schedule complete phases without changing any
+frozen test body, product or inner acceptance rule:
+
+```text
+tools/runtime-stage.py main / execute_matrix
+  execution_plan: all -> ert, negative, dump, relocation, performance + stable pairs
+                  semantics -> ert, negative, dump, relocation
+                  stable -> all reference/candidate corpus pairs
+                  performance -> existing complete measurement action
+  _execute_profiles -> frozen tools/runtime-acceptance.py or tools/stable-suite.py
+  existing process receipts -> strict completion readers -> product/source postflight
+```
+
+Baseline `1a60b96b`: `tools/runtime-stage.py` previously dispatched all five
+actions and then all stable pairs from `_execute_profiles` (line415); its
+`execute_matrix` (line520) already enclosed the full execution in immutable
+product checks. `execution_plan(phase, products)` adds only the scheduling
+partition and expected outer case IDs. The CLI `--execution-phase` defaults
+to `all` and rejects nondefault phases outside `--action execute`.
+`execution_complete` describes the requested phase; `full_matrix_execution_complete`
+can be true only for `all`. Missing/duplicate outer cases, incomplete inner
+receipts or changed inputs cannot pass. Other phases remain explicitly listed.
+
+Run each invocation under the existing external resource controller with a
+whole-phase deadline and unchanged per-case `--timeout`. Begin with
+`--action execute --execution-phase semantics --build BUILD --out FRESH
+--retention-mode files --timeout 300`. All61 profiles remain in the product
+list; applicability remains owned by each existing inner action. This does
+not parallelize measurement or reduce the 48 stable pairs/53,280 file calls.
+Review actual phase timings before admitting the next expensive phase.
+
+- [x] C455: implement phase selection, exact dispatch coverage and result scope.
+- [x] A455: real file/process integration verifies dispatch and strict receipts.
+- [x] A455-P: add and pass critical scope/invalid-selection protections afterward.
+- [x] A455-R: independent review accepts the complete coordinator unit; actual runtime outcomes remain separate.
+
+The owned integration ran12 real Python children across all four phase choices
+and rejected forged corpus receipts despite child exit0. It isolated compiled
+product admission and did not execute an editor. Its result SHA256 is
+`d2daa03bf28cb76110857c7f5232c240c3cc9fe1f8c346cfe541c4d1274de600`.
+The subsequent14 scope protections passed, result SHA256
+`aa4c1d95af1c2b44d6056c769ae943e36d26ccbf89475c7a8c792da68a46efd1`.
+Both fresh outputs retain only their result; synthetic trees were retired.
+Controllers exited0 with complete cleanup under1GiB/120s. This accepts
+orchestration behavior, not the pending61-profile semantic execution.
+
 Current acceptance amendment (2026-10-25): the user requires100% compatibility
 and measured performance improvement against the system-installed macOS stable
 editor, including stability, memory and GC latency. Its exact binary/dump,
