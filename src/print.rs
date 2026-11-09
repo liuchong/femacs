@@ -498,8 +498,16 @@ unsafe fn printchar_to_stream (mut ch: c_uint, stream: *mut FILE)
    non-interactive.  If FUN is neither nil nor t, call FUN with CH as
    argument.  */
 
+#[inline]
 unsafe fn printchar (ch: c_uint, fun: Lisp_Object)
 {
+  if NILP (fun) && ASCII_CHAR_P (ch as isize) && print_buffer.pos_byte < print_buffer.size
+    {
+      *print_buffer.buffer.add (print_buffer.pos_byte as usize) = ch as c_char;
+      print_buffer.pos += 1;
+      print_buffer.pos_byte += 1;
+      return;
+    }
   if ! NILP (fun) && ! EQ (fun, Qt ())
     { calln! (fun, make_fixnum (ch as isize)); }
   else
@@ -577,6 +585,7 @@ unsafe fn octalout (c: u8, data: *mut u8, i: ptrdiff_t, size: ptrdiff_t,
    In the case where PRINTCHARFUN is nil, it is safe for PTR to point
    to data in a Lisp string.  Otherwise that is not safe.  */
 
+#[inline]
 unsafe fn strout (ptr: *const c_char, size: ptrdiff_t, size_byte: ptrdiff_t,
 		  printcharfun: Lisp_Object)
 {
@@ -996,6 +1005,18 @@ DEFUN! ("prin1-to-string", Fprin1_to_string, Sprin1_to_string, 1, 3, 0,
   let mut pc: print_context = print_prepare (Vprin1_to_string_buffer);
   let mut object = object;               /* C 831 reassigns the parameter.  */
   print (object, pc.printcharfun, NILP (noescape));
+  let pbuf: *mut buffer = XBUFFER (Vprin1_to_string_buffer);
+  if NILP (pc.printcharfun)
+     && BUF_Z_BYTE! (pbuf) == BUF_BEG_BYTE (pbuf)
+     && ! NILP (BVAR! (pbuf, enable_multibyte_characters_))
+    {
+      object = if print_buffer.pos == print_buffer.pos_byte
+	{ make_unibyte_string (print_buffer.buffer, print_buffer.pos_byte) }
+      else
+	{ make_multibyte_string (print_buffer.buffer, print_buffer.pos, print_buffer.pos_byte) };
+      Vdeactivate_mark = save_deactivate_mark;
+      return unbind_to (count, object);
+    }
   /* Make Vprin1_to_string_buffer be the default buffer after print_finish */
   print_finish (&raw mut pc);
 

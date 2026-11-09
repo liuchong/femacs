@@ -354,7 +354,238 @@ DEFUN! ("byte-code", Fbyte_code, Sbyte_code, 3, 3, 0,
    `calln (f)` is the port's `calln!` variadic macro.  */
 unsafe extern "C" fn bcall0 (f: Lisp_Object)
 {
+  if CLOSUREP (f) && ! debug_on_next_call && ! BYTE_CODE_SAFE! ()
+    {
+      let template: Lisp_Object = AREF (f, CLOSURE_ARGLIST as isize);
+      if FIXNUMP (template) && XFIXNUM (template) == 0
+	{
+	  let bytestr: Lisp_Object = AREF (f, CLOSURE_CODE as isize);
+	  if SCHARS (bytestr) == 6
+	    {
+	      let p: *const c_uchar = SDATA (bytestr);
+	      /* Fast path for 0-arg `(setq var (1+ var))` boxed cell cleanup:
+		 \300 (192 Bconstant 0) \211 (137 Bdup) \242 (162 Bcar_safe)
+		 T (84 Badd1) \240 (160 Bsetcar) \207 (135 Breturn) */
+	      if *p == 192 && *p.offset (1) == 137 && *p.offset (2) == 162
+		 && *p.offset (3) == 84 && *p.offset (4) == 160 && *p.offset (5) == 135
+		{
+		  let vec: Lisp_Object = AREF (f, CLOSURE_CONSTANTS as isize);
+		  if ASIZE (vec) >= 1
+		    {
+		      let cell: Lisp_Object = AREF (vec, 0);
+		      if CONSP (cell)
+			{
+			  let cur: Lisp_Object = XCAR (cell);
+			  if FIXNUMP (cur) && XFIXNUM (cur) != MOST_POSITIVE_FIXNUM
+			    {
+			      XSETCAR (cell, make_fixnum (XFIXNUM (cur) + 1));
+			      return;
+			    }
+			}
+		    }
+		}
+	    }
+	}
+    }
   calln! (f);
+}
+
+#[cold]
+#[inline(never)]
+unsafe fn bc_periodic_gc_and_quit ()
+{
+  maybe_gc ();
+  maybe_quit ();
+}
+
+#[cold]
+#[inline(never)]
+unsafe fn bc_invalid_opcode (op: ptrdiff_t, pc: *const c_uchar, bytestr_data: *const c_uchar) -> !
+{
+  error (c"Invalid byte opcode: op=%d, ptr=%td".as_ptr (),
+	 op as c_int, pc.offset (-1).offset_from (bytestr_data));
+}
+
+#[inline(never)]
+unsafe fn bc_setup_frame_args (
+  frame_base: *mut Lisp_Object,
+  args_template: ptrdiff_t,
+  nargs: ptrdiff_t,
+  mut args: *mut Lisp_Object,
+) -> *mut Lisp_Object
+{
+  if args_template == ((nargs << 8) | nargs) && nargs < 128
+    {
+      if args != frame_base
+	{ std::ptr::copy_nonoverlapping (args, frame_base, nargs as usize); }
+      return frame_base.offset (nargs - 1);
+    }
+  let mut top: *mut Lisp_Object = frame_base.offset (-1);
+  let rest: bool = (args_template & 128) != 0;
+  let mandatory: c_int = (args_template & 127) as c_int;
+  let nonrest: ptrdiff_t = args_template >> 8;
+  if ! (mandatory as ptrdiff_t <= nargs && (rest || nargs <= nonrest))
+    { Fsignal (Qwrong_number_of_arguments (), list2 (Fcons (make_fixnum (mandatory as EMACS_INT),
+							    make_fixnum (nonrest)),
+						     make_fixnum (nargs))); }
+  let pushedargs: ptrdiff_t = min (nonrest, nargs);
+  { let mut i: ptrdiff_t = 0;
+    while i < pushedargs
+      { top = top.offset (1); *top = *args; i += 1; args = args.offset (1); } }
+  if nonrest < nargs
+    { top = top.offset (1); *top = Flist (nargs - nonrest, args); }
+  else
+    { let mut i: ptrdiff_t = nargs - if rest { 1 } else { 0 };
+      while i < nonrest
+	{ top = top.offset (1); *top = Qnil (); i += 1; } }
+  top
+}
+
+#[cold]
+#[inline(never)]
+unsafe fn bc_call_housekeeping_slow (top: *mut Lisp_Object, call_nargs: ptrdiff_t) -> ptrdiff_t
+{
+  maybe_quit ();
+  let ct = current_thread;
+  (*ct).m_lisp_eval_depth += 1;
+  if (*ct).m_lisp_eval_depth as EMACS_INT > max_lisp_eval_depth
+    {
+      if max_lisp_eval_depth < 100
+	{ max_lisp_eval_depth = 100; }
+      if (*ct).m_lisp_eval_depth as EMACS_INT > max_lisp_eval_depth
+	{ error (c"Lisp nesting exceeds `max-lisp-eval-depth'".as_ptr ()); }
+    }
+  let count1: specpdl_ref = record_in_backtrace (*top, top.offset (1), call_nargs);
+  maybe_gc ();
+  if debug_on_next_call
+    { do_debug_on_call (Qlambda (), count1); }
+  call_nargs
+}
+
+#[inline(never)]
+unsafe fn bc_prepare_apply_spread (
+  bc: *mut bc_thread_state,
+  f_resolved: Lisp_Object,
+  at: EMACS_INT,
+  call_nargs: ptrdiff_t,
+  call_args: *mut Lisp_Object,
+  spread: Lisp_Object,
+  out_nargs: *mut ptrdiff_t,
+  out_templ: *mut EMACS_INT,
+) -> *mut Lisp_Object
+{
+  let mut s: Lisp_Object = spread;
+  let mut slen: ptrdiff_t = 0;
+  while CONSP (s) && slen <= 16
+    {
+      slen += 1;
+      s = XCDR (s);
+    }
+  let prefix_n: ptrdiff_t = call_nargs - 2;
+  let total_nargs: ptrdiff_t = prefix_n + slen;
+  let f_max_stack: ptrdiff_t =
+    XFIXNAT (AREF (f_resolved, CLOSURE_STACK_DEPTH as isize));
+  let nonrest: ptrdiff_t = (at >> 8) as ptrdiff_t;
+  let rest: bool = (at & 128) != 0;
+  if NILP (s) && slen <= 16
+     && (at & 127) <= total_nargs
+     && (if rest { (nonrest + 1) <= f_max_stack }
+	 else { total_nargs <= nonrest && total_nargs <= f_max_stack })
+    {
+      let fbase: *mut Lisp_Object =
+	fam_base (core::ptr::addr_of_mut! ((*((*bc).fp as *mut bc_frame)).next_stack));
+      let need_stack: ptrdiff_t = max (f_max_stack, total_nargs) + 16;
+      if (fbase.offset (need_stack) as *const c_char) < ((*bc).stack_end as *const c_char)
+	{
+	  let mut i: ptrdiff_t = 0;
+	  while i < prefix_n
+	    {
+	      *fbase.offset (i) = *call_args.offset (1 + i);
+	      i += 1;
+	    }
+	  let mut s2: Lisp_Object = spread;
+	  while CONSP (s2)
+	    {
+	      *fbase.offset (i) = XCAR (s2);
+	      i += 1;
+	      s2 = XCDR (s2);
+	    }
+	  if ! rest
+	    {
+	      *out_nargs = total_nargs;
+	      *out_templ = at;
+	      return fbase;
+	    }
+	  else
+	    {
+	      let rest_list: Lisp_Object = if total_nargs > nonrest
+		{ Flist (total_nargs - nonrest, fbase.offset (nonrest)) }
+	      else
+		{ Qnil () };
+	      let mut k: ptrdiff_t = total_nargs;
+	      while k < nonrest
+		{
+		  *fbase.offset (k) = Qnil ();
+		  k += 1;
+		}
+	      *fbase.offset (nonrest) = rest_list;
+	      *out_nargs = nonrest + 1;
+	      *out_templ = ((nonrest + 1) << 8) | (nonrest + 1);
+	      return fbase;
+	    }
+	}
+    }
+  std::ptr::null_mut ()
+}
+
+#[inline(never)]
+unsafe fn bc_dup_leq_cons_loop (
+  top: *mut Lisp_Object,
+  v1: Lisp_Object,
+  v2: Lisp_Object,
+  quitcounter: *mut c_uchar,
+) -> bool
+{
+  let from_obj: Lisp_Object = *top.offset (-5);
+  let inc_obj: Lisp_Object = *top.offset (-3);
+  let n_obj: Lisp_Object = *top.offset (-1);
+  if ! (FIXNUMP (from_obj) && FIXNUMP (inc_obj) && FIXNUMP (n_obj))
+    { return false; }
+  let from_val: EMACS_INT = XFIXNUM (from_obj);
+  let to_val: EMACS_INT = XFIXNUM (v2);
+  let inc_val: EMACS_INT = XFIXNUM (inc_obj);
+  let mut n_val: EMACS_INT = XFIXNUM (n_obj);
+  let mut next_val: EMACS_INT = XFIXNUM (v1);
+  let mut seq: Lisp_Object = *top.offset (-2);
+  let qc_rem: EMACS_INT = (256 - (*quitcounter as EMACS_INT)).max (1);
+  let mut steps: EMACS_INT = 0;
+  while steps < qc_rem && next_val <= to_val
+    {
+      let n1: EMACS_INT = n_val.wrapping_add (1);
+      if FIXNUM_OVERFLOW_P (n1) { break; }
+      let (prod, ov1) = (n1 as intmax_t).overflowing_mul (inc_val as intmax_t);
+      if ov1 || FIXNUM_OVERFLOW_P (prod as EMACS_INT) { break; }
+      let sum: EMACS_INT = from_val.wrapping_add (prod as EMACS_INT);
+      if FIXNUM_OVERFLOW_P (sum) { break; }
+      seq = Fcons (make_fixnum (next_val), seq);
+      n_val = n1;
+      next_val = sum;
+      steps += 1;
+    }
+  if steps > 0
+    {
+      *top.offset (-2) = seq;
+      *top.offset (-1) = make_fixnum (n_val);
+      *top = make_fixnum (next_val);
+      *quitcounter = (*quitcounter).wrapping_add (steps as c_uchar);
+      if *quitcounter == 0
+	{
+	  *quitcounter = 1;
+	  bc_periodic_gc_and_quit ();
+	}
+      return true;
+    }
+  false
 }
 
 /* The bytecode stack size in bytes.
@@ -520,6 +751,64 @@ const OP_BRANCH: c_int = 6;
 const PUSHHANDLER: c_int = 7;
 const EXIT: c_int = 8;
 
+#[cold]
+#[inline(never)]
+unsafe fn bc_varref_slow (sym: Lisp_Object) -> Lisp_Object
+{
+  return Fsymbol_value (sym);
+}
+
+#[cold]
+#[inline(never)]
+unsafe fn bc_varset_slow (sym: Lisp_Object, val: Lisp_Object)
+{
+  set_internal (sym, val, Qnil (), SET_INTERNAL_SET);
+}
+
+#[cold]
+#[inline(never)]
+unsafe fn bc_varbind_slow (sym: Lisp_Object, val: Lisp_Object)
+{
+  specbind (sym, val);
+}
+
+#[cold]
+#[inline(never)]
+unsafe fn bc_grow_specpdl ()
+{
+  grow_specpdl_allocation ();
+}
+
+#[cold]
+#[inline(never)]
+unsafe fn bc_unbind_slow (ct: *mut thread_state, target_ptr: *mut specbinding)
+{
+  let target_ref: specpdl_ref =
+    wrap_specpdl_ref (target_ptr as isize - ((*ct).m_specpdl) as isize);
+  unbind_to (target_ref, Qnil ());
+}
+
+#[cold]
+#[inline(never)]
+unsafe fn bc_debug_on_exit (val: Lisp_Object) -> Lisp_Object
+{
+  return call_debugger (list2 (Qexit (), val));
+}
+
+#[cold]
+#[inline(never)]
+unsafe fn bc_funcall_subr_slow (subr: *mut Lisp_Subr, nargs: ptrdiff_t, args: *mut Lisp_Object) -> Lisp_Object
+{
+  return funcall_subr (subr, nargs, args);
+}
+
+#[cold]
+#[inline(never)]
+unsafe fn bc_funcall_general_slow (fun: Lisp_Object, nargs: ptrdiff_t, args: *mut Lisp_Object) -> Lisp_Object
+{
+  return funcall_general (fun, nargs, args);
+}
+
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn exec_byte_code (mut fun: Lisp_Object, mut args_template: ptrdiff_t,
 					 mut nargs: ptrdiff_t, mut args: *mut Lisp_Object)
@@ -576,6 +865,13 @@ pub unsafe extern "C" fn exec_byte_code (mut fun: Lisp_Object, mut args_template
 
   macro_rules! TOP { () => { *top } }
 
+  let mut vector: Lisp_Object = AREF (fun, CLOSURE_CONSTANTS as isize);
+  let mut const_length: ptrdiff_t = if BYTE_CODE_SAFE! () { ASIZE (vector) } else { 0 };
+  let mut bytestr_length: ptrdiff_t = if BYTE_CODE_SAFE! () { SCHARS (bytestr) } else { 0 };
+  let mut vectorp: *mut Lisp_Object =
+    fam_base (core::ptr::addr_of_mut! ((*XVECTOR (vector)).contents));
+  let mut bytestr_data: *const c_uchar = SDATA (bytestr);
+
   'setup_frame: loop
     {
   eassert! (! STRING_MULTIBYTE (bytestr));
@@ -585,14 +881,7 @@ pub unsafe extern "C" fn exec_byte_code (mut fun: Lisp_Object, mut args_template
      when returning, to detect unwind imbalances.  This would require adding
      a field to the frame header.  */
 
-  let vector: Lisp_Object = AREF (fun, CLOSURE_CONSTANTS as isize);
-  let maxdepth: Lisp_Object = AREF (fun, CLOSURE_STACK_DEPTH as isize);
-  let mut const_length: ptrdiff_t = ASIZE (vector);
-  let mut bytestr_length: ptrdiff_t = SCHARS (bytestr);
-  let mut vectorp: *mut Lisp_Object =
-    fam_base (core::ptr::addr_of_mut! ((*XVECTOR (vector)).contents));
-
-  let max_stack: EMACS_INT = XFIXNAT (maxdepth);
+  let max_stack: EMACS_INT = XFIXNAT (AREF (fun, CLOSURE_STACK_DEPTH as isize));
   let frame_base: *mut Lisp_Object =
     fam_base (core::ptr::addr_of_mut! ((*((*bc).fp as *mut bc_frame)).next_stack));
   let fp: *mut bc_frame = frame_base.offset (max_stack) as *mut bc_frame;
@@ -610,31 +899,41 @@ pub unsafe extern "C" fn exec_byte_code (mut fun: Lisp_Object, mut args_template
   (*fp).saved_fp = (*bc).fp as *mut bc_frame;
   (*bc).fp = fp as *mut c_void;
 
-  top = frame_base.offset (-1);
-  let mut bytestr_data: *const c_uchar = SDATA (bytestr);
   pc = bytestr_data;
 
   /* ARGS_TEMPLATE is composed of bit fields:
      bits 0..6    minimum number of arguments
      bits 7       1 iff &rest argument present
      bits 8..14   maximum number of arguments */
-  let rest: bool = (args_template & 128) != 0;
-  let mandatory: c_int = (args_template & 127) as c_int;
-  let nonrest: ptrdiff_t = args_template >> 8;
-  if ! (mandatory as ptrdiff_t <= nargs && (rest || nargs <= nonrest))
-    { Fsignal (Qwrong_number_of_arguments (), list2 (Fcons (make_fixnum (mandatory as EMACS_INT),
-							    make_fixnum (nonrest)),
-						    make_fixnum (nargs))); }
-  let pushedargs: ptrdiff_t = min (nonrest, nargs);
-  { let mut i: ptrdiff_t = 0;
-    while i < pushedargs
-      { PUSH! (*args); i += 1; args = args.offset (1); } }
-  if nonrest < nargs
-    { PUSH! (Flist (nargs - nonrest, args)); }
+  if args_template == ((nargs << 8) | nargs) && nargs <= 3
+    {
+      match nargs
+	{
+	  0 => { top = frame_base.offset (-1); }
+	  1 =>
+	    {
+	      *frame_base = *args;
+	      top = frame_base;
+	    }
+	  2 =>
+	    {
+	      *frame_base = *args;
+	      *frame_base.offset (1) = *args.offset (1);
+	      top = frame_base.offset (1);
+	    }
+	  _ =>
+	    {
+	      *frame_base = *args;
+	      *frame_base.offset (1) = *args.offset (1);
+	      *frame_base.offset (2) = *args.offset (2);
+	      top = frame_base.offset (2);
+	    }
+	}
+    }
   else
-    { let mut i: ptrdiff_t = nargs - if rest { 1 } else { 0 };
-      while i < nonrest
-	{ PUSH! (Qnil ()); i += 1; } }
+    {
+      top = bc_setup_frame_args (frame_base, args_template, nargs, args);
+    }
 
   /* C 574-601's `#ifdef BYTE_CODE_THREADED` arm defines `CASE`/`NEXT`/`FIRST`/
      `CASE_DEFAULT`/`CASE_ABORT` with `insn_` labels and `goto *targets[op = FETCH]`;
@@ -657,12 +956,14 @@ pub unsafe extern "C" fn exec_byte_code (mut fun: Lisp_Object, mut args_template
       if BYTE_CODE_SAFE! () && ! (branch_arg >= 0 && branch_arg < bytestr_length)
 	{ emacs_abort (); }
       let new_pc: *const c_uchar = bytestr_data.offset (branch_arg);
-      quitcounter = quitcounter.wrapping_add ((new_pc < pc) as c_uchar);
-      if quitcounter == 0
+      if new_pc < pc
 	{
-	  quitcounter = 1;
-	  maybe_gc ();
-	  maybe_quit ();
+	  quitcounter = quitcounter.wrapping_add (1);
+	  if quitcounter == 0
+	    {
+	      quitcounter = 1;
+	      bc_periodic_gc_and_quit ();
+	    }
 	}
       pc = new_pc;
       NEXT! ();
@@ -676,7 +977,7 @@ pub unsafe extern "C" fn exec_byte_code (mut fun: Lisp_Object, mut args_template
       if ((*XBARE_SYMBOL (v1)).u.s.bits & SYMBOL_REDIRECT_MASK) >> SYMBOL_REDIRECT_SHIFT
 	  != SYMBOL_PLAINVAL
 	  || { v2 = (*XBARE_SYMBOL (v1)).u.s.val.value; BASE_EQ (v2, Qunbound ()) }
-	{ v2 = Fsymbol_value (v1); }
+	{ v2 = bc_varref_slow (v1); }
       PUSH! (v2);
       NEXT! ();
     }};
@@ -686,159 +987,397 @@ pub unsafe extern "C" fn exec_byte_code (mut fun: Lisp_Object, mut args_template
     ($idx:expr) => {{
       let sym: Lisp_Object = *vectorp.offset ($idx);
       let val: Lisp_Object = POP! ();
-      if ((*XBARE_SYMBOL (sym)).u.s.bits & SYMBOL_REDIRECT_MASK) >> SYMBOL_REDIRECT_SHIFT
-	  == SYMBOL_PLAINVAL
-	  && ((*XBARE_SYMBOL (sym)).u.s.bits & SYMBOL_TRAPPED_WRITE_MASK)
-	     >> SYMBOL_TRAPPED_WRITE_SHIFT == 0
+      if ((*XBARE_SYMBOL (sym)).u.s.bits & (SYMBOL_REDIRECT_MASK | SYMBOL_TRAPPED_WRITE_MASK)) == 0
 	{ SET_SYMBOL_VAL (XBARE_SYMBOL (sym), val); }
       else
-	{ set_internal (sym, val, Qnil (), SET_INTERNAL_SET); }
+	{ bc_varset_slow (sym, val); }
       NEXT! ();
     }};
   }
 
   macro_rules! do_varbind {
     ($idx:expr) => {{
-      specbind (*vectorp.offset ($idx), POP! ());
+      let sym_obj: Lisp_Object = *vectorp.offset ($idx);
+      let val: Lisp_Object = POP! ();
+      if BARE_SYMBOL_P (sym_obj)
+	{
+	  let sym: *mut Lisp_Symbol = XBARE_SYMBOL (sym_obj);
+	  if ((*sym).u.s.bits & (SYMBOL_REDIRECT_MASK | SYMBOL_TRAPPED_WRITE_MASK)) == 0
+	    {
+	      let ct = current_thread;
+	      let pdl: *mut specbinding = (*ct).m_specpdl_ptr;
+	      (*pdl).r#let.kind = SPECPDL_LET as u8;
+	      (*pdl).r#let.symbol = sym_obj;
+	      (*pdl).r#let.old_value = (*sym).u.s.val.value;
+	      (*sym).u.s.val.value = val;
+	      let next = pdl.add (1);
+	      (*ct).m_specpdl_ptr = next;
+	      if next == (*ct).m_specpdl_end
+		{ bc_grow_specpdl (); }
+	      NEXT! ();
+	    }
+	}
+      bc_varbind_slow (sym_obj, val);
       NEXT! ();
     }};
   }
 
   macro_rules! do_unbind {
     ($count:expr) => {{
-      unbind_to (specpdl_ref_add (SPECPDL_INDEX (), -($count)), Qnil ());
+      let count_n: ptrdiff_t = $count;
+      let ct = current_thread;
+      let mut ptr: *mut specbinding = (*ct).m_specpdl_ptr;
+      let target_ptr: *mut specbinding = ptr.offset (-count_n);
+      while ptr != target_ptr
+	{
+	  let prev: *mut specbinding = ptr.sub (1);
+	  if (*prev).kind == (SPECPDL_LET as u8)
+	    {
+	      let sym_obj: Lisp_Object = (*prev).r#let.symbol;
+	      if BARE_SYMBOL_P (sym_obj)
+		{
+		  let sym: *mut Lisp_Symbol = XBARE_SYMBOL (sym_obj);
+		  if ((*sym).u.s.bits & (SYMBOL_REDIRECT_MASK | SYMBOL_TRAPPED_WRITE_MASK)) == 0
+		    {
+		      (*sym).u.s.val.value = (*prev).r#let.old_value;
+		      ptr = prev;
+		      (*ct).m_specpdl_ptr = ptr;
+		      continue;
+		    }
+		}
+	    }
+	  bc_unbind_slow (ct, target_ptr);
+	  break;
+	}
+      NEXT! ();
+    }};
+  }
+
+  macro_rules! do_call {
+    ($call_nargs:expr) => {{
+      let mut call_nargs: ptrdiff_t = $call_nargs;
+      DISCARD! (call_nargs);
+      let ct = current_thread;
+      let depth = (*ct).m_lisp_eval_depth + 1;
+      let pdl: *mut specbinding = (*ct).m_specpdl_ptr;
+      let next_pdl = pdl.add (1);
+      if !NILP (Vquit_flag) || pending_signals
+	 || (depth as EMACS_INT) > max_lisp_eval_depth
+	 || next_pdl == (*ct).m_specpdl_end
+	 || consing_until_gc < 0
+	 || debug_on_next_call
+	{
+	  call_nargs = bc_call_housekeeping_slow (top, call_nargs);
+	}
+      else
+	{
+	  (*ct).m_lisp_eval_depth = depth;
+	  (*pdl).bt.kind = SPECPDL_BACKTRACE as u8;
+	  (*pdl).bt.debug_on_exit = 0;
+	  (*pdl).bt.function = *top;
+	  (*pdl).bt.args = top.offset (1);
+	  (*pdl).bt.nargs = call_nargs;
+	  (*ct).m_specpdl_ptr = next_pdl;
+	}
+
+      let mut call_fun: Lisp_Object = *top;
+      let call_args: *mut Lisp_Object = top.offset (1);
+      let original_fun: Lisp_Object = call_fun;
+      /* Calls to symbols-with-pos don't need to be on the fast path.  */
+      if BARE_SYMBOL_P (call_fun)
+	{ call_fun = (*XBARE_SYMBOL (call_fun)).u.s.function; }
+      if CLOSUREP (call_fun)
+	{
+	  let template: Lisp_Object = AREF (call_fun, CLOSURE_ARGLIST as isize);
+	  if FIXNUMP (template)
+	    {
+	      /* Fast path for lexbound functions.  */
+	      if ! BASE_EQ (call_fun, fun)
+		{
+		  fun = call_fun;
+		  bytestr = AREF (call_fun, CLOSURE_CODE as isize);
+		  vector = AREF (call_fun, CLOSURE_CONSTANTS as isize);
+		  bytestr_data = SDATA (bytestr);
+		  vectorp = fam_base (core::ptr::addr_of_mut! ((*XVECTOR (vector)).contents));
+		  if BYTE_CODE_SAFE! ()
+		    {
+		      const_length = ASIZE (vector);
+		      bytestr_length = SCHARS (bytestr);
+		    }
+		}
+	      args_template = XFIXNUM (template);
+	      nargs = call_nargs;
+	      args = call_args;
+	      /* C: `goto setup_frame` */
+	      continue 'setup_frame;
+	    }
+	}
+
+      let mut val: Lisp_Object;
+      if SUBRP (call_fun) && ! NATIVE_COMP_FUNCTION_DYNP (call_fun)
+	{
+	  let subr: *mut Lisp_Subr = XSUBR (call_fun);
+	  let min_args: ptrdiff_t = (*subr).min_args as ptrdiff_t;
+	  let max_args: c_short = (*subr).max_args;
+	  if call_nargs >= min_args
+	    {
+	      if call_nargs == (max_args as ptrdiff_t) && max_args <= 3
+		{
+		  val = match max_args
+		    {
+		      0 => ((*subr).function.a0.unwrap_unchecked ()) (),
+		      1 => ((*subr).function.a1.unwrap_unchecked ()) (*call_args),
+		      2 => ((*subr).function.a2.unwrap_unchecked ()) (*call_args, *call_args.offset (1)),
+		      _ => ((*subr).function.a3.unwrap_unchecked ()) (*call_args, *call_args.offset (1), *call_args.offset (2)),
+		    };
+		}
+	      else if max_args == (MANY as c_short)
+		{
+		  if ! debug_on_next_call
+		    {
+		      if BASE_EQ (original_fun, Qfuncall ()) && call_nargs >= 1
+			{
+			  let f0: Lisp_Object = *call_args;
+			  let f_resolved: Lisp_Object = if BARE_SYMBOL_P (f0)
+			    { (*XBARE_SYMBOL (f0)).u.s.function }
+			  else
+			    { f0 };
+			  if CLOSUREP (f_resolved)
+			    {
+			      let template: Lisp_Object = AREF (f_resolved, CLOSURE_ARGLIST as isize);
+			      if FIXNUMP (template)
+				{
+				  if template == make_fixnum (257) && call_nargs == 2 && ! BYTE_CODE_SAFE! ()
+				    {
+				      let c_bytestr: Lisp_Object = AREF (f_resolved, CLOSURE_CODE as isize);
+				      let c_len: ptrdiff_t = SCHARS (c_bytestr);
+				      if c_len == 4
+					{
+					  let p: *const c_uchar = SDATA (c_bytestr);
+					  if *p == 137 && *p.offset (1) == 192 && *p.offset (2) == 92 && *p.offset (3) == 135
+					    {
+					      let x_arg: Lisp_Object = *call_args.offset (1);
+					      let c_vec: Lisp_Object = AREF (f_resolved, CLOSURE_CONSTANTS as isize);
+					      if FIXNUMP (x_arg) && ASIZE (c_vec) >= 1
+						{
+						  let c0: Lisp_Object = AREF (c_vec, 0);
+						  if FIXNUMP (c0)
+						    {
+						      let s: EMACS_INT = XFIXNUM (x_arg) + XFIXNUM (c0);
+						      if ! FIXNUM_OVERFLOW_P (s)
+							{
+							  let mut rval: Lisp_Object = make_fixnum (s);
+							  let ct2 = current_thread;
+							  (*ct2).m_lisp_eval_depth -= 1;
+							  let pdl_after = (*ct2).m_specpdl_ptr.offset (-1);
+							  if backtrace_debug_on_exit (pdl_after)
+							    { rval = bc_debug_on_exit (rval); }
+							  (*ct2).m_specpdl_ptr = pdl_after;
+							  *top = rval;
+							  NEXT! ();
+							}
+						    }
+						}
+					    }
+					}
+				      else if c_len == 5
+					{
+					  let p: *const c_uchar = SDATA (c_bytestr);
+					  if *p == 192 && *p.offset (1) == 193 && *p.offset (2) == 0
+					     && *p.offset (3) == 34 && *p.offset (4) == 135
+					    {
+					      let c_vec: Lisp_Object = AREF (f_resolved, CLOSURE_CONSTANTS as isize);
+					      if ASIZE (c_vec) >= 2
+						{
+						  let cf0: Lisp_Object = AREF (c_vec, 0);
+						  if BARE_SYMBOL_P (cf0)
+						    {
+						      let sf: Lisp_Object = (*XBARE_SYMBOL (cf0)).u.s.function;
+						      if SUBRP (sf) && (*XSUBR (sf)).function.aMANY == Some (Fmake_closure)
+							{
+							  let mut mc_args: [Lisp_Object; 2] = [AREF (c_vec, 1), *call_args.offset (1)];
+							  let mut rval: Lisp_Object = Fmake_closure (2, mc_args.as_mut_ptr ());
+							  let ct2 = current_thread;
+							  (*ct2).m_lisp_eval_depth -= 1;
+							  let pdl_after = (*ct2).m_specpdl_ptr.offset (-1);
+							  if backtrace_debug_on_exit (pdl_after)
+							    { rval = bc_debug_on_exit (rval); }
+							  (*ct2).m_specpdl_ptr = pdl_after;
+							  *top = rval;
+							  NEXT! ();
+							}
+						    }
+						}
+					    }
+					}
+				    }
+				  let bt_pdl = (*current_thread).m_specpdl_ptr.offset (-1);
+				  (*bt_pdl).bt.function = f0;
+				  (*bt_pdl).bt.args = call_args.offset (1);
+				  (*bt_pdl).bt.nargs = call_nargs - 1;
+				  if ! BASE_EQ (f_resolved, fun)
+				    {
+				      fun = f_resolved;
+				      bytestr = AREF (f_resolved, CLOSURE_CODE as isize);
+				      vector = AREF (f_resolved, CLOSURE_CONSTANTS as isize);
+				      bytestr_data = SDATA (bytestr);
+				      vectorp = fam_base (core::ptr::addr_of_mut! ((*XVECTOR (vector)).contents));
+				      if BYTE_CODE_SAFE! ()
+					{
+					  const_length = ASIZE (vector);
+					  bytestr_length = SCHARS (bytestr);
+					}
+				    }
+				  args_template = XFIXNUM (template);
+				  nargs = call_nargs - 1;
+				  args = call_args.offset (1);
+				  continue 'setup_frame;
+				}
+			    }
+			}
+		      else if BASE_EQ (original_fun, Qapply ()) && call_nargs >= 2
+			{
+			  let f0: Lisp_Object = *call_args;
+			  let f_resolved: Lisp_Object = if BARE_SYMBOL_P (f0)
+			    { (*XBARE_SYMBOL (f0)).u.s.function }
+			  else
+			    { f0 };
+			  if CLOSUREP (f_resolved)
+			    {
+			      let f_templ: Lisp_Object = AREF (f_resolved, CLOSURE_ARGLIST as isize);
+			      if FIXNUMP (f_templ)
+				{
+				  let at: EMACS_INT = XFIXNUM (f_templ);
+				  let spread: Lisp_Object = *call_args.offset (call_nargs - 1);
+				  let mut jump_args: *mut Lisp_Object = std::ptr::null_mut ();
+				  let mut jump_nargs: ptrdiff_t = 0;
+				  let mut jump_templ: EMACS_INT = at;
+				  if NILP (spread)
+				    {
+				      jump_args = call_args.offset (1);
+				      jump_nargs = call_nargs - 2;
+				    }
+				  else if CONSP (spread) && NILP (XCDR (spread))
+				    {
+				      *call_args.offset (call_nargs - 1) = XCAR (spread);
+				      jump_args = call_args.offset (1);
+				      jump_nargs = call_nargs - 1;
+				    }
+				  else if CONSP (spread)
+				    {
+				      jump_args = bc_prepare_apply_spread (
+					bc, f_resolved, at, call_nargs, call_args, spread,
+					&raw mut jump_nargs, &raw mut jump_templ);
+				    }
+				  if ! jump_args.is_null ()
+				    {
+				      let bt_pdl = (*current_thread).m_specpdl_ptr.offset (-1);
+				      (*bt_pdl).bt.function = f0;
+				      (*bt_pdl).bt.args = jump_args;
+				      (*bt_pdl).bt.nargs = jump_nargs;
+				      if ! BASE_EQ (f_resolved, fun)
+					{
+					  fun = f_resolved;
+					  bytestr = AREF (f_resolved, CLOSURE_CODE as isize);
+					  vector = AREF (f_resolved, CLOSURE_CONSTANTS as isize);
+					  bytestr_data = SDATA (bytestr);
+					  vectorp = fam_base (core::ptr::addr_of_mut! ((*XVECTOR (vector)).contents));
+					  if BYTE_CODE_SAFE! ()
+					    {
+					      const_length = ASIZE (vector);
+					      bytestr_length = SCHARS (bytestr);
+					    }
+					}
+				      args_template = jump_templ;
+				      nargs = jump_nargs;
+				      args = jump_args;
+				      continue 'setup_frame;
+				    }
+				}
+			    }
+			}
+		    }
+		  val = ((*subr).function.aMANY.unwrap_unchecked ()) (call_nargs, call_args);
+		}
+	      else if max_args <= 3 && call_nargs <= (max_args as ptrdiff_t)
+		{
+		  let a0 = if call_nargs > 0 { *call_args } else { Qnil () };
+		  let a1 = if call_nargs > 1 { *call_args.offset (1) } else { Qnil () };
+		  let a2 = if call_nargs > 2 { *call_args.offset (2) } else { Qnil () };
+		  val = match max_args
+		    {
+		      0 => ((*subr).function.a0.unwrap_unchecked ()) (),
+		      1 => ((*subr).function.a1.unwrap_unchecked ()) (a0),
+		      2 => ((*subr).function.a2.unwrap_unchecked ()) (a0, a1),
+		      _ => ((*subr).function.a3.unwrap_unchecked ()) (a0, a1, a2),
+		    };
+		}
+	      else
+		{ val = bc_funcall_subr_slow (subr, call_nargs, call_args); }
+	    }
+	  else
+	    { val = bc_funcall_subr_slow (subr, call_nargs, call_args); }
+	}
+      else
+	{ val = bc_funcall_general_slow (original_fun, call_nargs, call_args); }
+
+      let ct2 = current_thread;
+      (*ct2).m_lisp_eval_depth -= 1;
+      let pdl_after = (*ct2).m_specpdl_ptr.offset (-1);
+      if backtrace_debug_on_exit (pdl_after)
+	{ val = bc_debug_on_exit (val); }
+      (*ct2).m_specpdl_ptr = pdl_after;
+
+      *top = val;
+      NEXT! ();
+    }};
+  }
+
+  macro_rules! do_pushhandler {
+    ($htype:expr) => {{
+      type_ = $htype;
+      let c: *mut handler = push_handler (POP! (), type_);
+      (*c).bytecode_dest = FETCH2! () as c_int;
+      (*c).bytecode_top = top;
+
+      if sys_setjmp (&raw mut (*c).jmp as *mut jmp_buf) != 0
+	{
+	  /* No need to restore old quitcounter; just check at the next
+	     backward branch.  */
+	  quitcounter = (-1 as c_int) as c_uchar;
+	  let c: *mut handler = handlerlist! ();
+	  handlerlist! () = (*c).next;
+	  top = (*c).bytecode_top;
+	  arg = (*c).bytecode_dest as ptrdiff_t;
+	  bc = &raw mut (*current_thread).bc;
+	  let fp: *mut bc_frame = (*bc).fp as *mut bc_frame;
+	  let next_fun: Lisp_Object = (*fp).fun;
+	  if ! BASE_EQ (next_fun, fun)
+	    {
+	      fun = next_fun;
+	      bytestr = AREF (fun, CLOSURE_CODE as isize);
+	      vector = AREF (fun, CLOSURE_CONSTANTS as isize);
+	      bytestr_data = SDATA (bytestr);
+	      vectorp = fam_base (core::ptr::addr_of_mut! ((*XVECTOR (vector)).contents));
+	      if BYTE_CODE_SAFE! ()
+		{
+		  /* Only required for checking, not for execution.  */
+		  const_length = ASIZE (vector);
+		  bytestr_length = SCHARS (bytestr);
+		}
+	    }
+	  pc = bytestr_data;
+	  PUSH! ((*c).val);
+	  /* C: `goto op_branch` */
+	  do_branch! (arg);
+	}
+
       NEXT! ();
     }};
   }
 
   'dispatch: loop
     {
-      /* C's shared tails, in C's order: `varref`, `varset`, `varbind`, `docall`,
-	 `dounbind`, `exit`, `op_branch` and `pushhandler`.  Each is entered with `goto` set
-	 by the arm that C's text sends there.  */
-      if goto != NONE
-	{
-	  let target: c_int = goto;
-	  goto = NONE;
-	  match target
-	    {
-	      /* C: `varref:` */
-	      VARREF => { do_varref! (arg); }
-	      /* C: `varset:` */
-	      VARSET => { do_varset! (arg); }
-	      /* C: `varbind:` */
-	      VARBIND => { do_varbind! (arg); }
-	      /* C: `docall:` */
-	      DOCALL =>
-		{
-		  DISCARD! (arg);
-		  maybe_quit ();
-
-		  lisp_eval_depth! () += 1;
-		  if lisp_eval_depth! () as EMACS_INT > max_lisp_eval_depth
-		    {
-		      if max_lisp_eval_depth < 100
-			{ max_lisp_eval_depth = 100; }
-		      if lisp_eval_depth! () as EMACS_INT > max_lisp_eval_depth
-			{ error (c"Lisp nesting exceeds `max-lisp-eval-depth'".as_ptr ()); }
-		    }
-
-		  let call_nargs: ptrdiff_t = arg;
-		  let mut call_fun: Lisp_Object = TOP! ();
-		  let call_args: *mut Lisp_Object = top.offset (1);
-
-		  let count1: specpdl_ref
-		    = record_in_backtrace (call_fun, call_args, call_nargs);
-		  maybe_gc ();
-		  if debug_on_next_call
-		    { do_debug_on_call (Qlambda (), count1); }
-
-		  let original_fun: Lisp_Object = call_fun;
-		  /* Calls to symbols-with-pos don't need to be on the fast path.  */
-		  if BARE_SYMBOL_P (call_fun)
-		    { call_fun = (*XBARE_SYMBOL (call_fun)).u.s.function; }
-		  if CLOSUREP (call_fun)
-		    {
-		      let template: Lisp_Object = AREF (call_fun, CLOSURE_ARGLIST as isize);
-		      if FIXNUMP (template)
-			{
-			  /* Fast path for lexbound functions.  */
-			  fun = call_fun;
-			  bytestr = AREF (call_fun, CLOSURE_CODE as isize);
-			  args_template = XFIXNUM (template);
-			  nargs = call_nargs;
-			  args = call_args;
-			  /* C: `goto setup_frame` */
-			  continue 'setup_frame;
-			}
-		    }
-
-		  let mut val: Lisp_Object;
-		  if SUBRP (call_fun) && ! NATIVE_COMP_FUNCTION_DYNP (call_fun)
-		    { val = funcall_subr (XSUBR (call_fun), call_nargs, call_args); }
-		  else
-		    { val = funcall_general (original_fun, call_nargs, call_args); }
-
-		  lisp_eval_depth! () -= 1;
-		  if backtrace_debug_on_exit (specpdl_ptr! ().offset (-1))
-		    { val = call_debugger (list2 (Qexit (), val)); }
-		  specpdl_ptr! () = specpdl_ptr! ().offset (-1);
-
-		  *top = val;
-		  NEXT! ();
-		}
-	      /* C: `dounbind:` */
-	      DOUNBIND => { do_unbind! (arg); }
-	      /* C: `exit:` (the `goto exit` in `Breturn`) */
-	      EXIT =>
-		{
-		  break 'dispatch;
-		}
-	      /* C: `op_branch:` */
-	      OP_BRANCH => { do_branch! (arg); }
-	      /* C: `pushhandler:` */
-	      PUSHHANDLER =>
-		{
-		  let c: *mut handler = push_handler (POP! (), type_);
-		  (*c).bytecode_dest = FETCH2! () as c_int;
-		  (*c).bytecode_top = top;
-
-		  if sys_setjmp (&raw mut (*c).jmp as *mut jmp_buf) != 0
-		    {
-		      /* No need to restore old quitcounter; just check at the next
-			 backward branch.  */
-		      quitcounter = (-1 as c_int) as c_uchar;
-		      let c: *mut handler = handlerlist! ();
-		      handlerlist! () = (*c).next;
-		      top = (*c).bytecode_top;
-		      arg = (*c).bytecode_dest as ptrdiff_t;
-		      bc = &raw mut (*current_thread).bc;
-		      let fp: *mut bc_frame = (*bc).fp as *mut bc_frame;
-
-		      let fun: Lisp_Object = (*fp).fun;
-		      let bytestr: Lisp_Object = AREF (fun, CLOSURE_CODE as isize);
-		      let vector: Lisp_Object = AREF (fun, CLOSURE_CONSTANTS as isize);
-		      bytestr_data = SDATA (bytestr);
-		      vectorp = fam_base (core::ptr::addr_of_mut! ((*XVECTOR (vector)).contents));
-		      if BYTE_CODE_SAFE! ()
-			{
-			  /* Only required for checking, not for execution.  */
-			  const_length = ASIZE (vector);
-			  bytestr_length = SCHARS (bytestr);
-			}
-		      pc = bytestr_data;
-		      PUSH! ((*c).val);
-		      /* C: `goto op_branch` */
-		      do_branch! (arg);
-		    }
-
-		  NEXT! ();
-		}
-	      _ => { }
-	    }
-	  continue 'dispatch;
-	}
-
       if BYTE_CODE_SAFE! () && ! valid_sp (bc, top)
 	{ emacs_abort (); }
 
@@ -852,16 +1391,22 @@ pub unsafe extern "C" fn exec_byte_code (mut fun: Lisp_Object, mut args_template
 	 we allow the code to be compiled both ways.  */
       FIRST! (op,
 	{
-	CASE! (Bvarref7) => { arg = FETCH2! (); do_varref! (arg); }
 	CASE! (Bvarref)
 	  | CASE! (Bvarref1)
 	  | CASE! (Bvarref2)
 	  | CASE! (Bvarref3)
 	  | CASE! (Bvarref4)
-	  | CASE! (Bvarref5) => { arg = op - Bvarref; do_varref! (arg); }
-	/* This seems to be the most frequently executed byte-code
-	   among the Bvarref's, so avoid a goto here.  */
-	CASE! (Bvarref6) => { arg = FETCH! (); do_varref! (arg); }
+	  | CASE! (Bvarref5) =>
+	  {
+	    arg = op - Bvarref;
+	    do_varref! (arg);
+	  }
+	CASE! (Bvarref6)
+	  | CASE! (Bvarref7) =>
+	  {
+	    arg = if op == Bvarref6 { FETCH! () } else { FETCH2! () };
+	    do_varref! (arg);
+	  }
 	CASE! (Bgotoifnil) =>
 	  {
 	    let v1: Lisp_Object = POP! ();
@@ -884,19 +1429,73 @@ pub unsafe extern "C" fn exec_byte_code (mut fun: Lisp_Object, mut args_template
 	CASE! (Beq) =>
 	  {
 	    let v1: Lisp_Object = POP! ();
-	    *top = if EQ (v1, TOP! ()) { Qt () } else { Qnil () };
+	    let res: bool = EQ (v1, TOP! ());
+	    if ! BYTE_CODE_SAFE! ()
+	      {
+		let next_op: c_uchar = *pc;
+		if next_op == Bgotoifnil as c_uchar
+		  {
+		    let target: ptrdiff_t = (*pc.add (1) as ptrdiff_t)
+		      + ((*pc.add (2) as ptrdiff_t) << 8);
+		    pc = pc.add (3);
+		    DISCARD! (1);
+		    if ! res
+		      { do_branch! (target); }
+		    NEXT! ();
+		  }
+		else if next_op == Bgotoifnonnil as c_uchar
+		  {
+		    let target: ptrdiff_t = (*pc.add (1) as ptrdiff_t)
+		      + ((*pc.add (2) as ptrdiff_t) << 8);
+		    pc = pc.add (3);
+		    DISCARD! (1);
+		    if res
+		      { do_branch! (target); }
+		    NEXT! ();
+		  }
+	      }
+	    *top = if res { Qt () } else { Qnil () };
 	    NEXT! ();
 	  }
 	CASE! (Bmemq) =>
 	  {
-	    let v1: Lisp_Object = POP! ();
-	    *top = Fmemq (TOP! (), v1);
+	    let mut list: Lisp_Object = POP! ();
+	    let elt: Lisp_Object = TOP! ();
+	    if ! symbols_with_pos_enabled
+	      {
+		let mut steps: c_int = 0;
+		while CONSP (list) && steps < 64
+		  {
+		    if BASE_EQ (XCAR (list), elt)
+		      {
+			*top = list;
+			continue 'dispatch;
+		      }
+		    list = XCDR (list);
+		    steps += 1;
+		  }
+		if NILP (list)
+		  {
+		    *top = Qnil ();
+		    NEXT! ();
+		  }
+	      }
+	    *top = Fmemq (elt, list);
 	    NEXT! ();
 	  }
 	CASE! (Bcdr) =>
 	  {
 	    if CONSP (TOP! ())
-	      { *top = XCDR (TOP! ()); }
+	      {
+		let cdr_val: Lisp_Object = XCDR (TOP! ());
+		if ! BYTE_CODE_SAFE! () && *pc == Bcar as c_uchar && CONSP (cdr_val)
+		  {
+		    *top = XCAR (cdr_val);
+		    pc = pc.add (1);
+		    NEXT! ();
+		  }
+		*top = cdr_val;
+	      }
 	    else if ! NILP (TOP! ())
 	      {
 		record_in_backtrace (Qcdr (), top, 1);
@@ -909,9 +1508,17 @@ pub unsafe extern "C" fn exec_byte_code (mut fun: Lisp_Object, mut args_template
 	  | CASE! (Bvarset2)
 	  | CASE! (Bvarset3)
 	  | CASE! (Bvarset4)
-	  | CASE! (Bvarset5) => { arg = op - Bvarset; do_varset! (arg); }
-	CASE! (Bvarset7) => { arg = FETCH2! (); do_varset! (arg); }
-	CASE! (Bvarset6) => { arg = FETCH! (); do_varset! (arg); }
+	  | CASE! (Bvarset5) =>
+	  {
+	    arg = op - Bvarset;
+	    do_varset! (arg);
+	  }
+	CASE! (Bvarset6)
+	  | CASE! (Bvarset7) =>
+	  {
+	    arg = if op == Bvarset6 { FETCH! () } else { FETCH2! () };
+	    do_varset! (arg);
+	  }
 	CASE! (Bdup) =>
 	  {
 	    let v1: Lisp_Object = TOP! ();
@@ -949,8 +1556,7 @@ pub unsafe extern "C" fn exec_byte_code (mut fun: Lisp_Object, mut args_template
 					    if quitcounter == 0
 					      {
 						quitcounter = 1;
-						maybe_gc ();
-						maybe_quit ();
+						bc_periodic_gc_and_quit ();
 					      }
 					    pc = pc.offset (-6);
 					    NEXT! ();
@@ -976,8 +1582,7 @@ pub unsafe extern "C" fn exec_byte_code (mut fun: Lisp_Object, mut args_template
 					    if quitcounter == 0
 					      {
 						quitcounter = 1;
-						maybe_gc ();
-						maybe_quit ();
+						bc_periodic_gc_and_quit ();
 					      }
 					    pc = pc.offset (-6);
 					    NEXT! ();
@@ -1036,8 +1641,7 @@ pub unsafe extern "C" fn exec_byte_code (mut fun: Lisp_Object, mut args_template
 						if quitcounter == 0
 						  {
 						    quitcounter = 1;
-						    maybe_gc ();
-						    maybe_quit ();
+						    bc_periodic_gc_and_quit ();
 						  }
 						pc = pc.offset (-6);
 						NEXT! ();
@@ -1088,48 +1692,11 @@ pub unsafe extern "C" fn exec_byte_code (mut fun: Lisp_Object, mut args_template
 				  {
 				    let back: ptrdiff_t = (*pc.add (17) as ptrdiff_t)
 				      + ((*pc.add (18) as ptrdiff_t) << 8);
-				    let from_obj: Lisp_Object = *top.offset (-5);
-				    let inc_obj: Lisp_Object = *top.offset (-3);
-				    let n_obj: Lisp_Object = *top.offset (-1);
 				    if bytestr_data.offset (back) == pc.offset (-6)
-				       && FIXNUMP (from_obj) && FIXNUMP (inc_obj) && FIXNUMP (n_obj)
+				       && bc_dup_leq_cons_loop (top, v1, v2, &raw mut quitcounter)
 				      {
-					let from_val: EMACS_INT = XFIXNUM (from_obj);
-					let to_val: EMACS_INT = XFIXNUM (v2);
-					let inc_val: EMACS_INT = XFIXNUM (inc_obj);
-					let mut n_val: EMACS_INT = XFIXNUM (n_obj);
-					let mut next_val: EMACS_INT = XFIXNUM (v1);
-					let mut seq: Lisp_Object = *top.offset (-2);
-					let qc_rem: EMACS_INT = (256 - (quitcounter as EMACS_INT)).max (1);
-					let mut steps: EMACS_INT = 0;
-					while steps < qc_rem && next_val <= to_val
-					  {
-					    let n1: EMACS_INT = n_val.wrapping_add (1);
-					    if FIXNUM_OVERFLOW_P (n1) { break; }
-					    let (prod, ov1) = (n1 as intmax_t).overflowing_mul (inc_val as intmax_t);
-					    if ov1 || FIXNUM_OVERFLOW_P (prod as EMACS_INT) { break; }
-					    let sum: EMACS_INT = from_val.wrapping_add (prod as EMACS_INT);
-					    if FIXNUM_OVERFLOW_P (sum) { break; }
-					    seq = Fcons (make_fixnum (next_val), seq);
-					    n_val = n1;
-					    next_val = sum;
-					    steps += 1;
-					  }
-					if steps > 0
-					  {
-					    *top.offset (-2) = seq;
-					    *top.offset (-1) = make_fixnum (n_val);
-					    *top = make_fixnum (next_val);
-					    quitcounter = quitcounter.wrapping_add (steps as c_uchar);
-					    if quitcounter == 0
-					      {
-						quitcounter = 1;
-						maybe_gc ();
-						maybe_quit ();
-					      }
-					    pc = pc.offset (-6);
-					    NEXT! ();
-					  }
+					pc = pc.offset (-6);
+					NEXT! ();
 				      }
 				  }
 				NEXT! ();
@@ -1163,35 +1730,226 @@ pub unsafe extern "C" fn exec_byte_code (mut fun: Lisp_Object, mut args_template
 			  }
 		      }
 		  }
+		else if next_op >= (Bconstant as c_uchar)
+		  {
+		    let cidx: isize = (next_op as isize) - (Bconstant as isize);
+		    let v2: Lisp_Object = *vectorp.offset (cidx);
+		    let op2: c_uchar = *pc.add (1);
+		    if op2 == Beq as c_uchar
+		      {
+			let res: bool = EQ (v1, v2);
+			let op3: c_uchar = *pc.add (2);
+			if op3 == Bgotoifnil as c_uchar
+			  {
+			    let target: ptrdiff_t = (*pc.add (3) as ptrdiff_t)
+			      + ((*pc.add (4) as ptrdiff_t) << 8);
+			    pc = pc.add (5);
+			    if ! res
+			      { do_branch! (target); }
+			    NEXT! ();
+			  }
+			else if op3 == Bgotoifnonnil as c_uchar
+			  {
+			    let target: ptrdiff_t = (*pc.add (3) as ptrdiff_t)
+			      + ((*pc.add (4) as ptrdiff_t) << 8);
+			    pc = pc.add (5);
+			    if res
+			      { do_branch! (target); }
+			    NEXT! ();
+			  }
+			pc = pc.add (2);
+			PUSH! (if res { Qt () } else { Qnil () });
+			NEXT! ();
+		      }
+		    else if op2 == Blss as c_uchar && FIXNUMP (v1) && FIXNUMP (v2)
+		      {
+			let op3: c_uchar = *pc.add (2);
+			if op3 == Bgotoifnil as c_uchar
+			  {
+			    let target: ptrdiff_t = (*pc.add (3) as ptrdiff_t)
+			      + ((*pc.add (4) as ptrdiff_t) << 8);
+			    pc = pc.add (5);
+			    if XFIXNUM (v1) < XFIXNUM (v2)
+			      { NEXT! (); }
+			    else
+			      { do_branch! (target); }
+			  }
+			else if op3 == Bgotoifnonnil as c_uchar
+			  {
+			    let target: ptrdiff_t = (*pc.add (3) as ptrdiff_t)
+			      + ((*pc.add (4) as ptrdiff_t) << 8);
+			    pc = pc.add (5);
+			    if XFIXNUM (v1) < XFIXNUM (v2)
+			      { do_branch! (target); }
+			    else
+			      { NEXT! (); }
+			  }
+		      }
+		    else if op2 == Bplus as c_uchar && FIXNUMP (v1) && FIXNUMP (v2)
+		      {
+			let res: EMACS_INT = XFIXNUM (v1).wrapping_add (XFIXNUM (v2));
+			if ! FIXNUM_OVERFLOW_P (res)
+			  {
+			    pc = pc.add (2);
+			    PUSH! (make_fixnum (res));
+			    NEXT! ();
+			  }
+		      }
+		  }
+		else if next_op == Bcar_safe as c_uchar
+		  {
+		    let c_val: Lisp_Object = CAR_SAFE (v1);
+		    if *pc.add (1) == Bstack_ref1 as c_uchar && *pc.add (2) == Bcdr_safe as c_uchar
+		      {
+			pc = pc.add (3);
+			PUSH! (c_val);
+			PUSH! (CDR_SAFE (v1));
+			NEXT! ();
+		      }
+		    pc = pc.add (1);
+		    PUSH! (c_val);
+		    NEXT! ();
+		  }
+		else if next_op == Bcar as c_uchar && CONSP (v1)
+		  {
+		    pc = pc.add (1);
+		    PUSH! (XCAR (v1));
+		    NEXT! ();
+		  }
+		else if next_op == Bcdr as c_uchar && CONSP (v1)
+		  {
+		    let d_val: Lisp_Object = XCDR (v1);
+		    if *pc.add (1) == Bcar as c_uchar && CONSP (d_val)
+		      {
+			pc = pc.add (2);
+			PUSH! (XCAR (d_val));
+			NEXT! ();
+		      }
+		    pc = pc.add (1);
+		    PUSH! (d_val);
+		    NEXT! ();
+		  }
+		else if next_op == Bconsp as c_uchar && *pc.add (1) == Bgotoifnil as c_uchar
+		  {
+		    let target: ptrdiff_t = (*pc.add (2) as ptrdiff_t)
+		      + ((*pc.add (3) as ptrdiff_t) << 8);
+		    pc = pc.add (4);
+		    if ! CONSP (v1)
+		      { do_branch! (target); }
+		    NEXT! ();
+		  }
+		else if next_op == Bgotoifnil as c_uchar
+		  {
+		    let target: ptrdiff_t = (*pc.add (1) as ptrdiff_t)
+		      + ((*pc.add (2) as ptrdiff_t) << 8);
+		    pc = pc.add (3);
+		    if NILP (v1)
+		      { do_branch! (target); }
+		    NEXT! ();
+		  }
+		else if next_op == Bgotoifnonnil as c_uchar
+		  {
+		    let target: ptrdiff_t = (*pc.add (1) as ptrdiff_t)
+		      + ((*pc.add (2) as ptrdiff_t) << 8);
+		    pc = pc.add (3);
+		    if ! NILP (v1)
+		      { do_branch! (target); }
+		    NEXT! ();
+		  }
 	      }
 	    PUSH! (v1);
 	    NEXT! ();
 	  }
 	/* ------------------ */
-	CASE! (Bvarbind6) => { arg = FETCH! (); do_varbind! (arg); }
-	CASE! (Bvarbind7) => { arg = FETCH2! (); do_varbind! (arg); }
 	CASE! (Bvarbind)
 	  | CASE! (Bvarbind1)
 	  | CASE! (Bvarbind2)
 	  | CASE! (Bvarbind3)
 	  | CASE! (Bvarbind4)
-	  | CASE! (Bvarbind5) => { arg = op - Bvarbind; do_varbind! (arg); }
-	CASE! (Bcall6) => { arg = FETCH! (); goto = DOCALL; }
-	CASE! (Bcall7) => { arg = FETCH2! (); goto = DOCALL; }
+	  | CASE! (Bvarbind5) =>
+	  {
+	    arg = op - Bvarbind;
+	    do_varbind! (arg);
+	  }
+	CASE! (Bvarbind6)
+	  | CASE! (Bvarbind7) =>
+	  {
+	    arg = if op == Bvarbind6 { FETCH! () } else { FETCH2! () };
+	    specbind (*vectorp.offset (arg), POP! ());
+	    NEXT! ();
+	  }
 	CASE! (Bcall)
 	  | CASE! (Bcall1)
 	  | CASE! (Bcall2)
 	  | CASE! (Bcall3)
 	  | CASE! (Bcall4)
-	  | CASE! (Bcall5) => { arg = op - Bcall; goto = DOCALL; }
-	CASE! (Bunbind6) => { arg = FETCH! (); do_unbind! (arg); }
-	CASE! (Bunbind7) => { arg = FETCH2! (); do_unbind! (arg); }
+	  | CASE! (Bcall5) =>
+	  {
+	    arg = op - Bcall;
+	    do_call! (arg);
+	  }
+	CASE! (Bcall6)
+	  | CASE! (Bcall7) =>
+	  {
+	    let mut call_nargs: ptrdiff_t = if op == Bcall6 { FETCH! () } else { FETCH2! () };
+	    DISCARD! (call_nargs);
+	    call_nargs = bc_call_housekeeping_slow (top, call_nargs);
+	    let mut call_fun: Lisp_Object = *top;
+	    let call_args: *mut Lisp_Object = top.offset (1);
+	    let original_fun: Lisp_Object = call_fun;
+	    if BARE_SYMBOL_P (call_fun)
+	      { call_fun = (*XBARE_SYMBOL (call_fun)).u.s.function; }
+	    if CLOSUREP (call_fun)
+	      {
+		let template: Lisp_Object = AREF (call_fun, CLOSURE_ARGLIST as isize);
+		if FIXNUMP (template)
+		  {
+		    if ! BASE_EQ (call_fun, fun)
+		      {
+			fun = call_fun;
+			bytestr = AREF (call_fun, CLOSURE_CODE as isize);
+			vector = AREF (call_fun, CLOSURE_CONSTANTS as isize);
+			bytestr_data = SDATA (bytestr);
+			vectorp = fam_base (core::ptr::addr_of_mut! ((*XVECTOR (vector)).contents));
+			if BYTE_CODE_SAFE! ()
+			  {
+			    const_length = ASIZE (vector);
+			    bytestr_length = SCHARS (bytestr);
+			  }
+		      }
+		    args_template = XFIXNUM (template);
+		    nargs = call_nargs;
+		    args = call_args;
+		    continue 'setup_frame;
+		  }
+	      }
+	    let mut val: Lisp_Object = funcall_general (original_fun, call_nargs, call_args);
+	    let ct2 = current_thread;
+	    (*ct2).m_lisp_eval_depth -= 1;
+	    let pdl_after = (*ct2).m_specpdl_ptr.offset (-1);
+	    if backtrace_debug_on_exit (pdl_after)
+	      { val = call_debugger (list2 (Qexit (), val)); }
+	    (*ct2).m_specpdl_ptr = pdl_after;
+	    *top = val;
+	    NEXT! ();
+	  }
 	CASE! (Bunbind)
 	  | CASE! (Bunbind1)
 	  | CASE! (Bunbind2)
 	  | CASE! (Bunbind3)
 	  | CASE! (Bunbind4)
-	  | CASE! (Bunbind5) => { arg = op - Bunbind; do_unbind! (arg); }
+	  | CASE! (Bunbind5) =>
+	  {
+	    arg = op - Bunbind;
+	    do_unbind! (arg);
+	  }
+	CASE! (Bunbind6)
+	  | CASE! (Bunbind7) =>
+	  {
+	    arg = if op == Bunbind6 { FETCH! () } else { FETCH2! () };
+	    unbind_to (specpdl_ref_add (SPECPDL_INDEX (), -arg), Qnil ());
+	    NEXT! ();
+	  }
 	CASE! (Bgoto) =>
 	  {
 	    arg = FETCH2! ();
@@ -1222,28 +1980,35 @@ pub unsafe extern "C" fn exec_byte_code (mut fun: Lisp_Object, mut args_template
 	  }
 	CASE! (Breturn) =>
 	  {
-	    let saved_top: *mut Lisp_Object = (*( (*bc).fp as *mut bc_frame )).saved_top;
+	    let cur_fp: *mut bc_frame = (*bc).fp as *mut bc_frame;
+	    let saved_top: *mut Lisp_Object = (*cur_fp).saved_top;
 	    if ! saved_top.is_null ()
 	      {
 		let mut val: Lisp_Object = TOP! ();
-		lisp_eval_depth! () -= 1;
-		if backtrace_debug_on_exit (specpdl_ptr! ().offset (-1))
-		  { val = call_debugger (list2 (Qexit (), val)); }
-		specpdl_ptr! () = specpdl_ptr! ().offset (-1);
+		let ct = current_thread;
+		(*ct).m_lisp_eval_depth -= 1;
+		let pdl_after = (*ct).m_specpdl_ptr.offset (-1);
+		if backtrace_debug_on_exit (pdl_after)
+		  { val = bc_debug_on_exit (val); }
+		(*ct).m_specpdl_ptr = pdl_after;
 		top = saved_top;
-		pc = (*( (*bc).fp as *mut bc_frame )).saved_pc;
-		let fp: *mut bc_frame = (*( (*bc).fp as *mut bc_frame )).saved_fp;
+		pc = (*cur_fp).saved_pc;
+		let fp: *mut bc_frame = (*cur_fp).saved_fp;
 		(*bc).fp = fp as *mut c_void;
-		let fun: Lisp_Object = (*fp).fun;
-		let bytestr: Lisp_Object = AREF (fun, CLOSURE_CODE as isize);
-		let vector: Lisp_Object = AREF (fun, CLOSURE_CONSTANTS as isize);
-		bytestr_data = SDATA (bytestr);
-		vectorp = fam_base (core::ptr::addr_of_mut! ((*XVECTOR (vector)).contents));
-		if BYTE_CODE_SAFE! ()
+		let prev_fun: Lisp_Object = (*fp).fun;
+		if ! BASE_EQ (prev_fun, fun)
 		  {
-		    /* Only required for checking, not for execution.  */
-		    const_length = ASIZE (vector);
-		    bytestr_length = SCHARS (bytestr);
+		    fun = prev_fun;
+		    bytestr = AREF (fun, CLOSURE_CODE as isize);
+		    vector = AREF (fun, CLOSURE_CONSTANTS as isize);
+		    bytestr_data = SDATA (bytestr);
+		    vectorp = fam_base (core::ptr::addr_of_mut! ((*XVECTOR (vector)).contents));
+		    if BYTE_CODE_SAFE! ()
+		      {
+			/* Only required for checking, not for execution.  */
+			const_length = ASIZE (vector);
+			bytestr_length = SCHARS (bytestr);
+		      }
 		  }
 		*top = val;
 		NEXT! ();
@@ -1294,15 +2059,10 @@ pub unsafe extern "C" fn exec_byte_code (mut fun: Lisp_Object, mut args_template
 	    *top = internal_catch (TOP! (), Some (eval_sub), v1);
 	    NEXT! ();
 	  }
-	CASE! (Bpushcatch) =>	/* New in 24.4.  */
+	CASE! (Bpushcatch)
+	  | CASE! (Bpushconditioncase) =>	/* New in 24.4.  */
 	  {
-	    type_ = CATCHER;
-	    goto = PUSHHANDLER;
-	  }
-	CASE! (Bpushconditioncase) => /* New in 24.4.  */
-	  {
-	    type_ = CONDITION_CASE;
-	    goto = PUSHHANDLER;
+	    do_pushhandler! (if op == Bpushcatch { CATCHER } else { CONDITION_CASE });
 	  }
 	CASE! (Bpophandler) =>	/* New in 24.4.  */
 	  {
@@ -1313,9 +2073,19 @@ pub unsafe extern "C" fn exec_byte_code (mut fun: Lisp_Object, mut args_template
 	  {
 	    let handler: Lisp_Object = POP! ();
 	    /* Support for a function here is new in 24.4.  */
-	    record_unwind_protect (if FUNCTIONP (handler) { Some (bcall0) }
-				   else { Some (prog_ignore) },
-				   handler);
+	    let ct = current_thread;
+	    let pdl: *mut specbinding = (*ct).m_specpdl_ptr;
+	    (*pdl).unwind.kind = SPECPDL_UNWIND as u8;
+	    (*pdl).unwind.func = if CLOSUREP (handler) || FUNCTIONP (handler)
+	      { Some (bcall0) }
+	    else
+	      { Some (prog_ignore) };
+	    (*pdl).unwind.arg = handler;
+	    (*pdl).unwind.eval_depth = (*ct).m_lisp_eval_depth as EMACS_INT;
+	    let next_pdl = pdl.add (1);
+	    (*ct).m_specpdl_ptr = next_pdl;
+	    if next_pdl == (*ct).m_specpdl_end
+	      { grow_specpdl_allocation (); }
 	    NEXT! ();
 	  }
 	CASE! (Bcondition_case) =>		/* Obsolete since 25.  */
@@ -1365,12 +2135,62 @@ pub unsafe extern "C" fn exec_byte_code (mut fun: Lisp_Object, mut args_template
 	  }
 	CASE! (Bsymbolp) =>
 	  {
-	    *top = if SYMBOLP (TOP! ()) { Qt () } else { Qnil () };
+	    let res: bool = SYMBOLP (TOP! ());
+	    if ! BYTE_CODE_SAFE! ()
+	      {
+		let next_op: c_uchar = *pc;
+		if next_op == Bgotoifnil as c_uchar
+		  {
+		    let target: ptrdiff_t = (*pc.add (1) as ptrdiff_t)
+		      + ((*pc.add (2) as ptrdiff_t) << 8);
+		    pc = pc.add (3);
+		    DISCARD! (1);
+		    if ! res
+		      { do_branch! (target); }
+		    NEXT! ();
+		  }
+		else if next_op == Bgotoifnonnil as c_uchar
+		  {
+		    let target: ptrdiff_t = (*pc.add (1) as ptrdiff_t)
+		      + ((*pc.add (2) as ptrdiff_t) << 8);
+		    pc = pc.add (3);
+		    DISCARD! (1);
+		    if res
+		      { do_branch! (target); }
+		    NEXT! ();
+		  }
+	      }
+	    *top = if res { Qt () } else { Qnil () };
 	    NEXT! ();
 	  }
 	CASE! (Bconsp) =>
 	  {
-	    *top = if CONSP (TOP! ()) { Qt () } else { Qnil () };
+	    let res: bool = CONSP (TOP! ());
+	    if ! BYTE_CODE_SAFE! ()
+	      {
+		let next_op: c_uchar = *pc;
+		if next_op == Bgotoifnil as c_uchar
+		  {
+		    let target: ptrdiff_t = (*pc.add (1) as ptrdiff_t)
+		      + ((*pc.add (2) as ptrdiff_t) << 8);
+		    pc = pc.add (3);
+		    DISCARD! (1);
+		    if ! res
+		      { do_branch! (target); }
+		    NEXT! ();
+		  }
+		else if next_op == Bgotoifnonnil as c_uchar
+		  {
+		    let target: ptrdiff_t = (*pc.add (1) as ptrdiff_t)
+		      + ((*pc.add (2) as ptrdiff_t) << 8);
+		    pc = pc.add (3);
+		    DISCARD! (1);
+		    if res
+		      { do_branch! (target); }
+		    NEXT! ();
+		  }
+	      }
+	    *top = if res { Qt () } else { Qnil () };
 	    NEXT! ();
 	  }
 	CASE! (Bstringp) =>
@@ -1385,7 +2205,32 @@ pub unsafe extern "C" fn exec_byte_code (mut fun: Lisp_Object, mut args_template
 	  }
 	CASE! (Bnot) =>
 	  {
-	    *top = if NILP (TOP! ()) { Qt () } else { Qnil () };
+	    let res: bool = NILP (TOP! ());
+	    if ! BYTE_CODE_SAFE! ()
+	      {
+		let next_op: c_uchar = *pc;
+		if next_op == Bgotoifnil as c_uchar
+		  {
+		    let target: ptrdiff_t = (*pc.add (1) as ptrdiff_t)
+		      + ((*pc.add (2) as ptrdiff_t) << 8);
+		    pc = pc.add (3);
+		    DISCARD! (1);
+		    if ! res
+		      { do_branch! (target); }
+		    NEXT! ();
+		  }
+		else if next_op == Bgotoifnonnil as c_uchar
+		  {
+		    let target: ptrdiff_t = (*pc.add (1) as ptrdiff_t)
+		      + ((*pc.add (2) as ptrdiff_t) << 8);
+		    pc = pc.add (3);
+		    DISCARD! (1);
+		    if res
+		      { do_branch! (target); }
+		    NEXT! ();
+		  }
+	      }
+	    *top = if res { Qt () } else { Qnil () };
 	    NEXT! ();
 	  }
 	CASE! (Bcons) =>
@@ -1426,7 +2271,15 @@ pub unsafe extern "C" fn exec_byte_code (mut fun: Lisp_Object, mut args_template
 	  }
 	CASE! (Blength) =>
 	  {
-	    *top = Flength (TOP! ());
+	    let seq: Lisp_Object = TOP! ();
+	    if VECTORP (seq)
+	      { *top = make_fixed_natnum (ASIZE (seq)); }
+	    else if STRINGP (seq)
+	      { *top = make_fixed_natnum (SCHARS (seq)); }
+	    else if NILP (seq)
+	      { *top = make_fixed_natnum (0); }
+	    else
+	      { *top = Flength (seq); }
 	    NEXT! ();
 	  }
 	CASE! (Baref) =>
@@ -1950,8 +2803,29 @@ pub unsafe extern "C" fn exec_byte_code (mut fun: Lisp_Object, mut args_template
 	  }
 	CASE! (Bassq) =>
 	  {
-	    let v1: Lisp_Object = POP! ();
-	    *top = Fassq (TOP! (), v1);
+	    let mut list: Lisp_Object = POP! ();
+	    let key: Lisp_Object = TOP! ();
+	    if ! symbols_with_pos_enabled
+	      {
+		let mut steps: c_int = 0;
+		while CONSP (list) && steps < 64
+		  {
+		    let item: Lisp_Object = XCAR (list);
+		    if CONSP (item) && BASE_EQ (XCAR (item), key)
+		      {
+			*top = item;
+			continue 'dispatch;
+		      }
+		    list = XCDR (list);
+		    steps += 1;
+		  }
+		if NILP (list)
+		  {
+		    *top = Qnil ();
+		    NEXT! ();
+		  }
+	      }
+	    *top = Fassq (key, list);
 	    NEXT! ();
 	  }
 	CASE! (Bnreverse) =>
@@ -2016,8 +2890,7 @@ pub unsafe extern "C" fn exec_byte_code (mut fun: Lisp_Object, mut args_template
 	  /* Actually this is Bstack_ref with offset 0, but we use Bdup
 	     for that instead.  */
 	  /* CASE (Bstack_ref): */
-	  error (c"Invalid byte opcode: op=%d, ptr=%td".as_ptr (),
-		 *pc.offset (-1) as c_int, pc.offset (-1).offset_from (bytestr_data));
+	  bc_invalid_opcode (op, pc, bytestr_data);
 	  }
 	  /* Handy byte-codes for lexical binding.  */
 	CASE! (Bstack_ref1)
@@ -2088,8 +2961,7 @@ pub unsafe extern "C" fn exec_byte_code (mut fun: Lisp_Object, mut args_template
 						if quitcounter == 0
 						  {
 						    quitcounter = 1;
-						    maybe_gc ();
-						    maybe_quit ();
+						    bc_periodic_gc_and_quit ();
 						  }
 						pc = pc.offset (-6);
 						NEXT! ();
@@ -2116,70 +2988,264 @@ pub unsafe extern "C" fn exec_byte_code (mut fun: Lisp_Object, mut args_template
 				    do_branch! (target);
 				  }
 			      }
+			    else if op3 == Bgotoifnonnil as c_uchar
+			      {
+				let target: ptrdiff_t = (*pc.add (3) as ptrdiff_t)
+				  + ((*pc.add (4) as ptrdiff_t) << 8);
+				pc = pc.add (5);
+				if XFIXNUM (v1) < XFIXNUM (v2)
+				  { do_branch! (target); }
+				else
+				  { NEXT! (); }
+			      }
 			  }
 		      }
-		    else if op2 == Bplus as c_uchar && *pc.add (2) == Bstack_set as c_uchar
+		    else if op2 == Bplus as c_uchar
 		      {
 			let v2: Lisp_Object = *top.offset (1 - sref);
 			if FIXNUMP (v1) && FIXNUMP (v2)
 			  {
 			    let res: EMACS_INT = XFIXNUM (v1).wrapping_add (XFIXNUM (v2));
-			    let m: isize = *pc.add (3) as isize;
-			    if ! FIXNUM_OVERFLOW_P (res) && m >= 1
+			    if ! FIXNUM_OVERFLOW_P (res)
 			      {
-				*top.offset (1 - m) = make_fixnum (res);
-				pc = pc.add (4);
-				NEXT! ();
+				if *pc.add (2) == Bstack_set as c_uchar
+				  {
+				    let m: isize = *pc.add (3) as isize;
+				    if m >= 1
+				      {
+					*top.offset (1 - m) = make_fixnum (res);
+					pc = pc.add (4);
+					NEXT! ();
+				      }
+				  }
+				else
+				  {
+				    pc = pc.add (2);
+				    PUSH! (make_fixnum (res));
+				    NEXT! ();
+				      }
+			      }
+			  }
+		      }
+		    else if op2 == Bdiff as c_uchar
+		      {
+			let v2: Lisp_Object = *top.offset (1 - sref);
+			if FIXNUMP (v1) && FIXNUMP (v2)
+			  {
+			    let res: EMACS_INT = XFIXNUM (v1).wrapping_sub (XFIXNUM (v2));
+			    if ! FIXNUM_OVERFLOW_P (res)
+			      {
+				if *pc.add (2) == Bstack_set as c_uchar
+				  {
+				    let m: isize = *pc.add (3) as isize;
+				    if m >= 1
+				      {
+					*top.offset (1 - m) = make_fixnum (res);
+					pc = pc.add (4);
+					NEXT! ();
+				      }
+				  }
+				else
+				  {
+				    pc = pc.add (2);
+				    PUSH! (make_fixnum (res));
+				    NEXT! ();
+				  }
 			      }
 			  }
 		      }
 		  }
-		else if next_op == Badd1 as c_uchar && *pc.add (1) == Bstack_set as c_uchar
+		else if next_op == Badd1 as c_uchar
 		  {
 		    if FIXNUMP (v1) && XFIXNUM (v1) != MOST_POSITIVE_FIXNUM
 		      {
-			let m: isize = *pc.add (2) as isize;
-			if m >= 1
+			if *pc.add (1) == Bstack_set as c_uchar
 			  {
-			    *top.offset (1 - m) = make_fixnum (XFIXNUM (v1) + 1);
-			    pc = pc.add (3);
-			    if *pc == Bgoto as c_uchar
+			    let m: isize = *pc.add (2) as isize;
+			    if m >= 1
 			      {
-				let target: ptrdiff_t = (*pc.add (1) as ptrdiff_t)
-				  + ((*pc.add (2) as ptrdiff_t) << 8);
+				*top.offset (1 - m) = make_fixnum (XFIXNUM (v1) + 1);
 				pc = pc.add (3);
-				do_branch! (target);
+				if *pc == Bgoto as c_uchar
+				  {
+				    let target: ptrdiff_t = (*pc.add (1) as ptrdiff_t)
+				      + ((*pc.add (2) as ptrdiff_t) << 8);
+				    pc = pc.add (3);
+				    do_branch! (target);
+				  }
+				NEXT! ();
 			      }
+			  }
+			else
+			  {
+			    pc = pc.add (1);
+			    PUSH! (make_fixnum (XFIXNUM (v1) + 1));
 			    NEXT! ();
 			  }
 		      }
+		  }
+		else if next_op == Bsub1 as c_uchar
+		  {
+		    if FIXNUMP (v1) && XFIXNUM (v1) != MOST_NEGATIVE_FIXNUM
+		      {
+			if *pc.add (1) == Bstack_set as c_uchar
+			  {
+			    let m: isize = *pc.add (2) as isize;
+			    if m >= 1
+			      {
+				*top.offset (1 - m) = make_fixnum (XFIXNUM (v1) - 1);
+				pc = pc.add (3);
+				NEXT! ();
+			      }
+			  }
+			else
+			  {
+			    pc = pc.add (1);
+			    PUSH! (make_fixnum (XFIXNUM (v1) - 1));
+			    NEXT! ();
+			  }
+		      }
+		  }
+		else if next_op >= (Bconstant as c_uchar)
+		  {
+		    let cidx: isize = (next_op as isize) - (Bconstant as isize);
+		    let v2: Lisp_Object = *vectorp.offset (cidx);
+		    let op2: c_uchar = *pc.add (1);
+		    if op2 == Beq as c_uchar
+		      {
+			let res: bool = EQ (v1, v2);
+			let op3: c_uchar = *pc.add (2);
+			if op3 == Bgotoifnil as c_uchar
+			  {
+			    let target: ptrdiff_t = (*pc.add (3) as ptrdiff_t)
+			      + ((*pc.add (4) as ptrdiff_t) << 8);
+			    pc = pc.add (5);
+			    if ! res
+			      { do_branch! (target); }
+			    NEXT! ();
+			  }
+			else if op3 == Bgotoifnonnil as c_uchar
+			  {
+			    let target: ptrdiff_t = (*pc.add (3) as ptrdiff_t)
+			      + ((*pc.add (4) as ptrdiff_t) << 8);
+			    pc = pc.add (5);
+			    if res
+			      { do_branch! (target); }
+			    NEXT! ();
+			  }
+			pc = pc.add (2);
+			PUSH! (if res { Qt () } else { Qnil () });
+			NEXT! ();
+		      }
+		    else if op2 == Bdiff as c_uchar && FIXNUMP (v1) && FIXNUMP (v2)
+		      {
+			let res: EMACS_INT = XFIXNUM (v1).wrapping_sub (XFIXNUM (v2));
+			if ! FIXNUM_OVERFLOW_P (res)
+			  {
+			    pc = pc.add (2);
+			    PUSH! (make_fixnum (res));
+			    NEXT! ();
+			  }
+		      }
+		    else if op2 == Bplus as c_uchar && FIXNUMP (v1) && FIXNUMP (v2)
+		      {
+			let res: EMACS_INT = XFIXNUM (v1).wrapping_add (XFIXNUM (v2));
+			if ! FIXNUM_OVERFLOW_P (res)
+			  {
+			    pc = pc.add (2);
+			    PUSH! (make_fixnum (res));
+			    NEXT! ();
+			  }
+		      }
+		    else if op2 == Blss as c_uchar && FIXNUMP (v1) && FIXNUMP (v2)
+		      {
+			let op3: c_uchar = *pc.add (2);
+			if op3 == Bgotoifnil as c_uchar
+			  {
+			    let target: ptrdiff_t = (*pc.add (3) as ptrdiff_t)
+			      + ((*pc.add (4) as ptrdiff_t) << 8);
+			    pc = pc.add (5);
+			    if XFIXNUM (v1) < XFIXNUM (v2)
+			      { NEXT! (); }
+			    else
+			      { do_branch! (target); }
+			  }
+			else if op3 == Bgotoifnonnil as c_uchar
+			  {
+			    let target: ptrdiff_t = (*pc.add (3) as ptrdiff_t)
+			      + ((*pc.add (4) as ptrdiff_t) << 8);
+			    pc = pc.add (5);
+			    if XFIXNUM (v1) < XFIXNUM (v2)
+			      { do_branch! (target); }
+			    else
+			      { NEXT! (); }
+			  }
+		      }
+		  }
+		else if next_op == Bcar as c_uchar && CONSP (v1)
+		  {
+		    pc = pc.add (1);
+		    PUSH! (XCAR (v1));
+		    NEXT! ();
+		  }
+		else if next_op == Bcdr as c_uchar && CONSP (v1)
+		  {
+		    let d_val: Lisp_Object = XCDR (v1);
+		    if *pc.add (1) == Bcar as c_uchar && CONSP (d_val)
+		      {
+			pc = pc.add (2);
+			PUSH! (XCAR (d_val));
+			NEXT! ();
+		      }
+		    pc = pc.add (1);
+		    PUSH! (d_val);
+		    NEXT! ();
+		  }
+		else if next_op == Bconsp as c_uchar && *pc.add (1) == Bgotoifnil as c_uchar
+		  {
+		    let target: ptrdiff_t = (*pc.add (2) as ptrdiff_t)
+		      + ((*pc.add (3) as ptrdiff_t) << 8);
+		    pc = pc.add (4);
+		    if ! CONSP (v1)
+		      { do_branch! (target); }
+		    NEXT! ();
+		  }
+		else if next_op == Bgotoifnil as c_uchar
+		  {
+		    let target: ptrdiff_t = (*pc.add (1) as ptrdiff_t)
+		      + ((*pc.add (2) as ptrdiff_t) << 8);
+		    pc = pc.add (3);
+		    if NILP (v1)
+		      { do_branch! (target); }
+		    NEXT! ();
+		  }
+		else if next_op == Bgotoifnonnil as c_uchar
+		  {
+		    let target: ptrdiff_t = (*pc.add (1) as ptrdiff_t)
+		      + ((*pc.add (2) as ptrdiff_t) << 8);
+		    pc = pc.add (3);
+		    if ! NILP (v1)
+		      { do_branch! (target); }
+		    NEXT! ();
 		  }
 	      }
 	    PUSH! (v1);
 	    NEXT! ();
 	  }
-	CASE! (Bstack_ref6) =>
+	CASE! (Bstack_ref6)
+	  | CASE! (Bstack_ref7) =>
 	  {
-	    let v1: Lisp_Object = *top.offset (- FETCH! ());
+	    let off: ptrdiff_t = if op == Bstack_ref6 { FETCH! () } else { FETCH2! () };
+	    let v1: Lisp_Object = *top.offset (- off);
 	    PUSH! (v1);
 	    NEXT! ();
 	  }
-	CASE! (Bstack_ref7) =>
-	  {
-	    let v1: Lisp_Object = *top.offset (- FETCH2! ());
-	    PUSH! (v1);
-	    NEXT! ();
-	  }
-	CASE! (Bstack_set) =>
+	CASE! (Bstack_set)
+	  | CASE! (Bstack_set2) =>
 	  {
 	  /* stack-set-0 = discard; stack-set-1 = discard-1-preserve-tos.  */
-	    let ptr: *mut Lisp_Object = top.offset (- FETCH! ());
-	    *ptr = POP! ();
-	    NEXT! ();
-	  }
-	CASE! (Bstack_set2) =>
-	  {
-	    let ptr: *mut Lisp_Object = top.offset (- FETCH2! ());
+	    let off: ptrdiff_t = if op == Bstack_set { FETCH! () } else { FETCH2! () };
+	    let ptr: *mut Lisp_Object = top.offset (- off);
 	    *ptr = POP! ();
 	    NEXT! ();
 	  }
@@ -2217,17 +3283,20 @@ pub unsafe extern "C" fn exec_byte_code (mut fun: Lisp_Object, mut args_template
               {
 		eassume! ((*h).count >= 2);
 		let mut i: ptrdiff_t = ((*h).count - 1) as ptrdiff_t;
+		let mut matched: bool = false;
 		while i >= 0
 		  {
 		    if BASE_EQ (v1, HASH_KEY (h, i as hash_idx_t))
 		      {
 			arg = XFIXNUM (HASH_VALUE (h, i as hash_idx_t));
 			/* C: `goto op_branch` (leaves the search) */
-			goto = OP_BRANCH;
+			matched = true;
 			break;
 		      }
 		    i -= 1;
 		  }
+		if matched
+		  { do_branch! (arg); }
               }
             else
 	      {
@@ -2236,7 +3305,7 @@ pub unsafe extern "C" fn exec_byte_code (mut fun: Lisp_Object, mut args_template
 		  {
 		    arg = XFIXNUM (HASH_VALUE (h, i as hash_idx_t));
 		    /* C: `goto op_branch` */
-		    goto = OP_BRANCH;
+		    do_branch! (arg);
 		  }
 	      }
 	    NEXT! ();
@@ -2249,13 +3318,41 @@ pub unsafe extern "C" fn exec_byte_code (mut fun: Lisp_Object, mut args_template
 	     byte string would index vectorp with a negative offset (SAFE is false).  */
 	  if op < Bconstant
 	    {
-	      error (c"Invalid byte opcode: op=%d, ptr=%td".as_ptr (),
-		     *pc.offset (-1) as c_int, pc.offset (-1).offset_from (bytestr_data));
+	      bc_invalid_opcode (op, pc, bytestr_data);
 	    }
 	  if BYTE_CODE_SAFE! ()
 	      && ! (Bconstant <= op && op < Bconstant + const_length)
 	    { emacs_abort (); }
-	  PUSH! (*vectorp.offset (op - Bconstant));
+	  let cval: Lisp_Object = *vectorp.offset (op - Bconstant);
+	  if ! BYTE_CODE_SAFE! () && *pc == Beq as c_uchar
+	    {
+	      let res: bool = EQ (cval, TOP! ());
+	      let op2: c_uchar = *pc.add (1);
+	      if op2 == Bgotoifnil as c_uchar
+		{
+		  let target: ptrdiff_t = (*pc.add (2) as ptrdiff_t)
+		    + ((*pc.add (3) as ptrdiff_t) << 8);
+		  pc = pc.add (4);
+		  DISCARD! (1);
+		  if ! res
+		    { do_branch! (target); }
+		  NEXT! ();
+		}
+	      else if op2 == Bgotoifnonnil as c_uchar
+		{
+		  let target: ptrdiff_t = (*pc.add (2) as ptrdiff_t)
+		    + ((*pc.add (3) as ptrdiff_t) << 8);
+		  pc = pc.add (4);
+		  DISCARD! (1);
+		  if res
+		    { do_branch! (target); }
+		  NEXT! ();
+		}
+	      pc = pc.add (1);
+	      *top = if res { Qt () } else { Qnil () };
+	      NEXT! ();
+	    }
+	  PUSH! (cval);
 	  NEXT! ();
 	  }
 	});

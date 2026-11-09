@@ -703,9 +703,111 @@ DEFUN! ("function", Ffunction, Sfunction, 1, UNEVALLED, 0,
         { return Fmake_interpreted_closure
             (args, cdr, Vinternal_interpreter_environment, docstring, iform); }
       else
-        { return calln! (Vinternal_make_interpreted_closure_function,
-                         args, cdr, Vinternal_interpreter_environment,
-                         docstring, iform); }
+        {
+          let env: Lisp_Object = Vinternal_interpreter_environment;
+          if NILP (docstring)
+             && NILP (iform)
+             && CONSP (cdr)
+             && NILP (XCDR (cdr))
+             && BARE_SYMBOL_P (Vinternal_make_interpreted_closure_function)
+            {
+              static mut CCONV_FN_SYM: Lisp_Object = 0 as Lisp_Object;
+              static mut MACROEXPAND_ENV_SYM: Lisp_Object = 0 as Lisp_Object;
+              let mut is_cconv: bool =
+                BASE_EQ (Vinternal_make_interpreted_closure_function, CCONV_FN_SYM)
+                && ! (CCONV_FN_SYM as usize == 0);
+              if ! is_cconv
+                {
+                  let fn_name: Lisp_Object =
+                    SYMBOL_NAME (Vinternal_make_interpreted_closure_function);
+                  if SBYTES (fn_name) == 30
+                     && memcmp (SSDATA (fn_name) as *const c_void,
+                                c"cconv-make-interpreted-closure".as_ptr () as *const c_void,
+                                30) == 0
+                    {
+                      let me_sym: Lisp_Object =
+                        Fintern_soft (build_unibyte_string (c"macroexpand-all-environment".as_ptr ()),
+                                      Qnil ());
+                      if BARE_SYMBOL_P (me_sym)
+                        {
+                          CCONV_FN_SYM = Vinternal_make_interpreted_closure_function;
+                          MACROEXPAND_ENV_SYM = me_sym;
+                          is_cconv = true;
+                        }
+                    }
+                }
+              if is_cconv
+                 && ((*XBARE_SYMBOL (MACROEXPAND_ENV_SYM)).u.s.bits & SYMBOL_REDIRECT_MASK) == 0
+                 && NILP ((*XBARE_SYMBOL (MACROEXPAND_ENV_SYM)).u.s.val.value)
+                {
+                  let mut simple_param: Lisp_Object = Qnil ();
+                  let simple_args: bool = if NILP (args)
+                    { true }
+                  else if CONSP (args) && NILP (XCDR (args))
+                    {
+                      let p1: Lisp_Object = XCAR (args);
+                      if BARE_SYMBOL_P (p1)
+                         && ! BASE_EQ (p1, Qand_optional ())
+                         && ! BASE_EQ (p1, Qand_rest ())
+                        { simple_param = p1; true }
+                      else
+                        { false }
+                    }
+                  else
+                    { false };
+                  if simple_args
+                    {
+                      let body_form: Lisp_Object = XCAR (cdr);
+                      if CONSP (body_form) && BARE_SYMBOL_P (XCAR (body_form))
+                        {
+                          let op_fn: Lisp_Object = (*XBARE_SYMBOL (XCAR (body_form))).u.s.function;
+                          if SUBRP (op_fn) && ((*XSUBR (op_fn)).max_args as isize) != UNEVALLED
+                            {
+                              let mut rest_args: Lisp_Object = XCDR (body_form);
+                              let mut ok: bool = true;
+                              let mut fv_sym: Lisp_Object = Qnil ();
+                              let mut n_op_args: c_int = 0;
+                              while CONSP (rest_args) && n_op_args < 4
+                                {
+                                  let a: Lisp_Object = XCAR (rest_args);
+                                  if BARE_SYMBOL_P (a)
+                                    {
+                                      if ! BASE_EQ (a, simple_param)
+                                         && ! SYMBOL_CONSTANT_P (a)
+                                        {
+                                          if NILP (fv_sym) || BASE_EQ (fv_sym, a)
+                                            { fv_sym = a; }
+                                          else
+                                            { ok = false; break; }
+                                        }
+                                    }
+                                  else if ! (FIXNUMP (a) || FLOATP (a) || STRINGP (a))
+                                    { ok = false; break; }
+                                  rest_args = XCDR (rest_args);
+                                  n_op_args += 1;
+                                }
+                              if ok && NILP (rest_args)
+                                {
+                                  let nenv: Lisp_Object = if NILP (fv_sym)
+                                    { list_of_t }
+                                  else
+                                    {
+                                      let pair: Lisp_Object = assq_lexenv (fv_sym, env);
+                                      if ! NILP (pair) { list1 (pair) } else { list_of_t }
+                                    };
+                                  let mut slots: [Lisp_Object; 3] = [args, cdr, nenv];
+                                  let val: Lisp_Object = Fvector (3, slots.as_mut_ptr ());
+                                  XSETPVECTYPE! (XVECTOR (val), pvec_type::PVEC_CLOSURE);
+                                  return val;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+          return calln! (Vinternal_make_interpreted_closure_function,
+                         args, cdr, env, docstring, iform);
+        }
     }
   else
     /* Simply quote the argument.  */
@@ -1155,12 +1257,57 @@ DEFUN! ("let", Flet, Slet, 1, UNEVALLED, 0,
 
   let mut varlist: Lisp_Object = XCAR (args);
 
+  if CONSP (varlist) && NILP (XCDR (varlist))
+    {
+      maybe_quit ();
+      elt = XCAR (varlist);
+      let var: Lisp_Object;
+      if SYMBOLP (elt)
+	{
+	  var = maybe_remove_pos_from_symbol (elt);
+	  tem = Qnil ();
+	}
+      else if CONSP (elt)
+	{
+	  let cdr_elt: Lisp_Object = XCDR (elt);
+	  if CONSP (cdr_elt)
+	    {
+	      if ! NILP (XCDR (cdr_elt))
+		{ signal_error (c"`let' bindings can have only one value-form".as_ptr (), elt); }
+	      tem = eval_sub (XCAR (cdr_elt));
+	    }
+	  else if NILP (cdr_elt)
+	    { tem = Qnil (); }
+	  else
+	    { signal_error (c"`let' bindings can have only one value-form".as_ptr (), elt); }
+	  var = maybe_remove_pos_from_symbol (XCAR (elt));
+	}
+      else
+	{
+	  if ! NILP (Fcdr (Fcdr (elt)))
+	    { signal_error (c"`let' bindings can have only one value-form".as_ptr (), elt); }
+	  tem = eval_sub (Fcar (Fcdr (elt)));
+	  var = maybe_remove_pos_from_symbol (Fcar (elt));
+	}
+      CHECK_TYPE (BARE_SYMBOL_P (var), Qsymbolp (), var);
+      lexenv = Vinternal_interpreter_environment;
+      if !NILP (lexenv)
+	  && (*XBARE_SYMBOL (var)).u.s.bits & SYMBOL_DECLARED_SPECIAL_BIT == 0
+	  && NILP (memq_lexenv (var, lexenv))
+	{ specbind (Qinternal_interpreter_environment (), Fcons (Fcons (var, tem), lexenv)); }
+      else
+	{ specbind (var, tem); }
+      elt = Fprogn (XCDR (args));
+      return unbind_to (count, elt);
+    }
+
   /* Make space to hold the values to give the bound variables.  */
   let varlist_len: EMACS_INT = fast_list_length (varlist);
   if varlist_len <= 8
     {
-      let mut temps_buf: [Lisp_Object; 8] = [lisp_h_Qnil (); 8];
-      temps = temps_buf.as_mut_ptr ();
+      let mut temps_buf: core::mem::MaybeUninit<[Lisp_Object; 8]> =
+	core::mem::MaybeUninit::uninit ();
+      temps = temps_buf.as_mut_ptr () as *mut Lisp_Object;
       let mut nvars: ptrdiff_t = varlist_len;
       argnum = 0;
       while argnum < nvars && CONSP (varlist)
@@ -1369,7 +1516,7 @@ DEFUN! ("macroexpand", Fmacroexpand, Smacroexpand, 1, 2, 0,
 	{
 	  maybe_quit ();
 	  sym = def;
-	  tem = Fassq (sym, environment);
+	  tem = if NILP (environment) { Qnil () } else { Fassq (sym, environment) };
 	  if NILP (tem)
 	    {
 	      def = (*XSYMBOL (sym)).u.s.function;
@@ -1384,10 +1531,16 @@ DEFUN! ("macroexpand", Fmacroexpand, Smacroexpand, 1, 2, 0,
 	{
 	  /* SYM is not mentioned in ENVIRONMENT.
 	     Look at its function definition.  */
-	  def = Fautoload_do_load (def, sym, Qmacro ());
 	  if !CONSP (def)
 	    /* Not defined or definition not suitable.  */
 	    { break; }
+	  if EQ (XCAR (def), Qautoload ())
+	    {
+	      def = Fautoload_do_load (def, sym, Qmacro ());
+	      if !CONSP (def)
+		/* Not defined or definition not suitable.  */
+		{ break; }
+	    }
 	  if !EQ (XCAR (def), Qmacro ())
 	    { break; }
 	  else
@@ -1501,8 +1654,10 @@ unsafe fn unwind_to_catch (catch: *mut handler, r#type: nonlocal_exit,
   (*catch).val = value;
 
   /* Restore certain special C variables.  */
-  set_poll_suppress_count ((*catch).poll_suppress_count);
-  unblock_input_to ((*catch).interrupt_input_blocked);
+  if (*catch).poll_suppress_count != poll_suppress_count
+    { set_poll_suppress_count ((*catch).poll_suppress_count); }
+  if (*catch).interrupt_input_blocked != interrupt_input_blocked
+    { unblock_input_to ((*catch).interrupt_input_blocked); }
 
   /* C 1438-1443's `#ifdef HAVE_X_WINDOWS` arm (dead in the frozen configuration; P-51):
      restore the X error handler stack.  */
@@ -1519,7 +1674,9 @@ unsafe fn unwind_to_catch (catch: *mut handler, r#type: nonlocal_exit,
     {
       /* Unwind the specpdl stack, and then restore the proper set of
 	 handlers.  */
-      unbind_to ((*handlerlist! ()).pdlcount, Qnil ());
+      let target_pdl: specpdl_ref = (*handlerlist! ()).pdlcount;
+      if SPECPDL_INDEX () != target_pdl
+	{ unbind_to (target_pdl, Qnil ()); }
       last_time = handlerlist! () == catch;
       if ! last_time
 	{ handlerlist! () = (*handlerlist! ()).next; }
@@ -1882,6 +2039,7 @@ pub unsafe extern "C" fn internal_catch_all (
     }
 }
 
+#[inline(always)]
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn push_handler (tag_ch_val: Lisp_Object, handlertype: handlertype)
   -> *mut handler
@@ -1892,6 +2050,7 @@ pub unsafe extern "C" fn push_handler (tag_ch_val: Lisp_Object, handlertype: han
   return c;
 }
 
+#[inline(always)]
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn push_handler_nosignal (tag_ch_val: Lisp_Object,
                                                 handlertype: handlertype) -> *mut handler
@@ -2436,8 +2595,21 @@ pub unsafe extern "C" fn eval_sub (form: Lisp_Object) -> Lisp_Object
   CHECK_LIST (original_args);
 
   /* This also protects them from gc.  */
-  let count: specpdl_ref
-    = record_in_backtrace (original_fun, &mut original_args, UNEVALLED);
+  let count: specpdl_ref = {
+    let ct = current_thread;
+    let pdl: *mut specbinding = (*ct).m_specpdl_ptr;
+    let c = wrap_specpdl_ref (pdl as isize - ((*ct).m_specpdl) as isize);
+    (*pdl).bt.kind = SPECPDL_BACKTRACE as u8;
+    (*pdl).bt.debug_on_exit = 0;
+    (*pdl).bt.function = original_fun;
+    (*pdl).bt.args = &raw mut original_args;
+    (*pdl).bt.nargs = UNEVALLED;
+    let next = pdl.add (1);
+    (*ct).m_specpdl_ptr = next;
+    if next == (*ct).m_specpdl_end
+      { grow_specpdl_allocation (); }
+    c
+  };
 
   if debug_on_next_call
     { do_debug_on_call (Qt (), count); }
@@ -2447,10 +2619,12 @@ pub unsafe extern "C" fn eval_sub (form: Lisp_Object) -> Lisp_Object
   let mut funcar: Lisp_Object;
   /* Declare here, as this array may be accessed by call_debugger near
      the end of this function.  See Bug#21245.  */
-  let mut argvals: [Lisp_Object; 8] = [lisp_h_Qnil (); 8];
+  let mut argvals_uninit: core::mem::MaybeUninit<[Lisp_Object; 8]> =
+    core::mem::MaybeUninit::uninit ();
+  let argvals_ptr: *mut Lisp_Object = argvals_uninit.as_mut_ptr () as *mut Lisp_Object;
   /* The stack overflow detection probably isn't worth the effort any more
      but this may be the least bad spot to feed it.  */
-  (*current_thread).stack_top = argvals.as_ptr () as *const c_void;
+  (*current_thread).stack_top = argvals_ptr as *const c_void;
 
   'retry: loop
     {
@@ -2490,11 +2664,11 @@ pub unsafe extern "C" fn eval_sub (form: Lisp_Object) -> Lisp_Object
 		    {
 		      let arg: Lisp_Object = XCAR (args_left);
 		      args_left = XCDR (args_left);
-		      argvals[argnum as usize] = eval_sub (arg);
+		      *argvals_ptr.offset (argnum) = eval_sub (arg);
 		      argnum += 1;
 		    }
-		  set_backtrace_args (specpdl_ref_to_ptr (count), argvals.as_mut_ptr (), argnum);
-		  val = (((*XSUBR (fun)).function.aMANY).unwrap ()) (argnum, argvals.as_mut_ptr ());
+		  set_backtrace_args (specpdl_ref_to_ptr (count), argvals_ptr, argnum);
+		  val = (((*XSUBR (fun)).function.aMANY).unwrap ()) (argnum, argvals_ptr);
 		}
 	      else
 		{
@@ -2536,15 +2710,15 @@ pub unsafe extern "C" fn eval_sub (form: Lisp_Object) -> Lisp_Object
 		{
 		  if CONSP (args_left)
 		    {
-		      argvals[i as usize] = eval_sub (XCAR (args_left));
+		      *argvals_ptr.offset (i as isize) = eval_sub (XCAR (args_left));
 		      args_left = XCDR (args_left);
 		    }
 		  else
-		    { argvals[i as usize] = Qnil (); }
+		    { *argvals_ptr.offset (i as isize) = Qnil (); }
 		  i += 1;
 		}
 
-	      set_backtrace_args (specpdl_ref_to_ptr (count), argvals.as_mut_ptr (), numargs);
+	      set_backtrace_args (specpdl_ref_to_ptr (count), argvals_ptr, numargs);
 
 	      match i
 		{
@@ -2554,46 +2728,55 @@ pub unsafe extern "C" fn eval_sub (form: Lisp_Object) -> Lisp_Object
 		  }
 		1 =>
 		  {
-		    val = (((*XSUBR (fun)).function.a1).unwrap ()) (argvals[0]);
+		    val = (((*XSUBR (fun)).function.a1).unwrap ()) (*argvals_ptr.offset (0));
 		  }
 		2 =>
 		  {
-		    val = (((*XSUBR (fun)).function.a2).unwrap ()) (argvals[0], argvals[1]);
+		    val = (((*XSUBR (fun)).function.a2).unwrap ())
+			  (*argvals_ptr.offset (0), *argvals_ptr.offset (1));
 		  }
 		3 =>
 		  {
 		    val = (((*XSUBR (fun)).function.a3).unwrap ())
-			  (argvals[0], argvals[1], argvals[2]);
+			  (*argvals_ptr.offset (0), *argvals_ptr.offset (1),
+			   *argvals_ptr.offset (2));
 		  }
 		4 =>
 		  {
 		    val = (((*XSUBR (fun)).function.a4).unwrap ())
-			  (argvals[0], argvals[1], argvals[2], argvals[3]);
+			  (*argvals_ptr.offset (0), *argvals_ptr.offset (1),
+			   *argvals_ptr.offset (2), *argvals_ptr.offset (3));
 		  }
 		5 =>
 		  {
 		    val = (((*XSUBR (fun)).function.a5).unwrap ())
-			  (argvals[0], argvals[1], argvals[2], argvals[3],
-			   argvals[4]);
+			  (*argvals_ptr.offset (0), *argvals_ptr.offset (1),
+			   *argvals_ptr.offset (2), *argvals_ptr.offset (3),
+			   *argvals_ptr.offset (4));
 		  }
 		6 =>
 		  {
 		    val = (((*XSUBR (fun)).function.a6).unwrap ())
-			  (argvals[0], argvals[1], argvals[2], argvals[3],
-			   argvals[4], argvals[5]);
+			  (*argvals_ptr.offset (0), *argvals_ptr.offset (1),
+			   *argvals_ptr.offset (2), *argvals_ptr.offset (3),
+			   *argvals_ptr.offset (4), *argvals_ptr.offset (5));
 		  }
 		7 =>
 		  {
 		    val = (((*XSUBR (fun)).function.a7).unwrap ())
-			  (argvals[0], argvals[1], argvals[2], argvals[3],
-			   argvals[4], argvals[5], argvals[6]);
+			  (*argvals_ptr.offset (0), *argvals_ptr.offset (1),
+			   *argvals_ptr.offset (2), *argvals_ptr.offset (3),
+			   *argvals_ptr.offset (4), *argvals_ptr.offset (5),
+			   *argvals_ptr.offset (6));
 		  }
 
 		8 =>
 		  {
 		    val = (((*XSUBR (fun)).function.a8).unwrap ())
-			  (argvals[0], argvals[1], argvals[2], argvals[3],
-			   argvals[4], argvals[5], argvals[6], argvals[7]);
+			  (*argvals_ptr.offset (0), *argvals_ptr.offset (1),
+			   *argvals_ptr.offset (2), *argvals_ptr.offset (3),
+			   *argvals_ptr.offset (4), *argvals_ptr.offset (5),
+			   *argvals_ptr.offset (6), *argvals_ptr.offset (7));
 		  }
 
 		_ =>
@@ -2673,14 +2856,20 @@ DEFUN! ("apply", Fapply, Sapply, 1, MANY, 0,
        (nargs: isize, args: *mut Lisp_Object),
        {
   let mut i: ptrdiff_t;
-  let funcall_nargs: ptrdiff_t;
+  let mut funcall_nargs: ptrdiff_t;
   let mut funcall_args: *mut Lisp_Object = std::ptr::null_mut ();
   let mut spread_arg: Lisp_Object = *args.offset (nargs - 1);
   let mut fun: Lisp_Object = *args.offset (0);
-  USE_SAFE_ALLOCA! (sa_avail, sa_count, sa_mark);
 
-  let mut numargs: ptrdiff_t = list_length (spread_arg);
+  if NILP (spread_arg)
+    { return Ffuncall (max (1, nargs - 1), args); }
+  else if CONSP (spread_arg) && NILP (XCDR (spread_arg))
+    {
+      *args.offset (nargs - 1) = XCAR (spread_arg);
+      return Ffuncall (nargs, args);
+    }
 
+  let mut numargs: ptrdiff_t = fast_list_length (spread_arg);
   if numargs == 0
     { return Ffuncall (max (1, nargs - 1), args); }
   else if numargs == 1
@@ -2704,6 +2893,44 @@ DEFUN! ("apply", Fapply, Sapply, 1, MANY, 0,
 	}
     }
 
+  let mut stack_buf: [Lisp_Object; 16] = [Qnil (); 16];
+  if SUBRP (fun) && ((*XSUBR (fun)).max_args as ptrdiff_t) > numargs
+      /* Don't hide an error by adding missing arguments.  */
+      && numargs >= (*XSUBR (fun)).min_args as ptrdiff_t
+    {
+      funcall_nargs = 1 + (*XSUBR (fun)).max_args as ptrdiff_t;
+      if funcall_nargs <= 16
+	{
+	  funcall_args = stack_buf.as_mut_ptr ();
+	  memcpy (funcall_args as *mut c_void, args as *const c_void,
+		  (nargs - 1) as usize * word_size as usize);
+	  i = nargs - 1;
+	  while !NILP (spread_arg)
+	    {
+	      *funcall_args.offset (i) = XCAR (spread_arg);
+	      i += 1;
+	      spread_arg = XCDR (spread_arg);
+	    }
+	  return Ffuncall (funcall_nargs, funcall_args);
+	}
+    }
+  else if 1 + numargs <= 16
+    {
+      funcall_nargs = 1 + numargs;
+      funcall_args = stack_buf.as_mut_ptr ();
+      memcpy (funcall_args as *mut c_void, args as *const c_void,
+	      (nargs - 1) as usize * word_size as usize);
+      i = nargs - 1;
+      while !NILP (spread_arg)
+	{
+	  *funcall_args.offset (i) = XCAR (spread_arg);
+	  i += 1;
+	  spread_arg = XCDR (spread_arg);
+	}
+      return Ffuncall (funcall_nargs, funcall_args);
+    }
+
+  USE_SAFE_ALLOCA! (sa_avail, sa_count, sa_mark);
   if SUBRP (fun) && ((*XSUBR (fun)).max_args as ptrdiff_t) > numargs
       /* Don't hide an error by adding missing arguments.  */
       && numargs >= (*XSUBR (fun)).min_args as ptrdiff_t
@@ -2913,7 +3140,35 @@ pub unsafe extern "C" fn run_hook_with_args_2 (hook: Lisp_Object, arg1: Lisp_Obj
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn apply1 (fn_: Lisp_Object, arg: Lisp_Object) -> Lisp_Object
 {
-  return if NILP (arg) { calln! (fn_) } else { CALLN! (Fapply, fn_, arg) };
+  if NILP (arg)
+    { return calln! (fn_); }
+  if CONSP (arg)
+    {
+      let cdr1: Lisp_Object = XCDR (arg);
+      if NILP (cdr1)
+	{ return calln! (fn_, XCAR (arg)); }
+      if CONSP (cdr1)
+	{
+	  let cdr2: Lisp_Object = XCDR (cdr1);
+	  if NILP (cdr2)
+	    { return calln! (fn_, XCAR (arg), XCAR (cdr1)); }
+	  let mut buf: [Lisp_Object; 16] = [Qnil (); 16];
+	  buf[0] = fn_;
+	  buf[1] = XCAR (arg);
+	  buf[2] = XCAR (cdr1);
+	  let mut n: ptrdiff_t = 3;
+	  let mut s: Lisp_Object = cdr2;
+	  while CONSP (s) && n < 16
+	    {
+	      buf[n as usize] = XCAR (s);
+	      n += 1;
+	      s = XCDR (s);
+	    }
+	  if NILP (s)
+	    { return Ffuncall (n, buf.as_mut_ptr ()); }
+	}
+    }
+  return CALLN! (Fapply, fn_, arg);
 }
 
 DEFUN! ("functionp", Ffunctionp, Sfunctionp, 1, 1, 0,
@@ -2984,9 +3239,25 @@ pub unsafe extern "C" fn funcall_general (fun: Lisp_Object, numargs: ptrdiff_t,
 	}
 
       if SUBRP (fun) && !NATIVE_COMP_FUNCTION_DYNP (fun)
-	{ return funcall_subr (XSUBR (fun), numargs, args); }
+	{
+	  let subr: *mut Lisp_Subr = XSUBR (fun);
+	  if numargs == 1 && (*subr).min_args <= 1
+	    {
+	      if (*subr).max_args == 1
+		{ return (((*subr).function.a1).unwrap_unchecked ()) (*args); }
+	      if (*subr).max_args == 2
+		{ return (((*subr).function.a2).unwrap_unchecked ()) (*args, Qnil ()); }
+	    }
+	  return funcall_subr (subr, numargs, args);
+	}
       else if CLOSUREP (fun)
-	       || NATIVE_COMP_FUNCTION_DYNP (fun)
+	{
+	  let syms_left: Lisp_Object = AREF (fun, CLOSURE_ARGLIST as isize);
+	  if FIXNUMP (syms_left)
+	    { return exec_byte_code (fun, XFIXNUM (syms_left), numargs, args); }
+	  return funcall_lambda (fun, numargs, args);
+	}
+      else if NATIVE_COMP_FUNCTION_DYNP (fun)
 	       || MODULE_FUNCTIONP (fun)
 	{ return funcall_lambda (fun, numargs, args); }
       else
@@ -3029,7 +3300,21 @@ DEFUN! ("funcall", Ffuncall, Sfuncall, 1, MANY, 0,
 	{ xsignal1 (Qexcessive_lisp_nesting (), make_fixnum (lisp_eval_depth! () as EMACS_INT)); }
     }
 
-  count = record_in_backtrace (*args.offset (0), args.offset (1), nargs - 1);
+  count = {
+    let ct = current_thread;
+    let pdl: *mut specbinding = (*ct).m_specpdl_ptr;
+    let c = wrap_specpdl_ref (pdl as isize - ((*ct).m_specpdl) as isize);
+    (*pdl).bt.kind = SPECPDL_BACKTRACE as u8;
+    (*pdl).bt.debug_on_exit = 0;
+    (*pdl).bt.function = *args.offset (0);
+    (*pdl).bt.args = args.offset (1);
+    (*pdl).bt.nargs = nargs - 1;
+    let next = pdl.add (1);
+    (*ct).m_specpdl_ptr = next;
+    if next == (*ct).m_specpdl_end
+      { grow_specpdl_allocation (); }
+    c
+  };
 
   maybe_gc ();
 
@@ -3098,31 +3383,52 @@ pub unsafe extern "C" fn funcall_subr (subr: *mut Lisp_Subr, numargs: ptrdiff_t,
       let maxargs: ptrdiff_t = (*subr).max_args as ptrdiff_t;
       if numargs <= maxargs && maxargs <= 8
 	{
+	  if numargs == maxargs
+	    {
+	      match maxargs
+		{
+		0 => { return (((*subr).function.a0).unwrap_unchecked ()) (); }
+		1 => { return (((*subr).function.a1).unwrap_unchecked ()) (*args.offset (0)); }
+		2 => { return (((*subr).function.a2).unwrap_unchecked ()) (*args.offset (0), *args.offset (1)); }
+		3 => { return (((*subr).function.a3).unwrap_unchecked ()) (*args.offset (0), *args.offset (1), *args.offset (2)); }
+		4 => { return (((*subr).function.a4).unwrap_unchecked ()) (*args.offset (0), *args.offset (1), *args.offset (2), *args.offset (3)); }
+		5 => { return (((*subr).function.a5).unwrap_unchecked ()) (*args.offset (0), *args.offset (1), *args.offset (2), *args.offset (3), *args.offset (4)); }
+		6 => { return (((*subr).function.a6).unwrap_unchecked ()) (*args.offset (0), *args.offset (1), *args.offset (2), *args.offset (3), *args.offset (4), *args.offset (5)); }
+		7 => { return (((*subr).function.a7).unwrap_unchecked ()) (*args.offset (0), *args.offset (1), *args.offset (2), *args.offset (3), *args.offset (4), *args.offset (5), *args.offset (6)); }
+		8 => { return (((*subr).function.a8).unwrap_unchecked ()) (*args.offset (0), *args.offset (1), *args.offset (2), *args.offset (3), *args.offset (4), *args.offset (5), *args.offset (6), *args.offset (7)); }
+		_ => { }
+		}
+	    }
+	  else if maxargs == 2
+	    {
+	      let a0: Lisp_Object = if numargs >= 1 { *args.offset (0) } else { Qnil () };
+	      return (((*subr).function.a2).unwrap_unchecked ()) (a0, Qnil ());
+	    }
+	  else if maxargs == 3
+	    {
+	      let a0: Lisp_Object = if numargs >= 1 { *args.offset (0) } else { Qnil () };
+	      let a1: Lisp_Object = if numargs >= 2 { *args.offset (1) } else { Qnil () };
+	      return (((*subr).function.a3).unwrap_unchecked ()) (a0, a1, Qnil ());
+	    }
 	  /* C leaves `argbuf` uninitialised and writes only the slots it uses; the port used
 	     to fill all eight with nil, which is eight stores on every short call (P-182).
 	     `MaybeUninit` gives C's shape back: the slots below `numargs` are copied in and
 	     the rest of the used range is cleared, so no slot is read before it is written.  */
 	  let mut argbuf: core::mem::MaybeUninit<[Lisp_Object; 8]> =
 	    core::mem::MaybeUninit::uninit ();
-	  let a: *mut Lisp_Object;
-	  if numargs < maxargs
+	  let a: *mut Lisp_Object = argbuf.as_mut_ptr () as *mut Lisp_Object;
+	  eassume! (maxargs <= 8);
+	  let mut i: ptrdiff_t = 0;
+	  while i < numargs
 	    {
-	      eassume! (maxargs <= 8);
-	      a = argbuf.as_mut_ptr () as *mut Lisp_Object;
-	      let mut i: ptrdiff_t = 0;
-	      while i < numargs
-		{
-		  *a.offset (i) = *args.offset (i);
-		  i += 1;
-		}
-	      while i < maxargs
-		{
-		  *a.offset (i) = Qnil ();
-		  i += 1;
-		}
+	      *a.offset (i) = *args.offset (i);
+	      i += 1;
 	    }
-	  else
-	    { a = args; }
+	  while i < maxargs
+	    {
+	      *a.offset (i) = Qnil ();
+	      i += 1;
+	    }
 	  match maxargs
 	    {
 	    0 =>
@@ -3198,8 +3504,9 @@ unsafe fn apply_lambda (fun: Lisp_Object, args: Lisp_Object, count: specpdl_ref)
   let numargs: ptrdiff_t = fast_list_length (args);
   if numargs <= 8
     {
-      let mut arg_buf: [Lisp_Object; 8] = [lisp_h_Qnil (); 8];
-      arg_vector = arg_buf.as_mut_ptr ();
+      let mut arg_buf: core::mem::MaybeUninit<[Lisp_Object; 8]> =
+	core::mem::MaybeUninit::uninit ();
+      arg_vector = arg_buf.as_mut_ptr () as *mut Lisp_Object;
       let mut args_left: Lisp_Object = args;
       let mut i: ptrdiff_t = 0;
       while i < numargs
@@ -3314,6 +3621,21 @@ unsafe fn funcall_lambda (fun: Lisp_Object, nargs: ptrdiff_t, arg_vector: *mut L
     { emacs_abort (); }
 
   let count: specpdl_ref = SPECPDL_INDEX ();
+  if nargs == 1 && !NILP (lexenv) && CONSP (syms_left) && NILP (XCDR (syms_left))
+     && CLOSUREP (fun) && CONSP (AREF (fun, CLOSURE_CODE as isize))
+    {
+      maybe_quit ();
+      let next: Lisp_Object = maybe_remove_pos_from_symbol (XCAR (syms_left));
+      if BARE_SYMBOL_P (next)
+	 && !BASE_EQ (next, Qand_rest ())
+	 && !BASE_EQ (next, Qand_optional ())
+	{
+	  specbind (Qinternal_interpreter_environment (),
+		    Fcons (Fcons (next, *arg_vector), lexenv));
+	  let val: Lisp_Object = Fprogn (AREF (fun, CLOSURE_CODE as isize));
+	  return unbind_to (count, val);
+	}
+    }
   let mut i: ptrdiff_t = 0;
   let mut optional: bool = false;
   let mut rest: bool = false;
@@ -3622,6 +3944,17 @@ pub unsafe extern "C" fn specbind (symbol: Lisp_Object, value: Lisp_Object)
 {
   /* The caller must ensure that the SYMBOL argument is a bare symbol.  */
   let mut sym: *mut Lisp_Symbol = XBARE_SYMBOL (symbol);
+  if ((*sym).u.s.bits & (SYMBOL_REDIRECT_MASK | SYMBOL_TRAPPED_WRITE_MASK)) == 0
+    {
+      let pdl: *mut specbinding = specpdl_ptr! ();
+      (*pdl).r#let.kind = SPECPDL_LET as u8;
+      (*pdl).r#let.symbol = symbol;
+      (*pdl).r#let.old_value = (*sym).u.s.val.value;
+      (*pdl).r#let.r#where.kbd = std::ptr::null_mut ();
+      (*sym).u.s.val.value = value;
+      grow_specpdl ();
+      return;
+    }
   let mut symbol: Lisp_Object = symbol;   // C's `XSETSYMBOL (symbol, sym)` rebinds it
 
   'start: loop
@@ -3938,11 +4271,17 @@ pub unsafe extern "C" fn set_unwind_protect_ptr (
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn unbind_to (count: specpdl_ref, value: Lisp_Object) -> Lisp_Object
 {
+  let mut ct: *mut thread_state = current_thread;
+  let mut target_ptr: *mut specbinding = ((*ct).m_specpdl as *mut u8)
+    .offset (unwrap_specpdl_ref (count)) as *mut specbinding;
+  if (*ct).m_specpdl_ptr == target_ptr
+    { return value; }
+
   let quitf: Lisp_Object = Vquit_flag;
 
   Vquit_flag = Qnil ();
 
-  while specpdl_ptr! () != specpdl_ref_to_ptr (count)
+  while (*ct).m_specpdl_ptr != target_ptr
     {
       /* Copy the binding, and decrement specpdl_ptr, before we do
 	 the work to unbind it.  We decrement first
@@ -3950,10 +4289,43 @@ pub unsafe extern "C" fn unbind_to (count: specpdl_ref, value: Lisp_Object) -> L
 	 the same entry again, and we copy the binding first
 	 in case more bindings are made during some of the code we run.  */
 
-      specpdl_ptr! () = (specpdl_ptr! ()).offset (-1);
-      let mut this_binding: specbinding = *specpdl_ptr! ();
+      let p: *mut specbinding = ((*ct).m_specpdl_ptr).offset (-1);
+      (*ct).m_specpdl_ptr = p;
+      let kind: u8 = (*p).kind;
+      if kind == SPECPDL_LET as u8
+	{
+	  let sym: Lisp_Object = (*p).r#let.symbol;
+	  if SYMBOLP (sym)
+	    {
+	      let s: *mut Lisp_Symbol = XSYMBOL (sym);
+	      if ((*s).u.s.bits & (SYMBOL_REDIRECT_MASK | SYMBOL_TRAPPED_WRITE_MASK)) == 0
+		{
+		  (*s).u.s.val.value = (*p).r#let.old_value;
+		  continue;
+		}
+	    }
+	}
+      else if kind == SPECPDL_BACKTRACE as u8 || kind == SPECPDL_NOP as u8
+	{ continue; }
+      else if kind == SPECPDL_UNWIND as u8
+	{
+	  let depth = (*p).unwind.eval_depth as intmax_t;
+	  let func = (*p).unwind.func.unwrap_unchecked ();
+	  let arg = (*p).unwind.arg;
+	  (*ct).m_lisp_eval_depth = depth;
+	  func (arg);
+	  ct = current_thread;
+	  target_ptr = ((*ct).m_specpdl as *mut u8)
+	    .offset (unwrap_specpdl_ref (count)) as *mut specbinding;
+	  continue;
+	}
+
+      let mut this_binding: specbinding = *p;
 
       do_one_unbind (&mut this_binding, true, SET_INTERNAL_UNBIND);
+      ct = current_thread;
+      target_ptr = ((*ct).m_specpdl as *mut u8)
+	.offset (unwrap_specpdl_ref (count)) as *mut specbinding;
     }
 
   if NILP (Vquit_flag) && !NILP (quitf)

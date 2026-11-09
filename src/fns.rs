@@ -206,6 +206,16 @@ DEFUN! ("random", Frandom, Srandom, 0, 1, 0,
 pub unsafe extern "C" fn list_length (mut list: Lisp_Object) -> ptrdiff_t
 {
   let mut i: ptrdiff_t = 0;
+  let orig: Lisp_Object = list;
+  while CONSP (list) && i < (FOR_EACH_TAIL_THRESHOLD as ptrdiff_t)
+    {
+      i += 1;
+      list = XCDR (list);
+    }
+  if NILP (list)
+    { return i; }
+  list = orig;
+  i = 0;
   let mut tortoise: Lisp_Object = list;
   while CONSP (list)
     {
@@ -231,12 +241,12 @@ DEFUN! ("length", Flength, Slength, 1, 1, 0,
        {
   let mut val: EMACS_INT;
 
-  if STRINGP (sequence)
-    { val = SCHARS (sequence); }
+  if NILP (sequence)
+    { return make_fixnum (0); }
   else if CONSP (sequence)
     { val = list_length (sequence); }
-  else if NILP (sequence)
-    { val = 0; }
+  else if STRINGP (sequence)
+    { val = SCHARS (sequence); }
   else if VECTORP (sequence)
     { val = ASIZE (sequence); }
   else if CHAR_TABLE_P (sequence)
@@ -775,6 +785,15 @@ DEFUN! ("append", Fappend, Sappend, 0, MANY, 0,
        {
   if nargs == 0
     { return Qnil (); }
+  if nargs == 2
+    {
+      let a0: Lisp_Object = *args;
+      let a1: Lisp_Object = *args.offset (1);
+      if NILP (a0)
+	{ return a1; }
+      if CONSP (a0) && NILP (XCDR (a0))
+	{ return Fcons (XCAR (a0), a1); }
+    }
   return concat_to_list (nargs - 1, args, *args.offset (nargs - 1));
 });
 
@@ -802,8 +821,21 @@ DEFUN! ("copy-sequence", Fcopy_sequence, Scopy_sequence, 1, 1, 0,
   if CONSP (arg)
     {
       let val: Lisp_Object = Fcons (XCAR (arg), Qnil ());
-      let mut prev: Lisp_Object = val;
       let mut tail: Lisp_Object = XCDR (arg);
+      if NILP (tail)
+	{ return val; }
+      let mut prev: Lisp_Object = val;
+      let mut fast_steps: c_int = 0;
+      while CONSP (tail) && fast_steps < 64
+	{
+	  let c: Lisp_Object = Fcons (XCAR (tail), Qnil ());
+	  XSETCDR (prev, c);
+	  prev = c;
+	  tail = XCDR (tail);
+	  fast_steps += 1;
+	}
+      if NILP (tail)
+	{ return val; }
       FOR_EACH_TAIL! (tail, {
 	let c: Lisp_Object = Fcons (XCAR (tail), Qnil ());
 	XSETCDR (prev, c);
@@ -1125,16 +1157,31 @@ unsafe fn concat_to_list (nargs: ptrdiff_t, args: *mut Lisp_Object,
 	  let head: Lisp_Object = Fcons (XCAR (arg), Qnil ());
 	  let mut prev: Lisp_Object = head;
 	  arg = XCDR (arg);
-	  /* C's FOR_EACH_TAIL leaves the terminating non-cons in ARG; the port's macro cannot
-	     hand it back, so the body records it (docs/ports/fns.md, Decisions).  */
-	  let mut arg_end: Lisp_Object = arg;
-	  FOR_EACH_TAIL! (arg, {
-	    let next: Lisp_Object = Fcons (XCAR (arg), Qnil ());
-	    XSETCDR (prev, next);
-	    prev = next;
-	    arg_end = XCDR (arg);
-	  });
-	  CHECK_LIST_END (arg_end, arg_end);
+	  if ! NILP (arg)
+	    {
+	      let mut fast_steps: c_int = 0;
+	      while CONSP (arg) && fast_steps < 64
+		{
+		  let next: Lisp_Object = Fcons (XCAR (arg), Qnil ());
+		  XSETCDR (prev, next);
+		  prev = next;
+		  arg = XCDR (arg);
+		  fast_steps += 1;
+		}
+	      if ! NILP (arg)
+		{
+		  /* C's FOR_EACH_TAIL leaves the terminating non-cons in ARG; the port's macro cannot
+		     hand it back, so the body records it (docs/ports/fns.md, Decisions).  */
+		  let mut arg_end: Lisp_Object = arg;
+		  FOR_EACH_TAIL! (arg, {
+		    let next: Lisp_Object = Fcons (XCAR (arg), Qnil ());
+		    XSETCDR (prev, next);
+		    prev = next;
+		    arg_end = XCDR (arg);
+		  });
+		  CHECK_LIST_END (arg_end, arg_end);
+		}
+	    }
 	  if NILP (result)
 	    { result = head; }
 	  else
@@ -1616,10 +1663,34 @@ DEFUN! ("copy-alist", Fcopy_alist, Scopy_alist, 1, 1, 0,
        (alist: Lisp_Object),
        {
   let mut alist: Lisp_Object = alist;
-  CHECK_LIST (alist);
   if NILP (alist)
     { return alist; }
-  alist = Fcopy_sequence (alist);
+  CHECK_CONS (alist);
+  let first_car: Lisp_Object = XCAR (alist);
+  let first_elt: Lisp_Object = if CONSP (first_car)
+    { Fcons (XCAR (first_car), XCDR (first_car)) }
+  else
+    { first_car };
+  let val: Lisp_Object = Fcons (first_elt, Qnil ());
+  let mut prev: Lisp_Object = val;
+  let mut tail: Lisp_Object = XCDR (alist);
+  let mut fast_steps: c_int = 0;
+  while CONSP (tail) && fast_steps < 64
+    {
+      let car: Lisp_Object = XCAR (tail);
+      let elt: Lisp_Object = if CONSP (car)
+	{ Fcons (XCAR (car), XCDR (car)) }
+      else
+	{ car };
+      let c: Lisp_Object = Fcons (elt, Qnil ());
+      XSETCDR (prev, c);
+      prev = c;
+      tail = XCDR (tail);
+      fast_steps += 1;
+    }
+  if NILP (tail)
+    { return val; }
+  alist = Fcopy_sequence (tail);
   let mut tem: Lisp_Object = alist;
   while !NILP (tem)
     {
@@ -1628,7 +1699,8 @@ DEFUN! ("copy-alist", Fcopy_alist, Scopy_alist, 1, 1, 0,
 	{ XSETCAR (tem, Fcons (XCAR (car), XCDR (car))); }
       tem = XCDR (tem);
     }
-  return alist;
+  XSETCDR (prev, alist);
+  return val;
 });
 
 /* Check that ARRAY can have a valid subarray [FROM..TO),
@@ -1843,8 +1915,6 @@ DEFUN! ("nthcdr", Fnthcdr, Snthcdr, 2, 2, 0,
        {
   let mut tail: Lisp_Object = list;
 
-  CHECK_INTEGER (n);
-
   /* A huge but in-range EMACS_INT that can be substituted for a
      positive bignum while counting down.  It does not introduce
      miscounts because a list or cycle cannot possibly be this long,
@@ -1874,6 +1944,7 @@ DEFUN! ("nthcdr", Fnthcdr, Snthcdr, 2, 2, 0,
     }
   else
     {
+      CHECK_INTEGER (n);
       if mpz_sgn (xbignum_val (n)) < 0
 	{ return tail; }
       num = large_num;
@@ -1959,6 +2030,23 @@ DEFUN! ("nth", Fnth, Snth, 2, 2, 0,
        doc: "Return the Nth element of LIST.\nN counts from zero.  If LIST is not that long, nil is returned.",
        (n: Lisp_Object, list: Lisp_Object),
        {
+  if FIXNUMP (n)
+    {
+      let mut num: EMACS_INT = XFIXNUM (n);
+      if num <= SMALL_LIST_LEN_MAX as EMACS_INT
+	{
+	  let mut tail: Lisp_Object = list;
+	  while 0 < num && CONSP (tail)
+	    {
+	      tail = XCDR (tail);
+	      num -= 1;
+	    }
+	  if CONSP (tail)
+	    { return XCAR (tail); }
+	  else if NILP (tail)
+	    { return Qnil (); }
+	}
+    }
   return Fcar (Fnthcdr (n, list));
 });
 
@@ -2026,10 +2114,10 @@ DEFUN! ("member", Fmember, Smember, 2, 2, 0,
   return Qnil ();
 });
 
-DEFUN! ("memq", Fmemq, Smemq, 2, 2, 0,
-       doc: "Return non-nil if ELT is an element of LIST.  Comparison done with `eq'.\nThe value is actually the tail of LIST whose car is ELT.",
-       (elt: Lisp_Object, list: Lisp_Object),
-       {
+#[cold]
+#[inline(never)]
+unsafe fn memq_slow (elt: Lisp_Object, list: Lisp_Object) -> Lisp_Object
+{
   let mut tail: Lisp_Object = list;
   FOR_EACH_TAIL! (tail, {
     if EQ (XCAR (tail), elt)
@@ -2037,6 +2125,29 @@ DEFUN! ("memq", Fmemq, Smemq, 2, 2, 0,
   });
   CHECK_LIST_END (tail, list);
   return Qnil ();
+}
+
+DEFUN! ("memq", Fmemq, Smemq, 2, 2, 0,
+       doc: "Return non-nil if ELT is an element of LIST.  Comparison done with `eq'.\nThe value is actually the tail of LIST whose car is ELT.",
+       (elt: Lisp_Object, list: Lisp_Object),
+       {
+  if NILP (list)
+    { return Qnil (); }
+  let mut tail: Lisp_Object = list;
+  if ! symbols_with_pos_enabled
+    {
+      let mut steps: ptrdiff_t = 0;
+      while CONSP (tail) && steps < 4096
+	{
+	  if BASE_EQ (XCAR (tail), elt)
+	    { return tail; }
+	  tail = XCDR (tail);
+	  steps += 1;
+	}
+      if NILP (tail)
+	{ return Qnil (); }
+    }
+  return memq_slow (elt, list);
 });
 
 /* C 1925-1931: `memq_no_quit`.  */
@@ -2085,10 +2196,10 @@ DEFUN! ("memql", Fmemql, Smemql, 2, 2, 0,
   return Qnil ();
 });
 
-DEFUN! ("assq", Fassq, Sassq, 2, 2, 0,
-       doc: "Return non-nil if KEY is `eq' to the car of an element of ALIST.\nThe value is actually the first element of ALIST whose car is KEY.\nElements of ALIST that are not conses are ignored.",
-       (key: Lisp_Object, alist: Lisp_Object),
-       {
+#[cold]
+#[inline(never)]
+unsafe fn assq_slow (key: Lisp_Object, alist: Lisp_Object) -> Lisp_Object
+{
   let mut tail: Lisp_Object = alist;
   FOR_EACH_TAIL! (tail, {
     if CONSP (XCAR (tail)) && EQ (XCAR (XCAR (tail)), key)
@@ -2096,6 +2207,30 @@ DEFUN! ("assq", Fassq, Sassq, 2, 2, 0,
   });
   CHECK_LIST_END (tail, alist);
   return Qnil ();
+}
+
+DEFUN! ("assq", Fassq, Sassq, 2, 2, 0,
+       doc: "Return non-nil if KEY is `eq' to the car of an element of ALIST.\nThe value is actually the first element of ALIST whose car is KEY.\nElements of ALIST that are not conses are ignored.",
+       (key: Lisp_Object, alist: Lisp_Object),
+       {
+  if NILP (alist)
+    { return Qnil (); }
+  let mut tail: Lisp_Object = alist;
+  if ! symbols_with_pos_enabled
+    {
+      let mut steps: ptrdiff_t = 0;
+      while CONSP (tail) && steps < 4096
+	{
+	  let car: Lisp_Object = XCAR (tail);
+	  if CONSP (car) && BASE_EQ (XCAR (car), key)
+	    { return car; }
+	  tail = XCDR (tail);
+	  steps += 1;
+	}
+      if NILP (tail)
+	{ return Qnil (); }
+    }
+  return assq_slow (key, alist);
 });
 
 /* Like Fassq but never report an error and do not allow quits.
@@ -2180,7 +2315,24 @@ DEFUN! ("rassq", Frassq, Srassq, 2, 2, 0,
        doc: "Return non-nil if KEY is `eq' to the cdr of an element of ALIST.\nThe value is actually the first element of ALIST whose cdr is KEY.",
        (key: Lisp_Object, alist: Lisp_Object),
        {
+  if NILP (alist)
+    { return Qnil (); }
   let mut tail: Lisp_Object = alist;
+  if ! symbols_with_pos_enabled
+    {
+      let mut steps: ptrdiff_t = 0;
+      while CONSP (tail) && steps < 4096
+	{
+	  let car: Lisp_Object = XCAR (tail);
+	  if CONSP (car) && BASE_EQ (XCDR (car), key)
+	    { return car; }
+	  tail = XCDR (tail);
+	  steps += 1;
+	}
+      if NILP (tail)
+	{ return Qnil (); }
+      tail = alist;
+    }
   FOR_EACH_TAIL! (tail, {
     if CONSP (XCAR (tail)) && EQ (XCDR (XCAR (tail)), key)
       { return XCAR (tail); }
@@ -2211,9 +2363,35 @@ DEFUN! ("delq", Fdelq, Sdelq, 2, 2, 0,
        doc: "Delete members of LIST which are `eq' to ELT, and return the result.\nMore precisely, this function skips any members `eq' to ELT at the\nfront of LIST, then removes members `eq' to ELT from the remaining\nsublist by modifying its list structure, then returns the resulting\nlist.\n\nWrite `(setq foo (delq element foo))' to be sure of correctly changing\nthe value of a list `foo'.  See also `remq', which does not modify the\nargument.",
        (elt: Lisp_Object, list: Lisp_Object),
        {
+  if NILP (list)
+    { return Qnil (); }
   let mut prev: Lisp_Object = Qnil ();
   let mut list: Lisp_Object = list;
   let mut tail: Lisp_Object = list;
+
+  if ! symbols_with_pos_enabled
+    {
+      let mut steps: ptrdiff_t = 0;
+      while CONSP (tail) && steps < 4096
+	{
+	  let next: Lisp_Object = XCDR (tail);
+	  if BASE_EQ (elt, XCAR (tail))
+	    {
+	      if NILP (prev)
+		{ list = next; }
+	      else
+		{ XSETCDR (prev, next); }
+	    }
+	  else
+	    { prev = tail; }
+	  tail = next;
+	  steps += 1;
+	}
+      if NILP (tail)
+	{ return list; }
+      prev = Qnil ();
+      tail = list;
+    }
 
   FOR_EACH_TAIL! (tail, {
       let tem: Lisp_Object = XCAR (tail);
@@ -2410,6 +2588,8 @@ DEFUN! ("nreverse", Fnreverse, Snreverse, 1, 1, 0,
     { return seq; }
   else if CONSP (seq)
     {
+      if NILP (XCDR (seq))
+	{ return seq; }
       let mut prev: Lisp_Object;
       let mut tail: Lisp_Object;
       let mut next: Lisp_Object;
@@ -2477,12 +2657,22 @@ DEFUN! ("reverse", Freverse, Sreverse, 1, 1, 0,
     {
       new = Qnil ();
       let mut seq_loop: Lisp_Object = seq;
-      let mut seq_end: Lisp_Object = seq_loop;
-      FOR_EACH_TAIL! (seq_loop, {
-	new = Fcons (XCAR (seq_loop), new);
-	seq_end = XCDR (seq_loop);
-      });
-      CHECK_LIST_END (seq_end, seq_end);
+      let mut fast_steps: c_int = 0;
+      while CONSP (seq_loop) && fast_steps < 64
+	{
+	  new = Fcons (XCAR (seq_loop), new);
+	  seq_loop = XCDR (seq_loop);
+	  fast_steps += 1;
+	}
+      if ! NILP (seq_loop)
+	{
+	  let mut seq_end: Lisp_Object = seq_loop;
+	  FOR_EACH_TAIL! (seq_loop, {
+	    new = Fcons (XCAR (seq_loop), new);
+	    seq_end = XCDR (seq_loop);
+	  });
+	  CHECK_LIST_END (seq_end, seq_end);
+	}
     }
   else if VECTORP (seq)
     {
@@ -2820,13 +3010,10 @@ pub unsafe extern "C" fn merge_c (org_l1: Lisp_Object, org_l2: Lisp_Object,
 
 /* This does not check for quits.  That is safe since it must terminate.  */
 
-DEFUN! ("plist-get", Fplist_get, Splist_get, 2, 3, 0,
-       doc: "Extract a value from a property list.\nPLIST is a property list, which is a list of the form\n(PROP1 VALUE1 PROP2 VALUE2...).\n\nThis function returns the value corresponding to the given PROP, or\nnil if PROP is not one of the properties on the list.  The comparison\nwith PROP is done using PREDICATE, which defaults to `eq'.\n\nThis function doesn't signal an error if PLIST is invalid.",
-       (plist: Lisp_Object, prop: Lisp_Object, predicate: Lisp_Object),
-       {
-  if NILP (predicate)
-    { return plist_get (plist, prop); }
-
+#[cold]
+#[inline(never)]
+unsafe fn fplist_get_pred_slow (plist: Lisp_Object, prop: Lisp_Object, predicate: Lisp_Object) -> Lisp_Object
+{
   let mut tail: Lisp_Object = plist;
   FOR_EACH_TAIL_SAFE! (tail, {
       if ! CONSP (XCDR (tail))
@@ -2837,12 +3024,21 @@ DEFUN! ("plist-get", Fplist_get, Splist_get, 2, 3, 0,
   });
 
   return Qnil ();
+}
+
+DEFUN! ("plist-get", Fplist_get, Splist_get, 2, 3, 0,
+       doc: "Extract a value from a property list.\nPLIST is a property list, which is a list of the form\n(PROP1 VALUE1 PROP2 VALUE2...).\n\nThis function returns the value corresponding to the given PROP, or\nnil if PROP is not one of the properties on the list.  The comparison\nwith PROP is done using PREDICATE, which defaults to `eq'.\n\nThis function doesn't signal an error if PLIST is invalid.",
+       (plist: Lisp_Object, prop: Lisp_Object, predicate: Lisp_Object),
+       {
+  if NILP (predicate)
+    { return plist_get_inline (plist, prop); }
+
+  return fplist_get_pred_slow (plist, prop, predicate);
 });
 
-/* Faster version of Fplist_get that works with EQ only.  */
-/* C 2639-2651: `plist_get`.  */
-#[unsafe(no_mangle)]
-pub unsafe extern "C" fn plist_get (plist: Lisp_Object, prop: Lisp_Object) -> Lisp_Object
+#[cold]
+#[inline(never)]
+unsafe fn plist_get_slow (plist: Lisp_Object, prop: Lisp_Object) -> Lisp_Object
 {
   let mut tail: Lisp_Object = plist;
   FOR_EACH_TAIL_SAFE! (tail, {
@@ -2855,17 +3051,59 @@ pub unsafe extern "C" fn plist_get (plist: Lisp_Object, prop: Lisp_Object) -> Li
   return Qnil ();
 }
 
+#[inline(always)]
+unsafe fn plist_get_inline (plist: Lisp_Object, prop: Lisp_Object) -> Lisp_Object
+{
+  if NILP (plist)
+    { return Qnil (); }
+  let mut tail: Lisp_Object = plist;
+  if ! symbols_with_pos_enabled
+    {
+      let mut steps: ptrdiff_t = 0;
+      while CONSP (tail) && steps < 2048
+	{
+	  let cdr: Lisp_Object = XCDR (tail);
+	  if ! CONSP (cdr)
+	    { return Qnil (); }
+	  if BASE_EQ (XCAR (tail), prop)
+	    { return XCAR (cdr); }
+	  tail = XCDR (cdr);
+	  steps += 1;
+	}
+      if NILP (tail)
+	{ return Qnil (); }
+    }
+  return plist_get_slow (plist, prop);
+}
+
+/* Faster version of Fplist_get that works with EQ only.  */
+/* C 2639-2651: `plist_get`.  */
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn plist_get (plist: Lisp_Object, prop: Lisp_Object) -> Lisp_Object
+{
+  return plist_get_inline (plist, prop);
+}
+
+#[cold]
+#[inline(never)]
+unsafe fn fget_overriding_slow (symbol: Lisp_Object, propname: Lisp_Object) -> Lisp_Object
+{
+  let propval: Lisp_Object = plist_get_inline (CDR (Fassq (symbol,
+							   Voverriding_plist_environment)),
+					       propname);
+  if !NILP (propval)
+    { return propval; }
+  return plist_get_inline ((*XSYMBOL (symbol)).u.s.plist, propname);
+}
+
 DEFUN! ("get", Fget, Sget, 2, 2, 0,
        doc: "Return the value of SYMBOL's PROPNAME property.\nThis is the last value stored with `(put SYMBOL PROPNAME VALUE)'.",
        (symbol: Lisp_Object, propname: Lisp_Object),
        {
   CHECK_SYMBOL (symbol);
-  let propval: Lisp_Object = plist_get (CDR (Fassq (symbol,
-						    Voverriding_plist_environment)),
-					propname);
-  if !NILP (propval)
-    { return propval; }
-  return plist_get ((*XSYMBOL (symbol)).u.s.plist, propname);
+  if ! NILP (Voverriding_plist_environment)
+    { return fget_overriding_slow (symbol, propname); }
+  return plist_get_inline ((*XSYMBOL (symbol)).u.s.plist, propname);
 });
 
 DEFUN! ("plist-put", Fplist_put, Splist_put, 3, 4, 0,
@@ -2906,6 +3144,35 @@ pub unsafe extern "C" fn plist_put (plist: Lisp_Object, prop: Lisp_Object,
 {
   let mut prev: Lisp_Object = Qnil ();
   let mut tail: Lisp_Object = plist;
+  if ! symbols_with_pos_enabled
+    {
+      let mut steps: ptrdiff_t = 0;
+      while CONSP (tail) && steps < 2048
+	{
+	  let cdr: Lisp_Object = XCDR (tail);
+	  if ! CONSP (cdr)
+	    { break; }
+	  if BASE_EQ (XCAR (tail), prop)
+	    {
+	      XSETCAR (cdr, val);
+	      return plist;
+	    }
+	  prev = tail;
+	  tail = XCDR (cdr);
+	  steps += 1;
+	}
+      if NILP (tail)
+	{
+	  let newcell: Lisp_Object
+	    = Fcons (prop, Fcons (val, if NILP (prev) { plist } else { XCDR (XCDR (prev)) }));
+	  if NILP (prev)
+	    { return newcell; }
+	  XSETCDR (XCDR (prev), newcell);
+	  return plist;
+	}
+      prev = Qnil ();
+      tail = plist;
+    }
   FOR_EACH_TAIL! (tail, {
       if ! CONSP (XCDR (tail))
 	{ break; }
@@ -2991,6 +3258,12 @@ DEFUN! ("equal", Fequal, Sequal, 2, 2, 0,
        doc: "Return t if two Lisp objects have similar structure and contents.\nThey must have the same data type.\nConses are compared by comparing the cars and the cdrs.\nVectors and strings are compared element by element (so text properties\nof strings are ignored).\nNumbers are compared via `eql', so integers do not equal floats.\n(Use `=' if you want integers and floats to be able to be equal.)\nSymbols must match exactly.",
        (o1: Lisp_Object, o2: Lisp_Object),
        {
+  if BASE_EQ (o1, o2)
+    { return Qt (); }
+  if ! symbols_with_pos_enabled
+     && (BARE_SYMBOL_P (o1) || FIXNUMP (o1) || BARE_SYMBOL_P (o2) || FIXNUMP (o2)
+	 || XTYPE (o1) != XTYPE (o2))
+    { return Qnil (); }
   return if internal_equal (o1, o2, EQUAL_PLAIN, 0, Qnil ()) { Qt () } else { Qnil () };
 });
 
@@ -3064,11 +3337,15 @@ unsafe fn internal_equal_1 (o1: Lisp_Object, o2: Lisp_Object, equal_kind: equal_
 
   /* A symbol with position compares the contained symbol, and is
      `equal' to the corresponding ordinary symbol.  */
-  o1 = maybe_remove_pos_from_symbol (o1);
-  o2 = maybe_remove_pos_from_symbol (o2);
-
   if BASE_EQ (o1, o2)
     { return true; }
+  if symbols_with_pos_enabled
+    {
+      o1 = maybe_remove_pos_from_symbol (o1);
+      o2 = maybe_remove_pos_from_symbol (o2);
+      if BASE_EQ (o1, o2)
+	{ return true; }
+    }
   if XTYPE (o1) != XTYPE (o2)
     { return false; }
 
@@ -3085,8 +3362,17 @@ unsafe fn internal_equal_1 (o1: Lisp_Object, o2: Lisp_Object, equal_kind: equal_
 	    {
 	      if ! CONSP (o2)
 		{ return false; }
-	      if ! equal_no_quit (XCAR (o1), XCAR (o2))
-		{ return false; }
+	      let c1: Lisp_Object = XCAR (o1);
+	      let c2: Lisp_Object = XCAR (o2);
+	      if ! BASE_EQ (c1, c2)
+		{
+		  if ! symbols_with_pos_enabled
+		     && (BARE_SYMBOL_P (c1) || FIXNUMP (c1) || BARE_SYMBOL_P (c2) || FIXNUMP (c2)
+			 || XTYPE (c1) != XTYPE (c2))
+		    { return false; }
+		  if ! equal_no_quit (c1, c2)
+		    { return false; }
+		}
 	      o2 = XCDR (o2);
 	      if EQ (XCDR (o1), o2)
 		{ return true; }
@@ -3104,9 +3390,17 @@ unsafe fn internal_equal_1 (o1: Lisp_Object, o2: Lisp_Object, equal_kind: equal_
 	    {
 	      if ! CONSP (o2)
 		{ return false; }
-	      if ! internal_equal_1 (XCAR (o1), XCAR (o2),
-				     equal_kind, depth + 1, ht)
-		{ return false; }
+	      let c1: Lisp_Object = XCAR (o1);
+	      let c2: Lisp_Object = XCAR (o2);
+	      if ! BASE_EQ (c1, c2)
+		{
+		  if ! symbols_with_pos_enabled
+		     && (BARE_SYMBOL_P (c1) || FIXNUMP (c1) || BARE_SYMBOL_P (c2) || FIXNUMP (c2)
+			 || XTYPE (c1) != XTYPE (c2))
+		    { return false; }
+		  if ! internal_equal_1 (c1, c2, equal_kind, depth + 1, ht)
+		    { return false; }
+		}
 	      o2 = XCDR (o2);
 	      if EQ (XCDR (o1), o2)
 		{ return true; }
@@ -3659,6 +3953,28 @@ DEFUN! ("nconc", Fnconc, Snconc, 0, MANY, 0,
        doc: "Concatenate any number of lists by altering them.\nOnly the last argument is not altered, and need not be a list.\nusage: (nconc &rest LISTS)  ",
        (nargs: isize, args: *mut Lisp_Object),
        {
+  if nargs == 2
+    {
+      let a0: Lisp_Object = *args;
+      let a1: Lisp_Object = *args.offset (1);
+      if NILP (a0)
+	{ return a1; }
+      if CONSP (a0)
+	{
+	  let mut tail: Lisp_Object = a0;
+	  let mut steps: ptrdiff_t = 0;
+	  while CONSP (XCDR (tail)) && steps < (FOR_EACH_TAIL_THRESHOLD as ptrdiff_t)
+	    {
+	      tail = XCDR (tail);
+	      steps += 1;
+	    }
+	  if NILP (XCDR (tail))
+	    {
+	      XSETCDR (tail, a1);
+	      return a0;
+	    }
+	}
+    }
   let mut val: Lisp_Object = Qnil ();
 
   let mut argnum: ptrdiff_t = 0;
@@ -3842,10 +4158,18 @@ DEFUN! ("mapcar", Fmapcar, Smapcar, 2, 2, 0,
        doc: "Apply FUNCTION to each element of SEQUENCE, and make a list of the results.\nThe result is a list just as long as SEQUENCE.\nSEQUENCE may be a list, a vector, a bool-vector, or a string.",
        (function: Lisp_Object, sequence: Lisp_Object),
        {
-  USE_SAFE_ALLOCA! (sa_avail, sa_count, sa_mark);
+  if NILP (sequence)
+    { return Qnil (); }
   let leni: EMACS_INT = XFIXNAT (Flength (sequence)) as EMACS_INT;
   if CHAR_TABLE_P (sequence)
     { wrong_type_argument (Qlistp (), sequence); }
+  if leni <= 16
+    {
+      let mut stack_args: [Lisp_Object; 16] = [Qnil (); 16];
+      let nmapped: ptrdiff_t = mapcar1 (leni, stack_args.as_mut_ptr (), function, sequence);
+      return Flist (nmapped, stack_args.as_mut_ptr ());
+    }
+  USE_SAFE_ALLOCA! (sa_avail, sa_count, sa_mark);
   let mut args: *mut Lisp_Object;
   SAFE_ALLOCA_LISP! (sa_avail, args, leni);
   let nmapped: ptrdiff_t = mapcar1 (leni, args, function, sequence);
@@ -3858,6 +4182,8 @@ DEFUN! ("mapc", Fmapc, Smapc, 2, 2, 0,
        doc: "Apply FUNCTION to each element of SEQUENCE for side effects only.\nUnlike `mapcar', don't accumulate the results.  Return SEQUENCE.\nSEQUENCE may be a list, a vector, a bool-vector, or a string.",
        (function: Lisp_Object, sequence: Lisp_Object),
        {
+  if NILP (sequence)
+    { return Qnil (); }
   let leni: EMACS_INT;
 
   leni = XFIXNAT (Flength (sequence)) as EMACS_INT;
@@ -3872,10 +4198,18 @@ DEFUN! ("mapcan", Fmapcan, Smapcan, 2, 2, 0,
        doc: "Apply FUNCTION to each element of SEQUENCE, and concatenate\nthe results by altering them (using `nconc').\nSEQUENCE may be a list, a vector, a bool-vector, or a string.",
        (function: Lisp_Object, sequence: Lisp_Object),
        {
-  USE_SAFE_ALLOCA! (sa_avail, sa_count, sa_mark);
+  if NILP (sequence)
+    { return Qnil (); }
   let leni: EMACS_INT = XFIXNAT (Flength (sequence)) as EMACS_INT;
   if CHAR_TABLE_P (sequence)
     { wrong_type_argument (Qlistp (), sequence); }
+  if leni <= 16
+    {
+      let mut stack_args: [Lisp_Object; 16] = [Qnil (); 16];
+      let nmapped: ptrdiff_t = mapcar1 (leni, stack_args.as_mut_ptr (), function, sequence);
+      return Fnconc (nmapped, stack_args.as_mut_ptr ());
+    }
+  USE_SAFE_ALLOCA! (sa_avail, sa_count, sa_mark);
   let mut args: *mut Lisp_Object;
   SAFE_ALLOCA_LISP! (sa_avail, args, leni);
   let nmapped: ptrdiff_t = mapcar1 (leni, args, function, sequence);
@@ -5050,8 +5384,7 @@ unsafe extern "C" fn hashfn_user_defined (key: Lisp_Object, h: *mut Lisp_Hash_Ta
 #[unsafe(no_mangle)]
 pub static mut hashtest_eq: hash_table_test = hash_table_test {
   hashfn: Some (hashfn_eq),
-  cmpfn: cmpfn_eql as unsafe extern "C" fn (Lisp_Object, Lisp_Object, *mut Lisp_Hash_Table)
-    -> Lisp_Object as *const () as Lisp_Object,
+  cmpfn: std::ptr::null_mut (),
   user_hash_function: std::ptr::null_mut (),
   user_cmp_function: std::ptr::null_mut (),
   name: (((iQeq * std::mem::size_of::<Lisp_Symbol> ()) as EMACS_UINT
@@ -5245,6 +5578,7 @@ unsafe fn copy_hash_table (h1: *mut Lisp_Hash_Table) -> Lisp_Object
 
 /* Compute index into the index vector from a hash value.  */
 /* C 4952-4956: `hash_index_index`.  */
+#[inline(always)]
 unsafe fn hash_index_index (h: *mut Lisp_Hash_Table, hash: hash_hash_t) -> ptrdiff_t
 {
   return knuth_hash (hash, (*h).index_bits as c_uint);
@@ -5441,20 +5775,36 @@ pub unsafe extern "C" fn hash_table_thaw (hash_table: Lisp_Object)
 /* Look up KEY with hash HASH in table H.
    Return entry index or -1 if none.  */
 /* C 5094-5108: `hash_find_with_hash`.  */
+#[inline(always)]
 unsafe fn hash_find_with_hash (h: *mut Lisp_Hash_Table, key: Lisp_Object,
 			       hash: hash_hash_t) -> ptrdiff_t
 {
   let start_of_bucket: ptrdiff_t = hash_index_index (h, hash);
   let mut i: ptrdiff_t = HASH_INDEX (h, start_of_bucket);
+  let cmpfn: Lisp_Object = (*(*h).test).cmpfn;
+  if ! symbols_with_pos_enabled
+     && (cmpfn.is_null ()
+	 || ((*h).test == &raw const hashtest_eql && ! (FLOATP (key) || BIGNUMP (key))))
+    {
+      let kv: *mut Lisp_Object = (*h).key_and_value;
+      let next: *mut hash_idx_t = (*h).next;
+      while 0 <= i
+	{
+	  if BASE_EQ (key, *kv.offset (2 * i))
+	    { return i; }
+	  i = *next.offset (i) as ptrdiff_t;
+	}
+      return -1;
+    }
   while 0 <= i
     {
       if EQ (key, HASH_KEY (h, i as hash_idx_t))
-	  || (!(*(*h).test).cmpfn.is_null ()
+	  || (!cmpfn.is_null ()
 	      && hash == HASH_HASH (h, i as hash_idx_t)
 	      && !NILP (std::mem::transmute::<Lisp_Object,
 			 unsafe extern "C" fn (Lisp_Object, Lisp_Object,
 					       *mut Lisp_Hash_Table) -> Lisp_Object>
-			 ((*(*h).test).cmpfn) (key, HASH_KEY (h, i as hash_idx_t), h)))
+			 (cmpfn) (key, HASH_KEY (h, i as hash_idx_t), h)))
 	{ return i; }
       i = HASH_NEXT (h, i);
     }
@@ -5476,6 +5826,7 @@ pub unsafe extern "C" fn hash_find_get_hash (h: *mut Lisp_Hash_Table, key: Lisp_
 }
 
 /* C 5128-5133: `check_mutable_hash_table`.  */
+#[inline(always)]
 unsafe fn check_mutable_hash_table (obj: Lisp_Object, h: *mut Lisp_Hash_Table)
 {
   if ((*h).bits & HASH_MUTABLE_MASK) == 0
@@ -5555,12 +5906,60 @@ unsafe fn hash_clear (h: *mut Lisp_Hash_Table)
 
       (*h).next_free = 0;
       (*h).count = 0;
-    /* Look up KEY in table H.  Return entry index or -1 if none.  */
+    }
+}
+
+/* Look up KEY in table H.  Return entry index or -1 if none.  */
+#[cold]
+#[inline(never)]
+unsafe fn hash_find_slow (h: *mut Lisp_Hash_Table, key: Lisp_Object) -> ptrdiff_t
+{
+  return hash_find_with_hash (h, key, hash_from_key (h, key));
+}
+
+#[cold]
+#[inline(never)]
+unsafe fn puthash_slow (h: *mut Lisp_Hash_Table, key: Lisp_Object, value: Lisp_Object)
+{
+  let hash: hash_hash_t = hash_from_key (h, key);
+  let i: ptrdiff_t = hash_find_with_hash (h, key, hash);
+  if i >= 0
+    { *(*h).key_and_value.offset (2 * i + 1) = value; }
+  else
+    { hash_put (h, key, value, hash); }
+}
+
+#[inline(always)]
+unsafe fn hash_find_inline (h: *mut Lisp_Hash_Table, key: Lisp_Object) -> ptrdiff_t
+{
+  let test: *const hash_table_test = (*h).test;
+  if ! symbols_with_pos_enabled
+     && ((test == &raw const hashtest_eql && ! (FLOATP (key) || BIGNUMP (key)))
+	 || test == &raw const hashtest_eq)
+    {
+      let hash: hash_hash_t = reduce_emacs_uint_to_hash_hash (
+	((XHASH (key) as EMACS_INT) ^ (XTYPE (key) as EMACS_INT)) as EMACS_UINT
+      );
+      let start_of_bucket: ptrdiff_t = hash_index_index (h, hash);
+      let mut i: ptrdiff_t = *(*h).index.offset (start_of_bucket) as ptrdiff_t;
+      let kv: *mut Lisp_Object = (*h).key_and_value;
+      let next: *mut hash_idx_t = (*h).next;
+      while 0 <= i
+	{
+	  if BASE_EQ (key, *kv.offset (2 * i))
+	    { return i; }
+	  i = *next.offset (i) as ptrdiff_t;
+	}
+      return -1;
+    }
+  return hash_find_slow (h, key);
+}
+
 /* C 5111-5115: `hash_find`.  */
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn hash_find (h: *mut Lisp_Hash_Table, key: Lisp_Object) -> ptrdiff_t
 {
-  return hash_find_with_hash (h, key, hash_from_key (h, key));
+  return hash_find_inline (h, key);
 }
 
 /* Put an entry into hash table H that associates KEY with VALUE.
@@ -5568,6 +5967,8 @@ pub unsafe extern "C" fn hash_find (h: *mut Lisp_Hash_Table, key: Lisp_Object) -
    Value is the index of the entry in H matching KEY.  */
 
 /* C 5139-5164: `hash_put`.  */
+#[cold]
+#[inline(never)]
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn hash_put (h: *mut Lisp_Hash_Table, key: Lisp_Object,
 				   value: Lisp_Object, hash: hash_hash_t) -> ptrdiff_t
@@ -5592,8 +5993,6 @@ pub unsafe extern "C" fn hash_put (h: *mut Lisp_Hash_Table, key: Lisp_Object,
   set_hash_next_slot (h, i, HASH_INDEX (h, start_of_bucket));
   set_hash_index_slot (h, start_of_bucket, i);
   return i;
-}
-}
 }
 
 
@@ -6288,8 +6687,8 @@ DEFUN! ("gethash", Fgethash, Sgethash, 2, 3, 0,
        (key: Lisp_Object, table: Lisp_Object, dflt: Lisp_Object),
        {
   let h: *mut Lisp_Hash_Table = check_hash_table (table);
-  let i: ptrdiff_t = hash_find (h, key);
-  return if i >= 0 { HASH_VALUE (h, i as hash_idx_t) } else { dflt };
+  let i: ptrdiff_t = hash_find_inline (h, key);
+  return if i >= 0 { *(*h).key_and_value.offset (2 * i + 1) } else { dflt };
 });
 
 
@@ -6300,13 +6699,44 @@ DEFUN! ("puthash", Fputhash, Sputhash, 3, 3, 0,
   let h: *mut Lisp_Hash_Table = check_hash_table (table);
   check_mutable_hash_table (table, h);
 
-  let hash: EMACS_UINT = hash_from_key (h, key) as EMACS_UINT;
-  let i: ptrdiff_t = hash_find_with_hash (h, key, hash as hash_hash_t);
-  if i >= 0
-    { set_hash_value_slot (h, i as hash_idx_t, value); }
-  else
-    { hash_put (h, key, value, hash as hash_hash_t); }
-
+  let test: *const hash_table_test = (*h).test;
+  if ! symbols_with_pos_enabled
+    && ((test == &raw const hashtest_eql && ! (FLOATP (key) || BIGNUMP (key)))
+	|| test == &raw const hashtest_eq)
+    {
+      let hash: hash_hash_t = reduce_emacs_uint_to_hash_hash (
+	((XHASH (key) as EMACS_INT) ^ (XTYPE (key) as EMACS_INT)) as EMACS_UINT
+      );
+      let start_of_bucket: ptrdiff_t = hash_index_index (h, hash);
+      let mut i: ptrdiff_t = *(*h).index.offset (start_of_bucket) as ptrdiff_t;
+      let kv: *mut Lisp_Object = (*h).key_and_value;
+      let next: *mut hash_idx_t = (*h).next;
+      while 0 <= i
+	{
+	  if BASE_EQ (key, *kv.offset (2 * i))
+	    {
+	      *kv.offset (2 * i + 1) = value;
+	      return value;
+	    }
+	  i = *next.offset (i) as ptrdiff_t;
+	}
+      let free_idx: ptrdiff_t = (*h).next_free as ptrdiff_t;
+      if free_idx >= 0
+	{
+	  (*h).count += 1;
+	  (*h).next_free = *next.offset (free_idx);
+	  *kv.offset (2 * free_idx) = key;
+	  *kv.offset (2 * free_idx + 1) = value;
+	  *(*h).hash.offset (free_idx) = hash;
+	  let head: hash_idx_t = *(*h).index.offset (start_of_bucket);
+	  *next.offset (free_idx) = head;
+	  *(*h).index.offset (start_of_bucket) = free_idx as hash_idx_t;
+	  return value;
+	}
+      hash_put (h, key, value, hash);
+      return value;
+    }
+  puthash_slow (h, key, value);
   return value;
 });
 

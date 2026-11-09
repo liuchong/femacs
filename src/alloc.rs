@@ -2626,7 +2626,7 @@ pub unsafe extern "C" fn make_unibyte_string (contents: *const c_char, length: p
 {
   let mut val: Lisp_Object;
   val = make_uninit_string (length);
-  memcpy (SDATA (val) as *mut c_void, contents as *const c_void, length as usize);
+  std::ptr::copy_nonoverlapping (contents as *const u8, SDATA (val), length as usize);
   return val;
 }
 
@@ -2641,7 +2641,7 @@ pub unsafe extern "C" fn make_multibyte_string (contents: *const c_char,
 {
   let mut val: Lisp_Object;
   val = make_uninit_multibyte_string (nchars, nbytes);
-  memcpy (SDATA (val) as *mut c_void, contents as *const c_void, nbytes as usize);
+  std::ptr::copy_nonoverlapping (contents as *const u8, SDATA (val), nbytes as usize);
   return val;
 }
 
@@ -2656,7 +2656,7 @@ pub unsafe extern "C" fn make_string_from_bytes (contents: *const c_char,
 {
   let mut val: Lisp_Object;
   val = make_uninit_multibyte_string (nchars, nbytes);
-  memcpy (SDATA (val) as *mut c_void, contents as *const c_void, nbytes as usize);
+  std::ptr::copy_nonoverlapping (contents as *const u8, SDATA (val), nbytes as usize);
   if SBYTES (val) == SCHARS (val)
     { STRING_SET_UNIBYTE (&raw mut val); }
   return val;
@@ -2683,7 +2683,7 @@ pub unsafe extern "C" fn make_specified_string (contents: *const c_char,
 	{ nchars = nbytes; }
     }
   val = make_uninit_multibyte_string (nchars, nbytes);
-  memcpy (SDATA (val) as *mut c_void, contents as *const c_void, nbytes as usize);
+  std::ptr::copy_nonoverlapping (contents as *const u8, SDATA (val), nbytes as usize);
   if !multibyte
     { STRING_SET_UNIBYTE (&raw mut val); }
   return val;
@@ -3489,6 +3489,7 @@ unsafe fn init_vectors ()
 
 /* Allocate vector from a vector block.  */
 
+#[inline(always)]
 unsafe fn allocate_vector_from_block (nbytes: ptrdiff_t) -> *mut Lisp_Vector
 {
   let mut vector: *mut Lisp_Vector;
@@ -3795,10 +3796,10 @@ unsafe fn cleanup_vector (vector: *mut Lisp_Vector)
 	    xfree ((*h).hash as *mut c_void);
 	    let bytes: ptrdiff_t = (*h).table_size as ptrdiff_t
 				   * (2 * std::mem::size_of::<Lisp_Object> () as ptrdiff_t
-				      + std::mem::size_of::<u32> () as ptrdiff_t
-				      + std::mem::size_of::<ptrdiff_t> () as ptrdiff_t)
+				      + std::mem::size_of::<hash_hash_t> () as ptrdiff_t
+				      + std::mem::size_of::<hash_idx_t> () as ptrdiff_t)
 				   + hash_table_index_size (h)
-				   * std::mem::size_of::<ptrdiff_t> () as ptrdiff_t;
+				   * std::mem::size_of::<hash_idx_t> () as ptrdiff_t;
 	    /* C 3226: signed `-=`; C's ptrdiff_t wraps, so the counter may legitimately go
 	       negative (the obarray arm below has no matching add, C 3230-3235 vs C 5411).  */
 	    hash_table_allocated_bytes = hash_table_allocated_bytes.wrapping_sub (bytes);
@@ -3945,6 +3946,7 @@ const _: () = core::assert! (VECTOR_ELTS_MAX == 1152921504606846973);
    with room for LEN Lisp_Objects.  LEN must be positive and
    at most VECTOR_ELTS_MAX.  */
 
+#[inline(always)]
 unsafe fn allocate_vectorlike (len: ptrdiff_t, clearit: bool) -> *mut Lisp_Vector
 {
   eassert! (0 < len && len <= VECTOR_ELTS_MAX);
@@ -3984,6 +3986,7 @@ unsafe fn allocate_vectorlike (len: ptrdiff_t, clearit: bool) -> *mut Lisp_Vecto
 /* Allocate a vector with LEN slots.  If CLEARIT, clear its slots;
    otherwise the vector's slots are uninitialized.  */
 
+#[inline(always)]
 unsafe fn allocate_clear_vector (len: ptrdiff_t, clearit: bool) -> *mut Lisp_Vector
 {
   if len == 0
@@ -4085,8 +4088,7 @@ DEFUN! ("record", Frecord, Srecord, 1, MANY, 0,
        (nargs: isize, args: *mut Lisp_Object),
        {
   let p: *mut Lisp_Vector = allocate_record (nargs);
-  memcpy ((*p).contents.as_mut_ptr () as *mut c_void, args as *const c_void,
-	  (nargs * std::mem::size_of_val (&*args) as ptrdiff_t) as usize);
+  std::ptr::copy_nonoverlapping (args, (*p).contents.as_mut_ptr (), nargs as usize);
   return make_lisp_ptr (p as *mut c_void, Lisp_Type::Lisp_Vectorlike);
 });
 
@@ -4125,8 +4127,7 @@ DEFUN! ("vector", Fvector, Svector, 0, MANY, 0,
        {
   let val: Lisp_Object = make_uninit_vector (nargs);
   let p: *mut Lisp_Vector = XVECTOR (val);
-  memcpy ((*p).contents.as_mut_ptr () as *mut c_void, args as *const c_void,
-	  (nargs * std::mem::size_of_val (&*args) as ptrdiff_t) as usize);
+  std::ptr::copy_nonoverlapping (args, (*p).contents.as_mut_ptr (), nargs as usize);
   return val;
 });
 
@@ -4167,20 +4168,52 @@ DEFUN! ("make-closure", Fmake_closure, Smake_closure, 1, MANY, 0,
   if nvars > constsize
     { error (c"Closure vars do not fit in constvec".as_ptr ()); }
   let constvec: Lisp_Object = make_uninit_vector (constsize);
-  memcpy ((*XVECTOR (constvec)).contents.as_mut_ptr () as *mut c_void,
-	  args.offset (1) as *const c_void, (nvars * word_size) as usize);
-  memcpy ((*XVECTOR (constvec)).contents.as_mut_ptr ().offset (nvars) as *mut c_void,
-	  (*XVECTOR (proto_constvec)).contents.as_ptr ().offset (nvars) as *const c_void,
-	  ((constsize - nvars) * word_size) as usize);
+  let const_dst: *mut Lisp_Object = (*XVECTOR (constvec)).contents.as_mut_ptr ();
+  let proto_const_src: *const Lisp_Object = (*XVECTOR (proto_constvec)).contents.as_ptr ();
+  if nvars == 1 && constsize == 1
+    {
+      *const_dst = *args.offset (1);
+    }
+  else if nvars == 1 && constsize == 2
+    {
+      *const_dst = *args.offset (1);
+      *const_dst.offset (1) = *proto_const_src.offset (1);
+    }
+  else
+    {
+      std::ptr::copy_nonoverlapping (args.offset (1), const_dst, nvars as usize);
+      std::ptr::copy_nonoverlapping (proto_const_src.offset (nvars),
+				     const_dst.offset (nvars),
+				     (constsize - nvars) as usize);
+    }
 
   /* Return a copy of the prototype function with the new constant vector. */
   let protosize: ptrdiff_t = PVSIZE (protofun);
   let v: *mut Lisp_Vector = allocate_vectorlike (protosize, false);
-  (*v).header = (*XVECTOR (protofun)).header;
-  memcpy ((*v).contents.as_mut_ptr () as *mut c_void,
-	  (*XVECTOR (protofun)).contents.as_ptr () as *const c_void,
-	  (protosize * word_size) as usize);
-  *(*v).contents.as_mut_ptr ().offset (CLOSURE_CONSTANTS as isize) = constvec;
+  let proto_v: *mut Lisp_Vector = XVECTOR (protofun);
+  (*v).header = (*proto_v).header;
+  let v_dst: *mut Lisp_Object = (*v).contents.as_mut_ptr ();
+  let proto_src: *const Lisp_Object = (*proto_v).contents.as_ptr ();
+  if protosize == 4
+    {
+      *v_dst.offset (0) = *proto_src.offset (0);
+      *v_dst.offset (1) = *proto_src.offset (1);
+      *v_dst.offset (2) = constvec;
+      *v_dst.offset (3) = *proto_src.offset (3);
+    }
+  else if protosize == 5
+    {
+      *v_dst.offset (0) = *proto_src.offset (0);
+      *v_dst.offset (1) = *proto_src.offset (1);
+      *v_dst.offset (2) = constvec;
+      *v_dst.offset (3) = *proto_src.offset (3);
+      *v_dst.offset (4) = *proto_src.offset (4);
+    }
+  else
+    {
+      std::ptr::copy_nonoverlapping (proto_src, v_dst, protosize as usize);
+      *v_dst.offset (CLOSURE_CONSTANTS as isize) = constvec;
+    }
   return make_lisp_ptr (v as *mut c_void, Lisp_Type::Lisp_Vectorlike);
 });
 

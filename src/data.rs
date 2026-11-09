@@ -359,6 +359,14 @@ DEFUN! ("keywordp", Fkeywordp, Skeywordp, 1, 1, 0,
        doc: "Return t if OBJECT is a keyword.\nThis means that it is a symbol with a print name beginning with `:'\ninterned in the initial obarray.",
        (object: Lisp_Object),
        {
+  if BARE_SYMBOL_P (object)
+    {
+      let sym: *mut Lisp_Symbol = XBARE_SYMBOL (object);
+      return if SREF (unsafe { (*sym).u.s.name }, 0) == b':' as u8
+                && ((unsafe { (*sym).u.s.bits } & SYMBOL_INTERNED_MASK) >> SYMBOL_INTERNED_SHIFT)
+                   == SYMBOL_INTERNED_IN_INITIAL_OBARRAY
+        { Qt () } else { Qnil () };
+    }
   if SYMBOLP (object)
     && SREF (SYMBOL_NAME (object), 0) == b':' as u8
     && SYMBOL_INTERNED_IN_INITIAL_OBARRAY_P (object)
@@ -673,6 +681,15 @@ DEFUN! ("boundp", Fboundp, Sboundp, 1, 1, 0,
        doc: "Return t if SYMBOL's value is not void.\nNote that if `lexical-binding' is in effect, this refers to the\nglobal value outside of any lexical scope.",
        (symbol: Lisp_Object),
        {
+  if BARE_SYMBOL_P (symbol)
+    {
+      let sym: *mut Lisp_Symbol = XBARE_SYMBOL (symbol);
+      if ((unsafe { (*sym).u.s.bits } & SYMBOL_REDIRECT_MASK) >> SYMBOL_REDIRECT_SHIFT)
+         == SYMBOL_PLAINVAL
+        {
+          return if BASE_EQ (SYMBOL_VAL (sym), Qunbound ()) { Qnil () } else { Qt () };
+        }
+    }
   CHECK_SYMBOL (symbol);
   let mut sym: *mut Lisp_Symbol = XSYMBOL (symbol);
 
@@ -711,6 +728,10 @@ DEFUN! ("fboundp", Ffboundp, Sfboundp, 1, 1, 0,
        doc: "Return t if SYMBOL's function definition is not nil.",
        (symbol: Lisp_Object),
        {
+  if BARE_SYMBOL_P (symbol)
+    {
+      return if NILP (unsafe { (*XBARE_SYMBOL (symbol)).u.s.function }) { Qnil () } else { Qt () };
+    }
   CHECK_SYMBOL (symbol);
   return if NILP (unsafe { (*XSYMBOL (symbol)).u.s.function }) { Qnil () } else { Qt () };
 });
@@ -753,6 +774,8 @@ DEFUN! ("symbol-function", Fsymbol_function, Ssymbol_function, 1, 1, 0,
        doc: "Return SYMBOL's function definition.",
        (symbol: Lisp_Object),
        {
+  if BARE_SYMBOL_P (symbol)
+    { return unsafe { (*XBARE_SYMBOL (symbol)).u.s.function }; }
   CHECK_SYMBOL (symbol);
   return unsafe { (*XSYMBOL (symbol)).u.s.function };
 });
@@ -761,6 +784,8 @@ DEFUN! ("symbol-plist", Fsymbol_plist, Ssymbol_plist, 1, 1, 0,
        doc: "Return SYMBOL's property list.",
        (symbol: Lisp_Object),
        {
+  if BARE_SYMBOL_P (symbol)
+    { return unsafe { (*XBARE_SYMBOL (symbol)).u.s.plist }; }
   CHECK_SYMBOL (symbol);
   return unsafe { (*XSYMBOL (symbol)).u.s.plist };
 });
@@ -769,6 +794,8 @@ DEFUN! ("symbol-name", Fsymbol_name, Ssymbol_name, 1, 1, 0,
        doc: "Return SYMBOL's name, a string.\n\nWarning: never alter the string returned by `symbol-name'.\nDoing that might make Emacs dysfunctional, and might even crash Emacs.",
        (symbol: Lisp_Object),
        {
+  if BARE_SYMBOL_P (symbol)
+    { return unsafe { (*XBARE_SYMBOL (symbol)).u.s.name }; }
   let name: Lisp_Object;
 
   CHECK_SYMBOL (symbol);
@@ -1470,6 +1497,12 @@ unsafe fn swap_in_symval_forwarding (symbol: *mut Lisp_Symbol, blv: *mut Lisp_Bu
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn find_symbol_value (symbol: Lisp_Object) -> Lisp_Object
 {
+  if BARE_SYMBOL_P (symbol)
+    {
+      let sym: *mut Lisp_Symbol = XBARE_SYMBOL (symbol);
+      if ((*sym).u.s.bits & SYMBOL_REDIRECT_MASK) >> SYMBOL_REDIRECT_SHIFT == SYMBOL_PLAINVAL
+        { return SYMBOL_VAL (sym); }
+    }
   CHECK_SYMBOL (symbol);
   let mut sym: *mut Lisp_Symbol = XSYMBOL (symbol);
 
@@ -1531,6 +1564,18 @@ DEFUN! ("set", Fset, Sset, 2, 2, 0,
 pub unsafe extern "C" fn set_internal (symbol: Lisp_Object, newval: Lisp_Object,
                                        r#where: Lisp_Object, bindflag: Set_Internal_Bind)
 {
+  if BARE_SYMBOL_P (symbol) && ! BASE_EQ (newval, Qunbound ())
+    {
+      let sym: *mut Lisp_Symbol = XBARE_SYMBOL (symbol);
+      let bits = (*sym).u.s.bits;
+      if ((bits & SYMBOL_TRAPPED_WRITE_MASK) >> SYMBOL_TRAPPED_WRITE_SHIFT)
+         == SYMBOL_UNTRAPPED_WRITE
+         && ((bits & SYMBOL_REDIRECT_MASK) >> SYMBOL_REDIRECT_SHIFT) == SYMBOL_PLAINVAL
+        {
+          SET_SYMBOL_VAL (sym, newval);
+          return;
+        }
+    }
   let unbinding_p: bool = BASE_EQ (newval, Qunbound ());
   let mut symbol = symbol;   // C's `XSETSYMBOL (symbol, sym)` below rebinds the argument
 
@@ -2440,9 +2485,16 @@ DEFUN! ("variable-binding-locus", Fvariable_binding_locus, Svariable_binding_loc
 /* If OBJECT is a symbol, find the end of its function chain and
    return the value found there.  If OBJECT is not a symbol, just
    return it.  */
+#[inline(always)]
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn indirect_function (object: Lisp_Object) -> Lisp_Object
 {
+  if BARE_SYMBOL_P (object)
+    {
+      if NILP (object) { return object; }
+      let f: Lisp_Object = (*XBARE_SYMBOL (object)).u.s.function;
+      if ! SYMBOLP (f) { return f; }
+    }
   let mut object = object;
   while SYMBOLP (object) && ! NILP (object)
     { object = (*XSYMBOL (object)).u.s.function; }
@@ -2462,6 +2514,13 @@ DEFUN! ("aref", Faref, Saref, 2, 2, 0,
        doc: "Return the element of ARRAY at index IDX.\nARRAY may be a vector, a string, a char-table, a bool-vector, a record,\nor a byte-code object.  IDX starts at 0.",
        (array: Lisp_Object, idx: Lisp_Object),
        {
+  if FIXNUMP (idx) && VECTORP (array)
+    {
+      let idxval: EMACS_INT = XFIXNUM (idx);
+      let size: ptrdiff_t = ASIZE (array);
+      if idxval >= 0 && idxval < size
+        { return AREF (array, idxval); }
+    }
   let idxval: EMACS_INT;
 
   CHECK_FIXNUM (idx);
@@ -2512,6 +2571,16 @@ DEFUN! ("aset", Faset, Saset, 3, 3, 0,
        doc: "Store into the element of ARRAY at index IDX the value NEWELT.\nReturn NEWELT.  ARRAY may be a vector, a string, a char-table or a\nbool-vector.  IDX starts at 0.\nIf ARRAY is a unibyte string, NEWELT must be a single byte (0-255).\nIf ARRAY is a multibyte string, NEWELT and the previous character at\nindex IDX must both be ASCII (0-127).",
        (array: Lisp_Object, idx: Lisp_Object, newelt: Lisp_Object),
        {
+  if FIXNUMP (idx) && VECTORP (array)
+    {
+      let idxval: EMACS_INT = XFIXNUM (idx);
+      let size: ptrdiff_t = ASIZE (array);
+      if idxval >= 0 && idxval < size
+        {
+          ASET (array, idxval, newelt);
+          return newelt;
+        }
+    }
   let idxval: EMACS_INT;
 
   CHECK_FIXNUM (idx);
@@ -2770,6 +2839,12 @@ DEFUN! ("=", Feqlsign, Seqlsign, 1, MANY, 0,
        doc: "Return t if args, all numbers or markers, are equal.\nusage: (= NUMBER-OR-MARKER &rest NUMBERS-OR-MARKERS)",
        (nargs: isize, args: *mut Lisp_Object),
        {
+  if nargs == 2 && FIXNUMP (unsafe { *args }) && FIXNUMP (unsafe { *args.offset (1) })
+    {
+      return if BASE_EQ (unsafe { *args }, unsafe { *args.offset (1) })
+                     { Qt () } else { Qnil () };
+    }
+
   return arithcompare_driver (nargs, args, Cmp_EQ as cmp_bits_t);
 });
 
@@ -3262,6 +3337,10 @@ DEFUN! ("+", Fplus, Splus, 0, MANY, 0,
        doc: "Return sum of any number of arguments, which are numbers or markers.\nusage: (+ &rest NUMBERS-OR-MARKERS)",
        (nargs: isize, args: *mut Lisp_Object),
        {
+  if nargs == 2 && FIXNUMP (unsafe { *args }) && FIXNUMP (unsafe { *args.offset (1) })
+    {
+      return make_int ((XFIXNUM (unsafe { *args }) + XFIXNUM (unsafe { *args.offset (1) })) as intmax_t);
+    }
   if nargs == 0
     { return make_fixnum (0); }
   let a: Lisp_Object = check_number_coerce_marker (unsafe { *args });
@@ -3272,6 +3351,10 @@ DEFUN! ("-", Fminus, Sminus, 0, MANY, 0,
        doc: "Negate number or subtract numbers or markers and return the result.\nWith one arg, negates it.  With more than one arg,\nsubtracts all but the first from the first.\nusage: (- &optional NUMBER-OR-MARKER &rest MORE-NUMBERS-OR-MARKERS)",
        (nargs: isize, args: *mut Lisp_Object),
        {
+  if nargs == 2 && FIXNUMP (unsafe { *args }) && FIXNUMP (unsafe { *args.offset (1) })
+    {
+      return make_int ((XFIXNUM (unsafe { *args }) - XFIXNUM (unsafe { *args.offset (1) })) as intmax_t);
+    }
   if nargs == 0
     { return make_fixnum (0); }
   let a: Lisp_Object = check_number_coerce_marker (unsafe { *args });
@@ -3291,6 +3374,13 @@ DEFUN! ("*", Ftimes, Stimes, 0, MANY, 0,
        doc: "Return product of any number of arguments, which are numbers or markers.\nusage: (* &rest NUMBERS-OR-MARKERS)",
        (nargs: isize, args: *mut Lisp_Object),
        {
+  if nargs == 2 && FIXNUMP (unsafe { *args }) && FIXNUMP (unsafe { *args.offset (1) })
+    {
+      let (prod, ov) = (XFIXNUM (unsafe { *args }) as intmax_t)
+        .overflowing_mul (XFIXNUM (unsafe { *args.offset (1) }) as intmax_t);
+      if ! ov
+        { return make_int (prod); }
+    }
   if nargs == 0
     { return make_fixnum (1); }
   let a: Lisp_Object = check_number_coerce_marker (unsafe { *args });
@@ -3447,6 +3537,8 @@ DEFUN! ("logand", Flogand, Slogand, 0, MANY, 0,
        doc: "Return bitwise-and of all the arguments.\nArguments may be integers, or markers converted to integers.\nusage: (logand &rest INTS-OR-MARKERS)",
        (nargs: isize, args: *mut Lisp_Object),
        {
+  if nargs == 2 && FIXNUMP (unsafe { *args }) && FIXNUMP (unsafe { *args.offset (1) })
+    { return make_fixnum (XFIXNUM (unsafe { *args }) & XFIXNUM (unsafe { *args.offset (1) })); }
   if nargs == 0
     { return make_fixnum (-1); }
   let a: Lisp_Object = check_integer_coerce_marker (unsafe { *args });
@@ -3457,6 +3549,8 @@ DEFUN! ("logior", Flogior, Slogior, 0, MANY, 0,
        doc: "Return bitwise-or of all the arguments.\nArguments may be integers, or markers converted to integers.\nusage: (logior &rest INTS-OR-MARKERS)",
        (nargs: isize, args: *mut Lisp_Object),
        {
+  if nargs == 2 && FIXNUMP (unsafe { *args }) && FIXNUMP (unsafe { *args.offset (1) })
+    { return make_fixnum (XFIXNUM (unsafe { *args }) | XFIXNUM (unsafe { *args.offset (1) })); }
   if nargs == 0
     { return make_fixnum (0); }
   let a: Lisp_Object = check_integer_coerce_marker (unsafe { *args });
@@ -3467,6 +3561,8 @@ DEFUN! ("logxor", Flogxor, Slogxor, 0, MANY, 0,
        doc: "Return bitwise-exclusive-or of all the arguments.\nArguments may be integers, or markers converted to integers.\nusage: (logxor &rest INTS-OR-MARKERS)",
        (nargs: isize, args: *mut Lisp_Object),
        {
+  if nargs == 2 && FIXNUMP (unsafe { *args }) && FIXNUMP (unsafe { *args.offset (1) })
+    { return make_fixnum (XFIXNUM (unsafe { *args }) ^ XFIXNUM (unsafe { *args.offset (1) })); }
   if nargs == 0
     { return make_fixnum (0); }
   let a: Lisp_Object = check_integer_coerce_marker (unsafe { *args });

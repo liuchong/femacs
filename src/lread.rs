@@ -510,6 +510,7 @@ unsafe extern "C" fn source_marker_unget (src: *mut source, c: c_int)
   (*XMARKER (m)).bytepos = bytepos;
 }
 
+#[inline(always)]
 unsafe extern "C" fn source_string_get (src: *mut source) -> c_int
 {
   if read_from_string_index >= read_from_string_limit
@@ -532,11 +533,17 @@ unsafe extern "C" fn source_string_get (src: *mut source) -> c_int
   c
 }
 
+#[inline(always)]
 unsafe extern "C" fn source_string_unget (src: *mut source, c: c_int)
 {
   read_from_string_index -= 1;
-  read_from_string_index_byte = string_char_to_byte ((*src).object,
-						     read_from_string_index);
+  if ! (*src).multibyte
+    { read_from_string_index_byte = read_from_string_index; }
+  else
+    {
+      read_from_string_index_byte = string_char_to_byte ((*src).object,
+							 read_from_string_index);
+    }
 }
 
 /* C 437-444: `readbyte_from_file`'s and `read_emacs_mule_char`'s forward declarations are
@@ -625,6 +632,8 @@ unsafe fn readchar (src: *mut source) -> c_int
   let get_fn = (*src).get.unwrap ();
   if get_fn as usize == source_file_get as *const () as usize
     { return source_file_get (src); }
+  if get_fn as usize == source_string_get as *const () as usize
+    { return source_string_get (src); }
   get_fn (src)
 }
 
@@ -640,6 +649,8 @@ unsafe fn unreadchar (src: *mut source, c: c_int)
   let unget_fn = (*src).unget.unwrap ();
   if unget_fn as usize == source_file_unget as *const () as usize
     { unread_char = c; return; }
+  if unget_fn as usize == source_string_unget as *const () as usize
+    { source_string_unget (src, c); return; }
   unget_fn (src, c);
 }
 
@@ -2696,14 +2707,23 @@ unsafe fn read_internal_start (stream: Lisp_Object, start: Lisp_Object,
 
   if STRINGP (stream)
     {
-      let mut startval: ptrdiff_t = 0;
-      let mut endval: ptrdiff_t = 0;
-      validate_subarray (stream, start, end, SCHARS (stream),
-			 &mut startval, &mut endval);
+      if NILP (start) && NILP (end)
+	{
+	  read_from_string_index = 0;
+	  read_from_string_index_byte = 0;
+	  read_from_string_limit = SCHARS (stream);
+	}
+      else
+	{
+	  let mut startval: ptrdiff_t = 0;
+	  let mut endval: ptrdiff_t = 0;
+	  validate_subarray (stream, start, end, SCHARS (stream),
+			     &mut startval, &mut endval);
 
-      read_from_string_index = startval;
-      read_from_string_index_byte = string_char_to_byte (stream, startval);
-      read_from_string_limit = endval;
+	  read_from_string_index = startval;
+	  read_from_string_index_byte = string_char_to_byte (stream, startval);
+	  read_from_string_limit = endval;
+	}
     }
 
   let mut source: source_t = std::mem::zeroed ();
