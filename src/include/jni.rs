@@ -110,9 +110,28 @@ const _: () = core::assert! (core::mem::offset_of! (JNINativeMethod, name) == 0)
 const _: () = core::assert! (core::mem::offset_of! (JNINativeMethod, signature) == 8);
 const _: () = core::assert! (core::mem::offset_of! (JNINativeMethod, fnPtr) == 16);
 
-/* jni.h 134-143: the two interface tables' typedefs.  `JNIInvokeInterface` stays opaque: no
-   file of the port reads a `JavaVM` entry yet, and `JavaVM` is only ever a pointer.  */
-pub struct JNIInvokeInterface;
+/* jni.h 1036-1046: invocation entries used by the thread attach/detach lifecycle.
+   JavaVM and JNIEnv remain pointers to C tables; no C++ wrapper is involved. */
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct JNIInvokeInterface
+{
+  pub reserved0: *mut c_void,
+  pub reserved1: *mut c_void,
+  pub reserved2: *mut c_void,
+  pub DestroyJavaVM: Option<unsafe extern "C" fn (*mut JavaVM) -> jint>,
+  pub AttachCurrentThread: Option<unsafe extern "C" fn (*mut JavaVM, *mut *mut JNIEnv, *mut c_void) -> jint>,
+  pub DetachCurrentThread: Option<unsafe extern "C" fn (*mut JavaVM) -> jint>,
+  pub GetEnv: Option<unsafe extern "C" fn (*mut JavaVM, *mut *mut c_void, jint) -> jint>,
+  pub AttachCurrentThreadAsDaemon: Option<unsafe extern "C" fn (*mut JavaVM, *mut *mut JNIEnv, *mut c_void) -> jint>,
+}
+
+const _: () = core::assert! (core::mem::size_of::<JNIInvokeInterface> () == 64);
+const _: () = core::assert! (core::mem::offset_of! (JNIInvokeInterface, DestroyJavaVM) == 24);
+const _: () = core::assert! (core::mem::offset_of! (JNIInvokeInterface, AttachCurrentThread) == 32);
+const _: () = core::assert! (core::mem::offset_of! (JNIInvokeInterface, DetachCurrentThread) == 40);
+const _: () = core::assert! (core::mem::offset_of! (JNIInvokeInterface, GetEnv) == 48);
+const _: () = core::assert! (core::mem::offset_of! (JNIInvokeInterface, AttachCurrentThreadAsDaemon) == 56);
 
 pub type C_JNIEnv = *const JNINativeInterface;
 pub type JNIEnv = *const JNINativeInterface;
@@ -125,6 +144,7 @@ const _: () = core::assert! (core::mem::size_of::<JavaVM> () == 8);
    arguments of `Release…ArrayElements`); the version and error codes are not carried yet.  */
 pub const JNI_COMMIT: c_int = 1;   /* copy content, do not free buffer */
 pub const JNI_ABORT: c_int = 2;    /* free buffer w/o copying back */
+pub const JNI_OK: jint = 0;
 
 /* jni.h 149-481: the 233 entries of `JNINativeInterface`, in the header's order.  The four
    `reserved` slots are C's `void *`; every other field is a function pointer, so the table is

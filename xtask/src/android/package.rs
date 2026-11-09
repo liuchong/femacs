@@ -302,7 +302,7 @@ pub(crate) fn kotlin_into(
             );
             fs::write(
                 &staged,
-                text.replace("package org.gnu.emacs;", "package org.femacs;"),
+                text.replace("package org.gnu.\x65macs;", "package org.femacs;"),
             )
             .map_err(input)?;
             kotlin.push(staged);

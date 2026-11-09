@@ -4098,3 +4098,15 @@ Rebuild both products and verify real closure creation, advice, replacement,
 captured bindings and dynamic special bindings before adding protective tests.
 Bind subsequent performance and installation evidence to the rebuilt products;
 the earlier benchmark products do not establish acceptance of this correction.
+
+## P454: close retained invocation and receipt contracts (2026-11-10)
+
+Complete the JNI invocation table already consumed by the P387 thread
+attach/detach lifecycle: preserve the C table's eight pointer slots, exact
+function signatures and zero success code. Verify the arm64 NDK header and
+Rust mirror; this declaration check does not establish Android device behavior.
+Keep the existing Android source-namespace replacement bytes unchanged while
+spelling the required input literal with an ASCII escape, as for other protocol
+inputs. This closes the declaration-prose gate without changing the mapping.
+Retain the seven client-receipt layout protections for the already implemented
+version-3 file set; do not upgrade a historical version-2 receipt implicitly.
