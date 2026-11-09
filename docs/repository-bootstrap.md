@@ -1,10 +1,26 @@
-## G4 当前命令补充（实现待D验证）
+## 当前独立构建入口
 
 正常 `xtask build-terminal` 和 `build-macos` 在最终 dump 后用当前自有程序导出 Org、生成完整68份 Info，并验证文件集合。终端以独占暂存/原子交换发布根 `info/`，保留旧集合；Cocoa 从自己的完整集合复制到包内后签名。需要 GNU Texinfo 的 `makeinfo` 与 `install-info`。显式 `cargo run -p xtask -- build-manuals --format html --program PATH --out build/NEW` 生成可选HTML；新输出必须不存在。忽略文件始终是产物，原始文档及导出器为已提交输入。
 
 Android 独立入口为 `cargo run -p xtask -- android build --assets --package --debuggable --out build/NEW`，读取 `build-support/android/arm64/`，使用当前最新LTS JDK25、已安装SDK/NDK及Kotlin，不依赖参照configure或旧对象。构建/检查仍须在外部资源保护下运行。静态包、正常/checking共享库与设备验收分别记录；完整状态及保留平台见[support-matrix.md](support-matrix.md)。设备入口为 `tools/android-device.py accept --apk APK --so SO --out build/NEW`，仅创建本次所属的新模拟器；检查既有设备须显式 `inspect --serial SERIAL`，不隐式安装或重启。
 
-`cargo run -p xtask -- audit-probe --list` 列出14种探针；明确请求的参照/NDK/Miri依赖缺失会失败，正常产品构建不要求这些可选审计依赖。L5与旧shell名称仍转发至唯一策略所有者。以下保留早期展开施工和已交付基线的历史说明，新候选尚未通过D。
+`cargo run -p xtask -- audit-probe --list` 列出14种探针；明确请求的参照/NDK/Miri依赖缺失会失败，正常产品构建不要求这些可选审计依赖。L5与旧shell名称仍转发至唯一策略所有者。以下保留早期迁移设计和对应阶段记录，不能替代当前冻结制品的验收。
+
+### Pinned Tree-sitter SDK
+
+当前构建门要求 Tree-sitter 0.27.1，API header SHA256 为 `f8480415ae20cb5e0fd519ba44c84268c5acb4c918106238fc1d328d91431783`。系统包升级到 0.27.2 后会在编译前被拒绝；使用独立兼容前缀，不修改版本字段或替换系统安装。
+
+先在自行选择的 `TREE_SITTER_SDK` 前缀安装兼容 SDK，确认该前缀的 `include/tree_sitter/api.h`、动态库及 `lib/pkgconfig/tree-sitter.pc` 一致。普通 `xtask` 支持 `FEMACS_TREE_SITTER_PREFIX`；运行时矩阵会清除 `FEMACS_*` 环境变量，应显式通过 pkg-config 选择同一前缀：
+
+```sh
+export PKG_CONFIG_PATH="$TREE_SITTER_SDK/lib/pkgconfig"
+pkg-config --modversion tree-sitter
+pkg-config --variable=prefix tree-sitter
+```
+
+两条读数应分别为 `0.27.1` 与所选前缀。预编译包若含安装位置占位符，只按实际位置重定位 `.pc` 的前缀，保留版本/header/library 身份。编译负载仍经当前外部资源控制器执行。
+
+本轮实际使用 Homebrew `0.27.1.arm64_golden_gate` 包：OCI manifest `40bad9ef192678201588c9d456a36d140a8a704ee085bc7a04da86b61d46e7e4`、202,130 字节 layer `c42e8f765aedd344347abdbae7fa65e11e07905b07f2cb24d63a19597fff62f2`，可由[对应公式版本](https://github.com/Homebrew/homebrew-core/blob/f07ac0964f9d02177aebb208b4030250609e22e1/Formula/t/tree-sitter.rb)和[固定 layer](https://ghcr.io/v2/homebrew/core/tree-sitter/blobs/sha256:c42e8f765aedd344347abdbae7fa65e11e07905b07f2cb24d63a19597fff62f2)定位。该包实测范围是 Apple Silicon/macOS 27，不据此推断旧系统支持。完整构建结果见[当前运行时矩阵](../maintenance/releases/2026-11-10-current-runtime-matrix-build.md)。
 
 # Flat repository and independent macOS bootstrap
 

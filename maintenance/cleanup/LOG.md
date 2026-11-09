@@ -1059,3 +1059,16 @@ identity rows match private identities and retirement ordinals;684,553,921
 logical/715,595,776 prior per-path allocated bytes. New sources/products/package
 and the active installed App remain unchanged. No causal volume-reclamation or
 Goal completion claim. [Scope and recovery](reports/2026-11-10-219-superseded-build-app-backups.md).
+
+## CLN220 — 2026-11-10: consumed runtime compiler copies
+
+The completed current-source matrix retired compiler copies after all 40 build
+legs:195460 files/6800 directories,6503836334 logical/6888628224 prior per-path
+allocated bytes.202260 public identity rows bind all40 canonical ledgers.
+Publication adds zero deletions; frozen inputs, finished products and original
+runtime observations remain. [Scope and restoration](reports/2026-11-10-220-consumed-runtime-compiler-copies.md).
+
+After review, a separate 41-row supplemental manifest records retirement of40
+consumed audit mirrors and their empty directory:12350535 logical/12451840
+per-path allocated bytes. All40 original ledgers remain unchanged; these counts
+are additional to, and separate from, the compiler-copy projection above.

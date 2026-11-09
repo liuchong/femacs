@@ -26158,3 +26158,30 @@ See [component evidence](../maintenance/releases/2026-11-02-unsigned-bignum-chec
 Independent cross-review accepts both signed stages, including all actual
 product hashes, the bounded24-file union and retained-interface evidence.
 Whole-Goal and final installation remain open.
+
+## 2026-11-10 — current-source runtime matrix build and CLN220
+
+- Clean signed source59d4215c, one7576-input frozen inventory:20/20 configurations,
+  both normal/checking legs complete,61 profiles/41 physical products. All20
+  subprocess receipts complete/exit0/no timeout/no remaining process group.
+- Controller10692.071s, peak920961480B, hard16GiB/no growth, exit0/full cleanup.
+  File retention verifies198268 files/20links; journal released without failures,
+  no duplicate content archive. This is build acceptance, not semantic/performance.
+- Current official31.1 archive/tag provenance matches the1536-file corpus
+  manifest. Pinned0.27.1 SDK selection is documented; system0.27.2/gates unchanged.
+- CLN220 binds40 completed compiler-copy retirements:195460 files/6800dirs,
+  6503836334 logical/6888628224 prior allocated bytes;202260 public rows, zero new
+  deletion by publication. Frozen inputs/products retained for next consumers.
+- Two supplementary review narratives with stale symbols were withdrawn; six
+  bounded current-source facts were rechecked against eight exact file hashes
+  and actual call sites. No global correctness conclusion is inferred.
+- Native negative preparation passes for32 profiles:527.641s/3328065536B,
+  exit0/full cleanup, no growth under16GiB/7200s;204742 files/20links retained,
+  journal released. Semantic/protective component tests have not run.
+  Separately, current P453 standard-terminal TTY integration6/6 passes with
+  unchanged program/dump, no timeout, controller exit0/cleanup complete.
+  Full48-pair stable execution, quiet performance, components,
+  adoption/rejection and user-save/exit-dependent App installation remain open.
+  Goal remains active3/7; no requested failure waived or old matrix promoted.
+- [Build identities](../maintenance/releases/2026-11-10-current-runtime-matrix-build.md),
+  [CLN220](../maintenance/cleanup/reports/2026-11-10-220-consumed-runtime-compiler-copies.md).
