@@ -704,109 +704,11 @@ DEFUN! ("function", Ffunction, Sfunction, 1, UNEVALLED, 0,
             (args, cdr, Vinternal_interpreter_environment, docstring, iform); }
       else
         {
-          let env: Lisp_Object = Vinternal_interpreter_environment;
-          if NILP (docstring)
-             && NILP (iform)
-             && CONSP (cdr)
-             && NILP (XCDR (cdr))
-             && BARE_SYMBOL_P (Vinternal_make_interpreted_closure_function)
-            {
-              static mut CCONV_FN_SYM: Lisp_Object = 0 as Lisp_Object;
-              static mut MACROEXPAND_ENV_SYM: Lisp_Object = 0 as Lisp_Object;
-              let mut is_cconv: bool =
-                BASE_EQ (Vinternal_make_interpreted_closure_function, CCONV_FN_SYM)
-                && ! (CCONV_FN_SYM as usize == 0);
-              if ! is_cconv
-                {
-                  let fn_name: Lisp_Object =
-                    SYMBOL_NAME (Vinternal_make_interpreted_closure_function);
-                  if SBYTES (fn_name) == 30
-                     && memcmp (SSDATA (fn_name) as *const c_void,
-                                c"cconv-make-interpreted-closure".as_ptr () as *const c_void,
-                                30) == 0
-                    {
-                      let me_sym: Lisp_Object =
-                        Fintern_soft (build_unibyte_string (c"macroexpand-all-environment".as_ptr ()),
-                                      Qnil ());
-                      if BARE_SYMBOL_P (me_sym)
-                        {
-                          CCONV_FN_SYM = Vinternal_make_interpreted_closure_function;
-                          MACROEXPAND_ENV_SYM = me_sym;
-                          is_cconv = true;
-                        }
-                    }
-                }
-              if is_cconv
-                 && ((*XBARE_SYMBOL (MACROEXPAND_ENV_SYM)).u.s.bits & SYMBOL_REDIRECT_MASK) == 0
-                 && NILP ((*XBARE_SYMBOL (MACROEXPAND_ENV_SYM)).u.s.val.value)
-                {
-                  let mut simple_param: Lisp_Object = Qnil ();
-                  let simple_args: bool = if NILP (args)
-                    { true }
-                  else if CONSP (args) && NILP (XCDR (args))
-                    {
-                      let p1: Lisp_Object = XCAR (args);
-                      if BARE_SYMBOL_P (p1)
-                         && ! BASE_EQ (p1, Qand_optional ())
-                         && ! BASE_EQ (p1, Qand_rest ())
-                        { simple_param = p1; true }
-                      else
-                        { false }
-                    }
-                  else
-                    { false };
-                  if simple_args
-                    {
-                      let body_form: Lisp_Object = XCAR (cdr);
-                      if CONSP (body_form) && BARE_SYMBOL_P (XCAR (body_form))
-                        {
-                          let op_fn: Lisp_Object = (*XBARE_SYMBOL (XCAR (body_form))).u.s.function;
-                          if SUBRP (op_fn) && ((*XSUBR (op_fn)).max_args as isize) != UNEVALLED
-                            {
-                              let mut rest_args: Lisp_Object = XCDR (body_form);
-                              let mut ok: bool = true;
-                              let mut fv_sym: Lisp_Object = Qnil ();
-                              let mut n_op_args: c_int = 0;
-                              while CONSP (rest_args) && n_op_args < 4
-                                {
-                                  let a: Lisp_Object = XCAR (rest_args);
-                                  if BARE_SYMBOL_P (a)
-                                    {
-                                      if ! BASE_EQ (a, simple_param)
-                                         && ! SYMBOL_CONSTANT_P (a)
-                                        {
-                                          if NILP (fv_sym) || BASE_EQ (fv_sym, a)
-                                            { fv_sym = a; }
-                                          else
-                                            { ok = false; break; }
-                                        }
-                                    }
-                                  else if ! (FIXNUMP (a) || FLOATP (a) || STRINGP (a))
-                                    { ok = false; break; }
-                                  rest_args = XCDR (rest_args);
-                                  n_op_args += 1;
-                                }
-                              if ok && NILP (rest_args)
-                                {
-                                  let nenv: Lisp_Object = if NILP (fv_sym)
-                                    { list_of_t }
-                                  else
-                                    {
-                                      let pair: Lisp_Object = assq_lexenv (fv_sym, env);
-                                      if ! NILP (pair) { list1 (pair) } else { list_of_t }
-                                    };
-                                  let mut slots: [Lisp_Object; 3] = [args, cdr, nenv];
-                                  let val: Lisp_Object = Fvector (3, slots.as_mut_ptr ());
-                                  XSETPVECTYPE! (XVECTOR (val), pvec_type::PVEC_CLOSURE);
-                                  return val;
-                                }
-                            }
-                        }
-                    }
-                }
-            }
+          /* The hook may be advised or redefined even when it names the
+             standard converter.  Its call is part of closure creation.  */
           return calln! (Vinternal_make_interpreted_closure_function,
-                         args, cdr, env, docstring, iform);
+                         args, cdr, Vinternal_interpreter_environment,
+                         docstring, iform);
         }
     }
   else

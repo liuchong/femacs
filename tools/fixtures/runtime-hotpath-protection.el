@@ -191,5 +191,50 @@
              (roundtrip (car (read-from-string printed))))
         (should (equal obj roundtrip))))))
 
+(defvar rhp--closure-hook-calls 0)
+
+(ert-deftest rhp06-interpreted-closure-hook-advice ()
+  "Closure creation must call the advised converter even for a simple body."
+  (require 'cconv)
+  (let ((internal-make-interpreted-closure-function
+         'cconv-make-interpreted-closure)
+        (advice (lambda (&rest _args)
+                  (setq rhp--closure-hook-calls (1+ rhp--closure-hook-calls)))))
+    (advice-add 'cconv-make-interpreted-closure :before advice)
+    (unwind-protect
+        (progn
+          (setq rhp--closure-hook-calls 0)
+          (let ((fn (eval '(function (lambda (x) (+ x 1))) t)))
+            (should (= rhp--closure-hook-calls 1))
+            (should (= (funcall fn 2) 3))))
+      (advice-remove 'cconv-make-interpreted-closure advice))))
+
+(ert-deftest rhp07-interpreted-closure-hook-redefinition ()
+  "The converter symbol must resolve to its current function definition."
+  (require 'cconv)
+  (let ((internal-make-interpreted-closure-function
+         'cconv-make-interpreted-closure)
+        (original (symbol-function 'cconv-make-interpreted-closure)))
+    (cl-letf (((symbol-function 'cconv-make-interpreted-closure)
+               (lambda (&rest args)
+                 (setq rhp--closure-hook-calls (1+ rhp--closure-hook-calls))
+                 (apply original args))))
+      (setq rhp--closure-hook-calls 0)
+      (let ((fn (eval '(function (lambda (x) (+ x 1))) t)))
+        (should (= rhp--closure-hook-calls 1))
+        (should (= (funcall fn 5) 6))))))
+
+(ert-deftest rhp08-interpreted-closure-hook-error ()
+  "Errors from a replacement converter must propagate and unwind normally."
+  (require 'cconv)
+  (let ((internal-make-interpreted-closure-function
+         'cconv-make-interpreted-closure))
+    (cl-letf (((symbol-function 'cconv-make-interpreted-closure)
+               (lambda (&rest _args) (error "rhp expected closure hook error"))))
+      (should (equal (condition-case err
+                        (eval '(function (lambda (x) (+ x 1))) t)
+                      (error (error-message-string err)))
+                     "rhp expected closure hook error")))))
+
 (provide 'runtime-hotpath-protection)
 ;;; runtime-hotpath-protection.el ends here

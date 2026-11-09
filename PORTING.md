@@ -4083,3 +4083,18 @@ Restore the inner negation in `src/emacs.rs` so the `PATH_EXEC` fallback matches
 the earlier guard and the reference condition. Rebuild the terminal and macOS
 products, verify bundle startup, `PATH_EXEC` dump loading and restart-executable
 resolution before adding the protective contract.
+
+## P453: preserve the interpreted closure creation hook (2026-11-10)
+
+The simple-closure shortcut in `Ffunction` recognizes the closure converter by
+its symbol name and constructs a closure directly. The symbol's function can
+be advised or redefined, so this changes observable behavior: a before advice
+runs once on the reference and zero times on both current products. Restore
+the call through `internal-make-interpreted-closure-function` whenever that
+hook and the lexical environment are non-nil. Keep the existing direct
+constructor for the hook-disabled case and the other runtime optimizations.
+
+Rebuild both products and verify real closure creation, advice, replacement,
+captured bindings and dynamic special bindings before adding protective tests.
+Bind subsequent performance and installation evidence to the rebuilt products;
+the earlier benchmark products do not establish acceptance of this correction.
