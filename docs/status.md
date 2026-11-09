@@ -23597,6 +23597,195 @@ D22 completed the actual frozen-source/current-receipt review and accepted the a
 
 Implementation5118ed08ae3d12fa6693290f5a030499f49d6ad5 contains166 paths, verifies a good signature, and was immediately pushed to origin/master. A subsequent remote refs/heads/master query returns the same full commit. The stage uses skip-CI; no remote CI is used. The delivery audit binds source/product hashes, actual cohort limits, independent findings,26 linked cleanup batches and artifact-loss recovery. G4/GC5/GA4 are complete at that scope. G1 native cases and G2/G3 combined completion remain open; G5-G7 are still A designs without implementation or new performance claims. The seven-part Goal remains active.
 
+### Runtime stage A: actual observer and build/native interfaces (2026-10-25)
+
+G4 delivery audit2cdd6d9c and adoption corrections6cf2b0cc are signed and pushed, with the remote branch checked. The partner accepts the delivery identities and finds no substantive product/source mismatch; its remaining ledger/D0 stale labels are corrected from existing evidence, without rerunning products. A fresh native desktop query still reports locked; no native acceptance is inferred.
+
+Continued real-source design in the current runtime manual: exact40-byte numeric record/snapshot storage, fixed phase IDs/totals/export controls, separate process/window resets, token-specific specpdl abort ownership, explicitly marked snapshot result roots, fixed cons-birth/reuse/sweep bookkeeping and process-gated observer controls. Current source reads bind original unbind/finalizer/hook order, actual mark callbacks and both sweep paths. These are planned interfaces, not implemented or validated behavior.
+
+The selected whole-product owner design carries one run-local configuration through terminal/Cocoa normal/checking units, link, resources/dumps and candidate-only publication. Actual source also reveals linked-function versus Windows-option expressions, the immutable self-contained version cursor and an unresolved native-unit allocator; these remain exact planned repairs. A bounded installed backend metadata walk finds six non-system libraries and retains real edges/hashes; this is not an operational compiler or relocation result. Full native lifecycle/generated symbols/dependency closure and collector policy remain A work. The existing pair discusses actual snapshot roots and G7 weak/finalizer retention constraints; no observer/native/collector tests, benchmarks or implementation run before whole-stage A/B/C are complete.
+
+### Runtime A continuation: scoped native ownership and stable test sources (2026-10-25)
+
+The completed native-lifecycle design discussion confirms emitter initialization precedes context acquisition. The primary rejected changing init/release arity or Qt return, retaining a raw specpdl guard across normal native return, and clearing an image-owned saved_cu after dlclose. The partner explicitly retracts those suggestions and adopts a private scoped callback with exact context ownership, guard-first setup, unchanged public interfaces and pre-close image access. The current manual binds native failure/advice/GC/load/unload/pdump cases and explicit loader roots; these remain planned, not implemented or tested native behavior. Both peer invocations finished with owned cleanup; no replacement model or subagent was used.
+
+Actual source preparation covers532 Rust/Swift files with67043 indirect/aggregate assignment candidates,41 escaped-slot candidates and934 bulk/pointer candidates. These include stack/local and inactive-target operations, and are not proof of complete barriers. Initial source contexts incorrectly split form-feed pages; the corrected inventory uses LF-only lines and preserves the invalid first draft. Actual weak worklist/fixpoint, key/value setter, finalizer queue/run and allocation/free readers are bound in the manual. Complete owner/write/barrier and weak/finalizer minor contracts remain open before B/C.
+
+The read-only upstream mirror already contains stable31.1: annotated tag object1f9518d22ae0fe4490ea9761ea7d39fbb970a890, peeled commit a360712c9d272d950d8d8255ef74570f7e90b7d9. No fetch or checkout mutation occurred. Its full test tree has1536 files,693 Lisp files,20996952 bytes;1440 mode/blob identities can reuse tracked Root inputs, while96 require9694153 bytes of stable overlay data. This supplies a fresh-clone-independent corpus plan, not a passing suite or693 test-case denominator. Actual version-bound weak/finalizer manual text was read from that commit after online page fetch timeouts. Future D must discover exact registered cases and preserve applicable missing/skipped/failed cases. G1 and overall G3/GA5–GA8 remain unaccepted; the Goal stays active.
+
+### Runtime source contract complete; B case writing started (2026-10-25)
+
+Completed the selected Mac runtime A contract in the existing manual: concrete backend identity/driver/resource/package fields; candidate ABI/cache separation and native export/count validation; native context/unload ownership; the actual generated car/cdr stores and matching16th freloc helper; a true nonmoving young-cons candidate with dirty/raw-tainted old conses, actually marked noncons registry, ordinary weak fixpoint and ordinary noncons sweep on every cycle. No constructor-end registration hooks or scan of physical free cells are used. Registry is not a full-major root; append at real mark setters preserves original child work, and commit follows complete sweep. Explicit GC stays full, automatic minors are capped, pending doomed callbacks force full, and newly created finalizers have the explicit minor-only root. New blocks/free/reuse/partial words, storage invalidation and post-hook nested-cycle ownership are bound to actual source. The partner retracted its incorrectly restated weak/noncons dangling example and mandatory after-all-children registration claim; finite correct free-list/finalizer issues were incorporated. These are source/design outcomes, not runtime passes.
+
+The three source-discussion processes completed with exit0 and owned cleanup; their peaks were1237860352,1309753344 and1325252608 bytes, durations384.531,551.737 and387.339 seconds. This includes a natural partner context compaction, not a replacement model/session. The current formal handoff gives the same partner exclusive B writing of three new language/collector/native ERT fixtures; primary owns observer, component/build and stable-corpus accounting cases. No production code, compiler, new test, lint or benchmark has run in this runtime stage.
+
+Primary B files now include19 stable-corpus/accounting test methods,11 build-configuration tests,8 observer ERT definitions and27 fixed actual-source component vectors plus their unexecuted native-adapter driver. The component driver never sends expected answers to its adapter, binds source/binary identities and declared stubs, and retains per-case outputs/times/errors. These source counts are not test results or the full compatibility denominator. The full stable overlay/manifest, native negative-unit/component setup, remaining acceptance cases and complete B integration remain to finish before production C. A fresh native desktop query still reports locked, so no new Finder/multiframeIME acceptance is inferred. The Goal remains active; GC6 still includes unfinished B and stays unchecked, as do implementation and runtime acceptance gates. Runtime WIP is uncommitted until its required stage delivery; G4 signed/pushed delivery remains unchanged.
+
+The same partner has now returned all three assigned B files:9 language,10 collector and11 native ERT definitions, with actual source writes and explicit no-run status. Its process exited0/reaped in1145.394 seconds, peak1374076928 bytes; no heavy job remains live. Native negative-unit inputs require the documented schema/path/hash/kind/error manifest and owned cwd for debug logging. Recursive unit loading, dump resurrection/live-code lifetime, export-GC and remaining component/build setups stay primary B work. Receipt/file delivery is not correctness approval or testing; no case is counted passing.
+
+
+### Runtime A/B complete; whole-stage C implementation started (2026-10-25)
+
+The complete declared B sources are written without execution: source-bound component vectors, observer wire/actual error-export-GC diagnostics, language/collector/native ERT, native unit accessor/recursive/live-code cases, eighteen negative-format units with a valid-format control, two-process image cases, whole-product identities and performance accounting. Stable31.1 original inputs are physically prepared as1536 files:1440 tracked reuse and96 exact overlays,693 Lisp files and20996952 bytes. This is uncommitted source preparation, not a suite run or case denominator. GC6 writing is complete; actual acceptance gates remain open.
+
+P-346 precedes production edits. C now contains a fixed-storage numeric observer, its actual alloc/GC phase and cons lifetime hooks, marked owner-specific snapshot/export/unwind and diagnostic-only faults. Native source repairs restore the three unit accessors, allocator and selected linked backend declarations/version/cursor; add actual scoped init/release/advice ownership and process reset; guard request/active/ephemeral/filename/encoded/result roots; validate required exports, native ABI and vector/count bounds before relocation writes; emit count functions and access image-owned pointers before close. A further actual-source omission was found in dynlib.rs: native-only open/close were never carried. They now retain the original POSIX arms and boolean-success close convention, with cleanup failure retained numerically. These are written candidates, not compiled results.
+
+The pure runtime-build configuration/identity/dependency helper layer and generator ABI key are written, but runtime-build preparation and full terminal/Cocoa normal/checking/link/resources/dump/package propagation are not complete. The same existing partner delivered deterministic stable-corpus helpers/materialize-only CLI and pure result/statistics helpers. The two native processes exited0 with owned cleanup,520.134s/1390100480-byte peak and281.614s/1368784896-byte peak. File delivery/adoption is not independent correctness approval; no heavy child remains live.
+
+All runtime-stage C remains uncommitted and unaccepted. No new test, compiler, lint, editor, benchmark or review has run. Next: complete actual product/backend build ownership, true young-cons collector and native barriers, actual-source component adapter, stable registration/per-case execution and real diagnostic/native/dump/relocation/performance orchestration; only after whole C is written enter consolidated D. Existing G4 delivery is unchanged. G1 physical Finder/multiwindowIME and overall G2/G3/GA5–GA8 remain open; the seven-part Goal remains active.
+
+### Runtime C: collector, owned products and actual process drivers written (2026-10-25)
+
+The previous status-only turn did not change implementation. C now contains the real young-cons metadata/registry, selection/caps, typed/raw/native write barriers, original marker/weak/finalizer/sweep connections, storage-lifetime invalidation and versioned status. Owner readiness follows actual init_threads rather than init_alloc; generic module dlopen latches unknown-producer fallback before constructors. These are source connections, not successful collector behavior or performance evidence.
+
+The same fixed partner returned runtime_backend.rs after one bounded continuation: the first terminal process ended with reason length and no file, while the second ended stop and delivered capture/staging source. They are not two successful deliveries. The primary connected selected terminal/Cocoa normal/checking product owners, actual checking object selection, independent dumps/packages, exact link-object/archive and resource/mode/link receipts, developer tool identities and copied dependency/license staging. runtime-build is exposed but has not been called. The previous parent-Git empty-inventory gap now requires a nonempty explicit frozen-source inventory; the final-D export owner includes new and exact ignored stable-overlay inputs.
+
+Actual runtime-execution/process-runner source now prepares isolated HOME/cache/native/tmp/output/cwd, real ERT discovery/per-case runs and deterministic language comparisons, actual-product ABI-based signed format controls with independent negative execution, two-process image selection, and explicit interpreted/bytecode/native workload measurement. Measurements retain two warmups/seven rounds, every failure/timeout, actual function representation, separate startup, raw pauses/allocations/heaps and sampled RSS/physical footprint. Same-binary major/young comparisons are separate from installed-reference comparisons. Diagnostic products and busy/uncertain results cannot become performance acceptance. Source writing has not executed any of these paths.
+
+The same partner is implementing only the stable corpus execution owner and Lisp harness in its existing native session; the primary retains every other file. Full source-bound numeric adapter/build glue, native relocation and whole C integration remain open. No runtime-stage compiler, test, lint, editor, benchmark or review has run; no deletion, new Git delivery or replacement trial App occurred. G4 remains signed/pushed at6cf2b0cc, all seven goals remain in scope, and the native G1/full G2/G3/G5-G7 acceptance gaps remain open.
+
+The existing partner has now returned the stable execution owner and Lisp harness:1200 and170 source lines, preserving pure helper/materialize interfaces and adding actual reference/candidate registration, exact-ID execution, explicit dump argv, version/features/tags and isolated resource paths. It does not filter unclassified platform/features or turn resource loads/skips into passing cases. Native final reason is stop; controller exited0 in874.737s, peak accounted1691549696 bytes, owned cleanup complete. All source ownership is back with the primary and no heavy/native job remains live. This is source delivery only, not a suite run, source correctness review or compatibility result. Actual component adapter, relocation and whole orchestration/integration remain C work.
+
+### Runtime C continuation: terminal resources, denied-source relocation and matrix owner (2026-10-25)
+
+Current source inspection identifies the old terminal epaths as source-absolute and its build resource trees as source symlinks. Candidate-only terminal path generation now uses original owned paths during dumping and actual-executable-relative sibling resources at runtime, with fixed process buffers/atomic initialization. A fresh dist/terminal package copies real Lisp/data/manuals/helpers and optional native dependencies/licenses; ordinary terminal publication and the trial App are unchanged. Added source assertions precede this connection and remain unexecuted. Runtime-build now retains both independent leg failures rather than stopping after normal alone, and isolates build HOME/temp/cache/native-cache while preserving explicit developer toolchain roots.
+
+The written relocation owner copies the exact product, verifies signatures, then uses a child-only source/build/backend/cache deny policy. It first probes existing parent-fingerprinted files to distinguish actual denial from missing inputs, then runs shared language and actual native compilation/load/mutation cases. No original source, tool or cache is renamed/deleted, and missing sandbox support cannot become an ordinary-run pass. Actual testing has not occurred.
+
+The final-D runtime-stage coordinator is written with separate build/components/execute actions, frozen current/new source,20 requested configurations, both compiler legs, explicit same-binary major/young controls and a separately bound installed reference. Fully successful preparation would yield60 candidate profiles plus1 reference; these are requested execution profiles, not discovered stable cases or passes. It retains independent build/action failures, actual source component/format controls, per-case xtask times, full stable executions and raw performance evidence. Stable child GC modes are explicitly propagated rather than lost during environment isolation. Performance setup and per-workload phase windows now exclude native/byte preparation and snapshot export from body timers, while preserving actual setup and process-memory data.
+
+The first component-adapter peer attempt ended terminal0/reaped308.576s, peak1621131264 bytes, native reason length and no delivered file. One bounded same-session continuation is writing the actual-source adapter/build glue; this is implementation rather than review. No runtime compiler/test/lint/editor/benchmark or review has run. Whole C is not yet closed, and all remaining Goal acceptance requirements are retained.
+
+### Runtime C source complete; enter consolidated D (2026-10-25)
+
+The same partner's bounded continuation returns runtime-components.py657 lines and runtime-component-adapter.rs242 lines, native reason stop, terminal0 in703.756s, peak1592098816 bytes, owned cleanup complete. The earlier length/no-file attempt remains distinct. All ownership is now primary; no job remains live. The future build interface writes receipt.json for the existing test-runtime-contracts driver, binds actual copied observer/collector module bytes and generated source/binary hashes, and explicitly lists primitive host/layout/clock/thread/unwind/heap/vector/mark stubs. It does not claim full editor/root/unwind/ABI/collector acceptance.
+
+All declared runtime C source interfaces, product owners and execution layers are now written and aligned with the manual. This is the transition to consolidated D, not a pass: no runtime-stage compiler, test, lint, editor, benchmark or review had run at this point. Freeze the actual current/new inputs before starting accounting/configuration/component checks, then use the same source snapshot for whole products and required behavior/corpus/performance. Retain independent failures for a consolidated repair batch. G4 delivery and current trial App remain unchanged; all missing Goal acceptance and native physical evidence remain open.
+
+### Runtime D1-D5: actual frozen tools/components, failures retained (2026-10-25)
+
+D1 freezes6927 current/new inputs, including exact stable overlays. The xtask test target compiles successfully under build protection14.279s, peak472645632 bytes, owned cleanup complete;25 exact runtime configuration cases then pass individually, runtime controller1.732s/11288648 bytes. Stable corpus accounting19/19 passes0.029s. The original performance-accounting entry aborts on its raw stream lacking writeln; the same frozen35 definitions pass using the standard unittest reporter, and the source repair subsequently makes the normal35/35 entry/report pass0.006s. This original entry failure remains, not a first-pass green run.
+
+The first adapter construction fails because its nested package lacks an independent workspace. After that manifest correction, D2 exposes18 primitive-host signature/vector-interface compile errors. Their grouped repair yields a real D3 adapter binary, build7.976s/323371008 bytes. Executing every vector gives20/28 and8 retained failures. D4 fixes actual aligned allocation (Mach-O lowered the old static alignment), LIFO test unwind, state/count types and externalized selection expectations; actual block declarations/vector-mark code are now extracted from production support sources and independently fingerprinted. Mark attempts are observed rather than filled with a literal zero. D4 build9.513s/569540608 bytes;27/28 execute successfully, the remaining actual occupancy258973 is below262144 because bounded collision probes can reject before a full table.
+
+The existing vector says occupancy_at_most, not full occupancy. D5 corrects the external bound predicate without changing its numeric bound or hiding coverage loss; overflow/incomplete state still must be visible. It also compares actual detached numeric arrays copied using the production detachment span, tracks existing birth identities to detect eviction, hashes initialized recorder arrays for disabled/foreign-write cases, and removes expected branch choices from native inputs. D5 builds9.530s/514850816 bytes; all28 isolated component vectors pass0.939s, controller1.412s/16171008 bytes, with owned cleanup. Original failures and binaries remain. Primitive host/Lisp/heap/unwind boundaries remain explicit: these28 cases cannot certify full editor roots, actual Lisp error unwinding or native/GC/ABI behavior. No product/performance acceptance is claimed.
+
+A current protected installed-reference query reports31.1/native available, actual data/compiler library and configuration features. Controller0.626s/41598976 bytes, exit0/reaped. Its binary and dump hashes still match the retained baseline identity. The requested whole-product build and actual corpus/native/image/relocation/performance/native UI evidence remain next, with the full seven-part Goal active. No runtime Git delivery or cleanup deletion has occurred.
+
+
+### Runtime D6: shared selected-source locator failure, grouped repair pending (2026-10-25)
+
+The immutable export contains6927 inputs and its xtask builds in15.087s. The first terminal-baseline normal/checking object sets compile; both link-owned stages fail with the same path validation error before any completed product receipt. The selected root is absolute during preparation but source_digest receives the repository locator `.` at linking, so its frozen-manifest locator retains CurDir and is rejected. The primary now canonicalizes the selected repository locator and adds an absolute/current-directory equivalence regression; neither has yet been rerun. Input/output name traversal rejection remains.
+
+To avoid repeating the known shared blocker in all20 configurations, the verified owned controller is cancelled during the second configuration, not the Goal:143,877.798s, peak532201472 bytes, cleanup complete. First configuration failure and second configuration interruption are retained separately in build/acceptance/runtime-d6-products-frozen/interruption.json with all raw logs and unchanged source. No unexecuted case is a failure/pass, and this build problem is not evidence against native/GC performance. The existing independent partner is reading the same frozen production observer/collector/native integration; the primary retains tooling/repair ownership. Full actual product/corpus/native/dump/relocation/performance and native UI acceptance remain open; no runtime-stage Git delivery or file deletion occurred.
+
+
+D6 tooling inspection also confirms a second independent integration defect: backend capture serializes logical IDs as runtime-native/<library>, while the link lookup compared only the primary basename. Matching the captured package-relative primary and extracting its actual copy/link routing now closes that source mismatch. Two regressions exercise real owned file copies, unchanged continuation, changed-copy preservation, absent primary and unsafe destination rejection; together with the repository-locator case they are prepared but not yet executed while the independent source review is running. This is a tooling repair, not native compiler acceptance. Frozen review inputs remain unchanged.
+
+
+### Runtime D7: bound configuration repairs verified (2026-10-25)
+
+All28 runtime configuration/source/file-routing cases pass against unchanged before/after xtask source identities, including the new absolute/current-directory repository equivalence, captured-primary routing/copy continuation and unsafe input/changed-copy preservation cases. Build controller16.665s, peak531202048 bytes, exit0 with cleanup complete. These are build-tool components; no actual new editor/native/GC product is claimed. Original D6 snapshot/logs and its first whole-product failure remain.
+
+The independent production-review attempt returned a native continuation summary rather than its requested findings file:1014.197s, peak1858813952 bytes, controller0/reaped. Its tentative abort/accounting/release observations are not accepted findings or product approval. The same partner is completing a bounded source-only classification; the primary checks real reachability, inherited behavior, exported values and legitimate release cleanup before adopting any correction. No extra participant, source edit by the partner or duplicate execution is introduced.
+
+
+### Runtime independent source review and D8 entry (2026-10-25)
+
+The bounded same-partner continuation returns actual findings with native stop:221.514s, peak1806811136 bytes, controller0/reaped. It explicitly reads/adopts the main locator/backend corrections as configuration evidence. The primary independently checks all three candidate questions. The alleged partial exported live array is contradicted by snapshot's actual map-based live_ages path; process sample coverage is distinct from completion of the latest attempted GC. No partial-sweep OOM reproduction establishes the remaining epoch/accounting concern. Inherited marker recovery and init-time public release remain unproved risks; broad cons-mark clearing or active-scope release rejection is not introduced speculatively. Conservative taint/unknown-producer/registry costs require actual measurement, not a source-only rejection. Private source-bound counter-evidence and review coverage remain for the final result handoff.
+
+Full-product acceptance remains open. D8 starts from a fresh immutable source containing the verified build-owner fixes and current cases. D6's failed normal/checking links and interrupted second configuration remain intact; no old trial App is replaced and no file is deleted.
+
+
+D8 first terminal-baseline normal leg is actually complete: original source-path failure crossed, linked own executable, bootstrap/final dump and generated resources/manuals packaged, runtime-build-outcome build_complete=true and runtime-product receipt bind six product file hashes plus generated-config/info/terminal-package resource groups. The independent checking leg is now compiling. This is one completed build leg, not an ERT/compatibility/performance/native-UI pass or the whole20-configuration result. Existing trial products remain unchanged.
+
+
+### Runtime D8 collected terminal checking startup failure; P-347 prepared (2026-10-25)
+
+The first terminal-baseline configuration finishes in1228.131815s with a valid normal product and a failed independent checking leg. Checking compilation/link complete, but bootstrap aborts at lread::define_symbol's FIXNUMP(bucket) assertion. Shared symbols metadata has Qstatic_color/Qstatic_gray both static-color; the actual original Android source supplies that gray spelling, whereas the actual non-Android definition is static-gray and Cocoa already overrides it. This is a reproduced pre-candidate startup conflict, not proof of an observer/collector/native performance failure.
+
+P-347 records the real checking bootstrap/final-dump/resource build regression before the primary changes lread's non-Cocoa array entry to select the original spelling by platform. Q indices, Android's existing duplicate exclusion, assertions and Cocoa metadata stay intact. The correction is unverified in the main tree; the running immutable D8 source stays unchanged and the matrix continues other independent configurations. No failed leg is removed from the result or counted as a pass.
+
+
+### 运行时D9：集中修复真实构建失败，产品复验待执行（2026-10-25）
+
+D8完成5/20构建配置，均未整体通过；保留2份普通终端实际产品。checking重复符号、native许可证路径碰撞、collector位图类型错误分别有真实日志。为避免重复编译共享失败，核对并停止本次控制器：3075.861秒、峰值485982208字节、退出143、回收完成；其余配置未通过也未判失败。P-347保留平台拼写/Q索引，许可证保留包内层级，P-348使用生产bits_word及实际支持类型，均不改原验收门槛。D9修复批次30/30配置/文件组件、28/28实际源码隔离组件通过，输入哈希未变化；22.973秒、峰值525713408字节、退出0、整树回收。隔离宿主边界明确，真实checking启动、native打包、collector执行与完整兼容/性能仍待新冻结产品验证。无文件删除，无运行时提交/交付声明；原试用App保留，Goal继续active。
+
+
+### 运行时D9工具丢失与D10受影响修复验证（2026-10-25）
+
+D9普通终端最终dump/包及六项制品身份均保留且哈希一致，6927份原冻结输入未变化；checking单元编译后所需Cargo工具/依赖目录缺失，后续19项spawn-error为未运行配置，不记19种编译失败。控制器1112.654秒、峰值533364736字节、退出1并整树回收。原因未知，不归咎其他对话，也不自动重编掩盖。P-349绑定单一normal/checking编译分支，P-350把真实工具捕获到独立目录并逐配置核验，改变/丢失保留partial并明确失败；新增2项配置选择及5项真实文件边界用例先写后实现，当前32/32配置与5/5文件边界通过，15.819秒、峰值577323008字节、输入一致并回收。仍无真实检查版/native/collector通过或性能提升结论。
+
+磁盘曾仅余约8GiB；CLN-27将已停止D6/D8的44626个生成单元/对象/缓存成员持久归档，全成员校验和每树代表性Rust/对象/归档实际恢复完成，2868项保护哈希不变。逻辑1510092614字节、删前分配1601650688字节，归档388178063字节，不等于实际卷释放量；报告/逐项身份/台账已签名推送852bfe76。D9始终排除，丢失在该精确清理删除前已被观察。继续原搭档核对新接线/反证，然后新快照实际矩阵；不重复已通过且未受影响的观察器/collector组件。
+
+
+### 运行时D独立复核及工具失败边界闭合（2026-10-25）
+
+原搭档按11项真实源码哈希完成只读复核，明确采用P-347/348/349/350有限修正，并据真实live_ages/snapshot代码撤回原C1“导出部分live数组”结论；OOM恢复/初始化释放仅保留未证明风险。确认首次工具捕获失败前未写partial的实际遗漏，先补2项矩阵边界用例再修正落盘顺序。相对证据路径触发定位混用，先补显式相对路径用例后规范化输出；原3项错误及随后1项变异夹具失败均保留。夹具现须匹配具体输入变更错误并验证确实改动源字节，最后8/8文件/矩阵边界通过（0.010秒）；未改的Rust配置接线保留32/32证据，不重跑无关组件。独立进程406.065秒、峰值4400662760字节、正常退出并回收；正式模型/思考档位不变，无子agent。后续新快照实际产品与完整行为/兼容/性能仍待执行，未提前交付。
+
+
+### 运行时D10组合编译收集与D11集中修复准备（2026-10-25）
+
+D10普通终端六制品/162实际链接对象身份核对通过，完整对象目录额外make-fingerprint检查辅助对象未用于产品链接。checking实际编译162单元并链接temacs后，辅助链接仍查普通GNU对象而失败；P-351先写三项真实文件选择用例，再统一辅助工具与库的已验证分支，保留原O2/PGO关闭/别名行为。为避免重复共享失败，核对停止本次矩阵，1536.766秒、峰值532758528字节、退出143并回收；observer被中断，其余未运行不算失败或通过。
+
+从同一不变D10输入独立构建完整功能诊断配置，实际六库/十三资源准备通过，正常161/检查160单元编译通过；comp正常13项错误，checking另有pdumper的静态读取unsafe遗漏。控制器541.036秒、峰值453853184字节、退出1并回收。P-352恢复被替换区域遗漏的原加载函数/类型、实现原计划计数解析与blob保护，改用稳定的常量语句表和平台可用性绑定，并保留pdumper断言。参照只读fd7afced403原文及前运行时提交核对，未更新/写入参照。新增文件/配置检查35/35及工具边界8/8通过，15.409秒、峰值580993024字节、输入一致并回收；该组不编译原生产品，仍待D11实际重建、加载/负例/dump/GC/兼容/性能。新矩阵仅调整顺序优先组合配置，原20配置/61执行档及标准不减。
+
+CLN-28已归档停止D9/D10的33725个生成/编译成员，逻辑1228855175字节、删前分配1297944576字节，最终归档321379789字节，2484保护哈希不变。硬链接格式准备失败先停且无展开删除，纠正后全部成员校验并恢复代表项；两份旧准备归档315858197字节在每一份内容均有已验证替代后移除，诊断保留。不承诺硬链接拓扑或独占卷释放量。报告/逐项身份/台账已签名推送36fd9b91，源码、实际程序/原失败与独立工具均保留。
+
+### 运行时D11真实native链接失败与P-353集中修复（2026-10-25）
+
+组合功能normal/checking各162个真实单元编译成功，实际链接同样缺8个符号。6933份原冻结输入及捕获工具复核不变。收齐两分支失败后停止重复旧矩阵：719.124秒、峰值567181312字节、退出143并整树回收；后续配置中断或未运行，不冒充19个编译失败。P-353先记录契约，再写3项对象选择回归及2项真实native行为用例，随后修复共享objects.txt依赖、恢复原deferred/cache入口、使用既有list/stdio宏；不扩未定义符号白名单、不引入stub、不改只读参照。38/38配置检查通过，16.562秒、峰值557056000字节、输入哈希不变并回收；该组不编译原生生产单元，真实加载/dump/GC/兼容/性能尚待验收。D12完整构建已启动，20配置/61执行档不减。无本轮删除或运行时提交；G4已交付与旧试用App保留，整个Goal继续active。
+
+
+### Runtime D12 and next grouped repair (2026-10-26 local)
+
+D12 normal compiles163 units, links with zero undefined symbols and writes
+its28665368-byte first dump. Actual resource generation fails loading
+unidata-gen with stringp/nil. A separately protected diagnostic returns
+(:abi nil :version nil :native t) and independently reproduces the loader
+error; input identities are unchanged, controller0/reaped1.773seconds with
+61259776bytes peak. P-354 restores all three original native emacs entry/exit
+arms and declarations; rtn14 metadata/bytecode-fallback case is authored
+before implementation. Those corrected production units are not yet compiled.
+
+D12's captured owner executable and Cargo executable/deps disappear before
+checking compilation. Earlier retained D10/D11 owners are also now absent;
+actor unknown. All6933 frozen source inputs remain unchanged, and the normal
+program/dump/objects remain. The identity guard retains partial/fatal evidence
+and stops; controller1/reaped663.937seconds,572866560bytes peak. Checking and
+other unrun configurations are not compiler failures. See the existing build
+owner-loss incident for the new exact boundary. P-355 now captures new owners
+in an independent persistent ignored directory, records both receipts and
+preserves explicit loss/tamper failure without automatic recompilation. All12
+filesystem cases pass0.013seconds; no synthetic executable is run. Original
+38 configuration cases are unchanged, not redundantly rerun. The same formal
+reviewer is reading a frozen14-file repair packet; D13 is not started yet.
+
+CLN-29 archives only9883 stopped D11 generated/object/cache members, with
+437888198logical bytes,458297344pre-removal allocated bytes and116517819bytes
+of verified persistent archives. Every member is verified, representative
+content actually restored,7433 protected hashes unchanged, exact selected
+files absent. The ledger contains no retained build-owner or D12 path. Three
+cleanup records are signed/pushed in dd90a062; later unexplained executable
+loss is not relabelled as an authorized cleanup. No runtime source delivery
+or native/collector/compatibility/performance acceptance is claimed.
+
+
+### Runtime source review and D13 handoff (2026-10-26 local)
+
+The same independent reviewer completed a bounded source/evidence report and
+explicitly adopted P351-P355. All14 input hashes are unchanged; extra lread /
+observer anchors match the D12 frozen source. All three original native emacs
+startup/shutdown blocks, subr-list population and initialization order were
+checked. No blocking source defect was established; real corrected products
+are still unverified. A failed capture leaves a same-key directory intentionally:
+retain it and use a fresh matrix output rather than automatically replacing an
+identity. Controller0/reaped680.985seconds,2482700288bytes peak; actual native
+stop and findings retained privately. Proceed to a fresh D13 full matrix; no
+new observer/collector redesign, lower compatibility standard or shipped-native
+claim. Prior C1 counter-evidence remains independently adopted.
+
+
 ### Execution sequence update (2026-10-26 local)
 
 P-356 adopts the user's implementation -> integrated functional acceptance ->
@@ -23607,6 +23796,552 @@ reviewer is currently idle after the completed source review; rule adoption is
 pending its next natural source/result handoff rather than an ACK-only model
 run alongside an unknown heavy build. The running Goal's status-only interface
 cannot replace its old objective text, so that text is not claimed synchronized.
+
+A previous E0133 tail message was misread as an error. The actual log has zero
+error diagnostics and1223 unsafe-op warnings at that observation; normal163-unit
+compilation and archiving have proceeded. No speculative unsafe/code edits or
+compiler-warning suppression were made. Actual link/bootstrap/native metadata
+and checking acceptance are still pending.
+
+
+### D13 integration findings and implementation repair (2026-10-26 local)
+
+D13 compiles163 actual units and links without undefined symbols in both
+normal/checking lanes. Normal initial/final dump and resource generation cross
+the former nil ABI failure; manuals pass66/68, with two eager native compiler
+reloads. Checking passes its helper link but bootstrap aborts at safe_free:
+SAFE_NALLOCA registered a wrapper, not the asserted xfree identity. Controller
+143/reaped1415.225seconds,565739520bytes peak; all6935 original frozen source
+input hashes remain unchanged. Later baseline is interrupted/rest unrun.
+
+P-357 restores callback identity and the ordered compiler-first bytecode
+generation path. The first diagnostic used a finalized dump and reproduces a
+trampoline-triggered compiler reload; this is retained, not labelled a fresh
+bootstrap product failure. The corrected early compiler-only bootstrap setting
+completes17 actual calls in12.946seconds at94748672bytes peak; all four native
+compiler bytecode files exist. A relocation probe initially omitted six backend
+dylibs; after copying the same captured dependencies, the actual program exits0,
+locates the enriched comp.elc, and retains trampolines=t/ABI=e4427c44.
+
+The two failed-export-only rechecks then reach actual trampoline compilation
+and both fail the backend driver-option version9 error despite captured16.2
+API support. P-358 removes four shadow cursors from global/captured option
+traversal, preserving the original unsupported check; the repaired native code
+is not yet built. Same formal reviewer is reading a frozen nine-source packet,
+including current R39/R48 adoption. No runtime source commit, product approval,
+whole-language compatibility or performance improvement is claimed.
+
+CLN-30 archives4717 stopped D12 intermediates,166162858logical bytes and
+175923200pre-removal allocated bytes into40361952bytes of verified archives;
+7295 protected hashes unchanged and every selected expanded file absent.
+Original source/logs/programs and D13 are excluded. Report/manifest/ledger
+reference are signed/pushed in671735b3; no system-wide free-space delta is
+attributed to this finite cleanup. Goal remains active, G4 only1/7 delivered.
+
+
+### Exact-current generation and D14 entry (2026-10-26 local)
+
+Same independent source review completes0/reaped258.743seconds at2253914808
+bytes peak and adopts P-357/P-358 semantics plus current R39/R48. Nine input
+hashes match. Its claimed duplicate --all-bytecode registration is refuted by
+the identical bound source: one registration, next line is --list, and actual
+current CLI parsing exits0. No source edit is made for that false finding;
+original findings and counter-evidence remain. The valid older-probe-hash
+limitation is addressed by a fresh exact-current generator run:17 calls all0,
+14.175seconds,78249984bytes peak and full cleanup. No product pass follows.
+
+D14 fresh complete20-config matrix starts with6937 frozen inputs. The nine
+reviewed source hashes match its snapshot, host tool build exits0 in13.707
+seconds and retained persistent driver hashes/receipts agree. Actual ordinary
+unit generation/build is underway. Normal/checking bootstrap, manual exports,
+full native/collector/corpus/performance and remaining native UI stay open.
+The peer will receive the concrete parser counter-evidence at the next natural
+product/results handoff; no ACK-only model run is started.
+
+
+### D14 first ordinary combined product built (2026-10-26 local)
+
+The first terminal native/collector/observer/diagnostic ordinary product
+compiles163 units, links with zero undefined symbols and passes helper linking.
+All78 resource calls succeed, all four compiler bytecode files are generated,
+the final dump is13190032bytes and68/68 manuals pass in103.584166seconds,
+including both previously failing real Org exports. The terminal package and
+build_complete=true product receipt exist; six program/dump identities and
+all163 actual linked object hashes are independently checked. One native build
+output is retained. Checking is independently prepared and starts its unit
+build. No semantic, compatibility, native/collector lifecycle or performance
+acceptance is inferred; all remaining matrix rows/execution profiles stay open.
+
+Current read-only upstream stable-tag query sees31.1 at the existing corpus
+commit a360712c9d272d950d8d8255ef74570f7e90b7d9. No reference checkout update,
+new installation or release download is performed. The Mac remains locked in
+a fresh native-surface query; do not substitute batch success for missing real
+Finder/multi-frame input workflows. Goal remains active with G4 only delivered.
+
+
+### D14 first complete combined configuration built (2026-10-26 local)
+
+The terminal native/collector/observer/diagnostic configuration now has BOTH
+ordinary/checking build_complete=true outcomes. Each compiles163 actual units,
+links without undefined symbols, passes helper linking, produces initial/final
+dumps and68/68 manuals, and packages a terminal product. Independently checked
+six program/dump hashes and all163 actual linked object hashes per lane; normal
+has zero checked inputs and checking uses only163 checked inputs. The checked
+bootstrap dump is13189896bytes, crossing the previous xfree callback assertion.
+
+The complete matrix records1/20 configurations passed and five execution
+profiles available (one installed reference plus four candidate major/young
+lane modes); the other19 configurations continue in the same controlled run.
+These are build outcomes, not semantic/compatibility/performance acceptance.
+No whole runtime source delivery, default native/collector enablement or Goal
+completion is claimed. Existing trial App and original failure evidence remain.
+
+
+### D14 baseline configuration built;2/20 configurations passed (2026-10-26 local)
+
+Terminal baseline now builds in BOTH normal/checking lanes, each162 units,
+zero undefined symbols, initial/final dumps,68/68 manuals and terminal package.
+Each lane's six program/dump hashes and all162 linked object hashes match its
+receipt; checking uses162 checked inputs, normal none, and neither baseline
+link includes native-only dynlib. Private identity proof retains the exact
+inputs and receipt boundaries.
+
+The same complete matrix now records2/20 configurations passed and seven
+execution profiles available; the other18 build configurations continue.
+Semantic/native/collector/corpus/performance execution is not yet accepted.
+No whole-Goal completion, source release or new default trial App is claimed.
+
+### D14 stopped; owned-driver preservation and explicit recovery implemented (2026-10-26 local)
+
+The original matrix is terminal: exit1, complete process cleanup,3634.730seconds,
+552239104bytes peak. Two whole configurations pass. The third normal product
+completes; checking compiles162 units before a missing driver prevents the next
+command. The other17 configurations are unrun, not software failures. Persistent
+owner and Cargo host/dependency files are missing; their removal cause is unknown.
+Original failed-run logs, receipts and source remain preserved.
+
+P-359 adds reversible protection of only the active owned executable/private
+directory, a verified archive/journal and explicit fresh-output checkpoint recovery.
+Four functional cases pass: actual removal/write prevention and known executable
+launch (2.292seconds), exception release (0.016seconds), owned-child SIGTERM release
+(0.194seconds), and stopped checkpoint/source/resources validation (16.640seconds).
+The last case verifies6937 frozen inputs and four complete reusable products.
+All exercised preservation journals finish released with no release failures.
+The same independent partner is reviewing the implementation and actual evidence;
+the remaining18 whole configurations have not yet been recovered. This does not
+constitute runtime semantic, native, collector, compatibility or performance
+acceptance. G4 alone remains delivered,1/7; six Goal items remain.
+
+The independent partner identifies two real recovery gaps: interrupted flag
+bookkeeping and incomplete receipt/resource validation. Both are repaired in
+the complete production batch. Native descriptor flag operations prevent a
+pathname race from modifying a replacement; masked critical sections and
+deferred repeat signals preserve release. The shared layout requires all six
+files, the exact product/native resource groups and bound execution roots.
+Eight fresh functional cases pass, including both signal windows, actual
+replacement, six real product-profile loads and three rejected truncated or
+foreign-resource inputs. Controller0/reaped15.571seconds,73269248bytes peak.
+The original6937 product-source inputs remain unchanged. Actual host hash
+reproduction and pending matrix builds are the next validation boundary.
+
+### Actual checkpoint recovery stops at host identity mismatch (2026-10-26 local)
+
+The explicit recovery verifies the two complete original configurations and
+6937 frozen inputs, then compiles the frozen host successfully in11.67seconds.
+The new executable has the original5648744-byte length but a different SHA256.
+The required byte-identity guard stops before any pending product configuration
+starts. Controller1/reaped19.635seconds,542556160bytes peak. Neither byte identity
+nor a signing/debug-only explanation is proven. Original fatal/partial/source
+and both host identities remain recorded. The same independent pair is
+examining a finite explicit source-bound recovery contract; no automatic
+fallback or reduced20-configuration/61-profile/semantic gate is adopted.
+
+### Explicit source-bound recovery now running (2026-10-26 local)
+
+P-360 preserves strict original-hash behavior by default; the new invocation
+explicitly pins a distinct recovered-host SHA. Before/after frozen inventory,
+three manifests/lock, toolchain and environment match. Actual host process/log
+identities and both original/current artifacts are recorded. Four affected
+functional cases pass, controller0/reaped15.326seconds,120193024bytes peak;
+six real profiles load, missing/foreign resource identities reject, native and
+license roots participate in post-load snapshots, and6937 inputs/four products
+revalidate. The prior eight owner/lifecycle cases retain their scoped evidence.
+
+The second recovery is now live under build protection. The current driver
+identity, archive hash and both owned file/directory protection flags verify.
+Two complete configurations are reused and18 pending/failed configurations
+continue in fresh case roots. Per-product original/recovered host provenance
+makes the mixed-host boundary explicit. The prior hash-mismatch failure remains
+unchanged. No runtime semantic, compatibility, performance or Goal completion
+is claimed; G4 alone remains delivered,1/7.
+
+### Third configuration complete;3/20 build configurations pass (2026-10-26 local)
+
+The explicit source-bound recovery completes terminal baseline/observer in
+BOTH normal/checking lanes. Each compiles162 units and completes linking,
+initial/final dumps,68/68 manuals and the terminal package. Each lane's six
+program/dump hashes, all162 link objects, archive and complete resources verify.
+The new checked product crosses the original missing-owner launch boundary.
+This is actual new-host build evidence, not an explanation of the old byte
+difference or proof of runtime observer/native/collector semantics.
+
+The same protected recovery now records3/20 passing configurations and9/61
+execution profiles, with the first two configurations explicitly reused. The
+remaining17 configurations continue; no restart, source hot update, scope
+reduction or new trial App is made. Mixed-host provenance and all later
+functional/compatibility/performance gates remain explicit.
+
+### Fourth configuration complete; native resources verified (2026-10-26 local)
+
+Terminal native without observer completes BOTH normal/checking lanes in
+1195.067seconds. Each lane compiles163 units, links, creates initial/final dumps,
+generates68/68 manuals and produces its terminal package. All six program/dump
+hashes,163 link objects, archive and five resource groups verify per lane.
+An actual native trampoline unit is retained and hashed for each lane. The
+actual profile loader and post-load snapshots include native libraries/licenses.
+These are build/integrity outcomes; native lifetime/GC/compatibility/performance
+acceptance remains unrun.
+
+The same protected recovery now records4/20 passing configurations and11/61
+execution profiles. Native/observer is next;16 configurations remain.
+Bounded source review also identifies two pending orchestration fixes: the
+ordinary fresh-build profile producer still has the older resource-root map,
+and the whole execution needs complete before/after identity snapshots around
+the subsequent stable corpus. The current resume producer already uses the
+canonical map; no active frozen helper/product source is edited. Apply both
+fixes after this build is terminal and before actual execution, retaining the
+source-bound acceptance and mixed-host provenance requirements.
+
+### Fifth configuration complete; native plus observer (2026-10-26 local)
+
+Terminal native/observer completes BOTH normal/checking lanes in1367.747seconds.
+Each lane compiles163 units, links, creates initial/final dumps, generates68/68
+manuals and produces its terminal package. Each lane's six program/dump hashes,
+163 link objects, archive and five complete resource groups verify. Generated
+native trampoline files are retained with hashes. All four active orchestration
+source files still match the captured recovery inputs; no hot update is made.
+
+The same controlled recovery now records5/20 passing configurations and13/61
+execution profiles. Collector-only without native is next;15 configurations
+remain. Native/observer runtime semantics, GC behavior, full compatibility and
+performance are not accepted by these build results. The two previously recorded
+post-build orchestration repairs and all later acceptance gates remain required.
+
+### Collector controls complete;7/20 configurations pass (2026-10-26 local)
+
+Collector-only completes both normal/checking lanes in1175.830seconds;
+collector/observer completes both in1271.113seconds. Each lane compiles162
+units, links, creates initial/final dumps, generates68/68 manuals and produces
+a terminal package. Six program/dump hashes,162 link objects, archive and
+complete resource groups verify per lane. Major/young profiles are configured
+for later execution; these build results do not accept their GC behavior.
+
+The same protected recovery now records7/20 passing configurations and21/61
+execution profiles. Native/collector without observer is next;13 configurations
+remain. No active product source or four-file orchestration snapshot is edited.
+
+P-361 starts a compliant source-cache acquisition tool: complete pinned source
+selection, local-input reuse or streamed archive acquisition, per-file
+mode/size/Git-blob/SHA256 checks, fresh publication and preserved failure
+evidence. Production source is written and syntax checked only; no network or
+functional acquisition, materializer/export integration, ignore change or
+payload deletion has occurred. The sole modernization checklist records the
+remaining integration/functional/independent-review/cleanup obligations. No
+absolute-path exception or former policy answer is inferred.
+
+P-361 consumer wiring now connects the unbound root stable materializer and CLI
+to a verified complete source cache. Existing mapped inputs remain supported;
+missing inputs select the pinned acquisition path, and explicit cache roots
+require complete selection/content verification. Pure manifest readers remain
+offline. Reference-checkout and cache/output overlap are rejected. This is
+production writing plus syntax checks only, not functional acceptance. All
+current payloads and the active four orchestration files/frozen product source
+remain unchanged; exporter/ignore integration follows the live matrix build.
+
+Native/collector without observer completes BOTH normal/checking lanes in
+1335.703seconds:163 translation units per lane, six program/dump identities,
+all linked objects/archive, five resource groups and68/68 manuals verify.
+Each lane retains one native build output. This brings the same matrix to
+8/20 configurations and25/61 execution profiles;12 configurations remain.
+Native lifetime/collector behavior and performance are still unaccepted.
+
+P-361 export-input binding is now written in the independent provider. It
+resolves unchanged manifest destinations to verified present inputs or the
+complete cache, and rejects edits to an existing mapped input rather than
+concealing them with cached bytes. The active exporter is not edited; caller
+integration, acquisition/fresh-checkout validation and ignore/cleanup remain
+pending. No functional execution or acceptance result is claimed.
+
+The ninth native/collector/observer ordinary lane now has a complete product
+receipt. Six program/dump hashes,163 linked objects/archive, five complete
+resource groups and68/68 manuals independently verify; one native build
+output is retained. Checking is still pending, so the matrix remains8/20.
+
+P-361 adds the exact raw-overlay ignore rule and updates acquisition/provenance
+documentation. All1536 mapped inputs remain present; manifest/README remain
+unignored and no source payload is removed. Cache consumer/export-input
+binding remains writing-only, and the active four helpers stay unchanged.
+
+Native/collector/observer completes BOTH compiler lanes in1380.679seconds.
+Each lane independently verifies six program/dump files,163 linked objects
+and archive, five full resource groups and68/68 manuals, retaining one native
+build output. Same recovery:9/20 configurations pass,29/61 execution profiles
+available;11 configurations remain, starting with terminal baseline/observer/
+diagnostic and then the ten Cocoa configurations. Full semantic/native/GC/
+corpus/performance acceptance remains pending; G4 alone is delivered,1/7.
+
+Terminal baseline/observer/diagnostic completes BOTH normal/checking lanes
+in1352.716seconds. Per lane, six program/dump hashes,162 actual link objects
+and archive, three complete resource groups and68/68 manuals independently
+verify. All ten terminal configurations now pass:10/20 total configurations
+and31/61 execution profiles. Same protected recovery starts the ten Cocoa
+configurations from the original6937 frozen inputs. This is build acceptance
+only; semantic/native/collector/corpus/performance acceptance remains pending.
+The current trial App is preserved and G4 alone remains delivered,1/7.
+
+First Cocoa/native/collector/observer/diagnostic ordinary build fails in the
+compiler unit: E0425, text_cursor_kinds missing from the included window mirror.
+Actual normal outcome is build_complete=false; no new Cocoa product exists.
+The independent checking build is running to collect its errors. P-362 records
+the real reference compiler/window/display include chain and the pending repair,
+without changing the active frozen snapshot or the ten completed terminal
+configurations. No repaired GUI build is claimed.
+
+The independent Cocoa checking build reports the same missing cursor type;
+both compiler-leg outcomes are build_complete=false. The owned recovery is
+then stopped after retaining these errors and the ten successful terminal
+configurations:11009.015seconds,495190016bytes per-run accounted peak,exit143,
+complete process cleanup. The captured driver's protection flags restore with
+no release failure. Nine other Cocoa configurations remain unaccepted.
+
+Root production repairs now restore the missing native/window-system display
+include (P-362), select canonical complete resource roots for fresh profiles,
+capture whole-execution input identities including the stable corpus, and wire
+P-361 verified corpus inputs into source export. Python sources parse; none of
+these new paths has run functional acceptance. P-363 still needs the exact
+source-equivalence/reuse certificate and Cocoa continuation implementation
+before the next integrated verification. Original frozen source/products and
+the trial App are unchanged; no new Cocoa product is accepted.
+
+P-363 source/host carry and P-364 acquisition integration now pass9/9 actual
+cases:97.434seconds,109903872bytes peak,controller0/reaped. The earlier cache
+failure was an unchanged Git100755 fixture with physical0770 permissions;
+the correction preserves source permissions and validates Git executable mode.
+New working-tree reconstruction, with96overlays absent and no reference,
+actually reads the pinned public archive53957127compressed bytes and verifies
+all1536files/693Lisp/20996952bytes. This is not committed-clone/fullbuild proof.
+
+The old released driver disappeared again, actor unknown; archive hashes
+verify and restore exactly. An old-host compiler probe is invalid for the new
+source because its main resetscwd to its compile-time manifest root. A NEW
+source-bound host then completes four actual compiler invocations using both
+failed Cocoa configs, producing all objects with unchanged configs. Wrapper3
+remains false only because it expected a trailing comment removed by the
+rewriter. A separate observation proof checks the actual new-snapshot
+conditional display include, cursor declaration and all four object hashes,
+without rerunning compilers. The compiler controller exits1/reaped23.944s at
+552419328bytes for that observer failure; full Cocoa product remains pending.
+The same independent peer is reviewing actual source/result adoption.
+
+The independent peer adopts the real9/9 acquisition/reuse/certificate evidence,
+Git-mode correction, per-profile host mapping and four source-bound compiler
+successes, with full product/semantic gates still open. New full Cocoa cohort
+starts in runtime-d15-cocoa-cohort:6942 frozen inputs, current source manifest
+52d577f7798a2cc7392be68c64a2953f13b9428c193e4a9aa038144b99b09a40,
+new host compile exit0 and captured owner active. All ten old terminal
+configurations and thirty profiles are revalidated; total10/20 and31/61.
+New-host/source provenance remains distinct from the retained old cohorts.
+All ten Cocoa configurations remain required; current trial App is unchanged.
+
+
+### 2026-10-26 — P-365 Cocoa output ownership repair
+
+D15 compiles both Rust/ABI/Swift legs, then stops before the actual linker
+with `link input escaped selected output`; no repaired Cocoa product passes.
+The owned controller exits143/reaped in929.716seconds at908066816bytes run
+peak; owner flags release without failures. Original failures/source and all
+ten terminal configurations remain intact. P-365 places bound Cocoa objects
+inside their selected leg and keeps unbound builds and strict link gates.
+The exact source-equivalence certificate permits only that private helper
+repair and its two callers in addition to P-362. Functional3 passes6/6 real
+export/reuse/rejection/input-preservation checks; prior untouched acquisition
+and compiler evidence is reused. Complete receipt/resource revalidation is
+now in the execution finalizer, with actual full execution still pending.
+Independent paired repair review precedes a fresh source-bound ten-Cocoa
+build. Overall10/20 configurations,31/61 profiles; only G4 delivered,1/7.
+No semantic/GC/performance approval or default trial-App replacement.
+
+Independent repair review now adopts the exact P-365 helper/source
+certificate and6/6 affected integration evidence; no source-level blocker
+remains to the fresh ten-Cocoa build. Full products/runtime remain open.
+Reviewer controller exits0/reaped139.199seconds,2906358840bytes accounted
+peak; all four reviewed source hashes still match.
+
+D16 starts from6942 frozen inputs, manifest
+9850a3c226caa1e22291daa735f04773d43c8308a63203e11023c355dc087888.
+Exact source/carry validation retains10terminal configurations/30profiles.
+A fresh source-bound host compiles0 in14.206seconds and is archive-captured
+with active owner protection; first combined Cocoa configuration is live.
+No new Cocoa product or full-runtime/compatibility/performance pass yet.
+
+
+### 2026-10-26 — D16 real bootstrap failure and P-366
+
+Both Cocoa compiler legs pass Rust/Swift compilation and actual linking,
+fingerprinting and signing, then bootstrap GC aborts during native ABI
+hashing. Ordinary disassembly identifies the unused-tag1 rejection while
+visiting builtin roots; the exact invalid object remains unobserved.
+Selected Rust config enables native compilation, while Swift receives no
+matching define; three actual old Swift object value-witness records carry
+56-byte size/stride words. The frame-functions record omits all four native
+fields; menu/selection fields are inactive. P-366 records this ABI gap
+before restoring the selected native define and missing conditional tail.
+No GC/hash/native correctness gate is suppressed. Exact terminal reuse
+requires only these private Cocoa source repairs, not arbitrary changes.
+Controller exits143/reaped1193.769seconds,910852096bytes run peak; owner
+flags restore without failures. Original failed snapshots/objects and ten
+terminal configs remain intact. Eight affected integration cases are
+prepared after full business implementation; actual repaired full Cocoa
+bootstrap/product/runtime acceptance is pending. Overall remains10/20,
+31/61 and G4only1/7; no trial-App replacement or performance claim.
+
+P-366 affected functional integration now passes8/8 in99.986seconds at
+71942144bytes run peak, exit0/reaped. Actual source export includes6942
+inputs/1536 corpus files, and the20-path exact-change certificate verifies
+ten terminal configurations/thirty profiles with original source/host IDs.
+Mutation cases reject unrelated runtime source, conditional include, Cocoa
+object helper, native Swift define and native-field defaults. All original
+input bytes/modes remain unchanged. This is source/carry integration; the
+new88-byte Swift compilation, whole Cocoa bootstrap/GC/package/runtime and
+independent result adoption remain pending.
+
+The paired P-366 source review finds a real pre-Swift blocker: selected
+feature values are JSON strings, so the integer-only parser would fail.
+Adopted in both production and exact source expectation: string/integer1/0,
+absence false, unknown values rejected. The old8/8 source/carry result is
+retained and does not prove this corrected parser. Five affected fresh
+source/carry cases are running; a real Cocoa build remains required.
+Reviewer exits0/reaped275.635seconds,5594483688bytes accounted peak;
+policy-controlled growth stays within its16GiB runtime hard ceiling.
+
+The corrected parser/source-expectation cohort now passes5/5 affected
+source/export/carry/mutation/input-preservation cases,87.361seconds,
+66617344bytes run peak, exit0/reaped. Other three unchanged negative-source
+cases retain their prior8-case evidence. This still does not execute Rust
+parsing/Swift compilation; the next full Cocoa build must do that. A short
+same-peer source/result follow-up verifies adoption of its concrete finding.
+
+The same independent peer adopts the corrected native-feature parser, its
+exact source-certificate expectation and5-case evidence; no remaining
+source blocker is found for the next full Cocoa build. All three source
+hashes still match. Reviewer exits0/reaped70.529seconds,2245722112bytes
+accounted peak. This does not approve new compiled layouts/products/GC.
+
+D17 starts from6942 immutable inputs, manifest
+17942a537dd1b68c6c941b8bfb8e139bfdbbfc15eed383f6d80fa7bbb7ba0514.
+Exact20-change source/carry certificate validates10terminal configurations
+and30profiles. New source-bound host builds0 in12.199seconds and has active
+archive/owner protection. First combined Cocoa configuration starts; no
+new Swift layout/full bootstrap/GC or product acceptance is yet claimed.
+Original20/61 full scope, current trial App and G4only1/7 remain unchanged.
+
+D17 ordinary actual Swift nsfns/menu/selection object metadata now verifies
+88-byte size/stride for all three; the selected string-valued native flag
+really reaches the compiler path. Recorded object hashes and config digest
+match the selected binding. Actual link has0 undefined symbols; fingerprint
+and signature pass. Initial bootstrap dump completes, crossing the old
+native-ABI-hash/GC abort path;49 resource generator calls have returned0.
+The initial dump hashes are historical phase evidence and may be superseded
+by the final dump. Manuals/final package/checking and whole GC/native/runtime
+acceptance remain pending; no broader compatibility/performance claim.
+
+D17 first ordinary Cocoa product is now complete and independently
+read-back verified:6 program/dump files,173 actual linked inputs/archive,
+4 full resource groups (bundle/config/native libraries/licenses), actual
+3 native Swift record layouts88, and68/68 manuals bound to the exact
+program hash. Final dump is18691368bytes; App signing and verification pass.
+Checking and the whole configuration remain open; total10/20 complete
+configurations/31/61 recorded profiles. This is build acceptance for one
+compiler leg, not full GC/native/semantic/stable/performance acceptance.
+
+D17 checking actual failure: corrected88-byte Swift layouts and real link
+pass, but bootstrap dump aborts at `already_dumped_object`. Preserve its
+partial dump as failed evidence, never as a valid image. Controller exits143
+and reaps its tree in2042.332seconds at918847488bytes peak; next baseline is
+interrupted/unaccepted. Ordinary product remains complete, with33 available
+profiles and10/20 complete configurations. Bounded debugger replay times
+out without assertion-state evidence; all owned processes are reaped.
+P-367 diagnostic-only actual dumper copy compiles, links, fingerprints and
+signs in3.552seconds at409026560bytes peak. Passive failure-path logging
+preserves the existing assertion and other original linked inputs; actual
+bootstrap replay is next. No production dumper fix or full semantics claim.
+
+P-367 real passive replay reproduces the checking abort and identifies
+builtin symbol2086 (`x-hide-tip`), function field24, primitive subr target
+still ON_COPIED_QUEUE(-5). Actual linked symbol sections place lispsym
+before the Swift record; source address-only sorting emits the referer
+first. The first isolated replay fails at dyld before Lisp because its
+owned copy lacks native libraries; retain that failed harness result.
+After copying all6 exact native dependencies, the actual diagnostic
+reproduces the original assertion in3.497seconds at170262528bytes peak,
+with full process cleanup. No assertion or queue logic was changed.
+
+P-368 production changes the Cocoa-only copied comparator to primitive
+subrs first and address order within both groups. Existing strict assertion,
+fields, queue scans, fixups and relocations are unchanged; final copy
+relocations retain explicit source offsets and destination sorting. The
+actual one-unit repaired checking image compiles/links/fingerprints/signs
+and verifies0 in7.314seconds at416038912bytes peak. Full bootstrap loadup
+then dumps successfully0 in8.564seconds at197279744bytes peak, cleanup
+complete: hot12907812/discardable222688/cold5515744bytes,707990hot and5994
+discardable relocations. Original frozen D17 programs/objects and the trial
+App are untouched. Same-partner source/result review is underway; repaired
+dump reload, exact terminal-inactive carry and full new Cocoa acceptance
+remain. This is no full semantic/native/GC/performance delivery claim.
+
+P-368 independent source/result review adopts the concrete copied-subr
+ordering explanation and preserved assertion, with no source blocker;
+its stale global address-order comment is corrected. Actual repaired
+checking dump reload returns0 with builtin bindings, evaluation and one
+fullGC checks; program/dump hashes remain unchanged. Controller exits0
+and reaps in1.367seconds at46399560bytes accounted peak. Isolated resource
+path warnings remain explicit: this is not a packaged application pass.
+Reviewer exits0/reaped418.762seconds at4086171136bytes accounted peak;
+its out-of-scope recursive build scan is stopped by exact owned PID,
+with native review preserved. No broad scan result is used as evidence.
+
+P-368 source/reuse functional6 is5/5 final true: actual6942-input export
+includes all1536 corpus inputs without the reference checkout; the exact
+Cocoa-only source delta and every retained terminal's inactive have_ns
+selection certify10 original configurations/30 profiles with original
+identities; an unconditional comparator and a weakened strict assertion
+are separately rejected; all original mapped bytes/modes are unchanged.
+Controller0/reaped75.189seconds at68091904bytes peak. Prior unaffected
+source/corpus negative results remain version-bound and are not rerun.
+Next is fresh full Cocoa cohort from current source-bound host. Whole
+native/collector/compatibility/performance and Goal acceptance remain open.
+
+D18 full Cocoa cohort starts from6942 frozen inputs, manifest
+8675c95d1421199ba6f0ea2fc7342ed1405924415bfcef9baaf735f4959c7088.
+Its actual21-change source certificate verifies ten original terminal
+configurations/thirty profiles, with all old source/host provenance kept.
+Fresh source-bound host compiles0 in14.465seconds and retained archive/owner
+receipts exist. First combined Cocoa configuration starts; new products,
+full semantics/compatibility/collector/native/performance remain pending.
+G4 only1/7 is delivered; original D17 failures, repaired isolated image and
+current trial App are preserved. Poll the same running cohort, no restart
+or frozen-source edits.
+
+D18 first combined Cocoa ordinary product completes: actual new program,
+final18691368-byte dump, resource/manual pipeline, staged App signature and
+publication pass. Independent readback verifies6 program/dump files,173
+linked input identities/archive and4 complete resources (bundle/config/
+licenses/native libraries), plus68/68 manual receipt and exact program hash.
+This readback is0.554seconds of file verification; no editor runtime tests
+are added to the running compiler controller. Checking compilation is
+actually advancing under the same live cohort. Whole configuration and
+full semantic/native/GC/compatibility/performance acceptance remain open;
+the existing trial App is unchanged.
 
 P-368 checked Cocoa dumper repair (2026-10-26): actual copied Swift subr
 ordering is corrected without weakening the already-dumped invariant.
@@ -23621,6 +24356,407 @@ no blocker. Other runtime work remains unaccepted; the ongoing complete
 cohort and original trial App are preserved. No full compatibility or
 performance claim follows from this repair.
 
+D18 checking complete: independent readback verifies6 program/dump files,
+173 actual linked inputs/archive,4 complete resource groups and68/68 manuals
+with exact program hash; final dump18691176bytes. The first combined Cocoa
+configuration returns0 in1875.500seconds with no descendants left. Normal
+and checking products are complete; the batch moves to the next Cocoa
+baseline. Matrix11/20 configurations,35/61 profiles, all original terminal
+source/host provenance retained. The controller remains live; whole runtime
+language/native/GC/stable/performance acceptance has not run.
+
+Bounded P-368 dumper repair/source explanation/status is signed and pushed
+as227d1ae8. Good signature and origin/master push are verified; actual staged
+source matches the dual-product frozen snapshot. Other pending runtime
+changes are preserved; this is not full-stage delivery or a trial-App
+replacement. Candidate path checks are resolved by semantic review of
+relative/template paths, prose separators, regexp/printf syntax and an IRC
+command; no literal absolute filesystem path is accepted.
+
+D18 collected next baseline failure: both actual target configs have
+features.have_native_comp and macros.HAVE_NATIVE_COMP strings "undefined".
+The Rust target generator deliberately writes this disabled token, but
+Cocoa's Swift selector rejects it before compilation. Both legs' outcomes
+are preserved; the next in-flight configuration is interrupted/unaccepted.
+Controller143/reaped2872.279seconds at910213120bytes peak, owner flags
+released. Keep the complete first native Cocoa case, ordinary/checking
+products, ten original terminal configurations and all failure evidence.
+
+P-369 production accepts exactly the disabled token as false and preserves
+1/0/absence/invalid-value behavior. Exact terminal-source expectation is
+updated; completed native Cocoa products may be retained only across this
+exact inactive host branch repair, with actual positive config/source/host/
+product/resource identities and distinct cohorts. Functional7 has6 passes
+and2 negative fixtures that fail early because named source directories
+are missing; control1/reaped108.546seconds,102825984bytes peak. Only those
+fixtures are corrected and rerun: functional8 final8/8 comprises6 unchanged
+passes plus2 new legitimate metadata rejections,0/reaped19.187seconds,
+73646080bytes peak. Old failed attempts remain. Actual repaired parser/
+Swift/full disabled-native Cocoa build is still required. Same-partner
+source/result review is active; this is no full runtime-stage acceptance.
+
+P-369 same-partner source/result review completes: parser's exact disabled
+token and unchanged positive branch, exact source delta, old source/host/
+product/config/profile preservation, mixed-cohort reporting, retained-case
+skip and CLI pairing are adopted without a source blocker. Reviewed hashes
+remain unchanged and actual fixed model/High/stop metadata is verified.
+Controller0/reaped343.485seconds at2734784512bytes peak. Receipt-level source
+digest cross-checking is noted as a possible strengthening, with no actual
+inconsistency found; no new gate or corpus rerun is imposed. The fresh
+remaining cohort still must execute actual disabled Swift and full products.
+
+
+P-370/D19: the fresh cohort fails before compilation on missing old terminal
+link inputs. Bounded receipt inventory finds3250 missing objects and20
+archives across twenty legs, with all six final files per leg present.
+Controller1/reaped23.538seconds at65683456bytes peak. No cleanup entry
+explains the loss; attribution remains unknown. Two exact original units
+are recompiled in separate output and both hashes match, controller0/reaped
+3.817seconds; full object/archive recovery is not proved. No original path
+is restored and no file is deleted. The same partner supports a distinction
+between strict new builds and explicitly sealed completed terminal reuse:
+two historical strict checks, exact old receipts/source/host/profile maps,
+current final programs/dumps/config/resources and any present link inputs
+must match. Historical missing intermediates are explicit; new builds and
+native Cocoa remain strict. Implementation is complete; actual integration
+and source/result adoption remain pending. G4 only1/7 delivered.
+
+
+P-371: retained-product integration rejects missing final resources instead
+of accepting historical seals alone. Bounded resource inventory identifies
+sixty native libraries and twenty fingerprint helpers missing; all program/
+dump identities remain. Sixty library copies are restored from their exact
+packaged counterparts (500856160bytes). Original helper library units87/87
+rebuild with exact recorded hashes; the initial trial stops on an incorrect
+manifest locator after compilation, controller1/reaped12.465seconds. Corrected
+link reuses those objects and produces the exact expected helper binary,
+controller0/reaped0.587seconds. Twenty missing packaged copies are restored
+with exact bytes/mode (1370560bytes). Exclusive writes and per-file intent/
+readback journals preserve all existing files and original receipts. The
+first integration remains failed; only its three affected cases are rerun.
+Six unchanged source/proof/native/receipt results are reused. No deletion,
+full runtime acceptance or new performance claim occurs.
+
+
+P-370 retained-product integration now passes9/9: three affected cases are
+actually rerun after exact final-resource restoration, with six unchanged
+passes reused and the original failed attempt retained. Twenty old terminal
+receipts/thirty profiles validate current full final files/resources and
+original source/config/host provenance, explicitly reporting3250 absent
+objects and20 absent archives. Ordinary strict verification still rejects
+missing inputs, and a historical-missing certificate cannot authorize a new
+strict seal. Controller0/reaped49.874seconds,50069504bytes peak. Then eight
+small synthetic protective component cases pass0.037seconds, checking
+surviving wrong objects/archives, absent final files, altered resources/
+receipt, dangling symlink and missing-input inventory/strict rejection.
+These are component/recovery evidence, not actual editor semantics. The
+same partner is reviewing the current actual source/results and exact
+resource restoration. No product compiler is live yet; G4only1/7 delivered.
+
+
+The same partner completes actual P-370/P-371 source/result review with no
+new blocker and adopts the terminal carry path. Reviewed source hashes and
+actual fixed model/High/stop are verified; controller0/reaped326.490seconds,
+2514878464bytes peak. Evidence wording stays87 old library object hashes,
+not88: the helper object has no prior hash, while the final helper binary
+matches exactly. Seven exact recovery contents are also archived (19104642
+compressed bytes) and all archive member bytes/modes/hashes independently
+checked; no current file is removed. Fresh D20 is prepared with a pinned
+retention-input hash, the two existing strict terminal seals and strict
+D18 positive-native Cocoa reuse. Required scope stays20configurations/
+61profiles; full functional/native/GC/stable/performance acceptance remains
+pending. Runtime-stage changes depend on the still-unaccepted whole stage
+and are not committed as a partial standalone module. G4only1/7 delivered.
+
+
+D20 actually starts from6943 frozen inputs. Both original-source carry
+certificates pass; current full terminal resources/final artifacts and
+strict native Cocoa link inputs validate, retaining eleven configurations/
+35 profiles with mixed source/host provenance explicit. The fresh xtask
+host compiles0 in14.47seconds, is staged/protected under its own identity,
+and begins the remaining Cocoa baseline preparation recipe with real
+successful child steps. The build controller is live; no complete new
+Cocoa product or full matrix pass is claimed yet. Current native console
+query reports locked, with no physical Finder/multiframeIME execution.
+The existing trial App is unchanged; Goalactive, G4only1/7delivered.
+
+
+D20 non-native Cocoa ordinary leg actually compiles165 Rust translation
+units and its ABI provider, completes all six Swift modules and enters
+actual program linking. The selected actual config has both native feature/macro strings "undefined"; the live
+owned Swift compiler has no native define. This crosses P-369's former
+pre-Swift parser failure under the real new host, without claiming completed
+final dump/package or whole runtime acceptance. The ordinary link now
+completes with zero unresolved symbols;172 actual object hashes and the
+archive are rechecked against the selected input receipt. Initial bootstrap
+dump succeeds at29247904bytes, and real Lisp resource-generation children
+continue returning0. The input receipt stays incomplete until the full
+product is sealed; this bootstrap image is not the final product. The same controller
+continues; no restart, source edit to its frozen cohort or new heavy process
+occurs. Matrix completion remains11/20 configurations and35/61 profiles.
+
+
+D20 non-native Cocoa ordinary product completes: final dump18590072bytes,
+App signing/verification and whole-product receipt succeed. Independent
+readback verifies six final files,172 actual linked objects plus archive,
+two complete resource groups and68/68 manuals bound to the actual program
+hash. The full dump is a build milestone, not semantic/native/GC/performance
+acceptance. Checking preparation now runs in its independent selected root;
+the complete configuration is not yet accepted, so registered matrix remains
+11/20 configurations and35/61 profiles. Frozen source and trial App stay
+unchanged; the same protected controller remains live.
+
+
+P-372 corrects the still-unexecuted post-build orchestration while D20's
+frozen source remains untouched. Native negative-format fixture construction
+moves from protective components to a separate prepare action; then full
+execute precedes protective components per current R39. Preparation binds
+the completed build, exact native profile set, child receipt/product-list
+identity and unchanged actual inputs. Components no longer duplicate those
+fixture builds. Coordinator source hash is captured at import separately
+from frozen product provenance. CLI help admits the new action; actual
+fixture integration is pending the live complete matrix, with no unit-test
+or editor pass claimed. No new heavy task or product-source edit occurs.
+
+
+D20 non-native Cocoa checking product completes with final dump18589872bytes.
+Independent readback verifies six final files,172 linked objects/archive,
+two complete resource groups and68/68 manuals with the same actual program
+hash. Together with ordinary18590072bytes this finishes the whole baseline
+configuration: exit0/complete/no descendants in1630.329seconds. The matrix
+advances to12/20 configurations and37/61 registered profiles; the next
+baseline-observer case continues on the same protected controller. This is
+build acceptance only; whole runtime/native/GC/stable/performance and the
+physical native workflows remain open. P-372 root coordinator preparation
+is implemented but still awaiting actual full-matrix integration/review.
+No cleanup, trial-App replacement, new heavy process or frozen-source edit.
+
+
+While D20 baseline-observer builds, the already complete non-native baseline
+normal/checking linked inputs and program/dump evidence are archived exactly:
+366 entries,157609306 logical bytes,46870500 compressed bytes. Every archive
+member is independently streamed and checked for bytes/mode/hash, with the
+original files unchanged. Existing static archive bytes are retained, avoiding
+later container-timestamp reconstruction. This excludes the active build and
+is not a complete App/resources backup. No files are deleted and no new heavy
+process starts. Fresh console query still reports locked; available disk is
+54GiB at this observation, with no cleanup of other work. Build remains live.
+
+
+D20 baseline-observer ordinary product completes. Independent actual
+receipt readback verifies six final files,172 linked objects plus archive,
+two complete resource groups and68/68 manuals with the matching program
+hash; final dump18590032bytes. Observer checking preparation is now live;
+whole observer configuration remains unaccepted, leaving12/20 complete
+configurations and37/61 registered profiles. This does not approve observer
+semantics or runtime performance. No restart, frozen-source edit or trial
+App replacement occurs.
+
+
+P-373: bounded inspection of the actual completed baseline compiler log
+finds five distinct clashing-foreign-declaration names. Four differ only
+in raw-pointer pointee/const spellings; no runtime failure or ABI width
+change is inferred. message3 is a real declaration mismatch: reference
+header/definition and Rust header/definition return void, but eval's local
+declaration returns a Lisp object. Its one actual call ignores the return,
+matching the reference statement. Correct only that root declaration to
+void, preserving the call and all other WIP. Active D20 frozen source is
+unchanged; its product passes do not validate the corrected root. Required
+source-bound compile/equivalence check or affected rebuild and independent
+review remain pending after the live cohort; no compiler is started in
+parallel and no existing expected hash or source label is changed.
+
+
+D20 baseline-observer checking completes, final dump18590088bytes. Its
+independent readback verifies six final files,172 actual linked objects plus
+archive, two complete resource groups and68/68 manuals bound to the actual
+program hash. Whole observer configuration exits0/complete/no descendants
+in1628.635seconds. Matrix advances to13/20 configurations and39/61 profiles;
+all results retain their actual old frozen-source identity and do not accept
+the uncompiled P-373 root correction. The next pure-native case is live.
+Completed observer linked/program/config evidence is separately archived:
+366 entries,209593012 logical bytes,47178133 compressed bytes, every member
+streamed and checked against unchanged originals. No current file is deleted.
+The native partner notification/review for P-372/P-373 remains pending at the
+natural end of this unknown protected build; no parallel model is started.
+
+
+D20 pure-native ordinary leg compiles through its actual native feature
+configuration, completes all Swift modules and links with zero unresolved
+symbols (86 product objects plus87 library objects). Product/dump/resource
+completion and its checking sibling are still pending. Bounded current
+native compiler-warning scan observes the same five declaration-warning
+names as the completed baseline, without additional names at this point;
+this is not an exhaustive ABI audit or validation of the P-373 root fix.
+The same controller remains live; no second unknown heavy task starts.
+
+
+D20 pure-native ordinary product completes, final dump18690592bytes and
+App signing/verification succeed. Independent readback verifies six final
+files,173 linked objects plus archive, four full resource groups and68/68
+manuals bound to the actual program hash. This is native-enabled product
+build evidence, not real Lisp native compiler/load/lifetime acceptance.
+Checking and whole native configuration remain pending; registered old-source
+matrix remains13/20 configurations and39/61 profiles. No new failure is
+observed, no restart or frozen-source edit occurs, and the P-373 root
+correction remains uncompiled/unaccepted by these old-cohort results.
+
+
+P-373 bounded source mapping covers27 sealed leg receipts across three
+actual source cohorts. All three eval.rs files exactly match the root's
+pre-correction hash, and every observed materialized eval root contains the
+old declaration once; reversing the one root declaration replacement
+reproduces that full hash. This is source-delta evidence only, with no
+compiled or whole-product equivalence claim. Bounded Swift-provider
+inspection finds no direct message3 import; the provider generator selects
+inline header bodies/exported definitions, not this local extern. Native
+source/ABI/config identity constraints remain unchanged. Meanwhile the live
+native checking build completes final dump18690640bytes; its package/whole
+configuration are not yet accepted.
+
+
+D20 pure-native checking product completes, final dump18690640bytes.
+Independent readback verifies six final files,173 linked objects plus archive,
+four complete resource groups and68/68 manuals bound to the actual program.
+Together with ordinary18690592bytes, whole native case exits0/complete/no
+remaining descendants in1866.092seconds. Old frozen-source matrix advances
+to14/20 configurations and41/61 profiles; native-observer begins on the
+same controller. Completed native linked/program/config evidence is archived
+exactly:368 entries,159506080 logical bytes,47435105 compressed bytes;
+every member bytes/mode/hash matches unchanged originals. This is not a full
+App/resources backup or native Lisp functional/performance acceptance. No
+file is deleted, no new heavy process starts, and P-373 root fix stays
+uncompiled/unaccepted by these original frozen-source results.
+
+
+D20 native-observer ordinary product completes, final dump18690872bytes.
+Independent readback verifies six final files,173 linked objects plus archive,
+four complete resource groups and68/68 manuals bound to its actual program.
+App signing/verification completes. Its checking sibling and whole case are
+still pending, so the matrix remains14/20 configurations and41/61 profiles.
+This is original frozen-source build evidence only, not native functionality,
+performance, or acceptance of the uncompiled P-373 root correction. The same
+controlled build continues; no additional unknown heavy task is started.
+
+
+D20 native-observer checking product completes, final dump18690912bytes.
+Independent readback verifies six final files,173 linked objects plus archive,
+four complete resource groups and68/68 manuals bound to the actual program.
+With ordinary18690872bytes, the whole case exits0/complete/no descendants
+in1868.168seconds. The matrix advances to15/20 configurations and43/61
+profiles. Exactly368 linked/program/config entries (211340972 logical bytes,
+47743308 compressed bytes) are archived and stream-verified against unchanged
+original bytes/modes/hashes. No files are deleted; this is not a complete App
+resource backup. Collector-only Cocoa begins on the same controller. Full
+behavior/native/GC/stable/performance acceptance and the P-373 root correction
+remain unaccepted; original source cohort identity is preserved.
+
+
+D20 collector-only Cocoa ordinary product completes final dump18589896bytes.
+App signing/verification succeeds; independent readback verifies six final
+files,172 linked objects plus archive, two complete resource groups and68/68
+manuals bound to its actual program hash. The generated configuration enables
+the collector candidate and disables native/observer options. Checking is
+now in progress; matrix counts stay15/20 configurations and43/61 profiles.
+These are original frozen-source build results, not GC pressure/semantic/
+performance acceptance or acceptance of the uncompiled P-373 root correction.
+
+
+D20 collector-only Cocoa checking product completes final dump18589952bytes.
+Independent readback verifies six final files,172 linked objects plus archive,
+two complete resource groups and68/68 manuals bound to the actual program.
+With ordinary18589896bytes, whole case exits0/complete/no descendants in
+1755.356seconds. Old-source matrix advances to16/20 configurations and47/61
+registered profiles; collector plus observer begins on the same controller.
+Exactly366 linked/program/config entries (191367428 logical bytes,47081236
+compressed bytes) are archived and stream-verified against unchanged original
+bytes/modes/hashes. No file is deleted; this is not a complete App/resources
+backup. Full GC pressure/semantic/compatibility/performance acceptance and
+P-373 corrected-root acceptance remain pending.
+
+
+D20 collector plus observer Cocoa ordinary product completes final
+dump18590104bytes. App signing/verification succeeds; independent readback
+verifies six final files,172 linked objects plus archive, two complete resource
+groups and68/68 manuals bound to its actual program hash. Checking is now
+in progress; matrix stays16/20 configurations and47/61 registered profiles.
+This original frozen-source build result is not GC/observer semantic, pressure,
+compatibility or performance acceptance, nor acceptance of P-373 root changes.
+
+
+D20 collector plus observer Cocoa checking product completes final
+dump18590144bytes. Independent readback verifies six final files,172 linked
+objects plus archive, two complete resource groups and68/68 manuals bound to
+the actual program. With ordinary18590104bytes, whole case exits0/complete/no
+descendants in1752.700seconds. Matrix advances to17/20 configurations and51/61
+registered profiles; native plus collector begins on the same controller.
+Exactly366 linked/program/config entries (243353230 logical bytes,47373529
+compressed bytes) are archived and stream-verified against unchanged original
+bytes/modes/hashes. No file is deleted; this is not a complete App/resources
+backup. Runtime/GC/observer/compatibility/performance acceptance and corrected
+P-373 root acceptance remain pending.
+
+
+D20 native plus collector Cocoa ordinary product completes final
+dump18690728bytes. App signing/verification succeeds; independent readback
+verifies six final files,173 linked objects plus archive, four complete resource
+groups and68/68 manuals bound to its actual program hash. Native and collector
+options are enabled while observer/hooks are disabled. The checking config is
+now materialized and preparing; matrix remains17/20 configurations and51/61
+registered profiles. This is original frozen-source build evidence only:
+actual native/collector semantics, stress, compatibility, performance and
+P-373 corrected-root acceptance remain pending.
+
+
+D20 native plus collector Cocoa checking product completes final
+dump18690768bytes. Independent readback verifies six final files,173 linked
+objects plus archive, four complete resource groups and68/68 manuals bound to
+the actual program. With ordinary18690728bytes, whole case exits0/complete/no
+descendants in1547.966seconds. Matrix advances to18/20 configurations and55/61
+registered profiles; native plus collector with observer begins on the same
+controller. Exactly368 linked/program/config entries (193216766 logical bytes,
+47658094 compressed bytes) are archived and stream-verified against unchanged
+original bytes/modes/hashes. No file is deleted; this is not a complete App/
+resources backup. Runtime/native/collector/compatibility/performance acceptance
+and P-373 corrected-root acceptance remain pending.
+
+
+D20 native plus collector with observer Cocoa ordinary product completes
+final dump18691000bytes. App signing/verification succeeds; independent
+readback verifies six final files,173 linked objects plus archive, four
+complete resource groups and68/68 manuals bound to its actual program hash.
+Checking configuration is now materialized/preparing; whole-case completion
+remains pending, so matrix stays18/20 configurations and55/61 registered
+profiles. This original frozen-source build result is not native/collector/
+observer semantic, pressure, compatibility or performance acceptance, nor
+acceptance of P-373 root changes.
+
+
+D20 native plus collector with observer Cocoa checking product completes
+final dump18691048bytes. Independent readback verifies six final files,173
+linked objects plus archive, four complete resource groups and68/68 manuals
+bound to the actual program. With ordinary18691000bytes, whole case exits0/
+complete/no descendants in1100.644seconds. Matrix advances to19/20
+configurations and59/61 registered profiles; the final baseline observer
+with diagnostic hooks begins on the same controller. Exactly368 linked/
+program/config entries (245104840 logical bytes,47944099 compressed bytes)
+are archived and stream-verified against unchanged original bytes/modes/
+hashes. No file is deleted; this is not a complete App/resources backup.
+Runtime/native/collector/observer/compatibility/performance acceptance and
+P-373 corrected-root acceptance remain pending. Build durations are not
+runtime performance comparisons.
+
+
+D20 final baseline observer diagnostic Cocoa ordinary product completes
+final dump18590152bytes. App signing/verification succeeds; independent
+readback verifies six final files,172 linked objects plus archive, two
+complete resource groups and68/68 manuals bound to its actual program hash.
+Checking configuration is materialized/preparing; matrix remains19/20
+configurations and59/61 registered profiles. Diagnostic hook semantics,
+full runtime/compatibility/performance and P-373 corrected-root acceptance
+remain pending. A bounded source discussion request for the same existing
+independent partner is prepared but not sent while the controlled build runs.
+
 
 ### 清理出口复核：CLN-20261026-32—35（2026-10-26）
 
@@ -23631,6 +24767,20 @@ D20最后一组Cocoa子构建exit 0，但总控制器最终exit 1且已回收：
 最终交叉复核：32/33的保护统计是各批完成时的读数；35另批确认并清理其中482项旧包/生成字节码，不含独有源码。剩余11662项保留内容哈希、重复副本的保留原件、349877个删除目标及全部报告链接复核通过。最终 `du -sh .` 为34G（用户清理前读数52G）。路径检查的378项候选已按动态前缀、相对片段、比例/斜杠命令及不含文件身份的协议前缀常量核对；机器派生缓存路径仅在私有台账保存。
 
 
+P-374 actual integration: independent delta/result review confirms the two
+identified mode/symlink blockers are fixed. Actual macOS OS/producer/archive/
+release/source-boundary integration is7/7 complete in1.072s, peak23560192bytes,
+controller0/reaped. The initial fixture failure and subsequent real symlink
+failure remain separately recorded; neither was rewritten as a pass. Corrected
+v2 receipts now bind final/link SHA/size/mode; every selected file and symlink
+is checked and its exact recovery manifest retained. This proves preservation
+integration only, not the Rust callback or editor/native/GC/performance.
+Start one fresh corrected-source all20/61 cohort with no old product carry;
+its source/config/ABI identities must be new. Original D20 remains failed and
+old-source despite exact restoration of219 resources. Whole Goal remains1/7
+(about14%), with6/7 (about86%) still undelivered.
+
+
 ### CLN-20261026-36 · 旧运行时矩阵回收与每轮清理出口
 
 D14/D18/D20/D21均已退出，本批删除411156个无消费者的生成物及重复资源：23760244161逻辑字节、删除前24643993600分配字节。两次句柄检查、逐项身份核对、全部删除目标及67973份保留内容复验通过。原始冻结输入、失败日志/回执、当前试用包与G4候选保留；旧失败不改写。仓库当前17G，本轮开始38G；最初用户52G读数还包含此前已回收的产物，不将上述差值当作全卷空间变化。详见[本批报告](../maintenance/cleanup/reports/2026-10-26-36-idle-matrices.md)及压缩逐项清单。
@@ -23638,11 +24788,128 @@ D14/D18/D20/D21均已退出，本批删除411156个无消费者的生成物及�
 P-376将每轮构建/验收后的清理出口纳入根规则：保留必要输入/证据与在用候选，立即回收无消费者缓存/副本，不用全量压缩归档替代清理。没有启动新构建或重复功能测试；当前产品全部保留字节身份不变。未完成运行时开发保持WIP，整个Goal仍只有G4交付（1/7，约14%；剩余6/7，约86%）。
 
 
+P-375 actual integration and new D22 (2026-10-26): actual Rust owned-copy and
+Python relocation paths pass against guarded macOS files; the original first
+Rust fixture setup failure remains separate. Independent source/result review
+finds no remaining current copy blocker. CLN-36 retires unused old raw matrix
+products while retaining original sources and failure receipts. The new D22
+freezes6956 inputs with P-372 through P-375; no old products carry over. Its
+actual host build exits0 in8.4501seconds and the first whole-product compiler
+leg is running. Product callback and all20 configurations/61 profiles remain
+pending; these startup facts do not accept native/GC/compatibility/performance.
+
+
 ### CLN-20261026-37 · D22实际产品交接与停止后回收
 
 D22普通版编译163单元、零未解析符号、最终dump与真实v2产品交接通过，检查版已开始；整组/全矩阵未完成。实际采样发现debug驱动耗在SHA核验，主开发主动停止原stage以采用P-377优化驱动（保持所有校验与editor O2），原控制器143/815.877秒、峰值623984640字节、回收完成且保护释放无错误。原回执/源/采样保留，不把主动停止当编译错误或完整通过。独立搭档已读源码和采样确认无具体P-377阻断；新D23 release驱动构建0/13.4927秒，从新6956输入开始，不带旧产品，全20/61及后续功能/兼容/native/GC/性能仍待实际验证。
 
 按用完即清规则，CLN-37仅删除停止D22的13379个生成物/重复资源，逻辑956847680字节，删除前分配986624000字节；两次句柄检查、全部目标不存在与14266项保留内容哈希复核通过。[逐项报告及恢复边界](../maintenance/cleanup/reports/2026-10-26-37-consumed-d22.md)。运行中的D23和原始输入/日志/当前试用包排除；该清理不增加整个Goal的验收完成数。
+
+
+P-377 actual release-host boundary (2026-10-26): the new D23 host compiles
+successfully in13.4927seconds from6956 frozen inputs, with actual --release
+argv/profile and executable identity recorded. Its first normal product
+compiles163 units, links without undefined symbols, generates final dump and
+passes the actual Rust v2 artifact handoff; six final file SHA/size/mode and163
+link objects are bound,10222 journal files selected. The checking compiler is
+observed using enable_checking and the unchanged explicit product O2. The
+complete configuration, all20/61 and runtime gates are still pending. Original
+D22 was intentionally stopped/reaped after its normal callback passed; scoped
+CLN-37 has retired13379 consumed outputs, preserving original source/records
+and excluding running D23. No editor performance result is claimed.
+
+
+D23 first whole configuration complete (2026-10-26): terminal native/
+collector/observer/diagnostic ordinary AND checking products pass in513.874s,
+exit0/complete/no descendants. Actual loader revalidates all5 registered
+profiles (reference plus the two collector modes per compiler leg), with six
+v2 final identities,163 link objects/archive and all resource groups per leg.
+Source export revalidation and both preservation-complete receipts pass.
+Build counts1/20 and5/61 do not mean semantic/native/GC/performance acceptance.
+Next terminal baseline is running under the same original controller.
+
+D23 terminal baseline normal/checking also completes364.356s/exit0/no
+remaining child. Six final v2 identities,162 objects/archive, three complete
+resource groups and both callbacks per leg pass independent revalidation;
+actual loader verifies all7 profiles including the previous completed group.
+Build counts2/20, registered profiles7/61; semantic/runtime gates stay pending.
+
+D23 terminal baseline-observer normal/checking completes362.402s/exit0/no child. Six v2 finals,162 link objects/archive,three resource groups and both artifact callbacks per leg independently verified through the frozen actual loader; counts3/20 configurations and9/61 registered profiles. No semantic/native/GC/performance result is inferred. The same original build owner advances to terminal native.
+
+D23 pure-native terminal normal/checking completes377.392s/exit0/no child. Each leg has six v2 finals,163 objects/archive and five complete resource groups, independently revalidated with both artifact callbacks. Counts4/20 configurations and11/61 registered profiles; semantic/native/GC/performance execution remains pending. The same controller continues native-observer.
+
+D23 terminal-native-observer normal/checking completes379.714s/exit0/no child; v2 files, link objects/archive, resources and both callbacks verified. Counts5/20 and13/61 registered; runtime gates remain pending.
+
+D23 terminal-collector normal/checking completes392.143s/exit0/no child; v2 files, link objects/archive, resources and both callbacks verified. Counts6/20 and17/61 registered; runtime gates remain pending.
+
+D23 terminal-collector-observer normal/checking completes395.833s/exit0/no child; v2 files, link objects/archive, resources and both callbacks verified. Counts7/20 and21/61 registered; runtime gates remain pending.
+
+D23 terminal-native-collector normal/checking completes421.103s/exit0/no child; v2 files, link objects/archive, resources and both callbacks verified. Counts8/20 and25/61 registered; runtime gates remain pending.
+
+D23 terminal-native-collector-observer normal/checking completes425.463s/exit0/no child; v2 files, link objects/archive, resources and both callbacks verified. Counts9/20 and29/61 registered; runtime gates remain pending.
+
+D23 terminal-baseline-observer-diagnostic normal/checking completes366.368s/exit0/no child; v2 files, link objects/archive, resources and both callbacks verified. Counts10/20 and31/61 registered; runtime gates remain pending.
+
+D23 cocoa-native-collector-observer-diagnostic normal/checking completes508.349s/exit0/no child; v2 files, link objects/archive, resources and both callbacks verified. Counts11/20 and35/61 registered; runtime gates remain pending.
+
+D23 first Cocoa native/collector/observer/diagnostic normal+checking completes508.349s/exit0/no child. Each leg has six v2 finals,173 actual objects/archive and four complete resource groups; actual loader and artifact callbacks pass. Both completed Apps independently pass strict/deep codesign after guard acquisition. Counts11/20 configurations,35/61 registered profiles. This proves build/signature boundaries only, not unlocked GUI interaction or runtime language/native/GC/performance.
+
+D23 cocoa-baseline normal/checking completes454.793s/exit0/no child; v2 files, link objects/archive, resources and both callbacks verified. Counts12/20 and37/61 registered; runtime gates remain pending.
+
+D23 cocoa-baseline-observer normal/checking completes444.622s/exit0/no child; v2 files, link objects/archive, resources and both callbacks verified. Counts13/20 and39/61 registered; runtime gates remain pending.
+
+D23 cocoa-native normal/checking completes460.860s/exit0/no child; v2 files, link objects/archive, resources and both callbacks verified. Counts14/20 and41/61 registered; runtime gates remain pending.
+
+D23 cocoa-native-observer normal/checking completes506.818s/exit0/no child; v2 files, link objects/archive, resources and both callbacks verified. Counts15/20 and43/61 registered; runtime gates remain pending.
+
+D23 cocoa-collector normal/checking completes480.441s/exit0/no child; v2 files, link objects/archive, resources and both callbacks verified. Counts16/20 and47/61 registered; runtime gates remain pending.
+
+D23 cocoa-collector-observer normal/checking completes483.424s/exit0/no child; v2 files, link objects/archive, resources and both callbacks verified. Counts17/20 and51/61 registered; runtime gates remain pending.
+
+D23 cocoa-native-collector normal/checking completes570.604s/exit0/no child; v2 files, link objects/archive, resources and both callbacks verified. Counts18/20 and55/61 registered; runtime gates remain pending.
+
+D23 cocoa-native-collector-observer normal/checking completes495.116s/exit0/no child; v2 files, link objects/archive, resources and both callbacks verified. Counts19/20 and59/61 registered; runtime gates remain pending.
+
+D23 cocoa-baseline-observer-diagnostic normal/checking completes459.366s/exit0/no child; v2 files, link objects/archive, resources and both callbacks verified. Counts20/20 and61/61 registered; runtime gates remain pending.
+
+D23原始完整矩阵20/20、61/61最终通过，6956统一冻结输入，无旧carry；控制器0/9017.025秒/本次整树峰值921633152字节/完整回收，20行制品及最终read_build实际复核通过，136048路径保护释放零失败，566002539字节去重内容归档验证通过。首个prepare在工具中断后失去监控且未编译fixture，已按精确身份停止并恢复其97642项记录保护；半写临时名冲突按P378修复，8/8真实OS集成检查通过（1.013秒，完整回收）。原失败及半写证据保留，待独立小范围复核后从prepare-2续接；不是runtime/兼容/性能验收通过。见[中断记录](../maintenance/incidents/2026-10-26-prepare-controller-interruption.md)。
+
+P378独立真实源码/失败/8项OS证据复核无具体阻断，已明确采用；新prepare-2原受控入口开始运行，冻结D23/source和20/61产品保持原身份。原prepare失败不覆盖，尚未宣称夹具或runtime验收通过。
+
+D23 prepare-2最终通过：32/32预期native配置逐项齐全且通过，完整输入/产品身份不变，142421路径保护释放零失败，578597610字节内容归档验证通过；控制器0/447.430秒/本次整树峰值2191376384字节/完整回收。真实复核准备结果与清单SHA通过；没有运行保护性单测或冒充语义验收。现已从同一D23/source/products启动runtime execute；完整语义/native/GC/错误/dump/搬移/稳定语料/性能判定及最后组件验收仍待结果。
+
+D23原始ERT开始记录真实失败。共同回执错误已定位到语言观察量的dotted-pair JSON编码；observer/native自有fixture缺闭括号，发现阶段end-of-file；GC有限churn还受相对阈值影响，部分失败诊断误用多参数ert-fail。另有实际collector把显式/控制原因置于既定pending-doomed reason12之前。P379的ROOT业务及验收修复已写入，有限触发同时绑定相对阈值，保留并加强实际once-only断言；原冻结源/制品/失败均未改，独立用例继续收集。修复尚未实际验收，旧D23不能证明新collector通过；后续需相应重建和复验。
+
+CLN-20261026-38：已退出D23搬移验收副本164911个文件回收，逻辑10911717416字节，110925个原件内容不变；仓库约52G→41G，全部原始失败/现用包保留。运行时验收因磁盘满中断，完整控制器回收回执缺失，不冒充验收或回收通过。后续逐例收齐证据并回收搬移包，P-376继续生效。[报告](../maintenance/cleanup/reports/2026-10-26-38-relocation-copies.md)。
+
+CLN-20261026-39：回收40编译配置的187700个已消费生成.rs，逻辑6256833936字节，136048项源码/产品/链接输入/回执内容不变。与CLN38合计352611文件、17168551352逻辑字节。当前D23矩阵仍有运行验收消费者暂留；逐例/逐轮实际清理时点已补到maintenance清理流程，不冒充自动清理器或整个Goal验收通过。[报告](../maintenance/cleanup/reports/2026-10-26-39-generated-rust.md)。
+
+P-380的ROOT dump持久ELN/相对GC阈值与搬移副本逐例finally回收已写齐；搭档从真实崩溃记录确认旧terminal abort位于live_path，祖先目录拒绝是待实际验证原因，原失败不改写。搬移工作包移到同冻结owner的source外兄弟目录，不放松沙箱。先用各自固定驱动/fixture复验原D23产品；修正ROOT collector未被旧产品覆盖，完整矩阵及兼容/性能仍未通过。
+
+P-380固定驱动/fixture诊断：六个原D23终端/Cocoa native普通/检查及collector-young配置的12个真实prepare/restore进程全部0/完整/无遗留组，持久ELN前后身份一致、产品和fixture不变、记录保护释放零失败；原控制器0/86.996秒/峰值587907072字节/完整回收。证明本次dump夹具与相对GC阈值修复，不覆盖ROOT collector修正或全61配置兼容/性能。七制品完整语言/native/观测夹具诊断现已启动。
+
+七制品固定夹具诊断最终278项：274通过、4失败，失败均为rtn11-debug-file-repeat-release在真实debug编译前拒绝继承的陈旧PWD；实际Popen cwd已在自有case根。P-381的ROOT启动器现绑定实际cwd与PWD并记录cwd，保留原断言。控制器1/223.814秒/峰值396492800字节/完整回收，产品/fixture不变，记录保护释放零失败。四个受影响native debug用例正单独实际复验，其余274项不无故重复。没有据此宣称全矩阵或ROOT collector通过。
+
+P-381四个受影响native debug用例实际复验4/4通过，控制器0/86.773秒/峰值425394176字节/完整回收；原278进程行含25发现和253 ERT执行，274原通过行保留，四个原失败不改写，117语言观察比较全部一致。源码不可读的terminal/Cocoa baseline搬移实际2/2通过且原件不变：控制器0/78.090秒/峰值383221760字节/完整回收。CLN40逐例回收5979包成员、323567463逻辑字节并保留清单；native搬移、异常保护、ROOT collector新构建与全矩阵仍待验收。[清理报告](../maintenance/cleanup/reports/2026-10-26-40-per-case-relocation.md)。
+
+既有独立搭档已读P379–P381真实源码及四份固定结果，确认并采用fixture、持久ELN、外移搬移包/逐例回收和PWD修复，无具体源码阻断；明确ROOT collector仍未产品验证，native搬移与全矩阵未覆盖，空work case早期信号窗口为未实测残项。原审核控制器0/222.652秒/峰值2560933888字节/完整回收。现开始两个native原产品的源码不可读搬移验证，原非native两例证据不冒充native通过。
+
+两个原native产品的源码/后端拒绝搬移实际2/2通过，每例三个语言/native编译加载用例、签名和原件/fixture身份通过；控制器0/82.125秒/峰值383352832字节/完整回收。CLN41逐例回收6017成员、424945610逻辑字节，已签推e6850570。原D23全部诊断消费者结束，CLN42回收160845旧生成物/原包资源及冗余归档、17175176376逻辑字节，43947保留内容不变，仓库20G；准备新D24全20/61无carry，并在成功退出后精确回收已消费生成.rs。旧D23产品路径已历史化，恢复先走已验证prepare-2内容归档。新collector、全矩阵及完整Goal仍未通过。[CLN42恢复边界](../maintenance/cleanup/reports/2026-10-26-42-consumed-d23.md)。
+
+D24修正源码新候选已真实启动，6969统一冻结输入，source manifest d1fed33316eac118157407f4f39137fe16242b76b3facfac4d42d61ae49b0203，无旧carry。release host实际0/13.570秒并已交接保护，首个terminal native/collector/observer/diagnostic配置编译中；当前0/20完成、1/61登记（仅系统参照），不能当新editor/collector验收。成功退出后CLN43将精确回收已消费生成.rs并核对manifest/源/产品清单SHA；主开发仍负责实际清理报告签推。旧D23产品已退役，历史诊断从保留记录读取，不重跑旧launcher。
+
+D24前三组实际通过普通/检查：组合diagnostic502.471秒、baseline361.132秒、baseline-observer完整通过；独立精确ID读回8配置/6实物，每件6个v2最终文件、163/162链接对象及归档、全部资源身份一致，同一source/host。首次读回脚本前缀筛选误混同前缀observer导致计数断言失败，已保留该工具错误，未重启或误判产品；改精确ID后通过。当前3/20组、9/61登记，native组继续，runtime/collector及完整Goal尚未通过。G1旧第7次有5个键失焦，第6次无该证据，均缺具体窗口身份；当前只观察到Finder AX/截图可用，不据此声明编辑器可交互。
+
+CLN-20261027-44（实际操作2026-10-27）：在原D24继续期间回收12个已完成配置、24条已退出编译路径的110532个消费性Rust生成副本，逻辑3672661468/删前分配3896696832字节；84853个保留普通文件内容不变，3964个空目录移除。逐项清单先持久化后删除并独立读回，当前配置/冻结源/实际产品/链接输入保留；在用wrapper及CLN43原字节不变。仓库分配观测约33.0→29.8GiB，不能据此归因全卷释放。原构建12/20组、37/61配置仍在运行，首组Cocoa普通/检查均过严格签名与制品读回；runtime/collector/UI/兼容/性能和完整Goal未通过。[报告](../maintenance/cleanup/reports/2026-10-27-44-consumed-d24-compiler-copies.md)。
+
+D24完整新矩阵交接（2026-10-27）：20/20配置、61/61运行profile、6969统一冻结输入、同release host、无carry；原stage/自动清理/控制器均0，8818.977秒/单树accounted峰值912375808字节/完整回收。清理后read_build及40实物/资源/链接输入、20 Cocoa签名和10770内容成员归档全部实际复核通过。CLN43自动回收77168个消费性.rs、2582280788逻辑字节，136061保留内容不变；与CLN44无重叠，总187700文件、6254942256逻辑字节。原wrapper验证后才做公开逐项ID映射，不改原始回执。搭档实际读当前源码后撤回wrapper旧建议并采用新D24与清理/验收边界，非完整独立审核。辅助host核验曾误把回执locator当对象，在写文件前报错；已保留工具错误并按实际回执修正，实际host/备份/各行host身份复核通过，没有重启构建。新collector及全runtime/UI/稳定语料/性能尚未验收，下一步同源同产品prepare后execute，components最后。[报告](../maintenance/cleanup/reports/2026-10-26-43-generated-rust.md)。
+
+
+### 2026-10-27 · CLN45/46与D24准备结束
+
+按用户清理要求，逐项核对后退役9个旧快照62316份重复源及一份被后继14015成员包覆盖的旧内容归档，合计3780606707逻辑字节。6969个D24冻结输入与517份独有旧源、42份输入清单补查身份不变，原日志/当前产品/试用包/G4保留；仓库du约33G、当前矩阵约15G。公开逐项映射、实际持久化缺口和后续修正见maintenance/cleanup/LOG.md的CLN45/46，不以全卷空间变化当作独占释放量。每轮结束继续按消费者即时回收，不无限保留重复冻结快照或重叠内容包。
+
+D24 prepare原句柄退出0：32/32 native夹具准备，440.075秒、accounted峰值2325561344字节、cleanup_complete；完整功能execute、native/GC/稳定语料/性能及真实UI仍待验收，Goal仅1/7交付不变。
 
 
 ### 2026-10-27 · CLN47/48运行结束后的即时回收
@@ -23682,6 +24949,19 @@ The old D24 products.json is historical identity evidence from now on, not a set
 Measured after cleanup: repository 22180420KiB (about21.15GiB), build 17689012KiB, old D24 tree 3642756KiB. The user's earlier 52G is a historical checkpoint; its cumulative difference is not attributed solely to these batches. Every completed build/acceptance round must now retire its consumed intermediates immediately, preserving only real remaining consumers and the required traceable evidence. P-376 and maintenance/cleanup/README.md remain the cleanup entry; directory names and stale retention lists are not permanent exemptions.
 
 The existing independent partner explicitly adopted CLN55-57 and the retired-path/recovery boundary after reading the reports and current-state note. This confirms collaboration adoption, not new product acceptance; its original native operation exited 0 and was fully reaped.
+
+### 2026-10-27: consume failed Cocoa compiler copies, CLN58
+
+The second and third isolated P390 Cocoa builds exited1/reaped: duplicate module buffer definition, then missing dynlib link membership. Preserve both original failures, frozen inputs and all diagnostics. CLN58 retires19880 generated/compiler-cache files,722231668logical bytes; all14056 retained identities match after deletion. New build4/current trial/crash evidence are untouched. This is cache retirement, not layout/GC acceptance. See maintenance/cleanup/reports/2026-10-27-58-failed-cocoa-compiler-caches.md.
+
+### 2026-10-27: bounded Cocoa UI repair, P391
+
+User priority is UI only; other development/GC remains held. Actual flag-word and graphical tab-matrix fixes now pass real initial/programmatic/native-zoom/tab-toggle/two-tab visual checks; C-a/C-e/Left pass in the recorded scope. New build6 exits0/reaped360.108s, UI3 exits0/reaped333.130s, source/product identities preserved. Independent source review accepts the bounded repair; protective flag components16/16 pass. Current App is updated with2976 contents/modes/mtimes/signature verified. Original GC and Chinese-IME prefix failures remain explicit; no whole-Goal/G1/G3 completion. See maintenance/incidents/2026-10-27-cocoa-layout.md. Failed compiler-copy cleanup remains separately recorded as CLN58.
+
+
+### P-392 · native live-resize title ABI repair
+
+User actual edge resize caused the owned published UI5 process SIGSEGV in windowWillResize/esprintf/doprnt. Original crash retained; original controller245/reaped714.623s/149143552B. The earlier static/input-only reasoning missed the live title CVarArg boundary. Business fix uses actual native Swift title construction; keeps grid/live condition/old-title restore. Fresh Cocoa build7 passes0/reaped346.641s/873955328B; root App2976 contents/modes/mtime/signature match. Actual UI6 observes696 live callbacks/696 exact UTF8 titles/6 end callbacks/193 content sizes, final730x564 and title restored, native/controller0/reaped145.962s/175898624B. Only afterward production-helper formatting protection passes6/6,0/reaped2.276s/347471872B. Independent final review accepts P392 after actual source, old App disassembly and new receipts; input-only diagnosis withdrawn. P391 margin/tab and P392 live-title are separate actual fixes; original GC/IME prefix/fullG1 remain open. Other development remains at the prior checkpoints.
 
 
 ### 2026-10-27: actual Finder external drop verified
@@ -23807,6 +25087,11 @@ pending Goal items remain open. Evidence and boundaries:
 根据实际每配置process及两腿完成/保护交接回执，对12个已完成配置回收112116份生成Rust副本、3737290194逻辑字节；88190项保留内容身份不变，活动配置/cargo/产品/资源/链接证据不动。两次按配置核对句柄，不以整棵活跃构建根作闲置判断。详见[CLN70](../maintenance/cleanup/reports/2026-10-27-70-consumed-d26-compiler-copies.md)。构建仍在推进，不能据此认定整组语义或性能验收通过。
 
 
+### 2026-10-27 · P399/P400系统库接线与真实功能验收代码
+
+XML/HTML系统解析的业务实现及arm64 SDK-C/实际Rust公开结构/常量/真实DOM对照驱动写齐；原版两份XML ERT与13项边界驱动写齐。SQLite已有完整主体/注册/对象布局已接到两种macOS目标的系统库及实际SDK条件，扩展加载因系统无导出保持关闭，新增10项数据库/事务/语句/文件/错误/GC边界。两个模块统一复用原有真实ERT进程桥接、逐例输出隔离和登记集合对照；原版语料不改。Python语法/声明ID及diff轻量检查通过，**尚无新源编译或真实功能验收通过**。正在构建的D26仍是更早冻结源，不能替这两项作证；完整Goal保持1/7交付。
+
+
 ### 2026-10-27 · CLN71后续已完成配置回收
 
 按实际17配置完成/交接回执核对，其中5个新增可回收配置清理48890份生成Rust副本、
@@ -23823,6 +25108,20 @@ CLN68实际晚于70/71，回收29770份、1039083114逻辑字节，136269项删�
 后续独立暂存driver缺失，原因未知；从原身份归档恢复并核对SHA，不覆盖现存文件。
 详见[CLN68](../maintenance/cleanup/reports/2026-10-27-68-consumed-d26-compiler-copies.md)。
 Goal保持1/7交付，余6/7。
+
+
+### 2026-10-27 · P401完整TLS主体与打包/身份接线
+
+补入真实证书/信任/主机名校验、boot/异步状态、关闭、cipher/MAC/digest、
+symmetric/AEAD与subr/capability注册；两目标选择TLS，由实际头版本派生条件。
+共享进程字段/位域接通；实际头与动态库依赖/许可证闭包纳入编译前/native ABI
+身份，暂存前后核对，副本改install-name并签名，接入终端/App打包、资源及搬移身份。
+没有借用原版Frameworks。25项共享声明归位详见[CLN72](../maintenance/cleanup/reports/2026-10-27-72-tls-declaration-consolidation.md)。
+
+真实C/Rust进程逐字段布局、打包位域邻位、datum及enum驱动已写；搭档正在写原版
+及本机TLS功能集成驱动，整组写齐后才集中运行。103项库声明已有实际头定位，
+此读数不是类型/符号ABI通过。当前仅Python语法/diff轻量检查，无TLS编译或功能
+通过；旧D26不涵盖本轮源码。功能通过前不写保护性单测，不增加Goal已完成计数。
 
 
 ### 2026-10-27 · D27真实编译失败与CLN73回收
@@ -23886,6 +25185,8 @@ D28当前停止，尚未完成断点续建、TLS功能或完整20配置/61 profi
 
 - **D29恢复17/20与第二次存储中断（2026-10-28）**：新增联合观察配置和baseline诊断配置，两腿各完成，现51/61profiles；首个待补Cocoa期间监控session_sample再次ENOSPC，实际退出125/完整回收。保存真实native回执及原partial，未伪造完整结果。CLN91把四个旧矩阵138份成功日志734439595字节无损保留为62032435字节，138份均实际恢复核SHA后才退役原路径；失败日志、当前运行及原元数据不动。P407补齐恢复来源链后继续三个Cocoa配置，Goal仍1/7。
 
+P407接续（2026-10-28，未验收）：根runtime-stage/runtime-resume来源链、真实source-owner及完成配置产生者路径修复已写齐；固定搭档独立源码审核中。第一次恢复实际已终止并释放原保全标记，17配置/51profiles保留，尚未启动第二次恢复或功能验收。须先补足本任务可用存储并完成源码核查，禁止将旧handle仍当运行中。
+
 - **CLN92与P407源码修复（2026-10-28）**：回收两个无消费者的中断Cocoa case编译缓存14277份、1181584740逻辑字节，原7099项冻结源删前删后完整身份验证通过；17个完整配置/51profiles、原失败日志及元数据不变。来源链、source-owner与已验证产生者路径修复已完整写齐，固定搭档已完成静态核查和增量采用确认；尚无第二次续编或全功能/性能通过结论。Goal仍1/7。
 
 - **P407实际第二次恢复与CLN93（2026-10-28）**：两轮固定搭档实际读码与增量采用闭合；其首包旧HEAD口径已按真实Git输出纠正。根编排修复不改原7099项产品快照、主机driver或20配置/61profiles；新受控恢复已实际严格复验17配置并推进首待补Cocoa，原driver字节一致；没有全构建或全功能/兼容/性能通过结论。CLN93逐项退役五个旧运行时导出的22970份已提交数据副本、758888595逻辑字节，4524不同blob实际恢复核验，原全局元数据不变；探针151700434字节生成后回收，不算额外旧空间。旧源须结合87按固定Git映射重建，当前D29及UI/G4试用源保留，Goal仍1/7。
@@ -23906,6 +25207,12 @@ D28当前停止，尚未完成断点续建、TLS功能或完整20配置/61 profi
 
 - **正式测量与CLN103（2026-10-28）**：2727/2727调用、441/441启动、12726样本采集通过，原输入/驱动不变，原生续接完整回收；1818组各7轮均busy-host，960对照均不具晋级资格，不宣称可靠增益或退化。搬移功能断言60项成功，原首轮清理56/60保留；4份延后副本/968654987逻辑字节经全树/句柄核验退役，收尾字段错误仅补回执、未重复删除。后续推进剩余功能验收，安静机会再复验性能，Goal1/7。
 
+## 2026-10-29 · P421源码修复与有界Base64诊断
+
+原本地功能515例完成：452通过、52跳过、11失败；不是完整G3通过。八例稳定测试/开发版库不配套，按双方真实源码讨论，完整文件通知库与配套root测试原样对齐固定stable31.1；CLN120保存旧blob/完整前后哈希及成对恢复，不改必需语料或断言。新四产品实际构建中。
+
+Base64单例诊断13.927秒原条件跳过；原序整文件57.206秒控制器完成（用例组50.337秒），18例10通过8跳过，无错误payload可捕获。两次程序/dump/库前后身份不变，控制器均exit0/完整回收。原三个Base64错误尚未证实根因或修复；未为未复现问题盲改核心解码器/Tramp。测试保持原规模、同FD256、单例120秒，整组180/240秒硬截止。Goal active、仍1/7。
+
 ## 2026-10-29 · CLN121已消费诊断上下文
 
 仅回收两次已结束Base64诊断的重复源码测试上下文：四根、616文件/链接、22目录、55830540逻辑字节；逐项身份/内容/无打开文件核对，原脚本、输入、状态/失败日志和实际产品保留。清理不证明Base64已修复；四产品新构建仍进行。恢复与清单见CLN121。
@@ -23918,6 +25225,12 @@ D28当前停止，尚未完成断点续建、TLS功能或完整20配置/61 profi
 
 完整库与配套root测试对齐固定stable31.1，仅一行注释规范，可执行形式/原断言及必需语料不变；CLN120保留逐项身份及成对恢复。四个终端/Cocoa普通/checking产品完整构建，两个Cocoa严格签名通过；原通知65例60通过5原条件跳过0失败，原八个缺接口失败通过，产品/源/原输入身份不变。独立复核已确认源/实际产品、唯一注释与执行形式、真实结果并接受此限定本地交付。旧155批次109通过42跳过4远程Base64失败保留，不能称全批/远程13通知/555/G3通过；Goal仍1/7。
 
+## 2026-10-29 · P423真实输出分段诊断与限定修复
+
+原通知整文件26项：C参照21通过5原跳过，Cocoa18通过8原跳过，零失败/超时；两组源/产品/harness不变，控制器exit1及完整回收分别678.454/544.127秒。额外05/11/12远程项为monitor识别跳过，不冒充功能通过。
+
+被动原remote05诊断在真实C/Rust产品捕获完整/分裂启动说明及过早nil缓存：参照通过50.767秒、候选跳过1.235秒，控制器59.475秒exit0/完整回收，仅为诊断完成。双方源码讨论定位过滤器而非底层读流；P423登记限定生产Lisp修复，原断言/语料不改。新实际产品集成/保护与独立最终验收待执行，Goal active、仍1/7。
+
 ## 2026-10-29 · CLN123已消费通知源码上下文
 
 七轮已结束验收/诊断的14个重复上下文根完成逐项核对与回收：2216文件与链接、87目录、195406890逻辑字节；2303条压缩清单记录已全部解码检查。原输入、失败/跳过、GIO/Base64捕获、真实程序/dump和回执前后哈希不变；当前P423构建源/产物未选中。仅逻辑字节，不归因APFS物理释放；恢复见CLN123，Goal仍未闭合。
@@ -23926,9 +25239,17 @@ D28当前停止，尚未完成断点续建、TLS功能或完整20配置/61 profi
 
 P423四产品真实构建和两App严格签名完成，控制器1129.57秒exit0/完整回收且构建保全已释放。仅回收Cargo/四生成unit根：19910文件、903目录、703002744逻辑字节；逐项身份、双次无打开句柄与保留对象/产品身份检查通过。原通知功能集成仍在运行，所用真实程序/dump/库和源码保留；清理不等于功能验收或Goal完成。恢复见CLN124。
 
+## 2026-10-29 · P423首个新产品原通知结果
+
+新Cocoa normal原26项21通过、4原条件跳过、1失败、0超时；原额外05/11/12远程项全部通过，03远程也通过，09远程Invalid base64 data未解决。源/实际产品/原输入/harness及复用C参照身份不变，682.371秒控制器exit1/完整回收；不把诊断或跳过冒充验收。原09两产品实际失败输入观察已开始，180秒单例/420秒整组；其他变体及后置保护/最终复核尚未完成。
+
 ## 2026-10-29 · CLN125已替代批处理事件候选
 
 旧P417运行、复核和保全均已结束，当前驱动/活P423保全不消费其两个生成产品家族根。回收19330文件/链接、716目录、1269578620逻辑字节；原冻结源码、输入、失败和构建配方保留，24份元数据先保全，14767个保留文件（含当前程序/dump）哈希不变。旧候选路径已不存在，重放需按CLN125重建，不保证签名字节/原inode；不改旧失败、不计为功能验收。
+
+## 2026-10-29 · P423错误输入观察完成但未捕获
+
+原09单例C参照/新Cocoa均通过、无失败输入，262.055秒完整回收；随后新Cocoa原26顺序观察22通过4原跳过0失败/超时，无错误输入，776.136秒完整回收且源/产品不变。诊断有观察器及verbose，不能用未复现宣称修复，首个正常26入口的09失败仍保留。开始同一搭档代码讨论，窄guard其他变体相关验收与全G3均未完成。
 
 ## 2026-10-29 · CLN126已消费GIO诊断上下文
 
@@ -23952,15 +25273,21 @@ P423四产品真实构建和两App严格签名完成，控制器1129.57秒exit0/
 
 P424限定源码已签名推送eddcccf2并获同一搭档实际采用确认，构建/原集成/保护/复核均结束。仅回收Cargo及四generated-unit根，19910文件、903目录、703007544逻辑字节；20813条清单完整解码审阅，39820条持久操作记录成对对应。744保留文件哈希及四程序/dump/完整Lisp资源身份不变，完整冻结源前后验证通过；原失败、实际对象和配方保留，编译副本按CLN127再生，不计新的兼容或性能通过。
 
-## 2026-10-29 · CLN128已消费解压功能编译副本
+## 2026-10-29 · P424原编辑与键盘完整文件
 
-P425四制品/签名、115集成和5后置保护均通过，构建/测试树完整回收。仅回收Cargo及四生成unit根，19910文件、903目录、703037940逻辑字节；20813条完整字段与39820条持久操作记录逐项核对，746保留文件及四程序/dump/完整Lisp身份不变，冻结源前后验证。实际对象、源码、原失败和构建配方保留，旧编译副本须在新owned输出再生。删除时限定独立复核仍进行、随后实际接受；清理不冒充P425源码签名交付或全G3通过，详见CLN128范围/恢复报告。
+原character/casefiddle/editfns/keymap/keyboard/callint/buffer七文件×参照及四P424产品2625通过10原条件跳过0失败/超时；527项逐项状态同参照，输入/源/程序/dump/资源/harness不变，35.497秒exit1/完整回收。原土耳其locale名称guard及batch图形显示guard返回nil，跳过不计通过；100000轮/至多100overlay的原随机用例保持原样，不声称各产品随机动作流相同、物理GUI或性能通过。CLN127删除生成unit后该轮实际运行成功，保留真实程序可继续用于后续G3；全语料/实验native与GC/原09间歇问题仍开放。
 
-## 2026-10-29 · P425内置解压能力
+## 2026-10-29 · P424原文本组与P425解压功能缺口
+
+原charset/chartab/cmds/floatfns/indent/marker/textprop/undo八完整文件×五产品330通过0跳过/失败/超时，27.293秒完整回收，逐项同参照、身份不变；原撤销测试保持1048576次插入及6815744字节规模。P424现22完整原src文件合计4900通过20原条件跳过0失败，不重复累加早期重叠用例，不代表全语料或native/GC验收。
 
 随后原coding/decompress/doc/emacs/json/regex-emacs/search/timefns八完整文件×五产品451通过39跳过0失败/超时，25.136秒完整回收，身份不变。四候选原zlib解压项均跳过而C参照通过，是目标功能缺口；共同seccomp/bwrap条件35跳过单列，不能合称同参照。百万字符正则及原浮点边界循环已实际运行。P425已完整接线两目标的HAVE_ZLIB、功能/选项声明及系统库链接，保持现有原生算法与错误模型；待新制品/dump、ABI和真实解压集成，不以旧候选或skip冒充交付。
 
 P425四个新程序/dump与两个App严格签名均通过，1068.373秒完整回收；SDK/原Rust投影20布局和三个C函数合同通过，1.859秒完整回收。新原coding/decompress/doc与八项解压集成共115通过零跳过/失败/超时，实际原解压能力恢复，源/输入/制品/harness不变，27.022秒完整回收；主开发在首次运行前纠正搭档夹具ALLOW-PARTIAL漏传参数。之后一项非零剩余输入保护×五产品5通过，正确返回5、区域/point一致，身份不变、16.073秒完整回收。同一搭档19次实际只读核对后接受限定组件，116.836秒完整回收；安全签名交付待完成，全G3和原远程09问题不变。
+
+## 2026-10-29 · CLN128已消费解压功能编译副本
+
+P425四制品/签名、115集成和5后置保护均通过，构建/测试树完整回收。仅回收Cargo及四生成unit根，19910文件、903目录、703037940逻辑字节；20813条完整字段与39820条持久操作记录逐项核对，746保留文件及四程序/dump/完整Lisp身份不变，冻结源前后验证。实际对象、源码、原失败和构建配方保留，旧编译副本须在新owned输出再生。删除时限定独立复核仍进行、随后实际接受；清理不冒充P425源码签名交付或全G3通过，详见CLN128范围/恢复报告。
 
 ## 2026-10-29 · P426系统路径判断澄清
 
@@ -23985,13 +25312,19 @@ P429 limited module predicate fix is signed/pushed `ccb38ee4`. Retired five cons
 本轮CLN131已回收五个已消费Cargo/生成unit根：19910文件、903目录、705203373逻辑字节；20813清单行全字段相符、41626操作逐项配对。冻结源/实际对象/四native制品/五选定产品全部资源及原ELN/失败保持不变，不为清理重跑构建测试。见[清理报告](../maintenance/cleanup/reports/2026-10-29-131-consumed-native-compiler-copies.md)。
 
 
-## 2026-10-29 · P430限定真实组件证据及CLN133
+## 2026-10-29 · P430完整Tree-sitter集成与后置保护
 
-四新native产品及两个严格Cocoa签名通过；实际SDK/Lisp/buffer123布局/常量、55函数及3回调合同一致。完整原40×五产品200通过零跳过，15唯一GC/生命周期例次按不变身份复用，五组两进程query dump恢复通过；后置两配置guard通过。首轮缺jsdoc提示、dump重复加载和ABI准备/旧driver诊断误绑定失败完整保留；不改原断言。同一搭档20次实际只读核查后接受限定实现与证据，58原入口一致；旧132名称施工计数不当成Rust函数数或验收覆盖。
+完整业务132定义/58入口及所有编辑/生命周期/GC/dump接线完成。第二冻结WIP四native产品与两个严格Cocoa签名通过，1233.821秒/874103240字节/完整回收。实际SDK与Lisp/buffer的123观测、55函数及3回调合同一致；C布局使用配置fd7只读镜像且treesit头与stable相同，不称完整stable C构建。原40×五产品200通过零跳过/失败/超时，八真实固定语法库；15唯一生命周期/GC例次按不变身份复用，五组两进程query dump恢复通过，35.493秒/313704448字节/完整回收。后置两配置guard通过，9.409秒/921518080字节/完整回收。首次缺jsdoc提示与dump夹具重复加载造成的五共同失败分别保留，不改原断言/算法；首次构建和旧driver源绑定误诊、ABI准备失败也保留。独立复核、完整源码依赖组交付及消费副本清理待完成；Goal active仍1/7，G1/G2/G3和nativeGC余项未关闭。详见maintenance/releases/2026-10-29-macos-treesit.md。
 
-CLN133回收11个已消费Cargo/生成unit根，30706文件/1690目录/1144859531逻辑字节；32396全字段清单行及64792逐项配对操作核对。1083保留文件、两冻结源、实际对象、四产品及五选定身份/全部资源不变，原失败及两旧driver物化根最小证据保留；未为清理重跑测试。详见maintenance/releases/2026-10-29-macos-treesit.md及maintenance/cleanup/reports/2026-10-29-133-consumed-treesit-compiler-copies.md。
 
-本提交只交付可追溯证据和清理文档，不提交未整合的源码。完整runtime/TLS/LCMS/owned-copy及核心源码依赖组交付仍待完成；冻结WIP验收不冒充干净提交检出、GUI/搬移/性能或全G3。P427、远程09、原编译器共同元数据失败及nativeGC余项仍开放，Goal active仍1/7。
+P430 independent review: 20 actual read-only source/evidence checks accepted
+the limited implementation and measured products, no concrete failure found
+in that scope. All 58 original DEFUN names match; the earlier 132-name
+construction count is not a Rust function-token count or acceptance metric.
+Coherent runtime/TLS/LCMS/owned-copy prerequisite source delivery remains pending;
+do not stage all WIP or publish a half-wired feature. Goal remains active 1/7.
+
+CLN133回收11个已消费Cargo/生成unit根，30706文件/1690目录/1144859531逻辑字节；32396全字段清单行及64792逐项配对操作核对。两个旧driver materialized root最小证据另存私有资料；两冻结源、实际对象、四产品/全部资源、五选定身份和原失败不变，无清理触发重测。P430限定独立审核通过，源码完整依赖组交付仍待完成，Goal active1/7。
 
 
 ## 2026-10-29 · 完整实验运行时源码组
@@ -24788,3 +26121,40 @@ is promoted. CLN193 records 9,516 files /408 directories /316,018,906 logical /
 G1/G2/G4 remain 3/7; Cocoa, full new 20-config/61-profile baseline, full G3/G5
 and remaining Goal work stay pending. No trial App replacement or speed claim.
 See [component evidence](../maintenance/releases/2026-11-02-unsigned-bignum-checking.md).
+
+
+### 2026-11-10 — final mutual review, P453 and retained contracts
+
+- Direct human instruction resumed the same seven-part Goal. Reviewed eight
+  signed commits a404c000..d22daf1e; corrected the closure converter hook bypass
+  in signed/pushed87fe18eb. JNI invocation/receipt contracts close in f6bef801.
+- Standard terminal/Cocoa fresh builds both exit0/reaped:257.375s/423378944B
+  and276.474s/835092480B. Installed Tree-sitter0.27.2 was rejected by the existing
+  gate; selected independent official0.27.1 SDK, no global installation change.
+- Six closure paths×three products agree;24 complete stable-file processes,
+  1248 observations=1224 ordinary+15 original expected failures+9 skips,
+  zero unexpected. Post-functional hotpath8 +bytecode10 per product=54 passes.
+  Local acceptance and bounded16-case stable comparison×three pass; neither
+  represents the555-file/profile scope. Nine actual preservation OS cases,
+  seven receipt protections, tool contracts and voice/declaration gates pass.
+- Invalid shared22 expectation, first development-cl-macs/reference4GiB137
+  interruption, and two missing-output-argument exit2 invocations remain.
+  Correct stable cl-macs77 per product completes separately; no raw promotion.
+- New signed App/DMG packaging passes23.163s/294354944B. Installed old Fe remains
+  running, so replacement waits for the user to save/exit; no process killed.
+- CLN219 retires13460 files/13links/500dirs,684553921 logical/715595776 prior
+  per-path allocated bytes.13973 public/private/operation rows agree; new
+  products/source/DMG and installed App unchanged. Volume observations are not
+  exclusive physical-reclamation proof. Active products/SDK remain consumers.
+- Current-state is now a concise active snapshot; prior dated checkpoint prose
+  is preserved under maintenance/history with relative links relocated.
+  G1/G2/G4 remain3/7; GA3/5/6/7/8 and GC3/8/9 stay open. Proceed with a clean
+  current-source20-config/61-profile runtime cohort after this stage closes;
+  do not restart removed historical Source recovery or call partial work done.
+- [P453](../maintenance/releases/2026-11-10-interpreted-closure-hook.md),
+  [retained contracts](../maintenance/releases/2026-11-10-retained-interface-contracts.md),
+  [CLN219](../maintenance/cleanup/reports/2026-11-10-219-superseded-build-app-backups.md).
+
+Independent cross-review accepts both signed stages, including all actual
+product hashes, the bounded24-file union and retained-interface evidence.
+Whole-Goal and final installation remain open.

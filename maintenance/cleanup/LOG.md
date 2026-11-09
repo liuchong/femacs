@@ -325,8 +325,6 @@ remain unchanged. No shared purge, whole-volume claim, production or App change.
 
 四产品和620例完成后，为补齐整组测试硬截止主动结束旧驱动，完整回收并核验26099捕获文件不变；仅清理用完的Cargo/生成单元19910文件、903目录、703116947逻辑字节，源、对象、四产品及原始结果保留。测试单独有界续接，无需重编。[逐项记录与恢复](reports/2026-10-29-119-completed-notify-compiler-copies.md)。
 
-- CLN-20261029-114：ERT库与配套root测试原样对齐稳定31.1，必需验收原文不变；开发版diff UI及测试的Git身份和成对恢复见[报告](reports/2026-10-29-114-stable-ert-component.md)。620例及独立源核对接受限定组件交付；完整兼容仍未通过。
-
 ## CLN-20261029-118 — 第三轮通知整合已消费编译副本
 
 第三轮终端两腿构建完成、Cocoa重复标志编译失败，控制器exit1/完整回收；清理19662文件、897目录、697483002逻辑字节。源核验通过、终端程序/dump和原始失败保留，第四轮独立构建继续。[逐项记录](reports/2026-10-29-118-failed-cocoa-notify-compiler-copies.md)。
@@ -342,6 +340,10 @@ remain unchanged. No shared purge, whole-volume claim, production or App change.
 ## CLN-20261029-115 — P417已消费编译缓存
 
 回收五个已结束运行的Cargo/生成单元副本：19694文件、899目录、694904903逻辑字节；保留源码、实际对象、产品和原始失败，不把exit1冒充完整验收成功。[逐项清理与恢复](reports/2026-10-29-115-consumed-batch-event-compiler-copies.md)。
+
+- CLN-20261029-114：ERT库与配套root测试原样对齐稳定31.1，必需验收原文不变；开发版diff UI及测试的Git身份和成对恢复见[报告](reports/2026-10-29-114-stable-ert-component.md)。620例及独立源核对接受限定组件交付；完整兼容仍未通过。
+
+- CLN-20261028-113：kqueue旧局部事件号及三份重复open标志声明统一为共享定义，未删除文件；源码和恢复身份见[报告](reports/2026-10-28-113-event-kind-declaration.md)。新后端接线待实际验收。
 
 - CLN-20261028-112：全量Lisp发行构建已消费Cargo/生成副本9802文件、364815946逻辑字节；冻结源、真实程序/资源、对象、日志和功能回执保留。[报告](reports/2026-10-28-112-consumed-release-bytecode-compiler-copies.md)。
 
@@ -482,6 +484,8 @@ remain unchanged. No shared purge, whole-volume claim, production or App change.
 
 | CLN-20261027-68 | 2026-10-27 | D26结束后29770份编译副本/缓存，1039083114逻辑字节 | 实际晚于70/71；136269项删前后不变；后续缺失驱动按原归档恢复，原因未知 | [范围与恢复](reports/2026-10-27-68-consumed-d26-compiler-copies.md) |
 
+| CLN-20261027-72 | 2026-10-27 | TLS的25项共享声明归位，并撤回3份错误/重复原型，无文件/缓存删除 | P401施工中，未作TLS验收；逐项旧片段与原文件blob可溯源 | [范围与恢复](reports/2026-10-27-72-tls-declaration-consolidation.md) |
+
 | CLN-20261027-73 | 2026-10-27 | 首轮TLS编译失败后回收9686份生成副本/缓存、364128325逻辑字节 | 8260项保留内容哈希不变，原失败/冻结源/接口证据保留 | [范围与恢复](reports/2026-10-27-73-failed-d27-compiler-copies.md) |
 
 | CLN-20261027-74 | 2026-10-27 | 回收656份已结束诊断副本/失败链接输入、42832592逻辑字节 | 16份最小编译根/配置身份不变；计划误写副本已精确恢复并记录；D28不动 | [范围与恢复](reports/2026-10-27-74-consumed-diagnostics.md) |
@@ -551,7 +555,6 @@ remain unchanged. No shared purge, whole-volume claim, production or App change.
 | CLN-20261029-127 | 2026-10-29 | 已消费P424 Cargo/四生成unit根，19910文件、903目录、703007544逻辑字节 | 20813条完整字段审阅、双次无句柄/逐项身份核对；744保留文件及四实际程序/dump/资源身份不变，冻结源与原失败保留 | [范围与恢复](reports/2026-10-29-127-consumed-shorthand-compiler-copies.md) |
 
 | CLN-20261029-128 | 2026-10-29 | 已消费P425 Cargo/四生成unit根，19910文件、903目录、703037940逻辑字节 | 20813条完整字段及39820操作记录逐项对应；746保留文件和四实际程序/dump/资源不变，源/原失败/配方保留 | [范围与恢复](reports/2026-10-29-128-consumed-zlib-compiler-copies.md) |
-
 | CLN-20261029-129 | 2026-10-29 | Consumed3Cargo/4unit/4context roots;20612 files,120links,1373dirs,699637607logical bytes | 22105full-field manifest rows and41464paired operations;source/4products/raw failures retained | [report](reports/2026-10-29-129-consumed-lcms-compiler-context-copies.md) |
 
 ## CLN130 · 2026-10-29 · consumed module compiler copies
@@ -561,6 +564,10 @@ P429 signed/pushed `ccb38ee4`; retired five ended-run Cargo/generated-unit roots
 ## CLN131 · 2026-10-29 · consumed native compiler copies
 
 Retired five ended-run Cargo/generated-unit roots: 19,910 regular files, 903 directories, 705,203,373 logical bytes. All 20,813 public rows match the private plan after machine-path aliasing; 41,626 durable operations pair. Frozen source, actual objects/four native products/all selected resources, original ELNs and raw five shared metadata failures remain unchanged. No build/test rerun for cleanup. See [report](reports/2026-10-29-131-consumed-native-compiler-copies.md) and [manifest](manifests/2026-10-29-131-consumed-native-compiler-copies.jsonl.gz). Goal remains active1/7.
+
+## CLN132 · 2026-10-29 · Tree-sitter source rebase/consolidation (in progress)
+
+P430 restores the stable feature, including loader configuration observability and shared object ownership. Removed the inactive development-only language cache with exact block/call-site hashes and Git restoration bound; shared-declaration consolidation follows in the same batch. Source/build/integration/review/delivery remain pending. See [report](reports/2026-10-29-132-treesit-declaration-rebase.md) and [manifest](manifests/2026-10-29-132-treesit-declaration-rebase.json).
 
 ## CLN133 · 2026-10-29 · consumed Tree-sitter compiler copies
 
@@ -1038,4 +1045,17 @@ No production/protection/App change; no whole ERT/checking/full G3/performance p
 - Real file integration, full transition verification and 11 subsequent scope protections passed. Original tests and failures remain; whole compatibility and performance acceptance are open.
 - [Report](reports/2026-11-04-216-fixture-physical-storage.md); [manifest](manifests/2026-11-04-216-shared-stable-fixtures.jsonl.gz).
 - CLN217: retired 429 consumed private native-tool cache files and 219 directories; retained frozen inputs and executable.
-Recorded exact COW sharing of retained test inputs with explicit inode transitions and all original failures preserved.
+
+## CLN218 — 2026-11-05: retained test input storage
+
+Recorded exact COW sharing of retained test inputs with explicit inode transitions and all original failures preserved. See [report](reports/2026-11-05-218-retained-test-input-storage.md).
+
+
+## CLN219 — 2026-11-10: superseded build trees and App backups
+
+Retired exactly 13,460 regular files,13 links and500 directories from three
+superseded build/preparation roots and two historical App backups.13,973 public
+identity rows match private identities and retirement ordinals;684,553,921
+logical/715,595,776 prior per-path allocated bytes. New sources/products/package
+and the active installed App remain unchanged. No causal volume-reclamation or
+Goal completion claim. [Scope and recovery](reports/2026-11-10-219-superseded-build-app-backups.md).
