@@ -4195,3 +4195,26 @@ controller and its limits.
 Keep finite input/row bounds sized for the full declared matrix, all quiet
 and tail-evidence rules, original workloads and false acceptance flags.
 No performance gain or whole-Goal acceptance follows from tool fixtures.
+
+## P460: preserve product library paths in the stable source context (2026-11-10)
+
+The closed first-pair source audit identifies five unexpected help-description
+failures shared by both products. The source-context bridge replaces physical
+product Lisp directories with test-context links in load-path. Preloaded
+definitions retain their physical filenames, so the help filename formatter
+cannot shorten them against load-path; paragraph filling moves the filename
+off the first line inspected by the original tests. Preserve mapped context
+directories first and append the original product Lisp directories, including
+their subdirectories. Keep unrelated entries and original path spelling.
+Do not modify original libraries, tests, data, selectors or assessments.
+
+Implement the bridge change before real functional integration. Run the whole
+original22-case help-fns file through the bound batch/context/fixture pipeline
+on the installed reference and all four new normal baseline/native products;
+verify original inputs and product identities before/after and retire owned
+case state. Then add critical path-order/boundary protections. These are
+bounded repair results, never a555-file or48-profile acceptance claim. The
+four other shared unstable/FIXME failures remain unexpected failures without
+waivers. The compiled9e257276 cohort and its frozen source remain unchanged;
+the reporting-only harness is bound separately and does not require rebuilding
+the20 product configurations.

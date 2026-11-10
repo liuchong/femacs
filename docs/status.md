@@ -26286,3 +26286,33 @@ See [P455 scope and evidence](runtime-modernization.md#current-execution-phases-
   compatibility acceptance follows; Goal remains active3/7.
 - [P459 design](runtime-modernization.md#complete-runtime-measurement-contracts-p459) ·
   [actual scope and limitations](../maintenance/releases/2026-11-10-runtime-measurement-contracts.md).
+
+
+### 2026-11-10 — P460 stable source-context lookup and CLN223
+
+- Signed9e257276 produced a fresh uniform7,591-input matrix:20 configurations,
+  61 profiles and41 physical products. Independent closed metadata review
+  accepts the build;32 native-profile negative preparations then passed.
+- Five real-product default-context library/capability diagnostics passed and
+  were independently accepted. Library/Unicode versions and native/image/Info
+  capabilities differ as recorded; this does not reproduce formal stable-file
+  context or certify compatibility. Current full authored semantics is running.
+- The closed shared-failure audit locates five help-description failures in the
+  bridge's lost physical product Lisp paths. P460 preserves mapped paths first
+  and physical originals afterward; original libraries/tests/data and assessment
+  rules are unchanged. The complete original22-case help file passes on all
+  five products:110/110, all five regressions resolved, zero waivers.
+- Only after functional acceptance, six path protections pass on the same five
+  products:30/30. All-product receipts, selected product/resource identities,
+  frozen source and original inputs stay unchanged; owned case state retires.
+- CLN223 retires only consumed materialized copies:1838 files,30 links,
+  266 directories,48,913,383 logical bytes. All2134 public/plan/operation rows
+  match; selected roots absent and60 protected files unchanged. Original
+  observations and compiled products remain retained.
+- [P460 evidence](../maintenance/releases/2026-11-10-stable-source-context-paths.md)
+  and[CLN223 scope](../maintenance/cleanup/reports/2026-11-10-223-consumed-stable-context-copies.md).
+  Independent final repair review accepts P460 with zero confirmed defects.
+  The frozen stable coordinator still requires explicit corrected-runner selection
+  before its next formal stable phase; the current active coordinator is unchanged.
+  Four other upstream unstable/FIXME
+  failures remain unexpected; Goal remains active3/7, full stable/performance open.

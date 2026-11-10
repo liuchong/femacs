@@ -1,5 +1,45 @@
 # Lisp runtime modernization: evidence and first bounded implementation
 
+## Stable source-context library lookup (P460)
+
+The closed first-pair audit pins five shared unexpected help-description
+failures to the harness replacing physical product Lisp paths. Preloaded
+definitions still name physical files; losing those prefixes prevents help
+from shortening filenames and moves them off the tested first line.
+
+The bridge now keeps mapped context paths first, retains unrelated entries,
+and appends the original product directories with their original spelling.
+The compiled `9e257276` matrix and its frozen source are unchanged. No original
+test, library, data, selector or failure assessment changes.
+
+- [x] C460: implement the complete source-context path correction.
+- [x] A460: real complete22-case help-fns execution on the reference and four
+  current normal baseline/native products through the original batch/context
+  and fixture pipeline; all cases pass, identities stay fixed, owned state
+  retires, and the five original failures are explicitly checked.
+- [x] A460-P: after functional acceptance, protect path precedence, product
+  subdirectories, unrelated/nil entries and prefix boundary handling.
+- [x] A460-R: independent final review of the complete repair unit accepted;
+  zero confirmed defects.
+
+This bounded repair does not complete the555-file or48-profile corpus. Four
+other shared unstable/FIXME failures stay unexpected failures with no waiver;
+the existing comparator and whole-Goal completion rules remain in force.
+
+[Measured repair and protection](../maintenance/releases/2026-11-10-stable-source-context-paths.md):
+110/110 original-file observations and30/30 post-functional path protections
+passed on five actual products; inputs and products stayed unchanged. CLN223
+retired only the consumed owned corpus/context copies. Independent final review
+accepted the repair; full stable and performance acceptance remain open.
+
+The current frozen matrix coordinator still selects its frozen stable runner
+by default. Before the next formal stable phase, explicitly bind the corrected
+runner through the coordinator without changing compiled product identities.
+The existing process-reporting bridge does not select the stable runner. The
+active semantics coordinator file stays unchanged until its natural boundary;
+its final receipt hashes that file. Direct bounded acceptance above used the
+explicit corrected runner and is not a claim about the default frozen phase.
+
 ## Complete runtime measurement contracts (P459)
 
 Baseline `1a8f68e4`; independent G5 static audit is closed. Complete its exact

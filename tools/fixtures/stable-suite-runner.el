@@ -6,6 +6,31 @@
 ;; filter platform/features, or claim compatibility.
 
 (defvar find-function-C-source-directory)
+(defun stable-suite--source-context-load-path (paths product-lisp context-lisp)
+  "Keep context libraries first and retain physical product PATHS for lookup."
+  (let ((original (file-name-as-directory product-lisp))
+        (overlay (file-name-as-directory context-lisp)))
+    (cons overlay
+          (append
+           (mapcar (lambda (path)
+                     (if (and (stringp path)
+                              (string-prefix-p original
+                                (file-name-as-directory path)))
+                         (concat overlay
+                           (substring (file-name-as-directory path)
+                                      (length original)))
+                       path))
+                   paths)
+           ;; Dump load-history keeps these physical names.  Help uses their
+           ;; lexical load-path prefixes when shortening source filenames.
+           (delq nil
+                 (mapcar (lambda (path)
+                           (and (stringp path)
+                                (string-prefix-p original
+                                  (file-name-as-directory path))
+                                path))
+                         paths))))))
+
 (let* ((context (getenv "STABLE_SUITE_SOURCE_CONTEXT"))
        (product-lisp (getenv "STABLE_SUITE_PRODUCT_LISP"))
        (archive-profile (getenv "STABLE_SUITE_ARCHIVE_SOURCE_PROFILE"))
@@ -32,19 +57,9 @@
                    (file-directory-p (expand-file-name "test" context))
                    (file-directory-p (expand-file-name "lisp" library-context)))
         (error "missing bound source-test context"))
-      (let ((original (file-name-as-directory product-lisp))
-            (overlay (file-name-as-directory (expand-file-name "lisp" library-context))))
-        (setq load-path
-              (cons overlay
-                    (mapcar (lambda (path)
-                              (if (and (stringp path)
-                                       (string-prefix-p original
-                                         (file-name-as-directory path)))
-                                  (concat overlay
-                                    (substring (file-name-as-directory path)
-                                               (length original)))
-                                path))
-                            load-path))))
+      (setq load-path
+            (stable-suite--source-context-load-path
+             load-path product-lisp (expand-file-name "lisp" library-context)))
       (setq source-directory (file-name-as-directory context)
             find-function-C-source-directory
             (expand-file-name "src/" library-context)))))

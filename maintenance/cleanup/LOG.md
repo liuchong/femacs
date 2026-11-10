@@ -1097,3 +1097,14 @@ roots are absent and8 protected source/product/release paths are unchanged.
 The running installed App and frozen runtime matrix remain outside selection.
 No whole-volume causal reclamation claim.
 [Scope and recovery](reports/2026-11-10-222-superseded-p453-build-app-backups.md).
+
+## CLN223 — consumed stable context copies (2026-11-10)
+
+After P460's full original help-file functional acceptance and post-functional
+protections, retired its three owned materialized corpus/context children:
+1838 files,30 links and266 directories,48,913,383 logical bytes and53,628,928
+prior per-path allocated bytes. All2134 public/plan/operation rows agree;
+selected roots are absent and60 protected source/product/evidence files stayed
+unchanged. Original receipts, current frozen products and the installed App
+remain retained. No whole-volume causal reclamation claim.
+[Scope and reconstruction](reports/2026-11-10-223-consumed-stable-context-copies.md).
