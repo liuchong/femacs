@@ -1,4 +1,8 @@
-# Current-source runtime matrix: build and fixture preparation
+# Runtime matrix: build and fixture preparation
+
+The latest compiled cohort is clean `9e257276`, recorded in the final section
+below. The earlier `59d4215c` sections preserve their original build-time
+checkpoint; their not-yet-executed statements are historical, not current status.
 
 The complete matrix was built from the clean, signed source `59d4215c9d0eb3706f366941d3c40e3a2b879dd5`. One frozen inventory binds 7,576 inputs. All 20 configurations completed both normal and checking legs, yielding 40 candidate product receipts and 61 registered profiles, including the installed reference. There are 41 distinct program/dump pairs, 32 native candidate profiles, 12 diagnostic profiles and 48 nondiagnostic candidate profiles.
 
@@ -61,3 +65,47 @@ The separately delivered P453 terminal product completed all six existing TTY in
 - Existing P453 trial products/package remain separately identified in [the closure-hook delivery](2026-11-10-interpreted-closure-hook.md). Installed Fe still waits for the user to save and exit; this matrix does not claim the installation was replaced.
 
 Current frozen inputs, selected products and the pinned SDK remain needed by downstream consumers. Retire them only after those consumers finish, with an explicit replacement/restoration record.
+
+
+## Current compiled cohort:9e257276 (P458/P459)
+
+A fresh uniform snapshot binds7,591 original/current input files, SHA256
+`6eeeadb287d270c6e45d9faaffc3d1750c627b996ba64e017c79b5038e546f38`.
+All20 configurations completed normal/checking successfully with no carry:
+61 profiles,41 program/dump pairs,32 native candidate profiles,12 diagnostic
+and48 nondiagnostic candidates. The build and32-profile negative input
+preparation were independently accepted; current authored semantics is running.
+Full stable/performance acceptance remains open.
+
+| Configuration | Terminal seconds | Cocoa seconds |
+| --- | ---: | ---: |
+| native-collector observer diagnostic | 649.130 | 710.652 |
+| baseline | 611.382 | 708.878 |
+| baseline observer | 583.230 | 531.812 |
+| native | 579.610 | 809.432 |
+| native observer | 662.984 | 770.073 |
+| collector | 505.977 | 562.263 |
+| collector observer | 532.526 | 647.411 |
+| native-collector | 495.064 | 574.676 |
+| native-collector observer | 494.996 | 583.100 |
+| baseline observer diagnostic | 467.002 | 598.213 |
+
+Build result SHA256:
+`0f2370146cbb291c91892b7a7ef31e1ae3a166d0cc743628c1084c68a992e54f`;
+product list `9f5b78be2687243a3085d9048e4c2a5d4fc2946197da621551d7d6c7c7a9cd8b`.
+The build controller exited0 with complete cleanup, growth0,12,454.834 seconds
+and913,555,912 peak accounted bytes under16GiB. Verified file retention covers
+198,283 files and20 links; no duplicate product archive was created.
+
+Native negative input preparation passed32/32 profiles, each19 units;
+product inputs, fixtures and driver sources stayed unchanged. Its result SHA256
+is `44ec8e2c38efe9959531a809bb656064464e43554de4d8367babd7c6320bb1f0`.
+The controller exited0 with complete cleanup, growth0,656.676 seconds and
+3,329,149,808 peak accounted bytes. Retention then covers204,757 files and20
+links. Preparation is not semantic execution.
+
+[CLN224](../cleanup/reports/2026-11-10-224-consumed-runtime-compiler-copies.md)
+publishes all40 completed compiler-copy retirements and retires their temporary
+review metadata. Current source, products and original observations remain
+needed by the active execution. P460 is a separately bound harness-only repair;
+it does not relabel this compiled source or require rebuilding these products.

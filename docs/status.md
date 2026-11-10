@@ -26316,3 +26316,19 @@ See [P455 scope and evidence](runtime-modernization.md#current-execution-phases-
   before its next formal stable phase; the current active coordinator is unchanged.
   Four other upstream unstable/FIXME
   failures remain unexpected; Goal remains active3/7, full stable/performance open.
+
+
+### 2026-11-10 — CLN224 current compiler-copy publication
+
+- The clean9e257276 matrix's40 previously consumed compiler-copy ledgers were
+  projected into202,260 public rows:195,460 files and6,800 directories,
+  6,503,533,814 logical bytes. Independent per-scope reconstruction and privacy
+  scanning accept the main projection. Publication deletes no original input.
+- Actual successful verifier children precede canonical retirement of40 audit
+  mirrors and one redundant working publication copy:41 files and2 owned
+  directories,25,227,474 logical bytes. Separate41-row and2-row auxiliary
+  ledgers preserve exact identities. Selected temporary paths are absent;
+  original receipts, source, products and public manifest stay unchanged.
+- Current61-profile authored semantics continues against the same frozen cohort;
+  no full stable/performance or Goal acceptance follows from cleanup.
+- [CLN224 scope and recovery](../maintenance/cleanup/reports/2026-11-10-224-consumed-runtime-compiler-copies.md).

@@ -1108,3 +1108,14 @@ selected roots are absent and60 protected source/product/evidence files stayed
 unchanged. Original receipts, current frozen products and the installed App
 remain retained. No whole-volume causal reclamation claim.
 [Scope and reconstruction](reports/2026-11-10-223-consumed-stable-context-copies.md).
+
+## CLN224 — current runtime compiler copies (2026-11-10)
+
+Published40 canonical ledgers from the clean9e257276 build:195,460 files and
+6,800 directories,6,503,533,814 logical bytes,202,260 public rows. Independent
+stream reconstruction agrees in every scope; publishing adds no original
+deletion. Subsequently retired41 temporary metadata files and2 owned directories,
+25,227,474 logical bytes, under separate41-row and2-row auxiliary manifests.
+Original source/products/observations/ledgers and the public original are retained;
+all selected temporary copies are absent. No causal whole-volume reclaim claim.
+[Scope and reconstruction](reports/2026-11-10-224-consumed-runtime-compiler-copies.md).
