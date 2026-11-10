@@ -1119,3 +1119,21 @@ deletion. Subsequently retired41 temporary metadata files and2 owned directories
 Original source/products/observations/ledgers and the public original are retained;
 all selected temporary copies are absent. No causal whole-volume reclaim claim.
 [Scope and reconstruction](reports/2026-11-10-224-consumed-runtime-compiler-copies.md).
+
+
+## CLN225 — consumed official reference build inputs and transition state (2026-11-10)
+
+- Scope: scoped native cleanup of the newly fetched reference Git cache and
+  three patch links; two empty owned build roots; reviewed first-probe case
+  state, accepted P461 draft and redundant working publication copies.
+- Actual:5,664 files,3 links,446 directories;1,909,455,588 logical bytes and
+  1,923,178,496 prior per-path allocated bytes. Main6098 and auxiliary15 public
+  identity rows match private operation/absence evidence. Selected roots are
+  absent; protected installed programs/dump/configuration/source/results are
+  unchanged. No original failed result is promoted or original ledger deleted.
+- Replacement/recovery: the official pinned installed reference and its bound
+  recipe/install/probe evidence remain; reacquire the same recipe/source to
+  rebuild. Shared caches/dependencies are preserved, no duplicate source archive
+  retained, and no whole-volume causal reclamation is claimed.
+- [Report and ledgers](reports/2026-11-10-225-consumed-reference-build-inputs.md).
+  Independent final review accepted with zero confirmed defects; Goal remains open.

@@ -4243,3 +4243,31 @@ Root tools changed. Implement the complete selection path, then verify real
 file/Python-child/writer/reader and artifact-owner integration; add critical
 protective checks only after that functional integration passes. No product
 recompilation or original Lisp/test/data edit follows from this tool change.
+
+## P462: explicitly bind a replacement reference epoch (2026-11-10)
+
+The user authorized replacing the system reference with an official package
+build pinned to the port's upstream commit, retaining the existing icon
+configuration. Historical build/product dictionaries and observations keep
+their original reference identity. Default build consumption must reject an
+in-place reference replacement. Explicit --reference-selection may change
+only the reference program, dump, resource roots and native capability;
+all60 compiled candidates, their ordering, source cohorts and whole-product
+receipts remain identical. Do not stat the uninstalled historical reference
+when reading that explicit selection.
+
+Bind the selection to its original build plus owned recipe, install/runtime
+probe, source-tree comparison and captured patch evidence. Validate real
+installed receipt/revision, reaped probe argv, live product/resource identities
+and sampled capabilities without re-spawning an editor during admission.
+Protect owned selection inputs through the existing artifact owner and verify
+them again at exit. Compose with P461 runner selection; reject a simultaneous
+reporting-only products override. Keep one existing frozen child protocol.
+Library tree differences remain explicit; version alignment alone certifies
+neither byte-identical libraries nor compatibility, performance or Goal.
+The official package records its source revision in the installed receipt but
+does not embed the runtime repository variable. Preserve that observed null;
+verify source revision through the pinned recipe and actual install receipt.
+If a runtime repository value is present it must match exactly. Record whether
+it was embedded, require explicit source provenance, and accept only the recipe's
+actual formula name or declared aliases in the installed source record.

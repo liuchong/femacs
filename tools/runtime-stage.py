@@ -26,6 +26,10 @@ spec.loader.exec_module(execution)
 owner_spec = importlib.util.spec_from_file_location("femacs_runtime_owner", REPO / "tools/runtime-owner.py")
 owner = importlib.util.module_from_spec(owner_spec)
 owner_spec.loader.exec_module(owner)
+reference_spec = importlib.util.spec_from_file_location(
+    'femacs_runtime_reference', REPO / 'tools/runtime-reference.py')
+reference_selection = importlib.util.module_from_spec(reference_spec)
+reference_spec.loader.exec_module(reference_selection)
 
 EXECUTION_PHASES = {
     'all': ('ert', 'negative', 'dump', 'relocation', 'performance', 'performance-fallback'),
@@ -359,7 +363,7 @@ def build_source_owner(root, report):
     return build_source_lineage(root, report)[-1]
 
 
-def read_build(path):
+def read_build(path, *, load_original_products=True):
     root = execution.safe_path(path)
     report = execution.bounded_json(root / "results.json", 128 * 1024 * 1024)
     if (report.get("action") != "build" or report.get('passed') is not True
@@ -369,13 +373,41 @@ def read_build(path):
     if execution.verify_source_export(build_source_owner(root, report), report['source_export']) != source:
         raise ValueError('selected source does not match the completed build export')
     product_list = execution.safe_path(report["product_list"])
-    products = execution.load_products(product_list)
+    if product_list != root / 'products.json':
+        raise ValueError('build product list must belong to its receipt directory')
+    document = reference_selection.historical_document(execution, product_list, report)
+    if load_original_products:
+        products = execution.load_products(product_list)
+        if execution.product_identity(products[0], resources=True) != report['reference_identity']:
+            raise ValueError('original reference replaced; explicit reference selection required')
+    else:
+        # Historical dictionary only: the replaced installation may be absent.
+        products = document['products']
     return root, source, product_list, products, report
 
 
 def read_action_build(options):
     """Bind a reporting-only process bridge without relabelling compiled inputs."""
-    original, source, products_path, products, build = read_build(options.build)
+    reference_path = getattr(options, 'reference_selection', None)
+    if reference_path is None:
+        original, source, products_path, products, build = read_build(options.build)
+    else:
+        if getattr(options, 'execution_products', None) is not None:
+            raise ValueError('reference selection and reporting-only products are exclusive')
+        original, source, products_path, products, build = read_build(
+            options.build, load_original_products=False)
+        selected_path, selected, summary, identities, external, live = reference_selection.read_selection(
+            execution, REPO, original, products_path, build, reference_path)
+        previous = getattr(options, '_reference_selection_identities', None)
+        if previous is not None and (previous != identities
+                or options._reference_external_identities != external
+                or options._selected_reference_identity != live):
+            raise ValueError('reference selection changed since initial admission')
+        options._reference_selection_identities = identities
+        options._reference_external_identities = external
+        options._selected_reference_identity = live
+        options._reference_selection_summary = summary
+        return original, source, selected_path, selected, build
     selected_path = getattr(options, 'execution_products', None)
     if selected_path is None:
         return original, source, products_path, products, build
@@ -417,6 +449,12 @@ def read_action_build(options):
         raise ValueError('execution inputs changed since initial validation')
     options._execution_input_identities = identities
     return original, source, selected_path, selected, build
+
+
+def verify_reference_selection(options, products):
+    if getattr(options, 'reference_selection', None) is not None:
+        reference_selection.verify_selection(execution, options._reference_selection_identities,
+            options._reference_external_identities, products[0], options._selected_reference_identity)
 
 
 def prepare_matrix(options, out):
@@ -671,6 +709,10 @@ def execute_matrix(options, out, artifacts=None):
             complete_receipts_valid = True
         except Exception as error:
             errors['complete-product-receipts'] = f'{type(error).__name__}: {error}'
+        try:
+            verify_reference_selection(options, products)
+        except Exception as error:
+            errors['reference-selection'] = f'{type(error).__name__}: {error}'
         runner_unchanged = True
         for name, identity in runner_identities.items():
             try:
@@ -702,6 +744,7 @@ def execute_matrix(options, out, artifacts=None):
                 identity_receipt=str(identity_path),
                 stable_runner_selection=(dict(runner_selection, unchanged=runner_unchanged)
                                          if runner_selection is not None else None),
+                reference_selection=getattr(options, '_reference_selection_summary', None),
                 goal_complete=False, compatibility_accepted=False, performance_accepted=False,
                 remaining=["actual source/product review", "native Finder/multiframe IME/TTY workflows",
                            "required scope and performance judgment", "signed delivery and cleanup evidence"])
@@ -733,6 +776,14 @@ def select_execution_inputs(artifacts, original, source, products_path, products
     owner.artifact_write(artifacts.journal, value)
     owner.capture_artifacts(artifacts.journal, {
         str(path): execution.file_identity(path) for path in top_metadata})
+    if getattr(options, 'reference_selection', None) is not None:
+        value = owner.artifact_read(artifacts.journal)
+        for name in options._reference_selection_identities:
+            if name not in value['allowed_roots']:
+                value['allowed_roots'].append(name)
+        owner.artifact_write(artifacts.journal, value)
+        owner.capture_artifacts(artifacts.journal, options._reference_selection_identities)
+        verify_reference_selection(options, products)
     if getattr(options, 'execution_products', None) is not None:
         # Preserve the initially verified content, not fresh hashes
         # that could silently adopt a pre-capture replacement.
@@ -760,6 +811,8 @@ def main(argv=None):
     parser.add_argument("--build", type=Path)
     parser.add_argument('--execution-products', type=Path,
                         help='explicit reporting-only process bridge selection for fixed products')
+    parser.add_argument('--reference-selection', type=Path,
+                        help='explicit evidence-bound replacement reference epoch')
     parser.add_argument("--backend-prefix", type=Path)
     parser.add_argument("--reference", type=Path)
     parser.add_argument("--reference-dump", type=Path)
@@ -797,6 +850,11 @@ def main(argv=None):
         parser.error('duplicate stable profile selection')
     if options.execution_products is not None and options.action not in ('prepare', 'execute', 'components'):
         parser.error('execution-products applies only to prepare/execute/components')
+    if options.reference_selection is not None:
+        if options.action not in ('prepare', 'execute', 'components'):
+            parser.error('reference-selection applies only to prepare/execute/components')
+        if options.execution_products is not None:
+            parser.error('reference-selection and execution-products are mutually exclusive')
     if not math.isfinite(options.timeout) or options.timeout <= 0:
         parser.error("positive finite per-case deadline required")
     if options.action == 'followup' and any(getattr(options,key) is None
@@ -847,8 +905,11 @@ def main(argv=None):
                     else:
                         result = execute_matrix(options, out, artifacts)
                 finally:
+                    verify_reference_selection(options, products)
                     if execution.verify_source_export(build_source_owner(original, build), build['source_export']) != source:
                         raise ValueError('frozen action source changed')
+            if options.reference_selection is not None:
+                result['reference_selection'] = options._reference_selection_summary
             if options.execution_products is not None:
                 result['execution_selection'] = dict(path=str(products_path),
                     sha256=execution.digest(products_path),

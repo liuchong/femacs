@@ -1,5 +1,42 @@
 # Lisp runtime modernization: evidence and first bounded implementation
 
+## Explicit aligned reference epoch (P462)
+
+The user authorized the official package installation pinned to upstream
+`fd7afced4036fc1a221567d70705d20a2bd64713` and retention of the existing icon
+configuration. The installed32.0.50 reference and its client now pass signature
+verification; the real runtime probe and complete61-profile input admission
+pass. Existing candidate programs/dumps/resources, compiled source and historical
+31.1 observations keep their identities.
+
+`--reference-selection` applies to prepare/execute/components and composes with
+P461 runner selection. It binds an owned selection/products registry plus actual
+recipe, install/runtime probe, captured patches and source-tree comparison.
+Only the reference program/dump/resources/native feature may change; all60
+candidate dictionaries, order, source cohorts and whole-product receipts remain
+fixed. Default consumption rejects a replaced reference; explicit admission
+reads its historical dictionary without opening the retired installation.
+
+The package's runtime repository variable is null. Source commit is verified
+through the pinned recipe and actual Homebrew install receipt; no synthetic
+runtime value is substituted. A present runtime revision must match exactly.
+Recorded capabilities, program/dump argv, reaped probe and installed identity
+are cross-checked, then rechecked with every bound input on exit.
+
+- [x] C462: complete single-protocol selection and coordinator integration.
+- [x] A462: five file/process integration cases and actual installed-reference
+  probe plus all61 complete product receipts pass; default/explicit runners
+  compose and real owned-file protection/release is exercised.
+- [x] A462-P:23 post-functional scope/provenance/mutation protections pass;
+  existing phase/runner regressions remain passing.
+- [x] A462-R: independent final review accepts the complete reference transition;
+  zero confirmed defects.
+
+[Installation, measurements and boundaries](../maintenance/releases/2026-11-10-aligned-reference-selection.md).
+The old31.1 semantics phase is not relabeled. Full555-file/48-candidate stable
+and qualified performance acceptance remain open. CLN225 removes consumed
+reference source/cache and temporary verification material with public ledgers.
+
 ## Explicit stable runner selection (P461)
 
 `runtime-stage.py --action execute --execution-phase stable --stable-runner
@@ -14,7 +51,7 @@ The coordinator passes the actual default or captured runner to the existing
 frozen writer. Its bounded completion reader requires the matching unique
 non-Python `harness_sources` entry. The completion writer and schema, compiled
 products, source export, original555-file corpus and48-profile scope remain
-unchanged. A separately selected reference epoch is a distinct pending unit.
+unchanged. P462 separately binds the replacement reference epoch.
 
 - [x] C461: complete explicit selection, bounded capture and postflight binding.
 - [x] A461: eight real file/process/writer/reader integration cases pass through

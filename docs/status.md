@@ -26356,3 +26356,38 @@ See [P455 scope and evidence](runtime-modernization.md#current-execution-phases-
   open. The separately authorized aligned system reference is being built via
   the official package recipe with its source commit pinned and icon setting
   retained; old receipts are not relabeled.
+
+
+### 2026-11-10 — P462 aligned installed reference and CLN225
+
+- Official source package build pinned to fd7afced4036fc1a221567d70705d20a2bd64713
+  exits0 in1505.295s, cleanup complete, peak accounted7,818,908,520 bytes.
+  Existing icon/injected-path settings stay fixed; both installed applications
+  pass strict signature verification and retain the configured icon. The
+  official tap returns to its original clean master; the installed formula is
+  pinned. The superseded isolated-tap success is not adopted or relabeled.
+- Actual runtime reports32.0.50 and all seven sampled capabilities available.
+  Runtime repository variables are null; the first strict metadata expectation
+  fails honestly. The successor verifies source revision through the actual
+  installed receipt and pinned recipe, preserves the observed null and passes.
+- P462 adds explicit reference selection without opening retired historical
+  installation paths. All60 compiled candidate fields/order/cohorts and full
+  receipts stay fixed; default mode refuses silent replacement. Actual
+  installed editor observation, complete61-product admission and frozen-source
+  verification pass in46.379s, with state retirement and controller cleanup.
+- Five synthetic file/process integration cases pass through three Python
+  children and the real artifact owner;23 subsequent protections pass. Earlier
+  fixture manifest/library-layout failures remain recorded. Existing five
+  phase/runner regression modes pass. The frozen writer/protocol stays fixed.
+- CLN225 scoped native cleanup and bound auxiliary retirements remove5664 files,
+  three links and446 directories:1,909,455,588 logical bytes,1,923,178,496 prior
+  per-path allocated bytes. All6113 public identity records match private
+  operation/absence evidence; protected program/dump/config/source/results
+  remain unchanged. No whole-volume causal reclamation is claimed.
+- [P462](../maintenance/releases/2026-11-10-aligned-reference-selection.md) and
+  [CLN225](../maintenance/cleanup/reports/2026-11-10-225-consumed-reference-build-inputs.md).
+  Independent final review accepts with zero confirmed defects. Matching the
+  source revision does not
+  make all libraries identical or accept full stable/performance/Goal. Historical
+  31.1 observations retain their original epoch. The user-approved classified
+  full555-file/48-candidate policy still needs its bounded implementation.
