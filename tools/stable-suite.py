@@ -323,7 +323,7 @@ def _copy_source(source, target, entry):
 
 def _corpus_provider(repo):
     """Load acquisition only when explicitly needed; pure readers stay offline."""
-    source = _source_path(repo, 'tools/reference-corpus.py')
+    source = _absolute(Path(__file__).with_name('reference-corpus.py'), 'corpus provider')
     spec = importlib.util.spec_from_file_location('femacs_reference_corpus', source)
     provider = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(provider)
@@ -677,7 +677,12 @@ def _product_paths(program, dump_args, runtime_env=None):
     if not path.is_file():
         raise SuiteError('product program is not a regular file: {0}'.format(path))
     parent = path.parent
-    if parent.name == 'MacOS':
+    selected = (runtime_env or {}).get('FEMACS_STABLE_PRODUCT_LISP')
+    if selected is not None:
+        if not isinstance(selected, str) or not selected or '\x00' in selected or not Path(selected).is_absolute():
+            raise SuiteError('explicit product Lisp root must be an absolute physical directory')
+        lisp_root = _absolute(selected, 'product Lisp root')
+    elif parent.name == 'MacOS':
         lisp_root = parent.parent / 'Resources' / 'lisp'
     else:
         lisp_root = parent.parent / 'lisp'
@@ -1299,9 +1304,14 @@ def main(argv=None):
                 raise SuiteError('runtime environment must be an explicit JSON object') from error
             allowed = {'FEMACS_GC_COLLECTOR': {'major', 'young'},
                        'FEMACS_GC_OBSERVATION': {'off', 'phases', 'survival', 'all'}}
-            if not isinstance(value, dict) or any(key not in allowed or not isinstance(item, str) or item not in allowed[key]
-                                                  for key, item in value.items()):
-                raise SuiteError('only explicit collector/observation modes are allowed')
+            if not isinstance(value, dict):
+                raise SuiteError('explicit runtime environment object required')
+            for key, item in value.items():
+                if key == 'FEMACS_STABLE_PRODUCT_LISP':
+                    if not isinstance(item, str) or not item or '\x00' in item or not Path(item).is_absolute() or not _absolute(item, 'product Lisp root').is_dir():
+                        raise SuiteError('explicit product Lisp root must be an absolute physical directory')
+                elif key not in allowed or not isinstance(item, str) or item not in allowed[key]:
+                    raise SuiteError('only explicit collector/observation/product-library inputs are allowed')
             return value
         reference_env = runtime_environment(args.reference_env)
         candidate_env = runtime_environment(args.candidate_env)

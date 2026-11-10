@@ -1,5 +1,50 @@
 # Lisp runtime modernization: evidence and first bounded implementation
 
+## Explicit physical product libraries (P464)
+
+The first aligned original-corpus pair stopped before launching any editor:
+the frozen driver inferred an App-local Lisp directory while the official
+installed product uses its P462-bound shared library directory. The original
+child exit2 and outer failure remain unchanged; all61 product identities and
+complete receipts passed postflight, and the controller fully reaped its tree.
+
+`--stable-product-libraries` selects registered physical Lisp roots using the
+single `FEMACS_STABLE_PRODUCT_LISP` bridge key. It requires execute all/stable,
+an explicit reference selection and an active stable pair scope. All48 declared
+candidates remain supported. Collector/observer values and all other environment
+keys retain strict validation; the official installation is not reshaped.
+
+The coordinator captures the five current stable Python modules and the module
+fixture configuration header into its owned output, protects them with the
+existing artifact owner, and selects that driver only for stable actions. Helper
+imports resolve inside this snapshot. The header is captured and revalidated
+without adding a second non-Python entry to `harness_sources`; the per-file
+module fixture binds the actual header hash. The original runtime wire schemas
+are unchanged; explicit roots are recorded in existing `runtime_environment`.
+P463 reconstructs the same environments when assessing closed stage results.
+
+Root sources, captured sources/header, selection receipt and frozen counterparts
+are rechecked alongside all61 products. Existing P461 runner selection composes
+with this path; original tests, libraries, data and the frozen build stay intact.
+
+- [x] C464: complete explicit-root and owned-harness implementation.
+- [x] A464: four file/process integration cases and seven real editor processes;188 original cases passed.
+- [x] A464-P:27 post-functional scope/path/header/lifetime protections passed.
+- [x] A464-R: independent final review accepted; zero confirmed defects.
+
+Synthetic integration retains its explicit stand-ins and acquisition isolation;
+it does not certify original Lisp behavior. Separately, the five admitted
+products pass the original22-case help file (110 observations), and the selected
+reference/Cocoa-native products pass the original39-case module file
+(78 observations). Both real module fixtures compile against the captured header.
+All eight functional postflight checks pass; the first registry-shape failure
+is retained as a failed predecessor. Five related regression groups pass.
+CLN226 retires only consumed generated corpus/context copies and a redundant
+publication copy;61 product receipts and the frozen export pass post-cleanup.
+Independent final review accepts this unit with zero confirmed defects.
+The complete555-file/48-candidate run remains pending.
+[Measured scope and recovery](../maintenance/releases/2026-11-10-stable-product-libraries.md).
+
 ## Evidence-bound original stable-case accounting (P463)
 
 The human approved itemized classification while retaining all555 original

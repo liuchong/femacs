@@ -890,12 +890,12 @@ def execute(api, manifest, repo, out, reference, candidate, reference_dump_args,
     paths = {'reference': api._product_paths(reference, reference_dump_args, reference_env),
              'candidate': api._product_paths(candidate, candidate_dump_args, candidate_env)}
     import importlib.util
-    context_path = repo/'tools/stable-context.py'
+    context_path = Path(api.__file__).with_name('stable-context.py')
     context_spec = importlib.util.spec_from_file_location('femacs_stable_context', context_path)
     context_provider = importlib.util.module_from_spec(context_spec)
     context_spec.loader.exec_module(context_provider)
     harness_sources[str(context_path)] = api._sha256_path(context_path)
-    provider_path = repo/'tools/reference-corpus.py'
+    provider_path = Path(api.__file__).with_name('reference-corpus.py')
     harness_sources[str(provider_path)] = api._sha256_path(provider_path)
     context, context_record = context_provider.prepare(api, repo, out, manifest, paths)
     before = {label: api._public_product_identity(value) for label, value in paths.items()}

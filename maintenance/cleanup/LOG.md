@@ -1137,3 +1137,17 @@ all selected temporary copies are absent. No causal whole-volume reclaim claim.
   retained, and no whole-volume causal reclamation is claimed.
 - [Report and ledgers](reports/2026-11-10-225-consumed-reference-build-inputs.md).
   Independent final review accepted with zero confirmed defects; Goal remains open.
+
+## CLN226 — consumed stable product-library corpus copies (2026-11-10)
+
+After P464 functional acceptance and post-functional protections, retired four
+owned generated corpus/context roots:3374 files,30 links,517 directories,
+69,910,355 logical bytes and78,716,928 prior per-path allocated bytes. All3921
+public/plan/operation rows agree through EOF; selected roots are absent and210
+protected source/product/evidence paths are unchanged. A verifier child then
+precedes canonical retirement of one redundant publication file and its owned
+parent:319,929 logical bytes,323,584 prior allocated bytes, two auxiliary rows.
+Full61-product/source/reference postflight passes; original failures and raw
+observations remain unchanged. No whole-volume causal reclamation claim.
+[Scope and recovery](reports/2026-11-10-226-consumed-stable-library-copies.md).
+Independent final review accepted with zero confirmed defects.

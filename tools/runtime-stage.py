@@ -125,6 +125,81 @@ def stage_stable_runner(path, out, source, artifacts=None):
     return captured, selection, identities
 
 
+def stage_stable_harness(out, source, artifacts=None):
+    """Capture one complete current stable Python driver without changing Source."""
+    root = out/'stable-harness'
+    (root/'tools').mkdir(parents=True)
+    names = ('stable-suite.py', 'stable-suite-batch.py', 'stable-context.py',
+             'runtime-retire.py', 'reference-corpus.py', 'fixtures/module-thread-config.h')
+    files, identities, captured_inputs = {}, {}, {}
+    fields = ('st_dev', 'st_ino', 'st_size', 'st_mtime_ns', 'st_mode')
+    for name in names:
+        original = execution.safe_path(REPO/'tools'/name)
+        identity = execution.file_identity(original)
+        if not original.is_file() or not 1 <= original.stat().st_size <= 1024*1024:
+            raise ValueError('bounded ordinary stable Python source required')
+        target = root/'tools'/name
+        target.parent.mkdir(parents=True, exist_ok=True)
+        descriptor = os.open(original, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
+        with os.fdopen(descriptor, 'rb') as incoming, target.open('xb') as outgoing:
+            before = os.fstat(incoming.fileno())
+            copied = 0
+            while block := incoming.read(65536):
+                copied += len(block)
+                if copied > 1024*1024:
+                    raise ValueError('stable Python source exceeded bound')
+                outgoing.write(block)
+            outgoing.flush()
+            os.fsync(outgoing.fileno())
+            after = os.fstat(incoming.fileno())
+        target.chmod(identity['mode'])
+        current = original.stat()
+        if (any(getattr(before, key) != getattr(after, key) or getattr(before, key) != getattr(current, key)
+                for key in fields) or execution.file_identity(original) != identity
+                or execution.file_identity(target) != identity):
+            raise ValueError('stable Python source changed while captured')
+        frozen = source/'tools'/name
+        files[name] = dict(source=dict(path=str(original), identity=identity),
+                           captured=dict(path=str(target), identity=identity),
+                           frozen=dict(path=str(frozen), identity=execution.file_identity(frozen)))
+        for path, pin in ((original, identity), (target, identity), (frozen, files[name]['frozen']['identity'])):
+            identities[str(path)] = pin
+        captured_inputs[str(target)] = identity
+    selection = dict(schema='femacs-stable-python-harness-v1', files=files,
+                     compiled_products_unchanged=True, frozen_source_unchanged=True)
+    receipt = root/'stable-harness-selection.json'
+    execution.write_json(receipt, selection)
+    identities[str(receipt)] = execution.file_identity(receipt)
+    captured_inputs[str(receipt)] = identities[str(receipt)]
+    if artifacts is not None:
+        owner.capture_artifacts(artifacts.journal, captured_inputs)
+    return root, selection, identities
+
+
+def stable_product_lisp_root(product):
+    roots = product['resource_roots']
+    if 'lisp' in roots:
+        selected = roots['lisp']
+    elif product['kind'] == 'cocoa' and 'bundle' in roots:
+        # Cocoa receipts register their complete Resources tree, including lisp.
+        selected = Path(roots['bundle'])/'lisp'
+    else:
+        raise ValueError('product registry has no declared Lisp library root')
+    root = execution.safe_path(selected)
+    if not root.is_dir():
+        raise ValueError('registered product Lisp root must be a physical directory')
+    return root
+
+
+def stable_product_environment(product, explicit_libraries=False):
+    environment = {'FEMACS_GC_OBSERVATION': 'off'}
+    if product['kind'] != 'reference':
+        environment['FEMACS_GC_COLLECTOR'] = 'major' if product['collector'] == 'off' else product['collector']
+    if explicit_libraries:
+        environment['FEMACS_STABLE_PRODUCT_LISP'] = str(stable_product_lisp_root(product))
+    return environment
+
+
 def clean_environment():
     return {key:value for key,value in os.environ.items()
             if not key.startswith("FEMACS_") and key not in execution.FORBIDDEN_ENV}
@@ -544,7 +619,8 @@ def component_matrix(options, out):
 
 
 def _execute_profiles(options, out, source, products_path, products, base, env,
-                      *, harness=None, original_rows=None, stable_runner=None):
+                      *, harness=None, original_rows=None, stable_runner=None,
+                      stable_harness=None, explicit_libraries=False):
     harness = harness or source
     actions, pairs, _ = execution_plan(getattr(options, 'execution_phase', 'all'), products,
         getattr(options, 'stable_profile', ()), stable_runner=stable_runner)
@@ -587,17 +663,19 @@ def _execute_profiles(options, out, source, products_path, products, base, env,
         rows.append(row)
         execution.write_json(out / "partial.json", dict(cases=rows, final=False))
     runner_path = stable_runner or harness / 'tools/fixtures/stable-suite-runner.el'
+    stable_driver = stable_harness or harness
     for reference, candidate in pairs:
         name = "stable-" + candidate["id"]
         receipt_root = base / name
-        command = [sys.executable, harness / "tools/stable-suite.py", "--repo", source,
+        reference_env = stable_product_environment(reference, explicit_libraries)
+        candidate_env = stable_product_environment(candidate, explicit_libraries)
+        command = [sys.executable, stable_driver / "tools/stable-suite.py", "--repo", source,
                    "--manifest", source / "compatibility/stable-31.1/sources.json", "--out", receipt_root,
                    "--reference", reference["program"], "--candidate", candidate["program"],
                    "--reference-dump-args", json.dumps(["--dump-file=" + reference["dump"]]),
                    "--candidate-dump-args", json.dumps(["--dump-file=" + candidate["dump"]]),
-                   "--reference-env", json.dumps({"FEMACS_GC_OBSERVATION":"off"}),
-                   "--candidate-env", json.dumps({"FEMACS_GC_OBSERVATION":"off",
-                                                   "FEMACS_GC_COLLECTOR":"major" if candidate["collector"] == "off" else candidate["collector"]}),
+                   "--reference-env", json.dumps(reference_env),
+                   "--candidate-env", json.dumps(candidate_env),
                    "--timeout", str(options.timeout),
                    '--runner', runner_path]
         case_env = dict(env)
@@ -611,8 +689,7 @@ def _execute_profiles(options, out, source, products_path, products, base, env,
             summary = suite.read_completion(receipt_root,
                 source/'compatibility/stable-31.1/sources.json', reference['program'], candidate['program'],
                 ['--dump-file='+reference['dump']], ['--dump-file='+candidate['dump']],
-                {'FEMACS_GC_OBSERVATION': 'off'}, {'FEMACS_GC_OBSERVATION': 'off',
-                    'FEMACS_GC_COLLECTOR': 'major' if candidate['collector'] == 'off' else candidate['collector']},
+                reference_env, candidate_env,
                 runner=runner_path)
             row['completion_sha256'] = execution.digest(receipt_root/'stable-suite-completion.json')
             row['execution_complete'] = summary['execution_complete']
@@ -693,9 +770,16 @@ def execute_matrix(options, out, artifacts=None):
     if getattr(options, 'stable_runner', None) is not None:
         selected_runner, runner_selection, runner_identities = stage_stable_runner(
             options.stable_runner, out, source, artifacts)
+    explicit_libraries = bool(getattr(options, 'stable_product_libraries', False))
+    selected_harness, stable_harness_selection, stable_harness_identities = None, None, {}
+    if explicit_libraries:
+        if not pairs or getattr(options, 'reference_selection', None) is None:
+            raise ValueError('explicit stable product libraries require a selected reference and stable pair scope')
+        selected_harness, stable_harness_selection, stable_harness_identities = stage_stable_harness(out, source, artifacts)
     try:
         rows = _execute_profiles(options, out, source, products_path, products, base, env,
-                                 harness=harness, original_rows=original_rows, stable_runner=selected_runner)
+                                 harness=harness, original_rows=original_rows, stable_runner=selected_runner,
+                                 stable_harness=selected_harness, explicit_libraries=explicit_libraries)
     finally:
         after, errors = {}, {}
         for product in products:
@@ -723,6 +807,14 @@ def execute_matrix(options, out, artifacts=None):
             except (OSError, ValueError) as error:
                 errors['stable-runner-selection'] = f'{type(error).__name__}: {error}'
                 runner_unchanged = False
+        stable_harness_unchanged = True
+        for name, identity in stable_harness_identities.items():
+            try:
+                if execution.file_identity(execution.safe_path(name)) != identity:
+                    raise ValueError('stable Python harness selection changed')
+            except (OSError, ValueError) as error:
+                errors['stable-harness-selection'] = f'{type(error).__name__}: {error}'
+                stable_harness_unchanged = False
         unchanged = not errors and before == after
         execution.write_json(identity_path, dict(before=before, after=after,
                                                 identity_errors=errors, unchanged=unchanged,
@@ -746,6 +838,9 @@ def execute_matrix(options, out, artifacts=None):
                 identity_receipt=str(identity_path),
                 stable_runner_selection=(dict(runner_selection, unchanged=runner_unchanged)
                                          if runner_selection is not None else None),
+                stable_product_libraries=explicit_libraries,
+                stable_harness_selection=(dict(stable_harness_selection, unchanged=stable_harness_unchanged)
+                                          if stable_harness_selection is not None else None),
                 reference_selection=getattr(options, '_reference_selection_summary', None),
                 goal_complete=False, compatibility_accepted=False, performance_accepted=False,
                 remaining=["actual source/product review", "native Finder/multiframe IME/TTY workflows",
@@ -833,6 +928,8 @@ def main(argv=None):
                         help='execute this complete stable pair; repeat for an explicit profile scope')
     parser.add_argument('--stable-runner', type=Path,
                         help='explicit stable runner captured into this run without recompiling products')
+    parser.add_argument('--stable-product-libraries', action='store_true',
+                        help='use registry Lisp roots and a captured current stable Python harness')
     parser.add_argument('--original-ert', type=Path)
     parser.add_argument('--original-index', type=Path)
     parser.add_argument('--original-audit', type=Path)
@@ -841,6 +938,9 @@ def main(argv=None):
         parser.error('execution-phase applies only to execute')
     if options.stable_profile and (options.action != 'execute' or options.execution_phase != 'stable'):
         parser.error('stable-profile applies only to execute --execution-phase stable')
+    if options.stable_product_libraries and (options.action != 'execute'
+            or options.execution_phase not in ('all', 'stable') or options.reference_selection is None):
+        parser.error('stable-product-libraries requires execute all/stable and reference-selection')
     if options.stable_runner is not None:
         if options.action != 'execute' or options.execution_phase not in ('all', 'stable'):
             parser.error('stable-runner applies only to execute --execution-phase all/stable')

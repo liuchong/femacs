@@ -26418,3 +26418,14 @@ remain pending; compatibility/performance/Goal are not promoted. Independent
 P463 final review accepts with zero confirmed defects; actual evidence-specific
 catalogs still need their own explanation/source/capability review.
 [Evidence and boundaries](../maintenance/releases/2026-11-10-stable-classified-accounting.md).
+
+
+## 2026-11-10：P464 显式产品库、受管驱动及 CLN226
+
+第一对对齐运行在任何编辑器/原文件执行前因推断的 App 库目录不存在退出2，外层失败完整保留。P464 通过唯一 FEMACS_STABLE_PRODUCT_LISP 键绑定已登记物理库（直接 lisp 或 Cocoa bundle/lisp），捕获五 Python 模块与 module-thread-config.h；同目录导入、immutable 生命周期、全61产品与 Root/捕获/冻结输入后置检查均保持。支持完整48候选范围，原 completion 协议及原始计数/状态不变。
+
+完整业务实现后，四项文件/进程功能集成通过（两CLI加四替身Python进程，3.942s）；独立真实功能7/7编辑器进程、188/188原用例通过（原help-fns全22项×五产品=110；原module全39项×参照/Cocoa native=78），实际C模块夹具绑定捕获头文件。业务59.010s，控制器100.476s/峰值166,166,528字节，八项postflight全真。首个真实夹具因误读Cocoa resource_roots.lisp产生KeyError、编辑器启动数0，原失败不变；后继按实际bundle结构修正。功能通过后，27/27关键保护通过并绑定两份功能回执（0.123s）；相关分类/稳定/runner/参照五组回归全部通过，控制器8.948s。全部自有合成夹具与短容器已退场，控制器均cleanup_complete。
+
+CLN226 精确清退四处消费生成副本：3374文件+30链接+517目录=3921节点，69,910,355逻辑/78,716,928先前逐路径分配字节；公开/私有计划/实际操作流至EOF逐行一致，210受保护文件未变。随后canonical清退冗余公开清单工作副本及父目录，319,929逻辑/323,584先前分配字节，另两行公开记账。全61产品/固定参照/冻结输入纯文件复验通过（42.303s，无编辑器启动）。不宣称整卷因果回收；原功能回执历史corpus_retirement_pending保留，后续清理另账。
+
+A464-R独立终审已接受，14份Root文件与55项闭合证据逐一复核、零确认缺陷；完整555原文件/48候选稳定语料与安静主机性能尚未验收，兼容/性能/Goal均不升格。已核收仍3/7，G3/G5/G6/G7及GA8继续推进。

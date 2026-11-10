@@ -466,7 +466,7 @@ def run(stage, args):
     require(catalog['reference_selection_sha256'] == selection['sha256'], 'reference epoch mismatch')
     manifest_path = source/'compatibility/stable-31.1/sources.json'
     require(catalog['manifest_sha256'] == execution.digest(manifest_path), 'original manifest mismatch')
-    requested, input_pins = {}, {}
+    requested, library_selections, input_pins = {}, {}, {}
     candidates = {p['id']: p for p in products if p['kind'] != 'reference' and not p['test_hooks']}
     require(len(candidates) == 48, 'complete 48-candidate registry required')
     for path in args.run_results:
@@ -482,6 +482,10 @@ def run(stage, args):
                 and raw.get('reference_selection') == selection,
                 'only closed, unchanged, matching-epoch stable stages may be classified')
         input_pins[str(path)] = pin
+        explicit_libraries = raw.get('stable_product_libraries', False)
+        require(type(explicit_libraries) is bool
+                and (not explicit_libraries or raw.get('stable_harness_selection', {}).get('unchanged') is True),
+                'explicit stable library/harness selection was not verified')
         for row in raw.get('cases', []):
             name = row.get('id', '')
             if not name.startswith('stable-'):
@@ -490,6 +494,7 @@ def run(stage, args):
             require(profile in candidates and profile not in requested
                     and row.get('execution_complete') is True, 'duplicate or incomplete stable pair')
             requested[profile] = row
+            library_selections[profile] = explicit_libraries
     require(requested, 'no executed stable pairs supplied')
     out = execution.new_output(args.out)
     started = time.monotonic()
@@ -507,9 +512,9 @@ def run(stage, args):
                 root = execution.safe_path(raw['receipt']).parent
                 receipt = suite.read_completion(root, manifest_path,
                     reference['program'], candidate['program'], ['--dump-file='+reference['dump']],
-                    ['--dump-file='+candidate['dump']], {'FEMACS_GC_OBSERVATION':'off'},
-                    {'FEMACS_GC_OBSERVATION':'off', 'FEMACS_GC_COLLECTOR':
-                     'major' if candidate['collector'] == 'off' else candidate['collector']},
+                    ['--dump-file='+candidate['dump']],
+                    stage.stable_product_environment(reference, library_selections[profile]),
+                    stage.stable_product_environment(candidate, library_selections[profile]),
                     classification=args.classification, candidate_profile=candidate,
                     reference_selection=selection)
                 process = raw.get('process', {})
