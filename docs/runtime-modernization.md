@@ -1,5 +1,59 @@
 # Lisp runtime modernization: evidence and first bounded implementation
 
+## Bounded complete stable pairs (P457)
+
+Baseline `3ac14daf`: `tools/runtime-stage.py execution_plan` (line38),
+`_execute_profiles` (line437), `execute_matrix` (line531) and `main` (line650)
+dispatch all48 stable pairs serially. Each pair invokes the unchanged frozen
+`stable-suite.py` and all555 original entrypoint files on both programs;
+the current runner has no continuation API. Total work is53,280 file calls.
+No measured full-pair duration exists for this new frozen-source generation.
+
+```text
+main --action execute --execution-phase stable --stable-profile ID [repeat]
+  execution_plan: validate eligible unique IDs -> original-order complete pairs
+  execute_matrix: all61 products before -> unchanged frozen child/strict reader
+                  -> all61 products after + complete product receipts
+  result: exact requested IDs, explicit remaining IDs, bounded scope completion
+```
+
+The selector is orchestration only, with default all48 pairs. It accepts only
+non-diagnostic candidate IDs and never changes the product list, compiled
+fields, original test bodies, file selection or runtime configuration.
+`execution_complete` still describes the explicit invocation scope;
+`stable_phase_complete` requires every pair, and a subset keeps `stable` in
+`remaining_execution_phases`. Only a complete `all` invocation can report
+`full_matrix_execution_complete`; compatibility/performance/Goal acceptance
+remain false. Duplicate IDs and wrong-phase CLI options fail before output;
+unknown/diagnostic IDs fail before product snapshots or editor dispatch.
+
+First run one complete pair under the existing runtime controller,4GiB
+initial/16GiB hard and a43,200s whole-run limit, retaining the300s default
+per-load/per-test limit and the existing600s macOS remote file-notify case
+exception. The full new pair has unknown case count and cost, so
+this is a finite calibration window, not a duration prediction. Corpus
+execution is serial and owned state is retired by the unchanged inner runner.
+Bind the observed duration, storage and complete-tree peak before scheduling
+the other47 pairs. Timeout/incomplete results remain failures; do not invent
+coverage or discard their raw evidence.
+
+- [x] C457: implement explicit complete-pair dispatch and remaining scope.
+- [x] A457: real child-process/file integration validates selected scope and receipts.
+- [x] A457-P: afterward pass critical selection/completion protections.
+- [x] A457-R: independent review accepts the unit before current-corpus execution.
+
+The integration exercised5 actual Python children: one selected pair, all
+explicit pairs in product order, a changed detailed receipt rejected despite
+exit0, and a complete failed original outcome preserved. Its result SHA256
+is `39bd84c95a6a53a30e8d02bab27b29c2af4c728b69e25d64f86607ce8846383b`.
+The subsequent16 protections passed, result SHA256
+`418ee4d43871502c8cf3be99b93e450e35208d1b8696c4b89d239016750ae8f1`.
+They isolate compiled-product admission; no editor or original corpus ran.
+Both retained outputs contain only results after retiring owned fixtures.
+Controllers exited0 with full cleanup under1GiB/120s. The first integration
+fixture omitted a manifest parent directory and failed before child dispatch;
+its failure log remains, and the complete fixture tree was still retired.
+
 ## Current execution phases (P455)
 
 The current signed-source build and negative preparation are recorded in the

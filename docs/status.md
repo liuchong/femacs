@@ -26222,3 +26222,18 @@ See [P455 scope and evidence](runtime-modernization.md#current-execution-phases-
   Final auxiliary cross-check accepts the exact retired mirror identities.
   Goal remains active3/7. [Semantics](../maintenance/releases/2026-11-10-current-runtime-semantics.md),
   [CLN221](../maintenance/cleanup/reports/2026-11-10-221-consumed-runtime-semantic-state.md).
+
+## P457: bounded complete stable-pair scheduling (2026-11-10)
+
+- Add explicit stable candidate IDs to the existing outer coordinator; default
+  remains all48 pairs. Preserve555 original files per program/pair and all61
+  product identities. Report remaining IDs and outstanding stable phase.
+- Real file/process integration passes5 children, including exact valid scope,
+  original product order, tampered-receipt rejection and raw failed outcomes.
+  Then16 critical selection/completion protections pass. Owned fixtures retired;
+  no editor, compiler or original corpus execution is claimed from these tests.
+- First fixture setup failed before dispatch because its manifest parent was
+  absent; failure retained, fixture fully retired, corrected integration passed.
+- [Design and evidence](runtime-modernization.md#bounded-complete-stable-pairs-p457).
+  Independent review accepts this complete unit; current-corpus execution is next.
+  Goal remains active3/7; whole stable/performance/components/installation open.

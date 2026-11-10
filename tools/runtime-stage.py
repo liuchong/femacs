@@ -35,10 +35,12 @@ EXECUTION_PHASES = {
 }
 
 
-def execution_plan(phase, products):
-    """Partition orchestration only; every selected phase keeps all profiles."""
+def execution_plan(phase, products, stable_profiles=()):
+    """Select complete pairs only; compiled products and corpus scope stay intact."""
     if phase not in EXECUTION_PHASES:
         raise ValueError('unknown execution phase')
+    if stable_profiles and phase != 'stable':
+        raise ValueError('stable profiles require the stable execution phase')
     pairs = []
     if phase in ('all', 'stable'):
         pairs = [(reference, candidate) for reference in products if reference['kind'] == 'reference'
@@ -47,6 +49,15 @@ def execution_plan(phase, products):
     ids = [*actions, *('stable-' + candidate['id'] for _, candidate in pairs)]
     if not ids or len(ids) != len(set(ids)):
         raise ValueError('empty or duplicate execution scope')
+    if stable_profiles:
+        if len(stable_profiles) != len(set(stable_profiles)):
+            raise ValueError('duplicate stable profile selection')
+        available = {candidate['id'] for _, candidate in pairs}
+        if set(stable_profiles) - available:
+            raise ValueError('unknown or diagnostic stable profile selection')
+        pairs = [(reference, candidate) for reference, candidate in pairs
+                 if candidate['id'] in stable_profiles]
+        ids = ['stable-' + candidate['id'] for _, candidate in pairs]
     return actions, pairs, ids
 
 
@@ -437,7 +448,8 @@ def component_matrix(options, out):
 def _execute_profiles(options, out, source, products_path, products, base, env,
                       *, harness=None, original_rows=None):
     harness = harness or source
-    actions, pairs, _ = execution_plan(getattr(options, 'execution_phase', 'all'), products)
+    actions, pairs, _ = execution_plan(getattr(options, 'execution_phase', 'all'), products,
+                                     getattr(options, 'stable_profile', ()))
     rows = []
     for action in actions:
         command = [sys.executable, harness / "tools/runtime-acceptance.py", "--action", action,
@@ -531,7 +543,12 @@ def snapshot_harness(out):
 def execute_matrix(options, out, artifacts=None):
     original, source, products_path, products, build = read_action_build(options)
     phase = getattr(options, 'execution_phase', 'all')
-    actions, pairs, expected_ids = execution_plan(phase, products)
+    actions, pairs, expected_ids = execution_plan(phase, products,
+                                                getattr(options, 'stable_profile', ()))
+    available_pairs = execution_plan('stable', products)[1] if phase in ('all', 'stable') else []
+    requested_profiles = [candidate['id'] for _, candidate in pairs]
+    remaining_profiles = [candidate['id'] for _, candidate in available_pairs
+                          if candidate['id'] not in requested_profiles]
     # Include the complete stable-corpus loop in the same immutable-product boundary.
     before = {product["id"]: execution.product_identity(product, resources=True) for product in products}
     identity_path = out / "product-identities.json"
@@ -591,10 +608,14 @@ def execute_matrix(options, out, artifacts=None):
     return dict(cases=rows, build_receipt=str(original), build_complete=build.get("passed") is True,
                 harness_root=str(harness), original_ert_reused=original_rows is not None,
                 execution_phase=phase, requested_actions=list(actions), requested_stable_pairs=len(pairs),
+                requested_stable_profiles=requested_profiles,
+                available_stable_pairs=len(available_pairs), remaining_stable_profiles=remaining_profiles,
+                stable_phase_complete=phase in ('all', 'stable') and scope_complete and not remaining_profiles,
                 execution_complete=scope_complete,
                 full_matrix_execution_complete=phase == 'all' and scope_complete,
                 remaining_execution_phases=([name for name in ('semantics', 'stable', 'performance')
-                                             if name != phase] if phase != 'all' else []),
+                                             if name != phase or (name == 'stable' and remaining_profiles)]
+                                            if phase != 'all' else []),
                 passed=scope_complete and all(row["passed"] for row in rows),
                 product_identity_unchanged=unchanged, complete_receipts_valid=complete_receipts_valid,
                 identity_receipt=str(identity_path),
@@ -670,12 +691,18 @@ def main(argv=None):
     parser.add_argument("--timeout", type=float, default=300)
     parser.add_argument('--execution-phase', choices=tuple(EXECUTION_PHASES), default='all',
                         help='execute one complete phase without claiming the complete matrix')
+    parser.add_argument('--stable-profile', action='append', default=[],
+                        help='execute this complete stable pair; repeat for an explicit profile scope')
     parser.add_argument('--original-ert', type=Path)
     parser.add_argument('--original-index', type=Path)
     parser.add_argument('--original-audit', type=Path)
     options = parser.parse_args(argv)
     if options.action != 'execute' and options.execution_phase != 'all':
         parser.error('execution-phase applies only to execute')
+    if options.stable_profile and (options.action != 'execute' or options.execution_phase != 'stable'):
+        parser.error('stable-profile applies only to execute --execution-phase stable')
+    if len(options.stable_profile) != len(set(options.stable_profile)):
+        parser.error('duplicate stable profile selection')
     if options.execution_products is not None and options.action not in ('prepare', 'execute', 'components'):
         parser.error('execution-products applies only to prepare/execute/components')
     if not math.isfinite(options.timeout) or options.timeout <= 0:

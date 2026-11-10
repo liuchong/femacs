@@ -4137,3 +4137,18 @@ After real holders released them, a separately bound transaction retired only
 the14 exact copies and62 empty parents through the canonical per-node path.
 This late filesystem completion does not promote the original failed result,
 reexecute semantic cases or establish stable-corpus/performance acceptance.
+
+## P457: bound stable scheduling by explicit complete pairs (2026-11-10)
+
+The original stable runner has no continuation option, and each pair must run
+all555 original entrypoint files on both programs. Add repeatable
+`--stable-profile` only to `runtime-stage.py execute --execution-phase stable`.
+Select candidate IDs from the existing full product list, reject duplicates,
+unknown IDs and diagnostic profiles, and retain the original product order.
+Keep all61 products inside the existing identity/retention boundary and leave
+the frozen corpus, child command, timeout, reader and outcomes unchanged.
+Report requested and remaining candidate IDs explicitly; a subset completion
+must retain `stable` in the outstanding phases and cannot claim complete
+stable-phase, full-matrix or whole-Goal coverage. Default execution still runs
+all48 pairs. First measure one complete pair before choosing subsequent
+bounded scheduling; no file selection, cross-pair reuse or failure waiver.
