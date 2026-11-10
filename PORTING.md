@@ -4152,3 +4152,21 @@ must retain `stable` in the outstanding phases and cannot claim complete
 stable-phase, full-matrix or whole-Goal coverage. Default execution still runs
 all48 pairs. First measure one complete pair before choosing subsequent
 bounded scheduling; no file selection, cross-pair reuse or failure waiver.
+
+## P458: preserve indirect-call backtrace frames in bytecode (2026-11-10)
+
+The original stable advice interaction test passes on the installed reference
+but loses the inner around-advice interactive flag on the baseline candidate.
+Static tracing identifies bytecode funcall/apply closure shortcuts that replace
+the caller's backtrace slot instead of retaining the outer call and entering
+Ffuncall normally. Advice walks these observable frames; they are semantic
+state, including arguments, debugger hooks, evaluation depth and unwinding.
+Route MANY subrs through their standard implementation and remove the
+associated apply-spread helper and funcall-only arithmetic/closure shortcuts.
+Keep ordinary direct bytecode closure calls and the other VM optimizations.
+Do not substitute an advice-specific guard or alter original Lisp/test data.
+Implement in Root only while the already frozen corpus run finishes; verify
+its source and products remain unchanged. Rebuild affected products and run
+the original complete advice file plus real call-frame functional checks;
+only after they pass add the critical protective tests. No repair or new
+performance claim is accepted until these real executions complete.

@@ -1086,3 +1086,14 @@ and their empty directory were canonically retired:158178794 logical/159260672
 per-path allocated bytes, recorded separately in395 auxiliary public rows.
 All11316 source pins and the main public manifest remain unchanged.
 [Scope and reconstruction](reports/2026-11-10-221-consumed-runtime-semantic-state.md).
+
+## CLN222 — superseded P453 build and App backups (2026-11-10)
+
+After P458 functional/protective/local acceptance and independent review,
+retired exactly3 owned backups:9,760 files,13 links and373 directories,
+548,866,166 logical bytes and569,982,976 prior per-path allocated bytes.
+All10,146 public rows match the bound plan and actual operations; all selected
+roots are absent and8 protected source/product/release paths are unchanged.
+The running installed App and frozen runtime matrix remain outside selection.
+No whole-volume causal reclamation claim.
+[Scope and recovery](reports/2026-11-10-222-superseded-p453-build-app-backups.md).

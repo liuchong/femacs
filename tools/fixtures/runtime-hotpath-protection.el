@@ -236,5 +236,58 @@
                       (error (error-message-string err)))
                      "rhp expected closure hook error")))))
 
+(ert-deftest rhp09-bytecode-indirect-call-frames-and-unwind ()
+  "Indirect compiled calls retain their outer frame across GC and errors."
+  (require 'bytecomp)
+  (let* ((target (byte-compile
+                  '(lambda (value)
+                     (garbage-collect)
+                     (list value (backtrace-frames)))))
+         (bad (byte-compile
+               '(lambda (value) (signal 'wrong-type-argument (list 'integerp value)))))
+         (payload (cons 'kept 42)))
+    (dolist (op '(funcall apply))
+      ;; Keep an actual indirect Bcall2; the compiler may fold source funcall.
+      (let* ((wrapper (make-byte-code
+                       514 (unibyte-string 192 2 2 34 135) (vector op) 8))
+             (argument (if (eq op 'apply) (list payload) payload))
+             (result (funcall wrapper target argument))
+             (tail (cl-member-if (lambda (frame) (eq (cadr frame) target))
+                                 (cadr result))))
+        (should (eq (car result) payload))
+        (should tail)
+        (should (eq (car (cadr tail)) t))
+        (should (eq (cadr (cadr tail)) op))
+        (should (eq (car (nth 2 (cadr tail))) target))
+        (should (eq (cadr (nth 2 tail)) wrapper))
+        (should (equal (condition-case err (funcall wrapper bad argument)
+                         (wrong-type-argument err))
+                       (list 'wrong-type-argument 'integerp payload)))
+        (should-not (cl-some (lambda (frame) (memq (cadr frame) (list wrapper bad)))
+                            (backtrace-frames)))
+        (should (eq (car (funcall wrapper target argument)) payload))))))
+
+(ert-deftest rhp10-bytecode-nested-advice-interactive-call ()
+  "An outer before advice preserves the inner around advice's caller frames."
+  (let* ((command (make-symbol "rhp-interactive-command"))
+         (seen nil)
+         (around (lambda (function &rest args)
+                   (list (cons 1 (called-interactively-p 'any))
+                         (apply function args))))
+         (before (lambda (&rest _args)
+                   (setq seen (called-interactively-p 'any)))))
+    (fset command (lambda () (interactive) 11))
+    (unwind-protect
+        (progn
+          (advice-add command :around around)
+          (advice-add command :before before)
+          (should (equal (list (call-interactively command) seen)
+                         '(((1 . t) 11) t)))
+          (setq seen :not-called)
+          (should (equal (list (funcall command) seen) '(((1) 11) nil))))
+      (advice-remove command before)
+      (advice-remove command around)
+      (fmakunbound command))))
+
 (provide 'runtime-hotpath-protection)
 ;;; runtime-hotpath-protection.el ends here

@@ -1,5 +1,64 @@
 # Lisp runtime modernization: evidence and first bounded implementation
 
+## Bytecode indirect-call frame repair (P458)
+
+Baseline `920c9896`: the first current-corpus run observes the original
+`advice-test-called-interactively-p` failure: expected `(((1 . t) 11) t)`,
+actual `(((1) 11) t)`. The same original file/test and static advice libraries
+match the stable source. The independent review traced `src/bytecode.rs`
+`do_call!` (baseline lines1056–1302), `src/eval.rs Fapply` (2756–2871) /
+`Ffuncall` (3188–3233), and `nadvice.el advice--called-interactively-skip`
+(635–682). Actual dumped definitions/backtraces were not sampled.
+
+```text
+current: do_call! records apply/funcall -> shortcut overwrites that frame
+         -> setup_frame enters compiled closure without the outer call frame
+repair:  do_call! records apply/funcall -> ordinary MANY subr Fapply/Ffuncall
+         -> new target frame -> normal return/unwind -> outer frame remains
+```
+
+Remove only the MANY-subr funcall/apply shortcut block (baseline1136–1299)
+and its sole-use `bc_prepare_apply_spread` helper (465–540). The normal MANY
+call and ordinary direct bytecode closure dispatch stay. Removing the nested
+funcall arithmetic/make-closure shortcuts also avoids executing a target
+without its ordinary observable frame. Preserve the original function value
+for the existing general slow path; do not invent stack reconstruction or
+symbol-name exceptions. Original tests and packaged Lisp stay verbatim.
+
+Root and the frozen source have distinct physical nodes. The first pair used
+its original compiled59d4215c image and920c9896 Python coordinator. It stopped
+at336/555 files and5,596 observations when the controller's owned-process
+identity sampler returned EPERM; exit125 and complete process cleanup are
+recorded. Its2,450,883,304-byte peak did not reach the memory limit. The exact
+process causing the permission failure was not identified. The original
+partial results stay incomplete, including all259 raw failures.
+
+After confirming the owner had exited, the unchanged canonical artifact
+release cleared the owned protection flags. Separate postflight verified all61
+product identities, complete product receipts and the frozen source export.
+That preservation result does not complete the interrupted pair. The affected
+standard Terminal/Cocoa products were rebuilt serially from empty output
+roots; prior reviewed products were retained until replacement acceptance.
+The original failed pair was not replayed unchanged.
+
+- [x] C458: restore standard indirect-call frame entry and remove dead helper.
+- [x] A458: rebuild Terminal/Cocoa; complete original advice-file and real
+  compiled funcall/apply/backtrace/interactive-advice functional acceptance.
+- [x] A458-P: afterward add and pass critical call-frame/error/unwind protection.
+- [x] A458-R: independent review accepts source and actual corrected results.
+
+The old failure remains unchanged. The current 61-profile generation and
+whole Goal stay unaccepted; a source repair requires new affected products,
+semantic/stable results and measured performance before adoption/installation.
+
+[Actual corrected products and functional results](../maintenance/releases/2026-11-10-bytecode-indirect-call-frames.md):
+all7 owned cases plus the original13-test file agree on three products;
+11 ordinary passes and2 original expected failures per file, zero unexpected.
+The60 subsequent hot-path/bytecode protections,9 local checks and6 TTY cases
+pass. Independent final review accepts the complete repair unit. CLN222 retires
+the3 superseded owned backups, preserving current products/releases and the
+running installed App. Whole-Goal completion remains open.
+
 ## Bounded complete stable pairs (P457)
 
 Baseline `3ac14daf`: `tools/runtime-stage.py execution_plan` (line38),

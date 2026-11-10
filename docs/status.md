@@ -26237,3 +26237,32 @@ See [P455 scope and evidence](runtime-modernization.md#current-execution-phases-
 - [Design and evidence](runtime-modernization.md#bounded-complete-stable-pairs-p457).
   Independent review accepts this complete unit; current-corpus execution is next.
   Goal remains active3/7; whole stable/performance/components/installation open.
+
+## P458: indirect-call frames restored and functionally verified (2026-11-10)
+
+- Current frozen original advice test observes a lost interactive flag only on
+  the candidate. Independent static tracing identifies funcall/apply shortcuts
+  replacing the observable outer call frame; actual dumped frames were not sampled.
+- Root removes those shortcuts and their sole-use apply-spread helper, retaining
+  normal MANY-subr and ordinary direct-closure entry. Frozen source/programs and
+  original stable coordinator remain unchanged; old observations are not promoted.
+- Complete owned functional fixture and three-product/original13-test driver
+  were written before execution. The first pair stopped at336/555 files after
+  an owned-process sampler EPERM (exit125, complete cleanup), below its memory
+  limit. Canonical artifact release and separate61-profile/source postflight
+  passed; the partial pair and259 raw failures remain unaccepted. Clean standard
+  product rebuilds completed from empty roots, exit0 with complete cleanup.
+- Three real products pass all7 owned frame/GC/error/throw cases and agree on
+  the entire original13-test file:11 ordinary passes plus2 source-declared
+  expected failures per product, zero unexpected. The regressing test passes.
+  Fixture lazy-load and initial reader/output mistakes remain recorded separately.
+- Only afterward, both new critical protections and existing suites pass:
+  10 hot-path plus10 bytecode cases per product,60 total. Nine local checks,
+  six TTY recovery cases and new local release packaging also pass. The installed
+  App remains running and is not replaced. Independent final review accepts P458.
+- CLN222 retires the3 superseded owned backups:9,760 files,13 links,373
+  directories,548,866,166 logical bytes. All10,146 manifest rows match actual
+  operations; current source/products and both reviewed release images unchanged.
+- [P458 design](runtime-modernization.md#bytecode-indirect-call-frame-repair-p458) ·
+  [products and actual evidence](../maintenance/releases/2026-11-10-bytecode-indirect-call-frames.md).
+  Goal remains active3/7; whole-corpus, current matrix and performance remain open.
