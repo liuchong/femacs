@@ -1,5 +1,69 @@
 # Lisp runtime modernization: evidence and first bounded implementation
 
+## Complete runtime measurement contracts (P459)
+
+Baseline `1a8f68e4`; independent G5 static audit is closed. Complete its exact
+dispatch/report/statistics gaps before freezing the next matrix. Existing
+native/observer/collector implementations and Lisp workloads remain unchanged.
+
+```text
+execute performance/all
+  primary performance -> own output -> strict performance completion
+  performance-fallback -> distinct output + permanent-Full flag
+                       -> strict performance completion and mode binding
+both: all61 product identities before/after, frozen harness and original input
+
+startup child: spawn timestamp -> owned wait thread observes reaped exit
+               main thread keeps memory sampling/deadline/group cleanup
+               lifetime endpoint + actual RSS/footprint + quiet observations
+  2 warmups retained,7 measured samples/profile -> same statistics/comparisons
+
+report: bounded full-scale raw JSON -> validated copied summary -> safe output
+        no accepted speedup inferred from collection success
+```
+
+| Current source location | Complete change | Acceptance scope |
+| --- | --- | --- |
+| `tools/runtime-stage.py EXECUTION_PHASES`, `execution_plan`, `_execute_profiles` | Add distinct `performance-fallback` action ID to performance/all; canonical inner action remains performance, append the explicit flag, bind its mode through the completion input record. Preserve default full scope and all61 protection. | Real child/strict receipt integration verifies both runs and rejects a mode mismatch. |
+| `tools/runtime-execution.py main`, `write_completion`, `read_completion` | Persist the explicit performance mode in inputs and reject a changed/mistyped mode binding; retain streamed detailed/index/retirement identities. | Current writer/reader and actual completion files, not an exit-code substitute. |
+| `tools/runtime-execution.py run_process` | Add opt-in observed-exit timing for startup, using one owned wait thread and monotonic timestamps. Preserve total `seconds`, timeout and process-group cleanup; always join the waiter. | Actual finite Python child exits, memory observations and timeout/unwind. No editor claim from this integration. |
+| `tools/runtime-execution.py prepare_memory_sampling`, `sample_memory` | Retain only immutable sampler bindings, initialize before measured child spawn and record preparation time separately. Reopen the PID after measurement because a psutil Process caches creation time. An empty retired tree is not a zero-valued memory sample. | Preparation is outside the measured window. Unknown/reused identities and missing positive observations cannot pass; no cached measurement substitutes. |
+| `tools/runtime-execution.py run_performance` | Add successful measured startup rows to samples as case/mode startup, validate memory/timing/identity, retain raw warmups, and pair same-round reference and same-layout major/young startup controls. | Distinct startup lifetime and body timing; no20ms polling quantization claimed as startup time. |
+| `tools/runtime-acceptance.py PERF_MODES`, `summarize_performance` | Admit distinct startup mode; add pause median/MAD and real footprint/accounted maxima. Missing physical observations remain null. Keep7-round, quiet and p95/p99 evidence requirements. | Actual writer/reader integration followed by critical accounting protections. |
+| `tools/runtime-measurement-report.py` bounds, `CASE_FIELDS`, `validate_case`, fallback validation | Finite256MiB input,32,768 sample and4,096 case limits; validate/copy the new fields and distinct startup mode. Fallback accepts only interpreted/bytecode with no startup. Keep strict types, privacy, unknown-field and false-acceptance gates. | One full-shape primary report above the old limits and a fallback report, with actual bounded file/CLI reading. Synthetic values are never editor performance evidence. |
+
+The current primary still runs303 mode/observer controls ×9 plus49 startups
+×9 =3,168 child processes. Including measured startups gives13,069 samples
+and1,867 summary cases. Body comparisons remain960, with48 reference and16
+same-layout startup comparisons:1,024 total. Fallback remains882 workload
+processes,4,116 measured samples and no repeated startup/native/observer sweep.
+These are design cardinalities, not completed executions. The finite byte
+limit is an engineering admission bound; actual full-matrix serialized size
+has not yet been measured and must not be claimed from this estimate.
+
+Phase22 remains collector preparation,23 frozen non-cons registry roots and24
+dirty/raw-tainted old-cons children. Their records, allocation and survival
+buckets remain in original per-case raw observations; do not label23/24 as
+mark/sweep or invent phase averages. Interpreted/bytecode/native compilation
+setup stays outside body wall timing and remains separately recorded.
+
+Implementation precedes complete functional integration; only after that
+passes add critical protection tests in the existing phase, accounting and
+report test modules. Full editor performance and adoption remain later work.
+
+- [x] C459: complete all dispatch, input, timing, summary and report changes.
+- [x] A459: actual child/receipt/timing and full-shape file/report integration.
+- [x] A459-P: subsequent critical mode/boundary/statistics protections pass.
+- [x] A459-R: independent source and actual scoped-result review accepts.
+
+Actual tool integration passes16 phase/receipt child calls plus167 measurement
+and report child calls. The latter use explicit synthetic editor descriptors,
+not editor execution. The full-shape inputs are79,036,726 and25,609,707 bytes;
+current normalizer counts match the declared primary and fallback shapes.
+Post-functional protections pass86 cases. Failed short-lived sampling and
+fixture metadata runs remain failed; no original observation is promoted.
+[Scoped evidence and remaining work](../maintenance/releases/2026-11-10-runtime-measurement-contracts.md).
+
 ## Bytecode indirect-call frame repair (P458)
 
 Baseline `920c9896`: the first current-corpus run observes the original

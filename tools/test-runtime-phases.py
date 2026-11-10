@@ -26,15 +26,19 @@ p=argparse.ArgumentParser()
 p.add_argument('--out',type=Path,required=True)
 p.add_argument('--action')
 p.add_argument('--products',type=Path)
+p.add_argument('--permanent-full-fallback',action='store_true')
 a,rest=p.parse_known_args()
 s=importlib.util.spec_from_file_location('phase_receipts',os.environ['PHASE_CONTRACT_DRIVER'])
 e=importlib.util.module_from_spec(s);s.loader.exec_module(e)
 a.out.mkdir(parents=True)
 if a.action:
- e.write_json(a.out/'inputs.json',dict(action=a.action,product_list_sha256=e.digest(a.products)))
+ fallback=a.permanent_full_fallback and os.environ.get('PHASE_BAD_FALLBACK_MODE')!='1'
+ e.write_json(a.out/'inputs.json',dict(action=a.action,product_list_sha256=e.digest(a.products),
+  permanent_full_fallback=fallback))
  report=dict(schema='femacs-runtime-execution-v1',action=a.action,passed=True,
   cases=[dict(id='synthetic-phase-dispatch',passed=True)],
   full_product_inputs_unchanged=True,fixtures_unchanged=True)
+ if a.action=='performance':report.update(permanent_full_fallback=fallback,startup_measured=not fallback)
  e.write_json(a.out/'state-retirement.json',dict(complete=True))
  e.write_json(a.out/'results.json',report)
  e.write_completion(a.out,report)
@@ -251,9 +255,9 @@ def integration(out):
         before = {p['id']:stage.execution.product_identity(p,resources=True) for p in products}
         env = dict(os.environ, PHASE_CONTRACT_DRIVER=str(REPO/'tools/runtime-execution.py'))
         for phase, expected in [('semantics',['ert','negative','dump','relocation']),
-                                ('performance',['performance']),
+                                ('performance',['performance','performance-fallback']),
                                 ('stable',['stable-candidate']),
-                                ('all',['ert','negative','dump','relocation','performance','stable-candidate'])]:
+                                ('all',['ert','negative','dump','relocation','performance','performance-fallback','stable-candidate'])]:
             root = fixture/phase
             root.mkdir()
             options = SimpleNamespace(action='execute', execution_phase=phase, timeout=5)
@@ -276,17 +280,31 @@ def integration(out):
                 if row['id'].startswith('stable-'):
                     continue
                 actual = stage.execution.read_completion(source/'build/acceptance'/phase/row['id'],
-                                                         row['id'],products_path)
+                    'performance' if row['id']=='performance-fallback' else row['id'],products_path)
                 assert actual['passed'] is True
+                if row['id'].startswith('performance'):
+                    assert actual['performance_control']['permanent_full_fallback'] is (row['id']=='performance-fallback')
             rows.append(dict(phase=phase, passed=True, child_processes=len(expected),
                              invalid_corpus_receipt_rejected=not valid,
                              seconds=time.monotonic()-case_started))
+        root=fixture/'wrong-mode';root.mkdir();case_started=time.monotonic()
+        wrong_env=dict(env,PHASE_BAD_FALLBACK_MODE='1')
+        with mock.patch.object(stage,'read_action_build',return_value=build), \
+             mock.patch.object(stage.execution,'load_products',return_value=products), \
+             mock.patch.object(stage,'clean_environment',return_value=wrong_env):
+            result=stage.execute_matrix(SimpleNamespace(action='execute',execution_phase='performance',timeout=5),root)
+        assert [row['id'] for row in result['cases']]==['performance','performance-fallback']
+        assert result['cases'][0]['passed'] and not result['cases'][1]['passed']
+        assert not result['passed'] and not result['execution_complete']
+        assert 'performance mode differs' in result['cases'][1]['receipt_validation_error']
+        rows.append(dict(phase='wrong-performance-mode',passed=True,child_processes=2,
+                         seconds=time.monotonic()-case_started))
         assert before=={p['id']:stage.execution.product_identity(p,resources=True) for p in products}
     finally:
         # Only this fresh fixture subtree is selected; no real build inputs enter it.
         shutil.rmtree(fixture)
     report = dict(schema='femacs-runtime-phase-file-process-integration-v1',
-                  passed=len(rows)==4 and all(row['passed'] for row in rows), cases=rows,
+                  passed=len(rows)==5 and all(row['passed'] for row in rows), cases=rows,
                   actual_python_children=sum(row['child_processes'] for row in rows),
                   real_completion_readers_exercised=True,
                   compiled_product_admission_isolated=True, actual_editor_execution=False,
@@ -305,8 +323,8 @@ def protection(out):
                   dict(id='candidate',kind='terminal',test_hooks=False),
                   dict(id='diagnostic',kind='terminal',test_hooks=True)]
         expected={'semantics':['ert','negative','dump','relocation'],
-                  'performance':['performance'], 'stable':['stable-candidate'],
-                  'all':['ert','negative','dump','relocation','performance','stable-candidate']}
+                  'performance':['performance','performance-fallback'], 'stable':['stable-candidate'],
+                  'all':['ert','negative','dump','relocation','performance','performance-fallback','stable-candidate']}
         for phase,ids in expected.items():
             assert stage.execution_plan(phase,products)[2]==ids
         rows.append(dict(id='complete-phase-partition-and-diagnostic-exclusion',passed=True))
@@ -335,6 +353,7 @@ def protection(out):
         product_path=fixture/'products.json';stage.execution.write_json(product_path,dict(products=products))
         build=(fixture,source,product_path,products,dict(passed=True))
         scenarios=[('missing-case','semantics',expected['semantics'][:-1],False,False,False),
+                   ('missing-fallback','performance',['performance'],False,False,False),
                    ('duplicate-case','semantics',expected['semantics']+['ert'],False,False,False),
                    ('incomplete-inner','semantics',expected['semantics'],False,False,False),
                    ('valid-phase-not-complete-matrix','semantics',expected['semantics'],True,True,False),
@@ -364,9 +383,9 @@ def protection(out):
     finally:
         shutil.rmtree(fixture)
     stage.execution.write_json(out/'results.json',dict(
-        schema='femacs-runtime-phase-protection-v1',passed=len(rows)==14,
+        schema='femacs-runtime-phase-protection-v1',passed=len(rows)==15,
         cases=rows,owned_fixture_retired=not fixture.exists(),seconds=time.monotonic()-started))
-    return len(rows)==14
+    return len(rows)==15
 
 
 def main():

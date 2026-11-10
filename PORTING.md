@@ -4170,3 +4170,28 @@ its source and products remain unchanged. Rebuild affected products and run
 the original complete advice file plus real call-frame functional checks;
 only after they pass add the critical protective tests. No repair or new
 performance claim is accepted until these real executions complete.
+
+## P459: complete bounded runtime measurement contracts (2026-11-10)
+
+The independent G5 audit found that the outer performance phase omits the
+explicit permanent-Full fallback run, the report reader cannot admit current
+full-matrix row counts, and startup has no comparable seven-round summary
+and uses a20ms parent polling endpoint. Complete these existing measurement
+contracts before another expensive matrix freeze. Dispatch primary and
+fallback under separate owned action IDs while both retain the canonical
+performance action, strict completion binding and all-product protection.
+Observe startup process exit with an owned waiter thread; retain total
+process duration separately and use the observed spawn-to-reaped-exit
+lifetime for startup samples. This is an explicit process-lifetime endpoint,
+not an invented timestamp for the readiness marker or cold disk startup.
+Add measured startup samples to the same seven-round summary and paired
+comparisons using the distinct startup mode. Include pause median/MAD and
+actual physical-footprint/accounted maxima; absent observations remain null.
+Sampler binding setup precedes measured spawn. Reopen each PID after its
+memory reads because psutil caches creation time on the original object;
+reject identity reuse and do not count an entirely retired tree as a zero
+memory sample. This is measurement code, separate from the external resource
+controller and its limits.
+Keep finite input/row bounds sized for the full declared matrix, all quiet
+and tail-evidence rules, original workloads and false acceptance flags.
+No performance gain or whole-Goal acceptance follows from tool fixtures.

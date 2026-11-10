@@ -16,11 +16,11 @@ from pathlib import Path
 import stat
 import sys
 
-MAX_INPUT_BYTES = 16 * 1024 * 1024
+MAX_INPUT_BYTES = 256 * 1024 * 1024
 MAX_PROCESSES = 8192
-MAX_SAMPLES = 8192
+MAX_SAMPLES = 32768
 MAX_STARTUPS = 8192
-MAX_CASES = 1024
+MAX_CASES = 4096
 MAX_COMPARISONS = 1024
 MAX_ERRORS = 1024
 MAX_EXCLUDED = 256
@@ -59,8 +59,8 @@ FALLBACK_KEYS = {"permanent_full_fallback", "startup_measured"}
 SUMMARY_KEYS = {"samples", "cases", "failures", "inconclusive"}
 CASE_FIELDS = (
     "case", "mode", "execution_identity", "n", "median_ms", "mad_ms",
-    "min_ms", "max_ms", "range_ms", "pause_count", "max_pause_ms",
-    "p95_pause_ms", "p99_pause_ms", "peak_rss_bytes", "max_load_per_core",
+    "min_ms", "max_ms", "range_ms", "pause_count", "median_pause_ms", "mad_pause_ms", "max_pause_ms",
+    "p95_pause_ms", "p99_pause_ms", "peak_rss_bytes", "peak_footprint_bytes", "peak_accounted_bytes", "max_load_per_core",
     "quiet", "correctness", "inconclusive", "reasons",
 )
 REFERENCE_KEYS = {
@@ -74,7 +74,7 @@ LAYOUT_KEYS = {
 INTERVAL_KEYS = {"median_delta_ms", "low_ms", "high_ms", "reliable_gain"}
 ERROR_KEYS = {"profile", "mode", "observer", "round", "warmup", "error"}
 EXCLUDED_KEYS = {"profile", "reason"}
-MODES = {"interpreted", "bytecode", "native"}
+MODES = {"interpreted", "bytecode", "native", "startup"}
 OBSERVERS = {"off", "phases", "survival", "all"}
 BOOL_FIELDS = (
     "fixtures_unchanged", "passed", "performance_accepted",
@@ -310,15 +310,25 @@ def validate_case(row, where):
     mode = require_mode(row["mode"], where + ".mode")
     execution_identity = require_execution_identity(
         row["execution_identity"], where + ".execution_identity")
+    if (mode == 'startup') != (case == 'startup') or (mode == 'startup' and not execution_identity.endswith(':off')):
+        malformed(where + '.startup')
     count = require_count(row["n"], where + ".n", MAX_COUNT, minimum=1)
     for key in ("median_ms", "mad_ms", "min_ms", "max_ms", "range_ms",
                 "max_load_per_core"):
         finite_number(row[key], where + "." + key, nonnegative=True)
     pause_count = require_count(row["pause_count"], where + ".pause_count", MAX_COUNT)
+    optional_pause(row['median_pause_ms'], where+'.median_pause_ms', pause_count != 0)
+    optional_pause(row['mad_pause_ms'], where+'.mad_pause_ms', pause_count != 0)
     optional_pause(row["max_pause_ms"], where + ".max_pause_ms", pause_count != 0)
     optional_pause(row["p95_pause_ms"], where + ".p95_pause_ms", pause_count >= 20)
     optional_pause(row["p99_pause_ms"], where + ".p99_pause_ms", pause_count >= 100)
     require_count(row["peak_rss_bytes"], where + ".peak_rss_bytes", MAX_RSS)
+    for name in ('peak_footprint_bytes','peak_accounted_bytes'):
+        if row[name] is not None:
+            require_count(row[name],where+'.'+name,MAX_RSS)
+    if (row['peak_accounted_bytes'] is not None
+            and row['peak_accounted_bytes'] < max(row['peak_rss_bytes'],row['peak_footprint_bytes'] or 0)):
+        malformed(where+'.peak_accounted_bytes')
     quiet = require_bool(row["quiet"], where + ".quiet")
     correctness = require_bool(row["correctness"], where + ".correctness")
     inconclusive = require_bool(row["inconclusive"], where + ".inconclusive")
@@ -514,7 +524,7 @@ def build_report(document):
     for index, row in enumerate(case_rows):
         copied, identity = validate_case(row, "summary.cases[{0}]".format(index))
         if permanent_full_fallback and (
-                copied["mode"] == "native"
+                copied["mode"] not in ("interpreted", "bytecode")
                 or not copied["execution_identity"].endswith(":off")):
             malformed("summary.cases[{0}]".format(index))
         if identity in groups:

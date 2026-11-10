@@ -10,6 +10,7 @@ from __future__ import annotations
 import argparse
 import ctypes
 import ctypes.util
+import functools
 import gzip
 import stat
 import hashlib
@@ -23,6 +24,7 @@ import shutil
 import signal
 import subprocess
 import sys
+import threading
 import time
 
 REPO = Path(__file__).resolve().parent.parent
@@ -124,6 +126,13 @@ def write_completion(out, report):
         retirement=dict(path='state-retirement.json', bytes=(out/'state-retirement.json').stat().st_size,
                         sha256=digest(out/'state-retirement.json')),
         goal_complete=False, compatibility_accepted=False, performance_accepted=False)
+    if report['action'] == 'performance':
+        fallback = inputs.get('permanent_full_fallback')
+        if (type(fallback) is not bool or report.get('permanent_full_fallback') is not fallback
+                or report.get('startup_measured') is not (not fallback)):
+            raise ValueError('performance input and actual measurement mode differ')
+        completion['performance_control'] = dict(permanent_full_fallback=fallback,
+                                                  startup_measured=not fallback)
     write_json(out / 'completion.json', completion)
     return completion
 
@@ -145,6 +154,14 @@ def read_completion(root, action, products_path):
             or inputs.get('product_list_sha256') != digest(products_path)
             or inputs.get('action') != action):
         raise ValueError('completed execution input identity mismatch')
+    if action == 'performance':
+        fallback = inputs.get('permanent_full_fallback')
+        control = receipt.get('performance_control')
+        if (type(fallback) is not bool or type(control) is not dict
+                or set(control) != {'permanent_full_fallback', 'startup_measured'}
+                or control['permanent_full_fallback'] is not fallback
+                or control['startup_measured'] is not (not fallback)):
+            raise ValueError('completed performance mode binding mismatch')
     for key, name in (('detailed', 'results.json'), ('case_index', 'case-index.jsonl')):
         identity = receipt.get(key, {})
         path = root / name
@@ -526,9 +543,9 @@ def owned_environment(directory, product, observation="off"):
     return env
 
 
-def sample_memory(pid):
-    # Measurement only. The external controlled-run owner enforces limits and
-    # reaps its complete tree. Never inspect unrelated processes or budgets.
+@functools.lru_cache(maxsize=1)
+def prepare_memory_sampling():
+    """Retain native bindings, never process identities or measurement values."""
     import psutil
     class RusageV1(ctypes.Structure):
         _fields_ = [("uuid", ctypes.c_ubyte * 16)] + [(name, ctypes.c_uint64) for name in (
@@ -536,7 +553,21 @@ def sample_memory(pid):
             "wired_size", "resident_size", "phys_footprint", "proc_start_abstime", "proc_exit_abstime",
             "child_user_time", "child_system_time", "child_pkg_idle_wkups", "child_interrupt_wkups",
             "child_pageins", "child_elapsed_abstime")]
+    library = function = None
+    if sys.platform == 'darwin':
+        library = ctypes.CDLL(ctypes.util.find_library('proc'), use_errno=True)
+        function = library.proc_pid_rusage
+        function.argtypes = [ctypes.c_int, ctypes.c_int, ctypes.c_void_p]
+        function.restype = ctypes.c_int
+    return psutil, RusageV1, library, function
+
+
+def sample_memory(pid):
+    # Measurement only. The external controlled-run owner enforces limits and
+    # reaps its complete tree. Never inspect unrelated processes or budgets.
+    psutil, RusageV1, _library, function = prepare_memory_sampling()
     rss = footprint = accounted = 0
+    observed = 0
     try:
         parent = psutil.Process(pid)
         owned = [parent, *parent.children(recursive=True)]
@@ -548,27 +579,27 @@ def sample_memory(pid):
             resident = process.memory_info().rss
             physical = resident
             if sys.platform == "darwin":
-                library = ctypes.CDLL(ctypes.util.find_library("proc"), use_errno=True)
-                function = library.proc_pid_rusage
-                function.argtypes = [ctypes.c_int, ctypes.c_int, ctypes.c_void_p]
-                function.restype = ctypes.c_int
                 observation = RusageV1()
                 if function(process.pid, 1, ctypes.byref(observation)) != 0:
                     if not process.is_running() or process.status() == psutil.STATUS_ZOMBIE:
                         continue
                     raise OSError(ctypes.get_errno(), "cannot sample owned physical footprint")
                 physical = observation.phys_footprint
-            if process.create_time() != created:
+            # psutil caches create_time on a Process instance. Reopen the PID
+            # after both native reads so the identity check is actually fresh.
+            if psutil.Process(process.pid).create_time() != created:
                 raise RuntimeError("owned sampling PID identity changed")
             rss += resident
             footprint += physical
             accounted += max(resident, physical)
+            observed += 1
         except psutil.NoSuchProcess:
             continue
-    return rss, footprint, accounted
+    return (rss, footprint, accounted) if observed else None
 
 
-def run_process(argv, directory, env, timeout, *, stdin=None, metrics=False, cwd=None):
+def run_process(argv, directory, env, timeout, *, stdin=None, metrics=False, cwd=None,
+                observe_exit=False):
     directory.mkdir(parents=True, exist_ok=True)
     started = time.monotonic()
     working_directory = Path(cwd or directory).resolve()
@@ -580,17 +611,36 @@ def run_process(argv, directory, env, timeout, *, stdin=None, metrics=False, cwd
                exit_code=None, status="not-started")
     with (directory / "stdout.txt").open("xb") as stdout, (directory / "stderr.txt").open("xb") as stderr:
         try:
+            if metrics:
+                preparation_started = time.monotonic()
+                prepare_memory_sampling()
+                row['sampler_preparation_seconds'] = time.monotonic()-preparation_started
+            spawn_started = time.monotonic()
             child = subprocess.Popen([str(part) for part in argv], cwd=working_directory,
                                      env=child_env, stdin=subprocess.DEVNULL if stdin is None else stdin,
                                      stdout=stdout, stderr=stderr, start_new_session=True)
             row["pid"] = child.pid
+            exit_event, exit_info, exit_thread = None, {}, None
             try:
+                if observe_exit:
+                    exit_event = threading.Event()
+                    def observe_child_exit():
+                        try:
+                            child.wait()
+                            exit_info['ended'] = time.monotonic()
+                        except Exception as error:
+                            exit_info['error'] = f'{type(error).__name__}: {error}'
+                        finally:
+                            exit_event.set()
+                    exit_thread = threading.Thread(target=observe_child_exit,
+                                                    name='runtime-owned-child-exit')
+                    exit_thread.start()
                 if metrics:
                     row.update(peak_rss_bytes=0, peak_footprint_bytes=0, peak_accounted_bytes=0,
                                memory_samples=0, sample_errors=[], sampling_interval_seconds=.02,
                                load_per_core_before=os.getloadavg()[0] / max(1, os.cpu_count() or 1))
                     while child.poll() is None:
-                        if time.monotonic() - started > timeout:
+                        if time.monotonic() - spawn_started > timeout:
                             raise subprocess.TimeoutExpired(argv, timeout)
                         try:
                             sample = sample_memory(child.pid)
@@ -600,9 +650,13 @@ def run_process(argv, directory, env, timeout, *, stdin=None, metrics=False, cwd
                                     row[key] = max(row[key], amount)
                         except Exception as error:
                             row["sample_errors"].append(f"{type(error).__name__}: {error}")
-                        time.sleep(.02)
+                        if exit_event is None:
+                            time.sleep(.02)
+                        else:
+                            exit_event.wait(.02)
                     row["load_per_core_after"] = os.getloadavg()[0] / max(1, os.cpu_count() or 1)
-                    row["memory_sampling_complete"] = row["memory_samples"] > 0 and not row["sample_errors"]
+                    row["memory_sampling_complete"] = (row["memory_samples"] > 0
+                        and row['peak_accounted_bytes'] > 0 and not row["sample_errors"])
                 else:
                     child.wait(timeout=timeout)
             except subprocess.TimeoutExpired:
@@ -620,6 +674,17 @@ def run_process(argv, directory, env, timeout, *, stdin=None, metrics=False, cwd
                 # Unwind the real child before outer artifact guards release;
                 # SIGINT/SIGTERM exceptions must not leave its last writes racing.
                 child.wait()
+                if observe_exit:
+                    if exit_thread is not None and exit_thread.ident is not None:
+                        exit_thread.join(timeout=1)
+                    row['exit_timing_method'] = 'spawn-to-reaped-exit-waiter'
+                    row['exit_timing_complete'] = (exit_thread is not None
+                        and exit_thread.ident is not None and not exit_thread.is_alive()
+                        and exit_event.is_set() and 'ended' in exit_info and 'error' not in exit_info)
+                    row['process_lifetime_seconds'] = (exit_info['ended'] - spawn_started
+                        if row['exit_timing_complete'] else None)
+                    if 'error' in exit_info:
+                        row['exit_timing_error'] = exit_info['error']
             row.update(exit_code=child.returncode, complete=not row["timed_out"],
                        status="timeout" if row["timed_out"] else "exited")
         except (OSError, ValueError) as error:
@@ -1435,12 +1500,39 @@ def run_performance(products, out, timeout, *, permanent_full_fallback=False):
             root = out / product["id"] / "startup" / label
             root.mkdir(parents=True)
             env = owned_environment(root, product)
+            before = product_identity(product)
             row = run_process([product["program"], "--dump-file=" + product["dump"], "-Q", "--batch",
                                "--eval", '(princ "FEMACS-RUNTIME-STARTUP-READY\\n")'],
-                              root, env, timeout, metrics=True)
-            row.update(profile=product["id"], warmup=warmup, round=round_index + 1)
-            row["passed"] = (row["exit_code"] == 0 and row["complete"] and not row["remaining_group_terminated"]
-                             and (root / "stdout.txt").read_text(encoding="utf-8") == "FEMACS-RUNTIME-STARTUP-READY\n")
+                              root, env, timeout, metrics=True, observe_exit=True)
+            row.update(profile=product["id"], warmup=warmup, round=round_index + 1,
+                       mode='startup', observer='off', execution_identity=product['id']+':off',
+                       source_identity_before=before)
+            try:
+                row['source_identity_after'] = product_identity(product)
+                if (row['exit_code'] != 0 or not row['complete'] or row['remaining_group_terminated']
+                        or before != row['source_identity_after']
+                        or row.get('memory_sampling_complete') is not True
+                        or row.get('peak_accounted_bytes', 0) <= 0
+                        or row.get('exit_timing_complete') is not True
+                        or row.get('exit_timing_method') != 'spawn-to-reaped-exit-waiter'
+                        or type(row.get('process_lifetime_seconds')) not in (int, float)
+                        or not math.isfinite(row['process_lifetime_seconds'])
+                        or row['process_lifetime_seconds'] <= 0
+                        or (root/'stdout.txt').stat().st_size > 128
+                        or (root/'stdout.txt').read_text(encoding='utf-8') != 'FEMACS-RUNTIME-STARTUP-READY\n'):
+                    raise ValueError('startup process, exit timing, memory, output or product identity incomplete')
+                row['passed'] = True
+                if not warmup:
+                    samples.append(dict(case='startup', mode='startup',
+                        execution_identity=row['execution_identity'], round=round_index+1,
+                        wall_ms=row['process_lifetime_seconds']*1000, pauses_ms=[], correctness=True,
+                        peak_rss_bytes=row['peak_rss_bytes'], peak_footprint_bytes=row['peak_footprint_bytes'],
+                        peak_accounted_bytes=row['peak_accounted_bytes'],
+                        load_per_core=max(row['load_per_core_before'],row['load_per_core_after'])))
+            except (OSError, ValueError, KeyError, TypeError) as error:
+                row.update(passed=False,error=str(error))
+                errors.append(dict(profile=product['id'],mode='startup',observer='off',
+                    round=round_index+1,warmup=warmup,error=str(error)))
             startup_samples.append(row)
             write_json(root / "result.json", row)
     summary = accounting.summarize_performance(samples)
@@ -1451,8 +1543,8 @@ def run_performance(products, out, timeout, *, permanent_full_fallback=False):
         for candidate in products:
             if candidate["kind"] == "reference" or candidate["test_hooks"]:
                 continue
-            for mode in ("interpreted", "bytecode", "native"):
-                for case in profile_tool.EXPECTED:
+            for mode in ("interpreted", "bytecode", "native", "startup"):
+                for case in (('startup',) if mode == 'startup' else profile_tool.EXPECTED):
                     reference_key = (reference["id"] + ":off", mode, case)
                     candidate_key = (candidate["id"] + ":off", mode, case)
                     if reference_key not in groups or candidate_key not in groups:
@@ -1475,8 +1567,8 @@ def run_performance(products, out, timeout, *, permanent_full_fallback=False):
             if (young["collector"] != "young" or major["program"] != young["program"]
                     or major["dump"] != young["dump"] or major["compiler_leg"] != young["compiler_leg"]):
                 continue
-            for mode in ("interpreted", "bytecode", "native"):
-                for case in profile_tool.EXPECTED:
+            for mode in ("interpreted", "bytecode", "native", "startup"):
+                for case in (('startup',) if mode == 'startup' else profile_tool.EXPECTED):
                     key1, key2 = (major["id"] + ":off", mode, case), (young["id"] + ":off", mode, case)
                     if key1 not in groups or key2 not in groups:
                         continue
@@ -1497,7 +1589,9 @@ def run_performance(products, out, timeout, *, permanent_full_fallback=False):
                 startup_measured=not permanent_full_fallback,
                 fixtures_unchanged=unchanged,
                 passed=bool(samples) and not errors and unchanged and not summary["failures"]
-                and len(processes) == len(controls) * 9 and all(row["passed"] for row in startup_samples),
+                and len(processes) == len(controls) * 9 and all(row["passed"] for row in startup_samples)
+                and len(startup_samples) == (0 if permanent_full_fallback else
+                    len([p for p in products if not p['test_hooks']])*9),
                 performance_accepted=False,
                 limitation="measurement collection only; busy/inconclusive data, unresolved compatibility and required layout comparisons prevent promotion")
 

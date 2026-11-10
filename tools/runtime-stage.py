@@ -28,10 +28,10 @@ owner = importlib.util.module_from_spec(owner_spec)
 owner_spec.loader.exec_module(owner)
 
 EXECUTION_PHASES = {
-    'all': ('ert', 'negative', 'dump', 'relocation', 'performance'),
+    'all': ('ert', 'negative', 'dump', 'relocation', 'performance', 'performance-fallback'),
     'semantics': ('ert', 'negative', 'dump', 'relocation'),
     'stable': (),
-    'performance': ('performance',),
+    'performance': ('performance', 'performance-fallback'),
 }
 
 
@@ -452,9 +452,12 @@ def _execute_profiles(options, out, source, products_path, products, base, env,
                                      getattr(options, 'stable_profile', ()))
     rows = []
     for action in actions:
-        command = [sys.executable, harness / "tools/runtime-acceptance.py", "--action", action,
+        inner_action = 'performance' if action == 'performance-fallback' else action
+        command = [sys.executable, harness / "tools/runtime-acceptance.py", "--action", inner_action,
                    "--repository", REPO, "--products", products_path,
                    "--out", base / action, "--timeout", str(options.timeout)]
+        if action == 'performance-fallback':
+            command.append('--permanent-full-fallback')
         if action == 'ert' and original_rows is not None:
             command.extend(['--groups', 'collector'])
         if action in ("ert", "negative"):
@@ -464,7 +467,11 @@ def _execute_profiles(options, out, source, products_path, products, base, env,
         row = dict(id=action, process=result, receipt=str(receipt_path), passed=False)
         if receipt_path.is_file():
             try:
-                receipt = execution.read_completion(base / action, action, products_path)
+                receipt = execution.read_completion(base / action, inner_action, products_path)
+                if inner_action == 'performance':
+                    control = receipt.get('performance_control', {})
+                    if control.get('permanent_full_fallback') is not (action == 'performance-fallback'):
+                        raise ValueError('performance mode differs from the requested stage action')
                 row['execution_complete'] = receipt['execution_complete']
                 row['counts'] = receipt['counts']
                 row['completion_receipt'] = str(base / action / 'completion.json')

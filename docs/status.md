@@ -26266,3 +26266,23 @@ See [P455 scope and evidence](runtime-modernization.md#current-execution-phases-
 - [P458 design](runtime-modernization.md#bytecode-indirect-call-frame-repair-p458) ·
   [products and actual evidence](../maintenance/releases/2026-11-10-bytecode-indirect-call-frames.md).
   Goal remains active3/7; whole-corpus, current matrix and performance remain open.
+
+
+### 2026-11-10 — P459 complete measurement-tool contracts
+
+- P458 + CLN222 delivered as signed `1a8f68e4`, pushed to the existing branch.
+- Performance/all dispatch now includes distinct primary and permanent-Full
+  controls, strict mode/input/completion binding, and all61 identity checks.
+- Owned startup exit timing, pre-spawn sampler bindings and fresh PID birth
+  verification retain strict positive-memory and process-tree cleanup gates.
+  Startup enters seven-round paired statistics; pause median/MAD and actual
+  footprint/accounted maxima are explicit. Full report bounds remain finite.
+- Actual tool integration:16 phase/receipt children plus167 timing/mechanism/
+  report children pass. Explicit synthetic primary/fallback reports contain
+  13,069/4,116 samples and1,867/588 cases; large owned fixtures are retired.
+  Post-functional phase/sampler/accounting/report/stable protections pass86.
+- Missing-memory short-child and stale synthetic-label failures remain failed.
+  Independent source/result review accepts P459, zero confirmed defects. No editor performance or
+  compatibility acceptance follows; Goal remains active3/7.
+- [P459 design](runtime-modernization.md#complete-runtime-measurement-contracts-p459) ·
+  [actual scope and limitations](../maintenance/releases/2026-11-10-runtime-measurement-contracts.md).

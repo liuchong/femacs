@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Focused protections for the bounded measurement report.
 
-Pass a fresh ``--out`` directory. An existing path is refused. Fixtures and
-the result file stay for later cleanup; this runner does not delete them.
+Pass a fresh ``--out`` directory. An existing path is refused. Each owned
+case fixture is retired after use; the result file remains.
 """
 from __future__ import annotations
 
@@ -11,6 +11,7 @@ import importlib.util
 import json
 import os
 import signal
+import shutil
 import stat
 import subprocess
 import sys
@@ -53,10 +54,14 @@ def minimal_document(median=1.0):
             "max_ms": 1.0,
             "range_ms": 0.0,
             "pause_count": 0,
+            "median_pause_ms": None,
+            "mad_pause_ms": None,
             "max_pause_ms": None,
             "p95_pause_ms": None,
             "p99_pause_ms": None,
             "peak_rss_bytes": 1,
+            "peak_footprint_bytes": None,
+            "peak_accounted_bytes": None,
             "max_load_per_core": 1.0,
             "quiet": False,
             "correctness": True,
@@ -123,6 +128,7 @@ class Protections(unittest.TestCase):
         REPORT.os.read = self._original_read
         REPORT.os.open = self._original_open
         REPORT.os.fstat = self._original_fstat
+        shutil.rmtree(self.root)
 
     def _track_reads(self, transform=None):
         def tracking(fd, size):
@@ -149,6 +155,26 @@ class Protections(unittest.TestCase):
         self.assertEqual(report["eligibility"]["busy_count"], 2)
         self.assertEqual(report["eligibility"]["eligible_count"], 0)
         self.assertEqual(report["cases"][0]["median_ms"], 1.0)
+
+    def test_startup_summary_is_distinct_and_fallback_forbids_it(self):
+        document=minimal_document()
+        for row in document['summary']['cases']:
+            row.update(case='startup',mode='startup',peak_footprint_bytes=8,peak_accounted_bytes=8)
+        document['comparisons'][0].update(case='startup',mode='startup')
+        document['summary']['inconclusive']=['startup/startup: busy-host']*2
+        result=REPORT.build_report(document)
+        self.assertEqual(result['cases'][0]['mode'],'startup')
+        self.assertEqual(result['cases'][0]['peak_footprint_bytes'],8)
+        document.update(permanent_full_fallback=True,startup_measured=False)
+        document['startups']=[]
+        with self.assertRaises(REPORT.ReportError):REPORT.build_report(document)
+
+    def test_unobserved_pause_and_under_accounted_memory_rejected(self):
+        for field,value in [('median_pause_ms',0),('mad_pause_ms',0),
+                            ('peak_footprint_bytes',True),('peak_accounted_bytes',0)]:
+            with self.subTest(field=field):
+                document=minimal_document();document['summary']['cases'][0][field]=value
+                with self.assertRaises(REPORT.ReportError):REPORT.build_report(document)
 
     def test_current_schema_ordinary_and_fallback_documents(self):
         ordinary = minimal_document()
@@ -405,6 +431,19 @@ def fresh_output(path):
     return path
 
 
+class TimedResult(unittest.TextTestResult):
+    def __init__(self,*args,**kwargs):
+        super().__init__(*args,**kwargs);self.case_records=[]
+    def startTest(self,test):
+        self.started=time.perf_counter();self.before=(len(self.failures),len(self.errors),len(self.skipped))
+        super().startTest(test)
+    def stopTest(self,test):
+        after=(len(self.failures),len(self.errors),len(self.skipped))
+        self.case_records.append(dict(id=test.id(),seconds=time.perf_counter()-self.started,
+            status='passed' if after==self.before else ('failed' if after[0]>self.before[0] else
+                'error' if after[1]>self.before[1] else 'skipped')))
+        super().stopTest(test)
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--out", type=Path, required=True)
@@ -417,12 +456,14 @@ def main(argv=None):
         return 2
     Protections.out = destination
     suite = unittest.defaultTestLoader.loadTestsFromTestCase(Protections)
-    result = unittest.TextTestRunner(verbosity=2).run(suite)
+    result = unittest.TextTestRunner(verbosity=2,resultclass=TimedResult).run(suite)
     summary = {
         "tests": result.testsRun,
         "failures": len(result.failures),
         "errors": len(result.errors),
-        "fixtures_retained": True,
+        "cases": result.case_records,
+        "fixtures_retained": False,
+        "owned_fixture_retired": not any(path.is_dir() for path in destination.iterdir()),
     }
     with (destination / "result.json").open("x", encoding="utf-8") as stream:
         stream.write(json.dumps(summary, indent=2) + "\n")

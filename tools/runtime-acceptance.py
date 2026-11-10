@@ -20,7 +20,7 @@ import math
 import random
 import statistics
 
-PERF_MODES = {'interpreted', 'bytecode', 'native'}
+PERF_MODES = {'interpreted', 'bytecode', 'native', 'startup'}
 PERF_ROUND_MIN = 1
 PERF_ROUND_PROMOTION = 7
 DEFAULT_MAX_LOAD = 0.10
@@ -304,6 +304,7 @@ def summarize_performance(samples, max_load_per_core=DEFAULT_MAX_LOAD):
     threshold = _number(max_load_per_core, 'max_load_per_core')
     raw = list(samples)
     groups = {}
+    rounds_seen = {}
     order = []
     failures = []
     inconclusive = []
@@ -316,6 +317,9 @@ def summarize_performance(samples, max_load_per_core=DEFAULT_MAX_LOAD):
                 raise AcceptanceError('sample {0} has malformed {1}'.format(index, key))
         if sample.get('mode') not in PERF_MODES:
             raise AcceptanceError('sample {0} has unknown execution mode'.format(index))
+        if ((sample['mode'] == 'startup') != (sample['case'] == 'startup')
+                or (sample['mode'] == 'startup' and not sample['execution_identity'].endswith(':off'))):
+            raise AcceptanceError('startup requires its distinct case/mode and observer off')
         round_number = sample.get('round')
         if (type(round_number) is not int or
                 round_number < PERF_ROUND_MIN):
@@ -328,6 +332,15 @@ def summarize_performance(samples, max_load_per_core=DEFAULT_MAX_LOAD):
         rss = sample.get('peak_rss_bytes')
         if isinstance(rss, bool) or type(rss) is not int or rss < 0:
             raise AcceptanceError('peak_rss_bytes must be nonnegative integer')
+        memory = {}
+        for name in ('peak_footprint_bytes', 'peak_accounted_bytes'):
+            value = sample.get(name)
+            if value is not None and (type(value) is not int or value < 0):
+                raise AcceptanceError(name+' must be a nonnegative integer or unobserved')
+            memory[name] = value
+        if (memory['peak_accounted_bytes'] is not None
+                and memory['peak_accounted_bytes'] < max(rss, memory['peak_footprint_bytes'] or 0)):
+            raise AcceptanceError('accounted memory is less than an observed component')
         load = _number(sample.get('load_per_core'), 'load_per_core')
         correctness = sample.get('correctness')
         if type(correctness) is not bool:
@@ -335,11 +348,17 @@ def summarize_performance(samples, max_load_per_core=DEFAULT_MAX_LOAD):
         key = (sample['case'], sample['mode'], sample['execution_identity'])
         if key not in groups:
             groups[key] = []
+            rounds_seen[key] = set()
             order.append(key)
+        if round_number in rounds_seen[key]:
+            raise AcceptanceError('duplicate measured round within a case')
+        rounds_seen[key].add(round_number)
         groups[key].append({
+            'round': round_number,
             'wall': wall,
             'pauses': pauses,
             'rss': rss,
+            **memory,
             'load': load,
             'correctness': correctness,
         })
@@ -352,6 +371,8 @@ def summarize_performance(samples, max_load_per_core=DEFAULT_MAX_LOAD):
         mad = statistics.median([abs(value - median) for value in walls])
         pause_count = len(pauses)
         max_pause = max(pauses) if pauses else None
+        median_pause = statistics.median(pauses) if pauses else None
+        mad_pause = statistics.median([abs(value-median_pause) for value in pauses]) if pauses else None
         p95 = _percentile(pauses, 0.95) if pause_count >= 20 else None
         p99 = _percentile(pauses, 0.99) if pause_count >= 100 else None
         load = max(entry['load'] for entry in entries)
@@ -373,10 +394,15 @@ def summarize_performance(samples, max_load_per_core=DEFAULT_MAX_LOAD):
             'max_ms': max(walls),
             'range_ms': max(walls) - min(walls),
             'pause_count': pause_count,
+            'median_pause_ms': median_pause,
+            'mad_pause_ms': mad_pause,
             'max_pause_ms': max_pause,
             'p95_pause_ms': p95,
             'p99_pause_ms': p99,
             'peak_rss_bytes': max(entry['rss'] for entry in entries),
+            **{name:(max(entry[name] for entry in entries)
+                     if all(entry[name] is not None for entry in entries) else None)
+               for name in ('peak_footprint_bytes','peak_accounted_bytes')},
             'max_load_per_core': load,
             'quiet': quiet,
             'correctness': correctness,

@@ -462,8 +462,12 @@ class PerformanceSummaryTests(AcceptanceTestCase):
         self.assertEqual(row['max_ms'], 14.0)
         self.assertEqual(row['range_ms'], 4.0)
         self.assertEqual(row['pause_count'], 14)
+        self.assertEqual(row['median_pause_ms'], 1.5)
+        self.assertEqual(row['mad_pause_ms'], .5)
         self.assertEqual(row['max_pause_ms'], 2.0)
         self.assertEqual(row['peak_rss_bytes'], 1000)
+        self.assertIsNone(row['peak_footprint_bytes'])
+        self.assertIsNone(row['peak_accounted_bytes'])
         self.assertIsNone(row['p95_pause_ms'])
         self.assertIsNone(row['p99_pause_ms'])
         self.assertTrue(row['quiet'])
@@ -558,15 +562,14 @@ class PerformanceSummaryTests(AcceptanceTestCase):
 
     def test_cold_startup_compile_and_steady_cases_stay_separate(self):
         samples = (
-            seven_samples([1.0] * 7, (1.0,), case='startup')
+            seven_samples([1.0] * 7, (), case='startup',mode='startup',execution_identity='reference:off')
             + seven_samples([2.0] * 7, (1.0,), case='native-compile')
             + seven_samples([3.0] * 7, (1.0,), case='edit')
         )
         report = MODULE.summarize_performance(samples)
         rows = summary_rows(report)
         self.assertEqual(len(rows), 3)
-        self.assertEqual(rows[('startup', 'interpreted',
-                               'reference:interpreted:abc')]['median_ms'], 1.0)
+        self.assertEqual(rows[('startup', 'startup', 'reference:off')]['median_ms'], 1.0)
         self.assertEqual(rows[('native-compile', 'interpreted',
                                'reference:interpreted:abc')]['median_ms'], 2.0)
         self.assertEqual(rows[('edit', 'interpreted',
@@ -582,8 +585,32 @@ class PerformanceSummaryTests(AcceptanceTestCase):
         self.assertEqual(row['max_ms'], 1000.0)
         self.assertEqual(row['pause_count'], 0)
         self.assertIsNone(row['max_pause_ms'])
+        self.assertIsNone(row['median_pause_ms'])
+        self.assertIsNone(row['mad_pause_ms'])
         self.assertIsNone(row['p95_pause_ms'])
         self.assertIsNone(row['p99_pause_ms'])
+
+    def test_actual_physical_maxima_and_unobserved_channel(self):
+        samples=seven_samples([1.0]*7,())
+        for index,sample in enumerate(samples):
+            sample.update(peak_footprint_bytes=2000+index,peak_accounted_bytes=2000+index)
+        row=MODULE.summarize_performance(samples)['cases'][0]
+        self.assertEqual(row['peak_footprint_bytes'],2006)
+        self.assertEqual(row['peak_accounted_bytes'],2006)
+        samples[0]['peak_footprint_bytes']=None
+        row=MODULE.summarize_performance(samples)['cases'][0]
+        self.assertIsNone(row['peak_footprint_bytes'])
+        self.assertEqual(row['peak_accounted_bytes'],2006)
+
+    def test_duplicate_rounds_and_mislabelled_startup_are_rejected(self):
+        samples=seven_samples([1.0]*7,())
+        samples[-1]['round']=1
+        with self.assertRaises(MODULE.AcceptanceError):MODULE.summarize_performance(samples)
+        for case,mode,identity in [('startup','interpreted','ref:off'),
+                                   ('edit','startup','ref:off'),('startup','startup','ref:all')]:
+            with self.subTest(case=case,mode=mode,identity=identity):
+                item=performance_sample(case=case,mode=mode,execution_identity=identity)
+                with self.assertRaises(MODULE.AcceptanceError):MODULE.summarize_performance([item])
 
     def test_load_threshold_boundary(self):
         for load, quiet in ((0.10, True), (0.1001, False)):
@@ -614,6 +641,9 @@ class PerformanceSummaryTests(AcceptanceTestCase):
                 'peak_rss_bytes', -1),
             'bool-rss': lambda item: item.__setitem__(
                 'peak_rss_bytes', True),
+            'bool-footprint': lambda item: item.__setitem__('peak_footprint_bytes',True),
+            'negative-footprint': lambda item: item.__setitem__('peak_footprint_bytes',-1),
+            'under-accounted': lambda item: item.__setitem__('peak_accounted_bytes',1),
             'negative-load': lambda item: item.__setitem__(
                 'load_per_core', -0.01),
             'nan-load': lambda item: item.__setitem__(
