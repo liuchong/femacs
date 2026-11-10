@@ -4218,3 +4218,28 @@ four other shared unstable/FIXME failures remain unexpected failures without
 waivers. The compiled9e257276 cohort and its frozen source remain unchanged;
 the reporting-only harness is bound separately and does not require rebuilding
 the20 product configurations.
+
+
+## P461: select a bound stable runner without rebuilding products (2026-11-10)
+
+The compiled cohort retains its immutable original tools and inputs. Its frozen
+stable writer already accepts an explicit runner, but the stage coordinator
+always selects the old frozen runner, excluding the separately accepted P460
+source-context repair. Add an explicit --stable-runner only for execute/all or
+execute/stable, with invalid actions and unsafe, empty, non-.el or over1MiB
+inputs rejected before creating output. Capture the selected ordinary source
+into the new owned output, preserving bytes and mode, with a separate binding
+to both the supplied source and original frozen runner. Protect only the owned
+copy and binding through the existing artifact owner. Revalidate every binding
+and all61 compiled products before accepting the phase.
+
+Pass the actual default or captured runner to the frozen writer and verify its
+unique non-Python harness_sources entry in the bounded completion reader. Keep
+the existing completion schema and stream-bound detailed receipt; do not require
+a top-level field absent from the frozen writer or parse the large detailed
+report. Preserve original failures, phase/profile coverage and false whole-Goal
+claims. The active semantics controller first completed naturally before these
+Root tools changed. Implement the complete selection path, then verify real
+file/Python-child/writer/reader and artifact-owner integration; add critical
+protective checks only after that functional integration passes. No product
+recompilation or original Lisp/test/data edit follows from this tool change.

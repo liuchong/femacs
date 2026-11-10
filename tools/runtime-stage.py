@@ -35,7 +35,7 @@ EXECUTION_PHASES = {
 }
 
 
-def execution_plan(phase, products, stable_profiles=()):
+def execution_plan(phase, products, stable_profiles=(), *, stable_runner=None):
     """Select complete pairs only; compiled products and corpus scope stay intact."""
     if phase not in EXECUTION_PHASES:
         raise ValueError('unknown execution phase')
@@ -45,6 +45,8 @@ def execution_plan(phase, products, stable_profiles=()):
     if phase in ('all', 'stable'):
         pairs = [(reference, candidate) for reference in products if reference['kind'] == 'reference'
                  for candidate in products if candidate['kind'] != 'reference' and not candidate['test_hooks']]
+    if stable_runner is not None and (phase not in ('all', 'stable') or not pairs):
+        raise ValueError('stable runner selection requires an active stable pair scope')
     actions = EXECUTION_PHASES[phase]
     ids = [*actions, *('stable-' + candidate['id'] for _, candidate in pairs)]
     if not ids or len(ids) != len(set(ids)):
@@ -59,6 +61,64 @@ def execution_plan(phase, products, stable_profiles=()):
                  if candidate['id'] in stable_profiles]
         ids = ['stable-' + candidate['id'] for _, candidate in pairs]
     return actions, pairs, ids
+
+
+
+def validate_stable_runner_source(path):
+    path = execution.safe_path(path)
+    if (not path.is_file() or path.suffix != '.el'
+            or not 1 <= path.stat().st_size <= 1024 * 1024):
+        raise ValueError('stable runner must be an ordinary nonempty .el file within 1 MiB')
+    return path
+
+
+def stage_stable_runner(path, out, source, artifacts=None):
+    path = validate_stable_runner_source(path)
+    original = execution.file_identity(path)
+    metadata = path.stat()
+    root = out / 'stable-runner'
+    root.mkdir()
+    captured = root / 'stable-suite-runner.el'
+    descriptor = os.open(path, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
+    with os.fdopen(descriptor, 'rb') as incoming, captured.open('xb') as target:
+        opened = os.fstat(incoming.fileno())
+        fields = ('st_dev', 'st_ino', 'st_size', 'st_mtime_ns', 'st_mode')
+        if any(getattr(opened, key) != getattr(metadata, key) for key in fields):
+            raise ValueError('stable runner changed before capture')
+        copied = 0
+        while True:
+            block = incoming.read(65536)
+            if not block:
+                break
+            copied += len(block)
+            if copied > 1024 * 1024:
+                raise ValueError('stable runner grew beyond capture bound')
+            target.write(block)
+        target.flush()
+        os.fsync(target.fileno())
+        after = os.fstat(incoming.fileno())
+        if any(getattr(opened, key) != getattr(after, key) for key in fields):
+            raise ValueError('stable runner changed during capture')
+    captured.chmod(original['mode'])
+    validate_stable_runner_source(path)
+    current = path.stat()
+    if (any(getattr(opened, key) != getattr(current, key) for key in fields)
+            or execution.file_identity(path) != original
+            or execution.file_identity(captured) != original):
+        raise ValueError('stable runner capture identity mismatch')
+    frozen = source / 'tools/fixtures/stable-suite-runner.el'
+    selection = dict(schema='femacs-stable-runner-selection-v1',
+                     source_runner=dict(path=str(path), identity=original),
+                     captured_runner=dict(path=str(captured), identity=original),
+                     frozen_source_runner=dict(path=str(frozen), identity=execution.file_identity(frozen)),
+                     preserves_compiled_product_fields=True, preserves_source_manifest=True)
+    receipt = root / 'stable-runner-selection.json'
+    execution.write_json(receipt, selection)
+    identities = {str(item): execution.file_identity(item) for item in (path, captured, receipt, frozen)}
+    if artifacts is not None:
+        owner.capture_artifacts(artifacts.journal, {str(item): identities[str(item)]
+                                                  for item in (captured, receipt)})
+    return captured, selection, identities
 
 
 def clean_environment():
@@ -446,10 +506,10 @@ def component_matrix(options, out):
 
 
 def _execute_profiles(options, out, source, products_path, products, base, env,
-                      *, harness=None, original_rows=None):
+                      *, harness=None, original_rows=None, stable_runner=None):
     harness = harness or source
     actions, pairs, _ = execution_plan(getattr(options, 'execution_phase', 'all'), products,
-                                     getattr(options, 'stable_profile', ()))
+        getattr(options, 'stable_profile', ()), stable_runner=stable_runner)
     rows = []
     for action in actions:
         inner_action = 'performance' if action == 'performance-fallback' else action
@@ -488,6 +548,7 @@ def _execute_profiles(options, out, source, products_path, products, base, env,
                 row['receipt_validation_error'] = f'{type(error).__name__}: {error}'
         rows.append(row)
         execution.write_json(out / "partial.json", dict(cases=rows, final=False))
+    runner_path = stable_runner or harness / 'tools/fixtures/stable-suite-runner.el'
     for reference, candidate in pairs:
         name = "stable-" + candidate["id"]
         receipt_root = base / name
@@ -500,7 +561,7 @@ def _execute_profiles(options, out, source, products_path, products, base, env,
                    "--candidate-env", json.dumps({"FEMACS_GC_OBSERVATION":"off",
                                                    "FEMACS_GC_COLLECTOR":"major" if candidate["collector"] == "off" else candidate["collector"]}),
                    "--timeout", str(options.timeout),
-                   '--runner', harness/'tools/fixtures/stable-suite-runner.el']
+                   '--runner', runner_path]
         case_env = dict(env)
         result = execution.run_process(command, out / name, case_env, None, cwd=source)
         receipt = receipt_root / "stable-suite-run.json"
@@ -513,7 +574,8 @@ def _execute_profiles(options, out, source, products_path, products, base, env,
                 source/'compatibility/stable-31.1/sources.json', reference['program'], candidate['program'],
                 ['--dump-file='+reference['dump']], ['--dump-file='+candidate['dump']],
                 {'FEMACS_GC_OBSERVATION': 'off'}, {'FEMACS_GC_OBSERVATION': 'off',
-                    'FEMACS_GC_COLLECTOR': 'major' if candidate['collector'] == 'off' else candidate['collector']})
+                    'FEMACS_GC_COLLECTOR': 'major' if candidate['collector'] == 'off' else candidate['collector']},
+                runner=runner_path)
             row['completion_sha256'] = execution.digest(receipt_root/'stable-suite-completion.json')
             row['execution_complete'] = summary['execution_complete']
             row['case_count'] = summary['case_count']
@@ -551,7 +613,7 @@ def execute_matrix(options, out, artifacts=None):
     original, source, products_path, products, build = read_action_build(options)
     phase = getattr(options, 'execution_phase', 'all')
     actions, pairs, expected_ids = execution_plan(phase, products,
-                                                getattr(options, 'stable_profile', ()))
+        getattr(options, 'stable_profile', ()), stable_runner=getattr(options, 'stable_runner', None))
     available_pairs = execution_plan('stable', products)[1] if phase in ('all', 'stable') else []
     requested_profiles = [candidate['id'] for _, candidate in pairs]
     remaining_profiles = [candidate['id'] for _, candidate in available_pairs
@@ -587,9 +649,13 @@ def execute_matrix(options, out, artifacts=None):
             options.original_ert, options.original_index, options.original_audit, out)
         execution.write_json(out/'progress.json', dict(stage='original-ert-revalidated',
             counts=prior['counts'], requested_next='full affected collector group'))
+    selected_runner, runner_selection, runner_identities = None, None, {}
+    if getattr(options, 'stable_runner', None) is not None:
+        selected_runner, runner_selection, runner_identities = stage_stable_runner(
+            options.stable_runner, out, source, artifacts)
     try:
         rows = _execute_profiles(options, out, source, products_path, products, base, env,
-                                 harness=harness, original_rows=original_rows)
+                                 harness=harness, original_rows=original_rows, stable_runner=selected_runner)
     finally:
         after, errors = {}, {}
         for product in products:
@@ -605,6 +671,14 @@ def execute_matrix(options, out, artifacts=None):
             complete_receipts_valid = True
         except Exception as error:
             errors['complete-product-receipts'] = f'{type(error).__name__}: {error}'
+        runner_unchanged = True
+        for name, identity in runner_identities.items():
+            try:
+                if execution.file_identity(execution.safe_path(name)) != identity:
+                    raise ValueError('stable runner selection input changed')
+            except (OSError, ValueError) as error:
+                errors['stable-runner-selection'] = f'{type(error).__name__}: {error}'
+                runner_unchanged = False
         unchanged = not errors and before == after
         execution.write_json(identity_path, dict(before=before, after=after,
                                                 identity_errors=errors, unchanged=unchanged,
@@ -626,6 +700,8 @@ def execute_matrix(options, out, artifacts=None):
                 passed=scope_complete and all(row["passed"] for row in rows),
                 product_identity_unchanged=unchanged, complete_receipts_valid=complete_receipts_valid,
                 identity_receipt=str(identity_path),
+                stable_runner_selection=(dict(runner_selection, unchanged=runner_unchanged)
+                                         if runner_selection is not None else None),
                 goal_complete=False, compatibility_accepted=False, performance_accepted=False,
                 remaining=["actual source/product review", "native Finder/multiframe IME/TTY workflows",
                            "required scope and performance judgment", "signed delivery and cleanup evidence"])
@@ -700,6 +776,8 @@ def main(argv=None):
                         help='execute one complete phase without claiming the complete matrix')
     parser.add_argument('--stable-profile', action='append', default=[],
                         help='execute this complete stable pair; repeat for an explicit profile scope')
+    parser.add_argument('--stable-runner', type=Path,
+                        help='explicit stable runner captured into this run without recompiling products')
     parser.add_argument('--original-ert', type=Path)
     parser.add_argument('--original-index', type=Path)
     parser.add_argument('--original-audit', type=Path)
@@ -708,6 +786,13 @@ def main(argv=None):
         parser.error('execution-phase applies only to execute')
     if options.stable_profile and (options.action != 'execute' or options.execution_phase != 'stable'):
         parser.error('stable-profile applies only to execute --execution-phase stable')
+    if options.stable_runner is not None:
+        if options.action != 'execute' or options.execution_phase not in ('all', 'stable'):
+            parser.error('stable-runner applies only to execute --execution-phase all/stable')
+        try:
+            options.stable_runner = validate_stable_runner_source(options.stable_runner)
+        except (OSError, ValueError) as error:
+            parser.error(str(error))
     if len(options.stable_profile) != len(set(options.stable_profile)):
         parser.error('duplicate stable profile selection')
     if options.execution_products is not None and options.action not in ('prepare', 'execute', 'components'):

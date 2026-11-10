@@ -26332,3 +26332,27 @@ See [P455 scope and evidence](runtime-modernization.md#current-execution-phases-
 - Current61-profile authored semantics continues against the same frozen cohort;
   no full stable/performance or Goal acceptance follows from cleanup.
 - [CLN224 scope and recovery](../maintenance/cleanup/reports/2026-11-10-224-consumed-runtime-compiler-copies.md).
+
+
+### 2026-11-10 — P461 explicit stable runner binding
+
+- The current9e257276 authored semantics phase closed naturally and independent
+  review accepted:10,335 ERT/discovery processes,608 negative cases,48 dump
+  products and60 relocation products passed. All61 products and complete
+  receipts stayed fixed; the historical31.1 reference epoch is retained.
+- P461 adds explicit stable-runner selection/capture through the coordinator
+  and strict unique runner binding in the bounded completion reader, preserving
+  the frozen writer/schema,555 original files,48 candidates and compiled inputs.
+  Only owned snapshots/selection receipts receive artifact-owner protection.
+- Complete business implementation preceded eight file/process integration
+  cases with nine real Python children, including real owned-file immutable
+  capture/retention/release. All passed; synthetic fixtures retired. Then20
+  critical scope/path/mutation protections passed, followed by existing phase
+  integration (five cases,16 children) and31 phase/stable protections.
+- [Bound results](../maintenance/releases/2026-11-10-stable-runner-selection.md).
+  Independent final review accepts with zero confirmed defects. This tool
+  verification is not actual editor/corpus/performance acceptance; full
+  stable/performance and Goal remain
+  open. The separately authorized aligned system reference is being built via
+  the official package recipe with its source commit pinned and icon setting
+  retained; old receipts are not relabeled.

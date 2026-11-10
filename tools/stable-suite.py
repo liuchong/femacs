@@ -1152,7 +1152,7 @@ def _write_receipt(out_path, manifest, result):
 
 
 def read_completion(out, manifest_path, reference, candidate,
-                    reference_args, candidate_args, reference_env, candidate_env):
+                    reference_args, candidate_args, reference_env, candidate_env, *, runner=None):
     """Read a bounded summary and stream-bind the full original-file evidence."""
     root = Path(out)
     receipt = _read_machine_result(root/'stable-suite-completion.json')
@@ -1195,6 +1195,12 @@ def read_completion(out, manifest_path, reference, candidate,
     for name, identity in sources.items():
         if _sha256_path(Path(name)) != identity:
             raise SuiteError('stable harness changed after execution')
+    if runner is not None:
+        runner_path = Path(runner)
+        if (runner_path.is_symlink() or not runner_path.is_file()
+                or sources.get(str(runner_path)) != _sha256_path(runner_path)
+                or [name for name in sources if Path(name).suffix != '.py'] != [str(runner_path)]):
+            raise SuiteError('stable completion runner identity mismatch')
     for key in ('case_count', 'passed_count', 'failure_count'):
         if type(receipt.get(key)) is not int or receipt[key] < 0:
             raise SuiteError('invalid stable completion count')

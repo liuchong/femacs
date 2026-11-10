@@ -1,5 +1,34 @@
 # Lisp runtime modernization: evidence and first bounded implementation
 
+## Explicit stable runner selection (P461)
+
+`runtime-stage.py --action execute --execution-phase stable --stable-runner
+tools/fixtures/stable-suite-runner.el` captures the supplied runner into the
+owned output and binds it to the original frozen runner. The option also works
+with the complete `all` phase. Its source, captured copy and selection receipt
+are checked again after execution; only the owned copy and receipt enter the
+artifact owner's protected set. Invalid scopes or unsafe, empty, non-Lisp or
+over1MiB inputs fail before output creation.
+
+The coordinator passes the actual default or captured runner to the existing
+frozen writer. Its bounded completion reader requires the matching unique
+non-Python `harness_sources` entry. The completion writer and schema, compiled
+products, source export, original555-file corpus and48-profile scope remain
+unchanged. A separately selected reference epoch is a distinct pending unit.
+
+- [x] C461: complete explicit selection, bounded capture and postflight binding.
+- [x] A461: eight real file/process/writer/reader integration cases pass through
+  nine Python children, including the actual owned-file protection/release
+  lifecycle; synthetic inputs do not certify editor behavior.
+- [x] A461-P: after functional acceptance,20 critical CLI/scope/mutation checks
+  pass; the existing phase integration and31 phase/stable protections pass.
+- [x] A461-R: independent final review accepts the complete tool unit;
+  zero confirmed defects.
+
+[Evidence and boundaries](../maintenance/releases/2026-11-10-stable-runner-selection.md).
+The P460 actual editor repair remains independently accepted; these additional
+checks establish coordinator selection rather than another editor acceptance.
+
 ## Stable source-context library lookup (P460)
 
 The closed first-pair audit pins five shared unexpected help-description
@@ -36,9 +65,10 @@ The current frozen matrix coordinator still selects its frozen stable runner
 by default. Before the next formal stable phase, explicitly bind the corrected
 runner through the coordinator without changing compiled product identities.
 The existing process-reporting bridge does not select the stable runner. The
-active semantics coordinator file stays unchanged until its natural boundary;
-its final receipt hashes that file. Direct bounded acceptance above used the
-explicit corrected runner and is not a claim about the default frozen phase.
+semantics coordinator completed naturally before P461 changed these tools;
+its receipt records the coordinator digest computed at import. Direct bounded
+acceptance above used the explicit corrected runner and is not a claim about
+the default frozen phase.
 
 ## Complete runtime measurement contracts (P459)
 

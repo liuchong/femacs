@@ -4,6 +4,7 @@ The owned source/product descriptors are synthetic; this is coordinator file/pro
 integration, not editor, compiler, corpus or performance acceptance.
 """
 import argparse
+from contextlib import nullcontext
 import importlib.util
 import json
 import os
@@ -54,6 +55,7 @@ p=argparse.ArgumentParser()
 for name in ('out','repo','manifest','reference','candidate','reference-dump-args',
              'candidate-dump-args','reference-env','candidate-env'):
  p.add_argument('--'+name,required=True)
+p.add_argument('--runner',required=True)
 a,rest=p.parse_known_args()
 s=importlib.util.spec_from_file_location('scope_execution',os.environ['PHASE_CONTRACT_DRIVER'])
 e=importlib.util.module_from_spec(s);s.loader.exec_module(e)
@@ -64,6 +66,14 @@ environments={label:json.loads(getattr(a,label+'_env')) for label in ('reference
 products={label:suite._public_product_identity(suite._product_paths(getattr(a,label),
  json.loads(getattr(a,label+'_dump_args')),environments[label])) for label in environments}
 out=Path(a.out);out.mkdir(parents=True)
+runner=Path(a.runner)
+assert runner.is_file() and not runner.is_symlink()
+sources={str(Path(__file__)):e.digest(Path(__file__)),str(runner):e.digest(runner)}
+if os.environ.get('SCOPE_OUTCOME')=='wrong-runner':
+ sources.pop(str(runner));old=Path(a.repo)/'tools/fixtures/stable-suite-runner.el'
+ sources[str(old)]=e.digest(old)
+elif os.environ.get('SCOPE_OUTCOME')=='missing-runner':sources.pop(str(runner))
+elif os.environ.get('SCOPE_OUTCOME')=='wrong-runner-sha':sources[str(runner)]='0'*64
 failed=os.environ.get('SCOPE_OUTCOME')=='failed'
 report=dict(synthetic_file_process_contract=True,selector='all-discovered-ids',
  source={key:manifest['source'][key] for key in ('release','commit')},
@@ -74,7 +84,7 @@ report=dict(synthetic_file_process_contract=True,selector='all-discovered-ids',
  failures=['synthetic original outcome retained'] if failed else [],corpus_complete=not failed,
  products_before=products,products_after=products,identities_unchanged=True,
  corpus_inputs_unchanged=True,runtime_environment=environments,
- harness_sources={str(Path(__file__)):e.digest(Path(__file__))})
+ harness_sources=sources)
 suite._write_run_report(out,report)
 if os.environ.get('SCOPE_OUTCOME')=='tampered':
  with (out/'stable-suite-run.json').open('a') as f:f.write('changed')
@@ -92,6 +102,11 @@ def stable_integration(out):
         source=fixture/'source'
         (source/'tools').mkdir(parents=True)
         (source/'tools/stable-suite.py').write_text(STABLE_CHILD)
+        default_runner=source/'tools/fixtures/stable-suite-runner.el'
+        default_runner.parent.mkdir(parents=True)
+        default_runner.write_text(';; synthetic frozen runner input\n')
+        selected_runner=fixture/'selected-runner.el'
+        selected_runner.write_text(';; synthetic repaired runner input\n')
         entries=[]
         for name in ('first','second'):
             path=source/'test/lisp'/(name+'.el');path.parent.mkdir(parents=True,exist_ok=True)
@@ -117,18 +132,36 @@ def stable_integration(out):
         product_path=fixture/'products.json';stage.execution.write_json(product_path,dict(products=products))
         build=(fixture,source,product_path,products,dict(passed=True))
         before={p['id']:stage.execution.product_identity(p,resources=True) for p in products}
-        for name,selection,outcome,expected,passed,complete in [
-            ('selected',['second'],'passed',['second'],True,True),
-            ('all-selected',['second','first'],'passed',['first','second'],True,True),
-            ('tampered',['second'],'tampered',['second'],False,False),
-            ('failed-outcome',['second'],'failed',['second'],False,True)]:
+        for name,selection,outcome,expected,passed,complete,explicit_runner in [
+            ('selected',['second'],'passed',['second'],True,True,False),
+            ('all-selected',['second','first'],'passed',['first','second'],True,True,False),
+            ('tampered',['second'],'tampered',['second'],False,False,False),
+            ('failed-outcome',['second'],'failed',['second'],False,True,False),
+            ('explicit-runner',['second'],'passed',['second'],True,True,True),
+            ('wrong-runner',['second'],'wrong-runner',['second'],False,False,True),
+            ('missing-runner',['second'],'missing-runner',['second'],False,False,True),
+            ('wrong-runner-sha',['second'],'wrong-runner-sha',['second'],False,False,True)]:
             root=fixture/name;root.mkdir();case_started=time.monotonic()
             env=dict(os.environ,PHASE_CONTRACT_DRIVER=str(REPO/'tools/runtime-execution.py'),SCOPE_OUTCOME=outcome)
             with mock.patch.object(stage,'read_action_build',return_value=build), \
                  mock.patch.object(stage.execution,'load_products',return_value=products), \
                  mock.patch.object(stage,'clean_environment',return_value=env):
-                result=stage.execute_matrix(SimpleNamespace(action='execute',execution_phase='stable',
-                    stable_profile=selection,timeout=5),root)
+                protected=explicit_runner and name=='explicit-runner' and sys.platform=='darwin'
+                context=stage.owner.ArtifactRun(REPO,root) if protected else nullcontext(None)
+                with context as artifacts:
+                    result=stage.execute_matrix(SimpleNamespace(action='execute',execution_phase='stable',
+                        stable_profile=selection,timeout=5,
+                        stable_runner=selected_runner if explicit_runner else None),root,artifacts)
+                    if protected:
+                        captured=root/'stable-runner/stable-suite-runner.el'
+                        assert captured.stat().st_flags & 2
+                        assert (root/'stable-runner/stable-runner-selection.json').stat().st_flags & 2
+                        assert not selected_runner.stat().st_flags & 2
+                        retained=artifacts.retain_current_files()
+                        assert retained['all_original_files_verified']
+                if protected:
+                    assert not (root/'stable-runner/stable-suite-runner.el').stat().st_flags & 2
+                    assert not (root/'stable-runner/stable-runner-selection.json').stat().st_flags & 2
             assert [row['id'] for row in result['cases']]==['stable-'+identity for identity in expected]
             assert result['requested_stable_profiles']==expected and result['available_stable_pairs']==2
             assert result['remaining_stable_profiles']==[x for x in ('first','second') if x not in expected]
@@ -145,6 +178,22 @@ def stable_integration(out):
                 assert process['exit_code']==(1 if outcome=='failed' else 0)
                 assert process['argv'][process['argv'].index('--manifest')+1]==str(manifest)
                 assert not any('filter' in arg or 'selector' in arg for arg in process['argv'])
+                actual_runner=root/'stable-runner/stable-suite-runner.el' if explicit_runner else default_runner
+                assert process['argv'][process['argv'].index('--runner')+1]==str(actual_runner)
+                receipt=stage.execution.bounded_json(Path(row['receipt']).parent/'stable-suite-completion.json')
+                assert 'runner_identity' not in receipt
+            if explicit_runner:
+                binding=result['stable_runner_selection']
+                assert binding['unchanged'] and binding['preserves_compiled_product_fields']
+                assert binding['source_runner']['path']==str(selected_runner)
+                captured=Path(binding['captured_runner']['path'])
+                assert captured==root/'stable-runner/stable-suite-runner.el'
+                assert captured.read_bytes()==selected_runner.read_bytes()
+                assert stage.execution.file_identity(captured)==stage.execution.file_identity(selected_runner)
+                assert (root/'stable-runner/stable-runner-selection.json').is_file()
+            else:assert result['stable_runner_selection'] is None
+            if outcome in ('wrong-runner','missing-runner','wrong-runner-sha'):
+                assert 'receipt_validation_error' in result['cases'][0]
             if outcome=='tampered':assert 'receipt_validation_error' in result['cases'][0]
             if outcome=='failed':assert result['cases'][0]['failure_count']==1
             rows.append(dict(id=name,passed=True,actual_python_children=len(expected),
@@ -152,11 +201,92 @@ def stable_integration(out):
         assert before=={p['id']:stage.execution.product_identity(p,resources=True) for p in products}
     finally:
         shutil.rmtree(fixture)
-    report=dict(schema='femacs-stable-scope-file-process-integration-v1',passed=len(rows)==4,
+    report=dict(schema='femacs-stable-scope-file-process-integration-v1',passed=len(rows)==8,
         cases=rows,actual_python_children=sum(row['actual_python_children'] for row in rows),
         real_dispatch_writer_reader_and_all_product_identity_boundary=True,
+        runner_capture_owner_lifecycle_exercised=sys.platform=='darwin',
         compiled_product_admission_isolated=True,actual_editor_execution=False,
         original_corpus_execution=False,owned_fixture_retired=not fixture.exists(),
+        seconds=time.monotonic()-started)
+    stage.execution.write_json(out/'results.json',report)
+    return report['passed']
+
+
+
+def runner_protection(out, functional=None):
+    fixture=out/'owned-runner-protections';fixture.mkdir()
+    rows=[];started=time.monotonic()
+    try:
+        if functional is not None:
+            accepted=stage.execution.bounded_json(functional)
+            if not accepted.get('passed') or not accepted.get('owned_fixture_retired'):
+                raise AssertionError('supplied functional acceptance is not complete')
+        valid=fixture/'runner.el';valid.write_text(';; valid selected runner control\n')
+        empty=fixture/'empty.el';empty.write_bytes(b'')
+        large=fixture/'large.el';large.write_bytes(b'x'*(1024*1024+1))
+        wrong=fixture/'runner.txt';wrong.write_text('control\n')
+        directory=fixture/'directory.el';directory.mkdir()
+        link=fixture/'linked.el';link.symlink_to(valid)
+        parent=fixture/'linked-parent';parent.symlink_to(fixture,target_is_directory=True)
+        for name,args in [
+            ('build-scope',['--action','build']),
+            ('prepare-scope',['--action','prepare']),
+            ('components-scope',['--action','components']),
+            ('followup-scope',['--action','followup']),
+            ('semantics-scope',['--action','execute','--execution-phase','semantics']),
+            ('performance-scope',['--action','execute','--execution-phase','performance'])]:
+            start=time.monotonic();unused=fixture/name
+            child=subprocess.run([sys.executable,REPO/'tools/runtime-stage.py',*args,
+                '--stable-runner',valid,'--out',unused],capture_output=True,timeout=5)
+            assert child.returncode==2 and not unused.exists() and b'stable-runner' in child.stderr
+            rows.append(dict(id=name,passed=True,seconds=time.monotonic()-start))
+        for name,path in [('missing',fixture/'absent.el'),('empty',empty),('oversized',large),
+                          ('wrong-suffix',wrong),('directory',directory),('symlink',link),
+                          ('symlink-parent',parent/'runner.el')]:
+            start=time.monotonic();unused=fixture/('invalid-'+name)
+            child=subprocess.run([sys.executable,REPO/'tools/runtime-stage.py','--action','execute',
+                '--execution-phase','stable','--stable-runner',path,'--out',unused],
+                capture_output=True,timeout=5)
+            assert child.returncode==2 and not unused.exists()
+            rows.append(dict(id='invalid-'+name,passed=True,seconds=time.monotonic()-start))
+        products=[dict(id=n,kind=k,test_hooks=False,collector='off',resource_roots={})
+                  for n,k in [('reference','reference'),('first','terminal'),('second','cocoa')]]
+        for phase,subset in [('semantics',products),('performance',products),('stable',products[:1])]:
+            start=time.monotonic()
+            try:stage.execution_plan(phase,subset,stable_runner=valid)
+            except ValueError:pass
+            else:raise AssertionError('invalid runner scope accepted')
+            rows.append(dict(id='plan-'+phase,passed=True,seconds=time.monotonic()-start))
+        for target in ('source','captured','selection','frozen'):
+            start=time.monotonic();root=fixture/('mutation-'+target);root.mkdir()
+            source=root/'source';frozen=source/'tools/fixtures/stable-suite-runner.el'
+            frozen.parent.mkdir(parents=True);frozen.write_text(';; frozen control\n')
+            selected=root/'selected.el';selected.write_text(';; selected control\n')
+            for product in products:
+                program=root/product['id'];program.write_bytes(b'unchanged product control\n')
+                product.update(program=str(program),dump=str(program))
+            product_path=root/'products.json';stage.execution.write_json(product_path,dict(products=products))
+            build=(root,source,product_path,products,dict(passed=True))
+            def dispatch(*args,**kwargs):
+                paths={'source':selected,'captured':root/'stable-runner/stable-suite-runner.el',
+                       'selection':root/'stable-runner/stable-runner-selection.json','frozen':frozen}
+                with paths[target].open('a') as f:f.write('changed')
+                return [dict(id='stable-first',passed=True,execution_complete=True)]
+            with mock.patch.object(stage,'read_action_build',return_value=build), \
+                 mock.patch.object(stage.execution,'load_products',return_value=products), \
+                 mock.patch.object(stage,'_execute_profiles',side_effect=dispatch):
+                result=stage.execute_matrix(SimpleNamespace(action='execute',execution_phase='stable',
+                    stable_profile=['first'],stable_runner=selected),root)
+            assert result['passed'] is False and result['execution_complete'] is False
+            assert result['stable_runner_selection']['unchanged'] is False
+            identities=stage.execution.bounded_json(root/'product-identities.json')
+            assert identities['before']==identities['after']
+            assert 'stable-runner-selection' in identities['identity_errors']
+            rows.append(dict(id='mutation-'+target,passed=True,seconds=time.monotonic()-start))
+    finally:shutil.rmtree(fixture)
+    report=dict(schema='femacs-stable-runner-protection-v1',passed=len(rows)==20,cases=rows,
+        functional_acceptance_sha256=stage.execution.digest(functional) if functional is not None else None,
+        owned_fixture_retired=not fixture.exists(),actual_editor_execution=False,
         seconds=time.monotonic()-started)
     stage.execution.write_json(out/'results.json',report)
     return report['passed']
@@ -391,11 +521,17 @@ def protection(out):
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--out',type=Path,required=True)
-    parser.add_argument('--mode',choices=('integration','protection','stable-integration','stable-protection'),default='integration')
+    parser.add_argument('--mode',choices=('integration','protection','stable-integration','stable-protection','runner-protection'),default='integration')
+    parser.add_argument('--functional-acceptance',type=Path)
     options=parser.parse_args()
+    if options.functional_acceptance is not None and options.mode != 'runner-protection':
+        parser.error('functional-acceptance applies only to runner-protection')
     out=stage.execution.new_output(options.out)
     run={'integration':integration,'protection':protection,
-         'stable-integration':stable_integration,'stable-protection':stable_protection}
+         'stable-integration':stable_integration,'stable-protection':stable_protection,
+         'runner-protection':runner_protection}
+    if options.mode=='runner-protection':
+        return 0 if runner_protection(out,options.functional_acceptance) else 1
     return 0 if run[options.mode](out) else 1
 
 
