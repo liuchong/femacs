@@ -1144,7 +1144,7 @@ def run_relocation(products, out, timeout):
                     not (source_owner / "source-inputs.json").is_file() or
                     not (source_root / ".femacs-runtime-sources.json").is_file()):
                 raise ValueError("relocation work requires the actual owned frozen export")
-            work_case = source_owner / "relocation-work" / hashlib.sha256(str(out).encode()).hexdigest() / product["id"]
+            work_case = source_owner / "relocation-work.noindex" / hashlib.sha256(str(out).encode()).hexdigest() / product["id"]
             safe_path(work_case, must_exist=False)
             if any(work_case.is_relative_to(Path(hidden)) for hidden in hidden_roots):
                 raise ValueError("owned relocation package would still be inside a denied input root")

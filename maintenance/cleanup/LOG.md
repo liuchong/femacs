@@ -1072,3 +1072,17 @@ After review, a separate 41-row supplemental manifest records retirement of40
 consumed audit mirrors and their empty directory:12350535 logical/12451840
 per-path allocated bytes. All40 original ledgers remain unchanged; these counts
 are additional to, and separate from, the compiler-copy projection above.
+
+## CLN221 — 2026-11-10: consumed runtime semantic state
+
+385596 public identity rows bind310964 regular files,30 links and74602
+directories:17254112173 logical payload/17940475904 per-path allocated bytes.
+This includes consumed case state, all60 copied packages and62 empty parents;
+14 packages completed through separately bound late retirement after actual
+indexer holders exited. Original source/products/observations and the failed
+original phase remain unchanged. The main projection adds zero deletions.
+After independent reconstruction of all11248 scopes,394 consumed audit mirrors
+and their empty directory were canonically retired:158178794 logical/159260672
+per-path allocated bytes, recorded separately in395 auxiliary public rows.
+All11316 source pins and the main public manifest remain unchanged.
+[Scope and reconstruction](reports/2026-11-10-221-consumed-runtime-semantic-state.md).

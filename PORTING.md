@@ -4124,3 +4124,16 @@ checks apply. A phase result names its scope and outstanding phases; only an
 `all` invocation may report complete matrix coverage. No phase success grants
 compatibility, performance or whole-Goal acceptance. Verify real child-process
 dispatch and receipt validation before adding scope-protection contracts.
+
+## P456: keep owned relocation copies outside Spotlight indexing (2026-11-10)
+
+The current semantics run completed every authored ERT, negative, dump and
+relocated language/native case. Fourteen temporary package retirements were
+correctly refused because Spotlight workers held actual read-only descriptors.
+Keep future copies under the owned `relocation-work.noindex` sibling; do not
+change system indexing settings, terminate foreign holders or relax occupancy
+checks. The original frozen harness and failed receipts remain unchanged.
+After real holders released them, a separately bound transaction retired only
+the14 exact copies and62 empty parents through the canonical per-node path.
+This late filesystem completion does not promote the original failed result,
+reexecute semantic cases or establish stable-corpus/performance acceptance.

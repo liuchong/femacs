@@ -26198,3 +26198,27 @@ and bounded evidence. Next: execute all61 profiles' applicable semantic groups,
 negative controls, dump and relocation with one whole-phase deadline; full
 stable-corpus and quiet-host performance remain separate required work.
 See [P455 scope and evidence](runtime-modernization.md#current-execution-phases-p455).
+
+## 2026-11-10 — complete authored runtime semantics and P456/CLN221
+
+- Frozen61-profile epoch completes903 discoveries/9432 ERT tests,608 native
+  controls,48 dump/restore profiles and124 relocated language/native cases:
+  all functional observations pass. Full stable corpus/performance remain open.
+- Original semantic result remains failed:14 of60 relocation rows were held at
+  strict copy cleanup by actual read-only Spotlight descriptors. Natural exit1,
+  full controller cleanup,6389.838s/3353346048B, no memory/monitor interruption.
+  Complete products/source remain unchanged;198270 files/20links retained.
+- Separately bound late retirement passes for14 copies/62947 leaves/1597 package
+  directories and62 empty parents, with85 original pins unchanged and no new
+  compiler/editor/semantic process. Original failed evidence is not promoted.
+- P456 names future owned copies relocation-work.noindex, preserving strict
+  occupancy/identity checks and system settings. The frozen harness is unchanged.
+- CLN221 publishes385596 complete eight-field rows for consumed state/copies:
+  310964 files/30links/74602 directories,17254112173 logical payload bytes.
+  Independent metadata, exact late-retirement and complete publication reviews
+  pass. All11248 projection scopes were independently reconstructed. A reaped
+  verifier rechecked11316 original pins, then394 consumed audit mirrors and their
+  empty directory were canonically retired;395 auxiliary rows preserve identities.
+  Final auxiliary cross-check accepts the exact retired mirror identities.
+  Goal remains active3/7. [Semantics](../maintenance/releases/2026-11-10-current-runtime-semantics.md),
+  [CLN221](../maintenance/cleanup/reports/2026-11-10-221-consumed-runtime-semantic-state.md).
