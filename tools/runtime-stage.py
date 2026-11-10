@@ -617,7 +617,9 @@ def _execute_profiles(options, out, source, products_path, products, base, env,
             row['completion_sha256'] = execution.digest(receipt_root/'stable-suite-completion.json')
             row['execution_complete'] = summary['execution_complete']
             row['case_count'] = summary['case_count']
+            row['passed_count'] = summary['passed_count']
             row['failure_count'] = summary['failure_count']
+            row['corpus_complete'] = summary['corpus_complete']
             row['passed'] = (result['exit_code'] == 0 and result['complete']
                 and not result['remaining_group_terminated'] and summary['corpus_complete'])
         except Exception as error:

@@ -1,5 +1,66 @@
 # Lisp runtime modernization: evidence and first bounded implementation
 
+## Evidence-bound original stable-case accounting (P463)
+
+The human approved itemized classification while retaining all555 original
+entrypoints and all48 candidate profiles. Required functionality, actual port
+regressions and unexplained differences must still be fixed. This supersedes
+the former literal zero-skip policy; it does not authorize changing original
+tests, libraries or data, or relabeling their outcomes.
+
+`stable-classification.py` consumes closed original stage results after evidence
+exists. It admits the P462 reference selection and all61 products, calls the
+current `stable-suite.read_completion` over the unchanged frozen writer, and
+writes separate accounting. The original child exit, failure/skip status,
+`passed_count`, `failure_count` and `corpus_complete` keep their original meaning.
+The original passing count includes ERT-declared expected outcomes according to
+the existing runner; classified cases never increase it.
+
+The catalog is `femacs-stable-classification-v1`: exact manifest and reference
+selection SHA256; `contexts[profile]` binds context/run/completion SHA256; rules
+name an exact profile, file, case ID, original input SHA256 and actual two-sided
+status/diagnostic/event signatures. Context includes the entire profile,
+program/dump/library identities, environment, harness and reference epoch.
+Each rule also binds a reason and bounded literal-LF source anchors, including
+the unchanged original test. No wildcard, tag exemption or historical31.1
+runtime reuse is provided. A re-execution needs its own reviewed actual evidence.
+
+Three categories are supported. Invalid upstream tests retain two failed
+outcomes. Explicit optional capabilities permit observed skips, never failed
+tests; required runtime features and declared native/window capabilities cannot
+be excused by absence. Version evolution requires matching failures, both source
+versions and a bound successful same-version original-file control with the
+same candidate program/dump and a verified test fixture. Classification is an
+evidence contract, not an automated proof that a written explanation is sound;
+the independent review also checks those explanations and feature obligations.
+
+The detailed JSON is decoded row by row in two bounded passes, without retaining
+all diagnostic payloads. Full original file order, per-file evidence, generated
+ID counts, registration, raw assessments and conservation are verified. Identity
+change, incomplete execution, cleanup/registration/protocol failures and every
+unmatched nonpassing case remain blocking. Catalog/source/control/raw evidence
+is rechecked. The tool starts no editors or compilers and does not delete failure
+state. Retained state is retired separately only after its evidence is consumed.
+
+Use `--build`, `--reference-selection`, `--classification`, one or more closed
+`--run-results`, and a fresh `--out`. Partial pair accounting states the remaining
+profiles; only all48 accepted pairs can set `classified_stable_phase_complete`.
+`compatibility_accepted` and Goal completion remain false pending the actual
+full matrix and required feature coverage. This post-run entry avoids requiring
+unknown future receipt hashes or changing a running catalog.
+
+- [x] C463: complete classified reader and closed-stage command.
+- [x] A463: four file/process integration cases pass using two actual Python
+  children and two555-file synthetic runs. Whole-product admission is isolated;
+  no actual editor or original corpus execution is claimed by these fixtures.
+- [x] A463-P:24 post-functional identity, scope, event, source and failure
+  protections pass; existing stable/runner integration and protections pass.
+- [x] A463-R: independent final review accepts implementation, evidence and
+  boundaries with zero confirmed defects.
+
+[Measured tool delivery](../maintenance/releases/2026-11-10-stable-classified-accounting.md).
+Actual full original-file runs and their classification catalogs remain pending.
+
 ## Explicit aligned reference epoch (P462)
 
 The user authorized the official package installation pinned to upstream

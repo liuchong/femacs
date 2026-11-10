@@ -1152,7 +1152,8 @@ def _write_receipt(out_path, manifest, result):
 
 
 def read_completion(out, manifest_path, reference, candidate,
-                    reference_args, candidate_args, reference_env, candidate_env, *, runner=None):
+                    reference_args, candidate_args, reference_env, candidate_env, *, runner=None,
+                    classification=None, candidate_profile=None, reference_selection=None):
     """Read a bounded summary and stream-bind the full original-file evidence."""
     root = Path(out)
     receipt = _read_machine_result(root/'stable-suite-completion.json')
@@ -1209,6 +1210,16 @@ def read_completion(out, manifest_path, reference, candidate,
             and receipt['corpus_inputs_unchanged'] and receipt['failure_count'] == 0
             and receipt['passed_count'] == receipt['case_count'] and receipt['case_count'] > 0):
         raise SuiteError('stable completion falsely claims a passing corpus')
+    if classification is not None:
+        spec = importlib.util.spec_from_file_location('femacs_stable_classification',
+            Path(__file__).with_name('stable-classification.py'))
+        accounting = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(accounting)
+        from types import SimpleNamespace
+        api = SimpleNamespace(_load_batch=_load_batch, _sha256_path=_sha256_path,
+                              _relative_path=_relative_path, assess_case=assess_case)
+        receipt = dict(receipt, classification=accounting.assess(api, root,
+            receipt, manifest, classification, candidate_profile, reference_selection))
     return receipt
 
 

@@ -26391,3 +26391,30 @@ See [P455 scope and evidence](runtime-modernization.md#current-execution-phases-
   make all libraries identical or accept full stable/performance/Goal. Historical
   31.1 observations retain their original epoch. The user-approved classified
   full555-file/48-candidate policy still needs its bounded implementation.
+
+## 2026-11-10 — P463: classified accounting for the complete original corpus
+
+The human-approved GA3 policy now retains all555 original files and48 candidates
+while separately accounting for exact evidence-bound classifications. The new
+post-run command preserves the frozen writer, every raw outcome/count and child
+exit. Epoch/profile/run/test/event bindings are mandatory; structural, identity,
+registration and unexplained failures still block acceptance.
+
+After complete business implementation, four file/process integration cases pass
+with two555-file synthetic runs and two Python children.552 raw passing cases
+and3 raw failures remain unchanged after classification; an unexplained case
+blocks, and one accounted pair still leaves47 candidates. Business1.659s,
+controlled2.056s, peak56,098,816B. Then24 key protections pass in2.967s,
+controlled3.317s, peak49,659,904B. Existing stable integration8, stable protection16
+and runner protection20 also pass; all controllers exit0 with complete cleanup.
+Synthetic owned fixture trees are retired.
+
+The first two synthetic writer attempts failed. The first retains its outer
+assertion/controller but lacks the retired child diagnostic; the second retains
+the precise Python stat-keyword traceback. The supported no-follow call and
+failure diagnostic extraction are corrected. No original test or actual editor
+ran in these tool fixtures. Actual complete corpus runs and their exact catalogs
+remain pending; compatibility/performance/Goal are not promoted. Independent
+P463 final review accepts with zero confirmed defects; actual evidence-specific
+catalogs still need their own explanation/source/capability review.
+[Evidence and boundaries](../maintenance/releases/2026-11-10-stable-classified-accounting.md).
