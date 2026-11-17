@@ -160,6 +160,12 @@ unsafe extern "C" {
   fn setpgid (pid: pid_t, pgid: pid_t) -> c_int;
   /// C: int tcsetpgrp (int, pid_t)   -- <unistd.h>
   fn tcsetpgrp (fd: c_int, pgrp: pid_t) -> c_int;
+  /// C: pid_t getpgrp (void)   -- <unistd.h>  (the same prototype sysdep.c's caller uses)
+  fn getpgrp () -> pid_t;
+  /// C: pid_t tcgetpgrp (int)   -- <unistd.h>
+  fn tcgetpgrp (fd: c_int) -> pid_t;
+  /// C: pid_t getsid (pid_t)   -- <unistd.h>
+  fn getsid (pid: pid_t) -> pid_t;
   /// C: int ioctl (int, unsigned long, ...)   -- <sys/ioctl.h>
   fn ioctl (fd: c_int, request: c_ulong, ...) -> c_int;
   /// C: pid_t fork (void)   -- <unistd.h>
@@ -1447,8 +1453,17 @@ unsafe fn child_setup (in_: c_int, out: c_int, err: c_int, new_argv: *mut *mut c
   dup2 (out, STDOUT_FILENO);
   dup2 (err, STDERR_FILENO);
 
-  setpgid (0, 0);
-  tcsetpgrp (0, pid);
+  /* C's `setpgid (0, 0);` and `tcsetpgrp (0, pid);` — the same calls with the
+     same arguments and the same discarded results.  The observation channel
+     reads the return values without altering either call.  */
+  let pg_result: c_int;
+  let tty_result: c_int;
+  pg_result = setpgid (0, 0);
+  let pg_error: c_int = if pg_result < 0 { *errno () } else { 0 };
+  tty_result = tcsetpgrp (0, pid);
+  let tty_error: c_int = if tty_result < 0 { *errno () } else { 0 };
+  child_diagnostic_group_setup (pid, pg_result, pg_error, tty_result, tty_error,
+				 (in_, out, err), isatty (in_));
 
   let errnum: c_int = emacs_exec_file (*new_argv, new_argv, env);
   exec_failed (*new_argv, errnum);
@@ -1587,6 +1602,99 @@ unsafe fn emacs_posix_spawn_init_attributes (attributes: *mut posix_spawnattr_t,
   return error;
 }
 
+/* Child-side process-group diagnostic channel.
+
+   `setpgid`/`tcsetpgrp` in `child_setup` discard their return values, exactly
+   like the reference, so a failing foreground-group handshake is invisible.
+   The channel below records the real results without touching the measured
+   stdout/stderr (a shell diagnostic written there ends up inside command
+   output and corrupts transferred data), without allocating after the fork
+   (the file is opened in the parent before it, and the line is formatted into
+   a stack buffer with plain `write`), and without changing any process group.
+
+   Off by default: `FEMACS_SPAWN_DIAGNOSTIC` names the file to append to.  */
+static mut SPAWN_DIAGNOSTIC_FD: c_int = -1;
+
+/// C: `emacs_spawn`'s child side, process-group setup observation only.
+unsafe fn child_diagnostic_group_setup (pid: pid_t, setpgid_result: c_int,
+				       setpgid_error: c_int, tcsetpgrp_result: c_int,
+				       tcsetpgrp_error: c_int, fds: (c_int, c_int, c_int),
+				       terminal: c_int)
+{
+  if SPAWN_DIAGNOSTIC_FD < 0 { return; }
+  /*
+    A single-pass formatter: `child_diagnostic_push`/`_int` are called through
+    the module-level helpers and the running length lives in this local, so no
+    closure captures it mutably twice.
+  */
+  let mut buf: [u8; 256] = [0; 256];
+  let base: *mut u8 = buf.as_mut_ptr ();
+  let mut length: usize = 0;
+  macro_rules! push {
+    ($buf:expr, $length:expr, $text:expr) => {
+      for byte in $text.iter ()
+	{
+	  *$buf.offset (*$length as isize) = *byte;
+	  *$length += 1;
+	}
+    };
+  }
+  macro_rules! push_int {
+    ($buf:expr, $length:expr, $value:expr) => {
+      {
+	let mut digits: [u8; 24] = [0; 24];
+	let mut count: usize = 0;
+	let mut value: i64 = $value;
+	let negative: bool = value < 0;
+	if negative { push! ($buf, $length, b"-"); value = -value; }
+	loop
+	  {
+	    digits[count] = b'0' + (value % 10) as u8;
+	    count += 1;
+	    value /= 10;
+	    if value == 0 { break; }
+	  }
+	while count > 0
+	  {
+	    count -= 1;
+	    *$buf.offset (*$length as isize) = digits[count];
+	    *$length += 1;
+	  }
+      }
+    };
+  }
+  push! (base, &raw mut length, b"spawn-group pid=");
+  push_int! (base, &raw mut length, pid as i64);
+  push! (base, &raw mut length, b" ppid=");
+  push_int! (base, &raw mut length, getppid () as i64);
+  push! (base, &raw mut length, b" pgid=");
+  push_int! (base, &raw mut length, getpgrp () as i64);
+  push! (base, &raw mut length, b" sid=");
+  push_int! (base, &raw mut length, getsid (0) as i64);
+  push! (base, &raw mut length, b" fg=");
+  push_int! (base, &raw mut length, tcgetpgrp (0) as i64);
+  push! (base, &raw mut length, b" setpgid=");
+  push_int! (base, &raw mut length, setpgid_result as i64);
+  push! (base, &raw mut length, b" setpgid_errno=");
+  push_int! (base, &raw mut length, setpgid_error as i64);
+  push! (base, &raw mut length, b" tcsetpgrp_arg=");
+  push_int! (base, &raw mut length, pid as i64);
+  push! (base, &raw mut length, b" tcsetpgrp=");
+  push_int! (base, &raw mut length, tcsetpgrp_result as i64);
+  push! (base, &raw mut length, b" tcsetpgrp_errno=");
+  push_int! (base, &raw mut length, tcsetpgrp_error as i64);
+  push! (base, &raw mut length, b" in=");
+  push_int! (base, &raw mut length, fds.0 as i64);
+  push! (base, &raw mut length, b" out=");
+  push_int! (base, &raw mut length, fds.1 as i64);
+  push! (base, &raw mut length, b" err=");
+  push_int! (base, &raw mut length, fds.2 as i64);
+  push! (base, &raw mut length, b" isatty=");
+  push_int! (base, &raw mut length, terminal as i64);
+  push! (base, &raw mut length, b"\n");
+  let _ = write (SPAWN_DIAGNOSTIC_FD, base as *const c_void, length);
+}
+
 /* Start a new asynchronous subprocess.  If successful, return zero
    and store the process identifier of the new process in *NEWPID.
    Use STDIN, STDOUT, and STDERR as standard streams for the new
@@ -1663,6 +1771,16 @@ pub unsafe extern "C" fn emacs_spawn (mut newpid: *mut pid_t, mut std_in: c_int,
   let mut vfork_error: c_int;
 
   eassert! (input_blocked_p ());
+
+  /* Open the child diagnostic channel here, in the parent: the child then
+     needs only `write`, so nothing allocates or opens after the fork.  */
+  {
+    let diagnostic: *const c_char = getenv (c"FEMACS_SPAWN_DIAGNOSTIC".as_ptr ());
+    if !diagnostic.is_null () && *diagnostic != 0
+      {
+	SPAWN_DIAGNOSTIC_FD = emacs_open (diagnostic, O_WRONLY | O_CREAT | O_APPEND, 0o644);
+      }
+  }
 
   'fork_done: loop
     {

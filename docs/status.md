@@ -26685,6 +26685,13 @@ Fresh reference selection passed7/7 postflight checks, actual installation/confi
 User approved this exact DNS case as a nonblocking environment limitation and requires the existing proxy to remain enabled and unchanged. Four bounded HTTPS queries completed without errors: both Google andCloudflare resolved `example.com` (Status0,2 A answers) and returned NXDOMAIN for `emacs.invalid` (Status3,no answers),1.499–2.389s per query. The host system lookup still reports its synthetic proxy addresses. This verifies a remote-resolver contrast, not candidate/editor or original ERT acceptance; raw failures, counts and exits remain unchanged. No Dot task was sent; that route is cancelled. Fresh full555/48 observations and any precise exception binding remain pending.
 
 
+### 2026-11-18 — 第 11 轮：Tramp 进程组返回码/PTY 归属诊断接线（源码已写齐）
+
+- **调用顺序/参数/ABI 复核**：`src/callproc.rs` 的子进程段与参照逐行对应——`dup2` 三次（`in_/out/err` → 0/1/2）、`setpgid (0, 0)`、`tcsetpgrp (0, pid)`、`emacs_exec_file (*new_argv, new_argv, env)`；`pid` 由 `getpid ()` 取得（C 同样），与参照 `callproc.c:1292-1295` 同序同参。两者都把 `setpgid`/`tcsetpgrp` 的返回值丢弃，因此**仅凭“同形”不能排除调用在运行时失败**，这里新加观测就是为了看真实返回码。
+- **新增诊断通道（默认关闭，独立文件）**：`FEMACS_SPAWN_DIAGNOSTIC=<path>` 时，父进程在 fork **之前**打开该文件（`O_WRONLY|O_CREAT|O_APPEND`），子进程只用一次 `write (2)` 追加一行；缓冲是 256 字节栈数组，十进制格式化用手写循环，**fork 之后不分配、不打开文件、不改任何进程组**，也**不写 stdout/stderr**（避免再次污染 base64 流）。
+- **记录字段**：`pid`、`ppid`、`pgid`（`getpgrp ()`）、`sid`（`getsid (0)`）、`fg`（`tcgetpgrp (0)`）、`setpgid` 返回码与 errno、`tcsetpgrp_arg`（本应设为前台组的 pid）、`tcsetpgrp` 返回码与 errno、`in/out/err` 三个 fd、`isatty (in_)`。这直接给出“前台组是否真的建立成功”的可判定证据，而不只是源码同形。
+- **编译状态**：`build-tu src/callproc.c` 通过（exit 0，`build/femacs/callproc.o` 40,904 字节）；未读写 `src/include/lisp.rs`（Cursor 独占），未启动整棵 Root 构建/验收。下一步在 Codex 冻结后跑一次 Tramp 单测并比对两侧诊断行。
+
 ### 2026-11-18 — 第 10 轮：G7 写权移交、Tramp 条件收紧（不再改三份文件）
 
 - **G7 写权移交（按用户授权）**：`src/alloc.rs`、`src/runtime_gc_collector.rs` 及必要的 `src/include/lisp.rs` 由 Cursor 桌面新对话「FEmacs：G7攻坚」（`2285cac9-dce8-410a-bebb-090b918ef694`）独占；已写入 CONT `collaboration.g7_write_transfer_20261118`，含已证事实、两次被否证的触发尝试与下一步问题（young 专属增长度量与提前量）。OpenCode 保留 Tramp、G6 既有路径证据与其余交付准备，不再改这三份文件；现有 WIP 与已接受的 minor-sweep 修正完整保留。**不启动整棵 Root 的编译/验收**，等双方源码齐后由 Codex 冻结。
