@@ -160,6 +160,8 @@ def artifacts(binary: Path, dump: Path | None = None) -> dict:
 def measure(binary: Path, argv: list[str], home: Path, log: Path, timeout=120,
             candidate_env: dict[str, str] | None = None) -> dict:
     env = dict(HOME=str(home), TMPDIR=str(home), PATH=os.defpath, LC_ALL='en_US.UTF-8')
+    # A declared PATH replaces the neutral default; HOME/TMPDIR/LC_ALL stay fixed.
+
     if candidate_env:
         env.update(candidate_env)
     home.mkdir(parents=True, exist_ok=False)
@@ -205,8 +207,15 @@ def main(argv=None) -> int:
     for entry in args.env:
         name, separator, value = entry.partition('=')
         if (not separator or not re.fullmatch(r'[A-Z][A-Z0-9_]*', name)
-                or name in ('HOME', 'TMPDIR', 'PATH', 'LC_ALL') or name in candidate_env):
+                or name in ('HOME', 'TMPDIR', 'LC_ALL') or name in candidate_env):
             ap.error(f'candidate environment entry must be a unique KEY=VALUE with an uppercase name: {entry!r}')
+        if name == 'PATH':
+            # A candidate may pin the search path (the native compiler needs a
+            # real driver), but never point it at a relative or empty entry:
+            # that would make the recorded configuration ambiguous.
+            parts = value.split(':')
+            if not parts or any(not part.startswith('/') for part in parts):
+                ap.error(f'candidate PATH entries must all be absolute: {entry!r}')
         candidate_env[name] = value
     out = new_output(args.out);started = time.monotonic()
     report = dict(passed=False, schema='femacs-runtime-profile-report-v1', samples=[],
