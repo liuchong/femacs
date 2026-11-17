@@ -45,6 +45,7 @@
   "HAVE_TS_SET_ALLOCATOR": "1",
   "HAVE_PNG": "1",
   "HAVE_JPEG": "1",
+  "HAVE_WEBP": "1",
   "HAVE_SQLITE3_LOAD_EXTENSION": "1"
  },
  "features": {
@@ -680,7 +681,7 @@
   "HAVE_GMP_H": "undefined",
   "HAVE_HARFBUZZ": "undefined",
   "NEED_SANITIZED_REALLOC": "undefined",
-  "HAVE_WEBP": "undefined",
+  "HAVE_WEBP": "1",
   "HAVE_STRUCT_UTMPX_UT_EXIT_E_TERMINATION": "undefined",
   "HAVE_MINMAX_IN_LIMITS_H": "undefined",
   "HAVE_CYGWIN_O_PATH_BUG": "undefined",
