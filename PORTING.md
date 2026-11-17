@@ -18,6 +18,36 @@
 
 ## 0. 总则
 
+### P-465：同一执行器的闭合文件复用与有界状态清退
+
+完整语料仍为 555 个入口、48 个非诊断候选。只复用已回收控制器、同一构建与参照 epoch、全部 61 制品边界、七个捕获角色的实际 SHA256/权限、运行环境、原输入及逐事件闭环均严格匹配的单文件证据。不同候选配置、未完成文件和原 module 文件不跨角色复用；旧驱动 hash 不获例外。证据逐字节复制，原状态和失败计数不变，另写来源账本；复用过的清退账本在新运行归因零删除、零回收字节。失败状态须有闭合时逐节点内容证明，不能用消费时重算补造历史证明。
+
+成功文件遇临时占用时，清退模块只做单次有界占用检查，调度器执行两层有界重试；首次保留后锁定根、父、节点集合与内容，漂移即保留。最终 owner 回执只创建一次；未知占用和未解决清退继续阻断，不向占用进程发信号。原生双自举仅增加显式单例预算，原断言不改；诊断仅采集有界运行态，不关闭 JIT 或替代原失败。以上代码与 P466 合并为一个冻结快照，统一构建、功能验收后再补关键保护及独立终审。
+
+闭合运行已定位的测试上下文供应缺口在自有 harness 集中修正：Perl 入口补齐同一清单中的 cperl 资源；uniquify 使用自有 test 工作目录及空 lib-src；xref 的相对库路径仅在单文件执行期间映射到该产品实际 Lisp 根，进程回收后核对链接身份并移除，再封存结果和清退状态。原产品布局、原文件及断言不改。版本演进控制还须与实际候选的完整 runtime_environment 相等，不能用同二进制的不同 GC 配置替代。
+
+真实观测进一步确认 uniquify 的 source-directory 必须同时是测试项目根；为该单文件在自有 out 初始化空 Git 项目并复制固定 README，不读取全局 Git 配置，不改开发仓库或测试。版本演进控制要求同配置的匹配用例实际通过、所在文件正常完整结束；控制文件其他原始失败和跳过继续保留，不用整文件普通通过作为这一用例的替代判据。
+
+### P-467：PNG/JPEG 解码与唯一 SQLite 运行库（2026-11-17）
+
+用户的现代化授权把"真实解码 PNG/JPEG"和"sqlite 扩展加载"列为必须补齐的已授权业务，不属于可记为 D-07 降级的外部阻碍。本批按参照 `image.c` 转写 PNG（C 8451-9111）与 JPEG（C 9116-9677），并让唯一一份暂存 libsqlite3 同时服务产品链接与 L0 门槛链接。
+
+- **与 C 同形**：`png_image_p`/`png_load_body`/`png_load`、`jpeg_image_p`/`jpeg_load_body`/`jpeg_load`、两张 keyword 表、`png_memory_storage`/`png_load_context`/`my_jpeg_error_mgr`/`jpeg_stdio_mgr`、内存与文件两种 source manager 都按 C 的语句顺序与错误路径落地；PNG 的 `setjmp`/`png_longjmp`（`my_png_error`）与 JPEG 的 `sys_setjmp`/`sys_longjmp`（`my_error_exit`）恢复路径保留。
+- **头文件镜像（P-88）**：`<png.h>`/`<jpeglib.h>` 在参照树里没有镜像，所需声明写在单元内，并按已安装头测量：libpng 1.6.59、libjpeg 10（`JPEG_LIB_VERSION` 100）。`jpeg_decompress_struct` 的 size/offset 用编译期断言钉住（664 字节；`src` 40、`out_color_space` 64、`output_width` 136、`output_height` 140、`output_components` 148；`jpeg_error_mgr` 168、`jpeg_source_mgr` 56），头或库升级会先让构建失败而不是解码越界。
+- **偏差一**：`png_create_read_struct` 的版本串由 `png_get_libpng_ver (NULL)` 在运行时取得（端口没有 `<png.h>` 的 `PNG_LIBPNG_VER_STRING`），取得的值就是用户版本检查要比较的那一个，行为等同头常量。
+- **偏差二**：libpng < 1.5 的私有 `jmpbuf` 臂与两处 `WINDOWSNT` 的 `DEF_DLL_FN` 装载臂记录为 owed（本机无 Windows 工具链，1.4 ABI 不可达），与 `docs/ports/image.md` 其余 owed 项同列；`image_types` 的 `init` 指针因此只在 windownt 配置下才需要那两个函数。
+- **唯一运行库**：`xtask/src/image.rs` 只暂存 libpng/libjpeg/libsqlite3 三份真实动态库；系统 `-lsqlite3` 从 `libraries.txt` 移除，产品链接与 L0 gate 链接读同一份回执（Homebrew sqlite 3.54.1，含 `sqlite3_load_extension`），二进制里只有一份 sqlite。改写 install name 会作废 keg 的 ad-hoc 签名，暂存后必须 `codesign --force --sign -` 并 `--verify`（实测：未重新签名时 dump 程序被 arm64 加载器以 SIGKILL 终止，P-467 首轮构建的唯一失败根因）。
+- **许可证证据随库暂存**：libpng 的 `LICENSE`、IJG jpeg 的 `README`（含 LEGAL ISSUES 全文）、SQLite keg 的 SPDX `licenseConcluded`，逐库记录来源名与 SHA256，不编造文本。
+- **功能读数**（详见 `docs/status.md` 本轮）：cocoa 图形帧上 `blank-100x200.png` 解码为 `(100 . 200)`、`black.jpg` 为 `(30 . 30)`，文件与 `:data` 两种输入都走通；旧 9 文件官方尺度批次（label `parity-image-sqlite`）是 `same 5 / port-worse 3 / incomplete 1`，其中 filenotify-tests 在 300s 默认上限超时，不能写成“无超时、注册完整”；`image-file-tests.el`、`image/image-dired-tests.el`、`net/shr-tests.el`、`src/sqlite-tests.el` 判 `same`；`image-tests.el` 只剩 `image-type-from-file-name` 一个 `port-worse`，它要求 WebP 可用（C 10986-11328 的 WebP 加载器与 C 3730-3860 的 animation cache），WebP 属下一完整批次。ert-tests/files-tests/filenotify-tests 的复验用 `--materialize-fixtures` 的正式覆盖层重跑，得 `same 1 / resolved 2 / port-worse 0 / incomplete 0`，与旧批次分开记录。历史 555 文件基线、原失败与跳过不重判。
+- **保护探针**：新增 `tools/fixtures/image-loader-protection.el` 与提交的驱动 `tools/image-loader-probe.py`，在真实 Cocoa 帧上跑文件/`:data` 两臂的合法解码、截断与损坏 PNG（内存/文件）、损坏 JPEG（内存/文件）、截断 JPEG 的警告路径，以及损坏输入之后再次解码合法数据。首轮 `image-loader-protection-1` 的 7/7 **被否定**：报告把返回 nil 的检查也记 passed，`readers-recover` 可能读到缓存，且 JPEG 的 30x30 合法尺寸与占位尺寸相同。修正后的判据要求每个检查返回非 nil、`readers-recover` 先 `clear-image-cache`、合法解码必须“尺寸正确且本次无加载器错误日志”；`image-loader-protection-2` 在同一产品上仍 7/7，负对照（把期望 PNG 尺寸改成 999x999）恰好三项失败并 exit1，证明夹具能检测失败。证据含产品、dump、fixture、root 的 SHA256。ERT 的运行器在 GUI 首帧里不返回（实测），所以探针直接用自带的检查循环，批量通道仍由原测试驱动。
+- **可复现的语料夹具**：`tools/functional-corpus.py` 新增 `--materialize-fixtures`，按 manifest 身份复制选中的源文件与其 `*-resources`/`test/data` 夹具到本次输出目录的 `corpus/` 覆盖层（并记录每个文件的 SHA256/模式与只读链接），使兼容语料里的测试体能在自己旁边找到夹具；不再依赖 `/tmp` 的手工树。覆盖层身份写入该次 `summary.json` 的 `corpus` 字段。`tools/functional-strict-probe.py` 的参照一侧改为读取 `FEMACS_REFERENCE_LISP`（官方安装的 Lisp 库不在 app bundle 内，P-464）。
+
+### P-466：按当前参照恢复字符串 interning 的字面名称
+
+首个对齐当前参照的 555 文件扫描暴露两个日历文件的注册集合分叉：宏经 `intern` 生成的 272 个名称在端口中被隐式展开，而参照保留字符串原名；原 31.1 `lread-unintern` 断言也实测为参照失败、端口通过。所选 `fd7afced403` 的 `Fintern`、`Fintern_soft` 与 `Funintern` 对字符串使用精确 `oblookup`。据此修正三个端口字符串分支；P424 的旧 31.1 目标与旧回执保留历史含义，不增加运行时兼容开关或改写注册名称。
+
+符号读取仍遵守 `read-symbol-shorthands`，显式 `shorthands-intern`、`shorthands-intern-soft`、`shorthands-unintern` 仍由原库执行展开；符号实参的精确对象身份不变。原库、测试、数据及冻结矩阵不修改。业务实现完成后，以新标准终端和 Cocoa 产品验证自有真实功能、原日历注册与当前版本原测试，再补关键保护。新源码与旧矩阵分开绑定；本修复不预支完整 555 文件、48 候选或性能验收。
+
 ### P-464：绑定实际产品库目录的自有稳定执行器
 
 真实官方参照安装将 Lisp 库放在已核验的共享资源目录，App 内不存在稳定驱动推断的目录；首次整对在编辑器启动前退出 2，原回执保持失败。修复自有执行接线：显式选择产品登记表的库根，在本轮输出内捕获当前稳定 Python 驱动及其依赖，并保全源码/副本/单协议和原运行环境身份。冻结 Source、官方安装、原测试/库/数据及 555 文件、48 候选范围不变。不创建伪产品布局来满足测试。业务完整实现后做真实功能集成，再补关键保护；旧失败不升格。
@@ -4279,3 +4309,149 @@ verify source revision through the pinned recipe and actual install receipt.
 If a runtime repository value is present it must match exactly. Record whether
 it was embedded, require explicit source provenance, and accept only the recipe's
 actual formula name or declared aliases in the installed source record.
+
+
+### P465 集中验收后稳定执行上下文补齐（2026-11-11，待整批验收）
+
+保留完整版本描述并另记运行时短版本、显示模式及配置事实；不得用宿主依赖名称伪造 Lisp features。逐项分类继续仅使用既定三类，增加源门禁与实际 skip 条件的类型化证据检查；必需功能缺失、未解释差异及结构失败仍阻断。批处理显示门禁必须绑定同产品、同环境、适用显示模式下的原测试通过证据；反向配置测试与入口参数化必须证明对应配置或入口的真实覆盖。原失败、跳过、计数和退出码不改写。
+
+project 原文件的 Git 根与已跟踪测试资源由独立自有 fixture 供应，隔离开发者仓库及全局 Git 配置，不改原测试或库。五份原 ERC 终端场景直接使用已有受控 PTY 启动同一产品及 dump；保留 JIT 并发资源约束而不禁用 JIT。仅在这些机器运行场景内，将直接调用 debugger 的原 error 条件重新交付 ERT，避免进入等待人工输入的 recursive-edit；原错误不吞掉、不改成通过。显示策略、资源策略及完整 argv 共同绑定闭合复用。
+
+新增独立Git fixture的两份原文件（project与uniquify）和既有module文件始终实际重跑：完整宿主Git/C编译工具链不在闭合donor身份中，不能用消耗时快照补造相等证明。其余满足准入的闭合文件仍可复用；555/48实际候选覆盖不减，保留原始失败与跳过，不预支复用时间收益。
+
+## P467: bind the current authored evaluator and conservative weak observations (2026-11-13)
+
+The authored weak-table case explicitly permits zero or one unreachable entry
+after full collection. Its aggregate evaluator incorrectly required identical
+printed counts across products and observer modes. Keep exact live-entry
+observations, the four fixed weak-mode keys and their order, and integer counts
+in that original zero-or-one domain. Every other authored observation continues
+to require exact equality. Preserve literal-equality metadata and all raw values;
+the earlier failed aggregate and unsafe stack-scan-disabled diagnostics are not
+rewritten or promoted.
+
+Execute authored actions from one owned snapshot of the current Python driver,
+its six helper modules and fixture inputs. Bind source/captured bytes and modes,
+protect the captured files through the existing artifact owner, and verify both
+source and captured identities at exit. Keep compiled source, product registries,
+original libraries and original tests unchanged. The final audit binds the same
+selection and captured inputs. Stable execution retains its separately bound
+six-file harness and unchanged raw completion protocol. New full authored
+execution, complete stable coverage and performance judgment remain required.
+
+Capture the active authored groups' declared fixtures, including XML and SQLite
+acceptance inputs whose names do not start with runtime-. The initial narrow
+filename filter omitted those inputs and caused a real discovery-time failure;
+that failed run remains failed. Current fixture-group capture and the final
+audit both require the complete dependency set.
+
+Stable source definitions are maintained as repository-relative, hash-bound
+inputs. Expansion preserves the existing rule-definition protocol; assembly
+adds only fresh original events and explicitly supplied closed controls. A
+defined case that actually passes remains an ordinary pass. Inactive profiles,
+missing controls, invalid registration or unexplained observations cannot
+complete the full stable scope.
+
+
+### P468 - Native-disabled positive compiler tests (2026-11-13, acceptance pending)
+
+The complete original compiler file ran on a declared native-disabled baseline:85 passed and101 failed, with9 integrity checks passing.94 cases report the original compiler-availability error. Six others assert native function/subr objects or native string sharing. Bootstrap has a different reference/candidate failure and remains blocking. Tags alone do not establish acceptance.
+
+The bounded source-gate design covers individually declared positive native tests only: the actual reference must pass with native available; the candidate must declare native=false and actually report native unavailable with the feature absent. Every definition binds its unchanged original declaration/body, native fixture prerequisite and original capability guard. Actual failures must match the original unavailable-compiler error or the specific positive native assertion. Other errors, timeouts, incomplete execution, native-enabled candidate failures and reference failures remain blocking. Raw statuses, counts, IDs and exit codes remain unchanged.
+
+This explicit gate does not relax ordinary optional-skip rules or certify555/48 coverage. Complete this business/data change before concentrated functional integration, then add key protections. No new implementation or source definition is treated as accepted until that validation closes.
+
+
+### P469 - Bounded bootstrap container identity proof (2026-11-13, acceptance pending)
+
+The original bootstrap test compares complete native container bytes. Existing closed outputs differ only in the dynamic-library identifier, UUID and ad-hoc signature, with all sections and remaining bytes identical. A maintained stdlib-only analyzer will establish this from explicit files rather than old diagnostic code. It accepts only bounded little-endian64-bit ARM dynamic libraries, validates load-command/segment/section ranges, and masks only the exact declared identifier/UUID/signature regions. No file is loaded or changed.
+
+Before treating a signature as metadata, validate a single ad-hoc SHA256 CodeDirectory, its executable mapping, identifier, exact page coverage and every signed page hash. Normalized signature comparison preserves all bytes other than its identifier and derived hash slots. Unknown layouts, overlapping masks/sections, malformed signatures or any other differing byte block the metadata-only conclusion. Bind input file identity through single no-follow descriptors and before/after inode/stat/content checks; preserve raw differences and never call the original test passed. The analyzer alone does not bind a closed ERT case or accept compatibility; subsequent catalog admission still needs the fresh original event and retained-state provenance.
+
+The file-closure input mode must bind the immutable per-file result, its adjacent owner-retirement receipt, the exact failed bootstrap event and its original progress hash/ordinal. Read the two image paths only from that event's original `Comparing` message; each must be a regular node in the closure-time retained-state snapshot. Reuse the maintained retirement verifier before and after analysis; never create a consumption-time substitute snapshot. This mode establishes file provenance only. The closed outer stage, products, source/epoch and independently reviewed per-side classification remain separate admission requirements.
+
+A source-defined bootstrap classification may explain two specific upstream test assumptions without changing either raw failure. On every native-enabled side the exact original `cmp` assertion must fail with return1, and the event-bound containers must differ only in validated metadata. The reference must actually have native support. A declared native-disabled candidate instead must report native unavailable, lack the feature and fail with exactly the original unbound `native-comp-eln-load-path` condition; the source unconditionally reads that variable after availability-gated fixture preparation. Other conditions, unsealed state, missing container evidence or changed code/data remain blocking. This one typed rule does not relax the ordinary native-positive gate's passing-reference requirement.
+
+### P470 - Source-bound component and applicability differences (2026-11-13, acceptance pending)
+
+The fresh original corpus exposes an asymmetric ERT description-format result: the selected reference returns a record, while the previously accepted stable component and its unchanged test use an alist. Preserve P419 and the original successful candidate result. A single typed version gate must bind the exact original assertion, actual reference record type error, candidate pass, selected upstream revision and both products' declared ERT source files, including full content and literal-LF identity. It cannot accept a candidate failure or replace the normal two-failure/current-version-control contract for other version differences.
+
+Three original file-notification cases similarly call a private descriptor-removal helper retained by the candidate component and removed in the pinned reference. Their narrowly typed source gate requires the exact original reference void-function error, candidate pass and both actual library sources; it cannot excuse event delivery failures. The original mail-security test helper explicitly short-circuits on darwin before querying external PGP configuration. Bind that source helper, the original nil skip and the actual platform, without claiming that GPG is missing or that cryptographic tests passed.
+
+Original skips also include a lexical external-program binding, explicit monitor-backend exclusions, package installation variants and direct source-authored skip messages. Explain these only through their exact original source gates and fresh original events. Where the original file already executes an applicable sibling, bind its actual passing case and event from the same complete file rather than starting a duplicate control. Display-only exclusions still require the actual applicable display control. Do not invent Lisp feature names, infer missing programs from unrelated failures, waive required paths, alter raw outcomes or accept incomplete files. Complete the collected reader/data changes together, then run affected integration and real catalog binding after the active original run closes.
+
+### P471 - Exact current-version controls and bounded mock startup path (2026-11-13, acceptance pending)
+
+Current-version controls must preserve the actual source permission bits, including nonstandard executable modes, instead of collapsing every executable to0755. A control envelope whose copied-input postflight failed remains rejected. The complete original555-file result is unchanged. Source-only definitions for55 specific differences bind old/current assertions, helpers or resource versions; actual matching candidate controls are still mandatory and do not turn the original failures into ordinary passes.
+
+The owned mock shell startup pathname is part of Tramp's direct-async command. A closed original command contained522 characters with the long generated basename; the host's PIPE_BUF is512. Shorten only this generated basename to `e`, retaining the same owned HOME, bytes,0600 permissions, ENV path binding and PTY behavior. Do not change the original library limit, test, PATH, shell initialization content or JIT settings. Validate the affected original Tramp file before wider execution.
+
+This changes one of the six captured harness files. Exact seven-role SHA256/mode equality remains mandatory: all earlier seeds and controls with the previous harness are ineligible for the changed harness. Generate a new exact-harness seed and the required controls; do not grandfather old hashes or duplicate old retirement accounting. Existing VM/semantics results whose compiled inputs are unchanged remain distinct valid evidence. Current work remains unaccepted until its affected integration and required protection close.
+
+The first basename-only functional attempt completed both original Tramp files with all integrity checks true. It cleared the earlier command but the unchanged test's subsequent random-variable subcase still formed520 characters. Preserve that failure. Complete the same owned-path repair by shortening the compact case component from `case` to `c` and the temporary container prefix from `fe-` to `f`; keep the eight random characters, the physical `.noindex` cache root, per-container device/inode ownership, all eight state directories, shell content and exact retirement proofs. This removes another ten characters from those two path occurrences without changing PATH or the original pipe limit. Align the integration fixture's exact owned-path checks with this single current format; do not add an old-format donor exception.
+
+
+P470's remaining source-prerequisite extension uses exact package/lexical bindings, explicit platform/version exclusions, original host helper predicates, empty known-failure sets and monitor exclusions. A missing external package is not a made-up Lisp feature. Observed present prerequisites, active target platforms/versions and unknown monitor states remain blocking. The three original server-frame gates require an actual passing same-product owned-terminal control; synthetic tool receipts never satisfy that acceptance. The20 additional definitions and reader are implemented together, then validated through the clean31-case integration and30 key protections recorded in the aligned stable report. The active seed's11 captured inputs remain unchanged.
+
+
+P465 donor admission must stream the canonical owner journal: the complete original555-file envelope exceeds the16MiB small-receipt bound. Reuse the bounded classification owner reader, verify the full content pin before and after streaming, require the canonical released header and bind the reader source in the coordinator's input preservation. Controller birth/exit, output ownership, full61-product boundaries and exact seven-role identities remain conjunctive. This coordinator-only correction does not change the captured harness, raw corpus protocol or compiled VM. The real large journal, strict reuse integration and key negative protections are recorded in the aligned stable report; ordinary small receipt limits stay unchanged.
+
+
+### P472 - Preserve original ERC per-test terminal isolation (2026-11-13, integration pending)
+
+The owned stable runner must leave the original batch parent and its per-test terminal helper intact. Running every discovered terminal scenario directly in one interactive editor bypassed the original helper: one test can leave protocol logging enabled and the following test toggles it off. This is an owned harness isolation defect, not evidence that the original assertions are invalid. Restore batch execution for the five helper-based scenario files. Only at their original make-term boundary, bind the same selected image/dump and captured runner, deliver real errors to ERT rather than an interactive debugger, and fail child startup errors with a nonzero exit. Do not rewrite original tests/helpers, alter their selection or add timing waivers. Explicit display controls remain separate observations.
+
+The seven captured roles must match exactly after this correction. Prior controls and seeds remain historical results and cannot be promoted as donors for the changed harness. Verify the affected original files first; only a fresh matching seed can supply later strict reuse. Keep raw error/skip status and the full555/48 requirement. The private descriptor helper gate may cover the exact remote backup test only with its original macro/body anchors, the observed reference void-function error, candidate ordinary pass and both actual component source identities.
+
+P472 affected integration first restored the original per-test process isolation: both products completed the two scrolltobottom files and their assertions passed. Raw nickbar and other failures remain blocking. The original nested helper reconstructs argv, so the previously declared owned interactive worker budget must also reach that child: one native compiler worker and OMP thread limit1, with JIT enabled and original deadlines unchanged. Record the actual child setup through the existing bounded diagnostic stream. This repairs resource-policy propagation; it does not attribute historical failures to measured concurrency or claim missing precompiled libraries.
+
+Source classification additionally distinguishes the original deliberately nonterminating manual Tramp diagnostic from finite automatic tests, preserving its explicit full-selector skip, and the optional external Jedi completer's directly sampled nonempty readline delimiter predicate. Neither rule changes raw status or asserts a missing package from a synthetic feature. Exact fresh events and source anchors remain mandatory; required paths, finite failed tests and unexplained monitor results remain blocking.
+
+
+### P473 - Correct candidate behavior and expiring reference defect evidence (2026-11-13, implementation in progress)
+
+A proven defect in the selected reference library explains that reference failure only. The user explicitly requires the candidate to satisfy the correct behavior, even while the reference fails. A candidate with the same defect remains blocking. The original library and test inputs remain unchanged. Generate the narrowly pinned dframe correction as an explicit candidate build component, compile that generated source, and include its receipt in the product library identity; do not change global frame selection or the NS focus hook. The application buffer must be current before creation callbacks and on continuation into the caller.
+
+Every fresh reference epoch and stable acceptance must re-evaluate the original case. When the reference and candidate satisfy the contract, retire the reference-defect rule. A fixed reference with a failing candidate is a regression. A changed reference source or unexpected error requires new review instead of inheriting an old exception. The component generator rejects changed source pins; remove or revise the generated correction only after current behavior has been validated. No background updater is introduced. Raw original outcomes, counts and exits remain untouched.
+
+### P474 - Resolve remaining original-process observations with actual controls (2026-11-14, affected tools verified; full acceptance pending)
+
+The first final-cohort555-file pair is complete, but its five unmodeled outcomes remain blocking. In particular, the original Tramp signal test drains pending output with a zero-second wait and immediately asserts process death. Collect an authored control on the same selected products: require a ready handshake after installing the remote signal handler, exercise process/name/remote-PID/PID-string arguments with integer and symbolic SIGINT, and require the handler marker and actual exit under a bounded wait. Record the immediate nonblocking observation separately. Do not turn this control into a passing original test or infer a defect category before observing correct behavior.
+
+The maintained diagnostic may execute the two unchanged original Tramp tests separately and record bounded process-file output without filtering shell warnings. This neither retries the formal run to green nor proves the origin of a non-reproduced warning. Its selected product, epoch, source and environment identities must remain bound, and its owned temporary state must retire after collection. No original library, test, VM or seven-role stable harness changes are required. Separately admit the full actual non-diagnostic product scope for the existing dframe contract collector and keep library-contract bindings in a separate variable from the current-version control registry during catalog assembly.
+
+The remaining stable pairs may use one or two explicitly selected workers under the same artifact owner and resource controller. Preserve plan order in final results, distinct per-pair inputs/outputs, exact donor-role equality and every raw outcome. Cancellation must stop queued work and reap active child groups before releasing immutable inputs; it is distinct from an original test timeout or failure. Default execution remains serial. This coordinator-only change does not certify throughput or alter the existing VM cohort.
+
+### P475 - Bind asynchronous and monitor prerequisites to required behavior (2026-11-14, implementation in progress)
+
+Extend the owned remote-process collection with an unchanged-original monitor trace and actual remote-watch lifecycle controls. Observe monitor lookup failures without replacing their result; record whether the descriptor process is live, the existing identity cache and bounded stack function names. Independently require a live watch to become invalid after explicit removal, watched-directory deletion and the same emulated unmount event used by the original test. Deliver real pending events with a bounded wait; the control must not depend on the optional monitor-name query. No host mount, library/test source or original deadline changes are permitted.
+
+The signal rule is restricted to the original Tramp31 zero-second drain followed by the immediate process-live assertion, its exact original error and a same-product ready-handler/actual-exit control on both sides. The two monitor rules explain only the source-authored unavailable-monitor skip, require the original remote availability/add/remove/events counterparts to pass, and require the actual remote-watch lifecycle control on both sides. They never invent a missing Lisp feature or accept failed/unfinished files. Bind each control to its source, selected product/environment, reference epoch, original inputs, successfully reaped outer controller and released artifact owner. Changed source/behavior invalidates its proof. Formal statuses, counts and exit codes remain unchanged; the shell warning and reserved-domain DNS failure receive no new exception.
+
+### P476 - Finite physical-input retention and cancellable diagnostic closure (2026-11-14)
+
+CLN249 removed the complete build working set at the user's explicit request. The runtime stage still defaulted to a second compressed archive of its selected source/products even though verified physical-file retention already exists. Make verified files the sole stage retention mode, reject archive selection before output creation and remove the unused whole-artifact archive writer. Preserve exact content/mode/symlink verification and immutable-file ownership/release. The small active compiler-driver preservation mechanism has a separate lifecycle and is outside this change.
+
+The remote diagnostic must record its owned case root before launching a child. On SIGINT/SIGTERM, let run_process reap the owned child group, record cancellation distinctly, skip expensive acceptance-only product/source rehashes, write an explicitly incomplete result and release the existing immutable guards. Never turn partial controls or skipped postflight verification into acceptance. Retained interrupted state remains named in the result for scoped cleanup; no external holder is signalled or original data deleted. Normal completion retains all seven postflight checks and exact proof identities.
+
+### P477 - Complete owned shell initialization after startup restoration (2026-11-14)
+
+The installed host shell identifies as3.2.57. In the platform distributor's pinned source51bf3fc6f26e9517c3a2e4bc3d208f9b39b87178, shell.c saves/disables job control before startup files and restores the saved value afterward. Consequently the owned mock ENV's existing set+m changes the option flag during startup without guaranteeing that the later child-launch path has job control disabled. The child-setpgid diagnostic in jobs.c is conditional on that internal job-control value. This identifies a transport-initialization gap, not yet the exact cause of the historical single warning.
+
+Keep the owned noncanonical/ICRNL terminal setup and finish job-control initialization at the first following shell command with a self-removing DEBUG trap. The trap must remove itself and allow an original test to re-enable job control later. Version the mock transport identity; old runs do not become same-environment donors. Do not filter shell output, alter original tests/libraries or waive the warning.
+
+For diagnosis without rebuilding a matrix, explicitly admit one installed reference through the existing receipt-bound reference-input reader in the same remote collector. Pin the original corpus and current drivers, verify the installation/product and declared source inputs at exit, and capture the same authored fixtures. Label this reference-only diagnostic as full_matrix_admission=false; catalog/control readers must reject it as formal matrix proof. The normal matrix path retains its exact61-product/source/epoch checks. No old output, implicit installed fallback or second execution engine is introduced.
+
+### P478 - Bound recovery after an interrupted supervisor (2026-11-14)
+
+After supervisor loss, stop/reap the recorded owned tree and release only its dead artifact owner. Admit a distinct external observation with no invented native final report or metrics. Reuse only configurations in the last checkpoint where both supervisor/root identities were live, verify their complete source/configuration/products/resources/link inputs again, and build later or unfinished configurations in fresh roots. Preserve all original partial rows and the failed overall boundary.
+
+Keep physical files as the sole recovery retention mode. Preserve source cohorts in the output registry, derive product layout from its actual receipt, bind the original reference identity and retain exact compiler-copy retirement metadata. Capture the explicit recovery evidence for this operation and verify it unchanged at exit. The actual recovery CLI followed by the ordinary61-product build/reference reader is the integration gate; no compiler-product success implies semantic, original-corpus or performance acceptance.
+
+P478 occupancy rejection preserves the canonical bounded query result in the raised error and fatal receipt: timeout, return code, output byte counts and sanitized holder summary. Admission remains strict; an unknown query never authorizes reuse. The actual recovery integration wrapper retains the same structured observation. A separate small admission integration exercises real idle/held/missing-query paths without rebuilding or restoring deleted products.
+
+### P479 - Stop owned work when its launching parent disappears (2026-11-14)
+
+Two real stage interruptions left a coordinator adopted by PID1 while its build child continued. Bind the importing coordinator PID and immediate launching parent in the existing runtime process helper. Check that same relationship before spawn, during the existing bounded wait/measurement loops and before accepting completion. A changed relationship cancels the owned child, records owner loss as incomplete (never a test failure/pass), unwinds artifact preservation and exits125 before later work can start. Give the owned child group a bounded TERM opportunity to release its own nested children/guards, then reap it; never signal unrelated holders. Preserve existing cancellation/deadline semantics and actual performance exit timing. This is process-lifetime cancellation inside the current runner, not another memory controller. It detects disappearance of the immediate parent, not an arbitrary remote or detached controller.
+
+Validate the real parent/child/grandchild path with and without metrics, before-spawn owner loss and an unchanged live parent/ordinary exit1 control; record actual artifact flag release and absence of later work. No VM rebuild, original test modification or acceptance promotion is part of this helper integration.

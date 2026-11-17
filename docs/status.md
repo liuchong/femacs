@@ -26429,3 +26429,286 @@ catalogs still need their own explanation/source/capability review.
 CLN226 精确清退四处消费生成副本：3374文件+30链接+517目录=3921节点，69,910,355逻辑/78,716,928先前逐路径分配字节；公开/私有计划/实际操作流至EOF逐行一致，210受保护文件未变。随后canonical清退冗余公开清单工作副本及父目录，319,929逻辑/323,584先前分配字节，另两行公开记账。全61产品/固定参照/冻结输入纯文件复验通过（42.303s，无编辑器启动）。不宣称整卷因果回收；原功能回执历史corpus_retirement_pending保留，后续清理另账。
 
 A464-R独立终审已接受，14份Root文件与55项闭合证据逐一复核、零确认缺陷；完整555原文件/48候选稳定语料与安静主机性能尚未验收，兼容/性能/Goal均不升格。已核收仍3/7，G3/G5/G6/G7及GA8继续推进。
+
+
+## 2026-11-11 — 剩余编码合并为一次冻结与集中验收
+
+采用用户最新施工顺序：停止按单个缺陷分别构建、终审和提交，全部剩余业务与驱动代码一次收齐，再统一冻结、构建和验收。P466 已有三产品功能证据保留，保护代码未单独执行；完整七项 Goal 的 G3/G5/G6/G7 与 GA8 仍开放。
+
+当前工作树已写入严格闭合文件供者准入、七角色实际 SHA256/权限一致性、逐事件与原文件哈希链复验、零改写复制与零重复回收记账；增加闭合时内容快照、有界占用观察、两层延迟清退和单次 owner 回执。原生双自举使用显式预算，原断言不改；ERC/Tramp 仅增加有界观察，不据 helper 启动数关闭 JIT 或解释原挂起。分类目录支持逐项已审定义装配为真实运行/事件绑定，未解释差异继续阻断。同一当前参照可在新矩阵中重新绑定同 epoch，不虚构安装切换。
+
+文件/真实 Python 子进程集成代码已编写，覆盖成功与失败原证据复用以及实际占用解除后的快照清退。以上新工具与统一汇总入口仍待集中运行；静态语法检查不记作功能通过。原 555 文件扫描失败、P466 失败前驱和 CLN227 原诊断观测保持原标签；未更新使用中的 App。
+
+
+### 集中工具功能与标准产品统一重建
+
+七组文件/进程功能集成首批全部通过：canonical retirement、严格闭合文件复用、显式库/六文件harness、phase编排、runner接线、reference selection及分类账。业务20.288秒；控制器退出0、回收完整、峰值118,784,240字节，绑定代码输入未变。测试使用的微型程序/控制器描述符保持合成边界，不当作编辑器或原语料通过。
+
+随后完成一次标准终端/Cocoa从空输出重建：238.170 / 286.161秒，业务总527.150秒；控制器退出0、回收完整、峰值886,210,560字节，所有绑定源输入未变。当前VM源仍为已修正的P466；原三处标准输出只移至同级before-unified-final-1恢复目录，0删除，安装中的App未选中。当前新dump/包身份在current-state记录；尚待同一快照的61-profile构建、完整稳定语料、性能、保护及最终独立终审。
+
+
+## 2026-11-13 - P467 authored evaluator and portable stable classification
+
+Explicit user resume: work independently without contacting the previous partner. The compiled matrix remains the uncommitted b6eaf19f source export (Git baseline 63b1e531), with the same attested 32.0.50 reference. This entry does not claim a new independent review or complete compatibility.
+
+P467 preserves the original RTL08 live observation exactly and its four ordered integer dead counts in the fixture-permitted zero-or-one domain. Other language observations remain exact. The current authored Python evaluator and actual group fixtures are captured separately from compiled VM inputs, and final audit binds the same selection. Old raw failed observations and unsafe stack-scan-disabled diagnostics are not promoted.
+
+The second full attempt failed at XML discovery because the initial capture filter omitted XML/SQLite fixtures. Its raw stage remained false; negative608, dump48 and relocation60 passed, all61 product identities and completion receipts stayed unchanged. Controller exit1, cleanup complete, 1765.708s, peak3153854464B. That consumed attempt output has now been retired under CLN230; its source/result identities and necessary failure facts are in the formal report. The corrected third full attempt is running with complete declared fixtures.
+
+Consolidated functional scope passed3/3 groups: authored integration5 cases/16 Python children, classification19 cases/3 Python children, and243 source-rule expansion into11664 definitions. Duration9.198s, peak101597184B, controller exit0/cleanup complete; owned synthetic fixtures retired. These were real Python/file protocol integrations, not editor or original-corpus acceptance.
+
+Subsequent source/control wiring is written: repository-relative definitions, original manifest and LF pins, ordinary-passed definitions left ordinary, explicit unexecuted-profile counts, and unique passing control selection from closed results/controller/owner envelopes. The current repository source input has343 definitions/702 LF anchors (16464 expanded across48 profiles);58 definitions require actual applicable controls. The expanded input and new control binding are pending their next consolidated functional run; original555/48 and remaining unexplained differences still block.
+
+CLN229:40 consumed ledger mirrors plus1 directory retired,12280223 logical/12369920 prior allocated bytes;41 public/private rows align,82 original pins unchanged. CLN230:23514 files/4290 directories retired,2032800513 logical/2086072320 prior allocated bytes;27804 public/private rows align, exact old roots absent and4 current inputs unchanged. No whole-volume causal reclamation claim.
+
+Remaining: finish current full semantics, fresh555/48 stable execution and exact per-case accounting, actual applicable/current-version controls, quiet-host primary/fallback performance and GC, components/local/TTY/Cocoa workflows, key protections, signed delivery, authorized installation boundary and used-output cleanup. Goal remains active and incomplete.
+
+
+## 2026-11-13 - Clean candidate source integration and interrupted controller recovery
+
+The exact candidate index tree was exported into an isolated source directory without the optional reference checkout or prior build/cache inputs. The main index and HEAD stayed unchanged. Consolidated functional execution passed24 classification cases and7 reference-selection/probe cases; these use real Python children/files and synthetic editor descriptors, not Lisp compatibility acceptance. Controller exit1 reflects the separately retained source-expansion failure, cleanup complete,12.521s, peak101498880B.
+
+The clean tree exposed13 absent ignored original overlay anchors. The maintained source-rule generator now offers explicit `--prepare-overlays --cache-root`: it uses the existing manifest-bound public provider, verifies all1536 source inputs and exclusively copies only missing rule anchors. The first clean acquisition streamed53957127 compressed bytes from commit a360712c9d272d950d8d8255ef74570f7e90b7d9 (SHA2566b9aedd101965b1730305cab548857f434cf625016699877125f3c6174afcb0b). Expansion passed343 source definitions/702 LF anchors across48 profiles, producing16464 definitions,21838322B/SHA256513737223c630f7f7d75715285d0c8518bd5bf27be1ff268a5ff0df50c313838. Controller exit0/cleanup complete,9.959s, peak42303488B. Source definitions alone do not accept cases.
+
+The third full authored attempt lost its original native handle and outer resource controller while the coordinator remained reparented to init. Its last partial observation was9509/10335 processes with0 process failures, not completed ERT or stage acceptance. The coordinator and actual escaped negative/dump action children were stopped by verified PID/birth identity. Original controller exit/peak cannot be reconstructed and are not invented. The owner release first rejected a relative journal locator; the exact absolute locator then released successfully (controller exit0, cleanup complete,26.504s, peak364904448B). No incomplete observation is merged into a fresh full acceptance. Formal installed-reference sampling and full61-input revalidation are in progress; prior reference selection remains authoritative for the remaining phases.
+
+Formal maintained reference sampling passed7/7 integrity checks and actual32.0.50 execution; installation configuration and all61 products/source stayed unchanged. Controller exit0/cleanup complete,262.603s, peak82034688B. Native-disabled terminal baseline ran the complete186-case compiler file:85 passed,101 failed (94 explicitly report unavailable native compilation);9 integrity checks passed. Those failures remain unclassified/blocking. CLN231 consumed194044 nodes,3021261416 logical/3235766272 prior allocated bytes; public/private streams align, protected inputs unchanged. The fresh fourth complete authored stage is now running through a foreground protected session; no completed phase is inferred yet.
+
+P469 formal native container analyzer completed two actual image-pair requests. Reference74 and Cocoa native76 bytes differ only in the declared library name/UUID/ad-hoc signature; all sections/other bytes and normalized signatures match, and243 signed pages per image rehash correctly. Initial overly strict executable-extent assumption rejected both pairs before output; bounded mapping validation corrected it. No editor executed and no original bootstrap failure accepted. Source-maintained analyzer/reproduction is now available; CLN232 retired16 consumed nodes/4046572 logical bytes with public/private alignment and current inputs unchanged. P468 source443 definitions/1265 LF anchors and five added integrations remain coded, not executed.
+
+
+### 2026-11-13 — complete current authored semantics and clean-source classification tools
+
+The current b6eaf19f input matrix completed the full authored phase:10,335 discovery/ERT processes,608 negatives,48 dump products and60 relocation products passed. All61 identities/receipts unchanged; controller exit0, cleanup complete,7,832.026s, peak3,562,700,992B. No affected merge or failed-run promotion. [Contract and scope](../maintenance/releases/2026-11-13-authored-observation-contract.md).
+
+Clean candidate ae657661 verified7,545 Git blobs with old output/reference roots absent. Classification integration29/29 and bootstrap file/CLI/reader integration5/5 passed;444 source rules expanded to21,312 definitions. These are synthetic file/tool checks, not original555/48 acceptance. Wrong classifier output scope was rejected before running cases and corrected without rerunning the other passing groups.
+
+CLN233 retired172,700 nodes:4,608,005,859 logical /4,938,006,528 prior allocated bytes, all public/private rows aligned,13 protected file identities unchanged. Current products, matrix, SDK and new definitions remain in use. No new independent review or compatibility/performance/Goal completion is claimed. Next: fresh complete555-file stable seed, strict reuse for the remaining47 candidates, fresh per-case catalog binding and remaining required phases.
+
+
+### 2026-11-13 — 完整稳定首对闭合与源码门禁绑定
+
+当前b6eaf19f矩阵与固定fd7afced参照的cocoa-native-normal完整运行555/555入口，双端1,110文件侧完整、注册集合9,466一致；8,990对普通通过、476对失败或跳过，原始计数与退出1保留。全部61产品与完整回执未变，owner释放无失败；控制器5,118.274秒、峰值3,470,065,664字节、完整回收。两端comp-tests各185通过/1自举cmp失败，候选自举322.581227秒，不再截断后续168例。
+
+P470补齐精确组件版本与适用性门禁，保留P419。候选Git树c640f891的386文件干净子集（8,568,347字节）中，分类文件/读者集成30/30；489条定义经显式固定语料获取17覆层后展开23,472条，两组24.334秒、峰值95,240,192字节。44项真实原事件绑定检查通过，包含两端自举实际容器的闭合/签名页证据；全部555文件仍对账，结构失败0、其余432对仍阻断，六项postflight全真。绑定检查190.855秒、峰值360,218,624字节，编辑器启动0。整体稳定分类、剩余47候选、性能、安装及独立审核未接受。详见[首对报告](../maintenance/releases/2026-11-13-aligned-stable-seed.md)。
+
+
+### 2026-11-13 — CLN234源码门禁消费副本退场
+
+本轮12个已消费范围清退1,959文件、313目录，67,316,734逻辑字节/72,286,208先前逐路径分配字节；2,272条公开投影与canonical账本和缺席操作逐行相等，13项受保护输入及当前产品未变。首次目录入口准备拒绝和清退后kind规范化投影失败均如实保留；canonical删除只执行一次，最终投影179,611字节、SHA256 dec35f1384d77b42129b521a4f82506852e28f9d318545edd8082ea7f2393685。本批未重跑编辑器，不宣称整卷因果回收或Goal完成。[清理报告](../maintenance/cleanup/reports/2026-11-13-234-consumed-source-gate-work.md)。
+
+### 2026-11-13 — P471当前版本源码绑定与受管短路径
+
+当前版本控制1在启动前拒绝多余README依赖；控制2完成30文件侧但因0770误记0755导致后置失败，均未升格。修正记录后控制3的11候选文件侧闭合，55精确目标通过、九项postflight全真；业务545.415544秒、控制器674.953秒、峰值3,501,867,008字节、退出0并回收。544条源码定义展开26,112条。55项实际原事件绑定结构失败0，原8,990/476计数保持，当前子集仍阻断421；六项后置全真。汇总脚本字段名KeyError及外层退出1如实保留，按已有闭合账本重新核对，无重跑或改原结果。
+
+P471将自有mock shell启动文件basename缩至e，以定向验证原Tramp命令522字符相对本机PIPE_BUF512的路径负担；内容、权限、PTY行为、原库/原测试不改。原Tramp双端受控复验在途。七角色精确SHA/mode门禁保持，因此前一harness种子及控制不可复用于新harness；新种子、其余47候选、完整分类、性能及最终交付仍待完成。详见[首对报告](../maintenance/releases/2026-11-13-aligned-stable-seed.md)。
+
+### 2026-11-13 — CLN235消费工作集清退与P471集中复验
+
+CLN235清退41个范围、14,470节点（11,966文件/29链接/2,475目录），525,515,112逻辑字节、554,741,760先前分配字节；三流逐行对账和缺席检查全真，11项保护未变。控制器12.021秒、峰值43,171,840字节、退出0并完整回收；公开流SHA256 d1eea3e99db9db044c3fb42a9c18dc5f92cc4ce6b19b5cf131edd941cc759388。[报告](../maintenance/cleanup/reports/2026-11-13-235-consumed-version-controls.md)。
+
+第一次basename修正的原Tramp双端文件均完整、九项后置全真，但随后随机变量子段仍形成520字符，失败保持。P471进一步缩短同一自有容器的固定前缀和compact子目录，保持随机隔离、脚本内容与八项状态退场证明；当前集中执行库路径、文件复用及原Tramp双端功能复验。未把旧harness回执放行至新harness。
+
+### 2026-11-13 — P471集中功能与关键保护闭合、新种子在途
+
+库路径4项、严格复用3项及原Tramp双端功能集中3/3组通过；两端各116原例完整执行，目标write-region/make-process/direct-async环境变量均通过，九项后置全真。其他原失败/跳过保留，两端普通通过数92/91，不宣称整个原文件全通过。控制器546.668秒、峰值3,598,696,712字节、退出0完整回收。随后关键保护4/4（0.087447秒）绑定功能SHA 7a3d516bbfdb534e615303a72ae178f0965eda302e4fd72750b08bc707da395f。新精确harness的555文件种子已启动，旧donor使用0；完整48候选、分类与后续验收继续进行。
+
+
+### 2026-11-13 — 剩余源码前置条件工具集中验收
+
+新增20条源码定义及窄读者接线完成，当前564条定义、1,640段LF锚点、27,072条展开；494可选/适用性、11无效原测试、59版本差异。干净候选Git树f9e83a53导出412文件/12,619,899字节，从固定公共归档重新取得缺失34项覆层，未复制旧缓存。完整分类集成31/31和源码展开通过，28.468330秒、峰值90,619,904字节；随后关键保护30/30通过，4.783039秒，绑定功能fffadd2a...。先前符号quote/locale折叠夹具失败与保护fixture父目录缺失失败保留。正式展开SHA cb45076d94f1ab30f96b587e3905a0fcbb0b9ee575db65b6fef0013891f2b3f9，与干净入口一致；无编辑器或原语料执行。
+
+新555种子继续运行，11冻结输入未变；实际新规则绑定与终端/图形控制未完成，未解释差异及必需DNS行为继续阻断。未宣称555/48、性能或Goal通过。详见[首对报告](../maintenance/releases/2026-11-13-aligned-stable-seed.md)。
+
+
+### 2026-11-13 — CLN236用完工作副本退场
+
+16个已消费范围canonical退场：3,552文件、587目录，共4,139节点、140,849,418逻辑/149,999,616先前分配字节，4.266938秒。公开流323,932字节、SHA 6547d2f65a0f2ee7d9273dd457bf3bddbb55ee824223de4dce04f36715a7760c，与canonical公私账本及缺席核验相等；21项保护未变。干净工具源码/index、获取副本和旧展开已缺席，当前新定义和最小功能/保护结果保留给正式装配。555种子继续运行，当前产品及Source未动。[报告](../maintenance/cleanup/reports/2026-11-13-236-consumed-prerequisite-work.md)。
+
+
+### 2026-11-13 — CLN237消费短路径控制退场
+
+已通过的P471集中功能详细输出、两棵闭合保留状态和原控制日志完成退场：10范围、2,289节点（1,958文件/14链接/317目录），128,923,878逻辑字节、133,894,144先前分配字节，2.374085秒。两份原闭合证明复验、三流对账及原位置缺席通过，19保护身份未变；最小功能汇总7a3d516b...和四项关键保护结果仍保留。当前555种子仍在途，不触碰其原事件或状态。[报告](../maintenance/cleanup/reports/2026-11-13-237-consumed-short-path-controls.md)。
+
+
+### 2026-11-13 — CLN238旧首对消费结束退场
+
+44/55项旧原事件绑定消费者结束且P471精确harness已改变，旧首对不再供当前donor。195范围（含191保留容器）清退26,991文件/14链接/4 FIFO/4,201目录，共31,210节点，700,630,273逻辑/757,010,432先前分配字节。187闭合证明复验；四棵无闭合证明状态未用于复用。首次占用因000目录拒绝，删除0；对两个确属自有目录记录设备/inode并恢复owner0700后重新准入。198,351条当前捕获路径不引用选区，26保护身份未变，三流逐行相等与缺席通过，154.280228秒。原8,990/476、退出1和未接受状态不改，新555种子继续运行。[报告](../maintenance/cleanup/reports/2026-11-13-238-replaced-first-stable-seed.md)。
+
+
+### 2026-11-13 — 精确harness新种子闭合与大型owner准入修正
+
+新555原入口及1,110文件侧均完整、注册一致，9,466对用例：8,988普通通过/478非普通，结构失败0；全61产品、harness/runner及保全后置全真。原退出1/corpus_complete=false保留。控制器5,151.996秒、峰值accounted3,466,559,488字节，起步4GiB/一次增长至6GiB/硬限16GiB如实记录；root/guard已缺席，owner released无失败。原始详细运行SHA d18a54c088054ecbc991261252f6dd93d4325a4c1eff3f68117da02cfb4d28c0。
+
+自然边界后修复原16MiB小回执读取器拒绝真实76,803,797字节owner清单的问题，采用有界流式读者、前后完整SHA及读者源码保全。严格文件复用3项、分类31项及真实大清单三组功能通过，25.941144秒、峰值108,445,696字节，功能SHA969daac74c3c8b82714d2076554c4edd55e765882f7096837f7be947aa2655b3；随后关键保护37/37、4.546535秒通过。七角色、Source及编译产品未变。当前11文件/55目标同候选版本控制已受控启动；新catalog、显示控制、其余47候选及后续性能/安装/独立终审未完成。[报告](../maintenance/releases/2026-11-13-aligned-stable-seed.md)。
+
+
+### 2026-11-13 — P472原ERC终端隔离、精确来源门禁与CLN239
+
+恢复原batch父进程及逐项终端helper，传递已有单worker/OMP约束，保留JIT、原测试和期限。五文件双端14项完整，12普通通过，nickbar双端原失败保持阻断；12子进程实采JIT=true/jobs=1，九项后置全真。控制器376.434秒、峰值3,587,410,944字节、退出0并完整回收。分类工具32项集成通过13.681334秒，首次新增合成夹具缺少selector被拒绝，修正夹具后通过，未放宽reader。567条来源规则从干净Git候选展开27,216条，未将定义当实际接受。当前版本ERC对照继续；完整555/48、显示/性能、独立终审及安装尚未完成。
+
+旧控制55项目标实际通过后，因角色SHA变化结束用途。CLN239清退8范围、2,128文件/5链接/403目录、105,823,913逻辑及111,157,248先前分配字节，五闭合证明、19保护与2,536行三流/缺席核验通过。公开清单SHA25673942c996a2442675fa7a772be969bb0b7742268bd4f0a67d889095c6e7f53bb。不作卷空间因果归因，Goal未完成。
+
+
+P472关键保护闭合：分类器41/41通过，5.798016秒；双产品终端隔离保护6项各跑一次，共12/12通过，3.359882秒，子进程均回收，自有夹具退场。首轮保护夹具的native变量未声明special而形成lexical局部值，真实失败保留；仅修夹具声明后重跑编辑器组，未重跑已通过的41项。当前原helper同样复现nickbar，不能判为版本演进。终端产品最小对照在途。
+
+CLN240清退9范围：1,992文件、316目录，78,491,884逻辑/83,517,440先前分配字节，20保护与2,308行三流/缺席通过。保留当前定义及最小结论，旧候选、获取缓存和展开不再作输入。完整555/48及Goal仍未接受。
+
+
+### 2026-11-13 — P473正确行为合同与CLN241及时清退
+
+用户明确：官方库缺陷仅解释参照失败；候选必须满足正确行为。新增显式生成的候选dframe组件，原库/原测试不改；新参照与源码变化重新核验，官方修好撤销旧分类，候选仍错按回归阻断。集中功能6/6组通过，含5种555文件合成生命周期和3个真实编辑器进程/4个缓冲区合同观测，6.254秒；修正版为显式集成覆盖，不冒充完整产品构建或原语料接受。构建接线、后置保护与完整原文件验收待续。
+
+用户要求及时清理后，CLN241完成61,184节点、2,106,253,796逻辑字节退场；207闭合容器，主操作86项保护身份未变。旧第二种子及8组诊断被消费，已用完编译缓存和审计副本同时清退。原9,466/8,988/478读数不改，当前61制品、固定SDK、源码与全部WIP保留。仅保留未解决问题最小事件，详情见清理报告。无新独立终审、完整555/48、性能或Goal接受。
+
+
+### 2026-11-14 - CLN242 complete build removal
+
+The user explicitly requested removing the whole build workset. build and .femacs-cache are physically absent: 1,284,922 nodes, 73,148,183,830 logical bytes; 84 protected source/WIP/index contents unchanged. Controller exit0, cleanup complete, 298.149 seconds, peak25,968,640 bytes. Consumed audit working copies (280,768,959 logical bytes) were removed immediately after reconciliation; only compact scope summaries remain.
+
+All former build matrix, frozen Source, preparation/runtime/product paths are historical and unavailable. Preserve current maintained source and installed apps. Do not restore old garbage or immediately rebuild the full matrix; complete batch source fixes, use minimum necessary targets, then final clean concentrated acceptance. P473 tool/component integration8/8 and Rust wiring check passed before removal; original-file/product/protection/full-corpus/performance acceptance remains pending.
+
+
+### 2026-11-14 - P473 key protection after build removal
+
+Fifteen evidence/behavior/generation boundaries passed in1.031330458 seconds; controller exited0 with complete cleanup, peak64,028,672 bytes. Original integration result SHA256653a2122533b2f24ff964e5a441c1dfe963f2bcec3cfb686f7fba2e50521e911 was bound explicitly; protection result SHA256946098d3bcd7e47df60bbc686389d051c8050a4e5efa5f821c2ff60ce362ec43. No editor or original corpus ran in this protection group. The synthetic child now receives its declared fixture repository; production manifest containment stays strict. The prerequisite accepts a fresh integration result directly, without an old cleanup-directory shape. Two earlier fixture failures remain failures; the first child cause was not preserved, the second exposed the repository-containment rejection.
+
+All generated fixtures were removed. The four consumed attempts, logs and explicit evidence copy were retired:14 files/7 directories,15,177 logical bytes;21 ledger rows verified, no selected paths remain. The initial cleanup call rejected top-level files before deletion; placing the exact scope in an isolated child directory satisfied the existing retirement contract. build and .femacs-cache remain absent. Complete product/original-sidebar/full555-by48/performance/independent acceptance is still pending.
+
+
+### 2026-11-14 - P473 generator root and resolved-reference contract gate
+
+The minimum Cocoa native normal leg linked, then failed resource startup at the wrong Contents/Resources/etc/charsets root. Redundant checking was deliberately stopped (exit143/cleanup complete), not reported as build acceptance. Restored canonical dump-search root, explicitly bound owned resource directories, rejected preloaded component corrections, and removed implicit generator fallback to old build/dist programs. Targeted Unicode generation25 editor calls and component compilation2 calls passed; complete new products and changed Rust wiring remain unverified.
+
+Resolved-reference controls now persist in catalog contexts and reach final accounting even for ordinary passed cases. Six synthetic555-file workflows passed in2.811142708 seconds, including rejection of555 ordinary passes/0 raw failures without independent contracts. The previous8-group integration/15 protections belong to their earlier source; new full9-group integration and key protection remain pending. CLN243 immediately retired the consumed minimum build:7,566 nodes/599,010,894 logical bytes,86 protected contents and index unchanged. No whole matrix rebuilt, no Goal acceptance.
+
+### 2026-11-14 — P473 scoped acceptance and CLN244 immediate cleanup
+
+Fresh maintained-source export (manifest c2f7aec4...) excluded ignored old bytecode. Release xtask completed Cocoa native normal/checking products in700.506 controller seconds, cleanup complete, peak883,376,128 bytes. Four candidate hidden/visible contracts passed without override. The unchanged original sidebar file completed all IDs on three products: four candidate ordinary passes; reference one pass/one original failure; seven postflight checks true. The actual installed NS source pin was revalidated, with no old-hash exception. Tool integration9/9 (four editors), critical protection17/17, source expansion568×48=27,264 passed. These are bounded checks; full61/555×48, performance, installation and independent acceptance remain incomplete.
+
+At the user's immediate cleanup request, removed all consumed build/cache:38,504 files,2,661 directories,32 links;2,550,815,374 logical and2,640,834,560 prior allocated bytes. lsof found no handles;89 source/WIP contents, Git status/index unchanged. Both roots absent; repository5.6GiB. No post-cleanup rebuild. [CLN244](../maintenance/cleanup/reports/2026-11-14-244-consumed-minimum-workset.md).
+
+### 2026-11-14 — Explicit installation input generation after cleanup
+
+Removed the hidden dependency on hand-generated diagnostic installation metadata. The maintained `runtime-reference-probe.py capture-inputs` command now takes explicit program/dump/resource/receipt/config/epoch inputs, checks the source-built installation and complete identities, and emits only typed bounded diagnostic inputs. Both scoped consumers share the strict reader; partial pins, changed installation configuration and foreign resource directories are rejected. This does not replace full reference-selection admission or sample runtime capabilities.
+
+File/process integration8/8 passed in2.8006845 seconds; affected key protections26/26 passed in1.740411459 seconds. Controlled runs exited0 with complete cleanup. The real current installation was captured from its explicit receipt/config, then one actual reference terminal process consumed those generated inputs successfully. Its hidden-buffer callback/continuation remained false and normal-buffer behavior true; collection passed, reference correctness was not promoted. No candidate VM was rebuilt and no original test ran in this metadata check. All four small output roots were consumed and retired under CLN244; build/cache are absent again. Full Goal and independent acceptance remain open.
+
+
+## 2026-11-14 — Final clean single-cohort matrix build
+
+All20 normal/checking configurations naturally built61 registered profiles (41 physical executables,48 ordinary candidates,32 native candidates) from7,677 declared files, source manifest `f62997dc09ab1883a1fc989a752098a7f1facae94461df703456318825b7761d`. Controller exit0, cleanup complete,10,507.578s, peak929,447,936B; root absent and owner released without errors. All40 compiler-copy retirements complete:195,460 files /6,503,485,814 logical bytes. Retained198,409 originals/20 links with no duplicate archive. Build result SHA256 `4556895b0863c4039ecc2735feffdccbc4f617e7c713d771288cdbe3102a1492`. Formal current reference sampling is next; no semantics,555/48,performance,installation or independent acceptance is inferred. [Result and reproduction](../maintenance/releases/2026-11-14-final-runtime-matrix-build.md).
+
+
+## 2026-11-14 — Final reference admission and native preparation
+
+Same-epoch installed reference admission passed all7 postflight checks, exit0/cleanup complete,265.812s; no installation/configuration change or runtime repository-hash claim. All32 native preparation profiles passed19/19 units (608 total), with full-product/fixture/driver invariants and state retirement true; controller exit0/cleanup complete,564.547s, peak2,601,535,816B, root absent/owner released. Result SHA256 `d9e9d7b8562d3ea605e464111d916590d622492e6ef4a182e19454a0fad2829d`. The complete semantic phase is running on source manifest `f62997dc...`; raw original-ERT reuse is disabled. Full stable/performance/independent acceptance remains open. [Current cohort](../maintenance/releases/2026-11-14-final-runtime-matrix-build.md).
+
+## 2026-11-14 — final authored semantics and consumed-state cleanup
+
+Currentf62997dc cohort full authored semantics passed:10,335 ERT/discoveries,608 negatives,48 dump and60 relocation products;61 before/after identities equal, complete receipts valid, original ERT reusefalse. Controller exit0/cleanupcomplete,8,120.078s, peak3,539,717,600B; root absent, owner released, harness unchanged. Primary completion/index/evidence verification passed; no new independent review claimed. CLN246 removed418 files/11,847 directories and831,059,469 logical bytes of consumed state; all94 prior source/WIP files, index,16 metadata and12,135 case evidence files unchanged. Stable555/48, performance/GC/component/local/TTY/Cocoa and installed delivery remain pending.
+
+## 2026-11-14 — final cohort first555-file stable pair closed
+
+Finalf62997dc cohort first candidate naturally completed555/555 files and1,110 file sides:9,466 matching registered IDs,8,993 ordinary/473 raw nonordinary,0 structural failures. Controller exit1/cleanuptrue,5,038.611s, peak3,279,208,448B; root/guard absent, owner released,61 products/source context/7 harness roles unchanged. All sealed file-owner/event chains were replayed and matched.924 successful sides retired816,514,887 logical bytes;182 retained state proofs verified,4 unsupported/unreadable non-reusable states cleared underCLN247 (139 files/81 dirs/4 FIFOs,5,202,873 logical bytes) without repairing historical proofs. Calendar306 IDs match/pass both; candidate sidebar passes while reference nickbar raw failure remains. Compiler186 cases per role complete without timeout; bootstrap raw cmp failure remains. Five outcomes still require source/runtime/policy resolution;47 candidates, full classification, performance and final acceptance remain pending. No independent review claimed.
+
+
+2026-11-14 — P474 affected tools/controls: one-owner bounded pair dispatch, deterministic plan order and child cancellation implemented without changing the VM/seven stable roles. Three functional groups passed across affected reruns;6 key protections passed. Actual49-product dframe collection found all48 candidates correct and preserved the reference defect. Both products passed8 ready-handshake signal controls each; all16 were still live after the zero-second drain. Diagnostic original Tramp passes do not rewrite prior formal failures; setpgid origin and5 unmodeled formal outcomes remain unresolved. CLN248 removed15 files/3 directories,76,478,435 logical bytes with source/index/current results unchanged. Full555/48, performance/GC, workflows, installation, independent review and signed delivery remain pending. See maintenance/releases/2026-11-14-runtime-control-dispatch.md.
+
+
+2026-11-14 — CLN249 current explicit cleanup: stopped/reaped the49-product consumer (exit143, cleanuptrue,42 partial records; no completed acceptance), deleted the entire22GiB build tree and182 owned test containers.396,554 files/32,198 directories/274 links,23,673,405,779 logical bytes; build absent, repository5.6GiB. Existing106 WIP contents and index unchanged before documentation update. No relocated copy/archive or automatic rebuild. Historical results remain historical; deleted raw paths and seed cannot be consumed. Full555/48, performance, workflows, installed delivery, independent review and signed complete-unit delivery remain pending. See maintenance/cleanup/reports/2026-11-14-249-explicit-build-cleanup.md.
+
+
+2026-11-14 — P476: removed duplicate whole-artifact archive path; verified physical files are now the sole stage retention mode. Remote diagnostic cancellation records owned roots, reaps its child, skips acceptance-only rehashes and produces an incomplete result. Actual file/OS/CLI integration11/11 (3.328s,55,787,592 peakB) and subsequent protections2/2 (0.270s) passed. First fixture-shape failure remains failed. CLN250 immediately removed all consumed fixture outputs/logs; build absent, no editor matrix rebuild. Full Goal/runtime acceptance remains pending. See maintenance/releases/2026-11-14-physical-file-retention.md.
+
+
+2026-11-14 — P477: corrected owned mock initialization after the host shell restores job control; transport v2 and self-removing hook. RealPTY2/2 and explicit later monitor re-enable passed. Explicit installed-reference diagnosis closed21.260s/153,862,144 peakB with6 postflight checks:8 signal forms/3 watch lifecycles passed; original Tramp28 passed, Tramp31 failed, monitor validity skipped and original unmount/reference filename metadata failed. No full-file/matrix acceptance or historical-warning causality claim.6 protections plus2 existing environment protections and1 cancellation regression passed. CLN251 removed all consumed P477 worksets and closed prior raw logs; build absent. See maintenance/releases/2026-11-14-owned-shell-initialization.md.
+
+
+2026-11-14 — New single current cohort started for complete runtime acceptance, source35f98103895197ec294a6f98b542b3d8e4c22ed6f613e08c848540af8a0da61b/7701 inputs; release xtask passed,20 configurations/61 profiles still building. Verified-files retention only, no old outputs restored. CLN252 immediately removed consumed source acquisition cache and redundant pkg-config wrapper after export; active frozen source/builder preserved. No completed matrix, compatibility or performance claim.
+
+
+### 2026-11-14 — CLN253 consumed matrix bootstrap cache
+
+The current release bootstrap Cargo process is closed and its executable is already captured into the independent live owner. Exact-cache canonical retirement removed439 files/223 directories and55543312 logical bytes; the public projection was verified before consumed raw retirement metadata was removed. Active source/products/driver and119 WIP contents/index remain unchanged; no duplicate archive. Preliminary parent-occupancy and file-selection rejections deleted nothing. The full matrix is still running. [Report](../maintenance/cleanup/reports/2026-11-14-253-consumed-matrix-bootstrap.md).
+
+
+### 2026-11-14 — P478 interrupted matrix recovery
+
+The original supervisor disappeared after the18-configuration guarded checkpoint; its surviving root/descendants were reaped and its artifact owner released under a new controller.19 original completed rows remain history; the19th and unfinished20th are excluded from reuse. The first actual recovery integration revalidated18 configurations but failed the unqualified SDK-version metadata query before new compilation (controller exit1/cleanup complete,152.924s, peak3,044,687,872bytes). Explicit macosx queries repair the actual SDK lookup; second integration is pending. CLN254 removed3 consumed metadata files/1 directory,70,412,631logical bytes; failure results and original products remain. No semantic, corpus, performance or complete-Goal acceptance. [Contract and execution](../maintenance/releases/2026-11-14-controller-loss-recovery.md).
+
+
+## CLN255 — explicit build cleanup (2026-11-14)
+
+按用户明确要求删除整棵build：233,035文件、8,443目录、252链接，19,846,511,578逻辑字节；原占用约18GiB，目录现物理缺席，仓库5.6GiB。126份原WIP内容、HEAD/index在文档更新前未变。恢复2原退出1/回收完成，恢复子进程未启动；所有已删除路径不再是当前输入或donor，本轮未重建。详情见maintenance/cleanup/reports/2026-11-14-255-explicit-build-cleanup.md。
+
+
+## P478 — bounded occupancy diagnostics (2026-11-14)
+
+Recovery admission/fatal/functional receipts now retain the canonical bounded occupancy observation. Real idle/held/missing-query integration3/3 passed,0.656s; controller exit0/cleanup complete,0.782s/peak34,177,264B. The actual holder was not signalled and exited normally. Host lsof exit1 with nonempty records remains a refusal. Two fixture assumptions failed and were corrected; no matrix/VM/editor was rebuilt or accepted. Full recovery remains unverified and CLN255 inputs remain absent. See maintenance/releases/2026-11-14-controller-loss-recovery.md.
+
+CLN256即时删除已无消费者的独立构建器和消费后恢复/准入输出：13文件、4目录、3646337逻辑字节；build与项目构建器缓存均缺席，源码/WIP和index未变，未重建。
+
+
+## P479 — process owner lifetime (2026-11-14)
+
+Existing runtime waits now stop when their importing coordinator loses its immediate launching parent; children are reaped and artifact guards unwind before exit125, without starting later work. Real process/file integration5/5 (0.552638s) and post-functional protection2/2 (5.232295s) passed; controllers exit0/cleanup complete. The TERM-ignoring and fork-inheritance cases are covered, ordinary exit1 and original deadlines remain. No compiler/editor ran; build/cache stay absent. See maintenance/releases/2026-11-14-runtime-owner-lifetime.md.
+
+P479最终源码另在采样器准备后、spawn前重查父关系，按此前真实释放耗时19.391s将有界TERM回收窗口设为30s。受影响的整组功能5/5（0.535650s）及关键保护2/2（30.228062s）重新通过，控制器分别0.792s/30.329s，均退出0且回收完成；不拿前一版小测试认证新代码，不承诺强杀能释放嵌套失响应进程的标志。
+
+CLN257即时清理P479已消费测试输出：4文件、4目录、14615逻辑字节；源码/复跑入口保留，build与构建器缓存均缺席。
+
+
+## Fresh runtime consumer cohort after CLN255–257 (2026-11-14)
+
+For the unchanged remaining Goal, prepare a single new20-configuration/61-profile/41-physical-product matrix from the current source including P479. No deleted product/donor is restored. Planned working set feeds complete authored semantics,555/48 and actual performance; no acceptance is claimed at launch. Retention uses verified-files only and compiler copies retire after each leg. The command explicitly selects the available Xcode macOS27.0 SDK instead of the stale inherited SDKROOT, without changing host configuration.
+
+CLN258在本轮矩阵运行中即时清理已消费语料获取缓存和Cargo引导缓存及发布副本：1976文件、476目录、76539942逻辑字节。7717文件冻结源、独立构建器和Git index未变；当前实际产品与后续消费者保留，不宣称构建/运行已通过。
+
+Fresh cohort31c6077f: actual7717-file frozen export and release xtask build completed16.447213s/exit0. First terminal-native-collector-observer diagnostic configuration passed; partial1/20 configurations and5/61 profiles, both compiler-copy legs retired. The same external controller/root were verified live; full build/runtime acceptance remains pending.
+
+
+### 2026-11-14 — current matrix closure and Python ownership follow-up
+
+Fresh `current-runtime-build-4` naturally passed20 compiler configurations/61 profiles/41 physical products,7717 inputs, source `31c6077f...`; controller exit0/cleanup complete,10447.232s, peak933659080B, zero growth. Retention verified198449 files/20 links without a duplicate archive. All40 compiler-copy ledgers/evidence and physical absence verified:195460 files/6800 directories,6504468694 logical bytes. CLN259 immediately retired the consumed build driver/cache (2 files/3 directories,3635536 logical bytes), preserving source/result/index.
+
+Current Python follow-up adds birth-bound collection of child-created sessions, Darwin exited-group reaping and occupancy pipe-read error refusal. Real ownership functional8/8 passed (2.285739s, guard exit0/cleanup complete, peak84197376B); retirement integration including three actual occupancy flows passed (1.273769s, peak28016904B). Two owner attempts failed before the exited-group fix; the first lacks preserved child cause, the second retains EPERM. Raw failures remain failures. Fresh actual reference admission is running; captured32-profile native preparation and changed-source key protections remain pending. No new VM rebuild, compatibility/performance/Goal acceptance or independent final review is claimed.
+
+
+### 2026-11-14 — current native preparation and helper protection closed
+
+Fresh reference selection passed7/7 postflight checks, actual installation/configuration unchanged (controller263.876s, exit0/cleanup complete, peak86474752B). Captured-current-harness native preparation passed32 profiles x19 units (608), products/fixtures/drivers unchanged, state retirement complete; controller584.566s, exit0/cleanup complete, peak3442625992B, owner released,204967 files/20 links verified without duplicate archive. Current Python helper regressions7+5+8 and key protection4+16+4 all passed. The first mixed batch retains exit1 from four malformed protection stub observations; corrected retirement and remaining measurement protection passed in a separate batch, without rerunning unaffected groups. This is primary verification, not independent review or full compatibility/performance acceptance. CLN260 immediately removed consumed test outputs and closed logs:136 files/107 directories/2 links,4074354 logical bytes,245 public rows, all selected absent and source/inventory/current receipts/index unchanged.
+
+
+### 2026-11-14 — proxy-preserving reserved-domain environment check
+
+User approved this exact DNS case as a nonblocking environment limitation and requires the existing proxy to remain enabled and unchanged. Four bounded HTTPS queries completed without errors: both Google andCloudflare resolved `example.com` (Status0,2 A answers) and returned NXDOMAIN for `emacs.invalid` (Status3,no answers),1.499–2.389s per query. The host system lookup still reports its synthetic proxy addresses. This verifies a remote-resolver contrast, not candidate/editor or original ERT acceptance; raw failures, counts and exits remain unchanged. No Dot task was sent; that route is cancelled. Fresh full555/48 observations and any precise exception binding remain pending.
+
+
+### 2026-11-17 — PNG/JPEG 解码与唯一 SQLite 运行库（本批语义单元）
+
+本批按授权把 PNG/JPEG 解码与 sqlite 扩展加载作为真实业务补齐，并让唯一一份暂存 libsqlite3 同时服务产品与 L0 门槛链接。WebP 不在本批，按下一完整批次实施。
+
+**源码与构建。** `src/image.rs` 转写 `image.c` C 8451-9681（PNG/JPEG 加载器、keyword 表、内存/文件两臂、`setjmp`/`longjmp` 错误恢复）；`xtask/src/image.rs` 暂存 libpng/libjpeg/libsqlite3，在改写 install name 后重新 ad-hoc 签名（未重签名时 dump 被 arm64 加载器 SIGKILL，是本批首轮唯一失败根因）；`build-support/macos/cocoa/config.json` 开启 HAVE_PNG/HAVE_JPEG（终端配置保持 undefined）。完整快照 `build/runtime/parity-1` 通过：`PARITY2_EXIT=0`，1789.7s，peak 851 MB，gate-load 未定义符号 0；`otool -L` 只有一份 `@rpath/libsqlite3.3.54.1.dylib`、一份 libpng、一份 libjpeg；`nm -u` 含 `_sqlite3_load_extension`、`_png_read_image`、`_jpeg_read_header`。
+
+**官方尺度功能（旧 9 文件批次，`functional-parity-1`，label `parity-image-sqlite`）。** 计数 `same 5 / port-worse 3 / incomplete 1`，**不是“无超时、注册完整”**：filenotify-tests 在驱动的 300s 默认上限处 **timed out**，记 `incomplete`（已记录 17 个用例，未计通过）；ert-tests（exit0，73 例，3 例失败 + 1 例条件差异）与 files-tests（exit0，122 例，7 处差异）的差异来自 31.1 测试体所在的兼容语料缺少 `ert-resources`/`files-resources` 夹具，不是产品回归；image-tests（exit0，20 例）只剩 `image-type-from-file-name` 一个 `port-worse`，它要求 WebP 可用。判 `same` 的四个能力文件是 image-file-tests、image/image-dired-tests、net/shr-tests、src/sqlite-tests（13 例，含 `sqlite-load-extension`）；同一批的 subr-tests 也判 `same`。
+
+**复验（`functional-parity-1-regression`，同一产品，3 文件）。** 用 `tools/functional-corpus.py --materialize-fixtures` 按 manifest 身份把源文件与夹具复制成本次输出内的 `corpus/` 覆盖层（SHA256/模式/只读链接写入该次 `summary.json` 的 `corpus` 字段），单文件上限 900s：`same 1 / resolved 2 / port-worse 0 / incomplete 0`，795.4s。这关闭了上一批的 3 处差异，且不再依赖 `/tmp` 手工作树。
+
+**保护探针（`tools/fixtures/image-loader-protection.el` + `tools/image-loader-probe.py`）。** 首轮 `image-loader-protection-1` 的 7/7 **被否定**：报告对返回 nil 的检查也记 passed，readers-recover 可能读到缓存，JPEG 的 30x30 合法尺寸与占位尺寸相同。修正后的判据是：每个检查必须返回非 nil；`readers-recover` 先 `clear-image-cache`；合法解码必须“尺寸正确且本次没有加载器错误日志”。修正后 `image-loader-protection-2` 仍为 7/7（同一产品，不重建）；负对照把期望 PNG 尺寸改成 999x999 后恰好 file-png、memory-png、readers-recover 三项失败、exit1，证明夹具确实能检测失败。
+
+**未完成。** WebP 加载器（C 10846-11328；animation cache C 3730-3860 已在镜像内但未启用）与 libwebp/libwebpdemux 暂存是下一批；libpng <1.5 的 `jmpbuf` 臂和两处 `WINDOWSNT` 装载臂仍为 owed。G3 与整个 Goal 继续开放。
+
+### 2026-11-16 — consolidated candidate, GC fix evidence (young path only), driver stop point and eieio rule
+
+A complete same-source candidate matrix `build/acceptance/current-runtime-build-6` naturally passed (`61` profiles, `20` configurations, source manifest `a72dd63a…`, controller exit0, 11,685s, peak 913,966,304B accounted, zero growth, cleanup complete). The frozen `current-runtime-build-5` registry was not edited; a fresh reference probe/selection bound the unchanged installed 32.0.50 product to the new cohort (`p466-…` selection under `current-reference-selection-6`, probe 349s).
+
+Formal captured-harness evidence on the new cohort (reduced current-version scope, not the full 48-profile corpus):
+- ERC: the two original failing profiles `cocoa-collector-checking-major`/`-young` plus `installed-reference` ran all four original ERC scenario files with the harness-staged original fixtures. `12/12` rows complete and passed, including `erc-scenarios-keep-place-indicator-trunc` in a real Cocoa display (`window-system=ns`, `noninteractive=false`, exit0). The patch is gated on `MODE == 2`/`young_owner()` in `src/runtime_gc_collector.rs`, so the `checking-major` profile does not execute it: this is a real defect fix plus a designated regression that passes on the new cohort, and the historical `major` abort causality stays **unproven** (full checking semantics must still cover it). Results SHA256 `3bbf4a34b95656cc07580ae46882f8a6705a3643a0c41f31a7e91f0cb9578715` with the delivered driver `8d31e48c…` (an earlier identical-scope run `ce3adf7f…` used the pre-final driver revision). The original abort raw failure is retained unchanged; this is a fix result on a new build, not a rewrite of the old record.
+- Default scope: one profile over the default 12-file list in batch display completed structurally with `uses_default_files=true`, `default_file_count=12`, `declared_corpus_entrypoints=555`; results SHA256 `fa26753f348558e6370e32495a99c401e4e96b7e4616fe26acb9afa49771457e`. Raw batch failures (e.g. `erc-fill-tests` 6 failed, `erc-tests` 3 failed) remain raw and unclassified.
+- eieio: `invalid_gate` kind `removed-upstream-producer` implemented in the source expander and the runtime gate; it binds the exact skip form, the obsolete assertion, the absent producer form in `lisp/emacs-lisp/eieio-core.el`, commit `4c6554413d318069239ba83f4f42fa2452801d30`, both real manifestations (batch skip and interactive failure with the identical condition) and the passing sibling `eieio-test-20-class-allocated-slots`. Expansion `575` rules/`27,600` definitions/`48` profiles; classification integration `42/42` with 9 new flows, results SHA256 `c84ea052658e117775cb9480fa401f84187a0d91820e1c4f7590ced077eceb37`.
+
+- Two-pass driver: each per-case deadline is bounded, so a file gets at most two reduced invocations, each excluding exactly the identities that already consumed a real deadline; blocked cases keep their timeout status, every registered ID stays represented, and a merged file is always `complete=false`/`passed=false`. Terminal `server-tests` evidence on the new cohort: `p466-terminal-twopass-6a` (8 profiles, 5230s), `-6b` (4 profiles, 4023s), `p466-terminal-probe-2` (1 profile, 1252s), and the engineering-cancelled `-6c` partial (1 profile, journal released from its actual owner state, not restarted). The real pattern is 3 of 7 cases blocking at the 300s deadline (`emacsclient/create-frame`, `server-force-stop/keeps-frames`, `server-start/stop-prompt-with-client`) with 4 passing (`eval`, `server-edit`, `sets-minor-mode`, `no-stop-prompt-without-client`). The 24-profile affected set stays blocking; 13 profiles have real rows, 11 are explicitly unexecuted rather than re-proving the same known blocking point; index SHA256 `c5194763b44b8be21c5e2e1be11f13019b6a87385c55ed33b77842104a1512a4`.
+- Toolchain: the pinned SDK dependency is reproducible from `build-support/toolchain-pins.json`; this round's actual dylib (`libtree-sitter.dylib` SHA256 `742a50cbf2ddc79172c6fc11cfef1c180cdc284ccf13317467b735e47b420dbc`) and the bundled dependency identity of each product are recorded in `p466-toolchain-binding-1` (SHA256 `d4119b48eeae6dfd129972ee2da49d3ca3f5e2b9bfc614c5aee3b9ccaff6210f`). Dylib bytes are not a cross-build pin; the header and pkg-config version are.
+
+CLN269 retired the superseded single-product candidate and two rule-check outputs (measured `du -sh` at deletion: 977M/41M/41M) while keeping every active evidence directory. No compatibility, performance, full 555/48 corpus or Goal acceptance is claimed.
