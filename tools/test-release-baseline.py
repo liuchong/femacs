@@ -481,6 +481,19 @@ class ReleaseBaselineComponentTests(unittest.TestCase):
             format_profile_output({"schema": PROFILE_SCHEMA, "cases": wrong_res}),
         )
 
+    def test_cli_accepts_warmup_and_rejects_negative_values(self):
+        """The measured rounds stay the recorded set; warmup is a separate, validated count."""
+        for value in ('-1', '-5'):
+            with self.assertRaises(SystemExit):
+                self.runtime_profile.main(['--binary', 'x', '--out', 'y', '--warmup', value])
+        # Candidate variables are explicit and recorded; the harness environment
+        # names stay reserved so a run cannot silently inherit the caller's HOME.
+        for entry in ('HOME=/tmp', 'lower=1', 'NOVALUE'):
+            with self.assertRaises(SystemExit):
+                self.runtime_profile.main(['--binary', 'x', '--out', 'y', '--env', entry])
+        with self.assertRaises(SystemExit):
+            self.runtime_profile.main(['--binary', 'x', '--out', 'y', '--env', 'A=1', '--env', 'A=2'])
+
     def test_summarize_statistics_and_row_preservation(self):
         base_cases = make_synthetic_profile_cases()
         multipliers = [1.0, 1.1, 0.9, 1.2, 1.0, 0.95, 1.5]
