@@ -72,10 +72,15 @@ def test_candidate_command():
 
 def sample(kind='interpreted', mode=1):
     totals = [mode, 1] + [0] * 22
+    if mode == 1:
+        totals[4] = 1          # one completed minor cycle
+        reasons = [1] + [0] * 12
+    else:
+        reasons = [0, 0, 0, 1] + [0] * 9
     return dict(case='load', round=1, wall_ms=1.0, gc_count=1, gc_ms=.5, pauses_ms=[.5],
                 execution_mode='mixed', actual_function_kind=kind, setup_ms=.0,
                 phase_snapshot=[1, [0] * 21, [], [[0] * 5, [0] * 5]],
-                collector_status=[1, totals, [0] * 13], allocation_delta=[1] * 7,
+                collector_status=[1, totals, reasons], allocation_delta=[1] * 7,
                 heap_before=[['cons', 1, 2]], heap_after=[['cons', 2, 2]], result='x')
 
 
@@ -98,8 +103,35 @@ def test_expectations():
     comparison.check_expectations(collector, run_report([sample(mode=1)]))
     expect_error(lambda: comparison.check_expectations(collector, run_report([sample(mode=0)])),
                  'expected collector mode 1')
+    # A young-mode flag without any completed minor cycle is not a working
+    # collector and must not be reported as a finished comparison input.
+    inactive = sample(mode=1)
+    inactive['collector_status'] = [1, [1, 1] + [0] * 22, [0] * 13]
+    expect_error(lambda: comparison.check_expectations(collector, run_report([inactive])),
+                 'reported young mode but no minor cycle')
+    major = dict(name='m', expect={'collector': 'major'})
+    comparison.check_expectations(major, run_report([sample(mode=0)]))
+    minor_in_major = sample(mode=0)
+    minor_in_major['collector_status'] = [1, [0, 1, 0, 0, 2] + [0] * 19, [1] + [0] * 12]
+    expect_error(lambda: comparison.check_expectations(major, run_report([minor_in_major])),
+                 'reported major mode but performed a minor')
     expect_error(lambda: comparison.check_expectations(collector, run_report([dict(sample(), collector_status=None)])),
                  'reported no status')
+
+
+def test_cadence():
+    assert comparison.cadence([None]) is None
+    first = sample(mode=1)
+    last = sample(mode=1)
+    last['collector_status'][1][4] += 3          # three more minors
+    last['collector_status'][1][3] += 1          # one more major
+    last['collector_status'][2][0] += 3
+    last['collector_status'][2][4] += 1
+    summary = comparison.cadence([first['collector_status'], last['collector_status']])
+    assert summary['young_cycles'] == 3 and summary['minors_delta'] == 3
+    assert summary['majors_delta'] == 1 and summary['full_reasons'] == {'4': 1}
+    same = comparison.cadence([first['collector_status'], first['collector_status']])
+    assert same['young_cycles'] == 0 and same['minors_delta'] == 0
 
 
 def test_phase_filtering():
@@ -156,6 +188,7 @@ def main() -> int:
             'plan-validation': test_plan_validation,
             'candidate-command': test_candidate_command,
             'expectations': test_expectations,
+            'cadence': test_cadence,
             'phase-filtering': test_phase_filtering,
             'aggregation-and-comparison': test_aggregation_and_comparison,
             'ratio-semantics': test_ratio_semantics}.items()):

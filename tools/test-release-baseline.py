@@ -488,7 +488,11 @@ class ReleaseBaselineComponentTests(unittest.TestCase):
                 self.runtime_profile.main(['--binary', 'x', '--out', 'y', '--warmup', value])
         # Candidate variables are explicit and recorded; the harness environment
         # names stay reserved so a run cannot silently inherit the caller's HOME.
-        for entry in ('HOME=/tmp', 'lower=1', 'NOVALUE'):
+        # A candidate may pin an absolute PATH for the native compiler, but not
+        # a relative one and never the harness HOME/TMPDIR/LC_ALL names.
+        with self.assertRaises(SystemExit):
+            self.runtime_profile.main(['--binary', 'x', '--out', 'y', '--env', 'PATH=rel/dir'])
+        for entry in ('HOME=/tmp', 'lower=1', 'NOVALUE', 'TMPDIR=/tmp', 'LC_ALL=C'):
             with self.assertRaises(SystemExit):
                 self.runtime_profile.main(['--binary', 'x', '--out', 'y', '--env', entry])
         with self.assertRaises(SystemExit):
