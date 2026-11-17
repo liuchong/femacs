@@ -885,6 +885,7 @@ pub mod cons_generation_decls {
     unsafe extern "C" {
         pub fn femacs_gc_cons_written(cell: Lisp_Object);
         pub fn femacs_gc_cons_escaped(cell: Lisp_Object);
+        pub fn femacs_gc_young_cadence_pending() -> bool;
     }
 }
 #[cfg(feature = "femacs_gc_generational")]
@@ -2771,6 +2772,13 @@ pub fn rarely_quit (count: u64) {
 pub fn maybe_gc () {
     if unsafe { consing_until_gc } < 0 {
         unsafe { maybe_garbage_collect () }
+    } else {
+        // Generational young cadence: allocation only arms a flag; the
+        // collection itself stays on this existing safepoint.
+        #[cfg(feature = "femacs_gc_generational")]
+        if unsafe { femacs_gc_young_cadence_pending() } {
+            unsafe { maybe_garbage_collect () }
+        }
     }
 }
 

@@ -11,6 +11,9 @@ mod gc_collector {
     static READY: AtomicBool = AtomicBool::new(false);
     static FOREIGN: AtomicBool = AtomicBool::new(false);
     static UNKNOWN_PRODUCER: AtomicBool = AtomicBool::new(false);
+    // Set only from note_allocation; consumed at maybe_gc safepoints. Never
+    // starts a collection from an allocation primitive.
+    static CADENCE_PENDING: AtomicBool = AtomicBool::new(false);
 
     #[derive(Clone, Copy, PartialEq, Eq)]
     pub(super) enum GcKind { Full, Young }
@@ -96,6 +99,12 @@ mod gc_collector {
         cycle_valid: bool,
         export_owner: u64,
         next_export_owner: u64,
+        // Growth origins for Automatic young cadence. Independent of the
+        // retention counters' epoch label: both read totals[15]/[16], but
+        // watermarks advance on Young so each minor measures new growth while
+        // retention caps still accumulate since the last major.
+        cadence_cons_base: u64,
+        cadence_bytes_base: u64,
     }
     impl State {
         const fn new() -> Self {
@@ -104,7 +113,8 @@ mod gc_collector {
                 capture_registry: false, active_token: 0, next_token: 0, totals: [0; 24], reasons: [0; 13],
                 invalid_reason: 1, counters_exhausted: false,
                 cycle_valid: false,
-                export_owner: 0, next_export_owner: 0 }
+                export_owner: 0, next_export_owner: 0,
+                cadence_cons_base: 0, cadence_bytes_base: 0 }
         }
         fn count(&mut self, slot: usize, amount: u64) {
             if let Some(value) = self.totals[slot].checked_add(amount) { self.totals[slot] = value; }
@@ -152,6 +162,7 @@ mod gc_collector {
         s.cycle_valid = false;
         LAST_MAJOR_BYTES = 0;
         s.export_owner = 0; s.next_export_owner = 0;
+        s.cadence_cons_base = 0; s.cadence_bytes_base = 0;
         // Normal process startup follows dump relocation. Cons age bitmaps
         // belong only to current heap blocks; dump objects use no block math.
         let mut block = cons_block;
@@ -162,6 +173,7 @@ mod gc_collector {
         }
         FOREIGN.store(false, Ordering::Relaxed);
         UNKNOWN_PRODUCER.store(false, Ordering::Relaxed);
+        CADENCE_PENDING.store(false, Ordering::Relaxed);
         MODE.store(mode, Ordering::Relaxed);
     }
     pub(super) unsafe fn activate_owner() {
@@ -172,6 +184,84 @@ mod gc_collector {
         if !young_owner() { return; }
         state().count(16, bytes as u64);
         if is_cons { state().count(15, 1); }
+        // Arm only. Collection waits for maybe_gc / maybe_garbage_collect.
+        if young_cadence_due() { CADENCE_PENDING.store(true, Ordering::Relaxed); }
+    }
+
+    #[inline]
+    unsafe fn retention_cons_cap() -> Option<u64> {
+        state().totals[6].checked_add(CONS_BLOCK_SIZE as u64)
+    }
+
+    #[inline]
+    unsafe fn retention_bytes_cap() -> u64 {
+        LAST_MAJOR_BYTES.max(memory_full_cons_threshold as u64)
+    }
+
+    // Non-retention predicates shared with choose_cycle's Automatic Young path.
+    // Retention itself is checked with lead time below, not at the cap edge.
+    unsafe fn young_selection_open() -> bool {
+        if MODE.load(Ordering::Relaxed) != 2 || !READY.load(Ordering::Relaxed) || !owner() {
+            return false;
+        }
+        if !(*(&raw mut doomed_finalizers)).next.is_null()
+            && (*(&raw mut doomed_finalizers)).next != &raw mut doomed_finalizers
+        {
+            return false;
+        }
+        if FOREIGN.load(Ordering::Relaxed) || UNKNOWN_PRODUCER.load(Ordering::Relaxed) {
+            return false;
+        }
+        if state().counters_exhausted || state().next_token == u64::MAX {
+            return false;
+        }
+        if !NILP(Vmemory_full) || !NILP(Vpurify_flag) {
+            return false;
+        }
+        if !state().registry.valid {
+            return false;
+        }
+        if state().totals[5] >= 3 {
+            return false;
+        }
+        true
+    }
+
+    unsafe fn young_cadence_due() -> bool {
+        if !young_selection_open() {
+            return false;
+        }
+        let Some(cons_cap) = retention_cons_cap() else { return false; };
+        let bytes_cap = retention_bytes_cap();
+        let cons_lead = CONS_BLOCK_SIZE as u64;
+        let bytes_lead = memory_full_cons_threshold as u64;
+        // Lead keeps choose_cycle able to return Young after arm→safepoint lag.
+        if state().totals[15].saturating_add(cons_lead) > cons_cap {
+            return false;
+        }
+        if state().totals[16].saturating_add(bytes_lead) > bytes_cap {
+            return false;
+        }
+        let cons_room = cons_cap.saturating_sub(cons_lead);
+        let bytes_room = bytes_cap.saturating_sub(bytes_lead);
+        let cons_step = (cons_room / 3).max(1);
+        let bytes_step = (bytes_room / 3).max(1);
+        let cons_growth = state().totals[15].saturating_sub(state().cadence_cons_base);
+        let bytes_growth = state().totals[16].saturating_sub(state().cadence_bytes_base);
+        cons_growth >= cons_step || bytes_growth >= bytes_step
+    }
+
+    pub(super) unsafe fn young_cadence_pending() -> bool {
+        if !CADENCE_PENDING.load(Ordering::Relaxed) {
+            return false;
+        }
+        if young_cadence_due() {
+            true
+        } else {
+            // Stale arm after a race past the lead or a forcing predicate.
+            CADENCE_PENDING.store(false, Ordering::Relaxed);
+            false
+        }
     }
     pub(super) unsafe fn note_marked_noncons(object: Lisp_Object) {
         if !young_owner() || !state().capture_registry { return; }
@@ -212,6 +302,9 @@ mod gc_collector {
 
     pub(super) unsafe fn prepare_cycle(kind: GcKind, reason: u32, guard: &mut CollectorCycleGuard) {
         if !owner() { return; }
+        // Consume the safepoint arm for this cycle. A nested Automatic from a
+        // post-gc hook re-arms through note_allocation if growth is due again.
+        CADENCE_PENDING.store(false, Ordering::Relaxed);
         state().marked_cons_block = None;
         // Guard points into the caller's stack and is registered before any
         // active token, registry or bitmap mutation.
@@ -248,7 +341,34 @@ mod gc_collector {
             for word in 0..(*block).gcmarkbits.len() {
                 let valid = numeric::valid_word_mask(word * BITS_PER_BITS_WORD, limit);
                 if kind == GcKind::Full { (*block).dirtybits[word] = 0; }
-                else { (*block).gcmarkbits[word] |= (*block).oldbits[word] & valid; }
+                else {
+                    /* A minor cycle cannot sweep old objects the way `gc_sweep`
+                       does, because `gc_sweep` re-decides liveness for every
+                       class from this cycle's mark bits.  Old cons cells are
+                       kept by ORing `oldbits` into `gcmarkbits`, but a cell
+                       kept only that way was not traced, and the previous
+                       sweep already cleared the mark bits of everything it
+                       pointed to.  A non-cons child reachable solely through
+                       such an old cell - an interval, string, symbol, float or
+                       vector - would then be freed while still referenced, and
+                       a later mark re-entering it aborts (the Cocoa checking
+                       failure was `mark_interval_tree_1`).  Submitting the
+                       children of exactly the resurrected cells keeps the
+                       minor cycle real without sweeping live data.  */
+                    /* Recomputed every cycle: `sweep_conses` clears the
+                       gcmarkbit of old cells it keeps, so `oldbits` is the
+                       only durable record and each minor must re-derive the
+                       kept set and trace its children afresh. */
+                    let mut revived = (*block).oldbits[word] & valid & !(*block).gcmarkbits[word];
+                    (*block).gcmarkbits[word] |= (*block).oldbits[word] & valid;
+                    while revived != 0 {
+                        let bit = revived.trailing_zeros() as usize;
+                        revived &= revived - 1;
+                        let cell = &raw mut (*block).conses[word * BITS_PER_BITS_WORD + bit];
+                        mark_object ((*cell).u.s.car);
+                        mark_object ((*cell).u.s.u.cdr);
+                    }
+                }
             }
             block = (*block).next; limit = CONS_BLOCK_SIZE;
         }
@@ -311,7 +431,14 @@ mod gc_collector {
             state().totals[6] = gcstat.total_conses as u64;
             LAST_MAJOR_BYTES = total_bytes_of_live_objects() as u64;
             state().totals[15] = 0; state().totals[16] = 0;
-        } else { state().count(4, 1); state().count(5, 1); }
+            state().cadence_cons_base = 0; state().cadence_bytes_base = 0;
+        } else {
+            state().count(4, 1); state().count(5, 1);
+            // Next young window measures growth after this minor; retention
+            // totals keep accumulating until the next major.
+            state().cadence_cons_base = state().totals[15];
+            state().cadence_bytes_base = state().totals[16];
+        }
         state().registry.valid = MODE.load(Ordering::Relaxed) == 2 && state().cycle_valid
             && !state().registry.overflowed && !state().counters_exhausted
             && !FOREIGN.load(Ordering::Relaxed) && !UNKNOWN_PRODUCER.load(Ordering::Relaxed);
@@ -521,3 +648,7 @@ pub unsafe extern "C" fn femacs_gc_cons_written(cell: Lisp_Object) { gc_collecto
 pub unsafe extern "C" fn femacs_gc_cons_escaped(cell: Lisp_Object) { gc_collector::escaped(cell); }
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn femacs_gc_unknown_producer_loaded() { gc_collector::unknown_producer_loaded(); }
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn femacs_gc_young_cadence_pending() -> bool {
+    gc_collector::young_cadence_pending()
+}

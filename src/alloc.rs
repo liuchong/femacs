@@ -6520,6 +6520,17 @@ unsafe extern "C" fn watch_gc_cons_percentage (symbol: Lisp_Object, newval: Lisp
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn maybe_garbage_collect ()
 {
+  /* Young cadence is an Automatic request at this safepoint only.  It must
+     not run inside Fcons/tally_consing, must not rewrite consing_until_gc to
+     fake a heap-threshold trip, and must not bump first (bump can restore a
+     positive threshold and skip the cycle — the rejected arm path).  Explicit
+     garbage_collect stays Full.  Retention caps in choose_cycle are unchanged.  */
+  #[cfg(feature = "femacs_gc_generational")]
+  if gc_collector::young_cadence_pending()
+    {
+      garbage_collect_impl(GcRequest::Automatic);
+      return;
+    }
   if bump_consing_until_gc (gc_cons_threshold as intmax_t, Vgc_cons_percentage) < 0
     { garbage_collect_impl(GcRequest::Automatic); }
 }
