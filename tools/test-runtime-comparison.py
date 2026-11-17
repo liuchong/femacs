@@ -1,0 +1,172 @@
+#!/usr/bin/env python3
+"""Protective tests for tools/runtime-comparison.py.
+
+Pure plan/aggregation/expectation logic only: no editor is started, no profile
+run is replaced by a synthetic success, and no comparison is promoted.
+"""
+from __future__ import annotations
+import argparse
+import importlib.util
+import json
+from pathlib import Path
+import sys
+
+ROOT = Path(__file__).resolve().parent.parent
+SPEC = importlib.util.spec_from_file_location('runtime_comparison', ROOT / 'tools/runtime-comparison.py')
+comparison = importlib.util.module_from_spec(SPEC)
+SPEC.loader.exec_module(comparison)
+
+
+def plan(**overrides):
+    base = dict(schema=comparison.PLAN_SCHEMA, warmup=2, rounds=7, max_load_per_core=.10,
+                candidates=[dict(name='a', binary='x', env={'K': 'v'},
+                                 expect={'execution': 'interpreted'}),
+                            dict(name='b', binary='y')],
+                comparisons=[dict(name='ab', left='a', right='b')])
+    base.update(overrides)
+    return base
+
+
+def expect_error(callable_object, message):
+    try:
+        callable_object()
+    except ValueError as error:
+        assert message in str(error), (message, str(error))
+    else:
+        raise AssertionError(f'expected ValueError: {message}')
+
+
+def test_plan_validation():
+    valid = comparison.validate_plan(plan())
+    assert valid['warmup'] == 2 and valid['rounds'] == 7
+    expect_error(lambda: comparison.validate_plan(dict(plan(), schema='other')), 'plan schema')
+    expect_error(lambda: comparison.validate_plan(plan(warmup=-1)), 'warmup')
+    expect_error(lambda: comparison.validate_plan(plan(rounds=0)), 'rounds')
+    expect_error(lambda: comparison.validate_plan(plan(max_load_per_core=-0.1)), 'max_load_per_core')
+    expect_error(lambda: comparison.validate_plan(plan(candidates=[])), 'nonempty')
+    duplicate = [dict(name='a', binary='x'), dict(name='a', binary='y')]
+    expect_error(lambda: comparison.validate_plan(plan(candidates=duplicate)), 'unique')
+    expect_error(lambda: comparison.validate_plan(plan(candidates=[dict(name='a')])), 'binary path')
+    expect_error(lambda: comparison.validate_plan(plan(candidates=[dict(name='a', binary='x', expect={'execution': 'jit'})])), 'execution expectation')
+    expect_error(lambda: comparison.validate_plan(plan(candidates=[dict(name='a', binary='x', expect={'collector': 'moving'})])), 'collector expectation')
+    expect_error(lambda: comparison.validate_plan(plan(candidates=[dict(name='a', binary='x', expect={'speed': 'fast'})])), 'unknown expectations')
+    expect_error(lambda: comparison.validate_plan(plan(comparisons=[dict(name='ab', left='a', right='a')])), 'itself')
+    expect_error(lambda: comparison.validate_plan(plan(comparisons=[dict(name='ab', left='a', right='zz')])), 'unknown candidate')
+
+
+def test_candidate_command():
+    command = comparison.candidate_command(dict(name='a', binary='bin', dump='img.pdmp'),
+                                           Path('/tmp/out'), 2, 7, .10)
+    assert command[command.index('--warmup') + 1] == '2'
+    assert command[command.index('--rounds') + 1] == '7'
+    assert command[command.index('--max-load-per-core') + 1] == '0.1'
+    assert command[command.index('--dump') + 1] == 'img.pdmp'
+    assert '--env' not in command
+    env_candidate = dict(name='e', binary='bin', env={'B': '2', 'A': '1'})
+    ordered = comparison.candidate_command(env_candidate, Path('/tmp/out'), 2, 7, .10)
+    assert [ordered[i + 1] for i, item in enumerate(ordered) if item == '--env'] == ['A=1', 'B=2']
+    plain = comparison.candidate_command(dict(name='b', binary='bin'), Path('/tmp/out'), 0, 7, .10)
+    assert '--dump' not in plain
+    assert plain[plain.index('--warmup') + 1] == '0'
+
+
+def sample(kind='interpreted', mode=1):
+    totals = [mode, 1] + [0] * 22
+    return dict(case='load', round=1, wall_ms=1.0, gc_count=1, gc_ms=.5, pauses_ms=[.5],
+                execution_mode='mixed', actual_function_kind=kind, setup_ms=.0,
+                phase_snapshot=[1, [0] * 21, [], [[0] * 5, [0] * 5]],
+                collector_status=[1, totals, [0] * 13], allocation_delta=[1] * 7,
+                heap_before=[['cons', 1, 2]], heap_after=[['cons', 2, 2]], result='x')
+
+
+def run_report(samples, quiet=True):
+    return dict(schema=comparison.RUN_SCHEMA, passed=True, samples=samples,
+                processes=[dict(round=1, load_per_core=.01, peak_sampled_rss_bytes=100)],
+                startup_samples=[dict(wall_ms=10.0)], warmup=[dict(round=1)],
+                artifacts={'binary': {'sha256': 'abc'}}, source_head='head',
+                source_patch_sha256='patch', runtime_image='img', quiet=quiet,
+                max_load_per_core=.01, startup=dict(median_ms=10.0, p95_ms=11.0),
+                limitations='observations')
+
+
+def test_expectations():
+    candidate = dict(name='n', expect={'execution': 'native'})
+    comparison.check_expectations(candidate, run_report([sample('native')]))
+    expect_error(lambda: comparison.check_expectations(candidate, run_report([sample('bytecode')])),
+                 'expected native code')
+    collector = dict(name='c', expect={'collector': 'young'})
+    comparison.check_expectations(collector, run_report([sample(mode=1)]))
+    expect_error(lambda: comparison.check_expectations(collector, run_report([sample(mode=0)])),
+                 'expected collector mode 1')
+    expect_error(lambda: comparison.check_expectations(collector, run_report([dict(sample(), collector_status=None)])),
+                 'reported no status')
+
+
+def test_phase_filtering():
+    clean = [1, 0, 4, 1, 1_000_000, 3_000_000]
+    incomplete = [1, 0, 4, 5, 0, 9_000_000]
+    clock = [1, 0, 4, 3, 0, 9_000_000]
+    backwards = [1, 0, 4, 1, 5_000_000, 1_000_000]
+    exported = [1, 0, 4, 9, 0, 2_000_000]
+    row = dict(phase_snapshot=[1, [0] * 21, [clean, incomplete, clock, backwards, exported],
+                               [[0] * 5, [0] * 5]])
+    intervals = comparison.phase_intervals(row)
+    assert len(intervals) == 2
+    assert intervals[0]['ms'] == 2.0 and intervals[0]['export_overhead'] is False
+    assert intervals[1]['export_overhead'] is True
+    assert comparison.phase_intervals(dict(phase_snapshot=None)) == []
+    assert comparison.phase_intervals(dict(phase_snapshot=[1, [0] * 21, [['short']], None])) == []
+
+
+def test_aggregation_and_comparison():
+    left = comparison.aggregate_candidate('left', dict(name='left', expect={'execution': 'native'}),
+                                         run_report([sample('native')], quiet=True))
+    assert left['cases'][0]['n'] == 1
+    assert left['cases'][0]['allocation_delta'] == [1] * 7
+    assert left['peak_rss_bytes'] == 100 and left['warmup_rounds'] == 1
+    assert left['checks'][0]['observed'] == ['native']
+    assert left['cases'][0]['remembered_set']['valid'] == 1
+    assert left['cases'][0]['remembered_set']['length'] == 0
+    assert comparison.remembered_set(None) is None
+    assert comparison.remembered_set([1, [0] * 23, [0] * 13]) is None
+    right = comparison.aggregate_candidate('right', dict(name='right', expect={'execution': 'interpreted'}),
+                                           run_report([sample('interpreted')], quiet=False))
+    result = comparison.compare('l-r', left, right)
+    assert result['promotion_grade'] is False and 'not promotion grade' in result['claim']
+    assert result['cases'][0]['median_ratio'] == 1.0
+    quiet = comparison.compare('l-r', left, comparison.aggregate_candidate(
+        'right', dict(name='right'), run_report([sample('interpreted')], quiet=True)))
+    assert quiet['promotion_grade'] is True and 'observations only' in quiet['claim']
+    assert comparison.ratio(1, 0) is None and comparison.ratio(None, 2) is None
+
+
+def test_ratio_semantics():
+    # The compare() ratio is left/right, so a candidate that is faster shows < 1.
+    left = comparison.aggregate_candidate('fast', dict(name='fast'), run_report([dict(sample(), wall_ms=1.0)]))
+    right = comparison.aggregate_candidate('slow', dict(name='slow'), run_report([dict(sample(), wall_ms=2.0)]))
+    assert comparison.compare('f-s', left, right)['cases'][0]['median_ratio'] == .5
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--out', type=Path, required=True)
+    options = parser.parse_args()
+    cases = []
+    for name, function in sorted({
+            'plan-validation': test_plan_validation,
+            'candidate-command': test_candidate_command,
+            'expectations': test_expectations,
+            'phase-filtering': test_phase_filtering,
+            'aggregation-and-comparison': test_aggregation_and_comparison,
+            'ratio-semantics': test_ratio_semantics}.items()):
+        function()
+        cases.append(dict(id=name, passed=True))
+    options.out.mkdir(parents=True, exist_ok=False)
+    (options.out / 'results.json').write_text(json.dumps(
+        dict(schema='femacs-runtime-comparison-protection-v1', passed=True, cases=cases), indent=2) + '\n')
+    print(json.dumps(dict(passed=True, cases=len(cases))))
+    return 0
+
+
+if __name__ == '__main__':
+    sys.exit(main())
