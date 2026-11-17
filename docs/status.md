@@ -26685,6 +26685,16 @@ Fresh reference selection passed7/7 postflight checks, actual installation/confi
 User approved this exact DNS case as a nonblocking environment limitation and requires the existing proxy to remain enabled and unchanged. Four bounded HTTPS queries completed without errors: both Google andCloudflare resolved `example.com` (Status0,2 A answers) and returned NXDOMAIN for `emacs.invalid` (Status3,no answers),1.499–2.389s per query. The host system lookup still reports its synthetic proxy addresses. This verifies a remote-resolver contrast, not candidate/editor or original ERT acceptance; raw failures, counts and exits remain unchanged. No Dot task was sent; that route is cancelled. Fresh full555/48 observations and any precise exception binding remain pending.
 
 
+### 2026-11-18 — 第 7 轮：G7 cap 数值核实、Tramp 同条件参照对照、G6 native 身份
+
+- **G7 reason 5 的实际 cap 与生命周期**：`CONS_BLOCK_SIZE=1998`；每次 major 时 `totals[6]=live conses≈3875`，故 `cons_cap≈5873`；实测每次回收之间的分配约 **84,600 cons（约 1.35MB）**，即 cap 的约 14 倍。`gc-cons-threshold` 设为 5000/20000/50000 时每次回收的 cons 数几乎不变，说明实际触发由按堆比例的阈值（约 1.35MB）主导，绝对阈值没有生效。计数器本身自洽（major 后 `totals[15]/[16]` 归零、redo 后只累计本轮），**不是计数错误**；reason 5 是当前触发节奏下**必要的安全回退**，但该节奏使 young 路径在选择 young 模式时也永远不可达（全部 19 次 major、0 minor，reasons `[0,1,0,0,0,18,…]`）。要产生真正的 minor 必须引入 young 专属的触发节奏；仅放大/关闭 cap 会破坏 remembered-set 安全界，本轮不做。
+- **Tramp 同条件官方参照对照**（同文件、同顺序、同夹具、同 TERM、各自全新 HOME/TMPDIR）：端口 115 测试 **8 failed / 7 skipped**，官方参照 **6 failed / 7 skipped**；skip 集合一致。逐项差异：端口更差的 4 项是 `tramp-test33-environment-variables`、`tramp-test41-special-characters-with-ls`、`tramp-test42-utf8-with-ls`、`tramp-test42-utf8-without-file-attributes`；端口更好的 2 项是 `tramp-test31-signal-process`、`tramp-test41-special-characters`；双方共同的 4 个失败是 `test32-shell-command-dont-erase-buffer`、`test42-utf8`、`42-utf8-direct-async`、`42-utf8-with-perl`。`tramp-test29` 两侧都 passed，旧失败按历史未归因保留。证据 `build/acceptance/observations-20261118/tramp-full-compare.json`。
+- **G6 native 身份（不造新优化、不提速）**：`native-compile` 后函数是 `subr`、非 bytecode、`native-comp-function-p` 为 t，调用结果正确（42）；本端口未提供 `comp-function-p`/`comp--subr-native-elisp-p`。端口 `comp.rs` 的路径是写临时 `.eln` 后 dlopen；运行结束未留下 `.eln` 文件，故“产物文件身份”没有可保留证据，能确认的是**进程内真 native entry**（subr + native predicate + dynlib 装载路径）。
+- **WebP**：定时帧变更/停播/清缓存重解码已闭合；时间策略边界（只验证 1.2s、两帧、0.1s 间隔，未覆盖长期播放/淘汰时间语义）如实保留，移出反复检查队列。
+- 观察器构建 `observer-1` 保留为 G7 的绑定配置；components 28/28、local 9/9、GUI 26/26 与图像单元证据不变。
+
+未完成：G7 young 触发节奏设计/实现、Tramp 4 项端口差异根因、IME 激活、G5 安静 9 轮计时、G6 候选对比、已安装交付。G3/Goal 继续开放。
+
 ### 2026-11-18 — 第 6 轮：真实 young/major/fallback 计数、Tramp 全序与 WebP 定时播放
 
 - **观察器模式的真实代际事实**（观察器产品 `observer-1`，`FEMACS_GC_OBSERVATION=all`，不调用显式 `garbage-collect`）：
