@@ -26685,6 +26685,16 @@ Fresh reference selection passed7/7 postflight checks, actual installation/confi
 User approved this exact DNS case as a nonblocking environment limitation and requires the existing proxy to remain enabled and unchanged. Four bounded HTTPS queries completed without errors: both Google andCloudflare resolved `example.com` (Status0,2 A answers) and returned NXDOMAIN for `emacs.invalid` (Status3,no answers),1.499–2.389s per query. The host system lookup still reports its synthetic proxy addresses. This verifies a remote-resolver contrast, not candidate/editor or original ERT acceptance; raw failures, counts and exits remain unchanged. No Dot task was sent; that route is cancelled. Fresh full555/48 observations and any precise exception binding remain pending.
 
 
+### 2026-11-18 — 第 8 轮：Tramp 共同根因定位、G7 young 触发实验（否决）与槽位语义
+
+- **Tramp 4 项 port-worse 的共同根因（实测）**：给 `base64-decode-region` 加只读 advice，捕获 `tramp-test42-utf8` 实际解码的输入。266 行里 **265 行合法 base64**，唯一非法行是 `sh: child setpgid (24565 to 24565): Operation not permitted` —— 端口启动的 shell 子进程把一条诊断写进了非字符文件内容的 base64 流，导致 `Invalid base64 data`。参照在同一测试、同一夹具、同一环境下不产生该诊断（其 `tramp-test42-utf8` 通过）。因此 4 项共因是 **进程组/PTY 建立时的 `setpgid` 诊断泄漏到子进程输出**，不是编码/文件名处理差异。证据 `build/acceptance/observations-20261118/tramp-{common-cause.json,base64-input.txt,tramp-test42-advised.log}`。两项双方共有的失败（test32、test42/utf8-direct-async/perl）不计端口缺口；两项仅参照失败（test31、test41-special）不算端口缺口。
+- **G7 young 专属触发（一次实现尝试，已否决并回退）**：在 `tally_consing`/`cons` 的既有安全点加 `young_due()` → 置 `consing_until_gc = -1`，让既有 `maybe_gc` 检查在达到 collector 自己的 cap 时就跑一次选择。实测（`observer-2`）不产生任何 young：young 模式 **18 → 250 次回收**、仍 0 minor、reasons 仍全为 reason 5（`[0,1,0,0,0,257,…]`）。原因是 cap 判据用的是 `LAST_MAJOR_BYTES`（上一轮 major 的存活字节），任何触发点都会在下一轮再判定为超 cap。这既无收益又显著改变节奏，按纪律**回退该改动**（`src/alloc.rs` 恢复原样；`src/runtime_gc_collector.rs` 仅保留先前已提交的 minor-sweep 修正）。
+- **live/dead 五槽语义（补报告要求）**：`femacs--gc-snapshot` 的 `live[5]`/`dead[5]` 由 `runtime_gc_observation.rs` 的 `bucket(age)` 定义，按 cons **出生时的回收纪元与退休纪元的差（跨越的 GC 轮数）** 分桶：0、1、2–3、4–7、≥8 轮；单位是 **cons 个数**，不是比例。这是“带出生批次的存活/死亡计数”，与普通 heap 清单里的 live/free 字节数不是同一量纲，报告不得混称。
+- **Tramp 的 pty/setpgid**：`src/callproc.rs` 的 `setpgid (0, 0); tcsetpgrp (0, pid);` 与参照 `callproc.c:1289` 同形，故机制不是“多出来的调用”，而是运行环境差异（我方在受控执行器/PTY 下运行）。下一假设是 PTY 归属/进程组参数，已拆为独立待办。
+- 观察器 `observer-1` 的原始代际事实、components 28/28、local 9/9、GUI 26/26、图像单元均不变。
+
+未完成：Tramp pty 进程组差异、G7 young 可达性（cap 判据依赖 LAST_MAJOR_BYTES，需要设计层面的改变而非触发点）、IME 激活、G5 安静计时、G6 候选对比、已安装交付。G3/Goal 开放。
+
 ### 2026-11-18 — 第 7 轮：G7 cap 数值核实、Tramp 同条件参照对照、G6 native 身份
 
 - **G7 reason 5 的实际 cap 与生命周期**：`CONS_BLOCK_SIZE=1998`；每次 major 时 `totals[6]=live conses≈3875`，故 `cons_cap≈5873`；实测每次回收之间的分配约 **84,600 cons（约 1.35MB）**，即 cap 的约 14 倍。`gc-cons-threshold` 设为 5000/20000/50000 时每次回收的 cons 数几乎不变，说明实际触发由按堆比例的阈值（约 1.35MB）主导，绝对阈值没有生效。计数器本身自洽（major 后 `totals[15]/[16]` 归零、redo 后只累计本轮），**不是计数错误**；reason 5 是当前触发节奏下**必要的安全回退**，但该节奏使 young 路径在选择 young 模式时也永远不可达（全部 19 次 major、0 minor，reasons `[0,1,0,0,0,18,…]`）。要产生真正的 minor 必须引入 young 专属的触发节奏；仅放大/关闭 cap 会破坏 remembered-set 安全界，本轮不做。
