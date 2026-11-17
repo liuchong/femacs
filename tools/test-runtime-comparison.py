@@ -100,38 +100,46 @@ def test_expectations():
     expect_error(lambda: comparison.check_expectations(candidate, run_report([sample('bytecode')])),
                  'expected native code')
     collector = dict(name='c', expect={'collector': 'young'})
-    comparison.check_expectations(collector, run_report([sample(mode=1)]))
+    growing = sample(mode=1)
+    growing['collector_status'] = [1, [1, 1, 0, 0, 2] + [0] * 19, [2] + [0] * 12]
+    comparison.check_expectations(collector, run_report([sample(mode=1), growing]))
     expect_error(lambda: comparison.check_expectations(collector, run_report([sample(mode=0)])),
                  'expected collector mode 1')
     # A young-mode flag without any completed minor cycle is not a working
     # collector and must not be reported as a finished comparison input.
     inactive = sample(mode=1)
     inactive['collector_status'] = [1, [1, 1] + [0] * 22, [0] * 13]
-    expect_error(lambda: comparison.check_expectations(collector, run_report([inactive])),
-                 'reported young mode but no minor cycle')
+    checked = comparison.check_expectations(collector, run_report([inactive, inactive]))
+    activity = [item for item in checked if item['check'] == 'collector-activity'][0]
+    assert activity['passed'] is False and 'reachability-only' in activity['note']
     major = dict(name='m', expect={'collector': 'major'})
-    comparison.check_expectations(major, run_report([sample(mode=0)]))
+    comparison.check_expectations(major, run_report([sample(mode=0), sample(mode=0)]))
     minor_in_major = sample(mode=0)
     minor_in_major['collector_status'] = [1, [0, 1, 0, 0, 2] + [0] * 19, [1] + [0] * 12]
-    expect_error(lambda: comparison.check_expectations(major, run_report([minor_in_major])),
-                 'reported major mode but performed a minor')
+    checked = comparison.check_expectations(major, run_report([sample(mode=0), minor_in_major]))
+    assert [item for item in checked if item['check'] == 'collector-activity'][0]['passed'] is False
     expect_error(lambda: comparison.check_expectations(collector, run_report([dict(sample(), collector_status=None)])),
                  'reported no status')
 
 
 def test_cadence():
-    assert comparison.cadence([None]) is None
+    assert comparison.cadence(None, None) is None
     first = sample(mode=1)
     last = sample(mode=1)
     last['collector_status'][1][4] += 3          # three more minors
     last['collector_status'][1][3] += 1          # one more major
     last['collector_status'][2][0] += 3
     last['collector_status'][2][4] += 1
-    summary = comparison.cadence([first['collector_status'], last['collector_status']])
-    assert summary['young_cycles'] == 3 and summary['minors_delta'] == 3
-    assert summary['majors_delta'] == 1 and summary['full_reasons'] == {'4': 1}
-    same = comparison.cadence([first['collector_status'], first['collector_status']])
-    assert same['young_cycles'] == 0 and same['minors_delta'] == 0
+    summary = comparison.cadence(first['collector_status'], last['collector_status'])
+    assert summary['delta']['young_cycles'] == 3 and summary['delta']['minors'] == 3
+    assert summary['delta']['majors'] == 1 and summary['delta']['full_reasons'] == {'4': 1}
+    same = comparison.cadence(first['collector_status'], first['collector_status'])
+    assert same['delta']['young_cycles'] == 0 and same['delta']['minors'] == 0
+    # The first sample of a run has no earlier status: keep the absolute
+    # counters and leave the delta unknown instead of reporting zero work.
+    opening = comparison.cadence(None, last['collector_status'])
+    assert opening['delta'] is None and opening['absolute']['minors'] == last['collector_status'][1][4]
+    assert 'no earlier sample' in opening['basis']
 
 
 def test_phase_filtering():
@@ -169,6 +177,15 @@ def test_aggregation_and_comparison():
     quiet = comparison.compare('l-r', left, comparison.aggregate_candidate(
         'right', dict(name='right'), run_report([sample('interpreted')], quiet=True)))
     assert quiet['promotion_grade'] is True and 'observations only' in quiet['claim']
+    # A quiet pair with a young candidate that never ran a minor stays
+    # non-promotion-grade and says why.
+    idle_young = sample(mode=1)
+    idle_young['collector_status'] = [1, [1, 1] + [0] * 22, [0] * 13]
+    idle = comparison.aggregate_candidate('idle', dict(name='idle', expect={'collector': 'young'}),
+                                          run_report([idle_young, idle_young], quiet=True))
+    blocked = comparison.compare('i-r', idle, comparison.aggregate_candidate(
+        'right', dict(name='right'), run_report([sample('interpreted')], quiet=True)))
+    assert blocked['promotion_grade'] is False and 'reachability-only' in blocked['claim']
     assert comparison.ratio(1, 0) is None and comparison.ratio(None, 2) is None
 
 
