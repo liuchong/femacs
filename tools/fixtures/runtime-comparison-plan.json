@@ -1,0 +1,70 @@
+{
+  "schema": "femacs-runtime-comparison-plan-v1",
+  "note": "Declared comparison design for G5/G6/G7. Paths are repository-relative except the installed reference. The collector products are the verified frozen product; the native product is a separate build of the same Lisp tree with the libgccjit native compiler enabled.",
+  "warmup": 2,
+  "rounds": 7,
+  "max_load_per_core": 0.10,
+  "candidates": [
+    {
+      "name": "native-product-interpreted",
+      "binary": "build/runtime/native-2/port/src/emacs",
+      "env": {
+        "FEMACS_RUNTIME_EXECUTION_MODE": "interpreted",
+        "FEMACS_GC_OBSERVATION": "phases"
+      },
+      "expect": {"execution": "interpreted"}
+    },
+    {
+      "name": "native-product-bytecode",
+      "binary": "build/runtime/native-2/port/src/emacs",
+      "env": {
+        "FEMACS_RUNTIME_EXECUTION_MODE": "bytecode",
+        "FEMACS_GC_OBSERVATION": "phases"
+      },
+      "expect": {"execution": "bytecode"}
+    },
+    {
+      "name": "native-product-native",
+      "binary": "build/runtime/native-2/port/src/emacs",
+      "env": {
+        "FEMACS_RUNTIME_EXECUTION_MODE": "native",
+        "FEMACS_GC_OBSERVATION": "phases"
+      },
+      "expect": {"execution": "native"}
+    },
+    {
+      "name": "collector-young-interpreted",
+      "binary": "build/runtime/frozen-2/port/src/emacs",
+      "env": {
+        "FEMACS_GC_COLLECTOR": "young",
+        "FEMACS_RUNTIME_EXECUTION_MODE": "interpreted",
+        "FEMACS_GC_OBSERVATION": "all"
+      },
+      "expect": {"execution": "interpreted", "collector": "young"}
+    },
+    {
+      "name": "collector-major-interpreted",
+      "binary": "build/runtime/frozen-2/port/src/emacs",
+      "env": {
+        "FEMACS_GC_COLLECTOR": "major",
+        "FEMACS_RUNTIME_EXECUTION_MODE": "interpreted",
+        "FEMACS_GC_OBSERVATION": "all"
+      },
+      "expect": {"execution": "interpreted", "collector": "major"}
+    },
+    {
+      "name": "reference-interpreted",
+      "binary": "/Applications/Emacs.app/Contents/MacOS/Emacs",
+      "env": {
+        "FEMACS_RUNTIME_EXECUTION_MODE": "interpreted"
+      },
+      "expect": {"execution": "interpreted"}
+    }
+  ],
+  "comparisons": [
+    {"name": "execution-native-vs-interpreted", "left": "native-product-native", "right": "native-product-interpreted"},
+    {"name": "execution-native-vs-bytecode", "left": "native-product-native", "right": "native-product-bytecode"},
+    {"name": "collector-young-vs-major", "left": "collector-young-interpreted", "right": "collector-major-interpreted"},
+    {"name": "port-collector-vs-reference", "left": "collector-young-interpreted", "right": "reference-interpreted"}
+  ]
+}
