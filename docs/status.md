@@ -26685,6 +26685,19 @@ Fresh reference selection passed7/7 postflight checks, actual installation/confi
 User approved this exact DNS case as a nonblocking environment limitation and requires the existing proxy to remain enabled and unchanged. Four bounded HTTPS queries completed without errors: both Google andCloudflare resolved `example.com` (Status0,2 A answers) and returned NXDOMAIN for `emacs.invalid` (Status3,no answers),1.499–2.389s per query. The host system lookup still reports its synthetic proxy addresses. This verifies a remote-resolver contrast, not candidate/editor or original ERT acceptance; raw failures, counts and exits remain unchanged. No Dot task was sent; that route is cancelled. Fresh full555/48 observations and any precise exception binding remain pending.
 
 
+### 2026-11-17 — 更正与本轮收口：JPEG ABI 重绑、WebP 启用、保护探针加固
+
+前一条记录里的 `image-loader-protection-1`/`-2` 7/7 与“JPEG 解码已通过”**撤回为被否证前驱**。加固探针（要求每项非 nil、`readers-recover` 先清缓存、合法解码必须“尺寸正确且本次无加载器错误日志”）暴露了两个真实问题：
+
+1. **JPEG ABI 绑定错误**：`pkg-config libjpeg` 在本机选择 `libjpeg-turbo 8.3.2`（`JPEG_LIB_VERSION` 80、结构体 656 字节），而首轮声明按 IJG jpeg 10 头转写（100 / 664）。每次解码都在 `jpeg_CreateDecompress` 失败（`Wrong JPEG library version: library is 80, caller expects 100`），返回的 30x30 是缓存占位尺寸。旧的尺寸-only 检查因此误报通过。已按 turbo 头重测并修正：`JPEG_LIB_VERSION` 80、结构体 656，删除 v10 独有的 `color_transform`/`LSE_maxtrans`，编译期断言改为 656。
+2. **探针自身**：旧 `--report` 把返回 nil 的检查记 passed，且 `file-jpeg` 的期望尺寸取自占位值。加固后的负对照（把期望 PNG 尺寸改成 999x999）恰好让三项失败、exit1；在修复前的 `webp-1` 产品上恰好让 file-jpeg、memory-jpeg、readers-recover 失败（8/11）。
+
+**WebP 批次（P-468）**：转写 `image.c` C 10846-11328，启用 `HAVE_WEBP` 后 animation cache（C 3730-3860）成为活代码；唯一打包模块新增 libwebp/libwebpdemux/libsharpyuv，按 `LC_ID_DYLIB` 的 soname 暂存以闭合 `@rpath` 依赖，许可取 keg 的 `COPYING`，改写 install name 后统一重新签名并校验。
+
+**本轮读数（产品 `build/runtime/webp-2`）**：构建 exit0、1807.0s、peak 865 MB、gate-load 0 未定义符号；产品只含一份 `@rpath/libsqlite3.dylib` 和各一份 libpng/libjpeg/libwebp/libwebpdemux/libsharpyuv。保护探针 `image-loader-protection-3` **11/11**：PNG/JPEG/WebP 的文件与 `:data` 两臂（JPEG 实测 100x75）、两帧 WebP 动画 `image-multi-frame-p`=2、截断/损坏 PNG 与 WebP、损坏 JPEG 的错误日志拒绝、损坏后再次解码。官方尺度功能（`functional-image-webp-1`，对照已关闭参照对）5 个能力文件全部 `same`：image-file-tests、image/image-dired-tests、image-tests、net/shr-tests、src/sqlite-tests（13 例含 `sqlite-load-extension`），exit0、无超时、注册完整。
+
+**未完成**：libpng <1.5 与三处 `WINDOWSNT` 装载臂仍 owed；WebP 动画只做两帧解码+元数据验证，未做播放/缓存淘汰语义验收；Tramp 的 `tramp-test29-start-file-process` 仍按原失败开放（安静主机上的正式观察未做）。以上与 G3/G5/G6/G7 继续开放。
+
 ### 2026-11-17 — PNG/JPEG 解码与唯一 SQLite 运行库（本批语义单元）
 
 本批按授权把 PNG/JPEG 解码与 sqlite 扩展加载作为真实业务补齐，并让唯一一份暂存 libsqlite3 同时服务产品与 L0 门槛链接。WebP 不在本批，按下一完整批次实施。

@@ -10,6 +10,15 @@ configuration evidence keeps its original identities. See [G1 scope and receipts
 and [G4 delivery](../maintenance/releases/2026-10-25-g4-modernization.md).
 G3, G5, G6 and G7 remain open; the full Goal stays active.
 
+Execution-order update (2026-11-11): finish all remaining production and driver
+coding in one batch, then freeze one source snapshot for the standard products
+and complete matrix. Run consolidated functional acceptance, fix newly exposed
+defects in batches and repeat only affected checks. Add key protections after
+functional acceptance, followed by one independent final review and signed
+delivery. This replaces per-defect rebuild/review/commit loops; it does not
+reduce the 555-file/48-candidate denominator, change raw outcomes or waive
+unexplained differences. Current coding status is in [current state](current-state.md).
+
 Current continuation: the **seven-part persistent Goal (2026-10-25)** below. Its first delivery stage closes the remaining Stage IV native gaps. Stages I–IV and failed attempts remain evidence; unchanged acceptance is not rerun merely to refresh a date.
 
 Execution-order update (2026-10-26): the user's current three-part sequence
@@ -322,7 +331,7 @@ acceptance and delivery; none changes the product/corpus acceptance scope.
 
 - [x] GA1 / G1: actual macOS mouse/Chinese/cancel, normal save/quit and TTY assertions accepted with exact product/PID evidence and independent review. Complementary processes are explicit; owner-deadline attempts remain false. See [G1 delivery](../maintenance/releases/2026-10-29-current-g1-workflows.md). Pending-composition semantics are unchanged.
 - [x] GA2 / G2: final changed products build/start from tracked-only inputs, with matching resources, dumps, signatures and trial instructions. Current standard committed-checkout delivery, root terminal and published App accepted; see [G2 evidence](../maintenance/releases/2026-10-29-standard-checkout-delivery.md). G3 and the overall stable-delivery stage remain open.
-- [ ] GA3 / G3: execute 100% of the 555 original files across all 48 candidates against the explicitly bound reference epoch. Apply the user's approved itemized classification only with exact source and actual runtime evidence; retain every raw failure/skip and passing count. Complete the declared behavior/feature matrix and fix required functionality, port regressions and unexplained differences. No incomplete or blocked scope is relabeled passed.
+- [ ] GA3 / G3: execute the 555 original files against the explicitly bound reference epoch with the official-scale functional lane (one build, one run per file, per-file timeouts, the closed reference pair as baseline), and the strict per-file probe for the files whose fixtures cannot be reproduced in the upstream-level lane. The 48-candidate stable matrix is an **audit node**, not the daily requirement: it is run only with explicit profile/file scope and budget when a conclusion needs it. Apply the user's approved itemized classification only with exact source and actual runtime evidence; retain every raw failure/skip/timed-out run and passing count, and keep the historical matrix incident and results (`maintenance/incidents/2026-11-17-matrix-test-cost.md`, `docs/testing-strategy.md`) as history rather than rerunning them. Complete the declared behavior/feature matrix and fix required functionality, port regressions and unexplained differences. No incomplete or blocked scope is relabeled passed.
 - [x] GA4 / G4: approved modernization/retirement matrix implemented; required scoped readers/workflows accepted, every cleanup report and recovery identity committed in signed/pushed5118ed08. See the G4 delivery audit; other native/platform and whole-Goal obligations remain open.
 - [ ] GA5 / G5: real attribution/survival/phase/pause data supports the later choices; load, full samples, memory and uncertainty are explicit.
 - [ ] GA6 / G6: actual native/compiler/interpreter prototype or implementation has complete semantic and performance evidence and an honest integrate/reject outcome; no unsupported shipped-feature claim.

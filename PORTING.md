@@ -28,6 +28,25 @@
 
 真实观测进一步确认 uniquify 的 source-directory 必须同时是测试项目根；为该单文件在自有 out 初始化空 Git 项目并复制固定 README，不读取全局 Git 配置，不改开发仓库或测试。版本演进控制要求同配置的匹配用例实际通过、所在文件正常完整结束；控制文件其他原始失败和跳过继续保留，不用整文件普通通过作为这一用例的替代判据。
 
+### P-467 追加（2026-11-17）：JPEG ABI 绑定错误与首轮保护探针被否证
+
+首轮 PNG/JPEG 批次提交后，按核收要求加固保护探针时暴露出一个真实缺陷：`pkg-config libjpeg` 在本机选择 `libjpeg-turbo 8.3.2`（`JPEG_LIB_VERSION` 80，`sizeof (struct jpeg_decompress_struct)` 656），而该批次的 `<jpeglib.h>` 声明是按 IJG jpeg 10 头（100 / 664）转写的。产品里每次 JPEG 解码都在 `jpeg_CreateDecompress` 处失败（`Wrong JPEG library version: library is 80, caller expects 100`），`image-size` 返回缓存占位尺寸 30x30——恰好与唯一 JPEG fixture 的合法尺寸相同，因此只比尺寸的旧探针把失败记成了通过（`image-loader-protection-1` 的 7/7 因此不再作为证据，留作被否证前驱）。
+
+修正分两部分，二者都必须保留：
+1. **探针判据**：每个检查必须返回非 nil；`readers-recover` 先 `clear-image-cache t`；合法解码必须是“尺寸正确 **且** 本次没有加载器错误日志”；损坏输入的错误日志只对每种唯一消息检查一次（Emacs 会把重复消息折叠成 `[N times]`）。负对照（把期望 PNG 尺寸改成 999x999）恰好让 file-png、memory-png、readers-recover 失败并 exit1；在修复前的产品上，加固探针恰好让 file-jpeg、memory-jpeg、readers-recover 失败（8/11），证明它能检测这两类失败。
+2. **ABI 绑定**：按实际链接的 `libjpeg-turbo 8.3.2` 头重新测量——`JPEG_LIB_VERSION` 80、结构体 656 字节，`src` 40、`out_color_space` 64、`output_width` 136、`output_height` 140、`output_components` 148；`color_transform`/`LSE_maxtrans` 是 v10 独有字段，删除。编译期断言随之为 656。
+
+修复后的产品上，加固探针 11/11 通过（PNG/JPEG/WebP 各文件与 `:data` 两臂、两帧 WebP 动画、三类损坏输入、恢复后重解码），官方尺度通道的 `image-tests.el` 由 `port-worse` 转 `same`。旧提交 6a855c5f 的 JPEG 实现文字不再作为“JPEG 解码已通过”的证据。
+
+### P-468：WebP 加载器与 animation cache 接线（2026-11-17）
+
+按用户的官方功能对齐范围，WebP 作为紧随 PNG/JPEG 的完整批次实施：C 10846-11328 的 `webp_image_p`/`webp_load`/`webp_destroy` 全部转写；启用 `HAVE_WEBP` 后，此前已移植但未编译的 animation cache（C 3730-3860）成为活代码，`syms_of_image` 的 `Qwebp`/`Qwebpdemux` 组与 `image_types` 的 webp 条目一并生效。
+
+- **库声明**：`<webp/decode.h>`、`<webp/demux.h>` 在参照树没有镜像，所需类型（`WebPBitstreamFeatures`/`WebPData`/`WebPAnimInfo`）与内部入口（`WebPGetFeaturesInternal` + `WEBP_DECODER_ABI_VERSION` 0x0210、`WebPAnimDecoderNewInternal` + `WEBP_DEMUX_ABI_VERSION` 0x0107）按已安装头 1.6.0 写在单元内（P-88）；C 的两处 inline 包装在这些内部入口上只差 ABI 版本号，端口传同一值。
+- **唯一依赖与许可**：`xtask/src/image.rs` 的库集合扩为 libpng/libjpeg/libwebp/libwebpdemux/libsharpyuv/libsqlite3；暂存文件按 `LC_ID_DYLIB` 的 soname 命名（`libwebp.7.dylib` 等），使 `@rpath/libwebp.7.dylib`/`@rpath/libsharpyuv.0.dylib` 的既有依赖边直接闭合，无需改写他人边；改写 install name 后统一重新 ad-hoc 签名并校验。三个 webp 库的许可来自 keg 的 `COPYING`，逐库记录来源与 SHA256。
+- **验证**（详见 `docs/status.md` 本轮）：产品与 L0 门槛链接 0 未定义符号；`tools/image-loader-probe.py` 在真实 Cocoa 帧上验证 WebP 文件/`:data` 解码、两帧动画的 `image-multi-frame-p` 计数、截断输入的 `Error parsing WebP headers` 拒绝，以及损坏后再次解码；官方尺度通道的 `image-tests.el` 由 `port-worse` 转 `same`。
+- **未覆盖**：`WINDOWSNT` 的 WebP DLL 装载臂仍为 owed；动画只以两帧 fixture 验证解码与元数据，不等同完整的动画播放/缓存淘汰语义验收。
+
 ### P-467：PNG/JPEG 解码与唯一 SQLite 运行库（2026-11-17）
 
 用户的现代化授权把"真实解码 PNG/JPEG"和"sqlite 扩展加载"列为必须补齐的已授权业务，不属于可记为 D-07 降级的外部阻碍。本批按参照 `image.c` 转写 PNG（C 8451-9111）与 JPEG（C 9116-9677），并让唯一一份暂存 libsqlite3 同时服务产品链接与 L0 门槛链接。

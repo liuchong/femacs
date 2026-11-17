@@ -331,7 +331,8 @@ above checkable rather than asserted.
 | 7970-8351 | C 7970-7972's "PBM (mono, gray, color)" banner, `enum pbm_keyword_index` (C 7976-7990), `pbm_format` (C 7995-8008), `pbm_image_p` (C 8012-8028, whose `return 0` is the port's `return false`), `pbm_next_char` (C 8030-8052, the comment-skipping reader), `pbm_scan_number` (C 8054-8076), `pbm_scan_index` (C 8078-8095, the one- and two-byte big-endian reader) and `pbm_load` (C 8097-8351: the magic check and the `switch (*p++)`, the width/height/max-colour reads, the mono and gray/colour pixel loops with `PUT_PIXEL`, the `#ifdef USE_CAIRO` colour pair, the `#ifdef COLOR_TABLE_SUPPORT` tail and the `free_lab`-style `error:` cleanup) | the file gate (`have_window_system`), plus C's own `use_cairo` and `COLOR_TABLE_SUPPORT` arms inside the body - **transcribed** (the seventh slice) |
 | 8352-8450 | the `HAVE_NATIVE_IMAGE_API` arm (C 8358-8449, with `image_can_use_native_api` C 8360) and the `USE_CAIRO` `xpm_load` arms | `have_native_image_api`/`use_cairo`; both are off in the owned macOS configurations, so the range stays **recorded** (P-08's shape) |
 | 8451-9681 | the "PNG" (C 8451-9111) and "JPEG" (C 9116-9677) loaders: `enum png_keyword_index`, `png_format`, `png_image_p`, the `WINDOWSNT` DLL table (owed), the fast `setjmp` pair, `my_png_error`/`my_png_warning`, `png_memory_storage`, the two readers, `png_load_context`, `png_load_body`, `png_load`; `enum jpeg_keyword_index`, `jpeg_format`, `jpeg_image_p`, the `WINDOWSNT` DLL table (owed), `my_jpeg_error_mgr`, `my_error_exit`, the two source managers, `jpeg_memory_src`/`jpeg_file_src`, `jpeg_load_body` and `jpeg_load` | the file gate plus `have_png`/`have_jpeg` - **transcribed** (the ninth slice, 2026-11-17); the two `WINDOWSNT` arms are owed and C 8506-8610/9173-9280's `DEF_DLL_FN` tables are the only parts not carried |
-| 9682-13300 | **the recorded remainder**: "TIFF" (C 9685-10112), "GIF" (C 10120-10985), "WEBP" (C 10986-11328), "ImageMagick" (C 11331-12150), "SVG" (C 12158-...), and the `HAVE_NATIVE_TRANSFORMS`/`WINDOWSNT` helpers they carry | `have_tiff`/`have_gif`/`have_webp`/`have_imagemagick`/`have_rsvg` are still off in the owned configurations, so the table **records** the range (P-08's shape) |
+| 9682-11329 | the "WebP" loader (C 10846-11328): `enum webp_keyword_index`, `webp_format`, `webp_image_p`, the `WINDOWSNT` DLL table (owed), the `webp_anim_handle`/`anim_cache` wiring, `webp_destroy`, `webp_load` (still image through `WebPDecodeRGBA`/`RGB`, animation through `WebPAnimDecoder`, background blending, animation metadata) | the file gate plus `have_webp` - **transcribed** (the tenth slice, 2026-11-17, P-468); the `WINDOWSNT` arm is owed |
+| 11330-13300 | **the recorded remainder**: "ImageMagick" (C 11331-12150), "SVG" (C 12158-...), and the `HAVE_NATIVE_TRANSFORMS`/`WINDOWSNT` helpers they carry | `have_imagemagick`/`have_rsvg` are still off in the owned configurations, so the table **records** the range (P-08's shape) |
 | 13301-13805 | the fourth batch's live tail: the "Tests"/"Initialization" banners, `DEFUN ("imagep")` (C 13306-13311), the `GLYPH_DEBUG`-gated `DEFUN ("lookup-image")` (C 13313-13331), `DEFUN ("image-transforms-p")` with its `HAVE_NATIVE_TRANSFORMS` three-way `#elif` chain (C 13335-13364), `DEFUN ("image-cache-size")` (C 13367-13388), `DEFUN ("init-image-library")` (C 13391-13401), `initialize_image_type` (C 13403-13432), the `image_types[]` table (C 13433-13475) with its per-format entries, `native_image_type` (C 13477-13480), `lookup_image_type` (C 13483-13503), `image_prune_animation_caches` (C 13504-13515) and `syms_of_image` (C 13516-13805, the five `DEFVAR_*` invocations, the 43 `DEFSYM`s, the `add_image_type` calls, `staticpro` and the eleven `defsubr`s) | the file gate, plus C's own `GLYPH_DEBUG`, `HAVE_NATIVE_TRANSFORMS`, `HAVE_GHOSTSCRIPT`, `WINDOWSNT`, the format conditions, `HAVE_RSVG`, `HAVE_NS`, `NS_IMPL_COCOA`, `HAVE_NATIVE_IMAGE_API` and `HAVE_IMAGEMAGICK` arms - **transcribed** (the eighth slice) |
 
 ## Evidence
@@ -1957,9 +1958,16 @@ recorded a nil check result as passed, `readers-recover` could read a cached ima
 fixtures' 30x30 size equals the placeholder.  The hardened harness requires a non-nil check result,
 clears the image cache before `readers-recover`, and requires a valid decode to be "the right size
 *and* free of a loader error line"; it passes **7/7** on the same product
-(`build/acceptance/image-loader-protection-2/results.json`), and a negative control with a wrong
-expected PNG size fails exactly `file-png`, `memory-png` and `readers-recover` (exit 1), which is
-what proves the harness can fail.
+(`build/acceptance/image-loader-protection-3/results.json`, **11/11** including WebP), and a
+negative control with a wrong expected PNG size fails exactly `file-png`, `memory-png` and
+`readers-recover` (exit 1), which is what proves the harness can fail.  The harness also caught a
+real JPEG binding error: the declarations had been taken from the IJG jpeg 10 header (100/664)
+while `pkg-config libjpeg` selects libjpeg-turbo 8.3.2 (80/656), so every JPEG decode failed in
+`jpeg_CreateDecompress` and returned the 30x30 placeholder - the same size as the fixture, which is
+why the size-only checks passed.  With the layout re-bound to the linked header (and the v10-only
+`color_transform`/`LSE_maxtrans` removed), file and memory JPEG decode to `(100 . 75)` with no
+error line.  On the pre-fix product the hardened harness fails exactly `file-jpeg`,
+`memory-jpeg` and `readers-recover` (8/11).
 
 The official-scale lane (`tools/functional-corpus.py`, label `parity-image-sqlite`) is
 `same 5 / port-worse 3 / incomplete 1`: `filenotify-tests.el` timed out at the driver's 300s
@@ -1967,9 +1975,8 @@ default and stays `incomplete` (17 cases recorded, none counted as passed); `ert
 `files-tests.el` differed because the 31.1 bodies in the compatibility corpus have no
 `ert-resources`/`files-resources` next to them, not because of the product; `image-file-tests.el`,
 `image/image-dired-tests.el`, `net/shr-tests.el` and `src/sqlite-tests.el` are `same`.
-`image-tests.el` keeps one `port-worse` case: `image-type-from-file-name` requires `webp`
-availability (C 10986-11328 and the animation cache at C 3730-3860), which this slice does not
-enable; the rest of that file is `same`.  Re-running the three differing files through
+`image-tests.el` kept one `port-worse` case while WebP was disabled; the tenth slice enables it and
+the affected five-file run (`build/acceptance/functional-image-webp-1`) reports **5/5 `same`**.  Re-running the three differing files through
 `--materialize-fixtures` (identity-checked overlay, 900s per file) yields
 `same 1 / resolved 2 / port-worse 0 / incomplete 0` in
 `build/acceptance/functional-parity-1-regression`.
@@ -1977,9 +1984,9 @@ enable; the rest of that file is `same`.  Re-running the three differing files t
 **Deviations registered here** (P-467 has the ruling): (1) the libpng user-version string is taken
 from `png_get_libpng_ver (NULL)` because the tree has no `<png.h>` - the value is the one the
 header would supply; (2) the `<png.h>`/`<jpeglib.h>` declarations live in the unit (P-88) and the
-libjpeg record layout is pinned by compile-time size/offset assertions measured against the staged
-libjpeg 10 header (664 bytes; `src` 40, `out_color_space` 64, `output_width` 136, `output_height`
-140, `output_components` 148); (3) libpng's pre-1.5 private `jmpbuf` arm and the two `WINDOWSNT`
+libjpeg record layout is pinned by compile-time size/offset assertions measured against the linked
+libjpeg-turbo 8.3.2 header (656 bytes; `src` 40, `out_color_space` 64, `output_width` 136,
+`output_height` 140, `output_components` 148); (3) libpng's pre-1.5 private `jmpbuf` arm and the two `WINDOWSNT`
 loading arms are owed (no Windows toolchain, and the 1.4 layout is not expressible); (4) the
 reference's own `:conversions` spelling in `jpeg_format` is kept.
 
