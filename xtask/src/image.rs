@@ -1,4 +1,4 @@
-//! Capture the selected PNG/JPEG runtime libraries and licenses for macOS products.
+//! Capture the selected image (PNG/JPEG/WebP) and sqlite runtime libraries and licenses for macOS products.
 //!
 //! The image decoders are ordinary dylibs resolved through pkg-config.  Only the
 //! libraries and their license texts are copied into the product; headers stay
@@ -11,7 +11,11 @@ use std::io::Read;
 use std::path::{Component, Path, PathBuf};
 use std::process::Command;
 
-const LIBS: &[&str] = &["libpng", "libjpeg", "sqlite3"];
+const LIBS: &[&str] = &["libpng", "libjpeg", "libwebp", "libwebpdemux", "sqlite3"];
+/// Libraries a captured adaptor links that ship no public header of their own.
+/// Their gate is the adaptor's configuration key; they have no header digest.
+const AUXILIARIES: &[(&str, &str)] =
+    &[("libsharpyuv", "libwebp")];
 
 fn digest(path: &Path) -> Result<String, String> {
     let mut input = fs::File::open(path).map_err(|e| e.to_string())?;
@@ -43,12 +47,18 @@ fn flag(config: &Value, key: &str, reported: &mut Option<bool>) -> Result<(), St
     Ok(())
 }
 
+fn key_for(adaptor: &str) -> &'static str {
+    match adaptor {
+        "libpng" => "HAVE_PNG", "libjpeg" => "HAVE_JPEG",
+        "libwebp" | "libwebpdemux" => "HAVE_WEBP",
+        _ => "HAVE_SQLITE3",
+    }
+}
+
 fn enabled(config: &Value) -> Result<bool, String> {
     let mut any = false;
     for adaptor in LIBS {
-        let key = match *adaptor {
-            "libpng" => "HAVE_PNG", "libjpeg" => "HAVE_JPEG", _ => "HAVE_SQLITE3",
-        };
+        let key = key_for(adaptor);
         let mut value = None;
         flag(config, key, &mut value)?;
         any |= value.unwrap_or(false);
@@ -83,6 +93,9 @@ fn dylibs(prefix: &Path, adaptor: &str) -> Vec<PathBuf> {
         let wanted = match adaptor {
             "libpng" => name.starts_with("libpng"),
             "libjpeg" => name.starts_with("libjpeg"),
+            "libwebp" => name.starts_with("libwebp."),
+            "libwebpdemux" => name.starts_with("libwebpdemux"),
+            "libsharpyuv" => name.starts_with("libsharpyuv"),
             _ => name.starts_with("libsqlite3"),
         };
         if wanted { candidates.push(path); }
@@ -93,7 +106,9 @@ fn dylibs(prefix: &Path, adaptor: &str) -> Vec<PathBuf> {
 
 fn inputs(adaptor: &str) -> Result<(PathBuf, PathBuf), String> {
     let header_name = match adaptor {
-        "libpng" => "png.h", "libjpeg" => "jpeglib.h", _ => "sqlite3.h",
+        "libpng" => "png.h", "libjpeg" => "jpeglib.h", "libwebp" => "webp/decode.h",
+        "libwebpdemux" => "webp/demux.h", "libsharpyuv" => "sharpyuv/sharpyuv.h",
+        _ => "sqlite3.h",
     };
     let mut prefix = prefix(adaptor)?;
     let mut candidates = dylibs(&prefix, adaptor);
@@ -170,24 +185,34 @@ fn license_bytes(prefix: &Path, adaptor: &str) -> Result<(Vec<u8>, String), Stri
     Err(format!("image dependency prefix has no license text: {}", prefix.display()))
 }
 
-fn stage(repo: &Path, root: &Path, adaptor: &str, out: &Path) -> Result<Value, String> {
-    let (header, library) = inputs(adaptor)?;
-    // The license sits at the resolved library prefix, which may differ from
-    // what pkg-config reported (the SDK answers for sqlite3 but carries no
-    // library and no license).
-    let prefix = library.parent().and_then(|lib| lib.parent())
-        .ok_or_else(|| format!("{adaptor} library has no prefix"))?;
-    let (license_bytes, license_source) = license_bytes(prefix, adaptor)?;
+fn soname(library: &Path) -> Result<String, String> {
+    // The staged copy keeps the loader's own name (`LC_ID_DYLIB`), not the
+    // file's versioned name: dependent libraries name each other by that
+    // soname (`@rpath/libwebp.7.dylib`), so staging under any other name would
+    // leave their edges dangling.
+    let output = Command::new("otool").args(["-D"]).arg(library).output()
+        .map_err(|e| format!("otool -D {}: {e}", library.display()))?;
+    let text = String::from_utf8_lossy(&output.stdout);
+    let name = text.lines().nth(1).map(str::trim).filter(|line| !line.is_empty())
+        .and_then(|line| Path::new(line).file_name().and_then(|n| n.to_str()))
+        .map(str::to_owned)
+        .or_else(|| library.file_name().and_then(|n| n.to_str()).map(str::to_owned))
+        .ok_or("invalid image library name")?;
+    Ok(name)
+}
+
+fn copy_staged(repo: &Path, out: &Path, library: &Path, adaptor: &str)
+    -> Result<(String, String), String> {
     if !out.is_dir() {
         crate::tooling::guard_scratch(repo, out)?;
         fs::create_dir(out).map_err(|e| e.to_string())?;
     }
-    let base = library.file_name().and_then(|n| n.to_str()).ok_or("invalid image library name")?;
-    if !Path::new(base).components().all(|part| matches!(part, Component::Normal(_))) {
+    let base = soname(library)?;
+    if !Path::new(&base).components().all(|part| matches!(part, Component::Normal(_))) {
         return Err("unsafe image library name".into());
     }
-    let destination = out.join(base);
-    fs::copy(&library, &destination).map_err(|e| e.to_string())?;
+    let destination = out.join(&base);
+    fs::copy(library, &destination).map_err(|e| e.to_string())?;
     let status = Command::new("install_name_tool")
         .args(["-id".to_owned(), format!("@rpath/{base}"), destination.display().to_string()])
         .status().map_err(|e| e.to_string())?;
@@ -203,6 +228,19 @@ fn stage(repo: &Path, root: &Path, adaptor: &str, out: &Path) -> Result<Value, S
     let verified = Command::new("codesign").arg("--verify").arg(&destination)
         .status().map_err(|e| e.to_string())?;
     if !verified.success() { return Err(format!("staged {adaptor} library signature does not verify")); }
+    let staged = digest(&destination)?;
+    Ok((base, staged))
+}
+
+fn stage(repo: &Path, root: &Path, adaptor: &str, out: &Path) -> Result<Value, String> {
+    let (header, library) = inputs(adaptor)?;
+    // The license sits at the resolved library prefix, which may differ from
+    // what pkg-config reported (the SDK answers for sqlite3 but carries no
+    // library and no license).
+    let prefix = library.parent().and_then(|lib| lib.parent())
+        .ok_or_else(|| format!("{adaptor} library has no prefix"))?;
+    let (license_bytes, license_source) = license_bytes(prefix, adaptor)?;
+    let (base, staged_sha) = copy_staged(repo, out, &library, adaptor)?;
     let license_name = format!("{}.txt", adaptor);
     let staged_license = out.join(&license_name);
     fs::write(&staged_license, &license_bytes).map_err(|e| e.to_string())?;
@@ -212,7 +250,32 @@ fn stage(repo: &Path, root: &Path, adaptor: &str, out: &Path) -> Result<Value, S
         "header_sha256": digest(&header)?,
         "source_sha256": digest(&library)?,
         "destination": base,
-        "staged_sha256": digest(&destination)?,
+        "staged_sha256": staged_sha,
+        "license": {"source": license_source,
+                    "source_sha256": format!("{:x}", Sha256::digest(&license_bytes)),
+                    "destination": license_name,
+                    "staged_sha256": digest(&staged_license)?}
+    }))
+}
+
+// A library a captured adaptor links but whose keg ships no public header:
+// there is no header digest to record, and its gate is the adaptor's own key.
+fn stage_aux(repo: &Path, out: &Path, adaptor: &str, gate: &str) -> Result<Value, String> {
+    let prefix = prefix(gate)?;
+    let library = dylibs(&prefix, adaptor).into_iter().next()
+        .ok_or_else(|| format!("{adaptor} has no dynamic library in {}", prefix.display()))?;
+    let library = fs::canonicalize(&library).map_err(|e| e.to_string())?;
+    let (license_bytes, license_source) = license_bytes(&prefix, adaptor)?;
+    let (base, staged_sha) = copy_staged(repo, out, &library, adaptor)?;
+    let license_name = format!("{}.txt", adaptor);
+    let staged_license = out.join(&license_name);
+    fs::write(&staged_license, &license_bytes).map_err(|e| e.to_string())?;
+    Ok(json!({
+        "adaptor": adaptor,
+        "header_sha256": Value::Null,
+        "source_sha256": digest(&library)?,
+        "destination": base,
+        "staged_sha256": staged_sha,
         "license": {"source": license_source,
                     "source_sha256": format!("{:x}", Sha256::digest(&license_bytes)),
                     "destination": license_name,
@@ -226,7 +289,8 @@ pub(crate) fn bind_configuration(config: &mut Value) -> Result<(), String> {
     for adaptor in LIBS {
         let (header, library) = inputs(adaptor)?;
         let key = match *adaptor {
-            "libpng" => "PNG", "libjpeg" => "JPEG", _ => "SQLITE3",
+            "libpng" => "PNG", "libjpeg" => "JPEG", "libwebp" => "WEBP",
+            "libwebpdemux" => "WEBPDEMUX", _ => "SQLITE3",
         };
         macros.insert(format!("FEMACS_{key}_HEADER_SHA256"),
                       Value::String(serde_json::to_string(&digest(&header)?).map_err(|e| e.to_string())?));
@@ -249,14 +313,7 @@ pub(crate) fn prepare(repo: &Path, root: &Path, selected: &Path, destination: &P
     fs::create_dir_all(&runtime).map_err(|e| e.to_string())?;
     fs::create_dir_all(&licenses).map_err(|e| e.to_string())?;
     let mut rows = Vec::new();
-    for adaptor in LIBS {
-        let key = match *adaptor {
-            "libpng" => "HAVE_PNG", "libjpeg" => "HAVE_JPEG", _ => "HAVE_SQLITE3",
-        };
-        let mut wanted = None;
-        flag(&config, key, &mut wanted)?;
-        if !wanted.unwrap_or(false) { continue; }
-        let staged = stage(repo, root, adaptor, &root.join("image-staging"))?;
+    let mut admit = |staged: Value, adaptor: &str| -> Result<(), String> {
         let destination_name = staged["destination"].as_str().ok_or("missing image destination")?;
         fs::copy(root.join("image-staging").join(destination_name), runtime.join(destination_name))
             .map_err(|e| e.to_string())?;
@@ -271,11 +328,26 @@ pub(crate) fn prepare(repo: &Path, root: &Path, selected: &Path, destination: &P
             "license": {"destination": license_name,
                         "staged_sha256": digest(&licenses.join(license_name))?}
         }));
+        Ok(())
+    };
+    for adaptor in LIBS {
+        let mut wanted = None;
+        flag(&config, key_for(adaptor), &mut wanted)?;
+        if !wanted.unwrap_or(false) { continue; }
+        let staged = stage(repo, root, adaptor, &root.join("image-staging"))?;
+        admit(staged, adaptor)?;
+    }
+    for (aux, gate) in AUXILIARIES {
+        let mut wanted = None;
+        flag(&config, key_for(gate), &mut wanted)?;
+        if !wanted.unwrap_or(false) { continue; }
+        let staged = stage_aux(repo, &root.join("image-staging"), aux, gate)?;
+        admit(staged, aux)?;
     }
     crate::tooling::write_json(&root.join("image/build-receipt.json"), &json!({
         "schema": 1,
         "libraries": rows,
-        "scope": "captured PNG/JPEG runtime libraries and licenses; functional acceptance separate"
+        "scope": "captured image and sqlite runtime libraries and licenses; functional acceptance separate"
     }))?;
     // The linked binary loads these through `@executable_path/../runtime-image`, the same
     // build-tree placement the other captured runtimes use, so the dump and gate runs find
