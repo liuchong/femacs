@@ -26685,6 +26685,15 @@ Fresh reference selection passed7/7 postflight checks, actual installation/confi
 User approved this exact DNS case as a nonblocking environment limitation and requires the existing proxy to remain enabled and unchanged. Four bounded HTTPS queries completed without errors: both Google andCloudflare resolved `example.com` (Status0,2 A answers) and returned NXDOMAIN for `emacs.invalid` (Status3,no answers),1.499–2.389s per query. The host system lookup still reports its synthetic proxy addresses. This verifies a remote-resolver contrast, not candidate/editor or original ERT acceptance; raw failures, counts and exits remain unchanged. No Dot task was sent; that route is cancelled. Fresh full555/48 observations and any precise exception binding remain pending.
 
 
+### 2026-11-18 — 第 10 轮：G7 写权移交、Tramp 条件收紧（不再改三份文件）
+
+- **G7 写权移交（按用户授权）**：`src/alloc.rs`、`src/runtime_gc_collector.rs` 及必要的 `src/include/lisp.rs` 由 Cursor 桌面新对话「FEmacs：G7攻坚」（`2285cac9-dce8-410a-bebb-090b918ef694`）独占；已写入 CONT `collaboration.g7_write_transfer_20261118`，含已证事实、两次被否证的触发尝试与下一步问题（young 专属增长度量与提前量）。OpenCode 保留 Tramp、G6 既有路径证据与其余交付准备，不再改这三份文件；现有 WIP 与已接受的 minor-sweep 修正完整保留。**不启动整棵 Root 的编译/验收**，等双方源码齐后由 Codex 冻结。
+- **Tramp 条件继续收紧**：单测复跑确认 `tramp-test33` 两侧都通过、`tramp-test42-utf8` 端口在 168 次捕获中有 1 次被 `sh: child setpgid (… to …): Operation not permitted` 污染而失败（参照 340 次 0 污染）；污染块的内容是“诊断行 + 一行合法 base64”，说明解码作用在了包含 shell stderr 的区段上。
+- **该诊断的来源**：串由 bash 以 `sh` 名打印（`strings /bin/bash` 含，`/bin/sh` 不含），是 shell 为子进程建进程组失败时写 stderr 的诊断。本轮用两个编辑器分别跑普通 pty 命令、`/bin/sh -i` 交互 shell、以及作业控制相关命令（后台作业、子 shell、管道、base64 管道），**两侧输出完全一致且都不出现该诊断**；`tramp-encoding-shell`/`shell-file-name`/`tramp-encoding-command-interactive`/`tramp-process-connection-type` 两侧完全相同（`/bin/sh`、`-i`、`t`）。因此差异不在这些变量的取值，也不在简单 pty 路径。下一假设（未执行）：在 `child_setup` 的子进程路径记录 `setpgid`/`tcsetpgrp` 的真实返回码（当前两者都忽略返回值），对照参照，判断前台进程组是否真的建立成功。未过滤诊断、未放宽 base64、未吞错误。
+- 其余状态不变：components 28/28、local 9/9、GUI 26/26、图像单元、G6 native 进程内身份证据、G5 归属事实。
+
+未完成：Tramp 前台进程组根因、IME 激活、G5 安静计时、G6 候选对比、已安装交付；G7 现由 Cursor 交付。G3/Goal 开放。
+
 ### 2026-11-18 — 第 9 轮：Tramp 配对条件细化、G7 cap 数值/纪元对齐与唯一方案
 
 - **Tramp 配对条件（全序日志逐项）**：
