@@ -26685,6 +26685,17 @@ Fresh reference selection passed7/7 postflight checks, actual installation/confi
 User approved this exact DNS case as a nonblocking environment limitation and requires the existing proxy to remain enabled and unchanged. Four bounded HTTPS queries completed without errors: both Google andCloudflare resolved `example.com` (Status0,2 A answers) and returned NXDOMAIN for `emacs.invalid` (Status3,no answers),1.499–2.389s per query. The host system lookup still reports its synthetic proxy addresses. This verifies a remote-resolver contrast, not candidate/editor or original ERT acceptance; raw failures, counts and exits remain unchanged. No Dot task was sent; that route is cancelled. Fresh full555/48 observations and any precise exception binding remain pending.
 
 
+### 2026-11-18 — 第 4 轮：G5 归属数据、G6 原生正确性、IME 焦点判定与搬移副本
+
+- **G5 归属（非提速数据）**：`tools/runtime-profile.py` 在 `webp-2` 上跑 1 轮 6 个 workload case，`passed=true`、per-core load 0.184（工具在显式 0.5 阈值下自报 `quiet=true`；**计时门槛仍保持 0.10**，故不给任何提速结论）。得到分配增量（`allocation_delta`）与 heap 前后清单（conses/symbols/strings/vector-slots 等），但本轮 6 个 case 的 `gc_count=0`、`phase_snapshot=null`：没有触发回收，也就没有存活量/根与写入点/阶段计数。安静 9 轮时间/停顿比较仍单独挂起。证据 `build/acceptance/g5-attribution-webp-2/results.json`。
+- **G6 原生路径正确性（有界）**：同一产品 `(fboundp 'native-compile)` 为 t；对 `g6-probe` 先解释执行得 332833500，`native-compile` 后 `(compiled-function-p)` 为 t 且结果相同。这是现有 native 路径的真实正确性读数，不构成性能/集成验收。探针存档 `build/acceptance/g5-attribution-webp-2/g6-native-probe.el`。
+- **G7 事实与依赖**：短 workload 不触发回收（见上），存活/保留/阶段数据需要能强制 young collection 的负载；现有 `--gc-stress` 长扫是候选，但按预算挂起，不以忙碌数据下结论。
+- **IME 焦点判定（一次）**：steady/switch 都停在 `native-window-focus`；回调里有真实窗口（`Femacs IME A`，`viewIsFirstResponder=true`），但 `windowIsKey=false`、`appActive=false`、`keyWindow=false`——helper 已启动、会话可交互与窗口存在，失败点是应用未取得前台/关键窗口。下一假设是激活/辅助功能（AX）授权或前台应用竞争；不改键位、不反复试焦点，亦不重开已验 G1 结论。
+- **打包搬移副本**：把 App 复制到 `build/acceptance/moved-app/FeMoved.app` 后，独立 HOME/TMPDIR 运行 exit0；png/webp/sqlite/native 均可用，`DYLD_PRINT_LIBRARIES` 显示六份库来自搬移后的 `Contents/Frameworks/runtime-image`，深签名通过。证据 `build/acceptance/moved-app/{run.out,dyld.log}`；279MB 副本已按清理规则退役。
+- 保留上一轮实际证据：components 28/28 合同、local 9/9、GUI 26/26。
+
+未完成：IME 焦点/激活、Tramp test29、WebP 动画播放/淘汰、G5 安静的 9 轮计时、G6/G7 候选实现、已安装候选交付。G3/Goal 继续开放。
+
 ### 2026-11-18 — 第 3 轮：components 合同执行、打包独立运行、End 差分与 GUI/IME
 
 - **components 合同/向量执行**：`tools/test-runtime-contracts.py` 对当前源码构建的适配器跑 28 个 B 向量，`requested=28 / observed=28 / complete=true / passed=true`（4.33s），证据 `build/acceptance/runtime-contracts-webp-2/results.json`；覆盖关系是“实际源码隔离组件”，不等于整编辑器或后端 ABI 验收。
