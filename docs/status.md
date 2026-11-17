@@ -26685,6 +26685,25 @@ Fresh reference selection passed7/7 postflight checks, actual installation/confi
 User approved this exact DNS case as a nonblocking environment limitation and requires the existing proxy to remain enabled and unchanged. Four bounded HTTPS queries completed without errors: both Google andCloudflare resolved `example.com` (Status0,2 A answers) and returned NXDOMAIN for `emacs.invalid` (Status3,no answers),1.499–2.389s per query. The host system lookup still reports its synthetic proxy addresses. This verifies a remote-resolver contrast, not candidate/editor or original ERT acceptance; raw failures, counts and exits remain unchanged. No Dot task was sent; that route is cancelled. Fresh full555/48 observations and any precise exception binding remain pending.
 
 
+### 2026-11-18 — 第 9 轮：Tramp 配对条件细化、G7 cap 数值/纪元对齐与唯一方案
+
+- **Tramp 配对条件（全序日志逐项）**：
+  - `tramp-test33-environment-variables`：端口失败条件是 `string-equal "32.0.50,foo,tramp:2.9.0-pre\n"` 与实际值不等，实际值前面多了 `sh: child setpgid (86996 to 86996): Operation not permitted`；参照通过。
+  - `tramp-test41-special-characters-with-ls`、`tramp-test42-utf8-with-ls`、`tramp-test42-utf8-without-file-attributes`：端口均为 `signal(error ("Invalid base64 data"))`；参照通过。
+  - `tramp-test42-utf8`：**双方都失败**，不是端口缺口。
+  - 单测复验：端口单独跑 `tramp-test42-utf8` 仍失败（168 次捕获、其中 1 次含 setpgid 诊断），参照同测通过（340 次捕获、0 次污染）；`tramp-test33` 单测两侧都通过（差异只在全序/前序状态）。
+  - 结论：setpgid 诊断是端口特有的，**确实同时污染 test33 的字符串比较和 3 个 base64 解码用例**；但 test42-utf8 的共同失败另有原因，不并入此条。
+- **诊断来源**：`sh: child setpgid (… to …)` 由 bash 在其自身 sh 名下打印（`strings /bin/bash` 含该串，/bin/sh 不含）；它是 shell 在给子进程建立进程组失败时写到 **stderr** 的诊断，而 tramp 的命令输出把 stderr 并入同一流。两个编辑器的 `callproc` 子进程路径与参照 `callproc.c` 同形（`dissociate_controlling_tty`、`TIOCSCTTY`、`setpgid (0,0)`、`tcsetpgrp (0,pid)` 全部一致），简单 pty 探针（`sh -c 'ps…'`、`sh -c 'base64 </dev/null'`）两侧会话/进程组状态相同且都无该诊断。**根因仍未定位**，下一假设是 tramp 交互式 shell 的 pty 归属（哪一个 fd 成为控制终端）与作业控制开启时机，而不是 callproc 的调用序列。
+- **G7 cap 分支的数值/单位/纪元对齐（源码符号）**：
+  | 分支 | 左侧 | 单位 | 纪元 | 右侧 | 单位 | 纪元 |
+  | --- | --- | --- | --- | --- | --- | --- |
+  | cons | `totals[15]`（`note_allocation … is_cons`，`alloc.rs:3141`） | cons 个数 | 自上次 major 起 | `totals[6] + CONS_BLOCK_SIZE`（`commit_cycle` 置 `gcstat.total_conses`，`alloc.rs:8115`） | cons 个数 | 上次 major 结束 |
+  | bytes | `totals[16]`（`note_allocation` 的 `nbytes`，`alloc.rs:643`） | 字节 | 自上次 major 起 | `LAST_MAJOR_BYTES.max(memory_full_cons_threshold)`（`total_bytes_of_live_objects()`，`alloc.rs:6135`；`memory_full_cons_threshold = sizeof (cons_block) = 32752`） | 字节 | 上次 major 结束 |
+  两侧**量纲与纪元都一致**，不是错用历史量或单位混用；bytes 侧的标尺是“整堆存活字节”而不是“young 增长”，语义上是启发式，但不越界。判断：cap 是**真实的安全边界**（限制一次 young 需要处理的已分配 cons 数），不能放大或改标尺。
+- **唯一方案（本轮实现）**：cap 不变、指标不变；把“到达 cap”变成在既有安全 GC 点真正发起自动 cycle。之前 250 次全 full 的原因已查明：武装只把 `consing_until_gc` 置 -1，而 `maybe_garbage_collect` 会先 `bump_consing_until_gc` 重新算出正值并跳过回收。本轮在 `maybe_garbage_collect` 中先检查 `young_due()` 并直接 `garbage_collect_impl(GcRequest::Automatic)`（跳过 bump），显式 `garbage-collect` 仍是 full；`choose_cycle` 的 cap 与三连 minor 规则、root/store/barrier 全部不动。构建与有界验证见下一段。
+
+**本轮验证结果（`observer-3`，实现后）**：young 模式下自动 cycle 从 18 次升到 **253 次**（节奏显著变化），仍 **0 次 minor**，`reasons` 仍全部落在 reason 5（`[0,1,0,0,0,253,…]`），`last-kind=full`；major 模式 18 次不变。说明 `>= cap` 武装后到真正决策之间仍有分配，`choose_cycle` 的严格 `>` 仍判超 cap。该实现**无收益且改变节奏**，已按实验前身份逐行撤回（`src/alloc.rs` 回到 HEAD 干净状态，`src/runtime_gc_collector.rs` 仅保留先前 minor-sweep 修正），不做第三次同类尝试。合法结论：cap 判据与 `LAST_MAJOR_BYTES` 标尺量纲一致、纪元一致，属真实安全边界；要让 young 可达必须改变 young 的触发节奏设计（例如以 young 自己的增长度量与提前量），而不是改变 arm 点或放大 cap。
+
 ### 2026-11-18 — 第 8 轮：Tramp 共同根因定位、G7 young 触发实验（否决）与槽位语义
 
 - **Tramp 4 项 port-worse 的共同根因（实测）**：给 `base64-decode-region` 加只读 advice，捕获 `tramp-test42-utf8` 实际解码的输入。266 行里 **265 行合法 base64**，唯一非法行是 `sh: child setpgid (24565 to 24565): Operation not permitted` —— 端口启动的 shell 子进程把一条诊断写进了非字符文件内容的 base64 流，导致 `Invalid base64 data`。参照在同一测试、同一夹具、同一环境下不产生该诊断（其 `tramp-test42-utf8` 通过）。因此 4 项共因是 **进程组/PTY 建立时的 `setpgid` 诊断泄漏到子进程输出**，不是编码/文件名处理差异。证据 `build/acceptance/observations-20261118/tramp-{common-cause.json,base64-input.txt,tramp-test42-advised.log}`。两项双方共有的失败（test32、test42/utf8-direct-async/perl）不计端口缺口；两项仅参照失败（test31、test41-special）不算端口缺口。
