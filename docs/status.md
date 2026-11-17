@@ -26685,6 +26685,19 @@ Fresh reference selection passed7/7 postflight checks, actual installation/confi
 User approved this exact DNS case as a nonblocking environment limitation and requires the existing proxy to remain enabled and unchanged. Four bounded HTTPS queries completed without errors: both Google andCloudflare resolved `example.com` (Status0,2 A answers) and returned NXDOMAIN for `emacs.invalid` (Status3,no answers),1.499–2.389s per query. The host system lookup still reports its synthetic proxy addresses. This verifies a remote-resolver contrast, not candidate/editor or original ERT acceptance; raw failures, counts and exits remain unchanged. No Dot task was sent; that route is cancelled. Fresh full555/48 observations and any precise exception binding remain pending.
 
 
+### 2026-11-18 — 图像单元收口与逐轮推进（第 2 轮）
+
+图像/SQLite 限定单元按核收通过（5 个官方文件 40 个原事件：37 passed / 3 skipped，与参照一致；保护探针 11/11；唯一动态库闭包与 App 签名吻合；提交 4efa2a2c..680e523c 已在远端 master）。本轮按整圈推进其余目标：
+
+- **G5 前置**：P459 的 `performance-fallback` 与 startup/dispatch 契约已在 `tools/runtime-stage.py`/`runtime-execution.py`/`runtime-acceptance.py`/`runtime-measurement-report.py` 里实现；缺的是安静主机上的预声明 9 轮测量。本轮实测主机 `load averages: 5.22 5.36 6.28`，bun/codebase-memory-mcp/WeChat/opencode 占用显著，不满足安静条件，未启动测量、未给任何性能数字（外部条件障碍，按用户要求记录并转下一项）。
+- **G6/G7 复用清单**：设计/否决结论已在 `docs/runtime-modernization.md`（G6 native pipeline、已知源码改动、selected context/load 契约；G7 root/store 事实与 barrier/collection 接口；shared-tail dispatch 的否决记录）与 PORTING 对应条目中；二者下一步都需要 G5 的归属/存活数据，未在无新证据的情况下重跑旧候选。
+- **components**：`tools/runtime-components.py` 以当前源码构建 28 个 B 组件向量适配器，exit0、8.3s，receipt `build/acceptance/runtime-components-webp-2/receipt.json`，binary SHA256 `3e0ddaac…`。
+- **local**：`tools/local-acceptance.py` 以 `webp-2` 产品与 App 运行（37.7s），9 项检查 **8 通过、1 失败**：`terminal-keys` 的 `<end>` 在端口 TTY 上产生 `end-of-buffer`/point 24，而该用例期望 `move-end-of-line`/point 11（GUI 用例对 native Home/End 另有期望）。这是新发现的真实 TTY 键位差异，证据 `build/acceptance/local-acceptance-webp-2/terminal-keys.log`；本轮不顺手改键位，列为待回访。
+- **审计驱动分层**：`tools/runtime-final-audit.py` 增加 `--functional/--protection` 队列模式：日常队列由官方尺度功能收据 + 保护探针组成，48 候选矩阵的 `--stable/--classified-stable` 变为可选审计节点（报告中记 `matrix_status`），不再强制 48×555 才能形成证据。
+- **清理**：退役 `parity-1`/`webp-1`（各 1.3G）与 `/tmp` 手工作树；证据保留。
+
+未完成：`<end>` TTY 键位、Tramp test29、WebP 动画播放/淘汰、G5 安静测量、G6/G7 候选、已安装候选交付。G3/Goal 继续开放。
+
 ### 2026-11-17 — 更正与本轮收口：JPEG ABI 重绑、WebP 启用、保护探针加固
 
 前一条记录里的 `image-loader-protection-1`/`-2` 7/7 与“JPEG 解码已通过”**撤回为被否证前驱**。加固探针（要求每项非 nil、`readers-recover` 先清缓存、合法解码必须“尺寸正确且本次无加载器错误日志”）暴露了两个真实问题：
