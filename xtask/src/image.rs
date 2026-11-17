@@ -115,18 +115,40 @@ fn inputs(adaptor: &str) -> Result<(PathBuf, PathBuf), String> {
     Ok((header, fs::canonicalize(library).map_err(|e| e.to_string())?))
 }
 
-fn license_bytes(prefix: &Path, adaptor: &str) -> Result<Vec<u8>, String> {
-    let mut names: Vec<PathBuf> = fs::read_dir(prefix).map_err(|e| e.to_string())?
+fn license_bytes(prefix: &Path, adaptor: &str) -> Result<(Vec<u8>, String), String> {
+    let entries: Vec<PathBuf> = fs::read_dir(prefix).map_err(|e| e.to_string())?
         .filter_map(|entry| entry.ok().map(|entry| entry.path()))
         .filter(|path| path.is_file())
-        .filter(|path| {
-            let name = path.file_name().and_then(|n| n.to_str()).unwrap_or_default().to_ascii_uppercase();
-            ["LICENSE", "LICENCE", "COPYING"].iter().any(|prefix| name.starts_with(prefix))
-        })
         .collect();
-    names.sort();
-    if let Some(path) = names.into_iter().next() {
-        return fs::read(&path).map_err(|e| e.to_string());
+    let find = |wanted: &[&str]| -> Option<PathBuf> {
+        let mut names: Vec<PathBuf> = entries.iter()
+            .filter(|path| {
+                let name = path.file_name().and_then(|n| n.to_str())
+                    .unwrap_or_default().to_ascii_uppercase();
+                wanted.iter().any(|prefix| name.starts_with(prefix))
+            })
+            .cloned()
+            .collect();
+        names.sort();
+        names.into_iter().next()
+    };
+    let name_of = |path: &Path| -> String {
+        path.file_name().and_then(|n| n.to_str()).unwrap_or_default().to_string()
+    };
+    if let Some(path) = find(&["LICENSE", "LICENCE", "COPYING"]) {
+        return Ok((fs::read(&path).map_err(|e| e.to_string())?, name_of(&path)));
+    }
+    // Some kegs ship the terms only in their README (the IJG's "LEGAL ISSUES"
+    // section is the license of the jpeg keg).  The file is copied whole, which
+    // keeps the notice and its conditions together.
+    if let Some(path) = find(&["README"]) {
+        let bytes = fs::read(&path).map_err(|e| e.to_string())?;
+        let text = String::from_utf8_lossy(&bytes);
+        if text.contains("LEGAL ISSUES")
+            || text.to_ascii_lowercase().contains("copyright")
+            || text.to_ascii_lowercase().contains("all rights reserved") {
+            return Ok((bytes, name_of(&path)));
+        }
     }
     // SQLite is public domain and its keg intentionally ships no license file.
     // Record the package's own SPDX conclusion instead of inventing text.
@@ -138,10 +160,10 @@ fn license_bytes(prefix: &Path, adaptor: &str) -> Result<Vec<u8>, String> {
                 let name = package.get("name").and_then(|v| v.as_str()).unwrap_or(adaptor);
                 let version = package.get("versionInfo").and_then(|v| v.as_str()).unwrap_or("");
                 let license = package.get("licenseConcluded").and_then(|v| v.as_str()).unwrap_or("unknown");
-                return Ok(format!(
+                return Ok((format!(
                     "{name} {version}\n\nSPDX licenseConcluded: {license}\n\
                      Source metadata: {}\nhttps://sqlite.org/copyright.html\n",
-                    sbom.display()).into_bytes());
+                    sbom.display()).into_bytes(), "sbom.spdx.json".to_string()));
             }
         }
     }
@@ -155,7 +177,7 @@ fn stage(repo: &Path, root: &Path, adaptor: &str, out: &Path) -> Result<Value, S
     // library and no license).
     let prefix = library.parent().and_then(|lib| lib.parent())
         .ok_or_else(|| format!("{adaptor} library has no prefix"))?;
-    let license_bytes = license_bytes(prefix, adaptor)?;
+    let (license_bytes, license_source) = license_bytes(prefix, adaptor)?;
     if !out.is_dir() {
         crate::tooling::guard_scratch(repo, out)?;
         fs::create_dir(out).map_err(|e| e.to_string())?;
@@ -170,6 +192,17 @@ fn stage(repo: &Path, root: &Path, adaptor: &str, out: &Path) -> Result<Value, S
         .args(["-id".to_owned(), format!("@rpath/{base}"), destination.display().to_string()])
         .status().map_err(|e| e.to_string())?;
     if !status.success() { return Err("install_name_tool could not rewrite image library".into()); }
+    // Rewriting a load command invalidates the keg's ad-hoc signature, and the
+    // arm64 loader kills a process that maps an invalidly signed library
+    // (measured: the dump program exited with SIGKILL).  Re-sign the staged copy
+    // exactly as the other captured runtimes do, then verify before recording it.
+    let signed = Command::new("codesign")
+        .args(["--force", "--sign", "-"]).arg(&destination)
+        .status().map_err(|e| e.to_string())?;
+    if !signed.success() { return Err(format!("codesign could not sign staged {adaptor} library")); }
+    let verified = Command::new("codesign").arg("--verify").arg(&destination)
+        .status().map_err(|e| e.to_string())?;
+    if !verified.success() { return Err(format!("staged {adaptor} library signature does not verify")); }
     let license_name = format!("{}.txt", adaptor);
     let staged_license = out.join(&license_name);
     fs::write(&staged_license, &license_bytes).map_err(|e| e.to_string())?;
@@ -180,7 +213,9 @@ fn stage(repo: &Path, root: &Path, adaptor: &str, out: &Path) -> Result<Value, S
         "source_sha256": digest(&library)?,
         "destination": base,
         "staged_sha256": digest(&destination)?,
-        "license": {"source_sha256": format!("{:x}", Sha256::digest(&license_bytes)), "destination": license_name,
+        "license": {"source": license_source,
+                    "source_sha256": format!("{:x}", Sha256::digest(&license_bytes)),
+                    "destination": license_name,
                     "staged_sha256": digest(&staged_license)?}
     }))
 }
@@ -242,6 +277,11 @@ pub(crate) fn prepare(repo: &Path, root: &Path, selected: &Path, destination: &P
         "libraries": rows,
         "scope": "captured PNG/JPEG runtime libraries and licenses; functional acceptance separate"
     }))?;
+    // The linked binary loads these through `@executable_path/../runtime-image`, the same
+    // build-tree placement the other captured runtimes use, so the dump and gate runs find
+    // the exact bytes the receipt recorded.
+    copy_product_runtime(root, &root.join("port/runtime-image"),
+                         &root.join("port/licenses/image"))?;
     crate::tooling::write_json(destination, &config)
 }
 
