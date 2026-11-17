@@ -26685,6 +26685,18 @@ Fresh reference selection passed7/7 postflight checks, actual installation/confi
 User approved this exact DNS case as a nonblocking environment limitation and requires the existing proxy to remain enabled and unchanged. Four bounded HTTPS queries completed without errors: both Google andCloudflare resolved `example.com` (Status0,2 A answers) and returned NXDOMAIN for `emacs.invalid` (Status3,no answers),1.499–2.389s per query. The host system lookup still reports its synthetic proxy addresses. This verifies a remote-resolver contrast, not candidate/editor or original ERT acceptance; raw failures, counts and exits remain unchanged. No Dot task was sent; that route is cancelled. Fresh full555/48 observations and any precise exception binding remain pending.
 
 
+### 2026-11-18 — 第 12 轮：Tramp 诊断通道 FD 生命周期修正与观测条件收口
+
+按核收意见修掉诊断通道的四个确定缺陷（源码已改，未整棵重编）：
+
+1. **FD 生命周期**（原实现确实泄漏）：以前每次 `emacs_spawn` 都把 `emacs_open` 结果覆盖进同一个 `static`，父进程从不关闭；数百次 Tramp spawn 会耗尽并让陈旧值指向无关文件。现在每次调用**独立持有**：打开后立即 `F_DUPFD_CLOEXEC` 移到 `>= 4`（既不别名子进程要装的 0/1/2，exec 时又被加载器关闭），仅在本调用期间发布给 fork 出的子进程，父进程在**所有出口**（含 `posix_spawn` 分支与 `pid < 0`）关闭；嵌套 spawn 用保存/恢复外层值的方式隔离。
+2. **关闭时不做观测**：`isatty (in_)`/`getpgrp` 等 syscall 只在通道启用时执行；禁用路径只剩参照原有的 `setpgid`/`tcsetpgrp` 两个调用。
+3. **观测不扰动 errno**：子进程在写日志前后保存/恢复 `errno`，父进程在写 `spawn-parent` 行前后同样保存/恢复。
+4. **记录实际分支与真实 fd**：子进程记 `isatty (STDIN_FILENO)`（dup2 之后的实际 0 号描述符），而不是 dup2 之前的实参；父进程额外写一行 `spawn-parent branch=posix_spawn|fork|vfork pid=… error=… pty_in=… pty_out=…`，所以**空日志不再等于测量成功**，而是"分支没走到子路径"或"通道未启用"。
+日志仍只追加到 `FEMACS_SPAWN_DIAGNOSTIC` 指定的独立文件，绝不写被测 stdout/stderr，也仍不在 fork 后分配或打开任何东西。
+
+`build-tu src/callproc.c` 通过（`callproc.o` 38,160 字节，exit 0）；未触碰 `src/alloc.rs`/`src/runtime_gc_collector.rs`/`src/include/lisp.rs`/`src/bytecode.rs`（G7 归 Cursor）。诊断代码单独提交为待验源码，等完整功能验证后再按核收流程签名推送。
+
 ### 2026-11-18 — 第 11 轮：Tramp 进程组返回码/PTY 归属诊断接线（源码已写齐）
 
 - **调用顺序/参数/ABI 复核**：`src/callproc.rs` 的子进程段与参照逐行对应——`dup2` 三次（`in_/out/err` → 0/1/2）、`setpgid (0, 0)`、`tcsetpgrp (0, pid)`、`emacs_exec_file (*new_argv, new_argv, env)`；`pid` 由 `getpid ()` 取得（C 同样），与参照 `callproc.c:1292-1295` 同序同参。两者都把 `setpgid`/`tcsetpgrp` 的返回值丢弃，因此**仅凭“同形”不能排除调用在运行时失败**，这里新加观测就是为了看真实返回码。
