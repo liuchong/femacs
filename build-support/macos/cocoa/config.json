@@ -43,8 +43,8 @@
   "HAVE_LCMS2": "1",
   "HAVE_TS_TREE_CURSOR_GOTO_PREVIOUS_SIBLING": "1",
   "HAVE_TS_SET_ALLOCATOR": "1",
-  "HAVE_PNG": "undefined",
-  "HAVE_JPEG": "undefined",
+  "HAVE_PNG": "1",
+  "HAVE_JPEG": "1",
   "HAVE_SQLITE3_LOAD_EXTENSION": "1"
  },
  "features": {
@@ -763,7 +763,7 @@
   "_REENTRANT": "undefined",
   "HAVE_LIBXML2": "1",
   "HAVE_X11": "undefined",
-  "HAVE_JPEG": "undefined",
+  "HAVE_JPEG": "1",
   "BITSIZEOF_WINT_T": "undefined",
   "HAVE_XITOUCHCLASSINFO_TYPE": "undefined",
   "GNU_LINUX": "undefined",
@@ -796,7 +796,7 @@
   "HAVE_ENDIAN_H": "undefined",
   "HAVE_PERSONALITY_ADDR_NO_RANDOMIZE": "undefined",
   "HAVE_GETACL": "undefined",
-  "HAVE_PNG": "undefined",
+  "HAVE_PNG": "1",
   "HAVE_ACL_FROM_TEXT": "undefined",
   "HAVE_XAW3D": "undefined",
   "HAVE_SELINUX_SELINUX_H": "undefined",
