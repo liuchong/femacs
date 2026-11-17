@@ -200,8 +200,14 @@ mod gc_collector {
 
     // Non-retention predicates shared with choose_cycle's Automatic Young path.
     // Retention itself is checked with lead time below, not at the cap edge.
+    // Cadence bypasses a positive consing_until_gc, so GC-inhibit and an
+    // already-running cycle must be refused here — not by the later early
+    // return inside garbage_collect_impl after it has already asserted.
     unsafe fn young_selection_open() -> bool {
         if MODE.load(Ordering::Relaxed) != 2 || !READY.load(Ordering::Relaxed) || !owner() {
+            return false;
+        }
+        if garbage_collection_inhibited != 0 || gc_in_progress {
             return false;
         }
         if !(*(&raw mut doomed_finalizers)).next.is_null()

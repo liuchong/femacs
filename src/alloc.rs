@@ -6524,9 +6524,14 @@ pub unsafe extern "C" fn maybe_garbage_collect ()
      not run inside Fcons/tally_consing, must not rewrite consing_until_gc to
      fake a heap-threshold trip, and must not bump first (bump can restore a
      positive threshold and skip the cycle — the rejected arm path).  Explicit
-     garbage_collect stays Full.  Retention caps in choose_cycle are unchanged.  */
+     garbage_collect stays Full.  Retention caps in choose_cycle are unchanged.
+     Because cadence ignores a positive consing_until_gc, refuse while
+     garbage_collection_inhibited or gc_in_progress before entering
+     garbage_collect_impl (which asserts weak tables before the inhibit check).  */
   #[cfg(feature = "femacs_gc_generational")]
-  if gc_collector::young_cadence_pending()
+  if garbage_collection_inhibited == 0
+    && !gc_in_progress
+    && gc_collector::young_cadence_pending()
     {
       garbage_collect_impl(GcRequest::Automatic);
       return;

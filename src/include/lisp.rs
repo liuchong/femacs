@@ -2774,9 +2774,15 @@ pub fn maybe_gc () {
         unsafe { maybe_garbage_collect () }
     } else {
         // Generational young cadence: allocation only arms a flag; the
-        // collection itself stays on this existing safepoint.
+        // collection itself stays on this existing safepoint.  Refuse while
+        // GC is inhibited or already running — cadence does not consult the
+        // HI_THRESHOLD consing_until_gc inhibit latch.
         #[cfg(feature = "femacs_gc_generational")]
-        if unsafe { femacs_gc_young_cadence_pending() } {
+        if unsafe {
+            garbage_collection_inhibited == 0
+                && !gc_in_progress
+                && femacs_gc_young_cadence_pending()
+        } {
             unsafe { maybe_garbage_collect () }
         }
     }

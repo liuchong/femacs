@@ -92,15 +92,21 @@ growth_due =
 `young_cadence_due` is true only when all of the following hold:
 
 1. Collector mode is young, owner ready, current thread owns the runtime.
-2. The same non-retention predicates that `choose_cycle` uses for an Automatic
+2. `garbage_collection_inhibited == 0` and `gc_in_progress` is false. Cadence
+   bypasses a positive `consing_until_gc` (including the `HI_THRESHOLD` latch
+   that `inhibit_garbage_collection` installs), so these guards must fail the
+   pending predicate itself — not rely on `garbage_collect_impl`'s later early
+   return after it has already asserted an empty weak-table worklist.
+3. The same non-retention predicates that `choose_cycle` uses for an Automatic
    request would not already force Full (no pending doomed finalizers, no
    foreign/unknown producer, registry valid, counters finite, not
    `Vmemory_full` / `Vpurify_flag`, consecutive minors `< 3`).
-3. `room_ok` (still under retention **with** lead).
-4. `growth_due`.
+4. `room_ok` (still under retention **with** lead).
+5. `growth_due`.
 
 When due, `note_allocation` sets a process-local `CADENCE_PENDING` flag. It
-never starts GC.
+never starts GC. `maybe_gc` and `maybe_garbage_collect` re-check inhibit /
+`gc_in_progress` before entering `garbage_collect_impl` on the cadence path.
 
 ## Call graph
 
@@ -130,15 +136,21 @@ garbage_collect_impl(Automatic|Full)
 ```
 
 `femacs_gc_young_cadence_pending` revalidates `young_cadence_due` so a stale
-flag after a race past the lead cannot force a pointless entry; if the mutator
-did cross the retention cap before the safepoint, `choose_cycle` still returns
-Full reason 5 (safe fallback, not a cadence success).
+flag after a race past the lead, an inhibit window, or an in-progress cycle
+cannot force a pointless entry; if the mutator did cross the retention cap
+before the safepoint, `choose_cycle` still returns Full reason 5 (safe
+fallback, not a cadence success).
 
-Bytecode's `do_call` fast path that only inspects `consing_until_gc < 0` is
-outside this write set. Cadence still runs through the bytecode interpreter's
-existing `maybe_gc()` calls and other safepoints. If a future freeze shows
-call-heavy loops delaying young too long, coordinate a one-line pending check
-there separately; it is not required to define the mechanism.
+Bytecode safepoints that matter for cadence:
+
+| Site | Behavior |
+| --- | --- |
+| `do_call` (`Bcall`..`Bcall5`) | Fast path must treat `femacs_gc_young_cadence_pending()` like `consing_until_gc < 0` and enter `bc_call_housekeeping_slow` → `maybe_gc`. |
+| `Bcall6` / `Bcall7` | Already always call `bc_call_housekeeping_slow`; no extra predicate. |
+| Interpreter loop `bc_periodic_gc_and_quit` | Already calls `maybe_gc`; inherits the lisp.rs cadence check. |
+
+No other `consing_until_gc < 0` fast-path skip exists in this candidate's
+bytecode/eval/keyboard call sites.
 
 ## Why this is not the rejected design
 
@@ -152,17 +164,42 @@ there separately; it is not required to define the mechanism.
 ## Fixture
 
 `tools/fixtures/gc-young-cadence.el` drives Automatic allocation without
-calling `garbage-collect`, asserts at least one completed Young on a young
-profile, and asserts that an explicit `garbage-collect` remains Full reason 2.
-It does not enlarge caps or treat a cap Full as a Young success.
+calling `garbage-collect` to invent a minor. Young mode uses a **byte-compiled**
+call/allocation ring (`femacs-gc-young-cadence--byte-worker` calling
+`femacs-gc-young-cadence--inc`) so `do_call` housekeeping is required. Major
+control uses a finite absolute `gc-cons-threshold` with `gc-cons-percentage`
+0.0 so ordinary Automatic Full (reason 3) is not left to
+`most-positive-fixnum` or incidental harness allocation. Explicit
+`garbage-collect` remains Full reason 2. Caps are not enlarged; a reason-5
+Full is never accepted as Young success.
 
-## Acceptance (later consolidated build)
+## Acceptance (frozen-batch reachability / correctness)
 
-Out of scope for the no-compile implementation phase; recorded for the freeze:
+The 2026-11-18 frozen Root verified **young reachability and directed
+correctness** for this candidate. Evidence index:
+`build/acceptance/frozen-batch-20261118-index.json` (6238 bytes,
+sha256 `49b33748de04f32e157d669d0d130267f63a64c6a497c3a34cad25f88afcf911`).
+Product identity in that index: cocoa collector+observer
+`build/runtime/frozen-2/port/src/emacs` /
+`build/runtime/frozen-2/port/src/emacs.pdmp`. This does **not** close G7 or the
+seven-part Goal, and it is not a performance comparison against G5/G6.
 
-1. Young mode + real allocation: `totals[4] > 0`, some `reasons[0] > 0`, and
-   retention/three-minor Fulls may still appear.
-2. Major control: still 0 minors, reasons dominated by 3.
-3. Explicit `garbage-collect`: kind Full, last reason 2.
-4. Minor-sweep revived old-cons child tracing remains present.
-5. No GC from `note_allocation` / barrier hooks.
+| Check | Result |
+| --- | --- |
+| Fixture `gyc01` / `gyc02` | 2/2 passed (`build/acceptance/g7-frozen2/g7-run.log`) |
+| Young Automatic (byte-compiled call ring) | `minors_delta=8`, `reason0_delta=8`; two Fulls at the three-minor boundary (`reason4_delta=2`); last kind Young |
+| Young explicit `garbage-collect` | `minors_delta=0`, `majors_delta=1`, kind Full, `last_reason=2` |
+| Major-layout Automatic | `minors_delta=0`, `majors_delta=20`, `reason3_delta=20`, last kind Full |
+| Major-layout explicit Full | kind Full, `last_reason=2` |
+| `test/src/alloc-tests.el` | 4/4 |
+| `tools/fixtures/bytecode-runtime.el` (LC_ALL=C) | 10/10; covers live-root minor-sweep child tracing (tvm5), forced-GC deep-call stress (tvm6), non-local exit / handler restoration |
+
+### Still open
+
+- G5/G6/G7 **performance** attribution, quiet-host timing, and any speedup /
+  pause tradeoff claims.
+- Broader collector stress beyond this directed batch (retention races under
+  unknown producers, full native+young matrix, production default enablement).
+- Whole G7 / Goal closure. Commits that land this candidate (including
+  `e3454ea7` and the follow-up safepoint/inhibit patch) record verified
+  reachability source, not Goal completion.

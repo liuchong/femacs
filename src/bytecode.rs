@@ -985,10 +985,20 @@ pub unsafe extern "C" fn exec_byte_code (mut fun: Lisp_Object, mut args_template
       let depth = (*ct).m_lisp_eval_depth + 1;
       let pdl: *mut specbinding = (*ct).m_specpdl_ptr;
       let next_pdl = pdl.add (1);
+      /* Young cadence arms CADENCE_PENDING without driving consing_until_gc
+	 negative.  Bcall..Bcall5 must take the same housekeeping entry as a
+	 heap-threshold trip so Automatic young can run on byte-compiled call
+	 rings.  Bcall6/Bcall7 already always call bc_call_housekeeping_slow.  */
       if !NILP (Vquit_flag) || pending_signals
 	 || (depth as EMACS_INT) > max_lisp_eval_depth
 	 || next_pdl == (*ct).m_specpdl_end
 	 || consing_until_gc < 0
+	 || {
+	      #[cfg(feature = "femacs_gc_generational")]
+	      { femacs_gc_young_cadence_pending () }
+	      #[cfg(not(feature = "femacs_gc_generational"))]
+	      { false }
+	    }
 	 || debug_on_next_call
 	{
 	  call_nargs = bc_call_housekeeping_slow (top, call_nargs);
