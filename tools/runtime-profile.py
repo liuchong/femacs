@@ -12,6 +12,7 @@ import math
 import os
 from pathlib import Path
 import platform
+import re
 import statistics
 import subprocess
 import sys
@@ -156,8 +157,11 @@ def artifacts(binary: Path, dump: Path | None = None) -> dict:
     return {key:fingerprint(path) for key,path in paths}
 
 
-def measure(binary: Path, argv: list[str], home: Path, log: Path, timeout=120) -> dict:
+def measure(binary: Path, argv: list[str], home: Path, log: Path, timeout=120,
+            candidate_env: dict[str, str] | None = None) -> dict:
     env = dict(HOME=str(home), TMPDIR=str(home), PATH=os.defpath, LC_ALL='en_US.UTF-8')
+    if candidate_env:
+        env.update(candidate_env)
     home.mkdir(parents=True, exist_ok=False)
     started = time.perf_counter();process = None;peak = 0;samples = 0
     with log.open('xb') as output:
@@ -187,14 +191,27 @@ def main(argv=None) -> int:
     ap.add_argument('--dump', type=Path,
                     help='Explicit runtime image; otherwise require one named product dump')
     ap.add_argument('--rounds', type=int, default=7)
+    ap.add_argument('--warmup', type=int, default=0,
+                    help='unrecorded rounds run before the measured rounds')
     ap.add_argument('--out', type=Path, required=True)
     ap.add_argument('--max-load-per-core', type=float, default=.10)
+    ap.add_argument('--env', action='append', default=[], metavar='KEY=VALUE',
+                    help='candidate environment entry; repeated, recorded in the report')
     args = ap.parse_args(argv)
-    if args.rounds <= 0 or not math.isfinite(args.max_load_per_core) or args.max_load_per_core < 0:
-        ap.error('positive rounds and finite nonnegative load threshold required')
+    if (args.rounds <= 0 or args.warmup < 0
+            or not math.isfinite(args.max_load_per_core) or args.max_load_per_core < 0):
+        ap.error('positive rounds, nonnegative warmup and finite nonnegative load threshold required')
+    candidate_env = {}
+    for entry in args.env:
+        name, separator, value = entry.partition('=')
+        if (not separator or not re.fullmatch(r'[A-Z][A-Z0-9_]*', name)
+                or name in ('HOME', 'TMPDIR', 'PATH', 'LC_ALL') or name in candidate_env):
+            ap.error(f'candidate environment entry must be a unique KEY=VALUE with an uppercase name: {entry!r}')
+        candidate_env[name] = value
     out = new_output(args.out);started = time.monotonic()
     report = dict(passed=False, schema='femacs-runtime-profile-report-v1', samples=[],
-                  processes=[], startup_samples=[], host=platform.platform())
+                  processes=[], startup_samples=[], warmup=[], host=platform.platform(),
+                  candidate_env=candidate_env)
     try:
         binary = args.binary.resolve(strict=True)
         dump, _ = profile_inputs(binary, args.dump)
@@ -203,16 +220,28 @@ def main(argv=None) -> int:
         image_args = ['--dump-file=' + str(dump)]
         report['source_head'] = subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip()
         report['source_patch_sha256'] = hashlib.sha256(subprocess.check_output(['git','diff','HEAD','--'],cwd=ROOT)).hexdigest()
+        # Warmup rounds execute the same fixture and are validated, then their
+        # observations are discarded: they only move the process/page caches to
+        # a steady state before the recorded rounds.
+        for n in range(1, args.warmup+1):
+            log = out/f'warmup-{n}.log'
+            process = measure(binary, [*image_args, '-l', str(FIXTURE)],
+                              out/f'warmup-home-{n}', log, candidate_env=candidate_env)
+            if log.stat().st_size > 4*1024*1024:raise ValueError('oversized profile log')
+            parse_profile(log.read_text())
+            report['warmup'].append(dict(round=n, **process))
         loads = []
         for n in range(1, args.rounds+1):
             load = os.getloadavg()[0]/(os.cpu_count() or 1);loads.append(load)
             log = out/f'round-{n}.log'
-            process = measure(binary, [*image_args, '-l', str(FIXTURE)], out/f'home-{n}', log)
+            process = measure(binary, [*image_args, '-l', str(FIXTURE)], out/f'home-{n}', log,
+                              candidate_env=candidate_env)
             if log.stat().st_size > 4*1024*1024:raise ValueError('oversized profile log')
             rows = parse_profile(log.read_text())
             report['samples'].extend(dict(row, round=n) for row in rows)
             report['processes'].append(dict(process, round=n, load_per_core=load))
-            startup = measure(binary, [*image_args, '--eval', '(kill-emacs 0)'], out/f'startup-home-{n}', out/f'startup-{n}.log')
+            startup = measure(binary, [*image_args, '--eval', '(kill-emacs 0)'], out/f'startup-home-{n}',
+                              out/f'startup-{n}.log', candidate_env=candidate_env)
             report['startup_samples'].append(startup)
             print(json.dumps(dict(round=n, cases=len(rows), **process)), flush=True)
         if artifacts(binary, dump) != identity:raise ValueError('artifact changed during profiling')
