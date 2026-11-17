@@ -135,12 +135,30 @@ def check_expectations(candidate: dict, report: dict) -> list[dict]:
         checked.append(dict(check='execution', expected=expected, observed=observed))
     if 'collector' in expect:
         expected_mode = 1 if expect['collector'] == 'young' else 0
-        observed = sorted({row['collector_status'][1][0] for row in samples
-                           if isinstance(row.get('collector_status'), list)})
+        statuses = [row['collector_status'] for row in samples
+                    if isinstance(row.get('collector_status'), list)]
+        observed = sorted({status[1][0] for status in statuses})
         if not observed:
             raise ValueError(f'candidate {candidate["name"]} expected a collector but reported no status')
         if observed != [expected_mode]:
             raise ValueError(f'candidate {candidate["name"]} expected collector mode {expected_mode} but reported {observed}')
+        # A mode flag is not a working collector: the run must show the cycles
+        # that mode implies. Young needs completed Young cycles (reason 0 and a
+        # minor count); major must not perform any minor at all.
+        minors = [status[1][4] for status in statuses]
+        young_cycles = [status[2][0] for status in statuses]
+        if expected_mode == 1:
+            if max(minors) == 0 or max(young_cycles) == 0:
+                raise ValueError(f'candidate {candidate["name"]} reported young mode but no minor cycle:'
+                                 f' minors={max(minors)} reason0={max(young_cycles)}')
+            checked.append(dict(check='collector-activity', expected='at least one minor cycle',
+                                observed=dict(minors=max(minors), reason0=max(young_cycles))))
+        else:
+            if max(minors) != 0 or max(young_cycles) != 0:
+                raise ValueError(f'candidate {candidate["name"]} reported major mode but performed a minor:'
+                                 f' minors={max(minors)} reason0={max(young_cycles)}')
+            checked.append(dict(check='collector-activity', expected='no minor cycle',
+                                observed=dict(minors=0, reason0=0)))
         checked.append(dict(check='collector', expected=expect['collector'], observed=observed))
     return checked
 
@@ -158,6 +176,29 @@ def remembered_set(status) -> dict | None:
     if not isinstance(totals, list) or len(totals) != 24 or not isinstance(reasons, list) or len(reasons) != 13:
         return None
     return dict(valid=totals[1], length=totals[11], reasons=reasons)
+
+
+def cadence(statuses: list) -> dict | None:
+    """Collector cadence actually observed: cycle counts per kind and reason.
+
+    `statuses` are the per-sample status wires. Totals index 2 is last kind
+    (1 = Young), 3 majors, 4 minors; the reason vector counts every cycle by
+    reason code. Nothing is inferred when no status was recorded.
+    """
+    valid = [status for status in statuses
+             if isinstance(status, list) and len(status) == 3
+             and isinstance(status[1], list) and len(status[1]) == 24
+             and isinstance(status[2], list) and len(status[2]) == 13]
+    if not valid:
+        return None
+    first, last = valid[0], valid[-1]
+    reasons = [last[2][index] - first[2][index] for index in range(13)]
+    return dict(young_cycles=reasons[0], full_reasons={str(index): reasons[index]
+                                                       for index in range(1, 13) if reasons[index]},
+                minors_delta=last[1][4] - first[1][4], majors_delta=last[1][3] - first[1][3],
+                last_kind=last[1][2], last_reason=last[1][18],
+                full_fallbacks=last[1][17] - first[1][17],
+                remembered_set_len=last[1][11], remembered_set_valid=last[1][1])
 
 
 def percentile(values: list[float], fraction: float) -> float:
@@ -231,6 +272,7 @@ def aggregate_candidate(name: str, candidate: dict, report: dict) -> dict:
                     for phase, values in sorted(phases.items())],
             collector_status_last=rows[-1].get('collector_status'),
             remembered_set=remembered_set(rows[-1].get('collector_status')),
+            cadence=cadence([row.get('collector_status') for row in rows]),
             execution_mode=sorted({row.get('execution_mode') for row in rows}),
             actual_function_kind=sorted({row.get('actual_function_kind') for row in rows})))
     processes = report.get('processes', [])
@@ -271,6 +313,7 @@ def compare(name: str, left: dict, right: dict) -> dict:
             gc_ms_ratio=ratio(a['gc_ms'], b['gc_ms']),
             max_pause_ms=[a['max_pause_ms'], b['max_pause_ms']],
             allocation_delta=[a['allocation_delta'], b['allocation_delta']],
+            cadence=[a['cadence'], b['cadence']],
             phases=[dict(phase=entry['phase'],
                          left_median_ms=next((item['median_ms'] for item in a['phases'] if item['phase'] == entry['phase']), None),
                          right_median_ms=entry['median_ms'])
@@ -289,6 +332,8 @@ def main(argv=None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--plan', type=Path, required=True)
     parser.add_argument('--out', type=Path, required=True)
+    parser.add_argument('--require-quiet', action='store_true',
+                        help='refuse to start when the host already exceeds the declared load threshold')
     options = parser.parse_args(argv)
     out = options.out.resolve()
     out.mkdir(parents=True, exist_ok=False)
@@ -301,6 +346,14 @@ def main(argv=None) -> int:
     try:
         plan = validate_plan(json.loads(options.plan.read_text()))
         report['plan'] = plan
+        load = os.getloadavg()[0] / (os.cpu_count() or 1)
+        report['entry_load_per_core'] = load
+        if options.require_quiet and load > plan['max_load_per_core']:
+            # Do not spend a full measured batch on a busy host: record the
+            # current state once and stop with the release condition stated.
+            raise RuntimeError(
+                f'host is not quiet: load_per_core {load:.3f} > {plan["max_load_per_core"]};'
+                ' the batch needs a host at or below the declared threshold before it can run')
         reports = {}
         for candidate in plan['candidates']:
             directory = out / candidate['name']
