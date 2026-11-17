@@ -3,34 +3,46 @@
   "note": "Declared comparison design for G5/G6/G7. Paths are repository-relative except the installed reference. The collector products are the verified frozen product; the native product is a separate build of the same Lisp tree with the libgccjit native compiler enabled.",
   "warmup": 2,
   "rounds": 7,
-  "max_load_per_core": 0.10,
+  "max_load_per_core": 0.1,
   "candidates": [
     {
       "name": "native-product-interpreted",
       "binary": "build/runtime/native-2/port/src/emacs",
       "env": {
         "FEMACS_RUNTIME_EXECUTION_MODE": "interpreted",
-        "FEMACS_GC_OBSERVATION": "phases"
+        "FEMACS_GC_OBSERVATION": "phases",
+        "PATH": "/opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin"
       },
-      "expect": {"execution": "interpreted"}
+      "expect": {
+        "execution": "interpreted"
+      },
+      "note": "PATH pins the Homebrew gcc driver; the neutral default lacks it and libgccjit reports \"library emutls_w not found\""
     },
     {
       "name": "native-product-bytecode",
       "binary": "build/runtime/native-2/port/src/emacs",
       "env": {
         "FEMACS_RUNTIME_EXECUTION_MODE": "bytecode",
-        "FEMACS_GC_OBSERVATION": "phases"
+        "FEMACS_GC_OBSERVATION": "phases",
+        "PATH": "/opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin"
       },
-      "expect": {"execution": "bytecode"}
+      "expect": {
+        "execution": "bytecode"
+      },
+      "note": "PATH pins the Homebrew gcc driver; the neutral default lacks it and libgccjit reports \"library emutls_w not found\""
     },
     {
       "name": "native-product-native",
       "binary": "build/runtime/native-2/port/src/emacs",
       "env": {
         "FEMACS_RUNTIME_EXECUTION_MODE": "native",
-        "FEMACS_GC_OBSERVATION": "phases"
+        "FEMACS_GC_OBSERVATION": "phases",
+        "PATH": "/opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin"
       },
-      "expect": {"execution": "native"}
+      "expect": {
+        "execution": "native"
+      },
+      "note": "PATH pins the Homebrew gcc driver; the neutral default lacks it and libgccjit reports \"library emutls_w not found\""
     },
     {
       "name": "collector-young-interpreted",
@@ -40,7 +52,10 @@
         "FEMACS_RUNTIME_EXECUTION_MODE": "interpreted",
         "FEMACS_GC_OBSERVATION": "all"
       },
-      "expect": {"execution": "interpreted", "collector": "young"}
+      "expect": {
+        "execution": "interpreted",
+        "collector": "young"
+      }
     },
     {
       "name": "collector-major-interpreted",
@@ -50,7 +65,10 @@
         "FEMACS_RUNTIME_EXECUTION_MODE": "interpreted",
         "FEMACS_GC_OBSERVATION": "all"
       },
-      "expect": {"execution": "interpreted", "collector": "major"}
+      "expect": {
+        "execution": "interpreted",
+        "collector": "major"
+      }
     },
     {
       "name": "reference-interpreted",
@@ -58,13 +76,31 @@
       "env": {
         "FEMACS_RUNTIME_EXECUTION_MODE": "interpreted"
       },
-      "expect": {"execution": "interpreted"}
+      "expect": {
+        "execution": "interpreted"
+      }
     }
   ],
   "comparisons": [
-    {"name": "execution-native-vs-interpreted", "left": "native-product-native", "right": "native-product-interpreted"},
-    {"name": "execution-native-vs-bytecode", "left": "native-product-native", "right": "native-product-bytecode"},
-    {"name": "collector-young-vs-major", "left": "collector-young-interpreted", "right": "collector-major-interpreted"},
-    {"name": "port-collector-vs-reference", "left": "collector-young-interpreted", "right": "reference-interpreted"}
+    {
+      "name": "execution-native-vs-interpreted",
+      "left": "native-product-native",
+      "right": "native-product-interpreted"
+    },
+    {
+      "name": "execution-native-vs-bytecode",
+      "left": "native-product-native",
+      "right": "native-product-bytecode"
+    },
+    {
+      "name": "collector-young-vs-major",
+      "left": "collector-young-interpreted",
+      "right": "collector-major-interpreted"
+    },
+    {
+      "name": "port-collector-vs-reference",
+      "left": "collector-young-interpreted",
+      "right": "reference-interpreted"
+    }
   ]
 }
