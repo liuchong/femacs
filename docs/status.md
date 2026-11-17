@@ -26685,6 +26685,20 @@ Fresh reference selection passed7/7 postflight checks, actual installation/confi
 User approved this exact DNS case as a nonblocking environment limitation and requires the existing proxy to remain enabled and unchanged. Four bounded HTTPS queries completed without errors: both Google andCloudflare resolved `example.com` (Status0,2 A answers) and returned NXDOMAIN for `emacs.invalid` (Status3,no answers),1.499–2.389s per query. The host system lookup still reports its synthetic proxy addresses. This verifies a remote-resolver contrast, not candidate/editor or original ERT acceptance; raw failures, counts and exits remain unchanged. No Dot task was sent; that route is cancelled. Fresh full555/48 observations and any precise exception binding remain pending.
 
 
+### 2026-11-18 — 第 6 轮：真实 young/major/fallback 计数、Tramp 全序与 WebP 定时播放
+
+- **观察器模式的真实代际事实**（观察器产品 `observer-1`，`FEMACS_GC_OBSERVATION=all`，不调用显式 `garbage-collect`）：
+  - `FEMACS_GC_COLLECTOR=young`（选定 young）三次不同阈值的分配负载都得到：完成 **majors 19、minors 0**，`last-kind=full`，full fallback 19（startup 1 + reason 5「allocation/retention cap」18），reasons 计数 `[0,1,0,0,0,18,…]`。**没有任何真正的 minor 执行**；这不是“用显式 full GC 冒充 young”，而是 young 路径在本负载/阈值下全部被 cap 回退。
+  - `FEMACS_GC_COLLECTOR=major`：完成 majors 22、minors 0，reasons 全为 reason 3（selected major control）。
+  - 同一观察器上的显式 `garbage-collect` 运行（`phases`）仍记录 5 次 GC/53.6ms/5 pause 与 22 条阶段行；survival 桶（live/dead 各 5 槽）在 `all` 模式下有实际值（如 `[1544 13 16 30 3825] / [0 1499076 276 0 0]`）。
+  - **timing_eligible=false**：全部只作事实与正确性，主机仍非安静；不据此下提速结论。
+- **Tramp 全序一次**：同一原文件按全部 115 个原测试顺序、当前产品、正式测试目录、全新 HOME/TMPDIR 跑完（359.3s）：**100 expected / 8 unexpected / 7 skipped**；`tramp-test29-start-file-process` 在全序中 **passed**（1/1 单测此前也 passed）。8 个失败是 `tramp-test32-shell-command-dont-erase-buffer`、`tramp-test33-environment-variables`、`tramp-test41-special-characters-with-ls`、`tramp-test42-utf8{,-direct-async,-with-ls,-with-perl,-without-file-attributes}` 等；无同条件参照运行，故不据此判定端口回归，原 test29 失败保持开放，本条只回答“前序状态污染”假设（在干净全序中未复现）。
+- **WebP 定时播放（一次受控）**：`image-animate` 启动计时器，1.2s 内观察帧序列 `(1 0 1 0 1 0 1 1)`（两帧、0.1s 间隔），`cancel-timer` 停播；`clear-image-cache` 后重新解码回到 frame 0，`(2 . 0.1)`/`(100 . 200)` 不变。证据 `build/acceptance/observations-20261118/webp-play-*`。
+- **G6/G7 决策缺口**：G6 的 native 正确性已有实测；G7 的 young 候选在真实负载下 **0 次 minor**（全部 cap 回退），缺口是 cap/保留策略在真实分配率下的触发，而不是再补测量。下一步应先针对该 cap 条件做设计/实现分析，再谈取舍。
+- components 28/28、local 9/9、GUI 26/26 的已核收证据不变。
+
+未完成：G7 young cap 缺口、IME 激活、Tramp 根因、G5 安静 9 轮计时、G6 候选对比、已安装交付。G3/Goal 继续开放。
+
 ### 2026-11-18 — 第 5 轮：观察器配置的真实 GC 计数、WebP 动画、Tramp 新变量与 AX 核查
 
 - **观察器/收集器配置**：新建 `build/runtime/observer-1`（`runtime-build --product cocoa --variant collector --observer`，1644.5s，exit0），绑定当前源码；`webp-2` 的 `runtime-binding.json` 里 `observer=false` 是上一轮 `phase_snapshot=null` 的直接原因，已确认。
