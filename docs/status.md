@@ -26685,6 +26685,54 @@ Fresh reference selection passed7/7 postflight checks, actual installation/confi
 User approved this exact DNS case as a nonblocking environment limitation and requires the existing proxy to remain enabled and unchanged. Four bounded HTTPS queries completed without errors: both Google andCloudflare resolved `example.com` (Status0,2 A answers) and returned NXDOMAIN for `emacs.invalid` (Status3,no answers),1.499–2.389s per query. The host system lookup still reports its synthetic proxy addresses. This verifies a remote-resolver contrast, not candidate/editor or original ERT acceptance; raw failures, counts and exits remain unchanged. No Dot task was sent; that route is cancelled. Fresh full555/48 observations and any precise exception binding remain pending.
 
 
+### 2026-11-18 — 第 14 轮：G5/G6/G7 比较接线、native 候选构建与首轮真实读数
+
+**Cursor 交付核对**：`35d1ad53`（origin/master 同 SHA）只含六份文件；五份业务/夹具与 frozen-2 验收时**逐字节相同**，设计文只同步结果 ⇒ 继续复用 `frozen-2`，不为 HEAD 变化重编。
+
+**接线（一次写齐，签名推送 `590c4252`…`7c044a74`）**：
+
+- `tools/runtime-profile.py`：`--warmup`（先跑 2 轮不计入，仍做确定性校验）、`--env KEY=VALUE`（显式、校验、入报告），`HOME`/`TMPDIR`/`LC_ALL` 保留，`PATH` 允许但必须是绝对项（native 编译器需要真实 gcc 驱动，否则 libgccjit 报 `library emutls_w not found`）。
+- `tools/runtime-comparison.py`（新）：逐候选跑正式入口，校验**实际**运行方式；每用例输出 wall 中位/MAD/p95、GC 次数与停顿、7 项分配、堆清单、存活年龄、完整相位区间、remembered-set、以及**按运行顺序差分**得到的 cadence（Young 次数、各 reason Full 次数、minor/major 增量）；首个样本没有前一读数时显式写"无先前读数"，不补零。
+- **young 只报 mode=1 不算完成**：运行内 minor 增量为 0 时该检查记 `passed=false` 并给出"reachability-only，不是完成的 G7 比较"，比较结果据此降级；`--require-quiet` 在入口超阈值时一次记录并拒绝开跑。
+
+**构建**：`native-2`（`--variant native --observer --backend-prefix /opt/homebrew/opt/libgccjit`）`NATIVE3_RC=0`，controller exit 0，1716.6 s，peak RSS 863,289,344 B；产品 `port/src/emacs` 10,969,696 B、`emacs.pdmp` 18,770,184 B。首次 `native-2` 失败于 `source_digest`（我在构建中改了 `tools/`），已记录为流程事故并按你的要求本轮构建期间停写 Root 输入。
+
+**native 真实身份**：`native-comp-available-p` = t；`native-compile` 产出 `native-comp-function-p` = t 并正确求值；夹具在 native 模式断言 `actual_function_kind=native` 通过（不是只设环境变量）。native 产品正确性：`bytecode-runtime` 10/10、`alloc-tests` 4/4（`LC_ALL=C`，native 编译可用）。
+
+**首轮真实读数（1 warmup + 1 measured，只用于接线验证，`build/acceptance/g5-smoke-3/`）**：
+
+- young（interpreted）：`gc-churn` 运行内 **+46 minor / +46 reason0**，另有 16 Full（reason4 十五次、reason5 一次）；`gc-retained` **+6 minor**，3 Full（reason4 两次、reason2 一次）。→ 真实 minor 发生，不是只有 mode。
+- major 控制：`gc-churn` **0 minor / +62 Full 全 reason3**；`gc-retained` 0 minor / 9 Full（reason3 八次、reason2 一次）。
+- 该轮 `quiet=false`（入口 load_per_core 0.21–0.23），因此**不作为性能证据**，比较结果标为非 promotion-grade。
+
+**主机现状（一次记录，`build/acceptance/g5-load-state-1/`）**：loadavg 5.44 / per_core 0.293，主要占用 `bun`、`codebase-memory-mcp`、`fseventsd`、`WindowServer`（均为其他对话/系统进程，未触碰）。解除条件 = 入口 load_per_core ≤ 0.10；在此之前不跑 2+7 正式批量，也不用忙碌数据报性能。
+
+**未完成**：2 warmup + 7 measured 全矩阵（六候选、四条比较）因主机不安静未开跑；G7 是否有真实收益、native 是否有可靠收益仍待安静窗口的正式读数。
+
+### 2026-11-18 — 第 13 轮：冻结构建与 G7/Tramp 定向验收
+
+冻结源码身份 `HEAD=9b692fe2`（`src/callproc.rs` SHA `0267151f…`），Cursor 停写。**两次构建尝试**：
+
+1. `frozen-1` **失败**（`FROZEN1_EXIT=1`，60.7 s）：未带 `PKG_CONFIG_PATH`，tree-sitter 门取到系统 0.27.2 而不是钉住的 0.27.1。外层包装只 echo 退出码，controller 的 exit 0 只是 echo 的，不是构建的——已按真实 rc 记录。
+2. `frozen-2` **成功**（`FROZEN2_RC=0`，controller exit 0，1883.5 s，peak RSS 852,705,280 B）：传入钉住的 SDK 前缀与 `PKG_CONFIG_PATH`（pkg-config 报 0.27.1），包装改为保存 rc 后 `exit $rc`。产品 `cocoa collector+observer`，`port/src/emacs` SHA `106dd2c8…`（15,059,264 B），`emacs.pdmp` SHA `63772b87…`（18,600,912 B），`emacs-version` 32.0.50。
+
+**G7（原日志 `build/acceptance/g7-frozen2/`）**：
+
+- 已交夹具 2/2 通过；计数由独立只读记录器取值，不只是布尔。
+- young 模式（设备：字节编译调用/分配环）：8 次 minor、`reasons[0]` +8，`last kind=Young`；同期 2 次 Full 都是 `reason 4`（三 minor 边界），`reason3` 为 0。显式 `garbage-collect`：0 minor、+1 major、`kind=Full`、`last reason=2`。
+- major 控制（`FEMACS_GC_COLLECTOR=major`，运行时开关，不另建配置）：0 minor、+20 major 全是 `reason3`、`kind=Full`；显式 GC 仍 `reason2`。
+- 受影响既有检查：`test/src/alloc-tests.el` 4/4；`tools/fixtures/bytecode-runtime.el` 10/10（首次未设 `LC_ALL=C` 只有 tvm2 因弯引号/直引号差异失败，属环境，不是 G7）。tvm5/tvm6 覆盖 minor-sweep 活根追踪、强制 GC 深调用与非局部退出。
+
+**Tramp（`build/acceptance/tramp-frozen2/`）**：
+
+- 真实分支：pipe 子进程走 `posix_spawn`，每个 pty 子进程走 `fork`（`pty_in=1 pty_out=1`），本测试没有 vfork。296 条 `spawn-parent`、102 条 `spawn-group`。
+- 102 条 pty 子进程观测**全部一致**：`pgid==pid`、`sid==pid`、`fg0==pid`、`setpgid=-1 errno=1(EPERM)`、`tcsetpgrp=0 errno=0`、`isatty0=1`、in/out/err 同一个 pty fd。解释：子进程已先 `setsid`（`dissociate_controlling_tty`）成为会话首进程，POSIX 规定此时 `setpgid(0,0)` 返回 EPERM；这是预期且无害，参照同样丢弃该返回值；前台组切换成功。
+- FD 生命周期：200 次带通道的 pty spawn，`/dev/fd` 计数 5→7，没有逐次增长。
+- 仍未闭合：`/bin/bash` 自己往 pty 流里写 `sh: child setpgid (PID to PID): Operation not permitted`，落进 base64 载荷导致 `Invalid base64 data`。同输入的**参照**采集里也有这一行（两次参照采集 `cap_setpgid=1`），所以这不是端口独占缺陷；plain 运行端口 4 次里 3 失败、参照 3 次里 1 失败，样本太小，不下比率结论、不宣称性能。这条不记为通过。
+- 下一假设（转出本批）：该 bash 诊断由 shell 自己的作业控制与 pty 前台握手时序触发，应先脱离 Emacs 用带作业控制的 pty shell 复现，而不是继续查 `emacs_spawn` 分支选择。
+
+**清退（P-376）**：本批收口释放 `build/runtime/{observer-1,observer-2,observer-3,webp-2}` 共 4,385 MB——四者都已被 `frozen-2` 取代（G3 observer 与 image/webp、Tramp 采集均已验收或转入本批），`tools/`/`xtask/`/`docs/` 里没有代码读者（只有本文件与 CONT 的历史记述）。保留 `build/runtime/frozen-2`（当前消费者）与两份验收目录（G7 44K、Tramp 840K）。证据索引 `build/acceptance/frozen-batch-20261118-index.json`（构建 rc/controller 终态、全量源与产品身份、G7 计数、Tramp 分支与未闭合项）。本轮未改任何源码或 harness；未提交未验证补丁。
+
 ### 2026-11-18 — 第 12 轮：Tramp 诊断通道 FD 生命周期修正与观测条件收口
 
 按核收意见修掉诊断通道的四个确定缺陷（源码已改，未整棵重编）：
