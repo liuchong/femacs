@@ -62,7 +62,8 @@ re-encode the PNG signature and stop it from being a signature at all."
     file))
 
 (defconst image-loader-protection--png-size '(100 . 200))
-(defconst image-loader-protection--jpeg-size '(30 . 30))
+(defconst image-loader-protection--webp-size '(100 . 200))
+(defconst image-loader-protection--jpeg-size '(100 . 75))
 
 (defun image-loader-protection--size (spec)
   (image-size (create-image spec) t))
@@ -112,6 +113,9 @@ dimensions for damaged input - and never crashes."
                (image-loader-protection--path "test/data/image/blank-100x200.png")))
          (jpeg (image-loader-protection--slurp
                 (image-loader-protection--path "test/data/image/black.jpg")))
+         (webp (image-loader-protection--slurp
+                (image-loader-protection--path
+                 "tools/fixtures/data/image-loader-100x200.webp")))
          (png-cut (substring png 0 64))
          (png-bad (image-loader-protection--unibyte
                    (substring png 0 8) (make-string 48 #xff)))
@@ -141,6 +145,18 @@ dimensions for damaged input - and never crashes."
                (image-loader-protection--should
                 (image-loader-protection--rejected-p
                  file image-loader-protection--png-size)))))
+          ('webp
+           ;; A truncated WebP fails in `WebPGetFeatures'; the valid fixture
+           ;; is 100x200, so the cache's placeholder size is distinguishable.
+           (let ((cut (substring webp 0 12)))
+             (image-loader-protection--should
+              (image-loader-protection--error-logged-p
+               (lambda () (image-loader-protection--memory-size 'webp cut))
+               "Error parsing WebP headers"))
+             (let ((file (image-loader-protection--write cut)))
+               (push file files)
+               (image-loader-protection--should
+                (image-loader-protection--rejected-p file image-loader-protection--webp-size)))))
           ('jpeg
            ;; The only JPEG fixtures are 30x30, which is also the cache's
            ;; placeholder size, so rejection is read from the error log.
@@ -167,26 +183,55 @@ dimensions for damaged input - and never crashes."
 
 (defconst image-loader-protection--checks
   `((file-png . ,(lambda ()
-                   (equal (image-loader-protection--size
-                           (image-loader-protection--path
-                            "test/data/image/blank-100x200.png"))
-                          image-loader-protection--png-size)))
+                   (image-loader-protection--clean-decode-p
+                    (lambda ()
+                      (image-loader-protection--size
+                       (image-loader-protection--path
+                        "test/data/image/blank-100x200.png")))
+                    image-loader-protection--png-size)))
     (memory-png . ,(lambda ()
                      (let ((data (image-loader-protection--slurp
                                   (image-loader-protection--path
                                    "test/data/image/blank-100x200.png"))))
-                       (equal (image-loader-protection--memory-size 'png data)
-                              image-loader-protection--png-size))))
+                       (image-loader-protection--clean-decode-p
+                        (lambda () (image-loader-protection--memory-size 'png data))
+                        image-loader-protection--png-size))))
     (file-jpeg . ,(lambda ()
-                    (equal (image-loader-protection--size
-                            (image-loader-protection--path "test/data/image/black.jpg"))
-                           image-loader-protection--jpeg-size)))
+                    (image-loader-protection--clean-decode-p
+                     (lambda ()
+                       (image-loader-protection--size
+                        (image-loader-protection--path "test/data/image/black.jpg")))
+                     image-loader-protection--jpeg-size)))
     (memory-jpeg . ,(lambda ()
                       (let ((data (image-loader-protection--slurp
                                    (image-loader-protection--path
                                     "test/data/image/black.jpg"))))
-                        (equal (image-loader-protection--memory-size 'jpeg data)
-                               image-loader-protection--jpeg-size))))
+                        (image-loader-protection--clean-decode-p
+                         (lambda () (image-loader-protection--memory-size 'jpeg data))
+                         image-loader-protection--jpeg-size))))
+    (file-webp . ,(lambda ()
+                    (image-loader-protection--clean-decode-p
+                     (lambda ()
+                       (image-loader-protection--size
+                        (image-loader-protection--path
+                         "tools/fixtures/data/image-loader-100x200.webp")))
+                     image-loader-protection--webp-size)))
+    (memory-webp . ,(lambda ()
+                      (let ((data (image-loader-protection--slurp
+                                   (image-loader-protection--path
+                                    "tools/fixtures/data/image-loader-100x200.webp"))))
+                        (image-loader-protection--clean-decode-p
+                         (lambda () (image-loader-protection--memory-size 'webp data))
+                         image-loader-protection--webp-size))))
+    (animation-webp . ,(lambda ()
+                         ;; The animated fixture has two frames; the reader
+                         ;; reports them through img->lisp_data.
+                         (let ((multi (image-multi-frame-p
+                                       (create-image
+                                        (image-loader-protection--path
+                                         "tools/fixtures/data/image-loader-anim.webp")))))
+                           (and multi (= (car multi) 2)))))
+    (damaged-webp . ,(lambda () (image-loader-protection--damaged 'webp)))
     (damaged-png . ,(lambda () (image-loader-protection--damaged 'png)))
     (damaged-jpeg . ,(lambda () (image-loader-protection--damaged 'jpeg)))
     (readers-recover . ,(lambda ()
@@ -198,11 +243,19 @@ dimensions for damaged input - and never crashes."
                                        "test/data/image/blank-100x200.png")))
                                 (jpeg (image-loader-protection--slurp
                                        (image-loader-protection--path
-                                        "test/data/image/black.jpg"))))
-                            (and (equal (image-loader-protection--memory-size 'png png)
-                                        image-loader-protection--png-size)
-                                 (equal (image-loader-protection--memory-size 'jpeg jpeg)
-                                        image-loader-protection--jpeg-size)))))))
+                                        "test/data/image/black.jpg")))
+                                (webp (image-loader-protection--slurp
+                                       (image-loader-protection--path
+                                        "tools/fixtures/data/image-loader-100x200.webp"))))
+                            (and (image-loader-protection--clean-decode-p
+                                  (lambda () (image-loader-protection--memory-size 'png png))
+                                  image-loader-protection--png-size)
+                                 (image-loader-protection--clean-decode-p
+                                  (lambda () (image-loader-protection--memory-size 'jpeg jpeg))
+                                  image-loader-protection--jpeg-size)
+                                 (image-loader-protection--clean-decode-p
+                                  (lambda () (image-loader-protection--memory-size 'webp webp))
+                                  image-loader-protection--webp-size)))))))
 
 (defun image-loader-protection--report ()
   "Run the checks, write a summary, and exit with their status."

@@ -85,6 +85,8 @@ def main(argv=None) -> int:
         program=dict(path=str(program), sha256=digest(program)),
         dump=dict(path=str(dump), sha256=digest(dump)),
         fixture=dict(path=str(fixture), sha256=digest(fixture)),
+        data=[dict(path=str(path), sha256=digest(path))
+              for path in sorted((REPO / 'tools/fixtures/data').glob('*')) if path.is_file()],
         root=dict(path=str(root), lisp=digest(root / 'lisp/loadup.el') if (root / 'lisp/loadup.el').is_file() else None),
         command=argv_product,
         environment={key: env[key] for key in ('EMACSLOADPATH', 'EMACSDATA', 'IMAGE_LOADER_ROOT')},
