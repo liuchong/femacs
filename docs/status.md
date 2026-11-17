@@ -26685,6 +26685,17 @@ Fresh reference selection passed7/7 postflight checks, actual installation/confi
 User approved this exact DNS case as a nonblocking environment limitation and requires the existing proxy to remain enabled and unchanged. Four bounded HTTPS queries completed without errors: both Google andCloudflare resolved `example.com` (Status0,2 A answers) and returned NXDOMAIN for `emacs.invalid` (Status3,no answers),1.499–2.389s per query. The host system lookup still reports its synthetic proxy addresses. This verifies a remote-resolver contrast, not candidate/editor or original ERT acceptance; raw failures, counts and exits remain unchanged. No Dot task was sent; that route is cancelled. Fresh full555/48 observations and any precise exception binding remain pending.
 
 
+### 2026-11-18 — 第 5 轮：观察器配置的真实 GC 计数、WebP 动画、Tramp 新变量与 AX 核查
+
+- **观察器/收集器配置**：新建 `build/runtime/observer-1`（`runtime-build --product cocoa --variant collector --observer`，1644.5s，exit0），绑定当前源码；`webp-2` 的 `runtime-binding.json` 里 `observer=false` 是上一轮 `phase_snapshot=null` 的直接原因，已确认。
+- **有界 GC 负载（非计时）**：在该观察器产品上跑 `build/acceptance/observations-20261118/gc-observe.el`（batch，`FEMACS_GC_OBSERVATION=phases`，构造分配后显式 `garbage-collect`）：`observer/snapshot/status` 三个 API 均为 t；实际 **5 次 GC、53.6ms、5 次 pause**；`femacs--gc-snapshot` 返回 22 条阶段记录，`femacs--gc-collector-status` 返回计数表，heap 清单同时记录。**timing_eligible=false**：主机仍在负载下（本轮 `runtime-profile` 的 0.184/core 只是 0.5 阈值下的 `quiet=true`，不得当作安静计时验收），本轮仅作归属事实。
+- **WebP 动画（最小播放/帧变化/淘汰）**：`image-loader-anim.webp` 得 `(2 . 0.1)`，尺寸 `(100 . 200)`；`image-show-frame` 到第 1 帧后 `image-current-frame`=1；`clear-image-cache t` 后重新解码仍为 `(2 . 0.1)` 与同尺寸（淘汰后重解码正常）。证据 `build/acceptance/observations-20261118/webp-anim-*`。仍不覆盖定时播放循环与真实淘汰策略的时间语义。
+- **Tramp 新变量定向检查**：只跑 `tramp-test29-start-file-process`，使用全新 HOME/TMPDIR（无陈旧 tramp 缓存），2.6s、1/1 passed。原失败保持开放，不据此宣称根因已证；新信息是“干净 per-run 状态下该用例可通过”。
+- **IME AX/权限核查（一次）**：`AXIsProcessTrusted=true`（自建探针与运行环境已获辅助功能授权），所以焦点失败不是 AX 权限；结合回调里的 `windowIsKey=false / appActive=false`，剩余原因是应用激活/关键窗口。已挂起，不再反复探焦点。
+- 组件 28/28、local 9/9、GUI 26/26 证据保留。
+
+未完成：IME 激活、Tramp 根因、WebP 定时播放/淘汰时间语义、G5 安静 9 轮计时、G6/G7 候选实现、已安装交付。G3/Goal 继续开放。
+
 ### 2026-11-18 — 第 4 轮：G5 归属数据、G6 原生正确性、IME 焦点判定与搬移副本
 
 - **G5 归属（非提速数据）**：`tools/runtime-profile.py` 在 `webp-2` 上跑 1 轮 6 个 workload case，`passed=true`、per-core load 0.184（工具在显式 0.5 阈值下自报 `quiet=true`；**计时门槛仍保持 0.10**，故不给任何提速结论）。得到分配增量（`allocation_delta`）与 heap 前后清单（conses/symbols/strings/vector-slots 等），但本轮 6 个 case 的 `gc_count=0`、`phase_snapshot=null`：没有触发回收，也就没有存活量/根与写入点/阶段计数。安静 9 轮时间/停顿比较仍单独挂起。证据 `build/acceptance/g5-attribution-webp-2/results.json`。
