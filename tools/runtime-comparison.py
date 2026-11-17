@@ -145,20 +145,26 @@ def check_expectations(candidate: dict, report: dict) -> list[dict]:
         # A mode flag is not a working collector: the run must show the cycles
         # that mode implies. Young needs completed Young cycles (reason 0 and a
         # minor count); major must not perform any minor at all.
-        minors = [status[1][4] for status in statuses]
-        young_cycles = [status[2][0] for status in statuses]
+        # Activity during this run: the last sample minus the first. An absolute
+        # count inherited from process startup is not evidence that the measured
+        # workloads reached the collector.
+        first, last = statuses[0], statuses[-1]
+        minors = last[1][4] - first[1][4]
+        young_cycles = last[2][0] - first[2][0]
         if expected_mode == 1:
-            if max(minors) == 0 or max(young_cycles) == 0:
-                raise ValueError(f'candidate {candidate["name"]} reported young mode but no minor cycle:'
-                                 f' minors={max(minors)} reason0={max(young_cycles)}')
-            checked.append(dict(check='collector-activity', expected='at least one minor cycle',
-                                observed=dict(minors=max(minors), reason0=max(young_cycles))))
+            active = minors > 0 and young_cycles > 0
+            checked.append(dict(check='collector-activity', passed=active,
+                                expected='at least one minor cycle in this run',
+                                observed=dict(minors=minors, reason0=young_cycles),
+                                note=None if active else
+                                'young mode produced no minor: this is a reachability-only result, '
+                                'not a completed G7 comparison'))
         else:
-            if max(minors) != 0 or max(young_cycles) != 0:
-                raise ValueError(f'candidate {candidate["name"]} reported major mode but performed a minor:'
-                                 f' minors={max(minors)} reason0={max(young_cycles)}')
-            checked.append(dict(check='collector-activity', expected='no minor cycle',
-                                observed=dict(minors=0, reason0=0)))
+            active = minors == 0 and young_cycles == 0
+            checked.append(dict(check='collector-activity', passed=active,
+                                expected='no minor cycle in this run',
+                                observed=dict(minors=minors, reason0=young_cycles),
+                                note=None if active else 'a major-mode candidate performed a minor'))
         checked.append(dict(check='collector', expected=expect['collector'], observed=observed))
     return checked
 
@@ -178,27 +184,39 @@ def remembered_set(status) -> dict | None:
     return dict(valid=totals[1], length=totals[11], reasons=reasons)
 
 
-def cadence(statuses: list) -> dict | None:
-    """Collector cadence actually observed: cycle counts per kind and reason.
+def valid_status(status) -> bool:
+    return (isinstance(status, list) and len(status) == 3
+            and isinstance(status[1], list) and len(status[1]) == 24
+            and isinstance(status[2], list) and len(status[2]) == 13)
 
-    `statuses` are the per-sample status wires. Totals index 2 is last kind
-    (1 = Young), 3 majors, 4 minors; the reason vector counts every cycle by
-    reason code. Nothing is inferred when no status was recorded.
+
+def cadence(previous, current) -> dict | None:
+    """Collector cycles that happened between two status wires.
+
+    The fixture samples the status once per case, so a per-case cycle count is
+    a difference against the previous sample in run order, not an absolute
+    counter read as if it were this case's work. `previous=None` means the
+    window is unknown: the absolute counters are reported and the delta fields
+    stay null instead of being filled with zeros.
     """
-    valid = [status for status in statuses
-             if isinstance(status, list) and len(status) == 3
-             and isinstance(status[1], list) and len(status[1]) == 24
-             and isinstance(status[2], list) and len(status[2]) == 13]
-    if not valid:
+    if not valid_status(current):
         return None
-    first, last = valid[0], valid[-1]
-    reasons = [last[2][index] - first[2][index] for index in range(13)]
-    return dict(young_cycles=reasons[0], full_reasons={str(index): reasons[index]
-                                                       for index in range(1, 13) if reasons[index]},
-                minors_delta=last[1][4] - first[1][4], majors_delta=last[1][3] - first[1][3],
-                last_kind=last[1][2], last_reason=last[1][18],
-                full_fallbacks=last[1][17] - first[1][17],
-                remembered_set_len=last[1][11], remembered_set_valid=last[1][1])
+    totals, reasons_now = current[1], current[2]
+    absolute = dict(minors=totals[4], majors=totals[3], last_kind=totals[2],
+                    last_reason=totals[18], remembered_set_len=totals[11],
+                    remembered_set_valid=totals[1],
+                    reason_counts={str(index): reasons_now[index] for index in range(13)})
+    if not valid_status(previous):
+        return dict(absolute=absolute, delta=None, basis='absolute counters only; no earlier sample')
+    totals_before, reasons_before = previous[1], previous[2]
+    deltas = [reasons_now[index] - reasons_before[index] for index in range(13)]
+    return dict(absolute=absolute,
+                delta=dict(young_cycles=deltas[0],
+                           full_reasons={str(index): deltas[index] for index in range(1, 13) if deltas[index]},
+                           minors=totals[4] - totals_before[4],
+                           majors=totals[3] - totals_before[3],
+                           full_fallbacks=totals[17] - totals_before[17]),
+                basis='difference from the previous sample in run order')
 
 
 def percentile(values: list[float], fraction: float) -> float:
@@ -235,6 +253,13 @@ def phase_intervals(row: dict) -> list[dict]:
 def aggregate_candidate(name: str, candidate: dict, report: dict) -> dict:
     """Per-case observations plus the process-level accounting of one candidate."""
     samples = report.get('samples', [])
+    # The profile writes samples in execution order, so the previous sample is
+    # the actual prior status read: every per-case delta is attributed to the
+    # case that followed it, not to an invented per-case reset.
+    previous = None
+    for row in samples:
+        row['_cadence'] = cadence(previous, row.get('collector_status'))
+        previous = row.get('collector_status')
     by_case: dict[str, list[dict]] = {}
     for row in samples:
         by_case.setdefault(row['case'], []).append(row)
@@ -272,7 +297,7 @@ def aggregate_candidate(name: str, candidate: dict, report: dict) -> dict:
                     for phase, values in sorted(phases.items())],
             collector_status_last=rows[-1].get('collector_status'),
             remembered_set=remembered_set(rows[-1].get('collector_status')),
-            cadence=cadence([row.get('collector_status') for row in rows]),
+            cadence=rows[-1].get('_cadence'),
             execution_mode=sorted({row.get('execution_mode') for row in rows}),
             actual_function_kind=sorted({row.get('actual_function_kind') for row in rows})))
     processes = report.get('processes', [])
@@ -300,6 +325,13 @@ def ratio(left, right):
     return left / right
 
 
+def activity_ok(candidate: dict) -> tuple[bool, list[str]]:
+    """False when a declared collector expectation did not actually happen."""
+    problems = [f"{check['check']}: {check['note']}" for check in candidate.get('checks', [])
+                if check.get('passed') is False]
+    return not problems, problems
+
+
 def compare(name: str, left: dict, right: dict) -> dict:
     left_cases = {case['case']: case for case in left['cases']}
     right_cases = {case['case']: case for case in right['cases']}
@@ -319,13 +351,20 @@ def compare(name: str, left: dict, right: dict) -> dict:
                          right_median_ms=entry['median_ms'])
                     for entry in b['phases']]))
     quiet = bool(left['quiet'] and right['quiet'])
+    active_left, problems_left = activity_ok(left)
+    active_right, problems_right = activity_ok(right)
+    reasons = []
+    if not quiet:
+        reasons.append('at least one candidate ran above the load threshold')
+    reasons += problems_left + problems_right
+    promotion = quiet and not reasons
     return dict(name=name, axis=f"{left['name']} vs {right['name']}", cases=cases,
                 memory_ratio=ratio(left['peak_rss_bytes'], right['peak_rss_bytes']),
                 startup_ratio=ratio((left['startup_ms'] or {}).get('median_ms'),
                                     (right['startup_ms'] or {}).get('median_ms')),
-                quiet=quiet, promotion_grade=quiet,
+                quiet=quiet, promotion_grade=promotion, limitations=reasons,
                 claim=('observations only; a quiet pair is still not a published speedup target'
-                       if quiet else 'not promotion grade: at least one candidate ran above the load threshold'))
+                       if promotion else 'not promotion grade: ' + '; '.join(reasons)))
 
 
 def main(argv=None) -> int:
