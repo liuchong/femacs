@@ -11668,6 +11668,1685 @@ unsafe extern "C" fn pbm_load (f: *mut frame, img: *mut image) -> bool
 
 
 /***********************************************************************
+				 PNG
+ ***********************************************************************/
+
+/* C 8458-8470: `enum png_keyword_index` - the port's c_int type plus one constant per member
+   (`PBM_TYPE`'s shape above).  */
+/// C: C 8458-8470: `enum png_keyword_index { PNG_TYPE, PNG_DATA, PNG_FILE, PNG_ASCENT, PNG_MARGIN, PNG_RELIEF, PNG_ALGORITHM, PNG_HEURISTIC_MASK, PNG_MASK, PNG_BACKGROUND, PNG_LAST }`
+#[cfg (all (feature = "have_window_system", feature = "have_png"))]
+pub const PNG_TYPE: c_int = 0;
+#[cfg (all (feature = "have_window_system", feature = "have_png"))]
+pub const PNG_DATA: c_int = 1;
+#[cfg (all (feature = "have_window_system", feature = "have_png"))]
+pub const PNG_FILE: c_int = 2;
+#[cfg (all (feature = "have_window_system", feature = "have_png"))]
+pub const PNG_ASCENT: c_int = 3;
+#[cfg (all (feature = "have_window_system", feature = "have_png"))]
+pub const PNG_MARGIN: c_int = 4;
+#[cfg (all (feature = "have_window_system", feature = "have_png"))]
+pub const PNG_RELIEF: c_int = 5;
+#[cfg (all (feature = "have_window_system", feature = "have_png"))]
+pub const PNG_ALGORITHM: c_int = 6;
+#[cfg (all (feature = "have_window_system", feature = "have_png"))]
+pub const PNG_HEURISTIC_MASK: c_int = 7;
+#[cfg (all (feature = "have_window_system", feature = "have_png"))]
+pub const PNG_MASK: c_int = 8;
+#[cfg (all (feature = "have_window_system", feature = "have_png"))]
+pub const PNG_BACKGROUND: c_int = 9;
+#[cfg (all (feature = "have_window_system", feature = "have_png"))]
+pub const PNG_LAST: c_int = 10;
+
+/* Vector of image_keyword structures describing the format
+   of valid user-defined image specifications.  */
+
+/// C: C 8475-8488: `static const struct image_keyword png_format[PNG_LAST]`
+#[cfg (all (feature = "have_window_system", feature = "have_png"))]
+static png_format: [image_keyword; PNG_LAST as usize] =
+[
+  image_keyword { name: c":type".as_ptr (), r#type: IMAGE_SYMBOL_VALUE,
+		  mandatory_p: true, count: false, value: core::ptr::null_mut () },
+  image_keyword { name: c":data".as_ptr (), r#type: IMAGE_STRING_VALUE,
+		  mandatory_p: false, count: false, value: core::ptr::null_mut () },
+  image_keyword { name: c":file".as_ptr (), r#type: IMAGE_STRING_VALUE,
+		  mandatory_p: false, count: false, value: core::ptr::null_mut () },
+  image_keyword { name: c":ascent".as_ptr (), r#type: IMAGE_ASCENT_VALUE,
+		  mandatory_p: false, count: false, value: core::ptr::null_mut () },
+  image_keyword { name: c":margin".as_ptr (), r#type: IMAGE_NON_NEGATIVE_INTEGER_VALUE_OR_PAIR,
+		  mandatory_p: false, count: false, value: core::ptr::null_mut () },
+  image_keyword { name: c":relief".as_ptr (), r#type: IMAGE_INTEGER_VALUE,
+		  mandatory_p: false, count: false, value: core::ptr::null_mut () },
+  image_keyword { name: c":conversion".as_ptr (), r#type: IMAGE_DONT_CHECK_VALUE_TYPE,
+		  mandatory_p: false, count: false, value: core::ptr::null_mut () },
+  image_keyword { name: c":heuristic-mask".as_ptr (), r#type: IMAGE_DONT_CHECK_VALUE_TYPE,
+		  mandatory_p: false, count: false, value: core::ptr::null_mut () },
+  image_keyword { name: c":mask".as_ptr (), r#type: IMAGE_DONT_CHECK_VALUE_TYPE,
+		  mandatory_p: false, count: false, value: core::ptr::null_mut () },
+  image_keyword { name: c":background".as_ptr (), r#type: IMAGE_STRING_OR_NIL_VALUE,
+		  mandatory_p: false, count: false, value: core::ptr::null_mut () }
+];
+
+/* Return true if OBJECT is a valid PNG image specification.  */
+
+/// C: C 8492-8503: `static bool png_image_p (Lisp_Object object)`
+#[cfg (all (feature = "have_window_system", feature = "have_png"))]
+unsafe extern "C" fn png_image_p (object: Lisp_Object) -> bool
+{
+  /* C's `struct image_keyword fmt[PNG_LAST];` filled by the `memcpy` below - zeroed first
+     (PORTING.md 1.5/0.1-13).  */
+  let mut fmt: [image_keyword; PNG_LAST as usize] = core::mem::zeroed ();
+
+  /* C's `memcpy (fmt, png_format, sizeof fmt);`.  */
+  memcpy (fmt.as_mut_ptr () as *mut c_void, png_format.as_ptr () as *const c_void,
+	  core::mem::size_of::<[image_keyword; PNG_LAST as usize]> ());
+
+  if !parse_image_spec (object, fmt.as_mut_ptr (), PNG_LAST, Qpng ())
+    { return false; }
+
+  /* Must specify either :data or :file.  */
+  /* The mirror's `count` is a `bool` (`image_keyword`), so C's int sum is written with the
+     conversion out (the `pbm_image_p` 8030 note).  */
+  return (fmt[PNG_DATA as usize].count as c_int)
+    + (fmt[PNG_FILE as usize].count as c_int) == 1;
+}
+
+/* C 8512-8610: `# ifdef WINDOWSNT` - the PNG library's lazy DLL binding.  This arm is C's own
+   `#ifdef WINDOWSNT`; this port builds no Windows target (no Windows toolchain on the machine,
+   P-86 ③-⑵), so the arm stays **owed** with the JPEG one and the `image_types` entries'
+   `init` pointers that name `init_png_functions`/`init_jpeg_functions` (docs/ports/image.md).
+   The declarations below are the non-Windows arm's, the one C's `#else` (an implicit one) uses;
+   the loaders call the library symbols directly, which is what the staged libraries provide.  */
+
+/* C 8624-8639: `<png.h>`'s types and the record `png_color_16`, declared here because that header
+   has no mirror in the reference tree (P-88: the names come from the header the image staging
+   module measures, libpng 1.6.59).  `png_struct`/`png_info` are incomplete in the header and stay
+   incomplete here (PORTING.md 0.1-2): every use is through a pointer.  */
+#[cfg (all (feature = "have_window_system", feature = "have_png"))]
+#[repr(C)]
+pub struct png_struct
+{
+  _private: [u8; 0],
+}
+#[cfg (all (feature = "have_window_system", feature = "have_png"))]
+#[repr(C)]
+pub struct png_info
+{
+  _private: [u8; 0],
+}
+#[cfg (all (feature = "have_window_system", feature = "have_png"))]
+pub type png_byte = c_uchar;
+#[cfg (all (feature = "have_window_system", feature = "have_png"))]
+pub type png_uint_16 = c_ushort;
+#[cfg (all (feature = "have_window_system", feature = "have_png"))]
+pub type png_uint_32 = c_uint;
+#[cfg (all (feature = "have_window_system", feature = "have_png"))]
+pub type png_size_t = usize;
+#[cfg (all (feature = "have_window_system", feature = "have_png"))]
+pub type png_structp = *mut png_struct;
+#[cfg (all (feature = "have_window_system", feature = "have_png"))]
+pub type png_infop = *mut png_info;
+#[cfg (all (feature = "have_window_system", feature = "have_png"))]
+pub type png_bytep = *mut png_byte;
+#[cfg (all (feature = "have_window_system", feature = "have_png"))]
+pub type png_bytepp = *mut png_bytep;
+#[cfg (all (feature = "have_window_system", feature = "have_png"))]
+pub type png_voidp = *mut c_void;
+#[cfg (all (feature = "have_window_system", feature = "have_png"))]
+pub type png_error_ptr = Option<unsafe extern "C" fn (png_structp, *const c_char)>;
+#[cfg (all (feature = "have_window_system", feature = "have_png"))]
+pub type png_rw_ptr = Option<unsafe extern "C" fn (png_structp, png_bytep, png_size_t)>;
+#[cfg (all (feature = "have_window_system", feature = "have_png"))]
+pub type png_longjmp_ptr = Option<unsafe extern "C" fn (*mut c_void, c_int)>;
+
+/// C: png.h 1.6.59: `typedef struct png_color_16_struct { png_byte index; png_uint_16 red; png_uint_16 green; png_uint_16 blue; png_uint_16 gray; } png_color_16;`
+/// Measured against the staged header and the built library: size 10, offsets index 0, red 2,
+/// green 4, blue 6, gray 8 (`clang -offsetof`, `docs/ports/image.md`).
+#[cfg (all (feature = "have_window_system", feature = "have_png"))]
+#[repr(C)]
+pub struct png_color_16
+{
+  pub index: png_byte,
+  pub red: png_uint_16,
+  pub green: png_uint_16,
+  pub blue: png_uint_16,
+  pub gray: png_uint_16,
+}
+#[cfg (all (feature = "have_window_system", feature = "have_png"))]
+pub type png_color_16p = *mut png_color_16;
+
+/* C 8651-8668: `# if (PNG_LIBPNG_VER >= 10500)`'s two functions.  The staged library is 1.6.59
+   (measured; `PNG_LIBPNG_VER` 10659), so C's live arm is the one below and the `< 1.5` arm reads
+   `png_struct`'s hidden `jmpbuf`, which no mirror can spell (documented as owed).  */
+/* C 1360: `#  define PNG_BACKGROUND_GAMMA_SCREEN 1`, and C 666/670's two colour types.  */
+#[cfg (all (feature = "have_window_system", feature = "have_png"))]
+pub const PNG_BACKGROUND_GAMMA_SCREEN: c_int = 1;
+#[cfg (all (feature = "have_window_system", feature = "have_png"))]
+pub const PNG_COLOR_TYPE_GRAY: c_int = 0;
+#[cfg (all (feature = "have_window_system", feature = "have_png"))]
+pub const PNG_COLOR_TYPE_GRAY_ALPHA: c_int = 4;
+
+/* C: png.h 1.6.59's exported surface this loader calls (`README` names the header's own
+   declarations; the image staging module records the header digest the port was measured
+   against).  */
+#[cfg (all (feature = "have_window_system", feature = "have_png",
+	    not (feature = "windowsnt")))]
+unsafe extern "C" {
+  pub fn png_get_io_ptr (png_ptr: png_structp) -> png_voidp;
+  pub fn png_sig_cmp (sig: *const png_byte, start: png_size_t, num_to_check: png_size_t) -> c_int;
+  pub fn png_create_read_struct (user_png_ver: *const c_char, error_ptr: png_voidp,
+				 error_fn: png_error_ptr, warn_fn: png_error_ptr) -> png_structp;
+  pub fn png_create_info_struct (png_ptr: png_structp) -> png_infop;
+  pub fn png_destroy_read_struct (png_ptr_ptr: *mut png_structp, info_ptr_ptr: *mut png_infop,
+				  end_info_ptr_ptr: *mut png_infop);
+  pub fn png_set_read_fn (png_ptr: png_structp, io_ptr: png_voidp, read_data_fn: png_rw_ptr);
+  pub fn png_set_sig_bytes (png_ptr: png_structp, num_bytes: c_int);
+  pub fn png_read_info (png_ptr: png_structp, info_ptr: png_infop);
+  pub fn png_get_IHDR (png_ptr: png_structp, info_ptr: png_infop, width: *mut png_uint_32,
+		       height: *mut png_uint_32, bit_depth: *mut c_int, color_type: *mut c_int,
+		       interlace_type: *mut c_int, compression_type: *mut c_int,
+		       filter_type: *mut c_int) -> png_uint_32;
+  pub fn png_get_tRNS (png_ptr: png_structp, info_ptr: png_infop, trans_alpha: *mut png_bytep,
+		       num_trans: *mut c_int, trans_color: *mut png_color_16p) -> png_uint_32;
+  pub fn png_set_strip_16 (png_ptr: png_structp);
+  pub fn png_set_expand (png_ptr: png_structp);
+  pub fn png_set_gray_to_rgb (png_ptr: png_structp);
+  pub fn png_set_interlace_handling (png_ptr: png_structp) -> c_int;
+  pub fn png_set_background (png_ptr: png_structp, background_color: *const png_color_16,
+			     background_gamma_code: c_int, need_expand: c_int,
+			     background_gamma: c_double);
+  pub fn png_get_bKGD (png_ptr: png_structp, info_ptr: png_infop,
+		       background: *mut png_color_16p) -> png_uint_32;
+  pub fn png_read_update_info (png_ptr: png_structp, info_ptr: png_infop);
+  pub fn png_get_channels (png_ptr: png_structp, info_ptr: png_infop) -> png_byte;
+  pub fn png_get_rowbytes (png_ptr: png_structp, info_ptr: png_infop) -> png_size_t;
+  pub fn png_read_image (png_ptr: png_structp, image: png_bytepp);
+  pub fn png_read_end (png_ptr: png_structp, end_info: png_infop);
+  pub fn png_error (png_ptr: png_structp, error_message: *const c_char) -> !;
+  pub fn png_longjmp (png_ptr: png_structp, val: c_int) -> !;
+  pub fn png_set_longjmp_fn (png_ptr: png_structp, longjmp_fn: png_longjmp_ptr, size: usize)
+    -> *mut jmp_buf;
+  /* C passes the header's `PNG_LIBPNG_VER_STRING`; the port has no `<png.h>`, so it asks the
+     linked library for the same string (`png_get_libpng_ver` ignores its argument, and its
+     return is the version the check compares against).  Behaviour is the header constant's.  */
+  pub fn png_get_libpng_ver (png_ptr: *const png_struct) -> *const c_char;
+}
+
+/* C 8618-8620: `# define FAST_SETJMP(j) _setjmp (j)` - the `HAVE__SETJMP` arm this target's
+   macro table selects.  C's pre-1.5 `PNG_LONGJMP`/`PNG_JMPBUF` pair is the owed arm above; the
+   live pair is `png_longjmp (ptr, 1)` and `*png_set_longjmp_fn (ptr, FAST_LONGJMP,
+   sizeof (jmp_buf))`.  */
+#[cfg (all (feature = "have_window_system", feature = "have_png",
+	    not (feature = "windowsnt")))]
+unsafe extern "C" fn fast_longjmp (jmp: *mut c_void, val: c_int)
+{
+  /* C's `FAST_LONGJMP` is `_longjmp`; the mirror is `src/include/lisp.rs`'s pair.  */
+  sys_longjmp (jmp as *mut jmp_buf, val);
+}
+
+/* Error and warning handlers installed when the PNG library
+   is initialized.  */
+
+/// C: C 8630-8639: `static AVOID my_png_error (png_struct *png_ptr, const char *msg)`
+#[cfg (all (feature = "have_window_system", feature = "have_png",
+	    not (feature = "windowsnt")))]
+unsafe extern "C" fn my_png_error (png_ptr: png_structp, msg: *const c_char)
+{
+  eassert! (!png_ptr.is_null ());
+  /* Avoid compiler warning about deprecated direct access to
+     png_ptr's fields in libpng versions 1.4.x.  */
+  image_error (c"PNG error: %s".as_ptr (), build_string (msg));
+  png_longjmp (png_ptr, 1);
+}
+
+/// C: C 8642-8648: `static void my_png_warning (png_struct *png_ptr, const char *msg)`
+#[cfg (all (feature = "have_window_system", feature = "have_png",
+	    not (feature = "windowsnt")))]
+unsafe extern "C" fn my_png_warning (png_ptr: png_structp, msg: *const c_char)
+{
+  eassert! (!png_ptr.is_null ());
+  image_error (c"PNG warning: %s".as_ptr (), build_string (msg));
+}
+
+/* Memory source for PNG decoding.  */
+
+/// C: C 8650-8655: `struct png_memory_storage`
+#[cfg (all (feature = "have_window_system", feature = "have_png"))]
+#[repr(C)]
+pub struct png_memory_storage
+{
+  pub bytes: *mut c_uchar,		/* The data       */
+  pub len: ptrdiff_t,		/* How big is it? */
+  pub index: ptrdiff_t,		/* Where are we?  */
+}
+
+/* Function set as reader function when reading PNG image from memory.
+   PNG_PTR is a pointer to the PNG control structure.  Copy LENGTH
+   bytes from the input to DATA.  */
+
+/// C: C 8661-8671: `static void png_read_from_memory (png_structp png_ptr, png_bytep data, png_size_t length)`
+#[cfg (all (feature = "have_window_system", feature = "have_png",
+	    not (feature = "windowsnt")))]
+unsafe extern "C" fn png_read_from_memory (png_ptr: png_structp, data: png_bytep,
+					   length: png_size_t)
+{
+  let tbr: *mut png_memory_storage = png_get_io_ptr (png_ptr) as *mut png_memory_storage;
+
+  /* C's `length > tbr->len - tbr->index` compares a `png_size_t` with a `ptrdiff_t`; the
+     difference is converted to `png_size_t` by C's usual conversions, which is written out.  */
+  if length > ((*tbr).len - (*tbr).index) as png_size_t
+    { png_error (png_ptr, c"Read error".as_ptr ()); }
+
+  memcpy (data as *mut c_void, (*tbr).bytes.offset ((*tbr).index as isize) as *const c_void,
+	  length);
+  (*tbr).index = (*tbr).index + length as ptrdiff_t;
+}
+
+/* Function set as reader function when reading PNG image from a file.
+   PNG_PTR is a pointer to the PNG control structure.  Copy LENGTH
+   bytes from the input to DATA.  */
+
+/// C: C 8678-8686: `static void png_read_from_file (png_structp png_ptr, png_bytep data, png_size_t length)`
+#[cfg (all (feature = "have_window_system", feature = "have_png",
+	    not (feature = "windowsnt")))]
+unsafe extern "C" fn png_read_from_file (png_ptr: png_structp, data: png_bytep,
+					 length: png_size_t)
+{
+  let fp: *mut FILE = png_get_io_ptr (png_ptr) as *mut FILE;
+
+  if fread (data as *mut c_void, 1, length, fp) < length
+    { png_error (png_ptr, c"Read error".as_ptr ()); }
+}
+
+/* Load PNG image IMG for use on frame F.  Value is true if
+   successful.  */
+
+/// C: C 8692-8702: `struct png_load_context`
+#[cfg (all (feature = "have_window_system", feature = "have_png"))]
+#[repr(C)]
+pub struct png_load_context
+{
+  /* These are members so that longjmp doesn't munge local variables.  */
+  pub png_ptr: png_structp,
+  pub info_ptr: png_infop,
+  pub end_info: png_infop,
+  pub fp: *mut FILE,
+  pub pixels: png_bytep,
+  pub rows: png_bytepp,
+}
+
+/// C: C 8705-8706: `static bool png_load_body (struct frame *f, struct image *img, struct png_load_context *c)`
+#[cfg (all (feature = "have_window_system", feature = "have_png",
+	    not (feature = "windowsnt")))]
+unsafe fn png_load_body (f: *mut frame, img: *mut image, c: *mut png_load_context) -> bool
+{
+  let specified_file: Lisp_Object;
+  let specified_data: Lisp_Object;
+  /* C's `FILE *fp = NULL;` - the context's copy is the one the `error:` label reads, so the
+     local follows C's own two writes (`fp = emacs_fdopen (…)`, and `fp = c->fp`).  */
+  let mut fp: *mut FILE = core::ptr::null_mut ();
+  let mut x: c_int;
+  let mut y: c_int;
+  let mut i: ptrdiff_t;
+  let mut info_ptr: png_infop = core::ptr::null_mut ();
+  let mut end_info: png_infop = core::ptr::null_mut ();
+  /* C's `png_byte sig[8];` is written by `fread` below (PORTING.md 1.5).  */
+  let mut sig: [png_byte; 8] = core::mem::zeroed ();
+  let mut pixels: png_bytep = core::ptr::null_mut ();
+  let mut rows: png_bytepp = core::ptr::null_mut ();
+  let mut width: png_uint_32 = 0;
+  let mut height: png_uint_32 = 0;
+  let mut bit_depth: c_int = 0;
+  let mut color_type: c_int = 0;
+  let mut interlace_type: c_int = 0;
+  let mut channels: png_byte;
+  let mut row_bytes: png_uint_32;
+  let mut nbytes: ptrdiff_t;
+  /* C's `struct png_memory_storage tbr;` - initialized by the `:data` arm below.  */
+  let mut tbr: png_memory_storage = core::mem::zeroed ();
+  /* C's `Emacs_Pix_Container ximg;` is written by the creation call below (PORTING.md 1.5).  */
+  let mut ximg: Emacs_Pix_Container = core::ptr::null_mut ();
+
+  /* Find out what file to load.  */
+  specified_file = image_spec_value ((*img).spec, QCfile (), core::ptr::null_mut ());
+  specified_data = image_spec_value ((*img).spec, QCdata (), core::ptr::null_mut ());
+
+  if NILP (specified_data)
+    {
+      let mut fd: c_int = 0;
+      let file: Lisp_Object = image_find_image_file (specified_file);
+      /* C's `!STRINGP (file) || (fd = emacs_open (…)) < 0` short-circuit, written with one
+	 predicate (the `image_find_image_fd` form of the same condition).  */
+      let mut bad: bool = !STRINGP (file);
+      if !bad
+	{
+	  fd = emacs_open (SSDATA (ENCODE_FILE (file)), O_RDONLY, 0);
+	  bad = fd < 0;
+	}
+      if bad
+	{
+	  image_not_found_error (specified_file);
+	  return false;
+	}
+
+      /* Open the image file.  */
+      fp = emacs_fdopen (fd, c"rb".as_ptr ());
+      if fp.is_null ()
+	{
+	  image_error (c"Cannot open image file `%s'".as_ptr (), file);
+	  return false;
+	}
+
+      /* Check PNG signature.  */
+      if fread (sig.as_mut_ptr () as *mut c_void, 1,
+		core::mem::size_of::<[png_byte; 8]> () as usize, fp)
+	   != core::mem::size_of::<[png_byte; 8]> () as usize
+	  || png_sig_cmp (sig.as_ptr (), 0, core::mem::size_of::<[png_byte; 8]> () as png_size_t) != 0
+	{
+	  emacs_fclose! (fp);
+	  image_error (c"Not a PNG file: `%s'".as_ptr (), file);
+	  return false;
+	}
+    }
+  else
+    {
+      if !STRINGP (specified_data)
+	{
+	  image_invalid_data_error (specified_data);
+	  return false;
+	}
+
+      /* Read from memory.  */
+      tbr.bytes = SDATA (specified_data) as *mut png_byte;
+      tbr.len = SBYTES (specified_data) as ptrdiff_t;
+      tbr.index = 0;
+
+      /* Check PNG signature.  */
+      if tbr.len < core::mem::size_of::<[png_byte; 8]> () as ptrdiff_t
+	  || png_sig_cmp (tbr.bytes as *const png_byte, 0,
+			  core::mem::size_of::<[png_byte; 8]> () as png_size_t) != 0
+	{
+	  image_error (c"Not a PNG image: `%s'".as_ptr (), (*img).spec);
+	  return false;
+	}
+
+      /* Need to skip past the signature.  */
+      tbr.bytes = tbr.bytes.offset (core::mem::size_of::<[png_byte; 8]> () as isize);
+    }
+
+  /* Initialize read and info structs for PNG lib.  */
+  let mut png_ptr: png_structp
+    = png_create_read_struct (png_get_libpng_ver (core::ptr::null ()),
+			      core::ptr::null_mut (), Some (my_png_error),
+			      Some (my_png_warning));
+  if !png_ptr.is_null ()
+    {
+      info_ptr = png_create_info_struct (png_ptr);
+      end_info = png_create_info_struct (png_ptr);
+    }
+
+  (*c).png_ptr = png_ptr;
+  (*c).info_ptr = info_ptr;
+  (*c).end_info = end_info;
+  (*c).fp = fp;
+  (*c).pixels = pixels;
+  (*c).rows = rows;
+
+  if !(!info_ptr.is_null () && !end_info.is_null ())
+    {
+      png_destroy_read_struct (&raw mut (*c).png_ptr, &raw mut (*c).info_ptr,
+			       &raw mut (*c).end_info);
+      png_ptr = core::ptr::null_mut ();
+    }
+  if png_ptr.is_null ()
+    {
+      if !fp.is_null () { emacs_fclose! (fp); }
+      return false;
+    }
+
+  /* Set error jump-back.  We come back here when the PNG library
+     detects an error.  */
+  if sys_setjmp (png_set_longjmp_fn (png_ptr, Some (fast_longjmp),
+				     core::mem::size_of::<jmp_buf> ()) as *mut jmp_buf) == 0
+    {
+      'body:
+      {
+	/* Read image info.  */
+	if !NILP (specified_data)
+	  { png_set_read_fn (png_ptr, &raw mut tbr as *mut c_void, Some (png_read_from_memory)); }
+	else
+	  { png_set_read_fn (png_ptr, fp as *mut c_void, Some (png_read_from_file)); }
+
+	png_set_sig_bytes (png_ptr, core::mem::size_of::<[png_byte; 8]> () as c_int);
+	png_read_info (png_ptr, info_ptr);
+	png_get_IHDR (png_ptr, info_ptr, &raw mut width, &raw mut height, &raw mut bit_depth,
+		      &raw mut color_type, &raw mut interlace_type,
+		      core::ptr::null_mut (), core::ptr::null_mut ());
+
+	if !((width <= INT_MAX as png_uint_32) && (height <= INT_MAX as png_uint_32)
+	      && check_image_size (f, width as c_int, height as c_int))
+	  {
+	    image_size_error ();
+	    break 'body;
+	  }
+
+	/* Create the X image and pixmap now, so that the work below can be
+	   omitted if the image is too large for X.  */
+	if !image_create_x_image_and_pixmap (f, img, width as c_int, height as c_int, 0,
+					     &raw mut ximg, false)
+	  { break 'body; }
+
+	/* If image contains simply transparency data, we prefer to
+	   construct a clipping mask.  */
+	let mut transparent_p: bool = false;
+	/* C 8787-8792: `# ifdef PNG_tRNS_SUPPORTED` - the staged libpng's `pnglibconf.h` defines
+	   it (measured), so this arm is C's.  */
+	{
+	  let mut trans_alpha: png_bytep = core::ptr::null_mut ();
+	  let mut num_trans: c_int = 0;
+	  if png_get_tRNS (png_ptr, info_ptr, &raw mut trans_alpha, &raw mut num_trans,
+			   core::ptr::null_mut ()) != 0
+	    {
+	      transparent_p = true;
+	      if !trans_alpha.is_null ()
+		{
+		  let mut i: c_int = 0;
+		  while i < num_trans
+		    {
+		      if 0 < *trans_alpha.offset (i as isize)
+			  && *trans_alpha.offset (i as isize) < 255
+			{
+			  transparent_p = false;
+			  break;
+			}
+		      i += 1;
+		    }
+		}
+	    }
+	}
+
+	/* This function is easier to write if we only have to handle
+	   one data format: RGB or RGBA with 8 bits per channel.  Let's
+	   transform other formats into that format.  */
+
+	/* Strip more than 8 bits per channel.  */
+	if bit_depth == 16
+	  { png_set_strip_16 (png_ptr); }
+
+	/* Expand data to 24 bit RGB, or 8 bit grayscale, with alpha channel
+	   if available.  */
+	png_set_expand (png_ptr);
+
+	/* Convert grayscale images to RGB.  */
+	if color_type == PNG_COLOR_TYPE_GRAY
+	    || color_type == PNG_COLOR_TYPE_GRAY_ALPHA
+	  { png_set_gray_to_rgb (png_ptr); }
+
+	/* Handle alpha channel by combining the image with a background
+	   color.  Do this only if a real alpha channel is supplied.  For
+	   simple transparency, we prefer a clipping mask.  */
+	if !transparent_p
+	  {
+	    let specified_bg: Lisp_Object
+	      = image_spec_value ((*img).spec, QCbackground (), core::ptr::null_mut ());
+	    /* C's `Emacs_Color color;` - the hook writes it (PORTING.md 1.5).  */
+	    let mut color: Emacs_Color = core::mem::zeroed ();
+	    let mut color_ok: bool;
+
+	    /* If the user specified a color, try to use it; if not, use the
+	       current frame background, ignoring any default background
+	       color set by the image.  */
+	    if STRINGP (specified_bg)
+	      {
+		color_ok = ((*FRAME_TERMINAL! (f)).defined_color_hook.unwrap ())
+		  (f as *mut c_void, SSDATA (specified_bg), &raw mut color, false, false);
+	      }
+	    else
+	      {
+		((*FRAME_TERMINAL! (f)).query_frame_background_color.unwrap ())
+		  (f as *mut c_void, &raw mut color);
+		color_ok = true;
+	      }
+
+	    if color_ok
+	      /* The user specified `:background', use that.  */
+	      {
+		let shift: c_int = if bit_depth == 16 { 0 } else { 8 };
+		let mut bg: png_color_16 = core::mem::zeroed ();
+		bg.red = color.red >> (shift as u32);
+		bg.green = color.green >> (shift as u32);
+		bg.blue = color.blue >> (shift as u32);
+
+		png_set_background (png_ptr, &raw const bg,
+				    PNG_BACKGROUND_GAMMA_SCREEN, 0, 1.0);
+	      }
+	  }
+
+	png_set_interlace_handling (png_ptr);
+	png_read_update_info (png_ptr, info_ptr);
+
+	/* Get number of channels.  Valid values are 1 for grayscale images
+	   and images with a palette, 2 for grayscale images with transparency
+	   information (alpha channel), 3 for RGB images, and 4 for RGB
+	   images with alpha channel, i.e. RGBA.  If conversions above were
+	   sufficient we should only have 3 or 4 channels here.  */
+	channels = png_get_channels (png_ptr, info_ptr);
+	eassert! (channels == 3 || channels == 4);
+
+	/* Number of bytes needed for one row of the image.  */
+	row_bytes = png_get_rowbytes (png_ptr, info_ptr) as png_uint_32;
+
+	/* Allocate memory for the image.  */
+	let (ckd_temp, mul_overflow)
+	  = (row_bytes as ptrdiff_t).overflowing_mul (core::mem::size_of::<png_byte> () as ptrdiff_t);
+	nbytes = ckd_temp;
+	let (ckd_temp, mul_overflow2)
+	  = nbytes.overflowing_mul (height as ptrdiff_t);
+	nbytes = ckd_temp;
+	if mul_overflow || mul_overflow2
+	  { memory_full_up (); }
+	pixels = xmalloc (nbytes as usize) as png_bytep;
+	(*c).pixels = pixels;
+	rows = xmalloc (height as usize * core::mem::size_of::<png_bytep> ()) as png_bytepp;
+	(*c).rows = rows;
+	i = 0;
+	while i < height as ptrdiff_t
+	  {
+	    *rows.offset (i) = pixels.offset (i * row_bytes as ptrdiff_t);
+	    i += 1;
+	  }
+
+	/* Read the entire image.  */
+	png_read_image (png_ptr, rows);
+	png_read_end (png_ptr, info_ptr);
+	if !fp.is_null ()
+	  {
+	    emacs_fclose! (fp);
+	    (*c).fp = core::ptr::null_mut ();
+	  }
+
+	/* Create an image and pixmap serving as mask if the PNG image
+	   contains an alpha channel.  */
+	let mut mask_img: Emacs_Pix_Container = core::ptr::null_mut ();
+	if channels == 4
+	    && transparent_p
+	    && !image_create_x_image_and_pixmap (f, img, width as c_int, height as c_int, 1,
+						 &raw mut mask_img, true)
+	  {
+	    image_destroy_x_image (ximg);
+	    image_clear_image_1 (f, img, CLEAR_IMAGE_PIXMAP! ());
+	    break 'body;
+	  }
+
+	/* Fill the X image and mask from PNG data.  */
+	init_color_table ();
+
+	y = 0;
+	while y < height as c_int
+	  {
+	    let mut p: *mut png_byte = *rows.offset (y as isize);
+
+	    x = 0;
+	    while x < width as c_int
+	      {
+		let r: c_int;
+		let g: c_int;
+		let b: c_int;
+
+		r = (*p as c_int) << 8;
+		p = p.offset (1);
+		g = (*p as c_int) << 8;
+		p = p.offset (1);
+		b = (*p as c_int) << 8;
+		p = p.offset (1);
+		PUT_PIXEL! (ximg, x, y, lookup_rgb_color (f, r, g, b));
+		/* An alpha channel, aka mask channel, associates variable
+		   transparency with an image.  Where other image formats
+		   support binary transparency---fully transparent or fully
+		   opaque---PNG allows up to 254 levels of partial transparency.
+		   The PNG library implements partial transparency by combining
+		   the image with a specified background color.
+
+		   I'm not sure how to handle this here nicely: because the
+		   background on which the image is displayed may change, for
+		   real alpha channel support, it would be necessary to create
+		   a new image for each possible background.
+
+		   What I'm doing now is that a mask is created if we have
+		   boolean transparency information.  Otherwise I'm using
+		   the frame's background color to combine the image with.  */
+
+		if channels == 4
+		  {
+		    if !mask_img.is_null ()
+		      {
+			PUT_PIXEL! (mask_img, x, y, if *p > 0 { PIX_MASK_DRAW! () }
+							      else { PIX_MASK_RETAIN! () });
+		      }
+		    p = p.offset (1);
+		  }
+		x += 1;
+	      }
+	    y += 1;
+	  }
+
+	if NILP (image_spec_value ((*img).spec, QCbackground (), core::ptr::null_mut ()))
+	  /* Set IMG's background color from the PNG image, unless the user
+	     overrode it.  */
+	  {
+	    let mut bg: png_color_16p = core::ptr::null_mut ();
+	    if png_get_bKGD (png_ptr, info_ptr, &raw mut bg) != 0
+	      {
+		/* C 9030-9037: the `USE_CAIRO` pair.  */
+		#[cfg (not (feature = "use_cairo"))]
+		{
+		  (*img).background = lookup_rgb_color (f, (*bg).red as c_int,
+							(*bg).green as c_int,
+							(*bg).blue as c_int);
+		}
+		#[cfg (feature = "use_cairo")]
+		{
+		  let color_name: Lisp_Object
+		    = make_color_name ((*bg).red as c_uint, (*bg).green as c_uint,
+				       (*bg).blue as c_uint);
+		  (*img).background = image_alloc_image_color (f, img, color_name, 0);
+		}
+		/* C's `img->background_valid = 1;` - the bit member's storage unit (P-80).  */
+		(*img).bits = (*img).bits & !IMAGE_BACKGROUND_VALID_MASK
+			      | ((1 as u32) << IMAGE_BACKGROUND_VALID_SHIFT);
+	      }
+	  }
+
+	/* C 9041-9045: `# ifdef COLOR_TABLE_SUPPORT` - the arm the same condition selects at
+	   `pbm_load` 8318.  */
+	#[cfg (all (feature = "have_window_system", feature = "have_x_windows",
+		    not (any (feature = "have_ntgui", feature = "use_cairo",
+			      feature = "have_ns"))))]
+	{
+	  /* Remember colors allocated for this image.  */
+	  (*img).colors = colors_in_color_table (&raw mut (*img).ncolors);
+	  free_color_table ();
+	}
+
+	/* Clean up.  */
+	png_destroy_read_struct (&raw mut (*c).png_ptr, &raw mut (*c).info_ptr,
+				 &raw mut (*c).end_info);
+	xfree (rows as *mut c_void);
+	xfree (pixels as *mut c_void);
+
+	(*img).width = width as c_int;
+	(*img).height = height as c_int;
+
+	/* Maybe fill in the background field while we have ximg handy.  */
+	IMAGE_BACKGROUND! (img, f, PIX_CONTAINER_TO_CONTEXT! (ximg));
+
+	/* Put ximg into the image.  */
+	image_put_x_image (f, img, ximg, false);
+
+	/* Same for the mask.  */
+	if !mask_img.is_null ()
+	  {
+	    /* Fill in the background_transparent field while we have the
+	       mask handy.  Casting avoids a GCC warning.  */
+	    image_background_transparent (img, f, PIX_CONTAINER_TO_CONTEXT! (mask_img));
+
+	    image_put_x_image (f, img, mask_img, true);
+	  }
+
+	return true;
+      }
+    }
+
+  /* error: - C 8756-8767's label body.  C's `c = c_volatile;` re-reads the context because
+     `longjmp` may have munged the locals; the port's context pointer is a parameter whose
+     value is written before the jump and never changes, so every read below is `(*c)`.  */
+  if !(*c).png_ptr.is_null ()
+    { png_destroy_read_struct (&raw mut (*c).png_ptr, &raw mut (*c).info_ptr,
+			       &raw mut (*c).end_info); }
+  xfree ((*c).pixels as *mut c_void);
+  xfree ((*c).rows as *mut c_void);
+  if !(*c).fp.is_null ()
+    { emacs_fclose! ((*c).fp); }
+  return false;
+}
+
+/// C: C 9105-9109: `static bool png_load (struct frame *f, struct image *img)`
+#[cfg (all (feature = "have_window_system", feature = "have_png",
+	    not (feature = "windowsnt")))]
+unsafe extern "C" fn png_load (f: *mut frame, img: *mut image) -> bool
+{
+  /* C's `struct png_load_context c;` - the decode writes it (PORTING.md 1.5).  */
+  let mut c: png_load_context = core::mem::zeroed ();
+  return png_load_body (f, img, &raw mut c);
+}
+
+
+/***********************************************************************
+				 JPEG
+ ***********************************************************************/
+
+/* C 9122-9134: `enum jpeg_keyword_index` (`JPEG_TYPE` … `JPEG_LAST`).  */
+/// C: C 9122-9134: `enum jpeg_keyword_index { JPEG_TYPE, JPEG_DATA, JPEG_FILE, JPEG_ASCENT, JPEG_MARGIN, JPEG_RELIEF, JPEG_ALGORITHM, JPEG_HEURISTIC_MASK, JPEG_MASK, JPEG_BACKGROUND, JPEG_LAST }`
+#[cfg (all (feature = "have_window_system", feature = "have_jpeg"))]
+pub const JPEG_TYPE: c_int = 0;
+#[cfg (all (feature = "have_window_system", feature = "have_jpeg"))]
+pub const JPEG_DATA: c_int = 1;
+#[cfg (all (feature = "have_window_system", feature = "have_jpeg"))]
+pub const JPEG_FILE: c_int = 2;
+#[cfg (all (feature = "have_window_system", feature = "have_jpeg"))]
+pub const JPEG_ASCENT: c_int = 3;
+#[cfg (all (feature = "have_window_system", feature = "have_jpeg"))]
+pub const JPEG_MARGIN: c_int = 4;
+#[cfg (all (feature = "have_window_system", feature = "have_jpeg"))]
+pub const JPEG_RELIEF: c_int = 5;
+#[cfg (all (feature = "have_window_system", feature = "have_jpeg"))]
+pub const JPEG_ALGORITHM: c_int = 6;
+#[cfg (all (feature = "have_window_system", feature = "have_jpeg"))]
+pub const JPEG_HEURISTIC_MASK: c_int = 7;
+#[cfg (all (feature = "have_window_system", feature = "have_jpeg"))]
+pub const JPEG_MASK: c_int = 8;
+#[cfg (all (feature = "have_window_system", feature = "have_jpeg"))]
+pub const JPEG_BACKGROUND: c_int = 9;
+#[cfg (all (feature = "have_window_system", feature = "have_jpeg"))]
+pub const JPEG_LAST: c_int = 10;
+
+/* Vector of image_keyword structures describing the format
+   of valid user-defined image specifications.  */
+
+/// C: C 9139-9152: `static const struct image_keyword jpeg_format[JPEG_LAST]` - note C's
+/// `:conversions` spelling at index `JPEG_ALGORITHM`, which is the reference's own and is kept.
+#[cfg (all (feature = "have_window_system", feature = "have_jpeg"))]
+static jpeg_format: [image_keyword; JPEG_LAST as usize] =
+[
+  image_keyword { name: c":type".as_ptr (), r#type: IMAGE_SYMBOL_VALUE,
+		  mandatory_p: true, count: false, value: core::ptr::null_mut () },
+  image_keyword { name: c":data".as_ptr (), r#type: IMAGE_STRING_VALUE,
+		  mandatory_p: false, count: false, value: core::ptr::null_mut () },
+  image_keyword { name: c":file".as_ptr (), r#type: IMAGE_STRING_VALUE,
+		  mandatory_p: false, count: false, value: core::ptr::null_mut () },
+  image_keyword { name: c":ascent".as_ptr (), r#type: IMAGE_ASCENT_VALUE,
+		  mandatory_p: false, count: false, value: core::ptr::null_mut () },
+  image_keyword { name: c":margin".as_ptr (), r#type: IMAGE_NON_NEGATIVE_INTEGER_VALUE_OR_PAIR,
+		  mandatory_p: false, count: false, value: core::ptr::null_mut () },
+  image_keyword { name: c":relief".as_ptr (), r#type: IMAGE_INTEGER_VALUE,
+		  mandatory_p: false, count: false, value: core::ptr::null_mut () },
+  image_keyword { name: c":conversions".as_ptr (), r#type: IMAGE_DONT_CHECK_VALUE_TYPE,
+		  mandatory_p: false, count: false, value: core::ptr::null_mut () },
+  image_keyword { name: c":heuristic-mask".as_ptr (), r#type: IMAGE_DONT_CHECK_VALUE_TYPE,
+		  mandatory_p: false, count: false, value: core::ptr::null_mut () },
+  image_keyword { name: c":mask".as_ptr (), r#type: IMAGE_DONT_CHECK_VALUE_TYPE,
+		  mandatory_p: false, count: false, value: core::ptr::null_mut () },
+  image_keyword { name: c":background".as_ptr (), r#type: IMAGE_STRING_OR_NIL_VALUE,
+		  mandatory_p: false, count: false, value: core::ptr::null_mut () }
+];
+
+/* Return true if OBJECT is a valid JPEG image specification.  */
+
+/// C: C 9156-9168: `static bool jpeg_image_p (Lisp_Object object)`
+#[cfg (all (feature = "have_window_system", feature = "have_jpeg"))]
+unsafe extern "C" fn jpeg_image_p (object: Lisp_Object) -> bool
+{
+  /* C's `struct image_keyword fmt[JPEG_LAST];` filled by the `memcpy` below - zeroed first
+     (PORTING.md 1.5/0.1-13).  */
+  let mut fmt: [image_keyword; JPEG_LAST as usize] = core::mem::zeroed ();
+
+  /* C's `memcpy (fmt, jpeg_format, sizeof fmt);`.  */
+  memcpy (fmt.as_mut_ptr () as *mut c_void, jpeg_format.as_ptr () as *const c_void,
+	  core::mem::size_of::<[image_keyword; JPEG_LAST as usize]> ());
+
+  if !parse_image_spec (object, fmt.as_mut_ptr (), JPEG_LAST, Qjpeg ())
+    { return false; }
+
+  /* Must specify either :data or :file.  */
+  return (fmt[JPEG_DATA as usize].count as c_int)
+    + (fmt[JPEG_FILE as usize].count as c_int) == 1;
+}
+
+/* C 9173-9280: `# ifdef WINDOWSNT`'s JPEG DLL binding and helpers.  Like the PNG arm above,
+   this port has no Windows target and the arm stays owed with the `init_jpeg_functions` pointer
+   in `image_types` (docs/ports/image.md).  The declarations below are the live arm's.  */
+
+/* C 9201-9264: `<jpeglib.h>`'s type surface and records this loader touches.  The staged library
+   is libjpeg 10 (`JPEG_LIB_VERSION` 100, `/opt/homebrew/opt/jpeg`), and every offset below is
+   measured against that header and the built library (`clang -offsetof`, docs/ports/image.md);
+   the compile-time assertions after the records are the port's guard on a header upgrade.  */
+#[cfg (all (feature = "have_window_system", feature = "have_jpeg"))]
+pub type JSAMPLE = c_uchar;
+#[cfg (all (feature = "have_window_system", feature = "have_jpeg"))]
+pub type JSAMPROW = *mut JSAMPLE;
+#[cfg (all (feature = "have_window_system", feature = "have_jpeg"))]
+pub type JSAMPARRAY = *mut JSAMPROW;
+#[cfg (all (feature = "have_window_system", feature = "have_jpeg"))]
+pub type JOCTET = c_uchar;
+#[cfg (all (feature = "have_window_system", feature = "have_jpeg"))]
+pub type JDIMENSION = c_uint;
+#[cfg (all (feature = "have_window_system", feature = "have_jpeg"))]
+pub type boolean = c_int;
+#[cfg (all (feature = "have_window_system", feature = "have_jpeg"))]
+pub type J_COLOR_SPACE = c_int;
+#[cfg (all (feature = "have_window_system", feature = "have_jpeg"))]
+pub type J_DCT_METHOD = c_int;
+#[cfg (all (feature = "have_window_system", feature = "have_jpeg"))]
+pub type J_DITHER_MODE = c_int;
+#[cfg (all (feature = "have_window_system", feature = "have_jpeg"))]
+pub type J_COLOR_TRANSFORM = c_int;
+
+/* C 9189-9192 and jpeglib.h's constants this unit reads.  */
+#[cfg (all (feature = "have_window_system", feature = "have_jpeg"))]
+pub const JPEG_LIB_VERSION: c_int = 100;
+#[cfg (all (feature = "have_window_system", feature = "have_jpeg"))]
+pub const JPEG_EOI: c_int = 0xD9;
+#[cfg (all (feature = "have_window_system", feature = "have_jpeg"))]
+pub const JMSG_LENGTH_MAX: c_int = 200;
+#[cfg (all (feature = "have_window_system", feature = "have_jpeg"))]
+pub const JMSG_STR_PARM_MAX: usize = 80;
+#[cfg (all (feature = "have_window_system", feature = "have_jpeg"))]
+pub const JPOOL_PERMANENT: c_int = 0;
+#[cfg (all (feature = "have_window_system", feature = "have_jpeg"))]
+pub const JPOOL_IMAGE: c_int = 1;
+#[cfg (all (feature = "have_window_system", feature = "have_jpeg"))]
+pub const DCTSIZE2: usize = 64;
+#[cfg (all (feature = "have_window_system", feature = "have_jpeg"))]
+pub const NUM_QUANT_TBLS: usize = 4;
+#[cfg (all (feature = "have_window_system", feature = "have_jpeg"))]
+pub const NUM_HUFF_TBLS: usize = 4;
+#[cfg (all (feature = "have_window_system", feature = "have_jpeg"))]
+pub const NUM_ARITH_TBLS: usize = 16;
+#[cfg (all (feature = "have_window_system", feature = "have_jpeg"))]
+pub const MAX_COMPS_IN_SCAN: usize = 4;
+#[cfg (all (feature = "have_window_system", feature = "have_jpeg"))]
+pub const D_MAX_BLOCKS_IN_MCU: usize = 10;
+/* C 9219-9221: `# define JPEG_STDIO_BUFFER_SIZE 8192`, and jerror.h's two message codes
+   (`JERR_INPUT_EOF` 44, `JWRN_JPEG_EOF` 123 - measured from the staged header).  */
+#[cfg (all (feature = "have_window_system", feature = "have_jpeg"))]
+pub const JPEG_STDIO_BUFFER_SIZE: usize = 8192;
+#[cfg (all (feature = "have_window_system", feature = "have_jpeg"))]
+pub const JERR_INPUT_EOF: c_int = 44;
+#[cfg (all (feature = "have_window_system", feature = "have_jpeg"))]
+pub const JWRN_JPEG_EOF: c_int = 123;
+
+/// C: jpeglib.h's `struct jpeg_error_mgr`.
+#[cfg (all (feature = "have_window_system", feature = "have_jpeg"))]
+#[repr(C)]
+pub struct jpeg_error_mgr
+{
+  pub error_exit: Option<unsafe extern "C" fn (cinfo: *mut jpeg_common_struct)>,
+  pub emit_message: Option<unsafe extern "C" fn (cinfo: *mut jpeg_common_struct,
+						  msg_level: c_int)>,
+  pub output_message: Option<unsafe extern "C" fn (cinfo: *mut jpeg_common_struct)>,
+  pub format_message: Option<unsafe extern "C" fn (cinfo: *mut jpeg_common_struct,
+						    buffer: *mut c_char)>,
+  pub reset_error_mgr: Option<unsafe extern "C" fn (cinfo: *mut jpeg_common_struct)>,
+  pub msg_code: c_int,
+  pub msg_parm: jpeg_msg_parm,
+  pub trace_level: c_int,
+  pub num_warnings: c_long,
+  pub jpeg_message_table: *const *const c_char,
+  pub last_jpeg_message: c_int,
+  pub addon_message_table: *const *const c_char,
+  pub first_addon_message: c_int,
+  pub last_addon_message: c_int,
+}
+/// C: jpeglib.h's `union { int i[8]; char s[JMSG_STR_PARM_MAX]; } msg_parm`.
+#[cfg (all (feature = "have_window_system", feature = "have_jpeg"))]
+#[repr(C)]
+pub union jpeg_msg_parm
+{
+  pub i: [c_int; 8],
+  pub s: [c_char; JMSG_STR_PARM_MAX],
+}
+
+/// C: jpeglib.h's `struct jpeg_common_struct` (the `jpeg_common_fields` macro).
+#[cfg (all (feature = "have_window_system", feature = "have_jpeg"))]
+#[repr(C)]
+pub struct jpeg_common_struct
+{
+  pub err: *mut jpeg_error_mgr,
+  pub mem: *mut jpeg_memory_mgr,
+  pub progress: *mut jpeg_progress_mgr,
+  pub client_data: *mut c_void,
+  pub is_decompressor: boolean,
+  pub global_state: c_int,
+}
+
+/// C: jpeglib.h's `struct jpeg_source_mgr` - the application-supplied data source.
+#[cfg (all (feature = "have_window_system", feature = "have_jpeg"))]
+#[repr(C)]
+pub struct jpeg_source_mgr
+{
+  pub next_input_byte: *const JOCTET,
+  pub bytes_in_buffer: usize,
+  pub init_source: Option<unsafe extern "C" fn (cinfo: *mut jpeg_decompress_struct)>,
+  pub fill_input_buffer: Option<unsafe extern "C" fn (cinfo: *mut jpeg_decompress_struct)
+						     -> boolean>,
+  pub skip_input_data: Option<unsafe extern "C" fn (cinfo: *mut jpeg_decompress_struct,
+						    num_bytes: c_long)>,
+  pub resync_to_restart: Option<unsafe extern "C" fn (cinfo: *mut jpeg_decompress_struct,
+						      desired: c_int) -> boolean>,
+  pub term_source: Option<unsafe extern "C" fn (cinfo: *mut jpeg_decompress_struct)>,
+}
+
+/// C: jpeglib.h's `struct jpeg_memory_mgr` - only pool allocation is used here.
+#[cfg (all (feature = "have_window_system", feature = "have_jpeg"))]
+#[repr(C)]
+pub struct jpeg_memory_mgr
+{
+  pub alloc_small: Option<unsafe extern "C" fn (cinfo: *mut jpeg_common_struct, pool_id: c_int,
+						sizeofobject: usize) -> *mut c_void>,
+  pub alloc_large: Option<unsafe extern "C" fn (cinfo: *mut jpeg_common_struct, pool_id: c_int,
+						sizeofobject: usize) -> *mut c_void>,
+  pub alloc_sarray: Option<unsafe extern "C" fn (cinfo: *mut jpeg_common_struct, pool_id: c_int,
+						 samplesperrow: JDIMENSION,
+						 numrows: JDIMENSION) -> JSAMPARRAY>,
+  pub alloc_barray: Option<unsafe extern "C" fn (cinfo: *mut jpeg_common_struct, pool_id: c_int,
+						 blocksperrow: JDIMENSION,
+						 numrows: JDIMENSION) -> *mut c_void>,
+  pub request_virt_sarray: Option<unsafe extern "C" fn (cinfo: *mut jpeg_common_struct,
+							pool_id: c_int, pre_zero: boolean,
+							samplesperrow: JDIMENSION,
+							numrows: JDIMENSION,
+							maxaccess: JDIMENSION) -> *mut c_void>,
+  pub request_virt_barray: Option<unsafe extern "C" fn (cinfo: *mut jpeg_common_struct,
+							pool_id: c_int, pre_zero: boolean,
+							blocksperrow: JDIMENSION,
+							numrows: JDIMENSION,
+							maxaccess: JDIMENSION) -> *mut c_void>,
+  pub realize_virt_arrays: Option<unsafe extern "C" fn (cinfo: *mut jpeg_common_struct)>,
+  pub access_virt_sarray: Option<unsafe extern "C" fn (cinfo: *mut jpeg_common_struct,
+						       ptr: *mut c_void, start_row: JDIMENSION,
+						       num_rows: JDIMENSION,
+						       writable: boolean) -> JSAMPARRAY>,
+  pub access_virt_barray: Option<unsafe extern "C" fn (cinfo: *mut jpeg_common_struct,
+						       ptr: *mut c_void, start_row: JDIMENSION,
+						       num_rows: JDIMENSION,
+						       writable: boolean) -> *mut c_void>,
+  pub free_pool: Option<unsafe extern "C" fn (cinfo: *mut jpeg_common_struct, pool_id: c_int)>,
+  pub self_destruct: Option<unsafe extern "C" fn (cinfo: *mut jpeg_common_struct)>,
+  pub max_memory_to_use: c_long,
+  pub max_alloc_chunk: c_long,
+}
+
+/* The header's incomplete records: only pointers to them are stored.  */
+#[cfg (all (feature = "have_window_system", feature = "have_jpeg"))]
+#[repr(C)] pub struct jpeg_progress_mgr { _private: [u8; 0] }
+#[cfg (all (feature = "have_window_system", feature = "have_jpeg"))]
+#[repr(C)] pub struct jpeg_component_info { _private: [u8; 0] }
+#[cfg (all (feature = "have_window_system", feature = "have_jpeg"))]
+#[repr(C)] pub struct jpeg_marker_struct { _private: [u8; 0] }
+#[cfg (all (feature = "have_window_system", feature = "have_jpeg"))]
+#[repr(C)] pub struct jpeg_decomp_master { _private: [u8; 0] }
+#[cfg (all (feature = "have_window_system", feature = "have_jpeg"))]
+#[repr(C)] pub struct jpeg_d_main_controller { _private: [u8; 0] }
+#[cfg (all (feature = "have_window_system", feature = "have_jpeg"))]
+#[repr(C)] pub struct jpeg_d_coef_controller { _private: [u8; 0] }
+#[cfg (all (feature = "have_window_system", feature = "have_jpeg"))]
+#[repr(C)] pub struct jpeg_d_post_controller { _private: [u8; 0] }
+#[cfg (all (feature = "have_window_system", feature = "have_jpeg"))]
+#[repr(C)] pub struct jpeg_input_controller { _private: [u8; 0] }
+#[cfg (all (feature = "have_window_system", feature = "have_jpeg"))]
+#[repr(C)] pub struct jpeg_marker_reader { _private: [u8; 0] }
+#[cfg (all (feature = "have_window_system", feature = "have_jpeg"))]
+#[repr(C)] pub struct jpeg_entropy_decoder { _private: [u8; 0] }
+#[cfg (all (feature = "have_window_system", feature = "have_jpeg"))]
+#[repr(C)] pub struct jpeg_inverse_dct { _private: [u8; 0] }
+#[cfg (all (feature = "have_window_system", feature = "have_jpeg"))]
+#[repr(C)] pub struct jpeg_upsampler { _private: [u8; 0] }
+#[cfg (all (feature = "have_window_system", feature = "have_jpeg"))]
+#[repr(C)] pub struct jpeg_color_deconverter { _private: [u8; 0] }
+#[cfg (all (feature = "have_window_system", feature = "have_jpeg"))]
+#[repr(C)] pub struct jpeg_color_quantizer { _private: [u8; 0] }
+
+/* C 9226-9261: `struct jpeg_decompress_struct`.  The three tables' element types are the
+   header's incomplete `JQUANT_TBL`/`JHUFF_TBL` records, so they are pointers here.  */
+/// C: jpeglib.h's `struct jpeg_decompress_struct` (the `jpeg_common_fields` prefix, then the
+/// decompression fields in the header's order).
+#[cfg (all (feature = "have_window_system", feature = "have_jpeg"))]
+#[repr(C)]
+pub struct jpeg_decompress_struct
+{
+  pub err: *mut jpeg_error_mgr,
+  pub mem: *mut jpeg_memory_mgr,
+  pub progress: *mut jpeg_progress_mgr,
+  pub client_data: *mut c_void,
+  pub is_decompressor: boolean,
+  pub global_state: c_int,
+
+  pub src: *mut jpeg_source_mgr,
+
+  pub image_width: JDIMENSION,
+  pub image_height: JDIMENSION,
+  pub num_components: c_int,
+  pub jpeg_color_space: J_COLOR_SPACE,
+
+  pub out_color_space: J_COLOR_SPACE,
+
+  pub scale_num: c_uint,
+  pub scale_denom: c_uint,
+
+  pub output_gamma: c_double,
+
+  pub buffered_image: boolean,
+  pub raw_data_out: boolean,
+
+  pub dct_method: J_DCT_METHOD,
+  pub do_fancy_upsampling: boolean,
+  pub do_block_smoothing: boolean,
+
+  pub quantize_colors: boolean,
+  pub dither_mode: J_DITHER_MODE,
+  pub two_pass_quantize: boolean,
+  pub desired_number_of_colors: c_int,
+  pub enable_1pass_quant: boolean,
+  pub enable_external_quant: boolean,
+  pub enable_2pass_quant: boolean,
+
+  pub output_width: JDIMENSION,
+  pub output_height: JDIMENSION,
+  pub out_color_components: c_int,
+  pub output_components: c_int,
+  pub rec_outbuf_height: c_int,
+
+  pub actual_number_of_colors: c_int,
+  pub colormap: JSAMPARRAY,
+
+  pub output_scanline: JDIMENSION,
+
+  pub input_scan_number: c_int,
+  pub input_iMCU_row: JDIMENSION,
+
+  pub output_scan_number: c_int,
+  pub output_iMCU_row: JDIMENSION,
+
+  pub coef_bits: *mut [c_int; DCTSIZE2],
+
+  pub quant_tbl_ptrs: [*mut c_void; NUM_QUANT_TBLS],
+  pub dc_huff_tbl_ptrs: [*mut c_void; NUM_HUFF_TBLS],
+  pub ac_huff_tbl_ptrs: [*mut c_void; NUM_HUFF_TBLS],
+
+  pub data_precision: c_int,
+  pub comp_info: *mut jpeg_component_info,
+
+  pub is_baseline: boolean,
+  pub progressive_mode: boolean,
+  pub arith_code: boolean,
+
+  pub arith_dc_L: [c_uchar; NUM_ARITH_TBLS],
+  pub arith_dc_U: [c_uchar; NUM_ARITH_TBLS],
+  pub arith_ac_K: [c_uchar; NUM_ARITH_TBLS],
+
+  pub restart_interval: c_uint,
+
+  pub saw_JFIF_marker: boolean,
+  pub JFIF_major_version: c_uchar,
+  pub JFIF_minor_version: c_uchar,
+  pub density_unit: c_uchar,
+  pub X_density: c_ushort,
+  pub Y_density: c_ushort,
+  pub saw_Adobe_marker: boolean,
+  pub Adobe_transform: c_uchar,
+
+  pub color_transform: J_COLOR_TRANSFORM,
+  pub LSE_maxtrans: c_ushort,
+
+  pub CCIR601_sampling: boolean,
+
+  pub marker_list: *mut jpeg_marker_struct,
+
+  pub max_h_samp_factor: c_int,
+  pub max_v_samp_factor: c_int,
+
+  pub min_DCT_h_scaled_size: c_int,
+  pub min_DCT_v_scaled_size: c_int,
+
+  pub total_iMCU_rows: JDIMENSION,
+
+  pub sample_range_limit: *mut JSAMPLE,
+
+  pub comps_in_scan: c_int,
+  pub cur_comp_info: [*mut jpeg_component_info; MAX_COMPS_IN_SCAN],
+
+  pub MCUs_per_row: JDIMENSION,
+  pub MCU_rows_in_scan: JDIMENSION,
+
+  pub blocks_in_MCU: c_int,
+  pub MCU_membership: [c_int; D_MAX_BLOCKS_IN_MCU],
+
+  pub Ss: c_int,
+  pub Se: c_int,
+  pub Ah: c_int,
+  pub Al: c_int,
+
+  pub block_size: c_int,
+  pub natural_order: *const c_int,
+  pub lim_Se: c_int,
+
+  pub unread_marker: c_int,
+
+  pub master: *mut jpeg_decomp_master,
+  pub main: *mut jpeg_d_main_controller,
+  pub coef: *mut jpeg_d_coef_controller,
+  pub post: *mut jpeg_d_post_controller,
+  pub inputctl: *mut jpeg_input_controller,
+  pub marker: *mut jpeg_marker_reader,
+  pub entropy: *mut jpeg_entropy_decoder,
+  pub idct: *mut jpeg_inverse_dct,
+  pub upsample: *mut jpeg_upsampler,
+  pub cconvert: *mut jpeg_color_deconverter,
+  pub cquantize: *mut jpeg_color_quantizer,
+}
+
+/* The measured layout these records must keep (clang `-offsetof` against the staged header,
+   2026-11-17).  A header or library upgrade that changes any of them fails the build here
+   instead of corrupting a decode.  */
+#[cfg (all (feature = "have_window_system", feature = "have_jpeg"))]
+const _: () = core::assert! (core::mem::size_of::<jpeg_error_mgr> () == 168);
+#[cfg (all (feature = "have_window_system", feature = "have_jpeg"))]
+const _: () = core::assert! (core::mem::offset_of! (jpeg_error_mgr, msg_code) == 40);
+#[cfg (all (feature = "have_window_system", feature = "have_jpeg"))]
+const _: () = core::assert! (core::mem::offset_of! (jpeg_error_mgr, num_warnings) == 128);
+#[cfg (all (feature = "have_window_system", feature = "have_jpeg"))]
+const _: () = core::assert! (core::mem::size_of::<jpeg_source_mgr> () == 56);
+#[cfg (all (feature = "have_window_system", feature = "have_jpeg"))]
+const _: () = core::assert! (core::mem::offset_of! (jpeg_source_mgr, bytes_in_buffer) == 8);
+#[cfg (all (feature = "have_window_system", feature = "have_jpeg"))]
+const _: () = core::assert! (core::mem::offset_of! (jpeg_source_mgr, fill_input_buffer) == 24);
+#[cfg (all (feature = "have_window_system", feature = "have_jpeg"))]
+const _: () = core::assert! (core::mem::offset_of! (jpeg_source_mgr, term_source) == 48);
+#[cfg (all (feature = "have_window_system", feature = "have_jpeg"))]
+const _: () = core::assert! (core::mem::size_of::<jpeg_decompress_struct> () == 664);
+#[cfg (all (feature = "have_window_system", feature = "have_jpeg"))]
+const _: () = core::assert! (core::mem::offset_of! (jpeg_decompress_struct, src) == 40);
+#[cfg (all (feature = "have_window_system", feature = "have_jpeg"))]
+const _: () = core::assert! (core::mem::offset_of! (jpeg_decompress_struct, out_color_space)
+			     == 64);
+#[cfg (all (feature = "have_window_system", feature = "have_jpeg"))]
+const _: () = core::assert! (core::mem::offset_of! (jpeg_decompress_struct, output_width) == 136);
+#[cfg (all (feature = "have_window_system", feature = "have_jpeg"))]
+const _: () = core::assert! (core::mem::offset_of! (jpeg_decompress_struct, output_height) == 140);
+#[cfg (all (feature = "have_window_system", feature = "have_jpeg"))]
+const _: () = core::assert! (core::mem::offset_of! (jpeg_decompress_struct, output_components)
+			     == 148);
+
+/* C: jpeglib.h's exported surface this loader calls.  */
+#[cfg (all (feature = "have_window_system", feature = "have_jpeg",
+	    not (feature = "windowsnt")))]
+unsafe extern "C" {
+  pub fn jpeg_CreateDecompress (cinfo: *mut jpeg_decompress_struct, version: c_int,
+				structsize: usize);
+  pub fn jpeg_start_decompress (cinfo: *mut jpeg_decompress_struct) -> boolean;
+  pub fn jpeg_finish_decompress (cinfo: *mut jpeg_decompress_struct) -> boolean;
+  pub fn jpeg_destroy_decompress (cinfo: *mut jpeg_decompress_struct);
+  pub fn jpeg_read_header (cinfo: *mut jpeg_decompress_struct, require_image: boolean) -> c_int;
+  pub fn jpeg_read_scanlines (cinfo: *mut jpeg_decompress_struct, scanlines: JSAMPARRAY,
+			      max_lines: JDIMENSION) -> JDIMENSION;
+  pub fn jpeg_std_error (err: *mut jpeg_error_mgr) -> *mut jpeg_error_mgr;
+  pub fn jpeg_resync_to_restart (cinfo: *mut jpeg_decompress_struct, desired: c_int) -> boolean;
+}
+
+/// C: C 9254-9267: `struct my_jpeg_error_mgr` - the error manager, the jump-back buffer and the
+/// decompression record the handler reads after `longjmp`.
+#[cfg (all (feature = "have_window_system", feature = "have_jpeg"))]
+#[repr(C)]
+pub struct my_jpeg_error_mgr
+{
+  pub r#pub: jpeg_error_mgr,
+  pub setjmp_buffer: sys_jmp_buf,
+
+  /* The remaining members are so that longjmp doesn't munge local
+     variables.  */
+  pub cinfo: jpeg_decompress_struct,
+  /* C's anonymous `enum { … } failure_code;` - the port's c_int plus the three constants.  */
+  pub failure_code: c_int,
+}
+
+#[cfg (all (feature = "have_window_system", feature = "have_jpeg"))]
+pub const MY_JPEG_ERROR_EXIT: c_int = 0;
+#[cfg (all (feature = "have_window_system", feature = "have_jpeg"))]
+pub const MY_JPEG_INVALID_IMAGE_SIZE: c_int = 1;
+#[cfg (all (feature = "have_window_system", feature = "have_jpeg"))]
+pub const MY_JPEG_CANNOT_CREATE_X: c_int = 2;
+
+/// C: C 9271-9277: `static AVOID my_error_exit (j_common_ptr cinfo)`
+#[cfg (all (feature = "have_window_system", feature = "have_jpeg",
+	    not (feature = "windowsnt")))]
+unsafe extern "C" fn my_error_exit (cinfo: *mut jpeg_common_struct)
+{
+  let mgr: *mut my_jpeg_error_mgr = (*cinfo).err as *mut my_jpeg_error_mgr;
+  (*mgr).failure_code = MY_JPEG_ERROR_EXIT;
+  sys_longjmp (&raw mut (*mgr).setjmp_buffer as *mut jmp_buf, 1);
+}
+
+/* Init source method for JPEG data source manager.  Called by
+   jpeg_read_header before any data is actually read.  See
+   libjpeg.doc from the JPEG lib distribution.  */
+
+/// C: C 9284-9286: `static void our_common_init_source (j_decompress_ptr cinfo)`
+#[cfg (all (feature = "have_window_system", feature = "have_jpeg",
+	    not (feature = "windowsnt")))]
+unsafe extern "C" fn our_common_init_source (cinfo: *mut jpeg_decompress_struct)
+{
+  /* C's body is empty: the whole image is already in memory or in `FILE *`.  */
+  let _ = cinfo;
+}
+
+/* Method to terminate data source.  Called by
+   jpeg_finish_decompress after all data has been processed.  */
+
+/// C: C 9291-9293: `static void our_common_term_source (j_decompress_ptr cinfo)`
+#[cfg (all (feature = "have_window_system", feature = "have_jpeg",
+	    not (feature = "windowsnt")))]
+unsafe extern "C" fn our_common_term_source (cinfo: *mut jpeg_decompress_struct)
+{
+  /* C's body is empty: nothing is owned by the source manager itself.  */
+  let _ = cinfo;
+}
+
+/* Fill input buffer method for JPEG data source manager.  Called
+   whenever more data is needed.  We read the whole image in one step,
+   so this only adds a fake end of input marker at the end.  */
+
+#[cfg (all (feature = "have_window_system", feature = "have_jpeg"))]
+static mut our_memory_buffer: [JOCTET; 2] = [0; 2];
+
+/// C: C 9301-9314: `static boolean our_memory_fill_input_buffer (j_decompress_ptr cinfo)`
+#[cfg (all (feature = "have_window_system", feature = "have_jpeg",
+	    not (feature = "windowsnt")))]
+unsafe extern "C" fn our_memory_fill_input_buffer (cinfo: *mut jpeg_decompress_struct) -> boolean
+{
+  /* Insert a fake EOI marker.  */
+  let src: *mut jpeg_source_mgr = (*cinfo).src;
+
+  *(&raw mut our_memory_buffer as *mut JOCTET) = 0xFF;
+  *(&raw mut our_memory_buffer as *mut JOCTET).offset (1) = JPEG_EOI as JOCTET;
+
+  (*src).next_input_byte = (&raw const our_memory_buffer) as *const JOCTET;
+  (*src).bytes_in_buffer = 2;
+  return 1;
+}
+
+/* Method to skip over NUM_BYTES bytes in the image data.  CINFO->src
+   is the JPEG data source manager.  */
+
+/// C: C 9320-9332: `static void our_memory_skip_input_data (j_decompress_ptr cinfo, long int num_bytes)`
+#[cfg (all (feature = "have_window_system", feature = "have_jpeg",
+	    not (feature = "windowsnt")))]
+unsafe extern "C" fn our_memory_skip_input_data (cinfo: *mut jpeg_decompress_struct,
+						mut num_bytes: c_long)
+{
+  let src: *mut jpeg_source_mgr = (*cinfo).src;
+
+  if !src.is_null ()
+    {
+      /* C's `num_bytes > src->bytes_in_buffer` converts the `long` to `size_t`; the cast is
+	 that conversion, and a negative request becomes the huge value C compares with.  */
+      if num_bytes as usize > (*src).bytes_in_buffer
+	{
+	  /* C's `ERREXIT (cinfo, JERR_INPUT_EOF)`.  */
+	  let err: *mut jpeg_error_mgr = (*cinfo).err;
+	  (*err).msg_code = JERR_INPUT_EOF;
+	  ((*err).error_exit.unwrap ()) (cinfo as *mut jpeg_common_struct);
+	}
+
+      (*src).bytes_in_buffer -= num_bytes as usize;
+      (*src).next_input_byte = (*src).next_input_byte.offset (num_bytes as isize);
+    }
+}
+
+/* Set up the JPEG lib for reading an image from DATA which contains
+   LEN bytes.  CINFO is the decompression info structure created for
+   reading the image.  */
+
+/// C: C 9338-9358: `static void jpeg_memory_src (j_decompress_ptr cinfo, JOCTET *data, ptrdiff_t len)`
+#[cfg (all (feature = "have_window_system", feature = "have_jpeg",
+	    not (feature = "windowsnt")))]
+unsafe fn jpeg_memory_src (cinfo: *mut jpeg_decompress_struct, data: *mut JOCTET,
+			   len: ptrdiff_t)
+{
+  let mut src: *mut jpeg_source_mgr = (*cinfo).src;
+
+  if src.is_null ()
+    {
+      /* First time for this JPEG object?  */
+      src = ((*(*cinfo).mem).alloc_small.unwrap ())
+	(cinfo as *mut jpeg_common_struct, JPOOL_PERMANENT,
+	 core::mem::size_of::<jpeg_source_mgr> ()) as *mut jpeg_source_mgr;
+      (*cinfo).src = src;
+      (*src).next_input_byte = data as *const JOCTET;
+    }
+
+  (*src).init_source = Some (our_common_init_source);
+  (*src).fill_input_buffer = Some (our_memory_fill_input_buffer);
+  (*src).skip_input_data = Some (our_memory_skip_input_data);
+  (*src).resync_to_restart = Some (jpeg_resync_to_restart); /* Use default method.  */
+  (*src).term_source = Some (our_common_term_source);
+  (*src).bytes_in_buffer = len as usize;
+  (*src).next_input_byte = data as *const JOCTET;
+}
+
+/// C: C 9361-9367: `struct jpeg_stdio_mgr`
+#[cfg (all (feature = "have_window_system", feature = "have_jpeg"))]
+#[repr(C)]
+pub struct jpeg_stdio_mgr
+{
+  pub mgr: jpeg_source_mgr,
+  pub finished: boolean,
+  pub file: *mut FILE,
+  pub buffer: *mut JOCTET,
+}
+
+/* Size of buffer to read JPEG from file.
+   Not too big, as we want to use alloc_small.  */
+/* C 9219: `#define JPEG_STDIO_BUFFER_SIZE 8192` - the constant above.  */
+
+/* Fill input buffer method for JPEG data source manager.  Called
+   whenever more data is needed.  The data is read from a FILE *.  */
+
+/// C: C 9377-9400: `static boolean our_stdio_fill_input_buffer (j_decompress_ptr cinfo)`
+#[cfg (all (feature = "have_window_system", feature = "have_jpeg",
+	    not (feature = "windowsnt")))]
+unsafe extern "C" fn our_stdio_fill_input_buffer (cinfo: *mut jpeg_decompress_struct) -> boolean
+{
+  let src: *mut jpeg_stdio_mgr = (*cinfo).src as *mut jpeg_stdio_mgr;
+
+  if (*src).finished == 0
+    {
+      let bytes: ptrdiff_t
+	= fread ((*src).buffer as *mut c_void, 1, JPEG_STDIO_BUFFER_SIZE, (*src).file)
+	  as ptrdiff_t;
+      if bytes > 0
+	{ (*src).mgr.bytes_in_buffer = bytes as usize; }
+      else
+	{
+	  /* C's `WARNMS (cinfo, JWRN_JPEG_EOF)`.  */
+	  let err: *mut jpeg_error_mgr = (*cinfo).err;
+	  (*err).msg_code = JWRN_JPEG_EOF;
+	  ((*err).emit_message.unwrap ()) (cinfo as *mut jpeg_common_struct, -1);
+	  (*src).finished = 1;
+	  *(*src).buffer = 0xFF;
+	  *(*src).buffer.offset (1) = JPEG_EOI as JOCTET;
+	  (*src).mgr.bytes_in_buffer = 2;
+	}
+      (*src).mgr.next_input_byte = (*src).buffer as *const JOCTET;
+    }
+
+  return 1;
+}
+
+/* Method to skip over NUM_BYTES bytes in the image data.  CINFO->src
+   is the JPEG data source manager.  */
+
+/// C: C 9406-9428: `static void our_stdio_skip_input_data (j_decompress_ptr cinfo, long int num_bytes)`
+#[cfg (all (feature = "have_window_system", feature = "have_jpeg",
+	    not (feature = "windowsnt")))]
+unsafe extern "C" fn our_stdio_skip_input_data (cinfo: *mut jpeg_decompress_struct,
+					       mut num_bytes: c_long)
+{
+  let src: *mut jpeg_stdio_mgr = (*cinfo).src as *mut jpeg_stdio_mgr;
+
+  while num_bytes > 0 && (*src).finished == 0
+    {
+      if num_bytes as usize <= (*src).mgr.bytes_in_buffer
+	{
+	  (*src).mgr.bytes_in_buffer -= num_bytes as usize;
+	  (*src).mgr.next_input_byte = (*src).mgr.next_input_byte.offset (num_bytes as isize);
+	  break;
+	}
+      else
+	{
+	  num_bytes -= (*src).mgr.bytes_in_buffer as c_long;
+	  (*src).mgr.bytes_in_buffer = 0;
+	  (*src).mgr.next_input_byte = core::ptr::null ();
+	  our_stdio_fill_input_buffer (cinfo);
+	}
+    }
+}
+
+/* Set up the JPEG lib for reading an image from a FILE *.
+   CINFO is the decompression info structure created for
+   reading the image.  */
+
+/// C: C 9434-9461: `static void jpeg_file_src (j_decompress_ptr cinfo, FILE *fp)`
+#[cfg (all (feature = "have_window_system", feature = "have_jpeg",
+	    not (feature = "windowsnt")))]
+unsafe fn jpeg_file_src (cinfo: *mut jpeg_decompress_struct, fp: *mut FILE)
+{
+  let mut src: *mut jpeg_stdio_mgr = (*cinfo).src as *mut jpeg_stdio_mgr;
+
+  if src.is_null ()
+    {
+      /* First time for this JPEG object?  */
+      src = ((*(*cinfo).mem).alloc_small.unwrap ())
+	(cinfo as *mut jpeg_common_struct, JPOOL_PERMANENT,
+	 core::mem::size_of::<jpeg_stdio_mgr> ()) as *mut jpeg_stdio_mgr;
+      (*cinfo).src = src as *mut jpeg_source_mgr;
+      (*src).buffer = ((*(*cinfo).mem).alloc_small.unwrap ())
+	(cinfo as *mut jpeg_common_struct, JPOOL_PERMANENT, JPEG_STDIO_BUFFER_SIZE)
+	as *mut JOCTET;
+    }
+
+  (*src).file = fp;
+  (*src).finished = 0;
+  (*src).mgr.init_source = Some (our_common_init_source);
+  (*src).mgr.fill_input_buffer = Some (our_stdio_fill_input_buffer);
+  (*src).mgr.skip_input_data = Some (our_stdio_skip_input_data);
+  (*src).mgr.resync_to_restart = Some (jpeg_resync_to_restart); /* Use default.  */
+  (*src).mgr.term_source = Some (our_common_term_source);
+  (*src).mgr.bytes_in_buffer = 0;
+  (*src).mgr.next_input_byte = core::ptr::null ();
+}
+
+/* Load image IMG for use on frame F.  Patterned after example.c
+   from the JPEG lib.  */
+
+/// C: C 9467-9469: `static bool jpeg_load_body (struct frame *f, struct image *img, struct my_jpeg_error_mgr *mgr)`
+#[cfg (all (feature = "have_window_system", feature = "have_jpeg",
+	    not (feature = "windowsnt")))]
+unsafe fn jpeg_load_body (f: *mut frame, img: *mut image, mgr: *mut my_jpeg_error_mgr) -> bool
+{
+  let specified_file: Lisp_Object;
+  let specified_data: Lisp_Object;
+  let mut fp: *mut FILE = core::ptr::null_mut ();
+  let mut buffer: JSAMPARRAY;
+  let mut row_stride: c_int;
+  let mut x: c_int;
+  let mut y: c_int;
+  let mut width: c_int;
+  let mut height: c_int;
+  let mut ncomp: c_int;
+  let mut ir: c_int;
+  let mut ig: c_int;
+  let mut ib: c_int;
+  /* C's `Emacs_Pix_Container volatile ximg_volatile = NULL;` - the `volatile` is what lets the
+     handler see the value written after `setjmp`, so the port stores and loads it with
+     `write_volatile`/`read_volatile` on the same local.  */
+  let mut ximg_volatile: Emacs_Pix_Container = core::ptr::null_mut ();
+
+  /* Open the JPEG file.  */
+  specified_file = image_spec_value ((*img).spec, QCfile (), core::ptr::null_mut ());
+  specified_data = image_spec_value ((*img).spec, QCdata (), core::ptr::null_mut ());
+
+  if NILP (specified_data)
+    {
+      let mut fd: c_int = 0;
+      let file: Lisp_Object = image_find_image_file (specified_file);
+      let mut bad: bool = !STRINGP (file);
+      if !bad
+	{
+	  fd = emacs_open (SSDATA (ENCODE_FILE (file)), O_RDONLY, 0);
+	  bad = fd < 0;
+	}
+      if bad
+	{
+	  image_not_found_error (specified_file);
+	  return false;
+	}
+
+      fp = emacs_fdopen (fd, c"rb".as_ptr ());
+      if fp.is_null ()
+	{
+	  image_error (c"Cannot open `%s'".as_ptr (), file);
+	  return false;
+	}
+    }
+  else if !STRINGP (specified_data)
+    {
+      image_invalid_data_error (specified_data);
+      return false;
+    }
+
+  /* Customize libjpeg's error handling to call my_error_exit when an
+     error is detected.  This function will perform a longjmp.  */
+  (*mgr).cinfo.err = jpeg_std_error (&raw mut (*mgr).r#pub);
+  (*mgr).r#pub.error_exit = Some (my_error_exit);
+  if sys_setjmp (&raw mut (*mgr).setjmp_buffer as *mut jmp_buf) != 0
+    {
+      'switch_failure:
+      {
+	match (*mgr).failure_code
+	  {
+	    MY_JPEG_ERROR_EXIT =>
+	      {
+		let mut buf: [c_char; JMSG_LENGTH_MAX as usize]
+		  = [0; JMSG_LENGTH_MAX as usize];
+		((*(*mgr).cinfo.err).format_message.unwrap ())
+		  (&raw mut (*mgr).cinfo as *mut jpeg_common_struct, buf.as_mut_ptr ());
+		image_error (c"Error reading JPEG image `%s': %s".as_ptr (), (*img).spec,
+			     build_string (buf.as_ptr ()));
+		break 'switch_failure;
+	      }
+	    MY_JPEG_INVALID_IMAGE_SIZE =>
+	      {
+		image_size_error ();
+		break 'switch_failure;
+	      }
+	    MY_JPEG_CANNOT_CREATE_X =>
+	      { break 'switch_failure; }
+	    _ => {}
+	  }
+      }
+
+      /* Close the input file and destroy the JPEG object.  */
+      if !fp.is_null ()
+	{ emacs_fclose! (fp); }
+      jpeg_destroy_decompress (&raw mut (*mgr).cinfo);
+
+      /* If we already have an XImage, free that.  */
+      let ximg: Emacs_Pix_Container = core::ptr::read_volatile (&raw const ximg_volatile);
+      if !ximg.is_null ()
+	{ image_destroy_x_image (ximg); }
+      /* Free pixmap and colors.  */
+      image_clear_image (f, img);
+      return false;
+    }
+
+  /* Create the JPEG decompression object.  Let it read from fp.
+	 Read the JPEG image header.  */
+  jpeg_CreateDecompress (&raw mut (*mgr).cinfo, JPEG_LIB_VERSION,
+			 core::mem::size_of::<jpeg_decompress_struct> ());
+
+  if NILP (specified_data)
+    { jpeg_file_src (&raw mut (*mgr).cinfo, fp); }
+  else
+    { jpeg_memory_src (&raw mut (*mgr).cinfo, SDATA (specified_data) as *mut JOCTET,
+		       SBYTES (specified_data)); }
+
+  jpeg_read_header (&raw mut (*mgr).cinfo, 1);
+
+  /* Start decompression.  */
+  jpeg_start_decompress (&raw mut (*mgr).cinfo);
+  (*img).width = (*mgr).cinfo.output_width as c_int;
+  width = (*img).width;
+  (*img).height = (*mgr).cinfo.output_height as c_int;
+  height = (*img).height;
+  ncomp = (*mgr).cinfo.output_components;
+  if ncomp > 2
+    { ir = 0; ig = 1; ib = 2; }
+  else if ncomp > 1
+    { ir = 0; ig = 1; ib = 0; }
+  else
+    { ir = 0; ig = 0; ib = 0; }
+
+  if !check_image_size (f, width, height)
+    {
+      (*mgr).failure_code = MY_JPEG_INVALID_IMAGE_SIZE;
+      sys_longjmp (&raw mut (*mgr).setjmp_buffer as *mut jmp_buf, 1);
+    }
+
+  /* Create X image and pixmap.  */
+  let mut ximg: Emacs_Pix_Container = core::ptr::null_mut ();
+  let ximg_ok: bool = image_create_x_image_and_pixmap (f, img, width, height, 0,
+						       &raw mut ximg, false);
+  core::ptr::write_volatile (&raw mut ximg_volatile, ximg);
+  if !ximg_ok
+    {
+      (*mgr).failure_code = MY_JPEG_CANNOT_CREATE_X;
+      sys_longjmp (&raw mut (*mgr).setjmp_buffer as *mut jmp_buf, 1);
+    }
+
+  /* Allocate scanlines buffer and Emacs color table.  */
+  row_stride = width * ncomp;
+  buffer = ((*(*mgr).cinfo.mem).alloc_sarray.unwrap ())
+    (&raw mut (*mgr).cinfo as *mut jpeg_common_struct, JPOOL_IMAGE,
+     row_stride as JDIMENSION, 1);
+  init_color_table ();
+
+  /* Fill the X image from JPEG data.  */
+  y = 0;
+  while y < height
+    {
+      jpeg_read_scanlines (&raw mut (*mgr).cinfo, buffer, 1);
+      x = 0;
+      while x < width
+	{
+	  let off: c_int = x * ncomp;
+	  /* Multiply RGB values with 255 because X expects RGB values
+	     in the range 0..0xffff.  */
+	  let r: c_int = (*(*buffer).offset (off as isize + ir as isize) as c_int) << 8;
+	  let g: c_int = (*(*buffer).offset (off as isize + ig as isize) as c_int) << 8;
+	  let b: c_int = (*(*buffer).offset (off as isize + ib as isize) as c_int) << 8;
+	  PUT_PIXEL! (ximg, x, y, lookup_rgb_color (f, r, g, b));
+	  x += 1;
+	}
+      y += 1;
+    }
+
+  /* C 9581-9586: `#ifdef COLOR_TABLE_SUPPORT` - the same condition `pbm_load` carries.  */
+  #[cfg (all (feature = "have_window_system", feature = "have_x_windows",
+	      not (any (feature = "have_ntgui", feature = "use_cairo",
+			feature = "have_ns"))))]
+  {
+    /* Remember those colors actually allocated.  */
+    (*img).colors = colors_in_color_table (&raw mut (*img).ncolors);
+    free_color_table ();
+  }
+
+  /* Clean up.  */
+  jpeg_finish_decompress (&raw mut (*mgr).cinfo);
+  jpeg_destroy_decompress (&raw mut (*mgr).cinfo);
+  if !fp.is_null ()
+    { emacs_fclose! (fp); }
+
+  /* Maybe fill in the background field while we have ximg handy. */
+  if NILP (image_spec_value ((*img).spec, QCbackground (), core::ptr::null_mut ()))
+    { IMAGE_BACKGROUND! (img, f, PIX_CONTAINER_TO_CONTEXT! (ximg)); }
+
+  /* Put ximg into the image.  */
+  image_put_x_image (f, img, ximg, false);
+  return true;
+}
+
+/// C: C 9671-9675: `static bool jpeg_load (struct frame *f, struct image *img)`
+#[cfg (all (feature = "have_window_system", feature = "have_jpeg",
+	    not (feature = "windowsnt")))]
+unsafe extern "C" fn jpeg_load (f: *mut frame, img: *mut image) -> bool
+{
+  /* C's `struct my_jpeg_error_mgr mgr;` - zeroed so the record starts from the same state C's
+     first writes leave (PORTING.md 1.5).  */
+  let mut mgr: my_jpeg_error_mgr = core::mem::zeroed ();
+  return jpeg_load_body (f, img, &raw mut mgr);
+}
+
+
+/***********************************************************************
 				Tests
  ***********************************************************************/
 
