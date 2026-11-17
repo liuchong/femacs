@@ -1455,15 +1455,24 @@ unsafe fn child_setup (in_: c_int, out: c_int, err: c_int, new_argv: *mut *mut c
 
   /* C's `setpgid (0, 0);` and `tcsetpgrp (0, pid);` — the same calls with the
      same arguments and the same discarded results.  The observation channel
-     reads the return values without altering either call.  */
+     reads the return values without altering either call, and only when it is
+     enabled does it look at any of them.  */
   let pg_result: c_int;
   let tty_result: c_int;
-  pg_result = setpgid (0, 0);
-  let pg_error: c_int = if pg_result < 0 { *errno () } else { 0 };
-  tty_result = tcsetpgrp (0, pid);
-  let tty_error: c_int = if tty_result < 0 { *errno () } else { 0 };
-  child_diagnostic_group_setup (pid, pg_result, pg_error, tty_result, tty_error,
-				 (in_, out, err), isatty (in_));
+  if SPAWN_DIAGNOSTIC_FD >= 0
+    {
+      pg_result = setpgid (0, 0);
+      let pg_error: c_int = if pg_result < 0 { *errno () } else { 0 };
+      tty_result = tcsetpgrp (0, pid);
+      let tty_error: c_int = if tty_result < 0 { *errno () } else { 0 };
+      child_diagnostic_group_setup (pid, pg_result, pg_error, tty_result, tty_error,
+				    (in_, out, err));
+    }
+  else
+    {
+      setpgid (0, 0);
+      tcsetpgrp (0, pid);
+    }
 
   let errnum: c_int = emacs_exec_file (*new_argv, new_argv, env);
   exec_failed (*new_argv, errnum);
@@ -1609,90 +1618,128 @@ unsafe fn emacs_posix_spawn_init_attributes (attributes: *mut posix_spawnattr_t,
    The channel below records the real results without touching the measured
    stdout/stderr (a shell diagnostic written there ends up inside command
    output and corrupts transferred data), without allocating after the fork
-   (the file is opened in the parent before it, and the line is formatted into
-   a stack buffer with plain `write`), and without changing any process group.
+   (the parent opens the file and formats nothing in the child beyond one
+   `write` from a stack buffer), and without changing any process group.
 
-   Off by default: `FEMACS_SPAWN_DIAGNOSTIC` names the file to append to.  */
+   Off by default: `FEMACS_SPAWN_DIAGNOSTIC` names the file to append to.  When
+   it is unset the whole observation is skipped: no `isatty`, no `getpgrp`,
+   no file open and no static touched.
+
+   File-descriptor lifecycle: every `emacs_spawn` call opens its own descriptor,
+   moves it to `>= 3` with `F_DUPFD_CLOEXEC` (so it can never alias the 0/1/2
+   the child installs, and the loader closes it on a successful exec), and the
+   parent closes it on every exit path — including the failure and the
+   posix_spawn branch.  The child inherits a copy; it never closes it itself
+   because both `exec` (close-on-exec) and `_exit` do.  `SPAWN_DIAGNOSTIC_FD`
+   only carries the current call's descriptor to the forked child and is
+   restored to the caller's value afterwards, so a nested spawn cannot lose
+   the outer channel.  */
 static mut SPAWN_DIAGNOSTIC_FD: c_int = -1;
 
-/// C: `emacs_spawn`'s child side, process-group setup observation only.
-unsafe fn child_diagnostic_group_setup (pid: pid_t, setpgid_result: c_int,
-				       setpgid_error: c_int, tcsetpgrp_result: c_int,
-				       tcsetpgrp_error: c_int, fds: (c_int, c_int, c_int),
-				       terminal: c_int)
+/// C: the parent-side branch that actually ran, so "no child line" is
+/// distinguishable from "the child path was never taken".
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum SpawnBranch { PosixSpawn, Fork, Vfork }
+impl SpawnBranch {
+  fn name (self) -> &'static [u8]
+  {
+    match self
+      {
+	SpawnBranch::PosixSpawn => b"posix_spawn",
+	SpawnBranch::Fork => b"fork",
+	SpawnBranch::Vfork => b"vfork",
+      }
+  }
+}
+
+/// One diagnostic field: literal text after the label, or a decimal number.
+#[derive(Clone, Copy)]
+enum DiagnosticField<'a> { Text (&'a [u8]), Number (i64) }
+
+/// Write one diagnostic line with a single `write`: a stack buffer, decimal
+/// formatting by hand, no allocation and no libc formatting anywhere.
+unsafe fn spawn_diagnostic_write (fd: c_int, label: &[u8], fields: &[(&[u8], DiagnosticField)])
 {
-  if SPAWN_DIAGNOSTIC_FD < 0 { return; }
-  /*
-    A single-pass formatter: `child_diagnostic_push`/`_int` are called through
-    the module-level helpers and the running length lives in this local, so no
-    closure captures it mutably twice.
-  */
-  let mut buf: [u8; 256] = [0; 256];
+  let mut buf: [u8; 384] = [0; 384];
   let base: *mut u8 = buf.as_mut_ptr ();
   let mut length: usize = 0;
-  macro_rules! push {
-    ($buf:expr, $length:expr, $text:expr) => {
-      for byte in $text.iter ()
+  for byte in label.iter ()
+    {
+      *base.offset (length as isize) = *byte;
+      length += 1;
+    }
+  for (name, field) in fields
+    {
+      for byte in name.iter ()
 	{
-	  *$buf.offset (*$length as isize) = *byte;
-	  *$length += 1;
+	  *base.offset (length as isize) = *byte;
+	  length += 1;
 	}
-    };
-  }
-  macro_rules! push_int {
-    ($buf:expr, $length:expr, $value:expr) => {
-      {
-	let mut digits: [u8; 24] = [0; 24];
-	let mut count: usize = 0;
-	let mut value: i64 = $value;
-	let negative: bool = value < 0;
-	if negative { push! ($buf, $length, b"-"); value = -value; }
-	loop
-	  {
-	    digits[count] = b'0' + (value % 10) as u8;
-	    count += 1;
-	    value /= 10;
-	    if value == 0 { break; }
-	  }
-	while count > 0
-	  {
-	    count -= 1;
-	    *$buf.offset (*$length as isize) = digits[count];
-	    *$length += 1;
-	  }
-      }
-    };
-  }
-  push! (base, &raw mut length, b"spawn-group pid=");
-  push_int! (base, &raw mut length, pid as i64);
-  push! (base, &raw mut length, b" ppid=");
-  push_int! (base, &raw mut length, getppid () as i64);
-  push! (base, &raw mut length, b" pgid=");
-  push_int! (base, &raw mut length, getpgrp () as i64);
-  push! (base, &raw mut length, b" sid=");
-  push_int! (base, &raw mut length, getsid (0) as i64);
-  push! (base, &raw mut length, b" fg=");
-  push_int! (base, &raw mut length, tcgetpgrp (0) as i64);
-  push! (base, &raw mut length, b" setpgid=");
-  push_int! (base, &raw mut length, setpgid_result as i64);
-  push! (base, &raw mut length, b" setpgid_errno=");
-  push_int! (base, &raw mut length, setpgid_error as i64);
-  push! (base, &raw mut length, b" tcsetpgrp_arg=");
-  push_int! (base, &raw mut length, pid as i64);
-  push! (base, &raw mut length, b" tcsetpgrp=");
-  push_int! (base, &raw mut length, tcsetpgrp_result as i64);
-  push! (base, &raw mut length, b" tcsetpgrp_errno=");
-  push_int! (base, &raw mut length, tcsetpgrp_error as i64);
-  push! (base, &raw mut length, b" in=");
-  push_int! (base, &raw mut length, fds.0 as i64);
-  push! (base, &raw mut length, b" out=");
-  push_int! (base, &raw mut length, fds.1 as i64);
-  push! (base, &raw mut length, b" err=");
-  push_int! (base, &raw mut length, fds.2 as i64);
-  push! (base, &raw mut length, b" isatty=");
-  push_int! (base, &raw mut length, terminal as i64);
-  push! (base, &raw mut length, b"\n");
-  let _ = write (SPAWN_DIAGNOSTIC_FD, base as *const c_void, length);
+      match *field
+	{
+	  DiagnosticField::Text (text) =>
+	    {
+	      for byte in text.iter ()
+		{
+		  *base.offset (length as isize) = *byte;
+		  length += 1;
+		}
+	    }
+	  DiagnosticField::Number (value) =>
+	    {
+	      let mut digits: [u8; 24] = [0; 24];
+	      let mut count: usize = 0;
+	      let mut magnitude: i64 = if value < 0 { -value } else { value };
+	      if value < 0 { *base.offset (length as isize) = b'-'; length += 1; }
+	      loop
+		{
+		  digits[count] = b'0' + (magnitude % 10) as u8;
+		  count += 1;
+		  magnitude /= 10;
+		  if magnitude == 0 { break; }
+		}
+	      while count > 0
+		{
+		  count -= 1;
+		  *base.offset (length as isize) = digits[count];
+		  length += 1;
+		}
+	    }
+	}
+    }
+  *base.offset (length as isize) = b'\n';
+  length += 1;
+  let _ = write (fd, base as *const c_void, length);
+}
+
+/// C: `emacs_spawn`'s child side, process-group setup observation only.
+/// `dup2` has already installed 0/1/2, so `isatty (0)` is the descriptor the
+/// inferior actually got.  No allocation, no `open`, no process-group change;
+/// `errno` is preserved so the reference's later reads see what it expects.
+unsafe fn child_diagnostic_group_setup (pid: pid_t, setpgid_result: c_int,
+				       setpgid_error: c_int, tcsetpgrp_result: c_int,
+				       tcsetpgrp_error: c_int, fds: (c_int, c_int, c_int))
+{
+  let fd: c_int = SPAWN_DIAGNOSTIC_FD;
+  if fd < 0 { return; }
+  let saved_errno: c_int = *errno ();
+  spawn_diagnostic_write (fd, b"spawn-group", &[
+    (b" pid=", DiagnosticField::Number (pid as i64)),
+    (b" ppid=", DiagnosticField::Number (getppid () as i64)),
+    (b" pgid=", DiagnosticField::Number (getpgrp () as i64)),
+    (b" sid=", DiagnosticField::Number (getsid (0) as i64)),
+    (b" fg0=", DiagnosticField::Number (tcgetpgrp (0) as i64)),
+    (b" setpgid=", DiagnosticField::Number (setpgid_result as i64)),
+    (b" setpgid_errno=", DiagnosticField::Number (setpgid_error as i64)),
+    (b" tcsetpgrp_arg=", DiagnosticField::Number (pid as i64)),
+    (b" tcsetpgrp=", DiagnosticField::Number (tcsetpgrp_result as i64)),
+    (b" tcsetpgrp_errno=", DiagnosticField::Number (tcsetpgrp_error as i64)),
+    (b" in=", DiagnosticField::Number (fds.0 as i64)),
+    (b" out=", DiagnosticField::Number (fds.1 as i64)),
+    (b" err=", DiagnosticField::Number (fds.2 as i64)),
+    (b" isatty0=", DiagnosticField::Number (isatty (STDIN_FILENO) as i64)),
+  ]);
+  *errno () = saved_errno;
 }
 
 /* Start a new asynchronous subprocess.  If successful, return zero
@@ -1772,15 +1819,30 @@ pub unsafe extern "C" fn emacs_spawn (mut newpid: *mut pid_t, mut std_in: c_int,
 
   eassert! (input_blocked_p ());
 
-  /* Open the child diagnostic channel here, in the parent: the child then
-     needs only `write`, so nothing allocates or opens after the fork.  */
+  /* Open this call's diagnostic descriptor in the parent, before the fork:
+     the child then needs only `write`, so nothing allocates or opens after it.
+     `F_DUPFD_CLOEXEC` puts the copy at `>= 4`, so it can never alias the 0/1/2
+     the child installs, and a successful `exec` closes it in the child.  The
+     parent owns the original and closes it on every exit path below.  */
+  let mut diagnostic_fd: c_int = -1;
   {
     let diagnostic: *const c_char = getenv (c"FEMACS_SPAWN_DIAGNOSTIC".as_ptr ());
     if !diagnostic.is_null () && *diagnostic != 0
       {
-	SPAWN_DIAGNOSTIC_FD = emacs_open (diagnostic, O_WRONLY | O_CREAT | O_APPEND, 0o644);
+	let opened: c_int = emacs_open (diagnostic, O_WRONLY | O_CREAT | O_APPEND, 0o644);
+	if opened >= 0
+	  {
+	    let duplicated: c_int = fcntl (opened, F_DUPFD_CLOEXEC, 4 as c_int);
+	    emacs_close (opened);
+	    if duplicated >= 0 { diagnostic_fd = duplicated; }
+	  }
       }
   }
+
+  /* The forked child reads the channel through this static; the caller's
+     value is put back after the fork so nested spawns cannot lose it.  */
+  let outer_diagnostic_fd: c_int = SPAWN_DIAGNOSTIC_FD;
+  SPAWN_DIAGNOSTIC_FD = diagnostic_fd;
 
   'fork_done: loop
     {
@@ -1950,6 +2012,32 @@ pub unsafe extern "C" fn emacs_spawn (mut newpid: *mut pid_t, mut std_in: c_int,
       vfork_error = if pid < 0 { *errno () } else { 0 };
 
       break 'fork_done;
+    }
+
+  SPAWN_DIAGNOSTIC_FD = outer_diagnostic_fd;
+
+  /* Record which branch actually ran, so an empty log is never mistaken for a
+     successful measurement.  The parent writes this line, never the child.  */
+  if diagnostic_fd >= 0
+    {
+      /* `use_posix_spawn` only exists where the derived feature allows it.  */
+      #[cfg (not (feature = "not_usable_posix_spawn"))]
+      let branch: SpawnBranch = if use_posix_spawn { SpawnBranch::PosixSpawn }
+	                        else if pty_in || pty_out { SpawnBranch::Fork }
+	                        else { SpawnBranch::Vfork };
+      #[cfg (feature = "not_usable_posix_spawn")]
+      let branch: SpawnBranch = if pty_in || pty_out { SpawnBranch::Fork }
+	                        else { SpawnBranch::Vfork };
+      /* The observation must not perturb the caller's errno.  */
+      let saved_errno: c_int = *errno ();
+      spawn_diagnostic_write (diagnostic_fd, b"spawn-parent", &[
+	(b" branch=", DiagnosticField::Text (branch.name ())),
+	(b" pid=", DiagnosticField::Number (pid as i64)),
+	(b" error=", DiagnosticField::Number (vfork_error as i64)),
+	(b" pty_in=", DiagnosticField::Number (pty_in as i64)),
+	(b" pty_out=", DiagnosticField::Number (pty_out as i64))]);
+      emacs_close (diagnostic_fd);
+      *errno () = saved_errno;
     }
 
   if pid < 0
