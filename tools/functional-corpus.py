@@ -173,6 +173,68 @@ def case_verdict(baseline, observed):
     return 'pending-condition-diff'
 
 
+def materialize_corpus(suite, batch, corpus, manifest, entries, out):
+    """Copy the selected sources and their fixtures into OUT/corpus.
+
+    The stable corpus keeps the 31.1 test bodies in
+    ``compatibility/stable-31.1/`` and their fixture files (``*-resources``,
+    ``test/data``) in the repository's own ``test/`` tree.  A file loaded from
+    the compatibility copy resolves ``ert-resource-file`` next to *itself*, so
+    the upstream-level lane cannot reach those fixtures unless they are
+    materialized beside the loaded file.  This does exactly that, verifies every
+    copied byte against the manifest identity, and records the overlay so the
+    run's evidence names the inputs it actually used instead of a scratch tree.
+    """
+    import shutil
+    overlay = out / 'corpus'
+    overlay.mkdir()
+    records = {'files': [], 'symlinks': []}
+    prefix = Path('compatibility/stable-31.1')
+    selected = list(entries)
+    fixture_paths = []
+    for entry in selected:
+        fixture_paths.extend(batch._fixture_entries(manifest, entry['path']))
+    by_path = {}
+    for entry in list(selected) + fixture_paths:
+        by_path[entry['path']] = entry
+    for entry in by_path.values():
+        relative = Path(entry['source_path'])
+        source = corpus / relative
+        if not source.is_file():
+            raise SystemExit('corpus overlay source is missing: %s' % source)
+        data = source.read_bytes()
+        if len(data) != entry['size'] or digest(source) != entry['sha256']:
+            raise SystemExit('corpus overlay source identity differs: %s' % source)
+        targets = [overlay / relative]
+        # A fixture that lives in the repository test tree also belongs next to
+        # the compatibility copy of the test file that loads it.
+        if relative.parts and relative.parts[0] == 'test':
+            targets.append(overlay / prefix / relative)
+        for target in targets:
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_bytes(data)
+            target.chmod(int(entry['mode'], 8) & 0o777)
+            records['files'].append(dict(path=str(target.relative_to(overlay)),
+                                         bytes=len(data), sha256=digest(target),
+                                         mode=entry['mode']))
+    for name in ('test', 'lisp', 'src'):
+        source = corpus / name
+        if not source.is_dir():
+            continue
+        link = overlay / name
+        if link.exists():
+            continue
+        link.symlink_to(source, target_is_directory=True)
+        records['symlinks'].append(dict(name=name, target=str(source)))
+    identity = dict(schema='femacs-corpus-overlay-v1', root=str(overlay),
+                    source_corpus=str(corpus), manifest_sha256=digest(
+                        corpus / 'compatibility/stable-31.1/sources.json'),
+                    files=records['files'], symlinks=records['symlinks'],
+                    rules='manifest-identical source and fixture copies; repository trees linked read-only')
+    (out / 'corpus-overlay.json').write_text(json.dumps(identity, indent=1) + '\n')
+    return overlay, identity
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--program', type=Path, required=True)
@@ -188,6 +250,9 @@ def main(argv=None):
     parser.add_argument('--rejudge', type=Path,
                         help='re-judge an existing run directory from its raw per-file summaries')
     parser.add_argument('--timeout', type=float, default=SAFE_LIMIT)
+    parser.add_argument('--materialize-fixtures', action='store_true',
+                        help='build an identity-checked corpus overlay with the manifest '
+                             'fixtures next to the loaded test file')
     parser.add_argument('--runner', type=Path,
                         default=REPO / 'tools/fixtures/stable-suite-runner.el')
     args = parser.parse_args(argv)
@@ -329,6 +394,10 @@ def main(argv=None):
     out.mkdir(parents=True, exist_ok=False)
     (out / 'results').mkdir()
     (out / 'logs').mkdir()
+    overlay = None
+    if args.materialize_fixtures:
+        overlay, overlay_identity = materialize_corpus(suite, batch, corpus, manifest, entries, out)
+        corpus = overlay
     base_env = {key: value for key, value in os.environ.items() if not key.startswith('FEMACS_')}
     base_env.update(LC_ALL='C', LANG='C', TERM='dumb')
 
@@ -336,6 +405,9 @@ def main(argv=None):
                    program=dict(path=str(paths['program']), sha256=digest(paths['program'])),
                    dump=dict(path=str(paths['dump']), sha256=digest(paths['dump'])),
                    library=str(library), manifest=dict(path=str(manifest_path), sha256=digest(manifest_path)),
+                   corpus=dict(path=str(corpus), materialized=None if overlay is None
+                               else str(overlay), identity=None if overlay is None
+                               else overlay_identity),
                    baseline=None if baseline is None else str(args.baseline_run),
                    files=[], counts={})
     counts = {name: 0 for name in

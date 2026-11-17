@@ -8,7 +8,7 @@ the result with the already closed strict reference baseline.
 """
 from __future__ import annotations
 
-import argparse, json, sys
+import argparse, json, os, sys
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parent.parent
@@ -51,6 +51,15 @@ def main(argv=None):
     env = {'FEMACS_GC_OBSERVATION': 'off'}
     paths = suite._product_paths(args.program, ['--dump-file=' + str(args.dump.resolve())], env)
     paths['test_environment'] = {}
+    # The installed reference application keeps its Lisp library outside the
+    # bundle (P-464: `/Applications/Emacs.app/Contents/Resources/lisp` does not
+    # exist in this layout), so its product paths need the verified library
+    # root the reference selection receipt records.  `FEMACS_REFERENCE_LISP`
+    # supplies it for the reference side only; the candidate keeps its own
+    # build-tree root.
+    reference_env = {'FEMACS_GC_OBSERVATION': 'off'}
+    if os.environ.get('FEMACS_REFERENCE_LISP'):
+        reference_env['FEMACS_STABLE_PRODUCT_LISP'] = os.environ['FEMACS_REFERENCE_LISP']
     baseline_root = args.baseline_run.resolve()
     context = baseline_root / 'source-context.json'
     if not context.is_file():
@@ -65,7 +74,7 @@ def main(argv=None):
                 '/Applications/Emacs.app/Contents/MacOS/Emacs',
                 ['--dump-file=/opt/homebrew/Cellar/emacs-plus@32/32.0.50/libexec/emacs/32.0.50/'
                  'aarch64-apple-darwin27.2.0/emacs-9f9536b204dba77ae4e3ec8713908975e621804233f819dc8e41aa3f2220b37c.pdmp'],
-                {'FEMACS_GC_OBSERVATION': 'off'})), ('candidate', paths)):
+                reference_env)), ('candidate', paths)):
             product = dict(product, test_environment={})
             product['test_context'] = baseline_root / 'test'
             pair[label] = batch._run_file(suite, out, product, REPO / 'tools/fixtures/stable-suite-runner.el',
