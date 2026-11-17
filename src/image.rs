@@ -5322,6 +5322,7 @@ pub struct gif_anim_handle
 /// member of it (the WebP reader is C 9xxx's).
 #[cfg (all (feature = "have_window_system", any (feature = "have_webp", feature = "have_gif"),
 	    feature = "have_webp"))]
+#[derive (Clone, Copy)]
 #[repr(C)]
 pub struct webp_anim_handle
 {
@@ -12505,10 +12506,11 @@ unsafe extern "C" fn jpeg_image_p (object: Lisp_Object) -> bool
    this port has no Windows target and the arm stays owed with the `init_jpeg_functions` pointer
    in `image_types` (docs/ports/image.md).  The declarations below are the live arm's.  */
 
-/* C 9201-9264: `<jpeglib.h>`'s type surface and records this loader touches.  The staged library
-   is libjpeg 10 (`JPEG_LIB_VERSION` 100, `/opt/homebrew/opt/jpeg`), and every offset below is
-   measured against that header and the built library (`clang -offsetof`, docs/ports/image.md);
-   the compile-time assertions after the records are the port's guard on a header upgrade.  */
+/* C 9201-9264: `<jpeglib.h>`'s type surface and records this loader touches.  The library the
+   `libjpeg` pkg-config module selects on this machine is libjpeg-turbo 8.3.2
+   (`/opt/homebrew/opt/jpeg-turbo`, `JPEG_LIB_VERSION` 80), and every offset below is measured
+   against that header and the built library (`clang -offsetof`, docs/ports/image.md); the
+   compile-time assertions after the records are the port's guard on a header upgrade.  */
 #[cfg (all (feature = "have_window_system", feature = "have_jpeg"))]
 pub type JSAMPLE = c_uchar;
 #[cfg (all (feature = "have_window_system", feature = "have_jpeg"))]
@@ -12528,11 +12530,10 @@ pub type J_DCT_METHOD = c_int;
 #[cfg (all (feature = "have_window_system", feature = "have_jpeg"))]
 pub type J_DITHER_MODE = c_int;
 #[cfg (all (feature = "have_window_system", feature = "have_jpeg"))]
-pub type J_COLOR_TRANSFORM = c_int;
 
 /* C 9189-9192 and jpeglib.h's constants this unit reads.  */
 #[cfg (all (feature = "have_window_system", feature = "have_jpeg"))]
-pub const JPEG_LIB_VERSION: c_int = 100;
+pub const JPEG_LIB_VERSION: c_int = 80;
 #[cfg (all (feature = "have_window_system", feature = "have_jpeg"))]
 pub const JPEG_EOI: c_int = 0xD9;
 #[cfg (all (feature = "have_window_system", feature = "have_jpeg"))]
@@ -12784,9 +12785,6 @@ pub struct jpeg_decompress_struct
   pub saw_Adobe_marker: boolean,
   pub Adobe_transform: c_uchar,
 
-  pub color_transform: J_COLOR_TRANSFORM,
-  pub LSE_maxtrans: c_ushort,
-
   pub CCIR601_sampling: boolean,
 
   pub marker_list: *mut jpeg_marker_struct,
@@ -12834,9 +12832,11 @@ pub struct jpeg_decompress_struct
   pub cquantize: *mut jpeg_color_quantizer,
 }
 
-/* The measured layout these records must keep (clang `-offsetof` against the staged header,
-   2026-11-17).  A header or library upgrade that changes any of them fails the build here
-   instead of corrupting a decode.  */
+/* The measured layout these records must keep (clang `-offsetof` against the staged
+   libjpeg-turbo 8.3.2 header, 2026-11-17: 656 bytes, src 40, out_color_space 64,
+   output_width 136, output_height 140, output_components 148, jpeg_error_mgr 168,
+   jpeg_source_mgr 56).  A header or library upgrade that changes any of them fails the build
+   here instead of corrupting a decode.  */
 #[cfg (all (feature = "have_window_system", feature = "have_jpeg"))]
 const _: () = core::assert! (core::mem::size_of::<jpeg_error_mgr> () == 168);
 #[cfg (all (feature = "have_window_system", feature = "have_jpeg"))]
@@ -12852,7 +12852,7 @@ const _: () = core::assert! (core::mem::offset_of! (jpeg_source_mgr, fill_input_
 #[cfg (all (feature = "have_window_system", feature = "have_jpeg"))]
 const _: () = core::assert! (core::mem::offset_of! (jpeg_source_mgr, term_source) == 48);
 #[cfg (all (feature = "have_window_system", feature = "have_jpeg"))]
-const _: () = core::assert! (core::mem::size_of::<jpeg_decompress_struct> () == 664);
+const _: () = core::assert! (core::mem::size_of::<jpeg_decompress_struct> () == 656);
 #[cfg (all (feature = "have_window_system", feature = "have_jpeg"))]
 const _: () = core::assert! (core::mem::offset_of! (jpeg_decompress_struct, src) == 40);
 #[cfg (all (feature = "have_window_system", feature = "have_jpeg"))]
@@ -13343,6 +13343,557 @@ unsafe extern "C" fn jpeg_load (f: *mut frame, img: *mut image) -> bool
      first writes leave (PORTING.md 1.5).  */
   let mut mgr: my_jpeg_error_mgr = core::mem::zeroed ();
   return jpeg_load_body (f, img, &raw mut mgr);
+}
+
+
+/***********************************************************************
+				 WebP
+ ***********************************************************************/
+
+/* C 10860-10866: `#include "webp/decode.h"` / `#include "webp/demux.h"` - the two headers have
+   no mirror in the reference tree, so the declarations this unit needs stand here (P-88),
+   measured against the staged libwebp 1.6.0 (`webp/decode.h` and `webp/demux.h`).  */
+
+/* C 10870-10882: `enum webp_keyword_index`.  */
+/// C: C 10870-10882: `enum webp_keyword_index { WEBP_TYPE, WEBP_DATA, WEBP_FILE, WEBP_ASCENT, WEBP_MARGIN, WEBP_RELIEF, WEBP_ALGORITHM, WEBP_HEURISTIC_MASK, WEBP_MASK, WEBP_INDEX, WEBP_BACKGROUND, WEBP_LAST }`
+#[cfg (all (feature = "have_window_system", feature = "have_webp"))]
+pub const WEBP_TYPE: c_int = 0;
+#[cfg (all (feature = "have_window_system", feature = "have_webp"))]
+pub const WEBP_DATA: c_int = 1;
+#[cfg (all (feature = "have_window_system", feature = "have_webp"))]
+pub const WEBP_FILE: c_int = 2;
+#[cfg (all (feature = "have_window_system", feature = "have_webp"))]
+pub const WEBP_ASCENT: c_int = 3;
+#[cfg (all (feature = "have_window_system", feature = "have_webp"))]
+pub const WEBP_MARGIN: c_int = 4;
+#[cfg (all (feature = "have_window_system", feature = "have_webp"))]
+pub const WEBP_RELIEF: c_int = 5;
+#[cfg (all (feature = "have_window_system", feature = "have_webp"))]
+pub const WEBP_ALGORITHM: c_int = 6;
+#[cfg (all (feature = "have_window_system", feature = "have_webp"))]
+pub const WEBP_HEURISTIC_MASK: c_int = 7;
+#[cfg (all (feature = "have_window_system", feature = "have_webp"))]
+pub const WEBP_MASK: c_int = 8;
+#[cfg (all (feature = "have_window_system", feature = "have_webp"))]
+pub const WEBP_INDEX: c_int = 9;
+#[cfg (all (feature = "have_window_system", feature = "have_webp"))]
+pub const WEBP_BACKGROUND: c_int = 10;
+#[cfg (all (feature = "have_window_system", feature = "have_webp"))]
+pub const WEBP_LAST: c_int = 11;
+
+/* Vector of image_keyword structures describing the format
+   of valid user-defined image specifications.  */
+
+/// C: C 10887-10900: `static const struct image_keyword webp_format[WEBP_LAST]`
+#[cfg (all (feature = "have_window_system", feature = "have_webp"))]
+static webp_format: [image_keyword; WEBP_LAST as usize] =
+[
+  image_keyword { name: c":type".as_ptr (), r#type: IMAGE_SYMBOL_VALUE,
+		  mandatory_p: true, count: false, value: core::ptr::null_mut () },
+  image_keyword { name: c":data".as_ptr (), r#type: IMAGE_STRING_VALUE,
+		  mandatory_p: false, count: false, value: core::ptr::null_mut () },
+  image_keyword { name: c":file".as_ptr (), r#type: IMAGE_STRING_VALUE,
+		  mandatory_p: false, count: false, value: core::ptr::null_mut () },
+  image_keyword { name: c":ascent".as_ptr (), r#type: IMAGE_ASCENT_VALUE,
+		  mandatory_p: false, count: false, value: core::ptr::null_mut () },
+  image_keyword { name: c":margin".as_ptr (), r#type: IMAGE_NON_NEGATIVE_INTEGER_VALUE_OR_PAIR,
+		  mandatory_p: false, count: false, value: core::ptr::null_mut () },
+  image_keyword { name: c":relief".as_ptr (), r#type: IMAGE_INTEGER_VALUE,
+		  mandatory_p: false, count: false, value: core::ptr::null_mut () },
+  image_keyword { name: c":conversion".as_ptr (), r#type: IMAGE_DONT_CHECK_VALUE_TYPE,
+		  mandatory_p: false, count: false, value: core::ptr::null_mut () },
+  image_keyword { name: c":heuristic-mask".as_ptr (), r#type: IMAGE_DONT_CHECK_VALUE_TYPE,
+		  mandatory_p: false, count: false, value: core::ptr::null_mut () },
+  image_keyword { name: c":mask".as_ptr (), r#type: IMAGE_DONT_CHECK_VALUE_TYPE,
+		  mandatory_p: false, count: false, value: core::ptr::null_mut () },
+  image_keyword { name: c":index".as_ptr (), r#type: IMAGE_NON_NEGATIVE_INTEGER_VALUE,
+		  mandatory_p: false, count: false, value: core::ptr::null_mut () },
+  image_keyword { name: c":background".as_ptr (), r#type: IMAGE_STRING_OR_NIL_VALUE,
+		  mandatory_p: false, count: false, value: core::ptr::null_mut () }
+];
+
+/* Return true if OBJECT is a valid WebP image specification.  */
+
+/// C: C 10904-10916: `static bool webp_image_p (Lisp_Object object)`
+#[cfg (all (feature = "have_window_system", feature = "have_webp"))]
+unsafe extern "C" fn webp_image_p (object: Lisp_Object) -> bool
+{
+  /* C's `struct image_keyword fmt[WEBP_LAST];` filled by the `memcpy` below - zeroed first
+     (PORTING.md 1.5/0.1-13).  */
+  let mut fmt: [image_keyword; WEBP_LAST as usize] = core::mem::zeroed ();
+
+  memcpy (fmt.as_mut_ptr () as *mut c_void, webp_format.as_ptr () as *const c_void,
+	  core::mem::size_of::<[image_keyword; WEBP_LAST as usize]> ());
+
+  if !parse_image_spec (object, fmt.as_mut_ptr (), WEBP_LAST, Qwebp ())
+    { return false; }
+
+  /* Must specify either :data or :file.  */
+  return (fmt[WEBP_DATA as usize].count as c_int)
+    + (fmt[WEBP_FILE as usize].count as c_int) == 1;
+}
+
+/* C 10918-10986: `#ifdef WINDOWSNT`'s WebP DLL binding.  As with the PNG and JPEG arm, this
+   port builds no Windows target and the arm stays owed (docs/ports/image.md).  */
+
+/* C 10960-10970 / demux.h: the records and constants this reader touches.  */
+/// C: decode.h 415-423: `struct WebPBitstreamFeatures`
+#[cfg (all (feature = "have_window_system", feature = "have_webp"))]
+#[repr(C)]
+pub struct WebPBitstreamFeatures
+{
+  pub width: c_int,
+  pub height: c_int,
+  pub has_alpha: c_int,
+  pub has_animation: c_int,
+  pub format: c_int,
+  pub pad: [u32; 5],
+}
+/// C: mux_types.h 68-71: `struct WebPData`
+#[cfg (all (feature = "have_window_system", feature = "have_webp"))]
+#[repr(C)]
+pub struct WebPData
+{
+  pub bytes: *const uint8_t,
+  pub size: usize,
+}
+/// C: demux.h 298-305: `struct WebPAnimInfo`
+#[cfg (all (feature = "have_window_system", feature = "have_webp"))]
+#[repr(C)]
+pub struct WebPAnimInfo
+{
+  pub canvas_width: u32,
+  pub canvas_height: u32,
+  pub loop_count: u32,
+  pub bgcolor: u32,
+  pub frame_count: u32,
+  pub pad: [u32; 4],
+}
+/* The three library records are opaque: only pointers to them are stored.  */
+#[cfg (all (feature = "have_window_system", feature = "have_webp"))]
+#[repr(C)] pub struct WebPAnimDecoder { _private: [u8; 0] }
+#[cfg (all (feature = "have_window_system", feature = "have_webp"))]
+#[repr(C)] pub struct WebPAnimDecoderOptions { _private: [u8; 0] }
+#[cfg (all (feature = "have_window_system", feature = "have_webp"))]
+#[repr(C)] pub struct WebPDemuxer { _private: [u8; 0] }
+
+/* decode.h 25: `WEBP_DECODER_ABI_VERSION 0x0210`; demux.h 61: `WEBP_DEMUX_ABI_VERSION 0x0107`;
+   mux_types.h 34-37: `ANIMATION_FLAG 0x2` / `ALPHA_FLAG 0x10`; demux.h 121: the feature id the
+   reader asks for.  All measured from the staged header.  */
+#[cfg (all (feature = "have_window_system", feature = "have_webp"))]
+pub const WEBP_DECODER_ABI_VERSION: c_int = 0x0210;
+#[cfg (all (feature = "have_window_system", feature = "have_webp"))]
+pub const WEBP_DEMUX_ABI_VERSION: c_int = 0x0107;
+#[cfg (all (feature = "have_window_system", feature = "have_webp"))]
+pub const VP8_STATUS_OK: c_int = 0;
+#[cfg (all (feature = "have_window_system", feature = "have_webp"))]
+pub const WEBP_FF_FORMAT_FLAGS: c_int = 0;
+#[cfg (all (feature = "have_window_system", feature = "have_webp"))]
+pub const ANIMATION_FLAG: u32 = 0x00000002;
+#[cfg (all (feature = "have_window_system", feature = "have_webp"))]
+pub const ALPHA_FLAG: u32 = 0x00000010;
+
+/* decode.h 441-443 and demux.h's exported surface.  C reaches `WebPGetFeatures` and
+   `WebPAnimDecoderNew` through the headers' inline wrappers, which pass the ABI versions above to
+   the internal entry points; the port calls the internal entry points with the same values.  */
+#[cfg (all (feature = "have_window_system", feature = "have_webp",
+	    not (feature = "windowsnt")))]
+unsafe extern "C" {
+  pub fn WebPGetFeaturesInternal (data: *const uint8_t, data_size: usize,
+				  features: *mut WebPBitstreamFeatures, version: c_int) -> c_int;
+  pub fn WebPDecodeRGBA (data: *const uint8_t, data_size: usize, width: *mut c_int,
+			 height: *mut c_int) -> *mut uint8_t;
+  pub fn WebPDecodeRGB (data: *const uint8_t, data_size: usize, width: *mut c_int,
+			height: *mut c_int) -> *mut uint8_t;
+  pub fn WebPFree (ptr: *mut c_void);
+  pub fn WebPDemuxGetI (dmux: *const WebPDemuxer, feature: c_int) -> u32;
+  pub fn WebPAnimDecoderNewInternal (webp_data: *const WebPData,
+				     dec_options: *const WebPAnimDecoderOptions,
+				     version: c_int) -> *mut WebPAnimDecoder;
+  pub fn WebPAnimDecoderGetInfo (dec: *const WebPAnimDecoder, info: *mut WebPAnimInfo) -> c_int;
+  pub fn WebPAnimDecoderGetNext (dec: *mut WebPAnimDecoder, buf: *mut *mut uint8_t,
+				 timestamp: *mut c_int) -> c_int;
+  pub fn WebPAnimDecoderHasMoreFrames (dec: *const WebPAnimDecoder) -> c_int;
+  pub fn WebPAnimDecoderReset (dec: *mut WebPAnimDecoder);
+  pub fn WebPAnimDecoderGetDemuxer (dec: *const WebPAnimDecoder) -> *const WebPDemuxer;
+  pub fn WebPAnimDecoderDelete (dec: *mut WebPAnimDecoder);
+}
+
+/* Release webp_anim_handle resources.  */
+
+/// C: C 10988-10997: `static void webp_destroy (union anim_handle *handle)`
+#[cfg (all (feature = "have_window_system", feature = "have_webp",
+	    not (feature = "windowsnt")))]
+unsafe extern "C" fn webp_destroy (handle: *mut anim_handle)
+{
+  let h: *mut webp_anim_handle = &raw mut (*handle).webp;
+  WebPAnimDecoderDelete ((*h).dec as *mut WebPAnimDecoder);
+  (*h).dec = core::ptr::null_mut ();
+  xfree ((*h).contents as *mut c_void);
+  (*h).contents = core::ptr::null_mut ();
+  (*h).timestamp = 0;
+}
+
+/* Load WebP image IMG for use on frame F.  Value is true if
+   successful.  */
+
+/// C: C 11002-11003: `static bool webp_load (struct frame *f, struct image *img)`
+#[cfg (all (feature = "have_window_system", feature = "have_webp",
+	    not (feature = "windowsnt")))]
+unsafe extern "C" fn webp_load (f: *mut frame, img: *mut image) -> bool
+{
+  /* Return value.  */
+  let mut success: bool = false;
+  /* Owned copies and borrowed views of input WebP bitstream data and
+     decoded image/frame, respectively.  IOW, contents_cpy and
+     decoded_cpy must always be freed, and contents and decoded must
+     never be freed.  */
+  let mut contents_cpy: *mut uint8_t = core::ptr::null_mut ();
+  let mut contents: *const uint8_t = core::ptr::null ();
+  let mut decoded_cpy: *mut uint8_t = core::ptr::null_mut ();
+  let mut decoded: *mut uint8_t = core::ptr::null_mut ();
+
+  /* Non-nil :index suggests the image is animated; check the cache.  */
+  let image_number: Lisp_Object = image_spec_value ((*img).spec, QCindex (),
+						    core::ptr::null_mut ());
+  let mut cache: *mut anim_cache
+    = if NILP (image_number) { core::ptr::null_mut () }
+      else { anim_get_animation_cache (XCDR ((*img).spec)) };
+  let mut anim_handle: *mut webp_anim_handle
+    = if cache.is_null () { core::ptr::null_mut () }
+      else { &raw mut (*cache).handle.webp };
+
+  /* Image spec inputs.  */
+  let mut specified_data: Lisp_Object = Qnil ();
+  let mut specified_file: Lisp_Object = Qnil ();
+  /* Size of WebP contents.  */
+  let mut size: ptrdiff_t = 0;
+  /* WebP features parsed from bitstream headers.  */
+  let mut features: WebPBitstreamFeatures = core::mem::zeroed ();
+
+  'cleanup:
+  {
+    if !(!anim_handle.is_null () && !(*anim_handle).dec.is_null ())
+      /* If there is no cache entry, read in image contents.  */
+      {
+	specified_data = image_spec_value ((*img).spec, QCdata (),
+					   core::ptr::null_mut ());
+	if NILP (specified_data)
+	  {
+	    /* Open the WebP file.  */
+	    specified_file = image_spec_value ((*img).spec, QCfile (),
+					       core::ptr::null_mut ());
+	    contents_cpy = slurp_image (specified_file, &raw mut size,
+					c"WebP".as_ptr ()) as *mut uint8_t;
+	    if contents_cpy.is_null ()
+	      { break 'cleanup; }
+	    contents = contents_cpy as *const uint8_t;
+	  }
+	else if STRINGP (specified_data)
+	  {
+	    contents = SDATA (specified_data) as *const uint8_t;
+	    size = SBYTES (specified_data);
+	  }
+	else
+	  {
+	    image_invalid_data_error (specified_data);
+	    break 'cleanup;
+	  }
+
+	/* Get WebP features.  This can return various error codes while
+	   validating WebP headers, but we (currently) only distinguish
+	   success.  */
+	if WebPGetFeaturesInternal (contents, size as usize, &raw mut features,
+				    WEBP_DECODER_ABI_VERSION) != VP8_STATUS_OK
+	  {
+	    image_error (if NILP (specified_data)
+			   { c"Error parsing WebP headers from file: `%s'".as_ptr () }
+			 else { c"Error parsing WebP headers from image data".as_ptr () },
+			 specified_file);
+	    break 'cleanup;
+	  }
+      }
+
+    /* Dimensions of still image or animation frame.  */
+    let mut width: c_int = -1;
+    let mut height: c_int = -1;
+    /* Number of animation frames.  */
+    let mut frames: c_int = -1;
+    /* Current animation frame's duration in ms.  */
+    let mut duration: c_int = -1;
+
+    if (!anim_handle.is_null () && !(*anim_handle).dec.is_null ())
+	|| features.has_animation != 0
+      /* Animated image.  */
+      {
+	if cache.is_null ()
+	  /* If the lookup was initially skipped due to the absence of an
+	     :index, do it now.  */
+	  {
+	    cache = anim_get_animation_cache (XCDR ((*img).spec));
+	    anim_handle = &raw mut (*cache).handle.webp;
+	  }
+
+	if !(*anim_handle).dec.is_null ()
+	  /* If WebPGetFeatures was skipped, get the already parsed
+	     features from the cached decoder.  */
+	  {
+	    let dmux: *const WebPDemuxer
+	      = WebPAnimDecoderGetDemuxer ((*anim_handle).dec as *const WebPAnimDecoder);
+	    let flags: u32 = WebPDemuxGetI (dmux, WEBP_FF_FORMAT_FLAGS);
+	    features.has_alpha = ((flags & ALPHA_FLAG) != 0) as c_int;
+	    features.has_animation = ((flags & ANIMATION_FLAG) != 0) as c_int;
+	  }
+	else
+	  /* If there was no decoder in the cache, create one now.  */
+	  {
+	    /* If the data is from a Lisp string, copy it over so that it
+	       doesn't get garbage-collected.  If it's fresh from a file,
+	       then another copy isn't needed to keep it alive.  Either
+	       way, ownership transfers to the anim cache which frees
+	       memory during pruning.  */
+	    (*anim_handle).contents = if STRINGP (specified_data)
+	      { xlispstrdup (specified_data) as *mut uint8_t }
+	      else { contents_cpy };
+	    contents_cpy = core::ptr::null_mut ();
+	    contents = (*anim_handle).contents as *const uint8_t;
+	    (*cache).destructor = Some (webp_destroy);
+
+	    /* The WebPData docs can be interpreted as requiring it be
+	       allocated, initialized, and cleared via its dedicated API.
+	       However that seems to apply mostly to the mux API that we
+	       don't use; the demux API we use treats WebPData as
+	       read-only POD, so this should be fine.  */
+	    let webp_data: WebPData = WebPData { bytes: contents, size: size as usize };
+	    /* We could ask for multithreaded decoding here.  */
+	    (*anim_handle).dec = WebPAnimDecoderNewInternal (&raw const webp_data,
+							     core::ptr::null (),
+							     WEBP_DEMUX_ABI_VERSION)
+	      as *mut c_void;
+	    if (*anim_handle).dec.is_null ()
+	      {
+		image_error (if NILP (specified_data)
+			       { c"Error parsing WebP file: `%s'".as_ptr () }
+			     else { c"Error parsing WebP image data".as_ptr () },
+			     specified_file);
+		break 'cleanup;
+	      }
+
+	    /* Get the width/height of the total image.  */
+	    let mut info: WebPAnimInfo = core::mem::zeroed ();
+	    if WebPAnimDecoderGetInfo ((*anim_handle).dec as *const WebPAnimDecoder,
+				       &raw mut info) == 0
+	      {
+		image_error (if NILP (specified_data)
+			       { c"Error getting global animation info from WebP file: `%s'".as_ptr () }
+			     else { c"Error getting global animation info from WebP image data".as_ptr () },
+			     specified_file);
+		break 'cleanup;
+	      }
+
+	    /* Other libwebp[demux] APIs (and WebPAnimInfo internally)
+	       store these values as int, so this should be safe.  */
+	    (*cache).width = info.canvas_width as c_int;
+	    (*cache).height = info.canvas_height as c_int;
+	    (*cache).frames = info.frame_count as c_int;
+	    /* This is used just for reporting by `image-cache-size'.  */
+	    (*cache).byte_size = size as intmax_t;
+	  }
+
+	width = (*cache).width;
+	height = (*cache).height;
+	frames = (*cache).frames;
+
+	/* Desired frame number.  */
+	let idx: EMACS_INT = if FIXNUMP (image_number)
+	  { std::cmp::min (XFIXNAT (image_number), frames as EMACS_INT) }
+	  else { 0 };
+	if (*cache).index as EMACS_INT >= idx
+	  /* The decoder cannot rewind (nor be queried for the last
+	     frame's decoded pixels and timestamp), so restart from
+	     the first frame.  We could avoid restarting when
+	     cache->index == idx by adding more fields to
+	     webp_anim_handle, but it may not be worth it.  */
+	  {
+	    WebPAnimDecoderReset ((*anim_handle).dec as *mut WebPAnimDecoder);
+	    (*anim_handle).timestamp = 0;
+	    (*cache).index = -1;
+	  }
+
+	/* Decode until desired frame number.  */
+	while ((*cache).index as EMACS_INT) < idx
+	      && WebPAnimDecoderHasMoreFrames ((*anim_handle).dec as *const WebPAnimDecoder) != 0
+	  {
+	    let mut timestamp: c_int = 0;
+	    if WebPAnimDecoderGetNext ((*anim_handle).dec as *mut WebPAnimDecoder,
+				       &raw mut decoded, &raw mut timestamp) == 0
+	      {
+		image_error (if NILP (specified_data)
+			       { c"Error decoding frame #%d from WebP file: `%s'".as_ptr () }
+			     else { c"Error decoding frame #%d from WebP image data".as_ptr () },
+			     make_int (((*cache).index + 1) as intmax_t), specified_file);
+		break 'cleanup;
+	      }
+	    eassert! ((*anim_handle).timestamp >= 0);
+	    eassert! (timestamp >= (*anim_handle).timestamp);
+	    duration = timestamp - (*anim_handle).timestamp;
+	    (*anim_handle).timestamp = timestamp;
+	    (*cache).index += 1;
+	  }
+      }
+    else
+      /* Non-animated image.  */
+      {
+	/* Could performance be improved by using the 'advanced'
+	   WebPDecoderConfig API to request scaling/cropping as
+	   appropriate for Emacs frame and image dimensions,
+	   similarly to the SVG code?  */
+	if features.has_alpha != 0
+	  /* Linear [r0, g0, b0, a0, r1, g1, b1, a1, ...] order.  */
+	  { decoded_cpy = WebPDecodeRGBA (contents, size as usize, &raw mut width,
+					 &raw mut height); }
+	else
+	  /* Linear [r0, g0, b0, r1, g1, b1, ...] order.  */
+	  { decoded_cpy = WebPDecodeRGB (contents, size as usize, &raw mut width,
+					&raw mut height); }
+	decoded = decoded_cpy;
+      }
+
+    if decoded.is_null ()
+      {
+	image_error (if NILP (specified_data)
+		       { c"Error decoding WebP file: `%s'".as_ptr () }
+		     else { c"Error decoding WebP image data".as_ptr () },
+		     specified_file);
+	break 'cleanup;
+      }
+
+    if !((width <= INT_MAX) && (height <= INT_MAX)
+	 && check_image_size (f, width, height))
+      {
+	image_size_error ();
+	break 'cleanup;
+      }
+
+    /* Create the x image and pixmap.  */
+    let mut ximg: Emacs_Pix_Container = core::ptr::null_mut ();
+    if !image_create_x_image_and_pixmap (f, img, width, height, 0,
+					 &raw mut ximg, false)
+      { break 'cleanup; }
+
+    /* Find the background to use if the WebP image contains an alpha
+       channel.  */
+    let mut bg_color: Emacs_Color = core::mem::zeroed ();
+    if features.has_alpha != 0
+      {
+	let specified_bg: Lisp_Object
+	  = image_spec_value ((*img).spec, QCbackground (), core::ptr::null_mut ());
+
+	/* If the user specified a color, try to use it; if not, use the
+	   current frame background, ignoring any default background
+	   color set by the image.  */
+	if STRINGP (specified_bg)
+	  { ((*FRAME_TERMINAL! (f)).defined_color_hook.unwrap ())
+	      (f as *mut c_void, SSDATA (specified_bg), &raw mut bg_color, false, false); }
+	else
+	  { ((*FRAME_TERMINAL! (f)).query_frame_background_color.unwrap ())
+	      (f as *mut c_void, &raw mut bg_color); }
+	bg_color.red >>= 8;
+	bg_color.green >>= 8;
+	bg_color.blue >>= 8;
+      }
+
+    /* Fill the X image from WebP data.  */
+
+    init_color_table ();
+
+    (*img).corners[TOP_CORNER] = 0;
+    (*img).corners[LEFT_CORNER] = 0;
+    (*img).corners[BOT_CORNER] = (*img).corners[TOP_CORNER] + height;
+    (*img).corners[RIGHT_CORNER] = (*img).corners[LEFT_CORNER] + width;
+
+    let mut p: *const uint8_t = decoded;
+    let mut y: c_int = 0;
+    while y < height
+      {
+	let mut x: c_int = 0;
+	while x < width
+	  {
+	    let r: c_int;
+	    let g: c_int;
+	    let b: c_int;
+	    /* The WebP alpha channel allows 256 levels of partial
+	       transparency.  Blend it with the background manually.  */
+	    if features.has_alpha != 0 || features.has_animation != 0
+	      {
+		let a: f32 = *p.offset (3) as f32 / UINT8_MAX as f32;
+		r = ((a * *p.offset (0) as f32 + (1.0 - a) * bg_color.red as f32)
+		     as c_int) << 8;
+		g = ((a * *p.offset (1) as f32 + (1.0 - a) * bg_color.green as f32)
+		     as c_int) << 8;
+		b = ((a * *p.offset (2) as f32 + (1.0 - a) * bg_color.blue as f32)
+		     as c_int) << 8;
+		p = p.offset (4);
+	      }
+	    else
+	      {
+		r = (*p.offset (0) as c_int) << 8;
+		p = p.offset (1);
+		g = (*p.offset (0) as c_int) << 8;
+		p = p.offset (1);
+		b = (*p.offset (0) as c_int) << 8;
+		p = p.offset (1);
+	      }
+	    PUT_PIXEL! (ximg, x, y, lookup_rgb_color (f, r, g, b));
+	    x += 1;
+	  }
+	y += 1;
+      }
+
+    /* C 11300-11305: `#ifdef COLOR_TABLE_SUPPORT` - the condition this file's other loaders
+       carry.  */
+    #[cfg (all (feature = "have_window_system", feature = "have_x_windows",
+		not (any (feature = "have_ntgui", feature = "use_cairo",
+			  feature = "have_ns"))))]
+    {
+      /* Remember colors allocated for this image.  */
+      (*img).colors = colors_in_color_table (&raw mut (*img).ncolors);
+      free_color_table ();
+    }
+
+    /* Put ximg into the image.  */
+    image_put_x_image (f, img, ximg, false);
+
+    (*img).width = width;
+    (*img).height = height;
+
+    if features.has_animation != 0
+      /* Return animation metadata.  */
+      {
+	eassert! (frames > 0);
+	eassert! (duration >= 0);
+	(*img).lisp_data = Fcons (Qcount (),
+				  Fcons (make_fixnum (frames as EMACS_INT),
+					 (*img).lisp_data));
+	/* WebP spec: interpretation of no/small frame duration is
+	   implementation-defined.  In practice browsers and libwebp tools
+	   map small durations to 100ms to protect against annoying
+	   images.  For consistency across image types and user
+	   configurability, we return a non-nil nonnumeric value that
+	   image-multi-frame-p turns into image-default-frame-delay.  */
+	(*img).lisp_data
+	  = Fcons (Qdelay (),
+		   Fcons (if duration != 0 { make_float (duration as c_double / 1000.0) }
+			  else { Qt () },
+			  (*img).lisp_data));
+      }
+
+    success = true;
+  }
+
+  WebPFree (decoded_cpy as *mut c_void);
+  xfree (contents_cpy as *mut c_void);
+  return success;
 }
 
 
