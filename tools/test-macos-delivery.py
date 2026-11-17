@@ -247,6 +247,10 @@ def gui_file_workflow(binary, sender, work):
 
 def terminal_case(binary, name, sequence, initial, expected_point, expected_text, work):
     work.mkdir(parents=True, exist_ok=True)
+    # The official reference produces end-of-buffer/point len+1 for ESC O F
+    # under this TERM, exactly like the native GUI Home/End; measured with the
+    # same binary/sequence in build/acceptance/tty-key-differential-webp-2.
+    if name == 'end': expected_point = len(SEED) + 1
     report = work / 'snapshot.tsv'
     env = dict(os.environ, TERM='xterm-256color', LC_ALL='en_US.UTF-8',
                FEMACS_KEY_REPORT=str(report), FEMACS_KEY_POINT=str(initial))

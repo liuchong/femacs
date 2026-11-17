@@ -26685,6 +26685,17 @@ Fresh reference selection passed7/7 postflight checks, actual installation/confi
 User approved this exact DNS case as a nonblocking environment limitation and requires the existing proxy to remain enabled and unchanged. Four bounded HTTPS queries completed without errors: both Google andCloudflare resolved `example.com` (Status0,2 A answers) and returned NXDOMAIN for `emacs.invalid` (Status3,no answers),1.499–2.389s per query. The host system lookup still reports its synthetic proxy addresses. This verifies a remote-resolver contrast, not candidate/editor or original ERT acceptance; raw failures, counts and exits remain unchanged. No Dot task was sent; that route is cancelled. Fresh full555/48 observations and any precise exception binding remain pending.
 
 
+### 2026-11-18 — 第 3 轮：components 合同执行、打包独立运行、End 差分与 GUI/IME
+
+- **components 合同/向量执行**：`tools/test-runtime-contracts.py` 对当前源码构建的适配器跑 28 个 B 向量，`requested=28 / observed=28 / complete=true / passed=true`（4.33s），证据 `build/acceptance/runtime-contracts-webp-2/results.json`；覆盖关系是“实际源码隔离组件”，不等于整编辑器或后端 ABI 验收。
+- **打包/独立运行**：`webp-2` 的 App 深签名 `codesign --verify --deep --strict` 通过；`Contents/Frameworks/runtime-image` 含 libpng/libjpeg/libwebp/libwebpdemux/libsharpyuv/libsqlite3 六份库与六份许可。以独立 HOME/TMPDIR 运行打包后的 `Contents/MacOS/Femacs --batch`（exit0），`(image-type-available-p 'png/'jpeg/'webp)` 与 `sqlite-load-extension` 均为 t；`DYLD_PRINT_LIBRARIES` 显示六份库全部来自 `Contents/Frameworks/runtime-image`。唯一的 `/usr/lib/libsqlite3.dylib` 由 OS 框架（CoreServices/DictionaryServices 等）加载，bundle 内所有 Mach-O 的 `otool -L` 都不引用系统 sqlite。
+- **End 差分（一次，同 TERM 同原始序列）**：`tools/test-macos-delivery.py --reference /Applications/Emacs.app/...` 在同一 `TERM=xterm-256color`、同一 `ESC O F` 下，官方参照与端口都产生 `end-of-buffer`/point 24；此前用例表期望 `move-end-of-line`/point 11 是上下文错误。已按实测把 terminal 用例的 `end` 期望改为 `len(SEED)+1`（与 GUI 的 native Home/End 一致），证据 `build/acceptance/tty-key-differential-webp-2` 与 `~/AI/docs/femacs/control/tty-key-differential.log`。修正后 `tools/local-acceptance.py` 9/9 通过（35.4s，`local-acceptance-webp-2b`）。
+- **GUI**：以打包 App 与编译出的原生事件发送器跑 `tools/test-macos-delivery.py --gui`，26/26 行通过（全部 `native_frame=ns`，exit0），证据 `build/acceptance/gui-delivery-webp-2`。
+- **IME（真实失败）**：`tools/test-macos-ime.py --mode all` 在 steady/switch 两个场景都报 `native-window-focus: exit=None`，编辑器未取得原生窗口焦点（Pinyin 源 `com.bytedance.inputmethod.doubaoime.pinyin` 可用）。保留为开放项，下一假设是焦点/辅助功能授权，不连续试改。
+- **交付核对**：bundle 结构、签名、许可、伴随 `emacsclient` 已核对；`dist/` 只有 Cocoa App，未生成终端包；未安装候选、未触碰运行中的已安装 Fe。干净拉取重建仍留到代码稳定后的集中验收。
+
+本轮未完成：IME 焦点、Tramp test29、WebP 动画播放/淘汰、G5 安静测量、G6/G7 候选、已安装交付。G3/Goal 继续开放。
+
 ### 2026-11-18 — 图像单元收口与逐轮推进（第 2 轮）
 
 图像/SQLite 限定单元按核收通过（5 个官方文件 40 个原事件：37 passed / 3 skipped，与参照一致；保护探针 11/11；唯一动态库闭包与 App 签名吻合；提交 4efa2a2c..680e523c 已在远端 master）。本轮按整圈推进其余目标：
