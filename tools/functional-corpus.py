@@ -22,6 +22,9 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import re
+import shutil
+import tempfile
 import json
 import os
 import subprocess
@@ -126,13 +129,39 @@ def baseline_index(root):
     return index
 
 
+VOLATILE = (
+    (re.compile(r'#<[^<>]*?\s[0-9a-f]{6,}>'), '#<object>'),
+    # per-run owned containers and per-run temporary/buffer suffixes
+    (re.compile(r'/\.noindex/[A-Za-z0-9_]+/'), '/.noindex/<container>/'),
+    (re.compile(r'\*temp\*-\d+'), '*temp*-<n>'),
+    (re.compile(r'\*-\d{5,}'), '*-<n>'),
+    # progress percentages and reported durations inside messages
+    (re.compile(r'\b\d+%'), '<n>%'),
+    (re.compile(r'\bin \d+ secs'), 'in <n> secs'),
+    # per-run fixture and native-compiler cache names
+    (re.compile(r'eglot--fixture-[A-Za-z0-9]{6}'), 'eglot--fixture-<id>'),
+    (re.compile(r'emacs-test-[A-Za-z0-9]{6}-'), 'emacs-test-<id>-'),
+    (re.compile(r'compiler-output/32\.0\.50-[0-9a-f]+'), 'compiler-output/32.0.50-<hash>'),
+    (re.compile(r'-[0-9a-f]{8}(?:-[0-9a-f]{8})?\.eln'), '-<hash>.eln'),
+)
+
+
+def normalize(text):
+    """Drop only run-local identities, never the condition itself."""
+    text = text or ''
+    for pattern, replacement in VOLATILE:
+        text = pattern.sub(replacement, text)
+    return text
+
+
 def case_verdict(baseline, observed):
     """Compare one case; conditions are part of the identity of a failure."""
     old, new = baseline['status'], observed['status']
     if old == new:
         if new != 'failed':
             return 'same'
-        return 'same' if baseline['diagnostic'] == observed['diagnostic'] else 'pending-condition-diff'
+        return ('same' if normalize(baseline['diagnostic']) == normalize(observed['diagnostic'])
+                else 'pending-condition-diff')
     if old == 'passed' and new != 'passed':
         return 'port-worse'
     if old == 'failed' and new == 'skipped':
@@ -153,6 +182,7 @@ def main(argv=None):
     parser.add_argument('--label', required=True)
     parser.add_argument('--baseline-run', type=Path)
     parser.add_argument('--limit', type=int, default=0)
+    parser.add_argument('--only', help='comma-separated logical test paths')
     parser.add_argument('--from-strict-pair', type=Path,
                         help='derive the official per-file verdicts from a closed strict pair')
     parser.add_argument('--rejudge', type=Path,
@@ -168,6 +198,13 @@ def main(argv=None):
     manifest_path = corpus / 'compatibility/stable-31.1/sources.json'
     manifest = suite.load_manifest(manifest_path, corpus)
     entries = batch.select_entrypoints(manifest)
+    if args.only:
+        wanted = {name.strip() for name in args.only.split(',') if name.strip()}
+        known = {entry['path'] for entry in entries}
+        missing = wanted - known
+        if missing:
+            parser.error('unknown logical test paths: ' + ', '.join(sorted(missing)))
+        entries = [entry for entry in entries if entry['path'] in wanted]
     if args.limit:
         entries = entries[:args.limit]
 
@@ -309,8 +346,10 @@ def main(argv=None):
         logical = entry['path']
         source = corpus / entry['source_path']
         safe = logical.replace('/', '-')
-        case_dir = out / ('env-%d' % ordinal)
-        (case_dir / 'home').mkdir(parents=True)
+        # Per-run state must live outside the repository: original tests can
+        # create build manifests or sockets that must never join this workspace.
+        case_dir = Path(tempfile.mkdtemp(prefix='femacs-functional-'))
+        (case_dir / 'home').mkdir()
         (case_dir / 'tmp').mkdir()
         progress = out / 'results' / (safe + '.events.jsonl')
         env_file = dict(base_env, HOME=str(case_dir / 'home'), TMPDIR=str(case_dir / 'tmp'),
@@ -400,6 +439,7 @@ def main(argv=None):
         (out / 'progress.json').write_text(json.dumps(dict(
             completed=len(summary['files']), total=len(entries), counts=counts,
             latest=logical, seconds=summary['seconds'])) + '\n', encoding='utf-8')
+        shutil.rmtree(case_dir, ignore_errors=True)
     print(json.dumps(dict(files=len(summary['files']), counts=counts,
                           seconds=summary['seconds'])))
     unresolved = (counts['port-worse'] or counts['incomplete'] or counts['baseline-unavailable']

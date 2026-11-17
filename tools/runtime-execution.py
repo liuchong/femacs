@@ -36,6 +36,15 @@ HEX = re.compile(r"^[0-9a-f]{64}$")
 FORBIDDEN_ENV = {"EMACSLOADPATH", "EMACSDATA", "EMACSDOC", "EMACSPATH", "EMACSNATIVELOADPATH",
                  "DYLD_LIBRARY_PATH", "DYLD_FALLBACK_LIBRARY_PATH", "GCC_EXEC_PREFIX",
                  "COMPILER_PATH", "LIBRARY_PATH", "FEMACS_RUNTIME_BINDING"}
+_RUN_OWNER_PID, _RUN_OWNER_PARENT_PID = os.getpid(), os.getppid()
+_OWNER_LOSS_GRACE_SECONDS = 30
+
+
+def _run_owner_present():
+    # Each coordinator imports its own helper. Forked or orphaned copies must
+    # not silently adopt a new parent and continue an old controlled operation.
+    return (_RUN_OWNER_PARENT_PID > 1 and os.getpid() == _RUN_OWNER_PID
+            and os.getppid() == _RUN_OWNER_PARENT_PID)
 
 
 def digest(path):
@@ -399,6 +408,17 @@ def product_receipt_layout(value, root):
         else:
             roots['treesit-runtime'] = str(package / 'runtime-treesit')
             roots['treesit-licenses'] = str(package / 'licenses/treesit')
+    image_settings = [value for section in ('macros', 'features')
+                      for key, value in selected.get(section, {}).items()
+                      if key.upper() in ('HAVE_PNG', 'HAVE_JPEG')]
+    if any(value is True or value == 1 or value in ('1', 'true') for value in image_settings):
+        resources['image'] = root / 'image'
+        if kind == 'cocoa':
+            roots['image-runtime'] = str(package / 'Contents/Frameworks/runtime-image')
+            roots['image-licenses'] = str(package / 'Contents/Resources/licenses/image')
+        else:
+            roots['image-runtime'] = str(package / 'runtime-image')
+            roots['image-licenses'] = str(package / 'licenses/image')
     files = {'port/src/temacs', 'port/src/emacs', 'port/src/emacs.pdmp', 'port/src/bootstrap-emacs.pdmp', program, dump}
     identity_version = value.get('identity_version', 1)
     if type(identity_version) is not int or identity_version not in (1, 2, 3):
@@ -598,8 +618,130 @@ def sample_memory(pid):
     return (rss, footprint, accounted) if observed else None
 
 
+class _ProcessCancelled(Exception):
+    """The coordinator cancelled this owned child, not its original test."""
+
+
+def _signal_child_group(child, number):
+    try:
+        os.killpg(child.pid, number)
+        return True
+    except ProcessLookupError:
+        return False
+    except PermissionError:
+        # Darwin can report EPERM for an exited, unreaped group leader.
+        # Reap only our own child, then retry; a live child or persistent
+        # permission failure remains an error rather than an empty group.
+        if child.poll() is None:
+            raise
+        try:
+            os.killpg(child.pid, number)
+            return True
+        except ProcessLookupError:
+            return False
+
+
+class _OwnedProcessTree:
+    """Keep birth identities across child-created sessions and reparenting."""
+    def __init__(self):
+        import psutil
+        self.psutil = psutil
+        self.root = None
+        self.known = {}
+        self.observed = 0
+        self.errors = set()
+        self.next_refresh = 0.0
+
+    def _current(self, pid, birth):
+        try:
+            process = self.psutil.Process(pid)
+            if (process.create_time() != birth
+                    or process.status() == self.psutil.STATUS_ZOMBIE):
+                return None
+            return process
+        except self.psutil.NoSuchProcess:
+            return None
+        except self.psutil.AccessDenied:
+            self.errors.add('process-identity-access-denied')
+            return None
+
+    def refresh(self, *, force=False):
+        now = time.monotonic()
+        if not force and now < self.next_refresh:
+            return
+        self.next_refresh = now + .1
+        if self.root is None:
+            return
+        visited = set()
+        # Previously observed children can now belong to PID1 or a fresh
+        # session. Their recorded birth, not their current parent, owns them.
+        for pid, birth in list(self.known.items()):
+            process = self._current(pid, birth)
+            if process is None:
+                self.known.pop(pid, None)
+                continue
+            if pid in visited:
+                continue
+            try:
+                descendants = process.children(recursive=True)
+                for item in [process, *descendants]:
+                    current = self.psutil.Process(item.pid)
+                    created = current.create_time()
+                    if created != item.create_time():
+                        continue
+                    if item.pid not in self.known or self.known[item.pid] != created:
+                        self.observed += 1
+                    self.known[item.pid] = created
+                    visited.add(item.pid)
+            except self.psutil.NoSuchProcess:
+                continue
+            except self.psutil.AccessDenied:
+                self.errors.add('process-descendants-access-denied')
+
+    def attach(self, child):
+        self.root = child.pid
+        try:
+            self.known[child.pid] = self.psutil.Process(child.pid).create_time()
+            self.observed += 1
+        except self.psutil.NoSuchProcess:
+            # A short, already-reaped command has no live root to enumerate.
+            return
+
+    def live(self):
+        return [process for pid, birth in list(self.known.items())
+                if (process := self._current(pid, birth)) is not None]
+
+    def signal(self, number, *, exclude_group=None):
+        self.refresh(force=True)
+        # Signal the root last so a live parent remains observable while its
+        # separately sessioned children are collected. Never signal a reused PID.
+        for process in sorted(self.live(), key=lambda item: item.pid == self.root):
+            current = self._current(process.pid, self.known[process.pid])
+            if current is None:
+                continue
+            try:
+                if exclude_group is not None and os.getpgid(current.pid) == exclude_group:
+                    continue
+                current.send_signal(number)
+            except (self.psutil.NoSuchProcess, ProcessLookupError):
+                continue
+            except (self.psutil.AccessDenied, PermissionError):
+                self.errors.add('owned-process-signal-access-denied')
+
+    def finish(self):
+        deadline = time.monotonic() + 2
+        while self.live() and time.monotonic() < deadline:
+            self.signal(signal.SIGKILL)
+            time.sleep(.01)
+        remaining = self.live()
+        return dict(complete=not remaining and not self.errors,
+                    observed_processes=self.observed,
+                    remaining=[dict(pid=p.pid, birth=self.known[p.pid]) for p in remaining],
+                    errors=sorted(self.errors))
+
+
 def run_process(argv, directory, env, timeout, *, stdin=None, metrics=False, cwd=None,
-                observe_exit=False):
+                observe_exit=False, cancel_event=None):
     directory.mkdir(parents=True, exist_ok=True)
     started = time.monotonic()
     working_directory = Path(cwd or directory).resolve()
@@ -608,13 +750,24 @@ def run_process(argv, directory, env, timeout, *, stdin=None, metrics=False, cwd
     child_env = dict(env, PWD=str(working_directory))
     row = dict(argv=[str(part) for part in argv], complete=False, timed_out=False,
                cwd=str(working_directory), evidence_directory=str(directory.resolve()),
+               owner_pid=_RUN_OWNER_PID, owner_parent_pid=_RUN_OWNER_PARENT_PID,
                exit_code=None, status="not-started")
     with (directory / "stdout.txt").open("xb") as stdout, (directory / "stderr.txt").open("xb") as stderr:
         try:
+            if not _run_owner_present():
+                row.update(cancelled=True, owner_parent_lost=True, status='cancelled')
+                raise SystemExit(125)
+            if cancel_event is not None and cancel_event.is_set():
+                row.update(cancelled=True, status='cancelled')
+                return row
             if metrics:
                 preparation_started = time.monotonic()
                 prepare_memory_sampling()
                 row['sampler_preparation_seconds'] = time.monotonic()-preparation_started
+            tree = _OwnedProcessTree()
+            if not _run_owner_present():
+                row.update(cancelled=True, owner_parent_lost=True, status='cancelled')
+                raise SystemExit(125)
             spawn_started = time.monotonic()
             child = subprocess.Popen([str(part) for part in argv], cwd=working_directory,
                                      env=child_env, stdin=subprocess.DEVNULL if stdin is None else stdin,
@@ -622,6 +775,7 @@ def run_process(argv, directory, env, timeout, *, stdin=None, metrics=False, cwd
             row["pid"] = child.pid
             exit_event, exit_info, exit_thread = None, {}, None
             try:
+                tree.attach(child)
                 if observe_exit:
                     exit_event = threading.Event()
                     def observe_child_exit():
@@ -635,11 +789,18 @@ def run_process(argv, directory, env, timeout, *, stdin=None, metrics=False, cwd
                     exit_thread = threading.Thread(target=observe_child_exit,
                                                     name='runtime-owned-child-exit')
                     exit_thread.start()
+                tree.refresh(force=True)
                 if metrics:
                     row.update(peak_rss_bytes=0, peak_footprint_bytes=0, peak_accounted_bytes=0,
                                memory_samples=0, sample_errors=[], sampling_interval_seconds=.02,
                                load_per_core_before=os.getloadavg()[0] / max(1, os.cpu_count() or 1))
                     while child.poll() is None:
+                        tree.refresh()
+                        if not _run_owner_present():
+                            row['owner_parent_lost'] = True
+                            raise _ProcessCancelled()
+                        if cancel_event is not None and cancel_event.is_set():
+                            raise _ProcessCancelled()
                         if time.monotonic() - spawn_started > timeout:
                             raise subprocess.TimeoutExpired(argv, timeout)
                         try:
@@ -658,22 +819,58 @@ def run_process(argv, directory, env, timeout, *, stdin=None, metrics=False, cwd
                     row["memory_sampling_complete"] = (row["memory_samples"] > 0
                         and row['peak_accounted_bytes'] > 0 and not row["sample_errors"])
                 else:
-                    child.wait(timeout=timeout)
+                    deadline = None if timeout is None else spawn_started + timeout
+                    while child.poll() is None:
+                        tree.refresh()
+                        if not _run_owner_present():
+                            row['owner_parent_lost'] = True
+                            raise _ProcessCancelled()
+                        if cancel_event is not None and cancel_event.is_set():
+                            raise _ProcessCancelled()
+                        remaining = None if deadline is None else deadline - time.monotonic()
+                        if remaining is not None and remaining <= 0:
+                            raise subprocess.TimeoutExpired(argv, timeout)
+                        try:
+                            child.wait(timeout=.1 if remaining is None else min(.1, remaining))
+                        except subprocess.TimeoutExpired:
+                            # This bounded poll is not an extension of the
+                            # original process deadline.
+                            pass
+            except _ProcessCancelled:
+                row['cancelled'] = True
+                tree.refresh(force=True)
+                if row.get('owner_parent_lost'):
+                    # Cooperative owners can unwind on TERM. Other Python CLIs
+                    # may exit immediately; retain their already observed child
+                    # identities even when those children have their own session.
+                    tree.signal(signal.SIGTERM, exclude_group=child.pid)
+                    _signal_child_group(child, signal.SIGTERM)
+                    deadline = time.monotonic() + _OWNER_LOSS_GRACE_SECONDS
+                    while tree.live() and time.monotonic() < deadline:
+                        tree.refresh()
+                        child.poll()
+                        time.sleep(.02)
+                tree.signal(signal.SIGKILL)
+                _signal_child_group(child, signal.SIGKILL)
+                child.wait()
             except subprocess.TimeoutExpired:
                 row["timed_out"] = True
-                os.killpg(child.pid, signal.SIGKILL)
+                tree.signal(signal.SIGKILL)
+                _signal_child_group(child, signal.SIGKILL)
                 child.wait()
             finally:
+                tree.refresh(force=True)
+                descendants_remained = any(p.pid != child.pid for p in tree.live())
+                tree.signal(signal.SIGKILL)
                 # The group is unique to this owner; collect children still
                 # alive after their parent exits. Never use process names.
-                try:
-                    os.killpg(child.pid, signal.SIGKILL)
-                    row["remaining_group_terminated"] = True
-                except ProcessLookupError:
-                    row["remaining_group_terminated"] = False
+                row['remaining_group_terminated'] = _signal_child_group(child, signal.SIGKILL)
+                if descendants_remained and not row.get('cancelled') and not row['timed_out']:
+                    row['remaining_group_terminated'] = True
                 # Unwind the real child before outer artifact guards release;
                 # SIGINT/SIGTERM exceptions must not leave its last writes racing.
                 child.wait()
+                row['owned_process_cleanup'] = tree.finish()
                 if observe_exit:
                     if exit_thread is not None and exit_thread.ident is not None:
                         exit_thread.join(timeout=1)
@@ -685,13 +882,20 @@ def run_process(argv, directory, env, timeout, *, stdin=None, metrics=False, cwd
                         if row['exit_timing_complete'] else None)
                     if 'error' in exit_info:
                         row['exit_timing_error'] = exit_info['error']
-            row.update(exit_code=child.returncode, complete=not row["timed_out"],
-                       status="timeout" if row["timed_out"] else "exited")
+            if not _run_owner_present():
+                row.update(cancelled=True, owner_parent_lost=True)
+            row.update(exit_code=child.returncode,
+                       complete=not row["timed_out"] and not row.get('cancelled', False)
+                       and row['owned_process_cleanup']['complete'],
+                       status=('cancelled' if row.get('cancelled') else
+                               'timeout' if row['timed_out'] else 'exited'))
         except (OSError, ValueError) as error:
-            row.update(status="spawn-error", error=str(error))
+            row.update(status='process-error' if 'pid' in row else 'spawn-error', error=str(error))
         finally:
             row["seconds"] = time.monotonic() - started
             write_json(directory / "process.json", row)
+    if row.get('owner_parent_lost'):
+        raise SystemExit(125)
     return row
 
 
@@ -735,7 +939,7 @@ def invoke(product, directory, request, timeout, observation="off", *, extra_env
 
 
 def fixture_groups(product, observation):
-    groups = [("language", ["runtime-language.el"], "^rtl"),
+    groups = [("language", ["runtime-language.el", "runtime-symbol-intern-functional.el"], "^rtl"),
               ("xml", ["xml-acceptance.el"], "^fe-xml-"),
               ("sqlite", ["sqlite-acceptance.el"], "^fe-sqlite-")]
     if product["kind"] == "reference":
@@ -763,6 +967,7 @@ def run_ert(products, out, timeout, negative_roots, only_groups=None):
                 loaded = [str(FIXTURES / fixture) for fixture in fixtures]
                 request = dict(operation="discover", fixtures=loaded, selector=selector)
                 discovery = invoke(product, root / "discovery", request, timeout, mode)
+                discovery['observer_mode'] = mode
                 rows.append(discovery)
                 ids = discovery.get("response", {}).get("ids", [])
                 if not isinstance(ids, list) or not ids or len(set(ids)) != len(ids):
@@ -776,6 +981,7 @@ def run_ert(products, out, timeout, negative_roots, only_groups=None):
                     if identity == "rtn10-format-negative-manifest" and product["id"] in negative_roots:
                         request["negative_source"] = str(negative_roots[product["id"]])
                     row = invoke(product, case_root, request, timeout, mode)
+                    row['observer_mode'] = mode
                     response = row.get("response", {})
                     row["passed"] = row["passed"] and response.get("status") == "passed" and response.get("id") == identity
                     rows.append(row)
@@ -798,6 +1004,7 @@ def run_ert(products, out, timeout, negative_roots, only_groups=None):
                     extra=sorted(set(ids) - reference) if reference is not None else None,
                     passed=reference is not None and set(ids) == reference))
     differences = [row for row in common_registration if row['group'] == 'language']
+    language_contract = load_tool('runtime-language-contract.py')
     language_observations, reference_observations, observation_differences = [], {}, []
     for row in rows:
         request = row.get("request", {})
@@ -805,17 +1012,20 @@ def run_ert(products, out, timeout, negative_roots, only_groups=None):
             continue
         observed = row.get("response", {}).get("observations", {}).get("language")
         identity = request["id"]
-        item = dict(profile=row["profile"], id=identity, observations=observed,
+        item = dict(profile=row["profile"], observer_mode=row['observer_mode'], id=identity, observations=observed,
                     passed=row["passed"] and isinstance(observed, list) and bool(observed))
         language_observations.append(item)
         if any(p["id"] == row["profile"] and p["kind"] == "reference" for p in products):
-            if identity in reference_observations and reference_observations[identity] != observed:
+            if (identity in reference_observations and not language_contract.compare(
+                    identity, reference_observations[identity], observed)['passed']):
                 item["passed"] = False
             reference_observations[identity] = observed
     for item in language_observations:
+        comparison = language_contract.compare(item['id'],
+            reference_observations.get(item['id']), item['observations'])
         observation_differences.append(dict(profile=item["profile"], id=item["id"],
                                            passed=item["passed"] and item["id"] in reference_observations
-                                           and item["observations"] == reference_observations[item["id"]]))
+                                           and comparison['passed'], comparison=comparison))
     language_requested = only_groups is None or 'language' in only_groups
     common_requested = ({'language', 'xml', 'sqlite'} if only_groups is None
                         else set(only_groups) & {'language', 'xml', 'sqlite'})
@@ -1355,7 +1565,37 @@ def load_tool(name):
 def retire_consumed_state(report, out):
     """Run only after the complete action has consumed its isolated case state."""
     tool = load_tool('runtime-retire.py')
-    rows, seen, errors = [], set(), []
+    rows, seen, errors, pending = [], set(), [], []
+    names = ('home', 'cache', 'config', 'state', 'tmp', 'eln')
+    def attempt(item):
+        item['attempts'] += 1
+        try:
+            snapshot = None
+            if item.get('snapshot'):
+                if digest(item['snapshot']) != item['snapshot_sha256']:
+                    raise ValueError('action closure-time state proof changed')
+                snapshot = bounded_json(item['snapshot'], 32*1024*1024)
+            result = tool.retire(item['root'], names, item['evidence'], item['process'],
+                expected_state=snapshot, attempt_index=item['attempts'],
+                prior_occupancy_attempts=item['observations'], record_occupancy=True)
+            observation = result.get('attempt_observation')
+            if observation:
+                item['observations'].append(observation)
+            if (result.get('status') != 'complete' and not item.get('snapshot')
+                    and observation is not None and observation.get('clear') is False):
+                proof = tool.snapshot_owned_state(item['root'], names)
+                path = item['evidence'].with_name(item['evidence'].stem+'.closure-state.private.json')
+                with path.open('x') as stream:
+                    json.dump(proof, stream); stream.flush(); os.fsync(stream.fileno())
+                item.update(snapshot=path, snapshot_sha256=digest(path))
+            item['locked'] = (result.get('state_drift') is True or observation is None
+                              or (observation.get('clear') is True and result.get('status') != 'complete'))
+        except (OSError, ValueError) as error:
+            item['locked'] = True
+            result = dict(status='retained', error=f'{type(error).__name__}: {error}',
+                          prior_occupancy_attempts=list(item['observations']))
+        rows[item['index']] = dict(case=str(item['root'].relative_to(out)), **result)
+        return result.get('status') == 'complete'
     def walk(value):
         if isinstance(value, dict):
             if 'evidence_directory' in value and 'pid' in value:
@@ -1376,13 +1616,29 @@ def retire_consumed_state(report, out):
         evidence = root/'result.json'
         if not evidence.is_file():
             evidence = root/'process.json'
-        try:
-            result = tool.retire(root, ('home','cache','config','state','tmp','eln'), evidence, process)
-            rows.append(dict(case=str(root.relative_to(out)), **result))
-            if result['status'] != 'complete':
-                errors.append(str(root.relative_to(out)))
-        except (OSError, ValueError) as error:
-            errors.append(dict(case=str(root.relative_to(out)), error=f'{type(error).__name__}: {error}'))
+        item = dict(root=root, evidence=evidence, process=process, index=len(rows), attempts=0,
+                    observations=[], locked=False)
+        rows.append(None)
+        complete = attempt(item)
+        for delay in (0.15, 0.50):
+            if complete or item['locked']:
+                break
+            time.sleep(delay)
+            complete = attempt(item)
+        if not complete and not item['locked']:
+            pending.append(item)
+    deadline = time.monotonic()+60.0
+    for round_index in range(2):
+        if round_index and pending and time.monotonic()+11.0 < deadline:
+            time.sleep(1.0)
+        for item in list(pending):
+            if time.monotonic()+11.0 >= deadline:
+                break
+            with tool.retirement_deadline(max(0.1, deadline-time.monotonic()-3.0)):
+                complete = attempt(item)
+            if complete or item['locked']:
+                pending.remove(item)
+    errors.extend(row['case'] for row in rows if row['status'] != 'complete')
     summary = dict(schema='femacs-runtime-state-retirement-v1', cases=rows, errors=errors,
         complete=not errors, logical_bytes=sum(row.get('logical_bytes',0) for row in rows),
         files=sum(row.get('files',0) for row in rows),

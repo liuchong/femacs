@@ -31,13 +31,13 @@ fn generate_paths(repo: &Path, config: &Path) -> Result<(), String> {
         ("PATH_INFO", "info"),
         ("PATH_BITMAPS", "etc/images"),
     ] {
-        let owned = repo.join(tree).display().to_string();
+        let owned = if tree == "lisp" { standalone::lisp_paths(repo, false) }
+                    else { repo.join(tree).display().to_string() };
         code.push_str(&format!("#[inline(always)] pub fn {name}() -> *const c_char {{ if will_dump_p() {{ c{owned:?}.as_ptr() }} else {{ unsafe {{ relocate(c\"Contents/Resources/{tree}\".as_ptr()) }} }} }}\n"));
     }
-    let lisp = repo.join("lisp").display().to_string();
     for (name, path) in [
-        ("PATH_DUMPLOADSEARCH", lisp.clone()),
-        ("PATH_DUMPLOADSEARCH_SLASH", format!("{lisp}/")),
+        ("PATH_DUMPLOADSEARCH", standalone::lisp_paths(repo, false)),
+        ("PATH_DUMPLOADSEARCH_SLASH", standalone::lisp_paths(repo, true)),
     ] {
         code.push_str(&format!(
             "#[inline(always)] pub fn {name}() -> *const c_char {{ c{path:?}.as_ptr() }}\n"
@@ -144,7 +144,9 @@ pub(super) fn build_configured(repo: &Path, root: &Path, selected_config: &Path,
     crate::tls::prepare(&repo, &root, selected_config, &tls_config)?;
     let lcms_config = config.join("darwin-cocoa-lcms.json");
     crate::lcms::prepare(&repo, &root, &tls_config, &lcms_config)?;
-    crate::treesit::prepare(&repo, &root, &lcms_config, &frozen)?;
+    let image_config = config.join("darwin-cocoa-image.json");
+    crate::image::prepare(&repo, &root, &lcms_config, &image_config)?;
+    crate::treesit::prepare(&repo, &root, &image_config, &frozen)?;
     // A selected object root requires the prepared target copy to be present.
     let objects = object_dir(&repo, &root)?;
     fs::create_dir_all(&objects).map_err(|e| e.to_string())?;
@@ -423,6 +425,7 @@ fn populate_app(repo: &Path, root: &Path, info: &Path, app: &Path) -> Result<(),
     for tree in ["lisp", "etc"] {
         copy_tree(&repo.join(tree), &resources.join(tree))?;
     }
+    standalone::install_library_corrections(repo, &resources.join("lisp"))?;
     crate::manuals::copy_set(info, &resources.join("info"))?;
     standalone::stage_module_api(repo, &resources.join("include"))?;
     if root.join("runtime-native").is_dir() {
@@ -434,6 +437,8 @@ fn populate_app(repo: &Path, root: &Path, info: &Path, app: &Path) -> Result<(),
                                      &resources.join("licenses/tls"))?;
     crate::lcms::copy_product_runtime(root, &contents.join("Frameworks/runtime-lcms"),
                                      &resources.join("licenses/lcms"))?;
+    crate::image::copy_product_runtime(root, &contents.join("Frameworks/runtime-image"),
+                                      &resources.join("licenses/image"))?;
     crate::treesit::copy_product_runtime(root, &contents.join("Frameworks/runtime-treesit"),
                                         &resources.join("licenses/treesit"))?;
     // Data are genuine owned inputs; the GUI binary remains the Rust/Swift Cocoa link.

@@ -1,4 +1,3 @@
 -lncurses
 -lxml2
--lsqlite3
 -lz

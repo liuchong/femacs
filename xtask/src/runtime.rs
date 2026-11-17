@@ -601,8 +601,9 @@ unsafe fn live_path(slot: usize, suffix: &[u8]) -> *const c_char {
         (6, "PATH_INFO", "../info", root.join("runtime-info")),
         (7, "PATH_BITMAPS", "../etc/images", repo.join("etc/images")),
     ] {
-        let mut owned = original.display().to_string();
-        if name == "PATH_DUMPLOADSEARCH_SLASH" { owned.push('/'); }
+        let owned = if name.starts_with("PATH_LOADSEARCH") || name.starts_with("PATH_DUMPLOADSEARCH") {
+            crate::standalone::lisp_paths(repo, name == "PATH_DUMPLOADSEARCH_SLASH")
+        } else { original.display().to_string() };
         code.push_str(&format!("#[inline(always)] pub fn {name}() -> *const c_char {{ if will_dump_p() {{ c{owned:?}.as_ptr() }} else {{ unsafe {{ live_path({slot}, b{relative:?}) }} }} }}\n"));
     }
     code.push_str("pub fn PATH_SITELOADSEARCH() -> *const c_char { c\"\".as_ptr() }\npub fn PATH_GAME() -> *const c_char { core::ptr::null() }\n}\npub use runtime_terminal_paths::*;\n");
@@ -622,6 +623,7 @@ pub(crate) fn package_terminal(repo: &Path, root: &Path, info: &Path) -> Result<
     for name in ["lisp", "etc"] {
         crate::macos::copy_tree(&repo.join(name), &destination.join(name))?;
     }
+    crate::standalone::install_library_corrections(repo, &destination.join("lisp"))?;
     crate::macos::copy_tree(&root.join("port/lib-src"), &destination.join("lib-src"))?;
     crate::macos::copy_tree(&root.join("port/include"), &destination.join("include"))?;
     crate::manuals::copy_set(info, &destination.join("info"))?;
@@ -633,6 +635,8 @@ pub(crate) fn package_terminal(repo: &Path, root: &Path, info: &Path) -> Result<
                                      &destination.join("licenses/tls"))?;
     crate::lcms::copy_product_runtime(root, &destination.join("runtime-lcms"),
                                      &destination.join("licenses/lcms"))?;
+    crate::image::copy_product_runtime(root, &destination.join("runtime-image"),
+                                      &destination.join("licenses/image"))?;
     crate::treesit::copy_product_runtime(root, &destination.join("runtime-treesit"),
                                        &destination.join("licenses/treesit"))?;
     Ok(())
@@ -856,6 +860,9 @@ fn record_product(repo: &Path, root: &Path, product: RuntimeProduct) -> Result<(
     }
     if root.join("lcms").is_dir() {
         resources.insert("lcms".into(), tree_identity(&root.join("lcms"))?);
+    }
+    if root.join("image").is_dir() {
+        resources.insert("image".into(), tree_identity(&root.join("image"))?);
     }
     if root.join("treesit").is_dir() {
         resources.insert("treesit".into(), tree_identity(&root.join("treesit"))?);

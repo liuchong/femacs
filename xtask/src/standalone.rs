@@ -24,6 +24,19 @@ pub(super) fn resources(repo: &Path, family: &str, program: Option<&Path>) -> Re
     }
 }
 
+/// The first dump search entry also identifies the source/data tree in the VM.
+/// Keep that canonical root; non-preloaded corrections belong to the product.
+pub(super) fn lisp_paths(repo: &Path, trailing: bool) -> String {
+    format!("{}{}", repo.join("lisp").display(), if trailing { "/" } else { "" })
+}
+
+pub(super) fn install_library_corrections(repo: &Path, lisp: &Path) -> Result<(), String> {
+    let status = Command::new("python3").current_dir(repo)
+        .args(["tools/library_corrections.py", "--action", "install", "--lisp-root"])
+        .arg(lisp).status().map_err(|e| e.to_string())?;
+    if status.success() { Ok(()) } else { Err(format!("install generated library corrections: {status}")) }
+}
+
 pub(super) fn stage_module_api(repo: &Path, destination: &Path) -> Result<(), String> {
     fs::create_dir_all(destination).map_err(|e| e.to_string())?;
     crate::owned_copy::copy_file(
@@ -60,7 +73,9 @@ pub(super) fn terminal_configured(repo: &Path, root: &Path, publish_info: bool, 
     crate::tls::prepare(repo, &root, config_file, &tls_config)?;
     let lcms_config = config.join("darwin-terminal-lcms.json");
     crate::lcms::prepare(repo, &root, &tls_config, &lcms_config)?;
-    crate::treesit::prepare(repo, &root, &lcms_config, &prepared_config)?;
+    let image_config = config.join("darwin-terminal-image.json");
+    crate::image::prepare(repo, &root, &lcms_config, &image_config)?;
+    crate::treesit::prepare(repo, &root, &image_config, &prepared_config)?;
     resources(&repo, "base", None)?;
     stage_module_api(repo, &root.join("port/include"))?;
     // Generate checkout-local paths for the terminal configuration.
@@ -77,7 +92,9 @@ pub(super) fn terminal_configured(repo: &Path, root: &Path, publish_info: bool, 
     ] {
         paths.push_str(&format!(
             "#[inline(always)] pub fn {name}() -> *const c_char {{ c{:?}.as_ptr() }}\n",
-            if name == "PATH_EXEC" {
+            if name.starts_with("PATH_LOADSEARCH") || name.starts_with("PATH_DUMPLOADSEARCH") {
+                lisp_paths(repo, name == "PATH_DUMPLOADSEARCH_SLASH")
+            } else if name == "PATH_EXEC" {
                 root.join("port/lib-src").display().to_string()
             } else {
                 repo.join(rel).display().to_string()

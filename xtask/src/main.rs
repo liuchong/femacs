@@ -13,6 +13,7 @@ use std::process::{exit, Command};
 
 mod bundle;
 mod tls;
+mod image;
 mod lcms;
 mod treesit;
 mod check_units;
@@ -210,7 +211,13 @@ fn main() {
         "audit-probe" => probes::command(&args[1..]),
         "android" => android::command(&args[1..]),
         "gate-platforms" => android::platforms(&args[1..]),
-        "generate-resources" => run_python(&["tools/bootstrap-resources.py", "--family", "all"]),
+        "generate-resources" => {
+            if args.len() != 3 || args[1] != "--program" {
+                fail("generate-resources requires --program <explicit-owned-program>")
+            } else {
+                run_python(&["tools/bootstrap-resources.py", "--family", "all", "--program", &args[2]])
+            }
+        },
         "link-macos" => macos::link_macos(),
         "package-macos" => macos::package_macos(),
         "gen-config" => gen_config(),
@@ -263,7 +270,7 @@ fn main() {
         }
         _ => {
             println!(
-                "usage: xtask <build-terminal|build-macos|runtime-build --product terminal|cocoa --variant baseline|native|collector|native-collector --out build/runtime/<name> [--observer] [--test-hooks] [--backend-prefix <prefix>]|generate-resources|link-owned|gen-config|layout-asserts|layout-check|build-tu <c-file>|\
+                "usage: xtask <build-terminal|build-macos|runtime-build --product terminal|cocoa --variant baseline|native|collector|native-collector --out build/runtime/<name> [--observer] [--test-hooks] [--backend-prefix <prefix>]|generate-resources --program <owned-program>|link-owned|gen-config|layout-asserts|layout-check|build-tu <c-file>|\
                  build-units|check-units [list]|gate-fast|gate-probes|gate-probe-programs|dead-arms|gate-load [--report]|\
                  link-program <c-file>|dump|gate-full>"
             );
@@ -339,6 +346,15 @@ fn config_features () -> Result<Vec<String>,String>
     if let Ok(n)=value.parse::<u64>(){numbers.insert(name.clone(),n);}
     if truthy_value {truthy.insert(name.clone());}
     out.push(format!("feature=\"{}{}\"",if truthy_value{""}else{"not_"},name_lower));
+  }
+  // C computes `HAVE_LOAD_EXTENSION` from
+  // `HAVE_SQLITE3_LOAD_EXTENSION && SQLITE_DBCONFIG_ENABLE_LOAD_EXTENSION`
+  // (sqlite.c 39-44).  The header macro is mirrored as a constant inside the
+  // sqlite unit (measured 1005), so it is never a configuration key: deriving
+  // the second conjunct here keeps one source of truth and avoids a duplicate
+  // constant in the generated configuration.
+  if truthy.contains("HAVE_SQLITE3_LOAD_EXTENSION") {
+    out.push("feature=\"sqlite3_dbconfig_enable_load_extension\"".into());
   }
   // The selected SDK binding supplies the grammar ABI; a generic truthy
   // macro cannot express this comparison from the source dispatch shim.
@@ -3049,6 +3065,13 @@ fn gate_load(arg: Option<&str>) -> i32 {
         if !shim.is_file() { return fail("missing selected Cocoa ABI object"); }
         objs.push(shim.canonicalize().map_err(|e| e.to_string()).unwrap_or(shim).display().to_string());
         extra_libs.extend(macos::link_flags());
+        // The gate link must see the same bundled runtime libraries as the
+        // product link; the system sqlite is deliberately replaced by the
+        // staged copy that carries extension loading.
+        match image::link_flags(Path::new(REPO)) {
+            Ok(flags) => extra_libs.extend(flags),
+            Err(error) => return fail(error),
+        }
     }
     // The driver lives at module scope (`LINK_DRIVER`), because `link-program` uses it too.
     if let Err(e) = fs::write(load.join("driver.rs"), LINK_DRIVER) {
@@ -3114,6 +3137,10 @@ fn gate_load(arg: Option<&str>) -> i32 {
         Err(error) => return fail(error),
     }
     match treesit::link_flags(Path::new(REPO)) {
+        Ok(flags) => rsp.extend(flags),
+        Err(error) => return fail(error),
+    }
+    match image::link_flags(Path::new(REPO)) {
         Ok(flags) => rsp.extend(flags),
         Err(error) => return fail(error),
     }
