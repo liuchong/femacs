@@ -4,7 +4,6 @@ from __future__ import annotations
 from contextlib import contextmanager
 import ctypes
 import hashlib
-import io
 import json
 import os
 from pathlib import Path
@@ -250,10 +249,30 @@ def artifact_process(pid):
     return int(parent), birth
 
 
-def artifact_path(path, value):
+def artifact_root_index(value):
+    """Resolve one journal's allowed roots once.
+
+    The scope is unchanged: a path is admitted iff it equals a root or one of
+    its lexical ancestors is a root, which is exactly `is_relative_to` over the
+    same root list.  Building the set once turns the per-artifact cost from
+    O(roots) into O(path depth); no root is added, dropped or widened.
+    """
+    return frozenset(Path(p) for p in value['allowed_roots'])
+
+
+def artifact_in_roots(path, roots):
+    if path in roots:
+        return True
+    for parent in path.parents:
+        if parent in roots:
+            return True
+    return False
+
+
+def artifact_path(path, value, roots=None):
     path = Path(path)
-    roots = [Path(p) for p in value['allowed_roots']]
-    if not any(path.is_relative_to(root) for root in roots):
+    index = artifact_root_index(value) if roots is None else roots
+    if not artifact_in_roots(path, index):
         raise ValueError('artifact is outside the selected run inputs')
     if path.parent.resolve() != path.parent:
         raise ValueError('artifact parent has a symlink or changed locator')
@@ -266,9 +285,10 @@ def capture_artifacts(journal, expected):
     value = artifact_read(journal)
     known = {row['path']: row for row in value['files']}
     links = {row['path']: row for row in value['symlinks']}
+    roots = artifact_root_index(value)
     pending = []
     for name, identity in sorted(expected.items()):
-        path = artifact_path(name, value)
+        path = artifact_path(name, value, roots)
         if identity.get('kind') == 'symlink':
             current = path.lstat()
             if (not stat.S_ISLNK(current.st_mode) or os.readlink(path) != identity['target']
@@ -496,8 +516,9 @@ class ArtifactRun:
             descriptor = os.open(row['path'], os.O_RDONLY | os.O_NOFOLLOW)
             try:
                 current = os.fstat(descriptor)
+                if stat.S_IMODE(current.st_mode) != row['mode']:
+                    raise ValueError('selected physical recovery file mode changed')
                 if (not descriptor_matches(descriptor, row) or not same_inode(row)
-                        or stat.S_IMODE(current.st_mode) != row['mode']
                         or current.st_size != row['bytes']
                         or descriptor_digest(descriptor) != row['sha256']):
                     raise ValueError('selected physical recovery file changed')
@@ -508,71 +529,10 @@ class ArtifactRun:
         retention = dict(mode='verified-files', files=len(value['files']),
                          symlinks=len(value['symlinks']), all_original_files_verified=True,
                          duplicate_content_archive_created=False,
-                         recovery='retain physical originals or transfer exact recovery before retirement')
+                         recovery='current physical inputs remain available until their consumer ends; rebuild later outputs from maintained sources')
         value['retention'] = retention
         artifact_write(self.journal, value)
         return retention
-
-    def archive(self):
-        value = artifact_read(self.journal)
-        unique = {}
-        for row in value['files']:
-            descriptor = os.open(row['path'], os.O_RDONLY | os.O_NOFOLLOW)
-            try:
-                current = os.fstat(descriptor)
-                if (not descriptor_matches(descriptor, row) or not same_inode(row)
-                        or stat.S_IMODE(current.st_mode) != row['mode']
-                        or current.st_size != row['bytes']
-                        or descriptor_digest(descriptor) != row['sha256']):
-                    raise ValueError('selected artifact content or mode changed before retention')
-            finally:
-                os.close(descriptor)
-            unique.setdefault(row['sha256'], row)
-        for row in value['symlinks']:
-            verify_artifact_link(row)
-        links = json.dumps(value['symlinks'], sort_keys=True, separators=(',', ':')).encode()
-        links_hash = hashlib.sha256(links).hexdigest()
-        archive = self.output / 'artifact-content.tar.gz'
-        with archive.open('xb') as output, tarfile.open(fileobj=output, mode='w:gz', compresslevel=1) as target:
-            for identity, row in sorted(unique.items()):
-                descriptor = os.open(row['path'], os.O_RDONLY | os.O_NOFOLLOW)
-                with os.fdopen(descriptor, 'rb') as original:
-                    if (not descriptor_matches(original.fileno(), row) or not same_inode(row)
-                            or descriptor_digest(original.fileno()) != identity
-                            or stat.S_IMODE(os.fstat(original.fileno()).st_mode) != row['mode']):
-                        raise ValueError('artifact changed before exact retention')
-                    member = tarfile.TarInfo(identity)
-                    member.size, member.mode, member.mtime = row['bytes'], 0o600, 0
-                    target.addfile(member, original)
-            member = tarfile.TarInfo('symlinks.json')
-            member.size, member.mode, member.mtime = len(links), 0o600, 0
-            target.addfile(member, io.BytesIO(links))
-        seen = set()
-        with tarfile.open(archive, 'r:gz') as retained:
-            for member in retained:
-                if (not member.isfile() or member.name not in {*unique, 'symlinks.json'}
-                        or member.name in seen):
-                    raise ValueError('unexpected artifact archive member')
-                result, size = hashlib.sha256(), 0
-                with retained.extractfile(member) as stream:
-                    for block in iter(lambda: stream.read(1024 * 1024), b''):
-                        result.update(block)
-                        size += len(block)
-                expected_hash = links_hash if member.name == 'symlinks.json' else member.name
-                expected_size = len(links) if member.name == 'symlinks.json' else unique[member.name]['bytes']
-                if result.hexdigest() != expected_hash or size != expected_size:
-                    raise ValueError('artifact recovery archive content changed')
-                seen.add(member.name)
-        if seen != {*unique, 'symlinks.json'}:
-            raise ValueError('artifact recovery archive is incomplete')
-        for row in value['symlinks']:
-            verify_artifact_link(row)
-        value['archive'] = dict(path=archive.name, sha256=digest(archive), bytes=archive.stat().st_size,
-                                unique_contents=len(unique), all_members_verified=True,
-                                symlink_manifest=dict(member='symlinks.json', sha256=links_hash,
-                                                      bytes=len(links), entries=len(value['symlinks'])),
-                                modes_and_paths='artifact-preservation.json')
-        artifact_write(self.journal, value)
 
     def __exit__(self, kind, error, traceback):
         signals = {signal.SIGINT, signal.SIGTERM}
@@ -600,9 +560,10 @@ def release_artifacts(journal, *, require_dead):
     if value['state'] == 'released':
         return []
     failures = []
+    roots = artifact_root_index(value)
     for row in reversed(value['files']):
         try:
-            path = artifact_path(row['path'], value)
+            path = artifact_path(row['path'], value, roots)
             descriptor = os.open(path, os.O_RDONLY | os.O_NOFOLLOW)
             try:
                 if not descriptor_matches(descriptor, row) or not same_inode(row):
@@ -618,7 +579,7 @@ def release_artifacts(journal, *, require_dead):
             failures.append(dict(path=row['path'], error=str(failure)))
     for row in value['symlinks']:
         try:
-            artifact_path(row['path'], value)
+            artifact_path(row['path'], value, roots)
             verify_artifact_link(row)
         except (OSError, ValueError) as failure:
             failures.append(dict(path=row['path'], error=str(failure)))
