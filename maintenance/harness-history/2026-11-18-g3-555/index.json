@@ -1,33 +1,60 @@
 {
-  "schema": "femacs-stable-harness-selection-v1",
-  "scope": "2026-11-18 G3 555-entrypoint single-product run (build/acceptance/g3-555-frozen2)",
-  "note": "One harness role was never committed at run time. Its exact bytes were recovered by reversing the recorded subset edits applied later to the same file, and the result was accepted only because its SHA-256 equals the value the closed receipt recorded. The other five roles are resolved from Git or from the acceptance snapshots that already record their own identities; nothing here is invented and no recorded SHA is exempted.",
-  "files": {
-    "stable-suite-batch.py": {
-      "source": {
-        "path": "/Users/liu/projects/src/github.com/liuchong/femacs/tools/stable-suite-batch.py",
-        "identity": {
-          "kind": "file",
-          "bytes": 97121,
-          "sha256": "bb2987f9696b60ef2fc1a72087e4aad7a68ee326ae7047339c8401deb9e3545b"
-        }
-      },
-      "captured": {
-        "path": "/Users/liu/projects/src/github.com/liuchong/femacs/maintenance/harness-history/2026-11-18-g3-555/stable-suite-batch.py",
-        "identity": {
-          "kind": "file",
-          "bytes": 97121,
-          "sha256": "bb2987f9696b60ef2fc1a72087e4aad7a68ee326ae7047339c8401deb9e3545b"
-        }
-      },
-      "provenance": {
-        "kind": "sha256-verified-reconstruction",
-        "recorded_by": "build/acceptance/g3-555-frozen2/stable-suite-run.json harness_sources",
-        "method": "reverse the declared-subset edits applied in commit 6238b92e to tools/stable-suite-batch.py",
-        "accepted_because": "the reconstructed bytes hash to the recorded role SHA-256",
-        "not_a_git_object": true
+  "schema": "femacs-stable-harness-index-v1",
+  "note": "Recovery sources for the closed 2026-11-18 G3 run. Roles record where their bytes can still be obtained; verification always re-reads them and recomputes SHA-256. Absolute paths from the closed receipt stay in that receipt.",
+  "roles": [
+    {
+      "role": "stable-suite.py",
+      "sha256": "4825f8f1f6f64fd4892005b7137d8f76bab73ca42bb4bd6f40dc14a4435e4e76",
+      "recovery": {
+        "kind": "file",
+        "path": "maintenance/harness-history/2026-11-18-g3-555/stable-suite.py",
+        "provenance": "recorded read-only harness snapshot taken from the working tree that executed the run"
+      }
+    },
+    {
+      "role": "stable-suite-batch.py",
+      "sha256": "bb2987f9696b60ef2fc1a72087e4aad7a68ee326ae7047339c8401deb9e3545b",
+      "recovery": {
+        "kind": "file",
+        "path": "maintenance/harness-history/2026-11-18-g3-555/stable-suite-batch.py",
+        "provenance": "SHA-256-verified reconstruction: reversing the later declared-subset edits reproduces the bytes the receipt recorded"
+      }
+    },
+    {
+      "role": "stable-context.py",
+      "sha256": "63b399a6ce9e39e749b7fbcc6e22592c48524a9a396e81c1b6432c36e57c1098",
+      "recovery": {
+        "kind": "git",
+        "commit": "827916a0",
+        "path": "tools/stable-context.py"
+      }
+    },
+    {
+      "role": "runtime-retire.py",
+      "sha256": "ee3d416d579a5a4fb7104b147cd568072374082b3555fcd88ed432e83b426975",
+      "recovery": {
+        "kind": "file",
+        "path": "maintenance/harness-history/2026-11-18-g3-555/runtime-retire.py",
+        "provenance": "recorded read-only harness snapshot"
+      }
+    },
+    {
+      "role": "reference-corpus.py",
+      "sha256": "30ee3f513984779fa5bf307a7e0aedfea66d70fc64d701c8c150889224d79556",
+      "recovery": {
+        "kind": "git",
+        "commit": "827916a0",
+        "path": "tools/reference-corpus.py"
+      }
+    },
+    {
+      "role": "stable-suite-runner.el",
+      "sha256": "15d4e812e16390803635a6efc1dc57870c162b3d62b7cca2fa4b565e8b7c8b40",
+      "recovery": {
+        "kind": "file",
+        "path": "maintenance/harness-history/2026-11-18-g3-555/stable-suite-runner.el",
+        "provenance": "recorded read-only runner snapshot"
       }
     }
-  },
-  "superseded_snapshot_roles": "stable-suite-runner.el, runtime-retire.py and stable-suite.py resolve from build/acceptance/p466-terminal-probe-1/stable-harness/stable-harness-selection.json and .../stable-runner/stable-runner-selection.json; reference-corpus.py and stable-context.py resolve from Git"
+  ]
 }
