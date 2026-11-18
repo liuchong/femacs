@@ -9922,7 +9922,7 @@
    "optional_gate": {
     "kind": "external-predicate",
     "dependency_type": "grammar",
-    "predicate": "treesit-ready-p",
+    "predicate": "treesit-language-available-p",
     "source_form": "(skip-unless (and (treesit-language-available-p 'html)\n                    (treesit-language-available-p 'css)\n                    (treesit-language-available-p 'javascript)))"
    }
   },
@@ -10610,7 +10610,7 @@
    "optional_gate": {
     "kind": "external-predicate",
     "dependency_type": "grammar",
-    "predicate": "treesit-ready-p",
+    "predicate": "treesit-language-available-p",
     "source_form": "(skip-unless (treesit-language-available-p 'bash))"
    }
   },
@@ -10633,7 +10633,7 @@
    "optional_gate": {
     "kind": "external-predicate",
     "dependency_type": "grammar",
-    "predicate": "treesit-ready-p",
+    "predicate": "treesit-language-available-p",
     "source_form": "(skip-unless (treesit-language-available-p 'elixir))"
    }
   },
