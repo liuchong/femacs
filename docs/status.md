@@ -26685,6 +26685,18 @@ Fresh reference selection passed7/7 postflight checks, actual installation/confi
 User approved this exact DNS case as a nonblocking environment limitation and requires the existing proxy to remain enabled and unchanged. Four bounded HTTPS queries completed without errors: both Google andCloudflare resolved `example.com` (Status0,2 A answers) and returned NXDOMAIN for `emacs.invalid` (Status3,no answers),1.499–2.389s per query. The host system lookup still reports its synthetic proxy addresses. This verifies a remote-resolver contrast, not candidate/editor or original ERT acceptance; raw failures, counts and exits remain unchanged. No Dot task was sent; that route is cancelled. Fresh full555/48 observations and any precise exception binding remain pending.
 
 
+### 2026-11-18 — 第 32 轮：当前产品全库强制 GC 压测完成，唯一 port-worse 归因为产品变体；GA8 试用候选证据收口
+
+**压力面（`build/acceptance/gc-stress-current-1`，索引 `g5-g7-ga8-batch-result.json`）**：既有受控入口 `l5_sweep.py --gc-stress`（全库枚举 564 文件、19 块、1008.2 s，chunk 只分片不限额）。产品取 `build/runtime/frozen-2/port/src/emacs`，其记录源码身份与当前树逐个 SHA 相同（`alloc.rs fb30ef5f`、`runtime_gc_collector.rs 903cc944`、`include/lisp.rs d6470785`、`bytecode.rs f3b717c7`、`callproc.rs 0267151f`、`gc-young-cadence.el 37e177a7`），此后只增了受门控的 IME trace 字段与文档/测试；参照取已接受 cohort 绑定的安装产品 `/Applications/Emacs.app` 32.0.50。读数：**456 same / 7 port-better / 83 zero-tests / 8 both-fail / 2 both-crash / 1 both-incomplete / 6 different / 1 port-worse**；所有 GC 敏感文件（`src/alloc-tests.el`、`bytecomp`、`cl-lib`、`cl-print`、`subr`、`print`、`ps-print`、`semantic/bovine/gcc`）全部 **same**。
+
+**唯一 port-worse 归因**：`src/comp-tests.el` 端口 100 unexpected、参照 0 —— 该 frozen 产品 `native-comp-available-p=nil`，而 comp-tests 是原生编译套件；后来的 native+collector 产品可解析。定向复核（`gc-targeted-1/comp-stress-native.json`）显示同一文件在 native 产品上死于 `ld: library 'emutls_w' not found`，因 check-ert 以 `PATH=os.defpath` 运行 ⇒ **工具链环境**，不是 GC 或产品逻辑回归。
+
+**port 侧其它差异均与强制 GC 无关**：`dired-tests`（port 2 unexpected，加不加 `--gc-stress` 相同；差异含 3 个参照-only 失败与 1 个 port-only `dired-test-ls-error-message`）、`uniquify-tests`（port 3，两种模式相同；port 实跑 `uniquify-project-transform` 而参照 skip）、`ert-tests`（参照选择集多一个测试）。83 个 zero-tests 与 7 个 port-better 属选择/跳过与参照环境差异；8 both-fail、2 both-crash、1 both-incomplete 两侧对称。
+
+**minor 口径**：`gc-cons-threshold=1` 只强制 Full，**不能**证明 minor；同源码候选的代际证据仍是 8 minors/reason0、三 minor 边界两次 Full(reason4)、major-layout 20 Full/reason3、显式 Full reason2（`frozen-batch-20261118-index.json`）。**仍缺**：`FEMACS_GC_COLLECTOR=young` 下的全库压测——该入口把子进程环境固定为 HOME/PATH/LC_ALL、不透传 `FEMACS_*`，未改工具伪造。root/store/barrier 方面：既有有界清单（532 文件 / 67,043 间接赋值候选 / 41 字面转义槽 / 934 批量指针候选）与源码绑定契约仍在，本轮补的是全库普通根集、weak 不动点与 sweep 的实测；**完整 store 清单与 young 全库压测仍记为缺项**。
+
+**GA8 试用候选**（`build/runtime/ime-diag-1/dist/Femacs.app`，可执行 `525eadea…`、dump `e72ee390…`）：`codesign --verify --deep --strict` 通过但为 **ad-hoc**，Gatekeeper `rejected`（无 Developer ID、未公证）⇒ 本机可用、不可分发。搬到全新路径后可批处理启动，`data-directory`/`locate-library` 随 bundle，可执行与 dump 的 SHA 与原位置**逐一相同** ⇒ 资源可搬移。使用证据：steady/switch 已在姊妹产品 `native-collector-1` 接受（本候选相对它只多受门控的 trace 字段）；本候选自身仅 multi 启动到两框与 trace 回调即被桌面激活阻断。未替换已安装编辑器，非最终验收。
+
 ### 2026-11-18 — 第 31 轮：compiler-resources 契约对齐 5/5，runtime-resume 记为具体缺口
 
 **compiler-resources（`565e5bf3`）**：四个 error 是**夹具的两处过期契约**，不是生产保证丢失。① 夹具用 `Generator.__new__` 手工填字段，缺 `sequence`——它正是每个 bytecode 回执的编号；② 夹具仍在模拟旧的 `batch-byte-compile` 选择，而现路径改为一组 `--eval` 表达式 + 回执校验，且需要 ROOT 下真实的 `tools/gen-program-products.py` 与它声明的 parser 产物。夹具改为：真构造器、真生成器脚本与声明产物、只在编辑器子进程边界按真实副作用打桩（native 能力文件、回执行、字节码产物）；选择规则、输入必需性、回执校验仍是生产代码。**5/5 通过**，覆盖"每个发布输入恰编译一次 / 缺必需源失败 / 命令报成功但无字节码失败 / 显式作用域不外溢 / native 能力要求自身编译源"。生产代码未改。`build/compiler-resource-components` 无残留临时根。
