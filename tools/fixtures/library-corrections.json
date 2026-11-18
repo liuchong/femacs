@@ -1,0 +1,33 @@
+{
+  "schema": "femacs-library-corrections-v1",
+  "corrections": [
+    {
+      "id": "dframe-create-buffer",
+      "contract": "dframe creation callbacks and their caller continue in the application buffer even when frame creation changes selection",
+      "source": "lisp/dframe.el",
+      "destination": "dframe.el",
+      "feature": "dframe",
+      "source_inputs": {
+        "lisp/dframe.el": {
+          "bytes": 32162,
+          "sha256": "fd2fff7f5dc87e551c04c0fe191e4d3408f4627b89ba98890b9882ef20508a90"
+        },
+        "lisp/frame.el": {
+          "bytes": 159775,
+          "sha256": "dbbd1b26745d4bc27f5aeb5a382ee85fe94a7b95d43fecb0f4a4de3918c9e533"
+        },
+        "lisp/term/ns-win.el": {
+          "bytes": 36171,
+          "sha256": "83f06754192875ad99fb46619183f27e685ad273fd6867619c48c97fe8940507"
+        },
+        "lisp/erc/erc-speedbar.el": {
+          "bytes": 27807,
+          "sha256": "ad8363efc90a4f9a41118004b5386608fdd2ee778dacd5ff9f4b79047a86e808"
+        }
+      },
+      "before": "\t;; Run hooks (like reposition)\n\t(run-hooks create-hook)",
+      "after": "\t;; Run hooks in the application buffer, including after frame focus hooks.\n\t(set-buffer (symbol-value buffer-var))\n\t(run-hooks create-hook)",
+      "generated_sha256": "438601d91f6a445dbf47e7f7bb8c203fd969576388bb49ecec63648d7e6c0b8a"
+    }
+  ]
+}
