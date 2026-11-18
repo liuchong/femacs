@@ -26689,7 +26689,7 @@ User approved this exact DNS case as a nonblocking environment limitation and re
 
 **strict probe（`84cdada3` 准入 + `f8050d29` 接线）**：用退出 255 的原始记录定位——候选侧 stderr 为 `missing bound source-test context`，原因是分片把 baseline 的 `test/` 目录当作 source-test context，而 runner 要求的是 baseline `source-context.json` 里**每侧一个**的 context 根（含 `test/` 与 `lisp/`）；同一入口还把结果与日志写进传入的那个根，所以夹具基座与证据根必须是同一个 `--out`。现按侧取 context 根、夹具物化到 `--out` 本身，证据（`results/`、`logs/`、`adjudication.json`）同根。单文件验证 `test/src/print-tests.el`：**verdict=same、complete=true、exit 0** ⇒ 之前两个文件的 `incomplete` 是接线问题，不是产品失败；此前"正向两产品都执行"的说法按 incomplete 更正，不再引用。
 
-**eglot（既有门与原始 clangd）**：已批准规则共 575 条，其中 eglot 9 条全部是 `explicit-optional-capability`，逐条绑定各测试自身的 `skip-unless`（如 `eglot-test-snippet-completions` 绑 `executable-find "clangd"`）；两条 tramp **没有**对应规则，且本次观测状态是 `failed`，而该类别要求"两侧都真实 skip"才可用 ⇒ **无精确匹配的现成门**，不新增类别、不改原失败。
+**eglot（既有门与原始 clangd）**：已批准规则共 575 条，其中 eglot 10 条全部是 `explicit-optional-capability`，逐条绑定各测试自身的 `skip-unless`（如 `eglot-test-snippet-completions` 绑 `executable-find "clangd"`）；两条 tramp **没有**对应规则，且本次观测状态是 `failed`，而该类别要求"两侧都真实 skip"才可用 ⇒ **无精确匹配的现成门**，不新增类别、不改原失败。
 
 **原始受控运行实际找到哪个 clangd**：分片把调用方 PATH 原样传给产品；该 PATH 有 `/opt/homebrew/bin` 但没有 keg-only 的 `/opt/homebrew/opt/llvm/bin`，因此远端 `executable-find` 命中 **`/usr/bin/clangd`（Apple clangd 21.0.0）**，随后 10 s 超时。我的定向运行改用 `/opt/homebrew/opt/llvm/bin` 在前的 PATH（**Homebrew clangd 23.1.5**），两条 tramp 双端通过。⇒ 两条 tramp 的原始失败是**该环境下远端 clangd 版本/可启动性**问题，有旧原始证据，但**没有现成门**可绑定。
 
