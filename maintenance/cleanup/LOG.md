@@ -1,3 +1,11 @@
+## 2026-11-18 — retire the cohort-5 matrix source tree
+
+- Released: `build/acceptance/current-runtime-build-5/source` (20 GiB measured by free-space delta).
+- Reason: cohort 5 was superseded by cohort 6, whose own source tree was retired earlier; both cohorts are historical prose in the docs and no tool reads them. The current channel is the single-product G3 evidence.
+- Kept: cohort-5 metadata (products/receipts, cargo cache, builds) plus the closed stable-6 wrapper evidence directories.
+- Consumers checked: `grep -rl current-runtime-build-5 tools xtask docs` matched only `docs/status.md` and `docs/current-state.md`.
+- Disk effect: ~12 GiB free before this batch's retirements, 52 GiB after both.
+
 ## 2026-11-18 — retire the superseded 61-product build tree
 
 - Released: `build/acceptance/current-runtime-build-6/source` (26 GiB measured by free-space delta; the tree reported 27 G before deletion).
