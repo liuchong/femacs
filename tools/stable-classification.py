@@ -43,11 +43,131 @@ ERC_GRAPHICAL_TEST_ENVIRONMENT = {'ERC_TESTS_GRAPHICAL': '1', 'ERC_TESTS_GRAPHIC
 SVG_CONFIGURATION_TOKEN = 'RSVG'
 CONFIGURATION_TOKENS = {'SECCOMP', 'DBUS', 'INOTIFY', 'PNG', 'JPEG', 'GIF',
                        'TIFF', 'WEBP', SVG_CONFIGURATION_TOKEN, 'XPM', 'IMAGEMAGICK'}
+# Closed control envelopes admit either the full 61-product matrix postflight or
+# an explicit selected-product postflight. The check-set names are the contract;
+# consumers must not treat a selected run as a pretended 61-product matrix.
+MATRIX_CONTROL_CHECKS = frozenset({
+    'all61_product_identities_unchanged', 'all61_complete_receipts_valid',
+    'source_export_unchanged', 'reference_selection_unchanged',
+    'captured_harness_runner_unchanged', 'original_current_version_inputs_unchanged',
+    'copied_current_version_inputs_unchanged', 'current_source_context_links_unchanged',
+    'stable_source_context_unchanged'})
+SELECTED_CONTROL_CHECKS = frozenset({
+    'selected_product_identities_unchanged', 'selected_product_receipts_valid',
+    'declared_source_root_unchanged', 'reference_selection_unchanged',
+    'captured_harness_runner_unchanged', 'original_current_version_inputs_unchanged',
+    'copied_current_version_inputs_unchanged', 'current_source_context_links_unchanged',
+    'stable_source_context_unchanged'})
+MATRIX_REMOTE_CHECKS = frozenset({
+    'all61_product_identities_unchanged', 'all61_complete_receipts_valid',
+    'source_export_unchanged', 'reference_selection_unchanged',
+    'driver_and_fixture_sources_unchanged', 'captured_fixture_unchanged',
+    'original_test_unchanged'})
+SELECTED_REMOTE_CHECKS = frozenset({
+    'selected_product_identities_unchanged', 'selected_product_receipts_valid',
+    'declared_source_root_unchanged', 'reference_selection_unchanged',
+    'driver_and_fixture_sources_unchanged', 'captured_fixture_unchanged',
+    'original_test_unchanged'})
+MATRIX_LIBRARY_CHECKS = frozenset({
+    'declared_product_identities_unchanged', 'declared_input_pins_unchanged'})
+SELECTED_LIBRARY_CHECKS = frozenset({
+    'selected_product_identities_unchanged', 'selected_product_receipts_valid',
+    'declared_source_root_unchanged', 'reference_selection_unchanged',
+    'declared_input_pins_unchanged'})
+CONTROL_HARNESS_ROLES = frozenset({
+    'stable-suite-runner.el', 'stable-suite.py', 'stable-suite-batch.py',
+    'stable-context.py', 'runtime-retire.py', 'reference-corpus.py'})
 
 
 def require(condition, message):
     if not condition:
         raise ValueError(message)
+
+
+def control_executor_harness_roles(admission, closed_run):
+    """Bind a selected-product control to its own captured executor.
+
+    Matrix controls keep the historical subject-harness equality gate. Selected
+    controls must prove the closed envelope's captured harness instead of
+    pretending it matches an older subject receipt.
+    """
+    require(isinstance(admission, dict) and isinstance(closed_run, dict),
+            'control admission and closed run required')
+    roles = admission.get('harness_sources_by_role')
+    require(isinstance(roles, dict) and set(roles) == CONTROL_HARNESS_ROLES
+            and all(isinstance(value, str) and len(value) == 64 for value in roles.values()),
+            'control admission lacks its exact captured harness role map')
+    closed = {Path(name).name: sha for name, sha in (closed_run.get('harness_sources') or {}).items()}
+    require(roles == closed,
+            'control admission harness does not match its closed captured harness')
+    return roles
+
+
+def subject_harness_roles(receipt):
+    """Historical subject-suite harness map retained on the closed formal receipt.
+
+    Matrix controls compare admission harness to this exact map (P465). Completeness
+    of CONTROL_HARNESS_ROLES is enforced only on the selected own-executor proof.
+    """
+    require(isinstance(receipt, dict) and isinstance(receipt.get('harness_sources'), dict)
+            and receipt['harness_sources'],
+            'closed subject receipt must retain its own harness identity')
+    roles = {Path(name).name: sha for name, sha in receipt['harness_sources'].items()}
+    require(roles and all(isinstance(value, str) and len(value) == 64 for value in roles.values()),
+            'subject receipt harness roles are incomplete')
+    return roles
+
+
+def control_postflight_kind(run):
+    """Classify a closed current-version control envelope by its exact check set."""
+    require(isinstance(run, dict), 'closed control envelope required')
+    checks = set(run.get('checks', {}))
+    if (checks == MATRIX_CONTROL_CHECKS and run.get('selected_product_admission') is not True
+            and all(run.get('checks', {}).values())):
+        return 'matrix'
+    if (checks == SELECTED_CONTROL_CHECKS and run.get('selected_product_admission') is True
+            and run.get('full_matrix_admission') is not True
+            and all(run.get('checks', {}).values())):
+        return 'selected'
+    raise ValueError('control postflight is neither full-matrix nor selected-product')
+
+
+def remote_postflight_kind(value):
+    """Classify a closed remote-behavior collection by admission scope and checks."""
+    require(isinstance(value, dict), 'closed remote envelope required')
+    checks = set(value.get('checks', {}))
+    if (value.get('full_matrix_admission') is True
+            and value.get('selected_product_admission') is not True
+            and checks == MATRIX_REMOTE_CHECKS and all(value.get('checks', {}).values())):
+        return 'matrix'
+    if (value.get('selected_product_admission') is True
+            and value.get('full_matrix_admission') is not True
+            and checks == SELECTED_REMOTE_CHECKS and all(value.get('checks', {}).values())):
+        return 'selected'
+    raise ValueError('remote postflight is neither full-matrix nor selected-product')
+
+
+def library_postflight_kind(value):
+    """Classify a closed library-contract envelope by admission scope and checks.
+
+    Legacy matrix envelopes only recorded selected_inputs_unchanged; keep admitting
+    those. Selected-product envelopes must carry the explicit selected check set.
+    Independent correct-behavior proof remains mandatory at the consumer.
+    """
+    require(isinstance(value, dict), 'closed library envelope required')
+    checks = set(value.get('checks') or {})
+    if (value.get('selected_product_admission') is True
+            and value.get('full_matrix_admission') is not True
+            and value.get('selected_inputs_unchanged') is True
+            and checks == SELECTED_LIBRARY_CHECKS and all(value.get('checks', {}).values())):
+        return 'selected'
+    if (value.get('selected_product_admission') is not True
+            and value.get('selected_inputs_unchanged') is True
+            and value.get('generated_override_used') is False
+            and (not checks or (checks == MATRIX_LIBRARY_CHECKS
+                                and all(value.get('checks', {}).values())))):
+        return 'matrix'
+    raise ValueError('library postflight is neither full-matrix nor selected-product')
 
 
 def digest(value):
@@ -320,7 +440,6 @@ def _passing_control(control, case, label, file_row, receipt, api,
     argv = file_row[label].get('argv', [])
     fixture = value.get('working_fixture', {})
     admission = value.get('resource_admission') or {}
-    source_hashes = {Path(name).name: sha for name, sha in receipt['harness_sources'].items()}
     require(value.get('schema') == 'femacs-stable-file-batch-v1'
             and value.get('file') == target_file and value.get('complete') is True
             and value.get('exit_code') == 0 and value.get('timed_out') is False
@@ -343,10 +462,9 @@ def _passing_control(control, case, label, file_row, receipt, api,
             and (test_environment is None or value.get('test_environment', {}) == test_environment)
             and admission.get('reference_selection_sha256') == reference_selection['sha256']
             and admission.get('profile') == (profile['id'] if label == 'candidate' else 'installed-reference')
-            and admission.get('harness_sources_by_role') == source_hashes
             and admission.get('module_header_sha256') == bound_file(
                 Path(api.__file__).parent/'fixtures/module-thread-config.h')['sha256'],
-            'applicable control has no matching product, epoch and captured harness proof')
+            'applicable control has no matching product, epoch and executor admission')
     if purpose == 'applicability':
         require(admission.get('manifest_sha256') == receipt['manifest_sha256'],
                 'applicability control must use the exact unchanged original corpus')
@@ -382,21 +500,26 @@ def _passing_control(control, case, label, file_row, receipt, api,
     require(found, 'applicable control has no exact passing original event')
     closed = control.get('closed_run', {})
     run = _control_json(closed, cache)
-    expected_checks = {'all61_product_identities_unchanged', 'all61_complete_receipts_valid',
-        'source_export_unchanged', 'reference_selection_unchanged', 'captured_harness_runner_unchanged',
-        'original_current_version_inputs_unchanged', 'copied_current_version_inputs_unchanged',
-        'current_source_context_links_unchanged', 'stable_source_context_unchanged'}
+    kind = control_postflight_kind(run)
     require(run.get('schema') == 'femacs-current-version-controls-v1'
             and run.get('diagnostic_collection_complete') is True and run.get('passed') is True
             and run.get('reference_selection') == reference_selection and run.get('errors') == []
-            and set(run.get('checks', {})) == expected_checks and all(run['checks'].values())
+            and kind in {'matrix', 'selected'}
             and any(row.get('profile') == admission['profile'] and row.get('file') == target_file
                 and row.get('complete') is True and row.get('test_input') == control_input
                 and row.get('file_result', {}).get('sha256') == control['identity']['sha256']
                 and row.get('file_result', {}).get('bytes') == control['identity']['bytes']
                 and str(Path(run.get('corpus_root', ''))/row['file_result']['path']) == control['path']
                 for row in run.get('cases', [])),
-            'control is not in a closed full-product postflight envelope')
+            'control is not in a closed matrix or selected-product postflight envelope')
+    if kind == 'matrix':
+        # Default matrix contract: control harness must equal the subject suite
+        # harness retained on the closed formal receipt (P465 unchanged).
+        require(admission.get('harness_sources_by_role') == subject_harness_roles(receipt),
+                'applicable control has no matching product, epoch and captured harness proof')
+    else:
+        # Selected-product channel only: prove the control's own captured executor.
+        control_executor_harness_roles(admission, run)
     controller = control.get('controller', {})
     lines = read_bytes(controller.get('path', ''), controller.get('identity'), 65536).decode('utf-8').splitlines()
     records = [json.loads(line[len('controlled-run: '):], object_pairs_hook=_pairs)
@@ -863,7 +986,7 @@ def _optional_applicability(gate, case, events, file_row, excerpts, receipt,
                 and form == "(skip-unless (and (fboundp 'w32-shell-dos-semantics)\n"
                             "                    (w32-shell-dos-semantics)))"
                 and set(systems or []) == {'windows-nt'}
-                and observed_form == '(and (fboundp w32-shell-dos-semantics) (w32-shell-dos-semantics))')
+                and observed_form == "(and (fboundp 'w32-shell-dos-semantics) (w32-shell-dos-semantics))")
             require(isinstance(systems, list) and bool(systems)
                     and set(systems) <= {'gnu/linux', 'darwin', 'windows-nt', 'ms-dos', 'cygwin', 'berkeley-unix'}
                     and metadata.get('system_type') not in systems
@@ -1184,7 +1307,10 @@ def _remote_collections(arguments):
         value = _control_json(pin, {})
         require(value.get('schema') == 'femacs-runtime-tramp-process-probe-v1'
                 and value.get('passed') is True and value.get('diagnostic_collection_complete') is True
-                and value.get('full_matrix_admission') is True
+                and ((value.get('full_matrix_admission') is True
+                      and value.get('selected_product_admission') is not True)
+                     or (value.get('selected_product_admission') is True
+                         and value.get('full_matrix_admission') is not True))
                 and value.get('requested_contracts') == ['ready-remote-signal-delivery-v1', 'remote-watch-lifecycle-v1']
                 and isinstance(value.get('cases'), list) and 0 < len(value['cases']) <= 49,
                 'fresh completed remote behavior collection required')
@@ -1203,17 +1329,13 @@ def _remote_control(pin, receipt, label, profile, reference_selection, file_row,
     cache = {} if cache is None else cache
     require(isinstance(pin, dict), 'same-product remote behavior control required')
     value = _control_json(pin, cache)
-    expected_checks = {'all61_product_identities_unchanged', 'all61_complete_receipts_valid',
-        'source_export_unchanged', 'reference_selection_unchanged', 'driver_and_fixture_sources_unchanged',
-        'captured_fixture_unchanged', 'original_test_unchanged'}
     require(value.get('schema') == 'femacs-runtime-tramp-process-probe-v1'
             and value.get('passed') is True and value.get('diagnostic_collection_complete') is True
-            and value.get('full_matrix_admission') is True
             and value.get('actual_editor_execution') is True
             and value.get('original_formal_results_modified') is False
             and value.get('reference_selection') == reference_selection and value.get('errors') == []
-            and set(value.get('checks', {})) == expected_checks and all(value['checks'].values()),
-            'remote control has no exact complete product/source postflight')
+            and remote_postflight_kind(value) in {'matrix', 'selected'},
+            'remote control has no exact matrix or selected-product postflight')
     target = profile['id'] if label == 'candidate' else 'installed-reference'
     rows = [row for row in value['cases'] if row.get('profile') == target]
     require(len(rows) == 1, 'one exact remote-control profile required')
@@ -1343,14 +1465,25 @@ def _select_remote_controls(collections, profile, cache):
 
 
 def _correct_library_control(pin, receipt, label, profile, reference_selection, file_row):
-    """Require an independent behavior check of the same actual product tree."""
+    """Require an independent behavior check of the same actual product tree.
+
+    Candidate original-case passes and same-failure pairs are not substitutes.
+    The closed frame-buffer contract must prove correct_behavior on the actual
+    product library under either matrix or selected-product admission.
+    """
     value = _control_json(pin, {})
     require(value.get('schema') == 'femacs-runtime-frame-buffer-probe-v1'
             and value.get('contract') == 'dframe-create-buffer-v1'
-            and value.get('passed') is True and value.get('selected_inputs_unchanged') is True
+            and value.get('passed') is True
             and value.get('generated_override_used') is False
             and value.get('reference_selection_sha256') == reference_selection['sha256'],
             'correct library behavior requires a fresh matching-epoch product control')
+    kind = library_postflight_kind(value)
+    require(kind in {'matrix', 'selected'},
+            'correct library behavior requires matrix or selected-product admission')
+    if kind == 'selected':
+        require(value.get('reference_selection') == reference_selection,
+                'selected library control must embed the same reference-selection document')
     required_profile = profile['id'] if label == 'candidate' else 'installed-reference'
     rows = [row for row in value.get('cases', []) if row.get('profile') == required_profile]
     require(len(rows) == 1 and rows[0].get('stable_product_identity') == receipt['products_before'][label]
@@ -2363,35 +2496,39 @@ def product_root_from_receipt(receipt):
     raise ValueError('candidate LISP path is not under a closed runtime product root')
 
 
-def scoped_candidate_profile(product_root, receipt):
-    """Derive the registry profile id from runtime-product binding and run env."""
+def runtime_product_profile(product_root, *, collector):
+    """Derive one registry product from a closed runtime-product tree and collector mode.
+
+    This does not admit a full 61-product matrix. Callers pass the real product
+    root and the collector that belongs to that product's execution environment.
+    """
     product_root = Path(os.path.abspath(product_root))
     require(product_root.resolve() == product_root and not product_root.is_symlink()
             and (product_root/'runtime-binding.json').is_file()
-            and (product_root/'runtime-product.json').is_file(),
-            'physical runtime product root required')
+            and (product_root/'runtime-product.json').is_file()
+            and (product_root/'runtime-inputs.json').is_file(),
+            'physical runtime product root with binding/product/inputs required')
     binding = json.loads((product_root/'runtime-binding.json').read_text(encoding='utf-8'),
                          object_pairs_hook=_pairs)
     product = json.loads((product_root/'runtime-product.json').read_text(encoding='utf-8'),
                          object_pairs_hook=_pairs)
+    inputs = json.loads((product_root/'runtime-inputs.json').read_text(encoding='utf-8'),
+                        object_pairs_hook=_pairs)
     require(product.get('build_complete') is True and product.get('binding') == binding,
             'runtime product binding does not match the closed product receipt')
-    env = receipt['runtime_environment']['candidate']
-    lisp = Path(env['FEMACS_STABLE_PRODUCT_LISP'])
-    require(lisp.is_absolute() and str(lisp).startswith(str(product_root) + os.sep),
-            'candidate LISP path is outside the closed runtime product')
+    require(isinstance(inputs.get('source_root'), str) and inputs['source_root'],
+            'runtime product must declare its source_root')
     kind, variant = binding.get('product'), binding.get('variant')
     observer, hooks, leg = binding.get('observer'), binding.get('test_hooks'), binding.get('compiler_leg')
     require(kind in ('terminal', 'cocoa')
             and variant in ('baseline', 'native', 'collector', 'native-collector')
             and type(observer) is bool and hooks is False and leg in ('normal', 'checking'),
-            'unsupported runtime product binding for classification')
+            'unsupported runtime product binding for selected-product controls')
     if 'collector' in variant:
-        collector = env.get('FEMACS_GC_COLLECTOR')
         require(collector in ('young', 'major'),
-                'collector product requires FEMACS_GC_COLLECTOR young|major from the closed run')
+                'collector product requires an explicit young|major collector')
     else:
-        require(env.get('FEMACS_GC_COLLECTOR') in (None, 'off'),
+        require(collector in (None, 'off'),
                 'non-collector product cannot claim a collector mode')
         collector = 'off'
     name = (kind + '-' + variant + ('-observer' if observer else '')
@@ -2406,16 +2543,41 @@ def scoped_candidate_profile(product_root, receipt):
         dump = product_root/'dist/terminal/src/emacs.pdmp'
         resources = {'lisp': str(product_root/'dist/terminal/lisp')}
     require(program.is_file() and dump.is_file(), 'closed product program/dump required')
-    require(bound_file(program)['sha256']
-            == receipt['products_before']['candidate']['program']['sha256'],
-            'runtime product program identity differs from closed receipt')
-    require(bound_file(dump)['sha256']
-            == receipt['products_before']['candidate']['dump']['sha256'],
-            'runtime product dump identity differs from closed receipt')
     return dict(id=profile_id, kind=kind, compiler_leg=leg, native='native' in variant,
                 observer=observer, test_hooks=hooks, collector=collector,
                 program=str(program), dump=str(dump), resource_roots=resources,
-                product_receipt=str(product_root/'runtime-product.json'))
+                product_receipt=str(product_root/'runtime-product.json'),
+                runtime_root=str(product_root),
+                source_root=str(Path(os.path.abspath(inputs['source_root']))),
+                inputs_path=str(product_root/'runtime-inputs.json'))
+
+
+def scoped_candidate_profile(product_root, receipt):
+    """Derive the registry profile id from runtime-product binding and run env."""
+    env = receipt['runtime_environment']['candidate']
+    lisp = Path(env['FEMACS_STABLE_PRODUCT_LISP'])
+    product_root = Path(os.path.abspath(product_root))
+    require(lisp.is_absolute() and str(lisp).startswith(str(product_root) + os.sep),
+            'candidate LISP path is outside the closed runtime product')
+    if 'collector' in json.loads((product_root/'runtime-binding.json').read_text(encoding='utf-8'),
+                                 object_pairs_hook=_pairs).get('variant', ''):
+        collector = env.get('FEMACS_GC_COLLECTOR')
+        require(collector in ('young', 'major'),
+                'collector product requires FEMACS_GC_COLLECTOR young|major from the closed run')
+    else:
+        require(env.get('FEMACS_GC_COLLECTOR') in (None, 'off'),
+                'non-collector product cannot claim a collector mode')
+        collector = 'off'
+    profile = runtime_product_profile(product_root, collector=collector)
+    require(bound_file(profile['program'])['sha256']
+            == receipt['products_before']['candidate']['program']['sha256'],
+            'runtime product program identity differs from closed receipt')
+    require(bound_file(profile['dump'])['sha256']
+            == receipt['products_before']['candidate']['dump']['sha256'],
+            'runtime product dump identity differs from closed receipt')
+    return {key: profile[key] for key in (
+        'id', 'kind', 'compiler_leg', 'native', 'observer', 'test_hooks', 'collector',
+        'program', 'dump', 'resource_roots', 'product_receipt')}
 
 
 def _capture_failing_rule(rule, case, *, root, api, profile_id, candidate_kind,

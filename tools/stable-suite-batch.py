@@ -766,22 +766,28 @@ def _seal_retained_state(api, path, result, root, parents):
 
 def _run_file(api, out, paths, runner, test_root, logical, timeout, label,
               *, display='batch', fixture_entries=None, resource_admission=None,
-              deferred_retirements=None, exclude_ids=None):
+              deferred_retirements=None, exclude_ids=None, reduced_invocation=False):
     if not isinstance(display, str) or display not in {'batch', 'terminal', 'cocoa'}:
         raise api.SuiteError('unsupported original-file execution display')
     if display == 'cocoa' and sys.platform != 'darwin':
         raise api.SuiteError('Cocoa control execution requires Darwin')
     if display == 'terminal' and os.name != 'posix':
         raise api.SuiteError('controlling terminal execution requires POSIX')
+    if reduced_invocation not in (True, False):
+        raise api.SuiteError('reduced_invocation must be an exact boolean')
     if exclude_ids is not None:
         if (not isinstance(exclude_ids, (list, tuple)) or not exclude_ids
                 or any(not isinstance(name, str) or not name for name in exclude_ids)
                 or len(set(exclude_ids)) != len(exclude_ids)):
-            raise api.SuiteError('reduced invocation requires unique non-empty excluded IDs')
-        if display == 'batch':
+            raise api.SuiteError('excluded IDs must be a unique non-empty string list')
+        if display == 'batch' and reduced_invocation:
             # A blocked system call cannot be resumed in the same process, so a
             # reduced second invocation only makes sense for a real display run.
+            # Declarative --test-id scope (reduced_invocation=False) may still
+            # exclude unrequested identities on the first batch invocation.
             raise api.SuiteError('reduced invocation requires a display context')
+    elif reduced_invocation:
+        raise api.SuiteError('reduced invocation requires unique non-empty excluded IDs')
     test_environment = paths.get('test_environment', {})
     if (not isinstance(test_environment, dict)
             or set(test_environment) - {'ERC_TESTS_GRAPHICAL', 'ERC_TESTS_GRAPHICAL_ALL'}
