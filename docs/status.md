@@ -26685,17 +26685,13 @@ Fresh reference selection passed7/7 postflight checks, actual installation/confi
 User approved this exact DNS case as a nonblocking environment limitation and requires the existing proxy to remain enabled and unchanged. Four bounded HTTPS queries completed without errors: both Google andCloudflare resolved `example.com` (Status0,2 A answers) and returned NXDOMAIN for `emacs.invalid` (Status3,no answers),1.499–2.389s per query. The host system lookup still reports its synthetic proxy addresses. This verifies a remote-resolver contrast, not candidate/editor or original ERT acceptance; raw failures, counts and exits remain unchanged. No Dot task was sent; that route is cancelled. Fresh full555/48 observations and any precise exception binding remain pending.
 
 
-### 2026-11-18 — 第 16 轮：单产品通道的规则装配与真实未解释清单
+### 2026-11-18 — 第 16 轮：单产品通道接线（分类器部分移交）与覆盖/替代索引
 
-**参照绑定**：`tools/g3-reference-binding.py` 从既有 selection 取 epoch、从两份闭合回执取实际身份，重算安装件 program/dump 的 SHA-256，两回执参照身份一致；产物 `build/acceptance/g3-reference-binding-1/reference-selection.json`，标 `post-hoc-verification` + 时间，不冒充事前准入。
+**参照绑定**：`tools/g3-reference-binding.py` 由既有 selection 取 epoch、两份闭合回执取实际身份并重算 program/dump SHA-256；产物 `build/acceptance/g3-reference-binding-1/reference-selection.json` 标 `post-hoc-verification` + 时间，不冒充事前准入。
 
-**按证据组装（不重建矩阵）**：`stable-classification.py` 新增 `--scoped-assembly`，复用同一套严格规则校验（category、非空 reason、仓库相对 anchors、不得预置 observations），只绑定回执里真实出现过的 file+id；catalog 只含一个 context（该通道自己的产品/环境/参照），结果显式 `matrix_complete=false`，旧回执与既有失败不改，48/61 矩阵未恢复、未登记虚构候选。
+**分类器（未通过，已移交）**：本轮加的 `--scoped-assembly` **不通过核收**——它没有走原流程的观测捕获／`_accept_rule`／`assess`，只按 file+id 复制定义，缺 `observations`、`completion_sha256` 写 None，profile 还硬编码 `kind=cocoa`。**此前"575/139 绑定、567/37 已归类"的结论撤回**，只作挂接定义计数，不作归类完成。写权交 Cursor 定向收口：当前 `tools/stable-classification.py` SHA `a021520e…`、HEAD `476ee487`、最后改动提交 `bbacd5a0`；实盘输入 = `build/acceptance/g3-555-frozen2/stable-suite-run.json`、`build/acceptance/g3-subset-native-1/stable-suite-run.json`、`build/acceptance/g3-reference-binding-1/reference-selection.json`、`tools/fixtures/stable-classification-source-rules.json`。我不再改该文件。
 
-**两通道各留各的范围**：旧 555（`cocoa-collector-observer-normal-young`，frozen-2）绑定规则 **575**，574 失败中 **567 有规则归类、7 条未解释**；新子集（`cocoa-native-collector-observer-normal-young`，native-collector-1）绑定 **139**，37 失败全部有归类、**0 未解释**。catalog 分别在 `build/acceptance/g3-scoped-classification-{555-1,subset-2}/`，逐项清单 `build/acceptance/g3-scoped-unexplained.json`（每条 failing 恒 `still_unpassed=true`；共同失败不由"双方同败"放行）。
-
-**7 条未解释**：`emacs-lisp/comp-tests.el` 3（旧产品无 native 编译）、`filenotify-tests` 1、`eglot-tests` 3。
-
-**清理**：删除仅用于接线的 smoke 与 materialize 输出（各 <30 MB），在用产品与证据保留：`frozen-2`、`native-2`、`native-collector-1` 及三份 g3 证据目录。
+**覆盖/替代索引（本轮由我独立完成）**：`build/acceptance/g3-coverage-substitution.json`。11 个声明文件由新产品（native-collector-1）复验并**替代**旧证据，其余 **544** 个入口保留 frozen-2 证据（标明产品与 harness）；每个用例只由一件产品取证，旧 555 的 574 原始失败不改、不重命名。替代文件内共 **103** 条用例状态变化，全部是候选由失败转通过。
 
 ### 2026-11-18 — 第 15 轮：G3 声明子集复验与历史 harness 身份核验
 
