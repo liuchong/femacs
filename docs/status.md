@@ -26685,6 +26685,16 @@ Fresh reference selection passed7/7 postflight checks, actual installation/confi
 User approved this exact DNS case as a nonblocking environment limitation and requires the existing proxy to remain enabled and unchanged. Four bounded HTTPS queries completed without errors: both Google andCloudflare resolved `example.com` (Status0,2 A answers) and returned NXDOMAIN for `emacs.invalid` (Status3,no answers),1.499–2.389s per query. The host system lookup still reports its synthetic proxy addresses. This verifies a remote-resolver contrast, not candidate/editor or original ERT acceptance; raw failures, counts and exits remain unchanged. No Dot task was sent; that route is cancelled. Fresh full555/48 observations and any precise exception binding remain pending.
 
 
+### 2026-11-18 — 第 38 轮：更正 eglot 的两处判因；工具身份证据确认不存在，按指示停止
+
+**更正一（事实错误）**：第 36 轮写"该 PATH 有 `/opt/homebrew/bin` 但没有 keg-only 的 `/opt/homebrew/opt/llvm/bin`"是错的。闭合回执 `build/acceptance/g3-555-frozen2/stable-suite-inputs.json` 的 `environment_policy.PATH`（108 项）里，`/opt/homebrew/opt/llvm/bin` 位于第 28 位，**早于** `/usr/bin`（第 52 位）。按解析顺序，远端 `command -v clangd` 会命中 Homebrew 的 clangd，而不是 Apple 的 `/usr/bin/clangd`。
+
+**更正二（因果收回）**：因此第 36 轮"原失败是远端 clangd 版本/可启动性"没有依据。可取的事实只有：同一语料文件、同一两产品，在 5 项 PATH（`/opt/homebrew/opt/llvm/bin:/usr/bin:/bin:/usr/sbin:/sbin`）的受控环境下两条 tramp 双端通过；在 555 运行的 108 项 PATH 环境下双端 10 s 超时。差异在**环境本身**，且哪一项环境因素造成超时**未定**。
+
+**工具身份证据**：现有机制无法证明"mock 远端真正用了同一个 clangd"。① 结果只记 `runtime_environment`＝`FEMACS_*`，`environment_preparation` 回执不含环境，`diagnostic_trace` 为 null；② `test_environment` 白名单只允许 `ERC_TESTS_GRAPHICAL`/`_ALL`；③ 测试自身 `tramp-verbose` 为 1，不追踪远端命令；④ eglot 的 server/output/events buffer 只在**失败**时被 dump，成功路径不保留，因此拿不到 initialize 的 `serverInfo.version` 或进程命令；⑤ 全仓无外部工具路径/字节/版本字段。PATH 本身可由 suite-level 的 `stable-suite-inputs.json`（`environment_policy`）记录，但 strict probe 不写该回执，且记录 PATH 仍不等于记录"远端实际启动的工具"。
+
+**处置**：按指示**不跑** Eglot 完整对照，不新增探针或 schema，不改通用 harness；旧失败与旧记录完全不动。**可续接条件**：单文件入口需要正式的"外部工具钉住+观测量"——显式声明工具路径并记录其 SHA-256/版本，且记录**实际启动**的服务端身份（例如服务端进程命令或 initialize 的 `serverInfo`），用它构造两侧同一 PATH；在此之前该项保持未解释，完成项同理。g3 有效阻断仍 **3**，目标未完成。
+
 ### 2026-11-18 — 第 37 轮：eglot 无现成工具钉住机制，按真实缺口停在条件上
 
 **先查现有受控单文件入口能否钉住同一个 clangd**：不能。`stable-suite-batch.py` 的 `test_environment` 只接受 `ERC_TESTS_GRAPHICAL`/`ERC_TESTS_GRAPHICAL_ALL` 且值必须为 `1`，且仅限 cocoa 的 `test/lisp/erc/` 文件；结果的 `runtime_environment` 只记 `FEMACS_*`，**不记 PATH**；全仓没有记录外部工具（clangd）路径/字节/版本的位置。分片只是**原样转发调用方 PATH**（`PATH=os.environ.get('PATH', os.defpath)`），因此两次运行可以命中不同 clangd 而回执上看不出来——这正是本次定位能看见、但正式验收无法固定的一点。
