@@ -26685,6 +26685,12 @@ Fresh reference selection passed7/7 postflight checks, actual installation/confi
 User approved this exact DNS case as a nonblocking environment limitation and requires the existing proxy to remain enabled and unchanged. Four bounded HTTPS queries completed without errors: both Google andCloudflare resolved `example.com` (Status0,2 A answers) and returned NXDOMAIN for `emacs.invalid` (Status3,no answers),1.499–2.389s per query. The host system lookup still reports its synthetic proxy addresses. This verifies a remote-resolver contrast, not candidate/editor or original ERT acceptance; raw failures, counts and exits remain unchanged. No Dot task was sent; that route is cancelled. Fresh full555/48 observations and any precise exception binding remain pending.
 
 
+### 2026-11-18 — 第 27 轮：安静窗口一次读数与 IME 激活的官方依据
+
+**测量（一次读数，不反复查）**：入口 `load_per_core=0.194`（阈值 0.10），不启动 2+7 比较；事实与解除条件记 `build/acceptance/g5-load-state-3/results.json`。
+
+**IME 激活（只查官方与成熟实现，未试改）**：Apple 在 macOS 14 引入 **cooperative app activation**——`activate(ignoringOtherApps:)` 与 `NSApplication.ActivationOptions.activateIgnoringOtherApps` 已废弃且**参数被忽略**；`NSApplication.activate()` 只是"请求"，由系统按上下文决定；跨应用交接需 `yieldActivation(to:)`／`yieldActivation(toApplicationWithBundleIdentifier:)`，而 `NSWorkspace` 在打开 URL/应用时会自动完成交接。我们的 IME 探针**直接用 shell exec 启动二进制**，没有激活上下文，所以 `appActive=false`（AX=true 已排除权限）。可依据的支持路径是经 **LaunchServices（`NSWorkspace.OpenConfiguration`，可带 arguments/environment/activates）** 启动；实测 `open --args` 不转发探针环境变量，因此需要一个小的 OpenConfiguration 助手，而不是 CLI 包装。依据记 `build/acceptance/g5-ime-activation-research.json`；本轮**未改键位、未改焦点路径、未重开 G1、未碰运行中的 Fe**。
+
 ### 2026-11-18 — 第 26 轮：三条同产品远端真实闭合，有效阻断 8→5
 
 **远端闭合（正式入口，不重扫）**：先核 `g3-remote-native-1`——passed 但控制器流已随会话临时文件消失、无同 PID 证明，**确实缺闭合证明**；随后用 selected-product 入口直接执行两次：`g3-remote-native-3`（候选侧，26.8 s，signal/watch 均真，控制器=产物 97963）与 `g3-remote-native-4`（加 `--include-reference` 取两侧）。严格消费 `g3-scoped-consume-subset-4`：规则 34→**37**、捕获 3→**0**、阻断 3→**0**。记录参照侧 `watch_contract_passed=false` 这一真实标志，不用于任何语料通过主张。
