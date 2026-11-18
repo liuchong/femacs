@@ -1,3 +1,5 @@
+Resource generation that executes an editor requires `--program <explicit-owned-program>`; `xtask generate-resources` likewise requires that argument. It never selects a program from old build/dist paths. Generated library corrections preserve the canonical dump search root and may target only declared non-preloaded features.
+
 ## 当前独立构建入口
 
 正常 `xtask build-terminal` 和 `build-macos` 在最终 dump 后用当前自有程序导出 Org、生成完整68份 Info，并验证文件集合。终端以独占暂存/原子交换发布根 `info/`，保留旧集合；Cocoa 从自己的完整集合复制到包内后签名。需要 GNU Texinfo 的 `makeinfo` 与 `install-info`。显式 `cargo run -p xtask -- build-manuals --format html --program PATH --out build/NEW` 生成可选HTML；新输出必须不存在。忽略文件始终是产物，原始文档及导出器为已提交输入。
@@ -21,6 +23,34 @@ pkg-config --variable=prefix tree-sitter
 两条读数应分别为 `0.27.1` 与所选前缀。预编译包若含安装位置占位符，只按实际位置重定位 `.pc` 的前缀，保留版本/header/library 身份。编译负载仍经当前外部资源控制器执行。
 
 本轮实际使用 Homebrew `0.27.1.arm64_golden_gate` 包：OCI manifest `40bad9ef192678201588c9d456a36d140a8a704ee085bc7a04da86b61d46e7e4`、202,130 字节 layer `c42e8f765aedd344347abdbae7fa65e11e07905b07f2cb24d63a19597fff62f2`，可由[对应公式版本](https://github.com/Homebrew/homebrew-core/blob/f07ac0964f9d02177aebb208b4030250609e22e1/Formula/t/tree-sitter.rb)和[固定 layer](https://ghcr.io/v2/homebrew/core/tree-sitter/blobs/sha256:c42e8f765aedd344347abdbae7fa65e11e07905b07f2cb24d63a19597fff62f2)定位。该包实测范围是 Apple Silicon/macOS 27，不据此推断旧系统支持。完整构建结果见[当前运行时矩阵](../maintenance/releases/2026-11-10-current-runtime-matrix-build.md)。
+
+
+固定来源与重建入口在 `build-support/toolchain-pins.json`：它记录上游 tarball 的 SHA-256、
+Homebrew 公式版本、OCI layer 身份和 `make install AMALGAMATED=1` 配方，以及构建门真正校验的
+header 身份。柱状库字节**不是** pin：同一 0.27.1 树的 bottle 与源码构建会得到不同但都有效的动态库，
+所以只硬约束 header 与 pkg-config 版本。用已提交的工具重建或核对任意前缀：
+
+```sh
+python3 tools/toolchain-pins.py install --prefix /path/to/prefix   # 下载并构建固定来源
+python3 tools/toolchain-pins.py verify  --prefix /path/to/prefix   # 核对既有缓存
+```
+`install` 还会把上游 LICENSE 放进 `share/licenses/<前缀目录名>/`：产品构建从该规范位置收集被链接库的许可证，
+而 `make install` 本身不创建它。缓存可以复用，但它不再是唯一来源——空的 `build/` 可以只凭这份 pin 与上述命令重建。
+
+### 固定参照的实际采样与新矩阵绑定
+
+运行时进程树回收、测量及相关工具验收使用
+`tools/requirements-runtime.txt` 锁定的 Python 依赖。以实际运行工具的同一
+Python 环境执行 `python3 -m pip install -r tools/requirements-runtime.txt`；
+缺依赖时明确失败，不从历史验收目录加载模块。普通资源生成无需这些测量依赖。
+
+参照安装按[已锁定的官方配方](../maintenance/releases/2026-11-10-aligned-reference-selection.md)准备，保留用户已有图标和构建配置。`tools/runtime-reference-probe.py`及`tools/fixtures/reference-install-probe.el`提供正式采样入口，不从某次缓存脚本提取源码，不执行安装或修改配置。
+
+已有同一安装的选择回执时，使用 `python3 tools/runtime-reference-probe.py --build <fresh-build> --prior-selection <existing-selection.json> --out <fresh-build-output>`。它要求当前参照内容身份仍与旧选择一致，保留该epoch，并用真实新进程重新采样；历史回执不改写。
+
+从干净检出新建来源时，显式提供官方固定配方的`--recipe-info`、实际Cellar的`--install-receipt`、现有`--build-config`、按`<sha256>.patch`命名的`--patch-directory`及非空`--epoch`。配方JSON、补丁和安装回执必须来自实际固定配方/安装过程，不能手造运行事实。数据树比较可传既有`--upstream-tree-comparison`，也可传已取得固定上游对象的`--upstream-repository`和40位`--candidate-data-commit`，由工具只读比较`lisp/leim/test/etc/doc/admin`六棵Git树；不更新任一检出。该提交仅描述Git数据树，输出另绑定实际编译源清单，不把未提交VM说成该Git提交编译品，也不认证安装库逐字节相同。以上来源与`--prior-selection`互斥。
+
+采样必须在当前外部runtime保护下执行，实际编辑器单进程默认60秒、最高90秒。工具核验七项退出保护和全61产品，原安装/配置/输入不得改变；显式记录未嵌入的运行时Git变量为null。来源或实际采样不匹配即失败，不用新标签覆盖旧观测。输出是诊断及准入证据，不能替代完整稳定语料、图形或性能验收。
 
 # Flat repository and independent macOS bootstrap
 
@@ -202,3 +232,13 @@ The old script names remain thin spellings for the owned Python lifecycle, not p
 | `probes`, `bt`, `signal` | Temporary instrumented-build tags, root/debuggerd attachment and manual SIGIO experiments are retired. They are not silently emulated or reported as passing by a generic Lisp evaluation. Current failures use PID-bound native/crash/exit-info evidence. |
 
 For arbitrary controlled diagnostic Lisp use `batch`, `gui`, or `probe` with `--eval` or `--elisp-file`. Positional legacy stages fail visibly with the migration pointer. For full editing readiness use `accept`, followed by `android-readiness.py --require --receipt RECEIPT --apk APK --so SO`; startup `smoke` is a narrower scope. CLI withdrawal identities and recovery are in [CLN-20261025-04](../maintenance/cleanup/reports/2026-10-25-04-android-tooling.md). None of these mappings introduces old instrumentation, root access or a new platform retirement.
+
+
+Source classification preparation uses the committed rule specification and the
+pinned stable-corpus provider. In a fresh checkout without ignored overlays, run
+`python3 tools/stable-source-rules.py --prepare-overlays --cache-root
+build/acceptance/source-rule-corpus --out build/acceptance/source-rule-definitions`.
+This explicitly acquires the complete manifest-bound corpus and exclusively
+creates only missing overlay anchors; existing tracked inputs are verified and
+never overwritten. Offline expansion requires those declared sources to exist.
+No historical diagnostic output or optional reference checkout supplies them.

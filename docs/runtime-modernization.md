@@ -2792,3 +2792,110 @@ registry/runtime substitutes limit components to their stated contracts.
 The 24-process descriptive run remains busy-host, with performance and full
 compatibility false, no App promotion and no G5/G7 closure. See the
 [bounded delivery](../maintenance/releases/2026-10-31-gc-mark-block.md).
+
+
+### P465/P466 unified remaining implementation (2026-11-11)
+
+The current user direction is to complete all remaining code before a single
+source freeze and consolidated acceptance. The P466 three-product functional
+unit is already accepted; its protection code is written but is not executed
+as a separate micro-stage. The full 555-entrypoint / 48-candidate scope and
+raw outcome accounting stay unchanged.
+
+- [x] P466 literal string interning implementation and bounded real functional controls.
+- [x] P465 exact seven-role closed-file admission, original event/hash-chain copying and zero repeated-retirement attribution coded.
+- [x] Canonical occupancy observations, closure-time content proof and two-tier bounded retirement scheduling coded.
+- [x] Explicit two-stage native bootstrap budget and bounded noninterfering ERC/Tramp runtime observations coded.
+- [x] Reviewed classification definitions can be assembled into exact current-run/event catalog bindings; no category is inferred automatically.
+- [x] A fresh matrix can reaffirm the same actually attested reference epoch without inventing a replacement or relabeling history.
+- [ ] Complete all unified driver/integration coding and final static consistency pass.
+- [ ] Build one final standard pair and full 61-profile matrix from the same completed snapshot.
+- [ ] Consolidated prepare, authored semantics, 555/48 stable coverage, per-item classification, quiet-host primary/fallback performance, GC, components and local workflows.
+- [ ] Batch repair of real blockers, affected verification, key protections and one independent final review.
+- [ ] Final App installation boundary, canonical cleanup/public ledgers and signed push.
+
+Files reused from another closed run retain their original JSON/events and raw
+counts. The fresh/reused file-side counts and donor provenance are separate.
+Module files, incomplete cases and mismatched candidates/harnesses execute
+fresh. Retained failed state needs its original closure-time content proof.
+Unknown occupancy or later mutation stays retained and blocking. The original
+bootstrap assertion is unchanged; a larger explicit engineering budget does
+not certify throughput or explain a deadlock. JIT variables, function shape and
+terminal tails are observations only, with finite byte/time limits; JIT is not
+disabled. Unexplained ERC/Tramp failures remain blockers.
+
+
+### 集中运行后稳定上下文与适用性补齐（2026-11-11，已实现待集中验收）
+
+原始555文件、48候选及全部注册ID的范围与计数保持。完整版本描述另附短版本事实；实际加载事件记录显示方式、noninteractive、配置特征及原生编译可用性，不通过加载额外库探测能力，不把外部依赖伪造成features。原始passed/failed/skipped与退出码保留。
+
+分类仍为原三类。可选能力与适用性以源码锚点、精确原始skip条件、实际元数据和已声明profile共同核验：外部语法/工具/包/服务、可选子API、编译配置、平台/版本范围、反向配置测试及原入口参数化分别表达。必需能力缺失、未解释差异和任何结构性不完整仍阻断；可选类仍不接受failed。无条件上游禁用或不可达前置门禁单独保留原skip，须具备原测试/必要helper源码证据并独立审核，不作普遍跳过豁免。
+
+批处理显示边界和共享入口参数化需要同产品、同运行环境下的适用原测试通过控制。Cocoa控制必须实际观察到ns图形帧，终端控制必须具有自有TTY；图形原测试的显式ERC opt-in仅限对应Cocoa控制并完整记录。控制绑定原文件/事件、产品内容、epoch、捕获harness、全61产品/源码后置核验、外层受控回收及已释放artifact owner；原语料和当前版本控制分别标记，不能混用。大owner清单流式取身份与终态，单次分类内缓存有界控制JSON，退出重新哈希全部引用。
+
+project原测试由独立Git根和已跟踪资源供应，保留原始库、测试和数据。五份ERC终端场景直接使用受控TTY；只在该场景内把直接debugger error交还ERT，保留原错误并禁止等待人工输入，不据此禁用JIT或声称原失败通过。复用同时绑定显示、资源和错误交付策略。当前源码和夹具仅完成静态语法核对；新的工具集成、真实显示控制和fresh555/48仍待运行。
+
+新Git fixture在初始化、索引及编辑器子进程中均禁用全局/系统Git配置。module、project与uniquify三份入口始终fresh，原因是其宿主编译器或Git实现不属于donor完整工具链身份；这增加实际重跑，不减少555文件覆盖。严格七角色harness/runner身份相等和其余donor完整性门禁保持。
+
+### 从干净检出重建分类输入（2026-11-13）
+
+`tools/fixtures/stable-classification-source-rules.json` 当前保存564条源码定义：11条无效原测试、494条明确可选依赖/平台/宿主/入口或显示门禁（含100条关闭native配置的正向编译检查），以及59条精确版本差异。最新定义展开为27,072条；当前干净候选分类工具集成31项及关键保护30项通过，自举文件/CLI/读者集成5项已有通过结果。63条入口/显示门禁需要对应实际适用控制，55条普通版本差异需要同产品当前版本控制；四条精确组件API门禁绑定双方实际库。定义不含历史事件、运行条件、epoch或本机路径，不能单凭定义接受任何测试；完整555/48分类仍未完成。
+
+`python3 tools/stable-source-rules.py --out build/acceptance/source-rule-definitions` 核验原manifest、全部字面LF源码锚点及固定48候选范围，展开现有定义协议。新检出缺少原始覆层时，显式增加 `--prepare-overlays --cache-root build/acceptance/source-rule-corpus`：正式获取器从manifest固定的公共提交流式获取并核验完整语料，仅以独占创建复制规则所需的缺失覆层，不覆盖已有源文件；默认离线展开仍在缺输入时失败。正式原语料运行闭合后，使用 `tools/stable-classification.py --approved-rules build/acceptance/source-rule-definitions/reviewed-rule-definitions.json --build <build> --reference-selection <selection> --run-results <closed-stable-results> --out <fresh-accounting>` 绑定本轮原事件；多份不重叠运行重复传 `--run-results`。普通通过的已定义项保持普通通过，不应用分类；未执行profile单独计数，不能据此完成48候选范围。不存在的注册ID仍拒绝。
+
+`tools/stable-controls.py` 是同产品原文件控制的正式入口，支持原稳定语料或当前版本原文件、明确profile和显示范围。控制失败仍保留失败，不能用于放行版本演进或批处理显示差异。两个入口均从仓库源码和传入的真实构建/参照回执工作，不依赖某次本机诊断目录；时间和性能需重新实测。
+
+装配时以可重复的 `--control-run <controls-results.json> <outer-controller-stderr>` 指定控制运行。装配器只选择精确profile、原文件、注册ID、用途与显示方式对应的通过控制，不猜测ID对应关系；随后仍执行既有产品、环境、epoch、harness、原事件、全61制品后置保护和controller/owner闭合核验。缺少唯一匹配控制时阻断，不能靠源码定义本身放行。
+
+
+P468 only permits the explicitly source-bound native-positive branch when the aligned reference actually passes and the native-disabled candidate has complete observed capability absence.94 original compiler-availability errors,4 positive native-function assertions,1 native-subr assertion and1 native string-sharing assertion have source definitions. Original failed states/counts are retained. Bootstrap, native-enabled failures, other errors and incomplete cases remain blocking. The100 definitions are included in the validated tool integration; actual native-disabled corpus behavior and the complete matrix remain separate acceptance requirements.
+
+
+P471 preserves exact source permissions in current-version controls. It also shortens only the owned compact case component, container prefix and mock shell startup basename, keeping shell bytes, per-case directories, permissions, environment content and the original Tramp pipe limit. A changed captured harness cannot reuse an earlier seven-role identity. Run affected original files and tool integration, then generate a new matching seed and controls; compiled VM semantics whose inputs are unchanged are not relabeled.
+
+
+当前精确harness种子已闭合：555/1,110文件侧全部完整，9,466对用例、8,988普通通过/478非普通，结构失败0；61产品及保全后置全真。阶段原退出1和corpus_complete=false保持。自然边界后将实际76.8MB owner清单改为流式准入，读者源纳入保全；严格复用/分类/真实大清单三组功能及37项保护通过，七角色与VM不变。新的当前版本/适用显示控制及实际catalog继续执行；旧控制不能跨harness代用。详见[当前种子与修正](../maintenance/releases/2026-11-13-aligned-stable-seed.md)。
+
+
+#### P472：原始终端隔离与当前阻断
+
+恢复原batch父进程及ERC helper逐项新建终端的生命周期，并将已有单worker约束传入子进程，JIT保持启用。受影响五文件双端14项完整，12普通通过；nickbar两端原始断言仍阻断，不作无效测试豁免。12个子进程实际观察JIT=true/jobs=1，61产品、源和参照后置核验通过。32项分类工具集成与567条来源规则干净展开通过；真实完整555/48和适用显示控制仍待完成。旧55项目标控制已闭合并由CLN239清退105,823,913逻辑字节，当前版本helper对照另行执行。
+
+
+### P473：正确行为与参照缺陷生命周期
+
+`known-reference-library-defect`只接纳固定源码/原事件证明的参照失败；候选必须普通通过同一有效原用例，并通过同产品、同epoch、无覆盖的独立dframe回调及返回上下文合同。两端同错、未知失败、变更源码与缺少合同证据均阻断。每次正式装配重新检测：参照正确则撤销旧规则，候选仍失败标记回归；源码或签名改变而仍失败则重新核收，不沿用旧例外。
+
+原始库与测试保持字节不变。`tools/library_corrections.py`按`tools/fixtures/library-corrections.json`生成并编译候选组件，打包回执进入既有整库身份；相关上游源改变立即拒绝旧修正。升级参照后用`tools/runtime-frame-buffer-probe.py --contract --products <products.json> --reference-selection <selection.json> --profile <id> --out <fresh>`采样正确行为；不带集成覆盖参数的成功合同可通过分类器`--library-contract-run <results.json>`绑定，仍须有效原用例实际通过。修复上游源已满足合同时，移除或修订受管修正，再做干净产品集成；不凭源码文本变化猜测已修复。
+
+本轮8项工具/组件功能集成已通过，包含合成555文件生命周期、模拟上游采纳并退场旧生成组件、真实编译/打包及4项真实缓冲区合同、原终端ERT子进程结果传递（4个真实编辑器进程）。随后15项关键保护通过，覆盖参照epoch/子进程与条件签名、证据篡改、正确回调及返回上下文、上游变更、字节码封存和旧组件残留。保护组只使用合成产品，未运行编辑器或原语料。尚未完成新产品构建及原侧栏文件重新验收。CLN241已结束旧种子和诊断工作集用途，不以这些历史输出充当当前新产品证据。
+
+
+### CLN242 - Build workset intentionally absent
+
+At the user's explicit request the entire build and project cache were retired. All old matrix, frozen export and runtime/product paths are unavailable. They must not be revived from old diagnostics. Current maintained source and declared inputs govern future builds: finish batch source fixes, build only minimum necessary targets when required, then final concentrated clean acceptance. P473 component/tool integration8/8 and Rust wiring checks passed before removal;15 critical protection cases subsequently passed without recreating build. Original-file/product and full acceptance remain pending.
+
+
+P473 reproducible protection entry: after fresh full integration using `python3 tools/test-reference-library-contract.py --products <products.json> --reference-selection <selection.json> --out <fresh-integration>`, run `python3 tools/test-reference-library-contract.py --mode protection --functional <fresh-integration/results.json> --out <fresh-protection>`. Test output may be an explicitly owned cache child. Synthetic corpus writers receive `--fixture-repo` explicitly; production manifest containment and completion protocols remain unchanged. Consume and retire both outputs when their stage ends.
+
+
+P473后继修正：保持PATH_DUMPLOADSEARCH首项为原始规范Lisp根，避免VM把生成组件目录误认为源码/数据根。生成器显式绑定本仓库etc，不查找旧build/dist程序；执行编辑器的family及`xtask generate-resources --program <owned-program>`必须显式选择程序。生成组件声明feature并拒绝已预加载情形，包内仍按受管回执安装修正。缺陷解决后的合同记录留在catalog context中，最终accounting对普通通过用例同样重验独立正确行为；缺证不接受，原通过数不变。六项合成生命周期与27次真实生成调用通过；新完整产品及九组集中功能/后置保护仍待验收。CLN243已回收消费构建，下一步从无旧字节码的源码导出及release xtask进行最小产品构建。
+
+局部安装输入通过维护入口生成，不保留手工诊断JSON作为隐含依赖：
+
+```sh
+python3 tools/runtime-reference-probe.py capture-inputs \
+  --program <installed-program> --dump <installed-dump> \
+  --lisp-root <installed-lisp-directory> --data-root <installed-data-directory> \
+  --install-receipt <installation/INSTALL_RECEIPT.json> \
+  --build-config <declared-build.yml> --epoch <explicit-epoch> --native \
+  --out <fresh-owned-directory>
+```
+
+输出`reference-inputs.json`与仅含参照的`products.json`。输入必须显式提供；生成前检查物理路径、同安装范围的dump/资源、真实回执版本/提交及四份完整文件身份，读者复验相同内容。此入口不启动编辑器，不采样能力，也不产生正式61-profile reference selection；正式矩阵仍使用原完整probe入口。局部诊断结束后清退输出，下一次按命令重新采集当前安装事实。
+
+### 2026-11-16 — reduced-invocation stop point and removed-producer classification
+
+`tools/stable-controls.py` 的显示上下文控制在遇到 per-case 截止时，允许**最多两次**精简重跑，每次只排除已经真实耗尽截止的用例身份；被阻塞用例保留其 timeout 状态，全部注册 ID 仍在结果中（未运行者显式记为 `not-run`），合并文件始终 `complete=false`/`passed=false`，精简结果只作为诊断观测写入 `merged/<profile>/<file>.json`。`results.json` 另记 `retained_blocking` 与 `default_scope_unchanged`（是否使用默认文件/profile、数量、声明的语料入口数），隐式裁剪默认 batch 或完整语料范围会显形。真实终端 `server-tests` 上已确认 3/7 用例在同一阻塞点耗尽截止、4/7 通过；受影响 24 profile 集合保持阻断，未被重复烧测的 profile 在索引中显式列名，而非算作通过。
+
+`tools/stable-source-rules.py` 与 `tools/stable-classification.py` 新增 `invalid_gate` 类型 `removed-upstream-producer`：绑定废弃断言与其 `(skip-unless …)` 形式、`lisp/emacs-lisp/eieio-core.el` 中**缺失**的生产者形式、删除它的上游提交、以及在 batch 跳过与交互终端失败两种真实表现下的逐字 condition；同文件通过用例 `eieio-test-20-class-allocated-slots` 必须在两侧真实通过。该规则不把交互失败硬套进 batch/skipped 规则。
