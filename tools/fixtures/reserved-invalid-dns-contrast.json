@@ -1,0 +1,45 @@
+{
+  "schema": "femacs-reserved-invalid-dns-contrast-v1",
+  "checked_at": "2026-11-14T13:31:54.342101+00:00",
+  "rfc": "RFC 6761 Section 6.4",
+  "queried_reserved_domain": "emacs.invalid",
+  "queried_control_domain": "example.com",
+  "local_proxy_preserved": true,
+  "configuration_changed": false,
+  "actual_editor_execution": false,
+  "observations": [
+    {
+      "provider": "google",
+      "url": "https://dns.google/resolve?name=example.com&type=A",
+      "exit_code": 0,
+      "seconds": 2.389,
+      "dns_status": 0,
+      "answer_count": 2
+    },
+    {
+      "provider": "google",
+      "url": "https://dns.google/resolve?name=emacs.invalid&type=A",
+      "exit_code": 0,
+      "seconds": 1.76,
+      "dns_status": 3,
+      "answer_count": 0
+    },
+    {
+      "provider": "cloudflare",
+      "url": "https://cloudflare-dns.com/dns-query?name=example.com&type=A",
+      "exit_code": 0,
+      "seconds": 1.499,
+      "dns_status": 0,
+      "answer_count": 2
+    },
+    {
+      "provider": "cloudflare",
+      "url": "https://cloudflare-dns.com/dns-query?name=emacs.invalid&type=A",
+      "exit_code": 0,
+      "seconds": 1.768,
+      "dns_status": 3,
+      "answer_count": 0
+    }
+  ],
+  "scope_note": "Both remote HTTPS DNS resolvers returned NXDOMAIN (Status 3, zero answers) for emacs.invalid and Status 0 answers for example.com while the preserved host system resolver intercepts .invalid with synthetic proxy addresses on both reference and candidate. This contrast does not modify raw failure counts or excuse candidate-only network failures."
+}
