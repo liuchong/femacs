@@ -26693,7 +26693,7 @@ User approved this exact DNS case as a nonblocking environment limitation and re
 
 **等待判活修正（记入 CONT 工程控制）**：PID 为 Z/X 即已结束，不得只凭 `ps` 存在空等；以控制器终态（exit／cleanup）＋目标回执判定并收割僵尸。本次误把僵尸 93146 当运行，白等约 600 s。
 
-**未验范围**：switch 与 multi 场景本批未跑，按一次验收补齐。
+**补齐两场景（各一次）**：switch **passed**（`ime-launchservices-switch-1`，exit 0、413 次回调、提交 你好）；multi **failed**（`ime-launchservices-multi-1`，exit 0）：切到 `Femacs IME B` 后拼音键以原样拉丁落到 `second_text="nihao"`，`marked=false`、无合成——是真实的多窗口输入上下文缺陷，A 窗路径正确。一次有界，不重试；下一假设是**非 key frame 缺少输入客户端/第一响应者**，使输入法仍留在 A 窗。
 
 ### 2026-11-18 — 第 27 轮：安静窗口一次读数与 IME 激活的官方依据
 
