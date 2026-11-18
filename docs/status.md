@@ -26685,6 +26685,16 @@ Fresh reference selection passed7/7 postflight checks, actual installation/confi
 User approved this exact DNS case as a nonblocking environment limitation and requires the existing proxy to remain enabled and unchanged. Four bounded HTTPS queries completed without errors: both Google andCloudflare resolved `example.com` (Status0,2 A answers) and returned NXDOMAIN for `emacs.invalid` (Status3,no answers),1.499–2.389s per query. The host system lookup still reports its synthetic proxy addresses. This verifies a remote-resolver contrast, not candidate/editor or original ERT acceptance; raw failures, counts and exits remain unchanged. No Dot task was sent; that route is cancelled. Fresh full555/48 observations and any precise exception binding remain pending.
 
 
+### 2026-11-18 — 第 15 轮：G3 声明子集复验与历史 harness 身份核验
+
+**子集接线（一次写齐，`--subset-file`）**：`tools/stable-suite.py` 新增声明子集入口，只接受原件里真实存在的入口名，空/重复/未知一律拒绝；报告与 completion 记 `scope=stable-31.1-original-ELFILES-declared-subset`、`subset`、`full_corpus_entrypoint_count`、`subset_complete`。**完整运行的 completion 写入与读取保持原合同**（无 scope/subset 字段），旧 555 回执不需要改写、不加旧 harness 豁免；子集永远不能声称 `corpus_complete`，完整回执也不能携带子集 scope。驱动脚本 `tools/fixtures/stable-subset-run.sh` 从**自身位置**推导仓库根，参照的 program/dump/lisp 取自已有 reference-selection 回执的 `installed-reference` 行，不再写死本机路径或 Cellar 哈希。
+
+**定向复验（`build/acceptance/g3-subset-native-1`，候选 native-collector-1，young）**：11 个入口、**603 用例**、2702 s；both-pass **566**、both-fail **30**、仅参照失败 **7**、**仅候选失败 0**。上一轮 104 条候选独有中 **103 条已通过**（`comp-tests` 100 + `emacs-lisp/comp-tests` 3），只剩 `tramp-test31-signal-process`（`process-live-p` 仍为真）——原 Tramp 语义未明，按约定不再加探针。能力差异确认由产品配置（native-comp 可用性）造成，不是 VM/GC 回归。
+
+**历史 harness 身份**：`tools/stable-harness-history.py` 逐角色把回执里的 SHA-256 解析到可核验字节——先用 Git 对象（`git cat-file`），再用**带来源回执的只读快照**（`stable-harness-selection.json` / `stable-runner-selection.json`，逐个校验其记录身份后才使用）。旧 555 六个角色 **5 个可核验**（Git 2：`reference-corpus.py`、`stable-context.py`；快照 3：`stable-suite-runner.el`、`runtime-retire.py`、`stable-suite.py`），**1 个缺口**：`stable-suite-batch.py` SHA `bb2987f9…` 在 Git 与任何已记录快照中都不存在（运行当时是未提交工作区字节，之后被本轮子集改动覆盖）。按约定直接交缺口，不重扫 555 掩盖；`read_completion` 增加可选的 `harness_history` 参数，逐角色要求同 SHA 且来源可解析，缺一即报错，不删检查、不放宽。
+
+**测试**：`tools/test-stable-suite.py` **43/43**（含子集选择、拒绝路径、子集不得声称全语料完成）。
+
 ### 2026-11-18 — 第 14 轮：G5/G6/G7 比较接线、native 候选构建与首轮真实读数
 
 **Cursor 交付核对**：`35d1ad53`（origin/master 同 SHA）只含六份文件；五份业务/夹具与 frozen-2 验收时**逐字节相同**，设计文只同步结果 ⇒ 继续复用 `frozen-2`，不为 HEAD 变化重编。
