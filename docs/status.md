@@ -26685,6 +26685,16 @@ Fresh reference selection passed7/7 postflight checks, actual installation/confi
 User approved this exact DNS case as a nonblocking environment limitation and requires the existing proxy to remain enabled and unchanged. Four bounded HTTPS queries completed without errors: both Google andCloudflare resolved `example.com` (Status0,2 A answers) and returned NXDOMAIN for `emacs.invalid` (Status3,no answers),1.499–2.389s per query. The host system lookup still reports its synthetic proxy addresses. This verifies a remote-resolver contrast, not candidate/editor or original ERT acceptance; raw failures, counts and exits remain unchanged. No Dot task was sent; that route is cancelled. Fresh full555/48 observations and any precise exception binding remain pending.
 
 
+### 2026-11-18 — 第 23 轮：batch 四条 test18 采齐、版本控制补齐，有效阻断 50→15
+
+**真 batch 四条（接口已齐）**：`--display batch` + 四个 `--test-id`（不请求 test29、不改 runner）→ `g3-controls-native-test18-batch-1` **passed / complete**，控制器与产物同 PID（98301）。子集通道消费：`g3-scoped-consume-subset-2` 规则 30→**34**、阻断 7→**3**（仅剩 3 条同产品远端行为）。
+
+**版本控制组**：按 `proven-version-evolution` 的用途采 current 语料三文件（use-package / visual-wrap / lread）→ `g3-controls-version-1` passed/complete。旧 555 通道消费：`g3-scoped-consume-555-10` passed，规则 518→**549**、捕获 48→**17**、阻断 56→**25**。
+
+**合并有效阻断 50→15**（`build/acceptance/g3-effective-blocking.json`）：eglot 3、treesit 3、filenotify 2、其余 1 条级；`raw_failure_conservation` 记录旧 574 / 子集 37 均未改动。
+
+**剩余类型**：精确通过控制 9、同产品远端 3、external-predicate 3 与 platform 1（Cursor 只读核对中）、版本范围 1；子集 3（远端）。难项按一次有界尝试，未进展即挂账。
+
 ### 2026-11-18 — 第 22 轮：display/SVG/version 组一次采齐，有效阻断 74→50
 
 **按声明分组采集**（不再按失败文件一律 current-version）：`--display terminal`（elisp-mode / simple / speedbar / server，`--corpus stable --include-reference`）→ `g3-controls-terminal-1`；`--display cocoa`（image / misc / mouse / erc-tests）→ `g3-controls-cocoa-1`；SVG current 语料（image）→ `g3-controls-cocoa-svg-1`；filenotify current 版本控制 → `g3-controls-filenotify-1`（候选 22/26、参照 15/26 通过）。全部真实控制器终态 passed/complete。
