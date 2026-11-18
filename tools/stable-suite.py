@@ -1220,28 +1220,25 @@ def _verify_historical_harness(sources: dict, history_path) -> None:
     byte source (a Git object or a verified read-only captured copy). A role the
     history cannot resolve is an explicit gap, not a pass.
     """
-    path = Path(history_path)
-    if path.is_symlink() or not path.is_file():
-        raise SuiteError('harness history must be a physical ordinary file')
-    try:
-        history = json.loads(path.read_text(encoding='utf-8'))
-    except (OSError, UnicodeError, json.JSONDecodeError) as error:
-        raise SuiteError('harness history is unreadable: {0}'.format(error)) from None
-    if (history.get('schema') != 'femacs-stable-harness-history-v1'
-            or not isinstance(history.get('roles'), list)):
-        raise SuiteError('harness history has an unknown schema')
-    resolved = {role.get('path'): role for role in history['roles'] if isinstance(role, dict)}
-    problems = []
+    # Delegate to the index verifier, which re-reads every role's bytes from a
+    # Git object or a repository file and recomputes SHA-256. A previously
+    # generated report is never trusted, and the closed receipt's absolute
+    # paths are mapped onto roles by file name only.
+    import importlib.util
+    module_path = Path(__file__).with_name('stable-harness-index.py')
+    spec = importlib.util.spec_from_file_location('femacs_stable_harness_index', module_path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    recorded = {}
     for name, identity in sources.items():
-        role = resolved.get(name)
-        if role is None:
-            problems.append('no history entry: ' + name)
-        elif role.get('sha256') != identity:
-            problems.append('history SHA differs: ' + name)
-        elif role.get('source') not in ('git', 'snapshot'):
-            problems.append('role not recoverable: ' + name)
-    if problems:
-        raise SuiteError('stable harness history is incomplete: ' + '; '.join(sorted(problems)))
+        role = Path(name).name
+        if role in recorded:
+            raise SuiteError('duplicate recorded harness role: ' + role)
+        recorded[role] = identity
+    try:
+        module.verify(Path(__file__).resolve().parent.parent, history_path, recorded)
+    except module.HarnessIndexError as error:
+        raise SuiteError('stable harness history cannot satisfy the receipt: {0}'.format(error)) from None
 
 
 def read_completion(out, manifest_path, reference, candidate,
