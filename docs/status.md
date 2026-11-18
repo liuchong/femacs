@@ -26685,6 +26685,14 @@ Fresh reference selection passed7/7 postflight checks, actual installation/confi
 User approved this exact DNS case as a nonblocking environment limitation and requires the existing proxy to remain enabled and unchanged. Four bounded HTTPS queries completed without errors: both Google andCloudflare resolved `example.com` (Status0,2 A answers) and returned NXDOMAIN for `emacs.invalid` (Status3,no answers),1.499–2.389s per query. The host system lookup still reports its synthetic proxy addresses. This verifies a remote-resolver contrast, not candidate/editor or original ERT acceptance; raw failures, counts and exits remain unchanged. No Dot task was sent; that route is cancelled. Fresh full555/48 observations and any precise exception binding remain pending.
 
 
+### 2026-11-18 — 第 25 轮：w32 修正确认、一次 strict consume 与测试单元归属更正
+
+**写窗闭合后一次消费**：`g3-scoped-consume-555-14` passed，规则 559→**560**、捕获 7→**6**、阻断 15→**14**（w32 平台门已绑定，subr 不再阻断）。合并子集 3 条后**有效阻断 10→8**：image 2、eglot 3、filenotify 2、tramp 1。
+
+**image 剩余逐项定性（Cocoa 证据 `g3-controls-cocoa-2` / `-svg-2`）**：`image--compute-map-and-original-map` 参照侧自身断言失败（前提不成立）；`image-create-image-with-map` 与 `image-supported-file-p/built-in` 需要候选侧该 ID 通过，而候选 Cocoa 控制均报 `Invalid image type 'svg'`——**产品缺 SVG 支持**，属真实能力缺口，不是接线或 token 问题。不再重跑凑通过。
+
+**测试单元归属更正（撤回旧说法）**：`tools/test-stable-classification.py` 的约 1042 行 WIP 系我方长期工作，已随 `351da5cd` 一并提交（含 Cursor 的 scoped-profile 断言与 w32 夹具同步）。我按原作者核对该提交内容并接管：**已验 integration 47/47、protection 41/41**（`g3-ownership-testunit-{1,prot-1}`），保留提交、不改历史；此前“他人 WIP 未混入”的表述撤回。
+
 ### 2026-11-18 — 第 24 轮：识别缺口修正与有效阻断降至 10
 
 **Cursor 只读审计采用（不重跑编辑器）**：treesit 三条规则的 `optional_gate.predicate` 由 `treesit-ready-p` 改为源码真实形式 `treesit-language-available-p`——**只改规则生成源** `tools/fixtures/stable-classification-source-rules.json`，一次性修好，不在生成物上补；提交 `62460e8c`。`shell-quote-argument-%-on-w32` 属 reader 的 `observed_form` 缺引号，由 Cursor 在停写窗口内改一行；`file-notify-test08-backup-remote` 规则前提不成立，继续阻断、不重跑凑结果。
