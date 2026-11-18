@@ -26685,6 +26685,14 @@ Fresh reference selection passed7/7 postflight checks, actual installation/confi
 User approved this exact DNS case as a nonblocking environment limitation and requires the existing proxy to remain enabled and unchanged. Four bounded HTTPS queries completed without errors: both Google andCloudflare resolved `example.com` (Status0,2 A answers) and returned NXDOMAIN for `emacs.invalid` (Status3,no answers),1.499–2.389s per query. The host system lookup still reports its synthetic proxy addresses. This verifies a remote-resolver contrast, not candidate/editor or original ERT acceptance; raw failures, counts and exits remain unchanged. No Dot task was sent; that route is cancelled. Fresh full555/48 observations and any precise exception binding remain pending.
 
 
+### 2026-11-18 — 第 24 轮：识别缺口修正与有效阻断降至 10
+
+**Cursor 只读审计采用（不重跑编辑器）**：treesit 三条规则的 `optional_gate.predicate` 由 `treesit-ready-p` 改为源码真实形式 `treesit-language-available-p`——**只改规则生成源** `tools/fixtures/stable-classification-source-rules.json`，一次性修好，不在生成物上补；提交 `62460e8c`。`shell-quote-argument-%-on-w32` 属 reader 的 `observed_form` 缺引号，由 Cursor 在停写窗口内改一行；`file-notify-test08-backup-remote` 规则前提不成立，继续阻断、不重跑凑结果。
+
+**新增控制（本批一次采齐、已有证据复用）**：frozen-2 侧 batch 四条 test18 → `g3-controls-old-test18-batch-1`；cocoa 组 hl-line/buffer/image → `g3-controls-cocoa-2`；terminal xdisp → `g3-controls-terminal-2`；ERC graphical 场景四文件 → `g3-controls-erc-graphical-1`（均 passed/complete）。
+
+**严格消费**：`g3-scoped-consume-555-12` passed，规则 553→**558**、捕获 13→**8**、阻断 21→**16**；合并子集 3 条后**有效阻断 16→10**（image 3、eglot 3、subr 1、filenotify 2、tramp 1）；原始失败守恒 574 / 37。
+
 ### 2026-11-18 — 第 23 轮：batch 四条 test18 采齐、版本控制补齐，有效阻断 50→15
 
 **真 batch 四条（接口已齐）**：`--display batch` + 四个 `--test-id`（不请求 test29、不改 runner）→ `g3-controls-native-test18-batch-1` **passed / complete**，控制器与产物同 PID（98301）。子集通道消费：`g3-scoped-consume-subset-2` 规则 30→**34**、阻断 7→**3**（仅剩 3 条同产品远端行为）。
