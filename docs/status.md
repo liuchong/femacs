@@ -26685,6 +26685,18 @@ Fresh reference selection passed7/7 postflight checks, actual installation/confi
 User approved this exact DNS case as a nonblocking environment limitation and requires the existing proxy to remain enabled and unchanged. Four bounded HTTPS queries completed without errors: both Google andCloudflare resolved `example.com` (Status0,2 A answers) and returned NXDOMAIN for `emacs.invalid` (Status3,no answers),1.499–2.389s per query. The host system lookup still reports its synthetic proxy addresses. This verifies a remote-resolver contrast, not candidate/editor or original ERT acceptance; raw failures, counts and exits remain unchanged. No Dot task was sent; that route is cancelled. Fresh full555/48 observations and any precise exception binding remain pending.
 
 
+### 2026-11-18 — 第 22 轮：display/SVG/version 组一次采齐，有效阻断 74→50
+
+**按声明分组采集**（不再按失败文件一律 current-version）：`--display terminal`（elisp-mode / simple / speedbar / server，`--corpus stable --include-reference`）→ `g3-controls-terminal-1`；`--display cocoa`（image / misc / mouse / erc-tests）→ `g3-controls-cocoa-1`；SVG current 语料（image）→ `g3-controls-cocoa-svg-1`；filenotify current 版本控制 → `g3-controls-filenotify-1`（候选 22/26、参照 15/26 通过）。全部真实控制器终态 passed/complete。
+
+**严格消费**：`g3-scoped-consume-555-9` passed，规则 494→**518**，捕获 72→**48**，阻断 80→**56**，structural=0；子集通道维持 30 规则 / 7 阻断（nickbar 已绑）。
+
+**合并有效阻断 74→50**（剔除 13 条替代项；`build/acceptance/g3-effective-blocking.json`）：头部 use-package 25、visual-wrap 5、tramp 5、eglot 3、treesit 3。
+
+**剩余类型**：精确通过控制 40（含 filenotify 版本 id 在参照侧未通过）、同产品远端 3、external-predicate 3 与 platform 1（分类器识别项，归 Cursor）、版本范围 1；子集侧 4+3。
+
+**test18 定位已核收**：`build/acceptance/g3-tramp-test18-locate.json` —— 旧稳定断言引用已删除的 `tramp-permission-denied`，current 已与上游一致；生产 Tramp 不改，terminal 超时留账，不再换显示模式试跑。
+
 ### 2026-11-18 — 第 21 轮：按门禁两侧采证，阻断 113→74
 
 **关键修正**：`entrypoint-variant` 门禁要求**两侧**控制——候选侧用 counterpart `cperl-mode-tests.el` 同 ID、`purpose=applicability`（`--corpus stable`），参考侧还需 `--include-reference` 生成 `installed-reference` 每案。此前只采候选侧，故 33 条始终“缺一个精确通过控制”。用现成 `stable-controls.py` 一次采齐两侧（`build/acceptance/g3-controls-cperl-2`：两 profile 各 65 案全通过）。
