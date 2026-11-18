@@ -104,9 +104,17 @@
     (should-error (intern 42 oa) :type 'wrong-type-argument)
     (should-error (intern-soft 42 oa) :type 'wrong-type-argument)
     (should-error (unintern 42 oa) :type 'wrong-type-argument)
-    (should-error (intern "q·keep" [0 0]) :type 'wrong-type-argument)
-    (should-error (intern-soft "q·keep" [0 0]) :type 'wrong-type-argument)
-    (should-error (unintern "q·keep" [0 0]) :type 'wrong-type-argument)
+    ;; C's check_obarray_slow accepts a vector whose first slot is 0 for
+    ;; compatibility and stores an obarray object there, so only a vector whose
+    ;; first slot is neither 0 nor an obarray is rejected.
+    (let ((compat (vector 0 0)))
+      ;; The symbol lands in the object stored in slot 0, so it is a symbol but
+      ;; not the one interned in OA above.
+      (should (symbolp (intern "q·keep" compat)))
+      (should (obarrayp (aref compat 0))))
+    (should-error (intern "q·keep" (vector 1 0)) :type 'wrong-type-argument)
+    (should-error (intern-soft "q·keep" (vector 1 0)) :type 'wrong-type-argument)
+    (should-error (unintern "q·keep" (vector 1 0)) :type 'wrong-type-argument)
     (should (eq (intern-soft "q·keep" oa) existing))
     (should (= (fe-shorthand--atom-count oa) 1))))
 
