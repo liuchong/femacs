@@ -1,3 +1,20 @@
+## 2026-11-18 — retire the superseded 61-product build tree
+
+- Released: `build/acceptance/current-runtime-build-6/source` (26 GiB measured by free-space delta; the tree reported 27 G before deletion).
+- Reason: the cohort was superseded by the single-product G3 channel (`g3-555-frozen2`, `g3-subset-native-1`); no tool reads it, and the 48/61 matrix is not being rebuilt.
+- Preserved before deletion: `build/acceptance/g3-historical-stable6/index.json` plus the completion/results/partial facts of the 7 closed stable-6 runs (111 KB), so their counts and failure facts stay readable.
+- Consumers checked: `grep -rl current-runtime-build-6 tools xtask docs` matched only `docs/status.md` and `docs/current-state.md` (historical prose). The new G3 evidence does not reference this tree.
+- Kept: `current-runtime-build-6` metadata (products.json, build result/receipts, cargo cache 55 MB, builds 213 MB) and every current G3 product and evidence directory.
+- Disk effect: 3.3 GiB free before, 30 GiB after.
+
+## 2026-11-18 — frozen batch close-out
+
+- Released: `build/runtime/observer-1`, `observer-2`, `observer-3`, `webp-2` (4,385 MB total).
+- Reason: superseded by `build/runtime/frozen-2` (cocoa collector+observer, source HEAD `9b692fe2`); G3 observer and image/webp acceptance already recorded, Tramp captures moved to `build/acceptance/tramp-frozen2`.
+- Consumers checked: `grep -rl 'observer-[123]|webp-2' tools xtask docs` matched only historical prose in `docs/status.md` and the continuation ledger; no code or tool reads these trees.
+- Kept: `build/runtime/frozen-2` (current product), `build/acceptance/g7-frozen2` (44K), `build/acceptance/tramp-frozen2` (840K), `build/acceptance/frozen-batch-20261118-index.json`.
+- Rebuild boundary: every removed tree is reproducible from the recorded source identity plus the pinned tree-sitter SDK; no unique input is lost.
+
 ## CLN206 — 2026-11-03: continued units and finalized native inputs
 
 - Publish closed duplicate-unit retirements: 26 legs, 127,838 files / 4,432 directories, 4,257,275,318 logical bytes and 4,507,582,464 prior per-path allocated bytes. Exclude CLN205's separately published scope.
@@ -1151,3 +1168,193 @@ Full61-product/source/reference postflight passes; original failures and raw
 observations remain unchanged. No whole-volume causal reclamation claim.
 [Scope and recovery](reports/2026-11-10-226-consumed-stable-library-copies.md).
 Independent final review accepted with zero confirmed defects.
+
+## CLN227 — 已消费 ERC 诊断副本（2026-11-11）
+
+诊断观测收集自然闭合后清退 2,942 普通文件、12 链接、594 目录，共 74,595,544 逻辑字节、81,768,448 先前逐路径分配字节。3,548 项公开身份绑定三处生成输入和四个自有短用例容器；46 项受保护输入/原始证据未变。原四份超时不完整回执、日志、事件及源和产品保持，独立核收待完成；不作整卷因果回收声明。
+
+[范围、恢复与两份清单](reports/2026-11-11-227-consumed-erc-diagnostic-copies.md)。
+
+## 2026-11-11 — CLN228: consumed unified G3 diagnostics
+
+Retired six corpus/context copies and 14 closure-verified case containers: 5,503 nodes (4,723 files, 28 links, 752 directories), 119,294,423 logical / 131,117,056 prior allocated bytes. Private/public/operation streams align; all selected roots are absent and 199 protected files unchanged. Four bounded native images remain for independent forensic review. Raw failures and current products are retained; public streams were transferred without duplicate copies. [Report](reports/2026-11-11-228-consumed-unified-g3-diagnostics.md).
+
+
+## CLN229 — 统一矩阵编译复制输入账本发布（2026-11-11）
+
+已发布40份既有canonical退场账本的202,260行公开投影：195,460文件、6,800目录，6,504,468,694逻辑字节、6,888,607,744先前逐路径分配字节；全部scope计数与规范化SHA流式对账一致。本次新增删除0，原账本、源、产品和观测保留；发布流直接转移，40份有界审计镜像仅保留到整批独立终审后退场。实际编译源为未提交工作树，绑定b6eaf19f源清单；不把63b1e531 Git基线当作已提交的当前实现，不作整卷因果回收或Goal完成声明。[报告与清单](reports/2026-11-11-229-consumed-unified-compiler-copies.md)。
+
+2026-11-13已消费镜像实际退场：40文件、1目录，12,280,223逻辑字节、12,369,920先前分配字节。真实verifier子进程闭合后canonical删除；41行辅助公开流逐行对齐私有流，目标物理缺席，82份原pin和主公开清单不变。本轮为主开发机械核验，未作新的独立搭档终审；在用原账本、产品和源码仍有验收消费者。
+
+## CLN230 — 已消费的第二次 authored 输出（2026-11-13）
+
+已清退两棵闭合失败运行输出及隔离容器：23,514文件、4,290目录、27,804节点，2,032,800,513逻辑字节、2,086,072,320先前分配字节。共享父目录占用导致首次保留；确认目标自身无占用并精确隔离后canonical完成，未终止外部进程。公开流与私有流逐行一致，目标缺席、4项构建/产品/源/参照输入未变；新完整语义运行继续。失败原因和聚合读数保留，原失败不升格。[报告与清单](reports/2026-11-13-230-consumed-authored-attempt.md)。
+
+- CLN231 (2026-11-13): consumed interrupted authored output and isolated source integration retired:112712 files,81332 directories,3021261416 logical/3235766272 prior allocated bytes.194044 public/private rows align to EOF;5 protected inputs unchanged, selected scopes absent. First preflight locator failure caused no deletion; successor completed. See [report](reports/2026-11-13-231-consumed-interrupted-and-clean-source.md).
+
+- CLN232 (2026-11-13): consumed native container images/diagnostic code and outputs retired:11 files,5 directories,4046572 logical/4075520 prior allocated bytes.16 public/private rows align, four protected inputs unchanged. See [report](reports/2026-11-13-232-consumed-bootstrap-analysis.md).
+
+
+## CLN233 — consumed unified working set (2026-11-13)
+
+Retired143,786 files,28,900 directories and14 link nodes:172,700 public/private rows,4,608,005,859 logical bytes and4,938,006,528 prior allocated bytes. All selected paths absent,13 protected identities unchanged. The first occupancy-protected attempt retained regular files/directories; a fresh clear query after controller exit allowed canonical completion. No original failure promotion or volume-level causal reclamation claim. [Report](reports/2026-11-13-233-consumed-unified-working-set.md).
+
+
+## CLN234 — 已消费的源码门禁工作集（2026-11-13）
+
+干净工具/获取副本、旧规则展开与功能回执以及实际绑定检查中间产物共12范围已canonical清退：1,959文件+313目录=2,272节点，67,316,734逻辑字节、72,286,208先前逐路径分配字节。公开/私有流至EOF对账，全部选中项物理缺席，13项当前矩阵、参照、最小回执、维护输入、标准产品及原index身份未变。目录入口准备拒绝与清退后投影失败均保留；修正后仅重发投影，不重复删除。当前首对原事件仍供后续消费，未接受完整稳定语料或Goal。[报告](reports/2026-11-13-234-consumed-source-gate-work.md)。
+
+## CLN235 — 已消费的版本控制工作集（2026-11-13）
+
+版本控制1..3、短路径定位1、23个闭合保留容器、已消费规则获取/旧展开/中间装配共41个范围，清退11,966文件、29链接、2,475目录，525,515,112逻辑字节/554,741,760先前分配字节。14,470行公开/私有/操作流至EOF一致、全部缺席、11项保护身份未变；控制器12.021秒、峰值43,171,840字节、退出0并完整回收。不宣称整卷因果回收或Goal完成。[报告](reports/2026-11-13-235-consumed-version-controls.md) · [清单](manifests/2026-11-13-235-consumed-version-controls.jsonl.gz)。
+
+
+### CLN236 — 2026-11-13 已消费前置门禁工具工作集
+
+干净31项集成、564-to27,072条源码展开与30项保护完成后，16范围清退3,552文件/587目录，共4,139节点、140,849,418逻辑字节及149,999,616先前分配字节。canonical公共/私有计划、公开投影和物理缺席核对通过，21保护身份未变；在途种子、Source及61产品不在选区。耗时4.266938秒，未运行编辑器，不作整卷因果回收或Goal完成宣称。[报告](reports/2026-11-13-236-consumed-prerequisite-work.md) · [公开清单](manifests/2026-11-13-236-consumed-prerequisite-work.jsonl.gz)。
+
+
+### CLN237 — 2026-11-13 已消费短路径功能控制
+
+P471功能及四项保护通过后，10范围清退1,958文件/14链接/317目录，2,289节点，128,923,878逻辑字节、133,894,144先前分配字节。两份原闭合保留状态先复验，再按精确无跟随计划删除；公开/私有/操作流全部对账，19项保护未变，2.374085秒。当前种子及产品未动。[报告](reports/2026-11-13-237-consumed-short-path-controls.md) · [公开清单](manifests/2026-11-13-237-consumed-short-path-controls.jsonl.gz)。
+
+
+### CLN238 — 2026-11-13 已被替代首对工作集
+
+旧首对的绑定消费者结束、harness身份已被P471替代，195范围退场（含191保留容器）：26,991文件/14链接/4 FIFO/4,201目录，共31,210节点、700,630,273逻辑字节及757,010,432先前分配字节。187原闭合证明复验；四棵无证明状态未用于复用。首次占用因两个000目录拒绝，删除0；按设备/inode恢复自有目录owner0700后重新准入，特殊FIFO单列处理。198,351条当前捕获路径无选区引用，26保护身份未变，三流与缺席完整对账，154.280228秒。历史8990/476及未接受状态保持，当前种子未动。[报告](reports/2026-11-13-238-replaced-first-stable-seed.md) · [公开清单](manifests/2026-11-13-238-replaced-first-stable-seed.jsonl.gz)。
+
+- **CLN239 (2026-11-13)**：11文件版本控制的输出、五棵保留状态及两份日志共8范围退场；2,128文件、5链接、403目录，105,823,913逻辑/111,157,248先前分配字节。五闭合证明、19保护、2,536行三流与物理缺席核验通过；历史55目标通过不改标为新harness接受。见[报告](reports/2026-11-13-239-consumed-version-controls.md)。
+
+- **CLN240 (2026-11-13)**：567规则干净展开后，候选、私有index、获取缓存、旧展开和已消费失败/日志共9范围退场；1,992文件、316目录，78,491,884逻辑/83,517,440先前分配字节。20保护及2,308行三流/缺席复验通过。当前27,216条定义仍供实际分类消费。见[报告](reports/2026-11-13-240-consumed-source-preparation.md)。
+
+- 2026-11-13 CLN241：清退消费后的旧第二稳定种子、5组ERC对照、3组窗口诊断、207棵闭合状态及4处编译缓存，随后清退用完的审计工作副本；61,184节点、2,106,253,796逻辑字节，主操作86项保护身份未变，公开/私有流完整对账。当前制品、源码、SDK与WIP保留。[报告](reports/2026-11-13-241-consumed-stable-and-diagnostic-workset.md)。
+
+- 2026-11-14 CLN242: user-authorized complete build/cache removal; 1,284,922 nodes, 73,148,183,830 logical bytes, 84 protected contents unchanged. Consumed raw audit copies also retired. [Report](reports/2026-11-14-242-cleared-build-workset.md).
+
+- CLN243: consumed minimum bootstrap build and generator tools,7,566 nodes/599,010,894 logical bytes;86 protected contents and index unchanged. build/cache absent. [Report](reports/2026-11-14-243-consumed-bootstrap-workset.md).
+
+- CLN244: removed the entire consumed minimum build and project cache again after scoped acceptance:38,504 files/2,661 directories/32 links,2,550,815,374 logical bytes. No occupied handles;89 source/WIP contents and index unchanged. build/cache absent, repository5.6GiB; no rebuild triggered by cleanup. [Report](reports/2026-11-14-244-consumed-minimum-workset.md).
+
+- CLN245: removed consumed private diagnostic logs, review packages, drivers and retirement metadata: 1,218 files/86 directories, 412,750,738 logical bytes. Active final matrix, declared SDKs, current provenance and two minimal unresolved-case records preserved;91 existing source/WIP identities and main index unchanged. [Report](reports/2026-11-14-245-consumed-diagnostic-workset.md).
+
+## CLN246 — 2026-11-14: consumed semantic case state
+
+- Complete final authored semantics passed before cleanup; owner released and original process identities absent.
+- Removed418 files/11,847 directories,831,059,469 logical bytes; all targets absent, no archive.94 source/WIP files and index unchanged;16 formal metadata and12,135 indexed evidence files unchanged.
+- Current products/native fixtures/reference inputs retained for actual following consumers. [Report](reports/2026-11-14-246-consumed-semantic-state.md) · [compact scope](manifests/2026-11-14-246-consumed-semantic-state.json).
+
+## CLN247 — 2026-11-14: consumed non-reusable case state
+
+- Four Eglot/Ispell case containers had no valid closure-time reuse proof. Their original failed/skip observations and owner records remain unchanged; future execution is fresh.
+- Removed139 files/81 directories/4 FIFOs,5,202,873 logical bytes. Two owned mode000 directories were made accessible only for no-holder verification and deletion. All roots absent;96 source/WIP files,12 original evidence files and index unchanged.
+- [Report](reports/2026-11-14-247-consumed-nonreusable-case-state.md) · [compact scope](manifests/2026-11-14-247-consumed-nonreusable-case-state.json).
+
+
+## CLN248 — consumed runtime-control attempts (2026-11-14)
+
+Removed15 files/3 directories,76,478,435 logical bytes from obsolete failed controls and two logs. All selected paths absent;101 source/WIP files,7 formal results and index unchanged. Corrected controls retain actual consumer inputs only. [Report](reports/2026-11-14-248-consumed-runtime-control-attempts.md) · [scope](manifests/2026-11-14-248-consumed-runtime-control-attempts.json).
+
+
+## CLN249 — explicit entire-build cleanup (2026-11-14)
+
+Stopped/reaped the owned consumer, then removed the whole22GiB build tree and182 owned external test containers:396,554 files,32,198 directories,274 links;23,673,405,779 logical bytes. Build absent, repository5.6GiB;106 existing WIP identities and index unchanged before the documentation update. No archive or rebuild. Removed raw results/seed are unavailable for further acceptance or reuse. [Report](reports/2026-11-14-249-explicit-build-cleanup.md) · [scope](manifests/2026-11-14-249-explicit-build-cleanup.json).
+
+
+## CLN250 — consumed retention fixtures (2026-11-14)
+
+Removed three owned file/process test outputs and six consumed logs after P476 functional11/11 and protection2/2 acceptance. Build absent; no archive or relocation. [Report](reports/2026-11-14-250-consumed-retention-fixtures.md) · [scope](manifests/2026-11-14-250-consumed-retention-fixtures.json).
+
+
+## CLN251 — consumed shell diagnostics (2026-11-14)
+
+Removed seven P477 worksets and consumed current/prior closed raw logs after source/PTY/reference/protection consumers ended. Build absent; source/SDK/provenance/installation preserved. [Report](reports/2026-11-14-251-consumed-shell-diagnostics.md) · [scope](manifests/2026-11-14-251-consumed-shell-diagnostics.json).
+
+
+## CLN252 — consumed build acquisition (2026-11-14)
+
+Fresh7701-file export is complete; consumed corpus cache and duplicate pkg-config wrapper immediately retired. Active current source/builder and all WIP/index preserved. [Report](reports/2026-11-14-252-consumed-build-acquisition.md) · [scope](manifests/2026-11-14-252-consumed-build-acquisition.json).
+
+
+## CLN253 — consumed matrix bootstrap cache (2026-11-14)
+
+Canonical exact-cache retirement removed 439 files and223 directories (55543312 logical bytes), including the consumed private publication metadata. The active independent build driver, current frozen source/products and119 existing WIP contents/index remain unchanged. Two rejected preliminary scopes deleted no paths. [Report](reports/2026-11-14-253-consumed-matrix-bootstrap.md).
+
+
+## CLN254 — consumed failed recovery metadata (2026-11-14)
+
+Removed3 files/1 directory,70,412,631logical bytes after recording the SDK metadata failure; no new compiler product had been started. The failed functional result and original source/products remain. [Report](reports/2026-11-14-254-consumed-recovery-attempt.md).
+
+
+## CLN255 — explicit build cleanup (2026-11-14)
+
+Removed the entire ignored build tree:233,035 files/8,443 directories/252 symlinks,19,846,511,578 logical bytes. Build absent; repository5.6GiB. Existing126 WIP contents and HEAD/index preserved before documentation updates; no replacement build started. [Report](reports/2026-11-14-255-explicit-build-cleanup.md) · [scope](manifests/2026-11-14-255-explicit-build-cleanup.json).
+
+
+## CLN256 — consumed recovery work (2026-11-14)
+
+Removed13 files/4 directories,3646337 logical bytes: unused independent builder and consumed recovery/admission outputs. Build/cache absent; source/index unchanged. [Report](reports/2026-11-14-256-consumed-recovery-work.md).
+
+
+## CLN257 — consumed process-owner tests (2026-11-14)
+
+Removed4 consumed result files/4 directories,14615 logical bytes after final-source integration5/5 and protection2/2. Build/cache absent; maintained sources/index preserved. [Report](reports/2026-11-14-257-consumed-process-owner-tests.md).
+
+
+## CLN258 — consumed current bootstrap inputs (2026-11-14)
+
+Removed1976 files/476 directories,76539942 logical bytes after export and actual release builder completion. Active independent builder/source/index unchanged; no duplicate archive. [Report](reports/2026-11-14-258-consumed-current-bootstrap.md).
+
+
+## CLN259 — consumed current matrix build driver
+
+Fresh20/61 build naturally passed and its owner released. Removed2 files/3 directories,3,635,536 logical bytes; exact driver hash and clear scoped occupancy verified, source/build receipt/index unchanged. Current products remain for real runtime consumers; no archive or physical whole-volume claim. [Report](reports/2026-11-14-259-consumed-matrix-builder.md).
+
+
+## CLN260 — consumed current Python helper work
+
+Removed136 files/107 directories/2 links,245 nodes and4,074,354 logical bytes after compact build/reference/native/helper closure was recorded. Scoped occupancy clear and all selected paths absent; production/test source, frozen inventory, current gate receipts and index unchanged. Current products/native fixtures retained for actual consumers; no archive or physical reclamation claim. [Report](reports/2026-11-14-260-consumed-current-helper-work.md).
+
+
+## CLN261 — consumed current semantic case state (2026-11-14)
+
+Current `current-runtime-semantics-4` naturally passed and its owner released. Removed 418 files/11,847 directories, 830,520,493 logical bytes; scoped occupancy clear and all selected paths absent. 144 source/WIP files, Git index, 20 formal action metadata/results files and 12,135 indexed case evidence files reverified unchanged. Current products and reference/native fixtures remain for stable, performance and components consumers; no archive or whole-volume claim. [Report](reports/2026-11-14-261-consumed-semantic-state.md).
+
+
+## CLN262 — superseded incomplete stable seed 4 (2026-11-15)
+
+Superseded `current-runtime-stable-seed-4` (`542/555` files, runner mock-shell mismatch) retired after producer/consumer alignment. Removed 26,352 files/3,901 directories/12 links, 687,414,406 logical bytes across outer stage, inner source output, 200 retained case containers and 2 closed controller logs; scoped occupancy clear and all selected paths absent. 147 source/WIP files, Git index and all 5 Cohort-4 build/reference/prepare/semantics receipts reverified unchanged. [Report](reports/2026-11-15-262-superseded-stable-seed-4.md).
+
+
+## CLN263 — consumed ERC graphical diagnostics (2026-11-15)
+
+Stopped `current-runtime-cocoa-erc-all-controls-4` and consumed `diag-erc-graphical-check` retired after `unpopulated-graphical-snapshot-wrapper` and five Cocoa `--erc-graphical` scenario controls were wired. Removed 7,265 files/1,635 directories/156 links, 307,002,494 logical bytes across both diagnostic roots, 14 device/inode-verified retained case containers and 4 closed controller logs; scoped occupancy clear and all selected paths absent. 149 source/WIP files, Git index and all 8 Cohort-4 build/reference/prepare/semantics/library/tramp/cperl receipts reverified unchanged. [Report](reports/2026-11-15-263-consumed-erc-graphical-diagnostics.md) · [scope](manifests/2026-11-15-263-consumed-erc-graphical-diagnostics.json).
+
+
+## CLN264 — consumed Cohort-4 diagnostics (2026-11-15)
+
+Retired eight closed Cohort-4 diagnostic runs (`current-runtime-cocoa-controls-4`, `diag-cocoa-erc-4`, `diag-terminal-controls-4`, `diag-version-controls-4`, `diag-version-fast4-4`, `diag-version-fast4b-4`, `diag-cocoa-misc-4`, `diag-cocoa-image-curr-4`) after recording exact raw outcomes (preserving candidate `failed` SVG states, setuid `ps` `monitor_error/125`, and Cocoa persistent-state `timeout/124`). Removed 25,614 files/3,723 directories/213 links, 999,582,248 logical bytes across the 8 diagnostic roots, 100 retained case containers and 14 closed controller logs; scoped occupancy clear and all selected paths absent. 151 source/WIP files, Git index and remaining Cohort-4 receipts reverified unchanged. [Report](reports/2026-11-15-264-consumed-cohort4-diagnostics.md) · [scope](manifests/2026-11-15-264-consumed-cohort4-diagnostics.json).
+
+
+## CLN265 — superseded Cohort-4 matrix and smoke workset (2026-11-15)
+
+Retired the superseded pre-implementation Cohort-4 build/selection/prepare/semantics/control directories and Tramp `ps` smoke worksets across the entire `build` tree, 9 ended owned case containers and 10 closed controller logs after completing the consolidated 12-file implementation batch. Removed 370,986 files/28,006 directories/559 symlinks (198,442 immutable flags cleared), 22,805,642,941 logical bytes and 23,615,508,480 prior allocated bytes; `build` and all selected paths absent, zero open handles, no archive or whole-volume causal claim. 156 protected source/WIP files, HEAD and Git index verified unchanged before documentation updates; Cohort-5 rebuilds cleanly from maintained sources and pinned SDK inputs. [Report](reports/2026-11-15-265-superseded-cohort4-matrix-and-smoke.md) · [scope](manifests/2026-11-15-265-superseded-cohort4-matrix-and-smoke.json).
+
+
+## CLN266 — consumed standalone build caches and smoke workset (2026-11-15)
+
+Retired consumed standalone Cargo/unit/generation/manual build caches, transient Darwin saved-state directory, and verified `smoke-5` scripts/logs while retaining `build/terminal/port` and `dist/macos/Femacs.app`. Removed 18,716 files/1,065 directories/6 symlinks, 826,938,981 logical bytes and 872,280,064 prior allocated bytes; zero open handles and all selected paths absent, no archive or whole-volume causal claim. 160 protected source/WIP files, HEAD, Git index and all 6 retained standalone product binaries/dumps/clients verified unchanged. [Report](reports/2026-11-15-266-consumed-standalone-build-and-smoke.md) · [scope](manifests/2026-11-15-266-consumed-standalone-build-and-smoke.json).
+
+
+## CLN267 — consumed Cohort-5 bootstrap and builder caches (2026-11-15)
+
+After `current-runtime-build-5` naturally passed (`20/20` configs, `61` profiles, `41` physical products; `40` canonical compiler-copy retirements already reclaimed `195,460` files/`6,800` directories/`6,504,860,614` logical bytes) and released its artifact owner, removed the consumed Cargo bootstrap target tree, pinned corpus acquisition cache, and independent release build-driver cache. Removed 1,975 files/479 directories, 79,917,664 logical bytes and 85,430,272 prior allocated bytes; zero open handles and all selected paths absent, no archive or whole-volume causal claim. 162 protected source/WIP files, HEAD, Git index and all 4 Cohort-5 build receipts verified unchanged. [Report](reports/2026-11-15-267-consumed-cohort5-bootstrap-and-builder.md) · [scope](manifests/2026-11-15-267-consumed-cohort5-bootstrap-and-builder.json).
+
+
+## CLN268 — consumed Cohort-5 semantic case state (2026-11-15)
+
+After `current-runtime-semantics-5` naturally passed (`ert` 10,335/10,335, `negative` 608/608, `dump` 48/48, `relocation` 60/60) and released its artifact owner, removed only indexed case-parent `out` directories and the 48 dump-test profiles' generated `runtime-image.pdmp`, 32 `dump-native.eln` units and isolated environment directories. Removed 418 files/11,847 directories, 830,558,077 logical bytes and 831,426,560 prior allocated bytes; zero open handles and all selected paths absent, no archive or whole-volume causal claim. 164 protected source/WIP files, Git index, `current-runtime-semantics-5/results.json`, all 20 formal action metadata files and all 12,135 indexed case evidence files verified unchanged. [Report](reports/2026-11-15-268-consumed-cohort5-semantic-state.md) · [scope](manifests/2026-11-15-268-consumed-cohort5-semantic-state.json).
+
+
+## CLN269 — superseded single-product GC candidate and rule checks (2026-11-16)
+
+Retired the superseded single-product `build/runtime/p466-gc-1` candidate and two throwaway source-rule expansion checks after the complete same-source candidate matrix `current-runtime-build-6` naturally passed. Measured `du -sh` allocations at deletion: 977M, 41M, 41M; candidate receipt identities `b77c10ea…`/program `a3b69143…` were retained in the continuation record before deletion, and every active evidence directory (candidate cohort, reference binding, ERC/default/terminal/driver/classification/toolchain evidence) was kept. [scope](manifests/2026-11-16-269-superseded-single-product-gc-candidate.json).
