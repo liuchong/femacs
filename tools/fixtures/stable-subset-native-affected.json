@@ -1,0 +1,13 @@
+[
+  "test/src/comp-tests.el",
+  "test/lisp/emacs-lisp/comp-tests.el",
+  "test/lisp/emacs-lisp/benchmark-tests.el",
+  "test/lisp/emacs-lisp/comp-cstr-tests.el",
+  "test/lisp/help-fns-tests.el",
+  "test/lisp/mh-e/mh-utils-tests.el",
+  "test/src/data-tests.el",
+  "test/lisp/net/tramp-tests.el",
+  "test/lisp/filenotify-tests.el",
+  "test/lisp/emacs-lisp/ert-tests.el",
+  "test/lisp/erc/erc-scenarios-status-sidebar.el"
+]
