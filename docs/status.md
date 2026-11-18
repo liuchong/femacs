@@ -26685,6 +26685,19 @@ Fresh reference selection passed7/7 postflight checks, actual installation/confi
 User approved this exact DNS case as a nonblocking environment limitation and requires the existing proxy to remain enabled and unchanged. Four bounded HTTPS queries completed without errors: both Google andCloudflare resolved `example.com` (Status0,2 A answers) and returned NXDOMAIN for `emacs.invalid` (Status3,no answers),1.499–2.389s per query. The host system lookup still reports its synthetic proxy addresses. This verifies a remote-resolver contrast, not candidate/editor or original ERT acceptance; raw failures, counts and exits remain unchanged. No Dot task was sent; that route is cancelled. Fresh full555/48 observations and any precise exception binding remain pending.
 
 
+### 2026-11-18 — 第 30 轮：一个干净 Cocoa 产品折入诊断增量，七项聚焦通过，multi 卡在桌面激活
+
+**构建**（仪表 `build/runtime/ime-diag-1`，源码含 Cursor 的 `86488383`）：单次 `runtime-build --product cocoa --variant native-collector --observer`，RC 0/exit 0，controller `root_pid`=51831，1897.644 s，peak RSS 847,036,416 B，`cleanup_complete=true`。产品 `native=t collector=t 32.0.50`，可执行 SHA-256 `525eadea…`、dump `e72ee390…`，`selectedKeyboardInputSource` 已在二进制内（诊断字段到位）。pinned tree-sitter 0.27.1、`/opt/homebrew/opt/libgccjit` 预检通过，构建期 Root 全冻结。
+
+**聚焦运行（`build/acceptance/focus-batch.sh`，一次受控进程）**：7 项通过——measurement-contracts、runtime-phases、runtime-preservation、runtime-reference、runtime-retire、runtime-retire-functional、stable-library-roots。
+- **symbol-shorthand**：改的是**我自己夹具的错期望**（`vector` 首槽为 0 时 C 的 `check_obarray_slow` 明确接受并写入 obarray 对象，两边都返回符号并改写槽位），改为校验该兼容臂并保留首槽非 0 非 obarray 的拒绝用例；参照与候选 **4/4**，提交 `302c5e88`。
+- **test-compiler-resources**：4 个 error —— 它期望复制夹具里存在 `tools/gen-program-products.py`，并要求当前生成器未暴露的 `Generator.sequence`；属既有测试/实现错位，生成器本身未变且已入库，需单独对齐轮。
+- **test-runtime-resume**：integration 模式要求 matrix 恢复检查点的 build/observation/recovered-out/backend-prefix，本轮无不适用，不伪造运行。
+
+**IME multi（unico per-client 观测）**：新产物 `ime-diag-multi-1` 与**此前通过**的对照产物 `ime-diag-multi-control-1` 都停在 `native-window-focus`。`callbacks.jsonl` 显示 `appActive=false`、`windowIsKey=false`，而 view 侧 `clientHasInputContext=true`、`selectedKeyboardInputSource=com.apple.keylayout.ABC`（对照产物无这两个新字段，符合预期）。没有 keyDown ⇒ 没有 per-client 源数据，**本批不能定位 B 窗根因**；判为桌面激活条件，不归因新产品或诊断字段。每产品仅一次尝试，保留失败，桌面条件实际改变前不再重试。
+
+**复用**：steady/switch IME、g3 555/子集消费与全部闭合控制均未重跑。索引：`build/acceptance/concentrated-batch-result.json`。
+
 ### 2026-11-18 — 第 29 轮：已验工作集收进 Git，待验清单显式化
 
 **25 份在跟踪修改全部提交并推送**（`6fb30a7d…b5b0e7ee`），分三类：
