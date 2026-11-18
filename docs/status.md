@@ -26685,6 +26685,18 @@ Fresh reference selection passed7/7 postflight checks, actual installation/confi
 User approved this exact DNS case as a nonblocking environment limitation and requires the existing proxy to remain enabled and unchanged. Four bounded HTTPS queries completed without errors: both Google andCloudflare resolved `example.com` (Status0,2 A answers) and returned NXDOMAIN for `emacs.invalid` (Status3,no answers),1.499–2.389s per query. The host system lookup still reports its synthetic proxy addresses. This verifies a remote-resolver contrast, not candidate/editor or original ERT acceptance; raw failures, counts and exits remain unchanged. No Dot task was sent; that route is cancelled. Fresh full555/48 observations and any precise exception binding remain pending.
 
 
+### 2026-11-18 — 第 16 轮：单产品通道的规则装配与真实未解释清单
+
+**参照绑定**：`tools/g3-reference-binding.py` 从既有 selection 取 epoch、从两份闭合回执取实际身份，重算安装件 program/dump 的 SHA-256，两回执参照身份一致；产物 `build/acceptance/g3-reference-binding-1/reference-selection.json`，标 `post-hoc-verification` + 时间，不冒充事前准入。
+
+**按证据组装（不重建矩阵）**：`stable-classification.py` 新增 `--scoped-assembly`，复用同一套严格规则校验（category、非空 reason、仓库相对 anchors、不得预置 observations），只绑定回执里真实出现过的 file+id；catalog 只含一个 context（该通道自己的产品/环境/参照），结果显式 `matrix_complete=false`，旧回执与既有失败不改，48/61 矩阵未恢复、未登记虚构候选。
+
+**两通道各留各的范围**：旧 555（`cocoa-collector-observer-normal-young`，frozen-2）绑定规则 **575**，574 失败中 **567 有规则归类、7 条未解释**；新子集（`cocoa-native-collector-observer-normal-young`，native-collector-1）绑定 **139**，37 失败全部有归类、**0 未解释**。catalog 分别在 `build/acceptance/g3-scoped-classification-{555-1,subset-2}/`，逐项清单 `build/acceptance/g3-scoped-unexplained.json`（每条 failing 恒 `still_unpassed=true`；共同失败不由"双方同败"放行）。
+
+**7 条未解释**：`emacs-lisp/comp-tests.el` 3（旧产品无 native 编译）、`filenotify-tests` 1、`eglot-tests` 3。
+
+**清理**：删除仅用于接线的 smoke 与 materialize 输出（各 <30 MB），在用产品与证据保留：`frozen-2`、`native-2`、`native-collector-1` 及三份 g3 证据目录。
+
 ### 2026-11-18 — 第 15 轮：G3 声明子集复验与历史 harness 身份核验
 
 **子集接线（一次写齐，`--subset-file`）**：`tools/stable-suite.py` 新增声明子集入口，只接受原件里真实存在的入口名，空/重复/未知一律拒绝；报告与 completion 记 `scope=stable-31.1-original-ELFILES-declared-subset`、`subset`、`full_corpus_entrypoint_count`、`subset_complete`。**完整运行的 completion 写入与读取保持原合同**（无 scope/subset 字段），旧 555 回执不需要改写、不加旧 harness 豁免；子集永远不能声称 `corpus_complete`，完整回执也不能携带子集 scope。驱动脚本 `tools/fixtures/stable-subset-run.sh` 从**自身位置**推导仓库根，参照的 program/dump/lisp 取自已有 reference-selection 回执的 `installed-reference` 行，不再写死本机路径或 Cellar 哈希。
