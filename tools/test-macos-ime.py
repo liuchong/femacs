@@ -9,6 +9,7 @@ import json
 import os
 from pathlib import Path
 import subprocess
+import signal
 import sys
 import time
 import unicodedata
@@ -67,7 +68,50 @@ def run_scenario(binary,sender,sources,work,mode,expected,pinyin_id=None):
         pinyin=pinyin_id or next((s for s in available if 'SCIM' in s and ('ITABC' in s or 'Pinyin' in s)),None)
         if pinyin is None:pinyin=next((s for s in available if s.lower().endswith('.pinyin')),None)
         if not ascii_id or pinyin not in available:raise RuntimeError('requested enabled Pinyin and ABC sources are required')
-        process=subprocess.Popen([str(binary),'-Q','-name','Femacs IME A','-l',str(ROOT/'tools/fixtures/macos-ime.el')],env=env,stdout=output,stderr=subprocess.STDOUT)
+        # A shell exec has no activation context under Apple's cooperative
+        # activation, so a bundled editor is opened through LaunchServices with
+        # explicit arguments and environment. The helper requests a new instance
+        # and prints its pid; the pid's executable is verified against the exact
+        # bundle before any AX work, so a running installed editor cannot be reused.
+        app=None
+        for candidate in binary.parents:
+            if candidate.suffix=='.app':app=candidate;break
+        launch_argv=['-Q','-name','Femacs IME A','-l',str(ROOT/'tools/fixtures/macos-ime.el')]
+        if app is None:
+            process=subprocess.Popen([str(binary),*launch_argv],env=env,stdout=output,stderr=subprocess.STDOUT)
+        else:
+            helper=work/'ime-launch'
+            if not helper.exists():
+                built=subprocess.run(['swiftc','-O',str(ROOT/'tools/fixtures/ime-launch.swift'),'-o',str(helper)],capture_output=True,text=True)
+                if built.returncode!=0:raise RuntimeError('could not build the LaunchServices helper: '+built.stderr[:300])
+            spec=work/'launch.json'
+            spec.write_text(json.dumps({'arguments':launch_argv,'environment':env}))
+            launched=subprocess.run([str(helper),str(app),str(spec)],capture_output=True,text=True,timeout=40)
+            if launched.returncode!=0:raise RuntimeError('LaunchServices could not open the bundle: '+launched.stderr[:300])
+            pid=int(launched.stdout.strip().splitlines()[-1])
+            image=subprocess.run(['python3','-c','import ctypes,ctypes.util,sys;lib=ctypes.CDLL(ctypes.util.find_library("proc"));buf=ctypes.create_string_buffer(4096);n=lib.proc_pidpath(int(sys.argv[1]),buf,4096);print(buf.value.decode() if n>0 else "")',str(pid)],capture_output=True,text=True).stdout.strip()
+            if not image or os.path.realpath(image)!=os.path.realpath(str(binary)):
+                raise RuntimeError('launched pid image differs from the requested bundle: %r' % image)
+            class Launched:
+                """Handle for a LaunchServices instance that is not our child."""
+                def __init__(self,pid):
+                    self.pid=pid;self.returncode=None
+                def poll(self):
+                    try:os.kill(self.pid,0)
+                    except ProcessLookupError:return 0
+                    return None
+                def terminate(self):
+                    try:os.kill(self.pid,signal.SIGTERM)
+                    except ProcessLookupError:pass
+                def wait(self,timeout=None):
+                    started=time.monotonic()
+                    while self.poll() is None:
+                        if timeout is not None and time.monotonic()-started>timeout:
+                            raise subprocess.TimeoutExpired('launched',timeout)
+                        time.sleep(.05)
+                    self.returncode=0
+                    return 0
+            process=Launched(pid)
         def snapshot():
             try:return json.loads(report.read_text())
             except (OSError,ValueError):return {}
