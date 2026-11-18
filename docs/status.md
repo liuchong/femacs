@@ -26685,6 +26685,16 @@ Fresh reference selection passed7/7 postflight checks, actual installation/confi
 User approved this exact DNS case as a nonblocking environment limitation and requires the existing proxy to remain enabled and unchanged. Four bounded HTTPS queries completed without errors: both Google andCloudflare resolved `example.com` (Status0,2 A answers) and returned NXDOMAIN for `emacs.invalid` (Status3,no answers),1.499–2.389s per query. The host system lookup still reports its synthetic proxy addresses. This verifies a remote-resolver contrast, not candidate/editor or original ERT acceptance; raw failures, counts and exits remain unchanged. No Dot task was sent; that route is cancelled. Fresh full555/48 observations and any precise exception binding remain pending.
 
 
+### 2026-11-18 — 第 20 轮：控制器身份配对修正与严格消费生效
+
+**身份核对**：`sh -c` 包装会让控制器 `root_pid`（shell）与产物 `owner_pid`（Python）天然不同，严格消费据此拒绝。改为**受控入口直接 exec Python**、控制器流写固定旁目录（`build/acceptance/controller-logs/`，不预建 fresh `--out`）。已验证 `g3-controls-old-2`（owner 38912 = controller 38912）与 `g3-controls-idcheck-1`（37598 = 37598）成对；library 探针只交 results、不涉 owner 配对。
+
+**最小重采**：旧的 `g3-controls-old-1` 控制器流已随会话临时文件消失、且 PID 不匹配，按“确实不可恢复才最小重采”只重跑该组 14 文件（`-old-2`）；未重扫 Tramp 全集或 555。
+
+**严格消费生效**：`g3-scoped-consume-555-4` **passed**、绑定规则 **441→461**、捕获失败 125→**105**、阻断 133→**113**、structural=0。剩余 60 条“精确通过控制”不是配对问题：其中 **33 条是 entrypoint-variant**，需要 counterpart 的 cperl 入口同 ID 通过；其余为 display-context（terminal/cocoa）、display-svg-subcapability、external-predicate 与版本门。
+
+**test18 结论**：两份整文件回执显示四条 test18 **两侧均失败**，原断言未通过，故无依据在 Cocoa 下重选；terminal 那次维持 incomplete，不再试模式。
+
 ### 2026-11-18 — 第 19 轮：terminal 范围化 test18 采集与严格消费的控制器证明缺口
 
 **范围化采集（只跑索引 `opencode_missing[0]`）**：`--display terminal` + 四个 `--test-id` 采 native `tramp-test18-*`，产物 `build/acceptance/g3-controls-native-test18-1`。首轮在 `tramp-test18-file-attributes` **306.7 s 被杀**（exit -9），缩减后的第二次调用 8.3 s 完成 3 案但 **0 通过**；整个 envelope 维持 `complete=false`，其早先个别事件不用于报通过。未重扫 Tramp 全集或 555。
