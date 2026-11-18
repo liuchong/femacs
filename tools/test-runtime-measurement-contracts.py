@@ -241,6 +241,10 @@ def protection(out):
             with mock.patch.object(execution,'prepare_memory_sampling',side_effect=lambda:events.append('sampler-ready')), \
                  mock.patch.object(execution.subprocess,'Popen',side_effect=spawn), \
                  mock.patch.object(execution,'sample_memory',return_value=(1,2,2)), \
+                 mock.patch.object(execution,'_OwnedProcessTree',return_value=SimpleNamespace(
+                    attach=lambda child:None,refresh=lambda **kwargs:None,live=lambda:[],
+                    signal=lambda number,**kwargs:None,
+                    finish=lambda:dict(complete=True,remaining=[],errors=[]))), \
                  mock.patch.object(execution.os,'killpg',side_effect=ProcessLookupError) as kill:
                 if broken:
                     with mock.patch.object(execution.threading,'Thread',BrokenWaiter):

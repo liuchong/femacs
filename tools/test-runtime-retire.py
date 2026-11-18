@@ -83,23 +83,35 @@ class OwnershipTests(unittest.TestCase):
 
     def test_failed_process_never_removes_state(self):
         self.process['exit_code'] = 1
-        with mock.patch.object(RETIRE.subprocess, 'run') as query:
+        with mock.patch.object(RETIRE, 'check_occupancy') as query:
             self.assertEqual(self.retire()['status'], 'retained')
             query.assert_not_called()
         self.assertTrue(self.cache.is_dir())
 
     def test_open_handles_retain_state(self):
-        occupied = subprocess.CompletedProcess([], 0, stdout=b'open', stderr=b'')
-        with mock.patch.object(RETIRE.subprocess, 'run', return_value=occupied):
+        with mock.patch.object(RETIRE, 'check_occupancy', return_value=dict(clear=False, timed_out=False)):
             self.assertEqual(self.retire()['status'], 'retained')
         self.assertTrue(self.cache.is_dir())
 
     def test_occupancy_timeout_retains_without_retry(self):
-        with mock.patch.object(RETIRE.subprocess, 'run',
-                side_effect=subprocess.TimeoutExpired('lsof', 10)) as query:
+        with mock.patch.object(RETIRE, 'check_occupancy',
+                return_value=dict(clear=False, timed_out=True)) as query:
             self.assertEqual(self.retire()['status'], 'retained')
             self.assertEqual(query.call_count, 1)
-            self.assertEqual(query.call_args.kwargs['timeout'], 10)
+            query.assert_called_once_with(self.root)
+        self.assertTrue(self.cache.is_dir())
+
+    def test_unknown_pipe_read_error_never_creates_ledger(self):
+        with mock.patch.object(RETIRE, 'check_occupancy', return_value=dict(
+                clear=False, timed_out=False, returncode=1, stdout_bytes=0, stderr_bytes=0, error_type='OSError')):
+            self.assertEqual(self.retire()['status'], 'retained')
+        self.assertTrue(self.cache.is_dir())
+        self.assertFalse((self.root/'result.state-retirement.jsonl.gz').exists())
+
+    def test_rc_one_with_output_is_not_clear(self):
+        with mock.patch.object(RETIRE, 'check_occupancy', return_value=dict(
+                clear=False, timed_out=False, returncode=1, stdout_bytes=3, stderr_bytes=0)):
+            self.assertEqual(self.retire()['status'], 'retained')
         self.assertTrue(self.cache.is_dir())
 
 
@@ -124,7 +136,7 @@ class ParentLedgerTests(unittest.TestCase):
                              empty_parents=self.parents)
 
     def test_parent_identities_are_durable_before_first_unlink(self):
-        unlink, fsync = Path.unlink, os.fsync
+        unlink, fsync = os.unlink, os.fsync
         synced = []
         def sync(fd):
             fsync(fd)
@@ -142,7 +154,7 @@ class ParentLedgerTests(unittest.TestCase):
             return unlink(path, *args, **kwargs)
         before = self.evidence.read_bytes()
         with mock.patch.object(RETIRE.os, 'fsync', side_effect=sync), \
-                mock.patch.object(Path, 'unlink', new=remove):
+                mock.patch.object(RETIRE.os, 'unlink', side_effect=remove):
             result = self.retire()
         self.assertEqual(result['directories'], 3)  # cache plus both parents, once
         self.assertEqual(result['parent_directories'], 2)
@@ -187,21 +199,22 @@ class ParentLedgerTests(unittest.TestCase):
         self.assertFalse((self.root / 'result.state-retirement.json').exists())
 
     def test_parent_occupancy_checks_entire_owned_container(self):
-        occupied = subprocess.CompletedProcess([], 0, stdout=b'open parent', stderr=b'')
-        with mock.patch.object(RETIRE.subprocess, 'run', return_value=occupied) as query:
+        with mock.patch.object(RETIRE, 'check_occupancy', return_value=dict(clear=False, timed_out=False)) as query:
             self.assertEqual(self.retire()['status'], 'retained')
-        self.assertEqual(query.call_args.args[0], ['lsof', '+D', str(self.case.parent)])
+        query.assert_called_once_with(self.case.parent)
         self.assertTrue(self.payload.is_file())
         self.assertFalse(self.ledger.exists())
 
     def test_partial_parent_removal_keeps_plan_without_completion_claim(self):
-        rmdir = Path.rmdir
+        rmdir = os.rmdir
         container = self.case.parent
-        def remove(path):
-            if path == container:
+        identity = container.lstat()
+        def remove(path, *, dir_fd=None):
+            current = os.stat(path, dir_fd=dir_fd, follow_symlinks=False)
+            if (current.st_dev, current.st_ino) == (identity.st_dev, identity.st_ino):
                 raise OSError('injected final parent failure')
-            return rmdir(path)
-        with mock.patch.object(Path, 'rmdir', new=remove):
+            return rmdir(path, dir_fd=dir_fd)
+        with mock.patch.object(RETIRE.os, 'rmdir', side_effect=remove):
             with self.assertRaises(OSError):
                 self.retire()
         self.assertFalse(self.case.exists())
@@ -226,6 +239,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--out', type=Path, required=True)
     parser.add_argument('--module', type=Path, default=Path(__file__).with_name('runtime-retire.py'))
+    parser.add_argument('--functional', type=Path)
     args = parser.parse_args()
     OUT = args.out.absolute()
     if OUT.exists() or OUT.resolve() != OUT:
@@ -234,14 +248,25 @@ def main():
     spec = importlib.util.spec_from_file_location('retire_protection', args.module)
     RETIRE = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(RETIRE)
+    functional_sha = None
+    if args.functional is not None:
+        if args.functional.stat().st_size > 65536:
+            parser.error('bounded functional receipt required')
+        functional = json.loads(args.functional.read_text())
+        if functional.get('passed') is not True or functional.get('source_sha256') != RETIRE.digest(args.module):
+            parser.error('functional receipt must pass on this retirement source')
+        functional_sha = RETIRE.digest(args.functional)
     stream = io.StringIO()
     TimedResult.timings = []
     suite = unittest.TestSuite(unittest.defaultTestLoader.loadTestsFromTestCase(case)
                                for case in (OwnershipTests, ParentLedgerTests))
     result = unittest.TextTestRunner(stream=stream, verbosity=2, resultclass=TimedResult).run(suite)
+    if args.functional is not None and RETIRE.digest(args.functional) != functional_sha:
+        raise ValueError('functional prerequisite changed during protection')
     (OUT / 'unittest.txt').write_text(stream.getvalue())
     (OUT / 'results.json').write_text(json.dumps(dict(passed=result.wasSuccessful(),
         tests=result.testsRun, source_sha256=RETIRE.digest(args.module), cases=result.timings,
+        functional_acceptance_sha256=functional_sha,
         failures=[test.id() for test, _ in result.failures],
         errors=[test.id() for test, _ in result.errors], editor_accepted=False), indent=2) + '\n')
     print(stream.getvalue(), end='')

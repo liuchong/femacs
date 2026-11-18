@@ -1,4 +1,4 @@
-"""Actual macOS preservation/producer/archive/release integration.
+"""Actual macOS preservation/producer/physical-file/release integration.
 
 Tiny format-valid files exercise the owner/OS boundary, never an editor, native
 backend, ABI or performance result. Intentional mutation/unlink assertions stay
@@ -15,7 +15,6 @@ import signal
 import stat
 import subprocess
 import sys
-import tarfile
 import time
 import traceback
 from types import SimpleNamespace
@@ -90,9 +89,16 @@ def fixture(out):
                    program=str(root / files[4]), dump=str(root / files[5]),
                    product_receipt=str(root / 'runtime-product.json'), resource_roots={
                        n: str(root / 'dist/terminal' / n) for n in ('lisp', 'etc', 'info')})
-    execution.write_json(original / 'products.json', dict(schema=1, products=[product]))
+    reference = dict(id='installed-reference', kind='reference', compiler_leg='normal', native=False,
+                     observer=False, test_hooks=False, collector='off', program=product['program'],
+                     dump=product['dump'], resource_roots=dict(lisp=product['resource_roots']['lisp'],
+                                                             data=product['resource_roots']['etc']))
+    products = [reference, *[dict(product, id=f'fixture-{index}-normal') for index in range(60)]]
+    execution.write_json(original / 'products.json', dict(schema=1, products=products, source_cohorts=[export]))
     execution.write_json(original / 'results.json', dict(action='build', passed=True,
                          source_root=str(source), source_export=export,
+                         products=products, source_cohorts=[export],
+                         reference_identity=execution.product_identity(reference, resources=True),
                          product_list=str(original / 'products.json'), fixture_only=True))
     return original, source, root, export
 
@@ -122,6 +128,19 @@ def cli(journal, *extra, env=None):
 
 
 def worker(mode, out):
+    if mode == 'stage-files':
+        def build(options, output, guard):
+            original, source, root, export = fixture(output)
+            guard.select_source(original, export)
+            owner.capture_product(guard.journal, root / 'runtime-product.json', source)
+            return dict(passed=True, fixture_only=True)
+        stage.build_matrix = build
+        argv = ['--action', 'build', '--out', str(out)]
+        for name in ('backend-prefix', 'reference', 'reference-dump', 'reference-lisp', 'reference-data'):
+            argv.extend(['--'+name, str(out / ('declared-'+name))])
+        return stage.main(argv)
+    if mode == 'remote-signal':
+        return remote_signal_worker(out)
     original, source, root, export = fixture(out)
     with owner.ArtifactRun(REPO, out) as guard:
         guard.select_source(original, export)
@@ -174,21 +193,124 @@ def normal(out):
         journal = execution.bounded_json(guard.journal, 128 * 1024 * 1024)
         assert any(r['path'] == str(source / 'input-link') for r in journal['symlinks'])
         assert not any(r['path'] == str(source / 'input-link') for r in journal['files'])
-        guard.archive()
+        retention = guard.retain_current_files()
         journal = execution.bounded_json(guard.journal, 128 * 1024 * 1024)
-        assert journal['archive']['all_members_verified']
-        with tarfile.open(out / journal['archive']['path'], 'r:gz') as archive:
-            contents = {m.name: archive.extractfile(m).read() for m in archive}
-        assert json.loads(contents['symlinks.json']) == journal['symlinks']
-        assert hashlib.sha256(contents['symlinks.json']).hexdigest() == journal['archive']['symlink_manifest']['sha256']
-        assert len(contents) < len(journal['files']), 'duplicate contents were not deduplicated'
+        assert retention['all_original_files_verified'] is True
+        assert retention['duplicate_content_archive_created'] is False
+        assert 'archive' not in journal and not (out / 'artifact-content.tar.gz').exists()
         for row in journal['files']:
-            assert hashlib.sha256(contents[row['sha256']]).hexdigest() == row['sha256']
-            assert contents[row['sha256']] == Path(row['path']).read_bytes()
+            assert execution.digest(Path(row['path'])) == row['sha256']
             assert stat.S_IMODE(Path(row['path']).stat().st_mode) == row['mode']
     count = flags_released(out / 'artifact-preservation.json')
     return dict(regular_files=count, actual_unlink_and_truncate_rejected=True,
-                actual_child_cli=True, isolated_home=True, exact_content_archive_verified=True)
+                actual_child_cli=True, isolated_home=True, exact_physical_files_verified=True,
+                duplicate_content_archive_created=False)
+
+
+def default_stage_files(out):
+    selected = out / 'stage'
+    result = subprocess.run([sys.executable, __file__, '--worker', 'stage-files', '--out', selected],
+                            stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, timeout=20)
+    assert result.returncode == 0, result.stderr
+    receipt = execution.bounded_json(selected / 'results.json')
+    assert receipt['passed'] is True
+    retention = receipt['artifact_retention']
+    assert retention['mode'] == 'verified-files' and retention['all_original_files_verified'] is True
+    assert retention['duplicate_content_archive_created'] is False
+    assert 'archive' not in execution.bounded_json(selected / 'artifact-preservation.json')
+    assert not list(out.rglob('artifact-content.tar.gz'))
+    return dict(actual_stage_cli_child=True, omitted_retention_selects_verified_files=True,
+                released=flags_released(selected / 'artifact-preservation.json'),
+                actual_editor_or_compiler_execution=False)
+
+
+def remote_signal_worker(out):
+    original, source, root, export = fixture(out)
+    probe = module('preservation_remote_probe', REPO / 'tools/runtime-tramp-process-probe.py')
+    suite = execution.load_tool('stable-suite.py')
+    entries = []
+    for logical in (probe.ORIGINAL, probe.WATCH_ORIGINAL):
+        p = put(source / logical, b'; explicit nonexecuted admission fixture\n')
+        entries.append(dict(path=logical, source_path=logical, sha256=execution.digest(p)))
+    doc = execution.bounded_json(original / 'source-inputs.json')
+    for row in entries:
+        doc['files'][row['path']] = execution.file_identity(source / row['path'])
+    execution.write_json(original / 'source-inputs.json', doc)
+    export.update(file_count=len(doc['files']), source_manifest_sha256=execution.digest(original / 'source-inputs.json'))
+    execution.write_json(source / '.femacs-runtime-sources.json', dict(schema=1, files=sorted(doc['files'])))
+    # Admission is isolated; the production run_process and ArtifactRun handle
+    # actual process creation, signal unwinding, durable output and OS flags.
+    product = execution.bounded_json(original / 'products.json')['products'][1]
+    ready = out / 'remote-ready'
+    code = ('#!' + sys.executable + '\nimport os,time,pathlib\n'
+            + 'pathlib.Path(' + repr(str(ready)) + ').write_text(str(os.getpid()))\n'
+            + 'while True: time.sleep(1)\n')
+    program = Path(product['program'])
+    program.write_text(code)
+    program.chmod(0o755)
+    selection = dict(schema='explicit-cancellation-fixture', epoch='owned-fixture')
+    calls = []
+    def admit(options):
+        options._reference_selection_summary = selection
+        return original, source, original / 'products.json', [product], dict(source_export=export)
+    def select(guard, *_args):
+        guard.select_source(original, export)
+        owner.capture_artifacts(guard.journal, {str(program):execution.file_identity(program)})
+    def identity(_product, **_kwargs):
+        calls.append('product-identity')
+        if len(calls) > 1:
+            put(out / 'unexpected-acceptance-rehash', b'called\n')
+            raise AssertionError('cancelled collection started acceptance-only verification')
+        return dict(explicit_nonexecuted_product_fixture=True)
+    def unexpected_retention(_guard):
+        put(out / 'unexpected-retention', b'called\n')
+        raise AssertionError('cancelled collection verified retention')
+    stage.read_action_build, stage.select_execution_inputs = admit, select
+    execution.product_identity = identity
+    execution.load_tool = lambda name:suite if name == 'stable-suite.py' else None
+    suite.load_manifest = lambda *_args:dict(entries=entries)
+    owner.ArtifactRun.retain_current_files = unexpected_retention
+    probe.load = lambda *_args:stage
+    return probe.main(['--build', str(original), '--reference-selection', str(out / 'fixture-selection'),
+                       '--profile', product['id'], '--out', str(out / 'probe')])
+
+
+def remote_cancellation(out):
+    with (out / 'worker.stdout').open('xb') as stdout, (out / 'worker.stderr').open('xb') as stderr:
+        process = subprocess.Popen([sys.executable, __file__, '--worker', 'remote-signal', '--out', out],
+                                   stdout=stdout, stderr=stderr)
+        try:
+            wait_for(lambda:(out / 'remote-ready').is_file(), process)
+            child_pid = int((out / 'remote-ready').read_text())
+            birth = owner.artifact_process(child_pid)[1]
+            assert birth is not None
+            process.send_signal(signal.SIGTERM)
+            assert process.wait(timeout=15) == 143
+        finally:
+            if process.poll() is None:
+                process.kill()
+                process.wait()
+    result = execution.bounded_json(out / 'probe/results.json')
+    assert result['cancelled'] is True and result['cancellation_exit_code'] == 143
+    assert result['passed'] is False and result['diagnostic_collection_complete'] is False
+    assert result['postflight_incomplete'] is True and not any(result['checks'].values())
+    assert result['artifact_retention']['all_original_files_verified'] is False
+    assert not (out / 'unexpected-acceptance-rehash').exists()
+    assert not (out / 'unexpected-retention').exists()
+    assert owner.artifact_process(child_pid)[1] != birth
+    row = result['cases'][0]
+    container = Path(row['owned_container'])
+    assert container.parent == Path.home() / 'AI/caches/.noindex' and not container.is_symlink()
+    assert Path(row['owned_state_root']).parent == container
+    assert row['state_retirement']['status'] == 'retained'
+    # This isolated stand-in creates no background holders or user files.
+    shutil.rmtree(container)
+    assert not container.exists()
+    return dict(actual_sigterm_exit=143, actual_owned_child_reaped=True,
+                partial_state_root_recorded=True, acceptance_rehash_not_run=True,
+                owned_short_fixture_retired=True,
+                released=flags_released(out / 'probe/artifact-preservation.json'),
+                actual_editor_or_compiler_execution=False)
 
 
 def error_unwind(out):
@@ -310,17 +432,17 @@ def metadata_refusal(out):
         os.chflags(program, program.stat().st_flags & ~stat.UF_IMMUTABLE)
         program.chmod(0o600 if previous != 0o600 else 0o640)
         try:
-            guard.archive()
+            guard.retain_current_files()
         except ValueError as error:
             assert 'mode changed' in str(error)
         else:
-            raise AssertionError('changed program mode was archived as exact')
+            raise AssertionError('changed program mode was retained as exact')
         program.chmod(previous)
     flags_released(mode_out / 'artifact-preservation.json')
     link_out = out / 'symlink'
     link_out.mkdir()
     original, source, root, export = fixture(link_out)
-    archive_rejected = False
+    retention_rejected = False
     try:
         with owner.ArtifactRun(REPO, link_out) as guard:
             guard.select_source(original, export)
@@ -329,18 +451,18 @@ def metadata_refusal(out):
             link.unlink()
             link.symlink_to('tools/runtime-owner.py')
             try:
-                guard.archive()
+                guard.retain_current_files()
             except ValueError as error:
                 assert 'symlink changed' in str(error)
-                archive_rejected = True
+                retention_rejected = True
             else:
-                raise AssertionError('changed symlink was archived as exact')
+                raise AssertionError('changed symlink was retained as exact')
     except ValueError as error:
-        assert archive_rejected and 'release failed' in str(error)
+        assert retention_rejected and 'release failed' in str(error)
     journal = execution.bounded_json(link_out / 'artifact-preservation.json', 128 * 1024 * 1024)
     assert journal['state'] == 'release-failed' and journal['release_failures']
     assert all(not Path(row['path']).stat().st_flags & stat.UF_IMMUTABLE for row in journal['files'])
-    return dict(changed_mode_archive_rejected=True, changed_symlink_archive_and_release_rejected=True,
+    return dict(changed_mode_retention_rejected=True, changed_symlink_retention_and_release_rejected=True,
                 regular_owned_flags_restored_on_negative_path=True)
 
 
@@ -412,10 +534,57 @@ def finished_product_execution(out):
                 released=released)
 
 
+def protection(out, functional):
+    if functional is None:
+        raise ValueError('completed functional acceptance required')
+    report = execution.bounded_json(functional)
+    if not (report.get('passed') is True and report.get('complete') is True
+            and len(report.get('cases', [])) == 11 and all(row['passed'] for row in report['cases'])):
+        raise ValueError('all preservation functional cases must pass first')
+    acceptance_sha = execution.digest(functional)
+    rows = []
+    def archive_rejected():
+        target = out / 'invalid-archive-output'
+        result = subprocess.run([sys.executable, REPO / 'tools/runtime-stage.py', '--action', 'execute',
+            '--build', out / 'not-a-build', '--out', target, '--retention-mode', 'archive'],
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, timeout=10)
+        assert result.returncode == 2 and 'invalid choice' in result.stderr
+        assert not target.exists()
+        return dict(returncode=2, output_absent=True)
+    def cancelled_rejected():
+        receipt = functional.parent / 'remote-diagnostic-cancellation/probe/results.json'
+        current = execution.bounded_json(receipt)
+        assert current['cancelled'] is True and current['passed'] is False
+        accounting = module('preservation_cancel_consumer', REPO / 'tools/stable-classification.py')
+        try:
+            accounting._remote_collections([(receipt, out / 'unused-controller')])
+        except ValueError as error:
+            assert str(error) == 'fresh completed remote behavior collection required', str(error)
+        else:
+            raise AssertionError('cancelled real-process collection entered classification')
+        return dict(cancelled_receipt_sha256=execution.digest(receipt), classification_rejected=True)
+    for name, body in [('archive-selection-rejected-before-output', archive_rejected),
+                       ('cancelled-collection-rejected-by-reader', cancelled_rejected)]:
+        started = time.monotonic()
+        try:
+            row = dict(id=name, passed=True, details=body())
+        except Exception as error:
+            row = dict(id=name, passed=False, error=f'{type(error).__name__}: {error}')
+        rows.append(dict(row, seconds=time.monotonic()-started))
+    assert execution.digest(functional) == acceptance_sha
+    execution.write_json(out / 'results.json', dict(schema='femacs-runtime-retention-protection-v1',
+        passed=all(row['passed'] for row in rows), complete=True, cases=rows,
+        functional_acceptance_sha256=acceptance_sha, actual_editor_execution=False,
+        actual_compiler_execution=False, goal_complete=False))
+    return 0 if all(row['passed'] for row in rows) else 1
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--out', type=Path, required=True)
-    parser.add_argument('--worker', choices=('dead', 'signal', 'journal-signal'))
+    parser.add_argument('--mode', choices=('integration', 'protection'), default='integration')
+    parser.add_argument('--functional', type=Path)
+    parser.add_argument('--worker', choices=('dead', 'signal', 'journal-signal', 'stage-files', 'remote-signal'))
     options = parser.parse_args()
     if sys.platform != 'darwin' or not hasattr(os, 'chflags'):
         parser.error('actual macOS file flag behavior is required')
@@ -423,17 +592,22 @@ def main():
     if not out.is_relative_to(REPO / 'build') or out == REPO / 'build':
         parser.error('fresh owned build output required')
     if options.worker:
-        worker(options.worker, out)
-        return 0
+        result = worker(options.worker, out)
+        return 0 if result is None else result
     out.mkdir(parents=True, exist_ok=False)
+    if options.mode == 'protection':
+        return protection(out, options.functional)
     rows = []
-    for name, body in [('completed-leg-child-archive-release', normal), ('error-scope-unwind', error_unwind),
+    cases = [('completed-leg-child-files-release', normal), ('error-scope-unwind', error_unwind),
                        ('dead-owner-recovery', dead_recovery), ('sigterm-owned-producer-reaped', terminated_producer),
                        ('sigterm-during-journal-write', interrupted_journal),
                        ('frozen-source-action-boundaries', source_binding),
-                       ('mode-and-symlink-archive-invariants', metadata_refusal),
+                       ('mode-and-symlink-file-invariants', metadata_refusal),
                        ('replaced-inode-release-boundary', replaced_inode),
-                       ('finished-product-execution-preservation', finished_product_execution)]:
+                       ('finished-product-execution-preservation', finished_product_execution),
+                       ('default-stage-files-retention', default_stage_files),
+                       ('remote-diagnostic-cancellation', remote_cancellation)]
+    for name, body in cases:
         case = out / name
         case.mkdir()
         started = time.monotonic()
@@ -444,7 +618,7 @@ def main():
         row['seconds'] = time.monotonic() - started
         rows.append(row)
         execution.write_json(out / 'results.json', dict(passed=all(r['passed'] for r in rows),
-                             complete=len(rows) == 9, cases=rows, scope='actual owner/OS integration with nonexecuted format fixtures',
+                             complete=len(rows) == len(cases), cases=rows, scope='actual owner/OS integration with nonexecuted format fixtures',
                              whole_editor_native_gc_compatibility_performance_accepted=False))
         print(json.dumps({key: row[key] for key in ('id', 'passed', 'seconds')}), flush=True)
     return 0 if all(row['passed'] for row in rows) else 1

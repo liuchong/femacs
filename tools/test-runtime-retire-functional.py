@@ -1,13 +1,83 @@
 """Real process/filesystem cleanup integration; no editor acceptance claim."""
 from pathlib import Path
 import argparse
+import errno
 import gzip
 import hashlib
 import importlib.util
 import json
+import os
 import subprocess
 import sys
 import time
+from unittest import mock
+
+
+def occupancy_integration(retirement, out):
+    rows = []
+    root = out/'occupancy.noindex'
+    root.mkdir()
+    started = time.monotonic()
+    clear = retirement.check_occupancy(root)
+    assert clear['clear'] is True, clear
+    rows.append(dict(id='actual-empty-query', passed=True,
+                     seconds=time.monotonic()-started, observation=clear))
+    started = time.monotonic()
+    payload = root/'held'
+    payload.write_bytes(b'owned live holder')
+    with payload.open('rb'):
+        occupied = retirement.check_occupancy(root)
+    assert occupied['clear'] is False and occupied['holder_pid_count'] >= 1
+    assert payload.read_bytes() == b'owned live holder'
+    payload.unlink()
+    rows.append(dict(id='actual-held-file-is-retained', passed=True,
+                     seconds=time.monotonic()-started, observation=occupied))
+
+    # Fault only a pipe belonging to the real lsof child, after Popen has
+    # completed its own startup error-pipe handling.
+    started = time.monotonic()
+    source = '''from pathlib import Path
+import sys
+p=Path(sys.argv[1])/'cache'/'payload'
+p.parent.mkdir();p.write_bytes(b'producer data')
+'''
+    producer = subprocess.run([sys.executable, '-B', '-c', source, str(root)],
+                              capture_output=True, timeout=5)
+    assert producer.returncode == 0, producer.stderr
+    evidence = root/'result.json'
+    process = dict(complete=True, exit_code=producer.returncode,
+                   remaining_group_terminated=False)
+    evidence.write_text(json.dumps(process)+'\n')
+    popen, read = retirement.subprocess.Popen, retirement.os.read
+    descriptors, children, faults = set(), [], []
+    def spawn(*args, **kwargs):
+        child = popen(*args, **kwargs)
+        children.append(child)
+        descriptors.update((child.stdout.fileno(), child.stderr.fileno()))
+        return child
+    def broken_read(descriptor, count):
+        if descriptor in descriptors and not faults:
+            faults.append(descriptor)
+            raise OSError(errno.EIO, 'owned occupancy pipe read fault')
+        return read(descriptor, count)
+    with mock.patch.object(retirement.subprocess, 'Popen', side_effect=spawn), \
+            mock.patch.object(retirement.os, 'read', side_effect=broken_read):
+        retained = retirement.retire(root, ['cache'], evidence, process, record_occupancy=True)
+    assert faults and children and all(child.poll() is not None for child in children)
+    assert retained['status'] == 'retained'
+    assert retained['attempt_observation']['clear'] is False
+    assert retained['attempt_observation']['error_type'] == 'OSError'
+    assert (root/'cache/payload').read_bytes() == b'producer data'
+    assert not (root/'result.state-retirement.jsonl.gz').exists()
+    assert not (root/'result.state-retirement.private.json').exists()
+    assert not (root/'result.state-retirement.json').exists()
+    completed = retirement.retire(root, ['cache'], evidence, process, record_occupancy=True)
+    assert completed['status'] == 'complete' and completed['all_selected_absent'] is True
+    rows.append(dict(id='real-query-read-fault-blocks-deletion', passed=True,
+                     seconds=time.monotonic()-started, observation=retained['attempt_observation'],
+                     original_data_retained=True, query_child_reaped=True,
+                     fresh_clear_query_retired_state=True))
+    return rows
 
 
 def main():
@@ -121,6 +191,7 @@ for name, content in [('home/settings', b'config'),
     assert (failed / 'keep').read_bytes() == b'failure'
     assert not (out / 'failed-result.state-retirement.jsonl.gz').exists()
     assert retirement.digest(source) == source_sha
+    occupancy = occupancy_integration(retirement, out)
     report = dict(passed=True, source_sha256=source_sha, files=3, directories=5,
         ledger_rows=8, actual_process_reaped=True, actual_filesystem_cleanup=True,
         parent_inclusive=dict(files=3, directories=7, parent_directories=2,
@@ -128,6 +199,7 @@ for name, content in [('home/settings', b'config'),
             evidence_unchanged=True, parents_absent=True, seconds=parent_seconds),
         failed_producer=dict(exit_code=failed_child.returncode, retained=True,
             seconds=time.monotonic() - failed_started),
+        occupancy=occupancy,
         editor_accepted=False, seconds=time.monotonic() - started)
     (out / 'results.json').write_text(json.dumps(report, indent=2) + '\n')
     print(json.dumps(report))

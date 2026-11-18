@@ -21,7 +21,7 @@ spec = importlib.util.spec_from_file_location('phase_stage', REPO/'tools/runtime
 stage = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(stage)
 
-CHILD = '''import argparse, importlib.util, os
+CHILD = '''import argparse, importlib.util, json, os
 from pathlib import Path
 p=argparse.ArgumentParser()
 p.add_argument('--out',type=Path,required=True)
@@ -39,6 +39,13 @@ if a.action:
  report=dict(schema='femacs-runtime-execution-v1',action=a.action,passed=True,
   cases=[dict(id='synthetic-phase-dispatch',passed=True)],
   full_product_inputs_unchanged=True,fixtures_unchanged=True)
+ if a.action=='ert':
+  spec=importlib.util.spec_from_file_location('captured_language_contract',Path(__file__).with_name('runtime-language-contract.py'))
+  contract=importlib.util.module_from_spec(spec);spec.loader.exec_module(contract)
+  observed=json.loads(Path(os.environ['PHASE_LANGUAGE_OBSERVATION']).read_text())
+  comparison=contract.compare(observed['id'],observed['reference'],observed['candidate'])
+  report.update(passed=comparison['passed'],language_observation_comparisons=[comparison],raw_observations=observed)
+  report['cases'][0]['passed']=comparison['passed']
  if a.action=='performance':report.update(permanent_full_fallback=fallback,startup_measured=not fallback)
  e.write_json(a.out/'state-retirement.json',dict(complete=True))
  e.write_json(a.out/'results.json',report)
@@ -383,7 +390,22 @@ def integration(out):
         stage.execution.write_json(products_path, dict(products=products))
         build = (fixture, source, products_path, products, dict(passed=True))
         before = {p['id']:stage.execution.product_identity(p,resources=True) for p in products}
-        env = dict(os.environ, PHASE_CONTRACT_DRIVER=str(REPO/'tools/runtime-execution.py'))
+        current = fixture/'current-harness-source'
+        (current/'tools').mkdir(parents=True)
+        for name in ('runtime-acceptance.py', 'runtime-execution.py', 'runtime-retire.py',
+                     'runtime-profile.py', 'runtime-language-contract.py', 'reference-corpus.py'):
+            shutil.copy2(REPO/'tools'/name, current/'tools'/name)
+        shutil.copytree(REPO/'tools/fixtures', current/'tools/fixtures')
+        (current/'tools/runtime-acceptance.py').write_text(CHILD+'\n# synthetic current driver\n')
+        identity='rtl08-weak-modes-after-explicit-full'
+        live='((key (:value) 1) (value (:value) 1) (key-or-value (:value) 1) (key-and-value (:value) 1))'
+        reference='('+live+' ((key . 0) (value . 0) (key-or-value . 0) (key-and-value . 0)))'
+        candidate='('+live+' ((key . 0) (value . 0) (key-or-value . 1) (key-and-value . 0)))'
+        observation=fixture/'language-observation.json'
+        stage.execution.write_json(observation,dict(id=identity,
+            reference=[[identity,reference]],candidate=[[identity,candidate]]))
+        env = dict(os.environ, PHASE_CONTRACT_DRIVER=str(REPO/'tools/runtime-execution.py'),
+                   PHASE_LANGUAGE_OBSERVATION=str(observation))
         for phase, expected in [('semantics',['ert','negative','dump','relocation']),
                                 ('performance',['performance','performance-fallback']),
                                 ('stable',['stable-candidate']),
@@ -393,6 +415,7 @@ def integration(out):
             options = SimpleNamespace(action='execute', execution_phase=phase, timeout=5)
             case_started = time.monotonic()
             with mock.patch.object(stage,'read_action_build',return_value=build), \
+                 mock.patch.object(stage,'REPO',current), \
                  mock.patch.object(stage.execution,'load_products',return_value=products), \
                  mock.patch.object(stage,'clean_environment',return_value=env):
                 result = stage.execute_matrix(options,root)
@@ -404,6 +427,30 @@ def integration(out):
             assert result['full_matrix_execution_complete'] is False
             assert result['execution_phase']==phase
             assert result['product_identity_unchanged'] and result['complete_receipts_valid']
+            if phase != 'stable':
+                selected=result['authored_harness_selection']
+                assert selected['unchanged'] is True
+                assert selected['schema']=='femacs-authored-python-harness-v1'
+                assert result['harness_root']==str(root/'authored-harness')
+                for _, files, _ in stage.execution.fixture_groups(dict(kind='terminal',
+                        observer=True, test_hooks=True, collector='young', native=True), 'all'):
+                    for name in files:
+                        captured=root/'authored-harness/tools/fixtures'/name
+                        assert captured.is_file()
+                        assert stage.execution.digest(captured)==stage.execution.digest(current/'tools/fixtures'/name)
+                driver=root/'authored-harness/tools/runtime-acceptance.py'
+                assert stage.execution.digest(driver)==stage.execution.digest(current/'tools/runtime-acceptance.py')
+                assert stage.execution.digest(driver)!=stage.execution.digest(source/'tools/runtime-acceptance.py')
+                stage.execution.write_json(root/'results.json',result)
+                audit=stage.execution.load_tool('runtime-final-audit.py')
+                registry=audit.InputPinRegistry()
+                _,_,saved=registry.read_json(root/'results.json',label='synthetic-authored-stage')
+                audit._verify_authored_harness(registry,root/'results.json',saved,
+                    dict(source_root=str(source)))
+                assert registry.verify_all_unchanged()[0]
+                for row in result['cases']:
+                    if not row['id'].startswith('stable-'):
+                        assert row['process']['argv'][1]==str(driver)
             if not valid:
                 assert 'receipt_validation_error' in result['cases'][-1]
             for row in result['cases']:
@@ -412,6 +459,12 @@ def integration(out):
                 actual = stage.execution.read_completion(source/'build/acceptance'/phase/row['id'],
                     'performance' if row['id']=='performance-fallback' else row['id'],products_path)
                 assert actual['passed'] is True
+                if row['id']=='ert':
+                    detail=json.loads(Path(row['receipt']).read_text())
+                    comparison=detail['language_observation_comparisons'][0]
+                    assert comparison['passed'] and comparison['literal_equal'] is False
+                    assert comparison['contract']=='conservative-weak-reachability-v1'
+                    assert detail['raw_observations']['reference']!=detail['raw_observations']['candidate']
                 if row['id'].startswith('performance'):
                     assert actual['performance_control']['permanent_full_fallback'] is (row['id']=='performance-fallback')
             rows.append(dict(phase=phase, passed=True, child_processes=len(expected),
@@ -420,6 +473,7 @@ def integration(out):
         root=fixture/'wrong-mode';root.mkdir();case_started=time.monotonic()
         wrong_env=dict(env,PHASE_BAD_FALLBACK_MODE='1')
         with mock.patch.object(stage,'read_action_build',return_value=build), \
+             mock.patch.object(stage,'REPO',current), \
              mock.patch.object(stage.execution,'load_products',return_value=products), \
              mock.patch.object(stage,'clean_environment',return_value=wrong_env):
             result=stage.execute_matrix(SimpleNamespace(action='execute',execution_phase='performance',timeout=5),root)
@@ -436,6 +490,7 @@ def integration(out):
     report = dict(schema='femacs-runtime-phase-file-process-integration-v1',
                   passed=len(rows)==5 and all(row['passed'] for row in rows), cases=rows,
                   actual_python_children=sum(row['child_processes'] for row in rows),
+                  authored_harness_snapshot_and_audit_verified=True,
                   real_completion_readers_exercised=True,
                   compiled_product_admission_isolated=True, actual_editor_execution=False,
                   owned_fixture_retired=not fixture.exists(), seconds=time.monotonic()-started)

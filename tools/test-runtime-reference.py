@@ -145,6 +145,106 @@ def _fixture(root):
                 historical_document=document)
 
 
+def _fresh_probe_flow(out, fixture, rows):
+    """Exercise the formal probe CLI using an explicitly synthetic executable."""
+    context = _fixture(fixture/'fresh-probe-inputs')
+    reference = context['products'][0]
+    selected_root = context['selection'].parent
+    old_probe = e.bounded_json(selected_root/'reference-probe.json')
+    facts = dict(old_probe['sampled_facts'], arithmetic=42, emacs_repository_version=None,
+        native_comp_eln_load_path=[], native_comp_jit=False, image_types=[])
+    program = Path(reference['program'])
+    program.write_text('#!'+sys.executable+'\nimport json,sys\nfrom pathlib import Path\n'
+        'source=Path(sys.argv[sys.argv.index("--load")+1]).read_text()\n'
+        'assert "FEMACS-REFERENCE-INSTALL" in source and "native_comp_eln_load_path" in source\n'
+        'print("FEMACS-REFERENCE-INSTALL "+json.dumps('+repr(facts)+'))\n')
+    product_path = context['original']/'products.json'
+    document = e.bounded_json(product_path)
+    document['products'] = context['products']
+    e.write_json(product_path, document)
+    build_path = context['original']/'results.json'
+    build = e.bounded_json(build_path)
+    build.update(products=context['products'], reference_identity=e.product_identity(reference, resources=True))
+    e.write_json(build_path, build)
+    patches = fixture/'fresh-probe-patches'
+    patches.mkdir()
+    original_patch = next(iter(old_probe['patch_files'].values()))
+    shutil.copy2(original_patch['path'], patches/(original_patch['identity']['sha256']+'.patch'))
+    probe = module('reference_formal_probe', 'runtime-reference-probe.py')
+    before = {key:e.file_identity(Path(old_probe[key]['path'])) for key in ('install_receipt','build_config')}
+    def admitted(path):
+        value = e.bounded_json(path)
+        assert value['products'] == context['products']
+        return value['products']
+    first = out/'direct-provenance-probe'
+    for name, arguments, target in (
+        ('explicit-current-provenance', [
+            '--recipe-info', selected_root/'recipe-info.json',
+            '--upstream-tree-comparison', selected_root/'upstream-tree-comparison.json',
+            '--install-receipt', old_probe['install_receipt']['path'],
+            '--build-config', old_probe['build_config']['path'],
+            '--patch-directory', patches, '--epoch', 'synthetic-fresh-probe'], first),
+        ('same-reference-prior-provenance', ['--prior-selection', first/'reference-selection.json'],
+            out/'same-reference-probe')):
+        started = time.monotonic()
+        with mock.patch.object(probe, 'load_stage', return_value=stage), \
+             mock.patch.object(e, 'load_products', side_effect=admitted):
+            code = probe.main([str(x) for x in ['--build', context['original'], *arguments,
+                '--out', target, '--timeout', '5']])
+        if code != 0:
+            e.write_json(out/'failed-reference-probe.json', e.bounded_json(target/'results.json'))
+        assert code == 0
+        result = e.bounded_json(target/'results.json')
+        assert result['passed'] and all(result['checks'].values())
+        assert result['reference_selection']['reference_replaced'] is False
+        captured = e.bounded_json(target/'reference-probe.json')
+        assert captured['sampled_facts']['emacs_repository_version'] is None
+        assert captured['repository_version_embedded'] is False
+        assert captured['source_revision_provenance']=='pinned-recipe-and-install-receipt'
+        assert '--load' in captured['process']['argv']
+        assert captured['probe_source']['identity'] == e.file_identity(target/'reference-install-probe.el')
+        assert not (target/'reference-install-probe.el').stat().st_flags & 2 if sys.platform=='darwin' else True
+        assert e.bounded_json(target/'artifact-preservation.json')['state']=='released'
+        assert all(e.file_identity(Path(old_probe[key]['path'])) == pin for key,pin in before.items())
+        rows.append(dict(id='formal-reference-probe-'+name, passed=True,
+            seconds=time.monotonic()-started, actual_python_children=1,
+            actual_editor_execution=False, candidate_receipt_admission_isolated=True))
+
+
+def _capture_inputs_flow(out, fixture, rows):
+    """Use the public producer, then both diagnostic readers' shared admission."""
+    started = time.monotonic()
+    root = fixture/'input-capture'
+    keg = root/'keg'
+    program = _file(root/'app/bin/reference', 'owned executable identity\n')
+    dump = _file(keg/'libexec/reference.pdmp', 'owned dump identity\n')
+    lisp, data = keg/'share/lisp', keg/'share/data'
+    lisp.mkdir(parents=True); data.mkdir()
+    _file(lisp/'dframe.el', 'owned diagnostic library input\n')
+    _file(data/'resource', 'owned diagnostic data input\n')
+    install = keg/'INSTALL_RECEIPT.json'
+    e.write_json(install, dict(poured_from_bottle=False, source=dict(tap='fixture/tap',
+        scm_revision='7'*40, versions=dict(stable='32.0.50'))))
+    config = _file(root/'build.yml', 'icon: retained-synthetic-icon\n')
+    target = out/'installation-input-capture'
+    argv = [sys.executable, REPO/'tools/runtime-reference-probe.py', 'capture-inputs',
+        '--program', program, '--dump', dump, '--lisp-root', lisp, '--data-root', data,
+        '--install-receipt', install, '--build-config', config, '--epoch', 'owned-diagnostic',
+        '--native', '--out', target]
+    child = subprocess.run(argv, capture_output=True, text=True, timeout=10)
+    assert child.returncode == 0, child.stderr
+    products = e.load_products(target/'products.json')
+    assert len(products) == 1
+    value, pins = stage.reference_selection.read_installation_inputs(e,
+        target/'reference-inputs.json', products[0])
+    assert value['upstream']['commit'] == '7'*40 and len(pins) == 4
+    assert not value['actual_editor_execution'] and not value['full_matrix_admission']
+    assert not value['sampled_runtime_capabilities']
+    assert set(pins) == {str(p) for p in (program, dump, install, config)}
+    rows.append(dict(id='reproducible-bounded-installation-input-cli', passed=True,
+                     seconds=time.monotonic()-started))
+
+
 def integration(out):
     started = time.monotonic(); fixture = out / 'owned-fixtures'; fixture.mkdir()
     rows = []; retained = None; result = None
@@ -210,6 +310,8 @@ def integration(out):
             assert options._reference_selection_summary['runtime_repository_version'] is None
             rows.append(dict(id='package-without-embedded-repository-variable',passed=True,
                              seconds=time.monotonic()-start))
+        _fresh_probe_flow(out, fixture, rows)
+        _capture_inputs_flow(out, fixture, rows)
     except Exception as error:
         diagnostics = {}
         if result is not None:
@@ -223,17 +325,58 @@ def integration(out):
         raise
     finally:
         shutil.rmtree(fixture)
-        for name in ('default-runner', 'selected-runner'):
+        for name in ('default-runner', 'selected-runner', 'direct-provenance-probe',
+                     'same-reference-probe', 'installation-input-capture'):
             path = out / name
             if path.exists(): shutil.rmtree(path)
-    report = dict(schema='femacs-reference-selection-file-process-integration-v1', passed=len(rows) == 5,
-        cases=rows, installation_python_children=1, stable_python_children=2,
+    report = dict(schema='femacs-reference-selection-file-process-integration-v1', passed=len(rows) == 8,
+        cases=rows, installation_python_children=2, stable_python_children=2, formal_probe_python_children=2,
+        installation_input_capture_python_children=1,
         artifact_owner_lifecycle_exercised=sys.platform == 'darwin',
         compiled_product_admission_isolated=True, actual_editor_execution=False,
         original_corpus_execution=False, owned_fixture_retired=not fixture.exists(),
         seconds=time.monotonic() - started, goal_complete=False)
     e.write_json(out / 'results.json', report)
     return report['passed']
+
+
+def _bounded_input_protection(fixture, rows):
+    root = fixture/'bounded-input-protection'
+    keg = root/'keg'
+    program = _file(root/'bin/reference', 'owned program\n')
+    dump = _file(keg/'libexec/reference.pdmp', 'owned dump\n')
+    lisp, data = keg/'share/lisp', keg/'share/data'
+    lisp.mkdir(parents=True); data.mkdir()
+    install = keg/'INSTALL_RECEIPT.json'
+    e.write_json(install, dict(poured_from_bottle=False, source=dict(tap='fixture/tap',
+        scm_revision='8'*40, versions=dict(stable='32.0.50'))))
+    config = _file(root/'build.yml', 'icon: owned-icon\n')
+    api = stage.reference_selection
+    product = dict(api.INVARIANTS, native=True, program=str(program), dump=str(dump),
+                   resource_roots=dict(lisp=str(lisp), data=str(data)))
+    value = api.capture_installation_inputs(e, product, install, config, 'bounded-protection')
+    path = root/'inputs.json'
+    for name, operation in (
+            ('bounded-input-partial-identity-rejected',
+             lambda v: v['input_pins'].__setitem__(str(program), {})),
+            ('bounded-input-changed-installation-config-rejected',
+             lambda v: config.write_text('changed config\n'))):
+        start = time.monotonic()
+        chosen = copy.deepcopy(value); operation(chosen); e.write_json(path, chosen)
+        try:api.read_installation_inputs(e, path, product)
+        except (ValueError, OSError):pass
+        else:raise AssertionError('invalid bounded reference inputs accepted: '+name)
+        config.write_text('icon: owned-icon\n')
+        rows.append(dict(id=name, passed=True, seconds=time.monotonic()-start))
+    start = time.monotonic(); outside = root/'foreign-data'; outside.mkdir()
+    target = root/'invalid-capture-output'
+    child = subprocess.run([sys.executable, REPO/'tools/runtime-reference-probe.py', 'capture-inputs',
+        '--program', program, '--dump', dump, '--lisp-root', lisp, '--data-root', outside,
+        '--install-receipt', install, '--build-config', config, '--epoch', 'bounded-protection',
+        '--native', '--out', target], capture_output=True, timeout=5)
+    assert child.returncode == 2 and not target.exists()
+    rows.append(dict(id='bounded-input-foreign-resource-rejected-before-output',
+                     passed=True, seconds=time.monotonic()-start))
 
 
 def protection(out, functional):
@@ -326,8 +469,9 @@ def protection(out, functional):
                 '--reference-selection',selection_path,'--out',unused],capture_output=True,timeout=5)
             assert child.returncode==2 and not unused.exists()
             rows.append(dict(id=name,passed=True,seconds=time.monotonic()-start))
+        _bounded_input_protection(fixture, rows)
     finally:shutil.rmtree(fixture)
-    report=dict(schema='femacs-reference-selection-protection-v1',passed=len(rows)==23,cases=rows,
+    report=dict(schema='femacs-reference-selection-protection-v1',passed=len(rows)==26,cases=rows,
         functional_acceptance_sha256=e.digest(functional),owned_fixture_retired=not fixture.exists(),
         actual_editor_execution=False,seconds=time.monotonic()-started,goal_complete=False)
     e.write_json(out/'results.json',report)

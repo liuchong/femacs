@@ -29,6 +29,9 @@ class CompilerInputs(unittest.TestCase):
                 for p in selected:p.with_suffix('.elc').write_bytes(b'fixture output')
             else:(self.log/'bootstrap-load-history.txt').write_text(str(self.root/'lisp/history.el')+'\n')
         self.gen.lisp=lisp
+        # This unit isolates selection of the original compiler inputs. The
+        # generated component's real compilation/package path has its own integration.
+        self.gen.library_corrections=lambda:None
         self.addCleanup(patch.stopall)
         patch.object(resources,'ROOT',self.root).start();patch.object(resources,'ALL_BYTECODE',False).start();patch.object(resources,'BYTECODE_SCOPES',[]).start()
 

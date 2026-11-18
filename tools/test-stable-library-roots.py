@@ -14,6 +14,7 @@ import hashlib
 import importlib.util
 import json
 import os
+import re
 from pathlib import Path
 import shutil
 import stat
@@ -393,7 +394,7 @@ def _retire_short_containers(root):
     if not root.exists():
         return 0
     retired = 0
-    cache_root = (Path.home() / 'AI' / 'caches').resolve()
+    cache_root = (Path.home() / 'AI' / 'caches' / '.noindex').resolve()
     for env_file in root.rglob('*.environment.json'):
         try:
             payload = json.loads(env_file.read_text(encoding='utf-8'))
@@ -403,12 +404,12 @@ def _retire_short_containers(root):
         if not container.exists():
             continue
         assert container.resolve() == container and container.parent == cache_root
-        assert container.name.startswith('fe-') and not container.is_symlink()
+        assert re.fullmatch(r'f[a-z0-9_]{8}', container.name) and not container.is_symlink()
         node = container.lstat()
         assert (node.st_dev, node.st_ino) == (payload['device'], payload['inode'])
         assert node.st_uid == os.getuid() and stat.S_ISDIR(node.st_mode)
         case_root = Path(payload['case_root'])
-        assert case_root.parent == container and case_root.name == 'case'
+        assert case_root.parent == container and case_root.name == 'c'
         final = env_file.with_name(env_file.name.removesuffix('.environment.json')+'.json')
         actual = json.loads(final.read_text(encoding='utf-8'))
         assert actual['owned_container'] == str(container) and actual['owned_state_root'] == str(case_root)
