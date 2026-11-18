@@ -26695,6 +26695,10 @@ User approved this exact DNS case as a nonblocking environment limitation and re
 
 **补齐两场景（各一次）**：switch **passed**（`ime-launchservices-switch-1`，exit 0、413 次回调、提交 你好）；multi **failed**（`ime-launchservices-multi-1`，exit 0）：切到 `Femacs IME B` 后拼音键以原样拉丁落到 `second_text="nihao"`，`marked=false`、无合成——是真实的多窗口输入上下文缺陷，A 窗路径正确。一次有界，不重试；下一假设是**非 key frame 缺少输入客户端/第一响应者**，使输入法仍留在 A 窗。
 
+**交付索引与去重消费**：`build/acceptance/ime-delivery-index.json` 绑定待验 bundle／二进制（`11bf532e…`）与 fixture／launcher／driver／sender 源身份，记录 launcher 的 PID／映像核对方式与"未复用已安装 Fe"的边界（旧三跑早于 `results.launch` 字段，不回填重跑）；驱动已把该记录写入后续结果（`55c46f53`）。image 的去重 control-source 严格消费即 `g3-scoped-consume-555-17`：单份 applicability cocoa（`cocoa-3`＋`cocoa-4`，无重叠）、`cocoa-svg-2` 仍只服务 compute-map，三条 image 规则全部绑定，捕获 4 条都属已被子集替代的文件，有效阻断仅 eglot 3。
+
+**控制器流已按原字节转存**：`/tmp/ime-*.log` → 各自运行目录 `controller.stderr.log`（multi SHA `6c5140d0…` 9395 B、switch `4f30de81…` 10451 B），真实终态记 `build/acceptance/ime-controller-archive.json`；临时文件已删，此后控制器流直接写持久旁目录。
+
 ### 2026-11-18 — 第 27 轮：安静窗口一次读数与 IME 激活的官方依据
 
 **测量（一次读数，不反复查）**：入口 `load_per_core=0.194`（阈值 0.10），不启动 2+7 比较；事实与解除条件记 `build/acceptance/g5-load-state-3/results.json`。
