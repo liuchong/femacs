@@ -26685,6 +26685,16 @@ Fresh reference selection passed7/7 postflight checks, actual installation/confi
 User approved this exact DNS case as a nonblocking environment limitation and requires the existing proxy to remain enabled and unchanged. Four bounded HTTPS queries completed without errors: both Google andCloudflare resolved `example.com` (Status0,2 A answers) and returned NXDOMAIN for `emacs.invalid` (Status3,no answers),1.499–2.389s per query. The host system lookup still reports its synthetic proxy addresses. This verifies a remote-resolver contrast, not candidate/editor or original ERT acceptance; raw failures, counts and exits remain unchanged. No Dot task was sent; that route is cancelled. Fresh full555/48 observations and any precise exception binding remain pending.
 
 
+### 2026-11-18 — 第 37 轮：eglot 无现成工具钉住机制，按真实缺口停在条件上
+
+**先查现有受控单文件入口能否钉住同一个 clangd**：不能。`stable-suite-batch.py` 的 `test_environment` 只接受 `ERC_TESTS_GRAPHICAL`/`ERC_TESTS_GRAPHICAL_ALL` 且值必须为 `1`，且仅限 cocoa 的 `test/lisp/erc/` 文件；结果的 `runtime_environment` 只记 `FEMACS_*`，**不记 PATH**；全仓没有记录外部工具（clangd）路径/字节/版本的位置。分片只是**原样转发调用方 PATH**（`PATH=os.environ.get('PATH', os.defpath)`），因此两次运行可以命中不同 clangd 而回执上看不出来——这正是本次定位能看见、但正式验收无法固定的一点。
+
+**处置**：不改通用 harness、不临时扩 `test_environment`、不再试三条；只登记本批新证据（`build/acceptance/eglot-localize-1`：同一语料文件、两产品、唯一变量为 PATH 前置 `/opt/homebrew/opt/llvm/bin`，两条 tramp 双端通过）与既有规则的允许范围。既有 575 条规则、其中 eglot 10 条均为 `explicit-optional-capability`，均要求两侧真实 skip，**不能**把本次 `failed→passed` 的结果用来重标旧记录，旧原始证据保持原状。**未改动任何验收口径**，因此不影响其它验收用例。
+
+**第三项**（`eglot-test-try-completion-inside-symbol-2`）：保持**未解释**；只有 21.0.0 与 23.1.5 两次非受控读数，不再做版本盲试。
+
+**可续接条件**：① 单文件入口需要正式的"外部工具钉住"能力——显式声明工具路径并记录其 SHA-256/版本，用它构造两侧同一 PATH；② 或由复核者给出规则级固定（把远端 clangd 固定到某版本并记录在既有证据模型内）；③ 完成项需同一 harness 下 21.0.0 vs 23.1.5 的受控对照，或成熟上游依据。g3 有效阻断仍 **3**；目标未完成。
+
 ### 2026-11-18 — 第 36 轮：strict probe 接线原因定死并修完（单文件 same）；eglot 两条无现成门、第三条停
 
 **strict probe（`84cdada3` 准入 + `f8050d29` 接线）**：用退出 255 的原始记录定位——候选侧 stderr 为 `missing bound source-test context`，原因是分片把 baseline 的 `test/` 目录当作 source-test context，而 runner 要求的是 baseline `source-context.json` 里**每侧一个**的 context 根（含 `test/` 与 `lisp/`）；同一入口还把结果与日志写进传入的那个根，所以夹具基座与证据根必须是同一个 `--out`。现按侧取 context 根、夹具物化到 `--out` 本身，证据（`results/`、`logs/`、`adjudication.json`）同根。单文件验证 `test/src/print-tests.el`：**verdict=same、complete=true、exit 0** ⇒ 之前两个文件的 `incomplete` 是接线问题，不是产品失败；此前"正向两产品都执行"的说法按 incomplete 更正，不再引用。
