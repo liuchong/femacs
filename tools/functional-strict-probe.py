@@ -110,6 +110,10 @@ def main(argv=None):
     context = baseline_root / 'source-context.json'
     if not context.is_file():
         parser.error('baseline has no source-context receipt')
+    contexts = {side: execution.safe_path(row['root'])
+                for side, row in read_json(context)['contexts'].items()}
+    if set(contexts) != {'candidate', 'reference'}:
+        parser.error('baseline source contexts must name the candidate and reference sides')
     # The closed baseline records the reference program, dump and library
     # identity; the admitted selection must reproduce it exactly.
     inputs_receipt = baseline_root / 'stable-suite-inputs.json'
@@ -123,21 +127,21 @@ def main(argv=None):
         if observed.get(name) != recorded.get(name):
             parser.error('admitted reference {0} identity differs from the closed baseline receipt'
                          .format(name))
-    # The strict lane copies each file and its fixtures beside itself.  The
-    # corpus keeps the 31.1 bodies under compatibility/stable-31.1, so the base
-    # is built with the manifest path as destination and source_path as origin,
-    # and every byte is checked against the manifest identity.
+    # The strict lane copies each file and its fixtures beside itself and keeps
+    # its evidence in the same root, so OUT is both the fixture base and the
+    # evidence directory.  The corpus keeps the 31.1 bodies under
+    # compatibility/stable-31.1, so the base is built with the manifest path as
+    # destination and source_path as origin, every byte checked.
     out = args.out.resolve()
     if out.exists():
-        if not out.is_dir() or any(path.name != 'fixtures' for path in out.iterdir()):
-            parser.error('output must be absent or hold only a fixtures directory')
+        if not out.is_dir() or any(out.iterdir()):
+            parser.error('output must be absent or empty')
     else:
         out.mkdir(parents=True)
-    fixtures = out / 'fixtures'
     fixture_records = []
     for logical in files:
         for entry in batch._fixture_entries(manifest, logical):
-            destination = fixtures / entry['path']
+            destination = out / entry['path']
             if destination.exists():
                 continue
             source = corpus / entry['source_path']
@@ -153,20 +157,19 @@ def main(argv=None):
                 parser.error('materialized fixture identity differs: ' + str(destination))
             fixture_records.append(dict(path=entry['path'], source=str(source),
                                         bytes=entry['size'], sha256=entry['sha256']))
-    overlay_identity = dict(schema='femacs-strict-fixture-overlay-v1', root=str(fixtures),
+    overlay_identity = dict(schema='femacs-strict-fixture-overlay-v1', root=str(out),
                             manifest_sha256=hashlib.sha256(
                                 (corpus / 'compatibility/stable-31.1/sources.json').read_bytes()).hexdigest(),
                             files=fixture_records)
     adjudicated = {}
     for logical in files:
-        paths['test_context'] = baseline_root / 'source-contexts' / logical.replace('/', '-')
         pair = {}
         for label, product in (('reference', suite._product_paths(
                 reference_program, ['--dump-file=' + str(reference_dump.resolve())],
                 reference_env)), ('candidate', paths)):
             product = dict(product, test_environment={})
-            product['test_context'] = baseline_root / 'test'
-            pair[label] = batch._run_file(suite, fixtures, product, REPO / 'tools/fixtures/stable-suite-runner.el',
+            product['test_context'] = contexts[label]
+            pair[label] = batch._run_file(suite, out, product, REPO / 'tools/fixtures/stable-suite-runner.el',
                                           corpus / 'test', logical, args.timeout, label,
                                           display='batch', fixture_entries=batch._fixture_entries(manifest, logical))
         want = None
