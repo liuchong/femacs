@@ -26685,6 +26685,14 @@ Fresh reference selection passed7/7 postflight checks, actual installation/confi
 User approved this exact DNS case as a nonblocking environment limitation and requires the existing proxy to remain enabled and unchanged. Four bounded HTTPS queries completed without errors: both Google andCloudflare resolved `example.com` (Status0,2 A answers) and returned NXDOMAIN for `emacs.invalid` (Status3,no answers),1.499–2.389s per query. The host system lookup still reports its synthetic proxy addresses. This verifies a remote-resolver contrast, not candidate/editor or original ERT acceptance; raw failures, counts and exits remain unchanged. No Dot task was sent; that route is cancelled. Fresh full555/48 observations and any precise exception binding remain pending.
 
 
+### 2026-11-18 — 第 26 轮：三条同产品远端真实闭合，有效阻断 8→5
+
+**远端闭合（正式入口，不重扫）**：先核 `g3-remote-native-1`——passed 但控制器流已随会话临时文件消失、无同 PID 证明，**确实缺闭合证明**；随后用 selected-product 入口直接执行两次：`g3-remote-native-3`（候选侧，26.8 s，signal/watch 均真，控制器=产物 97963）与 `g3-remote-native-4`（加 `--include-reference` 取两侧）。严格消费 `g3-scoped-consume-subset-4`：规则 34→**37**、捕获 3→**0**、阻断 3→**0**。记录参照侧 `watch_contract_passed=false` 这一真实标志，不用于任何语料通过主张。
+
+**image 归因更正**：`image-supported-file-p/built-in` 在 cocoa-2 **两侧均 passed**，不能归因于缺 SVG——此前说明撤回；两条真实拒绝绑定原因待 Cursor 结论，未新增 SVG 加载器、未重跑图像。eglot 3 仍未解释，保持。
+
+**合并有效阻断 8→5**（image 2、eglot 3），原始失败守恒 574/37（`build/acceptance/g3-effective-blocking.json`）。
+
 ### 2026-11-18 — 第 25 轮：w32 修正确认、一次 strict consume 与测试单元归属更正
 
 **写窗闭合后一次消费**：`g3-scoped-consume-555-14` passed，规则 559→**560**、捕获 7→**6**、阻断 15→**14**（w32 平台门已绑定，subr 不再阻断）。合并子集 3 条后**有效阻断 10→8**：image 2、eglot 3、filenotify 2、tramp 1。
