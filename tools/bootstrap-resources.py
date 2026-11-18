@@ -16,11 +16,12 @@ import sys
 import time
 from version_resources import render_versions
 from module_api import render_module_api
+import library_corrections
 
 ROOT = Path(__file__).resolve().parent.parent
 RECIPES = ROOT/'build-support/generator-recipes.json'
 FAMILIES = ('all','base','charsets','subdirs','versions','unicode','leim',
-            'grammars','indexes','bytecode','doc','ja-dic','module-api')
+            'grammars','indexes','bytecode','doc','ja-dic','module-api','library-corrections')
 
 
 class Generator:
@@ -38,9 +39,8 @@ class Generator:
         env = dict(os.environ)
         # No user init, user load-path, installed editor or stale dump may supply
         # bootstrap inputs. The explicit binary and owned Lisp tree are mandatory.
-        env.update(EMACSLOADPATH=str(ROOT/'lisp'), LC_ALL='C', AWK='gawk')
-        env.pop('EMACSDATA',None)
-        env.pop('EMACSDOC',None)
+        env.update(EMACSLOADPATH=str(ROOT/'lisp'), EMACSDATA=str(ROOT/'etc'),
+                   EMACSDOC=str(ROOT/'etc'), LC_ALL='C', AWK='gawk')
         with path.open('wb') as log:
             if output:
                 dest=ROOT/output
@@ -89,6 +89,7 @@ class Generator:
         render_versions(ROOT)
 
     def base(self):
+        library_corrections.generate(ROOT)
         self.charsets();self.subdirs();self.versions();self.module_api()
 
     def module_api(self):
@@ -247,6 +248,23 @@ class Generator:
         # Bovine table actions must be compiled, with the object-system helper
         # explicitly loaded even with the first source-only bootstrap dump.
         self._compile_bytecode_group(grammars,native=native,parsers=True,required=True)
+        self.library_corrections()
+
+    def library_corrections(self):
+        # These components are installed into the product, not into its dump.
+        # Refuse a newly preloaded upstream feature instead of packaging a new
+        # file behind an old function already resident in the dump.
+        _, prepared = library_corrections.recipe(ROOT)
+        features = [row['feature'] for row, _ in prepared]
+        if features:
+            self.lisp('--eval', '(dolist (name (quote '+
+                '('+' '.join(json.dumps(name) for name in features)+')))' +
+                ' (when (featurep (intern name))'
+                ' (error "Product library correction is already preloaded: %s" name)))')
+        files = library_corrections.generate(ROOT)
+        for path in files:
+            self._compile_bytecode_group([path], required=True)
+        library_corrections.seal(ROOT)
 
     def doc(self):
         self.run([sys.executable,'tools/gen-doc.py','--owned','--write'])
@@ -285,9 +303,8 @@ def main():
                 for row in recipes[family]:print('  '+row[row.index('-f')+2])
         return 0
     program=args.program
-    if not program:
-        candidates=[ROOT/'build/terminal/port/src/emacs',ROOT/'build/macos/port/src/emacs',ROOT/'dist/macos/Femacs.app/Contents/MacOS/Femacs']
-        program=next((p for p in candidates if p.is_file()),candidates[0])
+    if args.family in {'all','unicode','leim','grammars','indexes','bytecode','ja-dic','library-corrections'} and program is None:
+        ap.error('this resource family requires --program with the explicitly selected owned build')
     try:
         getattr(Generator(program),args.family.replace('-','_'))()
     except (OSError,RuntimeError,ValueError,subprocess.SubprocessError) as e:

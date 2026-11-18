@@ -8837,7 +8837,7 @@ class EmacsView: NSView, NSTextInputClient, NSWindowDelegate {
 
     input_event_set_kind(emacs_event!, TOOL_BAR_EVENT)          // C 9261
     /* C 9262: `/* XSETINT (emacs_event->code, 0); */` - C's own comment.  */
-    emacs_event!.pointee.arg = AREF(frame_tool_bar_items(emacsframe)!,
+    emacs_event!.pointee.arg = AREF(frame_tool_bar_items(emacsframe),
                                     idx + Int(TOOL_BAR_ITEM_KEY))   // C 9263-9264
     emacs_event!.pointee.modifiers = EV_MODIFIERS(theEvent!)    // C 9265
     EV_TRAILER(theEvent, emacsframe)                            // C 9266
@@ -13459,8 +13459,12 @@ func ns_term_init(_ display_name: Lisp_Object) -> UnsafeMutableRawPointer? {
   /* Disable problematic event processing on macOS 26 (Tahoe) to avoid
      scrolling lag and input handling issues.  These are undocumented
      options as of macOS 26.0.  */
-  UserDefaults.standard.register(defaults: ["NSEventConcurrentProcessingEnabled": "NO",
-                                            "NSApplicationUpdateCycleEnabled": "NO"])  // C 6015-6017
+  var defaultPrefs: [String: Any] = ["NSEventConcurrentProcessingEnabled": "NO",
+                                     "NSApplicationUpdateCycleEnabled": "NO"]
+  if getenv("FEMACS_COCOA_IGNORE_PERSISTENT_STATE") != nil {
+    defaultPrefs["ApplePersistenceIgnoreState"] = true
+  }
+  UserDefaults.standard.register(defaults: defaultPrefs)  // C 6015-6017
 
   /* Start app and create the main menu, window, view.
      Needs to be here because ns_initialize_display_info () uses AppKit classes.
@@ -15215,10 +15219,10 @@ func frame_menu_bar_items_used(_ f: UnsafeMutableRawPointer?) -> Int32
 @_silgen_name("frame_menu_bar_vector")
 func frame_menu_bar_vector(_ f: UnsafeMutableRawPointer?) -> Lisp_Object
 
-/// C: the `struct frame` member `f->tool_bar_items` (src/frame.h, a `Lisp_Object *`) - C 9263's
-/// read.  **Open**, the same family.
+/// C: the `struct frame` member `f->tool_bar_items` (src/frame.h, a `Lisp_Object`) - C 9263's
+/// read.  Provided: `src/abi_shim.rs` (`frame_tool_bar_items`).
 @_silgen_name("frame_tool_bar_items")
-func frame_tool_bar_items(_ f: UnsafeMutableRawPointer?) -> UnsafeMutablePointer<Lisp_Object>?
+func frame_tool_bar_items(_ f: UnsafeMutableRawPointer?) -> Lisp_Object
 
 /// C: `#define AREF(array, idx) …` (src/lisp.h 4357-4365) - C 9263's array element read; class A,
 /// header-only.  **Open**: the mirror carries it as a Rust macro, so it has no C symbol yet.

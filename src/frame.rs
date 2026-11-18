@@ -616,8 +616,16 @@ unsafe extern "C" {
 
   /// C: font.h 897: `extern void free_font_driver_list (struct frame *f);`
   pub fn free_font_driver_list (f: *mut frame);
+}
 
+#[cfg(feature = "ns_impl_cocoa")]
+unsafe extern "C" {
+  pub fn ns_make_frame_key_window (f: *mut frame);
+}
 
+#[cfg(feature = "have_text_conversion")]
+unsafe extern "C" {
+  pub fn reset_frame_state (f: *mut frame);
 }
 
 /* The currently selected frame.  */
@@ -1724,12 +1732,62 @@ pub unsafe extern "C" fn make_frame (mini_p: bool) -> *mut frame
   (*f).new_width = -1;
   (*f).new_height = -1;
   no_special_glyphs! (f, false);
-  /* C 1187-1213's `#ifdef HAVE_WINDOW_SYSTEM` arm is dead (P-08).  */
+  #[cfg(feature = "have_window_system")]
+  {
+    frame_set_field (f, FRAME_VERTICAL_SCROLL_BAR_TYPE_FLAG_UNIT,
+		     FRAME_VERTICAL_SCROLL_BAR_TYPE_FLAG_SHIFT,
+		     FRAME_VERTICAL_SCROLL_BAR_MASK,
+		     vertical_scroll_bar_none as u32);
+    frame_set_flag (f, FRAME_HORIZONTAL_SCROLL_BARS_UNIT,
+		    FRAME_HORIZONTAL_SCROLL_BARS_SHIFT, 0);
+    frame_set_field (f, FRAME_WANT_FULLSCREEN_UNIT,
+		     FRAME_WANT_FULLSCREEN_SHIFT,
+		     FRAME_WANT_FULLSCREEN_MASK,
+		     FULLSCREEN_NONE as u32);
+    undecorated! (f, false);
+    #[cfg(not(feature = "have_ntgui"))]
+    frame_set_flag (f, FRAME_OVERRIDE_REDIRECT_FLAG_UNIT,
+		    FRAME_OVERRIDE_REDIRECT_FLAG_SHIFT, 0);
+    frame_set_flag (f, FRAME_SKIP_TASKBAR_UNIT, FRAME_SKIP_TASKBAR_SHIFT, 0);
+    frame_set_flag (f, FRAME_NO_FOCUS_ON_MAP_UNIT, FRAME_NO_FOCUS_ON_MAP_SHIFT, 0);
+    no_accept_focus! (f, false);
+    frame_set_field (f, FRAME_Z_GROUP_FLAG_UNIT,
+		     FRAME_Z_GROUP_FLAG_SHIFT,
+		     FRAME_Z_GROUP_MASK,
+		     z_group_none as u32);
+    frame_set_flag (f, FRAME_TOOLTIP_UNIT, FRAME_TOOLTIP_SHIFT, 0);
+    was_invisible! (f, false);
+    (*f).child_frame_border_width = -1;
+    (*f).face_cache = std::ptr::null_mut ();
+    (*f).image_cache = std::ptr::null_mut ();
+    (*f).last_tab_bar_item = -1;
+    #[cfg(not(feature = "have_ext_tool_bar"))]
+    {
+      (*f).last_tool_bar_item = -1;
+      #[cfg(not(feature = "have_ntgui"))]
+      frame_set_flag (f, FRAME_TOOL_BAR_WRAPS_P_UNIT,
+		      FRAME_TOOL_BAR_WRAPS_P_SHIFT, 0);
+    }
+    #[cfg(feature = "ns_impl_cocoa")]
+    {
+      (*f).ns_appearance = ns_appearance_system_default;
+      (*f).ns_transparent_titlebar = false as c_uint;
+    }
+  }
   select_mini_window_flag! (f, false);
   /* This one should never be zero.  */
   (*f).change_stamp = 1;
 
-  /* C 1218-1226's `#ifdef HAVE_TEXT_CONVERSION` arm is dead (P-08).  */
+  #[cfg(feature = "have_text_conversion")]
+  {
+    (*f).conversion.compose_region_start = Qnil ();
+    (*f).conversion.compose_region_end = Qnil ();
+    (*f).conversion.compose_region_overlay = Qnil ();
+    (*f).conversion.field = Qnil ();
+    (*f).conversion.batch_edit_count = 0;
+    (*f).conversion.batch_edit_flags = 0;
+    (*f).conversion.actions = std::ptr::null_mut ();
+  }
 
   root_window = make_window ();
   rw = XWINDOW (root_window);
@@ -1972,7 +2030,15 @@ pub unsafe extern "C" fn make_initial_frame () -> *mut frame
   FRAME_FOREGROUND_PIXEL! (f) = FACE_TTY_DEFAULT_FG_COLOR;
   FRAME_BACKGROUND_PIXEL! (f) = FACE_TTY_DEFAULT_BG_COLOR;
 
-  /* C 1452-1455's `#ifdef HAVE_WINDOW_SYSTEM` arm is dead (P-08).  */
+  #[cfg(feature = "have_window_system")]
+  {
+    frame_set_field (f, FRAME_VERTICAL_SCROLL_BAR_TYPE_FLAG_UNIT,
+		     FRAME_VERTICAL_SCROLL_BAR_TYPE_FLAG_SHIFT,
+		     FRAME_VERTICAL_SCROLL_BAR_MASK,
+		     vertical_scroll_bar_none as u32);
+    frame_set_flag (f, FRAME_HORIZONTAL_SCROLL_BARS_UNIT,
+		    FRAME_HORIZONTAL_SCROLL_BARS_SHIFT, 0);
+  }
 
   /* The default value of menu-bar-mode is t.  */
   set_menu_bar_lines (f, make_fixnum (1), Qnil ());
@@ -2099,7 +2165,15 @@ unsafe fn make_terminal_frame (terminal: *mut terminal, parent: Lisp_Object,
        Bug#78966.  */
     { (*tty).top_frame = frame; }
 
-  /* C 1593-1596's `#ifdef HAVE_WINDOW_SYSTEM` arm is dead (P-08).  */
+  #[cfg(feature = "have_window_system")]
+  {
+    frame_set_field (f, FRAME_VERTICAL_SCROLL_BAR_TYPE_FLAG_UNIT,
+		     FRAME_VERTICAL_SCROLL_BAR_TYPE_FLAG_SHIFT,
+		     FRAME_VERTICAL_SCROLL_BAR_MASK,
+		     vertical_scroll_bar_none as u32);
+    frame_set_flag (f, FRAME_HORIZONTAL_SCROLL_BARS_UNIT,
+		    FRAME_HORIZONTAL_SCROLL_BARS_SHIFT, 0);
+  }
 
   /* Menu bars on child frames don't work on all platforms, which is
      the reason why prepare_menu_bar does not update_menu_bar for
@@ -2438,7 +2512,18 @@ pub unsafe extern "C" fn do_switch_frame (frame: Lisp_Object, track: c_int,
      redirection will follow us around.  This code is necessary when
      we have a minibufferless frame using the MB in another (normal)
      frame (bug#64152) (ACM, 2023-06-20).  */
-  /* C 1953-1980's `#ifdef HAVE_WINDOW_SYSTEM` arm is dead (P-08).  */
+  #[cfg(feature = "have_window_system")]
+  if track != 0 && FRAME_WINDOW_P (f) && (*FRAME_TERMINAL! (f)).get_focus_frame.is_some ()
+    {
+      let gfocus: Lisp_Object
+	= ((*FRAME_TERMINAL! (f)).get_focus_frame.unwrap ()) (f as *mut c_void);
+      if FRAMEP (gfocus)
+	{
+	  let focus: Lisp_Object = FRAME_FOCUS_FRAME (XFRAME (gfocus));
+	  if FRAMEP (focus) && XFRAME (focus) == SELECTED_FRAME ()
+	    { Fredirect_frame_focus (gfocus, frame); }
+	}
+    }
 
   if !(for_deletion != 0) && FRAME_HAS_MINIBUF_P (sf)
     { resize_mini_window (XWINDOW (FRAME_MINIBUF_WINDOW (sf)), true); }
@@ -2603,8 +2688,22 @@ DEFUN! ("frame-list", Fframe_list, Sframe_list,
        doc: "Return a list of all live frames.\nThe return value does not include any tooltip frame.  ",
        (),
        {
-  /* C 2167-2175's `#ifdef HAVE_WINDOW_SYSTEM` arm is dead (P-08).  */
-  return Fcopy_sequence (Vframe_list);
+  #[cfg(feature = "have_window_system")]
+  {
+    let mut list: Lisp_Object = Qnil ();
+    let mut tail: Lisp_Object;
+    let mut frame: Lisp_Object;
+
+    FOR_EACH_FRAME! (tail, frame, {
+      if !FRAME_TOOLTIP_P (XFRAME (frame))
+	{ list = Fcons (frame, list); }
+    });
+    return Fnreverse (list);
+  }
+  #[cfg(not(feature = "have_window_system"))]
+  {
+    return Fcopy_sequence (Vframe_list);
+  }
 });
 
 DEFUN! ("frame-parent", Fframe_parent, Sframe_parent,
@@ -3164,7 +3263,15 @@ pub unsafe extern "C" fn delete_frame (frame: Lisp_Object, force: Lisp_Object) -
 		      frame1 = Qnil ();
 		  });
 		}
-	      /* C 2812-2823's `#ifdef NS_IMPL_COCOA` arm is dead (P-08).  */
+	      else
+		{
+		  #[cfg(feature = "ns_impl_cocoa")]
+		  {
+		    let f1: *mut frame = XFRAME (frame1);
+		    if FRAME_NS_P (f1)
+		      { ns_make_frame_key_window (f1); }
+		  }
+		}
 	    }
 
 	  if FRAMEP (frame1) && XFRAME (frame1) != f
@@ -3201,7 +3308,8 @@ pub unsafe extern "C" fn delete_frame (frame: Lisp_Object, force: Lisp_Object) -
      memory. */
   free_glyphs (f);
 
-  /* C 2885-2888's `#ifdef HAVE_WINDOW_SYSTEM` arm is dead (P-08).  */
+  #[cfg(feature = "have_window_system")]
+  { font_update_drivers (f, Qnil ()); }
 
   /* Mark all the windows that used to be on FRAME as deleted, and then
      remove the reference to them.  */
@@ -3262,7 +3370,9 @@ pub unsafe extern "C" fn delete_frame (frame: Lisp_Object, force: Lisp_Object) -
 
     /* Clear markers and overlays set by F on behalf of an input
        method.  */
-    /* C 2963-2966's `#ifdef HAVE_TEXT_CONVERSION` arm is dead (P-08).  */
+    #[cfg(feature = "have_text_conversion")]
+    if FRAME_WINDOW_P (f)
+      { reset_frame_state (f); }
 
     /* If needed, delete the terminal that this frame was on.
        (This must be done after the frame is killed.)  */
@@ -3627,7 +3737,33 @@ DEFUN! ("mouse-pixel-position", Fmouse_pixel_position,
   return retval;
 });
 
-/* C 3371-3405's `#ifdef HAVE_WINDOW_SYSTEM` arm is dead (P-08).  */
+#[cfg(feature = "have_window_system")]
+unsafe fn frame_char_to_pixel_position (f: *mut frame, x: c_int, y: c_int,
+					pix_x: *mut c_int, pix_y: *mut c_int)
+{
+  *pix_x = FRAME_COL_TO_PIXEL_X (f, x) + FRAME_COLUMN_WIDTH (f) / 2;
+  *pix_y = FRAME_LINE_TO_PIXEL_Y (f, y) + FRAME_LINE_HEIGHT (f) / 2;
+
+  if *pix_x < 0
+    { *pix_x = 0; }
+  if *pix_x > FRAME_PIXEL_WIDTH! (f)
+    { *pix_x = FRAME_PIXEL_WIDTH! (f); }
+
+  if *pix_y < 0
+    { *pix_y = 0; }
+  if *pix_y > FRAME_PIXEL_HEIGHT! (f)
+    { *pix_y = FRAME_PIXEL_HEIGHT! (f); }
+}
+
+#[cfg(feature = "have_window_system")]
+unsafe fn frame_set_mouse_position (f: *mut frame, x: c_int, y: c_int)
+{
+  let mut pix_x: c_int = 0;
+  let mut pix_y: c_int = 0;
+
+  frame_char_to_pixel_position (f, x, y, &raw mut pix_x, &raw mut pix_y);
+  frame_set_mouse_pixel_position (f, pix_x, pix_y);
+}
 
 DEFUN! ("set-mouse-position", Fset_mouse_position, Sset_mouse_position, 3, 3, 0,
        doc: "Move the mouse pointer to the center of character cell (X,Y) in FRAME.\nCoordinates are relative to the frame, not a window,\nso the coordinates of the top left character in the frame\nmay be nonzero due to left-hand scroll bars or the menu bar.\n\nThe position is given in canonical character cells, where (0, 0) is\nthe upper-left corner of the frame, X is the horizontal offset, and\nY is the vertical offset, measured in units of the frame's default\ncharacter size.\n\nThis function is a no-op for an X frame that is not visible.\nIf you have just created a frame, you must wait for it to become visible\nbefore calling this function on it, like this.\n  (while (not (frame-visible-p frame)) (sleep-for .5))  ",
@@ -3640,7 +3776,11 @@ DEFUN! ("set-mouse-position", Fset_mouse_position, Sset_mouse_position, 3, 3, 0,
   /* I think this should be done with a hook.  */
   if FRAME_WINDOW_P (XFRAME (frame))
     {
-      /* C 3431-3434's `#ifdef HAVE_WINDOW_SYSTEM` arm is dead (P-08).  */
+      #[cfg(feature = "have_window_system")]
+      {
+        /* Warping the mouse will cause enternotify and focus events.  */
+        frame_set_mouse_position (XFRAME (frame), xval, yval);
+      }
     }
   /* C 3436-3442's `#ifdef MSDOS` arm is dead (MSDOS undef).  */
   else
@@ -3669,7 +3809,8 @@ DEFUN! ("set-mouse-pixel-position", Fset_mouse_pixel_position,
   if FRAME_WINDOW_P (XFRAME (frame))
     {
       /* Warping the mouse will cause enternotify and focus events.  */
-      /* C 3477-3479's `#ifdef HAVE_WINDOW_SYSTEM` arm is dead (P-08).  */
+      #[cfg(feature = "have_window_system")]
+      { frame_set_mouse_pixel_position (XFRAME (frame), xval, yval); }
     }
   /* C 3481-3487's `#ifdef MSDOS` arm is dead (MSDOS undef).  */
   else
@@ -3917,7 +4058,20 @@ DEFUN! ("x-focus-frame", Fx_focus_frame, Sx_focus_frame, 1, 2, 0,
        doc: "Set the input focus to FRAME.\nFRAME nil means use the selected frame.  Optional argument NOACTIVATE\nmeans do not activate FRAME.\n\nIf there is no window system support, this function does nothing.  ",
      (frame: Lisp_Object, noactivate: Lisp_Object),
      {
-  /* C 3764-3768's `#ifdef HAVE_WINDOW_SYSTEM` arm is dead (P-08).  */
+  #[cfg(feature = "have_window_system")]
+  {
+    let f: *mut frame = decode_window_system_frame (frame);
+    if !f.is_null ()
+      {
+	if let Some (focus_frame_hook) = (*FRAME_TERMINAL! (f)).focus_frame_hook
+	  { focus_frame_hook (f as *mut c_void, !NILP (noactivate)); }
+      }
+  }
+  #[cfg(not(feature = "have_window_system"))]
+  {
+    let _ = frame;
+    let _ = noactivate;
+  }
   return Qnil ();
 });
 
@@ -4313,7 +4467,21 @@ DEFUN! ("frame-parameters", Fframe_parameters, Sframe_parameters, 0, 1, 0,
   store_in_alist (&mut alist, Qburied_buffer_list (), (*f).buried_buffer_list);
 
   /* I think this should be done with a hook.  */
-  /* C 4156-4160's `#ifdef HAVE_WINDOW_SYSTEM` arm is dead (P-08).  */
+  #[cfg(feature = "have_window_system")]
+  if FRAME_WINDOW_P (f)
+    { gui_report_frame_params (f, &mut alist); }
+  else
+    {
+      store_in_alist (&mut alist, Qmenu_bar_lines (),
+		      make_fixnum (FRAME_MENU_BAR_LINES! (f) as EMACS_INT));
+      store_in_alist (&mut alist, Qtab_bar_lines (),
+		      make_fixnum (FRAME_TAB_BAR_LINES! (f) as EMACS_INT));
+      store_in_alist (&mut alist, Qvisibility (),
+		      if FRAME_VISIBLE_P (f) { Qt () } else { Qnil () });
+      store_in_alist (&mut alist, Qno_accept_focus (),
+		      if FRAME_NO_ACCEPT_FOCUS (f) != 0 { Qt () } else { Qnil () });
+    }
+  #[cfg(not(feature = "have_window_system"))]
     {
       store_in_alist (&mut alist, Qmenu_bar_lines (),
 		      make_fixnum (FRAME_MENU_BAR_LINES! (f) as EMACS_INT));
@@ -4343,38 +4511,88 @@ DEFUN! ("frame-parameter", Fframe_parameter, Sframe_parameter, 2, 2, 0,
   if FRAME_LIVE_P (f)
     {
       /* Avoid consing in frequent cases.  */
+      let mut handled: bool = false;
       if EQ (parameter, Qname ())
-	{ value = (*f).name; }
-      /* C 4189-4208's `#ifdef HAVE_WINDOW_SYSTEM`/`HAVE_X_WINDOWS` arms are dead (P-08).  */
-      else if EQ (parameter, Qbackground_color ())
-	       || EQ (parameter, Qforeground_color ())
 	{
-	  value = Fassq (parameter, (*f).param_alist);
-	  if CONSP (value)
+	  value = (*f).name;
+	  handled = true;
+	}
+      if !handled
+	{
+	  #[cfg(feature = "have_window_system")]
+	  {
+	    if EQ (parameter, Qvertical_scroll_bars ())
+	      {
+		let vsb = FRAME_VERTICAL_SCROLL_BAR_TYPE (f);
+		value = if vsb == vertical_scroll_bar_none { Qnil () }
+			else if vsb == vertical_scroll_bar_left { Qleft () }
+			else { Qright () };
+		handled = true;
+	      }
+	    else if EQ (parameter, Qhorizontal_scroll_bars ())
+	      {
+		value = if frame_flag (f, FRAME_HORIZONTAL_SCROLL_BARS_UNIT,
+				       FRAME_HORIZONTAL_SCROLL_BARS_SHIFT)
+			  { Qt () }
+			else
+			  { Qnil () };
+		handled = true;
+	      }
+	    else if EQ (parameter, Qline_spacing ()) && (*f).extra_line_spacing == 0
+	      {
+		value = make_fixnum (0);
+		handled = true;
+	      }
+	    else if EQ (parameter, Qfont ()) && FRAME_X_P (f)
+	      {
+		value = (*(FRAME_FONT! (f) as *mut font)).props[FONT_NAME_INDEX as usize];
+		handled = true;
+	      }
+	  }
+	}
+      if !handled
+	{
+	  #[cfg(feature = "have_x_windows")]
+	  {
+	    if EQ (parameter, Qdisplay ()) && FRAME_X_P (f)
+	      {
+		value = XCAR ((*FRAME_DISPLAY_INFO! (f)).name_list_element);
+		handled = true;
+	      }
+	  }
+	}
+      if !handled
+	{
+	  if EQ (parameter, Qbackground_color ())
+	     || EQ (parameter, Qforeground_color ())
 	    {
-	      value = XCDR (value);
-	      /* Fframe_parameters puts the actual fg/bg color names,
-		 even if f->param_alist says otherwise.  This is
-		 important when param_alist's notion of colors is
-		 "unspecified".  We need to do the same here.  */
-	      if STRINGP (value) && !FRAME_WINDOW_P (f)
+	      value = Fassq (parameter, (*f).param_alist);
+	      if CONSP (value)
 		{
-		  let tem: Lisp_Object = frame_unspecified_color (f, value);
+		  value = XCDR (value);
+		  /* Fframe_parameters puts the actual fg/bg color names,
+		     even if f->param_alist says otherwise.  This is
+		     important when param_alist's notion of colors is
+		     "unspecified".  We need to do the same here.  */
+		  if STRINGP (value) && !FRAME_WINDOW_P (f)
+		    {
+		      let tem: Lisp_Object = frame_unspecified_color (f, value);
 
-		  if !NILP (tem)
-		    { value = tem; }
+		      if !NILP (tem)
+			{ value = tem; }
+		    }
 		}
+	      else
+		{ value = Fcdr (Fassq (parameter, Fframe_parameters (frame))); }
 	    }
+	  else if EQ (parameter, Qdisplay_type ())
+		   || EQ (parameter, Qbackground_mode ())
+	    { value = Fcdr (Fassq (parameter, (*f).param_alist)); }
 	  else
+	    /* FIXME: Avoid this code path at all (as well as code duplication)
+	       by sharing more code with Fframe_parameters.  */
 	    { value = Fcdr (Fassq (parameter, Fframe_parameters (frame))); }
 	}
-      else if EQ (parameter, Qdisplay_type ())
-	       || EQ (parameter, Qbackground_mode ())
-	{ value = Fcdr (Fassq (parameter, (*f).param_alist)); }
-      else
-	/* FIXME: Avoid this code path at all (as well as code duplication)
-	   by sharing more code with Fframe_parameters.  */
-	{ value = Fcdr (Fassq (parameter, Fframe_parameters (frame))); }
     }
 
   return value;
@@ -4726,10 +4944,16 @@ DEFUN! ("set-frame-position", Fset_frame_position,
 
   if FRAME_WINDOW_P (f)
     {
-      /* C 4680-4687's `#ifdef HAVE_WINDOW_SYSTEM`/`#else` takes the `#else` arm.  */
-      /* C's `(void) xval;`/`(void) yval;` discard the two values (the dired.rs shape).  */
-      let _ = xval;
-      let _ = yval;
+      #[cfg(feature = "have_window_system")]
+      {
+	if let Some (set_frame_offset_hook) = (*FRAME_TERMINAL! (f)).set_frame_offset_hook
+	  { set_frame_offset_hook (f as *mut c_void, xval, yval, 1); }
+      }
+      #[cfg(not(feature = "have_window_system"))]
+      {
+	let _ = xval;
+	let _ = yval;
+      }
     }
   else if is_tty_child_frame (f)
     {
@@ -4839,7 +5063,11 @@ pub struct frame_parm_table {
    to provide completion in the Customize UI for the new parameter.  */
 /* C's `SYMBOL_INDEX (Qauto_raise)` is the token-pasting macro `iQauto_raise`, which the
    generated globals provide as a constant (PORTING.md P-17; the KVAR precedent).  */
-static mut frame_parms: [frame_parm_table; 51] =
+const FRAME_PARMS_LEN: usize = 51
+  + if cfg!(feature = "have_x_windows") { 1 } else { 0 }
+  + if cfg!(feature = "ns_impl_cocoa") { 2 } else { 0 };
+
+static mut frame_parms: [frame_parm_table; FRAME_PARMS_LEN] =
 [
   frame_parm_table { name: c"auto-raise".as_ptr (), sym: iQauto_raise as c_int },
   frame_parm_table { name: c"auto-lower".as_ptr (), sym: iQauto_lower as c_int },
@@ -4893,7 +5121,12 @@ static mut frame_parms: [frame_parm_table; 51] =
   frame_parm_table { name: c"borders-respect-alpha-background".as_ptr (),
 		     sym: iQborders_respect_alpha_background as c_int },
   frame_parm_table { name: c"use-frame-synchronization".as_ptr (), sym: iQuse_frame_synchronization as c_int },
-  /* C 4880-4886's `#ifdef HAVE_X_WINDOWS`/`NS_IMPL_COCOA` entries are dead (P-08).  */
+  #[cfg(feature = "have_x_windows")]
+  frame_parm_table { name: c"shaded".as_ptr (), sym: iQshaded as c_int },
+  #[cfg(feature = "ns_impl_cocoa")]
+  frame_parm_table { name: c"ns-appearance".as_ptr (), sym: iQns_appearance as c_int },
+  #[cfg(feature = "ns_impl_cocoa")]
+  frame_parm_table { name: c"ns-transparent-titlebar".as_ptr (), sym: iQns_transparent_titlebar as c_int },
 ];
 
 
@@ -4961,6 +5194,9 @@ unsafe extern "C" {
 
   /// C: font.h 907: extern Lisp_Object font_update_drivers (struct frame *f, Lisp_Object list);
   pub fn font_update_drivers (f: *mut frame, list: Lisp_Object) -> Lisp_Object;
+
+  /// C: frame.h 1510: extern void frame_set_mouse_pixel_position (struct frame *f, int pix_x, int pix_y);
+  pub fn frame_set_mouse_pixel_position (f: *mut frame, pix_x: c_int, pix_y: c_int);
 
 }
 
@@ -7769,7 +8005,8 @@ pub unsafe extern "C" fn syms_of_frame ()
   DEFSYM! (Quser_position, c"user-position");
   DEFSYM! (Quser_size, c"user-size");
   DEFSYM! (Qwindow_id, c"window-id");
-  /* C 7251-7253's `#ifdef HAVE_X_WINDOWS` arm is dead (P-08).  */
+  #[cfg(feature = "have_x_windows")]
+  DEFSYM! (Qouter_window_id, c"outer-window-id");
   DEFSYM! (Qparent_id, c"parent-id");
   DEFSYM! (Qx, c"x");
   DEFSYM! (Qw32, c"w32");
@@ -7830,7 +8067,13 @@ pub unsafe extern "C" fn syms_of_frame ()
   DEFSYM! (Qtip_frame, c"tip_frame");
   DEFSYM! (Qterminal_frame, c"terminal_frame");
 
-  /* C 7316-7322's `#ifdef HAVE_NS`/`NS_IMPL_COCOA` arms are dead (P-08).  */
+  #[cfg(feature = "have_ns")]
+  DEFSYM! (Qns_parse_geometry, c"ns-parse-geometry");
+  #[cfg(feature = "ns_impl_cocoa")]
+  {
+    DEFSYM! (Qns_appearance, c"ns-appearance");
+    DEFSYM! (Qns_transparent_titlebar, c"ns-transparent-titlebar");
+  }
 
   DEFSYM! (Qalpha, c"alpha");
   DEFSYM! (Qalpha_background, c"alpha-background");
@@ -7927,9 +8170,17 @@ pub unsafe extern "C" fn syms_of_frame ()
 
   DEFVAR_LISP! (c"default-frame-scroll-bars", Vdefault_frame_scroll_bars,
 	       "Default position of vertical scroll bars on this window-system.  ");
-  /* C 7455-7465's `#if defined HAVE_WINDOW_SYSTEM && !defined HAVE_ANDROID` is dead, so
-     C's live text is the `#else` arm's `Vdefault_frame_scroll_bars = Qnil;`.  */
-  Vdefault_frame_scroll_bars = Qnil ();
+  #[cfg(all(feature = "have_window_system", not(feature = "have_android")))]
+  {
+    #[cfg(any(feature = "have_ntgui", feature = "ns_impl_cocoa",
+              all(feature = "use_gtk", feature = "use_toolkit_scroll_bars")))]
+    { Vdefault_frame_scroll_bars = Qright (); }
+    #[cfg(not(any(feature = "have_ntgui", feature = "ns_impl_cocoa",
+                  all(feature = "use_gtk", feature = "use_toolkit_scroll_bars"))))]
+    { Vdefault_frame_scroll_bars = Qleft (); }
+  }
+  #[cfg(not(all(feature = "have_window_system", not(feature = "have_android"))))]
+  { Vdefault_frame_scroll_bars = Qnil (); }
 
   DEFVAR_BOOL! (c"scroll-bar-adjust-thumb-portion",
                scroll_bar_adjust_thumb_portion_p,
@@ -7976,8 +8227,10 @@ pub unsafe extern "C" fn syms_of_frame ()
 
   DEFVAR_LISP! (c"tool-bar-mode", Vtool_bar_mode,
                "Non-nil if Tool-Bar mode is enabled.\nSee the command `tool-bar-mode' for a description of this minor mode.\nSetting this variable directly does not take effect;\neither customize it (see the info node `Easy Customization')\nor call the function `tool-bar-mode'.  ");
-  /* C 7551-7555's `#ifdef HAVE_WINDOW_SYSTEM`/`#else` takes the `#else` arm (P-08).  */
-  Vtool_bar_mode = Qnil ();
+  #[cfg(feature = "have_window_system")]
+  { Vtool_bar_mode = Qt (); }
+  #[cfg(not(feature = "have_window_system"))]
+  { Vtool_bar_mode = Qnil (); }
 
   DEFVAR_KBOARD! (c"default-minibuffer-frame",
 		  std::mem::offset_of! (kboard, Vdefault_minibuffer_frame_),
@@ -7997,9 +8250,15 @@ pub unsafe extern "C" fn syms_of_frame ()
 
   DEFVAR_LISP! (c"frame-inhibit-implied-resize", frame_inhibit_implied_resize,
 	       "Whether frames should be resized implicitly.\nIf this option is nil, setting font, menu bar, tool bar, tab bar,\ninternal borders, fringes or scroll bars of a specific frame may resize\nthe frame in order to preserve the number of columns or lines it\ndisplays.\n\nIf this option is t, no such resizing happens once Emacs has agreed with\nthe window manager on the final initial size of a frame.  That size will\nhave taken into account the size of the text area requested by the user\nand the size of all decorations initially present on the frame.\n\nIf this is the symbol `force', no implicit resizing happens even before\na frame has obtained its final initial size.  As a consequence, the\ninitial frame size may not necessarily be the one requested by the user.\nThis value can be useful with tiling window managers where the initial\nsize of a frame is determined by external means.\n\nThe value of this option can be also a list of frame parameters.  In\nthis case, resizing is inhibited once a frame has obtained its final\ninitial size when changing a parameter that appears in that list.  The\nparameters currently handled by this option include `font',\n`font-backend', `internal-border-width', `menu-bar-lines',\n`tool-bar-lines' and `tab-bar-lines'.\n\nChanging any of the parameters `scroll-bar-width', `scroll-bar-height',\n`vertical-scroll-bars', `horizontal-scroll-bars', `left-fringe' and\n`right-fringe' is handled as if the frame contained just one live\nwindow.  This means, for example, that removing vertical scroll bars on\na frame containing several side by side windows will shrink the frame\nwidth by the width of one scroll bar provided this option is nil and\nkeep it unchanged if this option is either t or a list containing\n`vertical-scroll-bars'.\n\nIn GTK+ and NS that use the external tool bar, the default value is\n\\='(tab-bar-lines) which means that adding/removing a tab bar does\nnot change the frame height.  On all other types of GUI frames, the\ndefault value is \\='(tab-bar-lines tool-bar-lines) which means that\nadding/removing a tool bar or tab bar does not change the frame\nheight.  Otherwise it's t which means the frame size never changes\nimplicitly when there's no window system support.\n\nNote that the size of fullscreen and maximized frames, the height of\nfullheight frames and the width of fullwidth frames never change\nimplicitly.  Note also that when a frame is not large enough to\naccommodate a change of any of the parameters listed above, Emacs may\ntry to enlarge the frame even if this option is non-nil.  ");
-  /* C 7685-7693's `#if defined (HAVE_WINDOW_SYSTEM) && !defined (HAVE_ANDROID)` is dead,
-     so C's live text is the outer `#else` arm's `frame_inhibit_implied_resize = Qt;`.  */
-  frame_inhibit_implied_resize = Qt ();
+  #[cfg(all(feature = "have_window_system", not(feature = "have_android")))]
+  {
+    #[cfg(any(feature = "use_gtk", feature = "have_ns"))]
+    { frame_inhibit_implied_resize = list1 (Qtab_bar_lines ()); }
+    #[cfg(not(any(feature = "use_gtk", feature = "have_ns")))]
+    { frame_inhibit_implied_resize = list2 (Qtab_bar_lines (), Qtool_bar_lines ()); }
+  }
+  #[cfg(not(all(feature = "have_window_system", not(feature = "have_android"))))]
+  { frame_inhibit_implied_resize = Qt (); }
 
   DEFVAR_LISP! (c"frame-size-history", frame_size_history,
                "History of frame size adjustments.\nIf non-nil, list recording frame size adjustment.  Adjustments are\nrecorded only if the first element of this list is a positive number.\nAdding an adjustment decrements that number by one.\n\nThe remaining elements are the adjustments.  Each adjustment is a list\nof four elements `frame', `function', `sizes' and `more'.  `frame' is\nthe affected frame and `function' the invoking function.  `sizes' is\nusually a list of four elements `old-width', `old-height', `new-width'\nand `new-height' representing the old and new sizes recorded/requested\nby `function'.  `more' is a list with additional information.\n\nThe function `frame--size-history' displays the value of this variable\nin a more readable form.  ");
@@ -8025,8 +8284,14 @@ pub unsafe extern "C" fn syms_of_frame ()
 
   DEFVAR_LISP! (c"frame-internal-parameters", frame_internal_parameters,
 	       "Frame parameters specific to every frame.  ");
-  /* C 7766-7770's `#ifdef HAVE_X_WINDOWS`/`#else` takes the `#else` arm (P-08).  */
-  frame_internal_parameters = list3 (Qname (), Qparent_id (), Qwindow_id ());
+  #[cfg(feature = "have_x_windows")]
+  {
+    frame_internal_parameters = list4 (Qname (), Qparent_id (), Qwindow_id (), Qouter_window_id ());
+  }
+  #[cfg(not(feature = "have_x_windows"))]
+  {
+    frame_internal_parameters = list3 (Qname (), Qparent_id (), Qwindow_id ());
+  }
   frame_internal_parameters = Fcons (Qframe_id (), frame_internal_parameters);
   frame_internal_parameters = Fcons (Qcloned_from (), frame_internal_parameters);
   frame_internal_parameters = Fcons (Qundeleted (), frame_internal_parameters);
@@ -8034,8 +8299,10 @@ pub unsafe extern "C" fn syms_of_frame ()
   DEFVAR_LISP! (c"alter-fullscreen-frames", alter_fullscreen_frames,
 	       "How to handle requests to resize fullscreen frames.\nEmacs consults this option when asked to resize a fullscreen frame via\nfunctions like `set-frame-size' or when setting the \\+`width' or \\+`height'\nparameter of a frame.  The following values are provided:\n\n- nil means to forward the resize request to the window manager and\n  leave it to the latter how to proceed.\n\n- t means to first reset the fullscreen status and then forward the\n  request to the window manager.\n\n- \\+`inhibit' means to reject the resize request and leave the fullscreen\n  status unchanged.\n\nThe default is \\+`inhibit' in NS builds and nil everywhere else.  ");
 
-  /* C 7792-7796's `#if defined (NS_IMPL_COCOA)`/`#else` takes the `#else` arm (P-08).  */
-  alter_fullscreen_frames = Qnil ();
+  #[cfg(feature = "ns_impl_cocoa")]
+  { alter_fullscreen_frames = Qinhibit (); }
+  #[cfg(not(feature = "ns_impl_cocoa"))]
+  { alter_fullscreen_frames = Qnil (); }
 
   DEFVAR_LISP! (c"delete-frame-choose-selected",
 	       delete_frame_choose_selected,

@@ -908,7 +908,7 @@ unsafe fn send_to_emacs_len (s: HSOCKET! (), mut data: *const c_char, mut dlen: 
   while dlen != 0
     {
       let part: c_int = min! (dlen, (SEND_BUFFER_SIZE - sblen) as ptrdiff_t) as c_int;
-      memcpy (&raw mut send_buffer[sblen as usize] as *mut c_char as *mut c_void,
+      memcpy ((&raw mut send_buffer as *mut c_char).offset (sblen as isize) as *mut c_void,
 	      data as *const c_void, part as size_t);
       data = data.offset (part as isize);
       sblen += part;
@@ -936,7 +936,7 @@ unsafe fn send_to_emacs_len (s: HSOCKET! (), mut data: *const c_char, mut dlen: 
 	    }
 	  sblen -= sent;
 	  memmove (&raw mut send_buffer as *mut c_char as *mut c_void,
-		   &raw mut send_buffer[sent as usize] as *mut c_char as *const c_void,
+		   (&raw const send_buffer as *const c_char).offset (sent as isize) as *const c_void,
 		   sblen as size_t);
 	}
 

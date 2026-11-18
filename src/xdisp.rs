@@ -3938,8 +3938,27 @@ unsafe fn compute_string_pos (newpos: *mut text_pos, pos: text_pos, string: Lisp
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn estimate_mode_line_height (f: *mut frame, face_id: face_id) -> c_int
 {
-  /* C 2294-2315's `HAVE_WINDOW_SYSTEM` arm (the `FRAME_WINDOW_P (f)` height computation) is
-     dead on this target (P-08); recorded in docs/ports/xdisp.md.  */
+  #[cfg (feature = "have_window_system")]
+  if FRAME_WINDOW_P (f)
+    {
+      let mut height: c_int = FONT_HEIGHT! (FRAME_FONT! (f));
+
+      /* This function is called so early when the editor starts that the face
+	 cache and mode line face are not yet initialized.  */
+      if !FRAME_FACE_CACHE! (f).is_null ()
+	{
+	  let face: *mut face = FACE_FROM_ID_OR_NULL (f, face_id);
+	  if !face.is_null ()
+	    {
+	      if !(*face).font.is_null ()
+		{ height = normal_char_height ((*face).font, -1); }
+	      if (*face).box_horizontal_line_width > 0
+		{ height += 2 * (*face).box_horizontal_line_width; }
+	    }
+	}
+
+      return height;
+    }
 
   return 1;
 }
@@ -3955,10 +3974,48 @@ pub unsafe extern "C" fn pixel_to_glyph_coords (f: *mut frame, mut pix_x: c_int,
 					       x: *mut c_int, y: *mut c_int,
 					       bounds: *mut c_int, noclip: bool)
 {
+  #[cfg (feature = "have_window_system")]
+  if FRAME_WINDOW_P (f)
+    {
+      /* Arrange for the division in FRAME_PIXEL_X_TO_COL etc. to round down
+	 even for negative values.  */
+      if pix_x < 0
+	{ pix_x -= FRAME_COLUMN_WIDTH (f) - 1; }
+      if pix_y < 0
+	{ pix_y -= FRAME_LINE_HEIGHT (f) - 1; }
 
-  /* C 2330-2366's `HAVE_WINDOW_SYSTEM` arm (the `FRAME_WINDOW_P (f)` column/line conversion
-     and the `bounds` rectangle) is dead on this target (P-08); recorded in
-     docs/ports/xdisp.md.  */
+      pix_x = FRAME_PIXEL_X_TO_COL (f, pix_x);
+      pix_y = FRAME_PIXEL_Y_TO_LINE (f, pix_y);
+
+      if !bounds.is_null ()
+	{
+	  let bounds: *mut NativeRectangle!() = bounds as *mut NativeRectangle!();
+	  #[cfg (any (feature = "have_android", feature = "have_pgtk"))]
+	  let (bw, bh) = ((FRAME_COLUMN_WIDTH (f) - 1) as c_uint,
+			  (FRAME_LINE_HEIGHT (f) - 1) as c_uint);
+	  #[cfg (not (any (feature = "have_android", feature = "have_pgtk")))]
+	  let (bw, bh) = (FRAME_COLUMN_WIDTH (f) - 1, FRAME_LINE_HEIGHT (f) - 1);
+	  STORE_NATIVE_RECT! (*bounds,
+			      FRAME_COL_TO_PIXEL_X (f, pix_x),
+			      FRAME_LINE_TO_PIXEL_Y (f, pix_y),
+			      bw,
+			      bh);
+	}
+
+      /* PXW: Should we clip pixels before converting to columns/lines?  */
+      if !noclip
+	{
+	  if pix_x < 0
+	    { pix_x = 0; }
+	  else if pix_x > FRAME_TOTAL_COLS (f)
+	    { pix_x = FRAME_TOTAL_COLS (f); }
+
+	  if pix_y < 0
+	    { pix_y = 0; }
+	  else if pix_y > FRAME_TOTAL_LINES (f)
+	    { pix_y = FRAME_TOTAL_LINES (f); }
+	}
+    }
 
   *x = pix_x;
   *y = pix_y;

@@ -1355,7 +1355,8 @@ func free_frame_tool_bar(_ f: UnsafeMutableRawPointer?) {
 /// implementation's (`toolbar clearAll` plus the three `tool_bar_adjusted` nudges).
 @_cdecl("update_frame_tool_bar_1")
 func update_frame_tool_bar_1(_ f: UnsafeMutableRawPointer?, _ toolbarPtr: UnsafeMutableRawPointer?) {
-  let toolbar = Unmanaged<EmacsToolbar>.fromOpaque(toolbarPtr!).takeUnretainedValue()
+  guard let toolbarPtr else { return }
+  let toolbar = Unmanaged<EmacsToolbar>.fromOpaque(toolbarPtr).takeUnretainedValue()
   var k = 0
 
   block_input()
@@ -1452,17 +1453,13 @@ func update_frame_tool_bar_1(_ f: UnsafeMutableRawPointer?, _ toolbarPtr: Unsafe
 /// C 1239-1254.
 @_cdecl("update_frame_tool_bar")
 func update_frame_tool_bar(_ f: UnsafeMutableRawPointer?) {
-  let window = FRAME_NS_VIEW(f)?.window
-  let toolbar = window?.toolbar
-
-  if toolbar == nil {
-    createToolbar(Unmanaged.passUnretained(window!).toOpaque(), f)
+  guard let window = FRAME_NS_VIEW(f)?.window else { return }
+  guard let toolbar = window.toolbar else {
+    createToolbar(Unmanaged.passUnretained(window).toOpaque(), f)
     return
   }
 
-  if window == nil || toolbar == nil { return }
-
-  update_frame_tool_bar_1(f, Unmanaged.passUnretained(toolbar!).toOpaque())
+  update_frame_tool_bar_1(f, Unmanaged.passUnretained(toolbar).toOpaque())
 }
 
 // ==========================================================================
@@ -1532,7 +1529,8 @@ class EmacsToolbar: NSToolbar, NSToolbarDelegate {
     /* C: `NSTRACE ("[EmacsToolbar addDisplayItemWithImage: ...]")` (1326).  */
 
     /* 1) come up w/identifier */
-    let imageObj = Unmanaged<AnyObject>.fromOpaque(img!).takeUnretainedValue()
+    guard let img else { return }
+    let imageObj = Unmanaged<AnyObject>.fromOpaque(img).takeUnretainedValue()
     let identifier = "\(UInt(bitPattern: imageObj.hash))\(label ?? "")"
     activeIdentifiers?.add(identifier)
 
@@ -2179,8 +2177,8 @@ func syms_of_nsmenu() {
 }
 
 @_silgen_name("EmacsToolbar_initForView")
-func ns_toolbar_initForView(_ view: NSView?, _ identifier: NSString) -> AnyObject? {
-  EmacsToolbar(forView: view, withIdentifier: identifier as String)
+func ns_toolbar_initForView(_ view: NSView?, _ identifier: NSString?) -> AnyObject? {
+  EmacsToolbar(forView: view, withIdentifier: (identifier as String?) ?? "")
 }
 @_cdecl("EmacsTooltip_hide")
 func ns_tooltip_hide(_ tip: AnyObject?) { (tip as? EmacsTooltip)?.hide() }
