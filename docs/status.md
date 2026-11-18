@@ -26685,6 +26685,16 @@ Fresh reference selection passed7/7 postflight checks, actual installation/confi
 User approved this exact DNS case as a nonblocking environment limitation and requires the existing proxy to remain enabled and unchanged. Four bounded HTTPS queries completed without errors: both Google andCloudflare resolved `example.com` (Status0,2 A answers) and returned NXDOMAIN for `emacs.invalid` (Status3,no answers),1.499–2.389s per query. The host system lookup still reports its synthetic proxy addresses. This verifies a remote-resolver contrast, not candidate/editor or original ERT acceptance; raw failures, counts and exits remain unchanged. No Dot task was sent; that route is cancelled. Fresh full555/48 observations and any precise exception binding remain pending.
 
 
+### 2026-11-18 — 第 18 轮：控制采集完成与消费卡点（不豁免、不重生成回执）
+
+**采集（真实控制器终态）**：本地控制 `g3-controls-old-1`（frozen-2）**passed / collection_complete=true**，14 文件 14 案，selected-product 准入；远端 `g3-remote-native-1` **passed**（signal/watch 合同均真、真实编辑器执行，26.6 s）；library（nickbar）`g3-library-native-nickbar-1` **passed**（`dframe-create-buffer-v1`，0.5 s）。native-collector-1 的 tramp 控制在 `tramp-test29-start-file-process` 377 s 被杀，**维持 incomplete**，其早先个别通过事件不用于报完整通过，也不盲重试。
+
+**参数核对**：Cursor 索引的 `assemble-scoped` 与当前 parser 不符，实际为 `--scoped-assembly`；开跑前 `--help` 核对并记 `build/acceptance/g3-control-collection-ops.json`。
+
+**严格消费卡点**：`g3-scoped-consume-555-1` 绑定 441 规则、捕获失败 125、阻断 133；首因 “applicable control has no matching product, epoch and captured harness proof”。闭合回执带历史 harness 身份，新采集控制无法满足三元证明。**不采纳 harness 版本化豁免、不重生成整圈回执（P465 不变）**，交给 Cursor 统一收口；有效阻断仍 128。
+
+**清理**：退役被取代的 `g3-scoped-classification-555-1`、`-subset-2`、接线 smoke 及两份已撤回结论的清单（各 ≤1 MB），保留 Cursor 的 `-555-3`/`-subset-3` 与全部采集证据；`build/acceptance` 27 GB。
+
 ### 2026-11-18 — 第 17 轮：严格分类结果消费、有效阻断合并与控制缺口
 
 **Cursor 严格装配已核收**（我不改分类器）：旧 555 通道 **441 归类 / 133 阻断 / 125 捕获失败**，子集通道 **29 归类 / 8 阻断 / 7 捕获失败**；`conserved=true`、`structural=0`，原失败守恒（574 / 37 不改）。**此前 567/37 的"已归类"主张继续撤回**，只承认 Cursor 实跑读数。证据 `build/acceptance/g3-scoped-classification-wip-index.json`、`*-555-3`、`*-subset-3`。
