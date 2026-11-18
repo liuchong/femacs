@@ -26695,6 +26695,8 @@ User approved this exact DNS case as a nonblocking environment limitation and re
 
 **补齐两场景（各一次）**：switch **passed**（`ime-launchservices-switch-1`，exit 0、413 次回调、提交 你好）；multi **failed**（`ime-launchservices-multi-1`，exit 0）：切到 `Femacs IME B` 后拼音键以原样拉丁落到 `second_text="nihao"`，`marked=false`、无合成——是真实的多窗口输入上下文缺陷，A 窗路径正确。一次有界，不重试；下一假设是**非 key frame 缺少输入客户端/第一响应者**，使输入法仍留在 A 窗。
 
+**multi 根因再收窄（Cursor 只读）**：我先前“非 key frame／缺输入客户端”的说法被现有回调否定——B 已是 keyWindow＋firstResponder 且 keyDown 落在 B；真实现象是 A 路径 `keyDown→setMarkedText→insertText(你好)`，B 路径 `keyDown→insertText(n/i/h/a/o)`、`setMarkedText=0`。机制上每个 `NSTextInputClient` 各有 `NSTextInputContext`，而驱动只做**进程级** TIS 选源，无法证明 B 的 context 已绑定拼音。唯一缺测：`frame-b-focus`＋选拼音后比较进程 TIS 与 B 的 `inputContext.selectedKeyboardInputSource`；证据 `build/acceptance/g1-ime-multi-readonly-locate.json`，根因归 Cursor，我不重试也不改产品。
+
 **交付索引与去重消费**：`build/acceptance/ime-delivery-index.json` 绑定待验 bundle／二进制（`11bf532e…`）与 fixture／launcher／driver／sender 源身份，记录 launcher 的 PID／映像核对方式与"未复用已安装 Fe"的边界（旧三跑早于 `results.launch` 字段，不回填重跑）；驱动已把该记录写入后续结果（`55c46f53`）。image 的去重 control-source 严格消费即 `g3-scoped-consume-555-17`：单份 applicability cocoa（`cocoa-3`＋`cocoa-4`，无重叠）、`cocoa-svg-2` 仍只服务 compute-map，三条 image 规则全部绑定，捕获 4 条都属已被子集替代的文件，有效阻断仅 eglot 3。
 
 **控制器流已按原字节转存**：`/tmp/ime-*.log` → 各自运行目录 `controller.stderr.log`（multi SHA `6c5140d0…` 9395 B、switch `4f30de81…` 10451 B），真实终态记 `build/acceptance/ime-controller-archive.json`；临时文件已删，此后控制器流直接写持久旁目录。
