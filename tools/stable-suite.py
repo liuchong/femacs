@@ -484,7 +484,7 @@ def _safe_case_component(case_id):
     return 'case-' + digest
 
 
-MOCK_SHELL_PROFILE = 'owned-darwin-mock-noncanonical-icrnl-v1'
+MOCK_SHELL_PROFILE = 'owned-darwin-mock-noncanonical-icrnl'
 MOCK_SHELL_FILES = (
     'test/lisp/autorevert-tests.el',
     'test/lisp/filenotify-tests.el',
@@ -508,6 +508,9 @@ MOCK_SHELL_CONTENT = (
     b'    if [ -t 0 ]; then\n'
     b'      stty -icanon icrnl -inlcr -igncr -echo min 1 time 0 || exit 70\n'
     b'    fi\n'
+    # The host shell restores its saved job-control state after ENV returns.
+    # Finish initialization on its next command and leave no persistent hook.
+    b"    trap 'trap - DEBUG; set +m' DEBUG\n"
     b'    ;;\n'
     b'esac\n'
 )
@@ -524,7 +527,7 @@ def case_environment(case_id, out, *, compact=False):
         raise SuiteError('case environment output is not a directory')
     try:
         base.mkdir(parents=True, exist_ok=True)
-        root = base / ('case' if compact else _safe_case_component(case_id))
+        root = base / ('c' if compact else _safe_case_component(case_id))
         root.mkdir(parents=True, exist_ok=True)
         paths = {
             'HOME': root / 'home',
@@ -548,7 +551,9 @@ def case_environment(case_id, out, *, compact=False):
         # The original mock transport uses an interactive sh on a Darwin PTY.
         # Disable monitor diagnostics, shell line editing, and canonical input
         # truncation while preserving ICRNL only on real PTY descriptors.
-        script = paths['HOME'] / 'mock-shell-env'
+        # Tramp includes ENV in its direct-async command and checks PIPE_BUF.
+        # Keep this owned basename short; its contents and isolation are fixed.
+        script = paths['HOME'] / 'e'
         content = MOCK_SHELL_CONTENT
         if script.is_symlink() or not script.resolve().is_relative_to(root.resolve()):
             raise SuiteError('mock shell startup file escapes its owned case')
@@ -565,6 +570,35 @@ def case_environment(case_id, out, *, compact=False):
         environment['FEMACS_STABLE_MOCK_SHELL_ENV'] = str(script)
         environment['FEMACS_STABLE_MOCK_TRANSPORT_PROFILE'] = MOCK_SHELL_PROFILE
         environment['FEMACS_STABLE_MOCK_TRANSPORT_SHA256'] = MOCK_SHELL_CONTENT_SHA256
+        host_ps = Path('/bin/ps')
+        codesign = Path('/usr/bin/codesign')
+        if host_ps.is_file() and codesign.is_file():
+            mock_bin = paths['HOME'] / 'b'
+            mock_bin.mkdir(exist_ok=True)
+            if mock_bin.is_symlink() or not mock_bin.resolve().is_relative_to(root.resolve()):
+                raise SuiteError('mock binary directory escapes its owned case')
+            ps_dst = mock_bin / 'ps'
+            if ps_dst.is_symlink() or (ps_dst.exists() and not ps_dst.resolve().is_relative_to(root.resolve())):
+                raise SuiteError('mock ps binary escapes its owned case')
+            if ps_dst.exists():
+                st = ps_dst.stat()
+                if not stat.S_ISREG(st.st_mode) or (st.st_mode & 0o6000) or not os.access(ps_dst, os.X_OK):
+                    raise SuiteError('mock ps binary has invalid mode or permissions')
+            else:
+                ps_bytes = host_ps.read_bytes()
+                with ps_dst.open('xb') as stream:
+                    stream.write(ps_bytes)
+                    stream.flush()
+                    os.fsync(stream.fileno())
+                ps_dst.chmod(0o755)
+                signed = subprocess.run(
+                    [str(codesign), '--force', '--sign', '-', str(ps_dst)],
+                    stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, check=False)
+                if signed.returncode != 0:
+                    raise SuiteError('failed to ad-hoc sign owned non-setuid ps helper')
+                if ps_dst.stat().st_mode & 0o6000:
+                    raise SuiteError('owned ps helper retained setuid/setgid bits')
+            environment['FEMACS_STABLE_MOCK_BIN'] = str(mock_bin)
     return environment
 
 
@@ -777,7 +811,7 @@ def _metadata(payload):
     features = payload.get('features')
     if not isinstance(features, list) or any(not isinstance(item, str) for item in features):
         features = []
-    return {
+    result = {
         'emacs_version': payload.get('emacs_version')
             if isinstance(payload.get('emacs_version'), str) else None,
         'system_configuration': payload.get('system_configuration')
@@ -788,6 +822,19 @@ def _metadata(payload):
             if isinstance(payload.get('window_system'), str) else None,
         'features': sorted(features),
     }
+    # These are observed built-in facts, not a synthetic feature vocabulary.
+    for key in ('product_version', 'configuration_features', 'display_mode', 'term'):
+        if isinstance(payload.get(key), str):
+            result[key] = payload[key]
+    for key in ('noninteractive', 'display_graphic', 'display_images', 'native_comp_available'):
+        if type(payload.get(key)) is bool:
+            result[key] = payload[key]
+    environment = payload.get('test_environment')
+    if (isinstance(environment, dict)
+            and set(environment) <= {'ERC_TESTS_GRAPHICAL', 'ERC_TESTS_GRAPHICAL_ALL'}
+            and all(isinstance(value, str) for value in environment.values())):
+        result['test_environment'] = dict(environment)
+    return result
 
 
 def _run_process(out, paths, runner, test_root, logical_file, mode,
@@ -1093,12 +1140,15 @@ def _retire_state(*args, **kwargs):
 def _execute(manifest, repo, out, reference, candidate,
              reference_dump_args, candidate_dump_args, timeout,
              reference_env=None, candidate_env=None, *, corpus_root=None,
-             runner_path=None):
+             runner_path=None, reuse_files=None, candidate_profile=None, manifest_identity=None,
+             subset=None):
     from types import SimpleNamespace
     batch = _load_batch()
     return batch.execute(SimpleNamespace(**globals()), manifest, repo, out,
         reference, candidate, reference_dump_args, candidate_dump_args, timeout,
-        reference_env, candidate_env, corpus_root=corpus_root, runner_path=runner_path)
+        reference_env, candidate_env, corpus_root=corpus_root, runner_path=runner_path,
+        reuse_files=reuse_files, candidate_profile=candidate_profile, manifest_identity=manifest_identity,
+        subset=subset)
 
 
 def _write_run_report(out_path, report):
@@ -1128,6 +1178,12 @@ def _write_run_report(out_path, report):
         passed_count=sum(row['passed'] is True for row in report['cases']),
         detailed=dict(path=path.name, bytes=path.stat().st_size, sha256=_sha256_path(path)),
         full_compatibility_claim=False)
+    # Only a declared subset adds scope fields. A whole-corpus completion keeps
+    # exactly the original contract so earlier receipts stay readable as-is.
+    if report.get('subset') is not None:
+        completion.update(scope=report['scope'], subset=report['subset'],
+                          full_corpus_entrypoint_count=report['full_corpus_entrypoint_count'],
+                          subset_complete=report.get('subset_complete'))
     (out_path/'stable-suite-completion.json').write_text(
         json.dumps(completion, indent=2, sort_keys=True)+'\n', encoding='utf-8')
     return path
@@ -1156,9 +1212,42 @@ def _write_receipt(out_path, manifest, result):
         raise _message_for_io('write materialization receipt', receipt, exc) from exc
 
 
+def _verify_historical_harness(sources: dict, history_path) -> None:
+    """Verify a closed receipt against recorded, provenance-checked harness bytes.
+
+    The receipt is never rewritten and no SHA is exempted: every recorded role
+    must appear in the history document with the same SHA-256 and a resolvable
+    byte source (a Git object or a verified read-only captured copy). A role the
+    history cannot resolve is an explicit gap, not a pass.
+    """
+    path = Path(history_path)
+    if path.is_symlink() or not path.is_file():
+        raise SuiteError('harness history must be a physical ordinary file')
+    try:
+        history = json.loads(path.read_text(encoding='utf-8'))
+    except (OSError, UnicodeError, json.JSONDecodeError) as error:
+        raise SuiteError('harness history is unreadable: {0}'.format(error)) from None
+    if (history.get('schema') != 'femacs-stable-harness-history-v1'
+            or not isinstance(history.get('roles'), list)):
+        raise SuiteError('harness history has an unknown schema')
+    resolved = {role.get('path'): role for role in history['roles'] if isinstance(role, dict)}
+    problems = []
+    for name, identity in sources.items():
+        role = resolved.get(name)
+        if role is None:
+            problems.append('no history entry: ' + name)
+        elif role.get('sha256') != identity:
+            problems.append('history SHA differs: ' + name)
+        elif role.get('source') not in ('git', 'snapshot'):
+            problems.append('role not recoverable: ' + name)
+    if problems:
+        raise SuiteError('stable harness history is incomplete: ' + '; '.join(sorted(problems)))
+
+
 def read_completion(out, manifest_path, reference, candidate,
                     reference_args, candidate_args, reference_env, candidate_env, *, runner=None,
-                    classification=None, candidate_profile=None, reference_selection=None):
+                    classification=None, candidate_profile=None, reference_selection=None,
+                    subset=None, harness_history=None):
     """Read a bounded summary and stream-bind the full original-file evidence."""
     root = Path(out)
     receipt = _read_machine_result(root/'stable-suite-completion.json')
@@ -1173,13 +1262,30 @@ def read_completion(out, manifest_path, reference, candidate,
     manifest_path = Path(manifest_path)
     manifest = load_manifest(manifest_path, manifest_path.parents[2])
     batch = _load_batch()
-    expected_count = len(batch.select_entrypoints(manifest))
+    all_entries = batch.select_entrypoints(manifest)
+    expected = batch.select_entrypoints(manifest, subset) if subset is not None else all_entries
+    expected_count = len(expected)
+    expected_scope = ('stable-31.1-original-ELFILES-declared-subset' if subset is not None
+                      else 'stable-31.1-original-ELFILES-all-discovered-ids')
     if (receipt.get('manifest_sha256') != _sha256_path(manifest_path)
             or receipt.get('source') != {key: manifest['source'][key] for key in ('release', 'commit')}
             or receipt.get('entrypoint_count') != expected_count
             or receipt.get('file_count') != expected_count
-            or receipt.get('resource_only_lisp_inputs') != manifest['lisp_file_count']-expected_count):
+            or receipt.get('resource_only_lisp_inputs') != manifest['lisp_file_count']-len(all_entries)):
         raise SuiteError('stable completion manifest/entrypoint identity mismatch')
+    # The subset scope fields exist only for a declared subset. A whole-corpus
+    # receipt written before those fields existed keeps its original contract
+    # and is not rewritten or version-translated.
+    if subset is not None:
+        if (receipt.get('scope') != expected_scope
+                or receipt.get('full_corpus_entrypoint_count') != len(all_entries)
+                or receipt.get('subset') != [entry['path'] for entry in expected]
+                or type(receipt.get('subset_complete')) is not bool):
+            raise SuiteError('stable completion subset identity mismatch')
+    else:
+        scope = receipt.get('scope')
+        if scope not in (None, expected_scope):
+            raise SuiteError('stable completion scope mismatch')
     environments = {'reference': reference_env, 'candidate': candidate_env}
     expected_products = {label: _public_product_identity(_product_paths(program, args, environments[label]))
         for label, program, args in (('reference', reference, reference_args),
@@ -1198,9 +1304,12 @@ def read_completion(out, manifest_path, reference, candidate,
     sources = receipt.get('harness_sources')
     if not isinstance(sources, dict) or not sources:
         raise SuiteError('stable harness identities missing')
-    for name, identity in sources.items():
-        if _sha256_path(Path(name)) != identity:
-            raise SuiteError('stable harness changed after execution')
+    if harness_history is None:
+        for name, identity in sources.items():
+            if _sha256_path(Path(name)) != identity:
+                raise SuiteError('stable harness changed after execution')
+    else:
+        _verify_historical_harness(sources, harness_history)
     if runner is not None:
         runner_path = Path(runner)
         if (runner_path.is_symlink() or not runner_path.is_file()
@@ -1215,13 +1324,20 @@ def read_completion(out, manifest_path, reference, candidate,
             and receipt['corpus_inputs_unchanged'] and receipt['failure_count'] == 0
             and receipt['passed_count'] == receipt['case_count'] and receipt['case_count'] > 0):
         raise SuiteError('stable completion falsely claims a passing corpus')
+    # A declared subset can never claim whole-corpus completion, and a
+    # whole-corpus receipt can never carry a subset scope.
+    if subset is not None:
+        if receipt['corpus_complete'] or type(receipt.get('subset_complete')) is not bool:
+            raise SuiteError('a declared subset cannot claim corpus completion')
+    elif receipt.get('subset') is not None:
+        raise SuiteError('a whole-corpus receipt must not carry subset scope')
     if classification is not None:
         spec = importlib.util.spec_from_file_location('femacs_stable_classification',
             Path(__file__).with_name('stable-classification.py'))
         accounting = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(accounting)
         from types import SimpleNamespace
-        api = SimpleNamespace(_load_batch=_load_batch, _sha256_path=_sha256_path,
+        api = SimpleNamespace(__file__=__file__, _load_batch=_load_batch, _sha256_path=_sha256_path,
                               _relative_path=_relative_path, assess_case=assess_case)
         receipt = dict(receipt, classification=accounting.assess(api, root,
             receipt, manifest, classification, candidate_profile, reference_selection))
@@ -1247,6 +1363,12 @@ def main(argv=None):
     parser.add_argument('--candidate-env', default='{}')
     parser.add_argument('--timeout', type=float, default=DEFAULT_TIMEOUT)
     parser.add_argument('--runner', help='Explicit bound per-file ERT bridge; does not alter corpus inputs')
+    parser.add_argument('--reuse-files', help='Stage-admitted, evidence-bound closed-file donor selection')
+    parser.add_argument('--candidate-profile', help='Exact registry profile for closed-file provenance')
+    parser.add_argument('--subset-file',
+                        help='Declared original entrypoints to re-verify (JSON list); a subset '
+                             'result never claims whole-corpus completion and the old evidence '
+                             'for unnamed files stays bound to its own product/harness')
     args = parser.parse_args(argv)
     try:
         has_reference = args.reference is not None
@@ -1255,6 +1377,10 @@ def main(argv=None):
             raise SuiteError('--reference and --candidate must be supplied together')
         if args.materialize and (has_reference or has_candidate):
             raise SuiteError('--materialize cannot be combined with products')
+        if args.reuse_files is not None and not has_reference:
+            raise SuiteError('closed-file reuse requires a complete product pair')
+        if args.reuse_files is not None and not args.candidate_profile:
+            raise SuiteError('closed-file reuse requires the exact candidate profile')
         if not has_reference and (args.reference_dump_args is not None or
                                   args.candidate_dump_args is not None):
             raise SuiteError('dump arguments require reference and candidate')
@@ -1315,10 +1441,28 @@ def main(argv=None):
             return value
         reference_env = runtime_environment(args.reference_env)
         candidate_env = runtime_environment(args.candidate_env)
+        subset = None
+        if args.subset_file is not None:
+            if args.materialize:
+                raise SuiteError('--subset-file cannot be combined with --materialize')
+            spec = Path(args.subset_file)
+            if spec.is_symlink() or not spec.is_file():
+                raise SuiteError('subset file must be a physical ordinary file')
+            if spec.stat().st_size > 1024*1024:
+                raise SuiteError('subset file is larger than the bounded limit')
+            try:
+                subset = json.loads(spec.read_text(encoding='utf-8'))
+            except (UnicodeError, json.JSONDecodeError) as exc:
+                raise SuiteError('subset file is not valid JSON: {0}'.format(exc)) from exc
+            if not isinstance(subset, list):
+                raise SuiteError('subset file must contain a JSON list of entrypoint names')
         started = time.monotonic()
         report = _execute(manifest, Path(args.repo), out, args.reference,
                           args.candidate, reference_args, candidate_args,
-                          args.timeout, reference_env, candidate_env, corpus_root=corpus_root, runner_path=args.runner)
+                          args.timeout, reference_env, candidate_env, corpus_root=corpus_root,
+                          runner_path=args.runner, reuse_files=args.reuse_files,
+                          candidate_profile=args.candidate_profile, manifest_identity=manifest_sha256,
+                          subset=subset)
         report['runtime_environment'] = {'reference':reference_env, 'candidate':candidate_env}
         report['manifest_sha256'] = manifest_sha256
         if _sha256_path(Path(args.manifest)) != manifest_sha256:
@@ -1326,14 +1470,18 @@ def main(argv=None):
             report['corpus_complete'] = False
         report['elapsed_seconds'] = time.monotonic() - started
         _write_run_report(out, report)
+        complete = report['subset_complete'] if subset is not None else report['corpus_complete']
         print(json.dumps({
             'operation': 'execute',
+            'scope': report['scope'],
+            'entrypoint_count': report['entrypoint_count'],
             'corpus_complete': report['corpus_complete'],
+            'subset_complete': report.get('subset_complete'),
             'case_count': len(report['cases']),
             'failure_count': len(report['failures']),
             'full_compatibility_claim': False,
         }, sort_keys=True))
-        return 0 if report['corpus_complete'] else 1
+        return 0 if complete else 1
     except SuiteError as exc:
         print('stable-suite: {0}'.format(exc), file=sys.stderr)
         return 2
