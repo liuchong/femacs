@@ -26685,6 +26685,18 @@ Fresh reference selection passed7/7 postflight checks, actual installation/confi
 User approved this exact DNS case as a nonblocking environment limitation and requires the existing proxy to remain enabled and unchanged. Four bounded HTTPS queries completed without errors: both Google andCloudflare resolved `example.com` (Status0,2 A answers) and returned NXDOMAIN for `emacs.invalid` (Status3,no answers),1.499–2.389s per query. The host system lookup still reports its synthetic proxy addresses. This verifies a remote-resolver contrast, not candidate/editor or original ERT acceptance; raw failures, counts and exits remain unchanged. No Dot task was sent; that route is cancelled. Fresh full555/48 observations and any precise exception binding remain pending.
 
 
+### 2026-11-18 — 第 35 轮：strict probe 接上闭合参照绑定；eglot 三条一轮定位（tramp×2 为环境 PATH，完成项为 clangd 版本）
+
+**1. `--reference-selection` 的真实绑定（`84cdada3`）**：原实现只从 products 文件取唯一 `kind=reference` 行。现改为必填闭合的 `reference-selection.json`，并核：① 文档自带摘要对 `build_root/results.json`、`original_products_path`、`selected_products_path` 三个目标逐个比对；② 选中 registry 恰一行且居首的 `installed-reference`，资源根恰为 `{lisp,data}`；③ 实机 `product_identity(..., resources=True)` 与文档 `selected_reference.identity` 相等；④ 任何验收标志为 true 即拒；⑤ 参照 program/dump/lisp 必须与闭合 baseline 的 `stable-suite-inputs.json` 记录**逐项相同**；`FEMACS_REFERENCE_LISP` 只能确认该绑定根，不一致即报错（不再静默替换）。
+
+**为何不是整段 `runtime-reference.read_selection`**：它还要重验 matrix 的 source export，而现存每个 matrix build 根的 `source` 树都已按清理口退役，60 个 candidate 行也解析在其中 ⇒ 无法重准入；这作为恢复条件记录（保留一个带 source export 的 build 根即可补上）。另修好 strict 分片入口的**既有阻塞**：它把自身证据目录当成已物化语料传给批处理入口，导致 `canonical original fixture changed`；现按 manifest 的 `source_path`→`path` 逐个校验并物化到 `<out>/fixtures`，证据仍写 `<out>`。
+
+**运行**：正向 `build/acceptance/probe-positive-1` —— 绑定全部通过（selection sha `f5f050a0…`、参照 program `23f49087…`、dump `e1d2a9f0…`），两产品均实际执行；随后该文件判 `incomplete`（候选 exit 255），属 strict 分片自身的执行问题，不作绑定结论、不冒充通过。负向一：篡改 `selected_reference.identity.program.sha256` ⇒ 运行前拒绝（exit 2）。负向二：篡改 baseline 的 dump 摘要 ⇒ 运行前拒绝。
+
+**2. eglot 三条一轮定位（`build/acceptance/eglot-localize-1`）**：先读原失败——两条 tramp 在 ref/candidate **同样**报 `[eglot] Timed out after 10 seconds`，完成项在同侧报 `(should (looking-at "123"))`。三条定向运行固定同一语料文件 `compatibility/stable-31.1/test/lisp/progmodes/eglot-tests.el` 与同一 selector，两产品同条件，唯一变量是 mock TRAMP 远端可见的 PATH（加入 `/opt/homebrew/opt/llvm/bin`）：**ref 与 candidate 均 2 通过 + 1 失败**——两条 tramp 通过，完成项仍**同样失败**。clangd 为 `Homebrew clangd 23.1.5`。判读：tramp×2 是环境/远端程序查找（隔离 lane 的 PATH 没有 clangd），完成项是 clangd 版本行为、两侧一致；两者都不是端口缺陷，但**不改原测试、不改规则**。
+
+**解除条件**：① tramp×2 需一条经复核的分类规则绑定上述固定 PATH 证据；② 完成项需上游依据（该断言对应的 clangd 行为）或钉住与断言匹配的 clangd 版本，或由复核者裁定为已知版本差异。g3 有效阻断仍记 **3**，未改原失败、未重扫 555/子集。
+
 ### 2026-11-18 — 第 34 轮：纠正 native+young 的因果结论，补定向屏障负载并修掉 own-voice 两处
 
 **纠正**：第 33 轮把 `g7-native-young-1` 写成"comp-emitted write call is exercised under minors"是过度结论——`runtime-profile.el` 的 churn/retained 用例只有 `list`/`format`/`make-vector` 分配与 `car` 读取，同轮出现 native 与 reason0 只说明**共存**。文档该行已收窄，并注明该轮是单轮、入场 load 0.187，不是 ≤0.10 的性能验收。
