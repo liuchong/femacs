@@ -26685,6 +26685,16 @@ Fresh reference selection passed7/7 postflight checks, actual installation/confi
 User approved this exact DNS case as a nonblocking environment limitation and requires the existing proxy to remain enabled and unchanged. Four bounded HTTPS queries completed without errors: both Google andCloudflare resolved `example.com` (Status0,2 A answers) and returned NXDOMAIN for `emacs.invalid` (Status3,no answers),1.499–2.389s per query. The host system lookup still reports its synthetic proxy addresses. This verifies a remote-resolver contrast, not candidate/editor or original ERT acceptance; raw failures, counts and exits remain unchanged. No Dot task was sent; that route is cancelled. Fresh full555/48 observations and any precise exception binding remain pending.
 
 
+### 2026-11-18 — 第 28 轮：IME 经 LaunchServices 启动后 steady 场景通过，并修正等待判活
+
+**实现（Apple 当前入口）**：新增 `tools/fixtures/ime-launch.swift`，用 `NSWorkspace.OpenConfiguration`（arguments／environment／`createsNewApplicationInstance`／`activates`）打开**指定 bundle**；`tools/test-macos-ime.py` 改为该路径，并在任何 AX 操作前核对返回 PID 的映像路径等于所请求 bundle，杜绝复用运行中的已安装 Fe。提交 `c84b0d79`。
+
+**实际验收（`build/acceptance/ime-launchservices-2`）**：steady **passed**、exit 0、controller `de816348`（root 93163，14.169 s，cleanup true）；`source-change` 报 `frontmost=true`、`focused_window=true`（ABC 与 Pinyin 皆然），提交 **你好**、371 次真实回调，结束后恢复原输入源。**未重跑 steady**；此前 143 属被我方终止的等待 shell，不是编辑器失败。
+
+**等待判活修正（记入 CONT 工程控制）**：PID 为 Z/X 即已结束，不得只凭 `ps` 存在空等；以控制器终态（exit／cleanup）＋目标回执判定并收割僵尸。本次误把僵尸 93146 当运行，白等约 600 s。
+
+**未验范围**：switch 与 multi 场景本批未跑，按一次验收补齐。
+
 ### 2026-11-18 — 第 27 轮：安静窗口一次读数与 IME 激活的官方依据
 
 **测量（一次读数，不反复查）**：入口 `load_per_core=0.194`（阈值 0.10），不启动 2+7 比较；事实与解除条件记 `build/acceptance/g5-load-state-3/results.json`。
