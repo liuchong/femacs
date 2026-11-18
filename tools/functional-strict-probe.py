@@ -38,7 +38,22 @@ def main(argv=None):
     parser.add_argument('--files', type=Path, required=True,
                         help='newline-separated logical test paths')
     parser.add_argument('--timeout', type=float, default=300)
+    parser.add_argument('--reference-selection', type=Path, required=True,
+                        help='pinned reference selection document (a products registry with one kind=reference row)')
     args = parser.parse_args(argv)
+
+    # The reference product comes from the pinned selection the reference
+    # receipts record, never from a path written into this tool.
+    selection = read_json(args.reference_selection)
+    references = [row for row in selection.get('products') or [] if row.get('kind') == 'reference']
+    if len(references) != 1:
+        parser.error('reference selection must hold exactly one reference product')
+    reference = references[0]
+    reference_program = Path(reference['program'])
+    reference_dump = Path(reference['dump'])
+    reference_lisp = (reference.get('resource_roots') or {}).get('lisp')
+    if not reference_lisp:
+        parser.error('reference selection has no Lisp resource root')
 
     suite = load('probe_suite', REPO / 'tools/stable-suite.py')
     batch = suite._load_batch()
@@ -51,15 +66,13 @@ def main(argv=None):
     env = {'FEMACS_GC_OBSERVATION': 'off'}
     paths = suite._product_paths(args.program, ['--dump-file=' + str(args.dump.resolve())], env)
     paths['test_environment'] = {}
-    # The installed reference application keeps its Lisp library outside the
-    # bundle (P-464: `/Applications/Emacs.app/Contents/Resources/lisp` does not
-    # exist in this layout), so its product paths need the verified library
-    # root the reference selection receipt records.  `FEMACS_REFERENCE_LISP`
-    # supplies it for the reference side only; the candidate keeps its own
+    # The installed reference keeps its Lisp library outside the application
+    # bundle (P-464), so its product paths take the verified library root from
+    # the selection document.  `FEMACS_REFERENCE_LISP` stays an explicit
+    # override for the reference side only; the candidate keeps its own
     # build-tree root.
-    reference_env = {'FEMACS_GC_OBSERVATION': 'off'}
-    if os.environ.get('FEMACS_REFERENCE_LISP'):
-        reference_env['FEMACS_STABLE_PRODUCT_LISP'] = os.environ['FEMACS_REFERENCE_LISP']
+    reference_env = {'FEMACS_GC_OBSERVATION': 'off',
+                     'FEMACS_STABLE_PRODUCT_LISP': os.environ.get('FEMACS_REFERENCE_LISP', reference_lisp)}
     baseline_root = args.baseline_run.resolve()
     context = baseline_root / 'source-context.json'
     if not context.is_file():
@@ -71,9 +84,7 @@ def main(argv=None):
         paths['test_context'] = baseline_root / 'source-contexts' / logical.replace('/', '-')
         pair = {}
         for label, product in (('reference', suite._product_paths(
-                '/Applications/Emacs.app/Contents/MacOS/Emacs',
-                ['--dump-file=/opt/homebrew/Cellar/emacs-plus@32/32.0.50/libexec/emacs/32.0.50/'
-                 'aarch64-apple-darwin27.2.0/emacs-9f9536b204dba77ae4e3ec8713908975e621804233f819dc8e41aa3f2220b37c.pdmp'],
+                reference_program, ['--dump-file=' + str(reference_dump.resolve())],
                 reference_env)), ('candidate', paths)):
             product = dict(product, test_environment={})
             product['test_context'] = baseline_root / 'test'
