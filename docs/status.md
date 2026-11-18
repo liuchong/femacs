@@ -26685,6 +26685,16 @@ Fresh reference selection passed7/7 postflight checks, actual installation/confi
 User approved this exact DNS case as a nonblocking environment limitation and requires the existing proxy to remain enabled and unchanged. Four bounded HTTPS queries completed without errors: both Google andCloudflare resolved `example.com` (Status0,2 A answers) and returned NXDOMAIN for `emacs.invalid` (Status3,no answers),1.499–2.389s per query. The host system lookup still reports its synthetic proxy addresses. This verifies a remote-resolver contrast, not candidate/editor or original ERT acceptance; raw failures, counts and exits remain unchanged. No Dot task was sent; that route is cancelled. Fresh full555/48 observations and any precise exception binding remain pending.
 
 
+### 2026-11-18 — 第 31 轮：compiler-resources 契约对齐 5/5，runtime-resume 记为具体缺口
+
+**compiler-resources（`565e5bf3`）**：四个 error 是**夹具的两处过期契约**，不是生产保证丢失。① 夹具用 `Generator.__new__` 手工填字段，缺 `sequence`——它正是每个 bytecode 回执的编号；② 夹具仍在模拟旧的 `batch-byte-compile` 选择，而现路径改为一组 `--eval` 表达式 + 回执校验，且需要 ROOT 下真实的 `tools/gen-program-products.py` 与它声明的 parser 产物。夹具改为：真构造器、真生成器脚本与声明产物、只在编辑器子进程边界按真实副作用打桩（native 能力文件、回执行、字节码产物）；选择规则、输入必需性、回执校验仍是生产代码。**5/5 通过**，覆盖"每个发布输入恰编译一次 / 缺必需源失败 / 命令报成功但无字节码失败 / 显式作用域不外溢 / native 能力要求自身编译源"。生产代码未改。`build/compiler-resource-components` 无残留临时根。
+
+**runtime-resume**：admission 模式 3/3 通过（`build/acceptance/focus-runtime-resume-admission-1`，真实子进程、夹具已退役）。integration **不适用**：现存仅两份矩阵 partial（`current-runtime-build-5/-6`），都含全部 20 个配置，不存在 0<k<20 的中断前缀；该模式还要求被中断 build 根、其 observation 控制器结果、新 recovered 输出与 backend 前缀，并最终断言 20 配置/61 产品/48 候选/41 物理产品。唯一正式入口是整矩阵 action，上次完整矩阵 11,685 s（20 配置），即"为参数重建 61/48"，按现行指令不做。缺口与完成条件已记入索引，未伪造 integration 通过。
+
+**安静入场**：`build/acceptance/g5-load-state-4` 单次读数 `load_per_core=0.182 > 0.10`，六候选 2+7 比较**未启动**，只留事实、不轮询。
+
+**未变**：eglot×3 仍为 g3 唯一有效阻断（前提无效，需官方上游成熟修复＋固定输入对照才重开）；IME multi 无**可证实**的桌面激活变化，原失败保留、不重跑。索引 `build/acceptance/compiler-resume-batch-result.json`。
+
 ### 2026-11-18 — 第 30 轮：一个干净 Cocoa 产品折入诊断增量，七项聚焦通过，multi 卡在桌面激活
 
 **构建**（仪表 `build/runtime/ime-diag-1`，源码含 Cursor 的 `86488383`）：单次 `runtime-build --product cocoa --variant native-collector --observer`，RC 0/exit 0，controller `root_pid`=51831，1897.644 s，peak RSS 847,036,416 B，`cleanup_complete=true`。产品 `native=t collector=t 32.0.50`，可执行 SHA-256 `525eadea…`、dump `e72ee390…`，`selectedKeyboardInputSource` 已在二进制内（诊断字段到位）。pinned tree-sitter 0.27.1、`/opt/homebrew/opt/libgccjit` 预检通过，构建期 Root 全冻结。
