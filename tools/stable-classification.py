@@ -1917,7 +1917,21 @@ def assess(api, root, receipt, manifest, catalog_path, profile, reference_select
             if key != 'reference_defects'} == dict(context_sha256=context, run_sha256=receipt['detailed']['sha256'],
             completion_sha256=api._sha256_path(root/'stable-suite-completion.json')),
             'classification does not bind this exact complete run and candidate')
-    entries = api._load_batch().select_entrypoints(manifest)
+    batch = api._load_batch()
+    subset = receipt.get('subset')
+    if subset is not None:
+        require(receipt.get('scope') == 'stable-31.1-original-ELFILES-declared-subset'
+                and isinstance(subset, list) and bool(subset)
+                and receipt.get('corpus_complete') is False
+                and type(receipt.get('subset_complete')) is bool,
+                'declared subset receipt required for subset classification')
+        entries = batch.select_entrypoints(manifest, subset)
+        require(subset == [entry['path'] for entry in entries],
+                'declared subset order or scope differs from original entrypoint selection')
+    else:
+        require(receipt.get('scope') in (None, 'stable-31.1-original-ELFILES-all-discovered-ids'),
+                'whole-corpus receipt carries an unexpected scope')
+        entries = batch.select_entrypoints(manifest)
     by_path = {entry['path']: entry for entry in entries}
     defects = {}
     records = selected.get('reference_defects', [])
@@ -1978,7 +1992,9 @@ def assess(api, root, receipt, manifest, catalog_path, profile, reference_select
                 'products_after', 'runtime_environment', 'harness_sources', 'corpus_complete'):
         expected = receipt['result_schema'] if key == 'schema' else receipt.get(key)
         require(metadata.get(key) == expected, 'detailed metadata differs from completion: ' + key)
-    require(list(files) == list(by_path), 'full original file denominator not executed')
+    require(list(files) == list(by_path),
+            ('declared subset file denominator not executed' if subset is not None
+             else 'full original file denominator not executed'))
     require(metadata.get('entrypoint_count') == len(entries)
             and metadata.get('resource_only_lisp_inputs') == receipt['resource_only_lisp_inputs'],
             'detailed original file denominator changed')
@@ -2117,8 +2133,11 @@ def main(argv=None):
     parser.add_argument('--scoped-assembly', action='store_true',
         help='bind reviewed rules to one real product channel instead of the 48-profile matrix')
     parser.add_argument('--receipt', type=Path,
-        help='closed stable-suite-run.json for --scoped-assembly')
-    parser.add_argument('--profile', help='declared profile name for --scoped-assembly')
+        help='closed acceptance root (or completion/run path) for --scoped-assembly')
+    parser.add_argument('--product', type=Path,
+        help='optional runtime product root; must match the closed candidate LISP path')
+    parser.add_argument('--profile',
+        help='optional profile id check; must match runtime-product/binding+environment')
     parser.add_argument('--run-results', type=Path, action='append', default=[],
                         help='closed original runtime-stage results; repeat for distinct stable scopes')
     parser.add_argument('--control-run', type=Path, nargs=2, action='append', default=[],
@@ -2136,8 +2155,8 @@ def main(argv=None):
     if (args.control_run or args.library_contract_run or args.remote_contract_run) and args.approved_rules is None:
         parser.error('--control-run is only used when assembling source definitions')
     if args.scoped_assembly:
-        if not args.receipt or not args.profile or args.approved_rules is None:
-            parser.error('--scoped-assembly requires --receipt, --profile and --approved-rules')
+        if not args.receipt or args.approved_rules is None:
+            parser.error('--scoped-assembly requires --receipt and --approved-rules')
         return assemble_scoped(args)
     tool_root = Path(__file__).resolve().parent
     spec = importlib.util.spec_from_file_location('classification_stage', tool_root/'runtime-stage.py')
@@ -2310,6 +2329,227 @@ def _write_catalog(path, catalog):
         os.close(descriptor)
 
 
+def _load_suite_api():
+    """Load the stable suite module for original-event and assessment helpers."""
+    path = Path(__file__).with_name('stable-suite.py')
+    spec = importlib.util.spec_from_file_location('femacs_stable_suite_for_classification', path)
+    suite = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(suite)
+    api = SimpleNamespace(__file__=str(path), _load_batch=suite._load_batch,
+                          _sha256_path=suite._sha256_path, _relative_path=suite._relative_path,
+                          assess_case=suite.assess_case)
+    return suite, api
+
+
+def product_root_from_receipt(receipt):
+    """Locate the closed runtime product that produced this candidate environment."""
+    env = receipt.get('runtime_environment', {}).get('candidate')
+    require(isinstance(env, dict) and isinstance(env.get('FEMACS_STABLE_PRODUCT_LISP'), str),
+            'closed candidate product LISP path required')
+    current = Path(env['FEMACS_STABLE_PRODUCT_LISP'])
+    require(current.is_absolute() and not current.is_symlink(),
+            'absolute ordinary candidate LISP path required')
+    current = current if current.is_dir() else current.parent
+    while True:
+        if ((current/'runtime-binding.json').is_file()
+                and (current/'runtime-product.json').is_file()):
+            root = Path(os.path.abspath(current))
+            require(root.resolve() == root and not root.is_symlink(),
+                    'physical runtime product root required')
+            return root
+        if current.parent == current:
+            break
+        current = current.parent
+    raise ValueError('candidate LISP path is not under a closed runtime product root')
+
+
+def scoped_candidate_profile(product_root, receipt):
+    """Derive the registry profile id from runtime-product binding and run env."""
+    product_root = Path(os.path.abspath(product_root))
+    require(product_root.resolve() == product_root and not product_root.is_symlink()
+            and (product_root/'runtime-binding.json').is_file()
+            and (product_root/'runtime-product.json').is_file(),
+            'physical runtime product root required')
+    binding = json.loads((product_root/'runtime-binding.json').read_text(encoding='utf-8'),
+                         object_pairs_hook=_pairs)
+    product = json.loads((product_root/'runtime-product.json').read_text(encoding='utf-8'),
+                         object_pairs_hook=_pairs)
+    require(product.get('build_complete') is True and product.get('binding') == binding,
+            'runtime product binding does not match the closed product receipt')
+    env = receipt['runtime_environment']['candidate']
+    lisp = Path(env['FEMACS_STABLE_PRODUCT_LISP'])
+    require(lisp.is_absolute() and str(lisp).startswith(str(product_root) + os.sep),
+            'candidate LISP path is outside the closed runtime product')
+    kind, variant = binding.get('product'), binding.get('variant')
+    observer, hooks, leg = binding.get('observer'), binding.get('test_hooks'), binding.get('compiler_leg')
+    require(kind in ('terminal', 'cocoa')
+            and variant in ('baseline', 'native', 'collector', 'native-collector')
+            and type(observer) is bool and hooks is False and leg in ('normal', 'checking'),
+            'unsupported runtime product binding for classification')
+    if 'collector' in variant:
+        collector = env.get('FEMACS_GC_COLLECTOR')
+        require(collector in ('young', 'major'),
+                'collector product requires FEMACS_GC_COLLECTOR young|major from the closed run')
+    else:
+        require(env.get('FEMACS_GC_COLLECTOR') in (None, 'off'),
+                'non-collector product cannot claim a collector mode')
+        collector = 'off'
+    name = (kind + '-' + variant + ('-observer' if observer else '')
+            + ('-diagnostic' if hooks else ''))
+    profile_id = name + '-' + leg + (('-' + collector) if collector != 'off' else '')
+    if kind == 'cocoa':
+        program = product_root/'dist/Femacs.app/Contents/MacOS/Femacs'
+        dump = product_root/'dist/Femacs.app/Contents/Resources/libexec/Femacs.pdmp'
+        resources = {'lisp': str(product_root/'dist/Femacs.app/Contents/Resources/lisp')}
+    else:
+        program = product_root/'dist/terminal/src/emacs'
+        dump = product_root/'dist/terminal/src/emacs.pdmp'
+        resources = {'lisp': str(product_root/'dist/terminal/lisp')}
+    require(program.is_file() and dump.is_file(), 'closed product program/dump required')
+    require(bound_file(program)['sha256']
+            == receipt['products_before']['candidate']['program']['sha256'],
+            'runtime product program identity differs from closed receipt')
+    require(bound_file(dump)['sha256']
+            == receipt['products_before']['candidate']['dump']['sha256'],
+            'runtime product dump identity differs from closed receipt')
+    return dict(id=profile_id, kind=kind, compiler_leg=leg, native='native' in variant,
+                observer=observer, test_hooks=hooks, collector=collector,
+                program=str(program), dump=str(dump), resource_roots=resources,
+                product_receipt=str(product_root/'runtime-product.json'))
+
+
+def _capture_failing_rule(rule, case, *, root, api, profile_id, candidate_kind,
+                          controls, remote_controls, control_cache,
+                          correct_behavior_control=None):
+    """Bind observations and runtime gate conditions for one failing raw case."""
+    captured = dict(rule, observations={label: observation_signature(case[label])
+                                        for label in ('reference', 'candidate')})
+    if captured['category'] == 'known-reference-library-defect':
+        require(correct_behavior_control is not None,
+                'active reference defect needs correct candidate control')
+        captured['correct_behavior_control'] = correct_behavior_control
+    if (captured.get('category') == 'proven-version-evolution'
+            and isinstance(captured.get('version_gate'), dict)
+            and captured['version_gate'].get('kind') == 'filenotify-stopped-event-file'
+            and isinstance(captured.get('optional_gate'), dict)):
+        statuses = {case[s]['status'] for s in ('reference', 'candidate')}
+        if 'skipped' in statuses and 'failed' not in statuses:
+            captured.pop('version_gate')
+            captured['category'] = 'explicit-optional-capability'
+        else:
+            captured.pop('optional_gate')
+    if captured.get('category') == 'explicit-optional-capability':
+        captured['optional_gate'] = _capture_optional_gate(
+            captured.get('optional_gate'), root, api, case)
+        gate = captured['optional_gate']
+        if gate.get('kind') == 'file-monitor-identity':
+            gate['controls'] = _select_remote_controls(remote_controls, profile_id, control_cache)
+        if gate.get('kind') in {'entrypoint-variant', 'parameter-variant', 'display-context',
+                                'display-helper', 'direct-display-context'} and gate.get(
+                'control_source') != 'same-file':
+            gate_controls = {}
+            for label in gate['missing_on']:
+                display = gate.get('applicable_display') if gate['kind'] in {
+                    'display-context', 'direct-display-context', 'display-helper'} else None
+                if display == 'cocoa' and label == 'candidate' and candidate_kind == 'terminal':
+                    continue
+                gate_controls[label] = _select_control(
+                    controls, case, label, profile_id, purpose='applicability', display=display,
+                    counterpart=('test/lisp/progmodes/cperl-mode-tests.el'
+                                 if gate['kind'] == 'entrypoint-variant' else None),
+                    test_id=gate.get('control_test_id'), cache=control_cache)
+            gate['controls'] = gate_controls
+        elif gate.get('kind') == 'display-svg-subcapability':
+            purpose = 'current-version' if gate.get('control_corpus') == 'current' else 'applicability'
+            gate_controls = {
+                'reference': _select_control(controls, case, 'reference', profile_id,
+                    purpose=purpose, display='cocoa', test_id=case['id'], cache=control_cache),
+            }
+            if candidate_kind != 'terminal':
+                gate_controls['candidate'] = _select_control(
+                    controls, case, 'candidate', profile_id, purpose=purpose, display='cocoa',
+                    test_id=gate['control_test_id'], cache=control_cache)
+            gate['controls'] = gate_controls
+    if captured.get('category') == 'proven-version-evolution':
+        if captured.get('version_gate') is None:
+            captured['version_control'] = _select_control(
+                controls, case, 'candidate', profile_id, purpose='current-version',
+                cache=control_cache)
+        elif captured['version_gate'].get('kind') == 'filenotify-stopped-event-file':
+            require('controls' not in captured['version_gate'],
+                    'source version gates cannot supply remote controls')
+            captured['version_gate'] = dict(
+                captured['version_gate'],
+                controls=_select_remote_controls(remote_controls, profile_id, control_cache))
+    if captured.get('category') == 'approved-host-environment-limitation':
+        env_gate = captured.get('environment_gate')
+        require(isinstance(env_gate, dict) and 'conditions' not in env_gate,
+                'source environment gates cannot supply runtime conditions')
+        captured['environment_gate'] = dict(env_gate, conditions={
+            label: _original_case_event(root, api, case, label).get('condition')
+            for label in ('reference', 'candidate')})
+    invalid = captured.get('invalid_gate')
+    if isinstance(invalid, dict) and invalid.get('kind') == 'asynchronous-signal-liveness':
+        require(not {'conditions', 'controls'} & set(invalid),
+                'source definitions cannot supply remote observations')
+        captured['invalid_gate'] = dict(
+            invalid,
+            controls=_select_remote_controls(remote_controls, profile_id, control_cache),
+            conditions={label: _original_case_event(root, api, case, label).get('condition')
+                        for label in ('reference', 'candidate')
+                        if case[label]['status'] == 'failed'})
+    if isinstance(invalid, dict) and invalid.get('kind') == 'wall-clock-format-precision':
+        require('conditions' not in invalid, 'reviewed definitions cannot supply runtime conditions')
+        captured['invalid_gate'] = dict(invalid, conditions={
+            label: _original_case_event(root, api, case, label).get('condition')
+            for label in ('reference', 'candidate') if case[label]['status'] == 'failed'})
+    if isinstance(invalid, dict) and invalid.get('kind') == 'removed-upstream-producer':
+        require('conditions' not in invalid,
+                'reviewed definitions cannot supply runtime conditions')
+        captured['invalid_gate'] = dict(invalid, conditions={
+            label: _original_case_event(root, api, case, label).get('condition')
+            for label in ('reference', 'candidate')})
+    if isinstance(invalid, dict) and invalid.get('kind') in {
+            'unreachable-gate', 'manual-nonterminating-diagnostic'}:
+        require('conditions' not in invalid, 'reviewed definitions cannot supply runtime conditions')
+        captured['invalid_gate'] = dict(invalid, conditions={
+            label: _original_case_event(root, api, case, label).get('condition')
+            for label in ('reference', 'candidate')})
+    if isinstance(invalid, dict) and invalid.get('kind') == 'unpopulated-graphical-snapshot-wrapper':
+        require(not {'conditions', 'controls'} & set(invalid),
+                'reviewed definitions cannot supply runtime conditions or controls')
+        scenario_controls = ({} if candidate_kind == 'terminal' else {
+            label: [_select_control(controls, case, label, profile_id,
+                        purpose='applicability', display='cocoa',
+                        counterpart=target_file, test_id=target_id,
+                        test_environment=ERC_GRAPHICAL_TEST_ENVIRONMENT,
+                        cache=control_cache)
+                    for target_file, target_id in ERC_GRAPHICAL_SCENARIO_CONTROLS]
+            for label in ('reference', 'candidate')
+        })
+        captured['invalid_gate'] = dict(
+            invalid,
+            conditions={label: _original_case_event(root, api, case, label).get('condition')
+                        for label in ('reference', 'candidate')},
+            controls=scenario_controls)
+    if isinstance(invalid, dict) and invalid.get('kind') == 'display-gated-upstream-broken-test':
+        require(not {'conditions', 'controls'} & set(invalid),
+                'reviewed definitions cannot supply runtime conditions or controls')
+        display = invalid.get('applicable_display')
+        labels = (['reference']
+                  if display == 'cocoa' and candidate_kind == 'terminal'
+                  else ['reference', 'candidate'])
+        captured['invalid_gate'] = dict(
+            invalid,
+            conditions={label: _original_case_event(root, api, case, label).get('condition')
+                        for label in ('reference', 'candidate')},
+            controls={label: _select_control(controls, case, label, profile_id,
+                          purpose='applicability', display=display,
+                          test_id=invalid['control_test_id'], cache=control_cache)
+                      for label in labels})
+    return captured
+
+
 def assemble(stage, args):
     """Capture mechanical bindings; never infer a category from a tag or status."""
     execution = stage.execution
@@ -2454,123 +2694,12 @@ def assemble(stage, args):
                     ordinary_unused.add(key)
                     continue
                 matched.add(key)
-                captured = dict(rules[key], observations={label: observation_signature(case[label])
-                    for label in ('reference', 'candidate')})
-                if captured['category'] == 'known-reference-library-defect':
-                    captured['correct_behavior_control'] = correct_controls['candidate']
-                if (captured.get('category') == 'proven-version-evolution'
-                        and isinstance(captured.get('version_gate'), dict)
-                        and captured['version_gate'].get('kind') == 'filenotify-stopped-event-file'
-                        and isinstance(captured.get('optional_gate'), dict)):
-                    statuses = {case[s]['status'] for s in ('reference', 'candidate')}
-                    if 'skipped' in statuses and 'failed' not in statuses:
-                        captured.pop('version_gate')
-                        captured['category'] = 'explicit-optional-capability'
-                    else:
-                        captured.pop('optional_gate')
-                if captured.get('category') == 'explicit-optional-capability':
-                    captured['optional_gate'] = _capture_optional_gate(
-                        captured.get('optional_gate'), root, suite, case)
-                    gate = captured['optional_gate']
-                    if gate.get('kind') == 'file-monitor-identity':
-                        gate['controls'] = _select_remote_controls(remote_controls, profile, control_cache)
-                    if gate.get('kind') in {'entrypoint-variant', 'parameter-variant', 'display-context', 'display-helper',
-                                          'direct-display-context'} and gate.get('control_source') != 'same-file':
-                        gate_controls = {}
-                        for label in gate['missing_on']:
-                            display = gate.get('applicable_display') if gate['kind'] in {
-                                'display-context', 'direct-display-context', 'display-helper'} else None
-                            if display == 'cocoa' and label == 'candidate' and candidate.get('kind') == 'terminal':
-                                continue
-                            gate_controls[label] = _select_control(controls, case, label, profile,
-                                purpose='applicability', display=display,
-                                counterpart=('test/lisp/progmodes/cperl-mode-tests.el'
-                                    if gate['kind'] == 'entrypoint-variant' else None),
-                                test_id=gate.get('control_test_id'), cache=control_cache)
-                        gate['controls'] = gate_controls
-                    elif gate.get('kind') == 'display-svg-subcapability':
-                        purpose = 'current-version' if gate.get('control_corpus') == 'current' else 'applicability'
-                        gate_controls = {
-                            'reference': _select_control(controls, case, 'reference', profile,
-                                purpose=purpose, display='cocoa', test_id=case['id'], cache=control_cache),
-                        }
-                        if candidate.get('kind') != 'terminal':
-                            gate_controls['candidate'] = _select_control(controls, case, 'candidate', profile,
-                                purpose=purpose, display='cocoa', test_id=gate['control_test_id'],
-                                cache=control_cache)
-                        gate['controls'] = gate_controls
-                if captured.get('category') == 'proven-version-evolution':
-                    if captured.get('version_gate') is None:
-                        captured['version_control'] = _select_control(controls, case, 'candidate', profile,
-                            purpose='current-version', cache=control_cache)
-                    elif captured['version_gate'].get('kind') == 'filenotify-stopped-event-file':
-                        require('controls' not in captured['version_gate'],
-                                'source version gates cannot supply remote controls')
-                        captured['version_gate'] = dict(captured['version_gate'],
-                            controls=_select_remote_controls(remote_controls, profile, control_cache))
-                if captured.get('category') == 'approved-host-environment-limitation':
-                    env_gate = captured.get('environment_gate')
-                    require(isinstance(env_gate, dict) and 'conditions' not in env_gate,
-                            'source environment gates cannot supply runtime conditions')
-                    captured['environment_gate'] = dict(env_gate, conditions={
-                        label: _original_case_event(root, suite, case, label).get('condition')
-                        for label in ('reference', 'candidate')})
-                invalid = captured.get('invalid_gate')
-                if isinstance(invalid, dict) and invalid.get('kind') == 'asynchronous-signal-liveness':
-                    require(not {'conditions','controls'} & set(invalid),
-                            'source definitions cannot supply remote observations')
-                    captured['invalid_gate'] = dict(invalid,
-                        controls=_select_remote_controls(remote_controls, profile, control_cache),
-                        conditions={label:_original_case_event(root, suite, case, label).get('condition')
-                                    for label in ('reference','candidate') if case[label]['status'] == 'failed'})
-                if isinstance(invalid, dict) and invalid.get('kind') == 'wall-clock-format-precision':
-                    require('conditions' not in invalid, 'reviewed definitions cannot supply runtime conditions')
-                    captured['invalid_gate'] = dict(invalid, conditions={
-                        label: _original_case_event(root, suite, case, label).get('condition')
-                        for label in ('reference', 'candidate') if case[label]['status'] == 'failed'})
-                if isinstance(invalid, dict) and invalid.get('kind') == 'removed-upstream-producer':
-                    require('conditions' not in invalid,
-                            'reviewed definitions cannot supply runtime conditions')
-                    captured['invalid_gate'] = dict(invalid, conditions={
-                        label: _original_case_event(root, suite, case, label).get('condition')
-                        for label in ('reference', 'candidate')})
-                if isinstance(invalid, dict) and invalid.get('kind') in {
-                        'unreachable-gate', 'manual-nonterminating-diagnostic'}:
-                    require('conditions' not in invalid, 'reviewed definitions cannot supply runtime conditions')
-                    captured['invalid_gate'] = dict(invalid, conditions={label:
-                        _original_case_event(root, suite, case, label).get('condition')
-                        for label in ('reference', 'candidate')})
-                if isinstance(invalid, dict) and invalid.get('kind') == 'unpopulated-graphical-snapshot-wrapper':
-                    require(not {'conditions', 'controls'} & set(invalid),
-                            'reviewed definitions cannot supply runtime conditions or controls')
-                    scenario_controls = ({} if candidate.get('kind') == 'terminal' else {
-                        label: [_select_control(controls, case, label, profile,
-                                    purpose='applicability', display='cocoa',
-                                    counterpart=target_file, test_id=target_id,
-                                    test_environment=ERC_GRAPHICAL_TEST_ENVIRONMENT,
-                                    cache=control_cache)
-                                for target_file, target_id in ERC_GRAPHICAL_SCENARIO_CONTROLS]
-                        for label in ('reference', 'candidate')
-                    })
-                    captured['invalid_gate'] = dict(invalid,
-                        conditions={label: _original_case_event(root, suite, case, label).get('condition')
-                                    for label in ('reference', 'candidate')},
-                        controls=scenario_controls)
-                if isinstance(invalid, dict) and invalid.get('kind') == 'display-gated-upstream-broken-test':
-                    require(not {'conditions', 'controls'} & set(invalid),
-                            'reviewed definitions cannot supply runtime conditions or controls')
-                    display = invalid.get('applicable_display')
-                    labels = (['reference']
-                              if display == 'cocoa' and candidate.get('kind') == 'terminal'
-                              else ['reference', 'candidate'])
-                    captured['invalid_gate'] = dict(invalid,
-                        conditions={label: _original_case_event(root, suite, case, label).get('condition')
-                                    for label in ('reference', 'candidate')},
-                        controls={label: _select_control(controls, case, label, profile,
-                                      purpose='applicability', display=display,
-                                      test_id=invalid['control_test_id'], cache=control_cache)
-                                  for label in labels})
-                catalog['rules'].append(captured)
+                catalog['rules'].append(_capture_failing_rule(
+                    rules[key], case, root=root, api=suite, profile_id=profile,
+                    candidate_kind=candidate.get('kind'), controls=controls,
+                    remote_controls=remote_controls, control_cache=control_cache,
+                    correct_behavior_control=(correct_controls.get('candidate')
+                        if rules[key]['category'] == 'known-reference-library-defect' else None)))
     requested = {key for key in rules if key[0] in catalog['contexts']}
     require(discovered == requested,
             'reviewed definition was not registered by the supplied complete original files')
@@ -2602,33 +2731,57 @@ def assemble(stage, args):
 
 
 def assemble_scoped(args):
-    """Bind reviewed rules to one real product channel, without the 48-profile matrix.
+    """Bind reviewed rules to one real product channel via the mature capture path.
 
-    The rule validation is the same one `assemble()` applies: every definition
-    must carry a category, a non-empty reason, canonical repository-relative
-    source anchors and no pre-baked observations. Only rules whose file and test
-    id actually appear in the closed receipt are bound, so a scoped catalog
-    claims nothing about files it did not run. The receipt, its reference
-    selection and its own product identity stay untouched.
+    Profile identity comes from the closed runtime-product binding plus the run's
+    collector environment. Observations, gate conditions and control bindings use
+    the same helper as matrix `assemble()`; assess then consumes the catalog.
+    Missing controls leave those failures unexplained instead of forging proof.
     """
-    receipt_path = Path(os.path.abspath(args.receipt))
-    receipt = json.loads(receipt_path.read_text(encoding='utf-8'))
-    definition_path = Path(os.path.abspath(args.approved_rules))
-    definition = json.loads(definition_path.read_text(encoding='utf-8'))
+    receipt_arg = Path(os.path.abspath(args.receipt))
+    root = receipt_arg.parent if receipt_arg.is_file() else receipt_arg
+    require(root.is_dir() and (root/'stable-suite-completion.json').is_file()
+            and (root/'stable-suite-run.json').is_file(),
+            'closed acceptance root with completion and detailed run required')
+    receipt = json.loads((root/'stable-suite-completion.json').read_text(encoding='utf-8'),
+                         object_pairs_hook=_pairs)
+    require(receipt.get('schema') == 'femacs-stable-completion-v1'
+            and isinstance(receipt.get('detailed'), dict)
+            and receipt['detailed'].get('sha256'),
+            'closed stable completion receipt required')
+    definition_pin = bound_file(args.approved_rules, limit=MAX_CATALOG)
+    definition = json.loads(read_bytes(args.approved_rules, definition_pin, MAX_CATALOG),
+                            object_pairs_hook=_pairs)
     require(isinstance(definition, dict) and set(definition) == {'schema', 'profiles', 'rules'}
             and definition['schema'] == 'femacs-stable-source-rule-specs-v1'
+            and isinstance(definition.get('profiles'), list)
             and isinstance(definition['rules'], list) and len(definition['rules']) <= MAX_RULES,
             'reviewed source rule spec required')
-    selection = json.loads(Path(os.path.abspath(args.reference_selection)).read_text(encoding='utf-8'))
+    selection = json.loads(Path(os.path.abspath(args.reference_selection)).read_text(encoding='utf-8'),
+                           object_pairs_hook=_pairs)
     require(isinstance(selection.get('epoch'), str) and isinstance(selection.get('upstream'), dict)
             and isinstance(selection.get('sha256'), str), 'bound reference epoch required')
-    profile = dict(id=args.profile, kind='cocoa', test_hooks=False)
-    observed = {(case['file'], case['id']) for case in receipt['cases']}
+    product_root = product_root_from_receipt(receipt)
+    if getattr(args, 'product', None) is not None:
+        declared = Path(os.path.abspath(args.product))
+        require(declared.resolve() == product_root.resolve(),
+                'declared --product does not match the closed candidate runtime product')
+    profile = scoped_candidate_profile(product_root, receipt)
+    require(profile['id'] in definition['profiles'],
+            'derived profile is outside the reviewed source-rule profile set')
+    if args.profile is not None:
+        require(args.profile == profile['id'],
+                'declared --profile does not match runtime-product/binding+environment')
     repository = Path(__file__).resolve().parent.parent
-    rules, skipped = [], []
+    suite, api = _load_suite_api()
+    manifest_path = repository/'compatibility/stable-31.1/sources.json'
+    require(receipt['manifest_sha256'] == api._sha256_path(manifest_path),
+            'completion manifest identity differs from the repository corpus')
+    manifest = suite.load_manifest(manifest_path, repository)
+    source_rules = {}
     for rule in definition['rules']:
-        require(isinstance(rule.get('file'), str) and isinstance(rule.get('id'), str)
-                and rule.get('category') in CATEGORIES
+        require(isinstance(rule, dict) and isinstance(rule.get('file'), str)
+                and isinstance(rule.get('id'), str) and rule.get('category') in CATEGORIES
                 and isinstance(rule.get('reason'), str) and bool(rule['reason'].strip())
                 and 'observations' not in rule, 'source-reviewed definition required')
         anchors = rule.get('source_evidence')
@@ -2636,42 +2789,161 @@ def assemble_scoped(args):
                 'reviewed definitions require bounded portable source anchors')
         expanded = []
         for anchor in anchors:
+            require(isinstance(anchor, dict) and isinstance(anchor.get('path'), str),
+                    'invalid portable source anchor')
             relative = Path(anchor['path'])
             require(not relative.is_absolute() and '..' not in relative.parts
                     and relative.as_posix() == anchor['path'],
                     'source definitions must use canonical repository-relative anchors')
             expanded.append(dict(anchor, path=str(repository/relative)))
-        if (rule['file'], rule['id']) not in observed:
-            skipped.append(dict(file=rule['file'], id=rule['id'], reason='not present in this channel receipt'))
-            continue
-        rules.append(dict(rule, profile=args.profile, source_evidence=expanded))
-    catalog = dict(schema=SCHEMA,
-                   manifest_sha256=receipt['manifest_sha256'],
+        key = (rule['file'], rule['id'])
+        require(key not in source_rules, 'duplicate reviewed source definition')
+        source_rules[key] = dict(rule, profile=profile['id'], source_evidence=expanded)
+    controls, _ = _closed_controls(getattr(args, 'control_run', []) or [])
+    remote_controls, _ = _remote_collections(getattr(args, 'remote_contract_run', []) or [])
+    library_contracts = []
+    for path in getattr(args, 'library_contract_run', []) or []:
+        path = str(Path(os.path.abspath(path)))
+        library_contracts.append(dict(path=path, identity=bound_file(path, limit=MAX_ITEM)))
+    control_cache = {}
+    catalog = dict(schema=SCHEMA, manifest_sha256=receipt['manifest_sha256'],
                    reference_selection_sha256=selection['sha256'],
-                   contexts={args.profile: dict(
+                   contexts={profile['id']: dict(
                        context_sha256=context_identity(receipt, profile, selection),
-                       run_sha256=hashlib.sha256(receipt_path.read_bytes()).hexdigest(),
-                       completion_sha256=None)},
-                   rules=rules)
+                       run_sha256=receipt['detailed']['sha256'],
+                       completion_sha256=api._sha256_path(root/'stable-suite-completion.json'))},
+                   rules=[])
+    discovered, bound, skipped, capture_failures = set(), set(), [], []
+    detailed = root/'stable-suite-run.json'
+    bound_file(detailed, dict(bytes=receipt['detailed']['bytes'],
+                              sha256=receipt['detailed']['sha256']))
+    subset = receipt.get('subset')
+    entry_rows = (api._load_batch().select_entrypoints(manifest, subset)
+                  if subset is not None else api._load_batch().select_entrypoints(manifest))
+    by_path = {entry['path']: entry for entry in entry_rows}
+    file_rows = {item['file']: item for kind, item in detailed_rows(detailed) if kind == 'files'}
+
+    def bind_captured(rule, case, *, correct_behavior_control=None):
+        captured = _capture_failing_rule(
+            rule, case, root=root, api=suite, profile_id=profile['id'],
+            candidate_kind=profile['kind'], controls=controls,
+            remote_controls=remote_controls, control_cache=control_cache,
+            correct_behavior_control=correct_behavior_control)
+        # Accept only bindings that the mature assess path can prove on this
+        # channel; mismatched outcomes stay unexplained instead of aborting.
+        _accept_rule(captured, case, file_rows[case['file']], by_path[case['file']],
+                     root, suite, selection, profile, receipt, control_cache,
+                     manifest=manifest)
+        catalog['rules'].append(captured)
+        bound.add((case['file'], case['id']))
+
+    for kind, case in detailed_rows(detailed):
+        if kind != 'cases':
+            continue
+        key = (case.get('file'), case.get('id'))
+        if key not in source_rules:
+            continue
+        require(key not in discovered and type(case.get('passed')) is bool,
+                'reviewed definition must match one actual registered observation')
+        discovered.add(key)
+        rule = source_rules[key]
+        if rule['category'] == 'known-reference-library-defect':
+            state = reference_defect_state(
+                rule, case, file_rows[case['file']], receipt,
+                {label: _original_case_event(root, suite, case, label)
+                 for label in ('reference', 'candidate')}, root, suite)
+            labels = reference_contract_labels(state['state'])
+            correct_controls = {}
+            for label in labels:
+                target = profile['id'] if label == 'candidate' else 'installed-reference'
+                matches = [pin for pin in library_contracts if any(
+                    row.get('profile') == target
+                    for row in _control_json(pin, control_cache).get('cases', []))]
+                if len(matches) != 1:
+                    state['state'] = 'correct-behavior-control-required'
+                    break
+                correct_controls[label] = matches[0]
+            if state['state'] == 'correct-behavior-control-required':
+                skipped.append(dict(file=key[0], id=key[1],
+                                    reason='reference-defect control unavailable'))
+                continue
+            catalog['contexts'][profile['id']].setdefault('reference_defects', []).append(
+                dict(definition=rule, controls=correct_controls))
+            if state['state'] != 'active-reference-only-defect':
+                skipped.append(dict(file=key[0], id=key[1],
+                                    reason='reference-defect-not-active:' + state['state']))
+                continue
+            if case['passed']:
+                skipped.append(dict(file=key[0], id=key[1], reason='ordinarily-passing'))
+                continue
+            try:
+                bind_captured(rule, case,
+                              correct_behavior_control=correct_controls.get('candidate'))
+            except ValueError as error:
+                capture_failures.append(dict(file=key[0], id=key[1],
+                                             reason=str(error)))
+            continue
+        if case['passed']:
+            skipped.append(dict(file=key[0], id=key[1], reason='ordinarily-passing'))
+            continue
+        try:
+            bind_captured(rule, case)
+        except ValueError as error:
+            capture_failures.append(dict(file=key[0], id=key[1], reason=str(error)))
+    for key, rule in source_rules.items():
+        if key in discovered:
+            continue
+        skipped.append(dict(file=key[0], id=key[1],
+                            reason='not present in this channel receipt'))
     out = Path(os.path.abspath(args.out))
     require(not os.path.lexists(out), 'fresh scoped assembly output required')
     out.mkdir(parents=True)
     path = out/'classification.json'
     _write_catalog(path, catalog)
-    result = dict(schema='femacs-stable-scoped-assembly-v1', passed=True,
-                  profile=args.profile, receipt=str(receipt_path),
-                  reference_selection=str(Path(os.path.abspath(args.reference_selection))),
-                  classification_catalog=dict(path=str(path), **bound_file(path)),
-                  bound_rule_count=len(rules), unapplied_rule_count=len(skipped),
-                  unapplied=skipped[:64], matrix_complete=False,
-                  scope=dict(entrypoints=len(receipt.get('files', [])),
-                             cases=len(receipt.get('cases', [])),
-                             declared_subset=receipt.get('subset')),
-                  note='one real product channel; no 48-profile matrix and no rewrite of closed outcomes',
-                  compatibility_accepted=False, goal_complete=False)
+    accounting_path = out/'accounting.json'
+    try:
+        accounting = assess(api, root, receipt, manifest, path, profile, selection)
+        (accounting_path).write_text(json.dumps(accounting, ensure_ascii=False, indent=2) + '\n',
+                                     encoding='utf-8')
+        assembly_ok = True
+        error = None
+    except Exception as exc:
+        accounting = None
+        assembly_ok = False
+        error = f'{type(exc).__name__}: {exc}'
+        (out/'accounting-error.txt').write_text(error + '\n', encoding='utf-8')
+    result = dict(
+        schema='femacs-stable-scoped-assembly-v1',
+        passed=assembly_ok and accounting is not None
+               and accounting.get('structural_failure_count') == 0,
+        profile=profile['id'], product_root=str(product_root),
+        receipt=str(root/'stable-suite-completion.json'),
+        reference_selection=str(Path(os.path.abspath(args.reference_selection))),
+        classification_catalog=dict(path=str(path), **bound_file(path)),
+        bound_rule_count=len(catalog['rules']),
+        discovered_rule_count=len(discovered),
+        unapplied_rule_count=len(skipped),
+        capture_failure_count=len(capture_failures),
+        unapplied=skipped[:64], capture_failures=capture_failures[:64],
+        matrix_complete=False,
+        scope=dict(entrypoints=receipt.get('entrypoint_count'),
+                   cases=receipt.get('case_count'),
+                   failures=receipt.get('failure_count'),
+                   declared_subset=receipt.get('subset'),
+                   receipt_scope=receipt.get('scope')),
+        accounting=(dict(path=str(accounting_path), **bound_file(accounting_path))
+                    if accounting is not None else None),
+        classified_case_count=(accounting or {}).get('classified_case_count'),
+        blocking_case_failure_count=(accounting or {}).get('blocking_case_failure_count'),
+        structural_failure_count=(accounting or {}).get('structural_failure_count'),
+        classified_corpus_accepted=(accounting or {}).get('classified_corpus_accepted'),
+        blocking_cases=(accounting or {}).get('blocking_cases'),
+        error=error,
+        note='one real product channel; mature observation capture and assess; no 48-profile matrix',
+        compatibility_accepted=False, goal_complete=False)
     (out/'results.json').write_text(json.dumps(result, ensure_ascii=False, indent=2) + '\n',
                                     encoding='utf-8')
-    return 0
+    return 0 if result['passed'] else 1
 
 
 def run(stage, args):
