@@ -1,0 +1,7 @@
+# CLN261 — Consumed current semantic case state
+
+After `current-runtime-semantics-4` naturally passed (`ert` 10,335/10,335, `negative` 608/608, `dump` 48/48, `relocation` 60/60) and its artifact owner released, removed only indexed case-parent `out` directories and the exact 48 dump-test profiles’ generated `runtime-image.pdmp`, 32 `dump-native.eln` units and isolated environment directories. Current compiled products, original product dumps, native-negative fixtures, reference inputs and formal action/case evidence remain for their upcoming consumers.
+
+Removed 418 ordinary files and 11,847 directories: 830,520,493 logical bytes and 831,385,600 previously allocated bytes. Scoped `lsof` confirmed zero open handles before deletion, and all selected roots are physically absent. No archive or relocated copy was created. The [compact scope record](../manifests/2026-11-14-261-consumed-semantic-state.json) binds per-action counts and normalized node digest `daf4123ae477aa0cafdca1f5e5dc285815def206102bb15da89c76d1a519b841`.
+
+All 144 pre-existing source/WIP files and the main Git index were unchanged. All 20 formal action metadata/results files, `current-runtime-semantics-4/results.json` and all 12,135 indexed case evidence files were reverified byte-for-byte unchanged after deletion. Future runs regenerate fresh images through the maintained semantics action. Whole-volume free-space changes are not causally attributed; this cleanup does not accept stable corpus, performance or the overall Goal.

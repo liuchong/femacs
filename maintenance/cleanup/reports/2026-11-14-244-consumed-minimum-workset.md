@@ -1,0 +1,19 @@
+# CLN244 — Consumed minimum product workset
+
+The user requested immediate removal of build outputs. After all scoped consumers exited, `lsof` returned 1 with no output for `build/` and `.femacs-cache/`. Both directories were removed completely; no rebuild followed cleanup. The repository now measures 5.6 GiB with `du -sh`.
+
+The removed scope contained 38,504 files, 2,661 directories and 32 links: 2,550,815,374 logical bytes and 2,640,834,560 previously allocated bytes. Links were not followed. All 89 pre-existing source/WIP contents, Git status and main index were unchanged by deletion. The [compact scope summary](../manifests/2026-11-14-244-consumed-minimum-workset.json) records the two removed roots. These are directory accounting figures, not a causal claim about whole-volume free space.
+
+Before retirement, the clean maintained-source export excluded old Lisp bytecode. Release xtask built the minimum Cocoa native normal/checking configuration successfully in 700.506 controller seconds, with complete controller cleanup and peak accounted memory of 883,376,128 bytes. Its source manifest was `c2f7aec44f2f2245ec963fd55069b483cd433052f0fd2727e7ce50907f3ec243`.
+
+Both actual candidate products passed all four hidden/visible buffer contracts without an injected correction override. The unchanged original sidebar file ran all discovered IDs on the reference and both candidates: four candidate cases passed ordinarily; the reference retained one pass and one original failure. Seven postflight checks passed. Its consumed retained reference state was also removed after closure-proof verification.
+
+The final concentrated tool integration passed nine groups, including four actual editor processes, followed by seventeen critical protections. Source-rule generation expanded 568 definitions across 48 profiles into 27,264 entries; this was source preparation, not runtime classification acceptance. The installed reference's exact NS source pin was revalidated against its five-line color-refresh insertion; the callback source used by the gate was unchanged. No alternate old hash was admitted.
+
+These were bounded product/original-file checks, not full 61-profile admission, 555-file/48-candidate acceptance, performance, installed-app or independent review. Existing raw failures were not promoted. All removed paths are historical and unavailable. Future work must use maintained sources and explicit declared inputs; removal itself does not require another build.
+
+The consumed controller logs and bounded input metadata were removed immediately after extracting these conclusions: 19 files, 15617337 logical bytes. Declared SDK inputs remain; no raw build or test outputs were moved elsewhere.
+
+Cleanup exposed a missing maintained producer for bounded installation metadata. The explicit capture-inputs entry and shared strict reader now replace that hand-generated input. Eight file/process integrations and twenty-six protections passed; the current installed reference consumed freshly captured inputs in one real terminal process and still demonstrated its original hidden-buffer defect. No candidate was rebuilt. The four consumed small output roots were then removed: 11 files, 16 directories, 20603 logical bytes. build/cache are absent again; source/WIP and index unchanged.
+
+During the final matrix run, the pinned source-acquisition cache was already copied into the frozen export and had no selected references or open handles. Its exact stable-corpus child was removed immediately: 1537 files/253 directories/0 links, 20997410 logical bytes. Frozen inventories, active driver/receipt and main index were unchanged; the running matrix and its products were preserved. The normalized cache identity is recorded in the compact scope summary; future acquisition uses the maintained pinned provider.

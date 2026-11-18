@@ -1,0 +1,7 @@
+# CLN262 — Superseded incomplete stable seed 4
+
+After `current-runtime-stable-seed-4` closed incomplete (`542/555` files complete; `13` mock-shell files hit `mock shell initialization content differs` before runner synchronization) and its root cause was aligned in `tools/stable-suite.py` and `tools/fixtures/stable-suite-runner.el`, removed its superseded outer stage directory, source-tree inner output, all `200` retained owned case containers referenced by its file records, and its two closed controller launch/stderr logs.
+
+Removed `26,352` ordinary files, `3,901` directories and `12` symbolic links: `687,414,406` logical bytes and `742,752,256` previously allocated bytes. Scoped `lsof` confirmed zero open handles across all selected roots before deletion, and every selected path is physically absent. Link targets were not followed; no archive or relocated copy was created. The [compact scope record](../manifests/2026-11-15-262-superseded-stable-seed-4.json) binds per-scope counts and normalized node digest `9d4a81f1e41817883499690899442d0ed4159e9b5d08aa85f472f71f74cfbd50`.
+
+All `147` source/WIP files, the main Git index, and all `5` Cohort-4 build/products/reference/prepare/semantics receipts (`current-runtime-build-4`, `current-reference-selection-4`, `current-runtime-prepare-4`, `current-runtime-semantics-4`) were verified byte-for-byte unchanged after deletion. Whole-volume free-space changes are not causally attributed; fresh `current-runtime-stable-seed-5` still has to execute and close cleanly.

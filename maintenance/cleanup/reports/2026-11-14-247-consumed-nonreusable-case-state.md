@@ -1,0 +1,7 @@
+# CLN247 — Consumed case state without reuse proof
+
+After the current555-file first pair closed, removed only four owned temporary case containers for the reference/candidate Eglot and Ispell files. All original file results, owner records and event streams remain unchanged. Their missing closure-time state proofs were not reconstructed; these file sides remain ineligible for reuse and must execute fresh.
+
+Removed139 files,81 directories and4 FIFOs:5,202,873 logical bytes and5,484,544 previously allocated bytes. Eglot’s named pipes are deliberately unsupported by the strict state-proof API. Ispell left two owned temporary directories with mode000; their owner access was restored only to inspect occupancy and complete deletion. Each root then had an empty, successful no-holder observation before deletion. The protection API and seven-role equality gate were not weakened.
+
+All four roots are physically absent.96 pre-existing source/WIP files,12 original result/owner/event files and the main Git index were unchanged. No archive or relocated copy was created; no external holder was signalled. The [compact scope record](../manifests/2026-11-14-247-consumed-nonreusable-case-state.json) includes hashed root/node identities and the two permission normalizations. Fresh maintained fixtures supply future state; historical random names/timing are not reconstructable. Whole-volume free-space changes are not causally attributed.
