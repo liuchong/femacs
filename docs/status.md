@@ -26685,6 +26685,14 @@ Fresh reference selection passed7/7 postflight checks, actual installation/confi
 User approved this exact DNS case as a nonblocking environment limitation and requires the existing proxy to remain enabled and unchanged. Four bounded HTTPS queries completed without errors: both Google andCloudflare resolved `example.com` (Status0,2 A answers) and returned NXDOMAIN for `emacs.invalid` (Status3,no answers),1.499–2.389s per query. The host system lookup still reports its synthetic proxy addresses. This verifies a remote-resolver contrast, not candidate/editor or original ERT acceptance; raw failures, counts and exits remain unchanged. No Dot task was sent; that route is cancelled. Fresh full555/48 observations and any precise exception binding remain pending.
 
 
+### 2026-11-18 — 第 19 轮：terminal 范围化 test18 采集与严格消费的控制器证明缺口
+
+**范围化采集（只跑索引 `opencode_missing[0]`）**：`--display terminal` + 四个 `--test-id` 采 native `tramp-test18-*`，产物 `build/acceptance/g3-controls-native-test18-1`。首轮在 `tramp-test18-file-attributes` **306.7 s 被杀**（exit -9），缩减后的第二次调用 8.3 s 完成 3 案但 **0 通过**；整个 envelope 维持 `complete=false`，其早先个别事件不用于报通过。未重扫 Tramp 全集或 555。
+
+**严格消费**：`g3-scoped-consume-555-2` 结构通过（441 规则绑定、structural=0），但 125 条捕获失败首因为 **“control controller and artifact output have different owners”**——每轮控制的控制器 stderr 落在会话临时文件里、现已不存在，我只提供了合并包装日志。**有效阻断仍 128**，未伪造、未放行。
+
+**下一轮修正（我负责）**：启动控制采集时把**每轮控制器 stderr 写进该轮目录**（`<run>/controller.stderr`），使严格消费可按 owner_pid 绑定；索引已记该要求。
+
 ### 2026-11-18 — 第 18 轮：控制采集完成与消费卡点（不豁免、不重生成回执）
 
 **采集（真实控制器终态）**：本地控制 `g3-controls-old-1`（frozen-2）**passed / collection_complete=true**，14 文件 14 案，selected-product 准入；远端 `g3-remote-native-1` **passed**（signal/watch 合同均真、真实编辑器执行，26.6 s）；library（nickbar）`g3-library-native-nickbar-1` **passed**（`dframe-create-buffer-v1`，0.5 s）。native-collector-1 的 tramp 控制在 `tramp-test29-start-file-process` 377 s 被杀，**维持 incomplete**，其早先个别通过事件不用于报完整通过，也不盲重试。
