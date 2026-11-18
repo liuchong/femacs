@@ -1,0 +1,2 @@
+# Process ownership and actual runtime memory measurement.
+psutil==7.2.2
