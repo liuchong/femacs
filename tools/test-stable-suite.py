@@ -324,6 +324,38 @@ class MockShellEnvironmentContracts(unittest.TestCase):
                 SUITE.case_environment(case, self.root)
 
 
+class DeclaredSubsetContracts(unittest.TestCase):
+    """A declared subset narrows scope and can never claim whole-corpus coverage."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.suite = SUITE
+        cls.manifest = SUITE.load_manifest(
+            REPO/'compatibility/stable-31.1/sources.json', Path(REPO).resolve())
+        cls.batch = BATCH
+
+    def test_subset_selects_exactly_the_named_entrypoints(self):
+        full = self.batch.select_entrypoints(self.manifest)
+        named = [full[0]['path'], full[-1]['path']]
+        selected = self.batch.select_entrypoints(self.manifest, named)
+        self.assertEqual([entry['path'] for entry in selected], sorted(named))
+        self.assertLess(len(selected), len(full))
+
+    def test_subset_rejects_empty_unknown_and_duplicate_names(self):
+        for bad in ([], ['test/not-a-real-file.el'], ['test/src/data-tests.el'] * 2, [''], [None]):
+            with self.assertRaises(ValueError):
+                self.batch.select_entrypoints(self.manifest, bad)
+
+    def test_subset_never_reports_corpus_completion(self):
+        report = dict(schema=self.suite.RESULT_SCHEMA, selector='all-discovered-ids',
+                      scope='stable-31.1-original-ELFILES-declared-subset',
+                      subset=['test/src/data-tests.el'], full_corpus_entrypoint_count=555,
+                      corpus_complete=False, subset_complete=True)
+        self.assertFalse(report['corpus_complete'])
+        self.assertTrue(report['subset_complete'])
+        self.assertEqual(report['full_corpus_entrypoint_count'], 555)
+
+
 class StableBatchEnvironmentContracts(unittest.TestCase):
     def setUp(self):
         parent = Path(os.environ.get("FEMACS_RUNTIME_TEST_ROOT", REPO / "build/acceptance/runtime-contracts"))
@@ -347,11 +379,11 @@ class StableBatchEnvironmentContracts(unittest.TestCase):
                                      self.root / 'one', compact=True)
         two = SUITE.case_environment('test/lisp/emacs-lisp/package-tests.el',
                                      self.root / 'two', compact=True)
-        self.assertEqual(Path(one['FEMACS_RUNTIME_CASE_ROOT']), self.root / 'one/case')
+        self.assertEqual(Path(one['FEMACS_RUNTIME_CASE_ROOT']), self.root / 'one/c')
         for key in ('HOME', 'TMPDIR', 'FEMACS_RUNTIME_NATIVE_CACHE', 'FEMACS_RUNTIME_OUT'):
             self.assertNotEqual(one[key], two[key])
-            self.assertTrue(Path(one[key]).is_relative_to(self.root / 'one/case'))
-            self.assertTrue(Path(two[key]).is_relative_to(self.root / 'two/case'))
+            self.assertTrue(Path(one[key]).is_relative_to(self.root / 'one/c'))
+            self.assertTrue(Path(two[key]).is_relative_to(self.root / 'two/c'))
         self.assertNotIn('GNUPGHOME', one)
         self.assertNotIn('GNUPGHOME', two)
 
@@ -375,7 +407,7 @@ class StableBatchEnvironmentContracts(unittest.TestCase):
         self.assertTrue(record['retained'])
         self.assertTrue(record['short_container'])
         self.assertEqual(record['inode'], container.lstat().st_ino)
-        self.assertTrue((container / 'case/tmp').is_dir())
+        self.assertTrue((container / 'c/tmp').is_dir())
 
     def test_replaced_empty_parent_is_preserved(self):
         container = self.root / "container"
