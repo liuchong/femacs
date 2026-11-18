@@ -1,0 +1,33 @@
+{
+  "schema": "femacs-stable-harness-selection-v1",
+  "scope": "2026-11-18 G3 555-entrypoint single-product run (build/acceptance/g3-555-frozen2)",
+  "note": "One harness role was never committed at run time. Its exact bytes were recovered by reversing the recorded subset edits applied later to the same file, and the result was accepted only because its SHA-256 equals the value the closed receipt recorded. The other five roles are resolved from Git or from the acceptance snapshots that already record their own identities; nothing here is invented and no recorded SHA is exempted.",
+  "files": {
+    "stable-suite-batch.py": {
+      "source": {
+        "path": "/Users/liu/projects/src/github.com/liuchong/femacs/tools/stable-suite-batch.py",
+        "identity": {
+          "kind": "file",
+          "bytes": 97121,
+          "sha256": "bb2987f9696b60ef2fc1a72087e4aad7a68ee326ae7047339c8401deb9e3545b"
+        }
+      },
+      "captured": {
+        "path": "/Users/liu/projects/src/github.com/liuchong/femacs/maintenance/harness-history/2026-11-18-g3-555/stable-suite-batch.py",
+        "identity": {
+          "kind": "file",
+          "bytes": 97121,
+          "sha256": "bb2987f9696b60ef2fc1a72087e4aad7a68ee326ae7047339c8401deb9e3545b"
+        }
+      },
+      "provenance": {
+        "kind": "sha256-verified-reconstruction",
+        "recorded_by": "build/acceptance/g3-555-frozen2/stable-suite-run.json harness_sources",
+        "method": "reverse the declared-subset edits applied in commit 6238b92e to tools/stable-suite-batch.py",
+        "accepted_because": "the reconstructed bytes hash to the recorded role SHA-256",
+        "not_a_git_object": true
+      }
+    }
+  },
+  "superseded_snapshot_roles": "stable-suite-runner.el, runtime-retire.py and stable-suite.py resolve from build/acceptance/p466-terminal-probe-1/stable-harness/stable-harness-selection.json and .../stable-runner/stable-runner-selection.json; reference-corpus.py and stable-context.py resolve from Git"
+}

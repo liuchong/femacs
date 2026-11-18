@@ -102,7 +102,7 @@ def snapshot_roles(paths: list[Path]) -> dict:
             observed = hashlib.sha256(captured.read_bytes()).hexdigest()
             if observed != expected:
                 raise ValueError(f'captured harness copy no longer matches its identity: {captured}')
-            resolved.setdefault(source_path, captured)
+            resolved.setdefault(source_path, []).append(captured)
     return resolved
 
 
@@ -116,11 +116,14 @@ def resolve(repo: Path, receipt: dict, snapshots: dict | None = None) -> dict:
             raise ValueError(f'invalid recorded harness SHA-256 for {path}')
         role = resolve_role(repo, path, sha256)
         if role['source'] != 'git' and snapshots and path in snapshots:
-            captured = snapshots[path]
-            if hashlib.sha256(captured.read_bytes()).hexdigest() == sha256:
-                role = dict(path=path, sha256=sha256, source='snapshot', captured=str(captured))
+            # Several recorded snapshots may hold the same role at different
+            # revisions; the first one whose bytes hash to the recorded SHA wins.
+            for captured in snapshots[path]:
+                if hashlib.sha256(captured.read_bytes()).hexdigest() == sha256:
+                    role = dict(path=path, sha256=sha256, source='snapshot', captured=str(captured))
+                    break
         roles.append(role)
-    gaps = [role for role in roles if role['source'] != 'git']
+    gaps = [role for role in roles if role['source'] not in ('git', 'snapshot')]
     return dict(schema='femacs-stable-harness-history-v1',
                 receipt=receipt.get('detailed', {}).get('path'),
                 roles=roles, gaps=gaps, complete=not gaps,
