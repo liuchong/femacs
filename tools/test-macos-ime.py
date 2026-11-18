@@ -112,6 +112,10 @@ def run_scenario(binary,sender,sources,work,mode,expected,pinyin_id=None):
                     self.returncode=0
                     return 0
             process=Launched(pid)
+            launch_record={'bundle':str(app),'pid':pid,'image':os.path.realpath(image),
+                           'bundle_executable':os.path.realpath(str(binary)),
+                           'same_image':os.path.realpath(image)==os.path.realpath(str(binary)),
+                           'method':'NSWorkspace.OpenConfiguration arguments+environment, new instance, activates'}
         def snapshot():
             try:return json.loads(report.read_text())
             except (OSError,ValueError):return {}
@@ -212,7 +216,8 @@ def run_scenario(binary,sender,sources,work,mode,expected,pinyin_id=None):
         callbacks=read_callbacks(trace)
         if trace.stat().st_size>1_048_576 or not {'keyDown','setMarkedText','insertText'} <= {r.get('event') for r in callbacks}:
             raise RuntimeError('missing or oversized native callback evidence')
-        result.update(passed=process.returncode==0,committed=committed,callback_count=len(callbacks))
+        result.update(passed=process.returncode==0,committed=committed,callback_count=len(callbacks),
+                      launch=locals().get('launch_record'))
       except (OSError,ValueError,RuntimeError,subprocess.SubprocessError) as e:result['error']=str(e)
       finally:
         if process is not None and process.poll() is None:
