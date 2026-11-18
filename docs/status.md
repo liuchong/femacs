@@ -26685,6 +26685,20 @@ Fresh reference selection passed7/7 postflight checks, actual installation/confi
 User approved this exact DNS case as a nonblocking environment limitation and requires the existing proxy to remain enabled and unchanged. Four bounded HTTPS queries completed without errors: both Google andCloudflare resolved `example.com` (Status0,2 A answers) and returned NXDOMAIN for `emacs.invalid` (Status3,no answers),1.499–2.389s per query. The host system lookup still reports its synthetic proxy addresses. This verifies a remote-resolver contrast, not candidate/editor or original ERT acceptance; raw failures, counts and exits remain unchanged. No Dot task was sent; that route is cancelled. Fresh full555/48 observations and any precise exception binding remain pending.
 
 
+### 2026-11-18 — 第 29 轮：已验工作集收进 Git，待验清单显式化
+
+**25 份在跟踪修改全部提交并推送**（`6fb30a7d…b5b0e7ee`），分三类：
+
+1. **字节即被使用**（其 SHA 出现在闭合回执）：`runtime-owner`、`runtime-reference`、`runtime-retire`、`runtime-stage`、`stable-suite-runner.el`——这些就是产生已接受证据的运行字节，无需重跑。
+2. **正式文档**：`docs/current-state.md`、`docs/repository-bootstrap.md`、`docs/runtime-modernization.md`。
+3. **已接受 cohort 的输入字节**（其 SHA 记录在 `current-runtime-semantics-5` 等 artifact-preservation）：`frame.rs`、`lread.rs`、`xdisp.rs`、`nsmenu.swift`、`nsterm.swift`、`emacsclient.rs`、`bootstrap-resources.py`、`symbol-shorthand-protection.el`、`runtime-resume.py` 与 8 份测试源。提交只声明"来源可核 + 与已验 cohort 同字节"，**不声明这些行为已单独验收**。
+
+**待验清单（下一必要集成验收）**：上述业务/平台源与 8 份测试需一次聚焦验收；`runtime-resume` 与 symbol-shorthand 夹具各需自有运行。
+
+**g3 索引按实际消费机械更新**：`build/acceptance/g3-effective-blocking.json` 改为 `555-17` + `subset-4`，有效阻断 **3**（仅 eglot），原始失败 574/37 未改。
+
+**cleanup manifests** 继续本地保留（535 MB 逐轮账本，不塞 Git）。
+
 ### 2026-11-18 — 第 28 轮：IME 经 LaunchServices 启动后 steady 场景通过，并修正等待判活
 
 **实现（Apple 当前入口）**：新增 `tools/fixtures/ime-launch.swift`，用 `NSWorkspace.OpenConfiguration`（arguments／environment／`createsNewApplicationInstance`／`activates`）打开**指定 bundle**；`tools/test-macos-ime.py` 改为该路径，并在任何 AX 操作前核对返回 PID 的映像路径等于所请求 bundle，杜绝复用运行中的已安装 Fe。提交 `c84b0d79`。
