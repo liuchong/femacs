@@ -26685,6 +26685,18 @@ Fresh reference selection passed7/7 postflight checks, actual installation/confi
 User approved this exact DNS case as a nonblocking environment limitation and requires the existing proxy to remain enabled and unchanged. Four bounded HTTPS queries completed without errors: both Google andCloudflare resolved `example.com` (Status0,2 A answers) and returned NXDOMAIN for `emacs.invalid` (Status3,no answers),1.499–2.389s per query. The host system lookup still reports its synthetic proxy addresses. This verifies a remote-resolver contrast, not candidate/editor or original ERT acceptance; raw failures, counts and exits remain unchanged. No Dot task was sent; that route is cancelled. Fresh full555/48 observations and any precise exception binding remain pending.
 
 
+### 2026-11-18 — 第 21 轮：按门禁两侧采证，阻断 113→74
+
+**关键修正**：`entrypoint-variant` 门禁要求**两侧**控制——候选侧用 counterpart `cperl-mode-tests.el` 同 ID、`purpose=applicability`（`--corpus stable`），参考侧还需 `--include-reference` 生成 `installed-reference` 每案。此前只采候选侧，故 33 条始终“缺一个精确通过控制”。用现成 `stable-controls.py` 一次采齐两侧（`build/acceptance/g3-controls-cperl-2`：两 profile 各 65 案全通过）。
+
+**严格消费（两通道）**：
+- 旧 555：`g3-scoped-consume-555-7` passed，规则 461→**494**，捕获失败 105→**72**，阻断 113→**80**，structural=0。
+- 新子集：`g3-scoped-consume-subset-1` passed，规则 30，阻断 8→**7**（nickbar 经 library 合同绑定），剩 tramp 5 + filenotify 2。
+
+**有效阻断索引更新**：`build/acceptance/g3-effective-blocking.json` 按“544 旧 + 11 新、旧阻断已被新产品替代者不计”合并，**113→74**，剔除 13 条替代项；头部 use-package 25、speedbar 9、visual-wrap 5、tramp 5、elisp-mode 4、image 3。剩余需要仍逐项标注（精确通过控制 59、同产品远端 3、版本范围 1、平台门 1、子集 4+3）。
+
+**test18**：两种上下文都未通过，停止换模式与重试，等 Cursor 只读上游定位依据；未改四文件。
+
 ### 2026-11-18 — 第 20 轮：控制器身份配对修正与严格消费生效
 
 **身份核对**：`sh -c` 包装会让控制器 `root_pid`（shell）与产物 `owner_pid`（Python）天然不同，严格消费据此拒绝。改为**受控入口直接 exec Python**、控制器流写固定旁目录（`build/acceptance/controller-logs/`，不预建 fresh `--out`）。已验证 `g3-controls-old-2`（owner 38912 = controller 38912）与 `g3-controls-idcheck-1`（37598 = 37598）成对；library 探针只交 results、不涉 owner 配对。
