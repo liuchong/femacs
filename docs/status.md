@@ -26685,7 +26685,19 @@ Fresh reference selection passed7/7 postflight checks, actual installation/confi
 User approved this exact DNS case as a nonblocking environment limitation and requires the existing proxy to remain enabled and unchanged. Four bounded HTTPS queries completed without errors: both Google andCloudflare resolved `example.com` (Status0,2 A answers) and returned NXDOMAIN for `emacs.invalid` (Status3,no answers),1.499–2.389s per query. The host system lookup still reports its synthetic proxy addresses. This verifies a remote-resolver contrast, not candidate/editor or original ERT acceptance; raw failures, counts and exits remain unchanged. No Dot task was sent; that route is cancelled. Fresh full555/48 observations and any precise exception binding remain pending.
 
 
-### 2026-11-18 — 第 35 轮：strict probe 接上闭合参照绑定；eglot 三条一轮定位（tramp×2 为环境 PATH，完成项为 clangd 版本）
+### 2026-11-18 — 第 36 轮：strict probe 接线原因定死并修完（单文件 same）；eglot 两条无现成门、第三条停
+
+**strict probe（`84cdada3` 准入 + `f8050d29` 接线）**：用退出 255 的原始记录定位——候选侧 stderr 为 `missing bound source-test context`，原因是分片把 baseline 的 `test/` 目录当作 source-test context，而 runner 要求的是 baseline `source-context.json` 里**每侧一个**的 context 根（含 `test/` 与 `lisp/`）；同一入口还把结果与日志写进传入的那个根，所以夹具基座与证据根必须是同一个 `--out`。现按侧取 context 根、夹具物化到 `--out` 本身，证据（`results/`、`logs/`、`adjudication.json`）同根。单文件验证 `test/src/print-tests.el`：**verdict=same、complete=true、exit 0** ⇒ 之前两个文件的 `incomplete` 是接线问题，不是产品失败；此前"正向两产品都执行"的说法按 incomplete 更正，不再引用。
+
+**eglot（既有门与原始 clangd）**：已批准规则共 575 条，其中 eglot 9 条全部是 `explicit-optional-capability`，逐条绑定各测试自身的 `skip-unless`（如 `eglot-test-snippet-completions` 绑 `executable-find "clangd"`）；两条 tramp **没有**对应规则，且本次观测状态是 `failed`，而该类别要求"两侧都真实 skip"才可用 ⇒ **无精确匹配的现成门**，不新增类别、不改原失败。
+
+**原始受控运行实际找到哪个 clangd**：分片把调用方 PATH 原样传给产品；该 PATH 有 `/opt/homebrew/bin` 但没有 keg-only 的 `/opt/homebrew/opt/llvm/bin`，因此远端 `executable-find` 命中 **`/usr/bin/clangd`（Apple clangd 21.0.0）**，随后 10 s 超时。我的定向运行改用 `/opt/homebrew/opt/llvm/bin` 在前的 PATH（**Homebrew clangd 23.1.5**），两条 tramp 双端通过。⇒ 两条 tramp 的原始失败是**该环境下远端 clangd 版本/可启动性**问题，有旧原始证据，但**没有现成门**可绑定。
+
+**第三条**：原运行在 21.0.0 下同败，定向运行在 23.1.5 下仍同败（同一断言 `looking-at "123"`，但两次 harness 环境不同，不是受控 A/B）⇒ 跨两个版本都失败，**不支持**"版本行为"的判因；按指令停在"只证实同败"，不做结论。
+
+**可续接条件**：① 两条 tramp 需一条经复核的门（把远端 clangd 作为 host facility 固定为同一版本，或在固定 clangd 下重跑完整通道并记录 skip/失败语义）；② 第三条需固定同一 harness 环境下的 21.0.0 vs 23.1.5 受控对照，或成熟上游依据；③ strict probe 其余文件未复跑。g3 有效阻断仍 **3**。
+
+### 2026-11-18 — 第 35 轮：strict probe 接上闭合参照绑定；eglot 三条一轮定位（tramp×2 为环境 PATH，完成项仅证同败）
 
 **1. `--reference-selection` 的真实绑定（`84cdada3`）**：原实现只从 products 文件取唯一 `kind=reference` 行。现改为必填闭合的 `reference-selection.json`，并核：① 文档自带摘要对 `build_root/results.json`、`original_products_path`、`selected_products_path` 三个目标逐个比对；② 选中 registry 恰一行且居首的 `installed-reference`，资源根恰为 `{lisp,data}`；③ 实机 `product_identity(..., resources=True)` 与文档 `selected_reference.identity` 相等；④ 任何验收标志为 true 即拒；⑤ 参照 program/dump/lisp 必须与闭合 baseline 的 `stable-suite-inputs.json` 记录**逐项相同**；`FEMACS_REFERENCE_LISP` 只能确认该绑定根，不一致即报错（不再静默替换）。
 
@@ -26693,9 +26705,9 @@ User approved this exact DNS case as a nonblocking environment limitation and re
 
 **运行**：正向 `build/acceptance/probe-positive-1` —— 绑定全部通过（selection sha `f5f050a0…`、参照 program `23f49087…`、dump `e1d2a9f0…`），两产品均实际执行；随后该文件判 `incomplete`（候选 exit 255），属 strict 分片自身的执行问题，不作绑定结论、不冒充通过。负向一：篡改 `selected_reference.identity.program.sha256` ⇒ 运行前拒绝（exit 2）。负向二：篡改 baseline 的 dump 摘要 ⇒ 运行前拒绝。
 
-**2. eglot 三条一轮定位（`build/acceptance/eglot-localize-1`）**：先读原失败——两条 tramp 在 ref/candidate **同样**报 `[eglot] Timed out after 10 seconds`，完成项在同侧报 `(should (looking-at "123"))`。三条定向运行固定同一语料文件 `compatibility/stable-31.1/test/lisp/progmodes/eglot-tests.el` 与同一 selector，两产品同条件，唯一变量是 mock TRAMP 远端可见的 PATH（加入 `/opt/homebrew/opt/llvm/bin`）：**ref 与 candidate 均 2 通过 + 1 失败**——两条 tramp 通过，完成项仍**同样失败**。clangd 为 `Homebrew clangd 23.1.5`。判读：tramp×2 是环境/远端程序查找（隔离 lane 的 PATH 没有 clangd），完成项是 clangd 版本行为、两侧一致；两者都不是端口缺陷，但**不改原测试、不改规则**。
+**2. eglot 三条一轮定位（`build/acceptance/eglot-localize-1`）**：先读原失败——两条 tramp 在 ref/candidate **同样**报 `[eglot] Timed out after 10 seconds`，完成项在同侧报 `(should (looking-at "123"))`。三条定向运行固定同一语料文件 `compatibility/stable-31.1/test/lisp/progmodes/eglot-tests.el` 与同一 selector，两产品同条件，唯一变量是 mock TRAMP 远端可见的 PATH（加入 `/opt/homebrew/opt/llvm/bin`）：**ref 与 candidate 均 2 通过 + 1 失败**——两条 tramp 通过，完成项仍**同样失败**。clangd 为 `Homebrew clangd 23.1.5`。判读：tramp×2 是环境/远端程序查找（隔离 lane 的 PATH 没有 clangd），完成项只证实在 clangd `23.1.5` 下**两侧同败**，尚无跨版本对照，不能据此判为版本行为；两者都不改原测试、不改规则。
 
-**解除条件**：① tramp×2 需一条经复核的分类规则绑定上述固定 PATH 证据；② 完成项需上游依据（该断言对应的 clangd 行为）或钉住与断言匹配的 clangd 版本，或由复核者裁定为已知版本差异。g3 有效阻断仍记 **3**，未改原失败、未重扫 555/子集。
+**解除条件**：① tramp×2 需一条经复核的分类规则绑定上述固定 PATH 证据；② 完成项需同输入下钉住的对照 clangd 版本（或成熟上游依据）才能判因，当前只有 23.1.5 的单版本读数。g3 有效阻断仍记 **3**，未改原失败、未重扫 555/子集。
 
 ### 2026-11-18 — 第 34 轮：纠正 native+young 的因果结论，补定向屏障负载并修掉 own-voice 两处
 
