@@ -8152,6 +8152,16 @@ private func ns_input_trace(_ event: String, _ details: @autoclosure () -> Strin
     if let f = (view as? EmacsView)?.emacsframe, FRAME_LIVE_P(f) {
       record["coreSize"] = [FRAME_PIXEL_WIDTH(f), FRAME_PIXEL_HEIGHT(f)]
     }
+    // Per-client input source (NSTextInputContext), not process-global TIS.
+    // Keep Optional<String> and NSNull on separate branches so the dictionary
+    // value type stays JSON-safe Any without String?/NSNull coercion.
+    let inputContext = view.inputContext
+    record["clientHasInputContext"] = inputContext != nil
+    if let source = inputContext?.selectedKeyboardInputSource {
+      record["selectedKeyboardInputSource"] = source
+    } else {
+      record["selectedKeyboardInputSource"] = NSNull()
+    }
   }
   guard var data = try? JSONSerialization.data(withJSONObject: record) else { return }
   data.append(10)

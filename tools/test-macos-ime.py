@@ -51,6 +51,19 @@ def native_window_ready(records,title):
         if row.get('keyWindow') is not True or row.get('appActive') is not True:return False
     return True
 
+def client_source_sample(records,title,prefer_events=None):
+    """Latest per-client input-source fields for one titled view, if present."""
+    if not isinstance(title,str) or not title or not records:return None
+    owned=[row for row in records if isinstance(row,dict) and row.get('windowTitle')==title]
+    if prefer_events:
+        preferred=[row for row in owned if row.get('event') in prefer_events]
+        if preferred:owned=preferred
+    else:
+        interesting=[row for row in owned if row.get('event') in
+                     ('windowDidBecomeKey','firstResponderState','becomeFirstResponder','keyDown')]
+        if interesting:owned=interesting
+    return owned[-1] if owned else None
+
 def run_scenario(binary,sender,sources,work,mode,expected,pinyin_id=None):
     work=new_output(work)
     rows=[];process=None;started=time.monotonic();original=None
@@ -174,6 +187,23 @@ def run_scenario(binary,sender,sources,work,mode,expected,pinyin_id=None):
                 rows.append({'id':'native-window-cycle','target':title,'at':time.monotonic()})
             wait(label,lambda s:s.get('selected')==title and native_window_ready(read_callbacks(trace),title))
             target_title=title
+        def observe_client_source(label,prefer_events=None):
+            # Diagnostic only: process TIS vs per-client NSTextInputContext source.
+            # Missing fields (pre-rebuild binary) and mismatches stay in steps; they
+            # never raise and never change scenario pass/fail.
+            process_state=status()
+            sample=client_source_sample(read_callbacks(trace),target_title,prefer_events)
+            client=None if sample is None else sample.get('selectedKeyboardInputSource')
+            has_context=None if sample is None else sample.get('clientHasInputContext')
+            field_present=isinstance(sample,dict) and (
+                'selectedKeyboardInputSource' in sample or 'clientHasInputContext' in sample)
+            rows.append({'id':label,'at':time.monotonic(),'window_title':target_title,
+                         'process_source':process_state.get('source'),
+                         'client_source':client,'client_has_input_context':has_context,
+                         'diagnostic_fields_present':field_present,
+                         'sources_equal':isinstance(client,str) and client==process_state.get('source'),
+                         'sample_event':None if sample is None else sample.get('event'),
+                         'role':'observation'})
         wait('native-startup',lambda s:s.get('native')=='ns')
         wait('native-window-focus',lambda s:native_window_ready(read_callbacks(trace),target_title))
         if mode=='multi':
@@ -194,7 +224,12 @@ def run_scenario(binary,sender,sources,work,mode,expected,pinyin_id=None):
         wait('minibuffer-cancel',lambda s:not s.get('minibuffer') and not s.get('marked') and s.get('text')==committed)
         if mode=='multi':
             focus_frame('Femacs IME B','frame-b-focus')
-            select(pinyin);pinyin_keys([45,34,4,0,31]);wait('frame-b-marked',lambda s:s.get('marked'))
+            select(pinyin)
+            observe_client_source('client-source-after-b-focus-select',
+                                  ('windowDidBecomeKey','firstResponderState','becomeFirstResponder','keyDown'))
+            pinyin_keys([45,34,4,0,31])
+            observe_client_source('client-source-on-b-first-keys',('keyDown',))
+            wait('frame-b-marked',lambda s:s.get('marked'))
             pinyin_keys([49]);wait('frame-b-commit',lambda s:not s.get('marked') and s.get('second_text')==expected and s.get('text')==committed)
             focus_frame('Femacs IME A','frame-a-return')
             pinyin_keys([45,34]);wait('frame-a-pending',lambda s:s.get('marked'))
