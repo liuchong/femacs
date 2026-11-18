@@ -26691,7 +26691,7 @@ User approved this exact DNS case as a nonblocking environment limitation and re
 
 **定向复验（`build/acceptance/g3-subset-native-1`，候选 native-collector-1，young）**：11 个入口、**603 用例**、2702 s；both-pass **566**、both-fail **30**、仅参照失败 **7**、**仅候选失败 0**。上一轮 104 条候选独有中 **103 条已通过**（`comp-tests` 100 + `emacs-lisp/comp-tests` 3），只剩 `tramp-test31-signal-process`（`process-live-p` 仍为真）——原 Tramp 语义未明，按约定不再加探针。能力差异确认由产品配置（native-comp 可用性）造成，不是 VM/GC 回归。
 
-**历史 harness 身份**：`tools/stable-harness-history.py` 逐角色把回执里的 SHA-256 解析到可核验字节——先用 Git 对象（`git cat-file`），再用**带来源回执的只读快照**（`stable-harness-selection.json` / `stable-runner-selection.json`，逐个校验其记录身份后才使用）。旧 555 六个角色 **5 个可核验**（Git 2：`reference-corpus.py`、`stable-context.py`；快照 3：`stable-suite-runner.el`、`runtime-retire.py`、`stable-suite.py`），**1 个缺口**：`stable-suite-batch.py` SHA `bb2987f9…` 在 Git 与任何已记录快照中都不存在（运行当时是未提交工作区字节，之后被本轮子集改动覆盖）。按约定直接交缺口，不重扫 555 掩盖；`read_completion` 增加可选的 `harness_history` 参数，逐角色要求同 SHA 且来源可解析，缺一即报错，不删检查、不放宽。
+**历史 harness 身份**：`tools/stable-harness-history.py` 逐角色把回执里的 SHA-256 解析到可核验字节——先用 Git 对象（`git cat-file`），再用**带来源回执的只读快照**（`stable-harness-selection.json` / `stable-runner-selection.json`，逐个校验其记录身份后才使用）。旧 555 六个角色**全部可核验**：Git 2（`reference-corpus.py`、`stable-context.py`）＋已记录只读快照 3（`stable-suite-runner.el`、`runtime-retire.py`、`stable-suite.py`）＋1 个**按记录反向还原并经 SHA-256 认定的真实源**（`stable-suite-batch.py` `bb2987f9…`；它在运行当时是未提交字节，Git 全对象扫描中不存在）。还原件与来源说明进 Git：`maintenance/harness-history/2026-11-18-g3-555/{stable-suite-batch.py,index.json}`（`kind=sha256-verified-reconstruction`，接受条件=字节哈希等于回执记录值）。据此 `read_completion` 的历史验证通过（555 文件 / 9466 用例 / 574 原始失败），旧回执未改写、无旧 harness 豁免。历史查证只按显式文件与显式快照索引，不递归扫描 acceptance 树。
 
 **测试**：`tools/test-stable-suite.py` **43/43**（含子集选择、拒绝路径、子集不得声称全语料完成）。
 
