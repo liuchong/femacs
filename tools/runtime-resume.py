@@ -197,22 +197,19 @@ def append_products(report, case, root, host_provenance=None):
         if receipt.get('build_complete') is not True:
             continue
         verified = verify_product(receipt_path)
-        _, _, _, resources = execution.product_receipt_layout(verified, leg_root)
+        program_relative, dump_relative, _, resources = execution.product_receipt_layout(verified, leg_root)
         source_identity = verified['binding']['source_digest']
         if report.setdefault('pinned_source_digest', source_identity) != source_identity:
             raise ValueError('product source binding differs from original checkpoint')
-        if case['product'] == 'cocoa':
-            program = leg_root/'dist/Femacs.app/Contents/MacOS/Femacs'
-            dump = leg_root/'dist/Femacs.app/Contents/Resources/libexec/Femacs.pdmp'
-        else:
-            program, dump = leg_root/'dist/terminal/src/emacs', leg_root/'dist/terminal/src/emacs.pdmp'
+        program, dump = leg_root/program_relative, leg_root/dump_relative
         modes = ('major', 'young') if 'collector' in case['variant'] else ('off',)
         for mode in modes:
             identity = case['id'] + '-' + leg + ('-' + mode if mode != 'off' else '')
             report['products'].append(dict(id=identity, kind=case['product'], compiler_leg=leg,
                 native='native' in case['variant'], observer=case['observer'], test_hooks=case['test_hooks'],
                 collector=mode, program=str(program), dump=str(dump), resource_roots=resources,
-                product_receipt=str(receipt_path), host_provenance=host_provenance))
+                product_receipt=str(receipt_path), host_provenance=host_provenance,
+                source_cohort=report['source_export']['source_manifest_sha256']))
 
 
 def carry_terminals(prior_build, failed_controller, current_export, out, reference, retention_proof=None):
@@ -534,8 +531,8 @@ def host_build_inputs(source, original, env):
         'CARGO_TARGET_AARCH64_APPLE_DARWIN_LINKER', 'SDKROOT', 'MACOSX_DEPLOYMENT_TARGET',
         'CC', 'CXX', 'CARGO_TARGET_DIR') if name in env}
     commands = {'rustc':['rustc','-Vv'], 'cargo':['cargo','-V'],
-                'linker':['cc','--version'], 'sdk_path':['xcrun','--show-sdk-path'],
-                'sdk_version':['xcrun','--show-sdk-version']}
+                'linker':['cc','--version'], 'sdk_path':['xcrun','--sdk','macosx','--show-sdk-path'],
+                'sdk_version':['xcrun','--sdk','macosx','--show-sdk-version']}
     toolchain = {}
     for name, argv in commands.items():
         result = subprocess.run(argv, env=env, cwd=source, capture_output=True, text=True, timeout=30)
@@ -644,10 +641,135 @@ def verify_stop_observation(result_path, result, original):
                 native_controller_metrics_available=False)
 
 
+def verify_controller_loss(result, original):
+    """Admit a reaped supervisor loss without inventing its final metrics.
+
+    Only the prefix observed while both original process identities were live
+    can be reused. Later completed rows remain history and are rebuilt.
+    """
+    required = {'schema', 'original_build', 'root_identity', 'guard_identity',
+                'checkpoint', 'reaping', 'launch_record', 'partial_sha256',
+                'source_manifest_sha256', 'released_journal',
+                'captured_native_final_report_available',
+                'native_controller_metrics_available'}
+    if (set(result) != required or result['original_build'] != str(original)
+            or result['captured_native_final_report_available'] is not False
+            or result['native_controller_metrics_available'] is not False):
+        raise ValueError('exact external controller-loss evidence required')
+    partial = execution.bounded_json(original/'partial.json', 128*1024*1024)
+    if (execution.digest(original/'partial.json') != result['partial_sha256']
+            or partial['source_export']['source_manifest_sha256'] != result['source_manifest_sha256']):
+        raise ValueError('interrupted source or partial evidence changed')
+    identities = [result['guard_identity'], result['root_identity']]
+    for identity in identities:
+        pid, birth = identity.get('pid'), identity.get('birth')
+        if type(pid) is not int or pid <= 1 or not isinstance(birth, str) or not birth:
+            raise ValueError('original supervisor/root birth identities required')
+        current = subprocess.run(['ps', '-p', str(pid), '-o', 'lstart='],
+                                 capture_output=True, text=True, timeout=5)
+        if current.returncode not in (0, 1) or current.stderr.strip():
+            raise ValueError('original process identity is unknown')
+        if current.returncode == 0 and current.stdout.strip() == birth:
+            raise ValueError('original process identity is still alive')
+    if identities[0]['pid'] == identities[1]['pid']:
+        raise ValueError('supervisor and root identities must differ')
+    launch_pin = result['launch_record']
+    launch_path = execution.safe_path(launch_pin['path'])
+    if execution.digest(launch_path) != launch_pin['sha256']:
+        raise ValueError('original launch evidence changed')
+    launch = execution.bounded_json(launch_path, 64*1024)
+    argv = launch['argv']
+    if (not isinstance(argv, list) or not all(isinstance(v, str) for v in argv)
+            or argv.count('--out') != 1):
+        raise ValueError('exact original launch argv required')
+    output = Path(argv[argv.index('--out')+1])
+    if execution.safe_path(output if output.is_absolute() else REPO/output) != original:
+        raise ValueError('original launch output differs')
+    source = Path(partial['source_export']['source'])
+    for name, expected in launch['source_pins_at_launch'].items():
+        relative = Path(name)
+        if relative.is_absolute() or '..' in relative.parts:
+            raise ValueError('unsafe original source pin')
+        if execution.digest(execution.safe_path(source/relative)) != expected:
+            raise ValueError('original launched source differs from frozen input')
+    checkpoint, reaping = result['checkpoint'], result['reaping']
+    count = checkpoint.get('completed')
+    rows = partial['builds']
+    if (type(count) is not int or not 0 < count <= len(rows)
+            or checkpoint.get('passed') != count
+            or checkpoint.get('latest') != rows[count-1]['id']
+            or checkpoint.get('owner_identities') != [dict(pid=i['pid'], live=True) for i in identities]
+            or reaping.get('guard_absent') is not True
+            or reaping.get('root_parent') != 1
+            or reaping.get('owned_tree_reaped') is not True):
+        raise ValueError('live guarded prefix and actual post-stop reaping required')
+    times = [datetime.fromisoformat(value).timestamp() for value in
+             (checkpoint['checked_at'], reaping['observed_at'], reaping['reaped_at'])]
+    if not (times[0] <= times[1] <= times[2] <= time.time()+5):
+        raise ValueError('controller-loss observation chronology differs')
+    owned = reaping['owned_processes']
+    if str(result['root_identity']['pid']) not in owned:
+        raise ValueError('reaped process set omits the original root')
+    for pid, birth in owned.items():
+        if not str(pid).isdigit() or int(pid) <= 1 or type(birth) not in (int, float) or not math.isfinite(birth):
+            raise ValueError('invalid reaped process birth identity')
+        current = subprocess.run(['ps', '-p', str(pid), '-o', 'lstart='],
+                                 capture_output=True, text=True, timeout=5)
+        if current.returncode not in (0, 1) or current.stderr.strip():
+            raise ValueError('reaped descendant identity is unknown')
+        if current.returncode == 0 and current.stdout.strip() == time.ctime(birth):
+            raise ValueError('recorded descendant is still alive')
+    journal_pin = result['released_journal']
+    journal_path = execution.safe_path(journal_pin['path'])
+    if (journal_path != original/'artifact-preservation.json'
+            or execution.digest(journal_path) != journal_pin['sha256']):
+        raise ValueError('original artifact-release evidence changed')
+    journal = stage.owner.artifact_read(journal_path, require_owner=False)
+    if (journal['state'] != 'released' or journal.get('release_failures') != []
+            or journal['owner_pid'] != result['root_identity']['pid']
+            or journal['owner_birth'] != result['root_identity']['birth']):
+        raise ValueError('original artifact owner is not completely released')
+    del journal
+    planned = {case['id']: case for case in cases()}
+    admitted = []
+    for row in rows[:count]:
+        process = row['process']
+        if (row.get('id') not in planned or row['id'] in admitted
+                or any(row.get(k) != v for k, v in planned[row['id']].items())
+                or row.get('passed') is not True or process.get('complete') is not True
+                or process.get('exit_code') != 0 or process.get('timed_out') is not False
+                or process.get('remaining_group_terminated') is not False):
+            raise ValueError('guarded prefix contains an incomplete configuration')
+        admitted.append(row['id'])
+    return dict(result, root_pid=result['root_identity']['pid'],
+                stop_evidence_kind='verified-controller-loss-stop',
+                verified_completed_configurations=admitted,
+                ignored_later_completed_configurations=[row['id'] for row in rows[count:]])
+
+
+class OutputOccupancyError(ValueError):
+    """Retain the bounded query facts without exposing raw lsof output."""
+
+    def __init__(self, observation):
+        self.output_occupancy = dict(observation)
+        super().__init__('original output has active or unknown users: '
+                         + json.dumps(self.output_occupancy, sort_keys=True, allow_nan=False))
+
+
+def require_idle_output(original):
+    retirement = execution.load_tool('runtime-retire.py')
+    observation = retirement.check_occupancy(original)
+    if observation['clear'] is not True:
+        raise OutputOccupancyError(observation)
+    return observation
+
+
 def assert_stopped(result_path, original):
     result_path = execution.safe_path(result_path)
     result = execution.bounded_json(result_path)
-    if result.get('schema') in ('femacs-runtime-stop-observation-v1',
+    if result.get('schema') == 'femacs-runtime-controller-loss-observation-v1':
+        result = verify_controller_loss(result, original)
+    elif result.get('schema') in ('femacs-runtime-stop-observation-v1',
                                'femacs-runtime-finalization-stop-observation-v1'):
         result = verify_stop_observation(result_path, result, original)
     elif result.get('cleanup_complete') is not True or result.get('exit_code') == 0:
@@ -661,9 +783,7 @@ def assert_stopped(result_path, original):
     if (process.returncode == 0 and original.name in process.stdout
             and any(name in process.stdout for name in ('runtime-stage.py','runtime-resume.py'))):
         raise ValueError('original matrix owner is still alive')
-    occupancy = subprocess.run(['lsof','+D',str(original)], capture_output=True, text=True)
-    if occupancy.returncode != 1 or occupancy.stdout.strip() or occupancy.stderr.strip():
-        raise ValueError('original output has active or unknown users')
+    require_idle_output(original)
     return result
 
 
@@ -677,7 +797,8 @@ def resume(options, out, artifacts=None):
     prior = execution.bounded_json(original/'partial.json', 128 * 1024 * 1024)
     if (not (original/'fatal.json').is_file()
             and stopped.get('stop_evidence_kind') not in ('independently-verified-post-stop',
-                                                        'independently-verified-finalization-stop')):
+                                                        'independently-verified-finalization-stop',
+                                                        'verified-controller-loss-stop')):
         raise ValueError('original failed-run evidence must remain')
     lineage = stage.build_source_lineage(original, prior)
     source_owner = lineage[-1]
@@ -718,14 +839,35 @@ def resume(options, out, artifacts=None):
     report.update(source_cohorts=prior.get('source_cohorts', [prior['source_export']]),
                   uniform_source_snapshot=prior.get('uniform_source_snapshot', True),
                   recovery_coordinator_sha256=execution.digest(Path(__file__)))
+    input_paths = [execution.safe_path(options.controller_result), original/'partial.json',
+                   original/'build-owner-receipt.json']
+    if stopped.get('stop_evidence_kind') == 'verified-controller-loss-stop':
+        input_paths.extend(execution.safe_path(stopped[key]['path'])
+                           for key in ('launch_record', 'released_journal'))
+    input_identities = {str(path): execution.file_identity(path) for path in input_paths}
+    if artifacts is not None:
+        journal = stage.owner.artifact_read(artifacts.journal)
+        for name in input_identities:
+            if name not in journal['allowed_roots']:
+                journal['allowed_roots'].append(name)
+        stage.owner.artifact_write(artifacts.journal, journal)
+        stage.owner.capture_artifacts(artifacts.journal, input_identities)
+    report['recovery_input_identities'] = input_identities
     references = [p for p in prior['products'] if p['kind']=='reference']
     if len(references) != 1:
         raise ValueError('one original installed reference is required')
     report['products'].extend(references)
     report['reference_identity'] = execution.product_identity(references[0], resources=True)
+    if report['reference_identity'] != prior['reference_identity']:
+        raise ValueError('installed reference changed since the interrupted build')
+    if stopped.get('stop_evidence_kind') == 'verified-controller-loss-stop':
+        admitted = set(stopped['verified_completed_configurations'])
+        report['ignored_later_completed_configurations'] = stopped['ignored_later_completed_configurations']
+    else:
+        admitted = set(old_rows)
     for case in plan:
         old = old_rows.get(case['id'])
-        if old is None or old.get('passed') is not True:
+        if case['id'] not in admitted or old is None or old.get('passed') is not True:
             continue
         if (old['process'].get('exit_code') != 0 or old['process'].get('complete') is not True
                 or old['process'].get('remaining_group_terminated') is not False):
@@ -747,6 +889,15 @@ def resume(options, out, artifacts=None):
         append_products(report, case, root, original_host)
         report['builds'].append(dict(old, reused=True, host_provenance=original_host))
         report['reused_configurations'].append(case['id'])
+        if case['id'] in prior.get('compiler_copy_retirements', {}):
+            saved = prior['compiler_copy_retirements'][case['id']]
+            for compiler_leg, leg in (('normal', root), ('checking', root/'checking')):
+                item = saved[compiler_leg]
+                if (item['status'] != 'complete' or item['all_selected_absent'] is not True
+                        or os.path.lexists(leg/'objects/units')
+                        or execution.digest(leg/item['ledger']) != item['ledger_sha256']):
+                    raise ValueError('consumed compiler-copy retirement changed')
+            report.setdefault('compiler_copy_retirements', {})[case['id']] = saved
     execution.write_json(out/'partial.json', report)
     env = stage.clean_environment()
     env['CARGO_TARGET_DIR'] = str(original/'cargo')
@@ -800,6 +951,7 @@ def resume(options, out, artifacts=None):
     execution.write_json(driver.parent/'receipt.json',owner_receipt)
     execution.write_json(out/'build-owner-receipt.json',owner_receipt)
     report.update(xtask_sha256=identity, original_host_sha256=expected,
+                  xtask_profile=prior['xtask_profile'],
                   mixed_host_matrix=identity != expected and bool(report['reused_configurations']),
                   host_provenance=current_host, build_owner_receipt=str(driver.parent/'receipt.json'))
     execution.write_json(out/'partial.json',report)
@@ -837,9 +989,16 @@ def resume(options, out, artifacts=None):
         verify_source(source_owner,prior['source_export'])
         if execution.product_identity(references[0],resources=True) != report['reference_identity']:
             raise ValueError('installed reference changed during recovery')
-    execution.write_json(out/'products.json',dict(schema=1,products=report['products']))
+    execution.write_json(out/'products.json',dict(schema=1,products=report['products'],
+                                               source_cohorts=report['source_cohorts']))
     execution.load_products(out/'products.json')
+    inputs_unchanged = all(execution.file_identity(Path(name)) == pin
+                           for name, pin in input_identities.items())
+    if (not inputs_unchanged
+            or execution.digest(Path(__file__)) != report['recovery_coordinator_sha256']):
+        raise ValueError('recovery evidence or coordinator changed during execution')
     report.update(source_root=str(source),product_list=str(out/'products.json'),semantic_tests_executed=False,
+                  recovery_inputs_unchanged=inputs_unchanged,
                   passed=len(report['builds'])==20 and all(row['passed'] for row in report['builds'])
                          and len(report['products'])==61)
     return report
@@ -851,8 +1010,8 @@ def main(argv=None):
     parser.add_argument('--out',type=Path,required=True)
     parser.add_argument('--controller-result',type=Path,required=True)
     parser.add_argument('--backend-prefix',type=Path,required=True)
-    parser.add_argument('--retention-mode',choices=('archive','files'),default='archive',
-                        help='archive selected content or verify and retain its physical original files')
+    parser.add_argument('--retention-mode',choices=('files',),default='files',
+                        help='verify and retain selected physical files without a duplicate product archive')
     parser.add_argument('--recovered-host-sha256', help='Explicit distinct rebuilt host identity; default requires the original hash')
     options=parser.parse_args(argv)
     out=execution.new_output(options.out)
@@ -860,14 +1019,15 @@ def main(argv=None):
         with stage.owner.ArtifactRun(REPO, out) as artifacts:
             result=resume(options,out,artifacts)
             if result['passed']:
-                if options.retention_mode == 'files':
-                    result['artifact_retention'] = artifacts.retain_current_files()
-                else:
-                    artifacts.archive()
+                result['artifact_retention'] = artifacts.retain_current_files()
     except BaseException as error:
-        execution.write_json(out/'fatal.json',dict(passed=False,complete=False,error=str(error)))
+        failure = dict(passed=False, complete=False, error=str(error))
+        if isinstance(error, OutputOccupancyError):
+            failure['output_occupancy'] = error.output_occupancy
+        execution.write_json(out/'fatal.json', failure)
         raise
-    result.update(schema='femacs-runtime-stage-v1',action='build',goal_complete=False)
+    result.update(schema='femacs-runtime-stage-v1',action='build',goal_complete=False,
+                  coordinator_sha256=stage.COORDINATOR_SHA256)
     execution.write_json(out/'results.json',result)
     print(json.dumps(dict(passed=result['passed'],results=str(out/'results.json'))))
     return 0 if result['passed'] else 1
