@@ -1,0 +1,45 @@
+{
+  "schema": "femacs-external-toolchain-pins-v1",
+  "boundary": "External build prerequisites with a pinned, reproducible identity. Each entry records where the bytes come from, how they are built or unpacked, and the exact identities the build gate re-verifies. A local cache may satisfy an entry, but a cache is never the only source: every entry stays obtainable from the recorded upstream input plus the recipe below, so an empty working set can be rebuilt without any diagnostic directory.",
+  "toolchains": {
+    "tree-sitter": {
+      "version": "0.27.1",
+      "grammar_abi": 15,
+      "required_because": "xtask/src/treesit.rs rejects any other SDK before a compiler starts; the 0.27.1 header fixes TSInput.decode and the struct layout the mirror was written against.",
+      "upstream_source": {
+        "url": "https://github.com/tree-sitter/tree-sitter/archive/refs/tags/v0.27.1.tar.gz",
+        "sha256": "982cd3d4d9eb7be18c243240a622423fd2e4ecb4bec2cd98832c2f3fa1f0f333",
+        "homebrew_formula": "https://github.com/Homebrew/homebrew-core/blob/f07ac0964f9d02177aebb208b4030250609e22e1/Formula/t/tree-sitter.rb",
+        "oci_manifest_sha256": "40bad9ef192678201588c9d456a36d140a8a704ee085bc7a04da86b61d46e7e4",
+        "oci_layer_sha256": "c42e8f765aedd344347abdbae7fa65e11e07905b07f2cb24d63a19597fff62f2",
+        "oci_layer_bytes": 202130
+      },
+      "recipe": {
+        "kind": "source-build-amalgamated",
+        "steps": [
+          "download the pinned upstream tarball and verify sha256",
+          "extract into an owner-chosen prefix; the tree-sitter top directory becomes the build root",
+          "make install AMALGAMATED=1 PREFIX=<prefix>",
+          "verify the identities in `identities` below against the installed prefix"
+        ],
+        "notes": "AMALGAMATED=1 is what the pinned Homebrew formula used; it produces the single-header amalgamation this project's mirror was captured from. The pkg-config file must describe the actual chosen prefix, not a fixed absolute path."
+      },
+      "identities": {
+        "include/tree_sitter/api.h": "f8480415ae20cb5e0fd519ba44c84268c5acb4c918106238fc1d328d91431783"
+      },
+      "selection": {
+        "env": "FEMACS_TREE_SITTER_PREFIX",
+        "else_pkg_config": "pkg-config --variable=prefix tree-sitter",
+        "must_report": {
+          "pkg-config --modversion tree-sitter": "0.27.1",
+          "pkg-config --variable=prefix tree-sitter": "<the same prefix>"
+        }
+      },
+      "supported_hosts": "Apple Silicon macOS; this pin says nothing about other hosts or older systems",
+      "identities_note": "Only the header identity is a hard build constraint: xtask/src/treesit.rs checks that digest and the pkg-config version, then links whatever dylib the prefix provides. The dylib bytes legitimately differ between a Homebrew bottle and a source build of the same 0.27.1 tree (compiler and layout choices), so a dylib byte pin would reject a correct rebuild. For reference only, the bottle used earlier had lib/libtree-sitter.dylib fb5a5dcc685b7b541f25d87a3028928e900d60a96da809f206d69fd3a4fe3d78, while a source build from the pinned tarball produces a different but equally valid library.",
+      "identities_bottle_reference": {
+        "lib/libtree-sitter.dylib": "fb5a5dcc685b7b541f25d87a3028928e900d60a96da809f206d69fd3a4fe3d78"
+      }
+    }
+  }
+}
