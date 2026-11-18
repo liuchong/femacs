@@ -26685,6 +26685,18 @@ Fresh reference selection passed7/7 postflight checks, actual installation/confi
 User approved this exact DNS case as a nonblocking environment limitation and requires the existing proxy to remain enabled and unchanged. Four bounded HTTPS queries completed without errors: both Google andCloudflare resolved `example.com` (Status0,2 A answers) and returned NXDOMAIN for `emacs.invalid` (Status3,no answers),1.499–2.389s per query. The host system lookup still reports its synthetic proxy addresses. This verifies a remote-resolver contrast, not candidate/editor or original ERT acceptance; raw failures, counts and exits remain unchanged. No Dot task was sent; that route is cancelled. Fresh full555/48 observations and any precise exception binding remain pending.
 
 
+### 2026-11-18 — 第 17 轮：严格分类结果消费、有效阻断合并与控制缺口
+
+**Cursor 严格装配已核收**（我不改分类器）：旧 555 通道 **441 归类 / 133 阻断 / 125 捕获失败**，子集通道 **29 归类 / 8 阻断 / 7 捕获失败**；`conserved=true`、`structural=0`，原失败守恒（574 / 37 不改）。**此前 567/37 的"已归类"主张继续撤回**，只承认 Cursor 实跑读数。证据 `build/acceptance/g3-scoped-classification-wip-index.json`、`*-555-3`、`*-subset-3`。
+
+**有效阻断合并**（`build/acceptance/g3-effective-blocking.json`）：按 `g3-coverage-substitution.json` 用 11 个替代文件过滤旧证据，剔掉 **13** 条已由新产品证据替代的旧阻断，剩余 **128** 条有效阻断；按需补证据分 **60** 条"精确通过控制"＋**3** 条"同产品远端行为采集"。每条阻断保留产品与来源通道，未改名、未放行。
+
+**控制流程的真实缺口**：现有 `tools/stable-controls.py` 以 `--build` 指向 61 产品注册表为前置；本通道没有该注册表且按指示不重建，因此这 60＋3 条控制证据当前**无法采集**。这是结构性前置缺口，不用补规则或造控制通过。
+
+**测试 WIP 收口**：`tools/test-stable-classification.py --mode integration` **43/43**、`--mode protection --functional …` **41/41**（`build/acceptance/test-classification-{1,prot-1}/`）；分类器当前 SHA `3d9db0eb…`（Cursor 暂存版本）。
+
+**测量**：本轮入口 load_per_core **0.372**，不安静；`build/acceptance/g5-load-state-2/` 一次记录，2+7 比较继续挂起。
+
 ### 2026-11-18 — 第 16 轮：单产品通道接线（分类器部分移交）与覆盖/替代索引
 
 **参照绑定**：`tools/g3-reference-binding.py` 由既有 selection 取 epoch、两份闭合回执取实际身份并重算 program/dump SHA-256；产物 `build/acceptance/g3-reference-binding-1/reference-selection.json` 标 `post-hoc-verification` + 时间，不冒充事前准入。
