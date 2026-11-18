@@ -8,6 +8,7 @@ Every output is fresh and earlier failures remain. No remote CI is used.
 from __future__ import annotations
 
 import argparse
+import concurrent.futures
 import hashlib
 import importlib.util
 import json
@@ -15,7 +16,10 @@ import math
 import os
 from pathlib import Path
 import shutil
+import signal
+import subprocess
 import sys
+import threading
 
 REPO = Path(__file__).resolve().parent.parent
 COORDINATOR_SHA256 = hashlib.sha256(Path(__file__).read_bytes()).hexdigest()
@@ -198,6 +202,218 @@ def stable_product_environment(product, explicit_libraries=False):
     if explicit_libraries:
         environment['FEMACS_STABLE_PRODUCT_LISP'] = str(stable_product_lisp_root(product))
     return environment
+
+
+def _verify_donor_product_boundary(path, expected, *, interrupted=False):
+    """Compare one product at a time, without retaining a second full tree."""
+    accounting = execution.load_tool('stable-classification.py')
+    seen, boundaries = set(), set()
+    with Path(path).open(encoding='utf-8') as stream:
+        reader = accounting._Stream(stream)
+        reader.token('{')
+        while reader.peek() != '}':
+            key = reader.value()
+            if not isinstance(key, str) or key in seen:
+                raise ValueError('duplicate donor product-boundary field')
+            seen.add(key)
+            reader.token(':')
+            if key in ('before', 'after') and reader.peek() == '{':
+                reader.token('{')
+                ids = set()
+                while reader.peek() != '}':
+                    profile = reader.value()
+                    reader.token(':')
+                    value = reader.value()
+                    if profile in ids or profile not in expected or value != expected[profile]:
+                        raise ValueError('donor full-product identity differs')
+                    ids.add(profile)
+                    if reader.peek() != '}':
+                        reader.token(',')
+                reader.token('}')
+                if ids != set(expected):
+                    raise ValueError('donor omitted a product identity')
+                boundaries.add(key)
+            else:
+                value = reader.value()
+                if not interrupted and key in ('unchanged', 'complete_receipts_valid') and value is not True:
+                    raise ValueError('closed donor product postflight failed')
+            if reader.peek() != '}':
+                reader.token(',')
+        reader.token('}')
+        if (reader.peek() or 'before' not in boundaries
+                or not {'before', 'after', 'unchanged'}.issubset(seen)
+                or (not interrupted and ('after' not in boundaries or 'complete_receipts_valid' not in seen))):
+            raise ValueError('donor product boundary is incomplete')
+
+
+def stage_stable_file_reuse(options, out, source, products, before, harness, runner,
+                            original, artifacts=None):
+    """Admit only stopped same-cohort donors; children still verify every file."""
+    path = execution.safe_path(options.stable_file_reuse)
+    suite = execution.load_tool('stable-suite.py')
+    batch = suite._load_batch()
+    api = type('ReuseAPI', (), {'_sha256_path': staticmethod(execution.digest)})
+    value = batch._reuse_json(api, path)
+    if (set(value) != {'schema', 'donors'} or value['schema'] != 'femacs-stable-file-reuse-v1'
+            or not isinstance(value['donors'], list) or not 1 <= len(value['donors']) <= 48):
+        raise ValueError('bounded explicit donor selection required')
+    identities = {str(path): execution.file_identity(path)}
+    reader_path = execution.safe_path(REPO/'tools/stable-classification.py')
+    identities[str(reader_path)] = execution.file_identity(reader_path)
+    accounting = execution.load_tool('stable-classification.py')
+    if Path(accounting.__file__).resolve() != reader_path:
+        raise ValueError('donor journal reader is outside the bound coordinator inputs')
+    captured_spec = out/'stable-file-reuse-source.json'
+    batch._copy_reuse_artifact(api, path, captured_spec, limit=16*1024*1024)
+    identities[str(captured_spec)] = execution.file_identity(captured_spec)
+    donors = []
+    target_selection = getattr(options, '_reference_selection_summary', None)
+    expected_roles = {name: execution.file_identity(harness/'tools'/name)
+        for name in ('stable-suite.py', 'stable-suite-batch.py', 'stable-context.py',
+                     'runtime-retire.py', 'reference-corpus.py', 'fixtures/module-thread-config.h')}
+    expected_roles['stable-suite-runner.el'] = execution.file_identity(runner)
+    def bind(name):
+        name = execution.safe_path(name)
+        identity = execution.file_identity(name)
+        if identity.get('kind') != 'file':
+            raise ValueError('ordinary donor evidence required')
+        identities[str(name)] = identity
+        return name
+    for item in value['donors']:
+        if set(item) != {'stage', 'controller', 'controller_sha256', 'argv', 'profile', 'mode'}:
+            raise ValueError('invalid closed-file donor descriptor')
+        interrupted = item['mode'] == 'interrupted'
+        if item['mode'] not in ('closed', 'interrupted'):
+            raise ValueError('unknown donor admission mode')
+        stage = execution.safe_path(item['stage'])
+        if stage == out or not stage.is_relative_to(REPO/'build/acceptance'):
+            raise ValueError('donor must be another owned acceptance stage')
+        controller = bind(item['controller'])
+        if controller.stat().st_size > 65536 or execution.digest(controller) != item['controller_sha256']:
+            raise ValueError('donor controller identity differs')
+        lines = [line[len('controlled-run: '):] for line in controller.read_text().split('\n')
+                 if line.startswith('controlled-run: {')]
+        if len(lines) != 1:
+            raise ValueError('one closed donor controller required')
+        controlled = json.loads(lines[0])
+        argv = item['argv']
+        terminal_reason = (controlled.get('reason') in {'exited', 'cancelled', 'check_failed',
+            'invalid_pressure', 'memory_limit', 'host_memory_pressure', 'session_memory_limit',
+            'monitor_error', 'state_error', 'timeout'}
+            and type(controlled.get('exit_code')) is int) if interrupted else (
+            controlled.get('reason') == 'exited' and controlled.get('exit_code') in (0, 1))
+        if (not isinstance(argv, list) or not argv or any(not isinstance(x, str) for x in argv)
+                or controlled.get('argv_sha256') != hashlib.sha256(json.dumps(argv, ensure_ascii=True).encode()).hexdigest()
+                or controlled.get('cleanup_complete') is not True
+                or not terminal_reason):
+            raise ValueError('donor controller did not close the exact requested process tree')
+        journal_path = bind(stage/'artifact-preservation.json')
+        journal = accounting.read_owner_summary(journal_path,
+            {key: identities[str(journal_path)][key] for key in ('bytes', 'sha256')}, stage)
+        pid = controlled.get('root_pid')
+        if (type(pid) is not int or pid <= 1 or pid == os.getpid()
+                or journal.get('owner_pid') != pid or not journal.get('owner_birth')
+                or journal.get('output') != str(stage) or journal.get('state') != 'released'
+                or journal.get('release_failures') != []):
+            raise ValueError('donor preservation owner was not safely released')
+        birth = subprocess.run(['ps', '-p', str(pid), '-o', 'lstart='],
+                               capture_output=True, text=True, timeout=5)
+        if birth.returncode not in (0, 1) or birth.stderr or birth.stdout.strip() == journal['owner_birth']:
+            raise ValueError('original donor root process is still present or identity is unknown')
+        try:
+            os.killpg(pid, 0)
+        except ProcessLookupError:
+            pass
+        else:
+            raise ValueError('donor process group remains alive')
+        boundary = bind(stage/'product-identities.json')
+        _verify_donor_product_boundary(boundary, before, interrupted=interrupted)
+        if len(before) != 61:
+            raise ValueError('closed-file reuse requires all 61 product identities')
+        runner_selection = batch._reuse_json(api, bind(stage/'stable-runner/stable-runner-selection.json'))
+        harness_selection = batch._reuse_json(api, bind(stage/'stable-harness/stable-harness-selection.json'))
+        donor_runner = bind(runner_selection['captured_runner']['path'])
+        if (donor_runner != stage/'stable-runner/stable-suite-runner.el'
+                or set(harness_selection['files']) != set(expected_roles)-{'stable-suite-runner.el'}
+                or any(Path(row['captured']['path']) != stage/'stable-harness/tools'/name
+                       for name, row in harness_selection['files'].items())):
+            raise ValueError('donor harness is not its owned seven-role capture')
+        role_pins = {name: execution.file_identity(bind(row['captured']['path']))
+                     for name, row in harness_selection['files'].items()}
+        role_pins['stable-suite-runner.el'] = execution.file_identity(donor_runner)
+        if role_pins != expected_roles:
+            raise ValueError('donor and target require exact seven-role SHA256 and mode equality')
+        profile = item['profile']
+        candidate = next((p for p in products if p['id'] == profile and p['kind'] != 'reference'
+                          and not p['test_hooks']), None)
+        if candidate is None:
+            raise ValueError('donor candidate is unknown or diagnostic')
+        pair_root = source/'build/acceptance'/stage.name/('stable-'+profile)
+        context = batch._reuse_json(api, bind(stage/'stable-stage-context.json'))
+        if (context.get('build_receipt') != str(original)
+                or context.get('reference_selection') != target_selection
+                or context.get('source_manifest_sha256') != options._stable_reuse_source_manifest
+                or context.get('products_sha256') != options._stable_reuse_products_sha256):
+            raise ValueError('donor stage cohort/reference selection differs')
+        bind(pair_root/'stable-suite-inputs.json')
+        bind(pair_root/'stable-suite-materialize.json')
+        bind(pair_root/'source-context.json')
+        if interrupted:
+            partial = batch._reuse_json(api, bind(pair_root/'partial.json'))
+            if partial.get('corpus_inputs_unchanged') is not True:
+                raise ValueError('interrupted donor has no verified corpus boundary')
+        else:
+            report = batch._reuse_json(api, bind(stage/'results.json'))
+            if (report.get('execution_complete') is not True
+                    or report.get('product_identity_unchanged') is not True
+                    or report.get('complete_receipts_valid') is not True
+                    or report.get('build_receipt') != str(original)
+                    or report.get('reference_selection') != target_selection
+                    or report.get('stable_product_libraries') is not True
+                    or report.get('stable_runner_selection', {}).get('unchanged') is not True
+                    or report.get('stable_harness_selection', {}).get('unchanged') is not True):
+                raise ValueError('closed donor stage context/postflight differs')
+            rows = [row for row in report['cases'] if row.get('id') == 'stable-'+profile]
+            completion = suite.read_completion(pair_root, source/'compatibility/stable-31.1/sources.json',
+                products[0]['program'], candidate['program'], ['--dump-file='+products[0]['dump']],
+                ['--dump-file='+candidate['dump']], stable_product_environment(products[0], True),
+                stable_product_environment(candidate, True), runner=donor_runner)
+            if (len(rows) != 1 or rows[0].get('execution_complete') is not True
+                    or rows[0].get('completion_sha256') != execution.digest(pair_root/'stable-suite-completion.json')
+                    or rows[0].get('receipt_sha256') != completion['detailed']['sha256']
+                    or rows[0].get('process', {}).get('complete') is not True
+                    or rows[0].get('process', {}).get('remaining_group_terminated') is not False
+                    or rows[0].get('process', {}).get('exit_code') != (0 if completion['corpus_complete'] else 1)):
+                raise ValueError('donor pair is not bound to its closed completion')
+            bind(pair_root/'stable-suite-completion.json')
+            bind(pair_root/'stable-suite-run.json')
+        # Preserve every closed evidence file, not retained mutable test state.
+        pair_pins = {}
+        for folder in (pair_root/'results', pair_root/'logs'):
+            for parent, directories, files in os.walk(folder, followlinks=False):
+                if any((Path(parent)/name).is_symlink() for name in directories):
+                    raise ValueError('donor evidence directory contains a symlink')
+                for name in files:
+                    bound = bind(Path(parent)/name)
+                    if len(pair_pins) >= 20000 or len(identities) >= 30000:
+                        raise ValueError('donor evidence file count exceeds bound')
+                    pair_pins[str(bound)] = identities[str(bound)]
+        donors.append(dict(stage=str(stage), pair_root=str(pair_root), runner=str(donor_runner), roles={}))
+    admission = out/'stable-file-reuse-selection.json'
+    execution.write_json(admission, dict(schema='femacs-stable-file-reuse-admission-v1',
+        reference_selection=target_selection, donors=donors, raw_results_modified=False,
+        pins={name: {k: pin[k] for k in ('bytes', 'sha256', 'mode')}
+              for name, pin in identities.items()}))
+    identities[str(admission)] = execution.file_identity(admission)
+    if artifacts is not None:
+        journal = owner.artifact_read(artifacts.journal)
+        captured = {name: pin for name, pin in identities.items() if name != str(path)}
+        for name in captured:
+            if name not in journal['allowed_roots']:
+                journal['allowed_roots'].append(name)
+        owner.artifact_write(artifacts.journal, journal)
+        owner.capture_artifacts(artifacts.journal, captured)
+    return admission, identities
 
 
 def clean_environment():
@@ -532,7 +748,7 @@ def verify_reference_selection(options, products):
             options._reference_external_identities, products[0], options._selected_reference_identity)
 
 
-def prepare_matrix(options, out):
+def prepare_matrix(options, out, artifacts=None):
     """Build functional native fixtures without running protective unit cases."""
     original, source, products_path, products, build = read_action_build(options)
     if build.get('passed') is not True:
@@ -541,9 +757,16 @@ def prepare_matrix(options, out):
     if negative_root.exists():
         raise ValueError('native fixture output already exists; inspect its original receipt, do not rebuild blindly')
     env = clean_environment()
-    command = [sys.executable, source/'tools/runtime-acceptance.py', '--action', 'prepare-negative',
-               '--products', products_path, '--out', negative_root, '--timeout', str(options.timeout)]
-    result = execution.run_process(command, out/'negative-unit-build', env, None, cwd=source)
+    harness, selection, identities = stage_authored_harness(out, source, artifacts)
+    command = [sys.executable, harness/'tools/runtime-acceptance.py', '--action', 'prepare-negative',
+               '--repository', REPO, '--products', products_path,
+               '--out', negative_root, '--timeout', str(options.timeout)]
+    try:
+        result = execution.run_process(command, out/'negative-unit-build', env, None, cwd=source)
+    finally:
+        if any(execution.file_identity(Path(name)) != expected
+               for name, expected in identities.items()):
+            raise ValueError('native preparation harness changed during execution')
     path = negative_root/'results.json'
     receipt = execution.bounded_json(path, 64*1024*1024) if path.is_file() else {}
     inputs_path = negative_root/'inputs.json'
@@ -563,6 +786,7 @@ def prepare_matrix(options, out):
                 preparation_receipt_sha256=execution.digest(path) if path.is_file() else None,
                 product_list_sha256=products_sha256,
                 negative_root=str(negative_root), native_profiles=sorted(expected),
+                authored_harness_selection=dict(selection, unchanged=True),
                 source_root=str(source), build_receipt=str(original), build_complete=True,
                 protective_component_tests_executed=False, semantic_tests_executed=False)
 
@@ -618,12 +842,77 @@ def component_matrix(options, out):
                 source_root=str(source), build_receipt=str(original), build_complete=build.get("passed") is True)
 
 
+def _stable_worker_count(options, pairs):
+    requested = getattr(options, 'stable_workers', None)
+    workers = 1 if requested is None else requested
+    if type(workers) is not int or workers not in (1, 2):
+        raise ValueError('stable workers must be1 or2')
+    if requested is not None and not pairs:
+        raise ValueError('stable workers require an active stable pair scope')
+    return workers
+
+
+def _execute_stable_pair(options, out, source, base, env, reference, candidate,
+                         runner_path, stable_driver, stable_harness, explicit_libraries,
+                         stable_file_reuse, suite, cancel_event=None):
+    name = "stable-" + candidate["id"]
+    receipt_root = base / name
+    reference_env = stable_product_environment(reference, explicit_libraries)
+    candidate_env = stable_product_environment(candidate, explicit_libraries)
+    command = [sys.executable, stable_driver / "tools/stable-suite.py", "--repo", source,
+               "--manifest", source / "compatibility/stable-31.1/sources.json", "--out", receipt_root,
+               "--reference", reference["program"], "--candidate", candidate["program"],
+               "--reference-dump-args", json.dumps(["--dump-file=" + reference["dump"]]),
+               "--candidate-dump-args", json.dumps(["--dump-file=" + candidate["dump"]]),
+               "--reference-env", json.dumps(reference_env),
+               "--candidate-env", json.dumps(candidate_env),
+               "--timeout", str(options.timeout),
+               '--runner', runner_path]
+    if stable_harness is not None:
+        command.extend(['--candidate-profile', candidate['id']])
+    if stable_file_reuse is not None:
+        command.extend(['--reuse-files', stable_file_reuse])
+    case_env = dict(env)
+    process_options = {} if cancel_event is None else {'cancel_event': cancel_event}
+    result = execution.run_process(command, out / name, case_env, None, cwd=source, **process_options)
+    receipt = receipt_root / "stable-suite-run.json"
+    row = dict(id=name, process=result, receipt=str(receipt),
+                     receipt_sha256=execution.digest(receipt) if receipt.is_file() else None,
+                     passed=False)
+    try:
+        summary = suite.read_completion(receipt_root,
+            source/'compatibility/stable-31.1/sources.json', reference['program'], candidate['program'],
+            ['--dump-file='+reference['dump']], ['--dump-file='+candidate['dump']],
+            reference_env, candidate_env,
+            runner=runner_path)
+        row['completion_sha256'] = execution.digest(receipt_root/'stable-suite-completion.json')
+        row['execution_complete'] = summary['execution_complete']
+        row['case_count'] = summary['case_count']
+        row['passed_count'] = summary['passed_count']
+        row['failure_count'] = summary['failure_count']
+        row['corpus_complete'] = summary['corpus_complete']
+        if stable_harness is not None:
+            reuse_summary_path = receipt_root/'stable-file-reuse.json'
+            reused = suite._read_machine_result(reuse_summary_path)
+            row['file_reuse'] = dict(path=str(reuse_summary_path),
+                sha256=execution.digest(reuse_summary_path),
+                reused_file_sides=reused['count'], fresh_file_executions=reused['fresh_file_executions'],
+                covered_file_sides=reused['covered_file_sides'],
+                retired_logical_bytes_attributed_to_this_run=0)
+        row['passed'] = (result['exit_code'] == 0 and result['complete']
+            and not result['remaining_group_terminated'] and summary['corpus_complete'])
+    except Exception as error:
+        row['receipt_validation_error'] = f'{type(error).__name__}: {error}'
+    return row
+
+
 def _execute_profiles(options, out, source, products_path, products, base, env,
                       *, harness=None, original_rows=None, stable_runner=None,
-                      stable_harness=None, explicit_libraries=False):
+                      stable_harness=None, explicit_libraries=False, stable_file_reuse=None):
     harness = harness or source
     actions, pairs, _ = execution_plan(getattr(options, 'execution_phase', 'all'), products,
         getattr(options, 'stable_profile', ()), stable_runner=stable_runner)
+    workers = _stable_worker_count(options, pairs)
     rows = []
     for action in actions:
         inner_action = 'performance' if action == 'performance-fallback' else action
@@ -662,48 +951,48 @@ def _execute_profiles(options, out, source, products_path, products, base, env,
                 row['receipt_validation_error'] = f'{type(error).__name__}: {error}'
         rows.append(row)
         execution.write_json(out / "partial.json", dict(cases=rows, final=False))
-    runner_path = stable_runner or harness / 'tools/fixtures/stable-suite-runner.el'
-    stable_driver = stable_harness or harness
-    for reference, candidate in pairs:
-        name = "stable-" + candidate["id"]
-        receipt_root = base / name
-        reference_env = stable_product_environment(reference, explicit_libraries)
-        candidate_env = stable_product_environment(candidate, explicit_libraries)
-        command = [sys.executable, stable_driver / "tools/stable-suite.py", "--repo", source,
-                   "--manifest", source / "compatibility/stable-31.1/sources.json", "--out", receipt_root,
-                   "--reference", reference["program"], "--candidate", candidate["program"],
-                   "--reference-dump-args", json.dumps(["--dump-file=" + reference["dump"]]),
-                   "--candidate-dump-args", json.dumps(["--dump-file=" + candidate["dump"]]),
-                   "--reference-env", json.dumps(reference_env),
-                   "--candidate-env", json.dumps(candidate_env),
-                   "--timeout", str(options.timeout),
-                   '--runner', runner_path]
-        case_env = dict(env)
-        result = execution.run_process(command, out / name, case_env, None, cwd=source)
-        receipt = receipt_root / "stable-suite-run.json"
-        row = dict(id=name, process=result, receipt=str(receipt),
-                         receipt_sha256=execution.digest(receipt) if receipt.is_file() else None,
-                         passed=False)
+    runner_path = stable_runner or source / 'tools/fixtures/stable-suite-runner.el'
+    stable_driver = stable_harness or source
+    if not pairs:
+        return rows
+    # Import once on the coordinator. Each worker owns only its pair's process
+    # and output paths; immutable product preservation remains with one owner.
+    suite = execution.load_tool('stable-suite.py')
+    def execute_pair(pair, cancel_event=None):
+        return _execute_stable_pair(options, out, source, base, env, *pair,
+            runner_path, stable_driver, stable_harness, explicit_libraries,
+            stable_file_reuse, suite, cancel_event)
+    if workers == 1:
+        for pair in pairs:
+            rows.append(execute_pair(pair))
+            execution.write_json(out / 'partial.json', dict(cases=rows, final=False))
+        return rows
+    cancel_event = threading.Event()
+    executor = concurrent.futures.ThreadPoolExecutor(max_workers=workers,
+                                                    thread_name_prefix='stable-pair')
+    futures, completed = {}, {}
+    try:
+        futures = {executor.submit(execute_pair, pair, cancel_event): index
+                   for index, pair in enumerate(pairs)}
+        for future in concurrent.futures.as_completed(futures):
+            completed[futures[future]] = future.result()
+            execution.write_json(out / 'partial.json',
+                dict(cases=[*rows, *(completed[i] for i in sorted(completed))], final=False))
+        return [*rows, *(completed[i] for i in range(len(pairs)))]
+    finally:
+        # ArtifactRun may release inputs only after every owned child has
+        # stopped. Defer a second interrupt until cancellation/join completes.
+        cancel_event.set()
+        for future in futures:
+            future.cancel()
+        mask = (signal.pthread_sigmask(signal.SIG_BLOCK, {signal.SIGINT, signal.SIGTERM})
+                if hasattr(signal, 'pthread_sigmask') else None)
         try:
-            suite = execution.load_tool('stable-suite.py')
-            summary = suite.read_completion(receipt_root,
-                source/'compatibility/stable-31.1/sources.json', reference['program'], candidate['program'],
-                ['--dump-file='+reference['dump']], ['--dump-file='+candidate['dump']],
-                reference_env, candidate_env,
-                runner=runner_path)
-            row['completion_sha256'] = execution.digest(receipt_root/'stable-suite-completion.json')
-            row['execution_complete'] = summary['execution_complete']
-            row['case_count'] = summary['case_count']
-            row['passed_count'] = summary['passed_count']
-            row['failure_count'] = summary['failure_count']
-            row['corpus_complete'] = summary['corpus_complete']
-            row['passed'] = (result['exit_code'] == 0 and result['complete']
-                and not result['remaining_group_terminated'] and summary['corpus_complete'])
-        except Exception as error:
-            row['receipt_validation_error'] = f'{type(error).__name__}: {error}'
-        rows.append(row)
-        execution.write_json(out / "partial.json", dict(cases=rows, final=False))
-    return rows
+            executor.shutdown(wait=True, cancel_futures=True)
+        finally:
+            if mask is not None:
+                signal.pthread_sigmask(signal.SIG_SETMASK, mask)
+
 
 
 def snapshot_harness(out):
@@ -726,6 +1015,68 @@ def snapshot_harness(out):
     return root, identities
 
 
+def stage_authored_harness(out, source, artifacts=None):
+    """Capture the current authored driver separately from compiled VM inputs."""
+    root = out/'authored-harness'
+    (root/'tools').mkdir(parents=True)
+    names = ('runtime-acceptance.py', 'runtime-execution.py', 'runtime-retire.py',
+             'runtime-profile.py', 'runtime-language-contract.py', 'reference-corpus.py')
+    paths = [REPO/'tools'/name for name in names]
+    # Keep this capture bound to the actual authored group declarations,
+    # including groups whose fixture names do not start with runtime-.
+    group_fixtures = {name for _, files, _ in execution.fixture_groups(dict(
+        kind='terminal', observer=True, test_hooks=True, collector='young', native=True), 'all')
+        for name in files}
+    paths.extend(sorted(path for path in (REPO/'tools/fixtures').rglob('*')
+                        if path.is_file() and (path.name.startswith('runtime-')
+                                              or path.name == 'module-thread-config.h'
+                                              or path.name in group_fixtures)))
+    files, identities, captured = {}, {}, {}
+    stable_fields = ('st_dev', 'st_ino', 'st_size', 'st_mtime_ns', 'st_mode')
+    for original in paths:
+        original = execution.safe_path(original)
+        identity = execution.file_identity(original)
+        if not original.is_file() or not 1 <= identity['bytes'] <= 1024*1024:
+            raise ValueError('bounded ordinary authored harness input required')
+        relative = original.relative_to(REPO)
+        target = root/relative
+        target.parent.mkdir(parents=True, exist_ok=True)
+        descriptor = os.open(original, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
+        with os.fdopen(descriptor, 'rb') as incoming, target.open('xb') as outgoing:
+            before = os.fstat(incoming.fileno())
+            copied = 0
+            while block := incoming.read(65536):
+                copied += len(block)
+                if copied > 1024*1024:
+                    raise ValueError('authored harness input exceeded bound')
+                outgoing.write(block)
+            outgoing.flush()
+            os.fsync(outgoing.fileno())
+            after = os.fstat(incoming.fileno())
+        target.chmod(identity['mode'])
+        current = original.stat()
+        if (any(getattr(before, field) != getattr(after, field)
+                or getattr(before, field) != getattr(current, field) for field in stable_fields)
+                or execution.file_identity(original) != identity
+                or execution.file_identity(target) != identity):
+            raise ValueError('authored harness input changed while captured')
+        files[relative.as_posix()] = dict(source=dict(path=str(original), identity=identity),
+            captured=dict(path=str(target), identity=identity))
+        identities[str(original)] = identity
+        identities[str(target)] = identity
+        captured[str(target)] = identity
+    selection = dict(schema='femacs-authored-python-harness-v1', files=files,
+                     compiled_source_root=str(source), compiled_products_unchanged=True,
+                     frozen_source_unchanged=True)
+    receipt = root/'authored-harness-selection.json'
+    execution.write_json(receipt, selection)
+    identities[str(receipt)] = execution.file_identity(receipt)
+    captured[str(receipt)] = identities[str(receipt)]
+    if artifacts is not None:
+        owner.capture_artifacts(artifacts.journal, captured)
+    return root, selection, identities
+
+
 def execute_matrix(options, out, artifacts=None):
     original, source, products_path, products, build = read_action_build(options)
     phase = getattr(options, 'execution_phase', 'all')
@@ -743,6 +1094,9 @@ def execute_matrix(options, out, artifacts=None):
     base.mkdir(parents=True)
     env = clean_environment()
     harness, original_rows = source, None
+    authored_selection, authored_identities = None, {}
+    if actions and options.action == 'execute':
+        harness, authored_selection, authored_identities = stage_authored_harness(out, source, artifacts)
     if options.action == 'followup':
         harness, identities = snapshot_harness(out)
         if artifacts is not None:
@@ -776,10 +1130,23 @@ def execute_matrix(options, out, artifacts=None):
         if not pairs or getattr(options, 'reference_selection', None) is None:
             raise ValueError('explicit stable product libraries require a selected reference and stable pair scope')
         selected_harness, stable_harness_selection, stable_harness_identities = stage_stable_harness(out, source, artifacts)
+    if explicit_libraries:
+        options._stable_reuse_source_manifest = build['source_export']['source_manifest_sha256']
+        options._stable_reuse_products_sha256 = execution.digest(products_path)
+        context_path = out/'stable-stage-context.json'
+        execution.write_json(context_path, dict(schema='femacs-stable-stage-context-v1',
+            build_receipt=str(original), source_manifest_sha256=options._stable_reuse_source_manifest,
+            products_sha256=options._stable_reuse_products_sha256,
+            reference_selection=getattr(options, '_reference_selection_summary', None)))
+    reuse_path, reuse_identities = None, {}
+    if getattr(options, 'stable_file_reuse', None) is not None:
+        reuse_path, reuse_identities = stage_stable_file_reuse(options, out, source, products,
+            before, selected_harness, selected_runner, original, artifacts)
     try:
         rows = _execute_profiles(options, out, source, products_path, products, base, env,
                                  harness=harness, original_rows=original_rows, stable_runner=selected_runner,
-                                 stable_harness=selected_harness, explicit_libraries=explicit_libraries)
+                                 stable_harness=selected_harness, explicit_libraries=explicit_libraries,
+                                 stable_file_reuse=reuse_path)
     finally:
         after, errors = {}, {}
         for product in products:
@@ -799,6 +1166,14 @@ def execute_matrix(options, out, artifacts=None):
             verify_reference_selection(options, products)
         except Exception as error:
             errors['reference-selection'] = f'{type(error).__name__}: {error}'
+        authored_unchanged = True
+        for name, identity in authored_identities.items():
+            try:
+                if execution.file_identity(execution.safe_path(name)) != identity:
+                    raise ValueError('authored harness selection input changed')
+            except (OSError, ValueError) as error:
+                errors['authored-harness-selection'] = f'{type(error).__name__}: {error}'
+                authored_unchanged = False
         runner_unchanged = True
         for name, identity in runner_identities.items():
             try:
@@ -815,6 +1190,12 @@ def execute_matrix(options, out, artifacts=None):
             except (OSError, ValueError) as error:
                 errors['stable-harness-selection'] = f'{type(error).__name__}: {error}'
                 stable_harness_unchanged = False
+        for name, identity in reuse_identities.items():
+            try:
+                if execution.file_identity(execution.safe_path(name)) != identity:
+                    raise ValueError('stable donor selection or evidence changed')
+            except (OSError, ValueError) as error:
+                errors['stable-file-reuse'] = f'{type(error).__name__}: {error}'
         unchanged = not errors and before == after
         execution.write_json(identity_path, dict(before=before, after=after,
                                                 identity_errors=errors, unchanged=unchanged,
@@ -825,6 +1206,7 @@ def execute_matrix(options, out, artifacts=None):
     return dict(cases=rows, build_receipt=str(original), build_complete=build.get("passed") is True,
                 harness_root=str(harness), original_ert_reused=original_rows is not None,
                 execution_phase=phase, requested_actions=list(actions), requested_stable_pairs=len(pairs),
+                stable_workers=_stable_worker_count(options, pairs),
                 requested_stable_profiles=requested_profiles,
                 available_stable_pairs=len(available_pairs), remaining_stable_profiles=remaining_profiles,
                 stable_phase_complete=phase in ('all', 'stable') and scope_complete and not remaining_profiles,
@@ -836,9 +1218,13 @@ def execute_matrix(options, out, artifacts=None):
                 passed=scope_complete and all(row["passed"] for row in rows),
                 product_identity_unchanged=unchanged, complete_receipts_valid=complete_receipts_valid,
                 identity_receipt=str(identity_path),
+                authored_harness_selection=(dict(authored_selection, unchanged=authored_unchanged)
+                                            if authored_selection is not None else None),
                 stable_runner_selection=(dict(runner_selection, unchanged=runner_unchanged)
                                          if runner_selection is not None else None),
                 stable_product_libraries=explicit_libraries,
+                stable_file_reuse=(dict(path=str(reuse_path), unchanged='stable-file-reuse' not in errors)
+                                   if reuse_path is not None else None),
                 stable_harness_selection=(dict(stable_harness_selection, unchanged=stable_harness_unchanged)
                                           if stable_harness_selection is not None else None),
                 reference_selection=getattr(options, '_reference_selection_summary', None),
@@ -903,8 +1289,8 @@ def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--action", choices=("build", "prepare", "execute", "followup", "components"), required=True)
     parser.add_argument("--out", type=Path, required=True)
-    parser.add_argument('--retention-mode', choices=('archive', 'files'), default='archive',
-                        help='archive selected content or verify and retain its physical original files')
+    parser.add_argument('--retention-mode', choices=('files',), default='files',
+                        help='verify selected physical inputs without a duplicate content archive')
     parser.add_argument("--build", type=Path)
     parser.add_argument('--execution-products', type=Path,
                         help='explicit reporting-only process bridge selection for fixed products')
@@ -930,10 +1316,17 @@ def main(argv=None):
                         help='explicit stable runner captured into this run without recompiling products')
     parser.add_argument('--stable-product-libraries', action='store_true',
                         help='use registry Lisp roots and a captured current stable Python harness')
+    parser.add_argument('--stable-file-reuse', type=Path,
+                        help='strict same-harness closed-file donor selection; incomplete files run fresh')
+    parser.add_argument('--stable-workers', type=int, default=None,
+                        help='one or two pairs under the same artifact and process owner; default one')
     parser.add_argument('--original-ert', type=Path)
     parser.add_argument('--original-index', type=Path)
     parser.add_argument('--original-audit', type=Path)
     options = parser.parse_args(argv)
+    if options.stable_workers is not None and (options.stable_workers not in (1, 2)
+            or options.action != 'execute' or options.execution_phase not in ('all', 'stable')):
+        parser.error('stable-workers requires execute all/stable and a value of1 or2')
     if options.action != 'execute' and options.execution_phase != 'all':
         parser.error('execution-phase applies only to execute')
     if options.stable_profile and (options.action != 'execute' or options.execution_phase != 'stable'):
@@ -941,6 +1334,17 @@ def main(argv=None):
     if options.stable_product_libraries and (options.action != 'execute'
             or options.execution_phase not in ('all', 'stable') or options.reference_selection is None):
         parser.error('stable-product-libraries requires execute all/stable and reference-selection')
+    if options.stable_file_reuse is not None:
+        if (options.action != 'execute' or options.execution_phase not in ('all', 'stable')
+                or not options.stable_product_libraries or options.reference_selection is None
+                or options.stable_runner is None):
+            parser.error('stable-file-reuse requires execute all/stable, explicit libraries, reference and runner')
+        try:
+            reuse_source = execution.safe_path(options.stable_file_reuse)
+            if not reuse_source.is_file() or not 1 <= reuse_source.stat().st_size <= 16*1024*1024:
+                raise ValueError('bounded ordinary closed-file donor selection required')
+        except (OSError, ValueError) as error:
+            parser.error(str(error))
     if options.stable_runner is not None:
         if options.action != 'execute' or options.execution_phase not in ('all', 'stable'):
             parser.error('stable-runner applies only to execute --execution-phase all/stable')
@@ -996,7 +1400,7 @@ def main(argv=None):
                         for name,identity in execution.tree_identity(prepared).items()})
                 try:
                     if options.action == "prepare":
-                        result = prepare_matrix(options, out)
+                        result = prepare_matrix(options, out, artifacts)
                         if result['passed']:
                             root = Path(result['negative_root'])
                             identities = {str(root / name): identity
@@ -1018,12 +1422,7 @@ def main(argv=None):
                     binding_sha256=execution.digest(products_path.parent/'execution-inputs.json'),
                     harness_sha256=execution.digest(products[0]['_harness']),
                     selection_preserves_compiled_product_fields=True)
-            # Deduplicated exact content is retained before releasing flags.
-            # It is selected source/product/link evidence, not a compiler cache.
-            if options.retention_mode == 'files':
-                result['artifact_retention'] = artifacts.retain_current_files()
-            elif options.action != 'followup':
-                artifacts.archive()
+            result['artifact_retention'] = artifacts.retain_current_files()
             if options.action == 'followup':
                 # Keep the selected originals, new harness and exact ledgers;
                 # their verified retention mode is explicit in this run.
