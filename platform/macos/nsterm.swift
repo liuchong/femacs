@@ -8157,6 +8157,8 @@ private func ns_input_trace(_ event: String, _ details: @autoclosure () -> Strin
     // value type stays JSON-safe Any without String?/NSNull coercion.
     let inputContext = view.inputContext
     record["clientHasInputContext"] = inputContext != nil
+    record["clientIsCurrentInputContext"] = (inputContext != nil
+                                             && NSTextInputContext.current === inputContext)
     if let source = inputContext?.selectedKeyboardInputSource {
       record["selectedKeyboardInputSource"] = source
     } else {

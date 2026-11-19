@@ -21973,6 +21973,126 @@
     "source_form": "(erc-d-t-search-for 3 \"Lingered for 1.00 seconds\")",
     "control_test_id": "erc-d-run-linger-direct"
    }
+  },
+  {
+   "file": "test/lisp/progmodes/eglot-tests.el",
+   "id": "eglot-test-tramp-test",
+   "category": "upstream-invalid-test",
+   "input_sha256": "90db229f756568c032cde89f33d5b19d1ff28ccac9551b7537e2a364e24b7114",
+   "reason": "eglot--call-with-tramp-test prepends tramp-own-remote-path from the caller PATH and eglot--connect wraps remote language servers in an unqualified stty raw > /dev/null shell prefix. When GNU coreutils gnubin/stty precedes /bin/stty on Darwin, GNU stty raw leaves PTY ECHO enabled and truncates the JSON-RPC initialize request at the Darwin PTY input buffer limit on both the installed reference and the candidate. Bind the mock Tramp test setup, unqualified stty raw wrapper, gnubin PATH precedence, retained stderr JSON parse truncation, passing local sibling eglot-test-basic-completions, and a pinned-tool strict-probe receipt proving stty=/bin/stty passes on both sides with recorded server identity.",
+   "source_evidence": [
+    {
+     "path": "compatibility/stable-31.1/test/lisp/progmodes/eglot-tests.el",
+     "bytes": 72986,
+     "sha256": "90db229f756568c032cde89f33d5b19d1ff28ccac9551b7537e2a364e24b7114",
+     "start_line": 1505,
+     "end_line": 1540,
+     "lf_sha256": "7f648e1c0f3fbcb55ac35adf2af2cee6d7799df682cbd64125b177d1ab5a9bf1"
+    },
+    {
+     "path": "compatibility/stable-31.1/test/lisp/progmodes/eglot-tests.el",
+     "bytes": 72986,
+     "sha256": "90db229f756568c032cde89f33d5b19d1ff28ccac9551b7537e2a364e24b7114",
+     "start_line": 673,
+     "end_line": 685,
+     "lf_sha256": "1f1ea8fda893440f2ba5f0522fa1e28754ea431ee8b17ae3490d1bfe649eeb16"
+    },
+    {
+     "path": "lisp/progmodes/eglot.el",
+     "bytes": 273168,
+     "sha256": "8935c00e86b1e846e4af81dc3df7226ddc8b7422f8beb76769cfd659145b5118",
+     "start_line": 1795,
+     "end_line": 1807,
+     "lf_sha256": "9bfdaae3fab67b588dada6d2f110d925462c4fa3789b0b0b8dab533a2b9cb22f"
+    }
+   ],
+   "invalid_gate": {
+    "kind": "remote-unqualified-stty-raw-echo",
+    "source_form": "(eglot--call-with-tramp-test #'eglot-tests--auto-detect-running-server-1)",
+    "wrapper_form": "(string-join (cons \"stty raw > /dev/null;\"",
+    "control_test_id": "eglot-test-basic-completions"
+   }
+  },
+  {
+   "file": "test/lisp/progmodes/eglot-tests.el",
+   "id": "eglot-test-tramp-test-2",
+   "category": "upstream-invalid-test",
+   "input_sha256": "90db229f756568c032cde89f33d5b19d1ff28ccac9551b7537e2a364e24b7114",
+   "reason": "eglot--call-with-tramp-test prepends tramp-own-remote-path from the caller PATH and eglot--connect wraps remote language servers in an unqualified stty raw > /dev/null shell prefix. When GNU coreutils gnubin/stty precedes /bin/stty on Darwin, GNU stty raw leaves PTY ECHO enabled and truncates the JSON-RPC initialize request at the Darwin PTY input buffer limit on both the installed reference and the candidate. Bind the mock Tramp test setup, unqualified stty raw wrapper, gnubin PATH precedence, retained stderr JSON parse truncation, passing local sibling eglot-test-basic-completions, and a pinned-tool strict-probe receipt proving stty=/bin/stty passes on both sides with recorded server identity.",
+   "source_evidence": [
+    {
+     "path": "compatibility/stable-31.1/test/lisp/progmodes/eglot-tests.el",
+     "bytes": 72986,
+     "sha256": "90db229f756568c032cde89f33d5b19d1ff28ccac9551b7537e2a364e24b7114",
+     "start_line": 1505,
+     "end_line": 1540,
+     "lf_sha256": "7f648e1c0f3fbcb55ac35adf2af2cee6d7799df682cbd64125b177d1ab5a9bf1"
+    },
+    {
+     "path": "compatibility/stable-31.1/test/lisp/progmodes/eglot-tests.el",
+     "bytes": 72986,
+     "sha256": "90db229f756568c032cde89f33d5b19d1ff28ccac9551b7537e2a364e24b7114",
+     "start_line": 673,
+     "end_line": 685,
+     "lf_sha256": "1f1ea8fda893440f2ba5f0522fa1e28754ea431ee8b17ae3490d1bfe649eeb16"
+    },
+    {
+     "path": "lisp/progmodes/eglot.el",
+     "bytes": 273168,
+     "sha256": "8935c00e86b1e846e4af81dc3df7226ddc8b7422f8beb76769cfd659145b5118",
+     "start_line": 1795,
+     "end_line": 1807,
+     "lf_sha256": "9bfdaae3fab67b588dada6d2f110d925462c4fa3789b0b0b8dab533a2b9cb22f"
+    }
+   ],
+   "invalid_gate": {
+    "kind": "remote-unqualified-stty-raw-echo",
+    "source_form": "(eglot--call-with-tramp-test #'eglot-tests--lsp-abiding-column-1)",
+    "wrapper_form": "(string-join (cons \"stty raw > /dev/null;\"",
+    "control_test_id": "eglot-test-basic-completions"
+   }
+  },
+  {
+   "file": "test/lisp/progmodes/eglot-tests.el",
+   "id": "eglot-test-try-completion-inside-symbol-2",
+   "category": "proven-version-evolution",
+   "input_sha256": "90db229f756568c032cde89f33d5b19d1ff28ccac9551b7537e2a364e24b7114",
+   "reason": "Upstream commit 1143cf09a339d57051a4341103c9e342d8876649 (bug#73857) advertises :insertReplaceSupport t in eglot--client-capabilities and applies InsertReplaceEdit replace ranges in eglot-completion-at-point. Newer external clangd (23.x) returns InsertReplaceEdit with replace range covering foo123, replacing the trailing 123 suffix identically on both the installed reference and the candidate (later changed upstream in commit 7586a71d7c465e3a403dd6f04b76cac38a995189, bug#81912), whereas Apple clangd (21.0.0) returns TextEdit and passes all 47 eglot-tests.el cases on both sides. Bind the exact assertion, capability and edit-branch anchors, passing siblings, and both pinned clangd strict-probe receipts.",
+   "source_evidence": [
+    {
+     "path": "compatibility/stable-31.1/test/lisp/progmodes/eglot-tests.el",
+     "bytes": 72986,
+     "sha256": "90db229f756568c032cde89f33d5b19d1ff28ccac9551b7537e2a364e24b7114",
+     "start_line": 673,
+     "end_line": 772,
+     "lf_sha256": "a6ab8f964b21111e31b3bf399445985491653668a5fb39af2556aacf906f8e4e"
+    },
+    {
+     "path": "lisp/progmodes/eglot.el",
+     "bytes": 273168,
+     "sha256": "8935c00e86b1e846e4af81dc3df7226ddc8b7422f8beb76769cfd659145b5118",
+     "start_line": 1120,
+     "end_line": 1130,
+     "lf_sha256": "b7440734fb6e62707628db0fe0309f9cd25a877f03a5c0d6887b8617a3c45f03"
+    },
+    {
+     "path": "lisp/progmodes/eglot.el",
+     "bytes": 273168,
+     "sha256": "8935c00e86b1e846e4af81dc3df7226ddc8b7422f8beb76769cfd659145b5118",
+     "start_line": 4144,
+     "end_line": 4154,
+     "lf_sha256": "76d74e5f41cc698e6d8f79a5197e8cbad1f68341689dc469a215d3dff3b2c2bd"
+    }
+   ],
+   "version_gate": {
+    "kind": "external-lsp-insert-replace-edit",
+    "source_form": "(should (looking-at \"123\"))",
+    "capability_form": ":insertReplaceSupport t",
+    "edit_branch_form": "(((InsertReplaceEdit) newText replace)",
+    "upstream_commit": "1143cf09a339d57051a4341103c9e342d8876649",
+    "upstream_fix_commit": "7586a71d7c465e3a403dd6f04b76cac38a995189",
+    "control_test_id": "eglot-test-try-completion-inside-symbol"
+   }
   }
  ]
 }

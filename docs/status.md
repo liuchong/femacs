@@ -26685,6 +26685,20 @@ Fresh reference selection passed7/7 postflight checks, actual installation/confi
 User approved this exact DNS case as a nonblocking environment limitation and requires the existing proxy to remain enabled and unchanged. Four bounded HTTPS queries completed without errors: both Google andCloudflare resolved `example.com` (Status0,2 A answers) and returned NXDOMAIN for `emacs.invalid` (Status3,no answers),1.499–2.389s per query. The host system lookup still reports its synthetic proxy addresses. This verifies a remote-resolver contrast, not candidate/editor or original ERT acceptance; raw failures, counts and exits remain unchanged. No Dot task was sent; that route is cancelled. Fresh full555/48 observations and any precise exception binding remain pending.
 
 
+### 2026-11-20 — 第 39 轮：阶段 I（`GA1–GA3`）集中收口与有效阻断归零
+
+- **范围与方式**：按用户单会话接续授权从 `baa31c12` 沿 `A -> B -> C -> D` 顺序完成阶段 I（`GA1`、`GA2`、`GA3`）。详见 [Stage I 收口回执](../maintenance/releases/2026-11-20-stage1-ga1-ga2-ga3-closure.md) 与 [CLN270](../maintenance/cleanup/reports/2026-11-20-270-consumed-stage1-delivery-and-probes.md)。
+- **`GA2` 干净导出与搬移验证**：从纯跟踪树 `git archive`（`7,629` 文件，tree `ee9725fd…`，无 `.git`/参照检出/旧缓存）配隔离锁定 `tree-sitter 0.27.1` 完成 `build-terminal` 与 `build-macos` 重建（`757.199s`）；隐藏导出目录后搬移包 `--batch` 与 `NSWorkspace` GUI 启动均通过，`17` 份 `@rpath` 库全自搬移后 `Contents/Frameworks` 加载，`codesign --verify --deep --strict` 通过，`spctl --assess` 返回 `exit 3`（本地试用未公证边界；`s1-ga2-receipt.json` `1311e0ad…`）。工作区根部标准制品同步重建（`build/terminal/port/src/emacs` `a0dd02e1…`、`dist/macos/Femacs.app` 主程序 `02f5adaf…`，`618.263s`）。
+- **`GA1` 多窗口输入法、外部 Finder 拖放与异常 TTY**：
+  1. 多窗口输入法 `test-macos-ime.py --mode multi`（`19.140s`、`407` 条原生回调，`s1-ime-multi` `07a5fcbf…`）：补齐 macOS 14+ 协作激活提升、原生 HID 标题栏点击跨窗焦点切换及焦点转移后按实际 `marked` 条件发送 `Escape`，A/B 两窗中文预编辑、提交、取消、组合中失焦转移、保存退出与输入源恢复全绿。
+  2. 外部 Finder 拖放 `test-macos-drag.py`（`8.969s`，`s1-finder-drag` `b1dab2e1…`）：自自有 Finder 图标视图窗口拖拽 `AXImage` 至目标窗口，记录 `25` 次 `ns-drag-motion-function` 实帧坐标回调与 `performDragOperation`，打开含中文的 UTF-8 文件并干净回收自有窗口与进程。
+  3. 完整本地验收 `local-acceptance.py --gui --ime` `14/14` 通过（`108.856s`，`s1-local-acceptance-3` `b7813993…`，修正纯终端构建无 `term/ns-win` 预载时 `<end>` 按 `bindings.el:1428` 为 `point=11`）；无控制 TTY `test-goal-stability.py --mode all` `16/16` 通过（`0.546s`，`s1-tty-stability` `6d0f381a…`）。
+- **`GA3` Eglot 三条根因定位、锁定工具探针与有效阻断 `3 -> 0`**：
+  1. 两条远端用例（`eglot-test-tramp-test{,-2}`）根因为 `eglot--connect` 使用未限定路径 `stty raw > /dev/null;`，而 108 项 `PATH` 中 GNU coreutils `gnubin/stty` 先于 `/bin/stty`（第 34 位早于第 53 位）：Darwin 上 GNU `stty raw` 保留 `ECHO` 导致 JSON-RPC `initialize` 在第 `3811` 字节被 PTY 回显截断并超时；第三条（`eglot-test-try-completion-inside-symbol-2`）根因为上游 `1143cf09…`（`bug#73857`）声明 `:insertReplaceSupport t` 并采用 `InsertReplaceEdit` 的 `replace` 区间，外部 `clangd 23.1.5` 返回 `InsertReplaceEdit` 在双端一致替换尾缀 `123`（上游后续在 `7586a71d…` `bug#81912` 调整），而 Apple `clangd 21.0.0` 返回 `TextEdit` 在双端全过。
+  2. `functional-strict-probe.py` 与 `stable-suite-runner.el` 新增 `--pin-tool` 身份绑定（真实路径、字节数、SHA-256、`--version`）与只读 `eglot-connect-hook` 语言服务观测（记录本地及 `mock` 远端启动命令与 `eglot--server-info`）。两组锁定探针（`s1-eglot-probe-insert-replace` `951577dc…`、`s1-eglot-probe-text-edit` `a5a40a64…`）均判 `same`。
+  3. `578` 条源码规则展开为 `27,744` 条定义，`g3-scoped-consume-555-20`（`565/574`，原始失败 `574` 不变）与 `g3-scoped-consume-subset-5`（`37/37`、`0` 阻断）合并使全量 `555` 入口有效阻断由 **`3 -> 0`**（`g3-effective-blocking-2.json` `7d504814…`）。保护性单测与分类门禁（`3/3`、`11/11`、`51/51`、`41/41`、`check-own-voice` `0` 失败、`test-repository-bootstrap` `3/3`）全过。
+- **清理（CLN270）**：即时回收 `21` 个已消费范围（`48,154` 文件、`2,367` 目录、`27` 符号链接，`2,799,843,344` 逻辑字节）。下一阶段进入 Stage II（`GA4`）与 Stage III（`GA5–GA8`）。
+
 ### 2026-11-18 — 第 38 轮：更正 eglot 的两处判因；工具身份证据确认不存在，按指示停止
 
 **更正一（事实错误）**：第 36 轮写"该 PATH 有 `/opt/homebrew/bin` 但没有 keg-only 的 `/opt/homebrew/opt/llvm/bin`"是错的。闭合回执 `build/acceptance/g3-555-frozen2/stable-suite-inputs.json` 的 `environment_policy.PATH`（108 项）里，`/opt/homebrew/opt/llvm/bin` 位于第 28 位，**早于** `/usr/bin`（第 52 位）。按解析顺序，远端 `command -v clangd` 会命中 Homebrew 的 clangd，而不是 Apple 的 `/usr/bin/clangd`。

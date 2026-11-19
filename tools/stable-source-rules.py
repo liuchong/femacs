@@ -257,6 +257,20 @@ def expand(spec_path, repository):
                                 a['start_line']-1:a['end_line']])+b'\n' for a in anchors)),
                     'removed upstream producer requires its exact obsolete assertion, the absent '
                     'producer form, the pinned upstream commit and its passing sibling control')
+            require(invalid.get('kind') != 'remote-unqualified-stty-raw-echo'
+                    or (rule['category'] == 'upstream-invalid-test'
+                        and logical == 'test/lisp/progmodes/eglot-tests.el'
+                        and rule['id'] in {'eglot-test-tramp-test', 'eglot-test-tramp-test-2'}
+                        and set(invalid) == {'kind', 'source_form', 'wrapper_form', 'control_test_id'}
+                        and invalid['wrapper_form'] == '(string-join (cons "stty raw > /dev/null;"'
+                        and invalid['control_test_id'] == 'eglot-test-basic-completions'
+                        and any(invalid['wrapper_form'].encode('utf-8') in b'\n'.join(
+                            cache[str(repository/a['path'])].replace(b'\r\n', b'\n').split(b'\n')[
+                                a['start_line']-1:a['end_line']])+b'\n' for a in anchors)
+                        and any(('(ert-deftest '+invalid['control_test_id']+' ()').encode('utf-8') in b'\n'.join(
+                            cache[str(repository/a['path'])].replace(b'\r\n', b'\n').split(b'\n')[
+                                a['start_line']-1:a['end_line']])+b'\n' for a in anchors)),
+                    'remote unqualified stty raw gate requires its exact wrapper and passing sibling anchors')
             require(isinstance(invalid.get('source_form'), str) and 0 < len(invalid['source_form']) <= 8192
                     and any(invalid['source_form'].encode('utf-8') in b'\n'.join(
                         cache[str(repository/a['path'])].replace(b'\r\n', b'\n').split(b'\n')[
@@ -264,22 +278,42 @@ def expand(spec_path, repository):
                     'invalid gate must be literal in its pinned source anchors')
         if 'version_gate' in rule:
             gate = rule['version_gate']
-            expected_keys = ({'kind', 'source_form', 'upstream_commit', 'reference_library',
-                              'candidate_library', 'contract'}
-                             if isinstance(gate, dict) and gate.get('kind') == 'filenotify-stopped-event-file'
-                             else {'kind', 'source_form', 'upstream_commit',
-                                   'reference_library', 'candidate_library'})
-            require(rule['category'] == 'proven-version-evolution' and isinstance(gate, dict)
-                    and set(gate) == expected_keys
-                    and gate['kind'] in {'ert-description-format', 'filenotify-descriptor-api',
-                                         'filenotify-stopped-event-file'}
-                    and (gate['kind'] != 'filenotify-stopped-event-file'
-                         or gate['contract'] == 'remote-watch-lifecycle-v1')
-                    and isinstance(gate['source_form'], str)
-                    and any(gate['source_form'].encode('utf-8') in b'\n'.join(
-                        cache[str(repository/a['path'])].replace(b'\r\n', b'\n').split(b'\n')[
-                            a['start_line']-1:a['end_line']])+b'\n' for a in anchors),
-                    'component version gate must bind its exact original source form')
+            if isinstance(gate, dict) and gate.get('kind') == 'external-lsp-insert-replace-edit':
+                require(rule['category'] == 'proven-version-evolution'
+                        and logical == 'test/lisp/progmodes/eglot-tests.el'
+                        and rule['id'] == 'eglot-test-try-completion-inside-symbol-2'
+                        and set(gate) == {'kind', 'source_form', 'capability_form', 'edit_branch_form',
+                                          'upstream_commit', 'upstream_fix_commit', 'control_test_id'}
+                        and gate['source_form'] == '(should (looking-at "123"))'
+                        and gate['capability_form'] == ':insertReplaceSupport t'
+                        and gate['edit_branch_form'] == '(((InsertReplaceEdit) newText replace)'
+                        and gate['control_test_id'] == 'eglot-test-try-completion-inside-symbol'
+                        and re.fullmatch(r'[0-9a-f]{40}', gate['upstream_commit']) is not None
+                        and re.fullmatch(r'[0-9a-f]{40}', gate['upstream_fix_commit']) is not None
+                        and all(any(token.encode('utf-8') in b'\n'.join(
+                            cache[str(repository/a['path'])].replace(b'\r\n', b'\n').split(b'\n')[
+                                a['start_line']-1:a['end_line']])+b'\n' for a in anchors)
+                            for token in (gate['source_form'], gate['capability_form'],
+                                          gate['edit_branch_form'],
+                                          '(ert-deftest '+gate['control_test_id']+' ()')),
+                        'external LSP InsertReplaceEdit gate must bind its exact source and library forms')
+            else:
+                expected_keys = ({'kind', 'source_form', 'upstream_commit', 'reference_library',
+                                  'candidate_library', 'contract'}
+                                 if isinstance(gate, dict) and gate.get('kind') == 'filenotify-stopped-event-file'
+                                 else {'kind', 'source_form', 'upstream_commit',
+                                       'reference_library', 'candidate_library'})
+                require(rule['category'] == 'proven-version-evolution' and isinstance(gate, dict)
+                        and set(gate) == expected_keys
+                        and gate['kind'] in {'ert-description-format', 'filenotify-descriptor-api',
+                                             'filenotify-stopped-event-file'}
+                        and (gate['kind'] != 'filenotify-stopped-event-file'
+                             or gate['contract'] == 'remote-watch-lifecycle-v1')
+                        and isinstance(gate['source_form'], str)
+                        and any(gate['source_form'].encode('utf-8') in b'\n'.join(
+                            cache[str(repository/a['path'])].replace(b'\r\n', b'\n').split(b'\n')[
+                                a['start_line']-1:a['end_line']])+b'\n' for a in anchors),
+                        'component version gate must bind its exact original source form')
         if 'environment_gate' in rule:
             gate = rule['environment_gate']
             require(rule['category'] == 'approved-host-environment-limitation'

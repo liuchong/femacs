@@ -7,6 +7,8 @@ spec=importlib.util.spec_from_file_location('local_acceptance',ROOT/'tools/local
 acceptance=importlib.util.module_from_spec(spec);sys.modules[spec.name]=acceptance;spec.loader.exec_module(acceptance)
 spec2=importlib.util.spec_from_file_location('ime_acceptance',ROOT/'tools/test-macos-ime.py')
 ime=importlib.util.module_from_spec(spec2);sys.modules[spec2.name]=ime;spec2.loader.exec_module(ime)
+spec3=importlib.util.spec_from_file_location('drag_acceptance',ROOT/'tools/test-macos-drag.py')
+drag=importlib.util.module_from_spec(spec3);sys.modules[spec3.name]=drag;spec3.loader.exec_module(drag)
 class Cases(unittest.TestCase):
  def setUp(self):
   base=ROOT/'build/stability-unit';base.mkdir(parents=True,exist_ok=True)
@@ -52,6 +54,38 @@ class Cases(unittest.TestCase):
   source=(ROOT/'src/emacs.rs').read_text(encoding='utf-8')
   self.assertNotIn('if ! (emacs_executable.is_null () && *emacs_executable != 0)',source)
   self.assertGreaterEqual(source.count('if ! (! emacs_executable.is_null () && *emacs_executable != 0)'),2)
+ def test_titlebar_click_point_and_input_context_sample(self):
+  records=[{'windowTitle':'Femacs IME B','windowFrame':[700.0,651.0,457.0,406.0],
+            'event':'windowDidBecomeKey','clientHasInputContext':True,
+            'clientIsCurrentInputContext':True,'selectedKeyboardInputSource':'com.apple.keylayout.ABC'}]
+  pt=ime.titlebar_click_point(records,'Femacs IME B',1117.0)
+  self.assertEqual(pt,(928.5,74.0))
+  self.assertIsNone(ime.titlebar_click_point(records,'Missing Frame',1117.0))
+  sample=ime.client_source_sample(records,'Femacs IME B',('windowDidBecomeKey',))
+  self.assertTrue(sample['clientIsCurrentInputContext'])
+ def test_external_drag_validators_and_reference_guard(self):
+  from unittest import mock
+  ref=self.out/'emacs';ref.mkdir()
+  with mock.patch.object(drag,'ROOT',self.out):
+   with self.assertRaises(ValueError):drag.new_output(ref/'sub')
+  ok,reason=drag.validate_drag_receipt(
+   {'pid':42,'native':'ns','frame':'Femacs Drag Target','opened':'hello\n'},
+   [{'frame-live':True,'name':'Femacs Drag Target','x':120,'y':180}],
+   [{'event':'draggingUpdated'},{'event':'performDragOperation'}],
+   'hello\n',42)
+  self.assertTrue(ok);self.assertIsNone(reason)
+  bad_ok,_=drag.validate_drag_receipt(
+   {'pid':42,'native':'ns','frame':'Femacs Drag Target','opened':'wrong'},
+   [{'frame-live':True,'name':'Femacs Drag Target','x':120,'y':180}],
+   [{'event':'draggingUpdated'},{'event':'performDragOperation'}],
+   'hello\n',42)
+  self.assertFalse(bad_ok)
+  no_drop,_=drag.validate_drag_receipt(
+   {'pid':42,'native':'ns','frame':'Femacs Drag Target','opened':'hello\n'},
+   [{'frame-live':True,'name':'Femacs Drag Target','x':120,'y':180}],
+   [{'event':'draggingUpdated'}],
+   'hello\n',42)
+  self.assertFalse(no_drop)
 class Timing(unittest.TextTestResult):
  def startTest(self,test):self.started=time.monotonic();super().startTest(test)
  def stopTest(self,test):

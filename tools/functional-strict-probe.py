@@ -8,10 +8,104 @@ the result with the already closed strict reference baseline.
 """
 from __future__ import annotations
 
-import argparse, hashlib, json, os, sys
+import argparse, hashlib, json, os, re, stat, subprocess, sys
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parent.parent
+TOOL_NAME_RE = re.compile(r'^[A-Za-z0-9._+-]+$')
+DEFAULT_PINNED_BASE_PATH = '/usr/bin:/bin:/usr/sbin:/sbin'
+
+
+def digest_path(path: Path) -> str:
+    handle = hashlib.sha256()
+    with Path(path).open('rb') as stream:
+        for chunk in iter(lambda: stream.read(1024 * 1024), b''):
+            handle.update(chunk)
+    return handle.hexdigest()
+
+
+def resolve_pinned_tools(specs: list[str] | None) -> dict[str, dict]:
+    pins: dict[str, dict] = {}
+    for raw in specs or []:
+        if '=' not in raw:
+            raise ValueError(f'pinned tool must use NAME=/abs/path syntax: {raw!r}')
+        name, target_str = raw.split('=', 1)
+        if not name or not TOOL_NAME_RE.fullmatch(name):
+            raise ValueError(f'invalid pinned tool name: {name!r}')
+        if name in pins:
+            raise ValueError(f'duplicate pinned tool name: {name}')
+        lexical = Path(target_str)
+        if not lexical.is_absolute():
+            raise ValueError(f'pinned tool path must be absolute: {target_str!r}')
+        try:
+            resolved = lexical.resolve(strict=True)
+            st = resolved.stat()
+        except OSError as exc:
+            raise ValueError(f'pinned tool path does not exist: {target_str}') from exc
+        if not stat.S_ISREG(st.st_mode):
+            raise ValueError(f'pinned tool must be a regular file: {resolved}')
+        if (st.st_mode & 0o6000) != 0:
+            raise ValueError(f'pinned tool must not be setuid/setgid: {resolved}')
+        if not os.access(resolved, os.X_OK):
+            raise ValueError(f'pinned tool is not executable: {resolved}')
+        try:
+            proc = subprocess.run(
+                [str(resolved), '--version'],
+                capture_output=True, text=True, errors='replace', timeout=5,
+                env={'PATH': DEFAULT_PINNED_BASE_PATH, 'LC_ALL': 'C', 'LANG': 'C'},
+            )
+            combined = (proc.stdout or '') + ('\n' + proc.stderr if proc.stderr else '')
+            first_line = next((ln.strip() for ln in combined.splitlines() if ln.strip()), '')
+            v_code: int | None = proc.returncode
+        except subprocess.SubprocessError as exc:
+            first_line = f'{type(exc).__name__}: {exc}'[:240]
+            v_code = None
+        pins[name] = {
+            'requested': str(lexical),
+            'realpath': str(resolved),
+            'bytes': st.st_size,
+            'sha256': digest_path(resolved),
+            'version_exit_code': v_code,
+            'version_first_line': first_line[:512],
+        }
+    return pins
+
+
+def build_pinned_bin(staged_dir: Path, pins: dict[str, dict], base_path: str) -> str:
+    staged = Path(staged_dir).resolve()
+    staged.mkdir(parents=True, exist_ok=False)
+    for name, meta in sorted(pins.items()):
+        link = staged / name
+        link.symlink_to(Path(meta['realpath']))
+    cleaned = ':'.join(part for part in base_path.split(':') if part)
+    return f'{staged}:{cleaned}' if cleaned else str(staged)
+
+
+def read_server_observations(path: Path) -> list[dict]:
+    target = Path(path)
+    if not target.is_file():
+        return []
+    rows = []
+    for line in target.read_text(encoding='utf-8', errors='replace').splitlines():
+        if line.strip():
+            item = json.loads(line)
+            if isinstance(item, dict):
+                rows.append(item)
+    return rows
+
+
+def read_case_conditions(events_jsonl: Path) -> dict[str, str | None]:
+    target = Path(events_jsonl)
+    if not target.is_file():
+        return {}
+    conditions: dict[str, str | None] = {}
+    for line in target.read_bytes().splitlines():
+        if not line.strip():
+            continue
+        item = json.loads(line)
+        if isinstance(item, dict) and item.get('event') == 'test-ended' and isinstance(item.get('test_id'), str):
+            conditions[item['test_id']] = item.get('condition')
+    return conditions
 
 
 def load(name, path):
@@ -40,7 +134,15 @@ def main(argv=None):
     parser.add_argument('--timeout', type=float, default=300)
     parser.add_argument('--reference-selection', type=Path, required=True,
                         help='closed reference-selection.json bound to its matrix build and installed reference')
+    parser.add_argument('--pin-tool', action='append', default=[],
+                        help='repeatable NAME=/abs/path external tool pin for both sides')
+    parser.add_argument('--base-path', default=None,
+                        help='explicit base PATH appended behind pinned tools')
     args = parser.parse_args(argv)
+    try:
+        pinned_tools = resolve_pinned_tools(args.pin_tool)
+    except ValueError as exc:
+        parser.error(str(exc))
 
     # The reference product comes from the closed selection document.  The
     # full runtime-reference admission also re-verifies the matrix source
@@ -138,6 +240,13 @@ def main(argv=None):
             parser.error('output must be absent or empty')
     else:
         out.mkdir(parents=True)
+    effective_path: str | None = None
+    saved_env_path = os.environ.get('PATH')
+    if pinned_tools:
+        chosen_base = DEFAULT_PINNED_BASE_PATH if args.base_path is None else args.base_path
+        effective_path = build_pinned_bin(out / 'pinned-tools', pinned_tools, chosen_base)
+    elif args.base_path is not None:
+        effective_path = args.base_path
     fixture_records = []
     for logical in files:
         for entry in batch._fixture_entries(manifest, logical):
@@ -162,57 +271,133 @@ def main(argv=None):
                                 (corpus / 'compatibility/stable-31.1/sources.json').read_bytes()).hexdigest(),
                             files=fixture_records)
     adjudicated = {}
-    for logical in files:
-        pair = {}
-        for label, product in (('reference', suite._product_paths(
-                reference_program, ['--dump-file=' + str(reference_dump.resolve())],
-                reference_env)), ('candidate', paths)):
-            product = dict(product, test_environment={})
-            product['test_context'] = contexts[label]
-            pair[label] = batch._run_file(suite, out, product, REPO / 'tools/fixtures/stable-suite-runner.el',
-                                          corpus / 'test', logical, args.timeout, label,
-                                          display='batch', fixture_entries=batch._fixture_entries(manifest, logical))
-        want = None
-        baseline_file = baseline_root / 'results' / 'reference'
-        for path in baseline_file.glob('*.json'):
-            if path.name.endswith('.environment.json'):
+    try:
+        if effective_path is not None:
+            os.environ['PATH'] = effective_path
+        for logical in files:
+            pair = {}
+            started_servers = {}
+            side_conditions = {}
+            safe_name = suite._safe_component(logical)
+            for label, product in (('reference', suite._product_paths(
+                    reference_program, ['--dump-file=' + str(reference_dump.resolve())],
+                    reference_env)), ('candidate', paths)):
+                product = dict(product, test_environment={})
+                product['test_context'] = contexts[label]
+                obs_log = out / 'results' / label / (safe_name + '.servers.jsonl')
+                obs_log.parent.mkdir(parents=True, exist_ok=True)
+                run_env = dict(product.get('runtime_env', {}))
+                if logical == 'test/lisp/progmodes/eglot-tests.el':
+                    run_env['FEMACS_STRICT_SERVER_OBSERVATION'] = str(obs_log)
+                product['runtime_env'] = run_env
+                pair[label] = batch._run_file(
+                    suite, out, product, REPO / 'tools/fixtures/stable-suite-runner.el',
+                    corpus / 'test', logical, args.timeout, label,
+                    display='batch', fixture_entries=batch._fixture_entries(manifest, logical))
+                started_servers[label] = read_server_observations(obs_log)
+                side_conditions[label] = read_case_conditions(
+                    out / 'results' / label / (safe_name + '.events.jsonl'))
+            want = None
+            baseline_file = baseline_root / 'results' / 'reference'
+            for path in baseline_file.glob('*.json'):
+                if path.name.endswith('.environment.json'):
+                    continue
+                value = read_json(path)
+                if value.get('schema') == 'femacs-stable-file-batch-v1' and value.get('file') == logical:
+                    want = value
+                    break
+            if want is None and not pinned_tools:
+                adjudicated[logical] = dict(verdict='baseline-unavailable')
                 continue
-            value = read_json(path)
-            if value.get('schema') == 'femacs-stable-file-batch-v1' and value.get('file') == logical:
-                want = value
-                break
-        if want is None:
-            adjudicated[logical] = dict(verdict='baseline-unavailable')
-            continue
-        old = {k: (v.get('status'), v.get('diagnostic', '')) for k, v in want.get('cases', {}).items()}
-        new = {k: (v.get('status'), v.get('diagnostic', '')) for k, v in pair['candidate']['cases'].items()}
-        worse, pending = [], []
-        for key in set(old) | set(new):
-            a, b = old.get(key), new.get(key)
-            if a == b:
-                continue
-            if a and a[0] == 'passed' and (not b or b[0] != 'passed'):
-                worse.append(key)
-            elif a and b and a[0] == b[0] == 'failed' and a[1] != b[1]:
-                pending.append(key)
-            elif a and b and a[0] == 'failed' and b[0] == 'skipped':
-                worse.append(key)
-        complete = (pair['candidate']['complete'] is True and pair['candidate']['exit_code'] == 0
-                    and pair['candidate']['timed_out'] is False)
-        verdict = ('incomplete' if not complete else 'port-worse' if worse
-                   else 'pending-condition-diff' if pending else 'same')
-        adjudicated[logical] = dict(verdict=verdict, worse=worse, pending=pending,
-                                    complete=complete,
-                                    exit_code=pair['candidate']['exit_code'])
+            ref_cases = pair['reference']['cases']
+            cand_cases = pair['candidate']['cases']
+            pair_cases = {}
+            pair_worse, pair_pending = [], []
+            for key in sorted(set(ref_cases) | set(cand_cases)):
+                rs = (ref_cases.get(key) or {}).get('status')
+                cs = (cand_cases.get(key) or {}).get('status')
+                rc = side_conditions['reference'].get(key)
+                cc = side_conditions['candidate'].get(key)
+                pair_cases[key] = {
+                    'reference': {'status': rs, 'condition': rc},
+                    'candidate': {'status': cs, 'condition': cc},
+                }
+                if (rs, rc) == (cs, cc):
+                    continue
+                if rs == 'passed' and cs != 'passed':
+                    pair_worse.append(key)
+                elif rs == cs == 'failed' and rc != cc:
+                    pair_pending.append(key)
+                elif rs == 'failed' and cs == 'skipped':
+                    pair_worse.append(key)
+            both_complete = all(
+                pair[s]['complete'] is True and pair[s]['exit_code'] == 0 and pair[s]['timed_out'] is False
+                for s in ('reference', 'candidate')
+            )
+            any_failed = any(
+                (pair[s]['cases'].get(k) or {}).get('status') == 'failed'
+                for s in ('reference', 'candidate') for k in pair_cases
+            )
+            pair_verdict = (
+                'incomplete' if not both_complete else 'port-worse' if pair_worse
+                else 'pending-condition-diff' if pair_pending
+                else 'all-passed' if not any_failed else 'same'
+            )
+            baseline_verdict = None
+            worse, pending = [], []
+            if want is not None:
+                old = {k: (v.get('status'), v.get('diagnostic', '')) for k, v in want.get('cases', {}).items()}
+                new = {k: (v.get('status'), v.get('diagnostic', '')) for k, v in cand_cases.items()}
+                for key in set(old) | set(new):
+                    a, b = old.get(key), new.get(key)
+                    if a == b:
+                        continue
+                    if a and a[0] == 'passed' and (not b or b[0] != 'passed'):
+                        worse.append(key)
+                    elif a and b and a[0] == b[0] == 'failed' and a[1] != b[1]:
+                        pending.append(key)
+                    elif a and b and a[0] == 'failed' and b[0] == 'skipped':
+                        worse.append(key)
+                cand_complete = (pair['candidate']['complete'] is True and pair['candidate']['exit_code'] == 0
+                                 and pair['candidate']['timed_out'] is False)
+                baseline_verdict = ('incomplete' if not cand_complete else 'port-worse' if worse
+                                    else 'pending-condition-diff' if pending else 'same')
+            complete = both_complete if pinned_tools else (
+                pair['candidate']['complete'] is True and pair['candidate']['exit_code'] == 0
+                and pair['candidate']['timed_out'] is False
+            )
+            if pinned_tools:
+                verdict = 'same' if pair_verdict in ('same', 'all-passed') else pair_verdict
+                worse_out, pending_out = pair_worse, pair_pending
+            else:
+                verdict = baseline_verdict
+                worse_out, pending_out = worse, pending
+            row_out = dict(
+                verdict=verdict, worse=worse_out, pending=pending_out,
+                complete=complete, exit_code=pair['candidate']['exit_code'],
+                pair_verdict=pair_verdict, baseline_verdict=baseline_verdict,
+            )
+            if pinned_tools or logical == 'test/lisp/progmodes/eglot-tests.el':
+                row_out['pair_cases'] = pair_cases
+                row_out['started_servers'] = started_servers
+            adjudicated[logical] = row_out
+    finally:
+        if effective_path is not None:
+            if saved_env_path is None:
+                os.environ.pop('PATH', None)
+            else:
+                os.environ['PATH'] = saved_env_path
     counts = {}
     for row in adjudicated.values():
         counts[row['verdict']] = counts.get(row['verdict'], 0) + 1
-    (out / 'adjudication.json').write_text(json.dumps(dict(
+    payload = dict(
         schema='femacs-functional-strict-probe-v1', label=args.label,
         baseline=str(baseline_root), selection=str(selection_path),
         selection_sha256=execution.digest(selection_path),
         reference_identity=live, fixtures=overlay_identity,
-        files=adjudicated, counts=counts), indent=1) + '\n')
+        pinned_tools=pinned_tools, effective_path=effective_path,
+        files=adjudicated, counts=counts)
+    (out / 'adjudication.json').write_text(json.dumps(payload, indent=1) + '\n')
     print(json.dumps(dict(files=len(adjudicated), counts=counts)))
     return 0 if set(counts) <= {'same'} else 1
 

@@ -1,13 +1,18 @@
 //! Native keyboard-event acceptance sender; never linked into the editor.
 use std::{env, fs, thread, time::Duration};
 use std::ffi::c_void;
+#[repr(C)]
+#[derive(Copy, Clone)]
+struct CGPoint { x: f64, y: f64 }
 #[link(name="CoreGraphics", kind="framework")]
 unsafe extern "C" {
     fn CGEventSourceCreate(state: i32) -> *mut c_void;
     fn CGEventCreateKeyboardEvent(source: *mut c_void, keycode: u16, down: bool) -> *mut c_void;
+    fn CGEventCreateMouseEvent(source: *mut c_void, mouse_type: u32, position: CGPoint, button: u32) -> *mut c_void;
     fn CGEventSetFlags(event: *mut c_void, flags: u64);
     fn CGEventSetType(event: *mut c_void, event_type: u32);
     fn CGEventKeyboardSetUnicodeString(event: *mut c_void, length: usize, units: *const u16);
+    fn CGEventPost(tap: u32, event: *mut c_void);
     fn CGEventPostToPid(pid: i32, event: *mut c_void);
 }
 #[link(name="ApplicationServices", kind="framework")]
@@ -42,6 +47,20 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                         CGEventSetType(event,kind);CGEventSetFlags(event,flags);
                         CGEventPostToPid(pid,event);CFRelease(event);
                         thread::sleep(Duration::from_millis(35));
+                    }
+                    continue;
+                }
+                if let Some(rest)=line.strip_prefix("CLICK_POINT\t") {
+                    let coords: Vec<&str>=rest.split('\t').collect();
+                    if coords.len()!=2 { return Err("CLICK_POINT needs x and y".into()); }
+                    let x: f64=coords[0].parse()?;
+                    let y: f64=coords[1].parse()?;
+                    let pt=CGPoint { x, y };
+                    for kind in [5u32, 1u32, 2u32] {
+                        let event=CGEventCreateMouseEvent(source,kind,pt,0);
+                        if event.is_null() { return Err("window click event failed".into()); }
+                        CGEventPost(0,event);CFRelease(event);
+                        thread::sleep(Duration::from_millis(40));
                     }
                     continue;
                 }

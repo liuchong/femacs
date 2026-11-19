@@ -1,3 +1,9 @@
+## CLN270 — 2026-11-20: consumed Stage I clean-export, build staging, and intermediate probe outputs
+
+- Released: `21` owned Stage I scopes (`48,154` files, `2,367` directories, `27` symlinks; `2,799,843,344` logical bytes; normalized digest `91b4a523e2abb473dcd906a107f4360a4c0cd8539e72b806ae7eb4cbaa76e893`), covering `s1-clean-export`, `s1-relocated`, superseded pre-Stage-I `build/terminal` and `dist/macos/Femacs.app` swap, `build/macos`, `.femacs-cache/macos`, `build/terminal/{config,lcms,load,objects,tls,treesit}`, intermediate Stage I acceptance runs, and session-cache scratch outputs.
+- Kept: Stage I delivered products (`build/terminal/port/src/{emacs,emacs.pdmp}`, `dist/macos/Femacs.app`), closed Stage I receipts under `build/acceptance/` for final reverse-audit, pinned `tree-sitter 0.27.1` SDK prefix, and native helpers; untracked historical manifests remain untouched for Stage II (`GA4`) reconciliation.
+- [Report](reports/2026-11-20-270-consumed-stage1-delivery-and-probes.md).
+
 ## 2026-11-18 — retire the cohort-5 matrix source tree
 
 - Released: `build/acceptance/current-runtime-build-5/source` (20 GiB measured by free-space delta).

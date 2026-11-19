@@ -1,6 +1,20 @@
-# 当前状态（2026-11-16）
+# 当前状态（2026-11-20）
 
-**本段为当前实际读数，取代下方 2026-11-14 及更早的历史段落。**
+**本段为当前实际读数，取代下方 2026-11-16 及更早的历史段落。**
+
+- **单会话接续阶段 I（`GA1–GA3`）已闭合**：按用户明确授权从 `baa31c12` 单会话推进七项现代化目标，阶段 I 已完成干净导出独立构建/搬移（`GA2`）、macOS 终端与图形真实工作流（`GA1`）及 555 文件官方尺度稳定兼容收口（`GA3`）。详见 [Stage I 收口回执](../maintenance/releases/2026-11-20-stage1-ga1-ga2-ga3-closure.md) 与 [CLN270](../maintenance/cleanup/reports/2026-11-20-270-consumed-stage1-delivery-and-probes.md)。
+- **当前阶段 I 标准可试用制品**：
+  - `build/terminal/port/src/emacs`：`2,798,256 B`，SHA256 `a0dd02e116b9f37e8eb6fc86be630118bb7d0d82af5e9f3c2c8cdaf5d7960241`；`emacs.pdmp`：`13,101,368 B`，SHA256 `cd076b1dc17a9b2c6cac605347442604214bf18d49ef41cdfaace31d62bfac18`。
+  - `dist/macos/Femacs.app`：主程序 `4,367,952 B`（SHA256 `02f5adafe3c1a5fc86276632e521ed5228ed37d5cfe4443377437d799098104e`），`Femacs.pdmp` `18,600,752 B`（SHA256 `e1515db2344d096fdf23aea1a376ae9628d93993e00fef4b308aea198b639e6b`），`codesign --verify --deep --strict` 通过，`spctl --assess` 返回 `exit 3`（本地试用未公证边界）。
+- **`GA2` 干净导出与搬移**：纯跟踪树 `git archive`（`7,629` 文件，tree `ee9725fd…`，无 `.git`、无参照检出、无缓存）配合锁定 `tree-sitter 0.27.1` 完成双产品构建（`757.199s`）；隐藏导出目录后搬移包 `--batch` 与 `NSWorkspace` GUI 启动均通过，`17` 份 `@rpath` 库均自搬移后 `Contents/Frameworks` 加载（`build/acceptance/s1-ga2-receipt.json`，SHA256 `1311e0ad…`）。
+- **`GA1` 桌面与异常 TTY**：多窗口输入法 `--mode multi`（`19.140s`，`407` 条原生回调，SHA256 `07a5fcbf…`）、Finder 图标视图真实外部拖放 `test-macos-drag.py`（`8.969s`，`25` 次 `ns-drag-motion-function` 回调，SHA256 `b1dab2e1…`）、`local-acceptance.py --gui --ime` `14/14`（`108.856s`，含 `steady`/`switch` IME、后台 GC、终端/GUI 26 键位与文件流，SHA256 `b7813993…`）及 6 例无控制 TTY `test-goal-stability.py`（`16/16`，SHA256 `6d0f381a…`）全部通过。
+- **`GA3` 稳定兼容收口（有效阻断 `3 -> 0`）**：两组锁定工具 `functional-strict-probe.py` 严格双端探针（`stty=/bin/stty` 分别配 `clangd 23.1.5` `951577dc…` 与 `clangd 21.0.0` `a5a40a64…`）记录双端本地及 `mock` 远端启动语言服务身份；`578` 条源码规则展开为 `27,744` 条定义，`g3-scoped-consume-555-20`（`565/574`，原始失败 `574` 不变）与 `g3-scoped-consume-subset-5`（`37/37`、`0` 阻断）联合使全部 `555` 入口有效阻断降为 **`0`**（`g3-effective-blocking-2.json`，SHA256 `7d504814…`）。保护性回归 `test-functional-strict-probe.py` `3/3`、`test-macos-stability.py` `11/11`、`test-stable-classification.py` 集成 `51/51` 与保护 `41/41` 均通过。
+- **清理（CLN270）**：即时回收已消费导出树、中间编译目录与前置诊断输出共 `21` 个范围（`48,154` 文件、`2,367` 目录、`27` 符号链接，`2,799,843,344` 逻辑字节）。
+- **剩余待完成项**：阶段 II（`GA4` 读者/支持矩阵复核与历史未跟踪清理清单收口）及阶段 III（`GA5` 安静主机真实负载/GC 9 轮画像、`GA6` 编译器/native 实测取舍、`GA7` 分代 GC 实测取舍、`GA8` 相对已安装参照的真实提速与最终交付审计）；整体 Goal 仍保持进行中。
+
+---
+
+## 历史记录（2026-11-16）
 
 **测试分层已定稿：** 功能验证用官方同一批样例、对本次交付的构建跑一次（分钟级），等价审计才用变体矩阵；有意偏离必须"登记 + 标记 + 自有测试"三件套。见 [testing-strategy.md](testing-strategy.md)。
 

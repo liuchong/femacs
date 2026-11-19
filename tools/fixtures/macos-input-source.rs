@@ -61,7 +61,19 @@ fn main()->Result<(),String>{
             quoted.push('"');
             println!("{{\"source\":{},\"frontmost\":{},\"focused_window\":{}}}",quoted,values[0],values[1]);return Ok(());
         }
-        if command!="list" && command!="select" {return Err("usage: macos-input-source list|current|status PID|select ID [PID]".into());}
+        if command=="activate" {
+            let pid:i32=args.get(2).ok_or("activate needs PID")?.parse().map_err(|_|"invalid PID")?;
+            if pid<=0{return Err("invalid PID".into())}
+            let app=AXUIElementCreateApplication(pid);
+            let key=CString::new("AXFrontmost").unwrap();
+            let attribute=CFStringCreateWithCString(ptr::null(),key.as_ptr(),0x08000100);
+            let code=AXUIElementSetAttributeValue(app,attribute,kCFBooleanTrue);
+            CFRelease(attribute);CFRelease(app);
+            if code!=0{return Err(format!("cannot activate test app: {code}"))}
+            thread::sleep(Duration::from_millis(200));
+            println!("{pid}");return Ok(());
+        }
+        if command!="list" && command!="select" {return Err("usage: macos-input-source list|current|status PID|activate PID|select ID [PID]".into());}
         let list=TISCreateInputSourceList(ptr::null(),false);
         if list.is_null(){return Err("input source list unavailable".into());}
         let result=(||->Result<(),String>{

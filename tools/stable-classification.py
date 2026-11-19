@@ -762,11 +762,126 @@ def _direct_skip_applicability(gate, case, events, file_row, excerpts, receipt,
     return proofs
 
 
+def _verify_eglot_pinned_probe(pin, reference_selection, expected_case_id,
+                               expected_status, expected_condition,
+                               *, require_remote_mock=False, require_all_passed=False,
+                               cache=None):
+    """Verify a closed pinned-tool strict-probe receipt and its started server identities."""
+    require(isinstance(pin, dict) and set(pin) == {'path', 'identity'},
+            'pinned strict-probe binding requires path and identity')
+    local_cache = {} if cache is None else cache
+    probe_path = Path(pin['path']).resolve()
+    identity = bound_file(probe_path, pin['identity'], MAX_ITEM)
+    doc = _control_json(dict(path=str(probe_path), identity=identity), local_cache)
+    logical = 'test/lisp/progmodes/eglot-tests.el'
+    file_entry = (doc.get('files') or {}).get(logical)
+    pinned_tools = doc.get('pinned_tools') or {}
+    stty_pin = pinned_tools.get('stty') or {}
+    clangd_pin = pinned_tools.get('clangd') or {}
+    same_selection = doc.get('selection_sha256') == reference_selection.get('sha256')
+    extra_proofs = {}
+    if not same_selection and isinstance(doc.get('selection'), str) and isinstance(doc.get('selection_sha256'), str):
+        sel_path = Path(doc['selection']).resolve()
+        sel_pin = bound_file(sel_path, limit=MAX_ITEM)
+        sel_doc = _control_json(dict(path=str(sel_path), identity=sel_pin), local_cache)
+        ref_id = doc.get('reference_identity') or {}
+        target_id = reference_selection.get('identity') or {}
+        same_selection = (
+            sel_pin['sha256'] == doc.get('selection_sha256')
+            and sel_doc.get('schema') == 'femacs-runtime-reference-selection-v1'
+            and sel_doc.get('epoch') == reference_selection.get('epoch')
+            and (ref_id.get('program') or {}).get('sha256') == (target_id.get('program') or {}).get('sha256')
+            and (ref_id.get('dump') or {}).get('sha256') == (target_id.get('dump') or {}).get('sha256')
+            and bool((target_id.get('program') or {}).get('sha256'))
+        )
+        if same_selection:
+            extra_proofs[str(sel_path)] = sel_pin
+    require(doc.get('schema') == 'femacs-functional-strict-probe-v1'
+            and same_selection
+            and stty_pin.get('realpath') in ('/bin/stty', str(Path('/bin/stty').resolve()))
+            and isinstance(stty_pin.get('sha256'), str) and len(stty_pin['sha256']) == 64
+            and isinstance(clangd_pin.get('realpath'), str) and bool(clangd_pin['realpath'])
+            and isinstance(clangd_pin.get('sha256'), str) and len(clangd_pin['sha256']) == 64
+            and isinstance(clangd_pin.get('version_first_line'), str)
+            and 'clangd' in clangd_pin['version_first_line']
+            and isinstance(file_entry, dict)
+            and file_entry.get('complete') is True
+            and file_entry.get('verdict') == 'same',
+            'pinned strict-probe receipt lacks bound stty/clangd identities or complete matching execution')
+    if require_all_passed:
+        require(file_entry.get('pair_verdict') == 'all-passed',
+                'TextEdit contrast probe must pass all Eglot cases on both sides')
+    pair_case = (file_entry.get('pair_cases') or {}).get(expected_case_id)
+    require(isinstance(pair_case, dict)
+            and all((pair_case.get(s) or {}).get('status') == expected_status
+                    and (pair_case.get(s) or {}).get('condition') == expected_condition
+                    for s in ('reference', 'candidate')),
+            'pinned strict-probe case outcome differs from required Eglot status/condition')
+    servers = file_entry.get('started_servers') or {}
+    versions = []
+    for side in ('reference', 'candidate'):
+        side_rows = servers.get(side) or []
+        matching = [
+            r for r in side_rows
+            if isinstance(r, dict)
+            and (not require_remote_mock
+                 or (r.get('remote_method') == 'mock'
+                     and isinstance(r.get('running_command'), str)
+                     and 'stty raw > /dev/null;' in r['running_command']))
+            and isinstance(r.get('server_info'), dict)
+            and r['server_info'].get('name') == 'clangd'
+            and isinstance(r['server_info'].get('version'), str)
+            and bool(r['server_info']['version'])
+        ]
+        require(bool(matching),
+                'pinned strict-probe lacks started clangd serverInfo observation on ' + side)
+        versions.append(matching[0]['server_info']['version'])
+    require(versions[0] == versions[1],
+            'reference and candidate started different clangd serverInfo versions')
+    return {str(probe_path): identity, **extra_proofs}
+
+
 def _component_version_applicability(gate, case, events, file_row, excerpts,
                                      receipt, reference_selection, source_anchors,
                                      *, root=None, api=None, profile=None, cache=None):
     """Bind a declared stable component against the selected reference API."""
     kind = gate.get('kind')
+    if kind == 'external-lsp-insert-replace-edit':
+        source = '\n'.join(excerpts)
+        comp_cond = '(ert-test-failed ((should (looking-at "123")) :form (looking-at "123") :value nil))'
+        require(set(gate) == {'kind', 'source_form', 'capability_form', 'edit_branch_form',
+                              'upstream_commit', 'upstream_fix_commit', 'control_test_id',
+                              'conditions', 'insert_replace_probe', 'text_edit_probe'}
+                and case['file'] == 'test/lisp/progmodes/eglot-tests.el'
+                and case['id'] == 'eglot-test-try-completion-inside-symbol-2'
+                and [case[s]['status'] for s in ('reference', 'candidate')] == ['failed', 'failed']
+                and gate['source_form'] == '(should (looking-at "123"))'
+                and gate['capability_form'] == ':insertReplaceSupport t'
+                and gate['edit_branch_form'] == '(((InsertReplaceEdit) newText replace)'
+                and gate['upstream_commit'] == '1143cf09a339d57051a4341103c9e342d8876649'
+                and gate['upstream_fix_commit'] == '7586a71d7c465e3a403dd6f04b76cac38a995189'
+                and gate['control_test_id'] == 'eglot-test-try-completion-inside-symbol'
+                and all(tok in source for tok in (
+                    gate['source_form'], gate['capability_form'], gate['edit_branch_form'],
+                    '(ert-deftest eglot-test-try-completion-inside-symbol ()',
+                    '(ert-deftest eglot-test-basic-completions ()'))
+                and gate['conditions'] == {s: events[s].get('condition') for s in ('reference', 'candidate')}
+                and all(events[s].get('condition') == comp_cond for s in ('reference', 'candidate')),
+                'external LSP InsertReplaceEdit gate requires matching completion failure and source forms')
+        local_cache = {} if cache is None else cache
+        proofs = {}
+        proofs.update(_verify_eglot_pinned_probe(
+            gate['insert_replace_probe'], reference_selection, case['id'],
+            'failed', comp_cond, cache=local_cache))
+        proofs.update(_verify_eglot_pinned_probe(
+            gate['text_edit_probe'], reference_selection, case['id'],
+            'passed', None, require_all_passed=True, cache=local_cache))
+        for side in ('reference', 'candidate'):
+            proofs.update(_formal_counterpart(root, api, case, side, file_row,
+                                              gate['control_test_id'], local_cache))
+            proofs.update(_formal_counterpart(root, api, case, side, file_row,
+                                              'eglot-test-basic-completions', local_cache))
+        return proofs
     ert = kind == 'ert-description-format'
     filenotify = (kind == 'filenotify-descriptor-api'
         and case['file'] == 'test/lisp/filenotify-tests.el'
@@ -1887,6 +2002,61 @@ def _accept_rule(rule, case, file_row, entry, root, api, reference_selection, pr
             for label in ('reference', 'candidate'):
                 proofs.update(_formal_counterpart(root, api, case, label, file_row,
                     invalid['control_test_id'], local_cache))
+        elif isinstance(invalid, dict) and invalid.get('kind') == 'remote-unqualified-stty-raw-echo':
+            source = '\n'.join(excerpts)
+            tramp_cond = '(error "[eglot] Timed out after 10 seconds")'
+            inputs_file = Path(root) / 'stable-suite-inputs.json'
+            inputs_pin = bound_file(inputs_file, limit=16 * 1024 * 1024)
+            inputs_doc = _control_json(dict(path=str(inputs_file), identity=inputs_pin),
+                                       {} if cache is None else cache)
+            env_path = ((inputs_doc.get('environment_policy') or {}).get('PATH') or '')
+            parts = [p for p in env_path.split(':') if p]
+            gnubin_idx = next((i for i, p in enumerate(parts) if 'gnubin' in p), None)
+            bin_idx = next((i for i, p in enumerate(parts) if p == '/bin'), None)
+            require(set(invalid) == {'kind', 'source_form', 'wrapper_form', 'control_test_id',
+                                     'conditions', 'pinned_probe'}
+                    and case['file'] == 'test/lisp/progmodes/eglot-tests.el'
+                    and case['id'] in {'eglot-test-tramp-test', 'eglot-test-tramp-test-2'}
+                    and statuses == ['failed', 'failed']
+                    and invalid['wrapper_form'] == '(string-join (cons "stty raw > /dev/null;"'
+                    and invalid['control_test_id'] == 'eglot-test-basic-completions'
+                    and invalid['source_form'] in source
+                    and invalid['wrapper_form'] in source
+                    and '(ert-deftest eglot-test-basic-completions ()' in source
+                    and gnubin_idx is not None and bin_idx is not None and gnubin_idx < bin_idx
+                    and invalid['conditions'] == {s: events[s].get('condition') for s in ('reference', 'candidate')}
+                    and all(events[s].get('condition') == tramp_cond for s in ('reference', 'candidate')),
+                    'remote unqualified stty raw gate requires gnubin PATH precedence and matching initialize timeout')
+            proofs[str(inputs_file.resolve())] = inputs_pin
+            local_cache = {} if cache is None else cache
+            for side in ('reference', 'candidate'):
+                file_pin = file_row[side].get('file_result') or {}
+                file_path = Path(root) / api._relative_path(file_pin.get('path'), 'Eglot file evidence')
+                file_identity = {k: file_pin.get(k) for k in ('bytes', 'sha256')}
+                file_doc = _control_json(dict(path=str(file_path), identity=file_identity), local_cache)
+                stderr_meta = file_row[side].get('stderr')
+                stderr_rel = (stderr_meta.get('path') if isinstance(stderr_meta, dict)
+                              else file_doc.get('stderr_log'))
+                require(isinstance(stderr_rel, str) and bool(stderr_rel),
+                        'retained Eglot stderr path required')
+                stderr_path = Path(root) / api._relative_path(stderr_rel, 'retained Eglot stderr')
+                stderr_pin = bound_file(
+                    stderr_path,
+                    ({k: stderr_meta.get(k) for k in ('bytes', 'sha256')}
+                     if isinstance(stderr_meta, dict) and 'sha256' in stderr_meta else None),
+                    64 * 1024 * 1024)
+                stderr_text = stderr_path.read_text(encoding='utf-8', errors='replace')
+                require('stty raw > /dev/null;' in stderr_text
+                        and 'JSON parse error:' in stderr_text
+                        and 'timed-out request' in stderr_text,
+                        'retained Eglot stderr lacks unqualified stty raw wrapper or PTY echo JSON truncation')
+                proofs[str(file_path.resolve())] = file_identity
+                proofs[str(stderr_path.resolve())] = stderr_pin
+                proofs.update(_formal_counterpart(root, api, case, side, file_row,
+                                                  invalid['control_test_id'], local_cache))
+            proofs.update(_verify_eglot_pinned_probe(
+                invalid['pinned_probe'], reference_selection, case['id'],
+                'passed', None, require_remote_mock=True, cache=local_cache))
         elif invalid is not None:
             require(statuses == ['skipped', 'skipped'], 'invalid skip rule cannot excuse another outcome')
             invalid = rule.get('invalid_gate', {})
@@ -2103,7 +2273,7 @@ def assess(api, root, receipt, manifest, catalog_path, profile, reference_select
             for label in ('reference', 'candidate'):
                 files[value['file']][label] = {key: value.get(label, {}).get(key) for key in
                     ('complete', 'exit_code', 'timed_out', 'remaining_group_terminated',
-                     'metadata', 'file_result', 'progress', 'argv', 'runtime_environment',
+                     'metadata', 'file_result', 'progress', 'stderr', 'argv', 'runtime_environment',
                      'mock_transport_context', 'diagnostic_trace')}
         elif name == 'cases':
             # Cases can precede file metadata in the frozen writer. Read them
@@ -2281,6 +2451,10 @@ def main(argv=None):
     parser.add_argument('--remote-contract-run', type=Path, nargs=2, action='append', default=[],
                         metavar=('RESULTS','CONTROLLER'),
                         help='closed same-product signal/watch controls and their outer controller')
+    parser.add_argument('--eglot-insert-replace-probe', type=Path,
+                        help='closed pinned-tool strict-probe adjudication.json for clangd InsertReplaceEdit')
+    parser.add_argument('--eglot-text-edit-probe', type=Path,
+                        help='closed pinned-tool strict-probe adjudication.json for clangd TextEdit contrast')
     parser.add_argument('--out', type=Path, required=True)
     args = parser.parse_args(argv)
     if not args.scoped_assembly and (args.build is None or not args.run_results):
@@ -2580,9 +2754,23 @@ def scoped_candidate_profile(product_root, receipt):
         'program', 'dump', 'resource_roots', 'product_receipt')}
 
 
+def _load_eglot_probes(args, inputs=None):
+    probes = {}
+    for attr, key in (('eglot_insert_replace_probe', 'insert_replace_probe'),
+                      ('eglot_text_edit_probe', 'text_edit_probe')):
+        val = getattr(args, attr, None)
+        if val is not None:
+            resolved = str(Path(os.path.abspath(val)))
+            identity = bound_file(resolved, limit=MAX_ITEM)
+            probes[key] = dict(path=resolved, identity=identity)
+            if inputs is not None:
+                inputs[resolved] = identity
+    return probes
+
+
 def _capture_failing_rule(rule, case, *, root, api, profile_id, candidate_kind,
                           controls, remote_controls, control_cache,
-                          correct_behavior_control=None):
+                          correct_behavior_control=None, eglot_probes=None):
     """Bind observations and runtime gate conditions for one failing raw case."""
     captured = dict(rule, observations={label: observation_signature(case[label])
                                         for label in ('reference', 'candidate')})
@@ -2643,6 +2831,18 @@ def _capture_failing_rule(rule, case, *, root, api, profile_id, candidate_kind,
             captured['version_gate'] = dict(
                 captured['version_gate'],
                 controls=_select_remote_controls(remote_controls, profile_id, control_cache))
+        elif captured['version_gate'].get('kind') == 'external-lsp-insert-replace-edit':
+            require(not {'conditions', 'insert_replace_probe', 'text_edit_probe'} & set(captured['version_gate']),
+                    'source version gates cannot prefill Eglot conditions or probes')
+            probes = eglot_probes or {}
+            require('insert_replace_probe' in probes and 'text_edit_probe' in probes,
+                    'external LSP InsertReplaceEdit gate requires both pinned clangd strict-probe receipts')
+            captured['version_gate'] = dict(
+                captured['version_gate'],
+                conditions={label: _original_case_event(root, api, case, label).get('condition')
+                            for label in ('reference', 'candidate')},
+                insert_replace_probe=probes['insert_replace_probe'],
+                text_edit_probe=probes['text_edit_probe'])
     if captured.get('category') == 'approved-host-environment-limitation':
         env_gate = captured.get('environment_gate')
         require(isinstance(env_gate, dict) and 'conditions' not in env_gate,
@@ -2709,6 +2909,18 @@ def _capture_failing_rule(rule, case, *, root, api, profile_id, candidate_kind,
                           purpose='applicability', display=display,
                           test_id=invalid['control_test_id'], cache=control_cache)
                       for label in labels})
+    if isinstance(invalid, dict) and invalid.get('kind') == 'remote-unqualified-stty-raw-echo':
+        require(not {'conditions', 'pinned_probe'} & set(invalid),
+                'reviewed definitions cannot prefill runtime conditions or pinned probes')
+        probes = eglot_probes or {}
+        chosen_probe = probes.get('insert_replace_probe') or probes.get('text_edit_probe')
+        require(chosen_probe is not None,
+                'remote unqualified stty raw gate requires a pinned strict-probe receipt')
+        captured['invalid_gate'] = dict(
+            invalid,
+            conditions={label: _original_case_event(root, api, case, label).get('condition')
+                        for label in ('reference', 'candidate')},
+            pinned_probe=chosen_probe)
     return captured
 
 
@@ -2765,6 +2977,7 @@ def assemble(stage, args):
         identity = bound_file(path, limit=MAX_ITEM)
         library_contracts.append(dict(path=path, identity=identity))
         inputs[path] = identity
+    eglot_probes = _load_eglot_probes(args, inputs)
     control_cache = {}
     for path in args.run_results:
         path = execution.safe_path(path)
@@ -2861,7 +3074,8 @@ def assemble(stage, args):
                     candidate_kind=candidate.get('kind'), controls=controls,
                     remote_controls=remote_controls, control_cache=control_cache,
                     correct_behavior_control=(correct_controls.get('candidate')
-                        if rules[key]['category'] == 'known-reference-library-defect' else None)))
+                        if rules[key]['category'] == 'known-reference-library-defect' else None),
+                    eglot_probes=eglot_probes))
     requested = {key for key in rules if key[0] in catalog['contexts']}
     require(discovered == requested,
             'reviewed definition was not registered by the supplied complete original files')
@@ -2967,6 +3181,7 @@ def assemble_scoped(args):
     for path in getattr(args, 'library_contract_run', []) or []:
         path = str(Path(os.path.abspath(path)))
         library_contracts.append(dict(path=path, identity=bound_file(path, limit=MAX_ITEM)))
+    eglot_probes = _load_eglot_probes(args)
     control_cache = {}
     catalog = dict(schema=SCHEMA, manifest_sha256=receipt['manifest_sha256'],
                    reference_selection_sha256=selection['sha256'],
@@ -2990,7 +3205,8 @@ def assemble_scoped(args):
             rule, case, root=root, api=suite, profile_id=profile['id'],
             candidate_kind=profile['kind'], controls=controls,
             remote_controls=remote_controls, control_cache=control_cache,
-            correct_behavior_control=correct_behavior_control)
+            correct_behavior_control=correct_behavior_control,
+            eglot_probes=eglot_probes)
         # Accept only bindings that the mature assess path can prove on this
         # channel; mismatched outcomes stay unexplained instead of aborting.
         _accept_rule(captured, case, file_rows[case['file']], by_path[case['file']],

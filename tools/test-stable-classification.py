@@ -459,6 +459,225 @@ def _removed_producer_flows(fixture, rows):
             skip_form='(skip-unless nil)')), True)
 
 
+def _eglot_gate_flows(fixture, rows):
+    """Verify positive and counterexample boundaries for the two Eglot gates."""
+    logical = 'test/lisp/progmodes/eglot-tests.el'
+    corpus_file = REPO / 'compatibility/stable-31.1' / logical
+    eglot_lib = REPO / 'lisp/progmodes/eglot.el'
+    corpus_bytes = corpus_file.read_bytes()
+    entry = dict(path=logical, size=len(corpus_bytes),
+                 sha256=hashlib.sha256(corpus_bytes).hexdigest())
+    corpus_lines = corpus_bytes.replace(b'\r\n', b'\n').split(b'\n')
+    lib_bytes = eglot_lib.read_bytes()
+    lib_lines = lib_bytes.replace(b'\r\n', b'\n').split(b'\n')
+
+    def slice_anchor(target_path, raw_bytes, lines, start, end):
+        excerpt = b'\n'.join(lines[start - 1:end]) + b'\n'
+        return dict(path=str(target_path), bytes=len(raw_bytes),
+                    sha256=hashlib.sha256(raw_bytes).hexdigest(),
+                    start_line=start, end_line=end,
+                    lf_sha256=hashlib.sha256(excerpt).hexdigest())
+
+    root = fixture / 'eglot-gates'
+    root.mkdir()
+    selection_sha = 'e' * 64
+    selection = dict(epoch='ref-32.0.50', sha256=selection_sha,
+                     upstream=dict(commit='fd7afced4036fc1a221567d70705d20a2bd64713'))
+    e.write_json(root / 'stable-suite-inputs.json', dict(
+        environment_policy=dict(PATH='/opt/homebrew/opt/coreutils/libexec/gnubin:/usr/bin:/bin')))
+
+    tramp_id = 'eglot-test-tramp-test'
+    comp_id = 'eglot-test-try-completion-inside-symbol-2'
+    basic_id = 'eglot-test-basic-completions'
+    inside_id = 'eglot-test-try-completion-inside-symbol'
+    tramp_cond = '(error "[eglot] Timed out after 10 seconds")'
+    comp_cond = '(ert-test-failed ((should (looking-at "123")) :form (looking-at "123") :value nil))'
+
+    case_tramp = dict(file=logical, id=tramp_id, passed=False)
+    case_comp = dict(file=logical, id=comp_id, passed=False)
+    file_row = {}
+    for label in ('reference', 'candidate'):
+        stderr_file = root / (label + '.stderr.log')
+        stderr_file.write_text(
+            '[jsonrpc] D[00:00:00.000] Running language server: /bin/sh -c stty raw > /dev/null; /opt/clangd\n'
+            'E[00:00:00.010] JSON parse error: [3:3809, byte=3811]: Expected , or }\n'
+            '[jsonrpc] e[00:00:10.000] [1] timed-out request \':initialize\'\n',
+            encoding='utf-8')
+        pins = {}
+        events_blob = []
+        for ordinal, (tid, outcome, cond) in enumerate((
+            (basic_id, 'passed', None),
+            (inside_id, 'passed', None),
+            (tramp_id, 'failed', tramp_cond),
+            (comp_id, 'failed', comp_cond),
+        )):
+            ev = dict(event='test-ended', file=logical, test_id=tid,
+                      status=outcome, duration=0.05, diagnostic='synthetic ' + outcome,
+                      expected=(outcome == 'passed'), skipped=False)
+            if cond is not None:
+                ev['condition'] = cond
+            raw_line = json.dumps(ev, sort_keys=True).encode('utf-8')
+            events_blob.append(raw_line)
+            pin = dict(path=label + '.events.jsonl',
+                       event_sha256=hashlib.sha256(raw_line).hexdigest(),
+                       event_ordinal=ordinal)
+            obs = dict(test_id=tid, status=outcome, complete=True, exit_code=0,
+                       seconds=0.05, diagnostic='synthetic ' + outcome, evidence=pin)
+            obs['assessment'] = suite.assess_case(tid, obs)
+            pins[tid] = obs
+        progress_file = root / (label + '.events.jsonl')
+        progress_file.write_bytes(b'\n'.join(events_blob) + b'\n')
+        progress_pin = dict(path=progress_file.name, **accounting.bound_file(progress_file))
+        stderr_pin = dict(path=stderr_file.name, **accounting.bound_file(stderr_file))
+        final_file = root / (label + '-file.json')
+        payload = dict(
+            schema='femacs-stable-file-batch-v1', file=logical, product=label,
+            ids=list(pins), cases=pins, complete=True, passed=False,
+            timed_out=False, remaining_group_terminated=False, exit_code=0,
+            argv=['synthetic', '--dump-file=synthetic'],
+            runtime_environment={'FEMACS_GC_OBSERVATION': 'off'},
+            metadata=dict(display_mode='batch', noninteractive=True, product_version='32.0.50'),
+            progress=progress_pin, stderr_log=stderr_file.name)
+        e.write_json(final_file, payload)
+        row_copy = dict(payload, file_result=dict(path=final_file.name, **accounting.bound_file(final_file)))
+        row_copy.pop('cases')
+        row_copy.pop('ids')
+        file_row[label] = row_copy
+        case_tramp[label] = pins[tramp_id]
+        case_comp[label] = pins[comp_id]
+
+    probe_23 = root / 'probe-clangd23.json'
+    e.write_json(probe_23, dict(
+        schema='femacs-functional-strict-probe-v1',
+        selection_sha256=selection_sha,
+        pinned_tools=dict(
+            stty=dict(realpath='/bin/stty', sha256='1' * 64, version_exit_code=1, version_first_line='stty'),
+            clangd=dict(realpath='/opt/llvm/bin/clangd', sha256='2' * 64,
+                        version_exit_code=0, version_first_line='Homebrew clangd version 23.1.5'),
+        ),
+        effective_path='/pinned:/usr/bin:/bin',
+        files={logical: dict(
+            verdict='same', complete=True, pair_verdict='same',
+            pair_cases={
+                tramp_id: dict(reference=dict(status='passed', condition=None),
+                               candidate=dict(status='passed', condition=None)),
+                comp_id: dict(reference=dict(status='failed', condition=comp_cond),
+                              candidate=dict(status='failed', condition=comp_cond)),
+            },
+            started_servers=dict(
+                reference=[dict(test_id=tramp_id, remote_method='mock',
+                                running_command='/bin/sh -c stty raw > /dev/null; /pinned/clangd',
+                                server_info=dict(name='clangd', version='Homebrew clangd version 23.1.5'))],
+                candidate=[dict(test_id=tramp_id, remote_method='mock',
+                                running_command='/bin/sh -c stty raw > /dev/null; /pinned/clangd',
+                                server_info=dict(name='clangd', version='Homebrew clangd version 23.1.5'))],
+            ),
+        )}))
+    probe_21 = root / 'probe-clangd21.json'
+    e.write_json(probe_21, dict(
+        schema='femacs-functional-strict-probe-v1',
+        selection_sha256=selection_sha,
+        pinned_tools=dict(
+            stty=dict(realpath='/bin/stty', sha256='1' * 64, version_exit_code=1, version_first_line='stty'),
+            clangd=dict(realpath='/usr/bin/clangd', sha256='3' * 64,
+                        version_exit_code=0, version_first_line='Apple clangd version 21.0.0'),
+        ),
+        effective_path='/pinned:/usr/bin:/bin',
+        files={logical: dict(
+            verdict='same', complete=True, pair_verdict='all-passed',
+            pair_cases={
+                tramp_id: dict(reference=dict(status='passed', condition=None),
+                               candidate=dict(status='passed', condition=None)),
+                comp_id: dict(reference=dict(status='passed', condition=None),
+                              candidate=dict(status='passed', condition=None)),
+            },
+            started_servers=dict(
+                reference=[dict(test_id=comp_id, remote_method=None,
+                                running_command='/pinned/clangd',
+                                server_info=dict(name='clangd', version='Apple clangd version 21.0.0'))],
+                candidate=[dict(test_id=comp_id, remote_method=None,
+                                running_command='/pinned/clangd',
+                                server_info=dict(name='clangd', version='Apple clangd version 21.0.0'))],
+            ),
+        )}))
+
+    tramp_rule = dict(
+        category='upstream-invalid-test',
+        reason='synthetic remote stty raw echo gate',
+        input_sha256=entry['sha256'],
+        source_evidence=[
+            slice_anchor(corpus_file, corpus_bytes, corpus_lines, 673, 685),
+            slice_anchor(corpus_file, corpus_bytes, corpus_lines, 1505, 1540),
+            slice_anchor(eglot_lib, lib_bytes, lib_lines, 1795, 1807),
+        ],
+        observations={s: accounting.observation_signature(case_tramp[s]) for s in ('reference', 'candidate')},
+        invalid_gate=dict(
+            kind='remote-unqualified-stty-raw-echo',
+            source_form='(ert-deftest eglot-test-tramp-test ()',
+            wrapper_form='(string-join (cons "stty raw > /dev/null;"',
+            control_test_id=basic_id,
+            conditions={s: tramp_cond for s in ('reference', 'candidate')},
+            pinned_probe=dict(path=str(probe_23), identity=accounting.bound_file(probe_23)),
+        ),
+    )
+    comp_rule = dict(
+        category='proven-version-evolution',
+        reason='synthetic external clangd InsertReplaceEdit gate',
+        input_sha256=entry['sha256'],
+        source_evidence=[
+            slice_anchor(corpus_file, corpus_bytes, corpus_lines, 673, 772),
+            slice_anchor(eglot_lib, lib_bytes, lib_lines, 1120, 1130),
+            slice_anchor(eglot_lib, lib_bytes, lib_lines, 4144, 4154),
+        ],
+        observations={s: accounting.observation_signature(case_comp[s]) for s in ('reference', 'candidate')},
+        version_gate=dict(
+            kind='external-lsp-insert-replace-edit',
+            source_form='(should (looking-at "123"))',
+            capability_form=':insertReplaceSupport t',
+            edit_branch_form='(((InsertReplaceEdit) newText replace)',
+            upstream_commit='1143cf09a339d57051a4341103c9e342d8876649',
+            upstream_fix_commit='7586a71d7c465e3a403dd6f04b76cac38a995189',
+            control_test_id=inside_id,
+            conditions={s: comp_cond for s in ('reference', 'candidate')},
+            insert_replace_probe=dict(path=str(probe_23), identity=accounting.bound_file(probe_23)),
+            text_edit_probe=dict(path=str(probe_21), identity=accounting.bound_file(probe_21)),
+        ),
+    )
+
+    def check(name, fn, rejected=True):
+        start = time.monotonic()
+        try:
+            res = fn()
+        except (ValueError, suite.SuiteError, TypeError, KeyError):
+            assert rejected, name
+        else:
+            assert not rejected and bool(res), name
+        rows.append(dict(id=name, passed=True, seconds=time.monotonic() - start,
+                         synthetic_observed_facts=True))
+
+    check('eglot-remote-stty-gate-accepted',
+          lambda: accounting._accept_rule(copy.deepcopy(tramp_rule), copy.deepcopy(case_tramp),
+                                          copy.deepcopy(file_row), entry, root, suite, selection, None, None),
+          rejected=False)
+    check('eglot-remote-stty-gate-rejects-wrong-condition',
+          lambda: accounting._accept_rule(
+              dict(copy.deepcopy(tramp_rule), invalid_gate=dict(
+                  tramp_rule['invalid_gate'], conditions=dict(reference=tramp_cond, candidate='(error "other")'))),
+              copy.deepcopy(case_tramp), copy.deepcopy(file_row), entry, root, suite, selection, None, None),
+          rejected=True)
+    check('eglot-insert-replace-gate-accepted',
+          lambda: accounting._accept_rule(copy.deepcopy(comp_rule), copy.deepcopy(case_comp),
+                                          copy.deepcopy(file_row), entry, root, suite, selection, None, None),
+          rejected=False)
+    check('eglot-insert-replace-gate-rejects-same-probe-without-pass-contrast',
+          lambda: accounting._accept_rule(
+              dict(copy.deepcopy(comp_rule), version_gate=dict(
+                  comp_rule['version_gate'],
+                  text_edit_probe=dict(path=str(probe_23), identity=accounting.bound_file(probe_23)))),
+              copy.deepcopy(case_comp), copy.deepcopy(file_row), entry, root, suite, selection, None, None),
+          rejected=True)
+
+
 def _portable_rule_flow(context, root, raw_stage, fixture, rows, version_rule):
     """Expand relocatable source definitions and bind only fresh non-passes."""
     started = time.monotonic()
@@ -1178,6 +1397,7 @@ def integration(out):
                 _applicability_flows(context,root,rules,rows)
                 _invalid_skip_flows(context,root,rules,rows)
                 _removed_producer_flows(fixture, rows)
+                _eglot_gate_flows(fixture, rows)
                 _native_positive_flows(fixture, rows)
                 _source_scope_flows(fixture, rows)
                 _source_scope_flows(fixture, rows, prerequisites=True)

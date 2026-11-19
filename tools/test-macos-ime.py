@@ -4,6 +4,7 @@ Every scenario starts a fresh editor and retains its callback/source/key timelin
 The default trace is opt-in for this acceptance process only. Use controlled-run runtime.
 """
 import argparse
+import ctypes
 import importlib.util
 import json
 import os
@@ -50,6 +51,29 @@ def native_window_ready(records,title):
         if type(key_number) is not int or key_number!=number:return False
         if row.get('keyWindow') is not True or row.get('appActive') is not True:return False
     return True
+
+def titlebar_click_point(records,title,screen_height):
+    """Compute Quartz top-left titlebar center from the latest Cocoa windowFrame."""
+    if not isinstance(title,str) or not title or not records:return None
+    if not isinstance(screen_height,(int,float)) or screen_height<=0:return None
+    for row in reversed(records):
+        if not isinstance(row,dict) or row.get('windowTitle')!=title:continue
+        frame=row.get('windowFrame')
+        if (isinstance(frame,list) and len(frame)==4
+                and all(isinstance(v,(int,float)) and type(v) is not bool for v in frame)
+                and frame[2]>20 and frame[3]>20):
+            x,y_bottom,width,height=map(float,frame)
+            return (x+width*0.5,float(screen_height)-(y_bottom+height)+14.0)
+    return None
+
+def main_display_height():
+    cg=ctypes.CDLL('/System/Library/Frameworks/CoreGraphics.framework/CoreGraphics')
+    class _Pt(ctypes.Structure):_fields_=[('x',ctypes.c_double),('y',ctypes.c_double)]
+    class _Rect(ctypes.Structure):_fields_=[('origin',_Pt),('size',_Pt)]
+    cg.CGMainDisplayID.restype=ctypes.c_uint32
+    cg.CGDisplayBounds.argtypes=[ctypes.c_uint32]
+    cg.CGDisplayBounds.restype=_Rect
+    return float(cg.CGDisplayBounds(cg.CGMainDisplayID()).size.y)
 
 def client_source_sample(records,title,prefer_events=None):
     """Latest per-client input-source fields for one titled view, if present."""
@@ -178,13 +202,20 @@ def run_scenario(binary,sender,sources,work,mode,expected,pinyin_id=None):
             strokes([(key,0,None) for key in keys],physical=True)
         def focus_frame(title,label):
             nonlocal target_title
-            # Cycle real windows without separately mutating AXMain: main and
-            # key windows are different AppKit states. This fixture owns two.
-            if snapshot().get('selected')!=title:
-                path=work/'cycle.tsv';path.write_text('CYCLE_WINDOW\n')
+            # Switch native key focus via a real HID click on the target window's
+            # titlebar so WindowServer updates active IMK input sessions cleanly
+            # even when another window holds pending marked composition.
+            if snapshot().get('selected')!=title or not native_window_ready(read_callbacks(trace),title):
+                path=work/'cycle.tsv'
+                pt=titlebar_click_point(read_callbacks(trace),title,main_display_height())
+                if pt is not None:
+                    path.write_text(f'CLICK_POINT\t{pt[0]:.2f}\t{pt[1]:.2f}\n')
+                else:
+                    path.write_text('CYCLE_WINDOW\n')
                 subprocess.run([str(sender),str(process.pid),str(path)],stdout=output,
                                stderr=subprocess.STDOUT,check=True,timeout=8)
-                rows.append({'id':'native-window-cycle','target':title,'at':time.monotonic()})
+                rows.append({'id':'native-window-focus-transfer','target':title,'at':time.monotonic(),
+                             'click_point':None if pt is None else [pt[0],pt[1]]})
             wait(label,lambda s:s.get('selected')==title and native_window_ready(read_callbacks(trace),title))
             target_title=title
         def observe_client_source(label,prefer_events=None):
@@ -195,16 +226,20 @@ def run_scenario(binary,sender,sources,work,mode,expected,pinyin_id=None):
             sample=client_source_sample(read_callbacks(trace),target_title,prefer_events)
             client=None if sample is None else sample.get('selectedKeyboardInputSource')
             has_context=None if sample is None else sample.get('clientHasInputContext')
+            is_current=None if sample is None else sample.get('clientIsCurrentInputContext')
             field_present=isinstance(sample,dict) and (
                 'selectedKeyboardInputSource' in sample or 'clientHasInputContext' in sample)
             rows.append({'id':label,'at':time.monotonic(),'window_title':target_title,
                          'process_source':process_state.get('source'),
                          'client_source':client,'client_has_input_context':has_context,
+                         'client_is_current_input_context':is_current,
                          'diagnostic_fields_present':field_present,
                          'sources_equal':isinstance(client,str) and client==process_state.get('source'),
                          'sample_event':None if sample is None else sample.get('event'),
                          'role':'observation'})
         wait('native-startup',lambda s:s.get('native')=='ns')
+        if not native_window_ready(read_callbacks(trace),target_title):
+            source('activate',process.pid)
         wait('native-window-focus',lambda s:native_window_ready(read_callbacks(trace),target_title))
         if mode=='multi':
             focus_frame('Femacs IME A','frame-a-focus')
@@ -234,15 +269,19 @@ def run_scenario(binary,sender,sources,work,mode,expected,pinyin_id=None):
             focus_frame('Femacs IME A','frame-a-return')
             pinyin_keys([45,34]);wait('frame-a-pending',lambda s:s.get('marked'))
             focus_frame('Femacs IME B','pending-focus-transfer')
-            # Cancel any pending native composition before a new independent commit.
-            # Preserve A's platform-defined focus-loss result as an observation;
-            # B must not receive A's pending text or modify A on its own commit.
-            pinyin_keys([53]);before=wait('pending-cleared',lambda s:not s.get('marked'))
+            # Cancel any remaining pending native composition before a new commit.
+            # If deactivating A's inputContext already cleared marked text, do not
+            # inject an extra Escape that would act as an ESC Meta prefix on B.
+            focus_loss_cleared=not snapshot().get('marked')
+            if not focus_loss_cleared:
+                pinyin_keys([53])
+            before=wait('pending-cleared',lambda s:not s.get('marked'))
             a_before=before['text'];b_before=before['second_text']
             if not a_before.startswith(committed) or b_before!=expected:raise RuntimeError('composition crossed owned buffers on focus change')
             pinyin_keys([45,34,4,0,31]);wait('second-frame-recompose',lambda s:s.get('marked'))
             pinyin_keys([49]);wait('second-frame-recommit',lambda s:not s.get('marked') and s.get('second_text')==expected*2 and s.get('text')==a_before)
-            result['focus_loss_observation']={'a_text':a_before,'b_text':b_before,'policy':'observed OS commit/cancel; no universal focus-loss policy claimed'}
+            result['focus_loss_observation']={'a_text':a_before,'b_text':b_before,'focus_loss_cleared_marked':focus_loss_cleared,
+                                              'policy':'observed OS commit/cancel; no universal focus-loss policy claimed'}
             focus_frame('Femacs IME A','frame-a-save-focus')
             select(ascii_id);committed=a_before
         send(b'\x18\x17'+str(document).encode()+b'\r')
