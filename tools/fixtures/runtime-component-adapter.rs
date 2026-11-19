@@ -143,6 +143,8 @@ mod actual {
     pub static mut gcstat: GcStat = GcStat { total_conses: 0 };
     pub static mut Vmemory_full: Lisp_Object = QNIL;
     pub static mut Vpurify_flag: Lisp_Object = QNIL;
+    pub static mut garbage_collection_inhibited: isize = 0;
+    pub static mut gc_in_progress: bool = false;
     pub fn total_bytes_of_live_objects() -> i64 { 0 }
     pub static mut MARK_HISTORY: Vec<Lisp_Object> = Vec::new();
     pub fn mark_object(value: Lisp_Object) { unsafe { MARK_HISTORY.push(value); } }
@@ -174,6 +176,8 @@ mod actual {
         }
         cons_block = block;
         cons_block_index = CONS_BLOCK_SIZE as i32;
+        garbage_collection_inhibited = 0;
+        gc_in_progress = false;
         MEM_NODE.start = block as *mut c_void;
         MEM_NODE.end = (block as *mut u8).add(core::mem::size_of::<cons_block>()) as *mut c_void;
         MEM_NODE.r#type = mem_type::MEM_TYPE_CONS;

@@ -1,0 +1,91 @@
+{
+  "schema": "femacs-runtime-comparison-plan-v1",
+  "note": "Delivered-product comparison design for GA8. Paths are repository-relative except the installed reference. Compares standard terminal and Cocoa deliverables against the authorized 32.0.50 reference across matched interpreted and bytecode modes.",
+  "warmup": 2,
+  "rounds": 7,
+  "max_load_per_core": 0.1,
+  "candidates": [
+    {
+      "name": "delivered-cocoa-interpreted",
+      "binary": "dist/macos/Femacs.app/Contents/MacOS/Femacs",
+      "env": {
+        "FEMACS_RUNTIME_EXECUTION_MODE": "interpreted"
+      },
+      "expect": {
+        "execution": "interpreted"
+      }
+    },
+    {
+      "name": "delivered-cocoa-bytecode",
+      "binary": "dist/macos/Femacs.app/Contents/MacOS/Femacs",
+      "env": {
+        "FEMACS_RUNTIME_EXECUTION_MODE": "bytecode"
+      },
+      "expect": {
+        "execution": "bytecode"
+      }
+    },
+    {
+      "name": "delivered-terminal-interpreted",
+      "binary": "build/terminal/port/src/emacs",
+      "env": {
+        "FEMACS_RUNTIME_EXECUTION_MODE": "interpreted"
+      },
+      "expect": {
+        "execution": "interpreted"
+      }
+    },
+    {
+      "name": "delivered-terminal-bytecode",
+      "binary": "build/terminal/port/src/emacs",
+      "env": {
+        "FEMACS_RUNTIME_EXECUTION_MODE": "bytecode"
+      },
+      "expect": {
+        "execution": "bytecode"
+      }
+    },
+    {
+      "name": "reference-interpreted",
+      "binary": "/Applications/Emacs.app/Contents/MacOS/Emacs",
+      "env": {
+        "FEMACS_RUNTIME_EXECUTION_MODE": "interpreted"
+      },
+      "expect": {
+        "execution": "interpreted"
+      }
+    },
+    {
+      "name": "reference-bytecode",
+      "binary": "/Applications/Emacs.app/Contents/MacOS/Emacs",
+      "env": {
+        "FEMACS_RUNTIME_EXECUTION_MODE": "bytecode"
+      },
+      "expect": {
+        "execution": "bytecode"
+      }
+    }
+  ],
+  "comparisons": [
+    {
+      "name": "delivered-cocoa-vs-reference-interpreted",
+      "left": "delivered-cocoa-interpreted",
+      "right": "reference-interpreted"
+    },
+    {
+      "name": "delivered-cocoa-vs-reference-bytecode",
+      "left": "delivered-cocoa-bytecode",
+      "right": "reference-bytecode"
+    },
+    {
+      "name": "delivered-terminal-vs-reference-interpreted",
+      "left": "delivered-terminal-interpreted",
+      "right": "reference-interpreted"
+    },
+    {
+      "name": "delivered-terminal-vs-reference-bytecode",
+      "left": "delivered-terminal-bytecode",
+      "right": "reference-bytecode"
+    }
+  ]
+}

@@ -18,6 +18,7 @@ from pathlib import Path
 import re
 import subprocess
 import sys
+import tempfile
 import time
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -31,6 +32,74 @@ TASK_CASES = ['load', 'edit', 'regex', 'gc']
 CASES = MICRO_CASES + TASK_CASES
 METRIC = 'process-median-of-min5-v1'
 TIMEOUT = 300
+_MACHO_MAGICS = (
+    b'\xcf\xfa\xed\xfe',
+    b'\xfe\xed\xfa\xcf',
+    b'\xce\xfa\xed\xfe',
+    b'\xfe\xed\xfa\xce',
+    b'\xca\xfe\xba\xbe',
+    b'\xbe\xba\xfe\xca',
+)
+
+
+def _has_macho_magic(path: Path) -> bool:
+    try:
+        with path.open('rb') as handle:
+            return handle.read(4) in _MACHO_MAGICS
+    except OSError:
+        return False
+
+
+def probe_bundle_dump(binary: Path) -> Path:
+    expr = (
+        "(progn (require 'json) (princ \"FEMACS-BUNDLE-DUMP \") "
+        "(let ((stats (and (fboundp 'pdumper-stats) (pdumper-stats)))) "
+        "(princ (json-encode (or (cdr (assq 'dump-file-name stats)) "
+        "(cdr (assq 'dump-file stats)))))) (terpri))"
+    )
+    with tempfile.TemporaryDirectory() as tmp:
+        env = dict(HOME=tmp, TMPDIR=tmp, PATH=os.defpath, LC_ALL='C')
+        res = subprocess.run([str(binary), '-Q', '--batch', '--eval', expr],
+                             cwd=tmp, env=env, capture_output=True, text=True,
+                             timeout=15, check=False)
+    if res.returncode != 0:
+        raise MeasurementError(f'missing dump: {binary.with_suffix(".pdmp")}')
+    lines = [line[len('FEMACS-BUNDLE-DUMP '):]
+             for line in (res.stdout + '\n' + res.stderr).splitlines()
+             if line.startswith('FEMACS-BUNDLE-DUMP ')]
+    if len(lines) != 1:
+        raise MeasurementError(f'missing dump: {binary.with_suffix(".pdmp")}')
+    raw = json.loads(lines[0])
+    if not isinstance(raw, str) or not raw:
+        raise MeasurementError(f'missing dump: {binary.with_suffix(".pdmp")}')
+    dump = Path(raw).resolve()
+    if not dump.is_file():
+        raise MeasurementError(f'missing dump: {dump}')
+    return dump
+
+
+def discover_dump(binary: Path, explicit: Path | None = None) -> Path:
+    if explicit is not None:
+        resolved = Path(explicit).resolve()
+        if not resolved.is_file():
+            raise MeasurementError(f'missing dump: {resolved}')
+        return resolved
+    binary = Path(binary).resolve()
+    default = binary.with_suffix('.pdmp')
+    candidates = [default]
+    bundle = binary.parent.name == 'MacOS' and binary.parent.parent.name == 'Contents'
+    if bundle:
+        candidates.extend(directory / (binary.name + '.pdmp') for directory in
+                          (binary.parent.parent / 'Resources/libexec',
+                           binary.parent / 'libexec'))
+    found = {path.resolve() for path in candidates if path.is_file()}
+    if len(found) == 1:
+        return found.pop()
+    if len(found) > 1:
+        raise MeasurementError(f'ambiguous dump for {binary}')
+    if bundle and _has_macho_magic(binary):
+        return probe_bundle_dump(binary)
+    raise MeasurementError(f'missing dump: {default}')
 
 
 def new_output(path: Path) -> Path:
@@ -157,7 +226,9 @@ def gate_rows(summary: list[dict], baseline: dict[str, float], tolerance: float)
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--prog', type=Path, default=ROOT / 'build/terminal/port/src/emacs')
+    parser.add_argument('--dump', type=Path)
     parser.add_argument('--ref', type=Path)
+    parser.add_argument('--ref-dump', type=Path)
     parser.add_argument('--rounds', type=int, default=5)
     parser.add_argument('--out', type=Path, default=ROOT / 'build/bench' / str(time.monotonic_ns()))
     group = parser.add_mutually_exclusive_group()
@@ -181,14 +252,14 @@ def main(argv: list[str] | None = None) -> int:
         patch = subprocess.check_output(['git', 'diff', 'HEAD', '--'], cwd=ROOT)
         report['tracked_patch_sha256'] = hashlib.sha256(patch).hexdigest()
         report['artifacts'] = {}
+        dumps: dict[str, Path] = {}
         for side, binary in binaries.items():
             if not binary.is_file() or not os.access(binary, os.X_OK):
                 raise MeasurementError(f'missing executable: {binary}')
-            dump = binary.with_suffix('.pdmp')
-            if not dump.is_file():
-                raise MeasurementError(f'missing dump: {dump}')
+            dump = discover_dump(binary, args.dump if side == 'candidate' else args.ref_dump)
+            dumps[side] = dump
             report['artifacts'][side] = dict(binary=str(binary), binary_sha256=shared.sha256_file(binary),
-                                            dump_sha256=shared.sha256_file(dump))
+                                             dump=str(dump), dump_sha256=shared.sha256_file(dump))
         report['corpus_sha256'] = shared.sha256_file(CORPUS)
         report['tool_sha256'] = shared.sha256_file(Path(__file__))
         report['forced_baseline_save'] = bool(args.save and args.force)
@@ -196,7 +267,9 @@ def main(argv: list[str] | None = None) -> int:
         if args.save and not args.force and report['load_per_core'] > args.max_load_per_core:
             raise MeasurementError('refusing to save a busy-machine baseline; retry when quiet or explicitly --force')
         baseline = load_baseline(args.gate) if args.gate else None
+        load_per_round: list[float] = []
         for round_number in range(1, args.rounds + 1):
+            load_per_round.append(os.getloadavg()[0] / (os.cpu_count() or 1))
             order = list(binaries)
             if round_number % 2 == 0:
                 order.reverse()
@@ -207,10 +280,15 @@ def main(argv: list[str] | None = None) -> int:
                 values['startup'] = result['wall_ms']
                 for case, value in values.items():
                     report['samples'].append(dict(round=round_number, order=position, side=side, case=case, value_ms=value))
+        report['load_per_round'] = load_per_round
+        report['max_load_per_core'] = max([report['load_per_core'], *load_per_round])
+        report['quiet'] = bool(report['max_load_per_core'] <= args.max_load_per_core)
+        if args.save and not args.force and not report['quiet']:
+            raise MeasurementError('refusing to save a busy-machine baseline; retry when quiet or explicitly --force')
         for side, binary in binaries.items():
             identity = report['artifacts'][side]
             if (shared.sha256_file(binary) != identity['binary_sha256']
-                    or shared.sha256_file(binary.with_suffix('.pdmp')) != identity['dump_sha256']):
+                    or shared.sha256_file(dumps[side]) != identity['dump_sha256']):
                 raise MeasurementError('product changed during measurement')
         report['stats'] = summarize(report['samples'])
         regressions = gate_rows(report['stats'], baseline, args.tolerance) if baseline else []

@@ -24,7 +24,8 @@
       "replacement": "xtask audit-probe / typed probe owner",
       "reason": "replace duplicated or unsafe policy while preserving CLI capability",
       "uncertainty": null,
-      "current_sha256": "aceebc01602bf58805be483b2cb907a2470b51ce7a29603266f14255e4755990"
+      "current_sha256": "aceebc01602bf58805be483b2cb907a2470b51ce7a29603266f14255e4755990",
+      "current_bytes": 153
     },
     {
       "path": "spikes/accessor_probe.c",
@@ -36,8 +37,7 @@
       "decision": "retain",
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
-      "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "c451f3f2fb0a94822dcf8fa9be5b7a3050b1cd14df4c76480bcf80c378eaf118"
+      "uncertainty": "complete dynamic readers not proved; retained conservatively"
     },
     {
       "path": "spikes/accessor_probe.rs",
@@ -55,8 +55,7 @@
       "decision": "retain",
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
-      "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "368274df416ee83d1465cc7e1c0169cc990f10c9fc4170cfa306d8928eacfe93"
+      "uncertainty": "complete dynamic readers not proved; retained conservatively"
     },
     {
       "path": "spikes/android-r-from-res.py",
@@ -68,8 +67,7 @@
       "decision": "retain",
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
-      "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "10bbee3c35b14b265c75d1db2b5ee9cc7fdb222845c56308477b346cab5c20e4"
+      "uncertainty": "complete dynamic readers not proved; retained conservatively"
     },
     {
       "path": "spikes/android_asset_probe.rs",
@@ -87,8 +85,7 @@
       "decision": "retain",
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
-      "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "4d8fed984b3ecbf52c8d54e73301439b3a92aeefd6905ca16c77b98e08f6962e"
+      "uncertainty": "complete dynamic readers not proved; retained conservatively"
     },
     {
       "path": "spikes/android_inc_probe.rs",
@@ -106,8 +103,7 @@
       "decision": "retain",
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
-      "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "829c8a5808f8df3c9aee571102d4941711e658b86ce421614ce87315740d1fb0"
+      "uncertainty": "complete dynamic readers not proved; retained conservatively"
     },
     {
       "path": "spikes/bytecode-hot/README.md",
@@ -130,8 +126,7 @@
       "decision": "retain",
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
-      "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "befaebb68198be6e9e47a0807859945bf7c0c7e9be96d03382c6b552efba546b"
+      "uncertainty": "complete dynamic readers not proved; retained conservatively"
     },
     {
       "path": "spikes/c-ctype-low-byte-probe.el",
@@ -143,8 +138,7 @@
       "decision": "retain",
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
-      "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "94b4745868a3b51231e929247f9ae60c6cf151ec8dc3e9b6a64d197531c9d206"
+      "uncertainty": "complete dynamic readers not proved; retained conservatively"
     },
     {
       "path": "spikes/compare_layout.py",
@@ -156,8 +150,7 @@
       "decision": "retain",
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
-      "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "fd80c79baaa528060f24f7fb5f375467408f7709692981920de6ae3972f53203"
+      "uncertainty": "complete dynamic readers not proved; retained conservatively"
     },
     {
       "path": "spikes/f_inc_probe.rs",
@@ -175,8 +168,7 @@
       "decision": "retain",
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
-      "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "d83a53f8aa0e8fb7016e2ff3289d68bd4fb6bc68330983d2f34d01267260be76"
+      "uncertainty": "complete dynamic readers not proved; retained conservatively"
     },
     {
       "path": "spikes/fam-probe.sh",
@@ -200,7 +192,8 @@
       "replacement": "xtask audit-probe / typed probe owner",
       "reason": "replace duplicated or unsafe policy while preserving CLI capability",
       "uncertainty": null,
-      "current_sha256": "e1c9edec6e7a08981887e9e005390472efba820ca138439eafdd3ed4fc0df2de"
+      "current_sha256": "e1c9edec6e7a08981887e9e005390472efba820ca138439eafdd3ed4fc0df2de",
+      "current_bytes": 148
     },
     {
       "path": "spikes/fam_probe.rs",
@@ -212,8 +205,7 @@
       "decision": "retain",
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
-      "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "bce14018708a1dae4aad3da8a26a789b231c7ea023891d28e8081947491e92a6"
+      "uncertainty": "complete dynamic readers not proved; retained conservatively"
     },
     {
       "path": "spikes/gated-layout-probe.py",
@@ -225,8 +217,7 @@
       "decision": "retain",
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
-      "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "2e8eabeb85334566d3ede568060a79b980e283f4fdd8ba3fc7ffc117a28a1277"
+      "uncertainty": "complete dynamic readers not proved; retained conservatively"
     },
     {
       "path": "spikes/gc-retention-probe.el",
@@ -238,8 +229,7 @@
       "decision": "retain",
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
-      "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "4f4a3718a399fbaafce7bd813c2124ac0dff08d221cf6b56a9d098e76cdd04fe"
+      "uncertainty": "complete dynamic readers not proved; retained conservatively"
     },
     {
       "path": "spikes/gc-size-threshold-probe.el",
@@ -251,8 +241,7 @@
       "decision": "retain",
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
-      "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "21e5de208c759aaef3f307eda24375d341e1fa430ef80e06576af0bb1518e516"
+      "uncertainty": "complete dynamic readers not proved; retained conservatively"
     },
     {
       "path": "spikes/gmp-abi-probe.sh",
@@ -286,7 +275,8 @@
       "replacement": "xtask audit-probe / typed probe owner",
       "reason": "replace duplicated or unsafe policy while preserving CLI capability",
       "uncertainty": null,
-      "current_sha256": "a3c31532ded68906cb59a97bef08136c548a9687c5de0ef62600e217529e1f6e"
+      "current_sha256": "a3c31532ded68906cb59a97bef08136c548a9687c5de0ef62600e217529e1f6e",
+      "current_bytes": 152
     },
     {
       "path": "spikes/haiku_inc_probe.rs",
@@ -304,8 +294,7 @@
       "decision": "retain",
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
-      "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "b3dffc7440ca95b9caeab35c33949ca796d8de90a66a5b3c65e939f2d797a3d0"
+      "uncertainty": "complete dynamic readers not proved; retained conservatively"
     },
     {
       "path": "spikes/inline-probe.sh",
@@ -329,7 +318,8 @@
       "replacement": "xtask audit-probe / typed probe owner",
       "reason": "replace duplicated or unsafe policy while preserving CLI capability",
       "uncertainty": null,
-      "current_sha256": "06e545693c6d1ff6e4cb523d4f5e438cde144cdba4ab6ba9b315a35bd123fd54"
+      "current_sha256": "06e545693c6d1ff6e4cb523d4f5e438cde144cdba4ab6ba9b315a35bd123fd54",
+      "current_bytes": 151
     },
     {
       "path": "spikes/inline_probe.c",
@@ -342,7 +332,8 @@
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
       "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "5da685221b2600a38406d6f4a1ed0268d90de6b7d72029a81045897207c98483"
+      "current_sha256": "5da685221b2600a38406d6f4a1ed0268d90de6b7d72029a81045897207c98483",
+      "current_bytes": 1984
     },
     {
       "path": "spikes/inline_probe.rs",
@@ -360,8 +351,7 @@
       "decision": "retain",
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
-      "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "4bdc87d36aeb85140de760331ee518658834103c84006ec30342708a3a22155d"
+      "uncertainty": "complete dynamic readers not proved; retained conservatively"
     },
     {
       "path": "spikes/jni-probe.sh",
@@ -385,7 +375,8 @@
       "replacement": "xtask audit-probe / typed probe owner",
       "reason": "replace duplicated or unsafe policy while preserving CLI capability",
       "uncertainty": null,
-      "current_sha256": "de9d8172c5c60c5043d7ae35405bc67e4b2d07182e288e084dfbc2b016d958eb"
+      "current_sha256": "de9d8172c5c60c5043d7ae35405bc67e4b2d07182e288e084dfbc2b016d958eb",
+      "current_bytes": 148
     },
     {
       "path": "spikes/jump.rs",
@@ -403,8 +394,7 @@
       "decision": "retain",
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
-      "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "9cd0227d8f05b2354dc6ecb704251f1337d9f4254ee8b020be81680b0a5e1416"
+      "uncertainty": "complete dynamic readers not proved; retained conservatively"
     },
     {
       "path": "spikes/kotlin-compile-probe.sh",
@@ -417,7 +407,8 @@
       "replacement": "xtask audit-probe / typed probe owner",
       "reason": "replace duplicated or unsafe policy while preserving CLI capability",
       "uncertainty": null,
-      "current_sha256": "155399d7e856287c7770e27b491196676c7365ca563b9d23781b17e28d11b105"
+      "current_sha256": "155399d7e856287c7770e27b491196676c7365ca563b9d23781b17e28d11b105",
+      "current_bytes": 151
     },
     {
       "path": "spikes/kotlin-target-order.py",
@@ -429,8 +420,7 @@
       "decision": "retain",
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
-      "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "edb716364c41cbed884594986f32bc3bf3340c92e980031597269bd1e108dbfa"
+      "uncertainty": "complete dynamic readers not proved; retained conservatively"
     },
     {
       "path": "spikes/layout.rs",
@@ -448,8 +438,7 @@
       "decision": "retain",
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
-      "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "242f62f409345b4a069f97d7428c825ffd2c0d9f4bb241fa292638c27cc88195"
+      "uncertainty": "complete dynamic readers not proved; retained conservatively"
     },
     {
       "path": "spikes/layout_c.c",
@@ -477,8 +466,7 @@
       "decision": "retain",
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
-      "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "85e54574011faa1f8cbd7ce0522a508d2c6d553a32bff4c01e018fac204df9f2"
+      "uncertainty": "complete dynamic readers not proved; retained conservatively"
     },
     {
       "path": "spikes/layout_fields.h",
@@ -506,8 +494,7 @@
       "decision": "retain",
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
-      "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "d2ab6154d5b0aa351f04fd6708c18bb4c535cb9ee01ee5aaf586f4ce4e20c07f"
+      "uncertainty": "complete dynamic readers not proved; retained conservatively"
     },
     {
       "path": "spikes/lisp-abi-probe.sh",
@@ -531,7 +518,8 @@
       "replacement": "xtask audit-probe / typed probe owner",
       "reason": "replace duplicated or unsafe policy while preserving CLI capability",
       "uncertainty": null,
-      "current_sha256": "9cb382284bead7bf584eb55ecd9dca80d324b2548032fdf94ccb00a5087364fb"
+      "current_sha256": "9cb382284bead7bf584eb55ecd9dca80d324b2548032fdf94ccb00a5087364fb",
+      "current_bytes": 153
     },
     {
       "path": "spikes/lisp-form-bisect.el",
@@ -543,8 +531,7 @@
       "decision": "retain",
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
-      "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "c2f6dc7d55c499acdb0d6abf112453b1e5e07552dc713cc428311bb67d3ba852"
+      "uncertainty": "complete dynamic readers not proved; retained conservatively"
     },
     {
       "path": "spikes/lisp-lexbind-probe.el",
@@ -556,8 +543,7 @@
       "decision": "retain",
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
-      "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "17972125266512f49ef650e115fc22db553916109d29ae12853df1380cb397c1"
+      "uncertainty": "complete dynamic readers not proved; retained conservatively"
     },
     {
       "path": "spikes/macro-probe.sh",
@@ -581,7 +567,8 @@
       "replacement": "xtask audit-probe / typed probe owner",
       "reason": "replace duplicated or unsafe policy while preserving CLI capability",
       "uncertainty": null,
-      "current_sha256": "866e34f506a1e2c25e5c9ca424679040c8cc128c09dbda788f0c4fe33b742b0f"
+      "current_sha256": "866e34f506a1e2c25e5c9ca424679040c8cc128c09dbda788f0c4fe33b742b0f",
+      "current_bytes": 150
     },
     {
       "path": "spikes/macro_probe.rs",
@@ -593,8 +580,7 @@
       "decision": "retain",
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
-      "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "fc7b43868ad09ed1d9fb4b0647125dceaaaeae49e41784389362e226c9c5d0fa"
+      "uncertainty": "complete dynamic readers not proved; retained conservatively"
     },
     {
       "path": "spikes/miri-probe.sh",
@@ -607,7 +593,8 @@
       "replacement": "xtask audit-probe / typed probe owner",
       "reason": "replace duplicated or unsafe policy while preserving CLI capability",
       "uncertainty": null,
-      "current_sha256": "0293c3df52574e3526d67ce1be4fc7e94ea26746110f0ccc92ec7e353c1b112b"
+      "current_sha256": "0293c3df52574e3526d67ce1be4fc7e94ea26746110f0ccc92ec7e353c1b112b",
+      "current_bytes": 149
     },
     {
       "path": "spikes/miri/Cargo.lock",
@@ -630,8 +617,7 @@
       "decision": "retain",
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
-      "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "12113066572501b345a21a2f2064d1f57dc40e8464084251c640dfc1a071c2b0"
+      "uncertainty": "complete dynamic readers not proved; retained conservatively"
     },
     {
       "path": "spikes/miri/Cargo.toml",
@@ -643,8 +629,7 @@
       "decision": "retain",
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
-      "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "cf91053766004d644758c2d3c971f39e030d761b914b927d67e2f6fd46f50855"
+      "uncertainty": "complete dynamic readers not proved; retained conservatively"
     },
     {
       "path": "spikes/miri/src/main.rs",
@@ -656,8 +641,7 @@
       "decision": "retain",
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
-      "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "ead727ef68d9fa4085d33ce4494d999266b96eea7f72bbf7a4076fd602177a2a"
+      "uncertainty": "complete dynamic readers not proved; retained conservatively"
     },
     {
       "path": "spikes/mirror-struct-coverage.py",
@@ -669,8 +653,7 @@
       "decision": "retain",
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
-      "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "494d8feec190773e645240e4972160218e12c5cd3ff7acf7bf9becb64dec197f"
+      "uncertainty": "complete dynamic readers not proved; retained conservatively"
     },
     {
       "path": "spikes/ns_inc_probe.rs",
@@ -688,8 +671,7 @@
       "decision": "retain",
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
-      "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "e7676fb1e530250686af6c5cb51085430335438b4fbb903a8d6c66b023e2c5dd"
+      "uncertainty": "complete dynamic readers not proved; retained conservatively"
     },
     {
       "path": "spikes/pgo-probe/README.md",
@@ -702,7 +684,8 @@
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
       "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "00ced9991a696bc096a5f51af54058d66713c256f228337652b4fd2af0171e8c"
+      "current_sha256": "00ced9991a696bc096a5f51af54058d66713c256f228337652b4fd2af0171e8c",
+      "current_bytes": 1180
     },
     {
       "path": "spikes/pgo-probe/femacs-pgo-exit.rs",
@@ -714,8 +697,7 @@
       "decision": "retain",
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
-      "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "f6ce427b58e5ab5ca8cdd7c40108348663b7dc0ad137042f3801b054602cfb0a"
+      "uncertainty": "complete dynamic readers not proved; retained conservatively"
     },
     {
       "path": "spikes/pgo-probe/femacs-pgo-nostd.rs",
@@ -727,8 +709,7 @@
       "decision": "retain",
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
-      "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "9c3946f2fd537c2138b48158bca8907189d007fd7efd6433f8b6fb608fcffca8"
+      "uncertainty": "complete dynamic readers not proved; retained conservatively"
     },
     {
       "path": "spikes/pgo-probe/nostd-exit.profraw",
@@ -766,8 +747,7 @@
       "decision": "retain",
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
-      "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "eca5d3dee272fffcd40d58ce685239466df4b2d79b51b6e8d9857250802287b8"
+      "uncertainty": "complete dynamic readers not proved; retained conservatively"
     },
     {
       "path": "spikes/run.sh",
@@ -780,7 +760,8 @@
       "replacement": "xtask audit-probe / typed probe owner",
       "reason": "replace duplicated or unsafe policy while preserving CLI capability",
       "uncertainty": null,
-      "current_sha256": "d07847d066ef01b7af334476967682bd487f70c3c7128ef4620a827a813abe15"
+      "current_sha256": "d07847d066ef01b7af334476967682bd487f70c3c7128ef4620a827a813abe15",
+      "current_bytes": 152
     },
     {
       "path": "spikes/scan.rs",
@@ -798,8 +779,7 @@
       "decision": "retain",
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
-      "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "739af64e8b862fc68f5d1d93bdb129fed66bb0568af08241ad232b3ca7398b0e"
+      "uncertainty": "complete dynamic readers not proved; retained conservatively"
     },
     {
       "path": "spikes/sfnt_inc_probe.rs",
@@ -817,8 +797,7 @@
       "decision": "retain",
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
-      "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "06b84eacf0c26a2498621007b223662553f542c0f4e33085534de9acc76c149d"
+      "uncertainty": "complete dynamic readers not proved; retained conservatively"
     },
     {
       "path": "spikes/shadow-probe.sh",
@@ -842,7 +821,8 @@
       "replacement": "xtask audit-probe / typed probe owner",
       "reason": "replace duplicated or unsafe policy while preserving CLI capability",
       "uncertainty": null,
-      "current_sha256": "ed03b5816a2fc6da577452d7b436ce331d9ead7cc0ddfeaaee5654440c9d575f"
+      "current_sha256": "ed03b5816a2fc6da577452d7b436ce331d9ead7cc0ddfeaaee5654440c9d575f",
+      "current_bytes": 151
     },
     {
       "path": "spikes/shadow_probe.rs",
@@ -854,8 +834,7 @@
       "decision": "retain",
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
-      "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "d7f2cebbbf981caead56c7f7a5b8bf590528f719fd64bae91d45428d58172803"
+      "uncertainty": "complete dynamic readers not proved; retained conservatively"
     },
     {
       "path": "spikes/shim/README.md",
@@ -873,8 +852,7 @@
       "decision": "retain",
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
-      "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "9d07332099a0841c3df2d38bd6abb56a95d2e3bee4c284bd472f574f793154af"
+      "uncertainty": "complete dynamic readers not proved; retained conservatively"
     },
     {
       "path": "spikes/shim/stdbit.h",
@@ -886,8 +864,7 @@
       "decision": "retain",
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
-      "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "256a9f15ed9259e94472c34c14e43ee563721bd04a387c1f170d9d25b9a18339"
+      "uncertainty": "complete dynamic readers not proved; retained conservatively"
     },
     {
       "path": "spikes/stdbit_family_probe.rs",
@@ -905,8 +882,7 @@
       "decision": "retain",
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
-      "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "a521e0e5cfeb8d3f65ebe6541391066bd0b4f12606c07725a5542478bc5a9380"
+      "uncertainty": "complete dynamic readers not proved; retained conservatively"
     },
     {
       "path": "spikes/switch-frame-probe.rs",
@@ -918,8 +894,7 @@
       "decision": "retain",
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
-      "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "4d3564e1f75a4f83a61751c5a91453c4d5cb6f0ce026d8fa36f781ce60b712c4"
+      "uncertainty": "complete dynamic readers not proved; retained conservatively"
     },
     {
       "path": "spikes/syshdrs-probe.sh",
@@ -943,7 +918,8 @@
       "replacement": "xtask audit-probe / typed probe owner",
       "reason": "replace duplicated or unsafe policy while preserving CLI capability",
       "uncertainty": null,
-      "current_sha256": "3e043b855b43f426f661bdd668afa577b54dac8ff8e800403ae910b715f7cc1c"
+      "current_sha256": "3e043b855b43f426f661bdd668afa577b54dac8ff8e800403ae910b715f7cc1c",
+      "current_bytes": 152
     },
     {
       "path": "spikes/syshdrs_probe.c",
@@ -955,8 +931,7 @@
       "decision": "retain",
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
-      "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "745b96469ee470f69e3891b42124c6dff2767e9f1c64c70a826b7753ce1e7c15"
+      "uncertainty": "complete dynamic readers not proved; retained conservatively"
     },
     {
       "path": "spikes/syshdrs_probe.rs",
@@ -968,8 +943,7 @@
       "decision": "retain",
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
-      "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "5f4b6b076b3b4631a8400246de0026e5ee25678c8558d632f54305f156340727"
+      "uncertainty": "complete dynamic readers not proved; retained conservatively"
     },
     {
       "path": "spikes/to-baseline.py",
@@ -981,8 +955,7 @@
       "decision": "retain",
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
-      "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "ba8649e66a5f47d5669a1667f41fec88d6253c88c0609b53b510976413e3efdd"
+      "uncertainty": "complete dynamic readers not proved; retained conservatively"
     },
     {
       "path": "spikes/va-probe.sh",
@@ -1006,7 +979,8 @@
       "replacement": "xtask audit-probe / typed probe owner",
       "reason": "replace duplicated or unsafe policy while preserving CLI capability",
       "uncertainty": null,
-      "current_sha256": "56c1cc76740eef2c162b250d25d4a7e230b62e83030945fb9b6c3a751e3a538a"
+      "current_sha256": "56c1cc76740eef2c162b250d25d4a7e230b62e83030945fb9b6c3a751e3a538a",
+      "current_bytes": 147
     },
     {
       "path": "spikes/va_probe.c",
@@ -1018,8 +992,7 @@
       "decision": "retain",
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
-      "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "5a0dd776eb65e6fb7f1f5a2a7cebfc31dd9668c853b71093a6c429b4c540ef20"
+      "uncertainty": "complete dynamic readers not proved; retained conservatively"
     },
     {
       "path": "spikes/va_probe.rs",
@@ -1037,8 +1010,7 @@
       "decision": "retain",
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
-      "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "5290cf945d20e25a419077b68ad5e2567e333f619c2f36ab5b3afe84fdd80e39"
+      "uncertainty": "complete dynamic readers not proved; retained conservatively"
     },
     {
       "path": "spikes/vm-closeout/check.py",
@@ -1050,8 +1022,7 @@
       "decision": "retain",
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
-      "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "051505957132200135018fd3b0fcbc8f7a85c74c656558328f5528c39df6f746"
+      "uncertainty": "complete dynamic readers not proved; retained conservatively"
     },
     {
       "path": "spikes/win_inc_probe.rs",
@@ -1069,8 +1040,7 @@
       "decision": "retain",
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
-      "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "aa172fc1c735f81af5d4e4fba66f685769ca30c0c6e3c6c8574163a84e4b219a"
+      "uncertainty": "complete dynamic readers not proved; retained conservatively"
     },
     {
       "path": "spikes/window_system_probe.rs",
@@ -1082,8 +1052,7 @@
       "decision": "retain",
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
-      "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "52a4efbc69d277e280a36609f832ef1ea3c8851ea31ee9a5706f631021de0328"
+      "uncertainty": "complete dynamic readers not proved; retained conservatively"
     },
     {
       "path": "spikes/write-probe.sh",
@@ -1107,7 +1076,8 @@
       "replacement": "xtask audit-probe / typed probe owner",
       "reason": "replace duplicated or unsafe policy while preserving CLI capability",
       "uncertainty": null,
-      "current_sha256": "be0607142a47e4f6d1da3c7f5546016d7346ebfdb1be8fd4b154b82ed25bef1a"
+      "current_sha256": "be0607142a47e4f6d1da3c7f5546016d7346ebfdb1be8fd4b154b82ed25bef1a",
+      "current_bytes": 150
     },
     {
       "path": "spikes/write_probe.c",
@@ -1119,8 +1089,7 @@
       "decision": "retain",
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
-      "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "42cb756496c517b02f3a4940fed596820767a7d2c8905a44ba50ea4b4e026e96"
+      "uncertainty": "complete dynamic readers not proved; retained conservatively"
     },
     {
       "path": "spikes/write_probe.rs",
@@ -1138,8 +1107,7 @@
       "decision": "retain",
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
-      "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "a36b7db8f86ef951ae2d1860356ddf9132c03ec342394fc28e8d7116665defb7"
+      "uncertainty": "complete dynamic readers not proved; retained conservatively"
     },
     {
       "path": "spikes/x_inc_probe.rs",
@@ -1157,8 +1125,7 @@
       "decision": "retain",
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
-      "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "51cf21c8bf56a87bfbb6e69f61806b3e00aeb62f1373dac3e454798d20c353e7"
+      "uncertainty": "complete dynamic readers not proved; retained conservatively"
     },
     {
       "path": "tools/acceptance-l0.py",
@@ -1170,8 +1137,7 @@
       "decision": "retain",
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
-      "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "fb35fdcee170c5ebd328f950978749a232ce5b8bf5e366f18fe6848d12f5484d"
+      "uncertainty": "complete dynamic readers not proved; retained conservatively"
     },
     {
       "path": "tools/acceptance-l1.py",
@@ -1183,8 +1149,7 @@
       "decision": "retain",
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
-      "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "98a930e8d8a82554de9343bf9bcee2928f25396e9f3e01ebfd3694e0ea489c3b"
+      "uncertainty": "complete dynamic readers not proved; retained conservatively"
     },
     {
       "path": "tools/add-alloc-probe.py",
@@ -1196,8 +1161,7 @@
       "decision": "retain",
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
-      "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "1f4ef47d213b13cea37a7c14391398270ee9b1f6ea0ada953ac2666cde261074"
+      "uncertainty": "complete dynamic readers not proved; retained conservatively"
     },
     {
       "path": "tools/add-android-font-probe.py",
@@ -1209,8 +1173,7 @@
       "decision": "retain",
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
-      "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "5af88e91f8824b8d1db37a5e9b3224f355520603d47332f2ed4f2f2b6a354352"
+      "uncertainty": "complete dynamic readers not proved; retained conservatively"
     },
     {
       "path": "tools/add-asset-fd-probe.py",
@@ -1222,8 +1185,7 @@
       "decision": "retain",
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
-      "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "f94e3114495fc74458e56c3c7d5651f600ed314acc5a45a98632d73274420c28"
+      "uncertainty": "complete dynamic readers not proved; retained conservatively"
     },
     {
       "path": "tools/add-bt-names-probe.py",
@@ -1235,8 +1197,7 @@
       "decision": "retain",
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
-      "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "6844d0102300aeee5749e984087d6d8309587e9690da836867d1629c8ebb93c9"
+      "uncertainty": "complete dynamic readers not proved; retained conservatively"
     },
     {
       "path": "tools/add-chartab-probe.py",
@@ -1248,8 +1209,7 @@
       "decision": "retain",
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
-      "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "31153b8a2063e90c78a2d3efa1e9035d572434d98a8b12e506638db373792c00"
+      "uncertainty": "complete dynamic readers not proved; retained conservatively"
     },
     {
       "path": "tools/add-close-probe.py",
@@ -1261,8 +1221,7 @@
       "decision": "retain",
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
-      "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "8ab00ffd95eef413766b97fd06292f1e2c82e4160c0c7ec3321702ba134a86fb"
+      "uncertainty": "complete dynamic readers not proved; retained conservatively"
     },
     {
       "path": "tools/add-crash-backtrace-probe.py",
@@ -1274,8 +1233,7 @@
       "decision": "retain",
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
-      "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "47bd18d29f138208a2313c22d18bdcd4e41b25f3789e991f9d1e0e1acc290444"
+      "uncertainty": "complete dynamic readers not proved; retained conservatively"
     },
     {
       "path": "tools/add-defsym-probe.py",
@@ -1287,8 +1245,7 @@
       "decision": "retain",
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
-      "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "85c8e210f73f912086c7aef0a70e9b96d25f7eb1ee264cd442204a110dbba7dc"
+      "uncertainty": "complete dynamic readers not proved; retained conservatively"
     },
     {
       "path": "tools/add-fatal-probe.py",
@@ -1300,8 +1257,7 @@
       "decision": "retain",
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
-      "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "6d5fadcba8094398cee2d197aeb7b35bb042a64b84b1a689d02af96ef121b062"
+      "uncertainty": "complete dynamic readers not proved; retained conservatively"
     },
     {
       "path": "tools/add-font-enum-probe.py",
@@ -1313,8 +1269,7 @@
       "decision": "retain",
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
-      "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "1ed4538bee785afee461013e82897900c5e99f1fbb45a1be7d81c12df09cdb32"
+      "uncertainty": "complete dynamic readers not proved; retained conservatively"
     },
     {
       "path": "tools/add-font-probe.py",
@@ -1337,8 +1292,7 @@
       "decision": "retain",
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
-      "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "4a4df732086d502f96f20c167b1fc463aed477b0750b7158a6a75ebf3ce54696"
+      "uncertainty": "complete dynamic readers not proved; retained conservatively"
     },
     {
       "path": "tools/add-fontset-probe.py",
@@ -1356,8 +1310,7 @@
       "decision": "retain",
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
-      "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "392a186714048790778af6349e252ddf43899145467976cd17fcea9f2fe97e0f"
+      "uncertainty": "complete dynamic readers not proved; retained conservatively"
     },
     {
       "path": "tools/add-frame-probe.py",
@@ -1369,8 +1322,7 @@
       "decision": "retain",
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
-      "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "dc4fe2c78abf08215ff95e5b7d8637f5a09eaf18d7c5b8022712e6780623c6f0"
+      "uncertainty": "complete dynamic readers not proved; retained conservatively"
     },
     {
       "path": "tools/add-sfnt-open-probe.py",
@@ -1382,8 +1334,7 @@
       "decision": "retain",
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
-      "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "ebd3e6137e2c9e95b4be2ccfa4baa963e55b7fcc08712fcd45cec241ddbd995d"
+      "uncertainty": "complete dynamic readers not proved; retained conservatively"
     },
     {
       "path": "tools/add-sfnt-table-probe.py",
@@ -1395,8 +1346,7 @@
       "decision": "retain",
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
-      "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "5627978ef5d4453b9545dc01d69471f51bface585913ae228ab487acc6dbebd5"
+      "uncertainty": "complete dynamic readers not proved; retained conservatively"
     },
     {
       "path": "tools/add-startup-probe.py",
@@ -1408,8 +1358,7 @@
       "decision": "retain",
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
-      "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "b92eb21febdff49a9ad776802660c998c57711e0710d17598281c458d8f25a3a"
+      "uncertainty": "complete dynamic readers not proved; retained conservatively"
     },
     {
       "path": "tools/add-swift-doc.py",
@@ -1421,8 +1370,7 @@
       "decision": "retain",
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
-      "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "5023a1b853c3fc581a6f44ad0dbb972d8070ca122c275b3b2aaf19b4d976726a"
+      "uncertainty": "complete dynamic readers not proved; retained conservatively"
     },
     {
       "path": "tools/add-vector-free-probe.py",
@@ -1440,8 +1388,7 @@
       "decision": "retain",
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
-      "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "976dfe9a7d6819d71179dfd9cd3bcca9366d47a31fb74cc6a6e9638e107b70f1"
+      "uncertainty": "complete dynamic readers not proved; retained conservatively"
     },
     {
       "path": "tools/analyse-free-log.py",
@@ -1459,8 +1406,7 @@
       "decision": "retain",
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
-      "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "f1cc2e445e647b3f9482c55985c3e8acd0c76f56e424ae0a330671d04bd6029a"
+      "uncertainty": "complete dynamic readers not proved; retained conservatively"
     },
     {
       "path": "tools/android-accept.sh",
@@ -1489,7 +1435,8 @@
       "replacement": "Rust Android owner or Python owned-device entry",
       "reason": "replace duplicated or unsafe policy while preserving CLI capability",
       "uncertainty": null,
-      "current_sha256": "7341e41ddd75349fab04b803a6dedf98ca0f589f7eda4577dfca9656739f26a9"
+      "current_sha256": "7341e41ddd75349fab04b803a6dedf98ca0f589f7eda4577dfca9656739f26a9",
+      "current_bytes": 148
     },
     {
       "path": "tools/android-batch-eval.sh",
@@ -1502,7 +1449,8 @@
       "replacement": "Rust Android owner or Python owned-device entry",
       "reason": "replace duplicated or unsafe policy while preserving CLI capability",
       "uncertainty": null,
-      "current_sha256": "25d1cae7e9d8f1a0f48bea2d52d952806ff88328dbbe3df7d36a8368e2d31a6c"
+      "current_sha256": "25d1cae7e9d8f1a0f48bea2d52d952806ff88328dbbe3df7d36a8368e2d31a6c",
+      "current_bytes": 147
     },
     {
       "path": "tools/android-gui-eval.sh",
@@ -1515,7 +1463,8 @@
       "replacement": "Rust Android owner or Python owned-device entry",
       "reason": "replace duplicated or unsafe policy while preserving CLI capability",
       "uncertainty": null,
-      "current_sha256": "b9aec2e899d48782958a84b2c9d84b477297fb0348774ce033cb0bf8a7920027"
+      "current_sha256": "b9aec2e899d48782958a84b2c9d84b477297fb0348774ce033cb0bf8a7920027",
+      "current_bytes": 145
     },
     {
       "path": "tools/android-input-probe.sh",
@@ -1528,7 +1477,8 @@
       "replacement": "Rust Android owner or Python owned-device entry",
       "reason": "owned Python lifecycle replaces shell policy; maintained controls and explicit diagnostic-stage retirements are mapped in CLN-20261025-04",
       "uncertainty": null,
-      "current_sha256": "4e304a9531d486b382d7ad7e54e72a259a4d4118e7d6efd89adbc0ff9465c6fa"
+      "current_sha256": "4e304a9531d486b382d7ad7e54e72a259a4d4118e7d6efd89adbc0ff9465c6fa",
+      "current_bytes": 163
     },
     {
       "path": "tools/android-readiness.py",
@@ -1547,7 +1497,8 @@
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
       "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "4cb9da17ab1fcdf321ea8420ee27840cb7412e5fd42041f0ef3ca6cfb666f532"
+      "current_sha256": "4cb9da17ab1fcdf321ea8420ee27840cb7412e5fd42041f0ef3ca6cfb666f532",
+      "current_bytes": 1255
     },
     {
       "path": "tools/audit-wip.py",
@@ -1559,8 +1510,7 @@
       "decision": "retain",
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
-      "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "df819abeac8bc56589831440aa2ef96631669e128d1ab4346b73c47481c4094c"
+      "uncertainty": "complete dynamic readers not proved; retained conservatively"
     },
     {
       "path": "tools/bench.py",
@@ -1589,7 +1539,8 @@
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
       "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "bb1d8792e6da8bf39277d516c3e462e542f4a9cd4dc802acb0eb3f44d4a9989b"
+      "current_sha256": "4f6284e559de83d0a1f3c5a74ed56060da9dffd14d2541a850b1af81de4ebc2d",
+      "current_bytes": 15261
     },
     {
       "path": "tools/bench.sh",
@@ -1632,8 +1583,7 @@
       "decision": "retain",
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
-      "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "b56f0ee95ad45add64660e4be49d6955562a7cd6c0c49af27d1d318cb1f372db"
+      "uncertainty": "complete dynamic readers not proved; retained conservatively"
     },
     {
       "path": "tools/bootstrap-resources.py",
@@ -1727,7 +1677,8 @@
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
       "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "4522b1c1f8bcea2ead112ccfa9f5121097d4267d809129ed4c586590fac031cc"
+      "current_sha256": "4522b1c1f8bcea2ead112ccfa9f5121097d4267d809129ed4c586590fac031cc",
+      "current_bytes": 17273
     },
     {
       "path": "tools/check-all-units.sh",
@@ -1765,8 +1716,7 @@
       "decision": "retain",
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
-      "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "b871b06c44ef0a1eb2797d7d9291e0e2611b53713aa6b4214e7d6434f25ccb33"
+      "uncertainty": "complete dynamic readers not proved; retained conservatively"
     },
     {
       "path": "tools/check-alloca-lifetime.py",
@@ -1778,8 +1728,7 @@
       "decision": "retain",
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
-      "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "152e25405b13edeae23edf6e645e5e914a29bccfc2dd85fa34893551f009e098"
+      "uncertainty": "complete dynamic readers not proved; retained conservatively"
     },
     {
       "path": "tools/check-android-apk.py",
@@ -1803,7 +1752,8 @@
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
       "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "0f59143b393f9a4223faf8f481297819445f42162a8c1611486dd9058d68c4ac"
+      "current_sha256": "0f59143b393f9a4223faf8f481297819445f42162a8c1611486dd9058d68c4ac",
+      "current_bytes": 1353
     },
     {
       "path": "tools/check-android-assertions.py",
@@ -1822,7 +1772,8 @@
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
       "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "9bd6fe059c802b7b8e3fd9af8213d0fbd9f412a515384f0abdc7593217192566"
+      "current_sha256": "9bd6fe059c802b7b8e3fd9af8213d0fbd9f412a515384f0abdc7593217192566",
+      "current_bytes": 13779
     },
     {
       "path": "tools/check-android-constants.py",
@@ -1835,7 +1786,8 @@
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
       "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "0d8bd694a4038f2a4718d8dedd6433a9ad05e3700f270abeabc60bd2307757ee"
+      "current_sha256": "0d8bd694a4038f2a4718d8dedd6433a9ad05e3700f270abeabc60bd2307757ee",
+      "current_bytes": 9480
     },
     {
       "path": "tools/check-android-imports.py",
@@ -1879,7 +1831,8 @@
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
       "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "1c459792baaca6703c4dbe8209bd18c69b014a7f7f420ee63cf32e604d70b4df"
+      "current_sha256": "1c459792baaca6703c4dbe8209bd18c69b014a7f7f420ee63cf32e604d70b4df",
+      "current_bytes": 15079
     },
     {
       "path": "tools/check-android-kotlin.sh",
@@ -1908,7 +1861,8 @@
       "replacement": "Rust Android owner or Python owned-device entry",
       "reason": "replace duplicated or unsafe policy while preserving CLI capability",
       "uncertainty": null,
-      "current_sha256": "df793d905bea648c792b4a2f2467853f6b8396a2cf08ace52a0ffe914f2176bf"
+      "current_sha256": "df793d905bea648c792b4a2f2467853f6b8396a2cf08ace52a0ffe914f2176bf",
+      "current_bytes": 146
     },
     {
       "path": "tools/check-android-layout.py",
@@ -1932,7 +1886,8 @@
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
       "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "5bc885e8661786cc0ad24510b8bbabdfdb6f0b879e6a6e8cf9f98babcca89d6a"
+      "current_sha256": "5bc885e8661786cc0ad24510b8bbabdfdb6f0b879e6a6e8cf9f98babcca89d6a",
+      "current_bytes": 8254
     },
     {
       "path": "tools/check-authorized-platforms.sh",
@@ -1951,7 +1906,8 @@
       "replacement": "Rust Android owner or Python owned-device entry",
       "reason": "replace duplicated or unsafe policy while preserving CLI capability",
       "uncertainty": null,
-      "current_sha256": "9254b76acfa5408a3590d935adada50ca4029fb0fd4c7fa7a24156a5ac38c919"
+      "current_sha256": "9254b76acfa5408a3590d935adada50ca4029fb0fd4c7fa7a24156a5ac38c919",
+      "current_bytes": 146
     },
     {
       "path": "tools/check-bool-shape.py",
@@ -1963,8 +1919,7 @@
       "decision": "retain",
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
-      "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "caaa0a154c5e9dcf6bd90da3010ef88c743e04d372e2407bbd1edec1b93add70"
+      "uncertainty": "complete dynamic readers not proved; retained conservatively"
     },
     {
       "path": "tools/check-c-string-literals.py",
@@ -1982,8 +1937,7 @@
       "decision": "retain",
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
-      "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "cccca72ea3edddf2d3c90b66ec6e2032c0da9542c717b7b9e130d12fa0d44d73"
+      "uncertainty": "complete dynamic readers not proved; retained conservatively"
     },
     {
       "path": "tools/check-carried.py",
@@ -1995,8 +1949,7 @@
       "decision": "retain",
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
-      "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "96a9d9e942913aa85f93ceeb903018720f0d655dacf88fd4c4fe626bac01e2b5"
+      "uncertainty": "complete dynamic readers not proved; retained conservatively"
     },
     {
       "path": "tools/check-citation-text.py",
@@ -2008,8 +1961,7 @@
       "decision": "retain",
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
-      "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "eb9a5bb64502299879c3c31bc915886b200fed993e5b10aacad5f1acb9c860c2"
+      "uncertainty": "complete dynamic readers not proved; retained conservatively"
     },
     {
       "path": "tools/check-citations.py",
@@ -2027,8 +1979,7 @@
       "decision": "retain",
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
-      "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "efebf552478deb16c081683606b7cd1adebcddee3bb7065ce7af14ec79a63a3d"
+      "uncertainty": "complete dynamic readers not proved; retained conservatively"
     },
     {
       "path": "tools/check-coding-eol.py",
@@ -2046,8 +1997,7 @@
       "decision": "retain",
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
-      "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "880f0d27787e3730228e9981903f7179e271ad51ada9b0568cea7e1c449c7470"
+      "uncertainty": "complete dynamic readers not proved; retained conservatively"
     },
     {
       "path": "tools/check-cond-eval.py",
@@ -2105,8 +2055,7 @@
       "decision": "retain",
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
-      "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "2e04d29daa8a2a0687ee24da6e7d863ceb1ed1dba3cb7613bbc27d5ac62cd5b4"
+      "uncertainty": "complete dynamic readers not proved; retained conservatively"
     },
     {
       "path": "tools/check-config-json.py",
@@ -2124,8 +2073,7 @@
       "decision": "retain",
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
-      "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "dbfb093ff8afb824d0f7a173515cfceac9c1fae2526080e5f78a5028052c108e"
+      "uncertainty": "complete dynamic readers not proved; retained conservatively"
     },
     {
       "path": "tools/check-cus-start.py",
@@ -2137,8 +2085,7 @@
       "decision": "retain",
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
-      "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "f85aae4d58ff70c00e627f00c8d3d6afec3d049046ca11087605e495aa01757c"
+      "uncertainty": "complete dynamic readers not proved; retained conservatively"
     },
     {
       "path": "tools/check-dead-file-coverage.py",
@@ -2156,8 +2103,7 @@
       "decision": "retain",
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
-      "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "0dcce14a8e2cc1e2a55d3060976a1a19da50275a3f6d39b5f69a672b9f0a56bf"
+      "uncertainty": "complete dynamic readers not proved; retained conservatively"
     },
     {
       "path": "tools/check-decl-withdraw.py",
@@ -2169,8 +2115,7 @@
       "decision": "retain",
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
-      "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "c8d6e1310a470b85dbec3a39da006c75cecefa28bfd1260cd8c8df236b2dc0cb"
+      "uncertainty": "complete dynamic readers not proved; retained conservatively"
     },
     {
       "path": "tools/check-declarations.py",
@@ -2223,8 +2168,7 @@
       "decision": "retain",
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
-      "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "f4a3557891e450610c068535b5f2ef04f579fea72afb9919771f229d345becb1"
+      "uncertainty": "complete dynamic readers not proved; retained conservatively"
     },
     {
       "path": "tools/check-defvar-carriers.py",
@@ -2236,8 +2180,7 @@
       "decision": "retain",
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
-      "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "c67a2e12d043951b6f658a405bd0bacde2bf42c43557ede3338b9887d64e92d8"
+      "uncertainty": "complete dynamic readers not proved; retained conservatively"
     },
     {
       "path": "tools/check-defvar-values.py",
@@ -2255,8 +2198,7 @@
       "decision": "retain",
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
-      "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "724fe997e4ebbd85445683a43c621fe8aca8d07226115cb26964aca27f2df53a"
+      "uncertainty": "complete dynamic readers not proved; retained conservatively"
     },
     {
       "path": "tools/check-diff-fuzz.py",
@@ -2268,8 +2210,7 @@
       "decision": "retain",
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
-      "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "1a7557c01dd6916e70630d0aa44d657ef36c3449821f9d7215e92232b5bf5a10"
+      "uncertainty": "complete dynamic readers not proved; retained conservatively"
     },
     {
       "path": "tools/check-do-while.py",
@@ -2281,8 +2222,7 @@
       "decision": "retain",
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
-      "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "ca14ff70d4e9253caae7bef46f4f9e4a795c23ba37328e1078007155c720afe7"
+      "uncertainty": "complete dynamic readers not proved; retained conservatively"
     },
     {
       "path": "tools/check-doc-numbers.py",
@@ -2305,8 +2245,7 @@
       "decision": "retain",
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
-      "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "1ac280d494a5aec345af45ae7478839b7406773bee7b1ce4a0d0fa510b6d36a9"
+      "uncertainty": "complete dynamic readers not proved; retained conservatively"
     },
     {
       "path": "tools/check-dump-offsets.py",
@@ -2318,8 +2257,7 @@
       "decision": "retain",
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
-      "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "481f1207a7f7571fed272eafa80258944be6c9cb44ef884e07ac9bece8910ce4"
+      "uncertainty": "complete dynamic readers not proved; retained conservatively"
     },
     {
       "path": "tools/check-enum-transmutes.py",
@@ -2337,8 +2275,7 @@
       "decision": "retain",
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
-      "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "eb678d9c68192a56e55059505e574a20e035de6de3203cdf776404f31487e889"
+      "uncertainty": "complete dynamic readers not proved; retained conservatively"
     },
     {
       "path": "tools/check-ert.py",
@@ -2411,8 +2348,7 @@
       "decision": "retain",
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
-      "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "e0b0ebe994e98be763f696835e85fa19eae43cf3e4d096b4111c1e6e1bd5bb20"
+      "uncertainty": "complete dynamic readers not proved; retained conservatively"
     },
     {
       "path": "tools/check-extern-decls.py",
@@ -2424,8 +2360,7 @@
       "decision": "retain",
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
-      "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "1c70d387545f37f3fd823fd2d853d62101b25b777920b084e180ee54463ef769"
+      "uncertainty": "complete dynamic readers not proved; retained conservatively"
     },
     {
       "path": "tools/check-fault-injection.py",
@@ -2437,8 +2372,7 @@
       "decision": "retain",
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
-      "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "ce40cad18601eb087b1e7b6fb5fc26223e0a31620182b545357bd5a2b3b58010"
+      "uncertainty": "complete dynamic readers not proved; retained conservatively"
     },
     {
       "path": "tools/check-feature-names.py",
@@ -2450,8 +2384,7 @@
       "decision": "retain",
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
-      "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "088a06ea5f5669f59464c0a4cbd456abe44e7eb49c5bd1cf51de9ce8780767fc"
+      "uncertainty": "complete dynamic readers not proved; retained conservatively"
     },
     {
       "path": "tools/check-fwd-static-init.py",
@@ -2463,8 +2396,7 @@
       "decision": "retain",
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
-      "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "37a540702921ed971d5cb7089982129e1c942f3e7a2c046f6a6a4f037892860e"
+      "uncertainty": "complete dynamic readers not proved; retained conservatively"
     },
     {
       "path": "tools/check-generated.py",
@@ -2497,8 +2429,7 @@
       "decision": "retain",
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
-      "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "1360f8b958a5ecdec3c45df7103e8a9c45ff7981c80adad45914111dabfef0f1"
+      "uncertainty": "complete dynamic readers not proved; retained conservatively"
     },
     {
       "path": "tools/check-globals.py",
@@ -2516,8 +2447,7 @@
       "decision": "retain",
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
-      "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "6d138fb1865e2f1864fc0762c55a7e3bb846b89a72550f8af4722866a7bda36a"
+      "uncertainty": "complete dynamic readers not proved; retained conservatively"
     },
     {
       "path": "tools/check-ledger-ticks.py",
@@ -2535,8 +2465,7 @@
       "decision": "retain",
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
-      "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "e3b90746a8b82e0f9be33cf76b51d5369c4506b31b75d71d677fae5cabf55d01"
+      "uncertainty": "complete dynamic readers not proved; retained conservatively"
     },
     {
       "path": "tools/check-libshadows.py",
@@ -2554,8 +2483,7 @@
       "decision": "retain",
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
-      "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "b1f8b1bf551fdf3d580f6d832d7ef52c6e628234f2ff35bbe427237197c56b6f"
+      "uncertainty": "complete dynamic readers not proved; retained conservatively"
     },
     {
       "path": "tools/check-link.py",
@@ -2583,8 +2511,7 @@
       "decision": "retain",
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
-      "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "8bac7e5aea5cc568cff71115d9af2771bcf20eca8ea33670f0f4ea5e4486c7bf"
+      "uncertainty": "complete dynamic readers not proved; retained conservatively"
     },
     {
       "path": "tools/check-linkage.py",
@@ -2602,8 +2529,7 @@
       "decision": "retain",
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
-      "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "294fafd83deb6a579ea76eacad777a1f0820dfc96a1a059a75bcf639bd173787"
+      "uncertainty": "complete dynamic readers not proved; retained conservatively"
     },
     {
       "path": "tools/check-loadup.py",
@@ -2615,8 +2541,7 @@
       "decision": "retain",
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
-      "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "e702aec7b564a85ec30b65f0f5afc9fe435df115da255625649a695d36a7b99b"
+      "uncertainty": "complete dynamic readers not proved; retained conservatively"
     },
     {
       "path": "tools/check-mirror-dupes.py",
@@ -2644,8 +2569,7 @@
       "decision": "retain",
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
-      "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "c830bea0a29f36dfcdce58b2ac6fe9f8509769188a3532a1a33eae529ad22499"
+      "uncertainty": "complete dynamic readers not proved; retained conservatively"
     },
     {
       "path": "tools/check-octal-literals.py",
@@ -2657,8 +2581,7 @@
       "decision": "retain",
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
-      "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "4b0b7d03551979f7fed54ddfd4cc92514f2935da5a251b5924db70b8d1e7b064"
+      "uncertainty": "complete dynamic readers not proved; retained conservatively"
     },
     {
       "path": "tools/check-own-voice.py",
@@ -2677,7 +2600,8 @@
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
       "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "a8b7a57b771eaed8f16943be7cb6f93dd9beec001da815893bf22fc23282a23c"
+      "current_sha256": "a8b7a57b771eaed8f16943be7cb6f93dd9beec001da815893bf22fc23282a23c",
+      "current_bytes": 32809
     },
     {
       "path": "tools/check-platform-inventory.py",
@@ -2695,8 +2619,7 @@
       "decision": "retain",
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
-      "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "4bdd43f22aa76cb7e26b9841e2b077ba9e4beb2ef290623da0ef6d019da5cc04"
+      "uncertainty": "complete dynamic readers not proved; retained conservatively"
     },
     {
       "path": "tools/check-port-lines.py",
@@ -2714,8 +2637,7 @@
       "decision": "retain",
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
-      "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "b27b1185c9cf516ed4671b5c996fd769a8d516cc4b3195d289ae287c98472e8c"
+      "uncertainty": "complete dynamic readers not proved; retained conservatively"
     },
     {
       "path": "tools/check-subrs.py",
@@ -2733,8 +2655,7 @@
       "decision": "retain",
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
-      "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "f69cd0f6e160a13f9dc02aa6201b86dc077919af36ac7eed1e8ed6791495998f"
+      "uncertainty": "complete dynamic readers not proved; retained conservatively"
     },
     {
       "path": "tools/check-swift-imports.py",
@@ -2752,8 +2673,7 @@
       "decision": "retain",
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
-      "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "e3c91ed2d58c1f8ca9d76f211cd2ff141e06f2f4780de7003933f8ca9e63b646"
+      "uncertainty": "complete dynamic readers not proved; retained conservatively"
     },
     {
       "path": "tools/check-swift-units.py",
@@ -2776,8 +2696,7 @@
       "decision": "retain",
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
-      "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "3d16f5d707246ac549ca8e391e68908b81a5e512f82e93b3f1b2d63ddcbdfb9f"
+      "uncertainty": "complete dynamic readers not proved; retained conservatively"
     },
     {
       "path": "tools/check-symbols.py",
@@ -2815,8 +2734,7 @@
       "decision": "retain",
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
-      "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "7e3b23da16d716817e8b285da5b43bc5f53ceee790d69411fe2da9033e60684b"
+      "uncertainty": "complete dynamic readers not proved; retained conservatively"
     },
     {
       "path": "tools/check-target-names.py",
@@ -2828,8 +2746,7 @@
       "decision": "retain",
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
-      "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "30cd1fcd7ce5c023d5ffe3dbccaa3c2f1d8da978dd9215441217cbaf80b7e7a2"
+      "uncertainty": "complete dynamic readers not proved; retained conservatively"
     },
     {
       "path": "tools/check-trees.py",
@@ -2841,8 +2758,7 @@
       "decision": "retain",
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
-      "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "a25fd08dd01730cf1af066328eac3576924b43583e57d9cd53d49dff8423740a"
+      "uncertainty": "complete dynamic readers not proved; retained conservatively"
     },
     {
       "path": "tools/check-typed-counts.py",
@@ -2860,8 +2776,7 @@
       "decision": "retain",
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
-      "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "048c74a5b6783f8c776dadfa98fa86a16e91235beedb7e187b59e33a14b31759"
+      "uncertainty": "complete dynamic readers not proved; retained conservatively"
     },
     {
       "path": "tools/check-undef.py",
@@ -2884,8 +2799,7 @@
       "decision": "retain",
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
-      "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "847d191a554bc7ab02d75200f548d4a17e56eb294158e1924651cfdc372e314d"
+      "uncertainty": "complete dynamic readers not proved; retained conservatively"
     },
     {
       "path": "tools/check-unit-names.py",
@@ -2897,8 +2811,7 @@
       "decision": "retain",
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
-      "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "e5bed2c3728bd68e0483a90d450d383c7e742c5884a9b1e39cd0d4ddfb545625"
+      "uncertainty": "complete dynamic readers not proved; retained conservatively"
     },
     {
       "path": "tools/check-verbatim-declarations.py",
@@ -2921,8 +2834,7 @@
       "decision": "retain",
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
-      "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "2d9885e87d75baf5b3de2639a477cbd45405bfe7bde1c522311534bfe1b515bb"
+      "uncertainty": "complete dynamic readers not proved; retained conservatively"
     },
     {
       "path": "tools/check-verbatim.py",
@@ -2965,8 +2877,7 @@
       "decision": "retain",
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
-      "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "2b969b80105d977a8a811ae8f947cbaeff008eda8e29fd8dad149e3aaa60cdfa"
+      "uncertainty": "complete dynamic readers not proved; retained conservatively"
     },
     {
       "path": "tools/cinventory.py",
@@ -3034,8 +2945,7 @@
       "decision": "retain",
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
-      "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "f792dfff5c2cc648c0bf90229aa1de5eb4a9637bb43f491212e9a6ece42481a7"
+      "uncertainty": "complete dynamic readers not proved; retained conservatively"
     },
     {
       "path": "tools/decode-dump-diff.py",
@@ -3047,8 +2957,7 @@
       "decision": "retain",
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
-      "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "65bae027e52acb6c65c41165ebd67331ae5f7fb2e37f69cc8a4c23aae2e4222b"
+      "uncertainty": "complete dynamic readers not proved; retained conservatively"
     },
     {
       "path": "tools/decode-header.py",
@@ -3060,8 +2969,7 @@
       "decision": "retain",
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
-      "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "b74c70eae8f675f48fb743b3ba23f444633d5450be800e4b69b7dcfe9e7358df"
+      "uncertainty": "complete dynamic readers not proved; retained conservatively"
     },
     {
       "path": "tools/device-run.sh",
@@ -3074,7 +2982,8 @@
       "replacement": "Rust Android owner or Python owned-device entry",
       "reason": "owned Python lifecycle replaces shell policy; maintained controls and explicit diagnostic-stage retirements are mapped in CLN-20261025-04",
       "uncertainty": null,
-      "current_sha256": "0452de39a1868fe9d4520de74d09acf7a686a57bad08d5a32f8b955bce40b416"
+      "current_sha256": "0452de39a1868fe9d4520de74d09acf7a686a57bad08d5a32f8b955bce40b416",
+      "current_bytes": 163
     },
     {
       "path": "tools/differential.py",
@@ -3102,8 +3011,7 @@
       "decision": "retain",
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
-      "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "e7fdc17164a9103fe01f655827a77845b10eefae0a4fc0eb9bdd06ff91807ff8"
+      "uncertainty": "complete dynamic readers not proved; retained conservatively"
     },
     {
       "path": "tools/differential.sh",
@@ -3131,8 +3039,7 @@
       "decision": "retain",
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
-      "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "b6c1463ff26f5e7104146d022a0a5cc73d907557dd19109a0c0f00fa75fbb14a"
+      "uncertainty": "complete dynamic readers not proved; retained conservatively"
     },
     {
       "path": "tools/emit-mirror.py",
@@ -3150,8 +3057,7 @@
       "decision": "retain",
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
-      "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "5cb74189882e872d3c02c3c0b03f18084e8816b771a874377227519a6a5aed89"
+      "uncertainty": "complete dynamic readers not proved; retained conservatively"
     },
     {
       "path": "tools/extract-abi.py",
@@ -3254,8 +3160,7 @@
       "decision": "retain",
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
-      "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "23cbb5dbcf59f3575330e1ed0db38ff5df991196b13659384416613817782e61"
+      "uncertainty": "complete dynamic readers not proved; retained conservatively"
     },
     {
       "path": "tools/feature-coverage.py",
@@ -3273,8 +3178,7 @@
       "decision": "retain",
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
-      "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "4c8ba1ca80ab5dbe3c079d0a5d664ef6a08a719bafaf5e77d060f95b6bc14d3a"
+      "uncertainty": "complete dynamic readers not proved; retained conservatively"
     },
     {
       "path": "tools/fix-doc-text.py",
@@ -3286,8 +3190,7 @@
       "decision": "retain",
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
-      "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "503d4969dede22edd3d41252ef07c86f590e32a3504517b236cc10e00f371f9b"
+      "uncertainty": "complete dynamic readers not proved; retained conservatively"
     },
     {
       "path": "tools/fixtures/bytecode-runtime.el",
@@ -3305,8 +3208,7 @@
       "decision": "retain",
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
-      "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "1db28eaecc444528be5ad67ff2e84227058495b185e56e90b3dbc01438d31387"
+      "uncertainty": "complete dynamic readers not proved; retained conservatively"
     },
     {
       "path": "tools/fixtures/macos-drag.el",
@@ -3318,8 +3220,7 @@
       "decision": "retain",
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
-      "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "9fe9af68f16af4777660b21e951e229255aaeb1ba1cbc73c64603fe9df1cfb45"
+      "uncertainty": "complete dynamic readers not proved; retained conservatively"
     },
     {
       "path": "tools/fixtures/macos-events.rs",
@@ -3332,7 +3233,8 @@
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
       "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "7f7edc6fc3a6916a6f91cc43f388a96edd4ba9b50e2d5a45ede63436a9192e0d"
+      "current_sha256": "7f7edc6fc3a6916a6f91cc43f388a96edd4ba9b50e2d5a45ede63436a9192e0d",
+      "current_bytes": 4648
     },
     {
       "path": "tools/fixtures/macos-ime.el",
@@ -3350,8 +3252,7 @@
       "decision": "retain",
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
-      "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "5a9144ce53e16deac549f157715a55c40cfd4819e9ce633b810591107ace6201"
+      "uncertainty": "complete dynamic readers not proved; retained conservatively"
     },
     {
       "path": "tools/fixtures/macos-input-source.rs",
@@ -3364,7 +3265,8 @@
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
       "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "b136d14e341bb48db54343632d4dbf61c69f85644d363f40039ba83d9bdd9dff"
+      "current_sha256": "b136d14e341bb48db54343632d4dbf61c69f85644d363f40039ba83d9bdd9dff",
+      "current_bytes": 6879
     },
     {
       "path": "tools/fixtures/macos-keys.el",
@@ -3382,8 +3284,7 @@
       "decision": "retain",
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
-      "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "2f4bc33f26f345962bf5ff3f4814b44daa1b15d0bb75d8bd67dff937cb3fd7cf"
+      "uncertainty": "complete dynamic readers not proved; retained conservatively"
     },
     {
       "path": "tools/fixtures/release-baseline.el",
@@ -3406,8 +3307,7 @@
       "decision": "retain",
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
-      "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "18b9e94840bab58d51f1bf41ea7fd3c638536198beb4bf029264196a7bd28fce"
+      "uncertainty": "complete dynamic readers not proved; retained conservatively"
     },
     {
       "path": "tools/fixtures/runtime-profile.el",
@@ -3426,7 +3326,8 @@
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
       "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "8e58aa04e5be90309e2a2cb739c206bd7477b89eac4460cd4bd11aaeb922b6b0"
+      "current_sha256": "8e58aa04e5be90309e2a2cb739c206bd7477b89eac4460cd4bd11aaeb922b6b0",
+      "current_bytes": 7087
     },
     {
       "path": "tools/fixtures/stable-language.el",
@@ -3438,8 +3339,7 @@
       "decision": "retain",
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
-      "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "a48d392535b4841159d505b75aac1c58bac59c1aa5a9881eca3cc4e491262d6b"
+      "uncertainty": "complete dynamic readers not proved; retained conservatively"
     },
     {
       "path": "tools/fixtures/tty-failure.el",
@@ -3451,8 +3351,7 @@
       "decision": "retain",
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
-      "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "f75d89369aa0eb0e0f6265cab3d27ca20b223c7fbc322aadcc1bc1ff3d72c0f8"
+      "uncertainty": "complete dynamic readers not proved; retained conservatively"
     },
     {
       "path": "tools/gen-android-arms.py",
@@ -3470,8 +3369,7 @@
       "decision": "retain",
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
-      "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "cf604450297456d21df5b3df6d9ae716cde81b2ed3c751f26caa7f1cff2b5f9b"
+      "uncertainty": "complete dynamic readers not proved; retained conservatively"
     },
     {
       "path": "tools/gen-android-assets.py",
@@ -3495,7 +3393,8 @@
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
       "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "071b6ff104557255c13727610e98dce1b7aa1a1491fac666f80cbda37e01c362"
+      "current_sha256": "071b6ff104557255c13727610e98dce1b7aa1a1491fac666f80cbda37e01c362",
+      "current_bytes": 7772
     },
     {
       "path": "tools/gen-android-config.sh",
@@ -3529,7 +3428,8 @@
       "replacement": "Rust Android owner or Python owned-device entry",
       "reason": "replace duplicated or unsafe policy while preserving CLI capability",
       "uncertainty": null,
-      "current_sha256": "f6efd280a629f55eb496768f0db8f6b5c6942e3a580e57fdd7720c5735513c6d"
+      "current_sha256": "f6efd280a629f55eb496768f0db8f6b5c6942e3a580e57fdd7720c5735513c6d",
+      "current_bytes": 146
     },
     {
       "path": "tools/gen-android-gaps.py",
@@ -3541,8 +3441,7 @@
       "decision": "retain",
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
-      "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "90ddedbed3ffaea1058974b14d7e023b4e03f6be938f77fde982df63fd3e91f0"
+      "uncertainty": "complete dynamic readers not proved; retained conservatively"
     },
     {
       "path": "tools/gen-baseline.py",
@@ -3565,8 +3464,7 @@
       "decision": "retain",
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
-      "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "7cf88134669812f983f9a0b62f976fd9602d67ff2889a1817959f49dc8e7c9c4"
+      "uncertainty": "complete dynamic readers not proved; retained conservatively"
     },
     {
       "path": "tools/gen-buildobj.py",
@@ -3578,8 +3476,7 @@
       "decision": "retain",
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
-      "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "85b9776154020129eb8aad07a4edaf4e587de97ab806a987f37ce24ae4ba6f89"
+      "uncertainty": "complete dynamic readers not proved; retained conservatively"
     },
     {
       "path": "tools/gen-cdefs-mirror.py",
@@ -3591,8 +3488,7 @@
       "decision": "retain",
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
-      "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "d831acf07f79bc6c9218da677c3394059b1648bc6b011f38bce461d692985d7b"
+      "uncertainty": "complete dynamic readers not proved; retained conservatively"
     },
     {
       "path": "tools/gen-charsets.py",
@@ -3630,8 +3526,7 @@
       "decision": "retain",
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
-      "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "99ef50eb9ffc3881ddd538b37c71f25cd16deaf8f897d5b146f2c485ffbd78b3"
+      "uncertainty": "complete dynamic readers not proved; retained conservatively"
     },
     {
       "path": "tools/gen-cond-macros.py",
@@ -3664,8 +3559,7 @@
       "decision": "retain",
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
-      "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "546f9439e649b89670c752f8a9796f574c7652927d940ce2a945fa5a4760e65e"
+      "uncertainty": "complete dynamic readers not proved; retained conservatively"
     },
     {
       "path": "tools/gen-config-json.py",
@@ -3688,8 +3582,7 @@
       "decision": "retain",
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
-      "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "3991c3f20f2becea3a7045b0886aba3eac492956cbf7bbe8d74cc604b94a2e8d"
+      "uncertainty": "complete dynamic readers not proved; retained conservatively"
     },
     {
       "path": "tools/gen-doc.py",
@@ -3722,8 +3615,7 @@
       "decision": "retain",
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
-      "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "593f628be0c73802591f1d1136249dd562bad29397467f726b00a3ad3ffa81f3"
+      "uncertainty": "complete dynamic readers not proved; retained conservatively"
     },
     {
       "path": "tools/gen-elc.py",
@@ -3756,8 +3648,7 @@
       "decision": "retain",
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
-      "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "ede2e6270b786ad57c4e34daa88275967550121ff9e10a953b453d0156682665"
+      "uncertainty": "complete dynamic readers not proved; retained conservatively"
     },
     {
       "path": "tools/gen-emacs-config.py",
@@ -3780,8 +3671,7 @@
       "decision": "retain",
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
-      "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "bcdd2c5af87ac40cc1ddcfc7b599e1a56bfecc9e9c66059ffdc7c0f14628876e"
+      "uncertainty": "complete dynamic readers not proved; retained conservatively"
     },
     {
       "path": "tools/gen-emacsver.py",
@@ -3793,8 +3683,7 @@
       "decision": "retain",
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
-      "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "fff59c924e996e19a4d6d759d2c7082141563687add7ff9bb53a2de570408e24"
+      "uncertainty": "complete dynamic readers not proved; retained conservatively"
     },
     {
       "path": "tools/gen-finder.py",
@@ -3806,8 +3695,7 @@
       "decision": "retain",
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
-      "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "3764d4a89d789d783cbf6d40c54209e6d6e654bfc5a935b5873c2660dc4d0c31"
+      "uncertainty": "complete dynamic readers not proved; retained conservatively"
     },
     {
       "path": "tools/gen-globals-baseline.py",
@@ -3819,8 +3707,7 @@
       "decision": "retain",
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
-      "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "5d2d70df2712bb8a2c591c6f855e4ff177afb2c5d1c5991d6e36681db427b1cb"
+      "uncertainty": "complete dynamic readers not proved; retained conservatively"
     },
     {
       "path": "tools/gen-gmp-abi-probe.py",
@@ -3832,8 +3719,7 @@
       "decision": "retain",
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
-      "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "d8e2147f60b7c9cd3dea50cf961bb3057c42f030c9e8a97baaecb73c9b7b76b0"
+      "uncertainty": "complete dynamic readers not proved; retained conservatively"
     },
     {
       "path": "tools/gen-ja-dic.py",
@@ -3851,8 +3737,7 @@
       "decision": "retain",
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
-      "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "b08bc4c7c9552a8984e687b81a73ac7950aa48997a5467fd0aacd94ff0ca642d"
+      "uncertainty": "complete dynamic readers not proved; retained conservatively"
     },
     {
       "path": "tools/gen-layout-fields.py",
@@ -3864,8 +3749,7 @@
       "decision": "retain",
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
-      "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "4350b529fb6bd2108a598416b3ad7be06b6dbe9cd45bb8498f1026000f203174"
+      "uncertainty": "complete dynamic readers not proved; retained conservatively"
     },
     {
       "path": "tools/gen-leim.py",
@@ -3893,8 +3777,7 @@
       "decision": "retain",
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
-      "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "62aa493b4501d49713b83d88917225864ea3a75df6920ceb2f7fa15bf5fbc358"
+      "uncertainty": "complete dynamic readers not proved; retained conservatively"
     },
     {
       "path": "tools/gen-lifetimes.py",
@@ -3906,8 +3789,7 @@
       "decision": "retain",
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
-      "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "1ccb3347e2eea42bb6077eadddaa93611b29e54f7549d49da9cf86500659cb61"
+      "uncertainty": "complete dynamic readers not proved; retained conservatively"
     },
     {
       "path": "tools/gen-lisp-abi-probe.py",
@@ -3920,7 +3802,8 @@
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
       "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "696e49221272adaf74823209c1c8e038237748edb4381c744b37664674eed18a"
+      "current_sha256": "696e49221272adaf74823209c1c8e038237748edb4381c744b37664674eed18a",
+      "current_bytes": 22665
     },
     {
       "path": "tools/gen-loaddefs.py",
@@ -3932,8 +3815,7 @@
       "decision": "retain",
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
-      "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "cdbe7f77fa9c30c21ac8dd9b71b3691f8034926a48f50dc14e9a6e1cdb87f231"
+      "uncertainty": "complete dynamic readers not proved; retained conservatively"
     },
     {
       "path": "tools/gen-macos-exports.py",
@@ -3952,7 +3834,8 @@
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
       "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "62191a9bdc1a660f3c966494e756252cd444abcc047b4433b1878984fdae1c69"
+      "current_sha256": "62191a9bdc1a660f3c966494e756252cd444abcc047b4433b1878984fdae1c69",
+      "current_bytes": 17462
     },
     {
       "path": "tools/gen-macos-runtime.py",
@@ -3975,8 +3858,7 @@
       "decision": "retain",
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
-      "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "ef546e084dab90cacdfdd460ae43b711a58bb5ef3aa1f7e2b39ea754c75d99dc"
+      "uncertainty": "complete dynamic readers not proved; retained conservatively"
     },
     {
       "path": "tools/gen-platform-arms.py",
@@ -3988,8 +3870,7 @@
       "decision": "retain",
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
-      "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "a2196480995da4fb9964ea3e5d13f066aa081bae74d703ba4162e1dbbfafd66b"
+      "uncertainty": "complete dynamic readers not proved; retained conservatively"
     },
     {
       "path": "tools/gen-port-inventory.py",
@@ -4007,8 +3888,7 @@
       "decision": "retain",
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
-      "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "5705ce99c02375c6c2f0bf5d00d124bcecbdcf0595f5faa897c58a3e785cb8bf"
+      "uncertainty": "complete dynamic readers not proved; retained conservatively"
     },
     {
       "path": "tools/gen-port-map.py",
@@ -4031,8 +3911,7 @@
       "decision": "retain",
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
-      "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "68c14dd78e88c88ffd33cd8c628ddb658f35ad826273ce842809a8865266ad31"
+      "uncertainty": "complete dynamic readers not proved; retained conservatively"
     },
     {
       "path": "tools/gen-program-products.py",
@@ -4050,8 +3929,7 @@
       "decision": "retain",
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
-      "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "8357c657251b5620afcfe7d2be23957f8fb06bbcddc3d9e14f4f3dc9c73dced0"
+      "uncertainty": "complete dynamic readers not proved; retained conservatively"
     },
     {
       "path": "tools/gen-reference-symbols.py",
@@ -4069,8 +3947,7 @@
       "decision": "retain",
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
-      "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "ecaf6c9e93177d412d1853fc94c05dea8e903aafe2effd7fc18c1584dbbfc058"
+      "uncertainty": "complete dynamic readers not proved; retained conservatively"
     },
     {
       "path": "tools/gen-subdirs.py",
@@ -4082,8 +3959,7 @@
       "decision": "retain",
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
-      "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "5a280a757fc692ab6ce65276eba0cc31c0508569a983690497dc8f8367fd08b3"
+      "uncertainty": "complete dynamic readers not proved; retained conservatively"
     },
     {
       "path": "tools/gen-target-sources.py",
@@ -4095,8 +3971,7 @@
       "decision": "retain",
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
-      "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "06367a3f2e86ec716a399c4ea05e101c962b65a0bfb61b0c61935b5e0373c074"
+      "uncertainty": "complete dynamic readers not proved; retained conservatively"
     },
     {
       "path": "tools/gen-unidata.py",
@@ -4114,8 +3989,7 @@
       "decision": "retain",
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
-      "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "15130f11b48b36d8d6f213829b43f53620051846396483d6705853b5922a4af2"
+      "uncertainty": "complete dynamic readers not proved; retained conservatively"
     },
     {
       "path": "tools/gen-uvs-swift.py",
@@ -4127,8 +4001,7 @@
       "decision": "retain",
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
-      "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "41151aaf3d50d9f470f1e424eee516590d097fbb8442544b78eee2756a77e135"
+      "uncertainty": "complete dynamic readers not proved; retained conservatively"
     },
     {
       "path": "tools/gen-window-arms-plan.py",
@@ -4140,8 +4013,7 @@
       "decision": "retain",
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
-      "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "a4348aea7f41fd93aba35b19e5d769a0027fd8e3e0e2c564cdac5ca14eddf30a"
+      "uncertainty": "complete dynamic readers not proved; retained conservatively"
     },
     {
       "path": "tools/l5-sweep.sh",
@@ -4165,7 +4037,8 @@
       "replacement": "tools/l5_sweep.py",
       "reason": "replace duplicated or unsafe policy while preserving CLI capability",
       "uncertainty": null,
-      "current_sha256": "cbeee815edea05d803b78f97dccd20e839137b8eb80768b9141415eff3157d04"
+      "current_sha256": "cbeee815edea05d803b78f97dccd20e839137b8eb80768b9141415eff3157d04",
+      "current_bytes": 136
     },
     {
       "path": "tools/link-probe.py",
@@ -4177,8 +4050,7 @@
       "decision": "retain",
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
-      "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "46f0671ffcfe50bdaacc15912c07d0e573f1e0c62c17d1bb6dcb0984e3618b44"
+      "uncertainty": "complete dynamic readers not proved; retained conservatively"
     },
     {
       "path": "tools/live-rank.py",
@@ -4190,8 +4062,7 @@
       "decision": "retain",
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
-      "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "ec6ce21e6e371c2cdc4a0b42406dd8b8fa95d8cfd47cf6ac5ea6680e9c7c28d6"
+      "uncertainty": "complete dynamic readers not proved; retained conservatively"
     },
     {
       "path": "tools/local-acceptance.py",
@@ -4215,7 +4086,8 @@
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
       "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "2a82db2edfdf31612aa57db23bf5c170d329d00d08363ecab35510fbe9837471"
+      "current_sha256": "2a82db2edfdf31612aa57db23bf5c170d329d00d08363ecab35510fbe9837471",
+      "current_bytes": 10339
     },
     {
       "path": "tools/pgo/eval.el",
@@ -4243,8 +4115,7 @@
       "decision": "retain",
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
-      "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "c96d223560e376d4c7a213a8adba59b5e0c44805c2a00beb0c98465ccc456095"
+      "uncertainty": "complete dynamic readers not proved; retained conservatively"
     },
     {
       "path": "tools/pgo/train.el",
@@ -4262,8 +4133,7 @@
       "decision": "retain",
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
-      "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "3b0e3674bc20dd9cdf706c6cca6fb78435ec1bb5fb9d691870ffc60f3ca173cb"
+      "uncertainty": "complete dynamic readers not proved; retained conservatively"
     },
     {
       "path": "tools/pgo_bench.py",
@@ -4291,8 +4161,7 @@
       "decision": "retain",
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
-      "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "b271b468e9098c02bdcafcd6c7714efc0a736656c0eef7c24360cf3e7cd9c5db"
+      "uncertainty": "complete dynamic readers not proved; retained conservatively"
     },
     {
       "path": "tools/pgo_pipeline.py",
@@ -4304,8 +4173,7 @@
       "decision": "retain",
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
-      "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "1120174dca974890dff08fe8f5d8d4c7622c72e9d7e976869fef73b4ae902f40"
+      "uncertainty": "complete dynamic readers not proved; retained conservatively"
     },
     {
       "path": "tools/restore-verbatim.py",
@@ -4317,8 +4185,7 @@
       "decision": "retain",
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
-      "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "5bfc7e0816c42fd5763abd502a2730d03549cdb73e61af1e7c1649678db91d28"
+      "uncertainty": "complete dynamic readers not proved; retained conservatively"
     },
     {
       "path": "tools/runtime-profile.py",
@@ -4342,7 +4209,8 @@
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
       "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "58d0a3bf23661e4af73f1feb811803363b7fe8133316eb026de912839ca79c43"
+      "current_sha256": "18b2890ba7fe36bcc9b8d9b9ca0aa44893b3ae6d2aa8e9ade441498699626c10",
+      "current_bytes": 18101
     },
     {
       "path": "tools/smoke.sh",
@@ -4380,8 +4248,7 @@
       "decision": "retain",
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
-      "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "95331365cc8e7bf064c52fb358845c051c28e9fcc464d24b61cb75458b4495e8"
+      "uncertainty": "complete dynamic readers not proved; retained conservatively"
     },
     {
       "path": "tools/stable-compat.py",
@@ -4393,8 +4260,7 @@
       "decision": "retain",
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
-      "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "257eb38ec2c707d4edaec07fba6e22d111c8ade054abc3176564e613ff92e8d4"
+      "uncertainty": "complete dynamic readers not proved; retained conservatively"
     },
     {
       "path": "tools/suggest-unit-includes.py",
@@ -4406,8 +4272,7 @@
       "decision": "retain",
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
-      "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "ac4fe0d312852e18ce708434c86ff4eee37b3d0bcf01f6e2ee58093eecc1506b"
+      "uncertainty": "complete dynamic readers not proved; retained conservatively"
     },
     {
       "path": "tools/sweep-in-chunks.py",
@@ -4419,8 +4284,7 @@
       "decision": "retain",
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
-      "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "22c314de888615295a52bd536e83fb5907b2adf06255c02ea6b71654770e432e"
+      "uncertainty": "complete dynamic readers not proved; retained conservatively"
     },
     {
       "path": "tools/test-abi-target-constants.py",
@@ -4432,8 +4296,7 @@
       "decision": "retain",
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
-      "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "c18ee0ab9ec03144e118120db46c565dc24e8089dc6dae28ba3979ab02a89bc3"
+      "uncertainty": "complete dynamic readers not proved; retained conservatively"
     },
     {
       "path": "tools/test-bytecode-runtime.py",
@@ -4451,8 +4314,7 @@
       "decision": "retain",
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
-      "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "a4440d09929ec2a16a0e957f12dfcdfd5f203fb819914455e136f0886f9025bd"
+      "uncertainty": "complete dynamic readers not proved; retained conservatively"
     },
     {
       "path": "tools/test-compiler-resources.py",
@@ -4465,7 +4327,8 @@
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
       "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "1f5785a92084fa1513e3d839b786f0fda135cabc45f1cf26493fc5a287fdfe70"
+      "current_sha256": "1f5785a92084fa1513e3d839b786f0fda135cabc45f1cf26493fc5a287fdfe70",
+      "current_bytes": 6601
     },
     {
       "path": "tools/test-ert-harness.py",
@@ -4484,7 +4347,8 @@
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
       "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "1701af8f34f8fd41425c20ae31fe037ac8446993509b2d22393f8918adb9208f"
+      "current_sha256": "1701af8f34f8fd41425c20ae31fe037ac8446993509b2d22393f8918adb9208f",
+      "current_bytes": 35242
     },
     {
       "path": "tools/test-goal-stability.py",
@@ -4496,8 +4360,7 @@
       "decision": "retain",
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
-      "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "08871147e878dae2c50854ad627aed69919fd7c1bb012430854cc58cf71f9197"
+      "uncertainty": "complete dynamic readers not proved; retained conservatively"
     },
     {
       "path": "tools/test-macos-delivery.py",
@@ -4526,7 +4389,8 @@
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
       "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "ef8b084897a5f3f2f076a46a600633e0124be3e9ce3a3d336401871da5725e2c"
+      "current_sha256": "ef8b084897a5f3f2f076a46a600633e0124be3e9ce3a3d336401871da5725e2c",
+      "current_bytes": 24843
     },
     {
       "path": "tools/test-macos-ime.py",
@@ -4550,7 +4414,8 @@
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
       "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "63b1bfd696c5ff868e6d99c013851f20b36b9583d7171179644be5879cddacc2"
+      "current_sha256": "63b1bfd696c5ff868e6d99c013851f20b36b9583d7171179644be5879cddacc2",
+      "current_bytes": 20912
     },
     {
       "path": "tools/test-macos-stability.py",
@@ -4569,7 +4434,8 @@
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
       "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "4a08c928e5f8bf8848f6a4076a631fe90cb6b553fab66b7d996561ae09eeaba9"
+      "current_sha256": "4a08c928e5f8bf8848f6a4076a631fe90cb6b553fab66b7d996561ae09eeaba9",
+      "current_bytes": 6800
     },
     {
       "path": "tools/test-macos-symbol-imports.py",
@@ -4581,8 +4447,7 @@
       "decision": "retain",
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
-      "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "567102046f0e2f2508be8358f4c9ed5e71bdecab9bb9443adac361826e2b58ca"
+      "uncertainty": "complete dynamic readers not proved; retained conservatively"
     },
     {
       "path": "tools/test-modernization-tools.py",
@@ -4595,7 +4460,8 @@
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
       "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "d1013bb933bf5080912dae0e5df4b2b864caba84d362813dc8788f717a1dedf6"
+      "current_sha256": "557fee8d077627bf0bcab963b6ab2edb7bb06d4a75fc010c6688d6f85497817e",
+      "current_bytes": 43102
     },
     {
       "path": "tools/test-release-baseline.py",
@@ -4614,7 +4480,8 @@
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
       "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "00b39de1ff05a77a5e11fed08fbc3a7e425dd9987378207797b16370b3f0bef3"
+      "current_sha256": "64f66ed5244d54fbecbbbd81d76ea02b8897dbd74ac4209954c125ba6db6a313",
+      "current_bytes": 37911
     },
     {
       "path": "tools/test-repository-bootstrap.py",
@@ -4637,8 +4504,7 @@
       "decision": "retain",
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
-      "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "90eba0454de81cf6408e0046d59973e926eaddab1dee6f45b2f7b4da56d7d457"
+      "uncertainty": "complete dynamic readers not proved; retained conservatively"
     },
     {
       "path": "tools/test-stable-compat.py",
@@ -4650,8 +4516,7 @@
       "decision": "retain",
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
-      "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "8e0f0396bfae356622cb6e69256e9458a27585af16063d9647734446b544a084"
+      "uncertainty": "complete dynamic readers not proved; retained conservatively"
     },
     {
       "path": "tools/test_pgo_bench.py",
@@ -4663,8 +4528,7 @@
       "decision": "retain",
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
-      "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "d825c97600304a86046b56caa4f00203addb5b209e032115894601e52a33307f"
+      "uncertainty": "complete dynamic readers not proved; retained conservatively"
     },
     {
       "path": "tools/try-android-emulator.sh",
@@ -4708,7 +4572,8 @@
       "replacement": "Rust Android owner or Python owned-device entry",
       "reason": "replace duplicated or unsafe policy while preserving CLI capability",
       "uncertainty": null,
-      "current_sha256": "52fcefaca8fb49101c8c3af9820f09f7ff669cd2ed26a89b367c9be87cce6182"
+      "current_sha256": "52fcefaca8fb49101c8c3af9820f09f7ff669cd2ed26a89b367c9be87cce6182",
+      "current_bytes": 147
     },
     {
       "path": "tools/tui-smoke.py",
@@ -4720,8 +4585,7 @@
       "decision": "retain",
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
-      "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "a2ff8b5b69fb22b0138ce93fa132041c0916721516e574a2092d1cbabfa3be1d"
+      "uncertainty": "complete dynamic readers not proved; retained conservatively"
     },
     {
       "path": "tools/zig-linux-linker.sh",
@@ -4755,7 +4619,8 @@
       "replacement": "argv-only Zig linker adaptor",
       "reason": "replace duplicated or unsafe policy while preserving CLI capability",
       "uncertainty": null,
-      "current_sha256": "d4cd7a5e388e88fb9f43c12b5b1b3f370b66acb75225c3e1924b168bccd649ba"
+      "current_sha256": "d4cd7a5e388e88fb9f43c12b5b1b3f370b66acb75225c3e1924b168bccd649ba",
+      "current_bytes": 730
     }
   ],
   "new_entries": [
@@ -5003,6 +4868,28 @@
         {
           "path": "docs/status.md",
           "anchor": "tools/fixtures/g7-native-write-barrier.el",
+          "kind": "current explicit dispatch/import/documented invocation"
+        }
+      ],
+      "uncertainty": null
+    },
+    {
+      "path": "tools/fixtures/ga8-delivered-comparison-plan.json",
+      "sha256": "accf74ad83ba02825b649cef1e5114913234c619e9fc19557a04c9ad3465e271",
+      "bytes": 2534,
+      "family": "fixture",
+      "decision": "retain",
+      "replacement": null,
+      "reason": "owned Stage I-III compatibility, runtime, or acceptance input; explicit reader retained",
+      "readers": [
+        {
+          "path": "docs/modernization.md",
+          "anchor": "tools/fixtures/ga8-delivered-comparison-plan.json",
+          "kind": "current explicit dispatch/import/documented invocation"
+        },
+        {
+          "path": "tools/test-runtime-comparison.py",
+          "anchor": "ga8-delivered-comparison-plan.json",
           "kind": "current explicit dispatch/import/documented invocation"
         }
       ],
@@ -5423,8 +5310,8 @@
     },
     {
       "path": "tools/fixtures/runtime-component-adapter.rs",
-      "sha256": "52c059fafe1559af2e6ba3b95f671f9b37e33ee08769881950354f8cf1caef73",
-      "bytes": 12235,
+      "sha256": "63b4ccdee30adbbc0aebdb2c74421c54cd15a89302f99dbcf5e366575c8a22ff",
+      "bytes": 12418,
       "family": "fixture",
       "decision": "retain",
       "replacement": null,
@@ -6680,8 +6567,8 @@
     },
     {
       "path": "tools/runtime-comparison.py",
-      "sha256": "a985bf46de3d3c2815510bfe3348ddcdd0155d0fe721f1ca1e410f399bc06db4",
-      "bytes": 22606,
+      "sha256": "0664aa7e9661b5377ebff39b359ed3fcdacec38303a5be54518fcefc50a9f4a8",
+      "bytes": 23088,
       "family": "measurement",
       "decision": "retain",
       "replacement": null,
@@ -7837,8 +7724,8 @@
     },
     {
       "path": "tools/test-runtime-comparison.py",
-      "sha256": "3cd1bd8eec0dc99515facad1ec9bf458da54dd1f4096b845a5f03e34973b417a",
-      "bytes": 12202,
+      "sha256": "14a112e39e6c529ecfe796a3cd120230d139a169114eef129d1e35ae04de0ceb",
+      "bytes": 13894,
       "family": "test",
       "decision": "retain",
       "replacement": null,

@@ -16,6 +16,7 @@ import re
 import statistics
 import subprocess
 import sys
+import tempfile
 import time
 import psutil
 
@@ -118,13 +119,66 @@ def fingerprint(path: Path) -> dict:
     return dict(path=str(path), sha256=h.hexdigest(), bytes=path.stat().st_size)
 
 
-def profile_inputs(binary: Path, dump: Path | None = None) -> tuple[Path, Path]:
+_MACHO_MAGICS = (
+    b'\xcf\xfa\xed\xfe',
+    b'\xfe\xed\xfa\xcf',
+    b'\xce\xfa\xed\xfe',
+    b'\xfe\xed\xfa\xce',
+    b'\xca\xfe\xba\xbe',
+    b'\xbe\xba\xfe\xca',
+)
+
+
+def _has_macho_magic(path: Path) -> bool:
+    try:
+        with path.open('rb') as handle:
+            return handle.read(4) in _MACHO_MAGICS
+    except OSError:
+        return False
+
+
+def probe_bundle_runtime_inputs(binary: Path) -> tuple[Path, Path]:
+    """Query a real Mach-O bundle binary for its own dump image and Lisp root."""
+    expr = (
+        "(progn (require 'json) (princ \"FEMACS-BUNDLE-INPUTS \") "
+        "(let ((stats (and (fboundp 'pdumper-stats) (pdumper-stats)))) "
+        "(princ (json-encode `((dump . ,(or (cdr (assq 'dump-file-name stats)) "
+        "(cdr (assq 'dump-file stats)))) "
+        "(lisp . ,(let ((lib (locate-library \"emacs-lisp/bytecomp\"))) "
+        "(and lib (file-name-directory (directory-file-name (file-name-directory lib)))))))))) "
+        "(terpri))"
+    )
+    with tempfile.TemporaryDirectory() as tmp:
+        env = dict(HOME=tmp, TMPDIR=tmp, PATH=os.defpath, LC_ALL='C')
+        res = subprocess.run([str(binary), '-Q', '--batch', '--eval', expr],
+                             cwd=tmp, env=env, capture_output=True, text=True,
+                             timeout=15, check=False)
+    if res.returncode != 0:
+        raise ValueError('missing product Lisp directory')
+    lines = [line[len('FEMACS-BUNDLE-INPUTS '):]
+             for line in (res.stdout + '\n' + res.stderr).splitlines()
+             if line.startswith('FEMACS-BUNDLE-INPUTS ')]
+    if len(lines) != 1:
+        raise ValueError('missing product Lisp directory')
+    payload = json.loads(lines[0])
+    raw_dump, raw_lisp = payload.get('dump'), payload.get('lisp')
+    if (not isinstance(raw_dump, str) or not raw_dump
+            or not isinstance(raw_lisp, str) or not raw_lisp):
+        raise ValueError('missing product Lisp directory')
+    probed_dump = Path(raw_dump).resolve(strict=True)
+    probed_lisp = Path(raw_lisp).resolve(strict=True)
+    if not probed_dump.is_file() or not probed_lisp.is_dir():
+        raise ValueError('missing product Lisp directory')
+    return probed_dump, probed_lisp
+
+
+def profile_inputs(binary: Path, dump: Path | None = None,
+                   lisp_root: Path | None = None) -> tuple[Path, Path]:
     """Select a real product image, never an arbitrary/bootstrap dump."""
     binary = binary.resolve(strict=True)
     if not binary.is_file():raise ValueError('profile binary must be a file')
     bundle = binary.parent.name == 'MacOS' and binary.parent.parent.name == 'Contents'
-    lisp = binary.parent.parent / ('Resources/lisp' if bundle else 'lisp')
-    if not lisp.is_dir():raise ValueError('missing product Lisp directory')
+    found: set[Path] = set()
     if dump is None:
         candidates = [binary.parent / (binary.name + '.pdmp')]
         if bundle:
@@ -134,18 +188,34 @@ def profile_inputs(binary: Path, dump: Path | None = None) -> tuple[Path, Path]:
         # Two aliases for the same image are one choice; two distinct images
         # need an explicit selection even when their contents happen to match.
         found = {path.resolve() for path in candidates if path.is_file()}
+    if lisp_root is not None:
+        lisp = Path(lisp_root).resolve(strict=True)
+        if not lisp.is_dir():raise ValueError('missing product Lisp directory')
+    else:
+        lisp = binary.parent.parent / ('Resources/lisp' if bundle else 'lisp')
+    if (bundle and ((lisp_root is None and not lisp.is_dir())
+                    or (dump is None and len(found) == 0))
+            and _has_macho_magic(binary)):
+        probed_dump, probed_lisp = probe_bundle_runtime_inputs(binary)
+        if lisp_root is None and not lisp.is_dir():
+            lisp = probed_lisp
+        if dump is None and len(found) == 0:
+            found = {probed_dump}
+    if not lisp.is_dir():raise ValueError('missing product Lisp directory')
+    if dump is None:
         if len(found) != 1:
             raise ValueError('expected one named product dump; select --dump explicitly')
         dump = found.pop()
     else:
-        dump = dump.resolve(strict=True)
+        dump = Path(dump).resolve(strict=True)
         if not dump.is_file():raise ValueError('profile dump must be a file')
     return dump, lisp.resolve(strict=True)
 
 
-def artifacts(binary: Path, dump: Path | None = None) -> dict:
+def artifacts(binary: Path, dump: Path | None = None,
+              lisp_root: Path | None = None) -> dict:
     binary = binary.resolve(strict=True)
-    dump, lisp = profile_inputs(binary, dump)
+    dump, lisp = profile_inputs(binary, dump, lisp_root)
     paths = [('binary', binary), ('dump', dump), ('fixture', FIXTURE),
              ('tool', Path(__file__).resolve())]
     # A stable executable/dump cannot prove the libraries stayed unchanged while
@@ -192,6 +262,8 @@ def main(argv=None) -> int:
     ap.add_argument('--binary', type=Path, required=True)
     ap.add_argument('--dump', type=Path,
                     help='Explicit runtime image; otherwise require one named product dump')
+    ap.add_argument('--lisp-root', type=Path,
+                    help='Explicit product Lisp directory; otherwise resolve from the product')
     ap.add_argument('--rounds', type=int, default=7)
     ap.add_argument('--warmup', type=int, default=0,
                     help='unrecorded rounds run before the measured rounds')
@@ -223,8 +295,8 @@ def main(argv=None) -> int:
                   candidate_env=candidate_env)
     try:
         binary = args.binary.resolve(strict=True)
-        dump, _ = profile_inputs(binary, args.dump)
-        identity = artifacts(binary, dump);report['artifacts'] = identity
+        dump, lisp = profile_inputs(binary, args.dump, args.lisp_root)
+        identity = artifacts(binary, dump, lisp);report['artifacts'] = identity
         report['runtime_image'] = str(dump)
         image_args = ['--dump-file=' + str(dump)]
         report['source_head'] = subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip()
@@ -253,7 +325,7 @@ def main(argv=None) -> int:
                               out/f'startup-{n}.log', candidate_env=candidate_env)
             report['startup_samples'].append(startup)
             print(json.dumps(dict(round=n, cases=len(rows), **process)), flush=True)
-        if artifacts(binary, dump) != identity:raise ValueError('artifact changed during profiling')
+        if artifacts(binary, dump, lisp) != identity:raise ValueError('artifact changed during profiling')
         report['summary'] = summarize(report['samples'])
         wall = [r['wall_ms'] for r in report['startup_samples']]
         report['startup'] = dict(metric='fresh-process-wall-ms; filesystem cache uncontrolled',

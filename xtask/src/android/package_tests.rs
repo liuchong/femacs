@@ -5,8 +5,11 @@ use sha2::{Digest, Sha256};
 use std::{
     fs,
     path::PathBuf,
+    sync::atomic::{AtomicUsize, Ordering},
     time::{SystemTime, UNIX_EPOCH},
 };
+
+static SERIAL: AtomicUsize = AtomicUsize::new(0);
 
 struct Fixture(PathBuf);
 
@@ -100,7 +103,11 @@ impl Fixture {
             .as_nanos();
         let path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
             .join("../build/package-contracts")
-            .join(format!("{}-{nonce}", std::process::id()));
+            .join(format!(
+                "{}-{nonce}-{}",
+                std::process::id(),
+                SERIAL.fetch_add(1, Ordering::Relaxed)
+            ));
         fs::create_dir_all(&path).unwrap();
         Self(path)
     }

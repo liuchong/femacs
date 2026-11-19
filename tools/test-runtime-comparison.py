@@ -50,23 +50,29 @@ def test_plan_validation():
     expect_error(lambda: comparison.validate_plan(plan(candidates=[dict(name='a', binary='x', expect={'execution': 'jit'})])), 'execution expectation')
     expect_error(lambda: comparison.validate_plan(plan(candidates=[dict(name='a', binary='x', expect={'collector': 'moving'})])), 'collector expectation')
     expect_error(lambda: comparison.validate_plan(plan(candidates=[dict(name='a', binary='x', expect={'speed': 'fast'})])), 'unknown expectations')
+    expect_error(lambda: comparison.validate_plan(plan(candidates=[dict(name='a', binary='x', lisp_root='')])), 'lisp_root')
     expect_error(lambda: comparison.validate_plan(plan(comparisons=[dict(name='ab', left='a', right='a')])), 'itself')
     expect_error(lambda: comparison.validate_plan(plan(comparisons=[dict(name='ab', left='a', right='zz')])), 'unknown candidate')
+    for fixture_name in ('runtime-comparison-plan.json', 'ga8-delivered-comparison-plan.json'):
+        loaded = comparison.validate_plan(json.loads((ROOT / 'tools/fixtures' / fixture_name).read_text()))
+        assert loaded['warmup'] == 2 and loaded['rounds'] == 7 and loaded['max_load_per_core'] == .10
 
 
 def test_candidate_command():
-    command = comparison.candidate_command(dict(name='a', binary='bin', dump='img.pdmp'),
-                                           Path('/tmp/out'), 2, 7, .10)
+    command = comparison.candidate_command(
+        dict(name='a', binary='bin', dump='img.pdmp', lisp_root='share/lisp'),
+        Path('/tmp/out'), 2, 7, .10)
     assert command[command.index('--warmup') + 1] == '2'
     assert command[command.index('--rounds') + 1] == '7'
     assert command[command.index('--max-load-per-core') + 1] == '0.1'
     assert command[command.index('--dump') + 1] == 'img.pdmp'
+    assert command[command.index('--lisp-root') + 1] == 'share/lisp'
     assert '--env' not in command
     env_candidate = dict(name='e', binary='bin', env={'B': '2', 'A': '1'})
     ordered = comparison.candidate_command(env_candidate, Path('/tmp/out'), 2, 7, .10)
     assert [ordered[i + 1] for i, item in enumerate(ordered) if item == '--env'] == ['A=1', 'B=2']
     plain = comparison.candidate_command(dict(name='b', binary='bin'), Path('/tmp/out'), 0, 7, .10)
-    assert '--dump' not in plain
+    assert '--dump' not in plain and '--lisp-root' not in plain
     assert plain[plain.index('--warmup') + 1] == '0'
 
 
@@ -187,6 +193,19 @@ def test_aggregation_and_comparison():
         'right', dict(name='right'), run_report([sample('interpreted')], quiet=True)))
     assert blocked['promotion_grade'] is False and 'reachability-only' in blocked['claim']
     assert comparison.ratio(1, 0) is None and comparison.ratio(None, 2) is None
+    # Non-observer candidates (standard deliverables and installed reference) emit
+    # phase_snapshot=None and collector_status=None; aggregation and comparison must
+    # preserve null fields cleanly and retain left-only phase intervals (e.g. 23/24).
+    with_phase = sample('interpreted', mode=1)
+    with_phase['phase_snapshot'] = [1, [0] * 21, [[1, 0, 23, 1, 1_000_000, 3_500_000]], [[0] * 5, [0] * 5]]
+    non_observer_row = dict(sample('interpreted'), phase_snapshot=None, collector_status=None)
+    obs_agg = comparison.aggregate_candidate('obs', dict(name='obs'), run_report([with_phase], quiet=True))
+    ref_agg = comparison.aggregate_candidate('ref', dict(name='ref', expect={'execution': 'interpreted'}),
+                                             run_report([non_observer_row], quiet=True))
+    assert ref_agg['cases'][0]['ages_last'] is None and ref_agg['cases'][0]['phases'] == []
+    assert ref_agg['cases'][0]['remembered_set'] is None and ref_agg['cases'][0]['cadence'] is None
+    paired = comparison.compare('obs-ref', obs_agg, ref_agg)
+    assert paired['cases'][0]['phases'] == [dict(phase=23, left_median_ms=2.5, right_median_ms=None)]
 
 
 def test_ratio_semantics():

@@ -642,6 +642,43 @@ class ReleaseBaselineComponentTests(unittest.TestCase):
             generated.unlink()
             self.assertEqual(self.runtime_profile.artifacts(binary), before)
 
+    def test_profile_inputs_external_bundle_probe_and_explicit_lisp_root(self):
+        from unittest import mock
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp).resolve()
+            contents = root / "InstalledRef.app/Contents"
+            binary = contents / "MacOS/RefEditor"
+            binary.parent.mkdir(parents=True)
+            # Non-Mach-O placeholder still rejects missing Resources/lisp without probing.
+            binary.write_bytes(b"program")
+            self._assert_rejected(self.runtime_profile.profile_inputs, binary)
+
+            ext_lisp = root / "cellar/share/lisp"
+            (ext_lisp / "emacs-lisp").mkdir(parents=True)
+            for name in ("byte-opt", "bytecomp", "macroexp", "cconv", "cl-extra"):
+                (ext_lisp / "emacs-lisp" / (name + ".el")).write_bytes(b"source")
+            ext_dump = root / "cellar/libexec/ref-1234.pdmp"
+            ext_dump.parent.mkdir(parents=True)
+            ext_dump.write_bytes(b"cellar-dump")
+
+            # Explicit dump + lisp_root bind directly even without Resources/lisp.
+            self.assertEqual(
+                self.runtime_profile.profile_inputs(binary, ext_dump, ext_lisp),
+                (ext_dump, ext_lisp),
+            )
+            explicit_art = self.runtime_profile.artifacts(binary, ext_dump, ext_lisp)
+            self.assertEqual(explicit_art["dump"]["path"], str(ext_dump))
+
+            # Real Mach-O magic triggers bounded self-probe when bundle-local Resources/lisp is absent.
+            binary.write_bytes(b"\xcf\xfa\xed\xfe" + b"\x00" * 16)
+            with mock.patch.object(
+                self.runtime_profile,
+                "probe_bundle_runtime_inputs",
+                return_value=(ext_dump, ext_lisp),
+            ) as mocked:
+                self.assertEqual(self.runtime_profile.profile_inputs(binary), (ext_dump, ext_lisp))
+                self.assertEqual(mocked.call_count, 1)
+
     def test_ert_and_observation_validators(self):
         ok_log = format_synthetic_ert_log()
         parsed_ok = self.check_ert.parse_result(ok_log, 0, 0.25)

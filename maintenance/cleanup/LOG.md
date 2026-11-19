@@ -1,3 +1,9 @@
+## CLN272 — 2026-11-20: consumed Stage III intermediate outputs, `native-collector-1`, and unit caches
+
+- Released: `16` owned scopes (`41,534` files, `1,621` directories, `16` symlinks; `2,389,859,343` logical bytes; normalized digest `94241a9ec3d4adf9c1b447c9a3b1a9912116f07b7fd2ceb5858b38a2d2014ccc`), covering `build/runtime/native-collector-1` (after `g7-native-write-barrier` `3/3`), `build/cargo`, `dist/candidates`, `build/femacs`, `build/generation`, superseded Stage III attempt/diagnostic/unit directories, empty `xtask` unit parent directories, and the external session cache.
+- Kept: delivered trial products (`build/terminal/port/src/{emacs,emacs.pdmp}`, `dist/macos/Femacs.app`), active `runtime-comparison-plan.json` candidates (`build/runtime/{native-2,frozen-2}`), and closed Stage I / Stage III receipts under `build/acceptance/` pending quiet-host formal `GA5–GA8` measurement and final reverse audit.
+- [Report](reports/2026-11-20-272-consumed-stage3-gates-and-native-collector.md).
+
 ## CLN271 — 2026-11-20: Stage II (`GA4`) historical manifest disposition and superseded artifact cleanup
 
 - Disposed of all `47` untracked local cleanup manifests (`2026-11-11..16`, `CLN227–CLN269`; `46,990,560` disk bytes / `221,956,192` uncompressed bytes, `0` personal paths) per `57101ad7` and `ai-storage`, recording per-file SHA-256, byte/line counts, paired tracked prose report (including newly committed [CLN269](reports/2026-11-16-269-superseded-single-product-gc-candidate.md)), and recovery routes.

@@ -142,6 +142,15 @@ class StageIIToolingTests(unittest.TestCase):
     def tearDown(self) -> None:
         self.temp.cleanup()
 
+    @classmethod
+    def tearDownClass(cls) -> None:
+        base = REPO / "build/modernization-stage2-unit"
+        try:
+            if base.is_dir() and not any(base.iterdir()):
+                base.rmdir()
+        except OSError:
+            pass
+
     def _make_fake_bench_binary(
         self,
         name: str,
@@ -878,6 +887,54 @@ class StageIIToolingTests(unittest.TestCase):
         ]
         for path in preserved:
             self.assertTrue(path.exists(), f"Required asset must be preserved: {path}")
+
+    # -------------------------------------------------------------------------
+    # II-T15: bench.py bundle dump discovery and per-round load fields
+    # -------------------------------------------------------------------------
+    def test_II_T15_bench_bundle_dump_discovery_and_round_load_fields(self) -> None:
+        """II-T15: bench.py discovers .app Resources/libexec dumps, external Mach-O dumps, and records round load fields."""
+        from unittest import mock
+
+        bench = load_module("bench_t15", BENCH_PY_PATH)
+        app_contents = self.work / "Sample.app/Contents"
+        app_bin = app_contents / "MacOS/Sample"
+        app_bin.parent.mkdir(parents=True)
+        script = (
+            f"#!{sys.executable}\n"
+            "import sys\n"
+            "if '(kill-emacs 0)' in ' '.join(sys.argv[1:]):\n"
+            "    sys.exit(0)\n"
+            f"sys.stderr.write({valid_eval_transcript(1.0)!r})\n"
+            "sys.exit(0)\n"
+        )
+        write_executable(app_bin, script)
+        bundle_dump = app_contents / "Resources/libexec/Sample.pdmp"
+        bundle_dump.parent.mkdir(parents=True)
+        bundle_dump.write_bytes(b"bundle-pdmp-bytes")
+
+        self.assertEqual(bench.discover_dump(app_bin), bundle_dump.resolve())
+
+        out_dir = self.work / "out-bundle"
+        rc = bench.main(["--prog", str(app_bin), "--rounds", "2", "--out", str(out_dir)])
+        self.assertEqual(rc, 0)
+        report = json.loads((out_dir / "results.json").read_text(encoding="utf-8"))
+        self.assertEqual(report["artifacts"]["candidate"]["dump"], str(bundle_dump.resolve()))
+        self.assertEqual(len(report["load_per_round"]), 2)
+        self.assertIn("max_load_per_core", report)
+        self.assertIsInstance(report["quiet"], bool)
+
+        # External Mach-O bundle dump fallback delegates to probe_bundle_dump when bundle-local dump is absent.
+        ext_contents = self.work / "External.app/Contents"
+        ext_bin = ext_contents / "MacOS/External"
+        ext_bin.parent.mkdir(parents=True)
+        ext_bin.write_bytes(b"\xcf\xfa\xed\xfe" + b"\x00" * 16)
+        ext_bin.chmod(0o755)
+        ext_dump = self.work / "cellar/external.pdmp"
+        ext_dump.parent.mkdir(parents=True)
+        ext_dump.write_bytes(b"ext-pdmp")
+        with mock.patch.object(bench, "probe_bundle_dump", return_value=ext_dump.resolve()) as mocked:
+            self.assertEqual(bench.discover_dump(ext_bin), ext_dump.resolve())
+            self.assertEqual(mocked.call_count, 1)
 
 
 def main(argv: list[str] | None = None) -> int:

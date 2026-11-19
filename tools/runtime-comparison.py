@@ -76,6 +76,9 @@ def validate_plan(plan: dict) -> dict:
         dump = candidate.get('dump')
         if dump is not None and (not isinstance(dump, str) or not dump):
             raise ValueError(f'candidate {name} dump must be a path or absent')
+        lisp_root = candidate.get('lisp_root')
+        if lisp_root is not None and (not isinstance(lisp_root, str) or not lisp_root):
+            raise ValueError(f'candidate {name} lisp_root must be a path or absent')
         env = candidate.get('env', {})
         if not isinstance(env, dict) or any(not isinstance(k, str) or not isinstance(v, str) for k, v in env.items()):
             raise ValueError(f'candidate {name} env must map strings to strings')
@@ -119,6 +122,8 @@ def candidate_command(candidate: dict, out: Path, warmup: int, rounds: int, thre
         command += ['--env', f'{name}={value}']
     if candidate.get('dump'):
         command += ['--dump', candidate['dump']]
+    if candidate.get('lisp_root'):
+        command += ['--lisp-root', candidate['lisp_root']]
     return command
 
 
@@ -276,8 +281,9 @@ def aggregate_candidate(name: str, candidate: dict, report: dict) -> dict:
         for row in rows:
             for interval in phase_intervals(row):
                 phases.setdefault(interval['phase'], []).append(interval['ms'])
-        ages = [row.get('phase_snapshot', [None, None, None, None])[3] for row in rows]
-        ages = [value for value in ages if isinstance(value, list)]
+        ages = [snap[3] for row in rows
+                for snap in (row.get('phase_snapshot'),)
+                if isinstance(snap, list) and len(snap) >= 4 and isinstance(snap[3], list)]
         cases.append(dict(
             case=case, n=len(rows),
             median_ms=median, mad_ms=statistics.median([abs(value - median) for value in walls]),
@@ -346,10 +352,10 @@ def compare(name: str, left: dict, right: dict) -> dict:
             max_pause_ms=[a['max_pause_ms'], b['max_pause_ms']],
             allocation_delta=[a['allocation_delta'], b['allocation_delta']],
             cadence=[a['cadence'], b['cadence']],
-            phases=[dict(phase=entry['phase'],
-                         left_median_ms=next((item['median_ms'] for item in a['phases'] if item['phase'] == entry['phase']), None),
-                         right_median_ms=entry['median_ms'])
-                    for entry in b['phases']]))
+            phases=[dict(phase=phase_id,
+                         left_median_ms=next((item['median_ms'] for item in a['phases'] if item['phase'] == phase_id), None),
+                         right_median_ms=next((item['median_ms'] for item in b['phases'] if item['phase'] == phase_id), None))
+                    for phase_id in sorted({item['phase'] for item in a['phases']} | {item['phase'] for item in b['phases']})]))
     quiet = bool(left['quiet'] and right['quiet'])
     active_left, problems_left = activity_ok(left)
     active_right, problems_right = activity_ok(right)
