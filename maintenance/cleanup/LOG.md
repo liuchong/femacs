@@ -1,3 +1,10 @@
+## CLN271 — 2026-11-20: Stage II (`GA4`) historical manifest disposition and superseded artifact cleanup
+
+- Disposed of all `47` untracked local cleanup manifests (`2026-11-11..16`, `CLN227–CLN269`; `46,990,560` disk bytes / `221,956,192` uncompressed bytes, `0` personal paths) per `57101ad7` and `ai-storage`, recording per-file SHA-256, byte/line counts, paired tracked prose report (including newly committed [CLN269](reports/2026-11-16-269-superseded-single-product-gc-candidate.md)), and recovery routes.
+- Retired `12` verified zero-consumer superseded build/release/scratch scopes (`54,538` files, `2,113` directories, `20` symlinks; `4,097,095,245` logical bytes), including `build/runtime/ime-diag-1`, `build/manuals`, `dist/releases`, superseded `dist/candidates/{g4-macos-2,g4-gc-root-trace-2,g4-android-8,g4-android-9}`, `build/macos-acceptance`, `build/acceptance/runtime-build-contracts`, and empty `build/*-unit` directories.
+- Kept: Stage III runtime comparison inputs (`build/runtime/{frozen-2,native-2,native-collector-1}`), `dist/candidates/g4-android-10`, Stage I deliverables (`build/terminal/port/src/emacs`, `dist/macos/Femacs.app`), and active `build/acceptance/` receipts.
+- [Report](reports/2026-11-20-271-historical-manifest-disposition-and-g4-reaudit.md).
+
 ## CLN270 — 2026-11-20: consumed Stage I clean-export, build staging, and intermediate probe outputs
 
 - Released: `21` owned Stage I scopes (`48,154` files, `2,367` directories, `27` symlinks; `2,799,843,344` logical bytes; normalized digest `91b4a523e2abb473dcd906a107f4360a4c0cd8539e72b806ae7eb4cbaa76e893`), covering `s1-clean-export`, `s1-relocated`, superseded pre-Stage-I `build/terminal` and `dist/macos/Femacs.app` swap, `build/macos`, `.femacs-cache/macos`, `build/terminal/{config,lcms,load,objects,tls,treesit}`, intermediate Stage I acceptance runs, and session-cache scratch outputs.

@@ -37,6 +37,14 @@ class StrictProbePinTests(unittest.TestCase):
     def tearDown(self) -> None:
         self.temp.cleanup()
 
+    @classmethod
+    def tearDownClass(cls) -> None:
+        base = ROOT / 'build/strict-probe-unit'
+        try:
+            base.rmdir()
+        except OSError:
+            pass
+
     def _make_executable(self, name: str, body: str) -> Path:
         target = self.work / name
         target.write_text(body, encoding='utf-8')

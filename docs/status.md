@@ -26685,6 +26685,12 @@ Fresh reference selection passed7/7 postflight checks, actual installation/confi
 User approved this exact DNS case as a nonblocking environment limitation and requires the existing proxy to remain enabled and unchanged. Four bounded HTTPS queries completed without errors: both Google andCloudflare resolved `example.com` (Status0,2 A answers) and returned NXDOMAIN for `emacs.invalid` (Status3,no answers),1.499–2.389s per query. The host system lookup still reports its synthetic proxy addresses. This verifies a remote-resolver contrast, not candidate/editor or original ERT acceptance; raw failures, counts and exits remain unchanged. No Dot task was sent; that route is cancelled. Fresh full555/48 observations and any precise exception binding remain pending.
 
 
+### 2026-11-20 — 第 40 轮：阶段 II（`GA4`）工具库存/支持矩阵复核与 47 份历史本地清单收口
+
+- **复核与修正**：对照 `5118ed08..6065cf1b` 复核退役脚手架、薄转发器、平台保留边界与工具读者，将 `maintenance/tooling-inventory.json` 补齐后续新增的 `151` 项工具/夹具并更新 `13` 项基线 `current_sha256`（合计 `239+167=406` 项全部具备可核验仓库读者），修正 `xtask/src/runtime_tests.rs` 子 crate 目录下相对路径前缀计算，并同步 `docs/support-matrix.md`、`docs/retired-scaffolding.md`。
+- **受影响回归**：`test-macos-stability.py` `12/12`、`test-functional-strict-probe.py` `3/3`、`test-modernization-tools.py` `14/14`、`test-tooling-modernization.py` `33/33`、`test-g4-review-regressions.py` `6/6`、`test-keyboard-platform-offset.py` `20/20`、`cargo test -p xtask` `115/115`、`check-own-voice.py` `0` 失败、`test-repository-bootstrap.py` `3/3` 全绿（`34.644s`）。
+- **清单与中间产物收口（CLN269 + CLN271）**：补齐 `CLN269` 正式报告；按 `57101ad7` 与 `ai-storage` 在 [CLN271](../maintenance/cleanup/reports/2026-11-20-271-historical-manifest-disposition-and-g4-reaudit.md) 逐条记录全部 `47` 份未跟踪本地清单（`46,990,560` 磁盘字节 / `221,956,192` 解压字节，`0` 个人路径）的 SHA-256、对应报告与恢复边界后完成清理，同时回收 `12` 个无消费者旧目录（`ime-diag-1`、`build/manuals`、`dist/releases`、旧 `dist/candidates` 等共 `54,538` 文件、`4,097,095,245` 逻辑字节），保留 Stage III 比较候选（`frozen-2`、`native-2`、`native-collector-1`）及阶段 I 交付物与回执。`GA1–GA4` 已核收，进入阶段 III（`GA5–GA8`）。
+
 ### 2026-11-20 — 第 39 轮：阶段 I（`GA1–GA3`）集中收口与有效阻断归零
 
 - **范围与方式**：按用户单会话接续授权从 `baa31c12` 沿 `A -> B -> C -> D` 顺序完成阶段 I（`GA1`、`GA2`、`GA3`）。详见 [Stage I 收口回执](../maintenance/releases/2026-11-20-stage1-ga1-ga2-ga3-closure.md) 与 [CLN270](../maintenance/cleanup/reports/2026-11-20-270-consumed-stage1-delivery-and-probes.md)。

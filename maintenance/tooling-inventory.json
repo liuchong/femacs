@@ -1727,7 +1727,7 @@
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
       "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "b9ecb318e250b29e127517d07ec98f4880e677dc74128f6b51cbe1671f176811"
+      "current_sha256": "4522b1c1f8bcea2ead112ccfa9f5121097d4267d809129ed4c586590fac031cc"
     },
     {
       "path": "tools/check-all-units.sh",
@@ -2677,7 +2677,7 @@
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
       "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "3bbbedb8c9cdb0b451c24ee8c91c0c94397836b721b9c76aa74ae2c66df9ccd3"
+      "current_sha256": "a8b7a57b771eaed8f16943be7cb6f93dd9beec001da815893bf22fc23282a23c"
     },
     {
       "path": "tools/check-platform-inventory.py",
@@ -3332,7 +3332,7 @@
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
       "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "0383dc0930ce774448c567f1be2782e4622b028f8be6b51bd34cbb9706e49218"
+      "current_sha256": "7f7edc6fc3a6916a6f91cc43f388a96edd4ba9b50e2d5a45ede63436a9192e0d"
     },
     {
       "path": "tools/fixtures/macos-ime.el",
@@ -3364,7 +3364,7 @@
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
       "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "95a12d29f98f4062242dcac32bc1cd23fb944f7ad2f9e6cd369bae7715c0159f"
+      "current_sha256": "b136d14e341bb48db54343632d4dbf61c69f85644d363f40039ba83d9bdd9dff"
     },
     {
       "path": "tools/fixtures/macos-keys.el",
@@ -3426,7 +3426,7 @@
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
       "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "0c7ee611cc9470909de4a922df7c0084adfc3f9b608c086688333bbbd9762301"
+      "current_sha256": "8e58aa04e5be90309e2a2cb739c206bd7477b89eac4460cd4bd11aaeb922b6b0"
     },
     {
       "path": "tools/fixtures/stable-language.el",
@@ -3952,7 +3952,7 @@
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
       "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "9c2bbf8553bcab9884def8a60a08bf9ed5d774f65778fe955c4fca933b2f25d1"
+      "current_sha256": "62191a9bdc1a660f3c966494e756252cd444abcc047b4433b1878984fdae1c69"
     },
     {
       "path": "tools/gen-macos-runtime.py",
@@ -4215,7 +4215,7 @@
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
       "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "91599a690554d3fa39db243eb92d500ee35385d9c7e6788db986683832f30d2b"
+      "current_sha256": "2a82db2edfdf31612aa57db23bf5c170d329d00d08363ecab35510fbe9837471"
     },
     {
       "path": "tools/pgo/eval.el",
@@ -4342,7 +4342,7 @@
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
       "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "54b6360b960e09c44af981f8edf4922e87487df858540448fd74a41f5c42e2f0"
+      "current_sha256": "58d0a3bf23661e4af73f1feb811803363b7fe8133316eb026de912839ca79c43"
     },
     {
       "path": "tools/smoke.sh",
@@ -4465,7 +4465,7 @@
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
       "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "a9cdce78726351846c09e408fb48bd9517baf9657e8bc6e794005fb126ac84fe"
+      "current_sha256": "1f5785a92084fa1513e3d839b786f0fda135cabc45f1cf26493fc5a287fdfe70"
     },
     {
       "path": "tools/test-ert-harness.py",
@@ -4526,7 +4526,7 @@
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
       "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "cb1cf6efef4914862b68559361ecf4e03ace3964ee05045ebba8bc6caac2afd3"
+      "current_sha256": "ef8b084897a5f3f2f076a46a600633e0124be3e9ce3a3d336401871da5725e2c"
     },
     {
       "path": "tools/test-macos-ime.py",
@@ -4550,7 +4550,7 @@
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
       "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "fb7a23f9aa08c689b7851e1117c3cc85db3db4c578874004dcb9278d1b7f557e"
+      "current_sha256": "63b1bfd696c5ff868e6d99c013851f20b36b9583d7171179644be5879cddacc2"
     },
     {
       "path": "tools/test-macos-stability.py",
@@ -4569,7 +4569,7 @@
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
       "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "cf2aacb782e20a7ec84a8341ee291c11c4d2d7984aab6c18e50eedc3d223fc68"
+      "current_sha256": "4a08c928e5f8bf8848f6a4076a631fe90cb6b553fab66b7d996561ae09eeaba9"
     },
     {
       "path": "tools/test-macos-symbol-imports.py",
@@ -4614,7 +4614,7 @@
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
       "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "af4b18264c59b37034887bb20fed8c33d2798bdd32f970881db5f35e153b14c9"
+      "current_sha256": "00b39de1ff05a77a5e11fed08fbc3a7e425dd9987378207797b16370b3f0bef3"
     },
     {
       "path": "tools/test-repository-bootstrap.py",
@@ -4860,6 +4860,50 @@
       "uncertainty": null
     },
     {
+      "path": "tools/fixtures/base64-functional.el",
+      "sha256": "19b1e903949fcf6bb57123190c132c42ad9404f28acf0a36a912472c6ddd4dda",
+      "bytes": 3634,
+      "family": "fixture",
+      "decision": "retain",
+      "replacement": null,
+      "reason": "owned Stage I-III compatibility, runtime, or acceptance input; explicit reader retained",
+      "readers": [
+        {
+          "path": "maintenance/releases/2026-10-30-current-macos-core-results.json",
+          "anchor": "base64-functional",
+          "kind": "current explicit dispatch/import/documented invocation"
+        },
+        {
+          "path": "maintenance/releases/2026-10-30-process-wait-base64.md",
+          "anchor": "tools/fixtures/base64-functional.el",
+          "kind": "current explicit dispatch/import/documented invocation"
+        }
+      ],
+      "uncertainty": null
+    },
+    {
+      "path": "tools/fixtures/base64-protection.el",
+      "sha256": "062114b60d8b9bda2a5855fdf649fc2cc6f82bea2d4cdaf7d7e27bfafd7c1aeb",
+      "bytes": 1866,
+      "family": "fixture",
+      "decision": "retain",
+      "replacement": null,
+      "reason": "owned Stage I-III compatibility, runtime, or acceptance input; explicit reader retained",
+      "readers": [
+        {
+          "path": "maintenance/releases/2026-10-30-current-macos-core-results.json",
+          "anchor": "base64-protection",
+          "kind": "current explicit dispatch/import/documented invocation"
+        },
+        {
+          "path": "maintenance/releases/2026-10-30-process-wait-base64.md",
+          "anchor": "tools/fixtures/base64-protection.el",
+          "kind": "current explicit dispatch/import/documented invocation"
+        }
+      ],
+      "uncertainty": null
+    },
+    {
       "path": "tools/fixtures/ccl-finish.el",
       "sha256": "746d5ee13326b90fb4639735e633878947bd29391becc316adfe505f58c93733",
       "bytes": 3896,
@@ -4871,6 +4915,1456 @@
         {
           "path": "tools/g4-acceptance.py",
           "anchor": "terminal-ccl-regressions and cocoa-ccl-regressions",
+          "kind": "current explicit dispatch/import/documented invocation"
+        }
+      ],
+      "uncertainty": null
+    },
+    {
+      "path": "tools/fixtures/data/image-loader-100x200.webp",
+      "sha256": "da77cfc4d4e19a2e6e15ecc95f174b8cf716083131b608be8f7b8c402db932e7",
+      "bytes": 44,
+      "family": "fixture",
+      "decision": "retain",
+      "replacement": null,
+      "reason": "owned Stage I-III compatibility, runtime, or acceptance input; explicit reader retained",
+      "readers": [
+        {
+          "path": "tools/fixtures/image-loader-protection.el",
+          "anchor": "tools/fixtures/data/image-loader-100x200.webp",
+          "kind": "current explicit dispatch/import/documented invocation"
+        }
+      ],
+      "uncertainty": null
+    },
+    {
+      "path": "tools/fixtures/data/image-loader-anim.webp",
+      "sha256": "89cae4d5d505d72d342ccbe8879149eb32c99c8707d4badec6f52b275d07896d",
+      "bytes": 152,
+      "family": "fixture",
+      "decision": "retain",
+      "replacement": null,
+      "reason": "owned Stage I-III compatibility, runtime, or acceptance input; explicit reader retained",
+      "readers": [
+        {
+          "path": "tools/fixtures/image-loader-protection.el",
+          "anchor": "tools/fixtures/data/image-loader-anim.webp",
+          "kind": "current explicit dispatch/import/documented invocation"
+        },
+        {
+          "path": "docs/status.md",
+          "anchor": "image-loader-anim.webp",
+          "kind": "current explicit dispatch/import/documented invocation"
+        }
+      ],
+      "uncertainty": null
+    },
+    {
+      "path": "tools/fixtures/file-notify-remote-diagnostic.el",
+      "sha256": "1e7f460544b9d5d5d0db97cff31b0bccb532d6ec73726eed008966e1715a3663",
+      "bytes": 22000,
+      "family": "fixture",
+      "decision": "retain",
+      "replacement": null,
+      "reason": "owned Stage I-III compatibility, runtime, or acceptance input; explicit reader retained",
+      "readers": [
+        {
+          "path": "tools/remote-notification-diagnostic.py",
+          "anchor": "tools/fixtures/file-notify-remote-diagnostic.el",
+          "kind": "current explicit dispatch/import/documented invocation"
+        },
+        {
+          "path": "maintenance/releases/2026-10-30-empty-registry-index-results.json",
+          "anchor": "tools/fixtures/file-notify-remote-diagnostic.el",
+          "kind": "current explicit dispatch/import/documented invocation"
+        },
+        {
+          "path": "maintenance/releases/2026-10-30-remote-notification-diagnostic-results.json",
+          "anchor": "tools/fixtures/file-notify-remote-diagnostic.el",
+          "kind": "current explicit dispatch/import/documented invocation"
+        }
+      ],
+      "uncertainty": null
+    },
+    {
+      "path": "tools/fixtures/g7-native-write-barrier.el",
+      "sha256": "d4c2683747d13774bbf6e4d72b51d8bf2fec625b27efe22dacea9ab00cae593f",
+      "bytes": 4746,
+      "family": "fixture",
+      "decision": "retain",
+      "replacement": null,
+      "reason": "owned Stage I-III compatibility, runtime, or acceptance input; explicit reader retained",
+      "readers": [
+        {
+          "path": "docs/g7-young-root-store-binding.md",
+          "anchor": "g7-native-write-barrier",
+          "kind": "current explicit dispatch/import/documented invocation"
+        },
+        {
+          "path": "docs/status.md",
+          "anchor": "tools/fixtures/g7-native-write-barrier.el",
+          "kind": "current explicit dispatch/import/documented invocation"
+        }
+      ],
+      "uncertainty": null
+    },
+    {
+      "path": "tools/fixtures/gc-young-cadence.el",
+      "sha256": "37e177a74e8b0b6dcd7b22ca10c670ae85aa61bd7822622a002225940f33238d",
+      "bytes": 8306,
+      "family": "fixture",
+      "decision": "retain",
+      "replacement": null,
+      "reason": "owned Stage I-III compatibility, runtime, or acceptance input; explicit reader retained",
+      "readers": [
+        {
+          "path": "tools/fixtures/g7-native-write-barrier.el",
+          "anchor": "gc-young-cadence.el",
+          "kind": "current explicit dispatch/import/documented invocation"
+        },
+        {
+          "path": "docs/gc-young-cadence.md",
+          "anchor": "tools/fixtures/gc-young-cadence.el",
+          "kind": "current explicit dispatch/import/documented invocation"
+        },
+        {
+          "path": "docs/status.md",
+          "anchor": "gc-young-cadence.el",
+          "kind": "current explicit dispatch/import/documented invocation"
+        }
+      ],
+      "uncertainty": null
+    },
+    {
+      "path": "tools/fixtures/gio-stream-protection.el",
+      "sha256": "fbbcce0782a55a88c2bb72353c5eac63ec8f14213610eb7943b2d32ea1845890",
+      "bytes": 6684,
+      "family": "fixture",
+      "decision": "retain",
+      "replacement": null,
+      "reason": "owned Stage I-III compatibility, runtime, or acceptance input; explicit reader retained",
+      "readers": [
+        {
+          "path": "maintenance/releases/2026-10-29-gio-startup-stream.md",
+          "anchor": "tools/fixtures/gio-stream-protection.el",
+          "kind": "current explicit dispatch/import/documented invocation"
+        }
+      ],
+      "uncertainty": null
+    },
+    {
+      "path": "tools/fixtures/image-loader-protection.el",
+      "sha256": "796409d3ed2349e51bf779be4436e5636144b170357755190b1632b988d73fe2",
+      "bytes": 14784,
+      "family": "fixture",
+      "decision": "retain",
+      "replacement": null,
+      "reason": "owned Stage I-III compatibility, runtime, or acceptance input; explicit reader retained",
+      "readers": [
+        {
+          "path": "tools/image-loader-probe.py",
+          "anchor": "tools/fixtures/image-loader-protection.el",
+          "kind": "current explicit dispatch/import/documented invocation"
+        },
+        {
+          "path": "tools/runtime-final-audit.py",
+          "anchor": "image-loader-protection",
+          "kind": "current explicit dispatch/import/documented invocation"
+        },
+        {
+          "path": "docs/ports/image.md",
+          "anchor": "tools/fixtures/image-loader-protection.el",
+          "kind": "current explicit dispatch/import/documented invocation"
+        }
+      ],
+      "uncertainty": null
+    },
+    {
+      "path": "tools/fixtures/ime-launch.swift",
+      "sha256": "eb59a795771eabc26614d19636268768b70801622ee7092a1d3e064bd819af74",
+      "bytes": 2276,
+      "family": "fixture",
+      "decision": "retain",
+      "replacement": null,
+      "reason": "owned Stage I-III compatibility, runtime, or acceptance input; explicit reader retained",
+      "readers": [
+        {
+          "path": "tools/test-macos-drag.py",
+          "anchor": "tools/fixtures/ime-launch.swift",
+          "kind": "current explicit dispatch/import/documented invocation"
+        },
+        {
+          "path": "tools/test-macos-ime.py",
+          "anchor": "tools/fixtures/ime-launch.swift",
+          "kind": "current explicit dispatch/import/documented invocation"
+        },
+        {
+          "path": "docs/modernization.md",
+          "anchor": "tools/fixtures/ime-launch.swift",
+          "kind": "current explicit dispatch/import/documented invocation"
+        }
+      ],
+      "uncertainty": null
+    },
+    {
+      "path": "tools/fixtures/lcms-acceptance.el",
+      "sha256": "89cd493d653fffac2c879ff1575519916c414df54f2cec6b300938f9fb3c2409",
+      "bytes": 4645,
+      "family": "fixture",
+      "decision": "retain",
+      "replacement": null,
+      "reason": "owned Stage I-III compatibility, runtime, or acceptance input; explicit reader retained",
+      "readers": [
+        {
+          "path": "PORTING.md",
+          "anchor": "d9a41b0a macOS lcms2 capability fixture",
+          "kind": "current explicit dispatch/import/documented invocation"
+        }
+      ],
+      "uncertainty": null
+    },
+    {
+      "path": "tools/fixtures/library-corrections.json",
+      "sha256": "a732446fd983036e5cb3cd2f1305b3d33cd08077484bba2893b0894ee81b3092",
+      "bytes": 1349,
+      "family": "fixture",
+      "decision": "retain",
+      "replacement": null,
+      "reason": "owned Stage I-III compatibility, runtime, or acceptance input; explicit reader retained",
+      "readers": [
+        {
+          "path": "tools/bootstrap-resources.py",
+          "anchor": "library-corrections",
+          "kind": "current explicit dispatch/import/documented invocation"
+        },
+        {
+          "path": "tools/library_corrections.py",
+          "anchor": "tools/fixtures/library-corrections.json",
+          "kind": "current explicit dispatch/import/documented invocation"
+        },
+        {
+          "path": "tools/test-compiler-resources.py",
+          "anchor": "library_corrections",
+          "kind": "current explicit dispatch/import/documented invocation"
+        }
+      ],
+      "uncertainty": null
+    },
+    {
+      "path": "tools/fixtures/macos-background-gc.el",
+      "sha256": "3893d9364a15def370c289c3ca9eee23dfd563cd36befcae3b8504bbc3468a32",
+      "bytes": 2455,
+      "family": "fixture",
+      "decision": "retain",
+      "replacement": null,
+      "reason": "owned Stage I-III compatibility, runtime, or acceptance input; explicit reader retained",
+      "readers": [
+        {
+          "path": "tools/local-acceptance.py",
+          "anchor": "macos-background-gc",
+          "kind": "current explicit dispatch/import/documented invocation"
+        },
+        {
+          "path": "tools/test-macos-background-gc.py",
+          "anchor": "tools/fixtures/macos-background-gc.el",
+          "kind": "current explicit dispatch/import/documented invocation"
+        },
+        {
+          "path": "maintenance/cleanup/reports/2026-11-20-270-consumed-stage1-delivery-and-probes.md",
+          "anchor": "macos-background-gc",
+          "kind": "current explicit dispatch/import/documented invocation"
+        }
+      ],
+      "uncertainty": null
+    },
+    {
+      "path": "tools/fixtures/macos-layout.el",
+      "sha256": "e4f46b5c8f7920bb003363fb97a1861693a7d8689e7a948941bfdc0e9a0883a2",
+      "bytes": 2200,
+      "family": "fixture",
+      "decision": "retain",
+      "replacement": null,
+      "reason": "owned Stage I-III compatibility, runtime, or acceptance input; explicit reader retained",
+      "readers": [
+        {
+          "path": "PORTING.md",
+          "anchor": "8c7d2d41 native frame geometry acceptance fixture",
+          "kind": "current explicit dispatch/import/documented invocation"
+        }
+      ],
+      "uncertainty": null
+    },
+    {
+      "path": "tools/fixtures/message-count-functional.el",
+      "sha256": "2beb2783761c2ea3d070c93ce6bc8de30802f06f47ad436b0cf602bd7c96908b",
+      "bytes": 1913,
+      "family": "fixture",
+      "decision": "retain",
+      "replacement": null,
+      "reason": "owned Stage I-III compatibility, runtime, or acceptance input; explicit reader retained",
+      "readers": [
+        {
+          "path": "maintenance/releases/2026-11-01-message-count-results.json",
+          "anchor": "tools/fixtures/message-count-functional.el",
+          "kind": "current explicit dispatch/import/documented invocation"
+        }
+      ],
+      "uncertainty": null
+    },
+    {
+      "path": "tools/fixtures/module-thread-config.h",
+      "sha256": "694f04771cb71d85687c4d6b040917f25ee8af9dcd3e584777cbc475c6993580",
+      "bytes": 135,
+      "family": "fixture",
+      "decision": "retain",
+      "replacement": null,
+      "reason": "owned Stage I-III compatibility, runtime, or acceptance input; explicit reader retained",
+      "readers": [
+        {
+          "path": "tools/module-thread-acceptance.py",
+          "anchor": "module-thread-config.h",
+          "kind": "current explicit dispatch/import/documented invocation"
+        },
+        {
+          "path": "tools/runtime-stage.py",
+          "anchor": "module-thread-config.h",
+          "kind": "current explicit dispatch/import/documented invocation"
+        },
+        {
+          "path": "tools/stable-classification.py",
+          "anchor": "module-thread-config.h",
+          "kind": "current explicit dispatch/import/documented invocation"
+        }
+      ],
+      "uncertainty": null
+    },
+    {
+      "path": "tools/fixtures/module-thread-runner.el",
+      "sha256": "f75256f7b25c4fb6f6705a3ae8b1bbc4485bc889619538fa2eb5b7e930e226e7",
+      "bytes": 4321,
+      "family": "fixture",
+      "decision": "retain",
+      "replacement": null,
+      "reason": "owned Stage I-III compatibility, runtime, or acceptance input; explicit reader retained",
+      "readers": [
+        {
+          "path": "tools/module-thread-acceptance.py",
+          "anchor": "module-thread-runner.el",
+          "kind": "current explicit dispatch/import/documented invocation"
+        }
+      ],
+      "uncertainty": null
+    },
+    {
+      "path": "tools/fixtures/module-user-pointer-protection.el",
+      "sha256": "448268fade5bec49be22355934beaeb04bac5f788e203758a4d1f502557b1791",
+      "bytes": 1469,
+      "family": "fixture",
+      "decision": "retain",
+      "replacement": null,
+      "reason": "owned Stage I-III compatibility, runtime, or acceptance input; explicit reader retained",
+      "readers": [
+        {
+          "path": "maintenance/releases/2026-10-29-macos-module-user-pointer.md",
+          "anchor": "tools/fixtures/module-user-pointer-protection.el",
+          "kind": "current explicit dispatch/import/documented invocation"
+        }
+      ],
+      "uncertainty": null
+    },
+    {
+      "path": "tools/fixtures/process-thread-wait-gc-protection.el",
+      "sha256": "c3e6205eb6f453019041fca5b707fdeb40f825557d57d3c83b750922947a6aa1",
+      "bytes": 2472,
+      "family": "fixture",
+      "decision": "retain",
+      "replacement": null,
+      "reason": "owned Stage I-III compatibility, runtime, or acceptance input; explicit reader retained",
+      "readers": [
+        {
+          "path": "maintenance/releases/2026-10-30-process-wait-base64.md",
+          "anchor": "tools/fixtures/process-thread-wait-gc-protection.el",
+          "kind": "current explicit dispatch/import/documented invocation"
+        }
+      ],
+      "uncertainty": null
+    },
+    {
+      "path": "tools/fixtures/process-thread-wait-protection.el",
+      "sha256": "09c5ec6701050beaaf19b1a6c033b56c6d81e75fd184a43d0a1932a68787ae04",
+      "bytes": 10730,
+      "family": "fixture",
+      "decision": "retain",
+      "replacement": null,
+      "reason": "owned Stage I-III compatibility, runtime, or acceptance input; explicit reader retained",
+      "readers": [
+        {
+          "path": "maintenance/releases/2026-10-30-process-wait-base64.md",
+          "anchor": "tools/fixtures/process-thread-wait-protection.el",
+          "kind": "current explicit dispatch/import/documented invocation"
+        }
+      ],
+      "uncertainty": null
+    },
+    {
+      "path": "tools/fixtures/reference-install-probe.el",
+      "sha256": "bee748050c4615b1b709d9223c9f20c66c8c0c78ebf3c507db1533b4957ca05b",
+      "bytes": 1581,
+      "family": "fixture",
+      "decision": "retain",
+      "replacement": null,
+      "reason": "owned Stage I-III compatibility, runtime, or acceptance input; explicit reader retained",
+      "readers": [
+        {
+          "path": "tools/runtime-final-audit.py",
+          "anchor": "reference-install-probe",
+          "kind": "current explicit dispatch/import/documented invocation"
+        },
+        {
+          "path": "tools/runtime-reference-probe.py",
+          "anchor": "tools/fixtures/reference-install-probe.el",
+          "kind": "current explicit dispatch/import/documented invocation"
+        },
+        {
+          "path": "tools/runtime-reference.py",
+          "anchor": "reference-install-probe",
+          "kind": "current explicit dispatch/import/documented invocation"
+        }
+      ],
+      "uncertainty": null
+    },
+    {
+      "path": "tools/fixtures/reserved-invalid-dns-contrast.json",
+      "sha256": "1f9974ef1589a99dbb1599bf651c1f5211a591653e45bf55f99513559243132f",
+      "bytes": 1560,
+      "family": "fixture",
+      "decision": "retain",
+      "replacement": null,
+      "reason": "owned Stage I-III compatibility, runtime, or acceptance input; explicit reader retained",
+      "readers": [
+        {
+          "path": "tools/fixtures/stable-classification-source-rules.json",
+          "anchor": "tools/fixtures/reserved-invalid-dns-contrast.json",
+          "kind": "current explicit dispatch/import/documented invocation"
+        },
+        {
+          "path": "tools/stable-classification.py",
+          "anchor": "tools/fixtures/reserved-invalid-dns-contrast.json",
+          "kind": "current explicit dispatch/import/documented invocation"
+        },
+        {
+          "path": "tools/stable-source-rules.py",
+          "anchor": "tools/fixtures/reserved-invalid-dns-contrast.json",
+          "kind": "current explicit dispatch/import/documented invocation"
+        }
+      ],
+      "uncertainty": null
+    },
+    {
+      "path": "tools/fixtures/runtime-acceptance-plan.json",
+      "sha256": "d26546ae662bfc321ee137b4d28cfffdda6af88199b89cbd80a8d3249164eb0f",
+      "bytes": 9346,
+      "family": "fixture",
+      "decision": "retain",
+      "replacement": null,
+      "reason": "owned Stage I-III compatibility, runtime, or acceptance input; explicit reader retained",
+      "readers": [
+        {
+          "path": "docs/runtime-modernization.md",
+          "anchor": "runtime-acceptance-plan.json",
+          "kind": "current explicit dispatch/import/documented invocation"
+        }
+      ],
+      "uncertainty": null
+    },
+    {
+      "path": "tools/fixtures/runtime-call-frames-functional.el",
+      "sha256": "f7d5d737fdf7caa7075fb4fb73b6f37bb61bab5158bbdbe838fe09d2a23c7cc8",
+      "bytes": 11202,
+      "family": "fixture",
+      "decision": "retain",
+      "replacement": null,
+      "reason": "owned Stage I-III compatibility, runtime, or acceptance input; explicit reader retained",
+      "readers": [
+        {
+          "path": "maintenance/releases/2026-11-10-bytecode-indirect-call-frames.md",
+          "anchor": "P458 seven-case owned call-frame fixture",
+          "kind": "current explicit dispatch/import/documented invocation"
+        }
+      ],
+      "uncertainty": null
+    },
+    {
+      "path": "tools/fixtures/runtime-comparison-plan.json",
+      "sha256": "dd6b050f32236344574ef4a5a3c02f5fbd7a492e30e375ed2361e9e0f11bd66f",
+      "bytes": 3459,
+      "family": "fixture",
+      "decision": "retain",
+      "replacement": null,
+      "reason": "owned Stage I-III compatibility, runtime, or acceptance input; explicit reader retained",
+      "readers": [
+        {
+          "path": "tools/runtime-comparison.py",
+          "anchor": "runtime-comparison-plan",
+          "kind": "current explicit dispatch/import/documented invocation"
+        },
+        {
+          "path": "docs/g7-young-root-store-binding.md",
+          "anchor": "tools/fixtures/runtime-comparison-plan.json",
+          "kind": "current explicit dispatch/import/documented invocation"
+        },
+        {
+          "path": "docs/status.md",
+          "anchor": "tools/fixtures/runtime-comparison-plan.json",
+          "kind": "current explicit dispatch/import/documented invocation"
+        }
+      ],
+      "uncertainty": null
+    },
+    {
+      "path": "tools/fixtures/runtime-component-adapter.rs",
+      "sha256": "52c059fafe1559af2e6ba3b95f671f9b37e33ee08769881950354f8cf1caef73",
+      "bytes": 12235,
+      "family": "fixture",
+      "decision": "retain",
+      "replacement": null,
+      "reason": "owned Stage I-III compatibility, runtime, or acceptance input; explicit reader retained",
+      "readers": [
+        {
+          "path": "tools/runtime-components.py",
+          "anchor": "tools/fixtures/runtime-component-adapter.rs",
+          "kind": "current explicit dispatch/import/documented invocation"
+        },
+        {
+          "path": "tools/runtime-final-audit.py",
+          "anchor": "runtime-component-adapter",
+          "kind": "current explicit dispatch/import/documented invocation"
+        },
+        {
+          "path": "docs/status.md",
+          "anchor": "runtime-component-adapter.rs",
+          "kind": "current explicit dispatch/import/documented invocation"
+        }
+      ],
+      "uncertainty": null
+    },
+    {
+      "path": "tools/fixtures/runtime-core-cases.json",
+      "sha256": "13900d932594e71f854a4cd0a40db7688453b50b14e306599e10cf0a14cbdbe6",
+      "bytes": 11511,
+      "family": "fixture",
+      "decision": "retain",
+      "replacement": null,
+      "reason": "owned Stage I-III compatibility, runtime, or acceptance input; explicit reader retained",
+      "readers": [
+        {
+          "path": "tools/fixtures/runtime-acceptance-plan.json",
+          "anchor": "tools/fixtures/runtime-core-cases.json",
+          "kind": "current explicit dispatch/import/documented invocation"
+        },
+        {
+          "path": "tools/test-runtime-contracts.py",
+          "anchor": "tools/fixtures/runtime-core-cases.json",
+          "kind": "current explicit dispatch/import/documented invocation"
+        },
+        {
+          "path": "docs/runtime-modernization.md",
+          "anchor": "tools/fixtures/runtime-core-cases.json",
+          "kind": "current explicit dispatch/import/documented invocation"
+        }
+      ],
+      "uncertainty": null
+    },
+    {
+      "path": "tools/fixtures/runtime-dump.el",
+      "sha256": "8240795339c3979e7044b996a2417c7d2b30c60e35cae061ac83864a406cf6d8",
+      "bytes": 6179,
+      "family": "fixture",
+      "decision": "retain",
+      "replacement": null,
+      "reason": "owned Stage I-III compatibility, runtime, or acceptance input; explicit reader retained",
+      "readers": [
+        {
+          "path": "tools/fixtures/runtime-acceptance-plan.json",
+          "anchor": "tools/fixtures/runtime-dump.el",
+          "kind": "current explicit dispatch/import/documented invocation"
+        },
+        {
+          "path": "tools/runtime-execution.py",
+          "anchor": "runtime-dump.el",
+          "kind": "current explicit dispatch/import/documented invocation"
+        },
+        {
+          "path": "docs/runtime-modernization.md",
+          "anchor": "runtime-dump.el",
+          "kind": "current explicit dispatch/import/documented invocation"
+        }
+      ],
+      "uncertainty": null
+    },
+    {
+      "path": "tools/fixtures/runtime-frame-buffer-observation.el",
+      "sha256": "ff56611dcb5b9096abed53bd782977c39edde2cc7db3cb77a9d029022aa2f56c",
+      "bytes": 4140,
+      "family": "fixture",
+      "decision": "retain",
+      "replacement": null,
+      "reason": "owned Stage I-III compatibility, runtime, or acceptance input; explicit reader retained",
+      "readers": [
+        {
+          "path": "tools/runtime-frame-buffer-probe.py",
+          "anchor": "runtime-frame-buffer-observation.el",
+          "kind": "current explicit dispatch/import/documented invocation"
+        }
+      ],
+      "uncertainty": null
+    },
+    {
+      "path": "tools/fixtures/runtime-gc-fallback-protection.el",
+      "sha256": "5983110a992470d250988b43686728a49aa803042af9124cfc2fed34699d7404",
+      "bytes": 4277,
+      "family": "fixture",
+      "decision": "retain",
+      "replacement": null,
+      "reason": "owned Stage I-III compatibility, runtime, or acceptance input; explicit reader retained",
+      "readers": [
+        {
+          "path": "maintenance/releases/2026-10-30-empty-registry-index-results.json",
+          "anchor": "tools/fixtures/runtime-gc-fallback-protection.el",
+          "kind": "current explicit dispatch/import/documented invocation"
+        },
+        {
+          "path": "maintenance/releases/2026-10-30-persistent-fallback-results.json",
+          "anchor": "tools/fixtures/runtime-gc-fallback-protection.el",
+          "kind": "current explicit dispatch/import/documented invocation"
+        }
+      ],
+      "uncertainty": null
+    },
+    {
+      "path": "tools/fixtures/runtime-gc-fallback.el",
+      "sha256": "6f44b9ecb3c9a48ad9d2f5973e282e28195ccf55dd4e6e4d0ce0206c576e0f6f",
+      "bytes": 29711,
+      "family": "fixture",
+      "decision": "retain",
+      "replacement": null,
+      "reason": "owned Stage I-III compatibility, runtime, or acceptance input; explicit reader retained",
+      "readers": [
+        {
+          "path": "tools/fixtures/runtime-gc-fallback-protection.el",
+          "anchor": "runtime-gc-fallback",
+          "kind": "current explicit dispatch/import/documented invocation"
+        },
+        {
+          "path": "maintenance/releases/2026-10-30-empty-registry-index-results.json",
+          "anchor": "runtime-gc-fallback",
+          "kind": "current explicit dispatch/import/documented invocation"
+        },
+        {
+          "path": "maintenance/releases/2026-10-30-persistent-fallback-results.json",
+          "anchor": "tools/fixtures/runtime-gc-fallback.el",
+          "kind": "current explicit dispatch/import/documented invocation"
+        }
+      ],
+      "uncertainty": null
+    },
+    {
+      "path": "tools/fixtures/runtime-gc-owner-batch-protection.el",
+      "sha256": "a202ff7e9bc2acff0bf0ad05617c511dfac014eac827c79ba438ada90d4de556",
+      "bytes": 16271,
+      "family": "fixture",
+      "decision": "retain",
+      "replacement": null,
+      "reason": "owned Stage I-III compatibility, runtime, or acceptance input; explicit reader retained",
+      "readers": [
+        {
+          "path": "maintenance/releases/2026-10-30-gc-owner-batch-evaluation.md",
+          "anchor": "tools/fixtures/runtime-gc-owner-batch-protection.el",
+          "kind": "current explicit dispatch/import/documented invocation"
+        }
+      ],
+      "uncertainty": null
+    },
+    {
+      "path": "tools/fixtures/runtime-gc-root-phases.el",
+      "sha256": "3151a7dcf12ce862126af58eede26798c7804fc8fd30aebb46ab06647ade2bb1",
+      "bytes": 10914,
+      "family": "fixture",
+      "decision": "retain",
+      "replacement": null,
+      "reason": "owned Stage I-III compatibility, runtime, or acceptance input; explicit reader retained",
+      "readers": [
+        {
+          "path": "maintenance/releases/2026-10-30-gc-root-phases-results.json",
+          "anchor": "tools/fixtures/runtime-gc-root-phases.el",
+          "kind": "current explicit dispatch/import/documented invocation"
+        }
+      ],
+      "uncertainty": null
+    },
+    {
+      "path": "tools/fixtures/runtime-gc.el",
+      "sha256": "975d40887749fe63b86818e6e0fdf88ed6b4b370d2b5f46898030ebccf398103",
+      "bytes": 19275,
+      "family": "fixture",
+      "decision": "retain",
+      "replacement": null,
+      "reason": "owned Stage I-III compatibility, runtime, or acceptance input; explicit reader retained",
+      "readers": [
+        {
+          "path": "tools/fixtures/runtime-acceptance-plan.json",
+          "anchor": "tools/fixtures/runtime-gc.el",
+          "kind": "current explicit dispatch/import/documented invocation"
+        },
+        {
+          "path": "tools/fixtures/runtime-component-adapter.rs",
+          "anchor": "runtime_gc",
+          "kind": "current explicit dispatch/import/documented invocation"
+        },
+        {
+          "path": "tools/fixtures/runtime-gc-fallback-protection.el",
+          "anchor": "runtime-gc",
+          "kind": "current explicit dispatch/import/documented invocation"
+        }
+      ],
+      "uncertainty": null
+    },
+    {
+      "path": "tools/fixtures/runtime-hotpath-protection.el",
+      "sha256": "9d8c12cbb10b357aadfe78299ac6d634d7fd63b18d83e7cb684c7280223baca9",
+      "bytes": 14893,
+      "family": "fixture",
+      "decision": "retain",
+      "replacement": null,
+      "reason": "owned Stage I-III compatibility, runtime, or acceptance input; explicit reader retained",
+      "readers": [
+        {
+          "path": "docs/runtime-modernization.md",
+          "anchor": "P458 indirect-call hotpath protection ERT suite",
+          "kind": "current explicit dispatch/import/documented invocation"
+        }
+      ],
+      "uncertainty": null
+    },
+    {
+      "path": "tools/fixtures/runtime-language.el",
+      "sha256": "1d9301b87ca8f6b6cf3a565ddb9906c7d65384366ed617a44a662648c31654aa",
+      "bytes": 12124,
+      "family": "fixture",
+      "decision": "retain",
+      "replacement": null,
+      "reason": "owned Stage I-III compatibility, runtime, or acceptance input; explicit reader retained",
+      "readers": [
+        {
+          "path": "tools/fixtures/runtime-acceptance-plan.json",
+          "anchor": "tools/fixtures/runtime-language.el",
+          "kind": "current explicit dispatch/import/documented invocation"
+        },
+        {
+          "path": "tools/fixtures/runtime-gc-fallback.el",
+          "anchor": "runtime-language",
+          "kind": "current explicit dispatch/import/documented invocation"
+        },
+        {
+          "path": "tools/fixtures/runtime-process-runner.el",
+          "anchor": "runtime-language",
+          "kind": "current explicit dispatch/import/documented invocation"
+        }
+      ],
+      "uncertainty": null
+    },
+    {
+      "path": "tools/fixtures/runtime-library-contracts.el",
+      "sha256": "e84e0d0ea858ecb8763c0f8d427300fd5773911de3a4327e058641b53296825c",
+      "bytes": 4420,
+      "family": "fixture",
+      "decision": "retain",
+      "replacement": null,
+      "reason": "owned Stage I-III compatibility, runtime, or acceptance input; explicit reader retained",
+      "readers": [
+        {
+          "path": "tools/runtime-frame-buffer-probe.py",
+          "anchor": "runtime-library-contracts.el",
+          "kind": "current explicit dispatch/import/documented invocation"
+        },
+        {
+          "path": "tools/stable-classification.py",
+          "anchor": "runtime-library-contracts.el",
+          "kind": "current explicit dispatch/import/documented invocation"
+        },
+        {
+          "path": "tools/test-reference-library-contract.py",
+          "anchor": "runtime-library-contracts.el",
+          "kind": "current explicit dispatch/import/documented invocation"
+        }
+      ],
+      "uncertainty": null
+    },
+    {
+      "path": "tools/fixtures/runtime-native-lifecycle.el",
+      "sha256": "39453554d3ca1106338fdd9cd4f76dbd53d88e1e71fa0d7e0f74bc2e2252165d",
+      "bytes": 4869,
+      "family": "fixture",
+      "decision": "retain",
+      "replacement": null,
+      "reason": "owned Stage I-III compatibility, runtime, or acceptance input; explicit reader retained",
+      "readers": [
+        {
+          "path": "tools/fixtures/runtime-acceptance-plan.json",
+          "anchor": "tools/fixtures/runtime-native-lifecycle.el",
+          "kind": "current explicit dispatch/import/documented invocation"
+        },
+        {
+          "path": "tools/runtime-execution.py",
+          "anchor": "runtime-native-lifecycle.el",
+          "kind": "current explicit dispatch/import/documented invocation"
+        },
+        {
+          "path": "docs/runtime-modernization.md",
+          "anchor": "runtime-native-lifecycle.el",
+          "kind": "current explicit dispatch/import/documented invocation"
+        }
+      ],
+      "uncertainty": null
+    },
+    {
+      "path": "tools/fixtures/runtime-native-negative-cases.json",
+      "sha256": "e74b18f87e96ea9cda1abf829dede9fc7d196f7e4a5df1ad3b99672d754447f3",
+      "bytes": 1768,
+      "family": "fixture",
+      "decision": "retain",
+      "replacement": null,
+      "reason": "owned Stage I-III compatibility, runtime, or acceptance input; explicit reader retained",
+      "readers": [
+        {
+          "path": "tools/fixtures/runtime-acceptance-plan.json",
+          "anchor": "tools/fixtures/runtime-native-negative-cases.json",
+          "kind": "current explicit dispatch/import/documented invocation"
+        },
+        {
+          "path": "tools/runtime-execution.py",
+          "anchor": "runtime-native-negative-cases.json",
+          "kind": "current explicit dispatch/import/documented invocation"
+        }
+      ],
+      "uncertainty": null
+    },
+    {
+      "path": "tools/fixtures/runtime-native-unit.rs",
+      "sha256": "e6eb529cd4d20a86a2eadf3d194532901f33d4e942f37314b9b6853c19b23a1f",
+      "bytes": 4803,
+      "family": "fixture",
+      "decision": "retain",
+      "replacement": null,
+      "reason": "owned Stage I-III compatibility, runtime, or acceptance input; explicit reader retained",
+      "readers": [
+        {
+          "path": "tools/fixtures/runtime-acceptance-plan.json",
+          "anchor": "tools/fixtures/runtime-native-unit.rs",
+          "kind": "current explicit dispatch/import/documented invocation"
+        },
+        {
+          "path": "tools/fixtures/runtime-native-negative-cases.json",
+          "anchor": "tools/fixtures/runtime-native-unit.rs",
+          "kind": "current explicit dispatch/import/documented invocation"
+        },
+        {
+          "path": "tools/runtime-execution.py",
+          "anchor": "runtime-native-unit.rs",
+          "kind": "current explicit dispatch/import/documented invocation"
+        }
+      ],
+      "uncertainty": null
+    },
+    {
+      "path": "tools/fixtures/runtime-native.el",
+      "sha256": "4ac10d39d38f9e13346e1a3033317bc985cdd21c98e2602b6e9ecc0bf872204c",
+      "bytes": 18276,
+      "family": "fixture",
+      "decision": "retain",
+      "replacement": null,
+      "reason": "owned Stage I-III compatibility, runtime, or acceptance input; explicit reader retained",
+      "readers": [
+        {
+          "path": "tools/fixtures/runtime-acceptance-plan.json",
+          "anchor": "tools/fixtures/runtime-native.el",
+          "kind": "current explicit dispatch/import/documented invocation"
+        },
+        {
+          "path": "tools/fixtures/runtime-native-lifecycle.el",
+          "anchor": "runtime-native.el",
+          "kind": "current explicit dispatch/import/documented invocation"
+        },
+        {
+          "path": "tools/fixtures/runtime-native-negative-cases.json",
+          "anchor": "runtime-native",
+          "kind": "current explicit dispatch/import/documented invocation"
+        }
+      ],
+      "uncertainty": null
+    },
+    {
+      "path": "tools/fixtures/runtime-observer.el",
+      "sha256": "65b4ae97d8b3cd2a069620f4dd19852b733475b6bdd159288769558f741e2a5d",
+      "bytes": 7270,
+      "family": "fixture",
+      "decision": "retain",
+      "replacement": null,
+      "reason": "owned Stage I-III compatibility, runtime, or acceptance input; explicit reader retained",
+      "readers": [
+        {
+          "path": "tools/fixtures/runtime-acceptance-plan.json",
+          "anchor": "tools/fixtures/runtime-observer.el",
+          "kind": "current explicit dispatch/import/documented invocation"
+        },
+        {
+          "path": "tools/fixtures/runtime-gc-root-phases.el",
+          "anchor": "runtime-observer.el",
+          "kind": "current explicit dispatch/import/documented invocation"
+        },
+        {
+          "path": "tools/runtime-execution.py",
+          "anchor": "runtime-observer.el",
+          "kind": "current explicit dispatch/import/documented invocation"
+        }
+      ],
+      "uncertainty": null
+    },
+    {
+      "path": "tools/fixtures/runtime-performance-runner.el",
+      "sha256": "3b19b7df46172a37b50b54e1d4dcf534c0f0328b46e01cb605ffcbc72eaa5251",
+      "bytes": 2447,
+      "family": "fixture",
+      "decision": "retain",
+      "replacement": null,
+      "reason": "owned Stage I-III compatibility, runtime, or acceptance input; explicit reader retained",
+      "readers": [
+        {
+          "path": "tools/runtime-execution.py",
+          "anchor": "runtime-performance-runner.el",
+          "kind": "current explicit dispatch/import/documented invocation"
+        },
+        {
+          "path": "docs/runtime-modernization.md",
+          "anchor": "runtime-performance-runner.el",
+          "kind": "current explicit dispatch/import/documented invocation"
+        },
+        {
+          "path": "maintenance/releases/2026-10-30-empty-registry-index-results.json",
+          "anchor": "tools/fixtures/runtime-performance-runner.el",
+          "kind": "current explicit dispatch/import/documented invocation"
+        }
+      ],
+      "uncertainty": null
+    },
+    {
+      "path": "tools/fixtures/runtime-process-runner.el",
+      "sha256": "08f52873d7b38f38c270cbd434bc08f8409e2e0ff306db169f5ae06cf13d7fa6",
+      "bytes": 7469,
+      "family": "fixture",
+      "decision": "retain",
+      "replacement": null,
+      "reason": "owned Stage I-III compatibility, runtime, or acceptance input; explicit reader retained",
+      "readers": [
+        {
+          "path": "tools/runtime-checkpoint.py",
+          "anchor": "tools/fixtures/runtime-process-runner.el",
+          "kind": "current explicit dispatch/import/documented invocation"
+        },
+        {
+          "path": "tools/runtime-execution.py",
+          "anchor": "tools/fixtures/runtime-process-runner.el",
+          "kind": "current explicit dispatch/import/documented invocation"
+        },
+        {
+          "path": "tools/runtime-final-audit.py",
+          "anchor": "tools/fixtures/runtime-process-runner.el",
+          "kind": "current explicit dispatch/import/documented invocation"
+        }
+      ],
+      "uncertainty": null
+    },
+    {
+      "path": "tools/fixtures/runtime-profile-fallback.el",
+      "sha256": "c967e48164fee27687e6e6f2defe209c6cb8779491853500c6669abbd37b3aa7",
+      "bytes": 2786,
+      "family": "fixture",
+      "decision": "retain",
+      "replacement": null,
+      "reason": "owned Stage I-III compatibility, runtime, or acceptance input; explicit reader retained",
+      "readers": [
+        {
+          "path": "tools/runtime-execution.py",
+          "anchor": "runtime-profile-fallback.el",
+          "kind": "current explicit dispatch/import/documented invocation"
+        },
+        {
+          "path": "tools/test-runtime-fallback-mode.py",
+          "anchor": "tools/fixtures/runtime-profile-fallback.el",
+          "kind": "current explicit dispatch/import/documented invocation"
+        },
+        {
+          "path": "tools/test-runtime-measurement-contracts.py",
+          "anchor": "runtime-profile-fallback.el",
+          "kind": "current explicit dispatch/import/documented invocation"
+        }
+      ],
+      "uncertainty": null
+    },
+    {
+      "path": "tools/fixtures/runtime-remote-watch-contract.el",
+      "sha256": "3509a9c2336ead07ea0f6fd4333d4d42732e232f3f968e5045bfafb93ee8cbd6",
+      "bytes": 6344,
+      "family": "fixture",
+      "decision": "retain",
+      "replacement": null,
+      "reason": "owned Stage I-III compatibility, runtime, or acceptance input; explicit reader retained",
+      "readers": [
+        {
+          "path": "tools/fixtures/runtime-tramp-process-contract.el",
+          "anchor": "runtime-remote-watch-contract",
+          "kind": "current explicit dispatch/import/documented invocation"
+        },
+        {
+          "path": "tools/runtime-tramp-process-probe.py",
+          "anchor": "tools/fixtures/runtime-remote-watch-contract.el",
+          "kind": "current explicit dispatch/import/documented invocation"
+        },
+        {
+          "path": "tools/stable-classification.py",
+          "anchor": "runtime-remote-watch-contract.el",
+          "kind": "current explicit dispatch/import/documented invocation"
+        }
+      ],
+      "uncertainty": null
+    },
+    {
+      "path": "tools/fixtures/runtime-symbol-intern-functional.el",
+      "sha256": "629d7d39c640c55bee48bba7f30ad70cf03633df852d913625d30bf8b0198b47",
+      "bytes": 18187,
+      "family": "fixture",
+      "decision": "retain",
+      "replacement": null,
+      "reason": "owned Stage I-III compatibility, runtime, or acceptance input; explicit reader retained",
+      "readers": [
+        {
+          "path": "tools/runtime-execution.py",
+          "anchor": "runtime-symbol-intern-functional.el",
+          "kind": "current explicit dispatch/import/documented invocation"
+        }
+      ],
+      "uncertainty": null
+    },
+    {
+      "path": "tools/fixtures/runtime-tramp-process-contract.el",
+      "sha256": "61d4371f4392a19e58ea25643ca5f6683645cb777de25bc3bd881d7c47a7fb79",
+      "bytes": 11119,
+      "family": "fixture",
+      "decision": "retain",
+      "replacement": null,
+      "reason": "owned Stage I-III compatibility, runtime, or acceptance input; explicit reader retained",
+      "readers": [
+        {
+          "path": "tools/runtime-tramp-process-probe.py",
+          "anchor": "tools/fixtures/runtime-tramp-process-contract.el",
+          "kind": "current explicit dispatch/import/documented invocation"
+        },
+        {
+          "path": "tools/stable-classification.py",
+          "anchor": "runtime-tramp-process-contract.el",
+          "kind": "current explicit dispatch/import/documented invocation"
+        },
+        {
+          "path": "maintenance/cleanup/reports/2026-11-15-265-superseded-cohort4-matrix-and-smoke.md",
+          "anchor": "tools/fixtures/runtime-tramp-process-contract.el",
+          "kind": "current explicit dispatch/import/documented invocation"
+        }
+      ],
+      "uncertainty": null
+    },
+    {
+      "path": "tools/fixtures/sqlite-acceptance.el",
+      "sha256": "71ec6cf14f93a75adfd0491220fbc152524ecfe56de23d80409dd17dc2ad5499",
+      "bytes": 5808,
+      "family": "fixture",
+      "decision": "retain",
+      "replacement": null,
+      "reason": "owned Stage I-III compatibility, runtime, or acceptance input; explicit reader retained",
+      "readers": [
+        {
+          "path": "tools/runtime-execution.py",
+          "anchor": "sqlite-acceptance.el",
+          "kind": "current explicit dispatch/import/documented invocation"
+        },
+        {
+          "path": "tools/runtime-final-audit.py",
+          "anchor": "tools/fixtures/sqlite-acceptance.el",
+          "kind": "current explicit dispatch/import/documented invocation"
+        }
+      ],
+      "uncertainty": null
+    },
+    {
+      "path": "tools/fixtures/stable-classification-source-rules.json",
+      "sha256": "3b021c5ba3c106536cd04e529b96e07ede3721822be643202536fcbf16c5e0c1",
+      "bytes": 1004418,
+      "family": "fixture",
+      "decision": "retain",
+      "replacement": null,
+      "reason": "owned Stage I-III compatibility, runtime, or acceptance input; explicit reader retained",
+      "readers": [
+        {
+          "path": "tools/stable-source-rules.py",
+          "anchor": "tools/fixtures/stable-classification-source-rules.json",
+          "kind": "current explicit dispatch/import/documented invocation"
+        },
+        {
+          "path": "tools/test-reference-library-contract.py",
+          "anchor": "tools/fixtures/stable-classification-source-rules.json",
+          "kind": "current explicit dispatch/import/documented invocation"
+        },
+        {
+          "path": "docs/modernization.md",
+          "anchor": "tools/fixtures/stable-classification-source-rules.json",
+          "kind": "current explicit dispatch/import/documented invocation"
+        }
+      ],
+      "uncertainty": null
+    },
+    {
+      "path": "tools/fixtures/stable-evaluator-mode-observer.el",
+      "sha256": "7dc12977abc1e8010161c9ebeb232c29d52dbcef1dff372b26c1b6bd0b7cb9b5",
+      "bytes": 1131,
+      "family": "fixture",
+      "decision": "retain",
+      "replacement": null,
+      "reason": "owned Stage I-III compatibility, runtime, or acceptance input; explicit reader retained",
+      "readers": [
+        {
+          "path": "docs/status.md",
+          "anchor": "tools/fixtures/stable-evaluator-mode-observer.el",
+          "kind": "current explicit dispatch/import/documented invocation"
+        },
+        {
+          "path": "maintenance/releases/2026-10-30-original-evaluator-modes.md",
+          "anchor": "tools/fixtures/stable-evaluator-mode-observer.el",
+          "kind": "current explicit dispatch/import/documented invocation"
+        }
+      ],
+      "uncertainty": null
+    },
+    {
+      "path": "tools/fixtures/stable-source-context-path-tests.el",
+      "sha256": "c85b118dee6c86858d7214ee962abf8a0e7fe372e71c29a203a8a33bef4aa4d6",
+      "bytes": 1722,
+      "family": "fixture",
+      "decision": "retain",
+      "replacement": null,
+      "reason": "owned Stage I-III compatibility, runtime, or acceptance input; explicit reader retained",
+      "readers": [
+        {
+          "path": "maintenance/releases/2026-11-10-stable-source-context-paths.md",
+          "anchor": "P460 physical library path protection fixture",
+          "kind": "current explicit dispatch/import/documented invocation"
+        }
+      ],
+      "uncertainty": null
+    },
+    {
+      "path": "tools/fixtures/stable-subset-native-affected.json",
+      "sha256": "5333c2f35ec7211a4c5215783fee3591967dff1f4ade1af48b8b88647207a875",
+      "bytes": 419,
+      "family": "fixture",
+      "decision": "retain",
+      "replacement": null,
+      "reason": "owned Stage I-III compatibility, runtime, or acceptance input; explicit reader retained",
+      "readers": [
+        {
+          "path": "tools/fixtures/stable-subset-run.sh",
+          "anchor": "SUBSET=$1 declared 11-entrypoint native subset",
+          "kind": "current explicit dispatch/import/documented invocation"
+        }
+      ],
+      "uncertainty": null
+    },
+    {
+      "path": "tools/fixtures/stable-subset-run.sh",
+      "sha256": "18eda0ca27ea330781c62e98ea3a76ee3b519aa94ea6eaebb4f5d0ca54ae3faa",
+      "bytes": 2871,
+      "family": "fixture",
+      "decision": "retain",
+      "replacement": null,
+      "reason": "owned Stage I-III compatibility, runtime, or acceptance input; explicit reader retained",
+      "readers": [
+        {
+          "path": "docs/status.md",
+          "anchor": "tools/fixtures/stable-subset-run.sh",
+          "kind": "current explicit dispatch/import/documented invocation"
+        }
+      ],
+      "uncertainty": null
+    },
+    {
+      "path": "tools/fixtures/stable-suite-event-contract.el",
+      "sha256": "d39c90353ce31a5f459e5246dcdeb2b55bb74c98e4a13ede5e866600a41cb680",
+      "bytes": 2147,
+      "family": "fixture",
+      "decision": "retain",
+      "replacement": null,
+      "reason": "owned Stage I-III compatibility, runtime, or acceptance input; explicit reader retained",
+      "readers": [
+        {
+          "path": "maintenance/releases/2026-11-01-owned-pty-execution-results.json",
+          "anchor": "tools/fixtures/stable-suite-event-contract.el",
+          "kind": "current explicit dispatch/import/documented invocation"
+        }
+      ],
+      "uncertainty": null
+    },
+    {
+      "path": "tools/fixtures/stable-suite-runner.el",
+      "sha256": "315a7f749e75d5259b88e08ad3ad0a5224767caa8dbf16e394619558093194ca",
+      "bytes": 36033,
+      "family": "fixture",
+      "decision": "retain",
+      "replacement": null,
+      "reason": "owned Stage I-III compatibility, runtime, or acceptance input; explicit reader retained",
+      "readers": [
+        {
+          "path": "tools/fixtures/file-notify-remote-diagnostic.el",
+          "anchor": "tools/fixtures/stable-suite-runner.el",
+          "kind": "current explicit dispatch/import/documented invocation"
+        },
+        {
+          "path": "tools/fixtures/stable-subset-run.sh",
+          "anchor": "tools/fixtures/stable-suite-runner.el",
+          "kind": "current explicit dispatch/import/documented invocation"
+        },
+        {
+          "path": "tools/functional-corpus.py",
+          "anchor": "tools/fixtures/stable-suite-runner.el",
+          "kind": "current explicit dispatch/import/documented invocation"
+        }
+      ],
+      "uncertainty": null
+    },
+    {
+      "path": "tools/fixtures/stable-terminal-isolation-protection.el",
+      "sha256": "97438d9e341c80a32dd0171fb450cd0920c38c73a61de1dad4327d8d0959414f",
+      "bytes": 4810,
+      "family": "fixture",
+      "decision": "retain",
+      "replacement": null,
+      "reason": "owned Stage I-III compatibility, runtime, or acceptance input; explicit reader retained",
+      "readers": [
+        {
+          "path": "tools/stable-suite-batch.py",
+          "anchor": "P472 nested terminal isolation protection fixture",
+          "kind": "current explicit dispatch/import/documented invocation"
+        }
+      ],
+      "uncertainty": null
+    },
+    {
+      "path": "tools/fixtures/stable-terminal-result-functional.el",
+      "sha256": "49f73579e831ea1db209a53255cd90ce17c064a071522ab03d39d406046505ca",
+      "bytes": 1006,
+      "family": "fixture",
+      "decision": "retain",
+      "replacement": null,
+      "reason": "owned Stage I-III compatibility, runtime, or acceptance input; explicit reader retained",
+      "readers": [
+        {
+          "path": "tools/test-reference-library-contract.py",
+          "anchor": "tools/fixtures/stable-terminal-result-functional.el",
+          "kind": "current explicit dispatch/import/documented invocation"
+        }
+      ],
+      "uncertainty": null
+    },
+    {
+      "path": "tools/fixtures/symbol-shorthand-protection.el",
+      "sha256": "45fb598c7b61bbbe02cf139ceb01b37eecf29b6e9818c87a2f0ea8de915a9dd7",
+      "bytes": 7646,
+      "family": "fixture",
+      "decision": "retain",
+      "replacement": null,
+      "reason": "owned Stage I-III compatibility, runtime, or acceptance input; explicit reader retained",
+      "readers": [
+        {
+          "path": "docs/status.md",
+          "anchor": "symbol-shorthand-protection.el",
+          "kind": "current explicit dispatch/import/documented invocation"
+        },
+        {
+          "path": "maintenance/releases/2026-10-29-symbol-shorthand-compatibility.md",
+          "anchor": "tools/fixtures/symbol-shorthand-protection.el",
+          "kind": "current explicit dispatch/import/documented invocation"
+        }
+      ],
+      "uncertainty": null
+    },
+    {
+      "path": "tools/fixtures/tls-acceptance.el",
+      "sha256": "faf3794ffdd7e819f401ab323002c24e815999a932d296da98b7ecee62732cb8",
+      "bytes": 15055,
+      "family": "fixture",
+      "decision": "retain",
+      "replacement": null,
+      "reason": "owned Stage I-III compatibility, runtime, or acceptance input; explicit reader retained",
+      "readers": [
+        {
+          "path": "tools/tls-acceptance.py",
+          "anchor": "tools/fixtures/tls-acceptance.el",
+          "kind": "current explicit dispatch/import/documented invocation"
+        }
+      ],
+      "uncertainty": null
+    },
+    {
+      "path": "tools/fixtures/treesit-integration.el",
+      "sha256": "9f914a4aa5b0492e9ce228ee81363f10b449e77b0cc3b446faf6b98881799c9e",
+      "bytes": 4331,
+      "family": "fixture",
+      "decision": "retain",
+      "replacement": null,
+      "reason": "owned Stage I-III compatibility, runtime, or acceptance input; explicit reader retained",
+      "readers": [
+        {
+          "path": "maintenance/releases/2026-10-29-macos-treesit.md",
+          "anchor": "tools/fixtures/treesit-integration.el",
+          "kind": "current explicit dispatch/import/documented invocation"
+        }
+      ],
+      "uncertainty": null
+    },
+    {
+      "path": "tools/fixtures/xml-acceptance.el",
+      "sha256": "41514d997b1951689b71b49088430cc4380a5615ebb771eb527297d5a79b3734",
+      "bytes": 3665,
+      "family": "fixture",
+      "decision": "retain",
+      "replacement": null,
+      "reason": "owned Stage I-III compatibility, runtime, or acceptance input; explicit reader retained",
+      "readers": [
+        {
+          "path": "tools/runtime-execution.py",
+          "anchor": "xml-acceptance.el",
+          "kind": "current explicit dispatch/import/documented invocation"
+        },
+        {
+          "path": "tools/runtime-final-audit.py",
+          "anchor": "tools/fixtures/xml-acceptance.el",
+          "kind": "current explicit dispatch/import/documented invocation"
+        },
+        {
+          "path": "tools/xml-acceptance.py",
+          "anchor": "tools/fixtures/xml-acceptance.el",
+          "kind": "current explicit dispatch/import/documented invocation"
+        }
+      ],
+      "uncertainty": null
+    },
+    {
+      "path": "tools/fixtures/zlib-acceptance.el",
+      "sha256": "b55ec87cca852b4406aa67bd05d048ea4655b13c3418a126dea04101e2ccfbc9",
+      "bytes": 6009,
+      "family": "fixture",
+      "decision": "retain",
+      "replacement": null,
+      "reason": "owned Stage I-III compatibility, runtime, or acceptance input; explicit reader retained",
+      "readers": [
+        {
+          "path": "maintenance/releases/2026-10-29-macos-zlib-capability.md",
+          "anchor": "9a04401e built-in gzip/zlib acceptance suite",
+          "kind": "current explicit dispatch/import/documented invocation"
+        }
+      ],
+      "uncertainty": null
+    },
+    {
+      "path": "tools/fixtures/zlib-remaining-input-protection.el",
+      "sha256": "38ccf49190790101c9ed219400890fbdccfadb6709f545f33b218d99f6ac1f3e",
+      "bytes": 1554,
+      "family": "fixture",
+      "decision": "retain",
+      "replacement": null,
+      "reason": "owned Stage I-III compatibility, runtime, or acceptance input; explicit reader retained",
+      "readers": [
+        {
+          "path": "maintenance/releases/2026-10-29-macos-zlib-capability.md",
+          "anchor": "9a04401e remaining-input corruption regression",
+          "kind": "current explicit dispatch/import/documented invocation"
+        }
+      ],
+      "uncertainty": null
+    },
+    {
+      "path": "tools/functional-corpus.py",
+      "sha256": "06471180489870b035d33725d9f7bcc35adb0f9bde260f6bb88cc5c324e6ae8e",
+      "bytes": 26231,
+      "family": "comparison-gate",
+      "decision": "retain",
+      "replacement": null,
+      "reason": "owned Stage I-III compatibility, runtime, or acceptance input; explicit reader retained",
+      "readers": [
+        {
+          "path": "tools/runtime-final-audit.py",
+          "anchor": "tools/functional-corpus.py",
+          "kind": "current explicit dispatch/import/documented invocation"
+        },
+        {
+          "path": "docs/ports/image.md",
+          "anchor": "tools/functional-corpus.py",
+          "kind": "current explicit dispatch/import/documented invocation"
+        },
+        {
+          "path": "docs/status.md",
+          "anchor": "tools/functional-corpus.py",
+          "kind": "current explicit dispatch/import/documented invocation"
+        }
+      ],
+      "uncertainty": null
+    },
+    {
+      "path": "tools/functional-strict-probe.py",
+      "sha256": "e2b3570d5082691a7ddc0c6eb82e696c265e12e333aba4f3cd39f85dab919074",
+      "bytes": 21156,
+      "family": "comparison-gate",
+      "decision": "retain",
+      "replacement": null,
+      "reason": "owned Stage I-III compatibility, runtime, or acceptance input; explicit reader retained",
+      "readers": [
+        {
+          "path": "tools/stable-classification.py",
+          "anchor": "functional-strict-probe",
+          "kind": "current explicit dispatch/import/documented invocation"
+        },
+        {
+          "path": "tools/test-functional-strict-probe.py",
+          "anchor": "tools/functional-strict-probe.py",
+          "kind": "current explicit dispatch/import/documented invocation"
+        },
+        {
+          "path": "tools/test-stable-classification.py",
+          "anchor": "functional-strict-probe",
+          "kind": "current explicit dispatch/import/documented invocation"
+        }
+      ],
+      "uncertainty": null
+    },
+    {
+      "path": "tools/g3-reference-binding.py",
+      "sha256": "1e9d40133bfb1e693aff6783fc2aa0e90306feb85ba4b5e50a23630d632489fd",
+      "bytes": 3880,
+      "family": "comparison-gate",
+      "decision": "retain",
+      "replacement": null,
+      "reason": "owned Stage I-III compatibility, runtime, or acceptance input; explicit reader retained",
+      "readers": [
+        {
+          "path": "docs/status.md",
+          "anchor": "tools/g3-reference-binding.py",
           "kind": "current explicit dispatch/import/documented invocation"
         }
       ],
@@ -4894,6 +6388,33 @@
       "uncertainty": null
     },
     {
+      "path": "tools/image-loader-probe.py",
+      "sha256": "c325616b666b82f7a97a03a2bca1b7e1472e6bad259fe4280965b3bcce061ae9",
+      "bytes": 4421,
+      "family": "comparison-gate",
+      "decision": "retain",
+      "replacement": null,
+      "reason": "owned Stage I-III compatibility, runtime, or acceptance input; explicit reader retained",
+      "readers": [
+        {
+          "path": "docs/ports/image.md",
+          "anchor": "tools/image-loader-probe.py",
+          "kind": "current explicit dispatch/import/documented invocation"
+        },
+        {
+          "path": "docs/status.md",
+          "anchor": "tools/image-loader-probe.py",
+          "kind": "current explicit dispatch/import/documented invocation"
+        },
+        {
+          "path": "PORTING.md",
+          "anchor": "tools/image-loader-probe.py",
+          "kind": "current explicit dispatch/import/documented invocation"
+        }
+      ],
+      "uncertainty": null
+    },
+    {
       "path": "tools/l5_sweep.py",
       "sha256": "934071e06db812d838f6be92963d6618ded747bfc9bc699e616dac88b0b88b36",
       "bytes": 6228,
@@ -4905,6 +6426,121 @@
         {
           "path": "tools/l5-sweep.sh",
           "anchor": "exec Python scheduler",
+          "kind": "current explicit dispatch/import/documented invocation"
+        }
+      ],
+      "uncertainty": null
+    },
+    {
+      "path": "tools/library_corrections.py",
+      "sha256": "9e159811bedccdafbeb1dd8662ac19a9cc27e6acb6302b496877dc92ca15f4e8",
+      "bytes": 11272,
+      "family": "generator",
+      "decision": "retain",
+      "replacement": null,
+      "reason": "owned Stage I-III compatibility, runtime, or acceptance input; explicit reader retained",
+      "readers": [
+        {
+          "path": "tools/bootstrap-resources.py",
+          "anchor": "library_corrections",
+          "kind": "current explicit dispatch/import/documented invocation"
+        },
+        {
+          "path": "tools/test-compiler-resources.py",
+          "anchor": "library_corrections",
+          "kind": "current explicit dispatch/import/documented invocation"
+        },
+        {
+          "path": "tools/test-reference-library-contract.py",
+          "anchor": "library_corrections",
+          "kind": "current explicit dispatch/import/documented invocation"
+        }
+      ],
+      "uncertainty": null
+    },
+    {
+      "path": "tools/module-thread-abi.py",
+      "sha256": "926fea83ba637b223ac2ad1964772832e57df5de030c60c5311791e8ecacca75",
+      "bytes": 11940,
+      "family": "comparison-gate",
+      "decision": "retain",
+      "replacement": null,
+      "reason": "owned Stage I-III compatibility, runtime, or acceptance input; explicit reader retained",
+      "readers": [
+        {
+          "path": "PORTING.md",
+          "anchor": "P-387/P-389 module-thread ABI check entrypoint",
+          "kind": "current explicit dispatch/import/documented invocation"
+        }
+      ],
+      "uncertainty": null
+    },
+    {
+      "path": "tools/module-thread-acceptance.py",
+      "sha256": "e6744ba8d224fe03504fe14860ab3a4ab517e3e7dadde9efa85d8b42dd47af55",
+      "bytes": 36733,
+      "family": "comparison-gate",
+      "decision": "retain",
+      "replacement": null,
+      "reason": "owned Stage I-III compatibility, runtime, or acceptance input; explicit reader retained",
+      "readers": [
+        {
+          "path": "PORTING.md",
+          "anchor": "P-387/P-389 module-thread acceptance driver",
+          "kind": "current explicit dispatch/import/documented invocation"
+        }
+      ],
+      "uncertainty": null
+    },
+    {
+      "path": "tools/module_api.py",
+      "sha256": "736087b1f095af3b84f3711127bbfba3110197ef31fc9195b3938e71e7eba479",
+      "bytes": 2730,
+      "family": "generator",
+      "decision": "retain",
+      "replacement": null,
+      "reason": "owned Stage I-III compatibility, runtime, or acceptance input; explicit reader retained",
+      "readers": [
+        {
+          "path": "tools/bootstrap-resources.py",
+          "anchor": "module_api",
+          "kind": "current explicit dispatch/import/documented invocation"
+        },
+        {
+          "path": "tools/module-thread-abi.py",
+          "anchor": "module_api",
+          "kind": "current explicit dispatch/import/documented invocation"
+        },
+        {
+          "path": "xtask/src/macos.rs",
+          "anchor": "module_api",
+          "kind": "current explicit dispatch/import/documented invocation"
+        }
+      ],
+      "uncertainty": null
+    },
+    {
+      "path": "tools/native-bootstrap-identity.py",
+      "sha256": "ae452d85a82c4e61f104655dd30e734119dcc95bf3329d6710af628affe72c66",
+      "bytes": 25458,
+      "family": "comparison-gate",
+      "decision": "retain",
+      "replacement": null,
+      "reason": "owned Stage I-III compatibility, runtime, or acceptance input; explicit reader retained",
+      "readers": [
+        {
+          "path": "tools/stable-classification.py",
+          "anchor": "native-bootstrap-identity.py",
+          "kind": "current explicit dispatch/import/documented invocation"
+        },
+        {
+          "path": "tools/test-native-bootstrap-identity.py",
+          "anchor": "tools/native-bootstrap-identity.py",
+          "kind": "current explicit dispatch/import/documented invocation"
+        },
+        {
+          "path": "maintenance/releases/2026-11-13-authored-observation-contract.md",
+          "anchor": "native-bootstrap-identity.py",
           "kind": "current explicit dispatch/import/documented invocation"
         }
       ],
@@ -4928,6 +6564,700 @@
       "uncertainty": null
     },
     {
+      "path": "tools/reference-corpus.py",
+      "sha256": "30ee3f513984779fa5bf307a7e0aedfea66d70fc64d701c8c150889224d79556",
+      "bytes": 13962,
+      "family": "comparison-gate",
+      "decision": "retain",
+      "replacement": null,
+      "reason": "owned Stage I-III compatibility, runtime, or acceptance input; explicit reader retained",
+      "readers": [
+        {
+          "path": "tools/runtime-execution.py",
+          "anchor": "tools/reference-corpus.py",
+          "kind": "current explicit dispatch/import/documented invocation"
+        },
+        {
+          "path": "tools/runtime-final-audit.py",
+          "anchor": "reference-corpus.py",
+          "kind": "current explicit dispatch/import/documented invocation"
+        },
+        {
+          "path": "tools/runtime-resume.py",
+          "anchor": "tools/reference-corpus.py",
+          "kind": "current explicit dispatch/import/documented invocation"
+        }
+      ],
+      "uncertainty": null
+    },
+    {
+      "path": "tools/remote-notification-diagnostic.py",
+      "sha256": "d75f5ca8f69d07055179c4f9b125dea77190a898800c96c46b2d1e3d8bb2c497",
+      "bytes": 23380,
+      "family": "comparison-gate",
+      "decision": "retain",
+      "replacement": null,
+      "reason": "owned Stage I-III compatibility, runtime, or acceptance input; explicit reader retained",
+      "readers": [
+        {
+          "path": "tools/fixtures/file-notify-remote-diagnostic.el",
+          "anchor": "tools/remote-notification-diagnostic.py",
+          "kind": "current explicit dispatch/import/documented invocation"
+        },
+        {
+          "path": "docs/status.md",
+          "anchor": "remote-notification-diagnostic",
+          "kind": "current explicit dispatch/import/documented invocation"
+        },
+        {
+          "path": "maintenance/history/2026-11-10-current-state-checkpoints.md",
+          "anchor": "remote-notification-diagnostic",
+          "kind": "current explicit dispatch/import/documented invocation"
+        }
+      ],
+      "uncertainty": null
+    },
+    {
+      "path": "tools/requirements-runtime.txt",
+      "sha256": "9bdce0444a60e3977ee2db4c0554ec7d978cd6cb10411b343a90a1e1c47e4749",
+      "bytes": 73,
+      "family": "comparison-gate",
+      "decision": "retain",
+      "replacement": null,
+      "reason": "owned Stage I-III compatibility, runtime, or acceptance input; explicit reader retained",
+      "readers": [
+        {
+          "path": "docs/repository-bootstrap.md",
+          "anchor": "tools/requirements-runtime.txt",
+          "kind": "current explicit dispatch/import/documented invocation"
+        }
+      ],
+      "uncertainty": null
+    },
+    {
+      "path": "tools/runtime-acceptance.py",
+      "sha256": "303eab672c23bbff7b8d3a3ac44a2f94a92ea2739301696032c54e07e753e2fb",
+      "bytes": 20234,
+      "family": "comparison-gate",
+      "decision": "retain",
+      "replacement": null,
+      "reason": "owned Stage I-III compatibility, runtime, or acceptance input; explicit reader retained",
+      "readers": [
+        {
+          "path": "tools/fixtures/runtime-acceptance-plan.json",
+          "anchor": "runtime-acceptance.py",
+          "kind": "current explicit dispatch/import/documented invocation"
+        },
+        {
+          "path": "tools/runtime-execution.py",
+          "anchor": "runtime-acceptance.py",
+          "kind": "current explicit dispatch/import/documented invocation"
+        },
+        {
+          "path": "tools/runtime-final-audit.py",
+          "anchor": "runtime-acceptance.py",
+          "kind": "current explicit dispatch/import/documented invocation"
+        }
+      ],
+      "uncertainty": null
+    },
+    {
+      "path": "tools/runtime-checkpoint.py",
+      "sha256": "3aeda475ad5a0e4a3c3a162237d3603d5c500e5bea5e77f4a4868d8e7fde3823",
+      "bytes": 10475,
+      "family": "comparison-gate",
+      "decision": "retain",
+      "replacement": null,
+      "reason": "owned Stage I-III compatibility, runtime, or acceptance input; explicit reader retained",
+      "readers": [
+        {
+          "path": "tools/runtime-stage.py",
+          "anchor": "runtime-checkpoint.py",
+          "kind": "current explicit dispatch/import/documented invocation"
+        }
+      ],
+      "uncertainty": null
+    },
+    {
+      "path": "tools/runtime-comparison.py",
+      "sha256": "a985bf46de3d3c2815510bfe3348ddcdd0155d0fe721f1ca1e410f399bc06db4",
+      "bytes": 22606,
+      "family": "measurement",
+      "decision": "retain",
+      "replacement": null,
+      "reason": "owned Stage I-III compatibility, runtime, or acceptance input; explicit reader retained",
+      "readers": [
+        {
+          "path": "tools/fixtures/runtime-comparison-plan.json",
+          "anchor": "runtime-comparison",
+          "kind": "current explicit dispatch/import/documented invocation"
+        },
+        {
+          "path": "tools/test-runtime-comparison.py",
+          "anchor": "tools/runtime-comparison.py",
+          "kind": "current explicit dispatch/import/documented invocation"
+        },
+        {
+          "path": "docs/g7-young-root-store-binding.md",
+          "anchor": "runtime-comparison",
+          "kind": "current explicit dispatch/import/documented invocation"
+        }
+      ],
+      "uncertainty": null
+    },
+    {
+      "path": "tools/runtime-components.py",
+      "sha256": "ebbf2d6e5f0ed4baf5cedd4cb3824c60d4399728ac2fc6c3b51ad022f889e51e",
+      "bytes": 37544,
+      "family": "comparison-gate",
+      "decision": "retain",
+      "replacement": null,
+      "reason": "owned Stage I-III compatibility, runtime, or acceptance input; explicit reader retained",
+      "readers": [
+        {
+          "path": "tools/fixtures/runtime-component-adapter.rs",
+          "anchor": "tools/runtime-components.py",
+          "kind": "current explicit dispatch/import/documented invocation"
+        },
+        {
+          "path": "tools/runtime-final-audit.py",
+          "anchor": "runtime-components",
+          "kind": "current explicit dispatch/import/documented invocation"
+        },
+        {
+          "path": "tools/runtime-stage.py",
+          "anchor": "tools/runtime-components.py",
+          "kind": "current explicit dispatch/import/documented invocation"
+        }
+      ],
+      "uncertainty": null
+    },
+    {
+      "path": "tools/runtime-execution.py",
+      "sha256": "0c8d110c8e7cf05d4143234a9371e90917f7d0b77c85c9b985f5c5d1c59b6147",
+      "bytes": 112910,
+      "family": "comparison-gate",
+      "decision": "retain",
+      "replacement": null,
+      "reason": "owned Stage I-III compatibility, runtime, or acceptance input; explicit reader retained",
+      "readers": [
+        {
+          "path": "tools/module-thread-abi.py",
+          "anchor": "tools/runtime-execution.py",
+          "kind": "current explicit dispatch/import/documented invocation"
+        },
+        {
+          "path": "tools/module-thread-acceptance.py",
+          "anchor": "tools/runtime-execution.py",
+          "kind": "current explicit dispatch/import/documented invocation"
+        },
+        {
+          "path": "tools/remote-notification-diagnostic.py",
+          "anchor": "tools/runtime-execution.py",
+          "kind": "current explicit dispatch/import/documented invocation"
+        }
+      ],
+      "uncertainty": null
+    },
+    {
+      "path": "tools/runtime-final-audit.py",
+      "sha256": "96fcda04c600029c843f4e057d5d3454395221b1eeddb019e01303ebbbf48623",
+      "bytes": 152802,
+      "family": "comparison-gate",
+      "decision": "retain",
+      "replacement": null,
+      "reason": "owned Stage I-III compatibility, runtime, or acceptance input; explicit reader retained",
+      "readers": [
+        {
+          "path": "tools/test-runtime-phases.py",
+          "anchor": "runtime-final-audit.py",
+          "kind": "current explicit dispatch/import/documented invocation"
+        },
+        {
+          "path": "docs/status.md",
+          "anchor": "tools/runtime-final-audit.py",
+          "kind": "current explicit dispatch/import/documented invocation"
+        }
+      ],
+      "uncertainty": null
+    },
+    {
+      "path": "tools/runtime-frame-buffer-probe.py",
+      "sha256": "e6ec17eed9d01faed715e303410dd9b4ebba90e1ee20479d285a07c75803b67a",
+      "bytes": 16266,
+      "family": "comparison-gate",
+      "decision": "retain",
+      "replacement": null,
+      "reason": "owned Stage I-III compatibility, runtime, or acceptance input; explicit reader retained",
+      "readers": [
+        {
+          "path": "tools/runtime-library-original.py",
+          "anchor": "runtime-frame-buffer-probe.py",
+          "kind": "current explicit dispatch/import/documented invocation"
+        },
+        {
+          "path": "tools/stable-classification.py",
+          "anchor": "runtime-frame-buffer-probe.py",
+          "kind": "current explicit dispatch/import/documented invocation"
+        },
+        {
+          "path": "tools/test-reference-library-contract.py",
+          "anchor": "tools/runtime-frame-buffer-probe.py",
+          "kind": "current explicit dispatch/import/documented invocation"
+        }
+      ],
+      "uncertainty": null
+    },
+    {
+      "path": "tools/runtime-language-contract.py",
+      "sha256": "ff91d9892c4360b2fafc6faf60df3db6662d5135d383a480200b78bd7f6dc21d",
+      "bytes": 2257,
+      "family": "comparison-gate",
+      "decision": "retain",
+      "replacement": null,
+      "reason": "owned Stage I-III compatibility, runtime, or acceptance input; explicit reader retained",
+      "readers": [
+        {
+          "path": "tools/runtime-execution.py",
+          "anchor": "runtime-language-contract.py",
+          "kind": "current explicit dispatch/import/documented invocation"
+        },
+        {
+          "path": "tools/runtime-final-audit.py",
+          "anchor": "runtime-language-contract.py",
+          "kind": "current explicit dispatch/import/documented invocation"
+        },
+        {
+          "path": "tools/runtime-stage.py",
+          "anchor": "runtime-language-contract.py",
+          "kind": "current explicit dispatch/import/documented invocation"
+        }
+      ],
+      "uncertainty": null
+    },
+    {
+      "path": "tools/runtime-library-original.py",
+      "sha256": "da43f4d4573a5bb7458615e3f9dc9f419d6f847f4c58603ec3645e2b6157f0a1",
+      "bytes": 7479,
+      "family": "comparison-gate",
+      "decision": "retain",
+      "replacement": null,
+      "reason": "owned Stage I-III compatibility, runtime, or acceptance input; explicit reader retained",
+      "readers": [
+        {
+          "path": "tools/library_corrections.py",
+          "anchor": "f682ef0a original-library reader companion",
+          "kind": "current explicit dispatch/import/documented invocation"
+        }
+      ],
+      "uncertainty": null
+    },
+    {
+      "path": "tools/runtime-measurement-report.py",
+      "sha256": "50d87e494da71744a8f4b14a0a4005b6fe4ab827e8c753fdb6be389c06f0c826",
+      "bytes": 27547,
+      "family": "measurement",
+      "decision": "retain",
+      "replacement": null,
+      "reason": "owned Stage I-III compatibility, runtime, or acceptance input; explicit reader retained",
+      "readers": [
+        {
+          "path": "tools/test-runtime-measurement-contracts.py",
+          "anchor": "tools/runtime-measurement-report.py",
+          "kind": "current explicit dispatch/import/documented invocation"
+        },
+        {
+          "path": "tools/test-runtime-measurement-report.py",
+          "anchor": "runtime-measurement-report.py",
+          "kind": "current explicit dispatch/import/documented invocation"
+        },
+        {
+          "path": "docs/runtime-modernization.md",
+          "anchor": "tools/runtime-measurement-report.py",
+          "kind": "current explicit dispatch/import/documented invocation"
+        }
+      ],
+      "uncertainty": null
+    },
+    {
+      "path": "tools/runtime-owner.py",
+      "sha256": "acd62b0e339125c105362b7c0de5a59add46a4500abcf274ac22257fd7d21b62",
+      "bytes": 30202,
+      "family": "comparison-gate",
+      "decision": "retain",
+      "replacement": null,
+      "reason": "owned Stage I-III compatibility, runtime, or acceptance input; explicit reader retained",
+      "readers": [
+        {
+          "path": "tools/runtime-resume.py",
+          "anchor": "tools/runtime-owner.py",
+          "kind": "current explicit dispatch/import/documented invocation"
+        },
+        {
+          "path": "tools/runtime-stage.py",
+          "anchor": "tools/runtime-owner.py",
+          "kind": "current explicit dispatch/import/documented invocation"
+        },
+        {
+          "path": "tools/runtime-tramp-process-probe.py",
+          "anchor": "tools/runtime-owner.py",
+          "kind": "current explicit dispatch/import/documented invocation"
+        }
+      ],
+      "uncertainty": null
+    },
+    {
+      "path": "tools/runtime-reference-probe.py",
+      "sha256": "c3e91c8bd7fae389f01d8eead931c69438b1d8e80b86a0001730ea8c681c9fcd",
+      "bytes": 19020,
+      "family": "comparison-gate",
+      "decision": "retain",
+      "replacement": null,
+      "reason": "owned Stage I-III compatibility, runtime, or acceptance input; explicit reader retained",
+      "readers": [
+        {
+          "path": "tools/test-runtime-reference.py",
+          "anchor": "tools/runtime-reference-probe.py",
+          "kind": "current explicit dispatch/import/documented invocation"
+        },
+        {
+          "path": "docs/current-state.md",
+          "anchor": "runtime-reference-probe.py",
+          "kind": "current explicit dispatch/import/documented invocation"
+        },
+        {
+          "path": "docs/repository-bootstrap.md",
+          "anchor": "tools/runtime-reference-probe.py",
+          "kind": "current explicit dispatch/import/documented invocation"
+        }
+      ],
+      "uncertainty": null
+    },
+    {
+      "path": "tools/runtime-reference.py",
+      "sha256": "43e2b4006b0feac48af74927cc288c83ef975ddc203896ce969f24114b4dda11",
+      "bytes": 23720,
+      "family": "comparison-gate",
+      "decision": "retain",
+      "replacement": null,
+      "reason": "owned Stage I-III compatibility, runtime, or acceptance input; explicit reader retained",
+      "readers": [
+        {
+          "path": "tools/functional-strict-probe.py",
+          "anchor": "runtime-reference",
+          "kind": "current explicit dispatch/import/documented invocation"
+        },
+        {
+          "path": "tools/runtime-final-audit.py",
+          "anchor": "runtime-reference",
+          "kind": "current explicit dispatch/import/documented invocation"
+        },
+        {
+          "path": "tools/runtime-stage.py",
+          "anchor": "tools/runtime-reference.py",
+          "kind": "current explicit dispatch/import/documented invocation"
+        }
+      ],
+      "uncertainty": null
+    },
+    {
+      "path": "tools/runtime-resume.py",
+      "sha256": "08919ff996822dba0e73c31f7d20e59cfa43f362e6b4ba2cc0ab422114915f23",
+      "bytes": 70349,
+      "family": "comparison-gate",
+      "decision": "retain",
+      "replacement": null,
+      "reason": "owned Stage I-III compatibility, runtime, or acceptance input; explicit reader retained",
+      "readers": [
+        {
+          "path": "tools/runtime-stage.py",
+          "anchor": "tools/runtime-resume.py",
+          "kind": "current explicit dispatch/import/documented invocation"
+        },
+        {
+          "path": "tools/test-runtime-resume.py",
+          "anchor": "tools/runtime-resume.py",
+          "kind": "current explicit dispatch/import/documented invocation"
+        },
+        {
+          "path": "tools/test-runtime-retention.py",
+          "anchor": "tools/runtime-resume.py",
+          "kind": "current explicit dispatch/import/documented invocation"
+        }
+      ],
+      "uncertainty": null
+    },
+    {
+      "path": "tools/runtime-retire.py",
+      "sha256": "ee3d416d579a5a4fb7104b147cd568072374082b3555fcd88ed432e83b426975",
+      "bytes": 52447,
+      "family": "comparison-gate",
+      "decision": "retain",
+      "replacement": null,
+      "reason": "owned Stage I-III compatibility, runtime, or acceptance input; explicit reader retained",
+      "readers": [
+        {
+          "path": "tools/module-thread-acceptance.py",
+          "anchor": "runtime-retire.py",
+          "kind": "current explicit dispatch/import/documented invocation"
+        },
+        {
+          "path": "tools/native-bootstrap-identity.py",
+          "anchor": "runtime-retire.py",
+          "kind": "current explicit dispatch/import/documented invocation"
+        },
+        {
+          "path": "tools/runtime-execution.py",
+          "anchor": "runtime-retire.py",
+          "kind": "current explicit dispatch/import/documented invocation"
+        }
+      ],
+      "uncertainty": null
+    },
+    {
+      "path": "tools/runtime-stage.py",
+      "sha256": "2e1ef92fe145e3bf94af4068a5680b58f3b23da3bbed8013ae7573e4fe116051",
+      "bytes": 89294,
+      "family": "comparison-gate",
+      "decision": "retain",
+      "replacement": null,
+      "reason": "owned Stage I-III compatibility, runtime, or acceptance input; explicit reader retained",
+      "readers": [
+        {
+          "path": "tools/functional-strict-probe.py",
+          "anchor": "tools/runtime-stage.py",
+          "kind": "current explicit dispatch/import/documented invocation"
+        },
+        {
+          "path": "tools/runtime-final-audit.py",
+          "anchor": "runtime-stage",
+          "kind": "current explicit dispatch/import/documented invocation"
+        },
+        {
+          "path": "tools/runtime-frame-buffer-probe.py",
+          "anchor": "tools/runtime-stage.py",
+          "kind": "current explicit dispatch/import/documented invocation"
+        }
+      ],
+      "uncertainty": null
+    },
+    {
+      "path": "tools/runtime-tramp-process-probe.py",
+      "sha256": "d1cdb2f16d338ceafb314fccbceeb0c1c58cecba404059cdceb6b3828d91aa1a",
+      "bytes": 24349,
+      "family": "comparison-gate",
+      "decision": "retain",
+      "replacement": null,
+      "reason": "owned Stage I-III compatibility, runtime, or acceptance input; explicit reader retained",
+      "readers": [
+        {
+          "path": "tools/stable-classification.py",
+          "anchor": "runtime-tramp-process-probe.py",
+          "kind": "current explicit dispatch/import/documented invocation"
+        },
+        {
+          "path": "tools/test-runtime-dispatch.py",
+          "anchor": "runtime-tramp-process-probe",
+          "kind": "current explicit dispatch/import/documented invocation"
+        },
+        {
+          "path": "tools/test-runtime-preservation-functional.py",
+          "anchor": "tools/runtime-tramp-process-probe.py",
+          "kind": "current explicit dispatch/import/documented invocation"
+        }
+      ],
+      "uncertainty": null
+    },
+    {
+      "path": "tools/stable-classification.py",
+      "sha256": "6266d94adb6563a11cb3c18fadf5a14fbbebdbd1323fb0bb5316a813bbfe5d6a",
+      "bytes": 224343,
+      "family": "comparison-gate",
+      "decision": "retain",
+      "replacement": null,
+      "reason": "owned Stage I-III compatibility, runtime, or acceptance input; explicit reader retained",
+      "readers": [
+        {
+          "path": "tools/runtime-final-audit.py",
+          "anchor": "stable-classification.py",
+          "kind": "current explicit dispatch/import/documented invocation"
+        },
+        {
+          "path": "tools/runtime-frame-buffer-probe.py",
+          "anchor": "tools/stable-classification.py",
+          "kind": "current explicit dispatch/import/documented invocation"
+        },
+        {
+          "path": "tools/runtime-stage.py",
+          "anchor": "tools/stable-classification.py",
+          "kind": "current explicit dispatch/import/documented invocation"
+        }
+      ],
+      "uncertainty": null
+    },
+    {
+      "path": "tools/stable-context.py",
+      "sha256": "63b399a6ce9e39e749b7fbcc6e22592c48524a9a396e81c1b6432c36e57c1098",
+      "bytes": 7166,
+      "family": "comparison-gate",
+      "decision": "retain",
+      "replacement": null,
+      "reason": "owned Stage I-III compatibility, runtime, or acceptance input; explicit reader retained",
+      "readers": [
+        {
+          "path": "tools/runtime-library-original.py",
+          "anchor": "tools/stable-context.py",
+          "kind": "current explicit dispatch/import/documented invocation"
+        },
+        {
+          "path": "tools/runtime-stage.py",
+          "anchor": "stable-context.py",
+          "kind": "current explicit dispatch/import/documented invocation"
+        },
+        {
+          "path": "tools/stable-classification.py",
+          "anchor": "stable-context.py",
+          "kind": "current explicit dispatch/import/documented invocation"
+        }
+      ],
+      "uncertainty": null
+    },
+    {
+      "path": "tools/stable-controls.py",
+      "sha256": "86bd2b3f12fa1694c7d747c6156204223def925d4fa6d59c7934cde7778360c3",
+      "bytes": 36495,
+      "family": "comparison-gate",
+      "decision": "retain",
+      "replacement": null,
+      "reason": "owned Stage I-III compatibility, runtime, or acceptance input; explicit reader retained",
+      "readers": [
+        {
+          "path": "tools/stable-classification.py",
+          "anchor": "stable-controls",
+          "kind": "current explicit dispatch/import/documented invocation"
+        },
+        {
+          "path": "docs/runtime-modernization.md",
+          "anchor": "tools/stable-controls.py",
+          "kind": "current explicit dispatch/import/documented invocation"
+        },
+        {
+          "path": "docs/status.md",
+          "anchor": "tools/stable-controls.py",
+          "kind": "current explicit dispatch/import/documented invocation"
+        }
+      ],
+      "uncertainty": null
+    },
+    {
+      "path": "tools/stable-harness-index.py",
+      "sha256": "113fad9737a8824408009485347972f0ae4b8af1af0c83dbafb0096fcb4bef79",
+      "bytes": 5179,
+      "family": "comparison-gate",
+      "decision": "retain",
+      "replacement": null,
+      "reason": "owned Stage I-III compatibility, runtime, or acceptance input; explicit reader retained",
+      "readers": [
+        {
+          "path": "tools/stable-suite.py",
+          "anchor": "stable-harness-index.py",
+          "kind": "current explicit dispatch/import/documented invocation"
+        },
+        {
+          "path": "docs/status.md",
+          "anchor": "tools/stable-harness-index.py",
+          "kind": "current explicit dispatch/import/documented invocation"
+        },
+        {
+          "path": "maintenance/harness-history/2026-11-18-g3-555/index.json",
+          "anchor": "stable-harness-index",
+          "kind": "current explicit dispatch/import/documented invocation"
+        }
+      ],
+      "uncertainty": null
+    },
+    {
+      "path": "tools/stable-source-rules.py",
+      "sha256": "9be1ca6fc27ed407be2f033366cd0c4713b053cb94e87a5e92c4b0d12c96db32",
+      "bytes": 26466,
+      "family": "comparison-gate",
+      "decision": "retain",
+      "replacement": null,
+      "reason": "owned Stage I-III compatibility, runtime, or acceptance input; explicit reader retained",
+      "readers": [
+        {
+          "path": "tools/test-stable-classification.py",
+          "anchor": "tools/stable-source-rules.py",
+          "kind": "current explicit dispatch/import/documented invocation"
+        },
+        {
+          "path": "docs/modernization.md",
+          "anchor": "tools/stable-source-rules.py",
+          "kind": "current explicit dispatch/import/documented invocation"
+        },
+        {
+          "path": "docs/repository-bootstrap.md",
+          "anchor": "tools/stable-source-rules.py",
+          "kind": "current explicit dispatch/import/documented invocation"
+        }
+      ],
+      "uncertainty": null
+    },
+    {
+      "path": "tools/stable-suite-batch.py",
+      "sha256": "52d557a8d7add112ac9066b6886e498ce0641c68ea03ad53ed1c76af100cd610",
+      "bytes": 98989,
+      "family": "comparison-gate",
+      "decision": "retain",
+      "replacement": null,
+      "reason": "owned Stage I-III compatibility, runtime, or acceptance input; explicit reader retained",
+      "readers": [
+        {
+          "path": "tools/native-bootstrap-identity.py",
+          "anchor": "stable-suite-batch.py",
+          "kind": "current explicit dispatch/import/documented invocation"
+        },
+        {
+          "path": "tools/runtime-stage.py",
+          "anchor": "stable-suite-batch.py",
+          "kind": "current explicit dispatch/import/documented invocation"
+        },
+        {
+          "path": "tools/runtime-tramp-process-probe.py",
+          "anchor": "tools/stable-suite-batch.py",
+          "kind": "current explicit dispatch/import/documented invocation"
+        }
+      ],
+      "uncertainty": null
+    },
+    {
+      "path": "tools/stable-suite.py",
+      "sha256": "18c868735a567107d019b69f243e0cfe294ead44e56e76a49aa89d79a02c7fd1",
+      "bytes": 65993,
+      "family": "comparison-gate",
+      "decision": "retain",
+      "replacement": null,
+      "reason": "owned Stage I-III compatibility, runtime, or acceptance input; explicit reader retained",
+      "readers": [
+        {
+          "path": "tools/fixtures/file-notify-remote-diagnostic.el",
+          "anchor": "stable-suite",
+          "kind": "current explicit dispatch/import/documented invocation"
+        },
+        {
+          "path": "tools/fixtures/runtime-acceptance-plan.json",
+          "anchor": "stable-suite.py",
+          "kind": "current explicit dispatch/import/documented invocation"
+        },
+        {
+          "path": "tools/fixtures/stable-source-context-path-tests.el",
+          "anchor": "stable-suite",
+          "kind": "current explicit dispatch/import/documented invocation"
+        }
+      ],
+      "uncertainty": null
+    },
+    {
       "path": "tools/test-android-keysym-capacity.py",
       "sha256": "042bf5235f541c08d88a2b0571ddaa84d9404d20371c17c362623b2d8a50165a",
       "bytes": 2324,
@@ -4939,6 +7269,133 @@
         {
           "path": "tools/g4-acceptance.py",
           "anchor": "android-keysym-capacity component",
+          "kind": "current explicit dispatch/import/documented invocation"
+        }
+      ],
+      "uncertainty": null
+    },
+    {
+      "path": "tools/test-batch-events.py",
+      "sha256": "a58df39a9bb00104ae4df9a20ae35bbba6f8fc25c6eeb4703c71a6378e646d38",
+      "bytes": 3350,
+      "family": "test",
+      "decision": "retain",
+      "replacement": null,
+      "reason": "owned Stage I-III compatibility, runtime, or acceptance input; explicit reader retained",
+      "readers": [
+        {
+          "path": "maintenance/incidents/2026-10-29-batch-event-dispatch.md",
+          "anchor": "tools/test-batch-events.py",
+          "kind": "current explicit dispatch/import/documented invocation"
+        }
+      ],
+      "uncertainty": null
+    },
+    {
+      "path": "tools/test-charset-bytecopy.py",
+      "sha256": "6774fbb61b7abaff0b48f45d1af9bfe100ee1877ecffd5ca5de906a8b495845e",
+      "bytes": 12845,
+      "family": "test",
+      "decision": "retain",
+      "replacement": null,
+      "reason": "owned Stage I-III compatibility, runtime, or acceptance input; explicit reader retained",
+      "readers": [
+        {
+          "path": "maintenance/releases/2026-10-30-charset-bytecopy-results.json",
+          "anchor": "tools/test-charset-bytecopy.py",
+          "kind": "current explicit dispatch/import/documented invocation"
+        },
+        {
+          "path": "maintenance/releases/2026-10-30-charset-bytecopy.md",
+          "anchor": "tools/test-charset-bytecopy.py",
+          "kind": "current explicit dispatch/import/documented invocation"
+        }
+      ],
+      "uncertainty": null
+    },
+    {
+      "path": "tools/test-client-protocol.py",
+      "sha256": "af1f035df6ffc09047b7e75b4557bb94d4654cd41b06bca6d3f54ed73a529ea3",
+      "bytes": 7017,
+      "family": "test",
+      "decision": "retain",
+      "replacement": null,
+      "reason": "owned Stage I-III compatibility, runtime, or acceptance input; explicit reader retained",
+      "readers": [
+        {
+          "path": "PORTING.md",
+          "anchor": "b3d653fc emacsclient server response-line regression",
+          "kind": "current explicit dispatch/import/documented invocation"
+        }
+      ],
+      "uncertainty": null
+    },
+    {
+      "path": "tools/test-client-receipt.py",
+      "sha256": "1ce579c6413a6742c5f44aed981a73aa506378dc771a4b69e8ec7a0978c2a6cb",
+      "bytes": 4981,
+      "family": "test",
+      "decision": "retain",
+      "replacement": null,
+      "reason": "owned Stage I-III compatibility, runtime, or acceptance input; explicit reader retained",
+      "readers": [
+        {
+          "path": "maintenance/releases/2026-10-31-current-editing-operations-results.json",
+          "anchor": "tools/test-client-receipt.py",
+          "kind": "current explicit dispatch/import/documented invocation"
+        },
+        {
+          "path": "maintenance/releases/2026-10-31-current-eieio-faceup-results.json",
+          "anchor": "tools/test-client-receipt.py",
+          "kind": "current explicit dispatch/import/documented invocation"
+        },
+        {
+          "path": "maintenance/releases/2026-11-01-current-calendar-custom-results.json",
+          "anchor": "tools/test-client-receipt.py",
+          "kind": "current explicit dispatch/import/documented invocation"
+        }
+      ],
+      "uncertainty": null
+    },
+    {
+      "path": "tools/test-cocoa-frame-flags.py",
+      "sha256": "9062a0ec9e557d62a9824fddf514d25e4d5396012d192c818f8a6f542b440d12",
+      "bytes": 7131,
+      "family": "test",
+      "decision": "retain",
+      "replacement": null,
+      "reason": "owned Stage I-III compatibility, runtime, or acceptance input; explicit reader retained",
+      "readers": [
+        {
+          "path": "maintenance/incidents/2026-10-27-cocoa-layout.md",
+          "anchor": "tools/test-cocoa-frame-flags.py",
+          "kind": "current explicit dispatch/import/documented invocation"
+        }
+      ],
+      "uncertainty": null
+    },
+    {
+      "path": "tools/test-functional-strict-probe.py",
+      "sha256": "3537d7868375a03a228c668d855d2b08410b519de301f103210c7b6fde584326",
+      "bytes": 4442,
+      "family": "test",
+      "decision": "retain",
+      "replacement": null,
+      "reason": "owned Stage I-III compatibility, runtime, or acceptance input; explicit reader retained",
+      "readers": [
+        {
+          "path": "docs/current-state.md",
+          "anchor": "test-functional-strict-probe.py",
+          "kind": "current explicit dispatch/import/documented invocation"
+        },
+        {
+          "path": "docs/modernization.md",
+          "anchor": "tools/test-functional-strict-probe.py",
+          "kind": "current explicit dispatch/import/documented invocation"
+        },
+        {
+          "path": "maintenance/cleanup/reports/2026-11-20-270-consumed-stage1-delivery-and-probes.md",
+          "anchor": "test-functional-strict-probe.py",
           "kind": "current explicit dispatch/import/documented invocation"
         }
       ],
@@ -5001,6 +7458,84 @@
       "uncertainty": null
     },
     {
+      "path": "tools/test-gc-empty-index.py",
+      "sha256": "b28ea73d6d62fa2f7c5ae8ee723068fb41fcda7263c9ed28bd15da36eb6bd6ae",
+      "bytes": 7415,
+      "family": "test",
+      "decision": "retain",
+      "replacement": null,
+      "reason": "owned Stage I-III compatibility, runtime, or acceptance input; explicit reader retained",
+      "readers": [
+        {
+          "path": "maintenance/releases/2026-10-30-empty-registry-index.md",
+          "anchor": "38113206 empty collector index regression",
+          "kind": "current explicit dispatch/import/documented invocation"
+        }
+      ],
+      "uncertainty": null
+    },
+    {
+      "path": "tools/test-gc-known-cons.py",
+      "sha256": "1fd46d4396ed62f078c6f1a46fc8e06285331774449c17bbd20d0eac6efdac82",
+      "bytes": 10512,
+      "family": "test",
+      "decision": "retain",
+      "replacement": null,
+      "reason": "owned Stage I-III compatibility, runtime, or acceptance input; explicit reader retained",
+      "readers": [
+        {
+          "path": "maintenance/cleanup/reports/2026-10-30-159-consumed-known-cons-state.md",
+          "anchor": "tools/test-gc-known-cons.py",
+          "kind": "current explicit dispatch/import/documented invocation"
+        },
+        {
+          "path": "maintenance/releases/2026-10-30-known-cons-locations-results.json",
+          "anchor": "tools/test-gc-known-cons.py",
+          "kind": "current explicit dispatch/import/documented invocation"
+        }
+      ],
+      "uncertainty": null
+    },
+    {
+      "path": "tools/test-gc-local-child.py",
+      "sha256": "cfa9f24819b1a82bb36fe5a3ee8f95626683ddc47298d9851c1ad5a923f13fa6",
+      "bytes": 25038,
+      "family": "test",
+      "decision": "retain",
+      "replacement": null,
+      "reason": "owned Stage I-III compatibility, runtime, or acceptance input; explicit reader retained",
+      "readers": [
+        {
+          "path": "maintenance/releases/2026-10-31-gc-mark-block-results.json",
+          "anchor": "tools/test-gc-local-child.py",
+          "kind": "current explicit dispatch/import/documented invocation"
+        }
+      ],
+      "uncertainty": null
+    },
+    {
+      "path": "tools/test-gc-root-phases.py",
+      "sha256": "d0b2fff71f2142ea710f3f25d40a670b0bc3def38aac41cbd871220a880ab753",
+      "bytes": 8066,
+      "family": "test",
+      "decision": "retain",
+      "replacement": null,
+      "reason": "owned Stage I-III compatibility, runtime, or acceptance input; explicit reader retained",
+      "readers": [
+        {
+          "path": "maintenance/cleanup/reports/2026-10-30-160-consumed-root-phase-state.md",
+          "anchor": "tools/test-gc-root-phases.py",
+          "kind": "current explicit dispatch/import/documented invocation"
+        },
+        {
+          "path": "maintenance/releases/2026-10-30-gc-root-phases-results.json",
+          "anchor": "tools/test-gc-root-phases.py",
+          "kind": "current explicit dispatch/import/documented invocation"
+        }
+      ],
+      "uncertainty": null
+    },
+    {
       "path": "tools/test-keyboard-platform-offset.py",
       "sha256": "109e6503c7613e7b60033ac1680dbb8f8d414c297dfc49bc3cbdd37db20f34f0",
       "bytes": 3804,
@@ -5012,6 +7547,738 @@
         {
           "path": "tools/g4-acceptance.py",
           "anchor": "keyboard-platform-offset component",
+          "kind": "current explicit dispatch/import/documented invocation"
+        }
+      ],
+      "uncertainty": null
+    },
+    {
+      "path": "tools/test-macos-background-gc.py",
+      "sha256": "5b39cc3261c663eba0292e8a631b565f8e9e62ce559dbdf867ddf5a19c1af1e6",
+      "bytes": 3682,
+      "family": "test",
+      "decision": "retain",
+      "replacement": null,
+      "reason": "owned Stage I-III compatibility, runtime, or acceptance input; explicit reader retained",
+      "readers": [
+        {
+          "path": "tools/local-acceptance.py",
+          "anchor": "tools/test-macos-background-gc.py",
+          "kind": "current explicit dispatch/import/documented invocation"
+        },
+        {
+          "path": "maintenance/cleanup/reports/2026-11-20-270-consumed-stage1-delivery-and-probes.md",
+          "anchor": "tools/test-macos-background-gc.py",
+          "kind": "current explicit dispatch/import/documented invocation"
+        },
+        {
+          "path": "maintenance/regressions.md",
+          "anchor": "tools/test-macos-background-gc.py",
+          "kind": "current explicit dispatch/import/documented invocation"
+        }
+      ],
+      "uncertainty": null
+    },
+    {
+      "path": "tools/test-macos-background-receiver.py",
+      "sha256": "b22c8d92afde7d73ec955b03606e3cb4d99ec90c55aa56f8708e4ee45e2455a1",
+      "bytes": 8033,
+      "family": "test",
+      "decision": "retain",
+      "replacement": null,
+      "reason": "owned Stage I-III compatibility, runtime, or acceptance input; explicit reader retained",
+      "readers": [
+        {
+          "path": "maintenance/incidents/2026-10-29-cocoa-background-receiver.md",
+          "anchor": "tools/test-macos-background-receiver.py",
+          "kind": "current explicit dispatch/import/documented invocation"
+        },
+        {
+          "path": "maintenance/regressions.md",
+          "anchor": "tools/test-macos-background-receiver.py",
+          "kind": "current explicit dispatch/import/documented invocation"
+        }
+      ],
+      "uncertainty": null
+    },
+    {
+      "path": "tools/test-macos-display-receiver.py",
+      "sha256": "2a6234b429e50bb9dbfeb98098a735a9499fd91ca7f53c3e30bcc64790fe992b",
+      "bytes": 5204,
+      "family": "test",
+      "decision": "retain",
+      "replacement": null,
+      "reason": "owned Stage I-III compatibility, runtime, or acceptance input; explicit reader retained",
+      "readers": [
+        {
+          "path": "maintenance/regressions.md",
+          "anchor": "tools/test-macos-display-receiver.py",
+          "kind": "current explicit dispatch/import/documented invocation"
+        }
+      ],
+      "uncertainty": null
+    },
+    {
+      "path": "tools/test-macos-drag.py",
+      "sha256": "54c6857aacef47c331b7f78ab9c107ec3a173a64615b794528cbcfd4b7bc5b52",
+      "bytes": 17515,
+      "family": "test",
+      "decision": "retain",
+      "replacement": null,
+      "reason": "owned Stage I-III compatibility, runtime, or acceptance input; explicit reader retained",
+      "readers": [
+        {
+          "path": "tools/test-macos-stability.py",
+          "anchor": "tools/test-macos-drag.py",
+          "kind": "current explicit dispatch/import/documented invocation"
+        },
+        {
+          "path": "docs/current-state.md",
+          "anchor": "test-macos-drag.py",
+          "kind": "current explicit dispatch/import/documented invocation"
+        },
+        {
+          "path": "docs/modernization.md",
+          "anchor": "tools/test-macos-drag.py",
+          "kind": "current explicit dispatch/import/documented invocation"
+        }
+      ],
+      "uncertainty": null
+    },
+    {
+      "path": "tools/test-macos-resize-title.py",
+      "sha256": "5b87da797882668308c4d861950ab115c88e967f4a1a1a37bb8ad6af776f0929",
+      "bytes": 4322,
+      "family": "test",
+      "decision": "retain",
+      "replacement": null,
+      "reason": "owned Stage I-III compatibility, runtime, or acceptance input; explicit reader retained",
+      "readers": [
+        {
+          "path": "maintenance/incidents/2026-10-27-cocoa-layout.md",
+          "anchor": "tools/test-macos-resize-title.py",
+          "kind": "current explicit dispatch/import/documented invocation"
+        },
+        {
+          "path": "maintenance/regressions.md",
+          "anchor": "tools/test-macos-resize-title.py",
+          "kind": "current explicit dispatch/import/documented invocation"
+        }
+      ],
+      "uncertainty": null
+    },
+    {
+      "path": "tools/test-message-count.py",
+      "sha256": "11befbe0122e9a01a843bdb80f538b4601115a41ae9d7c6bc693e432a8efe5b1",
+      "bytes": 6564,
+      "family": "test",
+      "decision": "retain",
+      "replacement": null,
+      "reason": "owned Stage I-III compatibility, runtime, or acceptance input; explicit reader retained",
+      "readers": [
+        {
+          "path": "maintenance/releases/2026-11-01-message-count-results.json",
+          "anchor": "tools/test-message-count.py",
+          "kind": "current explicit dispatch/import/documented invocation"
+        }
+      ],
+      "uncertainty": null
+    },
+    {
+      "path": "tools/test-native-bootstrap-identity.py",
+      "sha256": "13d399157d4808f32d5efe9d73bae1aa389141d35457285d73c11e50a7a4a2fe",
+      "bytes": 16506,
+      "family": "test",
+      "decision": "retain",
+      "replacement": null,
+      "reason": "owned Stage I-III compatibility, runtime, or acceptance input; explicit reader retained",
+      "readers": [
+        {
+          "path": "maintenance/releases/2026-11-13-authored-observation-contract.md",
+          "anchor": "tools/test-native-bootstrap-identity.py",
+          "kind": "current explicit dispatch/import/documented invocation"
+        }
+      ],
+      "uncertainty": null
+    },
+    {
+      "path": "tools/test-owned-copy-functional.py",
+      "sha256": "83b3e57485e796bda6342d02601776f8bfd2f4a76386a4f06a15e1f519c09403",
+      "bytes": 7538,
+      "family": "test",
+      "decision": "retain",
+      "replacement": null,
+      "reason": "owned Stage I-III compatibility, runtime, or acceptance input; explicit reader retained",
+      "readers": [
+        {
+          "path": "xtask/src/owned_copy.rs",
+          "anchor": "d9a41b0a owned_copy functional verification",
+          "kind": "current explicit dispatch/import/documented invocation"
+        }
+      ],
+      "uncertainty": null
+    },
+    {
+      "path": "tools/test-parser-bytecode.py",
+      "sha256": "5806c53521a6ed9aca1f6041a5aacbfd7fd403d8c593f52671899cc588bd67fb",
+      "bytes": 7911,
+      "family": "test",
+      "decision": "retain",
+      "replacement": null,
+      "reason": "owned Stage I-III compatibility, runtime, or acceptance input; explicit reader retained",
+      "readers": [
+        {
+          "path": "tools/bootstrap-resources.py",
+          "anchor": "e41d5d52 release Lisp bytecode distribution regression",
+          "kind": "current explicit dispatch/import/documented invocation"
+        }
+      ],
+      "uncertainty": null
+    },
+    {
+      "path": "tools/test-reference-library-contract.py",
+      "sha256": "9a7ce5971a61e9d625de23bf334c2744f72c6d187b878b643177e625c33726b1",
+      "bytes": 31458,
+      "family": "test",
+      "decision": "retain",
+      "replacement": null,
+      "reason": "owned Stage I-III compatibility, runtime, or acceptance input; explicit reader retained",
+      "readers": [
+        {
+          "path": "tools/test-runtime-dispatch.py",
+          "anchor": "tools/test-reference-library-contract.py",
+          "kind": "current explicit dispatch/import/documented invocation"
+        },
+        {
+          "path": "docs/runtime-modernization.md",
+          "anchor": "tools/test-reference-library-contract.py",
+          "kind": "current explicit dispatch/import/documented invocation"
+        }
+      ],
+      "uncertainty": null
+    },
+    {
+      "path": "tools/test-relocation-retirement-functional.py",
+      "sha256": "36f7ff372473e247f9d7ed278a793828ee39ee8b748939136b39972482e08e2e",
+      "bytes": 7795,
+      "family": "test",
+      "decision": "retain",
+      "replacement": null,
+      "reason": "owned Stage I-III compatibility, runtime, or acceptance input; explicit reader retained",
+      "readers": [
+        {
+          "path": "tools/runtime-retire.py",
+          "anchor": "d9a41b0a relocation state retirement functional suite",
+          "kind": "current explicit dispatch/import/documented invocation"
+        }
+      ],
+      "uncertainty": null
+    },
+    {
+      "path": "tools/test-relocation-retirement.py",
+      "sha256": "588cc25cd436ae7952a79c753ff051a9a00c93e42b8493a1b02b9cfa3f76690f",
+      "bytes": 6871,
+      "family": "test",
+      "decision": "retain",
+      "replacement": null,
+      "reason": "owned Stage I-III compatibility, runtime, or acceptance input; explicit reader retained",
+      "readers": [
+        {
+          "path": "maintenance/releases/2026-10-31-current-native-collector-results.json",
+          "anchor": "tools/test-relocation-retirement.py",
+          "kind": "current explicit dispatch/import/documented invocation"
+        }
+      ],
+      "uncertainty": null
+    },
+    {
+      "path": "tools/test-remote-contract-accounting.py",
+      "sha256": "defc66058ff2c6261d1a685f1fb86d8e803506d677ea5b344abff298e80acb1a",
+      "bytes": 7270,
+      "family": "test",
+      "decision": "retain",
+      "replacement": null,
+      "reason": "owned Stage I-III compatibility, runtime, or acceptance input; explicit reader retained",
+      "readers": [
+        {
+          "path": "tools/stable-classification.py",
+          "anchor": "7be331dc remote contract accounting unit suite",
+          "kind": "current explicit dispatch/import/documented invocation"
+        }
+      ],
+      "uncertainty": null
+    },
+    {
+      "path": "tools/test-runtime-acceptance.py",
+      "sha256": "8c1f4610c9f91083024e8f3e7662f00ddcc41e44c5a180ab348f093b6768e480",
+      "bytes": 36625,
+      "family": "test",
+      "decision": "retain",
+      "replacement": null,
+      "reason": "owned Stage I-III compatibility, runtime, or acceptance input; explicit reader retained",
+      "readers": [
+        {
+          "path": "tools/fixtures/runtime-acceptance-plan.json",
+          "anchor": "tools/test-runtime-acceptance.py",
+          "kind": "current explicit dispatch/import/documented invocation"
+        },
+        {
+          "path": "tools/runtime-stage.py",
+          "anchor": "tools/test-runtime-acceptance.py",
+          "kind": "current explicit dispatch/import/documented invocation"
+        },
+        {
+          "path": "docs/runtime-modernization.md",
+          "anchor": "test-runtime-acceptance.py",
+          "kind": "current explicit dispatch/import/documented invocation"
+        }
+      ],
+      "uncertainty": null
+    },
+    {
+      "path": "tools/test-runtime-comparison.py",
+      "sha256": "3cd1bd8eec0dc99515facad1ec9bf458da54dd1f4096b845a5f03e34973b417a",
+      "bytes": 12202,
+      "family": "test",
+      "decision": "retain",
+      "replacement": null,
+      "reason": "owned Stage I-III compatibility, runtime, or acceptance input; explicit reader retained",
+      "readers": [
+        {
+          "path": "tools/runtime-comparison.py",
+          "anchor": "7c044a74 per-case cadence delta and activity demotion unit suite",
+          "kind": "current explicit dispatch/import/documented invocation"
+        }
+      ],
+      "uncertainty": null
+    },
+    {
+      "path": "tools/test-runtime-contracts.py",
+      "sha256": "3abe4e2fd969f7ae5f16e469dcac19394108044153372705507258657f2f0cfd",
+      "bytes": 9947,
+      "family": "test",
+      "decision": "retain",
+      "replacement": null,
+      "reason": "owned Stage I-III compatibility, runtime, or acceptance input; explicit reader retained",
+      "readers": [
+        {
+          "path": "tools/fixtures/runtime-acceptance-plan.json",
+          "anchor": "tools/test-runtime-contracts.py",
+          "kind": "current explicit dispatch/import/documented invocation"
+        },
+        {
+          "path": "tools/runtime-components.py",
+          "anchor": "tools/test-runtime-contracts.py",
+          "kind": "current explicit dispatch/import/documented invocation"
+        },
+        {
+          "path": "tools/runtime-stage.py",
+          "anchor": "tools/test-runtime-contracts.py",
+          "kind": "current explicit dispatch/import/documented invocation"
+        }
+      ],
+      "uncertainty": null
+    },
+    {
+      "path": "tools/test-runtime-dispatch.py",
+      "sha256": "19dc6c585abf7b39b43004beaa33821feae358eb1a2f7a9febdcb3869919c8b8",
+      "bytes": 21399,
+      "family": "test",
+      "decision": "retain",
+      "replacement": null,
+      "reason": "owned Stage I-III compatibility, runtime, or acceptance input; explicit reader retained",
+      "readers": [
+        {
+          "path": "maintenance/releases/2026-11-14-runtime-control-dispatch.md",
+          "anchor": "tools/test-runtime-dispatch.py",
+          "kind": "current explicit dispatch/import/documented invocation"
+        }
+      ],
+      "uncertainty": null
+    },
+    {
+      "path": "tools/test-runtime-fallback-mode.py",
+      "sha256": "502c20d3dcc73ace052f4c2812b2b4e0559425f4eab4380eafcc4a282d4488f3",
+      "bytes": 4717,
+      "family": "test",
+      "decision": "retain",
+      "replacement": null,
+      "reason": "owned Stage I-III compatibility, runtime, or acceptance input; explicit reader retained",
+      "readers": [
+        {
+          "path": "maintenance/releases/2026-10-30-empty-registry-index-results.json",
+          "anchor": "tools/test-runtime-fallback-mode.py",
+          "kind": "current explicit dispatch/import/documented invocation"
+        },
+        {
+          "path": "maintenance/releases/2026-10-30-permanent-fallback-measurement-results.json",
+          "anchor": "tools/test-runtime-fallback-mode.py",
+          "kind": "current explicit dispatch/import/documented invocation"
+        }
+      ],
+      "uncertainty": null
+    },
+    {
+      "path": "tools/test-runtime-measurement-contracts.py",
+      "sha256": "2d76da474d08191e758a3ed87f08cefc168b447475ca449f73151bc9348a7a20",
+      "bytes": 17862,
+      "family": "test",
+      "decision": "retain",
+      "replacement": null,
+      "reason": "owned Stage I-III compatibility, runtime, or acceptance input; explicit reader retained",
+      "readers": [
+        {
+          "path": "maintenance/releases/2026-11-10-runtime-measurement-contracts.md",
+          "anchor": "P459 measurement contract protection suite",
+          "kind": "current explicit dispatch/import/documented invocation"
+        }
+      ],
+      "uncertainty": null
+    },
+    {
+      "path": "tools/test-runtime-measurement-report.py",
+      "sha256": "45f0884ce6dfed622abaf5c2b55a15a4160e0ceb9d55aa37316d46485bab0199",
+      "bytes": 19321,
+      "family": "test",
+      "decision": "retain",
+      "replacement": null,
+      "reason": "owned Stage I-III compatibility, runtime, or acceptance input; explicit reader retained",
+      "readers": [
+        {
+          "path": "maintenance/releases/2026-11-10-runtime-measurement-contracts.md",
+          "anchor": "P459 report reader protection suite",
+          "kind": "current explicit dispatch/import/documented invocation"
+        },
+        {
+          "path": "docs/runtime-modernization.md",
+          "anchor": "report test modules",
+          "kind": "current explicit dispatch/import/documented invocation"
+        }
+      ],
+      "uncertainty": null
+    },
+    {
+      "path": "tools/test-runtime-phases.py",
+      "sha256": "6d0e5222726aebd27dbb181c9a97693592bff52035bdc560b0222731160614fd",
+      "bytes": 39299,
+      "family": "test",
+      "decision": "retain",
+      "replacement": null,
+      "reason": "owned Stage I-III compatibility, runtime, or acceptance input; explicit reader retained",
+      "readers": [
+        {
+          "path": "tools/test-runtime-dispatch.py",
+          "anchor": "tools/test-runtime-phases.py",
+          "kind": "current explicit dispatch/import/documented invocation"
+        },
+        {
+          "path": "tools/test-runtime-reference.py",
+          "anchor": "test-runtime-phases.py",
+          "kind": "current explicit dispatch/import/documented invocation"
+        }
+      ],
+      "uncertainty": null
+    },
+    {
+      "path": "tools/test-runtime-preservation-functional.py",
+      "sha256": "c3779b93f9a5c0a3b28545bd5524737c72ff6a501e17d29684780550188d0bf0",
+      "bytes": 33549,
+      "family": "test",
+      "decision": "retain",
+      "replacement": null,
+      "reason": "owned Stage I-III compatibility, runtime, or acceptance input; explicit reader retained",
+      "readers": [
+        {
+          "path": "maintenance/releases/2026-11-14-physical-file-retention.md",
+          "anchor": "tools/test-runtime-preservation-functional.py",
+          "kind": "current explicit dispatch/import/documented invocation"
+        }
+      ],
+      "uncertainty": null
+    },
+    {
+      "path": "tools/test-runtime-process-owner.py",
+      "sha256": "4dfd9f2c7ac1b301ebde4dec10208ab78a9836bd9c8a8f45b1e3bd1043dca4e3",
+      "bytes": 17091,
+      "family": "test",
+      "decision": "retain",
+      "replacement": null,
+      "reason": "owned Stage I-III compatibility, runtime, or acceptance input; explicit reader retained",
+      "readers": [
+        {
+          "path": "maintenance/releases/2026-11-14-runtime-owner-lifetime.md",
+          "anchor": "tools/test-runtime-process-owner.py",
+          "kind": "current explicit dispatch/import/documented invocation"
+        }
+      ],
+      "uncertainty": null
+    },
+    {
+      "path": "tools/test-runtime-reference.py",
+      "sha256": "60eaf545e036cdebdf1fe61c88c2a7ab7fd96439c1b84eb9c770b5e773b286bc",
+      "bytes": 32163,
+      "family": "test",
+      "decision": "retain",
+      "replacement": null,
+      "reason": "owned Stage I-III compatibility, runtime, or acceptance input; explicit reader retained",
+      "readers": [
+        {
+          "path": "tools/runtime-reference.py",
+          "anchor": "P462 reference selection protection suite",
+          "kind": "current explicit dispatch/import/documented invocation"
+        }
+      ],
+      "uncertainty": null
+    },
+    {
+      "path": "tools/test-runtime-resume.py",
+      "sha256": "dc023e3a0c63e31ae64d8a1c7fadd4414cc67c22f80ab641ce19bd60c138b898",
+      "bytes": 12467,
+      "family": "test",
+      "decision": "retain",
+      "replacement": null,
+      "reason": "owned Stage I-III compatibility, runtime, or acceptance input; explicit reader retained",
+      "readers": [
+        {
+          "path": "docs/status.md",
+          "anchor": "test-runtime-resume",
+          "kind": "current explicit dispatch/import/documented invocation"
+        },
+        {
+          "path": "maintenance/releases/2026-11-14-controller-loss-recovery.md",
+          "anchor": "tools/test-runtime-resume.py",
+          "kind": "current explicit dispatch/import/documented invocation"
+        }
+      ],
+      "uncertainty": null
+    },
+    {
+      "path": "tools/test-runtime-retention.py",
+      "sha256": "a4597d92f73791959120fccdb5528e7dc6215788be5483911eff1f439f70fbf2",
+      "bytes": 6882,
+      "family": "test",
+      "decision": "retain",
+      "replacement": null,
+      "reason": "owned Stage I-III compatibility, runtime, or acceptance input; explicit reader retained",
+      "readers": [
+        {
+          "path": "tools/runtime-resume.py",
+          "anchor": "tools/test-runtime-retention.py",
+          "kind": "current explicit dispatch/import/documented invocation"
+        }
+      ],
+      "uncertainty": null
+    },
+    {
+      "path": "tools/test-runtime-retire-functional.py",
+      "sha256": "0e432538926d8f2a6f37e580da4eda011100042659cd763ae9cfc7517bdacb4d",
+      "bytes": 10528,
+      "family": "test",
+      "decision": "retain",
+      "replacement": null,
+      "reason": "owned Stage I-III compatibility, runtime, or acceptance input; explicit reader retained",
+      "readers": [
+        {
+          "path": "maintenance/incidents/2026-10-30-retirement-directory-identities.md",
+          "anchor": "tools/test-runtime-retire-functional.py",
+          "kind": "current explicit dispatch/import/documented invocation"
+        },
+        {
+          "path": "maintenance/releases/2026-10-30-owned-parent-ledger-results.json",
+          "anchor": "tools/test-runtime-retire-functional.py",
+          "kind": "current explicit dispatch/import/documented invocation"
+        }
+      ],
+      "uncertainty": null
+    },
+    {
+      "path": "tools/test-runtime-retire.py",
+      "sha256": "614c1b8e316d7e79ba9733647bef1ec7fb97c058cb16a44ae3302c2b8f53faf5",
+      "bytes": 12559,
+      "family": "test",
+      "decision": "retain",
+      "replacement": null,
+      "reason": "owned Stage I-III compatibility, runtime, or acceptance input; explicit reader retained",
+      "readers": [
+        {
+          "path": "maintenance/incidents/2026-10-30-retirement-directory-identities.md",
+          "anchor": "tools/test-runtime-retire.py",
+          "kind": "current explicit dispatch/import/documented invocation"
+        },
+        {
+          "path": "maintenance/releases/2026-10-30-owned-parent-ledger-results.json",
+          "anchor": "tools/test-runtime-retire.py",
+          "kind": "current explicit dispatch/import/documented invocation"
+        }
+      ],
+      "uncertainty": null
+    },
+    {
+      "path": "tools/test-runtime-stage.py",
+      "sha256": "b13cb36bece968db2866d0a61a9ed63e4ad7ac64732aabdc37e1575cabc02951",
+      "bytes": 15491,
+      "family": "test",
+      "decision": "retain",
+      "replacement": null,
+      "reason": "owned Stage I-III compatibility, runtime, or acceptance input; explicit reader retained",
+      "readers": [
+        {
+          "path": "tools/runtime-stage.py",
+          "anchor": "tools/test-runtime-stage.py",
+          "kind": "current explicit dispatch/import/documented invocation"
+        },
+        {
+          "path": "docs/runtime-modernization.md",
+          "anchor": "test-runtime-stage.py",
+          "kind": "current explicit dispatch/import/documented invocation"
+        }
+      ],
+      "uncertainty": null
+    },
+    {
+      "path": "tools/test-stable-classification.py",
+      "sha256": "be3f0c7dd0da8a33d829bfb1b1efd30e352b18f89ccc0793007552021e889a16",
+      "bytes": 113284,
+      "family": "test",
+      "decision": "retain",
+      "replacement": null,
+      "reason": "owned Stage I-III compatibility, runtime, or acceptance input; explicit reader retained",
+      "readers": [
+        {
+          "path": "tools/test-reference-library-contract.py",
+          "anchor": "tools/test-stable-classification.py",
+          "kind": "current explicit dispatch/import/documented invocation"
+        },
+        {
+          "path": "docs/current-state.md",
+          "anchor": "test-stable-classification.py",
+          "kind": "current explicit dispatch/import/documented invocation"
+        },
+        {
+          "path": "docs/status.md",
+          "anchor": "tools/test-stable-classification.py",
+          "kind": "current explicit dispatch/import/documented invocation"
+        }
+      ],
+      "uncertainty": null
+    },
+    {
+      "path": "tools/test-stable-context.py",
+      "sha256": "d3d0d09fed4f2de6793a7e9ff490a416d5909c3ad3f531a29ea047c9cdad6f70",
+      "bytes": 4161,
+      "family": "test",
+      "decision": "retain",
+      "replacement": null,
+      "reason": "owned Stage I-III compatibility, runtime, or acceptance input; explicit reader retained",
+      "readers": [
+        {
+          "path": "tools/stable-context.py",
+          "anchor": "d9a41b0a stable source-context unit suite",
+          "kind": "current explicit dispatch/import/documented invocation"
+        }
+      ],
+      "uncertainty": null
+    },
+    {
+      "path": "tools/test-stable-file-reuse.py",
+      "sha256": "99f273f61de4be2abc418b3963ff6555ded6b29c3d58b6bddb4f756ba488b52a",
+      "bytes": 11789,
+      "family": "test",
+      "decision": "retain",
+      "replacement": null,
+      "reason": "owned Stage I-III compatibility, runtime, or acceptance input; explicit reader retained",
+      "readers": [
+        {
+          "path": "tools/stable-suite-batch.py",
+          "anchor": "7be331dc strict closed-file reuse unit suite",
+          "kind": "current explicit dispatch/import/documented invocation"
+        }
+      ],
+      "uncertainty": null
+    },
+    {
+      "path": "tools/test-stable-library-roots.py",
+      "sha256": "12f3212f781854fe727dacd619bbe58deac0c57e87681872031128fe1f4f75c7",
+      "bytes": 71561,
+      "family": "test",
+      "decision": "retain",
+      "replacement": null,
+      "reason": "owned Stage I-III compatibility, runtime, or acceptance input; explicit reader retained",
+      "readers": [
+        {
+          "path": "tools/test-stable-file-reuse.py",
+          "anchor": "tools/test-stable-library-roots.py",
+          "kind": "current explicit dispatch/import/documented invocation"
+        }
+      ],
+      "uncertainty": null
+    },
+    {
+      "path": "tools/test-stable-mock-shell.py",
+      "sha256": "d7f3903e2eeb45585b3c9c6c0561cecffb9e158b1be7c323e55f3665bb77026c",
+      "bytes": 10172,
+      "family": "test",
+      "decision": "retain",
+      "replacement": null,
+      "reason": "owned Stage I-III compatibility, runtime, or acceptance input; explicit reader retained",
+      "readers": [
+        {
+          "path": "maintenance/releases/2026-11-14-owned-shell-initialization.md",
+          "anchor": "tools/test-stable-mock-shell.py",
+          "kind": "current explicit dispatch/import/documented invocation"
+        }
+      ],
+      "uncertainty": null
+    },
+    {
+      "path": "tools/test-stable-suite.py",
+      "sha256": "c43bb2b9fbe05c981313d4cdcda8624479a49afde17a381294512161ab448d99",
+      "bytes": 55757,
+      "family": "test",
+      "decision": "retain",
+      "replacement": null,
+      "reason": "owned Stage I-III compatibility, runtime, or acceptance input; explicit reader retained",
+      "readers": [
+        {
+          "path": "tools/fixtures/runtime-acceptance-plan.json",
+          "anchor": "tools/test-stable-suite.py",
+          "kind": "current explicit dispatch/import/documented invocation"
+        },
+        {
+          "path": "tools/runtime-stage.py",
+          "anchor": "tools/test-stable-suite.py",
+          "kind": "current explicit dispatch/import/documented invocation"
+        },
+        {
+          "path": "docs/runtime-modernization.md",
+          "anchor": "tools/test-stable-suite.py",
+          "kind": "current explicit dispatch/import/documented invocation"
+        }
+      ],
+      "uncertainty": null
+    },
+    {
+      "path": "tools/test-terminal-modes.py",
+      "sha256": "c9bcef4b318bd72273fb125efdd0b3bae526a2c65e8f86d0e98c634dcdce7427",
+      "bytes": 9287,
+      "family": "test",
+      "decision": "retain",
+      "replacement": null,
+      "reason": "owned Stage I-III compatibility, runtime, or acceptance input; explicit reader retained",
+      "readers": [
+        {
+          "path": "tools/runtime-final-audit.py",
+          "anchor": "test-terminal-modes.py",
+          "kind": "current explicit dispatch/import/documented invocation"
+        },
+        {
+          "path": "docs/status.md",
+          "anchor": "tools/test-terminal-modes.py",
+          "kind": "current explicit dispatch/import/documented invocation"
+        },
+        {
+          "path": "maintenance/releases/2026-10-27-terminal-and-native-quit.md",
+          "anchor": "tools/test-terminal-modes.py",
           "kind": "current explicit dispatch/import/documented invocation"
         }
       ],
@@ -5035,6 +8302,84 @@
       "uncertainty": null
     },
     {
+      "path": "tools/tls-abi.py",
+      "sha256": "ea5f040324118f3b1539732aba079d4a30bfddec94dbfad63545ea261452ce78",
+      "bytes": 18697,
+      "family": "comparison-gate",
+      "decision": "retain",
+      "replacement": null,
+      "reason": "owned Stage I-III compatibility, runtime, or acceptance input; explicit reader retained",
+      "readers": [
+        {
+          "path": "docs/ports/gnutls.md",
+          "anchor": "d9a41b0a GnuTLS ABI check entrypoint",
+          "kind": "current explicit dispatch/import/documented invocation"
+        }
+      ],
+      "uncertainty": null
+    },
+    {
+      "path": "tools/tls-acceptance.py",
+      "sha256": "8111996091df94dc10b6f267035ed1e92e332ef56c74835df90b86fc77d0666e",
+      "bytes": 25708,
+      "family": "comparison-gate",
+      "decision": "retain",
+      "replacement": null,
+      "reason": "owned Stage I-III compatibility, runtime, or acceptance input; explicit reader retained",
+      "readers": [
+        {
+          "path": "tools/fixtures/tls-acceptance.el",
+          "anchor": "tls-acceptance",
+          "kind": "current explicit dispatch/import/documented invocation"
+        }
+      ],
+      "uncertainty": null
+    },
+    {
+      "path": "tools/toolchain-pins.py",
+      "sha256": "9bcfef8e490f3ddc33377d7d951a3b15361871ffdd0f219f1d68b81e4bf8482e",
+      "bytes": 9134,
+      "family": "generator",
+      "decision": "retain",
+      "replacement": null,
+      "reason": "owned Stage I-III compatibility, runtime, or acceptance input; explicit reader retained",
+      "readers": [
+        {
+          "path": "docs/current-state.md",
+          "anchor": "toolchain-pins",
+          "kind": "current explicit dispatch/import/documented invocation"
+        },
+        {
+          "path": "docs/modernization.md",
+          "anchor": "tools/toolchain-pins.py",
+          "kind": "current explicit dispatch/import/documented invocation"
+        },
+        {
+          "path": "docs/repository-bootstrap.md",
+          "anchor": "tools/toolchain-pins.py",
+          "kind": "current explicit dispatch/import/documented invocation"
+        }
+      ],
+      "uncertainty": null
+    },
+    {
+      "path": "tools/treesit-abi.py",
+      "sha256": "82ec8374aa4e632429dd4f9290255d3fc1a23e3ef12c435a94d7748dbf7a841d",
+      "bytes": 14979,
+      "family": "comparison-gate",
+      "decision": "retain",
+      "replacement": null,
+      "reason": "owned Stage I-III compatibility, runtime, or acceptance input; explicit reader retained",
+      "readers": [
+        {
+          "path": "maintenance/releases/2026-10-29-macos-treesit.md",
+          "anchor": "tools/treesit-abi.py",
+          "kind": "current explicit dispatch/import/documented invocation"
+        }
+      ],
+      "uncertainty": null
+    },
+    {
       "path": "tools/version_resources.py",
       "sha256": "273aa39df8409b4c91c37ec7afc415d95f21e185314bd3724193362e45bee17f",
       "bytes": 780,
@@ -5051,6 +8396,33 @@
         {
           "path": "tools/build-manuals.py",
           "anchor": "import render_versions",
+          "kind": "current explicit dispatch/import/documented invocation"
+        }
+      ],
+      "uncertainty": null
+    },
+    {
+      "path": "tools/xml-acceptance.py",
+      "sha256": "9fbc4216d8e4051793db5c4ef2e8e721d1499c6ef78fbd7df6bf46272664a806",
+      "bytes": 18640,
+      "family": "comparison-gate",
+      "decision": "retain",
+      "replacement": null,
+      "reason": "owned Stage I-III compatibility, runtime, or acceptance input; explicit reader retained",
+      "readers": [
+        {
+          "path": "tools/fixtures/xml-acceptance.el",
+          "anchor": "xml-acceptance",
+          "kind": "current explicit dispatch/import/documented invocation"
+        },
+        {
+          "path": "tools/runtime-execution.py",
+          "anchor": "xml-acceptance",
+          "kind": "current explicit dispatch/import/documented invocation"
+        },
+        {
+          "path": "tools/runtime-final-audit.py",
+          "anchor": "xml-acceptance",
           "kind": "current explicit dispatch/import/documented invocation"
         }
       ],

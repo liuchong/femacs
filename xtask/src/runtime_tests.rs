@@ -396,7 +396,11 @@ fn frozen_source_digest_accepts_a_current_directory_based_repo_locator() {
     std::fs::write(repo.join(".femacs-runtime-sources.json"),
         serde_json::to_vec(&json!({"schema":1,"files":["src/alloc.rs"]})).unwrap()).unwrap();
     let cwd = std::env::current_dir().unwrap();
-    let relative = Path::new(".").join(repo.strip_prefix(cwd).unwrap());
+    let relative = if let Ok(sub) = repo.strip_prefix(&cwd) {
+        Path::new(".").join(sub)
+    } else {
+        Path::new("./..").join(repo.strip_prefix(cwd.parent().unwrap()).unwrap())
+    };
     assert_eq!(source_digest(&repo).unwrap(), source_digest(&relative).unwrap());
 }
 

@@ -85,3 +85,7 @@
 
 
 G4 Android historical diagnostic stages: `back`, kernel-wchan-only `threads`, temporary-build `probes`, root/debuggerd `bt` and injected `signal` are explicitly retired; old key/rotate/tap/insert-rotate screenshot stages are superseded by strict current editing observations. Focus/log inspection and plan/dump-only/memory/tail remain through the Python owner. Exact before identities/recovery and capability mapping: [CLN-20261025-04](../maintenance/cleanup/reports/2026-10-25-04-android-tooling.md), [current CLI migration](repository-bootstrap.md#android-device-command-migration). No additional native platform is retired.
+
+## 七、Stage II（`GA4`）复核与历史本地清单收口（2026-11-20）
+
+对照 `5118ed08..6065cf1b` 的全部新增工具与脚本复核：上述 6 项退役脚手架继续保持缺席且无回潮引用；`tools/*.sh` 全部 15 个入口维持薄转发器或交叉链接适配器（均不超过 25 行，零嵌套资源执行器）；所有未宣布退役的目标平台（Linux、Windows、Haiku、Android 各 ABI）及原样 Lisp/数据/AWK 配方保持保留。`57101ad7` 本地保留的 `47` 份历史运行级清理清单（`CLN227–CLN269`）与已取代中间产物的逐项 SHA-256、原因、替代与恢复边界统一收口于 [CLN269](../maintenance/cleanup/reports/2026-11-16-269-superseded-single-product-gc-candidate.md) 及 [CLN271](../maintenance/cleanup/reports/2026-11-20-271-historical-manifest-disposition-and-g4-reaudit.md)。

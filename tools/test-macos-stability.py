@@ -14,6 +14,11 @@ class Cases(unittest.TestCase):
   base=ROOT/'build/stability-unit';base.mkdir(parents=True,exist_ok=True)
   self.temp=tempfile.TemporaryDirectory(dir=base);self.out=Path(self.temp.name)
  def tearDown(self):self.temp.cleanup()
+ @classmethod
+ def tearDownClass(cls):
+  base=ROOT/'build/stability-unit'
+  try:base.rmdir()
+  except OSError:pass
  def test_failed_command_retains_log_and_nonzero(self):
   r=acceptance.run_check('failed',[sys.executable,'-c','print("diagnostic");raise SystemExit(7)'],self.out)
   self.assertEqual(r['exit_code'],7);self.assertFalse(r['passed']);self.assertGreaterEqual(r['seconds'],0)
@@ -86,6 +91,20 @@ class Cases(unittest.TestCase):
    [{'event':'draggingUpdated'}],
    'hello\n',42)
   self.assertFalse(no_drop)
+ def test_g4_retired_scaffolding_and_thin_wrappers_preserved(self):
+  for rel in ('tools/verify-dod.sh','tools/gen-lisp-mk.py','tools/l1-worklist.sh',
+              'tools/loadup-fixture.sh','tools/reconcile-link-ratchets.sh',
+              'spikes/bytecode-hot/bytecode_hot.rs'):
+   self.assertFalse((ROOT/rel).exists(),rel)
+  shells=sorted((ROOT/'tools').glob('*.sh'))
+  self.assertGreaterEqual(len(shells),10)
+  for sh in shells:
+   text=sh.read_text(encoding='utf-8')
+   self.assertLessEqual(len(text.splitlines()),25,sh.name)
+   self.assertNotIn('controlled-run',text,sh.name)
+  matrix=(ROOT/'docs/support-matrix.md').read_text(encoding='utf-8')
+  for retained in ('Linux','Windows','Haiku','Android arm64','macOS arm64 Cocoa'):
+   self.assertIn(retained,matrix)
 class Timing(unittest.TextTestResult):
  def startTest(self,test):self.started=time.monotonic();super().startTest(test)
  def stopTest(self,test):
