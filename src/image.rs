@@ -2429,6 +2429,18 @@ unsafe extern "C" fn image_error (format: *const c_char, mut ap: ...)
   vadd_to_log (format, ap);
 }
 
+// AppKit reports image errors through a fixed C ABI. Rust supplies the
+// Lisp_Object arguments to the C variadic logger.
+#[cfg (all (feature = "have_window_system", feature = "have_ns"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn femacs_ns_log_image_error (spec: Lisp_Object, index: Lisp_Object)
+{
+  if NILP (index)
+    { image_error (c"Unable to load image %s".as_ptr (), spec); }
+  else
+    { image_error (c"Unable to set index %d for image %s".as_ptr (), index, spec); }
+}
+
 /// C: C 1438-1439: `static void image_invalid_data_error (Lisp_Object data)`
 #[cfg (feature = "have_window_system")]
 unsafe fn image_invalid_data_error (data: Lisp_Object)
@@ -14045,6 +14057,48 @@ unsafe fn initialize_image_type (r#type: *const image_type) -> bool
   return true;
 }
 
+// The Cocoa GIF reader uses the native image specification (C 8358-8449).
+#[cfg (all (feature = "have_window_system", feature = "ns_impl_cocoa", not (feature = "have_gif")))]
+unsafe extern "C" fn cocoa_gif_image_p (object: Lisp_Object) -> bool
+{
+  let mut format = [
+    (c":type", IMAGE_SYMBOL_VALUE, true),
+    (c":data", IMAGE_STRING_VALUE, false),
+    (c":file", IMAGE_STRING_VALUE, false),
+    (c":ascent", IMAGE_ASCENT_VALUE, false),
+    (c":margin", IMAGE_NON_NEGATIVE_INTEGER_VALUE_OR_PAIR, false),
+    (c":relief", IMAGE_INTEGER_VALUE, false),
+    (c":conversion", IMAGE_DONT_CHECK_VALUE_TYPE, false),
+    (c":heuristic-mask", IMAGE_DONT_CHECK_VALUE_TYPE, false),
+    (c":mask", IMAGE_DONT_CHECK_VALUE_TYPE, false),
+    (c":background", IMAGE_STRING_OR_NIL_VALUE, false),
+    (c":index", IMAGE_NON_NEGATIVE_INTEGER_VALUE, false),
+  ].map (|(name, r#type, mandatory_p)| image_keyword {
+    name: name.as_ptr (), r#type, mandatory_p, count: false, value: Qnil (),
+  });
+
+  if !parse_image_spec (object, format.as_mut_ptr (), format.len () as c_int, Qgif ())
+    { return false; }
+  let [_, data, file, ..] = format;
+  data.count != file.count
+}
+
+#[cfg (all (feature = "have_window_system", feature = "ns_impl_cocoa", not (feature = "have_gif")))]
+unsafe extern "C" fn cocoa_gif_load (f: *mut frame, img: *mut image) -> bool
+{
+  let mut file = image_spec_value ((*img).spec, QCfile (), core::ptr::null_mut ());
+  if STRINGP (file)
+    { file = image_find_image_file (file); }
+  let data = image_spec_value ((*img).spec, QCdata (), core::ptr::null_mut ());
+  ns_load_image (f, img.cast (), file, data)
+}
+
+#[cfg (all (feature = "have_window_system", feature = "ns_impl_cocoa", not (feature = "have_gif")))]
+static cocoa_gif_type: image_type = image_type {
+  r#type: iQgif as c_int, valid_p: Some (cocoa_gif_image_p), load_img: Some (cocoa_gif_load),
+  free_img: Some (image_clear_image),
+};
+
 /* Array of supported image types.  */
 
 /// C: C 13433-13475: `static struct image_type const image_types[]` - C's array with one entry
@@ -14144,6 +14198,10 @@ unsafe fn lookup_image_type (r#type: Lisp_Object) -> *const image_type
     if image_can_use_native_api (r#type)
       { return &raw const native_image_type; }
   }
+
+  #[cfg (all (feature = "ns_impl_cocoa", not (feature = "have_gif")))]
+  if EQ (r#type, Qgif ()) && ns_can_use_native_image_api (r#type)
+    { return &raw const cocoa_gif_type; }
 
   /* C 13493's `countof (image_types)` is the slice's length here (the table's own Deviation).  */
   let mut i: c_int = 0;
@@ -14341,11 +14399,14 @@ pub unsafe extern "C" fn syms_of_image ()
   }
 
   /* C 13658-13661: `#if defined (HAVE_GIF) || defined (HAVE_NATIVE_IMAGE_API)`.  */
+  #[cfg (any (feature = "have_gif", feature = "have_native_image_api", feature = "ns_impl_cocoa"))]
+  DEFSYM! (Qgif, "gif");
   #[cfg (any (feature = "have_gif", feature = "have_native_image_api"))]
-  {
-    DEFSYM! (Qgif, "gif");
-    add_image_type (Qgif ());
-  }
+  add_image_type (Qgif ());
+  #[cfg (all (feature = "ns_impl_cocoa", not (feature = "have_gif"),
+	      not (feature = "have_native_image_api")))]
+  if ns_can_use_native_image_api (Qgif ())
+    { add_image_type (Qgif ()); }
 
   /* C 13663-13666: `#if defined (HAVE_PNG) || defined (HAVE_NATIVE_IMAGE_API)`.  */
   #[cfg (any (feature = "have_png", feature = "have_native_image_api"))]

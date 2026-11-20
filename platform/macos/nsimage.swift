@@ -100,11 +100,11 @@ struct image {
 // Lane ABI: the C side.
 // ==========================================================================
 
-// Functions of the ported core (declared in src/lisp.h 4280/4378 and src/dispextern.h
-// 3748/3755; defined in src/image.c, src/xdisp.c, src/alloc.c).
+// Functions of the ported core.
 @_silgen_name("valid_image_p") func valid_image_p(_ object: Lisp_Object) -> Bool
 @_silgen_name("image_find_image_file") func image_find_image_file(_ file: Lisp_Object) -> Lisp_Object
-@_silgen_name("add_to_log") func add_to_log(_ format: UnsafePointer<CChar>, _ args: CVarArg...)
+@_silgen_name("femacs_ns_log_image_error")
+func femacs_ns_log_image_error(_ spec: Lisp_Object, _ index: Lisp_Object)
 @_silgen_name("plist_get") func plist_get(_ plist: Lisp_Object, _ prop: Lisp_Object) -> Lisp_Object
 @_silgen_name("Fcons") func Fcons(_ car: Lisp_Object, _ cdr: Lisp_Object) -> Lisp_Object
 /// C: `Lisp_Object make_float (double)` (declared src/lisp.h 4652, defined
@@ -177,14 +177,6 @@ func eassert(_ cond: @autoclosure () -> Bool) {
 /// The five call sites (src/nsimage.m 65, 130, 139, 147, 160) therefore carry no statement
 /// and are recorded in the ledger, not transcribed: a Swift no-op function would add a call
 /// the C text does not have.
-
-/// C: `add_to_log`'s variadic arguments are read back with `va_arg (ap, Lisp_Object)`
-/// (src/xdisp.c 12288-12300) - a pointer-sized value, 0 for `Qnil`.  Swift's `CVarArg` has
-/// no conformance for an Optional pointer, so the port passes the same bits as a `UInt`.
-@inline(__always)
-func lispVariadicArg(_ value: Lisp_Object) -> UInt {
-  return value.map { UInt(bitPattern: UnsafeRawPointer($0)) } ?? 0
-}
 
 /// C: `NSCalibratedRGBColorSpace` in the macro's pre-10.7 arm (src/nsimage.m 36-43); the
 /// lane's target takes the arm at 45-49, whose modern Swift spelling is the two
@@ -295,13 +287,12 @@ func ns_load_image(_ f: UnsafeMutableRawPointer?, _ img: UnsafeMutableRawPointer
   }
 
   if eImg == nil {
-    add_to_log("Unable to load image %s", lispVariadicArg(img.pointee.spec))
+    femacs_ns_log_image_error(img.pointee.spec, Qnil())
     return false
   }
 
   if !(eImg?.setFrame(index) ?? false) {
-    add_to_log("Unable to set index %d for image %s",
-               lispVariadicArg(make_fixnum(Int(index))), lispVariadicArg(img.pointee.spec))
+    femacs_ns_log_image_error(img.pointee.spec, make_fixnum(Int(index)))
     return false
   }
 
@@ -417,36 +408,17 @@ class EmacsImage: NSImage {
 
   /* Search bitmap-file-path for the file, if appropriate and hand it over.  */
   class func allocInitFromFile(_ file: Lisp_Object) -> EmacsImage? {
-    var imgRep: NSImageRep?
-    var found: Lisp_Object
-    var image: EmacsImage?
-    var filename: NSString?
+    let found = image_find_image_file(file)
+    guard STRINGP(found), let filename = stringWithLispString(found),
+          let image = EmacsImage(byReferencingFile: filename as String) else { return nil }
+    image.bmRep = nil
+    guard image.isValid else { return nil }
 
-    /* Search bitmap-file-path for the file, if appropriate.  */
-    found = image_find_image_file(file)
-    if !STRINGP(found) { return nil }
-    filename = stringWithLispString(found)
-
-    // C: `image = [[EmacsImage alloc] initByReferencingFile:filename];` - ObjC hands the
-    // possibly-nil NSString on; the Swift initializer takes a String, so the same message
-    // send is spelled with the value bound first (nsfns.m's factory returns nil only for a
-    // non-string, which STRINGP above excludes).
-    image = filename.flatMap { EmacsImage(byReferencingFile: $0 as String) }
-
-    // C stores into the raw ivar (`image->bmRep = nil`), which faults on a nil image; the
-    // port keeps that one unchecked dereference and leaves the message sends tolerant.
-    image!.bmRep = nil
-    if !(image?.isValid ?? false) {
-      return nil
+    if let imgRep = image.representations.first {
+      image.size = NSSize(width: CGFloat(imgRep.pixelsWide),
+                         height: CGFloat(imgRep.pixelsHigh))
     }
-    imgRep = image?.representations.first
-
-    if let imgRep = imgRep {
-      image?.size = NSSize(width: CGFloat(imgRep.pixelsWide),
-                           height: CGFloat(imgRep.pixelsHigh))
-    }
-    if let filename = filename { _ = image?.setName(filename as String) }
-
+    _ = image.setName(filename as String)
     return image
   }
 

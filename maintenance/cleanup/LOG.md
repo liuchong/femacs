@@ -1,3 +1,8 @@
+## CLN275 — 2026-11-20: Cocoa GIF decoder build and image checks
+
+- Released the two owned Cocoa build roots and their caches after the signed package was installed and verified (`11,449` files, `691` directories, `14` symlinks, `629,350,888` logical bytes).
+- [Report and recovery recipe](reports/2026-11-20-275-cocoa-gif.md).
+
 ## CLN274 — 2026-11-20: Cocoa default-font build and verification scratch
 
 - Released the owned build and Cocoa object roots after verifying the signed bundle and the installed app (`5,947` files, `461` directories, `8` symlinks, `342,662,761` logical bytes).

@@ -2,7 +2,7 @@
 
 **本段为当前实际读数，取代下方 2026-11-16 及更早的历史段落。**
 
-`dist/macos/Femacs.app` 已更新为默认字体修复版，首窗、新窗继承和单窗字号调整已实测；当前制品身份见 [CLN274](../maintenance/cleanup/reports/2026-11-20-274-cocoa-default-font.md)。下方的性能与制品记录绑定到现代化结项时的构建。
+`dist/macos/Femacs.app` 已包含 [Cocoa 默认字体修复](../maintenance/cleanup/reports/2026-11-20-274-cocoa-default-font.md)和 [GIF 解码修复](../maintenance/cleanup/reports/2026-11-20-275-cocoa-gif.md)，当前制品身份见后者。下方的性能与制品记录绑定到现代化结项时的构建。
 
 - **七项现代化工作与最终验收（`G1–G7`、`GC0–GC9`、`GA1–GA8`）已全部完成并闭合**：
   - 阶段 I（`GA1–GA3`，`6065cf1b`）：完成干净跟踪树导出重建与搬移（`GA2`）、多窗口输入法/外部 Finder 拖放/异常 TTY（`GA1`）及 555 文件官方尺度兼容有效阻断归零（`GA3`）。详见 [Stage I 收口回执](../maintenance/releases/2026-11-20-stage1-ga1-ga2-ga3-closure.md)。

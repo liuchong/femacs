@@ -1,11 +1,8 @@
-;;; image-loader-protection.el --- PNG/JPEG loader protection -*- lexical-binding: t; -*-
+;;; image-loader-protection.el --- Graphical image loader protection -*- lexical-binding: t; -*-
 ;; SPDX-License-Identifier: GPL-3.0-or-later
 
-;; Protective checks for the port's own PNG and JPEG readers (PORTING.md
-;; P-467).  They are not a replacement for the original image test files: they
-;; cover what those files cannot reach in a batch session - a real decode on a
-;; window-system frame, the memory (`:data') and file arms of both loaders, and
-;; the `setjmp'/`longjmp' recovery paths with damaged and truncated input.
+;; Check decoding on a real window-system frame, both file and `:data' input,
+;; and recovery from damaged or truncated input.
 ;;
 ;; Run it with a *graphical* product, because `image-size' needs a window-system
 ;; frame:
@@ -64,6 +61,7 @@ re-encode the PNG signature and stop it from being a signature at all."
 (defconst image-loader-protection--png-size '(100 . 200))
 (defconst image-loader-protection--webp-size '(100 . 200))
 (defconst image-loader-protection--jpeg-size '(100 . 75))
+(defconst image-loader-protection--gif-size '(100 . 75))
 
 (defun image-loader-protection--size (spec)
   (image-size (create-image spec) t))
@@ -79,16 +77,16 @@ but a failed load leaves an image error in the log."
   (let ((before (length (image-loader-protection--log-text))))
     (let ((size (funcall thunk)))
       (and (equal size valid-size)
-           (not (string-match-p "\\(PNG error\\|Error reading JPEG\\|Error decoding\\|Error parsing\\)"
+           (not (string-match-p "\\(PNG error\\|Error reading JPEG\\|Error decoding\\|Error parsing\\|Unable to load image\\)"
                                 (substring (image-loader-protection--log-text) before)))))))
 
-(defun image-loader-protection--rejected-p (spec valid-size)
+(defun image-loader-protection--rejected-p (spec valid-size &optional type)
   "Return non-nil when SPEC does not decode into VALID-SIZE.
 A rejected image surfaces either as a signalled error or as the cache's
 placeholder size, so the check is that the reader never reports the real
 dimensions for damaged input - and never crashes."
   (condition-case nil
-      (not (equal (image-size (create-image spec) t) valid-size))
+      (not (equal (image-size (create-image spec type) t) valid-size))
     (error t)))
 
 (defun image-loader-protection--rejected-memory-p (type bytes valid-size)
@@ -209,6 +207,27 @@ dimensions for damaged input - and never crashes."
                         (image-loader-protection--clean-decode-p
                          (lambda () (image-loader-protection--memory-size 'jpeg data))
                          image-loader-protection--jpeg-size))))
+    (file-gif . ,(lambda ()
+                   (image-loader-protection--clean-decode-p
+                    (lambda ()
+                      (image-size
+                       (create-image (image-loader-protection--path "test/data/image/black.gif") 'gif) t))
+                    image-loader-protection--gif-size)))
+    (memory-gif . ,(lambda ()
+                     (let ((data (image-loader-protection--slurp
+                                  (image-loader-protection--path "test/data/image/black.gif"))))
+                       (image-loader-protection--clean-decode-p
+                        (lambda () (image-loader-protection--memory-size 'gif data))
+                        image-loader-protection--gif-size))))
+    (damaged-gif . ,(lambda ()
+                      (let* ((bytes (string-as-unibyte "GIF89a"))
+                             (file (image-loader-protection--write bytes)))
+                        (unwind-protect
+                            (and (image-loader-protection--rejected-memory-p
+                                  'gif bytes image-loader-protection--gif-size)
+                                 (image-loader-protection--rejected-p
+                                  file image-loader-protection--gif-size 'gif))
+                          (delete-file file)))))
     (file-webp . ,(lambda ()
                     (image-loader-protection--clean-decode-p
                      (lambda ()
@@ -244,6 +263,9 @@ dimensions for damaged input - and never crashes."
                                 (jpeg (image-loader-protection--slurp
                                        (image-loader-protection--path
                                         "test/data/image/black.jpg")))
+                                (gif (image-loader-protection--slurp
+                                      (image-loader-protection--path
+                                       "test/data/image/black.gif")))
                                 (webp (image-loader-protection--slurp
                                        (image-loader-protection--path
                                         "tools/fixtures/data/image-loader-100x200.webp"))))
@@ -253,6 +275,9 @@ dimensions for damaged input - and never crashes."
                                  (image-loader-protection--clean-decode-p
                                   (lambda () (image-loader-protection--memory-size 'jpeg jpeg))
                                   image-loader-protection--jpeg-size)
+                                 (image-loader-protection--clean-decode-p
+                                  (lambda () (image-loader-protection--memory-size 'gif gif))
+                                  image-loader-protection--gif-size)
                                  (image-loader-protection--clean-decode-p
                                   (lambda () (image-loader-protection--memory-size 'webp webp))
                                   image-loader-protection--webp-size)))))))
