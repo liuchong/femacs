@@ -1,3 +1,9 @@
+## CLN273 — 2026-11-20: final retirement of `build/acceptance`, `build/runtime`, `.femacs-cache`, and staging backups
+
+- Released: `8` owned scopes (`159,109` files, `21,542` directories, `1,843` symlinks; `10,763,439,608` logical bytes; normalized digest `a3a6af215b15d77a519e8e686e38ae429f879f1b38f957e49ee057b20c56bfe7`), covering `build/acceptance`, `build/runtime` (`native-2` & `frozen-2`), `.femacs-cache`, `dist/macos/.Femacs-before-p466.app`, `build/terminal/{image,image-staging}`, and `P-190` hardlinked `emacs-32.0.50.1{,.pdmp}` aliases.
+- Kept: solely the verified macOS trial deliverables `build/terminal/port` (`40 MB`, `a0dd02e1…` / `cd076b1d…`, `pair.sha256` `4/4` OK) and `dist/macos/Femacs.app` (`231 MB`, `02f5adaf…` / `e1515db2…`, strict `codesign` `exit 0`), both re-verified after cleanup.
+- [Report](reports/2026-11-20-273-final-acceptance-runtime-and-cache-retirement.md).
+
 ## CLN272 — 2026-11-20: consumed Stage III intermediate outputs, `native-collector-1`, and unit caches
 
 - Released: `16` owned scopes (`41,534` files, `1,621` directories, `16` symlinks; `2,389,859,343` logical bytes; normalized digest `94241a9ec3d4adf9c1b447c9a3b1a9912116f07b7fd2ceb5858b38a2d2014ccc`), covering `build/runtime/native-collector-1` (after `g7-native-write-barrier` `3/3`), `build/cargo`, `dist/candidates`, `build/femacs`, `build/generation`, superseded Stage III attempt/diagnostic/unit directories, empty `xtask` unit parent directories, and the external session cache.
