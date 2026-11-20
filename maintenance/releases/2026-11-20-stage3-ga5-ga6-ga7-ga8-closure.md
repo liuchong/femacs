@@ -35,6 +35,8 @@
 | `collector-major-interpreted` | `0.271..0.271` | `46.50 MB` | `27.37 / 45.05` | `7.969 / 1.281 / 9.250` | `0.743 / 0.037` | `0.726 / 0.078` | `12.482 / 1.559` | `313.529 / 25.563 / 415.812` | `43.915 / 10.663 / 77.052` |
 | `reference-interpreted` | `0.280..0.280` | `58.87 MB` | `142.75 / 152.42` | `7.373 / 0.433 / 8.798` | `5.686 / 0.265` | `0.744 / 0.008` | `4.681 / 0.058` | `225.935 / 1.275 / 259.066` | `38.094 / 0.562 / 39.277` |
 
+In this table as well, `bytecode` is the workload case name (the 50,000-add loop); under the `*-interpreted` rows it runs interpreted, which the receipt's per-candidate `execution` check records.
+
 ### GC Pause, Phase (`0, 3, 4, 10, 22, 23, 24`), Remembered-Set, Cadence, and Survival Attribution
 
 - **`collector-young-interpreted` (`FEMACS_GC_COLLECTOR=young`, `FEMACS_GC_OBSERVATION=all`)**:
@@ -89,6 +91,8 @@
 | `delivered-cocoa-interpreted` vs `reference-interpreted` | `39.71 / 58.88 MB` (`0.6745x`) | `25.93 / 148.11 ms` (`0.1751x`) | `0.8199x` | `0.1074x` | `0.8886x` | `1.5740x` | `1.0693x` (`3.318 / 4.434`) | `0.8759x` (`3.250 / 4.539`) |
 | `delivered-terminal-interpreted` vs `reference-interpreted` | `29.28 / 58.88 MB` (`0.4972x`) | `26.99 / 148.11 ms` (`0.1822x`) | `0.7859x` | `0.1134x` | `0.8564x` | `1.4810x` | `0.7573x` (`2.737 / 4.434`) | `0.6660x` (`2.710 / 4.539`) |
 
+In this table `bytecode` is the **workload case name** (the `femacs-profile-sum` 50,000-add loop), not the execution mode; in the `*-interpreted` rows that case runs interpreted. See A.1 for the column meaning and the GC accounting.
+
 Complete 7-round measured series (`s3-ga8-delivered-formal`, ms):
 - `delivered-cocoa-interpreted`: `startup=[24.386, 26.833, 26.279, 25.929, 25.494, 24.616, 37.483]`, `load=[6.645, 6.039, 6.004, 5.984, 6.035, 7.084, 7.131]`, `edit=[0.610, 0.625, 0.612, 0.618, 0.605, 0.633, 0.637]`, `regex=[0.625, 0.641, 0.615, 0.639, 0.632, 0.655, 0.650]`, `bytecode=[7.483, 7.324, 6.739, 7.226, 7.161, 8.352, 7.728]`, `gc-churn=[223.485, 238.768, 228.358, 241.481, 249.387, 252.262, 258.555]`, `gc-retained=[33.849, 30.551, 29.727, 33.387, 33.972, 33.245, 51.697]`.
 - `delivered-cocoa-bytecode`: `startup=[27.002, 26.384, 35.483, 24.887, 25.993, 34.526, 36.497]`, `load=[6.316, 7.446, 6.353, 10.627, 6.276, 6.474, 9.014]`, `edit=[0.529, 0.579, 0.555, 0.554, 0.531, 0.550, 0.540]`, `regex=[0.562, 0.565, 0.573, 0.578, 0.524, 0.583, 0.581]`, `bytecode=[0.018, 0.024, 0.018, 0.018, 0.017, 0.017, 0.017]`, `gc-churn=[172.334, 193.398, 206.234, 174.896, 165.653, 165.505, 218.951]`, `gc-retained=[27.993, 35.882, 29.776, 23.123, 24.220, 24.081, 31.124]`.
@@ -96,6 +100,25 @@ Complete 7-round measured series (`s3-ga8-delivered-formal`, ms):
 - `delivered-terminal-bytecode`: `startup=[29.671, 25.180, 25.868, 27.323, 28.451, 27.787, 28.196]`, `load=[2.641, 3.540, 4.264, 3.507, 4.656, 2.712, 2.810]`, `edit=[0.542, 0.554, 0.564, 0.534, 0.531, 0.587, 0.640]`, `regex=[0.531, 0.559, 0.536, 0.548, 0.559, 0.549, 0.546]`, `bytecode=[0.017, 0.017, 0.018, 0.018, 0.017, 0.018, 0.017]`, `gc-churn=[153.358, 171.880, 206.852, 153.104, 156.465, 137.175, 140.029]`, `gc-retained=[27.721, 26.552, 36.618, 21.401, 22.444, 20.839, 23.744]`.
 - `reference-interpreted`: `startup=[144.263, 136.600, 146.345, 150.364, 148.105, 153.011, 148.420]`, `load=[7.060, 7.950, 7.199, 7.240, 7.365, 9.135, 7.470]`, `edit=[5.970, 5.801, 5.652, 5.562, 5.752, 5.850, 5.669]`, `regex=[0.753, 0.719, 0.715, 0.771, 0.719, 0.714, 0.726]`, `bytecode=[4.653, 4.737, 4.595, 4.588, 4.645, 4.830, 4.682]`, `gc-churn=[224.965, 238.651, 223.107, 225.821, 221.177, 240.535, 235.054]`, `gc-retained=[38.696, 42.231, 37.045, 36.845, 37.113, 50.240, 38.117]`.
 - `reference-bytecode`: `startup=[145.020, 158.339, 192.328, 170.062, 149.729, 159.980, 146.562]`, `load=[10.512, 10.870, 14.004, 13.862, 13.422, 11.510, 11.264]`, `edit=[0.504, 0.531, 0.535, 0.529, 0.643, 0.533, 0.493]`, `regex=[0.627, 0.593, 0.608, 0.596, 0.726, 0.574, 0.570]`, `bytecode=[0.152, 0.157, 0.156, 0.157, 0.839, 0.155, 0.162]`, `gc-churn=[173.228, 194.474, 206.276, 249.383, 180.791, 177.242, 171.917]`, `gc-retained=[29.696, 32.264, 34.107, 35.529, 27.647, 30.805, 27.291]`.
+
+### A.1 Interpreted-Row `bytecode` Column: Meaning, GC Accounting, and Boundary
+
+- **Column meaning.** The `bytecode` column names the workload case, not the execution mode. `tools/fixtures/runtime-profile.el` prepares both `femacs-profile-sum` and the case thunk from `FEMACS_RUNTIME_EXECUTION_MODE`, and this receipt records `checks=[{'check': 'execution', 'expected': 'interpreted', 'observed': ['interpreted']}]` for the two interpreted candidates. The column in those rows is therefore an interpreted 50,000-add loop; the same case appears compiled only in the `*-bytecode` rows, where the check records `bytecode`.
+- **Formula and independent recomputation.** With `n = 7` measured rounds, using the archived per-round `wall_ms` series and the case's recorded `gc_ms` total over the same seven rounds:
+
+  `net_wall_ms = mean(wall_ms over 7 rounds) − gc_ms_total / 7`
+
+  | Candidate | Mean wall (ms) | Recorded GC total (ms, 7 rounds) | GC per round (ms) | Net wall (ms) |
+  | --- | ---: | ---: | ---: | ---: |
+  | `delivered-cocoa-interpreted` | `7.430` | `27.639` | `3.948` | `3.482` |
+  | `delivered-terminal-interpreted` | `6.784` | `23.141` | `3.306` | `3.478` |
+  | `reference-interpreted` | `4.676` | `0.000` | `0.000` | `4.676` |
+
+  The recomputation was performed from the archived series; the medians and ratios in the table above are unchanged.
+- **Boundary.** Within this receipt the recorded GC time is sufficient to account for the interpreted-sum difference: after subtracting it, both delivered products are below the reference. This is an accounting statement about the recorded `gc_ms`, not a causal decomposition of the wall clock beyond it, and it does **not** explain why the delivered products collect seven times on a numeric loop where the reference collects zero times. The raw wall-clock regression stands, is retained, and no trigger-frequency cause is claimed.
+- **Local cost retained.** `delivered-cocoa-interpreted` `gc-churn` is slower than the reference (`1.0693x` on the archived median basis, `241.481` vs `225.821` ms; mean-based `1.0516x`) and performs `469` vs `343` collections (`1653.677` vs `1549.448` ms total GC, `3.53` vs `4.52` ms per collection), while its median single pause is shorter (`3.318` vs `4.434` ms). `delivered-terminal-interpreted` `gc-churn` is faster (`0.7573x` median basis) with `427` collections and a `2.737` ms median pause. These local costs are not erased by the interpreted-sum accounting.
+- **Unchanged facts.** `quiet: false` and `entry_load = 0.2801` remain as recorded; the authorized prevailing-load execution on `2026-11-20` and the unchanged `0.10` threshold remain as recorded, as do all archived readings and the Goal status.
+- **Identity cross-check.** A bounded diagnostic on the same delivered terminal product (`a0dd02e1…`) and reference (`23f49087…`) showed the case is a real loop in both modes: the disassembly of the compiled form contains `constant 0 / dup / stack-ref / lss / goto-if-nil / plus`, results are exact (`1249975000`), and a tenfold iteration increase scales the recorded time about tenfold. Those diagnostic artifacts are transient under `build/` and are not part of this receipt.
 
 ### B. Paired 7-Round `bench.py` (`tools/pgo/eval.el` 10 Workloads + Startup)
 
