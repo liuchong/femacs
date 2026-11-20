@@ -1789,8 +1789,6 @@ unsafe fn set_lface_from_font (f: *mut frame, lface: Lisp_Object,
   ASET (lface, LFACE_FONT_INDEX as isize, font_object);
 }
 
-/* C 2184-2243: the `HAVE_WINDOW_SYSTEM` block (`set_lface_from_font`) is dead.  */
-
 /* C 2252-2286: merges the face height FROM with the face height TO, and returns the
    merged height.  */
 
@@ -3139,8 +3137,49 @@ DEFUN! ("internal-set-lisp-face-attribute", Finternal_set_lisp_face_attribute,
     }
   else if EQ (attr, QCfont ())
     {
-      /* C's `HAVE_WINDOW_SYSTEM` arm (the fontset lookup, `font_load_for_lface` and
-	 `set_lface_from_font`) is dead, so the branch body is empty.  */
+      #[cfg (feature = "have_window_system")]
+      if EQ (frame, Qt ()) || FRAME_WINDOW_P (f)
+	{
+	  if ! UNSPECIFIEDP! (value) && ! IGNORE_DEFFACE_P! (value)
+	      && ! RESET_P! (value)
+	    {
+	      old_value = LFACE_FONT! (lface);
+	      if ! FONTP (value)
+		{
+		  if STRINGP (value)
+		    {
+		      let mut name = value;
+		      let fontset = fs_query_fontset (name, 0);
+		      if fontset >= 0
+			{ name = fontset_ascii (fontset); }
+		      value = font_spec_from_name (name);
+		      if ! FONTP (value)
+			{ signal_error (c"Invalid font name".as_ptr (), name); }
+		    }
+		  else
+		    { signal_error (c"Invalid font or font-spec".as_ptr (), value); }
+		}
+
+	      // New-frame defaults use the selected frame to resolve fonts. A
+	      // terminal frame cannot resolve a graphical font.
+	      let font_frame = if EQ (frame, Qt ()) { XFRAME (selected_frame) } else { f };
+	      if FRAME_WINDOW_P (font_frame)
+		{
+		  if ! FONT_OBJECT_P (value)
+		    {
+		      let font_object = font_load_for_lface (
+			font_frame, (*XVECTOR (lface)).contents.as_mut_ptr (), value);
+		      if NILP (font_object)
+			{ signal_error (c"Font not available".as_ptr (), value); }
+		      value = font_object;
+		    }
+		  set_lface_from_font (font_frame, lface, value, true);
+		  frame_bits! (face_change, font_frame, true);
+		}
+	    }
+	  else
+	    { ASET (lface, LFACE_FONT_INDEX as isize, value); }
+	}
     }
   else if EQ (attr, QCfontset ())
     {
@@ -3224,7 +3263,10 @@ DEFUN! ("internal-set-lisp-face-attribute", Finternal_set_lisp_face_attribute,
 
       if EQ (face, Qdefault ())
 	{
-	  /* C's `HAVE_WINDOW_SYSTEM` arm (`set_font_frame_param`) is dead.  */
+	  #[cfg (feature = "have_window_system")]
+	  if FRAMEP (frame) && (prop_index != 0 || EQ (attr, QCfont ()))
+	      && lface_fully_specified_p ((*XVECTOR (lface)).contents.as_ptr ())
+	    { set_font_frame_param (frame, lface); }
 
 	  if EQ (attr, QCforeground ())
 	    { param = Qforeground_color (); }
@@ -3324,7 +3366,30 @@ pub unsafe extern "C" fn update_face_from_frame_parameter (f: *mut frame, param:
     }
 }
 
-/* C 3931-3951: the `HAVE_WINDOW_SYSTEM` block (`set_font_frame_param`) is dead.  */
+/* Set the frame font from a resolved `default' face.  */
+#[cfg (feature = "have_window_system")]
+unsafe fn set_font_frame_param (frame: Lisp_Object, lface: Lisp_Object)
+{
+  let f = XFRAME (frame);
+  let mut font = LFACE_FONT! (lface);
+  if ! FRAME_WINDOW_P (f) || UNSPECIFIEDP! (font)
+    { return; }
+
+  if FONT_SPEC_P (font)
+    {
+      font = font_load_for_lface (f, (*XVECTOR (lface)).contents.as_mut_ptr (), font);
+      if NILP (font)
+	{ return; }
+      ASET (lface, LFACE_FONT_INDEX as isize, font);
+    }
+
+  default_face_done_p! (f, false);
+  AUTO_CONS! (font_arg, Qfont (), font);
+  // This font comes from the face, so discard any explicit frame font.
+  AUTO_CONS! (font_parameter_arg, Qfont_parameter (), Qnil ());
+  AUTO_LIST2! (args, font_arg, font_parameter_arg);
+  gui_set_frame_parameters_1 (f, args, true);
+}
 
 
 DEFUN! ("face-attribute-relative-p", Fface_attribute_relative_p,
@@ -3510,7 +3575,12 @@ DEFUN! ("internal-merge-in-global-face", Finternal_merge_in_global_face,
 	      let name: Lisp_Object = (*((*newface).font)).props[FONT_NAME_INDEX as usize];
 	      AUTO_FRAME_ARG! (arg, Qfont (), name);
 
-	      /* C's `HAVE_WINDOW_SYSTEM` arm (`gui_set_frame_parameters_1`) is dead.  */
+	      #[cfg (feature = "have_window_system")]
+	      if FRAME_WINDOW_P (f)
+		{ gui_set_frame_parameters_1 (f, arg, true); }
+	      else
+		{ Fmodify_frame_parameters (frame, arg); }
+	      #[cfg (not (feature = "have_window_system"))]
 	      Fmodify_frame_parameters (frame, arg);
 	    }
 

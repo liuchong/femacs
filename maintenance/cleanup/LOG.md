@@ -1,3 +1,8 @@
+## CLN274 — 2026-11-20: Cocoa default-font build and verification scratch
+
+- Released the owned build and Cocoa object roots after verifying the signed bundle and the installed app (`5,947` files, `461` directories, `8` symlinks, `342,662,761` logical bytes).
+- [Report and recovery recipe](reports/2026-11-20-274-cocoa-default-font.md).
+
 ## CLN273 — 2026-11-20: final retirement of `build/acceptance`, `build/runtime`, `.femacs-cache`, and staging backups
 
 - Released: `8` owned scopes (`159,109` files, `21,542` directories, `1,843` symlinks; `10,763,439,608` logical bytes; normalized digest `a3a6af215b15d77a519e8e686e38ae429f879f1b38f957e49ee057b20c56bfe7`), covering `build/acceptance`, `build/runtime` (`native-2` & `frozen-2`), `.femacs-cache`, `dist/macos/.Femacs-before-p466.app`, `build/terminal/{image,image-staging}`, and `P-190` hardlinked `emacs-32.0.50.1{,.pdmp}` aliases.
