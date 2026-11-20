@@ -1,5 +1,6 @@
 use fe_packaging::{
-    APP_ICON, LOGO, install_macos_icon, macho_payload_sha256, render, run, sha256, validate_app,
+    APP_ICON_DARK, APP_ICON_LIGHT, LOGO, install_macos_icon, macho_payload_sha256, render,
+    render_app_icon, run, sha256, validate_app,
 };
 use std::{
     env, fs,
@@ -23,8 +24,9 @@ fn execute() -> Result<(), String> {
             let out = PathBuf::from(&args[2]);
             if let Some(parent) = out.parent().filter(|p| !p.as_os_str().is_empty()) { fs::create_dir_all(parent).map_err(|e|e.to_string())?; }
             fs::create_dir(&out).map_err(|e| format!("fresh artwork directory required: {e}"))?;
-            for (name, svg) in [("fe-logo",LOGO),("fe-app",APP_ICON)] {
-                fs::write(out.join(format!("{name}.png")), render(svg, 1024)?).map_err(|e|e.to_string())?;
+            fs::write(out.join("fe-logo.png"), render(LOGO, 1024)?).map_err(|e|e.to_string())?;
+            for (name, svg) in [("fe-app", APP_ICON_LIGHT), ("fe-app-dark", APP_ICON_DARK)] {
+                fs::write(out.join(format!("{name}.png")), render_app_icon(svg, 1024)?).map_err(|e|e.to_string())?;
             }
             fs::write(out.join("Fe.icns"), fe_packaging::icns()?).map_err(|e|e.to_string())?;
             Ok(())
@@ -62,6 +64,7 @@ fn execute() -> Result<(), String> {
             run(Command::new("hdiutil").arg("verify").arg(&image),"verify release disk image")?;
             let signed_program = sha256(&app.join(program))?;
             let icon_sha = sha256(&app.join("Contents/Resources/Fe.icns"))?;
+            let icon_assets_sha = sha256(&app.join("Contents/Resources/Assets.car"))?;
             fs::rename(&app, output.join("Fe.app")).map_err(|e|e.to_string())?;
             fs::remove_dir(&payload).map_err(|e|e.to_string())?;
             let image_sha = sha256(&image)?;
@@ -71,7 +74,7 @@ fn execute() -> Result<(), String> {
                 "app":"Fe.app","image":"Fe-macos.dmg","image_sha256":image_sha,
                 "input_program_sha256":input_program,"program_sha256":signed_program,
                 "macho_payload_sha256":payload_sha,"dump_sha256":input_dump,
-                "icon_sha256":icon_sha,
+                "icon_sha256":icon_sha,"icon_assets_sha256":icon_assets_sha,
                 "compatibility":"packaging verification only; see the matching native acceptance record"});
             fs::write(output.join("release.json"),format!("{}\n",serde_json::to_string_pretty(&manifest).map_err(|e|e.to_string())?)).map_err(|e|e.to_string())?;
             println!("{}", output.display());

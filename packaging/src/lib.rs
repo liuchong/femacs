@@ -1,16 +1,22 @@
 //! Fe artwork and platform release packaging. The editor remains built by xtask.
+use resvg::{tiny_skia, usvg};
 use sha2::{Digest, Sha256};
 use std::{fs, path::Path, process::Command};
 
 pub const LOGO: &[u8] = include_bytes!("../assets/fe-logo.png");
-pub const APP_ICON: &[u8] = LOGO;
+pub const APP_ICON_LIGHT: &[u8] = include_bytes!("../assets/Fe.icon/Assets/Light.svg");
+pub const APP_ICON_DARK: &[u8] = include_bytes!("../assets/Fe.icon/Assets/Dark.svg");
 
-pub fn render(png: &[u8], size: u32) -> Result<Vec<u8>, String> {
+fn icon_canvas(size: u32) -> Result<tiny_skia::Pixmap, String> {
     if !(16..=2048).contains(&size) {
         return Err("icon size must be 16..2048".into());
     }
+    tiny_skia::Pixmap::new(size, size).ok_or_else(|| "icon allocation failed".to_string())
+}
+
+pub fn render(png: &[u8], size: u32) -> Result<Vec<u8>, String> {
+    let mut pixels = icon_canvas(size)?;
     let source = tiny_skia::Pixmap::decode_png(png).map_err(|e| e.to_string())?;
-    let mut pixels = tiny_skia::Pixmap::new(size, size).ok_or("icon allocation failed")?;
     let paint = tiny_skia::PixmapPaint {
         quality: tiny_skia::FilterQuality::Bicubic,
         ..Default::default()
@@ -26,6 +32,23 @@ pub fn render(png: &[u8], size: u32) -> Result<Vec<u8>, String> {
         &paint,
         tiny_skia::Transform::from_row(scale, 0.0, 0.0, scale, dx, dy),
         None,
+    );
+    pixels.encode_png().map_err(|e| e.to_string())
+}
+
+/// Render the square Dock master at its destination resolution.
+pub fn render_app_icon(svg: &[u8], size: u32) -> Result<Vec<u8>, String> {
+    let mut pixels = icon_canvas(size)?;
+    let tree = usvg::Tree::from_data(svg, &usvg::Options::default()).map_err(|e| e.to_string())?;
+    let master = tree.size();
+    if master.width() != master.height() {
+        return Err("Dock artwork must be square".into());
+    }
+    let scale = size as f32 / master.width();
+    resvg::render(
+        &tree,
+        tiny_skia::Transform::from_scale(scale, scale),
+        &mut pixels.as_mut(),
     );
     pixels.encode_png().map_err(|e| e.to_string())
 }
@@ -46,7 +69,7 @@ pub fn icns() -> Result<Vec<u8>, String> {
         ("ic13", 256),
         ("ic14", 512),
     ] {
-        let png = render(APP_ICON, size)?;
+        let png = render_app_icon(APP_ICON_LIGHT, size)?;
         data.extend_from_slice(kind.as_bytes());
         data.extend_from_slice(&((png.len() + 8) as u32).to_be_bytes());
         data.extend_from_slice(&png);
@@ -65,26 +88,62 @@ pub fn run(command: &mut Command, label: &str) -> Result<(), String> {
     }
 }
 
-/// Called on an owned, unsigned bundle stage before the existing signing step.
-pub fn install_macos_icon(app: &Path) -> Result<(), String> {
-    if !cfg!(target_os = "macos") {
-        return Err("macOS branding requires macOS".into());
+fn compile_macos_icon(app: &Path, stage: &Path) -> Result<(), String> {
+    let source = Path::new(env!("CARGO_MANIFEST_DIR")).join("assets/Fe.icon");
+    let plist = app.join("Contents/Info.plist");
+    run(
+        Command::new("xcrun")
+            .args(["--sdk", "macosx", "actool", "--compile"])
+            .arg(stage)
+            .args([
+                "--platform",
+                "macosx",
+                "--minimum-deployment-target",
+                "26.0",
+                "--app-icon",
+                "Fe",
+                "--output-partial-info-plist",
+            ])
+            .arg(stage.join("icon-info.plist"))
+            .arg(source),
+        "compile light and dark Dock artwork (requires Xcode with Icon Composer support)",
+    )?;
+    let resources = app.join("Contents/Resources");
+    for name in ["Assets.car", "Fe.icns"] {
+        if !stage.join(name).is_file() {
+            return Err(format!("icon compiler did not produce {name}"));
+        }
     }
-    validate_app(app)?;
-    fs::write(app.join("Contents/Resources/Fe.icns"), icns()?).map_err(|e| e.to_string())?;
+    for name in ["Assets.car", "Fe.icns"] {
+        fs::rename(stage.join(name), resources.join(name)).map_err(|e| e.to_string())?;
+    }
     for (key, value) in [
-        ("CFBundleIconFile", "Fe.icns"),
+        ("CFBundleIconFile", "Fe"),
+        ("CFBundleIconName", "Fe"),
         ("CFBundleName", "Fe"),
         ("CFBundleDisplayName", "Fe"),
     ] {
         run(
             Command::new("plutil")
                 .args(["-replace", key, "-string", value])
-                .arg(app.join("Contents/Info.plist")),
+                .arg(&plist),
             "set bundle artwork metadata",
         )?;
     }
     Ok(())
+}
+
+/// Called on an owned, unsigned bundle stage before the existing signing step.
+pub fn install_macos_icon(app: &Path) -> Result<(), String> {
+    if !cfg!(target_os = "macos") {
+        return Err("macOS branding requires macOS".into());
+    }
+    validate_app(app)?;
+    let stage = app.join("Contents/.fe-icon");
+    fs::create_dir(&stage).map_err(|e| format!("create Dock icon stage: {e}"))?;
+    let result = compile_macos_icon(app, &stage);
+    let cleanup = fs::remove_dir_all(&stage).map_err(|e| format!("remove Dock icon stage: {e}"));
+    result.and(cleanup)
 }
 
 pub fn validate_app(app: &Path) -> Result<(), String> {
@@ -217,11 +276,14 @@ mod tests {
     #[test]
     fn artwork_and_icns_representations() {
         let start = Instant::now();
-        for svg in [LOGO, APP_ICON] {
-            let png = render(svg, 32).expect("render artwork");
+        let light = render_app_icon(APP_ICON_LIGHT, 32).expect("render light Dock artwork");
+        let dark = render_app_icon(APP_ICON_DARK, 32).expect("render dark Dock artwork");
+        assert_ne!(light, dark);
+        for png in [light, dark] {
             let image = tiny_skia::Pixmap::decode_png(&png).expect("decode PNG");
             assert_eq!((image.width(), image.height()), (32, 32));
-            assert!(image.pixels().iter().any(|p| p.alpha() > 0));
+            assert_eq!(image.pixel(0, 0).expect("corner").alpha(), 0);
+            assert_eq!(image.pixel(16, 16).expect("center").alpha(), 255);
         }
         let file = icns().expect("ICNS generation");
         assert_eq!(&file[..4], b"icns");
@@ -243,8 +305,8 @@ mod tests {
         }
         assert_eq!(offset, file.len());
         assert_eq!(count, 11);
-        assert!(render(APP_ICON, 0).is_err());
-        assert!(render(APP_ICON, 4096).is_err());
+        assert!(render_app_icon(APP_ICON_LIGHT, 0).is_err());
+        assert!(render_app_icon(APP_ICON_LIGHT, 4096).is_err());
         eprintln!(
             "artwork_and_icns_representations seconds={}",
             start.elapsed().as_secs_f64()

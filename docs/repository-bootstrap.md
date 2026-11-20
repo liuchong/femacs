@@ -60,7 +60,7 @@ Baseline: `24f8cf64`, branch `master`, initially clean. This delivery changes re
 
 Q1: Lift every owned implementation tree from `femacs/` into the repository root. Merge README content and build directories; preserve the actual root Git database, unrelated files and the optional read-only reference. The nested `.git` is only an obsolete redirect and must not replace the real database.
 Q2: Generate runtime resources from committed raw data and generator sources, without accessing the optional reference checkout or its configured/build products.
-Q3: Build terminal and native Cocoa products from a fresh tracked-file export with no caches, reference checkout, installed editor or prior binary. Package and run the new application. External prerequisites are Xcode command-line tools/Swift, Python 3, GNU awk, gzip and the pinned Rust toolchain. Supported independent target: Apple Silicon macOS; reject other hosts explicitly.
+Q3: Build terminal and native Cocoa products from a fresh tracked-file export with no caches, reference checkout, installed editor or prior binary. Package and run the new application. External prerequisites are Xcode command-line tools/Swift, Python 3, GNU awk, gzip and the pinned Rust toolchain. Cocoa app bundling also uses Xcode's Icon Composer-capable `actool` to compile the light/dark Dock icon. Supported independent target: Apple Silicon macOS; reject other hosts explicitly.
 Q4: Anchor ignore rules to the new root. Keep raw dictionaries, Unicode data, grammar inputs, source icons and test fixtures tracked. Generated reports are distinct from XML test inputs.
 
 ### Historical pre-expansion tree and flow

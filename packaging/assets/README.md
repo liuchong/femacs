@@ -1,18 +1,17 @@
 # Fe: iron F and vertical GNU-horn master
 
-`fe-logo.png` is the user-selected transparent master for both READMEs and the
-native App icon. An ordinary upright F retains a light iron texture and rust
+`fe-logo.png` is the permanent original transparent master for both READMEs.
+An ordinary upright F retains a light iron texture and rust
 accents. The smaller right-hand sign follows a GNU horn pair rotated clockwise
 into a vertical arrangement: two inward-facing returns, no added middle branch
 and no animal face. The rounded central shoulder strengthens the e reading at small sizes
-without an added horizontal bar. The proportions of the rectangular master are retained in
-square icon outputs through uniform scaling and transparent padding.
+without an added horizontal bar. Preserve the original PNG and its provenance.
 
-The committed pixels are the production input. A built-in image-generation
-edit produced the master; regenerating from text is not byte-reproducible.
-Rust resizing and ICNS assembly are deterministic from the committed master.
-Builds need no image service, fonts, network or reference checkout. Preserve
-the alpha channel and the standard content-provenance metadata.
+A built-in image-generation edit produced the original master. The separate
+`Fe.icon` package holds the user-approved fog-silver and gunmetal Dock variants.
+Their matching geometric paths trace the original alpha outline. Vector shapes
+retain selected rust accents. Xcode compiles the package into appearance-specific
+bundle artwork from the checked-in sources.
 
 ## Reference and attribution
 

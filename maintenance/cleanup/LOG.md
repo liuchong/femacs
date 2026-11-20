@@ -1,3 +1,8 @@
+## CLN276 — 2026-11-20: Dock artwork packaging and installation
+
+- Retired the two replaced bundles and the owned icon packaging work tree after verifying the installed and workspace copies (`14,593` files, `616` directories, `3` symlinks, `1,267,675,583` logical bytes).
+- [Report and recovery recipe](reports/2026-11-20-276-macos-dock-artwork.md).
+
 ## CLN275 — 2026-11-20: Cocoa GIF decoder build and image checks
 
 - Released the two owned Cocoa build roots and their caches after the signed package was installed and verified (`11,449` files, `691` directories, `14` symlinks, `629,350,888` logical bytes).

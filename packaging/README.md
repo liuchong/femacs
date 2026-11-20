@@ -6,24 +6,23 @@ and platform packaging. It packages an existing editor build; it does not replac
 
 ## Artwork
 
-`assets/fe-logo.png` is the selected transparent master: an upright iron F
-beside a smaller pair of GNU-inspired horns rotated vertically. The two inward
-returns suggest e without an added middle branch or animal face. Worn gray iron
-and restrained orange-red oxidation connect the name with its material.
-The same master is used in both READMEs and the native icon; each square icon
-fits the artwork uniformly with transparent padding, preserving its proportions.
+`assets/fe-logo.png` is the original iron master used by both READMEs.
+The macOS Dock artwork lives in [Fe.icon](assets/Fe.icon/icon.json), with
+light and dark SVGs that use the same F and horn contours and restrained rust
+accents.
 Artwork provenance and attribution are in [assets/README.md](assets/README.md).
 
 ```sh
 cargo run -p fe-packaging -- artwork --out build/fe-artwork
 ```
 
-The fresh output contains 1024-pixel previews and an ICNS with normal/Retina
-representations from 16 through 1024 pixels. Rectangular masters are uniformly fitted and centered with transparent padding,
-so square icons preserve their source proportions. PNG resampling has no system-font or
-network dependency. `Cargo.lock` pins the image renderer. Standard Cocoa builds install
-`Fe.icns` and its bundle metadata before signing, so the icon persists on rebuild.
-This is a conventional ICNS icon, not a claim of layered Tahoe appearance support.
+The fresh output contains the original logo fitted into a 1024-pixel square,
+the light and dark Dock previews, and a light ICNS with representations from
+16 through 1024 pixels. `Cargo.lock` pins the portable image renderer.
+Cocoa bundling uses Xcode's `actool` with Icon Composer support to compile
+`Assets.car` and a standard `Fe.icns` before signing. macOS 26 and later
+select the artwork using the system's icon appearance setting. The ICNS
+provides the default for systems that use conventional bundle icons.
 
 ## macOS
 
