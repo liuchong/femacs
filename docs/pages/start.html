@@ -3,346 +3,127 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Build, Try &amp; Acceptance — Fe (femacs)</title>
-  <meta name="description" content="Complete guide to building Fe from source on Apple Silicon macOS, launching terminal and Swift Cocoa GUI builds, running local acceptance, and packaging Femacs.app.">
+  <meta name="color-scheme" content="light dark">
+  <title>Build and try · FEmacs</title>
+  <meta name="description" content="Build the FEmacs terminal editor and native macOS app from a clean checkout.">
+  <link rel="canonical" href="https://femacs.com/pages/start.html">
   <link rel="icon" type="image/png" href="assets/fe-logo.png">
   <link rel="stylesheet" href="assets/site.css">
   <script type="importmap">
     {
       "imports": {
-        "eliscript/platform/browser": "https://unpkg.com/eliscript@0.1.1/platform/browser.mjs",
-        "eliscript/": "https://unpkg.com/eliscript@0.1.1/"
+        "eliscript/platform/browser": "https://unpkg.com/eliscript@0.1.3/platform/browser.mjs",
+        "eliscript/": "https://unpkg.com/eliscript@0.1.3/"
       }
     }
   </script>
 </head>
 <body>
-  <a class="skip-link" href="#main-content">Skip to main content</a>
-
+  <a class="skip-link" href="#main-content">Skip to content</a>
   <header class="site-header">
-    <div class="header-inner">
-      <a class="brand-link" href="../index.html">
-        <img class="brand-logo" src="assets/fe-logo.png" alt="Fe forged iron logo" width="36" height="36">
-        <div class="brand-title">
-          <span class="brand-symbol">Fe<span>26 · femacs</span></span>
-          <span class="brand-sub">Rust Core &amp; Swift Cocoa · Lisp Extensibility</span>
-        </div>
+    <div class="shell site-header-inner">
+      <a class="brand" href="../index.html" aria-label="Fe home">
+        <img width="36" height="29" src="assets/fe-logo.png" alt="">
+        <span>FEmacs</span>
       </a>
-
-      <nav class="site-nav" aria-label="Primary Navigation">
-        <a class="nav-link" href="../index.html">Overview</a>
-        <a class="nav-link" href="start.html" aria-current="page">Build &amp; Try</a>
-        <a class="nav-link" href="architecture.html">Architecture &amp; GC</a>
-        <a class="nav-link" href="docs-hub.html">Docs Hub</a>
+      <nav class="site-nav" aria-label="Main navigation">
+        <a href="../index.html">Overview</a>
+        <a href="../pages/start.html" aria-current="page">Build</a>
+        <a href="../pages/architecture.html">Architecture</a>
+        <a href="../pages/docs-hub.html">Docs</a>
       </nav>
-
-      <div class="header-controls">
-        <button type="button" class="lang-btn" data-lang-switch lang="zh-CN">中文摘要 / EN</button>
-        <span class="eli-runtime-pill" data-eli-status data-eli-ready="false" title="Interactive behavior compiled in-browser from docs/pages/site.eli">
-          <span class="eli-dot"></span>
-          <span data-eli-status-text role="status">Eliscript · loading</span>
-        </span>
+      <div class="header-actions">
+        <button type="button" class="language-button" lang="zh-CN" data-lang-switch data-eli-control disabled>中文摘要</button>
+        <a class="source-link" href="https://github.com/liuchong/femacs">GitHub <span aria-hidden="true">↗</span></a>
       </div>
     </div>
   </header>
+  <main class="shell" id="main-content">
+    <header class="page-intro">
+      <p class="eyebrow">Build and try</p>
+      <h1><span data-lang-en lang="en">Run Fe on your Mac.</span><span data-lang-zh lang="zh-CN">在 Mac 上运行 Fe。</span></h1>
+      <p class="lede" data-lang-en lang="en">Build the native macOS app or terminal editor from a clean checkout.</p>
+      <p class="lede" data-lang-zh lang="zh-CN">从干净检出构建原生 macOS 应用或终端版。</p>
+    </header>
 
-  <main id="main-content" class="page-shell">
-    <section class="hero-panel" aria-labelledby="start-hero-heading">
-      <div class="eyebrow">
-        <span data-lang-en lang="en">Standalone Source Bootstrap · Apple Silicon macOS</span>
-        <span data-lang-zh lang="zh-CN">独立源码自举构建 · Apple Silicon macOS</span>
+    <section class="section reading" id="prereq-heading" aria-labelledby="prereq-title">
+      <h2 id="prereq-title">Before you build</h2>
+      <p>Use an Apple silicon Mac with Rustup, Python 3.9+, GNU awk, GNU Texinfo and pkg-config. For Cocoa bundling, use Xcode with Icon Composer support. The repository pins its Rust toolchain.</p>
+      <p>Follow the <a href="https://github.com/liuchong/femacs/blob/master/docs/repository-bootstrap.md">bootstrap guide</a> for dependency details. Both builds generate resources from the checked-in sources.</p>
+
+    <article class="command-panel" >
+      <div class="command-heading">
+        <div><h3>Select the pinned Tree-sitter SDK</h3><p>Run from the repository root. The install command prepares a separate prefix for Tree-sitter 0.27.1.</p></div>
+        <button type="button" class="copy-button" data-copy-target="#code-sdk" data-eli-control disabled>Copy</button>
       </div>
-      <h1 id="start-hero-heading" class="hero-title">
-        <span data-lang-en lang="en">Build, Try &amp; Verify Fe on macOS</span>
-        <span data-lang-zh lang="zh-CN">在 macOS 上构建、试用与验收 Fe</span>
-      </h1>
-      <p class="hero-lead" data-lang-en lang="en">
-        Fe builds directly from this repository on <code>aarch64-apple-darwin</code> without requiring an external reference checkout or prebuilt C object tree. Follow the steps below to build the terminal binary, assemble the native Swift Cocoa app bundle, and run local acceptance.
-      </p>
-      <p class="hero-lead" data-lang-zh lang="zh-CN">
-        Fe 可在 <code>aarch64-apple-darwin</code> 上直接从本仓库独立完成源码构建，无需外部参照源码检出或预编译 C 目标树。按以下步骤即可构建终端二进制、生成原生 Swift Cocoa 应用包并运行本地验收。
-      </p>
+      <pre tabindex="0"><code id="code-sdk">export FEMACS_TREE_SITTER_PREFIX=&quot;$PWD/build/tree-sitter-sdk&quot;
+python3 tools/toolchain-pins.py install --prefix &quot;$FEMACS_TREE_SITTER_PREFIX&quot;
+export PKG_CONFIG_PATH=&quot;$FEMACS_TREE_SITTER_PREFIX/lib/pkgconfig&quot;
+pkg-config --modversion tree-sitter</code></pre>
+    </article>
+
     </section>
-
-    <!-- Step 1: Prerequisites -->
-    <section class="section-block" aria-labelledby="prereq-heading">
-      <div class="section-header">
-        <div>
-          <h2 id="prereq-heading" class="section-title">
-            <span data-lang-en lang="en">1. Host Prerequisites &amp; Support Matrix</span>
-            <span data-lang-zh lang="zh-CN">1. 主机环境依赖与平台支持矩阵</span>
-          </h2>
-          <p class="section-subtitle">
-            <span data-lang-en lang="en">Documented in <a href="../repository-bootstrap.md"><code>docs/repository-bootstrap.md</code></a> and <a href="../support-matrix.md"><code>docs/support-matrix.md</code></a>.</span>
-            <span data-lang-zh lang="zh-CN">详见 <a href="../repository-bootstrap.md"><code>docs/repository-bootstrap.md</code></a> 与 <a href="../support-matrix.md"><code>docs/support-matrix.md</code></a>。</span>
-          </p>
+    <section class="section reading" id="build-steps-heading" aria-labelledby="build-title">
+      <h2 id="build-title">Build and launch</h2>
+      <div data-workflow-group>
+        <div class="control-row tab-row" role="tablist" aria-label="Build and verification commands" data-eli-tools hidden>
+        <button type="button" id="tab-cocoa" role="tab" aria-selected="true" aria-controls="panel-cocoa" data-workflow-tab="cocoa">macOS app</button>
+        <button type="button" id="tab-terminal" role="tab" aria-selected="false" aria-controls="panel-terminal" data-workflow-tab="terminal">Terminal</button>
+        <button type="button" id="tab-verify" role="tab" aria-selected="false" aria-controls="panel-verify" data-workflow-tab="verify">Verify</button>
         </div>
+
+    <article class="command-panel" id="panel-cocoa" role="tabpanel" aria-labelledby="tab-cocoa" data-workflow-panel="cocoa">
+      <div class="command-heading">
+        <div><h3>Build and run the Cocoa app</h3><p>Start with a clean profile using <code>-Q</code>.</p></div>
+        <button type="button" class="copy-button" data-copy-target="#code-cocoa" data-eli-control disabled>Copy</button>
       </div>
+      <pre tabindex="0"><code id="code-cocoa">cargo run -p xtask -- build-macos
+dist/macos/Femacs.app/Contents/MacOS/Femacs -Q</code></pre>
+    </article>
 
-      <div class="card-grid-2">
-        <article class="surface-card">
-          <h3>
-            <span>Required Host Tooling</span>
-            <span class="badge badge-ok">macOS arm64</span>
-          </h3>
-          <p>
-            Ensure the following four tools are installed before running <code>xtask</code> or <code>bootstrap-resources.py</code>:
-          </p>
-          <ul>
-            <li><strong>Xcode Command Line Tools</strong> (<code>xcode-select --install</code>) — provides <code>clang</code>, <code>swiftc</code>, <code>ar</code>, <code>codesign</code>, and <code>hdiutil</code>.</li>
-            <li><strong>Rust toolchain via <code>rustup</code></strong> — the dated toolchain pinned in <code>rust-toolchain.toml</code> targeting <code>aarch64-apple-darwin</code>.</li>
-            <li><strong>Python 3.9+</strong> — drives <code>tools/bootstrap-resources.py</code>, <code>tools/local-acceptance.py</code>, and <code>tools/bench.py</code>.</li>
-            <li><strong>GNU Awk (<code>gawk</code>)</strong> — required by <code>admin/charsets/*.awk</code> recipes during charset generation (<code>brew install gawk</code>).</li>
-          </ul>
-        </article>
 
-        <article class="surface-card">
-          <h3>
-            <span>Platform Tier Summary</span>
-            <span class="badge badge-guard">Support Matrix</span>
-          </h3>
-          <p>
-            The <a href="../support-matrix.md"><code>docs/support-matrix.md</code></a> separates retained support obligations from actual acceptance evidence:
-          </p>
-          <ul>
-            <li><strong>Locally verified scope:</strong> Apple Silicon macOS (<code>aarch64-apple-darwin</code>) — terminal binary + Swift Cocoa <code>Femacs.app</code> + portable dump.</li>
-            <li><strong>Retained / separately validated:</strong> Linux, BSD, Windows and Haiku backends and the Android Kotlin layer remain in tree; this site does not claim current device acceptance for them.</li>
-            <li><strong>Scoped infrastructure cleanup:</strong> Removed tools and their replacements are individually recorded in <a href="../retired-scaffolding.md"><code>docs/retired-scaffolding.md</code></a>.</li>
-          </ul>
-        </article>
+    <article class="command-panel" id="panel-terminal" role="tabpanel" aria-labelledby="tab-terminal" data-workflow-panel="terminal">
+      <div class="command-heading">
+        <div><h3>Build and run the terminal editor</h3><p>Launch inside your terminal without loading personal configuration.</p></div>
+        <button type="button" class="copy-button" data-copy-target="#code-terminal" data-eli-control disabled>Copy</button>
+      </div>
+      <pre tabindex="0"><code id="code-terminal">cargo run -p xtask -- build-terminal
+build/terminal/port/src/emacs -Q -nw</code></pre>
+    </article>
+
+
+    <article class="command-panel" id="panel-verify" role="tabpanel" aria-labelledby="tab-verify" data-workflow-panel="verify">
+      <div class="command-heading">
+        <div><h3>Verify existing builds</h3><p>Build both products before running local acceptance. Choose a fresh result directory.</p></div>
+        <button type="button" class="copy-button" data-copy-target="#code-verify" data-eli-control disabled>Copy</button>
+      </div>
+      <pre tabindex="0"><code id="code-verify">python3 tools/local-acceptance.py --out build/acceptance/local-run</code></pre>
+    </article>
+
       </div>
     </section>
-
-    <p class="page-shell">Run commands from a tracked checkout. Build both products before local acceptance. Compiler and editor workloads belong under your resource controller. Receipt, benchmark and release output directories must be fresh; GUI/IME checks need an unlocked desktop and the event helpers described in the macOS guide. The local app is ad-hoc signed and not notarized.</p>
-
-    <!-- Step 2: Interactive Build Commands -->
-    <section class="section-block" aria-labelledby="build-steps-heading">
-      <div class="section-header">
-        <div>
-          <h2 id="build-steps-heading" class="section-title">
-            <span data-lang-en lang="en">2. Standalone Build, Package &amp; Acceptance Commands</span>
-            <span data-lang-zh lang="zh-CN">2. 独立构建、打包与本地验收命令</span>
-          </h2>
-          <p class="section-subtitle">
-            <span data-lang-en lang="en">Switch tabs to inspect each stage of the standalone build and verification pipeline.</span>
-            <span data-lang-zh lang="zh-CN">点击切换各构建与验收阶段命令，支持一键复制。</span>
-          </p>
-        </div>
-      </div>
-
-      <div class="workflow-lab" data-workflow-group>
-        <div class="workflow-tabs" role="tablist" aria-label="Standalone build stages">
-          <button type="button" class="workflow-tab" role="tab" id="tab-stage-bootstrap" aria-controls="panel-stage-bootstrap" tabindex="0" aria-selected="true" data-workflow-tab="stage-bootstrap">A. Repository Check</button>
-          <button type="button" class="workflow-tab" role="tab" id="tab-stage-terminal" aria-controls="panel-stage-terminal" tabindex="-1" aria-selected="false" data-workflow-tab="stage-terminal">B. Terminal Build</button>
-          <button type="button" class="workflow-tab" role="tab" id="tab-stage-macos" aria-controls="panel-stage-macos" tabindex="-1" aria-selected="false" data-workflow-tab="stage-macos">C. macOS GUI App</button>
-          <button type="button" class="workflow-tab" role="tab" id="tab-stage-dmg" aria-controls="panel-stage-dmg" tabindex="-1" aria-selected="false" data-workflow-tab="stage-dmg">D. DMG Packaging</button>
-          <button type="button" class="workflow-tab" role="tab" id="tab-stage-accept" aria-controls="panel-stage-accept" tabindex="-1" aria-selected="false" data-workflow-tab="stage-accept">E. Local Acceptance</button>
-        </div>
-
-        <div class="workflow-panel" role="tabpanel" id="panel-stage-bootstrap" aria-labelledby="tab-stage-bootstrap" data-workflow-panel="stage-bootstrap">
-          <div class="workflow-panel-head">
-            <div>
-              <h3 class="workflow-panel-title">Stage A — Verify the Repository Layout</h3>
-              <p class="workflow-panel-desc">Checks the root layout and committed generation inputs; the build steps below generate resources automatically.</p>
-            </div>
-            <button type="button" class="copy-btn" data-copy-target="#code-stage-bootstrap">Copy</button>
-          </div>
-          <pre id="code-stage-bootstrap"><code>python3 tools/test-repository-bootstrap.py</code></pre>
-        </div>
-
-        <div class="workflow-panel" role="tabpanel" id="panel-stage-terminal" aria-labelledby="tab-stage-terminal" data-workflow-panel="stage-terminal" hidden>
-          <div class="workflow-panel-head">
-            <div>
-              <h3 class="workflow-panel-title">Stage B — Build &amp; Run the Terminal Binary</h3>
-              <p class="workflow-panel-desc">Produces <code>build/terminal/port/src/temacs</code>, <code>build/terminal/port/src/emacs</code>, and <code>emacs.pdmp</code>.</p>
-            </div>
-            <button type="button" class="copy-btn" data-copy-target="#code-stage-terminal">Copy</button>
-          </div>
-          <pre id="code-stage-terminal"><code>cargo run -p xtask -- build-terminal
-
-# Run interactive terminal UI (-nw) without loading personal init files (-Q)
-build/terminal/port/src/emacs -Q -nw
-
-# Run batch expression evaluation
-build/terminal/port/src/emacs -Q --batch --eval '(princ (format "Fe %s on %s\n" emacs-version system-configuration))'</code></pre>
-        </div>
-
-        <div class="workflow-panel" role="tabpanel" id="panel-stage-macos" aria-labelledby="tab-stage-macos" data-workflow-panel="stage-macos" hidden>
-          <div class="workflow-panel-head">
-            <div>
-              <h3 class="workflow-panel-title">Stage C — Build &amp; Try the Native Swift Cocoa Application</h3>
-              <p class="workflow-panel-desc">Produces <code>dist/macos/Femacs.app</code> with bundled Lisp, charsets, icons, and portable dump.</p>
-            </div>
-            <button type="button" class="copy-btn" data-copy-target="#code-stage-macos">Copy</button>
-          </div>
-          <pre id="code-stage-macos"><code>cargo run -p xtask -- build-macos
-
-# Launch the GUI app bundle with a clean profile
-dist/macos/Femacs.app/Contents/MacOS/Femacs -Q
-
-# Or open through macOS LaunchServices
-open dist/macos/Femacs.app</code></pre>
-        </div>
-
-        <div class="workflow-panel" role="tabpanel" id="panel-stage-dmg" aria-labelledby="tab-stage-dmg" data-workflow-panel="stage-dmg" hidden>
-          <div class="workflow-panel-head">
-            <div>
-              <h3 class="workflow-panel-title">Stage D — Package Distributable macOS Disk Image (DMG)</h3>
-              <p class="workflow-panel-desc">Documented in <a href="https://github.com/liuchong/femacs/blob/master/packaging/README.md"><code>packaging/README.md</code></a>; creates <code>.app</code>, <code>.dmg</code>, and <code>SHA256SUMS</code>.</p>
-            </div>
-            <button type="button" class="copy-btn" data-copy-target="#code-stage-dmg">Copy</button>
-          </div>
-          <pre id="code-stage-dmg"><code>cargo run -p fe-packaging -- macos --app dist/macos/Femacs.app --out dist/releases/local
-
-# Inspect generated release artifacts and SHA-256 digests
-ls -lh dist/releases/local/
-cat dist/releases/local/SHA256SUMS</code></pre>
-        </div>
-
-        <div class="workflow-panel" role="tabpanel" id="panel-stage-accept" aria-labelledby="tab-stage-accept" data-workflow-panel="stage-accept" hidden>
-          <div class="workflow-panel-head">
-            <div>
-              <h3 class="workflow-panel-title">Stage E — Run Local Acceptance &amp; Differential/Benchmark Tools</h3>
-              <p class="workflow-panel-desc">Verifies batch evaluation, terminal PTY rendering, ERT suites, and optional live GUI + IME checks.</p>
-            </div>
-            <button type="button" class="copy-btn" data-copy-target="#code-stage-accept">Copy</button>
-          </div>
-          <pre id="code-stage-accept"><code># Default local acceptance run (terminal + macOS bundle + batch/PTY/ERT)
-python3 tools/local-acceptance.py --out build/acceptance/local-run
-
-# Optional live GUI/IME checks require the two compiled event helpers; see the macOS guide
-python3 tools/local-acceptance.py --gui --ime --sender build/macos-acceptance/macos-events --sources build/macos-acceptance/input-source --out build/acceptance/local-gui-ime
-
-# Run performance workload benchmark suite
-python3 tools/bench.py --prog build/terminal/port/src/emacs --rounds 5 --out build/bench/local</code></pre>
-        </div>
-      </div>
-    </section>
-
-    <!-- Step 3: Tryout & Keyboard Guide -->
-    <section class="section-block" aria-labelledby="tryout-heading">
-      <div class="section-header">
-        <div>
-          <h2 id="tryout-heading" class="section-title">
-            <span data-lang-en lang="en">3. Daily Tryout Essentials &amp; Classic Keybindings</span>
-            <span data-lang-zh lang="zh-CN">3. 日常试用要点与经典快捷键速查</span>
-          </h2>
-          <p class="section-subtitle">
-            <span data-lang-en lang="en">Summarized from <a href="../macos-tryout.md"><code>docs/macos-tryout.md</code></a>. Fe keeps classic chords unmodified.</span>
-            <span data-lang-zh lang="zh-CN">摘自 <a href="../macos-tryout.md"><code>docs/macos-tryout.md</code></a>。Fe 完整保留经典按键绑定与输入法组合语义。</span>
-          </p>
-        </div>
-        <a href="../macos-tryout.md">Read <code>docs/macos-tryout.md</code> →</a>
-      </div>
-
-      <div class="card-grid-2">
-        <article class="surface-card">
-          <h3>
-            <span>Essential Chords (<kbd>C-</kbd> = Control, <kbd>M-</kbd> = Option/Esc)</span>
-            <span class="badge badge-guard">Keybindings</span>
-          </h3>
-          <div class="table-wrap">
-            <table class="data-table" aria-label="Essential keyboard shortcuts">
-              <thead>
-                <tr>
-                  <th>Chord</th>
-                  <th>Command</th>
-                  <th>Action</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <td><kbd>C-x C-f</kbd></td>
-                  <td><code>find-file</code></td>
-                  <td>Open or create a file in a buffer</td>
-                </tr>
-                <tr>
-                  <td><kbd>C-x C-s</kbd></td>
-                  <td><code>save-buffer</code></td>
-                  <td>Save the current buffer to disk</td>
-                </tr>
-                <tr>
-                  <td><kbd>C-x b</kbd></td>
-                  <td><code>switch-to-buffer</code></td>
-                  <td>Switch between open buffers</td>
-                </tr>
-                <tr>
-                  <td><kbd>M-x</kbd></td>
-                  <td><code>execute-extended-command</code></td>
-                  <td>Run any interactive Lisp command by name</td>
-                </tr>
-                <tr>
-                  <td><kbd>C-g</kbd></td>
-                  <td><code>keyboard-quit</code></td>
-                  <td>Cancel current minibuffer prompt or operation</td>
-                </tr>
-                <tr>
-                  <td><kbd>C-h f</kbd> / <kbd>C-h v</kbd></td>
-                  <td><code>describe-function</code> / <code>variable</code></td>
-                  <td>Inspect live docstrings and source definitions</td>
-                </tr>
-                <tr>
-                  <td><kbd>C-x C-c</kbd></td>
-                  <td><code>save-buffers-kill-terminal</code></td>
-                  <td>Prompt to save modified buffers and exit Fe</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </article>
-
-        <article class="surface-card">
-          <h3>
-            <span>macOS Cocoa GUI, Modifiers &amp; CJK IME</span>
-            <span class="badge badge-ok">Swift Cocoa</span>
-          </h3>
-          <p>
-            The macOS app bundle (<code>dist/macos/Femacs.app</code>) bridges Cocoa windowing and text input in Swift (<code>platform/macos/</code>):
-          </p>
-          <ul>
-            <li><strong>Modifier Keys:</strong> Customize <code>ns-command-modifier</code>, <code>ns-alternate-modifier</code>, and <code>ns-control-modifier</code> in Lisp just as on the reference macOS port.</li>
-            <li><strong>CJK Input Methods (IME):</strong> Implements the <code>NSTextInputClient</code> composition and commit protocol. Local Chinese multi-window workflows have scoped acceptance; this is not certification of all Japanese, Korean or other input sources.</li>
-            <li><strong>Safe Tryout Profile:</strong> Launch with <code>-Q</code> or <code>--init-directory=./trial-profile</code> to test packages without altering your primary <code>~/.emacs.d</code>.</li>
-          </ul>
-        </article>
-      </div>
+    <section class="section reading" id="tryout-heading" aria-labelledby="tryout-title">
+      <h2 id="tryout-title">Bundle and test</h2>
+      <p>See the <a href="https://github.com/liuchong/femacs/blob/master/packaging/README.md">packaging guide</a> for a movable app and local disk image. Local trial packages are ad hoc signed. See the <a href="https://github.com/liuchong/femacs/blob/master/docs/testing-strategy.md">testing guide</a> for when to run Cocoa, input method and compatibility checks.</p>
     </section>
   </main>
-
   <footer class="site-footer">
-    <div class="footer-inner">
-      <div>
-        <strong>Fe (<code>femacs</code>)</strong> — Standalone Build &amp; Try Guide.
-      </div>
-      <div class="footer-links">
-        <a href="../index.html">Overview</a>
-        <a href="start.html">Build &amp; Try</a>
-        <a href="architecture.html">Architecture</a>
-        <a href="docs-hub.html">Docs Hub</a>
-        <a href="../macos-tryout.md">macOS Tryout Markdown</a>
-        <a href="../repository-bootstrap.md">Repository Bootstrap Markdown</a>
-      </div>
+    <div class="shell footer-inner">
+      <a class="footer-brand" href="../index.html">FEmacs</a>
+      <a href="https://github.com/liuchong/femacs/blob/master/LICENSE">GPL-3.0-or-later</a>
+      <a href="https://github.com/liuchong/femacs/blob/master/docs/i18n/zh-CN/README.md" lang="zh-CN">中文 README</a>
+      <span class="site-runtime" data-eli-status data-eli-ready="false" role="status" data-eli-status-text>Eliscript 0.1.3</span>
     </div>
   </footer>
-
   <script type="text/eliscript" src="site.eli"></script>
   <script type="module">
     try {
-    const base = "https://unpkg.com/eliscript@0.1.1";
-    const { mountEliscriptScripts } = await import(`${base}/dist/browser/host.mjs`);
-    await mountEliscriptScripts(document, {
-      fetch: (url, init) => fetch(url, init),
-      resolveExternal(specifier) {
-        if (!specifier.startsWith("eliscript/")) return specifier;
-        const sub = specifier.slice(10);
-        return `${base}/${sub.endsWith(".mjs") ? sub : `${sub}.mjs`}`;
-      }
-    });
+      const base = "https://unpkg.com/eliscript@0.1.3";
+      const { mountEliscriptScripts } = await import(`${base}/dist/browser/host.mjs`);
+      await mountEliscriptScripts(document);
     } catch (error) {
+      document.querySelector("[data-eli-status-text]").textContent = "Static view · interactive tools unavailable";
       console.error("Eliscript site initialization failed", error);
-      for (const status of document.querySelectorAll("[data-eli-status-text]")) status.textContent = "Interactive tools unavailable";
-      for (const control of document.querySelectorAll("[data-lang-switch], [data-workflow-tab], [data-copy-target], [data-goal-filter], [data-doc-category], [data-doc-search]")) control.disabled = true;
-      for (const panel of document.querySelectorAll("[data-workflow-panel]")) panel.hidden = false;
     }
   </script>
 </body>

@@ -1,7 +1,7 @@
 ;; Interactive documentation site script for Fe (femacs).
 ;;
 ;; Maintained as Eliscript source in `docs/pages/site.eli` and compiled in the
-;; browser at runtime by the published `eliscript@0.1.1` browser SDK.
+;; browser at runtime by the published `eliscript@0.1.3` browser SDK.
 
 (module fe.docs.site
   (import "eliscript/platform/browser"
@@ -95,6 +95,8 @@
           (lambda (group)
             (let ((tabs (nodes-in group "[data-workflow-tab]"))
                   (panels (nodes-in group "[data-workflow-panel]")))
+              (when (> (js-length tabs) 0)
+                (choose-workflow (js-nth 0 tabs) tabs panels))
               (each tabs
                     (lambda (button)
                       (watch button "click"
@@ -148,39 +150,6 @@
                                       (set-attr button "data-copied" "false")
                                       (set-text button "Select text to copy")
                                       (restore-copy-label button initial-label)))))))))))
-
-  ;; ----------------------------------------- persistent goal 7-item filter
-
-  (defun filter-goal-rows (rows mode)
-    (let ((visible 0))
-      (each rows
-            (lambda (row)
-              (let ((state (attr row "data-goal-state")))
-                (let ((matches (or (same? mode "all")
-                                   (same? state mode))))
-                  (set-hidden row (not matches))
-                  (when matches
-                    (setq visible (1+ visible)))))))
-      visible))
-
-  (defun bind-goal-filter ()
-    (let ((buttons (nodes "[data-goal-filter]"))
-          (rows (nodes "[data-goal-row]"))
-          (counter (node "[data-goal-count]")))
-      (when (> (js-length buttons) 0)
-        (each buttons
-              (lambda (button)
-                (watch button "click"
-                       (lambda (event)
-                         (let ((mode (attr button "data-goal-filter")))
-                           (each buttons
-                                 (lambda (candidate)
-                                   (set-pressed candidate (same? candidate button))))
-                           (let ((shown (filter-goal-rows rows mode)))
-                             (when (present? counter)
-                               (set-text counter
-                                         (str shown " / " (js-length rows)
-                                              " outcomes shown"))))))))))))
 
   ;; --------------------------------------------- documentation hub filter
 
@@ -276,8 +245,8 @@
                                    (set-attr candidate "lang" (if (same? next "zh") "en" "zh-CN"))
                                    (set-text candidate
                                              (if (same? next "zh")
-                                                 "English summaries"
-                                               "中文摘要 / EN"))))))))))))
+                                                 "English"
+                                               "中文摘要"))))))))))))
 
   ;; ----------------------------------------------------- runtime readiness
 
@@ -287,14 +256,15 @@
             (set-attr pill "data-eli-ready" "true")))
     (each (nodes "[data-eli-status-text]")
           (lambda (label)
-            (set-text label "Eliscript 0.1.1 · live"))))
+            (set-text label "Eliscript 0.1.3 · live"))))
 
   (defun start ()
     (bind-workflow-tabs)
     (bind-copy-buttons)
-    (bind-goal-filter)
     (bind-doc-hub)
     (bind-language-switch)
+    (each (nodes "[data-eli-control]") (lambda (control) (set-field control "disabled" false)))
+    (each (nodes "[data-eli-tools]") (lambda (section) (set-hidden section false)))
     (bind-eli-status))
 
   (if (same? (field page "readyState") "loading")
