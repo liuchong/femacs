@@ -16,6 +16,7 @@ const HELP: &str = concat!(
     "  -1, --sequential  Open one file per session. Place before the file list.\n",
     "\n",
     "  fe starts a clean terminal session (-Q -nw) with optional terminal settings.\n",
+    "  Run 'fe --help' (or 'fe -R --help') alone to include this launcher section.\n",
     "  femacs passes all arguments directly to the editor.\n",
     "  Use -- before file names that look like options.\n",
     "\n",
@@ -27,6 +28,8 @@ const HELP: &str = concat!(
 );
 
 pub(super) fn launch(default: DefaultMode) -> Result<ExitCode, String> {
+    // Deprecated in Rust 1.85 (our declared MSRV) and un-deprecated in 1.87.
+    #[allow(deprecated)]
     let home = env::home_dir();
     let program = editor_program(env::var_os("FEMACS_APP"), home.as_deref())?;
     if default == DefaultMode::Native {
@@ -61,6 +64,7 @@ fn launch_quick(program: &Path, home: Option<&Path>) -> Result<ExitCode, String>
     }
 
     let show_help = !sequential
+        && arguments.len() == 1
         && matches!(
             arguments.peek().and_then(|argument| argument.to_str()),
             Some("--help" | "-help")

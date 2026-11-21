@@ -11,13 +11,22 @@ pub enum DefaultMode {
     Native,
 }
 
+impl DefaultMode {
+    const fn command_name(self) -> &'static str {
+        match self {
+            Self::Terminal => "fe",
+            Self::Native => "femacs",
+        }
+    }
+}
+
 /// Start the installed Fe editor.
 #[cfg(target_os = "macos")]
 pub fn launch(default: DefaultMode) -> ExitCode {
     match macos::launch(default) {
         Ok(status) => status,
         Err(error) => {
-            eprintln!("femacs: {error}");
+            eprintln!("{}: {error}", default.command_name());
             ExitCode::FAILURE
         }
     }
@@ -25,8 +34,11 @@ pub fn launch(default: DefaultMode) -> ExitCode {
 
 /// Explain the platform requirement when invoked on another OS.
 #[cfg(not(target_os = "macos"))]
-pub fn launch(_: DefaultMode) -> ExitCode {
-    eprintln!("femacs: the Fe application launcher requires macOS");
+pub fn launch(default: DefaultMode) -> ExitCode {
+    eprintln!(
+        "{}: the Fe application launcher requires macOS",
+        default.command_name()
+    );
     ExitCode::FAILURE
 }
 

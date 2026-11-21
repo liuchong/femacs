@@ -13,11 +13,16 @@ fe -R -nw notes.org
 ```
 
 Both names run the same editor. `fe` supplies `-Q -nw` for a clean terminal
-session. Its help starts with `Usage: fe [OPTION-OR-FILENAME]...` and lists
-the launcher options separately from **Native editor help (macOS)**.
-`femacs` forwards every argument, including `--help`, directly to Fe. The
-native help shows the path of the editor executable in the app bundle.
-On Linux and Windows the launcher reports the macOS requirement when invoked.
+session. Run `fe --help` (or `fe -R --help`, `-help`) alone to print
+`Usage: fe [OPTION-OR-FILENAME]...` and list the launcher options before
+**Native editor help (macOS)**; combining `--help` with other arguments (such
+as `fe --help --version` or `fe notes.org --help`) omits the `fe` header and
+runs through `fe`'s normal startup (including its preset and `FEMACS_TTY_INIT`
+check unless `-R` is used) before the editor handles the options. `femacs`
+forwards every argument, including `--help`, directly to Fe. The native help
+shows the path of the editor executable in the app bundle. On Linux and Windows
+each launcher reports the macOS requirement with its own command prefix (`fe:`
+or `femacs:`) when invoked.
 
 `--version` reports the editor version. Cargo reports the launcher version
 in `cargo install --list`.
@@ -29,13 +34,15 @@ From a source checkout, use `cargo install --locked --path cli` instead.
 
 | Option | Behavior |
 | --- | --- |
-| `-R`, `--reset-args` | Discard the launcher preset and all earlier arguments. The last reset before `--` determines where processing resumes. |
-| `-1`, `--sequential` | Open each file in its own editor session. Use as the first effective argument before the file list. Exiting one opens the next. A failed or interrupted session stops the sequence. |
+| `-R`, `--reset-args` | Discard the launcher preset and all earlier `fe` and editor arguments. Recognized anywhere before the first `--`; the last reset before `--` determines where processing resumes. |
+| `-1`, `--sequential` | Open each file in its own editor session (`--file`). Recognized only as the first effective argument (at the start or immediately after the last `-R`), optionally followed by `--` and at least one file name. Exiting one session opens the next; a non-zero or signaled exit stops the sequence. |
 
-Use `--` before any file name that begins with a dash. In sequential mode the
-remaining arguments are file names. For a dash-prefixed option value, pass an
-unambiguous path such as `--file ./-R`. Ordinary editor options pass through
-in their original order after the reset.
+Syntax boundaries:
+
+- `--` ends launcher option scanning so following arguments are treated as literal operands rather than `-R` or `-1` (`fe -- -R -1` forwards `-- -R -1` to one session, while `fe -1 -- -R -1` passes each operand via `--file`).
+- Because `-R` is scanned before `--` without parsing editor option arities, pass dash-prefixed option values before `--` in an unambiguous form such as `--file ./-R` or `--title=-R`.
+- After `-1` (and an optional `--`), every remaining argument is treated as a file operand rather than an editor switch: `fe -1 a.txt b.txt` opens sequential sessions with the terminal preset, whereas `fe -R -1 a.txt b.txt` opens sequential sessions with native editor startup (without the preset).
+- Ordinary editor options pass through in their original order when `-1` is not active.
 
 The `fe` terminal preset loads
 `${XDG_CONFIG_HOME:-$HOME/.config}/femacs/terminal.el` if present. You can select
