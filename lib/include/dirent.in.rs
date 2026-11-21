@@ -53,8 +53,10 @@
 // `DT_*` values, and the dead arms as P-51 text under a `#[cfg]` that names the C condition
 // which is not the frozen side.
 
-include!("dirent.rs");      // C 26: `# include_next <dirent.h>`, i.e. the system half
-include!("attribute.rs");   // C 118-149's `_GL_ATTRIBUTE_DEALLOC`/`_MALLOC`/`_PURE`
+// [U1-MODULE-MIRROR]
+use super::*;
+// [U1] dirent.rs imported via super
+// [U1] attribute.rs imported via super
 
 /* C 29-30: the double-inclusion guard, `_@GUARD_PREFIX@_DIRENT_H`, whose frozen substitution
    is `_GL_DIRENT_H`.  The template's own spelling reads as `_` to the extractor, which

@@ -37,26 +37,28 @@
 #![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code,
          unused_imports, unused_macros, unused_variables, unused_unsafe, static_mut_refs,
          unsafe_op_in_unsafe_fn)]
+// [U1-MODULE-UNIT]
+use crate::common::*;
 
-include!("include/config.rs");
-include!("../lib/include/stdio.rs");           // C 26: <stdio.h>
-include!("../lib/include/string.rs");          // lisp.h 30: <string.h>
-include!("../lib/include/stdlib.rs");          // C 27: <stdlib.h>
-include!("../lib/include/sys_types.in.rs");    // C 23: <sys/types.h>
-include!("../lib/include/sys_stat.in.rs");     // C 24: <sys/stat.h>
-include!("../lib/include/signal.rs");          // C 25: <signal.h>
-include!("../lib/include/fcntl.in.rs");        // C 36: <fcntl.h>
-include!("../lib/include/unistd.in.rs");       // C 37: <unistd.h>
-include!("../lib/include/errno.rs");           // C 38: <errno.h>
-include!("../lib/include/c-ctype.rs");         // C 44: <c-ctype.h>
-include!("../lib/include/boot-time.rs");       // C 41: <boot-time.h>
-include!("include/lisp.rs");                   // C 46
-include!("include/itree.rs");                 // buffer.h 27: <itree.h> (buffer.rs's members)
-include!("include/character.rs");              // buffer.rs's CHAR_STRING family
-include!("include/intervals.rs");              // buffer.rs's INTERVAL
-include!("include/composite.rs");              // coding.h 284: <composite.h> (composition_method)
-include!("include/buffer.rs");                 // C 47
-include!("include/coding.rs");                 // C 48
+const _: () = ();
+// [U1] ../lib/include/stdio.rs imported via common
+// [U1] ../lib/include/string.rs imported via common
+// [U1] ../lib/include/stdlib.rs imported via common
+// [U1] ../lib/include/sys_types.in.rs imported via common
+// [U1] ../lib/include/sys_stat.in.rs imported via common
+// [U1] ../lib/include/signal.rs imported via common
+// [U1] ../lib/include/fcntl.in.rs imported via common
+// [U1] ../lib/include/unistd.in.rs imported via common
+// [U1] ../lib/include/errno.rs imported via common
+// [U1] ../lib/include/c-ctype.rs imported via common
+// [U1] ../lib/include/boot-time.rs imported via common
+// [U1] include/lisp.rs imported via common
+// [U1] include/itree.rs imported via common
+// [U1] include/character.rs imported via common
+// [U1] include/intervals.rs imported via common
+// [U1] include/composite.rs imported via common
+// [U1] include/buffer.rs imported via common
+// [U1] include/coding.rs imported via common
 
 /// <inttypes.h>: `#define PRIdMAX "jd"` on the frozen target (`intmax_t` is `long long`;
 /// measured with clang: `printf ("%s", PRIdMAX)` -> `jd`).  C concatenates it into the two

@@ -6,6 +6,8 @@
 // ENOMEM's value was measured from the frozen target's clang:
 // `printf` of `int x = ENOMEM;` expands to `int x = 12;`.
 
+// [U1-MODULE-MIRROR]
+use super::*;
 unsafe extern "C" {
   /// <errno.h>: the per-thread error number's address (`int *__error (void)`).
   #[cfg (not (target_os = "android"))]
@@ -149,3 +151,8 @@ pub const EFAULT: c_int = 14;
 /// it in place (P-72 clause 4) until status 3.514 moved it back here (P-88 (5)); the value is
 /// measured on this machine's own header, and the same 7 every ABI `lib/` targets.
 pub const E2BIG: c_int = 7;
+/// <errno.h>: `#define ENOTCONN 57` (Darwin; bionic is 107).
+#[cfg (not (feature = "have_android"))]
+pub const ENOTCONN: c_int = 57;
+#[cfg (feature = "have_android")]
+pub const ENOTCONN: c_int = 107;

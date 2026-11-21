@@ -52,6 +52,8 @@
          unused_imports, unused_macros, unused_variables, unused_unsafe, static_mut_refs,
          unsafe_op_in_unsafe_fn, unused_assignments, unreachable_code, while_true,
          unused_parens, unused_mut)]
+// [U1-MODULE-UNIT]
+use crate::common::*;
 
 
 /* NOTES:
@@ -74,16 +76,16 @@
 */
 
 
-include!("include/config.rs");                 // C 41: `#include <config.h>`
+// [U1] config.rs provided by common
 // C 43's `#include <intprops.h>` has no mirror (PORTING.md P-26) and this unit uses none of it.
-include!("../lib/include/sys_types.in.rs");    // buffer.h 23: `#include <sys/types.h>`
-include!("../lib/include/time.in.rs");         // buffer.h 24: `#include <time.h>`
-include!("include/lisp.rs");                   // C 44: `#include "lisp.h"`
-include!("include/character.rs");              // buffer.h 26: `#include "character.h"`
-include!("include/itree.rs");                  // buffer.h 28: `#include "itree.h"`
-include!("include/intervals.rs");              // C 45: `#include "intervals.h"`
-include!("include/buffer.rs");                 // C 46: `#include "buffer.h"`
-include!("include/keymap.rs");                 // C 47: `#include "keymap.h"`
+// [U1] ../lib/include/sys_types.in.rs imported via common
+// [U1] ../lib/include/time.in.rs imported via common
+// [U1] include/lisp.rs imported via common
+// [U1] include/character.rs imported via common
+// [U1] include/itree.rs imported via common
+// [U1] include/intervals.rs imported via common
+// [U1] include/buffer.rs imported via common
+// [U1] include/keymap.rs imported via common
 
 /* Test for membership, allowing for t (actually any non-cons) to mean the
    universal set.  */

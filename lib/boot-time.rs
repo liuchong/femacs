@@ -37,17 +37,19 @@
 #![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code,
          unused_imports, unused_macros, unused_variables, unused_unsafe, static_mut_refs,
          unsafe_op_in_unsafe_fn)]
+// [U1-MODULE-UNIT]
+use crate::common::*;
 
 /* Written by Bruno Haible <bruno@clisp.org>.  */
 
 use std::ffi::{c_char, c_int, c_long, c_short, c_uint, c_void};
 
-include!("../src/include/config.rs");   // C 19: `#include <config.h>`
-include!("include/gnulib_config.rs");
-include!("include/stdio.rs");           // C 26: `#include <stdio.h>` (FILE, fread, fclose)
-include!("include/string.in.rs");       // C 27: `#include <string.h>` (memeq, strlen)
-include!("include/sys_types.in.rs");    // C 28: `#include <sys/types.h>` (pid_t)
-include!("include/time.in.rs");         // C 33/55: `<time.h>` (struct timespec)
+// [U1] config.rs provided by common
+// [U1] include/gnulib_config.rs imported via common
+// [U1] include/stdio.rs imported via common
+// [U1] include/string.in.rs imported via common
+// [U1] include/sys_types.in.rs imported via common
+// [U1] include/time.in.rs imported via common
 
 /* <time.h>: `CLOCK_REALTIME`.  The `<time.h>` mirror carries the *type* (`struct timespec`) and
    this name is left to the unit, the way `gettime.rs` 18 and `tempname.rs` 97 already declare it;
@@ -63,12 +65,12 @@ pub const CLOCK_REALTIME: c_int = 0;
 unsafe extern "C" {
   pub fn clock_gettime (clock_id: c_int, tp: *mut timespec) -> c_int;
 }
-include!("include/sys_time.rs");        // C 50/55: `<sys/time.h>` (struct timeval)
-include!("include/utmpx.rs");           // C 54: `#include "readutmp.h"` -> `<utmpx.h>`
-include!("include/readutmp.rs");        // C 54: `#include "readutmp.h"` (the mirror; status 3.198)
-include!("include/sys_sysctl.rs");      // C 40: `#include <sys/sysctl.h>` (sysctl)
-include!("include/boot-time.rs");       // C 22: `#include "boot-time.h"`
-include!("include/boot-time-aux.rs");   // C 61: `#include "boot-time-aux.h"`
+// [U1] include/sys_time.rs imported via common
+// [U1] include/utmpx.rs imported via common
+// [U1] include/readutmp.rs imported via common
+// [U1] include/sys_sysctl.rs imported via common
+// [U1] include/boot-time.rs imported via common
+// [U1] include/boot-time-aux.rs imported via common
 
 /* C 24's `<stdcountof.h>`, C 25's `<stddef.h>`, C 29's `<sys/stat.h>`, C 53's `idx.h` and
    C 55's `stat-time.h` are includes whose names this configuration's live text does not name

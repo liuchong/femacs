@@ -45,31 +45,33 @@
 #![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code,
          unused_imports, unused_macros, unused_variables, unused_unsafe, static_mut_refs,
          unsafe_op_in_unsafe_fn)]
+// [U1-MODULE-UNIT]
+use crate::common::*;
 
-include!("include/config.rs");                 // C 21: <config.h>
-include!("../lib/include/stdio.rs");           // lisp.h 34: FILE
-include!("../lib/include/string.rs");          // lisp.h 30: <string.h> (strcmp)
-include!("../lib/include/stdlib.rs");          // lisp.h: <stdlib.h>
-include!("../lib/include/limits.in.rs");       // C 22: <limits.h> /* for INT_MAX */
-include!("include/lisp.rs");                   // C 24
-include!("../lib/include/mini-gmp.rs");        // lisp.h's bignum.h chain (bignum.rs's members)
-include!("include/bignum.rs");
-include!("include/character.rs");              // C 25
-include!("include/itree.rs");                  // buffer.h 27: <itree.h> (buffer.rs's members)
-include!("include/systime.rs");                // termhooks.h 28: <systime.h> (`Time`)
-include!("include/coding.rs");                 // C 26
-include!("include/composite.rs");              // coding.h 284: <composite.h>
-include!("include/dispextern.rs");             // C 27
-include!("include/keyboard.rs");               // C 28
-include!("include/keymap.rs");                 // C 29
-include!("include/frame.rs");                  // C 30
-include!("include/window.rs");                 // C 31
-include!("include/termhooks.rs");              // C 32
-include!("include/blockinput.rs");             // C 33
-include!("include/buffer.rs");                 // C 34
-include!("include/menu.rs");                   // C 44
+const _: () = ();
+// [U1] ../lib/include/stdio.rs imported via common
+// [U1] ../lib/include/string.rs imported via common
+// [U1] ../lib/include/stdlib.rs imported via common
+// [U1] ../lib/include/limits.in.rs imported via common
+// [U1] include/lisp.rs imported via common
+// [U1] ../lib/include/mini-gmp.rs imported via common
+// [U1] include/bignum.rs imported via common
+// [U1] include/character.rs imported via common
+// [U1] include/itree.rs imported via common
+// [U1] include/systime.rs imported via common
+// [U1] include/coding.rs imported via common
+// [U1] include/composite.rs imported via common
+// [U1] include/dispextern.rs imported via common
+// [U1] include/keyboard.rs imported via common
+// [U1] include/keymap.rs imported via common
+// [U1] include/frame.rs imported via common
+// [U1] include/window.rs imported via common
+// [U1] include/termhooks.rs imported via common
+// [U1] include/blockinput.rs imported via common
+// [U1] include/buffer.rs imported via common
+// [U1] include/menu.rs imported via common
 #[cfg(feature = "have_ns")]
-include!("../lwlib/include/lwlib-widget.rs");
+const _: () = ();
 
 /* The names above their C prototypes are window.h/frame.h/dispextern.h/lisp.h/keyboard.h's,
    written here because the mirrors do not carry them (P-55's `/// C:` line names the

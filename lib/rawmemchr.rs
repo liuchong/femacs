@@ -1,12 +1,14 @@
 // femacs: port of lib/rawmemchr.c @ fd7afced403.
+// [U1-MODULE-UNIT]
+use crate::common::*;
 /* emacs/lib/rawmemchr.c: C's `<config.h>`, `<string.h>`, `<limits.h>` and `<stdint.h>`
    includes have no counterpart beyond the mirrors below (PORTING.md 0.1).  rawmemchr.c is
    not one of the files in docs/baseline/config/cond-eval-verified.txt, so the condition
    table is not applied to it (P-66); each arm records what the frozen configuration says
    about its condition (docs/baseline/config/darwin-arm64.macros.tsv).  */
 use std::ffi::{c_int, c_long, c_uint, c_ulong, c_void};
-include!("include/gnulib_config.rs");
-include!("include/limits.in.rs");
+// [U1] include/gnulib_config.rs imported via common
+// [U1] include/limits.in.rs imported via common
 
 /* C 23's `#if !HAVE_RAWMEMCHR`: the frozen configuration leaves HAVE_RAWMEMCHR undefined
    (macros.tsv 916), so the whole body below is live text and no `cfg` guard is needed.

@@ -14,7 +14,9 @@
 // spells keep a `macro_rules!` here, so a unit that writes C's `__localtime64_r (…)` or
 // `__mktime_internal (…)` gets the frozen configuration's target function.
 
-include!("time.in.rs");
+// [U1-MODULE-MIRROR]
+use super::*;
+// [U1] time.in.rs imported via super
 
 /* mktime-internal.h 27-41: the three arms of `mktime_offset_t`; the live one is the
    `#elif defined TIME_T_IS_SIGNED` arm (`typedef time_t mktime_offset_t;`).  */

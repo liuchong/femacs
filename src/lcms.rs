@@ -31,23 +31,25 @@
          unsafe_op_in_unsafe_fn, unused_assignments, unused_parens, unused_mut,
          unreachable_code, unused_labels, while_true, unused_comparisons,
          overflowing_literals, unused_must_use, clippy::all)]
+// [U1-MODULE-UNIT]
+use crate::common::*;
 
-include!("include/config.rs");
+const _: () = ();
 
 /* C 24's `<math.h>` and C 26's `"lisp.h"`, inside the file gate.  <math.h> has a mirror, included
    here the way `src/floatfns.rs` includes it (that file's own `include!` line).  */
 #[cfg (feature = "have_lcms2")]
-include!("../lib/include/math.rs");             // C 24: `#include <math.h>`
+const _: () = ();
 #[cfg (feature = "have_lcms2")]
-include!("include/lisp.rs");                    // C 26: `#include "lisp.h"`
+const _: () = ();
 
 /* C 36-38's `#include <windows.h>`, `"w32common.h"` and `"w32.h"`.  `<windows.h>` has no mirror,
    so `HMODULE` is the pointer PORTING.md 0.2 maps it to (`*mut c_void`, the spelling
    `src/include/w32common.rs` 137 already uses for `hbfont_init_w32_funcs`).  */
 #[cfg (all (feature = "have_lcms2", feature = "windowsnt"))]
-include!("include/w32common.rs");               // C 37
+const _: () = ();
 #[cfg (all (feature = "have_lcms2", feature = "windowsnt"))]
-include!("include/w32.rs");                     // C 38
+const _: () = ();
 
 /* ----------------------------------------------------------------------------------------------
    C 23: `#include <lcms2.h>` - the reference tree has no `lcms2.h` (P-88: a third-party header

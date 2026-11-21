@@ -12,14 +12,16 @@
 // in `_`), which is recorded in docs/ports/excluded-macros.txt.
 
 // keyboard.h 21: the include guard has no Rust counterpart (PORTING.md 0.1).
+// [U1-MODULE-MIRROR]
+use super::*;
 pub const EMACS_KEYBOARD_H: bool = true;
 
 // keyboard.h 23-24: the header's own `#include`s.  C reaches `coding.h` here, which is how a
 // translation unit that includes `keyboard.h` sees `struct coding_system` complete - and
 // `termhooks.h` 549/554/927-928 names that tag only as an incomplete one, so the port's
 // `termhooks.rs` (`*mut coding_system`) resolves it through this mirror (P-72 rule ④).
-include!("coding.rs");                        // C 23: `#include "coding.h"`
-include!("termhooks.rs");                     // C 24: `#include "termhooks.h"`
+// [U1] coding.rs imported via super
+// [U1] termhooks.rs imported via super
 /* keyboard.h 30-32: C reaches `struct selection_input_event` through the backend header, one per
    window system and each behind its own macro.  **The port does not carry that edge**: an
    `include!` is read by `tools/check-mirror-dupes.py` whatever its attribute, and the pgtkterm.h
@@ -37,7 +39,7 @@ include!("termhooks.rs");                     // C 24: `#include "termhooks.h"`
 // as the two above, one header further than C's own list goes).  Measured no-op for every
 // frozen unit: 31 units in `src/` include this mirror, and the other 30 all include
 // `buffer.rs` already (only `src/androidmenu.c` does not).
-include!("buffer.rs");                        // C keyboard.h 267/269's `struct buffer`
+// [U1] buffer.rs imported via super
 
 // keyboard.h 380-383.
 pub const KBD_BUFFER_SIZE: c_int = 4096;
@@ -293,7 +295,7 @@ pub mod keyboard_objs {
     pub static DEV_TTY: [c_char; 9];                                   // 531
   }
 }
-use keyboard_objs::*;
+pub use self::keyboard_objs::*;
 unsafe extern "C" { pub static mut input_available_clear_time: *mut timespec; }           // 453
 unsafe extern "C" { pub static mut kbd_buffer: [buffered_input_event; KBD_BUFFER_SIZE as usize]; }  // 455
 unsafe extern "C" { pub static mut kbd_fetch_ptr: *mut buffered_input_event; }            // 456
@@ -407,4 +409,4 @@ pub mod keyboard_fn_decls {
     pub fn mark_kboards ();
   }
 }
-use keyboard_fn_decls::*;
+pub use self::keyboard_fn_decls::*;

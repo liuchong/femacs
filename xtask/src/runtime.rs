@@ -199,6 +199,7 @@ pub(crate) fn validate_continuation(expected: &Value, actual: &Value) -> Result<
     Ok(())
 }
 
+#[cfg(test)]
 pub(crate) fn selected_object_name(stem: &str, checking: bool, swift: bool) -> String {
     if checking && !swift { format!("{stem}.checking.o") } else { format!("{stem}.o") }
 }
@@ -700,8 +701,10 @@ pub(crate) fn record_link_inputs(repo: &Path, objects: &[String], members: &[Str
     let root = path.parent().ok_or("runtime link has no owned root")?;
     let binding = verify_selected_root(repo, root)?.ok_or("runtime link missing binding")?;
     let mut inputs = Map::new();
+    if objects.is_empty() {
+        return Err("runtime product-object list is empty".into());
+    }
     for (role, names) in [("product-object", objects), ("archive-member", members)] {
-        if names.is_empty() { return Err(format!("runtime {role} list is empty")); }
         for name in names {
             let input = Path::new(name);
             no_symlink_components(input)?;
@@ -709,7 +712,11 @@ pub(crate) fn record_link_inputs(repo: &Path, objects: &[String], members: &[Str
             let key = relative.to_str().ok_or("non-UTF8 link input")?;
             let filename = input.file_name().and_then(|v| v.to_str()).ok_or("missing object filename")?;
             let is_swift = ["macfont.o", "nsfns.o", "nsimage.o", "nsmenu.o", "nsselect.o", "nsterm.o"].contains(&filename);
-            if binding["compiler_leg"] == "checking" && !is_swift && !filename.ends_with(".checking.o") {
+            if binding["compiler_leg"] == "checking"
+                && !is_swift
+                && !filename.ends_with(".checking.o")
+                && !filename.ends_with(".checking.rlib")
+            {
                 return Err(format!("unchecked runtime object on checking leg: {key}"));
             }
             let mut identity = regular_identity(input)?;

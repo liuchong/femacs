@@ -6,6 +6,8 @@
 // from the <wchar.h> mirror the same unit includes (C's <wctype.h> gets them there too).
 
 
+// [U1-MODULE-MIRROR]
+use super::*;
 /// <wctype.h>'s character-class handle (the frozen target: `unsigned long`).
 pub type wctype_t = u64;
 

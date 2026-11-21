@@ -17,12 +17,14 @@
 #![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code,
          unused_imports, unused_macros, unused_variables, unused_unsafe, static_mut_refs,
          unsafe_op_in_unsafe_fn)]
+// [U1-MODULE-UNIT]
+use crate::common::*;
 
 use std::ffi::{c_char, c_int, c_uint};
 
-include!("../src/include/config.rs");
-include!("include/gnulib_config.rs");
-include!("include/binary-io.rs");
+// [U1] config.rs provided by common
+// [U1] include/gnulib_config.rs imported via common
+// [U1] include/binary-io.rs imported via common
 
 /* lib/binary-io.c 17: the qualifier this translation unit uses (PORTING.md 10.12).  */
 pub const BINARY_IO_INLINE: () = _GL_EXTERN_INLINE;

@@ -29,6 +29,8 @@
 // change for those files' owners; the declarations sit in a whole-import module so a unit that
 // keeps its own copy shadows the glob instead of clashing with it (PORTING.md 0.1-10).
 
+// [U1-MODULE-MIRROR]
+use super::*;
 /* C 20: `#ifndef _GL_HEADER_OPENAT` - the guard has no Rust counterpart (PORTING.md 0.1-4);
    the name stays as its marker.  */
 pub const _GL_HEADER_OPENAT: bool = true;
@@ -55,4 +57,4 @@ pub mod openat_decls {
     pub fn openat_save_fail (arg: core::ffi::c_int) -> !;
   }
 }
-use openat_decls::*;
+pub use self::openat_decls::*;

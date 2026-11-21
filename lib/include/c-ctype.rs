@@ -19,6 +19,8 @@
 // through to `false` exactly as C's `default` does.  The `\xNN` escapes are C's spellings
 // of the control characters (`\a`/`\b`/`\f`/`\n`/`\r`/`\t`/`\v` are 0x07-0x0d).
 
+// [U1-MODULE-MIRROR]
+use super::*;
 /* C 49-74: `# define C_CTYPE_ASCII 1`  */
 pub const C_CTYPE_ASCII: c_int = 1;
 

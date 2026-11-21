@@ -22,6 +22,8 @@
 // `fcntl.in.rs` shape).  The two definitions are why `--check` compares only the name's
 // presence for `ignore_value` (its `macro_duplicates` count is 2).
 
+// [U1-MODULE-MIRROR]
+use super::*;
 /* C 35-36: the include guard has no Rust counterpart (PORTING.md 0.1-4).  */
 pub const _GL_IGNORE_VALUE_H: bool = true;
 

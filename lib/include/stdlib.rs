@@ -5,6 +5,8 @@
 // (bignum.c's `mpz_get_d_rounded`); the allocator family lives in lisp.rs, where lisp.h
 // declares it.
 
+// [U1-MODULE-MIRROR]
+use super::*;
 /* `<stdlib.h>`'s `#define EXIT_SUCCESS 0` / `EXIT_FAILURE 1` (measured with clang).  */
 pub const EXIT_SUCCESS: c_int = 0;
 pub const EXIT_FAILURE: c_int = 1;

@@ -36,27 +36,29 @@
 #![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code,
          unused_imports, unused_macros, unused_variables, unused_unsafe, static_mut_refs,
          unsafe_op_in_unsafe_fn, unreachable_code)]
+// [U1-MODULE-UNIT]
+use crate::common::*;
 
-include!("include/config.rs");                 // C 20
-include!("../lib/include/stdio.rs");           // lisp.h 34: FILE
-include!("../lib/include/string.rs");          // lisp.h 30: <string.h>
-include!("include/lisp.rs");                   // C 22 (brings thread.h's mirror)
-include!("include/character.rs");              // C 23
-include!("include/itree.rs");                  // buffer.h 27: <itree.h> (buffer.rs's members)
-include!("include/intervals.rs");              // buffer.rs's INTERVAL
-include!("include/buffer.rs");                 // C 24
-include!("include/systime.rs");                // termhooks.h 28's <systime.h> (`Time`)
-include!("include/composite.rs");              // coding.h 284: <composite.h>
-include!("include/coding.rs");                 // C 26
-include!("include/process.rs");                // C 25
-include!("include/syssignal.rs");              // C 27
-include!("include/pdumper.rs");                // C 28
-include!("include/dispextern.rs");             // keyboard.rs's struct glyph members
-include!("include/termhooks.rs");              // keyboard.h's struct input_event
-include!("include/window.rs");                 // keyboard.rs's WINDOW_* members
-include!("include/frame.rs");                  // keyboard.rs's FRAME_* members
-include!("include/blockinput.rs");             // block_input / unblock_input
-include!("include/keyboard.rs");               // C 29
+const _: () = ();
+// [U1] ../lib/include/stdio.rs imported via common
+// [U1] ../lib/include/string.rs imported via common
+// [U1] include/lisp.rs imported via common
+// [U1] include/character.rs imported via common
+// [U1] include/itree.rs imported via common
+// [U1] include/intervals.rs imported via common
+// [U1] include/buffer.rs imported via common
+// [U1] include/systime.rs imported via common
+// [U1] include/composite.rs imported via common
+// [U1] include/coding.rs imported via common
+// [U1] include/process.rs imported via common
+// [U1] include/syssignal.rs imported via common
+// [U1] include/pdumper.rs imported via common
+// [U1] include/dispextern.rs imported via common
+// [U1] include/termhooks.rs imported via common
+// [U1] include/window.rs imported via common
+// [U1] include/frame.rs imported via common
+// [U1] include/blockinput.rs imported via common
+// [U1] include/keyboard.rs imported via common
 
 /* Names C declares in headers whose mirrors do not carry them yet (the terminal.rs shape);
    each keeps C's prototype in a `/// C:` line (PORTING.md P-55 for the pointer-only types).  */

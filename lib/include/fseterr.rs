@@ -6,8 +6,10 @@
 //
 // The declaration lives in `pub mod fseterr_decls` + glob import, because lib/fseterr.c
 // *defines* `fseterr` (E0428; PORTING.md 0.1-10).
-include!("gnulib_config.rs");
-include!("stdio.rs");
+// [U1-MODULE-MIRROR]
+use super::*;
+// [U1] gnulib_config.rs imported via super
+// [U1] stdio.rs imported via super
 
 /* C 20-21's include guard.  */
 pub const _FSETERR_H: bool = true;
@@ -23,4 +25,4 @@ pub mod fseterr_decls {
     pub fn fseterr (fp: *mut FILE);
   }
 }
-use fseterr_decls::*;
+pub use self::fseterr_decls::*;

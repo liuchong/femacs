@@ -1,4 +1,6 @@
 // femacs: port of lib/md5-stream.c @ fd7afced403.
+// [U1-MODULE-UNIT]
+use crate::common::*;
 /* Written by Simon Josefsson.  */
 
 /* emacs/lib/md5-stream.c (@ 134 lines): C 29-31's `#if USE_UNLOCKED_IO` arm and C 33-35's
@@ -13,10 +15,10 @@
    `ferror`, `fread`).  The two `goto process_partial_block` jumps become `break` out of a
    labelled block (PORTING.md 2.2).  */
 use std::ffi::{c_char, c_int, c_long, c_short, c_uint, c_ulong, c_void};
-include!("../src/include/config.rs");
-include!("include/gnulib_config.rs");
-include!("include/stdio.rs");
-include!("include/md5.rs");
+// [U1] config.rs provided by common
+// [U1] include/gnulib_config.rs imported via common
+// [U1] include/stdio.rs imported via common
+// [U1] include/md5.rs imported via common
 
 /* C 27's <stdlib.h>: the two entries the buffer handling needs (stdlib.in.h has no mirror
    yet, so this is the getgroups.c shape).  */

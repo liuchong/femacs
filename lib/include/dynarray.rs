@@ -24,6 +24,8 @@
 // (lib/malloc/include/dynarray.rs) and on the definition `#[unsafe(export_name)]`
 // (the units), so these five macros are the rename record PORTING.md 10.13(1) asks for.
 
+// [U1-MODULE-MIRROR]
+use super::*;
 /* Avoid possible conflicts with symbols exported by the GNU libc.  (C 250-256)  */
 macro_rules! __libc_dynarray_at_failure {
   ($size:expr, $index:expr) => { _gl_dynarray_at_failure ($size, $index) };
@@ -67,7 +69,7 @@ macro_rules! _GL_UNLIKELY {
    skeleton instantiation; see the note above and lib/malloc/dynarray-skeleton.rs.  */
 
 /* C 278-281's `#else` arm: `<malloc/dynarray.h>`.  */
-include!("../malloc/include/dynarray.rs");
+// [U1] ../malloc/include/dynarray.rs imported via super
 
 /* The include guard has no Rust counterpart (PORTING.md 0.1).  */
 pub const _GL_DYNARRAY_H: bool = true;

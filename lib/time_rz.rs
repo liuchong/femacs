@@ -37,19 +37,21 @@
 #![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code,
          unused_imports, unused_macros, unused_variables, unused_mut, unused_unsafe,
          static_mut_refs, unsafe_op_in_unsafe_fn)]
+// [U1-MODULE-UNIT]
+use crate::common::*;
 
 use std::ffi::{c_char, c_double, c_int, c_long, c_schar, c_short, c_uchar, c_uint, c_ulong,
                 c_ulonglong, c_ushort, c_void};
-include!("../src/include/config.rs");
-include!("../src/include/conf_post.rs");  // C 25: the AH_BOTTOM `#include <conf_post.h>`
-include!("include/gnulib_config.rs");
-include!("include/errno.rs");
-include!("include/idx.rs");
-include!("include/stdlib.rs");
-include!("include/string.in.rs");
-include!("include/time.in.rs");
-include!("include/time-internal.rs");
-include!("include/flexmember.rs");
+// [U1] config.rs provided by common
+// [U1] ../src/include/conf_post.rs imported via common
+// [U1] include/gnulib_config.rs imported via common
+// [U1] include/errno.rs imported via common
+// [U1] include/idx.rs imported via common
+// [U1] include/stdlib.rs imported via common
+// [U1] include/string.in.rs imported via common
+// [U1] include/time.in.rs imported via common
+// [U1] include/time-internal.rs imported via common
+// [U1] include/flexmember.rs imported via common
 
 /* C 25-30's `<config.h>`, `<time.h>` and `<errno.h>` are the mirrors above; C 67-73's
    `<stddef.h>` (the target's own header), `<stdlib.h>` and `<string.h>` are the stdlib and

@@ -1,6 +1,8 @@
 #![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code,
          unused_imports, unused_macros, unused_variables, unused_mut, unused_unsafe,
          static_mut_refs, unsafe_op_in_unsafe_fn)]
+// [U1-MODULE-UNIT]
+use crate::common::*;
 use std::ffi::{c_char, c_double, c_int, c_long, c_short, c_uint, c_ulong, c_void};
 // femacs: port of lib/fseterr.c @ fd7afced403.  Blind file: the same
 // `__sferror` arm as lib/fpending.c is the live one here, i.e. C 22-24's
@@ -8,12 +10,12 @@ use std::ffi::{c_char, c_double, c_int, c_long, c_short, c_uint, c_ulong, c_void
 // 235: `<stdio.h>`'s `#define __SERR 0x40`, measured; the mirror carries it).  C's other ten
 // arms are carried as the reference's own text (P-51).  The reference object confirms the
 // symbol: `nm build/emacs-ref/lib/fseterr.o` prints `T _fseterr`.
-include!("../src/include/config.rs");
-include!("include/gnulib_config.rs");
-include!("include/errno.rs");       // <errno.h>
-include!("include/stdio.rs");       // <stdio.h> (FILE = `__sFILE`, `__SERR`)
-include!("include/fseterr.rs");     // "fseterr.h"
-include!("include/stdio-impl.rs");  // "stdio-impl.h" (`fp_` = `fp`)
+// [U1] config.rs provided by common
+// [U1] include/gnulib_config.rs imported via common
+// [U1] include/errno.rs imported via common
+// [U1] include/stdio.rs imported via common
+// [U1] include/fseterr.rs imported via common
+// [U1] include/stdio-impl.rs imported via common
 
 /* This file is not used on systems that have the __fseterr function,
    namely OpenBSD >= 7.6, musl libc, Haiku >= hrev58760.  */

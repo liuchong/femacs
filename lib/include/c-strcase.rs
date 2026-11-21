@@ -22,6 +22,8 @@
 // ported (`lib/c-strcasecmp.rs`, `lib/c-strncasecmp.rs`) and include this
 // mirror: a definition in the unit then shadows the declaration instead of colliding with it.
 
+// [U1-MODULE-MIRROR]
+use super::*;
 /* C 18-19: the include guard has no Rust counterpart (PORTING.md 0.1-4).  */
 pub const C_STRCASE_H: bool = true;
 
@@ -38,7 +40,7 @@ pub mod c_strcase_decls {
     pub fn c_strncasecmp (s1: *const c_char, s2: *const c_char, n: usize) -> c_int;
   }
 }
-use c_strcase_decls::*;
+pub use self::c_strcase_decls::*;
 
 /* C 29-36's comment on the "C" locale and C 60's `#endif` have no Rust counterpart
    (PORTING.md 0.1).  */

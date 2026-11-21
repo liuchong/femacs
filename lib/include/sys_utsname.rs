@@ -3,6 +3,8 @@
 // Three units declared the record and `uname` for themselves until status 3.85
 // (`src/dired.rs`, `src/editfns.rs`, `src/sysdep.rs`).
 
+// [U1-MODULE-MIRROR]
+use super::*;
 /// <sys/utsname.h>'s `struct utsname`, measured: `sizeof` 1280, `nodename`@256.
 #[repr(C)]
 pub struct utsname {

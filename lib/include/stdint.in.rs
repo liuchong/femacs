@@ -22,10 +22,12 @@
 // The `_GL_INTEGER_WIDTH` helper of the TS 18661-1 width block (C 81-87 in its own header)
 // comes from `limits.in.rs`, which the template includes at C 77.
 
+// [U1-MODULE-MIRROR]
+use super::*;
 /* stdint.in.h 77: `#include <limits.h>` - `_GL_INTEGER_WIDTH`, and the `SCHAR_MIN`,
    `SCHAR_MAX`, `UCHAR_MAX`, `LONG_MIN`, `LONG_MAX`, `ULONG_MAX` the template's own bodies
    name.  */
-include!("limits.in.rs");
+// [U1] limits.in.rs imported via super
 
 /* stdint.in.h 23/72-73: the double-inclusion guard, `_@GUARD_PREFIX@_STDINT_H`; the frozen
    substitution is `_GL_STDINT_H`.  The extractor reads the template's own name as `_`

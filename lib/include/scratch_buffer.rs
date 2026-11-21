@@ -17,6 +17,8 @@
 // requires of a mirror; the scalar names (`c_char`, `c_int`, `c_void`) come from the
 // including unit's scope, as the other lib mirrors expect.
 
+// [U1-MODULE-MIRROR]
+use super::*;
 /// C: `__builtin_expect ((cond), 1)` (PORTING.md 2.6: a branch hint, not a layout hint).
 macro_rules! __builtin_expect {
     ($cond:expr, $hint:expr) => { $cond };

@@ -5,6 +5,8 @@
 // entries they name: the opaque `DIR` (the stdio.rs `FILE` shape) and the directory calls.
 // `struct dirent` is not mirrored yet - no ported unit reads its fields.
 
+// [U1-MODULE-MIRROR]
+use super::*;
 /// <dirent.h>'s opaque `DIR`; the reference only ever passes `DIR *`.
 pub enum DIR {}
 
@@ -25,7 +27,7 @@ pub mod dirent_decls {
     pub fn telldir (dirp: *mut DIR) -> c_long;
   }
 }
-use dirent_decls::*;
+pub use self::dirent_decls::*;
 
 /* dirent.in.h 102 (`build/emacs-ref/lib/dirent.h` 103): `#define _GL_DT_NOTDIR 0x100` -
    `0x100` is the one `d_type`-shaped value the template adds to the system header.  */

@@ -10,6 +10,8 @@
 // shape): lib/fsusage.c defines `get_fs_usage`, and an explicit item shadows a glob import
 // (PORTING.md 0.1-10).
 
+// [U1-MODULE-MIRROR]
+use super::*;
 /* C 21-22's include guard `FSUSAGE_H_` has no Rust counterpart (PORTING.md 0.1 fixes the
    include! graph instead); the port keeps the name as the marker constant, the idx.rs shape.  */
 pub const FSUSAGE_H_: bool = true;
@@ -36,4 +38,4 @@ pub mod fsusage_decls {
       -> c_int;
   }
 }
-use fsusage_decls::*;
+pub use self::fsusage_decls::*;

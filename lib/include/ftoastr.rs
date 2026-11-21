@@ -35,6 +35,8 @@
 // defines its own (the flag constants in `lib/ftoastr.rs`, which the extractor's header-less
 // reading put there) shadows the glob instead of clashing with it (PORTING.md 0.1-10).
 
+// [U1-MODULE-MIRROR]
+use super::*;
 /* C 21: the include guard has no Rust counterpart (PORTING.md 0.1-4); the name is kept as the
    marker the other mirrors use.  */
 pub const _GL_FTOASTR_H: bool = true;
@@ -76,7 +78,7 @@ pub mod ftoastr_decls {
      `--check` asks for (a macro's body and a constant's value of 1).  */
   pub const _GL_FLOAT_DIG_BITS_BOUND: core::ffi::c_int = 1;
 }
-use ftoastr_decls::*;
+pub use self::ftoastr_decls::*;
 
 /* C 112-113: `_GL_FLOAT_PREC_BOUND (dig)` - an upper bound on the decimal digits needed for
    `dig` binary digits.  Rust's macro calls take the `!` C's spelling does not have; the

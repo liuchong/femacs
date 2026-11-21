@@ -23,6 +23,8 @@
 // (the `DYNARRAY_CONCAT0` shape), `_GL_COUNTER` takes C's own `__LINE__` fallback arm
 // (`line! ()`), and C's `sizeof` is `core::mem::size_of`.
 
+// [U1-MODULE-MIRROR]
+use super::*;
 /* verify.h 21: the include guard has no Rust counterpart (PORTING.md 0.1).  */
 pub const _GL_VERIFY_H: bool = true;
 

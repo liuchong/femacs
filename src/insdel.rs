@@ -53,22 +53,24 @@
          unused_imports, unused_macros, unused_variables, unused_unsafe, static_mut_refs,
          unsafe_op_in_unsafe_fn, unused_assignments, unreachable_code, while_true,
          unused_parens, unused_mut)]
+// [U1-MODULE-UNIT]
+use crate::common::*;
 
-include!("include/config.rs");                 // C 22: `#include <config.h>`
-include!("include/lisp.rs");                   // C 24: `#include "lisp.h"`
-include!("include/composite.rs");              // C 25: `#include "composite.h"`
-include!("include/intervals.rs");              // C 26: `#include "intervals.h"`
-include!("include/character.rs");              // C 27: `#include "character.h"`
-include!("include/itree.rs");                 // buffer.h 35: `#include "itree.h"`
-include!("include/buffer.rs");                 // C 28: `#include "buffer.h"`
+const _: () = ();
+// [U1] include/lisp.rs imported via common
+// [U1] include/composite.rs imported via common
+// [U1] include/intervals.rs imported via common
+// [U1] include/character.rs imported via common
+// [U1] include/itree.rs imported via common
+// [U1] include/buffer.rs imported via common
 #[cfg(feature = "have_tree_sitter")]
-include!("include/treesit.rs"); // P430 shared parser/edit/GC ABI.
-include!("include/window.rs");                 // C 29: `#include "window.h"`
-include!("include/dispextern.rs");            // window.h 23: `#include "dispextern.h"`,
+const _: () = ();
+// [U1] include/window.rs imported via common
+// [U1] include/dispextern.rs imported via common
                                                // for window.rs 159 `text_cursor_kinds`
-include!("include/region-cache.rs");            // C 30: `#include "region-cache.h"`
-include!("include/pdumper.rs");                // C 31: `#include "pdumper.h"`
-include!("../lib/include/string.rs");          // lisp.h 30: `#include <string.h>` (memcpy, memmove, memset, strlen)
+// [U1] include/region-cache.rs imported via common
+// [U1] include/pdumper.rs imported via common
+// [U1] ../lib/include/string.rs imported via common
 
 /* C 23's `<intprops.h>` contributes no name this unit uses.  C 30's `"region-cache.h"` is the
    mirror's now (`include/region-cache.rs`, included above): its one prototype this unit calls

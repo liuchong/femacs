@@ -11,6 +11,8 @@
 // `lib/include/stdbit.rs` comment says the same), so `pdumper.rs`'s unit provides `c_uchar`
 // through `lisp.rs` and a second `use` here would be an E0252.
 // fingerprint.h 20-21: the include guard has no Rust counterpart (PORTING.md 0.1).
+// [U1-MODULE-MIRROR]
+use super::*;
 pub const EMACS_FINGERPRINT_H: bool = true;
 
 /* We generate fingerprint.c and fingerprint.o from all the sources in

@@ -28,7 +28,9 @@
 //
 // `ssize_t` is the frozen target's `long` (`sizeof (ssize_t) == 8`, measured).
 
-include!("sys_types.in.rs");   // <sys/types.h>
+// [U1-MODULE-MIRROR]
+use super::*;
+// [U1] sys_types.in.rs imported via super
 
 /// The frozen target's `ssize_t` (`long`, 8 bytes).
 pub type ssize_t = c_long;

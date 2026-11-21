@@ -1,6 +1,8 @@
 #![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code,
          unused_imports, unused_macros, unused_variables, unused_mut, unused_unsafe,
          static_mut_refs, unsafe_op_in_unsafe_fn)]
+// [U1-MODULE-UNIT]
+use crate::common::*;
 use std::ffi::{c_char, c_double, c_int, c_long, c_uint, c_ulong, c_void};
 // femacs: port of lib/timespec-add.c @ fd7afced403.  `ckd_add` is
 // today's C23 spelling of the overflowing pair: the port writes the wrapped sum and the
@@ -10,10 +12,10 @@ use std::ffi::{c_char, c_double, c_int, c_long, c_uint, c_ulong, c_void};
 // mirror's `pub mod timespec_decls` + glob import, so this definition shadows it
 // (PORTING.md 0.1-10).  The reference object confirms the name:
 // `nm -g build/emacs-ref/lib/timespec-add.o` prints `T _timespec_add`.
-include!("../src/include/config.rs");
-include!("include/gnulib_config.rs");
-include!("include/timespec.rs");   // "timespec.h", <stdckdint.h>, "intprops.h"
-include!("include/stdckdint.in.rs");  // C 26: `#include <stdckdint.h>` (the three
+// [U1] config.rs provided by common
+// [U1] include/gnulib_config.rs imported via common
+// [U1] include/timespec.rs imported via common
+// [U1] include/stdckdint.in.rs imported via common
                                          // names are dead here; the unit spells the
                                          // `overflowing_*` pair, P-15)
 

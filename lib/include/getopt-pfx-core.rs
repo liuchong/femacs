@@ -13,5 +13,7 @@
 // prefixed; the port declares the prefixed ones only, which is what the frozen build links.
 // The file has no item of its own; docs/ports/include-getopt-pfx-core.md records the rest.
 
+// [U1-MODULE-MIRROR]
+use super::*;
 /* C 21: the include guard, whose C body is `1`.  */
 pub const _GETOPT_PFX_CORE_H: core::ffi::c_int = 1;

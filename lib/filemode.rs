@@ -1,4 +1,6 @@
 // femacs: port of lib/filemode.c @ fd7afced403.
+// [U1-MODULE-UNIT]
+use crate::common::*;
 /* emacs/lib/filemode.c: HAVE_DECL_STRMODE is 1 in the frozen configuration (macOS's
    <string.h> declares it), so C 23-107's `#if ! HAVE_DECL_STRMODE` arm - `ftypelet` and
    gnulib's own `strmode` - is dead text kept under the feature that names the frozen side
@@ -7,11 +9,11 @@
    C 21's "filemode.h" is the filemode mirror, C 23's <sys/stat.h> the sys_stat mirror and
    the S_TYPEIS* tests it leaves as `0` on this target are what the port's macro_rules say.  */
 use std::ffi::{c_char, c_int, c_long, c_short, c_uint, c_void};
-include!("../src/include/config.rs");
-include!("include/gnulib_config.rs");
-include!("include/sys_types.in.rs");
-include!("include/filemode.rs");   // "filemode.h"
-include!("include/sys_stat.in.rs");
+// [U1] config.rs provided by common
+// [U1] include/gnulib_config.rs imported via common
+// [U1] include/sys_types.in.rs imported via common
+// [U1] include/filemode.rs imported via common
+// [U1] include/sys_stat.in.rs imported via common
 
 /* C 42-106's dead arm, kept as text (P-51; dead: HAVE_DECL_STRMODE is 1).  */
 

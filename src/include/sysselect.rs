@@ -17,9 +17,11 @@
 // C 20: the include guard has no Rust counterpart (PORTING.md 0.1).
 // (C writes the guard as `#define SYSSELECT_H 1`, so the constant carries C's `1`; the
 // other mirrors' guards are empty `#define X_H` and are `bool = true`.)
+// [U1-MODULE-MIRROR]
+use super::*;
 pub const SYSSELECT_H: c_int = 1;
 
-include!("../../lib/include/sys_select.rs");   // C 24: `#include <sys/select.h>`
+// [U1] ../../lib/include/sys_select.rs imported via super
 
 /// C 67-71: `INLINE void fd_CLR (int fd, fd_set *set)`.
 #[inline(always)]

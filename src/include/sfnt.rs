@@ -58,8 +58,10 @@
 // named after that member) - `sfnt_compound_glyph_component`'s two `argument` unions and its
 // scaling union, and `sfnt_gvar_table`'s offset union.
 
-include!("../../lib/include/stdint.in.rs");      // C 23: `#include <stdint.h>`
-include!("../../lib/include/sys_types.in.rs");   // C 27: `#include <sys/types.h>` (`off_t`)
+// [U1-MODULE-MIRROR]
+use super::*;
+// [U1] ../../lib/include/stdint.in.rs imported via super
+// [U1] ../../lib/include/sys_types.in.rs imported via super
 
 /* C 20-21: the include guard has no Rust counterpart (PORTING.md 0.1-4).  The extractor's
    item list names it, so the mirror spells it the way `include/font.rs` spells its own.  */
@@ -2490,7 +2492,7 @@ pub mod sfnt_decls {
     pub fn sfnt_vary_interpreter (arg0: *mut sfnt_interpreter, arg1: *mut sfnt_blend);
   }
 }
-use sfnt_decls::*;
+pub use self::sfnt_decls::*;
 
 /* C 1471, 1481, 1500, 1514, 1519, 1537, 1545, 1557, 1565, 1571, 1594, 1602, 1633, 1641,
    2073, 2081, 2092, 2100, 2109, 2115 and 2125 (21 `#define`s) and the matching `#undef`s:

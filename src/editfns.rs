@@ -35,35 +35,37 @@
          unsafe_op_in_unsafe_fn, unused_assignments, unused_parens, unused_mut,
          unreachable_code, unused_labels, while_true, unused_comparisons,
          overflowing_literals, unused_must_use, clippy::all)]
+// [U1-MODULE-UNIT]
+use crate::common::*;
 
-include!("include/config.rs");                 // C 21: `#include <config.h>`
-include!("../lib/include/sys_types.in.rs");    // C 22: `#include <sys/types.h>`
-include!("../lib/include/stdio.rs");           // C 23: `#include <stdio.h>`
-include!("../lib/include/unistd.in.rs");       // C 30: `#include <unistd.h>`
-include!("include/lisp.rs");                   // C 40: `#include "lisp.h"`
-include!("../lib/include/float.in.rs");        // C 42: `#include <float.h>`
-include!("../lib/include/limits.in.rs");       // C 43: `#include <limits.h>`
-include!("../lib/include/math.rs");            // C 44: `#include <math.h>`
-include!("../lib/include/c-ctype.rs");         // C 46: `#include <c-ctype.h>`
-include!("../lib/include/stdlib.rs");          // C 48: `#include <stdlib.h>`
-include!("include/composite.rs");              // C 50: `#include "composite.h"`
-include!("include/intervals.rs");              // C 51: `#include "intervals.h"`
-include!("include/systime.rs");                // C 52: `#include "systime.h"`
-include!("../lib/include/pwd.rs");           // C: `#include <pwd.h>`
-include!("../lib/include/grp.rs");           // C: `#include <grp.h>`
-include!("../lib/include/sys_utsname.rs");   // C: `#include <sys/utsname.h>`
-include!("include/character.rs");              // C 53: `#include "character.h"`
-include!("include/itree.rs");                  // buffer.h 27: `#include "itree.h"`
-include!("include/buffer.rs");                 // C 54: `#include "buffer.h"`
+const _: () = ();
+// [U1] ../lib/include/sys_types.in.rs imported via common
+// [U1] ../lib/include/stdio.rs imported via common
+// [U1] ../lib/include/unistd.in.rs imported via common
+// [U1] include/lisp.rs imported via common
+// [U1] ../lib/include/float.in.rs imported via common
+// [U1] ../lib/include/limits.in.rs imported via common
+// [U1] ../lib/include/math.rs imported via common
+// [U1] ../lib/include/c-ctype.rs imported via common
+// [U1] ../lib/include/stdlib.rs imported via common
+// [U1] include/composite.rs imported via common
+// [U1] include/intervals.rs imported via common
+// [U1] include/systime.rs imported via common
+// [U1] ../lib/include/pwd.rs imported via common
+// [U1] ../lib/include/grp.rs imported via common
+// [U1] ../lib/include/sys_utsname.rs imported via common
+// [U1] include/character.rs imported via common
+// [U1] include/itree.rs imported via common
+// [U1] include/buffer.rs imported via common
 #[cfg(feature = "have_tree_sitter")]
-include!("include/treesit.rs"); // P430 shared parser/edit/GC ABI.
-include!("include/window.rs");                 // C 55: `#include "window.h"`
-include!("include/dispextern.rs");            // window.h 23: `#include "dispextern.h"`,
+const _: () = ();
+// [U1] include/window.rs imported via common
+// [U1] include/dispextern.rs imported via common
                                                // for window.rs 159 `text_cursor_kinds`
-include!("include/blockinput.rs");             // C 56: `#include "blockinput.h"`
-include!("include/coding.rs");                 // C 57: `#include "coding.h"`
-include!("../lib/include/string.rs");          // lisp.h's `<string.h>` (memcpy/strlen)
-include!("../lib/include/stdcountof.rs");      // lisp.h 30's <stdcountof.h>: `countof`
+// [U1] include/blockinput.rs imported via common
+// [U1] include/coding.rs imported via common
+// [U1] ../lib/include/string.rs imported via common
+// [U1] ../lib/include/stdcountof.rs imported via common
 
 /* `<intprops.h>` has no mirror (PORTING.md P-26): C's `TYPE_MAXIMUM (t)` is the type's own
    largest value, the syntax.rs/dtotimespec.rs shape; `INT_STRLEN_BOUND` is the digit bound
@@ -1845,7 +1847,7 @@ macro_rules! EARLY_ABORT {
    eval.rs/bytecode.rs do.  */
 
 /// C 1919: `#include "minmax.h"` — the mirror of the two-element header.
-include!("../lib/include/minmax.rs");
+// [U1] ../lib/include/minmax.rs imported via common
 
 /* C 1920: `#include "diffseq.h"`.  `emacs/lib/diffseq.h` has **no mirror** and this unit is
    its only includer in the tree (its `diag`/`compareseq` are `static`, and its `struct

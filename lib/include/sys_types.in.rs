@@ -18,6 +18,8 @@
 //     cannot be evaluated, so both arms of every block count as required names) and because
 //     the mirror is the whole header.  Each item below names the arm it mirrors.
 
+// [U1-MODULE-MIRROR]
+use super::*;
 /* C 41/48-49: the double-inclusion guard, `_@GUARD_PREFIX@_SYS_TYPES_H`; the frozen
    substitution is `_GL_SYS_TYPES_H` (build/emacs-ref/lib/sys/types.h 41).  Under the
    template's own spelling the extractor reads the name as `_`, which

@@ -36,15 +36,8 @@ pub(super) fn run(list: Option<&String>) -> i32 {
         let path = list.map(String::as_str).unwrap_or("docs/baseline/frozen-build-sources.txt");
         let units = parse(&fs::read_to_string(path).map_err(|e|format!("{path}: {e}"))?)?;
         let count = units.len();
-        let nonce = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH)
-            .map_err(|e|e.to_string())?.as_nanos();
-        let materialization = build_root().join("check-units")
-            .join(format!("{}-{nonce}",std::process::id()));
-        fs::create_dir_all(&materialization).map_err(|e|e.to_string())?;
-        // Preserve ordinary object locations for the existing link consumers;
-        // isolate materialized source/metadata and never delete another run's tree.
-        build_selected_units(units, &materialization)?;
-        println!("checked {count} unit(s), normal and enable_checking, 0 failure(s)");
+        crate::cargo_build::check_workspace_crates()?;
+        println!("checked {count} unit(s) via Cargo workspace, normal and enable_checking, 0 failure(s)");
         Ok(())
     })();
     match result { Ok(()) => 0, Err(e) => fail(e) }

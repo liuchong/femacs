@@ -42,15 +42,17 @@
          unused_imports, unused_macros, unused_variables, unused_unsafe, static_mut_refs,
          unsafe_op_in_unsafe_fn, unused_assignments, unreachable_code, while_true,
          unused_parens, unused_mut)]
+// [U1-MODULE-UNIT]
+use crate::common::*;
 
-include!("include/config.rs");                 // C 19: `#include <config.h>`
-include!("include/lisp.rs");                   // C 21: `#include "lisp.h"`
-include!("include/intervals.rs");              // C 22: `#include "intervals.h"`
-include!("include/character.rs");              // buffer.h 26: `#include "character.h"`
-include!("include/itree.rs");                  // buffer.h 28: `#include "itree.h"`
-include!("include/buffer.rs");                 // C 23: `#include "buffer.h"`
-include!("include/window.rs");                 // C 24: `#include "window.h"`
-include!("include/dispextern.rs");            // window.h 23: `#include "dispextern.h"`,
+const _: () = ();
+// [U1] include/lisp.rs imported via common
+// [U1] include/intervals.rs imported via common
+// [U1] include/character.rs imported via common
+// [U1] include/itree.rs imported via common
+// [U1] include/buffer.rs imported via common
+// [U1] include/window.rs imported via common
+// [U1] include/dispextern.rs imported via common
                                                // for window.rs 159 `text_cursor_kinds`
 
 /* C spells `enum itree_order`'s members bare (`ASCENDING` in the `ITREE_FOREACH`

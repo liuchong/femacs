@@ -48,45 +48,10 @@ fn compiler_pass_selection_rejects_unknown_or_missing_bound_legs() {
 }
 
 #[test]
-fn helper_inputs_select_checked_tool_and_libraries_from_a_checked_only_root() {
-    let root = owned_repo("helper-checked").join("objects");
-    fs::create_dir(&root).unwrap();
-    for name in ["make-fingerprint.checking.o", "sha256.checking.o", "mini-gmp-gnulib.checking.o"] {
-        fs::write(root.join(name), name.as_bytes()).unwrap();
-    }
-    let members = vec!["sha256.o".to_owned(), "mini-gmp-gnulib.o".to_owned()];
-    let (tool, libraries) = crate::helper_link_inputs(&root, "make-fingerprint", &members, true).unwrap();
-    assert_eq!(tool, root.join("make-fingerprint.checking.o"));
-    assert_eq!(libraries.len(), 2);
-    assert!(libraries.iter().all(|p| p.ends_with(".checking.o")));
-}
-
-#[test]
-fn helper_inputs_preserve_plain_legacy_names_and_gnulib_aliases() {
-    let root = owned_repo("helper-plain").join("objects");
-    fs::create_dir(&root).unwrap();
-    for name in ["make-fingerprint.o", "sha256.o", "mini-gmp.o", "sha256.checking.o"] {
-        fs::write(root.join(name), name.as_bytes()).unwrap();
-    }
-    let members = vec!["sha256.o".to_owned(), "mini-gmp-gnulib.o".to_owned()];
-    let (tool, libraries) = crate::helper_link_inputs(&root, "make-fingerprint", &members, false).unwrap();
-    assert_eq!(tool, root.join("make-fingerprint.o"));
-    assert_eq!(libraries.len(), 2);
-    assert!(libraries.iter().all(|p| !p.ends_with(".checking.o")));
-    assert!(libraries.iter().any(|p| p.ends_with("mini-gmp.o")));
-}
-
-#[test]
-fn helper_inputs_reject_the_opposite_leg_instead_of_falling_back() {
-    let root = owned_repo("helper-opposite").join("objects");
-    fs::create_dir(&root).unwrap();
-    for name in ["make-fingerprint.o", "sha256.o"] {
-        fs::write(root.join(name), name.as_bytes()).unwrap();
-    }
-    let members = vec!["sha256.o".to_owned()];
-    assert!(crate::helper_link_inputs(&root, "make-fingerprint", &members, true).is_err());
-    fs::write(root.join("make-fingerprint.checking.o"), b"checked tool").unwrap();
-    assert!(crate::helper_link_inputs(&root, "make-fingerprint", &members, true).is_err());
+fn cargo_checking_leg_names_preserve_swift_and_rlib_lanes() {
+    assert_eq!(selected_object_name("eval", false, false), "eval.o");
+    assert_eq!(selected_object_name("eval", true, false), "eval.checking.o");
+    assert_eq!(selected_object_name("nsterm", true, true), "nsterm.o");
 }
 use serde_json::json;
 

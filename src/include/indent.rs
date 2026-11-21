@@ -17,6 +17,8 @@
 // does not name it yet; docs/ports/indent.md records the numbers).
 
 // C 19-20's include guard has no Rust counterpart (PORTING.md 0.1).
+// [U1-MODULE-MIRROR]
+use super::*;
 pub const EMACS_INDENT_H: bool = true;
 
 // C 22: `#include "lisp.h"` is the including unit's `include!("include/lisp.rs")`.
@@ -81,7 +83,7 @@ pub mod indent_decls {
                                   disptab: *mut Lisp_Char_Table);
   }
 }
-use indent_decls::*;
+pub use self::indent_decls::*;
 
 /// The file-scope object the header declares (`extern`).  `src/indent.c` defines it, so it
 /// lives here + glob import (PORTING.md P-21/0.1-10).
@@ -93,4 +95,4 @@ pub mod indent_objs {
     pub static mut last_known_column_point: ptrdiff_t;
   }
 }
-use indent_objs::*;
+pub use self::indent_objs::*;

@@ -32,6 +32,8 @@
 // port's `time_t = i64` satisfies by construction (its only member is a bitfield, which
 // PORTING.md 1.3 packs explicitly).
 
+// [U1-MODULE-MIRROR]
+use super::*;
 /// The frozen target's `time_t` (a 64-bit signed integer).
 pub type time_t = i64;
 
@@ -172,7 +174,7 @@ pub mod time_decls {
     pub fn tzfree (tz: timezone_t);
   }
 }
-use time_decls::*;
+pub use self::time_decls::*;
 
 /* ---- the template's own half (PORTING.md P-26, the endian.in.rs shape) ---------------- */
 

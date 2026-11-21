@@ -10,6 +10,8 @@
 // (docs/ports/excluded-macros.txt).
 
 // blockinput.h 21: the include guard has no Rust counterpart (PORTING.md 0.1).
+// [U1-MODULE-MIRROR]
+use super::*;
 pub const EMACS_BLOCKINPUT_H: bool = true;
 
 /* Emacs should avoid doing anything hairy in a signal handler, because

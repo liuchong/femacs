@@ -5,6 +5,8 @@
 // `mem_unit`), so only the fields alloc.c 7170-7205 reads are named; the rest is one padding
 // array of the same total size so that `sizeof (struct sysinfo)` stays the system's.
 
+// [U1-MODULE-MIRROR]
+use super::*;
 #[cfg (feature = "have_linux_sysinfo")]
 #[repr (C)]
 pub struct sysinfo

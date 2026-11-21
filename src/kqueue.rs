@@ -25,8 +25,10 @@
 #![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code, unused_imports,
          unused_macros, unused_variables, unused_assignments, unused_mut, unused_unsafe,
          static_mut_refs, unsafe_op_in_unsafe_fn, clippy::all)]
+// [U1-MODULE-UNIT]
+use crate::common::*;
 
-include!("include/config.rs");                  // C 20: `#include <config.h>`
+const _: () = ();
 
 /* Local SDK declarations cover sys/event.h, sys/resource.h and the two
    Darwin-only open flags absent from the shared mirror. Common open flags use
@@ -119,34 +121,34 @@ unsafe extern "C" {
 }
 
 #[cfg (feature = "have_kqueue")]
-include!("include/globals.rs");                 // C 26's chain: lisp.h's `F*` declarations
+const _: () = ();
 #[cfg (feature = "have_kqueue")]
-include!("include/lisp.rs");                    // C 26: `#include "lisp.h"`
+const _: () = ();
 #[cfg (feature = "have_kqueue")]
-include!("../lib/include/fcntl.in.rs");           // shared open flags on both frontends
+const _: () = ();
 
 // Materialize the required buffer/type closure before optional GUI edges can
 // reserve it during first-include deduplication in a terminal build.
 #[cfg (feature = "have_kqueue")]
-include!("include/buffer.rs");
+const _: () = ();
 #[cfg (feature = "have_kqueue")]
-include!("include/keyboard.rs");                // C 27: `#include "keyboard.h"`
+const _: () = ();
 #[cfg (feature = "have_kqueue")]
-include!("include/process.rs");                 // C 28: `#include "process.h"` (`add_read_fd`,
+const _: () = ();
                                                 // `delete_read_fd`, `FNread_fd`)
 #[cfg (feature = "have_kqueue")]
-include!("include/systime.rs");                 // C 24's chain: `struct timespec`
+const _: () = ();
 /* The two edges C 24/27's chain reaches through other headers, spelled here (P-86 ⑧, the
    `src/gfilenotify.rs` precedent): `termhooks.h` names `Emacs_Color` (dispextern.h), and
    `include/keyboard.rs` 32 reaches `buffer.rs`, whose text names character.h's
    `STRING_CHAR`/`UNIBYTE_TO_CHAR`/`BYTES_BY_CHAR_HEAD`/`string_char_and_length`/
    `raw_prev_char_len`.  */
 #[cfg (feature = "have_kqueue")]
-include!("include/dispextern.rs");             // termhooks.h's `Emacs_Color`
+const _: () = ();
 #[cfg (feature = "have_kqueue")]
-include!("include/character.rs");              // buffer.rs's five character.h helpers
+const _: () = ();
 #[cfg (feature = "have_kqueue")]
-include!("../lib/include/string.rs");           // C 26's chain: lisp.h 30's `<string.h>` (strcmp)
+const _: () = ();
 
 // FILE_NOTIFY_EVENT comes from the shared termhooks include. Its value follows
 // the enabled thread, window-system and notification members on this target.

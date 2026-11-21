@@ -13,6 +13,8 @@
 // `BEGV_BYTE`/`BYTE_TO_CHAR`/`BUF_BEGV_BYTE` (buffer.rs) from the including unit.
 
 // syntax.h 22: the include guard has no Rust counterpart (PORTING.md 0.1).
+// [U1-MODULE-MIRROR]
+use super::*;
 pub const EMACS_SYNTAX_H: bool = true;
 
 // INLINE_HEADER_BEGIN has no Rust counterpart (PORTING.md 0.1).
@@ -126,7 +128,7 @@ pub mod syntax_h_own_definitions {
 // `RE_SETUP_SYNTAX_TABLE_FOR_OBJECT`, and the three macros it redefines with
 // `via_property = 1` - so they live in one module and are pulled in with a glob import: the
 // owning unit's own definitions shadow the declarations (PORTING.md P-39/P-21).
-use syntax_h_own_definitions::*;
+pub use self::syntax_h_own_definitions::*;
 
 /* Fetch the information from the entry for character C
    in the current buffer's syntax table,

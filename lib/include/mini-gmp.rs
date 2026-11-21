@@ -23,6 +23,8 @@
 // and `size_t` is the prelude's `usize` (as in the other mirrors).
 
 // The include guard has no Rust counterpart (PORTING.md 0.1).
+// [U1-MODULE-MIRROR]
+use super::*;
 pub const __MINI_GMP_H__: bool = true;
 
 /* #ifndef MINI_GMP_LIMB_TYPE
@@ -253,4 +255,4 @@ pub mod gmp {
     }
 }
 
-use gmp::*;
+pub use self::gmp::*;

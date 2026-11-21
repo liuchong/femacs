@@ -50,43 +50,45 @@
          unsafe_op_in_unsafe_fn, unused_assignments, unused_parens, unused_mut,
          unreachable_code, unused_labels, while_true, unused_comparisons,
          overflowing_literals, unused_must_use, clippy::all)]
+// [U1-MODULE-UNIT]
+use crate::common::*;
 
-include!("include/config.rs");                 // C 20: `#include <config.h>`
-include!("../lib/include/stdio.rs");           // lisp.h 30: `#include <stdio.h>`
-include!("../lib/include/stdlib.rs");          // lisp.h: `#include <stdlib.h>`
-include!("../lib/include/limits.in.rs");       // lisp.h: `INT_MAX`/`INT_MIN`/`LONG_MAX`
-include!("../lib/include/stdint.in.rs");       // lisp.h: the width family
-include!("../lib/include/string.rs");          // lisp.h 29: `#include <string.h>`
-include!("../lib/include/stdcountof.rs");      // lisp.h 28: `#include <stdcountof.h>` (countof)
-include!("include/lisp.rs");                   // C 31: `#include "lisp.h"`
+const _: () = ();
+// [U1] ../lib/include/stdio.rs imported via common
+// [U1] ../lib/include/stdlib.rs imported via common
+// [U1] ../lib/include/limits.in.rs imported via common
+// [U1] ../lib/include/stdint.in.rs imported via common
+// [U1] ../lib/include/string.rs imported via common
+// [U1] ../lib/include/stdcountof.rs imported via common
+// [U1] include/lisp.rs imported via common
 /* The mirrors the headers above pull in (the text of C's own include chain, in C's order
    where one applies; Rust item order is irrelevant but macros must precede their uses).  */
-include!("include/character.rs");              // lisp.h's `CHARACTERP`/`MAX_CHAR` users
-include!("include/intervals.rs");              // buffer.h 27: `#include "intervals.h"`
-include!("include/systime.rs");                // lisp.h: `Time`/`struct timespec`
-include!("include/itree.rs");                  // intervals.h: `itree_node`/`itree_tree`
-include!("include/composite.rs");              // coding.h 284: `#include "composite.h"`
-include!("include/coding.rs");                 // dispextern.h 29: `#include "coding.h"`
-include!("include/font.rs");                   // dispextern.h's font names
-include!("include/termhooks.rs");              // C 44: `#include "termhooks.h"`
-include!("include/frame.rs");                  // C 37: `#include "frame.h"`
-include!("include/keyboard.rs");               // C 33: `#include "keyboard.h"`
-include!("include/keymap.rs");                 // C 34: `#include "keymap.h"`
-include!("include/buffer.rs");                 // C 32: `#include "buffer.h"`
-include!("include/blockinput.rs");             // C 43: `#include "blockinput.h"`
-include!("include/termchar.rs");               // C 39: `#include "termchar.h"`
-include!("include/disptab.rs");                // C 40: `#include "disptab.h"`
-include!("include/dispextern.rs");             // C 41: `#include "dispextern.h"`
-include!("include/window.rs");                 // C 38: `#include "window.h"`
-include!("include/commands.rs");               // C 36: `#include "commands.h"`
-include!("include/indent.rs");                 // C 37: `#include "indent.h"`
-include!("include/pdumper.rs");                // C 51: `#include "pdumper.h"`
+// [U1] include/character.rs imported via common
+// [U1] include/intervals.rs imported via common
+// [U1] include/systime.rs imported via common
+// [U1] include/itree.rs imported via common
+// [U1] include/composite.rs imported via common
+// [U1] include/coding.rs imported via common
+// [U1] include/font.rs imported via common
+// [U1] include/termhooks.rs imported via common
+// [U1] include/frame.rs imported via common
+// [U1] include/keyboard.rs imported via common
+// [U1] include/keymap.rs imported via common
+// [U1] include/buffer.rs imported via common
+// [U1] include/blockinput.rs imported via common
+// [U1] include/termchar.rs imported via common
+// [U1] include/disptab.rs imported via common
+// [U1] include/dispextern.rs imported via common
+// [U1] include/window.rs imported via common
+// [U1] include/commands.rs imported via common
+// [U1] include/indent.rs imported via common
+// [U1] include/pdumper.rs imported via common
 /* C 43: `#include TERM_HEADER`, inside C's `#ifdef HAVE_WINDOW_SYSTEM`.  The frozen
    configuration leaves `TERM_HEADER` undefined (no window system), so no unit carried the edge and
    every `FRAME_DISPLAY_INFO` expansion in this unit's body read `cannot find macro` on
    `aarch64-linux-android` (measured; `dispnew.rs` carries the same five-way gate).  */
 #[cfg (all (feature = "have_window_system", feature = "have_android"))]
-include!("include/androidterm.rs");            // C 43 (TERM_HEADER): `androidterm.h`
+const _: () = ();
 
 
 /* window.h 392-410: the nineteen `bool_bf : 1` members share the unit `bits`; the readers are
@@ -258,10 +260,8 @@ unsafe extern "C" {
    glob-imported: an item shadows a glob import, while a second crate-root item of the same
    name would be `E0428` (PORTING.md P-21's mechanism, from the other side; the frame.rs
    `frame_globals` shape).  The `static` objects stay plain `static mut`.  */
-pub mod window_globals {
-  use super::*;
 
-  /* C 84: `Lisp_Object selected_window;`  */
+/* C 84: `Lisp_Object selected_window;`  */
   #[unsafe(no_mangle)]
   pub static mut selected_window: Lisp_Object = lisp_h_Qnil ();
 
@@ -284,8 +284,6 @@ pub mod window_globals {
   /* C 506: `EMACS_INT window_select_count;`  */
   #[unsafe(no_mangle)]
   pub static mut window_select_count: EMACS_INT = 0;
-}
-use window_globals::*;
 
 /* C 89: `static Lisp_Object old_selected_window;` — the value of selected_window at the last
    time window change functions were run.  */

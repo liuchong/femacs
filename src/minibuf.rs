@@ -44,26 +44,28 @@
          unsafe_op_in_unsafe_fn, unused_assignments, unreachable_code, while_true,
          unused_parens, unused_mut, unused_labels, unused_comparisons,
          overflowing_literals)]
+// [U1-MODULE-UNIT]
+use crate::common::*;
 
-include!("include/config.rs");                 // C 21: `#include <config.h>`
-include!("../lib/include/errno.rs");        // C 22: `#include <errno.h>`
-include!("../lib/include/binary-io.rs");    // C 24: `#include <binary-io.h>`
-include!("../lib/include/stdio.rs");        // C 33: `#include "sysstdio.h"` (FILE, sprintf, EOF)
-include!("include/lisp.rs");                   // C 26: `#include "lisp.h"`
-include!("include/character.rs");              // C 27: `#include "character.h"`
-include!("include/itree.rs");                  // buffer.h 28: `#include "itree.h"`
-include!("include/buffer.rs");                 // C 28: `#include "buffer.h"`
-include!("include/systime.rs");                 // termhooks.h 28: `#include "systime.h"` (Time)
-include!("include/dispextern.rs");             // frame.h 24: `#include "dispextern.h"`
-include!("include/coding.rs");                 // termhooks.h 26: `#include "coding.h"`
-include!("include/composite.rs");              // dispextern.h 25: `#include "composite.h"`
-include!("include/keyboard.rs");               // C 29: `#include "keyboard.h"`
-include!("include/termhooks.rs");              // frame.h 22: `#include "termhooks.h"`
-include!("include/window.rs");                 // C 31: `#include "window.h"`
-include!("include/frame.rs");                  // C 30: `#include "frame.h"`
-include!("include/keymap.rs");                 // C 32: `#include "keymap.h"`
-include!("include/systty.rs");               // C 34: `#include "systty.h"`
-include!("include/pdumper.rs");                // C 35: `#include "pdumper.h"`
+const _: () = ();
+// [U1] ../lib/include/errno.rs imported via common
+// [U1] ../lib/include/binary-io.rs imported via common
+// [U1] ../lib/include/stdio.rs imported via common
+// [U1] include/lisp.rs imported via common
+// [U1] include/character.rs imported via common
+// [U1] include/itree.rs imported via common
+// [U1] include/buffer.rs imported via common
+// [U1] include/systime.rs imported via common
+// [U1] include/dispextern.rs imported via common
+// [U1] include/coding.rs imported via common
+// [U1] include/composite.rs imported via common
+// [U1] include/keyboard.rs imported via common
+// [U1] include/termhooks.rs imported via common
+// [U1] include/window.rs imported via common
+// [U1] include/frame.rs imported via common
+// [U1] include/keymap.rs imported via common
+// [U1] include/systty.rs imported via common
+// [U1] include/pdumper.rs imported via common
 
 /* C 34's `#include "systty.h"` has no mirror (PORTING.md P-26/P-66): the record it defines
    and the three functions it declares are below, with C's own text.  C 37-39's

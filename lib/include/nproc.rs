@@ -9,6 +9,8 @@
 // shape): lib/nproc.c defines `num_processors`, and an explicit item shadows a glob import
 // (PORTING.md 0.1-10).
 
+// [U1-MODULE-MIRROR]
+use super::*;
 /* A "processor" in this context means a thread execution unit, that is either
    - an execution core in a (possibly multi-core) chip, in a (possibly multi-
      chip) module, in a single computer, or
@@ -32,4 +34,4 @@ pub mod nproc_decls {
     pub fn num_processors (query: nproc_query) -> c_ulong;
   }
 }
-use nproc_decls::*;
+pub use self::nproc_decls::*;

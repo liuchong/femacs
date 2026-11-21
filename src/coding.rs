@@ -49,22 +49,24 @@
          unused_unsafe, static_mut_refs, unsafe_op_in_unsafe_fn, unused_parens,
          clashing_extern_declarations, unused_comparisons, overflowing_literals,
          unreachable_code, unused_labels, while_true, unused_must_use)]
+// [U1-MODULE-UNIT]
+use crate::common::*;
 
-include!("include/config.rs");              // C 289: `#include <config.h>`
-include!("../lib/include/wchar.rs");        // C 291-293: `#include <wchar.h>` (`HAVE_WCHAR_H`)
-include!("include/lisp.rs");                // C 295: `#include "lisp.h"`
-include!("include/character.rs");           // C 296: `#include "character.h"`
-include!("include/buffer.rs");              // C 297: `#include "buffer.h"`
-include!("include/charset.rs");             // C 298: `#include "charset.h"`
-include!("include/itree.rs");               // C 297: `buffer.h` 28 `#include "itree.h"`
-include!("include/systime.rs");             // C 302: `termhooks.h` 28 `#include "systime.h"` (`Time`)
-include!("include/dispextern.rs");          // C 302: `termhooks.h` 27 `#include "dispextern.h"`
-include!("include/font.rs");                // C 302: `dispextern.h` pulls `font.h`
-include!("include/ccl.rs");                 // C 299: `#include "ccl.h"`
-include!("include/composite.rs");           // C 300: `#include "composite.h"`
-include!("include/coding.rs");              // C 301: `#include "coding.h"`
-include!("include/termhooks.rs");           // C 302: `#include "termhooks.h"`
-include!("include/pdumper.rs");             // C 303: `#include "pdumper.h"`
+const _: () = ();
+// [U1] ../lib/include/wchar.rs imported via common
+// [U1] include/lisp.rs imported via common
+// [U1] include/character.rs imported via common
+// [U1] include/buffer.rs imported via common
+// [U1] include/charset.rs imported via common
+// [U1] include/itree.rs imported via common
+// [U1] include/systime.rs imported via common
+// [U1] include/dispextern.rs imported via common
+// [U1] include/font.rs imported via common
+// [U1] include/ccl.rs imported via common
+// [U1] include/composite.rs imported via common
+// [U1] include/coding.rs imported via common
+// [U1] include/termhooks.rs imported via common
+// [U1] include/pdumper.rs imported via common
 
 /* Use-site declarations (PORTING.md P-72 ③): names C declares in headers whose mirrors do
    not carry them.  Each keeps C's own prototype in a `/// C:` line.
@@ -167,11 +169,8 @@ macro_rules! ckd_add {
    glob-imported instead: the crate-root `extern` declaration shadows the import for name
    resolution while the definition still emits C's own symbol (PORTING.md P-21's mechanism).
    Reported as a mirror gap in docs/ports/coding.md; the mirror itself is not touched.  */
-pub mod coding_objs
-{
-  use super::*;
 
-  #[unsafe(no_mangle)]
+#[unsafe(no_mangle)]
   pub static mut Vcoding_system_hash_table: Lisp_Object = lisp_h_Qnil ();
 
   /* Coding system to be used to encode text for terminal display when
@@ -181,8 +180,6 @@ pub mod coding_objs
 
   #[unsafe(no_mangle)]
   pub static mut emacs_mule_bytes: [c_char; 256] = [0; 256];
-}
-use coding_objs::*;
 
 /* `preferred_coding_system` is declared in coding.h 780 and defined by this unit at C 8522,
    but `complement_process_encoding_system` (C 6016) calls it first.  The declaration sits in
@@ -9362,8 +9359,6 @@ use decode_coding_gap_def::*;
 /* `src/include/coding.rs` declares `decode_coding_object` at its crate root
    (coding.h 691-713), so the definition lives in a glob-imported module (the
    `decode_coding_gap_def` device; reported as a mirror gap in docs/ports/coding.md).  */
-pub mod decode_coding_object_def {
-  use super::*;
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn decode_coding_object (coding: *mut coding_system,
@@ -9581,8 +9576,6 @@ pub unsafe extern "C" fn decode_coding_object (coding: *mut coding_system,
   Vdeactivate_mark = old_deactivate_mark;
   unbind_to (count, (*coding).dst_object);
 }
-}
-use decode_coding_object_def::*;
 
 /* Encode the text in the range FROM/FROM_BYTE and TO/TO_BYTE in
    SRC_OBJECT into DST_OBJECT by coding context CODING.
@@ -9619,8 +9612,6 @@ use decode_coding_object_def::*;
 /* `src/include/coding.rs` declares `encode_coding_object` at its crate root
    (coding.h 691-713), so the definition lives in a glob-imported module (the
    `decode_coding_gap_def` device; reported as a mirror gap in docs/ports/coding.md).  */
-pub mod encode_coding_object_def {
-  use super::*;
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn encode_coding_object (coding: *mut coding_system,
@@ -9862,8 +9853,6 @@ pub unsafe extern "C" fn encode_coding_object (coding: *mut coding_system,
   Vdeactivate_mark = old_deactivate_mark;
   unbind_to (count, Qnil ());
 }
-}
-use encode_coding_object_def::*;
 
 /* `src/coding.rs`'s `coding_fwd` module declares `preferred_coding_system` (coding.h
    780), and the definition shadows that glob import (PORTING.md 0.1-10).  */

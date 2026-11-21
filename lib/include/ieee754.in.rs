@@ -12,7 +12,9 @@
 // byte dump from the frozen clang, and every size/align by that compiler's own `sizeof`/
 // `_Alignof` - both are in `docs/ports/include-ieee754.in.md`'s Evidence.
 
-include!("endian.in.rs");
+// [U1-MODULE-MIRROR]
+use super::*;
+// [U1] endian.in.rs imported via super
 
 /* C 19-20: the include guard has no Rust counterpart (PORTING.md 0.1-4); its C body is `1`,
    which the body check compares, so the const keeps that value (`byteswap.in.rs` 23).  */
@@ -73,13 +75,13 @@ pub const IEEE754_FLOAT_BIAS: core::ffi::c_int = 0x7f;
    1.3/P-80: each C member name stays in the port's text).  The second argument is the union
    place C writes, so the expansion is exactly C's read.  A one-bit member returns the `bool`
    C's `!` needs (a Rust `!` on an integer is bitwise, C's is logical).  */
-const IEEE754_FLOAT_IEEE_MANTISSA_MASK: u32 = 0x007fffff;   /* mantissa : 23, bits 0-22 */
-const IEEE754_FLOAT_IEEE_EXPONENT_MASK: u32 = 0x7f800000;   /* exponent : 8, bits 23-30 */
-const IEEE754_FLOAT_IEEE_NEGATIVE_MASK: u32 = 1 << 31;      /* negative : 1, bit 31 */
-const IEEE754_FLOAT_NAN_MANTISSA_MASK: u32 = 0x003fffff;    /* ieee_nan: mantissa : 22, bits 0-21 */
-const IEEE754_FLOAT_NAN_QUIET_NAN_MASK: u32 = 1 << 22;      /* ieee_nan: quiet_nan : 1, bit 22 */
-const IEEE754_FLOAT_NAN_EXPONENT_MASK: u32 = 0x7f800000;    /* ieee_nan: exponent : 8, bits 23-30 */
-const IEEE754_FLOAT_NAN_NEGATIVE_MASK: u32 = 1 << 31;       /* ieee_nan: negative : 1, bit 31 */
+pub const IEEE754_FLOAT_IEEE_MANTISSA_MASK: u32 = 0x007fffff;   /* mantissa : 23, bits 0-22 */
+pub const IEEE754_FLOAT_IEEE_EXPONENT_MASK: u32 = 0x7f800000;   /* exponent : 8, bits 23-30 */
+pub const IEEE754_FLOAT_IEEE_NEGATIVE_MASK: u32 = 1 << 31;      /* negative : 1, bit 31 */
+pub const IEEE754_FLOAT_NAN_MANTISSA_MASK: u32 = 0x003fffff;    /* ieee_nan: mantissa : 22, bits 0-21 */
+pub const IEEE754_FLOAT_NAN_QUIET_NAN_MASK: u32 = 1 << 22;      /* ieee_nan: quiet_nan : 1, bit 22 */
+pub const IEEE754_FLOAT_NAN_EXPONENT_MASK: u32 = 0x7f800000;    /* ieee_nan: exponent : 8, bits 23-30 */
+pub const IEEE754_FLOAT_NAN_NEGATIVE_MASK: u32 = 1 << 31;       /* ieee_nan: negative : 1, bit 31 */
 
 macro_rules! ieee754_float_bits {
   (ieee.mantissa, $f:expr) => { ($f.ieee.units & IEEE754_FLOAT_IEEE_MANTISSA_MASK) };
@@ -132,13 +134,13 @@ const _: () = core::assert! (std::mem::align_of::<ieee754_double_ieee_nan> () ==
 /* C 141: `#define IEEE754_DOUBLE_BIAS 0x3ff` (measured 1023).  */
 pub const IEEE754_DOUBLE_BIAS: core::ffi::c_int = 0x3ff;
 
-const IEEE754_DOUBLE_IEEE_MANTISSA0_MASK: u32 = 0x000fffff; /* mantissa0 : 20, unit 1 bits 0-19 */
-const IEEE754_DOUBLE_IEEE_EXPONENT_MASK: u32 = 0x7ff00000;  /* exponent : 11, unit 1 bits 20-30 */
-const IEEE754_DOUBLE_IEEE_NEGATIVE_MASK: u32 = 1 << 31;     /* negative : 1, unit 1 bit 31 */
-const IEEE754_DOUBLE_NAN_MANTISSA0_MASK: u32 = 0x0007ffff;  /* ieee_nan: mantissa0 : 19, unit 1 bits 0-18 */
-const IEEE754_DOUBLE_NAN_QUIET_NAN_MASK: u32 = 1 << 19;     /* ieee_nan: quiet_nan : 1, unit 1 bit 19 */
-const IEEE754_DOUBLE_NAN_EXPONENT_MASK: u32 = 0x7ff00000;   /* ieee_nan: exponent : 11, unit 1 bits 20-30 */
-const IEEE754_DOUBLE_NAN_NEGATIVE_MASK: u32 = 1 << 31;      /* ieee_nan: negative : 1, unit 1 bit 31 */
+pub const IEEE754_DOUBLE_IEEE_MANTISSA0_MASK: u32 = 0x000fffff; /* mantissa0 : 20, unit 1 bits 0-19 */
+pub const IEEE754_DOUBLE_IEEE_EXPONENT_MASK: u32 = 0x7ff00000;  /* exponent : 11, unit 1 bits 20-30 */
+pub const IEEE754_DOUBLE_IEEE_NEGATIVE_MASK: u32 = 1 << 31;     /* negative : 1, unit 1 bit 31 */
+pub const IEEE754_DOUBLE_NAN_MANTISSA0_MASK: u32 = 0x0007ffff;  /* ieee_nan: mantissa0 : 19, unit 1 bits 0-18 */
+pub const IEEE754_DOUBLE_NAN_QUIET_NAN_MASK: u32 = 1 << 19;     /* ieee_nan: quiet_nan : 1, unit 1 bit 19 */
+pub const IEEE754_DOUBLE_NAN_EXPONENT_MASK: u32 = 0x7ff00000;   /* ieee_nan: exponent : 11, unit 1 bits 20-30 */
+pub const IEEE754_DOUBLE_NAN_NEGATIVE_MASK: u32 = 1 << 31;      /* ieee_nan: negative : 1, unit 1 bit 31 */
 
 macro_rules! ieee754_double_bits {
   (ieee.mantissa1, $d:expr) => { ($d.ieee.units[0]) };
@@ -196,16 +198,16 @@ const _: () = core::assert! (std::mem::align_of::<ieee854_long_double_ieee_nan> 
 /* C 209: `#define IEEE854_LONG_DOUBLE_BIAS 0x3fff` (measured 16383).  */
 pub const IEEE854_LONG_DOUBLE_BIAS: core::ffi::c_int = 0x3fff;
 
-const IEEE854_LONG_DOUBLE_IEEE_MANTISSA0_MASK: u32 = 0xffffffff; /* mantissa0 : 32, unit 1 */
-const IEEE854_LONG_DOUBLE_IEEE_EXPONENT_MASK: u32 = 0x00007fff;  /* exponent : 15, unit 2 bits 0-14 */
-const IEEE854_LONG_DOUBLE_IEEE_NEGATIVE_MASK: u32 = 1 << 15;     /* negative : 1, unit 2 bit 15 */
-const IEEE854_LONG_DOUBLE_IEEE_EMPTY_MASK: u32 = 0xffff0000;     /* empty : 16, unit 2 bits 16-31 */
-const IEEE854_LONG_DOUBLE_NAN_MANTISSA0_MASK: u32 = 0x3fffffff;  /* ieee_nan: mantissa0 : 30, unit 1 bits 0-29 */
-const IEEE854_LONG_DOUBLE_NAN_QUIET_NAN_MASK: u32 = 1 << 30;     /* ieee_nan: quiet_nan : 1, unit 1 bit 30 */
-const IEEE854_LONG_DOUBLE_NAN_ONE_MASK: u32 = 1 << 31;           /* ieee_nan: one : 1, unit 1 bit 31 */
-const IEEE854_LONG_DOUBLE_NAN_EXPONENT_MASK: u32 = 0x00007fff;   /* ieee_nan: exponent : 15, unit 2 bits 0-14 */
-const IEEE854_LONG_DOUBLE_NAN_NEGATIVE_MASK: u32 = 1 << 15;      /* ieee_nan: negative : 1, unit 2 bit 15 */
-const IEEE854_LONG_DOUBLE_NAN_EMPTY_MASK: u32 = 0xffff0000;      /* ieee_nan: empty : 16, unit 2 bits 16-31 */
+pub const IEEE854_LONG_DOUBLE_IEEE_MANTISSA0_MASK: u32 = 0xffffffff; /* mantissa0 : 32, unit 1 */
+pub const IEEE854_LONG_DOUBLE_IEEE_EXPONENT_MASK: u32 = 0x00007fff;  /* exponent : 15, unit 2 bits 0-14 */
+pub const IEEE854_LONG_DOUBLE_IEEE_NEGATIVE_MASK: u32 = 1 << 15;     /* negative : 1, unit 2 bit 15 */
+pub const IEEE854_LONG_DOUBLE_IEEE_EMPTY_MASK: u32 = 0xffff0000;     /* empty : 16, unit 2 bits 16-31 */
+pub const IEEE854_LONG_DOUBLE_NAN_MANTISSA0_MASK: u32 = 0x3fffffff;  /* ieee_nan: mantissa0 : 30, unit 1 bits 0-29 */
+pub const IEEE854_LONG_DOUBLE_NAN_QUIET_NAN_MASK: u32 = 1 << 30;     /* ieee_nan: quiet_nan : 1, unit 1 bit 30 */
+pub const IEEE854_LONG_DOUBLE_NAN_ONE_MASK: u32 = 1 << 31;           /* ieee_nan: one : 1, unit 1 bit 31 */
+pub const IEEE854_LONG_DOUBLE_NAN_EXPONENT_MASK: u32 = 0x00007fff;   /* ieee_nan: exponent : 15, unit 2 bits 0-14 */
+pub const IEEE854_LONG_DOUBLE_NAN_NEGATIVE_MASK: u32 = 1 << 15;      /* ieee_nan: negative : 1, unit 2 bit 15 */
+pub const IEEE854_LONG_DOUBLE_NAN_EMPTY_MASK: u32 = 0xffff0000;      /* ieee_nan: empty : 16, unit 2 bits 16-31 */
 
 macro_rules! ieee854_long_double_bits {
   (ieee.mantissa1, $d:expr) => { ($d.ieee.units[0]) };

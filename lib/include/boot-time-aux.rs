@@ -30,22 +30,24 @@
 // text and its declaration, not code; C 23's `_GL_ATTRIBUTE_MAYBE_UNUSED` is gnulib's
 // attribute macro, recorded rather than spelled (docs/ports/excluded-macros.txt).
 
-include!("time.in.rs");        // <time.h> (`struct timespec`, `time_t`)
-include!("sys_time.rs");       // <sys/time.h> (`struct timeval`, `gettimeofday`)
-include!("sys_types.in.rs");   // <sys/types.h>
-include!("sys_stat.in.rs");    // <sys/stat.h> (`struct stat`, `stat`, `S_ISDIR!`)
-include!("stat-time.rs");      // "stat-time.h" (`get_stat_mtime`)
-include!("idx.rs");            // "idx.h" (`idx_t`)
-include!("stdcountof.rs");     // <stdcountof.h> (`countof!`)
-include!("stdio.rs");          // <stdio.h> (`FILE`, `fopen`, `fread`, `fclose`)
-include!("sys_sysctl.rs");     // <sys/sysctl.h> (`sysctl`)
+// [U1-MODULE-MIRROR]
+use super::*;
+// [U1] time.in.rs imported via super
+// [U1] sys_time.rs imported via super
+// [U1] sys_types.in.rs imported via super
+// [U1] sys_stat.in.rs imported via super
+// [U1] stat-time.rs imported via super
+// [U1] idx.rs imported via super
+// [U1] stdcountof.rs imported via super
+// [U1] stdio.rs imported via super
+// [U1] sys_sysctl.rs imported via super
 
 /* `<sys/sysinfo.h>`, which gives C 68's arm its `struct sysinfo`: gnulib's `boot-time-aux.h` uses
    it without including the header (the configuration's own chain brings it in - `HAVE_SYS_SYSINFO_H`,
    and bionic's file includes `<linux/kernel.h>` for the struct).  The arm is dead on the frozen
    target, so nothing here needed the mirror until the Android configuration compiled it.  */
 #[cfg (feature = "have_sys_sysinfo_h")]
-include!("sys_sysinfo.rs");
+const _: () = ();
 
 /* C 230-232's gate names two <sys/sysctl.h> rows that the port has no mirror for: `CTL_KERN`
    (1) and `KERN_BOOTTIME` (21) are the frozen target's values (the clang probe in
@@ -63,7 +65,7 @@ pub const KERN_BOOTTIME: c_int = 21;
 /* C 21-22: "Store the uptime counter, as managed by the Linux kernel, in *P_UPTIME.  Return 0
    upon success, -1 upon failure."  */
 #[cfg (any (target_os = "linux", target_os = "android"))]
-unsafe fn get_linux_uptime (p_uptime: *mut timespec) -> c_int
+pub unsafe fn get_linux_uptime (p_uptime: *mut timespec) -> c_int
 {
   /* C 27-29: "The clock_gettime facility returns the uptime with a resolution of 1 µsec.  It
      is available with glibc >= 2.14, Android, or musl libc.  In glibc < 2.17 it required
@@ -142,7 +144,7 @@ unsafe fn get_linux_uptime (p_uptime: *mut timespec) -> c_int
    Linux, UTMP_FILE is not filled.  It is always empty.  So, in both cases, get the time
    stamp of a file that gets touched only during the boot process."  */
 #[cfg (feature = "linux_no_android")]
-unsafe fn get_linux_boot_time_fallback (p_boot_time: *mut timespec) -> c_int
+pub unsafe fn get_linux_boot_time_fallback (p_boot_time: *mut timespec) -> c_int
 {
   let boot_touched_files: [&[u8]; 4] =
     [
@@ -181,7 +183,7 @@ unsafe fn get_linux_boot_time_fallback (p_boot_time: *mut timespec) -> c_int
    which happens frequently if the system is running in a virtual machine and this VM has been
    put into "saved" or "sleep" state and then resumed."  */
 #[cfg (feature = "linux_no_android")]
-unsafe fn get_linux_boot_time_final_fallback (p_boot_time: *mut timespec) -> c_int
+pub unsafe fn get_linux_boot_time_final_fallback (p_boot_time: *mut timespec) -> c_int
 {
   let mut uptime: timespec = timespec { tv_sec: 0, tv_nsec: 0 };
   if get_linux_uptime (&mut uptime) >= 0
@@ -226,7 +228,7 @@ unsafe fn get_linux_boot_time_final_fallback (p_boot_time: *mut timespec) -> c_i
    files.  Therefore use the kernel's uptime counter, although it produces wrong values after
    the date has been bumped in the running system."  */
 #[cfg (feature = "have_android")]
-unsafe fn get_android_boot_time (p_boot_time: *mut timespec) -> c_int
+pub unsafe fn get_android_boot_time (p_boot_time: *mut timespec) -> c_int
 {
   let mut uptime: timespec = timespec { tv_sec: 0, tv_nsec: 0 };
   if get_linux_uptime (&mut uptime) >= 0
@@ -253,7 +255,7 @@ unsafe fn get_android_boot_time (p_boot_time: *mut timespec) -> c_int
 /* C 207-209: "On OpenBSD, UTMP_FILE is not filled.  It contains only dummy entries.  So, get
    the time stamp of a file that gets touched only during the boot process."  */
 #[cfg (feature = "openbsd")]
-unsafe fn get_openbsd_boot_time (p_boot_time: *mut timespec) -> c_int
+pub unsafe fn get_openbsd_boot_time (p_boot_time: *mut timespec) -> c_int
 {
   let boot_touched_files: [&[u8]; 2] = [b"/var/db/host.random\0", b"/var/run/utmp\0"];
   let mut i: idx_t = 0;
@@ -282,7 +284,7 @@ unsafe fn get_openbsd_boot_time (p_boot_time: *mut timespec) -> c_int
    "sleep" state and then resumed."  It sits under C 230-232's `#if`, so it carries that gate:
    with the body compiled on Android the unit imported `sysctl` (status 4.749).  */
 #[cfg (all (not (feature = "not_have_sys_sysctl_h"), not (feature = "not_have_sysctl")))]
-unsafe fn get_bsd_boot_time_final_fallback (p_boot_time: *mut timespec) -> c_int
+pub unsafe fn get_bsd_boot_time_final_fallback (p_boot_time: *mut timespec) -> c_int
 {
   static mut request: [c_int; 2] = [CTL_KERN, KERN_BOOTTIME];
   let mut result: timeval = timeval { tv_sec: 0, tv_usec: 0 };
@@ -309,7 +311,7 @@ unsafe fn get_bsd_boot_time_final_fallback (p_boot_time: *mut timespec) -> c_int
    nodes get created.  The boot time can be retrieved by looking at a directory created
    during phase 5, such as /dev/input."  */
 #[cfg (feature = "have_haiku")]
-unsafe fn get_haiku_boot_time (p_boot_time: *mut timespec) -> c_int
+pub unsafe fn get_haiku_boot_time (p_boot_time: *mut timespec) -> c_int
 {
   let boot_touched_file: *const c_char = b"/dev/input\0".as_ptr () as *const c_char;
   let mut statbuf: stat = std::mem::zeroed ();
@@ -327,7 +329,7 @@ unsafe fn get_haiku_boot_time (p_boot_time: *mut timespec) -> c_int
 
 /* C 286-289 repeats the "only usable as a fallback" note above.  */
 #[cfg (feature = "os_h")]
-unsafe fn get_haiku_boot_time_final_fallback (p_boot_time: *mut timespec) -> c_int
+pub unsafe fn get_haiku_boot_time_final_fallback (p_boot_time: *mut timespec) -> c_int
 {
   let mut si: system_info = std::mem::zeroed ();
 
@@ -344,7 +346,7 @@ unsafe fn get_haiku_boot_time_final_fallback (p_boot_time: *mut timespec) -> c_i
    stamp of a file that (normally) gets touched only during the boot process, namely
    C:\\pagefile.sys."  */
 #[cfg (feature = "cygwin_win32")]
-unsafe fn get_windows_boot_time (p_boot_time: *mut timespec) -> c_int
+pub unsafe fn get_windows_boot_time (p_boot_time: *mut timespec) -> c_int
 {
   /* C 313-321: the two lists C's `#if defined __CYGWIN__ && !defined _WIN32` selects between
      ("It is more portable to use /proc/cygdrive/c than /cygdrive/c" and the Cygwin 3.5.3
@@ -453,7 +455,7 @@ pub unsafe fn initialize ()
    later.").  */
 #[cfg (feature = "cygwin_win32")]
 #[cfg (not (feature = "no_cygwin"))]
-unsafe fn get_windows_boot_time_fallback (p_boot_time: *mut timespec) -> c_int
+pub unsafe fn get_windows_boot_time_fallback (p_boot_time: *mut timespec) -> c_int
 {
   /* C 392-395: `#  if !(_WIN32_WINNT >= _WIN32_WINNT_VISTA) / if (! initialized) /
      initialize (); / #  endif`.  */

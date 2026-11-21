@@ -1,4 +1,6 @@
 // femacs: port of lib/memrchr.c @ fd7afced403.
+// [U1-MODULE-UNIT]
+use crate::common::*;
 /* emacs/lib/memrchr.c: C's `#if defined _LIBC` / `#else` pair (C 25-30) is decided by the
    frozen configuration: _LIBC is not defined, so the live arm is `#include <config.h>` /
    `#define reg_char char`, whose two effects are the config mirror below and the `reg_char`
@@ -10,8 +12,8 @@
    emitted under the name `memrchr`, which is what gnulib's <string.h> declares and what the
    port's export_name carries (the mempcpy precedent, PORTING.md 10.13).  */
 use std::ffi::{c_int, c_long, c_uchar, c_uint, c_ulong, c_void};
-include!("include/gnulib_config.rs");
-include!("include/limits.in.rs");
+// [U1] include/gnulib_config.rs imported via common
+// [U1] include/limits.in.rs imported via common
 
 /* C 29's `#define reg_char char`: the type the body spells `reg_char` is the unsigned byte
    the cast to `unsigned char` produces.  */

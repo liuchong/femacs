@@ -7,6 +7,8 @@
 // unit that includes both from seeing two `stdlib_allocator`s.
 
 // The include guard has no Rust counterpart (PORTING.md 0.1).
+// [U1-MODULE-MIRROR]
+use super::*;
 pub const _GL_ALLOCATOR_H: bool = true;
 
 /// An object describing a memory allocator family.
@@ -40,4 +42,4 @@ pub mod allocator_decls {
     pub static mut stdlib_allocator: allocator;
   }
 }
-use allocator_decls::*;
+pub use self::allocator_decls::*;

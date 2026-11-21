@@ -1,10 +1,12 @@
 // femacs: port of lib/stdc_trailing_zeros.c @ fd7afced403.
+// [U1-MODULE-UNIT]
+use crate::common::*;
 use std::ffi::{c_char, c_int, c_long, c_schar, c_short, c_uchar, c_uint, c_ulong,
                 c_ulonglong, c_ushort, c_void};
 
-include!("include/gnulib_config.rs");
-include!("include/stdint.in.rs");
-include!("include/stdbit.in.rs");
+// [U1] include/gnulib_config.rs imported via common
+// [U1] include/stdint.in.rs imported via common
+// [U1] include/stdbit.in.rs imported via common
 
 /* lib/stdc_trailing_zeros.c: the qualifier this translation unit uses (PORTING.md 10.12).  */
 pub const _GL_STDC_TRAILING_ZEROS_INLINE: () = _GL_EXTERN_INLINE;

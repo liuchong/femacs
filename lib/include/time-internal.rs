@@ -1,3 +1,5 @@
+// [U1-MODULE-MIRROR]
+use super::*;
 /* Written by Paul Eggert.  */
 
 // femacs: port of lib/time-internal.h @ fd7afced403 (gnulib).
@@ -7,7 +9,7 @@
 // which the "Only the address matters" comment below does not use) come from the time.h
 // mirror, which is what C's `#include <time.h>` chain supplies; `bool` is the prelude's.
 
-include!("time.in.rs");
+// [U1] time.in.rs imported via super
 
 /* A time zone rule.  */
 #[repr(C)]

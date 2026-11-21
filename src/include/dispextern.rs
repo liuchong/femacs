@@ -1,4 +1,6 @@
 // femacs: port of src/dispextern.h @ fd7afced403.
+// [U1-MODULE-MIRROR]
+use super::*;
 /* C dispextern.h 3753 declares `mark_image_cache` and `image_prune_animation_caches`; both are
    defined in `src/image.c`, so the declarations live inside `dispextern_late_decls` below - at
    this scope that unit read `E0428` (measured).  The module's glob import at the file's tail puts
@@ -60,7 +62,7 @@ pub const No_Cursor: Emacs_Cursor = 0 as Emacs_Cursor;
    and `build-tu` expand only the file's own include graph, so a unit reaching this mirror
    without character.h read `cannot find macro CHAR_VALID_P` (the same difference that cost
    `include/buffer.rs` 8 x `E0425`, status 3.527).  */
-include!("character.rs");                       // C 25: `#include "character.h"`
+// [U1] character.rs imported via super
 
 /* This edge is deliberately **ungated** although C 29's `#include <X11/Xlib.h>` sits in the X11
    arm: `xtask` dedupes `include!` edges (first edge wins, later ones become
@@ -69,7 +71,7 @@ include!("character.rs");                       // C 25: `#include "character.h"
    `cannot find type Window/XrmDatabase/XRectangle` although `include/xlib.rs` itself is reachable.
    `include/xlib.rs`'s own items each carry their arm's gate (`any (have_x_windows, have_pgtk)`
    where both arms need the name), so nothing leaks into an arm C does not compile (status 3.496).  */
-include!("xlib.rs");                            // C 29: `#include <X11/Xlib.h>` (XRectangle)
+// [U1] xlib.rs imported via super
 
 /// C 44: the X11 arm aliases Xlib's record instead of defining one.
 #[cfg (feature = "have_x_windows")]
@@ -724,13 +726,14 @@ macro_rules! GLYPH_EQUAL_P {
 // `w32term.h` 21's `#include "w32gui.h"` - so nothing is lost by leaving this one out.
 /// C: dispextern.h 143: `#include "nsgui.h"`
 #[cfg (feature = "have_ns")]
-include!("nsgui.rs");
+#[macro_use] #[path = "nsgui.rs"] pub mod h_src_include_nsgui;
+#[cfg(feature = "have_ns")] pub use self::h_src_include_nsgui::*;
 /// C: dispextern.h 150: `#include "pgtkgui.h"`
 #[cfg (feature = "have_pgtk")]
-include!("pgtkgui.rs");
+const _: () = ();
 /// C: dispextern.h 158: `#include "haikugui.h"`
 #[cfg (feature = "have_haiku")]
-include!("haikugui.rs");
+const _: () = ();
 // The three conditions above are C's own (`#ifdef HAVE_NS` at 142, `#ifdef HAVE_PGTK` at 149,
 // `#ifdef HAVE_HAIKU` at 157) and carry **no** `have_window_system` conjunct: a real Haiku/NS/PGTK
 // configuration defines that macro too, but the conjunct is not C's text, and with it on the edge
@@ -2330,10 +2333,10 @@ pub struct face
    `13 x E0080` on the frozen values.  */
 #[cfg (feature = "dispextern_face_records")]
 #[cfg (not (feature = "have_window_system"))]
-const FACE_WS_SHIFT: usize = 0;
+pub const FACE_WS_SHIFT: usize = 0;
 #[cfg (feature = "dispextern_face_records")]
 #[cfg (feature = "have_window_system")]
-const FACE_WS_SHIFT: usize = 16;
+pub const FACE_WS_SHIFT: usize = 16;
 
 #[cfg (feature = "dispextern_face_records")]
 const _: () = core::assert! (std::mem::size_of::<face> () == 280 + FACE_WS_SHIFT);
@@ -2430,7 +2433,7 @@ pub fn FACE_FOR_CHAR (f: *mut c_void, face: *mut face, character: c_int, pos: pt
 // per P-72's rule that a mirror may only name types it declares or includes; `xtask`'s
 // include-graph expansion dedupes the second reach of the file (PORTING.md 0.1-4/P-61), so a
 // unit that already has it does not define it twice.
-include!("../../lib/include/time.in.rs");
+// [U1] ../../lib/include/time.in.rs imported via super
 
 /* The image record (dispextern.h 3215-3362).  C wraps it in `#ifdef HAVE_WINDOW_SYSTEM`, so it
    is dead text on the frozen target - `spikes/gated-layout-probe.py 'struct image'
@@ -2682,7 +2685,7 @@ pub const IMAGE_CACHE_BUCKETS_SIZE: c_int = 1009;
 // C 104: `#include <c-strcase.h>` - live text, materialised as the mirror that owns that header
 // (PORTING.md 0.1-9).  Its top-level glob import is what puts `c_strcasecmp` in scope for C 110's
 // body below, the way C's include supplies the prototype to this header.
-include!("../../lib/include/c-strcase.rs");
+// [U1] ../../lib/include/c-strcase.rs imported via super
 
 // C 104-111's `INLINE int xstrcasecmp (...)` is the one item of this slice that a unit also
 // defines: `src/font.rs` 561 carries its own copy (the shape of the time this mirror had none),
@@ -3907,10 +3910,10 @@ pub struct redisplay_interface
    `struct font_driver`.  */
 #[cfg (feature = "dispextern_face_records")]
 #[cfg (not (feature = "have_window_system"))]
-const REDISPLAY_IFACE_WS_SHIFT: usize = 0;
+pub const REDISPLAY_IFACE_WS_SHIFT: usize = 0;
 #[cfg (feature = "dispextern_face_records")]
 #[cfg (feature = "have_window_system")]
-const REDISPLAY_IFACE_WS_SHIFT: usize = 120;
+pub const REDISPLAY_IFACE_WS_SHIFT: usize = 120;
 #[cfg (all (feature = "dispextern_face_records", feature = "have_window_system"))]
 const _: () = core::assert! (core::mem::size_of::<redisplay_interface> () == 104 + REDISPLAY_IFACE_WS_SHIFT);
 #[cfg (all (feature = "dispextern_face_records", feature = "have_window_system"))]
@@ -4272,8 +4275,8 @@ pub mod dispextern_fn_decls {
     pub fn combine_updates (root_frames: Lisp_Object);
   }
 }
-use dispextern_fn_decls::*;
-use dispextern_late_decls::*;
+pub use self::dispextern_fn_decls::*;
+pub use self::dispextern_late_decls::*;
 
 /* -------------------------------------------------------------------------------------------------
    The records above name four tags as *pointers*, and two records through aliases, that C needs no
@@ -4293,15 +4296,15 @@ use dispextern_late_decls::*;
    every file the units reach after this one (`windows.rs` 48's `buffer.rs` note records the same
    hazard for the mirror-level shape).  */
 #[cfg (feature = "have_window_system")]
-include!("frame.rs");
+const _: () = ();
 #[cfg (feature = "have_window_system")]
-include!("window.rs");
+const _: () = ();
 #[cfg (feature = "have_window_system")]
-include!("font.rs");
+const _: () = ();
 #[cfg (all (feature = "have_window_system", feature = "have_android"))]
-include!("androidgui.rs");
+const _: () = ();
 #[cfg (feature = "have_ns")]
-include!("nsterm.rs");
+const _: () = ();
 
 /* Android layouts measured with the NDK's clang (`-Xclang -fdump-record-layouts-complete`) on the
    reference headers with this target's `config.h.android`; method in

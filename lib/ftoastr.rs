@@ -13,19 +13,20 @@
 // an inner attribute inside an included file is E0753, so the unit that compiles it
 // (`lib/dtoastr.rs`) carries the list.
 
+// [U1-MODULE-MIRROR]
 use std::ffi::{c_char, c_double, c_int, c_long, c_short, c_uint, c_ulong, c_void};
-include!("../src/include/config.rs");
-include!("include/float.in.rs");
-include!("include/limits.in.rs");
-include!("include/stdio.rs");
-include!("include/stdlib.rs");
+// config.rs via common root
+// [U1] include/float.in.rs imported via super
+// [U1] include/limits.in.rs imported via super
+// [U1] include/stdio.rs imported via super
+// [U1] include/stdlib.rs imported via super
 
 /* C 30's `"ftoastr.h"` now has a mirror (`include/ftoastr.rs`, status 3.194), which owns the five
    `FTOASTR_*` flags and `_GL_FLOAT_DIG_BITS_BOUND`; the `_GL_*_PREC_BOUND` bounds and the
    `*_BUFSIZE_BOUND` sizes stay here, with the values the frozen darwin-arm64 compiler reports
    (9/17/17 and 21/30/30), and `DBL_MIN` comes from the system `<float.h>` (which also has no
    mirror).  `MB_LEN_MAX` is in `include/limits.in.rs`.  */
-include!("include/ftoastr.rs");
+// [U1] include/ftoastr.rs imported via super
 pub const DBL_MIN: c_double = 2.2250738585072014e-308;
 pub const _GL_FLT_PREC_BOUND: c_int = 9;
 pub const _GL_DBL_PREC_BOUND: c_int = 17;

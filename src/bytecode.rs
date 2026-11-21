@@ -58,16 +58,18 @@
 #![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code,
          unused_imports, unused_macros, unused_variables, unused_unsafe, static_mut_refs,
          unsafe_op_in_unsafe_fn, unreachable_code, while_true)]
+// [U1-MODULE-UNIT]
+use crate::common::*;
 
-include!("include/config.rs");                 // C 25
-include!("../lib/include/stdio.rs");           // C 28 sysstdio.h: FILE, fprintf, stderr
-include!("../lib/include/string.rs");          // lisp.h 30: memset
-include!("include/lisp.rs");                   // C 27 (brings <setjmp.h> and thread.h)
-include!("include/character.rs");              // dispextern.h's MAX_CHAR, STRING_CHAR, ...
-include!("include/itree.rs");                  // buffer.h 27: <itree.h>
-include!("include/buffer.rs");                 // C 29
-include!("include/dispextern.rs");             // window.h 23
-include!("include/window.rs");                 // C 30
+const _: () = ();
+// [U1] ../lib/include/stdio.rs imported via common
+// [U1] ../lib/include/string.rs imported via common
+// [U1] include/lisp.rs imported via common
+// [U1] include/character.rs imported via common
+// [U1] include/itree.rs imported via common
+// [U1] include/buffer.rs imported via common
+// [U1] include/dispextern.rs imported via common
+// [U1] include/window.rs imported via common
 
 /* Names C declares in headers whose mirrors do not carry them yet (the terminal.rs shape);
    each keeps C's prototype in a `/// C:` line (PORTING.md P-55 for the pointer-only

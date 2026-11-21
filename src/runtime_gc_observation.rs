@@ -1,8 +1,7 @@
 // Private, opt-in GC observation. See PORTING.md P-346 and the runtime manual.
-// Included only by alloc.rs. Numeric storage never holds a Lisp root.
-mod gc_observation {
-    use super::*;
-    use core::sync::atomic::{AtomicBool, AtomicU64, AtomicU8, Ordering};
+// Mounted as `mod gc_observation` by alloc.rs. Numeric storage never holds a Lisp root.
+use super::*;
+use core::sync::atomic::{AtomicBool, AtomicU64, AtomicU8, Ordering};
 
     pub(super) mod numeric {
         pub const CAPACITY: usize = 4096;
@@ -562,4 +561,3 @@ mod gc_observation {
         }
         unbind_to(count, roots.result)
     }
-}

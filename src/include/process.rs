@@ -13,16 +13,18 @@
 // mirror names no gnutls type.
 
 // process.h 20: the include guard has no Rust counterpart (PORTING.md 0.1).
+// [U1-MODULE-MIRROR]
+use super::*;
 pub const EMACS_PROCESS_H: bool = true;
 
 // The historical offsets below describe the disabled-TLS layout. Enabling TLS
 // inserts its traced fields and native tail in the original positions.
 #[cfg(feature = "have_gnutls")]
 pub mod process_gnutls_types {
-  include!("gnutls-types.rs");
+  pub use super::h_src_include_gnutls_types::*;
 }
 #[cfg(feature = "have_gnutls")]
-use process_gnutls_types::*;
+pub use self::process_gnutls_types::*;
 
 // process.h 37: C spells it as an anonymous enum, so the port declares the same constant.
 pub const PROCESS_OPEN_FDS: c_int = 6;
@@ -211,7 +213,7 @@ pub mod process_objs {
   /* True means that Glib clobbers Emacs SIGCHLD handler.  */
   unsafe extern "C" { pub static mut glib_installs_sigchld_handler: bool; }  // process.h 267
 }
-use process_objs::*;
+pub use self::process_objs::*;
 
 /* Exit statuses for GNU programs that exec other programs.  */
 // process.h 270-275.
@@ -250,7 +252,7 @@ pub mod process_fd_decls {
     pub fn delete_write_fd (fd: c_int);
   }
 }
-use process_fd_decls::*;
+pub use self::process_fd_decls::*;
 
 // C: process.h 296-308's remaining prototypes and the `fd_callback` typedef — (not mirrored
 // yet; they land with process.c/sysdep.c, batch D).
@@ -291,4 +293,4 @@ pub mod process_fn_decls {
     pub fn open_channel_for_module (pipe_process: Lisp_Object) -> c_int;
   }
 }
-use process_fn_decls::*;
+pub use self::process_fn_decls::*;

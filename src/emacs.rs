@@ -97,6 +97,8 @@
 #![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code,
          unused_imports, unused_macros, unused_variables, unused_unsafe, static_mut_refs,
          unsafe_op_in_unsafe_fn, unused_parens, unreachable_code, unused_assignments)]
+// [U1-MODULE-UNIT]
+use crate::common::*;
 
 use std::ffi::CStr;
 // pdumper.h's `enum pdumper_load_result`: its members are used unqualified here, as in C
@@ -112,9 +114,9 @@ use pdumper_load_result::*;
 // `#[inline(always)] fn` here (P-12) and C's `static inline` has no Rust spelling to carry -
 // so which of the two identical defines is in force has no observable effect.
 
-include!("include/config.rs");                 // C 22: `#include <config.h>`
-include!("include/epaths.rs");                    // C: `<epaths.h>` (generated; see epaths.in's android arm)
-include!("include/conf_post.rs");               // C 22: the AH_BOTTOM `#include <conf_post.h>` inside it
+// [U1] config.rs provided by common
+// [U1] epaths.rs provided by common
+// [U1] include/conf_post.rs imported via common
 
 // C 74-80: `#if defined HAVE_LINUX_SECCOMP_H && defined HAVE_LINUX_FILTER_H
 // && HAVE_DECL_SECCOMP_SET_MODE_FILTER && HAVE_DECL_SECCOMP_FILTER_FLAG_TSYNC` defines
@@ -122,57 +124,57 @@ include!("include/conf_post.rs");               // C 22: the AH_BOTTOM `#include
 // (the target is not Linux), so the frozen configuration's value is the `#else` arm's 0 and
 // the whole `#if SECCOMP_USABLE` region is dead text recorded in the ledger.
 const SECCOMP_USABLE: c_int = 0;
-include!("../lib/include/errno.rs");           // C 24: `#include <errno.h>`
-include!("../lib/include/fcntl.in.rs");        // C 25: `#include <fcntl.h>`
-include!("../lib/include/stdlib.rs");          // C 27: `#include <stdlib.h>`
-include!("../lib/include/sys_stat.in.rs");     // C 30: `#include <sys/stat.h>`
-include!("../lib/include/unistd.in.rs");       // C 31: `#include <unistd.h>`
-include!("../lib/include/limits.in.rs");       // <limits.h>: INT_MIN/INT_MAX/PIPE_BUF's home
-include!("../lib/include/stdcountof.rs");      // lisp.h 28: `<stdcountof.h>` (`countof`)
-include!("../lib/include/mini-gmp.rs");        // bignum.h's `#include <gmp.h>`
-include!("../lib/include/stdint.in.rs");       // <stdint.h>: intptr_t (lisp.h 148)
-include!("../lib/include/string.rs");          // lisp.h 30: `#include <string.h>`
-include!("include/sysstdio.rs");                // C 35: `#include "sysstdio.h"`
-include!("../lib/include/signal.rs");          // syssignal.h 22: `#include <signal.h>`
-include!("../lib/include/wchar.rs");           // C 135: `#include <wchar.h>`
-include!("../lib/include/sys_time.rs");        // C 139: `#include <sys/time.h>`
-include!("../lib/include/sys_resource.rs");    // C 140: `#include <sys/resource.h>`
+// [U1] ../lib/include/errno.rs imported via common
+// [U1] ../lib/include/fcntl.in.rs imported via common
+// [U1] ../lib/include/stdlib.rs imported via common
+// [U1] ../lib/include/sys_stat.in.rs imported via common
+// [U1] ../lib/include/unistd.in.rs imported via common
+// [U1] ../lib/include/limits.in.rs imported via common
+// [U1] ../lib/include/stdcountof.rs imported via common
+// [U1] ../lib/include/mini-gmp.rs imported via common
+// [U1] ../lib/include/stdint.in.rs imported via common
+// [U1] ../lib/include/string.rs imported via common
+// [U1] include/sysstdio.rs imported via common
+// [U1] ../lib/include/signal.rs imported via common
+// [U1] ../lib/include/wchar.rs imported via common
+// [U1] ../lib/include/sys_time.rs imported via common
+// [U1] ../lib/include/sys_resource.rs imported via common
 
 // C 33: `#define MAIN_PROGRAM` — it tells lisp.h (and through it globals.h) that this
 // translation unit is the program, not a library object.  The port's mirror defines the
 // symbols globally, so the macro is a marker with C's empty body.
 macro_rules! MAIN_PROGRAM { () => {} }
 
-include!("include/lisp.rs");                   // C 34: `#include "lisp.h"`
-include!("include/bignum.rs");                 // C 93: `#include "bignum.h"`
-include!("include/itree.rs");                  // C 94: `#include "itree.h"`
-include!("include/intervals.rs");              // C 95: `#include "intervals.h"`
-include!("include/character.rs");              // C 96: `#include "character.h"`
-include!("include/buffer.rs");                 // C 97: `#include "buffer.h"`
-include!("include/window.rs");                 // C 98: `#include "window.h"`
-include!("include/xwidget.rs");                 // C 99: `#include "xwidget.h"` (its `#else` arm is the INLINE no-op C compiles here)
-include!("include/atimer.rs");                 // C 100: `#include "atimer.h"`
-include!("include/blockinput.rs");             // C 101: `#include "blockinput.h"`
-include!("include/syssignal.rs");              // C 102: `#include "syssignal.h"`
-include!("include/process.rs");                // C 103: `#include "process.h"`
-include!("include/frame.rs");                  // C 104: `#include "frame.h"`
-include!("include/coding.rs");                 // termhooks.h's `struct coding_system`
-include!("include/termhooks.rs");              // C 105: `#include "termhooks.h"`
-include!("include/keyboard.rs");               // C 106: `#include "keyboard.h"`
-include!("include/keymap.rs");                 // C 107: `#include "keymap.h"`
-include!("include/category.rs");               // C 108: `#include "category.h"`
-include!("include/charset.rs");                // C 109: `#include "charset.h"`
-include!("include/composite.rs");              // C 110: `#include "composite.h"`
-include!("include/dispextern.rs");             // C 111: `#include "dispextern.h"`
-include!("include/regex-emacs.rs");            // C 112: `#include "regex-emacs.h"`
-include!("include/syntax.rs");                 // C 113: `#include "syntax.h"`
-include!("include/systime.rs");                // C 115: `#include "systime.h"`
-include!("include/gnutls.rs");                 // C 118: `#include "gnutls.h"`
-include!("include/treesit.rs");                 // C 149: `#include "treesit.h"` (unguarded; C 147-148 says why)
-include!("../lib/include/fingerprint.rs");     // C 152: `#include "fingerprint.h"`
-include!("include/pdumper.rs");                // C 151: `#include "pdumper.h"`
-include!("include/comp.rs");                   // C 156: `#include "comp.h"`
-include!("include/thread.rs");                 // C 157: `#include "thread.h"`
+// [U1] include/lisp.rs imported via common
+// [U1] include/bignum.rs imported via common
+// [U1] include/itree.rs imported via common
+// [U1] include/intervals.rs imported via common
+// [U1] include/character.rs imported via common
+// [U1] include/buffer.rs imported via common
+// [U1] include/window.rs imported via common
+// [U1] include/xwidget.rs imported via common
+// [U1] include/atimer.rs imported via common
+// [U1] include/blockinput.rs imported via common
+// [U1] include/syssignal.rs imported via common
+// [U1] include/process.rs imported via common
+// [U1] include/frame.rs imported via common
+// [U1] include/coding.rs imported via common
+// [U1] include/termhooks.rs imported via common
+// [U1] include/keyboard.rs imported via common
+// [U1] include/keymap.rs imported via common
+// [U1] include/category.rs imported via common
+// [U1] include/charset.rs imported via common
+// [U1] include/composite.rs imported via common
+// [U1] include/dispextern.rs imported via common
+// [U1] include/regex-emacs.rs imported via common
+// [U1] include/syntax.rs imported via common
+// [U1] include/systime.rs imported via common
+// [U1] include/gnutls.rs imported via common
+// [U1] include/treesit.rs imported via common
+// [U1] ../lib/include/fingerprint.rs imported via common
+// [U1] include/pdumper.rs imported via common
+// [U1] include/comp.rs imported via common
+// [U1] include/thread.rs imported via common
 
 /* -----------------------------------------------------------------------------------------
    Names no mirror carries: the other units' entry points `main` calls and the libc entries
@@ -1508,8 +1510,7 @@ unsafe fn load_pdump (argc: c_int, argv: *mut *mut c_char,
    `android_emacs_init` gets the JNI entry's argument (`android.rs`'s `initEmacs` calls it, C
    `android.c` 2087-2192).  */
 #[cfg (any (not (feature = "have_android"), feature = "android_stubify"))]
-#[unsafe(no_mangle)]
-pub unsafe extern "C" fn main (argc: c_int, argv: *mut *mut c_char) -> c_int
+pub unsafe extern "C" fn femacs_editor_main (argc: c_int, argv: *mut *mut c_char) -> c_int
 {
   emacs_init_body (argc, argv, std::ptr::null_mut ())
 }

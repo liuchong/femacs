@@ -25,10 +25,12 @@
 // that the mirror is a compilable root on its own and an including unit's own
 // `use std::ffi::…` shadows it (PORTING.md 0.1-10's rule for declarations; a unit that
 // imports the same name explicitly and one that imports it through the glob are both valid).
+// [U1-MODULE-MIRROR]
+use super::*;
 mod stddef {
   pub use std::ffi::c_void;
 }
-use stddef::*;
+pub use self::stddef::*;
 
 /* struct dynarray_header { size_t used; size_t allocated; void *array; }  (C 100-105).
    The layout numbers are the frozen target's clang values (a probe in /tmp; there is no
@@ -115,7 +117,7 @@ pub mod libc_dynarray {
     pub fn __libc_dynarray_at_failure (size: usize, index: usize) -> !;
   }
 }
-use libc_dynarray::*;
+pub use self::libc_dynarray::*;
 
 /* The include guard has no Rust counterpart (PORTING.md 0.1).  */
 pub const _DYNARRAY_H: bool = true;

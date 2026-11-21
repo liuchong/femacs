@@ -4,6 +4,8 @@
 // encoding; the frozen target's `CODESET` is the `nl_item` of that name.
 
 
+// [U1-MODULE-MIRROR]
+use super::*;
 /// <langinfo.h>'s `nl_item` (the frozen target: `int`).
 pub type nl_item = i32;
 

@@ -54,31 +54,33 @@
          unsafe_op_in_unsafe_fn, unused_assignments, unreachable_code, while_true,
          unused_parens, unused_mut, unused_parens, unused_labels, unused_comparisons,
          overflowing_literals)]
+// [U1-MODULE-UNIT]
+use crate::common::*;
 
-include!("include/config.rs");                 // C 22: `#include <config.h>`
-include!("../lib/include/errno.rs");           // C 24: `#include <errno.h>`
-include!("../lib/include/stdlib.rs");          // C 25: `#include <stdlib.h>`
-include!("../lib/include/unistd.in.rs");       // C 26: `#include <unistd.h>`
-include!("../lib/include/limits.in.rs");       // C 27: `#include <limits.h>`
-include!("../lib/include/sys_types.in.rs");    // C 28: `#include <sys/types.h>`
-include!("../lib/include/string.rs");          // lisp.h 30: `<string.h>` (memcpy, memset, strlen)
-include!("../lib/include/stdio.rs");           // C 34: sysstdio.h 24 `#include <stdio.h>`
-include!("include/lisp.rs");                   // C 29: `#include "lisp.h"`
-include!("include/character.rs");              // C 30: `#include "character.h"`
-include!("include/charset.rs");                // C 31: `#include "charset.h"`
-include!("include/itree.rs");                  // buffer.h 27: `#include "itree.h"` (buffer.rs's members)
-include!("include/systime.rs");                // coding.h's termhooks.h chain
-include!("include/font.rs");                   // composite.h 28: `#include "font.h"`
-include!("include/composite.rs");              // coding.h 284: `#include "composite.h"`
-include!("include/buffer.rs");                 // C 33: `#include "buffer.h"`
-include!("include/intervals.rs");              // buffer.h 29: `#include "intervals.h"`
-include!("include/termhooks.rs");              // frame.h 25: `#include "termhooks.h"` (terminal, output_method)
-include!("include/keyboard.rs");               // frame.h 26: `#include "keyboard.h"`
-include!("include/frame.rs");                  // buffer.h 30: `#include "frame.h"`
-include!("include/dispextern.rs");             // composite.h 29: `#include "dispextern.h"`
-include!("include/window.rs");                 // buffer.h 31: `#include "window.h"`
-include!("include/coding.rs");                 // C 32: `#include "coding.h"`
-include!("include/pdumper.rs");                // C 35: `#include "pdumper.h"`
+const _: () = ();
+// [U1] ../lib/include/errno.rs imported via common
+// [U1] ../lib/include/stdlib.rs imported via common
+// [U1] ../lib/include/unistd.in.rs imported via common
+// [U1] ../lib/include/limits.in.rs imported via common
+// [U1] ../lib/include/sys_types.in.rs imported via common
+// [U1] ../lib/include/string.rs imported via common
+// [U1] ../lib/include/stdio.rs imported via common
+// [U1] include/lisp.rs imported via common
+// [U1] include/character.rs imported via common
+// [U1] include/charset.rs imported via common
+// [U1] include/itree.rs imported via common
+// [U1] include/systime.rs imported via common
+// [U1] include/font.rs imported via common
+// [U1] include/composite.rs imported via common
+// [U1] include/buffer.rs imported via common
+// [U1] include/intervals.rs imported via common
+// [U1] include/termhooks.rs imported via common
+// [U1] include/keyboard.rs imported via common
+// [U1] include/frame.rs imported via common
+// [U1] include/dispextern.rs imported via common
+// [U1] include/window.rs imported via common
+// [U1] include/coding.rs imported via common
+// [U1] include/pdumper.rs imported via common
 
 /* The four system entries charset.c names that no mirror carries yet, each with C's own
    prototype (PORTING.md 0.1-2/P-72, the ccl.rs shape; the mirror gaps are reported in

@@ -6,8 +6,10 @@
 // the port keeps the two macros those arms give instead (`aclinfo_has_xattr` = false,
 // `aclinfo_free` = nothing), exactly as C's `#else` does.
 
-include!("sys_types.in.rs");   // <sys/types.h> (ssize_t)
-include!("sys_stat.in.rs");    // <sys/stat.h> (mode_t, struct stat)
+// [U1-MODULE-MIRROR]
+use super::*;
+// [U1] sys_types.in.rs imported via super
+// [U1] sys_stat.in.rs imported via super
 
 // The include guard has no Rust counterpart (PORTING.md 0.1).
 pub const _GL_ACL_H: c_int = 1;
@@ -74,7 +76,7 @@ pub mod acl_decls {
     pub fn chmod_or_fchmod (name: *const c_char, desc: c_int, mode: mode_t) -> c_int;
   }
 }
-use acl_decls::*;
+pub use self::acl_decls::*;
 
 /* C 99-104's `#else` arm: `# define aclinfo_free(ai) ((void) 0)`; `0` is the value C's cast
    reads, which the ledger compares.  Gated like the one above, and for the same reason.  */

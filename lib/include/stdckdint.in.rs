@@ -40,6 +40,8 @@
 // include) is still `todo` in `docs/port-inventory.md`, and that is the one name the arm's
 // tokens need.
 
+// [U1-MODULE-MIRROR]
+use super::*;
 /* C 30-31: `_@GUARD_PREFIX@_STDCKDINT_H`, whose substitution is `_GL_STDCKDINT_H`.  The
    template's own spelling reads as `_` to the extractor, which
    `docs/ports/excluded-macros.txt` records.  */

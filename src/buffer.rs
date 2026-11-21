@@ -30,40 +30,42 @@
          unused_imports, unused_macros, unused_variables, unused_unsafe, static_mut_refs,
          unsafe_op_in_unsafe_fn, unused_assignments, unreachable_code, while_true,
          unused_parens, unused_mut)]
+// [U1-MODULE-UNIT]
+use crate::common::*;
 
-include!("include/config.rs");                 // C 19: `#include <config.h>`
-include!("../lib/include/sys_types.in.rs");    // C 21: `#include <sys/types.h>`
-include!("../lib/include/errno.rs");           // C 24: `#include <errno.h>`
-include!("../lib/include/stdio.rs");           // C 25: `#include <stdio.h>`
-include!("../lib/include/stdlib.rs");          // C 26: `#include <stdlib.h>`
-include!("../lib/include/stdint.in.rs");       // OVERLAY_COUNT_MAX's PTRDIFF_MAX/SIZE_MAX
-include!("../lib/include/unistd.in.rs");       // C 27: `#include <unistd.h>`
-include!("../lib/include/string.rs");          // lisp.h 30: `#include <string.h>`
-include!("include/lisp.rs");                   // C 29: `#include "lisp.h"`
-include!("include/intervals.rs");              // C 30: `#include "intervals.h"`
-include!("include/process.rs");                // C 31: `#include "process.h"`
-include!("include/systime.rs");                // C 32: `#include "systime.h"`
-include!("include/composite.rs");              // coding.h 284: `#include "composite.h"`
-include!("include/coding.rs");                 // frame.h 26: `#include "coding.h"`
-include!("include/dispextern.rs");             // frame.h 25: `#include "dispextern.h"`
-include!("include/font.rs");                   // dispextern.h's font names
-include!("include/termhooks.rs");              // frame.h 24: `#include "termhooks.h"`
-include!("include/window.rs");                 // C 33: `#include "window.h"`
-include!("include/commands.rs");               // C 34: `#include "commands.h"`
-include!("include/character.rs");              // C 35: `#include "character.h"`
-include!("include/buffer.rs");                 // C 36: `#include "buffer.h"`
+const _: () = ();
+// [U1] ../lib/include/sys_types.in.rs imported via common
+// [U1] ../lib/include/errno.rs imported via common
+// [U1] ../lib/include/stdio.rs imported via common
+// [U1] ../lib/include/stdlib.rs imported via common
+// [U1] ../lib/include/stdint.in.rs imported via common
+// [U1] ../lib/include/unistd.in.rs imported via common
+// [U1] ../lib/include/string.rs imported via common
+// [U1] include/lisp.rs imported via common
+// [U1] include/intervals.rs imported via common
+// [U1] include/process.rs imported via common
+// [U1] include/systime.rs imported via common
+// [U1] include/composite.rs imported via common
+// [U1] include/coding.rs imported via common
+// [U1] include/dispextern.rs imported via common
+// [U1] include/font.rs imported via common
+// [U1] include/termhooks.rs imported via common
+// [U1] include/window.rs imported via common
+// [U1] include/commands.rs imported via common
+// [U1] include/character.rs imported via common
+// [U1] include/buffer.rs imported via common
 #[cfg(feature = "have_tree_sitter")]
-include!("include/treesit.rs"); // P430 shared parser/edit/GC ABI.
+const _: () = ();
 // C 37's `#include "region-cache.h"` has **no mirror** (`src/include/region-cache.rs`
 // does not exist; the file of that name is the *unit* for src/region-cache.c).  The names
 // this file takes from that header are declared at their use site below, each with C's own
 // prototype in a `/// C:` line, and the gap is reported in docs/ports/buffer.md.
-include!("include/indent.rs");                 // C 38: `#include "indent.h"`
-include!("include/blockinput.rs");             // C 39: `#include "blockinput.h"`
-include!("include/keymap.rs");                 // C 40: `#include "keymap.h"`
-include!("include/frame.rs");                  // C 41: `#include "frame.h"`
-include!("include/itree.rs");                  // C 44: `#include "itree.h"`
-include!("include/pdumper.rs");                // C 45: `#include "pdumper.h"`
+// [U1] include/indent.rs imported via common
+// [U1] include/blockinput.rs imported via common
+// [U1] include/keymap.rs imported via common
+// [U1] include/frame.rs imported via common
+// [U1] include/itree.rs imported via common
+// [U1] include/pdumper.rs imported via common
 
 /* C spells `enum itree_order`'s members bare (`ASCENDING` inside `ITREE_FOREACH`), and
    Rust 2024 keeps enum variants out of scope, so the port imports them (the

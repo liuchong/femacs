@@ -11,5 +11,7 @@
 // The file therefore carries the record and no items; docs/ports/include-getopt-cdefs.md
 // tracks the header's four macros as the rest of the mirror.
 
+// [U1-MODULE-MIRROR]
+use super::*;
 /* C 21: the include guard, whose C body is `1`.  */
 pub const _GETOPT_CDEFS_H: core::ffi::c_int = 1;

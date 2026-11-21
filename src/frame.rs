@@ -48,36 +48,38 @@
          unsafe_op_in_unsafe_fn, unused_assignments, unused_parens, unused_mut,
          unreachable_code, unused_labels, while_true, unused_comparisons,
          overflowing_literals, unused_must_use, clippy::all)]
+// [U1-MODULE-UNIT]
+use crate::common::*;
 
-include!("include/config.rs");                 // C 20: `#include <config.h>`
-include!("../lib/include/stdio.rs");           // C 22: `#include <stdio.h>`
-include!("../lib/include/stdlib.rs");          // C 23: `#include <stdlib.h>`
-include!("../lib/include/errno.rs");           // C 24: `#include <errno.h>`
-include!("../lib/include/limits.in.rs");       // C 25: `#include <limits.h>`
-include!("../lib/include/stdint.in.rs");       // lisp.h's width family
-include!("../lib/include/string.rs");          // lisp.h 30: `#include <string.h>` (`strcmp`)
-include!("../lib/include/c-ctype.rs");         // C 27: `#include <c-ctype.h>`
-include!("../lib/include/stdcountof.rs");      // lisp.h 28: `#include <stdcountof.h>` (countof)
-include!("include/lisp.rs");                   // C 29: `#include "lisp.h"`
+const _: () = ();
+// [U1] ../lib/include/stdio.rs imported via common
+// [U1] ../lib/include/stdlib.rs imported via common
+// [U1] ../lib/include/errno.rs imported via common
+// [U1] ../lib/include/limits.in.rs imported via common
+// [U1] ../lib/include/stdint.in.rs imported via common
+// [U1] ../lib/include/string.rs imported via common
+// [U1] ../lib/include/c-ctype.rs imported via common
+// [U1] ../lib/include/stdcountof.rs imported via common
+// [U1] include/lisp.rs imported via common
 /* The mirrors the headers above pull in (the text of C's own include chain, in C's order
    where one applies; Rust item order is irrelevant but macros must precede their uses).  */
-include!("include/character.rs");              // lisp.h's `CHARACTERP`/`MAX_CHAR` users
-include!("include/intervals.rs");              // buffer.h 27: `#include "intervals.h"`
-include!("include/systime.rs");                // lisp.h: `Time`/`struct timespec`
-include!("include/itree.rs");                  // intervals.h: `itree_node`/`itree_tree`
-include!("include/composite.rs");              // coding.h 284: `#include "composite.h"`
-include!("include/coding.rs");                 // dispextern.h 29: `#include "coding.h"`
-include!("include/font.rs");                   // dispextern.h's font names
-include!("include/termhooks.rs");              // frame.h 24: `#include "termhooks.h"`
-include!("include/frame.rs");                  // C 38: `#include "frame.h"`
-include!("include/keyboard.rs");               // C 37: `#include "keyboard.h"`
-include!("include/buffer.rs");                 // C 35: `#include "buffer.h"`
-include!("include/blockinput.rs");             // C 39: `#include "blockinput.h"`
-include!("include/termchar.rs");               // C 40: `#include "termchar.h"`
-include!("include/dispextern.rs");             // C 42: `#include "dispextern.h"`
-include!("include/window.rs");                 // C 43: `#include "window.h"`
-include!("include/cm.rs");                     // C 47: `#include "cm.h"`
-include!("include/pdumper.rs");                // C 55: `#include "pdumper.h"`
+// [U1] include/character.rs imported via common
+// [U1] include/intervals.rs imported via common
+// [U1] include/systime.rs imported via common
+// [U1] include/itree.rs imported via common
+// [U1] include/composite.rs imported via common
+// [U1] include/coding.rs imported via common
+// [U1] include/font.rs imported via common
+// [U1] include/termhooks.rs imported via common
+// [U1] include/frame.rs imported via common
+// [U1] include/keyboard.rs imported via common
+// [U1] include/buffer.rs imported via common
+// [U1] include/blockinput.rs imported via common
+// [U1] include/termchar.rs imported via common
+// [U1] include/dispextern.rs imported via common
+// [U1] include/window.rs imported via common
+// [U1] include/cm.rs imported via common
+// [U1] include/pdumper.rs imported via common
 
 /* C 31-33 / 44-46 / 52-54: `TERM_HEADER`, `fontset.h` and `widget.h`.  C picks `TERM_HEADER` per
    configuration (configure.ac 7180; the frozen table spells it `undef`, so this arm is text
@@ -85,21 +87,21 @@ include!("include/pdumper.rs");                // C 55: `#include "pdumper.h"`
    the arm keeps C's include shape: one gated `include!` per platform, behind the same feature
    the mirror's own items use (P-86 ⑧: the gate goes on the include graph too).  */
 #[cfg (feature = "have_x_windows")]
-include!("include/xterm.rs");                  // TERM_HEADER: `xterm.h`
+const _: () = ();
 #[cfg (feature = "have_ns")]
-include!("include/nsterm.rs");                 // TERM_HEADER: `nsterm.h`
+const _: () = ();
 #[cfg (feature = "have_pgtk")]
-include!("include/pgtkterm.rs");               // TERM_HEADER: `pgtkterm.h`
+const _: () = ();
 #[cfg (feature = "have_ntgui")]
-include!("include/w32term.rs");                // TERM_HEADER: `w32term.h`
+const _: () = ();
 #[cfg (feature = "have_haiku")]
-include!("include/haikuterm.rs");              // TERM_HEADER: `haikuterm.h`
+const _: () = ();
 #[cfg (feature = "have_android")]
-include!("include/androidterm.rs");            // TERM_HEADER: `androidterm.h`
+const _: () = ();
 #[cfg (feature = "have_window_system")]
-include!("include/fontset.rs");                // C 45: `#include "fontset.h"`
+const _: () = ();
 #[cfg (feature = "use_x_toolkit")]
-include!("include/widget.rs");                 // C 53: `#include "widget.h"`
+const _: () = ();
 
 /* frame.h 1387-1391: `CHECK_FRAME`/`CHECK_LIVE_FRAME` are the mirror's (`include/frame.rs`
    979/983, which this unit includes at C 42); the unit's own copies were body-identical
@@ -634,10 +636,8 @@ unsafe extern "C" {
    item shadows a glob import, while a second crate-root item of the same name would be
    `E0428` (PORTING.md P-21's mechanism, from the other side; the terminal.rs/term.rs
    `*_globals` shape).  */
-pub mod frame_globals {
-  use super::*;
 
-  /* The currently selected frame.  */
+/* The currently selected frame.  */
   #[unsafe(no_mangle)]
   pub static mut selected_frame: Lisp_Object = lisp_h_Qnil ();
 
@@ -665,8 +665,6 @@ pub mod frame_globals {
   /* C 284: `Lisp_Object Vframe_list;`  */
   #[unsafe(no_mangle)]
   pub static mut Vframe_list: Lisp_Object = lisp_h_Qnil ();
-}
-use frame_globals::*;
 
 /* A frame which is not just a mini-buffer, or NULL if there are no such
    frames.  This is usually the most recent such frame that was selected.  */

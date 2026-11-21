@@ -23,8 +23,10 @@
 // `frame.h` (C 23), so `struct frame *` is named - `include/frame.rs` owns that record - while the
 // two the header does not include keep the untyped pointer with C's prototype in a `/// C:` line.
 
-include!("lisp.rs");                 // C 22: `#include "lisp.h"`
-include!("frame.rs");                // C 23: `#include "frame.h"` (`struct frame`)
+// [U1-MODULE-MIRROR]
+use super::*;
+// [U1] lisp.rs imported via super
+// [U1] frame.rs imported via super
 
 /* C 25-52: "The function pointers in this structure should be filled out by each GUI backend
    interested in supporting text conversion."  Measured with the frozen clang

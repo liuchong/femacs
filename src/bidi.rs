@@ -56,16 +56,18 @@
          unused_imports, unused_macros, unused_variables, unused_unsafe, static_mut_refs,
          unsafe_op_in_unsafe_fn, unused_assignments, unreachable_code, while_true,
          unused_parens, unused_mut)]
+// [U1-MODULE-UNIT]
+use crate::common::*;
 
-include!("include/config.rs");                 // C 241: `#include <config.h>`
-include!("../lib/include/stdio.rs");           // lisp.h 34: `<stdio.h>` (fputs, FILE)
-include!("../lib/include/string.rs");          // lisp.h 30: `<string.h>` (memcpy)
-include!("include/lisp.rs");                   // C 243: `#include "lisp.h"`
-include!("include/character.rs");              // C 244: `#include "character.h"`
-include!("include/itree.rs");                   // buffer.h 28: `#include "itree.h"`
-include!("include/buffer.rs");                 // C 245: `#include "buffer.h"`
-include!("include/dispextern.rs");             // C 246: `#include "dispextern.h"`
-include!("include/region-cache.rs");           // C 247: `#include "region-cache.h"`
+const _: () = ();
+// [U1] ../lib/include/stdio.rs imported via common
+// [U1] ../lib/include/string.rs imported via common
+// [U1] include/lisp.rs imported via common
+// [U1] include/character.rs imported via common
+// [U1] include/itree.rs imported via common
+// [U1] include/buffer.rs imported via common
+// [U1] include/dispextern.rs imported via common
+// [U1] include/region-cache.rs imported via common
 
 /* The names C's headers give this unit that no mirror carries yet (PORTING.md
    0.1-2/P-72, the ccl.rs/composite.rs shape).  Nothing here is this unit's own

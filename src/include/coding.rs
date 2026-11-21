@@ -7,8 +7,10 @@
 // ledger's branch set is the frozen configuration's.
 
 // coding.h 27: the include guard has no Rust counterpart (PORTING.md 0.1).  C 284's include follows (P-72 rule ④, docs/ports/include-coding.md).
+// [U1-MODULE-MIRROR]
+use super::*;
 pub const EMACS_CODING_H: bool = true;
-include!("composite.rs");                     // C 284: `#include "composite.h"`
+// [U1] composite.rs imported via super
 /* `struct ccl_spec` is defined in ccl.h 69-71, which coding.h does not include: C names it
    only as a pointer inside `coding_system.spec`, and an undeclared tag is an incomplete type
    there.  Rust has no incomplete types, so this mirror carried a zero-sized stand-in until
@@ -255,15 +257,15 @@ pub const CODING_SYSTEM_RESULT_MASK: u32 = 0x07;             // 3 bits
 // storage is one unit, so these three read it (the writers land with coding.c, where C
 // assigns them).
 #[inline(always)]
-fn src_multibyte_p (coding: *mut coding_system) -> bool
+pub fn src_multibyte_p (coding: *mut coding_system) -> bool
 { (unsafe { (*coding).bits }) >> CODING_SYSTEM_SRC_MULTIBYTE_SHIFT & 1 != 0 }
 
 #[inline(always)]
-fn dst_multibyte_p (coding: *mut coding_system) -> bool
+pub fn dst_multibyte_p (coding: *mut coding_system) -> bool
 { (unsafe { (*coding).bits }) >> CODING_SYSTEM_DST_MULTIBYTE_SHIFT & 1 != 0 }
 
 #[inline(always)]
-fn mode_of (coding: *mut coding_system) -> c_uint
+pub fn mode_of (coding: *mut coding_system) -> c_uint
 { (unsafe { (*coding).bits }) >> CODING_SYSTEM_MODE_SHIFT & CODING_SYSTEM_MODE_MASK }
 
 // coding.h 520-558.  C's macros yield an `int` (the masked bits, or a `||` of them), so the
@@ -722,4 +724,4 @@ pub mod coding_fn_decls {
     pub fn preferred_coding_system () -> Lisp_Object;
   }
 }
-use coding_fn_decls::*;
+pub use self::coding_fn_decls::*;

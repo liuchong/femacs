@@ -19,31 +19,33 @@
 #![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code,
          unused_imports, unused_macros, unused_variables, unused_unsafe, static_mut_refs,
          unsafe_op_in_unsafe_fn)]
+// [U1-MODULE-UNIT]
+use crate::common::*;
 
 
-include!("include/config.rs");
-include!("../lib/include/stdio.rs");
-include!("../lib/include/string.rs");
-include!("../lib/include/errno.rs");
-include!("../lib/include/fcntl.in.rs");
-include!("../lib/include/unistd.in.rs");
-include!("../lib/include/sys_types.in.rs");
-include!("../lib/include/stdcountof.rs");
-include!("include/lisp.rs");
-include!("include/character.rs");
-include!("include/dynlib.rs");
-include!("include/itree.rs");
-include!("include/systime.rs");
-include!("include/dispextern.rs");
-include!("include/composite.rs");
-include!("include/coding.rs");
-include!("include/buffer.rs");
-include!("include/termhooks.rs");
-include!("include/window.rs");
-include!("include/frame.rs");
-include!("include/disptab.rs");
+const _: () = ();
+// [U1] ../lib/include/stdio.rs imported via common
+// [U1] ../lib/include/string.rs imported via common
+// [U1] ../lib/include/errno.rs imported via common
+// [U1] ../lib/include/fcntl.in.rs imported via common
+// [U1] ../lib/include/unistd.in.rs imported via common
+// [U1] ../lib/include/sys_types.in.rs imported via common
+// [U1] ../lib/include/stdcountof.rs imported via common
+// [U1] include/lisp.rs imported via common
+// [U1] include/character.rs imported via common
+// [U1] include/dynlib.rs imported via common
+// [U1] include/itree.rs imported via common
+// [U1] include/systime.rs imported via common
+// [U1] include/dispextern.rs imported via common
+// [U1] include/composite.rs imported via common
+// [U1] include/coding.rs imported via common
+// [U1] include/buffer.rs imported via common
+// [U1] include/termhooks.rs imported via common
+// [U1] include/window.rs imported via common
+// [U1] include/frame.rs imported via common
+// [U1] include/disptab.rs imported via common
 include!("include/buildobj.rs");
-include!("include/keymap.rs");
+// [U1] include/keymap.rs imported via common
 
 // The `DEFVAR_*` variables this C file owns: C's storage is `globals.f_<vname>`
 // (lisp.h 3495-3530), and `struct emacs_globals globals` is defined once, in alloc.c; the

@@ -14,6 +14,8 @@
 // `[c_char; 0]` for those widths, and it is carried as a named field so the size stays the
 // kernel's rather than becoming "some struct Rust lays out".
 
+// [U1-MODULE-MIRROR]
+use super::*;
 /// <linux/sysinfo.h> 11-26: `struct sysinfo`.
 #[repr (C)]
 #[derive (Clone, Copy)]

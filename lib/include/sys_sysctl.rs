@@ -7,6 +7,8 @@
 // The only consumer today is lib/nproc.c's macOS/BSD fallback (C 326-345): the mib array
 // `{ CTL_HW, HW_NCPU }` and the `sysctl` call that reads the CPU count into an `int`.
 
+// [U1-MODULE-MIRROR]
+use super::*;
 /// <sys/sysctl.h>: `#define CTL_HW 6` (the hardware subtree selector).
 pub const CTL_HW: c_int = 6;
 

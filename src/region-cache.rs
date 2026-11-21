@@ -8,14 +8,16 @@
 #![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code,
          unused_imports, unused_macros, unused_variables, unused_unsafe, static_mut_refs,
          unsafe_op_in_unsafe_fn)]
+// [U1-MODULE-UNIT]
+use crate::common::*;
 
-include!("include/config.rs");
-include!("../lib/include/stdio.rs");
-include!("include/lisp.rs");
-include!("include/character.rs");
-include!("include/itree.rs");
-include!("include/buffer.rs");
-include!("include/region-cache.rs");           // C 27: `#include "region-cache.h"`
+const _: () = ();
+// [U1] ../lib/include/stdio.rs imported via common
+// [U1] include/lisp.rs imported via common
+// [U1] include/character.rs imported via common
+// [U1] include/itree.rs imported via common
+// [U1] include/buffer.rs imported via common
+// [U1] include/region-cache.rs imported via common
 
 /* Data structures.  */
 

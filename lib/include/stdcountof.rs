@@ -2,6 +2,8 @@
 //
 // The whole header is one macro, and the frozen configuration has HAVE_STDCOUNTOF_H = 1.
 
+// [U1-MODULE-MIRROR]
+use super::*;
 /* #define countof(a) (sizeof (a) / sizeof *(a))  */
 macro_rules! countof {
     ($a:expr) => {

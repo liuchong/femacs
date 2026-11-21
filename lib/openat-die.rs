@@ -4,15 +4,17 @@
 #![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code,
          unused_imports, unused_macros, unused_variables, unused_mut, unused_unsafe,
          static_mut_refs, unsafe_op_in_unsafe_fn)]
+// [U1-MODULE-UNIT]
+use crate::common::*;
 use std::ffi::c_int;
 
-include!("../src/include/config.rs");
+// [U1] config.rs provided by common
 
 /* C 4's `#include "openat.h"`: the mirror (`include/openat.rs`, status 3.194) is that header's
    home, and `!HAVE_OPENAT` is the live arm there, so the two functions below are this file's own
    definitions shadowing the mirror's declarations (PORTING.md 0.1-10).  C 5's `#include
    <stdlib.h>` is the `abort` declaration, written here the way the other units declare it.  */
-include!("include/openat.rs");
+// [U1] include/openat.rs imported via common
 
 unsafe extern "C" { pub fn abort () -> !; }
 

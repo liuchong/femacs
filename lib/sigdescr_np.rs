@@ -1,4 +1,6 @@
 // femacs: port of lib/sigdescr_np.c @ fd7afced403.
+// [U1-MODULE-UNIT]
+use crate::common::*;
 /* Written by Bruno Haible <bruno@clisp.org>, 2020.  */
 
 /* emacs/lib/sigdescr_np.c: C's `<string.h>` include has no counterpart (PORTING.md 0.1).  The
@@ -9,8 +11,8 @@
    docs/ports/macro-body-notes.tsv row lists them.  C's `switch (sig)` becomes a `match`, so
    `switch`/`case` have no counterpart either.  */
 use std::ffi::{c_char, c_int, c_uint, c_void};
-include!("include/gnulib_config.rs");
-include!("include/signal.rs");
+// [U1] include/gnulib_config.rs imported via common
+// [U1] include/signal.rs imported via common
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn sigdescr_np (sig: c_int) -> *const c_char

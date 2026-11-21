@@ -15,7 +15,9 @@
 // `#include <attribute.h>` has no counterpart: its content is the `ATTRIBUTE_*` spellings,
 // which docs/ports/excluded-macros.txt records as attributes with no Rust form (PORTING 0.3).
 
-include!("../../lib/include/signal.rs");      // syssignal.h 21: `#include <signal.h>`
+// [U1-MODULE-MIRROR]
+use super::*;
+// [U1] ../../lib/include/signal.rs imported via super
 
 // syssignal.h 20: the include guard has no Rust counterpart (PORTING.md 0.1).
 pub const EMACS_SYSSIGNAL_H: bool = true;
@@ -49,7 +51,7 @@ pub mod syssignal_decls {
     pub fn deliver_process_signal (sig: c_int, handler: signal_handler_t);         // 86
   }
 }
-use syssignal_decls::*;
+pub use self::syssignal_decls::*;
 
 /* If defined, asynchronous signals delivered to a non-main thread are
    forwarded to the main thread.  */

@@ -7,7 +7,9 @@
 
 // comp.h 23: `#include <dynlib.h>` - the record below names `dynlib_handle_ptr`, so the mirror is
 // included exactly where C includes it (PORTING.md 0.1-4).
-include!("dynlib.rs");
+// [U1-MODULE-MIRROR]
+use super::*;
+// [U1] dynlib.rs imported via super
 
 // comp.h 22: the include guard has no Rust counterpart (PORTING.md 0.1).
 pub const COMP_H: bool = true;
@@ -61,7 +63,7 @@ pub mod comp_h_decls {
   }
 }
 #[cfg (feature = "have_native_comp")]
-use comp_h_decls::*;
+pub use self::comp_h_decls::*;
 
 #[cfg (not (feature = "have_native_comp"))]
 #[inline(always)]

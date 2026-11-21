@@ -12,6 +12,8 @@
 // functional acceptance remains separate from configuration availability.
 //
 // C 20: the include guard has no Rust counterpart (PORTING.md 0.1).
+// [U1-MODULE-MIRROR]
+use super::*;
 pub const EMACS_GNUTLS_DEFINED: bool = true;
 
 // C 98: `extern void syms_of_gnutls (void);` - **live**: it sits outside the
@@ -51,4 +53,4 @@ pub mod gnutls_decls {
     unsafe { GNUTLS_INITSTAGE(process) >= process_gnutls_types::GNUTLS_STAGE_READY }
   }
 }
-use gnutls_decls::*;
+pub use self::gnutls_decls::*;

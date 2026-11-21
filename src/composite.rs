@@ -30,23 +30,25 @@
          unused_imports, unused_macros, unused_variables, unused_unsafe, static_mut_refs,
          unsafe_op_in_unsafe_fn, unused_assignments, unreachable_code, while_true,
          unused_parens, unused_mut)]
+// [U1-MODULE-UNIT]
+use crate::common::*;
 
-include!("include/config.rs");                 // C 22: `#include <config.h>`
-include!("../lib/include/stdlib.rs");          // C 24: `#include <stdlib.h>` /* for qsort */
-include!("include/lisp.rs");                   // C 26: `#include "lisp.h"`
-include!("include/character.rs");              // C 27: `#include "character.h"`
-include!("include/font.rs");                   // composite.h 28: `#include "font.h"`
-include!("../lib/include/string.rs");          // lisp.h 30: `#include <string.h>` (strcmp)
-include!("include/itree.rs");                 // buffer.h 28: `#include "itree.h"`
-include!("include/composite.rs");              // C 28: `#include "composite.h"`
-include!("include/buffer.rs");                 // C 29: `#include "buffer.h"`
-include!("include/coding.rs");                 // C 30: `#include "coding.h"`
-include!("include/window.rs");                 // buffer.h 29/frame.h 23: `#include "window.h"`
-include!("include/intervals.rs");              // C 31: `#include "intervals.h"`
-include!("include/frame.rs");                  // C 32: `#include "frame.h"`
-include!("include/dispextern.rs");             // C 33: `#include "dispextern.h"`
-include!("include/systime.rs");                // termhooks.h 28: `#include "systime.h"`
-include!("include/termhooks.rs");              // C 34: `#include "termhooks.h"`
+const _: () = ();
+// [U1] ../lib/include/stdlib.rs imported via common
+// [U1] include/lisp.rs imported via common
+// [U1] include/character.rs imported via common
+// [U1] include/font.rs imported via common
+// [U1] ../lib/include/string.rs imported via common
+// [U1] include/itree.rs imported via common
+// [U1] include/composite.rs imported via common
+// [U1] include/buffer.rs imported via common
+// [U1] include/coding.rs imported via common
+// [U1] include/window.rs imported via common
+// [U1] include/intervals.rs imported via common
+// [U1] include/frame.rs imported via common
+// [U1] include/dispextern.rs imported via common
+// [U1] include/systime.rs imported via common
+// [U1] include/termhooks.rs imported via common
 
 /* The names C gets from headers whose mirrors do not carry them yet (the
    terminal.rs/filelock.rs shape), each with C's own prototype in a `/// C:` line.  */

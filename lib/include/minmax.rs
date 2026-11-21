@@ -6,6 +6,8 @@
 // value macros whose callers pass plain variables.
 
 // The include guard has no Rust counterpart (PORTING.md 0.1).
+// [U1-MODULE-MIRROR]
+use super::*;
 pub const _MINMAX_H: bool = true;
 
 /* MAX(a,b) returns the maximum of A and B.  */

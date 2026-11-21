@@ -11,6 +11,8 @@
 // ticked.
 
 // font.h 24: the include guard has no Rust counterpart (PORTING.md 0.1).
+// [U1-MODULE-MIRROR]
+use super::*;
 pub const EMACS_FONT_H: bool = true;
 
 /* font.h 70-190: `enum font_property_index`.  The members are `pub const`s rather than a
@@ -142,9 +144,9 @@ pub struct font
    200/204).  The assertions add this shift rather than repeating a second table - the
    `include/dispextern.rs` `FACE_WS_SHIFT` shape, status 3.505.  */
 #[cfg (not (feature = "have_window_system"))]
-const FONT_WS_SHIFT: usize = 0;
+pub const FONT_WS_SHIFT: usize = 0;
 #[cfg (feature = "have_window_system")]
-const FONT_WS_SHIFT: usize = 32;
+pub const FONT_WS_SHIFT: usize = 32;
 #[cfg (feature = "have_window_system")]
 const _: () = core::assert! (std::mem::offset_of! (font, underline_thickness) == 176);
 #[cfg (feature = "have_window_system")]
@@ -301,7 +303,7 @@ pub mod font_log_decls {
     pub fn font_deferred_log (action: *const c_char, arg: Lisp_Object, result: Lisp_Object);
   }
 }
-use font_log_decls::*;
+pub use self::font_log_decls::*;
 
 /* C 1004-1011: the two logging macros.  */
 macro_rules! FONT_ADD_LOG {
@@ -637,9 +639,9 @@ pub struct font_driver_list
    members measure 112/120/128).  The `harfbuzz` arm's two members are last and add sixteen to
    the size on top, so the two shifts compose.  */
 #[cfg (not (feature = "have_window_system"))]
-const FONT_DRIVER_WS_SHIFT: usize = 0;
+pub const FONT_DRIVER_WS_SHIFT: usize = 0;
 #[cfg (feature = "have_window_system")]
-const FONT_DRIVER_WS_SHIFT: usize = 24;
+pub const FONT_DRIVER_WS_SHIFT: usize = 24;
 #[cfg (feature = "have_window_system")]
 const _: () = core::assert! (std::mem::offset_of! (font_driver, draw) == 112);
 #[cfg (feature = "have_window_system")]
@@ -743,4 +745,4 @@ pub mod font_fn_decls {
     pub fn xfont_get_cache (f: *mut c_void) -> Lisp_Object;
   }
 }
-use font_fn_decls::*;
+pub use self::font_fn_decls::*;

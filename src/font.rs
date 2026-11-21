@@ -63,36 +63,38 @@
          unsafe_op_in_unsafe_fn, unused_assignments, unused_parens, unused_mut,
          unused_comparisons, overflowing_literals, unused_must_use, unreachable_code,
          unused_labels, clippy::all)]
+// [U1-MODULE-UNIT]
+use crate::common::*;
 
-include!("include/config.rs");                 // C 23: `#include <config.h>`
-include!("../lib/include/float.in.rs");        // C 24: `#include <float.h>`
-include!("../lib/include/stdio.rs");           // C 25: `#include <stdio.h>`
-include!("../lib/include/stdlib.rs");          // C 26: `#include <stdlib.h>`
-include!("../lib/include/c-ctype.rs");         // C 28: `#include <c-ctype.h>`
-include!("../lib/include/string.rs");          // lisp.h's `<string.h>`: strlen/strcmp/memcmp
-include!("../lib/include/stdcountof.rs");      // lisp.h 30's `<stdcountof.h>`: `countof`
-include!("include/lisp.rs");                   // C 30: `#include "lisp.h"`
-include!("include/character.rs");              // C 31: `#include "character.h"`
-include!("../lib/include/limits.in.rs");       // lisp.h's `<limits.h>` (`INT_MIN`/`INT_MAX`)
-include!("include/systime.rs");                // frame.h/termhooks.h's `systime.h` (`Time`)
-include!("include/itree.rs");                  // buffer.h 27: `#include "itree.h"`
-include!("include/coding.rs");                 // buffer.h 26: `#include "coding.h"`
-include!("include/buffer.rs");                 // C 32: `#include "buffer.h"`
-include!("include/blockinput.rs");             // window.h 26: `#include "blockinput.h"`
-include!("include/window.rs");                 // C 34: `#include "window.h"`
-include!("include/frame.rs");                  // C 33: `#include "frame.h"`
-include!("include/dispextern.rs");             // C 35: `#include "dispextern.h"`
-include!("include/charset.rs");                // C 36: `#include "charset.h"`
-include!("include/composite.rs");              // C 37: `#include "composite.h"`
-include!("include/font.rs");                   // C 39: `#include "font.h"`
-include!("include/termhooks.rs");              // C 40: `#include "termhooks.h"`
-include!("include/pdumper.rs");                // C 41: `#include "pdumper.h"`
+const _: () = ();
+// [U1] ../lib/include/float.in.rs imported via common
+// [U1] ../lib/include/stdio.rs imported via common
+// [U1] ../lib/include/stdlib.rs imported via common
+// [U1] ../lib/include/c-ctype.rs imported via common
+// [U1] ../lib/include/string.rs imported via common
+// [U1] ../lib/include/stdcountof.rs imported via common
+// [U1] include/lisp.rs imported via common
+// [U1] include/character.rs imported via common
+// [U1] ../lib/include/limits.in.rs imported via common
+// [U1] include/systime.rs imported via common
+// [U1] include/itree.rs imported via common
+// [U1] include/coding.rs imported via common
+// [U1] include/buffer.rs imported via common
+// [U1] include/blockinput.rs imported via common
+// [U1] include/window.rs imported via common
+// [U1] include/frame.rs imported via common
+// [U1] include/dispextern.rs imported via common
+// [U1] include/charset.rs imported via common
+// [U1] include/composite.rs imported via common
+// [U1] include/font.rs imported via common
+// [U1] include/termhooks.rs imported via common
+// [U1] include/pdumper.rs imported via common
 /* C 44: `#include TERM_HEADER`, inside `#ifdef HAVE_WINDOW_SYSTEM` - the five-way gate
    `src/fontset.rs` 75-85 and `src/dispnew.rs` 66-71 carry.  The frozen configuration leaves
    `TERM_HEADER` undefined, so no unit had the edge and every `FRAME_DISPLAY_INFO`-shaped
    expansion read `cannot find macro` on Android (measured).  */
 #[cfg (all (feature = "have_window_system", feature = "have_android"))]
-include!("include/androidterm.rs");            // C 44 (TERM_HEADER): `androidterm.h`
+const _: () = ();
 
 /* ==========================================================================================
    `font.h`'s records, accessors and macros (the mirror gap; see the header note).  */

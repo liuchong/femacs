@@ -5,7 +5,9 @@
 // conditions and it stays off the verified list; this mirror carries what the ported units
 // name and the unchecked boxes of docs/ports/include-sys_random.in.md are the rest.
 
-include!("sys_types.in.rs");   // <sys/types.h>
+// [U1-MODULE-MIRROR]
+use super::*;
+// [U1] sys_types.in.rs imported via super
 
 /* C 56-60's `#ifndef GRND_NONBLOCK / # define GRND_NONBLOCK 1 / # define GRND_RANDOM 2`:
    this target's system header has no <sys/random.h>, so gnulib's fallback is the live value
@@ -21,4 +23,4 @@ pub mod sys_random_decls {
     pub fn getrandom (buffer: *mut core::ffi::c_void, length: usize, flags: c_uint) -> ssize_t;
   }
 }
-use sys_random_decls::*;
+pub use self::sys_random_decls::*;

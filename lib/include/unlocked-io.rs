@@ -44,6 +44,8 @@
 // scalar scope.  This mirror spells the one scalar type it needs with an absolute
 // `core::ffi::` path, so `build-tu lib/unlocked-io.h` compiles it as its own crate root.
 
+// [U1-MODULE-MIRROR]
+use super::*;
 /* C 20-21: `#ifndef UNLOCKED_IO_H / # define UNLOCKED_IO_H 1` - the guard has no Rust
    counterpart (PORTING.md 0.1-4); the name stays as its marker.  */
 pub const UNLOCKED_IO_H: core::ffi::c_int = 1;

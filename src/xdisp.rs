@@ -52,6 +52,8 @@
          unused_labels, unreachable_code, unused_comparisons,
          unused_must_use, overflowing_literals, clashing_extern_declarations,
          unused_must_use, clippy::all)]
+// [U1-MODULE-UNIT]
+use crate::common::*;
 
 /* C gets `VaList` from <stdarg.h>; the port's equivalent is `core::ffi::VaList` (PORTING.md
    P-04, the doprnt.rs/pdumper.rs shape).  */
@@ -514,49 +516,49 @@ use core::ffi::VaList;
    transcribes names anything from them, and the ones that do land with their use site
    (PORTING.md P-72 rule 3).  `TERM_HEADER` (C 501) is the platform terminal header and is
    only reached under `HAVE_WINDOW_SYSTEM`, which is dead on this target (P-08).  */
-include!("include/config.rs");                 // C 468: `#include <config.h>`
-include!("../lib/include/stdlib.rs");          // C 469: `#include <stdlib.h>`
-include!("../lib/include/limits.in.rs");       // C 470: `#include <limits.h>` (`INT_MAX`)
-include!("../lib/include/math.rs");            // C 471: `#include <math.h>`
-include!("../lib/include/stdio.rs");           // C 477: `#include "sysstdio.h"`
-include!("../lib/include/stdint.in.rs");       // lisp.h: the width family
-include!("../lib/include/string.rs");          // lisp.h 30: `#include <string.h>`
-include!("../lib/include/stdcountof.rs");      // lisp.h 28: `#include <stdcountof.h>`
-include!("include/lisp.rs");                   // C 473: `#include "lisp.h"`
-include!("include/character.rs");              // C 484: `#include "character.h"`
-include!("include/category.rs");               // C 485: `#include "category.h"`
-include!("include/atimer.rs");                 // C 474: `#include "atimer.h"`
+// [U1] config.rs provided by common
+// [U1] ../lib/include/stdlib.rs imported via common
+// [U1] ../lib/include/limits.in.rs imported via common
+// [U1] ../lib/include/math.rs imported via common
+// [U1] ../lib/include/stdio.rs imported via common
+// [U1] ../lib/include/stdint.in.rs imported via common
+// [U1] ../lib/include/string.rs imported via common
+// [U1] ../lib/include/stdcountof.rs imported via common
+// [U1] include/lisp.rs imported via common
+// [U1] include/character.rs imported via common
+// [U1] include/category.rs imported via common
+// [U1] include/atimer.rs imported via common
 /* lisp.h reaches gnulib's `timespec.h` (`make_timespec`, `dtotimespec`), which C's xdisp.c then
    uses for the hourglass delay; the unit had no mirror of it (status 4.754).  */
-include!("../lib/include/timespec.rs");
-include!("include/composite.rs");              // C 475: `#include "composite.h"`
-include!("include/intervals.rs");              // C 493: `#include "intervals.h"`
-include!("include/itree.rs");                  // intervals.h: `itree_node`/`itree_tree`
-include!("include/systime.rs");                // C 478: `#include "systime.h"`
-include!("include/coding.rs");                 // C 494: `#include "coding.h"`
-include!("include/charset.rs");                // C 486: `#include "charset.h"`
-include!("include/font.rs");                   // C 496: `#include "font.h"`
-include!("include/termhooks.rs");              // C 491: `#include "termhooks.h"`
-include!("include/blockinput.rs");            // C 498: `#include "blockinput.h"`
-include!("include/frame.rs");                  // C 479: `#include "frame.h"`
-include!("include/window.rs");                 // C 480: `#include "window.h"`
-include!("include/keyboard.rs");               // C 476: `#include "keyboard.h"`
-include!("include/keymap.rs");                 // C 489: `#include "keymap.h"`
-include!("include/buffer.rs");                 // C 485: `#include "buffer.h"`
-include!("include/blockinput.rs");             // C 498: `#include "blockinput.h"`
-include!("include/termchar.rs");               // C 481: `#include "termchar.h"`
-include!("include/disptab.rs");                // C 490: `#include "disptab.h"`
-include!("include/dispextern.rs");             // C 482: `#include "dispextern.h"`
-include!("include/commands.rs");               // C 488: `#include "commands.h"`
-include!("include/indent.rs");                 // C 487: `#include "indent.h"`
-include!("include/region-cache.rs");           // C 495: `#include "region-cache.h"`
-include!("include/pdumper.rs");                // lisp.h: `pdumper` declarations
+// [U1] ../lib/include/timespec.rs imported via common
+// [U1] include/composite.rs imported via common
+// [U1] include/intervals.rs imported via common
+// [U1] include/itree.rs imported via common
+// [U1] include/systime.rs imported via common
+// [U1] include/coding.rs imported via common
+// [U1] include/charset.rs imported via common
+// [U1] include/font.rs imported via common
+// [U1] include/termhooks.rs imported via common
+// [U1] include/blockinput.rs imported via common
+// [U1] include/frame.rs imported via common
+// [U1] include/window.rs imported via common
+// [U1] include/keyboard.rs imported via common
+// [U1] include/keymap.rs imported via common
+// [U1] include/buffer.rs imported via common
+// [U1] include/blockinput.rs imported via common
+// [U1] include/termchar.rs imported via common
+// [U1] include/disptab.rs imported via common
+// [U1] include/dispextern.rs imported via common
+// [U1] include/commands.rs imported via common
+// [U1] include/indent.rs imported via common
+// [U1] include/region-cache.rs imported via common
+// [U1] include/pdumper.rs imported via common
 /* C 501: `#include TERM_HEADER`, inside `#ifdef HAVE_WINDOW_SYSTEM` - the five-way gate
    `src/fontset.rs` 75-85 and `src/dispnew.rs` 66-71 carry.  The frozen configuration leaves
    `TERM_HEADER` undefined, so no unit had the edge and every `FRAME_DISPLAY_INFO`-shaped
    expansion read `cannot find macro` on Android (measured).  */
 #[cfg (all (feature = "have_window_system", feature = "have_android"))]
-include!("include/androidterm.rs");            // C 501 (TERM_HEADER): `androidterm.h`
+const _: () = ();
 
 /* C spells `enum itree_order`'s members bare (`DESCENDING` inside `ITREE_FOREACH`), and
    Rust 2024 keeps enum variants out of scope, so the port imports them (the
@@ -2391,8 +2393,6 @@ static mut default_invis_vector: [Lisp_Object; 3] = [lisp_h_Qnil (); 3];
    `window.rs` `window_defined_decls`/`window_display_table` shape).  The mirror gap (the
    three declarations should sit in a module of their own) is reported in
    `docs/ports/xdisp.md` for the integrator; the symbol here is the one C defines.  */
-pub mod xdisp_defined_globals {
-  use super::*;
 
 /* This is the window where the echo area message was displayed.  It
    is always a mini-buffer window, but it may not be the same window
@@ -2411,8 +2411,6 @@ pub static mut windows_or_buffers_changed: c_int = 0;
 #[unsafe(no_mangle)]
 pub static mut update_mode_lines: c_int = 0;
 
-}
-use xdisp_defined_globals::*;
 
 /* Stack of messages, which are pushed by push_message and popped and
    displayed by restore_message.  (C 714-717)  */
@@ -17969,7 +17967,8 @@ buffer_flipping_blocked_p () -> bool
   return buffer_flip_blocked_depth > 0;
 }
 
-
+
+
 /***********************************************************************
 			   Window Redisplay
  ***********************************************************************/
@@ -18033,7 +18032,8 @@ redisplay_window_1 (window: Lisp_Object) -> Lisp_Object
   return Qnil ();
 }
 
-
+
+
 /***********************************************************************
 		      Aborting runaway redisplay
  ***********************************************************************/
@@ -21353,7 +21353,8 @@ pub unsafe extern "C" fn try_window (window: Lisp_Object, pos: text_pos, flags: 
 
 
 
-
+
+
 /************************************************************************
     Window redisplay reusing current matrix when buffer has not changed
  ************************************************************************/
@@ -21832,7 +21833,8 @@ try_window_reusing_current_matrix (w: *mut window) -> bool
 }
 
 
-
+
+
 /************************************************************************
    Window redisplay reusing current matrix when buffer has changed
  ************************************************************************/
@@ -29576,10 +29578,8 @@ display_string (string: *const c_char, lisp_string: Lisp_Object, face_string: Li
    second top-level definition here is `E0428`; it lives in `pub mod xdisp_defined_decls` +
    `use ...::*;` (PORTING.md 0.1-10/P-21, the `xdisp_defined_globals` deviation-7 shape,
    deviation 285).  The symbol is the one C defines.  */
-pub mod xdisp_defined_decls {
-  use super::*;
 
-  #[unsafe(no_mangle)]
+#[unsafe(no_mangle)]
   pub unsafe extern "C" fn invisible_prop (propval: Lisp_Object, list: Lisp_Object) -> c_int
   {
     let mut tail: Lisp_Object;
@@ -29619,8 +29619,6 @@ pub mod xdisp_defined_decls {
     return 0;
   }
 
-}
-use xdisp_defined_decls::*;
 
 DEFUN! ("invisible-p", Finvisible_p, Sinvisible_p, 1, 1, 0,
        doc: "Non-nil if text properties at POS cause text there to be currently invisible.\nPOS should be a marker or a buffer position; the value of the `invisible'\nproperty at that position in the current buffer is examined.\nPOS can also be the actual value of the `invisible' text or overlay\nproperty of the text of interest, in which case the value itself is\nexamined.\n\nThe non-nil value returned can be t for currently invisible text that is\nentirely hidden on display, or some other non-nil, non-t value if the\ntext is replaced by an ellipsis.\n\nNote that whether text with `invisible' property is actually hidden on\ndisplay may depend on `buffer-invisibility-spec', which see.",

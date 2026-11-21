@@ -31,9 +31,11 @@
          unsafe_op_in_unsafe_fn, unused_assignments, unused_parens, unused_mut,
          unreachable_code, unused_labels, while_true, unused_comparisons, overflowing_literals,
          unused_must_use, clippy::all)]
+// [U1-MODULE-UNIT]
+use crate::common::*;
 
-include!("include/config.rs");                  // C 22: `#include <config.h>`
-include!("include/lisp.rs");                    // C 23: `#include "lisp.h"`
+const _: () = ();
+// [U1] include/lisp.rs imported via common
 
 /* C 24-27's `buffer.h`, `coding.h` and `treesit.h`.  C compiles the three includes in *every*
    configuration - they precede the file gate at C 29 - but each mirror carries only names the
@@ -41,18 +43,18 @@ include!("include/lisp.rs");                    // C 23: `#include "lisp.h"`
    the gate on the include graph, or the frozen configuration starts compiling names it should not
    see; measured for the sibling unit in docs/ports/decompress.md ③).  */
 #[cfg (feature = "have_tree_sitter")]
-include!("include/buffer.rs");                  // C 24: `#include "buffer.h"`
+const _: () = ();
 #[cfg (feature = "have_tree_sitter")]
-include!("include/coding.rs");                  // C 25: `#include "coding.h"`
+const _: () = ();
 #[cfg(feature = "have_tree_sitter")]
-include!("include/treesit.rs"); // P430 shared SDK/pseudovector ABI and shadowable declarations.
+const _: () = ();
 /* `dynlib.h`'s five names (`dynlib_handle_ptr` and the four functions) are used by C 864-941
    below, and this snapshot's `treesit.c` carries no include that declares them - the region is
    never compiled in the frozen configuration, so C tolerates it, and a tree-sitter
    configuration would need `#include "dynlib.h"` here.  The port takes the names from the
    mirror that owns them (PORTING.md 0.1-3), recorded in docs/ports/treesit.md.  */
 #[cfg (feature = "have_tree_sitter")]
-include!("include/dynlib.rs");                  // treesit.c 864-941: the `dynlib_*` names
+const _: () = ();
 
 /* ----------------------------------------------------------------------------------------------
    C 29: `#if HAVE_TREE_SITTER` - the file gate.  Everything from C 31 to C 5293 is inside it, and
@@ -69,7 +71,7 @@ include!("include/dynlib.rs");                  // treesit.c 864-941: the `dynli
    evidence is `text-only` (P-86 clause 3 ⑵): there is no compile reading of it.  */
 
 #[cfg (all (feature = "have_tree_sitter", feature = "windowsnt"))]
-include!("include/w32common.rs");               // C 35: `# include "w32common.h"`
+const _: () = ();
 
 /* C 37-99: C 37's own banner ("In alphabetical order.") and the run of `#undef`s that opens the arm - one per
    `ts_*` entry point the DLL loader re-declares below, with C 38-42's version pair choosing

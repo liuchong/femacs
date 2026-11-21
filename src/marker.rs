@@ -27,21 +27,23 @@
 #![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code,
          unused_imports, unused_macros, unused_variables, unused_unsafe, static_mut_refs,
          unsafe_op_in_unsafe_fn)]
+// [U1-MODULE-UNIT]
+use crate::common::*;
 
-include!("include/config.rs");
-include!("../lib/include/stdio.rs");
-include!("include/lisp.rs");
-include!("../lib/include/mini-gmp.rs");
-include!("include/bignum.rs");
-include!("include/character.rs");
-include!("include/itree.rs");
-include!("include/systime.rs");
-include!("include/dispextern.rs");
-include!("include/font.rs");
-include!("include/composite.rs");
-include!("include/coding.rs");
-include!("include/buffer.rs");
-include!("include/window.rs");
+const _: () = ();
+// [U1] ../lib/include/stdio.rs imported via common
+// [U1] include/lisp.rs imported via common
+// [U1] ../lib/include/mini-gmp.rs imported via common
+// [U1] include/bignum.rs imported via common
+// [U1] include/character.rs imported via common
+// [U1] include/itree.rs imported via common
+// [U1] include/systime.rs imported via common
+// [U1] include/dispextern.rs imported via common
+// [U1] include/font.rs imported via common
+// [U1] include/composite.rs imported via common
+// [U1] include/coding.rs imported via common
+// [U1] include/buffer.rs imported via common
+// [U1] include/window.rs imported via common
 
 /* C 22-26's `#if __GNUC__ == 13 && __GNUC_MINOR__ < 3 / #pragma GCC diagnostic ignored
    "-Wanalyzer-deref-before-check"` is a GCC workaround with no Rust counterpart, and the

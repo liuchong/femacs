@@ -13,6 +13,8 @@
 // (`min (min (TYPE_MAXIMUM (off_t), PTRDIFF_MAX), min (SIZE_MAX, SSIZE_MAX))` in
 // lib-src/make-fingerprint.c is the worked example).
 
+// [U1-MODULE-MIRROR]
+use super::*;
 /* C 2: `# define min(a,b) ((a) < (b) ? (a) : (b))`  */
 macro_rules! min { ($a:expr, $b:expr) => { if ($a) < ($b) { $a } else { $b } }; }
 

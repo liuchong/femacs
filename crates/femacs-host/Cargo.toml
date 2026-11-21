@@ -1,0 +1,28 @@
+[package]
+name = "femacs-host"
+version = "0.1.0"
+edition.workspace = true
+license.workspace = true
+publish = false
+
+[lib]
+path = "src/lib.rs"
+
+[[bin]]
+name = "temacs"
+path = "src/bin/temacs.rs"
+
+[features]
+default = []
+have_ns = ["femacs-vm/have_ns"]
+have_window_system = ["femacs-vm/have_window_system"]
+dispextern_face_records = ["femacs-vm/dispextern_face_records"]
+have_modules = ["femacs-vm/have_modules"]
+have_native_comp = ["femacs-vm/have_native_comp"]
+enable_checking = ["femacs-vm/enable_checking"]
+femacs_gc_observer = ["femacs-vm/femacs_gc_observer"]
+femacs_gc_generational = ["femacs-vm/femacs_gc_generational"]
+femacs_gc_observer_test_hooks = ["femacs-vm/femacs_gc_observer_test_hooks"]
+
+[dependencies]
+femacs-vm = { path = "../femacs-vm" }

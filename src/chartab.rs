@@ -30,14 +30,16 @@
 #![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code,
          unused_imports, unused_macros, unused_variables, unused_unsafe, static_mut_refs,
          unsafe_op_in_unsafe_fn)]
+// [U1-MODULE-UNIT]
+use crate::common::*;
 
-include!("include/config.rs");                 // C 21: <config.h>
-include!("../lib/include/stdio.rs");           // lisp.h 34: <stdio.h>
-include!("../lib/include/stdcountof.rs");      // lisp.h 28: <stdcountof.h> (countof)
-include!("include/lisp.rs");                   // C 23
-include!("include/character.rs");              // C 24
-include!("include/coding.rs");                 // C 26
-include!("include/composite.rs");              // coding.h 284: <composite.h>
+const _: () = ();
+// [U1] ../lib/include/stdio.rs imported via common
+// [U1] ../lib/include/stdcountof.rs imported via common
+// [U1] include/lisp.rs imported via common
+// [U1] include/character.rs imported via common
+// [U1] include/coding.rs imported via common
+// [U1] include/composite.rs imported via common
 
 /* The names C 25's `charset.h` gives this unit, written at their use site because that
    header has no mirror yet (PORTING.md 0.1-2).  `docs/port-map.md` still lists

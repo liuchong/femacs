@@ -5,9 +5,11 @@
 #![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code,
          unused_imports, unused_macros, unused_variables, unused_mut, unused_unsafe,
          static_mut_refs, unsafe_op_in_unsafe_fn)]
+// [U1-MODULE-UNIT]
+use crate::common::*;
 use std::ffi::{c_char, c_int, c_void};
-include!("../include/errno.rs");            // C 24: <errno.h> (errno, ENOMEM)
-include!("../include/scratch_buffer.rs");   // C 23: <scratch_buffer.h>
+// [U1] ../include/errno.rs imported via common
+// [U1] ../include/scratch_buffer.rs imported via common
 /* C 19-21's `<libc-config.h>`: `# define __set_errno(val) (errno = (val))` (C 46).  */
 macro_rules! __set_errno { ($val:expr) => { *errno () = $val }; }
 /* `<sys/cdefs.h>`'s branch hints (PORTING.md 2.6), as lib/regcomp.rs spells the pair.  */

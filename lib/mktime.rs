@@ -42,15 +42,17 @@
 #![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code,
          unused_imports, unused_macros, unused_variables, unused_mut, unused_unsafe,
          static_mut_refs, unsafe_op_in_unsafe_fn)]
+// [U1-MODULE-UNIT]
+use crate::common::*;
 
 use std::ffi::{c_char, c_int, c_long, c_uint, c_ulong, c_ushort, c_void};
-include!("../src/include/config.rs");
-include!("include/gnulib_config.rs");
-include!("include/limits.in.rs");
-include!("include/errno.rs");
-include!("include/libc-config.rs");   // C 34: `#include <libc-config.h>`
-include!("include/time.in.rs");
-include!("include/mktime-internal.rs");
+// [U1] config.rs provided by common
+// [U1] include/gnulib_config.rs imported via common
+// [U1] include/limits.in.rs imported via common
+// [U1] include/errno.rs imported via common
+// [U1] include/libc-config.rs imported via common
+// [U1] include/time.in.rs imported via common
+// [U1] include/mktime-internal.rs imported via common
 
 /* C 37-42: `#ifndef LEAP_SECONDS_POSSIBLE` is live, so the file's own `# define … 1`
    applies.  C 55-63's three `#ifndef`s: the configuration defines NEED_MKTIME_INTERNAL and

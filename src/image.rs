@@ -64,29 +64,31 @@
          unsafe_op_in_unsafe_fn, unused_assignments, unused_parens, unused_mut,
          unreachable_code, unused_labels, while_true, unused_comparisons,
          overflowing_literals, unused_must_use, clippy::all)]
+// [U1-MODULE-UNIT]
+use crate::common::*;
 
-include!("include/config.rs");                 // C 20: `#include <config.h>` (every unit includes it)
+const _: () = ();
 
 /* C 22-26: the five system headers, and C 36-39's four more.  Each has a mirror in
    `lib/include/`, and each is inside the file gate: the frozen configuration must not
    compile a single line of this unit (P-86 ⑧; the `androidmenu.rs` reading is what this
    catches - an include outside the gate fails the frozen build at once).  */
 #[cfg (feature = "have_window_system")]
-include!("../lib/include/errno.rs");           // C 22: `#include <errno.h>`
+const _: () = ();
 #[cfg (feature = "have_window_system")]
-include!("../lib/include/fcntl.in.rs");        // C 23: `#include <fcntl.h>`
+const _: () = ();
 #[cfg (feature = "have_window_system")]
-include!("../lib/include/math.rs");            // C 24 / C 36: `#include <math.h>`
+const _: () = ();
 #[cfg (feature = "have_window_system")]
-include!("../lib/include/unistd.in.rs");       // C 25: `#include <unistd.h>`
+const _: () = ();
 #[cfg (feature = "have_window_system")]
-include!("../lib/include/stdlib.rs");          // C 26: `#include <stdlib.h>`
+const _: () = ();
 #[cfg (feature = "have_window_system")]
-include!("../lib/include/stdint.in.rs");       // C 37: `#include <stdint.h>` (uint32_t)
+const _: () = ();
 #[cfg (feature = "have_window_system")]
-include!("../lib/include/c-ctype.rs");         // C 38: `#include <c-ctype.h>`
+const _: () = ();
 #[cfg (feature = "have_window_system")]
-include!("../lib/include/flexmember.rs");     // C 39: `#include <flexmember.h>`
+const _: () = ();
 
 /* C 30-32: `#if defined HAVE_PNG / # include <png.h> / #endif`, ahead of `<setjmp.h>` "to work
    around bugs with older libpng" - C's own comment.  `<png.h>` has no file in the reference tree
@@ -107,57 +109,57 @@ include!("../lib/include/flexmember.rs");     // C 39: `#include <flexmember.h>`
    after them in C's own order where one applies (Rust item order is irrelevant, but
    `macro_rules!` must precede its expansions).  */
 #[cfg (feature = "have_window_system")]
-include!("../lib/include/stdio.rs");           // sysstdio.h 24: `#include <stdio.h>`
+const _: () = ();
 #[cfg (feature = "have_window_system")]
-include!("../lib/include/string.rs");          // C 902/951/1041: `strcmp`, `strrchr`
+const _: () = ();
 #[cfg (feature = "have_window_system")]
-include!("../lib/include/limits.in.rs");       // C 295/636/790: `CHAR_BIT`
+const _: () = ();
 #[cfg (feature = "have_window_system")]
-include!("../lib/include/stdcountof.rs");      // lisp.h 28: `#include <stdcountof.h>` (`countof`)
+const _: () = ();
 #[cfg (feature = "have_window_system")]
-include!("include/lisp.rs");                   // C 41: `#include "lisp.h"`
+const _: () = ();
 /* lisp.h 41 is its `byteswap` include (`#include <byteswap.h>`), whose `bswap_32` this file's
    `canvas_apply_data` (C 5592/5651) reads.  The mirror that owns C 41's chain
    (`include/lisp.rs`) does not carry the edge yet, so it stands here at the C position - the
    P-90 ③ shape the cairo edge above uses.  */
 #[cfg (feature = "have_window_system")]
-include!("../lib/include/byteswap.in.rs");     // lisp.h 41: `byteswap` (`bswap_32`)
+const _: () = ();
 #[cfg (feature = "have_window_system")]
-include!("../lib/include/mini-gmp.rs");        // lisp.h's `bignum.h` chain (`bignum.rs`'s members)
+const _: () = ();
 #[cfg (feature = "have_window_system")]
-include!("include/bignum.rs");
+const _: () = ();
 #[cfg (feature = "have_window_system")]
-include!("include/character.rs");              // lisp.h's `CHARACTERP`/`MAX_CHAR` users
+const _: () = ();
 #[cfg (feature = "have_window_system")]
-include!("include/frame.rs");                  // C 42: `#include "frame.h"`
+const _: () = ();
 #[cfg (feature = "have_window_system")]
-include!("include/process.rs");                // C 43: `#include "process.h"`
+const _: () = ();
 #[cfg (feature = "have_window_system")]
-include!("include/window.rs");                 // C 44: `#include "window.h"`
+const _: () = ();
 #[cfg (feature = "have_window_system")]
-include!("include/itree.rs");                  // buffer.h 27: `#include "itree.h"`
+const _: () = ();
 #[cfg (feature = "have_window_system")]
-include!("include/buffer.rs");                 // C 45: `#include "buffer.h"`
+const _: () = ();
 #[cfg (feature = "have_window_system")]
-include!("include/systime.rs");                // C 49: `#include "systime.h"` (`Time`)
+const _: () = ();
 #[cfg (feature = "have_window_system")]
-include!("include/coding.rs");                 // C 51: `#include "coding.h"`
+const _: () = ();
 #[cfg (feature = "have_window_system")]
-include!("include/composite.rs");              // coding.h 284: `#include "composite.h"`
+const _: () = ();
 #[cfg (feature = "have_window_system")]
-include!("include/dispextern.rs");             // C 46: `#include "dispextern.h"`
+const _: () = ();
 #[cfg (feature = "have_window_system")]
-include!("include/blockinput.rs");             // C 47: `#include "blockinput.h"`
+const _: () = ();
 #[cfg (feature = "have_window_system")]
-include!("include/sysstdio.rs");               // C 48: `#include "sysstdio.h"`
+const _: () = ();
 #[cfg (feature = "have_window_system")]
-include!("include/termhooks.rs");              // C 52: `#include "termhooks.h"`
+const _: () = ();
 #[cfg (feature = "have_window_system")]
-include!("include/font.rs");                   // C 53: `#include "font.h"`
+const _: () = ();
 #[cfg (feature = "have_window_system")]
-include!("../lib/include/sys_stat.in.rs");     // C 55-57: `#include <sys/stat.h>`
+const _: () = ();
 #[cfg (feature = "have_window_system")]
-include!("../lib/include/sys_types.in.rs");    // C 59-61: `#include <sys/types.h>`
+const _: () = ();
 
 /* C 50: `#include <epaths.h>` - a generated header; this slice reads none of its `PATH_*` values
    (the image *libraries*' load path is C 11xxx's), so the C line is named here and no value is
@@ -176,24 +178,24 @@ include!("../lib/include/sys_types.in.rs");    // C 59-61: `#include <sys/types.
    with the edge placed below, xtask expanded `include/gtk.rs` at the pgtkterm reach and this
    unit's X/cairo arm (where that reach is gated off) lost all ten names it needs.  */
 #[cfg (all (feature = "have_window_system", feature = "use_cairo"))]
-include!("include/gtk.rs");                    // TERM_HEADER: the cairo surface `include/gtk.rs` carries
+const _: () = ();
 
 /* C 63-65: `#ifdef HAVE_WINDOW_SYSTEM / #include TERM_HEADER / #endif`.  C picks `TERM_HEADER`
    per configuration (configure.ac 7180) and it is one of the six platform terminal headers; the
    port has a mirror for each, so the arm keeps C's shape - one gated `include!` per platform,
    behind the same feature the mirror's own items use (P-86 ⑧).  */
 #[cfg (all (feature = "have_window_system", feature = "have_x_windows"))]
-include!("include/xterm.rs");                  // TERM_HEADER: `xterm.h`
+const _: () = ();
 #[cfg (all (feature = "have_window_system", feature = "have_ns"))]
-include!("include/nsterm.rs");                 // TERM_HEADER: `nsterm.h`
+const _: () = ();
 #[cfg (all (feature = "have_window_system", feature = "have_pgtk"))]
-include!("include/pgtkterm.rs");               // TERM_HEADER: `pgtkterm.h`
+const _: () = ();
 #[cfg (all (feature = "have_window_system", feature = "have_ntgui"))]
-include!("include/w32term.rs");                // TERM_HEADER: `w32term.h`
+const _: () = ();
 #[cfg (all (feature = "have_window_system", feature = "have_haiku"))]
-include!("include/haikuterm.rs");              // TERM_HEADER: `haikuterm.h`
+const _: () = ();
 #[cfg (all (feature = "have_window_system", feature = "have_android"))]
-include!("include/androidterm.rs");            // TERM_HEADER: `androidterm.h`
+const _: () = ();
 
 /* dispextern.h 115-196's per-platform `Display_Info`, `Emacs_Pix_Container` and `Emacs_Pix_Context`
    typedefs now come from `include/dispextern.rs` (3.408's mirror round); this unit keeps only the two
@@ -534,9 +536,9 @@ pub struct canvas
 /* C 131-135: "We need (or want) w32.h only when we're _not_ compiling for Cygwin." - the nested
    `#ifdef WINDOWSNT` include pair, gated exactly as C gates it (the `lcms.rs` C 36-38 shape).  */
 #[cfg (all (feature = "have_window_system", feature = "have_ntgui", feature = "windowsnt"))]
-include!("include/w32common.rs");              // C 133: `#include "w32common.h"`
+const _: () = ();
 #[cfg (all (feature = "have_window_system", feature = "have_ntgui", feature = "windowsnt"))]
-include!("include/w32.rs");                    // C 134: `#include "w32.h"`
+const _: () = ();
 
 /// C: w32term.h 57: `struct w32_bitmap_record` - the arm's `Bitmap_Record`
 #[cfg (all (feature = "have_window_system", feature = "have_ntgui"))]
@@ -1308,7 +1310,7 @@ pub unsafe extern "C" fn image_create_bitmap_from_data (f: *mut frame, bits: *mu
 /// (`include/androidterm.rs` 41 includes `include/androidgui.rs`, and `android.h`'s record is
 /// `include/android.rs` 69) - the C line is named and the port keeps C's typedef pair.
 #[cfg (all (feature = "have_window_system", feature = "have_android", feature = "not_android_stubify"))]
-include!("include/android.rs");                // C 738: `#include "android.h"`
+const _: () = ();
 
 /* `struct face` (C dispextern.h 1787-1937) - the use-site copy the display units carry, for the
    reason the mirror's `dispextern_face_records` ruling records (status 3.220): the mirror

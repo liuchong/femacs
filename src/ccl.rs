@@ -68,28 +68,30 @@
          unused_imports, unused_macros, unused_variables, unused_unsafe, static_mut_refs,
          unsafe_op_in_unsafe_fn, unused_assignments, unreachable_code, while_true,
          unused_parens, unused_mut, unused_labels, unused_braces)]
+// [U1-MODULE-UNIT]
+use crate::common::*;
 
-include!("include/config.rs");                 // C 26: `#include <config.h>`
-include!("../lib/include/stdio.rs");           // C 28: `#include <stdio.h>`
-include!("../lib/include/limits.in.rs");       // C 29: `#include <limits.h>`
-include!("../lib/include/string.rs");          // lisp.h 30: `#include <string.h>` (memcpy, memset)
-include!("include/lisp.rs");                   // C 31: `#include "lisp.h"`
-include!("../lib/include/mini-gmp.rs");        // lisp.h's bignum.h chain (bignum.rs's members)
-include!("include/bignum.rs");
-include!("include/character.rs");              // C 32: `#include "character.h"`
-include!("include/itree.rs");                  // buffer.h 28: `#include "itree.h"` (buffer.rs's members)
-include!("include/systime.rs");                // termhooks.h 28: `#include "systime.h"`
-include!("include/font.rs");                   // composite.h 28: `#include "font.h"`
-include!("include/composite.rs");              // coding.h 284: `#include "composite.h"`
-include!("include/buffer.rs");                 // composite.h 29: `#include "buffer.h"`
-include!("include/intervals.rs");              // buffer.h 29: `#include "intervals.h"`
-include!("include/frame.rs");                  // buffer.h 30: `#include "frame.h"`
-include!("include/dispextern.rs");             // composite.h 29: `#include "dispextern.h"`
-include!("include/window.rs");                 // buffer.h 31: `#include "window.h"`
-include!("include/coding.rs");                 // C 35: `#include "coding.h"`
-include!("include/ccl.rs");                    // C 34: `#include "ccl.h"`
-include!("include/termhooks.rs");              // keyboard.h 24: `#include "termhooks.h"`
-include!("include/keyboard.rs");               // C 36: `#include "keyboard.h"`
+const _: () = ();
+// [U1] ../lib/include/stdio.rs imported via common
+// [U1] ../lib/include/limits.in.rs imported via common
+// [U1] ../lib/include/string.rs imported via common
+// [U1] include/lisp.rs imported via common
+// [U1] ../lib/include/mini-gmp.rs imported via common
+// [U1] include/bignum.rs imported via common
+// [U1] include/character.rs imported via common
+// [U1] include/itree.rs imported via common
+// [U1] include/systime.rs imported via common
+// [U1] include/font.rs imported via common
+// [U1] include/composite.rs imported via common
+// [U1] include/buffer.rs imported via common
+// [U1] include/intervals.rs imported via common
+// [U1] include/frame.rs imported via common
+// [U1] include/dispextern.rs imported via common
+// [U1] include/window.rs imported via common
+// [U1] include/coding.rs imported via common
+// [U1] include/ccl.rs imported via common
+// [U1] include/termhooks.rs imported via common
+// [U1] include/keyboard.rs imported via common
 // C 33's `#include "charset.h"` has no mirror yet; its names are declared below.
 
 /* The names C's headers give this unit that no mirror carries (the chartab.rs shape,

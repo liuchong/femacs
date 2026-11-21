@@ -51,8 +51,10 @@
          unused_macros, unused_variables, unused_unsafe, static_mut_refs, unsafe_op_in_unsafe_fn,
          unused_assignments, unused_parens, unused_mut, unreachable_code, unused_labels, while_true,
          unused_comparisons, overflowing_literals, unused_must_use, clippy::all)]
+// [U1-MODULE-UNIT]
+use crate::common::*;
 
-include!("include/config.rs");                 // C 20: `#include <config.h>` (every unit includes it)
+const _: () = ();
 
 /* C 22-31 and C 33-35: the file's own include list, in C's order.  The whole graph sits on the
    file gate (P-86 ⑧: an include outside the gate compiles text the frozen configuration never
@@ -60,23 +62,23 @@ include!("include/config.rs");                 // C 20: `#include <config.h>` (e
    mirror is `include/pgtkterm.rs` (P-90 ②: one surface, one mirror); this slice's body uses no
    name from it - the include is C 33-35's, and C 1443's X/PGTK arm is what needs it.  */
 #[cfg (feature = "have_window_system")]
-include!("../lib/include/byteswap.in.rs");     // C 22: `#include <byteswap.h>` (gnulib)
+const _: () = ();
 #[cfg (feature = "have_window_system")]
-include!("include/lisp.rs");                   // C 24: `#include "lisp.h"`
+const _: () = ();
 #[cfg (feature = "have_window_system")]
-include!("include/frame.rs");                  // C 25: `#include "frame.h"`
+const _: () = ();
 #[cfg (feature = "have_window_system")]
-include!("include/window.rs");                 // C 26: `#include "window.h"`
+const _: () = ();
 #[cfg (feature = "have_window_system")]
-include!("include/dispextern.rs");             // C 27: `#include "dispextern.h"`
+const _: () = ();
 #[cfg (feature = "have_window_system")]
-include!("include/buffer.rs");                 // C 28: `#include "buffer.h"`
+const _: () = ();
 #[cfg (feature = "have_window_system")]
-include!("include/blockinput.rs");             // C 29: `#include "blockinput.h"`
+const _: () = ();
 #[cfg (feature = "have_window_system")]
-include!("include/termhooks.rs");              // C 30: `#include "termhooks.h"`
+const _: () = ();
 #[cfg (feature = "have_window_system")]
-include!("include/pdumper.rs");                // C 31: `#include "pdumper.h"`
+const _: () = ();
 /* The edges C 24-30's chain reaches through headers these mirrors do not carry themselves
    (PORTING.md P-72 rule 4 - the `gfilenotify.rs` / `androidterm.rs` shape): dispextern.h 25
    includes `character.h` (`MAX_CHAR`), termhooks.h 28 includes `systime.h` (`Time`), and
@@ -98,16 +100,16 @@ include!("include/pdumper.rs");                // C 31: `#include "pdumper.h"`
    tried first and is wrong for the frozen configuration (measured: `character.rs`'s own items need
    `lisp.rs`'s `eassert!`/`eassume!`, so the frozen object stops being the empty one).  */
 #[cfg (feature = "have_window_system")]
-include!("include/character.rs");              // C 27 -> dispextern.h 25: `character.h` (MAX_CHAR)
+const _: () = ();
 #[cfg (feature = "have_window_system")]
-include!("include/systime.rs");                // C 30 -> termhooks.h 28: `systime.h` (Time)
+const _: () = ();
 #[cfg (feature = "have_window_system")]
-include!("include/font.rs");                   // C 27 -> dispextern.h's `struct font`
+const _: () = ();
 #[cfg (feature = "have_window_system")]
-include!("include/composite.rs");              // C 27 -> dispextern.h's `struct composition`
+const _: () = ();
 
 #[cfg (all (feature = "have_window_system", feature = "have_pgtk"))]
-include!("include/pgtkterm.rs");               // C 33-35: `#ifdef HAVE_PGTK` + `pgtkterm.h`
+const _: () = ();
 
 /* C 37-69: the file's own commentary on the three ways a fringe bitmap is represented.  Carried
    verbatim (it is the file's only statement of the mapping the code below depends on).  */
@@ -261,7 +263,8 @@ macro_rules! fringe_bitmap_bits {
    leaves them `static` (internal linkage), so the port keeps both and no symbol is exported
    (PORTING.md 0.2).  The generated `C <n>-<m>` lines that follow the pictures carry each array
    transcribe a C line range of its own.  */
-
+
+
 /***********************************************************************
 			       Fringe bitmaps
  ***********************************************************************/

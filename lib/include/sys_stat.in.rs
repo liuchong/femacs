@@ -43,8 +43,10 @@
 // `_GL_WARN_ON_USE` machinery, the `_GL_CXXALIAS_*` aliases and the declarations this mirror
 // has not needed yet.
 
-include!("sys_types.in.rs");   // <sys/types.h> (mode_t, dev_t, ino_t, nlink_t, off_t, ...)
-include!("time.in.rs");        // <time.h> (struct timespec, the st_*timespec members' type)
+// [U1-MODULE-MIRROR]
+use super::*;
+// [U1] sys_types.in.rs imported via super
+// [U1] time.in.rs imported via super
 
 /* C 78-94's `#ifndef _GL_ATTRIBUTE_NOTHROW` fallback: the attribute that says a function does
    not throw.  C defines it five times (the C++ arms and the `__attribute__ ((__nothrow__))`

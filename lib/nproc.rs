@@ -30,24 +30,26 @@
 #![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code,
          unused_imports, unused_macros, unused_variables, unused_mut, unused_unsafe,
          static_mut_refs, unsafe_op_in_unsafe_fn)]
+// [U1-MODULE-UNIT]
+use crate::common::*;
 
 /* Written by Glen Lenker and Bruno Haible.  */
 
 use std::ffi::{c_char, c_double, c_float, c_int, c_long, c_longlong, c_schar, c_short,
                c_uchar, c_uint, c_ulong, c_ulonglong, c_ushort, c_void};
 
-include!("../src/include/config.rs");
-include!("include/gnulib_config.rs");
-include!("include/limits.in.rs");     // <limits.h> (ULONG_MAX)
-include!("include/stdint.in.rs");
-include!("include/sys_types.in.rs");  // <sys/types.h> (size_t)
-include!("include/unistd.in.rs");     // <unistd.h> (sysconf, _SC_NPROCESSORS_*)
-include!("include/stdcountof.rs");    // <stdcountof.h> (countof)
-include!("include/stdlib.rs");        // <stdlib.h> (getenv, strtoul)
-include!("include/c-ctype.rs");        // "c-ctype.h" (c_isdigit, c_isspace)
-include!("include/minmax.rs");         // "minmax.h" (MIN, MAX)
-include!("include/sys_sysctl.rs");    // <sys/sysctl.h> (CTL_HW, HW_NCPU, sysctl)
-include!("include/nproc.rs");          // "nproc.h" (enum nproc_query, num_processors)
+// [U1] config.rs provided by common
+// [U1] include/gnulib_config.rs imported via common
+// [U1] include/limits.in.rs imported via common
+// [U1] include/stdint.in.rs imported via common
+// [U1] include/sys_types.in.rs imported via common
+// [U1] include/unistd.in.rs imported via common
+// [U1] include/stdcountof.rs imported via common
+// [U1] include/stdlib.rs imported via common
+// [U1] include/c-ctype.rs imported via common
+// [U1] include/minmax.rs imported via common
+// [U1] include/sys_sysctl.rs imported via common
+// [U1] include/nproc.rs imported via common
 
 /* C 34-40's `<pthread.h>`/`<sched.h>` includes are dead (the guarded blocks are all off), and
    C 42's `<sys/types.h>` and C 48-54's `<sys/param.h>`/`<sys/sysctl.h>` are the mirrors above.

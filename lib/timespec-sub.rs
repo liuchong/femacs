@@ -1,16 +1,18 @@
 #![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code,
          unused_imports, unused_macros, unused_variables, unused_mut, unused_unsafe,
          static_mut_refs, unsafe_op_in_unsafe_fn)]
+// [U1-MODULE-UNIT]
+use crate::common::*;
 use std::ffi::{c_char, c_double, c_int, c_long, c_uint, c_ulong, c_void};
 // femacs: port of lib/timespec-sub.c @ fd7afced403.  The same shape as
 // lib/timespec-add.rs with `ckd_sub`/`overflowing_sub` and C's `borrow`; the
 // reference object confirms the name (`nm -g build/emacs-ref/lib/timespec-sub.o` is empty
 // because the file is not in the frozen build's object list, but C's non-`static`
 // definition exports `timespec_sub`).
-include!("../src/include/config.rs");
-include!("include/gnulib_config.rs");
-include!("include/timespec.rs");   // "timespec.h", <stdckdint.h>, "intprops.h"
-include!("include/stdckdint.in.rs");  // C 27: `#include <stdckdint.h>` (the three
+// [U1] config.rs provided by common
+// [U1] include/gnulib_config.rs imported via common
+// [U1] include/timespec.rs imported via common
+// [U1] include/stdckdint.in.rs imported via common
                                          // names are dead here; the unit spells the
                                          // `overflowing_*` pair, P-15)
 

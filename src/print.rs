@@ -55,38 +55,40 @@
          unsafe_op_in_unsafe_fn, unused_parens, unreachable_code, unused_assignments,
          unused_mut, unused_labels, while_true, overflowing_literals, unused_comparisons,
          clashing_extern_declarations)]
+// [U1-MODULE-UNIT]
+use crate::common::*;
 
-include!("include/config.rs");                 // C 21: `#include <config.h>`
-include!("../lib/include/stdio.rs");           // C 22: sysstdio.h 24's `#include <stdio.h>`
-include!("../lib/include/string.rs");          // lisp.h 30's `<string.h>` (memcpy, memset,
+const _: () = ();
+// [U1] ../lib/include/stdio.rs imported via common
+// [U1] ../lib/include/string.rs imported via common
                                                //         strlen, strcpy)
-include!("../lib/include/c-ctype.rs");         // C 34: `#include <c-ctype.h>`
-include!("../lib/include/float.in.rs");        // C 35: `#include <float.h>` (DBL_DIG)
-include!("../lib/include/math.rs");            // C 40: `#include <math.h>` (isinf, isnan)
-include!("../lib/include/fcntl.in.rs");        // Fredirect_debugging_output's fcntl, O_*
-include!("../lib/include/unistd.in.rs");       // dup2, STDERR_FILENO's header
-include!("../lib/include/stdint.in.rs");       // UINTMAX_WIDTH (print_object's buffer size)
-include!("../lib/include/limits.in.rs");       // INTMAX_WIDTH (the same expression)
-include!("include/lisp.rs");                   // C 25: `#include "lisp.h"`
-include!("include/character.rs");              // C 26: `#include "character.h"`
-include!("include/charset.rs");                // C 29: `#include "charset.h"`
-include!("include/itree.rs");                  // buffer.h 28: `#include "itree.h"`
-include!("include/intervals.rs");              // C 33: `#include "intervals.h"`
-include!("include/coding.rs");                 // C 27: `#include "coding.h"`
-include!("include/buffer.rs");                 // C 28: `#include "buffer.h"`
+// [U1] ../lib/include/c-ctype.rs imported via common
+// [U1] ../lib/include/float.in.rs imported via common
+// [U1] ../lib/include/math.rs imported via common
+// [U1] ../lib/include/fcntl.in.rs imported via common
+// [U1] ../lib/include/unistd.in.rs imported via common
+// [U1] ../lib/include/stdint.in.rs imported via common
+// [U1] ../lib/include/limits.in.rs imported via common
+// [U1] include/lisp.rs imported via common
+// [U1] include/character.rs imported via common
+// [U1] include/charset.rs imported via common
+// [U1] include/itree.rs imported via common
+// [U1] include/intervals.rs imported via common
+// [U1] include/coding.rs imported via common
+// [U1] include/buffer.rs imported via common
 #[cfg(feature = "have_tree_sitter")]
-include!("include/treesit.rs"); // P430 shared parser/edit/GC ABI.
-include!("include/systime.rs");                // frame.h 24: `#include "systime.h"`
-include!("include/font.rs");                   // dispextern.h's font names (FONTP family)
-include!("include/composite.rs");              // coding.h 284: `#include "composite.h"`
-include!("include/dispextern.rs");             // frame.h 25: `#include "dispextern.h"`
-include!("include/termhooks.rs");              // frame.h's `struct terminal`
-include!("include/window.rs");                 // XWINDOW, the WINDOWP family
-include!("include/frame.rs");                  // C 30: `#include "frame.h"`
-include!("include/process.rs");                // C 31: `#include "process.h"`
-include!("include/disptab.rs");                // C 32: `#include "disptab.h"`
-include!("include/blockinput.rs");             // C 36: `#include "blockinput.h"`
-include!("include/dynlib.rs");                 // C 38: `#include "dynlib.h"`
+const _: () = ();
+// [U1] include/systime.rs imported via common
+// [U1] include/font.rs imported via common
+// [U1] include/composite.rs imported via common
+// [U1] include/dispextern.rs imported via common
+// [U1] include/termhooks.rs imported via common
+// [U1] include/window.rs imported via common
+// [U1] include/frame.rs imported via common
+// [U1] include/process.rs imported via common
+// [U1] include/disptab.rs imported via common
+// [U1] include/blockinput.rs imported via common
+// [U1] include/dynlib.rs imported via common
 
 use std::ffi::CStr;                            // the `-1.0e+INF` literal in float_to_string
 
@@ -150,7 +152,7 @@ const fn max_usize (a: usize, b: usize) -> usize { if a > b { a } else { b } }
    `ieee_nan` accessors come from there; the measurements that used to be written out here
    (clang's packing, sizeof 8, alignof 4 for the member and 8 for the union) are recorded in
    `docs/ports/include-ieee754.in.md`.  */
-include!("../lib/include/ieee754.in.rs");
+// [U1] ../lib/include/ieee754.in.rs imported via common
 /* The `DEFVAR_*` variables this C file owns: C's storage is `globals.f_<vname>`
    (lisp.h 3495-3530) and `struct emacs_globals globals` is defined once, in alloc.c, so the
    reference object exports `globals` and *no* `V*` symbol for these names.  The port gives

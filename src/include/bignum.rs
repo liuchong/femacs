@@ -17,6 +17,8 @@
 // C) agree with the C compiler's numbers — asserted by `xtask layout-check` from
 // docs/baseline/layout/c-layout-darwin-arm64.tsv.
 
+// [U1-MODULE-MIRROR]
+use super::*;
 /* Include this header only if access to bignum internals is needed.  */
 
 // The include guard has no Rust counterpart (PORTING.md 0.1).
@@ -84,7 +86,7 @@ pub mod bignum_externs {
   }
 }
 
-use bignum_externs::*;
+pub use self::bignum_externs::*;
 
 /* INLINE struct Lisp_Bignum * XBIGNUM (Lisp_Object a)  */
 #[inline(always)]

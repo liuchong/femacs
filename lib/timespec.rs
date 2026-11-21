@@ -1,10 +1,12 @@
 // femacs: port of lib/timespec.c @ fd7afced403.
+// [U1-MODULE-UNIT]
+use crate::common::*;
 use std::ffi::{c_char, c_double, c_int, c_long, c_short, c_uint, c_ulong,
                 c_void};
 
-include!("../src/include/config.rs");
-include!("include/gnulib_config.rs");
-include!("include/timespec.rs");
+// [U1] config.rs provided by common
+// [U1] include/gnulib_config.rs imported via common
+// [U1] include/timespec.rs imported via common
 
 /* lib/timespec.c: the qualifier this translation unit uses (PORTING.md 10.12).  */
 pub const _GL_TIMESPEC_INLINE: () = _GL_EXTERN_INLINE;

@@ -1,6 +1,8 @@
 // femacs: port of lib/mempcpy.c @ fd7afced403.
+// [U1-MODULE-UNIT]
+use crate::common::*;
 use std::ffi::{c_char, c_int, c_void};
-include!("../src/include/config.rs"); include!("include/gnulib_config.rs");
+// [U1] config.rs provided by common
 
 unsafe extern "C" { pub fn memcpy (dest: *mut c_void, src: *const c_void, n: usize) -> *mut c_void; }
 

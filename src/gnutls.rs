@@ -41,46 +41,48 @@
          unsafe_op_in_unsafe_fn, unused_assignments, unused_parens, unused_mut,
          unreachable_code, unused_labels, while_true, unused_comparisons,
          overflowing_literals, unused_must_use, clippy::all)]
+// [U1-MODULE-UNIT]
+use crate::common::*;
 
-include!("include/config.rs");                  // C 19: `#include <config.h>`
+const _: () = ();
 /* C 20's `<errno.h>`: the frozen configuration has no `build/emacs-ref/lib/errno.h` (gnulib's
    `errno-h` module removes it; `lib/include/errno.in.rs` 3-20 records the measurement), so
    the header C sees is the *system* one, and the port's home for the frozen target's values is
    `errno.in.rs` -- the template mirror that carries both halves (`errno.rs`'s `#include_next` plus
    the frozen fallbacks ENOTCONN 57 / ECONNRESET 54 the gated text below needs).
    `exec/mipsfpu.rs` 27 includes it for the same C line.  */
-include!("../lib/include/errno.in.rs");         // C 20: `#include <errno.h>`
-include!("../lib/include/stdio.rs");            // C 21: `#include <stdio.h>`
+// [U1] ../lib/include/errno.in.rs imported via common
+// [U1] ../lib/include/stdio.rs imported via common
 
 /* The unconditional capability/registration path needs lisp and this unit's
    header. P-401 restores the actual process, file encoding, buffer extraction
    and dumper inputs for the enabled body below. */
-include!("include/lisp.rs");                    // C 23: `#include "lisp.h"`
-include!("include/gnutls.rs");                  // C 25: `#include "gnutls.h"`
+// [U1] include/lisp.rs imported via common
+// [U1] include/gnutls.rs imported via common
 
 #[cfg (feature = "have_gnutls")]
-include!("include/process.rs");                 // C 24: `#include "process.h"`
+const _: () = ();
 #[cfg(feature = "have_gnutls")]
-include!("include/coding.rs");
+const _: () = ();
 #[cfg(feature = "have_gnutls")]
-include!("include/buffer.rs");
+const _: () = ();
 #[cfg(feature = "have_gnutls")]
-include!("include/pdumper.rs");
+const _: () = ();
 
 /* The system headers the gated body reaches through C's own includes: `<string.h>` (lisp.h 30;
    `strcpy`/`strlen`/`sprintf`), `<limits.h>` (lisp.h 32; `INT_MIN`/`INT_MAX`), `ssize_t`
    (`<sys/types.h>`/`<unistd.h>`), `<time.h>` (`time_t`, `nanosleep`) and C23 `<stdckdint.h>`
    (the `ckd_mul`/`ckd_add` pair at C 1089-1090, P-15).  */
 #[cfg (feature = "have_gnutls")]
-include!("../lib/include/string.rs");           // lisp.h 30: `<string.h>`
+const _: () = ();
 #[cfg (feature = "have_gnutls")]
-include!("../lib/include/limits.in.rs");        // lisp.h 32: `<limits.h>`
+const _: () = ();
 #[cfg (feature = "have_gnutls")]
-include!("../lib/include/unistd.in.rs");        // `ssize_t` (unistd.in.rs 34)
+const _: () = ();
 #[cfg (feature = "have_gnutls")]
-include!("../lib/include/time.in.rs");          // `time_t`, `struct timespec`, `nanosleep`
+const _: () = ();
 #[cfg (feature = "have_gnutls")]
-include!("../lib/include/stdckdint.in.rs");     // `ckd_mul`/`ckd_add` (the frozen arm is P-15)
+const _: () = ();
 
 /* ----------------------------------------------------------------------------------------------
    C 25: `#include "gnutls.h"` -> gnutls.h 21: `#include <gnutls/gnutls.h>`, gnutls.h 26:
@@ -625,9 +627,9 @@ macro_rules! GNUTLS_LOG2 {
    the reference tree, so `HMODULE` is the pointer PORTING.md 0.2 maps it to (`*mut c_void`, the
    spelling `src/include/w32common.rs` 189-192 already uses for `hbfont_init_w32_funcs`).  */
 #[cfg (all (feature = "have_gnutls", feature = "windowsnt"))]
-include!("include/w32common.rs");               // C 84: `#  include "w32common.h"`
+const _: () = ();
 #[cfg (all (feature = "have_gnutls", feature = "windowsnt"))]
-include!("include/w32.rs");                     // C 85: `#  include "w32.h"`
+const _: () = ();
 
 /// C 88: `static int emacs_gnutls_handle_error (gnutls_session_t, int);` -- C's forward
 /// declaration of a definition later in this same file.  Rust has no counterpart, so the line is

@@ -6,17 +6,12 @@ fn object_dir(repo: &Path, root: &Path) -> Result<PathBuf, String> {
         if binding["product"] != "cocoa" {
             return Err("Cocoa object root has a different product binding".into());
         }
-        let objects = root.join("objects");
-        if objects.is_symlink() {
-            return Err("Cocoa object root is a symlink".into());
-        }
-        return Ok(objects);
     }
-    use std::hash::{Hash, Hasher};
-    let mut key = std::collections::hash_map::DefaultHasher::new();
-    root.hash(&mut key);
-    Ok(repo.join(".femacs-cache/macos")
-        .join(format!("{:016x}", key.finish())))
+    let objects = root.join("objects");
+    if objects.is_symlink() {
+        return Err("Cocoa object root is a symlink".into());
+    }
+    Ok(objects)
 }
 
 fn generate_paths(repo: &Path, config: &Path) -> Result<(), String> {
@@ -195,8 +190,6 @@ pub(super) fn build_configured(repo: &Path, root: &Path, selected_config: &Path,
         )
     };
     invoke("generate target-local config", &["gen-config"])?;
-    invoke("build Cocoa Rust core", &["build-units"])?;
-    invoke("build Cocoa ABI providers", &["build-tu", "src/abi_shim.c"])?;
     finish_configured(&repo, &root, destination)
 }
 
@@ -244,9 +237,7 @@ fn finish_configured(repo: &Path, root: &Path, destination: &Path) -> Result<(),
         return Err("unsafe Cocoa output root".into());
     }
     let objects = object_dir(repo, root)?;
-    if !objects.join("abi_shim.o").is_file() {
-        return Err("missing Cocoa ABI object; run build-macos".into());
-    }
+    fs::create_dir_all(&objects).map_err(|e| e.to_string())?;
     for required in ["config/config.rs", "config/darwin-cocoa.json"] {
         if !root.join(required).is_file() {
             return Err(format!(
@@ -295,9 +286,18 @@ fn finish_configured(repo: &Path, root: &Path, destination: &Path) -> Result<(),
         },
         None => false,
     };
-    for name in [
-        "macfont", "nsfns", "nsimage", "nsmenu", "nsselect", "nsterm",
-    ] {
+    let support = repo.join("build-support/macos/cocoa");
+    let sources = crate::product_sources::ProductSources::resolve(
+        repo,
+        &read_manifest(&support.join("objects.txt"))?,
+        &read_manifest(&support.join("lib-objects.txt"))?,
+        true,
+    )?;
+    for source in sources.swift {
+        let name = Path::new(&source)
+            .file_stem()
+            .and_then(|stem| stem.to_str())
+            .ok_or_else(|| format!("{source}: invalid Swift module name"))?;
         run(
             Command::new("xcrun")
                 .env("MACOSX_DEPLOYMENT_TARGET", &deployment)
@@ -306,7 +306,7 @@ fn finish_configured(repo: &Path, root: &Path, destination: &Path) -> Result<(),
                 .arg("-module-name")
                 .arg(format!("femacs_{name}"))
                 .arg("-c")
-                .arg(repo.join(format!("platform/macos/{name}.swift")))
+                .arg(repo.join(&source))
                 .arg("-o")
                 .arg(objects.join(format!("{name}.o"))),
             &format!("Swift {name}"),
@@ -462,36 +462,4 @@ fn populate_app(repo: &Path, root: &Path, info: &Path, app: &Path) -> Result<(),
             .arg(app),
         "sign staged Cocoa app",
     )
-}
-
-/// Ask make for variable expansion only; no reference compiler/linker is executed.
-pub(super) fn active_objects() -> Result<BTreeSet<String>, String> {
-    Ok(target_manifest("objects.txt")?.into_iter().collect())
-}
-
-/// Optional differential tooling can still query an explicitly configured makefile.
-pub(super) fn make_objects(directory: &Path, variable: &str) -> Result<BTreeSet<String>, String> {
-    let output = Command::new("make")
-        .args(["-n", "-f", "Makefile", "-f", "-", "femacs-object-list"])
-        .current_dir(directory)
-        .stdin(std::process::Stdio::piped())
-        .stdout(std::process::Stdio::piped())
-        .spawn()
-        .and_then(|mut child| {
-            use std::io::Write;
-            child.stdin.take().unwrap().write_all(
-                format!("femacs-object-list:; @echo FEMACS_OBJECTS=$({variable})\n").as_bytes(),
-            )?;
-            child.wait_with_output()
-        })
-        .map_err(|e| e.to_string())?;
-    if !output.status.success() {
-        return Err(String::from_utf8_lossy(&output.stderr).into_owned());
-    }
-    let text = String::from_utf8_lossy(&output.stdout);
-    let line = text
-        .lines()
-        .find_map(|s| s.split_once("FEMACS_OBJECTS=").map(|(_, v)| v))
-        .ok_or("no object list")?;
-    Ok(line.split_whitespace().map(str::to_string).collect())
 }

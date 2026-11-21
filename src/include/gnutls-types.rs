@@ -1,5 +1,7 @@
 // Shared opaque library handles and public process initialization states.
 // Pointer targets are library-owned; Rust never constructs or frees them.
+// [U1-MODULE-MIRROR]
+use super::*;
 use core::ffi::{c_int, c_uint};
 
 #[repr(C)]

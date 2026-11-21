@@ -1,16 +1,18 @@
 #![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code,
          unused_imports, unused_macros, unused_variables, unused_mut, unused_unsafe,
          static_mut_refs, unsafe_op_in_unsafe_fn)]
+// [U1-MODULE-UNIT]
+use crate::common::*;
 use std::ffi::{c_char, c_double, c_int, c_long, c_uint, c_ulong, c_void};
 // femacs: port of lib/acl-errno-valid.c @ fd7afced403.  Blind file; the
 // two conditions are both live on this target (`__APPLE__`/`__MACH__` are defined, and
 // `ENOTSUP` (45) differs from both `EOPNOTSUPP` (102) and `ENOSYS` (78)), so every `case` in
 // C's `switch` is reachable.  C's `switch`/`case`/`default` become the port's `match`/pattern
 // arms/`_` (PORTING.md 2.2; the switch tokens are in docs/ports/macro-body-notes.tsv).
-include!("../src/include/config.rs");
-include!("include/gnulib_config.rs");
-include!("include/errno.rs");      // <errno.h> (the nine codes)
-include!("include/acl.rs");        // <acl.h>
+// [U1] config.rs provided by common
+// [U1] include/gnulib_config.rs imported via common
+// [U1] include/errno.rs imported via common
+// [U1] include/acl.rs imported via common
 
 /* bool acl_errno_valid (int errnum)  */
 #[unsafe(no_mangle)]

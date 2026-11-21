@@ -1,4 +1,6 @@
 // femacs: port of lib/md5.c @ fd7afced403.
+// [U1-MODULE-UNIT]
+use crate::common::*;
 /* Written by Ulrich Drepper <drepper@gnu.ai.mit.edu>, 1995.  */
 
 /* emacs/lib/md5.c: C 22's `<config.h>` is the generated config mirror, C 28's `"md5.h"`
@@ -14,10 +16,10 @@
    undefined, so the body below is C's gnulib implementation) and C 387's `#endif`
    closes it.  */
 use std::ffi::{c_char, c_int, c_long, c_uchar, c_uint, c_ulong, c_void};
-include!("../src/include/config.rs");
-include!("include/gnulib_config.rs");
-include!("include/stdint.in.rs");
-include!("include/md5.rs");
+// [U1] config.rs provided by common
+// [U1] include/gnulib_config.rs imported via common
+// [U1] include/stdint.in.rs imported via common
+// [U1] include/md5.rs imported via common
 
 /* C 31's `<string.h>`: the one entry the bodies call.  */
 unsafe extern "C" {

@@ -43,6 +43,8 @@
 // remains to be written there is the rest of the API (the owner's ledger lists it family by
 // family).
 
+// [U1-MODULE-MIRROR]
+use super::*;
 /* stdbit.in.h 350-355: `#define stdc_leading_zeros(n) (sizeof (n) == 1 ? … )`.  Rust
    has no `?:` chain, so the same five-way dispatch is an if/else expression; the casts
    are C's implicit conversions to the chosen variant's parameter type.  */

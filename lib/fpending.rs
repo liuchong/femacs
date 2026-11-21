@@ -1,6 +1,8 @@
 #![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code,
          unused_imports, unused_macros, unused_variables, unused_mut, unused_unsafe,
          static_mut_refs, unsafe_op_in_unsafe_fn)]
+// [U1-MODULE-UNIT]
+use crate::common::*;
 use std::ffi::{c_char, c_double, c_int, c_long, c_short, c_uint, c_ulong, c_void};
 // femacs: port of lib/fpending.c @ fd7afced403.  Blind file: the frozen
 // configuration defines `__sferror` (macros.tsv 7030) and neither `_IO_EOF_SEEN` nor
@@ -9,11 +11,11 @@ use std::ffi::{c_char, c_double, c_int, c_long, c_short, c_uint, c_ulong, c_void
 // <stdio.h> layouts and are carried here as the reference's own text (P-51; blanking them
 // would hide the `__sFILE`/glibc/musl field names the ledger compares).  The reference object
 // confirms the symbol: `nm build/emacs-ref/lib/fpending.o` prints `T ___fpending`.
-include!("../src/include/config.rs");
-include!("include/gnulib_config.rs");
-include!("include/stdio.rs");       // <stdio.h> (FILE = `__sFILE`, stdio-impl.rs)
-include!("include/fpending.rs");    // "fpending.h"
-include!("include/stdio-impl.rs");  // "stdio-impl.h" (`fp_` = `fp`, `fp_ub`)
+// [U1] config.rs provided by common
+// [U1] include/gnulib_config.rs imported via common
+// [U1] include/stdio.rs imported via common
+// [U1] include/fpending.rs imported via common
+// [U1] include/stdio-impl.rs imported via common
 
 /* This file is not used on systems that already have the __fpending function,
    namely glibc >= 2.2, OpenBSD >= 7.6, Solaris >= 7, UnixWare >= 7.1.4.MP4,

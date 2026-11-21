@@ -32,8 +32,10 @@
 // timeval`, 16 bytes) at 304, `ut_host` 256 bytes at 320 and 64 bytes of `ut_pad[16]` tail;
 // the assertions below pin every one of those numbers.
 
-include!("sys_time.rs");       // `struct timeval` (`ut_tv`) - the C header's <sys/time.h>
-include!("sys_types.in.rs");   // `pid_t` (`ut_pid`)
+// [U1-MODULE-MIRROR]
+use super::*;
+// [U1] sys_time.rs imported via super
+// [U1] sys_types.in.rs imported via super
 
 /// <utmpx.h> 82-85: the four field sizes (`_UTX_USERSIZE` 256, `_UTX_LINESIZE` 32,
 /// `_UTX_IDSIZE` 4, `_UTX_HOSTSIZE` 256 on the frozen target).

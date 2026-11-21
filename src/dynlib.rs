@@ -1,4 +1,6 @@
 // femacs: port of src/dynlib.c @ fd7afced403.
+// [U1-MODULE-UNIT]
+use crate::common::*;
 /* emacs/src/dynlib.c (@ 340 lines) is on the verified list: WINDOWSNT is undefined and
    HAVE_UNISTD_H is 1, so C 33-266's native-Windows arm (the `LoadLibrary`/`GetProcAddress`
    family, `os_subtype`, `w32common.h` and `w32.h`) is dead by measurement and the live text is
@@ -10,9 +12,9 @@
    mirror; C 274's <dlfcn.h> is not mirrored (the four entries the live arm names are declared
    in-unit, the getgroups.c shape).  */
 use std::ffi::{c_char, c_int, c_long, c_short, c_uint, c_ulong, c_void};
-include!("include/config.rs");
-include!("../lib/include/gnulib_config.rs");
-include!("include/dynlib.rs");
+// [U1] config.rs provided by common
+// [U1] ../lib/include/gnulib_config.rs imported via common
+// [U1] include/dynlib.rs imported via common
 
 /* C 274's <dlfcn.h>: the four entries the POSIX arm names.  */
 unsafe extern "C" {

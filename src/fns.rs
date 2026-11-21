@@ -49,39 +49,41 @@
          unsafe_op_in_unsafe_fn, unused_assignments, unreachable_code, while_true,
          unused_parens, unused_mut, unused_labels, unused_comparisons, overflowing_literals,
          unnecessary_cast, dropping_copy_types, unused_must_use, clashing_extern_declarations)]
+// [U1-MODULE-UNIT]
+use crate::common::*;
 
 /* C 22-42: the `#include`s.  The mirrors are named with C's own header in the comment.  */
-include!("include/config.rs");                  // C 22: `#include <config.h>`
-include!("../lib/include/stdio.rs");            // lisp.h 34: `#include <stdio.h>`
-include!("../lib/include/stdlib.rs");           // C 24: `#include <stdlib.h>`
-include!("../lib/include/string.rs");          // lisp.h 30's `#include <string.h>` (memcmp, memcpy)
-include!("../lib/include/stdcountof.rs");      // lisp.h 28: `#include <stdcountof.h>` (countof)
-include!("../lib/include/sys_random.in.rs");    // C 25: `#include <sys/random.h>`
-include!("../lib/include/unistd.in.rs");        // C 26: `#include <unistd.h>`
+const _: () = ();
+// [U1] ../lib/include/stdio.rs imported via common
+// [U1] ../lib/include/stdlib.rs imported via common
+// [U1] ../lib/include/string.rs imported via common
+// [U1] ../lib/include/stdcountof.rs imported via common
+// [U1] ../lib/include/sys_random.in.rs imported via common
+// [U1] ../lib/include/unistd.in.rs imported via common
 /* C 27: `#include <filevercmp.h>`.  The mirror's `pub mod decls` cannot be included here: see
    the digest-header note below (docs/ports/fns.md reports the collision), so `filenvercmp` is
    declared at its use site with C's own prototype.  */
-include!("../lib/include/limits.in.rs");        // C 28: `<intprops.h>`'s width family (P-26: no mirror for the header itself)
-include!("../lib/include/errno.rs");            // C 29: `#include <errno.h>`
-include!("../lib/include/math.rs");             // C 30: `#include <math.h>`
-include!("../lib/include/langinfo.rs");         // C 3893: `#include <langinfo.h>`
-include!("include/lisp.rs");                    // C 32: `#include "lisp.h"`
-include!("../lib/include/mini-gmp.rs");        // bignum.h's `#include <gmp.h>`
-include!("include/bignum.rs");                  // C 33: `#include "bignum.h"`
-include!("include/character.rs");               // C 34: `#include "character.h"`
-include!("include/itree.rs");                   // buffer.h 35's `#include "itree.h"`
-include!("include/intervals.rs");               // C 38: `#include "intervals.h"`
-include!("include/coding.rs");                  // C 35: `#include "coding.h"`
-include!("include/composite.rs");               // coding.h 284's `#include "composite.h"`
-include!("include/buffer.rs");                  // C 37: `#include "buffer.h"`
+// [U1] ../lib/include/limits.in.rs imported via common
+// [U1] ../lib/include/errno.rs imported via common
+// [U1] ../lib/include/math.rs imported via common
+// [U1] ../lib/include/langinfo.rs imported via common
+// [U1] include/lisp.rs imported via common
+// [U1] ../lib/include/mini-gmp.rs imported via common
+// [U1] include/bignum.rs imported via common
+// [U1] include/character.rs imported via common
+// [U1] include/itree.rs imported via common
+// [U1] include/intervals.rs imported via common
+// [U1] include/coding.rs imported via common
+// [U1] include/composite.rs imported via common
+// [U1] include/buffer.rs imported via common
 #[cfg(feature = "have_tree_sitter")]
-include!("include/treesit.rs"); // P430 shared parser/edit/GC ABI.
-include!("include/systime.rs");                 // frame.h 24's `#include "systime.h"`
-include!("include/font.rs");                    // dispextern.h's font names
-include!("include/dispextern.rs");              // frame.h 25's `#include "dispextern.h"`
-include!("include/termhooks.rs");               // frame.h's `struct terminal`
-include!("include/window.rs");                  // C 39: `#include "window.h"`
-include!("include/frame.rs");                   // window.h's `struct frame`
+const _: () = ();
+// [U1] include/systime.rs imported via common
+// [U1] include/font.rs imported via common
+// [U1] include/dispextern.rs imported via common
+// [U1] include/termhooks.rs imported via common
+// [U1] include/window.rs imported via common
+// [U1] include/frame.rs imported via common
 
 /* Names this unit uses whose prototype C gets from a header with no mirror yet, or from a
    mirrored header that is missing the line (P-72 rule 3 / PORTING.md 0.1-2): each carries C's
@@ -6881,12 +6883,12 @@ DEFUN! ("internal--hash-table-index-size",
    `sha256_buffer`, `sha384_buffer`, `sha512_buffer` and the four `sha3_*_buffer` entries (each
    `void *f (const char *, size_t, void *)`), plus the ten `*_DIGEST_SIZE` constants, whose
    values are the headers' own `bits / 8` expressions.  */
-include!("../lib/include/sha1.rs");
-include!("../lib/include/md5.rs");            // C 1466: `#include <md5.h>`
-include!("../lib/include/sha256.rs");         // C 1469: `#include <sha256.h>`
-include!("../lib/include/sha512.rs");         // C 1470: `#include <sha512.h>`
-include!("../lib/include/sha3.rs");           // C 1474: `#include <sha3.h>`
-include!("../lib/include/filevercmp.rs");     // C 96: `#include <filevercmp.h>`       // C 6137: `#include "sha1.h"`
+// [U1] ../lib/include/sha1.rs imported via common
+// [U1] ../lib/include/md5.rs imported via common
+// [U1] ../lib/include/sha256.rs imported via common
+// [U1] ../lib/include/sha512.rs imported via common
+// [U1] ../lib/include/sha3.rs imported via common
+// [U1] ../lib/include/filevercmp.rs imported via common
 
 /* Store into HEXBUF an unterminated hexadecimal character string
    representing DIGEST, which is binary data of size DIGEST_SIZE bytes.

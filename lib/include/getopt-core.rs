@@ -13,6 +13,8 @@
 // that getopt.h `#include_next`s (C's `_GL_SYSTEM_GETOPT` arm).  Only the prefixed entry is
 // declared here: it is the one the frozen build links.
 
+// [U1-MODULE-MIRROR]
+use super::*;
 pub mod getopt_core_decls {
   use super::*;
 
@@ -37,7 +39,7 @@ pub mod getopt_core_decls {
       -> c_int;
   }
 }
-use getopt_core_decls::*;
+pub use self::getopt_core_decls::*;
 
 /* C 21: the include guard, whose C body is `1`.  */
 pub const _GETOPT_CORE_H: core::ffi::c_int = 1;

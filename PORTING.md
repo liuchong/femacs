@@ -18,6 +18,14 @@
 
 ## 0. 总则
 
+### P-480：U1 统一 Cargo 模块图、单 VM 所有者与危险代码边界门禁（2026-11-22）
+
+按去 `unsafe` 先行计划 U1/AU1，正式构建链路从历史逐翻译单元 `rustc --emit=obj`、`LINK_DRIVER` 和 `libgnu-port.a` 收敛为单一 Cargo workspace 模块图（`crates/femacs-pure`、`crates/femacs-sys`、`crates/femacs-vm`、`crates/femacs-host`、`crates/femacs-tools`），下方 §0.1 的逐 `.o` 描述仅保留作历史记录：
+
+1. **单 VM 状态所有者**：`crates/femacs-vm` 在同一 crate 内挂载 82 个核心运行时与编辑器单元及去重后的声明模块，`lispsym`、`globals`、`dump_hooks`、`nr_dump_hooks` 与 `main_thread` 在终端和 Cocoa 最终二进制中均验证为唯一实例。`src/alloc.rs` 与 `src/comp.rs` 的运行时观察器、分代收集器及原生编译上下文同步改为正式子模块（`mod gc_observation`、`mod gc_collector`、`mod native_context`），活动产品源码拼接 `include!` 归零（仅保留构建期生成的 `config.rs`/`globals.rs`/`epaths.rs`/`swift-exports.rs`/`runtime.rs` 数据注入与 3 份参数化模板体）。
+2. **纯叶子与安全工具门禁**：`crates/femacs-pure`（挂载 `src/include/macuvs.rs`、`c_ctype`、`bitops`）及 `lib-src/{hexl,make-fingerprint,asset-directory-tool}.rs` 启用 `#![forbid(unsafe_code)]` 与溢出检查；`xtask` 通过 `xtask/src/cargo_build.rs` 统一驱动终端、Cocoa、`runtime-build`（含 Cargo 1.85 `deps/` 与 Cargo 1.94+ `build/*/out/` 两种 `.rlib` 布局）及辅助工具链接，并在 `packaging/src/lib.rs` 为 `actool` 显式设置 `IBToolNeverDeque=1` / `IBCLIServerNeverDequeue=1`，消除打包子守护进程残留。
+3. **外部 ABI 与验收门禁**：新增流式审计工具 `tools/check-unsafe-boundary.py`，分别统计活动 Cargo 产品闭包与未挂载平台源，核验 `nm` 单例符号、Swift 导入、C 动态模块入口 `Fmodule_load` 与 `have_native_comp` 导出。`src/comp.rs` 的 6 个 `helper_*` 运行时辅助函数显式声明为 `unsafe extern "C" fn` 以匹配 `helper_link_table` 的 C 调用约定。纯跟踪导出树的终端、Cocoa、`runtime-build --variant native`、真实 C 动态模块、本地验收与 Cocoa GUI 初始化均通过（AU1）。
+
 ### P-465：同一执行器的闭合文件复用与有界状态清退
 
 完整语料仍为 555 个入口、48 个非诊断候选。只复用已回收控制器、同一构建与参照 epoch、全部 61 制品边界、七个捕获角色的实际 SHA256/权限、运行环境、原输入及逐事件闭环均严格匹配的单文件证据。不同候选配置、未完成文件和原 module 文件不跨角色复用；旧驱动 hash 不获例外。证据逐字节复制，原状态和失败计数不变，另写来源账本；复用过的清退账本在新运行归因零删除、零回收字节。失败状态须有闭合时逐节点内容证明，不能用消费时重算补造历史证明。

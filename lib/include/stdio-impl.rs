@@ -42,6 +42,8 @@
 // (lib/fseterr.c, lib/close-stream.c); the `fp_`/`fp_ub`/`HASUB` macros below are C's spelling
 // of the same accesses for the units that use them.
 
+// [U1-MODULE-MIRROR]
+use super::*;
 /// Darwin's `struct __sbuf`: `unsigned char *_base; int _size;`.
 #[repr(C)]
 #[derive(Clone, Copy)]

@@ -49,49 +49,51 @@
          unused_unsafe, static_mut_refs, unsafe_op_in_unsafe_fn, unused_parens,
          clashing_extern_declarations, unused_comparisons, overflowing_literals,
          unreachable_code, unused_labels, while_true, unused_must_use)]
+// [U1-MODULE-UNIT]
+use crate::common::*;
 
-include!("include/config.rs");
-include!("../lib/include/sysinfo.rs");   // C 68: `#include <sys/sysinfo.h>` (HAVE_LINUX_SYSINFO)              // C 20: `#include <config.h>`
-include!("include/conf_post.rs");            // C 20: the AH_BOTTOM `#include <conf_post.h>` inside it
-include!("../lib/include/stdint.in.rs");    // C 27: `#include <stdint.h>`
-include!("../lib/include/limits.in.rs");    // C 29: `#include <limits.h>` (CHAR_BIT, PTRDIFF_MAX)
-include!("../lib/include/stdlib.rs");       // C 28: `#include <stdlib.h>`
-include!("../lib/include/errno.rs");        // C 26: `#include <errno.h>`
-include!("../lib/include/string.rs");       // lisp.h: memcpy/memset/strncmp/strcmp/strlen
-include!("../lib/include/signal.rs");       // C 30: `#include <signal.h>` (raise, SIGABRT)
-include!("../lib/include/unistd.in.rs");    // C 136: `#include <unistd.h>`
-include!("../lib/include/fcntl.in.rs");     // C 137: `#include <fcntl.h>`
-include!("../lib/include/stdio.rs");        // lisp.h 34: `#include <stdio.h>` (fprintf/stderr)
-include!("../lib/include/stdcountof.rs");   // lisp.h 28: `#include <stdcountof.h>`
-include!("../lib/include/flexmember.rs");   // C 63: `#include <flexmember.h>`
+const _: () = ();
+// [U1] ../lib/include/sysinfo.rs imported via common
+// [U1] include/conf_post.rs imported via common
+// [U1] ../lib/include/stdint.in.rs imported via common
+// [U1] ../lib/include/limits.in.rs imported via common
+// [U1] ../lib/include/stdlib.rs imported via common
+// [U1] ../lib/include/errno.rs imported via common
+// [U1] ../lib/include/string.rs imported via common
+// [U1] ../lib/include/signal.rs imported via common
+// [U1] ../lib/include/unistd.in.rs imported via common
+// [U1] ../lib/include/fcntl.in.rs imported via common
+// [U1] ../lib/include/stdio.rs imported via common
+// [U1] ../lib/include/stdcountof.rs imported via common
+// [U1] ../lib/include/flexmember.rs imported via common
 /* C 64 `#include <verify.h>` declares `verify`/`assume`, neither of which this file reads;
    the mirror is left out because lisp.rs already brings an `assume` into the crate root and a
    second one is `E0659`.  */
-include!("../lib/include/mini-gmp.rs");     // C 37: `bignum.h` 25 `#include <gmp.h>` (the frozen build's mini-gmp)
-include!("include/lisp.rs");
+// [U1] ../lib/include/mini-gmp.rs imported via common
+// [U1] include/lisp.rs imported via common
 // C reaches these through lisp.h's own includes; the mirrors have to be named here (P-242).
-include!("include/frame.rs");       // `FRAME_IMAGE_CACHE` (frame.h 1006)
-include!("include/sfntfont.rs");    // `mark_sfntfont` (sfntfont.h)
+// [U1] include/frame.rs imported via common
+// [U1] include/sfntfont.rs imported via common
 #[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
-include!("include/androidterm.rs");   // androidterm.h 444: `android_finalize_font_entity`                // C 36: `#include "lisp.h"`
-include!("include/bignum.rs");              // C 37: `#include "bignum.h"`
-include!("include/dispextern.rs");          // C 38: `#include "dispextern.h"`
-include!("include/intervals.rs");           // C 39: `#include "intervals.h"`
-include!("include/systime.rs");             // C 41: `#include "systime.h"`
-include!("include/coding.rs");               // C 42: `character.h` pulls `coding.h` in this configuration
-include!("include/composite.rs");         // C 42: `coding.h` 284 pulls `composite.h`
-include!("include/font.rs");               // C 38: `dispextern.h` pulls `font.h` (indices + predicates)
-include!("include/character.rs");           // C 42: `#include "character.h"`
-include!("include/buffer.rs");              // C 43: `#include "buffer.h"`
+const _: () = ();
+// [U1] include/bignum.rs imported via common
+// [U1] include/dispextern.rs imported via common
+// [U1] include/intervals.rs imported via common
+// [U1] include/systime.rs imported via common
+// [U1] include/coding.rs imported via common
+// [U1] include/composite.rs imported via common
+// [U1] include/font.rs imported via common
+// [U1] include/character.rs imported via common
+// [U1] include/buffer.rs imported via common
 #[cfg(feature = "have_tree_sitter")]
-include!("include/treesit.rs"); // P430 shared parser/edit/GC ABI.
-include!("include/window.rs");              // C 44: `#include "window.h"`
-include!("include/keyboard.rs");            // C 45: `#include "keyboard.h"`
-include!("include/frame.rs");               // C 46: `#include "frame.h"`
-include!("include/blockinput.rs");          // C 47: `#include "blockinput.h"`
-include!("include/pdumper.rs");             // C 48: `#include "pdumper.h"`
-include!("include/termhooks.rs");           // C 49: `#include "termhooks.h"`
-include!("include/itree.rs");               // C 50: `#include "itree.h"`
+const _: () = ();
+// [U1] include/window.rs imported via common
+// [U1] include/keyboard.rs imported via common
+// [U1] include/frame.rs imported via common
+// [U1] include/blockinput.rs imported via common
+// [U1] include/pdumper.rs imported via common
+// [U1] include/termhooks.rs imported via common
+// [U1] include/itree.rs imported via common
 /* C 23 `#include <malloc.h>` is dead (`HAVE_MALLOC_H` is undefined on this target), C 33
    `#include <pthread.h>` is live but declares nothing this file reads, C 40
    `#include "sysstdio.h"` is the `stdio.rs` mirror above, C 52's `TERM_HEADER`
@@ -3044,9 +3046,11 @@ macro_rules! ASAN_UNPOISON_CONS {
 // P-346: candidate-only numeric observation. All ordinary products erase the
 // hooks at cfg expansion; this is not a replacement allocator or collector.
 #[cfg(feature = "femacs_gc_observer")]
-include!("runtime_gc_observation.rs");
+#[path = "runtime_gc_observation.rs"]
+mod gc_observation;
 #[cfg(feature = "femacs_gc_generational")]
-include!("runtime_gc_collector.rs");
+#[path = "runtime_gc_collector.rs"]
+mod gc_collector;
 
 #[derive(Clone, Copy)]
 enum GcRequest { Full, Automatic }

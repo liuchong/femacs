@@ -15,6 +15,8 @@
 // `E0428`.
 
 // ccl.h 26-27: the include guard has no Rust counterpart (PORTING.md 0.1).
+// [U1-MODULE-MIRROR]
+use super::*;
 pub const EMACS_CCL_H: bool = true;
 
 /* Macros for exit status of CCL program.  */
@@ -141,7 +143,7 @@ pub mod ccl_decls {
 		       src_size: c_int, dst_size: c_int, charset_list: Lisp_Object);
     }
 }
-use ccl_decls::*;
+pub use self::ccl_decls::*;
 
 // ccl.h 82-86: `#define CHECK_CCL_PROGRAM(x) do { if (NILP (Fccl_program_p (x)))
 // wrong_type_argument (Qcclp, x); } while (false);`.  C's `do { … } while (false)` has no

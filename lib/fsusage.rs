@@ -16,19 +16,21 @@
 #![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code,
          unused_imports, unused_macros, unused_variables, unused_mut, unused_unsafe,
          static_mut_refs, unsafe_op_in_unsafe_fn)]
+// [U1-MODULE-UNIT]
+use crate::common::*;
 
 use std::ffi::{c_char, c_int, c_long, c_uchar, c_uint, c_ulong, c_ushort, c_void};
 
-include!("../src/include/config.rs");
-include!("include/gnulib_config.rs");
-include!("include/limits.in.rs");
-include!("include/stdint.in.rs");
-include!("include/sys_types.in.rs");
-include!("include/fcntl.in.rs");
-include!("include/unistd.in.rs");
-include!("include/sys_stat.in.rs");
-include!("include/sys_mount.rs");
-include!("include/fsusage.rs");
+// [U1] config.rs provided by common
+// [U1] include/gnulib_config.rs imported via common
+// [U1] include/limits.in.rs imported via common
+// [U1] include/stdint.in.rs imported via common
+// [U1] include/sys_types.in.rs imported via common
+// [U1] include/fcntl.in.rs imported via common
+// [U1] include/unistd.in.rs imported via common
+// [U1] include/sys_stat.in.rs imported via common
+// [U1] include/sys_mount.rs imported via common
+// [U1] include/fsusage.rs imported via common
 
 /* C 19-24: <config.h>, <fsusage.h>, <limits.h> and <sys/types.h> are the mirrors above; C 31-42's
    `#include <fcntl.h>`/`<unistd.h>`/`<sys/stat.h>`/`<sys/param.h>`/`<sys/mount.h>` are the

@@ -8,7 +8,9 @@
 // The field C spells `fn` is the raw identifier `r#fn` (`fn` is a Rust keyword), so the C
 // name survives verbatim, as `r#type` does in dispextern.rs/lisp.rs.
 
-include!("../../lib/include/time.in.rs");     // atimer.h 21: `#include <time.h>`
+// [U1-MODULE-MIRROR]
+use super::*;
+// [U1] ../../lib/include/time.in.rs imported via super
 
 // atimer.h 20: the include guard has no Rust counterpart (PORTING.md 0.1).
 pub const EMACS_ATIMER_H: bool = true;
@@ -80,4 +82,4 @@ pub mod atimer_decls {
     pub fn timerfd_callback (fd: c_int, arg: *mut c_void);
   }
 }
-use atimer_decls::*;
+pub use self::atimer_decls::*;

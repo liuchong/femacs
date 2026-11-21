@@ -3,6 +3,8 @@
 // regex_internal.h 26 includes <string.h>; the regex units use the byte-memory
 // family (`memcpy`/`memmove`/`memset`/`memcmp`) and `strlen`/`strcmp`/`strchr`.
 
+// [U1-MODULE-MIRROR]
+use super::*;
 /* The gnulib template's own two function definitions - `memeq` (string.in.h 425-431) and
    `streq` (string.in.h 817-822), both live on this target - are **not here**: the inventory
    gate reads a mirror's *own* text for a function body, and two definitions of one name in
@@ -76,7 +78,7 @@ pub mod memmem_decl {
                    needle_len: usize) -> *mut c_void;
   }
 }
-use memmem_decl::*;
+pub use self::memmem_decl::*;
 
 /* string.in.h 1250-1305: gnulib's `strnul` extension, whose definition is the header's
    `_GL_STRNUL_INLINE` function (the lib/strnul.c wrapper unit only carries the qualifier,

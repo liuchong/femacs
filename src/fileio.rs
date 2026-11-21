@@ -22,52 +22,54 @@
          unsafe_op_in_unsafe_fn, unused_assignments, unused_parens, unused_mut,
          unreachable_code, unused_labels, while_true, unused_comparisons,
          overflowing_literals, unused_must_use, clippy::all)]
+// [U1-MODULE-UNIT]
+use crate::common::*;
 
-include!("include/config.rs");                 // C 21: `#include <config.h>`
-include!("../lib/include/limits.in.rs");       // C 22: `#include <limits.h>`
-include!("../lib/include/fcntl.in.rs");        // C 23: `#include <fcntl.h>`
-include!("../lib/include/stdio.rs");           // C 24: `sysstdio.h` 24's `#include <stdio.h>`
-include!("../lib/include/sys_types.in.rs");    // C 25: `#include <sys/types.h>`
-include!("../lib/include/pwd.rs");           // C: `#include <pwd.h>`
-include!("../lib/include/grp.rs");           // C: `#include <grp.h>`
-include!("../lib/include/sys_utsname.rs");   // C: `#include <sys/utsname.h>`
-include!("../lib/include/sys_stat.in.rs");     // C 26: `#include <sys/stat.h>`
-include!("../lib/include/unistd.in.rs");       // C 27: `#include <unistd.h>`
-include!("../lib/include/errno.rs");           // C 40: `#include <errno.h>`
-include!("../lib/include/c-ctype.rs");         // C 51: `#include <c-ctype.h>`
-include!("../lib/include/stdlib.rs");          // lisp.h's `<stdlib.h>` (free, abort)
-include!("../lib/include/string.rs");          // lisp.h 30's `<string.h>` (memcpy, strlen)
-include!("../lib/include/stdcountof.rs");      // lisp.h 28: `#include <stdcountof.h>` (countof)
-include!("include/lisp.rs");                   // C 54: `#include "lisp.h"`
-include!("include/composite.rs");              // C 55: `#include "composite.h"`
-include!("include/character.rs");              // C 56: `#include "character.h"`
-include!("include/buffer.rs");                 // C 57: `#include "buffer.h"`
-include!("include/coding.rs");                 // C 58: `#include "coding.h"`
-include!("include/window.rs");                 // C 59: `#include "window.h"`
-include!("include/blockinput.rs");             // C 60: `#include "blockinput.h"`
-include!("include/region-cache.rs");           // C 61: `#include "region-cache.h"`
-include!("include/itree.rs");                  // buffer.h 27: `#include "itree.h"` (buffer.rs's fields)
-include!("include/termhooks.rs");              // frame.h 22: `#include "termhooks.h"` (`terminal`)
-include!("include/font.rs");                   // dispextern.h's font names
-include!("include/dispextern.rs");             // frame.h's `text_cursor_kinds`/`output_method`
-include!("include/frame.rs");                  // C 62: `#include "frame.h"`
-include!("include/systime.rs");                // C 107: `#include "systime.h"`
-include!("../lib/include/acl.rs");             // C 108: `#include <acl.h>`
-include!("../lib/include/allocator.rs");       // C 109: `#include <allocator.h>`
-include!("../lib/include/careadlinkat.rs");    // C 110: `#include <careadlinkat.h>`
-include!("../lib/include/filename.rs");        // C 111: `#include <filename.h>`
-include!("../lib/include/fsusage.rs");         // C 112: `#include <fsusage.h>`
-include!("../lib/include/stat-time.rs");       // C 113: `#include <stat-time.h>`
-include!("../lib/include/tempname.rs");        // C 114: `#include <tempname.h>`
-include!("../lib/include/binary-io.rs");       // C 116: `#include <binary-io.h>`
-include!("../lib/include/sys-limits.rs");      // lisp.h's `<sys-limits.h>` (SYS_BUFSIZE_MAX)
-include!("include/commands.rs");               // C 122: `#include "commands.h"`
+const _: () = ();
+// [U1] ../lib/include/limits.in.rs imported via common
+// [U1] ../lib/include/fcntl.in.rs imported via common
+// [U1] ../lib/include/stdio.rs imported via common
+// [U1] ../lib/include/sys_types.in.rs imported via common
+// [U1] ../lib/include/pwd.rs imported via common
+// [U1] ../lib/include/grp.rs imported via common
+// [U1] ../lib/include/sys_utsname.rs imported via common
+// [U1] ../lib/include/sys_stat.in.rs imported via common
+// [U1] ../lib/include/unistd.in.rs imported via common
+// [U1] ../lib/include/errno.rs imported via common
+// [U1] ../lib/include/c-ctype.rs imported via common
+// [U1] ../lib/include/stdlib.rs imported via common
+// [U1] ../lib/include/string.rs imported via common
+// [U1] ../lib/include/stdcountof.rs imported via common
+// [U1] include/lisp.rs imported via common
+// [U1] include/composite.rs imported via common
+// [U1] include/character.rs imported via common
+// [U1] include/buffer.rs imported via common
+// [U1] include/coding.rs imported via common
+// [U1] include/window.rs imported via common
+// [U1] include/blockinput.rs imported via common
+// [U1] include/region-cache.rs imported via common
+// [U1] include/itree.rs imported via common
+// [U1] include/termhooks.rs imported via common
+// [U1] include/font.rs imported via common
+// [U1] include/dispextern.rs imported via common
+// [U1] include/frame.rs imported via common
+// [U1] include/systime.rs imported via common
+// [U1] ../lib/include/acl.rs imported via common
+// [U1] ../lib/include/allocator.rs imported via common
+// [U1] ../lib/include/careadlinkat.rs imported via common
+// [U1] ../lib/include/filename.rs imported via common
+// [U1] ../lib/include/fsusage.rs imported via common
+// [U1] ../lib/include/stat-time.rs imported via common
+// [U1] ../lib/include/tempname.rs imported via common
+// [U1] ../lib/include/binary-io.rs imported via common
+// [U1] ../lib/include/sys-limits.rs imported via common
+// [U1] include/commands.rs imported via common
 /* C 60: `#include "android.h"`, inside CC's `#ifdef HAVE_ANDROID`.  The mirror declares C's 85 prototypes in
    its two modules and glob-imports the second (`include/android.rs` 324), so including it is what
    supplies `android_is_special_directory`/`android_rewrite_spawn_argv`/`android_init_gui` - the
    names this unit read as `cannot find function` on `aarch64-linux-android` (measured).  */
 #[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
-include!("include/android.rs");               // C 60: `#include "android.h"`
+const _: () = ();
 
 /* C 29-31: `#ifdef DARWIN_OS` / `#include <sys/attr.h>` (DARWIN_OS *is* defined on the
    frozen target, so the include is live).  This file names none of the header's entries, so

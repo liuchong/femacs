@@ -18,11 +18,13 @@
 //  * `struct emacs_tty` holds one `struct termios main` because `DOS_NT` is undefined.
 //
 // C 20: the include guard has no Rust counterpart (PORTING.md 0.1).
+// [U1-MODULE-MIRROR]
+use super::*;
 pub const EMACS_SYSTTY_H: bool = true;
 
-include!("../../lib/include/termios.rs");   // C 26: `#include <termios.h>`
-include!("../../lib/include/fcntl.in.rs");  // C 27: `#include <fcntl.h>`
-include!("../../lib/include/unistd.in.rs"); // C 31: `#include <unistd.h>`
+// [U1] ../../lib/include/termios.rs imported via super
+// [U1] ../../lib/include/fcntl.in.rs imported via super
+// [U1] ../../lib/include/unistd.in.rs imported via super
 
 /// C 50: `#define CDISABLE _POSIX_VDISABLE` - the frozen target's `_POSIX_VDISABLE` is
 /// `((unsigned char)'\377')`, i.e. 255 (measured; macros.tsv).
@@ -61,4 +63,4 @@ pub mod systty_decls {
     pub fn serial_configure (p: *mut c_void, childp: Lisp_Object);
   }
 }
-use systty_decls::*;
+pub use self::systty_decls::*;

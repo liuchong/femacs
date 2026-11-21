@@ -1,10 +1,12 @@
 // femacs: port of lib/strnul.c @ fd7afced403.
+// [U1-MODULE-UNIT]
+use crate::common::*;
 use std::ffi::{c_char, c_double, c_int, c_long, c_short, c_uint, c_ulong,
                 c_void};
 
-include!("../src/include/config.rs");
-include!("include/gnulib_config.rs");
-include!("include/string.rs");
+// [U1] config.rs provided by common
+// [U1] include/gnulib_config.rs imported via common
+// [U1] include/string.rs imported via common
 
 /* lib/strnul.c: the qualifier this translation unit uses (PORTING.md 10.6).  */
 pub const _GL_STRNUL_INLINE: () = _GL_EXTERN_INLINE;

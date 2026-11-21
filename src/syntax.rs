@@ -27,20 +27,22 @@
 #![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code,
          unused_imports, unused_macros, unused_variables, unused_unsafe, static_mut_refs,
          unsafe_op_in_unsafe_fn)]
+// [U1-MODULE-UNIT]
+use crate::common::*;
 
-include!("include/config.rs");
-include!("../lib/include/stdio.rs");	// lisp.h 34: FILE
-include!("../lib/include/string.rs");	// lisp.h 30: <string.h>
-include!("include/lisp.rs");
-include!("include/itree.rs");		// buffer.h 27: <itree.h>
-include!("include/buffer.rs");
-include!("include/character.rs");
-include!("include/intervals.rs");
-include!("include/syntax.rs");
-include!("include/category.rs");
-include!("include/globals.rs");
-include!("include/dispextern.rs");	// bitch_at_user, backward-prefix-chars' caller
-include!("include/regex-emacs.rs");	// re_wctype_parse, re_iswctype
+const _: () = ();
+// [U1] ../lib/include/stdio.rs imported via common
+// [U1] ../lib/include/string.rs imported via common
+// [U1] include/lisp.rs imported via common
+// [U1] include/itree.rs imported via common
+// [U1] include/buffer.rs imported via common
+// [U1] include/character.rs imported via common
+// [U1] include/intervals.rs imported via common
+// [U1] include/syntax.rs imported via common
+// [U1] include/category.rs imported via common
+// [U1] globals.rs provided by common
+// [U1] include/dispextern.rs imported via common
+// [U1] include/regex-emacs.rs imported via common
 
 // The `DEFVAR_*` variables this C file owns: C's storage is `globals.f_<vname>`
 // (lisp.h 3495-3530) and `struct emacs_globals globals` is defined once, in alloc.c; the port's

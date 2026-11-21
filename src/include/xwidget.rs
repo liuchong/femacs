@@ -32,7 +32,9 @@
 // The five forward declarations C 25-29 write are `//` notes rather than items: `struct xwidget`
 // and `struct xwidget_view` are defined below, and the other three have no record in this tree.
 
-include!("lisp.rs");                 // C 23: `#include "lisp.h"` (`Lisp_Object`, `XUNTAG`, `NILP`)
+// [U1-MODULE-MIRROR]
+use super::*;
+// [U1] lisp.rs imported via super
 
 // C 20-21: the include guard has no Rust counterpart (PORTING.md 0.1-4).
 pub const XWIDGET_H_INCLUDED: bool = true;
@@ -335,7 +337,7 @@ pub mod xwidget_decls {
 }
 
 #[cfg (feature = "have_xwidgets")]
-use xwidget_decls::*;
+pub use self::xwidget_decls::*;
 
 /* C 231-240: the live `#else` arm - `INLINE_HEADER_BEGIN`'s seven static-inline stubs, which is
    what C compiles on this target.  Their bodies are the reference's own (empty, or `eassume (0)`),

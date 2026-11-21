@@ -1,4 +1,6 @@
 // femacs: port of lib/sha1.c @ fd7afced403.
+// [U1-MODULE-UNIT]
+use crate::common::*;
 /* Written by Scott G. Miller
    Credits:
       Robert Klep <robert@ilse.nl>  -- Expansion function fix
@@ -12,10 +14,10 @@
    (the macro is not in the configuration) and is kept as text (P-51).  C 42's
    `#if ! HAVE_OPENSSL_SHA1` is live, and C 355's `#endif` closes it.  */
 use std::ffi::{c_char, c_int, c_long, c_uchar, c_uint, c_ulong, c_void};
-include!("../src/include/config.rs");
-include!("include/gnulib_config.rs");
-include!("include/stdint.in.rs");
-include!("include/sha1.rs");
+// [U1] config.rs provided by common
+// [U1] include/gnulib_config.rs imported via common
+// [U1] include/stdint.in.rs imported via common
+// [U1] include/sha1.rs imported via common
 
 /* C 33's `<string.h>`: the one entry the bodies call.  */
 unsafe extern "C" {

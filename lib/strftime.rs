@@ -1,4 +1,5 @@
 // femacs: port of lib/strftime.c @ fd7afced403.
+// [U1-MODULE-MIRROR]
 /* emacs/lib/strftime.c: the frozen configuration resolves every one of C's 115
    conditions (`tools/check-cond-eval.py lib/strftime.c` reports 0 unknown, 0
    disagreements), so this port is the live text only: `FPRINTFTIME` 0,
@@ -29,17 +30,17 @@
    live user.  */
 
 use std::ffi::{c_char, c_int, c_long, c_uchar, c_uint, c_ulong, c_void};
-include!("../src/include/config.rs");
-include!("include/gnulib_config.rs");
-include!("include/limits.in.rs");
-include!("include/stdint.in.rs");
-include!("include/errno.rs");
-include!("include/string.rs");
-include!("include/ctype.rs");
-include!("include/stdcountof.rs");
-include!("include/time.in.rs");
-include!("include/time-internal.rs");
-include!("include/strftime.rs");
+// config.rs via common root
+// [U1] include/gnulib_config.rs imported via super
+// [U1] include/limits.in.rs imported via super
+// [U1] include/stdint.in.rs imported via super
+// [U1] include/errno.rs imported via super
+// [U1] include/string.rs imported via super
+// [U1] include/ctype.rs imported via super
+// [U1] include/stdcountof.rs imported via super
+// [U1] include/time.in.rs imported via super
+// [U1] include/time-internal.rs imported via super
+// [U1] include/strftime.rs imported via super
 
 /* C 914-915's `# define tz 1` and `# define ns 0` are the *other* arm of C 908-916: the
    standalone reading, in which the two names are constants.  The frozen build compiles the
@@ -124,7 +125,7 @@ pub enum pad_style
   SPACE_PAD,        /* '_'       Pad with space.  */
   NO_PAD            /* '-'       Do not pad.  */
 }
-use pad_style::*;
+pub use self::pad_style::*;
 
 /* C 173 and 865-867.  */
 pub const TM_YEAR_BASE: c_int = 1900;

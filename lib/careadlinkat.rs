@@ -1,4 +1,6 @@
 // femacs: port of lib/careadlinkat.c @ fd7afced403.
+// [U1-MODULE-UNIT]
+use crate::common::*;
 /* Written by Paul Eggert, Bruno Haible, and Jim Meyering.  */
 
 /* emacs/lib/careadlinkat.c (@ 173 lines): no `#if` decides any statement of the two
@@ -9,17 +11,17 @@
    1024 }` is a constant, and `struct allocator`/`stdlib_allocator` come from the new allocator
    mirror.  */
 use std::ffi::{c_char, c_int, c_long, c_uint, c_ulong, c_void};
-include!("../src/include/config.rs");
-include!("include/gnulib_config.rs");
-include!("include/sys_types.in.rs");
-include!("include/careadlinkat.rs");
-include!("include/idx.rs");
-include!("include/minmax.rs");
-include!("include/limits.in.rs");
-include!("include/string.rs");
-include!("include/unistd.in.rs");
-include!("include/errno.rs");
-include!("include/allocator.rs");
+// [U1] config.rs provided by common
+// [U1] include/gnulib_config.rs imported via common
+// [U1] include/sys_types.in.rs imported via common
+// [U1] include/careadlinkat.rs imported via common
+// [U1] include/idx.rs imported via common
+// [U1] include/minmax.rs imported via common
+// [U1] include/limits.in.rs imported via common
+// [U1] include/string.rs imported via common
+// [U1] include/unistd.in.rs imported via common
+// [U1] include/errno.rs imported via common
+// [U1] include/allocator.rs imported via common
 
 /* <limits.h>'s `SSIZE_MAX` (`LONG_MAX` on this target) comes from the limits.in.rs mirror,
    which this unit includes.  */

@@ -22,6 +22,8 @@
 // logically, where the `>> 31 >> 31 >> 2` chain leaves the high part 0 for a 64-bit maximum
 // (P-15).
 
+// [U1-MODULE-MIRROR]
+use super::*;
 /* limits.in.h 44-45: the double-inclusion guard, `_@GUARD_PREFIX@_LIMITS_H`; the frozen
    substitution is `_GL_LIMITS_H`.  The extractor reads the template's own name as `_`
    (`@GUARD_PREFIX@` is not an identifier), which is the `docs/ports/excluded-macros.txt`

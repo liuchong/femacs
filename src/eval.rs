@@ -33,33 +33,35 @@
          unused_imports, unused_macros, unused_variables, unused_unsafe, static_mut_refs,
          unsafe_op_in_unsafe_fn, unused_assignments, unreachable_code, while_true,
          unused_parens, unused_mut)]
+// [U1-MODULE-UNIT]
+use crate::common::*;
 
-include!("include/config.rs");                 // C 20: `#include <config.h>`
-include!("../lib/include/limits.in.rs");       // C 21: `#include <limits.h>`
-include!("../lib/include/stdlib.rs");          // C 22: `#include <stdlib.h>`
-include!("../lib/include/stdio.rs");           // lisp.h's <stdio.h> (the mirrors pull FILE in)
-include!("../lib/include/string.rs");          // lisp.h 30's <string.h> (memcpy/memset below)
-include!("../lib/include/sys_types.in.rs");    // buffer.h 23's <sys/types.h>
-include!("include/lisp.rs");                   // C 23: `#include "lisp.h"`
-include!("../lib/include/mini-gmp.rs");        // bignum.h's `#include <gmp.h>`
-include!("include/bignum.rs");                 // lisp.h 2359's struct Lisp_Bignum
-include!("include/character.rs");              // keyboard.h 24's `#include "character.h"`
-include!("include/itree.rs");                  // buffer.h 28's `#include "itree.h"`
-include!("include/systime.rs");                // frame.h's `#include "systime.h"`
-include!("include/font.rs");                   // composite.h 28's `#include "font.h"`
-include!("include/composite.rs");              // keyboard.h 28's `#include "composite.h"`
-include!("include/coding.rs");                 // lisp.h's coding names (dispextern.h uses them)
-include!("include/intervals.rs");              // buffer.h 29's `#include "intervals.h"`
-include!("include/dispextern.rs");             // C 27: `#include "dispextern.h"`
-include!("include/termhooks.rs");              // dispextern.h's `#include "termhooks.h"`
-include!("include/window.rs");                 // keyboard.h 26's `#include "window.h"`
-include!("include/frame.rs");                  // dispextern.h 25's struct frame
-include!("include/buffer.rs");                 // C 28: `#include "buffer.h"`
-include!("include/blockinput.rs");             // C 24: `#include "blockinput.h"`
-include!("include/commands.rs");               // C 25: `#include "commands.h"`
-include!("include/keyboard.rs");               // C 26: `#include "keyboard.h"`
-include!("include/pdumper.rs");                // C 29: `#include "pdumper.h"`
-include!("include/atimer.rs");                 // C 30: `#include "atimer.h"`
+const _: () = ();
+// [U1] ../lib/include/limits.in.rs imported via common
+// [U1] ../lib/include/stdlib.rs imported via common
+// [U1] ../lib/include/stdio.rs imported via common
+// [U1] ../lib/include/string.rs imported via common
+// [U1] ../lib/include/sys_types.in.rs imported via common
+// [U1] include/lisp.rs imported via common
+// [U1] ../lib/include/mini-gmp.rs imported via common
+// [U1] include/bignum.rs imported via common
+// [U1] include/character.rs imported via common
+// [U1] include/itree.rs imported via common
+// [U1] include/systime.rs imported via common
+// [U1] include/font.rs imported via common
+// [U1] include/composite.rs imported via common
+// [U1] include/coding.rs imported via common
+// [U1] include/intervals.rs imported via common
+// [U1] include/dispextern.rs imported via common
+// [U1] include/termhooks.rs imported via common
+// [U1] include/window.rs imported via common
+// [U1] include/frame.rs imported via common
+// [U1] include/buffer.rs imported via common
+// [U1] include/blockinput.rs imported via common
+// [U1] include/commands.rs imported via common
+// [U1] include/keyboard.rs imported via common
+// [U1] include/pdumper.rs imported via common
+// [U1] include/atimer.rs imported via common
 
 /* Names C declares in headers whose mirrors do not carry them yet (the bytecode.rs shape);
    each keeps C's prototype in a `/// C:` line (PORTING.md P-55 for the pointer-only

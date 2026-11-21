@@ -9,6 +9,8 @@
 // includes lisp.h (PORTING.md 0.1-9).
 
 // category.h 47: the include guard has no Rust counterpart (PORTING.md 0.1).
+// [U1-MODULE-MIRROR]
+use super::*;
 pub const EMACS_CATEGORY_H: bool = true;
 
 /* We introduce here three types of object: category, category set,
@@ -159,4 +161,4 @@ pub mod category_externs {
   }
 }
 
-use category_externs::*;
+pub use self::category_externs::*;

@@ -7205,7 +7205,7 @@ pub mod variables {
         pub static mut xwidget_webkit_disable_javascript: bool; // xwidget-webkit-disable-javascript
     }
 }
-use variables::*;
+pub use self::variables::*;
 
 // --- EXFUN prototypes for every DEFUN (generated from subrs.tsv) ---
 // C: globals.h writes `EXFUN (Ffoo, maxargs)`; lisp.h includes <globals.h>,
@@ -8951,4 +8951,4 @@ pub mod subrs {
         pub fn Fzlib_decompress_region (a0: Lisp_Object, a1: Lisp_Object, a2: Lisp_Object) -> Lisp_Object;
     }
 }
-use subrs::*;
+pub use self::subrs::*;

@@ -18,6 +18,8 @@
 #![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code,
          unused_imports, unused_macros, unused_variables, unused_mut, unused_unsafe,
          static_mut_refs, unsafe_op_in_unsafe_fn)]
+// [U1-MODULE-UNIT]
+use crate::common::*;
 
 /* Written by Paul Eggert.  */
 
@@ -26,20 +28,20 @@
 use std::ffi::{c_char, c_double, c_int, c_long, c_short, c_uchar, c_uint, c_ulong,
                c_ushort, c_void};
 
-include!("../src/include/config.rs");
-include!("include/gnulib_config.rs");
-include!("include/limits.in.rs");
-include!("include/errno.rs");
-include!("include/fcntl.in.rs");
-include!("include/sys_types.in.rs");
-include!("include/sys_stat.in.rs");
-include!("include/string.rs");
-include!("include/sys_time.rs");
-include!("include/unistd.in.rs");
-include!("include/time.in.rs");
-include!("include/timespec.rs");
-include!("include/stat-time.rs");
-include!("include/utimens.rs");
+// [U1] config.rs provided by common
+// [U1] include/gnulib_config.rs imported via common
+// [U1] include/limits.in.rs imported via common
+// [U1] include/errno.rs imported via common
+// [U1] include/fcntl.in.rs imported via common
+// [U1] include/sys_types.in.rs imported via common
+// [U1] include/sys_stat.in.rs imported via common
+// [U1] include/string.rs imported via common
+// [U1] include/sys_time.rs imported via common
+// [U1] include/unistd.in.rs imported via common
+// [U1] include/time.in.rs imported via common
+// [U1] include/timespec.rs imported via common
+// [U1] include/stat-time.rs imported via common
+// [U1] include/utimens.rs imported via common
 
 /* lib/utimens.c 22: `#define _GL_UTIMENS_INLINE _GL_EXTERN_INLINE` (the .c side of the
    header's inline model, PORTING.md 10.12; the header's own `#ifndef` arm is dead).  */

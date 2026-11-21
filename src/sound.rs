@@ -63,6 +63,8 @@
          unsafe_op_in_unsafe_fn, unused_assignments, unused_parens, unused_mut,
          unreachable_code, unused_labels, unused_comparisons, overflowing_literals,
          unused_must_use, clippy::all)]
+// [U1-MODULE-UNIT]
+use crate::common::*;
 
 /* C 1-20: the reference's opening block.  The port does not carry it; the ledger's C line ranges
    record what became of it (PORTING.md 0.1-19).  */
@@ -84,7 +86,7 @@
   waveOutSetVolume and PlaySound which are exported by Winmm.dll.
 */
 
-include!("include/config.rs");                // C 37: `#include <config.h>`
+// [U1] config.rs provided by common
 
 /* C 39: `#if defined HAVE_SOUND` - the file gate.  C 40 through C 1553 sit inside it, and every
    `include!` below carries it (P-86 ⑧).  `/* END: Common Definitions */`-style banner comments are
@@ -92,11 +94,11 @@ include!("include/config.rs");                // C 37: `#include <config.h>`
 
 /* C 41: `/* BEGIN: Common Includes */` */
 #[cfg (feature = "have_sound")]
-include!("../lib/include/fcntl.in.rs");       // C 42: `#include <fcntl.h>` (`open`, `O_WRONLY`)
+const _: () = ();
 #[cfg (feature = "have_sound")]
-include!("../lib/include/unistd.in.rs");      // C 43: `#include <unistd.h>` (`lseek`, `SEEK_SET`, `sleep`)
+const _: () = ();
 #[cfg (feature = "have_sound")]
-include!("../lib/include/sys_types.in.rs");   // C 44: `#include <sys/types.h>`
+const _: () = ();
 /* C 44's `<sys/types.h>` is where the two fixed-width spellings the WAV/AU headers use come from:
    `u_int32_t` and `u_int16_t` (the file's own field types, C 127-139 and C 148-172).  The mirror
    (`lib/include/sys_types.in.rs`) carries the POSIX aliases but not these two, so this unit declares
@@ -109,23 +111,23 @@ pub type u_int32_t = u32;
 #[cfg (feature = "have_sound")]
 pub type u_int16_t = u16;
 #[cfg (feature = "have_sound")]
-include!("../lib/include/errno.rs");          // C 45: `#include <errno.h>` (`errno`, `EPIPE`)
+const _: () = ();
 #[cfg (feature = "have_sound")]
-include!("include/lisp.rs");                  // C 47: `#include "lisp.h"`
+const _: () = ();
 #[cfg (feature = "have_sound")]
-include!("include/atimer.rs");                // C 48: `#include "atimer.h"` (`turn_on_atimers`)
+const _: () = ();
 #[cfg (feature = "have_sound")]
-include!("include/syssignal.rs");             // C 49: `#include "syssignal.h"` (`sigset_t`, `SIG*`, `pthread_sigmask`)
+const _: () = ();
 /* C 50: `/* END: Common Includes */` */
 
 /* lisp.h's own `#include <string.h>` edge, spelled here because `lisp.rs` carries neither it nor
    the mirror (the `src/alloc.rs` 59 / `src/editfns.rs` 62 reading): the common half calls
    `memcmp` (C 507/615), `memcpy` (C 1474) and `memset`, and the Windows half `strcpy`/`strcat`.  */
 #[cfg (feature = "have_sound")]
-include!("../lib/include/string.rs");
+const _: () = ();
 /* lisp.h's `#include <stdcountof.h>` edge (C 1315's `countof`; the `src/xgselect.rs` 62 reading).  */
 #[cfg (feature = "have_sound")]
-include!("../lib/include/stdcountof.rs");
+const _: () = ();
 
 /* ----------------------------------------------------------------------------------------------
    Five `lisp.h` names this unit's graph does not carry.
@@ -168,7 +170,7 @@ unsafe extern "C" {
 /* C 54: `#ifndef WINDOWSNT` - the non-Windows arm's guard.  */
 
 #[cfg (all (feature = "have_sound", not (feature = "windowsnt")))]
-include!("../lib/include/byteswap.in.rs");    // C 56: `#include <byteswap.h>` (`bswap_16`, `bswap_32`)
+const _: () = ();
 
 // C 58: `#include <sys/ioctl.h>` - the header this section stands for.
 /* ----------------------------------------------------------------------------------------------
@@ -383,9 +385,9 @@ unsafe extern "C" {
 
 /* C 80: `/* BEGIN: Windows Specific Includes */` */
 #[cfg (all (feature = "have_sound", feature = "windowsnt"))]
-include!("../lib/include/stdio.rs");          // C 81: `#include <stdio.h>` (`sprintf`, `_snprintf`)
+const _: () = ();
 #[cfg (all (feature = "have_sound", feature = "windowsnt"))]
-include!("../lib/include/limits.in.rs");      // C 82: `#include <limits.h>`
+const _: () = ();
 
 // C 83: `#include <mbstring.h>` - the header this section stands for.
 /* ----------------------------------------------------------------------------------------------
@@ -484,13 +486,13 @@ pub const SND_MEMORY: DWORD = 0x00000004;
 
 /* C 87: `#include "coding.h"` */
 #[cfg (all (feature = "have_sound", feature = "windowsnt"))]
-include!("include/coding.rs");
+const _: () = ();
 /* C 88: `#include "w32common.h"` (`w32_major_version`) */
 #[cfg (all (feature = "have_sound", feature = "windowsnt"))]
-include!("include/w32common.rs");
+const _: () = ();
 /* C 89: `#include "w32.h"` (`w32_get_short_filename`, `filename_to_ansi`, `filename_to_utf16`) */
 #[cfg (all (feature = "have_sound", feature = "windowsnt"))]
-include!("include/w32.rs");
+const _: () = ();
 /* C 90: `/* END: Windows Specific Includes */` */
 
 /* C 92-95: `/* Missing in mingw32.  */` then `#ifndef SND_SENTRY` / `#define SND_SENTRY 0x00080000`.  */

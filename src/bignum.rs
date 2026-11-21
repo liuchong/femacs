@@ -6,15 +6,17 @@
 #![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code,
          unused_imports, unused_macros, unused_variables, unused_unsafe, static_mut_refs,
          unsafe_op_in_unsafe_fn)]
+// [U1-MODULE-UNIT]
+use crate::common::*;
 
-include!("include/config.rs");
-include!("../lib/include/stdio.rs");
-include!("include/lisp.rs");
-include!("../lib/include/mini-gmp.rs");
-include!("include/bignum.rs");
-include!("../lib/include/math.rs");
-include!("../lib/include/stdlib.rs");
-include!("../lib/include/stdcountof.rs");
+const _: () = ();
+// [U1] ../lib/include/stdio.rs imported via common
+// [U1] include/lisp.rs imported via common
+// [U1] ../lib/include/mini-gmp.rs imported via common
+// [U1] include/bignum.rs imported via common
+// [U1] ../lib/include/math.rs imported via common
+// [U1] ../lib/include/stdlib.rs imported via common
+// [U1] ../lib/include/stdcountof.rs imported via common
 
 /* mpz global temporaries.  Making them global saves the trouble of
    properly using mpz_init and mpz_clear on temporaries even when

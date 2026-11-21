@@ -15,9 +15,11 @@
 //
 // Definitions are header-inline in C, so `#[inline(always)]` here (P-12) with no symbol;
 // lib/endian.rs re-exports them as the renamed symbols (P-81).
-include!("gnulib_config.rs");
-include!("stdint.in.rs");
-include!("byteswap.in.rs");
+// [U1-MODULE-MIRROR]
+use super::*;
+// [U1] gnulib_config.rs imported via super
+// [U1] stdint.in.rs imported via super
+// [U1] byteswap.in.rs imported via super
 
 /* C 50-52's `#if !_GL_CONFIG_H_INCLUDED / #error "Please include config.h first."`.  */
 const _: () = core::assert! (_GL_CONFIG_H_INCLUDED, "Please include config.h first.");

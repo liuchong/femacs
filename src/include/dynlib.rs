@@ -5,6 +5,8 @@
 // `<attribute.h>` include is the excluded-macro record's business.
 
 // The include guard has no Rust counterpart (PORTING.md 0.1).
+// [U1-MODULE-MIRROR]
+use super::*;
 pub const DYNLIB_H: bool = true;
 
 /// `typedef void *dynlib_handle_ptr;`
@@ -27,4 +29,4 @@ pub mod dynlib_decls {
                         sym: *mut *const c_char);
   }
 }
-use dynlib_decls::*;
+pub use self::dynlib_decls::*;

@@ -46,6 +46,8 @@
 // are `#[cfg (feature = ...)]` text (P-51), each feature naming the condition that would make
 // the arm live, so the frozen configuration compiles none of them.
 
+// [U1-MODULE-MIRROR]
+use super::*;
 /* C 20-23: the POSIX/C23 `<stddef.h>` substitute's guard.  C 72's and C 122's
    `# ifndef _@GUARD_PREFIX@_STDDEF_H` are the split double-inclusion guard the `#include_next`
    needs (C 98-100): the first is entered, the second defines the name at C 123 and opens the
@@ -111,7 +113,7 @@ pub mod stddef_decls {
   #[cfg (feature = "no_have_max_align_t")]
   macro_rules! max_align_t { () => { rpl_max_align_t }; }
 }
-use stddef_decls::*;
+pub use self::stddef_decls::*;
 
 /* C 216-218: the live arm of the C23 `unreachable` machinery, `# define gl_unreachable()
    __builtin_unreachable ()` (`_GL_HAS_BUILTIN_UNREACHABLE` is 1, measured).

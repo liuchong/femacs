@@ -17,13 +17,15 @@
 #![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code,
          unused_imports, unused_macros, unused_variables, unused_mut, unused_unsafe,
          static_mut_refs, unsafe_op_in_unsafe_fn)]
+// [U1-MODULE-UNIT]
+use crate::common::*;
 
 use std::ffi::{c_char, c_int};
 
-include!("../src/include/config.rs");
-include!("include/gnulib_config.rs");
-include!("include/getopt.in.rs");
-include!("include/getopt_int.rs");
+// [U1] config.rs provided by common
+// [U1] include/gnulib_config.rs imported via common
+// [U1] include/getopt.in.rs imported via common
+// [U1] include/getopt_int.rs imported via common
 
 /* C 20-25: `#ifndef _LIBC / # include <config.h>` (live: `_LIBC` is undefined), <getopt.h>
    (the getopt.in.rs mirror) and getopt_int.h (the getopt_int.rs mirror).  */

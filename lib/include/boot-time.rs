@@ -8,9 +8,11 @@
 // C 24-26/45-47's `#ifdef __cplusplus` arm has no Rust counterpart: there is no C++ here.
 
 // C 19-20: the include guard has no Rust counterpart (PORTING.md 0.1).
+// [U1-MODULE-MIRROR]
+use super::*;
 pub const _BOOT_TIME_H: bool = true;
 
-include!("time.in.rs");                 // C 22: `#include <time.h>` (`struct timespec`)
+// [U1] time.in.rs imported via super
 
 pub mod boot_time_decls {
   use super::*;
@@ -21,4 +23,4 @@ pub mod boot_time_decls {
     pub fn get_boot_time (p_boot_time: *mut timespec) -> c_int;
   }
 }
-use boot_time_decls::*;
+pub use self::boot_time_decls::*;

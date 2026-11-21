@@ -13,11 +13,13 @@
 #![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code,
          unused_imports, unused_macros, unused_variables, unused_unsafe, static_mut_refs,
          unsafe_op_in_unsafe_fn)]
+// [U1-MODULE-UNIT]
+use crate::common::*;
 
-include!("include/config.rs");
-include!("../lib/include/stdio.rs");
-include!("include/lisp.rs");
-include!("include/tparam.rs");
+const _: () = ();
+// [U1] ../lib/include/stdio.rs imported via common
+// [U1] include/lisp.rs imported via common
+// [U1] include/tparam.rs imported via common
 
 /* Define these variables that serve as global parameters to termcap,
    so that we do not need to conditionalize the places in Emacs

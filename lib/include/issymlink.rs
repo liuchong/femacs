@@ -5,9 +5,11 @@
 // `lib/issymlink.rs` keeps the qualifier relationship.  `readlink`, `errno` and `EINVAL`
 // come from the unistd and errno mirrors.
 
-include!("sys_types.in.rs");   // <sys/types.h>
-include!("unistd.in.rs");      // <unistd.h> (readlink)
-include!("errno.rs");          // <errno.h> (errno, EINVAL)
+// [U1-MODULE-MIRROR]
+use super::*;
+// [U1] sys_types.in.rs imported via super
+// [U1] unistd.in.rs imported via super
+// [U1] errno.rs imported via super
 
 // The include guard has no Rust counterpart (PORTING.md 0.1).
 pub const _ISSYMLINK_H: bool = true;

@@ -1,10 +1,39 @@
-# The workspace holds the tooling; the program itself is built by `xtask`, which
-# invokes rustc once per translation unit the way a C build invokes the compiler
-# once per .c file (see PORTING.md 0.1).
 [workspace]
 resolver = "3"
-members = ["xtask", "packaging", "cli"]
+members = [
+    "xtask",
+    "packaging",
+    "cli",
+    "crates/femacs-pure",
+    "crates/femacs-sys",
+    "crates/femacs-vm",
+    "crates/femacs-host",
+    "crates/femacs-tools",
+]
 
 [workspace.package]
 edition = "2024"
 license = "GPL-3.0-or-later"
+
+[profile.release]
+panic = "abort"
+
+[profile.release.package.femacs-vm]
+opt-level = 2
+overflow-checks = false
+debug-assertions = false
+codegen-units = 1
+
+[profile.release.package.femacs-sys]
+opt-level = 2
+overflow-checks = false
+debug-assertions = false
+codegen-units = 1
+
+[profile.release.package.femacs-pure]
+opt-level = 2
+overflow-checks = true
+
+[profile.release.package.femacs-tools]
+opt-level = 2
+overflow-checks = true

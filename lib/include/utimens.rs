@@ -11,8 +11,10 @@
 // The declarations live in `pub mod decls` + glob import, because lib/utimens.c *defines*
 // `utimens`/`lutimens`/`fdutimens` (the P-19/P-21/P-49 shape, as in include/mini-gmp.rs).
 
-include!("time.in.rs");     // <time.h> (`struct timespec`)
-include!("gnulib_config.rs");  // _GL_CONFIG_H_INCLUDED
+// [U1-MODULE-MIRROR]
+use super::*;
+// [U1] time.in.rs imported via super
+// [U1] gnulib_config.rs imported via super
 
 /* C 22-24's `#if !_GL_CONFIG_H_INCLUDED / #error "Please include config.h first."`.  */
 const _: () = core::assert! (_GL_CONFIG_H_INCLUDED, "Please include config.h first.");
@@ -32,7 +34,7 @@ pub mod utimens_decls {
                         times: *const timespec, atflag: c_int) -> c_int;
   }
 }
-use utimens_decls::*;
+pub use self::utimens_decls::*;
 
 /* #if HAVE_UTIMENS
    # define utimens rpl_utimens
@@ -52,8 +54,8 @@ macro_rules! lutimens {
 /* C 47-77's `#if GNULIB_FDUTIMENSAT` section (dead for this target: the macro is undefined
    in the frozen configuration), but the header's one inline definition is in the inventory,
    so the port carries it.  */
-include!("fcntl.in.rs");       // <fcntl.h> (AT_SYMLINK_NOFOLLOW)
-include!("sys_stat.in.rs");    // <sys/stat.h> (utimensat)
+// [U1] fcntl.in.rs imported via super
+// [U1] sys_stat.in.rs imported via super
 
 /* Using this function makes application code slightly more readable.  */
 #[inline(always)]

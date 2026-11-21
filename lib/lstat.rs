@@ -1,4 +1,6 @@
 // femacs: port of lib/lstat.c @ fd7afced403.
+// [U1-MODULE-UNIT]
+use crate::common::*;
 /* written by Jim Meyering */
 
 /* emacs/lib/lstat.c: C 23's `#define __need_system_sys_stat_h` before <config.h> makes gnulib's
@@ -10,12 +12,12 @@
    non-frozen side (P-51).  C 34-50's includes are the mirrors below; <string.h> has no mirror
    yet, so `strlen` is declared here as C's <string.h> declares it.  */
 use std::ffi::{c_char, c_int, c_long, c_short, c_uint, c_void};
-include!("../src/include/config.rs");
-include!("include/gnulib_config.rs");
-include!("include/sys_types.in.rs");
-include!("include/sys_stat.in.rs");
-include!("include/stat-time.rs");
-include!("include/errno.rs");
+// [U1] config.rs provided by common
+// [U1] include/gnulib_config.rs imported via common
+// [U1] include/sys_types.in.rs imported via common
+// [U1] include/sys_stat.in.rs imported via common
+// [U1] include/stat-time.rs imported via common
+// [U1] include/errno.rs imported via common
 
 /* C 23's `#define __need_system_sys_stat_h` (empty body; the port keeps the name).  */
 pub const __need_system_sys_stat_h: () = ();

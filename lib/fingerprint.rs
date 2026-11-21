@@ -2,9 +2,11 @@
 #![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code,
          unused_imports, unused_macros, unused_variables, unused_mut, unused_unsafe,
          static_mut_refs, unsafe_op_in_unsafe_fn)]
+// [U1-MODULE-UNIT]
+use crate::common::*;
 use std::ffi::c_uchar;
 
-include!("../src/include/config.rs");
+// [U1] config.rs provided by common
 
 /* C 20's `#include "fingerprint.h"`: that header only declares
    `extern volatile unsigned char fingerprint[32];` - the object this very unit defines -
@@ -17,6 +19,7 @@ include!("../src/include/config.rs");
    object exports it as 32 bytes of data (`D _fingerprint`), which is what the definition
    below is; C's `volatile` qualifies every *access*, and a Rust reader spells that
    `read_volatile` at the access (no object-level qualifier exists).  */
+#[used]
 #[unsafe(no_mangle)]
 pub static mut fingerprint: [c_uchar; 32] =
   [

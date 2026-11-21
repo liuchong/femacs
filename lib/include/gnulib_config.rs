@@ -9,6 +9,8 @@
 //
 // So far that is `_GL_CMP`, used by lib/timespec.h.
 
+// [U1-MODULE-MIRROR]
+use super::*;
 /// gnulib's `_GL_CMP (n1, n2)`: `(((n1) > (n2)) - ((n1) < (n2)))` — the branch-free
 /// comparison of Hacker's Delight § 2-9 that gnulib prefers to
 /// `(n1 > n2 ? 1 : n1 < n2 ? -1 : 0)` (m4/gnulib-common.m4 4746-4754).  It is a value

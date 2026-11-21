@@ -41,6 +41,8 @@
          unsafe_op_in_unsafe_fn, unused_assignments, unused_parens, unused_mut,
          unreachable_code, unused_labels, while_true, unused_comparisons,
          overflowing_literals, unused_must_use, clippy::all)]
+// [U1-MODULE-UNIT]
+use crate::common::*;
 
 /*
 The public module API is defined in the header emacs-module.h.  The
@@ -98,61 +100,61 @@ To add a new module function, proceed as follows:
 6. Document your new function in the manual and in etc/NEWS.
 */
 
-include!("include/config.rs");                        // C 76: `#include <config.h>` (ungated)
+// [U1] config.rs provided by common
 
 /* C 78-96: the file's own include list.  Every header sits inside the file gate, as the C build
    does - no translation unit the frozen configuration builds reaches any one of them.  */
 #[cfg (feature = "have_modules")]
-include!("include/emacs-module.in.rs");               // C 78: `#include "emacs-module.h"`
+const _: () = ();
 /* C 80: `#include <stdarg.h>` - the port's equivalent is `core::ffi::VaList` (PORTING.md P-04;
    the `src/doprnt.rs` 56-57 reading), so there is no mirror and the `...` bodies below
    name `VaList` directly.  */
 #[cfg (feature = "have_modules")]
 use core::ffi::VaList;                                // C 80: `#include <stdarg.h>`
 #[cfg (feature = "have_modules")]
-include!("../lib/include/stddef.in.rs");              // C 81: `#include <stddef.h>` (`NULL`)
+const _: () = ();
 #[cfg (feature = "have_modules")]
-include!("../lib/include/stdint.in.rs");              // C 82: `#include <stdint.h>`
+const _: () = ();
 #[cfg (feature = "have_modules")]
-include!("../lib/include/sys_types.in.rs");           // process.h's system pid_t
+const _: () = ();
 #[cfg (feature = "have_modules")]
-include!("../lib/include/stdlib.rs");                 // C 83: `#include <stdlib.h>`
+const _: () = ();
 #[cfg (feature = "have_modules")]
-include!("../lib/include/time.in.rs");                // C 84: `#include <time.h>`
+const _: () = ();
 #[cfg (feature = "have_modules")]
-include!("include/lisp.rs");                          // C 86: `#include "lisp.h"`
+const _: () = ();
 #[cfg (feature = "have_modules")]
-include!("../lib/include/mini-gmp.rs");               // C 87 chain: bignum.h 25 `#include <gmp.h>`
+const _: () = ();
 #[cfg (feature = "have_modules")]
-include!("include/bignum.rs");                        // C 87: `#include "bignum.h"`
+const _: () = ();
 #[cfg (feature = "have_modules")]
-include!("include/dynlib.rs");                        // C 88: `#include "dynlib.h"`
+const _: () = ();
 #[cfg (feature = "have_modules")]
-include!("include/coding.rs");                        // C 89: `#include "coding.h"`
+const _: () = ();
 #[cfg (feature = "have_modules")]
-include!("include/keyboard.rs");                      // C 90: `#include "keyboard.h"`
+const _: () = ();
 // The terminal include graph uses only keyboard.h's two opaque buffer pointers.
 // Window-system headers already provide the complete record.
 #[cfg (all (feature = "have_modules", not (feature = "have_window_system")))]
 type buffer = c_void;
 #[cfg (feature = "have_modules")]
-include!("include/process.rs");                       // C 91: `#include "process.h"`
+const _: () = ();
 #[cfg (feature = "have_modules")]
-include!("include/syssignal.rs");                     // C 92: `#include "syssignal.h"`
+const _: () = ();
 #[cfg (feature = "have_modules")]
-include!("../lib/include/stdio.rs");                 // C 93: `#include "sysstdio.h"` (FILE, fputs, putc, fflush, stderr)
+const _: () = ();
 #[cfg (feature = "have_modules")]
-include!("../lib/include/string.rs");                 // C 86-93's chain: strlen, memcpy
+const _: () = ();
 #[cfg (feature = "have_modules")]
-include!("include/thread.rs");                        // C 94: `#include "thread.h"`
+const _: () = ();
 #[cfg (feature = "have_modules")]
-include!("include/systime.rs");                       // C 89-92's chain: systime.h (`timespec`)
+const _: () = ();
 #[cfg (feature = "have_modules")]
-include!("include/frame.rs");                          // C 90's chain reaches dispextern.h 1392 `struct frame *f`; the mirror needs the record (P-72 ④, the termchar.rs 32 reading)
+const _: () = ();
 #[cfg (feature = "have_modules")]
-include!("include/font.rs");                          // the same record: dispextern.h 1417 `struct font *`
+const _: () = ();
 #[cfg (feature = "have_modules")]
-include!("../lib/include/intprops.rs");               // C 96: `#include <intprops.h>`
+const _: () = ();
 
 /* ------------------------------------------------------------------------------------------
    C 112-115: `#ifdef WINDOWSNT` / `#include <windows.h>` / `#include "w32term.h"` / `#endif`.
@@ -163,7 +165,7 @@ include!("../lib/include/intprops.rs");               // C 96: `#include <intpro
 /* C 113: `#include <windows.h>` - the Windows SDK header, whose declarations the port reaches
    through `w32term.rs` and the unit's own use sites; no mirror exists for it.  */
 #[cfg (feature = "windowsnt")]
-include!("include/w32term.rs");                       // C 114: `#include "w32term.h"`
+const _: () = ();
 
 /* C 98-107: the comment on the two allocation strategies (assertions off -> the stack;
    assertions on -> the free store, never freed, so every object has a distinct address).  */
@@ -1559,7 +1561,7 @@ pub unsafe extern "C" fn module_function_documentation
 /// `void *`, which an `Option` wrapper cannot do; the nullable shape stays where C's own
 /// pointer *can* be null (`dynlib_addr`'s parameter).
 #[cfg (feature = "have_modules")]
-pub use crate::other_units::module_funcptr;
+pub use crate::common::other_units::module_funcptr;
 #[cfg (feature = "have_modules")]
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn module_function_address

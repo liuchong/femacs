@@ -3,7 +3,9 @@
 // Three lines of text: the `<stdio.h>` include, the `extern "C"` guard and the one
 // prototype.  The declaration lives in `pub mod close_stream_decls` + glob import, because
 // lib/close-stream.c *defines* `close_stream` (E0428; PORTING.md 0.1-10).
-include!("stdio.rs");
+// [U1-MODULE-MIRROR]
+use super::*;
+// [U1] stdio.rs imported via super
 
 pub mod close_stream_decls {
   use super::*;
@@ -13,4 +15,4 @@ pub mod close_stream_decls {
     pub fn close_stream (stream: *mut FILE) -> c_int;
   }
 }
-use close_stream_decls::*;
+pub use self::close_stream_decls::*;

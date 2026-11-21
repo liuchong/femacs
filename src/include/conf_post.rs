@@ -40,6 +40,8 @@
 // is `#undef` (macros.tsv 872) and nothing has defined NDEBUG before this point, so C defines it;
 // it only steers `<assert.h>`, and the port's assertions are `eassert!`/`eassume!`, gated on
 // `cfg (enable_checking)` (PORTING.md 2.5).
+// [U1-MODULE-MIRROR]
+use super::*;
 pub const NDEBUG: bool = true;
 
 // C 41-51: `GNUC_PREREQ (V, W, X)`.  The third arm is live (`__GNUC_MINOR__` is 2 at macros.tsv
@@ -363,4 +365,4 @@ pub mod conf_post_decls {
     pub fn emacs_setenv_TZ (tz: *const core::ffi::c_char) -> core::ffi::c_int;
   }
 }
-use conf_post_decls::*;
+pub use self::conf_post_decls::*;

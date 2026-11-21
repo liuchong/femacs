@@ -5,8 +5,10 @@
 // instead: `_gl_set_fd_mode` (returning O_BINARY) and `set_binary_mode`, which is the function
 // lib/pipe2.c's own `# if O_BINARY` arm would call.  The `SET_BINARY` macro comes with them.
 
-include!("fcntl.in.rs");       // <fcntl.h> (O_BINARY, O_TEXT)
-include!("stdio.rs");          // <stdio.h> (the MSVC7 ordering note; FILE is not used here)
+// [U1-MODULE-MIRROR]
+use super::*;
+// [U1] fcntl.in.rs imported via super
+// [U1] stdio.rs imported via super
 
 // The include guard has no Rust counterpart (PORTING.md 0.1).
 pub const _BINARY_H: bool = true;

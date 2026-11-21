@@ -1,4 +1,6 @@
 // femacs: port of lib/sig2str.c @ fd7afced403.
+// [U1-MODULE-UNIT]
+use crate::common::*;
 /* Written by Paul Eggert.  */
 
 /* emacs/lib/sig2str.c (@ 364 lines) is on the verified list: the `#ifdef SIGxxx` guards around
@@ -10,14 +12,14 @@
    mirrors (whose `streq` gnulib's <string.h> template defines); C 274's `sprintf` is declared in-unit (the doprnt.rs
    shape, since that mirror deliberately does not carry it).  */
 use std::ffi::{c_char, c_double, c_int, c_long, c_short, c_uint, c_ulong, c_void};
-include!("../src/include/config.rs");
-include!("include/gnulib_config.rs");
-include!("include/signal.rs");
-include!("include/sig2str.rs");
-include!("include/limits.in.rs");
-include!("include/stdcountof.rs");
-include!("include/stdlib.rs");
-include!("include/string.in.rs");
+// [U1] config.rs provided by common
+// [U1] include/gnulib_config.rs imported via common
+// [U1] include/signal.rs imported via common
+// [U1] include/sig2str.rs imported via common
+// [U1] include/limits.in.rs imported via common
+// [U1] include/stdcountof.rs imported via common
+// [U1] include/stdlib.rs imported via common
+// [U1] include/string.in.rs imported via common
 
 /* C 274's <stdio.h>: `sprintf`, declared here because the stdio mirror does not carry it (a
    mirror-level declaration is a second definition in src/doprnt.c, which declares its own).  */

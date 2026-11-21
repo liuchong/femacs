@@ -15,16 +15,18 @@
 // `src/include/config.rs` (its curated list stops short of them), so `HAVE_FCHMOD` is
 // declared here with the value the frozen configuration gives it (docs/baseline/config/
 // darwin-arm64.macros.tsv) — the constant the live `if` reads.
+// [U1-MODULE-UNIT]
+use crate::common::*;
 use std::ffi::{c_char, c_double, c_int, c_long, c_short, c_uchar, c_uint, c_ulong, c_ushort,
                c_void};
-include!("../src/include/config.rs");
-include!("include/gnulib_config.rs");
-include!("include/errno.rs");
-include!("include/stdcountof.rs");     /* C 24: `<stdcountof.h>`.  */
-include!("include/sys_types.in.rs");   /* mode_t */
-include!("include/sys_stat.in.rs");    /* chmod, fchmod, S_ISUID/S_ISGID/S_ISVTX */
-include!("include/acl.rs");            /* C 22: `#include "acl.h"`.  */
-include!("include/acl-internal.rs");   /* C 26: `#include "acl-internal.h"`.  */
+// [U1] config.rs provided by common
+// [U1] include/gnulib_config.rs imported via common
+// [U1] include/errno.rs imported via common
+// [U1] include/stdcountof.rs imported via common
+// [U1] include/sys_types.in.rs imported via common
+// [U1] include/sys_stat.in.rs imported via common
+// [U1] include/acl.rs imported via common
+// [U1] include/acl-internal.rs imported via common
 /* C 27's `#include "minmax.h"` is only used by the dead arms above, so this unit does not
    carry the mirror.  */
 

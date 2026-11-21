@@ -58,23 +58,25 @@
 #![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code,
          unused_imports, unused_macros, unused_variables, unused_unsafe, static_mut_refs,
          unsafe_op_in_unsafe_fn, unused_parens, arithmetic_overflow)]
+// [U1-MODULE-UNIT]
+use crate::common::*;
 
-include!("include/config.rs");                 // C 20: `#include <config.h>`
-include!("../lib/include/stdio.rs");           // C 40: `#include <stdio.h>`
-include!("../lib/include/string.rs");          // lisp.h 30: `#include <string.h>`
-include!("../lib/include/stdlib.rs");          // C 41: `#include <stdlib.h>`
-include!("../lib/include/math.rs");            // C 39: `#include <math.h>`
-include!("../lib/include/limits.in.rs");       // C 38: `#include <limits.h>`
-include!("../lib/include/errno.rs");           // C 37: `#include <errno.h>`
-include!("../lib/include/strftime.rs");        // C 35: `#include <strftime.h>`
-include!("include/lisp.rs");                   // C 32: `#include "lisp.h"`
-include!("../lib/include/mini-gmp.rs");        // bignum.h's `#include <gmp.h>`
-include!("include/bignum.rs");                 // C 30: `#include "bignum.h"`
-include!("include/composite.rs");              // coding.h 299-310 names its types
-include!("include/coding.rs");                 // C 31: `#include "coding.h"`
-include!("include/blockinput.rs");             // C 29: `#include "blockinput.h"`
-include!("include/pdumper.rs");                // C 33: `#include "pdumper.h"`
-include!("include/systime.rs");                // C 27: `#include "systime.h"`
+const _: () = ();
+// [U1] ../lib/include/stdio.rs imported via common
+// [U1] ../lib/include/string.rs imported via common
+// [U1] ../lib/include/stdlib.rs imported via common
+// [U1] ../lib/include/math.rs imported via common
+// [U1] ../lib/include/limits.in.rs imported via common
+// [U1] ../lib/include/errno.rs imported via common
+// [U1] ../lib/include/strftime.rs imported via common
+// [U1] include/lisp.rs imported via common
+// [U1] ../lib/include/mini-gmp.rs imported via common
+// [U1] include/bignum.rs imported via common
+// [U1] include/composite.rs imported via common
+// [U1] include/coding.rs imported via common
+// [U1] include/blockinput.rs imported via common
+// [U1] include/pdumper.rs imported via common
+// [U1] include/systime.rs imported via common
 
 /* C 23-25's `#if 10 <= __GNUC__` / `# pragma GCC diagnostic ignored
    "-Wanalyzer-null-dereference"` works around GCC bug 102671; clang's `__GNUC__` is 4, so

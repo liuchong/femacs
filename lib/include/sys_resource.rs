@@ -21,6 +21,8 @@
 // docs/baseline/config/darwin-arm64.macros.tsv records for the macro (1556).  A lib mirror
 // is compiled without lisp.rs in spikes/syshdrs-probe.sh, so the assertions use `const _`.
 
+// [U1-MODULE-MIRROR]
+use super::*;
 /// `__uint64_t` on the frozen target.
 /// `__uint64_t` on the frozen target.
 pub type rlim_t = u64;

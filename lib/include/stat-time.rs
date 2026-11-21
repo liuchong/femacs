@@ -34,10 +34,12 @@
 // Both are off for the frozen target and no ported unit sets them; the asserts below keep
 // that from changing silently (P-51).
 
-include!("time.in.rs");        // <time.h> (`struct timespec`)
-include!("sys_stat.in.rs");    // <sys/stat.h> (`struct stat`)
-include!("errno.rs");          // <errno.h> (EOVERFLOW)
-include!("stdcountof.rs");     // <stdcountof.h> (countof)
+// [U1-MODULE-MIRROR]
+use super::*;
+// [U1] time.in.rs imported via super
+// [U1] sys_stat.in.rs imported via super
+// [U1] errno.rs imported via super
+// [U1] stdcountof.rs imported via super
 
 const _: () = core::assert! (!cfg! (feature = "stat_time_stat_timespec_ns"),
                        "the frozen configuration defines HAVE_STRUCT_STAT_ST_ATIMESPEC_TV_NSEC");

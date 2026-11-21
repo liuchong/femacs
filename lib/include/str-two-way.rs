@@ -20,9 +20,7 @@
 /* No `#![allow]` here: this file is `include!`d (PORTING.md 0.1-9), and an inner attribute is
    not permitted in that position — the including unit carries the allow block.  */
 
-include!("limits.in.rs");    // <limits.h> (CHAR_BIT)
-include!("stdint.in.rs");    // <stdint.h> (SIZE_MAX)
-include!("string.rs");       // <string.h> (the default `CMP_FUNC`, memcmp)
+// [U1] limits.in.rs, stdint.in.rs, and string.rs are provided by crate::common.
 
 /* C 57-63's comment is above; C 64-68's `#if CHAR_BIT < 10` arm is the 8-bit one this
    target takes (CHAR_BIT is 8, macros.tsv), and the `SIZE_MAX` arm is the non-frozen side.  */

@@ -72,6 +72,8 @@
 // `__INT64_MAX`), which is why `port below` carries it under `openvms` and why the port's two
 // values live in `include/limits.in.rs` (55-57) instead.
 
+// [U1-MODULE-MIRROR]
+use super::*;
 /* C 19: `#ifndef _GL_INTPROPS_INTERNAL_H` - the guard has no Rust counterpart (PORTING.md
    0.1-4); the name stays as its marker.  */
 pub const _GL_INTPROPS_INTERNAL_H: bool = true;

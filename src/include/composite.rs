@@ -18,6 +18,8 @@
 // it declares it (composite.c does, docs/ports/composite.md).
 
 // composite.h 25-26: the include guard has no Rust counterpart (PORTING.md 0.1).
+// [U1-MODULE-MIRROR]
+use super::*;
 pub const EMACS_COMPOSITE_H: bool = true;
 
 /* Methods to display a sequence of components of a composition.  */
@@ -408,7 +410,7 @@ pub mod composite_objs {
     pub static mut n_compositions: ptrdiff_t;
     }
 }
-use composite_objs::*;
+pub use self::composite_objs::*;
 
 // Every `extern` prototype of composite.h.  All twelve are defined in composite.c, so they
 // live here + glob import for the same reason (PORTING.md 0.1-10, the tempname.rs shape).
@@ -472,4 +474,4 @@ pub mod composite_decls {
     pub fn composition_gstring_cache_clear_font (font_object: Lisp_Object);
     }
 }
-use composite_decls::*;
+pub use self::composite_decls::*;

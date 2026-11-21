@@ -89,3 +89,12 @@ G4 Android historical diagnostic stages: `back`, kernel-wchan-only `threads`, te
 ## 七、Stage II（`GA4`）复核与历史本地清单收口（2026-11-20）
 
 对照 `5118ed08..6065cf1b` 的全部新增工具与脚本复核：上述 6 项退役脚手架继续保持缺席且无回潮引用；`tools/*.sh` 全部 15 个入口维持薄转发器或交叉链接适配器（均不超过 25 行，零嵌套资源执行器）；所有未宣布退役的目标平台（Linux、Windows、Haiku、Android 各 ABI）及原样 Lisp/数据/AWK 配方保持保留。`57101ad7` 本地保留的 `47` 份历史运行级清理清单（`CLN227–CLN269`）与已取代中间产物的逐项 SHA-256、原因、替代与恢复边界统一收口于 [CLN269](../maintenance/cleanup/reports/2026-11-16-269-superseded-single-product-gc-candidate.md) 及 [CLN271](../maintenance/cleanup/reports/2026-11-20-271-historical-manifest-disposition-and-g4-reaudit.md)。
+
+## 八、U1 逐单元对象拼接与归档驱动退役（2026-11-22）
+
+按 P-480 与去 `unsafe` 第一阶段（U1/AU1），主产品与工具构建统一收敛到 Cargo workspace，退役 `xtask` 内部旧逐单元 `.o` 编译与归档驱动（详见 [CLN277](../maintenance/cleanup/reports/2026-11-22-277-u1-cargo-graph-and-au1-retirement.md)）：
+
+| 路径 / 入口 | 原用途 / 退役依据 | 取代者 / 恢复依据 | 日期 |
+| --- | --- | --- | --- |
+| `xtask` `build-tu` / `build-units` / `unit_codegen_flags` / `LINK_DRIVER` / `libgnu-port.a` / `libgnu-program.a` | 逐翻译单元调用 `rustc --emit=obj`、拼接临时镜像图并手工打包静态库；已被 Cargo 模块图完全取代，无生产读者 | `xtask/src/cargo_build.rs` + `crates/femacs-{pure,sys,vm,host,tools}`；旧实现可从基线 `c9bc7544` 恢复 | 2026-11-22 |
+| `xtask/src/macos.rs::make_objects` | 通过参照 Makefile 变量展开查询对象列表的遗留辅助函数，当前仓库零调用者 | `xtask/src/product_sources.rs` + `build-support/macos/*/objects.txt`；可从 `c9bc7544` 恢复 | 2026-11-22 |

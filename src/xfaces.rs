@@ -39,41 +39,43 @@
          unused_imports, unused_macros, unused_variables, unused_mut, unused_assignments,
          unused_unsafe, static_mut_refs, unsafe_op_in_unsafe_fn, unused_parens,
          clashing_extern_declarations)]
+// [U1-MODULE-UNIT]
+use crate::common::*;
 
-include!("include/config.rs");            // C 219: config.h
-include!("../lib/include/stdlib.rs");     // C 220: strtod, free
-include!("../lib/include/stdio.rs");      // C 221: sysstdio.h -> <stdio.h> (FILE, fgets)
-include!("../lib/include/sys_types.in.rs");   // C 222: sys/types.h
-include!("../lib/include/sys_stat.in.rs");    // C 223: sys/stat.h
-include!("../lib/include/math.rs");       // C 224: <math.h> (lrint)
-include!("../lib/include/c-ctype.rs");    // C 292: c-ctype.h (c_tolower)
-include!("../lib/include/string.rs");     // lisp.h 30: strlen, strcmp, strncmp, strchr
-include!("../lib/include/stdcountof.rs"); // lisp.h 30 (stdcountof.h: `countof`)
-include!("../lib/include/limits.in.rs");  // lisp.h's <limits.h> (INT_MAX in the dead pixmap code)
-include!("include/lisp.rs");              // C 226: lisp.h
-include!("include/character.rs");         // C 227: character.h
-include!("include/frame.rs");             // C 228: frame.h
-include!("include/buffer.rs");            // C 263: buffer.h
-include!("include/charset.rs");           // buffer.h 28-late: charset.h
-include!("include/coding.rs");            // buffer.h 26: coding.h
-include!("include/composite.rs");         // coding.h 284: composite.h
-include!("include/keyboard.rs");          // frame.h/termhooks.h: keyboard.h
-include!("include/systime.rs");           // termhooks.h: systime.h (`Time`)
-include!("include/itree.rs");             // buffer.h 27: itree.h
-include!("include/dispextern.rs");        // C 264: dispextern.h
-include!("include/termhooks.rs");         // termhooks.h: struct terminal, FRAME_TERMINAL
-include!("include/blockinput.rs");        // C 265: blockinput.h
-include!("include/window.rs");            // C 266: window.h
-include!("include/termchar.rs");          // C 267: termchar.h
-include!("include/font.rs");              // C 269: font.h
-include!("include/fontset.rs");            // C 270: fontset.h (`fontset_name`)
+const _: () = ();
+// [U1] ../lib/include/stdlib.rs imported via common
+// [U1] ../lib/include/stdio.rs imported via common
+// [U1] ../lib/include/sys_types.in.rs imported via common
+// [U1] ../lib/include/sys_stat.in.rs imported via common
+// [U1] ../lib/include/math.rs imported via common
+// [U1] ../lib/include/c-ctype.rs imported via common
+// [U1] ../lib/include/string.rs imported via common
+// [U1] ../lib/include/stdcountof.rs imported via common
+// [U1] ../lib/include/limits.in.rs imported via common
+// [U1] include/lisp.rs imported via common
+// [U1] include/character.rs imported via common
+// [U1] include/frame.rs imported via common
+// [U1] include/buffer.rs imported via common
+// [U1] include/charset.rs imported via common
+// [U1] include/coding.rs imported via common
+// [U1] include/composite.rs imported via common
+// [U1] include/keyboard.rs imported via common
+// [U1] include/systime.rs imported via common
+// [U1] include/itree.rs imported via common
+// [U1] include/dispextern.rs imported via common
+// [U1] include/termhooks.rs imported via common
+// [U1] include/blockinput.rs imported via common
+// [U1] include/window.rs imported via common
+// [U1] include/termchar.rs imported via common
+// [U1] include/font.rs imported via common
+// [U1] include/fontset.rs imported via common
 #[cfg (feature = "have_android")]
-include!("include/androidterm.rs");         // frame.h's Android `FRAME_FONT`/`FRAME_FONTSET`
-include!("include/keymap.rs");            // keyboard.h/window.h: keymap.h
-include!("include/disptab.rs");           // frame.h: disptab.h
-include!("include/commands.rs");          // lisp.h: commands.h (`noninteractive`)
-include!("include/syssignal.rs");         // blockinput.h/window.h: syssignal.h
-include!("include/pdumper.rs");           // lisp.h/frame.h: pdumper.h (`dumped_with_pdumper_p`)
+const _: () = ();
+// [U1] include/keymap.rs imported via common
+// [U1] include/disptab.rs imported via common
+// [U1] include/commands.rs imported via common
+// [U1] include/syssignal.rs imported via common
+// [U1] include/pdumper.rs imported via common
 
 /* C 20-217: the file's explanatory comment (`Faces.`).  */
 

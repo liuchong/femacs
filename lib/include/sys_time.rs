@@ -26,6 +26,8 @@
 // other system mirrors' constants (a lib mirror is compiled without lisp.rs in that probe,
 // so it uses `const _` rather than the port's `static_assert!`).
 
+// [U1-MODULE-MIRROR]
+use super::*;
 /// The frozen target's `suseconds_t`: a 32-bit signed integer (`time.in.rs` has `time_t`).
 /// `c_int` comes from the includer, as it does for every lib mirror (lisp.rs's
 /// `use std::ffi::{…}` at the crate root); a probe that includes no src mirror brings its
@@ -82,7 +84,7 @@ pub mod sys_time_decls {
                       old_value: *mut itimerval) -> c_int;
   }
 }
-use sys_time_decls::*;
+pub use self::sys_time_decls::*;
 
 const _: () = core::assert! (std::mem::size_of::<timeval> () == 16);
 const _: () = core::assert! (std::mem::offset_of! (timeval, tv_sec) == 0);

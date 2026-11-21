@@ -52,12 +52,14 @@
 //     pointers of C 774-776 are the measured exception - they are the NS arm's only unresolved
 //     names (status 3.526).
 
-include!("dispextern.rs");       // C 22: `#include "dispextern.h"` (`Emacs_Cursor`, `Mouse_HLInfo`)
-include!("frame.rs");            // C 23: `#include "frame.h"` (`struct frame`)
-include!("character.rs");        // C 24: `#include "character.h"`
-include!("font.rs");             // C 25: `#include "font.h"` (`struct font`, `struct font_metrics`)
-include!("sysselect.rs");        // C 26: `#include "sysselect.h"` (`fd_set`, `sigset_t`)
-include!("sysstdio.rs");         // C 27: `#include "sysstdio.h"` (`FILE`)
+// [U1-MODULE-MIRROR]
+use super::*;
+// [U1] dispextern.rs imported via super
+// [U1] frame.rs imported via super
+// [U1] character.rs imported via super
+// [U1] font.rs imported via super
+// [U1] sysselect.rs imported via super
+// [U1] sysstdio.rs imported via super
 
 // C 29-1395: `#ifdef HAVE_NS` ... `#endif /* HAVE_NS */` - the whole of the file below.
 
@@ -1259,4 +1261,4 @@ pub mod ns_menu_decls {
   }
 }
 #[cfg(feature = "have_ns")]
-use ns_menu_decls::*;
+pub use self::ns_menu_decls::*;

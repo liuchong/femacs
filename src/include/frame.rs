@@ -12,6 +12,8 @@
 // every platform `*_P` predicate are `#undef`/false here).
 
 // frame.h 21: the include guard has no Rust counterpart (PORTING.md 0.1).
+// [U1-MODULE-MIRROR]
+use super::*;
 pub const EMACS_FRAME_H: bool = true;
 
 // frame.h 22-23: the header's own `#include`s.  C reaches both here, and the text below
@@ -21,8 +23,8 @@ pub const EMACS_FRAME_H: bool = true;
 // whose own include list does not supply
 // them still resolves the names (P-72 rule ④; `src/androidmenu.c` is that unit - it includes
 // `androidterm.h`, which includes `frame.h`, and no `window.h`/`termhooks.h` of its own).
-include!("termhooks.rs");                     // C 22: `#include "termhooks.h"`
-include!("window.rs");                        // C 23: `#include "window.h"`
+// [U1] termhooks.rs imported via super
+// [U1] window.rs imported via super
 
 /* Device-dependent, frame-local auxiliary data used for displaying
    the contents.  */
@@ -1502,7 +1504,7 @@ pub fn SET_FRAME_ICONIFIED (f: *mut frame, i: c_int)
 #[inline(always)]
 pub fn output_method (f: *mut frame) -> output_method { frame_output_method (f) }
 
-fn frame_output_method (f: *mut frame) -> output_method
+pub fn frame_output_method (f: *mut frame) -> output_method
 { frame_field (f, FRAME_OUTPUT_METHOD_UNIT, FRAME_OUTPUT_METHOD_SHIFT, FRAME_OUTPUT_METHOD_MASK) as output_method }
 
 // The readers the accessors share.  `frame_flag`/`frame_set_flag` take the flag's *unit* as well
@@ -2246,4 +2248,4 @@ pub mod frame_fn_decls {
     pub fn frame_ancestor_p (a: *mut frame, b: *mut frame) -> bool;
   }
 }
-use frame_fn_decls::*;
+pub use self::frame_fn_decls::*;

@@ -16,35 +16,37 @@
 #![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code,
          unused_imports, unused_macros, unused_variables, unused_unsafe, static_mut_refs,
          unsafe_op_in_unsafe_fn)]
+// [U1-MODULE-UNIT]
+use crate::common::*;
 
 /* At first, see the document in `character.h' to understand the code
    in this file.  */
 
-include!("include/config.rs");
-include!("../lib/include/stdio.rs");
+// [U1] config.rs provided by common
+// [U1] ../lib/include/stdio.rs imported via common
 // C's <string.h> reaches this unit through lisp.h (lisp.h 30); `str_as_multibyte`'s
 // `memmove` and `lisp_string_width`'s `memcmp` come from that mirror.
-include!("../lib/include/string.rs");
+// [U1] ../lib/include/string.rs imported via common
 // C's <sys/types.h> (character.c 32) has no declaration this unit needs; `ptrdiff_t` comes
 // from lisp.rs, as it does in C through <stddef.h>.  <intprops.h> (character.c 30) is the
 // `ckd_*` family, which the port spells `overflowing_*` at each site (PORTING.md P-15).
-include!("include/lisp.rs");
-include!("include/character.rs");
+// [U1] include/lisp.rs imported via common
+// [U1] include/character.rs imported via common
 // C's chain, in C's order: buffer.h 28 includes itree.h; frame.h 22-23 includes termhooks.h
 // (which includes dispextern.h and systime.h) and window.h; composite.h includes font.h and
 // dispextern.h.  The port's include order is the one callint.rs proved (PORTING.md P-61).
-include!("include/itree.rs");
-include!("include/systime.rs");
-include!("include/dispextern.rs");
-include!("include/composite.rs");
-include!("include/coding.rs");
-include!("include/buffer.rs");
-include!("include/termhooks.rs");
-include!("include/window.rs");
-include!("include/frame.rs");
-include!("include/dispextern.rs");
-include!("include/composite.rs");
-include!("include/disptab.rs");
+// [U1] include/itree.rs imported via common
+// [U1] include/systime.rs imported via common
+// [U1] include/dispextern.rs imported via common
+// [U1] include/composite.rs imported via common
+// [U1] include/coding.rs imported via common
+// [U1] include/buffer.rs imported via common
+// [U1] include/termhooks.rs imported via common
+// [U1] include/window.rs imported via common
+// [U1] include/frame.rs imported via common
+// [U1] include/dispextern.rs imported via common
+// [U1] include/composite.rs imported via common
+// [U1] include/disptab.rs imported via common
 
 // The `DEFVAR_*` variables this C file owns: C's storage is `globals.f_<vname>`
 // (lisp.h 3495-3530), and `struct emacs_globals globals` is defined once, in alloc.c; the

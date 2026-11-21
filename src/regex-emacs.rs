@@ -50,21 +50,23 @@
          unsafe_op_in_unsafe_fn, unused_assignments, unused_parens, unused_mut,
          unreachable_code, unused_labels, unused_braces, while_true, unused_comparisons,
          overflowing_literals, unused_must_use, path_statements)]
+// [U1-MODULE-UNIT]
+use crate::common::*;
 
-include!("include/config.rs");                 // C 26: `#include <config.h>`
-include!("../lib/include/stdio.rs");           // C 449: `sysstdio.h`'s `<stdio.h>` (FILE, putc, fprintf, stderr)
-include!("../lib/include/stdlib.rs");          // C 30: `#include <stdlib.h>`
-include!("../lib/include/string.rs");          // lisp.h 30: `<string.h>` (memcmp, memcpy, memset, strlen)
-include!("../lib/include/stdint.in.rs");       // lisp.h 25: `<stdint.h>` (INTPTR_MAX, PRIdPTR)
-include!("../lib/include/limits.in.rs");       // lisp.h 26: `<limits.h>` (LONG_MIN/LONG_MAX)
-include!("include/lisp.rs");                   // regex-emacs.h 34: `#include "lisp.h"`
-include!("include/character.rs");              // C 32: `#include "character.h"`
-include!("include/itree.rs");                  // buffer.h 28: `#include "itree.h"`
-include!("include/buffer.rs");                 // C 33: `#include "buffer.h"`
-include!("include/syntax.rs");                 // C 34: `#include "syntax.h"`
-include!("include/category.rs");               // C 35: `#include "category.h"`
-include!("include/dispextern.rs");             // C 36: `#include "dispextern.h"`
-include!("include/regex-emacs.rs");            // C 28: `#include "regex-emacs.h"`
+const _: () = ();
+// [U1] ../lib/include/stdio.rs imported via common
+// [U1] ../lib/include/stdlib.rs imported via common
+// [U1] ../lib/include/string.rs imported via common
+// [U1] ../lib/include/stdint.in.rs imported via common
+// [U1] ../lib/include/limits.in.rs imported via common
+// [U1] include/lisp.rs imported via common
+// [U1] include/character.rs imported via common
+// [U1] include/itree.rs imported via common
+// [U1] include/buffer.rs imported via common
+// [U1] include/syntax.rs imported via common
+// [U1] include/category.rs imported via common
+// [U1] include/dispextern.rs imported via common
+// [U1] include/regex-emacs.rs imported via common
 
 /* Maximum number of duplicates an interval can allow.  Some systems
    define this in other header files, but we want our value, so remove

@@ -41,6 +41,8 @@
          unsafe_op_in_unsafe_fn, unused_assignments, unreachable_code, while_true,
          unused_parens, unused_mut, unused_labels, unused_comparisons, overflowing_literals,
          unnecessary_cast)]
+// [U1-MODULE-UNIT]
+use crate::common::*;
 
 /* ------------------------------------------------------------------------------------------
    C 20-142: the `#include`s.  The mirrors are named with C's own header in the comment; the
@@ -53,57 +55,57 @@
    `WINDOWSNT`, `HAVE_SYS_SYSTEMINFO_H`, `MSDOS`, `HAVE_ANDROID`, `HAVE_PERSONALITY_ADDR_NO_RANDOMIZE`)
    are dead for the frozen build and carry no `#include` the port needs.  */
 
-include!("include/config.rs");                 // C 20: `#include <config.h>`
-include!("include/conf_post.rs");               // C 20: the AH_BOTTOM `#include <conf_post.h>` inside it
-include!("include/sysstdio.rs");                // C 23: `#include "sysstdio.h"`
-include!("../lib/include/limits.in.rs");       // C 28: `#include <limits.h>`
-include!("../lib/include/stdcountof.rs");      // lisp.h 30's <stdcountof.h>: `countof`
-include!("../lib/include/stdlib.rs");          // C 29: `#include <stdlib.h>`
-include!("../lib/include/sys_random.in.rs");   // C 30: `#include <sys/random.h>`
-include!("../lib/include/unistd.in.rs");       // C 31: `#include <unistd.h>`
-include!("../lib/include/c-ctype.rs");         // C 33: `#include <c-ctype.h>`
-include!("../lib/include/close-stream.rs");    // C 34: `#include <close-stream.h>`
-include!("include/lisp.rs");                   // C 37: `#include "lisp.h"`
-include!("include/character.rs");              // keyboard.h 24: `#include "character.h"`
-include!("include/itree.rs");                  // buffer.h 28: `#include "itree.h"`
-include!("include/buffer.rs");                 // keyboard.h 23: `#include "buffer.h"`
-include!("include/category.rs");               // character.h 27: `#include "category.h"`
-include!("include/dispextern.rs");             // window.h 23: `#include "dispextern.h"`
-include!("include/composite.rs");              // keyboard.h 28: `#include "composite.h"`
-include!("include/coding.rs");                 // termhooks.h 26: `#include "coding.h"`
-include!("include/sysselect.rs");                // C 38: `#include "sysselect.h"`
-include!("include/blockinput.rs");             // C 39: `#include "blockinput.h"`
-include!("../lib/include/sys_types.in.rs");    // C 87: `#include <sys/types.h>`
-include!("../lib/include/sys_stat.in.rs");     // C 88: `#include <sys/stat.h>`
-include!("../lib/include/errno.rs");           // C 89: `#include <errno.h>`
-include!("../lib/include/fcntl.in.rs");        // C 101: `#include <fcntl.h>`
-include!("../lib/include/signal.rs");          // C 104: `#include "syssignal.h"` -> <signal.h>
-include!("include/syssignal.rs");              // C 104: `#include "syssignal.h"`
-include!("include/systime.rs");                // C 105: `#include "systime.h"`
-include!("include/systty.rs");                 // C 106: `#include "systty.h"`
-include!("include/syswait.rs");                // C 107: `#include "syswait.h"`
-include!("../lib/include/pwd.rs");           // C: `#include <pwd.h>`
-include!("../lib/include/grp.rs");           // C: `#include <grp.h>`
-include!("../lib/include/sys_utsname.rs");   // C: `#include <sys/utsname.h>`
-include!("../lib/include/string.rs");          // lisp.h's <string.h>: memcpy, strchr, …
-include!("../lib/include/wchar.rs");           // C 4566: `#include <wchar.h>`
-include!("../lib/include/wctype.rs");          // C 4567: `#include <wctype.h>`
-include!("../lib/include/math.rs");            // C 4570: `#include <math.h>` (the `exp`/`log`)
-include!("../lib/include/sys_sysctl.rs");      // C 50/51: `#include <sys/sysctl.h>`
-include!("../lib/include/sys_resource.rs");    // C 109: `#include <sys/resource.h>`
-include!("include/keyboard.rs");               // C 118: `#include "keyboard.h"`
-include!("include/window.rs");                 // frame.h 24: `#include "window.h"`
-include!("include/frame.rs");                  // C 119: `#include "frame.h"`
-include!("include/termhooks.rs");              // C 120: `#include "termhooks.h"`
-include!("include/termchar.rs");               // C 121: `#include "termchar.h"`
-include!("include/process.rs");                // C 123: `#include "process.h"`
-include!("include/cm.rs");                     // C 124: `#include "cm.h"`
+// [U1] config.rs provided by common
+// [U1] include/conf_post.rs imported via common
+// [U1] include/sysstdio.rs imported via common
+// [U1] ../lib/include/limits.in.rs imported via common
+// [U1] ../lib/include/stdcountof.rs imported via common
+// [U1] ../lib/include/stdlib.rs imported via common
+// [U1] ../lib/include/sys_random.in.rs imported via common
+// [U1] ../lib/include/unistd.in.rs imported via common
+// [U1] ../lib/include/c-ctype.rs imported via common
+// [U1] ../lib/include/close-stream.rs imported via common
+// [U1] include/lisp.rs imported via common
+// [U1] include/character.rs imported via common
+// [U1] include/itree.rs imported via common
+// [U1] include/buffer.rs imported via common
+// [U1] include/category.rs imported via common
+// [U1] include/dispextern.rs imported via common
+// [U1] include/composite.rs imported via common
+// [U1] include/coding.rs imported via common
+// [U1] include/sysselect.rs imported via common
+// [U1] include/blockinput.rs imported via common
+// [U1] ../lib/include/sys_types.in.rs imported via common
+// [U1] ../lib/include/sys_stat.in.rs imported via common
+// [U1] ../lib/include/errno.rs imported via common
+// [U1] ../lib/include/fcntl.in.rs imported via common
+// [U1] ../lib/include/signal.rs imported via common
+// [U1] include/syssignal.rs imported via common
+// [U1] include/systime.rs imported via common
+// [U1] include/systty.rs imported via common
+// [U1] include/syswait.rs imported via common
+// [U1] ../lib/include/pwd.rs imported via common
+// [U1] ../lib/include/grp.rs imported via common
+// [U1] ../lib/include/sys_utsname.rs imported via common
+// [U1] ../lib/include/string.rs imported via common
+// [U1] ../lib/include/wchar.rs imported via common
+// [U1] ../lib/include/wctype.rs imported via common
+// [U1] ../lib/include/math.rs imported via common
+// [U1] ../lib/include/sys_sysctl.rs imported via common
+// [U1] ../lib/include/sys_resource.rs imported via common
+// [U1] include/keyboard.rs imported via common
+// [U1] include/window.rs imported via common
+// [U1] include/frame.rs imported via common
+// [U1] include/termhooks.rs imported via common
+// [U1] include/termchar.rs imported via common
+// [U1] include/process.rs imported via common
+// [U1] include/cm.rs imported via common
 /* C 137: `#include "android.h"`, inside CC's `#ifdef HAVE_ANDROID`.  The mirror declares C's 85 prototypes in
    its two modules and glob-imports the second (`include/android.rs` 324), so including it is what
    supplies `android_is_special_directory`/`android_rewrite_spawn_argv`/`android_init_gui` - the
    names this unit read as `cannot find function` on `aarch64-linux-android` (measured).  */
 #[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
-include!("include/android.rs");               // C 137: `#include "android.h"`
+const _: () = ();
 
 /* ==========================================================================================
    The declarations C gets from headers the port has no mirror for.  Each has C's own text

@@ -26,29 +26,31 @@
 #![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code,
          unused_imports, unused_macros, unused_variables, unused_mut, unused_assignments,
          unused_unsafe, static_mut_refs, unsafe_op_in_unsafe_fn)]
+// [U1-MODULE-UNIT]
+use crate::common::*;
 
-include!("include/config.rs");
-include!("../lib/include/stdio.rs");     // cm.c 26 sysstdio.h: FILE, putc, fputs, stdout
-include!("../lib/include/string.rs");    // lisp.h 30: memset
-include!("../lib/include/stdcountof.rs"); // lisp.h 28 (the mirror chain's own)
-include!("include/lisp.rs");             // cm.c 23: lisp.h (globals.h, `emacs_abort`)
+const _: () = ();
+// [U1] ../lib/include/stdio.rs imported via common
+// [U1] ../lib/include/string.rs imported via common
+// [U1] ../lib/include/stdcountof.rs imported via common
+// [U1] include/lisp.rs imported via common
 // dispextern.h 25 includes character.h; frame.h 22-23 includes termhooks.h and window.h,
 // and termhooks.h 28 includes systime.h for `Time`.  The mirrors name a few types the C
 // headers reach indirectly (coding.h's `coding_system` through termhooks.h's pointer
 // members), so the list below is the set scroll.rs/doc.rs proved (PORTING.md P-61).
-include!("include/character.rs");
-include!("include/itree.rs");
-include!("include/buffer.rs");
-include!("include/systime.rs");
-include!("include/coding.rs");
-include!("include/dispextern.rs");
-include!("include/composite.rs");
-include!("include/termhooks.rs");
-include!("include/window.rs");
-include!("include/frame.rs");            // cm.c 25: frame.h (XFRAME)
-include!("include/cm.rs");               // cm.c 24: cm.h
-include!("include/termchar.rs");         // cm.c 27: termchar.h (tty_display_info)
-include!("include/tparam.rs");           // cm.c 28: tparam.h (tputs, tgoto, UP, BC)
+// [U1] include/character.rs imported via common
+// [U1] include/itree.rs imported via common
+// [U1] include/buffer.rs imported via common
+// [U1] include/systime.rs imported via common
+// [U1] include/coding.rs imported via common
+// [U1] include/dispextern.rs imported via common
+// [U1] include/composite.rs imported via common
+// [U1] include/termhooks.rs imported via common
+// [U1] include/window.rs imported via common
+// [U1] include/frame.rs imported via common
+// [U1] include/cm.rs imported via common
+// [U1] include/termchar.rs imported via common
+// [U1] include/tparam.rs imported via common
 
 /* C's `putc` (<stdio.h>) and `stdout`: the port declares the two system entries it calls
    here, which is where the C translation unit gets them (the getopt.rs shape, PORTING.md

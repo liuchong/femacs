@@ -9,12 +9,14 @@
 #![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code,
          unused_imports, unused_macros, unused_variables, unused_mut, unused_unsafe,
          static_mut_refs, unsafe_op_in_unsafe_fn)]
+// [U1-MODULE-UNIT]
+use crate::common::*;
 
 use std::ffi::{c_char, c_double, c_int, c_long, c_uint, c_ulong, c_void};
-include!("../../src/include/config.rs");
-include!("../include/gnulib_config.rs");
-include!("../include/stdlib.rs");    // C 21's <stdlib.h>
-include!("../include/dynarray.rs");  // C 24's <dynarray.h>
+// [U1] config.rs provided by common
+// [U1] ../include/gnulib_config.rs imported via common
+// [U1] ../include/stdlib.rs imported via common
+// [U1] ../include/dynarray.rs imported via common
 /* C 25's <stdio.h> is only used by the dead `_LIBC` arm's `__snprintf`.  */
 
 /* C 19-22's `#ifndef _LIBC` arm includes `<libc-config.h>` and `<stdlib.h>`; the port's

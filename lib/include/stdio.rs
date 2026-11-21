@@ -6,11 +6,13 @@
 // `FILE` and `fclose` where C gets them, so this mirror carries them and every unit
 // includes it in lisp.h's own include order (config.rs -> stdio.rs -> lisp.rs).
 
+// [U1-MODULE-MIRROR]
+use super::*;
 /* <stdio.h>'s `FILE`.  It is Darwin's `struct __sFILE`, whose fields three gnulib units read
    through lib/stdio-impl.h's `fp_` (lib/fpending.c, lib/fseterr.c, lib/close-stream.c), so
    the mirror carries the measured layout in lib/include/stdio-impl.rs and names it `FILE`
    here - every unit keeps writing `*mut FILE` as C does.  */
-include!("stdio-impl.rs");
+// [U1] stdio-impl.rs imported via super
 
 unsafe extern "C" {
   /* int fclose (FILE *stream);  */
@@ -76,7 +78,7 @@ pub mod stdio_decls {
     pub fn getc (stream: *mut FILE) -> c_int;
   }
 }
-use stdio_decls::*;
+pub use self::stdio_decls::*;
 
 /// <stdio.h>'s three standard streams.  Darwin exports them as `__stdoutp`/`__stdinp`/
 /// `__stderrp` (the same `link_name` spelling the units used at their use sites), and they
@@ -94,7 +96,7 @@ pub mod stdio_objs {
     pub static mut stderr: *mut FILE;
   }
 }
-use stdio_objs::*;
+pub use self::stdio_objs::*;
 
 /// <stdio.h>: `#define EOF (-1)` (the same value lib/getdelim.c declares in-unit).
 pub const EOF: c_int = -1;

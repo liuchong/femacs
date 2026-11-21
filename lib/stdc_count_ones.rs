@@ -1,11 +1,13 @@
 // femacs: port of lib/stdc_count_ones.c @ fd7afced403.
+// [U1-MODULE-UNIT]
+use crate::common::*;
 use std::ffi::{c_char, c_int, c_long, c_schar, c_short, c_uchar, c_uint, c_ulong,
                 c_ulonglong, c_ushort, c_void};
 
-include!("include/gnulib_config.rs");
-include!("include/stdint.in.rs");
-include!("include/stdbit.in.rs");
-include!("include/limits.in.rs");
+// [U1] include/gnulib_config.rs imported via common
+// [U1] include/stdint.in.rs imported via common
+// [U1] include/stdbit.in.rs imported via common
+// [U1] include/limits.in.rs imported via common
 /* lib/stdc_count_ones.c's dead `#if 1500 <= _MSC_VER` block declares this object.  */
 #[cfg(feature = "msvc")] #[unsafe(no_mangle)]
 pub static mut _gl_stdbit_popcount_support: c_schar = 0;

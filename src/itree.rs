@@ -19,11 +19,13 @@
 #![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code,
          unused_imports, unused_macros, unused_variables, unused_unsafe, static_mut_refs,
          unsafe_op_in_unsafe_fn)]
+// [U1-MODULE-UNIT]
+use crate::common::*;
 
-include!("include/config.rs");
-include!("../lib/include/math.rs");
-include!("include/lisp.rs");
-include!("include/itree.rs");
+const _: () = ();
+// [U1] ../lib/include/math.rs imported via common
+// [U1] include/lisp.rs imported via common
+// [U1] include/itree.rs imported via common
 
 /* C spells `enum itree_order`'s members bare (itree.h 104-110; the switch that reads them is
    itree.c 1238's), and Rust 2024 keeps

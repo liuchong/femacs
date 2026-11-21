@@ -15,6 +15,8 @@
 // is the frozen configuration's.
 
 // window.h 21: the include guard has no Rust counterpart (PORTING.md 0.1).
+// [U1-MODULE-MIRROR]
+use super::*;
 pub const WINDOW_H_INCLUDED: bool = true;
 
 // window.h 23's `#include "dispextern.h"` is not carried by this mirror (the note at the
@@ -46,7 +48,7 @@ pub const WINDOW_H_INCLUDED: bool = true;
 // (`include/frame.rs`, C's `frame.h` 23) is reached only by mirrors or by units that include
 // `buffer.rs` directly.  The closure that *does* change is
 // `src/androidselect.rs`, and by exactly `buffer.rs` and the `itree.rs` it pulls.
-include!("buffer.rs");                        // window.h 605/634/635/1199's BUFFERP, buffer_local_value
+// [U1] buffer.rs imported via super
 /* window.h 23: `#include "dispextern.h"`, and the one name this mirror needs from it is
    `enum text_cursor_kinds` (C 344's member, in the `HAVE_WINDOW_SYSTEM` arm).  Neither the
    edge nor a use-site alias can live here.  The edge: `src/include/dispextern.rs` includes
@@ -385,7 +387,7 @@ pub mod window_fn_decls {
     pub fn syms_of_window ();
   }
 }
-use window_fn_decls::*;
+pub use self::window_fn_decls::*;
 
 
 /* True if W is a leaf window.  */
@@ -533,7 +535,7 @@ pub fn CHECK_LIVE_WINDOW (window_: Lisp_Object)
 
 // The packed-flag reader the accessors above share.
 #[inline(always)]
-fn window_bit (w: *mut window, shift: u32) -> bool
+pub fn window_bit (w: *mut window, shift: u32) -> bool
 { (unsafe { (*w).bits }) >> shift & 1 != 0 }
 
 // window.h 620-1092: the geometry family.  C writes all of it as macros, and the port keeps
@@ -885,7 +887,7 @@ pub mod window_wants_decls {
     pub fn window_wants_tab_line (w: *mut window) -> bool;
   }
 }
-use window_wants_decls::*;
+pub use self::window_wants_decls::*;
 
 /// window.h 1225: `enum margin_unit { MARGIN_IN_LINES, MARGIN_IN_PIXELS };` — C's implicit
 /// values, the unit `window_scroll_margin` measures in.
@@ -911,7 +913,7 @@ pub mod window_redisplay_decls {
     pub fn bset_redisplay (b: *mut c_void);
   }
 }
-use window_redisplay_decls::*;
+pub use self::window_redisplay_decls::*;
 
 /// window.h 1217-1222: `enum window_body_unit`, the unit `window_body_width` and
 /// `window_body_height` measure in.

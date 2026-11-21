@@ -1,4 +1,6 @@
 // femacs: port of src/lisp.h @ fd7afced403.
+// [U1-MODULE-MIRROR]
+use super::*;
 /* C lisp.h 4307 and 4906 declare `mark_fringe_data` (defined in `src/fringe.c`) and
    `module_finalize_function` (defined in `src/emacs-module.c`).  Both live inside `other_units`
    below: at this scope a unit that defines one read `E0428` (measured on `src/fringe.c` and
@@ -22,7 +24,7 @@ use std::ffi::{c_char, c_double, c_int, c_long, c_longlong, c_short, c_uchar, c_
 
 // src/lisp.h 26 includes <stdbit.h>, ahead of <float.h> (31) and <inttypes.h> (32);
 // the port mirrors the C23 header cut down to the three functions data.c calls.
-include!("../../lib/include/stdbit.in.rs");
+// [U1] ../../lib/include/stdbit.in.rs imported via super
 // src/lisp.h 31 includes <float.h> first and <inttypes.h> (hence <stdint.h>) at 32;
 // the port keeps that order (review D's F10 found the two swapped).  gnulib has no
 // wrapper for <float.h>, so that mirror is a system mirror.
@@ -30,11 +32,11 @@ include!("../../lib/include/stdbit.in.rs");
    unit happened to include the mirror itself, so units declared the names in place
    (`src/keyboard.rs` 486-500 is the worked example).  With this edge those in-place copies
    are `E0428` and move back to the mirror (P-88 (5), status 3.524).  */
-include!("../../lib/include/string.rs");   // C 30: `#include <string.h>`
-include!("../../lib/include/float.in.rs");
+// [U1] ../../lib/include/string.rs imported via super
+// [U1] ../../lib/include/float.in.rs imported via super
 // src/lisp.h 32 includes <inttypes.h>, which includes <stdint.h>; the port keeps
 // the same chain (lib/inttypes.in.rs will include this file once it exists).
-include!("../../lib/include/stdint.in.rs");
+// [U1] ../../lib/include/stdint.in.rs imported via super
 // src/lisp.h 34 includes <stdio.h>, which is how C's `FILE` reaches every translation unit
 // through this header.  The port used to leave it to each unit, and that was wrong for the
 // mirrors: `regex-emacs.h` 199's checking-only `print_compiled_pattern (FILE *dest, …)` is
@@ -43,13 +45,13 @@ include!("../../lib/include/stdint.in.rs");
 // failed under `--cfg enable_checking`, which is the only mode that activates that declaration
 // (docs/status.md 3.70).  `xtask materialize` dedupes by file path, so a unit that also
 // includes stdio.rs directly still gets exactly one copy.
-include!("../../lib/include/stdio.rs");
+// [U1] ../../lib/include/stdio.rs imported via super
 // src/lisp.h 44 includes <verify.h> (after <attribute.h> 39, <byteswap.h> 40,
 // <intprops.h> 41 and <sys-limits.h> 42, whose mirrors are not in this list yet --
 // P-26).  The mirror defines `assume` (verify.h 389), which `eassume!` below expands,
 // and `static_assert` (verify.h 309, the C23 keyword PORTING.md 2.5 maps), so lisp.rs
 // declares neither: one name, one place (PORTING.md 0.1-3).
-include!("../../lib/include/verify.rs");
+// [U1] ../../lib/include/verify.rs imported via super
 
 // --- integers --------------------------------------------------------------
 // src/lisp.h: EMACS_INT is one word; the frozen configuration says 64 bits
@@ -523,7 +525,8 @@ macro_rules! XUNTAG {
         (($a as usize).wrapping_sub ($tag as usize) as *mut $ctype)
     };
 }
-include!("comp.rs");        // C 2168: `#include "comp.h"`, after `eassert`/`XUNTAG`
+#[macro_use] #[path = "comp.rs"] pub mod h_src_include_comp;
+pub use self::h_src_include_comp::*;
 
 #[inline(always)]
 pub fn XLI (o: Lisp_Object) -> EMACS_INT { lisp_h_XLI (o) }
@@ -700,7 +703,8 @@ pub fn XSYMBOL (a: Lisp_Object) -> *mut Lisp_Symbol {
 // --- globals (src/lisp.h 912 includes the generated globals.h) --------------
 // In the reference build this file comes from make-docfile; xtask gen-globals
 // produces the port's version (Q symbols and the built-in symbol array).
-include!("globals.rs");
+#[cfg(not(feature = "have_ns"))] include!("globals.rs");
+#[cfg(feature = "have_ns")] include!(env!("FEMACS_GLOBALS_RS"));
 // C sees every EXFUN through lisp.h's `#include <globals.h>`; the mirror keeps the
 // generated prototypes in `globals.rs`'s `pub mod subrs`, and `xtask gen-globals` ends
 // that file with `use subrs::*;`, which `include!` above puts in this scope -- the same
@@ -889,7 +893,7 @@ pub mod cons_generation_decls {
     }
 }
 #[cfg(feature = "femacs_gc_generational")]
-use cons_generation_decls::*;
+pub use self::cons_generation_decls::*;
 
 #[inline(always)]
 pub fn XCONS (a: Lisp_Object) -> *mut Lisp_Cons {
@@ -1525,7 +1529,8 @@ pub fn VALID_DOCSTRING_P (doc: Lisp_Object) -> bool {
 
 // src/lisp.h 2289 includes "thread.h" unconditionally; the mirror carries the three
 // predicates data.c's type predicates use (docs/ports/include-thread.md).
-include!("thread.rs");
+#[macro_use] #[path = "thread.rs"] pub mod h_src_include_thread;
+pub use self::h_src_include_thread::*;
 
 // --- symbol fields (src/lisp.h 2290-2390) ----------------------------------
 
@@ -2257,7 +2262,7 @@ unsafe extern "C" {
 }
 
 #[inline(never)]
-fn flush_stack_barrier () {
+pub fn flush_stack_barrier () {
     // SAFETY: a setjmp writes the callee-saved registers to this frame, which is
     // the mechanism alloc.c relies on before it scans the stack.
     unsafe {
@@ -2576,7 +2581,7 @@ pub mod lisp_hash_decls {
                                         value: Lisp_Object, hash: hash_hash_t) -> ptrdiff_t; }
   unsafe extern "C" { pub fn string_make_unibyte (string: Lisp_Object) -> Lisp_Object; }
 }
-use lisp_hash_decls::*;
+pub use self::lisp_hash_decls::*;
 
 #[inline(always)]
 pub fn hash_table_index_size (h: *mut Lisp_Hash_Table) -> isize {
@@ -3408,7 +3413,7 @@ pub mod lisp_safe_decls {
     pub fn safe_funcall (nargs: ptrdiff_t, args: *mut Lisp_Object) -> Lisp_Object;
   }
 }
-use lisp_safe_decls::*;
+pub use self::lisp_safe_decls::*;
 
 /// C: lisp.h 4845-4847: `#define safe_calln(...) CALLMANY (safe_funcall, ((Lisp_Object [])
 /// {__VA_ARGS__}))`.  The port used to expand this to `calln!` (`Ffuncall`) *plus* a
@@ -4104,7 +4109,7 @@ pub mod other_units {
     unsafe extern "C" {
         pub fn die (msg: *const c_char, file: *const c_char, line: c_int) -> !;
         pub static mut suppress_checking: bool;
-        pub fn strlen (s: *const c_char) -> usize;
+// [U1] pub fn strlen (s: *const c_char) -> usize; provided by lib/include/string.rs
         // lisp.h 5302: `extern AVOID emacs_abort (void) NO_INLINE;` (the port keeps `-> !`).
         pub fn emacs_abort () -> !;
     }
@@ -4118,7 +4123,7 @@ pub mod other_units {
     }
     unsafe extern "C" {
         pub fn slow_eq (x: Lisp_Object, y: Lisp_Object) -> bool;
-        pub fn memchr (s: *const c_void, c: c_int, n: usize) -> *mut c_void;
+// [U1] pub fn memchr (s: *const c_void, c: c_int, n: usize) -> *mut c_void; provided by lib/include/string.rs
     }
     unsafe extern "C" {
         pub fn char_table_ref (table: Lisp_Object, idx: c_int) -> Lisp_Object;
@@ -4589,7 +4594,7 @@ pub mod other_units {
       pub fn report_file_errno (string: *const c_char, err: Lisp_Object, errnum: c_int) -> !;
     }
 }
-use other_units::*;
+pub use self::other_units::*;
 
 // --- constants the strengthened constant gate found missing (2026-10-02) -----------
 // These are lisp.h's own constants; they were absent from this mirror while the gate
@@ -5329,4 +5334,4 @@ pub mod lisp_fn_decls {
     pub fn xlispstrdup (string: Lisp_Object) -> *mut c_char;
   }
 }
-use lisp_fn_decls::*;
+pub use self::lisp_fn_decls::*;

@@ -12,6 +12,8 @@
 #![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code,
          unused_imports, unused_macros, unused_variables, unused_unsafe, static_mut_refs,
          unsafe_op_in_unsafe_fn)]
+// [U1-MODULE-UNIT]
+use crate::common::*;
 
 /* C89 requires only the following math.h functions, and Emacs omits
    the starred functions since we haven't found a use for them:
@@ -40,12 +42,12 @@
    following internally: fabsf, powf, sprintf.
  */
 
-include!("include/config.rs");
-include!("../lib/include/stdio.rs");
-include!("include/lisp.rs");
-include!("../lib/include/mini-gmp.rs");
-include!("include/bignum.rs");
-include!("../lib/include/math.rs");
+// [U1] config.rs provided by common
+// [U1] ../lib/include/stdio.rs imported via common
+// [U1] include/lisp.rs imported via common
+// [U1] ../lib/include/mini-gmp.rs imported via common
+// [U1] include/bignum.rs imported via common
+// [U1] ../lib/include/math.rs imported via common
 
 /* Emacs needs proper handling of +/-inf; correct printing as well as
    important packages depend on it.  Make sure the user didn't specify

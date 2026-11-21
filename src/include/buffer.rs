@@ -12,8 +12,10 @@
 
 // src/buffer.h 23-24 include <sys/types.h> and <time.h>; the port reaches the two
 // system mirrors the same way (both are WIP partial mirrors, PORTING.md P-26).
-include!("../../lib/include/sys_types.in.rs");
-include!("../../lib/include/time.in.rs");
+// [U1-MODULE-MIRROR]
+use super::*;
+// [U1] ../../lib/include/sys_types.in.rs imported via super
+// [U1] ../../lib/include/time.in.rs imported via super
 // buffer.h 26-28 also include character.h, lisp.h and itree.h.  `lisp.rs` is the enclosing
 // unit's (PORTING.md 0.1-9); the other two are carried here (P-72 rule 4) because the units
 // that reach this mirror do not all put them in scope: `xtask layout-check` forces the
@@ -26,8 +28,8 @@ include!("../../lib/include/time.in.rs");
 // buffer.h 1488) and in the `OVERLAY_*` inlines C writes with `XOVERLAY (ov)->interval` (buffer.h
 // 1529-1537), so it carries the include here (P-72 rule ④; `src/androidmenu.c` reaches this
 // mirror through `keyboard.h`).
-include!("character.rs");                     // C 26: `#include "character.h"`
-include!("itree.rs");                         // C 28: `#include "itree.h"`
+// [U1] character.rs imported via super
+// [U1] itree.rs imported via super
 
 // C's include guard `EMACS_BUFFER_H` has no Rust counterpart; the constant below exists
 // only so the mirror's name set matches the reference header's (PORTING.md 0.1, P-24).
@@ -248,7 +250,7 @@ pub mod buffer_point_decls {
   pub fn enlarge_buffer_text (b: *mut buffer, delta: ptrdiff_t);
   }
 }
-use buffer_point_decls::*;
+pub use self::buffer_point_decls::*;
 
 #[inline(always)]
 pub fn SET_PT (position: ptrdiff_t)
@@ -1314,7 +1316,7 @@ pub mod textprop_objs {
   unsafe extern "C" { pub static mut interval_insert_behind_hooks: Lisp_Object; }
   unsafe extern "C" { pub static mut interval_insert_in_front_hooks: Lisp_Object; }
 }
-use textprop_objs::*;
+pub use self::textprop_objs::*;
 
 // ---------------------------------------------------------------------------
 // Declarations C writes in `buffer.h` for names *this repository's* `src/buffer.rs`
@@ -1366,7 +1368,7 @@ pub mod buffer_decls {
   pub static mut Vbuffer_alist: Lisp_Object;
   }
 }
-use buffer_decls::*;
+pub use self::buffer_decls::*;
 
 
 
@@ -1397,7 +1399,7 @@ pub mod buffer_other_decls {
                           plist: Lisp_Object) -> Lisp_Object;
   }
 }
-use buffer_other_decls::*;
+pub use self::buffer_other_decls::*;
 
 /* Return B as a struct buffer pointer, defaulting to the current buffer.  */
 

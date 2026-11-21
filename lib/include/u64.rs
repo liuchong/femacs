@@ -1,3 +1,5 @@
+// [U1-MODULE-MIRROR]
+use super::*;
 /* Written by Paul Eggert.  */
 
 // femacs: port of lib/u64.h @ fd7afced403 (gnulib).
@@ -16,10 +18,10 @@
 // Rust counterpart (PORTING.md 0.1; the `_GL_INLINE_HEADER_BEGIN` row is in
 // excluded-macros.txt).
 
-include!("../src/include/config.rs");
-include!("gnulib_config.rs");
-include!("limits.in.rs");
-include!("stdint.in.rs");
+// config.rs via common root
+// [U1] gnulib_config.rs imported via super
+// [U1] limits.in.rs imported via super
+// [U1] stdint.in.rs imported via super
 
 /* C 22-23: `#ifndef U64_H` / `#define U64_H 1`.  */
 pub const U64_H: c_int = 1;

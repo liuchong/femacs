@@ -23,27 +23,29 @@
 #![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code,
          unused_imports, unused_macros, unused_variables, unused_mut, unused_unsafe,
          static_mut_refs, unsafe_op_in_unsafe_fn)]
+// [U1-MODULE-UNIT]
+use crate::common::*;
 
 /* written by Eric Blake */
 
 use std::ffi::{c_char, c_double, c_int, c_long, c_short, c_uint, c_ulong, c_void};
 
-include!("../src/include/config.rs");
-include!("include/gnulib_config.rs");
-include!("include/limits.in.rs");
-include!("include/errno.rs");
-include!("include/fcntl.in.rs");
-include!("include/sys_types.in.rs");
-include!("include/sys_stat.in.rs");
-include!("include/string.rs");
-include!("include/stdlib.rs");
-include!("include/unistd.in.rs");
-include!("include/filename.rs");
-include!("include/time.in.rs");
-include!("include/timespec.rs");
-include!("include/stat-time.rs");
-include!("include/save-cwd.rs");
-include!("include/utimens.rs");
+// [U1] config.rs provided by common
+// [U1] include/gnulib_config.rs imported via common
+// [U1] include/limits.in.rs imported via common
+// [U1] include/errno.rs imported via common
+// [U1] include/fcntl.in.rs imported via common
+// [U1] include/sys_types.in.rs imported via common
+// [U1] include/sys_stat.in.rs imported via common
+// [U1] include/string.rs imported via common
+// [U1] include/stdlib.rs imported via common
+// [U1] include/unistd.in.rs imported via common
+// [U1] include/filename.rs imported via common
+// [U1] include/time.in.rs imported via common
+// [U1] include/timespec.rs imported via common
+// [U1] include/stat-time.rs imported via common
+// [U1] include/save-cwd.rs imported via common
+// [U1] include/utimens.rs imported via common
 
 /* C 30-58's `#if HAVE_NEARLY_WORKING_UTIMENSAT` arm (the trailing-slash `rpl_utimensat`)
    is dead for this target; C 36's `#else` arm - everything below - is the live text.  */
@@ -63,7 +65,7 @@ mod system {
 
 /* C 13's `#include "openat.h"` now has a mirror (`include/openat.rs`, status 3.194), which owns
    C 55-56's two `_Noreturn` prototypes; this unit declares only `openat-priv.h`'s entry.  */
-include!("include/openat.rs");
+// [U1] include/openat.rs imported via common
 
 unsafe extern "C" {
   /* openat-priv.h 52: char *openat_proc_name (char buf[OPENAT_BUFFER_SIZE], int fd, char

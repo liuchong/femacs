@@ -22,6 +22,8 @@
 // dead arms above name, so it has no mirror and is left out (the atimer.rs precedent).
 
 // menu.h 20: the include guard has no Rust counterpart (PORTING.md 0.1).
+// [U1-MODULE-MIRROR]
+use super::*;
 pub const MENU_H: bool = true;
 
 /* Bit fields used by terminal-specific menu_show_hook.  */
@@ -57,4 +59,4 @@ pub mod menu_decls {
     pub fn x_popup_menu_1 (position: Lisp_Object, menu: Lisp_Object) -> Lisp_Object;
   }
 }
-use menu_decls::*;
+pub use self::menu_decls::*;

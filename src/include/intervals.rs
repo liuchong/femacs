@@ -39,8 +39,10 @@
 // COPY_INTERVAL_CACHE/MERGE_INTERVAL_CACHE, the `1` of `i->up_obj = 1`, and the `0` of the
 // three null tests, all in docs/ports/macro-body-notes.tsv).
 
-include!("lisp.rs");
-include!("buffer.rs");
+// [U1-MODULE-MIRROR]
+use super::*;
+// [U1] lisp.rs imported via super
+// [U1] buffer.rs imported via super
 
 // C's include guard `EMACS_INTERVALS_H` has no Rust counterpart; the constant below exists
 // only so the mirror's name set matches the reference header's (PORTING.md 0.1, P-24).
@@ -447,7 +449,7 @@ pub mod intervals_decls {
     pub fn interval_of (pos: ptrdiff_t, object: Lisp_Object) -> INTERVAL;
   }
 }
-use intervals_decls::*;
+pub use self::intervals_decls::*;
 
 /* Defined in xdisp.c.  */
 unsafe extern "C" {
@@ -498,6 +500,6 @@ pub mod textprop_decls {
     pub fn syms_of_textprop ();
   }
 }
-use textprop_decls::*;
+pub use self::textprop_decls::*;
 
 // INLINE_HEADER_END has no Rust counterpart (PORTING.md 0.1).

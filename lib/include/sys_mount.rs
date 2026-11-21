@@ -41,6 +41,8 @@
 // carries the three lengths here rather than adding a mirror for <sys/param.h>, whose only
 // other use in this unit would be these constants.
 
+// [U1-MODULE-MIRROR]
+use super::*;
 pub const MFSTYPENAMELEN: usize = 16;
 pub const MAXPATHLEN: usize = 1024;
 pub const MNAMELEN: usize = 1024;

@@ -1,8 +1,7 @@
 // P-346: opt-in nonmoving young-cons collector metadata. alloc.rs owns the
 // original marker/sweeper; this module never replaces their object semantics.
-mod gc_collector {
-    use super::*;
-    use core::sync::atomic::{AtomicBool, AtomicU8, Ordering};
+use super::*;
+use core::sync::atomic::{AtomicBool, AtomicU8, Ordering};
 
     const REGISTRY_CAPACITY: usize = 262144;
     const INDEX_CAPACITY: usize = 524288;
@@ -646,15 +645,14 @@ mod gc_collector {
         }
         unbind_to(count, roots.result)
     }
-}
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn femacs_gc_cons_written(cell: Lisp_Object) { gc_collector::written(cell); }
+pub unsafe extern "C" fn femacs_gc_cons_written(cell: Lisp_Object) { written(cell); }
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn femacs_gc_cons_escaped(cell: Lisp_Object) { gc_collector::escaped(cell); }
+pub unsafe extern "C" fn femacs_gc_cons_escaped(cell: Lisp_Object) { escaped(cell); }
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn femacs_gc_unknown_producer_loaded() { gc_collector::unknown_producer_loaded(); }
+pub unsafe extern "C" fn femacs_gc_unknown_producer_loaded() { unknown_producer_loaded(); }
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn femacs_gc_young_cadence_pending() -> bool {
-    gc_collector::young_cadence_pending()
+    young_cadence_pending()
 }

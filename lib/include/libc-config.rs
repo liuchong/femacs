@@ -11,6 +11,8 @@
 // (C's `inline` keyword) and the `compat_symbol`/`versioned_symbol` pair (C's body is
 // `extern int dummy`, a declaration glibc's compat machinery needs and the port has nothing for).
 
+// [U1-MODULE-MIRROR]
+use super::*;
 /// C 89: `# define _FEATURES_H 1` - the marker `<cdefs.h>` checks before it includes
 /// `<features.h>`.
 pub const _FEATURES_H: core::ffi::c_int = 1;

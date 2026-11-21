@@ -1,4 +1,6 @@
 // femacs: port of lib/pipe2.c @ fd7afced403.
+// [U1-MODULE-UNIT]
+use crate::common::*;
 /* emacs/lib/pipe2.c (@ 166 lines) is on the verified list: HAVE_PIPE2 is undefined and
    GNULIB_defined_O_NONBLOCK is undefined on this target, so C 44-61's `#if HAVE_PIPE2` arm,
    C 66-103's `_WIN32` arm and the `nonblocking.h` include are dead by measurement, and the live
@@ -8,12 +10,12 @@
    "binary-io.h" the new binary-io mirror, and <unistd.h>'s `pipe`/`close` come from the unistd
    mirror.  */
 use std::ffi::{c_char, c_int, c_long, c_uint, c_ulong, c_void};
-include!("../src/include/config.rs");
-include!("include/gnulib_config.rs");
-include!("include/fcntl.in.rs");
-include!("include/binary-io.rs");
-include!("include/unistd.in.rs");
-include!("include/errno.rs");
+// [U1] config.rs provided by common
+// [U1] include/gnulib_config.rs imported via common
+// [U1] include/fcntl.in.rs imported via common
+// [U1] include/binary-io.rs imported via common
+// [U1] include/unistd.in.rs imported via common
+// [U1] include/errno.rs imported via common
 
 /* C 39-166's `int pipe2 (int fd[2], int flags)`.  C's three `goto fail` jumps become
    `break 'fail` out of the labelled block that wraps the live body (PORTING.md 2.2); the

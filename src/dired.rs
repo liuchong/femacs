@@ -46,28 +46,30 @@
 #![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code,
          unused_imports, unused_macros, unused_variables, unused_unsafe, static_mut_refs,
          unsafe_op_in_unsafe_fn)]
+// [U1-MODULE-UNIT]
+use crate::common::*;
 
-include!("include/config.rs");                 // C 21
-include!("../lib/include/sys_types.in.rs");    // <sys/stat.h> (C 23) pulls it
-include!("../lib/include/pwd.rs");           // C: `#include <pwd.h>`
-include!("../lib/include/grp.rs");           // C: `#include <grp.h>`
-include!("../lib/include/sys_utsname.rs");   // C: `#include <sys/utsname.h>`
-include!("../lib/include/sys_stat.in.rs");     // C 23: <sys/stat.h>
-include!("../lib/include/dirent.rs");          // C 34: <dirent.h>
-include!("../lib/include/filemode.rs");        // C 35: <filemode.h>
-include!("../lib/include/stat-time.rs");       // C 36: <stat-time.h>
-include!("../lib/include/errno.rs");           // C 30: <errno.h>
-include!("../lib/include/fcntl.in.rs");        // C 31: <fcntl.h>
-include!("../lib/include/unistd.in.rs");       // C 32: <unistd.h>
-include!("../lib/include/string.rs");          // lisp.h 30: <string.h>
-include!("include/lisp.rs");                   // C 38
-include!("include/systime.rs");                // C 39
-include!("include/itree.rs");                  // buffer.h 27: <itree.h> (buffer.rs's members)
-include!("include/character.rs");              // buffer.rs's CHAR_STRING family
-include!("include/intervals.rs");              // buffer.rs's INTERVAL
-include!("include/composite.rs");              // coding.h 284: <composite.h> (composition_method)
-include!("include/buffer.rs");                 // C 40
-include!("include/coding.rs");                 // C 41
+const _: () = ();
+// [U1] ../lib/include/sys_types.in.rs imported via common
+// [U1] ../lib/include/pwd.rs imported via common
+// [U1] ../lib/include/grp.rs imported via common
+// [U1] ../lib/include/sys_utsname.rs imported via common
+// [U1] ../lib/include/sys_stat.in.rs imported via common
+// [U1] ../lib/include/dirent.rs imported via common
+// [U1] ../lib/include/filemode.rs imported via common
+// [U1] ../lib/include/stat-time.rs imported via common
+// [U1] ../lib/include/errno.rs imported via common
+// [U1] ../lib/include/fcntl.in.rs imported via common
+// [U1] ../lib/include/unistd.in.rs imported via common
+// [U1] ../lib/include/string.rs imported via common
+// [U1] include/lisp.rs imported via common
+// [U1] include/systime.rs imported via common
+// [U1] include/itree.rs imported via common
+// [U1] include/character.rs imported via common
+// [U1] include/intervals.rs imported via common
+// [U1] include/composite.rs imported via common
+// [U1] include/buffer.rs imported via common
+// [U1] include/coding.rs imported via common
 
 /* C's `<dirent.h>` differs per target, and the record is read straight out of the C library's own
    buffer, so its layout has to be the target's.  The host's is the frozen macOS shape above; the

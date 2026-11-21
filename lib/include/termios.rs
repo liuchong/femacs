@@ -27,6 +27,8 @@
 // measured copy, and that convergence is a separate, lane-visible step recorded in
 // docs/ports/include-termios.md.
 
+// [U1-MODULE-MIRROR]
+use super::*;
 /// <termios.h>: `typedef unsigned long tcflag_t;` (measured `sizeof` 8 on the host; bionic's is
 /// `unsigned int`, 4 bytes - status 4.795).
 #[cfg (not (feature = "have_android"))]

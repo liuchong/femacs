@@ -129,6 +129,40 @@ name = "femacs"
 version = "0.0.1"
 
 [[package]]
+name = "femacs-host"
+version = "0.1.0"
+dependencies = [
+ "femacs-vm",
+]
+
+[[package]]
+name = "femacs-pure"
+version = "0.1.0"
+
+[[package]]
+name = "femacs-sys"
+version = "0.1.0"
+dependencies = [
+ "femacs-pure",
+]
+
+[[package]]
+name = "femacs-tools"
+version = "0.1.0"
+dependencies = [
+ "femacs-pure",
+ "femacs-sys",
+]
+
+[[package]]
+name = "femacs-vm"
+version = "0.1.0"
+dependencies = [
+ "femacs-pure",
+ "femacs-sys",
+]
+
+[[package]]
 name = "flate2"
 version = "1.1.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"

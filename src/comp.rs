@@ -48,12 +48,14 @@
          unsafe_op_in_unsafe_fn, unused_assignments, unused_parens, unused_mut,
          unreachable_code, unused_labels, while_true, unused_comparisons, overflowing_literals,
          unused_must_use, clippy::all)]
+// [U1-MODULE-UNIT]
+use crate::common::*;
 
-include!("include/config.rs");
-include!("include/epaths.rs");                    // C: `<epaths.h>` (generated; see epaths.in's android arm)
+const _: () = ();
+// [U1] epaths.rs provided by common
 
 // C 23: `#include "lisp.h"` - outside the file gate, as C has it (C 25 opens after it).
-include!("include/lisp.rs");
+// [U1] include/lisp.rs imported via common
 
 /* ----------------------------------------------------------------------------------------------
    C 25-822: the file gate's text, in C's order.  C 25 is `#ifdef HAVE_NATIVE_COMP`.  */
@@ -68,36 +70,36 @@ include!("include/lisp.rs");
    which take a `FILE *`), C 32's `<epaths.h>` is used by no line of this file at all (the grep for
    `EPATHS` finds only the include), and C 31's `<libgccjit.h>` is the gap recorded above.  */
 #[cfg (feature = "have_native_comp")]
-include!("include/window.rs");                  // C 34: `#include "window.h"`
+const _: () = ();
 #[cfg (all (feature = "have_native_comp", feature = "have_window_system"))]
-include!("include/dispextern.rs");              // window.h's display dependency for cursor fields
+const _: () = ();
 #[cfg (feature = "have_native_comp")]
-include!("include/dynlib.rs");                  // C 35: `#include "dynlib.h"`
+const _: () = ();
 /* `character.h` reaches C through `buffer.h`, whose `CHAR_STRING`/`UNIBYTE_TO_CHAR` family lives
    in it (`decompress.rs` and `dired.rs` include the mirror in the same order, PORTING.md 0.1-4:
    the arm-flip compile of the first revision stopped on `UNIBYTE_TO_CHAR` in the `buffer.rs`
    copy, `docs/ports/comp.md`'s `## Evidence` ③).  */
 #[cfg (feature = "have_native_comp")]
-include!("include/character.rs");               // buffer.h: the CHAR_STRING family
+const _: () = ();
 #[cfg (feature = "have_native_comp")]
-include!("../lib/include/string.rs");           // lisp.h 28: <string.h> (strcpy), md5.h's memcpy
+const _: () = ();
 #[cfg (feature = "have_native_comp")]
-include!("../lib/include/stdio.rs");            // C 29: `#include <stdio.h>` (vsnprintf)
+const _: () = ();
 #[cfg (feature = "have_native_comp")]
-include!("include/buffer.rs");                  // C 36: `#include "buffer.h"`
+const _: () = ();
 #[cfg (feature = "have_native_comp")]
-include!("include/blockinput.rs");              // C 37: `#include "blockinput.h"`
+const _: () = ();
 #[cfg (feature = "have_native_comp")]
-include!("include/coding.rs");                  // C 38: `#include "coding.h"`
+const _: () = ();
 #[cfg (feature = "have_native_comp")]
-include!("../lib/include/md5.rs");              // C 39: `#include "md5.h"`
+const _: () = ();
 #[cfg (feature = "have_native_comp")]
-include!("include/sysstdio.rs");                // C 40: `#include "sysstdio.h"`
+const _: () = ();
 /* lisp.h 28's `#include <stdcountof.h>` - C reaches it through lisp.h (C 23), and this unit is
    the first to need `countof` (slice 2's `freloc_check_fill`).  Gated like this file's other
    includes, so the frozen configuration compiles none of it.  */
 #[cfg (feature = "have_native_comp")]
-include!("../lib/include/stdcountof.rs");       // lisp.h 28: `<stdcountof.h>` (`countof`)
+const _: () = ();
 
 /* C 22's `<string.h>` reaches this unit through `lisp.h`, and the mirror
    (`lib/include/string.rs`) carries neither of these two names: `strnlen` and `mempcpy` are
@@ -173,7 +175,7 @@ unsafe extern "C" {
 
 // C 49: `# include "w32common.h"`.
 #[cfg (all (feature = "have_native_comp", feature = "windowsnt"))]
-include!("include/w32common.rs");
+const _: () = ();
 
 /* C 51-114: the sixty-four `#undef`s of the libgccjit entry points, which cancel the header's own
    function-like macros so that the `#define`s at C 366-441 can rename each one to this unit's
@@ -948,7 +950,8 @@ static mut comp: comp_t = unsafe { std::mem::zeroed () };
 static mut logfile: *mut FILE = std::ptr::null_mut ();
 
 #[cfg(feature = "have_native_comp")]
-include!("runtime_native_context.rs");
+#[path = "runtime_native_context.rs"]
+mod native_context;
 
 #[cfg(feature = "have_native_comp")]
 #[unsafe(no_mangle)]
@@ -1816,7 +1819,7 @@ unsafe extern "C" {
 
 /// C 4961-4967: `static void helper_unwind_protect (Lisp_Object handler)`.
 #[cfg (feature = "have_native_comp")]
-unsafe fn helper_unwind_protect (handler: Lisp_Object)
+unsafe extern "C" fn helper_unwind_protect (handler: Lisp_Object)
 {
   /* Support for a function here is new in 24.4.  */
   /* C's `FUNCTIONP (handler) ? bcall0 : prog_ignore` is a function-pointer choice; the port's
@@ -1830,14 +1833,14 @@ unsafe fn helper_unwind_protect (handler: Lisp_Object)
 
 /// C 4969-4973: `static Lisp_Object helper_unbind_n (Lisp_Object n)`.
 #[cfg (feature = "have_native_comp")]
-unsafe fn helper_unbind_n (n: Lisp_Object) -> Lisp_Object
+unsafe extern "C" fn helper_unbind_n (n: Lisp_Object) -> Lisp_Object
 {
   return unbind_to (specpdl_ref_add (SPECPDL_INDEX (), -XFIXNUM (n)), Qnil ());
 }
 
 /// C 4975-4980: `static void helper_save_restriction (void)`.
 #[cfg (feature = "have_native_comp")]
-unsafe fn helper_save_restriction ()
+unsafe extern "C" fn helper_save_restriction ()
 {
   record_unwind_protect (Some (std::mem::transmute (save_restriction_restore as *const c_void)),
 			 save_restriction_save ());
@@ -1846,7 +1849,7 @@ unsafe fn helper_save_restriction ()
 /// C 4982-4988: `static bool helper_PSEUDOVECTOR_TYPEP_XUNTAG (Lisp_Object a,
 /// enum pvec_type code)`.
 #[cfg (feature = "have_native_comp")]
-unsafe fn helper_PSEUDOVECTOR_TYPEP_XUNTAG (a: Lisp_Object, code: pvec_type) -> bool
+unsafe extern "C" fn helper_PSEUDOVECTOR_TYPEP_XUNTAG (a: Lisp_Object, code: pvec_type) -> bool
 {
   return PSEUDOVECTOR_TYPEP (XUNTAG! (a,
 				      LISP_WORD_TAG (Lisp_Type::Lisp_Vectorlike as Lisp_Word_tag),
@@ -1857,7 +1860,7 @@ unsafe fn helper_PSEUDOVECTOR_TYPEP_XUNTAG (a: Lisp_Object, code: pvec_type) -> 
 /// C 4990-4995: `static struct Lisp_Symbol_With_Pos *helper_GET_SYMBOL_WITH_POSITION
 /// (Lisp_Object a)`.
 #[cfg (feature = "have_native_comp")]
-unsafe fn helper_GET_SYMBOL_WITH_POSITION (a: Lisp_Object) -> *mut Lisp_Symbol_With_Pos
+unsafe extern "C" fn helper_GET_SYMBOL_WITH_POSITION (a: Lisp_Object) -> *mut Lisp_Symbol_With_Pos
 {
   CHECK_TYPE (SYMBOL_WITH_POS_P (a), Qsymbol_with_pos_p (), a);
   return XUNTAG! (a, LISP_WORD_TAG (Lisp_Type::Lisp_Vectorlike as Lisp_Word_tag),
@@ -1867,7 +1870,7 @@ unsafe fn helper_GET_SYMBOL_WITH_POSITION (a: Lisp_Object) -> *mut Lisp_Symbol_W
 /// C 4997-5010: `static Lisp_Object helper_sanitizer_assert (Lisp_Object val,
 /// Lisp_Object type)`.
 #[cfg (feature = "have_native_comp")]
-unsafe fn helper_sanitizer_assert (val: Lisp_Object, type_: Lisp_Object) -> Lisp_Object
+unsafe extern "C" fn helper_sanitizer_assert (val: Lisp_Object, type_: Lisp_Object) -> Lisp_Object
 {
   if ! comp_sanitizer_active
       || ! NILP ((CALLNI! ("cl-typep", val, type_)))

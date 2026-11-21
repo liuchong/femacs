@@ -5,6 +5,8 @@
 // the accessors come from lisp.rs, as they do from lisp.h in C.
 
 // The include guard has no Rust counterpart (PORTING.md 0.1).
+// [U1-MODULE-MIRROR]
+use super::*;
 pub const EMACS_CHARACTER_H: bool = true;
 
 /* character code	1st byte   byte sequence
@@ -72,7 +74,7 @@ pub mod char_string_decl {
     pub fn char_string (c: c_uint, p: *mut u8) -> c_int;
     }
 }
-use char_string_decl::*;
+pub use self::char_string_decl::*;
 
 /* UTF-8 encodings.  Use \x escapes, so they are portable to pre-C11
    compilers and can be concatenated with ordinary string literals.  */
@@ -610,7 +612,7 @@ pub mod character_decls {
     pub static hexdigit: [c_char; 256];
     }
 }
-use character_decls::*;
+pub use self::character_decls::*;
 
 /* Look up the element in char table OBJ at index CH, and return it as
    an integer.  If the element is not a character, return CH itself.  */

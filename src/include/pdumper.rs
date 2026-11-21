@@ -14,16 +14,18 @@
 // docs/ports/include-pdumper.md rather than transcribed.
 
 // pdumper.h 20-21: the include guard has no Rust counterpart (PORTING.md 0.1).
+// [U1-MODULE-MIRROR]
+use super::*;
 pub const EMACS_PDUMPER_H: bool = true;
 
-include!("../../lib/include/stdio.rs");        // pdumper.h 23: `#include <stdio.h>` (`FILE`)
-include!("../../lib/include/fingerprint.rs");  // pdumper.h 23: `#include "fingerprint.h"`
+// [U1] ../../lib/include/stdio.rs imported via super
+// [U1] ../../lib/include/fingerprint.rs imported via super
 // pdumper.h 24's `#include "lisp.h"` reaches config.h (lisp.h 27), which the unit's own root
 // already includes - and `config.h` is *guarded* in C, so the second include is a no-op there.
 // Rust has no such guard: including `config.rs` here as well re-declared every constant, which
 // broke `src/alloc.c` on Android (`CHECK_LISP_OBJECT_TYPE is defined multiple times`, status
 // 4.623).  The include is therefore dropped; the unit still reads the same constants.
-include!("lisp.rs");
+// [U1] lisp.rs imported via super
 
 pub const PDUMPER_NO_OBJECT: c_int = -1;       // pdumper.h 26
 
@@ -88,7 +90,7 @@ pub mod pdumper_decls {
   }
 }
 
-use pdumper_decls::*;
+pub use self::pdumper_decls::*;
 
 // pdumper.h 81: `typedef void (*pdumper_hook)(void);`.  The pointer is nullable in C, so
 // the port spells it `Option<unsafe extern "C" fn ()>` (P-27, the atimer_callback shape).

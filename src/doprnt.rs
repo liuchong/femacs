@@ -8,6 +8,8 @@
 #![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code,
          unused_imports, unused_macros, unused_variables, unused_unsafe, static_mut_refs,
          unsafe_op_in_unsafe_fn)]
+// [U1-MODULE-UNIT]
+use crate::common::*;
 
 /* If you think about replacing this with some similar standard C function of
    the printf family (such as vsnprintf), please note that this function
@@ -48,10 +50,10 @@
 // lisp.rs pulls in (stdint/limits/float; P-26), and the two names this file still needs from
 // <string.h> are declared below until those mirrors carry them (`strncmp` left the block when
 // the lisp.h 30 edge landed, status 3.524).
-include!("include/config.rs");
-include!("../lib/include/stdio.rs");
-include!("include/lisp.rs");
-include!("include/character.rs");
+// [U1] config.rs provided by common
+// [U1] ../lib/include/stdio.rs imported via common
+// [U1] include/lisp.rs imported via common
+// [U1] include/character.rs imported via common
 
 // C gets `va_list` from <stdarg.h>; the port's equivalent is core::ffi::VaList.
 use core::ffi::VaList;

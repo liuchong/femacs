@@ -10,6 +10,8 @@
 // live one and `OPENAT_BUFFER_SIZE` = `SAFER_ALLOCA (PATH_MAX)` = min (1024, 4096 - 64) = 1024
 // (utimensat.rs already carries that value in-unit for the same reason).
 
+// [U1-MODULE-MIRROR]
+use super::*;
 /* C 28's `#define SAFER_ALLOCA_MAX (4096 - 64)`.  */
 pub const SAFER_ALLOCA_MAX: usize = 4096 - 64;
 
@@ -43,7 +45,7 @@ pub mod openat_priv_decls {
       -> c_int;
   }
 }
-use openat_priv_decls::*;
+pub use self::openat_priv_decls::*;
 
 /* C 20-21: the include guard.  It has no Rust counterpart (PORTING.md 0.1), and the mirror
    records it the way the other guards are recorded.  */

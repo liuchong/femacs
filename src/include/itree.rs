@@ -9,6 +9,8 @@
 // by `xtask layout-check`.
 
 // The include guard has no Rust counterpart (PORTING.md 0.1).
+// [U1-MODULE-MIRROR]
+use super::*;
 pub const ITREE_H: bool = true;
 
 /// The tree and node structs are mainly here, so they can be
@@ -139,7 +141,7 @@ pub mod itree_externs {
   }
 }
 
-use itree_externs::*;
+pub use self::itree_externs::*;
 
 #[inline(always)]
 pub fn itree_empty_p (tree: *mut itree_tree) -> bool

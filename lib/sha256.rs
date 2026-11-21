@@ -1,4 +1,6 @@
 // femacs: port of lib/sha256.c @ fd7afced403.
+// [U1-MODULE-UNIT]
+use crate::common::*;
 /* Written by David L. Jones <david@davidljones.name>
    Based on (and very similar to) the SHA1 implementation in
    Scott G. Miller's sha1.c
@@ -11,10 +13,10 @@
    C 26-28's `#if HAVE_OPENSSL_SHA256` arm is dead on the frozen target and kept as text
    (P-51); C 41's `#if ! HAVE_OPENSSL_SHA256` is live and C 424's `#endif` closes it.  */
 use std::ffi::{c_char, c_int, c_long, c_uchar, c_uint, c_ulong, c_void};
-include!("../src/include/config.rs");
-include!("include/gnulib_config.rs");
-include!("include/stdint.in.rs");
-include!("include/sha256.rs");
+// [U1] config.rs provided by common
+// [U1] include/gnulib_config.rs imported via common
+// [U1] include/stdint.in.rs imported via common
+// [U1] include/sha256.rs imported via common
 
 /* C 32's `<string.h>`: the one entry the bodies call.  */
 unsafe extern "C" {

@@ -12,6 +12,8 @@
 // getopt-ext.rs) and the definition (`#[unsafe(export_name = ...)]` in lib/getopt1.rs); the
 // file has no item of its own.  docs/ports/include-getopt-pfx-ext.md records the rest.
 
+// [U1-MODULE-MIRROR]
+use super::*;
 /* C 21: the include guard, whose C body is `1`.  */
 pub const _GETOPT_PFX_EXT_H: core::ffi::c_int = 1;
 

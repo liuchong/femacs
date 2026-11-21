@@ -33,6 +33,8 @@
 // them from a framework header, exactly as C does.
 
 // C 19-20: the include guard has no Rust counterpart (PORTING.md 0.1-4).
+// [U1-MODULE-MIRROR]
+use super::*;
 pub const __NSGUI_H__: bool = true;
 
 /* C 46-53: `typedef struct _XCharStruct { … } XCharStruct;`.  Declared as C's own tag plus

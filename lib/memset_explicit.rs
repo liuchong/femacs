@@ -1,6 +1,8 @@
 #![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code,
          unused_imports, unused_macros, unused_variables, unused_mut, unused_unsafe,
          static_mut_refs, unsafe_op_in_unsafe_fn)]
+// [U1-MODULE-UNIT]
+use crate::common::*;
 use std::ffi::{c_char, c_double, c_int, c_long, c_uint, c_ulong, c_void};
 // femacs: port of lib/memset_explicit.c @ fd7afced403.  Blind file.
 // The frozen configuration gives the `HAVE_MEMSET_S` arm (macros.tsv 1432 is 1, with
@@ -8,9 +10,9 @@ use std::ffi::{c_char, c_double, c_int, c_long, c_uint, c_ulong, c_void};
 // `(void) memset_s (s, len, c, len);` and C 17's `return s;` are the live text; the other
 // three arms are named at their sites.  The reference object confirms the name:
 // `nm -g build/emacs-ref/lib/memset_explicit.o` prints `T _memset_explicit`.
-include!("../src/include/config.rs");
-include!("include/gnulib_config.rs");
-include!("include/string.rs");     // <string.h> (`memset_s`, `memset`)
+// [U1] config.rs provided by common
+// [U1] include/gnulib_config.rs imported via common
+// [U1] include/string.rs imported via common
 
 /* Set S's bytes to C, where S has LEN bytes.  The compiler will not
    optimize effects away, even if S is dead after the call.  */

@@ -44,45 +44,43 @@
 // C's `switch (t->type)` carries a `default: emacs_abort ()` arm; the port's `match` lists
 // every enumerator *and* that arm, so the catch-all is unreachable by construction (P-78).
 #![allow(unreachable_patterns)]
+// [U1-MODULE-UNIT]
+use crate::common::*;
 
-include!("include/config.rs");
-include!("../lib/include/stdio.rs");        // lisp.h 34 and termchar.h 22: FILE
-include!("../lib/include/string.rs");       // lisp.h 30: strcmp
-include!("../lib/include/stdcountof.rs");   // lisp.h 28
-include!("include/lisp.rs");                // globals.rs (the Q*/V* names) comes with it
-include!("include/character.rs");           // MAX_CHAR
-include!("include/itree.rs");
-include!("include/buffer.rs");
-include!("include/systime.rs");
-include!("include/coding.rs");              // setup_coding_system's `struct coding_system`
-include!("include/dispextern.rs");          // struct glyph, Emacs_Color
-include!("include/composite.rs");
-include!("include/termhooks.rs");           // struct terminal, output_*
-include!("include/window.rs");
-include!("include/frame.rs");               // FRAME_LIVE_P/FRAME_INITIAL_P/XFRAME
+// [U1] config.rs provided by common
+// [U1] ../lib/include/stdio.rs imported via common
+// [U1] ../lib/include/string.rs imported via common
+// [U1] ../lib/include/stdcountof.rs imported via common
+// [U1] include/lisp.rs imported via common
+// [U1] include/character.rs imported via common
+// [U1] include/itree.rs imported via common
+// [U1] include/buffer.rs imported via common
+// [U1] include/systime.rs imported via common
+// [U1] include/coding.rs imported via common
+// [U1] include/dispextern.rs imported via common
+// [U1] include/composite.rs imported via common
+// [U1] include/termhooks.rs imported via common
+// [U1] include/window.rs imported via common
+// [U1] include/frame.rs imported via common
 // termchar.h 23 includes dispextern.h and is written for a unit that has already seen
 // frame.h/termhooks.h (its FRAME_TTY reads them); naming it last is C's own order.
-include!("include/termchar.rs");            // struct tty_display_info, tty_list
-include!("include/blockinput.rs");          // block_input/unblock_input
-include!("include/keyboard.rs");            // KBOARD, initial_kboard
+// [U1] include/termchar.rs imported via common
+// [U1] include/blockinput.rs imported via common
+// [U1] include/keyboard.rs imported via common
 
 /* Chain of all terminals currently in use.  */
 // C 36-42 gives these three objects file scope.  The mirror (include/termhooks.rs) declares
 // `terminal_list` and `initial_terminal` at the crate root, so the definitions live in a
 // module that is glob-imported: an item shadows a glob import while a second crate-root item
 // of the same name would be `E0428` (PORTING.md P-21's mechanism, from the other side).
-pub mod terminal_globals {
-  use super::*;
 
-  /* Chain of all terminals currently in use.  */
+/* Chain of all terminals currently in use.  */
   #[unsafe(no_mangle)]
   pub static mut terminal_list: *mut terminal = std::ptr::null_mut ();
 
   /* The initial terminal device, created by initial_term_init.  */
   #[unsafe(no_mangle)]
   pub static mut initial_terminal: *mut terminal = std::ptr::null_mut ();
-}
-use terminal_globals::*;
 
 /* The first unallocated terminal id.  */
 // C 39: `static int next_terminal_id;` — C's `static` is internal linkage, so the port

@@ -26,36 +26,38 @@
          unused_imports, unused_macros, unused_variables, unused_unsafe, static_mut_refs,
          unsafe_op_in_unsafe_fn, unused_assignments, unreachable_code, while_true,
          unused_parens, unused_mut, clashing_extern_declarations)]
+// [U1-MODULE-UNIT]
+use crate::common::*;
 
-include!("include/config.rs");                 // C 24: `#include <config.h>`
-include!("include/epaths.rs");                    // C: `<epaths.h>` (generated; see epaths.in's android arm)
-include!("../lib/include/stdio.rs");           // C 25: `#include "sysstdio.h"`
-include!("../lib/include/stdlib.rs");          // C 26: `#include <stdlib.h>`
-include!("../lib/include/sys_types.in.rs");    // C 27: `#include <sys/types.h>`
-include!("../lib/include/sys_stat.in.rs");     // C 28: `#include <sys/stat.h>`
-include!("../lib/include/errno.rs");           // C 30: `#include <errno.h>`
-include!("../lib/include/math.rs");            // C 32: `#include <math.h>`
-include!("../lib/include/minmax.rs");          // lisp.h 32: `<minmax.h>` (max/min)
-include!("../lib/include/string.rs");          // lisp.h 30: `<string.h>` (memcpy)
-include!("../lib/include/stat-time.rs");       // C 33: `#include <stat-time.h>`
-include!("include/itree.rs");                  // C 38: buffer.h 28 `#include "itree.h"`
-include!("../lib/include/c-ctype.rs");         // C 47: `#include <c-ctype.h>`
-include!("../lib/include/unistd.in.rs");       // C 57: `#include <unistd.h>`
-include!("../lib/include/fcntl.in.rs");        // C 58: `#include <fcntl.h>`
-include!("include/lisp.rs");                   // C 34: `#include "lisp.h"`
-include!("include/dispextern.rs");             // C 35: `#include "dispextern.h"`
-include!("include/intervals.rs");              // C 36: `#include "intervals.h"`
-include!("include/character.rs");              // C 37: `#include "character.h"`
-include!("include/buffer.rs");                 // C 38: `#include "buffer.h"`
-include!("include/charset.rs");                // C 39: `#include "charset.h"`
-include!("include/composite.rs");              // coding.h 284: `#include "composite.h"`
-include!("include/coding.rs");                 // charset.h 26: `#include "coding.h"`
-include!("include/commands.rs");               // C 41: `#include "commands.h"`
-include!("include/keyboard.rs");               // C 42: `#include "keyboard.h"`
-include!("include/systime.rs");                // C 43: `#include "systime.h"`
-include!("include/termhooks.rs");              // C 44: `#include "termhooks.h"`
-include!("include/blockinput.rs");             // C 45: `#include "blockinput.h"`
-include!("include/pdumper.rs");                // C 46: `#include "pdumper.h"`
+const _: () = ();
+// [U1] epaths.rs provided by common
+// [U1] ../lib/include/stdio.rs imported via common
+// [U1] ../lib/include/stdlib.rs imported via common
+// [U1] ../lib/include/sys_types.in.rs imported via common
+// [U1] ../lib/include/sys_stat.in.rs imported via common
+// [U1] ../lib/include/errno.rs imported via common
+// [U1] ../lib/include/math.rs imported via common
+// [U1] ../lib/include/minmax.rs imported via common
+// [U1] ../lib/include/string.rs imported via common
+// [U1] ../lib/include/stat-time.rs imported via common
+// [U1] include/itree.rs imported via common
+// [U1] ../lib/include/c-ctype.rs imported via common
+// [U1] ../lib/include/unistd.in.rs imported via common
+// [U1] ../lib/include/fcntl.in.rs imported via common
+// [U1] include/lisp.rs imported via common
+// [U1] include/dispextern.rs imported via common
+// [U1] include/intervals.rs imported via common
+// [U1] include/character.rs imported via common
+// [U1] include/buffer.rs imported via common
+// [U1] include/charset.rs imported via common
+// [U1] include/composite.rs imported via common
+// [U1] include/coding.rs imported via common
+// [U1] include/commands.rs imported via common
+// [U1] include/keyboard.rs imported via common
+// [U1] include/systime.rs imported via common
+// [U1] include/termhooks.rs imported via common
+// [U1] include/blockinput.rs imported via common
+// [U1] include/pdumper.rs imported via common
 
 /* ---- Names no mirror carries, declared at their use site (PORTING.md 0.1-2/P-72).
    `<sys/file.h>` (C 29) has no mirror: it contributes `O_RDONLY` (fcntl.rs) and nothing the
@@ -4915,7 +4917,7 @@ static mut not_a_number: [Lisp_Object; 2] = [std::ptr::null_mut (); 2];	// C 448
    from the mirror of the generated template: `lib/include/ieee754.in.rs` owns the union and
    the member-name accessors, and the clang measurements that used to be written out here are
    in `docs/ports/include-ieee754.in.md`.  */
-include!("../lib/include/ieee754.in.rs");
+// [U1] ../lib/include/ieee754.in.rs imported via common
 
 /* Convert the initial prefix of STRING to a number, assuming base BASE.
    ...  */

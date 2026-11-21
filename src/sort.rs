@@ -8,6 +8,8 @@
 #![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code,
          unused_imports, unused_macros, unused_variables, unused_unsafe, static_mut_refs,
          unsafe_op_in_unsafe_fn)]
+// [U1-MODULE-UNIT]
+use crate::common::*;
 
 /* This is a version of the cpython code implementing the TIMSORT
    sorting algorithm described in
@@ -22,9 +24,9 @@
    merge strategy that depends on this run and the succeeding run.)  */
 
 
-include!("include/config.rs");
-include!("../lib/include/stdio.rs");
-include!("include/lisp.rs");
+// [U1] config.rs provided by common
+// [U1] ../lib/include/stdio.rs imported via common
+// [U1] include/lisp.rs imported via common
 
 use core::mem::MaybeUninit;
 use core::ptr;

@@ -20,6 +20,8 @@
 //     sizeof(acl_type_t)=4 sizeof(acl_tag_t)=4 sizeof(acl_flag_t)=4 sizeof(acl_perm_t)=4
 //     ACL_TYPE_EXTENDED=256 ACL_TYPE_ACCESS=0 ACL_TYPE_DEFAULT=1 ACL_FIRST_ENTRY=0 ACL_NEXT_ENTRY=-1
 
+// [U1-MODULE-MIRROR]
+use super::*;
 /// `<sys/acl.h>`'s opaque handle types: all four are `void *` on this target (measured).
 pub type acl_t = *mut core::ffi::c_void;
 pub type acl_entry_t = *mut core::ffi::c_void;
@@ -63,7 +65,7 @@ pub const __DARWIN_ACL_WRITE_SECURITY: acl_perm_t = 4096;
 pub const __DARWIN_ACL_CHANGE_OWNER: acl_perm_t = 8192;
 pub const __DARWIN_ACL_SYNCHRONIZE: acl_perm_t = 1048576;
 
-include!("sys_types.in.rs");   // <sys/types.h> (mode_t)
+// [U1] sys_types.in.rs imported via super
 // `ssize_t` is C's `long` on this target and the port already spells it that way in the unistd
 // mirror; a system-header mirror does not include that one, so the one declaration that needs it
 // (`acl_to_text`) writes `c_long` directly.

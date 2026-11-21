@@ -34,6 +34,8 @@
          unused_imports, unused_macros, unused_variables, unused_unsafe, static_mut_refs,
          unsafe_op_in_unsafe_fn, unused_assignments, unused_parens, unused_mut,
          unused_braces, unused_labels, unreachable_code, unused_comparisons, path_statements)]
+// [U1-MODULE-UNIT]
+use crate::common::*;
 
 // `c_float` (C's `float`) and `VaList` are the two names the mirrors' import lists do not
 // carry (lisp.rs 14 imports the `c_*` types without `c_float`; C's `<stdarg.h>` has no
@@ -41,42 +43,42 @@
 use std::ffi::c_float;
 use core::ffi::VaList;
 
-include!("include/config.rs");                // C 26: `#include <config.h>`
-include!("../lib/include/errno.rs");          // C 28: `#include <errno.h>`
-include!("../lib/include/fcntl.in.rs");       // C 29: `#include <fcntl.h>`
-include!("../lib/include/limits.in.rs");      // C 30: `#include <limits.h>`
-include!("../lib/include/math.rs");           // C 31: `#include <math.h>`
-include!("../lib/include/stdint.in.rs");      // C 33: `#include <stdint.h>`
-include!("../lib/include/stdlib.rs");         // C 34: `#include <stdlib.h>`
-include!("../lib/include/sys_stat.in.rs");    // C 36: `#include <sys/stat.h>`
-include!("../lib/include/sys_types.in.rs");   // C 37: `#include <sys/types.h>`
-include!("../lib/include/unistd.in.rs");      // C 38: `#include <unistd.h>`
-include!("../lib/include/stdio.rs");          // sysstdio.h 24: `#include <stdio.h>`
-include!("../lib/include/string.rs");         // lisp.h 30: `#include <string.h>`
-include!("../lib/include/sys-limits.rs");     // lisp.h 31's sys/limits.h (SYS_BUFSIZE_MAX)
-include!("../lib/include/fingerprint.rs");    // C 45: `#include "fingerprint.h"`
-include!("include/lisp.rs");                  // C 41: `#include "lisp.h"`
-include!("../lib/include/mini-gmp.rs");       // lisp.h's bignum.h chain (bignum.rs's members)
-include!("include/bignum.rs");                // C 52: `#include "bignum.h"`
-include!("include/character.rs");             // lisp.h 29's character.h chain
-include!("include/blockinput.rs");            // C 40: `#include "blockinput.h"`
-include!("include/itree.rs");                 // buffer.h 28: `#include "itree.h"`
-include!("include/systime.rs");               // C 50: `#include "systime.h"` (termhooks.h 28)
-include!("include/font.rs");                  // composite.h 28: `#include "font.h"`
-include!("include/composite.rs");             // coding.h 284: `#include "composite.h"`
-include!("include/buffer.rs");                // C 41: `#include "buffer.h"`
-include!("include/intervals.rs");             // C 46: `#include "intervals.h"`
-include!("include/frame.rs");                 // C 44: `#include "frame.h"`
-include!("include/dispextern.rs");            // composite.h 29: `#include "dispextern.h"`
-include!("include/window.rs");                // C 48: `#include "window.h"`
-include!("include/charset.rs");               // C 42: `#include "charset.h"`
-include!("include/coding.rs");                // C 43: `#include "coding.h"`
-include!("include/ccl.rs");                   // coding.h 283: `#include "ccl.h"`
-include!("include/termhooks.rs");             // frame.h 28: `#include "termhooks.h"`
-include!("include/keyboard.rs");              // C 51: `#include "thread.h"`'s chain
-include!("include/thread.rs");                // C 51: `#include "thread.h"`
-include!("include/pdumper.rs");               // C 47: `#include "pdumper.h"`
-include!("include/treesit.rs");            // C 47: `#include "treesit.h"`
+// [U1] config.rs provided by common
+// [U1] ../lib/include/errno.rs imported via common
+// [U1] ../lib/include/fcntl.in.rs imported via common
+// [U1] ../lib/include/limits.in.rs imported via common
+// [U1] ../lib/include/math.rs imported via common
+// [U1] ../lib/include/stdint.in.rs imported via common
+// [U1] ../lib/include/stdlib.rs imported via common
+// [U1] ../lib/include/sys_stat.in.rs imported via common
+// [U1] ../lib/include/sys_types.in.rs imported via common
+// [U1] ../lib/include/unistd.in.rs imported via common
+// [U1] ../lib/include/stdio.rs imported via common
+// [U1] ../lib/include/string.rs imported via common
+// [U1] ../lib/include/sys-limits.rs imported via common
+// [U1] ../lib/include/fingerprint.rs imported via common
+// [U1] include/lisp.rs imported via common
+// [U1] ../lib/include/mini-gmp.rs imported via common
+// [U1] include/bignum.rs imported via common
+// [U1] include/character.rs imported via common
+// [U1] include/blockinput.rs imported via common
+// [U1] include/itree.rs imported via common
+// [U1] include/systime.rs imported via common
+// [U1] include/font.rs imported via common
+// [U1] include/composite.rs imported via common
+// [U1] include/buffer.rs imported via common
+// [U1] include/intervals.rs imported via common
+// [U1] include/frame.rs imported via common
+// [U1] include/dispextern.rs imported via common
+// [U1] include/window.rs imported via common
+// [U1] include/charset.rs imported via common
+// [U1] include/coding.rs imported via common
+// [U1] include/ccl.rs imported via common
+// [U1] include/termhooks.rs imported via common
+// [U1] include/keyboard.rs imported via common
+// [U1] include/thread.rs imported via common
+// [U1] include/pdumper.rs imported via common
+// [U1] include/treesit.rs imported via common
 
 // C 27's `#include <sys/mman.h>`, C 24's `#include <stdarg.h>` (`core::ffi::VaList`,
 // PORTING.md P-04) and C 28's `#include <sys/param.h>` have no mirror yet; the names this

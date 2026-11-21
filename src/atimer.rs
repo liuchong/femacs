@@ -34,14 +34,16 @@
 #![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code,
          unused_imports, unused_macros, unused_variables, unused_unsafe, static_mut_refs,
          unsafe_op_in_unsafe_fn)]
+// [U1-MODULE-UNIT]
+use crate::common::*;
 
-include!("include/config.rs");
-include!("../lib/include/string.rs");      // lisp.h 30's <string.h>: `memset` over the free-list record
-include!("../lib/include/unistd.in.rs");   // C 26: <unistd.h> (`alarm`)
-include!("include/lisp.rs");
-include!("include/syssignal.rs");          // C 23 (and through it <signal.h>)
-include!("include/systime.rs");            // C 24
-include!("include/atimer.rs");             // C 25
+const _: () = ();
+// [U1] ../lib/include/string.rs imported via common
+// [U1] ../lib/include/unistd.in.rs imported via common
+// [U1] include/lisp.rs imported via common
+// [U1] include/syssignal.rs imported via common
+// [U1] include/systime.rs imported via common
+// [U1] include/atimer.rs imported via common
 
 // C 28-34's `#ifdef HAVE_TIMERFD` includes (<errno.h>, <sys/timerfd.h>, and Cygwin's
 // <sys/utsname.h> inside it) and C 36-38's `#ifdef MSDOS` (<msdos.h>) are dead text: no such

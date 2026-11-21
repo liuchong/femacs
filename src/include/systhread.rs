@@ -16,9 +16,11 @@
 // (PORTING.md 0.1-10).
 
 // C 19-20: the include guard has no Rust counterpart (PORTING.md 0.1).
+// [U1-MODULE-MIRROR]
+use super::*;
 pub const SYSTHREAD_H: bool = true;
 
-include!("../../lib/include/attribute.rs");   // C 22: `#include <attribute.h>` (`NODISCARD`)
+// [U1] ../../lib/include/attribute.rs imported via super
 
 /* C gets these from `<pthread.h>` (systhread.h 28 includes it).  They live in this mirror so
    every mirror that names them can see them, and the unit includes this mirror too (P-240).  */
@@ -257,4 +259,4 @@ pub mod systhread_decls {
     pub fn sys_thread_set_name (name: *const c_char);                           // C 158
   }
 }
-use systhread_decls::*;
+pub use self::systhread_decls::*;

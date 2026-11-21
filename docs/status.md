@@ -1,3 +1,12 @@
+## 2026-11-22: U1 Cargo workspace graph & AU1 clean-export rebuild acceptance; CLN277
+
+Completed Phase 0 Stage `U1` (`P-480`) and formal acceptance `AU1` for the `unsafe`-reduction track:
+- Replaced per-unit `rustc --emit=obj`, `LINK_DRIVER`, and `libgnu-port.a` with an 8-member Cargo workspace (`xtask`, `packaging`, `cli`, `crates/femacs-pure`, `crates/femacs-sys`, `crates/femacs-vm`, `crates/femacs-host`, `crates/femacs-tools`). `femacs-vm` uniquely owns `lispsym`, `globals`, `dump_hooks`, `nr_dump_hooks`, and `main_thread`; active-product non-generated `include!` stitching dropped from `2,156` to `0` (`397` active files).
+- Enabled `#![forbid(unsafe_code)]` + overflow checks on `crates/femacs-pure` (`src/include/macuvs.rs`, `c_ctype`, `bitops`) and `lib-src/{hexl,make-fingerprint,asset-directory-tool}.rs`.
+- `AU1` passed from a fresh pure-tracked export (`tools/test-repository-bootstrap.py --export`): `build-terminal` (`emacs` `c9d1892e…`, `emacs.pdmp` `efd9c8ee…`), `build-macos` (`Femacs` `90a1f78b…`, `Femacs.pdmp` `dc8c283b…`, `codesign --verify --deep --strict` `exit 0`), `runtime-build --product terminal --variant native` (`emacs` `473616f9…`, live `native-compile` + `subr-native-elisp-p` = `42`), real C dynamic module `mod-test.dylib` load + `non_local_exit` checks on both Terminal and Cocoa, `tools/local-acceptance.py` (`9/9` passed), interactive Cocoa GUI startup (`window-system = ns`, `0.748s`), and `tools/check-unsafe-boundary.py` (`0` errors on both products).
+- Key protective unit tests passed: `check-unsafe-boundary.py --selftest` (`4/4`), `femacs-pure` (`3/3`), `xtask` (`116/116`).
+- `CLN277` reclaimed `29,739` files, `1,921` directories, and `26` symlinks (`3,249,751,743` logical bytes); post-cleanup retained footprint: `build/terminal` `43M`, `dist/macos/Femacs.app` `234M`, `build/cargo` `888M` (retained for `U2–U5`, retire at `AU5`). Next: `U2` (`工具与叶子`) and `AU2`. [CLN277](../maintenance/cleanup/reports/2026-11-22-277-u1-cargo-graph-and-au1-retirement.md).
+
 ## 2026-11-01: interrupted runtime cohort unavailable; CLN191
 
 The historical current matrix build closed at 20 rows/40 physical candidates/

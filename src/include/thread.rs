@@ -26,19 +26,21 @@
 // the untyped pointer with a `/// C: …` line and the use sites cast (PORTING.md P-72 rule ③).
 
 // thread.h 20: the include guard has no Rust counterpart (PORTING.md 0.1).
+// [U1-MODULE-MIRROR]
+use super::*;
 pub const THREAD_H: bool = true;
 
-include!("systhread.rs");                       // thread.h 41: `#include "systhread.h"`
+// [U1] systhread.rs imported via super
 
 /* C reaches `JNIEnv` through android.h (thread.h 33-44 includes it).  The port already mirrors
    `<jni.h>` as include/jni.rs, where `JNIEnv` is the real `*const JNINativeInterface`, so this
    mirror includes that rather than declaring an opaque stand-in of its own - the stand-in was
    the duplicate that broke eight Android units (status 4.643).  */
 #[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
-include!("jni.rs");
-include!("../../lib/include/signal.rs");        // thread.h 40: sysselect.h -> <signal.h>
-include!("../../lib/include/sys_select.rs");    // thread.h 40: `#include "sysselect.h"`
-include!("regex-emacs.rs");                     // thread.h 21: `#include "regex-emacs.h"`
+const _: () = ();
+// [U1] ../../lib/include/signal.rs imported via super
+// [U1] ../../lib/include/sys_select.rs imported via super
+// [U1] regex-emacs.rs imported via super
 
 /// C: lisp.h 2272-2273's `typedef jmp_buf sys_jmp_buf` (the `HAVE__SETJMP` arm, macro table
 /// 1691).  `lisp.rs`'s `jmp_buf` is the opaque `[u8; 192]` its layout note records, but C's
@@ -376,7 +378,7 @@ pub mod thread_objs {
     pub static mut all_threads: *mut thread_state;      // thread.h 323
   }
 }
-use thread_objs::*;
+pub use self::thread_objs::*;
 
 /// C: thread.h 337-338: `typedef int select_func (int, fd_set *, fd_set *, fd_set *,
 // const struct timespec *, const sigset_t *);` - a function *type* in C, which its users
@@ -409,4 +411,4 @@ pub mod thread_decls {
     pub fn thread_all_before_buffer_killed (buffer: Lisp_Object);       // 345
   }
 }
-use thread_decls::*;
+pub use self::thread_decls::*;

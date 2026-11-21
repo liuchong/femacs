@@ -1,4 +1,6 @@
 // femacs: port of lib/getrandom.c @ fd7afced403.
+// [U1-MODULE-UNIT]
+use crate::common::*;
 /* emacs/lib/getrandom.c (@ 193 lines) is on the verified list: this is not a native Windows
    target and HAVE_GETRANDOM is undefined, so C 30-95's `_WIN32` setup, C 122-176's Windows arm
    and C 177-178's `#elif HAVE_GETRANDOM` arm are dead by measurement, and the live text is
@@ -6,15 +8,15 @@
    the new sys_random mirror (GRND_NONBLOCK/GRND_RANDOM), C 24-26's <errno.h>, <fcntl.h> and
    <unistd.h> are the errno, fcntl and unistd mirrors, and `MAX` comes from the minmax mirror.  */
 use std::ffi::{c_char, c_int, c_long, c_short, c_uint, c_ulong, c_void};
-include!("../src/include/config.rs");
-include!("include/gnulib_config.rs");
-include!("include/sys_types.in.rs");
-include!("include/sys_random.in.rs");
-include!("include/fcntl.in.rs");
-include!("include/unistd.in.rs");
-include!("include/errno.rs");
-include!("include/minmax.rs");
-include!("include/limits.in.rs");
+// [U1] config.rs provided by common
+// [U1] include/gnulib_config.rs imported via common
+// [U1] include/sys_types.in.rs imported via common
+// [U1] include/sys_random.in.rs imported via common
+// [U1] include/fcntl.in.rs imported via common
+// [U1] include/unistd.in.rs imported via common
+// [U1] include/errno.rs imported via common
+// [U1] include/minmax.rs imported via common
+// [U1] include/limits.in.rs imported via common
 
 /* C 99-108's `# ifndef NAME_OF_RANDOM_DEVICE / #  define NAME_OF_RANDOM_DEVICE
    "/dev/random"` and its `NAME_OF_NONCE_DEVICE` twin: gnulib's system-header arm is dead here

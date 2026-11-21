@@ -7,10 +7,12 @@
 // filemode.c dead-text arm defines that same function under the same feature, P-51).
 
 // The include guard has no Rust counterpart (PORTING.md 0.1).
+// [U1-MODULE-MIRROR]
+use super::*;
 pub const FILEMODE_H_: bool = true;
 
-include!("sys_types.in.rs");   // <sys/types.h> (mode_t)
-include!("sys_stat.in.rs");    // <sys/stat.h> (struct stat)
+// [U1] sys_types.in.rs imported via super
+// [U1] sys_stat.in.rs imported via super
 
 /// C: extern void strmode (mode_t mode, char *str)
 #[cfg (feature = "no_decl_strmode")]
@@ -27,4 +29,4 @@ pub mod filemode_decls {
     pub fn filemodestring (statp: *const stat, str_: *mut c_char);
   }
 }
-use filemode_decls::*;
+pub use self::filemode_decls::*;

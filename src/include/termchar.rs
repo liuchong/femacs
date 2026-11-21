@@ -24,15 +24,17 @@
 // asserted against the C compiler (see docs/ports/include-termchar.md).
 
 // termchar.h 20: the include guard has no Rust counterpart (PORTING.md 0.1).
+// [U1-MODULE-MIRROR]
+use super::*;
 pub const EMACS_TERMCHAR_H: bool = true;
 
-include!("../../lib/include/stdio.rs");   // termchar.h 22: `#include <stdio.h>` (FILE *)
-include!("dispextern.rs");                // termchar.h 23: `#include "dispextern.h"`
-include!("termhooks.rs");                 // `struct terminal` for the `terminal` member
-include!("frame.rs");                     // `FRAME_TTY` reads `frame`'s `output_method`
+// [U1] ../../lib/include/stdio.rs imported via super
+// [U1] dispextern.rs imported via super
+// [U1] termhooks.rs imported via super
+// [U1] frame.rs imported via super
 // termchar.h 75's `struct cm *Wcm` — the type cm.h defines, so its mirror comes in here and
 // every unit that carries termchar.rs carries cm.h too (C's tty units all do).
-include!("cm.rs");
+// [U1] cm.rs imported via super
 
 /* Each termcap frame points to its own struct tty_output object in the
    output_data.tty field.  The tty_output structure contains the

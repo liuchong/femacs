@@ -7,6 +7,8 @@
 // configuration defines `__getopt_argv_const` as empty.
 
 // The include guard has no Rust counterpart (PORTING.md 0.1).
+// [U1-MODULE-MIRROR]
+use super::*;
 pub const _GETOPT_EXT_H: c_int = 1;
 
 /* getopt-ext.h 45-53: `struct option`.  */
@@ -45,4 +47,4 @@ pub mod getopt_ext_decls {
                              __longind: *mut c_int) -> c_int;
   }
 }
-use getopt_ext_decls::*;
+pub use self::getopt_ext_decls::*;

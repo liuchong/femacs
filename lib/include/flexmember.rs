@@ -8,6 +8,8 @@
 // include order does the same job), and C 28's `<stddef.h>` is the target's own header
 // (the port spells `offsetof`/`sizeof` with `offset_of!`/`size_of`).
 
+// [U1-MODULE-MIRROR]
+use super::*;
 /* flexmember.h 30-40: a nonzero multiple of TYPE's alignment.  */
 /* The metavariable is spelled `$type_` rather than `$t`: C's parameter is named `type`,
    which Rust reserves, and the ledger's token comparison strips a trailing `_`, so `$type_`

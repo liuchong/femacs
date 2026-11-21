@@ -10,6 +10,8 @@
 // C's `#include "lisp.h"` (disptab.h 23) is the including unit's `include!("include/lisp.rs")`.
 
 // C 20-21's include guard has no Rust counterpart (PORTING.md 0.1).
+// [U1-MODULE-MIRROR]
+use super::*;
 pub const EMACS_DISPTAB_H: bool = true;
 
 /* Access the slots of a display-table, according to their purpose.  */
@@ -97,7 +99,7 @@ pub mod disptab_decls {
 
   unsafe extern "C" { pub fn buffer_display_table () -> *mut Lisp_Char_Table; }   // disptab.h 70
 }
-use disptab_decls::*;
+pub use self::disptab_decls::*;
 
 /* disptab.h 72-115: the glyph-table family.  C's `GLYPH_CHAR`/`GLYPH_FACE`/`SET_GLYPH_CHAR`/
    `GLYPH_CHAR_VALID_P`/`SET_GLYPH` and `DEFAULT_FACE_ID` come from the dispextern mirror, which

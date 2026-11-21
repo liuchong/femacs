@@ -39,7 +39,9 @@
 // (E0428).  The nineteen file-scope objects live in `charset_objs` the same way
 // (PORTING.md P-21), which lets this unit define all nineteen at its crate root.
 
-include!("lisp.rs");
+// [U1-MODULE-MIRROR]
+use super::*;
+// [U1] lisp.rs imported via super
 
 // C's include guard `EMACS_CHARSET_H` has no Rust counterpart; the constant below exists
 // only so the mirror's name set matches the reference header's (PORTING.md 0.1, P-24).
@@ -667,7 +669,7 @@ pub mod charset_objs {
     pub static mut charset_unibyte: c_int;
   }
 }
-use charset_objs::*;
+pub use self::charset_objs::*;
 
 /// The prototypes this unit defines (PORTING.md 0.1-10): a glob import so the unit's own
 /// `#[unsafe(no_mangle)] pub unsafe extern "C" fn` definitions are not a second
@@ -692,7 +694,7 @@ pub mod charset_decls {
 			      charset: *mut charset, from: c_uint, to: c_uint);
   }
 }
-use charset_decls::*;
+pub use self::charset_decls::*;
 
 /// C: charset.h 555: `extern Lisp_Object charset_attributes (int);`  The header declares
 /// it and the reference tree defines it nowhere, so it stays outside `charset_decls`.

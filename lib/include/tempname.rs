@@ -12,6 +12,8 @@
 // import (PORTING.md 0.1-10).  `try_tempname_len`'s `tryfunc` parameter is C's
 // `int (*tryfunc) (char *, void *)`.
 
+// [U1-MODULE-MIRROR]
+use super::*;
 /* C 21-22's include guard `GL_TEMPNAME_H` (the idx.rs marker shape).  */
 pub const GL_TEMPNAME_H: bool = true;
 
@@ -43,4 +45,4 @@ pub mod tempname_decls {
                              x_suffix_len: usize) -> c_int;
   }
 }
-use tempname_decls::*;
+pub use self::tempname_decls::*;

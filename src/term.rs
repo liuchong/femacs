@@ -48,36 +48,38 @@
          unused_imports, unused_macros, unused_variables, unused_mut, unused_assignments,
          unused_unsafe, static_mut_refs, unsafe_op_in_unsafe_fn, unused_parens,
          clashing_extern_declarations)]
+// [U1-MODULE-UNIT]
+use crate::common::*;
 
-include!("include/config.rs");
-include!("../lib/include/stdio.rs");       // term.c 26-27 sysstdio.h: FILE, fwrite, fputs
-include!("../lib/include/stdlib.rs");      // term.c 22: free, getenv
-include!("../lib/include/string.rs");      // lisp.h 30: memset, memcpy, strcmp, strlen
-include!("../lib/include/unistd.in.rs");   // term.c 27: isatty, read, write
-include!("../lib/include/fcntl.in.rs");    // term.c 21: O_RDWR, O_NOCTTY
-include!("../lib/include/errno.rs");       // term.c 20: errno
-include!("../lib/include/stdcountof.rs");  // lisp.h 28 (the mirror chain's own)
-include!("include/lisp.rs");               // term.c 29: lisp.h
-include!("include/character.rs");          // term.c 32: character.h
-include!("include/buffer.rs");             // term.c 33: buffer.h
-include!("include/charset.rs");            // term.c 34: charset.h
-include!("include/coding.rs");             // term.c 35: coding.h
-include!("include/composite.rs");          // term.c 36: composite.h
-include!("include/keyboard.rs");           // term.c 37: keyboard.h
-include!("include/systime.rs");            // termhooks.h 28: Time
-include!("include/itree.rs");
-include!("include/dispextern.rs");         // term.c 47: dispextern.h
-include!("include/termhooks.rs");          // term.c 44: termhooks.h
-include!("include/window.rs");             // term.c 48: window.h
-include!("include/frame.rs");              // term.c 40: frame.h
-include!("include/termchar.rs");           // term.c 30: termchar.h
-include!("include/tparam.rs");             // term.c 31: tparam.h
-include!("include/disptab.rs");            // term.c 42: disptab.h
-include!("include/keymap.rs");             // term.c 49: keymap.h
-include!("include/blockinput.rs");         // term.c 50: blockinput.h
-include!("include/syssignal.rs");          // term.c 51: syssignal.h
-include!("include/cm.rs");                 // term.c 57: cm.h
-include!("include/menu.rs");               // term.c 58: menu.h
+const _: () = ();
+// [U1] ../lib/include/stdio.rs imported via common
+// [U1] ../lib/include/stdlib.rs imported via common
+// [U1] ../lib/include/string.rs imported via common
+// [U1] ../lib/include/unistd.in.rs imported via common
+// [U1] ../lib/include/fcntl.in.rs imported via common
+// [U1] ../lib/include/errno.rs imported via common
+// [U1] ../lib/include/stdcountof.rs imported via common
+// [U1] include/lisp.rs imported via common
+// [U1] include/character.rs imported via common
+// [U1] include/buffer.rs imported via common
+// [U1] include/charset.rs imported via common
+// [U1] include/coding.rs imported via common
+// [U1] include/composite.rs imported via common
+// [U1] include/keyboard.rs imported via common
+// [U1] include/systime.rs imported via common
+// [U1] include/itree.rs imported via common
+// [U1] include/dispextern.rs imported via common
+// [U1] include/termhooks.rs imported via common
+// [U1] include/window.rs imported via common
+// [U1] include/frame.rs imported via common
+// [U1] include/termchar.rs imported via common
+// [U1] include/tparam.rs imported via common
+// [U1] include/disptab.rs imported via common
+// [U1] include/keymap.rs imported via common
+// [U1] include/blockinput.rs imported via common
+// [U1] include/syssignal.rs imported via common
+// [U1] include/cm.rs imported via common
+// [U1] include/menu.rs imported via common
 
 /* cm.h 160-165: the cursor-motion globals live in the mirror's `cm_globals` module, which
    is not glob-imported (a Rust `let` cannot shadow a static — cm.rs's note); this unit has
@@ -250,14 +252,10 @@ macro_rules! OUTPUT1_IF {
 
 /* C 106-107: the chain of all tty device parameters.  termchar.h declares it, so the
    definition lives in the glob-imported module (see the file header).  */
-pub mod term_globals {
-  use super::*;
 
-  /* Chain of all tty device parameters.  */
+/* Chain of all tty device parameters.  */
   #[unsafe(no_mangle)]
   pub static mut tty_list: *mut tty_display_info = std::ptr::null_mut ();
-}
-use term_globals::*;
 
 /* C 126-131.  */
 static mut max_frame_cols: c_int = 0;
@@ -2898,10 +2896,8 @@ unsafe fn tty_default_color_capabilities (tty: *mut tty_display_info, save: bool
 /* termchar.h 255 declares `tty_setup_colors` at the mirror's crate root, so the
    definition lives in a glob-imported module (the terminal.rs shape, P-21).  */
 #[cfg (not (feature = "have_android"))]
-pub mod term_setup_colors_def {
-  use super::*;
 
-  #[unsafe(no_mangle)]
+#[unsafe(no_mangle)]
     pub unsafe extern "C" fn tty_setup_colors (tty: *mut tty_display_info, mut mode: c_int)
   {
     /* Canonicalize all negative values of MODE.  */
@@ -2934,9 +2930,9 @@ pub mod term_setup_colors_def {
       }
   }
 
-}
+
 #[cfg (not (feature = "have_android"))]
-use term_setup_colors_def::*;
+
 #[cfg (feature = "windowsnt")]
 unsafe fn tty_setup_colors_windowsnt (tty: *mut tty_display_info, mode: c_int)
 {

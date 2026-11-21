@@ -28,8 +28,10 @@
          unsafe_op_in_unsafe_fn, unused_assignments, unused_parens, unused_mut,
          unreachable_code, unused_labels, while_true, unused_comparisons,
          overflowing_literals, unused_must_use, clippy::all)]
+// [U1-MODULE-UNIT]
+use crate::common::*;
 
-include!("include/config.rs");                 // C 27: `#include <config.h>`
+const _: () = ();
 
 /* C 28-29 (`<stdio.h>`, `<stdlib.h>`) and the two headers lisp.h reaches for this file
    (`<limits.h>` for `INT_MIN`/`INT_MAX`, `<string.h>` for `strchr`/`strcmp`/`strncmp`).
@@ -37,13 +39,13 @@ include!("include/config.rs");                 // C 27: `#include <config.h>`
    the including unit's), so they sit under the file gate with the rest of the graph (P-86 ⑧):
    nothing in this unit is compiled without `have_window_system`.  */
 #[cfg (feature = "have_window_system")]
-include!("../lib/include/stdio.rs");           // C 28: `#include <stdio.h>` (`sprintf`)
+const _: () = ();
 #[cfg (feature = "have_window_system")]
-include!("../lib/include/stdlib.rs");          // C 29: `#include <stdlib.h>` (`qsort`)
+const _: () = ();
 #[cfg (feature = "have_window_system")]
-include!("../lib/include/limits.in.rs");       // lisp.h's `<limits.h>`: `INT_MIN`/`INT_MAX`
+const _: () = ();
 #[cfg (feature = "have_window_system")]
-include!("../lib/include/string.rs");          // lisp.h's `<string.h>`: `strchr`/`strcmp`/`strncmp`
+const _: () = ();
 
 /* C 31-42: `lisp.h`, `blockinput.h`, `character.h`, `charset.h`, `frame.h`, `dispextern.h`,
    `fontset.h`, the `HAVE_WINDOW_SYSTEM` `TERM_HEADER`, `font.h` and `pdumper.h`.  No
@@ -52,22 +54,22 @@ include!("../lib/include/string.rs");          // lisp.h's `<string.h>`: `strchr
    (`configure.ac` 7180; the frozen table spells it `undef`), and the six-arm chain below
    keeps C's include shape the way `src/frame.rs` 84-98 spells its own.  */
 #[cfg (feature = "have_window_system")]
-include!("include/lisp.rs");                   // C 31: `#include "lisp.h"`
+const _: () = ();
 #[cfg (feature = "have_window_system")]
-include!("include/blockinput.rs");             // C 32: `#include "blockinput.h"`
+const _: () = ();
 #[cfg (feature = "have_window_system")]
-include!("include/character.rs");              // C 33: `#include "character.h"`
+const _: () = ();
 
 /* C 104-108's `INLINE int xstrcasecmp (...)`: `dispextern.h` gives every including unit its own
    copy, and the mirror keeps one in `dispextern_externs` (a module, so a unit with its own copy -
    `font.rs` 324 - does not collide).  The call below names that copy instead of an `extern "C"`
    declaration, which asked the linker for a symbol C never defines (status 4.723).  */
 #[cfg (feature = "have_window_system")]
-include!("include/charset.rs");                // C 34: `#include "charset.h"`
+const _: () = ();
 #[cfg (feature = "have_window_system")]
-include!("include/frame.rs");                  // C 35: `#include "frame.h"`
+const _: () = ();
 #[cfg (feature = "have_window_system")]
-include!("include/dispextern.rs");             // C 36: `#include "dispextern.h"`
+const _: () = ();
 /* C 37: `#include "fontset.h"`.  The mirror (`include/fontset.rs`) declares the ten entry
    points in one top-level `unsafe extern "C" { ... }`, and nine of them are *defined* by this
    unit (C 861-1234, 1266, 1798), so including it here is rustc's `E0428: the name ... is
@@ -77,21 +79,21 @@ include!("include/dispextern.rs");             // C 36: `#include "dispextern.h"
    (`face_for_font`) is in the use-site block below, and `docs/ports/fontset.md` reports the
    finding to the integrator.  */
 #[cfg (all (feature = "have_window_system", feature = "have_x_windows"))]
-include!("include/xterm.rs");                  // C 39 (TERM_HEADER): `xterm.h`
+const _: () = ();
 #[cfg (all (feature = "have_window_system", feature = "have_ns"))]
-include!("include/nsterm.rs");                 // C 39 (TERM_HEADER): `nsterm.h`
+const _: () = ();
 #[cfg (all (feature = "have_window_system", feature = "have_pgtk"))]
-include!("include/pgtkterm.rs");               // C 39 (TERM_HEADER): `pgtkterm.h`
+const _: () = ();
 #[cfg (all (feature = "have_window_system", feature = "have_ntgui"))]
-include!("include/w32term.rs");                // C 39 (TERM_HEADER): `w32term.h`
+const _: () = ();
 #[cfg (all (feature = "have_window_system", feature = "have_haiku"))]
-include!("include/haikuterm.rs");              // C 39 (TERM_HEADER): `haikuterm.h`
+const _: () = ();
 #[cfg (all (feature = "have_window_system", feature = "have_android"))]
-include!("include/androidterm.rs");            // C 39 (TERM_HEADER): `androidterm.h`
+const _: () = ();
 #[cfg (feature = "have_window_system")]
-include!("include/font.rs");                   // C 41: `#include "font.h"`
+const _: () = ();
 #[cfg (feature = "have_window_system")]
-include!("include/pdumper.rs");                // C 42: `#include "pdumper.h"`
+const _: () = ();
 
 /* `frame.h` 1379/1646-1661's three accessors: the mirror keeps them in its own
    `frame_face_accessors` module behind `dispextern_face_records` (which no configuration

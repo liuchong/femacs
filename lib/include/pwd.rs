@@ -6,6 +6,8 @@
 // come from the including unit's scope (`lib/include/sys_types.in.rs` and `time.in.rs`), like the
 // other lib mirrors.
 
+// [U1-MODULE-MIRROR]
+use super::*;
 /// <pwd.h>'s `struct passwd`, measured on the frozen target (macOS): `sizeof` 72,
 /// `pw_name`@0, `pw_uid`@16, `pw_dir`@48, `pw_shell`@56, `pw_expire`@64.  The Android arm below
 /// is bionic's LP64 record (measured against the NDK's `<pwd.h>`), which has no `pw_change` /

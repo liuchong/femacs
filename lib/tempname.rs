@@ -22,24 +22,26 @@
 #![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code,
          unused_imports, unused_macros, unused_variables, unused_mut, unused_unsafe,
          static_mut_refs, unsafe_op_in_unsafe_fn)]
+// [U1-MODULE-UNIT]
+use crate::common::*;
 
 use std::ffi::{c_char, c_double, c_int, c_long, c_uint, c_ulong, c_void};
 
-include!("../src/include/config.rs");
-include!("include/gnulib_config.rs");
-include!("include/errno.rs");
-include!("include/libc-config.rs");   // C 18: `#include <libc-config.h>`
-include!("include/stdio.rs");
-include!("include/stdlib.rs");
-include!("include/string.rs");
-include!("include/fcntl.in.rs");
-include!("include/stdint.in.rs");
-include!("include/sys_random.in.rs");
-include!("include/unistd.in.rs");
-include!("include/sys_stat.in.rs");
-include!("include/sys_types.in.rs");
-include!("include/time.in.rs");
-include!("include/tempname.rs");
+// [U1] config.rs provided by common
+// [U1] include/gnulib_config.rs imported via common
+// [U1] include/errno.rs imported via common
+// [U1] include/libc-config.rs imported via common
+// [U1] include/stdio.rs imported via common
+// [U1] include/stdlib.rs imported via common
+// [U1] include/string.rs imported via common
+// [U1] include/fcntl.in.rs imported via common
+// [U1] include/stdint.in.rs imported via common
+// [U1] include/sys_random.in.rs imported via common
+// [U1] include/unistd.in.rs imported via common
+// [U1] include/sys_stat.in.rs imported via common
+// [U1] include/sys_types.in.rs imported via common
+// [U1] include/time.in.rs imported via common
+// [U1] include/tempname.rs imported via common
 
 /* C 18-21: `_LIBC` is undefined, so `# include <libc-config.h>` and
    `# include "tempname.h"` are live.  libc-config.h is the `libc-config.rs` mirror above now

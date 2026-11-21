@@ -13,6 +13,8 @@
 // termcap entry points are library functions, and `tparam`/`tgoto` are tparam.c's own.
 
 // tparam.h 21: the include guard has no Rust counterpart (PORTING.md 0.1).
+// [U1-MODULE-MIRROR]
+use super::*;
 pub const EMACS_TPARAM_H: bool = true;
 
 pub mod tparam_externs {
@@ -43,4 +45,4 @@ pub mod tparam_externs {
   }
 }
 
-use tparam_externs::*;
+pub use self::tparam_externs::*;

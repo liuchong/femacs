@@ -8,6 +8,8 @@
 // is invisible at the call sites.
 
 
+// [U1-MODULE-MIRROR]
+use super::*;
 unsafe extern "C" {
   /* int isalnum (int c);  */
   pub fn isalnum (c: c_int) -> c_int;

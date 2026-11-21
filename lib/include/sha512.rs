@@ -8,11 +8,13 @@
 // The declarations are in the glob-imported `decls` module so sha512.rs's own `fn`s
 // shadow them (PORTING.md 0.1-10).
 
-include!("../src/include/config.rs");
-include!("gnulib_config.rs");
-include!("stdint.in.rs");
-include!("stdio.rs");
-include!("u64.rs");
+// [U1-MODULE-MIRROR]
+use super::*;
+// config.rs via common root
+// [U1] gnulib_config.rs imported via super
+// [U1] stdint.in.rs imported via super
+// [U1] stdio.rs imported via super
+// [U1] u64.rs imported via super
 
 /* C 17-18: `#ifndef SHA512_H` / `#define SHA512_H 1`.  */
 pub const SHA512_H: c_int = 1;
@@ -76,4 +78,4 @@ pub mod sha512_decls {
     pub fn sha512_stream (stream: *mut FILE, resblock: *mut c_void) -> c_int;
   }
 }
-use sha512_decls::*;
+pub use self::sha512_decls::*;

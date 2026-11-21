@@ -14,28 +14,30 @@
 // when it stands beside a C file (measured).  A unit with no C counterpart is outside every
 // `--check` pairing, and `xtask` is the precedent for a product with no C source (status 3.241).
 #![allow(non_snake_case, non_camel_case_types, dead_code, unused_unsafe)]
+// [U1-MODULE-UNIT]
+use crate::common::*;
 
-include!("include/config.rs");                 // C 20: `#include <config.h>`
-include!("../lib/include/stdio.rs");           // C 22: `#include <stdio.h>`
-include!("../lib/include/stdlib.rs");          // C 23: `#include <stdlib.h>`
-include!("../lib/include/errno.rs");           // C 24: `#include <errno.h>`
-include!("../lib/include/limits.in.rs");       // C 25: `#include <limits.h>`
-include!("../lib/include/stdint.in.rs");       // lisp.h's width family
-include!("../lib/include/string.rs");          // lisp.h 30: `#include <string.h>`
-include!("../lib/include/c-ctype.rs");         // C 27: `#include <c-ctype.h>`
-include!("../lib/include/stdcountof.rs");      // lisp.h 28: `<stdcountof.h>` (`countof`)
-include!("include/lisp.rs");                   // C 29: `#include "lisp.h"`
-include!("include/character.rs");              // lisp.h's `CHARACTERP`/`MAX_CHAR` users
-include!("include/intervals.rs");              // buffer.h 27: `#include "intervals.h"`
-include!("include/systime.rs");                // lisp.h: `Time`/`struct timespec`
-include!("include/itree.rs");                  // intervals.h: `itree_node`/`itree_tree`
-include!("include/composite.rs");              // coding.h 284: `#include "composite.h"`
-include!("include/coding.rs");                 // dispextern.h 29: `#include "coding.h"`
-include!("include/font.rs");                   // dispextern.h's font names
-include!("include/termhooks.rs");              // frame.h 24: `#include "termhooks.h"`
-include!("include/frame.rs");                  // C 38: `#include "frame.h"`
-include!("include/keyboard.rs");               // C 37: `#include "keyboard.h"`
-include!("include/buffer.rs");                 // C 35: `#include "buffer.h"`
+// [U1] config.rs provided by common
+// [U1] ../lib/include/stdio.rs imported via common
+// [U1] ../lib/include/stdlib.rs imported via common
+// [U1] ../lib/include/errno.rs imported via common
+// [U1] ../lib/include/limits.in.rs imported via common
+// [U1] ../lib/include/stdint.in.rs imported via common
+// [U1] ../lib/include/string.rs imported via common
+// [U1] ../lib/include/c-ctype.rs imported via common
+// [U1] ../lib/include/stdcountof.rs imported via common
+// [U1] include/lisp.rs imported via common
+// [U1] include/character.rs imported via common
+// [U1] include/intervals.rs imported via common
+// [U1] include/systime.rs imported via common
+// [U1] include/itree.rs imported via common
+// [U1] include/composite.rs imported via common
+// [U1] include/coding.rs imported via common
+// [U1] include/font.rs imported via common
+// [U1] include/termhooks.rs imported via common
+// [U1] include/frame.rs imported via common
+// [U1] include/keyboard.rs imported via common
+// [U1] include/buffer.rs imported via common
 
 /// Snapshot the selected buffer for Cocoa accessibility without reading its gap
 /// or depending on the interpreter's temporarily selected current_buffer.
@@ -57,12 +59,12 @@ pub unsafe extern "C" fn ns_accessibility_buffer_string(buf: *mut buffer) -> Lis
   }
   text
 }
-include!("include/blockinput.rs");             // C 39: `#include "blockinput.h"`
-include!("include/termchar.rs");               // C 40: `#include "termchar.h"`
-include!("include/dispextern.rs");             // C 42: `#include "dispextern.h"`
-include!("include/window.rs");                 // C 43: `#include "window.h"`
-include!("include/cm.rs");                     // C 47: `#include "cm.h"`
-include!("include/pdumper.rs");                // C 55: `#include "pdumper.h"`
+// [U1] include/blockinput.rs imported via common
+// [U1] include/termchar.rs imported via common
+// [U1] include/dispextern.rs imported via common
+// [U1] include/window.rs imported via common
+// [U1] include/cm.rs imported via common
+// [U1] include/pdumper.rs imported via common
 // `struct ns_output` / `struct ns_display_info` - the two records the batch-6 entries below read
 // and write - are `nsterm.h`'s, and their mirror sits behind the same `HAVE_NS` C gates the
 // whole file does (`include/nsterm.rs` 29, which is why every entry that names them carries
@@ -70,7 +72,7 @@ include!("include/pdumper.rs");                // C 55: `#include "pdumper.h"`
 // include carries the gate of the entries that need it: in the frozen configuration the line is
 // stripped before expansion and the frozen object is unchanged (measured, `## Evidence`).
 #[cfg (feature = "have_ns")]
-include!("include/nsterm.rs");                // nsterm.h: `struct ns_output`, the `FRAME_*` macros
+const _: () = ();
 
 /* ---------------------------------------------------------------------------------------------
    `struct frame` readers.  The record itself is `include/frame.rs`'s (its members were measured
@@ -1116,7 +1118,7 @@ pub unsafe extern "C" fn set_waiting_for_input_flag (v: bool)
 /* ---------------------------------------------------------------------------------------------
    Batch 6, group 4: `struct face`'s `background`, behind the mirror's own gate.  C has `struct
    face` unconditionally (dispextern.h 1787-1937), but the port's copy sits behind
-   `#[cfg (feature = "dispextern_face_records")]` (`include/dispextern.rs` 1941-1943) because the
+   `#[cfg (feature = "have_ns")]` (`include/dispextern.rs` 1941-1943) because the
    units that keep typed copies of it (`xfaces.rs`, `term.rs`, `alloc.rs`) are not yet closed
    under the flip (`include/frame.rs` 698-718), so the frozen configuration has no `face` name
    for this body to reach and the export can only exist in that arm - the
@@ -1128,7 +1130,7 @@ pub unsafe extern "C" fn set_waiting_for_input_flag (v: bool)
 /// (nsfns.m 328-329, whose right-hand side reads `NS_FACE_BACKGROUND (face)` at 327).
 /// Swift `nsfns.swift` 475-476 (`func face_set_background(_ face: UnsafeMutableRawPointer?,
 /// _ v: UInt)`), used at `nsfns.swift` 1404.
-#[cfg (feature = "dispextern_face_records")]
+#[cfg (feature = "have_ns")]
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn face_set_background (face: *mut c_void, v: c_ulong)
 {
@@ -2057,7 +2059,7 @@ pub unsafe extern "C" fn font_driver_text_extents (driver: *mut c_void)
    Batch 12, group 2: the fifteen members of `struct face` and `struct draw_fringe_bitmap_params`
    this slice reads (src/nsterm.m 3229-3281), and the one fringe name the frozen configuration
    owes.  The two records are ungated in C (dispextern.h 1787-1937 and 2223-2233) but the mirror
-   carries them behind `#[cfg (feature = "dispextern_face_records")]` - status 3.220's arm for
+   carries them behind `#[cfg (feature = "have_ns")]` - status 3.220's arm for
    the records the ported units keep typed copies of (`include/dispextern.rs` 1983 on
    `struct face`, 2784 on `struct draw_fringe_bitmap_params`, whose note also records that its
    layout was measured with an `offsetof` probe) - so these fifteen carry that gate, the batch-6
@@ -2076,7 +2078,7 @@ pub unsafe extern "C" fn font_driver_text_extents (driver: *mut c_void)
 /// `NS_FACE_FOREGROUND` coexist: each spelling gets its own name (the lane's note, and
 /// PORTING.md 0.2).  The mirror types the member (`c_ulong`, `include/dispextern.rs` 2004).
 /// Swift `nsterm.swift` 3751 (`(UnsafeMutableRawPointer?) -> UInt`).
-#[cfg (feature = "dispextern_face_records")]
+#[cfg (feature = "have_ns")]
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn face_foreground (face: *mut c_void) -> c_ulong
 {
@@ -2088,7 +2090,7 @@ pub unsafe extern "C" fn face_foreground (face: *mut c_void) -> c_ulong
 /// macro `NS_FACE_BACKGROUND` (nsterm.m 2811), whose write is nsfns.m 328-329 (batch 6's `face_set_background`); the mirror's field is
 /// `include/dispextern.rs` 2005.
 /// Swift `nsterm.swift` 3752 (`-> UInt`).
-#[cfg (feature = "dispextern_face_records")]
+#[cfg (feature = "have_ns")]
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn face_background (face: *mut c_void) -> c_ulong
 {
@@ -2100,105 +2102,105 @@ pub unsafe extern "C" fn face_background (face: *mut c_void) -> c_ulong
 /// (src/nsterm.m 3229).  The mirror types it (`*mut face`, `include/dispextern.rs` 2802); the
 /// lane declares `UnsafeMutableRawPointer?`, so the body degrades it with a cast.
 /// Swift `nsterm.swift` 3757-3758.
-#[cfg (feature = "dispextern_face_records")]
+#[cfg (feature = "have_ns")]
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn draw_fringe_bitmap_params_face (p: *mut c_void) -> *mut c_void
 {
-  unsafe { (*p.cast::<dispextern_unit_names::draw_fringe_bitmap_params> ()).face as *mut c_void }
+  unsafe { (*p.cast::<draw_fringe_bitmap_params> ()).face as *mut c_void }
 }
 
 /// C: `int which;  /* enum fringe_bitmap_type */` (src/dispextern.h 2225) - C's reads are
 /// `p->which` (src/nsterm.m 3235, 3258, 3261, 3263).
 /// Swift `nsterm.swift` 3759-3760 (`(UnsafeMutableRawPointer?) -> Int32`).
-#[cfg (feature = "dispextern_face_records")]
+#[cfg (feature = "have_ns")]
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn draw_fringe_bitmap_params_which (p: *mut c_void) -> c_int
 {
-  unsafe { (*p.cast::<dispextern_unit_names::draw_fringe_bitmap_params> ()).which }
+  unsafe { (*p.cast::<draw_fringe_bitmap_params> ()).which }
 }
 
 /// C: `int wd, h, dh;` (src/dispextern.h 2227) - C's reads are `p->wd, p->h, p->dh`
 /// (src/nsterm.m 3235) and `p->wd, p->h` (3238).
 /// Swift `nsterm.swift` 3761-3762.
-#[cfg (feature = "dispextern_face_records")]
+#[cfg (feature = "have_ns")]
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn draw_fringe_bitmap_params_wd (p: *mut c_void) -> c_int
 {
-  unsafe { (*p.cast::<dispextern_unit_names::draw_fringe_bitmap_params> ()).wd }
+  unsafe { (*p.cast::<draw_fringe_bitmap_params> ()).wd }
 }
 
 /// C: `int wd, h, dh;` (src/dispextern.h 2227), read at src/nsterm.m 3235/3238.
 /// Swift `nsterm.swift` 3763-3764.
-#[cfg (feature = "dispextern_face_records")]
+#[cfg (feature = "have_ns")]
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn draw_fringe_bitmap_params_h (p: *mut c_void) -> c_int
 {
-  unsafe { (*p.cast::<dispextern_unit_names::draw_fringe_bitmap_params> ()).h }
+  unsafe { (*p.cast::<draw_fringe_bitmap_params> ()).h }
 }
 
 /// C: `int wd, h, dh;` (src/dispextern.h 2227), read at src/nsterm.m 3235.
 /// Swift `nsterm.swift` 3765-3766.
-#[cfg (feature = "dispextern_face_records")]
+#[cfg (feature = "have_ns")]
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn draw_fringe_bitmap_params_dh (p: *mut c_void) -> c_int
 {
-  unsafe { (*p.cast::<dispextern_unit_names::draw_fringe_bitmap_params> ()).dh }
+  unsafe { (*p.cast::<draw_fringe_bitmap_params> ()).dh }
 }
 
 /// C: `int x, y;` (src/dispextern.h 2228) - C's read is `NSMakeRect (p->x, p->y, p->wd, p->h)`
 /// (src/nsterm.m 3238).
 /// Swift `nsterm.swift` 3767-3768.
-#[cfg (feature = "dispextern_face_records")]
+#[cfg (feature = "have_ns")]
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn draw_fringe_bitmap_params_x (p: *mut c_void) -> c_int
 {
-  unsafe { (*p.cast::<dispextern_unit_names::draw_fringe_bitmap_params> ()).x }
+  unsafe { (*p.cast::<draw_fringe_bitmap_params> ()).x }
 }
 
 /// C: `int x, y;` (src/dispextern.h 2228), read at src/nsterm.m 3238.
 /// Swift `nsterm.swift` 3769-3770.
-#[cfg (feature = "dispextern_face_records")]
+#[cfg (feature = "have_ns")]
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn draw_fringe_bitmap_params_y (p: *mut c_void) -> c_int
 {
-  unsafe { (*p.cast::<dispextern_unit_names::draw_fringe_bitmap_params> ()).y }
+  unsafe { (*p.cast::<draw_fringe_bitmap_params> ()).y }
 }
 
 /// C: `int bx, nx, by, ny;` (src/dispextern.h 2229) - C's reads are `p->bx`, `p->by`, `p->nx`,
 /// `p->ny` (src/nsterm.m 3240-3241).
 /// Swift `nsterm.swift` 3771-3772.
-#[cfg (feature = "dispextern_face_records")]
+#[cfg (feature = "have_ns")]
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn draw_fringe_bitmap_params_bx (p: *mut c_void) -> c_int
 {
-  unsafe { (*p.cast::<dispextern_unit_names::draw_fringe_bitmap_params> ()).bx }
+  unsafe { (*p.cast::<draw_fringe_bitmap_params> ()).bx }
 }
 
 /// C: `int bx, nx, by, ny;` (src/dispextern.h 2229), read at src/nsterm.m 3240-3241.
 /// Swift `nsterm.swift` 3773-3774.
-#[cfg (feature = "dispextern_face_records")]
+#[cfg (feature = "have_ns")]
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn draw_fringe_bitmap_params_by (p: *mut c_void) -> c_int
 {
-  unsafe { (*p.cast::<dispextern_unit_names::draw_fringe_bitmap_params> ()).by }
+  unsafe { (*p.cast::<draw_fringe_bitmap_params> ()).by }
 }
 
 /// C: `int bx, nx, by, ny;` (src/dispextern.h 2229), read at src/nsterm.m 3240-3241.
 /// Swift `nsterm.swift` 3775-3776.
-#[cfg (feature = "dispextern_face_records")]
+#[cfg (feature = "have_ns")]
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn draw_fringe_bitmap_params_nx (p: *mut c_void) -> c_int
 {
-  unsafe { (*p.cast::<dispextern_unit_names::draw_fringe_bitmap_params> ()).nx }
+  unsafe { (*p.cast::<draw_fringe_bitmap_params> ()).nx }
 }
 
 /// C: `int bx, nx, by, ny;` (src/dispextern.h 2229), read at src/nsterm.m 3240-3241.
 /// Swift `nsterm.swift` 3777-3778.
-#[cfg (feature = "dispextern_face_records")]
+#[cfg (feature = "have_ns")]
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn draw_fringe_bitmap_params_ny (p: *mut c_void) -> c_int
 {
-  unsafe { (*p.cast::<dispextern_unit_names::draw_fringe_bitmap_params> ()).ny }
+  unsafe { (*p.cast::<draw_fringe_bitmap_params> ()).ny }
 }
 
 /// C: `bool_bf cursor_p : 1;` (src/dispextern.h 2230) - C's reads are `p->cursor_p`
@@ -2208,21 +2210,21 @@ pub unsafe extern "C" fn draw_fringe_bitmap_params_ny (p: *mut c_void) -> c_int
 /// draw_fringe_bitmap_params' dispextern.h c --bits` answers `52:0-0 bool_bf cursor_p` and
 /// `52:1-1 bool_bf overlay_p` in the frozen arm (`## Evidence`).
 /// Swift `nsterm.swift` 3779-3780 (`(UnsafeMutableRawPointer?) -> Bool`).
-#[cfg (feature = "dispextern_face_records")]
+#[cfg (feature = "have_ns")]
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn draw_fringe_bitmap_params_cursor_p (p: *mut c_void) -> bool
 {
-  unsafe { (*p.cast::<dispextern_unit_names::draw_fringe_bitmap_params> ()).flags & (1 << 0) != 0 }
+  unsafe { (*p.cast::<draw_fringe_bitmap_params> ()).flags & (1 << 0) != 0 }
 }
 
 /// C: `bool_bf overlay_p : 1;` (src/dispextern.h 2231) - C's reads are `p->overlay_p`
 /// (src/nsterm.m 3235, 3250, 3280); the measured bit is byte 52 bit 1 (the entry above).
 /// Swift `nsterm.swift` 3781-3782.
-#[cfg (feature = "dispextern_face_records")]
+#[cfg (feature = "have_ns")]
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn draw_fringe_bitmap_params_overlay_p (p: *mut c_void) -> bool
 {
-  unsafe { (*p.cast::<dispextern_unit_names::draw_fringe_bitmap_params> ()).flags & (1 << 1) != 0 }
+  unsafe { (*p.cast::<draw_fringe_bitmap_params> ()).flags & (1 << 1) != 0 }
 }
 
 /* ---------------------------------------------------------------------------------------------
@@ -2427,10 +2429,14 @@ unsafe extern "C" { fn window_text_bottom_y (w: *mut window) -> c_int; }
 #[cfg(feature = "have_ns")]
 include!(env!("FEMACS_GUI_EXPORTS"));
 #[cfg(feature = "have_ns")]
-use dispextern_unit_names::{bidi_it, it};
+use crate::fontset::{face, frame_face_accessors};
+#[cfg(feature = "have_ns")]
+use crate::fringe::{draw_fringe_bitmap_params, redisplay_interface};
+#[cfg(feature = "have_ns")]
+use crate::xdisp::{bidi_it, it};
 
 #[cfg(feature = "have_ns")]
-include!("include/menu.rs");
+const _: () = ();
 #[cfg(feature = "have_ns")]
 unsafe extern "C" {
   fn estimate_mode_line_height(f: *mut frame, face: c_int) -> c_int;

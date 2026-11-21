@@ -44,7 +44,9 @@
 // The mirror is its own translation unit like its inner half: macros plus one marker
 // constant, no scalar from an includer, and the one include below is C's own C 21.
 
-include!("intprops-internal.rs");   // C 21: `#include "intprops-internal.h"`
+// [U1-MODULE-MIRROR]
+use super::*;
+// [U1] intprops-internal.rs imported via super
 
 /* C 18-19: the guard - no Rust counterpart (PORTING.md 0.1-4); the name stays as its marker. */
 pub const _GL_INTPROPS_H: bool = true;

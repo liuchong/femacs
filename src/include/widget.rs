@@ -14,6 +14,8 @@
 // port declares the toolkit feature and the ledger records the relation.)
 
 // C 20-21: the include guard has no Rust counterpart (PORTING.md 0.1-4).
+// [U1-MODULE-MIRROR]
+use super::*;
 pub const _EmacsFrame_h: bool = true;
 
 /// C 23-24: `#include <X11/IntrinsicP.h>` - Xaw's own header, which has no mirror; the arm
@@ -174,4 +176,4 @@ pub mod widget_decls {
   }
 }
 #[cfg (feature = "use_x_toolkit")]
-use widget_decls::*;
+pub use self::widget_decls::*;

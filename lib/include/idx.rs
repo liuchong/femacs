@@ -8,6 +8,8 @@
 // `typedef ptrdiff_t idx_t;` are the compiler-guarded arms; the frozen target takes the
 // `__PTRDIFF_TYPE__` arm (C 91), which is the definition below.
 
+// [U1-MODULE-MIRROR]
+use super::*;
 /// `__PTRDIFF_TYPE__` (the compiler's builtin, `long int` on the frozen target).
 pub const __PTRDIFF_TYPE__: idx_t = 0;
 

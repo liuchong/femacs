@@ -1,4 +1,6 @@
 // femacs: port of lib/sha3.c @ fd7afced403.
+// [U1-MODULE-UNIT]
+use crate::common::*;
 /* Written by Collin Funk <collin.funk1@gmail.com>, 2025.  */
 
 /* emacs/lib/sha3.c: C 19's `<config.h>` is the generated config mirror, C 22's
@@ -15,10 +17,10 @@
    generated names as arguments and C's numbers are the constants they pass (the
    ITREE_FOREACH decision, P-33) - the call sites below say which expansion is which.  */
 use std::ffi::{c_char, c_int, c_long, c_uchar, c_uint, c_ulong, c_void};
-include!("../src/include/config.rs");
-include!("include/gnulib_config.rs");
-include!("include/stdint.in.rs");
-include!("include/sha3.rs");
+// [U1] config.rs provided by common
+// [U1] include/gnulib_config.rs imported via common
+// [U1] include/stdint.in.rs imported via common
+// [U1] include/sha3.rs imported via common
 
 /* C 26's `<string.h>`: the two entries the bodies call.  */
 unsafe extern "C" {

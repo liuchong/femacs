@@ -1406,3 +1406,8 @@ After `current-runtime-semantics-5` naturally passed (`ert` 10,335/10,335, `nega
 ## CLN269 — superseded single-product GC candidate and rule checks (2026-11-16)
 
 Retired the superseded single-product `build/runtime/p466-gc-1` candidate and two throwaway source-rule expansion checks after the complete same-source candidate matrix `current-runtime-build-6` naturally passed. Measured `du -sh` allocations at deletion: 977M, 41M, 41M; candidate receipt identities `b77c10ea…`/program `a3b69143…` were retained in the continuation record before deletion, and every active evidence directory (candidate cohort, reference binding, ERC/default/terminal/driver/classification/toolchain evidence) was kept. [scope](manifests/2026-11-16-269-superseded-single-product-gc-candidate.json).
+
+
+## CLN277 — U1 unified Cargo workspace graph & consumed AU1 verification trees (2026-11-22)
+
+Retired per-unit `rustc --emit=obj` (`build-tu` / `build-units` / `LINK_DRIVER` / `libgnu-port.a`) in favor of the unified Cargo workspace (`crates/femacs-{pure,sys,vm,host,tools}` + `xtask/src/cargo_build.rs`), and reclaimed 20 consumed AU1 export/build/verification scopes totaling 29,739 files, 1,921 directories, and 26 symlinks (`3,249,751,743` logical bytes). Retained `build/terminal/port` (`43 MB`), `dist/macos/Femacs.app` (`234 MB`), and active `U2–U5` incremental/toolchain caches (`build/cargo`, pinned Tree-sitter 0.27.1 SDK, and `u1-baseline` metrics) until `AU5`. [Report](reports/2026-11-22-277-u1-cargo-graph-and-au1-retirement.md).

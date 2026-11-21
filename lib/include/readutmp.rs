@@ -52,9 +52,11 @@
 // `c_char`/`c_int`/`c_long`/`c_short` come from the unit's `use` line - the shape
 // `include-lib-malloc-scratch_buffer.md` records for a mirror that is not a crate root.
 
-include!("idx.rs");            // C 30: `#include "idx.h"` (idx_t)
-include!("sys_types.in.rs");   // C 33: `#include <sys/types.h>` (pid_t)
-include!("time.in.rs");        // C 34: `#include <time.h>` (struct timespec)
+// [U1-MODULE-MIRROR]
+use super::*;
+// [U1] idx.rs imported via super
+// [U1] sys_types.in.rs imported via super
+// [U1] time.in.rs imported via super
 
 /* C 20-21: `#ifndef __READUTMP_H__ / #define __READUTMP_H__` - the guard has no Rust
    counterpart (PORTING.md 0.1-4); the name stays as its marker.  */
@@ -334,7 +336,7 @@ pub mod readutmp_decls {
                       utmp_buf: *mut *mut STRUCT_UTMP, options: c_int) -> c_int;
   }
 }
-use readutmp_decls::*;
+pub use self::readutmp_decls::*;
 
 /* C 50-54's AIX `_THREAD_SAFE` rename, "work around the duplicate struct utmp_data
    declaration".  Dead: `_THREAD_SAFE`/`UTMP_DATA_INIT` are not defined for the target.  */

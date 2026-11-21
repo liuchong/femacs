@@ -12,15 +12,17 @@
 #![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code,
          unused_imports, unused_macros, unused_variables, unused_mut, unused_unsafe,
          static_mut_refs, unsafe_op_in_unsafe_fn)]
+// [U1-MODULE-UNIT]
+use crate::common::*;
 
 use std::ffi::{c_char, c_int, c_long, c_uchar, c_uint, c_ulong};
 
-include!("../src/include/config.rs");
-include!("include/gnulib_config.rs");
-include!("include/limits.in.rs");
-include!("include/idx.rs");
-include!("include/c-ctype.rs");
-include!("include/filevercmp.rs");
+// [U1] config.rs provided by common
+// [U1] include/gnulib_config.rs imported via common
+// [U1] include/limits.in.rs imported via common
+// [U1] include/idx.rs imported via common
+// [U1] include/c-ctype.rs imported via common
+// [U1] include/filevercmp.rs imported via common
 
 /// PORTING.md 2.5: C's `static_assert` is `const _: () = core::assert! (cond);`.
 macro_rules! static_assert {

@@ -23,6 +23,8 @@
 // docs/ports/include-cm.md.
 
 // cm.h 20: the include guard has no Rust counterpart (PORTING.md 0.1).
+// [U1-MODULE-MIRROR]
+use super::*;
 pub const EMACS_CM_H: bool = true;
 
 /* Holds the minimum and maximum costs for the parameterized capabilities.  */
@@ -304,7 +306,7 @@ pub mod cm_externs {
   }
 }
 
-use cm_externs::*;
+pub use self::cm_externs::*;
 
 // cm.h 163: `emacs_tputs(tty, str, affcnt, putc) (current_tty = (tty), tputs (str, affcnt, putc))`.
 // The third argument is a function pointer in C and an `Option<...>` in the port's

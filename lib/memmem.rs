@@ -1,6 +1,8 @@
 #![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code,
          unused_imports, unused_macros, unused_variables, unused_mut, unused_unsafe,
          static_mut_refs, unsafe_op_in_unsafe_fn)]
+// [U1-MODULE-UNIT]
+use crate::common::*;
 use std::ffi::{c_char, c_double, c_int, c_long, c_uint, c_ulong, c_void};
 // femacs: port of lib/memmem.c @ fd7afced403.  `_LIBC` is undefined, so
 // C 20-22's `<config.h>` include is live; the file is in cond-eval-verified.txt, so its
@@ -12,11 +14,11 @@ use std::ffi::{c_char, c_double, c_int, c_long, c_uint, c_ulong, c_void};
 // `T _rpl_memmem` (gnulib's generated <string.h> renames `memmem` under REPLACE_MEMMEM), so the
 // port keeps C's name and emits the real symbol with `#[unsafe(export_name = "rpl_memmem")]`
 // (PORTING.md 10.13①, the mempcpy precedent).
-include!("../src/include/config.rs");
-include!("include/gnulib_config.rs");
-include!("include/limits.in.rs");   // <limits.h> (CHAR_BIT, for the header's shift table)
-include!("include/stdint.in.rs");   // <stdint.h> (SIZE_MAX, for the header's sentinel)
-include!("include/string.rs");      // <string.h> (`memchr`, `memcmp`)
+// [U1] config.rs provided by common
+// [U1] include/gnulib_config.rs imported via common
+// [U1] include/limits.in.rs imported via common
+// [U1] include/stdint.in.rs imported via common
+// [U1] include/string.rs imported via common
 
 /* C 27's `# define RETURN_TYPE void *`.  */
 macro_rules! RETURN_TYPE {

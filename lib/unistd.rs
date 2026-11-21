@@ -1,6 +1,8 @@
 // femacs: port of lib/unistd.c @ fd7afced403.
+// [U1-MODULE-UNIT]
+use crate::common::*;
 use std::ffi::c_int;
-include!("include/gnulib_config.rs");
+// [U1] include/gnulib_config.rs imported via common
 /* lib/unistd.c's `typedef int dummy;` (a link-time marker in gnulib).  */
 pub type dummy = c_int;
 

@@ -5,13 +5,15 @@
 #![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code,
          unused_imports, unused_macros, unused_variables, unused_mut, unused_unsafe,
          static_mut_refs, unsafe_op_in_unsafe_fn)]
+// [U1-MODULE-UNIT]
+use crate::common::*;
 use std::ffi::{c_char, c_double, c_int, c_long, c_uint, c_ulong, c_void};
 
-include!("../src/include/config.rs");
-include!("include/gnulib_config.rs");   // _GL_CMP
-include!("include/limits.in.rs");       // <limits.h> (UCHAR_MAX, INT_MAX)
-include!("include/c-ctype.rs");         // "c-ctype.h" (c_tolower)
-include!("include/c-strcase.rs");     // "c-strcase.h"; its declaration of this
+// [U1] config.rs provided by common
+// [U1] include/gnulib_config.rs imported via common
+// [U1] include/limits.in.rs imported via common
+// [U1] include/c-ctype.rs imported via common
+// [U1] include/c-strcase.rs imported via common
                                         // unit's function is shadowed by the definition
                                         // below (PORTING.md 0.1-10)
 

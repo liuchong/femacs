@@ -10,6 +10,8 @@
 // 15`), and PORTING.md P-26 tracks the remaining system headers that still need mirrors.
 // DBL_DIG is bignum.c's (`mpz_get_d_rounded`); the rest are lisp.h's and floatfns.c's.
 
+// [U1-MODULE-MIRROR]
+use super::*;
 pub const FLT_RADIX: c_int = 2;
 pub const FLT_MANT_DIG: c_int = 24;
 pub const FLT_MAX_EXP: c_int = 128;

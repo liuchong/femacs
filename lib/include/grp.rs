@@ -4,6 +4,8 @@
 // (`src/dired.rs`, `src/editfns.rs`, `src/sysdep.rs`); `gid_t` comes from the including unit's
 // scope, like the other lib mirrors.
 
+// [U1-MODULE-MIRROR]
+use super::*;
 /// <grp.h>'s `struct group`, measured: `sizeof` 32, `gr_name`@0, `gr_gid`@16, `gr_mem`@24.
 #[repr(C)]
 pub struct group {

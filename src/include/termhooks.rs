@@ -1,4 +1,6 @@
 // femacs: port of src/termhooks.h @ fd7afced403.
+// [U1-MODULE-MIRROR]
+use super::*;
 /* C termhooks.h 957-959 has the android arm of `TERMINAL_FONT_CACHE`; it is defined in
    androidterm.rs instead, because it needs `struct android_display_info` (declared
    there) and Rust has no struct forward declaration (P-246).  */
@@ -15,12 +17,12 @@ pub const EMACS_TERMHOOKS_H: bool = true;
 /* termhooks.h 27: `#include "dispextern.h"`.  `struct terminal`'s color parameters (C 594,
    613, 620) name `Emacs_Color`, which dispextern.h defines, and the `dbusbind` arm read 2 x
    `E0425 Emacs_Color` here without the edge (status 3.527).  */
-include!("dispextern.rs");
+// [U1] dispextern.rs imported via super
 #[cfg (all (feature = "have_window_system", feature = "have_android"))]
-include!("androidgui.rs");
+const _: () = ();
 // Graphical records and nsterm.rs require the same font type on every window target.
 #[cfg (feature = "have_window_system")]
-include!("font.rs");   // `android_gc`/`android_cursor` — androidterm.h 86's record needs them
+const _: () = ();
 
 /* A single bitmap record, as `android_bitmap_record` in the C.  */
 // androidterm.h 30-46.  Measured with the frozen target's clang (evidence in the ledger):
@@ -169,7 +171,7 @@ pub struct android_display_info
    mirror was the `struct input_event` slice, and every X11 unit that reaches `Time` through
    here (as C does) read `cannot find type Time`: `include/xterm.rs` names it 6 times and this
    file 3 (measured on `src/xfont.rs`'s flip, status 3.520).  */
-include!("systime.rs");
+// [U1] systime.rs imported via super
 
 // termhooks.h 72-355: `enum event_kind`.  C's members carry no initialiser, so their values
 // are the declaration order (the constant gate compares them).

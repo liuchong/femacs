@@ -1,7 +1,6 @@
-// P-346: private native compiler resource scopes. Included by comp.rs only.
+// P-346: private native compiler resource scopes. Mounted as `mod native_context` by comp.rs.
 // No Rust destructor crosses a Lisp nonlocal exit; specpdl owns stack guards.
-mod native_context {
-    use super::*;
+use super::*;
 
     pub(super) struct CompInitGuard {
         token: u64,
@@ -150,4 +149,3 @@ mod native_context {
             xsignal1(Qnative_ice(), build_string(c"advised init did not create an owned compiler context".as_ptr()));
         }
     }
-}

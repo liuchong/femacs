@@ -17,8 +17,10 @@
 // `_GL_INLINE` and `_GL_TIMESPEC_INLINE` are attribute/spelling macros with the same
 // disposition; `_GL_CMP` is a real value macro and lives in gnulib_config.rs.
 
-include!("time.in.rs");        // #include <time.h> (`time_t`, `struct timespec`)
-include!("gnulib_config.rs");
+// [U1-MODULE-MIRROR]
+use super::*;
+// [U1] time.in.rs imported via super
+// [U1] gnulib_config.rs imported via super
 
 // The include guard has no Rust counterpart (PORTING.md 0.1).
 pub const TIMESPEC_H: bool = true;
@@ -92,4 +94,4 @@ pub mod timespec_decls {
     pub fn settime (ts: *const timespec) -> c_int;
   }
 }
-use timespec_decls::*;
+pub use self::timespec_decls::*;

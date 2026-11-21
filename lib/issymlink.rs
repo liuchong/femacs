@@ -1,10 +1,12 @@
 // femacs: port of lib/issymlink.c @ fd7afced403.
+// [U1-MODULE-UNIT]
+use crate::common::*;
 use std::ffi::{c_char, c_double, c_int, c_long, c_short, c_uint, c_ulong,
                 c_void};
 
-include!("../src/include/config.rs");
-include!("include/gnulib_config.rs");
-include!("include/issymlink.rs");
+// [U1] config.rs provided by common
+// [U1] include/gnulib_config.rs imported via common
+// [U1] include/issymlink.rs imported via common
 
 /* lib/issymlink.c: the qualifier this translation unit uses (PORTING.md 10.12).  */
 pub const _GL_ISSYMLINK_INLINE: () = _GL_EXTERN_INLINE;

@@ -10,6 +10,8 @@
 // docs/ports/include-syswait.md).
 //
 // C 24: the include guard has no Rust counterpart (PORTING.md 0.1).
+// [U1-MODULE-MIRROR]
+use super::*;
 pub const EMACS_SYSWAIT_H: bool = true;
 
 // Both functions are defined in src/sysdep.c, which is ported (`src/sysdep.rs` owns
@@ -24,4 +26,4 @@ pub mod syswait_decls {
     pub fn child_status_changed (pid: pid_t, status: *mut c_int, flags: c_int) -> pid_t;
   }
 }
-use syswait_decls::*;
+pub use self::syswait_decls::*;

@@ -12,9 +12,11 @@
 //
 // Definitions are header-inline in C, so they are `#[inline(always)]` here (P-12) and
 // emit no symbol; lib/byteswap.rs re-exports them (P-81).
-include!("gnulib_config.rs");
-include!("stdint.in.rs");
-include!("stdbit.in.rs");
+// [U1-MODULE-MIRROR]
+use super::*;
+// [U1] gnulib_config.rs imported via super
+// [U1] stdint.in.rs imported via super
+// [U1] stdbit.in.rs imported via super
 
 /* C 22-24's `#if !_GL_CONFIG_H_INCLUDED / #error "Please include config.h first."`.  */
 const _: () = core::assert! (_GL_CONFIG_H_INCLUDED, "Please include config.h first.");

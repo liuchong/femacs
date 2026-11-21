@@ -15,13 +15,15 @@
 // macro at its own use site rather than inventing a declaration for it.
 //
 // C 22: the include guard has no Rust counterpart (PORTING.md 0.1).
+// [U1-MODULE-MIRROR]
+use super::*;
 pub const EMACS_SYSSTDIO_H: bool = true;
 
-include!("../../lib/include/stdio.rs");        // C 24: `#include <stdio.h>`
-include!("../../lib/include/fcntl.in.rs");     // C 25: `#include <fcntl.h>` (`O_BINARY`)
-include!("../../lib/include/limits.in.rs");    // C 26: `#include <limits.h>` (`PIPE_BUF`)
-include!("../../lib/include/attribute.rs");    // C 28: `#include <attribute.h>`
-include!("../../lib/include/unlocked-io.rs");   // C 29: `#include <unlocked-io.h>`
+// [U1] ../../lib/include/stdio.rs imported via super
+// [U1] ../../lib/include/fcntl.in.rs imported via super
+// [U1] ../../lib/include/limits.in.rs imported via super
+// [U1] ../../lib/include/attribute.rs imported via super
+// [U1] ../../lib/include/unlocked-io.rs imported via super
 
 // C 27's `#include <stdarg.h>` has no mirror: Rust spells a C variadic list as `VaList`
 // (the `sysdep.rs`/`print.rs` precedent), so nothing is included here for it.
@@ -38,7 +40,7 @@ pub mod sysstdio_decls {
     pub fn close_output_streams ();
   }
 }
-use sysstdio_decls::*;
+pub use self::sysstdio_decls::*;
 
 /// C 39: `# define FOPEN_BINARY ""` - the live `#else` arm of `#if O_BINARY`.  The extractor
 /// compares a string-literal macro body as a constant, so the mirror keeps it one (PORTING.md

@@ -10,6 +10,8 @@
 // predicates Rust has; the rest are real library functions.  PORTING.md P-26 tracks the
 // system headers that still need mirrors.
 
+// [U1-MODULE-MIRROR]
+use super::*;
 pub const HUGE_VAL: c_double = c_double::INFINITY;
 /// C: math.h 751: `#define M_PI        3.14159265358979323846264338327950288   /* pi             */`
 pub const M_PI: c_double = 3.14159265358979323846264338327950288;
@@ -78,4 +80,4 @@ pub mod math_decls {
   pub fn trunc (x: c_double) -> c_double;
   }
 }
-use math_decls::*;
+pub use self::math_decls::*;

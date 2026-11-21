@@ -20,10 +20,12 @@
 // declarations is the name `md5_*`, which is what the declarations below spell, and
 // the macro rows keep C's spelling for the ledger (`docs/ports/include-md5.md`).
 
-include!("../src/include/config.rs");
-include!("gnulib_config.rs");
-include!("stdint.in.rs");
-include!("stdio.rs");
+// [U1-MODULE-MIRROR]
+use super::*;
+// config.rs via common root
+// [U1] gnulib_config.rs imported via super
+// [U1] stdint.in.rs imported via super
+// [U1] stdio.rs imported via super
 
 /* C 20-21: `#ifndef _MD5_H` / `#define _MD5_H 1`; an include guard has no Rust
    counterpart (PORTING.md 0.1), so it is the constant the ledger compares.  */
@@ -118,4 +120,4 @@ pub mod md5_decls {
     pub fn md5_stream (stream: *mut FILE, resblock: *mut c_void) -> c_int;
   }
 }
-use md5_decls::*;
+pub use self::md5_decls::*;

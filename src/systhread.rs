@@ -23,14 +23,16 @@
 #![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code,
          unused_imports, unused_macros, unused_variables, unused_unsafe, unused_mut,
          static_mut_refs, unsafe_op_in_unsafe_fn)]
+// [U1-MODULE-UNIT]
+use crate::common::*;
 
-include!("include/config.rs");
-include!("../lib/include/string.rs");	// lisp.h 30: <string.h>
-include!("include/lisp.rs");
+const _: () = ();
+// [U1] ../lib/include/string.rs imported via common
+// [U1] include/lisp.rs imported via common
 // The `<pthread.h>` surface lives in the mirror now: mirrors that name these types
 // (`include/systhread.rs`, `include/thread.rs`) cannot see a unit-local declaration (P-240).
-include!("include/systhread.rs");
-include!("include/systhread.rs");
+// [U1] include/systhread.rs imported via common
+// [U1] include/systhread.rs imported via common
 
 // C 13-14's `<setjmp.h>` and `<stdio.h>` come through lisp.h's own chain (lisp.h includes
 // both), so the port's include list is C's minus the two duplicates (PORTING.md 0.1-4).

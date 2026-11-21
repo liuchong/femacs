@@ -1,9 +1,11 @@
 // femacs: port of lib/streq.c @ fd7afced403.
+// [U1-MODULE-UNIT]
+use crate::common::*;
 use std::ffi::{c_char, c_int, c_long, c_schar, c_short, c_uchar, c_uint, c_ulong,
                 c_ulonglong, c_ushort, c_void};
 
-include!("include/gnulib_config.rs");
-include!("include/string.in.rs");
+// [U1] include/gnulib_config.rs imported via common
+// [U1] include/string.in.rs imported via common
 
 /* lib/streq.c: the qualifier this translation unit uses (PORTING.md 10.12).  */
 pub const _GL_STREQ_INLINE: () = _GL_EXTERN_INLINE;

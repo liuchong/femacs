@@ -29,8 +29,10 @@
 // emitting an external definition of them), so they are `#[inline(always)]` Rust functions with
 // no symbol (PORTING.md 1.2/P-12), and the four helpers C spells `static` are ordinary
 // functions in the mirror for the same reason (they carry no C symbol either).
-include!("string.rs");   // C 432: <string.h> (strlen, memcpy)
-include!("stdlib.rs");   // C 449: <stdlib.h> (malloc, free)
+// [U1-MODULE-MIRROR]
+use super::*;
+// [U1] string.rs imported via super
+// [U1] stdlib.rs imported via super
 
 /* C 17-18: `#ifndef _LIBGETTEXT_H / #define _LIBGETTEXT_H 1` - the include guard.  */
 pub const _LIBGETTEXT_H: c_int = 1;

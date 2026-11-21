@@ -5,7 +5,9 @@
 // __DARWIN_NSIG, 32) and neither _sys_nsig nor _SIG_MAXSIG, so C's third arm is the live one
 // and the port keeps `NSIG - 1`; the other arms are recorded in the notes.
 
-include!("signal.rs");   // <signal.h> (NSIG)
+// [U1-MODULE-MIRROR]
+use super::*;
+// [U1] signal.rs imported via super
 
 // The include guard has no Rust counterpart (PORTING.md 0.1).
 pub const SIG2STR_H: bool = true;

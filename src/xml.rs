@@ -5,21 +5,23 @@
 #![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code,
          unused_imports, unused_macros, unused_variables, unused_unsafe, static_mut_refs,
          unsafe_op_in_unsafe_fn)]
+// [U1-MODULE-UNIT]
+use crate::common::*;
 
 
-include!("include/config.rs");
-include!("../lib/include/stdio.rs");
-include!("../lib/include/string.rs");
-include!("include/lisp.rs");
-include!("include/character.rs");
-include!("include/itree.rs");
-include!("include/systime.rs");
-include!("include/dispextern.rs");
-include!("include/composite.rs");
-include!("include/coding.rs");
-include!("include/buffer.rs");
+const _: () = ();
+// [U1] ../lib/include/stdio.rs imported via common
+// [U1] ../lib/include/string.rs imported via common
+// [U1] include/lisp.rs imported via common
+// [U1] include/character.rs imported via common
+// [U1] include/itree.rs imported via common
+// [U1] include/systime.rs imported via common
+// [U1] include/dispextern.rs imported via common
+// [U1] include/composite.rs imported via common
+// [U1] include/coding.rs imported via common
+// [U1] include/buffer.rs imported via common
 
-include!("include/libxml2.rs");
+// [U1] include/libxml2.rs imported via common
 #[cfg(feature = "have_libxml2")]
 use libxml2_ffi::*;
 

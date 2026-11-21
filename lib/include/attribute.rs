@@ -20,6 +20,8 @@
 // `_GL_UNNAMED (id)` is empty on the frozen target (`__STDC_VERSION__` is 202311, so
 // `config.h`'s glibc-only `unnamed_##id _GL_ATTRIBUTE_UNUSED` arm is dead text).
 
+// [U1-MODULE-MIRROR]
+use super::*;
 /* attribute.h 69: the include guard has no Rust counterpart (PORTING.md 0.1).  */
 pub const _GL_ATTRIBUTE_H: bool = true;
 

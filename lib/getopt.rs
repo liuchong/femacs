@@ -24,19 +24,21 @@
 #![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code,
          unused_imports, unused_macros, unused_variables, unused_mut, unused_unsafe,
          static_mut_refs, unsafe_op_in_unsafe_fn)]
+// [U1-MODULE-UNIT]
+use crate::common::*;
 
 use std::ffi::{c_char, c_double, c_int, c_long, c_schar, c_short, c_uchar, c_uint,
                c_ulong, c_ushort, c_void};
 
-include!("../src/include/config.rs");
-include!("include/gnulib_config.rs");
-include!("include/stdio.rs");
-include!("include/stdlib.rs");
-include!("include/string.rs");
-include!("include/unistd.in.rs");
-include!("include/gettext.rs");
-include!("include/getopt.in.rs");
-include!("include/getopt_int.rs");
+// [U1] config.rs provided by common
+// [U1] include/gnulib_config.rs imported via common
+// [U1] include/stdio.rs imported via common
+// [U1] include/stdlib.rs imported via common
+// [U1] include/string.rs imported via common
+// [U1] include/unistd.in.rs imported via common
+// [U1] include/gettext.rs imported via common
+// [U1] include/getopt.in.rs imported via common
+// [U1] include/getopt_int.rs imported via common
 
 /* C 25-33's <getopt.h>, <stdio.h>, <stdlib.h>, <string.h> and <unistd.h> are the mirrors
    above; the entries the live text needs that those mirrors do not carry yet are declared

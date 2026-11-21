@@ -29,36 +29,38 @@
          unsafe_op_in_unsafe_fn, unused_assignments, unused_parens, unused_mut,
          unreachable_code, unused_labels, while_true, unused_comparisons,
          overflowing_literals, unused_must_use, clippy::all)]
+// [U1-MODULE-UNIT]
+use crate::common::*;
 
-include!("include/config.rs");
+const _: () = ();
 
 /* C 25-28's four headers sit inside the file gate, as C's own `#ifdef HAVE_ZLIB` does; `string.h`
    and `limits.h` reach this file through `lisp.h` 28 and 32, and the two system mirrors are
    included here the way `src/sysdep.rs` 59 includes them.  */
 #[cfg (feature = "have_zlib")]
-include!("include/lisp.rs");                    // C 25: `#include "lisp.h"`
+const _: () = ();
 /* `character.h` reaches C through `buffer.h`, whose `CHAR_STRING` family lives in it (`dired.rs`
    includes the mirror in the same order for the same reason, PORTING.md 0.1-4).  */
 #[cfg (feature = "have_zlib")]
-include!("include/character.rs");               // buffer.h: the CHAR_STRING family
+const _: () = ();
 #[cfg (feature = "have_zlib")]
-include!("include/buffer.rs");                  // C 26: `#include "buffer.h"`
+const _: () = ();
 #[cfg (feature = "have_zlib")]
-include!("include/composite.rs");               // C 27: `#include "composite.h"`
+const _: () = ();
 #[cfg (feature = "have_zlib")]
-include!("../lib/include/md5.rs");              // C 28: `#include "md5.h"`
+const _: () = ();
 #[cfg (feature = "have_zlib")]
-include!("../lib/include/string.rs");           // lisp.h 28: <string.h> (memcpy/memmove)
+const _: () = ();
 #[cfg (feature = "have_zlib")]
-include!("../lib/include/limits.in.rs");        // lisp.h 32: <limits.h> (UINT_MAX)
+const _: () = ();
 
 /* C 31-33's `#include <windows.h>`, `"w32common.h"` and `"w32.h"`.  `<windows.h>` has no mirror,
    so `HMODULE` is the pointer PORTING.md 0.2 maps it to (`*mut c_void`, the spelling
    `src/include/w32common.rs` 137 already uses for `hbfont_init_w32_funcs`).  */
 #[cfg (all (feature = "have_zlib", feature = "windowsnt"))]
-include!("include/w32common.rs");               // C 32
+const _: () = ();
 #[cfg (all (feature = "have_zlib", feature = "windowsnt"))]
-include!("include/w32.rs");                     // C 33
+const _: () = ();
 
 /* ----------------------------------------------------------------------------------------------
    C 23: `#include <zlib.h>` - the reference tree has no `zlib.h` (P-88: a third-party header with

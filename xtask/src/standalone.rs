@@ -137,7 +137,6 @@ pub(super) fn terminal_configured(repo: &Path, root: &Path, publish_info: bool, 
         }
     };
     invoke(&["gen-config"])?;
-    invoke(&["build-units"])?;
     invoke(&["link-owned"])?;
     invoke(&["link-program", "lib-src/emacsclient.c"])?;
     resources(&repo, "doc", None)?;

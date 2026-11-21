@@ -1,0 +1,12 @@
+[package]
+name = "femacs-sys"
+version = "0.1.0"
+edition.workspace = true
+license.workspace = true
+publish = false
+
+[lib]
+path = "src/lib.rs"
+
+[dependencies]
+femacs-pure = { path = "../femacs-pure" }

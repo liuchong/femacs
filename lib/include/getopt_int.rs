@@ -11,6 +11,8 @@
 // (PORTING.md 0.1-10).
 
 // The include guard has no Rust counterpart (PORTING.md 0.1).
+// [U1-MODULE-MIRROR]
+use super::*;
 pub const _GETOPT_INT_H: c_int = 1;
 
 /* getopt_int.h 55-58: `enum __ord`.  */
@@ -103,4 +105,4 @@ pub mod getopt_int_decls {
                                 __longind: *mut c_int, __data: *mut _getopt_data) -> c_int;
   }
 }
-use getopt_int_decls::*;
+pub use self::getopt_int_decls::*;

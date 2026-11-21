@@ -8,9 +8,11 @@
 // keeps the branch's effect (`Time` is `unsigned long` / `int64`) under its own feature.
 
 // The include guard has no Rust counterpart (PORTING.md 0.1).
+// [U1-MODULE-MIRROR]
+use super::*;
 pub const EMACS_SYSTIME_H: bool = true;
 
-include!("../../lib/include/timespec.rs");      // #include <timespec.h>
+// [U1] ../../lib/include/timespec.rs imported via super
 
 // C: `#ifdef HAVE_X_WINDOWS # include <X11/X.h> #elif defined HAVE_HAIKU
 // # include <support/SupportDefs.h> typedef int64 Time; #else typedef unsigned long Time;
@@ -37,7 +39,7 @@ const _: () = core::assert! (!cfg! (feature = "have_haiku") || HAIKU);
 pub const __TIMEVAL__: bool = true;
 const _: () = core::assert! (!cfg! (feature = "hpux"));
 
-include!("../../lib/include/sys_time.rs");      // #include <sys/time.h> for `struct timeval`
+// [U1] ../../lib/include/sys_time.rs imported via super
 // C: `#undef hz` (AIX's <sys/param.h> defines it) — there is nothing to undefine in the
 // port, which never included the AIX header; recorded in docs/ports/include-systime.md.
 
@@ -89,4 +91,4 @@ pub mod systime_decls {
     pub fn syms_of_timefns ();                                                    // timefns.c
   }
 }
-use systime_decls::*;
+pub use self::systime_decls::*;

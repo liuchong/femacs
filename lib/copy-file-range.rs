@@ -1,4 +1,6 @@
 // femacs: port of lib/copy-file-range.c @ fd7afced403.
+// [U1-MODULE-UNIT]
+use crate::common::*;
 /* emacs/lib/copy-file-range.c (@ 99 lines): the frozen configuration leaves
    HAVE_COPY_FILE_RANGE undefined, so C 19-40's Linux-only prelude (the `__linux__` guard, the
    <linux/version.h>/<sys/utsname.h> includes and the two CHECK_LINUX_KERNEL_VERSION arms) and
@@ -9,12 +11,12 @@
    gettimeofday.c Windows-arm treatment).  C 22's <unistd.h>, C 24's <errno.h> and C 42's
    "sys-limits.h" are the unistd mirror, the errno mirror and the new sys-limits mirror.  */
 use std::ffi::{c_char, c_int, c_long, c_uint, c_ulong, c_void};
-include!("../src/include/config.rs");
-include!("include/gnulib_config.rs");
-include!("include/sys_types.in.rs");
-include!("include/unistd.in.rs");
-include!("include/errno.rs");
-include!("include/sys-limits.rs");
+// [U1] config.rs provided by common
+// [U1] include/gnulib_config.rs imported via common
+// [U1] include/sys_types.in.rs imported via common
+// [U1] include/unistd.in.rs imported via common
+// [U1] include/errno.rs imported via common
+// [U1] include/sys-limits.rs imported via common
 
 /* C 28-39's `#if defined __linux__ && HAVE_COPY_FILE_RANGE` arm, kept as text (P-51; dead:
    this is a darwin-arm64 target and HAVE_COPY_FILE_RANGE is undefined).  */

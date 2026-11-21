@@ -1,7 +1,7 @@
 //! femacs build and gate driver.
 //!
-//! Replaces autoconf and make: it compiles one translation unit per rustc
-//! invocation (`PORTING.md` 0.1), generates the configuration mirror and the
+//! Orchestrates Cargo workspace builds (`femacs-pure`, `femacs-sys`, `femacs-vm`,
+//! `femacs-host`, `femacs-tools`), generates target-local configuration mirrors and
 //! layout assertions from the frozen baselines, and runs the mechanical gates.
 //!
 //! `cargo run -p xtask -- <command>`, with the femacs directory as cwd.
@@ -12,6 +12,7 @@ use std::path::{Path, PathBuf};
 use std::process::{exit, Command};
 
 mod bundle;
+mod cargo_build;
 mod tls;
 mod image;
 mod lcms;
@@ -22,6 +23,7 @@ mod owned_copy;
 mod standalone;
 mod manuals;
 mod probes;
+mod product_sources;
 mod runtime;
 mod android;
 pub(crate) mod tooling;
@@ -29,16 +31,6 @@ pub(crate) mod tooling;
 mod test_support;
 
 const REPO: &str = ".";
-
-fn reference_build() -> PathBuf {
-    std::env::var_os("FEMACS_REFERENCE_BUILD").map(PathBuf::from)
-        .unwrap_or_else(|| PathBuf::from("build/emacs-ref"))
-}
-
-fn frozen_config_path(stem: &str) -> PathBuf {
-    std::env::var_os("FEMACS_CONFIG_FILE").map(PathBuf::from)
-        .unwrap_or_else(|| Path::new("docs/baseline/config").join(format!("{stem}.json")))
-}
 
 /// The default build tree.  `FEMACS_BUILD_ROOT` moves every derived directory
 /// (``, `load/`, `port/`, `profiles/`) together, which is what keeps the PGO
@@ -55,21 +47,6 @@ fn units_dir () -> PathBuf {
 }
 fn load_dir () -> PathBuf { build_root ().join ("load") }
 fn port_dir () -> PathBuf { build_root ().join ("port") }
-
-/// The unit objects the `lib-src/` tools link against.  Deliberately independent of
-/// `FEMACS_BUILD_ROOT`: `make-fingerprint` must always be an ordinary O2 tool, even
-/// when the program it rewrites was built with `-Cprofile-generate`.  Otherwise the
-/// tool's own build/dump runs would add profiles to the training set.
-fn tool_units_dir () -> PathBuf
-{
-  std::env::var_os ("FEMACS_TOOL_UNITS").map (PathBuf::from)
-    .unwrap_or_else (|| {
-      // Cocoa is a separate, plain-O2 configuration; host-tool objects must use
-      // its headers and library membership rather than the terminal tree.
-      if std::env::var_os("FEMACS_MACOS_GUI").is_some() { units_dir() }
-      else { PathBuf::from ("build/femacs") }
-    })
-}
 
 /// `FEMACS_PGO=off` (default) | `generate:<dir>` | `use:<file>`.
 enum PgoMode { Off, Generate (PathBuf), Use (PathBuf) }
@@ -117,86 +94,10 @@ fn set_profile_env (cmd: &mut Command, role: &str)
     }
 }
 
-/// The `-C` flags every unit object is built with (PORTING.md 0.1-1).
-///
-/// `opt-level=2` is the frozen level as of status 4.486.  P-101 recorded that the port could not
-/// be optimized at all (`=1` died before the first `Loading` line, `=2` in `styled_format`'s
-/// `memmove`), and that the frame-size debt that followed (a 2992-byte `eval_sub` frame against
-/// the reference's 208) forced both `-C opt-level=0` and a 64 MB link-time stack; the aliasing
-/// and mixed-type defects behind it were fixed one at a time afterwards (P-124, P-127, P-130,
-/// P-132, P-136).  Re-measured 2026-10-17: at both `-O1` and `-O2` the 83-unit build reports
-/// `0 failure`, `gate-load` passes its 15 cases and `dump` succeeds, with the 64 MB stack link
-/// flag *removed*, so the debt is paid and the level is no longer a variable of the port - it
-/// is a constant again, and `FEMACS_OPT_LEVEL` stays only as a diagnostic override.
-///
-/// `debug-assertions=off` (P-181): in Rust that switch also carries `ub_checks`, the
-/// alignment/non-null preconditions on every raw-pointer dereference - a cost C's build has
-/// no counterpart for (measured: the bytecode VM was 3-4x the reference with them on, 1.4-1.7x
-/// with them off).  The port's own assertions live in the `enable_checking` configuration.
-/// The flags stay explicit.  `overflow-checks=off` is the inherited default from status
-/// 4.896 (P-339 reconciles the stale P-96 entry); this does not establish that arbitrary
-/// signed C overflow is defined, or replace correct unsigned types, explicit wrapping and
-/// bounds handling in the port.  Checked diagnostic builds use `FEMACS_OVERFLOW_CHECKS=on`
-/// and must retain their own product identities and results.
-const UNIT_CODEGEN_FLAGS: [&str; 10] = ["-C", "opt-level=2", "-C", "overflow-checks=off",
-                                       "-C", "debug-assertions=off", "-C", "panic=abort",
-                                       "-C", "codegen-units=1"];
-
-/// The unit flags, with `-C opt-level` replaced by `FEMACS_OPT_LEVEL` when that variable is set.
-///
-/// The level is a constant of the port again (status 4.486); this override is a *diagnostic*:
-/// it exists so a future bisect can ask "does this survive optimization" without editing the
-/// constant, and so a profile run can be taken at another level.  Unset means the frozen level.
-fn unit_codegen_flags () -> Vec<String>
-{
-  let mut out: Vec<String> = UNIT_CODEGEN_FLAGS.iter ().map (|f| f.to_string ()).collect ();
-  if let Some (v) = std::env::var ("FEMACS_OPT_LEVEL").ok ().filter (|v| ! v.is_empty ())
-    {
-      if let Some (i) = out.iter ().position (|f| f.starts_with ("opt-level="))
-        {
-          out[i] = format! ("opt-level={v}");
-        }
-      println!("unit codegen: -C opt-level={v} (FEMACS_OPT_LEVEL)");
-    }
-  // `FEMACS_OVERFLOW_CHECKS` overrides the inherited off default for an independently
-  // identified diagnostic build (status 4.896, P-339); it is not an assertion that the
-  // ordinary `enable_checking` feature enables Rust overflow checks.
-  if let Some (v) = std::env::var ("FEMACS_OVERFLOW_CHECKS").ok ().filter (|v| ! v.is_empty ())
-    {
-      if let Some (i) = out.iter ().position (|f| f.starts_with ("overflow-checks="))
-        {
-          out[i] = format! ("overflow-checks={v}");
-        }
-      println!("unit codegen: -C overflow-checks={v} (FEMACS_OVERFLOW_CHECKS)");
-    }
-  // `FEMACS_DEBUGINFO=1` is a *diagnostic* like the two above: a release unit has no line
-  // tables, so a tombstone can only name the enclosing function (`llvm-addr2line` prints the
-  // cgu and line 0).  Turning them on for one unit turns a crash address into a source line,
-  // which is what the Android start-up and input hunts need; the frozen flags keep them off.
-  // Code-generation-only diagnostic: `FEMACS_TARGET_CPU=native` asks LLVM for the
-  // host CPU's feature set.  It changes no logic and is never part of the default build;
-  // a performance candidate must be built and measured as its own phase.
-  if let Some (v) = std::env::var ("FEMACS_TARGET_CPU").ok ().filter (|v| ! v.is_empty ())
-    {
-      out.push ("-C".to_string ());
-      out.push (format! ("target-cpu={v}"));
-      println!("unit codegen: -C target-cpu={v} (FEMACS_TARGET_CPU)");
-    }
-  if std::env::var ("FEMACS_DEBUGINFO").map (|v| ! v.is_empty () && v != "0").unwrap_or (false)
-    {
-      out.push ("-C".to_string ());
-      out.push ("debuginfo=1".to_string ());
-      println!("unit codegen: -C debuginfo=1 (FEMACS_DEBUGINFO)");
-    }
-  out
-}
-
 /// The directories a ported unit can live in.  `docs/port-map.md` pairs every reference file
 /// with a target path, and the C tree's non-`src/` directories keep their own names (PORTING.md
 /// 0.1: `lib/`, `lib-src/`, `lwlib/`, `oldXMenu/`, `exec/`, `nt/`, `msdos/`), so the unit
-/// lookup and the whole-tree walks have to cover all of them - before this list existed,
-/// `build-tu lib-src/etags.c` could not even find its own file.  Order matters only for the
-/// `.rs` lookup: the first directory holding the stem wins, and no stem exists twice.
+/// lookup and the whole-tree walks have to cover all of them.
 const UNIT_DIRS: &[&str] = &["src", "lib", "lib-src", "lwlib", "oldXMenu", "exec", "nt", "msdos"];
 
 fn main() {
@@ -230,21 +131,13 @@ fn main() {
             Err(e) => fail(e),
         },
         "layout-check" => layout_check(),
-        "build-tu" => build_tu(args.get(1)),
         "check-units" => check_units::run(args.get(1)),
-        // Compile every finished unit without running a gate or a program: this is the
-        // object half of a PGO phase, where executing temacs would add unwanted profiles.
-        "build-units" => match build_finished_tus() {
-            Ok(()) => 0,
-            Err(e) => fail(e),
-        },
         "probe" => probe_build(&args[1..]),
         "gate-fast" => gate_fast(),
         "gate-probes" => gate_probes(),
         "gate-probe-programs" => match probe_programs(){Ok(())=>0,Err(error)=>fail(error)},
-        "dead-arms" => dead_arms(),
-        "gate-load" => gate_load(args.get(1).map(String::as_str)),
-        "link-owned" => gate_load(Some("--owned")),
+        "gate-load" => cargo_build::link_temacs(args.get(1).map(String::as_str)),
+        "link-owned" => cargo_build::link_temacs(Some("--owned")),
         // Android links `libemacs.so` instead of a program (src/Makefile.in 727-755), so the
         // object set needs a *shared* link: same units, no `main`.
         "link-shared" => {
@@ -252,13 +145,9 @@ fn main() {
             if args.iter().any(|a|a=="--units-manifest") && manifest.is_none(){fail("--units-manifest needs core-units.txt")}
             else{link_shared(args.get(1).map(String::as_str),manifest.map(Path::new))}
         },
-        "link-program" => link_program(args.get(1)),
+        "link-program" => cargo_build::build_tool_program(args.get(1)),
         "dump" => dump_emacs(),
         "dump-bootstrap" => dump_emacs_mode(true),
-        // The Android acceptance that needs no device: build the APK once and assert what a
-        // launch needs (package, activities backed by Kotlin sources, archive members,
-        // signature).  Kept out of `gate-fast` because it peaks near a gigabyte and takes
-        // seconds; `docs/port-plan.md`'s platform row names it.
         "gate-android" => run_python(&["tools/check-android-apk.py"]),
         "gate-full" => {
             eprintln!(
@@ -270,9 +159,9 @@ fn main() {
         }
         _ => {
             println!(
-                "usage: xtask <build-terminal|build-macos|runtime-build --product terminal|cocoa --variant baseline|native|collector|native-collector --out build/runtime/<name> [--observer] [--test-hooks] [--backend-prefix <prefix>]|generate-resources --program <owned-program>|link-owned|gen-config|layout-asserts|layout-check|build-tu <c-file>|\
-                 build-units|check-units [list]|gate-fast|gate-probes|gate-probe-programs|dead-arms|gate-load [--report]|\
-                 link-program <c-file>|dump|gate-full>"
+                "usage: xtask <build-terminal|build-macos|runtime-build --product terminal|cocoa --variant baseline|native|collector|native-collector --out build/runtime/<name> [--observer] [--test-hooks] [--backend-prefix <prefix>]|generate-resources --program <owned-program>|link-owned|gen-config|layout-asserts|layout-check|\
+                 check-units [list]|gate-fast|gate-probes|gate-probe-programs|gate-load [--report]|\
+                 link-program <tool>|dump|gate-full>"
             );
             0
         }
@@ -796,7 +685,7 @@ fn gen_globals() -> i32 {
             rs.push_str(&format!("        pub static mut {name}: {ty}; // {}\n", f[2]));
             n_vars += 1;
         }
-        rs.push_str("    }\n}\nuse variables::*;\n");
+        rs.push_str("    }\n}\npub use self::variables::*;\n");
     }
 
     // The other generated half of the reference's globals.h: make-docfile writes
@@ -867,7 +756,7 @@ fn gen_globals() -> i32 {
             rs.push_str(&format!("        pub fn {name} ({args}) -> {ret};\n"));
             n_subrs += 1;
         }
-        rs.push_str("    }\n}\nuse subrs::*;\n");
+        rs.push_str("    }\n}\npub use self::subrs::*;\n");
         if clashes != 0 {
             eprintln!("{clashes} subr name(s) defined twice with different signatures");
             return 1;
@@ -1417,16 +1306,7 @@ fn layout_check() -> i32 {
     }
 }
 
-/// rustc's `--crate-name` accepts alphanumerics and underscores only, while the port map
-/// keeps C's file names verbatim (`src/vm-limit.c` -> `src/vm-limit.rs`), so hyphens
-/// fold when the stem is used as a crate name.  Paths keep C's spelling.
-fn crate_name (stem: &str) -> String {
-    stem.chars ()
-        .map (|c| if c.is_ascii_alphanumeric () || c == '_' { c } else { '_' })
-        .collect ()
-}
-
-// --- translation units -----------------------------------------------------
+// --- spike probes ----------------------------------------------------------
 
 /// `xtask probe <rs-file> <out> [<extra rustc args>…]`: build one spike probe.
 ///
@@ -1467,150 +1347,6 @@ fn probe_build(args: &[String]) -> i32 {
         Ok(s) if s.success() => 0,
         Ok(s) => fail(format!("rustc failed for {} (exit status: {s})", src.display())),
         Err(e) => fail(format!("probe {}: {e}", src.display())),
-    }
-}
-
-/// The port of one reference file, by PORTING.md 0.1's layout: a unit keeps the reference's
-/// own directory (`lib/malloc/scratch_buffer_grow.c` -> `lib/malloc/scratch_buffer_grow.rs`)
-/// and a header gets that directory's `include/` (`lib/regex.h` -> `lib/include/regex.rs`,
-/// `lib/malloc/scratch_buffer.h` -> `lib/malloc/include/scratch_buffer.rs`).
-///
-/// The stem search over `UNIT_DIRS` is the fallback, for the directories the port flattens
-/// (`nt/inc/*.c` -> `src/`) and the older flat layout.  It used to be the only rule, and it
-/// answered `lib/malloc/scratch_buffer_grow.c` with a path no port has
-/// (`lib/scratch_buffer_grow.rs`): the first ported file in a *nested* reference directory
-/// is what showed the reference path has to be tried first (tools/extract-abi.py's `pairs()`
-/// already resolves a reference file exactly this way).
-fn port_path(rel: &str, stem: &str) -> Option<String> {
-    let own = if rel.ends_with(".h") {
-        Path::new(rel).parent().unwrap_or(Path::new("")).join("include")
-            .join(format!("{stem}.rs"))
-    } else {
-        Path::new(rel).with_extension("rs")
-    }
-    .to_string_lossy().to_string();
-    if Path::new(&own).is_file() {
-        return Some(own);
-    }
-    let header = rel.ends_with(".h");
-    UNIT_DIRS
-        .iter()
-        .map(|dir| if header { format!("{dir}/include/{stem}.rs") }
-                    else { format!("{dir}/{stem}.rs") })
-        .find(|cand| Path::new(cand).is_file())
-}
-
-fn build_tu(rel: Option<&String>) -> i32 {
-    build_tu_at(rel, &units_dir(), true)
-}
-
-/// Compile one unit into an explicit object root.  `pgo` is false for the `lib-src/`
-/// tools, whose binaries (make-fingerprint in particular) must stay plain O2.
-fn build_tu_at(rel: Option<&String>, units: &Path, pgo: bool) -> i32 {
-    let Some(rel) = rel else { return fail("build-tu needs a reference C file, e.g. src/doprnt.c") };
-    let stem = Path::new(rel).file_stem().unwrap_or_default().to_string_lossy().to_string();
-    let cname = crate_name (&stem);
-    let (crate_root, out) = if rel.ends_with(".h") {
-        let unit = port_path(rel, &stem).unwrap_or_else(|| format!("src/include/{stem}.rs"));
-        (unit, units.join(format!("include_{stem}.o")))
-    } else {
-        // A unit keeps the reference's own path; `port_path` is what lets
-        // `build-tu lib/getline.c`, `build-tu lib-src/etags.c` and
-        // `build-tu lib/malloc/scratch_buffer_grow.c` all find their file.
-        let unit = port_path(rel, &stem).unwrap_or_else(|| format!("src/{stem}.rs"));
-        (unit, units.join(format!("{stem}.o")))
-    };
-    if !Path::new(&crate_root).is_file() {
-        return fail(format!("{crate_root} does not exist yet (ports of {rel} not written)"));
-    }
-    fs::create_dir_all(units).ok();
-    let dir = units.join("units").join(&stem);
-    // A clean unit directory every time.  `materialize` rewrites the copies it *expands*, but a
-    // copy written under an earlier configuration and now reached only through the dedupe path
-    // keeps its old text - which is how `config.rs`'s 813-constant Android generation survived
-    // into a darwin build and produced 48 "defined multiple times" readings that no source change
-    // could explain (status 4.637).  The directory is a build product; nothing reads it across
-    // runs.
-    let _ = fs::remove_dir_all(&dir);
-    let root = match materialize(Path::new(&crate_root), &dir) {
-        Ok(p) => p,
-        Err(e) => return fail(e),
-    };
-    // `FEMACS_TARGET` is the first piece of the cross-build driver (P-209/P-210): it compiles
-    // the *same* unit for another Rust target and keeps the object in a target-suffixed file, so
-    // a cross object never overwrites the darwin one the gates read.  It is deliberately only
-    // the toolchain half - a target's semantics still need that target's frozen configuration
-    // (`docs/baseline/config/*.json`, P-204), which is why this is an override and not the
-    // default path.
-    let target = std::env::var("FEMACS_TARGET").ok().filter(|v| !v.is_empty());
-    let mut flags = unit_codegen_flags ();
-    if pgo
-      {
-        flags.extend (pgo_codegen_flags ());
-      }
-    let mut cmd = rustc_cmd ();
-    cmd.args(["--edition", "2024", "--crate-type", "lib", "--emit", "obj",
-              "--crate-name", &cname])
-       .args(&flags)
-       .args(&sanitizer_flags ());
-    // The port writes C's `#ifdef`s as `#[cfg(feature = "...")]` (2,316 sites gate on
-    // `have_android` alone), so the frozen configuration has to reach rustc as cfgs.  Until this
-    // existed, only darwin was ever built - where every such gate is correctly *off* - and the
-    // Android units compiled to empty objects (`android.o` was 664 bytes, P-229).
-    for cfg in match config_features(){Ok(v)=>v,Err(e)=>return fail(e)} {
-        cmd.arg ("--cfg").arg (cfg);
-    }
-    let mut cross_out = out.clone();
-    if let Some(t) = &target {
-        cmd.arg("--target").arg(t);
-        if t.contains("linux") {
-            cmd.arg("-C").arg(format!("linker={REPO}/tools/zig-linux-linker.sh"));
-        }
-        cross_out = units.join(format!("{stem}.{t}.o"));
-        println!("target: {t} (object: {})", cross_out.display());
-    }
-    if stem == "abi_shim" && std::env::var_os("FEMACS_MACOS_GUI").is_some() {
-        cmd.arg("--cfg").arg("feature=\"dispextern_face_records\"");
-    }
-    let status = cmd.arg(&root).arg("-o").arg(&cross_out).status();
-    // The checking pass: the same unit with `--cfg enable_checking`, the same target and the same
-    // frozen configuration, so `eassert!`/`eassume!` bodies exist in an object that can be *linked*
-    // (`FEMACS_LINK_CHECKING=1` swaps these in).  `build_finished_tus` has done the equivalent for
-    // the host since 3.393; this brings the per-unit path to parity (status 4.843).
-    {
-        let mut check_cmd = rustc_cmd ();
-        check_cmd
-            .args(["--edition", "2024", "--crate-type", "lib", "--emit", "obj",
-                   "--crate-name", &cname, "--cfg", "enable_checking"])
-            .args(&flags)
-            .args(&sanitizer_flags ());
-        for cfg in match config_features(){Ok(v)=>v,Err(e)=>return fail(e)} { check_cmd.arg ("--cfg").arg (cfg); }
-        let mut check_out = units.join (format! ("{stem}.checking.o"));
-        if let Some (t) = &target
-            {
-                check_cmd.arg ("--target").arg (t);
-                check_out = units.join (format! ("{stem}.checking.{t}.o"));
-            }
-        if stem == "abi_shim" && std::env::var_os("FEMACS_MACOS_GUI").is_some() {
-            check_cmd.arg("--cfg").arg("feature=\"dispextern_face_records\"");
-        }
-        match check_cmd.arg (&root).arg ("-o").arg (&check_out).status ()
-            {
-                Ok (s) if s.success () => {}
-                Ok (s) => {
-                    eprintln! ("rustc failed for {crate_root} with --cfg enable_checking ({s})");
-                    return 1;
-                }
-                Err (e) => { eprintln! ("{e}"); return 1; }
-            }
-    }
-    match status {
-        Ok(s) if s.success() => {
-            println!("built {crate_root} -> {}", cross_out.display());
-            0
-        }
-        Ok(s) => fail(format!("rustc failed for {crate_root} ({s})")),
-        Err(e) => fail(e),
     }
 }
 
@@ -1733,103 +1469,17 @@ configuration (see PORTING.md 2.1's setup steps)");
         Err(e) => return fail(e),
     }
     println!("== workspace check ==");
-    match Command::new("cargo")
-        .env("CARGO_TARGET_DIR", "build/cargo")
-        .args(["check", "--quiet", "--manifest-path", "Cargo.toml"])
-        .status()
-    {
-        Ok(s) if s.success() => println!("cargo check: ok"),
-        Ok(s) => return fail(format!("cargo check failed ({s})")),
-        Err(e) => return fail(e),
-    }
-    println!("== translation units ==");
-    if let Err(e) = build_finished_tus() {
+    if let Err(e) = cargo_build::check_workspace_crates() {
         return fail(e);
     }
-    // A unit's C-visible symbol table is the one thing the textual gates cannot see: gnulib's
-    // `#define foo rpl_foo` headers decide whether the *definition* of a replacement is named
-    // `foo` or `rpl_foo` (and a file's own `# undef` decides which side its body's calls
-    // reach), and a "header-bodied" unit exports the header's functions while the port's
-    // mirror may inline them silently.  `docs/baseline/symbol-pending.txt` is the ratchet of
-    // units still open (status §3.30).
-    println!("== symbol gate ==");
+    println!("== unsafe boundary gate ==");
     match Command::new("python3")
         .current_dir(REPO)
-        .args(["tools/check-symbols.py", "--pending", "docs/baseline/symbol-pending.txt"])
+        .args(["tools/check-unsafe-boundary.py"])
         .status()
     {
-        Ok(s) if s.success() => println!("symbols: every built unit matches its reference"),
-        Ok(_) => return fail("a unit's symbol table differs from its reference object"),
-        Err(e) => return fail(e),
-    }
-    // The gate above compares the symbols a unit *exports*; nothing compared the symbols a
-    // unit *references*, and a wrong name there stays invisible until the link stage of the
-    // loading ladder (`emacs_fclose`, status 3.57, is the worked example: textually faithful,
-    // right exports, cannot link).  This one measures every `nm -u` entry against the frozen
-    // reference objects and the SDK's libSystem export list, with
-    // `docs/baseline/undef-pending.txt` as the ratchet.
-    println!("== undefined-reference gate ==");
-    match Command::new("python3")
-        .current_dir(REPO)
-        .args(["tools/check-undef.py"])
-        .status()
-    {
-        Ok(s) if s.success() => println!("undefined references: nothing new is unresolved"),
-        Ok(_) => return fail("a unit references a symbol no built object or library provides"),
-        Err(e) => return fail(e),
-    }
-    // check-symbols.py above compares export tables for the units whose reference object
-    // exists - all of them in `lib/`.  The same comparison for `src/` units runs here too,
-    // and it is not vacuous any more: `build/emacs-ref/src/<stem>.o` can be built one unit at
-    // a time (`make -C build/emacs-ref/src <stem>.o`), which is how the DEFVAR-carrier rule of
-    // status 3.60 was found.
-    println!("== symbol gate (src) ==");
-    match Command::new("python3")
-        .current_dir(REPO)
-        .args(["tools/check-symbols.py", "--dir", "src", "--pending",
-               "docs/baseline/symbol-pending.txt"])
-        .status()
-    {
-        Ok(s) if s.success() => println!("symbols (src): every built unit matches its reference"),
-        Ok(_) => return fail("a src unit's symbol table differs from its reference object"),
-        Err(e) => return fail(e),
-    }
-    // The other direction of the same question: a C file-scope object that C does *not* mark
-    // static must be a symbol in the port's object.  `re_match_object` was written without
-    // `#[unsafe(no_mangle)]`, so the unit emitted a mangled name where C emits
-    // `_re_match_object` - and no gate saw it, because the text rule compares names and only
-    // units with a reference object had their table compared (status 3.61).
-    println!("== linkage gate ==");
-    match Command::new("python3")
-        .current_dir(REPO)
-        .args(["tools/check-linkage.py"])
-        .status()
-    {
-        Ok(s) if s.success() => println!("linkage: every non-static C object is exported"),
-        Ok(_) => return fail("a C file-scope object has no symbol in the port's object"),
-        Err(e) => return fail(e),
-    }
-    // The level above every gate so far: the *program*.  `build-tu` stops at one object,
-    // `layout-check` compiles probes, `check-undef.py` reads one unit's undefined list, and
-    // `check-swift-imports.py` covers the Swift side of the C-ABI seam - so a symbol one unit
-    // defines and another references by the wrong name is invisible until the objects are
-    // merged.  A partial link (`ld -r`) of C's own object set answers exactly that question,
-    // and `docs/baseline/link-pending.txt` is the ratchet, compared the way the symbol gates
-    // above compare theirs: a name that is new fails and a row nothing references any more is
-    // stale.  It is what found the four invented externals of status 3.251 (docs/ports/link.md).
-    println!("== link gate ==");
-    match Command::new("python3")
-        .current_dir(REPO)
-        .args(["tools/check-link.py"])
-        .status()
-    {
-        Ok(s) if s.success() => println!("link: the object set closes over itself"),
-        Ok(_) => {
-            return fail(
-                "a partial link of the whole program leaves a name no member defines \
-                 (a new one, or a stale ratchet row)",
-            )
-        }
+        Ok(s) if s.success() => println!("unsafe boundary: pure crates carry forbid(unsafe_code)"),
+        Ok(_) => return fail("unsafe boundary check failed"),
         Err(e) => return fail(e),
     }
     // The link above takes the reference archive's own member set, which is what keeps the
@@ -2508,14 +2158,14 @@ fn android_linker (target: &str) -> Option<String>
 fn target_manifest(name: &str) -> Result<Vec<String>, String> {
     let target=android::build_target()?;
     let path=android::support_directory(target).join(name);
-    let text = fs::read_to_string(&path).map_err(|e| format!("{}: {e}", path.display()))?;
-    let objects = text.split_whitespace().map(str::to_string).collect();
-    if name == "objects.txt" { runtime::product_objects(Path::new(REPO), objects) }
-    else { Ok(objects) }
+    let entries = read_manifest(&path)?;
+    if name == "objects.txt" { runtime::product_objects(Path::new(REPO), entries) }
+    else { Ok(entries) }
 }
 
-fn reference_members() -> Vec<String> {
-    target_manifest("lib-objects.txt").unwrap_or_else(|e| { eprintln!("{e}"); Vec::new() })
+fn read_manifest(path: &Path) -> Result<Vec<String>, String> {
+    let text = fs::read_to_string(path).map_err(|e| format!("{}: {e}", path.display()))?;
+    Ok(text.split_whitespace().map(str::to_string).collect())
 }
 
 /// The port's build tree: `src/temacs` plus the trees the port owns under their own names.
@@ -2549,173 +2199,6 @@ fn port_tree(root: &Path) -> std::io::Result<()> {
         }
     }
     Ok(())
-}
-
-/// The link driver: an empty `no_std`/`no_main` bin crate plus the port's panic handler.
-///
-/// rustc links the runtime; the program's entry point stays the ported unit's own `main`
-/// (C-shaped, `#[unsafe(no_mangle)]`), which is what lets the same driver serve both the
-/// main program and a `lib-src` program such as `make-docfile`.
-const LINK_DRIVER: &str = "#![no_std]\n#![no_main]\n\
-// femacs link driver (build scaffolding, not a ported file): rustc links the runtime.\n\
-use core::panic::PanicInfo;\n\
-use core::fmt::{self, Write};\n\
-// A panic is a defect (PORTING.md 424), and a handler that only aborts leaves the reason\n\
-// invisible: measured 2026-10-16, a `batch-byte-compile` run died with `Abort trap: 6` and\n\
-// nothing else.  This one writes the panic\'s message and location to stderr first, then\n\
-// aborts exactly as before, so the abort stays the behaviour and the diagnosis is not a guess.\n\
-struct Stderr;\n\
-impl Write for Stderr {\n\
-    fn write_str (&mut self, s: &str) -> fmt::Result {\n\
-        unsafe { write (2, s.as_ptr () as *const core::ffi::c_void, s.len ()); }\n\
-        Ok (())\n\
-    }\n\
-}\n\
-#[panic_handler]\n\
-fn panic (info: &PanicInfo) -> ! {\n\
-    let mut w = Stderr;\n\
-    let _ = w.write_str (\"femacs: panic: \");\n\
-    let _ = write! (w, \"{}\\n\", info);\n\
-    unsafe { abort () }\n\
-}\n\
-unsafe extern \"C\" { fn abort () -> !; fn write (fd: core::ffi::c_int, buf: *const core::ffi::c_void, n: usize) -> isize; }\n\
-// libcompiler_builtins' prebuilt rlib carries EH landing pads (it is built for the\n\
-// toolchain's own std configuration), so it references the C-unmangled\n\
-// rust_eh_personality symbol; nothing raises in a panic=abort link, and the port's panics\n\
-// abort through the handler above, so this no-op satisfies the linker.\n\
-#[unsafe(no_mangle)]\n\
-pub extern \"C\" fn rust_eh_personality () {}\n";
-
-/// `xtask link-program <c-file>`: link one ported program into a runnable binary.
-///
-/// C builds `lib-src/make-docfile` from its single object plus `libgnu`; the port's object stands
-/// for the first and the port's objects for the frozen `libgnu.a` members for the second (goal
-/// constraint 2: nothing of the reference library is linked), archived so only the members the
-/// program needs are pulled in - what `gate_load` does for the whole program, in a second, smaller
-/// instance.  The binary lands where C's tree keeps it (`build/port/lib-src/`, the shape
-/// `build/port/src/temacs` already has), so a recipe that says `$(libsrc)/make-docfile` can be read
-/// with the port's path.
-///
-/// Measured 2026-10-16: this is what `etc/DOC` needs - the reference's DOC rule (src/Makefile.in
-/// 663-668) runs `make-docfile -d srcdir <objects> > etc/DOC`, and the port's loadup dies in
-/// `Snarf-documentation "DOC"` without it.
-/// Select Apple's `ar` through the active developer tools: PATH can put GNU `ar` first, and the
-/// Darwin linker rejects the resulting archive (its members are not BSD `#1/` long names and
-/// the modern linker refuses them as "not 8-byte aligned").
-fn ar_cmd () -> Command
-{
-  if cfg!(target_os = "macos") {
-    let mut cmd = Command::new ("xcrun");
-    cmd.arg ("ar");
-    cmd
-  } else { Command::new ("ar") }
-}
-
-fn helper_link_inputs(tools: &Path, stem: &str, members: &[String], checking: bool)
-    -> Result<(PathBuf, Vec<String>), String>
-{
-    let unit_obj = tools.join(runtime::selected_object_name(stem, checking, false));
-    if !unit_obj.is_file() { return Err("missing selected helper tool object".into()); }
-    let mut libs = Vec::new();
-    for member in members {
-        let mstem = Path::new(member).file_stem().unwrap_or_default().to_string_lossy().to_string();
-        let cands = if let Some(base) = mstem.strip_suffix("-gnulib") {
-            vec![mstem.clone(), base.to_string()]
-        } else { vec![mstem] };
-        for candidate in cands {
-            let path = tools.join(runtime::selected_object_name(&candidate, checking, false));
-            if path.is_file() {
-                libs.push(fs::canonicalize(&path).unwrap_or(path).display().to_string());
-            }
-        }
-    }
-    if libs.is_empty() {
-        return Err("no port objects for the frozen libgnu.a members: run gate-fast first".into());
-    }
-    Ok((unit_obj, libs))
-}
-
-fn link_program(rel: Option<&String>) -> i32 {
-    let Some(rel) = rel else {
-        return fail("link-program needs a reference C file, e.g. lib-src/make-docfile.c");
-    };
-    let path = Path::new(rel);
-    let stem = path.file_stem().unwrap_or_default().to_string_lossy().to_string();
-    let dir = path.parent().map(|d| d.to_path_buf()).unwrap_or_default();
-    // Tools are always built from the plain-O2 object root, never from the phase root:
-    // an instrumented make-fingerprint would add its own run to the training profiles.
-    let tools = tool_units_dir();
-    let (normal, checked) = match runtime::unit_compile_legs(Path::new(REPO)) {
-        Ok(selection) => selection,
-        Err(error) => return fail(error),
-    };
-    // A checked-only runtime root has no ordinary library objects. Its helper
-    // stays O2, but must use the same checked unit/library lane as that root.
-    let checking = !normal && checked;
-    let unit_obj = tools.join(runtime::selected_object_name(&stem, checking, false));
-    if !unit_obj.is_file() {
-        let code = build_tu_at(Some(rel), &tools, false);
-        if code != 0 {
-            return code;
-        }
-    }
-    let (unit_obj, libs) = match helper_link_inputs(&tools, &stem, &reference_members(), checking) {
-        Ok(inputs) => inputs,
-        Err(error) => return fail(error),
-    };
-    let load = load_dir().join("programs").join(&stem);
-    if let Err(error) = fs::create_dir_all(&load) {
-        return fail(format!("creating helper link directory: {error}"));
-    }
-    let archive = load.join("libgnu-program.a");
-    let archive = archive.display().to_string();
-    let _ = fs::remove_file(&archive);
-    let mut ar = ar_cmd();
-    ar.args(["crs", archive.as_str()]);
-    for l in &libs {
-        ar.arg(l);
-    }
-    match ar.output() {
-        Ok(o) if o.status.success() => {}
-        Ok(o) => return fail(format!("ar: {}", String::from_utf8_lossy(&o.stderr).trim())),
-        Err(e) => return fail(format!("ar: {e}")),
-    }
-    if let Err(e) = fs::write(load.join("driver.rs"), LINK_DRIVER) {
-        return fail(format!("writing the link driver: {e}"));
-    }
-    let out_path = port_dir().join(&dir).join(&stem);
-    if let Some(parent) = out_path.parent() {
-        let _ = fs::create_dir_all(parent);
-    }
-    let archive_abs = fs::canonicalize(&archive).map(|p| p.display().to_string())
-        .unwrap_or_else(|_| archive.clone());
-    let unit_abs = unit_obj.canonicalize().map(|p| p.display().to_string())
-        .unwrap_or_else(|_| unit_obj.display().to_string());
-    let rsp = format!("{unit_abs}\n{archive_abs}\n-lSystem\n");
-    if let Err(e) = fs::write(load.join("link-program-args.rsp"), rsp) {
-        return fail(format!("writing the response file: {e}"));
-    }
-    println!("== link-program: {rel} + {} lib object(s) ==", libs.len());
-    let out = match rustc_cmd ()
-        .args(["--edition", "2024", "--crate-type", "bin", "-C", "panic=abort", "-C", "linker=clang"])
-        .args(&sanitizer_flags ())
-        .arg(load.join("driver.rs"))
-        .arg("-C").arg(format!("link-arg=@{}", load.join("link-program-args.rsp").display()))
-        .arg("-o").arg(&out_path)
-        .output()
-    {
-        Ok(o) => o,
-        Err(e) => return fail(format!("rustc link: {e}")),
-    };
-    if out.status.success() && out_path.is_file() {
-        println!("linked {}", out_path.display());
-        return 0;
-    }
-    let text = format!("{}{}", String::from_utf8_lossy(&out.stdout), String::from_utf8_lossy(&out.stderr));
-    for line in text.lines().rev().take(20).collect::<Vec<&str>>().into_iter().rev() {
-        println!("  {line}");
-    }
-    fail(format!("the link of {rel} failed"))
 }
 
 /// The 32-byte placeholder in `lib/fingerprint.rs`.  `make-fingerprint` replaces
@@ -2811,11 +2294,11 @@ fn finalize_binary (path: &Path) -> Result<(), String>
       return Err (format! ("{}: expected exactly one fingerprint placeholder, found {before}",
                            path.display ()));
     }
-  let tool_rel = "lib-src/make-fingerprint.c".to_string ();
-  if link_program (Some (&tool_rel)) != 0
-    {
-      return Err ("linking make-fingerprint failed".to_string ());
-    }
+    let tool_rel = "lib-src/make-fingerprint.c".to_string ();
+    if cargo_build::build_tool_program (Some (&tool_rel)) != 0
+      {
+        return Err ("building make-fingerprint failed".to_string ());
+      }
   let tool = port_dir ().join ("lib-src").join ("make-fingerprint");
   if ! tool.is_file ()
     {
@@ -2974,510 +2457,11 @@ fn write_pair_manifest(src: &Path) -> Result<(), String> {
         .map_err(|e| format!("writing pair.sha256: {e}"))
 }
 
-fn gate_load(arg: Option<&str>) -> i32 {
-    let report = arg == Some("--report");
-    let checking = std::env::var("FEMACS_LINK_CHECKING").is_ok_and(|value| value == "1");
-    // The selected object set is a maintained, committed target description.
-    let mut tokens = match target_manifest("objects.txt") { Ok(v) => v, Err(e) => return fail(e) };
-    tokens.push("../lib/libgnu.a".to_string());
-    match target_manifest("libraries.txt") { Ok(v) => tokens.extend(v), Err(e) => return fail(e) }
-    let joined = tokens.join(" ");
-
-    let load = load_dir();
-    let _ = fs::create_dir_all(&load);
-    let mut objs: Vec<String> = Vec::new();
-    let mut libs: Vec<String> = Vec::new();
-    let mut search: Vec<String> = Vec::new();
-    let mut missing: Vec<String> = Vec::new();
-    let mut extra_libs: Vec<String> = Vec::new();
-    for tok in joined.split_whitespace() {
-        let is_obj = tok.len() > 2 && tok.ends_with(".o")
-            && tok[..tok.len() - 2].chars().all(|c| c.is_ascii_alphanumeric() || c == '_' || c == '-');
-        if is_obj {
-            let stem = &tok[..tok.len() - 2];
-            let swift = std::env::var_os("FEMACS_MACOS_GUI").is_some()
-                && ["macfont", "nsfns", "nsimage", "nsmenu", "nsselect", "nsterm"].contains(&stem);
-            let p = units_dir().join(runtime::selected_object_name(stem, checking, swift));
-            if p.is_file() {
-                objs.push(fs::canonicalize(&p).unwrap_or(p).display().to_string());
-            } else {
-                missing.push(tok.to_string());
-            }
-        } else if tok.ends_with("../lib/libgnu.a") {
-            // The port's own objects stand in for the reference archive, and the **member set is
-            // the reference's own** (`ar t` on the frozen `libgnu.a`), because that is what C's
-            // link has: a `lib/` file the frozen configuration does not compile must not be
-            // linked from the port's side either.  gnulib writes a replacement under the *plain*
-            // name of the function when the module is used (not a `rpl_` rename), so a port unit
-            // for an unused module defines a system name and *shadows libSystem's*: measured
-            // 2026-10-16, the program died inside the port's own `open` before running any Lisp
-            // (lldb: `EXC_BAD_ACCESS` at `open + 16`), and an object-set audit found 14 such
-            // definitions across 11 units (`open`, `fcntl`, `getdelim`, `getline`, `getgroups`,
-            // `mkostemp`, `stpcpy`, `strnlen`, `strtoimax`, `strtoll`, `time_r`).  "Every ported
-            // `lib/` unit goes into the archive" was the older reading and is not C's object set.
-            let members = reference_members();
-            if members.is_empty() {
-                return fail("cannot list build/emacs-ref/lib/libgnu.a: build the frozen archive \
-                             (make -C build/emacs-ref/lib libgnu.a)");
-            }
-            let mut absent: Vec<String> = Vec::new();
-            for member in &members {
-                let stem = Path::new(member).file_stem()
-                    .map(|s| s.to_string_lossy().into_owned()).unwrap_or_default();
-                // gnulib amalgamates sources with `#include`, so a member named `X-gnulib.o`
-                // also needs `X.o` when that unit exists (the rule tools/check-link.py records:
-                // `mini-gmp-gnulib.o` carries no `mpz_*`, `mini-gmp.o` carries 127 of them).
-                let cands: Vec<String> = if let Some(base) = stem.strip_suffix("-gnulib") {
-                    vec![stem.clone(), base.to_string()]
-                } else {
-                    vec![stem.clone()]
-                };
-                let mut hit = false;
-                for cand in cands {
-                    let p = units_dir().join(runtime::selected_object_name(&cand, checking, false));
-                    if p.is_file() {
-                        libs.push(fs::canonicalize(&p).unwrap_or(p).display().to_string());
-                        hit = true;
-                    }
-                }
-                if !hit {
-                    absent.push(stem);
-                }
-            }
-            if !absent.is_empty() {
-                println!("reference archive member(s) with no port object (not linked): {}",
-                         absent.join(" "));
-            }
-        } else if tok.starts_with("-L") {
-            search.push(tok.to_string());
-        } else if tok == "-lncurses" || tok.starts_with("-l") {
-            extra_libs.push(tok.to_string());
-        }
-    }
-    if !missing.is_empty() {
-        println!("port objects the frozen link needs but the port has not built: {}", missing.join(" "));
-        if !report {
-            return fail(format!("{} reference object(s) have no port object", missing.len()));
-        }
-    }
-    if std::env::var_os("FEMACS_MACOS_GUI").is_some() {
-        let shim = units_dir().join(runtime::selected_object_name("abi_shim", checking, false));
-        if !shim.is_file() { return fail("missing selected Cocoa ABI object"); }
-        objs.push(shim.canonicalize().map_err(|e| e.to_string()).unwrap_or(shim).display().to_string());
-        extra_libs.extend(macos::link_flags());
-        // The gate link must see the same bundled runtime libraries as the
-        // product link; the system sqlite is deliberately replaced by the
-        // staged copy that carries extension loading.
-        match image::link_flags(Path::new(REPO)) {
-            Ok(flags) => extra_libs.extend(flags),
-            Err(error) => return fail(error),
-        }
-    }
-    // The driver lives at module scope (`LINK_DRIVER`), because `link-program` uses it too.
-    if let Err(e) = fs::write(load.join("driver.rs"), LINK_DRIVER) {
-        return fail(format!("writing the link driver: {e}"));
-    }
-    // The program has to *find its own tree*, and where it is put decides that: C's
-    // `init_cmdargs` walks up from the executable's directory looking for a sibling `lib-src`
-    // and `etc` (emacs.c 585-630) and sets `installation-directory` from what it finds, which is
-    // what `init_callproc` then turns into `exec-directory` and the default load path.  A binary
-    // dropped in a bare directory therefore behaves like an *installed* program whose prefix does
-    // not exist: measured 2026-10-16, `build/load/temacs-port` printed
-    // `Warning: arch-dependent data dir '${INSTALL_PREFIX}/libexec/emacs/32.0.50/...': No such file or
-    // directory` and reported `exec-directory` as that installed path, while the reference
-    // (`build/emacs-ref/src/temacs`, whose siblings `lib-src/` and `etc/` exist) printed no
-    // warning and reported the build tree - the *only* stderr difference between the two runs.
-    // So the port gets the same shape: `<port>/src/temacs` with the trees the port owns reachable
-    // beside it, which is also what makes the program load its *own* verbatim `lisp/`.
-    let _ = fs::create_dir_all(port_dir());
-    let port_root = fs::canonicalize(port_dir()).unwrap_or_else(|_| port_dir());
-    if let Err(e) = port_tree(&port_root) {
-        return fail(format!("building the port's tree layout: {e}"));
-    }
-    // The reference link pulls `../lib/libgnu.a`, and an archive's members are only linked when
-    // something needs them: `lib/getloadavg.c`'s `nlist` call is in an object the C program never
-    // pulls, while passing every lib object individually would demand that every one of them
-    // resolve (measured: `_nlist`, `_rpl_mempcpy`, ... - symbols C's own link never asks for).
-    // So the port spells the same thing with its own archive, built from its own objects
-    // (nothing of the reference library is linked; goal constraint 2).
-    // Every ported `lib/` unit goes into the archive.  Some of them are files the frozen
-    // configuration cannot compile at all (`lib/getloadavg.c` dies on `#include <a.out.h>`, which
-    // macOS does not have - measured with `make -C build/emacs-ref/lib getloadavg.o`), so the
-    // archive is not the same set as the reference's own; the symbols only those files can
-    // demand are the ratchet's business below, not a reason to drop their text from the link.
-    let archive = load.join("libgnu-port.a");
-    let _ = fs::remove_file(&archive);
-    let mut ar = ar_cmd();
-    ar.arg("crs").arg(&archive);
-    for l in &libs {
-        ar.arg(l);
-    }
-    match ar.output() {
-        Ok(o) if o.status.success() => println!("   archiving {} lib object(s) into libgnu-port.a", libs.len()),
-        Ok(o) => return fail(format!("ar: {}", String::from_utf8_lossy(&o.stderr).trim())),
-        Err(e) => return fail(format!("ar: {e}")),
-    }
-    let archive_abs = fs::canonicalize(&archive).map(|p| p.display().to_string())
-        .unwrap_or_else(|_| archive.display().to_string());
-    if let Err(error) = runtime::record_link_inputs(Path::new(REPO), &objs, &libs, &archive) {
-        return fail(error);
-    }
-    let out_path = port_root.join("src").join("temacs");
-    let mut rsp: Vec<String> = vec![format!("-o\n{}", out_path.display())];
-    rsp.extend(objs.iter().cloned());
-    rsp.push(archive_abs);
-    rsp.extend(search.iter().cloned());
-    rsp.extend(extra_libs.iter().cloned());
-    match tls::link_flags(Path::new(REPO)) {
-        Ok(flags) => rsp.extend(flags),
-        Err(error) => return fail(error),
-    }
-    match lcms::link_flags(Path::new(REPO)) {
-        Ok(flags) => rsp.extend(flags),
-        Err(error) => return fail(error),
-    }
-    match treesit::link_flags(Path::new(REPO)) {
-        Ok(flags) => rsp.extend(flags),
-        Err(error) => return fail(error),
-    }
-    match image::link_flags(Path::new(REPO)) {
-        Ok(flags) => rsp.extend(flags),
-        Err(error) => return fail(error),
-    }
-    match runtime::link_flags(Path::new(REPO)) {
-        Ok(flags) => rsp.extend(flags),
-        Err(error) => return fail(error),
-    }
-    rsp.push("-lSystem".to_string());
-    if let Err(e) = fs::write(load.join("link-args.rsp"), rsp.join("\n") + "\n") {
-        return fail(format!("writing the link response file: {e}"));
-    }
-    println!("== gate-load: linking the frozen temacs object list against the port ==");
-    println!("   {} port object(s) + {} lib object(s), linked by rustc (panic=abort, no_std driver)",
-             objs.len(), libs.len());
-    let out = match rustc_cmd ()
-        .args(["--edition", "2024", "--crate-type", "bin", "-C", "panic=abort", "-C", "linker=clang"])
-        .args(&sanitizer_flags ())
-        .args(&pgo_codegen_flags ())
-        // P-101 (3): the 64 MB link-time stack (`-Wl,-stack_size,0x4000000`) existed only because
-        // `-C opt-level=0` frames were ~14x the reference's.  With the units at `-O2` the loader's
-        // recursion fits the 8 MB default again, and status 4.486 removed the flag (measured with
-        // `dump` on the far side of the loader).
-        .arg(load.join("driver.rs"))
-        .arg("-C").arg(format!("link-arg=@{}", load.join("link-args.rsp").display()))
-        .arg("-o").arg(&out_path)
-        .output()
-    {
-        Ok(o) => o,
-        Err(e) => return fail(format!("rustc link: {e}")),
-    };
-    let text = format!("{}{}", String::from_utf8_lossy(&out.stdout), String::from_utf8_lossy(&out.stderr));
-    let mut undefined: Vec<(String, Vec<String>)> = Vec::new();
-    let mut current: Option<usize> = None;
-    for line in text.lines() {
-        let tr = line.trim_start();
-        if tr.starts_with('"') && line.contains(", referenced from:") {
-            let name = tr.trim_start_matches('"').split('"').next().unwrap_or("").to_string();
-            undefined.push((name, Vec::new()));
-            current = Some(undefined.len() - 1);
-        } else if tr.starts_with('_') && tr.contains(" in ") {
-            if let Some(i) = current {
-                if let Some((_, referrers)) = undefined.get_mut(i) {
-                    if let Some(obj) = tr.split(" in ").nth(1) {
-                        // the linker writes the object's basename; keep it, drop duplicates later
-                        referrers.push(obj.trim().to_string());
-                    }
-                }
-            }
-        }
-    }
-    // The ratchet: `docs/baseline/link-pending.txt` names the symbols the port's link cannot
-    // resolve for a reason that is not a missing port (a unit C cannot compile at all, a libc
-    // API macOS does not export), one `symbol<TAB>reason` row each.  They are reported, not
-    // hidden, and a row nothing matches any more is stale - the two other gates' convention.
-    let mut pending: BTreeMap<String, String> = BTreeMap::new();
-    if let Ok(text) = fs::read_to_string("docs/baseline/link-pending.txt") {
-        for line in text.lines() {
-            if line.trim().is_empty() || line.starts_with('#') { continue; }
-            let mut parts = line.splitn(2, '\t');
-            if let (Some(sym), Some(reason)) = (parts.next(), parts.next()) {
-                pending.insert(sym.trim().to_string(), reason.trim().to_string());
-            }
-        }
-    }
-    let (known, fresh): (Vec<&(String, Vec<String>)>, Vec<&(String, Vec<String>)>) = undefined
-        .iter().partition(|(name, _)| pending.contains_key(name));
-    if !known.is_empty() {
-        println!("{} undefined symbol(s) are ratcheted in docs/baseline/link-pending.txt:", known.len());
-        for (name, _) in &known {
-            println!("  {name}");
-        }
-    }
-    let stale: Vec<&String> = pending.keys().filter(|s| !undefined.iter().any(|(n, _)| n == *s)).collect();
-    if !stale.is_empty() {
-        println!("{} ratchet row(s) are stale (the symbol now resolves): {}", stale.len(),
-                 stale.iter().map(|s| s.as_str()).collect::<Vec<&str>>().join(" "));
-    }
-
-    let mut why: BTreeMap<String, usize> = BTreeMap::new();
-    for (_, refs) in &undefined {
-        for r in refs { *why.entry(r.clone()).or_default() += 1; }
-    }
-    let mut why: Vec<(String, usize)> = why.into_iter().collect();
-    why.sort_by(|a, b| b.1.cmp(&a.1));
-    println!("undefined symbols: {} (referenced from {} object(s))", undefined.len(), why.len());
-    for (obj, n) in why.iter().take(10) {
-        println!("  {n:4}  {obj}");
-    }
-    let list = undefined.iter()
-        .map(|(name, refs)| {
-            let mut seen: Vec<&String> = Vec::new();
-            for r in refs { if !seen.contains(&r) { seen.push(r); } }
-            format!("{name}\t{}", seen.iter().map(|s| s.as_str()).collect::<Vec<&str>>().join(","))
-        })
-        .collect::<Vec<String>>().join("\n");
-    if let Err(e) = fs::write(load.join("undefined.txt"), list + "\n") {
-        eprintln!("warning: could not write {}/undefined.txt: {e}", load.display());
-    } else {
-        println!("full list: {}", load.join("undefined.txt").display());
-    }
-    println!("undefined: {} total, {} ratcheted, {} new", undefined.len(), known.len(), fresh.len());
-    if undefined.is_empty() {
-        if out.status.success() {
-            println!("link: temacs linked from the port's objects alone");
-            if let Err(e) = finalize_binary(&out_path) {
-                return fail(e);
-            }
-            if arg == Some("--owned") {
-                println!("standalone link complete (reference comparison is optional)");
-                return 0;
-            }
-            // With the program in hand, the decoding questions that a *static* gate cannot see
-            // are answerable: a coding system's eol type is what removes a DOS-style file's
-            // CRs, and the loop that does it keeps two counters (`pos++` beside
-            // `pos_byte += incr`) whose port advanced the byte position twice and never the
-            // character position - measured 2026-10-16, `decode-coding-string "a\r\nb\r\n"
-            // 'utf-8-dos` came back with the first CR still in it and a GB2312 CRLF file kept
-            // both, which is what cost the pinyin product its 418 lines.  The gate compares
-            // character codes, not printed text: `prin1` writes a bare CR and the terminal then
-            // overwrites the line, which is how a first probe of this defect mis-read two
-            // identical answers.
-            println!("== coding eol gate ==");
-            let mut coder = Command::new("python3");
-            coder.current_dir(REPO)
-                .args(["tools/check-coding-eol.py", "--port"])
-                .arg(&out_path)
-                .arg("--reference")
-                .arg("build/emacs-ref/src/emacs");
-            set_profile_env(&mut coder, "gate");
-            return match coder.status()
-            {
-                Ok(s) if s.success() => {
-                    println!("coding eol: every case converts as the reference does");
-                    0
-                }
-                Ok(_) => fail("a decoded text differs from the reference's for the same bytes"),
-                Err(e) => fail(e),
-            };
-        }
-        for line in text.lines().rev().take(15).collect::<Vec<&str>>().into_iter().rev() {
-            println!("  {line}");
-        }
-        return fail("the link failed without an undefined-symbol list (the lines above)");
-    }
-    if !fresh.is_empty() {
-        println!("gate-load --report: {} undefined symbol(s); the list is the L0 worklist", undefined.len());
-        return fail(format!("{} undefined symbol(s) are not in docs/baseline/link-pending.txt", fresh.len()));
-    }
-    println!("gate-load: every unresolved symbol is ratcheted in docs/baseline/link-pending.txt");
-    0
-}
-
-/// Compile every finished translation unit with the **non-frozen** arms selected.
-///
-/// `config.rs` is generated from the frozen configuration, so the default build only
-/// ever compiles the frozen branches; C's dead `#else`/`#ifdef` text would otherwise be
-/// unchecked text (review B's B3).  This command copies `` into
-/// `build/dead-arms/`, flips the constants the features stand for, and compiles each
-/// finished unit with those features on.  It is part of `gate-probes` (batch boundaries),
-/// not of `gate-fast`, because it is a second compile of every unit.
-fn dead_arms() -> i32 {
-    // feature -> (config key, value with the feature on)
-    const FLIPS: [(&str, &str, &str); 6] = [
-        ("no_rint", "HAVE_RINT", "false"),
-        ("no_trunc", "HAVE_TRUNC", "false"),
-        ("no_signbit", "HAVE_SIGNBIT", "false"),
-        // `have_haiku` (and the `have_window_system` that must travel with it: `haikugui.h` 43
-        // defines `Emacs_Cursor` unconditionally and `dispextern.h` 175 does it again under
-        // `#ifndef HAVE_WINDOW_SYSTEM`, so `HAIKU` alone is not a configuration C can compile)
-        // is **out**, the way the NS flip below the loader section is out.  Measured with both
-        // on: **62 of the 340 units fail**, and the dominant error is `dispextern.rs` 750's
-        // `Error: cannot find type haiku_display_info` - that arm is `pub type Display_Info =
-        // haiku_display_info`, and the record is `include/haikuterm.rs` 89's, a mirror that
-        // includes `dispextern.rs` back.  C needs no edge for it: `dispextern.h` 159 only
-        // *introduces* an incomplete tag, which Rust cannot spell without a definition point, so
-        // every non-Haiku unit that includes this mirror fails once the arm is live.  `ns_gui`'s
-        // arm has exactly the same shape (`nsterm.rs` 326) and for that reason the NS flip was
-        // never in this list; `android_display_info` is `termhooks.rs` 60's, which is why the
-        // Android arm *does* compile.  Re-adding the two entries is the whole change once the
-        // platform records have a home a mirror can reach (the same condition the NS note sets).
-        // `have_native_comp` was the one structural arm *nothing* compiled: `cfg!(feature =
-        // "have_native_comp")` is false in every real build (the `[features]` table in this
-        // manifest leaves every feature off, and this list did not name it until F6), so `lisp.rs`'s `#[cfg(feature = "have_native_comp")]` pair — the
-        // `NATIVE_COMP_FUNCTIONP`/`DYNP` bodies behind `HAVE_NATIVE_COMP` — had never been
-        // through rustc, and the const assertion that claims the feature and the
-        // configuration agree could not fail (review A's F6).  Flipping the configuration
-        // constant *and* the feature together is what makes that claim executable.
-        ("have_native_comp", "HAVE_NATIVE_COMP", "true"),
-        // HAVE_LOG2 is not gated on a feature (the condition keeps the constant), but
-        // the other arm is still C text that has to compile.
-        ("", "HAVE_LOG2", "false"),
-        // 3.263 measured the rest of the carried surface (`tools/feature-coverage.py`: 730 of the
-        // 736 features the tree mentions are enabled by no configuration) and tried the four
-        // largest arms that need no platform toolchain - the two semantic switches and the two
-        // optional-library switches whose constant the generator emits.
-        ("glyph_debug", "", "true"),
-        // The NS/Cocoa arms were the second structural pair nothing compiled (the shim lane's
-        // honest note, status 3.257 ③), and 3.262 tried the flip: `("have_ns", "HAVE_NS",
-        // "true")` and `("ns_impl_cocoa", "", "true")` (an empty key means "a feature with no
-        // configuration constant to move") compile the `#[cfg (feature = "have_ns")]` region -
-        // and it does not compile, on purpose rather than by accident: nine errors name the
-        // platform types the region depends on (`CGFloat`, `NSRect`, `NSString`, `NSArray`,
-        // `EmacsMenu`, `Window`), which `include/nsterm.rs` 50-52 says the *platform target*
-        // resolves because the port has no AppKit or GNUstep mirror.  The flip's first finding
-        // was the one defect in that region that is not platform-shaped - eleven bare `c_float`
-        // spellings, now qualified as `core::ffi::c_float` (status 3.91 ②, a mirror must not
-        // depend on the includer's prelude) - and the flip itself waits for the AppKit mirror
-        // that would make the rest resolvable.  Re-adding it is two entries plus the array
-        // length.
-    ];
-    let root = Path::new("build/dead-arms");
-    let _ = fs::remove_dir_all(root);
-    for dir in UNIT_DIRS {
-        if !Path::new(dir).is_dir() {
-            continue; // a directory the port has not opened yet
-        }
-        if let Err(e) = copy_tree(Path::new(dir), &root.join(dir)) {
-            return fail(format!("copying {dir}: {e}"));
-        }
-    }
-    let config = root.join("src/include/config.rs");
-    let Ok(text) = fs::read_to_string(&config) else {
-        return fail(format!("{} is missing (run `xtask gen-config` first)", config.display()));
-    };
-    let mut flipped = text;
-    for (_, key, value) in FLIPS {
-        if key.is_empty() {
-            continue; // a feature with no configuration constant to flip
-        }
-        let mut touched = false;
-        let mut out = String::new();
-        for line in flipped.lines() {
-            let is_key = line.contains(&format!("pub const {key}:"));
-            if is_key {
-                let ty = if value == "false" || value == "true" { "bool" } else { "i64" };
-                out.push_str(&format!("pub const {key}: {ty} = {value};\n"));
-                touched = true;
-            } else {
-                out.push_str(line);
-                out.push('\n');
-            }
-        }
-        if !touched {
-            return fail(format!("config.rs has no {key} to flip"));
-        }
-        flipped = out;
-    }
-    if let Err(e) = fs::write(&config, flipped) {
-        return fail(e);
-    }
-    let units = match finished_units() {
-        Ok(u) => buildable_units(u),
-        Err(e) => return fail(e),
-    };
-    let mut n = 0;
-    let mut failures: Vec<String> = Vec::new();
-    for rel in units {
-        // The unit goes through the same include-graph expansion as a normal build
-        // (PORTING.md 0.1-4), inside the copy, so the flipped configuration and the
-        // de-duplicated mirrors are what rustc sees.
-        let stem = Path::new(&rel).file_stem().unwrap_or_default().to_string_lossy().to_string();
-        let cname = crate_name (&stem);
-        let src = root.join(&rel);
-        let dir = root.join("units").join(&stem);
-        let materialized = match materialize(&src, &dir) {
-            Ok(p) => p,
-            Err(e) => return fail(e),
-        };
-        let out = format!("{}.o", rel.replace('/', "_").replace(".rs", ""));
-        let mut cmd = rustc_cmd ();
-        cmd.args(["--edition", "2024", "--crate-type", "lib", "--emit", "obj",
-                  "--crate-name", &cname])
-        .args(unit_codegen_flags ())
-            .args(&sanitizer_flags ());
-        for (feature, _, _) in FLIPS {
-            if !feature.is_empty() {
-                cmd.arg("--cfg").arg(format!("feature=\"{feature}\""));
-            }
-        }
-        let status = cmd.current_dir(root).arg(&materialized).arg("-o").arg(&out).status();
-        match status {
-            Ok(s) if s.success() => {
-                println!("dead arms compile: {rel}");
-                n += 1;
-            }
-            // A first failure used to end the run, so every unit after it was never compiled:
-            // `abi_shim` sorts first, and its four errors hid the whole rest of the tree
-            // (measured 4.684).  Each unit is compiled and the failures are named at the end;
-            // the exit code is still non-zero, so the gate is unchanged.
-            Ok(s) => {
-                println!("dead arms FAIL: {rel} ({s})");
-                failures.push(rel.clone());
-            }
-            Err(e) => {
-                println!("dead arms FAIL: {rel}: {e}");
-                failures.push(rel.clone());
-            }
-        }
-    }
-    println!("{n} translation unit(s) compiled with the non-frozen arms, {} failed",
-             failures.len());
-    for f in &failures {
-        println!("  failed: {f}");
-    }
-    if !failures.is_empty() {
-        return 1;
-    }
-    0
-}
-
-fn copy_tree(from: &Path, to: &Path) -> std::io::Result<()> {
-    fs::create_dir_all(to)?;
-    for entry in fs::read_dir(from)? {
-        let entry = entry?;
-        let target = to.join(entry.file_name());
-        if entry.file_type()?.is_dir() {
-            copy_tree(&entry.path(), &target)?;
-        } else {
-            fs::copy(entry.path(), &target)?;
-        }
-    }
-    Ok(())
-}
-
 /// The C-differential tier: every probe that compares the C reference with the mirrors.
-/// It needs the frozen configure output, which is not in version control, so it is a
-/// command of its own — `gate-fast` must stay runnable in a clean checkout — but it is
-/// the tier that produced P-30's evidence and is run at every batch boundary.
 fn gate_probes() -> i32 {
     for name in ["inline","accessor","write","va","syshdrs","gmp-abi","lisp-abi","jni"] {
         println!("== {name} ==");
         if let Err(e)=probes::run_probe(Path::new(REPO),name,&probes::ProbeOptions::default()){return fail(e);}
-    }
-    println!("== dead arms ==");
-    let code = dead_arms();
-    if code != 0 {
-        return code;
     }
     0
 }
@@ -3768,230 +2752,4 @@ fn collect_includes(root: &Path, seen: &mut std::collections::BTreeSet<PathBuf>)
         }
         rest = &rest[end..];
     }
-}
-
-/// `true` when a checklist still carries a row that is not ticked.
-///
-/// A box is a *line* that starts with `- [ ]` (`docs/ports/README.md`: "A file is done when
-/// every box is ticked"), and a unit this test drops is a unit this leg never compiles.  The raw
-/// substring test also matched prose and fenced commands that quote the shape, which is how it
-/// dropped `src/process.c` on the first round the whole finished set reached the program gates:
-/// its ledger's Evidence quotes `grep -c '^- [ ]' docs/ports/process.md -> 0`, so the 9,129-line
-/// port had no object at all and `tools/check-link.py` read `1 frozen source(s) have no built
-/// object` - status 3.198/3.196's "the reader has to constrain the shape it reads" class, in the
-/// reader that decides which units get compiled (`tools/gen-port-inventory.py` had already
-/// restricted the same test for the inventory).
-fn has_unchecked_box(text: &str) -> bool {
-    text.lines().any(|line| line.trim_start().starts_with("- [ ]"))
-}
-
-/// Compile every translation unit whose ledger says it is finished.  The textual
-/// gates cannot see a unit that rustc rejects (that is how the noreturn record
-/// defect in the first DEFUN machinery passed them), so the fast gate compiles
-/// what it certifies.  A unit is finished when its checklist has no unchecked
-/// boxes (`docs/ports/README.md`); headers have `include-<stem>.md` ledgers and
-/// are compiled as part of the units that include them.
-/// The units whose ledger says they are finished (`docs/ports/README.md`): a checklist
-/// with no unchecked box, and a `src/NAME.rs` to compile.
-fn finished_units() -> Result<Vec<String>, String> {
-    let ports = Path::new(REPO).join("docs/ports");
-    let mut entries: Vec<PathBuf> = fs::read_dir(&ports)
-        .map_err(|e| format!("{}: {e}", ports.display()))?
-        .filter_map(Result::ok)
-        .map(|e| e.path())
-        .collect();
-    entries.sort();
-    let mut units = Vec::new();
-    let mut seen: BTreeSet<String> = BTreeSet::new();
-    for ledger in entries {
-        if ledger.extension().map(|x| x != "md").unwrap_or(true) {
-            continue;
-        }
-        let stem = ledger.file_stem().unwrap_or_default().to_string_lossy().to_string();
-        if stem.starts_with("include-") || stem == "README" {
-            continue;
-        }
-        let checklist = fs::read_to_string(&ledger).map_err(|e| e.to_string())?;
-        if has_unchecked_box(&checklist) {
-            continue;                                  // still being ported
-        }
-        // The ledger's own first line names the reference file (`# emacs/lib/malloc/x.c (56
-        // lines)`), and PORTING.md 0.1's layout is what pairs it with the port; the stem
-        // search over UNIT_DIRS is the same fallback `build_tu` keeps.
-        let unit = checklist.lines().next()
-            .and_then(|line| line.strip_prefix("# emacs/"))
-            .and_then(|line| line.split_once(" (").map(|(path, _)| path.to_string()))
-            // A `.h` ledger is a mirror, never a unit to compile: it is reached through the
-            // units that include it.  (`src/indent.h` has no ledger of its own and reads
-            // `indent.md`, whose first line names the `.c`, so the stem search below still
-            // finds the unit; this filter only stops a header from being handed to rustc.)
-            .filter(|rel| !rel.ends_with(".h"))
-            .and_then(|rel| port_path(&rel, &stem))
-            .or_else(|| UNIT_DIRS
-                .iter()
-                .map(|dir| format!("{dir}/{stem}.rs"))
-                .find(|cand| Path::new(cand).is_file()));
-        let Some(unit) = unit else {
-            continue;                                  // header mirror, not a unit
-        };
-        // Two ledgers can name one reference file: a file the checklist generator excludes
-        // (P-86 clause 2) keeps its generated checklist under the canonical name, and the lane's
-        // record sits under the `<dir>-<stem>` name the range-table gates resolve first
-        // (`docs/ports/Internal.md` and `docs/ports/oldXMenu-Internal.md` both name
-        // `oldXMenu/Internal.c`, and the entry in the latter says so).  Both name the same port,
-        // and pushing it twice ran rustc twice into one object path: measured 2026-10-15 as
-        // `676 finished translation unit(s)` against 674 objects on disk, which is also what
-        // `check-link.py`'s object list reads.  The second ledger is named, not dropped silently.
-        if !seen.insert(unit.clone()) {
-            println!("skipped `{}`: it names {unit}, which another ledger already named",
-                     ledger.file_name().unwrap_or_default().to_string_lossy());
-            continue;
-        }
-        units.push(unit);
-    }
-    Ok(units)
-}
-
-/// The subset of `finished_units()` this leg can build: the entries whose port **exists**.
-///
-/// `finished_units()` already skips the `.h` ledgers (they are mirrors, reached through the
-/// units that include them), but it maps an Objective-C reference through `port_path`, which
-/// gives `src/nsfns.rs` - a path no port owns, because those files' ports are the **Swift**
-/// units under `platform/macos/` (`tools/check-swift-units.py` reads those).  Measured
-/// 2026-10-15, the first round in which the whole finished set was handed to `rustc`: the leg
-/// failed on exactly those seven entries ("src/nsfns.rs does not exist yet"), and every `.rs`
-/// it names that *does* exist builds.  The two `lib/arg-nonnull.h`-style header ledgers and the
-/// `.m` files are therefore printed and skipped, not silently dropped.
-fn buildable_units(units: Vec<String>) -> Vec<String> {
-    let mut skipped: Vec<String> = Vec::new();
-    let kept: Vec<String> = units
-        .into_iter()
-        .filter(|u| {
-            let ok = u.ends_with(".rs") && Path::new(REPO).join(u).is_file();
-            if !ok {
-                skipped.push(u.clone());
-            }
-            ok
-        })
-        .collect();
-    if !skipped.is_empty() {
-        println!("skipped {} reference(s) with no buildable port (a Swift/Objective-C unit or a \
-                  header mirror): {}", skipped.len(), skipped.join(", "));
-    }
-    kept
-}
-
-fn build_finished_tus() -> Result<(), String> {
-    let mut units = buildable_units(finished_units()?);
-    if std::env::var_os("FEMACS_MACOS_GUI").is_some() || std::env::var_os("FEMACS_RELEASE_BUILD").is_some() {
-        let active = macos::active_objects()?;
-        let mut library = BTreeSet::new();
-        for member in target_manifest("lib-objects.txt")? {
-            let stem=Path::new(&member).file_stem().unwrap().to_string_lossy().to_string();
-            if let Some(base)=stem.strip_suffix("-gnulib") { library.insert(base.to_string()); }
-            library.insert(stem);
-        }
-        units.retain(|u| {
-            let stem=Path::new(u).file_stem().unwrap().to_string_lossy();
-            if u.starts_with("lib/") { library.contains(stem.as_ref()) }
-            else { active.contains(&format!("{stem}.o")) }
-        });
-        // A release target's explicit link manifest selects its production
-        // units. Appending a new, still-unaccepted modernization checklist to
-        // a historical port ledger must not silently omit a required object.
-        // Keep the checklist-based fast gate separate from product selection.
-        for object in &active {
-            let Some(stem) = Path::new(object).file_stem().and_then(|name| name.to_str()) else {
-                return Err("invalid active product object name".into());
-            };
-            let source = format!("src/{stem}.rs");
-            if Path::new(&source).is_file() && !units.contains(&source) {
-                units.push(source);
-            }
-        }
-        units.sort();
-    }
-    build_selected_units(units, &units_dir().join("units"))
-}
-
-fn build_selected_units(units: Vec<String>, materialization: &Path) -> Result<(), String> {
-    // Runtime normal/checking roots carry distinct source/config/ABI bindings.
-    // Compile each selected leg once; ordinary builds retain their dual pass.
-    let (compile_normal, compile_checking) = runtime::unit_compile_legs(Path::new(REPO))?;
-    let mut flags = unit_codegen_flags();
-    flags.extend(pgo_codegen_flags());
-    let mut built = 0usize;
-    let mut failed: Vec<String> = Vec::new();
-    let target = std::env::var("FEMACS_TARGET").ok().filter(|v| !v.is_empty());
-    fs::create_dir_all(units_dir()).ok();
-    for unit in &units {
-        let stem = Path::new(unit).file_stem().unwrap_or_default().to_string_lossy().to_string();
-        let cname = crate_name (&stem);
-        let out = check_units::object_path(&units_dir(), &stem, false, target.as_deref());
-        let dir = materialization.join(&stem);
-        let root = match materialize(Path::new(unit), &dir) {
-            Ok(p) => p,
-            Err(e) => return Err(e),
-        };
-        if compile_normal {
-            let mut normal_cmd = rustc_cmd();
-            for cfg in config_features()? { normal_cmd.arg("--cfg").arg(cfg); }
-            if let Some(t) = &target {
-                normal_cmd.arg("--target").arg(t);
-                if t.contains("linux") { normal_cmd.arg("-C").arg(format!("linker={REPO}/tools/zig-linux-linker.sh")); }
-            }
-            if stem == "abi_shim" && std::env::var_os("FEMACS_MACOS_GUI").is_some() {
-                normal_cmd.arg("--cfg").arg("feature=\"dispextern_face_records\"");
-            }
-            let status = normal_cmd
-                .args(["--edition", "2024", "--crate-type", "lib", "--emit", "obj",
-                       "--crate-name", &cname])
-                .args(&flags)
-                .args(&sanitizer_flags ())
-                .arg(&root)
-                .arg("-o")
-                .arg(&out)
-                .status();
-            match status {
-                Ok(s) if s.success() => { println!("built {unit}"); built += 1; }
-                Ok(s) => { failed.push(format!("{unit}: {s}")); continue; },
-                Err(e) => return Err(e.to_string()),
-            }
-        }
-        if !compile_checking { continue; }
-        // The reference is built with --enable-checking by default, and the port's
-        // `eassert!`/`eassume!` are `#[cfg (enable_checking)]`: without this pass their
-        // bodies (die, stringify!, the conditions) are never compiled at all, so a
-        // checking build is the only way to see them (review C's F4).
-        let checked = check_units::object_path(&units_dir(), &stem, true, target.as_deref());
-        let mut check_cmd = rustc_cmd ();
-        check_cmd
-            .args(["--edition", "2024", "--crate-type", "lib", "--emit", "obj",
-                   "--crate-name", &cname,
-                   "--cfg", "enable_checking"])
-            .args(&flags)
-            .args(&sanitizer_flags ());
-        // The same frozen configuration and the same target as the pass above: without them this
-        // object is a host Mach-O with darwin's feature set, which is useless both as a link input
-        // for a cross target and as a checker (status 4.843).
-        for cfg in config_features()?
-            {
-                check_cmd.arg ("--cfg").arg (cfg);
-            }
-        if let Some(t) = &target {
-            check_cmd.arg("--target").arg(t);
-            if t.contains("linux") { check_cmd.arg("-C").arg(format!("linker={REPO}/tools/zig-linux-linker.sh")); }
-        }
-        if stem == "abi_shim" && std::env::var_os("FEMACS_MACOS_GUI").is_some() {
-            check_cmd.arg("--cfg").arg("feature=\"dispextern_face_records\"");
-        }
-        let status = check_cmd.arg(&root).arg("-o").arg(&checked).status();
-        match status {
-            Ok(s) if s.success() => { println!("built {unit} (--cfg enable_checking)"); built += 1; }
-            Ok(s) => { failed.push(format!("{unit} checking: {s}")); },
-            Err(e) => return Err(e.to_string()),
-        }
-    }
-    println!("{built} finished translation unit(s) compiled");
-    if failed.is_empty() { Ok(()) } else { Err(format!("{} unit(s) failed: {}", failed.len(), failed.join(", "))) }
 }

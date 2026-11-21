@@ -72,8 +72,10 @@
 // declarations in `string.rs`), and the live arms' prototypes of the functions the port's units
 // reach through `string.rs`.
 
-include!("string.rs");        // the system half: the frozen <string.h> (P-26)
-include!("attribute.rs");     // lib/attribute.h: the five _GL_ATTRIBUTE_* names above
+// [U1-MODULE-MIRROR]
+use super::*;
+// [U1] string.rs imported via super
+// [U1] attribute.rs imported via super
 
 /* C 45: `#define _@GUARD_PREFIX@_STRING_H` - the split include guard, whose substitution is `_GL_STRING_H`.
    The template's own spelling reads as `_` to the extractor, which

@@ -5,6 +5,8 @@
 // it).  `SYMLOOP_MAX` is mentioned only in the C comment; the header defines no other
 // macro.
 
+// [U1-MODULE-MIRROR]
+use super::*;
 /* #define MIN_ELOOP_THRESHOLD    40  */
 pub const MIN_ELOOP_THRESHOLD: c_int = 40;
 

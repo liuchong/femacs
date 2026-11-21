@@ -21,7 +21,9 @@
 // declarations that stood in them went away with it (two same-named declarations in one unit
 // are an `E0428`; 0.1-10's glob import is what makes the mirror's copy visible).
 
-include!("buffer.rs");                  // C 59: `struct buffer;` (buffer.h owns the record)
+// [U1-MODULE-MIRROR]
+use super::*;
+// [U1] buffer.rs imported via super
 
 pub const EMACS_REGION_CACHE_H: c_int = 1;
 
@@ -69,4 +71,4 @@ pub mod region_cache_decls {
                                   next: *mut ptrdiff_t) -> c_int;
   }
 }
-use region_cache_decls::*;
+pub use self::region_cache_decls::*;

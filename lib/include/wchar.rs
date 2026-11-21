@@ -6,6 +6,8 @@
 // regex_internal.h 151-152 point at the wide functions.
 
 
+// [U1-MODULE-MIRROR]
+use super::*;
 /// <wchar.h>'s signed wide character type (the frozen target: `int`).
 pub type wchar_t = c_int;
 /// <wchar.h>'s unsigned wide-character / wint_t type (the frozen target: `unsigned int`).

@@ -18,6 +18,8 @@
 #![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code,
          unused_imports, unused_macros, unused_variables, unused_mut, unused_unsafe,
          static_mut_refs, unsafe_op_in_unsafe_fn)]
+// [U1-MODULE-UNIT]
+use crate::common::*;
 
 /* NOTE: All functions in this file which are not declared in
    mini-gmp.h are internal, and are not intended to be compatible
@@ -36,11 +38,11 @@
 use std::ffi::{c_char, c_double, c_int, c_long, c_uint, c_ulong, c_void};
 
 // C: `#include <limits.h>` (CHAR_BIT; lib/include/limits.in.rs carries the values).
-include!("include/limits.in.rs");
+// [U1] include/limits.in.rs imported via common
 // C: `#include <stdio.h>` (FILE, and the two writers below).
-include!("include/stdio.rs");
+// [U1] include/stdio.rs imported via common
 // C: `#include "mini-gmp.h"`.
-include!("include/mini-gmp.rs");
+// [U1] include/mini-gmp.rs imported via common
 
 // The C file's own configuration macro: `#ifndef MINI_GMP_ENABLE_FLOAT
 // #define MINI_GMP_ENABLE_FLOAT 1 #endif`, and `#if MINI_GMP_ENABLE_FLOAT
@@ -48,7 +50,7 @@ include!("include/mini-gmp.rs");
 // and includes the <float.h> mirror unconditionally, since DBL_MANT_DIG is below.
 pub const MINI_GMP_ENABLE_FLOAT: c_int = 1;
 // C: `#include <float.h>` (DBL_MANT_DIG, FLT_RADIX).
-include!("include/float.in.rs");
+// [U1] include/float.in.rs imported via common
 
 /* <stdlib.h>: the allocator family and abort.  */
 unsafe extern "C" {

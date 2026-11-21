@@ -8,8 +8,10 @@
 // The declaration lives in `pub mod fpending_decls` + glob import, because lib/fpending.c
 // *defines* `__fpending` (E0428 with a crate-root declaration; PORTING.md 0.1-10, the
 // stdio.rs shape).
-include!("gnulib_config.rs");
-include!("stdio.rs");
+// [U1-MODULE-MIRROR]
+use super::*;
+// [U1] gnulib_config.rs imported via super
+// [U1] stdio.rs imported via super
 
 /* C 23-26's `#if !_GL_CONFIG_H_INCLUDED / # error "Please include config.h first." / #endif`.  */
 const _: () = core::assert! (_GL_CONFIG_H_INCLUDED, "Please include config.h first.");
@@ -22,4 +24,4 @@ pub mod fpending_decls {
     pub fn __fpending (fp: *mut FILE) -> usize;
   }
 }
-use fpending_decls::*;
+pub use self::fpending_decls::*;

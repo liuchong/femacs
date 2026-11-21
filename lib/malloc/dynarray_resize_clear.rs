@@ -8,12 +8,14 @@
 #![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code,
          unused_imports, unused_macros, unused_variables, unused_mut, unused_unsafe,
          static_mut_refs, unsafe_op_in_unsafe_fn)]
+// [U1-MODULE-UNIT]
+use crate::common::*;
 
 use std::ffi::{c_char, c_double, c_int, c_long, c_uint, c_ulong, c_void};
-include!("../../src/include/config.rs");
-include!("../include/gnulib_config.rs");
-include!("../include/string.rs");    // C 24's <string.h>
-include!("../include/dynarray.rs");  // C 23's <dynarray.h>
+// [U1] config.rs provided by common
+// [U1] ../include/gnulib_config.rs imported via common
+// [U1] ../include/string.rs imported via common
+// [U1] ../include/dynarray.rs imported via common
 
 #[unsafe(export_name = "_gl_dynarray_resize_clear")]
 pub unsafe extern "C" fn __libc_dynarray_resize_clear (list: *mut dynarray_header,

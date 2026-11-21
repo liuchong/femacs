@@ -5,6 +5,8 @@
 // the getcwd fallback).  `name` is a `char *` the C only ever sets to NULL.
 
 // The include guard has no Rust counterpart (PORTING.md 0.1).
+// [U1-MODULE-MIRROR]
+use super::*;
 pub const SAVE_CWD_H: c_int = 1;
 
 /// `struct saved_cwd { int desc; char *name; };`
@@ -31,4 +33,4 @@ pub mod save_cwd_decls {
     pub fn free_cwd (cwd: *mut saved_cwd);
   }
 }
-use save_cwd_decls::*;
+pub use self::save_cwd_decls::*;

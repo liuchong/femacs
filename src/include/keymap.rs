@@ -6,6 +6,8 @@
 // nothing else, so every includer of this mirror includes `lisp.rs` too.
 
 // The include guard has no Rust counterpart (PORTING.md 0.1).
+// [U1-MODULE-MIRROR]
+use super::*;
 pub const KEYMAP_H: bool = true;
 
 /* The maximum byte size consumed by push_key_description.
@@ -62,5 +64,5 @@ pub mod keymap_decls {
                                args: Lisp_Object, data: *mut c_void);
   }
 }
-use keymap_decls::*;
+pub use self::keymap_decls::*;
 

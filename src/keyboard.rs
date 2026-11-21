@@ -74,57 +74,59 @@
          unsafe_op_in_unsafe_fn, unused_assignments, unreachable_code, while_true,
          unused_parens, unused_mut, unused_labels, unused_comparisons, overflowing_literals,
          unnecessary_cast, dropping_copy_types, unused_must_use, clashing_extern_declarations)]
+// [U1-MODULE-UNIT]
+use crate::common::*;
 
 /* C 20-95: the `#include`s.  The mirrors are named with C's own header in the comment.  */
-include!("include/config.rs");                 // C 20: `#include <config.h>`
-include!("../lib/include/sys_stat.in.rs");     // C 22: `#include <sys/stat.h>`
-include!("../lib/include/stdio.rs");           // C 41: `#include "sysstdio.h"`
-include!("../lib/include/errno.rs");           // C 55: `#include <errno.h>`
-include!("../lib/include/sys_types.in.rs");    // C 78: `#include <sys/types.h>`
-include!("../lib/include/unistd.in.rs");       // C 79: `#include <unistd.h>`
-include!("../lib/include/fcntl.in.rs");        // C 80: `#include <fcntl.h>`
-include!("../lib/include/math.rs");            // C 81: `#include <math.h>`
-include!("../lib/include/signal.rs");          // C 72: `#include "syssignal.h"` -> <signal.h> (pthread_sigmask)
-include!("include/lisp.rs");                   // C 24: `#include "lisp.h"`
+const _: () = ();
+// [U1] ../lib/include/sys_stat.in.rs imported via common
+// [U1] ../lib/include/stdio.rs imported via common
+// [U1] ../lib/include/errno.rs imported via common
+// [U1] ../lib/include/sys_types.in.rs imported via common
+// [U1] ../lib/include/unistd.in.rs imported via common
+// [U1] ../lib/include/fcntl.in.rs imported via common
+// [U1] ../lib/include/math.rs imported via common
+// [U1] ../lib/include/signal.rs imported via common
+// [U1] include/lisp.rs imported via common
 /* C's `lisp.h` 28 includes <stdcountof.h>, which `include/lisp.rs` does not carry (P-26/P-72③
    mirror gap); the port puts the mirror where `countof` is read, the alloc.rs/bignum.rs shape.  */
-include!("../lib/include/stdcountof.rs");      // lisp.h 28: `#include <stdcountof.h>`
-include!("include/character.rs");              // C 34: `#include "character.h"`
-include!("include/intervals.rs");              // C 38: `#include "intervals.h"` (buffer.h 27)
-include!("include/itree.rs");                  // intervals.h: `itree_node`/`itree_tree`
-include!("include/systime.rs");                // C 42: `#include "systime.h"`
-include!("include/atimer.rs");                 // C 43: `#include "atimer.h"`
-include!("include/coding.rs");                 // C 25: `#include "coding.h"`
-include!("include/composite.rs");              // coding.h 284: `#include "composite.h"`
-include!("include/buffer.rs");                 // C 35: `#include "buffer.h"`
-include!("include/font.rs");                   // dispextern.h's font names
-include!("include/termchar.rs");               // C 26: `#include "termchar.h"`
-include!("include/dispextern.rs");             // C 36: `#include "dispextern.h"`
-include!("include/termhooks.rs");              // C 29: `#include "termhooks.h"`
-include!("include/frame.rs");                  // C 28: `#include "frame.h"`
-include!("include/window.rs");                 // C 32: `#include "window.h"`
-include!("include/keyboard.rs");               // C 31: `#include "keyboard.h"`
-include!("include/macros.rs");                 // C 30: `#include "macros.h"`
-include!("include/commands.rs");               // C 33: `#include "commands.h"`
+// [U1] ../lib/include/stdcountof.rs imported via common
+// [U1] include/character.rs imported via common
+// [U1] include/intervals.rs imported via common
+// [U1] include/itree.rs imported via common
+// [U1] include/systime.rs imported via common
+// [U1] include/atimer.rs imported via common
+// [U1] include/coding.rs imported via common
+// [U1] include/composite.rs imported via common
+// [U1] include/buffer.rs imported via common
+// [U1] include/font.rs imported via common
+// [U1] include/termchar.rs imported via common
+// [U1] include/dispextern.rs imported via common
+// [U1] include/termhooks.rs imported via common
+// [U1] include/frame.rs imported via common
+// [U1] include/window.rs imported via common
+// [U1] include/keyboard.rs imported via common
+// [U1] include/macros.rs imported via common
+// [U1] include/commands.rs imported via common
 /* C 49: `#include "textconv.h"` - the conversion entry points this unit calls
    (`detect_conversion_events`, `handle_pending_conversion_events`,
    `conversion_disabled_p`, `disable_text_conversion`, `resume_text_conversion`,
    `check_postponed_buffers`) are that header's prototypes.  */
-include!("include/textconv.rs");               // C 49: `#include "textconv.h"`
+// [U1] include/textconv.rs imported via common
 /* `textconv.h`'s prototypes live in the mirror's `textconv_decls` module (P-17/P-21:
    `src/textconv.c` defines them, so a root-level copy would be `E0428` there).  */
 use textconv_decls::*;
 /* C 53: `#include "android.h"` (inside C 51's `#ifdef HAVE_ANDROID`).  */
 #[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
-include!("include/android.rs");                // C 53: `#include "android.h"`
-include!("include/syntax.rs");                 // C 37: `#include "syntax.h"`
-include!("include/keymap.rs");                 // C 39: `#include "keymap.h"`
-include!("include/blockinput.rs");             // C 40: `#include "blockinput.h"`
-include!("include/process.rs");                // C 44: `#include "process.h"`
-include!("include/menu.rs");                   // C 45: `#include "menu.h"`
-include!("include/syssignal.rs");              // C 72: `#include "syssignal.h"`
-include!("../lib/include/ignore-value.rs"); // C 83: `#include <ignore-value.h>`
-include!("include/pdumper.rs");                // C 85: `#include "pdumper.h"`
+const _: () = ();
+// [U1] include/syntax.rs imported via common
+// [U1] include/keymap.rs imported via common
+// [U1] include/blockinput.rs imported via common
+// [U1] include/process.rs imported via common
+// [U1] include/menu.rs imported via common
+// [U1] include/syssignal.rs imported via common
+// [U1] ../lib/include/ignore-value.rs imported via common
+// [U1] include/pdumper.rs imported via common
 
 /* C 92-95: `char const DEV_TTY[]` is defined twice (the `WINDOWSNT` `"CONOUT$"` arm and the
    live `#else`); `emacs.rs` declares the object as `[c_char; 9]`, which is the nine bytes of
@@ -143,10 +145,8 @@ pub static DEV_TTY: [c_char; 9] =
    (50) put at the crate root.  A crate-root definition of one of them is `E0428`, so the
    definitions live in this module, which is glob-imported below (the frame.rs `frame_globals`
    shape; PORTING.md P-21).  */
-pub mod keyboard_globals {
-  use super::*;
 
-  /* C 96: `char *dev_tty;`  */
+/* C 96: `char *dev_tty;`  */
   #[unsafe(no_mangle)]
   pub static mut dev_tty: *mut c_char = std::ptr::null_mut ();                      // 529 declares it
 
@@ -220,8 +220,6 @@ pub mod keyboard_globals {
      `tools/extract-abi.py`; this is the definition.  */
   #[unsafe(no_mangle)]
   pub static mut item_properties: Lisp_Object = lisp_h_Qnil ();
-}
-use keyboard_globals::*;
 
 /* C 101-102.  */
 #[unsafe(no_mangle)]
@@ -1029,7 +1027,7 @@ DEFUN! ("recursive-edit", Frecursive_edit, Srecursive_edit, 0, 0, "",
      make sure that we restore single_kboard as command_loop_1
      would have done if it were left normally.  */
   if command_loop_level > 0 && !multiple_terminals_merge_keyboards
-    { temporarily_switch_to_single_kboard (SELECTED_FRAME () as *mut c_void); }
+    { temporarily_switch_to_single_kboard (SELECTED_FRAME ()); }
 
   recursive_edit_1 ();
   return unbind_to (count, Qnil ());
@@ -1121,10 +1119,8 @@ pub unsafe extern "C" fn pop_kboard ()
    and is glob-imported below: a crate-root definition would be `E0428` (the frame.rs
    `frame_globals` shape, PORTING.md P-21).  The same holds for `kbd_buffer_store_buffered_event`
    (keyboard.h 495) further down.  */
-pub mod keyboard_root_shadowed {
-  use super::*;
 
-  /* C 889-925.  */
+/* C 889-925.  */
   #[unsafe(no_mangle)]
   pub unsafe extern "C" fn temporarily_switch_to_single_kboard (f: *mut frame)
   {
@@ -1152,8 +1148,6 @@ pub mod keyboard_root_shadowed {
     single_kboard = true;
     record_unwind_protect_int (Some (restore_kboard_configuration), was_locked as c_int);
   }
-}
-use keyboard_root_shadowed::*;
 
 /* C 927-938.  */
 unsafe extern "C" fn restore_kboard_configuration (was_locked: c_int)
@@ -4078,8 +4072,6 @@ unsafe fn kbd_buffer_nr_stored () -> c_int
    `unsafe extern "C"` blocks), so their definitions live in this module and are glob-imported
    below: a crate-root definition would be `E0428` (the `keyboard_root_shadowed` shape above).
    The mirror spells the first one's parameter `*mut c_void`, so its call sites cast.  */
-pub mod keyboard_root_shadowed_2 {
-  use super::*;
 
 /* C 3756-3761: `kbd_buffer_store_event`.  */
 #[unsafe(no_mangle)]
@@ -4210,8 +4202,6 @@ pub unsafe extern "C" fn kbd_buffer_store_buffered_event (event: *mut buffered_i
       && !is_ignored_event (event)
     { Vquit_flag = Vthrow_on_input; }
 }
-}
-use keyboard_root_shadowed_2::*;
 
 /* Limit help event positions to this range, to avoid overflow problems.  */
 /* gnulib intprops.h's `TYPE_MAXIMUM (t)` has no mirror; the port keeps the name with the one
@@ -4274,7 +4264,7 @@ pub unsafe extern "C" fn gen_help_event (help: Lisp_Object, frame: Lisp_Object, 
   event.x = if WINDOWP (window) { window } else { frame };
   event.y = help;
   event.timestamp = position_to_Time (pos);
-  kbd_buffer_store_event (&raw mut event as *mut c_void);
+  kbd_buffer_store_event (&raw mut event);
 }
 
 
@@ -4293,7 +4283,7 @@ pub unsafe extern "C" fn kbd_buffer_store_help_event (frame: Lisp_Object, help: 
   event.x = Qnil ();
   event.y = help;
   event.timestamp = 0;
-  kbd_buffer_store_event (&raw mut event as *mut c_void);
+  kbd_buffer_store_event (&raw mut event);
 }
 
 /* Discard any mouse events in the event buffer by setting them to
@@ -5426,14 +5416,20 @@ DEFUN! ("current-idle-time", Fcurrent_idle_time, Scurrent_idle_time, 0, 0, 0,
   return Qnil ();
 });
 
-
-
-
-
-
+
+
+
+
+
+
+
+
+
+
 /* C 4968-4973: the six caches (the `static Lisp_Object`s C calls "Caches for
    modify_event_symbol"), and C 4966-4967's comment above.  */
-
+
+
 /* Caches for modify_event_symbol.  */
 static mut accent_key_syms: Lisp_Object = lisp_h_Qnil ();
 static mut func_key_syms: Lisp_Object = lisp_h_Qnil ();
@@ -8853,7 +8849,7 @@ pub unsafe extern "C" fn gobble_input () -> c_int
 	    }
 
           if input_event_bits! (kind, &raw mut hold_quit) != NO_EVENT
-            { kbd_buffer_store_event (&raw mut hold_quit as *mut c_void); }
+            { kbd_buffer_store_event (&raw mut hold_quit); }
         }
 
       t = next;
@@ -9062,7 +9058,7 @@ pub unsafe extern "C" fn tty_read_avail_input (terminal: *mut terminal,
 
       buf.arg = Qnil ();
 
-      kbd_buffer_store_event (&raw mut buf as *mut c_void);
+      kbd_buffer_store_event (&raw mut buf);
       /* Don't look at input that follows a C-g too closely.
          This reduces lossage due to autorepeat on C-g.  */
       if input_event_bits! (kind, &raw mut buf) == ASCII_KEYSTROKE_EVENT
@@ -9114,8 +9110,6 @@ pub unsafe extern "C" fn process_pending_signals ()
    at the crate root (`include/blockinput.rs`'s `unsafe extern "C"` block), so their
    definitions live in this module and are glob-imported below: a crate-root definition would
    be `E0428` (the `keyboard_root_shadowed` shape).  */
-pub mod keyboard_root_shadowed_3 {
-  use super::*;
 
 /* Undo any number of BLOCK_INPUT calls down to level LEVEL,
    and reinvoke any pending signal if the level is now 0 and
@@ -9162,8 +9156,6 @@ pub unsafe extern "C" fn totally_unblock_input ()
   unblock_input_to (0);
 }
 
-}
-use keyboard_root_shadowed_3::*;
 
 /* C 8419-8445: `#if defined (USABLE_SIGIO) || defined (USABLE_SIGPOLL)` — **live** on this
    target (`USABLE_SIGIO` is 1 in the frozen configuration; measured with clang through
@@ -9351,7 +9343,7 @@ unsafe fn store_user_signal_events ()
 	  loop
 	    {
 	      buf.code = (*p).sig as c_uint;
-	      kbd_buffer_store_event (&raw mut buf as *mut c_void);
+	      kbd_buffer_store_event (&raw mut buf);
 	      (*p).npending -= 1;
 	      if !((*p).npending > 0) { break; }
 	    }
@@ -13041,7 +13033,7 @@ DEFUN! ("insert-special-event", Finsert_special_event, Sinsert_special_event, 1,
 
   /* Store it into the input event queue.  (`keyboard.h` 498's mirror spells the parameter
      `*mut c_void`, so the call site casts — the `process_special_events` shape.)  */
-  kbd_buffer_store_event (&raw mut ie as *mut c_void);
+  kbd_buffer_store_event (&raw mut ie);
 
   return Qnil ();
 });

@@ -30,23 +30,25 @@
 // What the frozen configuration keeps is `ACL_INTERNAL_INLINE`, `struct permission_context`'s
 // `mode` member and the three prototypes at the end (C 280-282).
 
+// [U1-MODULE-MIRROR]
+use super::*;
 /* C 25: `#include "acl.h"`.  */
-include!("acl.rs");
+// [U1] acl.rs imported via super
 /* C 27: `<stdlib.h>`.  */
-include!("stdlib.rs");
+// [U1] stdlib.rs imported via super
 /* `mode_t`, which the struct below names.  */
-include!("sys_types.in.rs");
+// [U1] sys_types.in.rs imported via super
 /* `<sys/acl.h>`: C 29-32's `#if HAVE_SYS_ACL_H` include is dead on this target (the macro is
    undefined), but the dead `USE_ACL` arm below names its types, so the mirror is the header
    this file would see.  (Each `include!` sits on a line of its own: xtask rewrites the line
    it finds an `include!` on, PORTING.md 0.1-4.)  */
-include!("sys_acl.rs");
+// [U1] sys_acl.rs imported via super
 /* C 52: `<errno.h>`.  */
-include!("errno.rs");
+// [U1] errno.rs imported via super
 /* C 54: `<limits.h>`.  */
-include!("limits.in.rs");
+// [U1] limits.in.rs imported via super
 /* C 55: `<stdint.h>`.  */
-include!("stdint.in.rs");
+// [U1] stdint.in.rs imported via super
 
 /// C 20-23: `#if !_GL_CONFIG_H_INCLUDED / #error "Please include config.h first."`.
 const _: () = core::assert! (_GL_CONFIG_H_INCLUDED, "Please include config.h first.");
@@ -99,7 +101,7 @@ pub mod acl_internal_decls {
     pub fn free_permission_context (arg1: *mut permission_context);
   }
 }
-use acl_internal_decls::*;
+pub use self::acl_internal_decls::*;
 
 /* ------------------------------------------------------------------
    C 67-238: `#if USE_ACL` — dead on this target (USE_ACL is 0).  The text below keeps the

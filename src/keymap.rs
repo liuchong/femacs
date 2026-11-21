@@ -52,34 +52,36 @@
          unsafe_op_in_unsafe_fn, unused_assignments, unreachable_code, while_true,
          unused_parens, unused_mut, unused_labels, unused_comparisons,
          overflowing_literals, unused_braces)]
+// [U1-MODULE-UNIT]
+use crate::common::*;
 
-include!("include/config.rs");                 // C 42: `#include <config.h>`
-include!("../lib/include/stdio.rs");           // C 43: `#include <stdio.h>`
-include!("../lib/include/stdlib.rs");          // C 44: `#include <stdlib.h>`
-include!("../lib/include/string.rs");          // lisp.h 30: `#include <string.h>` (memcpy, strchr, strlen, strstr)
-include!("../lib/include/stdcountof.rs");      // lisp.h 28: `#include <stdcountof.h>` (countof)
-include!("include/lisp.rs");                   // C 46: `#include "lisp.h"`
-include!("../lib/include/mini-gmp.rs");        // lisp.h's bignum.h chain (bignum.rs's members)
-include!("include/bignum.rs");
-include!("include/character.rs");              // C 48: `#include "character.h"`
-include!("include/itree.rs");                  // buffer.h 28: `#include "itree.h"`
-include!("include/systime.rs");                // termhooks.h 28: `#include "systime.h"`
-include!("include/font.rs");                   // composite.h 28: `#include "font.h"`
-include!("include/composite.rs");              // coding.h 284: `#include "composite.h"`
-include!("include/coding.rs");                 // termhooks.h 26: `#include "coding.h"`
-include!("include/commands.rs");               // C 47: `#include "commands.h"`
-include!("include/buffer.rs");                 // C 49: `#include "buffer.h"` - the syntax.rs edge below
+const _: () = ();
+// [U1] ../lib/include/stdio.rs imported via common
+// [U1] ../lib/include/stdlib.rs imported via common
+// [U1] ../lib/include/string.rs imported via common
+// [U1] ../lib/include/stdcountof.rs imported via common
+// [U1] include/lisp.rs imported via common
+// [U1] ../lib/include/mini-gmp.rs imported via common
+// [U1] include/bignum.rs imported via common
+// [U1] include/character.rs imported via common
+// [U1] include/itree.rs imported via common
+// [U1] include/systime.rs imported via common
+// [U1] include/font.rs imported via common
+// [U1] include/composite.rs imported via common
+// [U1] include/coding.rs imported via common
+// [U1] include/commands.rs imported via common
+// [U1] include/buffer.rs imported via common
                                                 // needs its macros defined first (syntax.rs's own note)
-include!("include/syntax.rs");                 // syntax.c's header (cmds.rs's chain)
-include!("include/buffer.rs");                 // C 49: `#include "buffer.h"`
-include!("include/frame.rs");                  // window.h 27: `#include "frame.h"`
-include!("include/dispextern.rs");             // frame.h 24: `#include "dispextern.h"`
-include!("include/keyboard.rs");               // C 50: `#include "keyboard.h"`
-include!("include/termhooks.rs");              // C 51: `#include "termhooks.h"`
-include!("include/window.rs");                 // C 55: `#include "window.h"`
-include!("include/intervals.rs");              // C 53: `#include "intervals.h"`
-include!("include/keymap.rs");                 // C 54: `#include "keymap.h"`
-include!("include/blockinput.rs");             // C 52: `#include "blockinput.h"`
+// [U1] include/syntax.rs imported via common
+// [U1] include/buffer.rs imported via common
+// [U1] include/frame.rs imported via common
+// [U1] include/dispextern.rs imported via common
+// [U1] include/keyboard.rs imported via common
+// [U1] include/termhooks.rs imported via common
+// [U1] include/window.rs imported via common
+// [U1] include/intervals.rs imported via common
+// [U1] include/keymap.rs imported via common
+// [U1] include/blockinput.rs imported via common
 
 /* Names C's headers give this unit that no mirror carries.  Each carries C's own
    prototype on the `pub fn` line (the minibuf.rs/ccl.rs shape), and moves to its owner's

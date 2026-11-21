@@ -2,8 +2,10 @@
 // External library memory is owned and released by libxml2; these types are
 // never constructed or freed by the Rust allocator. Opaque fields retain their
 // pointer widths; all public node/attribute/document fields retain C layout.
+// [U1-MODULE-MIRROR]
+use super::*;
 #[cfg(feature = "have_libxml2")]
-mod libxml2_ffi {
+pub mod libxml2_ffi {
     use core::ffi::{c_char, c_int, c_void};
 
     pub const LIBXML_VERSION: c_int = 20913;

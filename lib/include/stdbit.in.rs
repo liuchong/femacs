@@ -44,8 +44,10 @@
 // `leading_ones`/`trailing_zeros` - rather than against literals: `544 semantic checks passed`,
 // exit 0.  The ledger's `## Evidence` has the command, the readings, and the two negative controls.
 
-include!("stdint.in.rs");   // `uint_leastN_t` for the `stdc_memreverse8u*` family
-include!("stdbit.rs");   // the frozen target's `<stdbit.h>` slice: the live builtin arms
+// [U1-MODULE-MIRROR]
+use super::*;
+// [U1] stdint.in.rs imported via super
+// [U1] stdbit.rs imported via super
                         // (`_gl_stdbit_clz/ctzl/clzll`, their `stdc_leading_zeros_*` users, the
                         // three generic dispatchers and the `stdc_memreverse8u*` bodies) that
                         // `lisp.rs` and the extern-inline units already include.  The relation is

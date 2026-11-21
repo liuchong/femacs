@@ -33,36 +33,38 @@
 #![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code,
          unused_imports, unused_macros, unused_variables, unused_unsafe, static_mut_refs,
          unsafe_op_in_unsafe_fn)]
+// [U1-MODULE-UNIT]
+use crate::common::*;
 
-include!("include/config.rs");
-include!("../lib/include/stdio.rs");   // lisp.h 34 and termchar.h 22: FILE
+const _: () = ();
+// [U1] ../lib/include/stdio.rs imported via common
 // lisp.h 30 includes <string.h>: C's `memset` over `retained_p` and the hash table.
-include!("../lib/include/string.rs");
-include!("../lib/include/stdcountof.rs");   // lisp.h 28 (the mirror chain's own)
+// [U1] ../lib/include/string.rs imported via common
+// [U1] ../lib/include/stdcountof.rs imported via common
 // lisp.h: `baud_rate` (globals.h), `INT_MAX` (<limits.h> 33 through <inttypes.h>),
 // `clip_to_bounds`, `min`, the `SAFE_*`/`USE_SAFE_ALLOCA` family, `xnrealloc`,
 // `emacs_abort` and `eassert`.
-include!("include/lisp.rs");
+// [U1] include/lisp.rs imported via common
 // dispextern.h 25 includes character.h; termhooks.h 28 includes systime.h for `Time`;
 // frame.h 22-23 includes termhooks.h and window.h.  The port's include list is that chain,
 // and the mirrors name a few types from headers C reaches indirectly (coding.h's
 // `coding_system` through termhooks.h's pointer members, the P-72 hazard doc.rs records):
 // the includes below are the same set callint.rs/doc.rs proved (PORTING.md P-61).
-include!("include/character.rs");
-include!("include/itree.rs");
+// [U1] include/character.rs imported via common
+// [U1] include/itree.rs imported via common
 // window.rs's BUFFERP/buffer_local_value come from buffer.h (frame.h 23 includes window.h,
 // which includes buffer.h); doc.rs's list carries it for the same reason.
-include!("include/buffer.rs");
-include!("include/systime.rs");
-include!("include/coding.rs");
-include!("include/dispextern.rs");
-include!("include/composite.rs");
-include!("include/termhooks.rs");
-include!("include/window.rs");
-include!("include/frame.rs");
+// [U1] include/buffer.rs imported via common
+// [U1] include/systime.rs imported via common
+// [U1] include/coding.rs imported via common
+// [U1] include/dispextern.rs imported via common
+// [U1] include/composite.rs imported via common
+// [U1] include/termhooks.rs imported via common
+// [U1] include/window.rs imported via common
+// [U1] include/frame.rs imported via common
 // termchar.h 23 includes dispextern.h and is written for a unit that has already seen
 // frame.h/termhooks.h (its FRAME_TTY reads them); naming it last is C's own order.
-include!("include/termchar.rs");
+// [U1] include/termchar.rs imported via common
 
 /* The matrix_elt struct is used to determine the cost of
    updating the screen from the current matrix to the desired

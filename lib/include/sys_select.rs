@@ -24,8 +24,10 @@
 // config.h 2447-2448 defines `_DARWIN_C_SOURCE`, macros.tsv 4041); this target's libSystem
 // exports it, so the port's call is unconditional (docs/ports/include-sys_select.md).
 
-include!("sys_time.rs");    // <sys/time.h> (`struct timeval`, for `select`)
-include!("time.in.rs");     // <time.h> (`struct timespec`, for `pselect`)
+// [U1-MODULE-MIRROR]
+use super::*;
+// [U1] sys_time.rs imported via super
+// [U1] time.in.rs imported via super
 
 /* <sys/select.h> 91: `#define FD_SETSIZE __DARWIN_FD_SETSIZE` (1024).  */
 pub const FD_SETSIZE: c_int = 1024;

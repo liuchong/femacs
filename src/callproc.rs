@@ -55,41 +55,43 @@
 #![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code,
          unused_imports, unused_macros, unused_variables, unused_unsafe, static_mut_refs,
          unsafe_op_in_unsafe_fn, unused_parens, unreachable_code, unused_assignments)]
+// [U1-MODULE-UNIT]
+use crate::common::*;
 
-include!("include/config.rs");                 // C 22: `#include <config.h>`
-include!("include/epaths.rs");                    // C: `<epaths.h>` (generated; see epaths.in's android arm)
-include!("include/conf_post.rs");               // C 22's AH_BOTTOM `#include <conf_post.h>`: `VFORK ()`
-include!("../lib/include/errno.rs");           // C 23: `#include <errno.h>`
-include!("../lib/include/stdlib.rs");          // C 24: `#include <stdlib.h>`
-include!("../lib/include/sys_types.in.rs");    // C 25: `#include <sys/types.h>`
-include!("../lib/include/unistd.in.rs");       // C 26: `#include <unistd.h>`
-include!("../lib/include/fcntl.in.rs");        // C 33: `#include <fcntl.h>`
-include!("include/lisp.rs");                   // C 52: `#include "lisp.h"`
-include!("../lib/include/stdio.rs");           // C 40: `#include <stdio.h>` (mini-gmp's FILE)
-include!("../lib/include/string.rs");          // lisp.h 30: `#include <string.h>`
-include!("../lib/include/mini-gmp.rs");        // bignum.h's `#include <gmp.h>`
-include!("include/bignum.rs");                 // lisp.h 2359's struct Lisp_Bignum
-include!("include/character.rs");              // buffer.h's character-table names
-include!("include/itree.rs");                  // buffer.h 35's `#include "itree.h"`
-include!("include/composite.rs");              // coding.h 284's `#include "composite.h"`
-include!("include/coding.rs");                 // C 73: `#include "coding.h"`
-include!("include/dispextern.rs");             // frame.h 25's `#include "dispextern.h"`
-include!("include/font.rs");                   // dispextern.h's font names
-include!("include/termhooks.rs");              // frame.h's `#include "termhooks.h"`
-include!("include/systime.rs");                // frame.h's `#include "systime.h"`
-include!("include/window.rs");                 // keyboard.h 26's `#include "window.h"`
-include!("include/buffer.rs");                 // C 72: `#include "buffer.h"`
-include!("include/commands.rs");               // C 71: `#include "commands.h"`
-include!("include/process.rs");                // C 75: `#include "process.h"`
-include!("include/syssignal.rs");              // C 76: `#include "syssignal.h"`
-include!("include/blockinput.rs");             // C 78: `#include "blockinput.h"`
-include!("include/frame.rs");                  // C 79: `#include "frame.h"`
-include!("include/keyboard.rs");               // C 81: `#include "keyboard.h"`
+const _: () = ();
+// [U1] epaths.rs provided by common
+// [U1] include/conf_post.rs imported via common
+// [U1] ../lib/include/errno.rs imported via common
+// [U1] ../lib/include/stdlib.rs imported via common
+// [U1] ../lib/include/sys_types.in.rs imported via common
+// [U1] ../lib/include/unistd.in.rs imported via common
+// [U1] ../lib/include/fcntl.in.rs imported via common
+// [U1] include/lisp.rs imported via common
+// [U1] ../lib/include/stdio.rs imported via common
+// [U1] ../lib/include/string.rs imported via common
+// [U1] ../lib/include/mini-gmp.rs imported via common
+// [U1] include/bignum.rs imported via common
+// [U1] include/character.rs imported via common
+// [U1] include/itree.rs imported via common
+// [U1] include/composite.rs imported via common
+// [U1] include/coding.rs imported via common
+// [U1] include/dispextern.rs imported via common
+// [U1] include/font.rs imported via common
+// [U1] include/termhooks.rs imported via common
+// [U1] include/systime.rs imported via common
+// [U1] include/window.rs imported via common
+// [U1] include/buffer.rs imported via common
+// [U1] include/commands.rs imported via common
+// [U1] include/process.rs imported via common
+// [U1] include/syssignal.rs imported via common
+// [U1] include/blockinput.rs imported via common
+// [U1] include/frame.rs imported via common
+// [U1] include/keyboard.rs imported via common
 /* C 96: `#include "android.h"` (inside C 94's `#ifdef HAVE_ANDROID`).  The mirror glob-imports
    its prototype module, so this edge is what supplies `android_is_special_directory` and
    `android_rewrite_spawn_argv` (3 x `cannot find function`, measured on Android).  */
 #[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
-include!("include/android.rs");                // C 96: `#include "android.h"`
+const _: () = ();
 
 /* The names C gets from lisp.h, process.h, syswait.h and the system headers above, declared
    at the use site (the terminal.rs/filelock.rs shape); none of them has a mirror.  */

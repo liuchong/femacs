@@ -7,14 +7,16 @@
 #![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code,
          unused_imports, unused_macros, unused_variables, unused_mut, unused_unsafe,
          static_mut_refs, unsafe_op_in_unsafe_fn)]
+// [U1-MODULE-UNIT]
+use crate::common::*;
 
 use std::ffi::{c_char, c_double, c_int, c_long, c_uint, c_ulong, c_void};
 use std::ptr::null_mut;
-include!("../../src/include/config.rs");
-include!("../include/gnulib_config.rs");
-include!("../include/stdlib.rs");    // C 24's <stdlib.h>
-include!("../include/string.rs");    // C 25's <string.h>
-include!("../include/dynarray.rs");  // C 23's <dynarray.h>
+// [U1] config.rs provided by common
+// [U1] ../include/gnulib_config.rs imported via common
+// [U1] ../include/stdlib.rs imported via common
+// [U1] ../include/string.rs imported via common
+// [U1] ../include/dynarray.rs imported via common
 
 /* Internal function.  Copy the dynamically-allocated area to an
    explicitly-sized heap allocation.  SCRATCH is a pointer to the

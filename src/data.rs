@@ -15,32 +15,34 @@
 // C's `switch`es carry a `default: eassume (false)` arm; the port's `match`es list every
 // enumerator *and* that arm, so the catch-all is unreachable by construction (P-78).
 #![allow(unreachable_patterns)]
+// [U1-MODULE-UNIT]
+use crate::common::*;
 
-include!("include/config.rs");
-include!("../lib/include/math.rs");
-include!("../lib/include/stdio.rs");
-include!("../lib/include/limits.in.rs");
-include!("../lib/include/stdlib.rs");
-include!("../lib/include/stdcountof.rs");
-include!("include/lisp.rs");
-include!("../lib/include/mini-gmp.rs");
-include!("include/bignum.rs");
-include!("include/character.rs");
-include!("include/itree.rs");
-include!("include/systime.rs");
-include!("include/dispextern.rs");
+// [U1] config.rs provided by common
+// [U1] ../lib/include/math.rs imported via common
+// [U1] ../lib/include/stdio.rs imported via common
+// [U1] ../lib/include/limits.in.rs imported via common
+// [U1] ../lib/include/stdlib.rs imported via common
+// [U1] ../lib/include/stdcountof.rs imported via common
+// [U1] include/lisp.rs imported via common
+// [U1] ../lib/include/mini-gmp.rs imported via common
+// [U1] include/bignum.rs imported via common
+// [U1] include/character.rs imported via common
+// [U1] include/itree.rs imported via common
+// [U1] include/systime.rs imported via common
+// [U1] include/dispextern.rs imported via common
 // composite.h 28 includes "font.h", which data.c reaches through
 // keyboard.h -> coding.h -> composite.h (keyboard.h 23, coding.h 284).
-include!("include/font.rs");
-include!("include/composite.rs");
-include!("include/coding.rs");
-include!("include/buffer.rs");
-include!("include/keyboard.rs");
-include!("include/termhooks.rs");
-include!("include/window.rs");
-include!("include/process.rs");
-include!("include/frame.rs");
-include!("include/keymap.rs");
+// [U1] include/font.rs imported via common
+// [U1] include/composite.rs imported via common
+// [U1] include/coding.rs imported via common
+// [U1] include/buffer.rs imported via common
+// [U1] include/keyboard.rs imported via common
+// [U1] include/termhooks.rs imported via common
+// [U1] include/window.rs imported via common
+// [U1] include/process.rs imported via common
+// [U1] include/frame.rs imported via common
+// [U1] include/keymap.rs imported via common
 
 // The `DEFVAR_*` variables this C file owns: C's storage is `globals.f_<vname>`
 // (lisp.h 3495-3530), and `struct emacs_globals globals` is defined once, in alloc.c; the

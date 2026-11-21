@@ -22,26 +22,28 @@
 #![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code,
          unused_imports, unused_macros, unused_variables, unused_unsafe, static_mut_refs,
          unsafe_op_in_unsafe_fn)]
+// [U1-MODULE-UNIT]
+use crate::common::*;
 
 
-include!("include/config.rs");
-include!("../lib/include/stdio.rs");
-include!("../lib/include/string.rs");
-include!("include/lisp.rs");
-include!("include/character.rs");
-include!("include/itree.rs");
-include!("include/buffer.rs");
-include!("include/commands.rs");
-include!("include/syntax.rs");
-include!("include/systime.rs");
-include!("include/dispextern.rs");
-include!("include/coding.rs");
-include!("include/composite.rs");
-include!("include/keyboard.rs");
-include!("include/termhooks.rs");
-include!("include/window.rs");
-include!("include/frame.rs");
-include!("include/keymap.rs");
+const _: () = ();
+// [U1] ../lib/include/stdio.rs imported via common
+// [U1] ../lib/include/string.rs imported via common
+// [U1] include/lisp.rs imported via common
+// [U1] include/character.rs imported via common
+// [U1] include/itree.rs imported via common
+// [U1] include/buffer.rs imported via common
+// [U1] include/commands.rs imported via common
+// [U1] include/syntax.rs imported via common
+// [U1] include/systime.rs imported via common
+// [U1] include/dispextern.rs imported via common
+// [U1] include/coding.rs imported via common
+// [U1] include/composite.rs imported via common
+// [U1] include/keyboard.rs imported via common
+// [U1] include/termhooks.rs imported via common
+// [U1] include/window.rs imported via common
+// [U1] include/frame.rs imported via common
+// [U1] include/keymap.rs imported via common
 
 /* Add N to point; or subtract N if FORWARD is false.  N defaults to 1.
    Validate the new location.  Return nil.  */

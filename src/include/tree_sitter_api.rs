@@ -1,6 +1,8 @@
 // Used ABI declarations from Tree-sitter 0.27.1 api.h (MIT).
 // SDK header SHA256: f8480415ae20cb5e0fd519ba44c84268c5acb4c918106238fc1d328d91431783.
 // Opaque C objects are never allocated or dereferenced by this mirror.
+// [U1-MODULE-MIRROR]
+use super::*;
 pub const TREE_SITTER_LANGUAGE_VERSION: core::ffi::c_int = 15;
 pub const TREE_SITTER_MIN_COMPATIBLE_LANGUAGE_VERSION: core::ffi::c_int = 13;
 pub type TSStateId = u16;

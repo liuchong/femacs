@@ -74,10 +74,12 @@
 
 // C 26-27: the include guard has no Rust counterpart (PORTING.md 0.1-4); the generated header
 // spells the same name.
+// [U1-MODULE-MIRROR]
+use super::*;
 pub const EMACS_MODULE_H: bool = true;
 
-include!("../../lib/include/stdint.in.rs");   // C 30: `#include <stdint.h>` (`SIZE_MAX`)
-include!("../../lib/include/time.in.rs");     // C 31: `#include <time.h>` (`struct timespec`, C 31)
+// [U1] ../../lib/include/stdint.in.rs imported via super
+// [U1] ../../lib/include/time.in.rs imported via super
 
 /// C 38: `#define EMACS_MAJOR_VERSION @emacs_major_version@` - the template's placeholder, whose
 /// frozen substitution the generated header spells (38: `#define EMACS_MAJOR_VERSION 32`), so the

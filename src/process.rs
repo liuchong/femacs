@@ -93,47 +93,49 @@
          unsafe_op_in_unsafe_fn, unused_assignments, unreachable_code, while_true,
          unused_parens, unused_mut, unused_labels, unused_comparisons, overflowing_literals,
          unnecessary_cast, dropping_copy_types, unused_must_use)]
+// [U1-MODULE-UNIT]
+use crate::common::*;
 
 /* C 22-134: the `#include`s.  The mirrors are named with C's own header in the comment.  */
-include!("include/config.rs");                 // C 22: `#include <config.h>`
-include!("../lib/include/errno.rs");           // C 26: `#include <errno.h>`
-include!("../lib/include/stdio.rs");           // C 24: `#include <stdio.h>`
-include!("../lib/include/stdlib.rs");          // C 25: `#include <stdlib.h>`
-include!("../lib/include/string.rs");          // lisp.h 30's `#include <string.h>`
-include!("../lib/include/sys_types.in.rs");    // C 27: `#include <sys/types.h>`
-include!("../lib/include/sys_stat.in.rs");     // C 29: `#include <sys/stat.h>`
-include!("../lib/include/unistd.in.rs");       // C 30: `#include <unistd.h>`
-include!("../lib/include/fcntl.in.rs");        // C 31: `#include <fcntl.h>`
-include!("../lib/include/limits.in.rs");       // <limits.h> (`INT_BUFSIZE_BOUND`, `INT_MAX`)
-include!("../lib/include/sys_select.rs");      // C 115: `#include "sysselect.h"` -> <sys/select.h>
-include!("../lib/include/signal.rs");          // C 116: `#include "syssignal.h"` -> <signal.h>
-include!("../lib/include/sys_resource.rs");    // C 50: `#include <sys/resource.h>`
-include!("../lib/include/c-ctype.rs");         // C 95: `#include <c-ctype.h>`
-include!("../lib/include/flexmember.rs");      // C 96: `#include <flexmember.h>`
-include!("../lib/include/nproc.rs");           // C 97: `#include <nproc.h>`
-include!("../lib/include/sig2str.rs");         // C 98: `#include <sig2str.h>`
-include!("include/lisp.rs");                   // C 33: `#include "lisp.h"`
-include!("../lib/include/mini-gmp.rs");        // bignum.h's `#include <gmp.h>`
-include!("include/bignum.rs");                 // lisp.h 2359's struct Lisp_Bignum
-include!("include/character.rs");              // C 106: `#include "character.h"`
-include!("include/itree.rs");                  // buffer.h 35's `#include "itree.h"`
-include!("include/buffer.rs");                 // C 107: `#include "buffer.h"`
-include!("include/composite.rs");              // coding.h 284's `#include "composite.h"`
-include!("include/coding.rs");                 // C 108: `#include "coding.h"`
-include!("include/process.rs");                // C 109: `#include "process.h"`
+const _: () = ();
+// [U1] ../lib/include/errno.rs imported via common
+// [U1] ../lib/include/stdio.rs imported via common
+// [U1] ../lib/include/stdlib.rs imported via common
+// [U1] ../lib/include/string.rs imported via common
+// [U1] ../lib/include/sys_types.in.rs imported via common
+// [U1] ../lib/include/sys_stat.in.rs imported via common
+// [U1] ../lib/include/unistd.in.rs imported via common
+// [U1] ../lib/include/fcntl.in.rs imported via common
+// [U1] ../lib/include/limits.in.rs imported via common
+// [U1] ../lib/include/sys_select.rs imported via common
+// [U1] ../lib/include/signal.rs imported via common
+// [U1] ../lib/include/sys_resource.rs imported via common
+// [U1] ../lib/include/c-ctype.rs imported via common
+// [U1] ../lib/include/flexmember.rs imported via common
+// [U1] ../lib/include/nproc.rs imported via common
+// [U1] ../lib/include/sig2str.rs imported via common
+// [U1] include/lisp.rs imported via common
+// [U1] ../lib/include/mini-gmp.rs imported via common
+// [U1] include/bignum.rs imported via common
+// [U1] include/character.rs imported via common
+// [U1] include/itree.rs imported via common
+// [U1] include/buffer.rs imported via common
+// [U1] include/composite.rs imported via common
+// [U1] include/coding.rs imported via common
+// [U1] include/process.rs imported via common
 #[cfg(feature = "have_gnutls")]
-include!("include/gnutls.rs");
-include!("include/commands.rs");               // keyboard.h's `#include "commands.h"`
-include!("include/dispextern.rs");             // frame.h 25's `#include "dispextern.h"`
-include!("include/font.rs");                   // dispextern.h's font names
-include!("include/window.rs");                 // C 105: `#include "window.h"`
-include!("include/termhooks.rs");              // frame.h's `#include "termhooks.h"`
-include!("include/systime.rs");                // C 102: `#include "systime.h"`
-include!("include/frame.rs");                  // C 110: `#include "frame.h"`
-include!("include/keyboard.rs");               // C 112: `#include "keyboard.h"`
-include!("include/blockinput.rs");             // C 113: `#include "blockinput.h"`
-include!("include/atimer.rs");                 // C 114: `#include "atimer.h"`
-include!("include/syssignal.rs");              // C 116: `#include "syssignal.h"`
+const _: () = ();
+// [U1] include/commands.rs imported via common
+// [U1] include/dispextern.rs imported via common
+// [U1] include/font.rs imported via common
+// [U1] include/window.rs imported via common
+// [U1] include/termhooks.rs imported via common
+// [U1] include/systime.rs imported via common
+// [U1] include/frame.rs imported via common
+// [U1] include/keyboard.rs imported via common
+// [U1] include/blockinput.rs imported via common
+// [U1] include/atimer.rs imported via common
+// [U1] include/syssignal.rs imported via common
 
 /* ------------------------------------------------------------------------------------------
    The names the mirrors do not carry, declared at the use site (PORTING.md P-72 rule 3).

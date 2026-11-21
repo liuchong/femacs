@@ -93,6 +93,8 @@ fn compile_macos_icon(app: &Path, stage: &Path) -> Result<(), String> {
     let plist = app.join("Contents/Info.plist");
     run(
         Command::new("xcrun")
+            .env("IBToolNeverDeque", "1")
+            .env("IBCLIServerNeverDequeue", "1")
             .args(["--sdk", "macosx", "actool", "--compile"])
             .arg(stage)
             .args([

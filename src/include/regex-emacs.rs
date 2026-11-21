@@ -25,6 +25,8 @@
 // below pin those numbers (the `src/search.rs` and `src/regex-emacs.rs` copies of them go
 // away with this change - two same-named definitions in one unit are an `E0428`).
 
+// [U1-MODULE-MIRROR]
+use super::*;
 pub const EMACS_REGEX_H: c_int = 1;
 
 /* This is the structure we store register match data in.
@@ -262,4 +264,4 @@ pub mod regex_emacs_decls {
     pub fn print_compiled_pattern (dest: *mut FILE, bufp: *mut re_pattern_buffer);
   }
 }
-use regex_emacs_decls::*;
+pub use self::regex_emacs_decls::*;

@@ -1,4 +1,6 @@
 // femacs: port of lib/gettime.c @ fd7afced403.
+// [U1-MODULE-UNIT]
+use crate::common::*;
 /* Written by Paul Eggert.  */
 
 /* emacs/lib/gettime.c (@ 51 lines) is on the verified list: `CLOCK_REALTIME` is defined by this
@@ -9,9 +11,9 @@
    where the prototypes of both functions below live (`pub fn gettime (…)` and
    `pub fn current_timespec ()`).  */
 use std::ffi::{c_char, c_double, c_int, c_long, c_short, c_uint, c_ulong, c_void};
-include!("../src/include/config.rs");
-include!("include/gnulib_config.rs");
-include!("include/timespec.rs");
+// [U1] config.rs provided by common
+// [U1] include/gnulib_config.rs imported via common
+// [U1] include/timespec.rs imported via common
 
 /* <time.h>: `CLOCK_REALTIME` is 0 on the frozen target and `clockid_t` is a 32-bit int
    (measured: `printf ("%d %zu", (int) CLOCK_REALTIME, sizeof (clockid_t))` -> `0 4`).  */

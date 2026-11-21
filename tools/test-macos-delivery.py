@@ -373,7 +373,7 @@ def terminal_file_workflow(binary, work):
                 while time.monotonic()<until:pump()
                 steps.append({'id':label,'seconds':round(time.monotonic()-t,6)});return
         raise RuntimeError(label+' timed out; '+str(snapshot(report)))
-    result={'id':'file-workflow','binary':str(binary.relative_to(ROOT))}
+    result={'id':'file-workflow','binary':str(binary.relative_to(ROOT)) if binary.is_relative_to(ROOT) else binary.name}
     try:
         wait_for('startup',lambda:snapshot(report) is not None)
         os.write(master,b'\x18\x06'+str(document).encode()+b'\r')

@@ -44,11 +44,13 @@
 // 489-494 reading of `glyph_string`, and the dead arm's `hb_font_t`, which is `<hb.h>`'s record).
 
 // C 20-21: the include guard has no Rust counterpart (PORTING.md 0.1-4).
+// [U1-MODULE-MIRROR]
+use super::*;
 pub const _SFNTFONT_H_: bool = true;
 
-include!("frame.rs");        // C 24: `#include "frame.h"` (`struct frame`)
-include!("font.rs");         // C 25: `#include "font.h"` (`struct font`)
-include!("sfnt.rs");         // C 26: `#include "sfnt.h"` (`struct sfnt_raster`)
+// [U1] frame.rs imported via super
+// [U1] font.rs imported via super
+// [U1] sfnt.rs imported via super
 
 // C 28: `extern int sfnt_enum_font (const char *);` - the one entry point `src/sfnt.c` defines;
 // its declaration is in `sfntfont_decls` at the end of this file (the module note says why).
@@ -131,4 +133,4 @@ pub mod sfntfont_decls {
     pub fn sfntfont_begin_hb_font (font: *mut font, advance: *mut c_double) -> *mut c_void;
   }
 }
-use sfntfont_decls::*;
+pub use self::sfntfont_decls::*;

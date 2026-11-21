@@ -11,6 +11,8 @@
 // of colliding with it (P-21/P-39).
 
 // macros.h 22: the include guard has no Rust counterpart (PORTING.md 0.1).
+// [U1-MODULE-MIRROR]
+use super::*;
 pub const EMACS_MACROS_H: bool = true;
 
 pub mod macros_externs {
@@ -31,4 +33,4 @@ pub mod macros_externs {
   }
 }
 
-use macros_externs::*;
+pub use self::macros_externs::*;

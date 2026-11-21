@@ -1,6 +1,8 @@
 #![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code,
          unused_imports, unused_macros, unused_variables, unused_mut, unused_unsafe,
          static_mut_refs, unsafe_op_in_unsafe_fn)]
+// [U1-MODULE-UNIT]
+use crate::common::*;
 use std::ffi::{c_char, c_double, c_int, c_long, c_short, c_uint, c_ulong, c_void};
 // femacs: port of lib/close-stream.c @ fd7afced403.  Blind file:
 // `USE_UNLOCKED_IO` expands to `GNULIB_STDIO_SINGLE_THREAD`, which is 1 (macros.tsv 1160),
@@ -11,12 +13,12 @@ use std::ffi::{c_char, c_double, c_int, c_long, c_short, c_uint, c_ulong, c_void
 // `_fclose` only).  The port keeps C's text `ferror (stream)` and calls the libSystem
 // function of that name, which returns the same flag for the same stream (its `_ferror`
 // symbol is linkable: measured with `nm -u` on a probe that spells `(ferror) (stdin)`).
-include!("../src/include/config.rs");
-include!("include/gnulib_config.rs");
-include!("include/errno.rs");       // <errno.h>
-include!("include/stdio.rs");       // <stdio.h>
-include!("include/fpending.rs");    // "fpending.h" (`__fpending`)
-include!("include/close-stream.rs");  // "close-stream.h"
+// [U1] config.rs provided by common
+// [U1] include/gnulib_config.rs imported via common
+// [U1] include/errno.rs imported via common
+// [U1] include/stdio.rs imported via common
+// [U1] include/fpending.rs imported via common
+// [U1] include/close-stream.rs imported via common
 
 /* Close STREAM.  Return 0 if successful, EOF (setting errno)
    otherwise.  A failure might set errno to 0 if the error number

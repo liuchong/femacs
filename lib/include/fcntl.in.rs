@@ -35,8 +35,10 @@
 // glibc-only, C 318-329's `_AIX` arm is AIX-only and C 435-445's `_O_BINARY`/BeOS arms are
 // Windows/BeOS-only - all dead on this target (PORTING.md P-66②).
 
-include!("sys_types.in.rs");   // C 34/62: <sys/types.h> (mode_t, off_t)
-include!("errno.rs");          // C 499's `_GL_OPENAT_ESYMLINK ELOOP` (<errno.h>)
+// [U1-MODULE-MIRROR]
+use super::*;
+// [U1] sys_types.in.rs imported via super
+// [U1] errno.rs imported via super
 
 /* C 55/83-84: the double-inclusion guard, `_@GUARD_PREFIX@_FCNTL_H`, whose frozen
    substitution is `_GL_FCNTL_H` (build/emacs-ref/lib/fcntl.h 55/83).  The template's own
@@ -370,7 +372,7 @@ pub mod fcntl_decls {
     pub fn creat (filename: *const c_char, mode: mode_t) -> c_int;
   }
 }
-use fcntl_decls::*;
+pub use self::fcntl_decls::*;
 
 /* lib/fcntl.c's `fcntl` stack of `#ifdef F_*` cases (C 262-415) keeps whichever of these the
    frozen target's <fcntl.h> defines; measured, not guessed:

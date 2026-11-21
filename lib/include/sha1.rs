@@ -12,10 +12,12 @@
 // shadow them (PORTING.md 0.1-10, the lisp.rs `other_units` shape) instead of
 // colliding with them (E0428).
 
-include!("../src/include/config.rs");
-include!("gnulib_config.rs");
-include!("stdint.in.rs");
-include!("stdio.rs");
+// [U1-MODULE-MIRROR]
+use super::*;
+// config.rs via common root
+// [U1] gnulib_config.rs imported via super
+// [U1] stdint.in.rs imported via super
+// [U1] stdio.rs imported via super
 
 /* C 19-20: `#ifndef SHA1_H` / `#define SHA1_H 1` - the include guard has no Rust
    counterpart (PORTING.md 0.1).  */
@@ -79,4 +81,4 @@ pub mod sha1_decls {
     pub fn sha1_stream (stream: *mut FILE, resblock: *mut c_void) -> c_int;
   }
 }
-use sha1_decls::*;
+pub use self::sha1_decls::*;

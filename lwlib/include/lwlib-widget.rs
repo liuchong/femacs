@@ -18,6 +18,8 @@
 // carries (the disptab.h precedent, docs/ports/include-lwlib-widget.md).
 
 // lwlib-widget.h 23-24: the include guard has no Rust counterpart (PORTING.md 0.1).
+// [U1-MODULE-MIRROR]
+use super::*;
 pub const LWLIB_WIDGET_H: bool = true;
 
 /// lwlib-widget.h 28-34: `typedef enum { NO_CHANGE = 0, INVISIBLE_CHANGE = 1,

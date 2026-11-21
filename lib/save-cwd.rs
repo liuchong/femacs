@@ -1,4 +1,6 @@
 // femacs: port of lib/save-cwd.c @ fd7afced403.
+// [U1-MODULE-UNIT]
+use crate::common::*;
 /* Gnulib needs to save and restore the current working directory to
    fully emulate functions like fstatat.  But Emacs doesn't care what
    the current working directory is; it always uses absolute file
@@ -12,12 +14,12 @@
    "save-cwd.h" is the new save-cwd mirror, C 30's <fcntl.h> the fcntl mirror (`open`,
    `O_SEARCH`, `O_CLOEXEC`) and C 31's <unistd.h> the unistd mirror (`fchdir`, `close`).  */
 use std::ffi::{c_char, c_int, c_long, c_uint, c_void};
-include!("../src/include/config.rs");
-include!("include/gnulib_config.rs");
-include!("include/sys_types.in.rs");  // <sys/types.h> (the mirror's types)
-include!("include/save-cwd.rs");
-include!("include/fcntl.in.rs");
-include!("include/unistd.in.rs");
+// [U1] config.rs provided by common
+// [U1] include/gnulib_config.rs imported via common
+// [U1] include/sys_types.in.rs imported via common
+// [U1] include/save-cwd.rs imported via common
+// [U1] include/fcntl.in.rs imported via common
+// [U1] include/unistd.in.rs imported via common
 
 /* C 46-48's `#if !defined HAVE_FCHDIR && !defined fchdir` arm, kept as text (P-51; dead:
    HAVE_FCHDIR is 1).  */

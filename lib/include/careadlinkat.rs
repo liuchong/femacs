@@ -4,8 +4,10 @@
 // `AT_FDCWD` fallback; the definition is `lib/careadlinkat.rs`, so the prototype sits
 // in a whole-import module the definition shadows (PORTING.md 0.1-10).
 
-include!("sys_types.in.rs");   // <sys/types.h> (ssize_t)
-include!("fcntl.in.rs");       // <fcntl.h> (AT_FDCWD)
+// [U1-MODULE-MIRROR]
+use super::*;
+// [U1] sys_types.in.rs imported via super
+// [U1] fcntl.in.rs imported via super
 
 // The include guard has no Rust counterpart (PORTING.md 0.1).
 pub const _GL_CAREADLINKAT_H: bool = true;
@@ -25,9 +27,9 @@ pub mod careadlinkat_decls {
       -> *mut c_char;
   }
 }
-use careadlinkat_decls::*;
+pub use self::careadlinkat_decls::*;
 
-include!("allocator.rs");      // struct allocator (the prototype's fifth parameter)
+// [U1] allocator.rs imported via super
 
 /* C 72-80's `#if HAVE_READLINKAT … #else … #endif`: live here (HAVE_READLINKAT is 1, so
    AT_FDCWD comes from <fcntl.h>), and the dead arm's value is kept as the constant C would

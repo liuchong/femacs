@@ -57,25 +57,27 @@
          unused_imports, unused_macros, unused_variables, unused_unsafe, static_mut_refs,
          unsafe_op_in_unsafe_fn, unused_assignments, unused_parens, unused_mut,
          unreachable_code)]
+// [U1-MODULE-UNIT]
+use crate::common::*;
 
-include!("include/config.rs");                 // C 22: `#include <config.h>`
-include!("../lib/include/stdio.rs");           // C 24: `#include <stdio.h>`
-include!("../lib/include/stdlib.rs");          // C 25: `#include <stdlib.h>`
-include!("../lib/include/string.rs");          // lisp.h 30: `<string.h>` (memchr, memcpy)
-include!("../lib/include/stdint.in.rs");       // lisp.h 25: `<stdint.h>` (PTRDIFF_MIN/MAX)
-include!("../lib/include/limits.in.rs");       // lisp.h 26: `<limits.h>` (UINT_MAX)
-include!("include/lisp.rs");                   // C 27: `#include "lisp.h"`
-include!("include/character.rs");              // C 28: `#include "character.h"`
-include!("include/itree.rs");                  // buffer.h 27: `#include "itree.h"`
-include!("include/buffer.rs");                 // C 29: `#include "buffer.h"`
-include!("include/syntax.rs");                 // C 30: `#include "syntax.h"`
-include!("include/charset.rs");                // C 31: `#include "charset.h"`
-include!("include/region-cache.rs");           // C 32: `#include "region-cache.h"`
-include!("include/blockinput.rs");             // C 33: `#include "blockinput.h"`
-include!("include/intervals.rs");              // C 33: `#include "intervals.h"`
-include!("include/pdumper.rs");                // C 34: `#include "pdumper.h"`
-include!("include/composite.rs");              // C 35: `#include "composite.h"`
-include!("include/regex-emacs.rs");            // C 37: `#include "regex-emacs.h"`
+const _: () = ();
+// [U1] ../lib/include/stdio.rs imported via common
+// [U1] ../lib/include/stdlib.rs imported via common
+// [U1] ../lib/include/string.rs imported via common
+// [U1] ../lib/include/stdint.in.rs imported via common
+// [U1] ../lib/include/limits.in.rs imported via common
+// [U1] include/lisp.rs imported via common
+// [U1] include/character.rs imported via common
+// [U1] include/itree.rs imported via common
+// [U1] include/buffer.rs imported via common
+// [U1] include/syntax.rs imported via common
+// [U1] include/charset.rs imported via common
+// [U1] include/region-cache.rs imported via common
+// [U1] include/blockinput.rs imported via common
+// [U1] include/intervals.rs imported via common
+// [U1] include/pdumper.rs imported via common
+// [U1] include/composite.rs imported via common
+// [U1] include/regex-emacs.rs imported via common
 
 /* `<intprops.h>` has no mirror (PORTING.md P-26): C's `TYPE_MAXIMUM (t)` is the type's own
    largest value, the syntax.rs/dtotimespec.rs shape.  */

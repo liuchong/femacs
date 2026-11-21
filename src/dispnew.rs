@@ -27,53 +27,55 @@
          unused_unsafe, static_mut_refs, unsafe_op_in_unsafe_fn, unused_parens,
          clashing_extern_declarations, unused_labels, unreachable_code, unused_comparisons,
          unnecessary_cast, unused_must_use, overflowing_literals)]
+// [U1-MODULE-UNIT]
+use crate::common::*;
 
 /* C 21-62: the `#include`s, each with C's own header named.  `xwidget.h` (C 43) has no
    mirror; the one name this unit takes from it (`xwidget_end_redisplay`, xwidget.h 26) is
    declared at its use site (PORTING.md P-72 rule 3).  `TERM_HEADER` (C 53) is the platform
    terminal header and is only reached under `HAVE_WINDOW_SYSTEM`; `w32.h` (C 61) and
    `android.h` (C 49) belong to their own gated arms.  */
-include!("include/config.rs");                 // C 21: `#include <config.h>`
-include!("../lib/include/stdio.rs");           // C 23: `#include "sysstdio.h"`
-include!("../lib/include/stdlib.rs");          // C 24: `#include <stdlib.h>`
-include!("../lib/include/unistd.in.rs");       // C 25: `#include <unistd.h>`
-include!("../lib/include/string.rs");          // lisp.h 30: `#include <string.h>`
-include!("../lib/include/stdcountof.rs");      // lisp.h 28: `#include <stdcountof.h>`
-include!("../lib/include/limits.in.rs");       // lisp.h's <limits.h> (`INT_MAX`)
-include!("../lib/include/errno.rs");           // C 56: `#include <errno.h>`
-include!("../lib/include/fpending.rs");        // C 58: `#include <fpending.h>`
-include!("../lib/include/signal.rs");          // syssignal.h: `sigaction`, `SIGWINCH`
-include!("include/lisp.rs");                   // C 27: `#include "lisp.h"`
-include!("include/character.rs");              // dispextern.h 25: `#include "character.h"`
-include!("include/itree.rs");                  // buffer.h 27: `#include "itree.h"`
-include!("include/buffer.rs");                 // C 32: `#include "buffer.h"`
-include!("include/systime.rs");                // termhooks.h: `Time`
-include!("include/coding.rs");                 // buffer.h 26: `#include "coding.h"`
-include!("include/composite.rs");              // coding.h 284: `#include "composite.h"`
-include!("include/dispextern.rs");             // C 30: `#include "dispextern.h"`
-include!("include/font.rs");                   // dispextern.h's font names
-include!("include/termhooks.rs");              // C 35: `#include "termhooks.h"`
-include!("include/cm.rs");                     // C 31: `#include "cm.h"`
-include!("include/window.rs");                 // C 36: `#include "window.h"`
-include!("include/frame.rs");                  // C 34: `#include "frame.h"`
+// [U1] config.rs provided by common
+// [U1] ../lib/include/stdio.rs imported via common
+// [U1] ../lib/include/stdlib.rs imported via common
+// [U1] ../lib/include/unistd.in.rs imported via common
+// [U1] ../lib/include/string.rs imported via common
+// [U1] ../lib/include/stdcountof.rs imported via common
+// [U1] ../lib/include/limits.in.rs imported via common
+// [U1] ../lib/include/errno.rs imported via common
+// [U1] ../lib/include/fpending.rs imported via common
+// [U1] ../lib/include/signal.rs imported via common
+// [U1] include/lisp.rs imported via common
+// [U1] include/character.rs imported via common
+// [U1] include/itree.rs imported via common
+// [U1] include/buffer.rs imported via common
+// [U1] include/systime.rs imported via common
+// [U1] include/coding.rs imported via common
+// [U1] include/composite.rs imported via common
+// [U1] include/dispextern.rs imported via common
+// [U1] include/font.rs imported via common
+// [U1] include/termhooks.rs imported via common
+// [U1] include/cm.rs imported via common
+// [U1] include/window.rs imported via common
+// [U1] include/frame.rs imported via common
 /* C's `IMAGE_OPT_FROM_ID` is an `INLINE` function in frame.h (1664-1685, the window-system
    arm), so the header's mirror owns the body and this unit reads it from there: it used to
    declare an external one, which left the Android library importing a symbol nothing
    defined (status 4.751).  */
 #[cfg (feature = "have_window_system")]
 use crate::frame_image_accessors::IMAGE_OPT_FROM_ID;
-include!("include/keyboard.rs");               // C 33: `#include "keyboard.h"`
-include!("include/commands.rs");               // C 37: `#include "commands.h"`
-include!("include/disptab.rs");                // C 38: `#include "disptab.h"`
-include!("include/termchar.rs");               // C 28: `#include "termchar.h"`
-include!("include/blockinput.rs");             // C 39: `#include "blockinput.h"`
-include!("include/syssignal.rs");              // C 40: `#include "syssignal.h"`
-include!("include/tparam.rs");                 // C 42: `#include "tparam.h"`
-include!("include/pdumper.rs");                // C 44: `#include "pdumper.h"`
+// [U1] include/keyboard.rs imported via common
+// [U1] include/commands.rs imported via common
+// [U1] include/disptab.rs imported via common
+// [U1] include/termchar.rs imported via common
+// [U1] include/blockinput.rs imported via common
+// [U1] include/syssignal.rs imported via common
+// [U1] include/tparam.rs imported via common
+// [U1] include/pdumper.rs imported via common
 /* C 49: `#include "android.h"` (inside C 48's `#ifdef HAVE_ANDROID`).  The mirror glob-imports
    its object module, so this edge is what supplies `android_init_gui` (measured).  */
 #[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
-include!("include/android.rs");                // C 49: `#include "android.h"`
+const _: () = ();
 /* C 53: `#include TERM_HEADER`, inside C 52's `#ifdef HAVE_WINDOW_SYSTEM`.  The frozen
    configuration leaves `TERM_HEADER` undefined (C's own `config.h` 2361 `/* #undef TERM_HEADER */`,
    no window system), which is why the port's units carried no edge for it - and the five
@@ -82,7 +84,7 @@ include!("include/android.rs");                // C 49: `#include "android.h"`
    `cannot find macro FRAME_DISPLAY_INFO in this scope` on `aarch64-linux-android` (measured; the
    `fontset.rs` block is the same five-way gate, C 39 there).  */
 #[cfg (all (feature = "have_window_system", feature = "have_android"))]
-include!("include/androidterm.rs");            // C 53 (TERM_HEADER): `androidterm.h`
+const _: () = ();
 
 /// `<inttypes.h>` has no mirror (P-26/P-50, the print.rs/doprnt.rs/pdumper.rs shape): the
 /// frozen target's `PRIuMAX` is `"ju"` (measured with clang; `intmax_t` is `long long`).
@@ -122,12 +124,8 @@ static mut delayed_size_change: bool = false;
    crate-root item of the same name would be `E0428` (the `frame_pointer_fns` device,
    `docs/ports/frame.md`).  */
 
-pub mod space_glyph_def {
-  use super::*;
 
-  #[unsafe(no_mangle)] pub static mut space_glyph: glyph = unsafe { std::mem::zeroed () };
-}
-use space_glyph_def::*;
+#[unsafe(no_mangle)] pub static mut space_glyph: glyph = unsafe { std::mem::zeroed () };
 
 /* C 129-137: `#if defined GLYPH_DEBUG && defined ENABLE_CHECKING` — the counts of allocated
    structures, used to diagnose memory leaks and double frees.  `GLYPH_DEBUG` and
@@ -7648,10 +7646,8 @@ DEFUN! ("ding", Fding, Sding, 0, 1, 0,
 /* `dispextern.rs` declares `bitch_at_user` at its crate root (dispextern.h 3900), so the
    definition lives in a glob-imported module: a second crate-root item of the same name
    would be `E0428` (the `space_glyph_def` device).  */
-pub mod bitch_at_user_def {
-  use super::*;
 
-  #[unsafe(no_mangle)] pub unsafe extern "C" fn bitch_at_user ()
+#[unsafe(no_mangle)] pub unsafe extern "C" fn bitch_at_user ()
   {
     if noninteractive
       { putchar (7); }
@@ -7664,8 +7660,6 @@ pub mod bitch_at_user_def {
     else
       { ring_bell (XFRAME (selected_frame)); }
   }
-}
-use bitch_at_user_def::*;
 
 DEFUN! ("sleep-for", Fsleep_for, Ssleep_for, 1, 2, 0,
         doc: "Pause, without updating display, for SECONDS seconds.\nSECONDS may be a floating-point value, meaning that you can wait for a\nfraction of a second.\nAn optional second arg MILLISECONDS can be provided but is deprecated:\nit specifies an additional wait period, in milliseconds.",

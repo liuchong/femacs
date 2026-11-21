@@ -1,6 +1,8 @@
 #![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code,
          unused_imports, unused_macros, unused_variables, unused_mut, unused_unsafe,
          static_mut_refs, unsafe_op_in_unsafe_fn)]
+// [U1-MODULE-UNIT]
+use crate::common::*;
 use std::ffi::{c_char, c_double, c_int, c_long, c_uint, c_ulong, c_void};
 // femacs: port of lib/free.c @ fd7afced403.  Blind file.  C 28's
 // `#if !HAVE_FREE_POSIX` is live (the frozen configuration leaves HAVE_FREE_POSIX undefined,
@@ -8,10 +10,10 @@ use std::ffi::{c_char, c_double, c_int, c_long, c_uint, c_ulong, c_void};
 // `__GNUC__` is defined but so is `__clang__`, so C 31-47's LTO workaround is dead.  The
 // reference object confirms the symbol: `nm -g build/emacs-ref/lib/free.o` prints
 // `T _rpl_free`.
-include!("../src/include/config.rs");
-include!("include/gnulib_config.rs");
-include!("include/errno.rs");      // <errno.h>
-include!("include/stdlib.rs");     // <stdlib.h> (the system `free`)
+// [U1] config.rs provided by common
+// [U1] include/gnulib_config.rs imported via common
+// [U1] include/errno.rs imported via common
+// [U1] include/stdlib.rs imported via common
 
 /* A function definition is only needed if HAVE_FREE_POSIX is not defined.  */
 

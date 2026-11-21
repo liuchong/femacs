@@ -9,6 +9,8 @@
 //
 // C 106-108's two deprecated aliases are macros over the function-like ones.
 
+// [U1-MODULE-MIRROR]
+use super::*;
 /// C 55-91's `# define _IS_DRIVE_LETTER(C) (((C) >= 'A' && (C) <= 'Z') || …)` (the
 /// Windows arm's helper; nothing on the frozen target calls it).
 macro_rules! _IS_DRIVE_LETTER {

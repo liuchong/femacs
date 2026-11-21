@@ -1,9 +1,11 @@
 // femacs: port of lib/futimens.c @ fd7afced403.
+// [U1-MODULE-UNIT]
+use crate::common::*;
 /* written by Eric Blake */
 
 use std::ffi::{c_char, c_double, c_int, c_long, c_void};
-include!("../src/include/config.rs"); include!("include/gnulib_config.rs");
-include!("../lib/include/timespec.rs");
+// [U1] config.rs provided by common
+// [U1] ../lib/include/timespec.rs imported via common
 
 /* utimens.h declares fdutimens; its own mirror lands with lib/utimens.rs.  */
 unsafe extern "C" { pub fn fdutimens (fd: c_int, file: *const c_char, times: *const timespec) -> c_int; }

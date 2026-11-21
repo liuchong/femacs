@@ -46,23 +46,25 @@
          unused_imports, unused_macros, unused_variables, unused_mut, unused_unsafe,
          static_mut_refs, unsafe_op_in_unsafe_fn, unreachable_code, unused_assignments,
          unused_parens, unused_comparisons, while_true, overflowing_literals)]
+// [U1-MODULE-UNIT]
+use crate::common::*;
 use std::ffi::{c_char, c_double, c_int, c_long, c_short, c_uchar, c_uint, c_ulong, c_ushort,
                c_void};
-include!("../src/include/config.rs");       /* C 20: `#include <config.h>`.  */
-include!("include/gnulib_config.rs");
-include!("include/errno.rs");               /* `ENOTSUP` and the arms' errnos.  */
-include!("include/limits.in.rs");           /* `INT_MAX`, `UCHAR_MAX`, `SSIZE_MAX`.  */
-include!("include/stdint.in.rs");           /* `uint32_t`, `int64_t`, `SIZE_MAX`.  */
-include!("include/sys_types.in.rs");        /* `ssize_t`, `mode_t`, `size_t`.  */
-include!("include/sys_stat.in.rs");         /* C 31: `<sys/stat.h>` (`stat`, `S_ISDIR!`).  */
-include!("include/dirent.rs");              /* C 30: `<dirent.h>` (`IFTODT!`, `_GL_DT_NOTDIR`).  */
-include!("include/acl.rs");                 /* C 28: `#include "acl.h"`.  */
-include!("include/acl-internal.rs");        /* C 33: `#include "acl-internal.h"`.  */
+// [U1] config.rs provided by common
+// [U1] include/gnulib_config.rs imported via common
+// [U1] include/errno.rs imported via common
+// [U1] include/limits.in.rs imported via common
+// [U1] include/stdint.in.rs imported via common
+// [U1] include/sys_types.in.rs imported via common
+// [U1] include/sys_stat.in.rs imported via common
+// [U1] include/dirent.rs imported via common
+// [U1] include/acl.rs imported via common
+// [U1] include/acl-internal.rs imported via common
 /* C 34's `"attribute.h"` and C 35's `"minmax.h"` supply `MAYBE_UNUSED` and `MIN`, which only
    the dead arms read: the port keeps the parameters and gates the `MIN` user's include on its
    own arm (the `_GL_ATTRIBUTE_MAYBE_UNUSED` row is in `macro-body-notes.tsv`).  */
 #[cfg (feature = "use_acl_getacl")]
-include!("include/minmax.rs");              /* C 35: `"minmax.h"`, read at C 635 and C 708.  */
+const _: () = ();
 
 /// PORTING.md 2.5: C's `static_assert` is `const _: () = core::assert! (cond);`.
 macro_rules! static_assert {
@@ -113,13 +115,13 @@ pub const USE_ACL: c_int = 1;
 /* C 52-53: `#include <stdckdint.h>` and `#include <string.h>`; the two template mirrors own
    `ckd_add`, `strnul!` and `memeq`, the names C 202/148/263 read.  */
 #[cfg (feature = "use_linux_xattr")]
-include!("include/stdckdint.in.rs");
+const _: () = ();
 #[cfg (feature = "use_linux_xattr")]
-include!("include/string.in.rs");
+const _: () = ();
 #[cfg (feature = "use_linux_xattr")]
-include!("include/errno.in.rs");              /* errno.in.h 126's `ENODATA`.  */
+const _: () = ();
 #[cfg (any (feature = "use_linux_xattr", feature = "use_acl"))]
-include!("include/dirent.in.rs");             /* `DT_DIR`, `DT_UNKNOWN` (C 483/571/591).  */
+const _: () = ();
 #[cfg (all (feature = "use_linux_xattr", feature = "have_smack"))]
 // C 74: `#include <sys/smack.h>`
 /* C 54-56: `#include <arpa/inet.h>`, `#include <sys/xattr.h>` and `#include <linux/xattr.h>`
@@ -543,11 +545,11 @@ unsafe fn acl_nfs4_nontrivial (mut xattr: *mut uint32_t, mut nbytes: c_long) -> 
 #[cfg (all (feature = "use_acl_have_acl_get_file", not (feature = "use_linux_xattr"),
             not (feature = "have_acl_extended_file"), not (feature = "have_acl_type_extended"),
             feature = "have_acl_get_fd", not (feature = "have_acl_get_link_np")))]
-include!("include/fcntl.in.rs");
+const _: () = ();
 #[cfg (all (feature = "use_acl_have_acl_get_file", not (feature = "use_linux_xattr"),
             not (feature = "have_acl_extended_file"), not (feature = "have_acl_type_extended"),
             feature = "have_acl_get_fd", not (feature = "have_acl_get_link_np")))]
-include!("include/unistd.in.rs");
+const _: () = ();
 
 /* C 390-391: `#  ifdef O_PATH` / `#   define acl_get_fd_np(fd, type) acl_get_fd (fd)`.  The
    header that defines `O_PATH` is Linux's/Cygwin's; UNVERIFIED here (0x200000 is Linux's).

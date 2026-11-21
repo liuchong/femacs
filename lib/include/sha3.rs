@@ -9,11 +9,13 @@
 // The declarations live in the glob-imported `decls` module so sha3.rs's own `fn`s
 // shadow them (PORTING.md 0.1-10).
 
-include!("../src/include/config.rs");
-include!("gnulib_config.rs");
-include!("stdint.in.rs");
-include!("stdio.rs");
-include!("u64.rs");
+// [U1-MODULE-MIRROR]
+use super::*;
+// config.rs via common root
+// [U1] gnulib_config.rs imported via super
+// [U1] stdint.in.rs imported via super
+// [U1] stdio.rs imported via super
+// [U1] u64.rs imported via super
 
 /* C 20-21: `#ifndef SHA3_H` / `# define SHA3_H 1`.  */
 pub const SHA3_H: c_int = 1;
@@ -87,4 +89,4 @@ pub mod sha3_decls {
     pub fn sha3_512_stream (stream: *mut FILE, resblock: *mut c_void) -> c_int;
   }
 }
-use sha3_decls::*;
+pub use self::sha3_decls::*;

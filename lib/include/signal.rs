@@ -4,6 +4,8 @@
 // The signals this target does not define (SIGPWR, SIGSTKFLT and the other platform-specific
 // ones sigdescr_np.c guards with `#if defined`) are absent on purpose: docs/ports/sigdescr_np.md
 // records them.
+// [U1-MODULE-MIRROR]
+use super::*;
 pub const SIGABRT: c_int = 6;
 pub const SIGALRM: c_int = 14;
 #[cfg (not (feature = "have_android"))]
@@ -348,4 +350,4 @@ pub mod signal_decls {
                  -> Option<unsafe extern "C" fn (c_int)>;
   }
 }
-use signal_decls::*;
+pub use self::signal_decls::*;

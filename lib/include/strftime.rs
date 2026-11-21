@@ -6,7 +6,9 @@
 // `nstrftime` below.  `nstrftime`/`c_nstrftime` are defined by lib/nstrftime.c, which is a
 // separate unit (it `#include`s strftime.c with `my_strftime` renamed).
 
-include!("time.in.rs");
+// [U1-MODULE-MIRROR]
+use super::*;
+// [U1] time.in.rs imported via super
 
 unsafe extern "C" {
   /* ptrdiff_t nstrftime (char *restrict, size_t, char const *restrict,

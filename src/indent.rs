@@ -49,26 +49,28 @@
          unsafe_op_in_unsafe_fn, unused_assignments, unreachable_code, while_true,
          unused_parens, unused_mut, unused_labels, unused_comparisons,
          overflowing_literals)]
+// [U1-MODULE-UNIT]
+use crate::common::*;
 
-include!("include/config.rs");                 // C 20: `#include <config.h>`
-include!("include/lisp.rs");                   // C 22: `#include "lisp.h"`
-include!("include/character.rs");              // C 23: `#include "character.h"`
-include!("include/itree.rs");                  // buffer.h 28: `#include "itree.h"`
-include!("include/buffer.rs");                 // C 24: `#include "buffer.h"`
-include!("include/category.rs");               // C 25: `#include "category.h"`
-include!("include/dispextern.rs");             // window.h 23: `#include "dispextern.h"`
-include!("include/composite.rs");              // C 26: `#include "composite.h"`
-include!("include/indent.rs");                 // C 27: `#include "indent.h"`
-include!("include/coding.rs");                 // termhooks.h 26: `#include "coding.h"`
-include!("include/systime.rs");                // termhooks.h 28: `#include "systime.h"`
-include!("include/termhooks.rs");              // frame.h 22: `#include "termhooks.h"`
-include!("include/window.rs");                 // C 29: `#include "window.h"`
-include!("include/frame.rs");                  // C 28: `#include "frame.h"`
-include!("include/disptab.rs");                // C 30: `#include "disptab.h"`
-include!("include/intervals.rs");              // C 31: `#include "intervals.h"`
-include!("include/region-cache.rs");           // C 33: `#include "region-cache.h"`
-include!("../lib/include/limits.in.rs");       // lisp.h's <limits.h>: SHRT_WIDTH's header
-include!("../lib/include/string.rs");          // lisp.h 30's <string.h>: memset, memchr
+const _: () = ();
+// [U1] include/lisp.rs imported via common
+// [U1] include/character.rs imported via common
+// [U1] include/itree.rs imported via common
+// [U1] include/buffer.rs imported via common
+// [U1] include/category.rs imported via common
+// [U1] include/dispextern.rs imported via common
+// [U1] include/composite.rs imported via common
+// [U1] include/indent.rs imported via common
+// [U1] include/coding.rs imported via common
+// [U1] include/systime.rs imported via common
+// [U1] include/termhooks.rs imported via common
+// [U1] include/window.rs imported via common
+// [U1] include/frame.rs imported via common
+// [U1] include/disptab.rs imported via common
+// [U1] include/intervals.rs imported via common
+// [U1] include/region-cache.rs imported via common
+// [U1] ../lib/include/limits.in.rs imported via common
+// [U1] ../lib/include/string.rs imported via common
 
 /* C 33's `"region-cache.h"` is the mirror's now (`include/region-cache.rs`, status 3.74): its
    four prototypes come from there with C's own text, `struct region_cache *` spelled `*mut

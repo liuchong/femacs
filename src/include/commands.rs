@@ -6,6 +6,8 @@
 // `lisp.rs` first, in C's order.
 
 // commands.h 20: the include guard has no Rust counterpart (PORTING.md 0.1).
+// [U1-MODULE-MIRROR]
+use super::*;
 pub const EMACS_COMMANDS_H: bool = true;
 
 // C: `#define Ctl(c) ((c)&037)`.  Rust has no octal literal, so the constant is `0o37`

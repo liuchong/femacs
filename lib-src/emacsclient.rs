@@ -58,6 +58,13 @@
 #![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code,
          unused_imports, unused_macros, unused_variables, unused_mut, unused_unsafe,
          static_mut_refs, unsafe_op_in_unsafe_fn)]
+#![no_main]
+// [U1-MODULE-UNIT]
+use femacs_sys::common::*;
+macro_rules! min { ($a:expr, $b:expr) => { if ($a) < ($b) { $a } else { $b } }; }
+macro_rules! max { ($a:expr, $b:expr) => { if ($a) > ($b) { $a } else { $b } }; }
+macro_rules! ISSLASH { ($c:expr) => { (($c) == '/' as c_char) }; }
+macro_rules! IS_ABSOLUTE_FILE_NAME { ($f:expr) => { ISSLASH! (*($f).offset (0)) }; }
 
 use std::ffi::{c_char, c_double, c_int, c_long, c_short, c_uchar, c_uint, c_ulong,
               c_ushort, c_void};
@@ -85,26 +92,26 @@ pub type sig_atomic_t = c_int;
 /// this program does not include.
 pub type signal_handler_t = Option<unsafe extern "C" fn (c_int)>;
 
-include!("../src/include/config.rs");        // C 22: `#include <config.h>`
-include!("../lib/include/stdio.rs");         // C's `<stdio.h>` (via `<config.h>`'s conf_post.h)
-include!("../src/include/syswait.rs");       // C 49: `#include "syswait.h"`
-include!("../lib/include/fcntl.in.rs");      // C 52: `#include <fcntl.h>`
-include!("../lib/include/sys_select.rs");    // C 54: `#include <sys/select.h>`
-include!("../lib/include/timespec.rs");      // C 57: `#include <timespec.h>`
-include!("../lib/include/errno.rs");         // C 73: `#include <errno.h>`
-include!("../lib/include/getopt.in.rs");     // C 74: `#include <getopt.h>`
-include!("../lib/include/pwd.rs");           // C 76: `#include <pwd.h>`
-include!("../lib/include/signal.rs");        // C 77: `#include <signal.h>`
-include!("../lib/include/stdlib.rs");        // C 82: `#include <stdlib.h>`
-include!("../lib/include/string.rs");        // C 84: `#include <string.h>`
-include!("../lib/include/sys_stat.in.rs");   // C 85: `#include <sys/stat.h>`
-include!("../lib/include/unistd.in.rs");     // C 86: `#include <unistd.h>`
-include!("../lib/include/attribute.rs");     // C 88: `#include <attribute.h>`
-include!("../lib/include/c-ctype.rs");       // C 89: `#include <c-ctype.h>`
-include!("../lib/include/filename.rs");      // C 90: `#include <filename.h>`
-include!("../lib/include/min-max.rs");       // C 92: `#include <min-max.h>`
-include!("../lib/include/stdint.in.rs");     // C 80/83's `<stddef.h>`/`<stdint.h>` (PATH_MAX too)
-include!("../lib/include/acl.rs");           // C 1357: `# include <acl.h>`
+// [U1] config.rs provided by common
+// [U1] ../lib/include/stdio.rs imported via common
+// [U1] ../src/include/syswait.rs imported via common
+// [U1] ../lib/include/fcntl.in.rs imported via common
+// [U1] ../lib/include/sys_select.rs imported via common
+// [U1] ../lib/include/timespec.rs imported via common
+// [U1] ../lib/include/errno.rs imported via common
+// [U1] ../lib/include/getopt.in.rs imported via common
+// [U1] ../lib/include/pwd.rs imported via common
+// [U1] ../lib/include/signal.rs imported via common
+// [U1] ../lib/include/stdlib.rs imported via common
+// [U1] ../lib/include/string.rs imported via common
+// [U1] ../lib/include/sys_stat.in.rs imported via common
+// [U1] ../lib/include/unistd.in.rs imported via common
+// [U1] ../lib/include/attribute.rs imported via common
+// [U1] ../lib/include/c-ctype.rs imported via common
+// [U1] ../lib/include/filename.rs imported via common
+// [U1] ../lib/include/min-max.rs imported via common
+// [U1] ../lib/include/stdint.in.rs imported via common
+// [U1] ../lib/include/acl.rs imported via common
 
 /* C 95-97's `#if GNUC_PREREQ (7, 0, 0)` / `# pragma GCC diagnostic ignored
    "-Wformat-truncation=2"` / `#endif` is a preprocessor-only arm (this target's compiler

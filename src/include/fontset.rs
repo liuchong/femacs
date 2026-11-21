@@ -34,6 +34,8 @@
 // copies until that unit includes this mirror; docs/ports/include-fontset.md records them for
 // the integrator (the `struct font` use-site-copy precedent, status 3.158).
 
+// [U1-MODULE-MIRROR]
+use super::*;
 /* fontset.h 26-27: the include guard has no Rust counterpart (PORTING.md 0.1-4).  The
    extractor's item list for this header names it, so the mirror spells it the way
    `include/w32select.rs` spells its own guard.  */
@@ -79,4 +81,4 @@ pub mod fontset_decls {
     pub fn face_for_font (arg0: *mut c_void, arg1: Lisp_Object, arg2: *mut c_void) -> c_int;
   }
 }
-use fontset_decls::*;
+pub use self::fontset_decls::*;

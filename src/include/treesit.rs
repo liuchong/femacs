@@ -1,9 +1,11 @@
 // Header mirror: src/treesit.h at fd7afced4036fc1a221567d70705d20a2bd64713.
 // P430 restores the gated shared layouts; platform acceptance remains pending.
+// [U1-MODULE-MIRROR]
+use super::*;
 pub const EMACS_TREESIT_H: bool = true;
 
 #[cfg(feature = "have_tree_sitter")]
-include!("tree_sitter_api.rs");
+const _: () = ();
 
 // The six initial Lisp fields are scanned by the pseudovector collector.
 // Native handles/input payloads are owned by this exact parser; nodes retain it.

@@ -61,11 +61,13 @@
          unused_imports, unused_macros, unused_variables, unused_unsafe, static_mut_refs,
          unsafe_op_in_unsafe_fn, unused_assignments, unused_parens, unused_mut,
          unreachable_code, unused_labels, unused_comparisons, unused_must_use)]
+// [U1-MODULE-UNIT]
+use crate::common::*;
 
 /* C 1-23: the reference's opening block.  The port does not carry it (PORTING.md 0.1-19); the
    ledger's `## C line ranges` records what became of it.  */
 
-include!("include/config.rs");                 // C 25: `#include <config.h>`
+// [U1] config.rs provided by common
 
 // The recorded Windows loader block below is historical text, not an active
 // loader. A future enabled Windows target must connect it before advertising
@@ -82,12 +84,12 @@ compile_error!("SQLite delayed loading is not connected for this target");
 // (its one strcase-family call is plain `strcasecmp`, C 762); the mirror is carried because C
 // includes the header.
 #[cfg (feature = "have_sqlite3")]
-include!("../lib/include/c-strcase.rs");
-include!("include/lisp.rs");                    // C 28: `#include "lisp.h"`
+const _: () = ();
+// [U1] include/lisp.rs imported via common
 // C 29: `#include "coding.h"` - only the body names it (`encode_string_utf_8` C 244,
 // `code_convert_string_norecord` C 454, `ENCODE_FILE` C 308/776).
 #[cfg (feature = "have_sqlite3")]
-include!("include/coding.rs");
+const _: () = ();
 
 /* The metavariable the three features above are named after is
    `SQLITE_VERSION_NUMBER >= 3007015`; `>= 3006005` is the second one.  C's text tests them
@@ -97,7 +99,7 @@ include!("include/coding.rs");
    the mirror (the `src/sound.rs` 116 / `src/alloc.rs` 59 reading): the body calls `strlen`,
    `strncmp` and `strcmp` (C 751-763).  */
 #[cfg (feature = "have_sqlite3")]
-include!("../lib/include/string.rs");
+const _: () = ();
 
 /* C 31: `#ifdef HAVE_SQLITE3` - the file gate.  C 32 through C 856 sit inside it, and every
    `include!` and item below this line carries it.  */
@@ -290,9 +292,9 @@ unsafe extern "C" {
 // `docs/ports/include-w32common.md` and `docs/ports/include-w32.md` (the `nt/inc/include/` rule:
 // a platform SDK header has no owner mirror).
 #[cfg (all (feature = "have_sqlite3", feature = "windowsnt"))]
-include!("include/w32common.rs");              // C 49: `# include "w32common.h"`
+const _: () = ();
 #[cfg (all (feature = "have_sqlite3", feature = "windowsnt"))]
-include!("include/w32.rs");                    // C 50: `# include "w32.h"` (`w32_delayed_load`, C 206)
+const _: () = ();
 
 /* C 52-99: the `DEF_DLL_FN` block (C 52-89), with C 91-99's `# if HAVE_LOAD_EXTENSION` arm.  **Carried as C's text, not as Rust**: `include/w32common.rs`
    173-183 records that `DEF_DLL_FN`, `LOAD_DLL_FN` and `LOAD_DLL_FN_OPT` are **deferred** - C

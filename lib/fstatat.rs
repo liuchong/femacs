@@ -1,4 +1,6 @@
 // femacs: port of lib/fstatat.c @ fd7afced403.
+// [U1-MODULE-UNIT]
+use crate::common::*;
 /* Written by Paul Eggert and Jim Meyering.  */
 
 /* emacs/lib/fstatat.c: HAVE_FSTATAT and HAVE_WORKING_FSTATAT_ZERO_FLAG are both 1 in the
@@ -13,13 +15,13 @@
    <errno.h>, <fcntl.h>, <stdlib.h> and <string.h> the errno mirror, the fcntl mirror and the
    `malloc`/`free`/`strlen` declarations below (stdlib.in.h/string.in.h have no mirror yet).  */
 use std::ffi::{c_char, c_int, c_long, c_short, c_uint, c_void};
-include!("../src/include/config.rs");
-include!("include/gnulib_config.rs");
-include!("include/sys_types.in.rs");
-include!("include/sys_stat.in.rs");
-include!("include/fcntl.in.rs");
-include!("include/stat-time.rs");
-include!("include/errno.rs");
+// [U1] config.rs provided by common
+// [U1] include/gnulib_config.rs imported via common
+// [U1] include/sys_types.in.rs imported via common
+// [U1] include/sys_stat.in.rs imported via common
+// [U1] include/fcntl.in.rs imported via common
+// [U1] include/stat-time.rs imported via common
+// [U1] include/errno.rs imported via common
 
 /* C 23's `#define __need_system_sys_stat_h` (empty body; the port keeps the name).  */
 pub const __need_system_sys_stat_h: () = ();

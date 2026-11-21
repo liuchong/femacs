@@ -8,6 +8,8 @@
 // (filevercmp.c) must not collide with them (the P-19/P-21/P-49 shape, as in
 // include/mini-gmp.rs).
 
+// [U1-MODULE-MIRROR]
+use super::*;
 /* C 22-24's `#if !_GL_CONFIG_H_INCLUDED / #error "Please include config.h first."`.  */
 const _: () = core::assert! (_GL_CONFIG_H_INCLUDED, "Please include config.h first.");
 
@@ -23,7 +25,7 @@ pub mod filevercmp_decls {
       -> c_int;
   }
 }
-use filevercmp_decls::*;
+pub use self::filevercmp_decls::*;
 
 /* The include guard has no Rust counterpart (PORTING.md 0.1).  */
 pub const FILEVERCMP_H: bool = true;
