@@ -13,8 +13,12 @@ fe -R -nw notes.org
 ```
 
 Both names run the same editor. `fe` supplies `-Q -nw` for a clean terminal
-session and lists its launcher options before the editor help.
-`femacs` forwards every argument, including `--help`, directly to Fe.
+session. Its help starts with `Usage: fe [OPTION-OR-FILENAME]...` and lists
+the launcher options separately from **Native editor help (macOS)**.
+`femacs` forwards every argument, including `--help`, directly to Fe. The
+native help shows the path of the editor executable in the app bundle.
+On Linux and Windows the launcher reports the macOS requirement when invoked.
+
 `--version` reports the editor version. Cargo reports the launcher version
 in `cargo install --list`.
 To install only the long command name, use `cargo install femacs --locked --bin femacs`.

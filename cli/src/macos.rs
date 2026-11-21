@@ -9,6 +9,7 @@ use std::{
 };
 
 const HELP: &str = concat!(
+    "Usage: fe [OPTION-OR-FILENAME]...\n\n",
     "Fe launcher options\n",
     "  -R, --reset-args  Discard the preset and all earlier arguments.\n",
     "                    The last reset before -- wins.\n",
@@ -22,7 +23,7 @@ const HELP: &str = concat!(
     "  fe -R -nw notes.org     Use native terminal startup and ordinary init\n",
     "  fe -1 a.txt b.txt       Open one file at a time\n",
     "\n",
-    "Native editor help\n\n",
+    "Native editor help (macOS)\n\n",
 );
 
 pub(super) fn launch(default: DefaultMode) -> Result<ExitCode, String> {
