@@ -62,6 +62,9 @@ p code, li code { overflow-wrap: anywhere; }
 .brand, .source-link, .footer-brand { color: var(--ink); text-decoration: none; font-weight: 690; }
 .brand { display: inline-flex; align-items: center; gap: .6rem; width: max-content; letter-spacing: -.03em; font-size: 1.16rem; }
 .brand img { width: 2.2rem; }
+@media (prefers-color-scheme: dark) {
+  .brand img { padding: .12rem .19rem; border-radius: .32rem; background: #ebe6dc; }
+}
 .site-nav, .header-actions { display: flex; flex-wrap: wrap; align-items: center; gap: .2rem clamp(.35rem, 1.5vw, 1.2rem); }
 .site-nav { justify-content: center; }
 .site-nav a, .source-link, .language-button { padding: .55rem .35rem; font-size: .88rem; white-space: nowrap; }
