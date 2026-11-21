@@ -6,6 +6,10 @@
 
 用 Rust 重写并加速 Emacs 的编辑器项目。
 
+[![crates.io 命令行入口版本](https://img.shields.io/crates/v/femacs?logo=rust&label=crates.io)](https://crates.io/crates/femacs)
+[![许可证：GPL-3.0-or-later](https://img.shields.io/badge/license-GPL--3.0--or--later-blue)](../../../LICENSE)
+[![项目文档](https://img.shields.io/badge/docs-femacs.com-blue)](https://femacs.com/)
+
 ## 名字的来历
 
 `Fe` 是铁的元素符号，而 `Rust` 本义就是铁锈——铁锈由铁而生，两者互为表里。

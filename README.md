@@ -6,6 +6,10 @@
 
 An editor project that rewrites and accelerates Emacs in Rust.
 
+[![Launcher version on crates.io](https://img.shields.io/crates/v/femacs?logo=rust&label=crates.io)](https://crates.io/crates/femacs)
+[![License: GPL-3.0-or-later](https://img.shields.io/badge/license-GPL--3.0--or--later-blue)](LICENSE)
+[![Project documentation](https://img.shields.io/badge/docs-femacs.com-blue)](https://femacs.com/)
+
 ## The name
 
 `Fe` is the chemical symbol of iron, and `Rust` is what iron turns into — rust comes from iron,
