@@ -1203,6 +1203,103 @@ sys.exit(0)
                     self.assertEqual(error.exception.errno, errno.EBADF)
 
 
+class RunnerHostHomeIsolationContracts(unittest.TestCase):
+    """Runner guards must keep ~USER overrides and TRAMP history inside owned HOME."""
+
+    def test_runner_defines_eglot_and_tramp_host_home_confinement(self):
+        import json
+        import shutil
+        import subprocess
+        runner = (REPO / "tools/fixtures/stable-suite-runner.el").read_text(encoding="utf-8")
+        self.assertIn("stable-suite--ensure-owned-home", runner)
+        self.assertIn("stable-suite--confine-tramp-connection-env", runner)
+        self.assertIn("stable-suite--confine-eglot-fixture-env", runner)
+        self.assertIn("stable-suite--install-file-isolation-guards", runner)
+
+        editor = None
+        for candidate in (
+            REPO / "dist/macos/Femacs.app/Contents/MacOS/Femacs",
+            Path(shutil.which("emacs") or ""),
+        ):
+            if candidate.is_file() and os.access(candidate, os.X_OK):
+                editor = candidate
+                break
+        if editor is None:
+            self.skipTest("no executable batch Emacs/Femacs available for live Lisp guard check")
+
+        with tempfile.TemporaryDirectory(prefix="runner-home-guard-") as temp_dir:
+            root = Path(temp_dir)
+            owned_home = root / "owned-home"
+            fake_real_home = root / "host-home"
+            owned_home.mkdir()
+            fake_real_home.mkdir()
+            host_hist = fake_real_home / ".bash_history"
+            host_hist.write_bytes(b"#1790000001\necho host_history_must_survive\n")
+
+            probe_test = root / "probe-tests.el"
+            probe_test.write_text(
+                "(require 'ert)\n"
+                "(defvar tramp-histfile-override nil)\n"
+                "(defun tramp-maybe-open-connection (&rest _)\n"
+                "  (list (getenv \"HOME\") tramp-histfile-override))\n"
+                "(provide 'tramp)\n"
+                "(defun eglot--with-fixture (_fixture fn)\n"
+                "  (let ((process-environment\n"
+                "         (cons (concat \"HOME=\" (symbol-value 'stable-suite--real-user-home))\n"
+                "               process-environment)))\n"
+                "    (funcall fn)))\n"
+                "(ert-deftest probe-host-home-confinement ()\n"
+                "  (setq stable-suite--real-user-home "
+                + json.dumps(str(fake_real_home))
+                + ")\n"
+                "  (let ((tramp-histfile-override t))\n"
+                "    (eglot--with-fixture nil\n"
+                "      (lambda ()\n"
+                "        (should (equal (getenv \"HOME\") "
+                + json.dumps(str(owned_home))
+                + "))\n"
+                "        (let ((res (tramp-maybe-open-connection nil)))\n"
+                "          (should (equal (nth 0 res) "
+                + json.dumps(str(owned_home))
+                + "))\n"
+                "          (should (equal (nth 1 res) "
+                + json.dumps(str(owned_home / ".tramp_history"))
+                + ")))))))\n",
+                encoding="utf-8",
+            )
+            result_json = root / "result.json"
+            env = dict(
+                os.environ,
+                HOME=str(owned_home),
+                TMPDIR=str(root),
+                LC_ALL="C",
+                LANG="C",
+                TERM="dumb",
+                STABLE_SUITE_MODE="run",
+                STABLE_SUITE_FILE=str(probe_test),
+                STABLE_SUITE_FILE_ID="test/lisp/progmodes/eglot-tests.el",
+                STABLE_SUITE_TEST="probe-host-home-confinement",
+                STABLE_SUITE_RESULT=str(result_json),
+                FEMACS_RUNTIME_CASE_ROOT=str(root),
+            )
+            subprocess.run(
+                [str(editor), "--batch", "-Q", "-l", str(REPO / "tools/fixtures/stable-suite-runner.el"), "-f", "stable-suite-main"],
+                env=env,
+                cwd=str(root),
+                stdin=subprocess.DEVNULL,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                timeout=15,
+                check=True,
+            )
+            payload = json.loads(result_json.read_text(encoding="utf-8"))
+            self.assertEqual(payload["status"], "passed", payload)
+            self.assertEqual(
+                host_hist.read_bytes(),
+                b"#1790000001\necho host_history_must_survive\n",
+            )
+
+
 if __name__ == "__main__":
     import json
     parent = Path(os.environ.get("FEMACS_RUNTIME_TEST_ROOT", REPO / "build/acceptance/runtime-contracts"))

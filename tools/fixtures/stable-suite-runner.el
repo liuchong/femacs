@@ -81,6 +81,83 @@
 (require 'json)
 (require 'cl-lib)
 
+(defconst stable-suite--real-user-home
+  (ignore-errors
+    (let ((login (user-login-name)))
+      (and (stringp login)
+           (not (equal login ""))
+           (directory-file-name (expand-file-name (concat "~" login)))))))
+
+(defvar stable-suite--owned-home nil)
+
+(defun stable-suite--ensure-owned-home ()
+  "Return a writable isolated HOME directory that is never the host user's HOME."
+  (or stable-suite--owned-home
+      (let* ((current (getenv "HOME"))
+             (clean (and (stringp current)
+                         (not (equal current ""))
+                         (directory-file-name (expand-file-name current)))))
+        (setq stable-suite--owned-home
+              (if (and clean
+                       (file-directory-p clean)
+                       (not (and stable-suite--real-user-home
+                                 (file-equal-p clean stable-suite--real-user-home))))
+                  clean
+                (let ((base (or (getenv "FEMACS_RUNTIME_CASE_ROOT")
+                                temporary-file-directory)))
+                  (make-temp-file
+                   (expand-file-name "stable-suite-home-" base) t)))))))
+
+(defvar tramp-histfile-override)
+(defun stable-suite--confine-tramp-connection-env (orig &rest args)
+  "Keep batch TRAMP shells inside the owned case HOME and history file."
+  (if (not noninteractive)
+      (apply orig args)
+    (let* ((owned-home (stable-suite--ensure-owned-home))
+           (owned-histfile (expand-file-name ".tramp_history" owned-home))
+           (current-home (getenv "HOME"))
+           (safe-home (if (and (stringp current-home)
+                               (not (equal current-home ""))
+                               (not (and stable-suite--real-user-home
+                                         (file-equal-p current-home
+                                                       stable-suite--real-user-home))))
+                          current-home
+                        owned-home))
+           (process-environment
+            (cons (concat "HOME=" safe-home)
+                  (copy-sequence process-environment)))
+           (tramp-histfile-override
+            (if (eq tramp-histfile-override t)
+                owned-histfile
+              tramp-histfile-override)))
+      (apply orig args))))
+
+(with-eval-after-load 'tramp
+  (unless (advice-member-p #'stable-suite--confine-tramp-connection-env
+                           'tramp-maybe-open-connection)
+    (advice-add 'tramp-maybe-open-connection :around
+                #'stable-suite--confine-tramp-connection-env)))
+
+(defun stable-suite--confine-eglot-fixture-env (orig fixture fn)
+  "Prevent `eglot--with-fixture' from redirecting child shells to real ~USER."
+  (let* ((owned-home (stable-suite--ensure-owned-home))
+         (owned-histfile (expand-file-name ".bash_history" owned-home)))
+    (funcall orig fixture
+             (lambda ()
+               (let ((process-environment
+                      (cons (concat "HOME=" owned-home)
+                            (cons (concat "HISTFILE=" owned-histfile)
+                                  process-environment))))
+                 (funcall fn))))))
+
+(defun stable-suite--install-file-isolation-guards ()
+  "Attach per-file host isolation guards after loading an original test file."
+  (when (and (fboundp 'eglot--with-fixture)
+             (not (advice-member-p #'stable-suite--confine-eglot-fixture-env
+                                   'eglot--with-fixture)))
+    (advice-add 'eglot--with-fixture :around
+                #'stable-suite--confine-eglot-fixture-env)))
+
 ;; Only the owned Darwin mock fixtures request this shell initialization.
 ;; Tramp clears ENV when re-execing its remote shell, so the process ENV alone
 ;; is insufficient.  Use its explicit remote environment with shell quoting.
@@ -267,7 +344,9 @@ not continue past a blocking case."
          (error-text nil))
     (condition-case error
         (if file
-            (load file nil nil t)
+            (progn
+              (load file nil nil t)
+              (stable-suite--install-file-isolation-guards))
           (error "STABLE_SUITE_FILE is not set"))
       (error
        (setq status "load-error"
@@ -348,7 +427,9 @@ not continue past a blocking case."
          record)
     (condition-case error
         (if file
-            (load file nil nil t)
+            (progn
+              (load file nil nil t)
+              (stable-suite--install-file-isolation-guards))
           (error "STABLE_SUITE_FILE is not set"))
       (error
        (setq error-text (error-message-string error))))
@@ -579,6 +660,7 @@ directly.  Do not suppress or replace their condition."
           (stable-suite--prepare-compiler-output)
           (stable-suite--diagnostic-snapshot "before-load")
           (load file nil nil t)
+          (stable-suite--install-file-isolation-guards)
           (setq ids (sort (cl-set-difference
                            (stable-suite--registered-ids) before :test #'equal)
                           #'string<))
